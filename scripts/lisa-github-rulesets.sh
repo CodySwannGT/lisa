@@ -724,6 +724,209 @@ report_removed_contexts() {
   done < <(ruleset_removed_contexts "$live" "$payload")
 }
 
+##############################################################################
+# Bypass Actors
+##############################################################################
+
+# Bypass actors follow the same contract as required checks (#4297).
+#
+# The applier used to send each template's `bypass_actors` as the whole list,
+# and GitHub REPLACES the list on update. So a bypass a consumer added on
+# purpose — measured: an admin RepositoryRole on `nightly e2e health` — was
+# deleted by every apply, reported as a routine "Applied", and no config key
+# could keep it. Losing a bypass is not a tightening anyone asked for either:
+# it can strand the only actor allowed to land an emergency fix.
+#
+# So, exactly like the required list:
+#   - by default the LIVE bypass list is preserved and the template's entries
+#     are added to it;
+#   - a ruleset whose bypass list is DECLARED gets precisely that list, which
+#     is the only way to remove an actor;
+#   - every actor added or removed, and every bypass_mode changed, is printed
+#     by name, on a dry run too; an undeclared live entry keeps its own mode.
+#
+# Declared per ruleset under `github.rulesets.bypassActors`:
+#   { "github": { "rulesets": { "bypassActors": {
+#       "nightly e2e health": [
+#         { "actor_type": "DeployKey", "actor_id": null, "bypass_mode": "always" }
+#       ] } } } }
+#
+# The generated `base` ruleset already has a declaration surface —
+# `policy.ruleset.bypass_actors`, which lisa-ruleset-payload.mjs builds it
+# from — so that is what makes base declarative. A second key for the same
+# field would recreate the two-writers problem the generator exists to end.
+
+# The declared bypass list for one ruleset, or "null" when none is declared.
+config_bypass_actors() {
+  local project_path="$1"
+  local ruleset_name="$2"
+  local config="$project_path/.lisa.config.json"
+
+  if [[ ! -f "$config" ]]; then
+    echo "null"
+    return 0
+  fi
+
+  local filter='.github.rulesets.bypassActors[$name] // null'
+  if [[ "$ruleset_name" == "base" ]]; then
+    if jq -e '.github.rulesets.bypassActors.base != null' "$config" &> /dev/null; then
+      log_warning "github.rulesets.bypassActors.base is ignored — declare base's bypass list as policy.ruleset.bypass_actors" >&2
+    fi
+    filter='.policy.ruleset.bypass_actors // null'
+  fi
+
+  # An omitted bypass_mode is GitHub's default, `always`, and an omitted
+  # actor_id is null (DeployKey). Filled in here so a declaration that leaves
+  # them out compares equal to what GitHub stores, rather than reporting a
+  # change that never happens.
+  local declared
+  if ! declared=$(jq -c --arg name "$ruleset_name" \
+    "($filter) | if type == \"array\" then map(. + {actor_id: (.actor_id // null), bypass_mode: (.bypass_mode // \"always\")}) else null end" \
+    "$config" 2>/dev/null); then
+    log_warning ".lisa.config.json could not be parsed — ignoring github.rulesets overrides" >&2
+    echo "null"
+    return 0
+  fi
+  echo "$declared"
+}
+
+# Print why this ruleset's bypass declaration is unusable, or nothing when it
+# is absent or well-formed. A malformed declaration must stop the ruleset: read
+# as "nothing declared" it would quietly PRESERVE the actors the operator tried
+# to remove, and the run would still report success.
+bypass_declaration_error() {
+  local project_path="$1"
+  local ruleset_name="$2"
+  local config="$project_path/.lisa.config.json"
+
+  [[ -f "$config" ]] || return 0
+
+  local key="github.rulesets.bypassActors[\"$ruleset_name\"]"
+  local filter='.github.rulesets.bypassActors[$name]?'
+  if [[ "$ruleset_name" == "base" ]]; then
+    key="policy.ruleset.bypass_actors"
+    filter='.policy.ruleset.bypass_actors?'
+  fi
+
+  jq -r --arg name "$ruleset_name" --arg key "$key" "
+    ($filter) as \$declared
+    | if \$declared == null then empty
+      elif (\$declared | type) != \"array\" then
+        \"\(\$key) must be a list of bypass actors, got \(\$declared | type)\"
+      elif any(\$declared[]; type != \"object\" or (.actor_type | type) != \"string\") then
+        \"\(\$key) has an entry without a string actor_type\"
+      elif any(\$declared[]; .actor_id != null and ((.actor_id | type) != \"number\" or .actor_id != (.actor_id | floor))) then
+        \"\(\$key) has an actor_id that is neither an integer nor null\"
+      elif any(\$declared[]; .bypass_mode as \$mode | \$mode != null and ([\"always\", \"pull_request\", \"exempt\"] | index(\$mode)) == null) then
+        \"\(\$key) has a bypass_mode other than always, pull_request or exempt\"
+      else empty end" "$config" 2>/dev/null \
+    || echo "$key could not be validated — refusing to apply a declaration nobody checked"
+}
+
+# Replace a template's bypass list with the declared one, when there is one.
+# `base` is skipped: its payload is already built from its declaration.
+apply_config_bypass_actors() {
+  local json="$1"
+  local project_path="$2"
+  local ruleset_name="$3"
+
+  local declared
+  declared=$(config_bypass_actors "$project_path" "$ruleset_name")
+  if [[ "$declared" == "null" || "$ruleset_name" == "base" ]]; then
+    echo "$json"
+    return 0
+  fi
+  echo "$json" | jq --argjson declared "$declared" '.bypass_actors = $declared'
+}
+
+# Union the live bypass list back into the payload. Live entries are kept
+# verbatim and in live order, so a ruleset that needs no change compares equal
+# and nothing is sent; template-only actors are appended. A live entry the
+# template also names keeps its LIVE bypass_mode: an operator who narrowed the
+# admin bypass from `always` to `pull_request` made the same deliberate choice
+# as one who added it, and taking the template's mode would widen it back
+# without a word. Changing a mode, like removing an actor, needs a declaration.
+preserve_live_bypass_actors() {
+  local live="$1"
+  local json="$2"
+
+  if [[ -z "$live" ]] || ! echo "$live" | jq -e 'has("bypass_actors")' &> /dev/null; then
+    echo "$json"
+    return 0
+  fi
+
+  echo "$json" | jq --argjson live "$live" '
+    def actor_key: [.actor_type, .actor_id];
+    (.bypass_actors // []) as $want
+    | ($live.bypass_actors // []) as $have
+    | .bypass_actors = (
+        $have
+        + [ $want[]
+          | . as $entry
+          | select([ $have[] | actor_key ] | index([$entry | actor_key]) | not) ]
+      )'
+}
+
+# One line per bypass actor in $1's list that $2's list lacks, keyed by
+# actor type and id. Formatted `<type> [<id>] (<bypass_mode>)`.
+bypass_actors_missing_from() {
+  local from="$1"
+  local against="$2"
+
+  jq -r -n --argjson from "${from:-null}" --argjson against "${against:-null}" '
+    def actor_key: [.actor_type, .actor_id];
+    def actors: if . == null then [] else (.bypass_actors // []) end;
+    ($against | actors | map(actor_key)) as $keys
+    | ($from | actors)[]
+    | select(actor_key as $k | ($keys | index([$k])) | not)
+    | "\(.actor_type)\(if .actor_id == null then "" else " \(.actor_id)" end) (\(.bypass_mode))"'
+}
+
+# One line per actor present in both lists whose bypass_mode differs,
+# formatted `<type> [<id>] (<live mode> -> <payload mode>)`.
+bypass_actor_mode_changes() {
+  local live="$1"
+  local payload="$2"
+
+  jq -r -n --argjson live "${live:-null}" --argjson want "${payload:-null}" '
+    def actor_key: [.actor_type, .actor_id];
+    def actors: if . == null then [] else (.bypass_actors // []) end;
+    ($live | actors) as $have
+    | ($want | actors)[]
+    | . as $entry
+    | ([ $have[] | select(actor_key == ($entry | actor_key)) ] | first) as $old
+    | select($old != null and $old.bypass_mode != $entry.bypass_mode)
+    | "\(.actor_type)\(if .actor_id == null then "" else " \(.actor_id)" end) (\($old.bypass_mode) -> \(.bypass_mode))"'
+}
+
+# Name every bypass actor this run adds and removes. A removal is a warning:
+# it can only happen when config declared the list, and it should still never
+# read in the audit log as a routine reconciliation.
+report_bypass_actor_changes() {
+  local live="$1"
+  local payload="$2"
+
+  # A live ruleset that does not disclose its bypass list cannot be preserved,
+  # and the payload's list will replace whatever is there.
+  if [[ -n "$live" ]] \
+    && ! echo "$live" | jq -e 'has("bypass_actors")' &> /dev/null \
+    && echo "$payload" | jq -e 'has("bypass_actors")' &> /dev/null; then
+    log_warning "  GitHub did not disclose this ruleset's bypass actors — any it has will be replaced by the list sent (the token needs repository admin to read them)"
+    return 0
+  fi
+
+  local actor
+  while IFS= read -r actor; do
+    [[ -n "$actor" ]] && log_info "  + bypass actor added: $actor"
+  done < <(bypass_actors_missing_from "$payload" "$live")
+  while IFS= read -r actor; do
+    [[ -n "$actor" ]] && log_warning "  - bypass actor removed: $actor (the declared bypass list does not name it)"
+  done < <(bypass_actors_missing_from "$live" "$payload")
+  while IFS= read -r actor; do
+    [[ -n "$actor" ]] && log_warning "  ~ bypass actor mode changed: $actor (the declared bypass list sets it)"
+  done < <(bypass_actor_mode_changes "$live" "$payload")
+}
+
 apply_ruleset() {
   local repo="$1"
   local template_file="$2"
@@ -736,12 +939,20 @@ apply_ruleset() {
   local ruleset_name
   ruleset_name=$(echo "$template_content" | jq -r '.name')
 
+  local bypass_error
+  bypass_error=$(bypass_declaration_error "$project_path" "$ruleset_name")
+  if [[ -n "$bypass_error" ]]; then
+    log_error "Not applying ruleset '$ruleset_name': $bypass_error"
+    return 1
+  fi
+
   local clean_template
   clean_template=$(strip_readonly_fields "$template_content")
   clean_template=$(add_derived_run_gate_checks "$clean_template" "$project_path" "$ruleset_name")
   clean_template=$(add_config_required_checks "$clean_template" "$project_path" "$ruleset_name")
   clean_template=$(strip_actions_checks_if_no_workflows "$clean_template" "$project_path")
   clean_template=$(strip_config_dropped_checks "$clean_template" "$project_path")
+  clean_template=$(apply_config_bypass_actors "$clean_template" "$project_path" "$ruleset_name")
 
   # A template whose rules were entirely stripped has nothing to enforce here.
   if [[ $(echo "$clean_template" | jq '(.rules // [1]) | length') -eq 0 ]]; then
@@ -779,6 +990,12 @@ apply_ruleset() {
     else
       clean_template=$(preserve_live_required_checks "$live" "$clean_template")
     fi
+    # The same opt-in, for the bypass list: preserved unless declared.
+    if [[ "$(config_bypass_actors "$project_path" "$ruleset_name")" == "null" ]]; then
+      clean_template=$(preserve_live_bypass_actors "$live" "$clean_template")
+    else
+      log_verbose "Bypass actors for '$ruleset_name' are declared in .lisa.config.json — the live list is not preserved"
+    fi
   fi
 
   # Idempotence: a run that would change nothing must say so and send nothing,
@@ -797,6 +1014,7 @@ apply_ruleset() {
     fi
     report_added_contexts "$live" "$clean_template"
     report_removed_contexts "$live" "$clean_template"
+    report_bypass_actor_changes "$live" "$clean_template"
     log_verbose "Template: $template_file"
     return 0
   fi
@@ -811,6 +1029,7 @@ apply_ruleset() {
   if apply_with_integration_fallback "$repo" "$ruleset_name" "$clean_template" "$existing_id"; then
     report_added_contexts "$live" "${APPLIED_PAYLOAD:-$clean_template}"
     report_removed_contexts "$live" "${APPLIED_PAYLOAD:-$clean_template}"
+    report_bypass_actor_changes "$live" "${APPLIED_PAYLOAD:-$clean_template}"
     return 0
   fi
   log_error "Failed to apply ruleset '$ruleset_name'"
