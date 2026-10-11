@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.74.8](https://github.com/CodySwannGT/lisa/compare/v4.74.7...v4.74.8) (2026-10-11)
+
+
+### Bug Fixes
+
+* explain Rails pre-push refusals ([3a3f821](https://github.com/CodySwannGT/lisa/commit/3a3f8216538a093fccdbe68da3dcc7abcabcdff0)), closes [CodySwannGT/lisa#4411](https://github.com/CodySwannGT/lisa/issues/4411)
+
 ### [4.74.7](https://github.com/CodySwannGT/lisa/compare/v4.74.6...v4.74.7) (2026-10-11)
 
 
