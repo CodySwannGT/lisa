@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.74.7](https://github.com/CodySwannGT/lisa/compare/v4.74.6...v4.74.7) (2026-10-11)
+
+
+### Bug Fixes
+
+* refresh authenticated scanner helper closure ([6fd80f9](https://github.com/CodySwannGT/lisa/commit/6fd80f9641dacefab3498c9ab0f51dfd5d3e4f8f)), closes [CodySwannGT/lisa#4412](https://github.com/CodySwannGT/lisa/issues/4412)
+* select the first qualified Gitleaks on PATH ([1337a7e](https://github.com/CodySwannGT/lisa/commit/1337a7ef2d4f065686c92a8776086a3b585ddb1a)), closes [CodySwannGT/lisa#4412](https://github.com/CodySwannGT/lisa/issues/4412)
+
 ### [4.74.6](https://github.com/CodySwannGT/lisa/compare/v4.74.5...v4.74.6) (2026-10-11)
 
 
