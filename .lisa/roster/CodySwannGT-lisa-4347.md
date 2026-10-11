@@ -1,5 +1,18 @@
 # Roster Decision: CodySwannGT/lisa#4347
 
+## Native push failure classification — 2026-10-11
+
+The bounded input resolver verified the original failed run and complete retained artifact inventory: child output was discarded after capture, so its underlying cause remains unknown. Reuse the existing exhaustive type catalogue and team with these assignments taking precedence. The existing release qualifier acts as the included bounded builder; the resolver becomes the separate quality/security/conformance and empirical reviewer after implementation. Root owns this metadata, generated artifacts, native hooks, commits, provider writes, protected merge, release and caller adoption. No Claude sessions are involved.
+
+INCLUDE - lisa-builder - Existing latest_lisa_release_qualifier implements only native safe failure registration, push boundary classification and focused reaching tests.
+INCLUDE - explorer - Existing remaining_delivery_resolver completed the bounded source/evidence investigation.
+INCLUDE - lisa-quality-specialist - Existing remaining_delivery_resolver independently reviews frozen changes and meaningful controls.
+INCLUDE - lisa-security-specialist - The independent reviewer verifies no raw child output or forged exception properties escape.
+INCLUDE - lisa-spec-conformance-specialist - Independent review preserves all six original acceptance scenarios and authority boundaries.
+INCLUDE - lisa-verification-specialist - The independent reviewer executes actual native failing-process controls and distinguishes diagnostics from hosted acceptance.
+
+Keep all other exclusions and prior unrelated assignments unchanged. Builder ownership is limited to the existing npm-update-invariants.mjs, npm-update-native-process.mjs and npm-update-gate.mjs helpers under all/copy-overwrite/scripts/lib/, and tests/unit/scripts/npm-update-diagnostics.test.ts plus npm-update-native-process.test.ts. If a pure classifier module is required, first propose its basename to root. No credential, deadline, output-limit, cleanup, signature, status, hook, publication or merge requirement may be weakened. Public source artifacts use anonymous caller identities only.
+
 ## Canonical context read scope followup — 2026-10-10
 
 The input resolver reused the original claim and attached `codex/4347-canonical-context-fix` at actual main `fb7ed7c4d51c760b1855d4a68321a96ec0daf050`. The source now declares Node 24.21.0 and Bun 1.3.8; use that profile for source verification. The existing builder owns only the gate's reusable workflow permission declaration and its focused regression expectation, after root supplies the actual hosted read comparison. It may prepare the regression before that result, but must not infer the failure cause or change production permissions from the phase label alone. The existing independent verification specialist reviews the source change and hosted evidence separately. Root owns normal hooks, public anonymous tracker evidence, release qualification and external delivery. Preserve the six original acceptance scenarios and all authority, freshness, request and execution boundaries. This is a bounded fix within the current leaf, not another automation framework.
@@ -458,3 +471,21 @@ Root admits the existing builder to prepare and run RED/GREEN for the two alread
 Both genuine hosted direct canonical-read controls passed with identical requests and predicates. The read-scope candidate did not discriminate the failure and must not ship. Root removes its two provisional additions while preserving that commit and its local evidence.
 
 INCLUDE - lisa-bug-fixer - Own the bounded preload import repair: separate canonical JSON from the provenance CLI into a side-effect-free utility, preserve its existing bytes/behavior and public export, and redirect only transitive utility imports that currently evaluate the CLI during preload. Own a minimal original Node import-order regression using existing native test fixtures. No privileges, authentication policy, signatures, canonical subject, deadlines or final acceptance may be replaced. Root owns generated ledger/manifest/helper-graph, documentation, normal delivery and actual hosted qualification. Independent verifier reviews the exact import graph and RED/GREEN. All public source material uses anonymous hosts. The historical failure remains source-attributed until an actual native execution trace and repaired real gate establish it.
+
+## Required lifecycle-test clock correction — 2026-10-11
+
+Reuse the existing included builder and independent reviewer; no new team or claim. The builder's ownership is extended only to `tests/unit/core/plugin-command-lifecycle.test.ts` for the bounded test-clock correction in the plan. Root retains plan/roster, generated artifacts, normal hooks and delivery ownership. The independent reviewer retains quality, conformance and native evidence responsibility. Runtime code, original command budgets, real subprocess behavior, outcome assertions and cleanup requirements remain unchanged.
+## Required worker-cap test isolation — 2026-10-11
+
+Reuse the existing builder for only `tests/unit/config/vitest-worker-cap.test.ts`: inject the existing fleet-discovery parameter so the stated lone-run unit inputs are complete. Reuse the different reviewer for source and actual native proof. Root retains metadata, generation and delivery. No production worker cap or execution concurrency changes are authorized by this test repair.
+
+## Required native registry protocol correction — 2026-10-11
+
+INCLUDE - worker - The bounded packed_registry_builder owns only the existing fixture proxy in `tests/fixtures/shared-runtime-hosts/artifact.ts`, forwarding native Accept negotiation to genuine npm without other changes.
+INCLUDE - explorer - The current delivery_readiness_resolver established actual deadline, registry reachability and request-header evidence and independently reviews the resulting fixture correction and native proof.
+
+Retain the existing exhaustive catalogue and all original six acceptance requirements. Root owns plan/roster, original native execution, generated artifacts, normal small commit, batched PR, release and caller delivery. No production change, budget, cache, concurrency, dependency or assertion relaxation is admitted.
+
+## Required explicit package lifecycle declaration — 2026-10-11
+
+Extend the current packed_registry_builder's ownership only to `package.json` and `tests/unit/scripts/install-claude-plugins-self.test.ts` for the known lifecycle declaration and reaching RED/GREEN in the plan. Keep the helper's explicit setup behavior, root template governance and every remaining package lifecycle command unchanged. Reuse delivery_readiness_resolver for independent quality/security/conformance and native-proof review. Root retains metadata, original Expo execution, derived artifacts, normal commits, PR, release and caller delivery. No Claude agent session, new team, deadline relaxation or replacement acceptance is introduced.

@@ -129,6 +129,53 @@ const categories = new Set([
   "input-failed",
   "spawn-error",
 ]);
+const hookNames = new Set([
+  "work-item",
+  "behavior-contract",
+  "rspec",
+  "brakeman",
+  "reek",
+  "flog",
+  "flay",
+  "mutation",
+  "rubocop",
+  "bundler-audit",
+  "threshold-ratchet",
+]);
+
+/** Child reports are bounded hints, never native status, hook authority or raw output. */
+function hookReports(stdout, stderr) {
+  const buffers = [stdout, stderr].filter(Buffer.isBuffer);
+  if (buffers.reduce((size, buffer) => size + buffer.length, 0) > 8_388_608)
+    return { hooks: [], counts: null };
+  const text = buffers
+    .map(buffer => buffer.toString("utf8"))
+    .join("\n")
+    .replace(/\u001b\[[0-9;]{1,24}m/g, "");
+  const hooks = new Set();
+  for (const match of text.matchAll(
+    /^[ \t]*❌ ([a-z][a-z-]{0,31})( \([\d. a-z]{1,16}\))?[ \t]*\r?$/gm
+  ))
+    if (
+      hookNames.has(match[1]) &&
+      (match[2] === undefined ||
+        /^ \(\d{1,4}(?:\.\d{1,3})? (?:seconds?|s)\)$/.test(match[2]))
+    )
+      hooks.add(match[1]);
+  const counts = new Map();
+  for (const match of text.matchAll(
+    /^[ \t]*(\d{1,6}) examples?, (\d{1,6}) failures?[ \t]*\r?$/gm
+  )) {
+    const examples = Number(match[1]);
+    const failures = Number(match[2]);
+    if (failures <= examples)
+      counts.set(`${examples}:${failures}`, { examples, failures });
+  }
+  return {
+    hooks: [...hooks].sort(),
+    counts: counts.size === 1 ? counts.values().next().value : null,
+  };
+}
 
 /** Nested stages preserve the innermost observed boundary and the exact original thrown value. */
 export async function withStage(stage, operation) {
@@ -154,7 +201,9 @@ export function recordNativeFailure(
   status,
   signal,
   errno,
-  stderr
+  stderr,
+  stdout,
+  role
 ) {
   if (Buffer.isBuffer(stderr) && stderr.length <= 256)
     capturedErrors.set(error, Buffer.from(stderr));
@@ -165,6 +214,15 @@ export function recordNativeFailure(
       Number.isInteger(status) && status >= 0 && status <= 255 ? status : null,
     signal: signals.has(signal) ? signal : null,
     errno: errnos.has(errno) ? errno : null,
+    role: role === "audit" || role === "destination" ? role : null,
+    reports:
+      category === "exit" &&
+      Number.isInteger(status) &&
+      status > 0 &&
+      status <= 255 &&
+      (role === "audit" || role === "destination")
+        ? hookReports(stdout, stderr)
+        : null,
   });
 }
 
@@ -176,6 +234,18 @@ export function publicFailure(error) {
     parts.push(`native=${facts.native}`, `status=${facts.status ?? "null"}`);
     if (facts.signal) parts.push(`signal=${facts.signal}`);
     if (facts.errno) parts.push(`errno=${facts.errno}`);
+    if (facts.role) parts.push(`role=${facts.role}`);
+    if (facts.reports) {
+      parts.push(
+        `hook-reports=${facts.reports.hooks.join(",") || "unclassified"}`
+      );
+      if (facts.reports.counts)
+        parts.push(
+          `rspec-examples=${facts.reports.counts.examples}`,
+          `rspec-failures=${facts.reports.counts.failures}`
+        );
+      parts.push("reports=child-reported-nonauthoritative");
+    }
   }
   if (facts?.provenance) parts.push(`provenance=${facts.provenance}`);
   return `npm updater failed: required policy, authorization, installation, gate or exact publication evidence was unavailable (${parts.join(" ")})`;

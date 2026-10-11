@@ -312,6 +312,10 @@ export async function startRegistry(
       );
     } else {
       void fetch(`https://registry.npmjs.org${request.url}`, {
+        // Preserve native metadata negotiation without forwarding credentials.
+        ...(request.headers.accept === undefined
+          ? {}
+          : { headers: { Accept: request.headers.accept } }),
         signal: AbortSignal.timeout(120_000),
       })
         .then(async upstream => {
