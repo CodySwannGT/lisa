@@ -1,0 +1,55 @@
+# Security Audit Handling
+
+If `git push` fails because the pre-push hook reports security vulnerabilities, work the decision ladder below **autonomously**. Only one rung pauses to ask a human. Never use `--no-verify`, `HUSKY=0`, `core.hooksPath`, or any other hook bypass to skip the security audit.
+
+## The decision ladder
+
+The remediation for any high/critical advisory is a simple, ordered decision — not a question to forward to the user. For each advisory, take the **first** action that is possible:
+
+1. **Update the offending package** to a patched version.
+2. **If that's not possible**, force a resolution/override on the vulnerable leaf package.
+3. **If that's not possible**, evaluate whether the advisory actually affects the project.
+4. **If it affects the project** (and 1 and 2 weren't possible), ask a human what to do.
+5. **If it doesn't affect the project**, add it to the ignore list yourself.
+
+Steps 1, 2, 3, and 5 are autonomous. Do not stop and ask the user except at step 4, and only after you have genuinely attempted steps 1 and 2 and performed the step-3 evaluation.
+
+## Node.js Projects (GHSA advisories)
+
+1. Note the GHSA ID(s), affected package(s), and advisory URL from the error output.
+2. Check the advisory URL to determine whether a patched version of the vulnerable package exists.
+3. **Step 1 — update:** If a patched version exists and is compatible, add a resolution/override in `package.json` to force the patched version (add to **both** `resolutions` and `overrides`), run the package manager install to regenerate the lockfile, commit, and retry the push.
+4. **Step 2 — force override:** If no straight upgrade lands the patched version but a compatible patched version exists somewhere on the graph, pin it via `resolutions` + `overrides` on the **leaf** package (see "Override the vulnerable package, not its parent" below), regenerate the lockfile, commit, and retry.
+5. **Step 3 — evaluate impact:** If neither an upgrade nor an override is possible (no fixed version exists, or every compatible pin breaks a dependent), determine whether the vulnerability actually affects this project. Consider: is the vulnerable code path reachable from this project's usage? Does it process untrusted input? Is the dependency runtime, or dev/build-only? Record the conclusion.
+6. **Step 4 — escalate:** If the evaluation shows the vulnerability **does** affect the project and neither step 1 nor step 2 was possible, ask the user what to do. This is the only step that pauses for a human.
+7. **Step 5 — ignore:** If the evaluation shows the vulnerability **does not** affect the project, add an exclusion entry to `audit.ignore.local.json` yourself, in the format `{"id": "GHSA-xxx", "package": "pkg-name", "reason": "<impact evaluation: why this advisory does not affect this project>"}`, then commit and retry the push. No human approval is required for this step — the `reason` field is the record of your evaluation.
+
+### Critical: Override the vulnerable package, not its parent
+
+When the audit output shows a dependency chain like `@expo/cli › glob › minimatch`, the vulnerable package is **minimatch**, not glob. Always override the **leaf package** that has the actual vulnerability.
+
+**Never override a parent package to force a lower major version** — other packages in the project may depend on a newer major version, and a resolution/override forces ALL installations to the specified version. For example, overriding `glob` to `^8.1.0` will break `@expo/cli` which requires `glob@^13.0.0`, causing `expo prebuild` to fail with `files.map is not a function`.
+
+Before adding a resolution/override (step 2), verify:
+- You are targeting the **actually vulnerable package**, not a parent in the chain.
+- The override version is **compatible with all dependents** (check with `bun why <package>` or `npm ls <package>`).
+- The override does not **downgrade** a package across a major version boundary that other dependencies require.
+
+If any of these checks fail, the override is "not possible" for the purposes of the ladder — drop to step 3 (evaluate impact).
+
+### Never
+
+- Never add a blanket audit bypass or lower the configured audit level.
+- Never jump to step 4 (ask a human) before genuinely attempting steps 1–3.
+- Never add a step-5 ignore entry without an impact evaluation recorded in its `reason`.
+
+## Rails Projects (bundler-audit)
+
+Same ladder, bundler mechanics:
+
+1. Note the advisory ID, affected gem, and advisory URL from the error output.
+2. Check whether a patched version of the gem exists.
+3. **Step 1 — update:** If a patched version exists:
+   - **Direct dependency** (in Gemfile): update its version constraint, run `bundle update <gem>`, commit, retry.
+   - **Transitive dependency** (only in Gemfile.lock): run `bundle update <gem>` to pull the patched version without changing the Gemfile, commit the lockfile change, retry.
+4. **Steps 3–5 — no patch:** If no patched version exists, evaluate whether the advisory affects the project. If it **does** and no fix is possible, ask the user (step 4). If it **does not**, document the exception and retry (step 5).

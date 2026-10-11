@@ -1,0 +1,168 @@
+---
+name: lisa-jira-journey
+description: "Parse a JIRA ticket's Validation Journey section, execute the verification steps using appropriate tools (curl, test commands, database queries), capture evidence, and post to JIRA + GitHub PR using the jira-evidence skill."
+allowed-tools: ["Bash", "Read", "Glob", "Grep", "Skill"]
+---
+
+# JIRA Validation Journey (TypeScript)
+
+All Atlassian operations in this skill go through `lisa-atlassian-access`. Do not call MCP tools or `acli` directly. Note: the helper scripts (`scripts/parse-plan.py`, `scripts/jira-evidence/post-evidence.sh`) currently use direct API calls and are pending migration to route through `atlassian-access`.
+
+Parse a JIRA ticket's Validation Journey, execute the verification steps using the appropriate tools for the change type, capture evidence at each typed `[EVIDENCE: <artifact-type>: <name>]` marker, and post to JIRA + GitHub PR.
+
+## Arguments
+
+`$ARGUMENTS`: `<TICKET_ID> [PR_NUMBER]`
+
+- `TICKET_ID` (required): JIRA ticket key (e.g., `PROJ-123`)
+- `PR_NUMBER` (optional): GitHub PR number to update description
+
+## Prerequisites
+
+- `JIRA_API_TOKEN` environment variable set
+- `jira-cli` configured — `.lisa/jira-cli/.config.yml` (written by the
+  `setup-jira-cli` SessionStart hook) or `~/.config/.jira/.config.yml`
+- `gh` CLI authenticated
+- Appropriate services running for the verification type (dev server, database, etc.)
+
+## Workflow
+
+### Step 1: Parse the Validation Journey
+
+Run the parser script to extract the Validation Journey from the JIRA ticket description:
+
+```bash
+python3 .claude/skills/jira-journey/scripts/parse-plan.py <TICKET_ID>
+```
+
+The parser resolves Jira configuration from the checkout first: it searches
+`$CLAUDE_PROJECT_DIR/.lisa/jira-cli/.config.yml`, then the current directory and
+its parents, and uses `~/.config/.jira/.config.yml` when no checkout config
+exists. Do not copy project settings into the home-level file just to make this
+step work.
+
+A checkout config is not automatically trusted. The first checkout candidate
+that exists is decisive — that is `$CLAUDE_PROJECT_DIR` when it is set, which
+outranks a config nearer the current directory, and only otherwise the nearest
+one walking up from the current directory. Its server must match the operator's
+trust root — `JIRA_SERVER` when set, otherwise the home config — and a mismatch
+fails naming that file rather than quietly using the home config instead, so the
+error points at the file that is actually wrong.
+
+`server` must be a bare HTTPS origin: `https://host`, optionally with a port and
+a single trailing slash. An explicit `:443` is accepted and canonicalized away,
+so `https://host:443` and `https://host` are the same origin and either may be
+configured. Userinfo (`https://user:token@…`), a query, a fragment, and any
+other path are refused rather than trimmed away. So are a hostname this parser
+cannot describe unambiguously — surrounding whitespace, control characters,
+percent-encoded or non-ASCII hostnames, a trailing dot, and port 0.
+The reason is that this value is both the trust key and the base every request
+is built from; normalizing a richer URL down to its origin would approve one
+value and then send the API token to a different one. Self-hosted context paths
+and internationalized hostnames are out of scope and would need their own
+base-path contract.
+
+The script outputs JSON with: `ticket`, `prerequisites`, `steps`, `viewports`, `assertions`.
+
+Note: `viewports` may be empty for TypeScript tickets — that is expected.
+
+### Step 2: Satisfy Prerequisites
+
+Before starting the journey, verify each prerequisite:
+
+1. Check if required services are running
+2. Verify database connectivity if needed
+3. Ensure environment variables are set
+4. Run any setup commands mentioned in prerequisites
+
+### Step 3: Execute Steps and Capture Evidence
+
+Execute each step sequentially. For each step, determine the verification approach based on the step text and change type:
+
+- **API endpoints** → Run curl commands, capture HTTP response to `evidence/NN-name.txt`
+- **Database changes** → Run psql/migration commands, capture schema output to `evidence/NN-name.txt`
+- **Background jobs** → Trigger the job, check queue/state, capture logs to `evidence/NN-name.txt`
+- **Library/utility changes** → Run tests, capture output to `evidence/NN-name.txt`
+- **Security fixes** → Reproduce exploit attempt, verify fix, capture output to `evidence/NN-name.txt`
+
+At each typed `[EVIDENCE: <artifact-type>: <name>]` marker, capture an artifact **of the declared type** — the type is the contract, not a suggestion:
+
+- `screenshot` / `recording` → an actual image/video file from the driven UI (Playwright, simulator), never a text description of what was seen
+- `http-transcript` → the exact request (curl command or client call) plus the full response
+- `cli-output` → the command plus stdout/stderr and exit code
+- `log-snippet` → the correlated log lines pulled from the running system
+- `db-query-output` → the query plus returned rows
+- `perf-trace` → the benchmark/frame-timing/profiler output with methodology (device profile, dataset size)
+- `test-run-log` → reporter output naming the spec and showing it ran and passed
+- `deploy-log` / `state-dump` → the deployment/health-check output or observed-state JSON
+
+A prose claim ("the error state rendered gracefully") satisfies no marker. Legacy untyped markers: infer the type from the step's action, capture accordingly, and note the inference. Write each artifact to a numbered file:
+
+Treat only exact `[EVIDENCE: ...]` markers (plus the legacy local `[SCREENSHOT: ...]` form) as capture instructions. Both the canonical `[EVIDENCE-REF: <work-item-ref> | <artifact-type>: <kebab-case-name>]` and the Lisa 2.223.0 legacy alias `[EVIDENCE-REF: <tracker-ref>: <artifact-type>: <kebab-case-name>]` point to another work item's artifact: preserve either as explanatory text, but do not capture it, assign it a sequence number, include it in duplicate-name checks, or count it as a local manifest entry. If a runtime-changing leaf has references but no local claiming marker, stop because S14 is unsatisfied.
+
+#### Evidence Naming Convention
+
+Evidence files are named: `{NN}-{evidence-name}.{ext}` — extension matches the declared artifact type (`.png`/`.webm` for screenshot/recording, `.txt` for transcripts/logs/output, `.json` for structured state)
+
+- `NN`: zero-padded sequential number (01, 02, 03...)
+- `evidence-name`: the `<name>` part of the typed marker in the JIRA step
+
+Example:
+
+```text
+evidence/
+  01-health-check.json
+  02-schema-after-migration.txt
+  03-rate-limit-response.txt
+  comment.txt
+  comment.md
+```
+
+### Step 4: Generate Evidence Templates
+
+After capturing all evidence, run the template generator:
+
+```bash
+python3 .claude/skills/jira-journey/scripts/generate-templates.py \
+  <TICKET_ID> \
+  <PR_NUMBER> \
+  <BRANCH_NAME> \
+  ./evidence
+```
+
+This generates `evidence/comment.txt` (JIRA wiki markup) and `evidence/comment.md` (GitHub markdown) with evidence formatted as code blocks.
+
+### Step 5: Post Evidence
+
+Use the jira-evidence skill to post everything:
+
+```bash
+bash .claude/skills/jira-evidence/scripts/post-evidence.sh <TICKET_ID> ./evidence <PR_NUMBER>
+```
+
+### Step 6: Verify
+
+Confirm evidence is posted to both the JIRA ticket and GitHub PR.
+
+## Verification Patterns Reference
+
+The agent should use patterns from the project's `verfication.md` when executing steps:
+
+| Change Type | Verification Method | Evidence Format |
+|---|---|---|
+| API endpoint | `curl -s localhost:PORT/endpoint` | JSON response |
+| Database migration | `psql -c "\d table"` or migration output | Schema text |
+| Background job | Trigger + check state | Log output |
+| Library/utility | `bun run test -- path/to/test` | Test output |
+| Security fix | Reproduce + verify fix | Request/response |
+| Auth/authz | Multi-role verification | Status codes per role |
+
+## Troubleshooting
+
+### Evidence file is empty
+
+Ensure the command succeeded and produced output. Use `2>&1` to capture both stdout and stderr.
+
+### Parser returns no steps
+
+The ticket may not have a Validation Journey section. Use `/jira-add-journey <TICKET_ID>` to add one.

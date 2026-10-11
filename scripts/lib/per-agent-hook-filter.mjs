@@ -30,6 +30,10 @@
  *   - Copilot: strip SubagentStart hooks (event missing), strip Claude-team-specific
  *     scripts, conditionally strip inject-rules.sh if the rules-auto-load probe is
  *     positive (caller passes copilotRulesAutoLoads via options)
+ *   - Devin: the Copilot ship list (Devin has no SubagentStart either, and does
+ *     not load the nested rules/ tree, so inject-rules.sh stays), emitted as a
+ *     root hooks.json with Devin tool-name matchers and a tool-name shim via
+ *     buildDevinHooksJson (CodySwannGT/lisa#4426)
  *
  * @module scripts/lib/per-agent-hook-filter
  */
@@ -42,6 +46,7 @@ const SCRIPT_RULES = {
     cursor: true,
     agy: true,
     copilot: true,
+    devin: true,
   },
   "block-shell-json-parsing.sh": {
     claude: true,
@@ -49,6 +54,7 @@ const SCRIPT_RULES = {
     cursor: true,
     agy: true, // ships via AGY_PLUGIN_HOOKS (agy-protocol adapter), like the other PreToolUse guards
     copilot: true,
+    devin: true,
   },
   "block-instruction-file-edits.sh": {
     claude: true,
@@ -59,6 +65,7 @@ const SCRIPT_RULES = {
     // redirection/tee/sed-i signatures still hold there.
     agy: true,
     copilot: true,
+    devin: true,
   },
   // Bash-only by construction, so every agent that can intercept a shell
   // command gets the WHOLE guard rather than an arm of it — including agy,
@@ -69,6 +76,7 @@ const SCRIPT_RULES = {
     cursor: true,
     agy: true,
     copilot: true,
+    devin: true,
   },
   // Bash-only by construction, like the guard above, and about a command every
   // agent runs on every PR it opens. Nothing in it reads a Claude-only
@@ -79,6 +87,7 @@ const SCRIPT_RULES = {
     cursor: true,
     agy: true,
     copilot: true,
+    devin: true,
   },
   // Fires after a `gh pr create` / `gh pr edit` and checks the two work-item
   // gates a push could not reach. Nothing in it is Claude-specific: it reads a
@@ -98,6 +107,7 @@ const SCRIPT_RULES = {
     cursor: true,
     agy: false,
     copilot: true,
+    devin: true,
   },
   // Portable everywhere the agent has a session-start event, because the
   // question it answers — can this agent reach the credentials its work needs
@@ -116,6 +126,7 @@ const SCRIPT_RULES = {
     cursor: true,
     agy: false,
     copilot: true,
+    devin: true,
   },
   "enforce-team-first.sh": {
     claude: true,
@@ -123,6 +134,7 @@ const SCRIPT_RULES = {
     cursor: false,
     agy: false,
     copilot: false,
+    devin: false,
   },
   "inject-rules.sh": {
     claude: true,
@@ -130,6 +142,7 @@ const SCRIPT_RULES = {
     cursor: false, // rules ship as native rules/*.mdc (single delivery path); injecting would double-deliver
     agy: false, // no full rules tree on agy; AGENTS.md carries only bounded bridges
     copilot: true, // conservative default; conditionally stripped if rules-auto-load probe positive
+    devin: true,
   },
   // Ships wherever the agent has a session-start event, on the same reasoning
   // as `secrets-preflight.sh` and NOT on `inject-rules.sh`'s. Cursor strips
@@ -150,6 +163,7 @@ const SCRIPT_RULES = {
     cursor: true,
     agy: false,
     copilot: true,
+    devin: true,
   },
   // Ships wherever the agent has a session-start event, on the same reasoning
   // as `inject-resolved-config.sh`. The question it answers — WHICH COPY of
@@ -169,6 +183,7 @@ const SCRIPT_RULES = {
     cursor: true,
     agy: false,
     copilot: true,
+    devin: true,
   },
   // Session-start local Lisa update (CodySwannGT/lisa#4337). Every harness with
   // a session-start event gets it; OpenCode runs the same engine from its
@@ -182,6 +197,7 @@ const SCRIPT_RULES = {
     cursor: true,
     agy: false,
     copilot: true,
+    devin: true,
   },
   "inject-flow-context.sh": {
     claude: true,
@@ -189,6 +205,7 @@ const SCRIPT_RULES = {
     cursor: false, // SubagentStart unverified on Cursor; conservative default
     agy: false, // SubagentStart-only; not in agy's universal ship-list
     copilot: false, // Copilot lacks SubagentStart event
+    devin: false,
   },
   "install-pkgs.sh": {
     claude: true,
@@ -196,6 +213,7 @@ const SCRIPT_RULES = {
     cursor: true,
     agy: true,
     copilot: true,
+    devin: true,
   },
   "setup-jira-cli.sh": {
     claude: true,
@@ -203,6 +221,7 @@ const SCRIPT_RULES = {
     cursor: true,
     agy: true,
     copilot: true,
+    devin: true,
   },
   "threshold-ratchet.sh": {
     claude: true,
@@ -210,6 +229,7 @@ const SCRIPT_RULES = {
     cursor: true,
     agy: false, // agy hooks ship only via AGY_PLUGIN_HOOKS (root hooks.json) and don't fire headless; the pre-commit + CI ratchet layers carry parity there
     copilot: true,
+    devin: true,
   },
   // Unregistered scripts — exclude by default until classified.
   "ticket-sync-reminder.sh": {
@@ -218,6 +238,7 @@ const SCRIPT_RULES = {
     cursor: false,
     agy: false,
     copilot: false,
+    devin: false,
   },
   "track-plan-sessions.sh": {
     claude: false,
@@ -225,6 +246,7 @@ const SCRIPT_RULES = {
     cursor: false,
     agy: false,
     copilot: false,
+    devin: false,
   },
 };
 
@@ -326,14 +348,158 @@ const CURSOR_EVENTS = {
  */
 const AGENT_UNSUPPORTED_EVENTS = {
   copilot: new Set(["SubagentStart"]),
+  // Devin CLI's hook runner documents PreToolUse, PostToolUse,
+  // PermissionRequest, UserPromptSubmit, Stop, PostCompaction, SessionStart and
+  // SessionEnd. Claude's subagent and compaction events have no Devin
+  // counterpart, so their blocks are dropped rather than emitted under a name
+  // Devin never fires. Documented gap: a Devin SUB-AGENT gets no injected
+  // rules, config, or vintage block — the session that spawned it does.
+  devin: new Set([
+    "SubagentStart",
+    "SubagentStop",
+    "PreCompact",
+    "Notification",
+  ]),
 };
+
+/**
+ * Claude tool name → Devin CLI tool name, for hook matchers.
+ *
+ * Measured by run on Devin CLI 3000.11.3 (CodySwannGT/lisa#4426): Devin's
+ * PreToolUse payload names its tools in lowercase — `exec`, `write`, `edit`,
+ * `read` — while the tool-input field names (`command`, `file_path`,
+ * `content`, `old_string`, `new_string`) are Claude's. A Claude matcher such as
+ * `Bash` or `Write|Edit|MultiEdit` therefore never fires on Devin. Names Devin
+ * has no tool for (TeamCreate, EnterWorktree, …) map to nothing, and a matcher
+ * left with no Devin tool is dropped with its handlers.
+ *
+ * `apply_patch` rides along with the edit tools: Devin exposes it, and the
+ * guards that read file edits already handle Codex's `apply_patch` payload.
+ *
+ * @type {Record<string, readonly string[]>}
+ */
+const DEVIN_TOOL_NAMES = {
+  Bash: ["exec"],
+  Write: ["write", "apply_patch"],
+  Edit: ["edit", "apply_patch"],
+  MultiEdit: ["edit", "apply_patch"],
+  NotebookEdit: ["notebook_edit"],
+  Read: ["read"],
+  Grep: ["grep"],
+  Glob: ["glob"],
+  WebFetch: ["webfetch"],
+  Task: ["run_subagent"],
+  Agent: ["run_subagent"],
+  Skill: ["skill"],
+  TodoWrite: ["todo_write"],
+};
+
+/**
+ * Translate a Claude hook matcher into an anchored Devin matcher.
+ *
+ * An empty matcher matches every tool on both runtimes and is kept empty.
+ * Otherwise each `|`-separated Claude tool name is mapped through
+ * DEVIN_TOOL_NAMES; MCP tool names (`mcp__…`) are kept verbatim because Devin
+ * names MCP tools the same way. The result is anchored (`^(…)$`) because Devin
+ * treats the matcher as a regex, and an unanchored `exec` would also match any
+ * tool whose name merely contains it.
+ *
+ * @param {string | undefined} matcher Claude matcher string.
+ * @returns {string | null} Devin matcher, `""` for match-all, or null when no
+ *   Claude tool in the matcher exists on Devin.
+ */
+export function translateMatcherForDevin(matcher) {
+  if (matcher === undefined || matcher === "") return "";
+  const names = new Set();
+  for (const claudeName of matcher.split("|").map(n => n.trim())) {
+    if (claudeName.startsWith("mcp__")) {
+      names.add(claudeName);
+      continue;
+    }
+    for (const devinName of DEVIN_TOOL_NAMES[claudeName] ?? []) {
+      names.add(devinName);
+    }
+  }
+  if (names.size === 0) return null;
+  return `^(${[...names].join("|")})$`;
+}
+
+/** Devin events whose matcher is tested against the payload's `tool_name`. */
+const DEVIN_TOOL_EVENTS = new Set([
+  "PreToolUse",
+  "PostToolUse",
+  "PermissionRequest",
+]);
+
+/** Hook-relative path of the Devin tool-name shim the generator emits. */
+export const DEVIN_TOOL_SHIM = "devin-tool-name-shim.sh";
+
+/**
+ * Build the Devin plugin's root `hooks.json` from a Claude-format hook block.
+ *
+ * Devin loads plugin hooks only from a root `hooks.json` shaped
+ * `{ "hooks": { "<Event>": [ { matcher, hooks: [ { type, command } ] } ] } }`
+ * — inline hooks in `.claude-plugin/plugin.json` are ignored (measured by run,
+ * CodySwannGT/lisa#4426). Event names stay PascalCase. Each surviving handler:
+ *
+ *   1. passes the per-agent ship list (`shouldShipHook(…, "devin")`);
+ *   2. gets its matcher translated by `translateMatcherForDevin`; and
+ *   3. has its command prefixed with the tool-name shim, which rewrites the
+ *      payload's lowercase Devin `tool_name` back to the Claude name before the
+ *      guard reads it. Lisa's guards test `tool_name == "Bash"`, so without the
+ *      shim a firing hook would still stand down.
+ *
+ * `${CLAUDE_PLUGIN_ROOT}` is kept: Devin expands it in plugin hook commands,
+ * while `${PLUGIN_ROOT}` is left unexpanded (measured by run).
+ *
+ * @param {Record<string, Array<{ matcher?: string, hooks: Array<{ type?: string, command: string, [key: string]: unknown }> }>> | undefined} hookBlock
+ * @returns {{ hooks: Record<string, Array<{ matcher?: string, hooks: Array<object> }>> } | undefined}
+ */
+export function buildDevinHooksJson(hookBlock) {
+  if (!hookBlock || typeof hookBlock !== "object") return undefined;
+
+  /** @type {Record<string, Array<{ matcher?: string, hooks: Array<object> }>>} */
+  const hooks = {};
+
+  for (const [eventName, entries] of Object.entries(hookBlock)) {
+    if (isUnsupportedEvent(eventName, "devin")) continue;
+    if (!Array.isArray(entries)) continue;
+    const translated = [];
+    for (const entry of entries) {
+      if (!Array.isArray(entry?.hooks)) continue;
+      // Only tool events carry a tool-name matcher. A SessionStart matcher
+      // (`startup`) names a session source, not a tool, and Devin's runner
+      // tests matchers against `tool_name` only — so on every other event
+      // the matcher is dropped and the handler fires on each occurrence.
+      // Documented gap: a startup-only hook (install-pkgs, auto-update) also
+      // runs on a resumed Devin session; both are idempotent.
+      const matcher = DEVIN_TOOL_EVENTS.has(eventName)
+        ? translateMatcherForDevin(entry.matcher)
+        : "";
+      if (matcher === null) continue;
+      const handlers = entry.hooks
+        .filter(h => shouldShipHook(h, eventName, "devin"))
+        .map(h => ({
+          ...h,
+          command: `\${CLAUDE_PLUGIN_ROOT}/hooks/${DEVIN_TOOL_SHIM} ${h.command}`,
+        }));
+      if (handlers.length === 0) continue;
+      translated.push(
+        matcher === "" ? { hooks: handlers } : { matcher, hooks: handlers }
+      );
+    }
+    if (translated.length > 0) hooks[eventName] = translated;
+  }
+
+  return Object.keys(hooks).length > 0 ? { hooks } : undefined;
+}
 
 /**
  * Whether a Claude event name is unsupported by the target agent and must be
  * dropped wholesale (not translated, not partially filtered).
  *
  * @param {string} claudeEventName Claude event name (e.g. "SubagentStart")
- * @param {"cursor"|"agy"|"copilot"|"codex"} agent Target agent slug
+ * @param {"cursor"|"agy"|"copilot"|"devin"|"codex"} agent Target agent slug
  * @returns {boolean}
  */
 export function isUnsupportedEvent(claudeEventName, agent) {
@@ -367,7 +533,7 @@ export function translateEventName(eventName, agent) {
  * exclusions live in SCRIPT_RULES.
  *
  * @param {string} scriptName e.g. "inject-rules.sh"
- * @param {"claude"|"codex"|"cursor"|"agy"|"copilot"} agent
+ * @param {"claude"|"codex"|"cursor"|"agy"|"copilot"|"devin"} agent
  * @returns {boolean}
  */
 export function shouldShipScript(scriptName, agent) {
@@ -388,7 +554,7 @@ export function shouldShipScript(scriptName, agent) {
  *
  * @param {{ type: string, command: string }} hook
  * @param {string} eventName
- * @param {"cursor"|"agy"|"copilot"|"codex"} agent
+ * @param {"cursor"|"agy"|"copilot"|"devin"|"codex"} agent
  * @param {{ copilotRulesAutoLoads?: boolean }} [opts]
  * @returns {boolean}
  */
@@ -438,7 +604,7 @@ export function shouldShipHook(hook, _eventName, agent, opts = {}) {
  *
  * @param {Record<string, Array<{ matcher?: string, hooks: Array<object> }>>} hookBlock
  *   The Claude-format hook block from .claude-plugin/plugin.json.
- * @param {"cursor"|"agy"|"copilot"|"codex"} agent
+ * @param {"cursor"|"agy"|"copilot"|"devin"|"codex"} agent
  * @param {{ copilotRulesAutoLoads?: boolean }} [opts]
  * @returns {Record<string, Array<{ matcher?: string, hooks: Array<object> }>> | undefined}
  */
@@ -478,7 +644,7 @@ export function filterHooksForAgent(hookBlock, agent, opts = {}) {
  * to keep AFTER filtering the manifest).
  *
  * @param {string[]} scriptFilenames Filenames found in hooks/
- * @param {"cursor"|"agy"|"copilot"|"codex"} agent
+ * @param {"cursor"|"agy"|"copilot"|"devin"|"codex"} agent
  * @returns {string[]}
  */
 export function filterScriptsForAgent(scriptFilenames, agent) {

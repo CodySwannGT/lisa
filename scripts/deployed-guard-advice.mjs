@@ -141,6 +141,7 @@ export const SOURCE_GUARD_ROOTS = Object.freeze([
   "plugins/lisa-agy/hooks",
   "plugins/lisa-cursor/hooks",
   "plugins/lisa-copilot/hooks",
+  "plugins/lisa-devin/hooks",
   "all/copy-overwrite/scripts/lisa-hooks",
 ]);
 

@@ -1,0 +1,3275 @@
+#!/usr/bin/env bash
+# This file is managed by Lisa and IS replaced on each `lisa` run.
+# Do not edit directly — durable changes belong upstream in Lisa.
+
+# PreToolUse hook for Bash: a safety net that blocks destructive shell commands
+# before they run. Lisa-native reimplementation of the upstream
+# `safety-net@cc-marketplace` plugin's PreToolUse Bash-guard (parity work,
+# issues #1059 and #1960). It does NOT port upstream code — it re-expresses the
+# behavior in Lisa's hook conventions, modeled on block-no-verify.sh.
+#
+# It reads the hook stdin JSON, inspects the proposed Bash command, and EXITS
+# NON-ZERO (2) to BLOCK when a known-destructive pattern matches:
+#   - `rm -rf` of a root / home / wildcard path (quote-aware boundaries, so
+#     `bash -c "rm -rf /"` and interpreter one-liners are caught too; the rm
+#     guards also match path-prefixed invocations like `/bin/rm` and `./rm`)
+#   - `rm -rf` of the cwd (`.`), a `..`-traversal path, a `~/`-anchored path,
+#     an absolute path outside the project (with a /tmp, /var/tmp, $TMPDIR
+#     allowance, each also matched by its symlink-resolved spelling so /tmp and
+#     /private/tmp are ONE location), a `$VAR` target that neither is $TMPDIR
+#     nor resolves through an unambiguous in-command assignment, or ANY
+#     recursive forced delete while cwd is $HOME
+#   - force-pushing a protected branch (main/master/production/prod/release) —
+#     feature-branch force-push stays allowed (sanctioned rebase workflow;
+#     deliberate divergence from upstream's any-branch block). Every git guard
+#     sees through leading git GLOBAL options (`-C <path>`, `-c <k>=<v>`,
+#     `--git-dir[=…]`, `--no-pager`, …), so `git -C /path <destructive>` cannot
+#     dodge the subcommand anchor
+#   - `git reset --hard` / `--merge` while the working tree is dirty. Deliberate
+#     divergence: upstream blocks unconditionally; Lisa allows clean-tree resets.
+#     Residual risk (documented, accepted): the dirty check runs in the hook's
+#     cwd at hook time, so a `cd elsewhere && git reset --hard` evades it.
+#   - `git read-tree` with an update flag AND `--reset` while the working tree
+#     is dirty (issue #3978): the plumbing spelling of the same discard, on the
+#     same condition, printing the same remedy. Index-only `read-tree`, and
+#     `read-tree -m -u` without `--reset` (which git itself refuses rather than
+#     clobber a modified file), stay allowed. Lisa-only guard.
+#   - `git rebase --abort`/`--quit` while the in-progress rebase holds
+#     human-made conflict resolutions (AUTO_MERGE discriminator; issue #1956).
+#     Clean or untouched rebase state stays abortable; the apply backend and a
+#     missing AUTO_MERGE ref fail closed. Deliberate divergence: upstream
+#     blocks `rebase --abort` unconditionally, which strands agents mid-rebase.
+#   - `git checkout` discards (`--`, `-f/--force`, `--pathspec-from-file`,
+#     bare `.` — the bare-`.` block exceeds upstream)
+#   - `git switch --discard-changes` / `-f/--force`
+#   - `git restore` touching the worktree (allowed only with `--staged` and
+#     without `--worktree`)
+#   - `git stash drop` / `git stash clear`
+#   - `git clean` with force and no dry-run (`-n`/`--dry-run` anywhere wins)
+#   - `git branch -D` (or `-d` + `-f` in any spelling)
+#   - `git tag -d`, `git reflog delete`, `git worktree remove --force`
+#   - `find ... -delete`, `find ... -exec rm -rf`, `xargs ... rm -rf`
+#   - disk destroyers: `dd of=/dev/...`, `mkfs ... /dev/...`, `shred`
+#   - dropping or truncating a database/schema/table (Lisa-only guard)
+# Otherwise it exits 0 and the command proceeds. Malformed hook input fails
+# CLOSED: any parse error exits 2 (a non-2 exit would be a non-blocking hook
+# error in Claude Code, silently failing open).
+#
+# Narrowed false-positive class (issue #3106): the rm TARGET WALK is now scoped
+# to the quoting region that contains the rm, so a recursive delete quoted as
+# PROSE no longer turns every later token on the line into a deletion target. A
+# variable in an unrelated argument — a `gh issue create --body-file "$G/x"`, a
+# `git commit -F "$MSG"` — is no longer read as the thing being deleted. An rm
+# outside quotes, or first inside its quoted run (`bash -c "rm -rf /"`,
+# `echo "$(rm -rf /)"`), still hands the whole statement to the walk. See
+# rm_scan_scope below for the rule and its accepted residual.
+#
+# Known accepted false-positive class: this is a text scan, not a shell engine,
+# so display commands quoting a destructive string (`echo "docs about rm -rf /"`)
+# can match — including one whose target sits in the SAME quoted run as the
+# prose, which the #3106 scoping deliberately does not reach. Upstream exempts
+# those through an engine-only DISPLAY_COMMANDS list that a grep hook cannot
+# replicate. WHAT TO DO WHEN YOU HIT IT (issue #3191): do not reword the prose.
+# When the destructive text is a commit message, an issue body or a results
+# table, the string IS the deliverable and there is no narrower spelling that
+# still says what it must say. Write the text to a file with the Write tool and
+# pass it BY PATH — `gh issue comment --body-file <file>`, `git commit -F
+# <file>` — because these guards scan the COMMAND and never the file. block()
+# prints this at the wall so the operator is told rather than left to find it.
+# The same text-scan limit means the rm guard treats
+# a substitution-wrapped catastrophic delete as verdict-neutral (issue #1982): an
+# executable `echo "$(rm -rf /)"` is blocked, but so are inert twins the shell
+# would never expand — a single-quoted `echo '$(rm -rf /)'` or an escaped
+# `echo "\$(rm -rf /)"` — because the scan has no quote-context awareness. That
+# over-block stays inside this accepted class. Workaround: the write-to-a-file
+# and pass-by-path form above, or quote-break the string,
+# or use the gh-writer heredoc form, whose payload is stripped before the guards
+# run — spelled with a QUOTE-PAIR delimiter (`<<'EOF'`). That exact spelling is
+# what the SAFE path recognises; `<<"EOF"` and `<<\EOF` do not reach it, and
+# since #1993 a `gh … <<\EOF` writer fails closed instead (see parse_marker).
+#
+# Known accepted BYPASS class (the symmetric error direction, issue #1993): the
+# heredoc classifier in parity-safety-net-heredoc.py re-implements bash's
+# here-doc lexing in Python, and any divergence from real bash is a shape it
+# mis-classifies. Five rounds on #1958 and three more on #1993 (R5a swallowed
+# terminator, R5b body-apostrophe quote-state poisoning, R5c backslash-quoted
+# delimiter) established that enumerating those divergences is an open-ended
+# arms race, so the class is CLOSED as accepted rather than chased further. This
+# is survivable because of where a mis-classification lands: ONLY the narrow
+# gh-writer SAFE path strips payload text, and every other classifier exit hands
+# the RAW command to the guards below. A missed here-doc therefore degrades to
+# the content guards; it does not bypass them. Since #1982 taught those guards to
+# see through substitution wrappers, every destructive class this net exists to
+# stop is blocked on the raw text regardless of how the here-doc was read. The
+# net catches ACCIDENTAL catastrophic commands; it is not a wall against an
+# adversary who knows bash's lexer, and it was never the only thing standing
+# between an agent and arbitrary execution.
+#
+# Operators extend the built-in rules with a project-local rule file — one
+# extended-regex (ERE) per line, blank lines and `#` comments ignored — managed
+# by the parity-safety-net-rules skill. Default location (overridable via
+# SAFETY_NET_RULES_FILE):
+#   ${CLAUDE_PROJECT_DIR:-$PWD}/.claude/safety-net-rules.txt
+set -euo pipefail
+
+# Fail CLOSED on any unexpected error (malformed JSON, missing jq, …): exit 2 so
+# the tool call is denied instead of surfacing a non-blocking hook warning.
+# Deliberately NOT `set -E`: errtrace would propagate this trap into command
+# substitutions (e.g. the heredoc parser call, whose non-zero exit codes are
+# meaningful protocol) and rewrite their status to 2 before it can be read.
+trap 'printf "%s\n" "Blocked by safety-net: hook failed while parsing its input; denying fail-closed." >&2; exit 2' ERR
+
+input="$(cat)"
+
+# Evaluate once per tool call when this guard is registered on both channels.
+#
+# Lisa reaches an agent through the repository dispatcher AND the plugin
+# manifest, and where both are live the harness runs this guard twice for one
+# tool call. `guard-dedupe.bash` short-circuits the second run ONLY when a
+# byte-identical copy already ALLOWED this exact payload on this exact tool
+# call; a differing vintage, a refusal, and a host with one channel all
+# evaluate exactly as before. Nothing is de-registered by it
+# (CodySwannGT/lisa#3814).
+#
+# Absent library means no dedupe, which is the pre-existing behaviour, so an
+# older channel copy that predates it is unaffected.
+lisa_guard_hook_dir="${BASH_SOURCE[0]%/*}"
+lisa_guard_dedupe_lib="$lisa_guard_hook_dir/guard-dedupe.bash"
+if [ -r "$lisa_guard_dedupe_lib" ]; then
+  # shellcheck source=guard-dedupe.bash
+  . "$lisa_guard_dedupe_lib"
+  trap 'lisa_guard_dedupe_record $?' EXIT
+  lisa_guard_dedupe parity-safety-net "$input" \
+    "$lisa_guard_hook_dir/parity-safety-net-heredoc.py"
+fi
+
+tool_name="$(printf '%s' "$input" | jq -r '.tool_name // empty')"
+if [ "$tool_name" != "Bash" ]; then
+  exit 0
+fi
+
+command_str="$(printf '%s' "$input" | jq -r '.tool_input.command // empty')"
+if [ -z "$command_str" ]; then
+  exit 0
+fi
+
+# Guidance printed under an ordinary destructive-guard refusal.
+#
+# It teaches the remedy at the wall, the way block_heredoc() does (gardener
+# #1789, extended by issue #3191). It used to end in "narrow the command so it
+# no longer matches the guard", which is advice the accepted prose class CANNOT
+# follow: when the destructive text is a commit message, an issue body or a
+# results table, the string IS the deliverable and there is no narrower spelling
+# that still says what it must say. An operator acts on a printed remedy, so a
+# remedy that cannot be performed is worse than none — it spends the detour and
+# teaches that the refusal was a formality. The remedy that does work is the
+# sibling heredoc one, one surface over: write the text with the Write tool,
+# then pass it BY PATH. The guards scan the COMMAND and never the file, so the
+# path form carries the text through intact.
+#
+# Both branches are printed on every ordinary refusal, deliberately: this guard
+# is a text scan and CANNOT tell which one applies, so naming both and letting
+# the reader pick is the only honest shape. Deciding for them is what the
+# engine-only DISPLAY_COMMANDS list does, and the header explains why a grep
+# hook cannot have one.
+DESTRUCTIVE_GUIDANCE="$(
+  cat <<'EOF'
+This command matched a destructive-operation guard. The guard is a text scan,
+not a shell engine, so it cannot tell a destructive command you are RUNNING
+from the same text quoted as CONTENT you are writing. Take the branch that
+describes yours:
+
+- The destructive text is only QUOTED CONTENT — a commit message, an issue or
+  PR body, a report, a results table, a note. Do not try to reword it; the
+  string is the deliverable and no narrower spelling still says what it must.
+  Write the text to a file with the Write tool and pass it BY PATH instead:
+  `gh issue comment --body-file <file>`, `gh pr create --body-file <file>`,
+  `git commit -F <file>`, or read the file back with the Read tool. This guard
+  scans the command, never the file, so the path form goes through intact.
+
+- You genuinely intend to run the destructive operation. Ask the user to
+  confirm, then run it manually outside the agent.
+EOF
+)"
+
+# How to preserve uncommitted work before an operation that would discard it.
+#
+# This is appended to the reasons that refuse a discarding operation, and its
+# whole point is what it does NOT say (issue #3722). The obvious advice is
+# "stash it first", and on a single-checkout repository that is fine. Here it
+# is the most dangerous thing an agent can be told: the stash is ONE STACK PER
+# CLONE, shared by every worktree, so with concurrent agents a sibling's push
+# can shift your entry and a sibling's pop can consume it. `lint-staged` pushes
+# one on every commit too, so agent and tooling entries interleave.
+#
+# A remedy fires at the exact moment an agent is holding the work most worth
+# protecting, and a guard's own output reads as authoritative — so pointing it
+# at shared mutable state there is worse than the refusal it accompanies.
+#
+# The patch file is per-worktree: `mktemp` names it, so nothing has to invent a
+# filename, and it lives in this agent's own TMPDIR where no sibling can reach
+# it. Untracked files are unaffected by both refused operations, so `git diff`
+# captures everything at risk. `HEAD` includes staged and unstaged changes, and
+# `--binary` keeps binary edits recoverable rather than emitting a text-only
+# placeholder that cannot be applied.
+#
+# Three corrections from issue #3696, each found by EXECUTING the text below
+# rather than reading it:
+#
+# 1. It preserved but never RECOVERED. The text taught how to save the work and
+#    how to restore it later, and stopped there — so an agent that followed it
+#    exactly and successfully was returned to the identical refusal, because the
+#    tree was still dirty. A remedy that does not clear the wall it is printed
+#    at is a detour, and #3722 shipped only half the path. The discard branch
+#    below is the other half, and every command in it is one THIS GUARD ALREADY
+#    PERMITS: mixed `git reset`, `git diff`, and `git apply` are matched by no
+#    guard in this file. Nothing was loosened to make room for it — a blind
+#    `git reset --hard` on a dirty tree is still refused, unconditionally.
+#
+#    That the operator must first WRITE DOWN what they are discarding is the
+#    feature, not a cost. It is a better acknowledgement than a marker the guard
+#    could look for, because a marker agents can type is a marker agents learn
+#    to type reflexively; this one cannot be satisfied without producing the
+#    artifact that makes the discard reversible.
+#
+# 2. It did not run as printed. `[-- <path>]` is conventional notation for an
+#    optional argument, but bash expands `[...]` as a glob, so pasting the line
+#    verbatim failed with `bash: path: No such file or directory` and wrote no
+#    patch at all. Guard remedies are unreviewed prose that agents execute
+#    literally, so the optional part is now prose and every line is runnable.
+#
+# 3. `mktemp` was silently a no-op. BSD/macOS mktemp substitutes only TRAILING
+#    `X`s, so the `.patch` suffix meant the template came back as the literal
+#    string `lisa-preserve-XXXXXX.patch` — one FIXED filename, where successive
+#    preserves overwrite each other, in the exact place the comment above claims
+#    uniqueness. The suffix is gone rather than spelled portably: GNU mktemp
+#    offers `--suffix` and BSD does not, and a patch file does not need an
+#    extension. The regression test asserts the produced name DIFFERS from the
+#    template, because asserting that the word `mktemp` appears is what let this
+#    ship.
+#
+# NO APOSTROPHES IN THE BODY BELOW. It is a quoted heredoc nested inside a `$( )`
+# command substitution, and bash tracks quote state through the body when it
+# scans for the closing paren — so a single `'` (in "the agent's TMPDIR", say)
+# poisons the parse from there to the next quote and the whole file stops being
+# valid shell, with the reported error landing hundreds of lines away in
+# untouched code. Every guidance body in this file avoids them for this reason.
+# Write "of this session" rather than a possessive.
+PRESERVE_GUIDANCE="$(
+  cat <<'EOF'
+Preserve the work first, per-worktree. `mktemp` names the file, so nothing has
+to invent one, and it lands in the TMPDIR of this session, where no sibling
+agent can reach it:
+
+  patch="$(mktemp "${TMPDIR:-/tmp}/lisa-preserve-XXXXXX")"
+  git diff --binary HEAD > "$patch"
+
+Add `-- <path>` before the `>` to scope the capture to one path. Restore it
+later with `git apply "$patch"`.
+
+If the work is NOT yours -- a concurrent agent dirtied this worktree and your
+judgement is "none of this is mine" -- that same capture is how you return the
+tree to HEAD. This block is self-contained; paste it as it stands:
+
+  patch="$(mktemp "${TMPDIR:-/tmp}/lisa-preserve-XXXXXX")"
+  git reset
+  git diff --binary HEAD > "$patch"
+  git apply -R "$patch"
+
+It names the file itself rather than inheriting one from the block above,
+because the two blocks are alternatives and only one of them gets run. A remedy
+printed at the moment an agent is blocked is followed literally; one that
+depends on a variable the reader never set fails on its first line, and the
+guard that printed it stops being believed.
+
+`git reset` clears staged and unmerged entries first, so the capture sees the
+whole tree as one diff; reversing it leaves the tree at HEAD with "$patch" as
+the record of what you discarded. Untracked files survive, exactly as they
+survive `git reset --hard`.
+
+Do NOT reach for `git stash`. One stash stack is shared by every worktree of a
+clone, so a concurrently running agent can consume the entry you just pushed.
+EOF
+)"
+
+# block() prints the reason to stderr (surfaced to the model) and exits 2 so the
+# Bash tool call is denied. $1 = human-readable reason for the block.
+#
+# $2 = optional guidance REPLACING $DESTRUCTIVE_GUIDANCE. block_heredoc() passes
+# its own, because the two remedies are mutually exclusive by construction
+# (issue #1958 F6): a heredoc payload IS executable shell, so the quoted-content
+# branch is exactly the misdirection that finding removed, and the file-based
+# execution advice is exactly what an ordinary prose refusal must not be given.
+block() {
+  cat >&2 <<EOF
+Blocked by safety-net: $1
+
+${2:-$DESTRUCTIVE_GUIDANCE}
+EOF
+  exit 2
+}
+
+# grep answers three ways, not two: 0 it matched, 1 it did not match, and >=2 "I
+# could not do this" — it was never exec'd, the pattern was rejected, the input
+# could not be read. Every guard in this file used to reach its verdict through
+# a bare `| grep -q` in a condition, where >=2 is indistinguishable from 1. So
+# "the scan could not run" was read as "this command is safe", and the safety
+# net stopped guarding without ever saying so.
+#
+# Measured rather than feared (CodySwannGT/lisa#3054). With a `grep` that exits
+# 2 first on PATH, this hook ALLOWED `rm -rf /`, `git push --force origin main`,
+# `dd of=/dev/disk0` and `git branch -D main` — every built-in guard, silently,
+# exit 0. And the condition that gets there is live rather than theoretical: on
+# the machine this was found on, 7,679 orphaned processes were outstanding
+# against a `kern.maxprocperuid` of 10,666, putting a fork() that returns EAGAIN
+# a few hundred spawns away.
+#
+# The reasoning is ALREADY in this file, at the bottom, for the project custom
+# rules: a malformed ERE used to silently disable a rule the project believed it
+# had, and that was fixed by reading grep's STATUS instead of its truthiness. It
+# was never extended to the built-in guards. This is that extension.
+#
+# Fails CLOSED, which is this hook's stated contract everywhere else, and NAMES
+# the environment failure — a guard that reports "safe" when it means "I could
+# not tell" is the exact shape #3054 exists to remove.
+#
+# $1 = grep flags (-Ei / -E), $2 = text to scan, $3 = pattern.
+scan() {
+  local flags="$1" text="$2" pattern="$3" status=0
+  printf '%s' "$text" | grep "$flags" -q -- "$pattern" || status=$?
+  case "$status" in
+    0) return 0 ;;
+    1) return 1 ;;
+    *) scan_failed "$status" ;;
+  esac
+}
+
+# Deny, and say what actually happened. Deliberately NOT block(): block() tells
+# the reader their command matched a destructive pattern, which is a claim about
+# the COMMAND. This is a claim about the MACHINE, and printing the first when
+# the second is true is precisely what sends an operator to re-run instead of to
+# look — the reporting failure #3054 is about.
+scan_failed() {
+  cat >&2 <<EOF
+Blocked by safety-net: a guard's pattern scan FAILED TO RUN (grep exited $1); denying fail-closed.
+
+This is an ENVIRONMENT failure, not a property of your command. The guard could
+not be evaluated at all, so the safety net denied rather than guessed — a scan
+that cannot answer must never read as "safe".
+
+The usual cause is a machine at its per-user process limit, where fork() starts
+returning EAGAIN. Compare:
+
+    ps -u \$(id -u) | wc -l
+    sysctl -n kern.maxprocperuid     # Linux: ulimit -u
+
+Re-running is reasonable. If it repeats, the machine cannot fork and no number
+of re-runs will change that.
+EOF
+  exit 2
+}
+
+# Heredoc payloads are data only for a deliberately narrow set of GitHub CLI
+# write commands. A companion parser proves that shape before removing payload
+# text from the destructive-command scans below. Unknown executable heredocs
+# remain visible to every built-in and custom rule. Ambiguous or malformed
+# heredocs fail closed instead of guessing which text the shell would execute.
+#
+# block_heredoc() teaches the remediation the moment the wall is hit: a bare
+# denial strands the agent with no path forward (gardener #1789). The remedy
+# depends on the command shape (issue #1958): `git commit -m "$(cat <<EOF …)"`
+# attempts get the commit -F text; every other heredoc denial gets the
+# file-based execution guidance instead — the commit text is misleading there.
+# Both are passed as block()'s SECOND argument, which REPLACES the ordinary
+# destructive guidance rather than appending to it (issue #3191): that guidance
+# offers a quoted-content branch, and a heredoc payload is executable shell, so
+# printing it here would reintroduce the misdirection #1958 F6 removed.
+# The git-commit detection inlines the GIT_GLOBAL_OPTS shape (defined later in
+# this file, after the heredoc dispatch runs) so `git -C <path> commit` and
+# `git -c k=v commit` spellings are still recognized.
+block_heredoc() {
+  if scan -E "$command_str" \
+    '(^|[^[:alnum:]_-])git[[:space:]]+(-[^;&|[:space:]]+([[:space:]]+[^-;&|[:space:]][^;&|[:space:]]*)?[[:space:]]+)*commit([^[:alnum:]_-]|$)'; then
+    block "$1" "Heredoc commit invocations are blocked (the payload is executable shell).
+Fix: write the commit message to a file and run \`git commit -F <file>\`.
+Every commit must also carry a Co-authored-by trailer for a supported agent
+(Claude/Codex/Cursor/OpenCode/Antigravity/Copilot). OpenCode, and any agent
+outside that fleet (e.g. Devin), must also carry AI-Agent/AI-Model/AI-Effort
+trailers — the commit-msg hook enforces this."
+  fi
+  block "$1" "Heredoc payloads are blocked here (the payload is executable shell).
+Fix: write the payload to a file with the Write tool, then run the file
+(\`bash <file>\`). These guards READ the shell script an invocation runs, so a
+destructive command inside that file is refused exactly as the inline form is:
+the file is a way to get the payload out of a heredoc, never a way past the
+guards."
+}
+
+command_for_guards="$command_str"
+case "$command_str" in
+  *'<<'*)
+    hook_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+    heredoc_parser="$hook_dir/parity-safety-net-heredoc.py"
+    if ! command -v python3 >/dev/null 2>&1 || [ ! -r "$heredoc_parser" ]; then
+      block_heredoc "cannot safely classify heredoc command because its parser runtime is unavailable"
+    fi
+    if ! printf '%s\n' "$command_str" | /bin/bash -n >/dev/null 2>&1; then
+      block_heredoc "malformed heredoc command failed shell syntax validation"
+    fi
+
+    parser_status=0
+    if parser_output="$(printf '%s' "$command_str" | python3 "$heredoc_parser" 2>/dev/null)"; then
+      parser_status=0
+    else
+      parser_status=$?
+    fi
+
+    case "$parser_status" in
+      0) command_for_guards="$parser_output" ;;
+      10) command_for_guards="$command_str" ;;
+      20) block_heredoc "malformed or ambiguous heredoc command cannot be safely classified" ;;
+      *) block_heredoc "heredoc parser failed; command was denied fail-closed" ;;
+    esac
+    ;;
+esac
+
+custom_command_for_guards="$command_for_guards"
+# A single literal printer writes data, not shell commands. Keep its actual
+# redirection in the scan; unsupported syntax and unavailable parsing retain
+# the original text. Chained commands and shell substitutions never qualify.
+if [[ "$command_for_guards" =~ ^[[:blank:]]*(printf|echo)[[:blank:]] ]] \
+  && command -v python3 >/dev/null 2>&1; then
+  if display_projection="$(printf '%s' "$command_for_guards" | python3 \
+    "$lisa_guard_hook_dir/parity-safety-net-heredoc.py" --literal-display 2>/dev/null)"; then
+    command_for_guards="$display_projection"
+  fi
+fi
+
+# ─── Follow execution into the file a command RUNS (issue #3612) ─────────────
+#
+# Every guard below classifies SHELL COMMAND TEXT, and until this block existed
+# the only text they ever saw was the command string. A destructive line
+# written into a file and then executed reached them as an interpreter name and
+# a path, and was ALLOWED — silently, with no output at all — while the same
+# line typed inline was refused. Nine spellings were measured against 4.31.1 and
+# all nine allowed: `bash <file>`, `sh <file>`, `zsh <file>`, `env bash <file>`,
+# `source <file>`, `. <file>`, a shebang script invoked directly,
+# `bash -c 'bash <file>'`, and `eval "$(cat <file>)"`. Two more found while
+# fixing it — `bash < <file>` and `cat <file> | bash` — allowed as well.
+#
+# Three more found by review before this shipped, all one shape: a WRAPPER'S OWN
+# OPERAND closing the command position before the program is reached, so
+# `nice -n 5 bash <file>`, `sudo -u nobody bash <file>` and `timeout 5 bash
+# <file>` walked past the invocation. See the wrapper-prefix arms below.
+#
+# A guard that fails CLOSED spends time; this one failed OPEN on destructive
+# actions and reported nothing, so an operator who installed it to gate `rm -rf`
+# outside the project got no signal that the check had not run.
+#
+# WHY IT IS THE DEFAULT PATH rather than an edge case: block_heredoc() above
+# refuses heredocs with an instruction to write the payload to a file and
+# execute that file. The tooling therefore routed agents onto exactly the shape
+# the destructive scan could not see. Nobody had to evade anything. That remedy
+# is reworded above, and this block is the half that makes the reworded remedy
+# true.
+#
+# THE RULE: the blind spot is precisely FILE CONTENTS. Every other part of a
+# command — including the inner command of a substitution — is text these guards
+# already read. So resolve the file an invocation actually RUNS, read it under a
+# size cap, and hand it to the guards as further command text.
+#
+# WHAT THIS DELIBERATELY DOES NOT DO — the known-wrong fix, already made once in
+# this family. #3484 was fixed by teaching a sibling guard to read the contents
+# of any file a command NAMES, and that produced #3604: the guard now opens any
+# readable file named by any argument and attributes its contents to the
+# command, including a path quoted as prose inside a fenced code block in a
+# `--body-file` markdown. A path is followed here ONLY when the command EXECUTES
+# it. `grep -n x <file>`, `gh pr create --body-file <file>` and
+# `git commit -F <file>` name a file as DATA — and $DESTRUCTIVE_GUIDANCE above
+# tells operators to use exactly those forms when the destructive text is a
+# deliverable, so reading them would break the one remedy that works.
+#
+# FAIL CLOSED ON WHAT IT CANNOT FOLLOW. At the top level a computed target
+# (`bash "$SCRIPT"`), a target that does not exist or cannot be read, a file
+# past the size cap, and an operand that is not a path at all (`find … -exec
+# bash {} \;`) are each REFUSED with a reason. Silence on an unclassifiable
+# destructive command is the bug being fixed, and a truncated scan would report
+# a confident ALLOW about text it never read.
+#
+# NOT FOLLOWED, deliberately. Each one is text these guards were never able to
+# classify in the first place, so failing closed on it would spend the operator
+# a refusal it cannot buy anything with:
+#   - Non-shell interpreters (`python3 <file>`, `node <file>`). These patterns
+#     are shell syntax; running them over a Python or JS file buys
+#     mis-attribution, not coverage. The heredoc remedy no longer names one.
+#   - A payload piped from a program's OUTPUT (`curl … | bash`). There is no
+#     file to read, and the producing command's own text is already scanned.
+#   - An indirection nested inside an ALREADY-FOLLOWED file whose target is
+#     computed — `source "$(dirname "$0")/lib.sh"` is the universal shell idiom,
+#     and failing closed on it would refuse most real scripts. Top-level
+#     indirection is authored by the agent in the command it just wrote, which
+#     is where a refusal is both actionable and rare.
+# Each is a fail-open the header's ACCEPTED-BYPASS reasoning already covers: the
+# net catches ACCIDENTAL catastrophic commands.
+readonly FOLLOW_MAX_BYTES=262144
+readonly FOLLOW_MAX_TOTAL_BYTES=524288
+readonly FOLLOW_MAX_FILES=8
+readonly FOLLOW_MAX_DEPTH=3
+readonly FOLLOW_MAX_FUNCTION_DEPTH=16
+readonly FOLLOW_MAX_FUNCTION_CALLS=128
+
+# Effective working directory established by a literal `cd` in the command, and
+# the flag that says a `cd` happened whose target could NOT be read literally.
+# Empty + 0 means no `cd` has been seen and the session's own cwd governs.
+follow_cwd=""
+follow_cwd_unknown=0
+follow_normalized=""
+follow_paths=$'\n'
+follow_names=""
+follow_count=0
+follow_bytes=0
+follow_function_calls=0
+follow_function_bytes=0
+followed_text=""
+followed_rm_text=""
+# Generated from the canonical reviewed supervisor, never from a host manifest.
+# Regenerate through scripts/generate-scratch-supervisor-profile.mjs.
+readonly SCRATCH_SUPERVISOR_SHA256='76ccf8ca6f98b214361f02ebf6ad58041129b76ed29128455e810095db6c292f'
+readonly SCRATCH_SUPERVISOR_CLEANUP_COUNT='7'
+
+# An authenticated public supervisor owns its fixed cleanup sites. Its original
+# source remains visible to every other policy; its actual payload is followed.
+follow_supervisor() {
+  local token="$1" depth="$2" statement="$3" path="" profile="" payload="" rm_source="" original=""
+  case "$token" in *lisa-scratch-run.sh) ;; *) return 1 ;; esac
+  follow_locate "$token" || follow_refuse "$token" "supervisor source could not be resolved"
+  path="$follow_located"
+  profile="$(python3 - "$path" "$SCRATCH_SUPERVISOR_SHA256" "$statement" "$token" "$SCRATCH_SUPERVISOR_CLEANUP_COUNT" <<'PY'
+import hashlib
+import json
+import os
+import re
+import shlex
+import stat
+import sys
+
+path, digest, statement, operand, expected_count = sys.argv[1:]
+def refuse():
+    sys.exit(2)
+
+try:
+    info = os.lstat(path)
+    if not stat.S_ISREG(info.st_mode) or info.st_size > 262144:
+        refuse()
+    raw = open(path, 'rb').read(262145)
+    if len(raw) != info.st_size or not re.fullmatch(r'[0-9a-f]{64}', digest):
+        refuse()
+    if hashlib.sha256(raw).hexdigest() != digest:
+        refuse()
+    tokens = shlex.split(statement)
+    indices = [index for index, token in enumerate(tokens) if token == operand]
+    if len(indices) != 1 or '$' in operand or '`' in operand:
+        refuse()
+    index = indices[0]
+    if index < 1 or tokens[index - 1] not in ('sh', 'bash', '/bin/sh', '/bin/bash'):
+        refuse()
+    prefix = tokens[:index - 1]
+    if prefix[:1] == ['env']:
+        prefix = prefix[1:]
+    assignments = {}
+    for token in prefix:
+        if '=' not in token or re.search(r'[$`\r\n]', token):
+            refuse()
+        key, value = token.split('=', 1)
+        if key not in ('LISA_SCRATCH_BASE', 'LISA_SCRATCH_TRACE', 'TMPDIR') or key in assignments:
+            refuse()
+        assignments[key] = value
+    # Match actual shell :- precedence, including inherited and
+    # explicitly empty values. TMPDIR cannot override a nonempty inherited base.
+    effective = dict(os.environ, **assignments)
+    base = effective.get('LISA_SCRATCH_BASE') or effective.get('TMPDIR') or '/tmp'
+    if not base or not os.path.isabs(base) or re.search(r'[$`\r\n]', base):
+        refuse()
+    real_base = os.path.realpath(base)
+    roots = ['/tmp', '/var/tmp', os.environ.get('TMPDIR', '/tmp')]
+    if not any(os.path.commonpath([real_base, os.path.realpath(root)]) == os.path.realpath(root) for root in roots if root and os.path.isabs(root)):
+        refuse()
+    args = tokens[index + 1:]
+    if len(args) < 4 or args[0] != '--suite' or args[2] != '--':
+        refuse()
+    if not re.fullmatch(r'[A-Za-z0-9._-]{1,64}', args[1]):
+        refuse()
+    payload = args[3:]
+    if not payload[0] or payload[0].startswith('-') or any(re.search(r'[$`\x00\r\n]', value) for value in payload):
+        refuse()
+    source = raw.decode('utf8')
+    cleaned, count = re.subn(r'(?m)^(\s*)rm -rf "(\$_quarantine|\$_root|\$_entry|\$LISA_SCRATCH_ROOT)"', r'\1:', source)
+    if not re.fullmatch(r'[1-9][0-9]*', expected_count) or count != int(expected_count):
+        refuse()
+    print(json.dumps({'source': cleaned, 'original': source, 'payload': shlex.join(payload)}))
+except (OSError, UnicodeError, ValueError):
+    refuse()
+PY
+)" || follow_refuse "$path" "supervisor source or public entry authority could not be authenticated"
+  rm_source="$(printf '%s' "$profile" | jq -er '.source')" || follow_refuse "$path" "invalid supervisor profile"
+  original="$(printf '%s' "$profile" | jq -er '.original')" || follow_refuse "$path" "invalid supervisor source"
+  payload="$(printf '%s' "$profile" | jq -er '.payload')" || follow_refuse "$path" "invalid supervisor payload"
+  follow_take "$path" "$depth" "$rm_source" "$original"
+  [ "$depth" -lt "$FOLLOW_MAX_DEPTH" ] || follow_refuse "$path" "supervisor payload exceeds inspection depth"
+  follow_scan "$payload" "$((depth + 1))"
+  return 0
+}
+
+FOLLOW_GUIDANCE="This command EXECUTES a file. These guards classify shell text, so the script an
+invocation runs is read and scanned as part of the command — a destructive line
+inside the file is refused exactly as the inline form is. This one could not be
+read, so the guard denied rather than passed: a destructive command it cannot
+see is the thing it exists to stop.
+
+- Name the script by a LITERAL path that exists and is readable — \`bash
+  ./scripts/x.sh\` rather than \`bash \"\$SCRIPT\"\` — and the guard can classify it.
+- A leading \`cd\` the guard cannot read literally — \`cd \"\$DIR\" && bash x.sh\` —
+  leaves it unable to say WHICH copy of \`x.sh\` would run, and a same-named file
+  in another directory is a different file. Spell the directory out, or give the
+  script its full path.
+- A file past the inspection cap is refused rather than half-scanned, because a
+  truncated scan reports a confident ALLOW about text it never read. Split it,
+  or run it manually outside the agent.
+- You genuinely intend to run it as it stands. Ask the user to confirm, then run
+  it manually outside the agent."
+
+# Deny, naming the file the guard could not classify. Deliberately NOT the
+# ordinary destructive guidance: that guidance is about a pattern the COMMAND
+# matched, and this is a claim that the guard could not look at all.
+follow_refuse() {
+  block "cannot classify the file this command executes ($1): $2" "$FOLLOW_GUIDANCE"
+}
+
+# Result of the last follow_unwrap / follow_next_operand. These two SET a global
+# rather than printing, and every caller reads it.
+#
+# Printing would be the natural shape, but `$(follow_unwrap …)` is a FORK, and
+# the walk runs it once per token of every followed file. Measured: a script
+# just under the 256 KiB inspection cap holds ~48k tokens and cost 27 SECONDS of
+# wall clock — inside a PreToolUse hook that gates every Bash call. Both
+# functions are pure parameter expansion, so the subshell bought nothing.
+#
+# The concurrent-process ceiling was never the risk: the forks are sequential,
+# so peak process count never rises. The latency was the whole problem.
+follow_unwrapped=""
+follow_operand_index=0
+follow_located=""
+
+# Strip substitution, quote and alias wrappers off one token. A sibling of
+# strip_subst_wrappers() below rather than a call to it: that one is defined
+# after this block runs, and it exists for a different job (normalizing a
+# DELETION TARGET). Kept separate so tightening either cannot silently move the
+# other's verdicts.
+follow_unwrap() {
+  local t="$1" prev=""
+  while [ "$t" != "$prev" ]; do
+    prev="$t"
+    case "$t" in
+      '$(('*) break ;;
+      '\'*) t="${t#\\}" ;;
+      '$('*) t="${t#'$('}" ;;
+      '<('*) t="${t#'<('}" ;;
+      '>('*) t="${t#'>('}" ;;
+      '"'*) t="${t#'"'}" ;;
+      "'"*) t="${t#\'}" ;;
+      '`'*) t="${t#'`'}" ;;
+      '('*) t="${t#(}" ;;
+    esac
+  done
+  prev=""
+  while [ "$t" != "$prev" ]; do
+    prev="$t"
+    case "$t" in
+      *')') t="${t%)}" ;;
+      *'`') t="${t%'`'}" ;;
+      *'"') t="${t%'"'}" ;;
+      *"'") t="${t%\'}" ;;
+      *';') t="${t%;}" ;;
+    esac
+  done
+  follow_unwrapped="$t"
+}
+
+# A shell interpreter, bare or path-prefixed. Only shells: see NOT FOLLOWED.
+follow_is_interpreter() {
+  case "$1" in
+    bash | sh | zsh | ksh | ksh93 | dash | ash \
+      | */bash | */sh | */zsh | */ksh | */ksh93 | */dash | */ash) return 0 ;;
+  esac
+  return 1
+}
+
+# Could this token itself be the thing a wrapper prefix goes on to invoke?
+#
+# Used ONLY to yield when stepping over a wrapper's own operand, so that
+# step-over can never swallow the invocation. Deliberately generous, because the
+# cost of the two answers is asymmetric: yielding wrongly leaves the walk where
+# it already was, while consuming wrongly loses the program and the guard falls
+# open — which is the entire defect this block exists to close. Anything
+# path-shaped yields too, so `env -i <file>` still reaches the script rather
+# than eating it as a value `-i` does not take.
+follow_may_invoke() {
+  follow_is_interpreter "$1" && return 0
+  # shellcheck disable=SC2088
+  case "$1" in
+    "" | -* | [A-Za-z_]*=*) return 0 ;;
+    /* | ./* | ../* | '~/'* | */*) return 0 ;;
+    sudo | env | command | exec | nohup | nice | time | builtin | timeout \
+      | do | then | else | while | until | if | '!' | '{' \
+      | eval | find | xargs | cd | source | . | cat) return 0 ;;
+  esac
+  return 1
+}
+
+# Split the command into statements at UNQUOTED separators, printing one
+# statement per line as "<separator><TAB><statement>". Quote-aware on purpose: a
+# `;` or `|` inside a quoted string is not a statement boundary, and splitting
+# there would invent a command position in the middle of a quoted argument and
+# make prose look like an invocation — the #3604 failure mode, arrived at from
+# the other side. Literal subshell parentheses carry scope events, while quoted
+# parentheses and substitutions stay in their original statement so `eval
+# "$(cat <file>)"` retains its command position and executed-file inspection.
+#
+# awk rather than a bash char loop because this runs on EVERY intercepted Bash
+# command, and it addresses the text by index instead of accumulating it a
+# character at a time so the cost stays linear on a followed file. The text
+# arrives through the ENVIRONMENT: `awk -v` processes backslash escapes in the
+# value it is given and would rewrite the command before it was ever read.
+follow_split() {
+  LC_ALL=C SN_FOLLOW_TEXT="$1" awk '
+    # Lexical lookahead keeps an asynchronous return from ending its parent
+    # scan before the trailing & event. Aggregate work is capped linearly in
+    # input size, including overlap from nested scopes; no partial parse passes.
+    function lookahead_step() {
+      if (++lookahead_work > 8 * n + 1024) { exit 2 }
+    }
+    function brace_pipe(from, opening, closing, j, c, quote, escape, braces, nesting, tail, tail_cases, tail_header, word, word_end) {
+      quote = ""; escape = 0; braces = 1; nesting = 0; brace_redirect = ""; tail_cases = 0; tail_header = 0;
+      for (j = from; j <= n; j++) {
+        lookahead_step(); c = substr(s, j, 1);
+        if (escape) { escape = 0; continue }
+        if (c == "\\" && quote != "\047") { escape = 1; continue }
+        if (quote != "") { if (c == quote) { quote = "" } continue }
+        if (c == "\"" || c == "\047" || c == "`") { quote = c; continue }
+        if (braces > 0) {
+          # A case-pattern ) is not the closing parenthesis of its shell.
+          if (opening == "(" && c ~ /[A-Za-z_]/) {
+            word_end = j + 1;
+            while (word_end <= n && substr(s, word_end, 1) ~ /[A-Za-z_0-9-]/) { lookahead_step(); word_end++ }
+            word = substr(s, j, word_end - j); j = word_end - 1;
+            if (word == "case" && (tail_cases == 0 || !tail_patterns[tail_cases])) { tail_header++ }
+            if (word == "in" && tail_header > 0) {
+              tail_header--; tail_patterns[++tail_cases] = 1; tail_levels[tail_cases] = braces;
+            }
+            if (word == "esac" && tail_cases > 0) { tail_cases-- }
+            continue;
+          }
+          if (tail_cases > 0 && tail_levels[tail_cases] == braces) {
+            if (c == ")" && tail_patterns[tail_cases]) { tail_patterns[tail_cases] = 0; continue }
+            if (c == ";" && substr(s, j + 1, 1) == ";") { tail_patterns[tail_cases] = 1; j++; continue }
+          }
+          if (c == opening) { braces++ }
+          if (c == closing && --braces == 0) { tail = j + 1 }
+          continue;
+        }
+        # Redirections belong to the compound command too. Quoted operator
+        # bytes and nested substitutions are operands, not the pipeline edge.
+        if (c == "(") { nesting++; continue }
+        if (c == ")") { if (nesting == 0) { brace_redirect = substr(s, tail, j - tail); return 0 } nesting--; continue }
+        if (nesting > 0) { continue }
+        if (c == "|") { brace_redirect = substr(s, tail, j - tail); return substr(s, j + 1, 1) != "|" }
+        if (c == ";" || c == "\n") { brace_redirect = substr(s, tail, j - tail); return 0 }
+        if (c == "&" && substr(s, j - 1, 1) !~ /[<>]/ && substr(s, j + 1, 1) != ">") { brace_redirect = substr(s, tail, j - tail); return 0 }
+      }
+      if (tail > 0) { brace_redirect = substr(s, tail) }
+      return 0;
+    }
+    function list_async(from, j, c, quote, escape, nesting, braces) {
+      quote = ""; escape = 0; nesting = 0; braces = 0;
+      for (j = from; j <= n; j++) {
+        lookahead_step();
+        c = substr(s, j, 1);
+        if (escape) { escape = 0; continue }
+        if (c == "\\" && quote != "\047") { escape = 1; continue }
+        if (quote != "") { if (c == quote) { quote = "" } continue }
+        if (c == "\"" || c == "\047" || c == "`") { quote = c; continue }
+        if (c == "(") { nesting++; continue }
+        if (c == ")") { if (nesting == 0) { return 0 } nesting--; continue }
+        if (c == "{") { braces++; continue }
+        if (c == "}") { if (braces > 0) { braces-- } continue }
+        if (nesting > 0 || braces > 0) { continue }
+        if (c == ";" || c == "\n") { return 0 }
+        if (c == "&" && substr(s, j - 1, 1) !~ /[&<>]/ && substr(s, j + 1, 1) !~ /[&>]/) { return 1 }
+      }
+      return 0;
+    }
+    BEGIN {
+      s = ENVIRON["SN_FOLLOW_TEXT"]; n = length(s);
+      q = ""; esc = 0; start = 1; sep = "o"; parens = 0;
+      functions = 0; cases = 0; backtick = 0; brace_depth = 0; post_brace = 0;
+      printf "L\t%d\n", list_async(1);
+      for (i = 1; i <= n; i++) {
+        c = substr(s, i, 1);
+        if (esc == 1) { if (c == "$") { literal_dollars[i] = 1 } esc = 0; continue }
+        if (c == "\\" && q != "\047") { esc = 1; continue }
+        if (functions > 0) {
+          if (q != "") { if (c == q) { q = "" } continue }
+          if (c == "\"" || c == "\047") { q = c; continue }
+          if (c == "{") { functions++ }
+          if (c == "}" && --functions == 0) {
+            printf "N\t%s\t%s\n", sep, function_name;
+            body = substr(s, function_start, i - function_start);
+            count = split(body, body_lines, "\n");
+            for (j = 1; j <= count; j++) { printf "D\t%s\n", body_lines[j] }
+            printf "F\t\n"; start = i + 1; sep = "o";
+          }
+          continue;
+        }
+        quoted_expression = q == "\"" && ((c == "(" && substr(s, i - 1, 1) == "$" && !literal_dollars[i - 1]) || c == "`");
+        if (q != "" && !quoted_expression) { if (c == q) { q = "" } continue }
+        if (c == "\"" || c == "\047") { q = c; continue }
+        if (c == "`") {
+          if (backtick) {
+            piece = substr(s, start, i - start);
+            if (piece ~ /[^[:space:]]/) { printf "%s\t%s\n", sep, piece; sep = "o" }
+            printf "]\t\n"; start = backtick_start; q = backtick_quote; backtick = 0;
+          } else {
+            backtick_start = start; backtick_quote = q; q = ""; backtick = 1;
+            printf "[\t\nL\t%d\n", list_async(i + 1); start = i + 1;
+          }
+          continue;
+        }
+        if (i == start && c ~ /[[:space:]]/) { start = i + 1; continue }
+        if (c ~ /[[:space:]]/ && substr(s, i - 1, 1) !~ /[[:space:]]/ && substr(s, start, 4) == "case") {
+          piece = substr(s, start, i - start);
+          if (piece ~ /^case[[:space:]].*[[:space:]]in$/) {
+            case_scopes[++cases] = parens;
+            case_patterns[cases] = 1; printf "C\t\n"; start = i + 1; continue;
+          }
+        }
+        if (cases > 0 && c ~ /[[:space:];&|)]/ && substr(s, start, 4) == "esac") {
+          piece = substr(s, start, i - start);
+          if (piece ~ /^esac[[:space:]]*$/) { cases--; printf "K\t\n" }
+        }
+        if (cases > 0 && case_scopes[cases] == parens && case_patterns[cases]) {
+          if (c == ")") { case_patterns[cases] = 0; start = i + 1 }
+          continue;
+        }
+        if (c == "{") {
+          piece = substr(s, start, i - start);
+          definition = piece ~ /^[[:space:]]*([A-Za-z_][A-Za-z_0-9]*[[:space:]]*\([[:space:]]*\)|function[[:space:]]+[A-Za-z_][A-Za-z_0-9]*([[:space:]]*\([[:space:]]*\))?)[[:space:]]*$/;
+          if (definition) {
+            function_name = piece;
+            sub(/^[[:space:]]*(function[[:space:]]+)?/, "", function_name);
+            sub(/[[:space:]\(].*$/, "", function_name);
+            functions = 1; function_start = i + 1;
+            continue;
+          }
+          previous = i > 1 ? substr(s, i - 1, 1) : "";
+          group = (i == 1 || previous ~ /[[:space:];&|()]/) && substr(s, i + 1, 1) ~ /[[:space:];]/ &&
+            piece ~ /^[[:space:]]*((then|do|else|!|time)[[:space:]]+)*$/;
+          brace_groups[++brace_depth] = group;
+          if (group) {
+            brace_sep = sep;
+            if (piece ~ /[^[:space:]]/) { printf "%s\t%s\n", sep, piece; sep = "o" }
+            # A pipeline owns the whole compound command, not just the final
+            # statement before |. Snapshot before any brace-body cd/return.
+            outgoing = brace_pipe(i + 1, "{", "}");
+            brace_pipes[brace_depth] = brace_sep == "|" || outgoing;
+            if (brace_pipes[brace_depth]) { printf "(\t%s%s\nL\t%d\n", (brace_sep == "|" ? "|" : ""), (outgoing ? "+" : ""), list_async(i + 1) }
+            printf "G\t%s\nL\t%d\n", brace_sep, list_async(i + 1);
+            if (brace_redirect ~ /[^[:space:]]/) { printf "I\t%s\n", brace_redirect }
+            # P retains incoming stdin provenance without wrapping each body
+            # statement in another child: all statements share the brace cwd.
+            if (brace_sep == "|") { sep = "P" }
+            start = i + 1; continue;
+          }
+        }
+        if (c == "}" && brace_depth > 0) {
+          group = brace_groups[brace_depth--];
+          if (group) {
+            piece = substr(s, start, i - start);
+            if (piece ~ /[^[:space:]]/) { printf "%s\t%s\n", sep, piece; sep = "o" }
+            printf "H\t\n";
+            if (brace_pipes[brace_depth + 1]) { printf ")\t\n" }
+            start = i + 1; post_brace = 1; continue;
+          }
+        }
+        if (c == "(") {
+          previous = i > 1 ? substr(s, i - 1, 1) : "";
+          piece = substr(s, start, i - start);
+          header = piece ~ /^[[:space:]]*(function[[:space:]]+)?[A-Za-z_][A-Za-z_0-9]*[[:space:]]*$/ && substr(s, i + 1) ~ /^[[:space:]]*\)/;
+          expression = previous ~ /[$<>]/ && !literal_dollars[i - 1] && substr(s, i + 1, 1) != "(";
+          group = (parens == 0 || scopes[parens] != 0) &&
+            (i == 1 || previous ~ /[[:space:];&|()]/) && substr(s, i + 1, 1) != "(" && !header;
+          scopes[++parens] = expression ? 2 : group;
+          if (expression) {
+            expression_starts[parens] = start;
+            expression_quotes[parens] = q; q = "";
+            printf "[\t\nL\t%d\n", list_async(i + 1); start = i + 1; continue;
+          }
+          if (group) {
+            piece = substr(s, start, i - start);
+            if (piece ~ /[^[:space:]]/) { printf "%s\t%s\n", sep, piece; sep = "o" }
+            outgoing = brace_pipe(i + 1, "(", ")");
+            printf "(\t%s%s\nL\t%d\n", sep, (outgoing ? "+" : ""), list_async(i + 1);
+            if (brace_redirect ~ /[^[:space:]]/) { printf "I\t%s\n", brace_redirect }
+            if (sep == "|") { sep = "P" }
+            start = i + 1; continue;
+          }
+        }
+        if (c == ")" && parens > 0) {
+          piece = substr(s, start, i - start);
+          group = scopes[parens--];
+          if (group == 2) {
+            if (piece ~ /[^[:space:]]/) { printf "%s\t%s\n", sep, piece; sep = "o" }
+            printf "]\t\n"; start = expression_starts[parens + 1]; q = expression_quotes[parens + 1]; continue;
+          }
+          if (group) {
+            piece = substr(s, start, i - start);
+            if (piece ~ /[^[:space:]]/) { printf "%s\t%s\n", sep, piece; sep = "o" }
+            printf ")\t\n"; start = i + 1; post_brace = 1; continue;
+          }
+        }
+        if (c == ";" || c == "&" || c == "|" || c == "\n") {
+          if (parens > 0 && scopes[parens] == 0) { continue }
+          if (c == "&" && (substr(s, i - 1, 1) ~ /[<>]/ || substr(s, i + 1, 1) == ">")) { continue }
+          piece = substr(s, start, i - start);
+          pipe = c == "|" && substr(s, i + 1, 1) != "|";
+          if (pipe || sep == "|") { printf "(\t%s%s\nL\t%d\n", (sep == "|" ? "|" : ""), (pipe ? "+" : ""), list_async(start) }
+          if (piece ~ /[^[:space:]]/) { printf "%s\t%s\n", post_brace ? "R" : sep, piece }
+          post_brace = 0;
+          if (pipe || sep == "|") { printf ")\t\n" }
+          if (c == ";" && substr(s, i + 1, 1) == ";" && cases > 0) {
+            case_patterns[cases] = 1; printf "A\t\n"; i++;
+          }
+          if (c == "|" && substr(s, i + 1, 1) == "|") {
+            i++; sep = "?";
+          } else if (c == "&" && substr(s, i + 1, 1) == "&") {
+            i++; sep = "&";
+          } else if (c == "|") { sep = "|" } else { sep = "o" }
+          if (c == "&" && sep == "o" && substr(s, i - 1, 1) !~ /[&<>]/ && substr(s, i + 1, 1) != ">") {
+            printf "B\t\n";
+          }
+          if ((c == ";" || c == "\n" || c == "&") && sep == "o") { printf "L\t%d\n", list_async(i + 1) }
+          start = i + 1;
+          continue
+        }
+      }
+      if (sep == "|") { printf "(\t|\nL\t%d\n", list_async(start) }
+      printf "%s\t%s\n", sep, substr(s, start, n - start + 1);
+      if (sep == "|") { printf ")\t\n" }
+    }
+  '
+}
+
+# Collapse `.`, `..` and empty segments so the path a verdict NAMES is the one a
+# reader recognises. Purely lexical, and it cannot move a verdict: every
+# component has already been proven to exist by the `-d` test that follows, and
+# the `-f`/`-r` tests are applied to the collapsed path either way.
+follow_normalize() {
+  local p="$1" out="" seg
+  local IFS=/
+  set -f
+  # The word split is the point: `$p` is being addressed one path segment at a
+  # time, and the glob guard above keeps a literal `*` from expanding.
+  # shellcheck disable=SC2086
+  for seg in $p; do
+    case "$seg" in
+      "" | .) ;;
+      ..) out="${out%/*}" ;;
+      *) out="$out/$seg" ;;
+    esac
+  done
+  set +f
+  follow_normalized="${out:-/}"
+}
+
+# Track the working directory a literal `cd` establishes, so a relative executed
+# path resolves against the directory the command will actually have.
+#
+# This REPLACES the session's own cwd rather than adding to it. It used to be an
+# extra base appended AFTER `$PWD`, so `$PWD` always won and
+# `cd <other-checkout> && bash scripts/x.sh` was classified against the session
+# checkout's same-named copy. That is not a resolution failure — it succeeds,
+# against a real and readable file, and the verdict is reported with full
+# confidence about text nobody was about to run (CodySwannGT/lisa#3933). Two
+# checkouts of one repository differ by exactly the work in flight, which is the
+# entire point of the second one, so the copy that would RUN is the only copy
+# whose verdict means anything. Wrong in both directions, and the expensive
+# direction is silent: the dangerous line sits in the copy that would run and
+# the guard reads the pristine one.
+#
+# A target this hook cannot turn into a literal directory marks the cwd UNKNOWN
+# instead of leaving a stale one in place. `follow_locate` then refuses a
+# relative token rather than guessing, which is the honest-refusal doctrine the
+# rest of this block already follows: a confident scan of the wrong file is
+# strictly worse than saying it could not tell.
+follow_cd() {
+  local d="$1" home="${HOME:-}"
+  # The tilde arms are LITERAL text — the unexpanded spelling the hook was
+  # handed — for the reason follow_locate's arms document.
+  # shellcheck disable=SC2088
+  case "$d" in
+    '~') d="$home" ;;
+    '~/'*) d="$home/${d#'~/'}" ;;
+  esac
+  case "$d" in
+    "" | -* | *'$'* | *'*'* | *'?'* | *'`'* | *'{'* | *'['*)
+      follow_cwd=""
+      follow_cwd_unknown=1
+      return 0
+      ;;
+  esac
+  case "$d" in
+    /*) ;;
+    *)
+      # A relative cd cannot recover an unknown base. Falling back to this
+      # hook's PWD would confidently inspect another directory (#4299).
+      [ "$follow_cwd_unknown" -eq 0 ] || return 0
+      d="${follow_cwd:-$PWD}/$d"
+      ;;
+  esac
+  follow_normalize "$d"
+  d="$follow_normalized"
+  if [ -d "$d" ]; then
+    follow_cwd="$d"
+    follow_cwd_unknown=0
+  else
+    follow_cwd=""
+    follow_cwd_unknown=1
+  fi
+}
+
+# Resolve one executed-file operand to a readable regular file, or fail.
+#
+# The variable expansions are LOCATE-ONLY and cannot widen a verdict: a wrong
+# guess simply fails to find a file, and an unresolved target is refused, not
+# passed. They are here because an agent's own scratch path arrives spelled with
+# one of them, and refusing every `bash "$TMPDIR/x.sh"` would be a wall with no
+# door. Nothing else is expanded — any remaining `$`, glob or brace is a target
+# this hook cannot evaluate.
+follow_locate() {
+  local token="$1" home="${HOME:-}" tmp="${TMPDIR:-/tmp}" proj="${CLAUDE_PROJECT_DIR:-$PWD}" base
+  local cwd="${follow_cwd:-$PWD}"
+  follow_located=""
+  tmp="${tmp%/}"
+  [ -n "$tmp" ] || tmp="/tmp"
+  # The tilde arms below are LITERAL text: this is the unexpanded spelling the
+  # hook was handed, and turning it into a path is the whole point of the arm.
+  # shellcheck disable=SC2088
+  case "$token" in
+    '~') token="$home" ;;
+    '~/'*) token="$home/${token#'~/'}" ;;
+    '$TMPDIR' | '$TMPDIR'/*) token="$tmp${token#'$TMPDIR'}" ;;
+    '${TMPDIR}' | '${TMPDIR}'/*) token="$tmp${token#'${TMPDIR}'}" ;;
+    '$HOME' | '$HOME'/*) token="$home${token#'$HOME'}" ;;
+    '${HOME}' | '${HOME}'/*) token="$home${token#'${HOME}'}" ;;
+    '$PWD' | '$PWD'/*)
+      [ "$follow_cwd_unknown" -eq 0 ] || return 1
+      token="$cwd${token#'$PWD'}"
+      ;;
+    '${PWD}' | '${PWD}'/*)
+      [ "$follow_cwd_unknown" -eq 0 ] || return 1
+      token="$cwd${token#'${PWD}'}"
+      ;;
+    '$CLAUDE_PROJECT_DIR' | '$CLAUDE_PROJECT_DIR'/*) token="$proj${token#'$CLAUDE_PROJECT_DIR'}" ;;
+    '${CLAUDE_PROJECT_DIR}' | '${CLAUDE_PROJECT_DIR}'/*) token="$proj${token#'${CLAUDE_PROJECT_DIR}'}" ;;
+  esac
+  case "$token" in
+    "" | *'$'* | *'*'* | *'?'* | *'`'* | *'{'* | *'['*) return 1 ;;
+    /*)
+      [ -f "$token" ] && [ -r "$token" ] || return 1
+      follow_located="$token"
+      return 0
+      ;;
+  esac
+  # Past this point the token is RELATIVE, so which directory it is resolved
+  # from decides which file the verdict is about.
+  if [ "$follow_cwd_unknown" -eq 1 ]; then
+    return 1
+  fi
+  if [ -n "$follow_cwd" ]; then
+    # A literal `cd` names the directory the shell will be in. It is the only
+    # candidate — falling back to `$PWD` here is what made the guard report
+    # confidently about a same-named file in another checkout.
+    [ -f "$follow_cwd/$token" ] && [ -r "$follow_cwd/$token" ] || return 1
+    follow_located="$follow_cwd/$token"
+    return 0
+  fi
+  while IFS= read -r base; do
+    [ -n "$base" ] || continue
+    if [ -f "$base/$token" ] && [ -r "$base/$token" ]; then
+      follow_located="$base/$token"
+      return 0
+    fi
+  done <<<"$PWD"$'\n'"$proj"
+  return 1
+}
+
+# Read one executed file into the text the guards will scan, then follow what IT
+# executes, to a bounded depth. Full-line comments are dropped: a commented line
+# is never executed, so scanning it can only manufacture a false refusal.
+follow_take() {
+  local path="$1" depth="$2" size="" content="" rm_content="${3-}"
+  local invocation_kind=child
+  if [ "$#" -eq 3 ]; then invocation_kind="$3"; fi
+  case "$follow_paths" in
+    *$'\n'"$path"$'\n'*)
+      # Sourcing executes in the caller each time; a read cache cannot erase
+      # its directory changes or newly defined functions.
+      [ "$invocation_kind" = source ] || return 0
+      ;;
+  esac
+  follow_paths="$follow_paths$path"$'\n'
+  follow_count=$((follow_count + 1))
+  if [ "$follow_count" -gt "$FOLLOW_MAX_FILES" ]; then
+    follow_refuse "$path" "this command executes more files than the guard will inspect (${FOLLOW_MAX_FILES})"
+  fi
+  size="$(wc -c <"$path" 2>/dev/null | tr -cd '0-9')" || size=""
+  case "$size" in
+    "") follow_refuse "$path" "its size could not be determined" ;;
+  esac
+  if [ "$size" -gt "$FOLLOW_MAX_BYTES" ]; then
+    follow_refuse "$path" "it is larger than the ${FOLLOW_MAX_BYTES}-byte inspection cap"
+  fi
+  follow_bytes=$((follow_bytes + size))
+  if [ "$follow_bytes" -gt "$FOLLOW_MAX_TOTAL_BYTES" ]; then
+    follow_refuse "$path" "the files this command executes total more than the ${FOLLOW_MAX_TOTAL_BYTES}-byte inspection budget"
+  fi
+  if [ "$#" -eq 4 ]; then
+    # Scan the same complete bytes whose digest was authenticated, not a
+    # second file read that could pair changed source with the cleanup view.
+    content="$(printf '%s' "$4" | sed 's/^[[:space:]]*#.*$//')" || follow_refuse "$path" "authenticated source could not be read"
+  else
+    content="$(LC_ALL=C tr -d '\000' <"$path" | sed 's/^[[:space:]]*#.*$//')" \
+      || follow_refuse "$path" "it could not be read"
+  fi
+  follow_names="$follow_names $path"
+  followed_text="$followed_text"$'\n'"$content"
+  if [ "$#" -ne 4 ]; then
+    rm_content="$content"
+  else
+    rm_content="$(printf '%s' "$rm_content" | sed 's/^[[:space:]]*#.*$//')" || follow_refuse "$path" "supervisor cleanup view could not be read"
+  fi
+  followed_rm_text="$followed_rm_text"$'\n'"$rm_content"
+  if [ "$depth" -lt "$FOLLOW_MAX_DEPTH" ]; then
+    # Child scripts inherit cwd but cannot change their parent. A sourced
+    # script runs in the caller and keeps both cwd and function definitions.
+    local saved_cwd="$follow_cwd" saved_unknown="$follow_cwd_unknown"
+    if [ "$#" -eq 4 ]; then
+      # Only follow_supervisor reaches this form, after exact byte identity and
+      # the public argv profile were authenticated. Its owned bootstrap is
+      # already scanned in full by every text policy; its user payload is
+      # followed separately by follow_supervisor. Re-expanding all bootstrap
+      # functions would re-interpret its internal protocol, not inspect a new
+      # user-controlled file, and multiplied its native hook time fourfold.
+      follow_scan "$content" "$((depth + 1))" 0 1
+    else
+      follow_scan "$content" "$((depth + 1))" 0 0 "$invocation_kind"
+    fi
+    if [ "$invocation_kind" != source ]; then
+      follow_cwd="$saved_cwd"
+      follow_cwd_unknown="$saved_unknown"
+    fi
+  fi
+}
+
+# An operand a command EXECUTES. Unresolvable at the top level is a refusal;
+# nested inside an already-followed script it is the documented residual above.
+follow_target() {
+  local token="$1" depth="$2" path=""
+  local invocation_kind="${3:-child}"
+  [ -n "$token" ] || return 0
+  if [ "$follow_cwd_unknown" -ne 0 ]; then
+    case "$token" in
+      /* | '~/'*) ;;
+      *) follow_refuse "$token" "the execution directory is unknown" ;;
+    esac
+  fi
+  # Entry authority belongs to each invocation, not the file-read cache. Only
+  # follow_supervisor may admit the exact public interpreter/argv profile.
+  case "$token" in
+    *lisa-scratch-run.sh) follow_refuse "$token" "supervisor requires its authenticated public interpreter entry" ;;
+  esac
+  if ! follow_locate "$token"; then
+    if [ "$depth" -eq 0 ]; then
+      follow_refuse "$token" "no readable file could be resolved for it"
+    fi
+    return 0
+  fi
+  path="$follow_located"
+  follow_take "$path" "$depth" "$invocation_kind"
+}
+
+# A command word that IS the executable (`./deploy.sh`, `/tmp/x.sh`). Followed
+# only when the file's shebang names a shell: a compiled binary or a Python/Node
+# script is not text these patterns can classify, and `/usr/bin/git` sitting at
+# a command position must stay an ordinary command.
+#
+# This arm alone does NOT fail closed on an unresolvable token, and the line is
+# deliberate. Elsewhere the command TEXT declares that a file is being executed
+# — `bash <file>` says so whether or not the file can be read — so "I cannot
+# read it" is a real inability to classify a stated execution. Here the only
+# evidence that the token is a script at all is the shebang inside it, so an
+# unreadable token is not an unclassifiable execution; it is a command word this
+# hook cannot see, and a shell that cannot see it cannot run it either. Refusing
+# on shape alone would deny `/usr/bin/charm x` and `./scripts/confirm -rf /`,
+# both of which the guard-parity matrix pins as ALLOW (#1960 PR-A2/PR-A3).
+# Accepted residual: a shebang script whose relative path resolves only from a
+# working directory this hook does not share is not followed.
+follow_direct() {
+  local token="$1" depth="$2" path="" first="" raw="" char="" k=0
+  local LC_ALL=C
+  if ! follow_locate "$token"; then
+    return 0
+  fi
+  path="$follow_located"
+  case "$path" in
+    *lisa-scratch-run.sh) follow_refuse "$path" "supervisor requires its authenticated public interpreter entry" ;;
+  esac
+  IFS= read -r -n 256 raw <"$path" 2>/dev/null || true
+  while [ "$k" -lt "${#raw}" ]; do
+    char="${raw:k:1}"
+    case "$char" in [[:print:]]) first="$first$char" ;; esac
+    k=$((k + 1))
+  done
+  case "$first" in
+    '#!'*[/[:space:]]bash* | '#!'*[/[:space:]]sh* | '#!'*[/[:space:]]zsh* \
+      | '#!'*[/[:space:]]ksh* | '#!'*[/[:space:]]dash* | '#!'*[/[:space:]]ash*) ;;
+    *) return 0 ;;
+  esac
+  follow_take "$path" "$depth"
+}
+
+# Index of the next non-option token after $1, or $2 when there is none.
+follow_next_operand() {
+  local from="$1" upto="$2" j
+  j=$((from + 1))
+  while [ "$j" -lt "$upto" ]; do
+    follow_unwrap "${toks[j]}"
+    case "$follow_unwrapped" in
+      -*) j=$((j + 1)) ;;
+      *) break ;;
+    esac
+  done
+  follow_operand_index="$j"
+}
+
+# Resolve a piped file in the PRODUCER's directory, which can differ from the
+# interpreter's after a subshell closes. Preserve unknown-state provenance too.
+follow_pipe_target() {
+  local saved_cwd="$follow_cwd" saved_unknown="$follow_cwd_unknown"
+  follow_cwd="$3"
+  follow_cwd_unknown="$4"
+  follow_target "$1" "$2"
+  follow_cwd="$saved_cwd"
+  follow_cwd_unknown="$saved_unknown"
+}
+
+# Carry branch uncertainty into sourced declarations as well as cwd changes.
+# The local projection lasts only for this source invocation, not later scans.
+follow_source_target() {
+  local follow_source_flow_unknown="$3"
+  follow_target "$1" "$2" source
+}
+
+# Extract the literal -c operand without evaluating it or treating positional
+# arguments after its closing quote as commands. Prefix indexing matches the
+# whitespace tokens used by follow_scan; the operand keeps its internal bytes.
+follow_inline() {
+  local stmt="$1" from="$2" depth="$3" body
+  local follow_inline_depth="${follow_inline_depth:-0}"
+  [ "$follow_inline_depth" -lt "$FOLLOW_MAX_FUNCTION_DEPTH" ] || follow_refuse "-c" "inline shells exceed the inspection depth"
+  follow_inline_depth=$((follow_inline_depth + 1))
+  body="$(LC_ALL=C SN_INLINE_TEXT="$stmt" SN_INLINE_FROM="$from" awk '
+    BEGIN {
+      s = ENVIRON["SN_INLINE_TEXT"]; n = length(s); i = 1;
+      for (word = 0; word < ENVIRON["SN_INLINE_FROM"]; word++) {
+        while (i <= n && substr(s, i, 1) ~ /[[:space:]]/) { i++ }
+        while (i <= n && substr(s, i, 1) !~ /[[:space:]]/) { i++ }
+      }
+      while (i <= n && substr(s, i, 1) ~ /[[:space:]]/) { i++ }
+      q = substr(s, i, 1);
+      if (q == "\047" || q == "\"") {
+        start = ++i; esc = 0;
+        for (; i <= n; i++) {
+          c = substr(s, i, 1);
+          if (esc) { esc = 0; continue }
+          if (c == "\\" && q == "\"") { esc = 1; continue }
+          if (c == q) {
+            # Adjacent quoted/unquoted fragments are the same shell operand.
+            # Refuse unsupported concatenation instead of scanning a prefix.
+            if (i < n && substr(s, i + 1, 1) !~ /[[:space:]]/) { exit 1 }
+            printf "%s", substr(s, start, i - start); exit;
+          }
+        }
+        exit 1;
+      }
+      start = i;
+      while (i <= n && substr(s, i, 1) !~ /[[:space:]]/) {
+        c = substr(s, i, 1);
+        if (c == "\047" || c == "\"" || c == "\\") { exit 1 }
+        i++;
+      }
+      printf "%s", substr(s, start, i - start);
+    }
+  ')" || follow_refuse "-c" "its command string could not be determined"
+  local saved_cwd="$follow_cwd" saved_unknown="$follow_cwd_unknown"
+  follow_scan "$body" "$depth"
+  follow_cwd="$saved_cwd"
+  follow_cwd_unknown="$saved_unknown"
+}
+
+# Resolve literal descriptor duplication without running the proposed shell.
+# Compound input is established before its body; output is projected when the
+# producer reaches the pipe. Unknown descriptors refuse rather than drop bytes.
+follow_redirect_io() {
+  local statement="$1" mode="$2" result
+  result="$(SN_COMPOUND_REDIRECT="$statement" SN_DESCRIPTOR_MAP="$follow_descriptor_map" SN_REDIRECT_CWD="$follow_cwd" SN_REDIRECT_UNKNOWN="$follow_cwd_unknown" python3 - "$mode" <<'PY'
+import json
+import os
+import sys
+try:
+    mode = sys.argv[1]
+    text = os.environ['SN_COMPOUND_REDIRECT']
+    tokens = []
+    cursor = 0
+    # Keep syntax provenance and byte adjacency: quoted/escaped > is data,
+    # and `cat 2 >&2` names a file rather than redirecting descriptor 2.
+    while cursor < len(text):
+        if text[cursor].isspace():
+            cursor += 1
+            continue
+        start = cursor
+        syntax = text[cursor] in '<>&'
+        plain = True
+        value = ''
+        quote = ''
+        if syntax:
+            while cursor < len(text) and text[cursor] in '<>&':
+                value += text[cursor]; cursor += 1
+        else:
+            while cursor < len(text):
+                char = text[cursor]
+                if not quote and (char.isspace() or char in '<>&'):
+                    break
+                if char == '\\' and quote != "'":
+                    plain = False
+                    cursor += 1
+                    if cursor == len(text):
+                        raise ValueError('trailing escape')
+                    if text[cursor] == '\n':
+                        cursor += 1
+                        continue
+                    if quote == '"' and text[cursor] not in '$`"\\':
+                        value += '\\'
+                    value += text[cursor]; cursor += 1
+                    continue
+                if char in ('"', "'"):
+                    if not quote:
+                        quote = char; plain = False; cursor += 1
+                        continue
+                    if quote == char:
+                        quote = ''; cursor += 1
+                        continue
+                value += char; cursor += 1
+            if quote:
+                raise ValueError('unterminated quote')
+        tokens.append((value, syntax, plain, start, cursor))
+    descriptors = {int(fd): value for fd, value in json.loads(os.environ['SN_DESCRIPTOR_MAP']).items()}
+    operators = ('<', '>', '>>', '<>', '<&', '>&', '&>', '&>>')
+    index = 0
+    while index < len(tokens):
+        fd = None
+        token, syntax, plain, start, end = tokens[index]
+        if token.isdigit() and plain and index + 1 < len(tokens) and tokens[index + 1][1] and end == tokens[index + 1][3]:
+            fd = int(token); index += 1
+            token, syntax, plain, start, end = tokens[index]
+        if not syntax or token not in operators:
+            if mode == 'cat':
+                index += 1
+                continue
+            sys.exit(2)
+        if index + 1 >= len(tokens):
+            sys.exit(2)
+        operator = token
+        operand, operand_syntax, _, _, _ = tokens[index + 1]
+        if operand_syntax:
+            sys.exit(2)
+        index += 2
+        if fd is None:
+            fd = 0 if operator.startswith('<') else 1
+        if operator in ('<&', '>&'):
+            if operand == '-':
+                descriptors[fd] = {'kind': 'closed'}
+            elif operand.isdigit():
+                descriptors[fd] = descriptors.get(int(operand), {'kind': 'unknown'})
+            else:
+                sys.exit(2)
+        else:
+            descriptors[fd] = {'kind': 'file', 'path': operand, 'cwd': os.environ['SN_REDIRECT_CWD'], 'unknown': int(os.environ['SN_REDIRECT_UNKNOWN'])}
+            if operator.startswith('&>'):
+                descriptors[2] = descriptors[fd]
+    output = descriptors[1]['kind']
+    if output == 'unknown' or descriptors[0]['kind'] == 'unknown':
+        sys.exit(2)
+    print(json.dumps({'input': descriptors[0], 'output': output, 'descriptors': descriptors}))
+except (ValueError, OSError):
+    sys.exit(2)
+PY
+)" || follow_refuse "compound redirection" "its input or pipeline output could not be determined"
+  follow_redirect_input="$(printf '%s' "$result" | jq -er '.input.kind')" || follow_refuse "compound redirection" "invalid input projection"
+  follow_redirect_path="$(printf '%s' "$result" | jq -r '.input.path // ""')" || follow_refuse "compound redirection" "invalid input path"
+  follow_redirect_map="$(printf '%s' "$result" | jq -ce '.descriptors')" || follow_refuse "compound redirection" "invalid descriptor projection"
+  follow_redirect_input_cwd="$(printf '%s' "$result" | jq -r '.input.cwd // ""')" || follow_refuse "compound redirection" "invalid input cwd"
+  follow_redirect_input_unknown="$(printf '%s' "$result" | jq -r '.input.unknown // 1')" || follow_refuse "compound redirection" "invalid input uncertainty"
+  follow_redirect_output="$(printf '%s' "$result" | jq -er '.output')" || follow_refuse "compound redirection" "invalid output projection"
+}
+
+# Walk one text for the files it executes. Runs in the PARENT shell, never in a
+# command substitution: follow_refuse() must be able to deny, and an exit inside
+# a subshell ends that subshell rather than this hook — the mistake documented
+# on the rm segmentation below.
+follow_scan() {
+  local text="$1" depth="$2"
+  local function_call_depth="${3:-0}"
+  local authenticated_bootstrap="${4:-0}"
+  local invocation_kind="${5:-child}"
+  local function_flow_unknown="${6:-0}" function_lookup_allowed statement_conditional function_conditional=0
+  local and_cwd="" and_unknown=1 and_ready=0 join_cwd join_unknown
+  if [ "$invocation_kind" = source ]; then
+    function_flow_unknown="${follow_source_flow_unknown:-0}"
+  fi
+  local return_scope_depth=-1
+  local return_list_depth=-1
+  local return_flow_unknown=0
+  local list_depth=0 list_index
+  local split_out line sep stmt t tj i j n cmd_pos eval_mode inline arg_exec
+  local heredoc redirected pipe_cat prev_cat pending_operand stdin_mode
+  local pipe_cwd pipe_unknown prev_cwd prev_unknown
+  local follow_stdin_cat="${follow_stdin_cat:-}" follow_stdin_cwd="${follow_stdin_cwd:-}" follow_stdin_unknown="${follow_stdin_unknown:-1}"
+  local follow_redirect_input follow_redirect_path follow_redirect_output follow_redirect_map follow_redirect_input_cwd follow_redirect_input_unknown
+  local follow_descriptor_map="${follow_descriptor_map:-}"
+  if [ -z "$follow_descriptor_map" ]; then
+    follow_descriptor_map='{"0":{"kind":"input"},"1":{"kind":"pipe"},"2":{"kind":"stderr"}}'
+  fi
+  local find_mode dispatch_pending
+  local scope_depth=0 case_depth=0 function_name="" function_body="" function_index function_found
+  local -a toks=()
+  local -a cwd_scopes=() unknown_scopes=() cat_scopes=() cat_cwd_scopes=() cat_unknown_scopes=() function_scopes=() flow_scopes=() return_flows=()
+  local -a list_cwds=() list_unknowns=() list_functions=() list_flows=() list_asyncs=() list_scope_depths=() list_return_flows=() brace_flows=()
+  local -a brace_descriptor_maps=() scope_descriptor_maps=()
+  local -a brace_stdin_cats=() brace_stdin_cwds=() brace_stdin_unknowns=() scope_stdin_cats=() scope_stdin_cwds=() scope_stdin_unknowns=()
+  local -a case_cwds=() case_unknowns=() case_changes=()
+  if [ "$function_call_depth" -eq 0 ] && [ "$invocation_kind" != source ]; then
+    # Ordinary child shells do not inherit unexported functions. Sourcing and
+    # function calls share the caller's definitions instead.
+    local function_count=0
+    local -a function_names=() function_bodies=() function_uncertainties=()
+  fi
+  split_out="$(follow_split "$text")" || follow_refuse "shell scope" "scope parsing exceeds the inspection budget"
+  prev_cat=""
+  while IFS= read -r line; do
+    sep="${line%%$'\t'*}"
+    stmt="${line#*$'\t'}"
+    statement_conditional=0
+    case "$sep" in '&' | '?') statement_conditional=1 ;; esac
+    # A reached && successor observes the preceding successful command's cwd.
+    # Scope/list events invalidate this projection; it must never carry a
+    # child's or a background list's directory into another shell/list.
+    case "$sep" in
+      L | G | H | B | N | F | C | A | K | '(' | '[' | ')' | ']') and_ready=0 ;;
+    esac
+    if [ "$return_list_depth" -ge 0 ]; then
+      case "$sep" in
+        B) [ "$list_depth" -eq "$return_list_depth" ] || continue ;;
+        '(' | '[' | ')' | ']' | G | H) ;;
+        *) continue ;;
+      esac
+    fi
+    if [ "$return_scope_depth" -ge 0 ]; then
+      # A return in a child scope ends that child, not its enclosing function.
+      # Keep only scope events until the matching close restores the parent.
+      case "$sep" in '(' | '[' | ')' | ']' | G | H) ;; *) continue ;; esac
+    fi
+    case "$sep" in
+      L)
+        list_cwds[list_depth]="$follow_cwd"
+        list_unknowns[list_depth]="$follow_cwd_unknown"
+        list_functions[list_depth]=$function_count
+        list_flows[list_depth]=$function_flow_unknown
+        list_asyncs[list_depth]="$stmt"
+        list_scope_depths[list_depth]=$scope_depth
+        list_return_flows[list_depth]=$return_flow_unknown
+        continue
+        ;;
+      G)
+        brace_flows[list_depth]=$function_flow_unknown
+        brace_descriptor_maps[list_depth]="$follow_descriptor_map"
+        brace_stdin_cats[list_depth]="$follow_stdin_cat"
+        brace_stdin_cwds[list_depth]="$follow_stdin_cwd"
+        brace_stdin_unknowns[list_depth]="$follow_stdin_unknown"
+        if [ "$stmt" = "|" ]; then
+          follow_stdin_cat="$prev_cat"; follow_stdin_cwd="${prev_cwd:-}"; follow_stdin_unknown="${prev_unknown:-1}"
+        fi
+        case "$stmt" in '&' | '?') function_flow_unknown=1 ;; esac
+        list_depth=$((list_depth + 1)); continue
+        ;;
+      H)
+        list_depth=$((list_depth - 1))
+        function_flow_unknown="${brace_flows[list_depth]}"
+        follow_descriptor_map="${brace_descriptor_maps[list_depth]}"
+        follow_stdin_cat="${brace_stdin_cats[list_depth]}"
+        follow_stdin_cwd="${brace_stdin_cwds[list_depth]}"
+        follow_stdin_unknown="${brace_stdin_unknowns[list_depth]}"
+        # A conditional return may exit this function/source before commands
+        # after the brace. Unlike a child return, that uncertainty persists.
+        if [ "$return_flow_unknown" -ne 0 ]; then function_flow_unknown=1; fi
+        continue
+        ;;
+      B)
+        # A single & runs the whole AND/OR list asynchronously. Its cwd and
+        # definitions cannot escape into the parent's next list.
+        follow_cwd="${list_cwds[list_depth]}"
+        follow_cwd_unknown="${list_unknowns[list_depth]}"
+        function_flow_unknown="${list_flows[list_depth]}"
+        return_flow_unknown="${list_return_flows[list_depth]}"
+        return_list_depth=-1
+        while [ "$function_count" -gt "${list_functions[list_depth]}" ]; do
+          function_count=$((function_count - 1))
+          function_index=$function_count
+          unset 'function_names[function_index]' 'function_bodies[function_index]' 'function_uncertainties[function_index]'
+        done
+        continue
+        ;;
+      N)
+        function_name="${stmt#*$'\t'}"; function_body=""
+        function_conditional="$function_flow_unknown"
+        case "${stmt%%$'\t'*}" in '&' | '?') function_conditional=1 ;; esac
+        continue
+        ;;
+      D)
+        if [ "$authenticated_bootstrap" -eq 0 ]; then
+          function_body="$function_body$stmt"$'\n'
+        fi
+        continue
+        ;;
+      F)
+        [ "$authenticated_bootstrap" -eq 0 ] || continue
+        function_index=$function_count
+        function_names[function_index]="$function_name"
+        function_bodies[function_index]="$function_body"
+        function_uncertainties[function_index]="$function_conditional"
+        function_count=$((function_count + 1))
+        continue
+        ;;
+      C)
+        function_flow_unknown=1
+        case_cwds[case_depth]="$follow_cwd"
+        case_unknowns[case_depth]="$follow_cwd_unknown"
+        case_changes[case_depth]=0
+        case_depth=$((case_depth + 1))
+        continue
+        ;;
+      A | K)
+        function_index=$((case_depth - 1))
+        if [ "$follow_cwd" != "${case_cwds[function_index]}" ] || [ "$follow_cwd_unknown" != "${case_unknowns[function_index]}" ]; then
+          case_changes[function_index]=1
+        fi
+        follow_cwd="${case_cwds[function_index]}"
+        follow_cwd_unknown="${case_unknowns[function_index]}"
+        if [ "$sep" = K ]; then
+          if [ "${case_changes[function_index]}" -ne 0 ]; then
+            follow_cwd=""; follow_cwd_unknown=1
+          fi
+          case_depth=$((case_depth - 1))
+        fi
+        continue
+        ;;
+      '(' | '[')
+        cwd_scopes[scope_depth]="$follow_cwd"
+        unknown_scopes[scope_depth]="$follow_cwd_unknown"
+        cat_scopes[scope_depth]="$prev_cat"
+        cat_cwd_scopes[scope_depth]="${prev_cwd:-}"
+        cat_unknown_scopes[scope_depth]="${prev_unknown:-1}"
+        scope_descriptor_maps[scope_depth]="$follow_descriptor_map"
+        function_scopes[scope_depth]=$function_count
+        flow_scopes[scope_depth]=$function_flow_unknown
+        return_flows[scope_depth]=$return_flow_unknown
+        scope_stdin_cats[scope_depth]="$follow_stdin_cat"
+        scope_stdin_cwds[scope_depth]="$follow_stdin_cwd"
+        scope_stdin_unknowns[scope_depth]="$follow_stdin_unknown"
+        if [ "$stmt" = "|" ] || [ "$stmt" = "|+" ]; then
+          follow_stdin_cat="$prev_cat"; follow_stdin_cwd="${prev_cwd:-}"; follow_stdin_unknown="${prev_unknown:-1}"
+          follow_descriptor_map="$(printf '%s' "$follow_descriptor_map" | jq -ce '.["0"] = {kind:"input"}')" || follow_refuse "pipeline input" "its descriptor could not be established"
+        fi
+        case "$stmt" in
+          *+)
+            follow_descriptor_map="$(printf '%s' "$follow_descriptor_map" | jq -ce '.["1"] = {kind:"pipe"}')" || follow_refuse "pipeline output" "its descriptor could not be established"
+            ;;
+        esac
+        scope_depth=$((scope_depth + 1))
+        list_depth=$((list_depth + 1))
+        continue
+        ;;
+      ')' | ']')
+        scope_depth=$((scope_depth - 1))
+        list_depth=$((list_depth - 1))
+        follow_cwd="${cwd_scopes[scope_depth]}"
+        follow_descriptor_map="${scope_descriptor_maps[scope_depth]}"
+        follow_cwd_unknown="${unknown_scopes[scope_depth]}"
+        function_flow_unknown="${flow_scopes[scope_depth]}"
+        return_flow_unknown="${return_flows[scope_depth]}"
+        follow_stdin_cat="${scope_stdin_cats[scope_depth]}"
+        follow_stdin_cwd="${scope_stdin_cwds[scope_depth]}"
+        follow_stdin_unknown="${scope_stdin_unknowns[scope_depth]}"
+        while [ "$function_count" -gt "${function_scopes[scope_depth]}" ]; do
+          function_count=$((function_count - 1))
+          function_index=$function_count
+          unset 'function_names[function_index]' 'function_bodies[function_index]' 'function_uncertainties[function_index]'
+        done
+        if [ "$sep" = ']' ]; then
+          prev_cat="${cat_scopes[scope_depth]}"
+          prev_cwd="${cat_cwd_scopes[scope_depth]}"
+          prev_unknown="${cat_unknown_scopes[scope_depth]}"
+        fi
+        if [ "$return_scope_depth" -ge 0 ] && [ "$scope_depth" -lt "$return_scope_depth" ]; then
+          return_scope_depth=-1
+        fi
+        continue
+        ;;
+      I)
+        follow_redirect_io "$stmt" compound
+        follow_descriptor_map="$follow_redirect_map"
+        case "$follow_redirect_input" in
+          file)
+            follow_stdin_cat="$follow_redirect_path"
+            follow_stdin_cwd="$follow_redirect_input_cwd"; follow_stdin_unknown="$follow_redirect_input_unknown"
+            ;;
+          closed) follow_stdin_cat="" ;;
+          input) ;;
+          *) follow_refuse "compound redirection" "its input source could not be determined" ;;
+        esac
+        continue
+        ;;
+      R)
+        # The whole compound tail was applied before its body by I. Its cat
+        # producer already records whether its effective output reaches pipe.
+        continue
+        ;;
+    esac
+    join_cwd="$follow_cwd"; join_unknown="$follow_cwd_unknown"
+    if [ "$sep" = '&' ] && [ "$and_ready" -eq 1 ]; then
+      follow_cwd="$and_cwd"; follow_cwd_unknown="$and_unknown"
+    fi
+    and_ready=0
+    pipe_cat="$follow_stdin_cat"
+    pipe_cwd="$follow_stdin_cwd"
+    pipe_unknown="$follow_stdin_unknown"
+    if [ "$sep" = "|" ]; then
+      pipe_cat="$prev_cat"
+      pipe_cwd="${prev_cwd:-}"
+      pipe_unknown="${prev_unknown:-1}"
+    fi
+    prev_cat=""
+    case "$stmt" in
+      *[![:space:]]*) ;;
+      *) continue ;;
+    esac
+    set -f
+    # The word split is the point: this is shell tokenization, and the glob
+    # guard above keeps a literal `*` from expanding against the hook's cwd.
+    # shellcheck disable=SC2206
+    toks=($stmt)
+    set +f
+    n=${#toks[@]}
+    [ "$n" -gt 0 ] || continue
+    i=0
+    cmd_pos=1
+    function_lookup_allowed=1
+    eval_mode=0
+    arg_exec=0
+    pending_operand=0
+    find_mode=0
+    dispatch_pending=0
+    while [ "$i" -lt "$n" ]; do
+      # Only a COMMAND POSITION can execute something. A path anywhere else is
+      # an argument, and an argument is data (#3604).
+      #
+      # The one exception is a dispatcher that BUILDS a command out of its own
+      # arguments: `find … -exec bash {} \;` and `xargs bash` put an interpreter
+      # at a command position the text does not spell as one. Scoping the
+      # exception to a `find`/`xargs` statement is what keeps it from becoming
+      # "an interpreter name anywhere is an invocation", which would read
+      # `echo "run bash <file>"` as one.
+      if [ "$cmd_pos" -ne 1 ]; then
+        # A dispatcher BUILDS a command out of its own arguments, putting an
+        # interpreter at a command position the text does not spell as one.
+        # That position is exactly ONE token: the word after `find -exec` or
+        # `-execdir`, and the first operand of `xargs`.
+        #
+        # Latching "any interpreter NAME until the statement ends" instead was
+        # a false positive, because an interpreter name is far more often data
+        # than a command: it refused `find . -name bash`, where `bash` is a
+        # filename PATTERN, and `find … | xargs grep bash`, where it is a
+        # search term. Both are ordinary commands that delete nothing.
+        if [ "$dispatch_pending" -ne 1 ]; then
+          if [ "$find_mode" -eq 1 ]; then
+            follow_unwrap "${toks[i]}"
+            case "$follow_unwrapped" in
+              -exec | -execdir) dispatch_pending=1 ;;
+            esac
+          fi
+          i=$((i + 1))
+          continue
+        fi
+        follow_unwrap "${toks[i]}"
+        t="$follow_unwrapped"
+        # `xargs -n1 bash` — the dispatcher's own options precede its command.
+        case "$t" in
+          -*)
+            i=$((i + 1))
+            continue
+            ;;
+        esac
+        dispatch_pending=0
+        cmd_pos=1
+      else
+        follow_unwrap "${toks[i]}"
+        t="$follow_unwrapped"
+      fi
+      function_found=0
+      for ((function_index = function_count - 1; function_lookup_allowed && function_index >= 0; function_index--)); do
+        if [ "$t" = "${function_names[function_index]}" ]; then
+          [ "${function_uncertainties[function_index]}" -eq 0 ] || follow_refuse "$t" "its function definition is conditional"
+          # Calls execute in this shell and do not consume a file-follow depth.
+          # A separate bound refuses recursion without truncating the body.
+          [ "$function_call_depth" -lt "$FOLLOW_MAX_FUNCTION_DEPTH" ] || follow_refuse "$t" "function calls exceed the inspection depth"
+          follow_function_calls=$((follow_function_calls + 1))
+          follow_function_bytes=$((follow_function_bytes + ${#function_bodies[function_index]}))
+          if [ "$follow_function_calls" -gt "$FOLLOW_MAX_FUNCTION_CALLS" ] || [ "$follow_function_bytes" -gt "$FOLLOW_MAX_TOTAL_BYTES" ]; then
+            follow_refuse "$t" "function expansion exceeds the inspection budget"
+          fi
+          local call_cwd="$follow_cwd" call_unknown="$follow_cwd_unknown"
+          follow_scan "${function_bodies[function_index]}" "$depth" "$((function_call_depth + 1))" 0 child "$((function_flow_unknown || statement_conditional))"
+          if { [ "$function_flow_unknown" -ne 0 ] || [ "$statement_conditional" -ne 0 ]; } && { [ "$follow_cwd" != "$call_cwd" ] || [ "$follow_cwd_unknown" != "$call_unknown" ]; }; then
+            follow_cwd=""; follow_cwd_unknown=1
+          fi
+          function_found=1
+          break
+        fi
+      done
+      if [ "$function_found" -eq 1 ]; then
+        cmd_pos=0; i=$((i + 1)); continue
+      fi
+      case "$t" in
+        return)
+          if [ "$statement_conditional" -ne 0 ]; then function_flow_unknown=1; fi
+          if { [ "$function_call_depth" -gt 0 ] || [ "$invocation_kind" = source ]; } && [ "$function_flow_unknown" -ne 0 ]; then
+            return_flow_unknown=1
+          fi
+          if { [ "$function_call_depth" -gt 0 ] || [ "$invocation_kind" = source ]; } && [ "$function_flow_unknown" -eq 0 ]; then
+            # Ordinary braces share the shell but have distinct list frames.
+            # A surrounding background brace list ends only its child; do not
+            # cross a literal subshell boundary while finding that parent list.
+            for ((list_index = list_depth; list_index >= 0; list_index--)); do
+              [ "${list_scope_depths[list_index]}" -eq "$scope_depth" ] || break
+              if [ "${list_asyncs[list_index]}" -ne 0 ]; then
+                return_list_depth="$list_index"
+                break
+              fi
+            done
+            if [ "$return_list_depth" -ge 0 ]; then
+              :
+            elif [ "$scope_depth" -eq 0 ]; then
+              return 0
+            else
+              return_scope_depth="$scope_depth"
+            fi
+          fi
+          cmd_pos=0; i=$((i + 1)); continue
+          ;;
+        if | while | until)
+          function_flow_unknown=1
+          i=$((i + 1)); continue
+          ;;
+        for | select)
+          function_flow_unknown=1
+          cmd_pos=0; i=$((i + 1)); continue
+          ;;
+        # Prefixes that keep the command position open: assignments, wrappers,
+        # and the shell keywords a statement can start with. Without them
+        # `if …; then bash <file>` and `env bash <file>` walk past the
+        # invocation.
+        "" | [A-Za-z_]*=* | --*) i=$((i + 1)); continue ;;
+        -*)
+          # A SHORT option inside a wrapper prefix can take a separate VALUE,
+          # and that value is not a command. `nice -n 5 bash <file>` and
+          # `sudo -u nobody bash <file>` put `5` and `nobody` where the walk
+          # expected the program, so the invocation was never reached and the
+          # file was never scanned — the same fail-open this whole block exists
+          # to close, one layer along. Step the value over.
+          #
+          # But YIELD whenever the next token could itself be the invocation,
+          # so `env -i bash <file>` still reads `bash` as the program: `-i`
+          # takes no value, and consuming one would lose the interpreter.
+          #
+          # Long options are deliberately left alone. Their value is spelled
+          # with `=`, and a `--foo <path> bash <file>` is rare enough that
+          # consuming the operand would cost more than it buys.
+          i=$((i + 1))
+          if [ "$i" -lt "$n" ]; then
+            follow_unwrap "${toks[i]}"
+            follow_may_invoke "$follow_unwrapped" || i=$((i + 1))
+          fi
+          continue
+          ;;
+        timeout | */timeout)
+          # `timeout` takes a mandatory DURATION before the program. A bare
+          # number is not an option, so the short-option arm above cannot see
+          # it. Mark the operand pending and let the fall-through consume it,
+          # which keeps working when options sit in between — `timeout -s KILL
+          # 5 bash <file>` reaches `bash` just as `timeout 5 bash <file>` does.
+          pending_operand=1
+          function_lookup_allowed=0
+          i=$((i + 1))
+          continue
+          ;;
+        sudo | env | command | exec | nohup | nice | time | builtin \
+          | do | then | else | '!' | '{' \
+          | */sudo | */env | */nohup | */nice | */time)
+          case "$t" in
+            sudo | env | command | exec | nohup | nice | builtin | */sudo | */env | */nohup | */nice) function_lookup_allowed=0 ;;
+            do | then | else) function_flow_unknown=1 ;;
+          esac
+          i=$((i + 1))
+          continue
+          ;;
+        eval)
+          # `eval` executes its ARGUMENTS as shell, so a file whose contents are
+          # interpolated into them is executed text.
+          eval_mode=1
+          i=$((i + 1))
+          continue
+          ;;
+        find | */find)
+          # `find` only builds a command after `-exec`/`-execdir`. Every other
+          # operand is a path, a predicate, or a pattern.
+          arg_exec=1
+          find_mode=1
+          cmd_pos=0
+          i=$((i + 1))
+          continue
+          ;;
+        xargs | */xargs)
+          # `xargs` takes its command as the first non-option operand; anything
+          # after that is an argument TO that command, not another command.
+          arg_exec=1
+          dispatch_pending=1
+          cmd_pos=0
+          i=$((i + 1))
+          continue
+          ;;
+        cd)
+          if [ $((i + 1)) -lt "$n" ]; then
+            follow_unwrap "${toks[i + 1]}"
+            follow_cd "$follow_unwrapped"
+          else
+            # A bare `cd` is `cd "$HOME"`, and leaving the previous directory in
+            # place would resolve later tokens from a directory the shell left.
+            follow_cd "${HOME:-}"
+          fi
+          if [ "$function_flow_unknown" -ne 0 ]; then
+            follow_cwd=""; follow_cwd_unknown=1
+          fi
+          cmd_pos=0
+          i=$((i + 1))
+          continue
+          ;;
+        source | .)
+          follow_next_operand "$i" "$n"
+          j="$follow_operand_index"
+          if [ "$j" -lt "$n" ]; then
+            follow_unwrap "${toks[j]}"
+            local source_cwd="$follow_cwd" source_unknown="$follow_cwd_unknown"
+            follow_source_target "$follow_unwrapped" "$depth" "$((function_flow_unknown || statement_conditional))"
+            if { [ "$function_flow_unknown" -ne 0 ] || [ "$statement_conditional" -ne 0 ]; } && { [ "$follow_cwd" != "$source_cwd" ] || [ "$follow_cwd_unknown" != "$source_unknown" ]; }; then
+              follow_cwd=""; follow_cwd_unknown=1
+            fi
+          fi
+          cmd_pos=0
+          i=$((j + 1))
+          continue
+          ;;
+        cat | '<')
+          follow_next_operand "$i" "$n"
+          j="$follow_operand_index"
+          follow_unwrapped=""
+          if [ "$j" -lt "$n" ]; then follow_unwrap "${toks[j]}"; fi
+          if [ "$t" = cat ] && { [ "$j" -ge "$n" ] || [ "$follow_unwrapped" = - ]; }; then
+            # Bare cat and cat - forward the group's named stdin unchanged.
+            prev_cat="$pipe_cat"; prev_cwd="$pipe_cwd"; prev_unknown="$pipe_unknown"
+            if [ "$eval_mode" -eq 1 ] && [ -n "$prev_cat" ]; then
+              follow_pipe_target "$prev_cat" "$depth" "$prev_cwd" "$prev_unknown"
+            fi
+          elif [ "$j" -lt "$n" ]; then
+            if [ "$eval_mode" -eq 1 ]; then
+              follow_target "$follow_unwrapped" "$depth"
+            else
+              # Not executed here — the pipe consumer decides whether the
+              # producer's file content becomes an executable shell input.
+              prev_cat="$follow_unwrapped"
+              prev_cwd="$follow_cwd"; prev_unknown="$follow_cwd_unknown"
+            fi
+          fi
+          if [ -n "$prev_cat" ] && [ "$eval_mode" -eq 0 ]; then
+            if [[ "$stmt" == *'>'* ]] || [ "$follow_descriptor_map" != '{"0":{"kind":"input"},"1":{"kind":"pipe"},"2":{"kind":"stderr"}}' ]; then
+              follow_redirect_io "$stmt" cat
+              case "$follow_redirect_output" in
+                pipe) ;;
+                file | closed | stderr | input) prev_cat="" ;;
+                *) follow_refuse "cat redirection" "its output destination could not be determined" ;;
+              esac
+            fi
+          fi
+          cmd_pos=0
+          i=$((j + 1))
+          continue
+          ;;
+      esac
+      if follow_is_interpreter "$t"; then
+        inline=0
+        redirected=""
+        heredoc=0
+        stdin_mode=0
+        noexec=0
+        j=$((i + 1))
+        while [ "$j" -lt "$n" ]; do
+          follow_unwrap "${toks[j]}"
+          tj="$follow_unwrapped"
+          case "$tj" in
+            --) j=$((j + 1)); break ;;
+            # A heredoc or here-string payload is IN the command text, which the
+            # guards already read. It is not a file, and treating it as one
+            # refused `bash <<EOF` outright.
+            '<<'*) heredoc=1; break ;;
+            # `bash < <file>` executes the file just as `bash <file>` does.
+            '<')
+              j=$((j + 1))
+              if [ "$j" -lt "$n" ]; then
+                follow_unwrap "${toks[j]}"
+                redirected="$follow_unwrapped"
+              fi
+              break
+              ;;
+            '<'*) redirected="${tj#<}"; break ;;
+            # An output redirection names a DESTINATION, never the script. Step
+            # over it (and its target when the operator stands alone) so the
+            # operand scan does not stop on `>` and read `/dev/null` as a
+            # script it cannot resolve.
+            *'>'*)
+              case "$tj" in
+                *'>') j=$((j + 2)) ;;
+                *) j=$((j + 1)) ;;
+              esac
+              ;;
+            # `-n` is NOEXEC: the shell reads and parses its operand, then exits
+            # without running a line of it. So a syntax check is the one shape
+            # that puts a path at a command position while provably executing
+            # nothing, and following it reads a file the command never runs.
+            #
+            # This guard hit that on ITSELF: its pattern list is destructive
+            # command literals living inside the guard, so `bash -n` on its own
+            # source was refused by its own patterns — and the same held for any
+            # file documenting destructive commands. See CodySwannGT/lisa#3803.
+            #
+            # `bash <file>` still executes and is still followed. Noexec is the
+            # distinction, not the program: this is not a read-only exemption.
+            --noexec) noexec=1; break ;;
+            --*) j=$((j + 1)) ;;
+            -*c*) inline=1; j=$((j + 1)) ;;
+            -*n*) noexec=1; break ;;
+            -s | -[a-zA-Z]*s[a-zA-Z]*) stdin_mode=1; j=$((j + 1)) ;;
+            -*) j=$((j + 1)) ;;
+            *) break ;;
+          esac
+        done
+        if [ "$noexec" -eq 1 ]; then
+          # Nothing runs, so there is no script to follow and nothing to fail
+          # closed about. Checked before the heredoc and dispatcher arms: those
+          # decide WHICH text to read, and here there is no execution at all.
+          cmd_pos=0
+          i=$((j + 1))
+          continue
+        fi
+        if [ "$heredoc" -eq 1 ] && [ "$inline" -eq 0 ]; then
+          cmd_pos=0
+          i=$((j + 1))
+          continue
+        fi
+        if [ -n "$redirected" ]; then
+          follow_target "$redirected" "$depth"
+          cmd_pos=0
+          i=$((j + 1))
+          continue
+        fi
+        if [ "$inline" -eq 1 ]; then
+          # The command string runs in a child shell. It gets its own function
+          # map and cwd effects; positional arguments are data, not commands.
+          follow_inline "$stmt" "$j" "$depth"
+          cmd_pos=0
+          i="$n"
+          continue
+        fi
+        if [ "$stdin_mode" -eq 1 ]; then
+          # `sh -s -- -y` reads its program from stdin; tokens after `--` are
+          # positional arguments to that program, never a script path.
+          [ -z "$pipe_cat" ] || follow_pipe_target "$pipe_cat" "$depth" "$pipe_cwd" "$pipe_unknown"
+          cmd_pos=0
+          i="$n"
+          continue
+        fi
+        if [ "$j" -ge "$n" ]; then
+          # A dispatcher supplies the script from ANOTHER command's output, so
+          # the operand exists but is unreadable here. That is the fail-closed
+          # case, not the interactive one.
+          if [ "$arg_exec" -eq 1 ]; then
+            follow_refuse "$t" "a dispatcher supplies its script from another command's output"
+          fi
+          # No operand: an interactive or stdin-fed interpreter. Only the
+          # `cat <file> | bash` shape names a FILE, and only that is followed.
+          [ -z "$pipe_cat" ] || follow_pipe_target "$pipe_cat" "$depth" "$pipe_cwd" "$pipe_unknown"
+          cmd_pos=0
+          i="$j"
+          continue
+        fi
+        follow_unwrap "${toks[j]}"
+        tj="$follow_unwrapped"
+        if ! follow_supervisor "$tj" "$depth" "$stmt"; then
+          follow_target "$tj" "$depth"
+        fi
+        cmd_pos=0
+        i=$((j + 1))
+        continue
+      fi
+      if [ "$pending_operand" -eq 1 ]; then
+        # A wrapper's own mandatory operand (a `timeout` duration), not the
+        # program it wraps. Consume it and leave the command position OPEN so
+        # the walk carries on to the invocation. Yields on anything that could
+        # itself be the program, for the reason follow_may_invoke documents.
+        pending_operand=0
+        if ! follow_may_invoke "$t"; then
+          i=$((i + 1))
+          continue
+        fi
+      fi
+      # The tilde arm is LITERAL text, not a path this line expands:
+      # follow_locate turns it into one.
+      # shellcheck disable=SC2088
+      case "$t" in
+        /* | ./* | ../* | '~/'* | */*) follow_direct "$t" "$depth" ;;
+      esac
+      cmd_pos=0
+      i=$((i + 1))
+    done
+    # Keep successful-branch provenance separate from the continuation join.
+    # OR can skip its RHS and still reach a following &&, so it cannot prove
+    # that RHS's cwd. A semicolon observes every possible preceding outcome.
+    and_cwd="$follow_cwd"; and_unknown="$follow_cwd_unknown"
+    if [ "$sep" != '?' ] && [ "$function_flow_unknown" -eq 0 ]; then and_ready=1; fi
+    if [ "$statement_conditional" -ne 0 ] && { [ "$join_unknown" -ne 0 ] || [ "$follow_cwd_unknown" -ne 0 ] || [ "$follow_cwd" != "$join_cwd" ]; }; then
+      follow_cwd=""; follow_cwd_unknown=1
+    fi
+  done <<<"$split_out"
+}
+
+follow_scan "$command_for_guards" 0
+rm_command_for_guards="$command_for_guards"$'\n'"$followed_rm_text"
+if [ -n "$follow_names" ]; then
+  command_for_guards="$command_for_guards"$'\n'"$followed_text"
+  # A refusal must say WHERE the match is. Without this the operator reads
+  # advice about rewording a quoted string for a line they never typed.
+  DESTRUCTIVE_GUIDANCE="$DESTRUCTIVE_GUIDANCE
+
+The match may be inside a file this command EXECUTES rather than in the command
+you typed. These scripts were read and scanned as part of it:$follow_names
+Edit the file, or ask the user to confirm and run it manually outside the agent."
+fi
+
+# Normalize bash line-continuations (a trailing backslash + newline → space)
+# before segmenting the command. Without this, "git push --force origin
+# \<newline>main" splits into a segment matching --force but not `main`, letting a
+# protected force-push slip past. Uses awk (POSIX) instead of a GNU-only
+# `sed ':a;N;$!ba;…'`, which errors on BSD sed (macOS) and there silently no-ops.
+normalized_command_str="$(printf '%s' "$command_for_guards" \
+  | awk '{ if (sub(/\\$/, "")) printf "%s ", $0; else print }')"
+rm_normalized_command_str="$(printf '%s' "$rm_command_for_guards" \
+  | awk '{ if (sub(/\\$/, "")) printf "%s ", $0; else print }')"
+
+# matches / matches_cs run an ERE against the guarded command text. matches is
+# case-insensitive (the default for these guards); matches_cs is case-SENSITIVE
+# for guards where flag case is meaningful (`git branch -d` vs `-D`).
+#
+# Both read the NORMALIZED text. They used to read $command_for_guards, so only
+# the two segment-walking guards (rm, git push) were protected against line
+# continuations and every guard expressed through these helpers could be evaded
+# by breaking the command across lines:
+#
+#     git reset --hard \
+#       origin/main
+#
+# The patterns match on intermediate whitespace, and an embedded "\<newline>" is
+# not whitespace to grep -E, so the anchor failed to span the break. Defined
+# after the normalization above so the value exists when these are first called.
+matches() {
+  scan -Ei "$normalized_command_str" "$1"
+}
+matches_cs() {
+  scan -E "$normalized_command_str" "$1"
+}
+
+# Shared ERE fragments. GIT_TOKENS walks over intermediate argv tokens without
+# crossing a statement separator, so a flag in a LATER statement can never be
+# attributed to an earlier git subcommand.
+readonly GIT_TOKENS='([[:space:]]+[^;&|[:space:]]+)*[[:space:]]+'
+# Git GLOBAL options (`-C <path>`, `-c <k>=<v>`, `--git-dir[=…]`, `--no-pager`,
+# …) legally sit between `git` and its subcommand, so every subcommand guard
+# consumes them — otherwise `git -C /path checkout -- f` dodges the anchor
+# (issue #1960 security review F1). Shape: zero or more dash-led tokens, each
+# optionally followed by ONE non-dash value token, which covers both the
+# `--git-dir=/x` and `--git-dir /x` spellings without naming every option.
+readonly GIT_GLOBAL_OPTS='(-[^;&|[:space:]]+([[:space:]]+[^-;&|[:space:]][^;&|[:space:]]*)?[[:space:]]+)*'
+# Anchor for every git subcommand guard: word-bounded `git`, whitespace, then
+# any run of global options. Callers append the subcommand name directly.
+readonly GIT_CMD='(^|[^[:alnum:]_-])git[[:space:]]+'"$GIT_GLOBAL_OPTS"
+# An rm invocation: bare `rm` or a path whose basename is exactly `rm`
+# (`/bin/rm`, `./rm`) — issue #1960 security review F2. The optional prefix must
+# END IN `/` immediately before `rm`, so charm/confirm/informant/rmdir never
+# match. The preceding-char class still excludes `.`, `/`, and `-` to keep
+# `--rm`-style flags and `foo.rm` names out.
+readonly RM_CMD='(^|[^[:alnum:]_./-])([[:alnum:]_./-]*/)?rm'
+# Where a recursive-forced flag cluster is allowed to END.
+#
+# It used to be `([[:space:]]|$)` — whitespace or end of segment — and a closing
+# parenthesis is neither, so a SUBSHELL-wrapped pipeline fell out of every guard
+# built on these two patterns while its brace-wrapped twin was caught: `{ find
+# .git -type d | parallel rm -rf; }` matched because the `;` supplied the
+# boundary, and `(find .git -type d | parallel rm -rf)` did not (issue #3494).
+#
+# So the two STATEMENT-GROUPING terminators join whitespace here, and nothing
+# else. The general spelling — "any character that cannot be part of a flag",
+# `([^[:alnum:]-]|$)` — is the more principled statement of the intent, and is
+# deliberately NOT used: these patterns feed the rm TARGET WALK, the guard with
+# this file's longest false-positive history, and it would newly match ordinary
+# prose punctuation (`echo "rm -rf, then …"` on the comma). Paren and semicolon
+# buy the brace/paren parity the defect is about and buy nothing else.
+#
+# The cluster must still END at the boundary, so `-rfoo` is not read as `-rf`.
+readonly RM_RF_END='([[:space:];)]|$)'
+# rm invoked with BOTH a recursive and a force flag — clustered (-rf/-fr, any
+# extra letters) or split, in either order. The split gate pairs ANY recursive
+# form (short cluster containing r, or --recursive) with ANY force form (short
+# cluster containing f, or --force), so mixed spellings like `rm -r --force /`
+# and `rm --recursive -f /` cannot slip between the short/short and long/long
+# alternations (PR #1976 review).
+#
+# The FLAG TAILS are named separately from the `rm`-anchored patterns because
+# the find/xargs family below needs the identical flag vocabulary against a
+# different verb anchor. Before #3494 it carried its own short-cluster-only copy
+# and therefore missed `rm --recursive --force` — a divergence that could only
+# happen because the spelling set was written twice.
+readonly RM_RF_TAIL_CLUSTER='([[:space:]]+-[[:alnum:]-]+)*[[:space:]]+(-[[:alnum:]]*r[[:alnum:]]*f|-[[:alnum:]]*f[[:alnum:]]*r)'"$RM_RF_END"
+readonly RM_RF_TAIL_SPLIT='(([[:space:]][^;&|]*)?[[:space:]](-[[:alnum:]]*r[[:alnum:]]*|--recursive)([[:space:]][^;&|]*)?[[:space:]](-[[:alnum:]]*f[[:alnum:]]*|--force)'"$RM_RF_END"'|([[:space:]][^;&|]*)?[[:space:]](-[[:alnum:]]*f[[:alnum:]]*|--force)([[:space:]][^;&|]*)?[[:space:]](-[[:alnum:]]*r[[:alnum:]]*|--recursive)'"$RM_RF_END"')'
+readonly RM_RF_CLUSTER="$RM_CMD$RM_RF_TAIL_CLUSTER"
+readonly RM_RF_SPLIT="$RM_CMD$RM_RF_TAIL_SPLIT"
+
+# 1. Recursive forced delete (`rm -rf`) of a filesystem root, home, or top-level
+#    wildcard. Two gates ANDed: the statement must invoke `rm` with BOTH a
+#    recursive and a force flag, AND name a catastrophic target. Splitting the
+#    flag check from the target check keeps each regex legible and testable.
+#    The target boundary classes include quote characters (issue #1960): without
+#    them, `bash -c "rm -rf /"` and interpreter one-liners like
+#    `python -c "… os.system('rm -rf /')"` slip through because the target is
+#    quote-adjacent instead of space-bounded.
+#    Both gates run PER STATEMENT inside the shared rm loop below (quality
+#    review S1): a harmless `/` in a LATER statement (`rm -rf build && cd /`)
+#    is never attributed to the rm in an earlier one.
+qc="'\""
+# Path/home targets also accept the command-substitution closers `)` and backtick
+# as a trailing boundary (issue #1982): in `echo "$(rm -rf /)"` the target `/` is
+# followed by `)`, not a space or quote, so without them an executable
+# substitution-wrapped `rm -rf <root>` slips past this gate. Leading boundary is
+# unchanged — the target is always space-separated from the recursive+force flag.
+tc="'\"\`)"
+# The bare-`*` wildcard deliberately KEEPS the narrow (space/quote/end) boundary:
+# admitting `)` there would misread a shell `case … in *)` default arm as a
+# catastrophic `rm -rf *` (T4b F1). A genuinely substitution-wrapped bare `*`
+# (`echo "$(rm -rf *)"`) is instead caught by the token-walk (guard 1b) below.
+readonly RM_CATASTROPHIC_TARGET='([[:space:]='"$qc"'])((/|/\*|/\.\*?|~|~/\*?|\$HOME\b|\$\{HOME\})([[:space:]'"$tc"']|/?\*?['"$tc"']?$)|\*([[:space:]'"$qc"']|/?\*?['"$qc"']?$))'
+
+# 1b. rm target hardening (issue #1960). For every statement that invokes rm
+#     with recursive+force flags, additionally block when:
+#       - cwd is $HOME (any target is one argument away from wiping home), or
+#       - the target is the cwd itself (`.` / `./`), or
+#       - the target traverses out via `..`, or
+#       - the target is home-anchored (`~/…` — the shell expands it to $HOME at
+#         execution time, so it is always outside the project), or
+#       - the target is an absolute path outside the project — with an allowance
+#         for /tmp, /var/tmp, and $TMPDIR — or
+#       - the target is a `$VAR` expansion other than the sanctioned $TMPDIR.
+#     Globbing is disabled around the token walk so a literal `*` in the command
+#     is never expanded against the hook's own cwd.
+project_dir="${CLAUDE_PROJECT_DIR:-$PWD}"
+tmp_dir_allow="${TMPDIR:-/tmp}"
+tmp_dir_allow="${tmp_dir_allow%/}"
+[ -n "$tmp_dir_allow" ] || tmp_dir_allow="/tmp"
+# Physical (symlink-resolved) spelling of an allowed root — issue #3106 arm B.
+# The allowance below is a set of LITERAL string prefixes, so on macOS, where
+# /tmp is a symlink to /private/tmp, one directory had two spellings and only
+# one of them was allowed: `rm -rf /tmp/x` passed while `rm -rf /private/tmp/x`
+# — the SAME directory, and the spelling an agent's own scratchpad path is
+# handed to it in — was refused as "outside the project". Two opposite verdicts
+# for one location is a defect regardless of which verdict is right.
+#
+# This widens no LOCATION. It adds the second name of a location the guard has
+# always allowed, computed from the filesystem rather than hardcoded, so a
+# platform where /tmp is not a symlink gains nothing. Falls back to the logical
+# path when the directory does not exist or resolves to `/`, so the allowance
+# can never become an empty or root-anchored prefix (an empty prefix would make
+# `""/*` match every absolute path).
+phys_dir() {
+  local logical="$1" real=""
+  real="$(cd -- "$logical" 2>/dev/null && pwd -P)" || real=""
+  case "$real" in
+    "" | /) printf '%s' "$logical" ;;
+    *) printf '%s' "$real" ;;
+  esac
+}
+project_dir_phys="$(phys_dir "$project_dir")"
+tmp_phys="$(phys_dir /tmp)"
+var_tmp_phys="$(phys_dir /var/tmp)"
+tmp_dir_allow_phys="$(phys_dir "$tmp_dir_allow")"
+[ -n "$project_dir_phys" ] || project_dir_phys="$project_dir"
+[ -n "$tmp_phys" ] || tmp_phys="/tmp"
+[ -n "$var_tmp_phys" ] || var_tmp_phys="/var/tmp"
+[ -n "$tmp_dir_allow_phys" ] || tmp_dir_allow_phys="$tmp_dir_allow"
+# Peel command-substitution wrappers off a token so an rm nested in `$(…)`,
+# backticks, `<(…)`/`>(…)`, a `"…"`/`'…'` quote, or a leading `\` alias-bypass
+# (`\rm`) is recognized and its target classified as if the token were unwrapped
+# (issue #1982) — substitution-wrapping is verdict-neutral for the rm guard.
+# Leading wrappers (\ $( ` ( <( >( and quotes) and trailing closers () ` and
+# quotes) are stripped in runs, so `"$(\rm` → `rm` and `/etc)"` → `/etc`. `$((`
+# is ARITHMETIC, never command substitution: the LEADING peel stops at it (its
+# case is ordered first), so the inner expression is never exposed as a command
+# or a target. The trailing loop may still trim a closing `))`, but that is
+# harmless — an arithmetic token like `$((10/2))` still keeps its `$` for the
+# variable-target guard and can never be mis-normalized into an rm or a `/`-target.
+strip_subst_wrappers() {
+  local t="$1" prev=""
+  while [ "$t" != "$prev" ]; do
+    prev="$t"
+    case "$t" in
+      '$(('*) break ;;
+      '\'*) t="${t#\\}" ;;
+      '$('*) t="${t#'$('}" ;;
+      '<('*) t="${t#'<('}" ;;
+      '>('*) t="${t#'>('}" ;;
+      '"'*) t="${t#'"'}" ;;
+      "'"*) t="${t#\'}" ;;
+      '`'*) t="${t#'`'}" ;;
+      '('*) t="${t#(}" ;;
+    esac
+  done
+  prev=""
+  while [ "$t" != "$prev" ]; do
+    prev="$t"
+    case "$t" in
+      *')') t="${t%)}" ;;
+      *'`') t="${t%'`'}" ;;
+      *'"') t="${t%'"'}" ;;
+      *"'") t="${t%\'}" ;;
+    esac
+  done
+  printf '%s' "$t"
+}
+# Decide which text of an rm statement the TARGET WALK may read — issue #3106
+# arm A. The statement selector matches the RAW command text, so a recursive
+# delete quoted as PROSE inside a string argument selects the line, and every
+# remaining token on it is then classified as a deletion target. Three
+# independent sightings in one day, all of them commands that delete nothing:
+# a `printf` reduction, a `gh issue create --title …` filing the report about
+# this guard, and a commit message describing it. Each was refused for a
+# variable in a LATER, unrelated argument.
+#
+# The rule is structural, with no allowlist of "display commands":
+#   - an rm invocation OUTSIDE any quote is real; the walk reads the whole
+#     statement, exactly as before (`rm -rf "$HOME"` keeps its target),
+#   - an rm at the START of its quoted run is an invocation the quote merely
+#     wraps (`bash -c "rm -rf /"`, `echo "$(rm -rf /)"`); the walk reads the
+#     whole statement, exactly as before,
+#   - an rm preceded by other words INSIDE its quoted run is prose; the walk is
+#     scoped to that run, so the rm's own quoted arguments are still classified
+#     in full while a variable in a later argument is no longer read as a
+#     deletion target.
+#
+# Failure directions all point at blocking: an unterminated quote, an
+# over-long statement, or any run the scan cannot place falls back to the whole
+# statement. Residual (accepted, documented): `eval "prose rm -rf" "$X"` would
+# concatenate its words at run time and is scoped to the first run here.
+rm_scan_scope() {
+  local stmt="$1"
+  local n=${#stmt}
+  # Long statements fall back to the full walk rather than pay a char scan.
+  if [ "$n" -gt 4000 ]; then
+    printf '%s' "$stmt"
+    return
+  fi
+  local i=0 ch q="" esc=0 outside="" cur_run="" rm_runs="" found=0
+  local run_leading=0
+  while [ "$i" -lt "$n" ]; do
+    ch="${stmt:i:1}"
+    i=$((i + 1))
+    if [ "$esc" -eq 1 ]; then
+      esc=0
+      if [ -n "$q" ]; then cur_run="$cur_run$ch"; else outside="$outside$ch"; fi
+      continue
+    fi
+    if [ "$ch" = '\' ] && [ "$q" != "'" ]; then
+      esc=1
+      continue
+    fi
+    if [ -n "$q" ]; then
+      if [ "$ch" = "$q" ]; then
+        case "$cur_run" in
+          *[Rr][Mm]*)
+            if scan -Ei "$cur_run" "$RM_CMD"'([[:space:]]|$)'; then
+              found=$((found + 1))
+              if [ -n "$rm_runs" ]; then rm_runs="$rm_runs"$'\n'; fi
+              rm_runs="$rm_runs$cur_run"
+              if scan -Ei "$cur_run" \
+                '^[[:space:]]*(\\|\$\(|`|\(|<\(|>\()*[[:space:]]*([[:alnum:]_./-]*/)?rm([[:space:]]|$)'; then
+                run_leading=1
+              fi
+            fi
+            ;;
+        esac
+        q=""
+        cur_run=""
+      else
+        cur_run="$cur_run$ch"
+      fi
+      continue
+    fi
+    case "$ch" in
+      '"' | "'")
+        q="$ch"
+        cur_run=""
+        ;;
+      *) outside="$outside$ch" ;;
+    esac
+  done
+  # An unterminated quote is text the scan cannot place: treat it as unquoted so
+  # the fallback below hands back the whole statement.
+  [ -z "$q" ] || outside="$outside$cur_run"
+  if scan -Ei "$outside" "$RM_CMD"'([[:space:]]|$)'; then
+    printf '%s' "$stmt"
+    return
+  fi
+  if [ "$found" -eq 0 ]; then
+    printf '%s' "$stmt"
+    return
+  fi
+  # `rm` first in ANY run (modulo whitespace and substitution/alias openers) is
+  # an invocation, not prose. Inspect every run before deciding: returning on
+  # the first prose run used to hide a real delete in a later quoted run.
+  if [ "$run_leading" -eq 1 ]; then
+    printf '%s' "$stmt"
+    return
+  fi
+  printf '%s' "$rm_runs"
+}
+# Look up the ONE unambiguous assignment of NAME inside the command being
+# classified — issue #3106 arm B, the variable half.
+#
+# Prints the recorded right-hand side, or fails when the name is not assigned
+# before the first rm token or is assigned more than one distinct value there.
+# A later write cannot affect an earlier delete, and a quoted assignment-like
+# argument can be prose, so neither is considered. Only assignments literally
+# present in this command are ever trusted; nothing is expanded from the hook's
+# own environment.
+rm_assignment_stmt=""
+rm_assignment_value() {
+  local name="$1"
+  case "$name" in
+    "" | *[!A-Za-z0-9_]*) return 1 ;;
+  esac
+  # Only assignments that occur before this statement's rm token can influence
+  # its delete safely. A later assignment is too late at runtime, and an
+  # assignment whose NAME begins inside a quoted argument can be prose. The
+  # small lexer below preserves quoted right-hand sides such as V="/tmp/x"
+  # while excluding an argument such as echo "V=/tmp/x". Any ambiguity fails
+  # closed.
+  RM_ASSIGNMENT_NAME="$name" RM_ASSIGNMENT_COMMAND="$rm_normalized_command_str" \
+    RM_ASSIGNMENT_STATEMENT="$rm_assignment_stmt" \
+    python3 - <<'PY'
+import os
+import re
+import sys
+
+name = os.environ.get("RM_ASSIGNMENT_NAME", "")
+command = os.environ.get("RM_ASSIGNMENT_COMMAND", "")
+statement = os.environ.get("RM_ASSIGNMENT_STATEMENT", "")
+if not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", name):
+    sys.exit(1)
+
+rm_pattern = re.compile(
+    r"(?i)(?<![A-Za-z0-9_./-])(?:[A-Za-z0-9_./-]*/)?rm(?=$|[\s;&|()'\"`])",
+)
+rm_token = rm_pattern.search(statement)
+if rm_token is None or not statement or command.count(statement) != 1:
+    sys.exit(1)
+statement_start = command.find(statement)
+if statement_start < 0:
+    sys.exit(1)
+prefix = command[: statement_start + rm_token.start()]
+
+tokens = []
+buffer = []
+quote = None
+escaped = False
+started = False
+started_unquoted = False
+
+def flush():
+    global buffer, started, started_unquoted
+    if started:
+        tokens.append(("".join(buffer), started_unquoted))
+    buffer = []
+    started = False
+    started_unquoted = False
+
+for char in prefix:
+    if escaped:
+        buffer.append(char)
+        escaped = False
+        continue
+    if quote is not None:
+        if char == quote:
+            quote = None
+        elif char == "\\" and quote == '"':
+            escaped = True
+        else:
+            buffer.append(char)
+        continue
+    if char in "'\"":
+        if not started:
+            started = True
+            started_unquoted = False
+        quote = char
+    elif char == "\\":
+        if not started:
+            started = True
+            started_unquoted = True
+        escaped = True
+    elif char.isspace() or char in ";&|()":
+        flush()
+    else:
+        if not started:
+            started = True
+            started_unquoted = True
+        buffer.append(char)
+flush()
+
+needle = f"{name}="
+hits = [token[len(needle):] for token, outside in tokens
+        if outside and token.startswith(needle)]
+distinct = set(hits)
+if len(distinct) != 1:
+    sys.exit(1)
+value = hits[0]
+if not value:
+    sys.exit(1)
+sys.stdout.write(value)
+PY
+}
+# Rewrite a leading `$NAME` / `${NAME}` in a deletion target to the value the
+# command itself assigns it, so the target is classified as if the agent had
+# written that value literally — issue #3106 arm B.
+#
+# The guard's standing reason for refusing variable targets is that "unset or
+# mistyped variables can point anywhere", and that reason survives intact: a
+# name with no in-command assignment, an ambiguous one, or a value that is
+# itself a command substitution never resolves and stays refused. What changes
+# is only that a target the agent could have spelled literally is no longer
+# refused for being spelled through a variable.
+resolve_var_prefix() {
+  local token="$1" name="" rest="" value=""
+  case "$token" in
+    '${'*'}'*)
+      name="${token#'${'}"
+      name="${name%%\}*}"
+      rest="${token#'${'"$name"'}'}"
+      ;;
+    '$'*)
+      rest="${token#'$'}"
+      name="${rest%%[!A-Za-z0-9_]*}"
+      rest="${rest#"$name"}"
+      ;;
+    *) return 1 ;;
+  esac
+  [ -n "$name" ] || return 1
+  value="$(rm_assignment_value "$name")" || return 1
+  # A value that is itself a command substitution names no location the guard
+  # can read, so it never resolves — the refusal stands. `$(…)` already fails
+  # below (its leading `$` yields no variable name); backticks are named here so
+  # both spellings of substitution behave the same way.
+  case "$value" in
+    *'`'*) return 1 ;;
+  esac
+  case "$value" in
+    '"'*'"')
+      value="${value#\"}"
+      value="${value%\"}"
+      ;;
+    "'"*"'")
+      value="${value#\'}"
+      value="${value%\'}"
+      ;;
+  esac
+  [ -n "$value" ] || return 1
+  printf '%s%s' "$value" "$rest"
+}
+# Classify ONE deletion target. Extracted from the token walk so a variable
+# target can be re-classified through every arm after resolution (#3106),
+# instead of the variable arm being a terminal verdict of its own.
+classify_rm_target() {
+  local token="$1" depth="${2:-0}" resolved=""
+  case "$token" in
+    -*) return 0 ;;
+    . | ./)
+      set +f
+      block "recursive forced delete of the current directory (rm -rf .)"
+      ;;
+    .git | .git/* | */.git | */.git/*)
+      set +f
+      block "recursive forced delete of the git control plane (.git holds every commit, branch and stash not already pushed; nothing in the working tree can rebuild it)"
+      ;;
+    .. | ../* | */.. | */../*)
+      set +f
+      block "recursive forced delete of a path outside the project (.. traversal)"
+      ;;
+    '~' | '~'/*)
+      set +f
+      block "recursive forced delete of a home-anchored path (~/…) outside the project"
+      ;;
+    /*)
+      case "$token" in
+        "$project_dir" | "$project_dir"/* | "$project_dir_phys" | "$project_dir_phys"/* \
+          | /tmp | /tmp/* | "$tmp_phys" | "$tmp_phys"/* \
+          | /var/tmp | /var/tmp/* | "$var_tmp_phys" | "$var_tmp_phys"/* \
+          | "$tmp_dir_allow" | "$tmp_dir_allow"/* | "$tmp_dir_allow_phys" | "$tmp_dir_allow_phys"/*) : ;;
+        *)
+          set +f
+          block "recursive forced delete of an absolute path outside the project (only the project, /tmp, /var/tmp, and \$TMPDIR are allowed)"
+          ;;
+      esac
+      ;;
+    '*')
+      # Bare top-level wildcard expands to every entry in the cwd. Guard 1a no
+      # longer bounds `*)` (T4b F1), so a substitution-wrapped `rm -rf *` is
+      # caught here after the trailing-closer strip peels `*)"` down to `*`.
+      set +f
+      block "recursive forced delete of a top-level wildcard (rm -rf *)"
+      ;;
+    *'$'*)
+      case "$token" in
+        '$TMPDIR' | '$TMPDIR'/* | '${TMPDIR}' | '${TMPDIR}'/*) : ;;
+        *)
+          if [ "$depth" -lt 4 ] \
+            && resolved="$(resolve_var_prefix "$token")" \
+            && [ -n "$resolved" ] \
+            && [ "$resolved" != "$token" ]; then
+            classify_rm_target "$resolved" $((depth + 1))
+          else
+            set +f
+            block "recursive forced delete of a variable-expanded target (unset or mistyped variables can point anywhere; \$TMPDIR is the only sanctioned dynamic target)"
+          fi
+          ;;
+      esac
+      ;;
+  esac
+  return 0
+}
+# Segmented in the PARENT shell rather than in a process substitution, and the
+# `|| true` that used to sit on the feeder is gone. Both together were the same
+# three-way read as a bare `grep -q` condition (see scan() above), just wearing
+# a loop: a grep that could not run produced no lines, the body never executed,
+# and the guard was silently skipped with the command ALLOWED. `exit` inside a
+# process substitution cannot deny anything either — it ends that subshell, not
+# this hook.
+rm_segments_status=0
+rm_segments="$(printf '%s' "$rm_normalized_command_str" | tr '&|;' '\n' \
+  | grep -Ei -- "$RM_CMD"'([[:space:]]|$)')" || rm_segments_status=$?
+case "$rm_segments_status" in
+  0 | 1) ;;
+  *) scan_failed "$rm_segments_status" ;;
+esac
+while IFS= read -r rm_stmt; do
+  # A here-string over empty input still yields one empty line.
+  [ -n "$rm_stmt" ] || continue
+  if ! scan -Ei "$rm_stmt" "$RM_RF_CLUSTER" \
+    && ! scan -Ei "$rm_stmt" "$RM_RF_SPLIT"; then
+    continue
+  fi
+  # Guard 1: catastrophic target named in the SAME statement as the rm -rf.
+  if scan -E "$rm_stmt" "$RM_CATASTROPHIC_TARGET"; then
+    block "recursive forced delete of a root, home, or wildcard path (rm -rf)"
+  fi
+  # Physical-path comparison (pwd -P): on macOS $HOME or the cwd may arrive via
+  # a symlink (/var → /private/var), and a string compare would miss the match.
+  if [ -n "${HOME:-}" ] \
+    && [ "$(pwd -P)" = "$(cd -- "$HOME" 2>/dev/null && pwd -P)" ]; then
+    block "recursive forced delete while the working directory is \$HOME (cd into a project first)"
+  fi
+  # Scope the walk to the quoting region that actually contains the rm (#3106
+  # arm A). Unquoted and run-leading invocations get the whole statement back,
+  # so this is a no-op for every real delete.
+  rm_assignment_stmt="$rm_stmt"
+  rm_walk_status=0
+  rm_walk_text="$(rm_scan_scope "$rm_stmt")" || rm_walk_status=$?
+  if [ "$rm_walk_status" -ne 0 ]; then
+    # The substitution above runs in a subshell. A denial inside it cannot stop
+    # this parent hook, so carry the failure out explicitly and deny here.
+    scan_failed "$rm_walk_status"
+  fi
+  while IFS= read -r rm_scope; do
+    set -f
+    seen_rm=0
+    for raw_token in $rm_scope; do
+      token="$(strip_subst_wrappers "$raw_token")"
+      if [ "$seen_rm" -eq 0 ]; then
+        # Path-prefixed spellings (`/bin/rm`, `./rm`) are still rm (F2).
+        case "$token" in
+          rm | */rm) seen_rm=1 ;;
+        esac
+        continue
+      fi
+      classify_rm_target "$token"
+    done
+    set +f
+  done <<< "$rm_walk_text"
+done <<<"$rm_segments"
+
+# 2. Force-pushing a protected branch. `--force-with-lease` is the safe,
+#    non-clobbering alternative and is intentionally NOT blocked. Deliberate
+#    divergence from upstream (which blocks force-push on ANY branch):
+#    feature-branch force-push is a sanctioned rebase-and-push agent workflow.
+#
+#    The force flag AND the protected-branch name must appear in the SAME
+#    `git push` statement. Checking them independently over the whole command is
+#    a false-positive magnet: an unrelated `-f` (a `[ -f file ]` test, `rm -f`,
+#    `grep -f`, `tail -f`) plus an unrelated protected name (`--base main`,
+#    `origin/main`, `git fetch origin main`) alongside any feature-branch
+#    `git push` would wrongly block. So split the command into statements
+#    (`;`, `&&`, `||`, `|`, newlines), keep only the `git push` segments, and
+#    inspect each in isolation — a real `git push --force origin main` still
+#    matches, while a feature-branch push next to `[ -f ]`/`--base main` passes.
+# Same reason as the rm segmentation above: a feeder that swallows grep's error
+# skips the guard entirely and allows the command.
+push_segments_status=0
+push_segments="$(printf '%s' "$normalized_command_str" | tr '&|;' '\n' \
+  | grep -Ei -- "${GIT_CMD}push\b")" || push_segments_status=$?
+case "$push_segments_status" in
+  0 | 1) ;;
+  *) scan_failed "$push_segments_status" ;;
+esac
+while IFS= read -r push_stmt; do
+  [ -n "$push_stmt" ] || continue
+  if scan -Ei "$push_stmt" \
+    '(--force([[:space:]]|=|$)|[[:space:]]-f([[:space:]]|$))' \
+    && ! scan -Ei "$push_stmt" '--force-with-lease' \
+    && scan -Ei "$push_stmt" \
+      '(^|[^[:alnum:]_/-])(main|master|production|prod|release)([^[:alnum:]_/-]|$)'; then
+    block "force-pushing a protected branch (use --force-with-lease, or push a feature branch)"
+  fi
+done <<<"$push_segments"
+
+# 3. `git reset --hard` / `git reset --merge` while the working tree has
+#    uncommitted changes — both silently discard them. Only blocks when the tree
+#    is actually dirty, so a clean-tree reset (a legitimate workflow) passes.
+#    Deliberate divergence from upstream's unconditional block; the accepted
+#    residual risk (dirty check runs at hook time in the hook's cwd) is
+#    documented in the header.
+if matches "${GIT_CMD}"'reset\b.*--(hard|merge)\b'; then
+  if git rev-parse --is-inside-work-tree >/dev/null 2>&1 \
+    && [ -n "$(git status --porcelain 2>/dev/null)" ]; then
+    block "git reset --hard/--merge on a dirty working tree would discard uncommitted changes (commit first, or preserve as below)" "$PRESERVE_GUIDANCE
+
+$DESTRUCTIVE_GUIDANCE"
+  fi
+fi
+
+# 3a. `git read-tree` with BOTH an update flag and `--reset`, on the same dirty
+#     tree — the plumbing spelling of guard 3 (issue #3978). It resets the index
+#     and writes the result into the working tree, discarding tracked
+#     modifications: the identical destruction, reached through a command that
+#     carries no `--hard` and no `reset` subcommand, so every pattern in
+#     guard 3 misses it. A guard an agent can walk around is a guard that stops
+#     the honest caller and not the one looking for a way through, and this
+#     spelling is strictly worse than the blocked one — it discards WITHOUT
+#     preserving, which is exactly the property guard 3's remedy supplies. Both
+#     refusals therefore print the same $PRESERVE_GUIDANCE, so what they teach
+#     cannot drift apart.
+#
+#     `--reset` is the discriminator, not `-u`, and the pairing is deliberate:
+#
+#     - `read-tree` with no update flag touches the INDEX only and destroys
+#       nothing in the working tree, so a blanket `read-tree` block would be
+#       over-broad.
+#     - `read-tree -m -u` (a merge without `--reset`) is safe by git's own
+#       construction: it REFUSES rather than overwrite a locally modified file
+#       ("entry would be overwritten by merge"). `--reset` is precisely the flag
+#       that switches that refusal off.
+#
+#     So the destructive combination is an update flag AND `--reset` together,
+#     in either order. The update flag is matched in the checkout guard's idiom
+#     so a bundled short option (`-iu`) cannot dodge the anchor, with leading
+#     whitespace required so a `--index-output=/tmp/out-u` style value cannot
+#     read as the flag. Same conditional dirty-tree shape and same accepted
+#     residual risk as guard 3: the probe runs in the hook's cwd at hook time.
+readonly GIT_READ_TREE="${GIT_CMD}read-tree"
+if matches "${GIT_READ_TREE}"'[^;&|]*[[:space:]]--reset([[:space:]]|$)' \
+  && matches "${GIT_READ_TREE}"'[^;&|]*[[:space:]](-[[:alnum:]]*u[[:alnum:]]*|--update)([[:space:]]|=|$)'; then
+  if git rev-parse --is-inside-work-tree >/dev/null 2>&1 \
+    && [ -n "$(git status --porcelain 2>/dev/null)" ]; then
+    block "git read-tree -u --reset on a dirty working tree would discard uncommitted changes (commit first, or preserve as below)" "$PRESERVE_GUIDANCE
+
+$DESTRUCTIVE_GUIDANCE"
+  fi
+fi
+
+# 3b. `git rebase --abort` / `--quit` ONLY while human/agent conflict
+#     resolutions exist (issue #1956). `--abort` restores the pre-rebase branch
+#     and discards every resolution; `--quit` deletes the rebase bookkeeping
+#     (head-name, todo) while stranding a detached HEAD, making recovery
+#     ambiguous — both are treated the same, conditionally. A rebase state with
+#     nothing human-made in it (a clean-pick wedge, or a conflict stop nobody
+#     has touched) is agent-recoverable, so aborting it stays ALLOWED.
+#     Discriminator (empirical, git 2.53): diff the worktree/index against the
+#     AUTO_MERGE ref (the merge-ort recorded conflicted tree). Abort-safe ⇔
+#     worktree diff is quiet AND (the cached diff is quiet OR unmerged index
+#     entries exist — an untouched conflict stop has unmerged entries that make
+#     the cached diff non-quiet without any human edit). Fail CLOSED on the
+#     rebase-apply backend (no AUTO_MERGE contract) and on a missing AUTO_MERGE
+#     ref while rebase-merge state exists. Same accepted residual risk as
+#     guard 3: the probes run in the hook's cwd at hook time.
+if matches "${GIT_CMD}"'rebase'"${GIT_TOKENS}"'--(abort|quit)([[:space:]]|$)'; then
+  rebase_apply_dir="$(git rev-parse --git-path rebase-apply 2>/dev/null || true)"
+  rebase_merge_dir="$(git rev-parse --git-path rebase-merge 2>/dev/null || true)"
+  if [ -n "$rebase_apply_dir" ] && [ -d "$rebase_apply_dir" ]; then
+    block "git rebase --abort/--quit on an apply-backend rebase cannot prove no conflict resolutions would be lost (fail closed; finish or continue the rebase instead)"
+  fi
+  if [ -n "$rebase_merge_dir" ] && [ -d "$rebase_merge_dir" ]; then
+    if ! git rev-parse -q --verify AUTO_MERGE >/dev/null 2>&1; then
+      block "git rebase --abort/--quit with an unresolvable AUTO_MERGE ref cannot prove no conflict resolutions would be lost (fail closed)"
+    fi
+    if ! git diff --quiet AUTO_MERGE 2>/dev/null; then
+      block "git rebase --abort/--quit would discard conflict resolutions in the working tree (finish resolving and run git rebase --continue instead)"
+    fi
+    unmerged_entries="$(git ls-files -u 2>/dev/null || true)"
+    if [ -z "$unmerged_entries" ] \
+      && ! git diff --cached --quiet AUTO_MERGE 2>/dev/null; then
+      block "git rebase --abort/--quit would discard staged conflict resolutions (finish resolving and run git rebase --continue instead)"
+    fi
+  fi
+fi
+
+# 4. `git checkout` worktree discards: the `--` pathspec form (with or without a
+#    ref), `-f/--force`, `--pathspec-from-file`, and bare `git checkout .`.
+#    Blocking bare `.` exceeds upstream (which allows any single positional) —
+#    issue #1960 names it explicitly: it discards the entire tree. Branch
+#    switches and creation (`-b`/`-B`) stay allowed.
+readonly GIT_CHECKOUT="${GIT_CMD}checkout"
+if matches "${GIT_CHECKOUT}${GIT_TOKENS}"'--([[:space:]]|$)' \
+  || matches "${GIT_CHECKOUT}${GIT_TOKENS}"'(-[[:alnum:]]*f[[:alnum:]]*|--force)([[:space:]]|=|$)' \
+  || matches "${GIT_CHECKOUT}"'[[:space:]][^;&|]*--pathspec-from-file' \
+  || matches "${GIT_CHECKOUT}"'[[:space:]]+\.(/)?([[:space:]]|$)'; then
+  block "git checkout discarding local changes (--, -f/--force, --pathspec-from-file, or bare .)" "$PRESERVE_GUIDANCE
+
+$DESTRUCTIVE_GUIDANCE"
+fi
+
+# 5. `git switch` discards: `--discard-changes` and its `-f/--force` aliases.
+#    Carries the same guidance as guards 3 and 4 (issue #3696). It discards the
+#    same uncommitted work by the same mechanism, so a refusal that named no
+#    remedy left the reader to invent one — and the one they invent is the
+#    stash, which is the single thing $PRESERVE_GUIDANCE exists to steer off.
+if matches "${GIT_CMD}switch${GIT_TOKENS}"'(--discard-changes|--force|-f)([[:space:]]|=|$)'; then
+  block "git switch discarding local changes (--discard-changes/-f/--force)" "$PRESERVE_GUIDANCE
+
+$DESTRUCTIVE_GUIDANCE"
+fi
+
+# 6. `git restore` defaults to overwriting the WORKTREE — a silent discard. Only
+#    the pure staging-area form is safe: `--staged` present and `--worktree`
+#    absent. Two conditions, because an ERE has no lookahead: `--staged
+#    --worktree` still discards, so `--worktree` blocks regardless of `--staged`.
+#    Carries the same guidance as guards 3 and 4 (issue #3696). The permitted
+#    alternative this reason names — `git restore --staged <path>` — is real,
+#    but it only unstages; it leaves the worktree exactly as dirty as it found
+#    it. So the operator who reached for `git restore` to CLEAN a tree is told
+#    of an operation that does not do what they came for, and was told nothing
+#    about what does. This is the refusal #3696 was filed from.
+if matches "${GIT_CMD}"'restore([[:space:]]|$)'; then
+  if matches "${GIT_CMD}"'restore[^;&|]*--worktree' \
+    || ! matches "${GIT_CMD}"'restore[^;&|]*--staged'; then
+    block "git restore overwriting worktree files (only 'git restore --staged <path>' without --worktree is allowed)" "$PRESERVE_GUIDANCE
+
+$DESTRUCTIVE_GUIDANCE"
+  fi
+fi
+
+# 7. `git stash drop` / `git stash clear` destroy stashed work. push/pop/list/
+#    apply stay ALLOWED — this guard moves no verdict on them — but they are no
+#    longer RECOMMENDED anywhere in this file, and this comment used to say the
+#    opposite (issue #3692). It called them "the safe alternatives the reset
+#    guard recommends", which stopped being true when #3722 rewrote guards 3
+#    and 4 to point at $PRESERVE_GUIDANCE instead. A stale comment endorsing
+#    the stash is the same hazard as a stale message doing it: the next reader
+#    takes the file's word for what the file does. See $PRESERVE_GUIDANCE for
+#    why one stack shared by every worktree of a clone makes push/pop unsafe
+#    under this project's concurrency.
+if matches "${GIT_CMD}"'stash[[:space:]]+(drop|clear)([[:space:]]|$)'; then
+  block "git stash drop/clear destroys stashed work"
+fi
+
+# 8. `git clean` with a force flag wipes untracked files. A dry-run flag
+#    (`-n`/`--dry-run`) ANYWHERE wins — git itself performs no deletion under
+#    dry-run, so `git clean -fdn` is a safe preview.
+readonly GIT_CLEAN="${GIT_CMD}clean"
+if matches "${GIT_CLEAN}${GIT_TOKENS}"'(-[[:alnum:]]*f[[:alnum:]]*|--force)([[:space:]]|=|$)' \
+  && ! matches "${GIT_CLEAN}${GIT_TOKENS}"'(-[[:alnum:]]*n[[:alnum:]]*|--dry-run)([[:space:]]|=|$)'; then
+  block "git clean --force deletes untracked files (preview with git clean -n first)"
+fi
+
+# 9. `git branch` force-delete loses unmerged commits: `-D`, `-d` combined with
+#    `-f` (clustered or split), or `--delete` + `--force`. Case-SENSITIVE so the
+#    safe `-d` (which refuses unmerged work) and rename `-m` stay allowed.
+readonly GIT_BRANCH="${GIT_CMD}branch"
+if matches_cs "${GIT_BRANCH}${GIT_TOKENS}"'-[[:alnum:]]*D[[:alnum:]]*([[:space:]]|$)' \
+  || { matches_cs "${GIT_BRANCH}${GIT_TOKENS}"'-[[:alnum:]]*d[[:alnum:]]*([[:space:]]|$)' \
+    && matches_cs "${GIT_BRANCH}${GIT_TOKENS}"'-[[:alnum:]]*f[[:alnum:]]*([[:space:]]|$)'; } \
+  || { matches "${GIT_BRANCH}"'[^;&|]*--delete' && matches "${GIT_BRANCH}"'[^;&|]*--force'; }; then
+  block "git branch force-delete (-D) loses unmerged commits (use -d, which refuses unmerged work)"
+fi
+
+# 10. Cheap destructive-ref guards: `git tag -d` (tags are shared refs),
+#     `git reflog delete` (erases recovery history), and
+#     `git worktree remove --force` (discards a dirty worktree). Tag deletion is
+#     case-SENSITIVE so annotated-tag `-a` and message `-m` flags never match.
+if matches_cs "${GIT_CMD}tag${GIT_TOKENS}"'(-[[:alnum:]]*d[[:alnum:]]*([[:space:]]|$)|--delete([[:space:]]|=|$))'; then
+  block "git tag -d deletes a shared ref"
+fi
+if matches "${GIT_CMD}"'reflog[[:space:]]+delete([[:space:]]|$)'; then
+  block "git reflog delete erases recovery history"
+fi
+if matches "${GIT_CMD}"'worktree[[:space:]]+remove[^;&|]*(--force([[:space:]]|=|$)|[[:space:]]-[[:alnum:]]*f[[:alnum:]]*([[:space:]]|$))'; then
+  block "git worktree remove --force discards a dirty worktree (remove without --force, which refuses dirty trees)"
+fi
+
+# 11. Deletion through find/xargs, where the target never appears as a literal
+#     argument: `find … -delete`, `find … -exec rm -rf`, and `xargs … rm -rf`
+#     (targets arrive from dynamic stdin — unauditable). Plain `rm` (no
+#     recursive+force) on find/xargs output stays allowed for normal cleanups.
+if matches '(^|[^[:alnum:]_./-])find[[:space:]][^;&|]*[[:space:]]-delete([[:space:]]|$)'; then
+  block "find -delete removes files tree-wide (use -print to preview, or an explicit rm on reviewed paths)"
+fi
+if matches '(^|[^[:alnum:]_./-])find[[:space:]][^;&|]*-exec[[:space:]]+rm[[:space:]]+(-[[:alnum:]]*r[[:alnum:]]*f|-[[:alnum:]]*f[[:alnum:]]*r)([[:space:]]|$)'; then
+  block "find -exec rm -rf performs a recursive forced delete on unreviewed paths"
+fi
+# A command that reads its operands from STDIN and runs a program on them. The
+# targets are therefore whatever the upstream stage emitted, which is exactly
+# what makes a recursive forced delete behind one unauditable.
+#
+# Three fail-opens closed here (issue #3494), all of them the same mistake —
+# this rule was written standalone instead of inheriting vocabulary the file
+# already had:
+#
+#   1. The old prefix was `(^|[^[:alnum:]_./-])xargs`, whose excluded class
+#      contains `/`, so the character before `xargs` in `/usr/bin/xargs` was
+#      itself disqualifying and a PATH-SPELLED invocation never matched.
+#      `gxargs` — the GNU findutils spelling shipped by macOS package managers —
+#      failed the same way on the alphanumeric side. RM_CMD above solved this
+#      exact problem for `rm` by putting the boundary before the WHOLE path and
+#      making the directory part optional; that shape is reused verbatim.
+#   2. `parallel` was absent. It is a drop-in `xargs` substitute reaching the
+#      same delete on the same unaudited stdin, and guard 14 below already had
+#      to name it in its own evidence — it was missing only here.
+#   3. The flag set was a short-cluster-only copy, so `rm --recursive --force`
+#      was allowed where `rm -rf` was refused. It now uses the SAME tails as the
+#      rm walk, which is what makes that class of divergence unrepeatable.
+readonly STDIN_DELETER='(^|[^[:alnum:]_./-])([[:alnum:]_./-]*/)?(g?xargs|parallel)[[:space:]]([^;&|]*[[:space:]])?rm'
+if matches "$STDIN_DELETER$RM_RF_TAIL_CLUSTER" \
+  || matches "$STDIN_DELETER$RM_RF_TAIL_SPLIT"; then
+  block "xargs/parallel rm -rf performs a recursive forced delete on dynamic stdin input"
+fi
+
+# 12. Disk destroyers, always on (exceeds upstream, which only scans these
+#     inside interpreter one-liners): writing to a raw /dev node via dd,
+#     formatting a device with mkfs, and shred's unrecoverable overwrite.
+#     dd/mkfs against regular files (imaging) stays allowed.
+if matches '(^|[^[:alnum:]_./-])dd[[:space:]]+([^;&|]*[[:space:]])?of=/dev/'; then
+  block "dd writing to a raw device (of=/dev/…) destroys it"
+fi
+if matches '(^|[^[:alnum:]_./-])mkfs(\.[[:alnum:]]+)?[[:space:]][^;&|]*/dev/'; then
+  block "mkfs formatting a device erases it"
+fi
+if matches '(^|[^[:alnum:]_./-])shred([[:space:]]|$)'; then
+  block "shred overwrites files unrecoverably"
+fi
+
+# 13. Dropping or truncating a database / schema / table (Lisa-only guard —
+#     upstream has no SQL protection; keep).
+#
+# The two arms used to be asymmetric, and only the lopsided one produced false
+# positives (issue #3530). The `drop` arm requires a following keyword —
+# `drop database|schema|table` — so `drop the ball` never matched it. The
+# `truncate` arm made that keyword OPTIONAL:
+#
+#     truncate[[:space:]]+(table[[:space:]]+)?[[:alnum:]_."`]+
+#
+# which reduces to "`truncate`, whitespace, any identifier-ish word", so
+# `truncate the board`, `truncate results` and `truncate output` all matched.
+# A session was refused for a bug-report TITLE describing a connection that
+# truncates results — and a title has no escape hatch, because the remedy this
+# hook prints at the wall (write the text to a file, pass it BY PATH) covers a
+# body, while the title flag of an issue-filing CLI is necessarily inline. The
+# only exit left was to reword, which is what trains people to route around a
+# guard.
+#
+# The fix keeps the coverage and drops the English, in three arms.
+#
+# ARM 1 — `drop`, byte-identical to before. It was already correct, and a
+# rewrite that unified the arms could only make it permissive.
+readonly SQL_DROP='\bdrop[[:space:]]+(database|schema|table)\b'
+# ARM 2 — `truncate` carrying its own evidence that it is a statement rather
+# than a verb: the TABLE keyword (what the drop arm demands), a
+# schema-qualified name, a quoted identifier, a trailing `;`, or one of the
+# tail keywords that only ever follow a TRUNCATE. English has none of these.
+readonly SQL_TRUNCATE_TAIL='(cascade|restrict|restart[[:space:]]+identity|continue[[:space:]]+identity)([^[:alnum:]_]|$)'
+readonly SQL_TRUNCATE_EVIDENCE='\btruncate[[:space:]]+(table[[:space:]]+[[:alnum:]_."`]+|(only[[:space:]]+)?([[:alnum:]_]+\.[[:alnum:]_."`]+|["`][[:alnum:]_. ]+["`]|[[:alnum:]_]+[[:space:]]*(;|'"$SQL_TRUNCATE_TAIL"')))'
+# ARM 3 — the permissive-dialect `TRUNCATE <name>` with none of that evidence.
+# Deleting this shape is what a lazy fix does: it passes every prose scenario
+# while silently removing the coverage a regression fixture already asserts
+# (`mysql -e 'TRUNCATE sessions'`). So it is recognized by CONTEXT instead —
+# the same command must also invoke a command-line database client. Prose in a
+# tracker filing or a commit message invokes none, which is exactly the
+# difference the text scan could not see on its own.
+readonly SQL_CLIENT_TRUNCATE='(^|[;&|()][[:space:]]*)([[:alnum:]_./-]*/)?(psql|pgcli|mysql|mysqladmin|mysqlsh|mariadb|mycli|sqlite3|sqlcmd|cqlsh|clickhouse-client|cockroach|mongosh|duckdb|usql)([[:space:]]+[^;&|()]*)?[[:space:]]+(-e|-c|--command|--eval)(=|[[:space:]]+)[^;&|()]*\btruncate[[:space:]]+(only[[:space:]]+)?[[:alnum:]_."`]'
+# Residual, accepted and stated: a bare `TRUNCATE <name>` with no terminator,
+# no qualification and no recognized client in the same command goes unmatched
+# — the same trade the `drop` arm has always made for `drop the ball`. No DROP
+# shape is weakened, and the guard still fails in the safe direction.
+if matches "$SQL_DROP" \
+  || matches "$SQL_TRUNCATE_EVIDENCE" \
+  || matches "$SQL_CLIENT_TRUNCATE"; then
+  block "destructive SQL (DROP/TRUNCATE) detected"
+fi
+
+# 14. The git control plane. A recursive forced delete of `.git` destroys every
+# commit, branch and stash that is not already pushed — the one directory whose
+# loss is not recoverable from the working tree.
+#
+# This is not a new principle, it is a hole in one the guard already holds. Rule
+# 4 above already refuses `rm -rf "$SOMEDIR"` and paths outside the project;
+# `rm -rf .git` was permitted only because nothing named it. Measured before
+# this rule existed: `rm -rf .git`, `rm -rf ./.git` and `rm -rf .git/objects`
+# were all ALLOWED while the variable-expanded case was correctly blocked.
+#
+# `.git` must be a whole path component. `.gitignore`, `.gitattributes`,
+# `.github/` and a `.git-old` backup are ordinary files a project deletes on
+# purpose, and blocking those would be the collision that gets a guard switched
+# off. The trailing `([/[:space:]'"$qc"']|$)` is what draws that line.
+readonly GIT_CONTROL_PLANE='(^|[[:space:]='"$qc"'./])\.git([/[:space:]'"$qc"']|$)'
+# This guard is the one segment walk that pairs TWO facts found in different
+# places: the protected target (`.git`) and the destructive verb (a recursive
+# forced delete). That makes its segmentation load-bearing in a way the rm and
+# push walks' is not — those two read a verb and its own operands, which are
+# always in one pipeline stage, so splitting on `|` costs them nothing.
+#
+# Here it cost everything. The old feeder was `tr '&|;' '\n'`, which cut a
+# PIPELINE into pieces before the pairing question was asked, and a pipeline is
+# exactly how a delete reaches a target named upstream of it:
+# `find .git -type f -print0 | xargs -0 rm -rf` became `find .git -type f
+# -print0` (a target, no verb) and `xargs -0 rm -rf` (a verb, no target), and
+# neither half could answer. Measured before this fix, with the blanket
+# `xargs rm -rf` rule masking the reported shape: `find .git -type d | parallel
+# rm -rf`, `… | /usr/bin/xargs rm -rf`, `… | xargs -0 -- rm --recursive
+# --force`, `… 2>&1 | parallel rm -rf`, `… |& parallel rm -rf` and
+# `cat .git/config | grep url | rm -rf refs` were ALL allowed (CodySwannGT/lisa#3320).
+#
+# So segment on STATEMENT boundaries and nothing else. A pipe joins stages of
+# one statement; `;`, `&`, `&&` and `||` end one. Three spellings have to be
+# normalized first or a naive split gets them wrong in both directions:
+#
+#   `|&`    bash's pipe-with-stderr. Splitting its `&` would halve a pipeline —
+#           the same fail-open, wearing a different operator. Becomes `|`.
+#   `2>&1`  a redirection, not a boundary (also `>&2`, `<&3`, `&>file`). These
+#           are where `&` appears WITHOUT ending a statement, and they are
+#           common enough that ignoring them would reopen the hole on any
+#           pipeline that redirects stderr. The `&` is folded away.
+#   `||`    a real boundary that happens to be built from pipe characters, so it
+#           must be recognized BEFORE a single `|` is spared. Becomes `;`.
+#
+# Every one of those rewrites only ever REMOVES a boundary or leaves it intact,
+# so each can merge two segments but never split one — the fail-closed
+# direction. `&` and `;` still separate, so unrelated commands are not joined.
+#
+# The leading awk is the same idea one level up. A line ending in `|` is bash's
+# OTHER implicit continuation — the pipeline resumes on the next line — and the
+# per-line read below would otherwise part the stages exactly as `tr` did, so
+# `find .git -type d |`↵`  parallel rm -rf` fails open through the newline
+# instead of through the pipe. This mirrors the backslash-continuation join that
+# `normalized_command_str` already performs for the same reason. It is done here
+# rather than in that shared normalization deliberately: this guard is the one
+# that pairs facts across stages, so it is the one that needs the stages kept
+# together, and widening the shared normalization would change every other
+# guard's segmentation for no defect anyone has measured.
+#
+# The status check is the second half of the fix and closes a quieter hole. This
+# feeder had none, while the rm and push walks above both have one: a segmenter
+# that could not run produced no lines, the loop body never executed, and the
+# guard was skipped with the command ALLOWED. A segmentation that cannot answer
+# must refuse, exactly like a scan that cannot answer.
+# 14b. Linked worktrees, which are the same principle one level out. `.git` is
+# protected because nothing in the working tree can rebuild it; a linked
+# worktree is protected because nothing OUTSIDE it can rebuild what it holds.
+# The asymmetry is exact and it is invisible from the prompt: `.git/refs` and
+# the object store are shared by every worktree of a repository, while
+# `.git/index` and the working files are per-worktree. So `git commit` moves
+# work somewhere a deletion cannot reach, and `git add` does not — a staged file
+# shows green in `git status`, which reads as saved, and dies with the
+# directory.
+#
+# Measured twice in one evening (issue #3863): one worktree lost a 284-line
+# staged test file, and a second lost nothing from the identical event purely
+# because a gate had forced its work into a commit first. Neither deletion
+# announced itself. That is the second reason this is a block rather than a
+# warning — a worktree deletion destroys the only evidence its own case could
+# leave, so there is no after-the-fact detection to fall back on.
+#
+# `git worktree remove` (guard 12) already refuses a dirty tree, and
+# `--force` is already blocked. This closes the spelling that walks around both:
+# `rm -rf` on the directory, which git never sees.
+#
+# Matching is by REGISTERED path — `git worktree list` names them — so an
+# ordinary directory that merely lives near one is untouched. A repository that
+# cannot be read answers "no": this guard adds protection to a shape that was
+# fully allowed a moment ago, and failing it closed would deny every recursive
+# delete on every path outside a repository.
+#
+# The comparison is on WHOLE TOKENS, which is the only spelling that gets both
+# error directions right. Substring containment would let a worktree named
+# `wt-1` claim `rm -rf wt-10`, an over-block on an unrelated directory; and
+# hand-written boundary classes leak the other way, because `rm -rf <wt>/`
+# with one trailing slash ends on a character every such class treats as
+# "inside a path". So every non-path character — quote, space, parenthesis,
+# redirection — is folded to a space first, which makes each argument a
+# space-delimited token regardless of how it was quoted, and the match is then
+# an equality test on that token. A SUBPATH (`rm -rf <wt>/node_modules`) is
+# deliberately not this guard's business: it is not a worktree deletion, and
+# blocking routine cleanup inside a worktree is how a guard gets switched off.
+names_linked_worktree() {
+  local stmt="$1" probe root listed line primary wt rel
+  root="$(git -C "${CLAUDE_PROJECT_DIR:-$PWD}" rev-parse --show-toplevel 2> /dev/null)" || return 1
+  [ -n "$root" ] || return 1
+  listed="$(git -C "$root" worktree list --porcelain 2> /dev/null)" || return 1
+  probe=" $(printf '%s' "$stmt" | tr -c 'A-Za-z0-9_./-' ' ') "
+  primary=""
+  while IFS= read -r line; do
+    case "$line" in
+      worktree\ *) wt="${line#worktree }" ;;
+      *) continue ;;
+    esac
+    # First entry is the primary checkout, which is not a linked worktree.
+    if [ -z "$primary" ]; then
+      primary="$wt"
+      continue
+    fi
+    case "$probe" in
+      *" $wt "* | *" $wt/ "*) return 0 ;;
+    esac
+    rel="${wt#"$primary"/}"
+    [ "$rel" != "$wt" ] || continue
+    # `./` is the same path spelled the way an agent in the project root types
+    # it, and a token comparison is exact, so it has to be spelled here too.
+    case "$probe" in
+      *" $rel "* | *" $rel/ "* | *" ./$rel "* | *" ./$rel/ "*) return 0 ;;
+    esac
+  done <<EOF
+$listed
+EOF
+  return 1
+}
+
+git_segments_status=0
+git_segments="$(printf '%s' "$normalized_command_str" \
+  | awk '{ if (/\|[ \t]*$/) printf "%s ", $0; else print }' \
+  | sed -e 's/|&/|/g' \
+    -e 's/&>/>/g' \
+    -e 's/[0-9]*>&[0-9-]*/>/g' \
+    -e 's/[0-9]*<&[0-9-]*/</g' \
+    -e 's/||/;/g' \
+  | tr '&;' '\n' \
+  | grep -E -- "$RM_RF_CLUSTER|$RM_RF_SPLIT")" || git_segments_status=$?
+case "$git_segments_status" in
+  0 | 1) ;;
+  *) scan_failed "$git_segments_status" ;;
+esac
+while IFS= read -r git_stmt; do
+  [ -n "$git_stmt" ] || continue
+  if ! scan -E "$git_stmt" "$RM_RF_CLUSTER" \
+    && ! scan -E "$git_stmt" "$RM_RF_SPLIT"; then
+    continue
+  fi
+  if scan -E "$git_stmt" "$GIT_CONTROL_PLANE"; then
+    block "recursive forced delete of the git control plane (.git holds every commit, branch and stash not already pushed; nothing in the working tree can rebuild it). Delete a specific ignored artifact instead. Re-cloning is NOT a like-for-like replacement: every linked worktree stores a pointer into this .git, so discarding it discards each of them and any uncommitted work they hold — check \`git worktree list\` before treating the checkout as disposable."
+  fi
+  if names_linked_worktree "$git_stmt"; then
+    block "recursive forced delete of a linked git worktree. A worktree's index and working files are private to it — only commits are shared — so this destroys any staged or unwritten-to-a-commit work another agent left there, and destroys the evidence that it did (CodySwannGT/lisa#3863). Use 'node scripts/lisa-worktree-guard.mjs remove <path>' instead: it deletes clean and already-committed trees without ceremony, names the files when they exist nowhere else, and records an explicit --force override."
+  fi
+done <<<"$git_segments"
+
+# 15. Credential stores. Reading one into an agent transcript is disclosure even
+# when nothing is copied anywhere: the value lands in a log, a context window,
+# and whatever retains either.
+#
+# Scoped deliberately rather than by the obvious pattern. Each clause below is a
+# separate judgement about a family where an agent has no legitimate read, and
+# each carries the exclusions that keep ordinary work moving — public keys,
+# known_hosts, ssh config, and `.env.example` are all still readable, because a
+# guard that blocks routine setup is a guard somebody disables.
+
+# The verbs that disclose: read it, duplicate it, or send it. Writing is NOT
+# here — `echo FOO=1 > .env` during setup creates a secret rather than leaking
+# one, and refusing it would block the very workflow that produces the file.
+readonly SECRET_READ_VERB='(^|[^[:alnum:]_./-])([[:alnum:]_./-]*/)?(cat|bat|less|more|head|tail|strings|xxd|od|base64|cp|mv|rsync|scp|sftp|tar|zip|curl|wget|http|nc)([[:space:]]|$)'
+
+# 15a. SSH PRIVATE keys. `id_rsa.pub` and friends are public by construction and
+# stay readable; so do `known_hosts`, `config` and `authorized_keys`, which
+# agents legitimately inspect when diagnosing a remote.
+readonly SSH_PRIVATE_KEY='\.ssh/(id_[[:alnum:]_-]+|[[:alnum:]_.-]*_(rsa|dsa|ecdsa|ed25519))([[:space:]'"$qc"']|$)'
+# 15b. Cloud provider credential files.
+readonly CLOUD_CREDENTIAL='(\.aws/(credentials|config)|\.config/gcloud/[[:alnum:]_./-]*credentials[[:alnum:]_.-]*|\.azure/(accessTokens|msal_token_cache)[[:alnum:]_.-]*|\.kube/config)([[:space:]'"$qc"']|$)'
+# 15c. Coding-agent credential stores — the tokens that impersonate the operator
+# to every service their agent can reach.
+readonly AGENT_CREDENTIAL='(\.(claude|codex|cursor|copilot|gemini|antigravity)/[[:alnum:]_./-]*(credentials|auth|token)[[:alnum:]_.-]*|\.netrc|\.npmrc|\.pypirc|\.docker/config\.json)([[:space:]'"$qc"']|$)'
+# 15d. Dotenv files. `.env.example`, `.sample`, `.template`, `.dist` and
+# `.schema` are checked-in documentation of which keys exist, never the values,
+# so they are excluded — that collision is the one this rule most had to avoid.
+# Decide dotenv privacy per PATH, never by subtracting one command-wide match
+# from another. A command that names `.env.example` and `.env` contains both a
+# public path and a private one; seeing the former cannot authorize the latter.
+#
+# The one write-only shape this guard has always allowed remains explicit:
+# seeding a private dotenv destination from one public template. This is safe
+# because the private path is the destination, not a value being read back.
+has_private_dotenv_path() {
+  dotenv_scan_status=0
+  dotenv_candidates="$(printf '%s' "$normalized_command_str" \
+    | grep -Eio -- '(^|[[:space:]='"$qc"'./])\.env(\.[[:alnum:]_-]+)?')" \
+    || dotenv_scan_status=$?
+  if [ "$dotenv_scan_status" -gt 1 ]; then
+    scan_failed "$dotenv_scan_status"
+  fi
+
+  while IFS= read -r candidate; do
+    [ -n "$candidate" ] || continue
+    dotenv_normalize_status=0
+    candidate="$(printf '%s' "$candidate" \
+      | tr '[:upper:]' '[:lower:]' \
+      | grep -Eo -- '\.env(\.[[:alnum:]_-]+)?')" \
+      || dotenv_normalize_status=$?
+    if [ "$dotenv_normalize_status" -gt 1 ] || [ -z "$candidate" ]; then
+      scan_failed "$dotenv_normalize_status"
+    fi
+    case "$candidate" in
+      .env.example | .env.sample | .env.template | .env.dist | .env.schema | .env.defaults) ;;
+      *) return 0 ;;
+    esac
+  done <<EOF
+$dotenv_candidates
+EOF
+  return 1
+}
+
+readonly SAFE_DOTENV_SEED='^[[:space:]]*(cp|mv)[[:space:]]+\.env\.(example|sample|template|dist|schema|defaults)[[:space:]]+\.env(\.[[:alnum:]_-]+)?[[:space:]]*$'
+
+if matches "$SECRET_READ_VERB"; then
+  if matches "$SSH_PRIVATE_KEY"; then
+    block "reading, copying or transmitting an SSH PRIVATE key. Public keys (.pub), known_hosts and ssh config are unaffected; if you need the fingerprint use \`ssh-keygen -lf <key>.pub\`."
+  fi
+  if matches "$CLOUD_CREDENTIAL"; then
+    block "reading, copying or transmitting a cloud provider credential file. Use the provider CLI's own identity command (\`aws sts get-caller-identity\`, \`gcloud auth list\`) instead of reading the file."
+  fi
+  if matches "$AGENT_CREDENTIAL"; then
+    block "reading, copying or transmitting a coding-agent or package-registry credential store. These tokens impersonate the operator to every service the agent can reach."
+  fi
+  # A public path elsewhere in the command never exempts a private path. The
+  # narrow public-template -> private-destination seed is write-only and remains
+  # allowed; every other command containing a private dotenv path is refused.
+  if has_private_dotenv_path && ! matches "$SAFE_DOTENV_SEED"; then
+    block "reading, copying or transmitting a dotenv file holding real values. \`.env.example\`, \`.env.sample\`, \`.env.template\` and \`.env.dist\` are readable, and WRITING a .env is unaffected — only reading one back is refused."
+  fi
+  # Fail-closed, narrowly. A read whose DIRECTORY is a known credential store
+  # but whose leaf is variable-expanded cannot be classified, and #2980's lesson
+  # is that a guard which cannot classify must refuse rather than permit. Scoped
+  # to credential directories on purpose: refusing every \`cat "\$FILE"\` would be
+  # the over-reach that gets the whole hook switched off.
+  if matches_cs '(\.ssh|\.aws|\.config/gcloud|\.azure|\.kube)/[^[:space:]'"$qc"']*\$'; then
+    block "reading a path inside a credential directory whose filename is variable-expanded, so the guard cannot tell which file it is. Name the file explicitly if it is genuinely not a secret."
+  fi
+fi
+
+# 16. Project-local custom rules. Each non-comment line is an ERE; a match blocks.
+rules_file="${SAFETY_NET_RULES_FILE:-${CLAUDE_PROJECT_DIR:-$PWD}/.claude/safety-net-rules.txt}"
+if [ -f "$rules_file" ]; then
+  # Custom rules can intentionally govern text itself, so preserve their input.
+  custom_command_str="$(printf '%s\n%s' "$custom_command_for_guards" "$followed_text" \
+    | awk '{ if (sub(/\\$/, "")) printf "%s ", $0; else print }')"
+  while IFS= read -r rule || [ -n "$rule" ]; do
+    case "$rule" in
+      '' | '#'*) continue ;;
+    esac
+    # Normalized text, for the same reason every built-in guard uses it: a
+    # project rule must not be evadable by breaking the command across lines.
+    #
+    # `|| rule_status=$?` rather than a bare pipeline: this script runs under
+    # `set -e`, and a no-match grep exits 1, which would end the hook right
+    # here — before the remaining rules ran, and with an exit status that is
+    # not a refusal. The `||` puts the pipeline in a condition context, where
+    # a non-zero status is expected rather than fatal.
+    rule_status=0
+    printf '%s' "$custom_command_str" | grep -Eiq -- "$rule" || rule_status=$?
+    case "$rule_status" in
+      0) block "matched a project custom safety rule (${rules_file##*/}): $rule" ;;
+      1) ;; # no match
+      # grep exits 2 on a malformed ERE. Treated as no-match before, so a typo
+      # in a project's rules file silently disabled that rule — a guard the
+      # project believed it had. Say so instead; still non-fatal, because one
+      # bad line must not take the other rules down with it.
+      *)
+        printf 'parity-safety-net: invalid regex in %s, rule NOT enforced: %s\n' \
+          "$rules_file" "$rule" >&2
+        ;;
+    esac
+  done <"$rules_file"
+fi
+
+exit 0

@@ -1,0 +1,18 @@
+# Intent Routing (load-bearing)
+
+**On the first user message of a session**, before responding to the substance of the request, before running any tool, before asking any clarifying question:
+
+1. **Classify the flow.** One of: Research, Plan, Implement (Build/Fix/Improve/Investigate-Only), Verify, Monitor, Intake, Debrief, or No flow. If a slash command was invoked, the flow is already determined.
+2. **Echo the chosen flow** with a one-sentence justification. Example:
+   > **Flow: Implement/Fix** — bug report with reproduction steps.
+3. **Echo orchestration mode in the same message.** One of:
+   > **Orchestration: agent team** — Research, Plan, Implement, Intake, Debrief, and any flow that invokes Review. (For Intake, the team is created by the per-item lifecycle skill — `lisa-plan` / `lisa-implement` — that Intake dispatches in-session; Intake itself is a thin dispatcher and never creates a team or spawns the lifecycle flow as a subagent.)
+   > **Orchestration: single agent** — Verify (standalone), Monitor (standalone), product-walkthrough standalone, debrief-apply, one-off diagnostic sessions.
+4. **Check the readiness gate.** If gate fails interactively, ask for what's missing with recommended answers; do not start work. Headless/`-p` sessions infer from available context instead of blocking.
+5. **Cascade rule.** You are inside an agent team only if you are yourself a spawned teammate/subagent (spawned into a team context, or reporting to a team lead). In that case do **not** create a second team — add specialists through the existing lead: on Claude, teams are flat, so message the lead with teammate + assignment; on Codex, use `multi_agent_v1.spawn_agent`. A lead session that spawned subagents earlier is still the lead — a lifecycle skill invoked there (including by `lisa-intake`) creates its team normally.
+
+Once a flow is established, **do not re-classify** on later messages, even if a follow-up looks vague ("now run the tests", "thanks"). Subsequent messages inherit the established flow unless the user explicitly changes scope.
+
+Skipping classification or orchestration echo leads to unstructured responses that bypass readiness gates.
+
+Full reference (flow definitions, readiness gates, orchestration matrix, sub-flows): [reference/intent-routing.md](../reference/intent-routing.md).
