@@ -46,6 +46,7 @@ const PRODUCER = [
   "cancellation",
   "cancellation-proof",
   "checkpoint",
+  "checkpoint-codec",
   "classifier-cache",
   "contract",
   "controller-broker",
