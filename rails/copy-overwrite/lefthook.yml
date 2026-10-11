@@ -32,9 +32,9 @@ commit-msg:
 
 pre-push:
   commands:
-    work-item:
+    rails-prepush:
       run: >-
-        node --input-type=module -e 'try { const { main } = await import("./scripts/lisa-rails-prepush.mjs"); process.exitCode = await main(process.argv.slice(1)); } catch { console.error("Managed Rails push tooling is unavailable or damaged. Run full Lisa apply and retry; raw bootstrap errors are withheld."); process.exitCode = 1; }' {1}
+        node --input-type=module -e 'try { const { main } = await import("./scripts/lisa-rails-prepush.mjs"); const rc = await main(process.argv.slice(1)); if (rc !== 0) console.error(`Rails pre-push refused (exit ${rc}). Retry the same git push command and inspect rails-prepush output for scanner and work-item details.`); process.exitCode = rc; } catch { console.error("Managed Rails push tooling is unavailable or damaged. Run full Lisa apply and retry; raw bootstrap errors are withheld."); process.exitCode = 1; }' {1}
       use_stdin: true
     rspec:
       # One supervisor boundary: run-scoped scratch, an outside cleanup

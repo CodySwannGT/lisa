@@ -33,7 +33,7 @@ const input = `(delete) ${zero} refs/heads/fixture ${"a".repeat(40)}\n`;
 const hook = load(
   readFileSync(join(root, "rails/copy-overwrite/lefthook.yml"), "utf8")
 ) as {
-  "pre-push": { commands: { "work-item": { run: string } } };
+  "pre-push": { commands: { "rails-prepush": { run: string } } };
 };
 /**
  * Run the emitted hook bootstrap with its original stdin and remote argument.
@@ -46,7 +46,7 @@ const runHook = (cwd: string) =>
     command: "bash",
     args: [
       "-c",
-      hook["pre-push"].commands["work-item"].run.replace("{1}", "origin"),
+      hook["pre-push"].commands["rails-prepush"].run.replace("{1}", "origin"),
     ],
     cwd,
     input,
