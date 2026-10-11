@@ -475,3 +475,6 @@ INCLUDE - lisa-bug-fixer - Own the bounded preload import repair: separate canon
 ## Required lifecycle-test clock correction — 2026-10-11
 
 Reuse the existing included builder and independent reviewer; no new team or claim. The builder's ownership is extended only to `tests/unit/core/plugin-command-lifecycle.test.ts` for the bounded test-clock correction in the plan. Root retains plan/roster, generated artifacts, normal hooks and delivery ownership. The independent reviewer retains quality, conformance and native evidence responsibility. Runtime code, original command budgets, real subprocess behavior, outcome assertions and cleanup requirements remain unchanged.
+## Required worker-cap test isolation — 2026-10-11
+
+Reuse the existing builder for only `tests/unit/config/vitest-worker-cap.test.ts`: inject the existing fleet-discovery parameter so the stated lone-run unit inputs are complete. Reuse the different reviewer for source and actual native proof. Root retains metadata, generation and delivery. No production worker cap or execution concurrency changes are authorized by this test repair.
