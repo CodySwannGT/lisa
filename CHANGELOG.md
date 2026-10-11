@@ -2,6 +2,40 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.74.7](https://github.com/CodySwannGT/lisa/compare/v4.74.6...v4.74.7) (2026-10-11)
+
+
+### Bug Fixes
+
+* refresh authenticated scanner helper closure ([6fd80f9](https://github.com/CodySwannGT/lisa/commit/6fd80f9641dacefab3498c9ab0f51dfd5d3e4f8f)), closes [CodySwannGT/lisa#4412](https://github.com/CodySwannGT/lisa/issues/4412)
+* select the first qualified Gitleaks on PATH ([1337a7e](https://github.com/CodySwannGT/lisa/commit/1337a7ef2d4f065686c92a8776086a3b585ddb1a)), closes [CodySwannGT/lisa#4412](https://github.com/CodySwannGT/lisa/issues/4412)
+
+### [4.74.6](https://github.com/CodySwannGT/lisa/compare/v4.74.5...v4.74.6) (2026-10-11)
+
+
+### Bug Fixes
+
+* **rulesets:** keep a live bypass_mode and name every mode change ([0fea5d6](https://github.com/CodySwannGT/lisa/commit/0fea5d60414c0546d0cf538f97416eca4302c79a))
+* **rulesets:** preserve live bypass actors unless config declares them ([15424db](https://github.com/CodySwannGT/lisa/commit/15424db015f4817374b24a263bbc835c06201ee0))
+* **rulesets:** refuse malformed bypass declarations and default bypass_mode ([c49ea5d](https://github.com/CodySwannGT/lisa/commit/c49ea5dfe1ca79599e81c6d6f992ad626df6b9db)), closes [#4422](https://github.com/CodySwannGT/lisa/issues/4422)
+* **rulesets:** validate declared actor_id and bypass_mode locally ([1c52a4e](https://github.com/CodySwannGT/lisa/commit/1c52a4ea92c2aa3dea01ba5aa5005c1cb8ef90ed)), closes [#4422](https://github.com/CodySwannGT/lisa/issues/4422)
+
+### [4.74.5](https://github.com/CodySwannGT/lisa/compare/v4.74.4...v4.74.5) (2026-10-11)
+
+
+### Bug Fixes
+
+* **install:** preserve lifecycle context and metadata negotiation ([f02d81e](https://github.com/CodySwannGT/lisa/commit/f02d81e2aaa7e1912d055a833ad79fe08948829e)), closes [CodySwannGT/lisa#4347](https://github.com/CodySwannGT/lisa/issues/4347)
+* **npm-updater:** retain safe diagnostics for failed push hooks ([a51004e](https://github.com/CodySwannGT/lisa/commit/a51004e7972613b2b552cd0ceebc82de2268158d)), closes [CodySwannGT/lisa#4347](https://github.com/CodySwannGT/lisa/issues/4347)
+* **npm-updater:** simplify bounded hook report parsing ([afb91f6](https://github.com/CodySwannGT/lisa/commit/afb91f6ea6f61c2cf359bcc5692dc068ab5208ed)), closes [CodySwannGT/lisa#4347](https://github.com/CodySwannGT/lisa/issues/4347)
+
+### [4.74.4](https://github.com/CodySwannGT/lisa/compare/v4.74.3...v4.74.4) (2026-10-11)
+
+
+### Bug Fixes
+
+* verify nightly run discovery before scoring ([5e138f2](https://github.com/CodySwannGT/lisa/commit/5e138f2f9e9c5abf86136bb58b2a0be172b29732)), closes [CodySwannGT/lisa#4319](https://github.com/CodySwannGT/lisa/issues/4319)
+
 ### [4.74.3](https://github.com/CodySwannGT/lisa/compare/v4.74.2...v4.74.3) (2026-10-10)
 
 

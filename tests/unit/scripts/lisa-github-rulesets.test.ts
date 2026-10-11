@@ -135,9 +135,17 @@ function createLisaInstall(): { scriptPath: string; root: string } {
   return { scriptPath, root };
 }
 
+/** One ruleset bypass actor, as GitHub stores it. */
+type BypassActor = {
+  readonly actor_id: number | null;
+  readonly actor_type: string;
+  readonly bypass_mode: string;
+};
+
 /** One captured `gh api` ruleset payload, projected to what the tests read. */
 type RulesetPayload = {
   readonly name?: string;
+  readonly bypass_actors?: readonly BypassActor[];
   readonly rules?: readonly {
     readonly type?: string;
     readonly parameters?: {
@@ -805,6 +813,379 @@ describe("lisa-github-rulesets.sh", () => {
         rmSync(ghBin, { recursive: true, force: true });
         rmSync(lisaInstall.root, { recursive: true, force: true });
       }
+    });
+  });
+
+  // #4297: the applier REPLACED a ruleset's bypass list with the template's,
+  // so an admin bypass a consumer added on purpose to `nightly e2e health`
+  // was deleted by every apply, and no config key could keep it. Bypass
+  // actors now follow the required-check contract: live entries are preserved
+  // by default, a declared list is authoritative, and every removal is named.
+  describe("bypass actors", () => {
+    const NIGHTLY_RULESET = "nightly e2e health";
+    const DEPLOY_KEY: BypassActor = {
+      actor_id: null,
+      actor_type: "DeployKey",
+      bypass_mode: "always",
+    };
+    const ADMIN_ROLE: BypassActor = {
+      actor_id: 5,
+      actor_type: "RepositoryRole",
+      bypass_mode: "always",
+    };
+    const INTEGRATION: BypassActor = {
+      actor_id: 98_765,
+      actor_type: "Integration",
+      bypass_mode: "pull_request",
+    };
+    const NIGHTLY_RULES = [
+      {
+        type: "required_status_checks",
+        parameters: {
+          strict_required_status_checks_policy: false,
+          do_not_enforce_on_create: true,
+          required_status_checks: [
+            {
+              context: "🌙 Nightly E2E Health / 🌙 Gate",
+              integration_id: 15_368,
+            },
+          ],
+        },
+      },
+    ];
+
+    /**
+     * Runs the script against one live ruleset and captures its update.
+     *
+     * @param options Scenario inputs.
+     * @param options.live The live ruleset GitHub returns for id 7.
+     * @param options.liveName The name the ruleset list reports for id 7.
+     * @param options.config The `.lisa.config.json` contents, if any.
+     * @param options.dryRun Whether to pass `--dry-run`.
+     * @param options.expectedStatus The exit status the run must end with.
+     * @returns The update payload sent (if any) and the script stdout.
+     */
+    function applyAgainst(options: {
+      readonly live: Record<string, unknown>;
+      readonly liveName: string;
+      readonly config?: unknown;
+      readonly dryRun?: boolean;
+      readonly expectedStatus?: number;
+    }): {
+      updated: RulesetPayload | undefined;
+      stdout: string;
+      stderr: string;
+    } {
+      const projectDir = createProject();
+      const captureDir = mkdtempSync(path.join(tmpdir(), "lisa-gh-bypass-"));
+      const lisaInstall = createLisaInstall();
+      const ghBin = createUpdatingGhBin(
+        captureDir,
+        options.live as RulesetPayload,
+        options.liveName
+      );
+      const rulesetDir = path.join(
+        lisaInstall.root,
+        "typescript",
+        "github-rulesets"
+      );
+
+      mkdirSync(path.join(projectDir, ".github", "workflows"), {
+        recursive: true,
+      });
+      rmSync(path.join(rulesetDir, "extra.json"));
+      writeFileSync(
+        path.join(rulesetDir, "nightly-e2e-health.json"),
+        JSON.stringify({
+          name: NIGHTLY_RULESET,
+          target: "branch",
+          enforcement: ACTIVE_ENFORCEMENT,
+          bypass_actors: [DEPLOY_KEY],
+          rules: NIGHTLY_RULES,
+        })
+      );
+      if (options.config !== undefined) {
+        writeFileSync(
+          path.join(projectDir, ".lisa.config.json"),
+          JSON.stringify(options.config)
+        );
+      }
+
+      try {
+        const result = runRulesetScript(
+          lisaInstall.scriptPath,
+          [options.dryRun === true ? "--dry-run" : "--yes", projectDir],
+          ghBin
+        );
+        expect(result.status).toBe(options.expectedStatus ?? 0);
+        const captured = readdirSync(captureDir);
+        return {
+          updated: captured.includes("updated.json")
+            ? (JSON.parse(
+                readFileSync(path.join(captureDir, "updated.json"), "utf8")
+              ) as RulesetPayload)
+            : undefined,
+          stdout: result.stdout as string,
+          stderr: result.stderr as string,
+        };
+      } finally {
+        rmSync(projectDir, { recursive: true, force: true });
+        rmSync(captureDir, { recursive: true, force: true });
+        rmSync(ghBin, { recursive: true, force: true });
+        rmSync(lisaInstall.root, { recursive: true, force: true });
+      }
+    }
+
+    /**
+     * Builds the live `nightly e2e health` ruleset with the given bypass list.
+     *
+     * @param bypassActors The live bypass actors.
+     * @returns A live ruleset document.
+     */
+    function liveNightly(
+      bypassActors: readonly BypassActor[]
+    ): Record<string, unknown> {
+      return {
+        name: NIGHTLY_RULESET,
+        target: "branch",
+        enforcement: ACTIVE_ENFORCEMENT,
+        bypass_actors: bypassActors,
+        rules: NIGHTLY_RULES,
+      };
+    }
+
+    it("keeps a live admin bypass the template does not name", () => {
+      const { stdout, updated } = applyAgainst({
+        live: liveNightly([DEPLOY_KEY, ADMIN_ROLE]),
+        liveName: NIGHTLY_RULESET,
+      });
+
+      // Nothing to change: the preserved list already matches the live one,
+      // so the apply must not even send a write that could drop the admin.
+      expect(updated).toBeUndefined();
+      expect(stdout).toContain(
+        `Ruleset '${NIGHTLY_RULESET}' already matches the template — nothing to do`
+      );
+      expect(stdout).not.toContain("bypass actor removed");
+    });
+
+    // Narrowing a bypass is as deliberate as adding one. Taking the template's
+    // `always` here would widen it back while printing no change at all.
+    it("keeps a live bypass_mode the template would widen", () => {
+      const narrowed: BypassActor = {
+        ...DEPLOY_KEY,
+        bypass_mode: "pull_request",
+      };
+      const { stdout, updated } = applyAgainst({
+        live: liveNightly([narrowed]),
+        liveName: NIGHTLY_RULESET,
+      });
+
+      expect(updated).toBeUndefined();
+      expect(stdout).toContain("nothing to do");
+    });
+
+    it("names a bypass_mode change a declared list makes", () => {
+      const { stdout, updated } = applyAgainst({
+        live: liveNightly([DEPLOY_KEY]),
+        liveName: NIGHTLY_RULESET,
+        config: {
+          github: {
+            rulesets: {
+              bypassActors: {
+                [NIGHTLY_RULESET]: [
+                  { ...DEPLOY_KEY, bypass_mode: "pull_request" },
+                ],
+              },
+            },
+          },
+        },
+      });
+
+      expect(updated?.bypass_actors).toEqual([
+        { ...DEPLOY_KEY, bypass_mode: "pull_request" },
+      ]);
+      expect(stdout).toContain(
+        "~ bypass actor mode changed: DeployKey (always -> pull_request)"
+      );
+    });
+
+    it("carries a live-only bypass actor into an update the template forces", () => {
+      const { stdout, updated } = applyAgainst({
+        live: liveNightly([ADMIN_ROLE]),
+        liveName: NIGHTLY_RULESET,
+      });
+
+      expect(updated?.bypass_actors).toEqual([ADMIN_ROLE, DEPLOY_KEY]);
+      expect(stdout).toContain("+ bypass actor added: DeployKey");
+      expect(stdout).not.toContain("bypass actor removed");
+    });
+
+    it("lets a declared list remove a live bypass actor, and names the removal", () => {
+      const { stdout, updated } = applyAgainst({
+        live: liveNightly([DEPLOY_KEY, ADMIN_ROLE]),
+        liveName: NIGHTLY_RULESET,
+        config: {
+          github: {
+            rulesets: { bypassActors: { [NIGHTLY_RULESET]: [DEPLOY_KEY] } },
+          },
+        },
+      });
+
+      expect(updated?.bypass_actors).toEqual([DEPLOY_KEY]);
+      expect(stdout).toContain(
+        "- bypass actor removed: RepositoryRole 5 (always)"
+      );
+    });
+
+    it("lets a declared list add a bypass actor the template does not ship", () => {
+      const { stdout, updated } = applyAgainst({
+        live: liveNightly([DEPLOY_KEY]),
+        liveName: NIGHTLY_RULESET,
+        config: {
+          github: {
+            rulesets: {
+              bypassActors: { [NIGHTLY_RULESET]: [DEPLOY_KEY, INTEGRATION] },
+            },
+          },
+        },
+      });
+
+      expect(updated?.bypass_actors).toEqual([DEPLOY_KEY, INTEGRATION]);
+      expect(stdout).toContain(
+        "+ bypass actor added: Integration 98765 (pull_request)"
+      );
+    });
+
+    // A declaration that is not a list is an operator mistake. Reading it as
+    // "nothing declared" would quietly preserve the very actors the operator
+    // tried to remove, and the run would still report success.
+    it("refuses a bypass declaration that is not a list, and sends nothing", () => {
+      const { stderr, updated } = applyAgainst({
+        live: liveNightly([DEPLOY_KEY, ADMIN_ROLE]),
+        liveName: NIGHTLY_RULESET,
+        config: {
+          github: {
+            rulesets: { bypassActors: { [NIGHTLY_RULESET]: DEPLOY_KEY } },
+          },
+        },
+        expectedStatus: 1,
+      });
+
+      expect(updated).toBeUndefined();
+      expect(stderr).toContain(
+        `github.rulesets.bypassActors["${NIGHTLY_RULESET}"] must be a list`
+      );
+    });
+
+    // GitHub defaults an omitted bypass_mode to `always`, so a declaration
+    // that leaves it out changes nothing and must not be reported as a change.
+    // GitHub would reject these remotely, after the run had already started
+    // writing; a local refusal names the declaration instead.
+    it.each([
+      [
+        "a non-integer actor_id",
+        { actor_type: "RepositoryRole", actor_id: "5", bypass_mode: "always" },
+        "actor_id that is neither an integer nor null",
+      ],
+      [
+        "an unsupported bypass_mode",
+        { ...DEPLOY_KEY, bypass_mode: "sometimes" },
+        "bypass_mode other than always, pull_request or exempt",
+      ],
+    ])("refuses a declared actor with %s", (_label, actor, message) => {
+      const { stderr, updated } = applyAgainst({
+        live: liveNightly([DEPLOY_KEY]),
+        liveName: NIGHTLY_RULESET,
+        config: {
+          github: {
+            rulesets: { bypassActors: { [NIGHTLY_RULESET]: [actor] } },
+          },
+        },
+        expectedStatus: 1,
+      });
+
+      expect(updated).toBeUndefined();
+      expect(stderr).toContain(message);
+    });
+
+    it("accepts the exempt bypass_mode", () => {
+      const exempt = { ...DEPLOY_KEY, bypass_mode: "exempt" };
+      const { updated } = applyAgainst({
+        live: liveNightly([DEPLOY_KEY]),
+        liveName: NIGHTLY_RULESET,
+        config: {
+          github: {
+            rulesets: { bypassActors: { [NIGHTLY_RULESET]: [exempt] } },
+          },
+        },
+      });
+
+      expect(updated?.bypass_actors).toEqual([exempt]);
+    });
+
+    it("defaults an omitted declared bypass_mode to always", () => {
+      const { stdout, updated } = applyAgainst({
+        live: liveNightly([DEPLOY_KEY, ADMIN_ROLE]),
+        liveName: NIGHTLY_RULESET,
+        config: {
+          github: {
+            rulesets: {
+              bypassActors: {
+                [NIGHTLY_RULESET]: [
+                  { actor_type: "DeployKey", actor_id: null },
+                ],
+              },
+            },
+          },
+        },
+      });
+
+      expect(updated?.bypass_actors).toEqual([DEPLOY_KEY]);
+      expect(stdout).not.toContain("mode changed");
+      expect(stdout).toContain(
+        "- bypass actor removed: RepositoryRole 5 (always)"
+      );
+    });
+
+    it("names a bypass removal on a dry run and sends nothing", () => {
+      const { stdout, updated } = applyAgainst({
+        live: liveNightly([DEPLOY_KEY, ADMIN_ROLE]),
+        liveName: NIGHTLY_RULESET,
+        config: {
+          github: { rulesets: { bypassActors: { [NIGHTLY_RULESET]: [] } } },
+        },
+        dryRun: true,
+      });
+
+      expect(updated).toBeUndefined();
+      expect(stdout).toContain("- bypass actor removed: DeployKey (always)");
+      expect(stdout).toContain(
+        "- bypass actor removed: RepositoryRole 5 (always)"
+      );
+    });
+
+    it("keeps a live-only bypass actor on the generated base ruleset", () => {
+      const { updated } = applyAgainst({
+        live: { name: "base", bypass_actors: [INTEGRATION], rules: [] },
+        liveName: "base",
+      });
+
+      expect(updated?.bypass_actors).toContainEqual(INTEGRATION);
+      expect(updated?.bypass_actors).toContainEqual(ADMIN_ROLE);
+    });
+
+    it("treats policy.ruleset.bypass_actors as base's declared list", () => {
+      const { stdout, updated } = applyAgainst({
+        live: { name: "base", bypass_actors: [INTEGRATION], rules: [] },
+        liveName: "base",
+        config: { policy: { ruleset: { bypass_actors: [DEPLOY_KEY] } } },
+      });
+
+      expect(updated?.bypass_actors).toEqual([DEPLOY_KEY]);
+      expect(stdout).toContain(
+        "- bypass actor removed: Integration 98765 (pull_request)"
+      );
     });
   });
 

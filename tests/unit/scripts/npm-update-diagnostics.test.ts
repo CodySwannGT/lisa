@@ -41,6 +41,128 @@ async function projectedHost(action: () => Promise<void>) {
 }
 
 describe("closed updater failure diagnostics", () => {
+  it.each(["audit", "destination"] as const)(
+    "retains only child-reported closed hook facts from a real failed %s invocation",
+    async role => {
+      await withPrivateRoot(async (root, env) => {
+        const output = `\u001b[31m❌ behavior-contract (0.2 seconds)\u001b[0m\n✔️ rspec (1 second)\n715 examples, 1 failure\n${CANARY}\n`;
+        const error = await invariants
+          .withStage("gate-push", () =>
+            runProcess(
+              process.execPath,
+              [
+                "-e",
+                `process.stdout.write(${JSON.stringify(output)});process.exitCode=1;`,
+              ],
+              { cwd: root, env, failureRole: role }
+            )
+          )
+          .catch(value => value);
+        expect(error.code).toBe(1);
+        expect(error.nativeCompleted).toBe(true);
+        for (const name of ["stdout", "stderr", "message", "stack"])
+          Object.defineProperty(error, name, {
+            get() {
+              throw new Error(CANARY);
+            },
+          });
+        const diagnostic = invariants.publicFailure(error);
+        expect(diagnostic).toContain(
+          `stage=gate-push native=exit status=1 role=${role}`
+        );
+        expect(diagnostic).toContain("hook-reports=behavior-contract");
+        expect(diagnostic).toContain("rspec-examples=715 rspec-failures=1");
+        expect(diagnostic).toContain("reports=child-reported-nonauthoritative");
+        expect(diagnostic).not.toContain(CANARY);
+        expect(diagnostic).not.toContain("hook-reports=rspec");
+        expect(diagnostic).not.toContain(root);
+      });
+    }
+  );
+
+  it("retains exact duration grammar and the duration-free footer", async () => {
+    await withPrivateRoot(async (root, env) => {
+      const output =
+        "❌ rspec\n❌ behavior-contract (9999.999 seconds)\n❌ rubocop (1 second)\n❌ reek (1 s)\n";
+      const error = await runProcess(
+        process.execPath,
+        [
+          "-e",
+          `process.stdout.write(${JSON.stringify(output)});process.exitCode=1;`,
+        ],
+        { cwd: root, env, failureRole: "audit" }
+      ).catch(value => value);
+      expect(invariants.publicFailure(error)).toContain(
+        "hook-reports=behavior-contract,reek,rspec,rubocop"
+      );
+    });
+  });
+
+  it.each([
+    `┃ rspec ❯\n${CANARY}`,
+    `❌ invented-check (1 second)\n${CANARY}`,
+    `❌ rspec (1 second) ${CANARY}\n`,
+    "❌ rspec (10000 seconds)\n",
+    "❌ rspec (1.0000 seconds)\n",
+    "❌ rspec (1..2 seconds)\n",
+    "❌ rspec (.2 seconds)\n",
+    "❌ rspec (1 secondsx)\n",
+    "1000000 examples, 1 failure\n",
+    "715 examples, 999 failures\n",
+    "10 examples, 1 failure\n11 examples, 2 failures\n",
+    `spec/../../secret_spec.rb:10\n${CANARY}\n`,
+  ])(
+    "keeps unknown or malformed child reports unclassified: %s",
+    async output => {
+      await withPrivateRoot(async (root, env) => {
+        const error = await runProcess(
+          process.execPath,
+          [
+            "-e",
+            `process.stderr.write(${JSON.stringify(output)});process.exitCode=1;`,
+          ],
+          { cwd: root, env, failureRole: "audit" }
+        ).catch(value => value);
+        const diagnostic = invariants.publicFailure(error);
+        expect(diagnostic).toContain("native=exit status=1 role=audit");
+        expect(diagnostic).toContain("hook-reports=unclassified");
+        expect(diagnostic).not.toContain("rspec-examples=");
+        expect(diagnostic).not.toContain(CANARY);
+        expect(diagnostic).not.toContain("secret_spec");
+      });
+    }
+  );
+
+  it("never classifies forged exception properties as captured native hook facts", () => {
+    const error = Object.assign(new Error(CANARY), {
+      code: 1,
+      failureRole: "audit",
+      stdout: Buffer.from("❌ rspec (1 second)\n10 examples, 1 failure\n"),
+    });
+    expect(invariants.publicFailure(error)).not.toContain("role=");
+    expect(invariants.publicFailure(error)).not.toContain("hook-reports=");
+    expect(invariants.publicFailure(error)).not.toContain("rspec-examples=");
+  });
+
+  it("keeps passing RSpec counts separate from an explicitly failed different hook", async () => {
+    await withPrivateRoot(async (root, env) => {
+      const error = await runProcess(
+        process.execPath,
+        [
+          "-e",
+          'process.stdout.write("❌ behavior-contract (1 second)\\n715 examples, 0 failures\\n");process.exitCode=1;',
+        ],
+        { cwd: root, env, failureRole: "destination" }
+      ).catch(value => value);
+      expect(invariants.publicFailure(error)).toContain(
+        "hook-reports=behavior-contract"
+      );
+      expect(invariants.publicFailure(error)).toContain(
+        "rspec-examples=715 rspec-failures=0"
+      );
+    });
+  });
+
   it("keeps the original synchronous provenance error and innermost fixed phase without reading hostile properties", () => {
     const error = Object.freeze(new Error(CANARY));
     expect(() =>

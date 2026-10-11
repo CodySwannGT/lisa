@@ -254,6 +254,9 @@ async function pushProposal(context, env, branch, object) {
         input: refs,
         timeout: remainingGateTime(deadline),
         maximum: 8_388_608,
+        failureRole: refs.includes(` ${proposal.parent}\n`)
+          ? "audit"
+          : "destination",
       })
   );
   required(

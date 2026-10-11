@@ -219,6 +219,7 @@ console.log(qualifyScanner());`,
         join(h.emitted, "scripts/lib/history-secret-scanner.mjs")
       ),
       observations,
+      packageObservations: h.observations,
       redaction: true,
       cleanup: "owned scratch removed on exit",
     })
