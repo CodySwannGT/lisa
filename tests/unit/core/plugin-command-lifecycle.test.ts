@@ -7,6 +7,66 @@ import { runPluginCommand } from "../../../src/core/plugin-command.js";
 import { ioLatencyBudgetMs } from "../../helpers/io-latency-budget.js";
 import { cleanupTempDir, createTempDir } from "../../helpers/test-utils.js";
 
+/**
+ * Observe a real child completion without advancing its command clock.
+ * @param mode - Existing success or failure fixture mode
+ * @param cwd - This test's owned command directory
+ * @param checkOutcome - Original assertion against the actual command outcome
+ */
+async function completedCommand(
+  mode: string,
+  cwd: string,
+  checkOutcome: (outcome: ReturnType<typeof runPluginCommand>) => Promise<void>
+) {
+  const realTimers = {
+    setTimeout: globalThis.setTimeout,
+    clearTimeout: globalThis.clearTimeout,
+  };
+  const realSetTimeout = realTimers.setTimeout.bind(globalThis);
+  vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+  try {
+    const clear = vi.spyOn(globalThis, "clearTimeout");
+    const timers = vi.spyOn(globalThis, "setTimeout");
+    const outcome = runPluginCommand([mode], { cwd, timeoutMs: 2000 });
+    const settled = { value: false };
+    void outcome.then(
+      () => {
+        settled.value = true;
+      },
+      () => {
+        settled.value = true;
+      }
+    );
+    try {
+      const readinessDeadline = Date.now() + ioLatencyBudgetMs(5000);
+      while (!settled.value && Date.now() < readinessDeadline) {
+        await new Promise(resolve => realSetTimeout(resolve, 25));
+      }
+      expect(settled.value).toBe(true);
+      await checkOutcome(outcome);
+      expect(clear).toHaveBeenCalledWith(timers.mock.results[0]?.value);
+      expect(clear).toHaveBeenCalledWith(undefined);
+    } finally {
+      // Only this invocation's deadline and grace callbacks can remain pending.
+      try {
+        try {
+          if (!settled.value) await vi.advanceTimersByTimeAsync(4000);
+        } finally {
+          await outcome.catch(() => undefined);
+        }
+      } finally {
+        // Clear the restore registry before real timers return; a later
+        // restoreAllMocks must not reinstall these old fake timer functions.
+        vi.restoreAllMocks();
+      }
+    }
+  } finally {
+    vi.useRealTimers();
+    expect(globalThis.setTimeout).toBe(realTimers.setTimeout);
+    expect(globalThis.clearTimeout).toBe(realTimers.clearTimeout);
+  }
+}
+
 describe("plugin command lifecycle", () => {
   let root: string;
   beforeEach(async () => {
@@ -31,14 +91,14 @@ describe("plugin command lifecycle", () => {
   });
 
   it("closes input and observes a successful command", async () => {
-    await expect(
-      runPluginCommand(["success"], { cwd: root, timeoutMs: 2000 })
-    ).resolves.toEqual({ stdout: "input-closed\n" });
+    await completedCommand("success", root, async outcome => {
+      await expect(outcome).resolves.toEqual({ stdout: "input-closed\n" });
+    });
   });
   it("reports an actual nonzero exit", async () => {
-    await expect(
-      runPluginCommand(["failure"], { cwd: root, timeoutMs: 2000 })
-    ).rejects.toThrow("exited 7");
+    await completedCommand("failure", root, async outcome => {
+      await expect(outcome).rejects.toThrow("exited 7");
+    });
   });
   it.each(["success", "failure"])(
     "settles %s after an ordinary final cleanup permission error and clears both timers",
@@ -51,26 +111,11 @@ describe("plugin command lifecycle", () => {
           });
         return kill(pid, signal);
       });
-      const clear = vi.spyOn(globalThis, "clearTimeout");
-      const timers = vi.spyOn(globalThis, "setTimeout");
-      const outcome = runPluginCommand([mode], { cwd: root, timeoutMs: 2000 });
-      const settled = { value: false };
-      void outcome.then(
-        () => {
-          settled.value = true;
-        },
-        () => {
-          settled.value = true;
-        }
-      );
-      await expect
-        .poll(() => settled.value, { timeout: ioLatencyBudgetMs(5000) })
-        .toBe(true);
-      await expect(outcome).rejects.toThrow(
-        mode === "failure" ? "exited 7" : "ordinary cleanup permission error"
-      );
-      expect(clear).toHaveBeenCalledWith(timers.mock.results[0]?.value);
-      expect(clear).toHaveBeenCalledWith(undefined);
+      await completedCommand(mode, root, async outcome => {
+        await expect(outcome).rejects.toThrow(
+          mode === "failure" ? "exited 7" : "ordinary cleanup permission error"
+        );
+      });
     }
   );
   it("refuses an exhausted operation budget before starting another command", async () => {

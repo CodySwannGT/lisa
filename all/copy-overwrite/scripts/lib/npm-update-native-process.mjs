@@ -53,7 +53,7 @@ function startSupervised(command, args, timeout, cwd, env) {
  * @param {string[]} args Original argument vector.
  * @param {{cwd?: string, env?: NodeJS.ProcessEnv, input?: string | Buffer,
  * timeout?: number, allowed?: number[], maximum?: number,
- * signal?: AbortSignal}} [options] Bounded execution.
+ * signal?: AbortSignal, failureRole?: "audit" | "destination"}} [options] Bounded execution.
  * @returns {Promise<{code: number, stdout: Buffer, stderr: Buffer}>} Actual child result.
  */
 export function runProcess(
@@ -67,6 +67,7 @@ export function runProcess(
     allowed = [0],
     maximum = 3_145_728,
     signal: abortSignal,
+    failureRole,
   } = {}
 ) {
   required(
@@ -82,6 +83,12 @@ export function runProcess(
     "invalid child cancellation signal"
   );
   required(!abortSignal?.aborted, "child was cancelled before execution");
+  required(
+    failureRole === undefined ||
+      failureRole === "audit" ||
+      failureRole === "destination",
+    "invalid native diagnostic role"
+  );
   return new Promise((resolve, reject) => {
     const child = startSupervised(command, args, timeout, cwd, env);
     captureProcess(child, {
@@ -91,6 +98,7 @@ export function runProcess(
       allowed,
       maximum,
       abortSignal,
+      failureRole,
     }).then(resolve, reject);
   });
 }
@@ -106,11 +114,22 @@ function observedFailure(error, observation) {
     category,
     signal,
     errno,
+    failureRole,
   } = observation;
   const stderr = Buffer.concat(errors);
-  recordNativeFailure(error, category, code, signal, errno, stderr);
+  const stdout = Buffer.concat(chunks);
+  recordNativeFailure(
+    error,
+    category,
+    code,
+    signal,
+    errno,
+    stderr,
+    stdout,
+    failureRole
+  );
   return Object.assign(error, {
-    stdout: Buffer.concat(chunks),
+    stdout,
     stderr,
     command,
     code,
@@ -121,7 +140,7 @@ function observedFailure(error, observation) {
 /** Native close, not cancellation delivery, completes an owned child. */
 function captureProcess(
   child,
-  { command, input, timeout, allowed, maximum, abortSignal }
+  { command, input, timeout, allowed, maximum, abortSignal, failureRole }
 ) {
   return new Promise((resolveResult, reject) => {
     const chunks = [];
@@ -178,6 +197,7 @@ function captureProcess(
             category: category ?? (signal ? "signal" : "exit"),
             signal,
             errno,
+            failureRole,
           })
         );
         return;

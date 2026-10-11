@@ -40,6 +40,7 @@ const CODEX_PLUGIN_ADD = "codex plugin add";
 const CODEX_REMOVE_LISA = "codex plugin remove lisa@lisa";
 const CODEX_MARKETPLACE_ADD = "codex plugin marketplace add";
 const PACKAGE_JSON_FILE = "package.json";
+const LISA_CONFIG_FILE = ".lisa.config.json";
 const LISA_PACKAGE_NAME = "@codyswann/lisa";
 const CLAUDE_INSTALL_BASE = "claude plugin install lisa@lisa --scope project";
 const CLAUDE_DIR = ".claude";
@@ -89,7 +90,7 @@ async function writeSelfProject(root: string): Promise<void> {
     "utf8"
   );
   await writeFile(
-    path.join(root, ".lisa.config.json"),
+    path.join(root, LISA_CONFIG_FILE),
     `${JSON.stringify({ harness: "fleet" }, null, 2)}\n`,
     "utf8"
   );
@@ -123,7 +124,7 @@ async function writeDownstreamProject(root: string): Promise<void> {
     "utf8"
   );
   await writeFile(
-    path.join(root, ".lisa.config.json"),
+    path.join(root, LISA_CONFIG_FILE),
     `${JSON.stringify({ harness: "fleet" }, null, 2)}\n`,
     "utf8"
   );
@@ -348,6 +349,70 @@ afterAll(() => {
 });
 
 describe("install-claude-plugins self postinstall path", () => {
+  it.each(["bun/1.3.8", "bun/1.3.11"])(
+    "marks the declared package setup command as postinstall with inherited %s selectors",
+    async userAgent => {
+      const root = await makeTempRoot();
+      const fakeBin = path.join(root, "bin");
+      const commandLog = path.join(root, COMMAND_LOG);
+      await writeDownstreamProject(root);
+      const installedScript = await writeInstalledLisaScript(root);
+      await writeFakeAgentBins(fakeBin);
+      await writeFile(commandLog, "");
+      await mkdir(path.join(root, CLAUDE_DIR), { recursive: true });
+      await mkdir(path.join(root, ".lisa"));
+      const settingsPath = path.join(root, CLAUDE_DIR, SETTINGS_FILE_NAME);
+      const receiptPath = path.join(root, ".lisa", "apply-receipt.json");
+      await writeFile(settingsPath, '{"customSetting":"preserve me"}\n');
+      await writeFile(receiptPath, '{"evidence":"preserve me"}\n');
+      const preservedFiles = [
+        path.join(root, PACKAGE_JSON_FILE),
+        path.join(root, LISA_CONFIG_FILE),
+        settingsPath,
+        receiptPath,
+      ];
+      const before = await Promise.all(
+        preservedFiles.map(file => readFile(file))
+      );
+      const manifest = JSON.parse(
+        await readFile(path.join(REPO_ROOT, PACKAGE_JSON_FILE), "utf8")
+      );
+      const setupCommand: string =
+        manifest.scripts.postinstall.split(" || true;")[0];
+      expect(setupCommand).toContain(
+        "bash ./scripts/install-claude-plugins.sh"
+      );
+      const invocation = path.join(root, "lifecycle-command.sh");
+      await writeExecutable(
+        invocation,
+        `#!/usr/bin/env bash\n${setupCommand}\n`
+      );
+      const result = await runBoundedBash(invocation, {
+        cwd: path.dirname(path.dirname(installedScript)),
+        env: {
+          ...process.env,
+          HOME: root,
+          CI: "",
+          CODEX_THREAD_ID: "",
+          CLAUDE_CODE_REMOTE: "",
+          npm_lifecycle_event: "lisa-test-run",
+          npm_config_user_agent: userAgent,
+          LISA_BOOTSTRAP: "1",
+          LISA_TEST_COMMAND_LOG: commandLog,
+          PATH: `${fakeBin}${path.delimiter}${process.env.PATH ?? ""}`,
+        },
+      });
+      expect(await readFile(commandLog, "utf8")).toBe("");
+      expect(
+        await Promise.all(preservedFiles.map(file => readFile(file)))
+      ).toEqual(before);
+      expect(result.stdout).toContain(
+        "installation leaves project templates unchanged"
+      );
+      expect(result.stdout).toContain("lisa apply");
+    }
+  );
+
   it.each([
     ["self", "npm"],
     ["consumer", "npm"],

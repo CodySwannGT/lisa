@@ -2,7 +2,7 @@
  * Tests for the Vitest worker-pool cap every stack inherits.
  *
  * Vitest sizes its pool to the machine, not to what else is running on it, so
- * *k* concurrent agents claimed *k* × cores. Measured on one 18-core
+ * k concurrent agents claimed k × cores. Measured on one 18-core
  * workstation: `load1` 378, 38 live vitest processes, and gates that stopped
  * returning verdicts and started being terminated by signal
  * (CodySwannGT/lisa#3630).
@@ -48,11 +48,13 @@ const SHIPPED_STACKS = [
 ] as const;
 
 /**
- * Resolve against a stated environment rather than the test runner's own.
+ * Resolve against a stated environment and a lone discovered run.
  *
  * Injected, never mutated: a suite that sets a real environment variable leaks
  * it into every file sharing the worker, and the assertion then depends on
  * collection order.
+ * Discovery is also injected: absent a stated fleet, these cases assume one
+ * run. Dynamic discovery is exercised by vitest-fleet-discovery.test.ts.
  * @param environment - The environment the run is to be resolved against
  * @param cores - Logical cores to resolve against; defaults to the measured host
  * @returns The resolved `maxWorkers` value.
@@ -60,7 +62,7 @@ const SHIPPED_STACKS = [
 const resolve = (
   environment: NodeJS.ProcessEnv,
   cores = CORES
-): number | string => resolveMaxWorkers(environment, cores);
+): number | string => resolveMaxWorkers(environment, cores, () => 1);
 
 describe("resolveMaxWorkers: the floor an uninstructed run gets", () => {
   it("caps a run that sets nothing at all", () => {
