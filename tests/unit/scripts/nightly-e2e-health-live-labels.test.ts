@@ -131,6 +131,18 @@ function respond(status: number, body: unknown): unknown {
 function installApi(scenario: Scenario): void {
   requested = [];
   const appliedAt = new Date(Date.now() - 3_600_000).toISOString();
+  const run = {
+    id: 7,
+    conclusion: "failure",
+    created_at: appliedAt,
+    html_url: "https://example.test/run/7",
+    event: "schedule",
+    head_branch: BRANCH,
+    status: "completed",
+    workflow_id: 50,
+    path: ".github/workflows/maestro-native-e2e.yml",
+    head_sha: "a".repeat(40),
+  };
   (globalThis as { fetch: unknown }).fetch = async (
     url: string
   ): Promise<unknown> => {
@@ -173,19 +185,13 @@ function installApi(scenario: Scenario): void {
     if (url.includes("/artifacts")) return respond(200, { artifacts: [] });
     if (url.includes("/jobs")) return respond(200, { jobs: [GREEN_JOB] });
 
+    if (url.endsWith("/actions/runs/7")) return respond(200, run);
     // The suite's run history: one fresh RED run on the required branch.
-    return respond(200, {
-      workflow_runs: [
-        {
-          id: 7,
-          conclusion: "failure",
-          created_at: new Date(Date.now() - 3_600_000).toISOString(),
-          html_url: "https://example.test/run/7",
-          event: "schedule",
-          head_branch: BRANCH,
-        },
-      ],
-    });
+    if (url.includes("/actions/workflows/maestro-native-e2e.yml/runs?"))
+      return respond(200, {
+        workflow_runs: url.includes("event=workflow_dispatch") ? [] : [run],
+      });
+    return respond(404, {});
   };
 }
 
@@ -348,6 +354,17 @@ describe("nightly e2e gate — row 40: the bypass reads the pull request LIVE", 
 
     it("a green suite is not turned red by any of this", async () => {
       installApi({ liveLabels: [LABEL], liveBody: TRAILER_BODY });
+      const run = {
+        id: 8,
+        conclusion: "success",
+        created_at: new Date(Date.now() - 3_600_000).toISOString(),
+        event: "schedule",
+        head_branch: BRANCH,
+        status: "completed",
+        workflow_id: 50,
+        path: ".github/workflows/maestro-native-e2e.yml",
+        head_sha: "a".repeat(40),
+      };
       (globalThis as { fetch: unknown }).fetch = async (
         url: string
       ): Promise<unknown> => {
@@ -364,17 +381,12 @@ describe("nightly e2e gate — row 40: the bypass reads the pull request LIVE", 
             labels: [{ name: LABEL }],
           });
         }
-        return respond(200, {
-          workflow_runs: [
-            {
-              id: 8,
-              conclusion: "success",
-              created_at: new Date(Date.now() - 3_600_000).toISOString(),
-              event: "schedule",
-              head_branch: BRANCH,
-            },
-          ],
-        });
+        if (url.endsWith("/actions/runs/8")) return respond(200, run);
+        if (url.includes("/actions/workflows/maestro-native-e2e.yml/runs?"))
+          return respond(200, {
+            workflow_runs: url.includes("event=workflow_dispatch") ? [] : [run],
+          });
+        return respond(404, {});
       };
 
       const verdict = (await mod.runGate(

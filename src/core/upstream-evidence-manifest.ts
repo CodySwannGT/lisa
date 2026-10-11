@@ -2703,7 +2703,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/test-intent-routing.sh":
       "97b9dc86cbd805df8a7fdb8c99ffab9b8c5e751ba2e84c05420b2a124f80635d",
     "scripts/two-channel-couplings.json":
-      "a77de0e72af86aafb718a0cf7161262d72aa16dfee6855e6db634203fde3ad24",
+      "ee2fbd283e082a1d600cce16076132806521b44b609b9ab43ee5aea20deaf301",
     "scripts/update-node-version.ts":
       "9d37599ef73d5d624751f862cda330a867f6774392c1ab045b4fc885132582e4",
     "scripts/update-test-skill-paths.mjs":
@@ -2803,7 +2803,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/copy-overwrite/knip.json":
       "d557bfb64c8c23d9f03c173798aa1f176f5e28d395ad6667f855049d4b886db6",
     "typescript/copy-overwrite/scripts/check-nightly-e2e-health.mjs":
-      "f87e6eee47ddb6416f2c639b79b96a68173c9c562999fbad98abe012ac913d28",
+      "d1b26caeaf65950e3b60ff41964d234c032c50470072e7643310b1f6722e34e6",
     "typescript/copy-overwrite/scripts/check-skipped-required-checks.mjs":
       "f403ef36885ed3d394813faa95aa9b3c813de2e134d9b8f1a838c6accf55c74e",
     "typescript/copy-overwrite/scripts/check-threshold-ratchet.mjs":
@@ -9970,6 +9970,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/helpers/lisa-test-run-sigkill-state.ts": true,
     "tests/helpers/mutation-gate-arms.ts": true,
     "tests/helpers/mutation-kill-counts.ts": true,
+    "tests/helpers/nightly-e2e-discovery-cli-harness.ts": true,
     "tests/helpers/nightly-e2e-gate-harness.ts": true,
     "tests/helpers/nightly-e2e-provider-action-fixture.ts": true,
     "tests/helpers/nightly-e2e-reporting-harness.ts": true,
@@ -11182,6 +11183,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/nightly-e2e-health-bypass-label.test.ts": true,
     "tests/unit/scripts/nightly-e2e-health-bypass.test.ts": true,
     "tests/unit/scripts/nightly-e2e-health-completeness.test.ts": true,
+    "tests/unit/scripts/nightly-e2e-health-discovery.test.ts": true,
     "tests/unit/scripts/nightly-e2e-health-grace.test.ts": true,
     "tests/unit/scripts/nightly-e2e-health-issues.test.ts": true,
     "tests/unit/scripts/nightly-e2e-health-label-attribution.test.ts": true,

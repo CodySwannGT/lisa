@@ -11,7 +11,21 @@
  * Specification: `docs/nightly-e2e-gate.md` §2 rows 41-42 and §2.6.
  * @module tests/helpers/nightly-e2e-selection-harness
  */
-import type { Job, Run } from "./nightly-e2e-gate-harness";
+import type { Job } from "./nightly-e2e-gate-harness";
+
+/** Actions run identity shared by discovery, direct reads and selection. */
+export interface Run {
+  readonly id?: number;
+  readonly conclusion?: string | null;
+  readonly created_at?: string;
+  readonly html_url?: string;
+  readonly event?: string;
+  readonly head_branch?: string;
+  readonly head_sha?: string;
+  readonly status?: string;
+  readonly workflow_id?: number;
+  readonly path?: string;
+}
 
 /** One run the selection walk stepped over, with the evidence it lacked. */
 export interface SkippedRun {

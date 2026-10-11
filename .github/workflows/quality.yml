@@ -3058,6 +3058,14 @@ jobs:
           --reporter=verbose
         working-directory: ${{ inputs.working_directory || '.' }}
 
+      - name: Execute and name nightly discovery regression specs
+        if: github.repository == 'CodySwannGT/lisa' && steps.gate_run.outcome == 'success'
+        run: >-
+          bun run lisa-test-run -- --adapter vitest -- vitest run
+          tests/unit/scripts/nightly-e2e-health-discovery.test.ts
+          --reporter=verbose
+        working-directory: ${{ inputs.working_directory || '.' }}
+
       # Both declared test commands and the built-in fallback can produce
       # coverage. A unique name keeps repeated workflow calls from colliding.
       - name: 📦 Name the coverage artifact

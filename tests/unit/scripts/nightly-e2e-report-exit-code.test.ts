@@ -96,6 +96,8 @@ function freshRun(conclusion: string): Record<string, unknown> {
     event: "schedule",
     head_branch: BRANCH,
     head_sha: "a".repeat(40),
+    workflow_id: 50,
+    path: ".github/workflows/maestro-e2e.yml",
   };
 }
 
@@ -159,6 +161,7 @@ async function report(options: {
     body: Record<string, unknown>;
   }[] = [];
   let summaryAtFirstWrite: string | null = null;
+  const run = freshRun(options.conclusion);
   (globalThis as { fetch: unknown }).fetch = async (
     url: string,
     init?: { method?: string; body?: string }
@@ -181,14 +184,13 @@ async function report(options: {
         fakeResponse(201, {}, { number: 7, node_id: "n" })
       );
     }
-    if (url.includes("/actions/workflows/")) {
+    if (url.endsWith("/actions/runs/42")) return fakeResponse(200, {}, run);
+    if (url.includes("/actions/workflows/maestro-e2e.yml/runs?")) {
       return fakeResponse(
         200,
         {},
         {
-          workflow_runs: url.includes("event=schedule")
-            ? [freshRun(options.conclusion)]
-            : [],
+          workflow_runs: url.includes("event=schedule") ? [run] : [],
         }
       );
     }

@@ -534,6 +534,10 @@ describe("nightly e2e reporting — §10.9, the escape hatch is measured", () =>
       html_url: "https://example.test/run/7",
       event: "schedule",
       head_branch: BRANCH,
+      status: "completed",
+      workflow_id: 50,
+      path: ".github/workflows/maestro-native-e2e.yml",
+      head_sha: "a".repeat(40),
     });
 
     /**
@@ -554,6 +558,10 @@ describe("nightly e2e reporting — §10.9, the escape hatch is measured", () =>
         rules = [requiredChecksRule([GATE_CONTEXT])],
         labelStatus = 200,
       } = options;
+      const run = {
+        ...GREEN_RUN,
+        created_at: new Date(Date.now() - 3_600_000).toISOString(),
+      };
       (globalThis as { fetch: unknown }).fetch = async (
         url: string
       ): Promise<unknown> => {
@@ -568,7 +576,18 @@ describe("nightly e2e reporting — §10.9, the escape hatch is measured", () =>
           return fakeResponse(200, {}, { artifacts: [] });
         if (seen.includes("/jobs"))
           return fakeResponse(200, {}, { jobs: [GREEN_JOB] });
-        return fakeResponse(200, {}, { workflow_runs: [GREEN_RUN] });
+        if (seen.endsWith("/actions/runs/7")) return fakeResponse(200, {}, run);
+        if (seen.includes("/actions/workflows/maestro-native-e2e.yml/runs?"))
+          return fakeResponse(
+            200,
+            {},
+            {
+              workflow_runs: seen.includes("event=workflow_dispatch")
+                ? []
+                : [run],
+            }
+          );
+        return fakeResponse(404);
       };
     }
 

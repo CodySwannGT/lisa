@@ -21,10 +21,13 @@ import type {
 } from "./nightly-e2e-reporting-harness";
 import type {
   Observation,
+  Run,
   RunSelection,
   SelectionModule,
 } from "./nightly-e2e-selection-harness";
 import type { WaiverModule } from "./nightly-e2e-waiver-harness.js";
+
+export type { Run } from "./nightly-e2e-selection-harness";
 
 export {
   GATE_CONTEXT,
@@ -49,17 +52,6 @@ const REPO_ROOT = path.resolve(__dirname, "..", "..");
 /** Repo-relative path of the guard under test. */
 export const GUARD_REL =
   "typescript/copy-overwrite/scripts/check-nightly-e2e-health.mjs";
-
-/** A minimal Actions run as the gate reads it. */
-export interface Run {
-  readonly id?: number;
-  readonly conclusion?: string | null;
-  readonly created_at?: string;
-  readonly html_url?: string;
-  readonly event?: string;
-  readonly head_branch?: string;
-  readonly head_sha?: string;
-}
 
 /** A minimal Actions job as the gate reads it. */
 export interface Job {
@@ -344,6 +336,9 @@ export function runWith(
     event: "schedule",
     head_branch: BRANCH,
     head_sha: "a".repeat(40),
+    status: "completed",
+    workflow_id: 50,
+    path: ".github/workflows/maestro-e2e.yml",
     ...extra,
   };
 }
