@@ -1,5 +1,18 @@
 # Roster Decision: CodySwannGT/lisa#4347
 
+## Native push failure classification — 2026-10-11
+
+The bounded input resolver verified the original failed run and complete retained artifact inventory: child output was discarded after capture, so its underlying cause remains unknown. Reuse the existing exhaustive type catalogue and team with these assignments taking precedence. The existing release qualifier acts as the included bounded builder; the resolver becomes the separate quality/security/conformance and empirical reviewer after implementation. Root owns this metadata, generated artifacts, native hooks, commits, provider writes, protected merge, release and caller adoption. No Claude sessions are involved.
+
+INCLUDE - lisa-builder - Existing latest_lisa_release_qualifier implements only native safe failure registration, push boundary classification and focused reaching tests.
+INCLUDE - explorer - Existing remaining_delivery_resolver completed the bounded source/evidence investigation.
+INCLUDE - lisa-quality-specialist - Existing remaining_delivery_resolver independently reviews frozen changes and meaningful controls.
+INCLUDE - lisa-security-specialist - The independent reviewer verifies no raw child output or forged exception properties escape.
+INCLUDE - lisa-spec-conformance-specialist - Independent review preserves all six original acceptance scenarios and authority boundaries.
+INCLUDE - lisa-verification-specialist - The independent reviewer executes actual native failing-process controls and distinguishes diagnostics from hosted acceptance.
+
+Keep all other exclusions and prior unrelated assignments unchanged. Builder ownership is limited to the existing npm-update-invariants.mjs, npm-update-native-process.mjs and npm-update-gate.mjs helpers under all/copy-overwrite/scripts/lib/, and tests/unit/scripts/npm-update-diagnostics.test.ts plus npm-update-native-process.test.ts. If a pure classifier module is required, first propose its basename to root. No credential, deadline, output-limit, cleanup, signature, status, hook, publication or merge requirement may be weakened. Public source artifacts use anonymous caller identities only.
+
 ## Canonical context read scope followup — 2026-10-10
 
 The input resolver reused the original claim and attached `codex/4347-canonical-context-fix` at actual main `fb7ed7c4d51c760b1855d4a68321a96ec0daf050`. The source now declares Node 24.21.0 and Bun 1.3.8; use that profile for source verification. The existing builder owns only the gate's reusable workflow permission declaration and its focused regression expectation, after root supplies the actual hosted read comparison. It may prepare the regression before that result, but must not infer the failure cause or change production permissions from the phase label alone. The existing independent verification specialist reviews the source change and hosted evidence separately. Root owns normal hooks, public anonymous tracker evidence, release qualification and external delivery. Preserve the six original acceptance scenarios and all authority, freshness, request and execution boundaries. This is a bounded fix within the current leaf, not another automation framework.

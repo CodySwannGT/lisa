@@ -7,8 +7,43 @@ import {
   runProcess,
   withPrivateRoot,
 } from "../../../all/copy-overwrite/scripts/lib/npm-update-process.mjs";
+import { publicFailure } from "../../../all/copy-overwrite/scripts/lib/npm-update-invariants.mjs";
 
 describe("native updater cancellation", () => {
+  it("does not promote captured hook text after native output overflow", async () => {
+    await withPrivateRoot(async (root, env) => {
+      const error = await runProcess(
+        process.execPath,
+        [
+          "-e",
+          'process.stdout.write("❌ rspec (1 second)\\n" + "x".repeat(8192));',
+        ],
+        { cwd: root, env, maximum: 64, failureRole: "destination" }
+      ).catch(value => value);
+      expect(error.nativeCompleted).toBe(false);
+      expect(publicFailure(error)).toContain("native=output-bound");
+      expect(publicFailure(error)).not.toContain("hook-reports=");
+    });
+  });
+
+  it("keeps successful and explicitly allowed nonzero native results authoritative", async () => {
+    await withPrivateRoot(async (root, env) => {
+      for (const status of [0, 1]) {
+        const result = await runProcess(
+          process.execPath,
+          [
+            "-e",
+            `process.stdout.write("❌ rspec (1 second)\\n");process.exitCode=${status};`,
+          ],
+          { cwd: root, env, allowed: [status], failureRole: "audit" }
+        );
+        expect(result.code).toBe(status);
+        expect(result.stdout.toString()).toBe("❌ rspec (1 second)\n");
+        expect(publicFailure(result)).not.toContain("hook-reports=");
+      }
+    });
+  });
+
   it("refuses an already cancelled invocation before the child can create an output", async () => {
     await withPrivateRoot(async (root, env) => {
       const marker = join(root, "must-not-exist");
