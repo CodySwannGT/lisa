@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.74.5](https://github.com/CodySwannGT/lisa/compare/v4.74.4...v4.74.5) (2026-10-11)
+
+
+### Bug Fixes
+
+* **install:** preserve lifecycle context and metadata negotiation ([f02d81e](https://github.com/CodySwannGT/lisa/commit/f02d81e2aaa7e1912d055a833ad79fe08948829e)), closes [CodySwannGT/lisa#4347](https://github.com/CodySwannGT/lisa/issues/4347)
+* **npm-updater:** retain safe diagnostics for failed push hooks ([a51004e](https://github.com/CodySwannGT/lisa/commit/a51004e7972613b2b552cd0ceebc82de2268158d)), closes [CodySwannGT/lisa#4347](https://github.com/CodySwannGT/lisa/issues/4347)
+* **npm-updater:** simplify bounded hook report parsing ([afb91f6](https://github.com/CodySwannGT/lisa/commit/afb91f6ea6f61c2cf359bcc5692dc068ab5208ed)), closes [CodySwannGT/lisa#4347](https://github.com/CodySwannGT/lisa/issues/4347)
+
 ### [4.74.4](https://github.com/CodySwannGT/lisa/compare/v4.74.3...v4.74.4) (2026-10-11)
 
 
