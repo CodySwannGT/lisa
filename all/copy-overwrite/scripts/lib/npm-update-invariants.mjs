@@ -154,12 +154,17 @@ function hookReports(stdout, stderr) {
     .replace(/\u001b\[[0-9;]{1,24}m/g, "");
   const hooks = new Set();
   for (const match of text.matchAll(
-    /^[ \t]*❌ ([a-z][a-z-]{0,31})(?: \([0-9]{1,4}(?:\.[0-9]{1,3})? (?:seconds?|s)\))?[ \t]*\r?$/gm
+    /^[ \t]*❌ ([a-z][a-z-]{0,31})( \([\d. a-z]{1,16}\))?[ \t]*\r?$/gm
   ))
-    if (hookNames.has(match[1])) hooks.add(match[1]);
+    if (
+      hookNames.has(match[1]) &&
+      (match[2] === undefined ||
+        /^ \(\d{1,4}(?:\.\d{1,3})? (?:seconds?|s)\)$/.test(match[2]))
+    )
+      hooks.add(match[1]);
   const counts = new Map();
   for (const match of text.matchAll(
-    /^[ \t]*([0-9]{1,6}) examples?, ([0-9]{1,6}) failures?[ \t]*\r?$/gm
+    /^[ \t]*(\d{1,6}) examples?, (\d{1,6}) failures?[ \t]*\r?$/gm
   )) {
     const examples = Number(match[1]);
     const failures = Number(match[2]);

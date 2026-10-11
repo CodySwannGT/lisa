@@ -80,10 +80,33 @@ describe("closed updater failure diagnostics", () => {
     }
   );
 
+  it("retains exact duration grammar and the duration-free footer", async () => {
+    await withPrivateRoot(async (root, env) => {
+      const output =
+        "❌ rspec\n❌ behavior-contract (9999.999 seconds)\n❌ rubocop (1 second)\n❌ reek (1 s)\n";
+      const error = await runProcess(
+        process.execPath,
+        [
+          "-e",
+          `process.stdout.write(${JSON.stringify(output)});process.exitCode=1;`,
+        ],
+        { cwd: root, env, failureRole: "audit" }
+      ).catch(value => value);
+      expect(invariants.publicFailure(error)).toContain(
+        "hook-reports=behavior-contract,reek,rspec,rubocop"
+      );
+    });
+  });
+
   it.each([
     `┃ rspec ❯\n${CANARY}`,
     `❌ invented-check (1 second)\n${CANARY}`,
     `❌ rspec (1 second) ${CANARY}\n`,
+    "❌ rspec (10000 seconds)\n",
+    "❌ rspec (1.0000 seconds)\n",
+    "❌ rspec (1..2 seconds)\n",
+    "❌ rspec (.2 seconds)\n",
+    "❌ rspec (1 secondsx)\n",
     "1000000 examples, 1 failure\n",
     "715 examples, 999 failures\n",
     "10 examples, 1 failure\n11 examples, 2 failures\n",

@@ -121,7 +121,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lib/npm-update-hosted-scope.mjs":
       "bf046814b607f5449f80b18081b3a42a97a9a96d54fae302661471e166797459",
     "all/copy-overwrite/scripts/lib/npm-update-invariants.mjs":
-      "8de07e0513667914a4bf3612adacaa6fff43fd56df261bd20e0f1b1240140076",
+      "49fdc794312fe546014a5a4c5c4804da758832a912721733fecec8497aa548aa",
     "all/copy-overwrite/scripts/lib/npm-update-isolation.mjs":
       "66ec5390a0af0e016880c781eae47b8c60d6fca0c79ef500e1926e42eae043bf",
     "all/copy-overwrite/scripts/lib/npm-update-leaf-contract.mjs":
@@ -295,7 +295,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/npm-updater-gate.Dockerfile":
       "c1f56c254f188d394fea0c0b9995ebf185c280aa1079233443c1eed1425d0239",
     "all/copy-overwrite/scripts/npm-updater-helper-graph.json":
-      "0d82401079f442dd1a617a2a85b910be321ba0badbef2120d9ad4b9cff3767bc",
+      "d0ef0fa86b289ad5a2cda82572e85ec578c31b37140eff1160344a4e71eab98c",
     "all/copy-overwrite/scripts/schemas/lisa-command-envelope.v1.schema.json":
       "d153b7c2953a30f180e38f09e98240c63327f5196eeba9bdf545e5a1f125a879",
     "all/copy-overwrite/scripts/schemas/lisa-state-contract.v1.schema.json":

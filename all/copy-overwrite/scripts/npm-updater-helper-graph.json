@@ -643,7 +643,7 @@
       ]
     },
     "lib/npm-update-invariants.mjs": {
-      "sha256": "8de07e0513667914a4bf3612adacaa6fff43fd56df261bd20e0f1b1240140076",
+      "sha256": "49fdc794312fe546014a5a4c5c4804da758832a912721733fecec8497aa548aa",
       "staticImports": [],
       "dynamicImports": [],
       "children": []
