@@ -962,6 +962,47 @@ describe("lisa-github-rulesets.sh", () => {
       expect(stdout).not.toContain("bypass actor removed");
     });
 
+    // Narrowing a bypass is as deliberate as adding one. Taking the template's
+    // `always` here would widen it back while printing no change at all.
+    it("keeps a live bypass_mode the template would widen", () => {
+      const narrowed: BypassActor = {
+        ...DEPLOY_KEY,
+        bypass_mode: "pull_request",
+      };
+      const { stdout, updated } = applyAgainst({
+        live: liveNightly([narrowed]),
+        liveName: NIGHTLY_RULESET,
+      });
+
+      expect(updated).toBeUndefined();
+      expect(stdout).toContain("nothing to do");
+    });
+
+    it("names a bypass_mode change a declared list makes", () => {
+      const { stdout, updated } = applyAgainst({
+        live: liveNightly([DEPLOY_KEY]),
+        liveName: NIGHTLY_RULESET,
+        config: {
+          github: {
+            rulesets: {
+              bypassActors: {
+                [NIGHTLY_RULESET]: [
+                  { ...DEPLOY_KEY, bypass_mode: "pull_request" },
+                ],
+              },
+            },
+          },
+        },
+      });
+
+      expect(updated?.bypass_actors).toEqual([
+        { ...DEPLOY_KEY, bypass_mode: "pull_request" },
+      ]);
+      expect(stdout).toContain(
+        "~ bypass actor mode changed: DeployKey (always -> pull_request)"
+      );
+    });
+
     it("carries a live-only bypass actor into an update the template forces", () => {
       const { stdout, updated } = applyAgainst({
         live: liveNightly([ADMIN_ROLE]),

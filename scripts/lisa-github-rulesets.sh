@@ -742,7 +742,8 @@ report_removed_contexts() {
 #     are added to it;
 #   - a ruleset whose bypass list is DECLARED gets precisely that list, which
 #     is the only way to remove an actor;
-#   - every actor added or removed is printed by name, on a dry run too.
+#   - every actor added or removed, and every bypass_mode changed, is printed
+#     by name, on a dry run too; an undeclared live entry keeps its own mode.
 #
 # Declared per ruleset under `github.rulesets.bypassActors`:
 #   { "github": { "rulesets": { "bypassActors": {
@@ -800,10 +801,13 @@ apply_config_bypass_actors() {
   echo "$json" | jq --argjson declared "$declared" '.bypass_actors = $declared'
 }
 
-# Union the live bypass list back into the payload. Live order is kept, so a
-# ruleset that needs no change compares equal and nothing is sent; a live
-# entry the template also names takes the template's bypass_mode, because the
-# template governs the actors it ships; template-only actors are appended.
+# Union the live bypass list back into the payload. Live entries are kept
+# verbatim and in live order, so a ruleset that needs no change compares equal
+# and nothing is sent; template-only actors are appended. A live entry the
+# template also names keeps its LIVE bypass_mode: an operator who narrowed the
+# admin bypass from `always` to `pull_request` made the same deliberate choice
+# as one who added it, and taking the template's mode would widen it back
+# without a word. Changing a mode, like removing an actor, needs a declaration.
 preserve_live_bypass_actors() {
   local live="$1"
   local json="$2"
@@ -818,9 +822,7 @@ preserve_live_bypass_actors() {
     (.bypass_actors // []) as $want
     | ($live.bypass_actors // []) as $have
     | .bypass_actors = (
-        [ $have[]
-          | . as $entry
-          | ([ $want[] | select(actor_key == ($entry | actor_key)) ] | first) // $entry ]
+        $have
         + [ $want[]
           | . as $entry
           | select([ $have[] | actor_key ] | index([$entry | actor_key]) | not) ]
@@ -840,6 +842,23 @@ bypass_actors_missing_from() {
     | ($from | actors)[]
     | select(actor_key as $k | ($keys | index([$k])) | not)
     | "\(.actor_type)\(if .actor_id == null then "" else " \(.actor_id)" end) (\(.bypass_mode))"'
+}
+
+# One line per actor present in both lists whose bypass_mode differs,
+# formatted `<type> [<id>] (<live mode> -> <payload mode>)`.
+bypass_actor_mode_changes() {
+  local live="$1"
+  local payload="$2"
+
+  jq -r -n --argjson live "${live:-null}" --argjson want "${payload:-null}" '
+    def actor_key: [.actor_type, .actor_id];
+    def actors: if . == null then [] else (.bypass_actors // []) end;
+    ($live | actors) as $have
+    | ($want | actors)[]
+    | . as $entry
+    | ([ $have[] | select(actor_key == ($entry | actor_key)) ] | first) as $old
+    | select($old != null and $old.bypass_mode != $entry.bypass_mode)
+    | "\(.actor_type)\(if .actor_id == null then "" else " \(.actor_id)" end) (\($old.bypass_mode) -> \(.bypass_mode))"'
 }
 
 # Name every bypass actor this run adds and removes. A removal is a warning:
@@ -865,6 +884,9 @@ report_bypass_actor_changes() {
   while IFS= read -r actor; do
     [[ -n "$actor" ]] && log_warning "  - bypass actor removed: $actor (the declared bypass list does not name it)"
   done < <(bypass_actors_missing_from "$live" "$payload")
+  while IFS= read -r actor; do
+    [[ -n "$actor" ]] && log_warning "  ~ bypass actor mode changed: $actor (the declared bypass list sets it)"
+  done < <(bypass_actor_mode_changes "$live" "$payload")
 }
 
 apply_ruleset() {

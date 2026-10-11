@@ -1631,7 +1631,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-setup-confluence/SKILL.md":
       "e92d762dbdaeae671c3e52dfe8e10d40a10b606b5e050589181a3898649faedc",
     "plugins/src/base/skills/lisa-setup-github-repo/SKILL.md":
-      "02198c2356d1b7a92d66680e810399516a7efbb1b9ec20b3010f36be99c4c37b",
+      "bc9232d0609a27c66a1267221f6da33b50850145532da760f5501d37addd2cb0",
     "plugins/src/base/skills/lisa-setup-github/SKILL.md":
       "75435e81130abd21c678d302b7a220da95a19868d122ca93168278628b200666",
     "plugins/src/base/skills/lisa-setup-jira/SKILL.md":
@@ -2655,7 +2655,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/lisa-github-repo-setup.sh":
       "4717873e339b3e615d0bf22b4cb290b3575df5aba8c3639dc0d3bebc23abf651",
     "scripts/lisa-github-rulesets.sh":
-      "b619f048757e626e7985d2c63ee2d40cca793d2087b393a2553dadeafee4e1a8",
+      "e0a6d79684040cd5f76afba487951c3481497276d1e8eadd4f70f039cda2497d",
     "scripts/lisa-mutation.mjs":
       "74603e61f493d700318feb862f61ee1653430700b5edf232e70241ccdedac587",
     "scripts/lisa-remote-env/materialized-env-authority.mjs":
