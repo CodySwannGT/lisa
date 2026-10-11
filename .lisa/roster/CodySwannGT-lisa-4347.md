@@ -478,3 +478,14 @@ Reuse the existing included builder and independent reviewer; no new team or cla
 ## Required worker-cap test isolation — 2026-10-11
 
 Reuse the existing builder for only `tests/unit/config/vitest-worker-cap.test.ts`: inject the existing fleet-discovery parameter so the stated lone-run unit inputs are complete. Reuse the different reviewer for source and actual native proof. Root retains metadata, generation and delivery. No production worker cap or execution concurrency changes are authorized by this test repair.
+
+## Required native registry protocol correction — 2026-10-11
+
+INCLUDE - worker - The bounded packed_registry_builder owns only the existing fixture proxy in `tests/fixtures/shared-runtime-hosts/artifact.ts`, forwarding native Accept negotiation to genuine npm without other changes.
+INCLUDE - explorer - The current delivery_readiness_resolver established actual deadline, registry reachability and request-header evidence and independently reviews the resulting fixture correction and native proof.
+
+Retain the existing exhaustive catalogue and all original six acceptance requirements. Root owns plan/roster, original native execution, generated artifacts, normal small commit, batched PR, release and caller delivery. No production change, budget, cache, concurrency, dependency or assertion relaxation is admitted.
+
+## Required explicit package lifecycle declaration — 2026-10-11
+
+Extend the current packed_registry_builder's ownership only to `package.json` and `tests/unit/scripts/install-claude-plugins-self.test.ts` for the known lifecycle declaration and reaching RED/GREEN in the plan. Keep the helper's explicit setup behavior, root template governance and every remaining package lifecycle command unchanged. Reuse delivery_readiness_resolver for independent quality/security/conformance and native-proof review. Root retains metadata, original Expo execution, derived artifacts, normal commits, PR, release and caller delivery. No Claude agent session, new team, deadline relaxation or replacement acceptance is introduced.
