@@ -194,45 +194,74 @@ export const provisionScanner = async destination => {
   }
 };
 
-/** A forged same-version executable cannot satisfy the required scanner identity. */
-export const qualifyScanner = requested => {
-  const binary = requested
-    ? resolve(requested)
-    : (process.env.PATH ?? "")
-        .split(delimiter)
-        .map(directory => join(directory, "gitleaks"))
-        .find(existsSync);
-  if (!binary)
-    throw new HistorySecretError(
-      "Gitleaks 8.30.1 is unavailable. Run node scripts/lisa-history-secrets.mjs provision <executable-path>, then put that executable on PATH or supply --scanner."
-    );
+/** Reject unusable files before hashing, and reject unpinned bytes before execution. */
+const qualifyCandidate = (binary, expectedDigest) => {
+  const label = JSON.stringify(binary);
   let bytes;
   try {
+    if (!statSync(binary).isFile())
+      throw new HistorySecretError(
+        `Scanner at ${label} is not a regular file; version was not checked.`
+      );
+    accessSync(binary, constants.R_OK | constants.X_OK);
     bytes = readFileSync(binary);
-  } catch {
+  } catch (error) {
+    if (error instanceof HistorySecretError) throw error;
     throw new HistorySecretError(
-      "Scanner executable is unreadable. Provision the pinned Gitleaks 8.30.1 executable and retry."
+      `Scanner at ${label} is missing, unreadable or not executable; version was not checked.`
     );
   }
-  if (digest(bytes) !== pin().binary)
+  const actualDigest = digest(bytes);
+  if (actualDigest !== expectedDigest)
     throw new HistorySecretError(
-      "Scanner executable checksum/version mismatch. Provision the official pinned Gitleaks 8.30.1 release; required scanning cannot use an unqualified executable."
+      `Scanner at ${label} has a checksum mismatch. Expected SHA256 ${expectedDigest}; found ${actualDigest}. Version was not checked because unqualified bytes must never execute.`
     );
   const version = spawnSync(binary, ["version"], {
     env: gitEnvironment(),
     encoding: "utf8",
     timeout: 10000,
   });
-  if (
-    version.error ||
-    version.signal ||
-    version.status !== 0 ||
-    version.stdout.trim() !== VERSION
-  )
+  if (version.error || version.signal || version.status !== 0)
     throw new HistorySecretError(
-      "Scanner version execution failed. Repair permissions and provision pinned Gitleaks 8.30.1."
+      `Scanner at ${label} passed its checksum but version execution failed. Repair permissions and provision the official pinned Gitleaks ${VERSION}.`
+    );
+  if (version.stdout.trim() !== VERSION)
+    throw new HistorySecretError(
+      `Scanner at ${label} passed its checksum but has a version mismatch; expected Gitleaks ${VERSION}.`
     );
   return binary;
+};
+
+/** PATH discovers the first qualified artifact; an explicit override never falls back. */
+export const qualifyScanner = requested => {
+  const expectedDigest = pin().binary;
+  const remedy = `Run node scripts/lisa-history-secrets.mjs provision <executable-path>, then put its directory anywhere on PATH or supply --scanner <executable-path>.`;
+  if (requested) {
+    try {
+      return qualifyCandidate(resolve(requested), expectedDigest);
+    } catch (error) {
+      if (!(error instanceof HistorySecretError)) throw error;
+      throw new HistorySecretError(`${error.message} ${remedy}`);
+    }
+  }
+  const failures = [];
+  const candidates = new Set(
+    (process.env.PATH ?? "")
+      .split(delimiter)
+      .map(directory => resolve(directory || ".", "gitleaks"))
+  );
+  for (const candidate of candidates) {
+    if (!existsSync(candidate)) continue;
+    try {
+      return qualifyCandidate(candidate, expectedDigest);
+    } catch (error) {
+      if (!(error instanceof HistorySecretError)) throw error;
+      failures.push(error.message);
+    }
+  }
+  throw new HistorySecretError(
+    `No qualified Gitleaks ${VERSION} executable is available on PATH. ${failures.join(" ")} ${remedy}`
+  );
 };
 
 /** Only structured safe attribution is serialized, never stderr or metadata strings. */

@@ -6,6 +6,35 @@ recognized evidence role and an independently authenticated preimage. Other
 findings in the same file remain blocking. This does not certify an audit
 receipt's assertions, test results or runtime behavior.
 
+The scanner requires the official Gitleaks 8.30.1 release for the current
+Linux/macOS x64/arm64 platform, qualified by its binary SHA256 and exact version.
+It walks PATH in order and uses the first fully qualified executable, skipping
+unreadable, nonexecutable, nonregular and checksum-mismatched candidates. A
+symlink to the official executable can qualify; a broken symlink cannot.
+Homebrew and other builds reporting the same version can have different bytes
+and therefore remain unqualified. A checksum-mismatched executable is never
+run, even to ask its version. When no candidate qualifies, the refusal names
+rejected candidates and their checksum or usability failure, includes expected
+and actual digests for a checksum mismatch, and says that its version was not
+checked. Version-execution failures and version mismatches are diagnosed
+separately after the checksum passes. An explicit `--scanner <executable-path>`
+qualifies only that path and refuses without falling back to PATH.
+
+Provisioning downloads and verifies the official archive and executable:
+
+```sh
+mkdir -p ~/.local/bin
+node scripts/lisa-history-secrets.mjs provision ~/.local/bin/gitleaks
+```
+
+Put that directory anywhere on PATH for Lisa's qualified discovery, or pass the
+destination with `--scanner`. Provisioning does not change PATH or replace a
+package-manager executable unless you explicitly choose that destination.
+Putting the provisioned directory before Homebrew's directory also changes
+which `gitleaks` ordinary shell commands select; placing it later lets Lisa
+find the official artifact while the shell continues to select the earlier
+build. Scanning itself stays offline and never provisions automatically.
+
 The genuine scanner runs through a fixed POSIX child launcher that sets umask
 077 before directly executing its original argument vector. Gitleaks removes
 and recreates its report, so precreating a mode-0600 file alone is insufficient.
