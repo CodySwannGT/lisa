@@ -51,7 +51,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lib/history-secret-policy.mjs":
       "ca75ebbc45fca4c52400612ae818d231a28289b50a70f6cdee6feb51b144896f",
     "all/copy-overwrite/scripts/lib/history-secret-scanner.mjs":
-      "07b639188c44ed5db817fc47bcdedfdd58e700024af19d464d78497b1ee236b3",
+      "56bcbea184d8938ae9722cd48b020d474d8d75dde9bb577b3b1d410787f2224f",
     "all/copy-overwrite/scripts/lib/invoked-as-script.mjs":
       "fbb9b88fc85a3e22f21af39e1c17acf67ff83fc6b5a6cdc8081bde333c48faa7",
     "all/copy-overwrite/scripts/lib/kill-marks.mjs":
@@ -295,7 +295,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/npm-updater-gate.Dockerfile":
       "c1f56c254f188d394fea0c0b9995ebf185c280aa1079233443c1eed1425d0239",
     "all/copy-overwrite/scripts/npm-updater-helper-graph.json":
-      "d0ef0fa86b289ad5a2cda82572e85ec578c31b37140eff1160344a4e71eab98c",
+      "f63478f5862c16662aa07bd476ae28f5b15513d56889b93e4e20ac3f11f24281",
     "all/copy-overwrite/scripts/schemas/lisa-command-envelope.v1.schema.json":
       "d153b7c2953a30f180e38f09e98240c63327f5196eeba9bdf545e5a1f125a879",
     "all/copy-overwrite/scripts/schemas/lisa-state-contract.v1.schema.json":
@@ -9829,6 +9829,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/fixtures/git-history-secrets/portable-evidence.mjs": true,
     "tests/fixtures/git-history-secrets/preimage-batch.mjs": true,
     "tests/fixtures/git-history-secrets/report-mode.mjs": true,
+    "tests/fixtures/git-history-secrets/scanner-path.mjs": true,
     "tests/fixtures/git-history-secrets/vendor-errors.mjs": true,
     "tests/fixtures/harness-parity-council/first-round-failed.json": true,
     "tests/fixtures/harness-parity-council/first-round-responded.json": true,
@@ -10075,6 +10076,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/history-secret-bootstrap.test.ts": true,
     "tests/integration/history-secret-evidence.test.ts": true,
     "tests/integration/history-secret-private-report.test.ts": true,
+    "tests/integration/history-secret-scanner-path.test.ts": true,
     "tests/integration/history-secret-workflow.test.ts": true,
     "tests/integration/host-lint-gate-survives-apply.test.ts": true,
     "tests/integration/host-test-scripts-survive-apply.test.ts": true,

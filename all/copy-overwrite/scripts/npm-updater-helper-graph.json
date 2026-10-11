@@ -154,7 +154,7 @@
       "children": []
     },
     "lib/history-secret-scanner.mjs": {
-      "sha256": "07b639188c44ed5db817fc47bcdedfdd58e700024af19d464d78497b1ee236b3",
+      "sha256": "56bcbea184d8938ae9722cd48b020d474d8d75dde9bb577b3b1d410787f2224f",
       "staticImports": [
         "lib/history-secret-evidence.mjs",
         "lib/history-secret-git.mjs",
