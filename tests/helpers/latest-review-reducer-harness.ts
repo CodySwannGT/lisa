@@ -28,6 +28,7 @@ export const REVIEW_SKILL_SURFACES = Object.freeze([
   "plugins/lisa-agy/skills/lisa-drive-pr-to-merge/SKILL.md",
   "plugins/lisa-copilot/skills/lisa-drive-pr-to-merge/SKILL.md",
   "plugins/lisa-cursor/skills/lisa-drive-pr-to-merge/SKILL.md",
+  "plugins/lisa-devin/skills/lisa-drive-pr-to-merge/SKILL.md",
 ]);
 
 /** Exact v4.23.26 filter without a stable-identity guard. */

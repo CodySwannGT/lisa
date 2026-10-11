@@ -9,12 +9,12 @@
  *     tool-name shim still stands down (the shim test below is the A/B control).
  * @module tests/unit/scripts/generate-devin-plugin-artifacts
  */
-import { spawnSync } from "node:child_process";
 import * as fs from "fs-extra";
 import * as os from "node:os";
 import * as path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { generateDevinVariant } from "../../../scripts/generate-devin-plugin-artifacts.mjs";
+import { boundedSpawnSync } from "../../helpers/io-latency-budget.js";
 import {
   BASE_HOOK_BLOCK,
   BLOCK_NO_VERIFY,
@@ -169,17 +169,15 @@ describe("generate-devin-plugin-artifacts (#4426)", () => {
       generateDevinVariant(srcDir, outDir, VERSION);
       const guard = await captureGuard(tempDir);
 
-      const result = spawnSync(
-        path.join(outDir, "hooks", SHIM),
-        [guard, "arg"],
-        {
-          input: JSON.stringify({
-            tool_name: "exec",
-            tool_input: { command: "git status" },
-          }),
-          encoding: "utf8",
-        }
-      );
+      const result = boundedSpawnSync({
+        label: "devin tool-name shim (exec)",
+        command: path.join(outDir, "hooks", SHIM),
+        args: [guard, "arg"],
+        input: JSON.stringify({
+          tool_name: "exec",
+          tool_input: { command: "ls" },
+        }),
+      });
 
       expect(result.stdout.trim()).toBe("Bash");
       expect(result.status).toBe(2);
@@ -190,14 +188,12 @@ describe("generate-devin-plugin-artifacts (#4426)", () => {
       generateDevinVariant(srcDir, outDir, VERSION);
       const guard = await captureGuard(tempDir);
 
-      const result = spawnSync(
-        path.join(outDir, "hooks", SHIM),
-        [guard, "arg"],
-        {
-          input: JSON.stringify({ tool_name: "mcp__github__create_issue" }),
-          encoding: "utf8",
-        }
-      );
+      const result = boundedSpawnSync({
+        label: "devin tool-name shim (mcp passthrough)",
+        command: path.join(outDir, "hooks", SHIM),
+        args: [guard, "arg"],
+        input: JSON.stringify({ tool_name: "mcp__github__create_issue" }),
+      });
 
       expect(result.stdout.trim()).toBe("mcp__github__create_issue");
     });
