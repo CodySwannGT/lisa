@@ -23,13 +23,6 @@ describe("quality package download caching", () => {
     expect(publishers.map(([id]) => id)).toEqual(["lisa_identity"]);
   });
 
-  it("still saves build outputs when build caching is enabled", () => {
-    const buildCache = Object.values(workflow.jobs)
-      .flatMap(job => job.steps ?? [])
-      .find(step => step.id === "build_cache");
-    expect(buildCache?.uses).toBe(savingCacheAction);
-  });
-
   it("has an explicit opt-out", () => {
     expect(
       workflow.on?.workflow_call?.inputs?.cache_dependencies

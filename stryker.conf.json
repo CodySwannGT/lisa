@@ -3,10 +3,20 @@
   "_comment": "Mutation gate over the guard scripts. `mutate` names files one by one on purpose: the threshold-ratchet `stryker` family reports a removed mutate target as a weakening, so every guard listed here is protected by name and can only leave through a human-approved thresholdRatchet.allow entry. `thresholds.break` is the measured score of this list, not an aspiration, and the same ratchet forbids lowering it. See wiki/decisions/2026-08-19-guard-mutation-gate.md for the whole contract, including what this cannot reach. NOT every guard: this list is `.mjs` because Stryker's instrumenter is per-language and has NO shell parser, so every guard written in `.sh` is outside this gate BY CONSTRUCTION and no `mutate` pattern can bring it in. Do not add one here to close that gap — measured, Stryker aborts the whole run with `No parser registered for .sh!` and takes every other guard's score with it, which is why `lisa-mutation.mjs` now refuses such an entry as `uninstrumentable-mutate-target`. Shell guards are evidenced by driving tests instead.",
   "testRunner": "vitest",
   "_pluginsComment": "Resolve the declared runner explicitly. Default sibling discovery finds no runner in Bun's isolated dependency layout; this retains the real runner and every mutation setting.",
-  "plugins": ["@stryker-mutator/vitest-runner"],
-  "vitest": { "configFile": "vitest.config.mutation.ts" },
-  "reporters": ["clear-text", "progress"],
-  "clearTextReporter": { "maxTestsToLog": 0, "logTests": false },
+  "plugins": [
+    "@stryker-mutator/vitest-runner"
+  ],
+  "vitest": {
+    "configFile": "vitest.config.mutation.ts"
+  },
+  "reporters": [
+    "clear-text",
+    "progress"
+  ],
+  "clearTextReporter": {
+    "maxTestsToLog": 0,
+    "logTests": false
+  },
   "coverageAnalysis": "perTest",
   "ignoreStatic": true,
   "_concurrencyComment": "Stryker calibrates each mutant's budget in one serial dry-run process, then spends it in the concurrent mutant phase. Leaving concurrency at the machine default created 53 timeouts in a 102-mutant control range at 17 workers; the same range at 4 workers produced zero timeouts and revealed that 41 of those clock-based kills were real survivors (CodySwannGT/lisa#3216). Four is the measured correctness calibration, not a throughput guess: it keeps mutant-phase slowdown close enough to the dry-run timing that the timeout bucket measures hangs instead of self-contention. Do not raise it without repeating that matched-mutant experiment; a quiet fleet can make the mismatch worse by making the serial dry run faster and its budgets tighter.",
@@ -19,10 +29,18 @@
   "_cleanTempDirComment": "Default `true` removes the sandbox only after a SUCCESSFUL run, so exactly the runs that need investigating are the ones that leave a full second copy of the tree behind — and a leftover sandbox costs the next lint 1191 errors. `always` removes it either way — meaning pass or fail, NOT killed. This is Stryker's own teardown, so a SIGTERM, an OOM reap, a maxBuffer overflow and a Ctrl-C all skip it, and those are the runs a busy machine actually produces; one such kill left 72 MB behind. The gate handles that half rather than this setting: it gives each run its own `.stryker-tmp/run-<pid>-<epoch>` sandbox and reclaims, at the START of the next run, the ones whose owning process is gone. Reclaiming after the fact cannot run in the case that creates the mess, and reclaiming a SHARED path would delete a concurrent run's working directory (#2961).",
   "cleanTempDir": "always",
   "_ignorePatternsComment": "Stryker does not read .gitignore. Exclude generated build output and coverage from each sandbox; neither is a mutation input.",
+  "_ignorePatternsDistExceptionComment": "Three built files are let back into each sandbox, and only three: tests/unit/scripts/history-secret-contract.test.ts copies dist/core/lisa-release-pin.js, dist/core/reusable-workflow-pin.js and dist/cli/version.js into a fake installed package to exercise the archive resolver. That suite reaches lisa-gates.mjs through a static import, so it joins every mutation run that touches the gate registry, and with all of dist/ ignored its dry run failed on ENOENT before any mutant was tried (CodySwannGT/lisa#3052, the first lisa-gates.mjs change after the test landed). The rest of dist/ stays out: none of it is a mutation input.",
   "_worktreesComment": "`.worktrees` is the same defect as dist/ and coverage/, found later because the cost scales with how many worktrees a machine happens to hold (CodySwannGT/lisa#4122). Each entry is a FULL checkout of this repository, so the preprocessor walks the tree N+1 times; measured at 123 worktrees it exhausted node's heap at ~3.9 GB after 158 seconds of mark-compact thrash and aborted with SIGABRT, taking the push with it. The last file it logged was `.worktrees/3467/all/copy-overwrite/scripts/lisa-gates.mjs`. That happens during PREPROCESSING, before any sandbox is written, which is why the leftover `.stryker-tmp/run-*` is 0 bytes and names no cause. Raising the heap would only move the worktree count at which it dies, and the count is a property of the hour rather than of the repository — it was 55 earlier in the session that measured this and 123 by the end. Excluding it cannot weaken the gate: `mutate` below names every target individually and by name, so nothing under `.worktrees` is reachable as a mutation target, and the exclusion removes only a scan of copies of files already listed. Independently measured on a second machine before the heap-exhaustion case above was known: 52 GB + 5.5 GB of parked worktrees copied into every sandbox blew the 20-minute dry-run budget on its own, while the dry-run suite itself takes 46 seconds — reported as `dry-run-timeout`, which says nothing about the tests. The bare `worktrees` name is kept in the list beside the `**/worktrees` glob rather than folded into it: a name matches the directory anywhere in the tree without depending on globstar matching zero segments at the root, and an extra ignore entry cannot weaken a gate whose `mutate` targets are all named individually.",
   "_worktreesSecondLocationComment": "Excluding `.worktrees` alone was not enough, and the way that surfaced is the useful part: with the heap no longer exhausted, Stryker reached its DRY RUN for the first time and failed there instead — `tests/unit/hooks/pre-push-traceability-gate.test.ts` reported two hook copies disagreeing, a test that passes 36/36 in a normal run. `.gitignore` carries THREE worktree rules (`**/.claude/worktrees/`, `.worktrees/`, `worktrees/`), so excluding one leaves the others walked, and `.claude/worktrees` held 32 more checkouts. It only bites inside a sandbox because `checkoutFiles` in `tests/helpers/tracked-files.ts` is `isOwnCheckout(root) ? trackedPaths(root) : walkRepoFiles(root)`: a sandbox copy is not a git checkout, so the `git ls-files` path that hides ignored files is skipped and the filesystem walk finds hook copies no tracked roster contains. Fixing that fallback to skip worktree directories would close the class for every non-git copy rather than for Stryker alone, and is worth doing separately; excluding them here is what unblocks the gate now. Safe for the same reason as above — `mutate` names its targets by name and none lives under any worktrees directory.",
   "ignorePatterns": [
-    "dist",
+    "dist/*",
+    "!dist/core",
+    "dist/core/*",
+    "!dist/core/lisa-release-pin.js",
+    "!dist/core/reusable-workflow-pin.js",
+    "!dist/cli",
+    "dist/cli/*",
+    "!dist/cli/version.js",
     "coverage",
     "worktrees",
     ".worktrees",
@@ -45,8 +63,20 @@
   "_thresholdsOwner": "Owned by .lisa.config.json quality.mutation.strykerThresholds. Every other key in this file is Stryker's own and is yours to edit; `thresholds` is not. `lisa sync` writes it from that config key, and when the two disagree it does one of two things (src/sync/stryker-thresholds-ownership.ts): with `_thresholdsDivergence` below recording both live numbers and a reason, it proceeds, leaves this value alone, and says it is honouring a recorded divergence; with nothing recording why, it REFUSES and names both values. So change the config, not this line — and if the two must differ for a while, keep `_thresholdsDivergence` current, because a stale block stops exempting anything and fails a test.",
   "_thresholdsDivergence": {
     "reason": "Neither number is right yet, and that is deliberate (CodySwannGT/lisa#2968). 32 leaves wide slack against a measured ~58 aggregate; 60 fails today and fails harder as CodySwannGT/lisa#2940 lands, because bounding unbounded child spawns reveals mutants currently scored as killed only because they timed out — so the true score is still moving. Sizing a floor against a distribution that is still clipping is the exact defect this campaign has hit repeatedly. Sequence: land the spawn bounding, measure the true aggregate, set BOTH files to one value just below it, delete this block, then ratchet.",
-    "enforced": { "high": 80, "low": 40, "break": 32 },
-    "declared": { "high": 80, "low": 60, "break": 60 }
+    "enforced": {
+      "high": 80,
+      "low": 40,
+      "break": 32
+    },
+    "declared": {
+      "high": 80,
+      "low": 60,
+      "break": 60
+    }
   },
-  "thresholds": { "high": 80, "low": 40, "break": 32 }
+  "thresholds": {
+    "high": 80,
+    "low": 40,
+    "break": 32
+  }
 }

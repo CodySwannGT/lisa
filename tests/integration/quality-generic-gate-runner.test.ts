@@ -205,8 +205,9 @@ describe("no gate is proved twice", () => {
     // silently dropped every gate id carrying a digit — `e2e-native`,
     // `e2e-browser` — so the sweep below compared a subset to the table and
     // passed. A discovery bug in a derived test is the failure mode this
-    // whole campaign is about, committed inside the check for it.
-    expect(HARDCODED.size).toBeGreaterThan(25);
+    // whole campaign is about, committed inside the check for it. Lowered
+    // from 25 when #3052 deleted five blocks the runner now proves; 24 remain.
+    expect(HARDCODED.size).toBeGreaterThan(20);
   });
 
   it("emits no leg for any gate a hand-written block still proves", () => {

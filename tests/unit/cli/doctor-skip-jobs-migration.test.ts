@@ -107,7 +107,7 @@ describe("doctor skip_jobs migration", () => {
   describe("it resolves every token to its gate", () => {
     it("resolves tokens whose gate the name does not predict", async () => {
       await writeCaller(
-        caller("typecheck,npm_security_scan,sg_scan,work_item_traceability")
+        caller("test:unit,npm_security_scan,sg_scan,work_item_traceability")
       );
       const [found] = await skipJobCallers(project);
       expect(
@@ -115,7 +115,7 @@ describe("doctor skip_jobs migration", () => {
           (found?.tokens ?? []).map(entry => [entry.token, entry.gate])
         )
       ).toEqual({
-        typecheck: "type-correctness",
+        "test:unit": "test-correctness",
         npm_security_scan: "dependency-vulnerability",
         sg_scan: "structural-rules",
         work_item_traceability: "traceability",
@@ -184,6 +184,22 @@ describe("doctor skip_jobs migration", () => {
       const check = await checkSkipJobsMigration(project);
       expect(check.detail).toContain("RETIRED");
       expect(check.detail).toContain("delete it from skip_jobs");
+    });
+
+    it("tells the operator how to keep a runner-owned check off (#3052)", async () => {
+      // Its job became a declared gate leg, which ignores skip_jobs: deleting
+      // the token alone would switch back on a check the caller turned off.
+      await writeCaller(caller("typecheck"));
+      const [found] = await skipJobCallers(project);
+      expect(found?.tokens[0]?.status).toBe("retired");
+      expect(found?.tokens[0]?.declaration).toBe(
+        '"type-correctness": { "pull-request": "off" }'
+      );
+      const check = await checkSkipJobsMigration(project);
+      expect(check.detail).toContain("became a declared gate leg");
+      expect(check.detail).toContain(
+        '"type-correctness": { "pull-request": "off" }'
+      );
     });
 
     it("reports a whitespace-damaged token as skipping nothing", async () => {

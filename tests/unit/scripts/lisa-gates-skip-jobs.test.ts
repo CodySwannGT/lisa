@@ -25,10 +25,8 @@ import {
 /** Token → gate pairs an underscore-to-hyphen transform gets WRONG. */
 const NOT_DERIVABLE_FROM_THE_NAME: readonly (readonly [string, string])[] = [
   ["lint", "code-style"],
-  ["lint_slow", "code-style-slow"],
-  ["typecheck", "type-correctness"],
-  ["build", "build-integrity"],
-  ["format", "format-conformance"],
+  // `lint_slow`, `typecheck`, `build` and `format` left this table in #3052:
+  // their jobs were deleted, so the tokens are retired rather than mapped.
   ["test:unit", "test-correctness"],
   ["test:mutation", "test-meaningfulness"],
   ["npm_security_scan", "dependency-vulnerability"],
@@ -234,7 +232,8 @@ describe("skip_jobs → gate mapping", () => {
     });
 
     it("does not resolve a hyphenated guess at an underscore token", () => {
-      // `lint_slow` is real; `lint-slow` is what a naive transform produces.
+      // `lint_slow` was real (retired in #3052); `lint-slow` is what a naive
+      // transform produces.
       // Answering the guess would be worse than answering nothing.
       expect(gateForSkipJob("lint-slow").gate).toBeNull();
       expect(gateForSkipJob("dead-code").gate).toBeNull();

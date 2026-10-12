@@ -187,20 +187,17 @@ describe("quality.yml reusable workflow", () => {
     });
 
     // Test hardened to kill mutant M002 (Risk Factor: CI gate correctness / substring skip collision).
-    // `lint` is a strict prefix of `lint_slow`, so this pair exercises the same
-    // collision the deleted `test` / `test:e2e` pair used to (#2485).
-    it("does not let lint_slow skip the plain lint job", () => {
+    // `lint` is a strict prefix of `lint_slow`. That job was deleted in #3052,
+    // but callers may still pass its retired token, and it must not reach the
+    // plain lint job through a substring match.
+    it("does not let the retired lint_slow token skip the plain lint job", () => {
       const lint = workflow.jobs.lint?.if ?? "";
-      const lintSlow = workflow.jobs.lint_slow?.if ?? "";
 
       expect(lint).toContain(
         "!contains(format(',{0},', inputs.skip_jobs), ',lint,')"
       );
       expect(lint).not.toContain("inputs.skip_jobs), ',lint_slow,')");
-      expect(lintSlow).toContain(
-        "!contains(format(',{0},', inputs.skip_jobs), ',lint_slow,')"
-      );
-      expect(lintSlow).not.toContain("inputs.skip_jobs), ',lint,')");
+      expect(workflow.jobs.lint_slow).toBeUndefined();
     });
 
     // #2485: the bare `test` job (`🧪 Run Tests`, plain `npm test`) is gone. It
@@ -327,19 +324,21 @@ describe("quality.yml reusable workflow", () => {
         return !`,${skipJobs},`.includes(needle);
       }
 
-      it("'lint,lint_slow' — written correctly, skips both", () => {
-        expect(jobRuns(workflow.jobs.lint, "lint,lint_slow")).toBe(false);
-        expect(jobRuns(workflow.jobs.lint_slow, "lint,lint_slow")).toBe(false);
+      it("'lint,test:integration' — written correctly, skips both", () => {
+        const skip = "lint,test:integration";
+        expect(jobRuns(workflow.jobs.lint, skip)).toBe(false);
+        expect(jobRuns(workflow.jobs.test_integration, skip)).toBe(false);
       });
 
-      it("'lint, lint_slow' — the space makes lint_slow RUN anyway (fails closed)", () => {
-        expect(jobRuns(workflow.jobs.lint, "lint, lint_slow")).toBe(false);
-        expect(jobRuns(workflow.jobs.lint_slow, "lint, lint_slow")).toBe(true);
+      it("'lint, test:integration' — the space makes the second RUN anyway (fails closed)", () => {
+        const skip = "lint, test:integration";
+        expect(jobRuns(workflow.jobs.lint, skip)).toBe(false);
+        expect(jobRuns(workflow.jobs.test_integration, skip)).toBe(true);
       });
 
       it("' lint ' — padded on both sides, skips nothing at all", () => {
         expect(jobRuns(workflow.jobs.lint, " lint ")).toBe(true);
-        expect(jobRuns(workflow.jobs.lint_slow, " lint ")).toBe(true);
+        expect(jobRuns(workflow.jobs.test_integration, " lint ")).toBe(true);
       });
 
       it("documents the constraint at the input, in both workflows", () => {
@@ -485,74 +484,32 @@ describe("quality.yml reusable workflow", () => {
       }
     );
 
-    it("declares cache_build with default false (unchanged behavior)", () => {
+    // `cache_build` configured the hand-written `build` job, which #3052
+    // deleted: the build now runs as the build-integrity gate's declared leg,
+    // and a leg always builds. Still DECLARED for the same reason as the two
+    // Playwright inputs above — installed callers pass it, and an undeclared
+    // input is a startup_failure for the caller's whole run.
+    it("keeps cache_build declared and optional, and says it is inert", () => {
       const input = workflow.on.workflow_call?.inputs?.cache_build;
       expect(input).toBeDefined();
       expect(input?.required).toBe(false);
       expect(input?.default).toBe(false);
       expect(input?.type).toBe("boolean");
+      expect(input?.description).toContain("INERT");
     });
 
-    // The `playwright_e2e` half of this pair moved with the job, to
-    // `playwright-e2e-workflow.test.ts`. Both halves still exist; splitting
-    // them was the alternative to asserting against a job that is not here,
-    // where every lookup returns undefined and every assertion passes.
-    it("includes the source root in the build cache key", () => {
-      const buildCache = workflow.jobs.build.steps?.find(
-        step => step.id === "build_cache"
-      );
-
-      // The key derives from the git-based fingerprint step rather than
-      // inlining a hashFiles glob — see the node_modules regression test below.
-      expect(buildCache?.with?.key).toContain(
-        "steps.build_fingerprint.outputs.hash"
-      );
-
-      const fingerprint = workflow.jobs.build.steps?.find(
-        step => step.id === "build_fingerprint"
+    it("no longer computes a build cache key anywhere in quality.yml", () => {
+      // The fingerprint and cache steps went with the job. Their regression
+      // guards for #2418 (unanchored hashFiles globs) live on in
+      // `playwright-e2e-workflow.test.ts`, which still carries a build cache.
+      const steps = Object.values(workflow.jobs).flatMap(
+        job => job.steps ?? []
       );
       expect(
-        fingerprint,
-        "build must compute a build fingerprint"
-      ).toBeDefined();
-      // The source roots and the lockfiles still drive invalidation.
-      expect(fingerprint?.run).toContain("git ls-files");
-      for (const path of ["'src'", "'bun.lock'", "'package.json'"]) {
-        expect(fingerprint?.run).toContain(path);
-      }
-    });
-
-    // Regression guard for CodySwannGT/lisa#2418.
-    //
-    // `hashFiles('**/src/**')` is unanchored, so it also matches
-    // `node_modules/**/src/**`. On AcmeOrgA/frontend that walked 116,353
-    // paths and hashed 26,955 node_modules files, blowing past the runner's
-    // 120-second hashFiles ceiling and failing the job in the cache's POST
-    // step — after every test had already passed. A green Playwright nightly
-    // (73/73) was reported as red, blocking merges repo-wide.
-    it("never derives a build cache key from an unanchored source glob", () => {
-      const fingerprintSteps = (workflow.jobs.build.steps ?? []).filter(
-        step => step.id === "build_fingerprint" || step.id === "build_cache"
-      );
-
-      // Two here, two in `playwright-e2e-workflow.test.ts`. Counted on both
-      // sides so a step that disappears cannot leave an empty loop passing.
-      expect(fingerprintSteps.length).toBe(2);
-
-      for (const step of fingerprintSteps) {
-        const text = `${step.run ?? ""}${step.with?.key ?? ""}`;
-        for (const glob of [
-          "**/src/**",
-          "**/app/**",
-          "**/components/**",
-          "**/features/**",
-        ]) {
-          expect(
-            text,
-            `${step.id} must not hash ${glob} — it traverses node_modules`
-          ).not.toContain(glob);
-        }
-      }
+        steps.filter(
+          step => step.id === "build_fingerprint" || step.id === "build_cache"
+        )
+      ).toEqual([]);
     });
   });
 

@@ -311,6 +311,17 @@ export function describeToken(
       // Distinct from `unknown` on purpose. The default branch below tells the
       // reader to check for a space after a comma, which is wrong advice for a
       // token they spelled correctly and which this workflow really did honour.
+      //
+      // A token whose job moved onto a declared gate leg (#3052) carries a
+      // declaration: the check still runs, now answering to the gate, so
+      // "just delete it" would leave a check on that the caller had turned off.
+      if (entry.declaration !== null) {
+        return (
+          `${entry.token} → RETIRED: its job became a declared gate leg, which ` +
+          "ignores skip_jobs. To keep the check off, declare " +
+          `${entry.declaration}; either way, delete the token`
+        );
+      }
       return (
         `${entry.token} → RETIRED: this workflow deliberately deleted the token, ` +
         "so it suppresses nothing and cannot be made to — delete it from skip_jobs"

@@ -133,30 +133,6 @@ const CONVERTED_JOBS: ConvertedJobSource[] = [
     ],
   },
   {
-    job: "lint_slow",
-    jobName: "🐢 Slow Lint Rules",
-    gateStep: "🐢 Run the code-style-slow gate",
-    fallbackSteps: ["🐢 Run slow lint rules"],
-  },
-  {
-    job: "typecheck",
-    jobName: "🔍 Type Check",
-    gateStep: "🔍 Run the type-correctness gate",
-    fallbackSteps: ["🔍 Run type check"],
-  },
-  {
-    job: "build",
-    jobName: "🏗️ Build",
-    gateStep: "🏗️ Run the build-integrity gate",
-    fallbackSteps: ["🏗️ Build project"],
-  },
-  {
-    job: "format",
-    jobName: "📐 Check Formatting",
-    gateStep: "📐 Run the format-conformance gate",
-    fallbackSteps: ["📐 Check formatting"],
-  },
-  {
     job: "test_unit",
     jobName: "🧪 Run Unit Tests",
     gateStep: "🧪 Run the test-correctness gate",
@@ -224,12 +200,6 @@ const CONVERTED_JOBS: ConvertedJobSource[] = [
     // that declared its own task may use a scanner with no notion of them.
     // Leaving it running would compute exclusions nothing consumes.
     fallbackSteps: ["📋 Load audit exclusions", "🔒 Run security audit"],
-  },
-  {
-    job: "dead_code",
-    jobName: "🗑️ Dead Code Detection",
-    gateStep: "🗑️ Run the dead-code gate",
-    fallbackSteps: ["🗑️ Run dead code detection (knip)"],
   },
   {
     job: "learnings_budget",
