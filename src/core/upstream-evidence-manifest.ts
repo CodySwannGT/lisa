@@ -10944,6 +10944,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/sentry-deploy-workflow.test.ts": true,
     "tests/integration/sentry-release-config.test.ts": true,
     "tests/integration/sentry-release-name.test.ts": true,
+    "tests/integration/sentry-release-sha-version.test.ts": true,
     "tests/integration/shared-runtime-packed-hosts.test.ts": true,
     "tests/integration/shell-guard-allow-controls.test.ts": true,
     "tests/integration/shell-guard-refusals.test.ts": true,

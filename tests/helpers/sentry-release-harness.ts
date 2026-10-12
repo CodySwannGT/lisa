@@ -63,6 +63,10 @@ export interface SentryExercise {
   readonly actionOutcome?: string;
   readonly inputs?: Record<string, string>;
   readonly versionOutputs?: Record<string, string>;
+  /** Git checkout the steps run in (the job's checkout); defaults to a non-repository scratch dir. */
+  readonly repository?: string;
+  /** Overrides the triggering commit (`github.sha`). */
+  readonly triggerSha?: string;
 }
 
 /** What one exercise observed. */
@@ -108,7 +112,7 @@ function contextsFor(fixture: SentryExercise, state: StepState): Contexts {
   return {
     secrets: fixture.secrets,
     vars: fixture.vars ?? {},
-    github: { sha: TRIGGER_SHA },
+    github: { sha: fixture.triggerSha ?? TRIGGER_SHA },
     inputs: {
       environment: "production",
       sourcemaps: "",
@@ -150,11 +154,18 @@ function environmentOf(
  * @param item The shipped step.
  * @param context Contexts to render against.
  * @param root Scratch directory holding the output and summary files.
+ * @param cwd Directory the step runs in (the checked-out repository).
  * @returns The child's result.
  */
-function runStep(item: WorkflowStep, context: Contexts, root: string) {
+function runStep(
+  item: WorkflowStep,
+  context: Contexts,
+  root: string,
+  cwd: string = root
+) {
   const fixtureEnv: Record<string, string> = {
-    PATH: "/usr/bin:/bin",
+    // Hosted runners carry node on PATH; the fixture exposes the same one.
+    PATH: `${path.dirname(process.execPath)}:/usr/bin:/bin`,
     ...environmentOf(item, context),
     GITHUB_OUTPUT: path.join(root, "output"),
     GITHUB_STEP_SUMMARY: path.join(root, "summary"),
@@ -178,7 +189,7 @@ function runStep(item: WorkflowStep, context: Contexts, root: string) {
       "-c",
       `${clearMissing}\n${render(item.run, context)}`,
     ],
-    cwd: root,
+    cwd,
   });
 }
 
@@ -223,7 +234,12 @@ export function exerciseSentryJob(fixture: SentryExercise): SentryObservation {
       resolver.if ?? "false",
       contextsFor(fixture, checked)
     )
-      ? runStep(resolver, contextsFor(fixture, checked), root)
+      ? runStep(
+          resolver,
+          contextsFor(fixture, checked),
+          root,
+          fixture.repository ?? root
+        )
       : undefined;
     const named = { ...checked, name: readOutput(root, "name") };
     const action = step("sentry");
