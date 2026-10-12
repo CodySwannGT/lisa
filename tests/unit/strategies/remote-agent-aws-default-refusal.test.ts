@@ -30,7 +30,7 @@ const BETA_DEV_ACCOUNT = "333333333333";
 const REFUSAL = "refusing to overwrite the [default]";
 const CLAIM_OVERRIDE = "LISA_AWS_CLAIM_DEFAULT_PROFILE=1";
 const OPERATOR_ROLE_DEFAULT =
-  "[default]\nrole_arn = arn:aws:iam::999999999999:role/Mine\n";
+  "[default]\nrole_arn = arn:aws:iam::000000000000:role/Mine\n";
 
 afterEach(removeTemporaryDirectories);
 
@@ -45,7 +45,7 @@ function projectEnvironment(
   devAccount: string
 ): Record<string, string> {
   return {
-    LISA_AWS_BOOTSTRAP_JSON: bundleFor(devAccount, "444444444444"),
+    LISA_AWS_BOOTSTRAP_JSON: bundleFor(devAccount, "222222222222"),
     LISA_AWS_PROFILE_NAMESPACE: namespace,
   };
 }
@@ -112,7 +112,7 @@ function expectNamedProfilesWritten(
   );
   expect(
     sectionBody(config, `[profile ${namespace}-agent-production]`)
-  ).toContain("role_arn = arn:aws:iam::444444444444:role/RemoteAgent");
+  ).toContain("role_arn = arn:aws:iam::222222222222:role/RemoteAgent");
   expect(
     sectionBody(awsFile(ws, "credentials"), `[${namespace}-agent-bootstrap]`)
   ).toContain("aws_access_key_id = AKIATEST");
