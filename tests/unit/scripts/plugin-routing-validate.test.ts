@@ -187,6 +187,17 @@ describe("validateArtifact routing gates", () => {
     ).toBe(true);
   });
 
+  it("flags a missing devin entry by name", () => {
+    expect(
+      has(
+        errsWith(a => {
+          delete a.routing.devin;
+        }),
+        "routing.devin is missing"
+      )
+    ).toBe(true);
+  });
+
   it("flags an outcome outside the locked enum", () => {
     expect(
       has(

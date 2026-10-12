@@ -128,26 +128,22 @@ async function releaseAuthority(owner, config, bytes, members) {
         typeof registry.dist?.integrity === "string",
       "registry helper identity differs from approved source"
     );
-    const packed = JSON.parse(
-      (
-        await runNpm(
-          [
-            "pack",
-            `${PACKAGE}@${owner.metadata.version}`,
-            "--ignore-scripts",
-            "--json",
-            "--pack-destination",
-            root,
-          ],
-          { cwd: root, env, timeout: 120_000, maximum: 1_048_576 }
-        )
-      ).stdout
-    );
+    const packed = (
+      await runNpm(
+        [
+          "pack",
+          `${PACKAGE}@${owner.metadata.version}`,
+          "--ignore-scripts",
+          "--silent",
+          "--pack-destination",
+          root,
+        ],
+        { cwd: root, env, timeout: 120_000, maximum: 1_048_576 }
+      )
+    ).stdout;
     const filename = `codyswann-lisa-${owner.metadata.version}.tgz`;
     required(
-      Array.isArray(packed) &&
-        packed.length === 1 &&
-        packed[0].filename === filename,
+      packed.equals(Buffer.from(`${filename}\n`)),
       "registry archive selection differs"
     );
     const archive = join(root, filename);

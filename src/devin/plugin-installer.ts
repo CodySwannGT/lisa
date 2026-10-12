@@ -47,19 +47,35 @@ const defaultRunner: DevinRunner = async args => {
   await execFileAsync("devin", [...args], { timeout: INSTALL_TIMEOUT_MS });
 };
 
+/** Outcome of probing for the Devin CLI. */
+export interface DevinDetection {
+  /** True when `devin --version` exited 0. */
+  readonly available: boolean;
+  /**
+   * Why the probe failed, when it failed for any reason OTHER than the CLI
+   * being absent. Undefined when the CLI is simply not installed (ENOENT) or
+   * when it is available — so a broken install is reported, never mistaken
+   * for an absent one.
+   */
+  readonly error: string | undefined;
+}
+
 /**
- * Whether the Devin CLI is callable.
+ * Probe for the Devin CLI.
  * @param run - Runner used to probe `devin --version`
- * @returns True when the probe exits 0
+ * @returns Availability, plus the failure reason when the CLI exists but the probe failed
  */
 export async function detectDevin(
   run: DevinRunner = defaultRunner
-): Promise<boolean> {
+): Promise<DevinDetection> {
   try {
     await run(["--version"]);
-    return true;
-  } catch {
-    return false;
+    return { available: true, error: undefined };
+  } catch (err) {
+    const code = (err as { readonly code?: unknown } | null)?.code;
+    if (code === "ENOENT") return { available: false, error: undefined };
+    const message = err instanceof Error ? err.message : String(err);
+    return { available: false, error: message };
   }
 }
 

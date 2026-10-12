@@ -2,6 +2,18 @@
 
 Work-Item: CodySwannGT/lisa#4347
 
+## Bounded native package summary fix — 2026-10-12
+
+The provider diagnostics are merged in PR #4435 and published as authentic Lisa 4.75.1. A fresh hosted invocation now fails earlier in preparation with `stage=unknown native=output-bound status=null signal=SIGTERM`. A native Node 22.23.3 reproduction using the existing helper's exact registry commands proves that the registry view succeeds (130,676 stdout bytes), while `npm pack --json --ignore-scripts` exhausts its unchanged 1,048,576-byte output limit. The downloaded archive matches the actual published SHA512 integrity, and the owned temporary root is positively absent afterward. This proves the new preparation failure; the older checkpoint failure remains unproved.
+
+Current source base: released main `da9f544cbc289f30711c26f846e4b2d78d7f0332`; attached branch `codex/4347-bounded-pack-output`. The original claimed leaf is reused.
+
+Admit the existing quality teammate as the bounded builder of only `all/copy-overwrite/scripts/lib/npm-update-helper.mjs` and `tests/unit/scripts/npm-update-classifier-cache.test.ts`. Request a silent native package summary instead of the complete JSON file inventory; accept only the one exact expected archive filename and newline. Preserve `--ignore-scripts`, the original output limit and deadline, independent registry identity, streamed archive integrity, exact archive member checks, ownership, cleanup and all cached-authentication refusal controls. Prove meaningful RED/GREEN and malformed filename, duplicate output and invalid archive negatives. Do not widen a bound or accept truncated JSON.
+
+The existing security teammate independently reviews the frozen source and tests. The existing transport verifier runs the actual quiet command against the authentic published package with unchanged limits and independently proves filename selection, archive integrity and owned cleanup. Root owns this metadata, official helper graph and derived generation, ordinary commits, one source PR, existing protected checks, actual publication and consumer adoption. All original six hosted scenarios and final fixture cleanup remain pending; no source or consumer ticket is complete from this local fix.
+
+The remaining sections retain their original historical observations and admissions.
+
 Base: current main 5c1778a99257c712d1ce7314a3e4fac988dd5332. Sole permanent integration branch is main. Existing claimed leaf and worktree-local binding are retained; this task preserves the original six acceptance scenarios.
 
 The actual hosted run passed preparation and signed allocation, then exited at gate-push with native status 1 before publication. The complete job log and artifact inventory retain no original child transcript. No underlying hook, test, or audit-versus-destination cause is established. Unchanged replay cannot recover the lost evidence.
@@ -70,3 +82,21 @@ Admit a bounded builder only to `tests/fixtures/shared-runtime-hosts/artifact.ts
 The repaired protocol candidate still failed its original native Expo install deadline. Owned process observations show genuine dependency installation entered the Claude plugin installer and continued plugin operations at 195 seconds, just before the 199,376 ms deadline. The install helper's existing lifecycle guard should leave agent installations unchanged. Four genuine trusted local dependency installations on Bun 1.3.8 and 1.3.11 prove the selector defect: Bun preserves an inherited `npm_lifecycle_event=lisa-test-run` rather than replacing it with `postinstall`, so the helper's empty-event Bun fallback does not run.
 
 Admit only `package.json` and the existing `tests/unit/scripts/install-claude-plugins-self.test.ts` to the current builder. Declare the known `postinstall` event explicitly at the package's own setup-helper invocation, rather than broadening the helper's interpretation of explicit setup. Keep the remaining merge-driver and source-only TypeScript build commands unchanged. The corresponding root `package.lisa.json` has no postinstall declaration; do not introduce one into host governance. Add a reaching RED/GREEN regression executing the actual declared command with inherited Bun selectors and existing isolated agent tripwires, preserving configuration and no-agent-operation assertions. Root then runs the original Expo case with unchanged dependencies, cache, concurrency, deadlines, framework work and assertions. A different reviewer verifies exact bytes and actual proof. All six original hosted requirements, ordinary full push, one batched PR, release and caller adoption remain outstanding.
+
+## Closed provider diagnostic followup — 2026-10-12
+
+- [x] Reproduce missing provider labels with real supervised native failures: six RED cases, seven passing controls.
+- [x] Add source-selected closed request-purpose and method labels only to registered native failures, plus a bounded non-authoritative HTTP hint. Five focused files pass 112 controls; exact exception, argv, environment, stdin, deadline and one-call behavior are preserved.
+- [ ] Complete independent current-source quality and security review, normal generated artifacts, full native push and protected source merge.
+- [ ] Qualify the authentic release and adopt it through coherent locks, official full apply, ordinary hooks and protected consumer merge.
+- [ ] Observe the next actual hosted checkpoint operation and complete the original six acceptance journeys and owned cleanup. The prior partial v2 record remains evidence only.
+
+## Required native deadline-suite ordering correction — 2026-10-12
+
+The final provider diagnostic head passes 27,801 unit controls but the ordinary full push fails five existing optional-freshness integration assertions. An unchanged focused reproduction passes all 29 controls. Installed Vitest 4.1.11 routes isolated, single-worker group zero into a special sequential group appended after numbered groups. The current local configuration therefore runs the deadline suites after the bulk suite, contradicting its stated first-group intent. Actual retained process births place these controls more than seven minutes after integration startup; this proves ordering, not the exact cause of each lost optional observation.
+
+Admit only `vitest.config.local.ts` and a reaching native scheduling regression in `tests/unit/config/vitest-deadline-order.test.ts` to the existing quality teammate. Use explicit positive ordered groups for the deadline and bulk projects. Preserve worker counts, isolation, discovery, all real guards, assertions, physical deadlines and cleanup. The regression must exercise the installed Vitest runner and actual local scheduling plugin, observe execution order, fail before the correction and pass afterward. Root owns official derived artifacts, normal small commits and the unchanged full native push. A different teammate independently reviews the exact correction. The original six hosted requirements and cleanup remain outstanding.
+
+## Native regression supervision correction — 2026-10-12
+
+The first current-main full push at ccf1bbccd5c4498bfd14bf8438b078abc1aa21bd ran 27,855 passing unit controls and two actual failures. The existing mandatory supervision guard identified the newly added deadline-order regression as a bare Vitest child: its bounded launcher protects only the immediate process, not the full test descendant group. Admit only the new regression test to the existing quality teammate to use the existing source lisa-test-run route, preserving all ordering assertions, actual installed runner and local plugin, file-backed fixture, worker limits, liveness bound and owned cleanup. Retain the existing full-run guard failure as RED; prove the unchanged guard and corrected native scheduling control pass together. Root resolves the separate missing current release tag by fetching its genuine provider ref if it exists, without synthesizing a stamp or changing resolution rules. Review independently, normal small commit, then run the original complete native push once at the corrected head. Original hosted acceptance remains outstanding.

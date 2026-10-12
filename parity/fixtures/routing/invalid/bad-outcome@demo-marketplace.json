@@ -39,7 +39,7 @@
     "devin": {
       "outcome": "claude-only",
       "actions": [],
-      "rationale": "Devin installs Lisa's own plugin variant; reimplement as a Lisa skill."
+      "rationale": "Fixture entry: mirrors agy so the only invalid field in this artifact is the bad outcome under test."
     }
   }
 }

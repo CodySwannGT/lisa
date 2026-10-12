@@ -9,6 +9,11 @@
 # Usage: devin-tool-name-shim.sh <hook command> [args...]
 payload=$(cat)
 normalized=$payload
+mapped=
+case $payload in
+  *'"tool_name"'*) needs_mapping=1 ;;
+  *) needs_mapping=0 ;;
+esac
 if command -v jq >/dev/null 2>&1; then
   mapped=$(printf '%s' "$payload" | jq -c '
     if (.tool_name | type) == "string" then
@@ -26,5 +31,9 @@ if command -v jq >/dev/null 2>&1; then
         "todo_write": "TodoWrite"
       }[.] // .)
     else . end' 2>/dev/null) && [ -n "$mapped" ] && normalized=$mapped
+fi
+if [ "$needs_mapping" = 1 ] && [ -z "${mapped:-}" ]; then
+  echo "Lisa could not map the Devin tool name (jq missing or failed); refusing" >&2
+  exit 2
 fi
 printf '%s' "$normalized" | "$@"

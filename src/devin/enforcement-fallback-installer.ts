@@ -13,12 +13,14 @@
  * `scripts/lisa-enforcement-fallback.sh` — the same dispatcher Claude and
  * Codex use — after rewriting the payload's lowercase `tool_name` to the
  * Claude name the guards test for. Host-authored entries are preserved; the
- * Lisa entry is recognised by the dispatcher path in its command, so no marker
- * field has to be added to a schema Lisa does not own.
+ * Lisa entry is recognised by its EXACT command (see {@link LISA_OWNED_COMMANDS}),
+ * so no marker field has to be added to a schema Lisa does not own, and a host
+ * command that merely calls the dispatcher alongside its own checks is never
+ * mistaken for Lisa's and removed.
  * @module devin/enforcement-fallback-installer
  */
 import * as fse from "fs-extra";
-import { readFile, writeFile } from "node:fs/promises";
+import { readFile, rename, writeFile } from "node:fs/promises";
 import * as path from "node:path";
 
 const DEVIN_DIR = ".devin";
@@ -35,13 +37,33 @@ export const DEVIN_FALLBACK_MATCHER = "^(exec|write|edit|apply_patch)$";
  * to the project root; the git/pwd fallback covers a runner that does not.
  * Without `jq` the payload passes unchanged, exactly as the guards behave when
  * they cannot parse it.
+ *
+ * The root has leading and trailing whitespace trimmed (never inner spaces —
+ * a project path may contain them) before the fallback applies, so a `" "`
+ * value cannot survive and point at a dispatcher that cannot exist. Every
+ * failure that would otherwise ALLOW the call fails closed with exit 2, the
+ * only status Devin blocks on: a missing dispatcher, and a tool-name mapping
+ * that could not run (no `jq`, or `jq` failed) — forwarding the raw lowercase
+ * `exec` would make every Bash guard stand down.
  */
 export const DEVIN_FALLBACK_COMMAND = [
-  'root="${DEVIN_PROJECT_DIR:-$(git rev-parse --show-toplevel 2>/dev/null || pwd)}"',
+  "root=\"$(printf '%s' \"${DEVIN_PROJECT_DIR-}\" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')\"",
+  '[ -n "$root" ] || root="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"',
+  `[ -f "$root/${DEVIN_FALLBACK_DISPATCHER}" ] || { echo "Lisa enforcement dispatcher missing at $root/${DEVIN_FALLBACK_DISPATCHER}; refusing (run lisa apply)" >&2; exit 2; }`,
   "payload=$(cat)",
   `mapped=$(printf '%s' "$payload" | jq -c 'if (.tool_name | type) == "string" then .tool_name |= ({"exec": "Bash", "write": "Write", "edit": "Edit"}[.] // .) else . end' 2>/dev/null) || mapped=""`,
-  `printf '%s' "\${mapped:-$payload}" | /bin/bash "$root/${DEVIN_FALLBACK_DISPATCHER}"`,
+  `[ -n "$mapped" ] || { echo "Lisa could not map the Devin tool name (jq missing or failed); refusing" >&2; exit 2; }`,
+  `printf '%s' "$mapped" | /bin/bash "$root/${DEVIN_FALLBACK_DISPATCHER}"`,
 ].join("; ");
+
+/**
+ * Every command string Lisa has ever written as its fallback handler. Ownership
+ * is an exact match against this list: when the command changes, the previous
+ * spelling stays here so a re-apply replaces it instead of leaving a stale copy.
+ */
+const LISA_OWNED_COMMANDS: ReadonlySet<string> = new Set([
+  DEVIN_FALLBACK_COMMAND,
+]);
 
 /** One Devin hook handler. Unknown host fields are preserved on round-trip. */
 interface DevinHookHandler {
@@ -76,8 +98,37 @@ export interface DevinEnforcementFallbackResult {
 function isLisaHandler(handler: DevinHookHandler): boolean {
   return (
     typeof handler.command === "string" &&
-    handler.command.includes(DEVIN_FALLBACK_DISPATCHER)
+    LISA_OWNED_COMMANDS.has(handler.command)
   );
+}
+
+/**
+ * Whether a `.devin/hooks.v1.json` body carries the current Lisa fallback
+ * handler under PreToolUse. Used by readiness checks, so a file that merely
+ * exists (or is `{}`) is not mistaken for an installed fallback.
+ * @param raw - File contents, or undefined when absent
+ * @returns True when the exact Lisa handler is registered
+ */
+export function hasDevinFallback(raw: string | undefined): boolean {
+  if (raw === undefined) return false;
+  try {
+    const parsed: unknown = JSON.parse(raw);
+    if (parsed === null || typeof parsed !== "object") return false;
+    const groups = (parsed as Record<string, unknown>).PreToolUse;
+    if (!Array.isArray(groups)) return false;
+    return (groups as readonly DevinMatcherGroup[]).some(
+      group =>
+        group?.matcher === DEVIN_FALLBACK_MATCHER &&
+        Array.isArray(group.hooks) &&
+        group.hooks.some(
+          handler =>
+            handler?.type === "command" &&
+            handler.command === DEVIN_FALLBACK_COMMAND
+        )
+    );
+  } catch {
+    return false;
+  }
 }
 
 /**
@@ -113,6 +164,23 @@ export function mergeDevinFallback(existing: DevinHooksFile): DevinHooksFile {
 }
 
 /**
+ * Parse JSON, naming the file when it is malformed.
+ * @param raw - File contents
+ * @param file - Path for the error message
+ * @returns The parsed value
+ */
+function parseJson(raw: string, file: string): unknown {
+  try {
+    return JSON.parse(raw) as unknown;
+  } catch (err) {
+    const reason = err instanceof Error ? err.message : String(err);
+    throw new Error(
+      `${file} is not valid JSON (${reason}); refusing to overwrite it`
+    );
+  }
+}
+
+/**
  * Parse the host file, refusing anything that is not a JSON object rather than
  * overwriting host content Lisa cannot read.
  * @param raw - File contents
@@ -120,10 +188,16 @@ export function mergeDevinFallback(existing: DevinHooksFile): DevinHooksFile {
  * @returns Parsed hooks file
  */
 function parseHooksFile(raw: string, file: string): DevinHooksFile {
-  const parsed: unknown = JSON.parse(raw);
+  const parsed = parseJson(raw, file);
   if (parsed === null || typeof parsed !== "object" || Array.isArray(parsed)) {
     throw new Error(
       `${file} must be a JSON object of hook events; refusing to overwrite it`
+    );
+  }
+  const preToolUse = (parsed as Record<string, unknown>).PreToolUse;
+  if (preToolUse !== undefined && !Array.isArray(preToolUse)) {
+    throw new Error(
+      `${file} has a PreToolUse value that is not an array; refusing to overwrite it`
     );
   }
   return parsed as DevinHooksFile;
@@ -144,7 +218,11 @@ export async function installDevinEnforcementFallback(
     ? parseHooksFile(await readFile(hooksPath, "utf8"), hooksPath)
     : {};
   const merged = mergeDevinFallback(existing);
-  await writeFile(hooksPath, `${JSON.stringify(merged, null, 2)}\n`, "utf8");
+  // Write beside the target and rename over it, so an interrupted apply can
+  // never leave a truncated hooks file that silently disables every hook.
+  const tempPath = `${hooksPath}.${process.pid}.tmp`;
+  await writeFile(tempPath, `${JSON.stringify(merged, null, 2)}\n`, "utf8");
+  await rename(tempPath, hooksPath);
   return {
     managedFiles: Object.freeze([path.join(DEVIN_DIR, HOOKS_FILENAME)]),
     hookEntries: 1,

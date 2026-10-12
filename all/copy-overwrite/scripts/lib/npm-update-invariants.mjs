@@ -30,6 +30,52 @@ const stages = new Set([
 ]);
 const diagnostics = new WeakMap();
 const capturedErrors = new WeakMap();
+const providerPurposes = new Set([
+  "repository",
+  "main-reference",
+  "branch-reference",
+  "run-attempt",
+  "collaborator-permission",
+  "issue-search",
+  "issue",
+  "issue-comments",
+  "issue-comment",
+  "issue-children",
+  "issue-blockers",
+  "pulls",
+  "unclassified",
+]);
+const providerMethods = new Set(["GET", "POST", "PATCH", "PUT", "DELETE"]);
+
+/** A single bounded child-reported status is a hint, never provider or retry authority. */
+function providerHttpHint(error, facts) {
+  const bytes = capturedErrors.get(error);
+  if (facts.native !== "exit" || facts.status !== 1 || !bytes) return null;
+  const text = bytes.toString("utf8");
+  if ([...text.matchAll(/\(HTTP /g)].length !== 1) return null;
+  const match =
+    /^gh: [\x20-\x7e]{1,220} \(HTTP (400|401|403|404|409|410|422|429|500|502|503|504)\)(?:\r?\n)?$/.exec(
+      text
+    );
+  return match ? Number(match[1]) : null;
+}
+
+/** Only an observed native failure receives fixed route labels; arbitrary exceptions remain opaque. */
+export async function withProviderOperation(purpose, method, operation) {
+  try {
+    return await operation();
+  } catch (error) {
+    const facts = diagnostics.get(error);
+    if (facts?.native)
+      diagnostics.set(error, {
+        ...facts,
+        provider: providerPurposes.has(purpose) ? purpose : "unclassified",
+        method: providerMethods.has(method) ? method : "unclassified",
+        providerHttp: providerHttpHint(error, facts),
+      });
+    throw error;
+  }
+}
 const provenancePhases = new Set([
   "local-proof",
   "configuration",
@@ -248,6 +294,14 @@ export function publicFailure(error) {
     }
   }
   if (facts?.provenance) parts.push(`provenance=${facts.provenance}`);
+  if (facts?.provider) {
+    parts.push(`provider=${facts.provider}`, `method=${facts.method}`);
+    if (facts.providerHttp !== null)
+      parts.push(
+        `http-reported=${facts.providerHttp}`,
+        "reports=child-reported-nonauthoritative"
+      );
+  }
   return `npm updater failed: required policy, authorization, installation, gate or exact publication evidence was unavailable (${parts.join(" ")})`;
 }
 

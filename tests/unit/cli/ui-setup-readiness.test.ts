@@ -1,5 +1,6 @@
 /* eslint-disable sonarjs/no-duplicate-string, max-lines -- explicit contract fixtures favor local readability */
 import { mkdir, mkdtemp, rm, symlink, writeFile } from "node:fs/promises";
+import { mergeDevinFallback } from "../../../src/devin/enforcement-fallback-installer.js";
 import { tmpdir } from "node:os";
 import * as path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
@@ -197,7 +198,10 @@ async function writeHarnessSurfaces(
   }
   if (includes("devin")) {
     await mkdir(path.join(root, ".devin"), { recursive: true });
-    await writeFile(path.join(root, ".devin/hooks.v1.json"), "{}\n");
+    await writeFile(
+      path.join(root, ".devin/hooks.v1.json"),
+      JSON.stringify(mergeDevinFallback({}))
+    );
   }
 }
 

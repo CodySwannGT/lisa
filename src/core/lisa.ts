@@ -1845,7 +1845,13 @@ export class Lisa {
       "lisa-devin",
       ...this.perAgentStackVariants(pluginRoot, "devin"),
     ];
-    const devinOnPath = await detectDevin();
+    const detection = await detectDevin();
+    const devinOnPath = detection.available;
+    if (detection.error !== undefined) {
+      this.deps.logger.warn(
+        `Devin emit: devin is on PATH but \`devin --version\` failed, so no plugins were installed: ${detection.error}`
+      );
+    }
     const pluginResults = [];
     if (devinOnPath) {
       for (const variant of variantNames) {

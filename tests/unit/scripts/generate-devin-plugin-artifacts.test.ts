@@ -183,6 +183,43 @@ describe("generate-devin-plugin-artifacts (#4426)", () => {
       expect(result.status).toBe(2);
     });
 
+    it("fails closed on a tool event when jq is unavailable, but passes session events", async () => {
+      await scaffoldSource(srcDir, { hooks: BASE_HOOK_BLOCK });
+      generateDevinVariant(srcDir, outDir, VERSION);
+      const guard = path.join(tempDir, "allow.sh");
+      await fs.writeFile(guard, "#!/bin/sh\ncat >/dev/null\nexit 0\n", {
+        mode: 0o755,
+      });
+      // A PATH holding only `cat`: on usr-merged Linux /bin IS /usr/bin, which
+      // carries jq, so /bin cannot stand for "no jq".
+      const bin = path.join(tempDir, "nojq-bin");
+      await fs.ensureDir(bin);
+      await fs.symlink("/bin/cat", path.join(bin, "cat"));
+      const env = { PATH: bin };
+
+      const toolEvent = boundedSpawnSync({
+        label: "devin tool-name shim (no jq, tool event)",
+        command: path.join(outDir, "hooks", SHIM),
+        args: [guard],
+        env,
+        input: JSON.stringify({
+          tool_name: "exec",
+          tool_input: { command: "ls" },
+        }),
+      });
+      const sessionEvent = boundedSpawnSync({
+        label: "devin tool-name shim (no jq, session event)",
+        command: path.join(outDir, "hooks", SHIM),
+        args: [guard],
+        env,
+        input: JSON.stringify({ hook_event_name: "SessionStart" }),
+      });
+
+      expect(toolEvent.status).toBe(2);
+      expect(toolEvent.stderr).toContain("could not map the Devin tool name");
+      expect(sessionEvent.status).toBe(0);
+    });
+
     it("passes unknown names through unchanged and preserves an allowing guard's exit 0", async () => {
       await scaffoldSource(srcDir, { hooks: BASE_HOOK_BLOCK });
       generateDevinVariant(srcDir, outDir, VERSION);
