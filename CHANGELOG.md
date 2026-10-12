@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.77.1](https://github.com/CodySwannGT/lisa/compare/v4.77.0...v4.77.1) (2026-10-12)
+
+
+### Documentation
+
+* **devin:** document Devin parity and its scheduler gap ([d875000](https://github.com/CodySwannGT/lisa/commit/d87500002d805e88ed08ac7fdf6e6e60b6135f50)), closes [CodySwannGT/lisa#4429](https://github.com/CodySwannGT/lisa/issues/4429) [CodySwannGT/lisa#4429](https://github.com/CodySwannGT/lisa/issues/4429)
+* **devin:** record that the Devin hook paths fail closed ([287c5f3](https://github.com/CodySwannGT/lisa/commit/287c5f3d13f2e09cab795a972a6c3cf066346757)), closes [CodySwannGT/lisa#4429](https://github.com/CodySwannGT/lisa/issues/4429) [CodySwannGT/lisa#4429](https://github.com/CodySwannGT/lisa/issues/4429)
+* **devin:** say where unattended Devin-era loops actually run ([a3ec170](https://github.com/CodySwannGT/lisa/commit/a3ec1709283c39aeea7dea374b93bcb9b611d0d3)), closes [CodySwannGT/lisa#4429](https://github.com/CodySwannGT/lisa/issues/4429) [CodySwannGT/lisa#4429](https://github.com/CodySwannGT/lisa/issues/4429)
+
 ## [4.77.0](https://github.com/CodySwannGT/lisa/compare/v4.76.0...v4.77.0) (2026-10-12)
 
 
