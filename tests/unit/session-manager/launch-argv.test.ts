@@ -14,6 +14,7 @@ import { describe, expect, it } from "vitest";
 import {
   LaunchError,
   TELEGRAM_PLUGIN_ID,
+  buildForegroundCommand,
   buildHasSession,
   buildManagerLaunch,
   buildManagerSettings,
@@ -29,6 +30,9 @@ const INPUT = {
   scriptsDir: "/opt/lisa/skills/lisa-session-manager/scripts",
   interval: "5m",
 };
+
+const CHANNELS = "--channels";
+const LOOP_PROMPT = "/loop 5m /lisa:session-manager cycle";
 
 const SETTINGS_JSON =
   '{"crossSessionInbound":"accept","enabledPlugins":{"telegram@claude-plugins-official":true}}';
@@ -69,10 +73,26 @@ describe("buildManagerLaunch", () => {
       "--dangerously-skip-permissions",
       "--settings",
       SETTINGS_JSON,
-      "--channels",
+      CHANNELS,
       "plugin:telegram@claude-plugins-official",
-      "/loop 5m /lisa:session-manager cycle",
+      "--",
+      LOOP_PROMPT,
     ]);
+  });
+
+  // claude 2.1.296 parses `--channels` as variadic: without `--` it swallows
+  // the prompt as a second channel entry and exits 1 with "--channels entries
+  // must be tagged: /loop 5m …" before any session starts.
+  it("ends option parsing with -- right before the loop prompt", () => {
+    const argv = buildManagerLaunch(INPUT);
+    const channels = argv.indexOf(CHANNELS);
+    expect(argv.slice(channels)).toEqual([
+      CHANNELS,
+      `plugin:${TELEGRAM_PLUGIN_ID}`,
+      "--",
+      LOOP_PROMPT,
+    ]);
+    expect(argv.at(-2)).toBe("--");
   });
 
   it("keeps the loop prompt as a single argument", () => {
@@ -92,6 +112,20 @@ describe("buildManagerLaunch", () => {
     expect(() => buildManagerLaunch({ ...INPUT, ...patch })).toThrow(message);
     expect(() => buildManagerLaunch({ ...INPUT, ...patch })).toThrow(
       LaunchError
+    );
+  });
+});
+
+describe("buildForegroundCommand", () => {
+  it("rebuilds the launch as one shell line, quoting what needs it", () => {
+    const argv = buildManagerLaunch({ ...INPUT, stateDir: "/home/op/it's" });
+    expect(buildForegroundCommand(argv)).toBe(
+      "cd '/work/demo' && TELEGRAM_STATE_DIR='/home/op/it'\\''s' " +
+        "SM_SCRIPTS_DIR='/opt/lisa/skills/lisa-session-manager/scripts' " +
+        `claude -n ${NAME} --dangerously-skip-permissions ` +
+        `--settings '${SETTINGS_JSON}' ` +
+        "--channels plugin:telegram@claude-plugins-official " +
+        `-- '${LOOP_PROMPT}'`
     );
   });
 });

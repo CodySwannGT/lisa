@@ -8,7 +8,9 @@
  * `sessionManager.trustedAuthorIds` limits dispatch to known authors; that
  * combination is a `fail`, not a warning. Visibility comes from an injected
  * probe (`gh repo view <repo> --json visibility` by default); when it cannot
- * run, the check warns and says why rather than guessing either way.
+ * run, the check warns and says why rather than guessing either way. Under
+ * `lisa doctor --offline` the probe is never run (it is a network call) and the
+ * check warns that visibility was not checked.
  *
  * The Telegram plugin must be enabled only through the manager's own
  * `--settings`. Enabled in a project-scope settings file (at the root or in a
@@ -114,13 +116,14 @@ export async function modeOf(
  * item; warn when visibility cannot be determined.
  * @param config - Merged top-level config (`tracker`, `github`)
  * @param block - Merged `sessionManager` block
- * @param probe - Visibility probe
+ * @param probe - Visibility probe, or `undefined` in offline mode, where no
+ *   network call may be made
  * @returns Findings
  */
 export async function trustFindings(
   config: JsonRecord,
   block: JsonRecord,
-  probe: RepoVisibilityProbe
+  probe: RepoVisibilityProbe | undefined
 ): Promise<readonly Finding[]> {
   if (config.tracker !== "github" || Array.isArray(block.trustedAuthorIds)) {
     return [];
@@ -130,6 +133,14 @@ export async function trustFindings(
     return [];
   }
   const repo = `${github.org}/${github.repo}`;
+  if (probe === undefined) {
+    return [
+      {
+        status: "warn",
+        text: `${repo} visibility not checked (offline); if it is public, set sessionManager.trustedAuthorIds before starting the manager`,
+      },
+    ];
+  }
   const visibility = await probe(repo).then(
     value => ({ value: value.toUpperCase(), why: undefined }),
     (error: unknown) => ({

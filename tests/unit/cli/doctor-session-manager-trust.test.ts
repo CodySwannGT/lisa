@@ -127,6 +127,43 @@ describe("public repo without trustedAuthorIds", () => {
     expect(check.detail).toContain("could not read the visibility");
     expect(check.detail).toContain("gh: not logged in");
   });
+
+  it("never probes in offline mode and warns that visibility was not checked", async () => {
+    const probe = vi.fn(async () => PRIVATE);
+    const fx = await fixture();
+    const check = await checkSessionManagerIsolation(
+      fx.project,
+      {
+        home: fx.home,
+        env: {},
+        managedSettingsPaths: [],
+        probeRepoVisibility: probe,
+      },
+      { offline: true }
+    );
+    expect(probe).not.toHaveBeenCalled();
+    expect(check.status).toBe("warn");
+    expect(check.detail).toContain("visibility not checked (offline)");
+    expect(check.detail).toContain(REPO);
+    expect(check.detail).toContain("trustedAuthorIds");
+  });
+
+  it("stays quiet offline once trustedAuthorIds is set", async () => {
+    const probe = vi.fn(async () => "PUBLIC");
+    const fx = await fixture({ trustedAuthorIds: ["owner"] });
+    const check = await checkSessionManagerIsolation(
+      fx.project,
+      {
+        home: fx.home,
+        env: {},
+        managedSettingsPaths: [],
+        probeRepoVisibility: probe,
+      },
+      { offline: true }
+    );
+    expect(probe).not.toHaveBeenCalled();
+    expect(check.status).toBe("ok");
+  });
 });
 
 describe("Telegram plugin enabled at project scope", () => {

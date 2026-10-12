@@ -79,7 +79,7 @@ describe("start", () => {
   it("launches the exact tmux argv from launch.mjs with a scrubbed env", () => {
     const sandbox = makeSandbox();
     plantTokenFile(sandbox);
-    const result = runCli(sandbox, ["start"]);
+    const result = runCli(sandbox, ["start", "--settle-ms", "300"]);
     expect(result.stderr).toBe("");
     expect(result.status).toBe(0);
     expect(result.json).toMatchObject({ status: "started", name: MANAGER });
@@ -93,6 +93,10 @@ describe("start", () => {
         interval: "5m",
       })
     );
+    expect(launch?.argv.slice(-2)).toEqual([
+      "--",
+      "/loop 5m /lisa:session-manager cycle",
+    ]);
     expect(launch?.envKeys).not.toContain("TELEGRAM_BOT_TOKEN");
   });
 

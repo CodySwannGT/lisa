@@ -20,6 +20,7 @@ import {
   GLOBAL_CONFIG_FILE,
   asSetupError,
   asSetupErrorAsync,
+  intFlag,
   listAgents,
   loadProject,
   mustRun,
@@ -28,9 +29,14 @@ import {
   run,
 } from "./cli-runtime.mjs";
 import { buildDefaultBlock, detectRepos, resolveRepoDir } from "./config.mjs";
-import { defaultProjectSlug, probeOwnSession } from "./isolation.mjs";
+import {
+  defaultProjectSlug,
+  probeOwnSession,
+  sessionSurvives,
+} from "./isolation.mjs";
 import {
   assertTokenPresent,
+  buildForegroundCommand,
   buildHasSession,
   buildManagerLaunch,
   buildStopManager,
@@ -55,12 +61,37 @@ function stateDirOf(ctx, config) {
   );
 }
 
+/** How long a new manager session must survive before `start` says so. */
+const DEFAULT_SETTLE_MS = 3000;
+
+/** Upper bound for `--settle-ms`, so `start` always returns promptly. */
+const MAX_SETTLE_MS = 60_000;
+
 /**
- * `start`: host the manager in a detached tmux session.
+ * `--settle-ms`, defaulted and bounded, or exit 2.
  * @param {object} ctx - CLI context
- * @returns {{ json: object }} `{status,name,...}`
+ * @returns {number} Milliseconds
  */
-export function start(ctx) {
+function settleMsOf(ctx) {
+  const value = intFlag(ctx.values["settle-ms"], "--settle-ms");
+  if (value !== undefined && value > MAX_SETTLE_MS) {
+    throw new CliError(
+      `--settle-ms must be at most ${MAX_SETTLE_MS}.`,
+      EXIT.SETUP
+    );
+  }
+  return value ?? DEFAULT_SETTLE_MS;
+}
+
+/**
+ * `start [--settle-ms <n>]`: host the manager in a detached tmux session,
+ * and report `started` only once the session has survived the settle window
+ * (claude can exit at once on a bad argv; tmux then closes the session).
+ * @param {object} ctx - CLI context
+ * @returns {Promise<{ json: object }>} `{status,name,...}`
+ */
+export async function start(ctx) {
+  const settleMs = settleMsOf(ctx);
   const config = requireConfig(ctx);
   const stateDir = stateDirOf(ctx, config);
   // tmux gets the scrubbed env: if this call starts the tmux server, its
@@ -82,6 +113,15 @@ export function start(ctx) {
     })
   );
   mustRun("tmux", argv, { env, cwd: ctx.root });
+  if (!(await sessionSurvives(config.name, env, settleMs))) {
+    const foreground = buildForegroundCommand(argv);
+    throw new CliError(
+      `The manager's tmux session "${config.name}" exited within ` +
+        `${settleMs} ms of starting, so the manager is not running. Run the ` +
+        `launch in the foreground to see claude's error:\n  ${foreground}`,
+      EXIT.SETUP
+    );
+  }
   return {
     json: {
       status: "started",

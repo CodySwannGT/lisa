@@ -19,6 +19,7 @@ const CHECK_NAME = "Session manager Telegram isolation?";
 const PLUGIN_ID = "telegram@claude-plugins-official";
 const PLANTED = "987654321:PLANTED_VALUE_abcdefghijklmnopqrstuvwxyz";
 const TOKEN_FILE = ".env";
+const CONFIG_FILE = ".lisa.config.json";
 const roots: string[] = [];
 
 /** Paths of one isolated fixture. */
@@ -57,7 +58,7 @@ async function fixture(
   );
   await chmod(path.join(stateDir, TOKEN_FILE), 0o600);
   await writeFile(
-    path.join(project, ".lisa.config.json"),
+    path.join(project, CONFIG_FILE),
     JSON.stringify({ tracker: "github", ...config })
   );
   return {
@@ -125,7 +126,7 @@ describe("session-manager doctor check", () => {
     const fx = await fixture();
     const configDir = path.join(fx.root, "cfg");
     await writeFile(
-      path.join(fx.project, ".lisa.config.json"),
+      path.join(fx.project, CONFIG_FILE),
       JSON.stringify({
         sessionManager: {
           notify: { stateDir: path.join(configDir, "channels", "telegram") },
@@ -267,5 +268,34 @@ describe("session-manager doctor check", () => {
     expect(names.indexOf(CHECK_NAME)).toBe(
       names.indexOf("Kane browser provider ready?") + 1
     );
+  });
+
+  it("passes --offline through, so runDoctor never runs the gh visibility probe", async () => {
+    const fx = await fixture();
+    await writeFile(
+      path.join(fx.project, CONFIG_FILE),
+      JSON.stringify({
+        tracker: "github",
+        github: { org: "example-org", repo: "demo-repo" },
+        sessionManager: {
+          name: "p-manager",
+          notify: { provider: "telegram", stateDir: fx.stateDir },
+        },
+      })
+    );
+    const result = await runDoctor(
+      fx.project,
+      { offline: true },
+      {
+        env: { HOME: fx.home },
+        runUpdateCheck: vi.fn(),
+        write: vi.fn(),
+        setExitCode: vi.fn(),
+      }
+    );
+    const check = result.checks.find(entry => entry.name === CHECK_NAME);
+
+    expect(check?.detail ?? "").toContain("visibility not checked (offline)");
+    expect(check?.detail ?? "").not.toContain("could not read the visibility");
   });
 });

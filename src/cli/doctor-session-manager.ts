@@ -65,6 +65,12 @@ export interface SessionManagerDoctorDependencies {
   readonly probeRepoVisibility?: RepoVisibilityProbe;
 }
 
+/** The doctor options this check honours. */
+export interface SessionManagerDoctorOptions {
+  /** `lisa doctor --offline`: skip the visibility probe, a network call. */
+  readonly offline?: boolean;
+}
+
 /** Resolved inputs shared by the finding collectors. */
 interface Context {
   readonly claudeDir: string;
@@ -203,11 +209,13 @@ async function environmentFindings(ctx: Context): Promise<readonly Finding[]> {
  * Check Telegram isolation for a configured session manager.
  * @param targetPath - Project root
  * @param deps - Injected environment, HOME and file access
+ * @param options - Doctor options; `offline` skips the visibility probe
  * @returns Doctor check result
  */
 export async function checkSessionManagerIsolation(
   targetPath: string,
-  deps: SessionManagerDoctorDependencies
+  deps: SessionManagerDoctorDependencies,
+  options: SessionManagerDoctorOptions = {}
 ): Promise<DoctorCheck> {
   const read = deps.readFile ?? (file => fsReadFile(file, "utf8"));
   try {
@@ -245,7 +253,9 @@ export async function checkSessionManagerIsolation(
       ...(await trustFindings(
         { ...committed, ...local },
         block,
-        deps.probeRepoVisibility ?? ghRepoVisibility
+        options.offline === true
+          ? undefined
+          : (deps.probeRepoVisibility ?? ghRepoVisibility)
       )),
     ];
     if (findings.length === 0) {

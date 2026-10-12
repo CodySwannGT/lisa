@@ -3,8 +3,9 @@
  * Stub `claude` for the session-manager CLI tests. It never starts a session.
  * - `agents --json [--all]` prints the file named by STUB_AGENTS_FILE, else [].
  * - `logs <name>` prints STUB_LOGS_TEXT, else a fixed line.
- * - `--bg ...` prints STUB_BG_OUTPUT (default: a short id line) and exits
- *   STUB_BG_EXIT (default 0).
+ * - `--bg ...` prints STUB_BG_OUTPUT (default: a short id line), writes
+ *   STUB_BG_STDERR (default nothing) to stderr, and exits STUB_BG_EXIT
+ *   (default 0).
  * Every call is recorded through ../support/stub-record.mjs.
  */
 import { readFileSync } from "node:fs";
@@ -22,5 +23,6 @@ if (first === "agents") {
   process.stdout.write(
     process.env.STUB_BG_OUTPUT ?? "Started background session 1a2b3c4d\n"
   );
+  process.stderr.write(process.env.STUB_BG_STDERR ?? "");
   process.exitCode = Number(process.env.STUB_BG_EXIT ?? 0);
 }

@@ -375,7 +375,7 @@ export async function runDoctor(
     await checkCodeRabbitProvider(resolvedTarget, deps),
     await checkKaneProvider(resolvedTarget, deps),
     // Config-gated like Kane: "not configured" unless sessionManager is set.
-    await checkSessionManagerIsolation(resolvedTarget, { env: deps.env }),
+    await checkSessionManagerIsolation(resolvedTarget, deps, options),
     await checkSonarProvider(resolvedTarget, deps),
     await checkLegacyMonitorThresholds(resolvedTarget),
     await checkLisaOwnedArtifacts(resolvedTarget),

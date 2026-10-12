@@ -31,6 +31,7 @@ const AUTOMATION_ID = "lisa-auto-o-r-session-manager";
 const RUNBOOK = ".lisa/automations/session-manager.runbook.md";
 const OBSERVED =
   "Hosted locally in tmux; the scheduler cannot observe it — check `/lisa:session-manager status`";
+const SETUP_COMMAND = "/lisa:setup:session-manager";
 const BASE_CONFIG = { tracker: "github", github: { org: "o", repo: "r" } };
 const MANAGER_BLOCK = {
   name: "r-manager",
@@ -78,6 +79,7 @@ describe("session-manager fleet entry (#4448)", () => {
         reason: expect.any(String),
         observed: OBSERVED,
         runbookPath: RUNBOOK,
+        runbookSetupCommand: SETUP_COMMAND,
       },
     ]);
   });
@@ -131,6 +133,34 @@ describe("session-manager fleet entry (#4448)", () => {
   });
 });
 
+// Both status adapters, each inspecting a fresh project root with the
+// session manager configured and nothing scheduled.
+const INSPECTORS = [
+  [
+    "Claude",
+    (projectRoot: string) =>
+      inspectClaudeAutomationFleet({
+        expectedFleet: fleetWith(MANAGER_BLOCK),
+        scheduleListing: { routines: [] },
+        projectRoot,
+        now: NOW,
+      }),
+  ],
+  [
+    "Codex",
+    async (projectRoot: string) => {
+      const automationsDir = path.join(projectRoot, "codex-automations");
+      await fs.mkdir(automationsDir);
+      return inspectCodexAutomationFleet({
+        expectedFleet: fleetWith(MANAGER_BLOCK),
+        automationsDir,
+        projectRoot,
+        now: NOW,
+      });
+    },
+  ],
+] as const;
+
 describe("session-manager entry in the Claude status report (#4448)", () => {
   const roots: string[] = [];
 
@@ -174,31 +204,26 @@ describe("session-manager entry in the Claude status report (#4448)", () => {
     expect(item?.outcomeHistory?.length).toBe(2);
   });
 
-  it.each([
-    [
-      "Claude",
-      (projectRoot: string) =>
-        inspectClaudeAutomationFleet({
-          expectedFleet: fleetWith(MANAGER_BLOCK),
-          scheduleListing: { routines: [] },
-          projectRoot,
-          now: NOW,
-        }),
-    ],
-    [
-      "Codex",
-      async (projectRoot: string) => {
-        const automationsDir = path.join(projectRoot, "codex-automations");
-        await fs.mkdir(automationsDir);
-        return inspectCodexAutomationFleet({
-          expectedFleet: fleetWith(MANAGER_BLOCK),
-          automationsDir,
-          projectRoot,
-          now: NOW,
-        });
-      },
-    ],
-  ])(
+  it.each(INSPECTORS)(
+    "%s adapter names /lisa:setup:session-manager when the runbook is missing",
+    async (_name, inspect) => {
+      const projectRoot = await fs.mkdtemp(path.join(os.tmpdir(), "lisa-sm-"));
+      roots.push(projectRoot);
+      const report = await inspect(projectRoot);
+      const items = report.groups.flatMap(g => g.items);
+      const manager = items.find(i => i.id === AUTOMATION_ID);
+      const other = items.find(
+        i => i.status === "UNSUPPORTED" && i.id !== AUTOMATION_ID
+      );
+
+      expect(manager?.runbook).toBe(`not scaffolded — run ${SETUP_COMMAND}`);
+      expect(other?.runbook).toBe(
+        "not scaffolded — run /lisa:setup-automations"
+      );
+    }
+  );
+
+  it.each(INSPECTORS)(
     "%s adapter shows the hosted-locally observed text, not 'no automation expected'",
     async (_name, inspect) => {
       const projectRoot = await fs.mkdtemp(path.join(os.tmpdir(), "lisa-sm-"));

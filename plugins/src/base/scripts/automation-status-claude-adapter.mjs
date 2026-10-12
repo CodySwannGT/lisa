@@ -235,6 +235,7 @@ async function resolveFleetRunDisplays(projectRoot, expectedFleet) {
         projectRoot,
         loopId: entry.id,
         runbookPath: entry.runbookPath,
+        runbookSetupCommand: entry.runbookSetupCommand,
       })
     )
   );
