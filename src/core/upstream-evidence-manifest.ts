@@ -1645,15 +1645,15 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-session-manager/scripts/launch.mjs":
       "2245b0be44e42bf02b0a612503541572d8161103b95285c1b76448cc357ea539",
     "plugins/src/base/skills/lisa-session-manager/scripts/ledger.mjs":
-      "d325803d4a76d17550f7f55a06b5bade518b5a102046afda5771aae9a2bf9649",
+      "045f49f9b636239b7775b9003e2cc7334a5bfe00f0f58a8031f7308c2fcff19f",
     "plugins/src/base/skills/lisa-session-manager/scripts/reconcile.mjs":
-      "abf4723ebdd99c8b2fe5328e2a67101a95cd39c34a3670eb9e86e75c5ae70bb1",
+      "8ccd61b536709eb16dccb82c0049f25b042f3e61417c08c68defefa388584559",
     "plugins/src/base/skills/lisa-session-manager/scripts/session-manager.mjs":
       "2f3590b56d083ab921058c9123742febc9c8598ada898191618a03ea666224c3",
     "plugins/src/base/skills/lisa-session-manager/scripts/telegram-route.mjs":
       "c8018dc5b0dee804df1f0aa7fb06e6165384734aa6923bd5b9ca4648fe3e07b5",
     "plugins/src/base/skills/lisa-session-manager/scripts/workers.mjs":
-      "1026e7b0faf1c5d4188307a1b46f5d61d302b4679300aad155211b8d715dc029",
+      "c9ce7fc20521cc6349dd960f2a687a55b72073c21540815e361da4f7ec005017",
     "plugins/src/base/skills/lisa-setup-atlassian/SKILL.md":
       "d1945a471afa5454ef4f6dffa52decf7df0ec3f411dadaf5d4bc95aeeb8ca6e2",
     "plugins/src/base/skills/lisa-setup-automations/SKILL.md":

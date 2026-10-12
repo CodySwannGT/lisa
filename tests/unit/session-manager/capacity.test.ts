@@ -13,6 +13,7 @@ import path from "node:path";
 
 import { describe, expect, it } from "vitest";
 
+import type { MachineStats } from "../../../plugins/src/base/skills/lisa-session-manager/scripts/capacity.mjs";
 import {
   computeCapacity,
   resolveMaxWorkers,
@@ -36,7 +37,7 @@ const CONFIG = {
  * @param overrides - Fields to replace
  * @returns Machine stats
  */
-function stats(overrides: Record<string, unknown> = {}) {
+function stats(overrides: Partial<MachineStats> = {}): MachineStats {
   return {
     availGb: 64,
     cores: 16,

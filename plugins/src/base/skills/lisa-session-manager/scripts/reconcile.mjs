@@ -52,7 +52,7 @@ export const BLOCKED_RELEASE_ACTIONS = Object.freeze([
  *   comments?: unknown,
  *   trustedHumanActorIds?: unknown,
  *   humanNeededLabel?: unknown,
- *   edges?: readonly object[] | null,
+ *   edges?: readonly object[] | null | undefined,
  *   pendingQuestion?: unknown,
  * }} [input] The item's hold surfaces, its judged edges, and the ledger question.
  * @returns {{

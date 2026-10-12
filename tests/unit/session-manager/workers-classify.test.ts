@@ -23,7 +23,7 @@ import {
   LIVE_SESSION_ID,
   MINUTE,
   NOW,
-} from "./workers-fixtures";
+} from "./workers-fixtures.js";
 
 describe("parseSessionId", () => {
   it.each([
@@ -36,9 +36,21 @@ describe("parseSessionId", () => {
   });
 });
 
+/**
+ * One normalized row of a fixture, failing loudly when the fixture lacks it.
+ * @param fixture - Parsed `claude agents` output
+ * @param index - Row to take
+ * @returns The normalized row
+ */
+function rowOf(fixture: unknown, index: number) {
+  const row = normalizeAgents(fixture)[index];
+  if (!row) throw new Error(`fixture has no agent row ${index}`);
+  return row;
+}
+
 describe("classifyWorker", () => {
-  const active = normalizeAgents(ACTIVE_FIXTURE)[0];
-  const done = normalizeAgents(ALL_FIXTURE)[2];
+  const active = rowOf(ACTIVE_FIXTURE, 0);
+  const done = rowOf(ALL_FIXTURE, 2);
   const startedAt = new Date(NOW.getTime() - 3 * HOUR).toISOString();
   const base = {
     status: "running",

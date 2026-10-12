@@ -31,7 +31,7 @@ import {
   NEW_WORKER,
   NOW,
   REPO_A_DIR,
-} from "./workers-fixtures";
+} from "./workers-fixtures.js";
 
 describe("sanitizeRefToken", () => {
   it.each([

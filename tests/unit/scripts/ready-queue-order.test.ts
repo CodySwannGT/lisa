@@ -30,6 +30,16 @@ const SHARED_SHAPE = "returns the shared item shape";
 const sortedKeys = (value: object): string[] =>
   Object.keys(value).sort((left, right) => left.localeCompare(right));
 
+/**
+ * Narrow a normalizer result that must not be null, failing loudly if it is.
+ * @param value - Normalizer result
+ * @returns The non-null item
+ */
+function present<T>(value: T | null): T {
+  if (value === null) throw new Error("expected a normalized item, got null");
+  return value;
+}
+
 const SHAPE_KEYS = [
   "assigneeId",
   "authorId",
@@ -52,7 +62,7 @@ const githubIssue = ({
 }: {
   number: number;
   assignee?: string | null;
-  priority?: string;
+  priority?: string | undefined;
   created: string;
   extra?: Record<string, unknown>;
 }) => ({
@@ -81,7 +91,7 @@ const jiraIssue = ({
 }: {
   key: string;
   assignee?: string | null;
-  priority?: string;
+  priority?: string | undefined;
   created: string;
   extra?: Record<string, unknown>;
 }) => ({
@@ -130,7 +140,7 @@ describe("normalizeGithubIssue", () => {
     const item = normalizeGithubIssue(
       githubIssue({ number: 12, assignee: ME, priority: "high", created: "t" })
     );
-    expect(sortedKeys(item)).toEqual(SHAPE_KEYS);
+    expect(sortedKeys(present(item))).toEqual(SHAPE_KEYS);
     expect(item).toEqual({
       ref: "acme/repo-a#12",
       title: "Issue 12",
@@ -524,7 +534,9 @@ describe("orderReadyQueue", () => {
             priority: "critical",
             created: DAY_1,
           }),
-        ].map(issue => normalizeGithubIssue(issue, { repo: "acme/repo-a" })),
+        ].map(issue =>
+          present(normalizeGithubIssue(issue, { repo: "acme/repo-a" }))
+        ),
       linear: () => [
         normalizeLinearIssue(
           linearIssue({

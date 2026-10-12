@@ -9,6 +9,7 @@
  * @module tests/unit/session-manager/ledger
  */
 import {
+  type PathLike,
   existsSync,
   mkdtempSync,
   readFileSync,
@@ -103,16 +104,16 @@ describe("ledger", () => {
     const fs = await import("node:fs/promises");
     const spyFs = {
       ...fs,
-      rename: async (from: string, to: string) => {
-        renames.push([from, to]);
+      rename: async (from: PathLike, to: PathLike) => {
+        renames.push([String(from), String(to)]);
         expect(existsSync(to)).toBe(false);
         return fs.rename(from, to);
       },
     };
     await writeLedger(root, await readLedger(root), { fs: spyFs });
-    expect(renames).toHaveLength(1);
-    expect(renames[0][1]).toBe(ledgerPath(root));
-    expect(renames[0][0]).toMatch(/ledger\.json\..+\.tmp$/);
+    expect(renames).toEqual([
+      [expect.stringMatching(/ledger\.json\..+\.tmp$/), ledgerPath(root)],
+    ]);
     expect(readdirSync(path.dirname(ledgerPath(root)))).toEqual([
       "ledger.json",
     ]);

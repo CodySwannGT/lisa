@@ -337,7 +337,7 @@ function toMillis(value) {
  * reads `done`; only then is liveness judged. `stalled` and `dead` become
  * `exhausted` at `maxAttempts`, which is the manager's cue to move the item to
  * Blocked instead of retrying it again.
- * @param {{agent: ReturnType<typeof normalizeAgents>[number] | null, entry: {status?: string, startedAt?: string|number, lastProgressAt?: string|number|null, logsHash?: string|null, pendingQuestion?: {askedAt?: string|number, lastPingAt?: string|number|null} | null, attempts?: number}, logsHash?: string | null, now: Date | number, stall?: {noOutputMinutes: number, requestionHours: number, maxAttempts: number}}} input - Classification inputs
+ * @param {{agent: ReturnType<typeof normalizeAgents>[number] | null, entry: {status?: string, startedAt?: string|number, lastProgressAt?: string|number|null, logsHash?: string|null, pendingQuestion?: {askedAt?: string|number, lastPingAt?: string|number|null} | null, attempts?: number}, logsHash?: string | null | undefined, now: Date | number, stall?: {noOutputMinutes: number, requestionHours: number, maxAttempts: number}}} input - Classification inputs
  * @returns {"finished"|"waiting"|"requestion"|"working"|"stalled"|"dead"|"exhausted"} Classification
  */
 export function classifyWorker({

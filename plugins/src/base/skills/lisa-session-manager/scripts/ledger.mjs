@@ -37,6 +37,53 @@ const FINISH_STATUSES = new Set(["DONE", "FAILED"]);
  */
 
 /**
+ * The question an item is waiting on, and when it was last re-sent.
+ * @typedef {object} PendingQuestion
+ * @property {string} text - Question text
+ * @property {string} askedAt - When it was first asked (ISO)
+ * @property {string} lastPingAt - When it was last (re-)sent (ISO)
+ * @property {number|null} telegramMessageId - Telegram message carrying it
+ */
+
+/**
+ * One row of an item's history. `event` names what happened; the remaining
+ * fields depend on the event (a spawn carries the worker, a finish its status).
+ * @typedef {object} LedgerHistoryRow
+ * @property {string} event - spawn | question | answered | finish
+ * @property {string} at - When it happened (ISO)
+ * @property {string} [worker] - Spawned worker name
+ * @property {string|null} [sessionId] - Spawned session id
+ * @property {number} [attempt] - Attempt number of a spawn
+ * @property {string} [status] - Reported finish status
+ * @property {string} [reason] - Reported finish reason
+ */
+
+/**
+ * Everything the manager remembers about one dispatched (or asked-about) ref.
+ * @typedef {object} LedgerItem
+ * @property {string|null} repo - Repository the worker runs in
+ * @property {string|null} worker - Worker name
+ * @property {string|null} sessionId - Agent session id
+ * @property {string} status - running | question | DONE | FAILED
+ * @property {string|null} startedAt - Last spawn time (ISO)
+ * @property {string|null} lastProgressAt - Last time the logs hash moved (ISO)
+ * @property {string|null} logsHash - Hash of the worker's logs last cycle
+ * @property {PendingQuestion|null} pendingQuestion - Open question, if any
+ * @property {number} attempts - Spawns so far for this ref
+ * @property {LedgerHistoryRow[]} history - Everything that happened, in order
+ * @property {string|null} [reason] - Reason given with a finish
+ * @property {string|null} [finishedAt] - When the worker finished (ISO)
+ */
+
+/**
+ * The whole ledger file.
+ * @typedef {object} Ledger
+ * @property {number} version - Shape version
+ * @property {Record<string, LedgerItem>} items - Items keyed by ref
+ * @property {{paused: boolean, maxWorkers: number|null, me: string|null}} control - Operator controls
+ */
+
+/**
  * Directory holding all session-manager state.
  * @param {string} projectRoot - Absolute project root
  * @returns {string} State directory
@@ -65,7 +112,7 @@ export function sessionsLogPath(projectRoot) {
 
 /**
  * A ledger with nothing in it.
- * @returns {{version: number, items: Record<string, object>, control: {paused: boolean, maxWorkers: number|null, me: string|null}}} Empty ledger
+ * @returns {Ledger} Empty ledger
  */
 function emptyLedger() {
   return {
@@ -88,7 +135,7 @@ function resolveSeams(seams = {}) {
  * Read the ledger. A missing file is an empty ledger; a corrupt one throws.
  * @param {string} projectRoot - Absolute project root
  * @param {LedgerSeams} [seams] - Injected seams
- * @returns {Promise<ReturnType<typeof emptyLedger>>} Ledger
+ * @returns {Promise<Ledger>} Ledger
  */
 export async function readLedger(projectRoot, seams) {
   const { fs } = resolveSeams(seams);
@@ -118,7 +165,7 @@ export async function readLedger(projectRoot, seams) {
 /**
  * Write the whole ledger atomically (temp file, then rename).
  * @param {string} projectRoot - Absolute project root
- * @param {ReturnType<typeof emptyLedger>} ledger - Ledger to persist
+ * @param {Ledger} ledger - Ledger to persist
  * @param {LedgerSeams} [seams] - Injected seams
  * @returns {Promise<void>}
  */
@@ -136,7 +183,7 @@ export async function writeLedger(projectRoot, ledger, seams) {
  * @template T
  * @param {string} projectRoot - Absolute project root
  * @param {LedgerSeams | undefined} seams - Injected seams
- * @param {(ledger: ReturnType<typeof emptyLedger>, at: string) => {ledger: ReturnType<typeof emptyLedger>, result: T}} transform - Pure update
+ * @param {(ledger: Ledger, at: string) => {ledger: Ledger, result: T}} transform - Pure update
  * @returns {Promise<T>} The transform's result
  */
 async function updateLedger(projectRoot, seams, transform) {
@@ -149,10 +196,10 @@ async function updateLedger(projectRoot, seams, transform) {
 
 /**
  * Replace one item in a ledger, returning the new ledger and the new item.
- * @param {ReturnType<typeof emptyLedger>} ledger - Current ledger
+ * @param {Ledger} ledger - Current ledger
  * @param {string} ref - Item key
- * @param {object} entry - New item
- * @returns {{ledger: ReturnType<typeof emptyLedger>, result: object}} Update
+ * @param {LedgerItem} entry - New item
+ * @returns {{ledger: Ledger, result: LedgerItem}} Update
  */
 function withItem(ledger, ref, entry) {
   return {
@@ -163,9 +210,9 @@ function withItem(ledger, ref, entry) {
 
 /**
  * Look up an item that must already exist.
- * @param {ReturnType<typeof emptyLedger>} ledger - Current ledger
+ * @param {Ledger} ledger - Current ledger
  * @param {string} ref - Item key
- * @returns {object} The item
+ * @returns {LedgerItem} The item
  */
 function requireItem(ledger, ref) {
   const entry = ledger.items[ref];
@@ -178,7 +225,7 @@ function requireItem(ledger, ref) {
 
 /**
  * A ledger item for a ref the manager has asked about but not dispatched.
- * @returns {object} Placeholder item
+ * @returns {LedgerItem} Placeholder item
  */
 function placeholderItem() {
   return {
@@ -200,7 +247,7 @@ function placeholderItem() {
  * @param {string} projectRoot - Absolute project root
  * @param {{ref: string, worker: string, sessionId: string|null, repo: string}} spawn - What was spawned
  * @param {LedgerSeams} [seams] - Injected seams
- * @returns {Promise<object>} The updated item
+ * @returns {Promise<LedgerItem>} The updated item
  */
 export function recordSpawn(
   projectRoot,
@@ -241,7 +288,7 @@ export function recordSpawn(
  * @param {string} projectRoot - Absolute project root
  * @param {{ref: string, text: string, telegramMessageId: number|null}} question - Question
  * @param {LedgerSeams} [seams] - Injected seams
- * @returns {Promise<object>} The updated item
+ * @returns {Promise<LedgerItem>} The updated item
  */
 export function setPendingQuestion(
   projectRoot,
@@ -270,7 +317,7 @@ export function setPendingQuestion(
  * @param {string} projectRoot - Absolute project root
  * @param {{ref: string}} target - Item
  * @param {LedgerSeams} [seams] - Injected seams
- * @returns {Promise<object>} The updated item
+ * @returns {Promise<LedgerItem>} The updated item
  */
 export function clearPendingQuestion(projectRoot, { ref }, seams) {
   return updateLedger(projectRoot, seams, (ledger, at) => {
@@ -289,7 +336,7 @@ export function clearPendingQuestion(projectRoot, { ref }, seams) {
  * @param {string} projectRoot - Absolute project root
  * @param {{ref: string, logsHash: string}} progress - Observed hash
  * @param {LedgerSeams} [seams] - Injected seams
- * @returns {Promise<{changed: boolean, entry: object}>} Whether it moved, and the item
+ * @returns {Promise<{changed: boolean, entry: LedgerItem}>} Whether it moved, and the item
  */
 export function recordProgress(projectRoot, { ref, logsHash }, seams) {
   return updateLedger(projectRoot, seams, (ledger, at) => {
@@ -311,7 +358,7 @@ export function recordProgress(projectRoot, { ref, logsHash }, seams) {
  * @param {string} projectRoot - Absolute project root
  * @param {{ref: string, status: "DONE"|"FAILED", reason: string}} finish - Report
  * @param {LedgerSeams} [seams] - Injected seams
- * @returns {Promise<object>} The updated item
+ * @returns {Promise<LedgerItem>} The updated item
  */
 export function recordFinish(projectRoot, { ref, status, reason }, seams) {
   if (!FINISH_STATUSES.has(status)) {

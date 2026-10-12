@@ -63,7 +63,7 @@ describe("planBlockedRelease", () => {
       ref: "<TEAM>-1",
       action: "dissolve",
     });
-    expect(plan.edges[0].reason).toMatch(/merged code is present/u);
+    expect(plan.edges[0]?.reason).toMatch(/merged code is present/u);
   });
 
   it("skips a held human gate before looking at edges", () => {
@@ -133,13 +133,13 @@ describe("planBlockedRelease", () => {
     const plan = planBlockedRelease({ ...base, edges: [SHIPPED, CANCELLED] });
     expect(plan.action).toBe("escalate");
     expect(plan.edges.map(one => one.action)).toEqual(["dissolve", "escalate"]);
-    expect(plan.edges[1].reason).toMatch(/NOT PLANNED/u);
+    expect(plan.edges[1]?.reason).toMatch(/NOT PLANNED/u);
   });
 
   it("escalates an unknown containment", () => {
     const plan = planBlockedRelease({ ...base, edges: [UNKNOWN] });
     expect(plan.action).toBe("escalate");
-    expect(plan.edges[0].reason).toMatch(/could not be computed/u);
+    expect(plan.edges[0]?.reason).toMatch(/could not be computed/u);
   });
 
   it("escalates over keep when edges are mixed", () => {
@@ -152,7 +152,7 @@ describe("planBlockedRelease", () => {
     const plan = planBlockedRelease({ ...base, edges: [SHIPPED, UNSHIPPED] });
     expect(plan.action).toBe("keep");
     expect(plan.edges.map(one => one.action)).toEqual(["dissolve", "keep"]);
-    expect(plan.edges[1].reason).toMatch(/not yet on the branch/u);
+    expect(plan.edges[1]?.reason).toMatch(/not yet on the branch/u);
   });
 
   it("is safe with no input", () => {
