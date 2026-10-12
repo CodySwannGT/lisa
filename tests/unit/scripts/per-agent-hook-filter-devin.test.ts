@@ -61,6 +61,10 @@ describe("per-agent-hook-filter — devin", () => {
       );
     });
 
+    it("skips a malformed non-string matcher", () => {
+      expect(translateMatcherForDevin(42)).toBeNull();
+    });
+
     it("returns null when no named tool exists on Devin", () => {
       expect(translateMatcherForDevin("EnterWorktree")).toBeNull();
       expect(translateMatcherForDevin("TeamCreate")).toBeNull();

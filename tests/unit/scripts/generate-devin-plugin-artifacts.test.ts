@@ -149,7 +149,7 @@ describe("generate-devin-plugin-artifacts (#4426)", () => {
 
   it("does nothing when the source has no Claude manifest", async () => {
     await fs.ensureDir(srcDir);
-    generateDevinVariant(srcDir, outDir, VERSION);
+    expect(generateDevinVariant(srcDir, outDir, VERSION)).toBe(false);
     expect(fs.existsSync(outDir)).toBe(false);
   });
 

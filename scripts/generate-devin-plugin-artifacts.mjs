@@ -193,10 +193,12 @@ function writeHookScripts(outDir, hasHooks) {
  * @param {string} srcDir Built Claude plugin directory (input).
  * @param {string} outDir Devin variant output directory.
  * @param {string} version Version string for the manifests.
+ * @returns {boolean} True when a variant was written; false (and nothing
+ *   written) when the source has no Claude manifest.
  */
 export function generateDevinVariant(srcDir, outDir, version) {
   const claudeManifestPath = path.join(srcDir, ".claude-plugin", PLUGIN_JSON);
-  if (!fs.existsSync(claudeManifestPath)) return;
+  if (!fs.existsSync(claudeManifestPath)) return false;
 
   fs.rmSync(outDir, { recursive: true, force: true });
   copyDir(srcDir, outDir, keepForDevin);
@@ -239,6 +241,7 @@ export function generateDevinVariant(srcDir, outDir, version) {
   }
   writeHookScripts(outDir, Boolean(hooksJson));
   rewritePluginRuleCitations(outDir, "devin");
+  return true;
 }
 
 // CLI entrypoint.
@@ -250,6 +253,11 @@ if (invokedAsScript(import.meta.url)) {
     );
     process.exit(1);
   }
-  generateDevinVariant(srcDir, outDir, version);
+  if (!generateDevinVariant(srcDir, outDir, version)) {
+    console.error(
+      `No .claude-plugin/plugin.json under ${srcDir}; no Devin variant generated`
+    );
+    process.exit(1);
+  }
   console.log(`Generated Devin variant at ${outDir} (v${version})`);
 }

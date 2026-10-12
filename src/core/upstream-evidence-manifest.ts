@@ -2561,7 +2561,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/generate-cursor-plugin-artifacts.mjs":
       "b0c59ebf8a411a1c4835081ff3a47626868d645e4cebddb7e0e4e795a9cefe24",
     "scripts/generate-devin-plugin-artifacts.mjs":
-      "26d72f8c95d4b8418064d0ab978e9308081f002888aa5173a0d327b68095580f",
+      "c152e67db5b638a6788e6d6f5cb00932d0a41fa1eba5cb43dbbeebac55d3779f",
     "scripts/generate-export-surface.mjs":
       "f9af22c8809e93e09a1b2dbbdbd23356890b3460524bd8752731ff454d5f13c0",
     "scripts/generate-lisa-owned-hash-ledger.mjs":
@@ -2609,7 +2609,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/lib/nest-plugin-commands.mjs":
       "c52b2f48edbc17edcc60ae33536549829cbc279c60c5d85d912ac6609cae9bea",
     "scripts/lib/per-agent-hook-filter.mjs":
-      "770e65446dcf29110fb5ba62dcab07e502ca9771d27bd1d5c7214651da51cd16",
+      "375abb50dd7aacd1df5cdea0b4d944db0a7d4abf7cc42f8ab0fefedc6ee92d8b",
     "scripts/lib/plugin-cache-resolution.mjs":
       "47a564e2f9d46c0a955defe8eb924f86d7a273098e6ccb118e10f9eeecf3950c",
     "scripts/lib/plugin-rule-citations.mjs":

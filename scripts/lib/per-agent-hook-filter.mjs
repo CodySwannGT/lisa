@@ -404,12 +404,15 @@ const DEVIN_TOOL_NAMES = {
  * treats the matcher as a regex, and an unanchored `exec` would also match any
  * tool whose name merely contains it.
  *
- * @param {string | undefined} matcher Claude matcher string.
+ * @param {unknown} matcher Claude matcher string (non-strings are skipped).
  * @returns {string | null} Devin matcher, `""` for match-all, or null when no
  *   Claude tool in the matcher exists on Devin.
  */
 export function translateMatcherForDevin(matcher) {
   if (matcher === undefined || matcher === "") return "";
+  // A malformed (non-string) matcher names no tool Lisa can translate; skip
+  // the entry rather than throw mid-build.
+  if (typeof matcher !== "string") return null;
   const names = new Set();
   for (const claudeName of matcher.split("|").map(n => n.trim())) {
     if (claudeName.startsWith("mcp__")) {
