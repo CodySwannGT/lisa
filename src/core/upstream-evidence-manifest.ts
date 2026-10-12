@@ -10581,6 +10581,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/config/tsconfig-template-references.test.ts": true,
     "tests/unit/config/vitest-base.test.ts": true,
     "tests/unit/config/vitest-cdk.test.ts": true,
+    "tests/unit/config/vitest-deadline-order.test.ts": true,
     "tests/unit/config/vitest-fleet-admission.test.ts": true,
     "tests/unit/config/vitest-fleet-denominator.test.ts": true,
     "tests/unit/config/vitest-fleet-discovery.test.ts": true,

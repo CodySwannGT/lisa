@@ -63,7 +63,8 @@ const config: ViteUserConfig = {
           : vitest.config.maxWorkers;
         project.config.sequence = {
           ...project.config.sequence,
-          groupOrder: deadlineProject ? 0 : 1,
+          // Vitest appends isolated single-worker group zero after numbered groups.
+          groupOrder: deadlineProject ? 1 : 2,
         };
         // Native initialization also runs the root's global setup. Keep
         // admission, scratch audit and coverage guard there once, while both

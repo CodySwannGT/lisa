@@ -544,3 +544,5 @@ INCLUDE - explorer - Map cancellation authorization and existing regression cove
 EXCLUDE - worker - A specific bug-fixer owns implementation.
 
 Execution: explorer and debugger read-only in parallel, then bug-fixer only after a proven cause. Independent security/quality review and empirical verification follow. Learning judge/learner only for supported candidates. No duplicate claim or child issue.
+
+Native deadline-suite ordering followup: the existing quality teammate owns only `vitest.config.local.ts` and `tests/unit/config/vitest-deadline-order.test.ts` for a reaching RED/GREEN scheduling correction. The independent verifier reviews the installed runner's group semantics and exact change; root owns metadata, generators and normal delivery. Worker counts, physical deadlines, guards, discovery and original acceptance scope remain unchanged.
