@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [4.78.0](https://github.com/CodySwannGT/lisa/compare/v4.77.2...v4.78.0) (2026-10-12)
+
+
+### Features
+
+* **release:** name the Sentry release after the identifier the app reports ([d0baf46](https://github.com/CodySwannGT/lisa/commit/d0baf467b5e1267c727f1d7622d70cf036283478)), closes [CodySwannGT/lisa#4293](https://github.com/CodySwannGT/lisa/issues/4293) [CodySwannGT/lisa#4293](https://github.com/CodySwannGT/lisa/issues/4293)
+
+
+### Bug Fixes
+
+* **release:** reject malformed Sentry release-name placeholders ([6736ac5](https://github.com/CodySwannGT/lisa/commit/6736ac56b1aef7b02f77f2ff6536ff1638f06e85)), closes [CodySwannGT/lisa#4293](https://github.com/CodySwannGT/lisa/issues/4293) [CodySwannGT/lisa#4293](https://github.com/CodySwannGT/lisa/issues/4293)
+
 ### [4.77.2](https://github.com/CodySwannGT/lisa/compare/v4.77.1...v4.77.2) (2026-10-12)
 
 
