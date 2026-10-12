@@ -2495,7 +2495,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/check-release-package-identity.mjs":
       "a0f17592d4436de4c240f7c78512537581aa2ed5e89f0caf1fe890694163a873",
     "scripts/check-required-check-promotions.mjs":
-      "96ab837518aa27a1086c5514d364db852a4ccc062a4c87673fd8ebd19205d193",
+      "3f65f71350da46dfcbaca342b23c9175667849770c053073e904fc108136fd46",
     "scripts/check-rules-pairing.sh":
       "0fc26c4bb3e9283dbc775e794ee8abad98d59f401dfcc55deead0160c5c6bb71",
     "scripts/check-security-floors.mjs":

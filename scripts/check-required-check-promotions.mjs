@@ -367,7 +367,7 @@ export function collectDeclaredContexts(root) {
  * jobs it declares, and whether it actually runs on every pull request.
  *
  * @param {string} absolute - absolute path to the workflow YAML.
- * @returns {{ jobs: Map<string, string>, onPullRequest: boolean, pathFilterKeys: string[] } | null}
+ * @returns {{ jobs: Map<string, string>, matrixJobs: Set<string>, onPullRequest: boolean, pathFilterKeys: string[] } | null}
  *   the parsed facts, or null when the file is absent or unparseable.
  */
 export function readWorkflow(absolute) {
@@ -399,10 +399,13 @@ export function readWorkflow(absolute) {
       ? ["paths", "paths-ignore"].filter(key => key in pullRequest)
       : [];
   const jobs = new Map();
+  const matrixJobs = new Set();
   for (const [id, job] of Object.entries(doc.jobs ?? {})) {
     jobs.set(id, typeof job?.name === "string" ? job.name : id);
+    const matrix = job?.strategy?.matrix;
+    if (typeof matrix === "object" && matrix !== null) matrixJobs.add(id);
   }
-  return { jobs, onPullRequest, pathFilterKeys };
+  return { jobs, matrixJobs, onPullRequest, pathFilterKeys };
 }
 
 /**
@@ -702,18 +705,23 @@ const MATRIX_LABEL_NAME = "${{ matrix.label }}";
  * matters because `momentLegs` emits no leg for a job-backed gate, so a ledger
  * pointing at a leg that cannot exist would vouch for a context nothing posts.
  *
- * @param {{ jobs: Map<string, string> }} called - parsed called workflow.
+ * @param {{ jobs: Map<string, string>, matrixJobs: Set<string> }} called - parsed called workflow.
  * @param {object} entry - the ledger entry.
  * @param {string} calledName - the expected called-job display name.
  * @param {string} root - absolute repository root.
  * @returns {{ rule: string, detail: string }[]} problems, empty when sound.
  */
 function declaredGateLegProblems(called, entry, calledName, root) {
-  if (called.jobs.get(DECLARED_GATES_JOB) !== MATRIX_LABEL_NAME) {
+  // A job named by `matrix.label` with no `strategy.matrix` has no legs, so it
+  // posts no context at all — the name alone proves nothing.
+  if (
+    called.jobs.get(DECLARED_GATES_JOB) !== MATRIX_LABEL_NAME ||
+    !called.matrixJobs.has(DECLARED_GATES_JOB)
+  ) {
     return [
       {
         rule: "called-job-missing",
-        detail: `no '${DECLARED_GATES_JOB}' job named '${MATRIX_LABEL_NAME}' in the called workflow, so no declared gate leg posts '${calledName}'`,
+        detail: `no '${DECLARED_GATES_JOB}' matrix job named '${MATRIX_LABEL_NAME}' in the called workflow, so no declared gate leg posts '${calledName}'`,
       },
     ];
   }
