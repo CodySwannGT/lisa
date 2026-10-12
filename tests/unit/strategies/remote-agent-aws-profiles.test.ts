@@ -220,30 +220,6 @@ describe("remote AWS bootstrap script", () => {
     expect(config).toContain("[profile org-alpha-agent-dev]");
   });
 
-  it("will not silently take over a default profile another project owns", () => {
-    const ws = workstation();
-    runBootstrap({
-      workstation: ws,
-      environment: bootstrapEnvironment(ALPHA, ALPHA_BUNDLE_ACCOUNTS),
-    });
-
-    const result = runBootstrap({
-      workstation: ws,
-      environment: bootstrapEnvironment("org-beta", BETA_BUNDLE_ACCOUNTS),
-    });
-
-    expect(result.status).not.toBe(0);
-    expect(result.stderr).toContain("refusing to overwrite the [default]");
-    expect(result.stderr).toContain("LISA_AWS_CLAIM_DEFAULT_PROFILE=1");
-    const config = readFileSync(
-      path.join(ws.home, CONFIG_RELATIVE_PATH),
-      "utf8"
-    );
-    expect(config.slice(config.indexOf("[default]"))).toContain(
-      "arn:aws:iam::111111111111:role/"
-    );
-  });
-
   it("still bootstraps over the inert default profile a container ships", () => {
     const ws = workstation();
     const configPath = path.join(ws.home, CONFIG_RELATIVE_PATH);

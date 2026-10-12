@@ -1269,7 +1269,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/scripts/doctor-report.mjs":
       "f183e62848ac539da56a525fe2105fc6251a49e555a01dd1bba10d9227b1a6bf",
     "plugins/src/base/scripts/install-remote-agent-aws.mjs":
-      "aec9980c90fc500038f98c24329f0d8728e79a110326b33b744a68afa128de64",
+      "514bc7ffdd8c7b77a8bac55678a79bbcd587e8fe280b2fd1ab01919837a4a9e3",
     "plugins/src/base/scripts/intake-blocker-reprobe.mjs":
       "8df39b7831020bc775263b240e8852a8a8eb7dba0b6ade193e20c911438a1e05",
     "plugins/src/base/scripts/intake-prework-denominator.mjs":
@@ -1295,7 +1295,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/scripts/queue-status-prd-readers.mjs":
       "32b4366fc292062c869793aeaf5b006ff400df5da09ee510f862e15d59a77770",
     "plugins/src/base/scripts/remote-agent-aws-setup.sh":
-      "c4c03a7483ff9f22dfdb0936996209474283fdcc929d2e3ffffc7300a304710d",
+      "1717e0ad9296712103cc2a69b7fa952907ee9a9f0ea0d43a2441fdb1cb801be8",
     "plugins/src/base/scripts/repo-scope-vocabulary-audit.mjs":
       "bed0f0b8a43146dbe222c657d6b58494c3962d1bb627bf0591d4b37102de972f",
     "plugins/src/base/scripts/resolve-lifecycle-role.mjs":
@@ -1649,7 +1649,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-setup-notion/SKILL.md":
       "667d3767dfb06056145d1ad3f64a6ebfa012b61c19cb2c5f82cf1f6534499c38",
     "plugins/src/base/skills/lisa-setup-remote-aws/SKILL.md":
-      "96a890bc7d158d156aa019e648e84bc21023206e5fb5f7685b6c85f4028abb3c",
+      "dd0405358a1a8ed6feba4feea3fcb19ff64f43f46fc8a32d79922f6af0bf0878",
     "plugins/src/base/skills/lisa-setup-remote-env/SKILL.md":
       "d9b4260b434cb390544f75fa25f3c138a825adc0bc3b45262f114e592ad62bd0",
     "plugins/src/base/skills/lisa-setup-remote-env/assets/materialized-env-authority.mjs":
@@ -12405,6 +12405,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/strategies/readiness-rubric-contract.test.ts": true,
     "tests/unit/strategies/ready-role-filing-contract.test.ts": true,
     "tests/unit/strategies/rejection-detection-rule.test.ts": true,
+    "tests/unit/strategies/remote-agent-aws-default-refusal.test.ts": true,
     "tests/unit/strategies/remote-agent-aws-observer-reads.test.ts": true,
     "tests/unit/strategies/remote-agent-aws-profiles.test.ts": true,
     "tests/unit/strategies/remote-agent-aws-setup-wrapper.test.ts": true,

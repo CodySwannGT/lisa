@@ -598,12 +598,22 @@ if [ -n "$legacy_sections" ]; then
   fi
 fi
 
+# Decided here, enforced at the end. Refusing `[default]` must not also refuse
+# the named profiles: they are namespaced, carry no collision risk, and are the
+# remedy the refusal points the operator at. Refusing before writing them told
+# the operator to use profiles that did not exist, leaving the takeover override
+# as the only real path — the outcome this guard exists to discourage. So every
+# named profile is written and verified first, `[default]` alone is left
+# untouched, and the run still exits non-zero: what the operator asked for
+# (a ready workstation with this project's default) did not happen, and a
+# caller that continued on success would run unqualified `aws` commands in the
+# operator's account believing they reached this project's.
 default_owner="$(default_profile_owner)"
+claim_default=1
 case "$default_owner" in
   ours | legacy | unclaimed) ;;
   *)
-    [ "${LISA_AWS_CLAIM_DEFAULT_PROFILE:-0}" = "1" ] || fail \
-      "refusing to overwrite the [default] AWS profile in ${config_file}: it belongs to ${default_owner}, not to ${PROFILE_NAMESPACE}. Overwriting it would silently repoint every unqualified aws command at this project's accounts. Use the named profiles instead (${profile_names}), or set LISA_AWS_CLAIM_DEFAULT_PROFILE=1 to take it over deliberately."
+    [ "${LISA_AWS_CLAIM_DEFAULT_PROFILE:-0}" = "1" ] || claim_default=0
     ;;
 esac
 
@@ -629,11 +639,13 @@ while IFS="$(printf '\t')" read -r stage role_arn region; do
 done < <(printf '%s' "$profiles_json" | jq -r 'to_entries[] | [.key, .value.roleArn, .value.region] | @tsv')
 
 default_profile="${PROFILE_NAMESPACE}-agent-${default_stage}"
-aws configure set role_arn "$default_role_arn" --profile default
-aws configure set source_profile "$BOOTSTRAP_PROFILE" --profile default
-aws configure set external_id "$external_id" --profile default
-aws configure set role_session_name "$session_name" --profile default
-aws configure set region "$default_region" --profile default
+if [ "$claim_default" = "1" ]; then
+  aws configure set role_arn "$default_role_arn" --profile default
+  aws configure set source_profile "$BOOTSTRAP_PROFILE" --profile default
+  aws configure set external_id "$external_id" --profile default
+  aws configure set role_session_name "$session_name" --profile default
+  aws configure set region "$default_region" --profile default
+fi
 
 chmod 600 "$credentials_file" "$config_file"
 
@@ -672,6 +684,24 @@ if [ -n "$legacy_names" ]; then
   else
     echo "remote-agent-aws-setup: ${config_file} still contains unnamespaced profiles written by an earlier Lisa bootstrap: ${legacy_names}. They name a stage but no owner, so on a workstation carrying more than one organisation they can resolve to another tenant's account. Review them, or re-run with LISA_AWS_PRUNE_LEGACY_PROFILES=1 to delete the ones Lisa wrote." >&2
   fi
+fi
+
+if [ "$claim_default" = "0" ]; then
+  if [ "${LISA_AWS_SKIP_VERIFY:-0}" = "1" ]; then
+    named_state="were written but not verified (LISA_AWS_SKIP_VERIFY=1)"
+  else
+    named_state="were written and verified"
+  fi
+  # The trap the override walks into when `[default]` is static keys rather
+  # than a config-side profile: claiming rewrites only the config file, so the
+  # keys stay, and `[default]` ends up holding a role and an unrelated account's
+  # keys at once. Which wins depends on each tool's credential precedence. The
+  # key material itself is never echoed.
+  static_keys_note=""
+  if [ -n "$(profile_setting_value "$credentials_file" "default" "aws_access_key_id")" ]; then
+    static_keys_note=" Note: ${credentials_file} holds long-lived access keys under [default]. Claiming rewrites only ${config_file} and does not remove them, so [default] would carry both this project's role and those keys, and which one a tool uses depends on its credential precedence."
+  fi
+  fail "refusing to overwrite the [default] AWS profile in ${config_file}: it belongs to ${default_owner}, not to ${PROFILE_NAMESPACE}. Overwriting it would silently repoint every unqualified aws command at this project's accounts. [default] was left untouched; this project's named profiles ${named_state} (${profile_names}). Use them instead, for example AWS_PROFILE=${default_profile} or --profile ${default_profile}, or set LISA_AWS_CLAIM_DEFAULT_PROFILE=1 to take [default] over deliberately.${static_keys_note}"
 fi
 
 echo "remote-agent-aws-setup: ready (${session_name}; namespace=${PROFILE_NAMESPACE} via ${namespace_source}; default=${default_profile} in account ${default_expected_account}; profiles=${profile_names})"
