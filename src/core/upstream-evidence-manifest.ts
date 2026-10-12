@@ -239,7 +239,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-floor-collisions.mjs":
       "345832c63c85df32acbed9b183b06239fc10ccb1491bd11607b5840ac1d18573",
     "all/copy-overwrite/scripts/lisa-gates.mjs":
-      "f8cd07bdcdfc4066467635d86dc2a17337d4adacdd8829745482877dbd838f5e",
+      "dd9b9fe038b6d346d642bb9c09682c84d6073e6af8ecc8fdb9b7c84d8f2beefa",
     "all/copy-overwrite/scripts/lisa-history-secrets.mjs":
       "815fd6403aed6194d30939b59dc5ce894f7122a9da598acee4cd529a1b520de3",
     "all/copy-overwrite/scripts/lisa-hooks/block-blind-automerge.sh":
@@ -2495,7 +2495,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/check-release-package-identity.mjs":
       "a0f17592d4436de4c240f7c78512537581aa2ed5e89f0caf1fe890694163a873",
     "scripts/check-required-check-promotions.mjs":
-      "ae7a3d80beb98d8069af12d2d588e76f73f7a329b1f883ddbe1818bb1b5cafa9",
+      "c6fb764b16534812968733b13418bb7474008b5ba859de4aa2443ec290881db7",
     "scripts/check-rules-pairing.sh":
       "0fc26c4bb3e9283dbc775e794ee8abad98d59f401dfcc55deead0160c5c6bb71",
     "scripts/check-security-floors.mjs":
@@ -2707,7 +2707,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/test-intent-routing.sh":
       "97b9dc86cbd805df8a7fdb8c99ffab9b8c5e751ba2e84c05420b2a124f80635d",
     "scripts/two-channel-couplings.json":
-      "f370a5817b0427a6c2fa2374ce95a4c83f0d3e8e22b3dc8ab49c62e276b13be4",
+      "ebd050c5794d36923fbb9f98c55e2ba8064b6f7a24f69064f49de5352f6b9281",
     "scripts/update-node-version.ts":
       "9d37599ef73d5d624751f862cda330a867f6774392c1ab045b4fc885132582e4",
     "scripts/update-test-skill-paths.mjs":

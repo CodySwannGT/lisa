@@ -139,7 +139,11 @@ import fs from "node:fs";
 import path from "node:path";
 import yaml from "js-yaml";
 
-import { readGates } from "../all/copy-overwrite/scripts/lisa-gates.mjs";
+import {
+  REGISTRY,
+  jobBackedGates,
+  readGates,
+} from "../all/copy-overwrite/scripts/lisa-gates.mjs";
 import { invokedAsScript } from "./lib/invoked-as-script.mjs";
 import { buildRulesetPayload } from "./lisa-ruleset-payload.mjs";
 
@@ -674,7 +678,74 @@ function calledJobProblems(entry, root, calledName) {
       },
     ];
   }
+  if (entry.job_id === DECLARED_GATES_JOB) {
+    return declaredGateLegProblems(called, entry, calledName);
+  }
   return jobNameProblems(called, entry.job_id, calledName, "called");
+}
+
+/** The matrix job that posts one context per declared gate leg. */
+const DECLARED_GATES_JOB = "declared_gates";
+
+/** The literal `name:` that makes each matrix leg post its gate's label. */
+const MATRIX_LABEL_NAME = "${{ matrix.label }}";
+
+/**
+ * Verify a context posted by a `declared_gates` matrix leg rather than by a
+ * hand-written job (#3052).
+ *
+ * A leg has no static `name:` to compare — it is named by the registry label
+ * of the gate it runs. So the entry names that gate, and the guard checks the
+ * three facts that together mean the leg posts this exact string: the matrix
+ * job exists and is named by `matrix.label`, the gate's registry label is the
+ * context half, and no hand-written job still owns the gate. The last one
+ * matters because `momentLegs` emits no leg for a job-backed gate, so a ledger
+ * pointing at a leg that cannot exist would vouch for a context nothing posts.
+ *
+ * @param {{ jobs: Map<string, string> }} called - parsed called workflow.
+ * @param {object} entry - the ledger entry.
+ * @param {string} calledName - the expected called-job display name.
+ * @returns {{ rule: string, detail: string }[]} problems, empty when sound.
+ */
+function declaredGateLegProblems(called, entry, calledName) {
+  if (called.jobs.get(DECLARED_GATES_JOB) !== MATRIX_LABEL_NAME) {
+    return [
+      {
+        rule: "called-job-missing",
+        detail: `no '${DECLARED_GATES_JOB}' job named '${MATRIX_LABEL_NAME}' in the called workflow, so no declared gate leg posts '${calledName}'`,
+      },
+    ];
+  }
+  const gate = entry.gate;
+  const label =
+    typeof gate === "string" && Object.hasOwn(REGISTRY, gate)
+      ? REGISTRY[gate].label
+      : undefined;
+  if (label === undefined) {
+    return [
+      {
+        rule: "leg-gate-missing",
+        detail: `a '${DECLARED_GATES_JOB}' entry must name the registry gate whose leg posts the context; got ${JSON.stringify(gate)}`,
+      },
+    ];
+  }
+  if (label !== calledName) {
+    return [
+      {
+        rule: "called-job-name-mismatch",
+        detail: `gate '${gate}' posts '${label}' but the context expects '${calledName}'`,
+      },
+    ];
+  }
+  if (jobBackedGates().includes(gate)) {
+    return [
+      {
+        rule: "leg-gate-job-backed",
+        detail: `gate '${gate}' is still owned by a hand-written job, so the runner emits no leg for it`,
+      },
+    ];
+  }
+  return [];
 }
 
 /**

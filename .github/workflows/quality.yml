@@ -115,7 +115,7 @@ on:
         # PREFER `gates` IN .lisa.config.json: GitHub treats a SKIPPED required status check as
         # satisfied. `contextsFor` derives required contexts from the gate declaration instead.
         # Rationale: docs/quality-workflow-notes.md#note-1
-        description: 'Jobs to skip. Comma-separated with NO SPACES — tokens are matched exactly, so `lint, lint_slow` silently skips nothing beyond `lint`. (lint,lint_slow,typecheck,test:unit,test:mutation,test:integration,test:e2e,maestro_e2e,playwright_e2e,e2e_coverage,bdd_coverage,state_classification,learnings_budget,threshold_ratchet,work_item_traceability,format,build,test_node_suites,dead_code,conflict_markers,sg_scan,floor_collisions,npm_security_scan,github_issue)'
+        description: 'Jobs to skip. Comma-separated with NO SPACES — tokens are matched exactly, so `lint, test:unit` silently skips nothing beyond `lint`. (lint,test:unit,test:mutation,test:integration,test:e2e,maestro_e2e,playwright_e2e,e2e_coverage,bdd_coverage,state_classification,learnings_budget,threshold_ratchet,work_item_traceability,test_node_suites,conflict_markers,sg_scan,floor_collisions,npm_security_scan,github_issue)'
         required: false
         default: ''
         type: string
@@ -202,7 +202,7 @@ on:
         type: boolean
         default: true
       cache_build:
-        description: 'Cache build output between runs to skip `expo export` and `<pm> run build` when source unchanged. Default false = full rebuild every run (unchanged behavior). When true, cache key hashes lockfiles + src/app/components/features sources + Expo/Metro/Babel/TS configs; invalidates when any of those change.'
+        description: "INERT since #3052 — this cached the output of the hand-written build job, which was deleted: the build now runs as the build-integrity gate's declared leg, which always builds. Still accepted so a caller that passes it keeps a valid workflow; passing it does nothing here."
         required: false
         default: false
         type: boolean
@@ -724,7 +724,7 @@ jobs:
         if: always()
         env:
           GATE_MOMENT: ${{ inputs.moment }}
-          EXPECTED_PLAN_KEYS: history_secrets,lint,lint_slow,typecheck,verification_coverage,test_unit,test_mutation,test_integration,playwright_e2e_aggregate,format,build,work_item_traceability,performance_budget,test_node_suites,environment_reset,environment_reseed,dead_code,learnings_budget,conflict_markers,sg_scan,npm_security_scan,threshold_ratchet,e2e_coverage,bdd_coverage,state_classification,floor_collisions,secret_scanning,license_compliance,maestro_e2e,sonarcloud,snyk
+          EXPECTED_PLAN_KEYS: history_secrets,lint,verification_coverage,test_unit,test_mutation,test_integration,playwright_e2e_aggregate,work_item_traceability,performance_budget,test_node_suites,environment_reset,environment_reseed,learnings_budget,conflict_markers,sg_scan,npm_security_scan,threshold_ratchet,e2e_coverage,bdd_coverage,state_classification,floor_collisions,secret_scanning,license_compliance,maestro_e2e,sonarcloud,snyk
         run: |
           set -uo pipefail
           PLAN="{}"
@@ -1234,316 +1234,15 @@ jobs:
           NODE_OPTIONS: --max-old-space-size=6144
         working-directory: ${{ inputs.working_directory || '.' }}
 
-  lint_slow:
-    permissions:
-      contents: read
-    name: 🐢 Slow Lint Rules
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-    needs: [gate_plan]
-    if: ${{ always() && !cancelled() && !contains(format(',{0},', inputs.skip_jobs), ',lint_slow,') && (needs.gate_plan.result != 'success' || !contains(needs.gate_plan.outputs.plan, '"lint_slow":"skip"')) }}
-
-    steps:
-      - name: 📥 Checkout repository
-        uses: actions/checkout@v6
-        with:
-          persist-credentials: false
-
-      - name: 🔧 Setup Node.js
-        uses: actions/setup-node@v6
-        with:
-          package-manager-cache: false
-          node-version: ${{ inputs.node_version }}
-
-      - name: 🍞 Setup Bun
-        if: inputs.package_manager == 'bun'
-        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
-        with:
-          bun-version: '1.3.8'
-
-      - name: 💾 Restore package downloads
-        if: inputs.cache_dependencies
-        uses: actions/cache/restore@v5
-        with: *package_download_cache
-
-      - name: 📥 Install dependencies
-        run: |
-          case "$PACKAGE_MANAGER" in
-            npm) npm ci ;;
-            yarn) yarn install --frozen-lockfile ;;
-            pnpm) corepack enable && pnpm install --frozen-lockfile ;;
-            bun) bun install --frozen-lockfile ;;
-            *)
-              echo "::error::package_manager must be one of npm, yarn, pnpm, bun (got: $PACKAGE_MANAGER)."
-              exit 1
-              ;;
-          esac
-        working-directory: ${{ inputs.working_directory || '.' }}
-
-      # Gate façade — contract and fallback rationale documented in full on the
-      # 🧹 Lint job above.
-      - name: 🎛️ Resolve the code-style-slow gate
-        id: gate
-        env:
-          GATE_ID: code-style-slow
-          FALLBACK_RUNNER: ${{ inputs.package_manager }} run
-          GATE_MOMENT: ${{ inputs.moment }}
-        run: |
-          set -euo pipefail
-          RESOLVER=""
-          for candidate in "node_modules/@codyswann/lisa/all/copy-overwrite/scripts/lisa-gates.mjs" "scripts/lisa-gates.mjs" "all/copy-overwrite/scripts/lisa-gates.mjs"; do
-            if [ -f "$candidate" ]; then RESOLVER="$candidate"; break; fi
-          done
-          # Both are emitted BEFORE the early exit, so the report step below can
-          # name its gate and reuse this resolution even on the path where no
-          # resolver exists at all — which is the path most installed projects
-          # are on, and the one that most needs saying out loud.
-          echo "gate=$GATE_ID" >> "$GITHUB_OUTPUT"
-          echo "resolver=$RESOLVER" >> "$GITHUB_OUTPUT"
-          if [ -z "$RESOLVER" ]; then echo "configured=false" >> "$GITHUB_OUTPUT"; exit 0; fi
-          node "$RESOLVER" list --moment="$GATE_MOMENT" --json --include-off | node -e '
-          let raw = ""; process.stdin.on("data", d => { raw += d }).on("end", () => {
-          const id = process.env.GATE_ID, hit = JSON.parse(raw || "[]").find(g => g.id === id);
-          const level = hit && ["required", "optional", "off"].includes(hit.level) ? hit.level : "";
-          if (hit && !level) { console.error(`::error::gates.${id} declares level ${JSON.stringify(hit.level)}, which is not one of "required", "optional" or "off".`); process.exit(1); }
-          if (level === "off") return process.stdout.write("configured=off\nlevel=off\n");
-          const task = hit && hit.mode === "run" && hit.task ? hit.task : "";
-          if (!task) return process.stdout.write(`configured=false\nlevel=${level}\n`);
-          const declared = (require("./.lisa.config.json").gates || {}).runner;
-          const runner = declared === undefined ? process.env.FALLBACK_RUNNER : declared;
-          const plain = (value, pattern) => typeof value === "string" && pattern.test(value);
-          const head = typeof runner === "string" ? runner.trim().split(" ")[0] : "";
-          if (!plain(task, /^[A-Za-z0-9:._@\/= -]+$/)) { console.error(`::error::gates.${id} resolves to task "${task}", which is not a plain word.`); process.exit(1); }
-          if (!plain(runner, /^[A-Za-z0-9._@\/= -]+$/) || !head || [":", "true", "false", "echo", "printf"].includes(head)) { console.error(`::error::gates.runner is ${JSON.stringify(runner)}, which is not a task runner; gates.${id} would have run "${runner} ${task}". A runner must be a plain STRING, may not contain a colon, and may not be a shell no-op.`); process.exit(1); }
-          process.stdout.write(`configured=true\nlevel=${level}\nrunner=${runner}\ntask=${task}\n`); });
-          ' >> "$GITHUB_OUTPUT"
-        working-directory: ${{ inputs.working_directory || '.' }}
-
-      - name: 🚨 Report the unconfigured gate
-        if: steps.gate.outputs.configured == 'false'
-        env:
-          GATE_ID: ${{ steps.gate.outputs.gate }}
-          GATE_MOMENT: ${{ inputs.moment }}
-          RESOLVER: ${{ steps.gate.outputs.resolver }}
-        run: |
-          set -euo pipefail
-          if [ -z "$RESOLVER" ]; then
-            echo "::warning::$GATE_ID is UNCONFIGURED at $GATE_MOMENT: this project ships no gate registry, so the built-in steps below run a command written into the workflow that nothing declared."
-            exit 0
-          fi
-          node "$RESOLVER" unconfigured --moment="$GATE_MOMENT" --gate="$GATE_ID" --surface=quality-workflow --format=github || true
-        working-directory: ${{ inputs.working_directory || '.' }}
-
-      - name: 🧪 Verify the configured gate runner is installed
-        if: steps.gate.outputs.configured == 'true'
-        env:
-          GATE_ID: ${{ steps.gate.outputs.gate }}
-          GATE_RUNNER: ${{ steps.gate.outputs.runner }}
-          GATE_TASK: ${{ steps.gate.outputs.task }}
-          PACKAGE_MANAGER: ${{ inputs.package_manager }}
-        run: |
-          set -euo pipefail
-          HEAD="${GATE_RUNNER%% *}"
-          if ! command -v "$HEAD" >/dev/null 2>&1; then
-            echo "::error::gates.runner is \"$GATE_RUNNER\", but \"$HEAD\" is not installed on this runner, so gates.$GATE_ID would have run \"$GATE_RUNNER $GATE_TASK\" and died with a bare exit 127. CI was provisioned with package_manager: '$PACKAGE_MANAGER'. Either set gates.runner to \"$PACKAGE_MANAGER run\" in .lisa.config.json, or pass package_manager: '$HEAD' to this workflow."
-            exit 1
-          fi
-          if [ -n "$PACKAGE_MANAGER" ] && [ "$HEAD" != "$PACKAGE_MANAGER" ]; then
-            echo "::warning::gates.runner is \"$GATE_RUNNER\" but CI was provisioned with package_manager: '$PACKAGE_MANAGER'. \"$HEAD\" is present on this runner today so gates.$GATE_ID will run, but the two disagree, and a runner image without \"$HEAD\" turns every gate into a bare exit 127."
-          fi
-        working-directory: ${{ inputs.working_directory || '.' }}
-
-      - name: 🐢 Run the code-style-slow gate
-        id: gate_run
-        continue-on-error: ${{ steps.gate.outputs.level == 'optional' }}
-        if: steps.gate.outputs.configured == 'true'
-        env:
-          NODE_OPTIONS: --max-old-space-size=6144
-          GATE_RUNNER: ${{ steps.gate.outputs.runner }}
-          GATE_TASK: ${{ steps.gate.outputs.task }}
-        run: $GATE_RUNNER $GATE_TASK
-        working-directory: ${{ inputs.working_directory || '.' }}
-
-      - name: 🟡 Report the optional gate that failed
-        if: always() && steps.gate_run.outcome == 'failure' && steps.gate.outputs.level == 'optional'
-        env:
-          GATE_ID: ${{ steps.gate.outputs.gate }}
-          GATE_MOMENT: ${{ inputs.moment }}
-        run: |
-          set -euo pipefail
-          echo "::warning title=$GATE_ID failed and is optional::$GATE_ID is declared \"optional\" at $GATE_MOMENT and its task FAILED, so the property it proves does NOT hold. It did not fail this workflow and skipped nothing downstream, because that is what \"optional\" declares. Declare it \"required\" to make the failure block."
-          {
-            echo "### 🟡 $GATE_ID failed (optional)"
-            echo
-            echo "The \`$GATE_ID\` gate is declared **optional** at \`$GATE_MOMENT\`, and its task failed — the property it proves does **not** hold."
-            echo
-            echo "By declaration that did not fail this workflow and skipped nothing after it. Declare it \`required\` to make the failure a merge condition, or \`off\` to say on the record that this project does not govern the property here."
-          } >> "$GITHUB_STEP_SUMMARY"
-
-      - name: 🐢 Run slow lint rules
-        # FALLBACK — unchanged behavior for a project with no `gates` block.
-        if: steps.gate.outputs.configured == 'false'
-        run: |
-          "$PACKAGE_MANAGER" run lint:slow
-        env:
-          NODE_OPTIONS: --max-old-space-size=6144
-        working-directory: ${{ inputs.working_directory || '.' }}
-
-  typecheck:
-    permissions:
-      contents: read
-    name: 🔍 Type Check
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    needs: [gate_plan]
-    if: ${{ always() && !cancelled() && !contains(format(',{0},', inputs.skip_jobs), ',typecheck,') && (needs.gate_plan.result != 'success' || !contains(needs.gate_plan.outputs.plan, '"typecheck":"skip"')) }}
-
-    steps:
-      - name: 📥 Checkout repository
-        uses: actions/checkout@v6
-        with:
-          persist-credentials: false
-
-      - name: 🔧 Setup Node.js
-        uses: actions/setup-node@v6
-        with:
-          package-manager-cache: false
-          node-version: ${{ inputs.node_version }}
-
-      - name: 🍞 Setup Bun
-        if: inputs.package_manager == 'bun'
-        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
-        with:
-          bun-version: '1.3.8'
-
-      - name: 💾 Restore package downloads
-        if: inputs.cache_dependencies
-        uses: actions/cache/restore@v5
-        with: *package_download_cache
-
-      - name: 📦 Install dependencies
-        run: |
-          case "$PACKAGE_MANAGER" in
-            npm) npm ci ;;
-            yarn) yarn install --frozen-lockfile ;;
-            pnpm) corepack enable && pnpm install --frozen-lockfile ;;
-            bun) bun install --frozen-lockfile ;;
-            *)
-              echo "::error::package_manager must be one of npm, yarn, pnpm, bun (got: $PACKAGE_MANAGER)."
-              exit 1
-              ;;
-          esac
-        working-directory: ${{ inputs.working_directory || '.' }}
-
-      - name: 🎛️ Resolve the type-correctness gate
-        id: gate
-        env:
-          GATE_ID: type-correctness
-          FALLBACK_RUNNER: ${{ inputs.package_manager }} run
-          GATE_MOMENT: ${{ inputs.moment }}
-        run: |
-          set -euo pipefail
-          RESOLVER=""
-          for candidate in "node_modules/@codyswann/lisa/all/copy-overwrite/scripts/lisa-gates.mjs" "scripts/lisa-gates.mjs" "all/copy-overwrite/scripts/lisa-gates.mjs"; do
-            if [ -f "$candidate" ]; then RESOLVER="$candidate"; break; fi
-          done
-          # Both are emitted BEFORE the early exit, so the report step below can
-          # name its gate and reuse this resolution even on the path where no
-          # resolver exists at all — which is the path most installed projects
-          # are on, and the one that most needs saying out loud.
-          echo "gate=$GATE_ID" >> "$GITHUB_OUTPUT"
-          echo "resolver=$RESOLVER" >> "$GITHUB_OUTPUT"
-          if [ -z "$RESOLVER" ]; then echo "configured=false" >> "$GITHUB_OUTPUT"; exit 0; fi
-          node "$RESOLVER" list --moment="$GATE_MOMENT" --json --include-off | node -e '
-          let raw = ""; process.stdin.on("data", d => { raw += d }).on("end", () => {
-          const id = process.env.GATE_ID, hit = JSON.parse(raw || "[]").find(g => g.id === id);
-          const level = hit && ["required", "optional", "off"].includes(hit.level) ? hit.level : "";
-          if (hit && !level) { console.error(`::error::gates.${id} declares level ${JSON.stringify(hit.level)}, which is not one of "required", "optional" or "off".`); process.exit(1); }
-          if (level === "off") return process.stdout.write("configured=off\nlevel=off\n");
-          const task = hit && hit.mode === "run" && hit.task ? hit.task : "";
-          if (!task) return process.stdout.write(`configured=false\nlevel=${level}\n`);
-          const declared = (require("./.lisa.config.json").gates || {}).runner;
-          const runner = declared === undefined ? process.env.FALLBACK_RUNNER : declared;
-          const plain = (value, pattern) => typeof value === "string" && pattern.test(value);
-          const head = typeof runner === "string" ? runner.trim().split(" ")[0] : "";
-          if (!plain(task, /^[A-Za-z0-9:._@\/= -]+$/)) { console.error(`::error::gates.${id} resolves to task "${task}", which is not a plain word.`); process.exit(1); }
-          if (!plain(runner, /^[A-Za-z0-9._@\/= -]+$/) || !head || [":", "true", "false", "echo", "printf"].includes(head)) { console.error(`::error::gates.runner is ${JSON.stringify(runner)}, which is not a task runner; gates.${id} would have run "${runner} ${task}". A runner must be a plain STRING, may not contain a colon, and may not be a shell no-op.`); process.exit(1); }
-          process.stdout.write(`configured=true\nlevel=${level}\nrunner=${runner}\ntask=${task}\n`); });
-          ' >> "$GITHUB_OUTPUT"
-        working-directory: ${{ inputs.working_directory || '.' }}
-
-      - name: 🚨 Report the unconfigured gate
-        if: steps.gate.outputs.configured == 'false'
-        env:
-          GATE_ID: ${{ steps.gate.outputs.gate }}
-          GATE_MOMENT: ${{ inputs.moment }}
-          RESOLVER: ${{ steps.gate.outputs.resolver }}
-        run: |
-          set -euo pipefail
-          if [ -z "$RESOLVER" ]; then
-            echo "::warning::$GATE_ID is UNCONFIGURED at $GATE_MOMENT: this project ships no gate registry, so the built-in steps below run a command written into the workflow that nothing declared."
-            exit 0
-          fi
-          node "$RESOLVER" unconfigured --moment="$GATE_MOMENT" --gate="$GATE_ID" --surface=quality-workflow --format=github || true
-        working-directory: ${{ inputs.working_directory || '.' }}
-
-      - name: 🧪 Verify the configured gate runner is installed
-        if: steps.gate.outputs.configured == 'true'
-        env:
-          GATE_ID: ${{ steps.gate.outputs.gate }}
-          GATE_RUNNER: ${{ steps.gate.outputs.runner }}
-          GATE_TASK: ${{ steps.gate.outputs.task }}
-          PACKAGE_MANAGER: ${{ inputs.package_manager }}
-        run: |
-          set -euo pipefail
-          HEAD="${GATE_RUNNER%% *}"
-          if ! command -v "$HEAD" >/dev/null 2>&1; then
-            echo "::error::gates.runner is \"$GATE_RUNNER\", but \"$HEAD\" is not installed on this runner, so gates.$GATE_ID would have run \"$GATE_RUNNER $GATE_TASK\" and died with a bare exit 127. CI was provisioned with package_manager: '$PACKAGE_MANAGER'. Either set gates.runner to \"$PACKAGE_MANAGER run\" in .lisa.config.json, or pass package_manager: '$HEAD' to this workflow."
-            exit 1
-          fi
-          if [ -n "$PACKAGE_MANAGER" ] && [ "$HEAD" != "$PACKAGE_MANAGER" ]; then
-            echo "::warning::gates.runner is \"$GATE_RUNNER\" but CI was provisioned with package_manager: '$PACKAGE_MANAGER'. \"$HEAD\" is present on this runner today so gates.$GATE_ID will run, but the two disagree, and a runner image without \"$HEAD\" turns every gate into a bare exit 127."
-          fi
-        working-directory: ${{ inputs.working_directory || '.' }}
-
-      - name: 🔍 Run the type-correctness gate
-        id: gate_run
-        continue-on-error: ${{ steps.gate.outputs.level == 'optional' }}
-        if: steps.gate.outputs.configured == 'true'
-        env:
-          NODE_OPTIONS: --max-old-space-size=6144
-          GATE_RUNNER: ${{ steps.gate.outputs.runner }}
-          GATE_TASK: ${{ steps.gate.outputs.task }}
-        run: $GATE_RUNNER $GATE_TASK
-        working-directory: ${{ inputs.working_directory || '.' }}
-
-      - name: 🟡 Report the optional gate that failed
-        if: always() && steps.gate_run.outcome == 'failure' && steps.gate.outputs.level == 'optional'
-        env:
-          GATE_ID: ${{ steps.gate.outputs.gate }}
-          GATE_MOMENT: ${{ inputs.moment }}
-        run: |
-          set -euo pipefail
-          echo "::warning title=$GATE_ID failed and is optional::$GATE_ID is declared \"optional\" at $GATE_MOMENT and its task FAILED, so the property it proves does NOT hold. It did not fail this workflow and skipped nothing downstream, because that is what \"optional\" declares. Declare it \"required\" to make the failure block."
-          {
-            echo "### 🟡 $GATE_ID failed (optional)"
-            echo
-            echo "The \`$GATE_ID\` gate is declared **optional** at \`$GATE_MOMENT\`, and its task failed — the property it proves does **not** hold."
-            echo
-            echo "By declaration that did not fail this workflow and skipped nothing after it. Declare it \`required\` to make the failure a merge condition, or \`off\` to say on the record that this project does not govern the property here."
-          } >> "$GITHUB_STEP_SUMMARY"
-
-      - name: 🔍 Run type check
-        if: steps.gate.outputs.configured == 'false'
-        run: |
-          "$PACKAGE_MANAGER" run typecheck
-        env:
-          NODE_OPTIONS: --max-old-space-size=6144
-        working-directory: ${{ inputs.working_directory || '.' }}
-
   # #2485 removed the duplicate bare npm-test job and its confusable name.
   # Required unit/integration jobs retain execution and coverage. Retired
   # skip_jobs: 'test' is inert; exact comma-token matching preserves other tokens.
+
+  # Rationale for what is NOT here: `lint_slow`, `typecheck`, `format`,
+  # `build` and `dead_code` were hand-written jobs that ran `$runner $task` for
+  # a declared gate, which is exactly what a `declared_gates` leg runs, under
+  # the same context name. They were deleted (#3052) once every in-scope caller
+  # declared those gates at pull-request; `momentLegs` now emits their legs.
 
   verification_coverage:
     permissions:
@@ -3917,385 +3616,6 @@ jobs:
           echo "::warning::Maestro Cloud E2E tests skipped - no app file provided"
           echo "To run Maestro tests, provide the maestro_app_file input with the path to your app binary"
 
-  format:
-    permissions:
-      contents: read
-    name: 📐 Check Formatting
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    needs: [gate_plan]
-    if: ${{ always() && !cancelled() && !contains(format(',{0},', inputs.skip_jobs), ',format,') && (needs.gate_plan.result != 'success' || !contains(needs.gate_plan.outputs.plan, '"format":"skip"')) }}
-
-    steps:
-      - name: 📥 Checkout repository
-        uses: actions/checkout@v6
-        with:
-          persist-credentials: false
-
-      - name: 🔧 Setup Node.js
-        uses: actions/setup-node@v6
-        with:
-          package-manager-cache: false
-          node-version: ${{ inputs.node_version }}
-
-      - name: 🍞 Setup Bun
-        if: inputs.package_manager == 'bun'
-        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
-        with:
-          bun-version: '1.3.8'
-
-      - name: 💾 Restore package downloads
-        if: inputs.cache_dependencies
-        uses: actions/cache/restore@v5
-        with: *package_download_cache
-
-      - name: 📦 Install dependencies
-        run: |
-          case "$PACKAGE_MANAGER" in
-            npm) npm ci ;;
-            yarn) yarn install --frozen-lockfile ;;
-            pnpm) corepack enable && pnpm install --frozen-lockfile ;;
-            bun) bun install --frozen-lockfile ;;
-            *)
-              echo "::error::package_manager must be one of npm, yarn, pnpm, bun (got: $PACKAGE_MANAGER)."
-              exit 1
-              ;;
-          esac
-        working-directory: ${{ inputs.working_directory || '.' }}
-
-      - name: 🎛️ Resolve the format-conformance gate
-        id: gate
-        env:
-          GATE_ID: format-conformance
-          FALLBACK_RUNNER: ${{ inputs.package_manager }} run
-          GATE_MOMENT: ${{ inputs.moment }}
-        run: |
-          set -euo pipefail
-          RESOLVER=""
-          for candidate in "node_modules/@codyswann/lisa/all/copy-overwrite/scripts/lisa-gates.mjs" "scripts/lisa-gates.mjs" "all/copy-overwrite/scripts/lisa-gates.mjs"; do
-            if [ -f "$candidate" ]; then RESOLVER="$candidate"; break; fi
-          done
-          # Both are emitted BEFORE the early exit, so the report step below can
-          # name its gate and reuse this resolution even on the path where no
-          # resolver exists at all — which is the path most installed projects
-          # are on, and the one that most needs saying out loud.
-          echo "gate=$GATE_ID" >> "$GITHUB_OUTPUT"
-          echo "resolver=$RESOLVER" >> "$GITHUB_OUTPUT"
-          if [ -z "$RESOLVER" ]; then echo "configured=false" >> "$GITHUB_OUTPUT"; exit 0; fi
-          node "$RESOLVER" list --moment="$GATE_MOMENT" --json --include-off | node -e '
-          let raw = ""; process.stdin.on("data", d => { raw += d }).on("end", () => {
-          const id = process.env.GATE_ID, hit = JSON.parse(raw || "[]").find(g => g.id === id);
-          const level = hit && ["required", "optional", "off"].includes(hit.level) ? hit.level : "";
-          if (hit && !level) { console.error(`::error::gates.${id} declares level ${JSON.stringify(hit.level)}, which is not one of "required", "optional" or "off".`); process.exit(1); }
-          if (level === "off") return process.stdout.write("configured=off\nlevel=off\n");
-          const task = hit && hit.mode === "run" && hit.task ? hit.task : "";
-          if (!task) return process.stdout.write(`configured=false\nlevel=${level}\n`);
-          const declared = (require("./.lisa.config.json").gates || {}).runner;
-          const runner = declared === undefined ? process.env.FALLBACK_RUNNER : declared;
-          const plain = (value, pattern) => typeof value === "string" && pattern.test(value);
-          const head = typeof runner === "string" ? runner.trim().split(" ")[0] : "";
-          if (!plain(task, /^[A-Za-z0-9:._@\/= -]+$/)) { console.error(`::error::gates.${id} resolves to task "${task}", which is not a plain word.`); process.exit(1); }
-          if (!plain(runner, /^[A-Za-z0-9._@\/= -]+$/) || !head || [":", "true", "false", "echo", "printf"].includes(head)) { console.error(`::error::gates.runner is ${JSON.stringify(runner)}, which is not a task runner; gates.${id} would have run "${runner} ${task}". A runner must be a plain STRING, may not contain a colon, and may not be a shell no-op.`); process.exit(1); }
-          process.stdout.write(`configured=true\nlevel=${level}\nrunner=${runner}\ntask=${task}\n`); });
-          ' >> "$GITHUB_OUTPUT"
-        working-directory: ${{ inputs.working_directory || '.' }}
-
-      - name: 🚨 Report the unconfigured gate
-        if: steps.gate.outputs.configured == 'false'
-        env:
-          GATE_ID: ${{ steps.gate.outputs.gate }}
-          GATE_MOMENT: ${{ inputs.moment }}
-          RESOLVER: ${{ steps.gate.outputs.resolver }}
-        run: |
-          set -euo pipefail
-          if [ -z "$RESOLVER" ]; then
-            echo "::warning::$GATE_ID is UNCONFIGURED at $GATE_MOMENT: this project ships no gate registry, so the built-in steps below run a command written into the workflow that nothing declared."
-            exit 0
-          fi
-          node "$RESOLVER" unconfigured --moment="$GATE_MOMENT" --gate="$GATE_ID" --surface=quality-workflow --format=github || true
-        working-directory: ${{ inputs.working_directory || '.' }}
-
-      - name: 🧪 Verify the configured gate runner is installed
-        if: steps.gate.outputs.configured == 'true'
-        env:
-          GATE_ID: ${{ steps.gate.outputs.gate }}
-          GATE_RUNNER: ${{ steps.gate.outputs.runner }}
-          GATE_TASK: ${{ steps.gate.outputs.task }}
-          PACKAGE_MANAGER: ${{ inputs.package_manager }}
-        run: |
-          set -euo pipefail
-          HEAD="${GATE_RUNNER%% *}"
-          if ! command -v "$HEAD" >/dev/null 2>&1; then
-            echo "::error::gates.runner is \"$GATE_RUNNER\", but \"$HEAD\" is not installed on this runner, so gates.$GATE_ID would have run \"$GATE_RUNNER $GATE_TASK\" and died with a bare exit 127. CI was provisioned with package_manager: '$PACKAGE_MANAGER'. Either set gates.runner to \"$PACKAGE_MANAGER run\" in .lisa.config.json, or pass package_manager: '$HEAD' to this workflow."
-            exit 1
-          fi
-          if [ -n "$PACKAGE_MANAGER" ] && [ "$HEAD" != "$PACKAGE_MANAGER" ]; then
-            echo "::warning::gates.runner is \"$GATE_RUNNER\" but CI was provisioned with package_manager: '$PACKAGE_MANAGER'. \"$HEAD\" is present on this runner today so gates.$GATE_ID will run, but the two disagree, and a runner image without \"$HEAD\" turns every gate into a bare exit 127."
-          fi
-        working-directory: ${{ inputs.working_directory || '.' }}
-
-      - name: 📐 Run the format-conformance gate
-        id: gate_run
-        continue-on-error: ${{ steps.gate.outputs.level == 'optional' }}
-        if: steps.gate.outputs.configured == 'true'
-        env:
-          NODE_OPTIONS: --max-old-space-size=6144
-          GATE_RUNNER: ${{ steps.gate.outputs.runner }}
-          GATE_TASK: ${{ steps.gate.outputs.task }}
-        run: $GATE_RUNNER $GATE_TASK
-        working-directory: ${{ inputs.working_directory || '.' }}
-
-      - name: 🟡 Report the optional gate that failed
-        if: always() && steps.gate_run.outcome == 'failure' && steps.gate.outputs.level == 'optional'
-        env:
-          GATE_ID: ${{ steps.gate.outputs.gate }}
-          GATE_MOMENT: ${{ inputs.moment }}
-        run: |
-          set -euo pipefail
-          echo "::warning title=$GATE_ID failed and is optional::$GATE_ID is declared \"optional\" at $GATE_MOMENT and its task FAILED, so the property it proves does NOT hold. It did not fail this workflow and skipped nothing downstream, because that is what \"optional\" declares. Declare it \"required\" to make the failure block."
-          {
-            echo "### 🟡 $GATE_ID failed (optional)"
-            echo
-            echo "The \`$GATE_ID\` gate is declared **optional** at \`$GATE_MOMENT\`, and its task failed — the property it proves does **not** hold."
-            echo
-            echo "By declaration that did not fail this workflow and skipped nothing after it. Declare it \`required\` to make the failure a merge condition, or \`off\` to say on the record that this project does not govern the property here."
-          } >> "$GITHUB_STEP_SUMMARY"
-
-      - name: 📐 Check formatting
-        if: steps.gate.outputs.configured == 'false'
-        run: |
-          "$PACKAGE_MANAGER" run format:check
-        env:
-          NODE_OPTIONS: --max-old-space-size=6144
-        working-directory: ${{ inputs.working_directory || '.' }}
-
-  build:
-    permissions:
-      contents: read
-    name: 🏗️ Build
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-    needs: [gate_plan]
-    if: ${{ always() && !cancelled() && !contains(format(',{0},', inputs.skip_jobs), ',build,') && (needs.gate_plan.result != 'success' || !contains(needs.gate_plan.outputs.plan, '"build":"skip"')) }}
-
-    steps:
-      - name: 📥 Checkout repository
-        uses: actions/checkout@v6
-        with:
-          persist-credentials: false
-
-      - name: 🔧 Setup Node.js
-        uses: actions/setup-node@v6
-        with:
-          package-manager-cache: false
-          node-version: ${{ inputs.node_version }}
-
-      - name: 🍞 Setup Bun
-        if: inputs.package_manager == 'bun'
-        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
-        with:
-          bun-version: '1.3.8'
-
-      - name: 💾 Restore package downloads
-        if: inputs.cache_dependencies
-        uses: actions/cache/restore@v5
-        with: *package_download_cache
-
-      - name: 📦 Install dependencies
-        run: |
-          case "$PACKAGE_MANAGER" in
-            npm) npm ci ;;
-            yarn) yarn install --frozen-lockfile ;;
-            pnpm) corepack enable && pnpm install --frozen-lockfile ;;
-            bun) bun install --frozen-lockfile ;;
-            *)
-              echo "::error::package_manager must be one of npm, yarn, pnpm, bun (got: $PACKAGE_MANAGER)."
-              exit 1
-              ;;
-          esac
-        working-directory: ${{ inputs.working_directory || '.' }}
-
-      - name: 🎛️ Resolve the build-integrity gate
-        id: gate
-        env:
-          GATE_ID: build-integrity
-          FALLBACK_RUNNER: ${{ inputs.package_manager }} run
-          GATE_MOMENT: ${{ inputs.moment }}
-        run: |
-          set -euo pipefail
-          RESOLVER=""
-          for candidate in "node_modules/@codyswann/lisa/all/copy-overwrite/scripts/lisa-gates.mjs" "scripts/lisa-gates.mjs" "all/copy-overwrite/scripts/lisa-gates.mjs"; do
-            if [ -f "$candidate" ]; then RESOLVER="$candidate"; break; fi
-          done
-          # Both are emitted BEFORE the early exit, so the report step below can
-          # name its gate and reuse this resolution even on the path where no
-          # resolver exists at all — which is the path most installed projects
-          # are on, and the one that most needs saying out loud.
-          echo "gate=$GATE_ID" >> "$GITHUB_OUTPUT"
-          echo "resolver=$RESOLVER" >> "$GITHUB_OUTPUT"
-          if [ -z "$RESOLVER" ]; then echo "configured=false" >> "$GITHUB_OUTPUT"; exit 0; fi
-          node "$RESOLVER" list --moment="$GATE_MOMENT" --json --include-off | node -e '
-          let raw = ""; process.stdin.on("data", d => { raw += d }).on("end", () => {
-          const id = process.env.GATE_ID, hit = JSON.parse(raw || "[]").find(g => g.id === id);
-          const level = hit && ["required", "optional", "off"].includes(hit.level) ? hit.level : "";
-          if (hit && !level) { console.error(`::error::gates.${id} declares level ${JSON.stringify(hit.level)}, which is not one of "required", "optional" or "off".`); process.exit(1); }
-          if (level === "off") return process.stdout.write("configured=off\nlevel=off\n");
-          const task = hit && hit.mode === "run" && hit.task ? hit.task : "";
-          if (!task) return process.stdout.write(`configured=false\nlevel=${level}\n`);
-          const declared = (require("./.lisa.config.json").gates || {}).runner;
-          const runner = declared === undefined ? process.env.FALLBACK_RUNNER : declared;
-          const plain = (value, pattern) => typeof value === "string" && pattern.test(value);
-          const head = typeof runner === "string" ? runner.trim().split(" ")[0] : "";
-          if (!plain(task, /^[A-Za-z0-9:._@\/= -]+$/)) { console.error(`::error::gates.${id} resolves to task "${task}", which is not a plain word.`); process.exit(1); }
-          if (!plain(runner, /^[A-Za-z0-9._@\/= -]+$/) || !head || [":", "true", "false", "echo", "printf"].includes(head)) { console.error(`::error::gates.runner is ${JSON.stringify(runner)}, which is not a task runner; gates.${id} would have run "${runner} ${task}". A runner must be a plain STRING, may not contain a colon, and may not be a shell no-op.`); process.exit(1); }
-          process.stdout.write(`configured=true\nlevel=${level}\nrunner=${runner}\ntask=${task}\n`); });
-          ' >> "$GITHUB_OUTPUT"
-        working-directory: ${{ inputs.working_directory || '.' }}
-
-      - name: 🚨 Report the unconfigured gate
-        if: steps.gate.outputs.configured == 'false'
-        env:
-          GATE_ID: ${{ steps.gate.outputs.gate }}
-          GATE_MOMENT: ${{ inputs.moment }}
-          RESOLVER: ${{ steps.gate.outputs.resolver }}
-        run: |
-          set -euo pipefail
-          if [ -z "$RESOLVER" ]; then
-            echo "::warning::$GATE_ID is UNCONFIGURED at $GATE_MOMENT: this project ships no gate registry, so the built-in steps below run a command written into the workflow that nothing declared."
-            exit 0
-          fi
-          node "$RESOLVER" unconfigured --moment="$GATE_MOMENT" --gate="$GATE_ID" --surface=quality-workflow --format=github || true
-        working-directory: ${{ inputs.working_directory || '.' }}
-
-      # Same build-input fingerprint the playwright_e2e job uses, and for the
-      # same reason — the `**/src/**`-style globs this replaces walked
-      # node_modules and could exceed the runner's 120s hashFiles cap. See the
-      # 🔑 Fingerprint build inputs step in playwright_e2e for the measurements.
-      - name: 🔑 Fingerprint build inputs
-        id: build_fingerprint
-        run: |
-          set -euo pipefail
-          fingerprint=$(git ls-files -s -- \
-            'bun.lock' 'bun.lockb' 'package-lock.json' 'yarn.lock' \
-            'src' 'app' 'components' 'features' \
-            'app.json' 'app.config.js' 'app.config.ts' 'package.json' \
-            'babel.config.js' 'babel.config.ts' \
-            'metro.config.js' 'metro.config.ts' 'tsconfig.json' \
-            | git hash-object --stdin)
-          echo "hash=$fingerprint" >> "$GITHUB_OUTPUT"
-          echo "Build input fingerprint: $fingerprint"
-        working-directory: ${{ inputs.working_directory || '.' }}
-
-      # Build output cache — opt-in via `cache_build: true`.
-      #
-      # Cache invalidation contract (same as playwright_e2e):
-      #   Key is the build-input fingerprint above: lockfiles →
-      #   src/app/components/features sources → Expo/Metro/Babel/TS configs.
-      #   Any change forces a rebuild.
-      # Cached paths cover common build output directories (dist, build,
-      # .next, out) plus bundler caches. Default false = unchanged behavior.
-      - name: 💾 Restore build cache
-        if: inputs.cache_build == true
-        id: build_cache
-        uses: actions/cache@v5
-        with:
-          path: |
-            ${{ inputs.working_directory || '.' }}/dist
-            ${{ inputs.working_directory || '.' }}/build
-            ${{ inputs.working_directory || '.' }}/.next
-            ${{ inputs.working_directory || '.' }}/out
-            ${{ inputs.working_directory || '.' }}/.expo
-            ${{ inputs.working_directory || '.' }}/node_modules/.cache
-          key: ${{ runner.os }}-build-${{ steps.build_fingerprint.outputs.hash }}
-          restore-keys: |
-            ${{ runner.os }}-build-
-
-      # Both build steps carry the same cache-hit guard. The parentheses are
-      # load-bearing: GitHub Actions binds `&&` tighter than `||`, so without
-      # them `A || B && C` would parse as `A || (B && C)` and the configured
-      # gate would run on a cache hit.
-      - name: 🧪 Verify the configured gate runner is installed
-        if: steps.gate.outputs.configured == 'true'
-        env:
-          GATE_ID: ${{ steps.gate.outputs.gate }}
-          GATE_RUNNER: ${{ steps.gate.outputs.runner }}
-          GATE_TASK: ${{ steps.gate.outputs.task }}
-          PACKAGE_MANAGER: ${{ inputs.package_manager }}
-        run: |
-          set -euo pipefail
-          HEAD="${GATE_RUNNER%% *}"
-          if ! command -v "$HEAD" >/dev/null 2>&1; then
-            echo "::error::gates.runner is \"$GATE_RUNNER\", but \"$HEAD\" is not installed on this runner, so gates.$GATE_ID would have run \"$GATE_RUNNER $GATE_TASK\" and died with a bare exit 127. CI was provisioned with package_manager: '$PACKAGE_MANAGER'. Either set gates.runner to \"$PACKAGE_MANAGER run\" in .lisa.config.json, or pass package_manager: '$HEAD' to this workflow."
-            exit 1
-          fi
-          if [ -n "$PACKAGE_MANAGER" ] && [ "$HEAD" != "$PACKAGE_MANAGER" ]; then
-            echo "::warning::gates.runner is \"$GATE_RUNNER\" but CI was provisioned with package_manager: '$PACKAGE_MANAGER'. \"$HEAD\" is present on this runner today so gates.$GATE_ID will run, but the two disagree, and a runner image without \"$HEAD\" turns every gate into a bare exit 127."
-          fi
-        working-directory: ${{ inputs.working_directory || '.' }}
-
-      - name: 🏗️ Run the build-integrity gate
-        id: gate_run
-        continue-on-error: ${{ steps.gate.outputs.level == 'optional' }}
-        # Both build steps carry the same cache-hit guard. The parentheses are
-        # load-bearing: GitHub Actions binds `&&` tighter than `||`, so without
-        # them `A || B && C` would parse as `A || (B && C)` and this step would
-        # run on a cache hit.
-        if: ${{ (inputs.cache_build != true || steps.build_cache.outputs.cache-hit != 'true') && steps.gate.outputs.configured == 'true' }}
-        env:
-          NODE_OPTIONS: --max-old-space-size=6144
-          GATE_RUNNER: ${{ steps.gate.outputs.runner }}
-          GATE_TASK: ${{ steps.gate.outputs.task }}
-        run: $GATE_RUNNER $GATE_TASK
-        working-directory: ${{ inputs.working_directory || '.' }}
-
-      - name: 🟡 Report the optional gate that failed
-        if: always() && steps.gate_run.outcome == 'failure' && steps.gate.outputs.level == 'optional'
-        env:
-          GATE_ID: ${{ steps.gate.outputs.gate }}
-          GATE_MOMENT: ${{ inputs.moment }}
-        run: |
-          set -euo pipefail
-          echo "::warning title=$GATE_ID failed and is optional::$GATE_ID is declared \"optional\" at $GATE_MOMENT and its task FAILED, so the property it proves does NOT hold. It did not fail this workflow and skipped nothing downstream, because that is what \"optional\" declares. Declare it \"required\" to make the failure block."
-          {
-            echo "### 🟡 $GATE_ID failed (optional)"
-            echo
-            echo "The \`$GATE_ID\` gate is declared **optional** at \`$GATE_MOMENT\`, and its task failed — the property it proves does **not** hold."
-            echo
-            echo "By declaration that did not fail this workflow and skipped nothing after it. Declare it \`required\` to make the failure a merge condition, or \`off\` to say on the record that this project does not govern the property here."
-          } >> "$GITHUB_STEP_SUMMARY"
-
-      - name: 🏗️ Build project
-        if: ${{ (inputs.cache_build != true || steps.build_cache.outputs.cache-hit != 'true') && steps.gate.outputs.configured == 'false' }}
-        run: |
-          "$PACKAGE_MANAGER" run build
-        env:
-          NODE_OPTIONS: --max-old-space-size=6144
-        working-directory: ${{ inputs.working_directory || '.' }}
-
-      - name: ⏭️ Build cache hit — skipping build
-        if: inputs.cache_build == true && steps.build_cache.outputs.cache-hit == 'true'
-        run: |
-          echo "::notice::Build cache hit — skipped \`$PACKAGE_MANAGER run build\`"
-        working-directory: ${{ inputs.working_directory || '.' }}
-
-      - name: 📤 Upload build artifacts
-        uses: actions/upload-artifact@v7
-        if: success()
-        with:
-          name: build-output-${{ github.run_id }}
-          path: |
-            dist
-            build
-            .next
-            out
-          # `.next` is hidden, so without this a Next.js project's build output
-          # is dropped from the artifact — and because the other three paths do
-          # not exist there either, `if-no-files-found: ignore` turns that into
-          # a silent no-op rather than a warning.
-          include-hidden-files: true
-          retention-days: 1
-          if-no-files-found: ignore
-
   # DELIBERATELY NOT A GATE: projects cannot skip validation of their own gate
   # declarations. Rationale: docs/quality-workflow-notes.md#note-9
   gate_config_validity:
@@ -4405,8 +3725,6 @@ jobs:
         gate_plan,
         declared_gates,
         lint,
-        lint_slow,
-        typecheck,
         verification_coverage,
         e2e_coverage,
         state_classification,
@@ -4417,8 +3735,6 @@ jobs:
         test_mutation_measured,
         test_integration,
         maestro_e2e,
-        format,
-        build,
         gate_config_validity,
         threshold_ratchet,
         work_item_traceability,
@@ -4426,7 +3742,6 @@ jobs:
         test_node_suites,
         environment_reset,
         environment_reseed,
-        dead_code,
         conflict_markers,
         sg_scan,
         floor_collisions,
@@ -4493,8 +3808,6 @@ jobs:
               "gate_legs": "🧮 Declared Gate Legs",
               "gate_plan": "🗺️ Gate Preallocation Plan",
               "lint": "🧹 Lint",
-              "lint_slow": "🐢 Slow Lint Rules",
-              "typecheck": "🔍 Type Check",
               "verification_coverage": "✅ Verification Coverage",
               "e2e_coverage": "🧭 E2E Route Coverage",
               "state_classification": "🧬 State Classification",
@@ -4505,8 +3818,6 @@ jobs:
               "test_mutation_measured": "🧬 Did the mutation gate measure anything?",
               "test_integration": "🧪 Run Integration Tests",
               "maestro_e2e": "📱 Native Device Journeys",
-              "format": "📐 Check Formatting",
-              "build": "🏗️ Build",
               "gate_config_validity": "🧭 Gate Config Validity",
               "threshold_ratchet": "📐 Threshold Ratchet",
               "work_item_traceability": "🔗 Work-Item Traceability",
@@ -4514,7 +3825,6 @@ jobs:
               "test_node_suites": "🧪 Run .mjs Suites",
               "environment_reset": "♻️ Environment Reset Guard",
               "environment_reseed": "🌱 Environment Reseed Guard",
-              "dead_code": "🗑️ Dead Code Detection",
               "conflict_markers": "🩹 Conflict Markers",
               "sg_scan": "🔎 Structural Rules",
               "floor_collisions": "🧱 Security Floor Collisions",
@@ -6038,163 +5348,6 @@ jobs:
         run: |
           echo "No environment-reseed gate declared in .lisa.config.json, so no environment reseed guard was verified."
           echo "Declare gates.environment-reseed once this project has an environment:reseed:verify adapter. A level of \"off\" counts as a decision; silence does not."
-        working-directory: ${{ inputs.working_directory || '.' }}
-
-  dead_code:
-    permissions:
-      contents: read
-    name: 🗑️ Dead Code Detection
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    needs: [gate_plan]
-    if: ${{ always() && !cancelled() && !contains(format(',{0},', inputs.skip_jobs), ',dead_code,') && (needs.gate_plan.result != 'success' || !contains(needs.gate_plan.outputs.plan, '"dead_code":"skip"')) }}
-
-    steps:
-      - name: 📥 Checkout repository
-        uses: actions/checkout@v6
-        with:
-          persist-credentials: false
-
-      - name: 🔧 Setup Node.js
-        uses: actions/setup-node@v6
-        with:
-          package-manager-cache: false
-          node-version: ${{ inputs.node_version }}
-
-      - name: 🍞 Setup Bun
-        if: inputs.package_manager == 'bun'
-        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
-        with:
-          bun-version: '1.3.8'
-
-      - name: 💾 Restore package downloads
-        if: inputs.cache_dependencies
-        uses: actions/cache/restore@v5
-        with: *package_download_cache
-
-      - name: 📦 Install dependencies
-        run: |
-          case "$PACKAGE_MANAGER" in
-            npm) npm ci ;;
-            yarn) yarn install --frozen-lockfile ;;
-            pnpm) corepack enable && pnpm install --frozen-lockfile ;;
-            bun) bun install --frozen-lockfile ;;
-            *)
-              echo "::error::package_manager must be one of npm, yarn, pnpm, bun (got: $PACKAGE_MANAGER)."
-              exit 1
-              ;;
-          esac
-        working-directory: ${{ inputs.working_directory || '.' }}
-
-      - name: 🎛️ Resolve the dead-code gate
-        id: gate
-        env:
-          GATE_ID: dead-code
-          FALLBACK_RUNNER: ${{ inputs.package_manager }} run
-          GATE_MOMENT: ${{ inputs.moment }}
-        run: |
-          set -euo pipefail
-          RESOLVER=""
-          for candidate in "node_modules/@codyswann/lisa/all/copy-overwrite/scripts/lisa-gates.mjs" "scripts/lisa-gates.mjs" "all/copy-overwrite/scripts/lisa-gates.mjs"; do
-            if [ -f "$candidate" ]; then RESOLVER="$candidate"; break; fi
-          done
-          # Both are emitted BEFORE the early exit, so the report step below can
-          # name its gate and reuse this resolution even on the path where no
-          # resolver exists at all — which is the path most installed projects
-          # are on, and the one that most needs saying out loud.
-          echo "gate=$GATE_ID" >> "$GITHUB_OUTPUT"
-          echo "resolver=$RESOLVER" >> "$GITHUB_OUTPUT"
-          if [ -z "$RESOLVER" ]; then echo "configured=false" >> "$GITHUB_OUTPUT"; exit 0; fi
-          node "$RESOLVER" list --moment="$GATE_MOMENT" --json --include-off | node -e '
-          let raw = ""; process.stdin.on("data", d => { raw += d }).on("end", () => {
-          const id = process.env.GATE_ID, hit = JSON.parse(raw || "[]").find(g => g.id === id);
-          const level = hit && ["required", "optional", "off"].includes(hit.level) ? hit.level : "";
-          if (hit && !level) { console.error(`::error::gates.${id} declares level ${JSON.stringify(hit.level)}, which is not one of "required", "optional" or "off".`); process.exit(1); }
-          if (level === "off") return process.stdout.write("configured=off\nlevel=off\n");
-          const task = hit && hit.mode === "run" && hit.task ? hit.task : "";
-          if (!task) return process.stdout.write(`configured=false\nlevel=${level}\n`);
-          const declared = (require("./.lisa.config.json").gates || {}).runner;
-          const runner = declared === undefined ? process.env.FALLBACK_RUNNER : declared;
-          const plain = (value, pattern) => typeof value === "string" && pattern.test(value);
-          const head = typeof runner === "string" ? runner.trim().split(" ")[0] : "";
-          if (!plain(task, /^[A-Za-z0-9:._@\/= -]+$/)) { console.error(`::error::gates.${id} resolves to task "${task}", which is not a plain word.`); process.exit(1); }
-          if (!plain(runner, /^[A-Za-z0-9._@\/= -]+$/) || !head || [":", "true", "false", "echo", "printf"].includes(head)) { console.error(`::error::gates.runner is ${JSON.stringify(runner)}, which is not a task runner; gates.${id} would have run "${runner} ${task}". A runner must be a plain STRING, may not contain a colon, and may not be a shell no-op.`); process.exit(1); }
-          process.stdout.write(`configured=true\nlevel=${level}\nrunner=${runner}\ntask=${task}\n`); });
-          ' >> "$GITHUB_OUTPUT"
-        working-directory: ${{ inputs.working_directory || '.' }}
-
-      - name: 🚨 Report the unconfigured gate
-        if: steps.gate.outputs.configured == 'false'
-        env:
-          GATE_ID: ${{ steps.gate.outputs.gate }}
-          GATE_MOMENT: ${{ inputs.moment }}
-          RESOLVER: ${{ steps.gate.outputs.resolver }}
-        run: |
-          set -euo pipefail
-          if [ -z "$RESOLVER" ]; then
-            echo "::warning::$GATE_ID is UNCONFIGURED at $GATE_MOMENT: this project ships no gate registry, so the built-in steps below run a command written into the workflow that nothing declared."
-            exit 0
-          fi
-          node "$RESOLVER" unconfigured --moment="$GATE_MOMENT" --gate="$GATE_ID" --surface=quality-workflow --format=github || true
-        working-directory: ${{ inputs.working_directory || '.' }}
-
-      - name: 🧪 Verify the configured gate runner is installed
-        if: steps.gate.outputs.configured == 'true'
-        env:
-          GATE_ID: ${{ steps.gate.outputs.gate }}
-          GATE_RUNNER: ${{ steps.gate.outputs.runner }}
-          GATE_TASK: ${{ steps.gate.outputs.task }}
-          PACKAGE_MANAGER: ${{ inputs.package_manager }}
-        run: |
-          set -euo pipefail
-          HEAD="${GATE_RUNNER%% *}"
-          if ! command -v "$HEAD" >/dev/null 2>&1; then
-            echo "::error::gates.runner is \"$GATE_RUNNER\", but \"$HEAD\" is not installed on this runner, so gates.$GATE_ID would have run \"$GATE_RUNNER $GATE_TASK\" and died with a bare exit 127. CI was provisioned with package_manager: '$PACKAGE_MANAGER'. Either set gates.runner to \"$PACKAGE_MANAGER run\" in .lisa.config.json, or pass package_manager: '$HEAD' to this workflow."
-            exit 1
-          fi
-          if [ -n "$PACKAGE_MANAGER" ] && [ "$HEAD" != "$PACKAGE_MANAGER" ]; then
-            echo "::warning::gates.runner is \"$GATE_RUNNER\" but CI was provisioned with package_manager: '$PACKAGE_MANAGER'. \"$HEAD\" is present on this runner today so gates.$GATE_ID will run, but the two disagree, and a runner image without \"$HEAD\" turns every gate into a bare exit 127."
-          fi
-        working-directory: ${{ inputs.working_directory || '.' }}
-
-      - name: 🗑️ Run the dead-code gate
-        id: gate_run
-        continue-on-error: ${{ steps.gate.outputs.level == 'optional' }}
-        if: steps.gate.outputs.configured == 'true'
-        env:
-          GATE_RUNNER: ${{ steps.gate.outputs.runner }}
-          GATE_TASK: ${{ steps.gate.outputs.task }}
-        run: $GATE_RUNNER $GATE_TASK
-        working-directory: ${{ inputs.working_directory || '.' }}
-
-      - name: 🟡 Report the optional gate that failed
-        if: always() && steps.gate_run.outcome == 'failure' && steps.gate.outputs.level == 'optional'
-        env:
-          GATE_ID: ${{ steps.gate.outputs.gate }}
-          GATE_MOMENT: ${{ inputs.moment }}
-        run: |
-          set -euo pipefail
-          echo "::warning title=$GATE_ID failed and is optional::$GATE_ID is declared \"optional\" at $GATE_MOMENT and its task FAILED, so the property it proves does NOT hold. It did not fail this workflow and skipped nothing downstream, because that is what \"optional\" declares. Declare it \"required\" to make the failure block."
-          {
-            echo "### 🟡 $GATE_ID failed (optional)"
-            echo
-            echo "The \`$GATE_ID\` gate is declared **optional** at \`$GATE_MOMENT\`, and its task failed — the property it proves does **not** hold."
-            echo
-            echo "By declaration that did not fail this workflow and skipped nothing after it. Declare it \`required\` to make the failure a merge condition, or \`off\` to say on the record that this project does not govern the property here."
-          } >> "$GITHUB_STEP_SUMMARY"
-
-      - name: 🗑️ Run dead code detection (knip)
-        # FALLBACK — unchanged behavior for a project with no `gates` block.
-        # The script was renamed knip -> knip:check (expo-doctor flags scripts
-        # that shadow node_modules/.bin entries); fall back to the legacy name
-        # for projects that haven't re-applied Lisa yet.
-        if: steps.gate.outputs.configured == 'false'
-        run: |
-          if jq -e '.scripts["knip:check"]' package.json >/dev/null 2>&1; then
-            "$PACKAGE_MANAGER" run knip:check
-          else
-            "$PACKAGE_MANAGER" run knip
-          fi
         working-directory: ${{ inputs.working_directory || '.' }}
 
   # Leftover merge-conflict markers in tracked files. The prover reads the
@@ -7979,13 +7132,10 @@ jobs:
     needs:
       [
         lint,
-        typecheck,
+        declared_gates,
         test_unit,
         test_integration,
         maestro_e2e,
-        format,
-        build,
-        dead_code,
         sg_scan,
         npm_security_scan,
         sonarcloud,
@@ -8148,14 +7298,17 @@ jobs:
 
           # Count quality checks
           [ "${{ needs.lint.result }}" == "success" ] && PASSED_CONTROLS=$((PASSED_CONTROLS + 1))
-          [ "${{ needs.typecheck.result }}" == "success" ] && PASSED_CONTROLS=$((PASSED_CONTROLS + 1))
+          # Type checking and the build moved onto the generic gate runner
+          # (#3052), so they are counted through `declared_gates` — one result
+          # for every declared gate leg — rather than through jobs that no
+          # longer exist.
+          [ "${{ needs.declared_gates.result }}" == "success" ] && PASSED_CONTROLS=$((PASSED_CONTROLS + 1))
           # Repointed from the deleted bare `test` job to the required unit
           # coverage gate (#2485). Deleting the line instead would have left
           # TOTAL_CONTROLS at 4 with only 3 achievable, permanently understating
           # the compliance score.
           [ "${{ needs.test_unit.result }}" == "success" ] && PASSED_CONTROLS=$((PASSED_CONTROLS + 1))
-          [ "${{ needs.build.result }}" == "success" ] && PASSED_CONTROLS=$((PASSED_CONTROLS + 1))
-          TOTAL_CONTROLS=$((TOTAL_CONTROLS + 4))
+          TOTAL_CONTROLS=$((TOTAL_CONTROLS + 3))
 
           # Count security checks
           [ "${{ needs.npm_security_scan.result }}" != "skipped" ] && TOTAL_CONTROLS=$((TOTAL_CONTROLS + 1))
@@ -8196,13 +7349,10 @@ jobs:
     needs:
       [
         lint,
-        typecheck,
+        declared_gates,
         test_unit,
         test_integration,
         maestro_e2e,
-        format,
-        build,
-        dead_code,
         sg_scan,
         npm_security_scan,
         sonarcloud,
@@ -8243,12 +7393,10 @@ jobs:
               jobs: {
                 quality: {
                   lint: '${{ needs.lint.result }}',
-                  typecheck: '${{ needs.typecheck.result }}',
+                  declared_gates: '${{ needs.declared_gates.result }}',
                   test_unit: '${{ needs.test_unit.result }}',
                   test_integration: '${{ needs.test_integration.result }}',
                   maestro_e2e: '${{ needs.maestro_e2e.result }}',
-                  format: '${{ needs.format.result }}',
-                  build: '${{ needs.build.result }}',
                   sg_scan: '${{ needs.sg_scan.result }}'
                 },
                 security: {
@@ -8393,13 +7541,10 @@ jobs:
     needs:
       [
         lint,
-        typecheck,
+        declared_gates,
         test_unit,
         test_integration,
         maestro_e2e,
-        format,
-        build,
-        dead_code,
         sg_scan,
         npm_security_scan,
         sonarcloud,
@@ -8426,13 +7571,10 @@ jobs:
           echo "| Job | Status | Type |" >> $GITHUB_STEP_SUMMARY
           echo "|-----|--------|------|" >> $GITHUB_STEP_SUMMARY
           echo "| Lint | ${{ needs.lint.result }} | Quality |" >> $GITHUB_STEP_SUMMARY
-          echo "| Type Check | ${{ needs.typecheck.result }} | Quality |" >> $GITHUB_STEP_SUMMARY
+          echo "| Declared Gate Legs (type check, format, build, slow lint, dead code) | ${{ needs.declared_gates.result }} | Quality |" >> $GITHUB_STEP_SUMMARY
           echo "| Unit Tests | ${{ needs.test_unit.result }} | Quality |" >> $GITHUB_STEP_SUMMARY
           echo "| Integration Tests | ${{ needs.test_integration.result }} | Quality |" >> $GITHUB_STEP_SUMMARY
           echo "| Maestro E2E | ${{ needs.maestro_e2e.result }} | Quality |" >> $GITHUB_STEP_SUMMARY
-          echo "| Format Check | ${{ needs.format.result }} | Quality |" >> $GITHUB_STEP_SUMMARY
-          echo "| Build | ${{ needs.build.result }} | Build |" >> $GITHUB_STEP_SUMMARY
-          echo "| Dead Code | ${{ needs.dead_code.result }} | Quality |" >> $GITHUB_STEP_SUMMARY
           echo "| AST Grep | ${{ needs.sg_scan.result }} | Quality |" >> $GITHUB_STEP_SUMMARY
           echo "| NPM Security | ${{ needs.npm_security_scan.result }} | Security |" >> $GITHUB_STEP_SUMMARY
           echo "| SonarCloud | ${{ needs.sonarcloud.result }} | Security |" >> $GITHUB_STEP_SUMMARY
@@ -8444,7 +7586,7 @@ jobs:
           echo "## 💡 Performance Tips" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "- All jobs now share dependencies, reducing redundant installations" >> $GITHUB_STEP_SUMMARY
-          echo "- Quality checks (lint, typecheck, format) run in parallel" >> $GITHUB_STEP_SUMMARY
+          echo "- Quality checks (lint and the declared gate legs) run in parallel" >> $GITHUB_STEP_SUMMARY
           echo "- Security tools run in parallel where tokens are available" >> $GITHUB_STEP_SUMMARY
           echo "- Dependency caching saves ~2-3 minutes on subsequent runs" >> $GITHUB_STEP_SUMMARY
 
@@ -8453,12 +7595,10 @@ jobs:
           SECURITY_JOBS=0
 
           [ "${{ needs.lint.result }}" != "skipped" ] && QUALITY_JOBS=$((QUALITY_JOBS + 1))
-          [ "${{ needs.typecheck.result }}" != "skipped" ] && QUALITY_JOBS=$((QUALITY_JOBS + 1))
+          [ "${{ needs.declared_gates.result }}" != "skipped" ] && QUALITY_JOBS=$((QUALITY_JOBS + 1))
           [ "${{ needs.test_unit.result }}" != "skipped" ] && QUALITY_JOBS=$((QUALITY_JOBS + 1))
           [ "${{ needs.test_integration.result }}" != "skipped" ] && QUALITY_JOBS=$((QUALITY_JOBS + 1))
           [ "${{ needs.maestro_e2e.result }}" != "skipped" ] && QUALITY_JOBS=$((QUALITY_JOBS + 1))
-          [ "${{ needs.format.result }}" != "skipped" ] && QUALITY_JOBS=$((QUALITY_JOBS + 1))
-          [ "${{ needs.dead_code.result }}" != "skipped" ] && QUALITY_JOBS=$((QUALITY_JOBS + 1))
           [ "${{ needs.sg_scan.result }}" != "skipped" ] && QUALITY_JOBS=$((QUALITY_JOBS + 1))
 
           [ "${{ needs.sonarcloud.result }}" != "skipped" ] && SECURITY_JOBS=$((SECURITY_JOBS + 1))

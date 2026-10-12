@@ -153,7 +153,12 @@ describe("a token this workflow deleted is not a token it never had", () => {
 
   // Committed, not derived — same reason as the table above.
   const RETIREMENTS: readonly string[] = [
+    "build",
+    "dead_code",
+    "format",
+    "lint_slow",
     "skipped_required_checks",
+    "typecheck",
     "zap_baseline",
   ];
 

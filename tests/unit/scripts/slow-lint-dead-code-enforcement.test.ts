@@ -30,7 +30,11 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
-import { contextsFor } from "../../../all/copy-overwrite/scripts/lisa-gates.mjs";
+import {
+  REGISTRY,
+  contextsFor,
+  jobBackedGates,
+} from "../../../all/copy-overwrite/scripts/lisa-gates.mjs";
 import { readWorkflow } from "../../../scripts/check-required-check-promotions.mjs";
 
 const REPO_ROOT = path.resolve(
@@ -46,11 +50,19 @@ const LEDGER = ".github/required-check-promotions.json";
 const QUALITY_WORKFLOW = ".github/workflows/quality.yml";
 const CI_WORKFLOW = ".github/workflows/ci.yml";
 
+/** The literal `name:` that makes each declared gate leg post its label. */
+const MATRIX_LABEL_NAME = "$" + "{{ matrix.label }}";
+
 /** Integration id GitHub Actions posts status checks under. */
 const ACTIONS_INTEGRATION_ID = 15_368;
 
 /**
- * The two gates this suite promotes, each with the job that reports it.
+ * The two gates this suite promotes, each with the job that used to report it.
+ *
+ * Since #3052 neither context comes from a hand-written job: both are posted
+ * by the gate's `declared_gates` matrix leg, named by the registry label. The
+ * old job id is kept so the skip-token roster below still has something to
+ * refuse.
  *
  * Kept as one table because every assertion below has to agree on the exact
  * spelling: the context string, the job id, and the job's `name:` are three
@@ -59,11 +71,13 @@ const ACTIONS_INTEGRATION_ID = 15_368;
 const PROMOTED = [
   {
     jobId: "lint_slow",
+    gate: "code-style-slow",
     jobName: "🐢 Slow Lint Rules",
     context: "🔍 Quality Checks / 🐢 Slow Lint Rules",
   },
   {
     jobId: "dead_code",
+    gate: "dead-code",
     jobName: "🗑️ Dead Code Detection",
     context: "🔍 Quality Checks / 🗑️ Dead Code Detection",
   },
@@ -130,13 +144,20 @@ describe("slow lint and dead code gate the merge, not only the push", () => {
   );
 
   it.each(PROMOTED)(
-    "names a job that exists, spelled exactly as the $context half it reports",
-    ({ jobId, jobName }) => {
+    "is posted by a declared gate leg spelled exactly as the $context half",
+    ({ jobId, gate, jobName }) => {
       // Failure mode 1 from #2509: a context no job reports never goes green,
       // so it blocks every pull request forever. The caller job supplies the
-      // prefix and the reusable workflow supplies the suffix.
+      // prefix; the suffix is the `declared_gates` leg named by the gate's
+      // registry label, which exists only while no hand-written job owns the
+      // gate (#3052).
       expect(jobs(CI_WORKFLOW).get("quality")).toBe("🔍 Quality Checks");
-      expect(jobs(QUALITY_WORKFLOW).get(jobId)).toBe(jobName);
+      expect(jobs(QUALITY_WORKFLOW).get("declared_gates")).toBe(
+        MATRIX_LABEL_NAME
+      );
+      expect(jobs(QUALITY_WORKFLOW).has(jobId)).toBe(false);
+      expect(REGISTRY[gate as keyof typeof REGISTRY]?.label).toBe(jobName);
+      expect(jobBackedGates()).not.toContain(gate);
     }
   );
 
@@ -162,16 +183,18 @@ describe("slow lint and dead code gate the merge, not only the push", () => {
 
   it.each(PROMOTED)(
     "records proven headroom for $context in the promotion ledger",
-    ({ context, jobId }) => {
+    ({ context, gate }) => {
       const ledger = readJson(LEDGER) as {
         promotions: {
           context: string;
           job_id?: string;
+          gate?: string;
           headroom?: { status?: string };
         }[];
       };
       const entry = ledger.promotions.find(item => item.context === context);
-      expect(entry?.job_id).toBe(jobId);
+      expect(entry?.job_id).toBe("declared_gates");
+      expect(entry?.gate).toBe(gate);
       // `grandfathered` is frozen to contexts required on 2026-08-13, so a
       // promotion made after that date can only ever be `proven`.
       expect(entry?.headroom?.status).toBe("proven");

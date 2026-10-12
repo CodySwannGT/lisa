@@ -107,7 +107,7 @@ describe("doctor skip_jobs migration", () => {
   describe("it resolves every token to its gate", () => {
     it("resolves tokens whose gate the name does not predict", async () => {
       await writeCaller(
-        caller("typecheck,npm_security_scan,sg_scan,work_item_traceability")
+        caller("test:unit,npm_security_scan,sg_scan,work_item_traceability")
       );
       const [found] = await skipJobCallers(project);
       expect(
@@ -115,7 +115,7 @@ describe("doctor skip_jobs migration", () => {
           (found?.tokens ?? []).map(entry => [entry.token, entry.gate])
         )
       ).toEqual({
-        typecheck: "type-correctness",
+        "test:unit": "test-correctness",
         npm_security_scan: "dependency-vulnerability",
         sg_scan: "structural-rules",
         work_item_traceability: "traceability",

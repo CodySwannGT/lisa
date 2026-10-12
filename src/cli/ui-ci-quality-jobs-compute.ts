@@ -46,6 +46,13 @@ interface QualityJobSpec {
   readonly id: string;
   readonly label: string;
   readonly secret?: string;
+  /**
+   * The gate whose declared leg posts this row's context. Set for the checks
+   * whose hand-written job was deleted in #3052: a leg exists only while the
+   * gate is declared at pull-request at a level that runs, and it answers to
+   * that declaration rather than to `skip_jobs`.
+   */
+  readonly leg?: string;
   readonly gate?:
     | "mutation"
     | "coverage_adequacy_declared"
@@ -57,10 +64,10 @@ interface QualityJobSpec {
 /** Jobs shown in the console Quality jobs table, in display order. */
 const QUALITY_JOB_SPECS: readonly QualityJobSpec[] = [
   { id: "lint", label: "🧹 Lint" },
-  { id: "lint_slow", label: "🐢 Slow Lint Rules" },
-  { id: "typecheck", label: "🔍 Type Check" },
-  { id: "format", label: "📐 Check Formatting" },
-  { id: "build", label: "🏗️ Build" },
+  { id: "lint_slow", label: "🐢 Slow Lint Rules", leg: "code-style-slow" },
+  { id: "typecheck", label: "🔍 Type Check", leg: "type-correctness" },
+  { id: "format", label: "📐 Check Formatting", leg: "format-conformance" },
+  { id: "build", label: "🏗️ Build", leg: "build-integrity" },
   { id: "test:unit", label: "🧪 Run Unit Tests" },
   { id: "test:integration", label: "🧪 Run Integration Tests" },
   { id: "playwright_e2e", label: "🎭 Browser Journeys" },
@@ -76,7 +83,7 @@ const QUALITY_JOB_SPECS: readonly QualityJobSpec[] = [
     label: "✅ Verification Coverage",
     gate: "coverage_adequacy_declared",
   },
-  { id: "dead_code", label: "🗑️ Dead Code Detection" },
+  { id: "dead_code", label: "🗑️ Dead Code Detection", leg: "dead-code" },
   { id: "sg_scan", label: "🔎 Structural Rules" },
   { id: "npm_security_scan", label: "🔒 Security Scan" },
   {
@@ -226,16 +233,52 @@ function traceabilityOff(config: JsonObject): boolean {
  * @returns True only when the gate is declared at pull-request at a level that runs
  */
 function coverageAdequacyEnforced(config: JsonObject): boolean {
-  if (
-    !isJsonObject(config.gates) ||
-    !isJsonObject(config.gates["coverage-adequacy"])
-  ) {
+  return declaredToRunAtPullRequest(config, "coverage-adequacy");
+}
+
+/**
+ * Whether a gate is declared at pull-request at a level that runs.
+ *
+ * Absence is NOT running here: this answers for checks that exist only behind
+ * a declaration (verification coverage, and every declared gate leg).
+ * @param config - Merged Lisa config
+ * @param gate - Gate id
+ * @returns True only when declared at pull-request and not `off`
+ */
+function declaredToRunAtPullRequest(config: JsonObject, gate: string): boolean {
+  if (!isJsonObject(config.gates) || !isJsonObject(config.gates[gate])) {
     return false;
   }
-  const declared = config.gates["coverage-adequacy"]["pull-request"];
+  const declared = config.gates[gate]["pull-request"];
   if (declared === undefined) return false;
   if (typeof declared === "string") return declared !== "off";
   return !isJsonObject(declared) || declared.level !== "off";
+}
+
+/**
+ * The row for a check a declared gate leg runs (#3052).
+ *
+ * `skip_jobs` is not consulted: a leg answers to the declaration, so a caller
+ * still passing the retired token is not skipping anything.
+ * @param spec - Job spec carrying `leg`
+ * @param gate - The gate the leg runs
+ * @param config - Merged Lisa config
+ * @returns The Active-column row
+ */
+function legJobEntry(
+  spec: QualityJobSpec,
+  gate: string,
+  config: JsonObject
+): CiQualityJobEntry {
+  const runs = declaredToRunAtPullRequest(config, gate);
+  return {
+    id: spec.id,
+    label: spec.label,
+    active: runs,
+    reason: runs
+      ? ""
+      : `gates.${gate} is off or not declared at pull-request, so no declared gate leg runs it`,
+  };
 }
 
 /**
@@ -280,6 +323,7 @@ export function computeCiQualityJobs(
 ): CiQualityJobsValue {
   const skipped = new Set(inputs.skipJobs);
   const jobs = QUALITY_JOB_SPECS.map((spec): CiQualityJobEntry => {
+    if (spec.leg !== undefined) return legJobEntry(spec, spec.leg, config);
     if (skipped.has(spec.id)) {
       return {
         id: spec.id,
