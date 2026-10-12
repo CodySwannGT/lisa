@@ -31,6 +31,7 @@ import {
   checkpointComments,
   decodeCheckpoint,
   recoverPartialCheckpoint,
+  locateCheckpoint,
 } from "../../../all/copy-overwrite/scripts/lib/npm-update-recovery.mjs";
 
 import {
@@ -1016,7 +1017,8 @@ describe("complete authenticated helper closure", () => {
     const bytes = new Map<string, Buffer>();
     for (const member of members)
       bytes.set(member, await helperAuditSource(member));
-    expect(members.length).toBe(108);
+    expect(members.length).toBe(109);
+    expect(members).toContain("lib/npm-update-checkpoint-codec.mjs");
     expect(auditControllerClosure(manifest, bytes)).toEqual(
       [...members].sort((left, right) => left.localeCompare(right))
     );
@@ -1599,7 +1601,7 @@ describe("closed npm proposal", () => {
 });
 
 /** Chunk fixtures exercise public transport integrity, never origin authorization. */
-describe("bounded durable public checkpoint transport", () => {
+describe("bounded legacy durable public checkpoint transport", () => {
   const digest = "f".repeat(64);
   const payload = {
     version: 1,
@@ -1609,7 +1611,7 @@ describe("bounded durable public checkpoint transport", () => {
     bundle: '{"public":"fixture"}',
   };
   it("reassembles exact canonical bytes despite provider comment order", () => {
-    const bodies = checkpointComments(payload, digest);
+    const bodies = checkpointComments(payload, digest, 1);
     expect(bodies.length).toBeGreaterThan(2);
     expect(bodies.every(body => Buffer.byteLength(body) <= 24_576)).toBe(true);
     const comments = bodies.map(body => ({ body })).reverse();
@@ -1619,7 +1621,7 @@ describe("bounded durable public checkpoint transport", () => {
     );
   });
   it("refuses missing, forged, differing duplicate, oversized or ambiguous checkpoint", () => {
-    const comments = checkpointComments(payload, digest).map(body => ({
+    const comments = checkpointComments(payload, digest, 1).map(body => ({
       body,
     }));
     for (const values of [
@@ -1639,7 +1641,7 @@ describe("bounded durable public checkpoint transport", () => {
     ).toThrow();
   });
   it("retains incomplete storage as incomplete without manufacturing success", () => {
-    const bodies = checkpointComments(payload, digest);
+    const bodies = checkpointComments(payload, digest, 1);
     expect(() =>
       decodeCheckpoint(
         bodies.slice(0, -1).map(body => ({ body })),
@@ -1731,6 +1733,38 @@ describe("complete chunks without final checkpoint marker", () => {
       )
     ).toThrow();
   });
+});
+
+/** Locator controls retain signed/unsigned roles separately from recovered transport data. */
+describe("versioned recovery checkpoint discovery", () => {
+  it.each([1, 2])(
+    "discovers complete and interrupted v%i canonical origins",
+    version => {
+      const proposal = proposalFrom(POLICY, SHA, BEFORE, FILES, UPDATES);
+      for (const signed of [false, true]) {
+        const digest = signed ? "c".repeat(64) : proposal.key;
+        const payload = {
+          version: 1,
+          proposal,
+          allocation: {},
+          preview: signed ? { descriptor: { version: 1 } } : null,
+          bundle: signed ? "{}" : "",
+        };
+        const comments = checkpointComments(payload, digest, version).map(
+          body => ({ body })
+        );
+        expect(locateCheckpoint(comments, proposal, POLICY)).toEqual({
+          payload,
+          digest,
+          signed,
+          complete: true,
+        });
+        expect(
+          locateCheckpoint(comments.slice(0, -1), proposal, POLICY)
+        ).toEqual({ payload, digest, signed, complete: false });
+      }
+    }
+  );
 });
 
 /** Inspection fixtures prove fail-closed admission only; no Docker runtime is qualified here. */

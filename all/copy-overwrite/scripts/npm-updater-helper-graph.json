@@ -248,7 +248,7 @@
       "children": []
     },
     "lib/npm-update-cancel-origin.mjs": {
-      "sha256": "626965a5a18f90e90883cc8bd6f33e6a22504e051f203f9f35390f7ccaad2a26",
+      "sha256": "1c88ed2cc4f697fd75c924bd98891d7e46373829584fa4fd0d12075c02734095",
       "staticImports": [
         "lib/automation-provenance-contract.mjs",
         "lib/github-attestation-provider.mjs",
@@ -296,13 +296,25 @@
       "dynamicImports": [],
       "children": []
     },
-    "lib/npm-update-checkpoint.mjs": {
-      "sha256": "1c0c9d1442d65cc848a80bce010fc0d7d9f3792b9080df03ce3286177b4d37a0",
+    "lib/npm-update-checkpoint-codec.mjs": {
+      "sha256": "2d263bc8aedb3af38671debca9a77577aee44e4912152d0dbb174505480f8f95",
       "staticImports": [
         "lib/github-attestation-verifier.mjs",
         "lib/npm-update-contract.mjs",
         "lisa-automation-provenance.mjs",
-        "node:util"
+        "node:util",
+        "node:zlib"
+      ],
+      "dynamicImports": [],
+      "children": []
+    },
+    "lib/npm-update-checkpoint.mjs": {
+      "sha256": "af9b451d85f44752190f12e00e35be0cfab27c80e27d0efdde959bfdbf86a6f2",
+      "staticImports": [
+        "lib/github-attestation-verifier.mjs",
+        "lib/npm-update-checkpoint-codec.mjs",
+        "lib/npm-update-contract.mjs",
+        "lisa-automation-provenance.mjs"
       ],
       "dynamicImports": [],
       "children": []
@@ -509,7 +521,7 @@
       "children": []
     },
     "lib/npm-update-helper-inventory.mjs": {
-      "sha256": "cda2582fb84457e49ade0d7d8c3805ffaeef951de9468c53604222c054a769c6",
+      "sha256": "1a471b58bc9cb0b0e2786ccf57d1b11843d20ca0814d24446c09bbfcf2971894",
       "staticImports": [],
       "dynamicImports": [],
       "children": []
@@ -935,7 +947,7 @@
       "children": []
     },
     "lib/npm-update-recovery.mjs": {
-      "sha256": "03102ec2285c99f985577e3fef20b63c32055712d46c3c9464741756a8eccff0",
+      "sha256": "3dcb1826fb92c37ecbd6e46863b48b7ebae8826117ed876ae0c0749444b1c4ff",
       "staticImports": [
         "lib/github-attestation-recovery.mjs",
         "lib/github-attestation-verifier.mjs",
