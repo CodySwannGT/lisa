@@ -1628,6 +1628,14 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "1c1881ca9a2020f6cd8f938dc5335ebf2d344ff280844bb98926198e5226e526",
     "plugins/src/base/skills/lisa-session-manager/scripts/config.mjs":
       "6fec4a94df12eac68c3e112342ad04431a38e9a754ddb5a5ed2ac251ed3bca51",
+    "plugins/src/base/skills/lisa-session-manager/scripts/ledger.mjs":
+      "d325803d4a76d17550f7f55a06b5bade518b5a102046afda5771aae9a2bf9649",
+    "plugins/src/base/skills/lisa-session-manager/scripts/reconcile.mjs":
+      "abf4723ebdd99c8b2fe5328e2a67101a95cd39c34a3670eb9e86e75c5ae70bb1",
+    "plugins/src/base/skills/lisa-session-manager/scripts/telegram-route.mjs":
+      "c8018dc5b0dee804df1f0aa7fb06e6165384734aa6923bd5b9ca4648fe3e07b5",
+    "plugins/src/base/skills/lisa-session-manager/scripts/workers.mjs":
+      "1026e7b0faf1c5d4188307a1b46f5d61d302b4679300aad155211b8d715dc029",
     "plugins/src/base/skills/lisa-setup-atlassian/SKILL.md":
       "d1945a471afa5454ef4f6dffa52decf7df0ec3f411dadaf5d4bc95aeeb8ca6e2",
     "plugins/src/base/skills/lisa-setup-automations/SKILL.md":
@@ -9324,6 +9332,10 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/src/base/skills/lisa-security-zap-scan/SKILL.md": true,
     "plugins/src/base/skills/lisa-sentry-access/SKILL.md": true,
     "plugins/src/base/skills/lisa-session-manager/scripts/config.mjs": true,
+    "plugins/src/base/skills/lisa-session-manager/scripts/ledger.mjs": true,
+    "plugins/src/base/skills/lisa-session-manager/scripts/reconcile.mjs": true,
+    "plugins/src/base/skills/lisa-session-manager/scripts/telegram-route.mjs": true,
+    "plugins/src/base/skills/lisa-session-manager/scripts/workers.mjs": true,
     "plugins/src/base/skills/lisa-setup-atlassian/SKILL.md": true,
     "plugins/src/base/skills/lisa-setup-automations/SKILL.md": true,
     "plugins/src/base/skills/lisa-setup-automations/scripts/generate-workflow.mjs": true,
@@ -12173,6 +12185,12 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/secrets/validate-config.test.ts": true,
     "tests/unit/session-manager/config-repos.test.ts": true,
     "tests/unit/session-manager/config.test.ts": true,
+    "tests/unit/session-manager/ledger.test.ts": true,
+    "tests/unit/session-manager/reconcile.test.ts": true,
+    "tests/unit/session-manager/telegram-route.test.ts": true,
+    "tests/unit/session-manager/workers-classify.test.ts": true,
+    "tests/unit/session-manager/workers-fixtures.ts": true,
+    "tests/unit/session-manager/workers.test.ts": true,
     "tests/unit/skills/secrets-provider-timeout-message.test.ts": true,
     "tests/unit/sonar/sonar-installer.test.ts": true,
     "tests/unit/standards/capture.test.ts": true,
