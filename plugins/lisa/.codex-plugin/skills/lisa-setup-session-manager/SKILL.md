@@ -59,6 +59,8 @@ The operator creates a bot with @BotFather, one per project. Then run
 `node "$SM/session-manager.mjs" store-token --project-root "$ROOT"`.
 
 - `stored: true`: done.
+- Exit 2 because a token already exists: keep it (re-running setup is safe). Only when the operator
+  says the stored token is wrong or belongs to another project, re-run with `store-token --replace`.
 - `reason: "no-tty"` (an agent's Bash has no terminal): print `command` from the output and ask the
   operator to run it in their own terminal, where it prompts with echo off. Wait for them to confirm.
 - `empty` / `invalid`: say what was wrong and ask again.
@@ -106,8 +108,15 @@ or tearing down `intake-repair`.
 
 ## Step 8: Start and pair
 
+0. **Public GitHub repo gate.** When `.tracker` is `github`, run
+   `gh repo view <github.org>/<github.repo> --json visibility`. If it is `PUBLIC` and
+   `sessionManager.trustedAuthorIds` is not set, setup will not start the manager until
+   `trustedAuthorIds` is set: anyone on the internet could otherwise write the work a
+   bypass-permissions worker runs. Ask the operator for the IDs, add them, re-run `validate`, then
+   continue. `lisa doctor` fails on the same condition.
 1. `node "$SM/session-manager.mjs" start --project-root "$ROOT"`. `started` and `already-running`
-   are both fine. Exit 2 names what is missing (usually the token from Step 3).
+   are both fine. Exit 2 names what is missing (usually the token from Step 3), or that a tmux
+   session of the same name belongs to another project root.
 2. Walk the operator through pairing, in their own terminal:
    1. `tmux attach -t <name>` (the `attach` value from the output).
    2. Send any message to the bot in a private chat. The bot replies with a pairing code.

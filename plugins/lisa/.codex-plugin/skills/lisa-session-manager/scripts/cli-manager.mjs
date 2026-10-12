@@ -4,8 +4,10 @@
  *
  * `start` hosts the manager in tmux. It refuses (exit 2) unless the bot
  * token file exists with owner-only permissions in the project's own state
- * dir, and it treats an existing tmux session as "already running" rather
- * than starting a second poller on the same bot. `stop` kills only the
+ * dir, and it treats an existing tmux session started in this root as
+ * "already running" rather than starting a second poller on the same bot. A
+ * session of that name started in another root is another project's manager,
+ * so both `start` and `stop` refuse it (exit 2). `stop` kills only the
  * manager's tmux session: workers hold claimed work and keep running.
  * @module session-manager/cli-manager
  */
@@ -26,6 +28,7 @@ import {
   run,
 } from "./cli-runtime.mjs";
 import { buildDefaultBlock, detectRepos, resolveRepoDir } from "./config.mjs";
+import { defaultProjectSlug, probeOwnSession } from "./isolation.mjs";
 import {
   assertTokenPresent,
   buildHasSession,
@@ -63,9 +66,9 @@ export function start(ctx) {
   // tmux gets the scrubbed env: if this call starts the tmux server, its
   // global environment must not carry a TELEGRAM_* value into other sessions.
   const env = scrubWorkerEnv(ctx.env);
-  const probe = run("tmux", buildHasSession(config.name), { env });
-  if (probe.missing) throw new CliError("tmux is not on PATH.", EXIT.SETUP);
-  if (probe.status === 0) {
+  const session = probeOwnSession(ctx, config.name, env);
+  if (session.missing) throw new CliError("tmux is not on PATH.", EXIT.SETUP);
+  if (session.running) {
     return { json: { status: "already-running", name: config.name } };
   }
   asSetupError(() => assertTokenPresent(stateDir));
@@ -90,15 +93,18 @@ export function start(ctx) {
 }
 
 /**
- * `stop`: kill the manager's tmux session only.
+ * `stop`: kill the manager's tmux session only, and only when it was started
+ * in this root (exit 2 for another project's session of the same name).
  * @param {object} ctx - CLI context
  * @returns {{ json: object }} `{status:"stopped"|"not-running",name}`
  */
 export function stop(ctx) {
   const config = requireConfig(ctx);
-  const result = run("tmux", buildStopManager(config.name), {
-    env: scrubWorkerEnv(ctx.env),
-  });
+  const env = scrubWorkerEnv(ctx.env);
+  if (!probeOwnSession(ctx, config.name, env).running) {
+    return { json: { status: "not-running", name: config.name } };
+  }
+  const result = run("tmux", buildStopManager(config.name), { env });
   const stopped = result.status === 0;
   return {
     json: { status: stopped ? "stopped" : "not-running", name: config.name },
@@ -177,7 +183,7 @@ export function initConfig(ctx) {
     };
   }
   const slug =
-    ctx.values.slug ?? global?.github?.repo ?? path.basename(ctx.root);
+    ctx.values.slug ?? defaultProjectSlug(ctx.root, global?.github?.repo);
   const block = asSetupError(() =>
     buildDefaultBlock({
       projectSlug: slug,
@@ -202,8 +208,9 @@ export function initConfig(ctx) {
 }
 
 /**
- * `store-token`: prompt for the bot token on the operator's terminal and
- * write `<stateDir>/.env`. With no TTY it prints the command the operator
+ * `store-token [--replace]`: prompt for the bot token on the operator's
+ * terminal and write `<stateDir>/.env`. An existing token is kept (exit 2)
+ * unless `--replace` is given. With no TTY it prints the command the operator
  * must run themselves and exits 0 with `stored:false`.
  * @param {object} ctx - CLI context
  * @returns {Promise<{ json: object, exitCode: number }>} Outcome
@@ -215,6 +222,7 @@ export async function storeToken(ctx) {
       stateDir: config.notify?.stateDir,
       scriptsDir: ctx.scriptsDir,
       projectRoot: ctx.root,
+      replace: ctx.values.replace === true,
       env: ctx.env,
       homedir: ctx.homedir,
     })

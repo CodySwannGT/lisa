@@ -65,7 +65,11 @@ const COMMANDS = {
   status: { run: status, options: {}, positionals: 0 },
   start: { run: start, options: {}, positionals: 0 },
   stop: { run: stop, options: {}, positionals: 0 },
-  "store-token": { run: storeToken, options: {}, positionals: 0 },
+  "store-token": {
+    run: storeToken,
+    options: { replace: flag },
+    positionals: 0,
+  },
   "repo-dir": {
     run: repoDir,
     options: { repo: text, raw: flag },
@@ -117,9 +121,12 @@ const LEDGER_SPECS = {
     options: { worker: text, "session-id": text, repo: text },
     positionals: 1,
   },
-  "set-question": { options: { "telegram-message-id": text }, positionals: 1 },
+  "set-question": {
+    options: { "telegram-message-id": text, sender: text },
+    positionals: 1,
+  },
   "clear-question": { options: {}, positionals: 1 },
-  finish: { options: { status: text }, positionals: 1 },
+  finish: { options: { status: text, sender: text }, positionals: 1 },
   control: {
     options: { paused: text, "max-workers": text, me: text },
     positionals: 0,

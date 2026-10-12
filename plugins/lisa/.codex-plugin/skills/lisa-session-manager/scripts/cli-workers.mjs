@@ -221,6 +221,11 @@ export async function resume(ctx) {
 /**
  * Hash of `claude logs <name>`, or null when it cannot be read. An unchanged
  * hash across cycles is the only "no output" signal the CLI offers.
+ *
+ * probe-direction: fail-closed — a failed `claude logs` read yields null,
+ * which `classifyWorker` never credits as progress, so the worker can only
+ * move toward `stalled` (a retry), never be kept `working` on a read that
+ * did not happen.
  * @param {object} ctx - CLI context
  * @param {string} name - Worker name
  * @returns {string | null} sha256 hex

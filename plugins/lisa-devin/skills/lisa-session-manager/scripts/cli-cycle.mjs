@@ -16,6 +16,7 @@ import {
   EXIT,
   asSetupErrorAsync,
   intFlag,
+  loadProject,
   requirePositional,
   stdinText,
 } from "./cli-runtime.mjs";
@@ -60,6 +61,30 @@ function clearable(value, parse) {
   return value === "none" ? null : parse(value);
 }
 
+/**
+ * With `--sender <name>`, refuse (exit 2) unless the ledger holds `ref` for
+ * exactly that worker. The manager passes the cross-session sender of a
+ * worker's report, so one worker can never finish or question another
+ * worker's item; the manager's own calls (stall, operator stop, repo-routing
+ * questions) omit the flag.
+ * @param {object} ctx - CLI context
+ * @param {string} ref - Ref the report names
+ * @returns {Promise<void>}
+ */
+async function assertSender(ctx, ref) {
+  const sender = ctx.values.sender;
+  if (sender === undefined) return;
+  const items = (await readLedger(ctx.root)).items;
+  const worker = Object.hasOwn(items, ref) ? items[ref].worker : null;
+  if (worker !== sender) {
+    throw new CliError(
+      `${sender} is not the worker for ${ref} (the ledger has ` +
+        `${worker ?? "no worker"}); ignoring its message.`,
+      2
+    );
+  }
+}
+
 /** One handler per `ledger <action>`. */
 const LEDGER_ACTIONS = {
   async get(ctx) {
@@ -78,23 +103,28 @@ const LEDGER_ACTIONS = {
       sessionId: ctx.values["session-id"] ?? null,
       repo: ctx.values.repo ?? ".",
     }),
-  "set-question": ctx =>
-    setPendingQuestion(ctx.root, {
-      ref: requirePositional(ctx, "ref"),
+  async "set-question"(ctx) {
+    const ref = requirePositional(ctx, "ref");
+    await assertSender(ctx, ref);
+    return setPendingQuestion(ctx.root, {
+      ref,
       text: stdinText(ctx, "question"),
       telegramMessageId:
         intFlag(ctx.values["telegram-message-id"], "--telegram-message-id") ??
         null,
-    }),
+    });
+  },
   "clear-question": ctx =>
     clearPendingQuestion(ctx.root, { ref: requirePositional(ctx, "ref") }),
-  finish(ctx) {
+  async finish(ctx) {
     const status = ctx.values.status;
     if (status !== "DONE" && status !== "FAILED") {
       throw new CliError("--status must be DONE or FAILED.", 2);
     }
+    const ref = requirePositional(ctx, "ref");
+    await assertSender(ctx, ref);
     return recordFinish(ctx.root, {
-      ref: requirePositional(ctx, "ref"),
+      ref,
       status,
       reason: stdinText(ctx, "reason", { required: false }),
     });
@@ -164,6 +194,11 @@ export async function route(ctx) {
  * `blocked-plan [--input <file>] [--ref <ref>]`: plan one Blocked item from
  * its JSON (stdin, or the file). `--ref` fills in the ledger's pending
  * question when the input does not carry one.
+ *
+ * Who may release a human hold comes from `sessionManager.trustedAuthorIds`
+ * only. Any `trustedHumanActorIds` in the input is discarded: the input is
+ * assembled from the item's own (untrusted) body and comments, so a list
+ * carried beside them would let the item's text vouch for itself.
  * @param {object} ctx - CLI context
  * @returns {Promise<{ json: object }>} `{action,reason,edges,gate}`
  */
@@ -175,7 +210,15 @@ export async function blockedPlan(ctx) {
   const pendingQuestion =
     input.pendingQuestion ??
     (ref ? (await readLedger(ctx.root)).items[ref]?.pendingQuestion : null);
-  return { json: planBlockedRelease({ ...input, pendingQuestion }) };
+  const trustedHumanActorIds =
+    loadProject(ctx.root).config?.trustedAuthorIds ?? [];
+  return {
+    json: planBlockedRelease({
+      ...input,
+      pendingQuestion,
+      trustedHumanActorIds,
+    }),
+  };
 }
 
 /**

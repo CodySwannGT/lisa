@@ -34,7 +34,7 @@ Workers and capacity
           "/lisa:implement <ref> managedBy=<sessionManager.name>"
       Records the ledger and sessions.jsonl. stdout {ref,name,sessionId,repo,cwd}.
   resume <ref>                         STDIN: the message for the worker
-      claude --bg --resume <ledger sessionId> "<stdin>" in the worker's repo
+      claude --bg --resume <ledger sessionId> -- "<stdin>" in the worker's repo
       dir, TELEGRAM_* removed. stdout {ref,worker,sessionId,resumed:true}.
   classify [<ref>]
       Classifies one ledger item (or all) from claude agents --json --all and
@@ -49,13 +49,17 @@ Workers and capacity
 Manager
   start      Refuses (exit 2) without <notify.stateDir>/.env (mode 0600) or for
              the shared default state dir. "already-running" when the tmux
-             session exists. Otherwise starts tmux new-session for the manager.
+             session =<name> exists and was started in this project root;
+             exit 2 naming the conflict when it was started anywhere else.
+             Otherwise starts tmux new-session for the manager.
              stdout {status:"started"|"already-running",name,...}.
-  stop       tmux kill-session -t <name> only; workers keep running.
+  stop       tmux kill-session -t =<name> only, and only for a session started
+             in this root (exit 2 otherwise); workers keep running.
              stdout {status:"stopped"|"not-running",name}.
-  store-token
+  store-token [--replace]
              Prompts for the bot token on the terminal (echo off) and writes
-             <stateDir>/.env. With no TTY: exit 0, stdout {stored:false,
+             <stateDir>/.env. Exit 2 when a token is already there, unless
+             --replace. With no TTY: exit 0, stdout {stored:false,
              reason:"no-tty",command} where command is the line the operator
              runs in their own terminal. Bad input: exit 2.
 
@@ -66,8 +70,10 @@ Config and routing
   validate   stdout {valid,errors}; exit 2 when invalid or absent.
   init-config [--slug <slug>] [--write]
              stdout {written,block[,reason:"exists"][,path]}. Detects
-             projects/*/.lisa.config.json. --write adds the block to
-             .lisa.config.json, never overwriting an existing one.
+             projects/*/.lisa.config.json. Default slug: <github.repo or
+             folder name>-<first 6 hex of sha256(realpath(root))>; --slug is
+             used as given. --write adds the block to .lisa.config.json,
+             never overwriting an existing one.
 
 Per cycle
   queue --tracker github [--me <id>] [--label <name>] [--github-repo <o/r>]
@@ -80,17 +86,21 @@ Per cycle
       --me defaults to the ledger's control.me.
   ledger get [<ref>]
   ledger record-spawn <ref> --worker <name> [--session-id <id>] [--repo <key>]
-  ledger set-question <ref> [--telegram-message-id <n>]   STDIN: question
+  ledger set-question <ref> [--telegram-message-id <n>] [--sender <name>]
+                                                           STDIN: question
   ledger clear-question <ref>
-  ledger finish <ref> --status DONE|FAILED                 STDIN: reason
+  ledger finish <ref> --status DONE|FAILED [--sender <name>]  STDIN: reason
+      --sender: exit 2 unless the ledger's worker for <ref> is exactly <name>.
   ledger control [--paused true|false] [--max-workers <n>|none] [--me <id>|none]
   route [--reply-to <telegram message id>] [--owner <name>] STDIN: message
       stdout {kind:"answer",ref,body[,message]} | {kind:"command",name,...}
       | {kind:"ambiguous",candidates}. --owner adds message "<owner>'s answer: ...".
   blocked-plan [--input <file>] [--ref <ref>]  STDIN (without --input): JSON
-      {labels,body,comments,trustedHumanActorIds?,humanNeededLabel?,edges,
-       pendingQuestion?}. stdout {action:release|keep|escalate|skip-human-gate,
-       reason,edges,gate}. --ref fills pendingQuestion from the ledger.
+      {labels,body,comments,humanNeededLabel?,edges,pendingQuestion?}.
+      Trusted hold releasers are sessionManager.trustedAuthorIds (none when
+      unset); trustedHumanActorIds in the input is ignored. stdout
+      {action:release|keep|escalate|skip-human-gate,reason,edges,gate}.
+      --ref fills pendingQuestion from the ledger.
   record-cycle --outcome <outcome> [--ref <url>]... [--run-id <id>]
       STDIN: one-line summary. Records loop session-manager with runbook
       .lisa/automations/session-manager.runbook.md. stdout {path,appended,

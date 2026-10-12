@@ -292,7 +292,9 @@ export function buildWorkerResume({ sessionId, text, repoDir, env }) {
   requireText("repoDir", repoDir);
   return {
     command: "claude",
-    args: ["--bg", "--resume", sessionId, text],
+    // `--` ends option parsing: an answer that starts with `--` (claude
+    // 2.1.296 reads `--x` there as an unknown option) stays message text.
+    args: ["--bg", "--resume", sessionId, "--", text],
     cwd: repoDir,
     env: scrubWorkerEnv(env),
   };
