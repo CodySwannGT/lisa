@@ -79,6 +79,7 @@ Devin CLI joined the fleet in Epic `#4283`. The facts below were measured on Dev
   - Hook triggers are rewritten from Claude tool names to Devin tool names, anchored to exact matches (`^(exec)$`).
   - Every handler runs through `devin-tool-name-shim.sh`, which renames the tool back to Claude's name before the guard reads the payload.
   - Without the shim, a hook that triggers still lets the call through (exit 0 instead of 2, measured).
+  - Both the shim and the repository fallback fail closed (exit 2, the only status Devin blocks on) when the translation cannot run because `jq` is missing or fails, and the fallback also blocks when its dispatcher script is missing.
 - **Per-project installer.**
   - `src/devin/plugin-installer.ts` runs `devin plugins install --local -y`.
   - `src/devin/enforcement-fallback-installer.ts` merges one Lisa `PreToolUse` entry into `.devin/hooks.v1.json` and leaves the project's own hooks alone. That entry sends `exec|write|edit|apply_patch` to the shared `scripts/lisa-enforcement-fallback.sh`.
