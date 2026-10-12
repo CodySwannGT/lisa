@@ -31,7 +31,9 @@ create them; invoke the runtime's automation tool with the spec below.
   1. **Run a loop by hand.** For example `devin -p -- "/lisa:lisa-intake <queue>"`. The same
      command can go in the operator's own cron, which then owns the clock.
   2. **Run the loops unattended** through `scheduler: "github-actions"` with `executionEnv`
-     (next section). This works the same way on every runtime.
+     (next section). GitHub Actions only owns the clock: the loop itself runs on whichever
+     supported remote surface `executionEnv` names (for example `claude-web` or
+     `codex-cloud`). That surface is not Devin, and there is no Devin remote surface.
 
   Devin runs Lisa's skills from the `lisa-devin` plugin, so each loop's prompt is the same skill
   invocation a scheduled run would make.

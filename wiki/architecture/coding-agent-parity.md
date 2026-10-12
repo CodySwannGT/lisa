@@ -4,7 +4,7 @@ Lisa installs into seven coding agents (Claude Code, Codex, Cursor, OpenCode, An
 
 ## Per-Agent Installer Surface
 
-Lisa code that targets a specific agent lives under `src/<agent>/`. Today only `src/codex/` exists. The architecture anticipates `src/cursor/`, `src/agy/`, `src/copilot/`, and possibly `src/claude/` for symmetry.
+Lisa code that targets a specific agent lives under `src/<agent>/`. Today that is `src/codex/`, `src/agy/`, `src/copilot/`, `src/opencode/`, `src/claude/`, and `src/devin/`. Devin's is the plugin installer and the `.devin/hooks.v1.json` enforcement-fallback installer. Cursor needs no per-project installer, because it reads its plugin variant natively.
 
 Each per-agent installer owns one or more of:
 
