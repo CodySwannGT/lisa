@@ -1017,8 +1017,9 @@ describe("complete authenticated helper closure", () => {
     const bytes = new Map<string, Buffer>();
     for (const member of members)
       bytes.set(member, await helperAuditSource(member));
-    expect(members.length).toBe(109);
+    expect(members.length).toBe(110);
     expect(members).toContain("lib/npm-update-checkpoint-codec.mjs");
+    expect(members).toContain("lib/npm-update-rspec-reports.mjs");
     expect(auditControllerClosure(manifest, bytes)).toEqual(
       [...members].sort((left, right) => left.localeCompare(right))
     );
