@@ -140,7 +140,7 @@ describe("invocation-local authenticated classifier reuse", () => {
     });
     expect(existsSync(destination)).toBe(false);
   });
-  it.each([
+  it.each<[string, Buffer]>([
     ["missing newline", Buffer.from(FILENAME)],
     ["carriage return", Buffer.from(`${FILENAME}\r\n`)],
     ["multiple names", Buffer.from(`${FILENAME}\n${FILENAME}\n`)],
@@ -159,7 +159,7 @@ describe("invocation-local authenticated classifier reuse", () => {
     ],
     ["empty output", Buffer.alloc(0)],
   ])("refuses %s instead of selecting an archive", async (_label, output) => {
-    fixture.packOutput = output as Buffer;
+    fixture.packOutput = Buffer.from(output);
     await expect(canonicalClassifier(config)).rejects.toThrow(
       SELECTION_REFUSAL
     );
