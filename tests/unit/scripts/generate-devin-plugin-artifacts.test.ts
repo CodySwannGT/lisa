@@ -158,7 +158,7 @@ describe("generate-devin-plugin-artifacts (#4426)", () => {
       const guard = path.join(dir, "capture.sh");
       await fs.writeFile(
         guard,
-        '#!/bin/sh\njq -r .tool_name\n[ "$1" = arg ] || exit 7\nexit 2\n',
+        '#!/bin/sh\njq -r .tool_name\n[ "$1" = arg ] || exit 7\nexit "${2:-2}"\n',
         { mode: 0o755 }
       );
       return guard;
@@ -183,7 +183,7 @@ describe("generate-devin-plugin-artifacts (#4426)", () => {
       expect(result.status).toBe(2);
     });
 
-    it("passes names it does not know through unchanged", async () => {
+    it("passes unknown names through unchanged and preserves an allowing guard's exit 0", async () => {
       await scaffoldSource(srcDir, { hooks: BASE_HOOK_BLOCK });
       generateDevinVariant(srcDir, outDir, VERSION);
       const guard = await captureGuard(tempDir);
@@ -191,11 +191,13 @@ describe("generate-devin-plugin-artifacts (#4426)", () => {
       const result = boundedSpawnSync({
         label: "devin tool-name shim (mcp passthrough)",
         command: path.join(outDir, "hooks", SHIM),
-        args: [guard, "arg"],
+        args: [guard, "arg", "0"],
         input: JSON.stringify({ tool_name: "mcp__github__create_issue" }),
       });
 
       expect(result.stdout.trim()).toBe("mcp__github__create_issue");
+      // The allow control: a guard that allows is still allowed through the shim.
+      expect(result.status).toBe(0);
     });
   });
 });
