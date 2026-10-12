@@ -147,7 +147,9 @@ describe("work-item Git enforcement wiring", () => {
     });
 
     it("checks out enough history for rev-list base..head to resolve", () => {
-      const checkout = steps.find(step => step.uses?.startsWith("actions/"));
+      const checkout = steps.find(step =>
+        step.uses?.startsWith("actions/checkout@")
+      );
       expect(checkout?.uses).toContain("actions/checkout");
       // A shallow clone cannot resolve `base..head`; the range would either
       // error or silently under-report, voiding the gate.
@@ -155,7 +157,9 @@ describe("work-item Git enforcement wiring", () => {
     });
 
     it("checks out the PR head, not the synthetic merge ref", () => {
-      const checkout = steps.find(step => step.uses?.startsWith("actions/"));
+      const checkout = steps.find(step =>
+        step.uses?.startsWith("actions/checkout@")
+      );
       // refs/pull/N/merge does not exist while the PR has conflicts and can lag
       // head.sha right after a push — both would redden this job for reasons
       // that have nothing to do with work-item traceability.
