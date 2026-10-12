@@ -285,6 +285,7 @@ fi
 | `health.schedule` | no | `off` | Health cadence contract: `off`, `daily`, or `weekly`. `lisa sync` populates the default with `_lisaSync.populated` provenance and rejects values outside this closed vocabulary. Runtime results live only at the gitignored `.lisa/health/latest.json`, never in either config file. |
 | `usage` | no | — | Optional token/cost pricing metadata consumed by the `usage-accounting` rule. Missing pricing never blocks a lifecycle flow; Lisa records token counts with `estimated_cost: null` when no trustworthy price source is configured. |
 | `wiki` | no | — | Wiki location for the `wiki-knowledge-source` rule. Omit for a local in-repo wiki (`wiki/`). See **Wiki source** below. |
+| `sessionManager` | no | — (opt-in) | Local session manager: polls the Ready queue, runs each item in a fresh background Claude Code session, and relays questions over a per-project Telegram bot. Absent means the manager is not used; `lisa sync` never populates it. Written by `/lisa:setup:session-manager`. See **Session manager (`sessionManager`)** below. |
 
 ### Host rules (`.agents/rules/`)
 
@@ -692,6 +693,63 @@ Resolution order matches every other key: `$ARGUMENTS` override → `.lisa.confi
 `.lisa.config.json` → built-in default. The role SEMANTICS repair-intake operates on (which
 roles count as "stuck", what each repair does) are fixed like every other lifecycle transition;
 only these thresholds are tunable.
+
+### Session manager (`sessionManager`)
+
+The optional `sessionManager` block configures `lisa-session-manager`, a locally hosted loop that
+claims Ready leaf items and runs each one as `/lisa:implement` in a fresh background Claude Code
+session. It is **opt-in**: an absent block means no manager, and `lisa sync` never populates it
+(it is deliberately not in the sync registry, because the manager starts sessions with permissions
+bypassed). `/lisa:setup:session-manager` writes it, detecting a multi-repo layout from
+`projects/*/.lisa.config.json`.
+
+```json
+"sessionManager": {
+  "name": "<project>-manager",
+  "interval": "5m",
+  "repos": {
+    "root": "projects",
+    "entries": {
+      "api": { "hints": ["NestJS", "API", "migrations"] },
+      "web": { "hints": ["Expo", "React", "screens"] }
+    }
+  },
+  "capacity": { "maxWorkers": 6, "gbPerWorker": 3, "reserveGb": 8, "cpuFraction": 0.75, "maxLoadPerCore": 1.5 },
+  "stall": { "noOutputMinutes": 60, "maxAttempts": 3, "requestionHours": 4 },
+  "notify": { "provider": "telegram", "stateDir": "~/.claude/channels/telegram-<project>" }
+}
+```
+
+| Key | Required | Default | Notes |
+|-----|----------|---------|-------|
+| `sessionManager.name` | **yes** | — | Manager session name: lowercase letters, digits, `-` or `_`, at most 64 characters. It names the tmux session and the session workers `SendMessage` to. Setup writes `<project>-manager`. |
+| `sessionManager.interval` | no | `5m` | `/loop` cadence: a positive integer plus `s`, `m`, `h` or `d`. |
+| `sessionManager.repos` | no | — | Omit for a single-repo project: every item routes to the project root. When present, `entries` must name at least one repo. |
+| `sessionManager.repos.root` | no | `projects` | Relative directory holding the child repos. It must stay inside the project. |
+| `sessionManager.repos.entries.<key>.hints` | **yes** (per entry) | — | Non-empty list of words the manager matches a work item against to choose the repo. `<key>` is the child directory name (one safe path segment). |
+| `sessionManager.capacity.maxWorkers` | no | `6` | Hard cap on concurrent workers (a positive integer). Telegram `cap N` overrides it at runtime through the manager's ledger, not config. |
+| `sessionManager.capacity.gbPerWorker` | no | `3` | Memory budgeted per worker, in GB (positive). |
+| `sessionManager.capacity.reserveGb` | no | `8` | Memory kept free for everything else, in GB (zero or positive). |
+| `sessionManager.capacity.cpuFraction` | no | `0.75` | Share of CPU cores workers may occupy, greater than 0 and at most 1. |
+| `sessionManager.capacity.maxLoadPerCore` | no | `1.5` | No new worker starts while the 1-minute load average exceeds cores × this (positive). |
+| `sessionManager.stall.noOutputMinutes` | no | `60` | A live worker with no new output for this long counts as stalled (zero or positive). |
+| `sessionManager.stall.maxAttempts` | no | `3` | Fresh sessions per item before it moves to the configured `blocked` role (a positive integer). |
+| `sessionManager.stall.requestionHours` | no | `4` | How long an unanswered worker question waits before the manager asks again (zero or positive). |
+| `sessionManager.notify.provider` | no | `telegram` | Only `telegram` is implemented. |
+| `sessionManager.notify.stateDir` | **yes** | — | This project's own Telegram state dir. Never the shared default `~/.claude/channels/telegram`, because one bot per state dir is how projects stay isolated. Setup writes `~/.claude/channels/telegram-<project>`. |
+| `sessionManager.trustedAuthorIds` | no | — | Optional list of tracker user ids or logins. When set, the manager takes only items authored by these people. |
+
+- **Non-secret only.** The bot token lives in `<stateDir>/.env` (directory 0700, file 0600),
+  written by setup. A credential-named field or a token-shaped value anywhere in this block is a
+  validation error.
+- **Local over global, per key.** `.lisa.config.local.json` overrides `.lisa.config.json` key by key
+  (for example, a smaller `capacity.maxWorkers` on one machine); arrays such as `hints` are
+  replaced, not merged. Built-in defaults fill whatever neither file sets.
+- **Workflow roles are not here.** Ready, claimed and blocked come from the existing tracker
+  workflow config, through the single role resolver, like every other lifecycle flow.
+- **Shape check.** `validateSessionManager` in
+  `lisa-secrets-access/scripts/validate-config.mjs` runs as part of `validateConfig`, so
+  `/lisa:doctor` reports a malformed block.
 
 ### Env-keyed `done`
 

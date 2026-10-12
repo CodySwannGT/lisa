@@ -1,0 +1,4 @@
+display_name: "Session Manager"
+short_description: "Runs the local session manager…"
+default_prompt:
+  - "Use $lisa-session-manager: Runs the local session manager…."

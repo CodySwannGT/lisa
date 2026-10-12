@@ -45,6 +45,16 @@ that one registered loop.
   `/setup-automations` scaffolded are project knowledge and the historical record of what these
   loops did. Teardown removes scheduler registrations only; it never deletes, edits, or moves a
   runbook file. An operator who wants them gone removes them deliberately, in git.
+- **The locally hosted session manager** has no scheduler registration to delete: it runs as a
+  `/loop` in a tmux session, not under `/schedule` or Codex automations. When `.lisa.config.json`
+  has a `sessionManager` block, a fleet teardown, or `/lisa:tear-down-automations session-manager`,
+  stops it with `/lisa:session-manager stop` (the `session-manager.mjs stop` subcommand, which kills
+  only the manager's tmux session and is a no-op when it is not running). Never search the scheduler
+  for it and never report it "already absent" there. **Never stop its workers**: each holds claimed
+  work and finishes or hands off on its own. List them for the operator instead (run
+  `/lisa:session-manager status` before stopping, or `claude agents --json`). Its runbook,
+  `.lisa/automations/session-manager.runbook.md`, stays on disk like every other. Without a
+  `sessionManager` block there is nothing to stop.
 
 ## Answering a `policy-obsolete` teardown proposal
 
