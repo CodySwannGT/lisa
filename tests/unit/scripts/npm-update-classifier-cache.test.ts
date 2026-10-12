@@ -2,6 +2,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   copyFileSync,
+  existsSync,
   mkdirSync,
   mkdtempSync,
   readFileSync,
@@ -23,10 +24,13 @@ useIoLatencyBudget();
 
 const MANIFEST_FILE = "package.json";
 const PACKAGE = "@codyswann/lisa";
+const FILENAME = "codyswann-lisa-1.0.0.tgz";
+const SELECTION_REFUSAL = "registry archive selection differs";
 const fixture = vi.hoisted(() => ({
   root: "",
   archive: "",
   integrity: "",
+  packOutput: Buffer.alloc(0),
   afterPack: () => {},
   beforeOwnerRead: () => {},
 }));
@@ -62,10 +66,9 @@ vi.mock(
           };
         if (args[0] !== "pack" || args[4] !== "--pack-destination")
           throw Error("Unexpected synthetic registry request");
-        const filename = "codyswann-lisa-1.0.0.tgz";
-        copyFileSync(fixture.archive, join(args[5]!, filename));
+        copyFileSync(fixture.archive, join(args[5]!, FILENAME));
         fixture.afterPack();
-        return { stdout: Buffer.from(JSON.stringify([{ filename }])) };
+        return { stdout: Buffer.from(fixture.packOutput) };
       }),
     };
   }
@@ -106,6 +109,7 @@ describe("invocation-local authenticated classifier reuse", () => {
     });
     expect(packed.status).toBe(0);
     fixture.integrity = `sha512-${createHash("sha512").update(readFileSync(fixture.archive)).digest("base64")}`;
+    fixture.packOutput = Buffer.from(`${FILENAME}\n`);
     config = { automationProvenance: { signerDigest: "a".repeat(40) } };
     fixture.afterPack = () => {};
     fixture.beforeOwnerRead = () => {};
@@ -114,6 +118,90 @@ describe("invocation-local authenticated classifier reuse", () => {
   afterEach(() => {
     rmSync(root, { recursive: true });
   });
+  it("authenticates real archive members from a silent filename summary within original bounds", async () => {
+    expect(typeof (await canonicalClassifier(config))).toBe("function");
+    const calls = vi.mocked(runNpm).mock.calls;
+    expect(calls).toHaveLength(2);
+    expect(calls[0]![0]).toEqual(["view", `${PACKAGE}@1.0.0`, "--json"]);
+    expect(calls[0]![1]).toMatchObject({ maximum: 1_048_576 });
+    const destination = calls[1]![0][5]!;
+    expect(calls[1]![0]).toEqual([
+      "pack",
+      `${PACKAGE}@1.0.0`,
+      "--ignore-scripts",
+      "--silent",
+      "--pack-destination",
+      destination,
+    ]);
+    expect(calls[1]![1]).toMatchObject({
+      cwd: destination,
+      timeout: 120_000,
+      maximum: 1_048_576,
+    });
+    expect(existsSync(destination)).toBe(false);
+  });
+  it.each([
+    ["missing newline", Buffer.from(FILENAME)],
+    ["carriage return", Buffer.from(`${FILENAME}\r\n`)],
+    ["multiple names", Buffer.from(`${FILENAME}\n${FILENAME}\n`)],
+    ["wrong version", Buffer.from("codyswann-lisa-1.0.1.tgz\n")],
+    ["parent traversal", Buffer.from(`../${FILENAME}\n`)],
+    ["absolute path", Buffer.from(`/tmp/${FILENAME}\n`)],
+    ["leading whitespace", Buffer.from(` ${FILENAME}\n`)],
+    ["trailing junk", Buffer.from(`${FILENAME}\nnotice\n`)],
+    [
+      "legacy JSON inventory",
+      Buffer.from(JSON.stringify([{ filename: FILENAME }])),
+    ],
+    [
+      "invalid UTF-8 suffix",
+      Buffer.concat([Buffer.from(`${FILENAME}\n`), Buffer.from([255])]),
+    ],
+    ["empty output", Buffer.alloc(0)],
+  ])("refuses %s instead of selecting an archive", async (_label, output) => {
+    fixture.packOutput = output as Buffer;
+    await expect(canonicalClassifier(config)).rejects.toThrow(
+      SELECTION_REFUSAL
+    );
+    const destination = vi.mocked(runNpm).mock.calls[1]![0][5]!;
+    expect(existsSync(destination)).toBe(false);
+  });
+  it("re-authenticates after refusing an invalid summary rather than caching a grant", async () => {
+    fixture.packOutput = Buffer.from(`${FILENAME}\nextra\n`);
+    await expect(canonicalClassifier(config)).rejects.toThrow(
+      SELECTION_REFUSAL
+    );
+    fixture.packOutput = Buffer.from(`${FILENAME}\n`);
+    expect(typeof (await canonicalClassifier(config))).toBe("function");
+    expect(runNpm).toHaveBeenCalledTimes(4);
+  });
+  it.each(["different bytes", "duplicate member"])(
+    "refuses an integrity-matching archive with %s",
+    async kind => {
+      const member = `package/${CLASSIFIER_MEMBERS[0]!}`;
+      if (kind === "different bytes")
+        writeFileSync(join(root, member), "export const forged = true;\n");
+      const packed = boundedSpawnSync({
+        command: "tar",
+        args: [
+          "-czf",
+          fixture.archive,
+          "-C",
+          root,
+          "package",
+          ...(kind === "duplicate member" ? [member] : []),
+        ],
+        label: "invalid but integrity-matching classifier archive",
+        baseMs: 10_000,
+        maxBuffer: 1_048_576,
+      });
+      expect(packed.status).toBe(0);
+      fixture.integrity = `sha512-${createHash("sha512").update(readFileSync(fixture.archive)).digest("base64")}`;
+      await expect(canonicalClassifier(config)).rejects.toThrow(
+        /authenticated archive|missing or ambiguous/
+      );
+    }
+  );
   it("authenticates an identical released classifier once while evaluating each fresh hold", async () => {
     const first = await canonicalClassifier(config);
     expect(first({ body: "ordinary task" }).held).toBe(false);

@@ -714,6 +714,7 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
   "scripts/lib/npm-update-helper.mjs": Object.freeze([
     "41e5a37769ec3737829ed1948d0a1442792b25d120f0fb4f4b5e424a50f34705",
     "d6ad6d094f56a1d08fabbae7e2df90779f7912d3380a4c9e792b305863901dda",
+    "d705e0d8ae64285b539206f09784928a7fa678c2449252312a7079385e62ab90",
     "f4012383184237aa0a7ca21847864fdcc2241f94fd3d2cd6d82a6345763e5824",
   ]),
   "scripts/lib/npm-update-hook-installation.mjs": Object.freeze([
@@ -1963,6 +1964,7 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
   "scripts/npm-updater-helper-graph.json": Object.freeze([
     "07349149a13f75cf3d517202317aaa1dbe6b06b8c46a45a1512097dca85157da",
     "09352aa145bc81c3c5dab282c61d084cbbe5af6242d7d12303ad764fbad53de2",
+    "09ef191f06018f4fe7ac580b94e096d6370ab5a3e816e00401597a70470ebb2b",
     "0b8d6e6cd22d8a2edef3437c772a7ddf7afc7e7c61e73476323da11d0972a888",
     "0d82401079f442dd1a617a2a85b910be321ba0badbef2120d9ad4b9cff3767bc",
     "15eceda920bf731bd12154af634b69d2f684d8672baff4d0f3e66f18b7a9806f",
@@ -2790,6 +2792,7 @@ export const LISA_OWNED_HASH_HISTORY_DERIVED: Readonly<
   "scripts/lib/npm-update-helper.mjs": Object.freeze([
     "41e5a37769ec3737829ed1948d0a1442792b25d120f0fb4f4b5e424a50f34705",
     "d6ad6d094f56a1d08fabbae7e2df90779f7912d3380a4c9e792b305863901dda",
+    "d705e0d8ae64285b539206f09784928a7fa678c2449252312a7079385e62ab90",
     "f4012383184237aa0a7ca21847864fdcc2241f94fd3d2cd6d82a6345763e5824",
   ]),
   "scripts/lib/npm-update-hook-installation.mjs": Object.freeze([
@@ -3969,6 +3972,7 @@ export const LISA_OWNED_HASH_HISTORY_DERIVED: Readonly<
   "scripts/npm-updater-helper-graph.json": Object.freeze([
     "07349149a13f75cf3d517202317aaa1dbe6b06b8c46a45a1512097dca85157da",
     "09352aa145bc81c3c5dab282c61d084cbbe5af6242d7d12303ad764fbad53de2",
+    "09ef191f06018f4fe7ac580b94e096d6370ab5a3e816e00401597a70470ebb2b",
     "0b8d6e6cd22d8a2edef3437c772a7ddf7afc7e7c61e73476323da11d0972a888",
     "0d82401079f442dd1a617a2a85b910be321ba0badbef2120d9ad4b9cff3767bc",
     "15eceda920bf731bd12154af634b69d2f684d8672baff4d0f3e66f18b7a9806f",

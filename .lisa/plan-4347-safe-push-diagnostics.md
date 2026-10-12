@@ -2,6 +2,18 @@
 
 Work-Item: CodySwannGT/lisa#4347
 
+## Bounded native package summary fix — 2026-10-12
+
+The provider diagnostics are merged in PR #4435 and published as authentic Lisa 4.75.1. A fresh hosted invocation now fails earlier in preparation with `stage=unknown native=output-bound status=null signal=SIGTERM`. A native Node 22.23.3 reproduction using the existing helper's exact registry commands proves that the registry view succeeds (130,676 stdout bytes), while `npm pack --json --ignore-scripts` exhausts its unchanged 1,048,576-byte output limit. The downloaded archive matches the actual published SHA512 integrity, and the owned temporary root is positively absent afterward. This proves the new preparation failure; the older checkpoint failure remains unproved.
+
+Current source base: released main `da9f544cbc289f30711c26f846e4b2d78d7f0332`; attached branch `codex/4347-bounded-pack-output`. The original claimed leaf is reused.
+
+Admit the existing quality teammate as the bounded builder of only `all/copy-overwrite/scripts/lib/npm-update-helper.mjs` and `tests/unit/scripts/npm-update-classifier-cache.test.ts`. Request a silent native package summary instead of the complete JSON file inventory; accept only the one exact expected archive filename and newline. Preserve `--ignore-scripts`, the original output limit and deadline, independent registry identity, streamed archive integrity, exact archive member checks, ownership, cleanup and all cached-authentication refusal controls. Prove meaningful RED/GREEN and malformed filename, duplicate output and invalid archive negatives. Do not widen a bound or accept truncated JSON.
+
+The existing security teammate independently reviews the frozen source and tests. The existing transport verifier runs the actual quiet command against the authentic published package with unchanged limits and independently proves filename selection, archive integrity and owned cleanup. Root owns this metadata, official helper graph and derived generation, ordinary commits, one source PR, existing protected checks, actual publication and consumer adoption. All original six hosted scenarios and final fixture cleanup remain pending; no source or consumer ticket is complete from this local fix.
+
+The remaining sections retain their original historical observations and admissions.
+
 Base: current main 5c1778a99257c712d1ce7314a3e4fac988dd5332. Sole permanent integration branch is main. Existing claimed leaf and worktree-local binding are retained; this task preserves the original six acceptance scenarios.
 
 The actual hosted run passed preparation and signed allocation, then exited at gate-push with native status 1 before publication. The complete job log and artifact inventory retain no original child transcript. No underlying hook, test, or audit-versus-destination cause is established. Unchanged replay cannot recover the lost evidence.

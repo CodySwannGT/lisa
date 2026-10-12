@@ -1,5 +1,15 @@
 # Roster Decision: CodySwannGT/lisa#4347
 
+## Bounded native package summary — 2026-10-12
+
+Reuse the existing team and claim. Current assignments take precedence for this narrowly proved preparation failure. Root reproduced the authentic published package's native JSON packing output exceeding the unchanged 1 MiB limit while its actual archive integrity matched.
+
+INCLUDE - lisa-builder - Existing cancellation_transport_quality owns only the helper's silent exact filename selection and its classifier-cache regression controls.
+INCLUDE - lisa-security-specialist - Existing cancellation_security_constraints independently checks archive authenticity, malformed output refusals, original bounds and no broadened execution or credential authority.
+INCLUDE - lisa-verification-specialist - Existing cancellation_transport_verifier executes the actual quiet native packaging control against the authentic published release and seals original limits, integrity and owned cleanup.
+
+Root owns metadata, official generated effects, hooks, commit, protected source delivery, publication, consumer adoption and all original hosted acceptance. No new roster or tracker claim is created. Preserve every other existing type exclusion and unrelated assignment. Public source evidence uses anonymous consumer identities. The older checkpoint cause and all six original journeys remain outstanding.
+
 ## Closed provider failure diagnostics — 2026-10-12
 
 The genuine hosted cancellation checkpoint failed after one v2 chunk with a supervised native exit one. The existing diagnostic cannot distinguish a provider request from every historical Git or supervisor failure. Root owns a narrowly scoped diagnostic followup in npm-update-github.mjs and npm-update-invariants.mjs plus npm-update-provider-diagnostics.test.ts. Existing cancellation_transport_quality and cancellation_security_constraints independently review source and execute bounded controls. Root owns generated artifacts, native hooks, protected source delivery, qualified publication and consumer adoption. No new authorization, retries, deadlines, endpoint scope, tokens, bypasses or hosted success are inferred. The original six journeys and final cleanup remain required.
