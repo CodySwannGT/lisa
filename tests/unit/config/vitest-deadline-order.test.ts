@@ -8,6 +8,16 @@ import { describe, expect, it } from "vitest";
 import { boundedSpawnSync } from "../../helpers/io-latency-budget.js";
 
 const REPO_ROOT = path.resolve(import.meta.dirname, "..", "..", "..");
+const TEST_RUNNER = path.join(REPO_ROOT, "src/cli/lisa-test-run.ts");
+const TEST_RUNNER_ARGS = [
+  "--import",
+  "tsx",
+  TEST_RUNNER,
+  "--profile",
+  "lisa",
+  "--adapter",
+  "vitest",
+] as const;
 const FIXTURES = [
   ["integration/enforcement-fallback-freshness-deadline", "deadline"],
   ["integration/enforcement-fallback-freshness-anchor-startup", "anchor"],
@@ -57,6 +67,9 @@ describe("native Vitest deadline scheduling", () => {
         label: "real Vitest deadline-group ordering",
         command: process.execPath,
         args: [
+          ...TEST_RUNNER_ARGS,
+          "--",
+          process.execPath,
           path.join(REPO_ROOT, "node_modules/vitest/vitest.mjs"),
           "run",
           "--config",
