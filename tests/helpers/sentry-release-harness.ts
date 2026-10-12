@@ -189,12 +189,11 @@ function runStep(item: WorkflowStep, context: Contexts, root: string) {
  * @returns The last value written for the key, or empty.
  */
 function readOutput(root: string, key: string): string {
-  return (
-    readFileSync(path.join(root, "output"), "utf8")
-      .split("\n")
-      .findLast(line => line.startsWith(`${key}=`))
-      ?.slice(key.length + 1) ?? ""
-  );
+  const values = readFileSync(path.join(root, "output"), "utf8")
+    .split("\n")
+    .filter(line => line.startsWith(`${key}=`))
+    .map(line => line.slice(key.length + 1));
+  return values.at(-1) ?? "";
 }
 
 /**
