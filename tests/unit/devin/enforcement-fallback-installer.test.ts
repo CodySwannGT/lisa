@@ -13,6 +13,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
   DEVIN_FALLBACK_COMMAND,
   DEVIN_FALLBACK_MATCHER,
+  hasDevinFallback,
   installDevinEnforcementFallback,
   mergeDevinFallback,
 } from "../../../src/devin/enforcement-fallback-installer.js";
@@ -53,6 +54,9 @@ describe("installDevinEnforcementFallback", () => {
     expect(result.managedFiles).toEqual([HOOKS_FILE]);
     expect(hooks.PreToolUse?.[0]?.matcher).toBe(DEVIN_FALLBACK_MATCHER);
     expect(lisaHandlerCount(hooks.PreToolUse)).toBe(1);
+    expect(await fs.readdir(path.join(dir, ".devin"))).toEqual([
+      "hooks.v1.json",
+    ]);
   });
 
   it("keeps host hooks and stays at one Lisa handler across re-applies", async () => {
@@ -80,14 +84,14 @@ describe("installDevinEnforcementFallback", () => {
 });
 
 describe("mergeDevinFallback", () => {
-  it("removes a stale Lisa handler sharing a group with a host handler", () => {
+  it("removes the Lisa handler from a group it shares with a host handler", () => {
     const merged = mergeDevinFallback({
       PreToolUse: [
         {
           matcher: "exec",
           hooks: [
             { command: HOST_COMMAND },
-            { command: "old scripts/lisa-enforcement-fallback.sh" },
+            { command: DEVIN_FALLBACK_COMMAND },
           ],
         },
       ],
@@ -95,6 +99,41 @@ describe("mergeDevinFallback", () => {
     const groups = merged.PreToolUse as readonly Group[];
     expect(groups[0]?.hooks).toEqual([{ command: HOST_COMMAND }]);
     expect(lisaHandlerCount(groups)).toBe(1);
+  });
+
+  it("keeps a host command that merely calls the dispatcher alongside its own check", () => {
+    const hostCompound =
+      "bash scripts/lisa-enforcement-fallback.sh && ./host-extra-check.sh";
+    const merged = mergeDevinFallback({
+      PreToolUse: [{ matcher: "exec", hooks: [{ command: hostCompound }] }],
+    });
+    const groups = merged.PreToolUse as readonly Group[];
+    expect(groups[0]?.hooks).toEqual([{ command: hostCompound }]);
+    expect(lisaHandlerCount(groups)).toBe(1);
+  });
+});
+
+describe("hasDevinFallback", () => {
+  it("is false for an absent, empty-object, or unparseable file", () => {
+    expect(hasDevinFallback(undefined)).toBe(false);
+    expect(hasDevinFallback("{}")).toBe(false);
+    expect(hasDevinFallback("{not json")).toBe(false);
+  });
+
+  it("is true only when the exact Lisa handler is registered", () => {
+    expect(hasDevinFallback(JSON.stringify(mergeDevinFallback({})))).toBe(true);
+    expect(
+      hasDevinFallback(
+        JSON.stringify({
+          PreToolUse: [
+            {
+              matcher: DEVIN_FALLBACK_MATCHER,
+              hooks: [{ command: "bash scripts/lisa-enforcement-fallback.sh" }],
+            },
+          ],
+        })
+      )
+    ).toBe(false);
   });
 });
 

@@ -3,6 +3,7 @@ import path from "node:path";
 import { realpath } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 
+import { hasDevinFallback } from "../devin/enforcement-fallback-installer.js";
 import {
   discoverLisaAgents,
   LISA_AGENTS_SUBDIR,
@@ -282,7 +283,8 @@ async function projectSurfaceDrift(
     evidenceDrift(
       includes("devin"),
       ".devin/hooks.v1.json enforcement fallback",
-      async () => await nonemptyProjectFile(root, ".devin/hooks.v1.json")
+      async () =>
+        hasDevinFallback(await readProjectText(root, ".devin/hooks.v1.json"))
     ),
   ]);
   return observations.flat();
