@@ -6,7 +6,6 @@
  * These cases run the shipped resolver step under bash inside a real git
  * checkout; only the external Sentry action is simulated.
  */
-import { spawnSync } from "node:child_process";
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
@@ -18,6 +17,7 @@ import {
   releaseWorkflow,
   SENTRY_CREDENTIALS,
 } from "../helpers/sentry-release-harness.js";
+import { boundedSpawnSync } from "../helpers/io-latency-budget.js";
 import { jobOf } from "../helpers/workflow-test-utils.js";
 import { cleanGitEnv, GIT_BIN } from "../support/git-executable.js";
 
@@ -38,10 +38,12 @@ const GIT_ENV = {
  * @returns Trimmed stdout.
  */
 function git(cwd: string, ...args: readonly string[]): string {
-  const result = spawnSync(GIT_BIN, args, {
+  const result = boundedSpawnSync({
+    label: "fixture git",
+    command: GIT_BIN,
+    args,
     cwd,
     env: GIT_ENV,
-    encoding: "utf8",
   });
   if (result.status !== 0) {
     throw new Error(`git ${args.join(" ")} failed: ${result.stderr}`);
