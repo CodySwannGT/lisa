@@ -60,7 +60,8 @@ doc). Reject the artifact if any required field is missing or mistyped:
     "codex":   { "outcome": "reimplement",              "actions": ["..."], "rationale": "..." },
     "cursor":  { "outcome": "claude-only",              "actions": [],      "rationale": "..." },
     "agy":     { "outcome": "reimplement",              "actions": ["..."], "rationale": "..." },
-    "copilot": { "outcome": "enable-vendor-equivalent", "actions": ["..."], "rationale": "..." }
+    "copilot": { "outcome": "enable-vendor-equivalent", "actions": ["..."], "rationale": "..." },
+    "devin":   { "outcome": "reimplement",              "actions": ["..."], "rationale": "..." }
   }
 }
 ```
@@ -107,6 +108,13 @@ upstream plugin source into them:
 - `scripts/generate-copilot-plugin-artifacts.mjs` — Copilot surfaces a bundled
   `.mcp.json`'s servers as an **inline `mcpServers`** object on the manifest;
   also uniquely supports `lspServers`.
+- `scripts/generate-devin-plugin-artifacts.mjs` (`generateDevinVariant`) —
+  Devin variant; keeps the root `.mcp.json` (Devin reads it natively), so an
+  MCP re-point for Devin needs only the server in the source plugin's
+  `.mcp.json`. A `reimplement` for Devin is the same Lisa-native skill every
+  other agent gets — it rides into the variant through the fan-out. Devin has
+  no LSP or plugin-command surface; a Devin LSP entry is `claude-only` and has
+  no action to perform.
 - `src/agy/mcp-installer.ts` — agy runtime MCP delivery
   (`~/.gemini/config/mcp_config.json`, `serverUrl` shape, `_lisaManaged`
   tagged-merge). The non-plugin path for agy MCP.
