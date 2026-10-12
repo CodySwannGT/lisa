@@ -918,6 +918,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "8298169e07470d4336f28066fb9f7e0917e47e7ec37f047e6cab235440beab6c",
     "plugins/src/base/commands/security/zap-scan.md":
       "75386e41ffd3f7e3c3a3e24c72c8e682d886286a192f52497e9a0766a76e617a",
+    "plugins/src/base/commands/session-manager.md":
+      "371bc87aa6561dcb973ccf78b43215b606405c694416ffc8a7a6ce6fc823fa53",
     "plugins/src/base/commands/setup-automations.md":
       "f89ab45d2eb5a11c9dbeaf42d588ff9ed106adf438a5c0810015b1939ffea408",
     "plugins/src/base/commands/setup-remote-aws.md":
@@ -940,6 +942,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "2d705679db0dbb6c77728592a020430a529af9d0ef24ac7c434969d590d9f5a6",
     "plugins/src/base/commands/setup/remote-env.md":
       "b1e8ec93bc660cc5ccf9e4c74a3a7bb6c94d5ff06c75f150479991fa1d564f2d",
+    "plugins/src/base/commands/setup/session-manager.md":
+      "218126a59847c3c5ebb3cb7bb7ea983892e3b66a65d2c918f35dfe112a85af58",
     "plugins/src/base/commands/setup/sonar.md":
       "1d2e94fd9f21988ce6d4be2ce4268b8c0bb020eb7cd7baf8ca65def7d8a4f5bc",
     "plugins/src/base/commands/setup/workstation.md":
@@ -1626,6 +1630,10 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "a5189442dbf970cc49fd089ab03c386c8a205b856e09501f6ad1966321e7e4b5",
     "plugins/src/base/skills/lisa-sentry-access/SKILL.md":
       "1c1881ca9a2020f6cd8f938dc5335ebf2d344ff280844bb98926198e5226e526",
+    "plugins/src/base/skills/lisa-session-manager/SKILL.md":
+      "59a245dc0474516d0e672b9f81d6f3896bd500f5b4cc4344ba87c33467cf163f",
+    "plugins/src/base/skills/lisa-session-manager/references/runbook-template.md":
+      "24abfd1c6d2ec1829a9c88415910438bb03e16277f0a118c30ea0a24022ab54c",
     "plugins/src/base/skills/lisa-session-manager/scripts/capacity.mjs":
       "ad5acc6097e375868b51eaf01b1506662505e2404b7ac1b06528679718504091",
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-cycle.mjs":
@@ -1700,6 +1708,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "13db443b3a8deb04977064d48966f101ee8984d544fb761831f888ade261b10f",
     "plugins/src/base/skills/lisa-setup-remote-env/scripts/verify-remote-env.mjs":
       "bec0b624c1031d0936afd6e5dd4a3d09adea102d5936b5b9fcf545c7f86a3a11",
+    "plugins/src/base/skills/lisa-setup-session-manager/SKILL.md":
+      "52e8769136abe14c7f319f41d5c8f2dad92063820faced325411a5d4b287b50b",
     "plugins/src/base/skills/lisa-setup-sonar/SKILL.md":
       "de00597d260d5491837406a81b87a96b9307a7d87c040b35fc1d6e77ae2f5306",
     "plugins/src/base/skills/lisa-setup-workstation/SKILL.md":
@@ -8995,6 +9005,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/src/base/commands/review/local.md": true,
     "plugins/src/base/commands/rework-triage.md": true,
     "plugins/src/base/commands/security/zap-scan.md": true,
+    "plugins/src/base/commands/session-manager.md": true,
     "plugins/src/base/commands/setup-automations.md": true,
     "plugins/src/base/commands/setup-remote-aws.md": true,
     "plugins/src/base/commands/setup/atlassian.md": true,
@@ -9006,6 +9017,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/src/base/commands/setup/local-env.md": true,
     "plugins/src/base/commands/setup/notion.md": true,
     "plugins/src/base/commands/setup/remote-env.md": true,
+    "plugins/src/base/commands/setup/session-manager.md": true,
     "plugins/src/base/commands/setup/sonar.md": true,
     "plugins/src/base/commands/setup/workstation.md": true,
     "plugins/src/base/commands/starter-sync.md": true,
@@ -9349,6 +9361,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/src/base/skills/lisa-security-review/SKILL.md": true,
     "plugins/src/base/skills/lisa-security-zap-scan/SKILL.md": true,
     "plugins/src/base/skills/lisa-sentry-access/SKILL.md": true,
+    "plugins/src/base/skills/lisa-session-manager/SKILL.md": true,
+    "plugins/src/base/skills/lisa-session-manager/references/runbook-template.md": true,
     "plugins/src/base/skills/lisa-session-manager/scripts/capacity.mjs": true,
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-cycle.mjs": true,
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-manager.mjs": true,
@@ -9386,6 +9400,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/src/base/skills/lisa-setup-remote-env/scripts/tool-floor.mjs": true,
     "plugins/src/base/skills/lisa-setup-remote-env/scripts/toolchain.mjs": true,
     "plugins/src/base/skills/lisa-setup-remote-env/scripts/verify-remote-env.mjs": true,
+    "plugins/src/base/skills/lisa-setup-session-manager/SKILL.md": true,
     "plugins/src/base/skills/lisa-setup-sonar/SKILL.md": true,
     "plugins/src/base/skills/lisa-setup-workstation/SKILL.md": true,
     "plugins/src/base/skills/lisa-setup-workstation/scripts/bounded-child.mjs": true,
