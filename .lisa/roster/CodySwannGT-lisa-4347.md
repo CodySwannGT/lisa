@@ -1,5 +1,19 @@
 # Roster Decision: CodySwannGT/lisa#4347
 
+## Bounded native package summary — 2026-10-12
+
+Reuse the existing team and claim. Current assignments take precedence for this narrowly proved preparation failure. Root reproduced the authentic published package's native JSON packing output exceeding the unchanged 1 MiB limit while its actual archive integrity matched.
+
+INCLUDE - lisa-builder - Existing cancellation_transport_quality owns only the helper's silent exact filename selection and its classifier-cache regression controls.
+INCLUDE - lisa-security-specialist - Existing cancellation_security_constraints independently checks archive authenticity, malformed output refusals, original bounds and no broadened execution or credential authority.
+INCLUDE - lisa-verification-specialist - Existing cancellation_transport_verifier executes the actual quiet native packaging control against the authentic published release and seals original limits, integrity and owned cleanup.
+
+Root owns metadata, official generated effects, hooks, commit, protected source delivery, publication, consumer adoption and all original hosted acceptance. No new roster or tracker claim is created. Preserve every other existing type exclusion and unrelated assignment. Public source evidence uses anonymous consumer identities. The older checkpoint cause and all six original journeys remain outstanding.
+
+## Closed provider failure diagnostics — 2026-10-12
+
+The genuine hosted cancellation checkpoint failed after one v2 chunk with a supervised native exit one. The existing diagnostic cannot distinguish a provider request from every historical Git or supervisor failure. Root owns a narrowly scoped diagnostic followup in npm-update-github.mjs and npm-update-invariants.mjs plus npm-update-provider-diagnostics.test.ts. Existing cancellation_transport_quality and cancellation_security_constraints independently review source and execute bounded controls. Root owns generated artifacts, native hooks, protected source delivery, qualified publication and consumer adoption. No new authorization, retries, deadlines, endpoint scope, tokens, bypasses or hosted success are inferred. The original six journeys and final cleanup remain required.
+
 ## Native push failure classification — 2026-10-11
 
 The bounded input resolver verified the original failed run and complete retained artifact inventory: child output was discarded after capture, so its underlying cause remains unknown. Reuse the existing exhaustive type catalogue and team with these assignments taking precedence. The existing release qualifier acts as the included bounded builder; the resolver becomes the separate quality/security/conformance and empirical reviewer after implementation. Root owns this metadata, generated artifacts, native hooks, commits, provider writes, protected merge, release and caller adoption. No Claude sessions are involved.
@@ -489,3 +503,58 @@ Retain the existing exhaustive catalogue and all original six acceptance require
 ## Required explicit package lifecycle declaration — 2026-10-11
 
 Extend the current packed_registry_builder's ownership only to `package.json` and `tests/unit/scripts/install-claude-plugins-self.test.ts` for the known lifecycle declaration and reaching RED/GREEN in the plan. Keep the helper's explicit setup behavior, root template governance and every remaining package lifecycle command unchanged. Reuse delivery_readiness_resolver for independent quality/security/conformance and native-proof review. Root retains metadata, original Expo execution, derived artifacts, normal commits, PR, release and caller delivery. No Claude agent session, new team, deadline relaxation or replacement acceptance is introduced.
+
+
+## Current cancellation failure phase — 2026-10-11
+
+The following roster governs this bounded phase; historical decisions above remain evidence.
+
+Roster Decision: existing CodySwannGT/lisa#4347 cancellation failure
+Native Codex delegation only; no Claude sessions. Input resolver completed. Base main; latest remote must be fetched before edits. Preserve all six original acceptance scenarios. No application deployment.
+
+EXCLUDE - casey - This bounded cancellation defect has no responsibility in this specialist domain; lead and selected specialists cover its scope.
+EXCLUDE - chief - This bounded cancellation defect has no responsibility in this specialist domain; lead and selected specialists cover its scope.
+EXCLUDE - felix - This bounded cancellation defect has no responsibility in this specialist domain; lead and selected specialists cover its scope.
+EXCLUDE - lex - This bounded cancellation defect has no responsibility in this specialist domain; lead and selected specialists cover its scope.
+EXCLUDE - lisa-architecture-specialist - This bounded cancellation defect has no responsibility in this specialist domain; lead and selected specialists cover its scope.
+INCLUDE - lisa-bug-fixer - Implement the proven fix with a reaching regression and preserve authorization invariants.
+EXCLUDE - lisa-builder - This bounded cancellation defect has no responsibility in this specialist domain; lead and selected specialists cover its scope.
+EXCLUDE - lisa-confluence-prd-intake - This bounded cancellation defect has no responsibility in this specialist domain; lead and selected specialists cover its scope.
+INCLUDE - lisa-debug-specialist - Prove the actual hosted cancellation failure before choosing a fix.
+EXCLUDE - lisa-eval-specialist - This bounded cancellation defect has no responsibility in this specialist domain; lead and selected specialists cover its scope.
+EXCLUDE - lisa-git-history-analyzer - This bounded cancellation defect has no responsibility in this specialist domain; lead and selected specialists cover its scope.
+EXCLUDE - lisa-github-agent - Existing claimed standalone issue and lead-owned lifecycle already resolve tracking.
+EXCLUDE - lisa-github-build-intake - This bounded cancellation defect has no responsibility in this specialist domain; lead and selected specialists cover its scope.
+EXCLUDE - lisa-github-prd-intake - This bounded cancellation defect has no responsibility in this specialist domain; lead and selected specialists cover its scope.
+EXCLUDE - lisa-jira-agent - This bounded cancellation defect has no responsibility in this specialist domain; lead and selected specialists cover its scope.
+EXCLUDE - lisa-jira-build-intake - This bounded cancellation defect has no responsibility in this specialist domain; lead and selected specialists cover its scope.
+INCLUDE - lisa-learner - Capture only judged durable learnings through the managed contract.
+INCLUDE - lisa-learning-judge - Judge only evidence-backed durable learning candidates.
+EXCLUDE - lisa-learnings-synthesizer - This bounded cancellation defect has no responsibility in this specialist domain; lead and selected specialists cover its scope.
+EXCLUDE - lisa-linear-agent - This bounded cancellation defect has no responsibility in this specialist domain; lead and selected specialists cover its scope.
+EXCLUDE - lisa-linear-build-intake - This bounded cancellation defect has no responsibility in this specialist domain; lead and selected specialists cover its scope.
+EXCLUDE - lisa-linear-prd-intake - This bounded cancellation defect has no responsibility in this specialist domain; lead and selected specialists cover its scope.
+EXCLUDE - lisa-notion-prd-intake - This bounded cancellation defect has no responsibility in this specialist domain; lead and selected specialists cover its scope.
+EXCLUDE - lisa-ops-specialist - This bounded cancellation defect has no responsibility in this specialist domain; lead and selected specialists cover its scope.
+EXCLUDE - lisa-performance-specialist - The debugger measures this failure before any performance remedy is selected.
+EXCLUDE - lisa-pr-mining-specialist - This bounded cancellation defect has no responsibility in this specialist domain; lead and selected specialists cover its scope.
+EXCLUDE - lisa-product-specialist - This bounded cancellation defect has no responsibility in this specialist domain; lead and selected specialists cover its scope.
+INCLUDE - lisa-quality-specialist - Independently review correctness and regression coverage.
+INCLUDE - lisa-security-specialist - Independently review signature, freshness and per-write authorization boundaries.
+EXCLUDE - lisa-skill-evaluator - This bounded cancellation defect has no responsibility in this specialist domain; lead and selected specialists cover its scope.
+EXCLUDE - lisa-spec-conformance-specialist - Lead maintains all six original criteria and empirical verification covers delivery.
+EXCLUDE - lisa-test-specialist - Reaching regressions are owned by bug-fixer and independently reviewed.
+EXCLUDE - lisa-tracker-mining-specialist - This bounded cancellation defect has no responsibility in this specialist domain; lead and selected specialists cover its scope.
+INCLUDE - lisa-verification-specialist - Execute source checks and actual hosted acceptance with evidence.
+EXCLUDE - mark - This bounded cancellation defect has no responsibility in this specialist domain; lead and selected specialists cover its scope.
+EXCLUDE - parker - This bounded cancellation defect has no responsibility in this specialist domain; lead and selected specialists cover its scope.
+EXCLUDE - sally - This bounded cancellation defect has no responsibility in this specialist domain; lead and selected specialists cover its scope.
+INCLUDE - default - Completed bounded input resolution; no further lifecycle ownership.
+INCLUDE - explorer - Map cancellation authorization and existing regression coverage read-only.
+EXCLUDE - worker - A specific bug-fixer owns implementation.
+
+Execution: explorer and debugger read-only in parallel, then bug-fixer only after a proven cause. Independent security/quality review and empirical verification follow. Learning judge/learner only for supported candidates. No duplicate claim or child issue.
+
+Native deadline-suite ordering followup: the existing quality teammate owns only `vitest.config.local.ts` and `tests/unit/config/vitest-deadline-order.test.ts` for a reaching RED/GREEN scheduling correction. The independent verifier reviews the installed runner's group semantics and exact change; root owns metadata, generators and normal delivery. Worker counts, physical deadlines, guards, discovery and original acceptance scope remain unchanged.
+
+Supervision correction: existing quality teammate owns only tests/unit/config/vitest-deadline-order.test.ts to route its real child through the existing source supervisor. Existing independent verifier reviews the corrected native route, retained RED and reaching GREEN; root owns release-tag fetch, metadata, generators and normal delivery. No physical deadline, assertion, guard or production-helper changes admitted.

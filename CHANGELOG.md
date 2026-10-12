@@ -2,6 +2,42 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.75.2](https://github.com/CodySwannGT/lisa/compare/v4.75.1...v4.75.2) (2026-10-12)
+
+
+### Bug Fixes
+
+* **npm-updater:** request bounded package download summary ([0753d16](https://github.com/CodySwannGT/lisa/commit/0753d1665e05f860d764e3e928b5936a6de559ba)), closes [CodySwannGT/lisa#4347](https://github.com/CodySwannGT/lisa/issues/4347) [CodySwannGT/lisa#4347](https://github.com/CodySwannGT/lisa/issues/4347)
+
+### [4.75.1](https://github.com/CodySwannGT/lisa/compare/v4.75.0...v4.75.1) (2026-10-12)
+
+
+### Bug Fixes
+
+* **npm-updater:** retain closed provider failure diagnostics ([fd0fedd](https://github.com/CodySwannGT/lisa/commit/fd0feddfa8d9d7a0c262f13f4eaf842ec51eeb75)), closes [CodySwannGT/lisa#4347](https://github.com/CodySwannGT/lisa/issues/4347) [CodySwannGT/lisa#4347](https://github.com/CodySwannGT/lisa/issues/4347)
+* **test:** run deadline suites before bulk integration tests ([ac0dcb7](https://github.com/CodySwannGT/lisa/commit/ac0dcb790f58af84994db8227b19a1c2136eefb8)), closes [CodySwannGT/lisa#4347](https://github.com/CodySwannGT/lisa/issues/4347) [CodySwannGT/lisa#4347](https://github.com/CodySwannGT/lisa/issues/4347)
+* **test:** supervise native deadline regression children ([6a96722](https://github.com/CodySwannGT/lisa/commit/6a96722ab6c5123c0ab1e37f7f2c61d10842a145)), closes [CodySwannGT/lisa#4347](https://github.com/CodySwannGT/lisa/issues/4347) [CodySwannGT/lisa#4347](https://github.com/CodySwannGT/lisa/issues/4347)
+
+## [4.75.0](https://github.com/CodySwannGT/lisa/compare/v4.74.9...v4.75.0) (2026-10-12)
+
+
+### Features
+
+* **parity:** generate a Devin CLI plugin variant for every Lisa plugin ([a1bae2b](https://github.com/CodySwannGT/lisa/commit/a1bae2bce0a82860b60f045cb1fcfc0b12a9220a)), closes [CodySwannGT/lisa#4426](https://github.com/CodySwannGT/lisa/issues/4426) [CodySwannGT/lisa#4426](https://github.com/CodySwannGT/lisa/issues/4426)
+
+
+### Bug Fixes
+
+* **parity:** fail loudly when no Devin variant is generated ([689861e](https://github.com/CodySwannGT/lisa/commit/689861e45afa8f654cf9cf4eff21dd7505f2a054)), closes [CodySwannGT/lisa#4426](https://github.com/CodySwannGT/lisa/issues/4426) [CodySwannGT/lisa#4426](https://github.com/CodySwannGT/lisa/issues/4426)
+
+### [4.74.9](https://github.com/CodySwannGT/lisa/compare/v4.74.8...v4.74.9) (2026-10-12)
+
+
+### Bug Fixes
+
+* **npm-updater:** compress resumable checkpoint transport ([8b887e6](https://github.com/CodySwannGT/lisa/commit/8b887e655b0113565b252f1042c64c4c7d6aa4f8)), closes [CodySwannGT/lisa#4347](https://github.com/CodySwannGT/lisa/issues/4347)
+* **npm-updater:** remove unused checkpoint recovery import ([45c8b56](https://github.com/CodySwannGT/lisa/commit/45c8b5654f8798be5662eacfb20df403df2e6b3a)), closes [CodySwannGT/lisa#4347](https://github.com/CodySwannGT/lisa/issues/4347)
+
 ### [4.74.8](https://github.com/CodySwannGT/lisa/compare/v4.74.7...v4.74.8) (2026-10-11)
 
 

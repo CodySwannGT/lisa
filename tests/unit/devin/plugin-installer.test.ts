@@ -16,6 +16,7 @@ import {
 } from "../../../src/devin/plugin-installer.js";
 
 const VARIANT = "lisa-devin";
+const PROBE_FAILURE = "devin: boom";
 
 /**
  * Recording stand-in for the `devin` CLI.
@@ -28,7 +29,7 @@ const fakeDevin = (
   const calls: string[][] = [];
   const run: DevinRunner = async args => {
     calls.push([...args]);
-    if (fail) throw new Error("devin: boom");
+    if (fail) throw new Error(PROBE_FAILURE);
   };
   return { run, calls };
 };
@@ -46,12 +47,28 @@ describe("devin plugin installer", () => {
 
   it("detects the CLI from a successful --version probe", async () => {
     const devin = fakeDevin();
-    expect(await detectDevin(devin.run)).toBe(true);
+    expect(await detectDevin(devin.run)).toEqual({
+      available: true,
+      error: undefined,
+    });
     expect(devin.calls).toEqual([["--version"]]);
   });
 
-  it("reports the CLI absent when the probe fails", async () => {
-    expect(await detectDevin(fakeDevin(true).run)).toBe(false);
+  it("reports the CLI absent, without an error, only when it is not installed", async () => {
+    const missing: DevinRunner = async () => {
+      throw Object.assign(new Error("spawn devin ENOENT"), { code: "ENOENT" });
+    };
+    expect(await detectDevin(missing)).toEqual({
+      available: false,
+      error: undefined,
+    });
+  });
+
+  it("reports any other probe failure instead of treating it as absent", async () => {
+    expect(await detectDevin(fakeDevin(true).run)).toEqual({
+      available: false,
+      error: PROBE_FAILURE,
+    });
   });
 
   it("installs the variant locally and non-interactively", async () => {
@@ -86,6 +103,6 @@ describe("devin plugin installer", () => {
     const result = await installDevinPlugin(root, VARIANT, fakeDevin(true).run);
 
     expect(result.installed).toBe(false);
-    expect(result.error).toBe("devin: boom");
+    expect(result.error).toBe(PROBE_FAILURE);
   });
 });

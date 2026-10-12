@@ -45,7 +45,7 @@ export function completeCheckpoints(comments) {
   );
   const digests = new Set();
   for (const comment of comments) {
-    const match = /^\[lisa-npm-checkpoint\] v1 ([a-f0-9]{64}) complete\n/.exec(
+    const match = /^\[lisa-npm-checkpoint\] \S+ ([a-f0-9]{64}) complete\n/.exec(
       comment.body ?? ""
     );
     if (match) digests.add(match[1]);
@@ -113,7 +113,9 @@ export function assertOriginTransport(
   required(chronology, "invalid original transport chronology");
   const { start, end } = chronology;
   const selected = comments.filter(comment =>
-    comment.body?.startsWith(`[lisa-npm-checkpoint] v1 ${digest} `)
+    new RegExp(`^\\[lisa-npm-checkpoint\\] v[12] ${digest} `).test(
+      comment.body ?? ""
+    )
   );
   required(selected.length > 0, "original transport is missing");
   for (const comment of selected) {

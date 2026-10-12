@@ -51,7 +51,11 @@ vi.mock(
 );
 import { qualifiedControllerGraph } from "../../all/copy-overwrite/scripts/lib/npm-update-helper.mjs";
 
-const ENTRIES = ["lisa-work-item.mjs", "lib/npm-update-execution-adapter.mjs"];
+const ENTRIES = [
+  "lisa-work-item.mjs",
+  "lib/npm-update-execution-adapter.mjs",
+  "lib/npm-update-checkpoint.mjs",
+];
 const NEWLY_COMMON = [
   "lisa-clean-git-env.sh",
   "lisa-scratch-run.sh",
@@ -59,6 +63,7 @@ const NEWLY_COMMON = [
   "threshold-ratchet-families.mjs",
   "threshold-ratchet-compare.mjs",
   "lisa-mutation.sh",
+  "lib/npm-update-checkpoint-codec.mjs",
 ];
 
 /**
@@ -147,7 +152,7 @@ describe("all-only npm host controller materialization", () => {
   });
 
   it(
-    "installs all six missing members and qualifies actual controller entries",
+    "installs required common helpers and qualifies actual controller entries",
     async () => {
       const graph = await qualifiedControllerGraph(cwd, config, ENTRIES);
       for (const name of NEWLY_COMMON) {
@@ -157,7 +162,10 @@ describe("all-only npm host controller materialization", () => {
       }
       for (const entry of ENTRIES)
         expect(graph).toHaveProperty(join(cwd, "scripts", entry));
-      expect(managedTemplateMembers().size).toBe(106);
+      expect(graph).toHaveProperty(
+        join(cwd, "scripts/lib/npm-update-checkpoint-codec.mjs")
+      );
+      expect(managedTemplateMembers().size).toBe(107);
     },
     ioLatencyBudgetMs(30_000)
   );
