@@ -250,9 +250,12 @@ function declaredToRunAtPullRequest(config: JsonObject, gate: string): boolean {
     return false;
   }
   const declared = config.gates[gate]["pull-request"];
-  if (declared === undefined) return false;
-  if (typeof declared === "string") return declared !== "off";
-  return !isJsonObject(declared) || declared.level !== "off";
+  // Only the two levels that run count. A malformed declaration (`null`, an
+  // unknown string, an object without a valid level) is reported by
+  // `validateGates` but not removed, and it runs nothing, so it must not read
+  // as active here.
+  const level = isJsonObject(declared) ? declared.level : declared;
+  return level === "required" || level === "optional";
 }
 
 /**

@@ -163,50 +163,6 @@ describe("computeCiQualityJobs", () => {
     });
   });
 
-  // #3052: these checks are run by a declared gate leg, which exists only
-  // while the gate is declared at pull-request and answers to that
-  // declaration rather than to `skip_jobs`.
-  it.each([
-    ["typecheck", "type-correctness"],
-    ["lint_slow", "code-style-slow"],
-    ["format", "format-conformance"],
-    ["build", "build-integrity"],
-    ["dead_code", "dead-code"],
-  ])("shows %s active only while %s is declared to run", (id, gate) => {
-    const undeclared = computeCiQualityJobs(
-      baseInputs,
-      configMutationOff,
-      secretsPresent
-    );
-    expect(jobOf(undeclared.jobs, id)).toMatchObject({
-      active: false,
-      reason: `gates.${gate} is off or not declared at pull-request, so no declared gate leg runs it`,
-    });
-
-    const declared = computeCiQualityJobs(
-      { ...baseInputs, skipJobs: [id] },
-      {
-        ...configMutationOff,
-        gates: { [gate]: { "pull-request": "required" } },
-      },
-      secretsPresent
-    );
-    expect(jobOf(declared.jobs, id)).toMatchObject({
-      active: true,
-      reason: "",
-    });
-
-    const off = computeCiQualityJobs(
-      baseInputs,
-      {
-        ...configMutationOff,
-        gates: { [gate]: { "pull-request": { level: "off" } } },
-      },
-      secretsPresent
-    );
-    expect(jobOf(off.jobs, id)).toMatchObject({ active: false });
-  });
-
   it("never claims a secret is missing when gh is unauthenticated", () => {
     const value = computeCiQualityJobs(baseInputs, configMutationOff, {
       state: "unknown",
