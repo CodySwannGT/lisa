@@ -250,12 +250,15 @@ describe("DEVIN_FALLBACK_COMMAND", () => {
   it("fails closed when the tool-name mapping cannot run (no jq)", async () => {
     const bin = await fs.mkdtemp(path.join(os.tmpdir(), "devin-nojq-bin-"));
     try {
+      // A PATH holding only what the command needs: on usr-merged Linux
+      // /bin IS /usr/bin, which carries jq, so /bin cannot stand for "no jq".
       await fs.symlink("/usr/bin/sed", path.join(bin, "sed"));
+      await fs.symlink("/bin/cat", path.join(bin, "cat"));
       const result = boundedSpawnSync({
         label: "devin fallback command (no jq)",
         command: "/bin/sh",
         args: ["-c", DEVIN_FALLBACK_COMMAND],
-        env: { PATH: `${bin}:/bin`, DEVIN_PROJECT_DIR: dir },
+        env: { PATH: bin, DEVIN_PROJECT_DIR: dir },
         input: JSON.stringify({
           tool_name: "exec",
           tool_input: { command: "ls" },

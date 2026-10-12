@@ -190,7 +190,12 @@ describe("generate-devin-plugin-artifacts (#4426)", () => {
       await fs.writeFile(guard, "#!/bin/sh\ncat >/dev/null\nexit 0\n", {
         mode: 0o755,
       });
-      const env = { PATH: "/bin" };
+      // A PATH holding only `cat`: on usr-merged Linux /bin IS /usr/bin, which
+      // carries jq, so /bin cannot stand for "no jq".
+      const bin = path.join(tempDir, "nojq-bin");
+      await fs.ensureDir(bin);
+      await fs.symlink("/bin/cat", path.join(bin, "cat"));
+      const env = { PATH: bin };
 
       const toolEvent = boundedSpawnSync({
         label: "devin tool-name shim (no jq, tool event)",
