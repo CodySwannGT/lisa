@@ -13,12 +13,15 @@ import {
 import { publicFailure } from "../../../all/copy-overwrite/scripts/lib/npm-update-invariants.mjs";
 import * as gate from "../../../all/copy-overwrite/scripts/lib/npm-update-gate.mjs";
 import { ioLatencyBudgetMs } from "../../helpers/io-latency-budget.js";
+import { GIT_BIN } from "../../support/git-executable.js";
 
 const CANARY = "PRIVATE_DESCRIPTION_CANARY";
 const SPEC = "spec/example_spec.rb";
 const LOCATION_ONE = `${SPEC}:1`;
 const LOCATION_TWO = `${SPEC}:2`;
 const LOCATION_PREFIX = "rspec-locations=";
+/** The regular base spec and symlink bring this fixture to exactly 2,000 tree records. */
+const MAXIMUM_INVENTORY_EXTRA_SPECS = 2000 - 2;
 
 /** The committed blob remains the authority after checkout files change. */
 async function withCatalog(
@@ -172,7 +175,7 @@ describe("trusted committed RSpec location diagnostics", () => {
             await failedChild(root, env, catalog, footer([LOCATION_TWO]))
           )
         ).toContain(`${LOCATION_PREFIX}${LOCATION_TWO}`);
-      }, 1998);
+      }, MAXIMUM_INVENTORY_EXTRA_SPECS);
     },
     ioLatencyBudgetMs(10_000)
   );
@@ -192,7 +195,7 @@ describe("trusted committed RSpec location diagnostics", () => {
         mkdirSync(bin);
         writeFileSync(
           program,
-          `const{spawn}=require("node:child_process");const args=process.argv.slice(2);if(args[0]==="cat-file"){require("node:fs").writeFileSync(${JSON.stringify(marker)},String(process.pid));process.stdin.resume();setInterval(()=>{},1000);}else{const child=spawn("/usr/bin/git",args,{stdio:"inherit"});child.on("exit",code=>process.exitCode=code);}`
+          `const{spawn}=require("node:child_process");const args=process.argv.slice(2);if(args[0]==="cat-file"){require("node:fs").writeFileSync(${JSON.stringify(marker)},String(process.pid));process.stdin.resume();setInterval(()=>{},1000);}else{const child=spawn(${JSON.stringify(GIT_BIN)},args,{stdio:"inherit"});child.on("exit",code=>process.exitCode=code);}`
         );
         writeFileSync(
           join(bin, "git"),

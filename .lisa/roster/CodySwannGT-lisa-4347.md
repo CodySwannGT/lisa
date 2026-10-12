@@ -569,3 +569,6 @@ Integration correction: extend the same builder only to the managed materializat
 ## Current catalog batching review ownership
 
 ROOT reuses anchor_startup_builder for the exact committed Git batch and bounded optional inventory correction admitted in the current plan. Ownership is only npm-update-rspec-reports.mjs, the minimal production gate catalog adapter, and catalog/native diagnostic controls. No commit, push, provider or generated-artifact ownership is delegated. ROOT owns metadata, official regeneration, normal delivery and final runtime/graph refreezing. Reuse a different existing source/security reviewer on the changed final bytes and native controls before delivery. Preserve all previous team roles and the original six hosted criteria; no new team or Claude session.
+## Catalog fixture conformance ownership
+
+ROOT reuses anchor_startup_builder for the admitted test-only native Git resolver and maximum-inventory argument correction. No production, guard, quarantine, artifact or delivery ownership is added. Reuse cancellation_security_constraints as the different reviewer after focused conformance/catalog and original complete typecheck pass. ROOT owns metadata, normal commit, actual complete push and protected delivery to the existing PR. Preserve all prior roles, receipts and six acceptance scenarios.
