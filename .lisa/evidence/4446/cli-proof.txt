@@ -1,0 +1,30 @@
+== run 1 (no override) exit=1
+stdout: 
+stderr: remote-agent-aws-setup: refusing to overwrite the [default] AWS profile in /tmp/lisa-4446-tmp/lisa-4446-prove-9ujgdT/home/.aws/config: it belongs to this workstation operator, not to a-project. Overwriting it would silently repoint every unqualified aws command at this project's accounts. [default] was left untouched; this project's named profiles were written; a-project-agent-dev was verified (set LISA_AWS_VERIFY_ALL_PROFILES=1 to verify every one) (a-project-agent-dev, a-project-agent-production). Use them instead, for example AWS_PROFILE=a-project-agent-dev or --profile a-project-agent-dev, or set LISA_AWS_CLAIM_DEFAULT_PROFILE=1 to take [default] over deliberately. Note: /tmp/lisa-4446-tmp/lisa-4446-prove-9ujgdT/home/.aws/credentials holds long-lived access keys under [default]. Claiming rewrites only /tmp/lisa-4446-tmp/lisa-4446-prove-9ujgdT/home/.aws/config and does not remove them, so [default] would carry both this project's role and those keys, and which one a tool uses depends on its credential precedence.
+== ~/.aws/config after run 1
+[profile default]
+region = us-east-1
+output = json
+
+[profile a-project-agent-dev]
+role_arn = arn:aws:iam::333333333333:role/RemoteAgent
+source_profile = a-project-agent-bootstrap
+external_id = external-id
+role_session_name = remote-agent
+region = us-east-1
+
+[profile a-project-agent-production]
+role_arn = arn:aws:iam::222222222222:role/RemoteAgent
+source_profile = a-project-agent-bootstrap
+external_id = external-id
+role_session_name = remote-agent
+region = us-west-2
+
+== ~/.aws/credentials section names after run 1
+[default]
+[a-project-agent-bootstrap]
+== aws calls (sts only)
+sts get-caller-identity --profile a-project-agent-dev --output json
+== follow the message: aws sts get-caller-identity --profile a-project-agent-dev -> exit=0 {"Account":"333333333333","Arn":"arn:aws:sts::333333333333:a"}
+== run 2 (LISA_AWS_CLAIM_DEFAULT_PROFILE=1) exit=0
+stdout: remote-agent-aws-setup: ready (remote-agent; namespace=a-project via LISA_AWS_PROFILE_NAMESPACE; default=a-project-agent-dev in account 333333333333; profiles=a-project-agent-dev, a-project-agent-production)

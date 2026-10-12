@@ -55,8 +55,13 @@ two bundles declaring the same stages overwrite each other in the shared
 malformed. The name is the only place the owner can be recorded.
 
 `default` cannot be namespaced. The script claims it only when nothing else
-owns it, and otherwise stops and names the current owner;
-`LISA_AWS_CLAIM_DEFAULT_PROFILE=1` takes it over deliberately.
+owns it. Otherwise it still writes every named profile and verifies them as a
+normal run would (the default stage, or every stage under
+`LISA_AWS_VERIFY_ALL_PROFILES=1`), leaves `[default]` untouched, and exits
+non-zero naming the current owner and the named profiles to use instead (for example `AWS_PROFILE=<project>-agent-dev`);
+`LISA_AWS_CLAIM_DEFAULT_PROFILE=1` takes `[default]` over deliberately. When the
+owner is long-lived keys under `[default]` in `~/.aws/credentials`, the message
+also says that claiming would not remove them.
 
 Readiness is an account check, not a liveness check. `sts:GetCallerIdentity`
 succeeding proves the credentials work, not that they reached the intended

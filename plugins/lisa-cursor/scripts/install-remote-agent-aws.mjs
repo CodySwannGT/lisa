@@ -335,9 +335,11 @@ a name carrying the owner prevents it.
 
 \`default\` is the one name that cannot be namespaced. The setup script writes
 it for this project only when nothing else already owns it; if another Lisa
-project or the operator's own configuration holds it, the script stops and says
-so rather than repointing every unqualified \`aws\` command. Pass
-\`LISA_AWS_CLAIM_DEFAULT_PROFILE=1\` to take it over deliberately.
+project or the operator's own configuration holds it, the script still writes
+every named profile and verifies them as a normal run would, leaves
+\`[default]\` untouched, and exits non-zero saying so rather than repointing
+every unqualified \`aws\` command. Use the named profiles it lists, or pass
+\`LISA_AWS_CLAIM_DEFAULT_PROFILE=1\` to take \`[default]\` over deliberately.
 
 Production and shared profiles are observer-only. Production repair remains a
 human-driven local-workstation operation.
