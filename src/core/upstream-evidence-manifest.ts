@@ -2765,7 +2765,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/copy-overwrite/.claude/hooks/worktree-create.sh":
       "888cfd16bd1ac04f9f8a835eae62f8bd2c956de654bce12ce9a6a52947b121ca",
     "typescript/copy-overwrite/.github/GITHUB_ACTIONS.md":
-      "05ad13ff22f5d3252abcda18557bb70280111ee9c17ccdd43b4c4d9852c4e9da",
+      "360ddca69f976115cad890cc096e79dec00ca630dd954b9cd18a6dbeb1012347",
     "typescript/copy-overwrite/.lintstagedrc.json":
       "058f6bb7ce5b734ba3e62774b1f769c94053c574f2b4db3e59515c325e49c0ef",
     "typescript/copy-overwrite/.nvmrc":
@@ -10944,6 +10944,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/sentry-deploy-workflow.test.ts": true,
     "tests/integration/sentry-release-config.test.ts": true,
     "tests/integration/sentry-release-name.test.ts": true,
+    "tests/integration/sentry-release-sha-version.test.ts": true,
     "tests/integration/shared-runtime-packed-hosts.test.ts": true,
     "tests/integration/shell-guard-allow-controls.test.ts": true,
     "tests/integration/shell-guard-refusals.test.ts": true,

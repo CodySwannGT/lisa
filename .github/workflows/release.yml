@@ -137,12 +137,15 @@ on:
         description: >-
           Template for the Sentry release name, so the release and its source
           maps are created under exactly the identifier the app reports (for
-          example `my-app@{version}+0.{sha:8}`). Placeholders: {version} (the
-          released version, required), {tag}, {sha} (the commit that triggered
-          this run), {release_commit} (the commit the release cut); {sha:N}
-          and {release_commit:N} keep the first N characters (7-40). Empty
-          keeps the bare version. Mutually exclusive with
-          sentry_release_name_command.
+          example `my-app@{sha_version}+0.{sha:8}`). Placeholders: {version}
+          (the released version), {sha_version} (the package.json version at
+          the commit that triggered this run, which is what an app built from
+          that commit reports, since the bump is committed afterwards and
+          never built); one of the two is required. Also {tag}, {sha} (the
+          commit that triggered this run), {release_commit} (the commit the
+          release cut); {sha:N} and {release_commit:N} keep the first N
+          characters (7-40). Empty keeps the bare version. Mutually exclusive
+          with sentry_release_name_command.
         required: false
         type: string
         default: ''
@@ -152,10 +155,12 @@ on:
           Sentry release name on stdout, for apps whose identifier cannot be
           expressed as a template (for example a build number derived from the
           version). It receives SENTRY_RELEASE_VERSION, SENTRY_RELEASE_TAG,
-          SENTRY_RELEASE_SHA and SENTRY_RELEASE_COMMIT, runs before any
+          SENTRY_RELEASE_SHA, SENTRY_RELEASE_COMMIT and
+          SENTRY_RELEASE_SHA_VERSION (empty when package.json at the
+          triggering commit has no usable version), runs before any
           dependency install, and is given no Sentry credential. The printed
-          name must contain the released version. Mutually exclusive with
-          sentry_release_name.
+          name must contain the released version or SENTRY_RELEASE_SHA_VERSION.
+          Mutually exclusive with sentry_release_name.
         required: false
         type: string
         default: ''
@@ -1798,16 +1803,52 @@ jobs:
             echo "::error title=Sentry release name rejected::$1"
             exit 1
           }
-          export SENTRY_RELEASE_VERSION SENTRY_RELEASE_TAG SENTRY_RELEASE_SHA SENTRY_RELEASE_COMMIT
           if [ -n "$RELEASE_NAME_TEMPLATE" ] && [ -n "$RELEASE_NAME_COMMAND" ]; then
             fail "Set sentry_release_name or sentry_release_name_command, not both."
           fi
+          # The version package.json recorded at the triggering commit. An app
+          # built from that commit reports it, while the released version is
+          # the bump committed afterwards with [skip ci] and never built.
+          # Resolved best-effort here (the checkout has full history); only a
+          # template that uses {sha_version} fails on its absence.
+          SENTRY_RELEASE_SHA_VERSION=""
+          sha_version_problem=""
+          if [ -n "$RELEASE_NAME_TEMPLATE$RELEASE_NAME_COMMAND" ]; then
+            if ! manifest=$(git show "$SENTRY_RELEASE_SHA:package.json" 2>/dev/null); then
+              sha_version_problem="could not read package.json at commit $SENTRY_RELEASE_SHA."
+            else
+              parse_status=0
+              SENTRY_RELEASE_SHA_VERSION=$(printf '%s' "$manifest" | node -e '
+                let text = "";
+                process.stdin.on("data", chunk => { text += chunk; });
+                process.stdin.on("end", () => {
+                  let manifest;
+                  try { manifest = JSON.parse(text); } catch { process.exit(2); }
+                  const version = manifest && manifest.version;
+                  if (typeof version !== "string" || !/^[0-9]+\.[0-9]+\.[0-9]+([-+][0-9A-Za-z.+-]+)?$/.test(version)) process.exit(3);
+                  process.stdout.write(version);
+                });
+              ') || parse_status=$?
+              case "$parse_status" in
+                0) ;;
+                2) SENTRY_RELEASE_SHA_VERSION=""; sha_version_problem="package.json at commit $SENTRY_RELEASE_SHA is not valid JSON." ;;
+                3) SENTRY_RELEASE_SHA_VERSION=""; sha_version_problem="package.json at commit $SENTRY_RELEASE_SHA has no semver version field." ;;
+                *) SENTRY_RELEASE_SHA_VERSION=""; sha_version_problem="could not parse package.json at commit $SENTRY_RELEASE_SHA (node exited $parse_status)." ;;
+              esac
+            fi
+          fi
+          export SENTRY_RELEASE_VERSION SENTRY_RELEASE_TAG SENTRY_RELEASE_SHA SENTRY_RELEASE_COMMIT SENTRY_RELEASE_SHA_VERSION
           if [ -n "$RELEASE_NAME_COMMAND" ]; then
             status=0
             name=$(bash -c "$RELEASE_NAME_COMMAND") || status=$?
             [ "$status" -eq 0 ] || fail "sentry_release_name_command exited $status."
             [ -n "$name" ] || fail "sentry_release_name_command printed an empty name."
           elif [ -n "$RELEASE_NAME_TEMPLATE" ]; then
+            case "$RELEASE_NAME_TEMPLATE" in
+              # A malformed `{version:N}` passes here so the parser below names it.
+              *"{version}"*|*"{version:"*|*"{sha_version}"*|*"{sha_version:"*) ;;
+              *) fail "sentry_release_name must use {version} (the released version, $SENTRY_RELEASE_VERSION) or {sha_version} (the version package.json recorded at the triggering commit)." ;;
+            esac
             pattern='\{([a-z_]+)(:([0-9]+))?\}'
             rest="$RELEASE_NAME_TEMPLATE"
             name=""
@@ -1820,7 +1861,10 @@ jobs:
                 tag) value="$SENTRY_RELEASE_TAG" ;;
                 sha) value="$SENTRY_RELEASE_SHA" ;;
                 release_commit) value="$SENTRY_RELEASE_COMMIT" ;;
-                *) fail "Unknown placeholder $token in sentry_release_name. Known: {version} {tag} {sha} {release_commit}." ;;
+                sha_version)
+                  [ -n "$SENTRY_RELEASE_SHA_VERSION" ] || fail "Placeholder $token has no value: $sha_version_problem"
+                  value="$SENTRY_RELEASE_SHA_VERSION" ;;
+                *) fail "Unknown placeholder $token in sentry_release_name. Known: {version} {sha_version} {tag} {sha} {release_commit}." ;;
               esac
               [ -n "$value" ] || fail "Placeholder $token has no value in this run."
               if [ -n "$length" ]; then
@@ -1857,7 +1901,15 @@ jobs:
             */*|*\\*) fail "Release name '$name' must not contain / or \\." ;;
           esac
           [ "${#name}" -le 200 ] || fail "Release name is ${#name} characters; Sentry allows 200."
-          [[ "$name" == *"$SENTRY_RELEASE_VERSION"* ]] || fail "Release name '$name' does not contain the released version $SENTRY_RELEASE_VERSION."
+          # The name must carry the released version or the version recorded
+          # at the triggering commit; a name carrying neither names some
+          # other release.
+          if [[ "$name" != *"$SENTRY_RELEASE_VERSION"* ]]; then
+            if [ -z "$SENTRY_RELEASE_SHA_VERSION" ]; then
+              fail "Release name '$name' does not contain the released version $SENTRY_RELEASE_VERSION (no triggering-commit version to accept instead: ${sha_version_problem:-not resolved})."
+            fi
+            [[ "$name" == *"$SENTRY_RELEASE_SHA_VERSION"* ]] || fail "Release name '$name' contains neither the released version $SENTRY_RELEASE_VERSION nor the triggering-commit version $SENTRY_RELEASE_SHA_VERSION."
+          fi
           echo "name=$name" >> "$GITHUB_OUTPUT"
           echo "Sentry release name: $name"
 

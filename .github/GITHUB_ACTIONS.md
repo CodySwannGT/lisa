@@ -467,25 +467,40 @@ mutually exclusive:
 
 ```yaml
 with:
-  # A template. {version} is required; {tag}, {sha} (the commit that
-  # triggered the run) and {release_commit} (the commit the release cut) are
-  # optional. {sha:N} and {release_commit:N} keep the first N (7-40) characters.
-  sentry_release_name: 'my-app@{version}+0.{sha:8}'
+  # A template. It must use {version} (the released version) or
+  # {sha_version} (the package.json version at the commit that triggered the
+  # run); {tag}, {sha} (the commit that triggered the run) and
+  # {release_commit} (the commit the release cut) are optional.
+  # {sha:N} and {release_commit:N} keep the first N (7-40) characters.
+  sentry_release_name: 'my-app@{sha_version}+0.{sha:8}'
 ```
+
+**`{version}` or `{sha_version}`?** Use the one your deployed build reports.
+`release.yml` builds from the commit that triggered the run, then commits the
+version bump afterwards with `[skip ci]`, and that bump is never built. So an
+app that reads its version from `package.json` at build time reports the
+version *before* the bump: a run triggered by a commit whose `package.json`
+says `0.0.674` releases `0.0.675`, but the app reports `0.0.674`. Such an app
+needs `{sha_version}`; `{version}` would name a release no event ever reports.
+`{sha_version}` is read from `package.json` at the triggering commit, and the
+job fails if that file is missing, is not valid JSON, or has no semver
+`version`.
 
 ```yaml
 with:
   # A command, for identifiers a template cannot express (for example a build
   # number derived from the version). It runs in the checked-out repository
   # before any dependency install, receives SENTRY_RELEASE_VERSION,
-  # SENTRY_RELEASE_TAG, SENTRY_RELEASE_SHA and SENTRY_RELEASE_COMMIT, gets no
-  # Sentry credential, and prints the name on stdout.
+  # SENTRY_RELEASE_TAG, SENTRY_RELEASE_SHA, SENTRY_RELEASE_COMMIT and
+  # SENTRY_RELEASE_SHA_VERSION (empty when package.json at the triggering
+  # commit has no usable version), gets no Sentry credential, and prints the
+  # name on stdout.
   sentry_release_name_command: 'node scripts/print-sentry-release.mjs'
 ```
 
 Point the command at the same code the app uses to compute its release, so the
-two cannot drift apart. The resolved name must contain the released version,
-be printable ASCII without whitespace, `/` or `\`, and be at most 200
+two cannot drift apart. The resolved name must contain the released version
+or the triggering commit's `package.json` version, be printable ASCII without whitespace, `/` or `\`, and be at most 200
 characters. A name that cannot be resolved **fails the Sentry job** rather than
 falling back to the bare version, because a release no event reports is
 silently useless. The resolved name is published as the workflow output
