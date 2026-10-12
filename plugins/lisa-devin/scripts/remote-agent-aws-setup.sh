@@ -689,8 +689,12 @@ fi
 if [ "$claim_default" = "0" ]; then
   if [ "${LISA_AWS_SKIP_VERIFY:-0}" = "1" ]; then
     named_state="were written but not verified (LISA_AWS_SKIP_VERIFY=1)"
-  else
+  elif [ "${LISA_AWS_VERIFY_ALL_PROFILES:-0}" = "1" ]; then
     named_state="were written and verified"
+  else
+    # Only the default stage's account is proved without VERIFY_ALL, so the
+    # message names exactly that one rather than vouching for all of them.
+    named_state="were written; ${default_profile} was verified (set LISA_AWS_VERIFY_ALL_PROFILES=1 to verify every one)"
   fi
   # The trap the override walks into when `[default]` is static keys rather
   # than a config-side profile: claiming rewrites only the config file, so the

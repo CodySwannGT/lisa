@@ -19,7 +19,7 @@ lisa scratch: no supervised lease in the environment, so this run is self-superv
 lisa scratch: no supervised lease in the environment, so this run is self-supervised. Fixture directories are still bounded to a run root this process owns and removed on exit; what is missing is the detached reaper that reclaims the root after a SIGKILL, which the next run's startup sweep recovers instead. Run through `lisa-test-run --profile <profile> --adapter vitest -- vitest ...` for a supervised run.
 
  Test Files  7 passed (7)
-      Tests  84 passed (84)
-   Start at  14:03:06
-   Duration  22.60s (transform 2.31s, setup 1.45s, import 3.12s, tests 60.43s, environment 0ms)
+      Tests  85 passed (85)
+   Start at  14:08:22
+   Duration  9.64s (transform 1.21s, setup 693ms, import 1.90s, tests 25.34s, environment 0ms)
 

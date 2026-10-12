@@ -53,9 +53,11 @@ workstation carrying more than one organisation two bundles declaring the same
 stages overwrite each other in the shared `~/.aws/config` — silently, since the
 surviving profile is perfectly well-formed. `default` cannot be namespaced, so
 the script claims it only when nothing else owns it. Otherwise it still writes
-and verifies every named profile, leaves `[default]` untouched, and exits
-non-zero naming the current owner and the named profiles to use instead
-(`LISA_AWS_CLAIM_DEFAULT_PROFILE=1` takes `[default]` over). When the owner is
+every named profile and verifies them as a normal run would (the default
+stage, or every stage under `LISA_AWS_VERIFY_ALL_PROFILES=1`), leaves
+`[default]` untouched, and exits non-zero naming the current owner and the
+named profiles to use instead (`LISA_AWS_CLAIM_DEFAULT_PROFILE=1` takes
+`[default]` over). When the owner is
 long-lived keys under `[default]` in `~/.aws/credentials`, it also says that
 claiming would not remove them.
 

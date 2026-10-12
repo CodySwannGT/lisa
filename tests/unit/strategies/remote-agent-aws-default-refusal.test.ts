@@ -29,6 +29,8 @@ const ALPHA_DEV_ACCOUNT = "111111111111";
 const BETA_DEV_ACCOUNT = "333333333333";
 const REFUSAL = "refusing to overwrite the [default]";
 const CLAIM_OVERRIDE = "LISA_AWS_CLAIM_DEFAULT_PROFILE=1";
+const OPERATOR_ROLE_DEFAULT =
+  "[default]\nrole_arn = arn:aws:iam::999999999999:role/Mine\n";
 
 afterEach(removeTemporaryDirectories);
 
@@ -158,7 +160,11 @@ describe("remote AWS bootstrap refusing to take over [default]", () => {
     expect(result.stderr).toContain(
       "org-beta-agent-dev, org-beta-agent-production"
     );
-    expect(result.stderr).toContain("were written and verified");
+    // Only the default stage is proved without VERIFY_ALL, so only it is named.
+    expect(result.stderr).toContain(
+      "were written; org-beta-agent-dev was verified"
+    );
+    expect(result.stderr).not.toContain("written and verified");
     expect(result.stderr).toContain("AWS_PROFILE=org-beta-agent-dev");
     expect(result.stderr).not.toContain("No profiles were created");
     expect(readFileSync(ws.cli.logPath, "utf8")).toContain(
@@ -171,10 +177,35 @@ describe("remote AWS bootstrap refusing to take over [default]", () => {
     expect(operatorDefault).not.toContain("source_profile");
   });
 
+  it("vouches for every profile only when every profile was verified", () => {
+    const ws = workstation();
+    seedOperatorFiles(ws, {
+      config: OPERATOR_ROLE_DEFAULT,
+    });
+
+    const result = runBootstrap({
+      workstation: ws,
+      environment: {
+        ...projectEnvironment(BETA, BETA_DEV_ACCOUNT),
+        LISA_AWS_VERIFY_ALL_PROFILES: "1",
+      },
+    });
+
+    expect(result.status).not.toBe(0);
+    expect(result.stderr).toContain("were written and verified");
+    const awsCalls = readFileSync(ws.cli.logPath, "utf8");
+    expect(awsCalls).toContain(
+      "sts get-caller-identity --profile org-beta-agent-dev"
+    );
+    expect(awsCalls).toContain(
+      "sts get-caller-identity --profile org-beta-agent-production"
+    );
+  });
+
   it("does not claim verification it skipped", () => {
     const ws = workstation();
     seedOperatorFiles(ws, {
-      config: "[default]\nrole_arn = arn:aws:iam::999999999999:role/Mine\n",
+      config: OPERATOR_ROLE_DEFAULT,
     });
 
     const result = runBootstrap({
@@ -222,7 +253,7 @@ describe("remote AWS bootstrap refusing to take over [default]", () => {
   it("still takes over [default] when the override is set", () => {
     const ws = workstation();
     seedOperatorFiles(ws, {
-      config: "[default]\nrole_arn = arn:aws:iam::999999999999:role/Mine\n",
+      config: OPERATOR_ROLE_DEFAULT,
     });
 
     const result = runBootstrap({
