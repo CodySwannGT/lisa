@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.79.2](https://github.com/CodySwannGT/lisa/compare/v4.79.1...v4.79.2) (2026-10-12)
+
+
+### Bug Fixes
+
+* **aws-setup:** name only the profiles that were actually verified ([9a929cf](https://github.com/CodySwannGT/lisa/commit/9a929cfa2dbaa779cabbe81299d61fe37aee4a73)), closes [CodySwannGT/lisa#4446](https://github.com/CodySwannGT/lisa/issues/4446) [CodySwannGT/lisa#4446](https://github.com/CodySwannGT/lisa/issues/4446)
+* **aws-setup:** write named profiles before refusing a [default] takeover ([48bc799](https://github.com/CodySwannGT/lisa/commit/48bc799d857108910162bc87e0185cdd06864b03)), closes [CodySwannGT/lisa#4446](https://github.com/CodySwannGT/lisa/issues/4446) [CodySwannGT/lisa#4446](https://github.com/CodySwannGT/lisa/issues/4446)
+
 ### [4.79.1](https://github.com/CodySwannGT/lisa/compare/v4.79.0...v4.79.1) (2026-10-12)
 
 
