@@ -12460,6 +12460,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/strategies/scoping-label-vocabulary-contract.test.ts": true,
     "tests/unit/strategies/security-two-bucket-contract.test.ts": true,
     "tests/unit/strategies/sentry-plugin-preference.test.ts": true,
+    "tests/unit/strategies/session-manager-gitignore.test.ts": true,
     "tests/unit/strategies/session-operating-pack.test.ts": true,
     "tests/unit/strategies/setup-automations-readiness-warning.test.ts": true,
     "tests/unit/strategies/setup-confluence-verified-parent.test.ts": true,
