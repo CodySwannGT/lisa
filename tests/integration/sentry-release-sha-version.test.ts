@@ -226,6 +226,17 @@ describe("release.yml Sentry {sha_version}", () => {
     expect(checkout?.with?.["fetch-depth"]).toBe(0);
   });
 
+  it("requires the released version when no triggering-commit version resolves", () => {
+    // An empty fallback must never widen the guard to accept any name.
+    const result = exerciseSentryJob({
+      secrets: SENTRY_CREDENTIALS,
+      inputs: { sentry_release_name_command: 'echo "app@9.9.9"' },
+    });
+    expect(result.resolveStatus).toBe(1);
+    expect(result.invoked).toBe(false);
+    expect(result.resolveStdout).toContain("no triggering-commit version");
+  });
+
   it("fails closed on {sha_version} outside a git checkout", () => {
     const result = exerciseSentryJob({
       secrets: SENTRY_CREDENTIALS,
