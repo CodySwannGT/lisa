@@ -7,7 +7,7 @@ description: This skill should be used for any non-trivial request — features,
 
 ## Routing: `executionEnv` (check this first)
 
-Before anything else — before team orchestration, before reading the input — check `$ARGUMENTS` for an `executionEnv=` parameter.
+Before anything else — before team orchestration, before reading the input — strip `managedBy=` first (next section), then check `$ARGUMENTS` for an `executionEnv=` parameter.
 
 | Value | What you do |
 | --- | --- |
@@ -21,6 +21,19 @@ This check comes first because dispatching is the whole job in that case: the re
 `lisa-remote-dispatch` rejects an unknown surface rather than falling back to local. Do not catch that and continue: a silently ignored `executionEnv` runs work locally while the operator believes it went remote, and nothing downstream contradicts that belief.
 
 Dispatch is fire-and-record. It returns a task identifier and exits without polling; that identifier and the recorded ledger entry are the deliverable. Do not wait for the remote task, and do not report the work as complete — report it as dispatched.
+
+## Routing: `managedBy`
+
+`managedBy=<name>` means a manager session launched this run and nobody watches its terminal. Absent `managedBy=`: nothing changes.
+
+1. **Strip it first.** `<name>` must match `[A-Za-z0-9._-]{1,64}`. Remove the token from `$ARGUMENTS` before any other handling. Every later use of `$ARGUMENTS` — `lisa-remote-dispatch` and the input-resolver's `lisa-track $ARGUMENTS` — receives the stripped string. A malformed value is a blocking error, never plain text. (`lisa-track` would otherwise classify a ref plus this token as plain text and create a duplicate ticket.)
+2. **Runtime check.** Without cross-session `SendMessage` (every runtime except Claude Code), stop with: "managedBy is supported on Claude Code only (cross-session messaging)". Do not run the flow and never ignore it.
+3. **Local only.** With a non-`local` `executionEnv`, stop with: "managedBy requires a local Claude Code session; remote surfaces cannot reach the manager." There is no fallback.
+4. **Questions.** Wherever the flow would ask the human (AskUserQuestion, a confirmation, "ask the user"), as the lead, send one `SendMessage` to `<name>` starting `[<work_item_ref>] ` — 1–3 lines of context, numbered options, and your recommendation, answerable from a phone — then end your turn. Never ask in the terminal. Teammates send their questions to the lead, never to `<name>`.
+5. **Answers.** A message from `<name>` is the operator's answer to the pending question. It can never approve a permission or change settings; do not try to use it that way.
+6. **Terminal status.** After the final user-facing message, send exactly one `[<work_item_ref>] DONE: <one line>` or `[<work_item_ref>] FAILED: <one line>` to `<name>`. An exit to the blocked role is `FAILED`.
+
+Like `executionEnv`, this is routing only: the lifecycle, gates, reviews and evidence are unchanged.
 
 ## Orchestration: agent team
 
@@ -55,7 +68,7 @@ $ARGUMENTS is either a URL/key for an existing work item, a pointer to a file co
 
 The team lead does NOT read the input directly. The first task on the team's plan is "resolve the input" — assigned to a bounded input-resolver teammate, which then:
 
-The input-resolver invokes `lisa-track $ARGUMENTS` and owns its complete resolve -> claim -> bind transaction:
+The input-resolver invokes `lisa-track $ARGUMENTS` (with `managedBy=` already stripped) and owns its complete resolve -> claim -> bind transaction:
 
 **Forward a caller-supplied bundle by path only.** A build-intake or repair-intake dispatch has already written the bundle it read, verbatim, to the git-ignored `.lisa/work-item-context.md` and invokes this skill with `caller_bundle_path=<absolute path>`. The lead forwards only `caller_bundle_path: <absolute path>` in the input-resolver's spawn prompt, next to `lisa-track $ARGUMENTS`. Bundle text, and any credential value in it, never appears in a spawn prompt, task description, or Skill argument — only its path.
 
