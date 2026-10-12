@@ -453,6 +453,51 @@ Variables are non-sensitive configuration values. Set them in **Settings** > **S
 2. Note your organization and project slugs
 3. Configure Sentry in your app (see Sentry React Native docs)
 
+#### Sentry release naming
+
+`release.yml` creates a Sentry release (and uploads `sourcemaps`, when given)
+for every version it cuts. Sentry attaches an event to a release only when the
+event's `release` string is **identical** to the release's name, so the
+workflow must create the release under exactly the identifier your app reports.
+
+By default the release is named with the bare version (`1.2.3`). That is right
+only when the app reports the bare version too. An app that follows Sentry's
+`<app>@<version>+<build>` convention needs one of these inputs; they are
+mutually exclusive:
+
+```yaml
+with:
+  # A template. {version} is required; {tag}, {sha} (the commit that
+  # triggered the run) and {release_commit} (the commit the release cut) are
+  # optional. {sha:N} and {release_commit:N} keep the first N (7-40) characters.
+  sentry_release_name: 'my-app@{version}+0.{sha:8}'
+```
+
+```yaml
+with:
+  # A command, for identifiers a template cannot express (for example a build
+  # number derived from the version). It runs in the checked-out repository
+  # before any dependency install, receives SENTRY_RELEASE_VERSION,
+  # SENTRY_RELEASE_TAG, SENTRY_RELEASE_SHA and SENTRY_RELEASE_COMMIT, gets no
+  # Sentry credential, and prints the name on stdout.
+  sentry_release_name_command: 'node scripts/print-sentry-release.mjs'
+```
+
+Point the command at the same code the app uses to compute its release, so the
+two cannot drift apart. The resolved name must contain the released version,
+be printable ASCII without whitespace, `/` or `\`, and be at most 200
+characters. A name that cannot be resolved **fails the Sentry job** rather than
+falling back to the bare version, because a release no event reports is
+silently useless. The resolved name is published as the workflow output
+`sentry_release_name`; pass it as `version` to `sentry-deploy.yml` so the
+deploy is recorded on the same release.
+
+The name must match what the **deployed artifact** reports. If one deploy ships
+artifacts that report different identifiers (for example a web build and an
+over-the-air update for an installed native binary), this release covers one of
+them; upload the others' source maps under their own names in the step that
+builds them.
+
 ### Maestro Cloud (Mobile E2E)
 
 1. Sign up at [cloud.mobile.dev](https://cloud.mobile.dev)

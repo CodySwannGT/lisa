@@ -2707,7 +2707,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/test-intent-routing.sh":
       "97b9dc86cbd805df8a7fdb8c99ffab9b8c5e751ba2e84c05420b2a124f80635d",
     "scripts/two-channel-couplings.json":
-      "b779dd1ea1dfdd2a97690ca142b34c2058403de3c3c27f237567a2bb02af0210",
+      "f370a5817b0427a6c2fa2374ce95a4c83f0d3e8e22b3dc8ab49c62e276b13be4",
     "scripts/update-node-version.ts":
       "9d37599ef73d5d624751f862cda330a867f6774392c1ab045b4fc885132582e4",
     "scripts/update-test-skill-paths.mjs":
@@ -2765,7 +2765,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/copy-overwrite/.claude/hooks/worktree-create.sh":
       "888cfd16bd1ac04f9f8a835eae62f8bd2c956de654bce12ce9a6a52947b121ca",
     "typescript/copy-overwrite/.github/GITHUB_ACTIONS.md":
-      "4cd22faec1ca477e34bf7f61640b7eb20329d097b19add57a9909f5905fd37ed",
+      "05ad13ff22f5d3252abcda18557bb70280111ee9c17ccdd43b4c4d9852c4e9da",
     "typescript/copy-overwrite/.lintstagedrc.json":
       "058f6bb7ce5b734ba3e62774b1f769c94053c574f2b4db3e59515c325e49c0ef",
     "typescript/copy-overwrite/.nvmrc":
@@ -10721,6 +10721,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/helpers/safety-net-read-tree-fixtures.ts": true,
     "tests/helpers/safety-net-stdin-deleter-fixtures.ts": true,
     "tests/helpers/safety-net-subst-fixtures.ts": true,
+    "tests/helpers/sentry-release-harness.ts": true,
     "tests/helpers/shipped-mjs-roster.ts": true,
     "tests/helpers/staged-dependency-scan.ts": true,
     "tests/helpers/supervised-unix-fixture.ts": true,
@@ -10942,6 +10943,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/self-pin-drift-gate-wiring.test.ts": true,
     "tests/integration/sentry-deploy-workflow.test.ts": true,
     "tests/integration/sentry-release-config.test.ts": true,
+    "tests/integration/sentry-release-name.test.ts": true,
     "tests/integration/shared-runtime-packed-hosts.test.ts": true,
     "tests/integration/shell-guard-allow-controls.test.ts": true,
     "tests/integration/shell-guard-refusals.test.ts": true,
