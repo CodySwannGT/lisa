@@ -1,10 +1,10 @@
 # Coding-Agent Parity Architecture
 
-Lisa installs into five coding agents (Claude Code, Codex, Cursor, Antigravity, GitHub Copilot). Each agent has its own plugin format, configuration home, hook event model, and runtime quirks. This document describes how Lisa achieves feature parity across the fleet through a combination of plugin distribution, per-project installers, and per-agent plugin variants.
+Lisa installs into seven coding agents (Claude Code, Codex, Cursor, OpenCode, Antigravity, GitHub Copilot, Devin CLI). Each agent has its own plugin format, configuration home, hook event model, and runtime quirks. This document describes how Lisa achieves feature parity across the fleet through a combination of plugin distribution, per-project installers, and per-agent plugin variants.
 
 ## Per-Agent Installer Surface
 
-Lisa code that targets a specific agent lives under `src/<agent>/`. Today only `src/codex/` exists. The architecture anticipates `src/cursor/`, `src/agy/`, `src/copilot/`, and possibly `src/claude/` for symmetry.
+Lisa code that targets a specific agent lives under `src/<agent>/`. Today that is `src/codex/`, `src/agy/`, `src/copilot/`, `src/opencode/`, `src/claude/`, and `src/devin/`. Devin's is the plugin installer and the `.devin/hooks.v1.json` enforcement-fallback installer. Cursor needs no per-project installer, because it reads its plugin variant natively.
 
 Each per-agent installer owns one or more of:
 
@@ -64,6 +64,37 @@ Routing prefers first-applicable reuse: already native, re-point MCP or LSP, ena
 The first approved parity implementation pass landed in PR `#1082`. It approved all seven curated routing artifacts, re-pointed Sentry MCP for Codex, agy, Copilot, and Cursor through the base `.mcp.json`, and scaffolded seven `synced-from` pinned reimplementation placeholder skills for components whose approved route is reimplementation. Deferred parity work for LSP subsystem support and vendor-equivalent routing is now tracked explicitly instead of being silently implied.
 
 PR `#1085` replaced those placeholders with real cross-agent implementations for the curated-plugin parity set. The operating model stays the same: Claude uses native curated plugins directly, while non-Claude agents receive approved reimplementations only where the routing artifact chose that strategy and drift tracking can compare the reimplementation against the pinned upstream plugin version.
+
+## Devin CLI
+
+Devin CLI joined the fleet in Epic `#4283`. The facts below were measured on Devin CLI 3000.11.3; see [the runtime probe source note](../sources/docs/2026-10-11-devin-cli-runtime-probe.md).
+
+- **Plugin payload.** `scripts/generate-devin-plugin-artifacts.mjs` emits a `<plugin>-devin` variant for every built plugin. The variant has:
+  - a native `.devin-plugin/plugin.json`;
+  - a root `hooks.json`, translated as described in the next bullet;
+  - the root `.mcp.json`, which Devin reads natively;
+  - skills and agents copied unchanged;
+  - no `commands/` folder.
+- **Hook translation.** Devin names its tools `exec`/`write`/`edit`/`read`, and Lisa's guards check for `tool_name == "Bash"`, so each handler is wrapped in a translation step:
+  - Hook triggers are rewritten from Claude tool names to Devin tool names, anchored to exact matches (`^(exec)$`).
+  - Every handler runs through `devin-tool-name-shim.sh`, which renames the tool back to Claude's name before the guard reads the payload.
+  - Without the shim, a hook that triggers still lets the call through (exit 0 instead of 2, measured).
+  - Both the shim and the repository fallback fail closed (exit 2, the only status Devin blocks on) when the translation cannot run because `jq` is missing or fails, and the fallback also blocks when its dispatcher script is missing.
+- **Per-project installer.**
+  - `src/devin/plugin-installer.ts` runs `devin plugins install --local -y`.
+  - `src/devin/enforcement-fallback-installer.ts` merges one Lisa `PreToolUse` entry into `.devin/hooks.v1.json` and leaves the project's own hooks alone. That entry sends `exec|write|edit|apply_patch` to the shared `scripts/lisa-enforcement-fallback.sh`.
+  - This backup is required. Devin ignores the Claude-format hooks in `.claude/settings.json`: it reads them, but their triggers never match Devin's tool names.
+- **Third-party plugins.** Every `parity/plugin-routing` record carries a `devin` entry: reimplemented through the `lisa-parity-*` skills, with Sentry's MCP server travelling in the variant's `.mcp.json`.
+- **Documented gaps:**
+
+  | Gap | Effect on Devin |
+  |---|---|
+  | No native scheduler | Decided: a documented manual trigger, not a polyfill. See `lisa-setup-automations`: run `devin -p -- "<loop prompt>"` by hand or from the operator's own cron, or run loops unattended through `scheduler: "github-actions"`. |
+  | No plugin command surface | `/lisa:implement` is invoked as `/lisa:lisa-implement` |
+  | No subagent-start event | Subagents get no rule injection |
+  | No plugin language-server surface | `typescript-lsp` cannot reach Devin |
+  | No `cwd` in hook payloads | The branch-binding check in `worktree-binding-guard` does not run |
+  | No Sonar integration for Devin | Sonar's agent-setup command has no Devin option |
 
 ## Polyfill Collision Discipline
 

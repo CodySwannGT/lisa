@@ -74,7 +74,30 @@ plugins/
     rules/                       # passthrough or shipped via hooks (TBD per probe)
     hooks/                       # STRIPPED of SubagentStart hooks (event missing)
     scripts/
+
+  lisa-devin/                    # Devin CLI variant (CodySwannGT/lisa#4426)
+    .devin-plugin/
+      plugin.json                # native Devin manifest (metadata only; name kept = "lisa")
+    .claude-plugin/
+      plugin.json                # Claude manifest WITHOUT hooks (Devin ignores inline hooks)
+    hooks.json                   # ROOT hooks.json, the only plugin hook location Devin loads;
+                                 # matchers translated to Devin tool names (^(exec)$ ...) and every
+                                 # handler wrapped in hooks/devin-tool-name-shim.sh
+    .mcp.json                    # passthrough; Devin reads a plugin's root .mcp.json natively
+    skills/                      # passthrough (Devin slash commands ARE skills)
+    agents/                      # passthrough (exposed as lisa:<agent>)
+    rules/                       # passthrough; NOT auto-loaded, so inject-rules.sh delivers eager tier
+    hooks/                       # Copilot ship list (no SubagentStart) + devin-tool-name-shim.sh
+    # NO commands/ (Devin has no plugin command surface)
+    scripts/
 ```
+
+The Devin facts behind that shape were measured by run on Devin CLI 3000.11.3; see
+[the Devin CLI runtime probe](../sources/docs/2026-10-11-devin-cli-runtime-probe.md).
+`build-plugins.sh` fans the Devin generator out over every built plugin exactly as it
+does Cursor, agy and Copilot. `processDevinEmit` installs the base plus
+detected-stack variants with `devin plugins install --local -y`, then reconciles the
+`.devin/hooks.v1.json` repository enforcement fallback.
 
 ## Stack fan-out (2026-05-29 follow-up — supersedes "stacks unchanged")
 

@@ -1,6 +1,6 @@
 # Lisa
 
-Lisa turns a repository into a set of **software factories** — agent-operated production lines (Research → Plan → Implement → Verify) that build, verify, and ship software with as few humans as possible. Underneath the factories, Lisa is governance-as-code for AI-assisted software development: one set of standards, workflows, and quality gates applies identically whether the work is done by a human, by an AI agent on a laptop, or by a scheduled job — distributed to every project as a versioned dependency, and to every major coding agent platform (Claude Code, Codex, Cursor, OpenCode, Antigravity, Copilot) from one source.
+Lisa turns a repository into a set of **software factories** — agent-operated production lines (Research → Plan → Implement → Verify) that build, verify, and ship software with as few humans as possible. Underneath the factories, Lisa is governance-as-code for AI-assisted software development: one set of standards, workflows, and quality gates applies identically whether the work is done by a human, by an AI agent on a laptop, or by a scheduled job — distributed to every project as a versioned dependency, and to every major coding agent platform (Claude Code, Codex, Cursor, OpenCode, Antigravity, Copilot, Devin) from one source.
 
 > **How to read this README**
 >
@@ -398,6 +398,15 @@ kernel-uninterruptible I/O.
 | OpenCode | Native TypeScript guard adapters; the common host fallback is delivered, but its aggregate diagnostic is not represented by those adapters. |
 | Antigravity | Native adapted guard commands; the common host fallback is delivered, but its aggregate diagnostic is not registered natively. |
 | Copilot | Native individual guard registrations; the common host fallback is delivered, but its aggregate diagnostic is not registered natively. |
+| Devin | Plugin guards in the `lisa-devin` variant's root `hooks.json`, plus a tagged `.devin/hooks.v1.json` entry that dispatches the same delivered fallback. Devin names its tools `exec`/`write`/`edit`, so both routes translate the tool name before the unchanged guards read it. |
+
+**Devin CLI.** Set `"harness": "devin"` (or `"fleet"`) in `.lisa.config.json`. `lisa apply` then installs
+`lisa-devin` plus the matching stack variants with `devin plugins install --local -y` when `devin` is on
+PATH, writes the `.devin/hooks.v1.json` enforcement fallback, and ensures `AGENTS.md`. Known gaps: Devin
+CLI has no native scheduler, so Lisa's recurring loops are run by hand (`devin -p -- "<loop prompt>"`, or
+from your own cron) or unattended through `scheduler: "github-actions"`; Devin has no plugin command
+surface, so `/lisa:implement` is invoked as the skill `/lisa:lisa-implement`; subagents get no
+session-start rule injection; and no LSP plugin surface exists for `typescript-lsp`.
 
 Remote coding environments use one vendor-neutral AWS bootstrap rather than
 repository-specific or agent-specific IAM users. Run `/lisa:setup-remote-aws`

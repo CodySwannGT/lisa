@@ -25,6 +25,18 @@ create them; invoke the runtime's automation tool with the spec below.
   automation. Do not point recurring automations at hashed scratch worktrees or a checkout whose Git
   metadata is broken.
 - **Claude** → use **`/schedule`** to create local recurring routines, one per automation below.
+- **Devin CLI** → there is no native scheduler (documented gap, CodySwannGT/lisa#4283 — decided
+  as a documented manual trigger, not a polyfill). State that Devin cannot schedule the loops and
+  stop without creating anything. Then tell the operator their two working options:
+  1. **Run a loop by hand.** For example `devin -p -- "/lisa:lisa-intake <queue>"`. The same
+     command can go in the operator's own cron, which then owns the clock.
+  2. **Run the loops unattended** through `scheduler: "github-actions"` with `executionEnv`
+     (next section). GitHub Actions only owns the clock: the loop itself runs on whichever
+     supported remote surface `executionEnv` names (for example `claude-web` or
+     `codex-cloud`). That surface is not Devin, and there is no Devin remote surface.
+
+  Devin runs Lisa's skills from the `lisa-devin` plugin, so each loop's prompt is the same skill
+  invocation a scheduled run would make.
 - **Other runtimes** → use the runtime's native recurring-task mechanism. If the runtime has none,
   state that scheduling is unavailable and stop.
 
