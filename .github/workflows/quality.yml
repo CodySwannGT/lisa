@@ -4755,6 +4755,55 @@ jobs:
     # Rationale: docs/quality-workflow-notes.md#note-18
 
     steps:
+      # Proof is workflow-owned and precedes any PR-head executable content.
+      - name: 🔗 Authenticate the Dependabot PR record
+        id: dependabot_record
+        uses: actions/github-script@v8
+        with:
+          script: |
+            core.setOutput('qualified', 'false');
+            const event = context.payload.pull_request;
+            const bot = user => user?.id === 49699333 && user?.type === 'Bot' && user?.login === 'dependabot[bot]';
+            if (!bot(event?.user)) return;
+            try {
+              const { owner, repo } = context.repo;
+              const repository = context.payload.repository;
+              const number = event.number;
+              const fullName = `${owner}/${repo}`;
+              const sameRepo = value => value?.id === repository?.id && value?.full_name === fullName;
+              const sha = value => typeof value === 'string' && /^[a-f0-9]{40}$/.test(value);
+              if (context.eventName !== 'pull_request' || context.serverUrl !== 'https://github.com' || context.apiUrl !== 'https://api.github.com' ||
+                  !Number.isSafeInteger(repository?.id) || repository.id <= 0 || repository.full_name !== fullName ||
+                  !Number.isSafeInteger(number) || number <= 0 || context.payload.number !== number ||
+                  !sameRepo(event.base?.repo) || !sameRepo(event.head?.repo) || !sha(event.base?.sha) || !sha(event.head?.sha)) throw new Error('Unbound event');
+              let file;
+              try {
+                ({ data: file } = await github.rest.repos.getContent({ owner, repo, path: '.lisa.config.json', ref: event.base.sha }));
+              } catch (error) {
+                if (error.status === 404) return;
+                throw error;
+              }
+              if (file?.type !== 'file' || file.encoding !== 'base64' || typeof file.content !== 'string' ||
+                  !Number.isSafeInteger(file.size) || file.size > 1048576) throw new Error('Unreadable base policy');
+              const bytes = Buffer.from(file.content, 'base64');
+              if (bytes.length !== file.size || bytes.length > 1048576 || bytes.toString('base64') !== file.content.replace(/[\r\n]/g, '')) throw new Error('Invalid base policy');
+              const config = JSON.parse(bytes.toString('utf8'));
+              if (!config || typeof config !== 'object' || Array.isArray(config)) throw new Error('Invalid base policy');
+              const option = config.workItem?.dependabotTracking;
+              if (option === undefined || option === 'issue') return;
+              if (option !== 'pull-request') throw new Error('Invalid tracking option');
+              const url = `https://github.com/${fullName}/pull/${number}`;
+              const matches = pr => pr?.number === number && pr.state === 'open' && pr.merged === false && pr.html_url === url && bot(pr.user) &&
+                sameRepo(pr.base?.repo) && sameRepo(pr.head?.repo) && pr.base.sha === event.base.sha && pr.head.sha === event.head.sha;
+              const request = { owner, repo, pull_number: number };
+              if (!matches((await github.rest.pulls.get(request)).data)) throw new Error('Unbound PR');
+              if (!matches((await github.rest.pulls.get(request)).data)) throw new Error('Stale PR');
+              core.info(`WORK_ITEM_PR_RECORD ${url} number=${number} head=${event.head.sha}`);
+              core.setOutput('qualified', 'true');
+            } catch {
+              core.warning('Dependabot PR record not authenticated; original traceability validation remains required.');
+            }
+
       - name: 📥 Checkout repository
         uses: actions/checkout@v6
         with:
@@ -4985,7 +5034,7 @@ jobs:
         # project is unchanged. `== 'false'` and not `!= 'true'`, because
         # `off` satisfies the negative form and would keep running the very
         # tooling the declaration turned off.
-        if: steps.gate.outputs.configured == 'false'
+        if: steps.gate.outputs.configured == 'false' && steps.dependabot_record.outputs.qualified != 'true'
         # Env-var form (equivalent to --base/--head/--pr-number) keeps event
         # payload values out of the shell command entirely.
         env:

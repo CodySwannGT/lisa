@@ -244,7 +244,7 @@ describe("an off declaration reaches neither branch of the job", () => {
     // `== 'false'`, never `!= 'true'`: `off` satisfies the negative form, so
     // the built-in would keep failing pull requests the declaration disabled.
     expect(stepNamed("🔗 Validate Work-Item traceability")?.if).toBe(
-      "steps.gate.outputs.configured == 'false'"
+      "steps.gate.outputs.configured == 'false' && steps.dependabot_record.outputs.qualified != 'true'"
     );
   });
 
