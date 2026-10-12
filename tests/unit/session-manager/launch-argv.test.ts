@@ -98,7 +98,7 @@ describe("buildManagerLaunch", () => {
 
 describe("buildStopManager", () => {
   it("kills only the named tmux session", () => {
-    expect(buildStopManager(NAME)).toEqual(["kill-session", "-t", NAME]);
+    expect(buildStopManager(NAME)).toEqual(["kill-session", "-t", `=${NAME}`]);
   });
 
   it("refuses a name that is not a session slug", () => {
@@ -107,7 +107,9 @@ describe("buildStopManager", () => {
 });
 
 describe("buildHasSession", () => {
-  it("asks tmux whether the named session exists", () => {
-    expect(buildHasSession(NAME)).toEqual(["has-session", "-t", NAME]);
+  // `=` makes tmux match the name exactly; without it `demo` would match a
+  // running `demo-manager` and report another project's manager as ours.
+  it("asks tmux whether exactly the named session exists", () => {
+    expect(buildHasSession(NAME)).toEqual(["has-session", "-t", `=${NAME}`]);
   });
 });

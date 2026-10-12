@@ -242,7 +242,7 @@ describe("buildWorkerResume", () => {
       })
     ).toEqual({
       command: "claude",
-      args: ["--bg", "--resume", LIVE_SESSION_ID, "Paul's answer: 2"],
+      args: ["--bg", "--resume", LIVE_SESSION_ID, "--", "Paul's answer: 2"],
       cwd: REPO_A_DIR,
       env: { PATH: "/bin" },
     });

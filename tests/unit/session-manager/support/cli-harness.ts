@@ -4,8 +4,10 @@
  * Each test gets a throwaway project root, a throwaway HOME, and a PATH whose
  * first entry is `tests/fixtures/session-manager/stub-bin`, so `claude`,
  * `tmux`, `vm_stat` and `gh` resolve to recording stubs. The CLI is run as a
- * real child process (`node session-manager.mjs …`), which is the only way to
- * prove what it hands to a spawned process: the stub writes its argv, cwd and
+ * real child process (`node session-manager.mjs …`, started through
+ * `boundedSpawnSync` so a hung child is killed, not waited on), which is the
+ * only way to prove what it hands to a spawned process: the stub writes its
+ * argv, cwd and
  * environment-variable names to a log this harness reads back.
  *
  * TELEGRAM_STATE_DIR and TELEGRAM_BOT_TOKEN are planted in the CLI's own
@@ -13,7 +15,6 @@
  * so every worker-spawn test can assert they never reach the worker.
  * @module tests/unit/session-manager/support/cli-harness
  */
-import { spawnSync } from "node:child_process";
 import {
   existsSync,
   mkdirSync,
@@ -25,6 +26,8 @@ import {
 } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
+
+import { boundedSpawnSync } from "../../../helpers/io-latency-budget.js";
 
 const REPO = path.resolve(import.meta.dirname, "../../../..");
 
@@ -200,28 +203,26 @@ export function runCli(
 ): RunResult {
   const agentsFile = writeAgentsFile(sandbox, options.agents ?? []);
   const before = readCalls(sandbox).length;
-  const result = spawnSync(
-    process.execPath,
-    [
+  const result = boundedSpawnSync({
+    label: `session-manager ${args[0] ?? ""}`,
+    command: process.execPath,
+    args: [
       CLI,
       ...args,
       ...(options.noProjectRoot ? [] : ["--project-root", sandbox.root]),
     ],
-    {
-      cwd: sandbox.root,
-      encoding: "utf8",
-      input: options.input ?? "",
-      env: {
-        PATH: `${STUB_BIN}${path.delimiter}${process.env.PATH ?? ""}`,
-        HOME: sandbox.home,
-        STUB_LOG: sandbox.log,
-        STUB_AGENTS_FILE: agentsFile,
-        TELEGRAM_STATE_DIR: sandbox.stateDir,
-        TELEGRAM_BOT_TOKEN: "planted-value-never-forwarded",
-        ...options.env,
-      },
-    }
-  );
+    cwd: sandbox.root,
+    input: options.input ?? "",
+    env: {
+      PATH: `${STUB_BIN}${path.delimiter}${process.env.PATH ?? ""}`,
+      HOME: sandbox.home,
+      STUB_LOG: sandbox.log,
+      STUB_AGENTS_FILE: agentsFile,
+      TELEGRAM_STATE_DIR: sandbox.stateDir,
+      TELEGRAM_BOT_TOKEN: "planted-value-never-forwarded",
+      ...options.env,
+    },
+  });
   return {
     status: result.status,
     stdout: result.stdout,

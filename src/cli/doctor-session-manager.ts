@@ -7,7 +7,9 @@
  * enforce isolation when they run; this check catches drift afterwards: a
  * plugin later enabled at user scope, a token copied into the shared default
  * dir, a token exported from a shell profile, a loosened file mode, or managed
- * settings that override the manager's `crossSessionInbound: accept`.
+ * settings that override the manager's `crossSessionInbound: accept`. Trust
+ * findings (a public repo without `trustedAuthorIds`, the plugin enabled in
+ * project-scope settings) live in `doctor-session-manager-trust`.
  *
  * Gated on a `sessionManager` block in the merged config (the Kane model): a
  * project that never opted in gets `ok` / "not configured" and nothing is read
@@ -20,6 +22,17 @@ import { readFile as fsReadFile, stat as fsStat } from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
 import type { DoctorCheck } from "./doctor.js";
+import {
+  type Finding,
+  type JsonRecord,
+  type RepoVisibilityProbe,
+  ghRepoVisibility,
+  isRecord,
+  modeOf,
+  projectPluginFindings,
+  readJson,
+  trustFindings,
+} from "./doctor-session-manager-trust.js";
 
 const CHECK_NAME = "Session manager Telegram isolation?";
 const PLUGIN_ID = "telegram@claude-plugins-official";
@@ -48,16 +61,9 @@ export interface SessionManagerDoctorDependencies {
   readonly stat?: (file: string) => Promise<{ readonly mode: number }>;
   /** Managed-settings files to inspect, in precedence order. */
   readonly managedSettingsPaths?: readonly string[];
+  /** Repo visibility probe; defaults to `gh repo view --json visibility`. */
+  readonly probeRepoVisibility?: RepoVisibilityProbe;
 }
-
-/** One finding; the check reports the worst status of all of them. */
-interface Finding {
-  readonly status: "warn" | "fail";
-  readonly text: string;
-}
-
-/** A parsed JSON object (config or settings file). */
-type JsonRecord = Record<string, unknown>;
 
 /** Resolved inputs shared by the finding collectors. */
 interface Context {
@@ -67,61 +73,6 @@ interface Context {
   readonly read: (file: string) => Promise<string>;
   readonly statFile: (file: string) => Promise<{ readonly mode: number }>;
   readonly managedPaths: readonly string[];
-}
-
-/**
- * Whether a value is a plain JSON object.
- * @param value - Candidate value
- * @returns True for `{}`-shaped values
- */
-function isRecord(value: unknown): value is JsonRecord {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
-}
-
-/**
- * Whether an error means "file does not exist".
- * @param error - Thrown value
- * @returns True for ENOENT
- */
-function isMissing(error: unknown): boolean {
-  return (error as NodeJS.ErrnoException | undefined)?.code === "ENOENT";
-}
-
-/**
- * Read and parse a JSON object file, or undefined when it does not exist.
- * @param read - Text reader
- * @param file - Absolute path
- * @returns The parsed object, or undefined when absent
- */
-async function readJson(
-  read: (file: string) => Promise<string>,
-  file: string
-): Promise<JsonRecord | undefined> {
-  try {
-    const parsed: unknown = JSON.parse(await read(file));
-    return isRecord(parsed) ? parsed : {};
-  } catch (error) {
-    if (isMissing(error)) return undefined;
-    throw error;
-  }
-}
-
-/**
- * The file's mode, or undefined when it does not exist. Never reads contents.
- * @param statFile - Mode reader
- * @param file - Absolute path
- * @returns Mode bits, or undefined
- */
-async function modeOf(
-  statFile: Context["statFile"],
-  file: string
-): Promise<number | undefined> {
-  try {
-    return (await statFile(file)).mode;
-  } catch (error) {
-    if (isMissing(error)) return undefined;
-    throw error;
-  }
 }
 
 /**
@@ -281,10 +232,15 @@ export async function checkSessionManagerIsolation(
 ): Promise<DoctorCheck> {
   const read = deps.readFile ?? (file => fsReadFile(file, "utf8"));
   try {
-    const block = mergeBlocks(
-      await readJson(read, path.join(targetPath, ".lisa.config.json")),
-      await readJson(read, path.join(targetPath, ".lisa.config.local.json"))
+    const committed = await readJson(
+      read,
+      path.join(targetPath, ".lisa.config.json")
     );
+    const local = await readJson(
+      read,
+      path.join(targetPath, ".lisa.config.local.json")
+    );
+    const block = mergeBlocks(committed, local);
     if (block === undefined) {
       return { name: CHECK_NAME, status: "ok", detail: "not configured" };
     }
@@ -306,6 +262,12 @@ export async function checkSessionManagerIsolation(
       ...(await stateDirFindings(ctx, stateDir)),
       ...(await userScopeFindings(ctx)),
       ...(await environmentFindings(ctx)),
+      ...(await projectPluginFindings(targetPath, block, read)),
+      ...(await trustFindings(
+        { ...committed, ...local },
+        block,
+        deps.probeRepoVisibility ?? ghRepoVisibility
+      )),
     ];
     if (findings.length === 0) {
       return {

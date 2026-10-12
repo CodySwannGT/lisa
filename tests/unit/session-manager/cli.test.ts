@@ -248,7 +248,7 @@ describe("resume", () => {
     expect(result.stderr).toBe("");
     expect(result.status).toBe(0);
     const [bg] = callsOf(result.calls, "claude", "--bg");
-    expect(bg?.argv).toEqual(["--bg", "--resume", "1a2b3c4d", ANSWER]);
+    expect(bg?.argv).toEqual(["--bg", "--resume", "1a2b3c4d", "--", ANSWER]);
     expect(bg?.cwd).toBe(path.join(sandbox.root, "projects/api"));
     for (const key of TELEGRAM_KEYS) expect(bg?.envKeys).not.toContain(key);
     expect(result.json).toMatchObject({ ref: REF, sessionId: "1a2b3c4d" });

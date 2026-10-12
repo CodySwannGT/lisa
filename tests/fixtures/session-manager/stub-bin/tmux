@@ -1,8 +1,11 @@
 #!/usr/bin/env node
 /**
  * Stub `tmux` for the session-manager CLI tests. `has-session` and
- * `kill-session` exit 0 only when STUB_TMUX_HAS_SESSION=1, else 1; every other
- * command exits 0. Every call is recorded through ../support/stub-record.mjs.
+ * `kill-session` exit 0 only when STUB_TMUX_HAS_SESSION=1, else 1.
+ * `display-message` prints STUB_TMUX_SESSION_PATH (empty when unset) and
+ * exits 0 either way, which is what tmux 3.6 does even for a session that
+ * does not exist. Every other command exits 0. Every call is recorded
+ * through ../support/stub-record.mjs.
  */
 import { record } from "../support/stub-record.mjs";
 
@@ -11,4 +14,7 @@ const [command] = process.argv.slice(2);
 const running = process.env.STUB_TMUX_HAS_SESSION === "1";
 if (command === "has-session" || command === "kill-session") {
   process.exitCode = running ? 0 : 1;
+}
+if (command === "display-message") {
+  process.stdout.write(`${process.env.STUB_TMUX_SESSION_PATH ?? ""}\n`);
 }

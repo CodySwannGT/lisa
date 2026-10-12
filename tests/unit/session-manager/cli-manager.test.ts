@@ -100,7 +100,7 @@ describe("start", () => {
     const sandbox = makeSandbox();
     plantTokenFile(sandbox);
     const result = runCli(sandbox, ["start"], {
-      env: { STUB_TMUX_HAS_SESSION: "1" },
+      env: { STUB_TMUX_HAS_SESSION: "1", STUB_TMUX_SESSION_PATH: sandbox.root },
     });
     expect(result.status).toBe(0);
     expect(result.json.status).toBe("already-running");
@@ -112,13 +112,15 @@ describe("stop", () => {
   it("kills only the manager session", () => {
     const sandbox = makeSandbox();
     const result = runCli(sandbox, ["stop"], {
-      env: { STUB_TMUX_HAS_SESSION: "1" },
+      env: { STUB_TMUX_HAS_SESSION: "1", STUB_TMUX_SESSION_PATH: sandbox.root },
     });
     expect(result.status).toBe(0);
     expect(result.json.status).toBe("stopped");
     const tmux = result.calls.filter(call => call.bin === TMUX);
     expect(tmux.map(call => call.argv)).toEqual([
-      ["kill-session", "-t", MANAGER],
+      ["has-session", "-t", `=${MANAGER}`],
+      ["display-message", "-p", "-t", `=${MANAGER}:`, "#{session_path}"],
+      ["kill-session", "-t", `=${MANAGER}`],
     ]);
     expect(result.calls.some(call => call.bin === "claude")).toBe(false);
   });
