@@ -122,6 +122,8 @@ export async function sessionSurvives(name, env, settleMs) {
   const step = settleMs / checks;
   for (let check = 0; check < checks; check += 1) {
     await sleep(step);
+    // probe-direction: fail-closed — a failed has-session reads as "the manager
+    // died", so start refuses to report it as started.
     if (run("tmux", buildHasSession(name), { env }).status !== 0) return false;
   }
   return true;
