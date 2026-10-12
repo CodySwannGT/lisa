@@ -5,7 +5,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-contents/.gitattributes":
       "e5e115d084d4c7ff855ab9b39285c725f39700af54f73ef2e90845f1b8d72c36",
     "all/copy-contents/gitignore":
-      "d8a80c679f84b7b5dd40bd25fa9870439a6599856c3d81ea34c04e371e7c2983",
+      "90f6701914924e24d66cff9c04eb88bb7d9b9361e6e51596501b49da99080368",
     "all/copy-contents/scripts/lisa-mutation.sh":
       "dfe6e7a208fe72d02355548d9aba8484748b7d95eca0bf989043008311af29c4",
     "all/copy-overwrite/scripts/check-conflict-markers.mjs":
@@ -861,7 +861,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/commands/health.md":
       "f74536619029160e20240c3f1eaf02b300aaecd2a649651fd8ce6bf78f881c70",
     "plugins/src/base/commands/implement.md":
-      "9c3c7a97881583e3a8fb65555d085e8803e942a866a34c51cd7d4a9fcacdfb45",
+      "91cd96382825d83ae4328d0cccd25992ef5bae0bbf89c20764b8c79b663efb7d",
     "plugins/src/base/commands/improve-harness.md":
       "2547a45e1e510e9507d8d22fe6d0948dff896574d068f84b4d319088d020a721",
     "plugins/src/base/commands/improve/code-complexity.md":
@@ -1137,7 +1137,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/rules/reference/coding-philosophy.md":
       "fed8381f16a5d6793a49d84d5813d62125808cb2f4981a558b119cf63e2586d9",
     "plugins/src/base/rules/reference/config-resolution.md":
-      "1ed9492c876b187149a45e28a41aeb5775493c904751a9edb0067838b6f1121e",
+      "92969442f8e75d415a0085a50f98b5a2fba2734a94ab9336112c3969d1db643d",
     "plugins/src/base/rules/reference/control-reachability.md":
       "0883f3480de79bcaa4a9da5685192c014d9267d0a12aed8153bba8c51161129a",
     "plugins/src/base/rules/reference/convergent-review.md":
@@ -1294,6 +1294,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "1e05181dc8fbe2a4f0c04ce73fdfe1c3a7fc1777cb66e95d7e9a593559c8ca27",
     "plugins/src/base/scripts/queue-status-prd-readers.mjs":
       "32b4366fc292062c869793aeaf5b006ff400df5da09ee510f862e15d59a77770",
+    "plugins/src/base/scripts/ready-queue-order.mjs":
+      "dd647c428bc51f8c780686cc1ca3c5e8c3caad4e3758b2cfdffc66661992650a",
     "plugins/src/base/scripts/remote-agent-aws-setup.sh":
       "2a5b21f4fa3df268fb579976b4bc5f480d9176dbf6e3ae64fe3a869df287ca30",
     "plugins/src/base/scripts/repo-scope-vocabulary-audit.mjs":
@@ -1405,7 +1407,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-health/SKILL.md":
       "dfdb08a863e78bff42671793dcec29cfae0654db18ebf66a4aa77aeb56ddb775",
     "plugins/src/base/skills/lisa-implement/SKILL.md":
-      "914c928c782ac67d2efe343736d80d1f8ee6387973bdfa4687c3c3e6ef62037a",
+      "0b8898ef4a9cbe8fab14be21dbf0d7adfe15f46bae98007dc5f1aef5caf5a14a",
     "plugins/src/base/skills/lisa-improve-code-complexity/SKILL.md":
       "24ab5b193b409db6ee6bee981a1c0a48d08991782d7846116ad01658c8bc1ae8",
     "plugins/src/base/skills/lisa-improve-harness/SKILL.md":
@@ -1617,7 +1619,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-secrets-access/scripts/tools-from-notes.mjs":
       "360f740cac081151491428043b04fec2f5db6f3ba36394f7378af312396d53ca",
     "plugins/src/base/skills/lisa-secrets-access/scripts/validate-config.mjs":
-      "85c5ec348e0f38128f44f3207fcbc047952ae88f48adf81b7879c24b1a66cbf0",
+      "df8ababd02386a34e428215bcbee31cc82c810afec00bd858a5f4f767ae13209",
     "plugins/src/base/skills/lisa-security-review/SKILL.md":
       "5a980eaf5efc4fcce66e75521ec5b1eda143a5b0d36e7157234a705dac94e3f5",
     "plugins/src/base/skills/lisa-security-zap-scan/SKILL.md":
@@ -9153,6 +9155,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/src/base/scripts/queue-health-classification.mjs": true,
     "plugins/src/base/scripts/queue-status-build-readers.mjs": true,
     "plugins/src/base/scripts/queue-status-prd-readers.mjs": true,
+    "plugins/src/base/scripts/ready-queue-order.mjs": true,
     "plugins/src/base/scripts/remote-agent-aws-setup.sh": true,
     "plugins/src/base/scripts/repo-scope-vocabulary-audit.mjs": true,
     "plugins/src/base/scripts/resolve-lifecycle-role.mjs": true,
@@ -12005,6 +12008,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/process-tree-runner-interrupt.test.ts": true,
     "tests/unit/scripts/process-tree-runner-verdict-transport.test.ts": true,
     "tests/unit/scripts/process-tree-runner.test.ts": true,
+    "tests/unit/scripts/ready-queue-order.test.ts": true,
     "tests/unit/scripts/reconcile-release-tags.test.ts": true,
     "tests/unit/scripts/required-check-promotions-helpers.ts": true,
     "tests/unit/scripts/required-check-promotions.repo.test.ts": true,
