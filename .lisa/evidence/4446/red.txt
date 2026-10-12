@@ -1,0 +1,106 @@
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - import "./vitest.config.local" without a file extension (vitest.config.ts:21:25). Add the file extension
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - import "./vitest.config.local" without a file extension (vitest.config.ts:21:25). Add the file extension
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - import "./vitest.config.local" without a file extension (vitest.config.ts:21:25). Add the file extension
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+
+ RUN  v4.1.11 /Users/cody/workspace/lisa/.claude/worktrees/agent-adb6cc1c25568b7a6
+
+lisa scratch: no supervised lease in the environment, so this run is self-supervised. Fixture directories are still bounded to a run root this process owns and removed on exit; what is missing is the detached reaper that reclaims the root after a SIGKILL, which the next run's startup sweep recovers instead. Run through `lisa-test-run --profile <profile> --adapter vitest -- vitest ...` for a supervised run.
+ ❯ |lisa| tests/unit/strategies/remote-agent-aws-default-refusal.test.ts (5 tests | 4 failed) 1714ms
+     × writes the named profiles another project's default does not block 781ms
+     × names profiles that exist, verified, and how to select one 83ms
+     × does not claim verification it skipped 78ms
+     × warns that claiming would not displace long-lived keys under [default] 90ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 4 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  |lisa| tests/unit/strategies/remote-agent-aws-default-refusal.test.ts > remote AWS bootstrap refusing to take over [default] > writes the named profiles another project's default does not block
+AssertionError: expected '' to contain 'role_arn = arn:aws:iam::333333333333:…'
+
+- Expected
++ Received
+
+- role_arn = arn:aws:iam::333333333333:role/RemoteAgent
+
+ ❯ expectNamedProfilesWritten tests/unit/strategies/remote-agent-aws-default-refusal.test.ts:108:67
+    106| ): void {
+    107|   const config = awsFile(ws, "config");
+    108|   expect(sectionBody(config, `[profile ${namespace}-agent-dev]`)).toCo…
+       |                                                                   ^
+    109|     `role_arn = arn:aws:iam::${devAccount}:role/RemoteAgent`
+    110|   );
+ ❯ tests/unit/strategies/remote-agent-aws-default-refusal.test.ts:137:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/4]⎯
+
+ FAIL  |lisa| tests/unit/strategies/remote-agent-aws-default-refusal.test.ts > remote AWS bootstrap refusing to take over [default] > names profiles that exist, verified, and how to select one
+AssertionError: expected 'remote-agent-aws-setup: refusing to o…' to contain 'were written and verified'
+
+- Expected
++ Received
+
+- were written and verified
++ remote-agent-aws-setup: refusing to overwrite the [default] AWS profile in /private/tmp/lisa-4446-tmp/lisa-scratch/run-53980-1791828076785-e7514f27/worker-53980-d15704b9e311d099/lisa-remote-aws-BEenWB/home/.aws/config: it belongs to this workstation operator, not to org-beta. Overwriting it would silently repoint every unqualified aws command at this project's accounts. Use the named profiles instead (org-beta-agent-dev, org-beta-agent-production), or set LISA_AWS_CLAIM_DEFAULT_PROFILE=1 to take it over deliberately.
++
+
+ ❯ tests/unit/strategies/remote-agent-aws-default-refusal.test.ts:161:27
+    159|       "org-beta-agent-dev, org-beta-agent-production"
+    160|     );
+    161|     expect(result.stderr).toContain("were written and verified");
+       |                           ^
+    162|     expect(result.stderr).toContain("AWS_PROFILE=org-beta-agent-dev");
+    163|     expect(result.stderr).not.toContain("No profiles were created");
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/4]⎯
+
+ FAIL  |lisa| tests/unit/strategies/remote-agent-aws-default-refusal.test.ts > remote AWS bootstrap refusing to take over [default] > does not claim verification it skipped
+AssertionError: expected 'remote-agent-aws-setup: refusing to o…' to contain 'LISA_AWS_SKIP_VERIFY=1'
+
+- Expected
++ Received
+
+- LISA_AWS_SKIP_VERIFY=1
++ remote-agent-aws-setup: refusing to overwrite the [default] AWS profile in /private/tmp/lisa-4446-tmp/lisa-scratch/run-53980-1791828076785-e7514f27/worker-53980-d15704b9e311d099/lisa-remote-aws-gGoGXF/home/.aws/config: it belongs to this workstation operator, not to org-beta. Overwriting it would silently repoint every unqualified aws command at this project's accounts. Use the named profiles instead (org-beta-agent-dev, org-beta-agent-production), or set LISA_AWS_CLAIM_DEFAULT_PROFILE=1 to take it over deliberately.
++
+
+ ❯ tests/unit/strategies/remote-agent-aws-default-refusal.test.ts:191:27
+    189|     expect(result.stderr).toContain(REFUSAL);
+    190|     expect(result.stderr).not.toContain("written and verified");
+    191|     expect(result.stderr).toContain("LISA_AWS_SKIP_VERIFY=1");
+       |                           ^
+    192|     expectNamedProfilesWritten(ws, BETA, BETA_DEV_ACCOUNT);
+    193|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/4]⎯
+
+ FAIL  |lisa| tests/unit/strategies/remote-agent-aws-default-refusal.test.ts > remote AWS bootstrap refusing to take over [default] > warns that claiming would not displace long-lived keys under [default]
+AssertionError: expected 'remote-agent-aws-setup: refusing to o…' to contain 'long-lived access keys'
+
+- Expected
++ Received
+
+- long-lived access keys
++ remote-agent-aws-setup: refusing to overwrite the [default] AWS profile in /private/tmp/lisa-4446-tmp/lisa-scratch/run-53980-1791828076785-e7514f27/worker-53980-d15704b9e311d099/lisa-remote-aws-oNiUay/home/.aws/config: it belongs to this workstation operator, not to org-beta. Overwriting it would silently repoint every unqualified aws command at this project's accounts. Use the named profiles instead (org-beta-agent-dev, org-beta-agent-production), or set LISA_AWS_CLAIM_DEFAULT_PROFILE=1 to take it over deliberately.
++
+
+ ❯ tests/unit/strategies/remote-agent-aws-default-refusal.test.ts:213:27
+    211|     expect(result.status).not.toBe(0);
+    212|     expect(result.stderr).toContain(REFUSAL);
+    213|     expect(result.stderr).toContain("long-lived access keys");
+       |                           ^
+    214|     expect(result.stderr).not.toContain("AKIAOPERATOR");
+    215|     expect(result.stderr).not.toContain("operator-secret");
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/4]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  4 failed | 1 passed (5)
+   Start at  14:01:16
+   Duration  2.08s (transform 79ms, setup 108ms, import 107ms, tests 1.71s, environment 0ms)
+
