@@ -508,11 +508,12 @@
       "children": []
     },
     "lib/npm-update-github.mjs": {
-      "sha256": "2be34eca5ceb38cc535fac6ca0a655e14993231cd37b1a3e26ea09756042c488",
+      "sha256": "adef012960dc0c64dd68d687c2db9a66104780e0e68942f8ce27f11a0cf6262e",
       "staticImports": [
         "lib/github-attestation-verifier.mjs",
         "lib/npm-update-contract.mjs",
         "lib/npm-update-controller-factory.mjs",
+        "lib/npm-update-invariants.mjs",
         "lib/npm-update-object.mjs",
         "lib/npm-update-process.mjs",
         "lisa-automation-provenance.mjs"
@@ -655,7 +656,7 @@
       ]
     },
     "lib/npm-update-invariants.mjs": {
-      "sha256": "49fdc794312fe546014a5a4c5c4804da758832a912721733fecec8497aa548aa",
+      "sha256": "4d60f2528e013b65837e8d60eef8728a34b2005fcabaec20d59fd5f759890810",
       "staticImports": [],
       "dynamicImports": [],
       "children": []
