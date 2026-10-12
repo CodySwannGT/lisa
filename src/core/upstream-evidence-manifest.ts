@@ -297,7 +297,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/npm-updater-gate.Dockerfile":
       "c1f56c254f188d394fea0c0b9995ebf185c280aa1079233443c1eed1425d0239",
     "all/copy-overwrite/scripts/npm-updater-helper-graph.json":
-      "09ef191f06018f4fe7ac580b94e096d6370ab5a3e816e00401597a70470ebb2b",
+      "f6f83b177c7593f1869bda80a04671c8ad9c9fe19d9a6a475fb752170e9a416b",
     "all/copy-overwrite/scripts/schemas/lisa-command-envelope.v1.schema.json":
       "d153b7c2953a30f180e38f09e98240c63327f5196eeba9bdf545e5a1f125a879",
     "all/copy-overwrite/scripts/schemas/lisa-state-contract.v1.schema.json":
