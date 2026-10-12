@@ -125,7 +125,37 @@ on:
         type: string
         default: 'npm'
       sourcemaps:
-        description: 'Path to source maps for Sentry release (optional)'
+        description: 'Path to source maps for Sentry release (optional). They are uploaded under the same release name the Sentry release is created with.'
+        required: false
+        type: string
+        default: ''
+      sentry_release_name:
+        # The release is only useful when it carries the exact string the app
+        # reports as `release` — an event whose release differs never attaches,
+        # and source maps uploaded under a different name are never used
+        # (CodySwannGT/lisa#4293). Empty keeps the bare version.
+        description: >-
+          Template for the Sentry release name, so the release and its source
+          maps are created under exactly the identifier the app reports (for
+          example `my-app@{version}+0.{sha:8}`). Placeholders: {version} (the
+          released version, required), {tag}, {sha} (the commit that triggered
+          this run), {release_commit} (the commit the release cut); {sha:N}
+          and {release_commit:N} keep the first N characters (7-40). Empty
+          keeps the bare version. Mutually exclusive with
+          sentry_release_name_command.
+        required: false
+        type: string
+        default: ''
+      sentry_release_name_command:
+        description: >-
+          Shell command run in the checked-out repository that prints the
+          Sentry release name on stdout, for apps whose identifier cannot be
+          expressed as a template (for example a build number derived from the
+          version). It receives SENTRY_RELEASE_VERSION, SENTRY_RELEASE_TAG,
+          SENTRY_RELEASE_SHA and SENTRY_RELEASE_COMMIT, runs before any
+          dependency install, and is given no Sentry credential. The printed
+          name must contain the released version. Mutually exclusive with
+          sentry_release_name.
         required: false
         type: string
         default: ''
@@ -160,6 +190,9 @@ on:
       sentry_release_url:
         description: 'URL to Sentry release'
         value: ${{ jobs.sentry_release.outputs.sentry_release_url }}
+      sentry_release_name:
+        description: 'Name the Sentry release was created under (empty when none was created). Pass it as `version` to sentry-deploy.yml.'
+        value: ${{ jobs.sentry_release.outputs.sentry_release_name }}
       jira_release_created:
         description: 'Whether the Jira release was created'
         value: ${{ jobs.jira_release.outputs.jira_release_created }}
@@ -1719,6 +1752,7 @@ jobs:
     outputs:
       sentry_release_created: ${{ steps.set_outputs.outputs.created }}
       sentry_release_url: ${{ steps.set_outputs.outputs.url }}
+      sentry_release_name: ${{ steps.set_outputs.outputs.name }}
     steps:
       - uses: actions/checkout@v6
         with:
@@ -1743,22 +1777,109 @@ jobs:
             echo "configured=true" >> $GITHUB_OUTPUT
           fi
 
+      - name: Resolve Sentry Release Name
+        id: resolve_name
+        if: steps.check_config.outputs.configured == 'true'
+        # Inputs arrive through env, never interpolated into the script, so a
+        # template or command cannot inject shell. No Sentry credential is in
+        # this step's env: the caller's command runs without one.
+        env:
+          RELEASE_NAME_TEMPLATE: ${{ inputs.sentry_release_name }}
+          RELEASE_NAME_COMMAND: ${{ inputs.sentry_release_name_command }}
+          SENTRY_RELEASE_VERSION: ${{ needs.version.outputs.version }}
+          SENTRY_RELEASE_TAG: ${{ needs.version.outputs.tag }}
+          SENTRY_RELEASE_SHA: ${{ github.sha }}
+          SENTRY_RELEASE_COMMIT: ${{ needs.version.outputs.release_commit }}
+        run: |
+          # A release created under a name the app does not report collects no
+          # events, so a name that cannot be resolved exactly fails the job
+          # rather than silently falling back to the bare version.
+          fail() {
+            echo "::error title=Sentry release name rejected::$1"
+            exit 1
+          }
+          export SENTRY_RELEASE_VERSION SENTRY_RELEASE_TAG SENTRY_RELEASE_SHA SENTRY_RELEASE_COMMIT
+          if [ -n "$RELEASE_NAME_TEMPLATE" ] && [ -n "$RELEASE_NAME_COMMAND" ]; then
+            fail "Set sentry_release_name or sentry_release_name_command, not both."
+          fi
+          if [ -n "$RELEASE_NAME_COMMAND" ]; then
+            status=0
+            name=$(bash -c "$RELEASE_NAME_COMMAND") || status=$?
+            [ "$status" -eq 0 ] || fail "sentry_release_name_command exited $status."
+            [ -n "$name" ] || fail "sentry_release_name_command printed an empty name."
+          elif [ -n "$RELEASE_NAME_TEMPLATE" ]; then
+            pattern='\{([a-z_]+)(:([0-9]+))?\}'
+            rest="$RELEASE_NAME_TEMPLATE"
+            name=""
+            while [[ "$rest" =~ $pattern ]]; do
+              token="${BASH_REMATCH[0]}"
+              key="${BASH_REMATCH[1]}"
+              length="${BASH_REMATCH[3]}"
+              case "$key" in
+                version) value="$SENTRY_RELEASE_VERSION" ;;
+                tag) value="$SENTRY_RELEASE_TAG" ;;
+                sha) value="$SENTRY_RELEASE_SHA" ;;
+                release_commit) value="$SENTRY_RELEASE_COMMIT" ;;
+                *) fail "Unknown placeholder $token in sentry_release_name. Known: {version} {tag} {sha} {release_commit}." ;;
+              esac
+              [ -n "$value" ] || fail "Placeholder $token has no value in this run."
+              if [ -n "$length" ]; then
+                case "$key" in
+                  sha|release_commit) ;;
+                  *) fail "Placeholder $token takes no length; only {sha:N} and {release_commit:N} do." ;;
+                esac
+                # At most two significant digits, read as base 10: `08` and `010` would
+                # otherwise be octal (an error and 8 respectively).
+                if ! [[ "$length" =~ ^0*[0-9]{1,2}$ ]] || [ $((10#$length)) -lt 7 ] || [ $((10#$length)) -gt 40 ]; then
+                  fail "Placeholder $token must keep 7-40 characters."
+                fi
+                value="${value:0:$((10#$length))}"
+              fi
+              # Text between placeholders is literal; a brace there is a
+              # mistyped placeholder (e.g. {Tag}) that must not ship verbatim.
+              prefix="${rest%%"$token"*}"
+              case "$prefix" in
+                *[{}]*) fail "sentry_release_name has an unbalanced brace or malformed placeholder near: $prefix" ;;
+              esac
+              name+="$prefix$value"
+              rest="${rest#*"$token"}"
+            done
+            case "$rest" in
+              *[{}]*) fail "sentry_release_name has an unbalanced brace or malformed placeholder near: $rest" ;;
+            esac
+            name+="$rest"
+          else
+            name="$SENTRY_RELEASE_VERSION"
+          fi
+          LC_ALL=C
+          [[ "$name" =~ ^[!-~]+$ ]] || fail "Release name '$name' must be printable ASCII with no whitespace."
+          case "$name" in
+            */*|*\\*) fail "Release name '$name' must not contain / or \\." ;;
+          esac
+          [ "${#name}" -le 200 ] || fail "Release name is ${#name} characters; Sentry allows 200."
+          [[ "$name" == *"$SENTRY_RELEASE_VERSION"* ]] || fail "Release name '$name' does not contain the released version $SENTRY_RELEASE_VERSION."
+          echo "name=$name" >> "$GITHUB_OUTPUT"
+          echo "Sentry release name: $name"
+
       - name: Create Sentry Release
         id: sentry
         if: steps.check_config.outputs.configured == 'true'
         uses: getsentry/action-release@a74facf8a080ecbdf1cb355f16743530d712abb7 # v1.11.0
         env: *sentry_release_environment
         with:
-          version: ${{ needs.version.outputs.version }}
+          version: ${{ steps.resolve_name.outputs.name }}
           sourcemaps: ${{ inputs.sourcemaps }}
 
       - name: Update Release Summary
         if: steps.check_config.outputs.configured == 'true' && steps.sentry.outcome == 'success'
+        env:
+          RELEASE_NAME: ${{ steps.resolve_name.outputs.name }}
         run: |
           echo "## 🚨 Sentry Release" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "✅ Sentry release created successfully" >> $GITHUB_STEP_SUMMARY
           echo "- **Version**: ${{ needs.version.outputs.version }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Release Name**: \`$RELEASE_NAME\`" >> $GITHUB_STEP_SUMMARY
           echo "- **Release Channel**: ${{ inputs.environment }}" >> $GITHUB_STEP_SUMMARY
           echo "- **Deployment**: Not recorded by this workflow" >> $GITHUB_STEP_SUMMARY
           if [ -n "${{ inputs.sourcemaps }}" ]; then
@@ -1771,19 +1892,30 @@ jobs:
         env:
           # A secret-backed org must not enter outputs, even as part of a URL.
           PUBLIC_SENTRY_ORG: ${{ !secrets.SENTRY_ORG && vars.SENTRY_ORG || '' }}
-          RELEASE_VERSION: ${{ needs.version.outputs.version }}
+          RELEASE_NAME: ${{ steps.resolve_name.outputs.name }}
         run: |
           # Set outputs based on whether Sentry was configured and successful
           if [ "${{ steps.check_config.outputs.configured }}" == "true" ] && [ "${{ steps.sentry.outcome }}" == "success" ]; then
             echo "created=true" >> $GITHUB_OUTPUT
             if [ -n "$PUBLIC_SENTRY_ORG" ]; then
-              echo "url=https://sentry.io/organizations/$PUBLIC_SENTRY_ORG/releases/$RELEASE_VERSION/" >> $GITHUB_OUTPUT
+              # Names like app@1.2.3+4 carry characters a URL path must encode.
+              encoded=""
+              for ((i = 0; i < ${#RELEASE_NAME}; i++)); do
+                c="${RELEASE_NAME:i:1}"
+                case "$c" in
+                  [A-Za-z0-9._~-]) encoded+="$c" ;;
+                  *) printf -v hex '%%%02X' "'$c"; encoded+="$hex" ;;
+                esac
+              done
+              echo "url=https://sentry.io/organizations/$PUBLIC_SENTRY_ORG/releases/$encoded/" >> $GITHUB_OUTPUT
             else
               echo "url=" >> $GITHUB_OUTPUT
             fi
+            echo "name=$RELEASE_NAME" >> $GITHUB_OUTPUT
           else
             echo "created=false" >> $GITHUB_OUTPUT
             echo "url=" >> $GITHUB_OUTPUT
+            echo "name=" >> $GITHUB_OUTPUT
           fi
 
   # Check Jira Setup
