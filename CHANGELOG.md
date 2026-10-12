@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.79.1](https://github.com/CodySwannGT/lisa/compare/v4.79.0...v4.79.1) (2026-10-12)
+
+
+### Bug Fixes
+
+* **release:** name Sentry releases by the triggering commit's version ([fcec89f](https://github.com/CodySwannGT/lisa/commit/fcec89ffbb5a905ec606623333aae53a62dc56ce)), closes [CodySwannGT/lisa#4293](https://github.com/CodySwannGT/lisa/issues/4293) [CodySwannGT/lisa#4293](https://github.com/CodySwannGT/lisa/issues/4293)
+
 ## [4.79.0](https://github.com/CodySwannGT/lisa/compare/v4.78.0...v4.79.0) (2026-10-12)
 
 
