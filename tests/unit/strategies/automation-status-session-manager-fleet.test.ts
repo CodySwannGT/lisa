@@ -17,6 +17,7 @@ import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 
 import { inspectClaudeAutomationFleet } from "../../../plugins/src/base/scripts/automation-status-claude-adapter.mjs";
+import { inspectCodexAutomationFleet } from "../../../plugins/src/base/scripts/automation-status-codex-adapter.mjs";
 import { resolveExpectedAutomationFleet } from "../../../plugins/src/base/scripts/automation-status-expected-fleet.mjs";
 import {
   runRecordLine,
@@ -25,8 +26,11 @@ import {
 } from "./automation-run-history-helpers.js";
 
 const LOOP_ID = "session-manager";
+const NOW = "2026-05-26T12:00:00Z";
 const AUTOMATION_ID = "lisa-auto-o-r-session-manager";
 const RUNBOOK = ".lisa/automations/session-manager.runbook.md";
+const OBSERVED =
+  "Hosted locally in tmux; the scheduler cannot observe it — check `/lisa:session-manager status`";
 const BASE_CONFIG = { tracker: "github", github: { org: "o", repo: "r" } };
 const MANAGER_BLOCK = {
   name: "r-manager",
@@ -72,6 +76,7 @@ describe("session-manager fleet entry (#4448)", () => {
         expectedCadence: "every 5m (tmux-hosted /loop)",
         expectedRRule: "FREQ=MINUTELY;INTERVAL=5",
         reason: expect.any(String),
+        observed: OBSERVED,
         runbookPath: RUNBOOK,
       },
     ]);
@@ -153,7 +158,7 @@ describe("session-manager entry in the Claude status report (#4448)", () => {
       expectedFleet: fleetWith(MANAGER_BLOCK),
       scheduleListing: { routines: [] },
       projectRoot,
-      now: "2026-05-26T12:00:00Z",
+      now: NOW,
     });
     const optIn = report.groups.find(g => g.title === "Opt-in automations");
     const item = optIn?.items.find(i => i.id === AUTOMATION_ID);
@@ -168,4 +173,47 @@ describe("session-manager entry in the Claude status report (#4448)", () => {
     );
     expect(item?.outcomeHistory?.length).toBe(2);
   });
+
+  it.each([
+    [
+      "Claude",
+      (projectRoot: string) =>
+        inspectClaudeAutomationFleet({
+          expectedFleet: fleetWith(MANAGER_BLOCK),
+          scheduleListing: { routines: [] },
+          projectRoot,
+          now: NOW,
+        }),
+    ],
+    [
+      "Codex",
+      async (projectRoot: string) => {
+        const automationsDir = path.join(projectRoot, "codex-automations");
+        await fs.mkdir(automationsDir);
+        return inspectCodexAutomationFleet({
+          expectedFleet: fleetWith(MANAGER_BLOCK),
+          automationsDir,
+          projectRoot,
+          now: NOW,
+        });
+      },
+    ],
+  ])(
+    "%s adapter shows the hosted-locally observed text, not 'no automation expected'",
+    async (_name, inspect) => {
+      const projectRoot = await fs.mkdtemp(path.join(os.tmpdir(), "lisa-sm-"));
+      roots.push(projectRoot);
+      const report = await inspect(projectRoot);
+      const items = report.groups.flatMap(g => g.items);
+      const manager = items.find(i => i.id === AUTOMATION_ID);
+      const other = items.find(
+        i => i.status === "UNSUPPORTED" && i.id !== AUTOMATION_ID
+      );
+
+      expect(manager?.observed).toBe(OBSERVED);
+      expect(other?.observed).toBe(
+        "No automation is expected for this repo/runtime combination."
+      );
+    }
+  );
 });

@@ -24,7 +24,6 @@ import * as path from "node:path";
 import type { DoctorCheck } from "./doctor.js";
 import {
   type Finding,
-  type JsonRecord,
   type RepoVisibilityProbe,
   ghRepoVisibility,
   isRecord,
@@ -33,6 +32,7 @@ import {
   readJson,
   trustFindings,
 } from "./doctor-session-manager-trust.js";
+import { mergeSessionManagerBlocks } from "./session-manager-config-merge.js";
 
 const CHECK_NAME = "Session manager Telegram isolation?";
 const PLUGIN_ID = "telegram@claude-plugins-official";
@@ -73,27 +73,6 @@ interface Context {
   readonly read: (file: string) => Promise<string>;
   readonly statFile: (file: string) => Promise<{ readonly mode: number }>;
   readonly managedPaths: readonly string[];
-}
-
-/**
- * Merge the committed and local `sessionManager` blocks, local winning per key
- * (with `notify` merged one level deeper), as `config-resolution` specifies.
- * @param committed - `.lisa.config.json` contents
- * @param local - `.lisa.config.local.json` contents
- * @returns The merged block, or undefined when neither declares one
- */
-function mergeBlocks(
-  committed: JsonRecord | undefined,
-  local: JsonRecord | undefined
-): JsonRecord | undefined {
-  const base = committed?.sessionManager;
-  const over = local?.sessionManager;
-  if (!isRecord(base) && !isRecord(over)) return undefined;
-  const a = isRecord(base) ? base : {};
-  const b = isRecord(over) ? over : {};
-  const notifyA = isRecord(a.notify) ? a.notify : {};
-  const notifyB = isRecord(b.notify) ? b.notify : {};
-  return { ...a, ...b, notify: { ...notifyA, ...notifyB } };
 }
 
 /**
@@ -240,7 +219,7 @@ export async function checkSessionManagerIsolation(
       read,
       path.join(targetPath, ".lisa.config.local.json")
     );
-    const block = mergeBlocks(committed, local);
+    const block = mergeSessionManagerBlocks(committed, local);
     if (block === undefined) {
       return { name: CHECK_NAME, status: "ok", detail: "not configured" };
     }

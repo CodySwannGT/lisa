@@ -253,6 +253,7 @@ describe("sessionManager block", () => {
       trustedAuthorIds: "octocat",
     });
     expect(problems[0]).toMatch(/trustedAuthorIds/);
+    expect(problems[0]).toMatch(/GitHub numeric user id.*not logins/);
   });
 });
 

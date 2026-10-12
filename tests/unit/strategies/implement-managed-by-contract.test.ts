@@ -103,6 +103,27 @@ describe.each(SKILL_ROOTS)("lisa-implement managedBy contract (%s)", root => {
     expect(routing()).toContain("no fallback");
   });
 
+  // The routing table is read first; a table row that dispatches any
+  // non-local executionEnv would send a managedBy worker away before the
+  // local-only refusal in this section is ever reached.
+  it("stops managedBy with a non-local executionEnv in the routing table itself", () => {
+    const table = section(skill, EXECUTION_ENV_HEADING);
+    expect(table).toContain(
+      `| \`managedBy=\` present and \`executionEnv=<surface>\` (not \`local\`) | Do **not** dispatch. Stop with: "${REMOTE_REJECTION}" |`
+    );
+    expect(table.indexOf("`managedBy=` present")).toBeLessThan(
+      table.indexOf("| `executionEnv=<surface>` |")
+    );
+  });
+
+  // Questions leave the machine (the manager relays them to a chat app), so
+  // they must never carry a secret or let untrusted tracker text ride along.
+  it("keeps credential values and verbatim untrusted text out of questions", () => {
+    expect(routing()).toContain(
+      "A question sent to `<name>` never contains a credential value or verbatim untrusted tracker text (step 6); describe the request instead."
+    );
+  });
+
   it("routes every question to the named session and never asks in the terminal", () => {
     const body = routing();
     expect(body).toContain("`SendMessage`");
@@ -157,5 +178,11 @@ describe.each(COMMAND_SHIMS)("implement command shim (%s)", shim => {
     const hint = /^argument-hint: "(.*)"$/m.exec(read(shim))?.[1];
     expect(hint).toContain("[executionEnv=local|codex-cloud]");
     expect(hint).toContain("[managedBy=<session-name>]");
+  });
+
+  it("refuses managedBy with a non-local executionEnv instead of dispatching", () => {
+    expect(read(shim)).toContain(
+      `If \`$ARGUMENTS\` carries both \`managedBy=\` and a non-\`local\` \`executionEnv=\`, do not dispatch: stop with "${REMOTE_REJECTION}"`
+    );
   });
 });

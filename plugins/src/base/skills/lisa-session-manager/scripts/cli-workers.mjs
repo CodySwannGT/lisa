@@ -252,7 +252,11 @@ export async function classify(ctx) {
   const rows = [];
   for (const ref of refs) {
     const entry = ledgerItem(ledger, ref);
-    const named = agents.filter(agent => agent.name === entry.worker);
+    // A worker-less item (asked about, never dispatched) has no session to
+    // pair with; `null === null` would adopt any unnamed agent as its worker.
+    const named = entry.worker
+      ? agents.filter(agent => agent.name === entry.worker)
+      : [];
     const agent = named.find(row => row.active) ?? named[0] ?? null;
     const hash = agent ? logsHash(ctx, entry.worker) : null;
     const classification = classifyWorker({

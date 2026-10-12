@@ -861,7 +861,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/commands/health.md":
       "f74536619029160e20240c3f1eaf02b300aaecd2a649651fd8ce6bf78f881c70",
     "plugins/src/base/commands/implement.md":
-      "91cd96382825d83ae4328d0cccd25992ef5bae0bbf89c20764b8c79b663efb7d",
+      "9a37a992fca9d058f4112cd2b6bb9d8771e65e1350ba4b7611cd70eedae930a7",
     "plugins/src/base/commands/improve-harness.md":
       "2547a45e1e510e9507d8d22fe6d0948dff896574d068f84b4d319088d020a721",
     "plugins/src/base/commands/improve/code-complexity.md":
@@ -1141,7 +1141,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/rules/reference/coding-philosophy.md":
       "fed8381f16a5d6793a49d84d5813d62125808cb2f4981a558b119cf63e2586d9",
     "plugins/src/base/rules/reference/config-resolution.md":
-      "92969442f8e75d415a0085a50f98b5a2fba2734a94ab9336112c3969d1db643d",
+      "b053d2bdc297c596ea5a79eaeab72ce5f913940148307f27f40b43923d3d29ca",
     "plugins/src/base/rules/reference/control-reachability.md":
       "0883f3480de79bcaa4a9da5685192c014d9267d0a12aed8153bba8c51161129a",
     "plugins/src/base/rules/reference/convergent-review.md":
@@ -1245,13 +1245,13 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/scripts/automation-run-record.mjs":
       "24351f445c9c9dc7e9136be918bb0c4fbea567f0c3972cbe62afbdc83653ce2a",
     "plugins/src/base/scripts/automation-status-claude-adapter.mjs":
-      "f377d6384d05a97af2a33dc6c1ddb255bc07c7af308c595f6f6fc2789e24d46b",
+      "0b7342757f8457ce134eb4735cd87a1890327eb206b964a24f7325513dbcb974",
     "plugins/src/base/scripts/automation-status-codex-adapter.mjs":
-      "6b0f1ae532a451c45975d8db09c776a03e50e65788b30286b3416e55e39078e7",
+      "48910dfe7649da6c688fe6b0a05a118320e5612cd556c8fac0e7db30992d5ff8",
     "plugins/src/base/scripts/automation-status-contract-drift.mjs":
       "5f3f327fddedd6870017a86f2702d9cbb17352384fb225ab353eed54241182ef",
     "plugins/src/base/scripts/automation-status-expected-fleet.mjs":
-      "c34217cfc1fa7c618ef818bc0db7cb2bd7ed317112997c3c7665c675154e3f59",
+      "dc8d1f66cb1dcb65dafcc2257d8ad3eff015a67c51892753a4d28be6c6bd4390",
     "plugins/src/base/scripts/automation-status-report.mjs":
       "520f77645c5b7cab3f69848fb5cf19e8b1d802cd1f8ce6a35aa36a0bf6a0d146",
     "plugins/src/base/scripts/automation-status-run-history.mjs":
@@ -1411,7 +1411,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-health/SKILL.md":
       "dfdb08a863e78bff42671793dcec29cfae0654db18ebf66a4aa77aeb56ddb775",
     "plugins/src/base/skills/lisa-implement/SKILL.md":
-      "a4d3ae49aaca340bb0583d70dccbbf28573e57a1030f4950a98aad426fd749cb",
+      "04d0b2fd7db66573100c05cdde156b1bbd46072d123d477f731342679445b136",
     "plugins/src/base/skills/lisa-improve-code-complexity/SKILL.md":
       "24ab5b193b409db6ee6bee981a1c0a48d08991782d7846116ad01658c8bc1ae8",
     "plugins/src/base/skills/lisa-improve-harness/SKILL.md":
@@ -1623,7 +1623,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-secrets-access/scripts/tools-from-notes.mjs":
       "360f740cac081151491428043b04fec2f5db6f3ba36394f7378af312396d53ca",
     "plugins/src/base/skills/lisa-secrets-access/scripts/validate-config.mjs":
-      "df8ababd02386a34e428215bcbee31cc82c810afec00bd858a5f4f767ae13209",
+      "2c5fee71486e5992ad552fcbeba37facab2d2d207b0820d7c2994b020a83adc2",
     "plugins/src/base/skills/lisa-security-review/SKILL.md":
       "5a980eaf5efc4fcce66e75521ec5b1eda143a5b0d36e7157234a705dac94e3f5",
     "plugins/src/base/skills/lisa-security-zap-scan/SKILL.md":
@@ -1647,9 +1647,9 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-usage.mjs":
       "92e95420b7d75ca6aa8cdfe00614b802b81b8d80141969153ab0664ab2cd805a",
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-workers.mjs":
-      "6d9ea6ff0a7055712ffe4487f66f68c46637c69c3f49b5f903ef9a25cb33df66",
+      "4b272841c0430ca56c3e25ab43ba73c354bdede11a714ddec72e04135d26775e",
     "plugins/src/base/skills/lisa-session-manager/scripts/config.mjs":
-      "6fec4a94df12eac68c3e112342ad04431a38e9a754ddb5a5ed2ac251ed3bca51",
+      "3c66772809e726da9d23369f7fa7ae14d8aae2b5c34feb06be54fd12ca4e1593",
     "plugins/src/base/skills/lisa-session-manager/scripts/isolation.mjs":
       "f277b7aaff9e798ffaf343f9a223ca662629468446b5e21f3aa5d82656395724",
     "plugins/src/base/skills/lisa-session-manager/scripts/launch.mjs":
@@ -1667,7 +1667,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-session-manager/scripts/token.mjs":
       "05a9dbf6d78ad3f295373edca518371a6fdaaec51a76439c82ba278c80b02091",
     "plugins/src/base/skills/lisa-session-manager/scripts/workers.mjs":
-      "d9f32a3661d3d431d2f90b96fe3b2a4f69eee483b20e6c596597e070c43c5434",
+      "0c1ac656e168d2799b9506f199dc9265beb242ab5ef0e7a5a2948968d2fa15c6",
     "plugins/src/base/skills/lisa-setup-atlassian/SKILL.md":
       "d1945a471afa5454ef4f6dffa52decf7df0ec3f411dadaf5d4bc95aeeb8ca6e2",
     "plugins/src/base/skills/lisa-setup-automations/SKILL.md":
@@ -1715,7 +1715,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-setup-remote-env/scripts/verify-remote-env.mjs":
       "bec0b624c1031d0936afd6e5dd4a3d09adea102d5936b5b9fcf545c7f86a3a11",
     "plugins/src/base/skills/lisa-setup-session-manager/SKILL.md":
-      "76dc86f49d3251bed802d72c943386dd4bbb75045361419d87826b829606c108",
+      "d0455b16b7fd5d936de1021438334a0f5bc31abfb6f3399b0278790f1bac78ff",
     "plugins/src/base/skills/lisa-setup-sonar/SKILL.md":
       "de00597d260d5491837406a81b87a96b9307a7d87c040b35fc1d6e77ae2f5306",
     "plugins/src/base/skills/lisa-setup-workstation/SKILL.md":
@@ -10306,6 +10306,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "src/cli/remote-environment-contract.ts": true,
     "src/cli/remote-environment-detection.ts": true,
     "src/cli/remote-environment.ts": true,
+    "src/cli/session-manager-config-merge.ts": true,
     "src/cli/setup-project.ts": true,
     "src/cli/setup-wiki.ts": true,
     "src/cli/shared-options.ts": true,
@@ -11337,6 +11338,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/cli/refresh-hooks-fixture.ts": true,
     "tests/unit/cli/refresh-hooks.test.ts": true,
     "tests/unit/cli/serialize-legs-callee-grant.test.ts": true,
+    "tests/unit/cli/session-manager-config-merge.test.ts": true,
     "tests/unit/cli/setup-project.test.ts": true,
     "tests/unit/cli/setup-wiki.test.ts": true,
     "tests/unit/cli/shared-options.test.ts": true,
@@ -12380,10 +12382,12 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/secrets/toolchain-surfaces.test.ts": true,
     "tests/unit/secrets/tools-from-notes.test.ts": true,
     "tests/unit/secrets/user-session-hook.test.ts": true,
+    "tests/unit/secrets/validate-config-local-merge.test.ts": true,
     "tests/unit/secrets/validate-config-session-manager.test.ts": true,
     "tests/unit/secrets/validate-config.test.ts": true,
     "tests/unit/session-manager/capacity-stats.test.ts": true,
     "tests/unit/session-manager/capacity.test.ts": true,
+    "tests/unit/session-manager/cli-classify.test.ts": true,
     "tests/unit/session-manager/cli-cycle.test.ts": true,
     "tests/unit/session-manager/cli-isolation.test.ts": true,
     "tests/unit/session-manager/cli-manager.test.ts": true,
@@ -12401,6 +12405,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/session-manager/telegram-route.test.ts": true,
     "tests/unit/session-manager/workers-classify.test.ts": true,
     "tests/unit/session-manager/workers-fixtures.ts": true,
+    "tests/unit/session-manager/workers-name-roundtrip.test.ts": true,
     "tests/unit/session-manager/workers.test.ts": true,
     "tests/unit/skills/secrets-provider-timeout-message.test.ts": true,
     "tests/unit/sonar/sonar-installer.test.ts": true,
