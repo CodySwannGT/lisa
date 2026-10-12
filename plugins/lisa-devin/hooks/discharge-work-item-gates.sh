@@ -1,0 +1,90 @@
+#!/usr/bin/env bash
+# This file is managed by Lisa and IS replaced on each `lisa` run.
+# Do not edit directly — durable changes belong upstream in Lisa.
+
+# =============================================================================
+# Discharge Deferred Work-Item Gates Hook (PostToolUse - Bash)
+# =============================================================================
+# Two of the five Work-Item Traceability gates live OUTSIDE the commits: gate 4
+# is the `Work-Item:` line in the pull-request BODY, and gate 5 is the managed
+# `[lisa-pr-link]` backlink on the item. A push cannot check either one —
+# both are properties of a pull request, and the push is what makes the pull
+# request possible — so until this hook existed the next thing that looked was
+# CI, one cycle later (CodySwannGT/lisa#3791).
+#
+# This fires the moment a pull request is created or its body edited, which is
+# the FIRST moment both gates are checkable. It evaluates them, and posts the
+# backlink that gate 5 needs, so neither waits for a red CI run to be revealed.
+#
+# Exit 2 blocks and hands the output back to the agent, which is the point: a
+# non-blocking notice here would be the same defect the discharge exists to
+# fix — a finding delivered somewhere nobody has to act on it.
+# =============================================================================
+set -uo pipefail
+
+JSON_INPUT="$(cat)"
+
+command -v jq >/dev/null 2>&1 || exit 0
+command -v node >/dev/null 2>&1 || exit 0
+
+COMMAND="$(printf '%s' "$JSON_INPUT" | jq -r '.tool_input.command // empty' 2>/dev/null || true)"
+[ -n "$COMMAND" ] || exit 0
+
+# `gh pr create` opens one; `gh pr edit` is the other way a body comes to carry
+# — or lose — its declaration. Both change the answer to gate 4.
+#
+# `gh pr reopen` is here because a work item can hold more than one pull
+# request, and a reopened one is a named case: it was closed, so nothing has
+# discharged its gates since, and it is now live again with no CI run to reveal
+# that. Its backlink no longer displaces anyone else's, so re-running the
+# discharge for it is free (CodySwannGT/lisa#3916).
+case "$COMMAND" in
+  *"gh pr create"* | *"gh pr edit"* | *"gh pr reopen"*) ;;
+  *) exit 0 ;;
+esac
+
+repo_root="$(git rev-parse --show-toplevel 2>/dev/null)" || exit 0
+[ -f "$repo_root/scripts/lisa-work-item.mjs" ] || exit 0
+
+output="$(cd "$repo_root" && node scripts/lisa-work-item.mjs discharge-pr-gates 2>&1)"
+status=$?
+
+# 0 is a clean discharge. 3 is the validator's own answer for "no pull request
+# to check yet", which PostToolUse reaches on every `gh pr create` that FAILED
+# — the tool call still ran, so the hook still fires. Collapsing 3 into the
+# blocking arm would report a work-item violation on somebody's typo.
+case "$status" in
+  0 | 3) exit 0 ;;
+esac
+
+# Plugin updates can precede a host's copied CLI. A generic usage refusal from
+# before this subcommand existed is not a ticket violation. Recognize only a
+# command-list line, then confirm that the no-argument usage probe returns the
+# SAME response and status. Never infer capabilities by grepping the entrypoint:
+# Lisa's own entrypoint is a thin import of the canonical implementation.
+# This shared hook fans out to every agent with a PostToolUse surface; agy's
+# documented lack of that surface remains covered by push/CI traceability.
+if [ "$status" -eq 1 ]; then
+  usage_commands="$(printf '%s\n' "$output" | sed -n \
+    -e 's/^Usage: lisa-work-item\.mjs //p' \
+    -e 's/^❌ Work-item tracking blocked this operation: Usage: lisa-work-item\.mjs //p')"
+  case "$usage_commands" in
+    '' | *[!a-z\|-]*) ;;
+    *)
+      case "|$usage_commands|" in
+        *'|discharge-pr-gates|'*) ;;
+        *'|validate-pr|'*)
+          probe_output="$(cd "$repo_root" && node scripts/lisa-work-item.mjs 2>&1)"
+          probe_status=$?
+          if [ "$probe_status" -eq 1 ] && [ "$probe_output" = "$output" ]; then
+            printf '%s\n' 'Lisa PR check unavailable: the host has an older Lisa command. Update Lisa in this project to enable the check.' >&2
+            exit 0
+          fi
+          ;;
+      esac
+      ;;
+  esac
+fi
+
+printf '%s\n' "$output" >&2
+exit 2

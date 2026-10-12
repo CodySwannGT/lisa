@@ -1,0 +1,207 @@
+#!/usr/bin/env bash
+# This file is managed by Lisa and IS replaced on each `lisa` run.
+# Do not edit directly — durable changes belong upstream in Lisa.
+
+# PreToolUse hook: refuse agent writes to the session-instruction files.
+#
+# `AGENTS.md`, `CLAUDE.md`, and `.github/copilot-instructions.md` are the files
+# every agent loads at session start. They are human-authored and curated on
+# purpose — Lisa's own contract says so in two places:
+#   - plugins/src/base/rules/reference/project-learnings.md
+#   - plugins/src/base/skills/lisa-debrief-apply/SKILL.md ("CLAUDE.md is
+#     human-authored ... apply never writes to any of the three")
+#
+# Nothing enforced it, so agents appended their own findings anyway: one fleet
+# repo reached 949 lines of ticket-keyed trap dumps in `AGENTS.md` while its
+# learnings ledger held 22. Every one of those lines is charged to the context
+# of every later session in that project, forever. Prose did not hold; this is
+# the executable control that does.
+#
+# Blocked signatures:
+#   1. Write / Edit / MultiEdit / NotebookEdit whose target basename is one of
+#      the instruction files;
+#   2. Bash output redirection (`>`, `>>`), `tee`, or `sed -i` aimed at one.
+#      Reads (`cat AGENTS.md`, `rg pattern AGENTS.md`) never fire.
+#
+# Exemptions (allowed):
+#   - `LISA_ALLOW_INSTRUCTION_FILE_WRITE` set in the operator's runtime config.
+#     This cooperative override does not authenticate conversation approval;
+#   - Edit/MultiEdit replacing only bounded `<!-- LISA_` regions on both sides;
+#   - paths under `node_modules/` or `dist/` — vendored copies, not the host's.
+set -euo pipefail
+
+input="$(cat)"
+
+# Evaluate once per tool call when this guard is registered on both channels.
+#
+# Lisa reaches an agent through the repository dispatcher AND the plugin
+# manifest, and where both are live the harness runs this guard twice for one
+# tool call. `guard-dedupe.bash` short-circuits the second run ONLY when a
+# byte-identical copy already ALLOWED this exact payload on this exact tool
+# call; a differing vintage, a refusal, and a host with one channel all
+# evaluate exactly as before. Nothing is de-registered by it
+# (CodySwannGT/lisa#3814).
+#
+# Absent library means no dedupe, which is the pre-existing behaviour, so an
+# older channel copy that predates it is unaffected.
+lisa_guard_hook_dir="${BASH_SOURCE[0]%/*}"
+lisa_guard_dedupe_lib="$lisa_guard_hook_dir/guard-dedupe.bash"
+if [ -r "$lisa_guard_dedupe_lib" ]; then
+  # shellcheck source=guard-dedupe.bash
+  . "$lisa_guard_dedupe_lib"
+  trap 'lisa_guard_dedupe_record $?' EXIT
+  lisa_guard_dedupe block-instruction-file-edits "$input" \
+    "$lisa_guard_hook_dir/parity-safety-net-heredoc.py"
+fi
+
+command -v jq >/dev/null 2>&1 || exit 0
+
+# Existing operator-configured override. This hook sees tool payloads, not the
+# conversation; the environment variable is not proof of who approved an edit.
+if [ -n "${LISA_ALLOW_INSTRUCTION_FILE_WRITE:-}" ]; then
+  exit 0
+fi
+
+tool_name="$(printf '%s' "$input" | jq -r '.tool_name // empty')"
+[ -n "$tool_name" ] || exit 0
+
+# Lisa's own bounded bridges write marked regions — the agy project-learnings
+# bridge and cross-pollinate's rule section. The premise of their exemption, as
+# originally stated, is that they "replace in place and cannot grow the file".
+# This enforces that premise rather than trusting it.
+#
+# Both sides have to be a marked region and nothing else:
+#
+#   - old_string bounded proves the region really is on disk. Scanning the whole
+#     payload was trivially forgeable — any caller could put `<!-- LISA_` in the
+#     content it was WRITING and walk past the guard.
+#   - new_string bounded is what makes it a replacement rather than an append.
+#     old_string alone does not authorize anything: a caller can read a genuine
+#     marked region, echo it back verbatim, and still smuggle unbounded prose in
+#     after the closing marker. Requiring the written text to be exactly one
+#     marked region — whitespace aside — leaves nowhere to put it.
+#
+# Every edit in a MultiEdit must qualify; one unbounded edit taints the batch.
+# Write is absent by construction: it has no old_string and clobbers the whole
+# file, which is precisely the unbounded case.
+case "$tool_name" in
+  Edit | MultiEdit)
+    if printf '%s' "$input" |
+      jq -e '
+        # Exactly ONE marked region and nothing else. The inner
+        # `(?!<!-- LISA_)` is what makes it one: a plain `[\s\S]*` anchors only
+        # the FIRST opening marker and the LAST closing marker, so
+        # `region + prose + region` satisfies it and the prose between the two
+        # regions rides along outside any marked block.
+        def bounded:
+          type == "string"
+          and test("^\\s*<!-- LISA_[A-Z_]+ -->(?:(?!<!-- LISA_)[\\s\\S])*<!-- LISA_[A-Z_]+ -->\\s*$");
+        def replacement_pairs:
+          if .tool_input.edits? then [.tool_input.edits[]?]
+          else [.tool_input] end;
+        replacement_pairs
+        | length > 0
+        and all(.[]; (.old_string | bounded) and (.new_string | bounded))
+      ' >/dev/null 2>&1; then
+      exit 0
+    fi
+    ;;
+esac
+
+# Basename match, case-insensitively: `agents.md` and `AGENTS.md` are the same
+# file on the macOS checkouts this fleet runs on.
+is_instruction_file() {
+  local candidate="$1"
+  case "$candidate" in
+    */node_modules/* | node_modules/* | */dist/* | dist/*) return 1 ;;
+  esac
+  local base="${candidate##*/}"
+  case "$(printf '%s' "$base" | tr '[:upper:]' '[:lower:]')" in
+    agents.md | claude.md | copilot-instructions.md) return 0 ;;
+  esac
+  return 1
+}
+
+refuse() {
+  local target="$1"
+  cat >&2 <<EOF
+BLOCKED: refusing to write \`$target\`.
+
+WHY: this session-instruction file is loaded into future agent sessions.
+Appending incidental findings makes every later session carry those notes.
+This hook checks write patterns; it cannot read or authenticate conversation approval.
+
+If an operator already requested a standing-rule edit, that authorization is
+enough for the requested change. Use the relevant topic file in \`.agents/rules/\`
+when no other destination was specified. All six supported agents read that
+directory through the existing \`AGENTS.md\` pointer. Edit it directly; do not
+require learning capture, another ticket, or repeated approval for the same ruling.
+
+If the operator explicitly named this guarded file, preserve that target and
+use the runtime's authorized edit path, or report this remaining restriction.
+Do not silently move the edit, switch tools to evade this refusal, or set an
+override yourself. The existing operator-configured
+\`LISA_ALLOW_INSTRUCTION_FILE_WRITE=1\` escape hatch is not proof of consent.
+
+For an agent's own finding, first decide whether it is worth maintaining.
+Decline one-off trivia and unnecessary rules. Durable project knowledge can
+use \`/lisa:persist-learning\`; procedural knowledge belongs with its SKILL.md;
+background belongs in existing project documentation. Use
+\`/lisa:cross-pollinate\` only for a material, reusable upstream improvement.
+EOF
+  exit 2
+}
+
+case "$tool_name" in
+  Write | Edit | MultiEdit | NotebookEdit | Update)
+    # `file_path` covers Write/Edit; `edits[].file_path` covers the MultiEdit
+    # shapes that carry a path per edit; `notebook_path` covers NotebookEdit.
+    paths="$(printf '%s' "$input" | jq -r '
+      [ .tool_input.file_path?,
+        .tool_input.path?,
+        .tool_input.notebook_path?,
+        (.tool_input.edits? // [] | .[].file_path?)
+      ] | map(select(. != null and . != "")) | .[]' 2>/dev/null || true)"
+    while IFS= read -r candidate; do
+      [ -n "$candidate" ] || continue
+      if is_instruction_file "$candidate"; then
+        refuse "$candidate"
+      fi
+    done <<EOF
+$paths
+EOF
+    ;;
+  Bash)
+    command_str="$(printf '%s' "$input" | jq -r '.tool_input.command // empty')"
+    [ -n "$command_str" ] || exit 0
+    # Fast path: no instruction filename mentioned means nothing to classify.
+    if ! printf '%s' "$command_str" |
+      grep -Eqi '(agents|claude|copilot-instructions)\.md'; then
+      exit 0
+    fi
+    # Literal printf/echo arguments are content. The shared projection keeps
+    # the real redirect target, and leaves executable/ambiguous syntax intact.
+    if [[ "$command_str" =~ ^[[:blank:]]*(printf|echo)[[:blank:]] ]] \
+      && command -v python3 >/dev/null 2>&1; then
+      if display_projection="$(printf '%s' "$command_str" | python3 \
+        "$lisa_guard_hook_dir/parity-safety-net-heredoc.py" --literal-display 2>/dev/null)"; then
+        command_str="$display_projection"
+      fi
+    fi
+    # Write signatures only. A bare mention (`cat AGENTS.md`, `rg x AGENTS.md`)
+    # is a read and must stay allowed — the filename has to appear as the target
+    # of a redirection, a tee, or an in-place sed.
+    # `>>?\|?` covers `>`, `>>`, and the noclobber override `>|`. The bare-`>`
+    # branch already catches explicit fd forms such as `1>` / `2>>` because the
+    # pattern is unanchored and matches the `>` inside them; `>|` was the real
+    # gap, since `|` is excluded by the target class and so terminated the match.
+    write_target='[^ |;&]*(agents|claude|copilot-instructions)\.md'
+    if printf '%s' "$command_str" |
+      grep -Eqi ">>?\|?[[:space:]]*['\"]?$write_target|tee([[:space:]]+-[a-z]+)*[[:space:]]+['\"]?$write_target|sed[[:space:]]+[^|;&]*-i[^|;&]*$write_target"; then
+      refuse "$(printf '%s' "$command_str" |
+        grep -Eoi "$write_target" | head -1)"
+    fi
+    ;;
+esac
+
+exit 0

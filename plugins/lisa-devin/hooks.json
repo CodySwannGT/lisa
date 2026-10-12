@@ -1,0 +1,247 @@
+{
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/devin-tool-name-shim.sh ${CLAUDE_PLUGIN_ROOT}/hooks/enforce-verification-gate.sh"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "^(exec)$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/devin-tool-name-shim.sh ${CLAUDE_PLUGIN_ROOT}/hooks/shell-write-nudge.sh"
+          }
+        ]
+      },
+      {
+        "matcher": "^(exec)$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/devin-tool-name-shim.sh ${CLAUDE_PLUGIN_ROOT}/hooks/failure-signature-index.sh"
+          }
+        ]
+      },
+      {
+        "matcher": "^(exec)$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/devin-tool-name-shim.sh ${CLAUDE_PLUGIN_ROOT}/hooks/discharge-work-item-gates.sh"
+          }
+        ]
+      },
+      {
+        "matcher": "^(edit|apply_patch|write|notebook_edit|exec)$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/devin-tool-name-shim.sh ${CLAUDE_PLUGIN_ROOT}/hooks/threshold-ratchet.sh"
+          }
+        ]
+      },
+      {
+        "matcher": "^(exec|edit|apply_patch|write|read|run_subagent|grep|glob)$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/devin-tool-name-shim.sh ${CLAUDE_PLUGIN_ROOT}/hooks/withdrawn-rulings.sh --hook"
+          }
+        ]
+      },
+      {
+        "matcher": "^(exec|edit|apply_patch|write|read|run_subagent|grep|glob)$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/devin-tool-name-shim.sh ${CLAUDE_PLUGIN_ROOT}/hooks/operational-hazards.sh --hook"
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "^(exec)$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/devin-tool-name-shim.sh ${CLAUDE_PLUGIN_ROOT}/hooks/block-no-verify.sh"
+          },
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/devin-tool-name-shim.sh ${CLAUDE_PLUGIN_ROOT}/hooks/parity-safety-net.sh"
+          },
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/devin-tool-name-shim.sh ${CLAUDE_PLUGIN_ROOT}/hooks/block-shell-json-parsing.sh"
+          },
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/devin-tool-name-shim.sh ${CLAUDE_PLUGIN_ROOT}/hooks/block-instruction-file-edits.sh"
+          },
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/devin-tool-name-shim.sh ${CLAUDE_PLUGIN_ROOT}/hooks/block-blind-automerge.sh"
+          },
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/devin-tool-name-shim.sh ${CLAUDE_PLUGIN_ROOT}/hooks/block-host-name-leak.sh"
+          },
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/devin-tool-name-shim.sh ${CLAUDE_PLUGIN_ROOT}/hooks/block-managed-file-edits.sh"
+          },
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/devin-tool-name-shim.sh ${CLAUDE_PLUGIN_ROOT}/hooks/worktree-binding-guard.sh"
+          }
+        ]
+      },
+      {
+        "matcher": "^(write|apply_patch|edit)$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/devin-tool-name-shim.sh ${CLAUDE_PLUGIN_ROOT}/hooks/block-instruction-file-edits.sh"
+          },
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/devin-tool-name-shim.sh ${CLAUDE_PLUGIN_ROOT}/hooks/block-managed-file-edits.sh"
+          },
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/devin-tool-name-shim.sh ${CLAUDE_PLUGIN_ROOT}/hooks/worktree-binding-guard.sh"
+          }
+        ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/devin-tool-name-shim.sh ${CLAUDE_PLUGIN_ROOT}/hooks/enforce-verification-gate.sh"
+          }
+        ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/devin-tool-name-shim.sh ${CLAUDE_PLUGIN_ROOT}/hooks/block-direct-issue-create.sh"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/devin-tool-name-shim.sh ${CLAUDE_PLUGIN_ROOT}/hooks/enforce-verification-gate.sh"
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/devin-tool-name-shim.sh ${CLAUDE_PLUGIN_ROOT}/hooks/install-pkgs.sh"
+          }
+        ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/devin-tool-name-shim.sh ${CLAUDE_PLUGIN_ROOT}/hooks/inject-rules.sh"
+          }
+        ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/devin-tool-name-shim.sh ${CLAUDE_PLUGIN_ROOT}/hooks/withdrawn-rulings.sh --session-start"
+          }
+        ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/devin-tool-name-shim.sh ${CLAUDE_PLUGIN_ROOT}/hooks/operational-hazards.sh --session-start"
+          }
+        ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/devin-tool-name-shim.sh ${CLAUDE_PLUGIN_ROOT}/hooks/inject-resolved-config.sh"
+          }
+        ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/devin-tool-name-shim.sh ${CLAUDE_PLUGIN_ROOT}/hooks/enforcement-vintage.sh"
+          }
+        ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/devin-tool-name-shim.sh ${CLAUDE_PLUGIN_ROOT}/hooks/auto-update.sh",
+            "timeout": 600
+          }
+        ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/devin-tool-name-shim.sh ${CLAUDE_PLUGIN_ROOT}/hooks/setup-jira-cli.sh"
+          }
+        ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/devin-tool-name-shim.sh ${CLAUDE_PLUGIN_ROOT}/hooks/secrets-preflight.sh"
+          }
+        ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/devin-tool-name-shim.sh ${CLAUDE_PLUGIN_ROOT}/hooks/worktree-binding-guard.sh"
+          }
+        ]
+      }
+    ],
+    "SessionEnd": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/devin-tool-name-shim.sh ${CLAUDE_PLUGIN_ROOT}/hooks/cleanup-stale-worktrees.sh",
+            "async": true,
+            "timeout": 300
+          }
+        ]
+      }
+    ]
+  }
+}

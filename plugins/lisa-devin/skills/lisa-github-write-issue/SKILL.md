@@ -1,0 +1,531 @@
+---
+name: lisa-github-write-issue
+description: "Creates or updates a GitHub Issue following the same organizational best practices as lisa-jira-write-ticket — three-audience description, Gherkin acceptance criteria, parent sub-issue (Epic/Story hierarchy), explicit relationship discovery, remote links, labels for status/components/priority/story-points, Validation Journey, and optional GitHub ProjectV2 coordination through lisa-github-project-v2 while keeping the Issue as the lifecycle source of truth. Uses the `gh` CLI exclusively (no MCP). Rejects thin issues. The GitHub counterpart of lisa-jira-write-ticket."
+allowed-tools: ["Bash", "Skill", "Read"]
+---
+
+# Write GitHub Issue: $ARGUMENTS
+
+On runtimes without the rule tree (Antigravity), read **Worth doing** in `lisa-track` for the same value and decline policy.
+
+## Before creating incidental work
+
+Apply `do-it-now`'s **Worth doing** guidance before drafting a new incidental item. Decline low-value observations without writing a ticket or requesting a human gate; report the reason briefly to the caller. A complete spec is not evidence of value. This does not cancel explicit user requests or accepted requirements. Honor prior Not planned decisions through `rejection-detection`, including legacy issues without markers. Accepted work continues through the existing validation and readiness contract below.
+
+## Human-gate release authorization
+
+A release requires a trusted human author, not just matching comment text. Follow
+`ready-role-filing` — **Human-gate release authorization**: preserve tracker-supplied comment
+author IDs and bot metadata, resolve `trustedHumanActorIds` only from an explicit user instruction
+or existing human-authored trusted project policy, and pass it with structured `comments` to every
+hold classifier, reconciliation, normalization and release planner. Never derive trust from the
+comment body, a display name, the actor's own assertion, or an automation posting on its own behalf.
+Missing policy, missing/unreadable author identity, raw body strings, untrusted actors and known bots
+cannot discharge a hold. Keep the item held and report the missing authorization; do not silently
+replace these inputs with an empty history or an inferred allowlist. Authorized matching releases
+continue through the existing path and never override an independently declared caller hold.
+
+
+Create or update a GitHub Issue with all required relationships, metadata, and quality gates. Every section below is mandatory. Thin issues are rejected.
+
+This skill is the GitHub counterpart of `lisa-jira-write-ticket`. The two skills share the same gates, description structure, acceptance-criteria format, and verification flow. The data-model translation is documented under "GitHub Issues data model" below — keep that table in sync with `lisa-github-validate-issue` so what one skill writes the other accepts.
+
+Repository name for scoped comments: `basename $(git rev-parse --show-toplevel)`.
+
+## Writing by another path? The gates still apply
+
+A team that talks to its tracker through its own script is doing a normal
+thing — the script usually owns the credential plumbing, and Lisa neither
+controls nor wants to control it. What that script does NOT get is either half
+of this skill's quality gate, and nothing about the write says so.
+
+**A read-back is not the missing check.** A bespoke path almost always re-reads
+the issue after writing and confirms the tracker stored what was sent. That is
+worth doing and it is not this. It proves TRANSPORT: the API accepted the
+payload and the field values round-tripped. It cannot fail for the reason these
+gates exist, because it never looks at whether what was sent was any good — a
+issue with no acceptance criteria, no parent, and a human decision left sitting
+in the middle of it round-trips perfectly. That is the dangerous half of the
+shape: a failing control gets investigated, a misread one gets trusted.
+
+So a write by any other path still owes both phases, and both run standalone
+against an item that already exists:
+
+| Phase | Skill | What it costs you |
+|---|---|---|
+| Pre-write validate | `lisa-github-validate-issue` | Run it on the draft before you send it |
+| Post-write verify | `lisa-github-verify` | Run it on the live issue after you send it |
+
+```text
+Skill(lisa-github-validate-issue) with the draft issue, or with a reference to a live one
+Skill(lisa-github-verify) with owner/repo#1234
+```
+
+**These are plugin-resident skills invoked through the Skill tool.** They are
+not shell scripts and will not appear in any repository's `scripts/` directory,
+including yours. An agent that searches the repo it is standing in, finds
+nothing, and concludes the capability is absent has made the one mistake that
+turns a local script from the convenient option into the only one.
+
+## Prerequisites
+
+- `gh` CLI installed and authenticated (`gh auth status` must succeed). The skill never falls back to a different transport — if `gh` is unauthenticated, stop and surface the auth error.
+- `.lisa.config.json` must declare `github.org` and `github.repo` for the destination repository. The configured repo is the issue's home; pass it on every `gh` invocation via `--repo <org>/<repo>`.
+- `jq` installed (used to parse `gh` JSON outputs without hand-rolling parsers).
+
+## Phase 1 — Resolve Intent
+
+Determine from `$ARGUMENTS` and context whether this is a CREATE or UPDATE:
+
+- **CREATE**: no existing issue ref provided.
+- **UPDATE**: an issue ref provided (`org/repo#<number>` or a full `https://github.com/<org>/<repo>/issues/<number>` URL). Call `lisa-github-read-issue <ref>` first to load the full current state before editing. Never overwrite without reading.
+
+Resolve `<ORG>` and `<REPO>` from the ref or from `.lisa.config.json`.
+
+## Phase 2 — Gather Required Inputs
+
+| Field | Required For | Notes |
+|-------|--------------|-------|
+| Issue type | CREATE | `Epic`, `Story`, `Task`, `Bug`, `Sub-task`, `Spike`, `Improvement`. Encoded as a label `type:<value>`. |
+| Summary (title) | CREATE, UPDATE | One line, imperative voice, under 100 chars. |
+| Description (body) | CREATE, UPDATE | Multi-section markdown — see Phase 3. |
+| Parent sub-issue | Non-bug, non-epic | Native GitHub sub-issue link. Enforced by `lisa-github-verify`. |
+| Priority | CREATE | Label `priority:<low|medium|high|critical>`. |
+| Acceptance criteria | Story, Task, Bug, Sub-task, Improvement | Gherkin in `## Acceptance Criteria` — see Phase 3. |
+| Validation Journey | Runtime-behavior changes | Delegate to `/github-add-journey`. |
+| Target backend environment | Runtime-behavior changes | For every work type, use an exact `deploy.branches` key when an environment is known. Human: bare key or `Confirmed: <env>`. Automation: `Inferred: <env> — evidence: <title\|body\|reproduction\|hostname>`, `Assumption: <env> — remote default branch <branch>` for a unique reverse-map, or `Assumption: remote default branch <branch>` otherwise. Human confirmation replaces an automated annotation with the bare key or `Confirmed: <env>`. |
+| Sign-in account / credentials | Authenticated-surface tickets | Recorded under `## Sign-in Required`. |
+| Repository | Bug, Task, Sub-task | GitHub Issues live in exactly one repo by definition — record the repo name under `## Repository`, and reject any AC bullet that references a different repo. |
+| Source Requirement | PRD-sourced issues (`prd_source` provided) | `## Source Requirement` with PRD link + verbatim requirement quote(s) — see Phase 3; enforced at every level, sub-issues included. |
+
+Optional but recommended: assignee, milestone, components (label `component:<name>`), story points (label `points:<n>`), labels.
+
+Use `gh api repos/<org>/<repo>/labels --paginate` to discover existing labels before referencing one. If a required label doesn't exist (e.g., `type:Story`, `status:ready`, `priority:high`), create it via `gh label create <name> --color <hex> --description <desc> --repo <org>/<repo>`. The first run on a fresh repo will create the full label set; subsequent runs reuse them.
+
+## Phase 3 — Description Quality
+
+The description (issue body) MUST address three audiences. Reject and rewrite if any are missing.
+
+```markdown
+## Source Requirement
+[Required whenever the issue originates from a PRD (the caller passes
+ `prd_source`). Answers "why was this done?" — cite the PRD and quote the
+ requirement(s) VERBATIM, never paraphrased:
+ - **PRD**: <PRD title + link> §"<section heading>"
+ - **Requirement (R3)**: "<verbatim requirement text from the PRD>"
+ One Requirement line per satisfied requirement. Derived / cross-cutting
+ work that traces to no single requirement uses the supporting form:
+ "Derived work supporting R3, R7 — no single PRD section." Close with:
+ "This issue exists to satisfy the quoted requirement. If implementation
+ scope drifts from the quoted text, the PRD is the authority — raise the
+ conflict rather than silently reinterpreting it." Omit the section only
+ for ad-hoc issues with no PRD lineage.]
+
+## Context / Business Value
+[Why this matters. Stakeholder-facing. Concrete user impact or business outcome.
+ Link to the originating Slack thread, PRD page, incident, or customer report.]
+
+## Technical Approach
+[Developer-facing. Integration points, impacted modules, data model implications,
+ relevant tradeoffs. Not a full design doc — a pointer for someone picking it up.]
+
+## Acceptance Criteria
+```gherkin
+Scenario: <name>
+  Given <precondition>
+  When <action>
+  Then <observable outcome>
+
+Scenario: <name>
+  Given <precondition>
+  When <action>
+  Then <observable outcome>
+```
+
+## Out of Scope
+[Explicit list of what this issue does NOT cover. Forces scope discipline.]
+
+## Target Backend Environment
+[ALWAYS required on a leaf — the SECTION is unconditional, only its
+ VALUE is conditional. It is where `runtime_behavior_change` is
+ persisted, so omitting it records nothing rather than recording "no".
+ When the issue changes runtime behavior, use an exact
+ `deploy.branches` key. A human-confirmed value is a bare key or
+ `Confirmed: <env>`. An automated evidence write is
+ `Inferred: <env> — evidence: <title|body|reproduction|hostname>`; an automated
+ generic default is `Assumption: <env> — remote default branch <branch>`.
+ Without a unique reverse-map use `Assumption: remote default branch <branch>`.
+ Human confirmation replaces the automated annotation with a bare key or
+ `Confirmed: <env>`. ALWAYS render this section — it is where
+ `runtime_behavior_change` is persisted, and an absent section reads as
+ *underivable*, not exempt. Work that changes no runtime behavior declares the
+ exemption in place of an environment: `None — no runtime behavior change:
+ doc-only` (or `config-only` / `type-only`). An Epic/container declares
+ `None — container: state rolls up from children`. Visible prose, not an HTML
+ comment, for the same reason the Branch Plan provenance line is: JIRA's ADF has
+ no comment node. See the `derived-branch-plan` rule.]
+
+## Branch Plan
+[GENERATED, never hand-authored. Render only when the issue has a Target
+ Backend Environment; omit entirely when `runtime_behavior_change = false`
+ (doc-only / config-only / type-only) or for an Epic/container — absence is
+ correct there. Derive per the `derived-branch-plan` rule: resolve the
+ environment, map it forward through `.lisa.config.json` `deploy.branches`,
+ and prove the branch exists on the remote. Do not accept caller-supplied
+ branches; recompute them. Exactly three lines:
+   Branch from: <branch>
+   PR into: <branch>
+   Derived from: Target Backend Environment <env> via .lisa.config.json deploy.branches
+ Both fields name the same branch by construction. A missing, ambiguous, or
+ non-unique mapping, or a branch absent from the remote, STOPS the write —
+ never default to `main` or the remote default to keep the write alive.]
+
+## Sign-in Required
+[Include this section ONLY if the work touches authenticated surfaces.
+ Specify: the account/role, where to get the credentials (1Password item,
+ env var, seeded fixture), and any MFA/SSO notes.]
+
+## Repository
+[Required for Bug / Task / Sub-task. Name the single repo this issue covers.
+ If the work spans repos, this issue type is wrong — split into per-repo
+ Tasks/Sub-tasks under a parent Story or Epic.]
+
+## Source Artifacts
+[Group by domain (UI / UX flow / Data / Ops / Reference). One bullet per
+ artifact with title and URL. Inherited from the parent epic per the rules
+ in lisa-tracker-source-artifacts.]
+
+## Source Precedence
+[When artifacts are attached, name the authoritative source per axis:
+ business rules → PRD body, visual treatment → mocks, flow → prototypes,
+ API/data → data artifacts. Cross-axis conflicts go under Open Questions.]
+
+## Links
+[Remote links: PRs (`Resolves <org>/<repo>#<pr>`), Confluence pages,
+ dashboards, incident tickets. Native `Resolves #<pr>` lines are picked up
+ by GitHub for auto-close.]
+
+## Relationship Search
+[Document the git+search outcomes from Phase 4b. "Searched git history
+ for `<keywords>` and `gh issue list` for label `component:X`; no related
+ work found." A no-result outcome is acceptable when documented.]
+
+## Validation Journey
+[Delegate to /github-add-journey if the issue changes runtime behavior.
+ Skip only for doc-only, config-only, or type-only issues. Cross-work-item
+ evidence pointers use `[EVIDENCE-REF: <work-item-ref> | <artifact-type>: <kebab-case-name>]`;
+ they never replace this issue's local S14 marker.]
+```
+
+Rules:
+- PRD-sourced issues (caller passed `prd_source`) MUST carry the Source Requirement section with verbatim quotes — paraphrases are rejected (validator gate S16). This applies at every level, sub-issues included: a leaf claimed in isolation must explain its own "why".
+- Every acceptance criterion uses Given/When/Then. No vague "should work" language.
+- Every criterion is independently verifiable.
+- If the issue is a Bug, include reproduction steps, expected vs. actual behavior, and environment.
+- If the issue is a Spike, include the question being answered and the definition of done.
+- If sign-in is required, the implementer must be able to sign in from the description alone.
+
+## Phase 4 — Relationship Discovery (Mandatory)
+
+### 4a. Parent sub-issue
+
+If the issue is not a Bug and not an Epic, it MUST have a parent sub-issue:
+
+1. If explicitly provided, use that issue number.
+2. Otherwise search active Epic issues:
+   ```bash
+   gh issue list --repo <org>/<repo> --label type:Epic --state open --json number,title,body --limit 100
+   ```
+   Match on keywords from the summary and description.
+3. If no Epic matches, stop and ask the human to create or pick one. Do NOT orphan the issue.
+
+### 4b. Related issues
+
+Run BOTH searches and document outcomes — never declare "no related work" without doing both.
+
+**Search 1: local git history**
+
+```bash
+git log --all --oneline --grep="<keyword>"
+git log --all --oneline -- <path-or-glob>
+git log --since=90.days --oneline -- <path-or-glob>
+```
+
+If a PR or commit surfaces, capture the PR URL — it becomes a Phase 4c link.
+
+**Search 2: GitHub issue search**
+
+```bash
+gh issue list --repo <org>/<repo> --search "<keyword>" --state all --limit 50 --json number,title,state,labels,updatedAt
+gh issue list --repo <org>/<repo> --label "component:<component>" --state open --limit 100 --json number,title,state
+gh issue list --repo <org>/<repo> --search "epic:#<epic-number>" --state all --limit 50 --json number,title,state
+```
+
+For each candidate, classify the relationship using these markdown conventions in the issue body (under `## Links`):
+
+| Link type | How it's encoded |
+|-----------|------------------|
+| `blocks` | `Blocks #<number>` (or full `org/repo#<number>` for cross-repo) |
+| `is blocked by` | `Blocked by #<number>` |
+| `relates to` | `Relates to #<number>` |
+| `duplicates` | `Duplicates #<number>` (and close one as duplicate via `gh issue close <number> --reason "duplicate of #<other>"`) |
+| `clones` | `Cloned from #<number>` |
+
+GitHub does not have a native typed-link primitive for issues (only `Resolves #<pr>` for PR↔Issue). The text conventions above are parsed by `lisa-github-read-issue` to reconstruct the relationship graph.
+
+### 4c. Remote links
+
+Identify and attach (under `## Links`):
+- Related GitHub PRs, branches, or commits.
+- Confluence / Notion / Linear PRD pages (the originating PRD).
+- Dashboards (Grafana, Datadog, Sentry).
+- **Source artifacts from the originating PRD / parent Epic**: classify and inherit per `lisa-tracker-source-artifacts`. Inherit by domain — UI → `ui-design` + `ux-flow`; backend → `data`; infra → `ops`; always inherit `reference`. Never assume a developer will walk up to the Epic to find design context.
+
+If the issue was generated from a PRD and the parent Epic has no source artifacts, surface that as a smell and ask whether artifacts were missed during extraction.
+
+### 4d. Source Precedence (must appear in description)
+
+Same rule as `lisa-jira-write-ticket` Phase 4d — record source precedence under `## Source Precedence` (or a paragraph under `## Technical Approach`) when artifacts are attached. Cross-axis conflicts go under `## Open Questions`.
+
+### 4e. Live Product Walkthrough Findings (UI-touching issues)
+
+If the issue modifies an existing user-facing surface, a `lisa-product-walkthrough` should already have been run upstream. Inherit findings under `## Current Product`.
+
+## Phase 5 — Set Metadata
+
+GitHub Issues uses **labels** for the structured metadata that JIRA stores in custom fields. Apply the conventions:
+
+| Concept | Label format | Example |
+|---------|--------------|---------|
+| Issue type | `type:<value>` | `type:Epic`, `type:Story`, `type:Task`, `type:Bug`, `type:Sub-task`, `type:Spike`, `type:Improvement` |
+| Status | `status:<value>` | `status:ready`, `status:in-progress`, `status:on-dev`, `status:done` |
+| Priority | `priority:<value>` | `priority:low`, `priority:medium`, `priority:high`, `priority:critical` |
+| Components | `component:<name>` | `component:auth`, `component:billing` |
+| Story points | `points:<n>` | `points:3`, `points:5`, `points:8` |
+| Fix version | `fix-version:<value>` | `fix-version:2.7.0` |
+| Repo (multi-repo orgs) | implicit (issue lives in the repo) | — |
+| Triage marker | `claude-triaged-<repo>` | `claude-triaged-frontend-v2` |
+
+Milestones map to `fix-version:<value>` labels OR native GitHub Milestones — pick one convention per repo and document it in `.lisa.config.json` if needed. Default to labels for parity with the JIRA fix-version concept.
+
+Create labels lazily — call `gh label create` if a referenced label doesn't exist. Use a stable color palette per category so the issue board reads cleanly.
+
+### Build-ready label is leaf-only
+
+The build-ready status label (`status:ready`) is governed by the `leaf-only-lifecycle` rule. **Apply `status:ready` only when the issue is a leaf work unit** — an individually implementable issue type (`Bug`, `Task`, `Sub-task`, `Improvement`) that has **no child work**. A container (`Epic`, `Story`, `Spike`, or *any* issue that has sub-issues) is **never** written with `status:ready`; its lifecycle state rolls up from its children. The classification is structural: an item is a container if it has child work, regardless of its declared type (see the childless-parent exception in the rule). Do not hand-apply `status:ready` to a parent.
+
+For non-build-ready issues created fresh (Epics, Stories, and other containers), omit the status label entirely; the container's rollup state is derived, not set directly.
+
+### Build-ready control input (`build_ready`)
+
+`build_ready` is a write-control input governed by the `ready-role-filing` rule — cite that slug for the full contract; do not restate its per-vendor normalization table here. It decides whether a **leaf** work unit is stamped with the build-ready role on create. It never overrides `leaf-only-lifecycle` — a container is never stamped build-ready regardless of `build_ready`. "Not build-ready" is not a special status: it simply means the issue is created in its natural default (a plain open issue with **no `status:ready` label**), which a human can promote later.
+
+- **Omitted** → **not build-ready**: the leaf is created without `status:ready`. Ready is an explicit claim, never a vendor default. **This is a breaking change** — GitHub previously applied `status:ready` on omission, so a caller that relied on that must now pass `build_ready: true`.
+- **`build_ready: false`** → create the leaf **without** `status:ready`, so it sits in the backlog for a human to review and promote into the queue.
+- **`build_ready: true`** → ensure the leaf carries `status:ready` so `lisa-intake` / `lisa-github-build-intake` auto-picks it up.
+
+**A filing with neither is an incomplete handoff.** A leaf that is not build-ready must carry an explicit `human_gate: "<why a human must judge this first>"`; nothing in the ready lane means nothing ever claims it. When `human_gate` is supplied, stamp the hold on the issue so it is auditable — a visible line plus the verbatim marker:
+
+```text
+Held for a human product call: <reason>.
+<!-- [lisa-human-gate] reason=<short-slug> -->
+```
+
+**Stamp both surfaces, not just the marker.** Also apply the configured `human_needed` marker
+label (`github.labels.build.human_needed`, default `human-needed`) to the issue, via `gh issue edit`/`gh issue create --label`. The marker in the body and the label say the same thing,
+and a filing that carries only one of them is a **half-armed gate**: sweeps that read the body
+honour it, and sweeps that read labels do not. That is not hypothetical — the repair sweep that
+normalizes items carrying no lifecycle label keys on the *absence* of `human_needed`, so a
+marker-only hold was its population by construction and got promoted into the build queue (#3805).
+The marker remains the authoritative declaration; the label is what makes the hold visible to a
+person scanning a board and to any path that has not yet been routed through the shared reader.
+If the label does not exist in the tracker, create it, or record that it could not be applied and
+proceed — the marker still holds. Never file the label *instead of* the marker.
+
+**Write a `reason=` the release can name.** The hold's reason is not decoration: a hold ends when a
+`[lisa-human-gate-release]` comment repeating that same `reason=` is recorded on the item by an authorized human, and the
+next intake sweep then takes the marker label off and puts the item back in the build-ready role on
+its own. Matching is per-reason so that a hold declared *after* an earlier release is not born
+discharged. A keyless hold is legal and is discharged by a keyless release; a hold whose reason is a
+paragraph is legal and nobody will reproduce it. Prefer a short slug the person answering it can
+retype. Do **not** instruct anyone to delete the marker from the description to lift the hold — the
+only body write available is a whole-body replacement, so that asks them to rewrite the whole record
+to clear one line, which is why answered holds accumulated instead of being lifted
+(CodySwannGT/lisa#3852). The marker stays as history; the release is recorded beside it.
+
+If a leaf arrives with `build_ready` omitted or `false` **and** no `human_gate`, do not create it: report the incomplete handoff and name both ways to resolve it (`build_ready: true`, or a `human_gate` reason). Containers are exempt — their state rolls up from children, so they need neither.
+
+**The container exemption is executable, not prose.** It used to live only in the sentence above,
+which meant the `block-direct-issue-create.sh` guard — the control that actually runs on the CLI
+path — had no arm for it, and a container could satisfy that guard only by declaring a build-ready
+role `leaf-only-lifecycle` forbids on it or a human gate it does not have. A container now declares
+a **third** thing, and this skill already writes it: the canonical Target Backend Environment value
+`None — container: state rolls up from children`, defined once by `derived-branch-plan`. The guard
+reads that one string, so there is nothing for the skill and the guard to disagree about.
+
+Two consequences for a container written from here. Render the Target Backend Environment section
+with that exact value — an absent section reads as *underivable*, not exempt, and leaves the guard
+nothing to read. And do not put a **by-design leaf type** (`type:Bug` / `type:Task` /
+`type:Sub-task` / `type:Improvement`) on a filing carrying that declaration: an item cannot be a
+container and a leaf at once, and the guard refuses the combination. `type:Story` and `type:Spike`
+are not in that set, because `leaf-only-lifecycle`'s childless-parent exception makes them
+leaf-or-container depending on child work.
+
+## Phase 5.5 — Validate (Pre-write Gate)
+
+Before any write, invoke `lisa-github-validate-issue` with the full proposed spec assembled from Phases 2 / 3 / 4 / 5. Pass it as a YAML block per the `lisa-github-validate-issue` schema, including `runtime_behavior_change`, `authenticated_surface`, and `artifacts_attached` flags so the right gates run.
+
+`lisa-github-validate-issue` is the **single source of truth** for what makes a valid GitHub Issue in this pipeline — same gate definitions as `lisa-jira-validate-ticket`, translated to GitHub's data model. Do not re-implement gate logic here.
+
+If the validator reports `FAIL`, do NOT proceed to Phase 6. Fix the spec and re-run validation. Never call `gh issue create` while the validator's verdict is FAIL.
+
+## Phase 6 — Create or Update
+
+### CREATE
+
+1. Compose the body markdown from Phases 2/3/4 in a temp file (avoid quoting hell). Apply `status:ready` **only for a leaf work unit** per the Phase 5 leaf-only rule (`leaf-only-lifecycle`) — omit it for `Epic` / `Story` / `Spike` and any issue that has child work, **and** only when `build_ready` is explicitly `true` (a leaf with `build_ready` omitted or `false` is created without `status:ready`; see the Build-ready control input):
+   ```bash
+   # Leaf work unit (Bug / Task / Sub-task / Improvement with no children), build_ready: true:
+   gh issue create \
+     --repo <org>/<repo> \
+     --title "<summary>" \
+     --body-file /tmp/issue-body.md \
+     --label "type:<type>" --label "status:ready" --label "priority:<priority>" \
+     [--label "component:<name>" ...] [--milestone "<milestone>"] \
+     [--assignee "<login>"]
+
+   # Container (Epic / Story / Spike / any issue with child work), OR a leaf whose build_ready is
+   # omitted or false (and which therefore carries an explicit human_gate):
+   # identical, but WITHOUT --label "status:ready" — a container's state rolls up from children;
+   # a human-gated leaf waits in the backlog for a human to promote it.
+   gh issue create \
+     --repo <org>/<repo> \
+     --title "<summary>" \
+     --body-file /tmp/issue-body.md \
+     --label "type:<type>" --label "priority:<priority>" \
+     [--label "component:<name>" ...] [--milestone "<milestone>"] \
+     [--assignee "<login>"]
+   ```
+2. Capture the returned issue number.
+3. **Link to parent sub-issue** (if non-Epic): use the GraphQL sub-issue API.
+
+   Resolve the new issue's GraphQL node ID:
+   ```bash
+   child_id=$(gh api graphql -f query='query($org:String!,$repo:String!,$number:Int!){repository(owner:$org,name:$repo){issue(number:$number){id}}}' -F org=<org> -F repo=<repo> -F number=<new_number> --jq '.data.repository.issue.id')
+   ```
+   Resolve the parent issue's GraphQL node ID the same way. Then call:
+   ```bash
+   gh api graphql -f query='mutation($parentId:ID!,$childId:ID!){addSubIssue(input:{issueId:$parentId,subIssueId:$childId}){issue{number}subIssue{number}}}' -F parentId=$parent_id -F childId=$child_id
+   ```
+   If the GraphQL mutation isn't available on the repo (older GHES, sub-issues feature off), fall back to text linkage in the body (`Parent: #<parent>`) and surface a warning to the caller. Do NOT silently proceed without recording the parent.
+4. Phase 4b relationship lines (`Blocks #...`, `Blocked by #...`, etc.) are already in the body. No separate API call is needed — `lisa-github-read-issue` parses them on read.
+5. If the issue changes runtime behavior, invoke the `lisa-github-add-journey` skill to append the Validation Journey section.
+6. If `github.projects.v2` is enabled, resolve the created issue's node id and invoke `lisa-github-project-v2` with `operation: ensure-item` and `content_node_id: <issue-node-id>`. This is membership coordination only — the GitHub Issue remains the lifecycle source of truth for labels, body, comments, and parentage.
+   - `outcome: disabled` → continue normally; no shared Project is configured.
+   - `outcome: reused` or `added` → continue normally; the issue is now present in the Project.
+   - `outcome: warning` (`required: false`) → preserve the exact warning and continue the issue write as success.
+   - `outcome: blocked` (`required: true`) → surface the exact failure and stop returning success; do not claim Project coordination succeeded silently.
+
+### UPDATE
+
+1. Re-read the current body via `gh issue view <number> --repo <org>/<repo> --json body --jq '.body'`. Edit only the sections being changed; preserve everything else verbatim, including any existing canonical managed `## Lisa Usage` section unless the caller intentionally supplied an updated canonical section. Use the shared `lisa-usage-accounting` serializer/merge path rather than freehand edits to ledger rows.
+2. Apply the edit:
+   ```bash
+   gh issue edit <number> --repo <org>/<repo> --body-file /tmp/updated-body.md
+   ```
+3. Add labels: `gh issue edit <number> --add-label "<new-label>"`. Remove labels: `--remove-label`.
+4. Add new relationship lines to `## Links` if needed. Existing links are not touched unless explicitly removed.
+5. Re-resolve the live issue node id and invoke `lisa-github-project-v2` with `operation: ensure-item` so updates keep the issue present in the configured shared Project without duplicating membership writes. Branch on `disabled` / `added` / `reused` / `warning` / `blocked` exactly as in CREATE.
+
+## Phase 7 — Verify
+
+Call the `lisa-github-verify` skill on the resulting issue. `lisa-github-verify` re-fetches the issue and runs `lisa-github-validate-issue` against the live state — same gates as Phase 5.5, applied to what GitHub actually stored.
+
+If it reports failures, fix them before returning.
+
+## Phase 8 — Announce
+
+Post a creation comment via `gh issue comment <number> --repo <org>/<repo> --body-file /tmp/announce.md` with:
+- `[<repo>]` prefix when the issue is repo-scoped (Bug / Task / Sub-task).
+- Who the issue is assigned to.
+- The relationships set in Phase 4b (`Blocks`, `Blocked by`, `Relates to`) with links.
+- Any remote PRs attached.
+
+Skip on UPDATE when no material change was made.
+
+## GitHub Issues data model
+
+The mapping below is the single source of truth for how JIRA concepts translate to GitHub Issues. Mirror this in `lisa-github-validate-issue` and `lisa-github-read-issue` so the shape is symmetric.
+
+| JIRA concept | GitHub Issues equivalent |
+|---|---|
+| Issue type | Label `type:<value>` |
+| Status (Ready / In Progress / On Dev / Done) | Label `status:<value>` |
+| Epic / Story / Sub-task hierarchy | Native sub-issues via `gh api graphql addSubIssue` |
+| Acceptance Criteria | `## Acceptance Criteria` markdown section with a Gherkin code-fence |
+| Validation Journey | `## Validation Journey` markdown section |
+| Source artifacts | `## Source Artifacts` markdown section grouped by domain |
+| Epic parent | Native parent sub-issue link |
+| Issue links (`blocks` / `is blocked by` / `relates to` / `duplicates` / `clones`) | Quick-action lines under `## Links`: `Blocks #N`, `Blocked by #N`, `Relates to #N`, `Duplicates #N`, `Cloned from #N` |
+| Remote links (PRs, dashboards) | Markdown links under `## Links` plus native `Resolves #<pr>` for PR↔Issue auto-close |
+| Components | Label `component:<name>` |
+| Fix version | Label `fix-version:<value>` (or native milestone) |
+| Story points | Label `points:<n>` |
+| Priority | Label `priority:<value>` |
+| Custom-field "Reporter" (the human) | The issue's `author` (immutable) plus the `Filed by:` line in the body |
+| Worklog | Comments (no native time tracking) |
+| Triage marker | Label `claude-triaged-<repo>` |
+
+## Writing by a bespoke path (your own script, direct API or GraphQL)
+
+Nothing here stops a consumer from writing to GitHub through `gh issue create` directly, the GitHub REST or GraphQL API, or your own script, and nothing should
+try to — a script that owns the credential plumbing is often the only practical transport.
+**The transport is not the gate.** A bespoke write path still owes both halves of the quality
+gate this skill runs, and owes them explicitly, because no phase of this flow will ever run
+for it.
+
+A bespoke script's own read-back does not discharge either obligation. Re-reading the issue
+and confirming GitHub stored what was sent **proves transport, not quality**: it shows the
+fields round-tripped and says nothing about whether what was sent clears a single gate. An
+agent that reads `VERIFIED` out of such a script has been told the issue was checked when it
+was not. Measured once, on one issue, on 2026-09-03 (CodySwannGT/lisa#3663): a local
+script's read-back was clean on every field, and the issue then failed gates S5, S9 and S18
+when the validator was run against it by hand.
+
+What a bespoke write path still owes — the same two checks, invoked by hand:
+
+1. **Pre-write validate**, the obligation Phase 5.5 discharges here. Invoke `lisa-github-validate-issue` via
+   the Skill tool with the proposed spec as a YAML block **before** writing. Never write on a
+   `FAIL` verdict.
+2. **Post-write verify**, the obligation Phase 7 discharges here. Invoke `lisa-github-verify` via the
+   Skill tool with the identifier of the issue you just wrote — or `lisa-github-validate-issue` directly in
+   identifier mode, which fetches and validates the live state. Never report success on a
+   `FAIL` verdict.
+
+Both run standalone against an existing live issue; `lisa-github-validate-issue` documents the copy-pasteable
+invocation under its standalone entry point.
+
+**Three outcomes, never two.** `PASS`, `FAIL` and *could not validate* are distinct results.
+If the validator did not run to a verdict — the skill was unavailable, a credential was
+missing, the issue could not be fetched — that is **not** a pass. Report it as unvalidated and
+say why. Collapsing "could not validate" into "validated" is the same misreading as trusting
+a read-back.
+
+**These are skills, not scripts.** `lisa-github-validate-issue` and `lisa-github-verify` are plugin-resident and invoked
+through the Skill tool. They are **not** expected to appear in any repository's `scripts/`
+directory, and their absence from one is not evidence that the capability is missing —
+searching the repository you happen to be standing in is the wrong search.
+
+## Rules
+
+- Never create a non-bug issue without a parent Epic / Story (sub-issue link).
+- Never skip relationship discovery — both git history AND `gh issue list` searches must run; outcomes documented under `## Relationship Search`. "None found" is acceptable only when documented.
+- Never create a Bug, Task, or Sub-task whose AC references work in a different repo. GitHub Issues already live in one repo; reject AC bullets that span others — split into per-repo issues under a shared Epic.
+- Never include a runtime-behavior issue without a target backend environment, and never include an authenticated-surface issue without sign-in credentials.
+- Never overwrite an issue body without reading the current version first.
+- Preserve an existing canonical `## Lisa Usage` section on update; never append a second usage
+  section or silently drop ledger rows.
+- All writes go through this skill (or the `tracker-write` shim). Other vendor-neutral skills must NEVER call `gh issue create` directly.
+- The gate logic lives in `lisa-github-validate-issue`, NOT here. This skill calls the validator at Phase 5.5 and Phase 7. When a gate needs to change, change it in `lisa-github-validate-issue`.
+- Never bypass the sub-issue mutation by encoding the parent only in the body. The native sub-issue link is what `lisa-github-read-issue` and the GitHub UI use to render the hierarchy.
+- When GitHub Project coordination is enabled, always delegate membership to `lisa-github-project-v2`; never inline separate ProjectV2 GraphQL from this skill.

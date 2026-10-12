@@ -1,0 +1,15 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "^(write|apply_patch|edit)$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/devin-tool-name-shim.sh ${CLAUDE_PLUGIN_ROOT}/hooks/block-migration-edits.sh"
+          }
+        ]
+      }
+    ]
+  }
+}

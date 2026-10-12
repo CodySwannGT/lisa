@@ -8,9 +8,9 @@ import path from "node:path";
  *
  * Parity limit: Codex and OpenCode copy skills into separate installed trees
  * and still retain these legacy source citations. This variant-local rewrite
- * does not repair those installer paths; it covers Copilot and Cursor only.
+ * does not repair those installer paths; it covers Copilot, Cursor and Devin only.
  * @param {string} root Generated plugin directory.
- * @param {"copilot" | "cursor"} variant Target rule layout.
+ * @param {"copilot" | "cursor" | "devin"} variant Target rule layout (Devin shares Copilot's nested rules/ layout).
  * @returns {void}
  */
 export function rewritePluginRuleCitations(root, variant) {

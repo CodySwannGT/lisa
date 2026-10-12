@@ -18,7 +18,7 @@ import {
 } from "../../helpers/rollup-classifier-ladder-harness.js";
 
 describe("closed authored and generated tracker-sync parity", () => {
-  it("discovers exactly the six registered tracker-sync surfaces", () => {
+  it("discovers exactly the seven registered tracker-sync surfaces", () => {
     const discovered = filesBelow("plugins").filter(file =>
       file.endsWith("/skills/lisa-tracker-sync/SKILL.md")
     );
@@ -55,7 +55,7 @@ describe("closed authored and generated tracker-sync parity", () => {
 });
 
 describe("closed real GitHub rollup caller parity", () => {
-  it("discovers exactly the six registered GitHub sync surfaces", () => {
+  it("discovers exactly the seven registered GitHub sync surfaces", () => {
     const discovered = filesBelow("plugins").filter(file =>
       file.endsWith("/skills/lisa-github-sync/SKILL.md")
     );

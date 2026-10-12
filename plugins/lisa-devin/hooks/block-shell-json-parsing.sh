@@ -1,0 +1,263 @@
+#!/usr/bin/env bash
+# This file is managed by Lisa and IS replaced on each `lisa` run.
+# Do not edit directly — durable changes belong upstream in Lisa.
+
+# PreToolUse hook for Bash: blocks structural JSON parsing with text tools.
+# Text tools (grep/sed/cut/awk) break on valid JSON — multiline values, escaped
+# quotes, reordered keys, nested objects — producing silently wrong output
+# instead of errors. jq is the required tool for structural JSON reads and
+# writes in shell. Promoted from host-rules prose to an executable
+# control by the learnings gardener (issue #1787).
+#
+# Precision-first: this hook fires only on high-confidence STRUCTURAL parsing
+# of a *.json input — never on plain text search. Blocked signatures:
+#   1. `sed -i` (or an s/…/…/ program) applied to a .json file or stream;
+#   2. `cut -d` with a structural delimiter (quote/colon/comma) on .json input;
+#   3. `awk` field extraction (-F or a $N program) on .json input;
+#   4. `grep -o` on .json input (value extraction, not search).
+# A "json input" is a *.json argument, a `< file.json` redirection, or a
+# pipeline stream originating from a .json file (e.g. `cat x.json | …`).
+#
+# Exemptions (allowed):
+#   - any command that invokes jq anywhere (already compliant or mixed-legit);
+#   - search-only usage: plain grep / grep -l / rg with no extraction signature;
+#   - *.jsonl targets (line-delimited streams are legitimately line-tooled);
+#   - heredoc payload text (stripped before classification).
+set -euo pipefail
+
+input="$(cat)"
+
+# Evaluate once per tool call when this guard is registered on both channels.
+#
+# Lisa reaches an agent through the repository dispatcher AND the plugin
+# manifest, and where both are live the harness runs this guard twice for one
+# tool call. `guard-dedupe.bash` short-circuits the second run ONLY when a
+# byte-identical copy already ALLOWED this exact payload on this exact tool
+# call; a differing vintage, a refusal, and a host with one channel all
+# evaluate exactly as before. Nothing is de-registered by it
+# (CodySwannGT/lisa#3814).
+#
+# Absent library means no dedupe, which is the pre-existing behaviour, so an
+# older channel copy that predates it is unaffected.
+lisa_guard_hook_dir="${BASH_SOURCE[0]%/*}"
+lisa_guard_dedupe_lib="$lisa_guard_hook_dir/guard-dedupe.bash"
+if [ -r "$lisa_guard_dedupe_lib" ]; then
+  # shellcheck source=guard-dedupe.bash
+  . "$lisa_guard_dedupe_lib"
+  trap 'lisa_guard_dedupe_record $?' EXIT
+  lisa_guard_dedupe block-shell-json-parsing "$input"
+fi
+
+# Probe the interpreters before the first use. Under `set -euo pipefail` an
+# absent jq does not merely skip the parse — the assignment below dies with
+# 127, and 127 is not a refusal, so the guard vanishes and the command runs.
+# Worse, that 127 used to outrank a sibling guard's 2 in
+# lisa-enforcement-fallback.sh, taking a real refusal down with it.
+#
+# Degrading to "allow" stays right: a hook that cannot parse its input cannot
+# tell a bypass from an ordinary command, and failing closed would block every
+# Bash call on a machine missing an interpreter. Doing it QUIETLY is what is
+# wrong — a guard that is silently absent reads exactly like a guard that is
+# passing. Mirrors block-no-verify.sh, which already had this.
+for required in jq python3; do
+  if ! command -v "$required" >/dev/null 2>&1; then
+    printf 'block-shell-json-parsing: %s not found; JSON-parsing protection is NOT active\n' \
+      "$required" >&2
+    exit 0
+  fi
+done
+
+tool_name="$(printf '%s' "$input" | jq -r '.tool_name // empty')"
+if [ "$tool_name" != "Bash" ]; then
+  exit 0
+fi
+
+command_str="$(printf '%s' "$input" | jq -r '.tool_input.command // empty')"
+if [ -z "$command_str" ]; then
+  exit 0
+fi
+
+# Fast path: no ".json" reference at all means nothing to classify.
+case "$command_str" in
+  *.json*) ;;
+  *) exit 0 ;;
+esac
+
+# python3 is probed with jq at the top now, announced rather than silent.
+
+if ! BLOCK_SHELL_JSON_COMMAND="$command_str" python3 - <<'PY'
+import os
+import re
+import shlex
+import sys
+
+command = os.environ.get("BLOCK_SHELL_JSON_COMMAND", "")
+
+TEXT_TOOLS = {"grep", "egrep", "fgrep", "sed", "gsed", "awk", "gawk", "cut"}
+WRAPPERS = {"command", "env", "sudo", "time", "nohup"}
+ASSIGNMENT = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*=")
+
+
+def strip_heredoc_bodies(text: str) -> str:
+    """Remove heredoc payload lines so prose .json mentions never classify."""
+    lines = text.splitlines()
+    output = []
+    marker_pattern = re.compile(
+        r"<<-?\s*(?:'([^']+)'|\"([^\"]+)\"|\\?([A-Za-z_][A-Za-z0-9_]*))"
+    )
+    index = 0
+    while index < len(lines):
+        line = lines[index]
+        output.append(line)
+        markers = [
+            next(group for group in match.groups() if group)
+            for match in marker_pattern.finditer(line)
+        ]
+        index += 1
+        for marker in markers:
+            while index < len(lines):
+                if lines[index].strip() == marker:
+                    index += 1
+                    break
+                index += 1
+    return "\n".join(output)
+
+
+def tokenize(text: str):
+    lex = shlex.shlex(text, posix=True, punctuation_chars="|&;<>")
+    lex.whitespace_split = True
+    try:
+        return list(lex)
+    except ValueError:
+        return None
+
+
+def is_json_path(token: str) -> bool:
+    return token.lower().rstrip(")};").endswith(".json")
+
+
+def split_pipelines(tokens):
+    """Yield lists of pipe-connected segments; each segment is a token list."""
+    pipelines, pipeline, segment = [], [], []
+    for token in tokens:
+        if token in ("|", "|&"):
+            pipeline.append(segment)
+            segment = []
+        elif token in (";", "&&", "||", "&", "\n"):
+            pipeline.append(segment)
+            pipelines.append(pipeline)
+            pipeline, segment = [], []
+        else:
+            segment.append(token)
+    pipeline.append(segment)
+    pipelines.append(pipeline)
+    return pipelines
+
+
+def segment_parts(segment):
+    """Return (tool, args, reads_json) for one pipeline segment."""
+    reads_json = False
+    tool = None
+    args = []
+    index = 0
+    while index < len(segment):
+        token = segment[index]
+        if token == "<":
+            if index + 1 < len(segment) and is_json_path(segment[index + 1]):
+                reads_json = True
+            index += 2
+            continue
+        if token in (">", ">>", "<<", "<<<"):
+            index += 2
+            continue
+        if tool is None and (ASSIGNMENT.match(token) or token in WRAPPERS):
+            index += 1
+            continue
+        if tool is None:
+            tool = token.rsplit("/", 1)[-1]
+        else:
+            args.append(token)
+            if is_json_path(token):
+                reads_json = True
+        index += 1
+    return tool, args, reads_json
+
+
+def flags_of(args):
+    return [a for a in args if a.startswith("-")]
+
+
+def is_violation(tool, args, has_json_input):
+    if not has_json_input:
+        return False
+    flags = flags_of(args)
+    if tool in ("grep", "egrep", "fgrep"):
+        if any(f in ("-l", "-L", "--files-with-matches", "--files-without-match") for f in flags):
+            return False
+        return any(f == "-o" or f == "--only-matching" or ("o" in f[1:] and not f.startswith("--")) for f in flags)
+    if tool in ("sed", "gsed"):
+        if any(f.startswith("-i") or f == "--in-place" for f in flags):
+            return True
+        return any(re.match(r"^-?\d*s[/|#]", a) or a.startswith("s/") or a.startswith("s|") for a in args)
+    if tool == "cut":
+        for i, arg in enumerate(args):
+            if arg == "-d" and i + 1 < len(args) and args[i + 1] in ('"', "'", ":", ","):
+                return True
+            if arg.startswith("-d") and len(arg) > 2 and arg[2:] in ('"', "'", ":", ","):
+                return True
+        return False
+    if tool in ("awk", "gawk"):
+        if any(f == "-F" or f.startswith("-F") for f in flags):
+            return True
+        return any(re.search(r"\$\d", a) for a in args if not a.startswith("-"))
+    return False
+
+
+tokens = tokenize(strip_heredoc_bodies(command))
+if tokens is None:
+    sys.exit(0)
+
+pipelines = split_pipelines(tokens)
+
+# Whole-command jq exemption: any jq stage means the author is already using
+# the right tool; mixed pipelines (jq | grep) are legitimate.
+for pipeline in pipelines:
+    for segment in pipeline:
+        tool, _args, _reads = segment_parts(segment)
+        if tool == "jq":
+            sys.exit(0)
+
+for pipeline in pipelines:
+    json_stream = False
+    for segment in pipeline:
+        tool, args, reads_json = segment_parts(segment)
+        if tool is None:
+            continue
+        has_json_input = reads_json or json_stream
+        if tool in TEXT_TOOLS and is_violation(tool, args, has_json_input):
+            sys.exit(1)
+        # Streams originating from a .json file stay json-classified through
+        # pass-through text stages (cat x.json | grep … | cut …).
+        if reads_json or (json_stream and tool in TEXT_TOOLS | {"cat", "head", "tail", "sort", "uniq", "tr", "xargs"}):
+            json_stream = True
+        else:
+            json_stream = False
+
+sys.exit(0)
+PY
+then
+  cat >&2 <<'EOF'
+BLOCKED: this command parses JSON with text tools (grep/sed/cut/awk). Text
+tools break on valid JSON — multiline values, escaped quotes, reordered keys,
+nested objects — producing silently wrong output instead of errors. Use jq for
+all structural JSON reads and writes in shell. Typical fixes:
+  read a field:   jq -r '.field' file.json
+  filter items:   jq '.items[] | select(.name=="x")' file.json
+  edit in place:  jq '.key="value"' file.json > tmp && mv tmp file.json
+If you are only SEARCHING text inside a JSON file (not extracting values), use
+`rg <pattern> file.json` with no extraction pipe and this hook will not fire.
+EOF
+  exit 2
+fi
+
+exit 0

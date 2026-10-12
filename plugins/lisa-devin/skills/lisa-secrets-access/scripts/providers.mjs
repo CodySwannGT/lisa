@@ -1,0 +1,805 @@
+#!/usr/bin/env node
+/**
+ * Provider reads and boundary enforcement for `lisa-secrets-access`.
+ *
+ * Retrieval and selection are separated deliberately. `fetchRaw` is the only
+ * function that touches a provider; everything downstream operates on plain
+ * rows, which is what makes the boundary rules testable with synthetic data and
+ * without granting a test process access to any real secret.
+ * @module providers
+ */
+
+import { listBootstrapFiles, readBootstrapFile } from "./bootstrap-store.mjs";
+
+import {
+  boundedChildOutput,
+  isChildTimeout,
+  SETUP_OPERATION_BUDGET_MS,
+  rethrowIfChildTimeout,
+} from "../../lisa-setup-workstation/scripts/bounded-child.mjs";
+
+/**
+ * A provider key becomes a shell variable name on materializing surfaces, so
+ * only names valid in every POSIX-like shell are accepted. Anything else stays
+ * in the provider and is intentionally not exported.
+ */
+export const ENV_KEY = /^[A-Za-z_][A-Za-z0-9_]*$/;
+
+/**
+ * The provider entry holding rotation leases.
+ *
+ * Leases live in the provider because it is the only substrate every surface
+ * shares — a CI concurrency group and a laptop lockfile cannot see each other,
+ * but both can see this. It is coordination state rather than a credential, so
+ * it is excluded from every selection: nothing should resolve or materialize it.
+ */
+export const LEASE_KEY = "LISA_ROTATION_LEASES";
+
+/**
+ * Prefix reserved for provider-side coordination records.
+ *
+ * These records contain no credential material. They exist only long enough
+ * to serialize a provider mutation and must never cross the exposure boundary
+ * into a shell, file, hook, or CI environment.
+ */
+export const COORDINATION_KEY_PREFIX = "LISA_COORDINATION_";
+
+const COORDINATION_VALUE = "coordination-only";
+
+/**
+ * The environment variable each provider's CLI reads its own bootstrap from.
+ *
+ * This is deliberately *not* configurable, and separating it from
+ * `bootstrap.key` is the whole point. Two different questions were previously
+ * answered by one value:
+ *
+ * - **Where do we find the bootstrap?** A keychain service or environment
+ *   variable name. That must be configurable, because one workstation serves
+ *   several tenants and each needs its own token stored under its own name.
+ * - **What does the provider CLI call it?** Fixed by the vendor. `bws` reads
+ *   `BWS_ACCESS_TOKEN` and nothing else.
+ *
+ * Conflating them worked only while every project used the default name, where
+ * the two happen to coincide. The moment a project set
+ * `bootstrap.key: "BWS_ACCESS_TOKEN_<tenant>"` the CLI was handed a variable it
+ * has never heard of and failed with "Missing access token".
+ */
+const PROVIDER_BOOTSTRAP_ENV = {
+  bitwarden: "BWS_ACCESS_TOKEN",
+  doppler: "DOPPLER_TOKEN",
+};
+
+/**
+ * The tenant-scoped bootstrap variable a provider expects, by convention.
+ *
+ * Exists so the repo-less path cannot invent one. It used to compose
+ * `BWS_ACCESS_TOKEN_<namespace>` literally, ignoring the provider it had just
+ * resolved — so a Doppler tenant with no checkout was told to set a Bitwarden
+ * variable, and its CLI failed with "Missing access token". That is precisely
+ * the confusion the two questions above are separated to prevent, reintroduced
+ * on the one surface with no config file to correct it.
+ *
+ * `null` for a provider with no env-var bootstrap — 1Password, Vault and AWS
+ * authenticate by other means — because a name invented for them would be a
+ * variable nothing reads, which is worse than admitting there is none.
+ * `providerEnv` already treats an unmapped provider as "inject nothing".
+ * @param {string} provider Provider name.
+ * @param {string} namespace Tenant namespace.
+ * @returns {string|null} The variable to set, or null when the provider has none.
+ */
+export function bootstrapKeyFor(provider, namespace) {
+  const canonical = PROVIDER_BOOTSTRAP_ENV[provider];
+  return canonical ? `${canonical}_${namespace}` : null;
+}
+
+/**
+ * Build the child environment for a provider CLI, injecting the bootstrap under
+ * the name that CLI actually reads.
+ *
+ * Both the read path and the rotation write path need this, and they previously
+ * carried separate copies of the same line — which is how they would eventually
+ * have drifted. One helper, one place to be wrong.
+ * @param {object} cfg Resolved configuration.
+ * @returns {NodeJS.ProcessEnv} Environment for the child process.
+ */
+export function providerEnv(cfg) {
+  const env = { ...process.env };
+  const canonical = PROVIDER_BOOTSTRAP_ENV[cfg.provider];
+  if (!canonical) return env;
+  const token = bootstrapToken(cfg.bootstrap);
+  if (token) env[canonical] = token;
+  // Drop the tenant-scoped name once its value has been placed under the one
+  // the CLI reads. Inheriting it would leave two variables holding the same
+  // bootstrap in the child, which is how a tool that probes for a
+  // similarly-named credential binds to the wrong tenant on a workstation
+  // serving several. The child needs exactly one.
+  if (cfg.bootstrap.key && cfg.bootstrap.key !== canonical) {
+    delete env[cfg.bootstrap.key];
+  }
+  return env;
+}
+
+/**
+ * Obtain the one credential that unlocks the provider.
+ *
+ * Walks `sources` in order, environment first, so a CI run where the pipeline
+ * injects the bootstrap never reaches for a local store. This is the only
+ * credential permitted in an OS keychain — it is a bootstrap, not a cached copy
+ * of anything downstream.
+ * @param {{sources: string[], key: string|null}} bootstrap Bootstrap config.
+ * @returns {string|null} The token, or null when the provider needs none.
+ */
+export function bootstrapToken(bootstrap) {
+  if (!bootstrap.key) return null;
+  for (const source of bootstrap.sources) {
+    const found =
+      source === "env"
+        ? (process.env[bootstrap.key] ?? "").trim()
+        : source === "keychain"
+          ? fromKeychain(bootstrap.key)
+          : "";
+    if (found) return found;
+  }
+  throw new Error(describeMissingBootstrap(bootstrap));
+}
+
+/**
+ * The name Lisa looked up, reduced to the provider prefix it was built from.
+ *
+ * `BWS_ACCESS_TOKEN_lisa` → `BWS_ACCESS_TOKEN`. Used to find the SIBLINGS of a
+ * missing key: names that differ only in their tenant suffix are the ones an
+ * operator can actually point this project at.
+ * @param {string} key The bootstrap variable name that was looked up.
+ * @returns {string} The provider prefix, or the key when it carries no suffix.
+ */
+function bootstrapPrefix(key) {
+  for (const canonical of Object.values(PROVIDER_BOOTSTRAP_ENV)) {
+    if (key === canonical || key.startsWith(`${canonical}_`)) return canonical;
+  }
+  return key;
+}
+
+/**
+ * Keychain SERVICE NAMES on this machine. Never a password.
+ *
+ * `dump-keychain` without `-d` prints metadata only, so this cannot carry a
+ * credential into an error message. Bounded and wrapped: it runs on a path that
+ * is already failing, where a throw would replace the real message with its own
+ * and a hang would replace it with nothing.
+ * @returns {string[]} Service names, or empty when unavailable.
+ */
+function keychainServiceNames() {
+  if (process.platform !== "darwin") return [];
+  try {
+    const dump = boundedChildOutput("security", ["dump-keychain"], {
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "ignore"],
+      timeout: 5000,
+    });
+    return [...String(dump).matchAll(/"svce"<blob>="([^"]*)"/g)].map(
+      ([, name]) => name
+    );
+  } catch {
+    // probe-direction: neutral — the names only enrich a diagnostic message on a
+    // path that has already failed; no verdict reads them.
+    // A locked, absent, or oversized keychain leaves the list empty.
+    return [];
+  }
+}
+
+/**
+ * Bootstrap NAMES this machine holds under the same provider prefix.
+ *
+ * Names only — no value is read, and none is ever reported.
+ *
+ * Every source is injectable because the alternative is a test that asserts
+ * against whatever credentials the developer's own workstation happens to hold.
+ * Such a test passes or fails by accident, and it fails on the one machine that
+ * reproduces the bug (CodySwannGT/lisa#3555).
+ * @param {string} prefix Provider bootstrap prefix, e.g. `BWS_ACCESS_TOKEN`.
+ * @param {object} [deps] Injected sources for testing.
+ * @returns {Array<{name: string, where: string}>} What exists, sorted by name.
+ */
+export function discoverBootstrapNames(prefix, deps = {}) {
+  const env = deps.env ?? process.env;
+  const matches = name => name === prefix || name.startsWith(`${prefix}_`);
+  const found = new Map();
+  const note = (name, where) => {
+    if (matches(name) && !found.has(name)) found.set(name, where);
+  };
+
+  for (const name of Object.keys(env)) {
+    if ((env[name] ?? "").trim()) note(name, "env");
+  }
+  for (const name of (deps.listFiles ?? listBootstrapFiles)()) {
+    note(name, "bootstrap file");
+  }
+  for (const name of (deps.keychainNames ?? keychainServiceNames)()) {
+    note(name, "keychain");
+  }
+
+  return [...found.entries()]
+    .map(([name, where]) => ({ name, where }))
+    .sort((a, b) => a.name.localeCompare(b.name));
+}
+
+/**
+ * Whether the provider's own CLI is resolvable on PATH.
+ *
+ * Asked because the failure this message replaces was read as a MISSING BINARY
+ * by two separate sessions, one of which turned that reading into a standing
+ * instruction telling other agents not to bother installing it. The binary was
+ * on PATH the whole time. Stating which of the two is true costs one
+ * `command -v` and removes the wrong reading entirely.
+ *
+ * **Presence only, and the message says exactly that.** `command -v` proves the
+ * name resolves, never that the binary runs, is the right architecture, or is
+ * authorised. Reporting it as "installed and working" would be a second
+ * confidently-worded overclaim in the same message whose first overclaim is the
+ * defect being fixed. Actually proving "working" means executing the provider
+ * CLI on a path that is already failing, which is a cost and a side effect this
+ * diagnostic has no business incurring.
+ * @param {string} prefix Provider bootstrap prefix.
+ * @returns {boolean|null} PATH presence, or null when the provider has no CLI.
+ */
+export function providerCliPresent(prefix) {
+  const cli = { BWS_ACCESS_TOKEN: "bws", DOPPLER_TOKEN: "doppler" }[prefix];
+  if (!cli) return null;
+  try {
+    return Boolean(
+      String(
+        boundedChildOutput("command", ["-v", cli], {
+          encoding: "utf8",
+          shell: true,
+          stdio: ["ignore", "pipe", "ignore"],
+          timeout: 5000,
+        })
+      ).trim()
+    );
+  } catch {
+    // probe-direction: neutral — PATH presence is reported in the explanation of
+    // an already-failing lookup; it gates nothing on its own.
+    return false;
+  }
+}
+
+/**
+ * Explain a bootstrap that was not found, distinguishing the two causes.
+ *
+ * The message this replaces was accurate and still produced a wrong conclusion
+ * twice, because it answered only "what was missing" and never "what is here".
+ * Lisa looks up `<PREFIX>_<namespace>` where the namespace defaults to the
+ * project's own name, so a workstation holding one credential provisioned for
+ * one project fails closed in every OTHER project — and reads, from inside
+ * those projects, as though the provider were unavailable on the machine.
+ * @param {{sources: string[], key: string}} bootstrap Bootstrap config.
+ * @param {object} [deps] Injected sources for testing.
+ * @returns {string} The operator-facing explanation.
+ */
+export function describeMissingBootstrap(bootstrap, deps = {}) {
+  const prefix = bootstrapPrefix(bootstrap.key);
+  const siblings = (deps.discover ?? discoverBootstrapNames)(
+    prefix,
+    deps
+  ).filter(entry => entry.name !== bootstrap.key);
+  const cli = (deps.cliPresent ?? providerCliPresent)(prefix);
+
+  const lines = [
+    `${bootstrap.key} not found in: ${bootstrap.sources.join(", ")}.`,
+    `It is the bootstrap credential — without it no other secret can be read.`,
+    ``,
+  ];
+
+  if (siblings.length === 0) {
+    lines.push(
+      `No bootstrap credential of any name was found on this machine, so none`,
+      `is provisioned here yet. Store one with:`,
+      ``,
+      `  lisa secrets bootstrap --key ${bootstrap.key}`
+    );
+  } else {
+    lines.push(
+      `This is a NAME MISMATCH, not a missing credential. ${siblings.length === 1 ? "A bootstrap credential exists" : "Bootstrap credentials exist"} here`,
+      `under ${siblings.length === 1 ? "a different name" : "different names"}:`,
+      ``,
+      ...siblings.map(entry => `  ${entry.name}  (${entry.where})`),
+      ``,
+      `Lisa looks up ${prefix}_<namespace>, where <namespace> defaults to this`,
+      `project's own name — so a credential provisioned for one project is not`,
+      `found from any other. Point this project at an existing one by setting`,
+      `its name in .lisa.config.json:`,
+      ``,
+      `  { "secrets": { "bootstrap": { "key": "${siblings[0].name}" } } }`,
+      ``,
+      `or by exporting ${bootstrap.key} in the environment.`
+    );
+  }
+
+  if (cli !== null) {
+    lines.push(``);
+    lines.push(
+      ...(cli
+        ? [
+            `The provider CLI was found on PATH, so this is not a missing-binary`,
+            `problem and reinstalling it will not help. Only the credential NAME`,
+            `is wrong.`,
+          ]
+        : [
+            `Separately, the provider CLI was NOT found on PATH. Both that and the`,
+            `credential name above need resolving.`,
+          ])
+    );
+  }
+
+  return lines.join("\n");
+}
+
+/**
+ * Read one value from this machine's credential store, treating absence as
+ * empty.
+ *
+ * The `keychain` source names a role, not a macOS API: "wherever this machine
+ * keeps its bootstrap". On macOS that is the keychain. Elsewhere there is no
+ * store that can be assumed present — libsecret needs a daemon and a desktop
+ * session, which a server or container does not have — so it is a `0600` file,
+ * the same protection the materialized secrets file already relies on.
+ *
+ * Returning empty on the other platform, as this did before, meant a Linux
+ * machine could store a bootstrap and never read it back.
+ * @param {string} key Bootstrap variable name.
+ * @returns {string} The value, or an empty string when unavailable.
+ */
+function fromKeychain(key) {
+  try {
+    // Inside the `try`, not before it. `readBootstrapFile` uses `readFileSync`,
+    // which throws on a permission error, on EISDIR, and when the file is
+    // removed between the existence check and the read. This function's
+    // contract is to return empty when the value is unavailable, and
+    // `bootstrapToken` has no handler — so a raw filesystem error would
+    // replace the curated "not found in: ..." message with a stack trace.
+    if (process.platform !== "darwin") return readBootstrapFile(key);
+    return boundedChildOutput(
+      "security",
+      ["find-generic-password", "-s", key, "-a", process.env.USER ?? "", "-w"],
+      { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }
+    ).trim();
+  } catch (error) {
+    // A killed child must not read as "this provider has no such
+    // secret" — that is a claim about the vault, and the caller acts on it.
+    rethrowIfChildTimeout(error);
+    return "";
+  }
+}
+
+/**
+ * Read every secret the provider grants, as unfiltered rows.
+ *
+ * Deliberately reads all rather than one: the provider already scopes what this
+ * caller may see, so the set it returns *is* the permitted set. Restating that
+ * as a list in config would duplicate a boundary the provider already enforces.
+ * @param {object} cfg Resolved configuration.
+ * @returns {Array<{key: string, value: string, note: string, projectId: string|null, id?: string|null, creationDate?: string|null, revisionDate?: string|null}>} Rows.
+ */
+export function fetchRaw(cfg) {
+  const env = providerEnv(cfg);
+
+  if (cfg.provider === "env") {
+    return Object.entries(process.env)
+      .filter(([k]) => /^[A-Z][A-Z0-9_]*$/.test(k))
+      .map(([key, value]) => ({
+        key,
+        value: value ?? "",
+        note: "",
+        projectId: null,
+      }));
+  }
+
+  if (cfg.provider === "bitwarden") {
+    const raw = run(
+      "bws",
+      ["secret", "list", "--output", "json"],
+      env,
+      "reading secrets from Bitwarden"
+    );
+    return JSON.parse(raw || "[]").map(s => ({
+      key: s.key,
+      value: s.value,
+      note: s.note ?? "",
+      projectId: s.projectId ?? null,
+      id: s.id ?? null,
+      creationDate: s.creationDate ?? null,
+      revisionDate: s.revisionDate ?? null,
+    }));
+  }
+
+  if (cfg.provider === "doppler") {
+    const args = ["secrets", "download", "--no-file", "--format", "json"];
+    const raw = run("doppler", args, env, "reading secrets from Doppler");
+    return Object.entries(JSON.parse(raw || "{}")).map(([key, value]) => ({
+      key,
+      value: String(value),
+      note: "",
+      projectId: null,
+    }));
+  }
+
+  throw new Error(
+    `provider "${cfg.provider}" has no bulk read implemented yet.\n` +
+      `Add one in providers.mjs — see the dispatch table in SKILL.md.`
+  );
+}
+
+/**
+ * The argument vector a provider CLI is actually spawned with.
+ *
+ * `bws` 2.1.0 colours its output even into a pipe and ignores `NO_COLOR`,
+ * `TERM=dumb` and `CLICOLOR=0` alike, so `bws secret list --output json`
+ * arrives as ANSI-wrapped JSON and `JSON.parse` fails on the first escape
+ * byte — for EVERY secret, including a known-good control. Its own `--color`
+ * flag is the one switch it honours, and it is a global option that must
+ * precede the subcommand. It is applied here rather than at each call site
+ * because a call site that forgets it reproduces the outage in silence.
+ * @param {string} bin Executable name.
+ * @param {readonly string[]} args Arguments the caller composed.
+ * @returns {string[]} Arguments with the CLI's colour switched off.
+ */
+export function providerArgs(bin, args) {
+  return bin === "bws" ? ["--color", "no", ...args] : [...args];
+}
+
+/**
+ * Run a provider CLI, keeping its output off any shared stream.
+ * @param {string} bin Executable name.
+ * @param {string[]} args Arguments.
+ * @param {NodeJS.ProcessEnv} env Environment for the child.
+ * @returns {string} Captured stdout.
+ */
+function run(bin, args, env, operation = "talking to the secrets provider") {
+  try {
+    return boundedChildOutput(bin, providerArgs(bin, args), {
+      encoding: "utf8",
+      env,
+      stdio: ["ignore", "pipe", "pipe"],
+      // THE OPERATION BUDGET, not the probe budget (#4045). Passing none fell
+      // back to `CHILD_BUDGET_MS`, which its own docstring calls "a hang
+      // detector, not a performance budget" — while the sibling budget's
+      // docstring names "secret-provider calls" explicitly. A round trip to a
+      // hosted vault over someone's network is neither a hang nor a local
+      // probe, and this is the one function every Bitwarden and Doppler call
+      // in the tree passes through.
+      timeout: PROVIDER_BUDGET_MS,
+    });
+  } catch (error) {
+    const timedOut = describeProviderTimeout(bin, operation, error);
+    // Rethrow UNCHANGED when it is not a timeout. Relabelling every failure as
+    // a deadline would be this defect with the sign flipped: a genuinely
+    // missing binary would then read as a slow one.
+    if (timedOut === null) throw error;
+    throw new Error(timedOut);
+  }
+}
+
+/**
+ * The deadline a provider CLI call is given.
+ *
+ * `SETUP_OPERATION_BUDGET_MS` rather than `CHILD_BUDGET_MS`, because
+ * `bounded-child.mjs` documents that budget as covering "downloads, package
+ * installation, secret-provider calls, or a project-declared hook", and the
+ * probe budget as a hang detector. Re-exported under a local name so the value
+ * a message quotes and the value the call enforces cannot drift apart.
+ */
+export const PROVIDER_BUDGET_MS = SETUP_OPERATION_BUDGET_MS;
+
+/**
+ * An operator-readable account of a provider CLI killed at its deadline.
+ *
+ * ## What the old message did
+ *
+ * The entire operator-facing output was `spawnSync bws ETIMEDOUT` — a binary
+ * name and an errno, which is the exact shape Node produces for `ENOENT`.
+ * MEASURED: every reader concluded the binary was missing or broken. In the
+ * reported session `bws 2.1.0` was installed and answering in 365–725 ms, a
+ * direct `bws secret list` succeeded moments later, and the operator was one
+ * step from routing live work to `blocked` over a working credential path.
+ *
+ * ## What this says instead, and why each part is there
+ *
+ * The operation, so the reader knows what was in flight. That the CLI RAN, in
+ * as many words, because that is the belief being corrected. The deadline and
+ * whose it is — an operator needs both: the number tells them whether a retry
+ * is plausible, and "Lisa's" tells them the vault reported nothing at all. A
+ * next step, because a message at a gate that a non-technical operator cannot
+ * act on is not finished.
+ *
+ * Returns null for anything that is not a killed child, so the caller rethrows
+ * the original untouched.
+ * @param {string} bin The provider executable that was run.
+ * @param {string} operation What the call was doing, in operator words.
+ * @param {unknown} error The caught value.
+ * @returns {string|null} The message, or null when this is not a timeout.
+ */
+export function describeProviderTimeout(bin, operation, error) {
+  if (!isChildTimeout(error)) return null;
+  const seconds = Math.round(PROVIDER_BUDGET_MS / 1000);
+  return (
+    `${operation}: the \`${bin}\` CLI ran for ${seconds}s and Lisa stopped it ` +
+    `at its own deadline. This is NOT a missing or broken \`${bin}\` — the ` +
+    `binary was found and started, which is what separates this from the ` +
+    `similar-looking "spawnSync ${bin} ENOENT" you get when it is absent. The ` +
+    `deadline is Lisa's, so the provider reported nothing either way: no ` +
+    `secret was read, and nothing says your vault is unreachable. Most often ` +
+    `this is transient network latency — retry the command, and if it keeps ` +
+    `hitting the deadline check that \`${bin}\` answers on its own before ` +
+    `concluding the credential path is unavailable.`
+  );
+}
+
+/**
+ * Apply the exposure boundary and reject an ambiguous set.
+ *
+ * The provider's own scoping is the default allowlist. The optional controls
+ * may only *narrow* it — there is intentionally no way to widen access from
+ * config, because that boundary belongs to the provider grant.
+ *
+ * A duplicate exact-name key is fatal rather than last-wins. Silently choosing
+ * one would make which credential gets used depend on provider response order,
+ * which is neither stable nor visible at the call site.
+ * @param {Array<object>} rows Raw provider rows.
+ * @param {{projectIds: string[], excludeKeys: string[]}} narrow Narrowing controls.
+ * @returns {Map<string, {value: string, note: string, id: string|null, projectId: string|null, creationDate: string|null, revisionDate: string|null}>} Selected secrets by name.
+ */
+export function normalizeRows(
+  rows,
+  narrow = { projectIds: [], excludeKeys: [] }
+) {
+  const projects = new Set(narrow.projectIds ?? []);
+  const excluded = new Set([...(narrow.excludeKeys ?? []), LEASE_KEY]);
+  const out = new Map();
+
+  for (const row of rows) {
+    if (projects.size && !projects.has(row.projectId)) continue;
+    if (
+      typeof row.key === "string" &&
+      row.key.startsWith(COORDINATION_KEY_PREFIX)
+    ) {
+      continue;
+    }
+    if (typeof row.key !== "string" || !ENV_KEY.test(row.key)) continue;
+    if (excluded.has(row.key)) continue;
+    if (out.has(row.key)) {
+      throw new Error(
+        `duplicate secret key across visible projects: ${row.key}.\n` +
+          `Resolve it at the provider — choosing one here would make credential ` +
+          `use depend on response order.`
+      );
+    }
+    if (typeof row.value !== "string") {
+      throw new Error(`secret value is not a string: ${row.key}`);
+    }
+    out.set(row.key, {
+      value: row.value,
+      note: row.note ?? "",
+      id: row.id ?? null,
+      projectId: row.projectId ?? null,
+      creationDate: row.creationDate ?? null,
+      revisionDate: row.revisionDate ?? null,
+    });
+  }
+  return out;
+}
+
+/**
+ * Apply the reviewed `secrets.require` allowlist to the ordinary provider view.
+ *
+ * Omitted `require` keeps the provider grant as the boundary. Once a project
+ * names a required set, every other visible record is outside that project's
+ * declared need and must not resolve or materialize. Missing required names are
+ * refused here rather than becoming a smaller, apparently successful view.
+ * @param {Map<string, {value: string, note: string, id: string|null}>} selected Provider rows after grant narrowing.
+ * @param {string[]|null|undefined} required Exact required names, or no project allowlist.
+ * @returns {Map<string, {value: string, note: string, id: string|null}>} The declared provider view.
+ */
+export function selectRequired(selected, required) {
+  if (required === null || required === undefined) return selected;
+
+  const missing = required.filter(name => !selected.has(name));
+  if (missing.length > 0) {
+    throw new Error(
+      `required secret${missing.length === 1 ? "" : "s"} not found: ` +
+        `${missing.join(", ")}.\n` +
+        `Check the provider grant, secrets.narrow, and the exact names in ` +
+        `secrets.require.`
+    );
+  }
+
+  return new Map(required.map(name => [name, selected.get(name)]));
+}
+
+/**
+ * Read the provider grant through the ordinary narrowing controls, then expose
+ * exactly the names authorised by one consumer.
+ *
+ * This does not widen the provider grant and deliberately does not reuse
+ * `cfg.require`: that declaration controls ordinary resolution and
+ * materialization, while specialized consumers such as propagation carry
+ * their own reviewed exact-name authorization. Keeping those views separate
+ * prevents a propagating-only credential from being written to a materialized
+ * secrets file merely to make the propagation command able to read it.
+ *
+ * Provider retrieval itself remains bounded by the provider account's grant.
+ * Supported bulk-read providers return that granted view before this process
+ * applies the narrower consumer allowlist.
+ * @param {object} cfg Resolved configuration.
+ * @param {string[]|null|undefined} required Exact names authorised for this consumer.
+ * @returns {Map<string, {value: string, note: string, id: string|null}>} The consumer-specific provider view.
+ */
+export function fetchNamed(cfg, required) {
+  return selectRequired(normalizeRows(fetchRaw(cfg), cfg.narrow), required);
+}
+
+/**
+ * Read and select in one step — the normal entry point for consumers.
+ * @param {object} cfg Resolved configuration.
+ * @returns {Map<string, {value: string, note: string, id: string|null}>} Selected secrets.
+ */
+export function fetchAll(cfg) {
+  return fetchNamed(cfg, cfg.require);
+}
+
+/**
+ * The provider view the rotation path reads.
+ *
+ * `excludeKeys` keeps a credential off a **surface's disk**. Applying it here
+ * too hid the provider record, making `rotating` and `excludeKeys` mutually
+ * exclusive — and a credential you cannot see is one you cannot write back to.
+ * That is backwards for a consumable credential: the kind you least want
+ * materialized is the kind that most needs a proven write path.
+ *
+ * Nothing here materializes anything. `fetchAll` remains the only view feeding
+ * a surface, so an excluded rotating credential still never reaches disk.
+ * @param {object} cfg Resolved configuration.
+ * @returns {Map<string, {value: string, note: string, id: string|null}>} Selected secrets by name.
+ */
+export function fetchRotatable(cfg) {
+  return normalizeRows(fetchRaw(cfg), rotationNarrow(cfg));
+}
+
+/**
+ * Narrowing for the rotation view: project grants intact, `excludeKeys` waived
+ * for declared rotating names only.
+ *
+ * The waiver reaches only names in `secrets.rotating` — config, and therefore
+ * reviewed, the same declared-never-inferred rule the write path enforces.
+ * Project narrowing is the provider's own boundary and is never widened. Split
+ * from {@link fetchRotatable} so the decision is testable without a provider.
+ * @param {object} cfg Resolved configuration.
+ * @returns {{projectIds: string[], excludeKeys: string[]}} Narrowing controls.
+ */
+export function rotationNarrow(cfg) {
+  const rotating = new Set(cfg.rotating ?? []);
+  return {
+    projectIds: cfg.narrow?.projectIds ?? [],
+    excludeKeys: (cfg.narrow?.excludeKeys ?? []).filter(
+      key => !rotating.has(key)
+    ),
+  };
+}
+
+/**
+ * Find one raw row by exact key, bypassing the exposure boundary.
+ *
+ * Only the rotation path uses this, and only to reach the lease record, which
+ * is deliberately excluded from every normal selection. Reading a *credential*
+ * must always go through {@link fetchAll} so the boundary applies.
+ * @param {object} cfg Resolved configuration.
+ * @param {string} key Exact key name.
+ * @returns {object|null} The raw row, or null when absent.
+ */
+export function rawByKey(cfg, key) {
+  const matches = fetchRaw(cfg).filter(row => row.key === key);
+  if (matches.length > 1) throw new Error(`duplicate secret key: ${key}`);
+  return matches[0] ?? null;
+}
+
+/**
+ * Write a replacement value back to the provider.
+ *
+ * Passing a value as an argument is normally forbidden, because process
+ * arguments are visible to anyone who can run `ps` on the same host. The
+ * Bitwarden CLI exposes no stdin path for an edit, so this is a documented
+ * exception rather than an oversight: it is confined to the one operation that
+ * cannot be expressed otherwise, and `execFileSync` at least keeps the value
+ * out of a shell and therefore out of shell history.
+ * @param {object} cfg Resolved configuration.
+ * @param {string} id Provider-side identifier for the secret.
+ * @param {string} value Replacement value.
+ */
+export function writeSecret(cfg, id, value) {
+  const env = providerEnv(cfg);
+
+  if (cfg.provider === "bitwarden") {
+    run(
+      "bws",
+      ["secret", "edit", id, "--value", value],
+      env,
+      "updating a secret in Bitwarden"
+    );
+    return;
+  }
+  throw new Error(
+    `provider "${cfg.provider}" has no write implemented.\n` +
+      `Rotation requires a proven write path; add one in providers.mjs.`
+  );
+}
+
+/**
+ * Create one provider-issued publication contender in the target project.
+ *
+ * The deliberately constrained interface accepts no value: coordination
+ * records always contain the same public sentinel, which prevents this helper
+ * from becoming an alternate credential-write path.
+ * @param {object} cfg Resolved configuration.
+ * @param {string} key Unique coordination key.
+ * @param {string} projectId Project containing the target provider record.
+ * @param {string} note Non-sensitive lifecycle metadata.
+ * @returns {object} The provider-issued coordination row.
+ */
+export function createCoordinationRecord(cfg, key, projectId, note) {
+  const env = providerEnv(cfg);
+
+  if (cfg.provider === "bitwarden") {
+    const raw = run(
+      "bws",
+      [
+        "secret",
+        "create",
+        key,
+        COORDINATION_VALUE,
+        projectId,
+        "--note",
+        note,
+        "--output",
+        "json",
+      ],
+      env,
+      "creating a coordination record in Bitwarden"
+    );
+    const created = JSON.parse(raw);
+    return {
+      key: created.key,
+      value: created.value,
+      note: created.note ?? "",
+      projectId: created.projectId ?? null,
+      id: created.id ?? null,
+      creationDate: created.creationDate ?? null,
+      revisionDate: created.revisionDate ?? null,
+    };
+  }
+  throw new Error(
+    `provider "${cfg.provider}" has no coordination-record creation implemented.\n` +
+      `AWS bootstrap publication requires a provider-backed single-writer lock.`
+  );
+}
+
+/**
+ * Remove one provider-side coordination record by its provider identifier.
+ * @param {object} cfg Resolved configuration.
+ * @param {string} id Provider-side identifier for the coordination record.
+ */
+export function removeCoordinationRecord(cfg, id) {
+  const env = providerEnv(cfg);
+
+  if (cfg.provider === "bitwarden") {
+    run(
+      "bws",
+      ["secret", "delete", id, "--output", "none"],
+      env,
+      "deleting a secret in Bitwarden"
+    );
+    return;
+  }
+  throw new Error(
+    `provider "${cfg.provider}" has no coordination-record deletion implemented.\n` +
+      `AWS bootstrap publication requires verified lock cleanup.`
+  );
+}

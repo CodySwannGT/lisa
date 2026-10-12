@@ -1,0 +1,375 @@
+---
+name: lisa-parity-sentry-sdk-setup
+description: "Install and configure the Sentry SDK for a project — detect the framework/runtime, add the correct @sentry/<framework> package, initialize the client, wire the DSN through env, enable error + performance monitoring, and set up source map upload for readable stack traces. One consolidated skill covering react, nextjs, node, nestjs, express, python, django, react-native, and more. Lisa-native reimplementation of Sentry's SDK-setup suite. Use when adding Sentry to a project or fixing an existing Sentry install."
+allowed-tools: ["Read", "Edit", "Write", "Bash"]
+synced-from: sentry@claude-plugins-official@1.4.0
+---
+
+# Sentry SDK Setup
+
+Detect a project's framework and runtime, then install and configure the correct
+Sentry SDK with sensible, production-ready defaults: client initialization, DSN
+via environment variable, error capture, performance/tracing, and source map
+upload so stack traces are readable.
+
+## Consolidation note
+
+Upstream `sentry@claude-plugins-official` 1.0.0 shipped **~30 separate per-SDK
+setup skills**; this single Lisa-native skill consolidated all of them. As of
+upstream **1.2.0** Sentry itself consolidated the suite into one
+`sentry-instrument` playbook, so the shapes now match — but this skill remains a
+from-scratch reimplementation against Lisa conventions, **not** a translation of
+the upstream skill. Pinned to `sentry@claude-plugins-official@1.4.0` via
+`synced-from` so the parity drift detector tracks it as one unit.
+
+### Reviewed at 1.4.0 — the progress-reporting protocol is deliberately declined
+
+Read the pin as **reviewed against 1.4.0**, not as *tracks 1.4.0*. The
+`synced-from` scalar cannot say which it means, so this section says it.
+
+Upstream 1.4.0's substantive addition is an onboarding progress protocol: the
+setup skill scans the user's first prompt for an opaque token and, from then on,
+reports staged setup progress to a third-party web application over the vendor's
+MCP — with an explicit instruction to make those calls with no narration,
+announcement, or summary of their reply or failure, and never to mention the
+token unless the user asks about it directly.
+
+**Lisa does not reimplement it, at 1.4.0 or on a later bump.** Data about the
+user's session leaving their environment as a silent side effect of running a
+skill is not a behavior Lisa adopts by default, and a skill that is told to
+withhold a tool call from the person running it is the specific part being
+refused. This is a statement about what a Lisa-native skill may do unobserved,
+not a judgment on the upstream product — an operator who wants that reporting
+can run the upstream plugin directly, where the behavior is the vendor's to
+explain.
+
+The rest of the 1.3.2 → 1.4.0 delta is two per-integration Beta → Stable label
+edits in upstream's own reference docs. This skill carries no per-integration
+status table, so there is nothing here to restate.
+
+## Step 0 — Scope the install
+
+Decide what you are actually doing before touching code; default to the
+smallest scope (adapted from upstream 1.2.0's scope gate):
+
+- **First error** — no Sentry yet: install the SDK, initialize it for **error
+  capture plus tracing** — noting that tracing is **opt-in** in every Sentry
+  SDK: it only activates when you set `tracesSampleRate`/`tracesSampler` (and,
+  in browsers, add the tracing integration, e.g.
+  `browserTracingIntegration()`), exactly as the Step 3 snippets do — then
+  verify a real captured event and stop. Do not wire up further signals
+  unasked.
+- **Add a signal** — Sentry already installed and the user wants one more signal
+  (logging, profiling, session replay, metrics, cron check-ins, AI/LLM
+  monitoring): skip install/provisioning and configure just that signal per the
+  SDK's docs.
+- **Full setup** — the user asked for "proper" defaults: do first-error, then
+  propose releases + source maps + the signals that fit the app, and add what
+  they accept.
+
+**Never over-instrument.** Wiring up every signal upfront produces noise,
+quota burn, and config the team doesn't understand.
+
+## Step 1 — Detect framework & runtime
+
+Inspect the project before choosing an SDK. Read `package.json`
+(dependencies/scripts), config files, and lockfiles:
+
+- `next` dependency or `next.config.*` → **Next.js**
+- `@nestjs/core` → **NestJS**
+- `react-native` / `expo` → **React Native / Expo**
+- `react` + a bundler (vite/webpack) without Next → **React (browser)**
+- `express` / `fastify` / `koa` and a Node entrypoint → **Node server**
+- `vue` / `@angular/core` / `svelte` → that browser framework
+- `pyproject.toml` / `requirements.txt`; `django`/`flask`/`fastapi` →
+  **Python** (and which web framework)
+- A plain Node library/CLI → **Node**
+- AWS Lambda handlers or a Serverless/SAM/CDK function runtime → inspect the
+  function's actual runtime and wrapper before choosing **Node/Lambda**.
+
+If the runtime is genuinely ambiguous, ask which app to instrument rather than
+guessing. Respect the project's package manager (bun/npm/pnpm/yarn — match the
+lockfile) and module system (ESM vs CJS).
+
+## Step 2 — Install the package
+
+Use the project's package manager. Examples (swap `bun add` for your manager):
+
+| Framework | Package |
+| --- | --- |
+| React (browser) | `@sentry/react` |
+| Next.js | `@sentry/nextjs` |
+| Node / Express / Fastify | `@sentry/node` (+ `@sentry/profiling-node` for profiling) |
+| AWS Lambda | `@sentry/aws-serverless` for a compatible Lambda wrapper, or `@sentry/node` for an unwrapped async handler |
+| NestJS | `@sentry/nestjs` (+ `@sentry/node`) |
+| React Native / Expo | `@sentry/react-native` |
+| Vue | `@sentry/vue` |
+| Angular | `@sentry/angular` |
+| Svelte / SvelteKit | `@sentry/svelte` / `@sentry/sveltekit` |
+| Python (generic) | `sentry-sdk` |
+| Django | `sentry-sdk[django]` |
+| Flask | `sentry-sdk[flask]` |
+| FastAPI | `sentry-sdk[fastapi]` |
+
+For Next.js, prefer the official wizard when available — it scaffolds the config
+files and source-map upload for you:
+
+```bash
+npx @sentry/wizard@latest -i nextjs
+```
+
+## Step 3 — Initialize the client
+
+Initialize **as early as possible** in the app's lifecycle, before other code
+runs. Always read the DSN from the environment (see Step 4) — never hard-code it.
+
+**React (browser)** — `src/instrument.ts`, imported first in the entrypoint:
+
+```ts
+import * as Sentry from "@sentry/react";
+
+Sentry.init({
+  dsn: import.meta.env.VITE_SENTRY_DSN,
+  environment: import.meta.env.MODE,
+  integrations: [Sentry.browserTracingIntegration()],
+  tracesSampleRate: 0.1, // tune per traffic; 1.0 in dev
+});
+```
+
+**Node / Express** — `instrument.ts`, required at the very top of the entrypoint
+(`import "./instrument";` must be the first import):
+
+```ts
+import * as Sentry from "@sentry/node";
+
+Sentry.init({
+  dsn: process.env.SENTRY_DSN,
+  environment: process.env.NODE_ENV,
+  tracesSampleRate: 0.1,
+});
+```
+
+Then, after routes are defined: `Sentry.setupExpressErrorHandler(app);`
+
+### Node24 Lambda completion
+
+Review the actual function runtime and installed SDK before migrating. Node24
+LTS is Lisa's default for new TypeScript hosts; an existing host's explicit
+engine and create-only workflows remain host-owned. On AWS Lambda `nodejs24.x`,
+callback-style handlers and legacy context completion APIs, including
+`callbackWaitsForEmptyEventLoop`, are removed. Do not assign those properties,
+including to frozen/non-extensible context objects. Supported async handlers,
+synchronous returns and response streaming are distinct forms; follow the
+[AWS handler contract](https://docs.aws.amazon.com/lambda/latest/dg/nodejs-handler.html).
+
+Earlier non-streaming async handlers already returned without waiting for
+unresolved background promises. Node24 aligns streaming completion with that
+behavior; await work that must finish before returning or ending the stream.
+Do not claim all Node20/22 async handlers drained arbitrary background work.
+For streaming, flush at the appropriate point before `responseStream.end()` or
+inside the awaited streaming pipeline, rather than after the stream is ended.
+[AWS's Node24 migration explanation](https://aws.amazon.com/blogs/compute/node-js-24-runtime-now-available-in-aws-lambda/)
+is the runtime authority; ordinary local Node process behavior is not deployed
+Lambda evidence.
+
+For an **unwrapped async** scheduled, queue or Cognito handler, initialize Sentry
+once at module startup with the DSN from the environment. Await a finite positive
+flush budget on both success and original-error paths. A false flush result or
+rejection must not turn successful queue work into a retry or replace its real
+error. Keep diagnostics local and non-throwing, and preserve the client for warm
+invocations: `close()` disables it. The following helper wraps the host's existing
+business operation; it neither mutates context nor adds a Lambda callback.
+
+<!-- lisa-node24-unwrapped-example:start -->
+```ts
+import * as Sentry from "@sentry/node";
+
+// Initialize early, once outside the handler, with DSN from the environment.
+function reportFlushProblem(message: string): void {
+  try {
+    console.warn(message);
+  } catch {
+    // Telemetry diagnostics must preserve the business outcome too.
+  }
+}
+
+export async function withSentryFlush<T>(
+  work: () => Promise<T>,
+  timeoutMs = 2000
+): Promise<T> {
+  if (!Number.isFinite(timeoutMs) || timeoutMs <= 0) {
+    throw new RangeError("Choose a finite positive Sentry flush budget");
+  }
+  try {
+    return await work();
+  } catch (originalError) {
+    try {
+      Sentry.captureException(originalError);
+    } catch {
+      // Preserve the original handler error even if capture fails.
+    }
+    throw originalError;
+  } finally {
+    try {
+      if (!(await Sentry.flush(timeoutMs))) {
+        reportFlushProblem("Sentry flush did not finish in time");
+      }
+    } catch {
+      reportFlushProblem("Sentry flush rejected");
+    }
+  }
+}
+```
+<!-- lisa-node24-unwrapped-example:end -->
+
+In the existing async handler, return
+`withSentryFlush(() => performBusinessWork(event, context))`; use the host's
+actual business operation and preserve its return/error contract. Select a
+positive budget that fits remaining invocation time with a safety margin.
+Do not omit the timeout or use zero as a finite cap. The SDK's timeout argument
+does not cancel every custom transport or guarantee completion before Lambda's
+hard timeout, and a drained local queue does not prove tenant ingestion.
+[Sentry API semantics](https://docs.sentry.io/platforms/javascript/guides/aws-lambda/configuration/apis.md)
+describe `flush()` and `close()`.
+
+For a **compatible `Sentry.wrapHandler`**, its documented default flush is up
+to2000ms, configurable through `flushTimeout`; avoid a redundant manual flush
+when that wrapper already handles completion. Check the installed version's
+context behavior, too: `@sentry/aws-serverless`11.6.0 unconditionally assigns
+`context.callbackWaitsForEmptyEventLoop` before invoking the business handler.
+It throws on a non-extensible context lacking that removed property. Changing
+the option does not remove the assignment. Use the unwrapped form when this
+incompatibility applies; do not clone/unfreeze context or pre-add an obsolete
+property to claim compatibility. See the [wrapper documentation](https://docs.sentry.io/platforms/javascript/guides/aws-lambda/configuration/lambda-wrapper.md)
+and [versioned implementation](https://github.com/getsentry/sentry-javascript/blob/11.6.0/packages/aws-serverless/src/sdk.ts).
+
+Treat Node types and optional native profiling as migration checks. Examples
+using `Array.at` need an ES2022-or-later TypeScript `lib`; keep a host's business
+compiler target deliberate. Confirm optional profiling prebuilds against the
+actual Node ABI (Node24 uses137) only when profiling is in use; do not install an
+unused profiling package. Verify the helper with the real installed SDK and
+local transport, including success/error, timeout/false, rejected flush and a
+second warm invocation. Label local observations honestly; actual Lambda
+deployment and Sentry event ingestion require their own provider proof.
+
+**NestJS** — import `./instrument` first in `main.ts`, then add Sentry's module:
+
+```ts
+// main.ts — FIRST line
+import "./instrument";
+// ...
+// app.module.ts
+import { SentryModule } from "@sentry/nestjs/setup";
+@Module({ imports: [SentryModule.forRoot()] })
+export class AppModule {}
+```
+
+**Next.js** — config lives in `sentry.client.config.ts`,
+`sentry.server.config.ts`, `sentry.edge.config.ts`, and `next.config.js` is
+wrapped with `withSentryConfig`. The wizard (Step 2) writes these; verify the DSN
+is read from `process.env.NEXT_PUBLIC_SENTRY_DSN` / `process.env.SENTRY_DSN`.
+
+**React Native / Expo** — wrap the root component:
+
+```ts
+import * as Sentry from "@sentry/react-native";
+Sentry.init({
+  dsn: process.env.EXPO_PUBLIC_SENTRY_DSN,
+  tracesSampleRate: 0.2,
+});
+export default Sentry.wrap(App);
+```
+
+**Python (Django/Flask/FastAPI/generic)** — initialize at startup
+(`settings.py`, app factory, or main module):
+
+```python
+import os
+import sentry_sdk
+
+sentry_sdk.init(
+    dsn=os.environ["SENTRY_DSN"],
+    environment=os.environ.get("ENVIRONMENT", "production"),
+    traces_sample_rate=0.1,
+    send_default_pii=False,
+)
+```
+
+Framework-specific integrations (e.g. `DjangoIntegration`, `FastApiIntegration`)
+are auto-enabled by the matching extra installed in Step 2.
+
+## Step 4 — DSN via environment
+
+- Store the DSN in an environment variable, never in committed source.
+- Add it to `.env.example` (with a placeholder) so the requirement is documented,
+  but keep the real value in `.env`/secrets and confirm `.env` is gitignored.
+- Use the framework's public-env convention for client-side code:
+  `NEXT_PUBLIC_SENTRY_DSN` (Next.js), `VITE_SENTRY_DSN` (Vite),
+  `EXPO_PUBLIC_SENTRY_DSN` (Expo). Server-only code uses `SENTRY_DSN`.
+- For source-map upload (Step 6) the build also needs `SENTRY_AUTH_TOKEN`,
+  `SENTRY_ORG`, and `SENTRY_PROJECT` — these are **build/CI** secrets, not
+  shipped to the client.
+
+## Step 5 — Error + performance monitoring
+
+- **Errors**: unhandled exceptions/rejections are captured automatically once
+  `init` runs; add the framework error handler where required (Express:
+  `setupExpressErrorHandler`; React: an error boundary via
+  `Sentry.ErrorBoundary`; NestJS: `SentryModule`). Use
+  `Sentry.captureException(err)` for caught-but-notable errors.
+- **Performance/tracing**: set a `tracesSampleRate` (start ~0.1 in production,
+  `1.0` in dev) and enable the framework tracing integration (browser tracing,
+  HTTP/DB auto-instrumentation on the server). Optionally add profiling on Node
+  via `@sentry/profiling-node` and `profilesSampleRate`.
+- Set `environment` and (ideally) `release` so issues are grouped per deploy.
+
+## Step 6 — Source maps (readable stack traces)
+
+Minified/transpiled traces are useless without source maps. Configure upload at
+build time:
+
+- **Next.js**: handled by `withSentryConfig` in `next.config.js` (the wizard sets
+  it up); ensure `SENTRY_AUTH_TOKEN`/`SENTRY_ORG`/`SENTRY_PROJECT` exist in CI.
+- **Vite/Webpack/Rollup/esbuild**: add the Sentry bundler plugin
+  (`@sentry/vite-plugin`, `@sentry/webpack-plugin`, etc.) with `sourcemaps`
+  upload enabled and the same auth env vars.
+- **Node**: build with source maps emitted and upload via
+  `sentry-cli sourcemaps upload` (or the bundler plugin) in the release step.
+- **React Native**: source maps upload through the Sentry Metro/Gradle/Xcode
+  integration added by the SDK's setup.
+- Tie uploads to a **release** identifier (commit SHA or version) and inject the
+  same release into `Sentry.init({ release })` so traces map to the right build.
+
+## Step 6a — Name custom telemetry consistently
+
+When adding custom span or log attributes, use the current stable Sentry
+semantic-convention key for that domain when one exists. Sentry conventions are
+aligned with OpenTelemetry in many domains, but Sentry's current convention is
+authoritative for data sent to Sentry. Consult only the relevant domain in the
+official convention reference, omit deprecated keys, and do not invent a second
+name for an established attribute. Keep values low-cardinality and never attach
+secrets, credentials, request bodies, or unnecessary personal data.
+
+## Step 7 — Verify
+
+- Build/typecheck to confirm the SDK wiring compiles:
+  `bun run build` / `bun run typecheck` (or the project's equivalents).
+- Trigger a deliberate test error in a non-production environment and confirm it
+  appears in Sentry with a **readable** (source-mapped) stack trace.
+- Confirm a transaction/trace shows up to validate performance monitoring.
+- Remove the test error afterward.
+
+## Rules
+
+- **Do not port or copy upstream plugin code** — reimplement from scratch.
+- Never hard-code or commit a DSN or `SENTRY_AUTH_TOKEN`; route everything
+  through env/secrets and update `.env.example`.
+- Match the project's package manager and module system; do not introduce a new
+  one to install Sentry.
+- Initialize Sentry before any other application code runs.
+- Tune sample rates for the environment — do not ship `tracesSampleRate: 1.0` to
+  high-traffic production by default.
+- Prefer current Sentry semantic-convention keys for custom span and log
+  attributes; do not use deprecated keys or invent aliases for established ones.
+- Verify with a real captured event and a source-mapped trace before declaring
+  setup complete.

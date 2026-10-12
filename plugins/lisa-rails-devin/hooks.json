@@ -1,0 +1,29 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/devin-tool-name-shim.sh ${CLAUDE_PLUGIN_ROOT}/hooks/inject-rules.sh"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "^(write|apply_patch|edit)$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/devin-tool-name-shim.sh ${CLAUDE_PLUGIN_ROOT}/hooks/rubocop-on-edit.sh"
+          },
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/devin-tool-name-shim.sh ${CLAUDE_PLUGIN_ROOT}/hooks/sg-scan-on-edit.sh"
+          }
+        ]
+      }
+    ]
+  }
+}

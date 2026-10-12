@@ -322,11 +322,11 @@ done
 # wiki/architecture/pattern-b-fan-out-spec.md).
 #
 # Fan out EVERY built Claude plugin (base + every stack + standalones) to each
-# per-agent runtime so cursor/agy/copilot reach parity with Claude/Codex on
+# per-agent runtime so cursor/agy/copilot/devin reach parity with Claude/Codex on
 # stack-specific functionality, not just the base governance plugin. The base
 # keeps its short name `lisa-<agent>`; every other plugin becomes
 # `<plugin>-<agent>` (e.g. lisa-typescript-cursor).
-PER_AGENT_VARIANTS=(cursor agy copilot)
+PER_AGENT_VARIANTS=(cursor agy copilot devin)
 FANOUT_SOURCES=(lisa)
 for stack in "${STACKS[@]}"; do FANOUT_SOURCES+=("lisa-$stack"); done
 for name in "${STANDALONE[@]}"; do FANOUT_SOURCES+=("lisa-$name"); done
