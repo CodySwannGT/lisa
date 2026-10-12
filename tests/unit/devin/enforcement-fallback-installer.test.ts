@@ -224,6 +224,51 @@ describe("DEVIN_FALLBACK_COMMAND", () => {
     }
   });
 
+  it("keeps inner spaces in the project path while trimming its edges", async () => {
+    const spaced = await fs.mkdtemp(
+      path.join(os.tmpdir(), "devin fallback spaced-")
+    );
+    try {
+      await fs.copy(path.join(dir, "scripts"), path.join(spaced, "scripts"));
+      const result = boundedSpawnSync({
+        label: "devin fallback command (spaced root)",
+        command: "/bin/sh",
+        args: ["-c", DEVIN_FALLBACK_COMMAND],
+        env: { ...process.env, DEVIN_PROJECT_DIR: `  ${spaced}  ` },
+        input: JSON.stringify({
+          tool_name: "exec",
+          tool_input: { command: "ls" },
+        }),
+      });
+      expect(result.stdout.trim()).toBe("Bash");
+      expect(result.status).toBe(2);
+    } finally {
+      await fs.remove(spaced);
+    }
+  });
+
+  it("fails closed when the tool-name mapping cannot run (no jq)", async () => {
+    const bin = await fs.mkdtemp(path.join(os.tmpdir(), "devin-nojq-bin-"));
+    try {
+      await fs.symlink("/usr/bin/sed", path.join(bin, "sed"));
+      const result = boundedSpawnSync({
+        label: "devin fallback command (no jq)",
+        command: "/bin/sh",
+        args: ["-c", DEVIN_FALLBACK_COMMAND],
+        env: { PATH: `${bin}:/bin`, DEVIN_PROJECT_DIR: dir },
+        input: JSON.stringify({
+          tool_name: "exec",
+          tool_input: { command: "ls" },
+        }),
+      });
+      expect(result.status).toBe(2);
+      expect(result.stderr).toContain("could not map the Devin tool name");
+      expect(result.stdout).toBe("");
+    } finally {
+      await fs.remove(bin);
+    }
+  });
+
   it("maps the file-edit tools and leaves apply_patch for the guards that read it", () => {
     expect(runCommand("write").stdout.trim()).toBe("Write");
     expect(runCommand("edit").stdout.trim()).toBe("Edit");

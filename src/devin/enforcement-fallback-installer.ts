@@ -38,18 +38,22 @@ export const DEVIN_FALLBACK_MATCHER = "^(exec|write|edit|apply_patch)$";
  * Without `jq` the payload passes unchanged, exactly as the guards behave when
  * they cannot parse it.
  *
- * The root is whitespace-trimmed before the fallback applies (a `" "` value
- * would otherwise survive `:-` and point at a dispatcher that cannot exist),
- * and a missing dispatcher exits 2. Devin blocks only on exit 2, so any other
- * failure here — a 127 from a vanished script — would silently allow the call.
+ * The root has leading and trailing whitespace trimmed (never inner spaces —
+ * a project path may contain them) before the fallback applies, so a `" "`
+ * value cannot survive and point at a dispatcher that cannot exist. Every
+ * failure that would otherwise ALLOW the call fails closed with exit 2, the
+ * only status Devin blocks on: a missing dispatcher, and a tool-name mapping
+ * that could not run (no `jq`, or `jq` failed) — forwarding the raw lowercase
+ * `exec` would make every Bash guard stand down.
  */
 export const DEVIN_FALLBACK_COMMAND = [
-  "root=\"$(printf '%s' \"${DEVIN_PROJECT_DIR-}\" | tr -d '[:space:]')\"",
+  "root=\"$(printf '%s' \"${DEVIN_PROJECT_DIR-}\" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')\"",
   '[ -n "$root" ] || root="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"',
   `[ -f "$root/${DEVIN_FALLBACK_DISPATCHER}" ] || { echo "Lisa enforcement dispatcher missing at $root/${DEVIN_FALLBACK_DISPATCHER}; refusing (run lisa apply)" >&2; exit 2; }`,
   "payload=$(cat)",
   `mapped=$(printf '%s' "$payload" | jq -c 'if (.tool_name | type) == "string" then .tool_name |= ({"exec": "Bash", "write": "Write", "edit": "Edit"}[.] // .) else . end' 2>/dev/null) || mapped=""`,
-  `printf '%s' "\${mapped:-$payload}" | /bin/bash "$root/${DEVIN_FALLBACK_DISPATCHER}"`,
+  `[ -n "$mapped" ] || { echo "Lisa could not map the Devin tool name (jq missing or failed); refusing" >&2; exit 2; }`,
+  `printf '%s' "$mapped" | /bin/bash "$root/${DEVIN_FALLBACK_DISPATCHER}"`,
 ].join("; ");
 
 /**

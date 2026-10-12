@@ -2563,7 +2563,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/generate-cursor-plugin-artifacts.mjs":
       "b0c59ebf8a411a1c4835081ff3a47626868d645e4cebddb7e0e4e795a9cefe24",
     "scripts/generate-devin-plugin-artifacts.mjs":
-      "c152e67db5b638a6788e6d6f5cb00932d0a41fa1eba5cb43dbbeebac55d3779f",
+      "5f17f1d61f47793c7f196267e346baf590eb8efaafc7a80ecc98e5ce3acb7386",
     "scripts/generate-export-surface.mjs":
       "f9af22c8809e93e09a1b2dbbdbd23356890b3460524bd8752731ff454d5f13c0",
     "scripts/generate-lisa-owned-hash-ledger.mjs":
