@@ -2707,7 +2707,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/test-intent-routing.sh":
       "97b9dc86cbd805df8a7fdb8c99ffab9b8c5e751ba2e84c05420b2a124f80635d",
     "scripts/two-channel-couplings.json":
-      "f370a5817b0427a6c2fa2374ce95a4c83f0d3e8e22b3dc8ab49c62e276b13be4",
+      "4c619a1b89e00476ac05761ffb4ffa9fa3fdb93414b55c3205675955b33fe897",
     "scripts/update-node-version.ts":
       "9d37599ef73d5d624751f862cda330a867f6774392c1ab045b4fc885132582e4",
     "scripts/update-test-skill-paths.mjs":
@@ -11321,6 +11321,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/config/vitest-scratch.test.ts": true,
     "tests/unit/config/vitest-typescript.test.ts": true,
     "tests/unit/config/vitest-worker-cap.test.ts": true,
+    "tests/unit/config/work-item-dependabot-pr-fixture.ts": true,
+    "tests/unit/config/work-item-dependabot-pr-tracking.test.ts": true,
     "tests/unit/config/work-item-traceability-gate-level.test.ts": true,
     "tests/unit/config/work-item-traceability-scope-gate.test.ts": true,
     "tests/unit/config/workspace-suite-collection.test.ts": true,

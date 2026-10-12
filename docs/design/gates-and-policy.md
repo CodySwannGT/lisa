@@ -327,6 +327,28 @@ and the hook resolves it: declared at push, at any level, the registry owns the
 property; declared at some other moment, unreadable, or not declared at all, the
 built-in validator runs exactly as it always has.
 
+The built-in PR paths in `quality.yml` and `quality-rails.yml` also accept an
+explicit `workItem.dependabotTracking: "pull-request"` opt-in. Omission or
+`"issue"` preserves issue tracking. The option is read from the event's base
+commit through GitHub, before checkout or execution of PR-head code. A config
+change on the PR head cannot enable it. This does not distribute or configure
+Dependabot itself; dependency-update policy remains host-owned.
+
+For this option, GitHub must authenticate the exact open same-repository PR as
+created by `dependabot[bot]` (github.com ID 49699333, type `Bot`). The workflow
+compares repository identity, PR number and both full event SHAs, then reads the
+PR again before reporting its URL, number and immutable head as the work record.
+That record covers the whole update, including maintainer lockfile amendments.
+Branches, titles, commit emails and the triggering actor cannot grant it.
+
+Missing, malformed, inaccessible or stale proof grants no authenticated PR
+record. A static warning accompanies refused proof, and original issue/custom
+validation still runs. A missing base config keeps the original path. The option
+affects only the built-in fallback: configured custom traceability tasks, local
+commit/push hooks, ordinary human PRs and all quality/security/review/merge checks
+retain their existing behavior. The reusable-workflow and installed work-item
+contract versions remain compatible; no new validator command is required.
+
 **What the traceability gate asks for is a second, independent declaration.**
 The gate LEVEL says whether a failing check blocks a merge; `workItem.verify`
 says what the check proves. Two levels exist:
