@@ -106,6 +106,7 @@ function configuredHarness(
       "agy",
       "copilot",
       "opencode",
+      "devin",
       "fleet",
     ].includes(harness)
     ? (harness as Harness)
