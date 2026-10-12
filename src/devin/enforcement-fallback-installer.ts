@@ -37,9 +37,16 @@ export const DEVIN_FALLBACK_MATCHER = "^(exec|write|edit|apply_patch)$";
  * to the project root; the git/pwd fallback covers a runner that does not.
  * Without `jq` the payload passes unchanged, exactly as the guards behave when
  * they cannot parse it.
+ *
+ * The root is whitespace-trimmed before the fallback applies (a `" "` value
+ * would otherwise survive `:-` and point at a dispatcher that cannot exist),
+ * and a missing dispatcher exits 2. Devin blocks only on exit 2, so any other
+ * failure here — a 127 from a vanished script — would silently allow the call.
  */
 export const DEVIN_FALLBACK_COMMAND = [
-  'root="${DEVIN_PROJECT_DIR:-$(git rev-parse --show-toplevel 2>/dev/null || pwd)}"',
+  "root=\"$(printf '%s' \"${DEVIN_PROJECT_DIR-}\" | tr -d '[:space:]')\"",
+  '[ -n "$root" ] || root="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"',
+  `[ -f "$root/${DEVIN_FALLBACK_DISPATCHER}" ] || { echo "Lisa enforcement dispatcher missing at $root/${DEVIN_FALLBACK_DISPATCHER}; refusing (run lisa apply)" >&2; exit 2; }`,
   "payload=$(cat)",
   `mapped=$(printf '%s' "$payload" | jq -c 'if (.tool_name | type) == "string" then .tool_name |= ({"exec": "Bash", "write": "Write", "edit": "Edit"}[.] // .) else . end' 2>/dev/null) || mapped=""`,
   `printf '%s' "\${mapped:-$payload}" | /bin/bash "$root/${DEVIN_FALLBACK_DISPATCHER}"`,
@@ -153,6 +160,23 @@ export function mergeDevinFallback(existing: DevinHooksFile): DevinHooksFile {
 }
 
 /**
+ * Parse JSON, naming the file when it is malformed.
+ * @param raw - File contents
+ * @param file - Path for the error message
+ * @returns The parsed value
+ */
+function parseJson(raw: string, file: string): unknown {
+  try {
+    return JSON.parse(raw) as unknown;
+  } catch (err) {
+    const reason = err instanceof Error ? err.message : String(err);
+    throw new Error(
+      `${file} is not valid JSON (${reason}); refusing to overwrite it`
+    );
+  }
+}
+
+/**
  * Parse the host file, refusing anything that is not a JSON object rather than
  * overwriting host content Lisa cannot read.
  * @param raw - File contents
@@ -160,10 +184,16 @@ export function mergeDevinFallback(existing: DevinHooksFile): DevinHooksFile {
  * @returns Parsed hooks file
  */
 function parseHooksFile(raw: string, file: string): DevinHooksFile {
-  const parsed: unknown = JSON.parse(raw);
+  const parsed = parseJson(raw, file);
   if (parsed === null || typeof parsed !== "object" || Array.isArray(parsed)) {
     throw new Error(
       `${file} must be a JSON object of hook events; refusing to overwrite it`
+    );
+  }
+  const preToolUse = (parsed as Record<string, unknown>).PreToolUse;
+  if (preToolUse !== undefined && !Array.isArray(preToolUse)) {
+    throw new Error(
+      `${file} has a PreToolUse value that is not an array; refusing to overwrite it`
     );
   }
   return parsed as DevinHooksFile;

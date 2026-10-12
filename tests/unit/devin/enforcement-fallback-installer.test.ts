@@ -74,6 +74,20 @@ describe("installDevinEnforcementFallback", () => {
     expect(lisaHandlerCount(hooks.PreToolUse)).toBe(1);
   });
 
+  it("refuses, naming the file, when the hooks file is not valid JSON", async () => {
+    await fs.outputFile(path.join(dir, HOOKS_FILE), "{oops");
+    await expect(installDevinEnforcementFallback(dir)).rejects.toThrow(
+      /hooks\.v1\.json is not valid JSON/
+    );
+  });
+
+  it("refuses to replace a PreToolUse value that is not an array", async () => {
+    await fs.outputJson(path.join(dir, HOOKS_FILE), { PreToolUse: {} });
+    await expect(installDevinEnforcementFallback(dir)).rejects.toThrow(
+      /PreToolUse value that is not an array/
+    );
+  });
+
   it("refuses to overwrite a hooks file that is not a JSON object", async () => {
     await fs.outputFile(path.join(dir, HOOKS_FILE), "[]");
     await expect(installDevinEnforcementFallback(dir)).rejects.toThrow(
@@ -184,6 +198,30 @@ describe("DEVIN_FALLBACK_COMMAND", () => {
     const result = runCommand("exec");
     expect(result.stdout.trim()).toBe("Bash");
     expect(result.status).toBe(2);
+  });
+
+  it("blocks when DEVIN_PROJECT_DIR is whitespace and no dispatcher is reachable", async () => {
+    const empty = await fs.mkdtemp(
+      path.join(os.tmpdir(), "devin-no-dispatcher-")
+    );
+    try {
+      const result = boundedSpawnSync({
+        label: "devin fallback command (missing dispatcher)",
+        command: "/bin/sh",
+        args: ["-c", DEVIN_FALLBACK_COMMAND],
+        cwd: empty,
+        env: { ...process.env, DEVIN_PROJECT_DIR: " " },
+        input: JSON.stringify({
+          tool_name: "exec",
+          tool_input: { command: "ls" },
+        }),
+        childMayExitBeforeReading: true,
+      });
+      expect(result.status).toBe(2);
+      expect(result.stderr).toContain("dispatcher missing");
+    } finally {
+      await fs.remove(empty);
+    }
   });
 
   it("maps the file-edit tools and leaves apply_patch for the guards that read it", () => {
