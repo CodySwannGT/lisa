@@ -21,6 +21,8 @@ import {
   resolveAgyMcpConfigPath,
 } from "../agy/mcp-installer.js";
 import { installCopilotPlugin } from "../copilot/plugin-installer.js";
+import { detectDevin, installDevinPlugin } from "../devin/plugin-installer.js";
+import { installDevinEnforcementFallback } from "../devin/enforcement-fallback-installer.js";
 import { installSonarIntegrations } from "../sonar/sonar-installer.js";
 import { installCopilotInstructions } from "../copilot/copilot-instructions-installer.js";
 import {
@@ -1437,6 +1439,7 @@ export class Lisa {
       await this.processAgyEmit();
       await this.processCopilotEmit();
       await this.processOpencodeEmit();
+      await this.processDevinEmit();
       await this.processSonarIntegration();
       await this.processInstructionFilesMigration();
       await this.registerPlugins();
@@ -1803,6 +1806,71 @@ export class Lisa {
         }`
       )
     );
+  }
+
+  /**
+   * Emit Devin-CLI-targeted artifacts when the harness includes devin.
+   *
+   * Three per-project actions (CodySwannGT/lisa#4427):
+   *   1. `devin plugins install --local -y` Lisa's `lisa-devin` variant plus the
+   *      matching stack variants, when `devin` is on PATH.
+   *   2. Reconcile `.devin/hooks.v1.json` with the repository enforcement
+   *      fallback, which keeps the guards firing when the plugin is missing,
+   *      disabled, or untrusted — and which is written whether or not `devin`
+   *      is on this machine, because the clone travels to machines that have it.
+   *   3. Ensure the canonical `AGENTS.md` exists (Devin reads it natively).
+   *
+   * Documented gaps: Devin CLI has no native scheduler, so Lisa's recurring
+   * loops are triggered manually or through `scheduler: "github-actions"`; and
+   * Sonar has no Devin integrate path, so `processSonarIntegration` skips it.
+   */
+  private async processDevinEmit(): Promise<void> {
+    const { harness } = this.config;
+    if (!harnessIncludesAgent(harness, "devin")) {
+      return;
+    }
+    if (this.shouldSkipAgentEmitDuringPostinstall()) {
+      this.deps.logger.info(
+        pc.gray("Devin emit: skipped during postinstall-safe apply")
+      );
+      return;
+    }
+    if (this.config.dryRun) {
+      this.deps.logger.info(pc.gray("Devin emit: skipped (dry-run mode)"));
+      return;
+    }
+
+    const pluginRoot = path.join(this.config.lisaDir, "plugins");
+    const variantNames = [
+      "lisa-devin",
+      ...this.perAgentStackVariants(pluginRoot, "devin"),
+    ];
+    const devinOnPath = await detectDevin();
+    const pluginResults = [];
+    if (devinOnPath) {
+      for (const variant of variantNames) {
+        pluginResults.push(await installDevinPlugin(pluginRoot, variant));
+      }
+    }
+    const fallback = await installDevinEnforcementFallback(this.config.destDir);
+    const agentsResult = await installAgentsMd(this.config.destDir);
+
+    const installedCount = pluginResults.filter(r => r.installed).length;
+    const pluginMessage = devinOnPath
+      ? `${installedCount}/${variantNames.length} plugins installed`
+      : "plugins skipped (devin not on PATH)";
+    this.deps.logger.info(
+      pc.cyan(
+        `Devin emit: ${pluginMessage}, ${fallback.managedFiles.join(", ")} enforcement fallback reconciled, AGENTS.md ${
+          agentsResult.created ? "created" : HOST_OWNED_LABEL
+        }`
+      )
+    );
+    for (const failure of pluginResults.filter(r => !r.installed)) {
+      this.deps.logger.warn(
+        `Devin plugin install failed for ${failure.source ?? "unknown"}: ${failure.error ?? "unknown error"}`
+      );
+    }
   }
 
   /**

@@ -46,6 +46,7 @@ const EXTERNAL_ONLY_HARNESSES = new Set<Harness>([
   "cursor",
   "agy",
   "copilot",
+  "devin",
   "fleet",
 ]);
 
@@ -238,7 +239,8 @@ async function projectSurfaceDrift(
     includes("codex") ||
     includes("agy") ||
     includes("copilot") ||
-    includes("opencode");
+    includes("opencode") ||
+    includes("devin");
   const codexFiles = includes("codex")
     ? await expectedCodexManagedFiles(root, config)
     : undefined;
@@ -276,6 +278,11 @@ async function projectSurfaceDrift(
       includes("opencode"),
       "opencode.json",
       async () => await nonemptyProjectFile(root, "opencode.json")
+    ),
+    evidenceDrift(
+      includes("devin"),
+      ".devin/hooks.v1.json enforcement fallback",
+      async () => await nonemptyProjectFile(root, ".devin/hooks.v1.json")
     ),
   ]);
   return observations.flat();

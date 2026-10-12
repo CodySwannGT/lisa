@@ -2483,6 +2483,7 @@
         "agy",
         "copilot",
         "opencode",
+        "devin",
       ];
       /* agentHooks is tri-state:
                  true        — hooks fire. Whatever invocation flags that requires are
@@ -2535,6 +2536,15 @@
           label: "OpenCode",
           agentHooks: true,
           commands: true,
+        },
+        devin: {
+          // Verified by run on Devin CLI 3000.11.3 (CodySwannGT/lisa#4426):
+          // plugin hooks fire in `devin -p`, and a Lisa guard refused a
+          // `--no-verify` commit. Devin has no plugin command surface — its
+          // slash commands are skills — so commands is false.
+          label: "Devin",
+          agentHooks: true,
+          commands: false,
         },
       };
       /* The currently-selected staff. Every factory page renders against it. */
@@ -5366,6 +5376,7 @@
                       "agy",
                       "copilot",
                       "opencode",
+                      "devin",
                     ],
                   },
                   {
@@ -7447,7 +7458,7 @@
               {
                 key: "harness",
                 label: "Coding-agent harness",
-                desc: "Which agent(s) Lisa emits artifacts for. fleet targets all six; a single value targets only that agent. Default: claude.",
+                desc: "Which agent(s) Lisa emits artifacts for. fleet targets all seven; a single value targets only that agent. Default: claude.",
                 badges: ["default: claude"],
                 control: sel("fleet", [
                   "claude",
@@ -7456,6 +7467,7 @@
                   "agy",
                   "copilot",
                   "opencode",
+                  "devin",
                   "fleet",
                 ]),
               },
@@ -12780,6 +12792,7 @@
         "agy",
         "copilot",
         "opencode",
+        "devin",
       ];
       function configureRemoteEnvironment(cfg) {
         const snapshot = window.LISA_REMOTE_ENVIRONMENT || {

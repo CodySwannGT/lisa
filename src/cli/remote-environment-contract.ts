@@ -111,6 +111,7 @@ export const DEFAULT_STARTUP_ARTIFACTS: Readonly<
     GENERIC_STARTUP_ARTIFACT,
   ],
   opencode: ["scripts/opencode-remote-setup.sh", GENERIC_STARTUP_ARTIFACT],
+  devin: ["scripts/devin-remote-setup.sh", GENERIC_STARTUP_ARTIFACT],
 };
 
 /**

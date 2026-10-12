@@ -169,7 +169,8 @@ async function writeHarnessSurfaces(
     includes("codex") ||
     includes("agy") ||
     includes("copilot") ||
-    includes("opencode")
+    includes("opencode") ||
+    includes("devin")
   ) {
     await writeFile(path.join(root, "AGENTS.md"), "# Project agent rules\n");
   }
@@ -193,6 +194,10 @@ async function writeHarnessSurfaces(
   if (includes("opencode")) {
     await writeManagedSurface(root, ".opencode");
     await writeFile(path.join(root, "opencode.json"), "{}\n");
+  }
+  if (includes("devin")) {
+    await mkdir(path.join(root, ".devin"), { recursive: true });
+    await writeFile(path.join(root, ".devin/hooks.v1.json"), "{}\n");
   }
 }
 
@@ -379,6 +384,7 @@ describe("review red legs", () => {
       ["agy", "warn"],
       ["copilot", "warn"],
       ["opencode", "warn"],
+      ["devin", "warn"],
       ["fleet", "warn"],
     ];
     for (const [harness, expected] of expectations) {

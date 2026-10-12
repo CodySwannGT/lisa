@@ -2889,7 +2889,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "ui/README.md":
       "7a67d7bdd49ff214ca204cc4e54ba70c37aa05fd6cc1e314fd9441a53eafc752",
     "ui/index.html":
-      "3ca3e2ef53fa35ffee3d54b8eeaecd9a6a29a019a9db5b46184affd010b34f1d",
+      "59a82b149a237027b36ce1a1586d03c33a5d372442abc016c1371fa0251afa1e",
   });
 
 /** Exact paths tracked by the public Lisa repository at generation time. */
@@ -10338,6 +10338,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "src/detection/detectors/rails.ts": true,
     "src/detection/detectors/typescript.ts": true,
     "src/detection/index.ts": true,
+    "src/devin/enforcement-fallback-installer.ts": true,
+    "src/devin/plugin-installer.ts": true,
     "src/errors/index.ts": true,
     "src/health/agentic.ts": true,
     "src/health/consumer.ts": true,
@@ -11436,6 +11438,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/core/workflow-reference-guard.test.ts": true,
     "tests/unit/detection/cdk-app-shape.test.ts": true,
     "tests/unit/detection/detectors.test.ts": true,
+    "tests/unit/devin/enforcement-fallback-installer.test.ts": true,
+    "tests/unit/devin/plugin-installer.test.ts": true,
     "tests/unit/docs/onboarding-walkthrough.test.ts": true,
     "tests/unit/fixtures/shared-runtime-native-deadline.test.ts": true,
     "tests/unit/governance-contracts.test.ts": true,

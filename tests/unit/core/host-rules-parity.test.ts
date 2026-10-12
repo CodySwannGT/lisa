@@ -7,12 +7,12 @@
  * claim:
  *
  *  1. **Host rules reach every agent identically.** `.agents/rules/` is not a
- *     native auto-load tree for any runtime, so all six agents reach it through
+ *     native auto-load tree for any runtime, so all seven agents reach it through
  *     exactly one surface — the Lisa-managed pointer block in `AGENTS.md`
  *     (Claude via the `@AGENTS.md` import in `CLAUDE.md`). One surface means no
  *     agent double-loads host rules.
- *  2. **Lisa's own eager rules do NOT reach every agent.** Claude/Codex/OpenCode
- *     and Copilot get them through `inject-rules.sh`; Cursor gets them as native
+ *  2. **Lisa's own eager rules do NOT reach every agent.** Claude/Codex/OpenCode,
+ *     Copilot and Devin get them through `inject-rules.sh`; Cursor gets them as native
  *     `alwaysApply` `.mdc` rules; **agy gets neither**, because agy plugin hooks
  *     do not fire in `-p` headless mode (see
  *     `wiki/decisions/2026-05-28-pattern-b-per-agent-plugin-variants.md`). That
@@ -35,7 +35,7 @@ import { cleanupTempDir, createTempDir } from "../../helpers/test-utils.js";
 
 const REPO_ROOT = process.cwd();
 
-/** The six agents Lisa keeps in parity, in the order AGENTS.md names them. */
+/** The seven agents Lisa keeps in parity, in the order AGENTS.md names them. */
 const AGENTS = [
   "claude",
   "codex",
@@ -43,9 +43,10 @@ const AGENTS = [
   "opencode",
   "copilot",
   "agy",
+  "devin",
 ] as const;
 
-/** One of the six real coding agents Lisa keeps in parity. */
+/** One of the seven real coding agents Lisa keeps in parity. */
 type Agent = (typeof AGENTS)[number];
 
 /** Repo-relative path to the shared Claude/Codex/OpenCode plugin's rule hook. */
@@ -77,6 +78,12 @@ const EAGER_RULE_SURFACES: Readonly<
   cursor: ["plugins/lisa-cursor/rules"],
   // DOCUMENTED GAP — agy plugin hooks do not fire in `-p` headless mode.
   agy: undefined,
+  // Devin does not load the nested rules/ tree, so inject-rules.sh delivers it
+  // (CodySwannGT/lisa#4426).
+  devin: [
+    "plugins/lisa-devin/hooks/inject-rules.sh",
+    "plugins/lisa-devin/rules/eager",
+  ],
 };
 
 describe("core/host-rules parity across supported agents", () => {
@@ -97,7 +104,7 @@ describe("core/host-rules parity across supported agents", () => {
     );
   });
 
-  describe("host-rules delivery is identical on all six agents", () => {
+  describe("host-rules delivery is identical on all seven agents", () => {
     it.each(AGENTS)(
       "%s receives the same AGENTS.md pointer block",
       async harness => {
@@ -121,8 +128,8 @@ describe("core/host-rules parity across supported agents", () => {
         const block = extractPointerBlock(
           await fs.readFile(path.join(dir, AGENTS_MD), "utf8")
         );
-        // Plain prose is the only form all six agents act on. `@path` is Claude
-        // Code syntax; the other five do not parse it, and it resolves files
+        // Plain prose is the only form all seven agents act on. `@path` is Claude
+        // Code syntax; the other six do not parse it, and it resolves files
         // rather than directories even on Claude, so an `@.agents/rules/` line
         // loads nothing anywhere. A block naming the directory without telling
         // anyone to read it delivers the path and no instruction.

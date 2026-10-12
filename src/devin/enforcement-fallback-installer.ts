@@ -1,0 +1,152 @@
+/**
+ * Install the repository-owned Devin enforcement fallback hook.
+ *
+ * Devin CLI reads project hooks from `.devin/hooks.v1.json`, where the whole
+ * file is the hooks object (`{ "PreToolUse": [ { matcher, hooks } ] }`). It
+ * also reads `.claude/settings.json` hooks, but those never fire on Devin: their
+ * `Bash` / `Write|Edit|MultiEdit` matchers name Claude tools, and Devin's tools
+ * are `exec` / `write` / `edit` (measured by run on Devin CLI 3000.11.3,
+ * CodySwannGT/lisa#4427). So without this file a Devin session whose Lisa
+ * plugin is missing, disabled, or untrusted runs with no enforcement at all.
+ *
+ * The single Lisa entry routes Devin's shell and file-edit tools to
+ * `scripts/lisa-enforcement-fallback.sh` — the same dispatcher Claude and
+ * Codex use — after rewriting the payload's lowercase `tool_name` to the
+ * Claude name the guards test for. Host-authored entries are preserved; the
+ * Lisa entry is recognised by the dispatcher path in its command, so no marker
+ * field has to be added to a schema Lisa does not own.
+ * @module devin/enforcement-fallback-installer
+ */
+import * as fse from "fs-extra";
+import { readFile, writeFile } from "node:fs/promises";
+import * as path from "node:path";
+
+const DEVIN_DIR = ".devin";
+const HOOKS_FILENAME = "hooks.v1.json";
+
+/** Dispatcher path that identifies the Lisa-owned handler. */
+export const DEVIN_FALLBACK_DISPATCHER = "scripts/lisa-enforcement-fallback.sh";
+
+/** Devin tools whose calls the dispatcher's guards evaluate. */
+export const DEVIN_FALLBACK_MATCHER = "^(exec|write|edit|apply_patch)$";
+
+/**
+ * The handler command. Devin sets `DEVIN_PROJECT_DIR` (and `CLAUDE_PROJECT_DIR`)
+ * to the project root; the git/pwd fallback covers a runner that does not.
+ * Without `jq` the payload passes unchanged, exactly as the guards behave when
+ * they cannot parse it.
+ */
+export const DEVIN_FALLBACK_COMMAND = [
+  'root="${DEVIN_PROJECT_DIR:-$(git rev-parse --show-toplevel 2>/dev/null || pwd)}"',
+  "payload=$(cat)",
+  `mapped=$(printf '%s' "$payload" | jq -c 'if (.tool_name | type) == "string" then .tool_name |= ({"exec": "Bash", "write": "Write", "edit": "Edit"}[.] // .) else . end' 2>/dev/null) || mapped=""`,
+  `printf '%s' "\${mapped:-$payload}" | /bin/bash "$root/${DEVIN_FALLBACK_DISPATCHER}"`,
+].join("; ");
+
+/** One Devin hook handler. Unknown host fields are preserved on round-trip. */
+interface DevinHookHandler {
+  readonly type?: string;
+  readonly command?: string;
+  readonly [key: string]: unknown;
+}
+
+/** One matcher group under an event. */
+interface DevinMatcherGroup {
+  readonly matcher?: string;
+  readonly hooks?: readonly DevinHookHandler[];
+  readonly [key: string]: unknown;
+}
+
+/** `.devin/hooks.v1.json`: event name → matcher groups. */
+type DevinHooksFile = Readonly<Record<string, unknown>>;
+
+/** Result of installing the fallback. */
+export interface DevinEnforcementFallbackResult {
+  /** Files written, relative to the project root. */
+  readonly managedFiles: readonly string[];
+  /** Number of Lisa-owned hook handlers in the written file. */
+  readonly hookEntries: number;
+}
+
+/**
+ * Whether a handler is the Lisa-owned dispatcher entry.
+ * @param handler - Hook handler from the host file
+ * @returns True when its command runs the Lisa dispatcher
+ */
+function isLisaHandler(handler: DevinHookHandler): boolean {
+  return (
+    typeof handler.command === "string" &&
+    handler.command.includes(DEVIN_FALLBACK_DISPATCHER)
+  );
+}
+
+/**
+ * Remove every Lisa-owned handler from one event's groups, dropping groups
+ * left with no handlers. Host handlers and fields are kept verbatim.
+ * @param groups - The event's matcher groups as read from disk
+ * @returns Groups without Lisa handlers
+ */
+function withoutLisaHandlers(groups: unknown): readonly DevinMatcherGroup[] {
+  if (!Array.isArray(groups)) return [];
+  return (groups as readonly DevinMatcherGroup[]).flatMap(group => {
+    if (!Array.isArray(group?.hooks)) return [group];
+    const kept = group.hooks.filter(handler => !isLisaHandler(handler));
+    if (kept.length === group.hooks.length) return [group];
+    return kept.length > 0 ? [{ ...group, hooks: kept }] : [];
+  });
+}
+
+/**
+ * Merge the Lisa fallback into a parsed hooks file.
+ * @param existing - Parsed host file, or `{}`
+ * @returns The file with exactly one Lisa PreToolUse handler
+ */
+export function mergeDevinFallback(existing: DevinHooksFile): DevinHooksFile {
+  const lisaGroup: DevinMatcherGroup = {
+    matcher: DEVIN_FALLBACK_MATCHER,
+    hooks: [{ type: "command", command: DEVIN_FALLBACK_COMMAND, timeout: 30 }],
+  };
+  return {
+    ...existing,
+    PreToolUse: [...withoutLisaHandlers(existing.PreToolUse), lisaGroup],
+  };
+}
+
+/**
+ * Parse the host file, refusing anything that is not a JSON object rather than
+ * overwriting host content Lisa cannot read.
+ * @param raw - File contents
+ * @param file - Path for the error message
+ * @returns Parsed hooks file
+ */
+function parseHooksFile(raw: string, file: string): DevinHooksFile {
+  const parsed: unknown = JSON.parse(raw);
+  if (parsed === null || typeof parsed !== "object" || Array.isArray(parsed)) {
+    throw new Error(
+      `${file} must be a JSON object of hook events; refusing to overwrite it`
+    );
+  }
+  return parsed as DevinHooksFile;
+}
+
+/**
+ * Reconcile `.devin/hooks.v1.json` so it holds exactly one Lisa enforcement
+ * fallback handler alongside any host-authored hooks.
+ * @param destDir - Host project root
+ * @returns Managed file and handler counts
+ */
+export async function installDevinEnforcementFallback(
+  destDir: string
+): Promise<DevinEnforcementFallbackResult> {
+  const hooksPath = path.join(destDir, DEVIN_DIR, HOOKS_FILENAME);
+  await fse.ensureDir(path.dirname(hooksPath));
+  const existing = (await fse.pathExists(hooksPath))
+    ? parseHooksFile(await readFile(hooksPath, "utf8"), hooksPath)
+    : {};
+  const merged = mergeDevinFallback(existing);
+  await writeFile(hooksPath, `${JSON.stringify(merged, null, 2)}\n`, "utf8");
+  return {
+    managedFiles: Object.freeze([path.join(DEVIN_DIR, HOOKS_FILENAME)]),
+    hookEntries: 1,
+  };
+}
