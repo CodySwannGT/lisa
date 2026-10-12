@@ -1121,7 +1121,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/rules/eager/withdrawn-rulings.md":
       "46bdcbaa845ab906bd7f83e86d18860a1a54162520b8fb7101f6b23c5e1e816f",
     "plugins/src/base/rules/reference/automation-runbook-contract.md":
-      "e4b64b042b650bccc26f04ef68fe76a182be265ace4674daa4f9c8e8c24bd626",
+      "9f86b2388c3cdb43014f7cfb705824464061d35c2989d296c3931007d3f52c3d",
     "plugins/src/base/rules/reference/base-rules.md":
       "938173f9e048a0f8e09bd825d97f2e3a3e97f03fc99037fcdae47a9bfa99f307",
     "plugins/src/base/rules/reference/bdd-e2e-coverage.md":
@@ -1247,7 +1247,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/scripts/automation-status-contract-drift.mjs":
       "5f3f327fddedd6870017a86f2702d9cbb17352384fb225ab353eed54241182ef",
     "plugins/src/base/scripts/automation-status-expected-fleet.mjs":
-      "d5905236202b13ec9a7fd9221b16d0748cad41bd344ad1de24d89ca81c64bebe",
+      "c34217cfc1fa7c618ef818bc0db7cb2bd7ed317112997c3c7665c675154e3f59",
     "plugins/src/base/scripts/automation-status-report.mjs":
       "520f77645c5b7cab3f69848fb5cf19e8b1d802cd1f8ce6a35aa36a0bf6a0d146",
     "plugins/src/base/scripts/automation-status-run-history.mjs":
@@ -1321,7 +1321,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-attribute-failure/SKILL.md":
       "5d737b9fda916f02aaf13b208316cd54995d83aa06d27ba5daa19b6ebed6b4d9",
     "plugins/src/base/skills/lisa-automation-status/SKILL.md":
-      "595b57feb3aa13b8a1a32691a25fc0c1b91f689e06745b4582d540c1d34a3b83",
+      "5327bc979f5fb0d757121e648c53a872dccd09aa7ff572fa8161b4dbcd6ba084",
     "plugins/src/base/skills/lisa-bug-triage/SKILL.md":
       "bd5bae508a8f344d8b5cb46cfddcb178ff8368ca77936f9e2c63058e05f61af4",
     "plugins/src/base/skills/lisa-capability-drift/SKILL.md":
@@ -1626,6 +1626,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "a5189442dbf970cc49fd089ab03c386c8a205b856e09501f6ad1966321e7e4b5",
     "plugins/src/base/skills/lisa-sentry-access/SKILL.md":
       "1c1881ca9a2020f6cd8f938dc5335ebf2d344ff280844bb98926198e5226e526",
+    "plugins/src/base/skills/lisa-session-manager/scripts/config.mjs":
+      "6fec4a94df12eac68c3e112342ad04431a38e9a754ddb5a5ed2ac251ed3bca51",
     "plugins/src/base/skills/lisa-setup-atlassian/SKILL.md":
       "d1945a471afa5454ef4f6dffa52decf7df0ec3f411dadaf5d4bc95aeeb8ca6e2",
     "plugins/src/base/skills/lisa-setup-automations/SKILL.md":
@@ -1699,7 +1701,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-tdd-implementation/SKILL.md":
       "d8b2d1fa653460ee1ddb3979ed16002792c449b9321f0cb5c62ffb4e70ff6dfc",
     "plugins/src/base/skills/lisa-tear-down-automations/SKILL.md":
-      "3f8215b691ce60a6efd63547b99b4d87760fe99d285f6fe153aaadd451e83731",
+      "eabbb66763357b0fa766aa4f58814ed9fcff885873355eab17e85026141645b8",
     "plugins/src/base/skills/lisa-test-strategy/SKILL.md":
       "8976e0056b65475fe69f4ed02c8d0d3ae898fd9ab5ff28bf632981a3293c9f6e",
     "plugins/src/base/skills/lisa-ticket-triage/SKILL.md":
@@ -9321,6 +9323,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/src/base/skills/lisa-security-review/SKILL.md": true,
     "plugins/src/base/skills/lisa-security-zap-scan/SKILL.md": true,
     "plugins/src/base/skills/lisa-sentry-access/SKILL.md": true,
+    "plugins/src/base/skills/lisa-session-manager/scripts/config.mjs": true,
     "plugins/src/base/skills/lisa-setup-atlassian/SKILL.md": true,
     "plugins/src/base/skills/lisa-setup-automations/SKILL.md": true,
     "plugins/src/base/skills/lisa-setup-automations/scripts/generate-workflow.mjs": true,
@@ -12166,7 +12169,10 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/secrets/toolchain-surfaces.test.ts": true,
     "tests/unit/secrets/tools-from-notes.test.ts": true,
     "tests/unit/secrets/user-session-hook.test.ts": true,
+    "tests/unit/secrets/validate-config-session-manager.test.ts": true,
     "tests/unit/secrets/validate-config.test.ts": true,
+    "tests/unit/session-manager/config-repos.test.ts": true,
+    "tests/unit/session-manager/config.test.ts": true,
     "tests/unit/skills/secrets-provider-timeout-message.test.ts": true,
     "tests/unit/sonar/sonar-installer.test.ts": true,
     "tests/unit/standards/capture.test.ts": true,
