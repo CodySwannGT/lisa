@@ -37,8 +37,17 @@
     },
     "copilot": {
       "outcome": "enable-vendor-equivalent",
-      "actions": ["enable Copilot's native agent equivalent for has-manifest in the project-scoped marketplace"],
+      "actions": [
+        "enable Copilot's native agent equivalent for has-manifest in the project-scoped marketplace"
+      ],
       "rationale": "Vendor ships a comparable capability; prefer enabling over reimplementing."
+    },
+    "devin": {
+      "outcome": "reimplement",
+      "actions": [
+        "scaffold Lisa-native skill stamped synced-from: has-manifest@demo-marketplace@1.2.3"
+      ],
+      "rationale": "Devin installs Lisa's own plugin variant; reimplement as a Lisa skill."
     }
   }
 }

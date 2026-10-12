@@ -9,3 +9,4 @@ Paired human matrix for the valid routing-validate fixture. Presence of this
 | cursor | claude-only | reads .claude-plugin natively |
 | agy | reimplement | no equivalent subagent surface |
 | copilot | enable-vendor-equivalent | vendor equivalent exists |
+| devin | reimplement | reimplemented in Lisa's Devin variant |

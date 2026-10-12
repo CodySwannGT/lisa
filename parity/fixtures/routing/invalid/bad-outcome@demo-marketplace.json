@@ -35,6 +35,11 @@
       "outcome": "claude-only",
       "actions": [],
       "rationale": "No equivalent; documented only."
+    },
+    "devin": {
+      "outcome": "claude-only",
+      "actions": [],
+      "rationale": "Devin installs Lisa's own plugin variant; reimplement as a Lisa skill."
     }
   }
 }

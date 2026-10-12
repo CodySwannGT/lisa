@@ -182,7 +182,7 @@ describe("validateArtifact routing gates", () => {
         errsWith(a => {
           delete a.routing.copilot;
         }),
-        "exactly agy,codex,copilot,cursor"
+        "exactly agy,codex,copilot,cursor,devin"
       )
     ).toBe(true);
   });

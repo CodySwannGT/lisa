@@ -1,6 +1,6 @@
 ---
 name: analyze-plugin
-description: "This skill should be used to analyze a single curated third-party Claude plugin (one of Lisa's enabledPlugins) and plan how to bring it to parity across the non-Claude agents Lisa distributes to (Codex, Cursor, agy, Copilot). It inventories the plugin's components, classifies each, decides a per-agent routing outcome, and writes a machine-readable routing artifact plus a human review matrix under parity/plugin-routing/. It is PLAN-ONLY: it STOPS for human approval and makes no source-tree edits — the sibling skill implement-plugin-parity executes an approved artifact."
+description: "This skill should be used to analyze a single curated third-party Claude plugin (one of Lisa's enabledPlugins) and plan how to bring it to parity across the non-Claude agents Lisa distributes to (Codex, Cursor, agy, Copilot, Devin). It inventories the plugin's components, classifies each, decides a per-agent routing outcome, and writes a machine-readable routing artifact plus a human review matrix under parity/plugin-routing/. It is PLAN-ONLY: it STOPS for human approval and makes no source-tree edits — the sibling skill implement-plugin-parity executes an approved artifact."
 allowed-tools: ["Bash", "Read", "Write", "Edit", "Glob", "Grep", "Skill"]
 ---
 
@@ -100,7 +100,7 @@ declaration.
 ### 3. Decide a per-agent routing outcome
 
 Produce **exactly one** routing entry per non-Claude-native agent: `codex`,
-`cursor`, `agy`, `copilot`. Each entry has an `outcome` from the locked enum, a
+`cursor`, `agy`, `copilot`, `devin`. Each entry has an `outcome` from the locked enum, a
 list of declarative `actions`, and a `rationale`.
 
 **Outcome enum (locked):**
@@ -110,7 +110,9 @@ list of declarative `actions`, and a `rationale`.
 - `re-point-mcp-lsp` — the component is (or carries) an MCP/LSP server; emit it
   into that agent's variant via the existing generator/installer (Codex
   `.codex-plugin` MCP pointer; Cursor `mcp.json`; agy → `src/agy/mcp-installer.ts`
-  user-global; Copilot → inline `mcpServers` / `lspServers` on the manifest).
+  user-global; Copilot → inline `mcpServers` / `lspServers` on the manifest;
+  Devin → the variant's root `.mcp.json`, which Devin reads natively — Devin
+  documents no LSP surface, so an LSP routes there as a flagged gap).
 - `enable-vendor-equivalent` — enable the agent's native equivalent capability
   in its project-scoped marketplace.
 - `claude-only` — intentionally not ported (e.g. Cursor already covers it via
@@ -261,7 +263,7 @@ Every component group appears; nothing is left as "NOT addressed."
 
 - `parity/plugin-routing/<name>@<marketplace>.json` exists, validates against the
   schema above, is `status:"proposed"`, and has exactly one routing entry per
-  agent (codex/cursor/agy/copilot).
+  agent (codex/cursor/agy/copilot/devin).
 - `upstreamVersion` is resolved by the Version-fallback rules (semver, semver dir
   name, or `"unknown"`), and any `reimplement` of an `"unknown"`-version plugin
   flags the not-drift-trackable consequence.

@@ -41,6 +41,13 @@
         "enable Copilot's native code-simplification/refactor capability for the code-simplifier agent in the project-scoped marketplace"
       ],
       "rationale": "Code simplification is a generic capability Copilot ships natively; prefer enabling over reimplementing."
+    },
+    "devin": {
+      "outcome": "reimplement",
+      "actions": [
+        "ship the existing Lisa-native skill (lisa-parity-code-simplifier) reimplementing the code-simplifier agent in the lisa-devin variant, stamped synced-from: code-simplifier@claude-plugins-official@1.0.0"
+      ],
+      "rationale": "Devin installs Lisa's own lisa-devin plugin variant, which ships the Lisa-native reimplementation; curated third-party Claude plugins are not part of Lisa's Devin install."
     }
   }
 }
