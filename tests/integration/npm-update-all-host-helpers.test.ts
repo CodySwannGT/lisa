@@ -64,6 +64,7 @@ const NEWLY_COMMON = [
   "threshold-ratchet-compare.mjs",
   "lisa-mutation.sh",
   "lib/npm-update-checkpoint-codec.mjs",
+  "lib/npm-update-rspec-reports.mjs",
 ];
 
 /**
@@ -165,7 +166,10 @@ describe("all-only npm host controller materialization", () => {
       expect(graph).toHaveProperty(
         join(cwd, "scripts/lib/npm-update-checkpoint-codec.mjs")
       );
-      expect(managedTemplateMembers().size).toBe(107);
+      expect(graph).toHaveProperty(
+        join(cwd, "scripts/lib/npm-update-rspec-reports.mjs")
+      );
+      expect(managedTemplateMembers().size).toBe(108);
     },
     ioLatencyBudgetMs(30_000)
   );
