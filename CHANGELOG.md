@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [4.75.0](https://github.com/CodySwannGT/lisa/compare/v4.74.9...v4.75.0) (2026-10-12)
+
+
+### Features
+
+* **parity:** generate a Devin CLI plugin variant for every Lisa plugin ([a1bae2b](https://github.com/CodySwannGT/lisa/commit/a1bae2bce0a82860b60f045cb1fcfc0b12a9220a)), closes [CodySwannGT/lisa#4426](https://github.com/CodySwannGT/lisa/issues/4426) [CodySwannGT/lisa#4426](https://github.com/CodySwannGT/lisa/issues/4426)
+
+
+### Bug Fixes
+
+* **parity:** fail loudly when no Devin variant is generated ([689861e](https://github.com/CodySwannGT/lisa/commit/689861e45afa8f654cf9cf4eff21dd7505f2a054)), closes [CodySwannGT/lisa#4426](https://github.com/CodySwannGT/lisa/issues/4426) [CodySwannGT/lisa#4426](https://github.com/CodySwannGT/lisa/issues/4426)
+
 ### [4.74.9](https://github.com/CodySwannGT/lisa/compare/v4.74.8...v4.74.9) (2026-10-12)
 
 
