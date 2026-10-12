@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.75.1](https://github.com/CodySwannGT/lisa/compare/v4.75.0...v4.75.1) (2026-10-12)
+
+
+### Bug Fixes
+
+* **npm-updater:** retain closed provider failure diagnostics ([fd0fedd](https://github.com/CodySwannGT/lisa/commit/fd0feddfa8d9d7a0c262f13f4eaf842ec51eeb75)), closes [CodySwannGT/lisa#4347](https://github.com/CodySwannGT/lisa/issues/4347) [CodySwannGT/lisa#4347](https://github.com/CodySwannGT/lisa/issues/4347)
+* **test:** run deadline suites before bulk integration tests ([ac0dcb7](https://github.com/CodySwannGT/lisa/commit/ac0dcb790f58af84994db8227b19a1c2136eefb8)), closes [CodySwannGT/lisa#4347](https://github.com/CodySwannGT/lisa/issues/4347) [CodySwannGT/lisa#4347](https://github.com/CodySwannGT/lisa/issues/4347)
+* **test:** supervise native deadline regression children ([6a96722](https://github.com/CodySwannGT/lisa/commit/6a96722ab6c5123c0ab1e37f7f2c61d10842a145)), closes [CodySwannGT/lisa#4347](https://github.com/CodySwannGT/lisa/issues/4347) [CodySwannGT/lisa#4347](https://github.com/CodySwannGT/lisa/issues/4347)
+
 ## [4.75.0](https://github.com/CodySwannGT/lisa/compare/v4.74.9...v4.75.0) (2026-10-12)
 
 
