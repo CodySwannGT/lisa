@@ -19,6 +19,7 @@ import { existsSync, readdirSync } from "node:fs";
 import { isAbsolute, join, resolve, sep } from "node:path";
 
 import {
+  mergeConfigLayers as mergeLayers,
   parseLoopInterval,
   validateSessionManager,
 } from "../../lisa-secrets-access/scripts/validate-config.mjs";
@@ -81,9 +82,6 @@ const DEFAULT_REPOS_ROOT = "projects";
 /** One path segment that cannot climb out of, or hide inside, its parent. */
 const SAFE_SEGMENT = /^[A-Za-z0-9][A-Za-z0-9._-]*$/;
 
-/** Keys that would reach `Object.prototype` if copied by assignment. */
-const UNSAFE_KEYS = new Set(["__proto__", "constructor", "prototype"]);
-
 /**
  * Whether a value is a plain object (not null, not an array).
  * @param {unknown} value Candidate.
@@ -91,34 +89,6 @@ const UNSAFE_KEYS = new Set(["__proto__", "constructor", "prototype"]);
  */
 function isPlainObject(value) {
   return typeof value === "object" && value !== null && !Array.isArray(value);
-}
-
-/**
- * Merge objects key by key, later layers winning.
- *
- * Arrays and scalars are replaced, never concatenated: a local `hints` list
- * means "these hints", not "these as well". Prototype keys are dropped, since
- * the local file is operator-written but still parsed JSON.
- * @param {...unknown} layers Lowest precedence first.
- * @returns {Record<string, unknown>} A new object; no layer is mutated.
- */
-function mergeLayers(...layers) {
-  const objects = layers.filter(isPlainObject);
-  const keys = [...new Set(objects.flatMap(Object.keys))].filter(
-    key => !UNSAFE_KEYS.has(key)
-  );
-  return Object.fromEntries(
-    keys.map(key => {
-      const values = objects
-        .filter(layer => Object.hasOwn(layer, key))
-        .map(layer => layer[key]);
-      const top = values.at(-1);
-      return [
-        key,
-        isPlainObject(top) ? mergeLayers(...values.filter(isPlainObject)) : top,
-      ];
-    })
-  );
 }
 
 /**

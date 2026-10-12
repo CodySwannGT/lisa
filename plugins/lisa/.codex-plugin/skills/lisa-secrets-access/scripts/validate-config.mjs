@@ -771,8 +771,9 @@ export function validateSessionManager(block) {
     ...(trustedOk
       ? []
       : [
-          `sessionManager.trustedAuthorIds must be an array of tracker user ` +
-            `ids or logins.`,
+          `sessionManager.trustedAuthorIds must be an array of stable ` +
+            `tracker user ids (GitHub numeric user id, Jira accountId, ` +
+            `Linear user id), not logins or display names.`,
         ]),
     ...findCredentials(block, "sessionManager"),
   ];
@@ -792,13 +793,82 @@ export function validateConfig(cfg) {
   ];
 }
 
+/** Keys a parsed JSON layer may not contribute to a merged object. */
+const UNSAFE_KEYS = new Set(["__proto__", "constructor", "prototype"]);
+
+/**
+ * Merge config layers key by key, later layers winning — the
+ * `config-resolution` rule for `.lisa.config.local.json` over
+ * `.lisa.config.json`.
+ *
+ * Plain objects merge recursively; arrays and scalars are replaced, never
+ * concatenated: a local `hints` list means "these hints", not "these as well".
+ * Prototype keys are dropped, since a layer is parsed JSON. The session
+ * manager's runtime resolver uses this same function, so validation and the
+ * runtime can never disagree about what a local override means.
+ * @param {...unknown} layers Lowest precedence first.
+ * @returns {Record<string, unknown>} A new object; no layer is mutated.
+ */
+export function mergeConfigLayers(...layers) {
+  const objects = layers.filter(isPlainObject);
+  const keys = [...new Set(objects.flatMap(Object.keys))].filter(
+    key => !UNSAFE_KEYS.has(key)
+  );
+  return Object.fromEntries(
+    keys.map(key => {
+      const values = objects
+        .filter(layer => Object.hasOwn(layer, key))
+        .map(layer => layer[key]);
+      const top = values.at(-1);
+      return [
+        key,
+        isPlainObject(top)
+          ? mergeConfigLayers(...values.filter(isPlainObject))
+          : top,
+      ];
+    })
+  );
+}
+
+/**
+ * Read a JSON file, or undefined when it does not exist.
+ * @param {string} file Absolute path.
+ * @returns {unknown} Parsed contents, or undefined.
+ */
+function readJsonIfPresent(file) {
+  return existsSync(file) ? JSON.parse(readFileSync(file, "utf8")) : undefined;
+}
+
+/**
+ * Read the config this CLI validates from a project root.
+ *
+ * `sessionManager` is merged local over committed (deep, per key), because
+ * that is how the runtime resolves it and a bad local override must fail here,
+ * not at runtime. Every other block is read from `.lisa.config.json` alone,
+ * exactly as before, so their validation is unchanged.
+ * @param {string} root Project root.
+ * @returns {Record<string, unknown> | null} Config to validate, or null when
+ *   neither file exists.
+ */
+export function readValidationConfig(root) {
+  const committed = readJsonIfPresent(join(root, ".lisa.config.json"));
+  const local = readJsonIfPresent(join(root, ".lisa.config.local.json"));
+  if (committed === undefined && local === undefined) return null;
+  const base = isPlainObject(committed) ? committed : {};
+  const blocks = [base.sessionManager, local?.sessionManager].filter(
+    isPlainObject
+  );
+  if (blocks.length === 0) return base;
+  return { ...base, sessionManager: mergeConfigLayers(...blocks) };
+}
+
 function main() {
-  const path = join(process.cwd(), ".lisa.config.json");
-  if (!existsSync(path)) {
+  const cfg = readValidationConfig(process.cwd());
+  if (cfg === null) {
     console.log("no .lisa.config.json — nothing to validate");
     return;
   }
-  const problems = validateConfig(JSON.parse(readFileSync(path, "utf8")));
+  const problems = validateConfig(cfg);
   if (!problems.length) {
     console.log(
       "config: secrets, remoteEnv, automations and sessionManager blocks are well-formed"

@@ -737,7 +737,7 @@ bypassed). `/lisa:setup:session-manager` writes it, detecting a multi-repo layou
 | `sessionManager.stall.requestionHours` | no | `4` | How long an unanswered worker question waits before the manager asks again (zero or positive). |
 | `sessionManager.notify.provider` | no | `telegram` | Only `telegram` is implemented. |
 | `sessionManager.notify.stateDir` | **yes** | — | This project's own Telegram state dir. Never the shared default `~/.claude/channels/telegram`, because one bot per state dir is how projects stay isolated. Setup writes `~/.claude/channels/telegram-<project>`. |
-| `sessionManager.trustedAuthorIds` | no | — | Optional list of tracker user ids or logins. When set, the manager takes only items authored by these people. |
+| `sessionManager.trustedAuthorIds` | no | — | Optional list of **stable tracker user ids**, as strings: the GitHub numeric user id (`gh api users/<login> --jq .id`), the Jira `accountId`, or the Linear user id. Not logins or display names: matching compares ids, so a login silently matches no one and excludes every item. When set, the manager takes only items authored by these people. |
 
 - **Non-secret only.** The bot token lives in `<stateDir>/.env` (directory 0700, file 0600),
   written by setup. A credential-named field or a token-shaped value anywhere in this block is a

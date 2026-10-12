@@ -33,12 +33,16 @@ export const DEFAULT_STALL = Object.freeze({
 const WORKER_PREFIX = "wk-";
 
 /**
- * `wk-<token>-<MMDD>-<HHMM>[-<n>]`. The token is lazy so a 4-digit collision
- * suffix is never swallowed into the stamp, and the whole name is anchored so
- * a token is compared exactly — never by `startsWith`, which would let an
- * `ABC-12` worker answer for `ABC-1`.
+ * `wk-<token>-<MMDD>-<HHMM>[-<n>]`, read from the right. The token is greedy,
+ * so it is everything before the LAST stamp group: a ref whose number has four
+ * or more digits (`PROJ-1234`) or that itself ends in `-dddd-dddd` keeps its
+ * whole token. A lazy token read `wk-PROJ-1234-1012-1530` as `PROJ`, and the
+ * live-worker guard never fired. The collision suffix is capped at three
+ * digits so it can never be mistaken for the `HHMM` half of a stamp. The name
+ * is anchored so a token is compared exactly — never by `startsWith`, which
+ * would let an `ABC-12` worker answer for `ABC-1`.
  */
-const WORKER_NAME_PATTERN = /^wk-(.+?)-(\d{4}-\d{4})(?:-(\d+))?$/;
+const WORKER_NAME_PATTERN = /^wk-(.+)-(\d{4}-\d{4})(?:-([1-9]\d{0,2}))?$/;
 
 /** Rows in these `claude agents --json --all` states have finished running. */
 const TERMINAL_AGENT_STATES = new Set(["done", "stopped"]);

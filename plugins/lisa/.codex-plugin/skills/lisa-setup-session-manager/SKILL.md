@@ -50,7 +50,9 @@ writes `$SM`, and pass `--project-root "$ROOT"` (the absolute project root) on e
 3. Ask the operator to replace each repo's starter `hints` with the technologies and areas that
    identify it (e.g. `api`: `["NestJS","migrations"]`, `web`: `["Expo","screens"]`), and whether to
    set `sessionManager.trustedAuthorIds`. Without it, any author's Ready item reaches a
-   bypass-permissions worker; say so plainly.
+   bypass-permissions worker; say so plainly. The list holds stable tracker user ids as strings,
+   never logins: the GitHub numeric user id (`gh api users/<login> --jq .id`), the Jira
+   `accountId`, or the Linear user id. A login matches no one and silently excludes every item.
 4. `node "$SM/session-manager.mjs" validate --project-root "$ROOT"` must print `valid: true`.
 
 ## Step 3: Store the bot token

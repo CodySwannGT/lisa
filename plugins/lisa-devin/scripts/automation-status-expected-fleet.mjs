@@ -140,7 +140,11 @@ export function renderAutomationGroups(bins) {
  *   readonly expectedCadence: string
  *   readonly expectedRRule: string
  *   readonly runbookPath: string
+ *   readonly observed?: string
  * }} UnsupportedAutomationEntry
+ *
+ * `observed` overrides the adapters' default "No automation is expected" text
+ * for an entry that does run, just not where the scheduler can see it.
  */
 
 /**
@@ -473,6 +477,8 @@ function createSessionManagerEntry(identity, block) {
     expectedRRule: `FREQ=${freq};INTERVAL=${seconds / unit}`,
     group: "opt-in",
     reason: `Hosted locally in ${session} by /lisa:setup:session-manager, not by this runtime's scheduler, so the scheduler cannot see it. Its recorded cycles are below; check it is alive with \`/lisa:session-manager status\`.`,
+    observed:
+      "Hosted locally in tmux; the scheduler cannot observe it — check `/lisa:session-manager status`",
     runbookPath: resolveAutomationRunbookPath(SESSION_MANAGER_LOOP_ID),
   };
 }
