@@ -239,7 +239,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-floor-collisions.mjs":
       "345832c63c85df32acbed9b183b06239fc10ccb1491bd11607b5840ac1d18573",
     "all/copy-overwrite/scripts/lisa-gates.mjs":
-      "dd9b9fe038b6d346d642bb9c09682c84d6073e6af8ecc8fdb9b7c84d8f2beefa",
+      "e204b3b9a9ae7b6636fef1c6c8d49f8415666ffdef4703727c7132520807336a",
     "all/copy-overwrite/scripts/lisa-history-secrets.mjs":
       "815fd6403aed6194d30939b59dc5ce894f7122a9da598acee4cd529a1b520de3",
     "all/copy-overwrite/scripts/lisa-hooks/block-blind-automerge.sh":
@@ -297,7 +297,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/npm-updater-gate.Dockerfile":
       "c1f56c254f188d394fea0c0b9995ebf185c280aa1079233443c1eed1425d0239",
     "all/copy-overwrite/scripts/npm-updater-helper-graph.json":
-      "f6f83b177c7593f1869bda80a04671c8ad9c9fe19d9a6a475fb752170e9a416b",
+      "8222dc8691ef84a30c06a6427aa17b353082ee53ee513cdd5cbe69e936d82698",
     "all/copy-overwrite/scripts/schemas/lisa-command-envelope.v1.schema.json":
       "d153b7c2953a30f180e38f09e98240c63327f5196eeba9bdf545e5a1f125a879",
     "all/copy-overwrite/scripts/schemas/lisa-state-contract.v1.schema.json":
@@ -11851,6 +11851,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/lisa-gates-reuse-envelope.test.ts": true,
     "tests/unit/scripts/lisa-gates-reuse-fixtures.ts": true,
     "tests/unit/scripts/lisa-gates-reuse-rows.test.ts": true,
+    "tests/unit/scripts/lisa-gates-runner-owned.test.ts": true,
     "tests/unit/scripts/lisa-gates-self-config.test.ts": true,
     "tests/unit/scripts/lisa-gates-shipped-as.test.ts": true,
     "tests/unit/scripts/lisa-gates-skip-jobs.test.ts": true,

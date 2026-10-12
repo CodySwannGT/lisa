@@ -465,11 +465,6 @@ const CODE_STYLE = "code-style";
 const DEPENDENCY_VULNERABILITY = "dependency-vulnerability";
 const STRUCTURAL_RULES = "structural-rules";
 const FORMAT_CONFORMANCE = "format-conformance";
-/** Gate ids repeated across the pre-push inventory and the runner-owned seeds. */
-const CODE_STYLE_SLOW = "code-style-slow";
-const TYPE_CORRECTNESS = "type-correctness";
-const BUILD_INTEGRITY = "build-integrity";
-const DEAD_CODE = "dead-code";
 /** The gate id the verification-coverage provers all prove. */
 const COVERAGE_ADEQUACY = "coverage-adequacy";
 
@@ -2141,7 +2136,7 @@ export const HARDCODED_INVOCATIONS = Object.freeze([
     "node <lisa>/scripts/lisa-work-item.mjs validate-push <remote>",
     ["check:work-item:push"]
   ),
-  prePushInvocation(TYPE_CORRECTNESS, "<runner> typecheck", null),
+  prePushInvocation("type-correctness", "<runner> typecheck", null),
   // Three transports behind one property — `bun audit --production --json`,
   // `npm audit --production --json`, `yarn audit --groups dependencies --json`
   // — chosen by which lockfile is present. None of them is a task the project
@@ -2151,8 +2146,11 @@ export const HARDCODED_INVOCATIONS = Object.freeze([
     "bun|npm|yarn audit --json, filtered through audit.ignore*.json",
     [SECURITY_AUDIT_TASK]
   ),
-  prePushInvocation(CODE_STYLE_SLOW, "<runner> lint:slow", null),
-  prePushInvocation(DEAD_CODE, "<runner> knip:check", [KNIP_CHECK_TASK, KNIP]),
+  prePushInvocation("code-style-slow", "<runner> lint:slow", null),
+  prePushInvocation("dead-code", "<runner> knip:check", [
+    KNIP_CHECK_TASK,
+    KNIP,
+  ]),
   prePushInvocation("test-correctness", "<runner> test:cov:unit", [
     "test:cov:unit",
     "test:cov",
@@ -2525,46 +2523,37 @@ function reasonFor(entry, hit, declarable, moment) {
  * @returns {{gates: object, seeded: Array<{gate: string, moment: string, run: string|null}>, skipped: Array<{gate: string, moment: string, reason: string}>}} The merged block and what it did.
  */
 /**
- * Pull-request declarations Lisa seeds for gates that no hand-written job proves.
+ * The pull-request jobs #3052 deleted because a declared gate leg proves the
+ * same property, with the gate each one proved and how that gate is seeded.
  *
- * `seedGates` used to find these five through their `quality.yml` inventory
- * entries. Those entries went when the jobs did (#3052) — the jobs were
- * redundant with a `declared_gates` leg — but the SEEDING they drove is not
- * redundant: a leg exists only for a gate the project declares, so a project
- * seeded from then on would otherwise get no declaration, no leg and no check,
- * and nothing would report that it was missing.
+ * Two consumers read it, which is why it is one table:
  *
- * Same shape as an inventory entry's seeding half and read by the same loop:
- * `seedRun: null` takes the registry default, a non-empty array lists
- * candidate tasks in preference order.
+ * - `seedGates` still declares each gate at pull-request. It used to find
+ *   them through their `quality.yml` inventory entries, which went with the
+ *   jobs. A leg exists only for a gate the project declares, so without this a
+ *   project seeded from then on would get no declaration, no leg and no check,
+ *   and nothing would report the absence. `seedRun: null` takes the registry
+ *   default; a non-empty array lists candidate tasks in preference order.
+ * - `RETIRED_SKIP_JOB_TOKENS` retires each job's `skip_jobs` token.
+ *
+ * A function rather than a frozen literal so it is evaluated when a caller asks
+ * rather than once at module load, which is what lets the mutation gate's
+ * per-test activation reach it.
+ * @returns {readonly {token: string, gate: string, moment: string, seedRun: readonly string[]|null}[]} One entry per deleted job.
  */
-const RUNNER_OWNED_SEEDS = Object.freeze([
-  Object.freeze({
-    gate: CODE_STYLE_SLOW,
-    moment: PULL_REQUEST,
-    seedRun: null,
-  }),
-  Object.freeze({
-    gate: TYPE_CORRECTNESS,
-    moment: PULL_REQUEST,
-    seedRun: null,
-  }),
-  Object.freeze({
-    gate: FORMAT_CONFORMANCE,
-    moment: PULL_REQUEST,
-    seedRun: null,
-  }),
-  Object.freeze({
-    gate: BUILD_INTEGRITY,
-    moment: PULL_REQUEST,
-    seedRun: null,
-  }),
-  Object.freeze({
-    gate: DEAD_CODE,
-    moment: PULL_REQUEST,
-    seedRun: Object.freeze([KNIP_CHECK_TASK, KNIP]),
-  }),
-]);
+function runnerOwnedJobs() {
+  return Object.freeze(
+    [
+      ["lint_slow", "code-style-slow", null],
+      ["typecheck", "type-correctness", null],
+      ["format", FORMAT_CONFORMANCE, null],
+      ["build", "build-integrity", null],
+      ["dead_code", "dead-code", Object.freeze([KNIP_CHECK_TASK, KNIP])],
+    ].map(([token, gate, seedRun]) =>
+      Object.freeze({ token, gate, moment: PULL_REQUEST, seedRun })
+    )
+  );
+}
 
 export function seedGates({ gates = {}, scripts = {}, runner } = {}) {
   const seeded = [];
@@ -2572,7 +2561,7 @@ export function seedGates({ gates = {}, scripts = {}, runner } = {}) {
   const next = { ...gates };
   if (runner !== undefined && next.runner === undefined) next.runner = runner;
 
-  for (const entry of [...HARDCODED_INVOCATIONS, ...RUNNER_OWNED_SEEDS]) {
+  for (const entry of [...HARDCODED_INVOCATIONS, ...runnerOwnedJobs()]) {
     const { gate, moment } = entry;
     if (entry.facade === NEVER_CONSULTS) {
       skipped.push({
@@ -2740,6 +2729,27 @@ function runnerOwnedRetirement(gate) {
   return `This job was DELETED (#3052) because the generic gate runner proves the same property: the job ran \`$runner $task\` for the ${gate} gate, and a \`declared_gates\` leg runs exactly that under the same context name. A leg answers to the gate declaration, not to \`skip_jobs\`, so this token suppresses nothing. To stop running the check, declare gates.${gate}["pull-request"] as "off" in .lisa.config.json — that says on the record that this project does not govern the property at pull-request.`;
 }
 
+/**
+ * The retirement entries for the jobs in `runnerOwnedJobs`.
+ *
+ * `reason` is a getter so the sentence is built when it is read, not at module
+ * load — the same reason `runnerOwnedJobs` is a function.
+ * @returns {Record<string, {retiredIn: string, reason: string}>} Entries keyed by token.
+ */
+function retiredRunnerOwnedTokens() {
+  return Object.fromEntries(
+    runnerOwnedJobs().map(({ token, gate }) => [
+      token,
+      Object.freeze({
+        retiredIn: "#3052",
+        get reason() {
+          return runnerOwnedRetirement(gate);
+        },
+      }),
+    ])
+  );
+}
+
 export const RETIRED_SKIP_JOB_TOKENS = Object.freeze({
   zap_baseline: Object.freeze({
     retiredIn: "#2938",
@@ -2751,26 +2761,7 @@ export const RETIRED_SKIP_JOB_TOKENS = Object.freeze({
     reason:
       "The `🔒 Skipped Required Checks` job is no longer skippable, by rule rather than by omission: a gate whose job is to detect silencing cannot itself be silenceable (see NON_DECLARABLE_JOBS). Delete the token — leaving it changes nothing, and it reads as an off-switch that still works.",
   }),
-  lint_slow: Object.freeze({
-    retiredIn: "#3052",
-    reason: runnerOwnedRetirement(CODE_STYLE_SLOW),
-  }),
-  typecheck: Object.freeze({
-    retiredIn: "#3052",
-    reason: runnerOwnedRetirement(TYPE_CORRECTNESS),
-  }),
-  format: Object.freeze({
-    retiredIn: "#3052",
-    reason: runnerOwnedRetirement(FORMAT_CONFORMANCE),
-  }),
-  build: Object.freeze({
-    retiredIn: "#3052",
-    reason: runnerOwnedRetirement(BUILD_INTEGRITY),
-  }),
-  dead_code: Object.freeze({
-    retiredIn: "#3052",
-    reason: runnerOwnedRetirement(DEAD_CODE),
-  }),
+  ...retiredRunnerOwnedTokens(),
 });
 
 /**
