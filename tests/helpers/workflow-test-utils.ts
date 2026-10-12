@@ -47,6 +47,7 @@ export interface ParsedWorkflow {
   on?: {
     workflow_call?: {
       inputs?: Record<string, WorkflowInput>;
+      outputs?: Record<string, { description?: string; value?: string }>;
     };
   };
 }
