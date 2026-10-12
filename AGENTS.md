@@ -27,7 +27,7 @@ Codex skills for Lisa wiki work live under `.agents/skills/`.
 
 - Lisa is a Bun/TypeScript monorepo published as `@codyswann/lisa`.
 - The repo includes workspace packages for ESLint plugins and template directories for supported project stacks.
-- Whenever adding or changing Lisa features, keep every supported coding agent's implementation in parity — Claude Code, Codex, Cursor, OpenCode, Antigravity (agy), and Copilot — wherever the agent has an equivalent surface. Claude is the reference implementation. If a behavior cannot be represented on some agent, document the gap in code comments, tests, or user-facing guidance instead of silently dropping it.
+- Whenever adding or changing Lisa features, keep every supported coding agent's implementation in parity — Claude Code, Codex, Cursor, OpenCode, Antigravity (agy), Copilot, and Devin — wherever the agent has an equivalent surface. Claude is the reference implementation. If a behavior cannot be represented on some agent, document the gap in code comments, tests, or user-facing guidance instead of silently dropping it.
 
 ## Purpose
 
