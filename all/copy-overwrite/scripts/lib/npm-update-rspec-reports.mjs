@@ -19,46 +19,82 @@ function specPath(path) {
   );
 }
 
-/** Only captured regular committed blobs are read; a diagnostic failure never changes gate execution. */
+/** Only bounded regular committed records can supply literal batch object IDs. */
+function committedRecords(tree) {
+  if (
+    !Buffer.isBuffer(tree) ||
+    tree.length > 1_048_576 ||
+    (tree.length && tree.at(-1) !== 0)
+  )
+    throw new Error("unbounded diagnostic inventory");
+  const records = new TextDecoder("utf8", { fatal: true })
+    .decode(tree)
+    .split("\0")
+    .filter(Boolean);
+  if (records.length > 2000) throw new Error("unbounded diagnostic inventory");
+  return records
+    .map(record => /^(100644|100755) blob ([a-f0-9]{40})\t(.+)$/.exec(record))
+    .filter(match => match && specPath(match[3]));
+}
+
+/** Exact ordered headers, body lengths and LF trailers refuse missing, extra or substituted blobs. */
+function batchLines(output, objects) {
+  if (!Buffer.isBuffer(output)) throw new Error("invalid diagnostic batch");
+  const blobs = new Map();
+  let offset = 0,
+    bytes = 0;
+  for (const object of objects) {
+    const end = output.indexOf(10, offset);
+    if (end < offset || end - offset > 64)
+      throw new Error("invalid diagnostic batch header");
+    const header = /^([a-f0-9]{40}) blob (0|[1-9]\d{0,6})$/.exec(
+      output.toString("utf8", offset, end)
+    );
+    if (!header || header[1] !== object)
+      throw new Error("diagnostic batch object differs");
+    const size = Number(header[2]);
+    bytes += size;
+    if (size > 1_048_576 || bytes > 8_388_608)
+      throw new Error("unbounded diagnostic blob");
+    const start = end + 1,
+      trailer = start + size;
+    if (trailer >= output.length || output[trailer] !== 10)
+      throw new Error("incomplete diagnostic blob");
+    let lines = size && output[trailer - 1] !== 10 ? 1 : 0;
+    for (let index = start; index < trailer; index++)
+      if (output[index] === 10) lines++;
+    blobs.set(object, lines);
+    offset = trailer + 1;
+  }
+  if (offset !== output.length)
+    throw new Error("extra diagnostic batch output");
+  return blobs;
+}
+
+/** One literal batch reads only captured committed IDs; diagnostic refusal changes no gate status. */
 export async function captureCommittedSpecInventory(command, parent) {
   const token = Object.freeze({});
   let entries = new Map();
   try {
-    if (typeof parent !== "string" || !OBJECT.test(parent))
-      throw new Error("invalid diagnostic parent");
-    const tree = (await command(["ls-tree", "-r", "-z", parent, "--", "spec"]))
-      .stdout;
     if (
-      !Buffer.isBuffer(tree) ||
-      tree.length > 1_048_576 ||
-      (tree.length && tree.at(-1) !== 0)
+      typeof command !== "function" ||
+      typeof parent !== "string" ||
+      !OBJECT.test(parent)
     )
-      throw new Error("unbounded diagnostic inventory");
-    const records = new TextDecoder("utf8", { fatal: true })
-      .decode(tree)
-      .split("\0")
-      .filter(Boolean);
-    if (records.length > 2000)
-      throw new Error("unbounded diagnostic inventory");
-    const blobs = new Map();
-    let bytes = 0;
-    for (const record of records) {
-      const match = /^(100644|100755) blob ([a-f0-9]{40})\t(.+)$/.exec(record);
-      if (!match || !specPath(match[3])) continue;
-      if (!blobs.has(match[2])) {
-        const blob = (await command(["cat-file", "blob", match[2]])).stdout;
-        if (
-          !Buffer.isBuffer(blob) ||
-          blob.length > 1_048_576 ||
-          (bytes += blob.length) > 8_388_608
+      throw new Error("invalid diagnostic input");
+    const records = committedRecords(
+      (await command(["ls-tree", "-r", "-z", parent, "--", "spec"])).stdout
+    );
+    const objects = [...new Set(records.map(record => record[2]))];
+    const blobs = objects.length
+      ? batchLines(
+          (await command(["cat-file", "--batch"], `${objects.join("\n")}\n`))
+            .stdout,
+          objects
         )
-          throw new Error("unbounded diagnostic blob");
-        let lines = blob.length && blob.at(-1) !== 10 ? 1 : 0;
-        for (const byte of blob) if (byte === 10) lines++;
-        blobs.set(match[2], lines);
-      }
-      entries.set(match[3], { path: match[3], lines: blobs.get(match[2]) });
-    }
+      : new Map();
+    for (const record of records)
+      entries.set(record[3], { path: record[3], lines: blobs.get(record[2]) });
   } catch {
     entries = new Map();
   }

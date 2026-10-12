@@ -564,3 +564,8 @@ Hosted failure followup: reuse the original team. Quality owns the exact generat
 Full-push correction: the existing builder owns only the exact authenticated member count and explicit reporting-helper assertion in the contract test. The existing security specialist independently reviews that final test diff and native results. Root supplies actual qualified test runtimes and fetches real release tags; no runtime qualification, gate, deadline, production helper or original acceptance requirement changes.
 
 Integration correction: extend the same builder only to the managed materialization count, actual source-byte verification and graph-membership assertion in the existing all-host integration file. The same independent reviewer checks the frozen test change. Root selects the actual CI Ruby and executes the unchanged Rails isolation file; the Ruby test and production template are not edited. Original complete push and hosted requirements remain mandatory.
+
+
+## Current catalog batching review ownership
+
+ROOT reuses anchor_startup_builder for the exact committed Git batch and bounded optional inventory correction admitted in the current plan. Ownership is only npm-update-rspec-reports.mjs, the minimal production gate catalog adapter, and catalog/native diagnostic controls. No commit, push, provider or generated-artifact ownership is delegated. ROOT owns metadata, official regeneration, normal delivery and final runtime/graph refreezing. Reuse a different existing source/security reviewer on the changed final bytes and native controls before delivery. Preserve all previous team roles and the original six hosted criteria; no new team or Claude session.

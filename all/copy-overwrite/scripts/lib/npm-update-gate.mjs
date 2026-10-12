@@ -73,6 +73,25 @@ function git(cwd, env, args, input, deadline) {
   });
 }
 
+/**
+ * Optional capture deadline uses at most one percent of the remaining gate budget, capped at two seconds.
+ * @param {{cwd: string, proposal: {parent: string}, deadline: number}} context Authenticated committed parent and unchanged gate deadline.
+ * @param {NodeJS.ProcessEnv} env Original credential-free Git environment.
+ * @returns {Promise<object>} Opaque committed catalog, empty on skipped, stalled or unavailable capture.
+ */
+export async function captureGateSpecInventory(
+  { cwd, proposal, deadline },
+  env
+) {
+  const now = Date.now();
+  const budget = Math.min(2000, Math.floor((deadline - now) / 100));
+  if (budget < 200)
+    return captureCommittedSpecInventory(undefined, proposal.parent);
+  const optionalDeadline = now + budget;
+  const command = (args, input) => git(cwd, env, args, input, optionalDeadline);
+  return captureCommittedSpecInventory(command, proposal.parent);
+}
+
 /** Preview writes owned Git objects without executing repository or npm code. */
 export async function descriptorFor({
   cwd,
@@ -238,10 +257,7 @@ async function pushProposal(context, env, branch, object) {
   const command = args => git(cwd, env, args, undefined, deadline);
   const hook = await originalHookInstallation(cwd, command, hookInstallation);
   const remote = `https://github.com/${policy.repository}.git`;
-  const diagnosticSpecInventory = await captureCommittedSpecInventory(
-    command,
-    proposal.parent
-  );
+  const diagnosticSpecInventory = await captureGateSpecInventory(context, env);
   const streams = await runGateStreams(
     branch,
     head,

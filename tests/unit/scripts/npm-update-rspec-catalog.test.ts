@@ -1,6 +1,6 @@
 /** Committed Git inventory, never child text or mutable paths, selects diagnostic pointers. */
 import { describe, expect, it } from "vitest";
-import { mkdirSync, symlinkSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, symlinkSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import {
   captureCommittedSpecInventory,
@@ -11,6 +11,8 @@ import {
   withPrivateRoot,
 } from "../../../all/copy-overwrite/scripts/lib/npm-update-process.mjs";
 import { publicFailure } from "../../../all/copy-overwrite/scripts/lib/npm-update-invariants.mjs";
+import * as gate from "../../../all/copy-overwrite/scripts/lib/npm-update-gate.mjs";
+import { ioLatencyBudgetMs } from "../../helpers/io-latency-budget.js";
 
 const CANARY = "PRIVATE_DESCRIPTION_CANARY";
 const SPEC = "spec/example_spec.rb";
@@ -23,19 +25,24 @@ async function withCatalog(
   action: (
     catalog: object,
     root: string,
-    env: NodeJS.ProcessEnv
+    env: NodeJS.ProcessEnv,
+    calls: { args: string[]; input?: string | Buffer }[]
   ) => Promise<void>,
   extraFiles = 0
 ) {
   await withPrivateRoot(async (root, env) => {
-    const command = (args: string[]) =>
-      runProcess("git", args, { cwd: root, env });
+    const calls: { args: string[]; input?: string | Buffer }[] = [];
+    const command = (args: string[], input?: string | Buffer) => {
+      const stdin = input === undefined ? {} : { input };
+      calls.push({ args, ...stdin });
+      return runProcess("git", args, { cwd: root, env, ...stdin });
+    };
     await command(["init", "--object-format=sha1"]);
     mkdirSync(join(root, "spec"));
     writeFileSync(join(root, SPEC), "first\nsecond\nthird\n");
     symlinkSync("example_spec.rb", join(root, "spec/alias_spec.rb"));
     for (let index = 0; index < extraFiles; index++)
-      writeFileSync(join(root, `spec/cap${index}_spec.rb`), "line\n");
+      writeFileSync(join(root, `spec/cap${index}_spec.rb`), `line ${index}\n`);
     await command(["add", "spec"]);
     await command([
       "-c",
@@ -51,8 +58,9 @@ async function withCatalog(
       .trim();
     writeFileSync(join(root, SPEC), "mutable\n".repeat(100));
     writeFileSync(join(root, "spec/mutable_only_spec.rb"), "uncommitted\n");
+    calls.length = 0;
     const catalog = await captureCommittedSpecInventory(command, parent);
-    await action(catalog, root, env);
+    await action(catalog, root, env, calls);
   });
 }
 
@@ -81,7 +89,183 @@ const footer = (locations: string[], tally = "716 examples, 14 failures") => {
   return `${tally}\n\nFailed examples:\n\n${lines}\n`;
 };
 
+/** Malformed native replies must never grant a catalog from partial or substituted bytes. */
+function corruptBatch(bytes: Buffer, mode: string): Buffer {
+  const text = bytes.toString();
+  if (mode === "wrong object")
+    return Buffer.from(`${"f".repeat(40)}${text.slice(40)}`);
+  if (mode === "wrong type")
+    return Buffer.from(text.replace(" blob ", " tree "));
+  if (mode === "noncanonical size")
+    return Buffer.from(text.replace(/ blob (\d+)/, " blob 0$1"));
+  if (mode === "truncated header") return bytes.subarray(0, 20);
+  if (mode === "missing trailer") return bytes.subarray(0, bytes.length - 1);
+  if (mode === "extra output")
+    return Buffer.concat([bytes, Buffer.from("foreign\n")]);
+  if (mode === "oversized blob")
+    return Buffer.from(text.replace(/ blob \d+/, " blob 1048577"));
+  throw new Error("unknown batch fixture");
+}
+
 describe("trusted committed RSpec location diagnostics", () => {
+  it.each([
+    "wrong object",
+    "wrong type",
+    "noncanonical size",
+    "truncated header",
+    "missing trailer",
+    "extra output",
+    "oversized blob",
+  ])("omits hints after a native %s batch frame", async mode => {
+    await withCatalog(async (_catalog, root, env) => {
+      const parent = (
+        await runProcess("git", ["rev-parse", "HEAD"], { cwd: root, env })
+      ).stdout
+        .toString()
+        .trim();
+      const command = async (args: string[], input?: string | Buffer) => {
+        const actual = await runProcess("git", args, {
+          cwd: root,
+          env,
+          ...(input === undefined ? {} : { input }),
+        });
+        if (args[0] !== "cat-file") return actual;
+        const output = corruptBatch(actual.stdout, mode);
+        return runProcess(
+          process.execPath,
+          [
+            "-e",
+            `process.stdout.write(Buffer.from(${JSON.stringify(output.toString("base64"))},"base64"));`,
+          ],
+          { cwd: root, env }
+        );
+      };
+      const catalog = await captureCommittedSpecInventory(command, parent);
+      const error = await failedChild(
+        root,
+        env,
+        catalog,
+        footer([LOCATION_TWO])
+      );
+      expect(error.code).toBe(1);
+      expect(publicFailure(error)).not.toContain(LOCATION_PREFIX);
+      expect(publicFailure(error)).not.toContain(CANARY);
+    });
+  });
+  it(
+    "bounds a maximum committed inventory with the actual production adapter",
+    async () => {
+      await withCatalog(async (_catalog, root, env) => {
+        const parent = (
+          await runProcess("git", ["rev-parse", "HEAD"], { cwd: root, env })
+        ).stdout
+          .toString()
+          .trim();
+        const started = Date.now();
+        const catalog = await gate.captureGateSpecInventory(
+          { cwd: root, proposal: { parent }, deadline: started + 1_800_000 },
+          env
+        );
+        expect(Date.now() - started).toBeLessThan(2000);
+        expect(
+          publicFailure(
+            await failedChild(root, env, catalog, footer([LOCATION_TWO]))
+          )
+        ).toContain(`${LOCATION_PREFIX}${LOCATION_TWO}`);
+      }, 1998);
+    },
+    ioLatencyBudgetMs(10_000)
+  );
+
+  it(
+    "bounds a genuinely stalled optional batch, reaps its native process and continues the original failed audit",
+    async () => {
+      await withCatalog(async (_catalog, root, env) => {
+        const parent = (
+          await runProcess("git", ["rev-parse", "HEAD"], { cwd: root, env })
+        ).stdout
+          .toString()
+          .trim();
+        const bin = join(root, "bin");
+        const marker = join(root, "stalled-pid");
+        const program = join(root, "stalled-git.cjs");
+        mkdirSync(bin);
+        writeFileSync(
+          program,
+          `const{spawn}=require("node:child_process");const args=process.argv.slice(2);if(args[0]==="cat-file"){require("node:fs").writeFileSync(${JSON.stringify(marker)},String(process.pid));process.stdin.resume();setInterval(()=>{},1000);}else{const child=spawn("/usr/bin/git",args,{stdio:"inherit"});child.on("exit",code=>process.exitCode=code);}`
+        );
+        writeFileSync(
+          join(bin, "git"),
+          `#!/bin/sh\nexec '${process.execPath}' '${program}' "$@"\n`,
+          { mode: 0o700 }
+        );
+        const started = Date.now();
+        const deadline = started + 200_000;
+        const catalog = await gate.captureGateSpecInventory(
+          { cwd: root, proposal: { parent }, deadline },
+          { ...env, PATH: `${bin}:${env.PATH}` }
+        );
+        expect(Date.now() - started).toBeLessThan(ioLatencyBudgetMs(4000));
+        expect(deadline - Date.now()).toBeGreaterThan(190_000);
+        const pid = Number(readFileSync(marker, "utf8"));
+        expect(Number.isInteger(pid) && pid > 0).toBe(true);
+        expect(() => process.kill(pid, 0)).toThrow(
+          expect.objectContaining({ code: "ESRCH" })
+        );
+        const error = await failedChild(
+          root,
+          env,
+          catalog,
+          footer([LOCATION_TWO])
+        );
+        expect(error.code).toBe(1);
+        expect(error.nativeCompleted).toBe(true);
+        expect(publicFailure(error)).not.toContain(LOCATION_PREFIX);
+        expect(publicFailure(error)).toContain("role=audit");
+      });
+    },
+    ioLatencyBudgetMs(10_000)
+  );
+
+  it("skips unusably small optional budgets while the original audit still executes", async () => {
+    await withCatalog(async (_catalog, root, env) => {
+      const started = Date.now();
+      const catalog = await gate.captureGateSpecInventory(
+        {
+          cwd: root,
+          proposal: { parent: "a".repeat(40) },
+          deadline: started + 15_000,
+        },
+        { ...env, PATH: "/no-diagnostic-executable" }
+      );
+      expect(Date.now() - started).toBeLessThan(200);
+      const error = await failedChild(
+        root,
+        env,
+        catalog,
+        footer([LOCATION_TWO])
+      );
+      expect(error.code).toBe(1);
+      expect(publicFailure(error)).not.toContain(LOCATION_PREFIX);
+    });
+  });
+
+  it("reads distinct committed blobs through one literal native Git batch with fixed object stdin", async () => {
+    await withCatalog(async (catalog, root, env, calls) => {
+      const batch = calls.filter(call => call.args[0] === "cat-file");
+      expect(batch).toHaveLength(1);
+      expect(batch[0]!.args).toEqual(["cat-file", "--batch"]);
+      const objects = batch[0]!.input!.toString().trim().split("\n");
+      expect(objects).toHaveLength(31);
+      expect(new Set(objects).size).toBe(31);
+      expect(objects.every(object => /^[a-f0-9]{40}$/.test(object))).toBe(true);
+      expect(
+        publicFailure(
+          await failedChild(root, env, catalog, footer([LOCATION_TWO]))
+        )
+      ).toContain(`${LOCATION_PREFIX}${LOCATION_TWO}`);
+    }, 30);
+  });
   it("keeps literal argv, stdin, environment and native failed status through the diagnostic-only option", async () => {
     await withCatalog(async (catalog, root, env) => {
       const output = footer([LOCATION_TWO]);
