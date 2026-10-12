@@ -95,6 +95,7 @@ const PRODUCER = [
   "rails-tool-downloads",
   "rails-tool-identity",
   "rails-tools",
+  "rspec-reports",
   "recovery",
   "supersession",
   "runtime-archive",

@@ -43,6 +43,7 @@ import {
 } from "./npm-update-publication.mjs";
 import { executeCanonicalHelper } from "./npm-update-controller-factory.mjs";
 import { withStage } from "./npm-update-invariants.mjs";
+import { captureCommittedSpecInventory } from "./npm-update-rspec-reports.mjs";
 
 const BOT = "github-actions[bot]";
 const MAIL = "41898282+github-actions[bot]@users.noreply.github.com";
@@ -237,6 +238,10 @@ async function pushProposal(context, env, branch, object) {
   const command = args => git(cwd, env, args, undefined, deadline);
   const hook = await originalHookInstallation(cwd, command, hookInstallation);
   const remote = `https://github.com/${policy.repository}.git`;
+  const diagnosticSpecInventory = await captureCommittedSpecInventory(
+    command,
+    proposal.parent
+  );
   const streams = await runGateStreams(
     branch,
     head,
@@ -254,6 +259,7 @@ async function pushProposal(context, env, branch, object) {
         input: refs,
         timeout: remainingGateTime(deadline),
         maximum: 8_388_608,
+        diagnosticSpecInventory,
         failureRole: refs.includes(` ${proposal.parent}\n`)
           ? "audit"
           : "destination",

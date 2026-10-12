@@ -452,7 +452,7 @@
       "children": []
     },
     "lib/npm-update-gate.mjs": {
-      "sha256": "183585f845688e10a5b6ce1b5567fef5c316f8596d6ea70da69b9a039c1399ed",
+      "sha256": "c972ed1fc842f7f927f11448e0c4423d8a93f589328c23a84f3504cac69b83ba",
       "staticImports": [
         "lib/github-attestation-verifier.mjs",
         "lib/npm-update-contract.mjs",
@@ -465,6 +465,7 @@
         "lib/npm-update-prepare.mjs",
         "lib/npm-update-process.mjs",
         "lib/npm-update-publication.mjs",
+        "lib/npm-update-rspec-reports.mjs",
         "lisa-automation-provenance.mjs",
         "node:fs",
         "node:path"
@@ -522,7 +523,7 @@
       "children": []
     },
     "lib/npm-update-helper-inventory.mjs": {
-      "sha256": "1a471b58bc9cb0b0e2786ccf57d1b11843d20ca0814d24446c09bbfcf2971894",
+      "sha256": "249f1ac2d86fbb7f07387aae9af09ee7104a05a197af9faaedba75552c8d6e11",
       "staticImports": [],
       "dynamicImports": [],
       "children": []
@@ -621,7 +622,7 @@
       "children": []
     },
     "lib/npm-update-hosted-hook.mjs": {
-      "sha256": "0e9cf3bf55b9b979d22553f01ad4d17c0a85058b2b87657bd3126b9034e9f8c1",
+      "sha256": "2b3f897a76860ef929b3c26f93937d79a2b645fd743fdb9c2b40206e4b8ccbc3",
       "staticImports": [
         "lib/npm-update-contract.mjs",
         "lib/npm-update-invariants.mjs",
@@ -656,8 +657,10 @@
       ]
     },
     "lib/npm-update-invariants.mjs": {
-      "sha256": "4d60f2528e013b65837e8d60eef8728a34b2005fcabaec20d59fd5f759890810",
-      "staticImports": [],
+      "sha256": "950fbdc0f20967f112ab543c92c663dccf716b8460213fa64c4c922f8729c4f2",
+      "staticImports": [
+        "lib/npm-update-rspec-reports.mjs"
+      ],
       "dynamicImports": [],
       "children": []
     },
@@ -695,7 +698,7 @@
       "children": []
     },
     "lib/npm-update-native-process.mjs": {
-      "sha256": "ab8dea4348ce670814fe446755876331cef0f5769b6d9140e726081641f04326",
+      "sha256": "2aebebca15f95ad0318e79920c025d8ff956c758aa573abf8a6a78a851f15912",
       "staticImports": [
         "lib/npm-update-contract.mjs",
         "lib/npm-update-invariants.mjs",
@@ -959,6 +962,12 @@
         "lisa-automation-provenance.mjs",
         "node:path"
       ],
+      "dynamicImports": [],
+      "children": []
+    },
+    "lib/npm-update-rspec-reports.mjs": {
+      "sha256": "534fe4ce43ece616a24c3a40dd13a8ac8998d6f36bc7582ca10b4cf371b9283e",
+      "staticImports": [],
       "dynamicImports": [],
       "children": []
     },

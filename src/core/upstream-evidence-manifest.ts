@@ -93,7 +93,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lib/npm-update-gate-proof.mjs":
       "7d7ded577a86d2df88fa826d9fe325b0a378db97120f41acba6c9b81cade949f",
     "all/copy-overwrite/scripts/lib/npm-update-gate.mjs":
-      "183585f845688e10a5b6ce1b5567fef5c316f8596d6ea70da69b9a039c1399ed",
+      "c972ed1fc842f7f927f11448e0c4423d8a93f589328c23a84f3504cac69b83ba",
     "all/copy-overwrite/scripts/lib/npm-update-gh-dispatch.mjs":
       "d78a187dfeb31aa8f5e7ecb38b5902dd4e034d52dca1527ac115dc591de90997",
     "all/copy-overwrite/scripts/lib/npm-update-gh-grants.mjs":
@@ -105,7 +105,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lib/npm-update-helper-graph.mjs":
       "7100aa6554d59c6a8f6fafefb983c12359b8cf727b8e4657362eba045051dd4e",
     "all/copy-overwrite/scripts/lib/npm-update-helper-inventory.mjs":
-      "1a471b58bc9cb0b0e2786ccf57d1b11843d20ca0814d24446c09bbfcf2971894",
+      "249f1ac2d86fbb7f07387aae9af09ee7104a05a197af9faaedba75552c8d6e11",
     "all/copy-overwrite/scripts/lib/npm-update-helper.mjs":
       "d705e0d8ae64285b539206f09784928a7fa678c2449252312a7079385e62ab90",
     "all/copy-overwrite/scripts/lib/npm-update-hook-installation.mjs":
@@ -119,11 +119,11 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lib/npm-update-hosted-gate.mjs":
       "b9ced911733ab9c6afd06c9451bb9d9cc9363e0a6fd1059ef659aba0107065cc",
     "all/copy-overwrite/scripts/lib/npm-update-hosted-hook.mjs":
-      "0e9cf3bf55b9b979d22553f01ad4d17c0a85058b2b87657bd3126b9034e9f8c1",
+      "2b3f897a76860ef929b3c26f93937d79a2b645fd743fdb9c2b40206e4b8ccbc3",
     "all/copy-overwrite/scripts/lib/npm-update-hosted-scope.mjs":
       "bf046814b607f5449f80b18081b3a42a97a9a96d54fae302661471e166797459",
     "all/copy-overwrite/scripts/lib/npm-update-invariants.mjs":
-      "4d60f2528e013b65837e8d60eef8728a34b2005fcabaec20d59fd5f759890810",
+      "950fbdc0f20967f112ab543c92c663dccf716b8460213fa64c4c922f8729c4f2",
     "all/copy-overwrite/scripts/lib/npm-update-isolation.mjs":
       "66ec5390a0af0e016880c781eae47b8c60d6fca0c79ef500e1926e42eae043bf",
     "all/copy-overwrite/scripts/lib/npm-update-leaf-contract.mjs":
@@ -131,7 +131,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lib/npm-update-leaf.mjs":
       "6638fa03bb9bb44bd84fc9b4a91d8a334030c108e2759a2a673000dcbfbfe637",
     "all/copy-overwrite/scripts/lib/npm-update-native-process.mjs":
-      "ab8dea4348ce670814fe446755876331cef0f5769b6d9140e726081641f04326",
+      "2aebebca15f95ad0318e79920c025d8ff956c758aa573abf8a6a78a851f15912",
     "all/copy-overwrite/scripts/lib/npm-update-npm.mjs":
       "70c1b1be0acb1e0a503bddf400be32ca163847e439b192acd98a7d63c1927b15",
     "all/copy-overwrite/scripts/lib/npm-update-object.mjs":
@@ -172,6 +172,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "a8f6be860dac7fd4f5ef663f42af3fa3e2d5e11c8e96c1ca2286b5eaaaa0ec5c",
     "all/copy-overwrite/scripts/lib/npm-update-recovery.mjs":
       "3dcb1826fb92c37ecbd6e46863b48b7ebae8826117ed876ae0c0749444b1c4ff",
+    "all/copy-overwrite/scripts/lib/npm-update-rspec-reports.mjs":
+      "534fe4ce43ece616a24c3a40dd13a8ac8998d6f36bc7582ca10b4cf371b9283e",
     "all/copy-overwrite/scripts/lib/npm-update-runtime-archive.mjs":
       "e7e9a5577921ad2db4c4d0f003f9b5de90f0050ac0107286a7df49e6b7778679",
     "all/copy-overwrite/scripts/lib/npm-update-runtime-graph.mjs":
@@ -297,7 +299,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/npm-updater-gate.Dockerfile":
       "c1f56c254f188d394fea0c0b9995ebf185c280aa1079233443c1eed1425d0239",
     "all/copy-overwrite/scripts/npm-updater-helper-graph.json":
-      "09ef191f06018f4fe7ac580b94e096d6370ab5a3e816e00401597a70470ebb2b",
+      "84e6b1086db16806df1a23cff5e4cfa1cda80f3c1f00ab4e1da1cc5eb312ae1d",
     "all/copy-overwrite/scripts/schemas/lisa-command-envelope.v1.schema.json":
       "d153b7c2953a30f180e38f09e98240c63327f5196eeba9bdf545e5a1f125a879",
     "all/copy-overwrite/scripts/schemas/lisa-state-contract.v1.schema.json":
@@ -2707,7 +2709,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/test-intent-routing.sh":
       "97b9dc86cbd805df8a7fdb8c99ffab9b8c5e751ba2e84c05420b2a124f80635d",
     "scripts/two-channel-couplings.json":
-      "b779dd1ea1dfdd2a97690ca142b34c2058403de3c3c27f237567a2bb02af0210",
+      "a3b21eb7b3c09781c076f22bbf8e1bf7ba176d88dc9f1b3dbbdc7ac4e0a6a247",
     "scripts/update-node-version.ts":
       "9d37599ef73d5d624751f862cda330a867f6774392c1ab045b4fc885132582e4",
     "scripts/update-test-skill-paths.mjs":
@@ -3129,6 +3131,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "all/copy-overwrite/scripts/lib/npm-update-rails-tool-identity.mjs": true,
     "all/copy-overwrite/scripts/lib/npm-update-rails-tools.mjs": true,
     "all/copy-overwrite/scripts/lib/npm-update-recovery.mjs": true,
+    "all/copy-overwrite/scripts/lib/npm-update-rspec-reports.mjs": true,
     "all/copy-overwrite/scripts/lib/npm-update-runtime-archive.mjs": true,
     "all/copy-overwrite/scripts/lib/npm-update-runtime-graph.mjs": true,
     "all/copy-overwrite/scripts/lib/npm-update-runtime-transport.mjs": true,
@@ -11964,6 +11967,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/npm-update-gh-requests.test.ts": true,
     "tests/unit/scripts/npm-update-github.test.ts": true,
     "tests/unit/scripts/npm-update-helper-generator.test.ts": true,
+    "tests/unit/scripts/npm-update-hook-entry.test.ts": true,
     "tests/unit/scripts/npm-update-hook-installation.test.ts": true,
     "tests/unit/scripts/npm-update-hook-provider.test.ts": true,
     "tests/unit/scripts/npm-update-hosted-gate.test.ts": true,
@@ -11978,6 +11982,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/npm-update-rails-runtime-descriptor.test.ts": true,
     "tests/unit/scripts/npm-update-rails-tool-downloads.test.ts": true,
     "tests/unit/scripts/npm-update-rails-tools.test.ts": true,
+    "tests/unit/scripts/npm-update-rspec-catalog.test.ts": true,
     "tests/unit/scripts/npm-update-runtime-qualification.test.ts": true,
     "tests/unit/scripts/npm-update-socket-witness.test.ts": true,
     "tests/unit/scripts/npm-update-tracker.test.ts": true,

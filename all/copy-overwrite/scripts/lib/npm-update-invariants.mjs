@@ -2,6 +2,8 @@
 // Do not edit directly — durable changes belong upstream in Lisa.
 
 /** Pure shared diagnostics retain one error identity without importing producer orchestration. */
+import { hookReports } from "./npm-update-rspec-reports.mjs";
+
 const stages = new Set([
   "configuration",
   "cancel-intent",
@@ -175,54 +177,6 @@ const categories = new Set([
   "input-failed",
   "spawn-error",
 ]);
-const hookNames = new Set([
-  "work-item",
-  "behavior-contract",
-  "rspec",
-  "brakeman",
-  "reek",
-  "flog",
-  "flay",
-  "mutation",
-  "rubocop",
-  "bundler-audit",
-  "threshold-ratchet",
-]);
-
-/** Child reports are bounded hints, never native status, hook authority or raw output. */
-function hookReports(stdout, stderr) {
-  const buffers = [stdout, stderr].filter(Buffer.isBuffer);
-  if (buffers.reduce((size, buffer) => size + buffer.length, 0) > 8_388_608)
-    return { hooks: [], counts: null };
-  const text = buffers
-    .map(buffer => buffer.toString("utf8"))
-    .join("\n")
-    .replace(/\u001b\[[0-9;]{1,24}m/g, "");
-  const hooks = new Set();
-  for (const match of text.matchAll(
-    /^[ \t]*❌ ([a-z][a-z-]{0,31})( \([\d. a-z]{1,16}\))?[ \t]*\r?$/gm
-  ))
-    if (
-      hookNames.has(match[1]) &&
-      (match[2] === undefined ||
-        /^ \(\d{1,4}(?:\.\d{1,3})? (?:seconds?|s)\)$/.test(match[2]))
-    )
-      hooks.add(match[1]);
-  const counts = new Map();
-  for (const match of text.matchAll(
-    /^[ \t]*(\d{1,6}) examples?, (\d{1,6}) failures?[ \t]*\r?$/gm
-  )) {
-    const examples = Number(match[1]);
-    const failures = Number(match[2]);
-    if (failures <= examples)
-      counts.set(`${examples}:${failures}`, { examples, failures });
-  }
-  return {
-    hooks: [...hooks].sort(),
-    counts: counts.size === 1 ? counts.values().next().value : null,
-  };
-}
-
 /** Nested stages preserve the innermost observed boundary and the exact original thrown value. */
 export async function withStage(stage, operation) {
   required(stages.has(stage), "invalid updater diagnostic stage");
@@ -249,7 +203,8 @@ export function recordNativeFailure(
   errno,
   stderr,
   stdout,
-  role
+  role,
+  diagnosticSpecInventory
 ) {
   if (Buffer.isBuffer(stderr) && stderr.length <= 256)
     capturedErrors.set(error, Buffer.from(stderr));
@@ -267,7 +222,7 @@ export function recordNativeFailure(
       status > 0 &&
       status <= 255 &&
       (role === "audit" || role === "destination")
-        ? hookReports(stdout, stderr)
+        ? hookReports(stdout, stderr, diagnosticSpecInventory)
         : null,
   });
 }
@@ -290,6 +245,9 @@ export function publicFailure(error) {
           `rspec-examples=${facts.reports.counts.examples}`,
           `rspec-failures=${facts.reports.counts.failures}`
         );
+      if (facts.reports.locations.length)
+        parts.push(`rspec-locations=${facts.reports.locations.join(",")}`);
+      if (facts.reports.truncated) parts.push("rspec-locations-truncated=true");
       parts.push("reports=child-reported-nonauthoritative");
     }
   }

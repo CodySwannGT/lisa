@@ -1,8 +1,8 @@
 {
   "$generatedBy": "scripts/generate-export-surface.mjs",
   "$doNotEdit": "The public export surface this package ships, recorded so a removal is an OBSERVATION rather than an inference from commit-message conventions. This file's diff is what makes a removed export visible in the pull request that causes it (CodySwannGT/lisa#3718).",
-  "$modules": 231,
-  "$names": 1734,
+  "$modules": 232,
+  "$names": 1736,
   "surface": {
     "all/copy-overwrite/scripts/check-conflict-markers.mjs": [
       "UsageError",
@@ -596,6 +596,10 @@
       "persistCheckpoint",
       "recoverPartialCheckpoint",
       "recoveryRecord"
+    ],
+    "all/copy-overwrite/scripts/lib/npm-update-rspec-reports.mjs": [
+      "captureCommittedSpecInventory",
+      "hookReports"
     ],
     "all/copy-overwrite/scripts/lib/npm-update-runtime-archive.mjs": [
       "inspectRuntimeArchive",

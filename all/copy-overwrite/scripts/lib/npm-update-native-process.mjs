@@ -53,7 +53,8 @@ function startSupervised(command, args, timeout, cwd, env) {
  * @param {string[]} args Original argument vector.
  * @param {{cwd?: string, env?: NodeJS.ProcessEnv, input?: string | Buffer,
  * timeout?: number, allowed?: number[], maximum?: number,
- * signal?: AbortSignal, failureRole?: "audit" | "destination"}} [options] Bounded execution.
+ * signal?: AbortSignal, failureRole?: "audit" | "destination",
+ * diagnosticSpecInventory?: object}} [options] Bounded execution; catalog grants no authority.
  * @returns {Promise<{code: number, stdout: Buffer, stderr: Buffer}>} Actual child result.
  */
 export function runProcess(
@@ -68,6 +69,7 @@ export function runProcess(
     maximum = 3_145_728,
     signal: abortSignal,
     failureRole,
+    diagnosticSpecInventory,
   } = {}
 ) {
   required(
@@ -99,6 +101,7 @@ export function runProcess(
       maximum,
       abortSignal,
       failureRole,
+      diagnosticSpecInventory,
     }).then(resolve, reject);
   });
 }
@@ -115,6 +118,7 @@ function observedFailure(error, observation) {
     signal,
     errno,
     failureRole,
+    diagnosticSpecInventory,
   } = observation;
   const stderr = Buffer.concat(errors);
   const stdout = Buffer.concat(chunks);
@@ -126,7 +130,8 @@ function observedFailure(error, observation) {
     errno,
     stderr,
     stdout,
-    failureRole
+    failureRole,
+    diagnosticSpecInventory
   );
   return Object.assign(error, {
     stdout,
@@ -140,7 +145,16 @@ function observedFailure(error, observation) {
 /** Native close, not cancellation delivery, completes an owned child. */
 function captureProcess(
   child,
-  { command, input, timeout, allowed, maximum, abortSignal, failureRole }
+  {
+    command,
+    input,
+    timeout,
+    allowed,
+    maximum,
+    abortSignal,
+    failureRole,
+    diagnosticSpecInventory,
+  }
 ) {
   return new Promise((resolveResult, reject) => {
     const chunks = [];
@@ -198,6 +212,7 @@ function captureProcess(
             signal,
             errno,
             failureRole,
+            diagnosticSpecInventory,
           })
         );
         return;

@@ -21,6 +21,8 @@ const PRELOAD = fileURLToPath(
 );
 const RAILS_INLINE =
   'try { const { main } = await import("./scripts/lisa-rails-prepush.mjs"); process.exitCode = await main(process.argv.slice(1)); } catch { console.error("Managed Rails push tooling is unavailable or damaged. Run full Lisa apply and retry; raw bootstrap errors are withheld."); process.exitCode = 1; }';
+const CURRENT_RAILS_INLINE =
+  'try { const { main } = await import("./scripts/lisa-rails-prepush.mjs"); const rc = await main(process.argv.slice(1)); if (rc !== 0) console.error(`Rails pre-push refused (exit ${rc}). Retry the same git push command and inspect rails-prepush output for scanner and work-item details.`); process.exitCode = rc; } catch { console.error("Managed Rails push tooling is unavailable or damaged. Run full Lisa apply and retry; raw bootstrap errors are withheld."); process.exitCode = 1; }';
 
 /** Context carries no token; the broker independently retains its immutable read subject in parent memory. */
 export function hostedHookContext(file) {
@@ -63,12 +65,12 @@ export function hostedHookContext(file) {
   return { ...context, file, deadline: context.reader.deadline };
 }
 
-/** Inline qualification is one exact managed Rails bootstrap; arbitrary eval stays ordinary token-free application code. */
+/** Exact current and earlier managed Rails bootstraps qualify; arbitrary eval stays token-free application code. */
 export function hookEntry(context, args, cwd) {
   if (
     args[0] === "--input-type=module" &&
     args[1] === "-e" &&
-    args[2] === RAILS_INLINE
+    (args[2] === RAILS_INLINE || args[2] === CURRENT_RAILS_INLINE)
   ) {
     const entry = join(cwd, "scripts/lisa-rails-prepush.mjs");
     return Object.hasOwn(context.graph, entry) ? entry : null;
