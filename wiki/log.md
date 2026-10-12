@@ -1,5 +1,17 @@
 # Lisa Wiki Log
 
+## 2026-10-11 - Devin CLI parity
+
+- Added a Devin CLI section to `wiki/architecture/coding-agent-parity.md` and the `lisa-devin` variant shape to `wiki/architecture/pattern-b-fan-out-spec.md` (Epic `#4283`, leaves `#4426` to `#4429`).
+- Preserved the measured Devin CLI 3000.11.3 runtime facts as a source note at `wiki/sources/docs/2026-10-11-devin-cli-runtime-probe.md`. The facts covered:
+  - where Devin loads hooks from;
+  - Devin's tool names;
+  - the plugin manifest;
+  - what the backup guard does;
+  - which surfaces Devin lacks.
+- Recorded the scheduler decision: documented manual trigger plus `scheduler: "github-actions"`, not a polyfill.
+- Updated `wiki/index.md` to point at both.
+
 ## 2026-09-01 - Codex repository enforcement fallback
 
 - Corrected the project-scoped Codex delivery decision, hook ship list, coding-agent entity, and workflow playbook for issue `#3547`: a filtered repository marketplace selects plugins but does not prove their hooks are installed, enabled, trusted, or live in the current session.

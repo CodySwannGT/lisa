@@ -1625,7 +1625,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-setup-atlassian/SKILL.md":
       "d1945a471afa5454ef4f6dffa52decf7df0ec3f411dadaf5d4bc95aeeb8ca6e2",
     "plugins/src/base/skills/lisa-setup-automations/SKILL.md":
-      "520dbf5c1735c038ef6607eafefb6914e4e24a434c6abb2b057c6065efbf6bb6",
+      "24ea81411caff3a43b9bc86aae88cf9a36efe83791f545d799fbdabf6bcf4da1",
     "plugins/src/base/skills/lisa-setup-automations/scripts/generate-workflow.mjs":
       "c13e287c8beb6f847b03c93298b8a3fb211e65ce897e63692933377f8c4303f1",
     "plugins/src/base/skills/lisa-setup-confluence/SKILL.md":
@@ -12658,6 +12658,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "wiki/sources/docs/2026-07-25-tasc-spec-draft.md": true,
     "wiki/sources/docs/2026-07-26-anthropic-ai-native-sdlc.md": true,
     "wiki/sources/docs/2026-07-26-danluu-agentic-test-processes.md": true,
+    "wiki/sources/docs/2026-10-11-devin-cli-runtime-probe.md": true,
     "wiki/sources/git/2026-05-25-lisa-monorepo-git.md": true,
     "wiki/sources/git/2026-05-26-lisa-monorepo-git.md": true,
     "wiki/sources/git/2026-05-27-lisa-monorepo-git.md": true,
