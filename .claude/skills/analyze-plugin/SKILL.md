@@ -1,6 +1,6 @@
 ---
 name: analyze-plugin
-description: "This skill should be used to analyze a single curated third-party Claude plugin (one of Lisa's enabledPlugins) and plan how to bring it to parity across the non-Claude agents Lisa distributes to (Codex, Cursor, agy, Copilot). It inventories the plugin's components, classifies each, decides a per-agent routing outcome, and writes a machine-readable routing artifact plus a human review matrix under parity/plugin-routing/. It is PLAN-ONLY: it STOPS for human approval and makes no source-tree edits — the sibling skill implement-plugin-parity executes an approved artifact."
+description: "This skill should be used to analyze a single curated third-party Claude plugin (one of Lisa's enabledPlugins) and plan how to bring it to parity across the non-Claude agents Lisa distributes to (Codex, Cursor, agy, Copilot, Devin). It inventories the plugin's components, classifies each, decides a per-agent routing outcome, and writes a machine-readable routing artifact plus a human review matrix under parity/plugin-routing/. It is PLAN-ONLY: it STOPS for human approval and makes no source-tree edits — the sibling skill implement-plugin-parity executes an approved artifact."
 allowed-tools: ["Bash", "Read", "Write", "Edit", "Glob", "Grep", "Skill"]
 ---
 
@@ -22,7 +22,7 @@ skills own the Sentry workflows.)
 
 (+ `typescript-lsp@claude-plugins-official` in stack settings.) These reach
 Claude — and Cursor, which reads `.claude-plugin/` natively — but **not**
-Codex / agy / Copilot. This skill analyzes one curated plugin and produces a
+Codex / agy / Copilot / Devin. This skill analyzes one curated plugin and produces a
 parity plan: what each component is, and how each agent should obtain
 equivalent behavior.
 
@@ -100,7 +100,7 @@ declaration.
 ### 3. Decide a per-agent routing outcome
 
 Produce **exactly one** routing entry per non-Claude-native agent: `codex`,
-`cursor`, `agy`, `copilot`. Each entry has an `outcome` from the locked enum, a
+`cursor`, `agy`, `copilot`, `devin`. Each entry has an `outcome` from the locked enum, a
 list of declarative `actions`, and a `rationale`.
 
 **Outcome enum (locked):**
@@ -110,7 +110,8 @@ list of declarative `actions`, and a `rationale`.
 - `re-point-mcp-lsp` — the component is (or carries) an MCP/LSP server; emit it
   into that agent's variant via the existing generator/installer (Codex
   `.codex-plugin` MCP pointer; Cursor `mcp.json`; agy → `src/agy/mcp-installer.ts`
-  user-global; Copilot → inline `mcpServers` / `lspServers` on the manifest).
+  user-global; Copilot → inline `mcpServers` / `lspServers` on the manifest;
+  Devin → the variant's root `.mcp.json`, which Devin reads natively).
 - `enable-vendor-equivalent` — enable the agent's native equivalent capability
   in its project-scoped marketplace.
 - `claude-only` — intentionally not ported (e.g. Cursor already covers it via
@@ -152,6 +153,14 @@ Routing heuristics:
   generators from #1054–#1058), not a skill — say so explicitly in `actions`.
   `claude-only` for Cursor; for Copilot, `enable-vendor-equivalent` when the plugin
   ships a native Copilot hook runner, else `reimplement`.
+- **Devin** → the curated third-party plugin is never installed into Devin
+  (Lisa installs only its own `lisa-devin` variant), so: a subagent, skill, or
+  command → `reimplement`, shipped as a `lisa-parity-*` skill in the variant
+  (Devin has no plugin command surface — its slash commands ARE skills); an MCP
+  server → `re-point-mcp-lsp` via the variant's root `.mcp.json`; an LSP server
+  → `claude-only` with the gap stated in `rationale` (Devin documents no plugin
+  LSP surface, so there is nothing to emit — never dress the gap up as a
+  re-point).
 - Note any first-of-its-kind emission path (e.g. the first LSP routed to
   Copilot `lspServers`) in `actions` as a flagged follow-up rather than assuming
   the generator already handles it.
@@ -214,7 +223,8 @@ before running `implement-plugin-parity`.
     "codex":   { "outcome": "reimplement",             "actions": ["scaffold Lisa-native skill stamped synced-from: code-simplifier@claude-plugins-official@1.0.0"], "rationale": "Codex has no plugin subagent surface; behavior reimplemented as a Lisa skill." },
     "cursor":  { "outcome": "claude-only",             "actions": [],                                                                                                  "rationale": "Cursor reads .claude-plugin/ natively; the agent loads unchanged." },
     "agy":     { "outcome": "reimplement",             "actions": ["scaffold Lisa-native skill stamped synced-from: code-simplifier@claude-plugins-official@1.0.0"], "rationale": "Curated third-party plugins are not in agy's fan-out, so agy receives nothing natively; reimplement as a Lisa skill." },
-    "copilot": { "outcome": "enable-vendor-equivalent","actions": ["enable copilot's native simplifier equivalent in the project-scoped marketplace"],                "rationale": "vendor ships a comparable capability; prefer enabling over reimplementing." }
+    "copilot": { "outcome": "enable-vendor-equivalent","actions": ["enable copilot's native simplifier equivalent in the project-scoped marketplace"],                "rationale": "vendor ships a comparable capability; prefer enabling over reimplementing." },
+    "devin":   { "outcome": "reimplement",             "actions": ["ship the Lisa-native skill in the lisa-devin variant, stamped synced-from: code-simplifier@claude-plugins-official@1.0.0"], "rationale": "Devin installs only Lisa's own lisa-devin variant, so the curated plugin never reaches it; reimplement as a Lisa skill." }
   }
 }
 ```
@@ -261,7 +271,7 @@ Every component group appears; nothing is left as "NOT addressed."
 
 - `parity/plugin-routing/<name>@<marketplace>.json` exists, validates against the
   schema above, is `status:"proposed"`, and has exactly one routing entry per
-  agent (codex/cursor/agy/copilot).
+  agent (codex/cursor/agy/copilot/devin).
 - `upstreamVersion` is resolved by the Version-fallback rules (semver, semver dir
   name, or `"unknown"`), and any `reimplement` of an `"unknown"`-version plugin
   flags the not-drift-trackable consequence.

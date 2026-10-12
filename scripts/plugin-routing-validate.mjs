@@ -52,7 +52,7 @@ const REPO_ROOT = path.resolve(
 );
 
 /** The non-Claude-native agents that every routing block must cover, exactly. */
-const AGENTS = ["agy", "codex", "copilot", "cursor"];
+const AGENTS = ["agy", "codex", "copilot", "cursor", "devin"];
 
 /** The locked routing-outcome enum. */
 const OUTCOMES = new Set([
@@ -244,7 +244,7 @@ function validateActions(agent, entry, plugin, upstreamVersion) {
 }
 
 /**
- * Validate the routing block: exactly the four agent keys, each with a valid
+ * Validate the routing block: exactly the five agent keys, each with a valid
  * outcome, an actions array, a non-empty rationale, and clean actions.
  *
  * @param {unknown} routing - the artifact's `routing` object.
@@ -254,13 +254,15 @@ function validateActions(agent, entry, plugin, upstreamVersion) {
  */
 function validateRouting(routing, plugin, upstreamVersion) {
   if (routing === null || typeof routing !== "object") {
-    return ["routing must be an object covering agy,codex,copilot,cursor"];
+    return [
+      "routing must be an object covering agy,codex,copilot,cursor,devin",
+    ];
   }
   const errors = [];
   const keys = Object.keys(routing).sort();
   if (keys.join(",") !== [...AGENTS].sort().join(",")) {
     errors.push(
-      `routing must have exactly agy,codex,copilot,cursor (got ${keys.join(",") || "none"})`
+      `routing must have exactly agy,codex,copilot,cursor,devin (got ${keys.join(",") || "none"})`
     );
   }
   for (const agent of AGENTS) {

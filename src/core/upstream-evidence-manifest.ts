@@ -2691,7 +2691,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/plugin-parity-drift.mjs":
       "50e8911a25502d1173ac26a368c8f8495e6e5280c5676092c6de27a6b254bd84",
     "scripts/plugin-routing-validate.mjs":
-      "31b6a1ee9fdff0c8d56c8dda69f378d93493ffd4f07ee773ab2fed0c64977c1f",
+      "b688c899549cfcd10660c0154f01e5bedb9d1baaaa27958c9d8f436bc45c87e6",
     "scripts/probes/wave3-verification.sh":
       "c341c3682f2401339a433a48efc8b8dd80c9c190f12ec6287139bebd1e47c049",
     "scripts/reconcile-release-tags.mjs":

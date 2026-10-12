@@ -182,7 +182,18 @@ describe("validateArtifact routing gates", () => {
         errsWith(a => {
           delete a.routing.copilot;
         }),
-        "exactly agy,codex,copilot,cursor"
+        "exactly agy,codex,copilot,cursor,devin"
+      )
+    ).toBe(true);
+  });
+
+  it("flags a missing devin entry by name", () => {
+    expect(
+      has(
+        errsWith(a => {
+          delete a.routing.devin;
+        }),
+        "routing.devin is missing"
       )
     ).toBe(true);
   });

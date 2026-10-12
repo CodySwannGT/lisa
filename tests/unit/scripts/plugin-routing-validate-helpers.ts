@@ -177,6 +177,7 @@ export function baseArtifact(): Artifact {
         rationale: "Cursor reads .claude-plugin/ natively",
       },
       agy: reimplement(),
+      devin: reimplement(),
       copilot: {
         outcome: "enable-vendor-equivalent",
         actions: [
@@ -228,6 +229,7 @@ export function multiKind(copilotActions: readonly string[]): Artifact {
       ...base.routing,
       codex: rePoint(coverBoth),
       agy: rePoint(coverBoth),
+      devin: rePoint(coverBoth),
       copilot: rePoint(copilotActions),
     },
   };

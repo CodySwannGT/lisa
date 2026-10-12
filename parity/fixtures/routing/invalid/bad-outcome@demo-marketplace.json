@@ -35,6 +35,11 @@
       "outcome": "claude-only",
       "actions": [],
       "rationale": "No equivalent; documented only."
+    },
+    "devin": {
+      "outcome": "claude-only",
+      "actions": [],
+      "rationale": "Fixture entry: mirrors agy so the only invalid field in this artifact is the bad outcome under test."
     }
   }
 }

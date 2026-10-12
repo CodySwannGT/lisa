@@ -43,6 +43,11 @@
         "emit the TypeScript LSP as an inline lspServers entry on Copilot's manifest — first LSP routed to Copilot lspServers; flagged follow-up: verify the Copilot manifest generator emits lspServers"
       ],
       "rationale": "An LSP-bearing plugin is re-pointed into Copilot's lspServers manifest rather than reimplemented."
+    },
+    "devin": {
+      "outcome": "claude-only",
+      "actions": [],
+      "rationale": "Documented gap, not a re-point: Devin CLI documents no plugin LSP surface (no lspServers manifest field), so nothing can be emitted for typescript-lsp; re-probe when Devin ships one."
     }
   }
 }

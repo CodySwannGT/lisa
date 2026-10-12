@@ -67,6 +67,15 @@
         "the autofix skill has no generic Copilot equivalent — reimplement it as a Lisa-native skill stamped synced-from: coderabbit@claude-plugins-official@1.1.1"
       ],
       "rationale": "Code review is a generic capability Copilot ships natively (enable it for the review components); the CodeRabbit-specific autofix has no native equivalent so it is reimplemented."
+    },
+    "devin": {
+      "outcome": "reimplement",
+      "actions": [
+        "ship the existing Lisa-native reimplementation of the code-reviewer agent (lisa-parity-coderabbit) in the lisa-devin variant, stamped synced-from: coderabbit@claude-plugins-official@1.1.1",
+        "the coderabbit-review command reaches Devin as that same Lisa-native skill — Devin has no plugin command surface — stamped synced-from: coderabbit@claude-plugins-official@1.1.1",
+        "the autofix and code-review skills reach Devin as Lisa-native skills in the lisa-devin variant, stamped synced-from: coderabbit@claude-plugins-official@1.1.1"
+      ],
+      "rationale": "Devin installs Lisa's own lisa-devin plugin variant, which ships the Lisa-native reimplementation; curated third-party Claude plugins are not part of Lisa's Devin install."
     }
   }
 }

@@ -120,6 +120,15 @@
         "reimplement the sentry-debug-issue AI-debugging workflow (formerly the seer command) as a Lisa-native skill (lisa-parity-sentry-seer) stamped synced-from: sentry@claude-plugins-official@1.4.0"
       ],
       "rationale": "The dominant component is the sentry HTTP MCP, emitted inline on Copilot's manifest; the consolidated workflow skills (incl. the folded-in seer/debug workflow) are reimplemented as Lisa skills so no component group is dropped."
+    },
+    "devin": {
+      "outcome": "re-point-mcp-lsp",
+      "actions": [
+        "keep the sentry HTTP MCP in the lisa-devin variant's root .mcp.json, which Devin loads natively (verified by run: `devin plugins info lisa` lists the sentry MCP server, #4426)",
+        "ship the Lisa-native reimplementations of the 10 consolidated workflow skills (lisa-parity-sentry-sdk-setup) in the lisa-devin variant, stamped synced-from: sentry@claude-plugins-official@1.4.0",
+        "ship the sentry-debug-issue AI-debugging workflow reimplementation (lisa-parity-sentry-seer) in the lisa-devin variant, stamped synced-from: sentry@claude-plugins-official@1.4.0"
+      ],
+      "rationale": "Devin reads a plugin's root .mcp.json, so the MCP travels with Lisa's own Devin variant; the workflow skills reach Devin through Lisa's reimplementations because curated third-party plugins are not part of Lisa's Devin install."
     }
   }
 }
