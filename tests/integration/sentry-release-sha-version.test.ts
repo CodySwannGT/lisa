@@ -15,8 +15,10 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import {
   exerciseSentryJob,
+  releaseWorkflow,
   SENTRY_CREDENTIALS,
 } from "../helpers/sentry-release-harness.js";
+import { jobOf } from "../helpers/workflow-test-utils.js";
 import { cleanGitEnv, GIT_BIN } from "../support/git-executable.js";
 
 const GIT_ENV = {
@@ -210,6 +212,19 @@ describe("release.yml Sentry {sha_version}", () => {
       expect(result.resolveStdout).toContain(reason);
     }
   );
+
+  it("refuses a length on {sha_version}", () => {
+    const result = run({ sentry_release_name: "app@{sha_version:7}" });
+    expect(result.resolveStatus).toBe(1);
+    expect(result.resolveStdout).toContain("{sha_version:7}");
+  });
+
+  it("checks out full history so the triggering commit's manifest is readable", () => {
+    const checkout = jobOf(releaseWorkflow, "sentry_release").steps?.find(
+      item => String(item.uses ?? "").startsWith("actions/checkout@")
+    );
+    expect(checkout?.with?.["fetch-depth"]).toBe(0);
+  });
 
   it("fails closed on {sha_version} outside a git checkout", () => {
     const result = exerciseSentryJob({
