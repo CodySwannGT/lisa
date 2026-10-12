@@ -69,6 +69,15 @@ describe("release.yml Sentry release naming", () => {
     expect(result.summary).toContain(APP_NAME);
   });
 
+  it("reads a zero-padded length as decimal, never octal", () => {
+    // Bash arithmetic reads 010 as octal 8 and rejects 08 outright.
+    const result = named({
+      sentry_release_name: "app@{version}+{sha:010}.{sha:08}",
+    });
+    expect(result.resolveStatus).toBe(0);
+    expect(result.actionVersion).toBe("app@1.2.3+56f04b8d01.56f04b8d");
+  });
+
   it("renders the tag, full commits and the release commit", () => {
     const result = named({
       sentry_release_name:
@@ -144,6 +153,16 @@ describe("release.yml Sentry release naming", () => {
       "a too-short commit length",
       { sentry_release_name: "a@{version}+{sha:3}" },
       "{sha:3}",
+    ],
+    [
+      "a commit length too large for shell arithmetic",
+      { sentry_release_name: "a@{version}+{sha:99999999999999999999}" },
+      "{sha:99999999999999999999}",
+    ],
+    [
+      "a mistyped placeholder before a valid one",
+      { sentry_release_name: "{Tag}-{version}" },
+      "{Tag}",
     ],
     [
       "a name without the version",

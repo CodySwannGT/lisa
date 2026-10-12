@@ -1828,12 +1828,20 @@ jobs:
                   sha|release_commit) ;;
                   *) fail "Placeholder $token takes no length; only {sha:N} and {release_commit:N} do." ;;
                 esac
-                if [ "$length" -lt 7 ] || [ "$length" -gt 40 ]; then
+                # At most two significant digits, read as base 10: `08` and `010` would
+                # otherwise be octal (an error and 8 respectively).
+                if ! [[ "$length" =~ ^0*[0-9]{1,2}$ ]] || [ $((10#$length)) -lt 7 ] || [ $((10#$length)) -gt 40 ]; then
                   fail "Placeholder $token must keep 7-40 characters."
                 fi
-                value="${value:0:$length}"
+                value="${value:0:$((10#$length))}"
               fi
-              name+="${rest%%"$token"*}$value"
+              # Text between placeholders is literal; a brace there is a
+              # mistyped placeholder (e.g. {Tag}) that must not ship verbatim.
+              prefix="${rest%%"$token"*}"
+              case "$prefix" in
+                *[{}]*) fail "sentry_release_name has an unbalanced brace or malformed placeholder near: $prefix" ;;
+              esac
+              name+="$prefix$value"
               rest="${rest#*"$token"}"
             done
             case "$rest" in
