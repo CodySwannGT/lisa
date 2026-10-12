@@ -1,0 +1,42 @@
+# History Audit — Before Removing or Changing Existing Behavior
+
+When a proposed change would remove, gate, skip, consolidate, weaken, or relax existing behavior — and the motivation is your own assessment that the code looks redundant, wasteful, slow, or wrong, rather than a ticket, bug report, or spec — **audit the history before presenting the change as safe or implementing it**. This is Chesterton's fence made operational: the fence's reason is usually written down; go read it.
+
+This is the historical counterpart to the `empirical-inquiry` rule: `empirical-inquiry` establishes facts about how the system behaves *now* by probing it; this rule establishes *why the system behaves that way* by reading the record. Both reject confident-sounding reasoning as a substitute for evidence.
+
+## Why this rule exists
+
+Optimization and cleanup recommendations fail in a characteristic way: the code genuinely *is* doing redundant-looking work, the diagnosis is correct, and the proposed fix would still ship a regression — because the redundancy is load-bearing and its reason lives in a commit body, a code comment, or a test the recommender never read. In a real Lisa incident, a performance audit of the postinstall pipeline produced five recommendations; the history audit walked back two of them (a "redundant" apply pass existed to fix a bootstrap chicken-and-egg; a "wasteful" detached re-run existed because the package manager clobbers `package.json` after lifecycle scripts finish) and confirmed the rest were genuinely accidental. Without the audit, the confident-sounding fixes would have re-shipped bugs that earlier commits had explicitly fixed.
+
+## When this rule applies
+
+- A recommendation proposes that existing behavior stop happening: deleting a code path, gating an unconditional step, deduplicating repeated work, relaxing a guard or retry, skipping a pass "when nothing changed."
+- The motivation is internal — the code *looks* redundant, wasteful, slow, dead, or overcautious — rather than an external requirement.
+- **Nothing needs to be deleted to trigger it.** A change that weakens a guarantee alters existing behavior just as much: adding a cache or version-stamp that skips a self-healing pass, narrowing a matcher, batching what was deliberately serialized.
+
+## When it does not apply
+
+- **Diagnosis is free.** Measuring, profiling, and explaining what is slow or broken needs no audit. The audit gates *prescriptions* — the moment an observation is about to become "so we should remove/skip/gate X."
+- **Requirement-driven changes may cite the requirement.** Implementing a ticket, fixing a reproduced bug, or following a spec supplies external evidence; cite it as the defense and move on. Normal verification discipline covers those.
+- **Spitballing is fine when labeled.** Presenting early ideas before the audit is acceptable if they are explicitly marked as not yet history-audited. What is forbidden is presenting them as safe.
+
+## How to apply it
+
+1. **Trace the artifact history.** `git log --follow` on each affected file; `git log --grep` for related keywords (feature names, flag names, error strings). Find the commits that introduced and last modified the behavior.
+2. **Read the full commit bodies.** Subjects rarely carry the defense; bodies do — often naming the exact incident, the affected projects, and the failure mode the behavior prevents. `--oneline` skims are how the evidence gets missed. Extend the same reading to code comments around the behavior and to tests whose names encode a philosophy (a test called `*-guard` or `*-preserves-*` is a defense).
+3. **Check for a prior removal.** Search for commits that removed the same behavior before — if it was removed and later restored, the restoration commit is the strongest defense on record, and your proposal must answer it specifically.
+4. **Issue a per-recommendation verdict.** Every prescription ships in one of two states:
+   - **Defended by \<commit/comment/test\>** — the behavior has a recorded reason. Adapt the proposal so that reason keeps holding (gate instead of delete, preserve the invariant, keep the escape hatch), and say what the defense was.
+   - **No defense found** — you searched and no commit, comment, or test justifies it. That absence is itself a finding: state it, and proceed.
+
+   The verdict is the enforcement mechanism — it cannot be filled in without doing the audit.
+
+## What this rule forbids
+
+- Presenting the removal or weakening of existing behavior as safe without a verdict.
+- Auditing by subject line only.
+- Treating redundant-looking behavior as accidental by default. In a codebase with disciplined commit messages, *defended* is the norm; genuine accidents are the exception, and the audit is how you tell them apart.
+
+## The compounding loop
+
+This rule only works in a repository whose commit messages record the **why** — which the commit-discipline rules already mandate. The two form a loop: writing down why a behavior exists makes the future audit a five-minute read instead of an archaeology project, and the audit is what makes writing it down pay off. When your own change survives an audit and ships, document its why with the same care — the next agent's audit depends on it.

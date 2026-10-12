@@ -218,8 +218,8 @@ describe("skill, command, and agent frontmatter contract", () => {
     const agentTemplates = files.filter(
       file => file.kind === AGENT_TEMPLATE_KIND
     );
-    expect(agents).toHaveLength(255);
-    expect(agentTemplates).toHaveLength(5);
+    expect(agents).toHaveLength(306);
+    expect(agentTemplates).toHaveLength(6);
     expect(
       agentTemplates.every(file =>
         file.relativePath.endsWith("/templates/agents/role-agent.claude.md")

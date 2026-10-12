@@ -1,0 +1,26 @@
+# Upstream To Lisa
+
+A root cause in a Lisa-distributed artifact determines the destination of a worthwhile repair. First apply `do-it-now`'s **Worth doing** guidance. Ownership, a missing guard, or a reproducible edge case alone does not justify another issue.
+
+## Accepted repairs
+
+A concrete delivery failure, credible material safety risk, or recurring costly friction in a Lisa template, rule, skill, agent, hook, or CI workflow belongs upstream.
+
+| Template class | Local fix survives `lisa apply`? | Why repair upstream? |
+| --- | --- | --- |
+| **copy-overwrite** | No | Prevent the local repair being replaced by the broken source. |
+| **create-only** | Yes | Stop new projects inheriting the defect. |
+
+A header saying `Lisa will not overwrite it` is a positive upstream ownership signal, not a reason to keep an accepted defect local. It does not establish priority or value.
+
+1. **Unblock the current task if needed.** Apply the smallest safe local stopgap. Keep it scoped and attributable; do not stall useful delivery waiting for an upstream release.
+2. **Search before filing.** Search open AND closed issues in the configured upstream repository (`hardening.upstreamRepo`, default `CodySwannGT/lisa`). Reuse a matching open issue. Honor **Not planned** decisions under `rejection-detection`'s **Proposal rejection memory**, including legacy unmarked issues. Check actual behavior before treating a completed issue as a regression.
+3. **File only the accepted work.** Use `lisa-github-write-issue` against the upstream repository, with the explicit readiness declaration from `ready-role-filing`. State the owning source, observed consequence or credible risk, smallest durable fix, and any local stopgap. Follow the public-safe attribution/projection procedure; never publish host names, credentials, or private source paths.
+
+Bundle related minor repairs into one bounded maintenance item when the combined benefit warrants it. Declined observations require no ticket or escalation. A generalizable governance pattern still has to justify its recurring cost across consumers; generality alone is insufficient.
+
+## Access and scope
+
+If an accepted upstream repair cannot be filed because access is missing, prepare the public-safe issue and explain the access problem. Do not ask a human to file observations already declined on value.
+
+Do not mistake editing an installed artifact for changing Lisa's source. Inside Lisa itself, use the existing tracked task, repair the shared source, and regenerate equivalent agent surfaces; no second upstream issue is needed.

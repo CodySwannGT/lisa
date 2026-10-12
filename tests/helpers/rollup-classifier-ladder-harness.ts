@@ -27,6 +27,7 @@ export const TRACKER_SYNC_SURFACES = Object.freeze([
   "plugins/lisa-agy/skills/lisa-tracker-sync/SKILL.md",
   "plugins/lisa-copilot/skills/lisa-tracker-sync/SKILL.md",
   "plugins/lisa-cursor/skills/lisa-tracker-sync/SKILL.md",
+  "plugins/lisa-devin/skills/lisa-tracker-sync/SKILL.md",
 ]);
 
 /** Every authored or generated GitHub rollup caller surface. */
@@ -37,6 +38,7 @@ export const GITHUB_SYNC_SURFACES = Object.freeze([
   "plugins/lisa-agy/skills/lisa-github-sync/SKILL.md",
   "plugins/lisa-copilot/skills/lisa-github-sync/SKILL.md",
   "plugins/lisa-cursor/skills/lisa-github-sync/SKILL.md",
+  "plugins/lisa-devin/skills/lisa-github-sync/SKILL.md",
 ]);
 
 /** Exact live-call guard binding graph input before every write transport. */

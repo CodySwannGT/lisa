@@ -1,0 +1,11 @@
+{
+  "name": "lisa-nestjs",
+  "version": "4.74.9",
+  "description": "NestJS-specific skills (GraphQL, TypeORM) and hooks (migration write-protection)",
+  "author": {
+    "name": "Cody Swann"
+  },
+  "dependencies": [
+    "lisa-typescript"
+  ]
+}

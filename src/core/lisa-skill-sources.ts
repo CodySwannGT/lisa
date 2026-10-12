@@ -29,7 +29,7 @@ export const LISA_COMMAND_DISPLAY_PREFIX = "lisa:";
 /**
  * Suffixes that mark a plugin directory as a per-harness fanout VARIANT rather
  * than a canonical source. Lisa generates `<plugin>-agy`, `<plugin>-copilot`,
- * and `<plugin>-cursor` variants from the canonical `<plugin>` for those
+ * `<plugin>-cursor`, and `<plugin>-devin` variants from the canonical `<plugin>` for those
  * harnesses (see the stack-per-agent fanout). They are reformatted copies — the
  * copilot variant even renames agents to `*.agent.md` — so an overlay that reads
  * the canonical Markdown format (Codex, OpenCode) must ingest the canonical
@@ -39,10 +39,11 @@ export const HARNESS_VARIANT_PLUGIN_SUFFIXES = [
   "-agy",
   "-copilot",
   "-cursor",
+  "-devin",
 ] as const;
 
 /**
- * Predicate: is `pluginName` a per-harness fanout variant (agy/copilot/cursor)?
+ * Predicate: is `pluginName` a per-harness fanout variant (agy/copilot/cursor/devin)?
  * Canonical plugins (`lisa`, `lisa-typescript`, `lisa-wiki`, …) return false.
  * @param pluginName - Plugin directory name under `plugins/`.
  * @returns True when the plugin is a harness-specific variant, not a source.

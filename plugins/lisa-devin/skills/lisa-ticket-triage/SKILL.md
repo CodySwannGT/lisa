@@ -1,0 +1,214 @@
+---
+name: lisa-ticket-triage
+description: "Analytical triage gate for tickets in the configured destination tracker (JIRA, GitHub Issues, or Linear). Detects requirement ambiguities, identifies edge cases from codebase analysis, plans verification methodology, and — via lisa-rework-triage in Phase 2.5 — detects rework bounced back from QA/staging and classifies why the previous agent attempt failed. Posts findings to the ticket and produces a verdict (DUPLICATE_ALREADY_FIXED/BLOCKED/PASSED_WITH_FINDINGS/PASSED) that gates whether implementation can proceed. Vendor-neutral: the caller (jira-agent or github-agent) is responsible for fetching the ticket via lisa-tracker-read, running the pre-flight gate via lisa-tracker-verify, and posting findings via the matching vendor comment tool."
+allowed-tools: ["Read", "Glob", "Grep", "Bash"]
+---
+
+# Ticket Triage: $ARGUMENTS
+
+Perform analytical triage on the ticket. The caller MUST have run `lisa-tracker-read` (or its vendor-specific underlying skill — `lisa-jira-read-ticket` for JIRA, `lisa-github-read-issue` for GitHub) first and provided the resulting context bundle — which includes the primary ticket, all linked tickets (blocks / is blocked by / relates to / duplicates), parent (Epic in JIRA, parent sub-issue in GitHub), siblings, sub-tasks / sub-issues, and remote PR state. Do not triage from a bare ticket summary — if the bundle is missing link or parent context, stop and instruct the caller to run `/tracker-read` first.
+
+Repository name for scoped labels and comment headers: determine via `basename $(git rev-parse --show-toplevel)`.
+
+## Phase 0 -- Pre-flight Description Gate
+
+Before any analytical work, confirm the ticket carries the content an implementer needs to start. The caller should already have run `lisa-tracker-verify`; this phase consumes its output. If `lisa-tracker-verify` returned `FAIL` for any of the following, emit `BLOCKED` immediately with the missing-requirements list and skip to Phase 6:
+
+- Parent missing (Epic parent for JIRA non-bug-non-epic; parent sub-issue for GitHub non-bug-non-epic)
+- Description quality failures (no Gherkin acceptance criteria, missing audience sections)
+- Validation Journey missing on a runtime-behavior ticket
+- Target backend environment missing on a runtime-behavior ticket
+- Sign-in credentials missing on a ticket that touches authenticated surfaces
+- Relationship discovery missing (no links AND no documented git + tracker-search outcome)
+
+Single-repo scope is handled separately — see below.
+
+The caller (jira-agent or github-agent) is responsible for transitioning the ticket to `Blocked` (JIRA status) or relabeling to `status:blocked` (GitHub), reassigning to the **Reporter / original author**, and posting a comment listing the missing requirements. This skill only emits the verdict and the missing-requirements list.
+
+**Single-repo scope is split, not blocked.** A cross-repo leaf work unit (Bug / Task / Sub-task / Improvement spanning repos) is a decomposition error the agent owns, not a terminal BLOCKED. Do not emit BLOCKED for it. The caller runs the **work-time split procedure** in the `repo-scope-split` rule (narrow the original to one repo, spin off a sibling per additional repo, link the producer→consumer dependency), then re-runs `tracker-verify` and re-enters triage on the now single-repo ticket. Only fall back to BLOCKED if the split is ambiguous (see "When to block instead of split" in that rule).
+
+If `lisa-tracker-verify` returned `PASS` for all the above, proceed to Phase 1.
+
+## Phase 1 -- Relevance Check
+
+Search the local codebase using Glob and Grep for code related to the ticket's subject matter:
+- Keywords from summary and description
+- Component names, API endpoints, database tables
+- Error messages or log strings mentioned in the ticket
+
+If NO relevant code is found in this repo:
+- Output: `## Verdict: NOT_RELEVANT`
+- Instruct caller to add the label `claude-triaged-{repo}` and skip this ticket
+
+If relevant code IS found, proceed to Phase 2.
+
+## Phase 1.5 -- Relationship & Epic Awareness
+
+From the context bundle, evaluate relationships before analyzing this ticket in isolation:
+
+- **Open blockers (`is blocked by`)**: clear-check each blocker **by containment, per the `blocker-containment` rule** — cite that slug for the full contract rather than restating it. A blocker is satisfied when its merged PRs are ancestors of the branch this ticket will be built from (resolved from this ticket's `## Target Backend Environment` through `.lisa.config.json` `deploy.branches`, never from a rendered `Branch Plan`), or when the rule's narrow no-code carve-out or human override applies. **`Done` is not the test** — a state name holds in a single-trunk workflow and comes apart in a promotion workflow, and requiring the production terminal strands every dependent behind work already merged where this ticket needs it. This is the same predicate the `DUPLICATE_ALREADY_FIXED` bullet below already requires ("present on the relevant base branch… never from a name/label match alone"), applied here too. For a blocker that is not contained, or where containment is not computable, raise an ambiguity naming the rule's reason key: "Blocker {KEY} is not on {BRANCH} ({REASON}) — work cannot meaningfully start." That is an automatic `BLOCKED` verdict unless the human confirms the blocker state is acceptable.
+- **Epic siblings in progress**: if a sibling under the same epic is `In Progress` / `In Review` with a different assignee and overlapping scope, raise it as an edge case in Phase 4 ("Duplicate-work risk with {KEY}").
+- **`duplicates` / `is duplicated by` links**:
+  - If this ticket is a duplicate of an open canonical ticket whose fix is not yet merged into the base branch, verdict is `BLOCKED` with the recommendation to close as duplicate manually rather than implement.
+  - If this ticket is a duplicate of canonical work that is already merged/deployed, verdict is `DUPLICATE_ALREADY_FIXED`. This verdict must carry the canonical ticket reference, the canonical PR/commit reference, and empirical evidence that the canonical fix is present on the relevant base branch. Never emit this verdict from a name/label match alone.
+- **`relates to` links with shipped PRs**: flag the PRs in the verification methodology (Phase 5) as prior art worth reviewing before writing new code.
+
+Do not re-fetch tickets — the bundle already has the context.
+If Phase 1.5 finds an automatic blocker condition (`is blocked by` not shipped, or duplicate-of-open), emit `BLOCKED` immediately and skip to Phase 6 output formatting. If it finds a duplicate whose canonical fix is empirically present on the base branch, emit `DUPLICATE_ALREADY_FIXED` immediately and skip to Phase 6 output formatting.
+
+## Phase 2 -- Cross-Repo Awareness
+
+Parse the ticket's existing comments for triage headers from OTHER repositories. Look for patterns like:
+- `*[some-repo-name] Ambiguity detected*`
+- `*[some-repo-name] Edge cases*`
+- `*[some-repo-name] Verification methodology*`
+
+Note which phases other repos have already covered and what findings they posted. In subsequent phases:
+- Do NOT duplicate findings already posted by another repo
+- DO add supplementary findings specific to THIS repo's codebase
+
+## Phase 2.5 -- Rework Detection & Failure Classification
+
+Invoke `lisa-rework-triage` with the context bundle. It detects whether this ticket is
+**rework** — previously implemented work bounced back from QA/staging — and, when it is,
+classifies why the previous agent attempt failed (decomposition infidelity, PRD defect,
+missing tool access, implementation defect, environment/data, verification gap), posts the
+`[lisa-rework-triage]` comment, and routes the cause to its hardening destination (upstream
+Lisa issue, provisioning ticket, or PRD defect flag). See that skill for the taxonomy,
+evidence requirements, and routing table.
+
+- `NOT_REWORK` → proceed to Phase 3; nothing to carry forward.
+- `REWORK_CLASSIFIED` / `ALREADY_TRIAGED` → carry the classification into the output
+  structure (see below) and proceed to Phase 3 — a classified rework still gets fixed;
+  hardening runs alongside the fix, never in front of it. Exception: a `missing-tool-access`
+  cause whose gap is **still present** must be raised as a Phase 3 ambiguity ("prior attempt
+  lacked <tool>; it is still unavailable"), which blocks per the normal rules.
+
+## Phase 3 -- Ambiguity Detection
+
+Examine the ticket summary, description, and acceptance criteria. Look for:
+
+| Signal | Example |
+|--------|---------|
+| Vague language | "should work properly", "handle edge cases", "improve performance" |
+| Untestable criteria | No measurable outcome defined |
+| Undefined terms | Acronyms or domain terms not explained in context |
+| Missing scope boundaries | What's included vs excluded is unclear |
+| Implicit assumptions | Assumptions not stated explicitly |
+
+Skip ambiguities already raised by another repo's triage comments.
+
+For each NEW ambiguity found, produce:
+
+```text
+### Ambiguity: [short title]
+**Description:** [what is ambiguous]
+**Suggested clarification:** [specific question to resolve it]
+```
+
+Be specific -- every ambiguity must have a concrete clarifying question.
+
+## Phase 4 -- Edge Case Analysis
+
+Search the codebase using Glob and Grep for files related to the ticket's subject matter. Check git history for recent changes in those areas:
+
+```bash
+git log --oneline -20 -- <relevant-paths>
+```
+
+Identify:
+- Boundary conditions (empty inputs, max values, concurrent access)
+- Error handling gaps in related code
+- Integration risks with other components
+- Data migration or backward compatibility concerns
+
+Reference only files in THIS repo. Acknowledge edge cases from other repos if relevant, but do not duplicate them.
+
+For each edge case, produce:
+
+```text
+### Edge Case: [title]
+**Description:** [what could go wrong]
+**Code reference:** [file path and relevant lines or patterns]
+```
+
+Every edge case must reference specific code files or patterns found in the codebase. If no relevant code exists, note that this appears to be a new feature with no existing code to analyze.
+
+## Phase 5 -- Verification Methodology
+
+For each acceptance criterion, specify a concrete verification method scoped to what THIS repo can test:
+
+| Verification Type | When to Use | What to Specify |
+|-------------------|-------------|-----------------|
+| UI | Change affects user-visible interface | Playwright test description with specific assertions |
+| API | Change affects HTTP/GraphQL/RPC endpoints | curl command with expected response status and body |
+| Data | Change involves schema, migrations, queries | Database query or service call to verify state |
+| Performance | Change claims performance improvement | Benchmark description with target metrics |
+
+Do not duplicate verification methods already posted by other repos.
+
+Produce a table:
+
+```text
+| Acceptance Criterion | Verification Method | Type |
+|---------------------|--------------------| -----|
+```
+
+Every verification method must be specific enough that an automated agent could execute it.
+
+### Prescribed controls must be reachable
+
+When the ticket pins an **existing** test as a red-before-green control — "that test must go red", "fails before the fix and passes after", "if it still passes the fix did nothing" — apply the `control-reachability` rule before accepting it. The stopping rule is only valid if the test's fixture exercises the path the change touches; when it does not, the test stays green for an unrelated reason and the ticket instructs the implementer to revert a correct fix.
+
+- Confirm the ticket carries the `[CONTROL: <test-identifier> | reaches: <input-or-field>]` marker gate S20 requires, and that the named input is actually present in that test's fixture. Verify it in the codebase — this is a triage step precisely because triage is the last point before an implementer starts trusting it.
+- A named control with no reachability declaration, or one whose declared input is absent from the fixture, is an **Ambiguity** finding under Phase 3, not a pass. Report it with the specific input the fixture would need, or the recommendation to specify a new test instead.
+- A ticket that introduces a **new** test rather than pinning an existing one carries no such obligation. Do not raise a finding on this basis.
+
+## Phase 6 -- Verdict
+
+Evaluate the findings and produce exactly one verdict:
+
+- **`NOT_RELEVANT`** -- No relevant code was found in this repository (Phase 1). The caller should add the triage label and skip implementation in this repo.
+- **`DUPLICATE_ALREADY_FIXED`** -- This ticket duplicates canonical work whose fix is already merged/deployed and empirically confirmed present on the relevant base branch. Work MUST NOT proceed. The caller must post the triage finding, ensure the native `duplicates <canonical>` link exists when the tracker supports one, and return the structured canonical reference/evidence to build intake for terminal duplicate closeout.
+- **`BLOCKED`** -- Blocking conditions were found in Phase 0 (missing required description content), Phase 1.5 (open blockers, duplicate-of-open), and/or Phase 3 (ambiguities). Work MUST NOT proceed until resolved by a human. When the block is from Phase 0, the caller (jira-agent) MUST transition the ticket to `Blocked` and reassign to the Reporter — not just leave it in place. For Phase 1.5 / Phase 3 blocks, post findings, add the triage label, and STOP.
+- **`PASSED_WITH_FINDINGS`** -- No ambiguities, but edge cases or verification findings were identified. Work can proceed. The caller should post findings and add the triage label.
+- **`PASSED`** -- No ambiguities, edge cases, or verification gaps found. Work can proceed. The caller should add the triage label.
+
+Output format:
+
+```text
+## Verdict: [NOT_RELEVANT | DUPLICATE_ALREADY_FIXED | BLOCKED | PASSED_WITH_FINDINGS | PASSED]
+
+**Ambiguities found:** [count]
+**Edge cases identified:** [count]
+**Verification methods defined:** [count]
+```
+
+## Output Structure
+
+Structure all output with clear section headers so the caller can parse and post findings:
+
+```text
+## Triage: [TICKET-KEY] ([repo-name])
+
+### Ambiguities
+[Phase 3 findings, or "None found."]
+
+### Edge Cases
+[Phase 4 findings, or "None found."]
+
+### Verification Methodology
+[Phase 5 table, or "No acceptance criteria to verify."]
+
+### Rework Classification
+[Phase 2.5 verdict block from lisa-rework-triage, or "Not rework (first attempt)."]
+
+## Verdict: [NOT_RELEVANT | DUPLICATE_ALREADY_FIXED | BLOCKED | PASSED_WITH_FINDINGS | PASSED]
+```
+
+The caller is responsible for:
+1. Posting the findings as comments on the ticket (using whatever Jira mechanism is available)
+2. Adding the `claude-triaged-{repo}` label to the ticket
+3. If `BLOCKED` due to Phase 0 (missing required description content): transitioning the ticket to `Blocked`, reassigning to the **Reporter**, posting a comment listing the missing requirements, and stopping all work.
+4. If `DUPLICATE_ALREADY_FIXED`: return the canonical ticket reference and empirical base-branch evidence to build intake so it can close the ticket as a terminal duplicate without opening a PR.
+5. If `BLOCKED` due to Phase 1.5 (open blockers, duplicate-of-open) or Phase 3 (ambiguities): stopping all work and reporting to the human; do NOT auto-transition status in these cases.

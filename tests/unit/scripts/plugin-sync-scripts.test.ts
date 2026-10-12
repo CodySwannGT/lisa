@@ -51,6 +51,7 @@ const SCRIPT_NAMES = [
   "generate-codex-plugin-artifacts.mjs",
   "generate-copilot-plugin-artifacts.mjs",
   "generate-cursor-plugin-artifacts.mjs",
+  "generate-devin-plugin-artifacts.mjs",
   // #3064. Every materialize call in build-plugins.sh is guarded on this
   // generator being present, so a fixture without it produced a build that
   // wrote NOTHING outside plugins/ — which is exactly the state the sync check
@@ -277,10 +278,12 @@ describe("plugin sync shell scripts (#1398)", () => {
         { source: "./plugins/lisa-agy" },
         { source: "./plugins/lisa-copilot" },
         { source: "./plugins/lisa-cursor" },
+        { source: "./plugins/lisa-devin" },
         { source: "./plugins/lisa-wiki" },
         { source: "./plugins/lisa-wiki-agy" },
         { source: "./plugins/lisa-wiki-copilot" },
         { source: "./plugins/lisa-wiki-cursor" },
+        { source: "./plugins/lisa-wiki-devin" },
       ],
     });
     await writePluginManifest(dir, BASE, "lisa-fixture");

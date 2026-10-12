@@ -15,7 +15,7 @@ import {
 } from "../../helpers/latest-review-reducer-harness.js";
 
 describe("closed stable-reviewer generated parity", () => {
-  it("discovers exactly the six registered merge-driving surfaces", () => {
+  it("discovers exactly the seven registered merge-driving surfaces", () => {
     const discovered = filesBelow("plugins").filter(file =>
       file.endsWith("/skills/lisa-drive-pr-to-merge/SKILL.md")
     );

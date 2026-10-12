@@ -1,0 +1,1621 @@
+---
+name: lisa-repair-intake
+description: "Vendor-agnostic repair scanner — the recovery counterpart to lisa-intake. Finds work that got stuck or was left half-closed across the same queues lisa-intake serves (Notion / Confluence / Linear / GitHub PRDs; JIRA / GitHub / Linear build queues): items left in `blocked`, work stalled in an in-progress role (build `claimed`, PRD `in_review`), terminal-labeled items still natively open, and rollups whose children are all terminal. Repairs every actionable candidate up to `max_candidates`: resumes stalled work in place (diagnosing a stalled build's PR/deploy state first — merged PRs get the missed env transition, behind-base PRs are re-synced, unmergeable PRs or failed deploys get a build-ready fix ticket + `blocked`), re-validates blocked PRDs and build items whose blockers cleared, performs terminal native closure, and reconciles parent rollups to their derived state. Idempotent and loop-protected; never mutates `draft`/`verified` or `ready` leaves. A /schedule cron target alongside lisa-intake."
+allowed-tools: ["Skill", "Bash", "Read", "Write", "Edit"]
+---
+
+# Repair Intake: $ARGUMENTS
+
+## Human-gate release authorization
+
+A release requires a trusted human author, not just matching comment text. Follow
+`ready-role-filing` — **Human-gate release authorization**: preserve tracker-supplied comment
+author IDs and bot metadata, resolve `trustedHumanActorIds` only from an explicit user instruction
+or existing human-authored trusted project policy, and pass it with structured `comments` to every
+hold classifier, reconciliation, normalization and release planner. Never derive trust from the
+comment body, a display name, the actor's own assertion, or an automation posting on its own behalf.
+Missing policy, missing/unreadable author identity, raw body strings, untrusted actors and known bots
+cannot discharge a hold. Keep the item held and report the missing authorization; do not silently
+replace these inputs with an empty history or an inferred allowlist. Authorized matching releases
+continue through the existing path and never override an independently declared caller hold.
+
+
+Run one batch-**repair** cycle against the queue identified by `$ARGUMENTS`, or by merged GitHub
+config when the queue is omitted and a GitHub source/tracker default is resolvable. Where `lisa-intake`
+scans the `ready` role and moves work *forward*, repair-intake scans the **stuck and
+close-out** roles and moves work *unstuck* or *fully closed*:
+
+- **Stalled in-progress** — an item left in an in-progress role (build `claimed`, PRD
+  `in_review`) whose processing cycle died. It is technically "being worked" but nothing is
+  happening, so it sits ignored forever. (The vendor PRD intakes explicitly leave an errored PRD
+  in `in_review` "for the human to investigate from there" — that orphan is exactly what this
+  skill recovers.) For a stalled **build**, repair-intake first diagnoses *why* it stalled by
+  inspecting its PRs and deploys. A PR that **already merged** is recovered by applying the env
+  transition build-intake never got to (its merge gate left the item `claimed` when the merge landed
+  after its agent returned) — no re-dispatch. A PR that is merely **behind its base** (`BEHIND`, no
+  conflict) is **re-synced in place** with `gh pr update-branch` so the already-enabled auto-merge can
+  finally land — a clean rebase needs no human, and leaving it stranded is the exact gap that lets an
+  auto-merge PR sit unmerged forever. A **true merge conflict** is first given **one bounded in-place
+  re-dispatch** to the build agent — whose `drive-pr-to-merge` fix-mode loop resolves conflicts — because
+  a conflict, unlike a failing external check, is fixable by re-running the build; only a conflict that
+  survives that single attempt (or that the agent says needs design input) becomes a fix ticket. The
+  genuinely non-resolvable blockers — failing checks / unaddressed CodeRabbit or `CHANGES_REQUESTED`
+  review / a failed deploy — get a build-ready leaf fix ticket with the item moved to `blocked` (blocked
+  by that ticket) instead of blindly re-dispatching the agent, which would just churn against them.
+- **Recoverable blocked** — an item in `blocked` whose blocker may now be gone. The blocker is
+  one of three classes, and repair re-checks **all** of them, not just dependencies: (a) an
+  `is blocked by` **dependency** has since closed; (b) a **validation / quality-gate self-block** —
+  the item was bounced to `blocked` by its own pre-flight `verify`/`validate` gate (missing
+  Validation Journey, Sign-in Required, Acceptance Criteria, etc.) with **no dependency at all**,
+  and a human has since edited the item to add what the gate demanded; or (c) **clarifying
+  questions answered** / an **ambiguity** research can now settle. A self-block (b) is the common
+  one missed by dependency-only re-checks: nothing else is blocking it, so re-running the same gate
+  against its current content is the only way to know it is now passable.
+- **Terminal-open drift** — an item already carrying its true terminal lifecycle role (for
+  example GitHub `status:done`) but still open/active in the provider's native state. The inverse
+  also drifts on Linear: a leaf whose native `state` was auto-completed by a magic-word / branch-linkage
+  merge into a **non-terminal** env (Linear completes on merge to any branch, unlike GitHub's
+  default-branch-scoped close) while its derived `status:*` label is still intermediate — reconcile
+  it back to active via `lisa-linear-sync` Phase 4b per `leaf-only-lifecycle`.
+- **Rollup drift** — a parent/container item (Epic, Story, PRD, Linear Project, or equivalent)
+  whose own lifecycle state does not match the roll-up of its children's states per
+  `leaf-only-lifecycle`. This covers the *completed* case (all children terminal → close the parent
+  out) **and** the *intermediate-env* case (all children shipped to an env like `On Stg`, but the
+  parent never advanced — including a parent left stranded in a status it should never carry).
+- **Stale-`ready` container** — a parent/container (open child work, or a childless
+  **Epic**) wrongly carrying the build-ready role. This is a leaf-only-invariant violation
+  the build-intake claim gate deliberately leaves for a human; repair-intake reconciles it by
+  rolling the parent up from its children (with an audit note), so a container never sits in `ready`
+  indefinitely.
+- **Missing official ready-label drift** — a GitHub issue that is missing every configured Lisa
+  lifecycle label. repair-intake classifies it as a PRD or build ticket and adds the configured
+  `ready` label (`prd-ready` for a PRD, build `status:ready` for a ticket) so normal intake can see
+  it; if the later intake/implement gate finds the item incomplete, it moves the item to `blocked`.
+- **Missing native child link drift** — a GitHub parent (a `ticketed`/other open non-product-owned
+  PRD, **or a build Epic/Story container**) whose children are discoverable — from the generated-work
+  section/comment for a PRD, or from body parentage (`Parent: #<n>` / `Parent Epic: #<n>`) for a build
+  container resolved via the documented hierarchy fallback — but whose native sub-issue list is missing
+  one or more of those children. This is the common shape when children were created by an external
+  generator (e.g. Codex) or an older write path that recorded parentage only in prose and never called
+  `addSubIssue`. repair-intake replays the `prd-backlink` / `github-write-issue` native-linking contract
+  and attaches the missing same-repo children idempotently, so rollup and the GitHub UI can rely on the
+  native graph again.
+
+This skill is the symmetric counterpart to `lisa-intake`. It reuses the same queue-detection,
+the same agent-team orchestration, the same "don't ask, just run" confirmation policy, and the
+same per-item surfaces the vendor intakes use (`lisa:<source>-to-tracker` dry-run for PRDs;
+`lisa:<tracker>-agent` + the scanner's lifecycle transitions for build) — it differs in *which
+roles it scans* and, for stalled/blocked work, *that it skips the claim step* (the item is already
+claimed/blocked). Close-out candidates do not dispatch agents; they only reconcile terminal
+lifecycle state with provider-native closure and rollup state.
+
+## Public contract
+
+```text
+/lisa:repair-intake [<queue>] [intake_mode=prd|build|both] [build_queue=owner/repo] [stale_after=2h] [max_candidates=100] [force=true]
+```
+
+| Token | Meaning | Default |
+|-------|---------|---------|
+| `<queue>` | Same queue identifier `lisa-intake` accepts (see Source dispatch). Optional only when merged config resolves a GitHub source/tracker and identity; otherwise required. | merged GitHub default when resolvable |
+| `intake_mode` | `prd` \| `build` \| `both`. Only meaningful for a GitHub `org/repo` (or bare `github`) that hosts both PRD and build label namespaces. `both` is unique to repair — a repair sweep usefully covers both lifecycles in one schedule. Absent → `both` when both namespaces exist, else whichever lifecycle exists. | `both` for dual GitHub queues; otherwise infer |
+| `build_queue` | GitHub build scan target used with literal `github`, especially `intake_mode=both`. Explicit `owner/repo` or URL for a build-only invocation wins over this token; otherwise this wins over `github.queueRepo`. It never redirects the PRD scan. | `github.queueRepo`, then `github.org/github.repo` |
+| `stale_after` | How long since the last state-changing transition into the in-progress role, or since the last human / PR-side forward-progress activity, before an in-progress item counts as stalled. Automation self-comments do not reset this clock. Accepts `24h`, `90m`, `2d`, or `0` (treat any in-progress item as stalled — manual recovery, also the only way to resume work on a provider that exposes no reliable timestamp). Overrides config. | `2h` |
+| `max_candidates` | Cap on how many stuck/close-out candidates to enumerate and evaluate. Repair every materially actionable candidate within this bounded set, then stop. Overrides config. | `100` |
+| `force` | `true` bypasses the loop-prevention backoff window (so a manual re-run re-attempts items even if their fingerprint is unchanged). It does **not** change the staleness rule — use `stale_after=0` for that. | `false` |
+
+## Confirmation policy
+
+Do NOT ask the caller whether to proceed. Once invoked, resolve the explicit or config-backed
+queue and run the cycle to completion. The caller (a human at the CLI or a scheduled cron) has
+already authorized the run by invoking the skill; re-prompting defeats the purpose of a
+background repair sweep.
+
+Specifically forbidden:
+
+- Previewing projected scope (number of stuck items, projected re-dispatch count, write counts)
+  and asking whether to continue.
+- Offering A/B/C-style choices like "repair / skip / report-only" — the documented behavior IS
+  the default.
+- Pausing because many items are stuck, an item looks complex, or a repair is likely to land
+  the item back in `blocked`. Returning an item to `blocked` with a current, accurate note is a
+  valid outcome of the repair lifecycle, not a failure.
+- Pausing because a re-dispatch looks expensive. The cost of one cycle is bounded by
+  `max_candidates` and the actionable subset inside that cap; the cost of stalling a scheduled
+  cron waiting on a human is unbounded.
+
+The only legitimate reasons to stop early:
+
+- Missing required input (no queue argument **and** no resolvable GitHub default, or missing
+  project configuration). Surface the missing value and exit.
+- The queue itself is misconfigured (Status property missing expected values, JIRA workflow
+  can't reach required transitions). Surface and exit.
+- No stuck/close-out candidates, or none actionable this cycle. Exit cleanly with the idle-case
+  summary.
+
+## Orchestration: thin dispatcher (no team of its own)
+
+Repair-intake follows the same orchestration contract as `lisa-intake`: it creates NO agent team and spawns NO named teammates. It is a bounded scanner/dispatcher — resolve the queue, evaluate staleness, pick the actionable candidates, and run each repair in the current session.
+
+The reasoning is the same as Intake's: a repair that resumes stalled build work may culminate in a team-first lifecycle skill (`lisa-implement`, `lisa-plan`), and those skills can only create their agent team from the lead session — a spawned teammate cannot add named teammates (Claude teams are flat), so pushing the repair into a subagent strands the lifecycle skill without its team and collapses it into a single inline worker. Therefore:
+
+- **Scanning, staleness evaluation, and per-item repairs run inline in this session** (Bash / MCP / vendor skills via the Skill tool — `lisa-<source>-to-tracker` for a PRD, the `<tracker>-agent` workflow's gate skills for a build item).
+- **Any repair that dispatches a lifecycle flow does so via the Skill tool in this same session — never an `Agent` spawn** — so the lifecycle skill's team-first preamble fires exactly as a direct invocation would.
+- The only permissible `Agent` use is a bounded **anonymous** helper (`Agent` with `name` omitted) for scan-side legwork whose result returns directly to this session.
+
+Codex: the same contract applies — run the scan inline in the root session and invoke any lifecycle skill there so it can `multi_agent_v1.spawn_agent` its own team; do not `spawn_agent` the lifecycle flow itself. Other runtimes: apply the same rule through their equivalent delegation surface; if the runtime has no team/subagent tooling at all, the lifecycle skill's own no-team fallback handles it.
+
+If a teammate inside an existing team somehow invokes this skill (it is a session entry point, not a nested flow), do not scan or repair from there: return a structured `delegation-request` to the team lead asking it to run the repair cycle in the lead session, and surface the misrouting.
+
+## Source dispatch
+
+Detect the queue type from `$ARGUMENTS` using the **exact same detection and disambiguation
+rules as `lisa-intake`** — read that skill's "Source dispatch" section for the authoritative
+table; the detection is identical and only the per-item action changes (repair instead of
+claim-and-advance). The essentials, inlined here so this skill is self-complete:
+
+| If `$ARGUMENTS` is... | Queue / lifecycle | Source/tracker key | Candidates repaired |
+|------------------------|-------------------|--------------------|----------------------|
+| Notion **database** URL/ID | PRD (Notion) | source=notion | `in_review`, `blocked`, terminal/open PRDs, all-terminal generated-work rollups |
+| Confluence **space** URL/key | PRD (Confluence) | source=confluence | `in_review`, `blocked`, terminal/open PRDs, all-terminal generated-work rollups |
+| Confluence **parent page** URL/ID | PRD (Confluence, narrowed) | source=confluence | `in_review`, `blocked`, terminal/open PRDs, all-terminal generated-work rollups |
+| Linear **workspace** URL, **team** URL/key, or literal `linear` | PRD (Linear) | source=linear | `in_review`, `blocked`, terminal/open PRDs, all-terminal generated-work rollups |
+| GitHub **repo** URL / `org/repo` (PRD namespace) | PRD (GitHub) | source=github | `in_review`, `blocked`, terminal/open PRDs, missing PRD child links, all-terminal generated-work rollups |
+| GitHub **repo** URL / `org/repo` with `tracker = github` (build namespace) | Build (GitHub) | tracker=github | `claimed`, `blocked`, terminal/open issues, parent rollups (intermediate-env + all-terminal), stale-`ready` containers |
+| GitHub **repo** URL / `org/repo` with an open issue missing configured lifecycle labels | GitHub label normalization | per classified lifecycle | add configured `prd.ready` or build `ready` |
+| Literal `github` or omitted GitHub repo when merged config resolves a GitHub source/tracker and identity | GitHub; PRD scans identity, build scans `build_queue` → merged `github.queueRepo` → identity; `both` runs those two lane-specific targets | per lifecycle | per lifecycle above, plus GitHub ready-label normalization |
+| JIRA project key or full JQL | Build (JIRA) | tracker=jira | `claimed`, `blocked`, terminal/closure verification, parent rollups (intermediate-env + all-terminal), stale-`ready` containers |
+
+Disambiguation (same as `lisa-intake`): a `notion.so`/`notion.site` URL → Notion; an Atlassian
+`/wiki/spaces/<KEY>` URL → Confluence (with `/pages/<id>` → parent-page narrowing); a
+`linear.app` workspace/team URL or literal `linear` → Linear; a `github.com` URL / `<org>/<repo>`
+token / literal `github` → GitHub; a bare token matching the JIRA project-key regex → JIRA
+(else try Confluence space, then Linear team); a string with JQL operators → JQL. **A single-item
+URL is out of scope** — this skill is batch-only; repair one item by hand via `lisa-implement`
+(build) or by re-running `lisa:<source>-to-tracker` (PRD).
+
+For GitHub `intake_mode=build` (a build-only invocation), an explicit URL or `owner/repo` wins;
+otherwise resolve `build_queue`, then local/global `github.queueRepo`, falling back to
+`github.org/github.repo`. For `intake_mode=both`, the primary `<queue>` is the PRD identity/source
+repo and `build_queue` controls the build lane, falling back through `github.queueRepo` to identity.
+A short queueRepo is normalized to `github.org`. Thus `both` is a bounded split scan: PRD candidates
+at the primary identity queue, build candidates at the resolved build queue, combined into one
+summary. Never apply both lifecycle namespaces to the umbrella repo merely because
+`github.queueRepo` is set. Repository identity remains distinct and continues to drive
+`repo:<current>` filtering, writes, and automation names. If neither an explicit queue nor a
+resolvable merged GitHub default exists, stop with the missing-input error.
+
+Role names for every vendor are resolved from `.lisa.config.json` per the `config-resolution`
+rule — never hardcode status/label strings. The relevant repair roles:
+
+| Lifecycle | Vendor | In-progress role key | Blocked role key | Terminal / rollup role key |
+|-----------|--------|----------------------|------------------|----------------------------|
+| Build | JIRA | `jira.workflow.claimed` (`In Progress`) | `jira.workflow.blocked` (`Blocked`) | env-resolved `jira.workflow.done` |
+| Build | GitHub | `github.labels.build.claimed` (`status:in-progress`) | `github.labels.build.blocked` (`status:blocked`) | env-resolved `github.labels.build.done` (`status:done`) |
+| Build | Linear | `linear.workflow.claimed` (`In Progress`) | `linear.workflow.blocked` (`Blocked`) | env-resolved `linear.workflow.done` (`Done`) |
+| PRD | Notion | `notion.values.in_review` (`In Review`) | `notion.values.blocked` (`Blocked`) | `notion.values.shipped` (`Shipped`) |
+| PRD | GitHub | `github.labels.prd.in_review` (`prd-in-review`) | `github.labels.prd.blocked` (`prd-blocked`) | `github.labels.prd.shipped` (`prd-shipped`) |
+| PRD | Linear | `linear.labels.prd.in_review` (`prd-in-review`) | `linear.labels.prd.blocked` (`prd-blocked`) | `linear.labels.prd.shipped` (`prd-shipped`) |
+| PRD | Confluence | `confluence.parents.in_review` (page id) | `confluence.parents.blocked` (page id) | `confluence.parents.shipped` (page id) |
+
+In addition to the lifecycle roles above, the build lifecycle defines the **`human_needed` marker** — an additive label (`jira.labels.human_needed` / `github.labels.build.human_needed` / `linear.labels.build.human_needed`, default `Human Needed` / `human-needed`) that rides alongside `blocked` when the block needs human-only input no agent or retry can supply (see `config-resolution` "Build markers"). repair-intake's interaction with the marker is asymmetric and is the whole point of the distinction below:
+
+- The blocks repair-intake **itself writes** are the auto-recoverable kind — it files a build-ready fix ticket and moves the item `blocked` *blocked by that ticket*, expecting the next cycle to self-heal. Those are **not** `human_needed`; if such an item arrives carrying a `human_needed` marker **this skill applied on an earlier cycle**, repair-intake **clears** it (the block is no longer waiting on a human).
+- **Never remove a `human_needed` marker this skill did not apply.** "Stale" is a judgment about the block's kind, not about who applied the marker or when — so without this rule an operator's deliberate hold, applied *after* correcting a wrong transition, is indistinguishable from a leftover the sweep is designed to clear, and gets swept. Establish provenance from the label event's actor (`rejection-detection` **Automation-reversal memory** reads the same surfaces); if provenance is not readable, **leave the marker in place**. Removing a human's hold is unrecoverable within the loop; leaving a stale one costs a cycle and is visible.
+- **The one exception is a hold that has recorded its own discharge.** A `[lisa-human-gate-release]` comment naming the hold's `reason=` is not a guess about provenance — it is the hold's stated void condition, recorded on the item by the person who answered it. Clearing the marker there is not overriding a human's judgment; it is *enacting* it. That is the whole of the exception: no other reading of "this looks stale" reopens the question above, and an item whose release cannot be read stays held. See "Release the holds that have been answered" below (#3852).
+- The marker is consulted **before **any** repair transition**, not only before Class C. Class C's hard stop is the strictest reading of it, but a marker that is honoured on one classification path and ignored on the other three is not a guard — and Class A, dependency clearing, is exactly the path an operator reverting a wrongly-cleared blocker is trying to protect. Read all comments and consult `classifyReadyCandidate` / `planHumanGateRelease` before treating the marker as active; a matching release discharges the historical body marker. Use the shared helpers for robust label and declaration matching, and leave unreadable releases held.
+- The blocks the **vendor agent** writes when repair-intake re-dispatches it (its pre-flight gate) carry `human_needed` already — the agent owns that marker. repair-intake leaves it in place.
+
+Resolve with the standard role-read pattern (local overrides global, default fallback):
+
+```bash
+read_role() {
+  local path="$1" default="$2"
+  local local_v global_v
+  local_v=$(jq -r "${path} // empty" .lisa.config.local.json 2>/dev/null)
+  global_v=$(jq -r "${path} // empty" .lisa.config.json 2>/dev/null)
+  echo "${local_v:-${global_v:-$default}}"
+}
+# e.g. build/github:
+CLAIMED=$(read_role '.github.labels.build.claimed' 'status:in-progress')
+BLOCKED=$(read_role '.github.labels.build.blocked' 'status:blocked')
+```
+
+## Access layer (which surface does each write)
+
+repair-intake stays vendor-neutral; concrete reads/writes go through the same layers the vendor
+intakes use. Never call Atlassian MCP or `acli` directly — go through `lisa-atlassian-access`.
+
+| Vendor | Reads (scan / comments / links) | Writes (transition / comment / close-out) | Re-dispatch / re-validate |
+|--------|---------------------------------|-------------------------------|---------------------------|
+| JIRA (build) | `lisa-atlassian-access` `search-issues` / `lisa-jira-read-ticket` | `lisa-atlassian-access` `transition` / `comment` | `lisa-jira-agent` |
+| GitHub (build) | `gh issue list` / `gh issue view --json` / `gh pr list` / GraphQL sub-issues | `gh issue edit` (labels) / `gh issue comment` / `gh issue close --reason completed` | `lisa-github-agent` |
+| Linear (build) | Linear MCP `list_issues` / `get_issue` / `list_comments` | Linear MCP `save_issue` (labels) / `save_comment` | `lisa-linear-agent` |
+| Notion (PRD) | `lisa-notion-access` (`query`, page comments) | `lisa-notion-access` `write-page` (status) / page comment | `lisa-notion-to-tracker` (dry-run) |
+| GitHub (PRD) | `gh issue list/view` (PRD labels) / GraphQL sub-issues / generated-work section | `gh issue edit` / `gh issue comment` / `gh issue close --reason completed` | `lisa-github-to-tracker` (dry-run) |
+| Linear (PRD) | `lisa-linear-access` `list-projects` / `get-project` / `list-comments project_id` | `lisa-linear-access` `save-project` (labels) / `save-comment project_id` | `lisa-linear-to-tracker` (dry-run) |
+| Confluence (PRD) | `lisa-atlassian-access` CQL | `lisa-atlassian-access` page `parentId` update / comment | `lisa-confluence-to-tracker` (dry-run) |
+
+## Staleness model
+
+An in-progress item (build `claimed`, PRD `in_review`) is **stalled** when the last
+state-changing transition into the in-progress role, or the last human / PR-side forward-progress
+activity after that transition, is older than the `stale_after` threshold. `blocked` items are NOT
+gated on staleness — their repairability is judged on current blocker/answer state, not elapsed
+time.
+
+Automation self-comments are not forward progress and must not reset the staleness clock. Status
+comments like `[claude-build-intake] PR remains open...`, `[codex-build-intake] Follow-up pushed...`,
+or `[lisa-repair-intake] ...` may be useful audit notes, but they cannot make a claimed item fresh
+forever. If a provider exposes a changelog/history surface, prefer the timestamp of the last
+transition into the claimed/In-Progress role over the item's generic `updated` timestamp. When the
+history surface is unavailable, ignore comments whose author/marker clearly belongs to Lisa or its
+automation agents, and use the newest human comment/edit or PR-side progress event instead.
+
+A build `claimed` leaf whose linked PR has **already merged** (`state == MERGED`) is likewise NOT
+gated on staleness. A merged PR is a settled terminal state, not in-flight work: the only thing
+missing is the env transition build-intake never applied (its merge gate left the item `claimed`
+because the merge landed after its agent returned). The recovery is judged on PR merge state, not
+elapsed time — and crucially **post-merge activity does not defer it**. A freshly-merged PR keeps
+producing activity that the signal below would otherwise read as keep-alive (a queued/in-progress
+release or deploy check-run, a post-merge CodeRabbit summary comment), so gating merged-PR recovery
+on staleness strands a *completed* leaf in `claimed` for as long as that activity keeps the clock
+warm — exactly the failure that leaves a shipped Sub-task showing `status:in-progress` for a day
+while its parents roll up against it. Recover it regardless of recent activity (Build `claimed`
+decision tree step 0, and the dedicated high-confidence ordering bucket).
+
+### Threshold resolution
+
+1. `$ARGUMENTS` `stale_after=<dur>` (one-off override) — always wins. Parse `Nh` / `Nm` / `Nd` /
+   `0` into hours.
+2. `.lisa.config.json` `intake.repair.staleAfterHours` (durable project default).
+3. Built-in default: **2 hours**.
+
+`stale_after=0` means "treat any in-progress item as stalled" — a manual full-recovery lever,
+and the only way to resume work on a provider that exposes no reliable activity timestamp.
+
+### Activity signal (state-change first, portable across vendors)
+
+Compute the item's newest eligible activity timestamp from the highest-priority signal the vendor
+exposes, and compare it to `now - stale_after`:
+
+1. Provider-native status/label **transition** time into the in-progress role, when the provider
+   exposes it cleanly (JIRA changelog transition to `claimed` / In Progress, GitHub label event,
+   Linear state/label history, Notion/Confluence page move/status history).
+2. Latest human lifecycle/progress **comment** or edit on the item (for Linear PRDs, the
+   project's own comments via `list-comments project_id`, plus any legacy sentinel feedback
+   issue for projects that predate project-level comments). Exclude automation self-comments and Lisa audit markers such as
+   `[claude-build-intake]`, `[codex-build-intake]`, `[lisa-build-intake]`, and
+   `[lisa-repair-intake]`.
+3. For build items, latest **PR-side forward-progress activity** on the linked PR: newest commit,
+   review, check-run,
+   or PR comment.
+4. Provider-native item `updatedAt` / `last_edited_time` / `updated` only when the provider cannot
+   expose transition/comment authorship and the timestamp is not known to be driven by automation
+   self-comments.
+
+If ANY of these is newer than the threshold, the item is **active** → record it as `active` and
+skip it (read-only). For build `claimed`, an open PR with recent commits/checks is active. For
+PRD `in_review`, a recent comment or page edit is active.
+
+Count only **forward-progress** signals as keep-alive: new commits, a review that was just
+requested or posted, an in-progress/queued check run, a fresh progress comment. A **settled
+blocker state** — a failing/errored check run, `CONFLICTING` mergeability, a `CHANGES_REQUESTED`
+review, an unaddressed CodeRabbit/reviewer change request, or a failed deployment — is NOT
+keep-alive activity: it does not reset the staleness clock. The clock runs from the last genuine
+progress event, so a PR that has been sitting failed/conflicted/awaiting-changes for longer than
+`stale_after` counts as stalled and is diagnosed below.
+
+A **merged** linked PR is the same kind of non-keep-alive signal, in the other direction: the work
+is settled and complete, so its post-merge check-runs and summary comments must NOT count as
+keep-alive either. A build `claimed` leaf with a merged PR is recovered regardless of the staleness
+clock (see the Staleness model note above and the dedicated ordering bucket); it is never recorded
+`active` and skipped on the strength of post-merge activity.
+
+If a provider cannot expose any reliable timestamp, do **not** auto-resume its in-progress
+items unless the caller passed `stale_after=0`. (Dependency-cleared `blocked` repair still
+proceeds — it is judged on blocker state, not time.)
+
+## Repair decision tree
+
+Apply per candidate. Continue through the ordered list until every candidate inside the
+`max_candidates` cap has been evaluated. Each candidate may trigger a write (lifecycle transition,
+native close/archive/complete, re-dispatch, or refreshed note), be recorded read-only, or be
+recorded under Errors. Do not stop after the first write; the cap is the batch boundary.
+
+**Before any lifecycle write on a candidate, classify it for `automation-reversal`** per
+`rejection-detection` **Automation-reversal memory** — a role change this skill made that a human
+then moved back. This runs once per candidate at the top of the walk, ahead of the branches below,
+because it wraps every repair path rather than belonging to one: a reversed rollup reconciliation
+involves no dependency link at all, and a reversed Class-B re-check is the same shape as a reversed
+Class-A clearing. Detection is a pure read and `unknown` **never blocks the sweep** — an item whose
+history or authorship cannot be read is judged by the normal rules below, treated as neither a
+reversal nor a clearance. A candidate classified `automation-reversal` skips the branches below and
+is handled per Loop prevention.
+
+### Build `claimed` (stalled in-progress) → diagnose blocker, else resume in place
+
+**First check for an already-merged PR — this check is NOT gated on staleness.** Read the item's
+linked PR state before applying the staleness gate (see "Stuck-cause diagnosis" step 1–2 for
+discovery). If `state == MERGED`, recover it immediately via step 0's merged-PR arm regardless of
+elapsed time or recent post-merge activity (per the Staleness model's merged-PR exemption): a merged
+PR is a completed leaf, and deferring it behind the staleness clock is what strands shipped work in
+`claimed`.
+
+Only if the PR is **not** merged does the staleness gate apply. Once it passes, **diagnose why it
+stalled** by inspecting the item's PRs and deploys (see "Stuck-cause diagnosis" below). A stalled
+build usually stalled for a concrete external reason, and re-dispatching the agent at it will not fix
+a PR that cannot merge or a deploy that failed — it just churns.
+
+0. **Diagnose PR & deploy state.** Run "Stuck-cause diagnosis" below. It resolves, in order:
+   - **PR already merged** (checked first, staleness-exempt) → the build effectively completed; the
+     vendor build-intake's merge gate left the item `claimed` because the merge landed after its agent
+     returned. Do **not** re-dispatch or file anything — apply the scanner's post-agent env-resolved
+     `claimed → done` transition directly (step 2 below, env-resolved), and record it. This is the
+     recovery arm for build-intake leaving merged-but-unadvanced items in `claimed`.
+   - **PR only behind its base (a needed rebase)** → mechanically resolvable, **not** a human blocker.
+     Re-sync the branch in place so the already-enabled auto-merge can land (see diagnosis step 3).
+     Keep the item `claimed`; a later cycle confirms the merge and transitions. Do **not** file a fix
+     ticket for a clean rebase.
+   - **A true merge conflict** → **not** an immediate fix ticket. A conflict is fixable by re-running
+     the build, so attempt **one** in-place re-dispatch first (the resume sequence below; the vendor
+     agent re-enters `drive-pr-to-merge` fix mode, which resolves conflicts). Only a conflict that
+     survives that single attempt — the same conflicting head still `CONFLICTING` on a later cycle — or
+     that the agent reports needs design input, falls through to the fix-ticket path (diagnosis step 5).
+   - **A real external blocker re-running the build cannot fix** (failing checks / `CHANGES_REQUESTED` /
+     unaddressed CodeRabbit; or a failed deploy) → **do not dispatch the agent**. File a build-ready leaf
+     fix ticket for the blocker, move this item `claimed → blocked` with an `is blocked by` link to that
+     ticket, and record it. The existing "Build `blocked` → unblock if cleared" path resumes this item on
+     a later cycle once the fix ticket is terminal — a self-healing loop. Skip the resume steps below.
+
+     **On Linear, READ the pair's existing relations before writing that link.** Reported measured
+     twice: `issueRelationCreate` on a pair that already carries a `related` edge appears to CONVERT
+     that edge rather than add a second one — the outgoing count did not grow — and the undo is not
+     what it looks like, because deleting the new relation removes the link entirely instead of
+     restoring the original. Full reversal is delete **plus re-create with the original type**
+     (CodySwannGT/lisa#3605).
+
+     So: fetch the pair's relations first. If any edge already exists between the two items, do
+     **not** write — record the item under the run's escalations naming the existing edge and its
+     type, and leave both alone. A fix ticket freshly filed by this same pass has no prior edge by
+     construction, which is the ordinary case and stays a single write.
+
+     This matters here more than anywhere else Lisa writes a relation: this pass runs unattended on a
+     schedule, and `max_candidates` defaults to 100, so a converting write is not one lost edge but
+     up to a hundred — none of them logged, because nothing read the prior state.
+
+     **Marked UNVERIFIED, deliberately.** The conversion was observed against the raw GraphQL
+     mutation, and confirming it on Lisa's own path means writing a relation to a live Linear
+     workspace. That has not been done and must not be done to close this. The read costs one call
+     and is correct whether or not the semantics are what they appear to be — which is the whole
+     reason it is safe to adopt without settling the question.
+
+If the PR is healthy in-flight and no blocker is found, the work simply died mid-flight — run the **same per-item sequence
+the vendor build-intake runs**, skipping the claim transition (the item is already `claimed`):
+
+1. Dispatch the item to the vendor agent — `lisa-jira-agent` / `lisa-github-agent` /
+   `lisa-linear-agent` (matching the queue's tracker) — with the item ref. If repair-intake is
+   running as a teammate rather than the lead/root agent, return a structured `delegation-request`
+   to the lead instead of spawning that named peer yourself; only the lead can add named teammates
+   in Claude's flat roster. This resumes the work in place, preserving its existing branch/PR and
+   prior comments.
+2. **On agent success**, apply the scanner's post-agent transition yourself: `claimed → done`,
+   where `done` is **env-resolved** exactly as `lisa:<tracker>-build-intake` resolves it (per
+   `config-resolution` env-keyed `done`: explicit `target_env` arg wins; else reverse-lookup the
+   env from the resulting PR's base branch via `deploy.branches`; then **cap the resolved env by
+   the promotion-completeness gate** — see "Promotion completeness" below; if `done` is a map and
+   env is unresolvable, fail loudly — never guess). repair-intake owns this transition because it is
+   standing in for the scanner that never got to finish it.
+3. **On a surfaced blocker** (agent reports it cannot proceed), leave/move the item to `blocked`
+   with a `[lisa-repair-intake]` note (see Loop prevention). When the surfaced blocker is something
+   **only a human can supply** (credentials, access/permissions, a product or scoping decision), the
+   item also carries the `human_needed` marker — the vendor agent's pre-flight gate applies it; if
+   repair-intake makes the block transition itself for such a reason, it adds the marker too. (A
+   block that another tracked ticket or retry will clear is *not* human-needed — that is the
+   auto-recoverable fix-ticket path above.)
+
+> Do **not** reset stalled in-progress items to `ready`. Reset throws away state, makes a
+> partially-built item look freshly human-approved to the next `lisa-intake` claim, and forces a
+> two-cycle recovery. Resume in place.
+
+#### Stuck-cause diagnosis: PR & deploy blockers
+
+Run this for every stalled `claimed` build item **before** considering an agent re-dispatch. The
+goal is to distinguish "work died mid-flight, just resume it" from "work is blocked on a concrete
+external state that resuming the agent cannot fix."
+
+**1. Find the associated PR(s) and deploy(s).** From the item's linked PRs (GitHub: prefer the
+native dev-link surface — `gh issue view <n> --json closedByPullRequestsReferences` — which lists
+merged PRs that closed the issue, then `gh pr list --search <issue-ref> --state all`; JIRA:
+dev-status / remote links; Linear: attachments and git-branch links) and the deploy(s) for the
+resulting merge (the env-keyed `deploy.branches` mapping from `config-resolution`). The `--state all`
+is load-bearing: `gh pr list --search` defaults to `--state open`, so a **merged** (closed) PR is
+invisible on that surface — the exact state this recovery path exists to catch. A merged PR linked
+only via search (no `Closes #` / native dev link) would otherwise never be discovered, and the leaf
+would never recover. Read each PR with the vendor's native state, e.g. GitHub
+`gh pr view <n> --json state,mergedAt,mergeable,mergeStateStatus,reviewDecision,statusCheckRollup,comments,reviews`.
+For `reviews`, derive the effective set from the **latest non-dismissed review
+per reviewer**, ordered by `submitted_at` then id. Never count the raw history:
+an older approval does not satisfy a later `CHANGES_REQUESTED` review by the
+same reviewer. Use the same paginated REST reduction documented by
+`lisa-drive-pr-to-merge` when the `gh pr view` projection is incomplete.
+
+**2. PR already merged → recover, don't re-dispatch.** If `state == MERGED`, the build is effectively
+complete and the only thing missing is the env transition the build-intake never applied (its merge
+gate left the item `claimed` because the merge landed after its agent returned). Do **not** re-dispatch
+or file anything: apply the scanner's post-agent env-resolved `claimed → done` transition (the
+resume-sequence step 2, env-resolved from the merged PR's base branch **and capped by the
+promotion-completeness gate below**) and record it as a repair write.
+
+**Run the gate before the write, never after.** The blocker path (step 4) assumes the item is still
+`claimed`, so a deploy failure discovered *after* a lifecycle write has nowhere to go. Resolve every
+rung first: if the rung's deploy concluded anything but `success`, write **nothing**, leave the item
+`claimed`, and fall through to the blocker path; if it has not concluded, write nothing and leave it
+`claimed` for a later cycle. Only a fully resolved gate result is ever written.
+
+**3. PR only behind its base → re-sync in place (mechanical, not a blocker).** If the PR is clean but
+behind its base — `mergeStateStatus == BEHIND` while `mergeable != CONFLICTING` and no required check
+is failing — it does **not** need a human. This is exactly the case that strands a PR forever: GitHub
+auto-merge will not advance a `BEHIND` branch on its own, so a PR opened with `--auto` sits unmerged
+until something rebases it. Delegate this mechanical nudge + classification to the
+`drive-pr-to-merge` skill in **report** mode — the single source of truth for the
+"ensure auto-merge + re-sync a clean `BEHIND` branch" primitive — so this scanner does not
+re-implement it:
+
+```text
+drive-pr-to-merge  pr=<n>  on_blocker=report
+```
+
+In report mode it ensures auto-merge is enabled and runs `gh pr update-branch <n>` only when the
+PR is `BEHIND`-but-clean **and** the base branch's ruleset or classic branch protection requires
+strict up-to-date status checks (`strict_required_status_checks_policy` / `required_status_checks.strict`).
+If strict checks are off, it does not update the branch solely because the base moved; that avoids
+CI cancellation storms in repos where updating the PR head restarts and cancels in-flight runs. It
+never edits code, resolves threads, or dismisses reviews. It returns a classification (`merged` /
+`will-merge-after-resync` / `blocked:<reason>`). On a `merged` / `will-merge-after-resync` result,
+record this as a repair write (`resynced`), keep the item `claimed`, and move on — a later cycle sees
+the now-`CLEAN` (or merged) PR and either lets auto-merge finish or applies the merged-PR recovery in
+step 2. Only if `gh pr update-branch` itself reports a conflict it cannot apply does the PR become a
+true conflict (step 4). Honor the backoff window so repeated cycles don't re-issue `update-branch` on
+an unchanged head (Loop prevention). For JIRA/Linear items the PR is still the GitHub PR backing the
+branch — operate on it the same way.
+
+**4. Classify as a blocker.** Treat any of these as a real external blocker:
+
+- **True merge conflict** — confirmed by a **merge trial**, never by a cached field.
+  `mergeable = CONFLICTING` and `mergeStateStatus = DIRTY` are hints that say *go look*: both are
+  computed asynchronously, and a stale one is served often enough that GitHub reported `DIRTY` for two
+  branches at the same moment while only one of them actually conflicted (#3694). Re-derive from
+  primary evidence at the moment of asking:
+
+  ```sh
+  base=$(gh pr view <pr> --json baseRefName --jq .baseRefName)
+  head=$(gh pr view <pr> --json headRefOid --jq .headRefOid)
+  git fetch --quiet origin "$base" "pull/<pr>/head" || readable=no
+  git rev-parse --verify --quiet "origin/$base^{commit}" >/dev/null || readable=no
+  git rev-parse --verify --quiet "$head^{commit}" >/dev/null || readable=no
+  out=$(git merge-tree --write-tree "origin/$base" "$head" 2>/dev/null); code=$?
+  ```
+
+  `merge-tree --write-tree` merges into the object store only — no working tree, no index and no
+  branch is touched — so it is safe inside an unattended scanner.
+
+  **Read the exit code together with stdout; the exit code alone cannot separate the three states.**
+  Measured on git 2.53.0: a trial naming a ref that does not exist exits `1`, the same code a genuine
+  conflict returns, printing nothing on stdout and `merge-tree: <ref> - not something we can merge`
+  on stderr. A trial that ran always prints the resulting tree OID on its first line; one that could
+  not run prints nothing. Three states, and the third is not optional:
+
+  - `code == 1` **and** `$out` non-empty → **CONFLICTED**. A real external blocker. Unlike the other
+    classes below, a conflict is **resolvable by re-running the build**, so step 5 gives it one
+    in-place re-dispatch before filing — see its conflict-first rule.
+  - `code == 0` → **CLEAN**. Not a blocker, whatever the API said. Write nothing, leave the item
+    `claimed`, and let a later cycle re-ask.
+  - `readable=no`, `$out` empty, or any other exit → **NOT DETERMINED**. The trial could not run — an
+    unresolvable ref, an unreachable remote, a git older than 2.38 — which is an absence of evidence,
+    not a verdict. Write nothing, file nothing, leave the item `claimed`, and record it as
+    `not_determined` in the run summary so a later cycle re-asks.
+
+  A `gh pr update-branch` (step 3) that reported a conflict it cannot apply also counts as
+  CONFLICTED — that is a merge actually attempted, not a cached answer. A merely `BEHIND` branch is
+  **not** here — it was re-synced in step 3.
+
+  **Filing on a cached field is the expensive direction here.** In a fix-mode loop a false
+  CONFLICTED wastes a resolve, which a human sees; in this scanner it files a
+  BLOCKER against a pull request that has nothing wrong with it, unattended — so the wrong answer
+  becomes durable tracker state that a later cycle reads as fact, and intake will keep doing that
+  without anyone noticing. Verify before filing, never after.
+- **Failing required checks** — `statusCheckRollup` has a `FAILURE`/`ERROR`/`TIMED_OUT` conclusion,
+  or `mergeStateStatus = UNSTABLE`/`BLOCKED` due to checks.
+- **Change requests outstanding** — `reviewDecision = CHANGES_REQUESTED`, or unresolved CodeRabbit
+  (or other reviewer) comments that request changes and have not been addressed by a newer commit.
+- **Branch-protection / approvals blocked** — `mergeStateStatus = BLOCKED` for a reason other than
+  a transient check still running.
+- **Failed deploy** — the deployment for the item's merge/branch reports a failed/errored status
+  (failed deploy workflow run, failed deployment status, or the project's deploy check is red).
+
+A check that is still **queued/in progress**, or a `CLEAN`/`HAS_HOOKS` mergeable PR with no
+outstanding change request, is **not** a blocker — that is normal in-flight state. (Such a PR with
+recent check/commit activity would already have been caught as `active` by the staleness gate.)
+
+**5. On a blocker found → file a leaf fix ticket + block the item.**
+
+**Conflict-first exception (try to resolve before filing).** A *true merge conflict* — and only a
+conflict, not failing checks, change requests, or a failed deploy — is fixable by re-running the build:
+the vendor agent's `drive-pr-to-merge` fix-mode loop resolves conflicts. So before filing a fix ticket
+for a conflict, give the item **one** in-place re-dispatch: run the resume-in-place sequence (steps 1–3
+of the parent path above), which re-enters `drive-pr-to-merge` in fix mode against the existing PR.
+Bound it to a single attempt per conflicting head — when you re-dispatch, post a `[lisa-repair-intake]
+conflict-resolve-attempt: <item-ref>@<head-sha>` marker keyed on the PR head SHA. On a later cycle, if
+that marker already exists for the **same** head SHA and the PR is still `CONFLICTING`, the attempt
+failed: stop retrying and file the fix ticket below. File immediately (skip the attempt) if the agent
+reports the conflict needs design input. Every other blocker class files the fix ticket with no
+re-dispatch. Honor the backoff window / state fingerprint (Loop prevention) so the re-dispatch is never
+re-issued against an unchanged conflicting head.
+
+1. **File one build-ready leaf fix ticket** per distinct blocker via `lisa-tracker-write` (the
+   vendor-neutral leaf writer + validation gate; never a vendor `*-write-*` skill directly),
+   `issue_type: Bug` for a failing-check/conflict/failed-deploy, `Task` for review-feedback
+   follow-up, `build_ready: true` so it auto-builds. The ticket MUST name: the blocked item + its
+   PR/deploy URL, the exact blocker (conflict / which checks failed with their logs link / which
+   change requests / which deploy run), three-audience description, and Gherkin acceptance criteria
+   for "PR is mergeable / deploy is green." Every created blocker fix ticket MUST end with the
+   `rejection-detection` **operator footer** as a visible prose line:
+   `To stop this from being raised again, close it as **Not planned**. Close it as **Completed** if it was fixed — a later recurrence may be re-filed as a regression.`
+2. **Transition the stalled item `claimed → blocked`** and add an **`is blocked by`** link to the
+   new fix ticket (vendor-native: JIRA issue link `is blocked by`; GitHub/Linear `Blocked by:` line
+   + label). Post a `[lisa-repair-intake]` note naming what it is blocked by and why. This block is
+   **auto-recoverable** — the fix ticket will build and close on its own — so do **not** add the
+   `human_needed` marker, and if the item carries a `human_needed` label **this skill applied on an
+   earlier cycle**, remove it here (it is no longer waiting on a human). The `human_needed` marker
+   is reserved for blocks a human must clear; this one a later cycle clears automatically.
+   **A marker this skill did not apply is never removed here** — see the marker's provenance rule
+   above. The block's kind says the *block* self-heals; it says nothing about why a human put a
+   hold on the item, and an operator's hold applied after correcting a wrong transition looks
+   identical to a leftover unless provenance is checked.
+3. **Record it** as a repair write. Do **not** dispatch the vendor agent for this item this cycle.
+
+The item now sits in `blocked`; once the fix ticket reaches a terminal state, the **Build
+`blocked` → unblock if cleared** path (next section) detects the cleared `is blocked by`
+dependency and resumes the original in place — a self-healing loop.
+
+**Idempotency.** Before filing, check for a fix ticket already carrying the marker
+`[lisa-repair-intake] blocker:<item-ref>/<blocker-key>` (blocker-key is a stable slug of the
+blocker, e.g. `pr-1234/merge-conflict` or `pr-1234/checks-failing`). Per the `rejection-detection`
+rule's **Proposal rejection memory** section, that marker search MUST cover **open AND closed**
+tickets (body-enumeration fallback on search-index lag): an **open** match → reference it and ensure
+the `is blocked by` link is present rather than creating a duplicate; a match **closed as _not
+planned_** (GitHub `stateReason == "not_planned"`; the config-resolved equivalent on JIRA/Linear) is
+a **human decline** of that fix ticket — do **not** re-file it without a materially changed consequence, requirement, or risk addressing the decline, supported by evidence that **postdates the
+decline**, and the re-filed ticket MUST carry BOTH the machine token (`declined <date>; recurred
+<date> in <ref>`) and the human acknowledgment sentence (`You declined this on <date>. New evidence (<date>, <ref>) changes the consequence, requirement, or risk: <what changed and why the decline no longer applies>.`); a match closed as
+_completed_ is a regression path, not a decline. Honor the backoff window and state fingerprint
+(Loop prevention) so re-runs over the same unchanged blocker are no-ops.
+
+#### Promotion completeness: the base branch is not the delivery
+
+A merged PR's base branch names the environment the change **entered**, not the environments it has
+**reached**. A hotfix merged straight to `main` enters production out of order: the reverse-lookup
+resolves `production`, `production` is terminal, and the item closes while `staging` has none of the
+fix and cannot deploy. The evidence is real — merged PR, merge-commit ancestry in `main`, a green
+production deploy — and the inference from it is still wrong.
+
+So before writing any env-resolved `done`, walk `deploy.order` from its **lowest** rung and keep
+rungs while they are **reached**, stopping at the first that is not. A rung is reached when both
+hold for its `deploy.branches` branch:
+
+- **Ancestry** — `git fetch origin <branch> && git merge-base --is-ancestor <merge-sha> origin/<branch>`,
+  asserted for **every** env branch at or below the resolved env — never only the PR's base.
+- **Deploy health** — that branch's most recent deploy **concluded `success`**. Read the
+  `conclusion`, never the `status`: an in-flight deploy has a null conclusion and is
+  indistinguishable from a pass on the status field alone. Only `success` promotes — a null
+  conclusion and every other conclusion (`failure`, `cancelled`, `timed_out`, `neutral`, `skipped`,
+  `stale`, `action_required`) leave the rung unreached. An unconcluded deploy is unknown, not green
+  — do not write that rung this cycle; a later cycle reads a concluded run. Where a project exposes
+  no deploy surface for a branch at all, ancestry alone decides that rung.
+
+Write the highest **contiguously reached** rung at or below the resolved env — never a higher rung,
+even when the higher rung is reached and a lower one is not. A merge present in `dev` and `main` but
+absent from `staging` writes `dev` (`On Dev`), which is intermediate: the item stays natively open
+and the promotion gap is what holds it open. When no rung is reached, write nothing and leave the
+item in its current role.
+
+The refusal is named, never silent. When the gate caps the env below the resolved one, the
+`[lisa-repair-intake]` note MUST carry all three fields —
+`<first unreached env> (<its branch>) — <condition>` — where the condition is exactly one of
+`missing ancestry`, `deploy unknown: <run URL, or "no concluded run">` (an in-flight run, or a
+branch with a deploy surface but nothing concluded), or
+`deploy concluded <conclusion>: <run URL>`. A failing run named without its environment and branch,
+or an environment named without its condition, is an incomplete note.
+
+**Do not classify the gap away.** An open back-fill PR against a skipped environment branch is
+*outstanding delivery*, not branch hygiene: it is the evidence that a rung was skipped, so it holds
+the item open. Recording "the fix reached dev and production but skipped staging, so that PR is a
+branch back-fill, not outstanding delivery" and then closing anyway is this defect exactly — the
+condition observed, filed under the wrong heading, and overridden.
+
+### Resolve the shipped blocker-edge module
+
+The helper ships in the plugin and npm package. Only the runtime-supplied plugin roots
+and installed package are trusted here; do not search arbitrary checkout-local plugin folders.
+Write the evaluated edge inputs to a JSON array file, then call `blocker_edge_decisions`.
+An absent module, unreadable input or import failure stops this repair without tracker writes.
+
+```bash
+resolve_blocker_guard() {
+  local candidate
+  for candidate in \
+    "${CLAUDE_PLUGIN_ROOT:+$CLAUDE_PLUGIN_ROOT/scripts/blocker-edge-resolution.mjs}" \
+    "${PLUGIN_ROOT:+$PLUGIN_ROOT/scripts/blocker-edge-resolution.mjs}" \
+    node_modules/@codyswann/lisa/plugins/lisa/scripts/blocker-edge-resolution.mjs; do
+    [ -n "$candidate" ] && [ -f "$candidate" ] && { printf '%s\n' "$candidate"; return; }
+  done
+  echo "Error: could not locate blocker-edge-resolution.mjs; refusing repair." >&2
+  return 1
+}
+
+blocker_edge_decisions() {  # JSON array file -> decision object
+  local guard
+  guard=$(resolve_blocker_guard) || return 1
+  node --input-type=module - "$guard" "$1" <<'LISA_BLOCKER_NODE'
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
+import { pathToFileURL } from "node:url";
+const { resolveBlockerEdges } = await import(pathToFileURL(resolve(process.argv[2])).href);
+const edges = JSON.parse(readFileSync(process.argv[3], "utf8"));
+if (!Array.isArray(edges)) throw new Error("Expected an array of blocker edges");
+console.log(JSON.stringify(resolveBlockerEdges(edges)));
+LISA_BLOCKER_NODE
+}
+```
+
+### Build `blocked` → re-evaluate, unblock if cleared
+
+1. Read the block reason and classify the blocker (see Blocker classification & clearing). An item
+   may be held by a **dependency**, by a **validation / quality-gate self-block**, by a
+   **deployed / runtime verification failure**, by an **ambiguity**, or by more than one at once.
+   Re-check **every** class present — do not stop at "no `is blocked by` links, therefore nothing
+   to do." A self-block has zero dependencies by definition, yet is fully re-checkable.
+2. **Dependency cleared** — decide each parsed `is blocked by` edge with
+   the shipped plugin helper `scripts/blocker-edge-resolution.mjs`, feeding it the
+   `blocker-containment` verdict plus the blocker's state and closure reason. This is a module,
+   not a CLI and not a required host `scripts/` file. Resolve a trusted plugin/package path and
+   invoke `resolveBlockerEdges` as shown above; never create a second resolver in the host.
+   It returns `dissolve` / `keep` / `escalate` per edge.
+   **Dissolve the edge in the SAME write that records the ruling, then read the relation back and
+   confirm it is gone.** Only when the parsed edge set is non-empty and the resolver returns
+   `proceed: true` with every edge dissolved → move `blocked → claimed`, then run the
+   same agent-dispatch + post-agent `claimed → done` sequence as the stalled-`claimed` path above
+   (one-cycle recovery). If the agent re-blocks, move back to `blocked` — a valid outcome.
+
+   **Moving the state without removing the edge is not a clearance, it is a claim about one.** That
+   was the defect (CodySwannGT/lisa#3472): the pass moved the state and left the relation, recording
+   the ruling as a comment, and the next reader parses relations rather than prose — so the block
+   re-formed every cycle and a human had to break the loop. Reading the relation back is what makes
+   "I removed the link" distinguishable from "I meant to".
+
+   **An `escalate` verdict holds the item and reports it — never dissolve on it.** The sharp case is
+   a blocker closed `NOT PLANNED`: the work depended on will never be delivered, so dissolving reads
+   as "unblocked" when nothing was built, and holding silently hides a decision only a human can
+   make. Treating closure as satisfaction is the same reason-blind wrong write as
+   CodySwannGT/lisa#3479. A single escalation among otherwise-dissolving edges holds the item.
+
+   **On Linear, dissolve with a relation DELETE.** Do not "update" an edge:
+   `issueRelationCreate` CONVERTS an existing relation rather than adding one
+   (CodySwannGT/lisa#3605), so a writer reaching for it can destroy a different edge.
+3. **Validation / quality-gate self-block re-check** — if the block reason is a pre-flight
+   `verify`/`validate` gate failure (its `[lisa-*]` block note carries a gate marker + a "Missing
+   requirements" list and there is **no** open `is blocked by` dependency), re-run the **same gate**
+   against the item's **current** content via `lisa-tracker-validate` (read-only; the vendor-neutral
+   gate `lisa:<tracker>-build-intake` and `lisa:<tracker>-write-*` already use). This is the build
+   mirror of the PRD `blocked → re-validate` path below.
+   - **PASS now** (the human added what was missing) → move `blocked → claimed` and resume exactly
+     as in (2): agent-dispatch + post-agent `claimed → done`.
+   - **Still FAIL** → stay `blocked`, but refresh the note with the **current** (usually smaller)
+     missing-requirement set so the human sees what remains. Because the fingerprint includes the
+     gate verdict + missing-requirement set (Loop prevention), a partial human fix changes the
+     fingerprint and re-checks next cycle, while a truly-unchanged gate result stays in backoff.
+4. **Deployed / runtime verification blocker re-check** — if the block reason is a failed
+   *deployed* or *runtime* verification (a smoke/E2E/health check or manual probe against a live
+   environment that errored — e.g. an authenticated endpoint returning 500, a deploy health check
+   red, a seeded-data assertion failing), re-check by **reproducing the original failing check with
+   the same context it used**: the same auth identity/credentials, the same target environment, the
+   same route, and the same scope/parameters. A probe that does **not** exercise the failed path is
+   **not** evidence the blocker cleared — an *anonymous* request to an *auth-gated* resource, a
+   request against a different environment, or a narrower scope can all return a healthy status
+   while the originally-failing path is still broken. (This exact false-negative — an unauthenticated
+   `GET` to an auth-gated resource returning 200 without touching the failing table — wrongly unblocked
+   a build item whose authenticated path was still 500ing, sending it `ready → claimed → blocked` again.)
+   - **Reproduces clean now** (the *same* check that failed now passes) → move `blocked → claimed`
+     and resume as in (2).
+   - **Still failing** → stay `blocked`; refresh the note with the current observed result. Because
+     the root cause is external (a deployed defect, not item content), prefer filing/keeping a
+     build-ready fix ticket and an `is blocked by` link to it (the "real external blocker" path),
+     so a later cycle self-heals when that ticket goes terminal.
+   - **Cannot reproduce this cycle** (the agent lacks the credentials/env access to run the original
+     check) → stay `blocked`; do **not** unblock on the absence of a reproduction. If the missing
+     access is human-only, apply the `human_needed` marker. Never unblock a deployed-verification
+     blocker on a weaker signal than the one that set it.
+5. If the block was an **ambiguity** research can settle and no dependency remains → run the
+   research needed (`lisa-codebase-research` / `lisa-product-walkthrough`); if resolved, proceed
+   as in (2).
+6. Else → still blocked. Refresh the note with the current reason (Loop prevention) and leave it
+   `blocked`.
+
+### Build terminal-open → native close / complete / resolve
+
+For each build item that already carries the env-resolved true terminal `done` role but is still
+native-open / active / unresolved:
+
+1. Verify the item is a **leaf** or a **rollup parent whose all required children are terminal**.
+   If it is a parent with incomplete children, do not close it; refresh a `[lisa-repair-intake]`
+   note naming the incomplete child set.
+2. Verify the terminal `done` role is the true final value per `leaf-only-lifecycle` and
+   `config-resolution` env-keyed `done`. Intermediate env labels (for example `status:on-dev` or
+   `status:on-stg`) are not terminal and must stay open.
+
+   Verify too that the terminal role was **earned**, not merely worn: re-run the
+   promotion-completeness gate (above) against the item's merge commit, and close **only** when the
+   gate reports the terminal rung itself as reached. On a branch with a deploy surface that means
+   `conclusion == success`; an in-flight run, or no concluded run at all, does **not** reach the
+   rung and does **not** authorize closure. Where a branch exposes no deploy surface, ancestry alone
+   decides it, exactly as the gate documents. If any env branch at or below the terminal one lacks
+   the commit or fails its deploy-health test, do **not** close: demote the item to the highest
+   contiguously reached rung, keep it open, and refresh a `[lisa-repair-intake]` note carrying the
+   full refusal reason (env, branch, condition). A terminal label applied before the gate existed is
+   exactly how an out-of-order hotfix reaches native closure — so the label alone is never
+   sufficient evidence to close.
+3. Perform the provider-native terminal action idempotently:
+   - GitHub: `gh issue close <number> --repo <org>/<repo> --reason completed`.
+   - Linear: move the issue to the configured Done / Completed native workflow state if available;
+     otherwise record the missing native state as a setup error.
+   - JIRA: verify it is resolved / closed (`statusCategory = Done`, resolution set if required);
+     if not, transition through the configured terminal workflow path or report the missing setup.
+4. Post a compact `[lisa-repair-intake]` note only when the native close-out changed state or when
+   an actionable setup error must be surfaced. Do not spam already-closed terminal items.
+
+### Lifecycle label contradicts native state — walk every direction
+
+Use the existing detector to check native state and closure reason together.
+`directionsWalked` reports all three repair directions:
+
+| Label | Native state | Repair |
+|---|---|---|
+| Terminal `done` role | Open / active | Follow `Build terminal-open` above |
+| Non-terminal lifecycle role | Closed as `COMPLETED` or reason absent | Advance to the configured terminal role |
+| Non-terminal lifecycle role | Closed as `NOT_PLANNED` | Remove the stale role and add nothing |
+
+**Build the classifier input inside this cycle. Never consume a temp file another skill wrote.**
+repair-intake runs as its own cycle, so borrowing `lisa-github-build-intake`'s scratch file fails
+two ways: absent, the redirect fails and `set -e` aborts the whole cycle; stale from an earlier run
+on a *different* item, the resolver classifies that other item and this section reports `drifts: []`
+while `directionsWalked` still claims both directions were walked. That is precisely the
+silent-clean verdict this section promises cannot happen.
+
+```bash
+TRUST_DIR=$(mktemp -d)
+trap 'rm -rf "$TRUST_DIR"' EXIT
+
+# REST, not `gh issue view`: this payload carries `state_reason`, and the reason is
+# what separates the two closed directions. A read that drops it makes a NOT_PLANNED
+# closure indistinguishable from a completion at the exact moment one of them WRITES.
+gh api "repos/<org>/<repo>/issues/<n>" > "$TRUST_DIR/issue.json"
+
+# --paginate emits ONE ARRAY PER PAGE; --slurp + `add` flattens all of them so a
+# label event on page two is not silently dropped.
+gh api "repos/<org>/<repo>/issues/<n>/timeline?per_page=100" --paginate --slurp \
+  > "$TRUST_DIR/pages.json"
+jq 'add // []' "$TRUST_DIR/pages.json" > "$TRUST_DIR/timeline.json"
+
+# Same resolution `read_role` uses: local overrides global, both optional.
+# Resolving a stale terminal `done` here would make the true terminal label look
+# like `open-label-closed-state` — and that direction WRITES.
+jq -s '(.[0] // {}) * (.[1] // {})' \
+  <(cat .lisa.config.json 2>/dev/null || echo '{}') \
+  <(cat .lisa.config.local.json 2>/dev/null || echo '{}') \
+  > "$TRUST_DIR/config.json"
+
+jq -n --slurpfile i "$TRUST_DIR/issue.json" \
+      --slurpfile t "$TRUST_DIR/timeline.json" \
+      --slurpfile c "$TRUST_DIR/config.json" \
+      '{issue: $i[0], timeline: $t[0], config: $c[0]}' \
+  > "$TRUST_DIR/input.json"
+
+node "${CLAUDE_PLUGIN_ROOT}/scripts/lifecycle-label-trust.mjs" < "$TRUST_DIR/input.json"
+```
+
+**Untrusted labels are excluded from `drifts` before any repair runs** — the classifier does this
+itself, so repair must **never act on a label the classifier refused to believe**. Without it, a
+bot-applied label on a natively closed item would be advanced to the terminal `done` role by the
+`open-label-closed-state` repair, laundering the exact input the guard rejected into a real write.
+The `excluded` array reports what was held back; surface it, do not repair it.
+
+1. **`terminal-label-open-state`** → hand to the `Build terminal-open → native close` section above.
+   Do not restate its rules; the terminality test lives there (intermediate env rungs like
+   `status:on-dev` / `status:on-stg` are **not** terminal).
+2. **`open-label-closed-state`** → the previously unowned direction. The item is natively closed as
+   **completed** while still wearing a non-terminal lifecycle role. Advance the label to the
+   env-resolved terminal `done` role and post one idempotent `[lisa-repair-intake]` note. This is a
+   write on **Lisa's own** lifecycle surface, not a contest with another writer.
+   Apply the leaf/container check from the **Lifecycle ownership guard** section *before* this
+   branch: repair-intake owns container repair, so a natively-closed `ready` **leaf** is skipped
+   here and left to the build lane rather than claimed by this pass.
+3. **`open-label-abandoned-state`** → closed as **`NOT_PLANNED`**. Remove the stale
+   non-terminal role and add nothing: declined work has not shipped. Post one idempotent
+   `[lisa-repair-intake]` note naming the closure reason. This removal also applies to closed
+   ready leaves, before the ordinary ready-leaf skip; it never claims or dispatches them.
+4. **Vendor caveat — Linear.** On Linear the lifecycle surface is the native workflow **state**, not a
+   `status:*` label (see `config-resolution`). A `status:*` label there is leftover cruft that no
+   repair direction reads, which is precisely why TUN-556 and TUN-503 rotted. Treat Linear's native
+   state as authoritative and remove the contradicting stale label; never move the state to match a
+   label.
+
+Membership in the lifecycle namespace is decided by the **`status:` prefix**, never a pinned member
+list — the live family has drifted 7 → 6 members, and a literal set fails silently by simply not
+matching the member it stopped covering.
+
+### Bot-authored lifecycle label → distrust, never revert (read-only)
+
+`status:*` labels written by a **bot** actor within the plausibility window of the item's creation are
+not lifecycle signals — see `lisa-github-build-intake` Phase 2b for the measurement and the
+classifier. Report them here so an operator can see how much of the board is wearing a label nobody
+chose:
+
+- list each item alongside the untrusted label, the bot login, and the latency, from the classifier's
+  `untrusted` array;
+- list `unknownProvenance` labels separately — trusted, but unattributable;
+- **do not unlabel and do not relabel.** The bot re-applies on each subsequent review event, so a
+  reverting reconciler produces a label-flap loop that is worse than the defect. Repair happens by
+  intake declining to *believe* the label, which is idempotent and writes nothing.
+
+This class is deliberately **read-only** and never counts toward the repair cap's actionable work.
+
+### Build parent rollup reconciliation (intermediate-env or terminal close-out)
+
+For each parent/container item (an Epic, a Linear Project, or any item — of any type — with open child work),
+reconcile its lifecycle state with the roll-up of its children — **including the intermediate-env
+case**, not only fully-terminal close-out. This is the recovery-side complement to the forward
+rollup the `*-sync --rollup` skills perform; it catches a parent that was never rolled up (or was
+left in a status it should not carry, including a stale build-ready `ready`).
+
+1. Read the child set using the vendor-native hierarchy first (GitHub sub-issues, JIRA
+   Epic/parent/sub-task hierarchy, Linear project/parent/sub-issues), with the same fallbacks the
+   vendor read/sync skills document. **Record which children were resolved natively vs. only via the
+   prose/body-parentage fallback** — the gap between the two sets is repairable native-link drift.
+1a. **Heal native child links before rolling up (GitHub).** Whenever the resolved child set
+   contains same-repo children that are *not* in the parent's native `subIssues` graph — the typical
+   case when the children carry `Parent: #<n>` / `Parent Epic: #<n>` in prose but were never attached
+   (external generators like Codex, or an older write path) — attach each missing same-repo child as a
+   native sub-issue using the identical idempotent `addSubIssue` contract the "GitHub PRD missing child
+   links" path documents below: dedupe by `owner/repo#number`, treat "already linked" as success, keep
+   cross-repo/cross-vendor children documented-only with a warning, and on `subIssues`/`addSubIssue`
+   unavailability record a capability warning and continue. A build parent attaches the children
+   resolved by its hierarchy (its Stories/Sub-tasks), not only empty-parent-token top-level work — the
+   PRD top-level-only restriction is a PRD rule, not a build one. Record repaired refs in the rollup
+   state fingerprint so repeated cycles do not re-post. Do this even when step 2 derives `unchanged`:
+   the native graph is what the GitHub UI rollup and progress bar depend on, independently of the
+   parent's status.
+2. **Compute the derived parent state** bottom-up per the `leaf-only-lifecycle` **Parent status
+   rollup** state machine, evaluated over the env ladder `in-progress < dev < staging <
+   production` (the ordered keys of the env-keyed `done` map): any required child blocked →
+   `blocked`; else every required child shipped to some env → the **least-advanced** env among
+   them (e.g. all `On Stg` → `On Stg`); else any child started → `claimed`; else unchanged.
+   Optional / won't-do / not-planned children are terminal-but-dropped and do not hold the parent
+   open.
+2a. **When the derived state is `blocked`, classify the holds before writing anything.** A bare
+   `blocked` on a container is a single bit, and it cannot tell a hold that waits on an external
+   event from one that waits on a person rewriting an acceptance criterion — the second never
+   clears on its own, so rendering them alike lets it accumulate silently (`leaf-only-lifecycle` →
+   **Classifying a hold**; #3045). Feed the resolved child graph to the shared classifier:
+
+```bash
+ROLLUP_DIR="$(mktemp -d)"
+# Serialize the EXACT graph resolved in step 1 before any classifier reads it.
+# RESOLVED_CHILD_GRAPH_JSON is the in-memory object from that read; do not
+# re-query the tracker here or hand-author a smaller substitute.
+printf '%s\n' "$RESOLVED_CHILD_GRAPH_JSON" \
+  | jq -e '{container, children, readError, renderedState, childTally}' \
+  > "$ROLLUP_DIR/graph.json"
+test -s "$ROLLUP_DIR/graph.json"
+
+# children[]: { ref, state, labels[], blockedBy[{ref, open}], children[] } — the graph
+# step 1 already resolved, nested as deep as it was read. The script probes nothing.
+jq -n --slurpfile g "$ROLLUP_DIR/graph.json" \
+      '{container: $g[0].container, children: $g[0].children, readError: $g[0].readError, renderedState: $g[0].renderedState, childTally: $g[0].childTally}' \
+  > "$ROLLUP_DIR/input.json"
+
+node "${CLAUDE_PLUGIN_ROOT}/scripts/rollup-blocker-classification.mjs" \
+  --input="$ROLLUP_DIR/input.json" --since="<last recorded fingerprint>"
+```
+
+   It **exits non-zero and classifies nothing** when the tracker could not be read, the container
+   has no children, or no child was readable. That is a repair failure to report, never an
+   all-clear and a strict **no-write** result: do not transition lifecycle state and do not
+   post/update the rollup note. Do not fall through to "no blocked children" on a non-zero exit. On success its
+   report names, per class, the blocking leaf, the path to it, and **who must act** — those lines
+   are what goes in the rollup note, verbatim. Never set the `spec_defect` marker yourself and
+   never infer a class from prose; a hold with nothing recorded classifies `unknown`, and the
+   report already asks a person to decide.
+
+3. **If the derived state differs from the parent's current state, apply it** via the vendor's
+   lifecycle write: a JIRA transition; a GitHub label swap in the item's own lifecycle namespace;
+   or a Linear `save-issue lifecycle_role: <derived role> [env: <key>]` update, which resolves the
+   configured workflow state in the access layer and writes that — never a lifecycle label, and
+   never a state ID this skill picked. For GitHub, resolve the lane before writing: PRD parents use the configured `prd.*`
+   roles, while build tickets use the configured build roles. Keep exactly one lifecycle label in
+   that selected namespace and never substitute or overlap the other namespace. When applying any
+   of these writes, remove conflicting stale lifecycle roles — **including a stale `ready`** the
+   parent should never carry. Post an idempotent `[lisa-repair-intake]` rollup note naming the derived
+   state and the child tally (honor the backoff window + fingerprint). Include that exact rendered
+   state and tally in the classifier input: its fingerprint deduplicates the complete note, not only
+   the blocker classes. **When the derived state is
+   `blocked`, the note carries the classifier's per-class report** — the blocking leaf, its path,
+   and its actor — so an operator never descends the tree by hand to find out which item and which
+   kind. Use the classifier's `change.summary` as the dedupe test: an unchanged verdict has nothing
+   new to say and the note is **not** re-posted.
+4. **Perform native closure only at the true terminal `done`.** When — and only when — the derived
+   env is the production/terminal value, finalize through the provider-native mechanism (GitHub
+   `gh issue close --reason completed`, Linear move to Done state, JIRA resolved/closed verified at
+   `statusCategory = Done`). An intermediate-env rollup (`On Dev`/`On Stg`) advances the parent's
+   status but **must not** close it — it is still open per `leaf-only-lifecycle`.
+5. If the derived state is `unchanged` (children exist but none started) or the required set is
+   ambiguous / inaccessible, leave the parent as-is and record it as `active` or `still_blocked`
+   with the current child tally; never guess a transition.
+
+### PRD `in_review` (stalled in-progress) → re-run validate→route
+
+After the staleness gate passes, run the **same dry-run validate→route pipeline the vendor PRD
+intake runs per item**, targeted at this single PRD and **skipping the claim** (it is already
+`in_review`):
+
+1. Invoke `lisa:<source>-to-tracker` with `dry_run: true` and the PRD's URL (source = the queue's
+   PRD vendor: `notion-to-tracker` / `confluence-to-tracker` / `linear-to-tracker` /
+   `github-to-tracker`). This indirectly runs `lisa-tracker-source-artifacts`,
+   `lisa-product-walkthrough`, and the `lisa-tracker-validate` gate, returning a structured
+   PASS/FAIL report with `prd_anchor` snippets — the same report the PRD intake consumes.
+2. **On PASS** → re-invoke `lisa:<source>-to-tracker` with `dry_run: false` to write the tickets
+   (its full run already writes the PRD back-link via `lisa-prd-backlink`), run the
+   `lisa-prd-ticket-coverage` audit as the PRD intake does, then transition the PRD to its
+   `ticketed` role via the access layer.
+3. **On FAIL** → post the clarifying-question comments grouped by `prd_anchor` (page-level for
+   `prd_anchor: null`), tagged `[lisa-repair-intake]` (Loop prevention), and transition to
+   `blocked`.
+
+### PRD `blocked` → re-validate if new answers exist
+
+1. Determine whether **new clarifying answers** exist: any comment/update on the PRD newer than
+   the last `[lisa-repair-intake]` note or the original `blocked` note. For Linear include the project's own
+   comments, anchored sub-issue comments, and any legacy sentinel feedback issue; for Confluence include inline/footer
+   comments where the access layer exposes them; for Notion include page comments and
+   `last_edited_time`.
+2. If new answers exist → run the `lisa:<source>-to-tracker` dry-run validate→route pipeline as
+   in PRD `in_review` above (skipping claim). PASS → `ticketed`; FAIL → refresh note, stay
+   `blocked`.
+3. If no new answers and no dependency change → leave `blocked` untouched (subject to the
+   backoff window — do not re-post an identical note).
+
+### PRD terminal-open → close / archive source artifact
+
+For each PRD source artifact that already carries the configured terminal source role (`shipped`
+for generated-work completion, or a source-specific terminal role that the configured PRD source
+declares closed-out) but is still native-open / active:
+
+1. Verify the PRD's generated top-level work is terminal per `prd-lifecycle-rollup`, unless the
+   source artifact is already in a stronger product-owned terminal role that explicitly permits
+   closure. Do not move a PRD out of `draft` or `verified`.
+2. Close or archive through the source vendor's native mechanism where one exists:
+   - GitHub: close the PRD issue with `--reason completed`.
+   - Linear: archive/close the PRD project through Linear MCP when supported by the workspace.
+   - Confluence/Notion: archive the page only when the access layer exposes a supported archival
+     action; otherwise record a capability-aware no-op.
+3. Never set `verified`; `/lisa:verify-prd` remains the only automated writer of the verified
+   role. This path only reconciles an already-terminal PRD with native closure.
+
+### PRD rollup with all generated work terminal → ship and close out
+
+For each PRD in `ticketed` or another non-product-owned open PRD role whose generated top-level
+work is fully terminal:
+
+1. Read the generated top-level child set exactly as `prd-ticket-coverage` / the vendor PRD intake
+   does: native PRD children where supported, plus the durable generated-work section fallback.
+2. Evaluate terminal state using `prd-lifecycle-rollup`'s vendor predicate. A generated Epic or
+   Story is terminal only when it has itself rolled up and closed out; do not re-derive its leaf
+   descendants directly when its own state is still open.
+3. Transition the PRD to the configured `shipped` role.
+4. Close/archive the PRD source artifact through the vendor-native close-out mechanism where
+   supported. This repair path is the explicit close-out sweep for PRDs whose child work is done;
+   it does not set `verified` and does not run `/lisa:verify-prd`.
+5. If generated work is missing, ambiguous, or partially incomplete, leave the PRD open and report
+   the incomplete child set. Never close a PRD on partial completion.
+
+### GitHub PRD missing child links → native sub-issue repair
+
+For each open GitHub PRD in `ticketed` or another non-product-owned PRD role, compare the durable
+generated-work fallback against the PRD's native sub-issue graph and repair missing native links.
+This is the recovery counterpart to `lisa-prd-backlink`'s GitHub native parent-linking section:
+PRD intake/backlink should attach generated top-level work as native PRD children when possible,
+but repair-intake must heal the graph when that write was skipped, failed, or later drifted.
+
+1. Read the generated work exactly as PRD rollup does:
+   - Prefer the machine-readable `## Tickets` / `## Generated Work` section (`lisa:gw` tokens).
+   - If the machine-readable section is absent but an older Lisa ticketing comment exists, parse only
+     its structured `Top-level work:` block as a compatibility fallback. Do not scrape arbitrary
+     prose.
+2. Select only generated **top-level** work:
+   - `lisa:gw` entries whose `parent` token is empty.
+   - Older ticketing-comment entries under `Top-level work:`.
+   Leaf Sub-tasks and descendant Stories are never direct PRD children.
+3. Restrict native repair to same-repo GitHub issues. Cross-repo or cross-vendor generated work stays
+   documented-only; record a warning instead of failing.
+4. Read the PRD's existing native sub-issues with the same GraphQL `subIssues` query documented by
+   `lisa-prd-backlink` / `lisa-github-read-issue`, and dedupe by child-ref
+   (`owner/repo#number`).
+5. For each missing same-repo top-level child, resolve node IDs and call the same GitHub GraphQL
+   mutation as `prd-backlink`:
+
+   ```graphql
+   mutation($parentId:ID!,$childId:ID!){
+     addSubIssue(input:{issueId:$parentId,subIssueId:$childId}){issue{number}subIssue{number}}
+   }
+   ```
+
+   Treat "already linked" duplicate rejections as success. If `subIssues` / `addSubIssue` is
+   unavailable, leave the documented generated-work fallback intact, record a capability warning, and
+   continue.
+6. Post one idempotent `[lisa-repair-intake]` note when a missing native PRD child link is repaired
+   or when the native-link capability is unavailable. Include the generated top-level child set, the
+   pre-existing native child set, and repaired child refs in the state fingerprint so repeated cycles
+   do not spam comments.
+7. Do not transition the PRD lifecycle merely because child links were repaired. Rollup/ship remains
+   governed by the PRD rollup path after the child graph is complete.
+
+### GitHub missing official ready-label normalization → configured ready
+
+For GitHub queues, enumerate open issues that have **no configured Lisa lifecycle label** in the
+active lifecycle namespace(s). This is the repair path for issues created by older tools or humans
+with labels like `build-ready`, or with no Lisa status label at all, that are invisible to
+`lisa-intake`, whose scanner only reads the configured `ready` labels.
+
+1. Resolve configured lifecycle labels from `.lisa.config.json` / `.lisa.config.local.json`:
+   - PRD lifecycle labels: `draft`, `ready`, `in_review`, `blocked`, `ticketed`, `shipped`,
+     `verified` when configured.
+   - Build lifecycle labels: `ready`, `claimed`, `blocked`, every env-resolved `done` value,
+     intermediate status labels where configured, and `human_needed`.
+2. Query open GitHub issues that are missing all configured lifecycle labels for the lifecycle(s)
+   selected by `intake_mode`. If `intake_mode=prd`, only PRD-classified issues are normalized. If
+   `intake_mode=build`, every non-PRD issue is normalized as a build ticket. If `intake_mode=both`,
+   classify PRDs first and normalize all remaining issues as build tickets.
+2a. **Ask whether a person is holding it, before anything else.** Call
+   `planLabelNormalization({ labels, body, comments, trustedHumanActorIds, humanNeededLabel, lifecycleLabels, readyLabel })` from
+   `scripts/intake-blocker-reprobe.mjs` for every candidate and apply exactly the verdict it
+   returns. Do **not** re-implement the test here and do **not** decide held-ness from labels
+   alone: the vendor writers stamp the `[lisa-human-gate]` marker into the body of a deliberate
+   hold, and `human_needed` is one of the lifecycle labels this sweep keys on the **absence** of —
+   so an item held exactly as the filing contract instructs is a member of this swept population by
+   construction, and a label-only read promoted it into the build queue (#3805). The
+   `[lisa-human-gate]` exclusion already existed in the read-only "Ungated non-ready filing" sweep
+   below; the one sweep that writes was the one that could not see it.
+
+   On `normalize: false` with reason `human-gate`, **stop for that item**: apply no label, do not
+   classify it, and report it read-only per step 5. Writing a label here — even the human-needed
+   marker — would turn a match into durable state on a second path, and the gate test is a plain
+   substring match whose precision is a separate open defect (#3815). Refusing and reporting is
+   the safe failure direction without the latch. Count these under `held_for_person`, never under
+   `normalized_ready`.
+
+   **Pass the item's `comments` with author identity and `trustedHumanActorIds`.** The planner reads a recorded `[lisa-human-gate-release]` comment
+   as the discharge of the hold naming the same `reason=`, and an item read without its comments is
+   an item whose discharge cannot be seen. That fails closed — it stays held — which is the safe
+   direction and precisely why the omission is invisible.
+
+2b. **Release the holds that have been answered.** This is step 2a's inverse and it is the reason
+   this sweep is where it lives: applying a hold had a path and lifting one had none, so a person
+   could supply exactly what a held item asked for, record the decision on the item, and the item
+   stayed held forever (CodySwannGT/lisa#3852). The expensive part — getting a person's attention,
+   framing the question, obtaining a judgment — was already paid for, and the system discarded the
+   answer.
+
+   Enumerate items carrying the configured `human_needed` marker **or** a `[lisa-human-gate]` marker
+   in the body, and for each call
+   `planHumanGateRelease({ labels, body, comments, trustedHumanActorIds, humanNeededLabel, readyLabel, lifecycleLabels, alreadyNotified })`
+   from `scripts/intake-blocker-reprobe.mjs`. Apply exactly the actions it returns: remove the
+   human-needed marker, add the configured build `ready` label back, and post
+   `formatHumanGateReleaseNote()` once. Do **not** re-implement the discharge test, and do **not**
+   decide it from labels alone — the hold and its release are body and comment surfaces.
+
+   Three refusals make this safe to run on every cycle, and each one is in the planner rather than
+   in this prose so it cannot drift:
+
+   - **Still held plans nothing.** Every outstanding reason holds the whole item; an item whose
+     second question is unanswered is not half-released.
+   - **Never held plans nothing.** Without that this would be a path that adds the build-ready role
+     to arbitrary items — a promotion mechanism wearing a release mechanism's name.
+   - **An item that has moved on is not dragged back.** The ready role is restored only when the
+     item carries no other configured lifecycle label.
+
+   This is a genuine exception to "never remove a `human_needed` marker this skill did not apply",
+   and the exception is narrow enough to state exactly: the release author must first be verified against `trustedHumanActorIds`; only then does the
+   matching release satisfy the hold's stated void condition. The actor who originally applied the
+   marker does not need to match that authorized release author. The general rule
+   stands because "stale" is otherwise a judgment about the block's kind; here an authorized matching release is required; arbitrary matching text is not enough.
+
+   **Never edit a description to clear a hold**, here or anywhere. The only body write this plugin
+   has is a whole-body replacement, so deleting one line means rewriting the record and hoping
+   nothing was dropped. That is why holds accumulated: each individual release was a small gamble
+   with a large downside. The hold note stays in the body as history; the release is a comment
+   beside it. Count these under `released_to_queue`, and name them in the cycle summary via
+   `summarizeHumanGateReleases([...])` — printed even when it is zero, because a release path that
+   has stopped working and a cycle with nothing to release read identically otherwise.
+3. Classify the issue:
+   - **PRD** if it has PRD labels/markers (`prd`, `type:PRD`, `kind:prd`), PRD structure
+     (`## Problem`, `## Goals`, `## Validation Journey`, generated-work/backlink sections), or
+     body/comment text that explicitly says `prd-ready`.
+   - **Build ticket** if it has build work labels/types (`bug`, `type:Bug`, `task`, `type:Task`,
+     `sub-task`, `type:Sub-task`, `improvement`, `type:Improvement`, `story`, `spike`) or
+     body/comment text that explicitly says `build-ready`. When PRD signals are absent and the
+     selected lifecycle includes build, default to **Build ticket** even if no build type label is
+     present; build-intake/implement will validate the item and move it to `blocked` if required
+     sections are missing.
+   - **Ambiguous PRD/build** if strong PRD and build classifications both match. In `intake_mode=prd`
+     normalize as PRD; in `intake_mode=build` normalize as build; in `intake_mode=both`, prefer PRD
+     only when the body has PRD structure, otherwise build.
+4. Apply exactly one configured ready label for the classified lifecycle — and only when step
+   2a returned `normalize: true`; its `actions.addReadyLabel` is the label to apply, verbatim:
+   - PRD → add the configured PRD `ready` label (default `prd-ready`).
+   - Build ticket → add the configured build `ready` label (default `status:ready`).
+   Keep any unofficial labels for auditability unless the project has explicitly configured one as a
+   conflicting lifecycle label. Do not claim the item or dispatch an agent in the same repair cycle;
+   normalization makes the next normal `lisa-intake` run pick it up.
+5. Post one idempotent `[lisa-repair-intake]` note naming the classification and the configured label
+   applied. Include the normalization result in the loop-prevention fingerprint so repeated repair
+   cycles do not spam comments. For an item step 2a held, post `formatNormalizationHoldNote()`
+   instead — it says that nothing was changed and how a person resumes the item, which is the
+   opposite of what the reconciliation note says and must not be substituted for it. A promotion
+   declined silently is invisible, which is the quieter version of the failure this step exists to
+   prevent, so name every held item in the cycle summary via `summarizeHumanGateHolds([...])`. Report what the
+   precision rule skipped beside it via `summarizeHumanGateMentions(n)`: the marker
+   occurrences that were mentions rather than declarations (CodySwannGT/lisa#3815),
+   because a rule that silently drops candidates reads like one that found none.
+
+### Ungated non-ready filing → surface as an incomplete handoff (read-only)
+
+The recovery net for the failure `ready-role-filing` prevents: an agent files a real defect it found
+during other work, never gives it the ready role, and the ticket sits forever because build-intake
+scans the ready lane and nothing else. Under that rule every filing declares either
+`build_ready: true` or a `human_gate` reason; an item carrying neither is an **incomplete handoff**.
+
+1. Enumerate open items filed recently (within the configured staleness window — same resolution as
+   every other candidate class) that are **not** in the configured `ready` role for their lifecycle
+   and are not in a claimed / blocked / terminal role either. On GitHub that is the absence of the
+   configured build `ready` label; on JIRA and Linear it is a status/state outside the configured
+   `ready` role. Items whose role is simply "the tracker's default created lane" are the target.
+2. Exclude anything carrying the `[lisa-human-gate]` marker — those are deliberate holds and the rule
+   ratifies them. Exclude containers (their state rolls up per `leaf-only-lifecycle`), and exclude
+   `[lisa-exploratory-qa]`-marked findings, which are the rule's **named** human-gate exception even
+   on an older item written before the marker existed.
+3. **Report each survivor read-only; never promote it.** Name the item, when it was filed, and what
+   filed it, and state the two ways to resolve it — flip it to the configured `ready` role, or mark
+   it as a deliberate human gate. A filing whose readiness nobody declared is exactly the input the
+   gate model says a human should see, so guessing "it was probably meant to be ready" would
+   re-introduce the accidental-queue-entry failure this rule exists to eliminate.
+4. Post at most one idempotent `[lisa-repair-intake]` note per item and include the finding in the
+   loop-prevention fingerprint so repeated cycles do not spam.
+
+This is distinct from the GitHub label-normalization repair above, which targets items carrying **no
+Lisa lifecycle label at all** (created by older tools or by hand) and does normalize them. This sweep
+targets items inside the Lisa lifecycle whose readiness was never declared.
+
+## Blocker classification & clearing (conservative, vendor-specific extraction)
+
+A `blocked` build item is held by one or more of three blocker classes. Identify which are present
+from the item's block note(s) and links, then clear-check **each present class** — an item with no
+dependency is not automatically un-actionable; it may be a self-block that now passes.
+
+### Class A — dependency blockers
+
+`lisa-tracker-read` is a thin dispatcher that returns each vendor's bundle **verbatim** — there
+is no normalized `is blocked by` field. Read the bundle, then extract blockers per vendor:
+
+- **GitHub**: parse the durable forms `lisa-github-build-intake` documents — `Blocked by: #123`,
+  qualified cross-repo refs (`owner/repo#123`), issue URLs in the body/comments — plus timeline
+  cross-reference events.
+- **JIRA**: inspect the native issue-link records `lisa-jira-read-ticket` returns and select the
+  `is blocked by` link type.
+- **Linear**: inspect the native issue **relations** from Linear MCP `get_issue` and select
+  blocker relations.
+
+Then classify each blocker **by containment, per the `blocker-containment` rule** — cite that
+slug for the full contract; do not restate its resolution steps or its fail-closed table here.
+
+The one question is whether the blocker's code is on the branch **this item** will be built from:
+resolve this item's base branch from its `## Target Backend Environment` through
+`.lisa.config.json` `deploy.branches` (`derived-branch-plan`, `config-resolution` — never by
+reading a rendered `Branch Plan`), resolve the blocker's merge commit through the vendor access
+layer, and test ancestry against the remote.
+
+- **Contained** — every merged PR on the blocker is an ancestor of this item's base branch →
+  **cleared**.
+- **Not contained**, or containment **not computable** for any reason the rule enumerates (no
+  linked PR, PR not merged, blocker inaccessible, base branch underivable or absent from the
+  remote, ancestry query errored) → **still blocking**, with the rule's reason key in the run
+  record.
+- **Ships no code** — the blocker is closed as completed, positively declares
+  `## Target Backend Environment` reading `None — no runtime behavior change: <kind>`
+  with kind `doc-only`, `config-only`, or `type-only`, and has no linked PR and no merge commit →
+  **cleared** under the rule's carve-out. This is a positive determination, never an absence:
+  "no PR found" is `no-pr` and stays blocking. A missing kind does not qualify; any linked
+  open or unmerged PR stays blocking under the normal containment test.
+- **Human override** — an explicit human statement on this item that the dependency is satisfied
+  clears it and outranks a failed containment check. Name it in the run record.
+- **Human hold** — the override runs in both directions. `human_needed` is checked here as well as
+  in Class C: an item carrying it is left `blocked` and recorded `skipped: human_needed`, without
+  running the containment check. Class A is the path an operator reverting a wrongly-cleared
+  blocker is protecting, so a marker honoured only on Class C is not honoured where it is most
+  often meant. Match it robustly (hyphen/underscore, case-insensitive, label set and note prose).
+  Symmetrically, an explicit human statement that the dependency is **not** satisfied keeps the
+  item blocked and outranks a *passing* containment check — the contract has an input channel for
+  "you may now proceed" and it needs one for "your reasoning was wrong".
+
+**A lifecycle status name is never the test.** `done`, `on-stg`, `on-dev` and `code-review` are
+labels that correlate with containment in a single-trunk workflow and come apart from it in a
+promotion workflow, where `main` is the trailing branch — a blocker at `On Stg` is on `staging`
+and absent from `main`, and a blocker in `Code Review` is merged to nothing. Containment gets
+both the loose and the strict failure right at once: a blocker merged into the branch this item
+builds from clears **immediately**, with no wait for production, so a dependent is never stranded
+behind work already merged where it needs it.
+
+Only re-dispatch when **every** parsed blocker is cleared. When in doubt, stay blocked — a
+false-negative (left blocked) costs one cycle and is visible; a false-positive is **invisible**,
+because the item moves to `ready`, which looks exactly like a repair that worked, and the failure
+surfaces days later as work begun before its dependency existed.
+
+### Class B — validation / quality-gate self-block
+
+A self-block has **no** `is blocked by` dependency: the build-intake/agent flow claimed the item,
+its pre-flight `verify`/`validate` gate failed (missing Validation Journey, Sign-in Required,
+Target Backend Environment, Repository, Out of Scope, Evidence manifest, weak Acceptance Criteria,
+etc.), and the item was bounced to `blocked` carrying that gate's `[lisa-*]` note + "Missing
+requirements" list. Detect it by: (1) the block note bears a known gate marker (e.g.
+`Pre-flight verify gate: BLOCKED`, `jira-verify` / `*-validate-*`), **and** (2) there is no open
+`is blocked by` dependency. (If both a dependency and a self-block are present, clear the
+dependency via Class A first; the self-block re-check still gates the eventual re-dispatch.)
+
+Clear-check by **re-running the same gate against current content** — `lisa-tracker-validate`
+(read-only; never writes), which dispatches to `lisa:<tracker>-validate-*` exactly as the write
+path and build-intake do, so the bar cannot drift:
+
+- **PASS** → cleared. Proceed to re-dispatch (decision tree step 2).
+- **FAIL** → still self-blocked. Refresh the note with the current missing set (Loop prevention).
+
+Conservative, same as Class A: a still-failing gate is a real blocker — never re-dispatch a build
+whose own gate has not yet passed. This is intentionally symmetric with the PRD `blocked →
+re-validate` path: PRDs re-run their dry-run `validate→route` when source content changes; builds
+re-run `tracker-validate` when item content changes. The asymmetry where build `blocked` checked
+only dependencies — leaving verify-gate self-blocks stranded forever after a human filled in the
+missing sections — is the gap this class closes.
+
+### Class C — ambiguity / clarifying answers
+
+A block that research or a human answer can settle (no dependency, no failing gate). Re-check by
+running the needed research (`lisa-codebase-research` / `lisa-product-walkthrough`) or detecting a
+human comment/edit newer than the last `[lisa-repair-intake]` note. Resolved → proceed to
+re-dispatch; else stay blocked.
+
+**`human_needed` hard-stops this path. Do not enter Class C at all.** Before classifying a block as
+Class C, check the marker: if the item carries `human_needed`, skip it, leave it `blocked`, and
+record the skip reason in the run record (`skipped: human_needed`). This is a **refusal to
+re-evaluate**, not a preserve-and-proceed — preserving the marker while overriding what it guards is
+not a guard. The marker means a human must decide; no amount of research substitutes for a decision
+that has not been made.
+
+Match the marker **robustly**: the configured label resolves to `human-needed` (hyphen) while the
+contract term is `human_needed` (underscore), and it can also appear in the block note's prose. Treat
+hyphen and underscore as the same marker, case-insensitively, in both the label set and the note. A
+literal single-spelling match silently defeats this guard.
+
+**"No blocker found" is inconclusive, never clearance.** Research that finds nothing does **not**
+satisfy the resolution condition. Absence of a tracked blocker is not evidence that the blocker is
+gone — it is frequently evidence that the blocker was never the kind of thing a dependency link
+records. An item whose research terminates in "nothing found" stays `blocked`. Only a positive
+finding — the research answered the open question, or a human comment/edit newer than the last
+`[lisa-repair-intake]` note supplied the answer — clears it.
+
+**Distinguish a decision-block from an ambiguity-block.** Class C applies only where a *discoverable
+fact* would settle the question. A block awaiting a **choice between valid alternatives** is not a
+researchable ambiguity at any confidence level, and research against it is structurally incapable of
+reaching the right answer: there is nothing to find, so it terminates in "no blocker found" — which,
+before this guard, the next step read as clearance. If the blocker names two or more technically
+valid options and asks which to take, it is a decision-block: leave it `blocked`, ensure the
+`human_needed` marker is present, and do not research it.
+
+> Two conditions make a decision-block look exactly like a Class-C candidate: **no dependency links**
+> (the blocker is a question, not a tracked ticket) and **no failed validation gate** (it is prose, not
+> a red check). Together they read as "no blockers tracked, ambiguity present, go research it" —
+> precisely the Class-C trigger, and precisely when the guard above must fire instead.
+
+### Class D — deployed / runtime verification failure
+
+A block set by a *deployed* or *runtime* check that failed against a live environment — a
+smoke/E2E/health probe or manual reproduction that returned an error (an authenticated endpoint
+500ing, a deploy health check red, a seeded-data assertion failing). This is neither a dependency
+nor a content gate: the item is correct but the environment it must verify against is broken.
+
+Clear-check by **reproducing the original failing check with the same context that set it** — same
+auth identity/credentials, same environment, same route, same scope. The cardinal rule: **never
+unblock on a probe weaker than the one that set the block.** A signal that does not exercise the
+failed path is not a clear:
+
+- Anonymous/unauthenticated request to an **auth-gated** resource (it can short-circuit to a
+  healthy response without touching the failing code path).
+- A request against a **different environment** than the one that failed.
+- A **narrower scope** than the failing check (a subset that happens to pass).
+
+Conservative, same as the other classes: reproduces-clean → cleared; still-failing or
+not-reproducible-this-cycle → stay blocked. Because the cause is external (a deployed defect, not
+item content), the durable handling is the **real external blocker** path — file/keep a build-ready
+fix ticket for the deployed defect and `is blocked by`-link the item to it, so a later cycle
+self-heals when that ticket is terminal. If reproducing the check needs human-only access the agent
+lacks, apply `human_needed`.
+
+## Loop prevention
+
+A `blocked` item with a permanently unresolved problem must not be "repaired" and re-noted every
+cron tick.
+
+- Every note this skill writes is prefixed `[lisa-repair-intake]` and carries a compact **state
+  fingerprint**: the lifecycle role, the set of blocker refs + their observed states, the
+  validation verdict (PASS/FAIL) **plus the current missing-requirement set for a Class-B
+  self-block** (so a human filling in one of several missing sections changes the fingerprint and
+  triggers a re-check next cycle, rather than being suppressed as a no-op), terminal/open state,
+  rollup child tally, and a timestamp.
+- The fingerprint also carries **authorship and an overturn bit**: the actor class of the most
+  recent lifecycle role change (`automation` / `human` / `unknown`), and whether that change
+  **reversed** a transition this skill made — the `automation-reversal` classification from
+  `rejection-detection` **Automation-reversal memory**. Without these the fingerprint records only
+  *what* the state is, never *who* set it or *whether the last automated decision was overturned*,
+  and those are the only fields that separate "the world moved on" from "a human told me I was
+  wrong".
+- Before writing a note or re-attempting a `blocked` item, compute the current fingerprint. If
+  an identical fingerprint was already posted within the **backoff window**, skip the item
+  silently (record as `still_blocked` / `active`, no write).
+- Backoff window default = `stale_after` (2h). `force=true` bypasses backoff for a manual run.
+- A *changed* fingerprint (new blocker state, new answers, new verdict) warrants a fresh note +
+  re-attempt — backoff suppresses only no-op repeats.
+- **A change whose only cause is a human overturn is not a warrant.** Where the overturn bit is
+  set and no evidence postdates the reversal, the changed fingerprint is **not on its own a
+  warrant** to re-attempt: do not re-apply the reversed classification, leave the item where the
+  human put it, ensure `human_needed`, and record the outcome naming the **reversed transition**
+  and the classification that produced it. Re-attempt only on evidence postdating the reversal —
+  a blocker state change or a human comment supplying what was missing — cited in the run record.
+  Without this qualifier the revert *itself* changes the fingerprint and releases backoff, so the
+  faster a reviewer corrects a wrong transition, the sooner it returns.
+- **This inversion is signed per path.** It applies to the paths that decide whether to re-make a
+  lifecycle transition — Class A/B/C/D clearing and rollup reconciliation. It does **not** touch
+  the staleness model: there a human comment counts as forward progress and resets the staleness
+  clock, so an objecting comment already makes the item look active and this skill leaves it
+  alone. That reading is protective; a single global "human activity no longer counts" would
+  switch it off while reading like a tightening.
+
+## Lifecycle ownership guard
+
+repair-intake owns the repair surfaces needed to recover stuck work and close-out drift:
+build `claimed` / `blocked`, PRD `in_review` / `blocked`, terminal-labeled native-open items,
+parent/container rollups (intermediate-env *and* fully-terminal), and stale-`ready` containers.
+It MAY:
+
+- Apply the build scanner's post-agent `claimed → done` on a successful resume (it is finishing
+  the scanner's interrupted job), and move a dependency-cleared build item `blocked → claimed`.
+- Manage the `human_needed` marker on build blocks: leave it where the vendor agent set it (a
+  human-only pre-flight block), and **clear** it from an item it moves to an auto-recoverable
+  `blocked` (blocked by a build-ready fix ticket) — that block self-heals and is not waiting on a
+  human.
+- Move a re-validated PRD `in_review`/`blocked → ticketed` (PASS) or `→ blocked` (FAIL), exactly
+  as the PRD intake does.
+- Close / complete / resolve build items that already carry the true terminal `done` role but are
+  still natively open, per `leaf-only-lifecycle`.
+- Roll up a parent/container to its derived state per the `leaf-only-lifecycle` state machine —
+  **including an intermediate env value** (`On Dev`/`On Stg`) when all required children have
+  reached that env — and close/complete/resolve it **only** when the derived env is the true
+  terminal `done`.
+- Reconcile a **container** wrongly carrying the build-ready `ready` role (a leaf-only-invariant
+  violation) by rolling it up from its children and removing the `ready`, with a
+  `[lisa-repair-intake]` audit note.
+- Remove stale lifecycle labels from a natively closed `NOT_PLANNED` item, including a ready
+  leaf. Add no done label and do not claim or dispatch it.
+- Move a PRD with fully terminal generated work to `shipped` and close/archive the source artifact
+  where the source vendor supports native close-out, per `prd-lifecycle-rollup`.
+- Repair missing native GitHub child links by replaying the same-repo, idempotent `addSubIssue`
+  contract — for a **PRD** from the generated-work fallback (top-level-only), and for a **build
+  Epic/Story container** from its hierarchy/body-parentage children — so rollup and the GitHub UI can
+  rely on the native graph. This repairs structure only; it does not ship, transition, or verify the
+  parent.
+- Leave a normalization candidate untouched and report it when it is held for a person — the
+  human gate is consulted before classification and its refusal is absolute.
+- Normalize a GitHub issue with no configured lifecycle label by adding the configured PRD or build
+  `ready` label after classifying the issue. This is a visibility repair, not a claim; the item
+  remains open and unclaimed for normal intake.
+
+It MUST NOT:
+
+- Move a PRD out of `draft` or `verified` (those are product-owned), or set `verified` itself.
+- Link leaf Sub-tasks or descendant Stories directly under a PRD. Only generated top-level work
+  (empty parent token / `Top-level work:` entries) may become PRD children.
+- Apply a build `done` value other than via the env-resolution rules, or close a native item at
+  any value other than the true terminal `done` (see `leaf-only-lifecycle`).
+- Touch `ready` **leaves** except to remove stale labels from a natively closed `NOT_PLANNED`
+  item as above. Open ready leaves remain `lisa-intake`'s lane.
+- Move a GitHub issue that already carries a configured lifecycle label back to `ready` merely
+  because some other label looks stale. Official lifecycle labels remain authoritative.
+
+## Cycle behavior
+
+1. **Resolve the queue** — detect vendor/lifecycle (Source dispatch); resolve stuck role names
+   from config. For JIRA, confirm the needed transitions are reachable; stop on misconfig.
+2. **Enumerate repair candidates** — query in-progress role(s), `blocked` role(s), terminal/open
+   items, GitHub parents (PRDs **and build Epic/Story containers**) whose discoverable children —
+   generated-work fallback for a PRD, hierarchy/body-parentage for a build container — are missing from
+   their native sub-issue graph, rollup parents/PRDs with child work, **containers carrying the `ready`
+   role** (a
+   leaf-only-invariant violation to reconcile), and GitHub issues with no configured lifecycle label,
+   for the detected lifecycle(s), up to `max_candidates`, via the Access layer reads.
+3. **Order deterministically**, highest repair-confidence first:
+   1. terminal-labeled items that only need native close / complete / resolve,
+   2. build `claimed` leaves whose linked PR is **already merged** — apply the env-resolved
+      `claimed → done` close-out (staleness-exempt; no re-dispatch). This MUST run before any rollup
+      bucket: a merged-PR leaf is a settled terminal state, and recovering it first means its parent
+      rolls up to its true derived state in the **same** cycle. If this ran after rollup (or last,
+      among generic stalled items), the parent would be reconciled against a not-yet-closed child and
+      the shipped leaf would linger another cron pass — the failure this ordering exists to prevent,
+   3. GitHub parents (PRDs missing native links for generated top-level work, or build Epic/Story
+      containers missing native links for prose/hierarchy children) needing structure-only repair,
+   4. rollup parents/PRDs whose child sets are all terminal (close-out),
+   5. rollup parents whose children have advanced to an intermediate env, or stale-`ready`
+      containers, that need their derived state applied (status-only reconciliation, no native
+      close),
+   6. `blocked` items whose dependencies are now **cleared** (safe, high-value, one-cycle wins),
+   7. `blocked` items whose **validation / quality-gate self-block now re-validates PASS** —
+      a human filled in the missing sections (Class B; equally safe and high-value),
+   8. `blocked` items with **new clarifying answers**,
+   9. GitHub missing-official-label normalization candidates,
+   10. **stalled** in-progress items (PR not merged), oldest activity first.
+4. **Walk the ordered list**, evaluating each candidate (terminal close-out, rollup child tally,
+   staleness, dependency, answer checks), and repair **every** candidate that is actionable inside
+   the `max_candidates` cap. Continue after successful writes and after per-item errors.
+5. **Empty / nothing actionable** → exit cleanly:
+   `"No stuck items actionable this cycle (examined N, all active or in backoff)."`
+6. **Failure isolation** — if evaluating one candidate errors, record it under Errors and
+   continue to the next; one bad item never aborts the cycle.
+
+Process **all materially actionable repairs among the enumerated candidates** — scan up to
+`max_candidates`, repair the actionable subset, then exit. This intentionally differs from
+`lisa-intake`'s one-ready-item claim contract because repair work is bounded by an explicit cap and
+often consists of cheap close-out reconciliation that should drain in one cron pass.
+
+## Summary report
+
+Report outcomes in these buckets:
+
+- `resumed` — stalled in-progress work re-dispatched in place.
+- `resynced` — a stalled build whose PR was merely behind its base, re-synced via
+  `gh pr update-branch` so the already-enabled auto-merge can land; the item stays `claimed` for a
+  later cycle to confirm the merge and transition.
+- `recovered` — a stalled build whose PR had already merged, advanced by applying the env-resolved
+  `claimed → done` transition build-intake never got to (no re-dispatch).
+- `unblocked` — blocker cleared (or answers resolved); re-dispatched or transitioned to
+  `ticketed`.
+- `closed_out` — terminal-labeled items whose native open/active state was closed, completed,
+  resolved, or archived.
+- `rolled_up` — parent/container/PRD rollups advanced to their derived state: an intermediate env
+  (e.g. all children at `On Stg` → parent `On Stg`), a fully-terminal close-out, or a stale-`ready`
+  container reconciled from its children.
+- `relinked` — GitHub parents (PRDs from the generated-work fallback, or build Epic/Story containers
+  from hierarchy/body-parentage) whose missing native sub-issue links were attached.
+- `normalized_ready` — GitHub issues missing official lifecycle labels that were classified and
+  given the configured PRD/build `ready` label so normal intake can claim them.
+- `held_for_person` — normalization candidates left exactly as they were because a person is
+  holding them, per the human gate in step 2a of that repair. Nothing was written to them. This
+  bucket is never merged into `normalized_ready` or `errors`: "a person parked this and I honoured
+  it" is a repair outcome, not a failure and not a promotion.
+- `still_blocked` — examined and intentionally left `blocked`, with the active reason.
+- `reversal_suppressed` — a repair this skill previously made was reversed by a human, so the
+  classification was **not** re-applied. Name the **reversed transition** (role, direction, and
+  when), the classification that produced it, and that the item now carries `human_needed`. This
+  bucket is never merged into `still_blocked`: "I declined to act because I was overruled" and "I
+  examined it and the blocker stands" are different facts about the loop, and only the first tells
+  an operator their correction was received.
+- `active` — skipped because current work is not stale (or within backoff).
+- `errors` — items that failed evaluation, with the error.
+
+State every item repaired this cycle and the action taken. If the output would be long, group by
+bucket and show compact refs plus counts.
+
+## Run outcome
+
+As the registered `intake-repair` automation loop, each cycle conforms to the
+`automation-runbook-contract` rule: it ends in **exactly one** of the six run outcomes and records it,
+so a cycle that found nothing stuck and a cycle where the repair machinery itself broke never look
+alike. A run outcome describes this *cycle*; the Summary-report buckets above describe *what happened
+to each item* — the two never merge in the one-line summary.
+
+| This cycle's exit path | Run outcome |
+|---|---|
+| Nothing actionable — the idle case (walk step 5): examined N, all active or in backoff — including a fix ticket suppressed by a prior decline (`rejection-detection` **Proposal rejection memory**), which the summary names in its suppression count | `nothing-needed` |
+| Repairs applied **and confirmed** this cycle — `resumed` / `resynced` / `recovered` / `unblocked` / `closed_out` / `rolled_up` / `relinked` / `normalized_ready` | `change-proved` |
+| Repair produced new work for a human to pick up — e.g. an unmergeable PR or failed deploy filed as a **build-ready fix ticket** and left `blocked` | `candidate-proposed` |
+| A repair reached an autonomy boundary needing a human (a protected-deploy approval before it can proceed), **or a repair this loop previously made was reversed by a human** and is therefore suppressed and escalated to `human_needed` (`reversal_suppressed`) rather than re-attempted | `approval-requested` |
+| The loop itself could not run — the queue is unreadable, tracker credentials are revoked, or an open-and-closed rejection-memory / blocker-marker search is unreadable and therefore must not fall through to `nothing-needed` | `recovery-required` |
+| The runbook's **Retirement condition** tripped | `policy-obsolete` — **never reached by design for this loop** (see Retirement evaluation below) |
+
+Record **exactly one** outcome per invocation through the run-record CLI, naming this loop's runbook
+(the `--summary` is the operator-readable one-liner in the contract's exemplar voice — plain,
+specific, actionable, e.g. `Examined 14 items; all active or in backoff — nothing to repair.` for
+`nothing-needed`):
+
+```bash
+node "${CLAUDE_PLUGIN_ROOT:-node_modules/@codyswann/lisa/plugins/lisa}/scripts/automation-run-record.mjs" \
+  --loop-id intake-repair --outcome change-proved \
+  --summary "Recovered 3 stalled builds and closed out 2 rollups; all confirmed." \
+  --runbook .lisa/automations/intake-repair.runbook.md [--ref <item-url>]...
+```
+
+The `:-` default in that command is load-bearing, not decoration. `CLAUDE_PLUGIN_ROOT` is **not
+exported into an agent's Bash tool environment**, so the bare `"${CLAUDE_PLUGIN_ROOT}/scripts/…"`
+form expands to an absolute `/scripts/…` and exits 1. The default names the installed package copy,
+which resolves from the **consumer repository root** — which is where the recorder is actually
+invoked. Never substitute a bare `plugins/lisa/scripts/…` or `plugins/src/base/scripts/…` path:
+those are relative to the **Lisa package root**, not the repository you are standing in, and exit 1
+from there. If recording still fails, **degrade, never abort** (per `automation-runbook-contract`):
+note the recording failure in the run output and finish the cycle — a recording failure is a
+degradation to report, never a reason to block the loop.
+
+**Retirement evaluation (every run).** The `intake-repair` loop is **structural to the
+factory — it does not retire.** Its runbook says so plainly instead of leaving the Retirement
+condition blank, so the `automation-runbook-contract` rule's two-part retirement test never fires
+here: this loop never records `policy-obsolete` and never files a teardown proposal. An operator who
+wants repair to stop runs `/lisa:tear-down-automations` themselves — the loop never removes its own
+registration.
+
+## Schedule examples
+
+```text
+/schedule "every 2 hours" /lisa:repair-intake https://www.notion.so/<workspace>/<database-id>
+/schedule "every 2 hours" /lisa:repair-intake https://linear.app/acme
+/schedule "every 2 hours" /lisa:repair-intake acme/product-prds
+/schedule "every 2 hours" /lisa:repair-intake acme/frontend-v2 intake_mode=build
+/schedule "every 2 hours" /lisa:repair-intake acme/frontend intake_mode=both build_queue=acme/planning
+/schedule "every 4 hours" /lisa:repair-intake SE stale_after=12h
+/lisa:repair-intake SE stale_after=0 force=true        # manual: treat all in-progress as stalled, ignore backoff
+```
+
+Run repair-intake **less frequently than** `lisa-intake` (the ready queue moves faster than
+stuck work accumulates), or interleaved on a longer cadence.
+
+## Rules
+
+- Never run a cycle without an explicit queue. Side effects too high to default.
+- Never reset stalled in-progress items to `ready` — resume in place (decision tree).
+- Never mutate product-owned states (`draft`, `verified`) or set `verified`; PRD rollup close-out
+  may move open generated-work PRDs to `shipped` and close/archive them only after all associated
+  child work is terminal.
+- Apply build `done` ONLY via the env-resolution rules, and trigger native closure only at the
+  true terminal `done` value (`leaf-only-lifecycle`).
+- A `blocked` build item's blocker may be a dependency, a validation/quality-gate self-block (no
+  dependency — re-check by re-running `lisa-tracker-validate` against current content), or an
+  ambiguity. Re-check every class present; do not treat "no `is blocked by` links" as "nothing to
+  do."
+- Never re-dispatch a `blocked` build item unless every parsed blocker is cleared (conservative
+  dependency clearing).
+- Never re-make a transition a human reversed. Classify every candidate for `automation-reversal`
+  before any lifecycle write (`rejection-detection`), and on a hit leave the item where the human
+  put it with `human_needed`, naming the reversed transition in the run record. Re-attempt only on
+  evidence postdating the reversal.
+- Never remove a `human_needed` marker this skill did not apply, and consult the marker before
+  **any** repair transition rather than only before Class C.
+- Repair every materially actionable candidate inside the `max_candidates` cap; default cap is 100.
+- Default GitHub `intake_mode` is `both` when both PRD and build namespaces exist.
+- Honor the backoff window — never re-post an identical `[lisa-repair-intake]` note within it
+  (unless `force=true`).
+- Never run two repair cycles concurrently against overlapping queues, and never run
+  repair-intake against a queue `lisa-intake` is concurrently draining — the scheduling layer is
+  responsible for serialization.
+- Stop and surface failures rather than retry-loop.

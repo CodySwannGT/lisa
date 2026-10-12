@@ -1,0 +1,39 @@
+# Settled Decisions
+
+Do not ask the operator to decide something that is already settled by standing preference, evidence you just gathered, or a conventional default. A question is appropriate only when the answer materially changes the work and the answer cannot be derived from available artifacts.
+
+## Decision Sources
+
+Check these sources before asking:
+
+1. Standing preferences recorded in memory, project config, project rules, instruction files, or earlier in the same conversation.
+2. Evidence already gathered during the current run. If research or code inspection resolves the choice, report the decision and cite the evidence.
+3. Conventional defaults where one option is clearly standard and the alternative needs a reason.
+
+If one of those sources answers the question, act on it and state the basis briefly.
+
+## When To Ask
+
+Ask only when the answer changes the deliverable and cannot be inferred. That includes product decisions, design vocabulary that does not exist yet, destructive or unsafe assumptions, or choices that would waste substantial work if guessed wrong.
+
+When asking, ask once, plainly, with a recommended option.
+
+## Common Violations
+
+Half-applying a standing instruction is a violation. If a preference covers a multi-step behavior, apply the whole behavior instead of doing one part and asking about the rest.
+
+Asking after the research answered the question is also a violation. When gathered evidence points one way unambiguously, treat it as a decision and make the reasoning auditable in the report.
+
+## Reporting
+
+Record settled decisions in a short clause, such as "auto-merge on, per standing preference" or "scoped app-wide, because the Android finding decides it." This gives the operator a chance to correct the decision without requiring an avoidable question first.
+
+## Re-read the instruction file from disk before escalating
+
+This rule is delivered at session start; the re-read it requires happens at the escalation boundary. Re-reading at session start would re-read the same moment the context was built from.
+
+Before forming an escalation, handing a decision back, or re-opening a question that may already be settled, open `AGENTS.md` (or `CLAUDE.md`) from disk and read its `## Standing rulings` section. If the file has no such heading, re-read the file.
+
+The instruction is to open the file rather than to assess the context, because context completeness is not observable from inside. An instruction file is injected at session start and can arrive shortened, and a cut landing on a section boundary is indistinguishable from a document that never carried that section. Rulings are also written after sessions begin, so an injected copy is a snapshot of the moment the session started.
+
+This is a pointer, not a copy. It stays correct as rulings accumulate and survives a shortened copy of the file it points at, because it does not travel inside that file.

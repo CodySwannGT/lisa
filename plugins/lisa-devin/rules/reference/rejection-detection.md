@@ -1,0 +1,308 @@
+# Rejection Detection at Claim Time
+
+> Demoted from the always-on eager tier by CodySwannGT/lisa#3992. The
+> section below is the former eager head, preserved verbatim; the full
+> contract follows it. Reachable on demand via [the rule index](../eager/00-rule-index.md).
+
+## Rejection Detection at Claim Time (load-bearing)
+
+A QA rejection — an item that reached a `review`/`done`-ward state and is now back in the build-ready lane — is a **teaching signal**, not fresh work. Detect it at claim time so the re-claim can reflect on the rejection instead of repeating it.
+
+**One vendor-neutral contract, cited by every build-intake arm** (the `leaf-only-lifecycle` / `repo-scope-split` precedent: one shared slug, never three divergent implementations).
+
+## When it runs
+
+At the **top of build-intake step 3b (Claim), BEFORE the relabel** `$READY → $CLAIMED`. After the relabel the current-lane signal is gone, so detection must read history first. Detection is a pure read — idempotent, headless-safe, no side effects.
+
+## Classify the claimed item
+
+Return exactly one of:
+
+- **`rejection-reclaim`** — history shows the item reached a `review`/`done`-ward lane and is now back in `$READY`.
+- **`forward-only`** — history shows only forward moves (never returned to `$READY` from a later lane).
+- **`never-left-ready`** — history shows the item never left `$READY`.
+- **`unknown`** — the vendor history query failed, was inconclusive, or is absent.
+
+## Vendor history sources (through the access layers only — `integration-access-layer`)
+
+- **GitHub** — `LABELED` / `UNLABELED` timeline events on the configured **ready** label (the Label-Event History surface from `lisa-github-read-issue`).
+- **JIRA** — the `changelog` operation on `lisa-atlassian-access` (`?expand=changelog`, status items).
+- **Linear** — the `history` operation on `lisa-linear-access`, keyed on **workflow-state** history (`fromState.name` / `toState.name`, inlined on each node — no label-ID resolution needed).
+
+**Lane names ALWAYS come from `.lisa.config.json` lanes** (`github.labels.build.{ready,claimed,done}` for GitHub, `jira.workflow.*` and `linear.workflow.*` for the status/state trackers; `src/sync/registry.ts` `BUILD_LABEL_DEFAULTS` and `LINEAR_WORKFLOW_DEFAULTS`). **Never hardcode** `status:ready`, `Ready`, `Todo`, etc.
+
+## Never block the build
+
+`unknown` is a first-class result, not an error. A failing/absent history yields `unknown` and **the build proceeds** to implement the item. Detection never stops a claim.
+
+## Learning-loop exclusion (no learning about learning)
+
+An artifact this flow produced is **never** a rejection-reflection trigger, no matter how it moves. Before classifying as `rejection-reclaim`, exclude items carrying any learning marker — `[lisa-learning-drop]`, `[lisa-learning-pr]`, `[lisa-learning-upstream-handoff]` — or the `learning:needs-triage` label. Such items short-circuit to `forward-only` (treated as normal work) so the detector never fires on the flow's own learning PRs/issues.
+
+## Reflect on a `rejection-reclaim`
+
+On `rejection-reclaim` only, before re-implementing: read the rejection evidence (comments after the backward transition, review threads on the rejected PR) through the access layers, assemble **one** candidate learning with the rejection linked as provenance, and route it to the `lisa-persist-learning` skill. If that skill is absent, record the candidate as a comment that carries a **visible prose line** plus the marker (a bare marker renders as an empty comment bubble) — `Recorded a candidate learning from this rejection (queued for the judgment gate): <one-line candidate rule>.` followed by `<!-- [lisa-rejection-candidate] key=<issue>-<transition-ts> -->` — and proceed. **Marker-dedupe** on `<issue>-<backward-transition-timestamp>`: re-claiming twice produces no duplicate. Unreadable/absent evidence → proceed without a candidate, never block.
+
+## Proposal rejection memory (proposal-side — orthogonal to the reclaim path above)
+
+A **loop-proposed** item that a human **closed as _not planned_** is a durable decline. Every *proposing* loop (`lisa-exploratory-qa`, `lisa-project-ideation`, `lisa-monitor`, `lisa-repair-intake`; `lisa-learnings-audit` is the shipped precedent) MUST consult it **before filing a candidate**. This is orthogonal to the `rejection-reclaim` path above — that classification and its reflection are untouched. The memory lives in the **tracker, not a new state file**.
+
+- **Signal:** the prior item is closed *not planned* (GitHub `stateReason == "not_planned"`; the JIRA/Linear equivalent resolved via `config-resolution` — never hardcode). The GitHub compare is **case-insensitive** — raw `gh --json stateReason` returns `NOT_PLANNED` UPPERCASE, so normalize to lowercase (or read via `lisa-github-read-issue`) before comparing, never string-match raw `gh` JSON. Closed as **completed** is NOT a decline — a recurrence after a completed fix is a regression and may file.
+- **Marker:** `<!-- [<loop-marker>] key=<candidate-key> -->`, key computed deterministically `printf '%s' "$normalized" | shasum -a 256 | cut -c1-12`. Search **open AND closed** items for the marker before filing (body-enumeration fallback on search-index lag); **match on the marker, never the title.**
+- **Rule:** a hit on a closed-**not-planned** item **suppresses** the proposal. Re-file **only** with evidence postdating the decline, carrying BOTH the machine token (`declined <date>; recurred <date> in <ref>`) and a human acknowledgment sentence (`You declined this on <date>. It has recurred (<date>, <ref>), so we're raising it once more for your review.`).
+- **Operator footer:** every loop-filed proposal ticket MUST carry, as visible prose, `To stop this from being raised again, close it as **Not planned**. Close it as **Completed** if it was fixed — a later recurrence may be re-filed as a regression.` — so the operator knows which close-reason produces which outcome.
+- **Outcomes:** an all-suppressed cycle ends `nothing-needed` naming the **suppression count**; a memory check that cannot read the tracker ends `recovery-required`, never a silent `nothing-needed` (e.g. `Tracker unreachable during the decline check — restore credentials; nothing was filed this run.`).
+- **Concurrency:** search-then-write = convergence, not mutual exclusion — a transient duplicate is closed by the next run; no cross-run lock.
+
+## Automation-reversal memory (repair-side — orthogonal to both halves above)
+
+A human who **undoes a lifecycle transition this flow made** is correcting the flow, not supplying new state. Every loop that writes a lifecycle role as a **repair** (`lisa-repair-intake`) consults this before re-making a transition. It is a third classification, never merged into `rejection-reclaim`: that one is anchored on the ready lane and answers a rejection with re-implementation; this one lands in `$BLOCKED` and answers a correction by withdrawing a decision.
+
+- **Seam:** top of the repair walk for each item, **before any lifecycle write** — after the write the current-lane signal is gone.
+- **Classify:** `automation-reversal` — a role change **authored by** this flow, then a later **backward** move of that role **authored by** a human, with no automation move after it. Otherwise `no-reversal`. Authorship unavailable or history unreadable → `unknown`.
+- **Authorship is the signal, not the backward move.** An item can return to `$BLOCKED` because a real new blocker appeared — that is the world moving on. Read the `actor` (GitHub timeline, Linear history) or `author` (JIRA changelog) through the access layers; an unexposed actor is `unknown`, never an assumed human. **A marker and a transition on the same item say nothing until you know their order** — compare timestamps, and treat an unorderable pair as `unknown`.
+- **Lanes from config** (`github.labels.build.blocked` + the JIRA/Linear equivalents, `config-resolution`) — never hardcode.
+- **Degrade:** `unknown` is **neither a reversal nor a clearance** — the item is judged by the loop's normal rules and detection **never blocks the sweep**. The learning-loop exclusion above applies unchanged.
+- **Rule:** on `automation-reversal`, do not re-apply the reversed classification; leave the item where the human put it, ensure `human_needed`, and **name the reversed transition in the run record**. Re-attempt **only** on evidence that **postdates the reversal**, cited in the run record — mirroring the re-proposal rule the proposal half enforces.
+- **A changed lifecycle role is no longer a sufficient warrant on its own.** A consuming loop's recurrence brake must carry **authorship and an overturn bit**, not state alone.
+- **Signed per path.** Apply the inversion only where the loop decides whether to re-make a transition. A staleness/keep-alive path where a human comment already *suppresses* action is protective — leave it. One global sign reads as tightening and removes that protection.
+
+---
+
+When QA rejects an item, it moves the item **backward** — from a `review`/`done`-ward lane back to the build-ready lane — usually with a comment naming the defect. Today the re-claiming agent treats that bounced item as fresh work and repeats the rejected approach. This rule turns the backward move into a detectable, teachable signal.
+
+It is a **single vendor-neutral contract** consumed by all three build-intake skills (`lisa-jira-build-intake`, `lisa-github-build-intake`, `lisa-linear-build-intake`). Each vendor arm cites this slug at its claim step rather than re-implementing detection, exactly as the vendor arms cite `leaf-only-lifecycle` and `repo-scope-split`. That is what keeps a rejection detected on JIRA from being missed on Linear.
+
+## Seam — where detection runs
+
+The three build-intake skills share a uniform claim phase: `3a.0` repo-scope gate → `3a` leaf-only claim gate → `3b` Claim → `3c` run lifecycle (culminating in `lisa-implement`) → `3d` transition to done.
+
+Detection runs at the **top of `3b`, BEFORE the relabel** `$READY → $CLAIMED`. The relabel is what makes the claim idempotent, but it also overwrites the current lane — after it, "the item is currently in `$READY`" is no longer observable, and part of the rejection signal (reached-a-later-lane AND now-back-in-ready) depends on reading the current lane against history. So detection reads history first, classifies, and only then does `3b` perform the relabel.
+
+**`lisa-implement` is NOT the seam** — it never sees the claim. Detection belongs to the build-intake claim phase.
+
+## Classification
+
+Detection is a pure read of the item's transition history (via the vendor access layers). It returns exactly one classification:
+
+| Classification | Condition |
+|---|---|
+| `rejection-reclaim` | History shows the item reached a `review`/`done`-ward lane, then returned to the ready lane; it is now in the ready lane being claimed. |
+| `forward-only` | History shows only forward lane moves — the item never returned to the ready lane from a later lane. |
+| `never-left-ready` | History shows the item never left the ready lane. |
+| `unknown` | The vendor history query failed, was inconclusive, or returned nothing usable. |
+
+Running detection twice on the same item yields the same classification and produces no side effects (idempotent, headless-safe — safe under intake crons with no interactive prompts).
+
+## Vendor history bindings
+
+History is always obtained through the vendor access layer — never a direct vendor API call from a build-intake skill (`integration-access-layer`).
+
+- **GitHub** — read the issue via `lisa-github-read-issue`, whose Label-Event History surface returns chronological `LabeledEvent` / `UnlabeledEvent` entries. A backward move is: the configured **ready** label was removed (item advanced) and later re-added (item bounced back). Non-status label churn is ignored for classification.
+- **JIRA** — call `lisa-atlassian-access operation: changelog key:<K>`. A backward move is a status changelog entry whose `to` is the configured ready status, following an earlier entry that reached a `review`/`done`-ward status.
+- **Linear** — call `lisa-linear-access operation: history id:<ID>`, keyed on **workflow-state** history (Linear build lanes are state-driven — `lisa-linear-build-intake` keys the queue on `linear.workflow.*`). Each history node inlines `fromState.name` / `toState.name`, so a backward move reads directly: a move back into the configured `ready` state from a later lane. No label-ID resolution, and no reconstruction from lossy `addedLabelIds` / `removedLabelIds` deltas — that indirection existed only while the lane was label-driven.
+
+### Lane names are configuration, never literals
+
+The ready / claimed / done lane names ALWAYS come from `.lisa.config.json` lanes:
+
+- `github.labels.build.{ready,claimed,done}` (GitHub),
+- the JIRA status equivalents, and
+- the Linear state equivalents (`linear.workflow.*`),
+
+resolved per the `config-resolution` rule with the `src/sync/registry.ts` `BUILD_LABEL_DEFAULTS` (`ready: status:ready`, `claimed: status:in-progress`, `done: {dev: status:on-dev, staging: status:on-stg, production: status:done}`) as the fallback. **Never hardcode** a lane string in the detection logic — a project that renames its ready lane must still detect rejections.
+
+## Never block the build
+
+`unknown` is a **first-class result**, not an error. If the history query fails (network, revoked credentials, missing substrate), is inconclusive, or the vendor returns nothing usable, detection returns `unknown` and the build **proceeds** to implement the item normally. Reflection is a bonus signal layered on top of the claim; it never gates it. A history failure, an unreadable history, or an absent history all degrade gracefully to "implement the item anyway".
+
+## Learning-loop exclusion (no learning about learning)
+
+This flow persists learnings via PRs and files upstream issues, so its own artifacts are themselves rejectable. If a learning PR or an auto-filed upstream issue is ever moved backward, a naive detector would fire `rejection-reclaim` on it and reflect on the flow's own output — a learning about learning, recursively.
+
+The trigger is therefore **suppressed at the source**. Before an item is classified `rejection-reclaim`, exclude it if it carries any of the learning producer markers — `[lisa-learning-drop]`, `[lisa-learning-pr]`, `[lisa-learning-upstream-handoff]` (embedded in the artifact body/PR the same way other Lisa markers are) — or the `learning:needs-triage` label. An excluded item is treated as `forward-only` (normal work); the rejection-reflection path never fires on it, no matter how the artifact moved. (These markers ship with the learning-persistence flow; reference them by name — do not assume their files are present in this branch.)
+
+This is the **trigger-side** half of the no-learning-loops guard. The claim-time archaeology path carries the symmetric **scan-side** exclusion ("a learning PR is never treated as an ancestor").
+
+## Reflection at re-claim (`rejection-reclaim` only)
+
+When detection returns `rejection-reclaim`, the build-intake claim phase reflects on the rejection **before re-implementing** — the QA comment describing the defect, the review threads, and any linked failure output are the teaching material. This runs in the `3b`/`3c` claim seam, not in `lisa-implement` (which never sees the claim). On any other classification (`forward-only`, `never-left-ready`, `unknown`) there is nothing to reflect on — proceed to the normal claim.
+
+1. **Read the rejection evidence — through the access layers only** (`integration-access-layer`): the issue/ticket comments posted **after** the backward transition (the QA rejection comment), the review threads on the rejected PR, and any linked failure output. Read via `lisa-github-read-issue` / `lisa-atlassian-access` / `lisa-linear-access` as the vendor dictates — never a direct vendor API call.
+2. **Assemble ONE candidate learning** from that evidence:
+
+   | Field | Content |
+   |---|---|
+   | `rule` | The candidate rule/lesson the rejection teaches. |
+   | `why` | Why it matters — the defect the rejection named. |
+   | `provenance` | The rejection linked as provenance: the issue, the backward transition, the QA comment link, the rejected PR. |
+   | `evidence_links` | The comment / review-thread / failure-output URLs. |
+   | `scope_hint` | Where the learning applies (repo / stack / global). |
+   | `triggering_issue` | The re-claimed item's ref. |
+   | `fingerprint` | `sll4-` + `sha1(<normalized-rule> + "\n" + <triggering_issue>)` truncated to 12 chars (the learning-persistence flow's formula). |
+
+3. **Route the candidate into the judgment gate** via the `lisa-persist-learning` skill (the learning-persistence flow — cite it by name; it ships with that flow, so do not assume its file is present in this branch). Pass the candidate with the rejection as provenance.
+
+### Graceful degrade — `lisa-persist-learning` unavailable
+
+If `lisa-persist-learning` is not installed when reflection runs (e.g. the learning-persistence flow has not merged yet), do **not** fail. Record the candidate as a marked comment on the item and proceed. The comment MUST carry a **visible prose line** as well as the marker — a bare HTML marker renders as an empty comment bubble on GitHub/Linear, defeating the "visible paper trail" this reflection exists to create:
+
+```text
+Recorded a candidate learning from this rejection (queued for the judgment gate): <one-line candidate rule>.
+<!-- [lisa-rejection-candidate] key=<issue>-<transition-ts> -->
+```
+
+so a human sees the paper trail, a later run (once the skill exists) can pick it up, and the build still proceeds to implement the item. The marker line is verbatim — the dedupe contract keys on it, not on the prose.
+
+### Idempotency — marker dedupe
+
+The candidate marker key is `<issue>-<backward-transition-timestamp>` (the ISO timestamp of the backward transition that produced the rejection). Reuse the marker-dedupe discipline from `lisa-github-write-prd` Phase 2 — search for an existing candidate carrying this exact key before producing one; **match on the marker, never the title**. Re-claiming the same rejected item twice must **not** produce a duplicate candidate: the second run finds the existing marker and short-circuits. The backward-transition timestamp (not "now") makes the key stable across re-claims of the same rejection.
+
+### Never block the build
+
+Unreadable or absent rejection evidence (no comment, deleted PR) ends with **no candidate produced and the item still implemented** — degraded, not stopped. Reflection is layered on top of the claim; it never gates it.
+
+## Evidence handoff into implementation (`rejection-reclaim` only)
+
+Mining a learning is not enough — if the agent then rebuilds the same rejected thing, the item is re-bounced. So the same rejection evidence read in reflection is **also** handed into the implementation, so the re-implementation consumes it instead of repeating the rejected approach.
+
+- **The handoff is at claim time.** `lisa-implement` never sees the claim and cannot fetch this itself; the build-intake `3c` lifecycle dispatch passes the rejection evidence summary into `lisa-implement` as part of the context bundle. Reuse the evidence already read in the reflection step — do not fetch it twice.
+- **The evidence summary** names: what was rejected, why (the defect the QA comment named), and the specific approach the rejection named as wrong.
+- **The plan must reckon with it.** On a `rejection-reclaim`, the re-implementation plan MUST explicitly address the rejection evidence and MUST NOT re-propose the specific approach the rejection named as wrong.
+- **Absence never blocks.** If the rejection evidence is unreadable or absent, the agent still implements the item — degraded, not stopped.
+
+## Proposal rejection memory (a loop-proposed item closed as *not planned*)
+
+Everything above is **claim-time** memory — a work item that was bounced *backward* through the lanes. This section is its orthogonal twin: **proposal-time** memory — an item a **loop itself proposed** that a human then **closed as _not planned_**. The two never touch. The `rejection-reclaim` classification, its reflection path, and its evidence handoff above are **unchanged**; this section adds a second, independent contract that every *proposing* loop consults **before it files a candidate**.
+
+The most corrosive failure of an unattended fleet is nagging: a human declines a proposal and the loop cheerfully files it again next cycle, until operators stop reading the tracker. The cure is to make a decline durable. The memory lives in the **tracker, not a new state file** — a closed-as-not-planned proposal *is* the record of the human's "no", matched by a stable marker key. This generalizes `lisa-learnings-audit`'s already-shipped idempotency discipline to every proposing loop: `lisa-exploratory-qa`, `lisa-project-ideation`, `lisa-monitor`, and `lisa-repair-intake` cite this section; the gardener (`lisa-learnings-audit`) is the shipped precedent it was modeled on, not a second implementation.
+
+### Rejection signal — "not planned", resolved from config
+
+A proposal is **declined** when its prior item is **closed as _not planned_**:
+
+- **GitHub** — `stateReason == "not_planned"` (surfaced by `lisa-github-read-issue`, which renders `State: closed (not_planned)`). **The comparison is case-insensitive:** raw `gh issue view --json stateReason` returns the value UPPERCASE (`NOT_PLANNED` / `COMPLETED`), so a literal string-compare against `not_planned` on raw `gh` output would false-negative a genuine decline. Normalize the value to lowercase before comparing, or consume it through `lisa-github-read-issue`'s already-lowercased rendering — never string-match raw `gh` JSON directly.
+- **JIRA / Linear** — the configured *not-planned* equivalent resolved per the `config-resolution` rule (a JIRA won't-do resolution, a Linear canceled state), **never a hardcoded lane string** — exactly as the claim-time lane names above always come from `.lisa.config.json`, never a literal.
+
+**Closed as _completed_ is NOT a decline.** A completed fix whose underlying problem later recurs is a **regression**, and the loop **may file** it — the recurrence is genuinely new work, not a re-proposal of the declined thing. Only *not planned* is the durable "no".
+
+### Agent declines and legacy issues
+
+A reasoned **Not planned** disposition made by an agent under `do-it-now` or an owner-authorized backlog audit has the same suppression effect. Do not require the owner to repeat it manually.
+
+For older issues without a stable marker, additionally search open and closed issues by the owning surface and concrete symptom, then read the body and closing discussion to establish a semantic match. A title resemblance alone is insufficient. Missing markers do not erase a documented decline. Repeating the same accepted limitation on a later date is not changed evidence; reopening the proposal requires a materially changed consequence, requirement, or risk that addresses the recorded reason.
+
+### Marker discipline — deterministic key, open AND closed search
+
+Every loop-proposed item carries a **visible prose line** plus a marker (a bare HTML marker renders as an empty comment bubble):
+
+```
+<!-- [<loop-marker>] key=<candidate-key> -->
+```
+
+`<loop-marker>` is the proposing loop's own marker (`[lisa-exploratory-qa]`, `[lisa-project-ideation]`, `lisa:monitor-finding`, `[lisa-repair-intake]`, `[lisa-gardener]`). `<candidate-key>` is computed **deterministically — never estimated by the model** (the gardener's exact formula):
+
+1. **Normalize** the candidate's stable identity (surface + symptom, idea key, or finding signature): trim, collapse every internal whitespace run to a single space, lowercase.
+2. **Hash** in Bash: `printf '%s' "$normalized" | shasum -a 256 | cut -c1-12`.
+
+The same candidate therefore always produces the same key across runs, regardless of which session computes it. **Before filing anything, every loop searches the tracker for that marker across open AND closed items** — keyed on the stable prefix first, the hash as disambiguation only — plus a **body-enumeration fallback for search-index lag** (`gh issue list --state all --json number,body` and grep the bodies; `gh search issues` already covers open and closed by default — `--state all` is NOT a valid `gh search` flag). **Match on the marker, never the title.**
+
+### Operator footer — teach the close-reason where the operator reads it
+
+The whole mechanism hinges on a distinction the operator cannot see unless we say it: closing a proposal **Not planned** silences it for good, while closing it **Completed** leaves the door open to a regression re-file. So every loop-filed proposal ticket MUST carry this footer verbatim as its own visible prose line (not only the HTML marker), so the human at the gate knows exactly which close-reason produces which outcome:
+
+> To stop this from being raised again, close it as **Not planned**. Close it as **Completed** if it was fixed — a later recurrence may be re-filed as a regression.
+
+This footer is **required on every proposing loop's filed ticket** (`lisa-exploratory-qa`, `lisa-monitor`, `lisa-project-ideation`, `lisa-learnings-audit`, and any other loop that files a proposal). It is what makes the tracker-as-memory legible to a non-technical operator — the close-button becomes a documented control, not a guess.
+
+### The rule
+
+A marker hit on a **closed-as-not-planned** item **suppresses the proposal** — regardless of title similarity. Re-proposal is permitted **only** with evidence that **postdates the decline** and establishes a materially changed consequence, requirement, or risk addressing the recorded reason, and the re-filed item MUST carry BOTH of the following:
+
+1. **A machine token** for the dedupe/audit trail — generalizing the gardener's wording:
+
+   > declined `<decline-date>`; recurred `<recurrence-date>` in `<recurrence-ref>`
+
+2. **A human acknowledgment sentence** in plain prose, so re-raising reads as a respectful return to an answered question rather than a machine nagging:
+
+   > You declined this on `<decline-date>`. New evidence (`<recurrence-date>`, `<recurrence-ref>`) changes the consequence, requirement, or risk: `<what changed and why the decline no longer applies>`.
+
+Naming the decline date, the recurrence date, and the recurrence reference in both forms is what turns "raising it again" into an auditable, evidence-backed, operator-legible act rather than nagging. A marker hit on a closed-as-**completed** item is not a decline — it falls under the regression path above.
+
+### Interaction with run outcomes
+
+- **Every candidate suppressed** — a cycle whose only candidates were each suppressed by a prior decline terminates **`nothing-needed`**, and its one-line summary **names the suppression count** (e.g. `Explored 4 personas; 2 candidates suppressed by a prior decline — nothing new to propose.`). Respecting a decline is thereby *visible* in the run record — never indistinguishable from finding nothing.
+- **Tracker unreadable during the memory check** — if the open-and-closed marker search cannot run (tracker unreachable, credentials revoked, the substrate broken), the loop terminates **`recovery-required`**, **never** a silent `nothing-needed`. A memory check that could not run is a broken loop, not a quiet one — this is the exact failure mode the contract exists to exclude, so "I saw no candidates" must never be conflated with "I could not look". The one-line summary names the broken check and the fix in operator language, e.g. `Tracker unreachable during the decline check — restore credentials; nothing was filed this run.`
+
+### Concurrency honesty
+
+The search-then-write here is **not** an atomic claim: two truly concurrent runs can each miss the other's in-flight proposal and file a transient duplicate. It therefore guarantees **convergence, not mutual exclusion** — the duplicate is found and closed by the next run's marker search, and because the key is a stable content hash, a duplicate never multiplies. State this rather than implying a lock; a cross-run locking protocol would be disproportionate to the risk.
+
+## Automation-reversal memory (repair-side — a human undoing a transition this flow made)
+
+Both sections above remember something a **human or QA did to work**: claim-time memory reads an item bounced backward through the review lanes; proposal-time memory reads a proposal closed as *not planned*. This third section remembers something a human did **to the flow itself** — an automated repair moved an item's lifecycle role, and a human moved it straight back.
+
+Every loop that writes a lifecycle role as a **repair** rather than as a claim consults this section before re-making a transition. `lisa-repair-intake` is the first consumer and the skill this contract was written from.
+
+The failure it exists to stop is not forgetfulness, it is **inversion**. A loop with a state-only recurrence brake reads the human's revert as *changed state*, and changed state is normally a reason to look again — so the correction becomes the trigger. That inverts the assumption every operator brings to an unattended fleet: the more promptly a reviewer undoes a wrong transition, the sooner it comes back. A mechanism in which human correction is indistinguishable from new state converts your best reviewers into the loop's most reliable trigger.
+
+### Why this is a third classification, not a wider `rejection-reclaim`
+
+`rejection-reclaim` is anchored on the **ready** lane — an item that reached a `review`/`done`-ward lane and is now back in `$READY`. A reversed repair lands in the **blocked** lane instead: automation moved `$BLOCKED → $READY`, and a human moved it back to `$BLOCKED`. Widening `rejection-reclaim` to cover that would fire it on a lane it was never written for, and its response is wrong for this case anyway — reflecting on rejection evidence and handing it into a re-implementation is what you do when the work was rejected, not when a human said *stop doing that*. The two are **orthogonal** and are **never merged into `rejection-reclaim`**: one teaches a re-implementation, the other withdraws a decision.
+
+### Seam — before any lifecycle write, not at claim
+
+Detection runs at the **top of the repair walk for each candidate item, BEFORE the loop writes any lifecycle role**. The reasoning is the claim-time seam's: a write overwrites the current lane, and the signal depends on reading the current lane against history. Detection is a pure read — idempotent, headless-safe, no side effects.
+
+### Classification
+
+Detection is a pure read of the item's transition history **and its authorship** (via the vendor access layers). It returns exactly one:
+
+| Classification | Condition |
+|---|---|
+| `automation-reversal` | History shows a lifecycle role change **authored by** this flow, and a later **backward** move of that same role **authored by** a human, with no automation move after it. |
+| `no-reversal` | History shows no such pair — the flow made no prior transition, or its transition still stands, or the later move was itself automation. |
+| `unknown` | The vendor history query failed, was inconclusive, or **did not expose authorship**. |
+
+### Authorship is the whole signal — a backward move alone proves nothing
+
+The state-only reading is what fails today, so a backward move is **not** sufficient: an item can return to `$BLOCKED` because a genuine new blocker appeared, which is the world moving on and is a legitimate reason to look again. What distinguishes a correction is **who moved it, and against what**. Read authorship from the same history surfaces:
+
+- **GitHub** — timeline `LabeledEvent` / `UnlabeledEvent` nodes carry an `actor`; read them through `lisa-github-read-issue`'s Label-Event History surface.
+- **JIRA** — `lisa-atlassian-access operation: changelog key:<K>`; each changelog entry carries an `author` alongside its `from`/`to` status items.
+- **Linear** — `lisa-linear-access operation: history id:<ID>`; each history node carries an `actor` alongside `fromState` / `toState`.
+
+An actor is **this flow** when it is the configured automation identity, or when the flow's own marker note (`[lisa-repair-intake]`) sits at that transition's timestamp. A different actor counts as human only when the provider positively identifies a person, rather than a bot, integration, or another automation identity. Missing or ambiguous actor information yields `unknown` — never an assumed human.
+
+**A marker and a transition on the same item say nothing until you know their order.** A hold label, a comment and a lane move routinely coexist on a reversed item, and co-occurrence reads equally well in both directions — a label applied *before* a transition guards it, the same label applied *after* records that the transition was undone. Sourcing the facts, attributing them correctly and reading the artifact all pass cleanly on an invented sequence; only ordering disconfirms it. Compare timestamps explicitly and treat an unorderable pair as `unknown`.
+
+### Lane names are configuration here too
+
+The lanes compared ALWAYS come from `.lisa.config.json` — `github.labels.build.blocked` and `github.labels.build.ready` on GitHub, the JIRA status and Linear state equivalents — resolved per `config-resolution` against the `src/sync/registry.ts` `BUILD_LABEL_DEFAULTS` (`blocked: status:blocked`) fallback. **Never hardcode** a lane string; a project that renames its blocked lane must still detect reversals.
+
+### Never block the sweep
+
+`unknown` is a first-class result here exactly as it is at claim time, but the safe direction is the opposite one and must be stated so it is not "simplified" later. At claim time an unreadable history degrades to *implement the item anyway*, because reflection is a bonus. Here an unreadable history degrades to **neither a reversal nor a clearance**: the item is evaluated by the loop's normal rules, unchanged, and the run **never blocks the sweep** on a failed detection. `unknown` must not be read as "no reversal, proceed to re-attempt" any more than as "reversal, suppress" — it removes the signal, it does not supply one.
+
+### Learning-loop exclusion
+
+The same learning-loop exclusion applies, for the same reason and by the same markers: an item carrying `[lisa-learning-drop]`, `[lisa-learning-pr]`, `[lisa-learning-upstream-handoff]` or the `learning:needs-triage` label is never classified `automation-reversal`, no matter how it moved. The flow must not remember being corrected about its own learning artifacts.
+
+### The rule — a reversal raises the bar, it never resets the clock
+
+On `automation-reversal`:
+
+1. **Do not re-apply the classification that was reversed.** The reversal is the strongest available evidence that the classification was wrong, and re-deriving it from the same facts reaches the same wrong answer.
+2. **Leave the item where the human put it** and ensure the `human_needed` marker is present. A decision that was overturned needs a person, not another cycle.
+3. **Name it in the run record** — the reversed transition, and the classification that produced it. A suppression nobody can see is indistinguishable from a loop that found nothing.
+4. **Re-attempt only on evidence that postdates the reversal** — a blocker state change, or a human comment supplying what was missing. This mirrors the re-proposal rule the proposal half already enforces: the memory is durable, not permanent, and new evidence reopens it. Cite that evidence in the run record.
+
+A changed lifecycle role is therefore **no longer sufficient on its own** to warrant a fresh attempt. The consuming loop's recurrence brake must be able to tell "the state changed because the world moved" from "the state changed because a human undid me", which means carrying **authorship and an overturn bit**, not state alone.
+
+### The fix is signed per path — do not apply one sign globally
+
+This is the trap in implementing this section, and it will not be caught in review because the wrong version reads as tightening.
+
+On a **repair-transition** path, human activity must **stop** being a warrant to re-attempt — that is this whole contract. On a **staleness** path, a human comment is counted as forward progress and *suppresses* action, which means an objecting comment already protects the item. That protection is correct and a global "human activity no longer counts" switches it off while everyone believes a hole was closed.
+
+So: apply the inversion **only** where the loop is deciding whether to re-make a transition. Leave every keep-alive and staleness reading exactly as it is. Any consumer of this section states which of its paths are signed which way.

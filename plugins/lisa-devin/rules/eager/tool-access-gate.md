@@ -1,0 +1,23 @@
+# Tool Access Gate (load-bearing)
+
+- If you can't reach something you need, such as a repository, a secret, an API, or a connector, say exactly what's missing in your first message and stop. Don't substitute, mock, or guess.
+
+If the missing access is discovered after work begins, say exactly what's
+missing in your next message and stop.
+
+Only take on work you can finish. Before implementation starts — and again the
+moment a new requirement surfaces mid-flow — enumerate every external tool the
+work item needs (implementation, proof command, remote verification: AWS CLI,
+Figma, Jam, Sentry, SonarCloud, PostHog, device/browser harnesses, databases,
+deploy targets, …) and **prove access with a cheap read-only probe**, routing
+through the matching `*-access` skill where one exists. Resolve credentials through the documented access path before probing;
+presence on PATH is not access. If that path or the probe cannot provide the
+required access, report the gap and stop.
+
+The message must name the missing resource, the operation it blocks, and any
+known access requirement, without exposing secret values. Substituting weaker
+verification, mocking the inaccessible system, guessing at its contents, or
+narrowing scope to dodge the gap are all forbidden.
+
+Full contract (probe table, blocker report, resume path):
+[reference/tool-access-gate.md](../reference/tool-access-gate.md).

@@ -247,6 +247,66 @@
       "source": "./plugins/lisa-wiki-cursor",
       "description": "Cursor variant — LLM Wiki knowledge base",
       "category": "productivity"
+    },
+    {
+      "name": "lisa-devin",
+      "source": "./plugins/lisa-devin",
+      "description": "Devin CLI variant — native .devin-plugin manifest, root hooks.json with Devin tool-name matchers",
+      "category": "productivity"
+    },
+    {
+      "name": "lisa-cdk-devin",
+      "source": "./plugins/lisa-cdk-devin",
+      "description": "Devin CLI variant — AWS CDK plugin",
+      "category": "productivity"
+    },
+    {
+      "name": "lisa-expo-devin",
+      "source": "./plugins/lisa-expo-devin",
+      "description": "Devin CLI variant — Expo/React Native skills, agents, rules",
+      "category": "productivity"
+    },
+    {
+      "name": "lisa-harper-fabric-devin",
+      "source": "./plugins/lisa-harper-fabric-devin",
+      "description": "Devin CLI variant — Harper/Fabric rules for TS component apps",
+      "category": "productivity"
+    },
+    {
+      "name": "lisa-nestjs-devin",
+      "source": "./plugins/lisa-nestjs-devin",
+      "description": "Devin CLI variant — NestJS skills (GraphQL, TypeORM)",
+      "category": "productivity"
+    },
+    {
+      "name": "lisa-openclaw-devin",
+      "source": "./plugins/lisa-openclaw-devin",
+      "description": "Devin CLI variant — OpenClaw Telegram/Slack routing",
+      "category": "productivity"
+    },
+    {
+      "name": "lisa-phaser-devin",
+      "source": "./plugins/lisa-phaser-devin",
+      "description": "Devin CLI variant — Phaser 4 rules and skills for TS game projects",
+      "category": "productivity"
+    },
+    {
+      "name": "lisa-rails-devin",
+      "source": "./plugins/lisa-rails-devin",
+      "description": "Devin CLI variant — Ruby on Rails skills, rules, conventions",
+      "category": "productivity"
+    },
+    {
+      "name": "lisa-typescript-devin",
+      "source": "./plugins/lisa-typescript-devin",
+      "description": "Devin CLI variant — TypeScript hooks (format/lint/ast-grep on edit)",
+      "category": "productivity"
+    },
+    {
+      "name": "lisa-wiki-devin",
+      "source": "./plugins/lisa-wiki-devin",
+      "description": "Devin CLI variant — LLM Wiki knowledge base",
+      "category": "productivity"
     }
   ]
 }

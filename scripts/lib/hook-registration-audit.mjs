@@ -56,6 +56,7 @@ const SHIP_LIST_AGENTS = Object.freeze([
   "cursor",
   "agy",
   "copilot",
+  "devin",
 ]);
 
 /** Filenames a coding agent reads hook registrations out of. */
@@ -200,12 +201,13 @@ export function readManifestSurfaces(root, hookNames) {
  *
  * @param {string} portName
  * @param {string} manifestRelPath
- * @returns {"agy"|"cursor"|"copilot"|"codex"|"claude"}
+ * @returns {"agy"|"cursor"|"copilot"|"devin"|"codex"|"claude"}
  */
 export function surfaceAgent(portName, manifestRelPath) {
   if (portName.endsWith(AGY_PORT_SUFFIX)) return "agy";
   if (portName.endsWith("-cursor")) return "cursor";
   if (portName.endsWith("-copilot")) return "copilot";
+  if (portName.endsWith("-devin")) return "devin";
   if (manifestRelPath.split(path.sep).includes(".codex-plugin")) return "codex";
   return "claude";
 }
