@@ -1,8 +1,8 @@
 {
   "$generatedBy": "scripts/generate-export-surface.mjs",
   "$doNotEdit": "The public export surface this package ships, recorded so a removal is an OBSERVATION rather than an inference from commit-message conventions. This file's diff is what makes a removed export visible in the pull request that causes it (CodySwannGT/lisa#3718).",
-  "$modules": 230,
-  "$names": 1725,
+  "$modules": 231,
+  "$names": 1733,
   "surface": {
     "all/copy-overwrite/scripts/check-conflict-markers.mjs": [
       "UsageError",
@@ -262,10 +262,20 @@
       "finalizeCancellation",
       "prepareCancellation"
     ],
+    "all/copy-overwrite/scripts/lib/npm-update-checkpoint-codec.mjs": [
+      "PAYLOAD_MAXIMUM",
+      "TRANSPORT_MAXIMUM",
+      "checkpointPayloadBytes",
+      "completionManifest",
+      "decodeCheckpointBytes",
+      "encodeCheckpointBytes",
+      "manifestFor"
+    ],
     "all/copy-overwrite/scripts/lib/npm-update-checkpoint.mjs": [
       "checkpointComments",
       "decodeCheckpoint",
-      "persistCheckpoint"
+      "persistCheckpoint",
+      "recoverPartialCheckpoint"
     ],
     "all/copy-overwrite/scripts/lib/npm-update-classifier-cache.mjs": [
       "classifierMemo"
