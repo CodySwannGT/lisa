@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.75.2](https://github.com/CodySwannGT/lisa/compare/v4.75.1...v4.75.2) (2026-10-12)
+
+
+### Bug Fixes
+
+* **npm-updater:** request bounded package download summary ([0753d16](https://github.com/CodySwannGT/lisa/commit/0753d1665e05f860d764e3e928b5936a6de559ba)), closes [CodySwannGT/lisa#4347](https://github.com/CodySwannGT/lisa/issues/4347) [CodySwannGT/lisa#4347](https://github.com/CodySwannGT/lisa/issues/4347)
+
 ### [4.75.1](https://github.com/CodySwannGT/lisa/compare/v4.75.0...v4.75.1) (2026-10-12)
 
 
