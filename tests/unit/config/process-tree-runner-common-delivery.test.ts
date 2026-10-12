@@ -51,6 +51,7 @@ describe("one supervisor serves every coding-agent harness", () => {
       "agy",
       "copilot",
       "opencode",
+      "devin",
       "fleet",
     ]);
     expect(SOURCE).toMatch(/^all\/copy-overwrite\//u);
@@ -62,7 +63,7 @@ describe("one supervisor serves every coding-agent harness", () => {
 
     expect(source).toContain('new URL("./lib/process-tree-runner.mjs"');
     expect(source).not.toMatch(
-      /lisa-(claude|codex|cursor|agy|copilot|opencode)/u
+      /lisa-(claude|codex|cursor|agy|copilot|opencode|devin)/u
     );
   });
 
