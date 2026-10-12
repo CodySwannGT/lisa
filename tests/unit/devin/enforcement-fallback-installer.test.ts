@@ -120,6 +120,21 @@ describe("hasDevinFallback", () => {
     expect(hasDevinFallback("{not json")).toBe(false);
   });
 
+  it("is false when the Lisa command is registered as a non-command hook", () => {
+    expect(
+      hasDevinFallback(
+        JSON.stringify({
+          PreToolUse: [
+            {
+              matcher: DEVIN_FALLBACK_MATCHER,
+              hooks: [{ type: "prompt", command: DEVIN_FALLBACK_COMMAND }],
+            },
+          ],
+        })
+      )
+    ).toBe(false);
+  });
+
   it("is true only when the exact Lisa handler is registered", () => {
     expect(hasDevinFallback(JSON.stringify(mergeDevinFallback({})))).toBe(true);
     expect(

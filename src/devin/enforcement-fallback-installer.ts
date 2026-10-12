@@ -109,7 +109,11 @@ export function hasDevinFallback(raw: string | undefined): boolean {
       group =>
         group?.matcher === DEVIN_FALLBACK_MATCHER &&
         Array.isArray(group.hooks) &&
-        group.hooks.some(handler => handler?.command === DEVIN_FALLBACK_COMMAND)
+        group.hooks.some(
+          handler =>
+            handler?.type === "command" &&
+            handler.command === DEVIN_FALLBACK_COMMAND
+        )
     );
   } catch {
     return false;
