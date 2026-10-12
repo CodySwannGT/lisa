@@ -23,8 +23,8 @@ import { persistCheckpoint } from "./npm-update-checkpoint.mjs";
 import { required, validateProposal } from "./npm-update-contract.mjs";
 
 import {
-  checkpointComments,
   decodeCheckpoint,
+  recoverPartialCheckpoint,
 } from "./npm-update-checkpoint.mjs";
 
 /** A new issuer binds current authority to the immutable original artifact and destination. */
@@ -66,68 +66,12 @@ export function recoveryRecord(
   };
 }
 
-/** Complete untrusted chunks can restore missing transport metadata, never authority. */
-export function recoverPartialCheckpoint(comments, digest) {
-  required(
-    Array.isArray(comments) && comments.length <= 2000,
-    "partial checkpoint inventory exceeds bound"
-  );
-  const bodies = comments.filter(comment =>
-    comment.body?.startsWith(`[lisa-npm-checkpoint] v1 ${digest} `)
-  );
-  const chunks = new Map();
-  let count;
-  for (const { body } of bodies) {
-    const match =
-      /^\[lisa-npm-checkpoint\] v1 ([a-f0-9]{64}) chunk (0|[1-9]\d*)\/([1-9]\d*) ([a-f0-9]{64})\n([A-Za-z0-9+/]+=*)$/.exec(
-        body
-      );
-    required(
-      match && Buffer.byteLength(body) <= 24_576 && match[1] === digest,
-      "partial checkpoint chunk differs"
-    );
-    count ??= Number(match[3]);
-    const index = Number(match[2]);
-    const bytes = Buffer.from(match[5], "base64");
-    required(
-      count <= 256 &&
-        Number(match[3]) === count &&
-        index < count &&
-        bytes.length <= 16_384 &&
-        bytes.toString("base64") === match[5] &&
-        sha256(bytes) === match[4],
-      "partial checkpoint bounds or digest differ"
-    );
-    required(
-      !chunks.has(index) || chunks.get(index).equals(bytes),
-      "partial checkpoint has differing duplicate chunk"
-    );
-    chunks.set(index, bytes);
-  }
-  required(
-    count > 0 && chunks.size === count,
-    "partial checkpoint has missing original material"
-  );
-  const bytes = Buffer.concat(
-    Array.from({ length: count }, (_, index) => chunks.get(index))
-  );
-  required(
-    bytes.length <= 4_194_304,
-    "partial checkpoint exceeds aggregate bound"
-  );
-  const payload = JSON.parse(
-    new TextDecoder("utf-8", { fatal: true, ignoreBOM: true }).decode(bytes)
-  );
-  const complete = checkpointComments(payload, digest).at(-1);
-  return decodeCheckpoint([...comments, { body: complete }], digest);
-}
-
 /** Unsigned draft bytes aid retry; only the separately verified origin can authorize gates. */
 export function locateCheckpoint(comments, proposal, policy) {
   const digests = new Set(
     comments.flatMap(comment => {
       const match =
-        /^\[lisa-npm-checkpoint\] v1 ([a-f0-9]{64}) (?:chunk|complete)\b/.exec(
+        /^\[lisa-npm-checkpoint\] \S+ ([a-f0-9]{64}) (?:chunk|complete)\b/.exec(
           comment.body ?? ""
         );
       return match && match[1] !== proposal.key ? [match[1]] : [];
@@ -136,10 +80,14 @@ export function locateCheckpoint(comments, proposal, policy) {
   required(digests.size <= 1, "multiple origin checkpoints are preserved");
   const digest = [...digests][0] ?? proposal.key;
   const present = comments.filter(comment =>
-    comment.body?.startsWith(`[lisa-npm-checkpoint] v1 ${digest} `)
+    new RegExp(`^\\[lisa-npm-checkpoint\\] \\S+ ${digest} `).test(
+      comment.body ?? ""
+    )
   );
   const complete = present.some(comment =>
-    comment.body.startsWith(`[lisa-npm-checkpoint] v1 ${digest} complete\n`)
+    new RegExp(`^\\[lisa-npm-checkpoint\\] \\S+ ${digest} complete\\n`).test(
+      comment.body
+    )
   );
   const payload = complete
     ? decodeCheckpoint(comments, digest)
@@ -167,6 +115,7 @@ export {
   checkpointComments,
   decodeCheckpoint,
   persistCheckpoint,
+  recoverPartialCheckpoint,
 } from "./npm-update-checkpoint.mjs";
 
 /** Renewal verifies fresh authority against every immutable original identity field. */

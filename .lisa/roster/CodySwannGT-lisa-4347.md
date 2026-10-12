@@ -489,3 +489,54 @@ Retain the existing exhaustive catalogue and all original six acceptance require
 ## Required explicit package lifecycle declaration — 2026-10-11
 
 Extend the current packed_registry_builder's ownership only to `package.json` and `tests/unit/scripts/install-claude-plugins-self.test.ts` for the known lifecycle declaration and reaching RED/GREEN in the plan. Keep the helper's explicit setup behavior, root template governance and every remaining package lifecycle command unchanged. Reuse delivery_readiness_resolver for independent quality/security/conformance and native-proof review. Root retains metadata, original Expo execution, derived artifacts, normal commits, PR, release and caller delivery. No Claude agent session, new team, deadline relaxation or replacement acceptance is introduced.
+
+
+## Current cancellation failure phase — 2026-10-11
+
+The following roster governs this bounded phase; historical decisions above remain evidence.
+
+Roster Decision: existing CodySwannGT/lisa#4347 cancellation failure
+Native Codex delegation only; no Claude sessions. Input resolver completed. Base main; latest remote must be fetched before edits. Preserve all six original acceptance scenarios. No application deployment.
+
+EXCLUDE - casey - This bounded cancellation defect has no responsibility in this specialist domain; lead and selected specialists cover its scope.
+EXCLUDE - chief - This bounded cancellation defect has no responsibility in this specialist domain; lead and selected specialists cover its scope.
+EXCLUDE - felix - This bounded cancellation defect has no responsibility in this specialist domain; lead and selected specialists cover its scope.
+EXCLUDE - lex - This bounded cancellation defect has no responsibility in this specialist domain; lead and selected specialists cover its scope.
+EXCLUDE - lisa-architecture-specialist - This bounded cancellation defect has no responsibility in this specialist domain; lead and selected specialists cover its scope.
+INCLUDE - lisa-bug-fixer - Implement the proven fix with a reaching regression and preserve authorization invariants.
+EXCLUDE - lisa-builder - This bounded cancellation defect has no responsibility in this specialist domain; lead and selected specialists cover its scope.
+EXCLUDE - lisa-confluence-prd-intake - This bounded cancellation defect has no responsibility in this specialist domain; lead and selected specialists cover its scope.
+INCLUDE - lisa-debug-specialist - Prove the actual hosted cancellation failure before choosing a fix.
+EXCLUDE - lisa-eval-specialist - This bounded cancellation defect has no responsibility in this specialist domain; lead and selected specialists cover its scope.
+EXCLUDE - lisa-git-history-analyzer - This bounded cancellation defect has no responsibility in this specialist domain; lead and selected specialists cover its scope.
+EXCLUDE - lisa-github-agent - Existing claimed standalone issue and lead-owned lifecycle already resolve tracking.
+EXCLUDE - lisa-github-build-intake - This bounded cancellation defect has no responsibility in this specialist domain; lead and selected specialists cover its scope.
+EXCLUDE - lisa-github-prd-intake - This bounded cancellation defect has no responsibility in this specialist domain; lead and selected specialists cover its scope.
+EXCLUDE - lisa-jira-agent - This bounded cancellation defect has no responsibility in this specialist domain; lead and selected specialists cover its scope.
+EXCLUDE - lisa-jira-build-intake - This bounded cancellation defect has no responsibility in this specialist domain; lead and selected specialists cover its scope.
+INCLUDE - lisa-learner - Capture only judged durable learnings through the managed contract.
+INCLUDE - lisa-learning-judge - Judge only evidence-backed durable learning candidates.
+EXCLUDE - lisa-learnings-synthesizer - This bounded cancellation defect has no responsibility in this specialist domain; lead and selected specialists cover its scope.
+EXCLUDE - lisa-linear-agent - This bounded cancellation defect has no responsibility in this specialist domain; lead and selected specialists cover its scope.
+EXCLUDE - lisa-linear-build-intake - This bounded cancellation defect has no responsibility in this specialist domain; lead and selected specialists cover its scope.
+EXCLUDE - lisa-linear-prd-intake - This bounded cancellation defect has no responsibility in this specialist domain; lead and selected specialists cover its scope.
+EXCLUDE - lisa-notion-prd-intake - This bounded cancellation defect has no responsibility in this specialist domain; lead and selected specialists cover its scope.
+EXCLUDE - lisa-ops-specialist - This bounded cancellation defect has no responsibility in this specialist domain; lead and selected specialists cover its scope.
+EXCLUDE - lisa-performance-specialist - The debugger measures this failure before any performance remedy is selected.
+EXCLUDE - lisa-pr-mining-specialist - This bounded cancellation defect has no responsibility in this specialist domain; lead and selected specialists cover its scope.
+EXCLUDE - lisa-product-specialist - This bounded cancellation defect has no responsibility in this specialist domain; lead and selected specialists cover its scope.
+INCLUDE - lisa-quality-specialist - Independently review correctness and regression coverage.
+INCLUDE - lisa-security-specialist - Independently review signature, freshness and per-write authorization boundaries.
+EXCLUDE - lisa-skill-evaluator - This bounded cancellation defect has no responsibility in this specialist domain; lead and selected specialists cover its scope.
+EXCLUDE - lisa-spec-conformance-specialist - Lead maintains all six original criteria and empirical verification covers delivery.
+EXCLUDE - lisa-test-specialist - Reaching regressions are owned by bug-fixer and independently reviewed.
+EXCLUDE - lisa-tracker-mining-specialist - This bounded cancellation defect has no responsibility in this specialist domain; lead and selected specialists cover its scope.
+INCLUDE - lisa-verification-specialist - Execute source checks and actual hosted acceptance with evidence.
+EXCLUDE - mark - This bounded cancellation defect has no responsibility in this specialist domain; lead and selected specialists cover its scope.
+EXCLUDE - parker - This bounded cancellation defect has no responsibility in this specialist domain; lead and selected specialists cover its scope.
+EXCLUDE - sally - This bounded cancellation defect has no responsibility in this specialist domain; lead and selected specialists cover its scope.
+INCLUDE - default - Completed bounded input resolution; no further lifecycle ownership.
+INCLUDE - explorer - Map cancellation authorization and existing regression coverage read-only.
+EXCLUDE - worker - A specific bug-fixer owns implementation.
+
+Execution: explorer and debugger read-only in parallel, then bug-fixer only after a proven cause. Independent security/quality review and empirical verification follow. Learning judge/learner only for supported candidates. No duplicate claim or child issue.

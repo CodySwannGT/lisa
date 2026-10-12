@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.74.9](https://github.com/CodySwannGT/lisa/compare/v4.74.8...v4.74.9) (2026-10-12)
+
+
+### Bug Fixes
+
+* **npm-updater:** compress resumable checkpoint transport ([8b887e6](https://github.com/CodySwannGT/lisa/commit/8b887e655b0113565b252f1042c64c4c7d6aa4f8)), closes [CodySwannGT/lisa#4347](https://github.com/CodySwannGT/lisa/issues/4347)
+* **npm-updater:** remove unused checkpoint recovery import ([45c8b56](https://github.com/CodySwannGT/lisa/commit/45c8b5654f8798be5662eacfb20df403df2e6b3a)), closes [CodySwannGT/lisa#4347](https://github.com/CodySwannGT/lisa/issues/4347)
+
 ### [4.74.8](https://github.com/CodySwannGT/lisa/compare/v4.74.7...v4.74.8) (2026-10-11)
 
 
