@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [4.79.0](https://github.com/CodySwannGT/lisa/compare/v4.78.0...v4.79.0) (2026-10-12)
+
+
+### Features
+
+* **ci:** support authenticated Dependabot PR tracking ([d46c7bf](https://github.com/CodySwannGT/lisa/commit/d46c7bfba5667736dc749d04e93339d8741adc71)), closes [CodySwannGT/lisa#4442](https://github.com/CodySwannGT/lisa/issues/4442)
+
 ## [4.78.0](https://github.com/CodySwannGT/lisa/compare/v4.77.2...v4.78.0) (2026-10-12)
 
 
