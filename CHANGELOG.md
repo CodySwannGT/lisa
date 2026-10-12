@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.77.2](https://github.com/CodySwannGT/lisa/compare/v4.77.1...v4.77.2) (2026-10-12)
+
+
+### Documentation
+
+* **agents:** name Devin in the coding-agent parity rule ([d9f0f28](https://github.com/CodySwannGT/lisa/commit/d9f0f2867795e05e6681c03bc579b19b550af419)), closes [#4283](https://github.com/CodySwannGT/lisa/issues/4283) [CodySwannGT/lisa#4438](https://github.com/CodySwannGT/lisa/issues/4438)
+
 ### [4.77.1](https://github.com/CodySwannGT/lisa/compare/v4.77.0...v4.77.1) (2026-10-12)
 
 
