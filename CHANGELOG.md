@@ -2,6 +2,23 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [4.77.0](https://github.com/CodySwannGT/lisa/compare/v4.76.0...v4.77.0) (2026-10-12)
+
+
+### Features
+
+* **parity:** record Devin routing for every third-party plugin ([1fd5bf0](https://github.com/CodySwannGT/lisa/commit/1fd5bf00c3e2d4356052a9970b931f889989079d)), closes [CodySwannGT/lisa#4428](https://github.com/CodySwannGT/lisa/issues/4428) [CodySwannGT/lisa#4428](https://github.com/CodySwannGT/lisa/issues/4428)
+
+
+### Bug Fixes
+
+* **parity:** route Devin honestly in the plugin-parity skills ([acb891f](https://github.com/CodySwannGT/lisa/commit/acb891f5c9c61af9c96695556f218bfda3156653)), closes [#4433](https://github.com/CodySwannGT/lisa/issues/4433) [CodySwannGT/lisa#4428](https://github.com/CodySwannGT/lisa/issues/4428) [CodySwannGT/lisa#4428](https://github.com/CodySwannGT/lisa/issues/4428)
+
+
+### Documentation
+
+* **parity:** re-render the Sentry routing matrix from its 1.4.0 artifact ([86cca83](https://github.com/CodySwannGT/lisa/commit/86cca834150d812c449fc071493d880d157a648e)), closes [CodySwannGT/lisa#4428](https://github.com/CodySwannGT/lisa/issues/4428) [CodySwannGT/lisa#4428](https://github.com/CodySwannGT/lisa/issues/4428)
+
 ## [4.76.0](https://github.com/CodySwannGT/lisa/compare/v4.75.2...v4.76.0) (2026-10-12)
 
 
