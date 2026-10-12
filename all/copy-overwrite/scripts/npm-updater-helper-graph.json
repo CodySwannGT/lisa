@@ -528,7 +528,7 @@
       "children": []
     },
     "lib/npm-update-helper.mjs": {
-      "sha256": "41e5a37769ec3737829ed1948d0a1442792b25d120f0fb4f4b5e424a50f34705",
+      "sha256": "d705e0d8ae64285b539206f09784928a7fa678c2449252312a7079385e62ab90",
       "staticImports": [
         "lib/npm-update-classifier-cache.mjs",
         "lib/npm-update-contract.mjs",
