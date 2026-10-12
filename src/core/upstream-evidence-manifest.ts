@@ -12243,6 +12243,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/strategies/automation-status-report-rendering.test.ts": true,
     "tests/unit/strategies/automation-status-run-history.test.ts": true,
     "tests/unit/strategies/automation-status-scaffold.test.ts": true,
+    "tests/unit/strategies/automation-status-session-manager-fleet.test.ts": true,
     "tests/unit/strategies/automation-status-unrecorded-runs.test.ts": true,
     "tests/unit/strategies/automations-retirement.test.ts": true,
     "tests/unit/strategies/automations-skills.test.ts": true,
