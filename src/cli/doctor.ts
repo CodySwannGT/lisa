@@ -13,6 +13,7 @@ import {
 import { checkEnforcementCoverage } from "./doctor-enforcement-coverage.js";
 import { checkLockfileReconciliation } from "./doctor-reconciliation.js";
 import { checkKaneProvider } from "./doctor-kane.js";
+import { checkSessionManagerIsolation } from "./doctor-session-manager.js";
 import { checkLearningsLedger } from "./doctor-learnings-ledger.js";
 import { checkMergeDrivers } from "./doctor-merge-drivers.js";
 import { checkReadinessReportTracking } from "./doctor-readiness-tracking.js";
@@ -373,6 +374,8 @@ export async function runDoctor(
     await checkDeclaredContexts(resolvedTarget),
     await checkCodeRabbitProvider(resolvedTarget, deps),
     await checkKaneProvider(resolvedTarget, deps),
+    // Config-gated like Kane: "not configured" unless sessionManager is set.
+    await checkSessionManagerIsolation(resolvedTarget, { env: deps.env }),
     await checkSonarProvider(resolvedTarget, deps),
     await checkLegacyMonitorThresholds(resolvedTarget),
     await checkLisaOwnedArtifacts(resolvedTarget),
