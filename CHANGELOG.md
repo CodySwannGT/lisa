@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [4.76.0](https://github.com/CodySwannGT/lisa/compare/v4.75.2...v4.76.0) (2026-10-12)
+
+
+### Features
+
+* **devin:** install Lisa Devin plugins and an enforcement fallback on apply ([e7431ab](https://github.com/CodySwannGT/lisa/commit/e7431abab28238cd8fd1922d42bd455d6e625e75)), closes [CodySwannGT/lisa#4427](https://github.com/CodySwannGT/lisa/issues/4427) [CodySwannGT/lisa#4427](https://github.com/CodySwannGT/lisa/issues/4427)
+
+
+### Bug Fixes
+
+* **devin:** fail closed when the tool-name mapping cannot run ([87c1a22](https://github.com/CodySwannGT/lisa/commit/87c1a229f99bd1ddbff67a6ee2bbbe460a65be9a)), closes [CodySwannGT/lisa#4427](https://github.com/CodySwannGT/lisa/issues/4427) [CodySwannGT/lisa#4427](https://github.com/CodySwannGT/lisa/issues/4427)
+* **devin:** fail the fallback closed and refuse malformed host hook files ([399de58](https://github.com/CodySwannGT/lisa/commit/399de5897c014a934acba7e784abb602ed698bde)), closes [CodySwannGT/lisa#4427](https://github.com/CodySwannGT/lisa/issues/4427) [CodySwannGT/lisa#4427](https://github.com/CodySwannGT/lisa/issues/4427)
+* **devin:** harden the Devin enforcement fallback per review ([724a331](https://github.com/CodySwannGT/lisa/commit/724a3311a6b7c527cafee2e331ab86a37441a3bb)), closes [CodySwannGT/lisa#4427](https://github.com/CodySwannGT/lisa/issues/4427) [CodySwannGT/lisa#4427](https://github.com/CodySwannGT/lisa/issues/4427)
+* **devin:** require a command hook before reporting the fallback present ([f457ee6](https://github.com/CodySwannGT/lisa/commit/f457ee635035d4bbbb208f4934abef75ce878fbb)), closes [CodySwannGT/lisa#4427](https://github.com/CodySwannGT/lisa/issues/4427) [CodySwannGT/lisa#4427](https://github.com/CodySwannGT/lisa/issues/4427)
+
 ### [4.75.2](https://github.com/CodySwannGT/lisa/compare/v4.75.1...v4.75.2) (2026-10-12)
 
 
