@@ -47,11 +47,15 @@ Workers and capacity
       repo,status,attempts,pendingQuestion,live}],untracked:[wk- names]}.
 
 Manager
-  start      Refuses (exit 2) without <notify.stateDir>/.env (mode 0600) or for
+  start [--settle-ms <n>]
+             Refuses (exit 2) without <notify.stateDir>/.env (mode 0600) or for
              the shared default state dir. "already-running" when the tmux
              session =<name> exists and was started in this project root;
              exit 2 naming the conflict when it was started anywhere else.
-             Otherwise starts tmux new-session for the manager.
+             Otherwise starts tmux new-session for the manager, then checks
+             has-session -t =<name> every 250 ms for --settle-ms (default
+             3000, at most 60000): exit 2, with the foreground command to run
+             to see claude's error, when the session is gone.
              stdout {status:"started"|"already-running",name,...}.
   stop       tmux kill-session -t =<name> only, and only for a session started
              in this root (exit 2 otherwise); workers keep running.

@@ -102,6 +102,17 @@ the manager.
   `[<TEAM>-123]`. Keep it phone-sized, with options on numbered lines.
 - Post starts, questions, finishes, failures and tracker changes you made. No routine cycle summaries.
 - When you post a question, keep the Telegram message id the reply tool returns; the ledger needs it.
+- **Never ask in this terminal.** Nobody watches the manager's terminal, and a question there stops
+  the `/loop`: no further cycle runs until someone attaches and answers. Every question goes to
+  Telegram, or is recorded as pending (below). Never use `AskUserQuestion` or end a turn on a
+  question.
+- **Telegram unavailable or unpaired.** When the Telegram tools are missing, a send fails, or no chat
+  is paired yet, do not ask anywhere else. Record the question as pending with
+  `ledger set-question <ref>` without `--telegram-message-id` (text on STDIN), carry on with the
+  rest of the cycle, and end it with outcome `recovery-required` and the summary
+  `Telegram not paired: run tmux attach -t <name> and pair with /telegram:access pair <code>.`
+  (`<name>` is `sessionManager.name`). Skip the other notices. The `/loop` keeps running, and the
+  next cycle sends whatever is still pending ("Unsent questions" below).
 
 ## Handling messages (any time, not only during a cycle)
 
@@ -113,7 +124,8 @@ the manager.
 - **Question from a worker** (a cross-session message from a `wk-` session, starting `[<REF>]`):
   forward it to Telegram unchanged apart from trimming, then record it with
   `ledger set-question <ref> --telegram-message-id <id> --sender <sender>` (question on STDIN), then
-  tell the worker it was forwarded.
+  tell the worker it was forwarded. If Telegram is unavailable or unpaired, follow "Telegram rules":
+  record it with `--sender <sender>` and no message id, and tell the worker it is queued.
 - **Telegram message.** Route it: `route [--reply-to <id of the message it replies to>] --owner Operator`
   with the text on STDIN.
   - `answer`: if `classify <ref>` shows the worker live, send `message` to the worker name with
@@ -145,6 +157,12 @@ and check again; never run a cycle from a child repo. Handle any messages that a
 cycle first (above).
 
 ### 1. Reconcile
+
+**Unsent questions.** `ledger get` shows every pending question. One with `telegramMessageId: null`
+never reached Telegram: it was recorded while Telegram was unavailable or unpaired. (Re)send each
+to Telegram now and re-record it with `ledger set-question <ref> --telegram-message-id <id>` (same
+text on STDIN, which keeps its `askedAt`). If Telegram is still unavailable or unpaired, leave them
+pending and end the cycle as "Telegram rules" says.
 
 **In Progress (ledger-driven).** Run `classify`. Items not in the ledger are not yours: leave them.
 
@@ -208,6 +226,10 @@ Skip while `capacity` reports `paused`. Otherwise:
       - exit 3 (no capacity): move the item back to the `ready` role and stop dispatching.
       - exit 4 (a live worker holds it): if the ledger has no item for it, record it with
         `ledger record-spawn <ref> --worker <worker> --session-id <id> --repo <key>`; continue.
+      - exit 2 (setup gap, e.g. workspace trust not accepted in the repo dir): move the item back to
+        the `ready` role, post the CLI's one-line message to Telegram, and end the cycle
+        `recovery-required` with that message as the summary. It is not a failed attempt; do not
+        dispatch to that repo again until the operator fixes it.
       - any other exit: move the item back to the `ready` role, notify Telegram, continue.
 
 ### 3. Report and record
@@ -226,7 +248,7 @@ session `start` creates), every cycle ends in **exactly one** of the six outcome
 | No dispatch, no state change, no question relayed or newly pending. The summary still states the denominator: "swept N ready, 0 dispatchable; R running/C cap". | `nothing-needed` |
 | At least one of: a worker spawned and seen live in `status`; a Blocked→Ready release written and read back; an answer delivered (`SendMessage` acknowledged, or `resume` returned a session id); a stalled item retried. | `change-proved` |
 | A question (worker or repo routing) was forwarded and awaits the operator, and nothing else changed. | `approval-requested` |
-| The tracker, Telegram or `claude` was unreachable; a spawn failed after the claim (the item went back to Ready); an item moved to Blocked after `maxAttempts`; a `FAILED` arrived; the capacity probe failed. | `recovery-required` |
+| The tracker, Telegram or `claude` was unreachable; Telegram was unavailable or unpaired (a question stayed pending with no Telegram message id); a spawn failed after the claim (the item went back to Ready); an item moved to Blocked after `maxAttempts`; a `FAILED` arrived; the capacity probe failed. | `recovery-required` |
 | The retirement condition holds. | `policy-obsolete` |
 
 `candidate-proposed` is **not used**: this loop files no build candidates. When several rows apply,

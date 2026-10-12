@@ -41,8 +41,23 @@ export const RECOVERY_REQUIRED_OUTCOME = "recovery-required";
  */
 export const RECOVERY_REQUIRED_ESCALATION_THRESHOLD = 3;
 
-const RUNBOOK_NOT_SCAFFOLDED_LINE =
-  "not scaffolded — run /lisa:setup-automations";
+/** The command that scaffolds a scheduled loop's runbook. */
+const DEFAULT_RUNBOOK_SETUP_COMMAND = "/lisa:setup-automations";
+
+/**
+ * The "not scaffolded" fix-it line, naming the command that scaffolds this
+ * loop's runbook.
+ *
+ * @param {string} [setupCommand]
+ * @returns {string}
+ */
+function runbookNotScaffoldedLine(
+  setupCommand = DEFAULT_RUNBOOK_SETUP_COMMAND
+) {
+  return `not scaffolded — run ${setupCommand}`;
+}
+
+const RUNBOOK_NOT_SCAFFOLDED_LINE = runbookNotScaffoldedLine();
 const NO_RECORDED_RUNS_LINE = "no recorded runs yet";
 
 /**
@@ -72,12 +87,18 @@ const NO_RECORDED_RUNS_LINE = "no recorded runs yet";
  *   readonly projectRoot?: string
  *   readonly loopId: string
  *   readonly runbookPath?: string
- * }} input
+ *   readonly runbookSetupCommand?: string
+ * }} input `runbookSetupCommand` overrides `/lisa:setup-automations` in the
+ *   "not scaffolded" line for a loop another setup command scaffolds.
  * @returns {Promise<AutomationRunDisplay>}
  */
 export async function resolveAutomationRunDisplay(input) {
   const projectRoot = path.resolve(input.projectRoot ?? process.cwd());
-  const runbook = await resolveRunbookLine(projectRoot, input.runbookPath);
+  const runbook = await resolveRunbookLine(
+    projectRoot,
+    input.runbookPath,
+    runbookNotScaffoldedLine(input.runbookSetupCommand)
+  );
   const recordsPath = automationRunRecordPath(projectRoot, input.loopId);
   const { records, skippedCorruptLines } =
     await readAutomationRunRecords(recordsPath);
@@ -168,16 +189,17 @@ export function resolveRecoveryEscalation(runDisplay) {
 /**
  * @param {string} projectRoot
  * @param {string | undefined} runbookPath
+ * @param {string} missingLine The "not scaffolded" line for this loop
  * @returns {Promise<string>}
  */
-async function resolveRunbookLine(projectRoot, runbookPath) {
+async function resolveRunbookLine(projectRoot, runbookPath, missingLine) {
   if (!runbookPath) {
-    return RUNBOOK_NOT_SCAFFOLDED_LINE;
+    return missingLine;
   }
   const scaffolded = await runbookIsScaffolded(
     path.join(projectRoot, runbookPath)
   );
-  return scaffolded ? runbookPath : RUNBOOK_NOT_SCAFFOLDED_LINE;
+  return scaffolded ? runbookPath : missingLine;
 }
 
 /**

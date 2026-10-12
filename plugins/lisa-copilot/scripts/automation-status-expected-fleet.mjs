@@ -141,10 +141,15 @@ export function renderAutomationGroups(bins) {
  *   readonly expectedRRule: string
  *   readonly runbookPath: string
  *   readonly observed?: string
+ *   readonly runbookSetupCommand?: string
  * }} UnsupportedAutomationEntry
  *
  * `observed` overrides the adapters' default "No automation is expected" text
  * for an entry that does run, just not where the scheduler can see it.
+ * `runbookSetupCommand` names the command that scaffolds this loop's runbook
+ * when it is not `/lisa:setup-automations` (the session manager's runbook is
+ * seeded by `/lisa:setup:session-manager`), so the "not scaffolded" fix-it
+ * text sends the operator to the command that can actually fix it.
  */
 
 /**
@@ -480,6 +485,7 @@ function createSessionManagerEntry(identity, block) {
     observed:
       "Hosted locally in tmux; the scheduler cannot observe it — check `/lisa:session-manager status`",
     runbookPath: resolveAutomationRunbookPath(SESSION_MANAGER_LOOP_ID),
+    runbookSetupCommand: "/lisa:setup:session-manager",
   };
 }
 

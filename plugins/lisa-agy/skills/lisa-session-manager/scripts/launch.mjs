@@ -53,6 +53,12 @@ export const TELEGRAM_PLUGIN_ID = "telegram@claude-plugins-official";
 /** Same slug rule the config validator applies to `sessionManager.name`. */
 const SESSION_NAME_PATTERN = /^[a-z0-9][a-z0-9_-]{0,63}$/;
 
+/** A `'` inside a single-quoted shell word: close, escaped quote, reopen. */
+const ESCAPED_QUOTE = "'\\''";
+
+/** An argument a POSIX shell reads back unchanged without quotes. */
+const SHELL_SAFE = /^[A-Za-z0-9_@%+=:,./-]+$/;
+
 /** The skill command each manager loop iteration runs. */
 const CYCLE_COMMAND = "/lisa:session-manager cycle";
 
@@ -144,8 +150,47 @@ export function buildManagerLaunch({
     JSON.stringify(buildManagerSettings()),
     "--channels",
     `plugin:${TELEGRAM_PLUGIN_ID}`,
+    // `--channels` is variadic (claude 2.1.296): without `--` it takes the
+    // prompt as a second channel entry and claude exits 1 ("--channels
+    // entries must be tagged") before the session starts.
+    "--",
     `/loop ${interval} ${CYCLE_COMMAND}`,
   ];
+}
+
+/**
+ * Quote one argument for a POSIX shell, for display only.
+ * @param {string} value - Argument
+ * @returns {string} Single-quoted argument
+ */
+function shellQuote(value) {
+  return `'${value.replaceAll("'", ESCAPED_QUOTE)}'`;
+}
+
+/**
+ * The shell line an operator runs to start the manager in the foreground,
+ * from the tmux argv {@link buildManagerLaunch} returned: same cwd, the same
+ * two session variables, the same claude argv. `start` prints it when the
+ * tmux session dies at once, because tmux closes the window and claude's own
+ * error goes with it. It is display text only and is never executed here.
+ * The token is not in the argv, so it is not in this line either.
+ * @param {readonly string[]} argv - Result of {@link buildManagerLaunch}
+ * @returns {string} One shell line
+ */
+export function buildForegroundCommand(argv) {
+  const claudeAt = argv.indexOf("claude");
+  const head = argv.slice(0, claudeAt);
+  const cwd = head[head.indexOf("-c") + 1];
+  const vars = head
+    .filter((_, index) => head[index - 1] === "-e")
+    .map(entry => {
+      const at = entry.indexOf("=");
+      return `${entry.slice(0, at)}=${shellQuote(entry.slice(at + 1))}`;
+    });
+  const command = argv
+    .slice(claudeAt)
+    .map(arg => (SHELL_SAFE.test(arg) ? arg : shellQuote(arg)));
+  return `cd ${shellQuote(cwd)} && ${[...vars, ...command].join(" ")}`;
 }
 
 /**

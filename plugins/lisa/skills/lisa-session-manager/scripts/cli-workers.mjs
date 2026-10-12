@@ -7,7 +7,8 @@
  * the repo must be a Lisa repo (2), there must be capacity (3), and no live
  * worker may already hold the ref (4). Only then does it run
  * `claude --bg`, with the cwd set to the routed repo and every `TELEGRAM_*`
- * variable removed from the worker's environment.
+ * variable removed from the worker's environment. A repo whose workspace
+ * trust was never accepted is exit 2 too (see worker-launch.mjs).
  * @module session-manager/cli-workers
  */
 import { createHash } from "node:crypto";
@@ -46,6 +47,7 @@ import {
   findLiveWorker,
   parseSessionId,
 } from "./workers.mjs";
+import { runWorkerSession } from "./worker-launch.mjs";
 
 /**
  * Compute the capacity report for this machine and these agents.
@@ -146,7 +148,7 @@ export async function spawn(ctx) {
     });
   });
   const name = spec.args[2];
-  const stdout = mustRun(spec.command, spec.args, spec);
+  const stdout = runWorkerSession(spec);
   const sessionId = parseSessionId(stdout);
   if (sessionId === null) {
     ctx.warn(
@@ -201,7 +203,7 @@ export async function resume(ctx) {
       env: ctx.env,
     })
   );
-  mustRun(spec.command, spec.args, spec);
+  runWorkerSession(spec);
   await appendSessionEvent(ctx.root, {
     event: "resume",
     ref,

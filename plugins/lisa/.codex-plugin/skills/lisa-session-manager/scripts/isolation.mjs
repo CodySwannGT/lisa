@@ -92,3 +92,37 @@ export function probeOwnSession(ctx, name, env) {
     EXIT.SETUP
   );
 }
+
+/** How often the survival check asks tmux, in milliseconds. */
+const SURVIVAL_POLL_MS = 250;
+
+/**
+ * Wait `ms` milliseconds.
+ * @param {number} ms - Delay
+ * @returns {Promise<void>} Resolves after the delay
+ */
+const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
+
+/**
+ * Whether a just-started manager session is still there after `settleMs`.
+ *
+ * tmux `new-session -d` succeeds as soon as the session exists, even when its
+ * command (claude) exits a moment later on a bad argv; tmux then closes the
+ * window and the session with it. So a check right after `new-session` proves
+ * nothing: this asks `has-session -t =<name>` every 250 ms for the whole
+ * window and returns false the first time the session is gone. Bounded by
+ * `settleMs`, which the caller caps.
+ * @param {string} name - Manager session name
+ * @param {Record<string, string | undefined>} env - Environment for tmux
+ * @param {number} settleMs - How long the session must survive
+ * @returns {Promise<boolean>} True when it was there at every check
+ */
+export async function sessionSurvives(name, env, settleMs) {
+  const checks = Math.max(1, Math.ceil(settleMs / SURVIVAL_POLL_MS));
+  const step = settleMs / checks;
+  for (let check = 0; check < checks; check += 1) {
+    await sleep(step);
+    if (run("tmux", buildHasSession(name), { env }).status !== 0) return false;
+  }
+  return true;
+}

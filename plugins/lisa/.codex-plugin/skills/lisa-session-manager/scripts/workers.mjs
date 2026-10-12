@@ -44,7 +44,10 @@ const WORKER_PREFIX = "wk-";
  */
 const WORKER_NAME_PATTERN = /^wk-(.+)-(\d{4}-\d{4})(?:-([1-9]\d{0,2}))?$/;
 
-/** Rows in these `claude agents --json --all` states have finished running. */
+/**
+ * `claude agents --json --all` states a finished row carries. Never enough on
+ * its own: an idle worker whose turn ended is alive but also reads `done`.
+ */
 const TERMINAL_AGENT_STATES = new Set(["done", "stopped"]);
 
 /** Ledger statuses that mean the worker reported its own outcome. */
@@ -149,10 +152,18 @@ function stringOrNull(value) {
 /**
  * Normalize `claude agents --json` output (with or without `--all`).
  *
- * The two shapes differ: an active row carries `{pid,status}`; a completed row
+ * The shapes differ: an active row carries `{pid,status}`; a completed row
  * from `--all` carries `{id,state}` with `state` of `done` or `stopped` and no
- * `pid`. Every row comes back with all fields present (null when absent) and
- * an `active` flag, so callers never branch on shape.
+ * `pid` or `status`. Claude Code 2.1.296 also prints hybrids: an idle worker
+ * whose turn ended is `{pid,status:"idle",state:"done"}` while its process is
+ * alive, a worker waiting on a question is `state:"blocked"`, and a worker
+ * that has just been spawned is `{pid:null,status:null,state:"working"}`. So a
+ * row is alive when it has a pid or a status (the active shape) whatever its
+ * `state`, or when its state is not terminal; only a row with neither, in a
+ * terminal state, has finished. Reading `state` alone undercounted capacity,
+ * let `spawn` duplicate a live worker and made `classify` say `dead`.
+ * Every row comes back with all fields present (null when absent) and an
+ * `active` flag, so callers never branch on shape.
  * @param {unknown} parsed - `JSON.parse` of the command's stdout
  * @returns {Array<{name: string|null, sessionId: string|null, id: string|null, pid: number|null, cwd: string|null, kind: string|null, startedAt: number|null, status: string|null, state: string|null, active: boolean}>} Rows
  */
@@ -164,17 +175,21 @@ export function normalizeAgents(parsed) {
     .filter(row => row !== null && typeof row === "object")
     .map(row => {
       const state = stringOrNull(row.state);
+      const pid = typeof row.pid === "number" ? row.pid : null;
+      const status = stringOrNull(row.status);
+      const activeShape = pid !== null || status !== null;
       return {
         name: stringOrNull(row.name),
         sessionId: stringOrNull(row.sessionId),
         id: stringOrNull(row.id),
-        pid: typeof row.pid === "number" ? row.pid : null,
+        pid,
         cwd: stringOrNull(row.cwd),
         kind: stringOrNull(row.kind),
         startedAt: typeof row.startedAt === "number" ? row.startedAt : null,
-        status: stringOrNull(row.status),
+        status,
         state,
-        active: state === null || !TERMINAL_AGENT_STATES.has(state),
+        active:
+          activeShape || state === null || !TERMINAL_AGENT_STATES.has(state),
       };
     });
 }

@@ -63,7 +63,7 @@ const COMMANDS = {
   resume: { run: resume, options: {}, positionals: 1 },
   classify: { run: classify, options: {}, positionals: 1 },
   status: { run: status, options: {}, positionals: 0 },
-  start: { run: start, options: {}, positionals: 0 },
+  start: { run: start, options: { "settle-ms": text }, positionals: 0 },
   stop: { run: stop, options: {}, positionals: 0 },
   "store-token": {
     run: storeToken,
