@@ -1,5 +1,9 @@
 # Roster Decision: CodySwannGT/lisa#4347
 
+## Closed provider failure diagnostics — 2026-10-12
+
+The genuine hosted cancellation checkpoint failed after one v2 chunk with a supervised native exit one. The existing diagnostic cannot distinguish a provider request from every historical Git or supervisor failure. Root owns a narrowly scoped diagnostic followup in npm-update-github.mjs and npm-update-invariants.mjs plus npm-update-provider-diagnostics.test.ts. Existing cancellation_transport_quality and cancellation_security_constraints independently review source and execute bounded controls. Root owns generated artifacts, native hooks, protected source delivery, qualified publication and consumer adoption. No new authorization, retries, deadlines, endpoint scope, tokens, bypasses or hosted success are inferred. The original six journeys and final cleanup remain required.
+
 ## Native push failure classification — 2026-10-11
 
 The bounded input resolver verified the original failed run and complete retained artifact inventory: child output was discarded after capture, so its underlying cause remains unknown. Reuse the existing exhaustive type catalogue and team with these assignments taking precedence. The existing release qualifier acts as the included bounded builder; the resolver becomes the separate quality/security/conformance and empirical reviewer after implementation. Root owns this metadata, generated artifacts, native hooks, commits, provider writes, protected merge, release and caller adoption. No Claude sessions are involved.

@@ -9,11 +9,32 @@ import { runProcess } from "./npm-update-process.mjs";
 import { gitObjectId } from "./npm-update-object.mjs";
 import { proposalFileNames } from "./npm-update-contract.mjs";
 import { executeCanonicalHelper } from "./npm-update-controller-factory.mjs";
+import { withProviderOperation } from "./npm-update-invariants.mjs";
 /** Explicit minimum gh identity and token; no caller/candidate executable override. */
 const HOST_OPTION = "--hostname";
 const GITHUB_HOST = "github.com";
 const TRANSPORT_PATH = "/usr/bin:/bin";
 const NO_HOME = "/nonexistent";
+
+/** Endpoint identifiers and query values never enter public diagnostics. */
+function providerPurpose(repository, endpoint) {
+  if (endpoint.startsWith("search/issues?")) return "issue-search";
+  if (endpoint === `repos/${repository}`) return "repository";
+  const route = endpoint.slice(`repos/${repository}/`.length).split("?")[0];
+  if (route === "git/ref/heads/main") return "main-reference";
+  if (route.startsWith("git/ref/heads/")) return "branch-reference";
+  if (/^actions\/runs\/\d+\/attempts\/\d+$/.test(route)) return "run-attempt";
+  if (/^collaborators\/[^/]+\/permission$/.test(route))
+    return "collaborator-permission";
+  if (/^issues\/comments\/\d+$/.test(route)) return "issue-comment";
+  if (/^issues\/\d+\/comments$/.test(route)) return "issue-comments";
+  if (/^issues\/\d+\/sub_issues$/.test(route)) return "issue-children";
+  if (/^issues\/\d+\/dependencies\/blocked_by$/.test(route))
+    return "issue-blockers";
+  if (/^issues(?:\/\d+)?$/.test(route)) return "issue";
+  if (/^pulls(?:\/\d+)?$/.test(route)) return "pulls";
+  return "unclassified";
+}
 
 export class GitHub {
   constructor(policy, token, execute = runProcess) {
@@ -42,17 +63,22 @@ export class GitHub {
       endpoint,
     ];
     if (body) args.push("--input", "-");
-    const result = await this.execute(this.policy.ghExecutable, args, {
-      env: {
-        PATH: TRANSPORT_PATH,
-        GH_TOKEN: this.token,
-        GH_HOST: GITHUB_HOST,
-        HOME: NO_HOME,
-        GIT_TERMINAL_PROMPT: "0",
-      },
-      input: body ? canonicalJson(body) : undefined,
-      timeout: 30_000,
-    });
+    const result = await withProviderOperation(
+      providerPurpose(this.policy.repository, endpoint),
+      method,
+      () =>
+        this.execute(this.policy.ghExecutable, args, {
+          env: {
+            PATH: TRANSPORT_PATH,
+            GH_TOKEN: this.token,
+            GH_HOST: GITHUB_HOST,
+            HOME: NO_HOME,
+            GIT_TERMINAL_PROMPT: "0",
+          },
+          input: body ? canonicalJson(body) : undefined,
+          timeout: 30_000,
+        })
+    );
     const bytes = result.stdout;
     required(bytes.length <= 3_145_728, "provider response exceeds bound");
     return bytes.length
@@ -77,18 +103,23 @@ export class GitHub {
       endpoint.startsWith(`repos/${this.policy.repository}/`),
       "recovery endpoint outside configured repository"
     );
-    const result = await this.execute(
-      this.policy.ghExecutable,
-      ["api", HOST_OPTION, GITHUB_HOST, "--include", endpoint],
-      {
-        env: {
-          PATH: TRANSPORT_PATH,
-          GH_TOKEN: this.token,
-          HOME: NO_HOME,
-        },
-        allowed: [0, 1],
-        timeout: 30_000,
-      }
+    const result = await withProviderOperation(
+      providerPurpose(this.policy.repository, endpoint),
+      "GET",
+      () =>
+        this.execute(
+          this.policy.ghExecutable,
+          ["api", HOST_OPTION, GITHUB_HOST, "--include", endpoint],
+          {
+            env: {
+              PATH: TRANSPORT_PATH,
+              GH_TOKEN: this.token,
+              HOME: NO_HOME,
+            },
+            allowed: [0, 1],
+            timeout: 30_000,
+          }
+        )
     );
     const text = result.stdout.toString();
     const split = text.includes("\r\n\r\n") ? "\r\n\r\n" : "\n\n";
@@ -129,23 +160,25 @@ export class GitHub {
     return repo;
   }
   async assignable(login) {
-    const result = await this.execute(
-      this.policy.ghExecutable,
-      [
-        "api",
-        HOST_OPTION,
-        GITHUB_HOST,
-        "--include",
-        `repos/${this.policy.repository}/assignees/${login}`,
-      ],
-      {
-        env: {
-          PATH: TRANSPORT_PATH,
-          GH_TOKEN: this.token,
-          HOME: NO_HOME,
-        },
-        timeout: 30_000,
-      }
+    const result = await withProviderOperation("unclassified", "GET", () =>
+      this.execute(
+        this.policy.ghExecutable,
+        [
+          "api",
+          HOST_OPTION,
+          GITHUB_HOST,
+          "--include",
+          `repos/${this.policy.repository}/assignees/${login}`,
+        ],
+        {
+          env: {
+            PATH: TRANSPORT_PATH,
+            GH_TOKEN: this.token,
+            HOME: NO_HOME,
+          },
+          timeout: 30_000,
+        }
+      )
     );
     required(
       /^HTTP\/\S+ 204\b/m.test(result.stdout.toString()),

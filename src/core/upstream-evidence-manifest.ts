@@ -101,7 +101,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lib/npm-update-gh-requests.mjs":
       "54604122ee71c3597c01890499f0cba5872f7c4d807c437b5161f52f9b5133be",
     "all/copy-overwrite/scripts/lib/npm-update-github.mjs":
-      "2be34eca5ceb38cc535fac6ca0a655e14993231cd37b1a3e26ea09756042c488",
+      "adef012960dc0c64dd68d687c2db9a66104780e0e68942f8ce27f11a0cf6262e",
     "all/copy-overwrite/scripts/lib/npm-update-helper-graph.mjs":
       "7100aa6554d59c6a8f6fafefb983c12359b8cf727b8e4657362eba045051dd4e",
     "all/copy-overwrite/scripts/lib/npm-update-helper-inventory.mjs":
@@ -123,7 +123,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lib/npm-update-hosted-scope.mjs":
       "bf046814b607f5449f80b18081b3a42a97a9a96d54fae302661471e166797459",
     "all/copy-overwrite/scripts/lib/npm-update-invariants.mjs":
-      "49fdc794312fe546014a5a4c5c4804da758832a912721733fecec8497aa548aa",
+      "4d60f2528e013b65837e8d60eef8728a34b2005fcabaec20d59fd5f759890810",
     "all/copy-overwrite/scripts/lib/npm-update-isolation.mjs":
       "66ec5390a0af0e016880c781eae47b8c60d6fca0c79ef500e1926e42eae043bf",
     "all/copy-overwrite/scripts/lib/npm-update-leaf-contract.mjs":
@@ -11241,6 +11241,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/npm-update-hosted-scope.test.ts": true,
     "tests/unit/scripts/npm-update-husky-compatibility.test.ts": true,
     "tests/unit/scripts/npm-update-native-process.test.ts": true,
+    "tests/unit/scripts/npm-update-provider-diagnostics.test.ts": true,
     "tests/unit/scripts/npm-update-rails-browser-environment.test.ts": true,
     "tests/unit/scripts/npm-update-rails-mysql.test.ts": true,
     "tests/unit/scripts/npm-update-rails-runtime-contract.test.ts": true,
