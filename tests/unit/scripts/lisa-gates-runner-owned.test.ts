@@ -22,6 +22,7 @@ import {
   HARDCODED_INVOCATIONS,
   RETIRED_SKIP_JOB_TOKENS,
   seedGates,
+  skipJobMigration,
 } from "../../../all/copy-overwrite/scripts/lisa-gates.mjs";
 
 const PULL_REQUEST = "pull-request";
@@ -165,5 +166,32 @@ describe("the pre-push rows for the same gates", () => {
     ).find(entry => entry.gate === gate && entry.moment === "push");
     expect(row?.command).toBe(command);
     expect(row?.seedRun).toEqual(seedRun);
+  });
+});
+
+describe("migrating a retired token", () => {
+  it.each([
+    ["lint_slow", CODE_STYLE_SLOW],
+    ["typecheck", TYPE_CORRECTNESS],
+    ["format", FORMAT_CONFORMANCE],
+    ["build", BUILD_INTEGRITY],
+    ["dead_code", DEAD_CODE],
+  ])("offers the off declaration that keeps %s's check off", (token, gate) => {
+    expect(skipJobMigration(token, PULL_REQUEST)).toMatchObject({
+      status: "retired",
+      gate: null,
+      declaration: `"${gate}": { "${PULL_REQUEST}": "off" }`,
+    });
+  });
+
+  it("offers nothing for a retired token whose job proved no gate", () => {
+    expect(
+      skipJobMigration("zap_baseline", PULL_REQUEST).declaration
+    ).toBeNull();
+  });
+
+  it("offers nothing at a moment the gate cannot be declared at", () => {
+    expect(skipJobMigration("build", "commit").declaration).toBeNull();
+    expect(skipJobMigration("build", "not-a-moment").declaration).toBeNull();
   });
 });

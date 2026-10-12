@@ -186,6 +186,22 @@ describe("doctor skip_jobs migration", () => {
       expect(check.detail).toContain("delete it from skip_jobs");
     });
 
+    it("tells the operator how to keep a runner-owned check off (#3052)", async () => {
+      // Its job became a declared gate leg, which ignores skip_jobs: deleting
+      // the token alone would switch back on a check the caller turned off.
+      await writeCaller(caller("typecheck"));
+      const [found] = await skipJobCallers(project);
+      expect(found?.tokens[0]?.status).toBe("retired");
+      expect(found?.tokens[0]?.declaration).toBe(
+        '"type-correctness": { "pull-request": "off" }'
+      );
+      const check = await checkSkipJobsMigration(project);
+      expect(check.detail).toContain("became a declared gate leg");
+      expect(check.detail).toContain(
+        '"type-correctness": { "pull-request": "off" }'
+      );
+    });
+
     it("reports a whitespace-damaged token as skipping nothing", async () => {
       // `'lint, lint_slow'` yields the token `" lint_slow"`, which matches no
       // job, so the job RUNS. Reporting it as unknown is the only honest

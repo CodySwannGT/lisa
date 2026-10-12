@@ -865,7 +865,7 @@ export const REGISTRY = Object.freeze({
     task: "check:dead-code",
     shippedAs: KNIP_CHECK_TASK,
     declareOnly:
-      "Every npm stack ships `knip:check`, which proves this and which a project without the concern-named script resolves through automatically. CI's fallback runs it directly (and falls back again to the older `knip`), so the property is proved today whether or not the concern-named script exists.",
+      "Every npm stack ships `knip:check`, which proves this and which a project without the concern-named script resolves through automatically. Seeding declares it at pull-request with that task (and falls back to the older `knip`), so the property is proved whether or not the concern-named script exists.",
     moments: PUSH_ONWARD,
   },
   "credential-leakage": {
@@ -2872,7 +2872,11 @@ export function gateForSkipJob(token) {
 export function skipJobMigration(token, moment = PULL_REQUEST) {
   const resolved = gateForSkipJob(token);
   if (resolved.gate === null) {
-    return { ...resolved, moment, declaration: null };
+    return {
+      ...resolved,
+      moment,
+      declaration: retiredDeclaration(token, moment),
+    };
   }
   const permitted =
     isMoment(moment) &&
@@ -2885,6 +2889,27 @@ export function skipJobMigration(token, moment = PULL_REQUEST) {
     moment,
     declaration: `"${resolved.gate}": { "${moment}": "off" }`,
   };
+}
+
+/**
+ * The `off` declaration that keeps a retired runner-owned check off.
+ *
+ * A token retired by #3052 still names a property: its job was deleted because
+ * a declared gate leg now proves the same thing, and that leg answers to the
+ * declaration rather than to `skip_jobs`. So a caller that passed the token to
+ * keep the check off has exactly one way to keep it off — this declaration —
+ * and saying only "delete the token" would switch the check back on.
+ * @param {string} token The retired token.
+ * @param {string} moment The caller's moment.
+ * @returns {string|null} The declaration, or null when the token names no gate or the gate is not legal at that moment.
+ */
+function retiredDeclaration(token, moment) {
+  const owned = runnerOwnedJobs().find(job => job.token === token);
+  if (owned === undefined || !isMoment(moment)) return null;
+  const legal = (REGISTRY[owned.gate]?.moments ?? []).includes(
+    momentFamily(moment)
+  );
+  return legal ? `"${owned.gate}": { "${moment}": "off" }` : null;
 }
 
 /**

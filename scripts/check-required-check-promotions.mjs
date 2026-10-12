@@ -679,7 +679,7 @@ function calledJobProblems(entry, root, calledName) {
     ];
   }
   if (entry.job_id === DECLARED_GATES_JOB) {
-    return declaredGateLegProblems(called, entry, calledName);
+    return declaredGateLegProblems(called, entry, calledName, root);
   }
   return jobNameProblems(called, entry.job_id, calledName, "called");
 }
@@ -705,9 +705,10 @@ const MATRIX_LABEL_NAME = "${{ matrix.label }}";
  * @param {{ jobs: Map<string, string> }} called - parsed called workflow.
  * @param {object} entry - the ledger entry.
  * @param {string} calledName - the expected called-job display name.
+ * @param {string} root - absolute repository root.
  * @returns {{ rule: string, detail: string }[]} problems, empty when sound.
  */
-function declaredGateLegProblems(called, entry, calledName) {
+function declaredGateLegProblems(called, entry, calledName, root) {
   if (called.jobs.get(DECLARED_GATES_JOB) !== MATRIX_LABEL_NAME) {
     return [
       {
@@ -745,7 +746,34 @@ function declaredGateLegProblems(called, entry, calledName) {
       },
     ];
   }
-  return [];
+  return legDeclarationProblems(root, gate, calledName);
+}
+
+/**
+ * Whether this repository declares the gate at a level that makes its leg run.
+ *
+ * A leg exists only for a gate the project DECLARES at pull-request. A ledger
+ * entry pointing at a leg for an undeclared gate vouches for a context nothing
+ * posts, and a required context that never posts holds every pull request.
+ *
+ * @param {string} root - absolute repository root.
+ * @param {string} gate - the gate whose leg posts the context.
+ * @param {string} calledName - the expected called-job display name.
+ * @returns {{ rule: string, detail: string }[]} problems, empty when sound.
+ */
+function legDeclarationProblems(root, gate, calledName) {
+  const declared = readGates(root).gates?.[gate]?.["pull-request"];
+  const level =
+    typeof declared === "object" && declared !== null
+      ? declared.level
+      : declared;
+  if (level === "required" || level === "optional") return [];
+  return [
+    {
+      rule: "leg-gate-undeclared",
+      detail: `gate '${gate}' is not declared at pull-request in .lisa.config.json (found ${JSON.stringify(declared ?? null)}), so no leg posts '${calledName}'`,
+    },
+  ];
 }
 
 /**

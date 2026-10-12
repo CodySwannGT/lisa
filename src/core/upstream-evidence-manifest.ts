@@ -239,7 +239,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-floor-collisions.mjs":
       "345832c63c85df32acbed9b183b06239fc10ccb1491bd11607b5840ac1d18573",
     "all/copy-overwrite/scripts/lisa-gates.mjs":
-      "e204b3b9a9ae7b6636fef1c6c8d49f8415666ffdef4703727c7132520807336a",
+      "fd49770cc53890df97365b32632b2c61341a7de1a535cc8ba74de54ae3063285",
     "all/copy-overwrite/scripts/lisa-history-secrets.mjs":
       "815fd6403aed6194d30939b59dc5ce894f7122a9da598acee4cd529a1b520de3",
     "all/copy-overwrite/scripts/lisa-hooks/block-blind-automerge.sh":
@@ -297,7 +297,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/npm-updater-gate.Dockerfile":
       "c1f56c254f188d394fea0c0b9995ebf185c280aa1079233443c1eed1425d0239",
     "all/copy-overwrite/scripts/npm-updater-helper-graph.json":
-      "8222dc8691ef84a30c06a6427aa17b353082ee53ee513cdd5cbe69e936d82698",
+      "7b1444433c16ae4b580ad71f908ae9788862b9f814d08c447c78f3dfd49226a4",
     "all/copy-overwrite/scripts/schemas/lisa-command-envelope.v1.schema.json":
       "d153b7c2953a30f180e38f09e98240c63327f5196eeba9bdf545e5a1f125a879",
     "all/copy-overwrite/scripts/schemas/lisa-state-contract.v1.schema.json":
@@ -2495,7 +2495,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/check-release-package-identity.mjs":
       "a0f17592d4436de4c240f7c78512537581aa2ed5e89f0caf1fe890694163a873",
     "scripts/check-required-check-promotions.mjs":
-      "c6fb764b16534812968733b13418bb7474008b5ba859de4aa2443ec290881db7",
+      "96ab837518aa27a1086c5514d364db852a4ccc062a4c87673fd8ebd19205d193",
     "scripts/check-rules-pairing.sh":
       "0fc26c4bb3e9283dbc775e794ee8abad98d59f401dfcc55deead0160c5c6bb71",
     "scripts/check-security-floors.mjs":
@@ -12009,6 +12009,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/process-tree-runner.test.ts": true,
     "tests/unit/scripts/reconcile-release-tags.test.ts": true,
     "tests/unit/scripts/required-check-promotions-helpers.ts": true,
+    "tests/unit/scripts/required-check-promotions.legs.test.ts": true,
     "tests/unit/scripts/required-check-promotions.repo.test.ts": true,
     "tests/unit/scripts/required-check-promotions.test.ts": true,
     "tests/unit/scripts/required-check-promotions.wiring.test.ts": true,
