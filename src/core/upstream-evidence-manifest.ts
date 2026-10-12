@@ -1626,8 +1626,12 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "a5189442dbf970cc49fd089ab03c386c8a205b856e09501f6ad1966321e7e4b5",
     "plugins/src/base/skills/lisa-sentry-access/SKILL.md":
       "1c1881ca9a2020f6cd8f938dc5335ebf2d344ff280844bb98926198e5226e526",
+    "plugins/src/base/skills/lisa-session-manager/scripts/capacity.mjs":
+      "ad5acc6097e375868b51eaf01b1506662505e2404b7ac1b06528679718504091",
     "plugins/src/base/skills/lisa-session-manager/scripts/config.mjs":
       "6fec4a94df12eac68c3e112342ad04431a38e9a754ddb5a5ed2ac251ed3bca51",
+    "plugins/src/base/skills/lisa-session-manager/scripts/launch.mjs":
+      "2245b0be44e42bf02b0a612503541572d8161103b95285c1b76448cc357ea539",
     "plugins/src/base/skills/lisa-session-manager/scripts/ledger.mjs":
       "d325803d4a76d17550f7f55a06b5bade518b5a102046afda5771aae9a2bf9649",
     "plugins/src/base/skills/lisa-session-manager/scripts/reconcile.mjs":
@@ -9331,7 +9335,9 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/src/base/skills/lisa-security-review/SKILL.md": true,
     "plugins/src/base/skills/lisa-security-zap-scan/SKILL.md": true,
     "plugins/src/base/skills/lisa-sentry-access/SKILL.md": true,
+    "plugins/src/base/skills/lisa-session-manager/scripts/capacity.mjs": true,
     "plugins/src/base/skills/lisa-session-manager/scripts/config.mjs": true,
+    "plugins/src/base/skills/lisa-session-manager/scripts/launch.mjs": true,
     "plugins/src/base/skills/lisa-session-manager/scripts/ledger.mjs": true,
     "plugins/src/base/skills/lisa-session-manager/scripts/reconcile.mjs": true,
     "plugins/src/base/skills/lisa-session-manager/scripts/telegram-route.mjs": true,
@@ -10630,6 +10636,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/fixtures/rails-helper-test-isolation/config/environment.rb": true,
     "tests/fixtures/rails-helper-test-isolation/rspec/rails.rb": true,
     "tests/fixtures/rails-helper-test-isolation/spec/spec_helper.rb": true,
+    "tests/fixtures/session-manager/meminfo.txt": true,
+    "tests/fixtures/session-manager/vm_stat.txt": true,
     "tests/fixtures/shared-runtime-hosts/actions.ts": true,
     "tests/fixtures/shared-runtime-hosts/artifact.ts": true,
     "tests/fixtures/shared-runtime-hosts/assertions.ts": true,
@@ -12183,8 +12191,12 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/secrets/user-session-hook.test.ts": true,
     "tests/unit/secrets/validate-config-session-manager.test.ts": true,
     "tests/unit/secrets/validate-config.test.ts": true,
+    "tests/unit/session-manager/capacity-stats.test.ts": true,
+    "tests/unit/session-manager/capacity.test.ts": true,
     "tests/unit/session-manager/config-repos.test.ts": true,
     "tests/unit/session-manager/config.test.ts": true,
+    "tests/unit/session-manager/launch-argv.test.ts": true,
+    "tests/unit/session-manager/launch.test.ts": true,
     "tests/unit/session-manager/ledger.test.ts": true,
     "tests/unit/session-manager/reconcile.test.ts": true,
     "tests/unit/session-manager/telegram-route.test.ts": true,
