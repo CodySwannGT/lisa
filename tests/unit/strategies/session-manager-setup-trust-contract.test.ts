@@ -28,10 +28,20 @@ describe.each(ALL_ROOTS)("session-manager setup trust contract (%s)", root => {
     );
     expect(step).toContain("once per routed repo");
     expect(step).toContain(
-      'node "$SM/session-manager.mjs" repo-dir --repo <key> --raw --project-root "$ROOT"'
+      'node "$SM/session-manager.mjs" trust-status --project-root "$ROOT"'
     );
     expect(step).toContain("run `claude` once in that directory");
     expect(step).toContain("accept the trust prompt");
+  });
+
+  // CodySwannGT/lisa#4465: trust Claude Code already recorded is not asked for again.
+  it("asks the operator only about directories trust-status says still need trust", () => {
+    const step = section(
+      setup,
+      "## Step 8: Accept workspace trust in each worker repo"
+    );
+    expect(step).toContain("For each directory in `needsTrust`");
+    expect(step).toContain("When it is empty, this step is done");
   });
 
   it("tells the operator to run the printed foreground command when the manager dies at start", () => {

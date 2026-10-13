@@ -42,11 +42,14 @@ writes `$SM`, and pass `--project-root "$ROOT"` (the absolute project root) on e
 
 1. Preview: `node "$SM/session-manager.mjs" init-config --project-root "$ROOT"`. It detects
    `projects/*/.lisa.config.json` and proposes `name`, `interval`, `repos`, `capacity`, `stall` and a
-   per-project `notify.stateDir`. Show the block to the operator.
+   per-project `notify.stateDir`. Repo detection leaves out linked worktrees and keeps one checkout
+   per remote, so ticket worktrees and second clones under `projects/` are not proposed. Show the
+   block to the operator and ask whether any repo is missing or should not be routed.
 2. Write it: the same command with `--write`. It adds only non-secret fields and never overwrites an
    existing block (`reason: "exists"` means keep it).
-3. Ask the operator to replace each repo's starter `hints` with the technologies and areas that
-   identify it (e.g. `api`: `["NestJS","migrations"]`, `web`: `["Expo","screens"]`), and whether to
+3. Each repo's `hints` are a draft: its name plus one per well-known dependency (`NestJS`, `Expo`,
+   `AWS CDK`, ...). Ask the operator to correct them and add the areas that identify the repo
+   (e.g. `api`: `["NestJS","migrations"]`, `web`: `["Expo","screens"]`), and whether to
    set `sessionManager.trustedAuthorIds`. Without it, any author's Ready item reaches a
    bypass-permissions worker; say so plainly. The list holds stable tracker user ids as strings,
    never logins: the GitHub numeric user id (`gh api users/<login> --jq .id`), the Jira
@@ -61,8 +64,14 @@ The operator creates a bot with @BotFather, one per project. Then run
 - `stored: true`: done.
 - Exit 2 because a token already exists: keep it (re-running setup is safe). Only when the operator
   says the stored token is wrong or belongs to another project, re-run with `store-token --replace`.
-- `reason: "no-tty"` (an agent's Bash has no terminal): print `command` from the output and ask the
-  operator to run it in their own terminal, where it prompts with echo off. Wait for them to confirm.
+- `reason: "no-tty"` (an agent's Bash has no terminal): offer the operator both routes, and say
+  plainly that Claude Code's `!` prefix has no terminal either, so it fails the same way:
+  - **Clipboard (simplest):** they copy the token from the BotFather chat and tell you; then run
+    `clipboardCommand` from the output (`store-token --from-clipboard`). It validates the token,
+    stores it, never prints it, and clears the clipboard. On `stored: false`, say what `message`
+    reports and ask them to copy it again.
+  - **Separate terminal app:** print `command` and ask them to run it in Terminal, iTerm or similar,
+    outside the agent, where it prompts with echo off. Wait for them to confirm.
 - `empty` / `invalid`: say what was wrong and ask again.
 
 Never ask for the token in chat, never echo, log or commit it, and never put it in
@@ -97,14 +106,24 @@ If `.lisa/automations/session-manager.runbook.md` does not exist, copy
 `$SM/../references/runbook-template.md` there. Never overwrite an existing runbook: it is the
 project's. It is checked in, like every automation runbook (`automation-runbook-contract`).
 
-## Step 7: Coexistence warning
+## Step 7: Check for competing intake loops
 
-Tell the operator, before starting: if this project also runs the scheduled `intake-repair` loop, it
-can re-dispatch an item a local worker is still building (it treats a claimed item with no tracker
-activity for `intake.repair.staleAfterHours` as stalled). `intake-tickets` competes for the same
-Ready items. Recommend tearing down `intake-tickets` (`/lisa:tear-down-automations intake-tickets`)
-and either raising `intake.repair.staleAfterHours` above `stall.noOutputMinutes × stall.maxAttempts`
-or tearing down `intake-repair`.
+The scheduled `intake-repair` loop can re-dispatch an item a local worker is still building (it treats
+a claimed item with no tracker activity for `intake.repair.staleAfterHours` as stalled), and
+`intake-tickets` competes for the same Ready items. Find out whether either is running before you
+start the manager; do not leave the operator to check.
+
+1. Run `node "$SM/session-manager.mjs" coexistence --project-root "$ROOT"`. For each loop it reports
+   the last run recorded in this project's run log and whether that is `recent`. `live` lists the
+   loops that ran recently.
+2. A run log is evidence, not proof: also list your runtime's scheduler for those loop names (Claude
+   Code: the `/schedule` listing of claude.ai routines; Codex: automations; a `lisa-<loop>.yml`
+   workflow with a `schedule:` trigger on GitHub Actions).
+3. Report what you found, per loop, in one line each. Only for a loop that is live (a recent run, or a
+   scheduler entry): recommend tearing down `intake-tickets` (`/lisa:tear-down-automations
+   intake-tickets`) and either raising `intake.repair.staleAfterHours` above
+   `stall.noOutputMinutes × stall.maxAttempts` or tearing down `intake-repair`. When neither is live,
+   say so and move on.
 
 ## Step 8: Accept workspace trust in each worker repo
 
@@ -113,12 +132,15 @@ folder?" prompt: until someone has accepted it in a directory, `claude --bg` ref
 and `spawn` exits 2 saying so. Do this once per routed repo (or once for the root on a single-repo
 project), on every machine that runs the manager:
 
-1. List the directories workers start in. Single-repo: the project root. Multi-repo: for each key in
-   `sessionManager.repos.entries`,
-   `node "$SM/session-manager.mjs" repo-dir --repo <key> --raw --project-root "$ROOT"`.
-2. Ask the operator, in their own terminal, to run `claude` once in that directory,
-   accept the trust prompt, then exit. An agent's Bash cannot answer that prompt, so never try to
-   accept it for them.
+1. Run `node "$SM/session-manager.mjs" trust-status --project-root "$ROOT"`. It lists every
+   directory workers start in (each routed repo, or the root on a single-repo project) with whether
+   Claude Code has already recorded trust for it. `needsTrust` lists the ones that are not
+   `trusted: true`. When it is empty, this step is done: say so.
+2. For each directory in `needsTrust`, ask the operator, in a separate terminal app (not the agent's
+   Bash or Claude Code's `!` prefix), to run `claude` once in that directory, accept the trust prompt,
+   then exit. An agent's Bash cannot answer that prompt, so never try to accept it for them. Then
+   re-run `trust-status` to confirm. (`trusted: "unknown"` means Claude Code's state file could not be
+   read; treat it as needing trust.)
 3. Re-run this step whenever a repo is added to `sessionManager.repos`.
 
 ## Step 9: Start and pair
@@ -152,5 +174,6 @@ confirm the "Session manager Telegram isolation?" check is green. Fix every warn
 `node "$SM/session-manager.mjs" status --project-root "$ROOT"` should show the manager running.
 
 Report: the config block written (or kept), where the token lives (the path, never the value), the
-plugin scope result, the runbook path, which repo dirs had workspace trust accepted, the manager's
-tmux session name, and the doctor result.
+plugin scope result, the runbook path, which repo dirs were already trusted and which the operator
+accepted trust in, what the competing-loop check found, the manager's tmux session name, and the
+doctor result.
