@@ -10,6 +10,12 @@ import { SilentLogger } from "../../../src/logging/silent-logger.js";
 import { BackupService } from "../../../src/transaction/backup.js";
 import { cleanupTempDir, createTempDir } from "../../helpers/test-utils.js";
 
+/** Host file several cases modify. */
+const MODIFIED = "modified.txt";
+
+/** Pre-apply bytes of a modified host file. */
+const ORIGINAL = "original";
+
 describe("BackupService created-path rollback (#4459)", () => {
   let service: BackupService;
   let tempDir: string;
@@ -24,6 +30,8 @@ describe("BackupService created-path rollback (#4459)", () => {
   });
 
   afterEach(async () => {
+    // The temp backup dir lives outside tempDir; release it on every path.
+    await service.cleanup();
     await cleanupTempDir(tempDir);
   });
 
@@ -95,7 +103,7 @@ describe("BackupService created-path rollback (#4459)", () => {
 
   it("does not let a second write overwrite the pre-apply backup", async () => {
     const target = path.join(destDir, "twice.txt");
-    await fs.writeFile(target, "original");
+    await fs.writeFile(target, ORIGINAL);
     await service.backup(target);
     await fs.writeFile(target, "first write");
     await service.backup(target);
@@ -103,7 +111,7 @@ describe("BackupService created-path rollback (#4459)", () => {
 
     await service.rollback();
 
-    expect(await fs.readFile(target, "utf8")).toBe("original");
+    expect(await fs.readFile(target, "utf8")).toBe(ORIGINAL);
   });
 
   it("does not back up a file the apply itself created", async () => {
@@ -117,15 +125,15 @@ describe("BackupService created-path rollback (#4459)", () => {
   });
 
   it("removes the .lisabak copy it wrote for a restored file", async () => {
-    const target = path.join(destDir, "modified.txt");
-    await fs.writeFile(target, "original");
+    const target = path.join(destDir, MODIFIED);
+    await fs.writeFile(target, ORIGINAL);
     await service.backup(target);
     await service.persistentBackup(target);
     await fs.writeFile(target, "changed");
 
     await service.rollback();
 
-    expect(await fs.readFile(target, "utf8")).toBe("original");
+    expect(await fs.readFile(target, "utf8")).toBe(ORIGINAL);
     expect(await fs.pathExists(path.join(destDir, ".lisabak"))).toBe(false);
   });
 
@@ -133,8 +141,8 @@ describe("BackupService created-path rollback (#4459)", () => {
     const earlier = path.join(destDir, ".lisabak", "earlier", "kept.txt");
     await fs.ensureDir(path.dirname(earlier));
     await fs.writeFile(earlier, "older backup");
-    const target = path.join(destDir, "modified.txt");
-    await fs.writeFile(target, "original");
+    const target = path.join(destDir, MODIFIED);
+    await fs.writeFile(target, ORIGINAL);
     await service.backup(target);
     await service.persistentBackup(target);
 
@@ -158,7 +166,7 @@ describe("BackupService created-path rollback (#4459)", () => {
 
   it("keeps the pre-apply bytes in .lisabak across a second write", async () => {
     const target = path.join(destDir, "twice.txt");
-    await fs.writeFile(target, "original");
+    await fs.writeFile(target, ORIGINAL);
     await service.backup(target);
     await service.persistentBackup(target);
     await fs.writeFile(target, "first write");
@@ -171,7 +179,7 @@ describe("BackupService created-path rollback (#4459)", () => {
         path.join(destDir, ".lisabak", stamp ?? "", "twice.txt"),
         "utf8"
       )
-    ).toBe("original");
+    ).toBe(ORIGINAL);
   });
 
   it("forgets created paths on success, so cleanup deletes nothing", async () => {
@@ -180,6 +188,44 @@ describe("BackupService created-path rollback (#4459)", () => {
     await service.cleanup();
 
     expect(await fs.readFile(target, "utf8")).toBe("x");
+  });
+
+  it("never records a path that escapes through a symlinked ancestor", async () => {
+    const outsideDir = path.join(tempDir, "elsewhere");
+    await fs.ensureDir(outsideDir);
+    await fs.symlink(outsideDir, path.join(destDir, "link"));
+    const viaLink = path.join(destDir, "link", "new.txt");
+    await service.backup(viaLink);
+    await fs.writeFile(viaLink, "lands outside");
+
+    await service.rollback();
+
+    expect(await fs.readFile(path.join(outsideDir, "new.txt"), "utf8")).toBe(
+      "lands outside"
+    );
+  });
+
+  it("a re-initialised service writes a fresh .lisabak directory", async () => {
+    const target = path.join(destDir, MODIFIED);
+    await fs.writeFile(target, "first apply original");
+    await service.persistentBackup(target);
+    await service.cleanup();
+    const [firstStamp] = await fs.readdir(path.join(destDir, ".lisabak"));
+    const firstCopy = path.join(
+      destDir,
+      ".lisabak",
+      firstStamp ?? "",
+      MODIFIED
+    );
+
+    await new Promise(resolve => setTimeout(resolve, 1100));
+    await service.init(destDir);
+    await fs.writeFile(target, "second apply original");
+    await service.backup(target);
+    await service.persistentBackup(target);
+    await service.rollback();
+
+    expect(await fs.readFile(firstCopy, "utf8")).toBe("first apply original");
   });
 
   it("ignores paths outside the destination tree", async () => {

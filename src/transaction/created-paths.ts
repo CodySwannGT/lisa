@@ -1,8 +1,11 @@
-import { lstat, rmdir, unlink } from "node:fs/promises";
+import { lstat, realpath, rmdir, unlink } from "node:fs/promises";
 import * as path from "node:path";
 
 /** Errors that mean a rollback removal has nothing (left) to do. */
 const BENIGN_REMOVAL_CODES = new Set(["ENOENT", "ENOTEMPTY", "EEXIST"]);
+
+/** lstat errors that prove a path is absent. */
+const ABSENCE_CODES = new Set(["ENOENT", "ENOTDIR"]);
 
 /**
  * Whether `candidate` lies strictly inside `root`.
@@ -26,8 +29,14 @@ export async function occupied(absolutePath: string): Promise<boolean> {
   try {
     await lstat(absolutePath);
     return true;
-  } catch {
-    return false;
+  } catch (error) {
+    // Only proven absence is "missing". EACCES or ELOOP say nothing about
+    // whether the path exists, and reading them as absence would record a
+    // host path for deletion without saving it.
+    if (ABSENCE_CODES.has((error as NodeJS.ErrnoException).code ?? "")) {
+      return false;
+    }
+    throw error;
   }
 }
 
@@ -86,24 +95,57 @@ export class CreatedPathLedger {
    * @param absolutePath - File the caller is about to create
    */
   async record(absolutePath: string): Promise<void> {
-    if (!isStrictlyInside(this.root, absolutePath)) {
+    // An occupied path is not one this apply is about to create, whoever
+    // put it there.
+    if (
+      !isStrictlyInside(this.root, absolutePath) ||
+      (await occupied(absolutePath))
+    ) {
       return;
     }
-    await this.recordMissingAncestors(path.dirname(absolutePath));
+    const { missing, existing } = await this.missingAncestors(
+      path.dirname(absolutePath)
+    );
+    // A lexical check is not confinement: a pre-existing symlinked ancestor
+    // can send the write outside the root, and recording it would let
+    // rollback unlink a file that lives elsewhere.
+    if (!(await this.resolvesInsideRoot(existing))) {
+      return;
+    }
+    missing.forEach(dir => this.dirs.add(dir));
     this.files.add(absolutePath);
   }
 
   /**
-   * Record `dir` and its missing ancestors, stopping at the first directory
-   * that already exists or at the root.
+   * Walk up from `dir` collecting missing directories below the root.
    * @param dir - Directory to probe
+   * @param missing - Missing directories found so far, deepest first
+   * @returns The missing directories and the nearest existing ancestor
    */
-  private async recordMissingAncestors(dir: string): Promise<void> {
+  private async missingAncestors(
+    dir: string,
+    missing: readonly string[] = []
+  ): Promise<{ missing: readonly string[]; existing: string }> {
     if (!isStrictlyInside(this.root, dir) || (await occupied(dir))) {
-      return;
+      return { missing, existing: dir };
     }
-    this.dirs.add(dir);
-    await this.recordMissingAncestors(path.dirname(dir));
+    return this.missingAncestors(path.dirname(dir), [...missing, dir]);
+  }
+
+  /**
+   * Whether an existing path, with every symlink resolved, is the root or
+   * lies inside it.
+   * @param existing - Existing ancestor of a path about to be created
+   * @returns True when confined to the root
+   */
+  private async resolvesInsideRoot(existing: string): Promise<boolean> {
+    const [resolvedRoot, resolved] = await Promise.all([
+      realpath(this.root),
+      realpath(existing),
+    ]);
+    return (
+      resolved === resolvedRoot || isStrictlyInside(resolvedRoot, resolved)
+    );
   }
 
   /**

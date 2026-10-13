@@ -63,6 +63,8 @@ export class BackupService implements IBackupService {
   async init(destDir: string): Promise<void> {
     this.destDir = destDir;
     this.created = new CreatedPathLedger(destDir);
+    // A reused service must not write into an earlier apply's .lisabak dir.
+    this.persistentBackupDirname = null;
     this.backedUp.clear();
     this.persisted.clear();
     this.backupDir = await mkdtemp(path.join(os.tmpdir(), "lisa-backup-"));
