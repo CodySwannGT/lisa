@@ -100,16 +100,23 @@ function readOrigin(dir, fs) {
   return null;
 }
 
+/** The `gitdir:` line of a linked worktree points into `.git/worktrees/`. */
+const WORKTREE_GITDIR = /^gitdir:\s*\S*[\\/]worktrees[\\/]/m;
+
 /**
- * Whether `<dir>/.git` is a file: a linked worktree or a submodule checkout,
- * never the repo's own clone.
+ * Whether `<dir>` is a linked worktree: its `.git` is a file whose `gitdir:`
+ * points into another clone's `worktrees/`. A `.git` file that points
+ * anywhere else (a submodule, `--separate-git-dir`) may be the only checkout
+ * of its repo, so it is kept.
  * @param {string} dir - Child directory
  * @param {typeof NODE_FS} fs - Filesystem seam
- * @returns {boolean} True for a `.git` file
+ * @returns {boolean} True for a linked worktree
  */
-function isLinkedCheckout(dir, fs) {
+function isLinkedWorktree(dir, fs) {
+  const marker = join(dir, ".git");
   try {
-    return fs.statSync(join(dir, ".git")).isFile();
+    if (!fs.statSync(marker).isFile()) return false;
+    return WORKTREE_GITDIR.test(fs.readFileSync(marker, "utf8"));
   } catch {
     return false;
   }
@@ -158,7 +165,7 @@ export function detectRepos(root, options = {}) {
     .filter(entry => entry.isDirectory() && SAFE_SEGMENT.test(entry.name))
     .map(entry => ({ name: entry.name, dir: join(base, entry.name) }))
     .filter(child => fs.existsSync(join(child.dir, ".lisa.config.json")))
-    .filter(child => !isLinkedCheckout(child.dir, fs))
+    .filter(child => !isLinkedWorktree(child.dir, fs))
     .map(child => ({
       name: child.name,
       remote: normalizeRemote(readOrigin(child.dir, fs) ?? ""),

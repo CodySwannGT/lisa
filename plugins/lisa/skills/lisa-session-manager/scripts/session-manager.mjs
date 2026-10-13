@@ -23,8 +23,9 @@
  * trust-status reads Claude Code's own trust record, which is the one that
  * matters: workers are always Claude Code. They cannot run a manager cycle
  * themselves. OpenCode copies skill folders without the plugin-level
- * `scripts/` directory, so `queue` and `record-cycle` (which import from it)
- * are unavailable there unless the npm package provides that directory.
+ * `scripts/` directory, and this entry point statically imports modules that
+ * reach into it (cli-cycle.mjs, cli-runtime.mjs), so on OpenCode every
+ * subcommand runs only from the npm package, never from the skill-folder copy.
  * @module session-manager
  */
 import { readFileSync, realpathSync } from "node:fs";

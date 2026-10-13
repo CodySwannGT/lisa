@@ -100,7 +100,10 @@ describe(INIT_CONFIG, () => {
     );
     mkdirSync(worktree);
     writeFileSync(path.join(worktree, LISA_CONFIG), "{}");
-    writeFileSync(path.join(worktree, ".git"), "gitdir: /x\n");
+    writeFileSync(
+      path.join(worktree, ".git"),
+      "gitdir: /src/api/.git/worktrees/api-wt-SE-1\n"
+    );
     const result = runCli(sandbox, [INIT_CONFIG, SLUG, DEMO]);
     expect(result.json.block.repos.entries).toEqual({
       api: { hints: ["api", "NestJS"] },

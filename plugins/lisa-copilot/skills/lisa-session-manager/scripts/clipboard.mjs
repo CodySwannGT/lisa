@@ -44,18 +44,25 @@ const TOOLS = Object.freeze({
 
 /**
  * Run one tool with empty stdin.
+ *
+ * A clear (`capture: false`) discards the tool's output instead of piping it:
+ * `xclip -i` forks a background selection owner, and a child holding an
+ * inherited pipe makes `spawnSync` wait out the whole timeout. Any spawn
+ * error (a timeout included) is a failure, never a success.
  * @param {string[]} argv - Command and arguments
+ * @param {{ capture?: boolean }} [options] - Whether to capture stdout
  * @returns {{ status: number | null, stdout: string, missing: boolean }}
  *   Outcome; `missing` when the binary is not on PATH
  */
-function runTool([command, ...args]) {
+function runTool([command, ...args], { capture = true } = {}) {
   const result = spawnSync(command, args, {
     input: "",
     encoding: "utf8",
     timeout: TOOL_TIMEOUT_MS,
+    stdio: ["pipe", capture ? "pipe" : "ignore", "ignore"],
   });
   return {
-    status: result.status,
+    status: result.error ? null : result.status,
     stdout: result.stdout ?? "",
     missing: result.error?.code === "ENOENT",
   };
@@ -81,20 +88,27 @@ export function readClipboard(seams = {}) {
       message: `Reading the clipboard is not supported on ${platform}.`,
     };
   }
+  const failed = [];
   for (const tool of tools) {
     const result = run(tool.read);
     if (result.missing) continue;
+    // An installed tool can still fail where another works (wl-paste on an
+    // X11 session), so a failure moves on to the next tool.
     if (result.status !== 0) {
-      return {
-        ok: false,
-        reason: "failed",
-        message: `${tool.name} exited ${result.status}; nothing was read.`,
-      };
+      failed.push(`${tool.name} exited ${result.status}`);
+      continue;
     }
     return {
       ok: true,
       text: result.stdout,
-      clear: () => run(tool.clear).status === 0,
+      clear: () => run(tool.clear, { capture: false }).status === 0,
+    };
+  }
+  if (failed.length > 0) {
+    return {
+      ok: false,
+      reason: "failed",
+      message: `${failed.join("; ")}; nothing was read.`,
     };
   }
   return {

@@ -25,9 +25,9 @@ channels (Telegram) and cross-session messaging (`SendMessage`, `crossSessionInb
 | Runtime | lisa-setup-session-manager | lisa-session-manager (manager) | `managedBy=` |
 |---|---|---|---|
 | Claude Code | supported | supported (reference). Needs `claude` ≥ 2.1.224, `tmux`, `bun` | supported |
-| Codex | config, token and runbook are supported. `start` launches a Claude Code manager, so it works when the `claude` CLI is installed | the skill ships, but `cycle` refuses to run here (no `/loop`, channels or `SendMessage`); tell the operator to run `start` | rejected with the gap message |
+| Codex | config, token (prompt or `--from-clipboard`), runbook, `trust-status` and `coexistence` are supported. `trust-status` reads Claude Code's trust record, which is the one that matters (workers are Claude Code); accepting trust needs the `claude` CLI. `coexistence` sees only run logs, so also list Codex automations. `start` launches a Claude Code manager, so it works when the `claude` CLI is installed | the skill ships, but `cycle` refuses to run here (no `/loop`, channels or `SendMessage`); tell the operator to run `start` | rejected with the gap message |
 | Cursor / Antigravity (agy) / Copilot / Devin | same as Codex | same as Codex | rejected |
-| OpenCode | config and token are supported; script resolution relies on the npm rung, so `queue` and `record-cycle` need the npm package | gap | rejected |
+| OpenCode | same setup subcommands as Codex, but script resolution relies on the npm rung: the CLI imports plugin-level scripts the skill-folder copy lacks, so every subcommand needs the npm package | gap | rejected |
 
 On any runtime other than Claude Code, `cycle` stops with: "The session manager runs on Claude Code
 only (background sessions, channels, cross-session messaging). Run `/lisa:session-manager start`

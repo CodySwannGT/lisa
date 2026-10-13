@@ -76,6 +76,14 @@ describe("detectRepos", () => {
     expect(detectRepos(root)).toEqual(["app"]);
   });
 
+  it("keeps a .git-file checkout that is not a worktree (a submodule)", () => {
+    const dir = join(root, "projects", "lib");
+    mkdirSync(dir, { recursive: true });
+    writeFileSync(join(dir, LISA_CONFIG), "{}");
+    writeFileSync(join(dir, ".git"), "gitdir: ../../.git/modules/lib\n");
+    expect(detectRepos(root)).toEqual(["lib"]);
+  });
+
   it("keeps the clone named after the repo when two clones share an origin", () => {
     clone("app-se1", HTTPS_APP);
     clone("app", SSH_APP);

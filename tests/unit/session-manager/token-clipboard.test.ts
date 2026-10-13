@@ -190,6 +190,57 @@ describe("readClipboard", () => {
     expect(seen.map(argv => argv[0])).toEqual(["wl-paste", "xclip", "xsel"]);
   });
 
+  it("moves past an installed tool that fails (wl-paste on X11)", () => {
+    const { run, seen } = runner({
+      "wl-paste": { status: 1, stdout: "" },
+      xclip: { status: 0, stdout: TOKEN },
+    });
+    const result = readClipboard({ platform: "linux", run });
+    expect(result).toMatchObject({ ok: true, text: TOKEN });
+    expect(seen.map(argv => argv[0])).toEqual(["wl-paste", "xclip"]);
+  });
+
+  it("reports failed only when every installed tool failed", () => {
+    const { run } = runner({
+      "wl-paste": { status: 1, stdout: "" },
+      xsel: { status: 2, stdout: "" },
+    });
+    expect(readClipboard({ platform: "linux", run })).toMatchObject({
+      ok: false,
+      reason: "failed",
+      message: "wl-paste exited 1; xsel exited 2; nothing was read.",
+    });
+  });
+
+  it.skipIf(process.platform !== "darwin" && process.platform !== "linux")(
+    "clears promptly when the clear tool forks a child that holds stdout (xclip -i)",
+    () => {
+      const bin = path.join(dir, "bin");
+      const reader = `#!/bin/sh\nprintf '%s' 'x'\n`;
+      const daemonizing = "#!/bin/sh\ncat >/dev/null\nsleep 4 &\nexit 0\n";
+      const tools: ReadonlyArray<readonly [string, string]> = [
+        ["pbpaste", reader],
+        ["wl-paste", reader],
+        ["pbcopy", daemonizing],
+        ["wl-copy", daemonizing],
+      ];
+      const originalPath = process.env.PATH;
+      mkdirSync(bin);
+      for (const [name, body] of tools) {
+        writeFileSync(path.join(bin, name), body, { mode: 0o755 });
+      }
+      process.env.PATH = `${bin}${path.delimiter}${originalPath ?? ""}`;
+      try {
+        const result = readClipboard();
+        const started = Date.now();
+        expect((result as { clear: () => boolean }).clear()).toBe(true);
+        expect(Date.now() - started).toBeLessThan(2000);
+      } finally {
+        process.env.PATH = originalPath;
+      }
+    }
+  );
+
   it("reports unavailable when no tool exists", () => {
     const { run } = runner({});
     expect(readClipboard({ platform: "linux", run })).toMatchObject({

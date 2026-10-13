@@ -1631,7 +1631,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-sentry-access/SKILL.md":
       "1c1881ca9a2020f6cd8f938dc5335ebf2d344ff280844bb98926198e5226e526",
     "plugins/src/base/skills/lisa-session-manager/SKILL.md":
-      "1d92e364dab68f866af6d5263e9ec9627b01bca1d96f1b91f90c6f55c75627a2",
+      "f2ee32394cb194a9ffd54b79be15aa37f989cfd1a487ab0499cbe137e9cd44ce",
     "plugins/src/base/skills/lisa-session-manager/references/runbook-template.md":
       "24abfd1c6d2ec1829a9c88415910438bb03e16277f0a118c30ea0a24022ab54c",
     "plugins/src/base/skills/lisa-session-manager/scripts/capacity.mjs":
@@ -1651,7 +1651,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-workers.mjs":
       "63ca4c92eb838f806be1dcb6b995cdcee56f77eb7ba4787959ec23a395b32bfe",
     "plugins/src/base/skills/lisa-session-manager/scripts/clipboard.mjs":
-      "699865a739cae265fe0cfd26230374939748112e9042a48f00164a8317532986",
+      "6becdcf8797bfdcfa31553c90d125be4b7f643ab305a3abc19aae73d29263e29",
     "plugins/src/base/skills/lisa-session-manager/scripts/config.mjs":
       "8bf77a28864a9a21b2095b2c4339c95bd5be412f405d101848fefb32300b779e",
     "plugins/src/base/skills/lisa-session-manager/scripts/isolation.mjs":
@@ -1663,9 +1663,9 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-session-manager/scripts/reconcile.mjs":
       "8ccd61b536709eb16dccb82c0049f25b042f3e61417c08c68defefa388584559",
     "plugins/src/base/skills/lisa-session-manager/scripts/repo-detect.mjs":
-      "e8e05d7d9e5969ebcb58c9035a558dc869b0e8246ccf15e45737365270ac5889",
+      "08201b36073eb702b0ca030221415c05fd6a4fda7b43be91243e70fbee48d19f",
     "plugins/src/base/skills/lisa-session-manager/scripts/session-manager.mjs":
-      "e462d94023589844f26fdce8a0761e0d0c314d3a2d981747ef90f0c6f67567b3",
+      "b89697e7160ac55b19cdb566d8749fb2cba42c73703c4030eacd54c6835cdbf7",
     "plugins/src/base/skills/lisa-session-manager/scripts/setup-checks.mjs":
       "433c1afb36641eb3eb271f1803c7dfba556dd98e535627d00cfc8e3135a5d68f",
     "plugins/src/base/skills/lisa-session-manager/scripts/state-dir.mjs":
