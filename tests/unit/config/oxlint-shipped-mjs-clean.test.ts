@@ -55,9 +55,17 @@ function presetErrors(files: readonly string[]): readonly string[] {
   const result = spawnSync(
     OXLINT_BIN,
     ["-c", HOST_PRESET, "--format", "json", ...files],
-    { cwd: REPO_ROOT, encoding: "utf8", maxBuffer: 64 * 1024 * 1024 }
+    {
+      cwd: REPO_ROOT,
+      encoding: "utf8",
+      maxBuffer: 64 * 1024 * 1024,
+      timeout: LINT_TIMEOUT_MS,
+    }
   );
   if (result.error) throw result.error;
+  // A killed child returns empty streams; say so instead of failing to parse.
+  if (result.signal !== null)
+    throw new Error(`oxlint was killed by ${result.signal} before reporting`);
   const parsed = JSON.parse(result.stdout) as {
     readonly diagnostics: readonly OxlintDiagnostic[];
   };
