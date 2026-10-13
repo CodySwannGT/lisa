@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.81.1](https://github.com/CodySwannGT/lisa/compare/v4.81.0...v4.81.1) (2026-10-13)
+
+
+### Bug Fixes
+
+* **migrations:** re-indent a host's multi-line block condition on rewrite ([274652f](https://github.com/CodySwannGT/lisa/commit/274652f90bd07608ad8160d6d8795add73dfafd7)), closes [CodySwannGT/lisa#4456](https://github.com/CodySwannGT/lisa/issues/4456) [CodySwannGT/lisa#4456](https://github.com/CodySwannGT/lisa/issues/4456)
+* **migrations:** render canonical, idempotent deploy-outcome-guard conditions ([cd315bf](https://github.com/CodySwannGT/lisa/commit/cd315bf4092d956d917b7b4f9d15f499c4db3a4c)), closes [CodySwannGT/lisa#4456](https://github.com/CodySwannGT/lisa/issues/4456) [CodySwannGT/lisa#4456](https://github.com/CodySwannGT/lisa/issues/4456)
+
 ## [4.81.0](https://github.com/CodySwannGT/lisa/compare/v4.80.2...v4.81.0) (2026-10-13)
 
 
