@@ -11658,6 +11658,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/hooks/worktree-binding-runtime-assumption.test.ts": true,
     "tests/unit/hooks/worktree-create-failure.test.ts": true,
     "tests/unit/hooks/worktree-create.test.ts": true,
+    "tests/unit/migrations/deploy-outcome-guard-render.test.ts": true,
     "tests/unit/migrations/ensure-audit-ignore-local-exclusions-esbuild.test.ts": true,
     "tests/unit/migrations/ensure-audit-ignore-local-exclusions.test.ts": true,
     "tests/unit/migrations/ensure-deploy-outcome-guard.test.ts": true,

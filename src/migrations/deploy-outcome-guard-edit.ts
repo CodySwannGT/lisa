@@ -32,7 +32,8 @@
  * 1. A condition that never mentions the release result — safe to wrap, since
  *    `!cancelled() && (original)` cannot change what the original decides.
  * 2. A flat top-level `&&` chain containing `needs.<release>.result ==
- *    'success'` — the conjunct is dropped and `!cancelled()` prepended.
+ *    'success'` — the conjunct is dropped and `!cancelled()` prepended, unless
+ *    a remaining conjunct is already `always()` or `!cancelled()` (#4456).
  *
  * Anything else, including that conjunct nested inside an `||`, is left to a
  * human. Dropping a term from inside a disjunction changes what the condition
@@ -57,11 +58,20 @@ export const GUARD_STEP_NAME = "🚨 Confirm the release shipped";
 /** The status function that suppresses GitHub's implicit `success()`. */
 const SUPPRESSOR = "!cancelled()";
 
+/**
+ * Conjuncts that already suppress the implicit `success()`. When one survives
+ * the rewrite, prepending {@link SUPPRESSOR} would only duplicate it (#4456).
+ */
+const EXISTING_SUPPRESSORS = new Set(["always()", SUPPRESSOR]);
+
 /** Tokens that take no space before them when a condition is re-rendered. */
-const NO_SPACE_BEFORE = new Set([")", ",", "=="]);
+const NO_SPACE_BEFORE = new Set([")", ","]);
 
 /** Tokens that take no space after them when a condition is re-rendered. */
-const NO_SPACE_AFTER = new Set(["(", "!", "=="]);
+const NO_SPACE_AFTER = new Set(["(", "!"]);
+
+/** A function or context name: an `(` after one is a call, written `f()`. */
+const CALLABLE = /^[A-Za-z_]\w*$/;
 
 /**
  * Strip a `${{ }}` wrapper and surrounding whitespace from a condition.
@@ -77,22 +87,31 @@ function bareExpression(condition: string): string {
 }
 
 /**
- * Re-render a token run as expression text.
+ * Whether a token is written with no space before it.
+ * @param token - The token being placed
+ * @param previous - The token before it
+ * @returns True when the two are glued, as in `always()` or `!x`
+ */
+function gluedTo(token: string, previous: string): boolean {
+  if (NO_SPACE_BEFORE.has(token) || NO_SPACE_AFTER.has(previous)) return true;
+  return token === "(" && CALLABLE.test(previous);
+}
+
+/**
+ * Re-render a token run as canonical expression text: calls written `f(a, b)`,
+ * binary operators (`==`, `!=`, `&&`, `||`) spaced on both sides, `!` and
+ * parentheses glued to their operand. Canonical so a host that asserts its
+ * workflow text, or reviews the diff, reads what a person would have written.
  * @param tokens - The tokens, in order
  * @returns Readable expression text
  */
 function render(tokens: readonly string[]): string {
-  return tokens
-    .reduce((text, token, index) => {
-      const previous = tokens[index - 1];
-      const glued =
-        index === 0 ||
-        NO_SPACE_BEFORE.has(token) ||
-        (previous !== undefined && NO_SPACE_AFTER.has(previous));
-      return glued ? text + token : `${text} ${token}`;
-    }, "")
-    .replace(/ == /g, " == ")
-    .trim();
+  return tokens.reduce((text, token, index) => {
+    const previous = tokens[index - 1];
+    return previous === undefined || gluedTo(token, previous)
+      ? text + token
+      : `${text} ${token}`;
+  }, "");
 }
 
 /**
@@ -196,7 +215,10 @@ function proposedCondition(job: DependenceJob, release: string): string | null {
   if (kept.length === conjuncts.length) return null;
   if (kept.some(conjunct => conjunct.some(token => token === gate)))
     return null;
-  return [SUPPRESSOR, ...kept.map(render)].join(" && ");
+  const rendered = kept.map(render);
+  return rendered.some(conjunct => EXISTING_SUPPRESSORS.has(conjunct))
+    ? rendered.join(" && ")
+    : [SUPPRESSOR, ...rendered].join(" && ");
 }
 
 /**
