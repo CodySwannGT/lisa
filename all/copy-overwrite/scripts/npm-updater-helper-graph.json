@@ -1167,7 +1167,7 @@
       "children": []
     },
     "lisa-gates.mjs": {
-      "sha256": "fd49770cc53890df97365b32632b2c61341a7de1a535cc8ba74de54ae3063285",
+      "sha256": "1323a4b7ebad4d4f5978ce41576c63bd55b165ce55192c5188a53d6da87fc0fa",
       "staticImports": [
         "lib/invoked-as-script.mjs",
         "node:crypto",
