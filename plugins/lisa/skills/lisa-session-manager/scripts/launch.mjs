@@ -43,6 +43,7 @@ export {
   buildStoreTokenCommand,
   loadPromptSecret,
   storeToken,
+  storeTokenFromClipboard,
   validateBotToken,
   writeTokenFile,
 } from "./token.mjs";

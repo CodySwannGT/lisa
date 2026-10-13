@@ -11,12 +11,12 @@
  * registry populates defaults into every project, and the manager starts
  * yolo-mode sessions; it must exist only where an operator wrote it.
  *
- * Pure apart from `detectRepos`, whose filesystem calls are injectable.
+ * Pure. Repo detection, which reads the filesystem, lives in repo-detect.mjs
+ * and is re-exported here so callers keep one import.
  * @module session-manager/config
  */
 
-import { existsSync, readdirSync } from "node:fs";
-import { isAbsolute, join, resolve, sep } from "node:path";
+import { isAbsolute, resolve, sep } from "node:path";
 
 import {
   mergeConfigLayers as mergeLayers,
@@ -25,6 +25,7 @@ import {
 } from "../../lisa-secrets-access/scripts/validate-config.mjs";
 
 export { parseLoopInterval, validateSessionManager };
+export { detectRepos, draftHints } from "./repo-detect.mjs";
 
 /**
  * Documented defaults for every optional key.
@@ -123,33 +124,6 @@ export function resolveSessionManagerConfig(globalConfig, localConfig) {
 }
 
 /**
- * List the Lisa-configured child repos of a multi-repo project.
- *
- * A child counts only when it carries its own `.lisa.config.json`: workers run
- * `/lisa:implement` inside it, which needs that file, and a stray directory
- * under `projects/` is not something to route tickets into.
- * @param {string} root Project root.
- * @param {{
- *   reposRoot?: string,
- *   fs?: { existsSync: (p: string) => boolean,
- *     readdirSync: (p: string, o: { withFileTypes: true }) =>
- *       Array<{ name: string, isDirectory: () => boolean }> },
- * }} [options] Repos root (default `projects`) and filesystem seam.
- * @returns {string[]} Child directory names, sorted.
- */
-export function detectRepos(root, options = {}) {
-  const fs = options.fs ?? { existsSync, readdirSync };
-  const base = join(root, options.reposRoot ?? DEFAULT_REPOS_ROOT);
-  if (!fs.existsSync(base)) return [];
-  return fs
-    .readdirSync(base, { withFileTypes: true })
-    .filter(entry => entry.isDirectory() && SAFE_SEGMENT.test(entry.name))
-    .filter(entry => fs.existsSync(join(base, entry.name, ".lisa.config.json")))
-    .map(entry => entry.name)
-    .sort();
-}
-
-/**
  * Turn a project name into a slug the validator accepts.
  * @param {string} projectSlug Project name, possibly with dots or capitals.
  * @returns {string} Lowercase, dash-separated slug.
@@ -177,13 +151,18 @@ function normalizeSlug(projectSlug) {
  * Defaults are written out rather than left implicit, so an operator sees
  * every knob in the file they will edit. With no detected repos the block has
  * no `repos` key, which is what makes a project single-repo. Each detected
- * repo's hints start as its own name: valid, and an obvious prompt to add real
- * ones.
- * @param {{ projectSlug: string, detectedRepos?: string[] }} input Project
- *   slug and the output of `detectRepos`.
+ * repo's hints are its drafted hints when given (`draftHints`), else its own
+ * name: valid either way, and setup asks the operator to review them.
+ * @param {{ projectSlug: string, detectedRepos?: string[],
+ *   hints?: Record<string, string[]> }} input Project slug, the output of
+ *   `detectRepos`, and drafted hints per repo.
  * @returns {SessionManagerBlock} A block `validateSessionManager` accepts.
  */
-export function buildDefaultBlock({ projectSlug, detectedRepos = [] }) {
+export function buildDefaultBlock({
+  projectSlug,
+  detectedRepos = [],
+  hints = {},
+}) {
   const slug = normalizeSlug(projectSlug);
   const repos = [...detectedRepos].sort();
   return {
@@ -194,7 +173,10 @@ export function buildDefaultBlock({ projectSlug, detectedRepos = [] }) {
           repos: {
             root: DEFAULT_REPOS_ROOT,
             entries: Object.fromEntries(
-              repos.map(name => [name, { hints: [name] }])
+              repos.map(name => [
+                name,
+                { hints: hints[name]?.length ? [...hints[name]] : [name] },
+              ])
             ),
           },
         }
