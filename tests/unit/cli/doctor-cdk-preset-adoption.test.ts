@@ -133,6 +133,7 @@ describe("doctor CDK preset-adoption check", () => {
 
     expect(check.status).toBe("ok");
     expect(check.detail).not.toContain("aws-cdk-github-oidc");
+    expect(check.detail).not.toContain("@aws-cdk/aws-amplify-alpha");
   });
 
   it("says so rather than guessing when the marker names no entry it can find", async () => {
