@@ -37,6 +37,18 @@ export const QUALITY_YML = [
   "          GATE_ID: type-correctness",
   "        run: echo resolve",
   "      - run: npm run typecheck",
+  // A façade job whose gate is still job-backed in the shipped table. The
+  // typecheck job above stopped being one in #3052 (a declared gate leg proves
+  // it now), so the façade-reads-declaration question needs this one.
+  "  lint:",
+  "    name: 🧹 Lint",
+  RUNNER,
+  "    steps:",
+  "      - id: gate",
+  "        env:",
+  "          GATE_ID: code-style",
+  "        run: echo resolve",
+  "      - run: npm run lint",
   "  npm_security_scan:",
   "    name: 🔒 Security Scan",
   RUNNER,

@@ -114,7 +114,7 @@
             "pattern": "^\\{.*\\}$",
             "shape": "json-object-keys",
             "min": 25,
-            "contains": ["conflict_markers", "test_unit", "typecheck", "sonarcloud"]
+            "contains": ["conflict_markers", "test_unit", "test_integration", "sonarcloud"]
           }
         }
       ]

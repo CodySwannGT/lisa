@@ -34,21 +34,16 @@ interface PlannedWorkflowJob extends WorkflowJob {
 const EXPECTED_JOB_GATES = Object.freeze({
   history_secrets: "introduced-history-credential-leakage",
   lint: "code-style",
-  lint_slow: "code-style-slow",
-  typecheck: "type-correctness",
   verification_coverage: "coverage-adequacy",
   test_unit: "test-correctness",
   test_mutation: "test-meaningfulness",
   test_integration: "test-integration",
   playwright_e2e_aggregate: "e2e-browser",
-  format: "format-conformance",
-  build: "build-integrity",
   work_item_traceability: "traceability",
   performance_budget: "performance-budget",
   test_node_suites: "test-node-suites",
   environment_reset: "environment-reset",
   environment_reseed: "environment-reseed",
-  dead_code: "dead-code",
   learnings_budget: "learnings-budget",
   conflict_markers: "conflict-residue",
   sg_scan: "structural-rules",
@@ -110,7 +105,7 @@ describe("quality gate preallocation", () => {
     expect(plan.test_unit).toBe("run");
     expect(plan.npm_security_scan).toBe("run");
     expect(plan.snyk).toBe("run");
-    expect(plan.typecheck).toBe("run");
+    expect(plan.test_integration).toBe("run");
   });
 
   it("pins every job mapping and skips exactly one off gate at a time", () => {
@@ -148,7 +143,7 @@ describe("quality gate preallocation", () => {
       await fs.writeJson(path.join(project, ".lisa.config.json"), {
         gates: {
           "code-style": { [MOMENT]: "off" },
-          "type-correctness": { [MOMENT]: "required" },
+          "test-integration": { [MOMENT]: "required" },
         },
       });
 
@@ -162,7 +157,7 @@ describe("quality gate preallocation", () => {
       expect(result.status).toBe(0);
       expect(JSON.parse(result.stdout)).toMatchObject({
         lint: "skip",
-        typecheck: "run",
+        test_integration: "run",
         test_unit: "run",
       });
     } finally {
@@ -194,7 +189,8 @@ describe("quality gate preallocation", () => {
     );
 
     expect(new Set(plannedJobs)).toEqual(new Set(facadeJobs));
-    expect(plannedJobs).toHaveLength(29);
+    // 29 until #3052 moved five onto declared gate legs.
+    expect(plannedJobs).toHaveLength(24);
     for (const jobId of plannedJobs) {
       const job = workflow.jobs[jobId];
       expect(needsOf(job), `${jobId} must wait for gate_plan`).toContain(

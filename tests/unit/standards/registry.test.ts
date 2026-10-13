@@ -217,19 +217,18 @@ describe("standards check registry", () => {
         `${id} invokes its shipped script`
       ).toBe(script);
     }
+    // `lint_slow`, `typecheck`, `format`, `build` and `dead_code` are gone
+    // (#3052): their scripts are run by the `declared_gates` leg for the gate
+    // the project declares, which is the job asserted below instead.
     for (const job of [
       "lint",
-      "lint_slow",
-      "typecheck",
+      "declared_gates",
       // #2485 deleted the bare `test` job: it re-ran `npm test` over the same
       // suites the two coverage-carrying required contexts below already run,
       // and its NOT-required red read like the required test gate failing.
       "verification_coverage",
       "test_unit",
       "test_integration",
-      "format",
-      "build",
-      "dead_code",
       "sg_scan",
     ]) {
       expect(workflow).toMatch(new RegExp(`^  ${job}:`, "mu"));
@@ -237,8 +236,10 @@ describe("standards check registry", () => {
     expect(workflow).toContain(
       "run: node scripts/check-verification-coverage.mjs"
     );
-    // Bound through `env:`, never interpolated into the shell (#3793).
-    expect(workflow).toContain('"$PACKAGE_MANAGER" run build');
+    // Bound through `env:`, never interpolated into the shell (#3793). The
+    // build now runs as a declared gate leg, so this is the leg's command.
+    expect(workflow).toContain("GATE_TASK: $" + "{{ matrix.task }}");
+    expect(workflow).toContain("run: $GATE_RUNNER $GATE_TASK");
 
     const phaserWorkflow = await readFile(
       path.join(

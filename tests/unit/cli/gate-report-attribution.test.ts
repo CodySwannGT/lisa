@@ -40,10 +40,17 @@ import {
 /** A project that holds the reusable workflow — the upstream case. */
 const UPSTREAM = { config: {}, workflows: { "quality.yml": QUALITY_YML } };
 
+/**
+ * A gate a hand-written façade job still proves. `type-correctness` was the
+ * example until #3052 moved it onto a declared gate leg, after which no job in
+ * the shipped table pairs with it and the question has nothing to read.
+ */
+const CODE_STYLE = "code-style";
+
 describe("Tier 3, once the workflow is on disk", () => {
   it("refuses the question in a project that holds no workflow", async () => {
     const built = await reportFor({ config: {} });
-    const cell = row(built, TYPE_CORRECTNESS).moments.find(
+    const cell = row(built, CODE_STYLE).moments.find(
       entry => entry.moment === PULL_REQUEST
     );
     expect(cell?.facadeReadsDeclaration.state).toBe("unknown");
@@ -53,10 +60,10 @@ describe("Tier 3, once the workflow is on disk", () => {
   it("answers it where the workflow is present", async () => {
     const built = await reportFor(UPSTREAM);
     expect(built.facadeSource.present).toBe(true);
-    const typecheck = row(built, TYPE_CORRECTNESS).moments.find(
+    const lint = row(built, CODE_STYLE).moments.find(
       entry => entry.moment === PULL_REQUEST
     );
-    expect(typecheck?.facadeReadsDeclaration).toEqual({
+    expect(lint?.facadeReadsDeclaration).toEqual({
       state: "verified",
       value: true,
     });

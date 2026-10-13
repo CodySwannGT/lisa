@@ -2,6 +2,28 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.80.1](https://github.com/CodySwannGT/lisa/compare/v4.80.0...v4.80.1) (2026-10-13)
+
+
+### Bug Fixes
+
+* **ci:** probe a plan key every released registry still emits ([ec403a7](https://github.com/CodySwannGT/lisa/commit/ec403a70ead49a7123606f363906d0ec6433445c)), closes [#3052](https://github.com/CodySwannGT/lisa/issues/3052) [CodySwannGT/lisa#4450](https://github.com/CodySwannGT/lisa/issues/4450) [CodySwannGT/lisa#4450](https://github.com/CodySwannGT/lisa/issues/4450)
+* **templates:** keep shipped scripts clean under the host lint preset ([4003256](https://github.com/CodySwannGT/lisa/commit/4003256e48b8e0b2f8b1fbf04c659dc59caf6fa2)), closes [CodySwannGT/lisa#4450](https://github.com/CodySwannGT/lisa/issues/4450)
+
+## [4.80.0](https://github.com/CodySwannGT/lisa/compare/v4.79.2...v4.80.0) (2026-10-12)
+
+
+### Features
+
+* **quality:** move five pull-request gates onto declared gate legs (TDD GREEN) ([ef56d9e](https://github.com/CodySwannGT/lisa/commit/ef56d9e560de8e65705b7b072482f8078381ff47)), closes [CodySwannGT/lisa#3052](https://github.com/CodySwannGT/lisa/issues/3052) [CodySwannGT/lisa#3052](https://github.com/CodySwannGT/lisa/issues/3052)
+
+
+### Bug Fixes
+
+* **gates:** close two review findings on the runner-owned gates ([f3e41a3](https://github.com/CodySwannGT/lisa/commit/f3e41a3fdde97f9008b08be3461e5f73dcde65f4)), closes [CodySwannGT/lisa#3052](https://github.com/CodySwannGT/lisa/issues/3052) [CodySwannGT/lisa#3052](https://github.com/CodySwannGT/lisa/issues/3052)
+* **promotions:** require declared_gates to be a matrix job ([caaecac](https://github.com/CodySwannGT/lisa/commit/caaecac49d8e7c52a7e4ba5a771999acd4db8e11)), closes [CodySwannGT/lisa#3052](https://github.com/CodySwannGT/lisa/issues/3052) [CodySwannGT/lisa#3052](https://github.com/CodySwannGT/lisa/issues/3052)
+* **ui:** count a declared gate leg active only at a level that runs ([36e7e83](https://github.com/CodySwannGT/lisa/commit/36e7e833e0ef8ec91efd333aec7c8df04a4f65d6)), closes [CodySwannGT/lisa#3052](https://github.com/CodySwannGT/lisa/issues/3052) [CodySwannGT/lisa#3052](https://github.com/CodySwannGT/lisa/issues/3052)
+
 ### [4.79.2](https://github.com/CodySwannGT/lisa/compare/v4.79.1...v4.79.2) (2026-10-12)
 
 

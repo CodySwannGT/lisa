@@ -243,17 +243,6 @@ describe("quality.yml gate façade", () => {
       expect(verify?.if).toBe(NOT_CONFIGURED);
     });
 
-    it.each(["🏗️ Run the build-integrity gate", "🏗️ Build project"])(
-      "keeps the build cache-hit guard parenthesised on %s",
-      name => {
-        // GitHub Actions binds && tighter than ||, so an unparenthesised
-        // `A || B && C` would run the step on a cache hit.
-        expect(stepNamed("build", name)?.if).toContain(
-          "(inputs.cache_build != true || steps.build_cache.outputs.cache-hit != 'true')"
-        );
-      }
-    );
-
     it.each([
       "🧰 Start coverage service containers",
       "🧪 Apply coverage environment",

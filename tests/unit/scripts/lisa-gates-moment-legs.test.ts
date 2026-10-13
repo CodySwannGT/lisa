@@ -464,19 +464,15 @@ const TWICE_PROVED = "dependency-vulnerability";
  */
 const JOB_BACKED = [
   "behavior-contract",
-  "build-integrity",
   "code-style",
-  "code-style-slow",
   "conflict-residue",
   "coverage-adequacy",
   "credential-leakage",
-  "dead-code",
   TWICE_PROVED,
   "e2e-browser",
   "e2e-native",
   "environment-reseed",
   "environment-reset",
-  "format-conformance",
   "introduced-history-credential-leakage",
   "journey-coverage",
   "learnings-budget",
@@ -492,7 +488,6 @@ const JOB_BACKED = [
   "test-node-suites",
   "threshold-monotonicity",
   "traceability",
-  "type-correctness",
 ];
 
 describe("which gates the runner leaves alone", () => {

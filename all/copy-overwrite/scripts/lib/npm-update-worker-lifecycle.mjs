@@ -220,15 +220,13 @@ export async function executeWorker(boundary, invocation, { input, env } = {}) {
       "Docker returned an invalid actual worker exit"
     );
     const inspected = await ownedInspection(docker, id, ownedBoundary);
-    if (
-      !(
-        inspected.State?.Running === false &&
-        inspected.State?.ExitCode === Number(waited) &&
-        attached.code === Number(waited) &&
-        !inspected.State?.OOMKilled &&
-        !inspected.State?.Error
-      )
-    )
+    const exitedCleanlyAsReported =
+      inspected.State?.Running === false &&
+      inspected.State?.ExitCode === Number(waited) &&
+      attached.code === Number(waited) &&
+      !inspected.State?.OOMKilled &&
+      !inspected.State?.Error;
+    if (!exitedCleanlyAsReported)
       throw Object.assign(
         new UpdaterError(
           "worker actual status/attach differs or worker was killed"

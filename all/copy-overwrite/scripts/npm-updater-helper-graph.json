@@ -963,7 +963,7 @@
       "children": []
     },
     "lib/npm-update-runtime-archive.mjs": {
-      "sha256": "e7e9a5577921ad2db4c4d0f003f9b5de90f0050ac0107286a7df49e6b7778679",
+      "sha256": "27fb9639965681f0a9b8282ade6b6c45554ea03d5a192c54b13ce51cb03b254e",
       "staticImports": [
         "lib/npm-update-contract.mjs",
         "lib/npm-update-runtime-graph.mjs",
@@ -1063,7 +1063,7 @@
       "children": []
     },
     "lib/npm-update-worker-lifecycle.mjs": {
-      "sha256": "70b53fcd7532d64d8c0605aa3347480eea8415b95e7004192f4c381d899a6292",
+      "sha256": "3866f58afffdca5680f41dfe4ef3a67580d0aab63550dd534e682ded7905e8c6",
       "staticImports": [
         "lib/automation-provenance-contract.mjs",
         "lib/github-attestation-verifier.mjs",
@@ -1167,7 +1167,7 @@
       "children": []
     },
     "lisa-gates.mjs": {
-      "sha256": "f8cd07bdcdfc4066467635d86dc2a17337d4adacdd8829745482877dbd838f5e",
+      "sha256": "fd49770cc53890df97365b32632b2c61341a7de1a535cc8ba74de54ae3063285",
       "staticImports": [
         "lib/invoked-as-script.mjs",
         "node:crypto",

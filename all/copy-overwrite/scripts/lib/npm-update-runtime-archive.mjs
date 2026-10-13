@@ -121,7 +121,11 @@ function consumeTar(state, chunk) {
   }
 }
 
-/** One caller owns descriptor closure even when pipeline rejects a malformed archive. */
+/**
+ * One caller owns descriptor closure even when pipeline rejects a malformed archive.
+ * @param {number} fd - Open descriptor of the compressed archive.
+ * @yields {Buffer} Successive raw chunks read from the descriptor.
+ */
 async function* archiveChunks(fd) {
   const buffer = Buffer.alloc(65_536);
   let length;
