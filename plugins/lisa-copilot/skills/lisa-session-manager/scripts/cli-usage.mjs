@@ -34,8 +34,9 @@ Workers and capacity
           "/lisa:implement <ref> managedBy=<sessionManager.name>"
       Records the ledger and sessions.jsonl. stdout {ref,name,sessionId,repo,cwd}.
   resume <ref>                         STDIN: the message for the worker
-      claude --bg --resume <ledger sessionId> -- "<stdin>" in the worker's repo
-      dir, TELEGRAM_* removed. stdout {ref,worker,sessionId,resumed:true}.
+      claude --bg --resume <full session id> -- "<stdin>" in the worker's repo
+      dir, TELEGRAM_* removed; the full id comes from claude agents --json --all
+      (exit 2 when none does). stdout {ref,worker,sessionId,resumed:true}.
   classify [<ref>]
       Classifies one ledger item (or all) from claude agents --json --all and
       a hash of claude logs <worker>; records the hash as progress. stdout

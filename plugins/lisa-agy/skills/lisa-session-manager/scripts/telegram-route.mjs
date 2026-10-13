@@ -7,8 +7,14 @@
  * only ever uses an explicit signal, in this order:
  *
  * 1. a leading `[REF]`, `REF:` or `REF ` naming a ledger ref or its worker
- *    token (case-insensitive, exact token — `TEAM-1` never matches `TEAM-12`);
- * 2. a Telegram reply to the message that carried a pending question;
+ *    token (case-insensitive, exact token — `TEAM-1` never matches `TEAM-12`).
+ *    A GitHub ref `owner/repo#12` also answers to `repo#12` and `#12`, which
+ *    is what a phone user types; a short form that names more than one ledger
+ *    item names none;
+ * 2. a Telegram reply to the message that carried a pending question. The
+ *    Telegram channel plugin (0.0.7) does not pass the replied-to message id
+ *    on, so the manager can only supply `--reply-to` from a plugin that does;
+ *    the leading ref is what operators are told to use;
  * 3. an operator command (`status`, `pause`, `resume`, `cap N`, `stop REF`);
  * 4. the only pending question, when exactly one exists.
  *
@@ -55,24 +61,40 @@ function namesFor(ref, entry) {
       return null;
     }
   })();
-  return [ref, safeToken, parseWorkerName(entry?.worker)?.token]
+  return [
+    ref,
+    safeToken,
+    parseWorkerName(entry?.worker)?.token,
+    ...shortForms(ref),
+  ]
     .filter(name => typeof name === "string")
     .map(name => name.toLowerCase());
 }
 
 /**
- * Find the ledger ref a token names.
+ * The phone-friendly short forms of a GitHub ref: `owner/repo#12` gives
+ * `repo#12` and `#12`. Jira and Linear keys have none.
+ * @param {string} ref - Ledger key
+ * @returns {string[]} Short forms, possibly empty
+ */
+function shortForms(ref) {
+  const github = /^[^/\s]+\/([^#\s]+)(#\d+)$/.exec(ref);
+  return github ? [`${github[1]}${github[2]}`, github[2]] : [];
+}
+
+/**
+ * Find the ledger ref a token names. A token that names several items (a
+ * `#12` shared by two repos) names none, so it can never pick one at random.
  * @param {Record<string, object>} items - Ledger items
  * @param {string} token - Candidate from the message
  * @returns {string | null} Ledger key, or null
  */
 function matchRef(items, token) {
   const wanted = token.toLowerCase();
-  return (
-    Object.keys(items).find(ref =>
-      namesFor(ref, items[ref]).includes(wanted)
-    ) ?? null
+  const matches = Object.keys(items).filter(ref =>
+    namesFor(ref, items[ref]).includes(wanted)
   );
+  return matches.length === 1 ? matches[0] : null;
 }
 
 /**

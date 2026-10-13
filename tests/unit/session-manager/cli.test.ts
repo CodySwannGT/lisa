@@ -241,17 +241,44 @@ describe("spawn", () => {
 describe("resume", () => {
   const ANSWER = "Option 2, please: $(touch pwned) `id` 'quoted' \"double\"";
 
+  const FULL_ID = "1a2b3c4d-0000-4000-8000-00000000000a";
+
+  /**
+   * The stopped worker's `claude agents --json --all` row, as 2.1.296 lists
+   * it: the short id the ledger recorded, plus the full session id.
+   * @param worker - Worker session name from the ledger
+   * @returns Agent row
+   */
+  const stoppedRow = (worker: string) => ({
+    ...finishedAgent(worker),
+    id: "1a2b3c4d",
+    sessionId: FULL_ID,
+  });
+
   it("passes stdin text as one argv element in the worker's repo, env scrubbed", () => {
     const sandbox = makeSandbox({ repos: ["api"] });
     runCli(sandbox, ["spawn", REF, "--repo", "api", ...MEM]);
-    const result = runCli(sandbox, ["resume", REF], { input: ANSWER });
+    const { worker } = readLedgerFile(sandbox).items[REF];
+    const result = runCli(sandbox, ["resume", REF], {
+      input: ANSWER,
+      agents: [stoppedRow(worker)],
+    });
     expect(result.stderr).toBe("");
     expect(result.status).toBe(0);
     const [bg] = callsOf(result.calls, "claude", "--bg");
-    expect(bg?.argv).toEqual(["--bg", "--resume", "1a2b3c4d", "--", ANSWER]);
+    expect(bg?.argv).toEqual(["--bg", "--resume", FULL_ID, "--", ANSWER]);
     expect(bg?.cwd).toBe(path.join(sandbox.root, "projects/api"));
     for (const key of TELEGRAM_KEYS) expect(bg?.envKeys).not.toContain(key);
-    expect(result.json).toMatchObject({ ref: REF, sessionId: "1a2b3c4d" });
+    expect(result.json).toMatchObject({ ref: REF, sessionId: FULL_ID });
+  });
+
+  it("never resumes by short id, which would start a copy instead of the worker", () => {
+    const sandbox = makeSandbox();
+    runCli(sandbox, ["spawn", REF, ...MEM]);
+    const result = runCli(sandbox, ["resume", REF], { input: "yes" });
+    expect(result.status).toBe(2);
+    expect(result.stderr).toMatch(/full session id/);
+    expect(callsOf(result.calls, "claude", "--bg")).toEqual([]);
   });
 
   it("exits 2 on empty stdin", () => {

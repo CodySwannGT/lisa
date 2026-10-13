@@ -100,6 +100,10 @@ the manager.
   `[<TEAM>-123]`. Keep it phone-sized, with options on numbered lines.
 - Post starts, questions, finishes, failures and tracker changes you made. No routine cycle summaries.
 - When you post a question, keep the Telegram message id the reply tool returns; the ledger needs it.
+- **End every question with how to answer:** `Answer with: <label> <your answer>`. The label is the
+  key for a Jira or Linear item (`<TEAM>-123`), and for a GitHub item `#12`, or `repo#12` when
+  another ledger item shares the number. Telegram's own Reply does not tell you which message was
+  answered, so with more than one question open, a reply without the label is ambiguous.
 - **Never ask in this terminal.** Nobody watches the manager's terminal, and a question there stops
   the `/loop`: no further cycle runs until someone attaches and answers. Every question goes to
   Telegram, or is recorded as pending (below). Never use `AskUserQuestion` or end a turn on a
@@ -120,18 +124,20 @@ the manager.
   `--sender <sender>` on the `ledger set-question` and `ledger finish` calls below; the CLI exits 2
   on a mismatch, and exit 2 means ignore.
 - **Question from a worker** (a cross-session message from a `wk-` session, starting `[<REF>]`):
-  forward it to Telegram unchanged apart from trimming, then record it with
+  forward it to Telegram unchanged apart from trimming and the `Answer with:` line, then record it with
   `ledger set-question <ref> --telegram-message-id <id> --sender <sender>` (question on STDIN), then
   tell the worker it was forwarded. If Telegram is unavailable or unpaired, follow "Telegram rules":
   record it with `--sender <sender>` and no message id, and tell the worker it is queued.
-- **Telegram message.** Route it: `route [--reply-to <id of the message it replies to>] --owner Operator`
-  with the text on STDIN.
+- **Telegram message.** Route it: `route --owner Operator` with the text on STDIN. Add
+  `--reply-to <id>` only when the inbound message actually names the message it replies to; the
+  Telegram plugin (0.0.7) does not, so never guess one.
   - `answer`: if `classify <ref>` shows the worker live, send `message` to the worker name with
     `SendMessage`. If it was idle-stopped or is gone, run `resume <ref>` with `message` on STDIN.
     Then `ledger clear-question <ref>` and acknowledge on Telegram. An answer to a repo-routing
     question (an item with no worker yet) is applied by stamping `repo:<name>` through
     `lisa-tracker-write`, then clearing the question; the next dispatch routes it.
-  - `ambiguous`: ask which ref it is for, listing `candidates`.
+  - `ambiguous`: ask which ref it is for, listing `candidates`, each with the label to start the
+    answer with (`Answer with: #12 <your answer>`).
   - `command`:
     - `status`: summarize `status` (running, cap, pending questions, paused).
     - `pause` / `resume`: `ledger control --paused true|false`. Relaying and reconciling continue

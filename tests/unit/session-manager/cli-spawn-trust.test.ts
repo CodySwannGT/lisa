@@ -17,7 +17,7 @@ import {
   removeSandboxes,
   runCli,
 } from "./support/cli-harness.js";
-import { readLedgerFile } from "./support/cli-fixtures.js";
+import { finishedAgent, readLedgerFile } from "./support/cli-fixtures.js";
 
 afterEach(removeSandboxes);
 
@@ -69,8 +69,10 @@ describe("resume in an untrusted workspace", () => {
   it("exits 2 with the same trust step", () => {
     const sandbox = makeSandbox();
     expect(runCli(sandbox, ["spawn", REF, ...MEM]).status).toBe(0);
+    const { worker } = readLedgerFile(sandbox).items[REF];
     const result = runCli(sandbox, ["resume", REF], {
       input: "yes",
+      agents: [finishedAgent(worker)],
       env: { STUB_BG_EXIT: "1", STUB_BG_STDERR: untrusted(sandbox.root) },
     });
     expect(result.status).toBe(2);

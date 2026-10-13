@@ -57,3 +57,36 @@ export function runWorkerSession(spec) {
     EXIT.FAILURE
   );
 }
+
+/** A full session UUID; the only id `--resume` continues in place. */
+const FULL_SESSION_ID =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/**
+ * The full session id for a ledger item, for `claude --bg --resume`.
+ *
+ * `claude --bg` prints an 8-character short id, and that is what the ledger
+ * records. Given a short id, `--resume` (2.1.296) does not wake the session:
+ * it starts a copy of the conversation under a new id and names it after the
+ * message, which the manager cannot see. So a short id is mapped to the full
+ * `sessionId` of the matching `claude agents --json --all` row, by worker
+ * name or by short id.
+ * @param {Array<{name: string|null, id: string|null, sessionId: string|null}>}
+ *   agents - Normalized rows from `listAgents(ctx, { all: true })`
+ * @param {{ worker?: string|null, sessionId?: string|null }} item - Ledger item
+ * @returns {string | null} Full lowercase session id, or null when no row
+ *   carries one
+ */
+export function resolveFullSessionId(agents, item) {
+  const recorded = String(item?.sessionId ?? "").toLowerCase();
+  if (FULL_SESSION_ID.test(recorded)) return recorded;
+  const row = agents.find(
+    agent =>
+      FULL_SESSION_ID.test(agent.sessionId ?? "") &&
+      ((item?.worker && agent.name === item.worker) ||
+        (recorded !== "" &&
+          (agent.id === recorded ||
+            agent.sessionId.toLowerCase().startsWith(`${recorded}-`))))
+  );
+  return row ? row.sessionId.toLowerCase() : null;
+}

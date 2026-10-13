@@ -47,7 +47,7 @@ import {
   findLiveWorker,
   parseSessionId,
 } from "./workers.mjs";
-import { runWorkerSession } from "./worker-launch.mjs";
+import { resolveFullSessionId, runWorkerSession } from "./worker-launch.mjs";
 
 /**
  * Compute the capacity report for this machine and these agents.
@@ -191,13 +191,24 @@ export async function resume(ctx) {
   const text = stdinText(ctx, "message for the worker");
   const config = requireConfig(ctx);
   const item = ledgerItem(await readLedger(ctx.root), ref);
-  if (!item.sessionId) {
+  if (!item.sessionId && !item.worker) {
     throw new CliError(`${ref} has no recorded session id to resume.`, 2);
+  }
+  // probe-direction: fail-closed — no full id means no resume: a short id
+  // would start an unseen copy of the conversation instead of the worker.
+  const sessionId = resolveFullSessionId(listAgents(ctx, { all: true }), item);
+  if (sessionId === null) {
+    throw new CliError(
+      `${ref}: no claude agents row gives the full session id for ` +
+        `${item.worker ?? item.sessionId}, and resuming by short id starts a ` +
+        `copy instead of the worker. Check claude agents --json --all.`,
+      2
+    );
   }
   const repoKey = item.repo === "." ? undefined : item.repo;
   const spec = asSetupError(() =>
     buildWorkerResume({
-      sessionId: item.sessionId,
+      sessionId,
       text,
       repoDir: requireLisaRepo(resolveRepoDir(config, repoKey, ctx.root)),
       env: ctx.env,
@@ -208,13 +219,13 @@ export async function resume(ctx) {
     event: "resume",
     ref,
     worker: item.worker,
-    sessionId: item.sessionId,
+    sessionId,
   });
   return {
     json: {
       ref,
       worker: item.worker,
-      sessionId: item.sessionId,
+      sessionId,
       resumed: true,
     },
   };
