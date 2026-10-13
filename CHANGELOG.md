@@ -2,6 +2,39 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [4.81.0](https://github.com/CodySwannGT/lisa/compare/v4.80.2...v4.81.0) (2026-10-13)
+
+
+### Features
+
+* **automations:** show the locally hosted session manager in status and teardown ([0c54d51](https://github.com/CodySwannGT/lisa/commit/0c54d5133b6781a8a136c0065dc9724a587ac1a1)), closes [CodySwannGT/lisa#4448](https://github.com/CodySwannGT/lisa/issues/4448)
+* **doctor:** check that each project's Telegram bot stays isolated ([60f0ec4](https://github.com/CodySwannGT/lisa/commit/60f0ec4454998e796dfebb8671341cdd1f9a2884)), closes [CodySwannGT/lisa#4448](https://github.com/CodySwannGT/lisa/issues/4448)
+* **implement:** accept managedBy= to route questions to a managing session ([1739f42](https://github.com/CodySwannGT/lisa/commit/1739f421ae9b49bf288907867de97edd0bfa7b43)), closes [CodySwannGT/lisa#4448](https://github.com/CodySwannGT/lisa/issues/4448)
+* **intake:** order the ready queue mine-first, then unassigned, by priority and age ([29184f5](https://github.com/CodySwannGT/lisa/commit/29184f51f7fbbfb9e0e6c86ec8d817e4d0d43647)), closes [CodySwannGT/lisa#4448](https://github.com/CodySwannGT/lisa/issues/4448)
+* **session-manager:** add capacity and launch modules ([9b52865](https://github.com/CodySwannGT/lisa/commit/9b52865131ec5b8d4f40978196088eeeed50972c)), closes [CodySwannGT/lisa#4448](https://github.com/CodySwannGT/lisa/issues/4448)
+* **session-manager:** add the session manager and its setup skill ([3272c13](https://github.com/CodySwannGT/lisa/commit/3272c1357890126954430946568200fb125cb1de)), closes [CodySwannGT/lisa#4448](https://github.com/CodySwannGT/lisa/issues/4448)
+* **session-manager:** add the session-manager CLI the skills drive ([91a916f](https://github.com/CodySwannGT/lisa/commit/91a916f384bbe66f8f974043ef682a0c3bf89aff)), closes [CodySwannGT/lisa#4448](https://github.com/CodySwannGT/lisa/issues/4448)
+* **session-manager:** add the sessionManager config block, validator and docs ([f081ce4](https://github.com/CodySwannGT/lisa/commit/f081ce40dc1a4b4d0156009299a2b67c68156550)), closes [CodySwannGT/lisa#4448](https://github.com/CodySwannGT/lisa/issues/4448)
+* **session-manager:** add worker, ledger, reply-routing and blocked-release modules ([4e51225](https://github.com/CodySwannGT/lisa/commit/4e5122529f46c18e522e9de6c860f7a90222710f)), closes [CodySwannGT/lisa#4448](https://github.com/CodySwannGT/lisa/issues/4448)
+
+
+### Bug Fixes
+
+* **session-manager:** honour the configured human-needed label ([75158d5](https://github.com/CodySwannGT/lisa/commit/75158d5ba2748156ebe377566d6611cc92dabedd)), closes [CodySwannGT/lisa#4448](https://github.com/CodySwannGT/lisa/issues/4448)
+* **session-manager:** keep each project's bot isolated and untrusted text out of workers ([101c668](https://github.com/CodySwannGT/lisa/commit/101c66812c5a029b87144cfbb7cd54ec3c392365)), closes [CodySwannGT/lisa#4448](https://github.com/CodySwannGT/lisa/issues/4448)
+* **session-manager:** make start launch the manager and count idle workers as alive ([56045b1](https://github.com/CodySwannGT/lisa/commit/56045b169975ede0c65e19beded72eacb179b0e5)), closes [CodySwannGT/lisa#4448](https://github.com/CodySwannGT/lisa/issues/4448)
+* **session-manager:** mark the start survival probe as failing closed ([9e4379d](https://github.com/CodySwannGT/lisa/commit/9e4379df1649106515a9313bd20a8dcafac5e670)), closes [CodySwannGT/lisa#4448](https://github.com/CodySwannGT/lisa/issues/4448)
+* **session-manager:** never deliver a mistyped command to a worker ([ea2f91f](https://github.com/CodySwannGT/lisa/commit/ea2f91fe84b35047665ff4323e4f894b896c9a1c)), closes [CodySwannGT/lisa#4448](https://github.com/CodySwannGT/lisa/issues/4448)
+* **session-manager:** recognise workers for long refs and tighten review findings ([130b5dd](https://github.com/CodySwannGT/lisa/commit/130b5ddfa1c528c71da2df9ca31ff751ab63ba32)), closes [CodySwannGT/lisa#4448](https://github.com/CodySwannGT/lisa/issues/4448)
+* **session-manager:** route phone answers by short label and resume workers by full session id ([dd48a84](https://github.com/CodySwannGT/lisa/commit/dd48a84b9b4927255598db96b5bfa79f63f3bcef)), closes [#12](https://github.com/CodySwannGT/lisa/issues/12) [repo#12](https://github.com/CodySwannGT/repo/issues/12) [CodySwannGT/lisa#4448](https://github.com/CodySwannGT/lisa/issues/4448)
+* **session-manager:** treat an empty trustedAuthorIds as unset ([04c2315](https://github.com/CodySwannGT/lisa/commit/04c2315ec2a8f63985e7797abb10530629e654d3)), closes [CodySwannGT/lisa#4448](https://github.com/CodySwannGT/lisa/issues/4448)
+* **test-run:** drain the bootstrap's own group on channel loss so the leader never orphans it ([b0b1f9c](https://github.com/CodySwannGT/lisa/commit/b0b1f9c2fd4f3a3a50b98377436dc70842cd01f9)), closes [CodySwannGT/lisa#4448](https://github.com/CodySwannGT/lisa/issues/4448)
+
+
+### Documentation
+
+* **plan:** record the roster, plan, research and design for the session manager ([829d51a](https://github.com/CodySwannGT/lisa/commit/829d51a33f92fe6a805615b75157e3e240f49d73)), closes [CodySwannGT/lisa#4448](https://github.com/CodySwannGT/lisa/issues/4448)
+
 ### [4.80.2](https://github.com/CodySwannGT/lisa/compare/v4.80.1...v4.80.2) (2026-10-13)
 
 
