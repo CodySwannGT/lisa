@@ -69,12 +69,19 @@ function scriptDirs(): string[] {
  * built from one can contain it — and before CodySwannGT/lisa#2824 one sitting
  * in a shared checkout failed this suite with a bare basename, which is even
  * less locatable than the relative path its sibling printed.
- * @returns Script basenames, sorted.
+ *
+ * Recursive, because a host's `scripts/lib/` is as much Lisa's payload as its
+ * `scripts/`. The walk once stopped at the top level, so ~110 nested helpers
+ * were never exempted, and a host whose Prettier resolved a newer minor than
+ * Lisa's own reformatted one of them in its pre-commit hook
+ * (CodySwannGT/lisa#4450).
+ * @returns Script paths relative to `scripts/`, sorted.
  */
 function shippedScripts(): string[] {
   const tracked = trackedSet(REPO_ROOT);
   const found = scriptDirs().flatMap(dir =>
-    readdirSync(path.join(REPO_ROOT, dir))
+    readdirSync(path.join(REPO_ROOT, dir), { recursive: true })
+      .map(entry => String(entry).split(path.sep).join("/"))
       .filter(entry => entry.endsWith(".mjs"))
       .filter(entry => tracked.has(`${dir}/${entry}`))
   );

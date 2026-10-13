@@ -173,7 +173,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lib/npm-update-recovery.mjs":
       "3dcb1826fb92c37ecbd6e46863b48b7ebae8826117ed876ae0c0749444b1c4ff",
     "all/copy-overwrite/scripts/lib/npm-update-runtime-archive.mjs":
-      "e7e9a5577921ad2db4c4d0f003f9b5de90f0050ac0107286a7df49e6b7778679",
+      "27fb9639965681f0a9b8282ade6b6c45554ea03d5a192c54b13ce51cb03b254e",
     "all/copy-overwrite/scripts/lib/npm-update-runtime-graph.mjs":
       "bc0de7f8ae94ee5280b655e0bd931388f3d75b1d44d94b8c61a3de4cc00e0aa0",
     "all/copy-overwrite/scripts/lib/npm-update-runtime-transport.mjs":
@@ -189,7 +189,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lib/npm-update-worker-inspection.mjs":
       "6e8fc022a5bff0ab650e7b5dde9279c8ddb1acb6dbe588db8fec67d558833fd2",
     "all/copy-overwrite/scripts/lib/npm-update-worker-lifecycle.mjs":
-      "70b53fcd7532d64d8c0605aa3347480eea8415b95e7004192f4c381d899a6292",
+      "3866f58afffdca5680f41dfe4ef3a67580d0aab63550dd534e682ded7905e8c6",
     "all/copy-overwrite/scripts/lib/npm-update-worker-policy.mjs":
       "0a9fbd4956147c229eed2a6856064729f3102731163b2cb604e132b5b9871832",
     "all/copy-overwrite/scripts/lib/placeholder-expiry.mjs":
@@ -297,7 +297,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/npm-updater-gate.Dockerfile":
       "c1f56c254f188d394fea0c0b9995ebf185c280aa1079233443c1eed1425d0239",
     "all/copy-overwrite/scripts/npm-updater-helper-graph.json":
-      "7b1444433c16ae4b580ad71f908ae9788862b9f814d08c447c78f3dfd49226a4",
+      "9f2be0dcbdba3b42ea89fb8ebd363daf12b6c2709fb05459a9d682ccf5d5c1c6",
     "all/copy-overwrite/scripts/schemas/lisa-command-envelope.v1.schema.json":
       "d153b7c2953a30f180e38f09e98240c63327f5196eeba9bdf545e5a1f125a879",
     "all/copy-overwrite/scripts/schemas/lisa-state-contract.v1.schema.json":
@@ -2771,7 +2771,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/copy-overwrite/.nvmrc":
       "73fb1b615e2043a933be1c0895cde4358036acc28d785692509b822aa53c761f",
     "typescript/copy-overwrite/.prettierignore":
-      "fb5e38bf154cf26f90e6a16bfc7df0ebbca673b4690602a83fa9851d1bfdfaf8",
+      "de7aa85904617999b4a92eeb959fbc0d8a7e8db21fca793c22d1f2de0fbc5be9",
     "typescript/copy-overwrite/.prettierrc.json":
       "a20621f79a064486fba53cc0ea3000a2ece3f312ff38495c6a6606a27d2a727c",
     "typescript/copy-overwrite/.versionrc":
@@ -11268,6 +11268,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/config/orphan-process-gate-wired.test.ts": true,
     "tests/unit/config/oxlint-expo.test.ts": true,
     "tests/unit/config/oxlint-jsdoc-parity.test.ts": true,
+    "tests/unit/config/oxlint-shipped-mjs-clean.test.ts": true,
     "tests/unit/config/oxlint-typescript.test.ts": true,
     "tests/unit/config/oxlint-worktree-safe-extends.test.ts": true,
     "tests/unit/config/performance-budget-gate.test.ts": true,
