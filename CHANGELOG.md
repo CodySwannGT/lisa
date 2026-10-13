@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.81.3](https://github.com/CodySwannGT/lisa/compare/v4.81.2...v4.81.3) (2026-10-13)
+
+
+### Bug Fixes
+
+* **apply:** harden created-path recording from review ([d4aaa59](https://github.com/CodySwannGT/lisa/commit/d4aaa59d32bd1fb2a9c75515767b8b99dc7fafdc)), closes [CodySwannGT/lisa#4459](https://github.com/CodySwannGT/lisa/issues/4459) [CodySwannGT/lisa#4459](https://github.com/CodySwannGT/lisa/issues/4459)
+* **apply:** never overwrite an earlier apply's .lisabak copy ([7f216ea](https://github.com/CodySwannGT/lisa/commit/7f216ea6319aa6015938f4bb9937f570c82e6f5e)), closes [CodySwannGT/lisa#4459](https://github.com/CodySwannGT/lisa/issues/4459) [CodySwannGT/lisa#4459](https://github.com/CodySwannGT/lisa/issues/4459)
+* **apply:** roll back files a failed apply created ([3a9041b](https://github.com/CodySwannGT/lisa/commit/3a9041b5999834a0092673dbe354f52dbd6c0480)), closes [CodySwannGT/lisa#4459](https://github.com/CodySwannGT/lisa/issues/4459) [CodySwannGT/lisa#4459](https://github.com/CodySwannGT/lisa/issues/4459)
+
 ### [4.81.2](https://github.com/CodySwannGT/lisa/compare/v4.81.1...v4.81.2) (2026-10-13)
 
 
