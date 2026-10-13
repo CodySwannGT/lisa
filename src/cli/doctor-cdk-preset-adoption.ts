@@ -239,8 +239,8 @@ const REMEDY =
   "to depend on something the preset delivered. Decide per file, then keep " +
   `the decision by making sure no \`${CDK_APP_MARKER}\` is present — while ` +
   "one is, every apply re-merges the preset's current forced entries. " +
-  "OIDC dependency choices and existing bins are host-owned; current applies " +
-  "do not remove legacy entries";
+  "Construct-library dependency choices (OIDC, Amplify alpha) and existing " +
+  "bins are host-owned; current applies neither add nor remove them";
 
 /**
  * The consequence worth stating, because it is the one that reports success.

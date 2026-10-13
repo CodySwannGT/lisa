@@ -14,6 +14,10 @@ import type { StrategyContext } from "../../../src/strategies/strategy.interface
 import { cleanupTempDir, createTempDir } from "../../helpers/test-utils.js";
 
 const OIDC = "aws-cdk-github-oidc";
+const AMPLIFY_ALPHA = "@aws-cdk/aws-amplify-alpha";
+// Construct libraries an app opts into by importing them. Lisa generates no
+// code that uses either, so the preset must not declare them for the host.
+const OPTIONAL_CONSTRUCTS = [OIDC, AMPLIFY_ALPHA] as const;
 const PACKAGE_JSON = "package.json";
 const REPO_ROOT = process.cwd();
 const SOURCE = path.join(REPO_ROOT, "cdk/package-lisa/package.lisa.json");
@@ -83,11 +87,41 @@ describe("supported CDK OIDC template", () => {
     expect(written.overrides.vite).toBe("$vite");
   });
 
-  it("gives a fresh host the supported OIDC default", async () => {
+  it.each(OPTIONAL_CONSTRUCTS)(
+    "adds no %s to a CDK host whose source does not import it",
+    async name => {
+      await fs.writeJson(destination, { name: "host" });
+      await strategy.apply(SOURCE, destination, PACKAGE_JSON, context);
+      const written = await fs.readJson(destination);
+      expect(Object.keys(written.dependencies ?? {})).not.toContain(name);
+      expect(Object.keys(written.devDependencies ?? {})).not.toContain(name);
+    }
+  );
+
+  it("keeps a host's removal of both construct libraries across re-applies", async () => {
     await fs.writeJson(destination, { name: "host" });
     await strategy.apply(SOURCE, destination, PACKAGE_JSON, context);
+    const first = await fs.readFile(destination, "utf8");
+    await strategy.apply(SOURCE, destination, PACKAGE_JSON, context);
     const written = await fs.readJson(destination);
-    expect(written.dependencies[OIDC]).toBe("^5.2.0");
+    expect(await fs.readFile(destination, "utf8")).toBe(first);
+    for (const name of OPTIONAL_CONSTRUCTS) {
+      expect(Object.keys(written.dependencies ?? {})).not.toContain(name);
+    }
+  });
+
+  it.each([
+    [OIDC, "5.2.0"],
+    [AMPLIFY_ALPHA, "2.200.0-alpha.0"],
+    [AMPLIFY_ALPHA, "^2.272.0-alpha.0"],
+  ])("preserves a host-declared %s %s unchanged", async (name, version) => {
+    await fs.writeJson(destination, {
+      name: "host",
+      dependencies: { [name]: version },
+    });
+    await strategy.apply(SOURCE, destination, PACKAGE_JSON, context);
+    const written = await fs.readJson(destination);
+    expect(written.dependencies[name]).toBe(version);
   });
 
   it("gives a fresh host minimum versions that satisfy the declared peers", async () => {

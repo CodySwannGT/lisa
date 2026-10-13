@@ -2616,8 +2616,8 @@ describe("PackageLisaStrategy", () => {
     // 13-minor downgrade on the next apply — which can break synth for
     // stacks using newer constructs. Projects own their aws-cdk-lib pace;
     // CVE-driven bumps go through per-repo security gates instead. The
-    // paired @aws-cdk/aws-amplify-alpha must live in the same section since
-    // its version tracks aws-cdk-lib. The $name overrides/resolutions
+    // paired @aws-cdk/aws-amplify-alpha is no longer declared at all: it is
+    // an opt-in construct library the host owns (#4451). The $name overrides/resolutions
     // entries stay in force and resolve against the project's own direct
     // dep, so they remain valid with the pin in defaults.
     const repoRoot = process.cwd();
@@ -2646,17 +2646,23 @@ describe("PackageLisaStrategy", () => {
       return fs.readJsonSync(cdkSource);
     }
 
-    it("keeps aws-cdk-lib and its alpha companion in defaults, not force", () => {
+    it("keeps aws-cdk-lib in defaults, not force", () => {
       const template = readCdkTemplate();
-      for (const pkg of ["aws-cdk-lib", "@aws-cdk/aws-amplify-alpha"]) {
-        expect(template.force.dependencies[pkg]).toBeUndefined();
-      }
-      // Exact pins (not just "is defined") so an accidental version bump in
+      expect(template.force.dependencies["aws-cdk-lib"]).toBeUndefined();
+      // Exact pin (not just "is defined") so an accidental version bump in
       // the template is caught by this regression test.
       expect(template.defaults.dependencies["aws-cdk-lib"]).toBe("2.272.0");
-      expect(template.defaults.dependencies["@aws-cdk/aws-amplify-alpha"]).toBe(
-        "^2.272.0-alpha.0"
-      );
+    });
+
+    it("declares no opt-in construct library in force or defaults", () => {
+      // An app opts into these by importing them; Lisa generates no code that
+      // does. A defaults entry re-adds a key the host removed on every apply,
+      // so an unused one fails the dead-code gate forever (#4451).
+      const template = readCdkTemplate();
+      for (const pkg of ["@aws-cdk/aws-amplify-alpha", "aws-cdk-github-oidc"]) {
+        expect(Object.keys(template.force.dependencies)).not.toContain(pkg);
+        expect(Object.keys(template.defaults.dependencies)).not.toContain(pkg);
+      }
     });
 
     it("keeps the aws-cdk CLI floor and $name overrides in force", () => {

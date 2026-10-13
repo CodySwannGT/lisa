@@ -75,8 +75,16 @@ export const CDK_PRESET_FORCED_DEPENDENCIES = [
   "source-map-support",
 ] as const;
 
-/** Dependencies older presets forced, now preserved as host-owned choices. */
-export const CDK_PRESET_LEGACY_DEPENDENCIES = ["aws-cdk-github-oidc"] as const;
+/**
+ * Construct libraries older presets force-merged or defaulted, now host-owned.
+ *
+ * Current applies neither add nor remove them: a host that imports one keeps
+ * its declared version, and a host that removed an unused one keeps it removed.
+ */
+export const CDK_PRESET_LEGACY_DEPENDENCIES = [
+  "aws-cdk-github-oidc",
+  "@aws-cdk/aws-amplify-alpha",
+] as const;
 
 /** Historical `bin` entry older CDK presets force-merged; current applies preserve host bins. */
 export const CDK_PRESET_BIN_ENTRY = {
