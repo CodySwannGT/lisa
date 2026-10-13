@@ -1,15 +1,20 @@
 #!/usr/bin/env node
 /**
- * Vendor-neutral Ready-queue normalization and mine-first dispatch order.
+ * Vendor-neutral Ready-queue normalization and operator-first dispatch order.
  *
  * ## Why this exists
  *
  * Intake has always taken Ready work in whatever order the tracker returned
  * it, and `intake.assignee` only NARROWS a selection — it never ranks one. A
  * dispatcher that runs several workers at once needs a stable answer to "what
- * next?": the work already assigned to me first (somebody chose me for it),
- * then unassigned work, most urgent and oldest first. Work assigned to someone
- * else is theirs, so it is excluded, never re-ordered.
+ * next?": work assigned to the operator first (the person the dispatcher works
+ * for), then work assigned to me (the identity the tracker credential belongs
+ * to, often an agent account rather than the operator), then unassigned work,
+ * most urgent and oldest first. Work assigned to anyone else is theirs, so it
+ * is excluded, never re-ordered. When the credential IS the operator's, the
+ * first two groups coincide. With "me" as the only identity, an operator whose
+ * credential is an agent account had every one of their own items excluded as
+ * someone else's (CodySwannGT/lisa#4467).
  *
  * The three trackers disagree on every field this needs — GitHub has priority
  * LABELS, Linear a native 0..4 number where 0 means "none", Jira a priority
@@ -252,12 +257,18 @@ function shape(input) {
  * Order matters only for the reason reported: an item can fail several rules,
  * and "someone else owns it" is the most useful thing to say about it.
  * @param {Record<string, any>} item
- * @param {{ me: string | null, trusted: ReadonlySet<string>, humanNeededLabel: string }} context
+ * @param {{ me: string | null, operators: ReadonlySet<string>, trusted: ReadonlySet<string>, humanNeededLabel: string }} context
  * @returns {string | null}
  */
 function exclusionReason(item, context) {
   const assignee = idOrNull(item.assigneeId);
-  if (assignee !== null && assignee !== context.me) return "assigned-to-other";
+  if (
+    assignee !== null &&
+    assignee !== context.me &&
+    !context.operators.has(assignee)
+  ) {
+    return "assigned-to-other";
+  }
   if (item.isContainer === true) return "container";
   if (
     isHumanGated({
@@ -293,20 +304,25 @@ function compareWithinGroup(left, right) {
 }
 
 /**
- * Order normalized Ready items for dispatch, mine first.
+ * Order normalized Ready items for dispatch: the operator's, then mine, then
+ * unassigned.
  *
- * Group 0 is assigned to `me`, group 1 unassigned; within a group, priority
- * rank ascending, then creation time ascending, then ref as a stable
- * tiebreak. Excluded items keep their input order. With no `me`, every
- * assigned item is someone else's — the safe direction, since claiming
- * assigned work steals it.
+ * Group 0 is assigned to an operator, group 1 to `me`, group 2 unassigned;
+ * within a group, priority rank ascending, then creation time ascending, then
+ * ref as a stable tiebreak. Excluded items keep their input order. With no
+ * `me` and no operators, every assigned item is someone else's — the safe
+ * direction, since claiming assigned work steals it.
+ *
+ * `operators` match the way `me` does, against the normalized assignee id:
+ * GitHub login, Jira accountId, Linear user id.
  * @param {readonly Record<string, any>[]} items - Normalized items
- * @param {{ me?: string | null, trustedAuthorIds?: readonly unknown[], humanNeededLabel?: string }} [options]
+ * @param {{ me?: string | null, operators?: readonly unknown[], trustedAuthorIds?: readonly unknown[], humanNeededLabel?: string }} [options]
  * @returns {{ ordered: Record<string, any>[], excluded: { ref: string, reason: string }[] }}
  */
 export function orderReadyQueue(items, options = {}) {
   const context = {
     me: idOrNull(options.me),
+    operators: new Set((options.operators ?? []).map(idOrNull).filter(Boolean)),
     trusted: new Set(
       (options.trustedAuthorIds ?? []).map(idOrNull).filter(Boolean)
     ),
@@ -319,7 +335,11 @@ export function orderReadyQueue(items, options = {}) {
   const eligible = judged
     .filter(one => one.reason === null)
     .map(one => one.item);
-  const group = item => (idOrNull(item.assigneeId) === null ? 1 : 0);
+  const group = item => {
+    const assignee = idOrNull(item.assigneeId);
+    if (assignee === null) return 2;
+    return context.operators.has(assignee) ? 0 : 1;
+  };
 
   return {
     ordered: [...eligible].sort(

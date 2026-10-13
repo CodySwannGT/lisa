@@ -126,6 +126,7 @@ function validationView(config) {
     ...config,
     repos: config.repos ?? undefined,
     trustedAuthorIds: config.trustedAuthorIds ?? undefined,
+    operatorIds: config.operatorIds ?? undefined,
   };
 }
 

@@ -65,6 +65,7 @@ export const SESSION_MANAGER_DEFAULTS = Object.freeze({
  *   stall: StallBlock,
  *   notify: NotifyBlock,
  *   trustedAuthorIds: string[] | null,
+ *   operatorIds: string[] | null,
  * }} SessionManagerConfig
  * @typedef {{
  *   name: string,
@@ -119,6 +120,7 @@ export function resolveSessionManagerConfig(globalConfig, localConfig) {
     ...merged,
     repos,
     trustedAuthorIds: merged.trustedAuthorIds ?? null,
+    operatorIds: merged.operatorIds ?? null,
   };
 }
 

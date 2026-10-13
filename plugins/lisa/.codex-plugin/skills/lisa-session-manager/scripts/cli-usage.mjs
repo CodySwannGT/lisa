@@ -87,7 +87,10 @@ Per cycle
   queue --tracker jira|linear --input <file> [--me <id>]
       <file> = {complete:true,pages,items:[raw vendor issues]}; exit 2 unless
       complete is exactly true.
-      Both print {tracker,me,total,pages,ordered,excluded:[{ref,reason}]}.
+      Both print {tracker,me,operators,total,pages,ordered,excluded:[{ref,
+      reason}]}. ordered: items assigned to sessionManager.operatorIds
+      first, then to --me, then unassigned; each group by priority, then age.
+      Items assigned to anyone else are excluded (assigned-to-other).
       --me defaults to the ledger's control.me.
   ledger get [<ref>]
   ledger record-spawn <ref> --worker <name> [--session-id <id>] [--repo <key>]

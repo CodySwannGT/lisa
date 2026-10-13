@@ -728,6 +728,35 @@ function findCredentials(value, path) {
 }
 
 /**
+ * Validate `sessionManager.operatorIds`: the people the manager works for,
+ * whose assigned items it dispatches first. Matched against the assignee the
+ * way "me" is, so the GitHub entry is a login, not the numeric id
+ * `trustedAuthorIds` takes. An empty list reads as configured but names no
+ * one, so it is refused like an empty `trustedAuthorIds`.
+ * @param {unknown} ids The value, if present.
+ * @returns {string[]} Problems found.
+ */
+function validateOperatorIds(ids) {
+  if (ids === undefined) return [];
+  if (
+    !Array.isArray(ids) ||
+    !ids.every(id => typeof id === "string" && id.trim() !== "")
+  ) {
+    return [
+      `sessionManager.operatorIds must be an array of tracker user ids as ` +
+        `strings, matched against the assignee: the GitHub login, the Jira ` +
+        `accountId or the Linear user id.`,
+    ];
+  }
+  return ids.length === 0
+    ? [
+        `sessionManager.operatorIds must name at least one person. Remove ` +
+          `the key instead if the manager works only for its own identity.`,
+      ]
+    : [];
+}
+
+/**
  * Validate the opt-in `sessionManager` block.
  *
  * Structure only, like the rest of this file: whether the bot answers or tmux
@@ -786,6 +815,7 @@ export function validateSessionManager(block) {
             `if every author's item may be dispatched.`,
         ]
       : []),
+    ...validateOperatorIds(block.operatorIds),
     ...findCredentials(block, "sessionManager"),
   ];
 }
