@@ -56,7 +56,8 @@ writes `$SM`, and pass `--project-root "$ROOT"` (the absolute project root) on e
    ("me"), then unassigned ones, and skips items assigned to anyone else. When the tracker
    credential is not the operator's (an agent or bot account), leaving this unset means the
    operator's own Ready items are never dispatched; say so plainly. Unlike `trustedAuthorIds`, this
-   is matched against the assignee, so use the same kind of id as "me": the GitHub **login**, the
+   is matched against the assignee, exactly and case-sensitively, so use the same kind of id as
+   "me", spelled as the tracker API returns it: the GitHub **login**, the
    Jira `accountId`, or the Linear user id (`viewer.id` when the operator runs the lookup with their
    own credential, or the user's id from the team's member list).
 5. `node "$SM/session-manager.mjs" validate --project-root "$ROOT"` must print `valid: true`.

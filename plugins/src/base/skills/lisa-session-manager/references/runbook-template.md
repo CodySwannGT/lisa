@@ -18,9 +18,10 @@ session list from `claude agents`; and the project's own Telegram chat.
 
 ## Candidate selection
 
-Leaf items in the `ready` role, ordered: assigned to the operator, then unassigned, then by priority,
-then oldest. Items assigned to someone else, containers, human-held items and (when configured)
-items by untrusted authors are skipped. As many as the machine has capacity for.
+Leaf items in the `ready` role, ordered: assigned to an operator (`sessionManager.operatorIds`),
+then to the manager's own tracker identity, then unassigned; within each, by priority, then oldest.
+Items assigned to someone else, containers, human-held items and (when configured) items by
+untrusted authors are skipped. As many as the machine has capacity for.
 
 ## Scope/bounds
 
