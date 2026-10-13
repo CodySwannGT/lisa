@@ -247,8 +247,13 @@ export function renderCondition(
 ): readonly string[] {
   const pad = " ".repeat(keyIndent);
   const inner = " ".repeat(keyIndent + 2);
+  // A one-line style cannot carry a condition that spans lines.
+  const oneLine = style.kind !== "block" && !condition.includes("\n");
   const resolved =
-    style.kind === "plain" && !plainSafe(condition) ? DEFAULT_STYLE : style;
+    style.kind === "block" ||
+    (oneLine && (style.kind === "expression" || plainSafe(condition)))
+      ? style
+      : DEFAULT_STYLE;
   const key =
     resolved.kind === "expression"
       ? [`${pad}if: \${{ ${condition} }}`]
@@ -256,11 +261,16 @@ export function renderCondition(
         ? [`${pad}if: ${condition}`]
         : [
             `${pad}if: ${resolved.indicator}`,
-            ...topLevelParts(condition).map((part, index, parts) =>
-              index === parts.length - 1
-                ? `${inner}${part}`
-                : `${inner}${part} &&`
-            ),
+            // A host's own multi-line text, kept by the wrap rule, is
+            // re-indented line by line: an unindented continuation would end
+            // the block scalar and the file would no longer parse.
+            ...topLevelParts(condition).map((part, index, parts) => {
+              const indented = part
+                .split("\n")
+                .map(line => inner + line.trim())
+                .join("\n");
+              return index === parts.length - 1 ? indented : `${indented} &&`;
+            }),
           ];
   return [
     `${pad}# \`!cancelled()\` / \`always()\` suppresses the implicit \`success()\` GitHub would`,

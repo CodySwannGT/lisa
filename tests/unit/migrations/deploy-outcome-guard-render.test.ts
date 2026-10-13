@@ -189,6 +189,12 @@ describe("ensure-deploy-outcome-guard renders canonical text (#4456)", () => {
         `${INNER}(github.event_name == 'push' && ${CHECK})`,
     ],
     [
+      "a multi-line literal block that never names the release",
+      block("|", "github.event_name == 'push' &&", CHECK),
+      `    if: |\n${INNER}!cancelled() &&\n` +
+        `${INNER}(github.event_name == 'push' &&\n${INNER}${CHECK})`,
+    ],
+    [
       "a plain unwrapped line, which YAML cannot start with `!`",
       `${GATE} && github.event_name == 'push'`,
       `    if: >-\n${INNER}!cancelled() &&\n${INNER}github.event_name == 'push'`,
