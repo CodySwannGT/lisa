@@ -53,6 +53,7 @@ async function seedMergedManifest(projectRoot: string): Promise<void> {
     bin: { infrastructure: "bin/infrastructure.js" },
     dependencies: {
       "aws-cdk-github-oidc": "^2.4.1",
+      "@aws-cdk/aws-amplify-alpha": "^2.272.0-alpha.0",
       constructs: "^10.4.5",
     },
   });
@@ -82,6 +83,9 @@ describe("doctor CDK preset-adoption check", () => {
     expect(check.detail).toContain("legacy `bin.infrastructure`");
     expect(check.detail).toContain(
       "host-owned or legacy `aws-cdk-github-oidc`"
+    );
+    expect(check.detail).toContain(
+      "host-owned or legacy `@aws-cdk/aws-amplify-alpha`"
     );
     expect(check.detail).toContain("current forced entries");
     expect(check.detail).not.toContain("It also force-merged");

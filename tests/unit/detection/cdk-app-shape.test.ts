@@ -164,14 +164,20 @@ describe("what admission to the CDK preset actually costs", () => {
     };
     const force = cdkTemplate.force ?? {};
 
-    // Admission adds the constructs peer, while OIDC and executable
-    // advertisements stay host-owned instead of forcing application changes.
+    // Admission adds the constructs peer, while opt-in construct libraries
+    // (OIDC, Amplify alpha) and executable advertisements stay host-owned.
     expect(force).not.toHaveProperty("bin");
     expect(force.dependencies).toMatchObject({ constructs: "^10.7.2" });
     expect(force.dependencies).not.toHaveProperty("aws-cdk-github-oidc");
-    expect(cdkTemplate.defaults).toMatchObject({
-      dependencies: { "aws-cdk-github-oidc": "^5.2.0" },
-    });
+    const defaults = (cdkTemplate.defaults ?? {}) as {
+      dependencies?: Record<string, string>;
+    };
+    expect(Object.keys(defaults.dependencies ?? {})).not.toContain(
+      "aws-cdk-github-oidc"
+    );
+    expect(Object.keys(defaults.dependencies ?? {})).not.toContain(
+      "@aws-cdk/aws-amplify-alpha"
+    );
   });
 });
 

@@ -189,9 +189,12 @@ manifests remain unverified; this diagnostic is not a full lockfile audit.
 Clean TypeScript and CDK hosts receive the shared Node 24.21.0 LTS baseline,
 Vitest and coverage-v8 4.1.11 minimums, and a Vite 8.3.2 minimum within Vite 8.
 Lisa retains the TypeScript 6, ESLint 9, Knip 5, Husky 8 and Vitest 4 families.
-New CDK hosts default to `aws-cdk-github-oidc ^5.2.0` with `constructs ^10.7.2`
-minimum peers. Existing OIDC dependency choices stay host-owned, including exact
-5.2.0 and legacy v2 pins. Before migrating a v2 host, review the vendor’s
+CDK applies force `constructs ^10.7.2` and default `aws-cdk-lib`, which satisfy
+the peers of `aws-cdk-github-oidc` 5.2.0. Lisa does not add opt-in construct
+libraries such as `aws-cdk-github-oidc` or `@aws-cdk/aws-amplify-alpha`: an app
+that imports one declares it, and a host that removes an unused one keeps it
+removed on the next apply. Existing declarations stay host-owned, including
+exact 5.2.0 and legacy v2 OIDC pins. Before migrating a v2 host, review the vendor’s
 [versioned API](https://unpkg.com/aws-cdk-github-oidc@5.2.0/API.md)
 and update its application trust configuration deliberately. Lisa generates no
 OIDC constructs and does not migrate application IAM policies.
