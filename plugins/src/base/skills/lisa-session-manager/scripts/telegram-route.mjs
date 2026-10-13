@@ -15,7 +15,9 @@
  *    Telegram channel plugin (0.0.7) does not pass the replied-to message id
  *    on, so the manager can only supply `--reply-to` from a plugin that does;
  *    the leading ref is what operators are told to use;
- * 3. an operator command (`status`, `pause`, `resume`, `cap N`, `stop REF`);
+ * 3. an operator command (`status`, `pause`, `resume`, `cap N`, `stop REF`).
+ *    A recognised command with bad arguments (`cap 40`, `stop A B`) is
+ *    `invalid-command`, never an answer;
  * 4. the only pending question, when exactly one exists.
  *
  * Anything else is `ambiguous`, and the manager asks which item was meant.
@@ -150,7 +152,7 @@ export function parseCommand(text) {
 /**
  * Route one inbound message.
  * @param {{text: string, replyToMessageId?: number|null, ledger: {items?: Record<string, {worker?: string|null, pendingQuestion?: {telegramMessageId?: number|null}|null}>}}} input - Message and current ledger
- * @returns {{kind: "answer", ref: string, body: string} | ReturnType<typeof parseCommand> & {kind: "command"} | {kind: "ambiguous", candidates: string[]}} Route
+ * @returns {{kind: "answer", ref: string, body: string} | ReturnType<typeof parseCommand> & {kind: "command"} | {kind: "invalid-command", reason: string} | {kind: "ambiguous", candidates: string[]}} Route
  */
 export function routeInbound({ text, replyToMessageId, ledger }) {
   const items = ledger?.items ?? {};
@@ -179,6 +181,13 @@ export function routeInbound({ text, replyToMessageId, ledger }) {
     return command.name === "stop"
       ? { ...command, ref: matchRef(items, command.ref) ?? command.ref }
       : command;
+  }
+  // A recognised command with bad arguments ("cap 40", "stop A B") is a
+  // mistyped command, not an answer. Falling through to the single-pending
+  // fallback would hand it to a worker that acts on it with permissions
+  // skipped, so the operator is told what was wrong instead.
+  if (command.reason) {
+    return { kind: "invalid-command", reason: command.reason };
   }
 
   return pending.length === 1

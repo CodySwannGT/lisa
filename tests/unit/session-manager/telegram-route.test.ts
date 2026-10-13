@@ -189,6 +189,27 @@ describe("routeInbound commands", () => {
       routeInbound({ text: "pause", replyToMessageId: 8, ledger: TWO_PENDING })
     ).toEqual({ kind: "answer", ref: "TEAM-12", body: "pause" });
   });
+
+  it.each([
+    ["cap 40", "cap needs one whole number from 0 to 32"],
+    ["cap", "cap needs one whole number from 0 to 32"],
+    ["stop A B", "stop needs exactly one ref"],
+    ["stop", "stop needs exactly one ref"],
+  ])(
+    "never delivers malformed command %j to the only pending question",
+    (text, reason) => {
+      expect(routeInbound({ text, ledger: ONE_PENDING })).toEqual({
+        kind: "invalid-command",
+        reason,
+      });
+    }
+  );
+
+  it("still lets an explicit ref deliver command-like words as an answer", () => {
+    expect(
+      routeInbound({ text: "TEAM-12: cap 40", ledger: ONE_PENDING })
+    ).toEqual({ kind: "answer", ref: "TEAM-12", body: "cap 40" });
+  });
 });
 
 describe("parseCommand", () => {

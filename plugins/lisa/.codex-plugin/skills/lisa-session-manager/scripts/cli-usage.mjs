@@ -99,7 +99,8 @@ Per cycle
   ledger control [--paused true|false] [--max-workers <n>|none] [--me <id>|none]
   route [--reply-to <telegram message id>] [--owner <name>] STDIN: message
       stdout {kind:"answer",ref,body[,message]} | {kind:"command",name,...}
-      | {kind:"ambiguous",candidates}. --owner adds message "<owner>'s answer: ...".
+      | {kind:"invalid-command",reason} | {kind:"ambiguous",candidates}.
+      --owner adds message "<owner>'s answer: ...".
   blocked-plan [--input <file>] [--ref <ref>]  STDIN (without --input): JSON
       {labels,body,comments,humanNeededLabel?,edges,pendingQuestion?}.
       Trusted hold releasers are sessionManager.trustedAuthorIds (none when

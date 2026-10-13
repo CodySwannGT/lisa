@@ -140,6 +140,8 @@ the manager.
     `lisa-tracker-write`, then clearing the question; the next dispatch routes it.
   - `ambiguous`: ask which ref it is for, listing `candidates`, each with the label to start the
     answer with (`Answer with: #12 <your answer>`).
+  - `invalid-command`: a mistyped command (`cap 40`, `stop A B`). Deliver it to no worker. Reply on
+    Telegram with `reason`, and say that an answer meant for a worker starts with its label.
   - `command`:
     - `status`: summarize `status` (running, cap, pending questions, paused).
     - `pause` / `resume`: `ledger control --paused true|false`. Relaying and reconciling continue
