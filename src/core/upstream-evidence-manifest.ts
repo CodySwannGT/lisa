@@ -239,7 +239,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-floor-collisions.mjs":
       "345832c63c85df32acbed9b183b06239fc10ccb1491bd11607b5840ac1d18573",
     "all/copy-overwrite/scripts/lisa-gates.mjs":
-      "fd49770cc53890df97365b32632b2c61341a7de1a535cc8ba74de54ae3063285",
+      "d639442f25fe6cde4dd0f9fd6cb5bd0f069cc8ff61dd2dc0fb155314fcd7f4d9",
     "all/copy-overwrite/scripts/lisa-history-secrets.mjs":
       "815fd6403aed6194d30939b59dc5ce894f7122a9da598acee4cd529a1b520de3",
     "all/copy-overwrite/scripts/lisa-hooks/block-blind-automerge.sh":
@@ -297,7 +297,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/npm-updater-gate.Dockerfile":
       "c1f56c254f188d394fea0c0b9995ebf185c280aa1079233443c1eed1425d0239",
     "all/copy-overwrite/scripts/npm-updater-helper-graph.json":
-      "7b1444433c16ae4b580ad71f908ae9788862b9f814d08c447c78f3dfd49226a4",
+      "7d1e27e5ae4cbcbc0a0fadd17498637f84648e24b5f0f21138b13090acc3d458",
     "all/copy-overwrite/scripts/schemas/lisa-command-envelope.v1.schema.json":
       "d153b7c2953a30f180e38f09e98240c63327f5196eeba9bdf545e5a1f125a879",
     "all/copy-overwrite/scripts/schemas/lisa-state-contract.v1.schema.json":
@@ -10397,6 +10397,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "src/migrations/generated-paths.ts": true,
     "src/migrations/index.ts": true,
     "src/migrations/migration.interface.ts": true,
+    "src/migrations/pin-seeding-hold.ts": true,
     "src/migrations/preserve-verification-opt-ins.ts": true,
     "src/migrations/prune-retired-claude-deny-rules.ts": true,
     "src/migrations/prune-retired-entire-hooks.ts": true,
@@ -11667,6 +11668,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/migrations/ensure-lisa-postinstall.test.ts": true,
     "tests/unit/migrations/ensure-nightly-e2e-workflow-pins.test.ts": true,
     "tests/unit/migrations/ensure-oxlint-base-configs.test.ts": true,
+    "tests/unit/migrations/ensure-pinned-reusable-workflow-refs-seeding-hold.test.ts": true,
     "tests/unit/migrations/ensure-pinned-reusable-workflow-refs-vouched.test.ts": true,
     "tests/unit/migrations/ensure-pinned-reusable-workflow-refs.test.ts": true,
     "tests/unit/migrations/ensure-playwright-dedicated-caller.test.ts": true,

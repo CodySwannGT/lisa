@@ -23,6 +23,7 @@ import {
   RETIRED_SKIP_JOB_TOKENS,
   seedGates,
   skipJobMigration,
+  undeclaredRunnerOwnedGates,
 } from "../../../all/copy-overwrite/scripts/lisa-gates.mjs";
 
 const PULL_REQUEST = "pull-request";
@@ -193,5 +194,28 @@ describe("migrating a retired token", () => {
   it("offers nothing at a moment the gate cannot be declared at", () => {
     expect(skipJobMigration("build", "commit").declaration).toBeNull();
     expect(skipJobMigration("build", "not-a-moment").declaration).toBeNull();
+  });
+});
+
+describe("which runner-owned gates a project has not declared", () => {
+  it("names all five for a project with no gates block", () => {
+    expect(undeclaredRunnerOwnedGates()).toEqual([
+      CODE_STYLE_SLOW,
+      TYPE_CORRECTNESS,
+      FORMAT_CONFORMANCE,
+      BUILD_INTEGRITY,
+      DEAD_CODE,
+    ]);
+  });
+
+  it("counts off as a declaration and only pull-request as the moment", () => {
+    expect(
+      undeclaredRunnerOwnedGates({
+        [CODE_STYLE_SLOW]: { [PULL_REQUEST]: "off" },
+        [TYPE_CORRECTNESS]: { [PULL_REQUEST]: { level: "required" } },
+        [FORMAT_CONFORMANCE]: { push: "required" },
+        [BUILD_INTEGRITY]: { [PULL_REQUEST]: "optional" },
+      })
+    ).toEqual([FORMAT_CONFORMANCE, DEAD_CODE]);
   });
 });

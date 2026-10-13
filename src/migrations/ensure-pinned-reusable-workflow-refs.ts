@@ -26,6 +26,7 @@ import type {
   MigrationContext,
   MigrationResult,
 } from "./migration.interface.js";
+import { seedingHoldReason } from "./pin-seeding-hold.js";
 
 const WORKFLOW_DIR = path.join(".github", "workflows");
 
@@ -108,12 +109,26 @@ interface RewritePlan {
  * an existing caller mutable while reporting a successful apply is the
  * fail-open shape this migration exists to remove, so that case still stops.
  *
- * ## Why it declines nothing in postinstall-safe mode
+ * ## Why it declines nothing in postinstall-safe mode — with one exception
  *
  * The version change IS the postinstall moment. A pin that only moved when an
  * operator happened to run a full apply would spend most of its life naming a
  * release the project no longer has installed, which is the staleness this
  * whole change exists to prevent.
+ *
+ * The exception is a pin that would DELIVER A DELETION WITHOUT ITS
+ * REPLACEMENT (#4449). Lisa 4.80.0 deleted five hand-written `quality.yml`
+ * jobs because a declared gate leg proves the same property, and a leg exists
+ * only for a gate the project declares. During an install,
+ * `EnsureSeededGatesMigration` refuses to write those declarations — by rule,
+ * because an install must not change what the repository requires (#3574).
+ * Moving the pin anyway would change it in the other direction: five checks
+ * gone, with nothing reporting it. So while a project that calls `quality.yml`
+ * lacks any of those declarations, an install leaves every workflow ref where
+ * it was and says why. A full apply seeds the declarations and moves the pin
+ * in the same run, which is the only way the two halves arrive together. All
+ * refs are held rather than only `quality.yml`, because pinning some callers
+ * and not others leaves the project's refs describing two different Lisas.
  */
 export class EnsurePinnedReusableWorkflowRefsMigration implements Migration {
   readonly name = "ensure-pinned-reusable-workflow-refs";
@@ -230,6 +245,17 @@ export class EnsurePinnedReusableWorkflowRefsMigration implements Migration {
       pin,
       await vouchedCallees(ctx.lisaDir, [UNIVERSAL_LANE, ...ctx.detectedTypes])
     );
+    const held = await seedingHoldReason(ctx, changes);
+    if (held !== null) {
+      ctx.logger.warn(held);
+      return {
+        name: this.name,
+        action: "skipped",
+        changedFiles: [],
+        message: held,
+      };
+    }
+
     // Said once per apply, before anything is written. "This one stays where
     // it is, and here is why" is the whole remedy the reporting consumer
     // asked for: they had to revert one rewrite of five by hand, with nothing

@@ -2499,30 +2499,6 @@ function reasonFor(entry, hit, declarable, moment) {
 }
 
 /**
- * A `gates` block that declares what the built-ins are proving today.
- *
- * SEEDING IS THE MECHANISM THAT RETIRES A FALLBACK, and it is only safe if the
- * seeded declaration runs the same thing the fallback did. Two rules enforce
- * that, and they are why this returns less than the full registry:
- *
- *   * A gate is seeded only when the task that reproduces the built-in is a
- *     script the project ACTUALLY HAS. Twenty of the registry's default tasks
- *     are shipped by no template, so seeding by default would declare gates
- *     whose prover does not exist — a red fleet, delivered by a version bump.
- *   * A gate is seeded only at a moment the registry says it may be declared
- *     at. `test-meaningfulness` runs at push and cannot be declared there;
- *     seeding it would produce a config `validate` refuses.
- *
- * What is NOT seeded stays ungoverned, and stays reported by `unconfiguredAt`.
- * That is the honest outcome: this closes the gap it can prove it closes, and
- * leaves the rest visible rather than declaring it away.
- * @param {object} options Inputs.
- * @param {object} [options.gates] The existing gates block; its declarations win.
- * @param {Record<string, string>} [options.scripts] The project's package.json scripts.
- * @param {string} [options.runner] Task runner to record, when none is declared.
- * @returns {{gates: object, seeded: Array<{gate: string, moment: string, run: string|null}>, skipped: Array<{gate: string, moment: string, reason: string}>}} The merged block and what it did.
- */
-/**
  * The pull-request jobs #3052 deleted because a declared gate leg proves the
  * same property, with the gate each one proved and how that gate is seeded.
  *
@@ -2555,6 +2531,47 @@ function runnerOwnedJobs() {
   );
 }
 
+/**
+ * The runner-owned gates a project has not declared at pull-request.
+ *
+ * A `declared_gates` leg exists only for a declared gate, so each id returned
+ * here is a check this project would NOT get from a `quality.yml` without the
+ * deleted jobs. `off` counts as declared: it is a decision, not an absence.
+ * The pin migration reads this to keep a package-manager install from
+ * delivering the deletion without the declaration (#4449).
+ * @param {object} [gates] The project's gates block.
+ * @returns {string[]} Gate ids, in `runnerOwnedJobs` order.
+ */
+export function undeclaredRunnerOwnedGates(gates = {}) {
+  return runnerOwnedJobs()
+    .map(job => job.gate)
+    .filter(gate => gates?.[gate]?.[PULL_REQUEST] === undefined);
+}
+
+/**
+ * A `gates` block that declares what the built-ins are proving today.
+ *
+ * SEEDING IS THE MECHANISM THAT RETIRES A FALLBACK, and it is only safe if the
+ * seeded declaration runs the same thing the fallback did. Two rules enforce
+ * that, and they are why this returns less than the full registry:
+ *
+ *   * A gate is seeded only when the task that reproduces the built-in is a
+ *     script the project ACTUALLY HAS. Twenty of the registry's default tasks
+ *     are shipped by no template, so seeding by default would declare gates
+ *     whose prover does not exist — a red fleet, delivered by a version bump.
+ *   * A gate is seeded only at a moment the registry says it may be declared
+ *     at. `test-meaningfulness` runs at push and cannot be declared there;
+ *     seeding it would produce a config `validate` refuses.
+ *
+ * What is NOT seeded stays ungoverned, and stays reported by `unconfiguredAt`.
+ * That is the honest outcome: this closes the gap it can prove it closes, and
+ * leaves the rest visible rather than declaring it away.
+ * @param {object} options Inputs.
+ * @param {object} [options.gates] The existing gates block; its declarations win.
+ * @param {Record<string, string>} [options.scripts] The project's package.json scripts.
+ * @param {string} [options.runner] Task runner to record, when none is declared.
+ * @returns {{gates: object, seeded: Array<{gate: string, moment: string, run: string|null}>, skipped: Array<{gate: string, moment: string, reason: string}>}} The merged block and what it did.
+ */
 export function seedGates({ gates = {}, scripts = {}, runner } = {}) {
   const seeded = [];
   const skipped = [];
