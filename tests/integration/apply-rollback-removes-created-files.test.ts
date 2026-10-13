@@ -63,6 +63,9 @@ function git(cwd: string, ...args: readonly string[]): string {
   return execFileSync(GIT_BIN, [...args], {
     cwd,
     encoding: "utf8",
+    // Every test child carries a deadline (#2940); a local git call needs
+    // well under a second, so this only ever fires on a wedged process.
+    timeout: 30_000,
     env: {
       ...cleanGitEnv(),
       GIT_AUTHOR_NAME: "fixture",
