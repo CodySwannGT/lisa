@@ -5,7 +5,7 @@
  */
 import * as fs from "fs-extra";
 import * as path from "node:path";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { SilentLogger } from "../../../src/logging/silent-logger.js";
 import { BackupService } from "../../../src/transaction/backup.js";
 import { cleanupTempDir, createTempDir } from "../../helpers/test-utils.js";
@@ -15,6 +15,10 @@ const MODIFIED = "modified.txt";
 
 /** Pre-apply bytes of a modified host file. */
 const ORIGINAL = "original";
+
+/** Host bytes seen by a first and a second apply. */
+const FIRST_APPLY = "first apply original";
+const SECOND_APPLY = "second apply original";
 
 describe("BackupService created-path rollback (#4459)", () => {
   let service: BackupService;
@@ -207,7 +211,7 @@ describe("BackupService created-path rollback (#4459)", () => {
 
   it("a re-initialised service writes a fresh .lisabak directory", async () => {
     const target = path.join(destDir, MODIFIED);
-    await fs.writeFile(target, "first apply original");
+    await fs.writeFile(target, FIRST_APPLY);
     await service.persistentBackup(target);
     await service.cleanup();
     const [firstStamp] = await fs.readdir(path.join(destDir, ".lisabak"));
@@ -220,12 +224,39 @@ describe("BackupService created-path rollback (#4459)", () => {
 
     await new Promise(resolve => setTimeout(resolve, 1100));
     await service.init(destDir);
-    await fs.writeFile(target, "second apply original");
+    await fs.writeFile(target, SECOND_APPLY);
     await service.backup(target);
     await service.persistentBackup(target);
     await service.rollback();
 
-    expect(await fs.readFile(firstCopy, "utf8")).toBe("first apply original");
+    expect(await fs.readFile(firstCopy, "utf8")).toBe(FIRST_APPLY);
+  });
+
+  it("never overwrites an earlier apply's .lisabak copy made in the same second", async () => {
+    vi.useFakeTimers({ toFake: ["Date"], now: new Date(2026, 0, 2, 3, 4, 5) });
+    try {
+      const target = path.join(destDir, MODIFIED);
+      await fs.writeFile(target, FIRST_APPLY);
+      await service.persistentBackup(target);
+      await service.cleanup();
+
+      await service.init(destDir);
+      await fs.writeFile(target, SECOND_APPLY);
+      await service.persistentBackup(target);
+
+      const stamps = (await fs.readdir(path.join(destDir, ".lisabak"))).sort(
+        (a, b) => a.length - b.length
+      );
+      expect(stamps).toHaveLength(2);
+      const copies = await Promise.all(
+        stamps.map(stamp =>
+          fs.readFile(path.join(destDir, ".lisabak", stamp, MODIFIED), "utf8")
+        )
+      );
+      expect(copies).toEqual([FIRST_APPLY, SECOND_APPLY]);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("ignores paths outside the destination tree", async () => {

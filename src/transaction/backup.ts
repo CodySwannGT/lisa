@@ -118,7 +118,7 @@ export class BackupService implements IBackupService {
       if (await fse.pathExists(absolutePath)) {
         // Generate backup directory name on first call
         if (!this.persistentBackupDirname) {
-          this.persistentBackupDirname = generateBackupDirname();
+          this.persistentBackupDirname = await this.unusedBackupDirname();
         }
 
         // Get relative path from destination directory
@@ -136,7 +136,11 @@ export class BackupService implements IBackupService {
         // restores the original in place, so the copy would be pure debris.
         await this.created.record(backupPath);
         await fse.ensureDir(path.dirname(backupPath));
-        await fse.copy(absolutePath, backupPath);
+        // Never replace an earlier backup's bytes, whoever wrote them.
+        await fse.copy(absolutePath, backupPath, {
+          overwrite: false,
+          errorOnExist: false,
+        });
         this.persisted.add(absolutePath);
         this.logger.info(
           `Backup created: .lisabak/${this.persistentBackupDirname}/${relativePath}`
@@ -148,6 +152,24 @@ export class BackupService implements IBackupService {
         `Failed to create persistent backup of ${absolutePath}: ${error instanceof Error ? error.message : String(error)}`
       );
     }
+  }
+
+  /**
+   * A `.lisabak/` directory name no earlier apply has used. The timestamp has
+   * one-second precision, so two applies in the same second would otherwise
+   * share a directory; a numeric suffix keeps them apart.
+   * @param base - Timestamp name to start from
+   * @param attempt - Suffix counter (0 = no suffix)
+   * @returns An unoccupied directory name under `.lisabak/`
+   */
+  private async unusedBackupDirname(
+    base: string = generateBackupDirname(),
+    attempt = 0
+  ): Promise<string> {
+    const candidate = attempt === 0 ? base : `${base}-${attempt}`;
+    return (await occupied(path.join(this.destDir, ".lisabak", candidate)))
+      ? this.unusedBackupDirname(base, attempt + 1)
+      : candidate;
   }
 
   async rollback(): Promise<void> {
