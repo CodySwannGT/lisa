@@ -255,6 +255,16 @@ describe("sessionManager block", () => {
     expect(problems[0]).toMatch(/trustedAuthorIds/);
     expect(problems[0]).toMatch(/GitHub numeric user id.*not logins/);
   });
+
+  it("rejects an empty trustedAuthorIds, which would filter no author at all", () => {
+    const problems = validateSessionManager({
+      ...minimal,
+      trustedAuthorIds: [],
+    });
+    expect(problems).toHaveLength(1);
+    expect(problems[0]).toMatch(/trustedAuthorIds/);
+    expect(problems[0]).toMatch(/at least one/);
+  });
 });
 
 describe("parseLoopInterval", () => {

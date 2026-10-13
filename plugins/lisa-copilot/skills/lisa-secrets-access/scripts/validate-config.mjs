@@ -775,6 +775,17 @@ export function validateSessionManager(block) {
             `tracker user ids (GitHub numeric user id, Jira accountId, ` +
             `Linear user id), not logins or display names.`,
         ]),
+    // An empty list reads as "set" but filters no author at all, so on a
+    // public repo it would dispatch anyone's item while looking configured.
+    ...(trustedOk &&
+    Array.isArray(block.trustedAuthorIds) &&
+    block.trustedAuthorIds.length === 0
+      ? [
+          `sessionManager.trustedAuthorIds must name at least one author id. ` +
+            `An empty list filters no author at all; remove the key instead ` +
+            `if every author's item may be dispatched.`,
+        ]
+      : []),
     ...findCredentials(block, "sessionManager"),
   ];
 }

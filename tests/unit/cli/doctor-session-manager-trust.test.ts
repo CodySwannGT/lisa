@@ -97,6 +97,14 @@ describe("public repo without trustedAuthorIds", () => {
     expect(check.detail).toContain(REPO);
   });
 
+  it("fails for a public GitHub repo whose trustedAuthorIds is an empty list", async () => {
+    const probe = vi.fn(async () => "PUBLIC");
+    const check = await run(await fixture({ trustedAuthorIds: [] }), probe);
+    expect(probe).toHaveBeenCalledWith(REPO);
+    expect(check.status).toBe("fail");
+    expect(check.detail).toContain("trustedAuthorIds");
+  });
+
   it("is ok for a private repo", async () => {
     const check = await run(await fixture(), async () => PRIVATE);
     expect(check.status).toBe("ok");

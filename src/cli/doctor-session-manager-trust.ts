@@ -125,7 +125,12 @@ export async function trustFindings(
   block: JsonRecord,
   probe: RepoVisibilityProbe | undefined
 ): Promise<readonly Finding[]> {
-  if (config.tracker !== "github" || Array.isArray(block.trustedAuthorIds)) {
+  // An empty list filters no author, so it counts as unset here.
+  const trusted = block.trustedAuthorIds;
+  if (
+    config.tracker !== "github" ||
+    (Array.isArray(trusted) && trusted.length > 0)
+  ) {
     return [];
   }
   const github = isRecord(config.github) ? config.github : {};
