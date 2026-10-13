@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.81.4](https://github.com/CodySwannGT/lisa/compare/v4.81.3...v4.81.4) (2026-10-13)
+
+
+### Bug Fixes
+
+* **session-manager:** act on local review of the setup changes ([88f6c31](https://github.com/CodySwannGT/lisa/commit/88f6c31ee5d408d1f1d92fe1c0a9b9dbdb5d591d)), closes [CodySwannGT/lisa#4465](https://github.com/CodySwannGT/lisa/issues/4465) [CodySwannGT/lisa#4465](https://github.com/CodySwannGT/lisa/issues/4465)
+* **session-manager:** find real repos, clipboard token, trust and intake-loop checks in setup ([804a02c](https://github.com/CodySwannGT/lisa/commit/804a02c653e2e1dcbd2c1bb4727c65686cfe0462)), closes [CodySwannGT/lisa#4465](https://github.com/CodySwannGT/lisa/issues/4465) [CodySwannGT/lisa#4465](https://github.com/CodySwannGT/lisa/issues/4465)
+
 ### [4.81.3](https://github.com/CodySwannGT/lisa/compare/v4.81.2...v4.81.3) (2026-10-13)
 
 
