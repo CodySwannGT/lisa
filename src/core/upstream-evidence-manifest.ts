@@ -11517,6 +11517,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/config/scratch-child-authority.test.ts": true,
     "tests/unit/config/scratch-cleanup-budget.test.ts": true,
     "tests/unit/config/scratch-inherited-lease.test.ts": true,
+    "tests/unit/config/scratch-leaderless-group-recovery.test.ts": true,
     "tests/unit/config/scratch-leak-guard.test.ts": true,
     "tests/unit/config/scratch-owner.test.ts": true,
     "tests/unit/config/scratch-refusal-order.test.ts": true,
