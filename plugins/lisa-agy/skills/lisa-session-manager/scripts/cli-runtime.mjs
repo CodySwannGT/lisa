@@ -18,6 +18,10 @@ import {
   resolveSessionManagerConfig,
   validateSessionManager,
 } from "./config.mjs";
+import {
+  HUMAN_GATE_SIGNAL,
+  resolveSignalLabel,
+} from "../../../scripts/qa-signal-lifecycle.mjs";
 import { normalizeAgents, scrubWorkerEnv } from "./workers.mjs";
 
 /** Exit codes the manager skill branches on. */
@@ -138,6 +142,36 @@ export function loadProject(root) {
   const config = resolveSessionManagerConfig(global, local);
   const errors = config ? validateSessionManager(validationView(config)) : [];
   return { global, local, config, errors };
+}
+
+/**
+ * The label that marks an item as waiting on a person, for this tracker.
+ *
+ * Each tracker keeps it somewhere different and Jira's default is spelled
+ * differently (`Human Needed`), so a hardcoded `human-needed` would let a held
+ * Jira item through to a worker. Local config wins over global, then the
+ * tracker's own default.
+ * @param {ReturnType<typeof loadProject>} project - Loaded project
+ * @param {string | undefined} tracker - `github`, `jira` or `linear`; the
+ *   project's configured tracker when omitted
+ * @returns {string | undefined} The label, or undefined for an unknown tracker
+ */
+export function humanNeededLabel(project, tracker) {
+  const vendor = tracker ?? project.local?.tracker ?? project.global?.tracker;
+  for (const config of [project.local, project.global]) {
+    const resolved = resolveSignalLabel({
+      signal: HUMAN_GATE_SIGNAL,
+      config,
+      vendor,
+    });
+    if (resolved.source === "config") return resolved.value;
+  }
+  const fallback = resolveSignalLabel({
+    signal: HUMAN_GATE_SIGNAL,
+    config: {},
+    vendor,
+  });
+  return fallback.value || undefined;
 }
 
 /**

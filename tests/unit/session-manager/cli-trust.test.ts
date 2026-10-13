@@ -109,6 +109,20 @@ describe("blocked-plan trusted releasers", () => {
     expect(result.json.action).toBe("skip-human-gate");
   });
 
+  it("never releases an item carrying the tracker's configured human-needed label", () => {
+    const sandbox = makeSandbox({ extraConfig: { tracker: "jira" } });
+    const result = runCli(sandbox, [BLOCKED_PLAN], {
+      input: JSON.stringify({
+        labels: ["Human Needed"],
+        body: "Waiting on a person.",
+        comments: [],
+        edges: HELD_ITEM.edges,
+      }),
+    });
+    expect(result.status).toBe(0);
+    expect(result.json.action).not.toBe("release");
+  });
+
   it("takes trusted releasers from sessionManager.trustedAuthorIds", () => {
     const sandbox = makeSandbox();
     trust(sandbox, [MALLORY]);

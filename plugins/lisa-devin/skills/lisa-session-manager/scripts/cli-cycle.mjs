@@ -15,6 +15,7 @@ import {
   CliError,
   EXIT,
   asSetupErrorAsync,
+  humanNeededLabel,
   intFlag,
   loadProject,
   requirePositional,
@@ -210,11 +211,14 @@ export async function blockedPlan(ctx) {
   const pendingQuestion =
     input.pendingQuestion ??
     (ref ? (await readLedger(ctx.root)).items[ref]?.pendingQuestion : null);
-  const trustedHumanActorIds =
-    loadProject(ctx.root).config?.trustedAuthorIds ?? [];
+  const project = loadProject(ctx.root);
+  const trustedHumanActorIds = project.config?.trustedAuthorIds ?? [];
   return {
     json: planBlockedRelease({
       ...input,
+      // The configured label, so a Jira `Human Needed` hold is still a hold.
+      humanNeededLabel:
+        input.humanNeededLabel ?? humanNeededLabel(project, undefined),
       pendingQuestion,
       trustedHumanActorIds,
     }),

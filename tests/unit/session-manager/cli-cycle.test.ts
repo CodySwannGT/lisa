@@ -158,6 +158,56 @@ describe("queue --tracker jira|linear (paging guard)", () => {
     ]);
   });
 
+  it("holds back an item carrying Jira's default human-needed label", () => {
+    const sandbox = makeSandbox();
+    const file = queueInput(sandbox, {
+      complete: true,
+      pages: 1,
+      items: [
+        {
+          ...jiraIssue,
+          fields: { ...jiraIssue.fields, labels: ["Human Needed"] },
+        },
+      ],
+    });
+    const result = runCli(sandbox, [
+      "queue",
+      "--tracker",
+      "jira",
+      "--input",
+      file,
+    ]);
+    expect(result.status).toBe(0);
+    expect(result.json.ordered).toEqual([]);
+    expect(result.json.excluded.map((item: any) => item.reason)).toEqual([
+      "human-gated",
+    ]);
+  });
+
+  it("holds back an item carrying the configured human-needed label", () => {
+    const sandbox = makeSandbox({
+      extraConfig: { jira: { labels: { human_needed: "needs-a-person" } } },
+    });
+    const file = queueInput(sandbox, {
+      complete: true,
+      pages: 1,
+      items: [
+        {
+          ...jiraIssue,
+          fields: { ...jiraIssue.fields, labels: ["needs-a-person"] },
+        },
+      ],
+    });
+    const result = runCli(sandbox, [
+      "queue",
+      "--tracker",
+      "jira",
+      "--input",
+      file,
+    ]);
+    expect(result.json.ordered).toEqual([]);
+  });
+
   it("exits 2 for an unknown tracker", () => {
     expect(runCli(makeSandbox(), ["queue", "--tracker", "trello"]).status).toBe(
       2

@@ -24,6 +24,7 @@ import { resolveRole } from "../../../scripts/resolve-lifecycle-role.mjs";
 import {
   CliError,
   asSetupError,
+  humanNeededLabel,
   loadProject,
   mustRun,
   validOrAbsent,
@@ -141,6 +142,7 @@ export async function queue(ctx) {
   const order = orderReadyQueue(items, {
     me,
     trustedAuthorIds: config?.trustedAuthorIds ?? undefined,
+    humanNeededLabel: humanNeededLabel(project, tracker),
   });
   return { json: { tracker, me, total: items.length, pages, ...order } };
 }
