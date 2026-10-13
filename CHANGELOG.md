@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.81.5](https://github.com/CodySwannGT/lisa/compare/v4.81.4...v4.81.5) (2026-10-13)
+
+
+### Bug Fixes
+
+* **session-manager:** dispatch the operator's own items first ([770a5c6](https://github.com/CodySwannGT/lisa/commit/770a5c6fcbe7c1267db834c5863e314c4625d019)), closes [CodySwannGT/lisa#4467](https://github.com/CodySwannGT/lisa/issues/4467) [CodySwannGT/lisa#4467](https://github.com/CodySwannGT/lisa/issues/4467)
+* **session-manager:** refuse an explicit null operatorIds, look up the operator not the credential ([d44b8f3](https://github.com/CodySwannGT/lisa/commit/d44b8f3dbabe1e24631d1ff552e30e88e8d3c45d)), closes [CodySwannGT/lisa#4467](https://github.com/CodySwannGT/lisa/issues/4467) [CodySwannGT/lisa#4467](https://github.com/CodySwannGT/lisa/issues/4467)
+
+
+### Documentation
+
+* **session-manager:** three-tier order in the runbook template, exact-case operator ids ([183c4a3](https://github.com/CodySwannGT/lisa/commit/183c4a30ea6dfa3c843aa65fa440ffeaa37aedc2)), closes [CodySwannGT/lisa#4467](https://github.com/CodySwannGT/lisa/issues/4467) [CodySwannGT/lisa#4467](https://github.com/CodySwannGT/lisa/issues/4467)
+
 ### [4.81.4](https://github.com/CodySwannGT/lisa/compare/v4.81.3...v4.81.4) (2026-10-13)
 
 
