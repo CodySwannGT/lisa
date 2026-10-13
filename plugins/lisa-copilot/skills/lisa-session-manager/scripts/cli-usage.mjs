@@ -61,12 +61,19 @@ Manager
   stop       tmux kill-session -t =<name> only, and only for a session started
              in this root (exit 2 otherwise); workers keep running.
              stdout {status:"stopped"|"not-running",name}.
-  store-token [--replace]
+  store-token [--replace] [--from-clipboard]
              Prompts for the bot token on the terminal (echo off) and writes
              <stateDir>/.env. Exit 2 when a token is already there, unless
-             --replace. With no TTY: exit 0, stdout {stored:false,
-             reason:"no-tty",command} where command is the line the operator
-             runs in their own terminal. Bad input: exit 2.
+             --replace. With no TTY (an agent's Bash, and Claude Code's !
+             prefix too): exit 0, stdout {stored:false,reason:"no-tty",
+             message,command,clipboardCommand}; command is the line the
+             operator runs in a separate terminal app.
+             --from-clipboard reads the token from the clipboard instead
+             (pbpaste; wl-paste, xclip or xsel on Linux), needs no TTY, and
+             clears the clipboard after a successful store. stdout
+             {stored:true,path,clipboardCleared}. The token is never printed.
+             Bad input, empty clipboard or no clipboard tool: exit 2,
+             {stored:false,reason,message}.
 
 Config and routing
   repo-dir [--repo <key>] [--raw]
@@ -75,10 +82,27 @@ Config and routing
   validate   stdout {valid,errors}; exit 2 when invalid or absent.
   init-config [--slug <slug>] [--write]
              stdout {written,block[,reason:"exists"][,path]}. Detects
-             projects/*/.lisa.config.json. Default slug: <github.repo or
-             folder name>-<first 6 hex of sha256(realpath(root))>; --slug is
-             used as given. --write adds the block to .lisa.config.json,
-             never overwriting an existing one.
+             projects/*/.lisa.config.json, skipping linked worktrees (.git is
+             a file) and keeping one child per origin remote (the one named
+             after the repo, else the first by name). Each repo's hints are a
+             draft: its name, then one per well-known package.json dependency
+             (e.g. @nestjs/* -> NestJS, expo -> Expo, aws-cdk-lib -> AWS CDK).
+             Default slug: <github.repo or folder name>-<first 6 hex of
+             sha256(realpath(root))>; --slug is used as given. --write adds
+             the block to .lisa.config.json, never overwriting an existing one.
+  trust-status
+             stdout {file,dirs:[{dir,trusted:true|false|"unknown"}],
+             needsTrust:[dir]}: whether Claude Code has recorded workspace
+             trust (hasTrustDialogAccepted in $CLAUDE_CONFIG_DIR/.claude.json,
+             else ~/.claude.json) for each worker dir. "unknown" when that
+             file cannot be read. Read-only; never accepts trust.
+  coexistence
+             stdout {windowHours,loops:[{loop,log,lastRun:{ts,outcome}|null,
+             recent}],live:[loop]} for intake-tickets and intake-repair, from
+             .lisa/automations/runs/<loop>.jsonl. recent = last run within
+             windowHours (2 x stall.noOutputMinutes x stall.maxAttempts, at
+             least 24h). Run logs only: the runtime's scheduler is the
+             authority on whether a loop is still scheduled.
 
 Per cycle
   queue --tracker github [--me <id>] [--label <name>] [--github-repo <o/r>]

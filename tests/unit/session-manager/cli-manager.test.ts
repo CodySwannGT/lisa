@@ -1,16 +1,11 @@
 /**
- * Integration tests for the session-manager CLI's manager and setup commands:
- * start, stop, status, repo-dir, validate, init-config and store-token, run
- * as a real process against stub `tmux` and `claude` executables.
+ * Integration tests for the session-manager CLI's manager commands: start,
+ * stop, status, repo-dir and validate, plus `--help`, run as a real process
+ * against stub `tmux` and `claude` executables. The setup commands are in
+ * cli-setup.test.ts.
  * @module tests/unit/session-manager/cli-manager
  */
-import {
-  chmodSync,
-  existsSync,
-  mkdirSync,
-  readFileSync,
-  writeFileSync,
-} from "node:fs";
+import { chmodSync, mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 
@@ -205,44 +200,6 @@ describe("validate", () => {
   });
 });
 
-describe("init-config", () => {
-  it("prints a default block with detected repos and writes it with --write", () => {
-    const sandbox = makeSandbox({ sessionManager: null, repos: ["api"] });
-    const printed = runCli(sandbox, [INIT_CONFIG, "--slug", "demo"]);
-    expect(printed.status).toBe(0);
-    expect(printed.json.block.name).toBe("demo-manager");
-    expect(Object.keys(printed.json.block.repos.entries)).toEqual(["api"]);
-    expect(printed.json.written).toBe(false);
-
-    const written = runCli(sandbox, [INIT_CONFIG, "--slug", "demo", "--write"]);
-    expect(written.json.written).toBe(true);
-    const config = JSON.parse(
-      readFileSync(path.join(sandbox.root, ".lisa.config.json"), "utf8")
-    );
-    expect(config.sessionManager.name).toBe("demo-manager");
-    expect(config.github.repo).toBe("demo-repo");
-  });
-
-  it("never overwrites an existing block", () => {
-    const sandbox = makeSandbox();
-    const result = runCli(sandbox, [INIT_CONFIG, "--write"]);
-    expect(result.status).toBe(0);
-    expect(result.json).toMatchObject({ written: false, reason: "exists" });
-  });
-});
-
-describe(STORE_TOKEN, () => {
-  it("without a TTY prints the copy-paste command and stores nothing", () => {
-    const sandbox = makeSandbox();
-    const result = runCli(sandbox, [STORE_TOKEN]);
-    expect(result.status).toBe(0);
-    expect(result.json.stored).toBe(false);
-    expect(result.json.reason).toBe("no-tty");
-    expect(result.json.command).toContain("store-token --project-root");
-    expect(existsSync(path.join(sandbox.stateDir, TOKEN_FILE))).toBe(false);
-  });
-});
-
 describe("usage", () => {
   it("--help lists every subcommand", () => {
     const result = runCli(makeSandbox(), ["--help"], { noProjectRoot: true });
@@ -263,6 +220,9 @@ describe("usage", () => {
       "record-cycle",
       INIT_CONFIG,
       STORE_TOKEN,
+      "--from-clipboard",
+      "trust-status",
+      "coexistence",
       "validate",
     ]) {
       expect(result.stdout).toContain(name);

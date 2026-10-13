@@ -1,6 +1,7 @@
 /**
- * Manager and setup subcommands of the session-manager CLI: start, stop,
- * status, repo-dir, validate, init-config and store-token.
+ * Manager subcommands of the session-manager CLI: start, stop, status,
+ * repo-dir and validate. The setup ones (init-config, store-token,
+ * trust-status, coexistence) live in cli-setup.mjs.
  *
  * `start` hosts the manager in tmux. It refuses (exit 2) unless the bot
  * token file exists with owner-only permissions in the project's own state
@@ -11,15 +12,11 @@
  * manager's tmux session: workers hold claimed work and keep running.
  * @module session-manager/cli-manager
  */
-import { existsSync, readFileSync, writeFileSync } from "node:fs";
-import path from "node:path";
-
 import {
   CliError,
   EXIT,
   GLOBAL_CONFIG_FILE,
   asSetupError,
-  asSetupErrorAsync,
   intFlag,
   listAgents,
   loadProject,
@@ -28,12 +25,8 @@ import {
   requireLisaRepo,
   run,
 } from "./cli-runtime.mjs";
-import { buildDefaultBlock, detectRepos, resolveRepoDir } from "./config.mjs";
-import {
-  defaultProjectSlug,
-  probeOwnSession,
-  sessionSurvives,
-} from "./isolation.mjs";
+import { resolveRepoDir } from "./config.mjs";
+import { probeOwnSession, sessionSurvives } from "./isolation.mjs";
 import {
   assertTokenPresent,
   buildForegroundCommand,
@@ -41,7 +34,6 @@ import {
   buildManagerLaunch,
   buildStopManager,
   resolveStateDir,
-  storeToken as storeTokenFile,
 } from "./launch.mjs";
 import { readLedger } from "./ledger.mjs";
 import { parseWorkerName, scrubWorkerEnv } from "./workers.mjs";
@@ -206,69 +198,6 @@ export function validate(ctx) {
     json: { valid: errors.length === 0, errors },
     exitCode: errors.length === 0 ? EXIT.OK : EXIT.SETUP,
   };
-}
-
-/**
- * `init-config [--slug <slug>] [--write]`: the default block for this
- * project, written to `.lisa.config.json` only with `--write` and only when
- * no block exists. Non-secret fields only; the token never goes here.
- * @param {object} ctx - CLI context
- * @returns {{ json: object }} `{written,block,...}`
- */
-export function initConfig(ctx) {
-  const { global } = loadProject(ctx.root);
-  if (global?.sessionManager) {
-    return {
-      json: { written: false, reason: "exists", block: global.sessionManager },
-    };
-  }
-  const slug =
-    ctx.values.slug ?? defaultProjectSlug(ctx.root, global?.github?.repo);
-  const block = asSetupError(() =>
-    buildDefaultBlock({
-      projectSlug: slug,
-      detectedRepos: detectRepos(ctx.root),
-    })
-  );
-  if (!ctx.values.write) return { json: { written: false, block } };
-
-  const file = path.join(ctx.root, GLOBAL_CONFIG_FILE);
-  if (!existsSync(file)) {
-    throw new CliError(
-      `${file} does not exist; set up Lisa in this project first.`,
-      EXIT.SETUP
-    );
-  }
-  const current = JSON.parse(readFileSync(file, "utf8"));
-  writeFileSync(
-    file,
-    `${JSON.stringify({ ...current, sessionManager: block }, null, 2)}\n`
-  );
-  return { json: { written: true, path: file, block } };
-}
-
-/**
- * `store-token [--replace]`: prompt for the bot token on the operator's
- * terminal and write `<stateDir>/.env`. An existing token is kept (exit 2)
- * unless `--replace` is given. With no TTY it prints the command the operator
- * must run themselves and exits 0 with `stored:false`.
- * @param {object} ctx - CLI context
- * @returns {Promise<{ json: object, exitCode: number }>} Outcome
- */
-export async function storeToken(ctx) {
-  const config = requireConfig(ctx);
-  const result = await asSetupErrorAsync(() =>
-    storeTokenFile({
-      stateDir: config.notify?.stateDir,
-      scriptsDir: ctx.scriptsDir,
-      projectRoot: ctx.root,
-      replace: ctx.values.replace === true,
-      env: ctx.env,
-      homedir: ctx.homedir,
-    })
-  );
-  const refused = result.stored === false && result.reason !== "no-tty";
-  return { json: result, exitCode: refused ? EXIT.SETUP : EXIT.OK };
 }
 
 /**
