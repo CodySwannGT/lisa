@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.81.2](https://github.com/CodySwannGT/lisa/compare/v4.81.1...v4.81.2) (2026-10-13)
+
+
+### Bug Fixes
+
+* **gates:** let the release pass inherit the five runner-owned pull-request gates ([729640d](https://github.com/CodySwannGT/lisa/commit/729640d98e6263cdb4a41da00f267d9f65c80f90)), closes [#3052](https://github.com/CodySwannGT/lisa/issues/3052) [CodySwannGT/lisa#4458](https://github.com/CodySwannGT/lisa/issues/4458) [CodySwannGT/lisa#4458](https://github.com/CodySwannGT/lisa/issues/4458)
+
 ### [4.81.1](https://github.com/CodySwannGT/lisa/compare/v4.81.0...v4.81.1) (2026-10-13)
 
 
