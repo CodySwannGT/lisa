@@ -290,6 +290,9 @@ export class CopyOverwriteStrategy implements ICopyStrategy {
     if (shadowed !== undefined) return shadowed;
 
     if (!context.config.dryRun) {
+      // Before ensureParentDir, so rollback also knows which directories
+      // this apply created (#4459).
+      await context.backupFile(destPath);
       await ensureParentDir(destPath);
       await copyFile(sourcePath, destPath);
     }

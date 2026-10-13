@@ -12,8 +12,20 @@ export interface StrategyContext {
   /** Full configuration */
   readonly config: LisaConfig;
 
-  /** Backup a file before modification */
+  /**
+   * Call before writing `absolutePath`, whether it exists or not. An existing
+   * file is backed up for restore; a missing one (and its missing parent
+   * directories) is recorded as created, so a failed apply's rollback removes
+   * it (#4459). Call it before `ensureParentDir`.
+   */
   readonly backupFile: (absolutePath: string) => Promise<void>;
+
+  /**
+   * Withdraw a `backupFile` creation record when the write did not happen
+   * because another writer's file already occupied the path (exclusive-create
+   * EEXIST). Optional so bare test contexts need not supply it.
+   */
+  readonly forgetCreated?: (absolutePath: string) => void;
 
   /** Prompt user for overwrite decision */
   readonly promptOverwrite: (

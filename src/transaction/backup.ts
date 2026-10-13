@@ -5,6 +5,7 @@ import * as os from "node:os";
 import { BackupError, RollbackError } from "../errors/index.js";
 import type { ILogger } from "../logging/index.js";
 import { generateBackupDirname } from "../utils/file-operations.js";
+import { CreatedPathLedger, occupied } from "./created-paths.js";
 
 /**
  * Interface for backup service
@@ -13,8 +14,19 @@ export interface IBackupService {
   /** Initialize backup directory */
   init(destDir: string): Promise<void>;
 
-  /** Backup a file before modification */
+  /**
+   * Call before writing `absolutePath`. An existing file is copied so rollback
+   * can restore it; a missing one is recorded as created by this apply, with
+   * every ancestor directory that does not exist yet, so rollback can remove it.
+   */
   backup(absolutePath: string): Promise<void>;
+
+  /**
+   * Withdraw a created-path record made by `backup` when the write it preceded
+   * did not happen because someone else's file got there first (an exclusive
+   * create that hit EEXIST). Rollback must never delete that file.
+   */
+  forgetCreated(absolutePath: string): void;
 
   /** Create persistent timestamped backup in project */
   persistentBackup(absolutePath: string): Promise<void>;
@@ -33,6 +45,11 @@ export class BackupService implements IBackupService {
   private backupDir: string | null = null;
   private destDir: string = "";
   private persistentBackupDirname: string | null = null;
+  /** Files whose pre-apply bytes are already saved; the first copy wins. */
+  private readonly backedUp = new Set<string>();
+  /** Files already copied into this apply's `.lisabak/<timestamp>/`. */
+  private readonly persisted = new Set<string>();
+  private created = new CreatedPathLedger("");
   private readonly logger: ILogger;
 
   /**
@@ -45,6 +62,9 @@ export class BackupService implements IBackupService {
 
   async init(destDir: string): Promise<void> {
     this.destDir = destDir;
+    this.created = new CreatedPathLedger(destDir);
+    this.backedUp.clear();
+    this.persisted.clear();
     this.backupDir = await mkdtemp(path.join(os.tmpdir(), "lisa-backup-"));
     this.logger.info(`Backup directory: ${this.backupDir}`);
   }
@@ -54,13 +74,25 @@ export class BackupService implements IBackupService {
       throw new BackupError("backup", "Backup service not initialized");
     }
 
+    // A second write to the same path must not replace the pre-apply copy
+    // with this apply's own intermediate bytes, and a file this apply created
+    // has no pre-apply bytes at all: rollback removes it instead.
+    if (this.created.has(absolutePath) || this.backedUp.has(absolutePath)) {
+      return;
+    }
+
     try {
-      if (await fse.pathExists(absolutePath)) {
+      // lstat, not pathExists: a dangling symlink the host already had must
+      // be backed up (as a link), never recorded as created and unlinked.
+      if (await occupied(absolutePath)) {
         const relativePath = path.relative(this.destDir, absolutePath);
         const backupPath = path.join(this.backupDir, relativePath);
 
         await fse.ensureDir(path.dirname(backupPath));
         await fse.copy(absolutePath, backupPath);
+        this.backedUp.add(absolutePath);
+      } else {
+        await this.created.record(absolutePath);
       }
     } catch (error) {
       throw new BackupError(
@@ -70,7 +102,16 @@ export class BackupService implements IBackupService {
     }
   }
 
+  forgetCreated(absolutePath: string): void {
+    this.created.forget(absolutePath);
+  }
+
   async persistentBackup(absolutePath: string): Promise<void> {
+    // Same first-copy-wins rule as backup(): the .lisabak copy must hold the
+    // pre-apply bytes, not this apply's intermediate ones.
+    if (this.created.has(absolutePath) || this.persisted.has(absolutePath)) {
+      return;
+    }
     try {
       if (await fse.pathExists(absolutePath)) {
         // Generate backup directory name on first call
@@ -89,8 +130,12 @@ export class BackupService implements IBackupService {
         );
         const backupPath = path.join(backupBaseDir, relativePath);
 
+        // The persistent copy is itself a file this apply creates: rollback
+        // restores the original in place, so the copy would be pure debris.
+        await this.created.record(backupPath);
         await fse.ensureDir(path.dirname(backupPath));
         await fse.copy(absolutePath, backupPath);
+        this.persisted.add(absolutePath);
         this.logger.info(
           `Backup created: .lisabak/${this.persistentBackupDirname}/${relativePath}`
         );
@@ -122,6 +167,10 @@ export class BackupService implements IBackupService {
         this.logger.info(`Restored: ${relativePath}`);
       }
 
+      for (const relativePath of await this.created.removeAll()) {
+        this.logger.info(`Removed (created by this apply): ${relativePath}`);
+      }
+
       await this.cleanup();
       this.logger.success("Rollback complete");
     } catch (error) {
@@ -132,6 +181,9 @@ export class BackupService implements IBackupService {
   }
 
   async cleanup(): Promise<void> {
+    this.created.clear();
+    this.backedUp.clear();
+    this.persisted.clear();
     if (this.backupDir && (await fse.pathExists(this.backupDir))) {
       await fse.remove(this.backupDir);
       this.backupDir = null;
@@ -172,6 +224,10 @@ export class DryRunBackupService implements IBackupService {
   }
 
   async backup(_absolutePath: string): Promise<void> {
+    // No-op
+  }
+
+  forgetCreated(_absolutePath: string): void {
     // No-op
   }
 
