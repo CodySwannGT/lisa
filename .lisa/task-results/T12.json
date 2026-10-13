@@ -1,0 +1,24 @@
+{
+  "task": "T12",
+  "status": "done",
+  "files": [
+    "plugins/src/base/skills/lisa-setup-session-manager/SKILL.md",
+    "plugins/src/base/commands/setup/session-manager.md"
+  ],
+  "tests": "No new test file: T16 covers presence in every variant, an identical ladder, the plugin-scope remedy text and no token in examples. bunx vitest run tests/unit/strategies/agent-skill-layer-contract.test.ts -> 73 passed. bunx prettier --check clean on both files.",
+  "verification": {
+    "command": "d=$(mktemp -d) && mkdir -p $d/projects/api && echo '{}' > $d/projects/api/.lisa.config.json && echo '{\"tracker\":\"github\"}' > $d/.lisa.config.json && node plugins/src/base/skills/lisa-session-manager/scripts/session-manager.mjs init-config --project-root $d --write && jq .sessionManager $d/.lisa.config.json; plus a diff of the ladder block extracted from both SKILL.md files",
+    "observed": "With --write: repos.root 'projects', entries {api:{hints:['api']}}, notify.stateDir '~/.claude/channels/telegram-<tmp slug>' (not the shared default ~/.claude/channels/telegram), no token field. The task file's literal command omits --write, so its jq prints null. The preview JSON on stdout has the same block. The ladder blocks in the two skills are byte-identical (diff prints nothing). `claude plugin install --help` confirms that -s/--scope exists, so the install hint uses only a real flag. `lisa doctor` registers the check as 'Session manager Telegram isolation?' (src/cli/doctor-session-manager.ts CHECK_NAME), and the skill names that string."
+  },
+  "deviations": [
+    "Step 9 runs `lisa doctor` and falls back to `npx @codyswann/lisa doctor`, because a multi-repo host root often has no local lisa bin. The bin name is 'lisa' per package.json.",
+    "Step 4's not-installed branch suggests `claude plugin install telegram@claude-plugins-official -s user`. It then re-checks, so the user-scope-enabled remedy fires if installing enabled it."
+  ],
+  "learnings": [
+    {
+      "kind": "learning",
+      "note": "T12's verification command in tasks-4448.json runs init-config without --write, so `jq .sessionManager` prints null. init-config only previews unless --write is given (T10 CLI contract). Read the printed block, or add --write.",
+      "evidence": "The same temp layout gave null without --write and the full block with it"
+    }
+  ]
+}

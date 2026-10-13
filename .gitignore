@@ -240,6 +240,11 @@ expo-env.d.ts
 # /lisa:automation-status. Runbooks are project knowledge; run records are not.
 .lisa/automations/runs/
 
+# Session-manager machine state (the ledger of workers this machine spawned,
+# its session log). Per machine by construction; the manager's runbook under
+# .lisa/automations/ stays trackable.
+.lisa/session-manager/
+
 # Proof that `lisa apply` completed in THIS checkout, read by `lisa doctor` to
 # report a repo that has silently stopped receiving templates. Machine-local by
 # construction: committing it would churn on every version bump, conflict

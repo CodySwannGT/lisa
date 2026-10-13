@@ -1,0 +1,4 @@
+display_name: "Setup Session Manager"
+short_description: "Set up the local session…"
+default_prompt:
+  - "Use $lisa-setup-session-manager: Set up the local session…."

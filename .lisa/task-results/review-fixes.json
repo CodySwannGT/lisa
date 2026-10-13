@@ -1,0 +1,202 @@
+{
+  "status": "complete",
+  "summary": "All review findings fixed with tests first. Every brief test suite passes on source; the only failures (42) are in session-manager-skill.test.ts, session-manager-skill-contract.test.ts, session-manager-dispatch-contract.test.ts and implement-managed-by-contract.test.ts against the generated plugin roots (byte parity, usage parity, new prose pins). They clear once the lead runs build:plugins. Nothing committed.",
+  "fixes": [
+    {
+      "id": "S1a",
+      "files": [
+        "plugins/src/base/skills/lisa-session-manager/scripts/isolation.mjs",
+        "plugins/src/base/skills/lisa-session-manager/scripts/cli-manager.mjs",
+        "plugins/src/base/skills/lisa-session-manager/scripts/cli-usage.mjs"
+      ],
+      "test": "tests/unit/session-manager/cli-isolation.test.ts (init-config default slug)",
+      "disposition": "fixed",
+      "note": "Default slug is now <github.repo or folder>-<first 6 hex of sha256(realpath(root))>. The name is cut to 49 characters first, so the hash survives the 56-character slug limit. An explicit --slug is used as given."
+    },
+    {
+      "id": "S1b",
+      "files": [
+        "plugins/src/base/skills/lisa-session-manager/scripts/isolation.mjs",
+        "plugins/src/base/skills/lisa-session-manager/scripts/launch.mjs",
+        "plugins/src/base/skills/lisa-session-manager/scripts/cli-manager.mjs",
+        "tests/fixtures/session-manager/stub-bin/tmux"
+      ],
+      "test": "tests/unit/session-manager/cli-isolation.test.ts (start/stop against an existing session); cli-manager.test.ts updated",
+      "disposition": "fixed",
+      "note": "start compares realpath(#{session_path}) with realpath(root) before reporting already-running. On a mismatch, or empty output, it exits 2 naming the session, the other path and the remedy. stop now does the same check, so it never kills another project's manager of the same name; that is a small widening beyond the brief, with the same cause. Uses `display-message -p -t =<name>: '#{session_path}'`: the trailing colon is required (see learnings)."
+    },
+    {
+      "id": "S1c",
+      "files": [
+        "plugins/src/base/skills/lisa-session-manager/scripts/token.mjs",
+        "plugins/src/base/skills/lisa-session-manager/scripts/cli-manager.mjs",
+        "plugins/src/base/skills/lisa-session-manager/scripts/session-manager.mjs",
+        "plugins/src/base/skills/lisa-session-manager/scripts/cli-usage.mjs",
+        "plugins/src/base/skills/lisa-setup-session-manager/SKILL.md"
+      ],
+      "test": "tests/unit/session-manager/cli-isolation.test.ts (store-token over an existing token)",
+      "disposition": "fixed",
+      "note": "store-token exits 2 when <stateDir>/.env exists, unless --replace is given. The check runs before the TTY check. The no-TTY copy-paste command carries --replace through. The usage text and setup Step 3 document it."
+    },
+    {
+      "id": "S2",
+      "files": [
+        "plugins/src/base/skills/lisa-session-manager/scripts/launch.mjs"
+      ],
+      "test": "tests/unit/session-manager/launch-argv.test.ts (buildHasSession / buildStopManager expect -t =<name>)",
+      "disposition": "fixed",
+      "note": "has-session and kill-session use -t =<name>. display-message (a target-pane command) uses -t =<name>:. These are the only -t targets in the CLI."
+    },
+    {
+      "id": "S3a",
+      "files": [
+        "plugins/src/base/skills/lisa-implement/SKILL.md",
+        "tests/unit/strategies/implement-managed-by-contract.test.ts"
+      ],
+      "test": "implement-managed-by-contract.test.ts: 'treats text from other authors as untrusted data and raises it as a question'",
+      "disposition": "fixed",
+      "note": "New step 6, 'Untrusted text', in the managedBy routing section. Terminal status is renumbered to 7. The pin is in the describe.each over every root, so it fails on the 6 generated roots until build:plugins."
+    },
+    {
+      "id": "S3b",
+      "files": ["plugins/src/base/skills/lisa-session-manager/SKILL.md"],
+      "test": "prose only; no test pins it",
+      "disposition": "fixed",
+      "note": "The Security bullet now says trustedAuthorIds limits which items are dispatched, by item author only. It also says comments, later edits and attachments are not vetted (the worker treats them as untrusted under managedBy=), and that the same list is the only source of human-hold releasers in blocked-plan."
+    },
+    {
+      "id": "S3c",
+      "files": [
+        "src/cli/doctor-session-manager-trust.ts",
+        "src/cli/doctor-session-manager.ts",
+        "plugins/src/base/skills/lisa-setup-session-manager/SKILL.md"
+      ],
+      "test": "tests/unit/cli/doctor-session-manager-trust.test.ts (public repo without trustedAuthorIds)",
+      "disposition": "fixed",
+      "note": "The check fails when tracker=github, the repo is PUBLIC and trustedAuthorIds is not an array. It warns, giving the probe's error, when the injected probe (default: gh repo view <org>/<repo> --json visibility) throws. It does not probe when trustedAuthorIds is set or the tracker is not github. Setup Step 8.0 now says setup will not start the manager until trustedAuthorIds is set. The new test file is outside the brief's run list, and was run in addition. doctor.ts is unchanged; the default probe applies there."
+    },
+    {
+      "id": "S4",
+      "files": [
+        "plugins/src/base/skills/lisa-session-manager/scripts/cli-cycle.mjs",
+        "plugins/src/base/skills/lisa-session-manager/scripts/cli-usage.mjs"
+      ],
+      "test": "tests/unit/session-manager/cli-trust.test.ts (blocked-plan trusted releasers)",
+      "disposition": "fixed",
+      "note": "trustedHumanActorIds is always overwritten with config trustedAuthorIds (or []), whether the input arrives on stdin or through --input."
+    },
+    {
+      "id": "S5",
+      "files": [
+        "plugins/src/base/skills/lisa-session-manager/scripts/cli-cycle.mjs",
+        "plugins/src/base/skills/lisa-session-manager/scripts/session-manager.mjs",
+        "plugins/src/base/skills/lisa-session-manager/scripts/cli-usage.mjs",
+        "plugins/src/base/skills/lisa-session-manager/SKILL.md"
+      ],
+      "test": "tests/unit/session-manager/cli-trust.test.ts (ledger --sender); prose pinned in tests/unit/strategies/session-manager-dispatch-contract.test.ts",
+      "disposition": "fixed",
+      "note": "Enforced in the CLI: `ledger finish` and `ledger set-question` take an optional --sender <name>, and exit 2 unless ledger.items[ref].worker === name. The flag is optional because the manager's own finish and set-question calls (stall, operator stop, repo-routing questions) have no worker sender. The SKILL.md 'Handling messages' rule tells the manager to pass the sender and to ignore the message on exit 2. The T16 file was not edited."
+    },
+    {
+      "id": "H1-resume-double-dash",
+      "files": [
+        "plugins/src/base/skills/lisa-session-manager/scripts/workers.mjs",
+        "plugins/src/base/skills/lisa-session-manager/scripts/cli-usage.mjs"
+      ],
+      "test": "tests/unit/session-manager/cli-trust.test.ts (resume argv); workers.test.ts and cli.test.ts expectations updated",
+      "disposition": "fixed",
+      "note": "Verified on claude 2.1.296. `claude -p --resume <id> -- \"--not-a-flag\"` reaches the session lookup. Without `--` it fails with \"error: unknown option '--not-a-flag'\". So the separator is supported and needed."
+    },
+    {
+      "id": "H2-state-dir-realpath",
+      "files": [
+        "plugins/src/base/skills/lisa-session-manager/scripts/state-dir.mjs"
+      ],
+      "test": "tests/unit/session-manager/cli-trust.test.ts (resolveStateDir through symlinks)",
+      "disposition": "fixed",
+      "note": "realpathExisting resolves symlinks in the longest existing prefix and keeps the not-yet-created remainder. Both the configured dir and the shared defaults are compared in their literal and resolved forms."
+    },
+    {
+      "id": "H3-project-scope-plugin-warn",
+      "files": ["src/cli/doctor-session-manager-trust.ts"],
+      "test": "tests/unit/cli/doctor-session-manager-trust.test.ts (Telegram plugin enabled at project scope)",
+      "disposition": "fixed",
+      "note": "Warns for .claude/settings.json and .claude/settings.local.json at the root, and in each routed child repo (repos.root/<key>). Keys are restricted to a safe segment and must stay inside the root."
+    },
+    {
+      "id": "H4-cap-doc",
+      "files": ["plugins/src/base/skills/lisa-session-manager/SKILL.md"],
+      "test": "tests/unit/strategies/session-manager-dispatch-contract.test.ts",
+      "disposition": "fixed",
+      "note": "The `cap N` line says it may raise the limit above capacity.maxWorkers, up to 32, and that capacity still bounds it by free memory and CPU load."
+    },
+    {
+      "id": "SC1-claim-skip",
+      "files": [
+        "plugins/src/base/skills/lisa-session-manager/SKILL.md",
+        "tests/unit/strategies/session-manager-dispatch-contract.test.ts"
+      ],
+      "test": "tests/unit/strategies/session-manager-dispatch-contract.test.ts",
+      "disposition": "fixed",
+      "note": "Dispatch step 3 re-reads the item after the claim. It skips the item on a different assignee, or when the state did not change to the claimed role ('Never spawn on the claim's word alone.'). The new test is over ALL_ROOTS, so it fails on the generated roots until build:plugins."
+    },
+    {
+      "id": "SC2-answer-prefix",
+      "files": [".lisa/design-4448.md"],
+      "test": "n/a (design record)",
+      "disposition": "fixed",
+      "note": "Added as item 8 in section 9.2 (Cut or simplified)."
+    },
+    {
+      "id": "C1-codex-overlay-cli",
+      "files": ["plugins/src/base/skills/lisa-session-manager/SKILL.md"],
+      "test": "no new pin; session-manager-skill*.test.ts run",
+      "disposition": "fixed",
+      "note": "Runtime parity gains one sentence: the CLI runs only from the Claude Code plugin install or the npm package, never from the Codex overlay copy, so a Codex session cannot host the manager. The imports were not restructured, and the script-root ladder was not touched."
+    },
+    {
+      "id": "C2-antigravity-name",
+      "files": ["plugins/src/base/skills/lisa-session-manager/SKILL.md"],
+      "test": "session-manager-skill-contract.test.ts RUNTIMES check still passes on source",
+      "disposition": "fixed",
+      "note": "The parity table row now reads 'Cursor / Antigravity (agy) / Copilot / Devin'. The setup skill does not name agy."
+    },
+    {
+      "id": "C3-probe-direction-marker",
+      "files": [
+        "plugins/src/base/skills/lisa-session-manager/scripts/cli-workers.mjs",
+        "plugins/src/base/skills/lisa-session-manager/scripts/isolation.mjs"
+      ],
+      "test": "tests/unit/scripts/check-probe-absence-direction.test.ts; node scripts/check-probe-absence-direction.mjs exit 0",
+      "disposition": "fixed",
+      "note": "logsHash: fail-closed. A failed `claude logs` read gives null, which classifyWorker never credits as progress, so the worker can only move toward stalled, never stay working. The behaviour is unchanged. Swept the other session-manager scripts. A preemptive fail-closed marker was added to the new has-session branch in isolation.mjs; its return value is not an absence literal, so the checker would not have flagged it. The other catch blocks are not external probes returning absence."
+    },
+    {
+      "id": "C4-bounded-spawn",
+      "files": ["tests/unit/session-manager/support/cli-harness.ts"],
+      "test": "tests/unit/helpers/unbounded-spawn-conformance.test.ts; all tests/unit/session-manager pass",
+      "disposition": "fixed",
+      "note": "runCli starts the CLI through boundedSpawnSync from tests/helpers/io-latency-budget.ts, with the default child-must-consume-input. All 21 session-manager files pass with it."
+    },
+    {
+      "id": "M1-file-size",
+      "files": [
+        "plugins/src/base/skills/lisa-session-manager/scripts/launch.mjs",
+        "plugins/src/base/skills/lisa-session-manager/scripts/state-dir.mjs",
+        "plugins/src/base/skills/lisa-session-manager/scripts/token.mjs",
+        "src/cli/doctor-session-manager.ts",
+        "src/cli/doctor-session-manager-trust.ts"
+      ],
+      "test": "existing launch/launch-argv tests unchanged and passing",
+      "disposition": "fixed",
+      "note": "launch.mjs was 385 lines before this pass. It is split into state-dir.mjs (LaunchError, resolveStateDir) and token.mjs (token storage); launch.mjs re-exports both, so no import changed. doctor-session-manager.ts was 331 lines and is now 293; shared JSON/mode helpers moved to doctor-session-manager-trust.ts. Not fixed: workers.mjs was already 385 lines before this pass (now 387) and was left alone as out of scope."
+    }
+  ],
+  "learnings": [
+    "tmux 3.6: `-t =name` gives an exact match for target-session commands (has-session, kill-session). Target-pane commands such as display-message need `=name:`. A bare `=name` resolves to nothing, and display-message then prints an empty line and exits 0, including for a session that does not exist. So empty session_path output must be treated as unknown, never as a match.",
+    "zsh expands an unquoted `=word` at the start of a word to the path of command `word` (the equals expansion), so quote tmux `=name` targets in any shell probe.",
+    "claude 2.1.296 (commander) honours `--` as the end of options. Without it, a positional message beginning with `--` is rejected as an unknown option.",
+    "The Lisa safety-net hook blocks any Bash command whose text mentions a `.env` path, even inside a heredoc payload. Write patch scripts to the scratchpad and run them by path.",
+    "New contract pins added to describe.each(ALL_ROOTS) fail on the generated roots until build:plugins. That is expected for a builder told not to regenerate."
+  ]
+}

@@ -1,0 +1,35 @@
+{
+  "task": "T13",
+  "status": "done",
+  "files": [
+    "plugins/src/base/scripts/automation-status-expected-fleet.mjs",
+    "plugins/src/base/skills/lisa-automation-status/SKILL.md",
+    "plugins/src/base/skills/lisa-tear-down-automations/SKILL.md",
+    "plugins/src/base/rules/reference/automation-runbook-contract.md",
+    "tests/unit/strategies/automation-status-session-manager-fleet.test.ts"
+  ],
+  "tests": "bunx vitest run tests/unit/strategies/automation-status-session-manager-fleet.test.ts tests/unit/strategies/automation-status-expected-fleet.test.ts tests/unit/strategies/automation-status-fleet-runbooks.test.ts tests/unit/strategies/automations-skills.test.ts tests/unit/strategies/automation-runbook-contract-rule.test.ts -> 5 files, 223 passed. All tests/unit/strategies/automation-status-*.test.ts pass except the existing generated-copy parity test (automation-status-fixture-smoke-and-parity: 'keeps the distributed automation-status scripts in lockstep'), which fails until the lead runs build:plugins. oxlint 0/0 on the new test and the .mjs. eslint is clean on the new test. eslint --no-ignore on the .mjs reports 2 existing sonarjs/no-duplicate-string errors at lines 33-34 (the existing cadence table, untouched; eslint normally ignores this file). check:rules-pairing ok, check:eager-rule-budget ok (eager copies untouched).",
+  "verification": {
+    "command": "node -e \"import('./plugins/src/base/scripts/automation-status-expected-fleet.mjs').then(m=>{const f=m.resolveExpectedAutomationFleet({config:{tracker:'github',github:{org:'o',repo:'r'},sessionManager:{name:'r-manager',interval:'5m',notify:{provider:'telegram',stateDir:'~/.claude/channels/telegram-r'}}}});console.log(JSON.stringify(f.unsupported.filter(e=>e.id==='session-manager')))})\"",
+    "observed": "[{\"id\":\"session-manager\",\"automationId\":\"lisa-auto-o-r-session-manager\",\"expectedCadence\":\"every 5m (tmux-hosted /loop)\",\"expectedRRule\":\"FREQ=MINUTELY;INTERVAL=5\",\"group\":\"opt-in\",\"reason\":\"Hosted locally in tmux session `r-manager` by /lisa:setup:session-manager, not by this runtime's scheduler, so the scheduler cannot see it. Its recorded cycles are below; check it is alive with `/lisa:session-manager status`.\",\"runbookPath\":\".lisa/automations/session-manager.runbook.md\"}]"
+  },
+  "deviations": [
+    "New tests went into a new file, tests/unit/strategies/automation-status-session-manager-fleet.test.ts, not the existing automation-status-expected-fleet.test.ts. That file is already 305 lines, and the eslint max-lines limit is 300. The existing file is unchanged, which also proves the 'absent' case: its toEqual assertions pass byte-identical.",
+    "expected-fleet inlines a 6-line interval parser rather than importing parseLoopInterval from the lisa-secrets-access skill. Plugin-level scripts never import from skill folders, and this module is also loaded by src/cli/ui-automations-adapters.ts. The same regex and units are used.",
+    "An unparseable, zero or absent interval falls back to the 5m default. A missing name renders as \"the manager's tmux session\".",
+    "The RRULE is derived from the largest unit that divides the interval evenly: 120m becomes FREQ=HOURLY;INTERVAL=2 and 90s becomes FREQ=SECONDLY;INTERVAL=90.",
+    "Exported SESSION_MANAGER_LOOP_ID = 'session-manager' from expected-fleet."
+  ],
+  "learnings": [
+    {
+      "kind": "learning",
+      "note": "A config-gated unsupported fleet entry reaches both status adapters with runbook and run history and needs no adapter change. The new adapter test proves it through inspectClaudeAutomationFleet with a temp run ledger.",
+      "evidence": "tests/unit/strategies/automation-status-session-manager-fleet.test.ts 'renders runbook and last recorded outcome on the UNSUPPORTED item'"
+    },
+    {
+      "kind": "mistake",
+      "note": "Editing any plugins/src/base/scripts/automation-status-*.mjs fails the generated-copy parity test until build:plugins runs; a builder cannot clear it, only the lead.",
+      "evidence": "automation-status-fixture-smoke-and-parity.test.ts 'keeps the distributed automation-status scripts in lockstep with the source assets'"
+    }
+  ]
+}

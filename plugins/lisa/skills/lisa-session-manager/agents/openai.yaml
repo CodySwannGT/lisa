@@ -1,0 +1,4 @@
+display_name: "Session Manager"
+short_description: "Runs the local session manager for a project: a long-lived Claude Code session in tmux that dispatches Ready work items to fresh background…"
+default_prompt:
+  - "Use $lisa-session-manager: Runs the local session manager for a project: a long-lived Claude Code session in tmux that dispatches Ready work items to fresh background…."

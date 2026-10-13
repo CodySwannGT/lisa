@@ -140,7 +140,16 @@ export function renderAutomationGroups(bins) {
  *   readonly expectedCadence: string
  *   readonly expectedRRule: string
  *   readonly runbookPath: string
+ *   readonly observed?: string
+ *   readonly runbookSetupCommand?: string
  * }} UnsupportedAutomationEntry
+ *
+ * `observed` overrides the adapters' default "No automation is expected" text
+ * for an entry that does run, just not where the scheduler can see it.
+ * `runbookSetupCommand` names the command that scaffolds this loop's runbook
+ * when it is not `/lisa:setup-automations` (the session manager's runbook is
+ * seeded by `/lisa:setup:session-manager`), so the "not scaffolded" fix-it
+ * text sends the operator to the command that can actually fix it.
  */
 
 /**
@@ -351,6 +360,12 @@ export function resolveExpectedAutomationFleet(input = {}) {
     );
   }
 
+  if (isPlainObject(config.sessionManager)) {
+    unsupported.push(
+      createSessionManagerEntry(identity, config.sessionManager)
+    );
+  }
+
   return {
     ...identity,
     expected,
@@ -411,6 +426,89 @@ function createUnsupportedEntry(identity, id, reason, group) {
     reason,
     runbookPath: resolveAutomationRunbookPath(id),
   };
+}
+
+/** Loop id the session manager records its cycles under. */
+export const SESSION_MANAGER_LOOP_ID = "session-manager";
+
+/** Interval used when `sessionManager.interval` is absent or unparseable. */
+const SESSION_MANAGER_DEFAULT_INTERVAL = "5m";
+
+/**
+ * RRULE units, largest first, so `120m` reads as `HOURLY;INTERVAL=2`.
+ * @type {readonly (readonly [string, number])[]}
+ */
+const RRULE_UNITS = [
+  ["DAILY", 86400],
+  ["HOURLY", 3600],
+  ["MINUTELY", 60],
+  ["SECONDLY", 1],
+];
+
+/** Seconds per `sessionManager.interval` unit suffix. */
+const LOOP_INTERVAL_UNIT_SECONDS = { s: 1, m: 60, h: 3600, d: 86400 };
+
+/**
+ * Build the UNSUPPORTED entry for the locally hosted session manager.
+ *
+ * The manager is a `/loop` in a tmux session that setup starts, so no runtime
+ * scheduler can see it: MISSING would be a lie and HEALTHY unprovable. It is
+ * listed as UNSUPPORTED with a reason that says where it runs and how to check
+ * it, and the adapters still attach its runbook and recorded cycles (it records
+ * through `automation-run-record.mjs --loop-id session-manager`). Opt-in: only
+ * called when `config.sessionManager` exists, so other fleets are unchanged.
+ *
+ * The interval parser mirrors `parseLoopInterval` in the config validator; it
+ * is inlined because plugin-level scripts do not import from skill folders.
+ *
+ * @param {{ readonly automationPrefix: string }} identity
+ * @param {Record<string, any>} block The `sessionManager` config block.
+ * @returns {UnsupportedAutomationEntry}
+ */
+function createSessionManagerEntry(identity, block) {
+  const parsed = parseIntervalSeconds(block.interval);
+  const interval =
+    parsed === null ? SESSION_MANAGER_DEFAULT_INTERVAL : block.interval;
+  const seconds = parsed ?? parseIntervalSeconds(interval);
+  const [freq, unit] = RRULE_UNITS.find(([, size]) => seconds % size === 0);
+  const session =
+    typeof block.name === "string" && block.name !== ""
+      ? `tmux session \`${block.name}\``
+      : "the manager's tmux session";
+  return {
+    id: SESSION_MANAGER_LOOP_ID,
+    automationId: `${identity.automationPrefix}${SESSION_MANAGER_LOOP_ID}`,
+    expectedCadence: `every ${interval} (tmux-hosted /loop)`,
+    expectedRRule: `FREQ=${freq};INTERVAL=${seconds / unit}`,
+    group: "opt-in",
+    reason: `Hosted locally in ${session} by /lisa:setup:session-manager, not by this runtime's scheduler, so the scheduler cannot see it. Its recorded cycles are below; check it is alive with \`/lisa:session-manager status\`.`,
+    observed:
+      "Hosted locally in tmux; the scheduler cannot observe it — check `/lisa:session-manager status`",
+    runbookPath: resolveAutomationRunbookPath(SESSION_MANAGER_LOOP_ID),
+    runbookSetupCommand: "/lisa:setup:session-manager",
+  };
+}
+
+/**
+ * Parse a `/loop` interval such as `5m` into seconds.
+ *
+ * @param {unknown} text
+ * @returns {number | null} Seconds, or null when unparseable or zero.
+ */
+function parseIntervalSeconds(text) {
+  if (typeof text !== "string") return null;
+  const match = /^(\d+)([smhd])$/.exec(text);
+  if (!match) return null;
+  const seconds = Number(match[1]) * LOOP_INTERVAL_UNIT_SECONDS[match[2]];
+  return seconds > 0 ? seconds : null;
+}
+
+/**
+ * @param {unknown} value
+ * @returns {boolean} True for `{}`-shaped values.
+ */
+function isPlainObject(value) {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
 /**

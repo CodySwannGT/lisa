@@ -1,0 +1,4 @@
+display_name: "Setup Session Manager"
+short_description: "Set up the local session manager for this project: writes the non-secret `sessionManager` block to `.lisa.config.json` (detecting a…"
+default_prompt:
+  - "Use $lisa-setup-session-manager: Set up the local session manager for this project: writes the non-secret `sessionManager` block to `.lisa.config.json` (detecting a…."

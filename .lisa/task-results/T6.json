@@ -1,0 +1,22 @@
+{
+  "task": "T6",
+  "status": "done",
+  "files": [
+    "plugins/src/base/skills/lisa-session-manager/scripts/ledger.mjs",
+    "tests/unit/session-manager/ledger.test.ts"
+  ],
+  "exports": "All take (projectRoot, ..., seams?) where seams = {fs?: node:fs/promises subset (readFile,writeFile,rename,mkdir,appendFile), now?: () => Date}. ledgerPath(root):string (<root>/.lisa/session-manager/ledger.json); sessionsLogPath(root):string (.../sessions.jsonl); readLedger(root, seams?):Promise<{version:1, items:Record<ref,Item>, control:{paused:boolean,maxWorkers:number|null,me:string|null}}> (missing file -> empty; corrupt JSON throws, never resets attempts); writeLedger(root, ledger, seams?):Promise<void> (temp file <ledger>.<pid>.<uuid>.tmp then rename); recordSpawn(root,{ref,worker,sessionId,repo},seams?):Promise<Item> (attempts++, status 'running', startedAt=lastProgressAt=now, history push {event:'spawn',at,worker,sessionId,attempt}); setPendingQuestion(root,{ref,text,telegramMessageId},seams?):Promise<Item> (same text = re-ping: keeps askedAt, moves lastPingAt; unknown ref creates a placeholder item status 'question', attempts 0); clearPendingQuestion(root,{ref},seams?):Promise<Item>; recordProgress(root,{ref,logsHash},seams?):Promise<{changed:boolean,entry:Item}>; recordFinish(root,{ref,status:'DONE'|'FAILED',reason},seams?):Promise<Item> (sets finishedAt, clears pendingQuestion); setControl(root,{paused?,maxWorkers?:int 0..32|null,me?:string|null},seams?):Promise<control>; appendSessionEvent(root,event,seams?):Promise<void> (one line {at,...event}). Item = {repo,worker,sessionId,status,startedAt,lastProgressAt,logsHash,pendingQuestion:{text,askedAt,lastPingAt,telegramMessageId}|null,reason,finishedAt,attempts,history[]}",
+  "tests": "bunx vitest run tests/unit/session-manager/ledger.test.ts -> 1 file, 19 tests passed; oxlint 0/0; eslint 0 errors on the test (ledger.mjs is eslint-ignored by repo config); prettier clean",
+  "verification": {
+    "command": "bun run vitest run tests/unit/session-manager/ledger.test.ts && node -e \"import('./plugins/src/base/skills/lisa-session-manager/scripts/ledger.mjs').then(async m=>{const d=require('fs').mkdtempSync(require('os').tmpdir()+'/sm-');await m.recordSpawn(d,{ref:'A',worker:'wk-A-1012-0900',sessionId:'s1',repo:'.'});await m.recordSpawn(d,{ref:'A',worker:'wk-A-1012-0930',sessionId:'s2',repo:'.'});console.log((await m.readLedger(d)).items.A.attempts)})\"",
+    "observed": "Test Files 1 passed (1); Tests 19 passed (19); script printed 2"
+  },
+  "deviations": [
+    "readLedger throws on a corrupt (non-JSON) ledger rather than treating it as empty, so attempts are never silently reset; a missing file still reads as empty per the AC",
+    "setPendingQuestion creates a placeholder item (status 'question', attempts 0) for a ref not yet dispatched, so repo-routing questions are routable by telegram-route",
+    "Item gains reason and finishedAt fields (set by recordFinish, cleared by recordSpawn)"
+  ],
+  "learnings": [
+    {"kind": "test-design", "note": "an injected clock that ticks per call breaks if the atomic temp-file name also reads it; name temp files with randomUUID, not the clock", "evidence": "4 ledger tests failed with off-by-one-minute timestamps until writeLedger stopped calling now()"}
+  ]
+}

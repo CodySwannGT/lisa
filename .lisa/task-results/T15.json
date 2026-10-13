@@ -1,0 +1,26 @@
+{
+  "task": "T15",
+  "status": "done",
+  "files": [
+    "all/copy-contents/gitignore",
+    ".gitignore",
+    "tests/unit/strategies/session-manager-gitignore.test.ts"
+  ],
+  "tests": "bunx vitest run tests/unit/strategies/session-manager-gitignore.test.ts tests/unit/strategies/copy-contents-gitignore.test.ts tests/unit/health/gitignore.test.ts -> 3 files, 12 tests passed. RED first: the same assertions failed 3/3 before the rule existed. eslint, oxlint, prettier clean. The new assertions live in a new file because copy-contents-gitignore.test.ts was already at the eslint max-lines limit (adding them gave 361 > 300); that file is unchanged.",
+  "verification": {
+    "command": "git check-ignore -v .lisa/session-manager/ledger.json; git check-ignore -q .lisa/automations/session-manager.runbook.md || echo runbook-not-ignored",
+    "observed": ".gitignore:246:.lisa/session-manager/\t.lisa/session-manager/ledger.json\nrunbook-not-ignored"
+  },
+  "learnings": [
+    {
+      "kind": "convention-drift",
+      "note": "copy-contents-gitignore.test.ts is at the max-lines ceiling, so new ignore-contract cases need their own test file.",
+      "evidence": "eslint max-lines: File has too many lines (361). Maximum allowed is 300"
+    },
+    {
+      "kind": "process-friction",
+      "note": "Editing all/copy-contents/gitignore changes its hash in the generated src/core/upstream-evidence-manifest.ts, so build:upstream-evidence-manifest must run at regeneration.",
+      "evidence": "src/core/upstream-evidence-manifest.ts:7 keys all/copy-contents/gitignore"
+    }
+  ]
+}

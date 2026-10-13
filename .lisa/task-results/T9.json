@@ -1,0 +1,34 @@
+{
+  "task": "T9",
+  "status": "done",
+  "files": [
+    "plugins/src/base/skills/lisa-session-manager/scripts/launch.mjs",
+    "tests/unit/session-manager/launch.test.ts",
+    "tests/unit/session-manager/launch-argv.test.ts"
+  ],
+  "exports": "TELEGRAM_PLUGIN_ID='telegram@claude-plugins-official'; class LaunchError extends Error {exitCode:number (always 2)}; resolveStateDir(stateDir, {env?, homedir?}?):string (expands ~ and ~/; throws LaunchError on empty, relative, or the shared default <home>/.claude/channels/telegram or <env.CLAUDE_CONFIG_DIR>/channels/telegram, compared case-insensitively); validateBotToken(token):boolean (/^\\d+:[A-Za-z0-9_-]{30,}$/); writeTokenFile(stateDir, token, {fs?}?):{path} (mkdir 0700 + chmod 0700, temp file created 0600 with flag wx then renamed over <stateDir>/.env, content 'TELEGRAM_BOT_TOKEN=<token>\\n'; throws LaunchError without the token on invalid input); loadPromptSecret():Promise<{promptSecret,canPrompt}> (import(new URL('../../lisa-secrets-access/scripts/prompt-secret.mjs', import.meta.url).href)); buildStoreTokenCommand({scriptsDir,projectRoot}):string (\"node '<scriptsDir>/session-manager.mjs' store-token --project-root '<root>'\", POSIX single-quoted); storeToken({stateDir,scriptsDir,projectRoot,env?,homedir?,io?:{canPrompt?,promptSecret?,fs?}}):Promise<{stored:true,path}|{stored:false,reason:'no-tty',command}|{stored:false,reason:'empty'|'invalid',message}> (resolves/refuses the state dir before prompting; lazily loads prompt-secret only when io seams are absent); assertTokenPresent(stateDir, {fs?}?):{path} (stat only, never reads contents; LaunchError exit 2 when missing, not a regular file, or mode & 0o077 != 0, message gives the chmod 600 remedy); buildManagerSettings():{crossSessionInbound:'accept',enabledPlugins:{'telegram@claude-plugins-official':true}} (fresh object); buildManagerLaunch({name,root,stateDir,scriptsDir,interval}):string[] (tmux argv without 'tmux'; validates slug name, absolute root/stateDir/scriptsDir, interval via config.mjs parseLoopInterval; throws LaunchError); buildHasSession(name):['has-session','-t',name]; buildStopManager(name):['kill-session','-t',name]",
+  "tests": "bunx vitest run tests/unit/session-manager/launch.test.ts tests/unit/session-manager/launch-argv.test.ts -> 2 files, 42 passed (temp-dir file-mode tests, no-TTY path with injected canPrompt=false, token-redaction scan over return values, error messages and console spies, exact argv snapshot, real prompt-secret import). oxlint 0/0; eslint --no-ignore clean on all three files; tsc -p tsconfig.tests.json reports nothing for these files",
+  "verification": {
+    "command": "node -e \"import('./plugins/src/base/skills/lisa-session-manager/scripts/launch.mjs').then(m=>console.log(JSON.stringify(m.buildManagerLaunch({name:'demo-manager',root:'/tmp/demo',stateDir:'/tmp/demo-state',scriptsDir:'/tmp/sm',interval:'5m'}))))\"",
+    "observed": "[\"new-session\",\"-d\",\"-s\",\"demo-manager\",\"-c\",\"/tmp/demo\",\"-e\",\"TELEGRAM_STATE_DIR=/tmp/demo-state\",\"-e\",\"SM_SCRIPTS_DIR=/tmp/sm\",\"claude\",\"-n\",\"demo-manager\",\"--dangerously-skip-permissions\",\"--settings\",\"{\\\"crossSessionInbound\\\":\\\"accept\\\",\\\"enabledPlugins\\\":{\\\"telegram@claude-plugins-official\\\":true}}\",\"--channels\",\"plugin:telegram@claude-plugins-official\",\"/loop 5m /lisa:session-manager cycle\"]. Extra smoke, STUBBED: ran that argv through real tmux 3.6b on a private socket (-L, -f /dev/null), with a stub `claude` first on PATH that only records its argv/env and exits, and temp dirs for root, stateDir and scriptsDir. No real manager, no real claude, no Telegram state dir. Result: new-session exit 0; the stub got exactly the 8 claude args, the settings JSON and '/loop 5m /lisa:session-manager cycle' each as one argv element (no shell re-split); TELEGRAM_STATE_DIR and SM_SCRIPTS_DIR were present in its env. has-session then returned 1 only because the stub had already exited and the session closed."
+  },
+  "deviations": [
+    "Tests split into launch.test.ts (state dir, token file, storeToken, assertTokenPresent, prompt-secret import) and launch-argv.test.ts (settings, launch, stop, has-session) for the 300-line eslint limit.",
+    "The argv has no `--` between tmux options and `claude`; it follows the task AC's exact form rather than the design table's. tmux 3.6b accepted it.",
+    "Added buildHasSession(name) for the CLI's 'already running' check, and buildStoreTokenCommand for the no-TTY copy-paste line (it targets the T10 CLI's `store-token --project-root` subcommand).",
+    "storeToken returns {stored:false, reason:'empty'|'invalid', message} for empty or malformed input instead of throwing, so the CLI can say what happened without a stack. writeTokenFile throws on an invalid token.",
+    "resolveStateDir refuses both <home>/.claude/channels/telegram and <CLAUDE_CONFIG_DIR>/channels/telegram, case-insensitively, since the operator's own sessions may use either."
+  ],
+  "learnings": [
+    {
+      "kind": "learning",
+      "note": "eslint sonarjs/no-hardcoded-secrets flags a test constant named TOKEN holding a token-shaped literal; assembling it with join(':') keeps the fixture readable without a suppression.",
+      "evidence": "eslint error at launch.test.ts:40 before the change"
+    },
+    {
+      "kind": "learning",
+      "note": "With several command arguments after its options, tmux new-session execs them directly, so JSON settings and a prompt with spaces each arrive as one argv element.",
+      "evidence": "Stubbed-claude smoke on tmux 3.6b private socket recorded 8 args with the JSON and the loop prompt intact"
+    }
+  ]
+}

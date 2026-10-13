@@ -355,6 +355,22 @@ describe("whole-config validation", () => {
     expect(problems.length).toBeGreaterThanOrEqual(3);
   });
 
+  it("includes sessionManager problems, naming the field", () => {
+    const problems = validateConfig({
+      tracker: "github",
+      sessionManager: {
+        name: "bad name",
+        interval: "5m",
+        notify: {
+          provider: "telegram",
+          stateDir: "~/.claude/channels/telegram-x",
+        },
+      },
+    });
+    expect(problems).toHaveLength(1);
+    expect(problems[0]).toMatch(/sessionManager\.name/);
+  });
+
   it("passes a config using none of these blocks", () => {
     expect(validateConfig({ tracker: "github" })).toEqual([]);
   });

@@ -1,0 +1,20 @@
+{
+  "task": "T8",
+  "status": "done",
+  "files": [
+    "plugins/src/base/skills/lisa-session-manager/scripts/reconcile.mjs",
+    "tests/unit/session-manager/reconcile.test.ts"
+  ],
+  "tests": "bunx vitest run tests/unit/session-manager/reconcile.test.ts -> 12 passed, 0 failed; oxlint 0 warnings/0 errors; eslint --no-ignore clean; tsc -p tsconfig.tests.json 0 errors",
+  "verification": {
+    "command": "node -e \"import('./plugins/src/base/skills/lisa-session-manager/scripts/reconcile.mjs').then(m=>console.log(m.planBlockedRelease({labels:[],body:'',comments:[],edges:[{contained:true,blockerState:'closed',blockerReason:'completed'}]}).action))\"",
+    "observed": "release"
+  },
+  "learnings": [
+    {
+      "kind": "learning",
+      "note": "resolveBlockerEdges spreads each input edge into its decision. Passing a ref on each edge therefore yields per-edge {ref,action,reason} that is ready for the tracker comment, with no extra mapping.",
+      "evidence": "plugins/src/base/scripts/blocker-edge-resolution.mjs, resolveBlockerEdges"
+    }
+  ]
+}

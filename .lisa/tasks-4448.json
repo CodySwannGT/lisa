@@ -1,0 +1,712 @@
+[
+  {
+    "id": "T1",
+    "title": "Add vendor-neutral Ready-queue normalizers and mine-first ordering (ready-queue-order.mjs)",
+    "blockedBy": [],
+    "files": [
+      "plugins/src/base/scripts/ready-queue-order.mjs",
+      "tests/unit/scripts/ready-queue-order.test.ts"
+    ],
+    "metadata": {
+      "plan": "session-manager",
+      "type": "task",
+      "acceptance_criteria": [
+        "normalizeGithubIssue, normalizeJiraIssue and normalizeLinearIssue each return {ref,title,assigneeId,priorityRank,createdAt,labels,body,authorId,isContainer,repoLabels}",
+        "Priority ranks: GitHub priority:critical/high/medium/low gives 0/1/2/3 and none gives 4; Linear 1..4 gives 0..3 and 0 gives 4; Jira Highest|Blocker=0, High|Critical=1, Medium|Major=2, Low|Minor=3, Lowest|Trivial=4, unknown=5",
+        "orderReadyQueue puts items assigned to me first, then unassigned; within each group it orders by priorityRank ascending, then createdAt ascending, then ref",
+        "Items assigned to someone else are excluded with reason 'assigned-to-other'; containers with 'container'; isHumanGated(...) true with 'human-gated'; authors outside a non-empty trustedAuthorIds with 'untrusted-author'",
+        "GitHub rows carrying pull_request are dropped; sub_issues_summary with open children marks isContainer",
+        "assertPagedToCompletion throws unless the envelope has complete === true",
+        "Gherkin 'Dispatch order' fixture: A (mine, low), B (unassigned, urgent), C (other) orders to [A, B] with C excluded, for each of jira, github and linear"
+      ],
+      "relevant_documentation": ".lisa/design-4448.md sections 3.1 and 4; plugins/src/base/scripts/queue-status-build-readers.mjs:23,64-140 (GitHub-only raw reader, repo-scope classification); plugins/src/base/scripts/intake-blocker-reprobe.mjs:404-461 (humanGateVerdict/isHumanGated); plugins/src/base/skills/lisa-github-write-issue/SKILL.md:93,302 (priority label vocabulary); rules/reference/leaf-only-lifecycle.md; rules/reference/ready-role-filing.md:178-200",
+      "testing_requirements": [
+        "Vitest unit tests with jira, github and linear fixtures per normalizer",
+        "Ordering, exclusion-reason and stable-tiebreak tests",
+        "A paging-guard test (complete:false throws)"
+      ],
+      "skills": [],
+      "learnings": [],
+      "required_access": [
+        { "tool": "node", "probe": "node --version", "status": "pass" },
+        { "tool": "bun", "probe": "bun --version", "status": "pass" }
+      ],
+      "verification": {
+        "type": "cli-test",
+        "command": "node -e \"import('./plugins/src/base/scripts/ready-queue-order.mjs').then(m=>{const me='u1';const items=[{ref:'C',assigneeId:'u2',priorityRank:0,createdAt:'2026-01-01'},{ref:'B',assigneeId:null,priorityRank:0,createdAt:'2026-01-02'},{ref:'A',assigneeId:'u1',priorityRank:3,createdAt:'2026-01-03'}];console.log(JSON.stringify(m.orderReadyQueue(items,{me})))})\"",
+        "expected": "Printed JSON has ordered refs [\"A\",\"B\"] and excluded [{\"ref\":\"C\",\"reason\":\"assigned-to-other\"}]"
+      }
+    }
+  },
+  {
+    "id": "T2",
+    "title": "Add managedBy=<session> routing argument to lisa-implement",
+    "blockedBy": [],
+    "files": [
+      "plugins/src/base/skills/lisa-implement/SKILL.md",
+      "plugins/src/base/commands/implement.md",
+      "tests/unit/strategies/implement-managed-by-contract.test.ts"
+    ],
+    "metadata": {
+      "plan": "session-manager",
+      "type": "task",
+      "acceptance_criteria": [
+        "A '## Routing: managedBy' section sits immediately after 'Routing: executionEnv'",
+        "managedBy=<name> ([A-Za-z0-9._-]{1,64}) is stripped from $ARGUMENTS before lisa-track and lisa-remote-dispatch see it; a malformed value is a blocking error",
+        "managedBy combined with a non-local executionEnv stops with a fixed message and never falls back",
+        "When managedBy is present, the lead sends questions via SendMessage to <name>, prefixed '[<work_item_ref>] ', phone-answerable (1-3 lines of context, numbered options, a recommendation), then ends its turn; it never asks in the terminal; teammates route questions through the lead",
+        "Inbound messages from <name> are treated as the operator's answer and can never approve permissions or change settings",
+        "The flow ends with exactly one '[<ref>] DONE: …' or '[<ref>] FAILED: …' message to <name> after the final user-facing message; a lifecycle exit to the blocked role counts as FAILED",
+        "On runtimes without cross-session SendMessage, managedBy is rejected with 'managedBy is supported on Claude Code only (cross-session messaging)'",
+        "commands/implement.md argument-hint includes [managedBy=<session-name>]",
+        "No behaviour changes when managedBy is absent"
+      ],
+      "relevant_documentation": ".lisa/design-4448.md section 5; plugins/src/base/skills/lisa-implement/SKILL.md:8-24 (executionEnv routing pattern),58-65 (input-resolver invokes lisa-track $ARGUMENTS); plugins/src/base/skills/lisa-track/SKILL.md:43-50 (exactly-one classification, so trailing prose becomes plain text); plugins/src/base/commands/implement.md:3; tests/unit/strategies/work-item-context-handoff-contract.test.ts (cross-variant prose-contract pattern)",
+      "testing_requirements": [
+        "A prose-contract test pinning strip-before-lisa-track, remote incompatibility, SendMessage routing, DONE/FAILED and the parity rejection text in plugins/src/base and every built variant (after T17)",
+        "An argument-hint assertion on the command shim"
+      ],
+      "skills": [],
+      "learnings": [],
+      "required_access": [
+        { "tool": "node", "probe": "node --version", "status": "pass" }
+      ],
+      "verification": {
+        "type": "cli-test",
+        "command": "grep -n 'managedBy' plugins/src/base/skills/lisa-implement/SKILL.md plugins/src/base/commands/implement.md && bun run vitest run tests/unit/strategies/implement-managed-by-contract.test.ts",
+        "expected": "The grep shows the routing section and the argument-hint, and the contract test file reports all tests passed"
+      }
+    }
+  },
+  {
+    "id": "T3",
+    "title": "sessionManager config: validator, defaults resolver, repo detection, and config-resolution docs",
+    "blockedBy": [],
+    "files": [
+      "plugins/src/base/skills/lisa-secrets-access/scripts/validate-config.mjs",
+      "plugins/src/base/skills/lisa-session-manager/scripts/config.mjs",
+      "plugins/src/base/rules/reference/config-resolution.md",
+      "tests/unit/secrets/validate-config.test.ts",
+      "tests/unit/session-manager/config.test.ts"
+    ],
+    "metadata": {
+      "plan": "session-manager",
+      "type": "task",
+      "acceptance_criteria": [
+        "validateSessionManager(block) is exported and wired into validateConfig; it reports problems for: non-slug name, unparseable interval, a repos.entries key without hints[], non-positive capacity numbers, cpuFraction outside (0,1], negative stall values, notify.provider other than 'telegram', a missing notify.stateDir, and any field that looks like a token",
+        "An absent sessionManager block yields no problems",
+        "resolveSessionManagerConfig applies documented defaults (interval 5m; capacity maxWorkers 6, gbPerWorker 3, reserveGb 8, cpuFraction 0.75, maxLoadPerCore 1.5; stall noOutputMinutes 60, maxAttempts 3, requestionHours 4) with local-over-global per key",
+        "detectRepos(root) lists projects/*/ dirs containing .lisa.config.json; buildDefaultBlock writes a single-repo block (no repos) when none are found",
+        "resolveRepoDir returns <root>/<repos.root>/<key> for multi-repo projects and <root> for single-repo projects; it rejects keys not in entries",
+        "config-resolution.md gains a top-level row and a 'Session manager (sessionManager)' subsection; the eager copy is untouched; nothing is added to src/sync/registry.ts"
+      ],
+      "relevant_documentation": ".lisa/design-4448.md sections 1.1, 1.5, 2.2 and 9.2(6); plugins/src/base/skills/lisa-secrets-access/scripts/validate-config.mjs:461-500 (validateAutomations model, validateConfig aggregator); plugins/src/base/rules/reference/config-resolution.md:272-283 (top-level fields),666-690 (intake.assignee placement); src/sync/registry.ts:1-60 (why not registered); issue #4448 'Config' block",
+      "testing_requirements": [
+        "Validator table tests (valid, absent, and each invalid field)",
+        "Defaults/merge tests",
+        "detectRepos against a temp dir fixture",
+        "check:rules-pairing and check:eager-rule-budget stay green"
+      ],
+      "skills": [],
+      "learnings": [],
+      "required_access": [
+        { "tool": "node", "probe": "node --version", "status": "pass" }
+      ],
+      "verification": {
+        "type": "cli-test",
+        "command": "node -e \"import('./plugins/src/base/skills/lisa-secrets-access/scripts/validate-config.mjs').then(m=>console.log(JSON.stringify(m.validateConfig({tracker:'github',sessionManager:{name:'bad name',interval:'5m',notify:{provider:'telegram',stateDir:'~/.claude/channels/telegram-x'}}}))))\"",
+        "expected": "The output lists exactly one problem, naming sessionManager.name"
+      }
+    }
+  },
+  {
+    "id": "T4",
+    "title": "Capacity module: macOS/Linux memory, CPU, load and cap maths",
+    "blockedBy": ["T3"],
+    "files": [
+      "plugins/src/base/skills/lisa-session-manager/scripts/capacity.mjs",
+      "tests/unit/session-manager/capacity.test.ts",
+      "tests/fixtures/session-manager/vm_stat.txt",
+      "tests/fixtures/session-manager/meminfo.txt"
+    ],
+    "metadata": {
+      "plan": "session-manager",
+      "type": "task",
+      "acceptance_criteria": [
+        "readMachineStats uses vm_stat (page size from its header; free + inactive + speculative pages) on darwin, /proc/meminfo MemAvailable on linux, and os.freemem with mem_source 'os.freemem' elsewhere; cores and load1 come from injected cpus and loadavg",
+        "computeCapacity returns {running,cap,free_slots,avail_gb,load1,cores,overloaded,can_spawn,mem_source,paused} using mem_cap=max(0,floor((avail_gb-reserveGb)/gbPerWorker)+running), cpu_cap=floor(cores*cpuFraction), cap=min(maxWorkers,mem_cap,cpu_cap), overloaded=load1>cores*maxLoadPerCore, can_spawn=!paused&&!overloaded&&running<cap",
+        "The override precedence is ledger control.maxWorkers, then the --max-workers flag, then config; maxWorkers=0 gives can_spawn false",
+        "No process.env reads and no real exec in the module"
+      ],
+      "relevant_documentation": ".lisa/design-4448.md section 2.2; issue #4448 prototype capacity.sh (formula reference); plan-4448.md completion condition step 2 (exact JSON keys)",
+      "testing_requirements": [
+        "macOS and Linux fixture tests",
+        "Tests for the memory-bound, CPU-bound, hard-cap, overloaded, paused and running>=cap cases",
+        "A maxWorkers=0 test"
+      ],
+      "skills": [],
+      "learnings": [],
+      "required_access": [
+        { "tool": "node", "probe": "node --version", "status": "pass" }
+      ],
+      "verification": {
+        "type": "cli-test",
+        "command": "node -e \"import('./plugins/src/base/skills/lisa-session-manager/scripts/capacity.mjs').then(m=>console.log(JSON.stringify(m.computeCapacity({stats:{availGb:32,cores:10,load1:1,memSource:'vm_stat'},running:0,config:{maxWorkers:0,gbPerWorker:3,reserveGb:8,cpuFraction:0.75,maxLoadPerCore:1.5}}))))\"",
+        "expected": "The printed JSON has cap 0, free_slots 0 and can_spawn false"
+      }
+    }
+  },
+  {
+    "id": "T5",
+    "title": "Workers module: naming, agent normalization, live detection, env scrub, spawn/resume argv, stall classification",
+    "blockedBy": [],
+    "files": [
+      "plugins/src/base/skills/lisa-session-manager/scripts/workers.mjs",
+      "tests/unit/session-manager/workers.test.ts"
+    ],
+    "metadata": {
+      "plan": "session-manager",
+      "type": "task",
+      "acceptance_criteria": [
+        "sanitizeRefToken: 'owner/repo#12' gives 'repo-12' and a Jira or Linear key is unchanged; the output matches [A-Za-z0-9-]+",
+        "buildWorkerName gives wk-<token>-<MMDD-HHMM>, with a -2/-3 suffix when the name collides with a known name; parseWorkerName uses an exact-token regex, so 'ABC-1' never matches a 'ABC-12' worker",
+        "normalizeAgents accepts both claude agents --json shapes: active {pid,status,…} and --all completed {id,state:'done'|'stopped',…}",
+        "countRunningWorkers and findLiveWorker consider only active wk- rows",
+        "scrubWorkerEnv removes every TELEGRAM_* key and leaves the rest intact",
+        "buildWorkerSpawn returns {command:'claude', args:['--bg','-n',name,'--dangerously-skip-permissions','--settings','{\"crossSessionInbound\":\"accept\"}',prompt], cwd:repoDir}, with prompt exactly '/lisa:implement <REF> managedBy=<manager>'",
+        "buildWorkerResume returns args ['--bg','--resume',sessionId,text] with the same cwd and scrub",
+        "classifyWorker returns finished|waiting|requestion|working|stalled|dead|exhausted per design section 3.1"
+      ],
+      "relevant_documentation": ".lisa/design-4448.md sections 2.4 and 3.1, and section 0 (live agents JSON shapes); `claude --help` (--bg, -n, --resume, --settings); issue #4448 R6 and 'Worker spawn hygiene' AC",
+      "testing_requirements": [
+        "Table tests per function",
+        "Both agent-JSON fixtures",
+        "Collision and prefix-confusion tests",
+        "A stall matrix covering every classification"
+      ],
+      "skills": [],
+      "learnings": [],
+      "required_access": [
+        { "tool": "node", "probe": "node --version", "status": "pass" },
+        {
+          "tool": "claude CLI",
+          "probe": "claude agents --json",
+          "status": "pass"
+        }
+      ],
+      "verification": {
+        "type": "cli-test",
+        "command": "claude agents --json --all | node -e \"import('./plugins/src/base/skills/lisa-session-manager/scripts/workers.mjs').then(async m=>{let s='';for await(const c of process.stdin)s+=c;const a=m.normalizeAgents(JSON.parse(s));console.log(JSON.stringify({total:a.length,running:m.countRunningWorkers(a)}))})\"",
+        "expected": "The JSON shows total equal to the live session count and running equal to the number of active wk- sessions (0 when none are running), with no exception on completed rows"
+      }
+    }
+  },
+  {
+    "id": "T6",
+    "title": "Ledger module: atomic ledger, attempts, pending questions, control, session event log",
+    "blockedBy": [],
+    "files": [
+      "plugins/src/base/skills/lisa-session-manager/scripts/ledger.mjs",
+      "tests/unit/session-manager/ledger.test.ts"
+    ],
+    "metadata": {
+      "plan": "session-manager",
+      "type": "task",
+      "acceptance_criteria": [
+        "The ledger lives at <projectRoot>/.lisa/session-manager/ledger.json; a missing file reads as an empty ledger; writes are atomic (temp file plus rename)",
+        "recordSpawn increments attempts per ref and stores worker, sessionId, repo, startedAt and a history entry; a retry gets attempts=2",
+        "setPendingQuestion/clearPendingQuestion manage {text,askedAt,lastPingAt,telegramMessageId}; recordProgress updates lastProgressAt only when the logs hash changes; recordFinish stores DONE or FAILED with its reason",
+        "setControl persists paused and maxWorkers; control.me stores the resolved tracker identity",
+        "appendSessionEvent appends one JSON line to sessions.jsonl",
+        "Attempt counting never reads or writes tracker comments"
+      ],
+      "relevant_documentation": ".lisa/design-4448.md section 3.1 (ledger row); .lisa/research-4448-history.md (#3871: no attempt counters in comments); plugins/src/base/scripts/automation-run-record.mjs:488-493 (atomic write pattern)",
+      "testing_requirements": [
+        "Temp-dir tests for read-empty, atomic write, the attempts sequence, the question lifecycle, the progress hash, control, and JSONL append"
+      ],
+      "skills": [],
+      "learnings": [],
+      "required_access": [
+        { "tool": "node", "probe": "node --version", "status": "pass" }
+      ],
+      "verification": {
+        "type": "cli-test",
+        "command": "bun run vitest run tests/unit/session-manager/ledger.test.ts && node -e \"import('./plugins/src/base/skills/lisa-session-manager/scripts/ledger.mjs').then(async m=>{const d=require('fs').mkdtempSync(require('os').tmpdir()+'/sm-');await m.recordSpawn(d,{ref:'A',worker:'wk-A-1012-0900',sessionId:'s1',repo:'.'});await m.recordSpawn(d,{ref:'A',worker:'wk-A-1012-0930',sessionId:'s2',repo:'.'});console.log((await m.readLedger(d)).items.A.attempts)})\"",
+        "expected": "The tests pass and the script prints 2"
+      }
+    }
+  },
+  {
+    "id": "T7",
+    "title": "Telegram routing module: [REF] prefix, reply-to, single-pending, commands",
+    "blockedBy": ["T6"],
+    "files": [
+      "plugins/src/base/skills/lisa-session-manager/scripts/telegram-route.mjs",
+      "tests/unit/session-manager/telegram-route.test.ts"
+    ],
+    "metadata": {
+      "plan": "session-manager",
+      "type": "task",
+      "acceptance_criteria": [
+        "routeInbound resolves in order: (1) a leading [REF], REF: or 'REF ' matching a ledger ref or its worker token, case-insensitive; (2) replyToMessageId equal to a pending question's telegramMessageId; (3) exactly one pending question; otherwise {kind:'ambiguous',candidates}",
+        "parseCommand recognises status, pause, resume, 'cap N' (integer 0..32) and 'stop REF', and rejects anything else as not-a-command",
+        "formatAnswer(owner, body) produces \"<owner>'s answer: <body>\"",
+        "The input text is returned as data and is never evaluated"
+      ],
+      "relevant_documentation": ".lisa/design-4448.md section 3.1; issue #4448 prototype MANAGER.md 'Telegram rules' and the 'Phone relay' AC",
+      "testing_requirements": [
+        "A routing precedence matrix",
+        "Ambiguity with 0 and with 2+ pending questions",
+        "GitHub-ref token matching (lisa-12)",
+        "Command parsing edge cases"
+      ],
+      "skills": [],
+      "learnings": [],
+      "required_access": [
+        { "tool": "node", "probe": "node --version", "status": "pass" }
+      ],
+      "verification": {
+        "type": "cli-test",
+        "command": "node -e \"import('./plugins/src/base/skills/lisa-session-manager/scripts/telegram-route.mjs').then(m=>console.log(JSON.stringify(m.routeInbound({text:'A: 2',ledger:{items:{A:{worker:'wk-A-1012-0900',pendingQuestion:{text:'q',telegramMessageId:7}},B:{worker:'wk-B-1012-0901',pendingQuestion:{text:'q2',telegramMessageId:8}}}}}))))\"",
+        "expected": "Output is {\"kind\":\"answer\",\"ref\":\"A\",\"body\":\"2\"}"
+      }
+    }
+  },
+  {
+    "id": "T8",
+    "title": "Reconcile module: Blocked-release plan reusing humanGateVerdict and resolveBlockerEdges",
+    "blockedBy": [],
+    "files": [
+      "plugins/src/base/skills/lisa-session-manager/scripts/reconcile.mjs",
+      "tests/unit/session-manager/reconcile.test.ts"
+    ],
+    "metadata": {
+      "plan": "session-manager",
+      "type": "task",
+      "acceptance_criteria": [
+        "planBlockedRelease imports humanGateVerdict from ../../../scripts/intake-blocker-reprobe.mjs and resolveBlockerEdges from ../../../scripts/blocker-edge-resolution.mjs; it re-implements neither",
+        "A held human gate gives 'skip-human-gate'; a pending manager question gives 'keep'; no edges gives 'keep' (Class B/C belong to repair-intake); all edges dissolve gives 'release'; any escalation gives 'escalate'; otherwise 'keep'",
+        "The result carries per-edge reasons suitable for the explanatory tracker comment"
+      ],
+      "relevant_documentation": ".lisa/design-4448.md sections 3.1, 4 and 9.2(3); plugins/src/base/scripts/blocker-edge-resolution.mjs:55-150; plugins/src/base/scripts/intake-blocker-reprobe.mjs:404-461; plugins/src/base/skills/lisa-repair-intake/SKILL.md:1230-1270 (Class A containment)",
+      "testing_requirements": [
+        "Tests per action, including a NOT_PLANNED blocker that escalates and an unknown containment that escalates",
+        "A trusted-release test showing a released human gate proceeds to the edges"
+      ],
+      "skills": [],
+      "learnings": [],
+      "required_access": [
+        { "tool": "node", "probe": "node --version", "status": "pass" }
+      ],
+      "verification": {
+        "type": "cli-test",
+        "command": "node -e \"import('./plugins/src/base/skills/lisa-session-manager/scripts/reconcile.mjs').then(m=>console.log(m.planBlockedRelease({labels:[],body:'',comments:[],edges:[{contained:true,blockerState:'closed',blockerReason:'completed'}]}).action))\"",
+        "expected": "Prints release"
+      }
+    }
+  },
+  {
+    "id": "T9",
+    "title": "Launch module: state dir, token storage via prompt-secret, manager settings and tmux launch/stop",
+    "blockedBy": ["T3"],
+    "files": [
+      "plugins/src/base/skills/lisa-session-manager/scripts/launch.mjs",
+      "tests/unit/session-manager/launch.test.ts"
+    ],
+    "metadata": {
+      "plan": "session-manager",
+      "type": "task",
+      "acceptance_criteria": [
+        "resolveStateDir expands ~ and refuses the shared default <CLAUDE_CONFIG_DIR or ~/.claude>/channels/telegram",
+        "validateBotToken matches ^\\d+:[A-Za-z0-9_-]{30,}$; writeTokenFile creates the dir 0700 and .env 0600 as TELEGRAM_BOT_TOKEN=<token>; the token never appears in any return value or log line",
+        "storeToken imports promptSecret/canPrompt via new URL('../../lisa-secrets-access/scripts/prompt-secret.mjs', import.meta.url); with no TTY it returns {stored:false, command:<copy-paste command>} without prompting",
+        "buildManagerSettings returns {crossSessionInbound:'accept', enabledPlugins:{'telegram@claude-plugins-official':true}}",
+        "buildManagerLaunch returns tmux argv: new-session -d -s <name> -c <root> -e TELEGRAM_STATE_DIR=<dir> -e SM_SCRIPTS_DIR=<scriptsDir> claude -n <name> --dangerously-skip-permissions --settings <json> --channels plugin:telegram@claude-plugins-official '/loop <interval> /lisa:session-manager cycle'",
+        "assertTokenPresent fails (maps to exit 2) when <stateDir>/.env is missing or group/world readable",
+        "buildStopManager returns tmux kill-session -t <name>"
+      ],
+      "relevant_documentation": ".lisa/design-4448.md sections 3.1 and 6; plugins/src/base/skills/lisa-secrets-access/scripts/prompt-secret.mjs:33-60; plugins/src/base/skills/lisa-setup-remote-env/scripts/environment.mjs:98-104,175-177 (cross-skill import and no-TTY handling); issue #4448 Verified platform facts (Telegram plugin internals, mitigations a-d)",
+      "testing_requirements": [
+        "Temp-dir tests for file modes",
+        "No-TTY path test with injected canPrompt=false",
+        "A token-redaction test (scan outputs for the token)",
+        "Exact argv snapshot tests"
+      ],
+      "skills": [],
+      "learnings": [],
+      "required_access": [
+        { "tool": "node", "probe": "node --version", "status": "pass" },
+        { "tool": "tmux", "probe": "tmux -V", "status": "pass" }
+      ],
+      "verification": {
+        "type": "cli-test",
+        "command": "node -e \"import('./plugins/src/base/skills/lisa-session-manager/scripts/launch.mjs').then(m=>console.log(JSON.stringify(m.buildManagerLaunch({name:'demo-manager',root:'/tmp/demo',stateDir:'/tmp/demo-state',scriptsDir:'/tmp/sm',interval:'5m'}))))\"",
+        "expected": "The JSON argv starts with [\"new-session\",\"-d\",\"-s\",\"demo-manager\"] and contains --channels plugin:telegram@claude-plugins-official and a --settings value with crossSessionInbound accept"
+      }
+    }
+  },
+  {
+    "id": "T10",
+    "title": "session-manager.mjs CLI entrypoint with stub-PATH integration tests (exit codes 2/3/4)",
+    "blockedBy": ["T1", "T3", "T4", "T5", "T6", "T7", "T8", "T9"],
+    "files": [
+      "plugins/src/base/skills/lisa-session-manager/scripts/session-manager.mjs",
+      "tests/unit/session-manager/cli.test.ts",
+      "tests/fixtures/session-manager/stub-bin/claude",
+      "tests/fixtures/session-manager/stub-bin/tmux",
+      "tests/fixtures/session-manager/stub-bin/vm_stat"
+    ],
+    "metadata": {
+      "plan": "session-manager",
+      "type": "task",
+      "acceptance_criteria": [
+        "Subcommands: capacity, spawn, resume, start, stop, status, repo-dir, queue, ledger <get|record-spawn|set-question|clear-question|finish|control>, classify, route, blocked-plan, record-cycle, init-config, store-token, validate; each prints JSON on stdout and errors on stderr",
+        "spawn <ref> --repo <key> validates that the repo dir has .lisa.config.json (exit 2), checks capacity (exit 3), refuses a live worker for the ref (exit 4), then spawnSync('claude', args, {cwd: repoDir, env: scrubWorkerEnv(process.env)}), parses the sessionId, records the ledger and sessions.jsonl, and prints {name,sessionId}",
+        "resume reads the answer text from stdin (never argv-interpolated through a shell) and runs claude --bg --resume <sessionId> in the worker's repo dir with the scrubbed env",
+        "start refuses without <stateDir>/.env (exit 2), is a no-op 'already running' when tmux has the session, and otherwise runs the tmux argv from launch.mjs; stop kills only the manager session",
+        "queue --tracker github fetches with gh api --paginate; queue --tracker jira|linear --input <file> requires complete:true (exit 2 otherwise); both print orderReadyQueue output",
+        "record-cycle calls recordAutomationRun with loopId 'session-manager' and runbook .lisa/automations/session-manager.runbook.md",
+        "Every subcommand accepts --project-root <abs>; process.env is read in exactly one place; a header comment documents the runtime-parity gap"
+      ],
+      "relevant_documentation": ".lisa/design-4448.md sections 1.1, 2.3, 2.4, 3.1, 4 and 8; plugins/src/base/scripts/automation-run-record.mjs:69,494-500,587; plugins/src/base/skills/lisa-remote-dispatch/scripts/dispatch.mjs (skill-local CLI pattern); plan-4448.md completion condition steps 2-3",
+      "testing_requirements": [
+        "CLI tests running node session-manager.mjs with PATH=<stub-bin>:$PATH",
+        "The stub claude records argv, cwd and env keys to a JSON file",
+        "Assert the TELEGRAM_STATE_DIR and TELEGRAM_BOT_TOKEN env vars are absent, cwd is the repo, and the --bg -n wk-… --dangerously-skip-permissions --settings {\"crossSessionInbound\":\"accept\"} argv",
+        "Exit codes 2, 3 and 4",
+        "start refusing without .env",
+        "queue paging guard"
+      ],
+      "skills": [],
+      "learnings": [],
+      "required_access": [
+        { "tool": "node", "probe": "node --version", "status": "pass" },
+        {
+          "tool": "claude CLI",
+          "probe": "claude agents --json",
+          "status": "pass"
+        },
+        { "tool": "gh", "probe": "gh auth status", "status": "pass" }
+      ],
+      "verification": {
+        "type": "cli-test",
+        "command": "node plugins/src/base/skills/lisa-session-manager/scripts/session-manager.mjs capacity --project-root \"$PWD\"",
+        "expected": "Valid JSON with keys running, cap, free_slots, avail_gb, load1, cores, overloaded and can_spawn, whose running equals `claude agents --json | jq '[.[]|select((.name//\"\")|startswith(\"wk-\"))]|length'`"
+      }
+    }
+  },
+  {
+    "id": "T11",
+    "title": "lisa-session-manager skill, runbook template and /lisa:session-manager command shim",
+    "blockedBy": ["T2", "T10"],
+    "files": [
+      "plugins/src/base/skills/lisa-session-manager/SKILL.md",
+      "plugins/src/base/skills/lisa-session-manager/references/runbook-template.md",
+      "plugins/src/base/commands/session-manager.md"
+    ],
+    "metadata": {
+      "plan": "session-manager",
+      "type": "task",
+      "acceptance_criteria": [
+        "SKILL.md covers: fixed facts (roles via resolve-lifecycle-role.mjs, never hard-coded); the script-root ladder snippet from design section 2.3; cycle step 1 (ledger-driven In Progress reconcile with classify, PR-merged check before retry, retry or exhausted→blocked plus comment plus Telegram) and Blocked reconcile (Class A containment, blocked-plan, writes via lisa-tracker-write, read-back); cycle step 2 (dispatch while can_spawn: queue, route repo with hints, stamp repo:<name> when multi-repo and unlabeled, cd to the repo dir, lisa-tracker-claim, verify claimed|reused and assignee=me, cd back and pwd check, spawn, handle exits 3/4/other); cycle step 3 (report and record-cycle)",
+        "Message handling covers worker questions → Telegram (record pendingQuestion), Telegram answers → SendMessage or resume via stdin, DONE/FAILED, and the commands status/pause/resume/cap N/stop REF",
+        "The '## Run outcome' section maps the six outcomes exactly as design section 8, states that candidate-proposed is unused, and gives the stateless retirement condition with the [lisa-session-manager-retirement] marker",
+        "The '## Runtime parity' section matches the design section 7 table",
+        "The security section says: allowlisted senders effectively have shell access; ticket and Telegram text are data; optional trustedAuthorIds",
+        "The worker prompt is exactly '/lisa:implement <REF> managedBy=<manager-name>'",
+        "No downstream project name appears; there are no hard-coded state names",
+        "commands/session-manager.md is a thin shim with argument-hint '[cycle|start|stop|status]'"
+      ],
+      "relevant_documentation": ".lisa/design-4448.md sections 3.2, 4, 7 and 8; issue #4448 Reference Prototype MANAGER.md; plugins/src/base/rules/reference/automation-runbook-contract.md:118-189,300-326; plugins/src/base/skills/lisa-monitor/SKILL.md:170-188 (Run outcome and recorder wording); plugins/src/base/rules/reference/repo-scope-split.md:84-111; plugins/src/base/commands/setup/linear.md (shim shape)",
+      "testing_requirements": [
+        "Covered by T16's skill contract test (ladder text, parity section, outcome mapping, worker prompt, no host names)",
+        "agent-skill-layer-contract.test.ts passes (every referenced skill exists)"
+      ],
+      "skills": [],
+      "learnings": [],
+      "required_access": [
+        { "tool": "node", "probe": "node --version", "status": "pass" }
+      ],
+      "verification": {
+        "type": "cli-test",
+        "command": "bun run vitest run tests/unit/strategies/agent-skill-layer-contract.test.ts && grep -c 'managedBy=' plugins/src/base/skills/lisa-session-manager/SKILL.md",
+        "expected": "The layer contract test passes and the grep count is at least 1"
+      }
+    }
+  },
+  {
+    "id": "T12",
+    "title": "lisa-setup-session-manager skill and /lisa:setup:session-manager shim",
+    "blockedBy": ["T10", "T11"],
+    "files": [
+      "plugins/src/base/skills/lisa-setup-session-manager/SKILL.md",
+      "plugins/src/base/commands/setup/session-manager.md"
+    ],
+    "metadata": {
+      "plan": "session-manager",
+      "type": "task",
+      "acceptance_criteria": [
+        "Preconditions: tracker configured; claude >= 2.1.224, tmux and bun present (stop with a named missing tool otherwise)",
+        "Runs init-config (detects projects/*/.lisa.config.json) and writes only non-secret fields to .lisa.config.json",
+        "Runs store-token; when there is no TTY it prints the operator's copy-paste command and waits; the token is never echoed, logged or committed",
+        "Checks claude plugin list --json: telegram@claude-plugins-official must be installed and must not be enabled at user scope; prints 'claude plugin disable telegram@claude-plugins-official -s user' as the remedy",
+        "Ensures .lisa/session-manager/ is ignored (git check-ignore, else info/exclude)",
+        "Seeds .lisa/automations/session-manager.runbook.md from the template when absent",
+        "Starts the manager and walks pairing (/telegram:access pair <code>, then /telegram:access policy allowlist) inside tmux attach",
+        "Warns about coexistence with the intake-tickets and intake-repair automations (design section 10 risk 1)",
+        "Carries the same script-root ladder snippet as lisa-session-manager"
+      ],
+      "relevant_documentation": ".lisa/design-4448.md sections 1.2, 2.3, 6 and 10; issue #4448 Components item 2 and prototype setup-telegram.sh/start-manager.sh; plugins/src/base/skills/lisa-implement/SKILL.md:73 (ignore-guard pattern); plugins/src/base/commands/setup/linear.md",
+      "testing_requirements": [
+        "Covered by T16 (presence in every variant, identical ladder, plugin-scope remedy text, no token in examples)"
+      ],
+      "skills": [],
+      "learnings": [],
+      "required_access": [
+        {
+          "tool": "claude CLI",
+          "probe": "claude plugin list --json",
+          "status": "pass"
+        },
+        { "tool": "tmux", "probe": "tmux -V", "status": "pass" },
+        { "tool": "bun", "probe": "bun --version", "status": "pass" }
+      ],
+      "verification": {
+        "type": "cli-test",
+        "command": "d=$(mktemp -d) && mkdir -p $d/projects/api && echo '{}' > $d/projects/api/.lisa.config.json && echo '{\"tracker\":\"github\"}' > $d/.lisa.config.json && node plugins/src/base/skills/lisa-session-manager/scripts/session-manager.mjs init-config --project-root $d && jq .sessionManager $d/.lisa.config.json",
+        "expected": "The printed block has repos.root 'projects', an entry 'api', a notify.stateDir that is not the shared default, and no token field"
+      }
+    }
+  },
+  {
+    "id": "T13",
+    "title": "Automation contract registration: hosted fleet entry, status/teardown prose, contract membership note",
+    "blockedBy": ["T3"],
+    "files": [
+      "plugins/src/base/scripts/automation-status-expected-fleet.mjs",
+      "plugins/src/base/skills/lisa-automation-status/SKILL.md",
+      "plugins/src/base/skills/lisa-tear-down-automations/SKILL.md",
+      "plugins/src/base/rules/reference/automation-runbook-contract.md",
+      "tests/unit/strategies/automation-status-expected-fleet.test.ts"
+    ],
+    "metadata": {
+      "plan": "session-manager",
+      "type": "task",
+      "acceptance_criteria": [
+        "With config.sessionManager absent, resolveExpectedAutomationFleet output is byte-identical to today (all existing fleet tests pass unchanged)",
+        "With config.sessionManager present, exactly one extra unsupported entry is added: {id:'session-manager', automationId:'<prefix>session-manager', group:'opt-in', expectedCadence from sessionManager.interval, runbookPath:'.lisa/automations/session-manager.runbook.md'}, whose reason names the tmux host and how to check liveness",
+        "No change to the Claude or Codex adapters or the report renderer",
+        "lisa-automation-status gets one paragraph on the locally hosted entry; lisa-tear-down-automations gets one paragraph: with sessionManager configured, fleet or 'session-manager' teardown runs session-manager.mjs stop, never stops workers, lists them, and leaves the runbook",
+        "automation-runbook-contract.md gains a 'Locally hosted loops' subsection under Membership; existing rule tests pass"
+      ],
+      "relevant_documentation": ".lisa/design-4448.md section 8; plugins/src/base/scripts/automation-status-expected-fleet.mjs:19-52,197-357,365-409; plugins/src/base/scripts/automation-status-claude-adapter.mjs:117-131,241-255; plugins/src/base/scripts/automation-status-codex-adapter.mjs:210-216,643-652; tests/unit/strategies/automation-status-fleet-runbooks.test.ts:72-115; plugins/src/base/rules/reference/automation-runbook-contract.md:18-48",
+      "testing_requirements": [
+        "New fleet tests for both the absent and present cases",
+        "An adapter test feeding the present fleet into inspectClaudeAutomationFleet with a temp run ledger, showing runbook and last outcome on the session-manager item",
+        "Existing automations-skills and automation-runbook-contract-rule tests stay green"
+      ],
+      "skills": [],
+      "learnings": [],
+      "required_access": [
+        { "tool": "node", "probe": "node --version", "status": "pass" }
+      ],
+      "verification": {
+        "type": "cli-test",
+        "command": "node -e \"import('./plugins/src/base/scripts/automation-status-expected-fleet.mjs').then(m=>{const f=m.resolveExpectedAutomationFleet({config:{tracker:'github',github:{org:'o',repo:'r'},sessionManager:{name:'r-manager',interval:'5m',notify:{provider:'telegram',stateDir:'~/.claude/channels/telegram-r'}}}});console.log(JSON.stringify(f.unsupported.filter(e=>e.id==='session-manager')))})\"",
+        "expected": "Exactly one entry with id session-manager, group opt-in and runbookPath .lisa/automations/session-manager.runbook.md"
+      }
+    }
+  },
+  {
+    "id": "T14",
+    "title": "Doctor module: Telegram isolation checks (config-gated)",
+    "blockedBy": ["T3"],
+    "files": [
+      "src/cli/doctor-session-manager.ts",
+      "src/cli/doctor.ts",
+      "tests/unit/cli/doctor-session-manager.test.ts"
+    ],
+    "metadata": {
+      "plan": "session-manager",
+      "type": "task",
+      "acceptance_criteria": [
+        "With no sessionManager in the merged config, the check is skip/ok with detail 'not configured'",
+        "fail when notify.stateDir resolves to the shared default <CLAUDE_CONFIG_DIR or ~/.claude>/channels/telegram",
+        "warn when ~/.claude/settings.json enabledPlugins['telegram@claude-plugins-official'] === true",
+        "warn when <CLAUDE_CONFIG_DIR or ~/.claude>/channels/telegram/.env exists",
+        "warn when TELEGRAM_BOT_TOKEN or TELEGRAM_STATE_DIR is set in doctor's environment",
+        "warn when managed settings set crossSessionInbound to anything other than accept",
+        "warn when <stateDir>/.env is missing or group/world readable",
+        "Detail text never contains the token value; HOME, env and readFile are injected",
+        "Wired into runDoctor after checkKaneProvider"
+      ],
+      "relevant_documentation": ".lisa/design-4448.md section 6; src/cli/doctor-kane.ts (module shape); src/cli/doctor.ts:61-125 (DoctorCheck, DoctorDependencies.env),334-420 (checks array); tests/unit/cli/doctor-kane.test.ts",
+      "testing_requirements": [
+        "Unit tests per finding with a temp HOME and injected env",
+        "A redaction test",
+        "The not-configured skip test"
+      ],
+      "skills": [],
+      "learnings": [],
+      "required_access": [
+        { "tool": "bun", "probe": "bun --version", "status": "pass" }
+      ],
+      "verification": {
+        "type": "cli-test",
+        "command": "t=$(mktemp -d) && mkdir -p $t/home/.claude/channels/telegram $t/proj && echo 'TELEGRAM_BOT_TOKEN=x' > $t/home/.claude/channels/telegram/.env && echo '{\"enabledPlugins\":{\"telegram@claude-plugins-official\":true}}' > $t/home/.claude/settings.json && echo '{\"tracker\":\"github\",\"sessionManager\":{\"name\":\"p-manager\",\"notify\":{\"provider\":\"telegram\",\"stateDir\":\"'$t'/state\"}}}' > $t/proj/.lisa.config.json && HOME=$t/home bun src/index.ts doctor --offline $t/proj",
+        "expected": "Doctor output includes a session-manager warning for the user-scope Telegram plugin and a warning for the token in the default state dir, and does not print 'x' as a token value"
+      }
+    }
+  },
+  {
+    "id": "T15",
+    "title": "Gitignore .lisa/session-manager/ in the template and the repo",
+    "blockedBy": [],
+    "files": [
+      "all/copy-contents/gitignore",
+      ".gitignore",
+      "tests/unit/strategies/copy-contents-gitignore.test.ts"
+    ],
+    "metadata": {
+      "plan": "session-manager",
+      "type": "task",
+      "acceptance_criteria": [
+        "The '.lisa/session-manager/' line plus an explanatory comment is added next to '.lisa/automations/runs/' in both files",
+        "git check-ignore confirms .lisa/session-manager/ledger.json is ignored while .lisa/automations/session-manager.runbook.md is not"
+      ],
+      "relevant_documentation": "all/copy-contents/gitignore:246-250,279-283; .gitignore:237-241; tests/unit/strategies/copy-contents-gitignore.test.ts; .claude/rules/PROJECT_RULES.md (update template and project file together)",
+      "testing_requirements": [
+        "Extend copy-contents-gitignore.test.ts with both git check-ignore assertions"
+      ],
+      "skills": [],
+      "learnings": [],
+      "required_access": [
+        { "tool": "git", "probe": "git --version", "status": "pass" }
+      ],
+      "verification": {
+        "type": "cli-test",
+        "command": "git check-ignore -v .lisa/session-manager/ledger.json; git check-ignore -q .lisa/automations/session-manager.runbook.md || echo runbook-not-ignored",
+        "expected": "The first command prints the .gitignore rule for .lisa/session-manager/ and the second prints runbook-not-ignored"
+      }
+    }
+  },
+  {
+    "id": "T16",
+    "title": "Cross-variant skill contract test for packaging and parity",
+    "blockedBy": ["T11", "T12"],
+    "files": ["tests/unit/strategies/session-manager-skill.test.ts"],
+    "metadata": {
+      "plan": "session-manager",
+      "type": "task",
+      "acceptance_criteria": [
+        "Asserts lisa-session-manager and lisa-setup-session-manager (SKILL.md plus scripts/ where applicable) exist in plugins/src/base, plugins/lisa, plugins/lisa/.codex-plugin, plugins/lisa-cursor, plugins/lisa-agy, plugins/lisa-copilot and plugins/lisa-devin, and that both command shims exist where commands ship",
+        "Asserts a '## Runtime parity' section naming Claude Code, Codex, Cursor, OpenCode, Antigravity (agy), Copilot and Devin in every variant",
+        "Asserts the script-root ladder block is byte-identical in both skills",
+        "Asserts the worker prompt is '/lisa:implement <REF> managedBy=' and that all six outcomes appear in the Run outcome section",
+        "Asserts no bot-token-shaped string appears in either skill"
+      ],
+      "relevant_documentation": ".lisa/design-4448.md section 7; tests/unit/strategies/work-item-context-handoff-contract.test.ts:30-45 (SKILL_ROOTS pattern and parity notes); .lisa/research-4448-conventions.md 'Skills and the build'",
+      "testing_requirements": [
+        "Runs green after T17 regeneration; fails if any variant is missing"
+      ],
+      "skills": [],
+      "learnings": [],
+      "required_access": [
+        { "tool": "bun", "probe": "bun --version", "status": "pass" }
+      ],
+      "verification": {
+        "type": "cli-test",
+        "command": "bun run vitest run tests/unit/strategies/session-manager-skill.test.ts",
+        "expected": "All assertions pass across every listed variant root"
+      }
+    }
+  },
+  {
+    "id": "T17",
+    "title": "Regenerate plugin variants, the upstream evidence manifest and the hash ledger",
+    "blockedBy": ["T1", "T2", "T3", "T11", "T12", "T13", "T14", "T15", "T16"],
+    "files": [
+      "plugins/lisa/**",
+      "plugins/lisa/.codex-plugin/**",
+      "plugins/lisa-cursor/**",
+      "plugins/lisa-agy/**",
+      "plugins/lisa-copilot/**",
+      "plugins/lisa-devin/**",
+      "src/core/upstream-evidence-manifest.ts"
+    ],
+    "metadata": {
+      "plan": "session-manager",
+      "type": "task",
+      "acceptance_criteria": [
+        "bun run build:plugins succeeds and both new skills appear in every variant's skills/",
+        "bun run build:upstream-evidence-manifest has run (and build:lisa-owned-hash-ledger if check:lisa-owned-hash-ledger requires it)",
+        "check:plugins and check:artifacts pass",
+        "No generated file is hand-edited"
+      ],
+      "relevant_documentation": "scripts/build-plugins.sh:314-329 (standalone and per-agent variants); package.json scripts build:plugins, check:plugins, build:upstream-evidence-manifest, build:lisa-owned-hash-ledger, check:artifacts; .lisa/research-4448-history.md 'How a new skill lands'",
+      "testing_requirements": [
+        "bun run check:plugins",
+        "bun run check:artifacts"
+      ],
+      "skills": [],
+      "learnings": [],
+      "required_access": [
+        { "tool": "bun", "probe": "bun --version", "status": "pass" }
+      ],
+      "verification": {
+        "type": "cli-test",
+        "command": "bun run build:plugins && for v in lisa lisa/.codex-plugin lisa-cursor lisa-agy lisa-copilot lisa-devin; do ls -d plugins/$v/skills/lisa-session-manager plugins/$v/skills/lisa-setup-session-manager; done && bun run check:plugins",
+        "expected": "All 12 directories are listed and check:plugins exits 0"
+      }
+    }
+  },
+  {
+    "id": "T18",
+    "title": "Final gates and live verification against the scratch repo",
+    "blockedBy": ["T17"],
+    "files": [],
+    "metadata": {
+      "plan": "session-manager",
+      "type": "task",
+      "acceptance_criteria": [
+        "lint, typecheck, test, format:check, knip:check, check:plugins, check:artifacts, check:rules-pairing and check:eager-rule-budget all pass",
+        "Live capacity JSON matches the live wk- count (completion condition 2)",
+        "Live spawn in a scratch repo: the wk-<ref>-… session appears in claude agents --json with cwd equal to the repo; the worker's own Bash shows TELEGRAM_* absent; a second spawn exits 4; a repo without .lisa.config.json exits 2; then claude stop and rm (completion condition 3; also checks design risks 2 and 3)",
+        "Live GitHub dispatch in CodySwannGT/lisa-sm-sandbox only: mine, then unassigned, are claimed and verified; the other user's item is untouched; one worker per claim (completion condition 4)",
+        "Isolation: start the manager against a test state dir, then run an ordinary claude -p elsewhere; bot.pid is unchanged (completion condition 6)",
+        "Telegram relay (completion condition 5) runs only once the operator supplies a test bot; otherwise it is reported as not_established with the missing input named",
+        "The sandbox repo is deleted after verification"
+      ],
+      "relevant_documentation": ".lisa/plan-4448.md completion condition 1-6 and access preflight; issue #4448 Validation Journey steps 1-10; .lisa/design-4448.md section 10",
+      "testing_requirements": [
+        "All repo gates",
+        "Live steps captured as cli-output evidence per Validation Journey markers"
+      ],
+      "skills": [],
+      "learnings": [],
+      "required_access": [
+        {
+          "tool": "gh (CodySwannGT/lisa-sm-sandbox)",
+          "probe": "gh repo view CodySwannGT/lisa-sm-sandbox",
+          "status": "pass"
+        },
+        {
+          "tool": "claude CLI",
+          "probe": "claude auth status && claude agents --json",
+          "status": "pass"
+        },
+        { "tool": "tmux", "probe": "tmux -V", "status": "pass" },
+        {
+          "tool": "Telegram test bot",
+          "probe": "a token in a test TELEGRAM_STATE_DIR, then getMe",
+          "status": "fail"
+        }
+      ],
+      "verification": {
+        "type": "cli-test",
+        "command": "cd \"$(mktemp -d)\" && gh repo clone CodySwannGT/lisa-sm-sandbox . && SM=<worktree>/plugins/lisa/skills/lisa-session-manager/scripts && TELEGRAM_STATE_DIR=/tmp/x TELEGRAM_BOT_TOKEN=y node $SM/session-manager.mjs spawn CodySwannGT/lisa-sm-sandbox#1 --repo . --project-root \"$PWD\"; node $SM/session-manager.mjs spawn CodySwannGT/lisa-sm-sandbox#1 --repo . --project-root \"$PWD\"; echo exit=$?; claude agents --json | jq '.[]|select(.name|startswith(\"wk-lisa-sm-sandbox-1-\"))|{name,cwd}'",
+        "expected": "The first spawn prints {name,sessionId}, the second prints exit=4, and the agents query shows one wk-lisa-sm-sandbox-1-… session whose cwd is the clone dir"
+      }
+    }
+  }
+]

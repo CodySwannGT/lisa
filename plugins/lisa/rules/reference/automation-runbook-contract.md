@@ -21,6 +21,20 @@ Membership is **registration, not skill-existence**: a loop is under this contra
 registered as a scheduled automation, and registering a new one pulls it in automatically. There is
 no hardcoded roster of loops anywhere.
 
+### Locally hosted loops
+
+A loop the runtime's scheduler does not host is still a member. The session manager
+(`lisa-session-manager`) is the case: its registration is the tmux session
+`/lisa:setup:session-manager` starts, running a `/loop`, not a `/schedule` routine or a Codex
+automation. It is a member exactly when `.lisa.config.json` has a `sessionManager` block. It keeps
+the same obligations as a scheduled loop: a checked-in runbook at
+`.lisa/automations/session-manager.runbook.md`, one of the six outcomes per cycle, and a run record
+written through `automation-run-record.mjs` under loop id `session-manager`. Only the scheduler-facing
+surfaces differ. `lisa-automation-status` lists it `UNSUPPORTED`, with a reason naming the tmux
+session, because no scheduler can see it, and still shows its runbook and recorded cycles.
+`lisa-tear-down-automations` stops the tmux session instead of deleting a scheduler entry, never
+stops its workers, and leaves the runbook.
+
 ### Interactive flows are members too
 
 The outcome vocabulary is **not cron-specific** — it answers "did this need me?", which an operator

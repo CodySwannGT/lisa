@@ -76,7 +76,33 @@ function signalPayload(
 }
 
 /**
+ * Whether this process leads the process group named by its own pid.
+ *
+ * Node exposes no getpgid. A pid cannot be reused while a process group with
+ * that id still exists, so a live group whose id is this process's own pid can
+ * only be the group this process created; the probe is exact, not a guess.
+ * @returns Whether a group with this pid as its id is live
+ */
+function leadsOwnProcessGroup(): boolean {
+  try {
+    process.kill(-process.pid, 0);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
  * Kill the payload and mark operational failure after channel loss.
+ *
+ * As the detached group leader, the bootstrap is the birth anchor every drain
+ * authority checks before it may signal the group. Exiting while a payload
+ * descendant still occupies the group leaves exactly the state both drains
+ * refuse ("leader absent while its process group is live"), so the descendant
+ * outlived the run whenever this exit beat the reaper's probe. The leader
+ * therefore takes its whole group down with it: its authority over the group
+ * it created needs no birth probe. A non-leader (a bare protocol fork) keeps
+ * the plain exit-1 path.
  * @param state - Bootstrap lifecycle state
  */
 function failClosed(state: BootstrapState): void {
@@ -86,6 +112,7 @@ function failClosed(state: BootstrapState): void {
   if (!state.payloadExited) signalPayload(state.payload, "SIGKILL");
   process.exitCode = 1;
   if (process.connected) process.disconnect();
+  if (leadsOwnProcessGroup()) process.kill(-process.pid, "SIGKILL");
 }
 
 /**

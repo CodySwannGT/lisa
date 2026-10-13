@@ -1,0 +1,35 @@
+{
+  "task": "T4",
+  "status": "done",
+  "files": [
+    "plugins/src/base/skills/lisa-session-manager/scripts/capacity.mjs",
+    "tests/unit/session-manager/capacity.test.ts",
+    "tests/unit/session-manager/capacity-stats.test.ts",
+    "tests/fixtures/session-manager/vm_stat.txt",
+    "tests/fixtures/session-manager/meminfo.txt"
+  ],
+  "exports": "parseVmStat(text):number|null (bytes = (Pages free + inactive + speculative) * header page size; null when header or a row is missing); parseMeminfo(text):number|null (MemAvailable kB * 1024); readMachineStats(seams?:{platform?,exec?,readFile?,meminfoPath?,cpus?,loadavg?,freemem?}):Promise<{availGb,cores,load1,memSource:'vm_stat'|'/proc/meminfo'|'os.freemem'}> (darwin: await exec('vm_stat'), throws TypeError if exec not injected; linux: await readFile(meminfoPath ?? '/proc/meminfo'), throws if readFile not injected; other platforms or unparseable output: freemem() labelled 'os.freemem'; platform/cpus/loadavg/freemem default to node:os, exec/readFile have no default); resolveMaxWorkers({control?,flagMaxWorkers?,config}):number (ledger control.maxWorkers, then flag, then config.maxWorkers; null/undefined = unset, 0 is honoured); computeCapacity({stats,running,config,control?,flagMaxWorkers?}):{running,cap,free_slots,avail_gb,load1,cores,overloaded,can_spawn,mem_source,paused} (paused = control.paused===true; free_slots=max(0,cap-running); avail_gb/load1 rounded to 2dp for display, cap computed unrounded)",
+  "tests": "bunx vitest run tests/unit/session-manager/capacity.test.ts tests/unit/session-manager/capacity-stats.test.ts -> 2 files, 29 passed; oxlint 0/0 on all three files; eslint --no-ignore clean; tsc -p tsconfig.tests.json reports nothing for these files",
+  "verification": {
+    "command": "node -e \"import('./plugins/src/base/skills/lisa-session-manager/scripts/capacity.mjs').then(m=>console.log(JSON.stringify(m.computeCapacity({stats:{availGb:32,cores:10,load1:1,memSource:'vm_stat'},running:0,config:{maxWorkers:0,gbPerWorker:3,reserveGb:8,cpuFraction:0.75,maxLoadPerCore:1.5}}))))\"",
+    "observed": "{\"running\":0,\"cap\":0,\"free_slots\":0,\"avail_gb\":32,\"load1\":1,\"cores\":10,\"overloaded\":false,\"can_spawn\":false,\"mem_source\":\"vm_stat\",\"paused\":false}. Extra live read on this macOS host with a real exec injected from the caller: mem_source vm_stat, avail_gb 39.71, cores 10, cap 6, can_spawn true."
+  },
+  "deviations": [
+    "Test file split into capacity.test.ts (cap maths, overrides, purity) and capacity-stats.test.ts (vm_stat/meminfo/freemem readings) to stay under the 300-line eslint limit.",
+    "readMachineStats takes an optional meminfoPath so the CLI's hidden --meminfo test flag (design 2.4) can point the Linux path at a fixture.",
+    "When vm_stat or meminfo output cannot be parsed, readMachineStats falls back to os.freemem with mem_source 'os.freemem' instead of throwing, so a format change degrades visibly rather than stopping the cycle.",
+    "computeCapacity takes the ledger control object ({paused,maxWorkers}) directly as `control`, plus `flagMaxWorkers` for --max-workers; resolveMaxWorkers is exported for the CLI's status output."
+  ],
+  "learnings": [
+    {
+      "kind": "learning",
+      "note": "The purity test greps the module source for process.env, so the module's own header comment must not spell that token either.",
+      "evidence": "capacity.test.ts 'never reads process.env' failed on the JSDoc line until it was reworded"
+    },
+    {
+      "kind": "learning",
+      "note": "eslint on tests flags '/tmp/...' string literals (sonarjs/publicly-writable-directories) and bare .sort() (sonarjs/no-alphabetical-sort), even in fake paths and key-list assertions.",
+      "evidence": "eslint --no-ignore errors at capacity.test.ts 135, 140, 192, 204 before the fix"
+    }
+  ]
+}

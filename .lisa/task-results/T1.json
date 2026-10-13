@@ -1,0 +1,30 @@
+{
+  "task": "T1",
+  "status": "done",
+  "files": [
+    "plugins/src/base/scripts/ready-queue-order.mjs",
+    "tests/unit/scripts/ready-queue-order.test.ts"
+  ],
+  "tests": "bunx vitest run tests/unit/scripts/ready-queue-order.test.ts -> 48 passed, 0 failed; oxlint 0 warnings/0 errors; eslint (--no-ignore on the .mjs) clean; tsc -p tsconfig.tests.json 0 errors",
+  "verification": {
+    "command": "node -e \"import('./plugins/src/base/scripts/ready-queue-order.mjs').then(m=>{const me='u1';const items=[{ref:'C',assigneeId:'u2',priorityRank:0,createdAt:'2026-01-01'},{ref:'B',assigneeId:null,priorityRank:0,createdAt:'2026-01-02'},{ref:'A',assigneeId:'u1',priorityRank:3,createdAt:'2026-01-03'}];console.log(JSON.stringify(m.orderReadyQueue(items,{me})))})\"",
+    "observed": "{\"ordered\":[{\"ref\":\"A\",...},{\"ref\":\"B\",...}],\"excluded\":[{\"ref\":\"C\",\"reason\":\"assigned-to-other\"}]}, which matches the expected output"
+  },
+  "learnings": [
+    {
+      "kind": "learning",
+      "note": "GitHub 'me' is a login (design section 4), but trusted-author ids must be stable numeric ids (ready-role-filing). So normalizeGithubIssue sets assigneeId=assignee.login and authorId=String(user.id), and for GitHub sessionManager.trustedAuthorIds must hold numeric user ids.",
+      "evidence": "design-4448.md section 4 'me' row; rules/reference/ready-role-filing.md, Human-gate release authorization"
+    },
+    {
+      "kind": "learning",
+      "note": "zsh does not word-split an unquoted $VAR, so 'bunx oxlint $F' with a space-separated list lints nothing. Pass the paths as separate arguments.",
+      "evidence": "oxlint printed 'No files found to lint' on the first run"
+    },
+    {
+      "kind": "learning",
+      "note": "The eslint config ignores the plugins/src .mjs scripts, so lint a new .mjs module with --no-ignore.",
+      "evidence": "eslint warning: 'File ignored because of a matching ignore pattern'"
+    }
+  ]
+}

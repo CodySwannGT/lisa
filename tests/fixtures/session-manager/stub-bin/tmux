@@ -1,0 +1,46 @@
+#!/usr/bin/env node
+/**
+ * Stub `tmux` for the session-manager CLI tests.
+ *
+ * - `new-session` creates a session, recorded in `<STUB_LOG>.tmux-session`
+ *   with its `-c` dir, unless STUB_TMUX_SESSION_DIES=1: then the session's
+ *   command "exits at once" and no session is left behind, the way tmux
+ *   closes a window whose command failed to start.
+ * - `has-session` and `kill-session` exit 0 when STUB_TMUX_HAS_SESSION=1 or a
+ *   session was created, else 1. `kill-session` removes a created session.
+ * - `display-message` prints STUB_TMUX_SESSION_PATH, else the created
+ *   session's dir, else an empty line, and exits 0 either way, which is what
+ *   tmux 3.6 does even for a session that does not exist.
+ * - Every other command exits 0. Every call is recorded through
+ *   ../support/stub-record.mjs.
+ */
+import { existsSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+
+import { record } from "../support/stub-record.mjs";
+
+record("tmux");
+const argv = process.argv.slice(2);
+const [command] = argv;
+const sessionFile = process.env.STUB_LOG
+  ? `${process.env.STUB_LOG}.tmux-session`
+  : null;
+const created = sessionFile !== null && existsSync(sessionFile);
+const running = process.env.STUB_TMUX_HAS_SESSION === "1" || created;
+
+if (command === "new-session" && sessionFile !== null) {
+  if (process.env.STUB_TMUX_SESSION_DIES !== "1") {
+    writeFileSync(sessionFile, argv[argv.indexOf("-c") + 1] ?? "");
+  }
+}
+if (command === "has-session" || command === "kill-session") {
+  process.exitCode = running ? 0 : 1;
+}
+if (command === "kill-session" && created) {
+  rmSync(sessionFile, { force: true });
+}
+if (command === "display-message") {
+  const where =
+    process.env.STUB_TMUX_SESSION_PATH ??
+    (created ? readFileSync(sessionFile, "utf8") : "");
+  process.stdout.write(`${where}\n`);
+}

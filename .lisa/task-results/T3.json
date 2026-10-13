@@ -1,0 +1,39 @@
+{
+  "task": "T3",
+  "status": "done",
+  "files": [
+    "plugins/src/base/skills/lisa-secrets-access/scripts/validate-config.mjs",
+    "plugins/src/base/skills/lisa-session-manager/scripts/config.mjs",
+    "plugins/src/base/rules/reference/config-resolution.md",
+    "tests/unit/secrets/validate-config.test.ts",
+    "tests/unit/secrets/validate-config-session-manager.test.ts",
+    "tests/unit/session-manager/config.test.ts",
+    "tests/unit/session-manager/config-repos.test.ts"
+  ],
+  "exports": "validate-config.mjs (new): validateSessionManager(block: unknown) => string[] (wired into validateConfig); parseLoopInterval(text: unknown) => number|null (seconds; s|m|h|d; null when unparseable or zero). config.mjs: SESSION_MANAGER_DEFAULTS (deep-frozen {interval:'5m',capacity:{maxWorkers:6,gbPerWorker:3,reserveGb:8,cpuFraction:0.75,maxLoadPerCore:1.5},stall:{noOutputMinutes:60,maxAttempts:3,requestionHours:4},notify:{provider:'telegram'}}); resolveSessionManagerConfig(globalConfig, localConfig?) => {name,interval,repos:{root,entries}|null,capacity,stall,notify:{provider,stateDir?},trustedAuthorIds:string[]|null} | null (takes whole parsed config files, or one merged config; null when no sessionManager block; local over global per key, arrays replaced, repos.root defaults to 'projects'); detectRepos(root, {reposRoot='projects', fs={existsSync,readdirSync}}?) => string[] (sorted child dir names carrying .lisa.config.json); buildDefaultBlock({projectSlug, detectedRepos=[]}) => block (name '<slug>-manager', stateDir '~/.claude/channels/telegram-<slug>', defaults written out, no repos key when none detected, each repo's hints seeded with [key]; throws on a slug with no letters/digits); resolveRepoDir(config, key, projectRoot) => absolute dir (throws Error: non-absolute root; single-repo with a key other than undefined/''/'.'; multi-repo with no key; key not an own entries key; resolved dir outside projectRoot). config.mjs also re-exports validateSessionManager and parseLoopInterval.",
+  "tests": "bunx vitest run tests/unit/secrets/validate-config.test.ts tests/unit/secrets/validate-config-session-manager.test.ts tests/unit/session-manager/config.test.ts tests/unit/session-manager/config-repos.test.ts -> 4 files, 129 passed. oxlint 0/0, eslint clean, tsc -p tsconfig.tests.json clean for these files. check:rules-pairing ok; check:eager-rule-budget ok (79816/80000, eager copy untouched). bce-parity-and-consumption.test.ts fails for config-resolution.md (and lisa-implement, another task) until the lead runs build:plugins: generated copies are stale, expected.",
+  "verification": {
+    "command": "node -e \"import('./plugins/src/base/skills/lisa-secrets-access/scripts/validate-config.mjs').then(m=>console.log(JSON.stringify(m.validateConfig({tracker:'github',sessionManager:{name:'bad name',interval:'5m',notify:{provider:'telegram',stateDir:'~/.claude/channels/telegram-x'}}}))))\"",
+    "observed": "[\"sessionManager.name \\\"bad name\\\" must be a slug: lowercase letters, digits, \\\"-\\\" or \\\"_\\\", at most 64 characters. It names the tmux session and the session workers message.\"]"
+  },
+  "deviations": [
+    "resolveSessionManagerConfig takes (globalConfig, localConfig?) whole config objects instead of only (merged); a single merged config still works, so the design's call shape is a subset.",
+    "Added parseLoopInterval export (validator and config) so expected-fleet/launch can derive cadence from the same parser.",
+    "reserveGb accepts 0 (other capacity numbers must be > 0); stall.maxAttempts must be a positive integer (AC only forbade negatives; 0 attempts is meaningless). noOutputMinutes/requestionHours reject negatives only, per AC.",
+    "Validator also requires sessionManager.name (workers address the manager by it) and checks optional trustedAuthorIds (design 10.6) as a string array.",
+    "Test files split for the 300-line max-lines lint: new tests/unit/secrets/validate-config-session-manager.test.ts and tests/unit/session-manager/config-repos.test.ts.",
+    "validate-config.mjs CLI success message now also names sessionManager."
+  ],
+  "learnings": [
+    {
+      "kind": "tooling-gap",
+      "note": "The parity-safety-net hook blocks any Bash command whose text contains a dotenv filename, even inside a python heredoc writing source; use Edit/Write for content that mentions it.",
+      "evidence": "PreToolUse:Bash hook error from parity-safety-net.sh on a python patch script containing '<stateDir>/.env' strings"
+    },
+    {
+      "kind": "convention",
+      "note": "eslint ignores plugins/src/**/*.mjs but enforces max-lines 300 and sonarjs/no-duplicate-string on tests/; typecheck:tests checks every new test file against tsconfig.tests.json using JSDoc types from imported .mjs.",
+      "evidence": "eslint 'File ignored' warnings for .mjs; max-lines error at 528 lines; tsc -p tsconfig.tests.json TS18047 on a nullable JSDoc return"
+    }
+  ]
+}

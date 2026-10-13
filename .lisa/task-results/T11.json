@@ -1,0 +1,36 @@
+{
+  "task": "T11",
+  "status": "done",
+  "files": [
+    "plugins/src/base/skills/lisa-session-manager/SKILL.md",
+    "plugins/src/base/skills/lisa-session-manager/references/runbook-template.md",
+    "plugins/src/base/commands/session-manager.md"
+  ],
+  "tests": "No new test file: T16 owns the skill contract test. bunx vitest run tests/unit/strategies/agent-skill-layer-contract.test.ts -> 1 file, 73 passed. Every skill and rule the prose cites exists: lisa-tracker-read/write/claim, lisa-atlassian-access, lisa-linear-access, lisa-repair-intake, lisa-implement, lisa-setup-session-manager; rules automation-runbook-contract, blocker-containment, repo-scope-split. bunx prettier --check on all three files is clean.",
+  "verification": {
+    "command": "bunx vitest run tests/unit/strategies/agent-skill-layer-contract.test.ts && grep -c 'managedBy=' plugins/src/base/skills/lisa-session-manager/SKILL.md; plus the script-root ladder extracted from SKILL.md and run with bash under three envs",
+    "observed": "Layer contract test: 73 passed. grep count: 3. Ladder: with SM_SCRIPTS_DIR set to the source scripts dir it printed that dir (exit 0). With CLAUDE_PLUGIN_ROOT=plugins/src/base and no SM_SCRIPTS_DIR it printed <root>/skills/lisa-session-manager/scripts (exit 0). With SM_SCRIPTS_DIR=/nonexistent it fell through: rung 3 resolved the installed lisa@lisa 4.33.1 cache dir (it has no session-manager yet), rung 4 had no npm copy, and it printed 'lisa-session-manager scripts not found' (exit 1). The relative paths $SM/../../../scripts/resolve-lifecycle-role.mjs and $SM/../references/runbook-template.md both resolve in the source tree."
+  },
+  "deviations": [
+    "The ladder improves on design section 2.3 in one way: rung 3 runs when rung 1 or 2 is set but its session-manager.mjs is missing, not only when SM is empty. That is the design's own risk-4 mitigation (a Lisa upgrade deletes the old plugin cache dir under a running manager), enforced in the snippet instead of described in prose.",
+    "The ladder ends with echo \"$SM\". Claude Code's Bash tool does not keep shell variables between calls, so the skill says to resolve once per cycle and use the printed absolute path.",
+    "Untrusted text (Telegram messages, worker messages, questions, reasons, summaries) is written with the Write tool to .lisa/session-manager/msg.txt and redirected into STDIN. It never goes on a command line. The CLI already reads only STDIN for this text; this closes the shell-quoting gap at the skill side.",
+    "Root check at the start of each cycle: `validate --project-root \"$PWD\"` must exit 0. A child repo's .lisa.config.json has no sessionManager block, so validate exits 2 there. That makes the design's risk-5 pwd check a CLI call.",
+    "The role resolver is reached as $SM/../../../scripts/resolve-lifecycle-role.mjs (the plugin root), not the ${CLAUDE_PLUGIN_ROOT:-plugins/lisa} form other skills use, because that fallback is wrong in a host project.",
+    "When several outcome rows apply in one cycle, the skill picks the most urgent: recovery-required, then approval-requested, then change-proved. Design section 8 did not say how to break a tie.",
+    "Stalled or dead items that a human moved out of the claimed role are retired from the ledger with `ledger finish --status FAILED` and are not moved on the tracker. This follows the rule against retrying a human reversal (#3756). The CLI has no neutral 'untracked' finish status.",
+    "The skill has no allowed-tools. The manager runs with bypass permissions, and the Telegram reply tool is a plugin MCP tool whose name the skill cannot portably pin."
+  ],
+  "learnings": [
+    {
+      "kind": "learning",
+      "note": "In Claude Code's Bash tool, shell variables do not persist between calls but the cwd does. A skill that resolves a path into a variable (like $SM) must either re-run the resolver in every call or print the path and have the agent substitute it. A cd in one call does carry into the next, so a claim-in-child-cwd step must always cd back.",
+      "evidence": "The Bash tool contract in this session ('Shell state (env vars, functions) does not persist'); design section 10 risk 5"
+    },
+    {
+      "kind": "learning",
+      "note": "The parity-safety-net hook refuses `bash $VAR/script.sh` even when the file exists: it needs a literal path to classify the script. Run extracted scripts by their full literal path.",
+      "evidence": "A PreToolUse:Bash refusal on `bash $S/ladder-lisa-session-manager.sh`; the same command with the literal scratchpad path ran"
+    }
+  ]
+}

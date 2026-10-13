@@ -214,7 +214,9 @@ export async function inspectCodexAutomationFleet(input) {
       status: "UNSUPPORTED",
       summary: unsupported.reason,
       expectedCadence: unsupported.expectedCadence,
-      observed: "No automation is expected for this repo/runtime combination.",
+      observed:
+        unsupported.observed ??
+        "No automation is expected for this repo/runtime combination.",
       runbook: runDisplay?.runbook,
       lastOutcome: runDisplay?.lastOutcome,
       outcomeHistory: runDisplay?.outcomeHistory,
@@ -656,6 +658,7 @@ async function resolveFleetRunDisplays(projectRoot, expectedFleet) {
         projectRoot,
         loopId: entry.id,
         runbookPath: entry.runbookPath,
+        runbookSetupCommand: entry.runbookSetupCommand,
       })
     )
   );

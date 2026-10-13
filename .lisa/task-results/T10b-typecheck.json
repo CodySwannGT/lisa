@@ -1,0 +1,32 @@
+{
+  "task": "T10b-typecheck",
+  "status": "done",
+  "files": [
+    "tests/unit/session-manager/capacity.test.ts",
+    "tests/unit/session-manager/ledger.test.ts",
+    "tests/unit/session-manager/reconcile.test.ts",
+    "tests/unit/session-manager/workers-classify.test.ts",
+    "tests/unit/session-manager/workers.test.ts",
+    "tests/unit/scripts/ready-queue-order.test.ts",
+    "plugins/src/base/skills/lisa-session-manager/scripts/ledger.mjs",
+    "plugins/src/base/skills/lisa-session-manager/scripts/reconcile.mjs",
+    "plugins/src/base/skills/lisa-session-manager/scripts/workers.mjs"
+  ],
+  "before_errors": { "branch_files": 36, "total_tsconfig_tests": 1575 },
+  "after_errors": { "branch_files": 0, "total_tsconfig_tests": 1539, "tsconfig_json": 0 },
+  "tests": {
+    "vitest": "16 files, 343 tests passed (tests/unit/session-manager + ready-queue-order)",
+    "check-typecheck-tests": "pass: no errors outside the quarantine, no stale entries",
+    "oxlint": "0 warnings, 0 errors",
+    "eslint --no-ignore": "clean",
+    "prettier --check": "clean"
+  },
+  "learnings": [
+    "tsconfig.tests.json has checkJs:false, so .mjs JSDoc is read only as the type of imports; widening or adding @typedef in an .mjs cannot create errors inside the .mjs itself, only at test call sites.",
+    "ledger.mjs returned Promise<object>, which made every property read in tests an error; a LedgerItem/Ledger @typedef in the module was the real fix, not casts in the test.",
+    "Under exactOptionalPropertyTypes, a JSDoc optional property the module already tolerates as undefined (reconcile edges, workers classifyWorker logsHash) must say `| undefined` explicitly or tests passing undefined fail.",
+    "Test-local .ts imports need an explicit .js extension under nodenext resolution (./workers-fixtures.js), matching ./support/cli-harness.js.",
+    "For noUncheckedIndexedAccess on fixture rows, a small throw-if-missing helper (rowOf, present) keeps the type honest and fails loudly instead of silently testing null.",
+    "In zsh, a space-separated file list in a scalar variable is not word-split; use an array for multi-file lint invocations."
+  ]
+}

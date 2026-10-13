@@ -1,0 +1,26 @@
+{
+  "task": "T2",
+  "status": "done",
+  "files": [
+    "plugins/src/base/skills/lisa-implement/SKILL.md",
+    "plugins/src/base/commands/implement.md",
+    "tests/unit/strategies/implement-managed-by-contract.test.ts"
+  ],
+  "tests": "bunx vitest run tests/unit/strategies/implement-managed-by-contract.test.ts -> 61 tests: 9 passed (all 8 contract cases on plugins/src/base + base shim argument-hint), 52 failed = 6 built skill variants x 8 + 4 built command shims, all pending T17 build:plugins (built variants are verbatim copies of base at HEAD; codex differs only in frontmatter description). Regression sweep over the 31 other test files mentioning lisa-implement: 2430 passed, 5 failed, all in bce-parity-and-consumption.test.ts byte-identical/Codex parity checks, which also clear on T17 regeneration. eslint, oxlint, prettier --check clean on all touched files.",
+  "verification": {
+    "command": "grep -n 'managedBy' plugins/src/base/skills/lisa-implement/SKILL.md plugins/src/base/commands/implement.md && bun run vitest run tests/unit/strategies/implement-managed-by-contract.test.ts",
+    "observed": "grep: implement.md:3 argument-hint '[executionEnv=local|codex-cloud] [managedBy=<session-name>] <...>', implement.md:8 one-line managedBy sentence, SKILL.md:10 executionEnv section now strips managedBy= first, SKILL.md:25 '## Routing: `managedBy`', :30 runtime parity rejection, :31 remote rejection, :71 'lisa-track $ARGUMENTS (with managedBy= already stripped)'. vitest: Test Files 1 failed (1); Tests 52 failed | 9 passed (61) -- every base/source case passes; every failure is a generated variant not yet rebuilt (T17)."
+  },
+  "learnings": [
+    {
+      "kind": "process-friction",
+      "note": "Contract tests that pin built variants cannot go fully green inside a builder task when regeneration is a separate lead task; the source cases are the builder's gate and variant cases go green at regeneration.",
+      "evidence": "implement-managed-by-contract.test.ts 9 pass/52 fail; bce-parity-and-consumption.test.ts byte-identical checks fail the same way until build:plugins"
+    },
+    {
+      "kind": "tooling-gap",
+      "note": "A fresh worktree has no node_modules or dist, so vitest fails to load its config until bun install --frozen-lockfile has run (its prepare step builds dist).",
+      "evidence": "vitest startup error: Cannot find module dist/configs/vitest/typescript.js; tsc: command not found before install"
+    }
+  ]
+}

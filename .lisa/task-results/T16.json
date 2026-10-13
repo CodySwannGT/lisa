@@ -1,0 +1,46 @@
+{
+  "task": "T16",
+  "status": "done",
+  "files": [
+    "tests/unit/strategies/session-manager-skill.test.ts",
+    "tests/unit/strategies/session-manager-skill-contract.test.ts",
+    "tests/unit/strategies/session-manager-skill-helpers.ts"
+  ],
+  "tests": "Split into two files to stay under 300 lines each (273 + 266, plus a 58-line shared helper). session-manager-skill.test.ts covers packaging and parity: both skill folders are byte-identical in plugins/lisa, lisa-cursor, lisa-agy, lisa-copilot and lisa-devin. In Codex, every resource is verbatim and SKILL.md equals routingPrefacedBody(source) with a compacted description. agents/openai.yaml in plugins/lisa and .codex-plugin equals the generator's derivation from its sibling SKILL.md. Both command shims are byte-identical in plugins/lisa, cursor, agy and copilot, and Codex needs no generated command skill. The entrypoint is mode 100755 in git in all 7 roots. `node <root>/.../session-manager.mjs --help` loads from the source and each verbatim root and matches the source output. The role resolver the skill cites resolves from each verbatim root. The ladder never targets .codex-plugin. Neither skill is on any internal-skill denylist (codex, opencode, cursor, agy, copilot). OpenCode's discoverBundledSkills ships the manager with scripts/ and references/. session-manager-skill-contract.test.ts covers the prose contract, in every root: the Run outcome section cites automation-runbook-contract and names all six outcomes. The worker prompt is exactly `/lisa:implement <REF> managedBy=<manager-name>`, and that equals what buildWorkerSpawn actually launches. Claims go through lisa-tracker-claim and no vendor claim skill is named. Every 'move the item ... to' instruction targets the `ready`/`blocked` role, and no state name appears as a quoted or backticked literal or as status:x. The STDIN rule is present. The Runtime parity section names all 7 runtimes, the claude >= 2.1.224 requirement, the fixed refusal message and the OpenCode gap. The setup skill's ladder is byte-identical to the manager's. Every CLI call in both skills, whether through session-manager.mjs, `ledger <x>` or a bare subcommand span, names a subcommand present in cli-usage.mjs, and every flag belongs to that subcommand's usage entry. There are no bot-token-shaped strings and no downstream references, with bite controls for both. Result at the moment the plugins were in sync: 145 passed. eslint --no-ignore: 0 problems. tsc -p tsconfig.tests.json: 0 errors from these files.",
+  "verification": {
+    "command": "bunx vitest run tests/unit/strategies/session-manager-skill.test.ts tests/unit/strategies/session-manager-skill-contract.test.ts",
+    "observed": "145 passed against the committed plugins. Falsification: 22 mutations, each applied to a scratch mirror of the tree (git index included) so that no shared file was touched. Every one failed the test named for it and nothing else unexpected. The mutations were: scripts/ dropped from devin; entrypoint chmod -x in cursor; contract cite removed; managedBy= replaced by --managed-by; vendor claim skill substituted; a quoted \"Ready\" target and a bare Ready target; STDIN rule removed; Devin dropped from the parity table; policy-obsolete renamed; an invented --force on spawn; an invented `ledger purge`; the ladder npm rung pointed into .codex-plugin; setup ladder drift; a planted downstream org URL; a planted bot token in the runbook; Codex body drift; Codex openai.yaml drift; manager added to the OpenCode denylist; cursor command drift; workers.mjs launching managedBy:; devin cli-usage drift. The baseline before and after the mutations was 145/145. A re-run at the end against the live worktree gave 6 failures, all byte-parity tests for lisa-session-manager scripts. Another agent is editing the source scripts in this worktree (workers.mjs, cli-manager.mjs, launch.mjs, session-manager.mjs, cli-cycle.mjs, plus a new isolation.mjs), so the built variants are stale until build:plugins (T17) runs. That is the suite doing its job, not a test fault."
+  },
+  "defects_found": [
+    {
+      "severity": "medium",
+      "title": "The Codex copy of the session-manager CLI cannot load",
+      "evidence": "`node plugins/lisa/.codex-plugin/skills/lisa-session-manager/scripts/session-manager.mjs --help` fails with ERR_MODULE_NOT_FOUND for plugins/lisa/.codex-plugin/scripts/automation-run-record.mjs, imported from cli-cycle.mjs. cli-queue.mjs (resolve-lifecycle-role.mjs) and reconcile.mjs (blocker-edge-resolution.mjs, intake-blocker-reprobe.mjs) also import `../../../scripts/`. session-manager.mjs imports these statically, so every subcommand fails there, not only queue and record-cycle. plugins/lisa/.codex-plugin ships only skills/, hooks.json and plugin.json, so the path does not exist. The repo already documents this trap in plugins/src/base/skills/lisa-setup-workstation/scripts/bounded-child.mjs ('The built Codex artifact ... copies skills/ and nothing else ... a skill script importing ../../../scripts/lib/… resolves to a path that does not exist in that copy').",
+      "impact": "Latent today: the script-root ladder never resolves to the Codex copy. Its rungs are SM_SCRIPTS_DIR, CLAUDE_PLUGIN_ROOT, `claude plugin list` and npm. So on Codex, setup works only when Claude Code with the lisa plugin, or the npm package, is installed. The parity table says 'config, token and runbook are supported' on Codex without stating that dependency, and the ~14 script files Codex ships are dead weight. Any future rung that points at the runtime's own copy would break on Codex.",
+      "suggested_owner": "T10/T11 author or T17. Either import the plugin-level helpers through a path that exists in .codex-plugin (the bounded-child precedent), make the generator ship the needed plugin-level scripts, or state the claude/npm dependency in the Codex row of `## Runtime parity`. Not fixed here, per instructions. The test pins the current safe state: the ladder never targets .codex-plugin."
+    },
+    {
+      "severity": "low",
+      "title": "Runtime parity names 'agy' but never 'Antigravity'",
+      "evidence": "T16 AC 2 asks for a section naming 'Antigravity (agy)'. The section says 'Cursor / agy / Copilot / Devin'. The test accepts 'agy' because that is the runtime's identifier throughout Lisa; a non-technical reader may not recognise it.",
+      "suggested_owner": "Skill author, optional wording fix."
+    }
+  ],
+  "learnings": [
+    {
+      "kind": "learning",
+      "note": "A cross-variant byte-parity suite goes red the moment anyone edits plugins/src without re-running build:plugins. In a shared worktree, run falsification in a scratch mirror (rsync of `git ls-files`, a node_modules symlink, `git init && git add -A` so `ls-files -s` mode checks still work). Mutating shared source files in place would race the other agents, and they would race the mutations.",
+      "evidence": "During this task another agent changed five source scripts and added isolation.mjs. The live re-run flipped 6 parity tests red while the mirror stayed 145/145."
+    },
+    {
+      "kind": "learning",
+      "note": "Skill prose wraps at about 100 columns, so a regex over an instruction ('move the item to the `blocked` role') must allow \\s+ (and the s flag) between words. A literal-space regex silently skipped one of the six move instructions. A perl substitution in a mutation run silently became a no-op for the same reason. Always confirm the mutation applied (grep -c) before trusting a green run.",
+      "evidence": "The first lifecycle-role assertion failed on 'the `blocked`\\nrole', and the first 'hard-coded Blocked' mutation changed nothing and passed 145/145."
+    },
+    {
+      "kind": "learning",
+      "note": "In tsconfig.tests.json the lib predates ES2023, so Array.prototype.toSorted does not type-check, while sonarjs rejects bare .sort() on the array under assertion. Use `[...xs].sort((a, b) => a.localeCompare(b))`.",
+      "evidence": "tsc TS2550 on toSorted; sonarjs/no-alphabetical-sort and no-misleading-array-reverse on .sort()"
+    }
+  ]
+}
