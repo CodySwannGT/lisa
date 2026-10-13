@@ -66,6 +66,7 @@ export const SESSION_MANAGER_DEFAULTS = Object.freeze({
  *   stall: StallBlock,
  *   notify: NotifyBlock,
  *   trustedAuthorIds: string[] | null,
+ *   operatorIds?: string[] | null,
  * }} SessionManagerConfig
  * @typedef {{
  *   name: string,
@@ -120,6 +121,9 @@ export function resolveSessionManagerConfig(globalConfig, localConfig) {
     ...merged,
     repos,
     trustedAuthorIds: merged.trustedAuthorIds ?? null,
+    // Left as declared: absent stays undefined and an explicit null stays null,
+    // so validation can refuse the null instead of reading it as "no operators".
+    operatorIds: merged.operatorIds,
   };
 }
 

@@ -54,7 +54,19 @@ writes `$SM`, and pass `--project-root "$ROOT"` (the absolute project root) on e
    bypass-permissions worker; say so plainly. The list holds stable tracker user ids as strings,
    never logins: the GitHub numeric user id (`gh api users/<login> --jq .id`), the Jira
    `accountId`, or the Linear user id. A login matches no one and silently excludes every item.
-4. `node "$SM/session-manager.mjs" validate --project-root "$ROOT"` must print `valid: true`.
+4. Set `sessionManager.operatorIds` to a non-empty **array** holding the operator's own tracker
+   user id, e.g. `"operatorIds": ["<operator-id>"]` (a bare string fails `validate`). Look up the
+   OPERATOR, not the credential: `gh api user` / `viewer.id` return whoever the tracker credential
+   belongs to, which is the agent account in exactly the case this key exists for. The manager dispatches
+   the operator's assigned items first, then items assigned to the tracker credential's identity
+   ("me"), then unassigned ones, and skips items assigned to anyone else. When the tracker
+   credential is not the operator's (an agent or bot account), leaving this unset means the
+   operator's own Ready items are never dispatched; say so plainly. Unlike `trustedAuthorIds`, this
+   is matched against the assignee, exactly and case-sensitively, so use the same kind of id as
+   "me", spelled as the tracker API returns it: the GitHub **login** (`gh api users/<login> --jq
+   .login`), the Jira `accountId`, or the Linear user id (the operator's entry in the team's member
+   list, or `viewer.id` only when the operator runs the lookup with their own credential).
+5. `node "$SM/session-manager.mjs" validate --project-root "$ROOT"` must print `valid: true`.
 
 ## Step 3: Store the bot token
 

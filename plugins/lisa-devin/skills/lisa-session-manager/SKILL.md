@@ -66,7 +66,12 @@ the manager.
   claims go through `lisa-tracker-claim`. Never call a vendor API around them.
 - **"Me".** Resolve once per manager run and store it with `ledger control --me <id>`: GitHub
   `gh api user --jq .login`; Jira the accountId from the `lisa-atlassian-access` identity probe;
-  Linear `viewer.id` through `lisa-linear-access`.
+  Linear `viewer.id` through `lisa-linear-access`. "Me" is whoever the tracker credential belongs
+  to, which is often an agent account.
+- **Operators.** `sessionManager.operatorIds` names the people the manager works for (the same
+  kind of id as "me": GitHub login, Jira accountId, Linear user id). Their assigned items come
+  first, then items assigned to "me", then unassigned. Items assigned to anyone else are never
+  dispatched. Never treat an operator's item as someone else's.
 - **Workers** start only through `spawn`. The worker prompt is exactly
   `/lisa:implement <REF> managedBy=<manager-name>`; `lisa-implement` owns what `managedBy=` means.
   Never start a worker another way, and never reuse a worker for another item or a new attempt.
@@ -207,8 +212,8 @@ Skip while `capacity` reports `paused`. Otherwise:
      Raw Jira issues carry `key` and `fields` (summary, priority, assignee, created, labels,
      description, reporter, issuetype, subtasks); raw Linear nodes carry identifier, title, priority,
      createdAt, assignee, labels, description, creator and children with their state type.
-   - `ordered` is the dispatch order (mine, then unassigned, then priority, then age). `excluded`
-     needs no action.
+   - `ordered` is the dispatch order: assigned to an operator, then to "me", then unassigned; each
+     group by priority, then age. `excluded` needs no action.
 2. **While `capacity` says `can_spawn`** and items remain, take the next item that has no pending
    question in the ledger:
    1. Read it fully (`lisa-tracker-read`): title, description, labels, project, parent, comments.
@@ -223,9 +228,11 @@ Skip while `capacity` reports `paused`. Otherwise:
       `cd "$(node "$SM/session-manager.mjs" repo-dir --repo <key> --raw --project-root "$ROOT")"`
       (omit `--repo` on a single-repo project), invoke `lisa-tracker-claim <ref>`, then
       `cd "$ROOT" && pwd` and confirm the path. Continue only on `claimed` or `reused` with the
-      assignee equal to "me"; anything else means skip. Then re-read the item with
-      `lisa-tracker-read`: if the re-read shows a different assignee, or shows the state did not
-      change to the `claimed` role, skip it (someone else holds it, or the claim did not land).
+      assignee equal to "me" or to one of `sessionManager.operatorIds` (the claim assigns only an
+      unassigned item, so an operator's item keeps the operator); anything else means skip. Then
+      re-read the item with `lisa-tracker-read`: if the re-read shows an assignee that is neither
+      "me" nor an operator, or shows the state did not change to the `claimed` role, skip it
+      (someone else holds it, or the claim did not land).
       Never spawn on the claim's word alone.
    4. **Spawn.** `spawn <ref> [--repo <key>]`.
       - exit 0: post `[<REF>] started in <repo> (<name>)` to Telegram.

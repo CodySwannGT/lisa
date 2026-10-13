@@ -123,9 +123,11 @@ function readEnvelopeQueue(ctx, tracker) {
 }
 
 /**
- * `queue --tracker <github|jira|linear>`: the Ready queue, mine first.
+ * `queue --tracker <github|jira|linear>`: the Ready queue, the operator's
+ * items first (`sessionManager.operatorIds`), then mine, then unassigned.
  * @param {object} ctx - CLI context
- * @returns {Promise<{ json: object }>} `{tracker,me,total,pages,ordered,excluded}`
+ * @returns {Promise<{ json: object }>}
+ *   `{tracker,me,operators,total,pages,ordered,excluded}`
  */
 export async function queue(ctx) {
   const tracker = ctx.values.tracker;
@@ -139,10 +141,14 @@ export async function queue(ctx) {
       ? fetchGithubQueue(ctx, project)
       : readEnvelopeQueue(ctx, tracker);
   const me = ctx.values.me ?? (await readLedger(ctx.root)).control.me ?? null;
+  const operators = config?.operatorIds ?? [];
   const order = orderReadyQueue(items, {
     me,
+    operators,
     trustedAuthorIds: config?.trustedAuthorIds ?? undefined,
     humanNeededLabel: humanNeededLabel(project, tracker),
   });
-  return { json: { tracker, me, total: items.length, pages, ...order } };
+  return {
+    json: { tracker, me, operators, total: items.length, pages, ...order },
+  };
 }

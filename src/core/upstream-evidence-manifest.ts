@@ -1141,7 +1141,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/rules/reference/coding-philosophy.md":
       "fed8381f16a5d6793a49d84d5813d62125808cb2f4981a558b119cf63e2586d9",
     "plugins/src/base/rules/reference/config-resolution.md":
-      "b053d2bdc297c596ea5a79eaeab72ce5f913940148307f27f40b43923d3d29ca",
+      "ed18aa06d9e5440f9ede56993317b3f354dd79db66ffb39853cb5ebc07b91d1f",
     "plugins/src/base/rules/reference/control-reachability.md":
       "0883f3480de79bcaa4a9da5685192c014d9267d0a12aed8153bba8c51161129a",
     "plugins/src/base/rules/reference/convergent-review.md":
@@ -1299,7 +1299,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/scripts/queue-status-prd-readers.mjs":
       "32b4366fc292062c869793aeaf5b006ff400df5da09ee510f862e15d59a77770",
     "plugins/src/base/scripts/ready-queue-order.mjs":
-      "dd647c428bc51f8c780686cc1ca3c5e8c3caad4e3758b2cfdffc66661992650a",
+      "6e3956fe44fc95edaf089dd71f9c20089142b1e65add1bb52293b41f21b553cf",
     "plugins/src/base/scripts/remote-agent-aws-setup.sh":
       "2a5b21f4fa3df268fb579976b4bc5f480d9176dbf6e3ae64fe3a869df287ca30",
     "plugins/src/base/scripts/repo-scope-vocabulary-audit.mjs":
@@ -1623,7 +1623,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-secrets-access/scripts/tools-from-notes.mjs":
       "360f740cac081151491428043b04fec2f5db6f3ba36394f7378af312396d53ca",
     "plugins/src/base/skills/lisa-secrets-access/scripts/validate-config.mjs":
-      "e74487274a1d6437da51d4526a4ce2c552e69d05614c3366ed348bbf0d11c6d8",
+      "50fe03bc8b8e8c3f34a59104c7156cc59488b81d2188ef9351ebbdf96ef4e5ef",
     "plugins/src/base/skills/lisa-security-review/SKILL.md":
       "5a980eaf5efc4fcce66e75521ec5b1eda143a5b0d36e7157234a705dac94e3f5",
     "plugins/src/base/skills/lisa-security-zap-scan/SKILL.md":
@@ -1631,9 +1631,9 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-sentry-access/SKILL.md":
       "1c1881ca9a2020f6cd8f938dc5335ebf2d344ff280844bb98926198e5226e526",
     "plugins/src/base/skills/lisa-session-manager/SKILL.md":
-      "f2ee32394cb194a9ffd54b79be15aa37f989cfd1a487ab0499cbe137e9cd44ce",
+      "0d0e238566138de72d0b205cffbc003cbf27eade820b2231b7c7718e682d47e0",
     "plugins/src/base/skills/lisa-session-manager/references/runbook-template.md":
-      "24abfd1c6d2ec1829a9c88415910438bb03e16277f0a118c30ea0a24022ab54c",
+      "a2aaec943755648b2ce2d9527d262de170e20e319cce0bab95be1edb64d23750",
     "plugins/src/base/skills/lisa-session-manager/scripts/capacity.mjs":
       "ad5acc6097e375868b51eaf01b1506662505e2404b7ac1b06528679718504091",
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-cycle.mjs":
@@ -1641,19 +1641,19 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-manager.mjs":
       "d128e3eb5600b62a103b7384144a3296bc7ac8917920279a99ea8dd5beae73a1",
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-queue.mjs":
-      "e3f6b5a49144613665f4ccd8a3ac51539b3196ba36d1a6bfd528f379103da1eb",
+      "54bf8c565eb263c937d65a30f5a0068fc7eea361b6a46fbcc90bb850917fb895",
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-runtime.mjs":
-      "805ce5af2104c87502b8cb99d1376f232a51578a02e065652019b06bedcb9f6f",
+      "2948105addc10c0405d085cd2ba606f77f8f7c961bcfdaf1f09e7434d27e2b5e",
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-setup.mjs":
       "9e16b4b72944ce7eb35b373cc479b8267ad0d5b4976a15d9094659a7d0190337",
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-usage.mjs":
-      "85d85fa77a15ab728ed4f0ff046c2e06c1ef6660b933c5cb93bd98eba7a7ac0c",
+      "bbc7b17a3ca4e98238778dfa2bef5f6ac1984262a9eb65ac6b0561d049e3365b",
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-workers.mjs":
       "63ca4c92eb838f806be1dcb6b995cdcee56f77eb7ba4787959ec23a395b32bfe",
     "plugins/src/base/skills/lisa-session-manager/scripts/clipboard.mjs":
       "6becdcf8797bfdcfa31553c90d125be4b7f643ab305a3abc19aae73d29263e29",
     "plugins/src/base/skills/lisa-session-manager/scripts/config.mjs":
-      "8bf77a28864a9a21b2095b2c4339c95bd5be412f405d101848fefb32300b779e",
+      "f56dceeb424913fdf297d239bd3f02dbc98e356efcd453e90fb07120507ffc68",
     "plugins/src/base/skills/lisa-session-manager/scripts/isolation.mjs":
       "c6161331dea68eec4112948d9e8841aa834632c7503de5c8fd5d9834e125dfbc",
     "plugins/src/base/skills/lisa-session-manager/scripts/launch.mjs":
@@ -1725,7 +1725,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-setup-remote-env/scripts/verify-remote-env.mjs":
       "bec0b624c1031d0936afd6e5dd4a3d09adea102d5936b5b9fcf545c7f86a3a11",
     "plugins/src/base/skills/lisa-setup-session-manager/SKILL.md":
-      "e202e704d482658fea79d5ef0b37d1b6e99be42ddb2d5aaeb489b621104ddf91",
+      "dec608c68d40b1cd05cb774d92ab29857005a0383139c9c7d1570a93ba102d8d",
     "plugins/src/base/skills/lisa-setup-sonar/SKILL.md":
       "de00597d260d5491837406a81b87a96b9307a7d87c040b35fc1d6e77ae2f5306",
     "plugins/src/base/skills/lisa-setup-workstation/SKILL.md":
@@ -12277,6 +12277,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/process-tree-runner-interrupt.test.ts": true,
     "tests/unit/scripts/process-tree-runner-verdict-transport.test.ts": true,
     "tests/unit/scripts/process-tree-runner.test.ts": true,
+    "tests/unit/scripts/ready-queue-order-operators.test.ts": true,
     "tests/unit/scripts/ready-queue-order.test.ts": true,
     "tests/unit/scripts/reconcile-release-tags.test.ts": true,
     "tests/unit/scripts/required-check-promotions-helpers.ts": true,
@@ -12447,6 +12448,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/session-manager/cli-liveness.test.ts": true,
     "tests/unit/session-manager/cli-manager.test.ts": true,
     "tests/unit/session-manager/cli-messages.test.ts": true,
+    "tests/unit/session-manager/cli-queue-operators.test.ts": true,
     "tests/unit/session-manager/cli-setup.test.ts": true,
     "tests/unit/session-manager/cli-spawn-trust.test.ts": true,
     "tests/unit/session-manager/cli-start-survival.test.ts": true,
