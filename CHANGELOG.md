@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.80.2](https://github.com/CodySwannGT/lisa/compare/v4.80.1...v4.80.2) (2026-10-13)
+
+
+### Bug Fixes
+
+* **cdk:** stop defaulting opt-in construct libraries into CDK hosts ([2ac722a](https://github.com/CodySwannGT/lisa/commit/2ac722a0931bc0c6690d2c4263f6869a953a180d)), closes [#4343](https://github.com/CodySwannGT/lisa/issues/4343) [CodySwannGT/lisa#4451](https://github.com/CodySwannGT/lisa/issues/4451) [CodySwannGT/lisa#4451](https://github.com/CodySwannGT/lisa/issues/4451)
+
 ### [4.80.1](https://github.com/CodySwannGT/lisa/compare/v4.80.0...v4.80.1) (2026-10-13)
 
 
