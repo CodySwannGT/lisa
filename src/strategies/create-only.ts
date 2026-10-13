@@ -53,6 +53,13 @@ export class CreateOnlyStrategy implements ICopyStrategy {
       };
     }
 
+    if (await fse.pathExists(destPath)) {
+      return { relativePath, strategy: this.name, action: "skipped" };
+    }
+
+    // Record the path (and the parents ensureParentDir is about to create) so
+    // a failed apply can remove what it created (#4459).
+    await context.backupFile(destPath);
     await ensureParentDir(destPath);
     try {
       await this.copyFileExclusive(
@@ -63,6 +70,8 @@ export class CreateOnlyStrategy implements ICopyStrategy {
       return { relativePath, strategy: this.name, action: "created" };
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code === "EEXIST") {
+        // Someone else's file won the race; it is not ours to roll back.
+        context.forgetCreated?.(destPath);
         return { relativePath, strategy: this.name, action: "skipped" };
       }
       throw error;

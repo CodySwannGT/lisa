@@ -2244,6 +2244,9 @@ export class Lisa {
         await this.deps.backupService.backup(absolutePath);
         await this.deps.backupService.persistentBackup(absolutePath);
       },
+      forgetCreated: absolutePath => {
+        this.deps.backupService.forgetCreated(absolutePath);
+      },
       promptOverwrite: async (relativePath, sourcePath, destPath) => {
         return this.handleOverwritePrompt(relativePath, sourcePath, destPath);
       },

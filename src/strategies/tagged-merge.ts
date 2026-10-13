@@ -76,6 +76,8 @@ export class TaggedMergeStrategy implements ICopyStrategy {
 
     if (!destExists) {
       if (!config.dryRun) {
+        // Records the new file and its missing parents for rollback (#4459).
+        await backupFile(destPath);
         await ensureParentDir(destPath);
         await copyFile(sourcePath, destPath);
       }

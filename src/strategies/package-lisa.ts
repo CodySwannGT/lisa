@@ -337,6 +337,8 @@ export class PackageLisaStrategy implements ICopyStrategy {
     notes: readonly string[] = []
   ): Promise<FileOperationResult> {
     if (!context.config.dryRun) {
+      // Records the new file and its missing parents for rollback (#4459).
+      await context.backupFile(destPath);
       await ensureParentDir(destPath);
       await writeJson(destPath, merged);
     }

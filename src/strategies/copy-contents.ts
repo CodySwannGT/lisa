@@ -91,8 +91,10 @@ export class CopyContentsStrategy implements ICopyStrategy {
     relativePath: string,
     context: StrategyContext
   ): Promise<FileOperationResult> {
-    const { config } = context;
+    const { config, backupFile } = context;
     if (!config.dryRun) {
+      // Records the new file and its missing parents for rollback (#4459).
+      await backupFile(destPath);
       await ensureParentDir(destPath);
       await copyFile(sourcePath, destPath);
     }
