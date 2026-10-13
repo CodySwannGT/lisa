@@ -1,0 +1,21 @@
+{
+  "task": "T7",
+  "status": "done",
+  "files": [
+    "plugins/src/base/skills/lisa-session-manager/scripts/telegram-route.mjs",
+    "tests/unit/session-manager/telegram-route.test.ts"
+  ],
+  "exports": "routeInbound({text:string, replyToMessageId?:number|null, ledger:{items?:Record<ref,{worker?,pendingQuestion?:{telegramMessageId}|null}>}}): {kind:'answer',ref,body} | {kind:'command',name:'status'|'pause'|'resume'} | {kind:'command',name:'cap',value:number} | {kind:'command',name:'stop',ref} (ref resolved to the ledger key when it names one, else raw) | {kind:'ambiguous',candidates:string[]} (sorted refs with a pending question); parseCommand(text): same command shapes | {kind:'not-a-command', reason?:string} (case-insensitive, optional leading '/', cap is an integer 0..32, stop takes exactly one ref); formatAnswer(owner:string, body:string): \"<owner>'s answer: <body>\" (throws on empty owner). Imports sanitizeRefToken/parseWorkerName from ./workers.mjs",
+  "tests": "bunx vitest run tests/unit/session-manager/telegram-route.test.ts -> 1 file, 45 tests passed; oxlint 0/0; eslint 0 errors on the test (telegram-route.mjs is eslint-ignored by repo config)",
+  "verification": {
+    "command": "node -e \"import('./plugins/src/base/skills/lisa-session-manager/scripts/telegram-route.mjs').then(m=>console.log(JSON.stringify(m.routeInbound({text:'A: 2',ledger:{items:{A:{worker:'wk-A-1012-0900',pendingQuestion:{text:'q',telegramMessageId:7}},B:{worker:'wk-B-1012-0901',pendingQuestion:{text:'q2',telegramMessageId:8}}}}}))))\"",
+    "observed": "{\"kind\":\"answer\",\"ref\":\"A\",\"body\":\"2\"}"
+  },
+  "deviations": [
+    "Precedence including commands: (1) REF prefix, (2) reply-to a pending question, (3) operator command, (4) the single pending question, else ambiguous. Commands sit below explicit targeting (a reply 'pause' is an answer) but above the single-pending fallback (a bare 'pause' is never swallowed as an answer). The AC order for answers is unchanged",
+    "A ref prefix with an empty body (e.g. '[TEAM-1]') is not an answer and falls through",
+    "An empty or whitespace message returns ambiguous",
+    "parseCommand gives a reason for malformed cap/stop so the manager can tell the operator why"
+  ],
+  "learnings": []
+}

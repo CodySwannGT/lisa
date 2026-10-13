@@ -1,0 +1,25 @@
+{
+  "task": "T5",
+  "status": "done",
+  "files": [
+    "plugins/src/base/skills/lisa-session-manager/scripts/workers.mjs",
+    "tests/unit/session-manager/workers.test.ts",
+    "tests/unit/session-manager/workers-classify.test.ts",
+    "tests/unit/session-manager/workers-fixtures.ts"
+  ],
+  "exports": "WORKER_SETTINGS: string ('{\"crossSessionInbound\":\"accept\"}'); DEFAULT_STALL: {noOutputMinutes:60,requestionHours:4,maxAttempts:3}; sanitizeRefToken(ref:string):string (throws on empty token); buildWorkerName(ref:string, now:Date|number, existingNames?:Iterable<string>):string (local-time MMDD-HHMM, -2/-3 on collision); parseWorkerName(name):{token,stamp,suffix:number|null}|null; normalizeAgents(parsed:unknown[]):Array<{name,sessionId,id,pid,cwd,kind,startedAt,status,state,active:boolean}> (throws TypeError on non-array); countRunningWorkers(agents):number; findLiveWorker(agents, ref):agent|null; scrubWorkerEnv(env):env (drops /^TELEGRAM_/); buildWorkerSpawn({ref,name,manager,repoDir,env}):{command:'claude',args,cwd,env}; buildWorkerResume({sessionId,text,repoDir,env}):{command:'claude',args:['--bg','--resume',sessionId,text],cwd,env}; parseSessionId(stdout):string|null (full UUID first, else 8-hex short id); classifyWorker({agent,entry,logsHash,now,stall?}):'finished'|'waiting'|'requestion'|'working'|'stalled'|'dead'|'exhausted'",
+  "tests": "bunx vitest run tests/unit/session-manager/workers.test.ts tests/unit/session-manager/workers-classify.test.ts -> 2 files, 61 tests passed; oxlint 0/0; eslint 0 errors (workers.mjs is eslint-ignored by repo config)",
+  "verification": {
+    "command": "claude agents --json --all | node -e \"import('./plugins/src/base/skills/lisa-session-manager/scripts/workers.mjs').then(async m=>{let s='';for await(const c of process.stdin)s+=c;const a=m.normalizeAgents(JSON.parse(s));console.log(JSON.stringify({total:a.length,running:m.countRunningWorkers(a)}))})\"",
+    "observed": "{\"total\":7,\"running\":0} — cross-checked: `claude agents --json --all | jq length` = 7 (1 active interactive row + 6 completed rows with state done/stopped); 0 active wk- sessions; no exception on completed rows"
+  },
+  "deviations": [
+    "Test file split into workers.test.ts + workers-classify.test.ts with shared workers-fixtures.ts, because eslint max-lines (300) and sonarjs/no-duplicate-string failed on a single file",
+    "buildWorkerSpawn/buildWorkerResume also return the scrubbed env (the AC lists {command,args,cwd}); session-manager.mjs passes it straight to spawnSync",
+    "classifyWorker: a pending question outranks liveness (a worker that ended its turn waiting for an answer may show state done), per the design's ordering"
+  ],
+  "learnings": [
+    {"kind": "tooling", "note": "`claude --bg` prints an 8-hex short id, not the full sessionId; parseSessionId accepts both and the full id can be recovered by name from `claude agents --json`", "evidence": "claude --help: '<id> is the short id that `claude --bg` prints and `claude agents` lists'"},
+    {"kind": "tooling", "note": "repo eslint config ignores skill-local .mjs files; only oxlint covers them", "evidence": "eslint: 'File ignored because of a matching ignore pattern' on workers.mjs"}
+  ]
+}

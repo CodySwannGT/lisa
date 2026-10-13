@@ -1,0 +1,135 @@
+{
+  "task": "live-defect-fixes",
+  "issue": "CodySwannGT/lisa#4448",
+  "branch": "feat/4448-session-manager",
+  "base_head": "eda863a459",
+  "committed": false,
+  "fixes": [
+    {
+      "id": "D1",
+      "severity": "blocking",
+      "files": [
+        "plugins/src/base/skills/lisa-session-manager/scripts/launch.mjs"
+      ],
+      "tests": [
+        "tests/unit/session-manager/launch-argv.test.ts (exact argv + '-- before the loop prompt')",
+        "tests/unit/session-manager/cli-manager.test.ts (tmux-stub start: argv tail is ['--', '/loop 5m /lisa:session-manager cycle'])"
+      ],
+      "disposition": "fixed: buildManagerLaunch inserts '--' between '--channels plugin:telegram@claude-plugins-official' and the '/loop <interval> /lisa:session-manager cycle' prompt.",
+      "real_cli_confirmation": {
+        "cli": "claude 2.1.296",
+        "method": "Dry parse with an untagged --channels entry, so claude rejects the argv in its option parser and no session ever starts (stdin closed, 15 s alarm). Both runs exited 1 before any session started.",
+        "without_dashdash": "claude --channels untagged-entry \"/loop 5m hi\" -> '--channels entries must be tagged: untagged-entry, /loop 5m hi' (the prompt is swallowed as a channel entry)",
+        "with_dashdash": "claude --channels untagged-entry -- \"/loop 5m hi\" -> '--channels entries must be tagged: untagged-entry' (the prompt is no longer a channel entry; '--' ends the variadic list)",
+        "corroboration": "evidence/4448/10-defect-manager-launch.txt records the verifier's manual control: the same argv with '--' started normally in a throwaway tmux session at 23:07Z.",
+        "not_done": "A real manager was not started with the fixed argv (forbidden while the live sandbox runs)."
+      }
+    },
+    {
+      "id": "D2",
+      "severity": "major",
+      "files": [
+        "plugins/src/base/skills/lisa-session-manager/scripts/workers.mjs"
+      ],
+      "tests": [
+        "tests/unit/session-manager/workers-liveness.test.ts",
+        "tests/unit/session-manager/cli-liveness.test.ts",
+        "tests/unit/session-manager/workers-fixtures.ts (BUSY_ROW, IDLE_ALIVE_ROW, WAITING_ROW, STARTING_ROW, COMPLETED_ROW)"
+      ],
+      "disposition": "fixed: normalizeAgents sets active when the row has a numeric pid or a status string (active shape), whatever its state, or when state is null or not terminal. Only a row with neither pid nor status, in state done or stopped, has finished. Fixtures come from evidence 07/16/05 and a read-only `claude agents --json [--all]` on the host (identities replaced): busy {pid,status:busy}, idle-alive {pid,status:idle,state:done}, waiting {pid,status:idle,state:blocked}, just spawned {pid:null,status:null,state:working}, completed --all {id,state:done} without pid or status.",
+      "consumers_rechecked": {
+        "capacity": "countRunningWorkers -> isRunningWorker -> active: idle-alive counts (CLI test: running 2 for idle + waiting, completed/stopped excluded)",
+        "spawn": "findLiveWorker -> active: exit 4 for an idle-alive worker, no claude --bg call (CLI test); a completed row still allows a replacement spawn",
+        "classify": "classifyWorker uses agent.active: idle-alive -> working (not dead); completed -> dead (unit and CLI tests). cli-workers picks named.find(row => row.active) first.",
+        "status": "status.live uses agent.active: idle-alive -> live:true (CLI test)"
+      }
+    },
+    {
+      "id": "D3",
+      "severity": "minor",
+      "files": [
+        "plugins/src/base/skills/lisa-session-manager/scripts/cli-manager.mjs",
+        "plugins/src/base/skills/lisa-session-manager/scripts/isolation.mjs",
+        "plugins/src/base/skills/lisa-session-manager/scripts/launch.mjs",
+        "plugins/src/base/skills/lisa-session-manager/scripts/session-manager.mjs",
+        "plugins/src/base/skills/lisa-session-manager/scripts/cli-usage.mjs",
+        "plugins/src/base/skills/lisa-setup-session-manager/SKILL.md",
+        "tests/fixtures/session-manager/stub-bin/tmux"
+      ],
+      "tests": [
+        "tests/unit/session-manager/cli-start-survival.test.ts",
+        "tests/unit/session-manager/launch-argv.test.ts (buildForegroundCommand)",
+        "tests/unit/strategies/session-manager-setup-trust-contract.test.ts (setup Step 9 tells the operator to run the printed foreground command)"
+      ],
+      "disposition": "fixed: after new-session, start polls `tmux has-session -t =<name>` every 250 ms for --settle-ms (default 3000, at most 60000; exit 2 for out-of-range values) and reports started only if the session was there at every check. Otherwise it exits 2 with the shell-quoted foreground command (cd <root> && TELEGRAM_STATE_DIR=... SM_SCRIPTS_DIR=... claude ... -- '/loop ...'), which contains no token. A shell round-trip of that command was confirmed to give back the exact argv. The tmux stub now models a session that new-session creates (STUB_TMUX_SESSION_DIES=1 simulates a command that exits at once).",
+      "note": "A successful real start now takes about 3 s longer, the settle window."
+    },
+    {
+      "id": "D4",
+      "severity": "minor",
+      "files": [
+        "plugins/src/base/skills/lisa-session-manager/scripts/worker-launch.mjs (new)",
+        "plugins/src/base/skills/lisa-session-manager/scripts/cli-workers.mjs",
+        "plugins/src/base/skills/lisa-setup-session-manager/SKILL.md",
+        "plugins/src/base/skills/lisa-session-manager/SKILL.md",
+        "tests/fixtures/session-manager/stub-bin/claude"
+      ],
+      "tests": [
+        "tests/unit/session-manager/cli-spawn-trust.test.ts",
+        "tests/unit/strategies/session-manager-setup-trust-contract.test.ts"
+      ],
+      "disposition": "fixed: spawn and resume run claude --bg once through runWorkerSession. A failure whose output matches /workspace (is )?not trusted/i (the 2.1.296 stderr is 'Workspace not trusted. Run `claude` in <dir> once and accept the trust prompt, then retry.', evidence 05) exits 2 with: run `claude` once in <dir>, accept the trust prompt, exit, then retry. Nothing is recorded in the ledger. Other failures keep exit 1 and the same message as before. The new setup Step 8 ('Accept workspace trust in each worker repo') lists every worker dir (root, or `repo-dir --repo <key> --raw` per routed repo) and has the operator do this once per routed repo. Start and Verify become Steps 9 and 10. The manager skill treats spawn exit 2 as a setup gap: the item goes back to ready, the CLI message goes to Telegram, the cycle ends recovery-required, and it does not count as a failed attempt."
+    },
+    {
+      "id": "D5",
+      "severity": "minor",
+      "files": ["plugins/src/base/skills/lisa-session-manager/SKILL.md"],
+      "tests": [
+        "tests/unit/strategies/session-manager-telegram-contract.test.ts"
+      ],
+      "disposition": "fixed (prose contract): Telegram rules add 'Never ask in this terminal' (no AskUserQuestion, never end a turn on a question) and 'Telegram unavailable or unpaired': record the question with `ledger set-question <ref>` without `--telegram-message-id`, finish the cycle, end it recovery-required with the summary 'Telegram not paired: run tmux attach -t <name> and pair with /telegram:access pair <code>.', and keep the /loop running. Reconcile begins with 'Unsent questions': every pending question with telegramMessageId null is (re)sent and re-recorded with its message id (askedAt is kept). A worker's question uses the same fallback, with --sender. The Run outcome table lists an unavailable or unpaired Telegram as recovery-required."
+    },
+    {
+      "id": "D6",
+      "severity": "minor",
+      "files": [
+        "plugins/src/base/scripts/automation-status-expected-fleet.mjs",
+        "plugins/src/base/scripts/automation-status-run-history.mjs",
+        "plugins/src/base/scripts/automation-status-claude-adapter.mjs",
+        "plugins/src/base/scripts/automation-status-codex-adapter.mjs"
+      ],
+      "tests": [
+        "tests/unit/strategies/automation-status-session-manager-fleet.test.ts"
+      ],
+      "disposition": "fixed: the session-manager fleet entry carries runbookSetupCommand '/lisa:setup:session-manager'. resolveAutomationRunDisplay takes it, and both adapters pass it through. A missing session-manager runbook now reads 'not scaffolded — run /lisa:setup:session-manager' in the Claude and Codex reports. Other loops still read '... run /lisa:setup-automations'. RUNBOOK_NOT_SCAFFOLDED_LINE (the default) is unchanged for the scheduler-observed hasRunbook check."
+    },
+    {
+      "id": "D7",
+      "severity": "minor",
+      "files": [
+        "src/cli/doctor-session-manager-trust.ts",
+        "src/cli/doctor-session-manager.ts",
+        "src/cli/doctor.ts"
+      ],
+      "tests": [
+        "tests/unit/cli/doctor-session-manager-trust.test.ts (offline: probe never called, warn 'visibility not checked (offline)'; offline + trustedAuthorIds: ok)",
+        "tests/unit/cli/doctor-session-manager.test.ts (runDoctor --offline on a github-tracked project: detail contains 'visibility not checked (offline)', never 'could not read the visibility')"
+      ],
+      "disposition": "fixed: checkSessionManagerIsolation(target, deps, options) takes the doctor options. runDoctor passes `options`, the same flag checkVersion and checkStarterHealth honour. With offline set, trustFindings gets no probe and warns '<org>/<repo> visibility not checked (offline); if it is public, set sessionManager.trustedAuthorIds before starting the manager'. doctor.ts stays within max-lines."
+    }
+  ],
+  "quality_gates": {
+    "vitest": "tests/unit/session-manager, tests/unit/cli, session-manager-{dispatch,telegram,setup-trust,skill,skill-contract}-contract/skill suites, automation-status*, session-manager-gitignore: 2297 passed, 67 failed. All 67 run against the built plugins/lisa* copies (byte parity, 'prints the same usage as the source', and the new contract assertions on the built and Codex roots), which only build:plugins refreshes. Every source-root assertion passes.",
+    "oxlint": "0 warnings, 0 errors on the 27 changed code files",
+    "eslint_no_ignore": "0 findings introduced. Remaining findings are pre-existing (sonarjs/no-duplicate-string in the automation-status adapters and expected-fleet, confirmed at HEAD for expected-fleet; warnings at doctor.ts:168 and codex-adapter:421)",
+    "prettier_check": "all changed files pass",
+    "tsc_main": "0 errors",
+    "tsc_tests": "0 errors in branch files (the project-wide pre-existing errors are elsewhere)"
+  },
+  "follow_ups": [
+    "Run build:plugins to regenerate the plugins/lisa* variants (not run, per instructions).",
+    "src/core/upstream-evidence-manifest.ts is stale ('check:upstream-evidence-manifest' fails) because the session-manager scripts changed and worker-launch.mjs is new. Regenerate it with `bun run build:upstream-evidence-manifest` in the same pass as build:plugins.",
+    "Re-verify live: start (D1 + D3 survival), an idle worker after its turn ends (D2), a fresh repo dir spawn (D4 exit 2), and an unpaired cycle (D5)."
+  ],
+  "untouched": "No tmux or claude session was stopped, killed or attached. evidence/ and .lisa/verification-status.json are unchanged. No commit, push, stash or branch switch."
+}

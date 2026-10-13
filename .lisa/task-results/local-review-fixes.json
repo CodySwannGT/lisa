@@ -1,0 +1,80 @@
+{
+  "fixes": [
+    {
+      "id": "A",
+      "files": [
+        "plugins/src/base/skills/lisa-session-manager/scripts/workers.mjs"
+      ],
+      "test": "tests/unit/session-manager/workers-name-roundtrip.test.ts",
+      "disposition": "fixed: WORKER_NAME_PATTERN now reads the stamp from the right (greedy token) and caps the collision suffix at 1-3 digits ([1-9]\\d{0,2}) so it can never be read as the HHMM half of a stamp. Name format unchanged, so existing names still parse. Round-trips PROJ-1234, PROJ-12, PROJ-123456, owner/repo#1234, A-1, X-1111-2222, each with and without -2; findLiveWorker finds them and PROJ/PROJ-123/PROJ-12345 and X/X-1111 do not match."
+    },
+    {
+      "id": "N",
+      "files": [
+        "plugins/src/base/skills/lisa-secrets-access/scripts/validate-config.mjs",
+        "plugins/src/base/rules/reference/config-resolution.md",
+        "plugins/src/base/skills/lisa-setup-session-manager/SKILL.md"
+      ],
+      "test": "tests/unit/secrets/validate-config-session-manager.test.ts (message assertion)",
+      "disposition": "fixed: trustedAuthorIds documented as stable tracker user ids (GitHub numeric user id via `gh api users/<login> --jq .id`, Jira accountId, Linear user id), never logins. Optional GitHub-login warning skipped: the validator has no warning channel (every problem fails), so adding one is not cheap."
+    },
+    {
+      "id": "I",
+      "files": [
+        "plugins/src/base/scripts/automation-status-expected-fleet.mjs",
+        "plugins/src/base/scripts/automation-status-claude-adapter.mjs",
+        "plugins/src/base/scripts/automation-status-codex-adapter.mjs"
+      ],
+      "test": "tests/unit/strategies/automation-status-session-manager-fleet.test.ts",
+      "disposition": "fixed: UnsupportedAutomationEntry gains optional `observed`; session-manager sets the hosted-locally text; both adapters use `unsupported.observed ?? <default>`. Test covers both adapters and that other unsupported entries keep the default."
+    },
+    {
+      "id": "J",
+      "files": [
+        "plugins/src/base/skills/lisa-implement/SKILL.md",
+        "plugins/src/base/commands/implement.md"
+      ],
+      "test": "tests/unit/strategies/implement-managed-by-contract.test.ts",
+      "disposition": "fixed: routing table gains a row (before the dispatch row) that stops managedBy= + non-local executionEnv with the local-only message; the command shim states the same rule before its dispatch sentence."
+    },
+    {
+      "id": "L",
+      "files": ["plugins/src/base/skills/lisa-implement/SKILL.md"],
+      "test": "tests/unit/strategies/implement-managed-by-contract.test.ts",
+      "disposition": "fixed: managedBy step 4 adds: a question sent to <name> never contains a credential value or verbatim untrusted tracker text (step 6); describe the request instead."
+    },
+    {
+      "id": "H",
+      "files": [
+        "plugins/src/base/skills/lisa-secrets-access/scripts/validate-config.mjs",
+        "plugins/src/base/skills/lisa-session-manager/scripts/config.mjs"
+      ],
+      "test": "tests/unit/secrets/validate-config-local-merge.test.ts",
+      "disposition": "fixed: new exported mergeConfigLayers (deep for plain objects, arrays/scalars replace, prototype keys dropped) and readValidationConfig(root). main() merges only the sessionManager block local-over-committed; every other block is still read from .lisa.config.json alone, so its validation is unchanged. config.mjs now imports mergeConfigLayers instead of its own identical mergeLayers copy, so the validator and the runtime share one merge."
+    },
+    {
+      "id": "M",
+      "files": [
+        "src/cli/session-manager-config-merge.ts",
+        "src/cli/doctor-session-manager.ts"
+      ],
+      "test": "tests/unit/cli/session-manager-config-merge.test.ts",
+      "disposition": "fixed: src/ never imports plugins/src (dist ships without the plugin payload), so a small local deep merge lives in src/cli/session-manager-config-merge.ts; doctor uses it. Parity test compares it with mergeConfigLayers and resolveSessionManagerConfig on nested capacity, repos, notify and trustedAuthorIds overrides."
+    },
+    {
+      "id": "C",
+      "files": [
+        "plugins/src/base/skills/lisa-session-manager/scripts/cli-workers.mjs"
+      ],
+      "test": "tests/unit/session-manager/cli-classify.test.ts",
+      "disposition": "fixed: classify matches no agents when entry.worker is null, so no `claude logs` call and no logsHash recorded."
+    }
+  ],
+  "learnings": [
+    "A lazy token in an anchored `<token>-<stamp>[-<suffix>]` pattern breaks when the token itself can end in digits of the stamp's width; parse from the right and bound the suffix width so it cannot alias a stamp field.",
+    "When a node test needs to write the session-manager ledger directly, create .lisa/session-manager first; the CLI harness sandbox does not.",
+    "inspectCodexAutomationFleet realpaths automationsDir, so tests must create the directory even when it should be empty.",
+    "src/ must not import from plugins/src (the npm dist ships without the plugin payload); copy small helpers and pin them with a parity test against the plugin implementation.",
+    "Content assertions over built plugins/lisa* copies fail until build:plugins runs; after editing plugins/src, expect implement-managed-by-contract, bce-parity-and-consumption, session-manager-skill and automation-status-fixture-smoke-and-parity failures limited to built roots."
+  ]
+}
