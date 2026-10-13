@@ -148,31 +148,139 @@ export function extractGuardStep(
 }
 
 /**
+ * How a job's `if:` is written, so a rewrite keeps the host's own style (#4456).
+ *
+ * - `block` — a block scalar, keeping its indicator (`|`, `|-`, `>`, `>-`, …).
+ * - `expression` — a single plain `${{ … }}` line, kept on one line.
+ * - `plain` — a single plain unwrapped line, kept on one line when the rewrite
+ *   can be written that way.
+ *
+ * A plain unwrapped line cannot always stay plain: the rewrite usually starts
+ * with `!cancelled()`, and a plain YAML scalar that starts with `!` is a tag,
+ * not text. That case, a quoted or multi-line plain scalar, and a job with no
+ * `if:` at all get a `>-` block, which reads the same and parses.
+ */
+export type ConditionStyle =
+  | { readonly kind: "block"; readonly indicator: string }
+  | { readonly kind: "expression" }
+  | { readonly kind: "plain" };
+
+/** The style used when the host's own cannot be kept. */
+const DEFAULT_STYLE: ConditionStyle = { kind: "block", indicator: ">-" };
+
+/**
+ * Read the style of an existing `if:` key.
+ * @param line - The job's `if:` line, or undefined when the job declares none
+ * @param continued - Whether the key carries content on further lines
+ * @returns The style to render the rewrite in
+ */
+export function conditionStyle(
+  line: string | undefined,
+  continued = false
+): ConditionStyle {
+  const value = line?.replace(/^\s*if:/, "").trim() ?? "";
+  const block = /^([|>][-+]?)\s*(?:#.*)?$/.exec(value);
+  if (block?.[1] !== undefined) return { kind: "block", indicator: block[1] };
+  if (continued) return DEFAULT_STYLE;
+  if (/^\$\{\{.*\}\}$/.test(value)) return { kind: "expression" };
+  return /^[A-Za-z]/.test(value) ? { kind: "plain" } : DEFAULT_STYLE;
+}
+
+/**
+ * Whether a condition can be written as a plain YAML scalar unchanged: it
+ * starts with a letter (no tag, anchor, alias, quote or indicator) and carries
+ * neither `: ` nor ` #`, which would end the scalar early.
+ * @param condition - The rewritten condition text
+ * @returns True when a plain one-line `if:` reads back as exactly this text
+ */
+function plainSafe(condition: string): boolean {
+  return (
+    /^[A-Za-z]/.test(condition) &&
+    !condition.includes(": ") &&
+    !condition.includes(" #")
+  );
+}
+
+/** The operator a multi-line condition is broken after. */
+const AND = " && ";
+
+/**
+ * Split a condition at its top-level `&&` operators only, so a parenthesised
+ * group or a quoted string is never broken across lines.
+ * @param condition - The rewritten condition text
+ * @returns The conjuncts, in order
+ */
+function topLevelParts(condition: string): readonly string[] {
+  const scan = [...condition].reduce<{
+    readonly depth: number;
+    readonly quoted: boolean;
+    readonly cuts: readonly number[];
+  }>(
+    (state, char, index) => {
+      if (char === "'") return { ...state, quoted: !state.quoted };
+      if (state.quoted) return state;
+      if (char === "(") return { ...state, depth: state.depth + 1 };
+      if (char === ")") return { ...state, depth: state.depth - 1 };
+      return state.depth === 0 && condition.startsWith(AND, index)
+        ? { ...state, cuts: [...state.cuts, index] }
+        : state;
+    },
+    { depth: 0, quoted: false, cuts: [] }
+  );
+  const starts = [0, ...scan.cuts.map(cut => cut + AND.length)];
+  return starts.map((start, index) =>
+    condition.slice(start, scan.cuts[index] ?? condition.length)
+  );
+}
+
+/**
  * Render the replacement `if:` block for a job.
  * @param condition - The rewritten condition text
  * @param keyIndent - Column the job's keys begin at
+ * @param style - How the host wrote the original `if:`
  * @returns The lines to write in place of the job's old `if:`
  */
 export function renderCondition(
   condition: string,
-  keyIndent: number
+  keyIndent: number,
+  style: ConditionStyle = DEFAULT_STYLE
 ): readonly string[] {
   const pad = " ".repeat(keyIndent);
   const inner = " ".repeat(keyIndent + 2);
+  // A one-line style cannot carry a condition that spans lines.
+  const oneLine = style.kind !== "block" && !condition.includes("\n");
+  const resolved =
+    style.kind === "block" ||
+    (oneLine && (style.kind === "expression" || plainSafe(condition)))
+      ? style
+      : DEFAULT_STYLE;
+  const key =
+    resolved.kind === "expression"
+      ? [`${pad}if: \${{ ${condition} }}`]
+      : resolved.kind === "plain"
+        ? [`${pad}if: ${condition}`]
+        : [
+            `${pad}if: ${resolved.indicator}`,
+            // A host's own multi-line text, kept by the wrap rule, is
+            // re-indented line by line: an unindented continuation would end
+            // the block scalar and the file would no longer parse.
+            ...topLevelParts(condition).map((part, index, parts) => {
+              const indented = part
+                .split("\n")
+                .map(line => inner + line.trim())
+                .join("\n");
+              return index === parts.length - 1 ? indented : `${indented} &&`;
+            }),
+          ];
   return [
-    `${pad}# \`!cancelled()\` suppresses the implicit \`success()\` GitHub would`,
+    `${pad}# \`!cancelled()\` / \`always()\` suppresses the implicit \`success()\` GitHub would`,
     `${pad}# otherwise AND onto this condition. Without it a failed release`,
     `${pad}# SKIPPED this job, and a skipped job renders as neutral and counts`,
     `${pad}# as a satisfied required check — so a deploy that never happened`,
     `${pad}# left no signal at all. The release result is read by the guard STEP`,
     `${pad}# below, which fails this job loudly instead (#3467, applied by`,
     `${pad}# Lisa's ensure-deploy-outcome-guard migration for #3740).`,
-    `${pad}if: >-`,
-    ...condition
-      .split(" && ")
-      .map((part, index, parts) =>
-        index === parts.length - 1 ? `${inner}${part}` : `${inner}${part} &&`
-      ),
+    ...key,
   ];
 }
 
@@ -204,7 +312,18 @@ export function applyGuardEdits(
   const guardLines = guardStep.map(line =>
     line === "" ? "" : `${" ".repeat(step.indent)}${line}`
   );
-  const conditionLines = renderCondition(condition, block.keyIndent);
+  const conditionLines = renderCondition(
+    condition,
+    block.keyIndent,
+    existing === null
+      ? undefined
+      : conditionStyle(
+          lines[existing.start],
+          lines
+            .slice(existing.start + 1, existing.end)
+            .some(line => line.trim() !== "")
+        )
+  );
   const declared = existing ?? {
     start: block.start + 1,
     end: block.start + 1,
