@@ -1141,7 +1141,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/rules/reference/coding-philosophy.md":
       "fed8381f16a5d6793a49d84d5813d62125808cb2f4981a558b119cf63e2586d9",
     "plugins/src/base/rules/reference/config-resolution.md":
-      "cb548803cee45a6365d8e7769011523738d247339fb6eb3d57a2acc5d5e50003",
+      "ed18aa06d9e5440f9ede56993317b3f354dd79db66ffb39853cb5ebc07b91d1f",
     "plugins/src/base/rules/reference/control-reachability.md":
       "0883f3480de79bcaa4a9da5685192c014d9267d0a12aed8153bba8c51161129a",
     "plugins/src/base/rules/reference/convergent-review.md":
@@ -1643,7 +1643,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-queue.mjs":
       "54bf8c565eb263c937d65a30f5a0068fc7eea361b6a46fbcc90bb850917fb895",
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-runtime.mjs":
-      "0db8694cfedd7cd191ea37d827de4ef1f52d75df1183ff59c8fb75c567dde86d",
+      "2948105addc10c0405d085cd2ba606f77f8f7c961bcfdaf1f09e7434d27e2b5e",
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-setup.mjs":
       "9e16b4b72944ce7eb35b373cc479b8267ad0d5b4976a15d9094659a7d0190337",
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-usage.mjs":
@@ -1653,7 +1653,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-session-manager/scripts/clipboard.mjs":
       "6becdcf8797bfdcfa31553c90d125be4b7f643ab305a3abc19aae73d29263e29",
     "plugins/src/base/skills/lisa-session-manager/scripts/config.mjs":
-      "363f6a66b4aeef2dcbcb9f88ff62b5f74341a92af23db0dbbe1c5f1bc9ffb355",
+      "f56dceeb424913fdf297d239bd3f02dbc98e356efcd453e90fb07120507ffc68",
     "plugins/src/base/skills/lisa-session-manager/scripts/isolation.mjs":
       "c6161331dea68eec4112948d9e8841aa834632c7503de5c8fd5d9834e125dfbc",
     "plugins/src/base/skills/lisa-session-manager/scripts/launch.mjs":
@@ -1725,7 +1725,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-setup-remote-env/scripts/verify-remote-env.mjs":
       "bec0b624c1031d0936afd6e5dd4a3d09adea102d5936b5b9fcf545c7f86a3a11",
     "plugins/src/base/skills/lisa-setup-session-manager/SKILL.md":
-      "501ccd8c11eea5442e3fee3e38708ee5cfc9b3d20c4437149462230d2ca324c7",
+      "dec608c68d40b1cd05cb774d92ab29857005a0383139c9c7d1570a93ba102d8d",
     "plugins/src/base/skills/lisa-setup-sonar/SKILL.md":
       "de00597d260d5491837406a81b87a96b9307a7d87c040b35fc1d6e77ae2f5306",
     "plugins/src/base/skills/lisa-setup-workstation/SKILL.md":

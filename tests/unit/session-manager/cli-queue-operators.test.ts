@@ -118,11 +118,15 @@ describe(`validate ${OPERATOR_IDS}`, () => {
     expect(errors[0]).toContain(OPERATOR_IDS);
   });
 
-  it("makes the CLI validate command fail", () => {
-    const sandbox = makeSandbox();
-    setOperatorIds(sandbox, []);
-    const result = runCli(sandbox, ["validate"]);
-    expect(result.status).toBe(2);
-    expect(JSON.stringify(result.json.errors)).toContain(OPERATOR_IDS);
-  });
+  // An explicit null must not be read as "no operators" on the way to validation.
+  it.each([[[]], [null]])(
+    "makes the CLI validate command fail for %j",
+    operatorIds => {
+      const sandbox = makeSandbox();
+      setOperatorIds(sandbox, operatorIds);
+      const result = runCli(sandbox, ["validate"]);
+      expect(result.status).toBe(2);
+      expect(JSON.stringify(result.json.errors)).toContain(OPERATOR_IDS);
+    }
+  );
 });
