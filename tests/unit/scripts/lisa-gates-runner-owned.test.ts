@@ -21,6 +21,7 @@ import { describe, expect, it } from "vitest";
 import {
   HARDCODED_INVOCATIONS,
   RETIRED_SKIP_JOB_TOKENS,
+  momentLegs,
   seedGates,
   skipJobMigration,
 } from "../../../all/copy-overwrite/scripts/lisa-gates.mjs";
@@ -193,5 +194,107 @@ describe("migrating a retired token", () => {
   it("offers nothing at a moment the gate cannot be declared at", () => {
     expect(skipJobMigration("build", "commit").declaration).toBeNull();
     expect(skipJobMigration("build", "not-a-moment").declaration).toBeNull();
+  });
+});
+
+describe("the release pass inherits the pull-request declaration (#4458)", () => {
+  const PRE_DEPLOY_PRODUCTION = "pre-deploy:production";
+  const declaredAtPullRequest = (
+    level: string
+  ): Record<string, Record<string, string>> =>
+    Object.fromEntries(
+      [
+        CODE_STYLE_SLOW,
+        TYPE_CORRECTNESS,
+        FORMAT_CONFORMANCE,
+        BUILD_INTEGRITY,
+        DEAD_CODE,
+      ].map(gate => [gate, { [PULL_REQUEST]: level }])
+    );
+  const legsAt = (
+    gates: Record<string, unknown>,
+    moment = PRE_DEPLOY_PRODUCTION
+  ): {
+    gate: string;
+    level: string;
+    action: string;
+    task: string;
+    label: string;
+  }[] =>
+    momentLegs({
+      gates,
+      moment,
+      runner: "bun run",
+      scripts: ALL_SCRIPTS,
+    }) as {
+      gate: string;
+      level: string;
+      action: string;
+      task: string;
+      label: string;
+    }[];
+
+  it("runs all five at pre-deploy when they are declared only at pull-request", () => {
+    const legs = legsAt(declaredAtPullRequest("required"));
+    expect(
+      legs
+        .map(leg => [leg.gate, leg.level, leg.action, leg.task])
+        .sort((left, right) => String(left[0]).localeCompare(String(right[0])))
+    ).toEqual([
+      [BUILD_INTEGRITY, "required", "run", "build"],
+      [CODE_STYLE_SLOW, "required", "run", "lint:slow"],
+      [DEAD_CODE, "required", "run", KNIP_CHECK],
+      [FORMAT_CONFORMANCE, "required", "run", "format:check"],
+      [TYPE_CORRECTNESS, "required", "run", "typecheck"],
+    ]);
+    expect(legs.find(leg => leg.gate === TYPE_CORRECTNESS)?.label).toBe(
+      "🔍 Type Check"
+    );
+  });
+
+  it("carries an optional pull-request level over unchanged", () => {
+    expect(
+      legsAt(declaredAtPullRequest("optional")).map(leg => leg.level)
+    ).toEqual(["optional", "optional", "optional", "optional", "optional"]);
+  });
+
+  it("lets an explicit pre-deploy declaration win, off included", () => {
+    const gates = {
+      ...declaredAtPullRequest("required"),
+      [TYPE_CORRECTNESS]: {
+        [PULL_REQUEST]: "required",
+        [PRE_DEPLOY_PRODUCTION]: "off",
+      },
+    };
+    const typecheck = legsAt(gates).filter(
+      leg => leg.gate === TYPE_CORRECTNESS
+    );
+    expect(typecheck).toEqual([
+      expect.objectContaining({ level: "off", action: "report", task: "" }),
+    ]);
+  });
+
+  it("inherits nothing for a gate the project turned off at pull-request", () => {
+    const gates = {
+      ...declaredAtPullRequest("required"),
+      [BUILD_INTEGRITY]: { [PULL_REQUEST]: "off" },
+    };
+    expect(legsAt(gates).map(leg => leg.gate)).not.toContain(BUILD_INTEGRITY);
+  });
+
+  it("inherits nothing for a gate that is undeclared at pull-request", () => {
+    expect(legsAt({})).toEqual([]);
+  });
+
+  it("inherits only the five migrated gates", () => {
+    expect(
+      legsAt({ "conflict-residue": { [PULL_REQUEST]: "required" } })
+    ).toEqual([]);
+  });
+
+  it("inherits nothing at any other moment", () => {
+    const gates = declaredAtPullRequest("required");
+    expect(legsAt(gates, "push")).toEqual([]);
+    expect(legsAt(gates, "post-deploy:production")).toEqual([]);
   });
 });

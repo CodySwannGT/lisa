@@ -1312,13 +1312,7 @@ export function momentLegs({
 }) {
   const spokenFor = new Set(jobBackedGates());
   const legs = [];
-  for (const gate of resolveMoment({
-    gates,
-    moment,
-    runner,
-    includeOff: true,
-    scripts,
-  })) {
+  for (const gate of resolvedForLegs({ gates, moment, runner, scripts })) {
     if (spokenFor.has(gate.id)) continue;
     if (isNonRunnerProverMode(gate.mode)) continue;
 
@@ -1375,6 +1369,56 @@ export function momentLegs({
     });
   }
   return legs;
+}
+
+/**
+ * The gates a moment's legs are built from, including what a release pass
+ * inherits.
+ *
+ * Every declaration resolved at `moment`, plus one case where the release pass
+ * inherits (#4458). Lisa 4.80.0 (#3052) deleted five hand-written `quality.yml`
+ * jobs because a leg proves the same property. Those jobs ran wherever
+ * `quality.yml` ran, including the release pass the reusable `release.yml`
+ * makes at `pre-deploy:<env>`. A leg runs only where its gate is declared, and
+ * the fleet declares these gates at `pull-request` and nowhere else, so that
+ * pass silently stopped re-checking them.
+ *
+ * So, at a `pre-deploy` moment only, each of those five gates that is NOT
+ * declared at this moment inherits its `pull-request` resolution: same task,
+ * same level. This restores what a 4.79 release pass ran without asking any
+ * project to change its configuration.
+ *
+ * An explicit declaration at the moment always wins, `off` included. A gate the
+ * project turned `off` at pull-request inherits nothing. Nothing outside the
+ * five is inherited, and no other moment inherits.
+ * @param {object} options Resolution inputs, as for `momentLegs`.
+ * @param {object} options.gates The project gates block.
+ * @param {string} options.moment The moment to resolve.
+ * @param {string} options.runner The task runner.
+ * @param {object|null} options.scripts The project's package scripts.
+ * @returns {object[]} Resolved gates, declared ones first.
+ */
+function resolvedForLegs({ gates, moment, runner, scripts }) {
+  const resolved = resolveMoment({
+    gates,
+    moment,
+    runner,
+    includeOff: true,
+    scripts,
+  });
+  if (momentFamily(moment) !== PRE_DEPLOY) return resolved;
+  const present = new Set(resolved.map(gate => gate.id));
+  const owned = new Set(runnerOwnedJobs().map(job => job.gate));
+  const inherited = resolveMoment({
+    gates,
+    moment: PULL_REQUEST,
+    runner,
+    includeOff: true,
+    scripts,
+  }).filter(
+    gate => owned.has(gate.id) && !present.has(gate.id) && gate.level !== "off"
+  );
+  return [...resolved, ...inherited];
 }
 
 /**
