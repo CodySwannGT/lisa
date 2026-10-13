@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.80.1](https://github.com/CodySwannGT/lisa/compare/v4.80.0...v4.80.1) (2026-10-13)
+
+
+### Bug Fixes
+
+* **ci:** probe a plan key every released registry still emits ([ec403a7](https://github.com/CodySwannGT/lisa/commit/ec403a70ead49a7123606f363906d0ec6433445c)), closes [#3052](https://github.com/CodySwannGT/lisa/issues/3052) [CodySwannGT/lisa#4450](https://github.com/CodySwannGT/lisa/issues/4450) [CodySwannGT/lisa#4450](https://github.com/CodySwannGT/lisa/issues/4450)
+* **templates:** keep shipped scripts clean under the host lint preset ([4003256](https://github.com/CodySwannGT/lisa/commit/4003256e48b8e0b2f8b1fbf04c659dc59caf6fa2)), closes [CodySwannGT/lisa#4450](https://github.com/CodySwannGT/lisa/issues/4450)
+
 ## [4.80.0](https://github.com/CodySwannGT/lisa/compare/v4.79.2...v4.80.0) (2026-10-12)
 
 
