@@ -805,6 +805,62 @@ follow_split() {
       }
       return 0;
     }
+    # U records tell the walker the stream below may not match the shell, so
+    # a compound closer can no longer be trusted (follow_compound_close). They
+    # only ever ADD distrust; every other record is emitted exactly as before.
+    #
+    # A statement spanning lines (a quoted newline, a backslash continuation)
+    # reaches the line-oriented reader as several records, and a later line
+    # can spell `done` or `fi` on its own.
+    function record(kind, text) {
+      if (text ~ /\n/) { printf "U\t\n" }
+      printf "%s\t%s\n", kind, text;
+    }
+    # The first word of one separator-delimited piece of a comment, as the
+    # walker would read it if the split hands it over as a statement.
+    function comment_reserved(piece) {
+      sub(/^[[:space:]]+/, "", piece); sub(/[[:space:]].*$/, "", piece);
+      gsub(/["\047]/, "", piece);
+      return piece ~ /^(fi|done|esac|case|if|then|else|elif|do|while|until|for|select|function|!|\{|\})$/;
+    }
+    # This split does not recognise comments, so a comment is split as code. It
+    # is harmless only when that split cannot change any structure the walker
+    # tracks: no piece after a separator starts with a reserved word, quotes
+    # close, parentheses and braces balance, and nothing escapes or substitutes.
+    # Inside a case pattern a `)` ends the pattern, so it is never harmless
+    # there; a `(` is ignored there, which keeps the Gradle `#(` safe.
+    # Anything else is reported, and the walker stops restoring flow.
+    function comment_unsafe(from, pattern, j, c, cq, parens, braces, pieces, piece) {
+      cq = ""; parens = 0; braces = 0; pieces = 0; piece = "";
+      for (j = from; j <= n; j++) {
+        c = substr(s, j, 1);
+        if (c == "\n") { break }
+        if (c == "\\" || c == "`") { return 1 }
+        if (cq != "") {
+          if (c == cq) { cq = "" }
+          else if (cq == "\"" && c == "(" && substr(s, j - 1, 1) == "$") { return 1 }
+          piece = piece c; continue;
+        }
+        if (c == "\"" || c == "\047") { cq = c; piece = piece c; continue }
+        if (c ~ /[;&|(){}]/) {
+          if (pieces > 0 && comment_reserved(piece)) { return 1 }
+          pieces++; piece = "";
+          if (c == "(" && !pattern) { parens++ }
+          if (c == ")" && (pattern || --parens < 0)) { return 1 }
+          if (c == "{") { braces++ }
+          if (c == "}" && --braces < 0) { return 1 }
+          continue;
+        }
+        piece = piece c;
+      }
+      if (pieces > 0 && comment_reserved(piece)) { return 1 }
+      return cq != "" || parens != 0 || braces != 0;
+    }
+    function comment_check(at, pattern) {
+      if ((at == 1 || substr(s, at - 1, 1) ~ /[[:space:];&|()]/) && comment_unsafe(at + 1, pattern)) {
+        printf "U\t\n";
+      }
+    }
     BEGIN {
       s = ENVIRON["SN_FOLLOW_TEXT"]; n = length(s);
       q = ""; esc = 0; start = 1; sep = "o"; parens = 0;
@@ -817,6 +873,7 @@ follow_split() {
         if (functions > 0) {
           if (q != "") { if (c == q) { q = "" } continue }
           if (c == "\"" || c == "\047") { q = c; continue }
+          if (c == "#") { comment_check(i, 0) }
           if (c == "{") { functions++ }
           if (c == "}" && --functions == 0) {
             printf "N\t%s\t%s\n", sep, function_name;
@@ -830,10 +887,11 @@ follow_split() {
         quoted_expression = q == "\"" && ((c == "(" && substr(s, i - 1, 1) == "$" && !literal_dollars[i - 1]) || c == "`");
         if (q != "" && !quoted_expression) { if (c == q) { q = "" } continue }
         if (c == "\"" || c == "\047") { q = c; continue }
+        if (c == "#") { comment_check(i, cases > 0 && case_scopes[cases] == parens && case_patterns[cases]) }
         if (c == "`") {
           if (backtick) {
             piece = substr(s, start, i - start);
-            if (piece ~ /[^[:space:]]/) { printf "%s\t%s\n", sep, piece; sep = "o" }
+            if (piece ~ /[^[:space:]]/) { record(sep, piece); sep = "o" }
             printf "]\t\n"; start = backtick_start; q = backtick_quote; backtick = 0;
           } else {
             backtick_start = start; backtick_quote = q; q = ""; backtick = 1;
@@ -873,14 +931,14 @@ follow_split() {
           brace_groups[++brace_depth] = group;
           if (group) {
             brace_sep = sep;
-            if (piece ~ /[^[:space:]]/) { printf "%s\t%s\n", sep, piece; sep = "o" }
+            if (piece ~ /[^[:space:]]/) { record(sep, piece); sep = "o" }
             # A pipeline owns the whole compound command, not just the final
             # statement before |. Snapshot before any brace-body cd/return.
             outgoing = brace_pipe(i + 1, "{", "}");
             brace_pipes[brace_depth] = brace_sep == "|" || outgoing;
             if (brace_pipes[brace_depth]) { printf "(\t%s%s\nL\t%d\n", (brace_sep == "|" ? "|" : ""), (outgoing ? "+" : ""), list_async(i + 1) }
             printf "G\t%s\nL\t%d\n", brace_sep, list_async(i + 1);
-            if (brace_redirect ~ /[^[:space:]]/) { printf "I\t%s\n", brace_redirect }
+            if (brace_redirect ~ /[^[:space:]]/) { record("I", brace_redirect) }
             # P retains incoming stdin provenance without wrapping each body
             # statement in another child: all statements share the brace cwd.
             if (brace_sep == "|") { sep = "P" }
@@ -891,7 +949,7 @@ follow_split() {
           group = brace_groups[brace_depth--];
           if (group) {
             piece = substr(s, start, i - start);
-            if (piece ~ /[^[:space:]]/) { printf "%s\t%s\n", sep, piece; sep = "o" }
+            if (piece ~ /[^[:space:]]/) { record(sep, piece); sep = "o" }
             printf "H\t\n";
             if (brace_pipes[brace_depth + 1]) { printf ")\t\n" }
             start = i + 1; post_brace = 1; continue;
@@ -912,10 +970,10 @@ follow_split() {
           }
           if (group) {
             piece = substr(s, start, i - start);
-            if (piece ~ /[^[:space:]]/) { printf "%s\t%s\n", sep, piece; sep = "o" }
+            if (piece ~ /[^[:space:]]/) { record(sep, piece); sep = "o" }
             outgoing = brace_pipe(i + 1, "(", ")");
             printf "(\t%s%s\nL\t%d\n", sep, (outgoing ? "+" : ""), list_async(i + 1);
-            if (brace_redirect ~ /[^[:space:]]/) { printf "I\t%s\n", brace_redirect }
+            if (brace_redirect ~ /[^[:space:]]/) { record("I", brace_redirect) }
             if (sep == "|") { sep = "P" }
             start = i + 1; continue;
           }
@@ -924,12 +982,12 @@ follow_split() {
           piece = substr(s, start, i - start);
           group = scopes[parens--];
           if (group == 2) {
-            if (piece ~ /[^[:space:]]/) { printf "%s\t%s\n", sep, piece; sep = "o" }
+            if (piece ~ /[^[:space:]]/) { record(sep, piece); sep = "o" }
             printf "]\t\n"; start = expression_starts[parens + 1]; q = expression_quotes[parens + 1]; continue;
           }
           if (group) {
             piece = substr(s, start, i - start);
-            if (piece ~ /[^[:space:]]/) { printf "%s\t%s\n", sep, piece; sep = "o" }
+            if (piece ~ /[^[:space:]]/) { record(sep, piece); sep = "o" }
             printf ")\t\n"; start = i + 1; post_brace = 1; continue;
           }
         }
@@ -939,7 +997,7 @@ follow_split() {
           piece = substr(s, start, i - start);
           pipe = c == "|" && substr(s, i + 1, 1) != "|";
           if (pipe || sep == "|") { printf "(\t%s%s\nL\t%d\n", (sep == "|" ? "|" : ""), (pipe ? "+" : ""), list_async(start) }
-          if (piece ~ /[^[:space:]]/) { printf "%s\t%s\n", post_brace ? "R" : sep, piece }
+          if (piece ~ /[^[:space:]]/) { record(post_brace ? "R" : sep, piece) }
           post_brace = 0;
           if (pipe || sep == "|") { printf ")\t\n" }
           if (c == ";" && substr(s, i + 1, 1) == ";" && cases > 0) {
@@ -959,7 +1017,7 @@ follow_split() {
         }
       }
       if (sep == "|") { printf "(\t|\nL\t%d\n", list_async(start) }
-      printf "%s\t%s\n", sep, substr(s, start, n - start + 1);
+      record(sep, substr(s, start, n - start + 1));
       if (sep == "|") { printf ")\t\n" }
     }
   '
@@ -1441,8 +1499,15 @@ PY
 #
 # These read and write follow_scan's locals through bash's dynamic scoping.
 follow_compound_open() {
+  local frame_scope=$scope_depth
+  # A pipeline element is its own scope, but `if a | b; then` and
+  # `x | while read l; do` open their compound at the ENCLOSING level.
+  if [ "$scope_depth" -gt 0 ]; then
+    case "${scope_kinds[scope_depth - 1]}" in '+' | '|' | '|+') frame_scope=$((scope_depth - 1)) ;; esac
+  fi
   compound_flows[compound_depth]=$function_flow_unknown
   compound_kinds[compound_depth]="$1"
+  compound_frame_scopes[compound_depth]=$frame_scope
   compound_depth=$((compound_depth + 1))
   function_flow_unknown=1
 }
@@ -1460,12 +1525,32 @@ follow_compound_open() {
 # function body or sourced file, so it re-raises the flag, as H does for a brace
 # group. `break`/`continue` resume at or inside the loop, so they never skip a
 # definition after `done`, and `exit` ends the shell before any later call runs:
-# neither needs to persist past the closer.
+# neither needs to persist past the closer. A `break` inside a function body
+# can end the CALLER's loop and skip the rest of that body, but such a call only
+# has that effect when the call itself sits inside a loop body, which is
+# already conditional.
+#
+# The closer must also sit in the scope its compound opened in: a `done` inside
+# a command substitution (`$( … )` or backticks) is a different shell's syntax
+# error, not the end of this loop. The one cross-scope closer is `done | cmd`,
+# whose `done` is the first element of a pipeline. Callers pass only a closer
+# spelled as the bare first word of its statement; see the fi/done arm.
 follow_compound_close() {
+  local frame_scope
   if [ "$compound_trusted" -eq 0 ] || [ "$compound_depth" -eq 0 ] \
     || [ "${compound_kinds[compound_depth - 1]}" != "$1" ]; then
     compound_trusted=0
     return 0
+  fi
+  frame_scope="${compound_frame_scopes[compound_depth - 1]}"
+  if [ "$scope_depth" -ne "$frame_scope" ]; then
+    case "$((scope_depth - frame_scope)):${scope_kinds[scope_depth - 1]}" in
+      '1:+' | '1:|' | '1:|+') ;;
+      *)
+        compound_trusted=0
+        return 0
+        ;;
+    esac
   fi
   compound_depth=$((compound_depth - 1))
   function_flow_unknown="${compound_flows[compound_depth]}"
@@ -1511,7 +1596,7 @@ follow_scan() {
   # follow_compound_open. The stack starts empty, so a closer can never lower
   # the flag below the value this scan was entered with.
   local compound_depth=0 compound_trusted=1
-  local -a compound_flows=() compound_kinds=() compound_scopes=()
+  local -a compound_flows=() compound_kinds=() compound_scopes=() compound_frame_scopes=() scope_kinds=()
   if [ "$function_call_depth" -eq 0 ] && [ "$invocation_kind" != source ]; then
     # Ordinary child shells do not inherit unexported functions. Sourcing and
     # function calls share the caller's definitions instead.
@@ -1529,7 +1614,10 @@ follow_scan() {
     # spell a closer. Once one starts, closers stop restoring flow for the rest
     # of this text. Checked before any skip so an unread payload still counts.
     # A here-string (`<<<`) carries no payload lines.
+    # The same test also matches an arithmetic shift such as `$((1 << 2))`.
+    # That only withholds a restore, which is the safe direction.
     case "${stmt//<<</}" in *'<<'*) compound_trusted=0 ;; esac
+    if [ "$sep" = U ]; then compound_trusted=0; continue; fi
     # A reached && successor observes the preceding successful command's cwd.
     # Scope/list events invalidate this projection; it must never carry a
     # child's or a background list's directory into another shell/list.
@@ -1655,6 +1743,9 @@ follow_scan() {
         function_scopes[scope_depth]=$function_count
         flow_scopes[scope_depth]=$function_flow_unknown
         compound_scopes[scope_depth]=$compound_depth
+        # `[` is a substitution; for `(` the split's tail says whether this is
+        # a pipeline element (`+`, `|`, `|+`) or a literal subshell.
+        if [ "$sep" = '[' ]; then scope_kinds[scope_depth]='['; else scope_kinds[scope_depth]="$stmt"; fi
         return_flows[scope_depth]=$return_flow_unknown
         scope_stdin_cats[scope_depth]="$follow_stdin_cat"
         scope_stdin_cwds[scope_depth]="$follow_stdin_cwd"
@@ -1871,12 +1962,20 @@ follow_scan() {
           follow_compound_open loop
           cmd_pos=0; i=$((i + 1)); continue
           ;;
-        fi)
-          follow_compound_close if
-          cmd_pos=0; i=$((i + 1)); continue
-          ;;
-        done)
-          follow_compound_close loop
+        # A closer counts only as the bare, unquoted FIRST word of its
+        # statement. Anything else that unwraps to one — `"done"`, `\fi`,
+        # `x=1 done`, `eval done`, `command done`, the tail of `x='a; fi'` — is
+        # not a reserved word to the shell, so its appearance means the walk
+        # cannot prove where compounds end. A literal `esac` statement follows
+        # every K record and is harmless in that one spelling.
+        'fi' | 'done' | 'esac')
+          if [ "$i" -ne 0 ] || [ "${toks[0]}" != "$t" ]; then
+            compound_trusted=0
+          elif [ "$t" = 'fi' ]; then
+            follow_compound_close if
+          elif [ "$t" = 'done' ]; then
+            follow_compound_close loop
+          fi
           cmd_pos=0; i=$((i + 1)); continue
           ;;
         # Prefixes that keep the command position open: assignments, wrappers,

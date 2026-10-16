@@ -9,7 +9,7 @@
  * (CodySwannGT/lisa#4470). Definitions INSIDE a compound, and definitions a
  * conditional `return` can skip, stay conditional.
  */
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
@@ -256,7 +256,122 @@ describe("safety-net closed compound scope", () => {
     });
   });
 
-  it("allows an unmodified Gradle-generated start script", () => {
+  describe("closer-shaped text the shell does not read as a closer", () => {
+    /**
+     * Place one line in a body that never runs, before a benign redefinition.
+     * Each probe defines a destructive `die` first; the shell keeps it, so a
+     * walker that reads the line as a closer would follow the benign body and
+     * pass the call. The destructive body sits behind a second file so the
+     * whole-file text scan cannot be what refuses it.
+     * @param opener - The skipped compound's opening line.
+     * @param line - Closer-shaped text inside the skipped body.
+     * @param closer - The compound's real closer.
+     * @returns The script lines between the two definitions' call sites.
+     */
+    function skipped(opener: string, line: string, closer: string): string[] {
+      return [opener, line, `  ${DIE}`, closer];
+    }
+    /**
+     * Skip the line in a loop that never iterates.
+     * @param line - Closer-shaped text inside the loop body.
+     * @returns The skipped loop's lines.
+     */
+    const LOOP = (line: string): string[] =>
+      skipped("while false; do", line, "done");
+    /**
+     * Skip the line in a branch that is never taken.
+     * @param line - Closer-shaped text inside the branch.
+     * @returns The skipped branch's lines.
+     */
+    const BRANCH = (line: string): string[] =>
+      skipped("if false; then", line, "fi");
+    const FAKE_CLOSERS: ReadonlyArray<readonly [string, readonly string[]]> = [
+      ["a closer after a comment's `;`", LOOP("  : # x; done")],
+      ["a double-quoted closer", LOOP('  "done"')],
+      ["a backslash-escaped closer", LOOP("  \\done")],
+      ["a single-quoted closer", BRANCH("  'fi'")],
+      ["an eval'd closer", LOOP("  eval done")],
+      ["a closer after `command`", LOOP("  command done")],
+      ["a closer inside backticks", LOOP("  x=`true; done`")],
+      ["a closer after a line continuation", LOOP("  echo a \\\ndone")],
+      ["an escaped closer after an assignment", LOOP("  x=1 \\done")],
+      ["a quoted closer after `!`", LOOP('  ! "done"')],
+      ["a closer inside a single-quoted span", BRANCH("  x='a; fi'")],
+      ["a closer after a bare comment `;`", BRANCH("  : # ; fi")],
+      ["a closer after `builtin`", LOOP("  builtin done")],
+      ["a closer inside a double-quoted span", LOOP('  x="a; done"')],
+      ["a closer mid single-quoted span", LOOP("  x='a; done b'")],
+      ["a closer on its own line of a quoted span", LOOP('  x="a\ndone\n"')],
+      ["a closer inside a command substitution", LOOP("  x=$(true; done b)")],
+      [
+        "a closer in a do line's comment",
+        ["while false; do # note; done", `  ${DIE}`, "done"],
+      ],
+      [
+        "a closer in a then line's comment",
+        ["if false; then # note; fi", `  ${DIE}`, "fi"],
+      ],
+      ["a quoted closer after then", ["if false", `then "fi"; ${DIE}; fi`]],
+    ];
+
+    it.each(FAKE_CLOSERS)(
+      "keeps an earlier destructive definition after %s",
+      (_shape, lines) => {
+        const evil = emit("evil.sh", DANGEROUS);
+        const script = emit(
+          "shadow.sh",
+          [`die () { sh ${evil}; }`, ...lines, "die hi"].join("\n")
+        );
+        const result = inspect(`sh ${script}`);
+
+        expect(result.status, result.stderr).toBe(2);
+        expect(result.stderr).toContain(UNCLASSIFIABLE);
+      }
+    );
+
+    it("refuses a definition in a body after a do line's comment closer", () => {
+      const script = emit(
+        "body.sh",
+        `for x in a; do # note; done\n  ${DIE}\ndone\ndie hi`
+      );
+      const result = inspect(`sh ${script}`);
+
+      expect(result.status, result.stderr).toBe(2);
+      expect(result.stderr).toContain(UNCLASSIFIABLE);
+    });
+  });
+
+  describe("directory resolution across a closed loop", () => {
+    beforeEach(() => {
+      mkdirSync(path.join(root, "safe"));
+      writeFileSync(path.join(root, "x.sh"), `#!/bin/sh\n${DANGEROUS}\n`);
+      writeFileSync(path.join(root, "safe", "x.sh"), "#!/bin/sh\necho safe\n");
+    });
+
+    it("resolves a cd after a closed loop", () => {
+      const result = inspect("for x in a; do :; done; cd safe && sh ./x.sh");
+
+      expect(result.status, result.stderr).toBe(0);
+    });
+
+    it("refuses a relative script after a cd inside a loop", () => {
+      const result = inspect("for x in $EMPTY; do cd safe; done; sh ./x.sh");
+
+      expect(result.status, result.stderr).toBe(2);
+      expect(result.stderr).toContain("the execution directory is unknown");
+    });
+
+    it("refuses a relative script after a cd behind a comment closer", () => {
+      const result = inspect(
+        "for x in $EMPTY; do # note; done\n  cd safe\ndone\nsh ./x.sh"
+      );
+
+      expect(result.status, result.stderr).toBe(2);
+      expect(result.stderr).toContain("the execution directory is unknown");
+    });
+  });
+
+  it("allows a Gradle start script unmodified apart from the application name", () => {
     const result = inspect(`sh ${GRADLE_START_SCRIPT} --version`);
 
     expect(result.stderr).not.toContain(UNCLASSIFIABLE);
