@@ -10,7 +10,7 @@ INCLUDE - lisa:security-specialist - the change loosens a safety guard; must con
 INCLUDE - lisa:learner - captures task MLD to the ledger.
 INCLUDE - general-purpose - lead-side bookkeeping (branch plan, usage accounting) where no specialist fits.
 EXCLUDE - lisa:test-specialist - bug-fixer writes the red tests; quality-specialist reviews them; a third test author would duplicate.
-EXCLUDE - lisa:debug-specialist - root cause already localised by the issue and resolver (flag not restored on done/fi/esac); reproduction is by unit test.
+INCLUDE - lisa:debug-specialist - (updated mid-flow) the PR's "npm updater Rails runtime qualification" CI job fails deterministically with a hashed error; needs proven attribution to this change or not.
 EXCLUDE - lisa:builder - Fix flow, not Build.
 EXCLUDE - lisa:architecture-specialist - single-function walker fix following an existing brace_flows pattern.
 EXCLUDE - lisa:product-specialist - no user-facing UI/flow; acceptance criteria are already concrete probes.
