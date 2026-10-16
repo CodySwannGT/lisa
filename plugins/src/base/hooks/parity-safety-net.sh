@@ -1429,6 +1429,49 @@ PY
   follow_redirect_output="$(printf '%s' "$result" | jq -er '.output')" || follow_refuse "compound redirection" "invalid output projection"
 }
 
+# Enter a compound command (`if`, `while`/`until`/`for`/`select`, `case`).
+#
+# Reaching anything inside it depends on runtime flow, so a definition there is
+# conditional. The enclosing flow state is saved so the matching closer can put
+# it back: a compound that has CLOSED no longer decides whether the next
+# top-level definition runs. Leaving the flag raised past the closer marked
+# every function defined after any loop or case as conditional, which refused
+# every Gradle-generated start script (CodySwannGT/lisa#4470). Brace groups
+# already restore this way through brace_flows.
+#
+# These read and write follow_scan's locals through bash's dynamic scoping.
+follow_compound_open() {
+  compound_flows[compound_depth]=$function_flow_unknown
+  compound_kinds[compound_depth]="$1"
+  compound_depth=$((compound_depth + 1))
+  function_flow_unknown=1
+}
+
+# Close the innermost compound, restoring the flow state that encloses it.
+#
+# Only a closer of the SAME kind as the innermost open compound may lower the
+# flag. The walker splits text, it does not parse shell: a comment's `;` or a
+# heredoc payload line can reach it as a `fi`/`done` statement. A closer that
+# matches nothing, or arrives after a heredoc (see compound_trusted), proves the
+# walk has lost the structure, so every later closer keeps the flag where it is
+# — the verdict this walker gave before closers restored anything.
+#
+# A conditional `return` inside the compound can skip whatever follows it in a
+# function body or sourced file, so it re-raises the flag, as H does for a brace
+# group. `break`/`continue` resume at or inside the loop, so they never skip a
+# definition after `done`, and `exit` ends the shell before any later call runs:
+# neither needs to persist past the closer.
+follow_compound_close() {
+  if [ "$compound_trusted" -eq 0 ] || [ "$compound_depth" -eq 0 ] \
+    || [ "${compound_kinds[compound_depth - 1]}" != "$1" ]; then
+    compound_trusted=0
+    return 0
+  fi
+  compound_depth=$((compound_depth - 1))
+  function_flow_unknown="${compound_flows[compound_depth]}"
+  if [ "$return_flow_unknown" -ne 0 ]; then function_flow_unknown=1; fi
+}
+
 # Walk one text for the files it executes. Runs in the PARENT shell, never in a
 # command substitution: follow_refuse() must be able to deny, and an exit inside
 # a subshell ends that subshell rather than this hook — the mistake documented
@@ -1464,6 +1507,11 @@ follow_scan() {
   local -a brace_descriptor_maps=() scope_descriptor_maps=()
   local -a brace_stdin_cats=() brace_stdin_cwds=() brace_stdin_unknowns=() scope_stdin_cats=() scope_stdin_cwds=() scope_stdin_unknowns=()
   local -a case_cwds=() case_unknowns=() case_changes=()
+  # Open compound commands of THIS text, innermost last. See
+  # follow_compound_open. The stack starts empty, so a closer can never lower
+  # the flag below the value this scan was entered with.
+  local compound_depth=0 compound_trusted=1
+  local -a compound_flows=() compound_kinds=() compound_scopes=()
   if [ "$function_call_depth" -eq 0 ] && [ "$invocation_kind" != source ]; then
     # Ordinary child shells do not inherit unexported functions. Sourcing and
     # function calls share the caller's definitions instead.
@@ -1477,6 +1525,11 @@ follow_scan() {
     stmt="${line#*$'\t'}"
     statement_conditional=0
     case "$sep" in '&' | '?') statement_conditional=1 ;; esac
+    # A heredoc payload reaches this walk as statements, so a payload line can
+    # spell a closer. Once one starts, closers stop restoring flow for the rest
+    # of this text. Checked before any skip so an unread payload still counts.
+    # A here-string (`<<<`) carries no payload lines.
+    case "${stmt//<<</}" in *'<<'*) compound_trusted=0 ;; esac
     # A reached && successor observes the preceding successful command's cwd.
     # Scope/list events invalidate this projection; it must never carry a
     # child's or a background list's directory into another shell/list.
@@ -1567,7 +1620,7 @@ follow_scan() {
         continue
         ;;
       C)
-        function_flow_unknown=1
+        follow_compound_open case
         case_cwds[case_depth]="$follow_cwd"
         case_unknowns[case_depth]="$follow_cwd_unknown"
         case_changes[case_depth]=0
@@ -1586,6 +1639,9 @@ follow_scan() {
             follow_cwd=""; follow_cwd_unknown=1
           fi
           case_depth=$((case_depth - 1))
+          # K closes the case; the literal `esac` statement the split emits
+          # after it is not a closer and must not close another frame.
+          follow_compound_close case
         fi
         continue
         ;;
@@ -1598,6 +1654,7 @@ follow_scan() {
         scope_descriptor_maps[scope_depth]="$follow_descriptor_map"
         function_scopes[scope_depth]=$function_count
         flow_scopes[scope_depth]=$function_flow_unknown
+        compound_scopes[scope_depth]=$compound_depth
         return_flows[scope_depth]=$return_flow_unknown
         scope_stdin_cats[scope_depth]="$follow_stdin_cat"
         scope_stdin_cwds[scope_depth]="$follow_stdin_cwd"
@@ -1623,6 +1680,16 @@ follow_scan() {
         follow_cwd_unknown="${unknown_scopes[scope_depth]}"
         function_flow_unknown="${flow_scopes[scope_depth]}"
         return_flow_unknown="${return_flows[scope_depth]}"
+        # A pipeline element is a scope of its own, so `done | cmd` closes, in
+        # here, a loop opened outside. The scope must not undo that closer: the
+        # flow after the pipeline is the one the loop's frame saved. The stack
+        # itself is never rewound here. `if a | b; then` opens its `if` inside
+        # the first element, and discarding that frame would let the `fi` close
+        # an ENCLOSING compound instead.
+        if [ "$compound_depth" -lt "${compound_scopes[scope_depth]}" ]; then
+          function_flow_unknown="${compound_flows[compound_depth]}"
+          if [ "$return_flow_unknown" -ne 0 ]; then function_flow_unknown=1; fi
+        fi
         follow_stdin_cat="${scope_stdin_cats[scope_depth]}"
         follow_stdin_cwd="${scope_stdin_cwds[scope_depth]}"
         follow_stdin_unknown="${scope_stdin_unknowns[scope_depth]}"
@@ -1792,12 +1859,24 @@ follow_scan() {
           fi
           cmd_pos=0; i=$((i + 1)); continue
           ;;
-        if | while | until)
-          function_flow_unknown=1
+        if)
+          follow_compound_open if
+          i=$((i + 1)); continue
+          ;;
+        while | until)
+          follow_compound_open loop
           i=$((i + 1)); continue
           ;;
         for | select)
-          function_flow_unknown=1
+          follow_compound_open loop
+          cmd_pos=0; i=$((i + 1)); continue
+          ;;
+        fi)
+          follow_compound_close if
+          cmd_pos=0; i=$((i + 1)); continue
+          ;;
+        done)
+          follow_compound_close loop
           cmd_pos=0; i=$((i + 1)); continue
           ;;
         # Prefixes that keep the command position open: assignments, wrappers,
