@@ -303,6 +303,18 @@ describe("safety-net closed compound scope", () => {
       ["a closer mid single-quoted span", LOOP("  x='a; done b'")],
       ["a closer on its own line of a quoted span", LOOP('  x="a\ndone\n"')],
       ["a closer inside a command substitution", LOOP("  x=$(true; done b)")],
+      // Bash splits words on space and tab only; these bytes are word bytes.
+      ["a form-feed-prefixed closer", LOOP("\fdone")],
+      ["a vertical-tab-prefixed closer", LOOP("\vdone")],
+      ["a carriage-return-prefixed closer", LOOP("\rdone")],
+      ["a form-feed-prefixed fi", BRANCH("\ffi")],
+      ["a tab then form-feed closer", LOOP("\t\fdone")],
+      [
+        "a form-feed-prefixed esac",
+        ["case x in", "  y)", "\fesac", `  ${DIE}`, "  ;;", "esac"],
+      ],
+      ["a carriage-return-prefixed fi", BRANCH("\rfi")],
+      ["a form feed ending the line before a closer", LOOP(":;\f\ndone")],
       [
         "a closer in a do line's comment",
         ["while false; do # note; done", `  ${DIE}`, "done"],

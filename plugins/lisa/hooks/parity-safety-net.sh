@@ -1600,6 +1600,13 @@ follow_scan() {
   # the flag below the value this scan was entered with.
   local compound_depth=0 compound_trusted=1
   local -a compound_flows=() compound_kinds=() compound_scopes=() compound_frame_scopes=() scope_kinds=()
+  # The split treats every [[:space:]] byte as a blank, but bash separates words
+  # only on space and tab (and ends a command on newline). A form feed,
+  # vertical tab or carriage return is an ordinary word byte to bash, so
+  # `<FF>done` is a command name there and a bare closer here. With none of the
+  # three present, every [[:space:]] the split tests is a bash blank or a
+  # newline, so this one check covers each such test in the split.
+  case "$text" in *$'\f'* | *$'\v'* | *$'\r'*) compound_trusted=0 ;; esac
   if [ "$function_call_depth" -eq 0 ] && [ "$invocation_kind" != source ]; then
     # Ordinary child shells do not inherit unexported functions. Sourcing and
     # function calls share the caller's definitions instead.
