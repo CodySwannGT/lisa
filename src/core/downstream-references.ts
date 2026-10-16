@@ -107,6 +107,9 @@ export const PUBLIC_ORGS: readonly string[] = [
   "evanbacon",
   "stretchr",
   "noliran",
+  // Gradle's public build tool: its generated start-script template is a
+  // checked-in safety-net fixture and cites the upstream repository.
+  "gradle",
 ];
 
 /**
