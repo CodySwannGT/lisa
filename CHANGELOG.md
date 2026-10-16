@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.81.6](https://github.com/CodySwannGT/lisa/compare/v4.81.5...v4.81.6) (2026-10-16)
+
+
+### Bug Fixes
+
+* **guard:** allowlist the public gradle org for the start-script fixture ([7091bfe](https://github.com/CodySwannGT/lisa/commit/7091bfe86b1044d72d850a0a5b97395d5e2baeeb)), closes [CodySwannGT/lisa#4470](https://github.com/CodySwannGT/lisa/issues/4470) [CodySwannGT/lisa#4470](https://github.com/CodySwannGT/lisa/issues/4470)
+* **guard:** fail closed on closer-shaped text the walker cannot prove is a reserved word ([042f9e4](https://github.com/CodySwannGT/lisa/commit/042f9e4c531b7a02b90a28e2ec0a751ae33ffd0a)), closes [CodySwannGT/lisa#4470](https://github.com/CodySwannGT/lisa/issues/4470) [CodySwannGT/lisa#4470](https://github.com/CodySwannGT/lisa/issues/4470)
+* **guard:** fail closed on openers the walker does not model ([32a172b](https://github.com/CodySwannGT/lisa/commit/32a172b40303a2cbc5724ba4604151ff5bc4bab3)), closes [#4472](https://github.com/CodySwannGT/lisa/issues/4472) [CodySwannGT/lisa#4470](https://github.com/CodySwannGT/lisa/issues/4470) [CodySwannGT/lisa#4470](https://github.com/CodySwannGT/lisa/issues/4470)
+* **guard:** restore enclosing flow when a compound command closes ([c753645](https://github.com/CodySwannGT/lisa/commit/c75364570cbcded6e6bcc658211ea58a85f02627)), closes [CodySwannGT/lisa#4470](https://github.com/CodySwannGT/lisa/issues/4470) [CodySwannGT/lisa#4470](https://github.com/CodySwannGT/lisa/issues/4470)
+* **guard:** treat only bash blanks as statement whitespace ([e26919b](https://github.com/CodySwannGT/lisa/commit/e26919ba0943e4f1ba1f58ca3ed6392131fd3396)), closes [CodySwannGT/lisa#4470](https://github.com/CodySwannGT/lisa/issues/4470) [CodySwannGT/lisa#4470](https://github.com/CodySwannGT/lisa/issues/4470)
+
 ### [4.81.5](https://github.com/CodySwannGT/lisa/compare/v4.81.4...v4.81.5) (2026-10-13)
 
 
