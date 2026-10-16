@@ -1508,6 +1508,7 @@ follow_compound_open() {
   compound_flows[compound_depth]=$function_flow_unknown
   compound_kinds[compound_depth]="$1"
   compound_frame_scopes[compound_depth]=$frame_scope
+  compound_opened_at="$compound_opened_at${i:-} "
   compound_depth=$((compound_depth + 1))
   function_flow_unknown=1
 }
@@ -1595,7 +1596,7 @@ follow_scan() {
   # Open compound commands of THIS text, innermost last. See
   # follow_compound_open. The stack starts empty, so a closer can never lower
   # the flag below the value this scan was entered with.
-  local compound_depth=0 compound_trusted=1
+  local compound_depth=0 compound_trusted=1 compound_opened_at=" " compound_prev
   local -a compound_flows=() compound_kinds=() compound_scopes=() compound_frame_scopes=() scope_kinds=()
   # The split treats every [[:space:]] byte as a blank, but bash separates words
   # only on space and tab (and ends a command on newline). A form feed,
@@ -1853,6 +1854,7 @@ follow_scan() {
     n=${#toks[@]}
     [ "$n" -gt 0 ] || continue
     i=0
+    compound_opened_at=" "
     cmd_pos=1
     function_lookup_allowed=1
     eval_mode=0
@@ -2024,11 +2026,13 @@ follow_scan() {
           continue
           ;;
         sudo | env | command | exec | nohup | nice | time | builtin \
-          | do | then | else | '!' | '{' \
+          | do | then | else | elif | '!' | '{' \
           | */sudo | */env | */nohup | */nice | */time)
           case "$t" in
             sudo | env | command | exec | nohup | nice | builtin | */sudo | */env | */nohup | */nice) function_lookup_allowed=0 ;;
-            do | then | else) function_flow_unknown=1 ;;
+            # `elif` starts a condition list at a command position, so an
+            # opener after it is a real compound (`elif if x; then …; fi`).
+            do | then | else | elif) function_flow_unknown=1 ;;
           esac
           i=$((i + 1))
           continue
@@ -2263,6 +2267,37 @@ follow_scan() {
     # Keep successful-branch provenance separate from the continuation join.
     # OR can skip its RHS and still reach a following &&, so it cannot prove
     # that RHS's cwd. A semicolon observes every possible preceding outcome.
+    # Every opener must have pushed a frame, or its own closer pops the
+    # ENCLOSING one and restores flow inside a compound that is still open.
+    # Bash reads a reserved word wherever a command may start, which this walk
+    # does not fully model: after `coproc NAME`, after a function header whose
+    # body is a bare compound (`f () while …`), or after `function NAME`. So an
+    # opener word the walk did not open stops all later restores unless the
+    # word before it is a plain argument (`echo if`, `# loops for x`), where
+    # bash reads it as data too. `case` never opens here (the split's C record
+    # does), so a statement-initial `case` means the split missed its `in`.
+    if [ "$compound_trusted" -ne 0 ]; then
+      for ((j = 0; j < n; j++)); do
+        case "${toks[j]}" in
+          coproc) compound_trusted=0 ;;
+          function) [ "$j" -ne 0 ] || compound_trusted=0 ;;
+          if | while | until | for | select | case)
+            case "$compound_opened_at" in *" $j "*) continue ;; esac
+            if [ "$j" -eq 0 ]; then
+              compound_trusted=0
+            else
+              compound_prev="${toks[j - 1]}"
+              case "$compound_prev" in
+                '' | *[!A-Za-z0-9_./,:=+@%-]* | elif | coproc | function | time | then | do | else)
+                  compound_trusted=0
+                  ;;
+              esac
+            fi
+            ;;
+        esac
+        [ "$compound_trusted" -ne 0 ] || break
+      done
+    fi
     and_cwd="$follow_cwd"; and_unknown="$follow_cwd_unknown"
     if [ "$sep" != '?' ] && [ "$function_flow_unknown" -eq 0 ]; then and_ready=1; fi
     if [ "$statement_conditional" -ne 0 ] && { [ "$join_unknown" -ne 0 ] || [ "$follow_cwd_unknown" -ne 0 ] || [ "$follow_cwd" != "$join_cwd" ]; }; then
