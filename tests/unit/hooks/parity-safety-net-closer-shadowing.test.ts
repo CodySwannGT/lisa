@@ -8,7 +8,7 @@
  * definition and a benign redefinition. Bash keeps the destructive one, so the
  * walker must keep refusing the call rather than follow the benign body.
  */
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
@@ -19,6 +19,28 @@ const HOOK = path.resolve("plugins/src/base/hooks/parity-safety-net.sh");
 const DANGEROUS = `${"r"}${"m"} -${"r"}${"f"} /Users/probe/outside-project`;
 const UNCLASSIFIABLE = "cannot classify the file this command executes";
 const DIE = 'die () { echo "$*"; }';
+
+/**
+ * The first bash 4+ at a fixed absolute path (CI's /bin/bash; Homebrew's on a
+ * macOS host, whose /bin/bash is 3.2), or undefined when none is installed.
+ */
+const MODERN_BASH = [
+  "/bin/bash",
+  "/usr/bin/bash",
+  "/opt/homebrew/bin/bash",
+  "/usr/local/bin/bash",
+].find(candidate => {
+  if (!existsSync(candidate)) return false;
+  const probe = boundedSpawnSync({
+    command: candidate,
+    args: ["-c", "echo ${BASH_VERSINFO[0]}"],
+    env: process.env,
+    input: "",
+    label: `probe ${candidate} version`,
+    childMayExitBeforeReading: true,
+  });
+  return probe.status === 0 && Number(probe.stdout.trim()) >= 4;
+});
 
 describe("safety-net closer shadowing", () => {
   let root: string;
@@ -54,6 +76,30 @@ describe("safety-net closer shadowing", () => {
       input: JSON.stringify({ tool_name: "Bash", tool_input: { command } }),
       label: "inspect closer shadowing",
     });
+  }
+
+  /**
+   * A shadowing probe proves something only if the shell would run it: a
+   * script with a syntax error never reaches `die hi`, so its refusal says
+   * nothing about shadowing. Every probe here must parse under each shell
+   * that may run it. There are no exempt rows: a shape that only some shell
+   * accepts is run under, and parsed by, that shell alone.
+   * @param file - Generated probe script; parsed with -n, never executed.
+   * @param shells - Absolute interpreters that must accept the script.
+   */
+  function expectValidShell(file: string, shells: readonly string[]): void {
+    for (const shell of shells) {
+      const parsed = boundedSpawnSync({
+        command: shell,
+        args: ["-n", file],
+        cwd: root,
+        env: process.env,
+        input: "",
+        label: `parse shadowing probe with ${shell}`,
+        childMayExitBeforeReading: true,
+      });
+      expect(parsed.status, `${shell} -n ${file}: ${parsed.stderr}`).toBe(0);
+    }
   }
 
   describe("closer-shaped text the shell does not read as a closer", () => {
@@ -102,7 +148,9 @@ describe("safety-net closer shadowing", () => {
       ["a closer inside a double-quoted span", LOOP('  x="a; done"')],
       ["a closer mid single-quoted span", LOOP("  x='a; done b'")],
       ["a closer on its own line of a quoted span", LOOP('  x="a\ndone\n"')],
-      ["a closer inside a command substitution", LOOP("  x=$(true; done b)")],
+      // Bash parses `$( )` with the script, so a bare `done` there is a syntax
+      // error; an escaped one is a valid command name the split still reads.
+      ["a closer inside a command substitution", LOOP("  x=$(: ; \\done)")],
       // Bash splits words on space and tab only; these bytes are word bytes.
       ["a form-feed-prefixed closer", LOOP("\fdone")],
       ["a vertical-tab-prefixed closer", LOOP("\vdone")],
@@ -114,26 +162,17 @@ describe("safety-net closer shadowing", () => {
         ["case x in", "  y)", "\fesac", `  ${DIE}`, "  ;;", "esac"],
       ],
       ["a carriage-return-prefixed fi", BRANCH("\rfi")],
-      ["a form feed ending the line before a closer", LOOP(":;\f\ndone")],
+      ["a form-feed-prefixed closer after a `;`", LOOP("  :;\fdone")],
       // An opener the walk does not open lets its own closer pop the
       // enclosing frame.
       [
         "an if nested in an elif condition",
         ["if true; then :; elif if x; then :; fi", `  ${DIE}`, "then :; fi"],
       ],
-      ["a loop run as a coprocess", LOOP("  coproc while x; do :; done")],
-      [
-        "a loop run as a named coprocess",
-        LOOP("  coproc worker while x; do :; done"),
-      ],
       ["a function whose body is a bare if", BRANCH("  f () if x; then :; fi")],
       [
         "a function whose body is a bare loop",
         LOOP("  f() while x; do :; done"),
-      ],
-      [
-        "a function-keyword body that is a bare loop",
-        LOOP("  function f while x; do :; done"),
       ],
       [
         "a closer in a do line's comment",
@@ -146,19 +185,54 @@ describe("safety-net closer shadowing", () => {
       ["a quoted closer after then", ["if false", `then "fi"; ${DIE}; fi`]],
     ];
 
+    /**
+     * Shadow a destructive `die` with the probe, prove the shells accept it,
+     * and expect the guard to keep refusing the call.
+     * @param lines - Probe lines between the two definitions and the call.
+     * @param runner - Interpreter named in the proposed command.
+     * @param shells - Absolute interpreters that must parse the probe.
+     */
+    function expectShadowRefused(
+      lines: readonly string[],
+      runner: string,
+      shells: readonly string[]
+    ): void {
+      const evil = emit("evil.sh", DANGEROUS);
+      const script = emit(
+        "shadow.sh",
+        [`die () { sh ${evil}; }`, ...lines, "die hi"].join("\n")
+      );
+      const result = inspect(`${runner} ${script}`);
+
+      expectValidShell(script, shells);
+      expect(result.status, result.stderr).toBe(2);
+      expect(result.stderr).toContain(UNCLASSIFIABLE);
+    }
+
     it.each(FAKE_CLOSERS)(
       "keeps an earlier destructive definition after %s",
-      (_shape, lines) => {
-        const evil = emit("evil.sh", DANGEROUS);
-        const script = emit(
-          "shadow.sh",
-          [`die () { sh ${evil}; }`, ...lines, "die hi"].join("\n")
-        );
-        const result = inspect(`sh ${script}`);
+      (_shape, lines) =>
+        expectShadowRefused(lines, "sh", ["/bin/bash", "/bin/sh"])
+    );
 
-        expect(result.status, result.stderr).toBe(2);
-        expect(result.stderr).toContain(UNCLASSIFIABLE);
-      }
+    // coproc and `function NAME <compound>` are bash 4+ syntax, so these run
+    // as `bash <file>` and parse only under a bash 4+ found at a fixed path.
+    const BASH4_ONLY: ReadonlyArray<readonly [string, readonly string[]]> = [
+      ["a loop run as a coprocess", LOOP("  coproc while x; do :; done")],
+      [
+        "a loop run as a named coprocess",
+        LOOP("  coproc worker while x; do :; done"),
+      ],
+      [
+        "a function-keyword body that is a bare loop",
+        LOOP("  function f while x; do :; done"),
+      ],
+    ];
+
+    it.skipIf(MODERN_BASH === undefined).each(BASH4_ONLY)(
+      "keeps an earlier destructive definition after %s (bash 4+)",
+      (_shape, lines) =>
+        expectShadowRefused(lines, "bash", [MODERN_BASH ?? "/bin/bash"])
     );
 
     it("refuses a definition in a body after a do line's comment closer", () => {
