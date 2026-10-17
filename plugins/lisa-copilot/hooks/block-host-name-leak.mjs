@@ -53,6 +53,22 @@
  * tempted to add it to `plugins/materialized-artifacts.json` should have a
  * reason why a host project should be refused its own name.
  *
+ * WHERE IT APPLIES: THE TARGET, NOT THE CHECKOUT (#4462)
+ *
+ * Not materializing it was not enough. The guard is registered by the PLUGIN,
+ * so it runs in every project the plugin is enabled in, and every host has the
+ * denylist at `node_modules/@codyswann/lisa/dist/`. Inside a host it refused
+ * that host's own tracker writes — including the `Work-Item: <owner>/<repo>#<n>`
+ * line the work-item gate REQUIRES in every pull-request body, so the two Lisa
+ * guards contradicted each other and every agent-opened host PR failed
+ * traceability.
+ *
+ * So the guard decides by where the text is going: `--repo`/`-R`, else a
+ * `gh api` `repos/<owner>/<repo>` path, else the `origin` of the directory the
+ * command runs in. It enforces only when that target is this repository —
+ * which still covers the likeliest leak, an upstream filing made from inside a
+ * host. When the target cannot be determined it enforces, as before.
+ *
  * FAILING OPEN, LOUDLY
  *
  * When the denylist cannot be loaded this permits the write and says so on
@@ -62,6 +78,7 @@
  * reasoning as `block-direct-issue-create.sh`'s interpreter probe.
  * @module hooks/block-host-name-leak
  */
+import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync, realpathSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
@@ -113,6 +130,20 @@ const TEXT_FLAGS = new Set([
 const FIELD_FLAGS = new Set(["-f", "--field", "--raw-field"]);
 /** Field names whose value is published prose rather than metadata. */
 const PROSE_FIELDS = new Set(["body", "title", "text", "message"]);
+
+/**
+ * The repositories this guard protects, lowercased `owner/repo`.
+ *
+ * Only this one: it is public and ships `dist/` to npm. A host's own tracker
+ * is not on the list, which is the point (#4462).
+ */
+const GUARDED_REPOSITORIES = new Set(["codyswanngt/lisa"]);
+/** `gh` flags that name the repository a command targets. */
+const REPO_FLAGS = new Set(["--repo", "-R"]);
+/** A `gh api` path into one repository: `repos/<owner>/<repo>/...`. */
+const API_REPO_PATH = /(?:^|\/)repos\/([^/\s]+)\/([^/?#\s]+)/u;
+/** Ceiling for the `git remote` read, so a wedged git cannot hang the hook. */
+const GIT_TIMEOUT_MS = 5000;
 
 /**
  * Vendor endpoints quoted from guard source, which are not host identities.
@@ -213,6 +244,76 @@ function valueAt(tokens, index) {
 }
 
 /**
+ * Normalize a repository spec to lowercased `owner/repo`.
+ *
+ * Accepts every form `gh` and git use: `owner/repo`, `HOST/owner/repo`,
+ * `https://github.com/owner/repo(.git)` and `git@github.com:owner/repo.git`.
+ * @param spec - The spec as written.
+ * @returns `owner/repo`, or undefined when it does not name one.
+ */
+export function repositoryFromSpec(spec) {
+  const segments = spec
+    .trim()
+    .replace(/\.git$/u, "")
+    .split(/[/:]/u)
+    .filter(segment => segment !== "");
+  if (segments.length < 2) return undefined;
+  return `${segments.at(-2)}/${segments.at(-1)}`.toLowerCase();
+}
+
+/**
+ * The `origin` repository of a directory, read from git.
+ * @param cwd - Directory the command runs in.
+ * @returns `owner/repo`, or undefined when there is no readable origin.
+ */
+function originRepository(cwd) {
+  try {
+    const url = execFileSync(
+      "git",
+      ["-C", cwd, "remote", "get-url", "origin"],
+      {
+        encoding: "utf-8",
+        stdio: ["ignore", "pipe", "ignore"],
+        timeout: GIT_TIMEOUT_MS,
+      }
+    );
+    return repositoryFromSpec(url);
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * The repository this write will land in.
+ *
+ * `--repo`/`-R` wins, as it does for `gh`; then a `gh api` `repos/` path; then
+ * the origin of the directory the command runs in, which is what `gh` itself
+ * falls back to.
+ * @param tokens - Command tokens.
+ * @param cwd - Directory the command runs in.
+ * @returns `owner/repo`, or undefined when the target cannot be determined.
+ */
+export function targetRepository(tokens, cwd) {
+  const flag = tokens.findIndex(token => REPO_FLAGS.has(token.split("=")[0]));
+  if (flag !== -1) return repositoryFromSpec(valueAt(tokens, flag));
+  const apiPath = tokens.map(token => API_REPO_PATH.exec(token)).find(Boolean);
+  if (apiPath) return `${apiPath[1]}/${apiPath[2]}`.toLowerCase();
+  return originRepository(cwd);
+}
+
+/**
+ * Whether the guard applies to a write landing in this repository.
+ *
+ * An undetermined target is guarded: not knowing where text is going is no
+ * reason to stop protecting the one place it must not go.
+ * @param target - `owner/repo`, or undefined.
+ * @returns True when the write must be checked.
+ */
+export function isGuardedTarget(target) {
+  return target === undefined || GUARDED_REPOSITORIES.has(target);
+}
+
+/**
  * Read a file the command names, if it is readable.
  * @param candidate - Path as written on the command line.
  * @param cwd - Directory the command runs in.
@@ -245,7 +346,11 @@ export function publishableText(tokens, cwd) {
       return [{ origin: bare, text: valueAt(tokens, index) }];
     }
     if (FILE_FLAGS.has(bare)) {
-      const file = valueAt(tokens, index).replace(/^@/u, "");
+      const value = valueAt(tokens, index);
+      // On `gh api`, `-F` is `--field`: `key=@path` or `key=value`. Read as a
+      // bare path, `body=@file` named no file and published unchecked (#4462).
+      if (/^[\w.[\]-]+=/u.test(value)) return [fieldSource(value, cwd)];
+      const file = value.replace(/^@/u, "");
       return [{ origin: file, text: readIfPresent(file, cwd) }];
     }
     if (FIELD_FLAGS.has(bare))
@@ -355,6 +460,9 @@ means "no known name appeared", not "this text is safe".`;
 export async function evaluate(command, projectDir) {
   const tokens = tokenize(command);
   if (!isOutboundTrackerWrite(tokens)) return { code: EXIT_ALLOWED };
+  if (!isGuardedTarget(targetRepository(tokens, projectDir))) {
+    return { code: EXIT_ALLOWED };
+  }
   const detector = await loadDetector(projectDir);
   if (detector === undefined) {
     return {
