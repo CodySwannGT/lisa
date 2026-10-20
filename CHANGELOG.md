@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.81.7](https://github.com/CodySwannGT/lisa/compare/v4.81.6...v4.81.7) (2026-10-20)
+
+
+### Bug Fixes
+
+* **playwright:** pin browser jobs to ubuntu-24.04 ([498a8cb](https://github.com/CodySwannGT/lisa/commit/498a8cb1c4058abc623b6fe28ad7a56bce775ca9)), closes [CodySwannGT/lisa#4475](https://github.com/CodySwannGT/lisa/issues/4475)
+
 ### [4.81.6](https://github.com/CodySwannGT/lisa/compare/v4.81.5...v4.81.6) (2026-10-16)
 
 
