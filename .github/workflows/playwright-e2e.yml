@@ -498,7 +498,13 @@ jobs:
       contents: read
     name: 🎭 Browser Journeys
     needs: [prepare, playwright_e2e_setup]
-    runs-on: ubuntu-latest
+    # Pinned, not ubuntu-latest: GitHub moved ubuntu-latest to the 26.04 image
+    # in October 2026 and Playwright 1.59 refuses to install Chromium there
+    # ("Playwright does not support chromium on ubuntu26.04-x64"), failing
+    # `npx playwright install --with-deps` below. Caller projects pin their own
+    # Playwright, so the runner image is the one lever this workflow controls.
+    # Move to ubuntu-26.04 once the Playwright floor callers ship supports it.
+    runs-on: ubuntu-24.04
     # 30 min was tight for downstream projects whose backend cold-start
     # tail latency drives shard runtime above ~25 min under workers=4
     # parallel-shard load. 60 min gives headroom for transient
@@ -805,7 +811,13 @@ jobs:
       contents: read
     name: 🎭 Browser Journeys
     needs: [prepare, playwright_e2e]
-    runs-on: ubuntu-latest
+    # Pinned, not ubuntu-latest: GitHub moved ubuntu-latest to the 26.04 image
+    # in October 2026 and Playwright 1.59 refuses to install Chromium there
+    # ("Playwright does not support chromium on ubuntu26.04-x64"), failing
+    # `npx playwright install --with-deps` below. Caller projects pin their own
+    # Playwright, so the runner image is the one lever this workflow controls.
+    # Move to ubuntu-26.04 once the Playwright floor callers ship supports it.
+    runs-on: ubuntu-24.04
     # Was 10, which was sized for "download blobs and merge them". On the
     # configured path this job runs the whole suite, so it needs the same
     # headroom the shard job has. The fallback path still finishes in minutes;
