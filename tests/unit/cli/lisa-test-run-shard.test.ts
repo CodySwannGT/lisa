@@ -132,6 +132,11 @@ describe("shardRunnerOf", () => {
     [[VITEST, "run"], VITEST],
     [["/w/node_modules/.bin/vitest", "run"], VITEST],
     [["node", "node_modules/vitest/vitest.mjs", "run"], VITEST],
+    [
+      ["node", "--max-old-space-size=6144", "node_modules/jest/bin/jest.js"],
+      JEST,
+    ],
+    [["node", "--inspect", "--", "node_modules/vitest/vitest.mjs"], VITEST],
   ] as const)("names %j as %s", (argv, runner) => {
     expect(shardRunnerOf(argv)).toBe(runner);
   });

@@ -3312,6 +3312,10 @@ jobs:
           name: unit-test-shard-${{ needs.test_unit_shard_plan.outputs.nonce }}-${{ matrix.shard }}
           path: ${{ runner.temp }}/lisa-unit-test-shard
           if-no-files-found: error
+          # A failed-jobs rerun does not rerun the plan, so it keeps the nonce
+          # and a rerun leg uploads under its first attempt's name. Replacing
+          # that artifact keeps the aggregate's download to one copy per shard.
+          overwrite: true
           retention-days: 1
 
   test_mutation:

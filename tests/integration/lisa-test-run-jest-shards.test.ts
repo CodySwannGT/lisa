@@ -41,9 +41,10 @@ afterEach(() => {
 /**
  * Build a CommonJS Jest project whose tests each cover a different file.
  * @param floor - Global line floor written into the project's own config
+ * @param collectCoverage - Whether the config itself turns coverage on
  * @returns Fixture root
  */
-function project(floor: number): string {
+function project(floor: number, collectCoverage = false): string {
   const root = fs.mkdtempSync(path.join(tmpdir(), "lisa-jest-shards-"));
   directories.push(root);
   fs.mkdirSync(path.join(root, "src"));
@@ -66,6 +67,7 @@ function project(floor: number): string {
   fs.writeFileSync(
     path.join(root, "jest.config.js"),
     `module.exports = ${JSON.stringify({
+      ...(collectCoverage ? { collectCoverage } : {}),
       collectCoverageFrom: ["src/**/*.js"],
       coverageReporters: ["json-summary", "lcov"],
       coverageThreshold: { global: { lines: floor } },
@@ -77,9 +79,10 @@ function project(floor: number): string {
 /**
  * The argv a consumer's gate task hands `lisa-test-run`.
  * @param root - Fixture root
+ * @param coverageFlag - Whether the command line asks for coverage
  * @returns Jest argv
  */
-function jestArgv(root: string): [string, ...string[]] {
+function jestArgv(root: string, coverageFlag = true): [string, ...string[]] {
   return [
     process.execPath,
     JEST_BIN,
@@ -87,7 +90,7 @@ function jestArgv(root: string): [string, ...string[]] {
     path.join(root, "jest.config.js"),
     // Inside the fixture: Jest's default cache is a shared tmpdir entry.
     `--cacheDirectory=${path.join(root, ".jest-cache")}`,
-    "--coverage",
+    ...(coverageFlag ? ["--coverage"] : []),
   ];
 }
 
@@ -125,9 +128,10 @@ function totals(root: string): Record<string, unknown> {
 /**
  * Run both shards the way two matrix legs would, then return their receipts.
  * @param root - Fixture root
+ * @param argv - The gate task's Jest command
  * @returns The downloaded-artifact directory
  */
-function shardTwice(root: string): string {
+function shardTwice(root: string, argv = jestArgv(root)): string {
   const merge = path.join(root, "downloaded");
   for (const index of [1, 2]) {
     const plan = {
@@ -136,8 +140,8 @@ function shardTwice(root: string): string {
       total: 2,
       output: path.join(merge, `unit-test-shard-x-${index}`),
     } as const;
-    writeShardReceipt(plan, "jest", jestArgv(root));
-    expect(run(root, shardArgv(jestArgv(root), "jest", plan))).toBe(0);
+    writeShardReceipt(plan, "jest", argv);
+    expect(run(root, shardArgv(argv, "jest", plan))).toBe(0);
   }
   return merge;
 }
@@ -174,6 +178,20 @@ describe("Jest shard merge", () => {
       mergeJestShards(
         jestArgv(misses),
         readShardReceipts(shardTwice(misses), 2),
+        misses
+      )
+    ).toBe(1);
+  });
+
+  it("enforces the floor when the config, not the command, turns coverage on", () => {
+    // `collectCoverage: true` in jest.config with no --coverage flag: the
+    // shards still collect, so the merge must still hold them to the floor.
+    const misses = project(90, true);
+    const argv = jestArgv(misses, false);
+    expect(
+      mergeJestShards(
+        argv,
+        readShardReceipts(shardTwice(misses, argv), 2),
         misses
       )
     ).toBe(1);

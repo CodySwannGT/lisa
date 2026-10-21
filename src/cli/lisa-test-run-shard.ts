@@ -163,13 +163,26 @@ function names(entry: string | undefined, runner: ShardRunner): boolean {
 }
 
 /**
+ * The file a payload argv actually starts: the command itself, or — when the
+ * command is `node` — the first argument that is not a Node flag, so
+ * `node --max-old-space-size=6144 node_modules/jest/bin/jest.js` names Jest.
+ * A flag that takes its value as a separate argument is not special-cased;
+ * its value is taken for the entry, names no runner, and is refused loudly.
+ * @param argv - Payload argv
+ * @returns The entry, or undefined when `node` is given no script
+ */
+export function runnerEntry(argv: readonly string[]): string | undefined {
+  if (path.basename(argv[0] ?? "") !== "node") return argv[0];
+  return argv.slice(1).find(arg => !arg.startsWith("-"));
+}
+
+/**
  * Name the runner a payload argv starts, refusing anything else.
  * @param argv - Payload argv
  * @returns The runner
  */
 export function shardRunnerOf(argv: readonly string[]): ShardRunner {
-  const entry =
-    path.basename(argv[0] ?? "") === "node" ? argv[1] : (argv[0] ?? "");
+  const entry = runnerEntry(argv);
   const runner = (["jest", "vitest"] as const).find(candidate =>
     names(entry, candidate)
   );

@@ -23,6 +23,7 @@ import { env } from "node:process";
 
 import {
   checkJestThresholds,
+  runnerEntry,
   type CoverageSummary,
   type JestThresholds,
   type ShardReceipt,
@@ -30,6 +31,8 @@ import {
 
 /** The slice of Jest's resolved global config the merge reads. */
 interface JestCoverageConfig {
+  /** True for `--coverage` AND for `collectCoverage: true` in the config. */
+  readonly collectCoverage: boolean;
   readonly coverageThreshold?: JestThresholds;
   readonly coverageReporters: readonly (
     | string
@@ -135,7 +138,7 @@ function resolutionBases(
   argv: readonly [string, ...string[]],
   cwd: string
 ): readonly string[] {
-  const entry = path.basename(argv[0]) === "node" ? argv[1] : argv[0];
+  const entry = runnerEntry(argv);
   const jest = entry === undefined ? undefined : executablePath(entry);
   const chain = ["@jest/core", "@jest/reporters"].reduce<readonly string[]>(
     (resolved, dependency) => {
@@ -176,13 +179,16 @@ export function mergeJestShards(
   receipts: readonly ShardReceipt[],
   cwd: string = process.cwd()
 ): number {
-  if (!receipts.some(receipt => receipt.coverage)) {
+  // Decided from the RESOLVED config, not the receipts' command-line flag: a
+  // project with `collectCoverage: true` collects in every shard without
+  // passing --coverage, and its floor must still be enforced here.
+  const config = showJestConfig(argv, cwd);
+  if (!config.collectCoverage) {
     process.stdout.write(
-      "lisa-test-run: no shard collected coverage, so there is nothing to merge.\n"
+      "lisa-test-run: the test command collects no coverage, so there is nothing to merge.\n"
     );
     return 0;
   }
-  const config = showJestConfig(argv, cwd);
   const bases = resolutionBases(argv, cwd);
   const istanbul: Istanbul = {
     coverage: load("istanbul-lib-coverage", bases),

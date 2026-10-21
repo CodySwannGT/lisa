@@ -261,6 +261,9 @@ describe("test_unit_shard", () => {
       name: "unit-test-shard-${{ needs.test_unit_shard_plan.outputs.nonce }}-${{ matrix.shard }}",
       path: "${{ runner.temp }}/lisa-unit-test-shard",
       "if-no-files-found": "error",
+      // A failed-jobs rerun keeps the plan's nonce, so a leg re-uploads under
+      // its first attempt's name; the aggregate downloads by that name.
+      overwrite: true,
     });
   });
 
