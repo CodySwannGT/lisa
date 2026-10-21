@@ -8,6 +8,7 @@
 import * as fs from "node:fs";
 import { tmpdir } from "node:os";
 import * as path from "node:path";
+import { stripVTControlCharacters } from "node:util";
 
 import { afterEach, describe, expect, it } from "vitest";
 
@@ -221,7 +222,8 @@ describe("lisa-test-run under a shard plan", () => {
     });
 
     expect(merged.status, merged.stderr).toBe(0);
-    expect(merged.stdout).toMatch(/Tests\s+2 passed/);
+    // CI forces colour, so read the summary without its escape codes.
+    expect(stripVTControlCharacters(merged.stdout)).toMatch(/Tests\s+2 passed/);
     // Merging reads the blobs; it does not run either test file again.
     expect(fs.readFileSync(path.join(root, "ran"), "utf8")).toHaveLength(2);
   });
