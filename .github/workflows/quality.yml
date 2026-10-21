@@ -76,6 +76,11 @@ on:
         required: false
         default: 45
         type: number
+      unit_test_shards:
+        description: 'Run the unit suite as this many parallel shards (1-20), then merge their coverage and check the threshold once. Needs a unit gate task that runs jest or vitest through lisa-test-run. The default, 1, runs one unsharded job.'
+        required: false
+        default: 1
+        type: number
       moment:
         # Which set of gates applies. Every job below resolves its gate from
         # `.lisa.config.json` AT THIS MOMENT, so one input decides whether this
@@ -2387,13 +2392,32 @@ jobs:
     # runs near that ceiling can set unit_test_timeout_minutes without raising
     # other job budgets (#4480); sharding the job is #4479.
     timeout-minutes: ${{ inputs.unit_test_timeout_minutes }}
-    needs: [gate_plan]
+    # With unit_test_shards > 1 this job is the aggregate: the shard legs run
+    # the suite and this job merges their results. It keeps its id, its
+    # static name and its outputs at every shard count, because the ruleset
+    # context and every downstream `needs.test_unit` reader key on them.
+    needs: [gate_plan, test_unit_shard_plan, test_unit_shard]
     if: ${{ always() && !cancelled() && !contains(format(',{0},', inputs.skip_jobs), ',test:unit,') && (needs.gate_plan.result != 'success' || !contains(needs.gate_plan.outputs.plan, '"test_unit":"skip"')) }}
 
     outputs:
       registry_path: ${{ steps.registry.outputs.path }}
       coverage_artifact_id: ${{ steps.coverage_artifact.outputs.artifact-id }}
     steps:
+      # First, before any install: with shards, this job is the one
+      # `🧪 Run Unit Tests` context, so a partial run must not reach the merge.
+      # A plan that refused the input FAILS and its matrix is SKIPPED; a shard
+      # that failed, timed out or was cancelled leaves the matrix not
+      # `success`. Every one of those is red here (#4479).
+      - name: 🚨 Fail if the unit-test shards did not pass
+        if: inputs.unit_test_shards != 1 && (needs.test_unit_shard_plan.result != 'success' || needs.test_unit_shard.result != 'success')
+        env:
+          PLAN_RESULT: ${{ needs.test_unit_shard_plan.result }}
+          SHARD_RESULT: ${{ needs.test_unit_shard.result }}
+          SHARDS: ${{ inputs.unit_test_shards }}
+        run: |
+          echo "::error title=Unit-test shards did not pass::unit_test_shards: $SHARDS, but the shard plan: '$PLAN_RESULT' and the shard matrix: '$SHARD_RESULT'. A shard failed, was cancelled, or never ran, so the suite did not run in full and 🧪 Run Unit Tests cannot pass."
+          exit 1
+
       - name: 📥 Checkout repository
         uses: actions/checkout@v6
         with:
@@ -2684,6 +2708,30 @@ jobs:
           fi
         working-directory: ${{ inputs.working_directory || '.' }}
 
+      # With shards, the test command below is the MERGE: the same gate task,
+      # told through the environment where every shard's results are. The
+      # project's `lisa-test-run` merges them and enforces the coverage floor
+      # once, over the whole suite (#4479). The condition is the union of the
+      # two test-command conditions below, so it downloads only when one runs.
+      - name: 📥 Download every unit-test shard
+        id: shard_download
+        if: inputs.unit_test_shards != 1 && (steps.gate.outputs.configured == 'true' || (steps.gate.outputs.configured == 'false' && steps.check_script.outputs.exists == 'true'))
+        uses: actions/download-artifact@v8
+        with:
+          pattern: unit-test-shard-${{ needs.test_unit_shard_plan.outputs.nonce }}-*
+          path: ${{ runner.temp }}/lisa-unit-test-shards
+
+      - name: 🧩 Arm the unit-test shard merge
+        if: steps.shard_download.outcome == 'success'
+        env:
+          TOTAL: ${{ inputs.unit_test_shards }}
+        run: |
+          set -euo pipefail
+          {
+            echo "LISA_TEST_SHARD_MERGE=$RUNNER_TEMP/lisa-unit-test-shards"
+            echo "LISA_TEST_SHARD_TOTAL=$TOTAL"
+          } >> "$GITHUB_ENV"
+
       - name: 🧪 Run the test-correctness gate
         id: gate_run
         continue-on-error: ${{ steps.gate.outputs.level == 'optional' }}
@@ -2839,6 +2887,432 @@ jobs:
               ;;
           esac
         working-directory: ${{ inputs.working_directory || '.' }}
+
+  # unit_test_shards > 1 only (#4479). Checks the input and lays out the matrix,
+  # and mints the per-call nonce that names the shard artifacts. A random name
+  # per leg could not be found by the aggregate, and run_id alone collides when
+  # a caller invokes this workflow twice in one run. Skipped at the default.
+  #
+  # Neither this job nor the matrix below may post a name containing the
+  # aggregate's: a skipped or idle context can show green and satisfy a
+  # ruleset that requires `🧪 Run Unit Tests`.
+  #
+  # NO `skip_jobs` token on either job, for the reason `test_mutation_measured`
+  # gives: the shipped registry derives `SKIP_JOB_TOKENS` from these
+  # conditions, and a second job on `test:unit` would flip what
+  # `gateForSkipJob("test:unit")` advertises to every consumer. A declared-off
+  # gate still stops both jobs, through the plan check below and the `needs`
+  # chain. Sharding a suite the same caller skips is a contradiction, so the
+  # plan step REFUSES it rather than quietly running the shards.
+  test_unit_shard_plan:
+    permissions: {}
+    name: 🧮 Plan Unit-Test Shards
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    needs: [gate_plan]
+    if: ${{ always() && !cancelled() && inputs.unit_test_shards != 1 && (needs.gate_plan.result != 'success' || !contains(needs.gate_plan.outputs.plan, '"test_unit":"skip"')) }}
+    outputs:
+      shards: ${{ steps.plan.outputs.shards }}
+      nonce: ${{ steps.plan.outputs.nonce }}
+    steps:
+      - name: 🧮 Compute the unit-test shard matrix
+        id: plan
+        env:
+          SHARDS: ${{ inputs.unit_test_shards }}
+          SKIP_JOBS: ${{ inputs.skip_jobs }}
+        run: |
+          set -euo pipefail
+          case ",${SKIP_JOBS:-}," in
+            *,test:unit,*)
+              echo "::error title=unit_test_shards contradicts skip_jobs::unit_test_shards is $SHARDS but skip_jobs names test:unit, so the unit suite would be sharded and skipped at once. Drop one of them."
+              exit 1
+              ;;
+          esac
+          if ! [[ "$SHARDS" =~ ^[0-9]+$ ]] || [ "$SHARDS" -lt 2 ] || [ "$SHARDS" -gt 20 ]; then
+            echo "::error title=unit_test_shards is invalid::unit_test_shards is \"$SHARDS\"; it must be a whole number from 1 to 20. 1, the default, runs the suite in one unsharded job."
+            exit 1
+          fi
+          SHARD_LIST="$(node -e 'process.stdout.write(JSON.stringify(Array.from({ length: Number(process.argv[1]) }, (_, i) => i + 1)))' "$SHARDS")"
+          NONCE="$(node -p 'crypto.randomUUID()')"
+          {
+            echo "shards=$SHARD_LIST"
+            echo "nonce=$NONCE"
+          } >> "$GITHUB_OUTPUT"
+
+  # One leg per shard. Every step a leg shares with test_unit is a byte-for-byte
+  # copy, held identical by tests/integration/quality-unit-test-shards.test.ts,
+  # so a leg resolves the same gate and runs the same command; only the
+  # environment set by the arm step differs, and `lisa-test-run` turns it into
+  # the runner's own shard flag. Copies rather than YAML anchors because this
+  # repository's text-based workflow scans read steps by their `- name:` lines
+  # and do not see an aliased step. A leg leaves the unproven verdict, the
+  # Lisa-only regression specs and the coverage hand-off to the aggregate.
+  test_unit_shard:
+    permissions:
+      contents: read
+    name: 🧪 Unit Tests shard ${{ matrix.shard }}/${{ inputs.unit_test_shards }}
+    runs-on: ubuntu-latest
+    timeout-minutes: ${{ inputs.unit_test_timeout_minutes }}
+    needs: [gate_plan, test_unit_shard_plan]
+    if: ${{ always() && !cancelled() && needs.test_unit_shard_plan.result == 'success' }}
+    strategy:
+      # Every leg finishes, so one failing shard does not hide another's.
+      fail-fast: false
+      matrix:
+        shard: ${{ fromJSON(needs.test_unit_shard_plan.outputs.shards || '[1]') }}
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+          # Lisa's tests inspect real historical revisions; callers stay shallow.
+          # Quoted depths are truthy: bare 0 would fall through the || expression.
+          fetch-depth: ${{ github.repository == 'CodySwannGT/lisa' && '0' || '1' }}
+
+      - name: 📎 Fetch retained nightly guard release tags
+        if: github.repository == 'CodySwannGT/lisa'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # Lisa-only witness refs; callers have neither these tags nor credentials.
+          if [ "${GITHUB_REPOSITORY:-}" != "CodySwannGT/lisa" ] || [ ! -f scripts/generate-nightly-e2e-guard-certificate.mjs ]; then
+            echo "::notice::Retained nightly guard artifacts are not present in this caller; exact-ref fetch is not applicable."
+            exit 0
+          fi
+          # The token is available only to this contents:read step. A command-
+          # scoped helper avoids writing credentials into git configuration.
+          git -c credential.helper= \
+            -c 'credential.helper=!f() { echo username=x-access-token; echo "password=$GH_TOKEN"; }; f' \
+            fetch --no-tags origin \
+            refs/tags/v2.353.0:refs/tags/v2.353.0 \
+            refs/tags/v4.17.16:refs/tags/v4.17.16 \
+            refs/tags/v4.26.1:refs/tags/v4.26.1 \
+            refs/tags/v4.26.0:refs/tags/v4.26.0 \
+            refs/tags/v4.50.3:refs/tags/v4.50.3
+
+      - name: 📎 Fetch export-removal witness history
+        if: github.repository == 'CodySwannGT/lisa'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # Export-removal tests need real ancestry, not isolated tag objects.
+          # Deepen history, filter blobs, and pin immutable release/export witnesses.
+          git -c credential.helper= \
+            -c 'credential.helper=!f() { echo username=x-access-token; echo "password=$GH_TOKEN"; }; f' \
+            fetch --deepen=2147483647 --filter=blob:none --no-tags origin \
+            "+${GITHUB_SHA}:refs/lisa-test-witnesses/export-head" \
+            refs/tags/v3.0.0:refs/tags/v3.0.0 \
+            refs/tags/v4.0.0:refs/tags/v4.0.0 \
+            c32f33010f5e58879381b0d4c370c630bb179acc:refs/lisa-test-witnesses/export-before \
+            f13bb00ec73e0ebbb2dfd9f030164d2913dcf98d:refs/lisa-test-witnesses/export-after
+
+      - name: Provision separately qualified Lisa updater test runtime
+        if: github.repository == 'CodySwannGT/lisa'
+        uses: actions/setup-node@v6
+        with:
+          package-manager-cache: false
+          # lisa-allow-duplicate-version: independently qualified updater identity (#4367)
+          node-version: '22.23.3' # lisa-preserve-node-version: independently qualified updater (#4367)
+
+      - name: Preserve actual updater test executable before selecting shared Node
+        if: github.repository == 'CodySwannGT/lisa'
+        run: |
+          node -e 'if (process.versions.node !== "22.23.3") throw Error("Wrong updater test runtime"); require("node:fs").appendFileSync(process.env.GITHUB_ENV, `LISA_TEST_UPDATER_NODE=${require("node:fs").realpathSync(process.execPath)}\n`);'
+
+      - name: 🔧 Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          package-manager-cache: false
+          node-version: ${{ inputs.node_version }}
+
+      - name: Provision native inherited-host Bun
+        if: github.repository == 'CodySwannGT/lisa'
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          # lisa-allow-duplicate-version: unchanged Harper/Phaser native host floor (#4367)
+          bun-version: '1.3.11'
+
+      - name: Preserve actual native host Bun before selecting Lisa tooling
+        if: github.repository == 'CodySwannGT/lisa'
+        run: |
+          bun -e 'if (Bun.version !== "1.3.11") throw Error("Wrong native host Bun"); const fs = require("node:fs"); const path = require("node:path"); const nativeBun = path.join(process.env.RUNNER_TEMP, "lisa-native-bun", "bin", "bun"); fs.mkdirSync(path.dirname(nativeBun), { recursive: true }); fs.copyFileSync(fs.realpathSync(process.execPath), nativeBun); fs.chmodSync(nativeBun, 0o755); if (require("node:child_process").execFileSync(nativeBun, ["--version"], { encoding: "utf8", timeout: 15_000 }).trim() !== "1.3.11") throw Error("Wrong preserved native host Bun"); fs.appendFileSync(process.env.GITHUB_ENV, `LISA_TEST_HOST_BUN=${nativeBun}\n`);'
+
+      - name: 🍞 Setup Bun
+        if: inputs.package_manager == 'bun'
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version: '1.3.8'
+
+      - name: 💾 Restore package downloads
+        if: inputs.cache_dependencies
+        uses: actions/cache/restore@v5
+        with: *package_download_cache
+
+      - name: 📦 Install dependencies
+        run: |
+          case "$PACKAGE_MANAGER" in
+            npm) npm ci ;;
+            yarn) yarn install --frozen-lockfile ;;
+            pnpm) corepack enable && pnpm install --frozen-lockfile ;;
+            bun) bun install --frozen-lockfile ;;
+            *)
+              echo "::error::package_manager must be one of npm, yarn, pnpm, bun (got: $PACKAGE_MANAGER)."
+              exit 1
+              ;;
+          esac
+        working-directory: ${{ inputs.working_directory || '.' }}
+
+      - name: 🎛️ Resolve the test-correctness gate
+        id: gate
+        env:
+          GATE_ID: test-correctness
+          FALLBACK_RUNNER: ${{ inputs.package_manager }} run
+          GATE_MOMENT: ${{ inputs.moment }}
+        run: |
+          set -euo pipefail
+          RESOLVER=""
+          for candidate in "node_modules/@codyswann/lisa/all/copy-overwrite/scripts/lisa-gates.mjs" "scripts/lisa-gates.mjs" "all/copy-overwrite/scripts/lisa-gates.mjs"; do
+            if [ -f "$candidate" ]; then RESOLVER="$candidate"; break; fi
+          done
+          # Both are emitted BEFORE the early exit, so the report step below can
+          # name its gate and reuse this resolution even on the path where no
+          # resolver exists at all — which is the path most installed projects
+          # are on, and the one that most needs saying out loud.
+          echo "gate=$GATE_ID" >> "$GITHUB_OUTPUT"
+          echo "resolver=$RESOLVER" >> "$GITHUB_OUTPUT"
+          if [ -z "$RESOLVER" ]; then echo "configured=false" >> "$GITHUB_OUTPUT"; exit 0; fi
+          node "$RESOLVER" list --moment="$GATE_MOMENT" --json --include-off | node -e '
+          let raw = ""; process.stdin.on("data", d => { raw += d }).on("end", () => {
+          const id = process.env.GATE_ID, hit = JSON.parse(raw || "[]").find(g => g.id === id);
+          const level = hit && ["required", "optional", "off"].includes(hit.level) ? hit.level : "";
+          if (hit && !level) { console.error(`::error::gates.${id} declares level ${JSON.stringify(hit.level)}, which is not one of "required", "optional" or "off".`); process.exit(1); }
+          if (level === "off") return process.stdout.write("configured=off\nlevel=off\n");
+          const task = hit && hit.mode === "run" && hit.task ? hit.task : "";
+          if (!task) return process.stdout.write(`configured=false\nlevel=${level}\n`);
+          const declared = (require("./.lisa.config.json").gates || {}).runner;
+          const runner = declared === undefined ? process.env.FALLBACK_RUNNER : declared;
+          const plain = (value, pattern) => typeof value === "string" && pattern.test(value);
+          const head = typeof runner === "string" ? runner.trim().split(" ")[0] : "";
+          if (!plain(task, /^[A-Za-z0-9:._@\/= -]+$/)) { console.error(`::error::gates.${id} resolves to task "${task}", which is not a plain word.`); process.exit(1); }
+          if (!plain(runner, /^[A-Za-z0-9._@\/= -]+$/) || !head || [":", "true", "false", "echo", "printf"].includes(head)) { console.error(`::error::gates.runner is ${JSON.stringify(runner)}, which is not a task runner; gates.${id} would have run "${runner} ${task}". A runner must be a plain STRING, may not contain a colon, and may not be a shell no-op.`); process.exit(1); }
+          process.stdout.write(`configured=true\nlevel=${level}\nrunner=${runner}\ntask=${task}\n`); });
+          ' >> "$GITHUB_OUTPUT"
+        working-directory: ${{ inputs.working_directory || '.' }}
+
+      - name: 🔍 Check for test:unit script
+        id: check_script
+        run: |
+          if [ -f "package.json" ]; then
+            if grep -q '"test:unit"' package.json; then
+              echo "exists=true" >> $GITHUB_OUTPUT
+            else
+              echo "exists=false" >> $GITHUB_OUTPUT
+            fi
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+          fi
+        working-directory: ${{ inputs.working_directory || '.' }}
+
+      - name: 🧰 Start coverage service containers
+        if: steps.check_script.outputs.exists == 'true' && inputs.coverage_services != ''
+        env:
+          COVERAGE_SERVICES: ${{ inputs.coverage_services }}
+        run: |
+          node <<'NODE'
+          const fs = require("node:fs");
+          const spec = JSON.parse(process.env.COVERAGE_SERVICES || "[]");
+          const services = Array.isArray(spec)
+            ? spec
+            : Object.entries(spec).map(([name, value]) => ({ name, ...value }));
+          const quote = value => `'${String(value).replace(/'/g, `'\\''`)}'`;
+          const lines = ["set -euo pipefail"];
+          const validateName = name => {
+            if (!/^[a-zA-Z0-9][a-zA-Z0-9_.-]{0,62}$/.test(name)) {
+              throw new Error(`Invalid coverage service name: ${name}`);
+            }
+          };
+          for (const [index, service] of services.entries()) {
+            if (!service || typeof service !== "object") {
+              throw new Error(`coverage_services[${index}] must be an object`);
+            }
+            if (!service.image || typeof service.image !== "string") {
+              throw new Error(`coverage_services[${index}].image is required`);
+            }
+            const name = service.name || `lisa-coverage-service-${index + 1}`;
+            validateName(name);
+            lines.push(`docker rm -f ${quote(name)} >/dev/null 2>&1 || true`);
+            const args = ["run", "--detach", "--name", name];
+            for (const [key, value] of Object.entries(service.env || {})) {
+              args.push("--env", `${key}=${value}`);
+            }
+            for (const port of service.ports || []) {
+              args.push("--publish", port);
+            }
+            if (service.options !== undefined && !Array.isArray(service.options)) {
+              throw new Error(`coverage_services[${index}].options must be an array of docker flags`);
+            }
+            if (Array.isArray(service.options)) {
+              args.push(...service.options);
+            }
+            lines.push(
+              `docker ${args.map(quote).join(" ")} ${quote(service.image)}`
+            );
+            const timeout = Math.trunc(Number(service.healthTimeoutSeconds ?? 60));
+            lines.push(`if docker inspect --format='{{if .Config.Healthcheck}}yes{{end}}' ${quote(name)} | grep -q yes; then`);
+            lines.push(`  deadline=$((SECONDS + ${Number.isFinite(timeout) ? Math.max(1, timeout) : 60}))`);
+            lines.push("  until [ \"$(docker inspect --format='{{.State.Health.Status}}' " + quote(name) + ")\" = healthy ]; do");
+            lines.push("    if [ \"$SECONDS\" -ge \"$deadline\" ]; then docker logs " + quote(name) + "; exit 1; fi");
+            lines.push("    sleep 2");
+            lines.push("  done");
+            lines.push("fi");
+          }
+          fs.writeFileSync("/tmp/lisa-start-coverage-services.sh", `${lines.join("\n")}\n`);
+          NODE
+          bash /tmp/lisa-start-coverage-services.sh
+
+      - name: 🧪 Apply coverage environment
+        if: steps.check_script.outputs.exists == 'true' && inputs.coverage_env != ''
+        env:
+          COVERAGE_ENV: ${{ inputs.coverage_env }}
+        run: |
+          node <<'NODE'
+          const { randomUUID } = require("node:crypto");
+          const fs = require("node:fs");
+          const env = JSON.parse(process.env.COVERAGE_ENV || "{}");
+          if (!env || Array.isArray(env) || typeof env !== "object") {
+            throw new Error("coverage_env must be a JSON object");
+          }
+          const lines = [];
+          for (const [key, value] of Object.entries(env)) {
+            if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(key)) {
+              throw new Error(`Invalid coverage_env key: ${key}`);
+            }
+            const delimiter = `LISA_COVERAGE_ENV_${randomUUID().replace(/-/g, "")}`;
+            lines.push(`${key}<<${delimiter}`);
+            lines.push(typeof value === "object" && value !== null ? JSON.stringify(value) : String(value));
+            lines.push(delimiter);
+          }
+          fs.appendFileSync(process.env.GITHUB_ENV, `${lines.join("\n")}\n`);
+          NODE
+
+      - name: 🧪 Verify the configured gate runner is installed
+        if: steps.gate.outputs.configured == 'true'
+        env:
+          GATE_ID: ${{ steps.gate.outputs.gate }}
+          GATE_RUNNER: ${{ steps.gate.outputs.runner }}
+          GATE_TASK: ${{ steps.gate.outputs.task }}
+          PACKAGE_MANAGER: ${{ inputs.package_manager }}
+        run: |
+          set -euo pipefail
+          HEAD="${GATE_RUNNER%% *}"
+          if ! command -v "$HEAD" >/dev/null 2>&1; then
+            echo "::error::gates.runner is \"$GATE_RUNNER\", but \"$HEAD\" is not installed on this runner, so gates.$GATE_ID would have run \"$GATE_RUNNER $GATE_TASK\" and died with a bare exit 127. CI was provisioned with package_manager: '$PACKAGE_MANAGER'. Either set gates.runner to \"$PACKAGE_MANAGER run\" in .lisa.config.json, or pass package_manager: '$HEAD' to this workflow."
+            exit 1
+          fi
+          if [ -n "$PACKAGE_MANAGER" ] && [ "$HEAD" != "$PACKAGE_MANAGER" ]; then
+            echo "::warning::gates.runner is \"$GATE_RUNNER\" but CI was provisioned with package_manager: '$PACKAGE_MANAGER'. \"$HEAD\" is present on this runner today so gates.$GATE_ID will run, but the two disagree, and a runner image without \"$HEAD\" turns every gate into a bare exit 127."
+          fi
+        working-directory: ${{ inputs.working_directory || '.' }}
+
+      - name: 🧩 Arm this unit-test shard
+        env:
+          SHARD: ${{ matrix.shard }}
+          TOTAL: ${{ inputs.unit_test_shards }}
+        run: |
+          set -euo pipefail
+          OUTPUT="$RUNNER_TEMP/lisa-unit-test-shard"
+          mkdir -p "$OUTPUT"
+          {
+            echo "LISA_TEST_SHARD=$SHARD/$TOTAL"
+            echo "LISA_TEST_SHARD_OUTPUT=$OUTPUT"
+          } >> "$GITHUB_ENV"
+
+      - name: 🧪 Run the test-correctness gate
+        id: gate_run
+        continue-on-error: ${{ steps.gate.outputs.level == 'optional' }}
+        if: steps.gate.outputs.configured == 'true'
+        env:
+          NODE_OPTIONS: --max-old-space-size=6144
+          GATE_RUNNER: ${{ steps.gate.outputs.runner }}
+          GATE_TASK: ${{ steps.gate.outputs.task }}
+        run: |
+          echo "::notice title=Unit-test progress::Tests and coverage reporting can be quiet. A progress notice will appear every 30 seconds while the command runs."
+          node -e '
+            setInterval(() => {
+              const seconds = Math.floor(process.uptime());
+              console.log(`::notice title=Unit-test progress::Command is still running (${seconds} seconds). Quiet output can include coverage reporting.`);
+            }, 30000);
+          ' &
+          UNIT_PROGRESS_PID=$!
+          trap 'kill "$UNIT_PROGRESS_PID" 2>/dev/null || true; wait "$UNIT_PROGRESS_PID" 2>/dev/null || true' EXIT
+          # Keep the parent alive to reap its timer even for a runner using exec.
+          ( $GATE_RUNNER $GATE_TASK )
+        working-directory: ${{ inputs.working_directory || '.' }}
+
+      - name: 🟡 Report the optional gate that failed
+        if: always() && steps.gate_run.outcome == 'failure' && steps.gate.outputs.level == 'optional'
+        env:
+          GATE_ID: ${{ steps.gate.outputs.gate }}
+          GATE_MOMENT: ${{ inputs.moment }}
+        run: |
+          set -euo pipefail
+          echo "::warning title=$GATE_ID failed and is optional::$GATE_ID is declared \"optional\" at $GATE_MOMENT and its task FAILED, so the property it proves does NOT hold. It did not fail this workflow and skipped nothing downstream, because that is what \"optional\" declares. Declare it \"required\" to make the failure block."
+          {
+            echo "### 🟡 $GATE_ID failed (optional)"
+            echo
+            echo "The \`$GATE_ID\` gate is declared **optional** at \`$GATE_MOMENT\`, and its task failed — the property it proves does **not** hold."
+            echo
+            echo "By declaration that did not fail this workflow and skipped nothing after it. Declare it \`required\` to make the failure a merge condition, or \`off\` to say on the record that this project does not govern the property here."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: 🧪 Run unit tests with coverage
+        id: test_coverage
+        if: steps.check_script.outputs.exists == 'true' && steps.gate.outputs.configured == 'false'
+        run: |
+          echo "::notice title=Unit-test progress::Tests and coverage reporting can be quiet. A progress notice will appear every 30 seconds while the command runs."
+          node -e '
+            setInterval(() => {
+              const seconds = Math.floor(process.uptime());
+              console.log(`::notice title=Unit-test progress::Command is still running (${seconds} seconds). Quiet output can include coverage reporting.`);
+            }, 30000);
+          ' &
+          UNIT_PROGRESS_PID=$!
+          trap 'kill "$UNIT_PROGRESS_PID" 2>/dev/null || true; wait "$UNIT_PROGRESS_PID" 2>/dev/null || true' EXIT
+          (
+            if [ "$PACKAGE_MANAGER" = "npm" ]; then
+              npm run test:cov
+            elif [ "$PACKAGE_MANAGER" = "yarn" ]; then
+              yarn test:cov
+            elif [ "$PACKAGE_MANAGER" = "bun" ]; then
+              bun run test:cov
+            fi
+          )
+        env:
+          NODE_OPTIONS: --max-old-space-size=6144
+        working-directory: ${{ inputs.working_directory || '.' }}
+
+      # `lisa-test-run` writes the receipt before the runner starts. Without
+      # it this leg ran the WHOLE suite: the installed Lisa predates sharding,
+      # or the gate task does not go through `lisa-test-run`.
+      - name: 🧾 Prove this shard ran only its slice
+        if: always() && (steps.gate_run.outcome == 'success' || steps.gate_run.outcome == 'failure' || steps.test_coverage.outcome == 'success' || steps.test_coverage.outcome == 'failure')
+        run: |
+          set -euo pipefail
+          RECEIPT="$LISA_TEST_SHARD_OUTPUT/lisa-shard-receipt.json"
+          if [ ! -f "$RECEIPT" ]; then
+            echo "::error title=Unit-test shard was not applied::The test command left no $RECEIPT, so it ran the whole suite instead of this shard. unit_test_shards needs the project to install a @codyswann/lisa that shards through lisa-test-run, and a unit gate task that runs jest or vitest through lisa-test-run."
+            exit 1
+          fi
+          cat "$RECEIPT"
+
+      - name: 📤 Upload this shard's results
+        if: always() && (steps.gate_run.outcome == 'success' || steps.gate_run.outcome == 'failure' || steps.test_coverage.outcome == 'success' || steps.test_coverage.outcome == 'failure')
+        uses: actions/upload-artifact@v7
+        with:
+          name: unit-test-shard-${{ needs.test_unit_shard_plan.outputs.nonce }}-${{ matrix.shard }}
+          path: ${{ runner.temp }}/lisa-unit-test-shard
+          if-no-files-found: error
+          retention-days: 1
 
   test_mutation:
     permissions:
@@ -3739,6 +4213,8 @@ jobs:
         bdd_coverage,
         learnings_budget,
         test_unit,
+        test_unit_shard_plan,
+        test_unit_shard,
         test_mutation,
         test_mutation_measured,
         test_integration,
@@ -3822,6 +4298,7 @@ jobs:
               "bdd_coverage": "🧾 BDD Behavior Contract",
               "learnings_budget": "📚 Learnings Budget",
               "test_unit": "🧪 Run Unit Tests",
+              "test_unit_shard_plan": "🧮 Plan Unit-Test Shards",
               "test_mutation": "🧬 Mutation Testing Gate",
               "test_mutation_measured": "🧬 Did the mutation gate measure anything?",
               "test_integration": "🧪 Run Integration Tests",

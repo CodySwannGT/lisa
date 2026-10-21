@@ -43,6 +43,29 @@ export const GATES_SCRIPT = path.join(
   "all/copy-overwrite/scripts/lisa-gates.mjs"
 );
 
+/**
+ * Jobs that run another job's gate as one leg of it, keyed to that job.
+ *
+ * `test_unit_shard` (#4479) carries exact copies of `test_unit`'s resolve,
+ * probe and run steps, so every inventory that finds jobs BY those steps finds
+ * it too. It is not a second façade job: it posts no gate context, has no plan
+ * key of its own (a key would break every consumer's installed planner), and
+ * reports only through `test_unit`, which is the aggregate. Inventories skip
+ * the legs named here; `quality-unit-test-shards.test.ts` pins that each leg's
+ * steps are its parent's, which is what makes skipping it safe.
+ */
+export const SHARD_LEGS: Readonly<Record<string, string>> = Object.freeze({
+  test_unit_shard: "test_unit",
+});
+
+/**
+ * Whether a job is a shard leg of another job's gate.
+ * @param job - Job id
+ * @returns True for a leg named in `SHARD_LEGS`
+ */
+export const isShardLeg = (job: string): boolean =>
+  Object.hasOwn(SHARD_LEGS, job);
+
 /** One converted job, its gate, and the steps on each path. */
 export interface ConvertedJob {
   job: string;

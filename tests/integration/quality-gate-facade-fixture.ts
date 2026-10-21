@@ -20,8 +20,10 @@ import {
 export {
   CONVERTED,
   GATES_SCRIPT,
+  isShardLeg,
   PLAYWRIGHT_YML,
   QUALITY_YML,
+  SHARD_LEGS,
 } from "./quality-gate-facade-jobs.js";
 export type { ConvertedJob } from "./quality-gate-facade-jobs.js";
 

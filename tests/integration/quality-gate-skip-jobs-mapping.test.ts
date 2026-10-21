@@ -28,6 +28,7 @@ import {
 import {
   QUALITY_YML,
   WORKFLOW_FILES,
+  isShardLeg,
   source,
   workflow,
   workflowIn,
@@ -89,6 +90,9 @@ const gateOf = (job: string, file: string): string | null => {
 const derivedJobGates: Record<string, string> = Object.fromEntries(
   WORKFLOW_FILES.flatMap(file =>
     Object.keys(workflowIn(file).jobs).flatMap(job => {
+      // A shard leg resolves its parent's gate and posts no context of its
+      // own, so it has no QUALITY_JOB_GATES row (see SHARD_LEGS).
+      if (isShardLeg(job)) return [];
       const gate = gateOf(job, file);
       return gate === null ? [] : [[job, gate] as const];
     })
