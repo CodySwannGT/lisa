@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.81.8](https://github.com/CodySwannGT/lisa/compare/v4.81.7...v4.81.8) (2026-10-21)
+
+
+### Bug Fixes
+
+* **ci:** allow a consumer unit-test time budget ([a6b6e40](https://github.com/CodySwannGT/lisa/commit/a6b6e403ad5351e740c454431d53e9d3f9503a28)), closes [#4109](https://github.com/CodySwannGT/lisa/issues/4109) [#4479](https://github.com/CodySwannGT/lisa/issues/4479) [CodySwannGT/lisa#4480](https://github.com/CodySwannGT/lisa/issues/4480)
+* **deps:** patch launch-editor/vite for GHSA-587h-7wmj-h5pm ([fb18ea7](https://github.com/CodySwannGT/lisa/commit/fb18ea7662829d6f5ad6dc44e7475d2614ede195)), closes [CodySwannGT/lisa#4480](https://github.com/CodySwannGT/lisa/issues/4480)
+
 ### [4.81.7](https://github.com/CodySwannGT/lisa/compare/v4.81.6...v4.81.7) (2026-10-20)
 
 
