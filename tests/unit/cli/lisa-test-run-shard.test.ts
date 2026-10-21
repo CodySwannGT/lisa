@@ -162,7 +162,10 @@ describe("shardArgv", () => {
     ]);
   });
 
-  it("gives vitest the shard, a blob report, and zeroed per-shard floors", () => {
+  it("gives vitest the shard, a blob report, and no per-shard thresholds", () => {
+    // `thresholds=false` and not four zeroed metrics: zeroes leave glob,
+    // `perFile` and `100: true` thresholds live, and each of those fails a
+    // partial shard. The merge still enforces the config's thresholds.
     expect(shardArgv([VITEST, "run", COVERAGE], VITEST, plan)).toEqual([
       VITEST,
       "run",
@@ -170,10 +173,7 @@ describe("shardArgv", () => {
       "--shard=2/4",
       "--reporter=blob",
       `--outputFile.blob=${path.join("/o", "blob-2-4.json")}`,
-      "--coverage.thresholds.lines=0",
-      "--coverage.thresholds.functions=0",
-      "--coverage.thresholds.branches=0",
-      "--coverage.thresholds.statements=0",
+      "--coverage.thresholds=false",
     ]);
   });
 });

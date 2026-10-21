@@ -18,7 +18,9 @@
  *
  * Per-shard coverage floors are switched off, because a shard measures a slice
  * of the suite against the whole source and fails any project-wide floor. The
- * floor is enforced once, by the merge, over the union of every shard.
+ * floor is enforced once, by the merge, over the union of every shard. Vitest
+ * enforces every threshold form its config declares at that merge; the Jest
+ * merge supports the `global` key only and refuses the rest by name.
  * @module cli/lisa-test-run-shard
  */
 import * as fs from "node:fs";
@@ -236,9 +238,10 @@ export function shardArgv(
     shard,
     "--reporter=blob",
     `--outputFile.blob=${path.join(leg.output, `blob-${leg.index}-${leg.total}.json`)}`,
-    ...["lines", "functions", "branches", "statements"].map(
-      metric => `--coverage.thresholds.${metric}=0`
-    ),
+    // Every threshold off, not four zeroed metrics: glob, `perFile` and
+    // `100: true` thresholds survive zeroes and fail a partial shard. The
+    // merge (`--merge-reports`) still enforces the config's thresholds.
+    "--coverage.thresholds=false",
   ];
 }
 
