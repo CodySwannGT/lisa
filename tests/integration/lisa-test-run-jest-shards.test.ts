@@ -185,7 +185,21 @@ describe("Jest shard merge", () => {
 
   it("enforces the floor when the config, not the command, turns coverage on", () => {
     // `collectCoverage: true` in jest.config with no --coverage flag: the
-    // shards still collect, so the merge must still hold them to the floor.
+    // shards still collect, so the merge must still hold them to the floor:
+    // the merged 44.44% holds a floor of 40 and misses one of 90.
+    const holds = project(40, true);
+    const holdsArgv = jestArgv(holds, false);
+    expect(
+      mergeJestShards(
+        holdsArgv,
+        readShardReceipts(shardTwice(holds, holdsArgv), 2),
+        holds
+      )
+    ).toBe(0);
+    expect(
+      fs.existsSync(path.join(holds, "coverage", "coverage-summary.json"))
+    ).toBe(true);
+
     const misses = project(90, true);
     const argv = jestArgv(misses, false);
     expect(
