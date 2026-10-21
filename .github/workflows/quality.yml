@@ -71,6 +71,11 @@ on:
         required: false
         default: 30
         type: number
+      unit_test_timeout_minutes:
+        description: 'Unit-test job time budget in minutes. Increase for a measured slow suite plus coverage; this does not change test selection or other job budgets.'
+        required: false
+        default: 45
+        type: number
       moment:
         # Which set of gates applies. Every job below resolves its gate from
         # `.lisa.config.json` AT THIS MOMENT, so one input decides whether this
@@ -2378,7 +2383,10 @@ jobs:
       contents: read
     name: 🧪 Run Unit Tests
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    # 45 is the default budget. A caller whose measured suite plus coverage
+    # runs near that ceiling can set unit_test_timeout_minutes without raising
+    # other job budgets (#4480); sharding the job is #4479.
+    timeout-minutes: ${{ inputs.unit_test_timeout_minutes }}
     needs: [gate_plan]
     if: ${{ always() && !cancelled() && !contains(format(',{0},', inputs.skip_jobs), ',test:unit,') && (needs.gate_plan.result != 'success' || !contains(needs.gate_plan.outputs.plan, '"test_unit":"skip"')) }}
 

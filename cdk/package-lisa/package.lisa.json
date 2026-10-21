@@ -24,7 +24,7 @@
     "devDependencies": {
       "aws-cdk": "^2.1127.0",
       "esbuild": "^0.28.1",
-      "vite": "^8.3.2",
+      "vite": "^8.3.3",
       "vitest": "^4.1.11",
       "@vitest/coverage-v8": "^4.1.11",
       "eslint-plugin-oxlint": "1.62.0",

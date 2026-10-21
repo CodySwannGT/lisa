@@ -187,7 +187,7 @@ original error and does not change dependencies. Nested selectors and unreadable
 manifests remain unverified; this diagnostic is not a full lockfile audit.
 
 Clean TypeScript and CDK hosts receive the shared Node 24.21.0 LTS baseline,
-Vitest and coverage-v8 4.1.11 minimums, and a Vite 8.3.2 minimum within Vite 8.
+Vitest and coverage-v8 4.1.11 minimums, and a Vite 8.3.3 minimum within Vite 8.
 Lisa retains the TypeScript 6, ESLint 9, Knip 5, Husky 8 and Vitest 4 families.
 CDK applies force `constructs ^10.7.2` and default `aws-cdk-lib`, which satisfy
 the peers of `aws-cdk-github-oidc` 5.2.0. Lisa does not add opt-in construct

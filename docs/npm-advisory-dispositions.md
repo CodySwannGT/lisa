@@ -14,7 +14,7 @@ Knip remains on the baseline release 5.82.1 in runtime/local governance. The inc
 
 Oxlint and eslint-plugin-oxlint stay on their matching baseline 1.62.0 releases in runtime and every existing applicable governance field. The incidental 1.86.0 preset disabled five additional ESLint JSDoc rules that the existing Oxlint configuration does not enforce. JSDoc itself remained on baseline 61.7.1. The matching pins preserve the existing enforcement implementation without weakening rules or adding unrelated configuration changes. Compatible patched children remain resolved normally.
 
-The development Lisa self-dependency now resolves from ^4.69.1, the current supported release observed during this task. Node 22.23.3, Bun 1.3.8, the existing Actions expression pin, Vitest/coverage-v8 4.1.11 and Vite 8.3.2 controls remain in place.
+The development Lisa self-dependency now resolves from ^4.69.1, the current supported release observed during this task. Node 22.23.3, Bun 1.3.8, the existing Actions expression pin, Vitest/coverage-v8 4.1.11 and Vite 8.3.3 controls remain in place.
 
 A normal constraints-bounded fresh lock refresh preserves Ajv 6/8, minimatch 3/9/10, picomatch 2/4 and YAML 1/2. Existing host locks need a normal compatible refresh to pick up repaired children. Do not flatten these packages to one major or rely on nested overrides that pinned Bun 1.3.8 ignores. npm overrides also do not propagate from the installed Lisa package into a host's root manifest. Root-only audit results are insufficient consumer proof.
 

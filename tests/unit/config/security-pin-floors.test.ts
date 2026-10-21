@@ -54,7 +54,7 @@ const ADVISORY_FLOORS: Readonly<Record<string, string>> = {
   systeminformation: "5.31.7",
   tar: "7.5.21",
   undici: "6.28.1",
-  vite: "8.3.2",
+  vite: "8.3.3",
   "websocket-driver": "0.7.5",
   ws: "8.21.0",
 };

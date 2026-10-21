@@ -13,7 +13,7 @@ import { cleanupTempDir, createTempDir } from "../../helpers/test-utils.js";
 const ROOT = path.resolve(import.meta.dirname, "../../..");
 const NODE_PATCH = "24.21.0";
 const VITEST_FLOOR = "4.1.11";
-const VITE_FLOOR = "8.3.2";
+const VITE_FLOOR = "8.3.3";
 const PACKAGE_JSON = "package.json";
 const TEMPLATE_NAME = "package.lisa.json";
 const STACKS = [
