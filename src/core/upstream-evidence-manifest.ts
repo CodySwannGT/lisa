@@ -371,7 +371,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "cdk/merge/.oxlintrc.json":
       "f7d248cf8a89561374d7e68e24aa780f4a6a523938475ad685f034ce0194d75c",
     "cdk/package-lisa/package.lisa.json":
-      "ff8d188e51a31d2c4ab57214e083a2664da499e7cc340114a668c8fe932d79b2",
+      "f0530a29e2bdd2ac6e59f57816792dffbc06ba7beac038eb688843564338eb0b",
     "eslint-plugin-code-organization/README.md":
       "e70c9e262ce3a97e1f9fe1897ffa71e3d1b124f10486b90ead5d4a5252977826",
     "eslint-plugin-code-organization/__tests__/enforce-statement-order.test.js":
@@ -703,11 +703,11 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "nestjs/merge/.oxlintrc.json":
       "1de29d135744df0258e8659ee0b684acf84e687bbefade51db0576813e6ff097",
     "nestjs/package-lisa/package.lisa.json":
-      "6eccb6dc8c22740451f2374da78e38aff81c730c17559872381e01f4876a8254",
+      "ca3ad60aed40327d792d6c9c3a760a6d1d7570b266bd81644cd071378aba0854",
     "npm-package/create-only/.github/workflows/publish-to-npm.yml":
       "20760529dd59186baf870fb2d0ac555ff95bc3dc75ea96ba4564bf37d61f708e",
     "npm-package/package-lisa/package.lisa.json":
-      "2a61fd5f0e27578e58ac9b1368cf5d6ad4df15591348f1f3ea97cd2c6d24974f",
+      "2336f61121c1fe3b17751bdc6d4c2285560f4704a645833c696b008fc8e13e5f",
     "oxlint/base.json":
       "8cbc563bdfbbaf455742cef24d33676f45b55baf1ea62b529018b2d112d70f8a",
     "oxlint/cdk.json":
@@ -763,7 +763,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "phaser/merge/.oxlintrc.json":
       "02c0d70e6e07bc0e981f94a1e2ccd01a2c295c4c66e8b8ea9b2f363d44fa5c06",
     "phaser/package-lisa/package.lisa.json":
-      "6d933a04c7b0e3a51683648eb1be2fe055796ced34f1b6c834dd8d765f9fd1ec",
+      "2862ccf524bbdc34fd191a677c674be80f254c097b98ba259950f5698dc161db",
     "plugins/src/base/agents/architecture-specialist.md":
       "2346c37ddce2b1ff059938d71be05f5f23acfe28066bcba4f9a1070ed6727a93",
     "plugins/src/base/agents/bug-fixer.md":
@@ -2943,7 +2943,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/merge/.oxlintrc.json":
       "9504c20db80470c242c4ffe8cccad6951ed8141dfb5bf6503053e0b2712ab276",
     "typescript/package-lisa/package.lisa.json":
-      "9f5fdfe64b2371ae00543abb3925a3019983cc18d0730d496063f6f35556eb85",
+      "25ab87ead8d54ac5458257ddb37edfd74cb1c4716d7789204ac35a3aa16ac6d5",
     "ui/README.md":
       "7a67d7bdd49ff214ca204cc4e54ba70c37aa05fd6cc1e314fd9441a53eafc752",
     "ui/index.html":

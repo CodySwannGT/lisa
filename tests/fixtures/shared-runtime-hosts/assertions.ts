@@ -38,7 +38,7 @@ export function assertGeneratedPolicy(host: string): void {
     manifest.overrides.vite === "$vite"
       ? manifest.devDependencies.vite
       : manifest.overrides.vite
-  ).toBe("^8.3.2");
+  ).toBe("^8.3.3");
 }
 
 /**
