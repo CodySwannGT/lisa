@@ -137,8 +137,10 @@ describe("test_unit as the aggregate", () => {
 
     const armed = execute(steps[arm]?.run, { TOTAL: "4" });
     expect(armed.status, armed.stdout).toBe(0);
-    expect(armed.env).toBe(
-      `LISA_TEST_SHARD_MERGE=${armed.runnerTemp}/lisa-unit-test-shards\nLISA_TEST_SHARD_TOTAL=4\n`
+    // As step outputs; quality-unit-test-shards-env-scope.test.ts pins
+    // that only the test command binds them.
+    expect(armed.output).toBe(
+      `merge=${armed.runnerTemp}/lisa-unit-test-shards\ntotal=4\n`
     );
   });
 });

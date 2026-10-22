@@ -227,8 +227,8 @@ describe("test_unit_shard", () => {
     const armed = execute(steps[arm]?.run, { SHARD: "3", TOTAL: "4" });
 
     expect(armed.status, armed.stdout).toBe(0);
-    expect(armed.env).toBe(
-      `LISA_TEST_SHARD=3/4\nLISA_TEST_SHARD_OUTPUT=${armed.runnerTemp}/lisa-unit-test-shard\n`
+    expect(armed.output).toBe(
+      `shard=3/4\noutput=${armed.runnerTemp}/lisa-unit-test-shard\n`
     );
     expect(
       fs.statSync(`${armed.runnerTemp}/lisa-unit-test-shard`).isDirectory()

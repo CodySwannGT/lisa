@@ -11184,6 +11184,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/quality-ungated-jobs.test.ts": true,
     "tests/integration/quality-unit-progress.test.ts": true,
     "tests/integration/quality-unit-test-shards-aggregate.test.ts": true,
+    "tests/integration/quality-unit-test-shards-env-scope.test.ts": true,
     "tests/integration/quality-unit-test-shards-fixture.ts": true,
     "tests/integration/quality-unit-test-shards.test.ts": true,
     "tests/integration/quality-verification-coverage-collapse.test.ts": true,

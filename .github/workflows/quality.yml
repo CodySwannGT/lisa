@@ -2721,16 +2721,21 @@ jobs:
           pattern: unit-test-shard-${{ needs.test_unit_shard_plan.outputs.nonce }}-*
           path: ${{ runner.temp }}/lisa-unit-test-shards
 
+      # Step outputs, not $GITHUB_ENV: an env-file write reaches every later
+      # step, and Lisa's own regression steps below also run `lisa-test-run`,
+      # which would replay these reports instead of running their specs. Only
+      # the two test-command steps bind the outputs.
       - name: 🧩 Arm the unit-test shard merge
+        id: shard_arm
         if: steps.shard_download.outcome == 'success'
         env:
           TOTAL: ${{ inputs.unit_test_shards }}
         run: |
           set -euo pipefail
           {
-            echo "LISA_TEST_SHARD_MERGE=$RUNNER_TEMP/lisa-unit-test-shards"
-            echo "LISA_TEST_SHARD_TOTAL=$TOTAL"
-          } >> "$GITHUB_ENV"
+            echo "merge=$RUNNER_TEMP/lisa-unit-test-shards"
+            echo "total=$TOTAL"
+          } >> "$GITHUB_OUTPUT"
 
       - name: 🧪 Run the test-correctness gate
         id: gate_run
@@ -2740,6 +2745,10 @@ jobs:
           NODE_OPTIONS: --max-old-space-size=6144
           GATE_RUNNER: ${{ steps.gate.outputs.runner }}
           GATE_TASK: ${{ steps.gate.outputs.task }}
+          LISA_TEST_SHARD: ${{ steps.shard_arm.outputs.shard }}
+          LISA_TEST_SHARD_OUTPUT: ${{ steps.shard_arm.outputs.output }}
+          LISA_TEST_SHARD_MERGE: ${{ steps.shard_arm.outputs.merge }}
+          LISA_TEST_SHARD_TOTAL: ${{ steps.shard_arm.outputs.total }}
         run: |
           echo "::notice title=Unit-test progress::Tests and coverage reporting can be quiet. A progress notice will appear every 30 seconds while the command runs."
           node -e '
@@ -2794,6 +2803,10 @@ jobs:
           )
         env:
           NODE_OPTIONS: --max-old-space-size=6144
+          LISA_TEST_SHARD: ${{ steps.shard_arm.outputs.shard }}
+          LISA_TEST_SHARD_OUTPUT: ${{ steps.shard_arm.outputs.output }}
+          LISA_TEST_SHARD_MERGE: ${{ steps.shard_arm.outputs.merge }}
+          LISA_TEST_SHARD_TOTAL: ${{ steps.shard_arm.outputs.total }}
         working-directory: ${{ inputs.working_directory || '.' }}
 
       - name: Execute and name Node 24 regression specs
@@ -3214,7 +3227,10 @@ jobs:
           fi
         working-directory: ${{ inputs.working_directory || '.' }}
 
+      # Step outputs, as in test_unit's merge: only the test command and the
+      # shard proof bind them.
       - name: 🧩 Arm this unit-test shard
+        id: shard_arm
         env:
           SHARD: ${{ matrix.shard }}
           TOTAL: ${{ inputs.unit_test_shards }}
@@ -3223,9 +3239,9 @@ jobs:
           OUTPUT="$RUNNER_TEMP/lisa-unit-test-shard"
           mkdir -p "$OUTPUT"
           {
-            echo "LISA_TEST_SHARD=$SHARD/$TOTAL"
-            echo "LISA_TEST_SHARD_OUTPUT=$OUTPUT"
-          } >> "$GITHUB_ENV"
+            echo "shard=$SHARD/$TOTAL"
+            echo "output=$OUTPUT"
+          } >> "$GITHUB_OUTPUT"
 
       - name: 🧪 Run the test-correctness gate
         id: gate_run
@@ -3235,6 +3251,10 @@ jobs:
           NODE_OPTIONS: --max-old-space-size=6144
           GATE_RUNNER: ${{ steps.gate.outputs.runner }}
           GATE_TASK: ${{ steps.gate.outputs.task }}
+          LISA_TEST_SHARD: ${{ steps.shard_arm.outputs.shard }}
+          LISA_TEST_SHARD_OUTPUT: ${{ steps.shard_arm.outputs.output }}
+          LISA_TEST_SHARD_MERGE: ${{ steps.shard_arm.outputs.merge }}
+          LISA_TEST_SHARD_TOTAL: ${{ steps.shard_arm.outputs.total }}
         run: |
           echo "::notice title=Unit-test progress::Tests and coverage reporting can be quiet. A progress notice will appear every 30 seconds while the command runs."
           node -e '
@@ -3289,6 +3309,10 @@ jobs:
           )
         env:
           NODE_OPTIONS: --max-old-space-size=6144
+          LISA_TEST_SHARD: ${{ steps.shard_arm.outputs.shard }}
+          LISA_TEST_SHARD_OUTPUT: ${{ steps.shard_arm.outputs.output }}
+          LISA_TEST_SHARD_MERGE: ${{ steps.shard_arm.outputs.merge }}
+          LISA_TEST_SHARD_TOTAL: ${{ steps.shard_arm.outputs.total }}
         working-directory: ${{ inputs.working_directory || '.' }}
 
       # `lisa-test-run` writes the receipt before the runner starts. Without
@@ -3296,6 +3320,8 @@ jobs:
       # or the gate task does not go through `lisa-test-run`.
       - name: 🧾 Prove this shard ran only its slice
         if: always() && (steps.gate_run.outcome == 'success' || steps.gate_run.outcome == 'failure' || steps.test_coverage.outcome == 'success' || steps.test_coverage.outcome == 'failure')
+        env:
+          LISA_TEST_SHARD_OUTPUT: ${{ steps.shard_arm.outputs.output }}
         run: |
           set -euo pipefail
           RECEIPT="$LISA_TEST_SHARD_OUTPUT/lisa-shard-receipt.json"
