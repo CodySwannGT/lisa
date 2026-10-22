@@ -1853,14 +1853,16 @@ function normaliseBaseRef(ref) {
  * The run's own base describes the run's own pull request, and nothing else.
  * When `options.pr` names the pull request being inspected, GITHUB_BASE_REF
  * and the payload are used only if the payload's `pull_request.number` IS that
- * pull request. Otherwise a `--pr=8` inspected from PR #7's staging-base run
- * would be judged against staging, and a dev-base PR could pass while missing a
- * dev-only context. The ignored base is returned as `ignoredEventBase` so the
- * fallback can say why it fell back; `--base` still names it explicitly.
+ * pull request, in the same repository (`options.repo`, from `--repo`).
+ * Otherwise a `--pr=8` inspected from PR #7's staging-base run, or another
+ * repository's PR #7, would be judged against staging, and a dev-base PR could
+ * pass while missing a dev-only context. The ignored base is returned as
+ * `ignoredEventBase` so the fallback can say why it fell back; `--base` still
+ * names it explicitly.
  *
  * @param {ReadonlyArray<string>} argv - CLI arguments
  * @param {NodeJS.ProcessEnv} [env] - Environment, injectable for tests
- * @param {{pr?: string}} [options] - The pull request being inspected, when known
+ * @param {{pr?: string, repo?: string}} [options] - The pull request and repository being inspected, when known
  * @returns {{base: string|null, source: string|null, ignoredEventBase?: string}} The base and where it came from
  */
 export function resolveBaseRef(argv, env = process.env, options = {}) {
@@ -1884,9 +1886,32 @@ export function resolveBaseRef(argv, env = process.env, options = {}) {
   if (options.pr === undefined) return found;
 
   const eventPr = payload?.pull_request?.number ?? payload?.number;
-  return String(eventPr) === String(options.pr)
+  return String(eventPr) === String(options.pr) &&
+    isEventRepository(options.repo, payload, env)
     ? found
     : { base: null, source: null, ignoredEventBase: found.base };
+}
+
+/**
+ * True when the inspected repository is the one this run's event belongs to.
+ *
+ * PR numbers are per repository, so `--repo=other/name --pr=7` from
+ * owner/name's PR #7 run is a different pull request with the same number. No
+ * `--repo` means the run's own repository. An event repository that cannot be
+ * read is not a match: the base would then be a guess.
+ *
+ * @param {string|undefined} repo - The inspected `owner/name`, if given
+ * @param {object|null} payload - The parsed event payload
+ * @param {NodeJS.ProcessEnv} env - Environment
+ * @returns {boolean} True when the event's base describes the inspected repository
+ */
+function isEventRepository(repo, payload, env) {
+  if (repo === undefined || repo === "") return true;
+  const eventRepo = payload?.repository?.full_name ?? env.GITHUB_REPOSITORY;
+  return (
+    typeof eventRepo === "string" &&
+    eventRepo.toLowerCase() === repo.toLowerCase()
+  );
 }
 
 /**
@@ -1956,7 +1981,7 @@ function unionFallbackReason(declaration, resolved) {
     const ignored =
       resolved.ignoredEventBase === undefined
         ? ""
-        : ` This run's own base, \`${resolved.ignoredEventBase}\`, was NOT used: it belongs to the run's pull request, and \`--pr\` named a different one.`;
+        : ` This run's own base, \`${resolved.ignoredEventBase}\`, was NOT used: it belongs to the run's own pull request, and \`--pr\`/\`--repo\` named a different one.`;
     return `No base ref could be resolved for the inspected pull request (looked at \`--base\`, GITHUB_BASE_REF and the event payload's \`pull_request.base.ref\`), ${consequence}${ignored} Pass \`--base=<branch>\` to name it.`;
   }
   const remedy = `Record it by hand: transcribe \`gh api repos/OWNER/NAME/rules/branches/${base} --jq '.[] | select(.type=="required_status_checks") | .parameters.required_status_checks[].context'\` (read access only) into \`required_contexts_by_branch.${base}\`, byte for byte, keeping every context in \`required_contexts\` too. A host refresh that writes per-branch sets does the same, if this repository has one.`;
@@ -4225,7 +4250,7 @@ export function inspectVacuity(argv, declaration, options = {}) {
     parkedRuns: options.parkedRuns,
     // Tied to the pull request actually inspected, so a `--pr` naming another
     // pull request is never judged against this run's own base.
-    base: resolveBaseRef(argv, options.env ?? process.env, { pr }),
+    base: resolveBaseRef(argv, options.env ?? process.env, { pr, repo }),
   });
   // The gate is evaluated on EVERY run, not only when a caller asked it to
   // block. Its findings are what make a waiver visible, and a waiver that is

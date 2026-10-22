@@ -74,7 +74,7 @@ interface GuardModule {
   resolveBaseRef(
     argv: readonly string[],
     env?: Record<string, string | undefined>,
-    options?: { pr?: string }
+    options?: { pr?: string; repo?: string }
   ): {
     base: string | null;
     source: string | null;
@@ -145,6 +145,12 @@ const HEAD_SHA = "c".repeat(40);
 /** Disables the settle wait, so a unit test never sleeps. */
 const NO_WAIT = "--settle-timeout=0";
 
+/** The repository the simulated `pull_request` event belongs to. */
+const EVENT_REPO = "owner/name";
+
+/** A different repository, whose PR numbers collide with the event's. */
+const OTHER_REPO = "other/name";
+
 /** The fallback token, spelled out so a rename is a visible test change. */
 const FALLBACK_TOKEN = "required_contexts_branch_fallback";
 
@@ -211,16 +217,28 @@ afterEach(() => {
  *
  * @param number - The event's pull request number
  * @param baseRef - The event's `pull_request.base.ref`
+ * @param repo - The event's `repository.full_name`
  * @returns The payload's path
  */
-function eventFor(number: number, baseRef: string): string {
+function eventFor(number: number, baseRef: string, repo = EVENT_REPO): string {
+  return writeEvent({
+    number,
+    repository: { full_name: repo },
+    pull_request: { number, base: { ref: baseRef } },
+  });
+}
+
+/**
+ * Writes an arbitrary event payload, for the shapes `eventFor` does not build.
+ *
+ * @param payload - The payload to write
+ * @returns The payload's path
+ */
+function writeEvent(payload: Record<string, unknown>): string {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "by-branch-event-"));
   leases.push(dir);
   const event = path.join(dir, "event.json");
-  fs.writeFileSync(
-    event,
-    JSON.stringify({ number, pull_request: { number, base: { ref: baseRef } } })
-  );
+  fs.writeFileSync(event, JSON.stringify(payload));
   return event;
 }
 
@@ -451,13 +469,9 @@ describe("absent required checks are judged against the PR's base branch (#4484)
     });
 
     it("falls back to the event payload's pull_request.base.ref", () => {
-      const dir = fs.mkdtempSync(path.join(os.tmpdir(), "by-branch-event-"));
-      leases.push(dir);
-      const event = path.join(dir, "event.json");
-      fs.writeFileSync(
-        event,
-        JSON.stringify({ pull_request: { number: 7, base: { ref: "dev" } } })
-      );
+      const event = writeEvent({
+        pull_request: { number: 7, base: { ref: "dev" } },
+      });
       expect(
         mod.resolveBaseRef([], {
           GITHUB_BASE_REF: "",
@@ -524,6 +538,69 @@ describe("absent required checks are judged against the PR's base branch (#4484)
         expect(
           mod.resolveBaseRef(["--pr=8", "--base=dev"], env, { pr: "8" })
         ).toEqual({ base: "dev", source: "--base" });
+      });
+    });
+
+    describe("…and to the run's own REPOSITORY", () => {
+      // PR numbers are per repository. `--repo=other/name --pr=7` from
+      // owner/name's PR #7 run is a different pull request with the same number.
+      const env = () => ({
+        GITHUB_BASE_REF: "staging",
+        GITHUB_EVENT_PATH: eventFor(7, "staging", EVENT_REPO),
+      });
+
+      it("ignores the event base when --repo names another repository", () => {
+        expect(
+          mod.resolveBaseRef(["--repo", OTHER_REPO, "--pr=7"], env(), {
+            pr: "7",
+            repo: OTHER_REPO,
+          })
+        ).toEqual({ base: null, source: null, ignoredEventBase: "staging" });
+      });
+
+      it("uses the event base when --repo names the event's own repository", () => {
+        expect(
+          mod.resolveBaseRef(["--repo=OWNER/Name", "--pr=7"], env(), {
+            pr: "7",
+            repo: "OWNER/Name",
+          })
+        ).toEqual({ base: "staging", source: "GITHUB_BASE_REF" });
+      });
+
+      it("reads the event's repository from GITHUB_REPOSITORY when the payload lacks it", () => {
+        const event = writeEvent({
+          pull_request: { number: 7, base: { ref: "dev" } },
+        });
+        const common = { GITHUB_EVENT_PATH: event, GITHUB_BASE_REF: "dev" };
+        expect(
+          mod.resolveBaseRef(
+            [],
+            { ...common, GITHUB_REPOSITORY: EVENT_REPO },
+            {
+              pr: "7",
+              repo: EVENT_REPO,
+            }
+          )
+        ).toEqual({ base: "dev", source: "GITHUB_BASE_REF" });
+        expect(
+          mod.resolveBaseRef(
+            [],
+            { ...common, GITHUB_REPOSITORY: OTHER_REPO },
+            {
+              pr: "7",
+              repo: EVENT_REPO,
+            }
+          )
+        ).toEqual({ base: null, source: null, ignoredEventBase: "dev" });
+      });
+
+      it("still lets --base name the base for a cross-repository inspection", () => {
+        expect(
+          mod.resolveBaseRef(["--base=main"], env(), {
+            pr: "7",
+            repo: OTHER_REPO,
+          })
+        ).toEqual({ base: "main", source: "--base" });
       });
     });
   });
@@ -622,6 +699,27 @@ describe("absent required checks are judged against the PR's base branch (#4484)
           env: {
             GITHUB_BASE_REF: "staging",
             GITHUB_EVENT_PATH: eventFor(1, "staging"),
+          },
+          fetch: () => rowsFor(BY_BRANCH.staging),
+          headSha: () => HEAD_SHA,
+        }
+      );
+
+      expect(inspection?.absent).toEqual([NIGHTLY, STAGE_GUARD]);
+      expect(inspection?.requiredSet?.source).toBe("union");
+      expect(inspection?.requiredSet?.fallback?.kind).toBe(FALLBACK_TOKEN);
+    });
+
+    it("does not judge another repository's same-numbered PR against the run's base", () => {
+      // NEGATIVE CONTROL for the cross-repository case: same number, different
+      // repository, so a different pull request.
+      const inspection = mod.inspectVacuity(
+        ["--vacuity", `--repo=${OTHER_REPO}`, "--pr=1", NO_WAIT],
+        declarationWith(),
+        {
+          env: {
+            GITHUB_BASE_REF: "staging",
+            GITHUB_EVENT_PATH: eventFor(1, "staging", EVENT_REPO),
           },
           fetch: () => rowsFor(BY_BRANCH.staging),
           headSha: () => HEAD_SHA,
