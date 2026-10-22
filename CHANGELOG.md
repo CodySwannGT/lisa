@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.81.9](https://github.com/CodySwannGT/lisa/compare/v4.81.8...v4.81.9) (2026-10-22)
+
+
+### Bug Fixes
+
+* **review-evidence:** judge absent required checks against the PR's base branch ([2bdd6d4](https://github.com/CodySwannGT/lisa/commit/2bdd6d48e5aa1cc588a9c67c666dfa5454b2ec8e)), closes [#3599](https://github.com/CodySwannGT/lisa/issues/3599) [CodySwannGT/lisa#4484](https://github.com/CodySwannGT/lisa/issues/4484) [CodySwannGT/lisa#4484](https://github.com/CodySwannGT/lisa/issues/4484)
+* **review-evidence:** tie the run's base to its own PR and give a manual remedy ([621a4ca](https://github.com/CodySwannGT/lisa/commit/621a4ca254cdb9b04ff146917ae1eb967cc7bd10)), closes [#4485](https://github.com/CodySwannGT/lisa/issues/4485) [CodySwannGT/lisa#4484](https://github.com/CodySwannGT/lisa/issues/4484) [CodySwannGT/lisa#4484](https://github.com/CodySwannGT/lisa/issues/4484)
+* **review-evidence:** use the event base only for the event's own repository ([5fb2dc6](https://github.com/CodySwannGT/lisa/commit/5fb2dc61005a5d9aa8fa1512b859fd4a74a14f3c)), closes [#7](https://github.com/CodySwannGT/lisa/issues/7) [CodySwannGT/lisa#4484](https://github.com/CodySwannGT/lisa/issues/4484) [CodySwannGT/lisa#4484](https://github.com/CodySwannGT/lisa/issues/4484)
+
 ### [4.81.8](https://github.com/CodySwannGT/lisa/compare/v4.81.7...v4.81.8) (2026-10-21)
 
 
