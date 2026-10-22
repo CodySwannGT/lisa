@@ -215,6 +215,29 @@
  * credential. It is stated here rather than hidden, and it is not an invitation
  * to build a lighter-weight version of the same thing.
  *
+ * ## `required_contexts_by_branch` — absence is judged per BASE branch (#4484)
+ *
+ * `required_contexts` is the UNION across every protected branch. That is the
+ * right set for the skip and outcome arms, which ask "could this context gate
+ * a merge anywhere?", and the WRONG one for the absent arm, which asks "did a
+ * context THIS pull request's merge depends on fail to report?". Measured in a
+ * caller repository: two contexts required on `dev` only, so every
+ * staging-base pull request — green on everything staging requires — failed
+ * the evidence job with `absent_required_check` for a dev-only gate, and
+ * operators learned to ignore the job.
+ *
+ * So the declaration MAY carry `required_contexts_by_branch: { <branch>: [...] }`
+ * — transcribed from `rules/branches/<branch>`, which needs only read access,
+ * by hand or by a host refresh where a repository has one. Lisa ships no
+ * refresh and reads nothing live (#3599 stands). The absent arm selects the
+ * set for the base ref (`--base`, else `GITHUB_BASE_REF`, else the payload's
+ * `pull_request.base.ref`, the last two only for the event's own pull
+ * request). With no set
+ * for that base it falls back to the union — findings and exit code exactly as
+ * before — and REPORTS it as `required_contexts_branch_fallback`, never
+ * silently. Every run that reaches the arm prints which set it used. Trust is
+ * unchanged: the one `ruleset.baseline_fetched_at` stamp covers both lists.
+ *
  * ## `--pr` — the VACUOUS arm, and why it only ever reports
  *
  * Measured (CodySwannGT/lisa#2497): `CodeRabbit` was in this repository's
@@ -472,6 +495,22 @@ export const VIOLATIONS = Object.freeze({
   requiredNotRun: "required_context_not_run",
   requiredAmbiguous: "required_context_ambiguous",
 });
+
+/**
+ * The named notice a run carries when it judged absence against the UNION.
+ *
+ * `required_contexts` is the union of what every protected branch requires,
+ * which is the wrong set for any one pull request whose base requires less
+ * (CodySwannGT/lisa#4484): a staging-base pull request was flagged for a
+ * dev-only context on every run. `required_contexts_by_branch` carries the
+ * per-branch sets; when the base has none, the absent arm still falls back to
+ * the union — the pre-#4484 behaviour, findings and exit code unchanged — and
+ * this token is what makes that fallback impossible to miss. It is a notice
+ * about the DECLARATION'S coverage, not a finding about the pull request, so it
+ * travels beside the violations rather than among them and never changes a
+ * verdict on its own.
+ */
+export const REQUIRED_SET_FALLBACK = "required_contexts_branch_fallback";
 
 /**
  * The shipped description vocabulary for review-bot style checks.
@@ -990,6 +1029,7 @@ export function loadDeclaration(rootDir) {
   const declaration = JSON.parse(readFileSync(path, "utf8"));
   assertRequiredDeclarationKeys(declaration);
   assertDeclarationCollections(declaration);
+  assertRequiredContextsByBranch(declaration);
   assertEnforcementMode(declaration);
   assertSkipJobDeclarations(declaration.skip_job_declarations);
   assertEvidenceBearingChecks(declaration.evidence_bearing_checks ?? {});
@@ -1035,6 +1075,49 @@ function assertDeclarationCollections(declaration) {
     throw new Error(
       `check-skipped-required-checks: \`workflows\` must list at least one workflow file whose \`skip_jobs\` this guard reads.`
     );
+  }
+}
+
+/**
+ * Validates the optional per-branch required sets (CodySwannGT/lisa#4484).
+ *
+ * Optional so a declaration written before #4484 keeps loading. When present it
+ * must map each branch to an array of context strings, and every one of those
+ * contexts must also be in `required_contexts`: the union is DEFINED as the
+ * union of these sets, so a member missing from it means the two were written
+ * at different times and one is stale. Naming it beats picking one silently.
+ *
+ * @param {object} declaration - Parsed declaration
+ * @returns {void}
+ */
+function assertRequiredContextsByBranch(declaration) {
+  const byBranch = declaration.required_contexts_by_branch;
+  if (byBranch === undefined) return;
+  if (
+    byBranch === null ||
+    typeof byBranch !== "object" ||
+    Array.isArray(byBranch)
+  ) {
+    throw new Error(
+      `check-skipped-required-checks: \`required_contexts_by_branch\` must be an object mapping each branch name to the array of contexts its rules require, e.g. \`{ "staging": ["CodeRabbit"] }\`.`
+    );
+  }
+  const union = new Set(declaration.required_contexts);
+  for (const [branch, contexts] of Object.entries(byBranch)) {
+    if (
+      !Array.isArray(contexts) ||
+      !contexts.every(context => typeof context === "string")
+    ) {
+      throw new Error(
+        `check-skipped-required-checks: \`required_contexts_by_branch.${branch}\` must be an array of context strings, transcribed byte for byte from \`rules/branches/${branch}\`.`
+      );
+    }
+    const strays = contexts.filter(context => !union.has(context));
+    if (strays.length > 0) {
+      throw new Error(
+        `check-skipped-required-checks: \`required_contexts_by_branch.${branch}\` names ${strays.map(name => JSON.stringify(name)).join(", ")}, which \`required_contexts\` (the cross-branch union) does not carry. The two were written at different times and one of them is stale — re-run the host refresh so both come from the same read.`
+      );
+    }
   }
 }
 
@@ -1688,9 +1771,19 @@ export function evaluateAbsentRequiredChecks(
   checks,
   options = {}
 ) {
-  const required = declaration.required_contexts;
-  if (!Array.isArray(required))
+  if (!Array.isArray(declaration.required_contexts))
     return { violations: [], checked: 0, absent: [] };
+  // #4484: judged against the BASE branch's own set when the declaration has
+  // one, and against the union — reported, never silently — when it does not.
+  const requiredSet = selectRequiredContexts(
+    declaration,
+    options.base ?? { base: null, source: null }
+  );
+  const required = requiredSet.contexts;
+  const judgedFor =
+    requiredSet.source === "branch"
+      ? ` Judged against the contexts required on base \`${requiredSet.base}\`.`
+      : "";
 
   const at = citeHeadSha(options.headSha);
   const parked = (options.parkedRuns ?? []).filter(
@@ -1718,13 +1811,184 @@ export function evaluateAbsentRequiredChecks(
   return {
     checked: required.length,
     absent,
+    requiredSet,
     violations: absent.map(name => ({
       kind: VIOLATIONS.absent,
       token: name,
       contexts: [name],
-      message: `\`${name}\` is ruleset-required but did not report on this pull request at all.${at} It posted NO check-run — not pending, not failing, ABSENT. \`gh pr checks\` prints no line for it and the pull request page renders it exactly as one still in flight, so every surface says "wait" and none says "broken".${approval} (If the context was renamed, fix \`required_contexts\`; names are compared byte for byte.)`,
+      message: `\`${name}\` is ruleset-required but did not report on this pull request at all.${at}${judgedFor} It posted NO check-run — not pending, not failing, ABSENT. \`gh pr checks\` prints no line for it and the pull request page renders it exactly as one still in flight, so every surface says "wait" and none says "broken".${approval} (If the context was renamed, fix \`required_contexts\`; names are compared byte for byte.)`,
     })),
   };
+}
+
+/** The prefix a full ref carries and a declaration's branch keys do not. */
+const HEADS_PREFIX = "refs/heads/";
+
+/**
+ * Normalises a base ref to the bare branch name the declaration is keyed by.
+ *
+ * @param {unknown} ref - A ref as some source reported it
+ * @returns {string|null} The branch name, or null when there is none
+ */
+function normaliseBaseRef(ref) {
+  if (typeof ref !== "string") return null;
+  const trimmed = ref.trim();
+  const bare = trimmed.startsWith(HEADS_PREFIX)
+    ? trimmed.slice(HEADS_PREFIX.length)
+    : trimmed;
+  return bare === "" ? null : bare;
+}
+
+/**
+ * Resolves the branch the pull request under inspection merges INTO.
+ *
+ * Most-explicit-first, the same order {@link resolvePullRequestNumber} uses:
+ * an operator's `--base`, then `GITHUB_BASE_REF` (set by Actions on every
+ * `pull_request` and `pull_request_target` run), then the event payload's
+ * `pull_request.base.ref`. Offline on purpose — every source is a fact this run
+ * already holds, so selecting a set costs no API call, no token scope and no
+ * rate limit, and works the same on a fork pull request. Returning null is a
+ * real answer: the caller falls back to the union and SAYS so.
+ *
+ * The run's own base describes the run's own pull request, and nothing else.
+ * When `options.pr` names the pull request being inspected, GITHUB_BASE_REF
+ * and the payload are used only if the payload's `pull_request.number` IS that
+ * pull request, in the same repository (`options.repo`, from `--repo`).
+ * Otherwise a `--pr=8` inspected from PR #7's staging-base run, or another
+ * repository's PR #7, would be judged against staging, and a dev-base PR could
+ * pass while missing a dev-only context. The ignored base is returned as
+ * `ignoredEventBase` so the fallback can say why it fell back; `--base` still
+ * names it explicitly.
+ *
+ * @param {ReadonlyArray<string>} argv - CLI arguments
+ * @param {NodeJS.ProcessEnv} [env] - Environment, injectable for tests
+ * @param {{pr?: string, repo?: string}} [options] - The pull request and repository being inspected, when known
+ * @returns {{base: string|null, source: string|null, ignoredEventBase?: string}} The base and where it came from
+ */
+export function resolveBaseRef(argv, env = process.env, options = {}) {
+  const explicit = normaliseBaseRef(readFlagValue(argv, "--base"));
+  if (explicit !== null) return { base: explicit, source: "--base" };
+
+  const eventPath = env.GITHUB_EVENT_PATH;
+  const payload =
+    eventPath !== undefined && eventPath !== "" && existsSync(eventPath)
+      ? readJsonOrNull(eventPath)
+      : null;
+  const fromEnv = normaliseBaseRef(env.GITHUB_BASE_REF);
+  const fromEvent = normaliseBaseRef(payload?.pull_request?.base?.ref);
+  const found =
+    fromEnv !== null
+      ? { base: fromEnv, source: "GITHUB_BASE_REF" }
+      : fromEvent !== null
+        ? { base: fromEvent, source: "GITHUB_EVENT_PATH" }
+        : null;
+  if (found === null) return { base: null, source: null };
+  if (options.pr === undefined) return found;
+
+  const eventPr = payload?.pull_request?.number ?? payload?.number;
+  return String(eventPr) === String(options.pr) &&
+    isEventRepository(options.repo, payload, env)
+    ? found
+    : { base: null, source: null, ignoredEventBase: found.base };
+}
+
+/**
+ * True when the inspected repository is the one this run's event belongs to.
+ *
+ * PR numbers are per repository, so `--repo=other/name --pr=7` from
+ * owner/name's PR #7 run is a different pull request with the same number. No
+ * `--repo` means the run's own repository. An event repository that cannot be
+ * read is not a match: the base would then be a guess.
+ *
+ * @param {string|undefined} repo - The inspected `owner/name`, if given
+ * @param {object|null} payload - The parsed event payload
+ * @param {NodeJS.ProcessEnv} env - Environment
+ * @returns {boolean} True when the event's base describes the inspected repository
+ */
+function isEventRepository(repo, payload, env) {
+  if (repo === undefined || repo === "") return true;
+  const eventRepo = payload?.repository?.full_name ?? env.GITHUB_REPOSITORY;
+  return (
+    typeof eventRepo === "string" &&
+    eventRepo.toLowerCase() === repo.toLowerCase()
+  );
+}
+
+/**
+ * Picks the required set the absent arm judges a pull request against.
+ *
+ * The base branch's own set when `required_contexts_by_branch` carries one —
+ * including an EMPTY one, which is a branch that requires nothing, not a branch
+ * nobody recorded. Otherwise the union in `required_contexts`, with a
+ * {@link REQUIRED_SET_FALLBACK} notice naming why. `line` is printed on every
+ * run that reaches the absent arm, so a downstream run proves which path it
+ * took from its own log.
+ *
+ * @param {object} declaration - The per-repo declaration
+ * @param {{base: string|null, source: string|null}} base - The resolved base ref
+ * @returns {{source: "branch"|"union", base: string|null, baseSource: string|null, contexts: string[], fallback: {kind: string, reason: string}|null, line: string}} The selection
+ */
+export function selectRequiredContexts(declaration, base) {
+  const byBranch = declaration.required_contexts_by_branch;
+  const branchSet =
+    base.base !== null &&
+    byBranch !== undefined &&
+    Object.hasOwn(byBranch, base.base)
+      ? byBranch[base.base]
+      : undefined;
+  if (Array.isArray(branchSet)) {
+    return {
+      source: "branch",
+      base: base.base,
+      baseSource: base.source,
+      contexts: [...branchSet],
+      fallback: null,
+      line: `required contexts: per-branch set for base '${base.base}' (${branchSet.length} contexts)`,
+    };
+  }
+  return {
+    source: "union",
+    base: base.base,
+    baseSource: base.source,
+    contexts: [...(declaration.required_contexts ?? [])],
+    fallback: {
+      kind: REQUIRED_SET_FALLBACK,
+      reason: unionFallbackReason(declaration, base),
+    },
+    line:
+      base.base === null
+        ? "required contexts: union fallback (no base ref resolved)"
+        : `required contexts: union fallback (no set for base '${base.base}')`,
+  };
+}
+
+/**
+ * Says why a run judged against the union, and what would end the fallback.
+ *
+ * The remedy is one a consumer of Lisa's shipped seed can always carry out:
+ * transcribe the branch's rules by hand. Lisa ships no refresh, so a host
+ * refresh is named only as an option for a repository that has one.
+ *
+ * @param {object} declaration - The per-repo declaration
+ * @param {{base: string|null, ignoredEventBase?: string}} resolved - The resolved base
+ * @returns {string} The reason
+ */
+function unionFallbackReason(declaration, resolved) {
+  const consequence =
+    "so absent required checks were judged against `required_contexts`, the UNION across every protected branch. A context only some other branch requires is reported absent here even though this base may not require it (CodySwannGT/lisa#4484).";
+  const base = resolved.base;
+  if (base === null) {
+    const ignored =
+      resolved.ignoredEventBase === undefined
+        ? ""
+        : ` This run's own base, \`${resolved.ignoredEventBase}\`, was NOT used: it belongs to the run's own pull request, and \`--pr\`/\`--repo\` named a different one.`;
+    return `No base ref could be resolved for the inspected pull request (looked at \`--base\`, GITHUB_BASE_REF and the event payload's \`pull_request.base.ref\`), ${consequence}${ignored} Pass \`--base=<branch>\` to name it.`;
+  }
+  const remedy = `Record it by hand: transcribe \`gh api repos/OWNER/NAME/rules/branches/${base} --jq '.[] | select(.type=="required_status_checks") | .parameters.required_status_checks[].context'\` (read access only) into \`required_contexts_by_branch.${base}\`, byte for byte, keeping every context in \`required_contexts\` too. A host refresh that writes per-branch sets does the same, if this repository has one.`;
+  if (declaration.required_contexts_by_branch === undefined) {
+    return `The declaration has no \`required_contexts_by_branch\`, ${consequence} ${remedy}`;
+  }
+  return `\`required_contexts_by_branch\` has no set for base \`${base}\`, ${consequence} ${remedy}`;
 }
 
 /**
@@ -3984,6 +4248,9 @@ export function inspectVacuity(argv, declaration, options = {}) {
   const absent = evaluateAbsentRequiredChecks(declaration, read.checks, {
     headSha: read.headSha,
     parkedRuns: options.parkedRuns,
+    // Tied to the pull request actually inspected, so a `--pr` naming another
+    // pull request is never judged against this run's own base.
+    base: resolveBaseRef(argv, options.env ?? process.env, { pr, repo }),
   });
   // The gate is evaluated on EVERY run, not only when a caller asked it to
   // block. Its findings are what make a waiver visible, and a waiver that is
@@ -4057,6 +4324,7 @@ export function inspectVacuity(argv, declaration, options = {}) {
       ...(objection?.violations ?? []),
     ],
     absent: absent.absent,
+    requiredSet: absent.requiredSet,
     gateStates: gate.states,
     gateConditions: gate.conditions,
     gateDescriptions: gate.descriptions,
@@ -4436,6 +4704,7 @@ export function runGuard(argv, options = {}) {
       "require-review-evidence": { type: "boolean" },
       outcomes: { type: "boolean" },
       pr: { type: "string" },
+      base: { type: "string" },
       repo: { type: "string" },
       "settle-timeout": { type: "string" },
       "settle-interval": { type: "string" },
@@ -4673,6 +4942,32 @@ function appendVerdictReport(lines, result) {
       ? "The waive rate over recently merged pull requests was NOT sampled on this run, so no rate is claimed here."
       : `Recently merged pull requests sampled: ${result.waiveRate.sampled} — ${result.waiveRate.satisfied} reviewed, ${result.waiveRate.waived} waived, ${result.waiveRate.unsatisfied} unsatisfied.`,
     ""
+  );
+}
+
+/**
+ * Prints which required set the absent arm judged against, and annotates a
+ * union fallback (CodySwannGT/lisa#4484).
+ *
+ * The line is printed on EVERY run that reached the absent arm, both paths, so
+ * a downstream run proves from its own log whether the per-branch set was used.
+ * A fallback is additionally a named `::warning` annotation — loud on the
+ * checks page — while the verdict stays whatever the union's findings make it.
+ *
+ * @param {string[]} lines - Report lines
+ * @param {{line: string, fallback: {kind: string, reason: string}|null}|undefined} requiredSet - The selection
+ * @returns {void}
+ */
+function appendRequiredSetReport(lines, requiredSet) {
+  if (requiredSet === undefined) return;
+  lines.push(requiredSet.line, "");
+  if (requiredSet.fallback === null) return;
+  lines.push(
+    `⚠️ **${requiredSet.fallback.kind}** — ${requiredSet.fallback.reason}`,
+    ""
+  );
+  process.stderr.write(
+    `::warning title=${requiredSet.fallback.kind}::${requiredSet.fallback.reason}\n`
   );
 }
 
@@ -4956,6 +5251,7 @@ function appendUnexaminedContexts(lines, notExamined) {
 function buildTextReport(result, policy, outcome) {
   const lines = ["## 🔒 Required checks that prove nothing", ""];
   appendVerdictReport(lines, result);
+  appendRequiredSetReport(lines, result.vacuity?.requiredSet);
   appendSnapshotRefusal(lines, result, policy);
   appendInspectionRefusal(lines, outcome);
   appendOutcomeReport(lines, result.outcomes);

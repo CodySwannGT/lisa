@@ -513,7 +513,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "expo/create-only/.github/nightly-e2e-policy.json":
       "a6fc52bbaa7943523fba35bd1ab51d8da4b29354bf0133b47aa299b725f51e8c",
     "expo/create-only/.github/required-checks.json":
-      "8d40acc337c42fbdfc55638dc4ab43b541b975270ecae8fffec9897c13a42884",
+      "789cfa7622ba801cb65065a6e493492548dc15bf59aac82263cc5e16990be0c7",
     "expo/create-only/.github/workflows/ci.yml":
       "f4a95f3895d906429b82e33bb13c77c7a2d63027634da61c249c0a800d353f44",
     "expo/create-only/.github/workflows/deploy.yml":
@@ -681,7 +681,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "nestjs/create-only/.github/k6/thresholds/strict.json":
       "e121ec72de4596b95c013a8c71f03653bcdf057cf7f8d1fec6f0e13c1381867f",
     "nestjs/create-only/.github/required-checks.json":
-      "6de377accd8355091e31ee7b3e412187d2268650ecbeb6c2cba42923c594cfc0",
+      "f5e22c52449ccf53d20eea3541b07ed016fd7633434b2406197590b3bad5c91f",
     "nestjs/create-only/.github/workflows/ci.yml":
       "5355a0152b04ba54bf2d207df536de18e2734429a1c030487b80aa3db0693df5",
     "nestjs/create-only/.github/workflows/deploy.yml":
@@ -2865,7 +2865,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/copy-overwrite/scripts/check-nightly-e2e-health.mjs":
       "d1b26caeaf65950e3b60ff41964d234c032c50470072e7643310b1f6722e34e6",
     "typescript/copy-overwrite/scripts/check-skipped-required-checks.mjs":
-      "f403ef36885ed3d394813faa95aa9b3c813de2e134d9b8f1a838c6accf55c74e",
+      "0c31bf5adadc73a1a4ebfe11c5f97c3911695b2c13f64c77d862b1bb3fea44ef",
     "typescript/copy-overwrite/scripts/check-threshold-ratchet.mjs":
       "d4afc90ba8faf10925fff5fb0d6cd0ace22df2eaa0ec609ee969d0ec84092299",
     "typescript/copy-overwrite/scripts/check-verification-coverage.mjs":
@@ -2905,7 +2905,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/copy-overwrite/vitest.config.ts":
       "dc140e617db43da38f456bcc909ae621a62996fe25e7b0babd5e81941308365c",
     "typescript/create-only/.github/required-checks.json":
-      "9be2f3170b7c57cad1a483752d3c882213e90f36ece677d1dd4a1b1c1c66b76a",
+      "29c4770b0317c89c266e149f54b3b0707eeaea2b1271796a75be50e7b9fc150a",
     "typescript/create-only/.github/workflows/ci.yml":
       "313e42045137c59f77cf61abeebb19c8005ba7fa6d5b7d92a169a1e86ab168b5",
     "typescript/create-only/.github/workflows/review-evidence.yml":
@@ -11987,6 +11987,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/plugins/hook-registration-agreement.test.ts": true,
     "tests/unit/plugins/hook-registration.test.ts": true,
     "tests/unit/plugins/support/hook-registration-fixture.ts": true,
+    "tests/unit/scripts/absent-required-checks-by-branch.test.ts": true,
     "tests/unit/scripts/absent-required-checks.test.ts": true,
     "tests/unit/scripts/ast-grep-enforcement.test.ts": true,
     "tests/unit/scripts/automation-provenance.test.ts": true,
