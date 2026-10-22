@@ -981,7 +981,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/hooks/block-host-name-leak.agy.sh":
       "9522a2db621178d9cee5bf70ff3948251c5043868f372924bfee19126dbd1c41",
     "plugins/src/base/hooks/block-host-name-leak.mjs":
-      "e8e2e6b63da631093d2f1bfee843ce913fa800a60e61274bda7222aaee195b9b",
+      "c0a43b67a711a39ee17238113c05b3f497fa45c78ac3c2cb99593378e45eed36",
     "plugins/src/base/hooks/block-host-name-leak.sh":
       "853a890c7fe9e490e9271d7606b087643e542954fcdec4631172a40ef36bf32b",
     "plugins/src/base/hooks/block-instruction-file-edits.agy.sh":
