@@ -227,10 +227,12 @@
  * operators learned to ignore the job.
  *
  * So the declaration MAY carry `required_contexts_by_branch: { <branch>: [...] }`
- * — written by the HOST's refresh from `rules/branches/<branch>`, which needs
- * only read access; Lisa ships no refresh and reads nothing live (#3599 stands).
- * The absent arm selects the set for the base ref (`--base`, else
- * `GITHUB_BASE_REF`, else the payload's `pull_request.base.ref`). With no set
+ * — transcribed from `rules/branches/<branch>`, which needs only read access,
+ * by hand or by a host refresh where a repository has one. Lisa ships no
+ * refresh and reads nothing live (#3599 stands). The absent arm selects the
+ * set for the base ref (`--base`, else `GITHUB_BASE_REF`, else the payload's
+ * `pull_request.base.ref`, the last two only for the event's own pull
+ * request). With no set
  * for that base it falls back to the union — findings and exit code exactly as
  * before — and REPORTS it as `required_contexts_branch_fallback`, never
  * silently. Every run that reaches the arm prints which set it used. Trust is
@@ -1848,27 +1850,43 @@ function normaliseBaseRef(ref) {
  * rate limit, and works the same on a fork pull request. Returning null is a
  * real answer: the caller falls back to the union and SAYS so.
  *
+ * The run's own base describes the run's own pull request, and nothing else.
+ * When `options.pr` names the pull request being inspected, GITHUB_BASE_REF
+ * and the payload are used only if the payload's `pull_request.number` IS that
+ * pull request. Otherwise a `--pr=8` inspected from PR #7's staging-base run
+ * would be judged against staging, and a dev-base PR could pass while missing a
+ * dev-only context. The ignored base is returned as `ignoredEventBase` so the
+ * fallback can say why it fell back; `--base` still names it explicitly.
+ *
  * @param {ReadonlyArray<string>} argv - CLI arguments
  * @param {NodeJS.ProcessEnv} [env] - Environment, injectable for tests
- * @returns {{base: string|null, source: string|null}} The base and where it came from
+ * @param {{pr?: string}} [options] - The pull request being inspected, when known
+ * @returns {{base: string|null, source: string|null, ignoredEventBase?: string}} The base and where it came from
  */
-export function resolveBaseRef(argv, env = process.env) {
+export function resolveBaseRef(argv, env = process.env, options = {}) {
   const explicit = normaliseBaseRef(readFlagValue(argv, "--base"));
   if (explicit !== null) return { base: explicit, source: "--base" };
 
-  const fromEnv = normaliseBaseRef(env.GITHUB_BASE_REF);
-  if (fromEnv !== null) return { base: fromEnv, source: "GITHUB_BASE_REF" };
-
   const eventPath = env.GITHUB_EVENT_PATH;
-  if (eventPath !== undefined && eventPath !== "" && existsSync(eventPath)) {
-    const fromEvent = normaliseBaseRef(
-      readJsonOrNull(eventPath)?.pull_request?.base?.ref
-    );
-    if (fromEvent !== null) {
-      return { base: fromEvent, source: "GITHUB_EVENT_PATH" };
-    }
-  }
-  return { base: null, source: null };
+  const payload =
+    eventPath !== undefined && eventPath !== "" && existsSync(eventPath)
+      ? readJsonOrNull(eventPath)
+      : null;
+  const fromEnv = normaliseBaseRef(env.GITHUB_BASE_REF);
+  const fromEvent = normaliseBaseRef(payload?.pull_request?.base?.ref);
+  const found =
+    fromEnv !== null
+      ? { base: fromEnv, source: "GITHUB_BASE_REF" }
+      : fromEvent !== null
+        ? { base: fromEvent, source: "GITHUB_EVENT_PATH" }
+        : null;
+  if (found === null) return { base: null, source: null };
+  if (options.pr === undefined) return found;
+
+  const eventPr = payload?.pull_request?.number ?? payload?.number;
+  return String(eventPr) === String(options.pr)
+    ? found
+    : { base: null, source: null, ignoredEventBase: found.base };
 }
 
 /**
@@ -1910,7 +1928,7 @@ export function selectRequiredContexts(declaration, base) {
     contexts: [...(declaration.required_contexts ?? [])],
     fallback: {
       kind: REQUIRED_SET_FALLBACK,
-      reason: unionFallbackReason(declaration, base.base),
+      reason: unionFallbackReason(declaration, base),
     },
     line:
       base.base === null
@@ -1922,20 +1940,30 @@ export function selectRequiredContexts(declaration, base) {
 /**
  * Says why a run judged against the union, and what would end the fallback.
  *
+ * The remedy is one a consumer of Lisa's shipped seed can always carry out:
+ * transcribe the branch's rules by hand. Lisa ships no refresh, so a host
+ * refresh is named only as an option for a repository that has one.
+ *
  * @param {object} declaration - The per-repo declaration
- * @param {string|null} base - The resolved base, or null
+ * @param {{base: string|null, ignoredEventBase?: string}} resolved - The resolved base
  * @returns {string} The reason
  */
-function unionFallbackReason(declaration, base) {
+function unionFallbackReason(declaration, resolved) {
   const consequence =
-    "so absent required checks were judged against `required_contexts`, the UNION across every protected branch. A context only some other branch requires is reported absent here even though this base does not require it (CodySwannGT/lisa#4484).";
+    "so absent required checks were judged against `required_contexts`, the UNION across every protected branch. A context only some other branch requires is reported absent here even though this base may not require it (CodySwannGT/lisa#4484).";
+  const base = resolved.base;
   if (base === null) {
-    return `No base ref could be resolved (looked at \`--base\`, GITHUB_BASE_REF and the event payload's \`pull_request.base.ref\`), ${consequence} Pass \`--base=<branch>\` on a manual run.`;
+    const ignored =
+      resolved.ignoredEventBase === undefined
+        ? ""
+        : ` This run's own base, \`${resolved.ignoredEventBase}\`, was NOT used: it belongs to the run's pull request, and \`--pr\` named a different one.`;
+    return `No base ref could be resolved for the inspected pull request (looked at \`--base\`, GITHUB_BASE_REF and the event payload's \`pull_request.base.ref\`), ${consequence}${ignored} Pass \`--base=<branch>\` to name it.`;
   }
+  const remedy = `Record it by hand: transcribe \`gh api repos/OWNER/NAME/rules/branches/${base} --jq '.[] | select(.type=="required_status_checks") | .parameters.required_status_checks[].context'\` (read access only) into \`required_contexts_by_branch.${base}\`, byte for byte, keeping every context in \`required_contexts\` too. A host refresh that writes per-branch sets does the same, if this repository has one.`;
   if (declaration.required_contexts_by_branch === undefined) {
-    return `The declaration has no \`required_contexts_by_branch\`, ${consequence} Re-run the host refresh (\`check:required-checks:refresh\`, i.e. \`--remote --write\`) to record a set for \`${base}\`.`;
+    return `The declaration has no \`required_contexts_by_branch\`, ${consequence} ${remedy}`;
   }
-  return `\`required_contexts_by_branch\` has no set for base \`${base}\`, ${consequence} Record one for \`${base}\` by re-running the host refresh with that branch included.`;
+  return `\`required_contexts_by_branch\` has no set for base \`${base}\`, ${consequence} ${remedy}`;
 }
 
 /**
@@ -4195,7 +4223,9 @@ export function inspectVacuity(argv, declaration, options = {}) {
   const absent = evaluateAbsentRequiredChecks(declaration, read.checks, {
     headSha: read.headSha,
     parkedRuns: options.parkedRuns,
-    base: resolveBaseRef(argv, options.env ?? process.env),
+    // Tied to the pull request actually inspected, so a `--pr` naming another
+    // pull request is never judged against this run's own base.
+    base: resolveBaseRef(argv, options.env ?? process.env, { pr }),
   });
   // The gate is evaluated on EVERY run, not only when a caller asked it to
   // block. Its findings are what make a waiver visible, and a waiver that is

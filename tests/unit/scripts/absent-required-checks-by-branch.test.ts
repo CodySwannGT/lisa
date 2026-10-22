@@ -73,11 +73,20 @@ interface GuardModule {
   readonly REQUIRED_SET_FALLBACK: string;
   resolveBaseRef(
     argv: readonly string[],
-    env?: Record<string, string | undefined>
-  ): { base: string | null; source: string | null };
+    env?: Record<string, string | undefined>,
+    options?: { pr?: string }
+  ): {
+    base: string | null;
+    source: string | null;
+    ignoredEventBase?: string;
+  };
   selectRequiredContexts(
     declaration: Record<string, unknown>,
-    base: { base: string | null; source: string | null }
+    base: {
+      base: string | null;
+      source: string | null;
+      ignoredEventBase?: string;
+    }
   ): RequiredSet;
   evaluateAbsentRequiredChecks(
     declaration: Record<string, unknown>,
@@ -132,6 +141,9 @@ const BY_BRANCH = {
 };
 
 const HEAD_SHA = "c".repeat(40);
+
+/** Disables the settle wait, so a unit test never sleeps. */
+const NO_WAIT = "--settle-timeout=0";
 
 /** The fallback token, spelled out so a rename is a visible test change. */
 const FALLBACK_TOKEN = "required_contexts_branch_fallback";
@@ -193,6 +205,24 @@ afterEach(() => {
   for (const lease of leases.splice(0))
     fs.rmSync(lease, { recursive: true, force: true });
 });
+
+/**
+ * Writes a `pull_request` event payload, as Actions does at GITHUB_EVENT_PATH.
+ *
+ * @param number - The event's pull request number
+ * @param baseRef - The event's `pull_request.base.ref`
+ * @returns The payload's path
+ */
+function eventFor(number: number, baseRef: string): string {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "by-branch-event-"));
+  leases.push(dir);
+  const event = path.join(dir, "event.json");
+  fs.writeFileSync(
+    event,
+    JSON.stringify({ number, pull_request: { number, base: { ref: baseRef } } })
+  );
+  return event;
+}
 
 /**
  * Writes a throwaway repository carrying one declaration.
@@ -312,6 +342,35 @@ describe("absent required checks are judged against the PR's base branch (#4484)
       );
     });
 
+    it.each([
+      ["a union-only declaration", legacyDeclaration],
+      ["a map with no set for the base", declarationWith],
+    ])("names a remedy that needs no host refresh, for %s", (_label, build) => {
+      // Lisa ships no refresh, and this script refuses `--remote`, so a
+      // consumer of the shipped seed must be told how to record the set by
+      // hand. A host refresh is mentioned only as an option.
+      const result = mod.evaluateAbsentRequiredChecks(
+        build(),
+        rowsFor(BY_BRANCH.staging),
+        { headSha: HEAD_SHA, base: base("qa") }
+      );
+      const reason = result.requiredSet.fallback?.reason ?? "";
+      expect(reason).toContain("rules/branches/qa");
+      expect(reason).toContain("required_contexts_by_branch.qa");
+      expect(reason).toMatch(/if this repository has one/u);
+    });
+
+    it("says the run's own base was ignored when --pr named another pull request", () => {
+      const selected = mod.selectRequiredContexts(declarationWith(), {
+        base: null,
+        source: null,
+        ignoredEventBase: "dev",
+      });
+      expect(selected.source).toBe("union");
+      expect(selected.fallback?.reason).toContain("`dev`");
+      expect(selected.fallback?.reason).toContain("--base");
+    });
+
     it("falls back, and reports it, when no base ref could be resolved", () => {
       const result = mod.evaluateAbsentRequiredChecks(
         declarationWith(),
@@ -417,6 +476,56 @@ describe("absent required checks are judged against the PR's base branch (#4484)
     it("returns null, not a guess, when nothing names the base", () => {
       expect(mod.resolveBaseRef([], {})).toEqual({ base: null, source: null });
     });
+
+    describe("the run's own base belongs to the run's own pull request", () => {
+      // A `--pr` that names a different pull request from the event's would
+      // otherwise be judged against the EVENT's base: a dev-base PR inspected
+      // from a staging-base run could pass while missing a dev-only context.
+      it("ignores the event base when --pr names a different pull request", () => {
+        const env = {
+          GITHUB_BASE_REF: "staging",
+          GITHUB_EVENT_PATH: eventFor(7, "staging"),
+        };
+        expect(mod.resolveBaseRef(["--pr=8"], env, { pr: "8" })).toEqual({
+          base: null,
+          source: null,
+          ignoredEventBase: "staging",
+        });
+      });
+
+      it("uses the event base when the inspected pull request IS the event's", () => {
+        const env = {
+          GITHUB_BASE_REF: "staging",
+          GITHUB_EVENT_PATH: eventFor(7, "staging"),
+        };
+        expect(mod.resolveBaseRef(["--pr=7"], env, { pr: "7" })).toEqual({
+          base: "staging",
+          source: "GITHUB_BASE_REF",
+        });
+      });
+
+      it("does not trust GITHUB_BASE_REF for a pull request no payload ties it to", () => {
+        expect(
+          mod.resolveBaseRef(
+            ["--pr=1"],
+            { GITHUB_BASE_REF: "staging" },
+            {
+              pr: "1",
+            }
+          )
+        ).toEqual({ base: null, source: null, ignoredEventBase: "staging" });
+      });
+
+      it("still lets --base name the base of a foreign pull request", () => {
+        const env = {
+          GITHUB_BASE_REF: "staging",
+          GITHUB_EVENT_PATH: eventFor(7, "staging"),
+        };
+        expect(
+          mod.resolveBaseRef(["--pr=8", "--base=dev"], env, { pr: "8" })
+        ).toEqual({ base: "dev", source: "--base" });
+      });
+    });
   });
 
   describe("the declaration's shape", () => {
@@ -478,11 +587,16 @@ describe("absent required checks are judged against the PR's base branch (#4484)
 
   describe("inspectVacuity selects by the run's base ref", () => {
     it("drops dev-only absences on a staging-base run", () => {
+      // The shape `review-evidence.yml` really runs in: no `--pr`, the pull
+      // request and its base both read from the event this run carries.
       const inspection = mod.inspectVacuity(
-        ["--vacuity", "--pr=1", "--settle-timeout=0"],
+        ["--vacuity", NO_WAIT],
         declarationWith(),
         {
-          env: { GITHUB_BASE_REF: "staging" },
+          env: {
+            GITHUB_BASE_REF: "staging",
+            GITHUB_EVENT_PATH: eventFor(1, "staging"),
+          },
           fetch: () => rowsFor(BY_BRANCH.staging),
           headSha: () => HEAD_SHA,
         }
@@ -494,6 +608,29 @@ describe("absent required checks are judged against the PR's base branch (#4484)
       ).toEqual([]);
       expect(inspection?.requiredSet?.source).toBe("branch");
       expect(inspection?.requiredSet?.base).toBe("staging");
+    });
+
+    it("does not judge a foreign --pr against the run's own base", () => {
+      // NEGATIVE CONTROL for the cross-PR case: PR #2 is inspected from PR #1's
+      // staging-base run. Its base is unknown here, so it is judged against the
+      // union — the dev-only absences are still reported — and the fallback
+      // says why.
+      const inspection = mod.inspectVacuity(
+        ["--vacuity", "--pr=2", NO_WAIT],
+        declarationWith(),
+        {
+          env: {
+            GITHUB_BASE_REF: "staging",
+            GITHUB_EVENT_PATH: eventFor(1, "staging"),
+          },
+          fetch: () => rowsFor(BY_BRANCH.staging),
+          headSha: () => HEAD_SHA,
+        }
+      );
+
+      expect(inspection?.absent).toEqual([NIGHTLY, STAGE_GUARD]);
+      expect(inspection?.requiredSet?.source).toBe("union");
+      expect(inspection?.requiredSet?.fallback?.kind).toBe(FALLBACK_TOKEN);
     });
   });
 });
@@ -550,13 +687,14 @@ function runCli(
       root,
       "--vacuity",
       "--pr=1",
-      "--settle-timeout=0",
+      NO_WAIT,
       "--repo=owner/name",
     ],
     env: {
       ...process.env,
       PATH: `${bin}${path.delimiter}${process.env.PATH ?? ""}`,
-      GITHUB_EVENT_PATH: "",
+      // The pull_request event this run would carry: PR #1 into `baseRef`.
+      GITHUB_EVENT_PATH: eventFor(1, baseRef),
       GITHUB_REF: "",
       GITHUB_STEP_SUMMARY: "",
       GITHUB_OUTPUT: "",
