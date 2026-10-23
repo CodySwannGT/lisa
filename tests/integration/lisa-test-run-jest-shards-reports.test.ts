@@ -248,19 +248,31 @@ describe("Jest shard merge reports", () => {
   });
 
   it.each([
-    // Jest 30.5 gives the table 80 columns on CI and none elsewhere, unless a
-    // terminal or COLUMNS says otherwise. Both arms run on every machine, so a
-    // merge that only matches Jest off CI fails here and not first in CI.
-    ["on CI", "true"],
-    ["off CI", ""],
-  ])(
+    // Jest 30.5 gives the table a numeric COLUMNS first, else 80 when CI or
+    // GITHUB_ACTIONS is exactly "true", else no limit. Every arm runs on every
+    // machine, so a merge that matches Jest in only one environment fails here
+    // rather than first in CI. One arm per branch: 100 columns differs from
+    // both 80 and none, GitHub Actions alone is still CI, and CI=1 is not.
+    // The terminal-width branch needs a real TTY on both sides, which a piped
+    // fixture cannot give it, and the merge never runs inside a Jest worker.
+    ["on CI", { CI: "true", GITHUB_ACTIONS: "true", COLUMNS: "" }],
+    ["off CI", { CI: "", GITHUB_ACTIONS: "", COLUMNS: "" }],
+    [
+      "with COLUMNS=100 on CI",
+      { CI: "true", GITHUB_ACTIONS: "true", COLUMNS: "100" },
+    ],
+    [
+      "on GitHub Actions alone",
+      { CI: undefined, GITHUB_ACTIONS: "true", COLUMNS: "" },
+    ],
+    ["with CI=1", { CI: "1", GITHUB_ACTIONS: "", COLUMNS: "" }],
+  ] as const)(
     "hands the reporters Jest's watermarks and column limit %s",
-    (_where, ci) => {
+    (_where, environment) => {
       // A floor of 50 turns the 66.67% files "high" instead of "medium", and the
       // long path shows whether the table was cut, and where.
-      vi.stubEnv("CI", ci);
-      vi.stubEnv("GITHUB_ACTIONS", ci);
-      vi.stubEnv("COLUMNS", "");
+      for (const [name, value] of Object.entries(environment))
+        vi.stubEnv(name, value);
       const { whole, merged, status } = wholeAndMerged(
         ["html", ["text", { file: TEXT_FILE }]],
         {
