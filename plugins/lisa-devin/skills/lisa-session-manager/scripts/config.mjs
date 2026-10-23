@@ -67,6 +67,7 @@ export const SESSION_MANAGER_DEFAULTS = Object.freeze({
  *   notify: NotifyBlock,
  *   trustedAuthorIds: string[] | null,
  *   operatorIds?: string[] | null,
+ *   backlogPickup?: boolean,
  * }} SessionManagerConfig
  * @typedef {{
  *   name: string,

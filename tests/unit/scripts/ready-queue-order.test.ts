@@ -47,10 +47,12 @@ const SHAPE_KEYS = [
   "createdAt",
   "isContainer",
   "labels",
+  "openBlockers",
   "priorityRank",
   "ref",
   "repoLabels",
   "title",
+  "updatedAt",
 ];
 
 const githubIssue = ({
@@ -147,10 +149,12 @@ describe("normalizeGithubIssue", () => {
       assigneeId: ME,
       priorityRank: 1,
       createdAt: "t",
+      updatedAt: "",
       labels: ["status:ready", "repo:api", "priority:high"],
       body: "Body",
       authorId: "100",
       isContainer: false,
+      openBlockers: 0,
       repoLabels: ["repo:api"],
     });
   });
@@ -228,10 +232,12 @@ describe("normalizeJiraIssue", () => {
       assigneeId: ME,
       priorityRank: 1,
       createdAt: "t",
+      updatedAt: "",
       labels: ["repo:web"],
       body: "Body",
       authorId: "author",
       isContainer: false,
+      openBlockers: 0,
       repoLabels: ["repo:web"],
     });
   });
@@ -328,10 +334,12 @@ describe("normalizeLinearIssue", () => {
       assigneeId: ME,
       priorityRank: 1,
       createdAt: "t",
+      updatedAt: "",
       labels: ["repo:api"],
       body: "Body",
       authorId: "author",
       isContainer: false,
+      openBlockers: 0,
       repoLabels: ["repo:api"],
     });
   });

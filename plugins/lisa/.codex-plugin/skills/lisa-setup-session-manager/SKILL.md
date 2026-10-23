@@ -68,7 +68,14 @@ writes `$SM`, and pass `--project-root "$ROOT"` (the absolute project root) on e
    "me", spelled as the tracker API returns it: the GitHub **login** (`gh api users/<login> --jq
    .login`), the Jira `accountId`, or the Linear user id (the operator's entry in the team's member
    list, or `viewer.id` only when the operator runs the lookup with their own credential).
-5. `node "$SM/session-manager.mjs" validate --project-root "$ROOT"` must print `valid: true`.
+5. Ask whether to set `sessionManager.backlogPickup` to `true` (default off). When the Ready queue
+   is exhausted and a worker slot is still free, the manager then looks at backlog items (open
+   leaves in no lifecycle role) that nobody else is assigned to, that are not human-held and have
+   no unfinished blocker. Each one that passes the full tracker validation, including the
+   stateless-pickup check, is assigned to the first `operatorIds` entry, moved to Ready and
+   dispatched. Say plainly that this lets the manager start work nobody marked Ready, so it needs
+   `operatorIds` and should go with `trustedAuthorIds` on any tracker outsiders can write to.
+6. `node "$SM/session-manager.mjs" validate --project-root "$ROOT"` must print `valid: true`.
 
 ## Step 3: Store the bot token
 
