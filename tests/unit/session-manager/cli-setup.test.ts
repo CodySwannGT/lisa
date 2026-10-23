@@ -111,6 +111,29 @@ describe(INIT_CONFIG, () => {
   });
 });
 
+describe(`${INIT_CONFIG} without a projects dir`, () => {
+  it('proposes checkouts directly under the root with repos.root "."', () => {
+    const sandbox = makeSandbox({ sessionManager: null });
+    for (const name of ["backend", "frontend"]) {
+      const dir = path.join(sandbox.root, name);
+      mkdirSync(path.join(dir, ".git"), { recursive: true });
+      writeFileSync(path.join(dir, LISA_CONFIG), "{}");
+    }
+    writeFileSync(
+      path.join(sandbox.root, "backend", "package.json"),
+      JSON.stringify({ dependencies: { "@nestjs/core": "1" } })
+    );
+    const result = runCli(sandbox, [INIT_CONFIG, SLUG, DEMO]);
+    expect(result.json.block.repos).toEqual({
+      root: ".",
+      entries: {
+        backend: { hints: ["backend", "NestJS"] },
+        frontend: { hints: ["frontend"] },
+      },
+    });
+  });
+});
+
 describe(STORE_TOKEN, () => {
   it("without a TTY prints both copy-paste commands and stores nothing", () => {
     const sandbox = makeSandbox();

@@ -19,7 +19,7 @@ import {
 } from "./cli-runtime.mjs";
 import {
   buildDefaultBlock,
-  detectRepos,
+  detectRepoLayout,
   draftHints,
   resolveRepoDir,
 } from "./config.mjs";
@@ -37,8 +37,9 @@ import {
  * `init-config [--slug <slug>] [--write]`: the default block for this
  * project, written to `.lisa.config.json` only with `--write` and only when
  * no block exists. Non-secret fields only; the token never goes here. Repos
- * are the routable children `detectRepos` finds (linked worktrees and second
- * clones of one remote left out), each with drafted hints.
+ * are the routable children `detectRepoLayout` finds under `projects/`, else
+ * directly under the root (linked worktrees and second clones of one remote
+ * left out), each with drafted hints.
  * @param {object} ctx - CLI context
  * @returns {{ json: object }} `{written,block,...}`
  */
@@ -51,15 +52,15 @@ export function initConfig(ctx) {
   }
   const slug =
     ctx.values.slug ?? defaultProjectSlug(ctx.root, global?.github?.repo);
-  const detectedRepos = detectRepos(ctx.root);
+  const { reposRoot, repos: detectedRepos } = detectRepoLayout(ctx.root);
   const hints = Object.fromEntries(
     detectedRepos.map(name => [
       name,
-      draftHints(path.join(ctx.root, "projects", name), name),
+      draftHints(path.join(ctx.root, reposRoot, name), name),
     ])
   );
   const block = asSetupError(() =>
-    buildDefaultBlock({ projectSlug: slug, detectedRepos, hints })
+    buildDefaultBlock({ projectSlug: slug, detectedRepos, hints, reposRoot })
   );
   if (!ctx.values.write) return { json: { written: false, block } };
 
