@@ -69,7 +69,7 @@ async function baseline(
   );
   await npm(["install", "--package-lock-only", ...INSTALL_FLAGS]);
   if (dual) {
-    expect((await bun(["--version"])).stdout.toString().trim()).toBe("1.3.8");
+    expect((await bun(["--version"])).stdout.toString().trim()).toBe("1.4.4");
     await bun(["install", "--lockfile-only", IGNORE_SCRIPTS]);
     await bun(FROZEN);
   }

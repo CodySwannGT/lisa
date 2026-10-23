@@ -189,7 +189,7 @@ describe("committed optional Bun baseline", () => {
       });
       await expect(
         qualifiedBun(env, { executable: node.stdout.toString().trim() })
-      ).rejects.toThrow(/Bun1.3.8/);
+      ).rejects.toThrow(/Bun1.4.4/);
     });
   });
 });

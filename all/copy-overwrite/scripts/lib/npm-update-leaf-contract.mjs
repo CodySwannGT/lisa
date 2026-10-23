@@ -148,7 +148,7 @@ Matches are read completely before allocating this deterministic proposal. No pa
 ## Validation Journey
 
 1. Prepare the selected update from the exact parent with installed npm outdated; record actual exit and versions. [EVIDENCE: cli-output: npm-outdated]
-2. Run script-disabled npm ci${bun ? " and Bun1.3.8 frozen installation" : ""} against the proposed files and record unchanged hashes. [EVIDENCE: cli-output: npm-ci]
+2. Run script-disabled npm ci${bun ? " and Bun1.4.4 frozen installation" : ""} against the proposed files and record unchanged hashes. [EVIDENCE: cli-output: npm-ci]
 3. Record normal commit/pre-push hook exits, all-ref stdin/ranges and the exact raw commit identity. [EVIDENCE: test-run-log: ordinary-gates]
 4. Read the current-head pull request, required checks and genuine human approval. [EVIDENCE: state-dump: current-head-review]
 5. Verify ordinary application behavior in ${env}; record actual environment and deployed identity. [EVIDENCE: test-run-log: runtime-verification]
