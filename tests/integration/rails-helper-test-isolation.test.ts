@@ -7,11 +7,13 @@ import { CreateOnlyStrategy } from "../../dist/strategies/create-only.js";
 import {
   databases,
   execute,
+  railsResolverDeferral,
   roles,
   sourceHash,
 } from "./support/rails-helper-fixture.js";
 import type { Observation } from "./support/rails-helper-fixture.js";
 
+const deferred = railsResolverDeferral();
 const root = path.resolve(".");
 const helperRelative = "spec/rails_helper.rb";
 const databaseRelative = "config/database.yml";
@@ -102,7 +104,7 @@ beforeEach(async () => {
 });
 afterEach(() => fs.rmSync(project, { recursive: true, force: true }));
 
-describe("actual emitted Rails test isolation", () => {
+describe.skipIf(deferred)("actual emitted Rails test isolation", () => {
   it.each(["development", "staging", "production", "preview", "", " ", "TEST"])(
     "rejects explicit Rails %j before any boot",
     value => denied(execute(project, { RAILS_ENV: value }), true)

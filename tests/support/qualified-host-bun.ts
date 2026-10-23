@@ -4,6 +4,7 @@ import { readFileSync, realpathSync } from "node:fs";
 import { isAbsolute } from "node:path";
 import { satisfies } from "semver";
 import { boundedExecFileSync } from "../helpers/io-latency-budget.js";
+import { deferToCi } from "./ci-runtime.js";
 
 /**
  * Probe an explicitly supplied host executable rather than relabeling tooling.
@@ -16,8 +17,9 @@ export function qualifiedHostBun(): {
 } {
   const requested = process.env["LISA_TEST_HOST_BUN"];
   if (requested === undefined || !isAbsolute(requested))
-    throw new Error(
-      "Set LISA_TEST_HOST_BUN to an absolute Bun executable meeting the inherited host floor >=1.3.11."
+    return deferToCi(
+      "a native host Bun meeting the inherited host floor >=1.3.11",
+      "Set LISA_TEST_HOST_BUN to an absolute Bun executable meeting that floor."
     );
   const path = realpathSync(requested);
   const version = boundedExecFileSync({
