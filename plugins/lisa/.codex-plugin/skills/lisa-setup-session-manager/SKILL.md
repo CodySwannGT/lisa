@@ -3,7 +3,7 @@ name: lisa-setup-session-manager
 description: "Set up the local session…"
 allowed-tools: ["Bash", "Read", "Write", "Skill", "AskUserQuestion"]
 ---
-Set up the local session manager for this project: writes the non-secret `sessionManager` block to `.lisa.config.json` (detecting a multi-repo `projects/*` layout), stores the project's own Telegram bot token outside the repo, checks the Telegram plugin is installed but not enabled at user scope, keeps the manager's state out of git, seeds the checked-in runbook, starts the manager in tmux, walks the operator through pairing, and finishes with doctor's session-manager check. Idempotent.
+Set up the local session manager for this project: writes the non-secret `sessionManager` block to `.lisa.config.json` (detecting a multi-repo layout: repos under `projects/`, or directly under the project root), stores the project's own Telegram bot token outside the repo, checks the Telegram plugin is installed but not enabled at user scope, keeps the manager's state out of git, seeds the checked-in runbook, starts the manager in tmux, walks the operator through pairing, and finishes with doctor's session-manager check. Idempotent.
 
 
 # Setup session manager
@@ -43,10 +43,12 @@ writes `$SM`, and pass `--project-root "$ROOT"` (the absolute project root) on e
 ## Step 2: Write the config block
 
 1. Preview: `node "$SM/session-manager.mjs" init-config --project-root "$ROOT"`. It detects
-   `projects/*/.lisa.config.json` and proposes `name`, `interval`, `repos`, `capacity`, `stall` and a
-   per-project `notify.stateDir`. Repo detection leaves out linked worktrees and keeps one checkout
-   per remote, so ticket worktrees and second clones under `projects/` are not proposed. Show the
-   block to the operator and ask whether any repo is missing or should not be routed.
+   `projects/*/.lisa.config.json`, or, when `projects/` holds none, the root's own children that
+   have a `.lisa.config.json` and their own `.git` (written as `repos.root: "."`). It proposes
+   `name`, `interval`, `repos`, `capacity`, `stall` and a per-project `notify.stateDir`. Repo
+   detection leaves out linked worktrees and keeps one checkout per remote, so ticket worktrees and
+   second clones are not proposed. Show the block to the operator and ask whether any repo is
+   missing or should not be routed.
 2. Write it: the same command with `--write`. It adds only non-secret fields and never overwrites an
    existing block (`reason: "exists"` means keep it).
 3. Each repo's `hints` are a draft: its name plus one per well-known dependency (`NestJS`, `Expo`,

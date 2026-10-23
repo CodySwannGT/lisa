@@ -1141,7 +1141,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/rules/reference/coding-philosophy.md":
       "fed8381f16a5d6793a49d84d5813d62125808cb2f4981a558b119cf63e2586d9",
     "plugins/src/base/rules/reference/config-resolution.md":
-      "ed18aa06d9e5440f9ede56993317b3f354dd79db66ffb39853cb5ebc07b91d1f",
+      "ed9ac218079b2fc192391ab80f311d940852c8c108a537112f25cdbdda68267d",
     "plugins/src/base/rules/reference/control-reachability.md":
       "0883f3480de79bcaa4a9da5685192c014d9267d0a12aed8153bba8c51161129a",
     "plugins/src/base/rules/reference/convergent-review.md":
@@ -1623,7 +1623,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-secrets-access/scripts/tools-from-notes.mjs":
       "360f740cac081151491428043b04fec2f5db6f3ba36394f7378af312396d53ca",
     "plugins/src/base/skills/lisa-secrets-access/scripts/validate-config.mjs":
-      "50fe03bc8b8e8c3f34a59104c7156cc59488b81d2188ef9351ebbdf96ef4e5ef",
+      "370e6a5c572d30d5a124633707ed876be88c0fed30fc8db012aa1a7d7cf825e3",
     "plugins/src/base/skills/lisa-security-review/SKILL.md":
       "5a980eaf5efc4fcce66e75521ec5b1eda143a5b0d36e7157234a705dac94e3f5",
     "plugins/src/base/skills/lisa-security-zap-scan/SKILL.md":
@@ -1645,15 +1645,15 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-runtime.mjs":
       "2948105addc10c0405d085cd2ba606f77f8f7c961bcfdaf1f09e7434d27e2b5e",
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-setup.mjs":
-      "9e16b4b72944ce7eb35b373cc479b8267ad0d5b4976a15d9094659a7d0190337",
+      "433a5d2e4859e91c036eaf030ac0d4f2a26b5f5e45d9c875803ee8a8919cf4d2",
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-usage.mjs":
-      "bbc7b17a3ca4e98238778dfa2bef5f6ac1984262a9eb65ac6b0561d049e3365b",
+      "431146f9c31a2b6b07b0b0fed2659e2baade05f9ecc1778286dc6a3880516d41",
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-workers.mjs":
       "63ca4c92eb838f806be1dcb6b995cdcee56f77eb7ba4787959ec23a395b32bfe",
     "plugins/src/base/skills/lisa-session-manager/scripts/clipboard.mjs":
       "6becdcf8797bfdcfa31553c90d125be4b7f643ab305a3abc19aae73d29263e29",
     "plugins/src/base/skills/lisa-session-manager/scripts/config.mjs":
-      "f56dceeb424913fdf297d239bd3f02dbc98e356efcd453e90fb07120507ffc68",
+      "f6e0541baa2966ca6837bf50aeeecbd70e23792259d6469da48564586c8b3dd8",
     "plugins/src/base/skills/lisa-session-manager/scripts/isolation.mjs":
       "c6161331dea68eec4112948d9e8841aa834632c7503de5c8fd5d9834e125dfbc",
     "plugins/src/base/skills/lisa-session-manager/scripts/launch.mjs":
@@ -1663,7 +1663,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-session-manager/scripts/reconcile.mjs":
       "8ccd61b536709eb16dccb82c0049f25b042f3e61417c08c68defefa388584559",
     "plugins/src/base/skills/lisa-session-manager/scripts/repo-detect.mjs":
-      "08201b36073eb702b0ca030221415c05fd6a4fda7b43be91243e70fbee48d19f",
+      "3ce714f1934433f2bc297c0b67931a28687ccef70c01639cb8542e9bb7f0a14d",
     "plugins/src/base/skills/lisa-session-manager/scripts/session-manager.mjs":
       "b89697e7160ac55b19cdb566d8749fb2cba42c73703c4030eacd54c6835cdbf7",
     "plugins/src/base/skills/lisa-session-manager/scripts/setup-checks.mjs":
@@ -1725,7 +1725,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-setup-remote-env/scripts/verify-remote-env.mjs":
       "bec0b624c1031d0936afd6e5dd4a3d09adea102d5936b5b9fcf545c7f86a3a11",
     "plugins/src/base/skills/lisa-setup-session-manager/SKILL.md":
-      "dec608c68d40b1cd05cb774d92ab29857005a0383139c9c7d1570a93ba102d8d",
+      "00f077f03b223a73216b5bf89956a0e28494dd01c05037dec934a039da1a8942",
     "plugins/src/base/skills/lisa-setup-sonar/SKILL.md":
       "de00597d260d5491837406a81b87a96b9307a7d87c040b35fc1d6e77ae2f5306",
     "plugins/src/base/skills/lisa-setup-workstation/SKILL.md":

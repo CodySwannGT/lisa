@@ -696,7 +696,8 @@ claims Ready leaf items and runs each one as `/lisa:implement` in a fresh backgr
 session. It is **opt-in**: an absent block means no manager, and `lisa sync` never populates it
 (it is deliberately not in the sync registry, because the manager starts sessions with permissions
 bypassed). `/lisa:setup:session-manager` writes it, detecting a multi-repo layout from
-`projects/*/.lisa.config.json`.
+`projects/*/.lisa.config.json`, or, when `projects/` holds none, from the root's own children that
+have a `.lisa.config.json` and their own `.git` (written as `"root": "."`).
 
 ```json
 "sessionManager": {
@@ -720,7 +721,7 @@ bypassed). `/lisa:setup:session-manager` writes it, detecting a multi-repo layou
 | `sessionManager.name` | **yes** | — | Manager session name: lowercase letters, digits, `-` or `_`, at most 64 characters. It names the tmux session and the session workers `SendMessage` to. Setup writes `<project>-manager`. |
 | `sessionManager.interval` | no | `5m` | `/loop` cadence: a positive integer plus `s`, `m`, `h` or `d`. |
 | `sessionManager.repos` | no | — | Omit for a single-repo project: every item routes to the project root. When present, `entries` must name at least one repo. |
-| `sessionManager.repos.root` | no | `projects` | Relative directory holding the child repos. It must stay inside the project. |
+| `sessionManager.repos.root` | no | `projects` | Relative directory holding the child repos. It must stay inside the project. `.` means the repos are direct children of the project root. |
 | `sessionManager.repos.entries.<key>.hints` | **yes** (per entry) | — | Non-empty list of words the manager matches a work item against to choose the repo. `<key>` is the child directory name (one safe path segment). |
 | `sessionManager.capacity.maxWorkers` | no | `6` | Hard cap on concurrent workers (a positive integer). Telegram `cap N` overrides it at runtime through the manager's ledger, not config. |
 | `sessionManager.capacity.gbPerWorker` | no | `3` | Memory budgeted per worker, in GB (positive). |

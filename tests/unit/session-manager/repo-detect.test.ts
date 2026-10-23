@@ -17,6 +17,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import {
   buildDefaultBlock,
+  detectRepoLayout,
   detectRepos,
   draftHints,
 } from "../../../plugins/src/base/skills/lisa-session-manager/scripts/config.mjs";
@@ -107,6 +108,55 @@ describe("detectRepos", () => {
     clone("app", SSH_APP);
     mkdirSync(join(root, "projects", "plain", ".git"), { recursive: true });
     expect(detectRepos(root)).toEqual(["app"]);
+  });
+});
+
+describe("detectRepoLayout", () => {
+  /**
+   * A Lisa-configured child directly under the root.
+   * @param name - Child directory name
+   * @param ownGit - Whether it is its own checkout (has a `.git` dir)
+   */
+  function rootChild(name: string, ownGit: boolean): void {
+    const dir = join(root, name);
+    mkdirSync(ownGit ? join(dir, ".git") : dir, { recursive: true });
+    writeFileSync(join(dir, LISA_CONFIG), "{}");
+  }
+
+  it("prefers projects/ when it holds repos", () => {
+    clone("app", SSH_APP);
+    rootChild("web", true);
+    expect(detectRepoLayout(root)).toEqual({
+      reposRoot: "projects",
+      repos: ["app"],
+    });
+  });
+
+  it("falls back to checkouts directly under the root", () => {
+    rootChild("backend", true);
+    rootChild("frontend", true);
+    mkdirSync(join(root, "website"));
+    expect(detectRepoLayout(root)).toEqual({
+      reposRoot: ".",
+      repos: ["backend", "frontend"],
+    });
+  });
+
+  it("ignores root children that are not their own checkout", () => {
+    rootChild("docs", false);
+    expect(detectRepoLayout(root)).toEqual({
+      reposRoot: "projects",
+      repos: [],
+    });
+  });
+
+  it("leaves out linked worktrees under the root too", () => {
+    rootChild("api", true);
+    const wt = join(root, "api-wt-SE-1");
+    mkdirSync(wt);
+    writeFileSync(join(wt, LISA_CONFIG), "{}");
+    writeFileSync(join(wt, ".git"), "gitdir: /src/api/.git/worktrees/x\n");
+    expect(detectRepoLayout(root).repos).toEqual(["api"]);
   });
 });
 
