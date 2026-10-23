@@ -18,6 +18,7 @@ import { describe, expect, it } from "vitest";
 import {
   CONVERTED,
   WORKFLOW_FILES,
+  isShardLeg,
   resolveStep,
   sourceOf,
   workflow,
@@ -97,6 +98,8 @@ describe("every façade job resolves at the caller's moment", () => {
     const byName = (left: string, right: string) => left.localeCompare(right);
     const withGateStep = WORKFLOW_FILES.flatMap(file =>
       Object.keys(workflowIn(file).jobs)
+        // A shard leg resolves through a copy of its parent's step.
+        .filter(job => !isShardLeg(job))
         .filter(job => resolveStep(job, file) !== undefined)
         .map(job => `${path.basename(file)}:${job}`)
     )

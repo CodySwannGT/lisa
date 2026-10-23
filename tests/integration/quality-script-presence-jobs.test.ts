@@ -1,6 +1,7 @@
 import { QUALITY_JOB_GATES } from "../../all/copy-overwrite/scripts/lisa-gates.mjs";
 import {
   QUALITY_YML,
+  isShardLeg,
   jobIn,
   stepsIn,
   workflowIn,
@@ -136,6 +137,8 @@ const gateStep = (job: string): WorkflowStep | undefined =>
 describe("quality.yml presence-gated jobs", () => {
   it("inventories every job that decides by looking for a script", () => {
     const found = Object.entries(workflowIn(QUALITY_YML).jobs)
+      // A shard leg carries copies of its parent's steps; see SHARD_LEGS.
+      .filter(([job]) => !isShardLeg(job))
       .filter(([, definition]) =>
         (definition.steps ?? []).some(step => step.id === PROBE_ID)
       )

@@ -213,7 +213,8 @@ describe("🧪 gate runner existence preflight", () => {
                       line.trim()
                     )
                   )) ||
-              (job === "test_unit" &&
+              // A shard leg runs a copy of test_unit's own step.
+              ((job === "test_unit" || job === "test_unit_shard") &&
                 (step.run ?? "")
                   .split("\n")
                   .some(line => line.trim() === `( ${RUN_SITE} )`))

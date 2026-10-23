@@ -30,6 +30,7 @@ import { fileURLToPath } from "node:url";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { loadWorkflow } from "../helpers/workflow-test-utils.js";
+import { isShardLeg } from "./quality-gate-facade-fixture.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(__dirname, "..", "..");
@@ -193,6 +194,8 @@ describe("presence-gated jobs fail closed when nothing proves the property", () 
   it("covers the whole presence-gated family", () => {
     const workflow = loadWorkflow(QUALITY_YML);
     const found = Object.entries(workflow.jobs)
+      // A shard leg carries copies of its parent's steps; see SHARD_LEGS.
+      .filter(([job]) => !isShardLeg(job))
       .filter(([, definition]) =>
         (definition.steps ?? []).some(step => step.id === "check_script")
       )

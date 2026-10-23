@@ -1,5 +1,8 @@
 #!/usr/bin/env node
 /** Public entrypoint for birth-bound test supervision and scratch cleanup. */
+import * as path from "node:path";
+import { env } from "node:process";
+
 // @ts-expect-error -- the shipped JavaScript helper carries the same checked JSDoc signature
 import { invokedAsScript } from "../../scripts/lib/invoked-as-script.mjs";
 import { worktreeDependencyProblem } from "../../all/copy-overwrite/scripts/lib/worktree-dependencies.mjs";
@@ -8,6 +11,17 @@ import {
   resolveScratchRouteProfile,
   type ScratchRouteProfile,
 } from "../configs/vitest/scratch-route-profile.js";
+import { mergeJestShards } from "./lisa-test-run-jest-merge.js";
+import {
+  gatherVitestBlobs,
+  readShardReceipts,
+  SHARD_ENV_NAMES,
+  shardArgv,
+  shardPlanFrom,
+  shardRunnerOf,
+  vitestMergeArgv,
+  writeShardReceipt,
+} from "./lisa-test-run-shard.js";
 import {
   superviseTestRun,
   type TestRunAdapter,
@@ -65,6 +79,38 @@ function invocationOrExit(): TestRunInvocation | undefined {
   }
 }
 
+/**
+ * Apply the shard plan `quality.yml` put in the environment, if any.
+ *
+ * The variables are removed before the payload starts. Lisa's own suites spawn
+ * `lisa-test-run` as a fixture, and an inherited shard plan would make every
+ * one of those nested runs shard itself.
+ * @param argv - Payload argv as parsed
+ * @returns The argv to supervise, or an exit code when no test run is needed
+ */
+function applyShardPlan(
+  argv: readonly [string, ...string[]]
+): readonly [string, ...string[]] | number {
+  const plan = shardPlanFrom(env);
+  for (const name of SHARD_ENV_NAMES) delete env[name];
+  if (plan.kind === "none") return argv;
+  const runner = shardRunnerOf(argv);
+  if (plan.kind === "shard") {
+    writeShardReceipt(plan, runner, argv);
+    return shardArgv(argv, runner, plan);
+  }
+  const receipts = readShardReceipts(plan.directory, plan.total);
+  if (receipts[0]?.runner !== runner) {
+    throw new Error(
+      `the shards ran ${receipts[0]?.runner}, but this merge would run ${runner}.`
+    );
+  }
+  if (runner === "jest") return mergeJestShards(argv, receipts);
+  const blobs = path.join(plan.directory, ".lisa-vitest-blobs");
+  gatherVitestBlobs(receipts, blobs);
+  return vitestMergeArgv(argv, blobs);
+}
+
 /** Run the public CLI and preserve the child result only after cleanup. */
 async function main(): Promise<void> {
   const invocation = invocationOrExit();
@@ -72,8 +118,10 @@ async function main(): Promise<void> {
   try {
     const dependencyProblem = worktreeDependencyProblem();
     if (dependencyProblem) throw new Error(dependencyProblem);
+    const payload = applyShardPlan(invocation.argv);
+    if (typeof payload === "number") process.exit(payload);
     const outcome = await superviseTestRun(
-      invocation.argv,
+      payload,
       invocation.profile,
       invocation.adapter
     );
