@@ -18,6 +18,15 @@ import { verifyHost } from "../fixtures/shared-runtime-hosts/journey.js";
 import { verifyRuntimeOwnership } from "../fixtures/shared-runtime-hosts/ownership.js";
 import { verifyInheritedHost } from "../fixtures/shared-runtime-hosts/inherited-journey.js";
 import { assertPackedRuntimePolicy } from "../fixtures/shared-runtime-hosts/assertions.js";
+import { suiteDeferral } from "../support/ci-runtime.js";
+
+/** The reviewed CI runtime this journey must run under. */
+const CI_NODE = "24.21.0";
+const deferred = suiteDeferral(
+  () => process.versions.node === CI_NODE,
+  `the reviewed CI Node ${CI_NODE} as the outer test runtime`,
+  `Run the integration suite under it, e.g. \`mise exec node@${CI_NODE} -- bun run test:integration\`.`
+);
 
 // 2026-10-02 wrapped TS journey: Git init -> completed proof 193.30s,
 // with 7-8 Vitest processes observed by ps -Ao args | rg -c '[v]itest'.
@@ -54,7 +63,7 @@ async function observeAndRemoveHost(
 
 beforeAll(async () => {
   expect(process.versions.node, "run using the reviewed CI runtime").toBe(
-    "24.21.0"
+    CI_NODE
   );
   candidate = await packCandidate(
     path.resolve(import.meta.dirname, "../.."),
@@ -76,37 +85,40 @@ afterAll(async () => {
   }
 }, fsLatencyBudgetMs(30_000));
 
-describe("shared runtime through exact packed CLI and generated hosts", () => {
-  it.each([
-    "npm-package",
-    "nestjs",
-    "phaser",
-    "harper-fabric",
-    "expo",
-  ] as const)(
-    "%s inherits Node24 through genuine native framework checks and two adoptions",
-    async stack => {
-      expect(registry).toBeDefined();
-      await observeAndRemoveHost(stack, () =>
-        verifyInheritedHost(candidate, registry!.url, stack)
-      );
-    }
-  );
-  it.each(["known", "ignored", "custom"] as const)(
-    "Node24 adoption preserves existing host ownership: %s",
-    async mode => {
-      await observeAndRemoveHost(`ownership-${mode}`, () =>
-        verifyRuntimeOwnership(candidate, mode)
-      );
-    }
-  );
-  it.each(["typescript", "cdk"] as const)(
-    "%s: patched installs, native execution and two idempotent adoptions",
-    async stack => {
-      expect(registry).toBeDefined();
-      await observeAndRemoveHost(stack, () =>
-        verifyHost(candidate, registry!.url, stack)
-      );
-    }
-  );
-});
+describe.skipIf(deferred)(
+  "shared runtime through exact packed CLI and generated hosts",
+  () => {
+    it.each([
+      "npm-package",
+      "nestjs",
+      "phaser",
+      "harper-fabric",
+      "expo",
+    ] as const)(
+      "%s inherits Node24 through genuine native framework checks and two adoptions",
+      async stack => {
+        expect(registry).toBeDefined();
+        await observeAndRemoveHost(stack, () =>
+          verifyInheritedHost(candidate, registry!.url, stack)
+        );
+      }
+    );
+    it.each(["known", "ignored", "custom"] as const)(
+      "Node24 adoption preserves existing host ownership: %s",
+      async mode => {
+        await observeAndRemoveHost(`ownership-${mode}`, () =>
+          verifyRuntimeOwnership(candidate, mode)
+        );
+      }
+    );
+    it.each(["typescript", "cdk"] as const)(
+      "%s: patched installs, native execution and two idempotent adoptions",
+      async stack => {
+        expect(registry).toBeDefined();
+        await observeAndRemoveHost(stack, () =>
+          verifyHost(candidate, registry!.url, stack)
+        );
+      }
+    );
+  }
+);
