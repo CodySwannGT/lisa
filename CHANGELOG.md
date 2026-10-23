@@ -2,6 +2,22 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [4.82.0](https://github.com/CodySwannGT/lisa/compare/v4.81.9...v4.82.0) (2026-10-23)
+
+
+### Features
+
+* **ci:** shard the unit-test job (unit_test_shards) ([65a8c5f](https://github.com/CodySwannGT/lisa/commit/65a8c5ff6dedf2807bc934019e7518ba2ed46bf4)), closes [CodySwannGT/lisa#4479](https://github.com/CodySwannGT/lisa/issues/4479)
+
+
+### Bug Fixes
+
+* **quality:** scope the unit-test shard variables to the test command ([9b5c6ed](https://github.com/CodySwannGT/lisa/commit/9b5c6ed942881ac4b9e393891e4bc9f95ce384ec)), closes [CodySwannGT/lisa#4479](https://github.com/CodySwannGT/lisa/issues/4479) [CodySwannGT/lisa#4479](https://github.com/CodySwannGT/lisa/issues/4479)
+* **test-run:** enforce the Jest floor when the config turns coverage on ([7d78534](https://github.com/CodySwannGT/lisa/commit/7d785341667211512821ecb43aa74c2a1e6955b6)), closes [#4483](https://github.com/CodySwannGT/lisa/issues/4483) [CodySwannGT/lisa#4479](https://github.com/CodySwannGT/lisa/issues/4479)
+* **test-run:** switch off every Vitest threshold in a shard leg ([dbe66dd](https://github.com/CodySwannGT/lisa/commit/dbe66ddf5a98db7cacc423ebf22f79fc16a1cb8d)), closes [#4483](https://github.com/CodySwannGT/lisa/issues/4483) [CodySwannGT/lisa#4479](https://github.com/CodySwannGT/lisa/issues/4479)
+* **test:** read the vitest merge summary without colour codes ([c7ba5e1](https://github.com/CodySwannGT/lisa/commit/c7ba5e1441d1e588fbdd519fb74b6435fe34b630)), closes [CodySwannGT/lisa#4479](https://github.com/CodySwannGT/lisa/issues/4479)
+* **test:** reject installed vite 8.3.2 in the shared-runtime policy fixture ([12a7223](https://github.com/CodySwannGT/lisa/commit/12a72232bdceb28e58c01e3f8a7af2e9de864c04)), closes [#4482](https://github.com/CodySwannGT/lisa/issues/4482) [CodySwannGT/lisa#4479](https://github.com/CodySwannGT/lisa/issues/4479)
+
 ### [4.81.9](https://github.com/CodySwannGT/lisa/compare/v4.81.8...v4.81.9) (2026-10-22)
 
 
