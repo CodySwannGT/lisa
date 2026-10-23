@@ -130,6 +130,8 @@ const LEDGER_SPECS = {
   },
   "clear-question": { options: {}, positionals: 1 },
   finish: { options: { status: text, sender: text }, positionals: 1 },
+  "validation-failed": { options: { "updated-at": text }, positionals: 1 },
+  "validation-cleared": { options: {}, positionals: 1 },
   control: {
     options: { paused: text, "max-workers": text, me: text },
     positionals: 0,

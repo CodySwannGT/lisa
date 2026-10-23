@@ -81,6 +81,17 @@ const FINISH_STATUSES = new Set(["DONE", "FAILED"]);
  * @property {number} version - Shape version
  * @property {Record<string, LedgerItem>} items - Items keyed by ref
  * @property {{paused: boolean, maxWorkers: number|null, me: string|null}} control - Operator controls
+ * @property {Record<string, ValidationFailure>} validationFailures - Backlog
+ *   items that failed validation, keyed by ref, so an unchanged item is not
+ *   re-validated every cycle
+ */
+
+/**
+ * A backlog item's last failed validation.
+ * @typedef {object} ValidationFailure
+ * @property {string} updatedAt - The item's tracker `updatedAt` when it failed
+ * @property {string} at - When the failure was recorded (ISO)
+ * @property {string|null} reason - Short summary of the failing gates
  */
 
 /**
@@ -119,6 +130,7 @@ function emptyLedger() {
     version: LEDGER_VERSION,
     items: {},
     control: { paused: false, maxWorkers: null, me: null },
+    validationFailures: {},
   };
 }
 
@@ -159,6 +171,7 @@ export async function readLedger(projectRoot, seams) {
     version: parsed.version ?? empty.version,
     items: parsed.items ?? {},
     control: { ...empty.control, ...parsed.control },
+    validationFailures: parsed.validationFailures ?? {},
   };
 }
 
@@ -381,6 +394,63 @@ export function recordFinish(projectRoot, { ref, status, reason }, seams) {
         { event: "finish", at, status, reason },
       ],
     });
+  });
+}
+
+/**
+ * Remember that a backlog item failed validation at its current tracker
+ * `updatedAt`. The backlog queue skips it until the item changes, so an
+ * unready item costs one validation per edit, not one per cycle.
+ * @param {string} projectRoot - Absolute project root
+ * @param {{ref: string, updatedAt: string, reason?: string|null}} failure - What failed
+ * @param {LedgerSeams} [seams] - Injected seams
+ * @returns {Promise<ValidationFailure>} The stored record
+ */
+export function recordValidationFailure(
+  projectRoot,
+  { ref, updatedAt, reason = null },
+  seams
+) {
+  if (typeof ref !== "string" || ref === "") {
+    return Promise.reject(new Error("validation failure needs a ref"));
+  }
+  if (typeof updatedAt !== "string" || updatedAt === "") {
+    return Promise.reject(
+      new Error(
+        "validation failure needs the item's updatedAt; without it the cache could never expire"
+      )
+    );
+  }
+  return updateLedger(projectRoot, seams, (ledger, at) => {
+    const entry = { updatedAt, at, reason: reason || null };
+    return {
+      ledger: {
+        ...ledger,
+        validationFailures: { ...ledger.validationFailures, [ref]: entry },
+      },
+      result: entry,
+    };
+  });
+}
+
+/**
+ * Forget a backlog item's validation failure (it was promoted, or a human
+ * asked for it to be judged again).
+ * @param {string} projectRoot - Absolute project root
+ * @param {{ref: string}} target - Item to forget
+ * @param {LedgerSeams} [seams] - Injected seams
+ * @returns {Promise<{cleared: boolean}>} Whether a record existed
+ */
+export function clearValidationFailure(projectRoot, { ref }, seams) {
+  return updateLedger(projectRoot, seams, ledger => {
+    if (!Object.hasOwn(ledger.validationFailures, ref)) {
+      return { ledger, result: { cleared: false } };
+    }
+    const { [ref]: _removed, ...rest } = ledger.validationFailures;
+    return {
+      ledger: { ...ledger, validationFailures: rest },
+      result: { cleared: true },
+    };
   });
 }
 
