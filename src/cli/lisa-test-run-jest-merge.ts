@@ -14,7 +14,8 @@
  * floor — and the merge writes the reporters the project configured, into the
  * directory it configured, which is where the SonarCloud hand-off looks.
  * Jest configures no summarizer, so the merge uses the one Jest's reporter
- * gets, and each reporter's own options pass through untouched.
+ * gets, with the watermarks and column limit Jest hands it, and each
+ * reporter's own options pass through on top.
  * @module cli/lisa-test-run-jest-merge
  */
 import { spawnSync } from "node:child_process";
@@ -43,6 +44,9 @@ interface JestCoverageConfig {
   readonly coverageDirectory: string;
 }
 
+/** istanbul's `[low, high]` band per metric. */
+type Watermarks = Record<string, [number, number]>;
+
 /** The istanbul surface the merge uses. */
 interface Istanbul {
   readonly coverage: {
@@ -56,7 +60,9 @@ interface Istanbul {
       dir: string;
       coverageMap: unknown;
       defaultSummarizer: string;
+      watermarks: Watermarks;
     }): unknown;
+    getDefaultWatermarks(): Watermarks;
   };
   readonly reports: {
     create(
@@ -68,6 +74,9 @@ interface Istanbul {
 
 /** The summarizer Jest's coverage reporter leaves istanbul on. */
 const JEST_SUMMARIZER = "pkg";
+
+/** The metrics whose watermark a `coverageThreshold.global` floor raises. */
+const WATERMARK_METRICS = ["branches", "functions", "lines", "statements"];
 
 /** Largest `--showConfig` document accepted, in bytes. */
 const SHOW_CONFIG_LIMIT = 64 * 1024 * 1024;
@@ -172,6 +181,29 @@ function manifestFrom(from: string, dependency: string): string | undefined {
 }
 
 /**
+ * The watermarks Jest's coverage reporter uses: istanbul's defaults, with each
+ * upper bound raised to the project's global floor for that metric, so a
+ * report colours a file "high" exactly when it meets the floor.
+ * @param defaults - istanbul's default watermarks, a fresh copy
+ * @param thresholds - The project's resolved `coverageThreshold`
+ * @returns Watermarks per metric
+ */
+function jestWatermarks(
+  defaults: Watermarks,
+  thresholds: JestThresholds | undefined
+): Watermarks {
+  const floors = thresholds?.global ?? {};
+  return Object.fromEntries(
+    Object.entries(defaults).map(([metric, [low, high]]) => {
+      const floor = WATERMARK_METRICS.includes(metric)
+        ? floors[metric]
+        : undefined;
+      return [metric, [low, floor ?? high]];
+    })
+  );
+}
+
+/**
  * Merge every shard's Jest coverage, write the configured reports, and check
  * the project's `coverageThreshold` once over the merged map.
  * @param argv - Payload argv the gate task handed `lisa-test-run`
@@ -219,11 +251,22 @@ export function mergeJestShards(
     dir: config.coverageDirectory,
     coverageMap: map,
     defaultSummarizer: JEST_SUMMARIZER,
+    watermarks: jestWatermarks(
+      istanbul.report.getDefaultWatermarks(),
+      config.coverageThreshold
+    ),
   });
   for (const reporter of config.coverageReporters) {
     const [name, options] =
       typeof reporter === "string" ? [reporter, {}] : reporter;
-    istanbul.reports.create(name, options).execute(context);
+    // Jest's own default, ahead of the reporter's options: without it the
+    // text table falls back to 80 columns off a terminal and cuts long paths.
+    istanbul.reports
+      .create(name, {
+        maxCols: process.stdout.columns || Number.POSITIVE_INFINITY,
+        ...options,
+      })
+      .execute(context);
   }
   const failures = checkJestThresholds(
     config.coverageThreshold,

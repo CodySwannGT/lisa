@@ -25,6 +25,7 @@ import {
   run,
   shardTwice,
   type CoverageReporter,
+  type ProjectOptions,
 } from "./lisa-test-run-jest-shards-fixture.js";
 
 // Same fixture weight as lisa-test-run-jest-shards.test.ts, whose budget was
@@ -57,15 +58,26 @@ afterEach(() => {
 });
 
 /**
+ * A source path long enough that the text table only fits it uncut when the
+ * reporter is given Jest's `maxCols`, not istanbul's 80-column fallback.
+ */
+const LONG_NAME = `${"a-deliberately-long-directory-name/".repeat(3)}f.js`;
+
+/**
  * Run one project whole and the same project as two merged shards.
  * @param reporters - The projects' `coverageReporters`
+ * @param overrides - Anything else the projects differ from the default in
  * @returns Both roots, and the merge's exit code
  */
-function wholeAndMerged(reporters: readonly CoverageReporter[]) {
+function wholeAndMerged(
+  reporters: readonly CoverageReporter[],
+  overrides: ProjectOptions = {}
+) {
   const options = {
     sources: CLOVER_BREAKER,
     tested: CLOVER_BREAKER.slice(0, 4),
     reporters,
+    ...overrides,
   };
   const register = (directory: string) => directories.push(directory);
   const whole = project(register, options);
@@ -152,6 +164,19 @@ function byText(left: string, right: string): number {
   return left.localeCompare(right, "en");
 }
 
+/**
+ * The html index's coverage classes, which the watermarks decide.
+ * @param root - Fixture root
+ * @returns Every `high` / `medium` / `low` class, in page order
+ */
+function watermarkClasses(root: string): string[] {
+  return [
+    ...coverageFile(root, "index.html").matchAll(
+      /class="[^"]*\b(high|medium|low)\b/gu
+    ),
+  ].map(([, band]) => band ?? "");
+}
+
 describe("Jest shard merge reports", () => {
   it("writes a complete clover report on a tree nested deep enough to break it", () => {
     const { whole, merged, status } = wholeAndMerged([
@@ -204,5 +229,26 @@ describe("Jest shard merge reports", () => {
       coverageFile(whole, TEXT_FILE)
     );
     expect(coverageFile(merged, TEXT_FILE)).toContain(" a/b/c/x/f.js ");
+  });
+  it("hands the reporters Jest's watermarks and column limit", () => {
+    // Jest raises each watermark's upper bound to the project's floor and
+    // gives the text table no column limit when stdout is not a terminal. A
+    // floor of 50 turns the 66.67% files "high" instead of "medium", and the
+    // long path is cut at istanbul's own 80-column fallback.
+    const { whole, merged, status } = wholeAndMerged(
+      ["html", ["text", { file: TEXT_FILE }]],
+      {
+        floor: 50,
+        sources: [...CLOVER_BREAKER, LONG_NAME],
+        tested: [...CLOVER_BREAKER.slice(0, 4), LONG_NAME],
+      }
+    );
+
+    expect(status).toBe(0);
+    expect(watermarkClasses(merged)).toEqual(watermarkClasses(whole));
+    expect(watermarkClasses(merged)).toContain("high");
+    expect(coverageFile(merged, TEXT_FILE)).toBe(
+      coverageFile(whole, TEXT_FILE)
+    );
   });
 });
