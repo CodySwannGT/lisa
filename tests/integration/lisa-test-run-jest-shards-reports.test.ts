@@ -13,7 +13,7 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
 
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { mergeJestShards } from "../../src/cli/lisa-test-run-jest-merge.js";
 import { readShardReceipts } from "../../src/cli/lisa-test-run-shard.js";
@@ -53,6 +53,7 @@ const TEXT: CoverageReporter = ["text", { file: TEXT_FILE, maxCols: 120 }];
 const directories: string[] = [];
 
 afterEach(() => {
+  vi.unstubAllEnvs();
   for (const directory of directories.splice(0))
     fs.rmSync(directory, { recursive: true, force: true });
 });
@@ -246,25 +247,35 @@ describe("Jest shard merge reports", () => {
     expect(watermarkClasses(merged)).toEqual(watermarkClasses(whole));
   });
 
-  it("hands the reporters Jest's watermarks and column limit", () => {
-    // Jest raises each watermark's upper bound to the project's floor and
-    // gives the text table no column limit when stdout is not a terminal. A
-    // floor of 50 turns the 66.67% files "high" instead of "medium", and the
-    // long path is cut at istanbul's own 80-column fallback.
-    const { whole, merged, status } = wholeAndMerged(
-      ["html", ["text", { file: TEXT_FILE }]],
-      {
-        floor: 50,
-        sources: [...CLOVER_BREAKER, LONG_NAME],
-        tested: [...CLOVER_BREAKER.slice(0, 4), LONG_NAME],
-      }
-    );
+  it.each([
+    // Jest 30.5 gives the table 80 columns on CI and none elsewhere, unless a
+    // terminal or COLUMNS says otherwise. Both arms run on every machine, so a
+    // merge that only matches Jest off CI fails here and not first in CI.
+    ["on CI", "true"],
+    ["off CI", ""],
+  ])(
+    "hands the reporters Jest's watermarks and column limit %s",
+    (_where, ci) => {
+      // A floor of 50 turns the 66.67% files "high" instead of "medium", and the
+      // long path shows whether the table was cut, and where.
+      vi.stubEnv("CI", ci);
+      vi.stubEnv("GITHUB_ACTIONS", ci);
+      vi.stubEnv("COLUMNS", "");
+      const { whole, merged, status } = wholeAndMerged(
+        ["html", ["text", { file: TEXT_FILE }]],
+        {
+          floor: 50,
+          sources: [...CLOVER_BREAKER, LONG_NAME],
+          tested: [...CLOVER_BREAKER.slice(0, 4), LONG_NAME],
+        }
+      );
 
-    expect(status).toBe(0);
-    expect(watermarkClasses(merged)).toEqual(watermarkClasses(whole));
-    expect(watermarkClasses(merged)).toContain("high");
-    expect(coverageFile(merged, TEXT_FILE)).toBe(
-      coverageFile(whole, TEXT_FILE)
-    );
-  });
+      expect(status).toBe(0);
+      expect(watermarkClasses(merged)).toEqual(watermarkClasses(whole));
+      expect(watermarkClasses(merged)).toContain("high");
+      expect(coverageFile(merged, TEXT_FILE)).toBe(
+        coverageFile(whole, TEXT_FILE)
+      );
+    }
+  );
 });

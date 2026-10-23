@@ -204,6 +204,21 @@ function jestWatermarks(
 }
 
 /**
+ * The column limit Jest 30.5's coverage reporter hands every reporter
+ * (`getMaxCols` in `@jest/reporters`): the terminal's width, else a numeric
+ * `COLUMNS`, else 80 on CI outside a Jest worker, else none. Jest 30.2 and
+ * earlier skipped the two middle steps; this follows the version Lisa pins.
+ * @returns The column limit
+ */
+function jestMaxCols(): number {
+  if (process.stdout.columns) return process.stdout.columns;
+  const columns = Number.parseInt(env.COLUMNS ?? "", 10);
+  if (columns) return columns;
+  const ci = env.CI === "true" || env.GITHUB_ACTIONS === "true";
+  return ci && !env.JEST_WORKER_ID ? 80 : Number.POSITIVE_INFINITY;
+}
+
+/**
  * Merge every shard's Jest coverage, write the configured reports, and check
  * the project's `coverageThreshold` once over the merged map.
  * @param argv - Payload argv the gate task handed `lisa-test-run`
@@ -260,12 +275,10 @@ export function mergeJestShards(
     const [name, options] =
       typeof reporter === "string" ? [reporter, {}] : reporter;
     // Jest's own default, ahead of the reporter's options: without it the
-    // text table falls back to 80 columns off a terminal and cuts long paths.
+    // text table falls back to istanbul's 80 columns and cuts long paths
+    // wherever Jest would not.
     istanbul.reports
-      .create(name, {
-        maxCols: process.stdout.columns || Number.POSITIVE_INFINITY,
-        ...options,
-      })
+      .create(name, { maxCols: jestMaxCols(), ...options })
       .execute(context);
   }
   const failures = checkJestThresholds(
