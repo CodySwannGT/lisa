@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.82.1](https://github.com/CodySwannGT/lisa/compare/v4.82.0...v4.82.1) (2026-10-23)
+
+
+### Bug Fixes
+
+* **test-run:** defer CI-only runtimes locally instead of failing the push ([6f73fd4](https://github.com/CodySwannGT/lisa/commit/6f73fd46f72ae8c5df926b5756ccce2279b9d2c3)), closes [CodySwannGT/lisa#4494](https://github.com/CodySwannGT/lisa/issues/4494) [CodySwannGT/lisa#4494](https://github.com/CodySwannGT/lisa/issues/4494)
+* **test-run:** only replace the stock macOS temp dir, never a chosen one ([6a6b32f](https://github.com/CodySwannGT/lisa/commit/6a6b32f573f254ecf22b26a37f5b2d366ffd4b40)), closes [CodySwannGT/lisa#4494](https://github.com/CodySwannGT/lisa/issues/4494) [CodySwannGT/lisa#4494](https://github.com/CodySwannGT/lisa/issues/4494)
+
 ## [4.82.0](https://github.com/CodySwannGT/lisa/compare/v4.81.9...v4.82.0) (2026-10-23)
 
 
