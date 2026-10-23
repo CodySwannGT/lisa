@@ -236,8 +236,10 @@ describe("Jest shard merge reports", () => {
     expect(coverageFile(merged, TEXT_FILE)).toContain(" a/b/c/x/f.js ");
   });
   it("sets the watermarks from a floor of 0, as Jest does", () => {
-    // Jest raises a bound whenever the floor is defined, so 0 gives [50, 0]
-    // and every file is "high"; istanbul's [50, 80] would say otherwise.
+    // Jest raises a bound whenever the floor is defined, so 0 gives [50, 0].
+    // istanbul checks the low bound first, so files under 50% stay "low" and
+    // only the "medium" band disappears: the 66.67% files read "high" here
+    // but "medium" under istanbul's [50, 80].
     const { whole, merged, status } = wholeAndMerged(["html"]);
 
     expect(status).toBe(0);
