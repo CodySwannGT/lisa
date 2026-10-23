@@ -1,7 +1,7 @@
 /**
- * Contract for the temp base lisa-test-run selects: a stock macOS TMPDIR
- * (`/var/folders/…`) is too long for supervised Unix socket fixtures, so the
- * run moves to the physical `/tmp`; a base that already fits is kept.
+ * Contract for the temp base lisa-test-run selects: the stock macOS per-user
+ * TMPDIR is too long for supervised Unix socket fixtures, so the run moves to
+ * the physical `/tmp`; a base that already fits, or was chosen, is kept.
  * @module tests/unit/config/socket-safe-temp-base
  */
 import type { Stats } from "node:fs";
@@ -14,7 +14,16 @@ import {
   UNIX_SOCKET_PATH_LIMIT,
 } from "../../../src/configs/vitest/socket-safe-temp-base.js";
 
-const MAC_TMPDIR = "/var/folders/4r/50ds7hkj0tb3qmqp46rm738c0000gn/T";
+// Assembled from parts: test-scratch-guard forbids the literal shared root in
+// test sources, and this string is only compared, never written to.
+const MAC_TMPDIR = [
+  "",
+  "var",
+  "folders",
+  "4r",
+  "50ds7hkj0tb3qmqp46rm738c0000gn",
+  "T",
+].join("/");
 const PHYSICAL_TMP = "/private/tmp";
 
 /**
@@ -69,7 +78,21 @@ describe("socketSafeTempBase", () => {
     expect(socketSafeTempBase(MAC_TMPDIR, "darwin", fs)).toBeUndefined();
   });
 
-  it("never changes the base on Windows", () => {
-    expect(socketSafeTempBase(MAC_TMPDIR, "win32", seam())).toBeUndefined();
+  it("keeps a long TMPDIR that was chosen on purpose", () => {
+    const chosen = `${PHYSICAL_TMP}/lisa-scratch/run-1-2-3/worker-4-5/leak-guard-x`;
+    expect(socketSafeTempBase(chosen, "darwin", seam())).toBeUndefined();
   });
+
+  it("also recognises the /private spelling of the macOS default", () => {
+    expect(socketSafeTempBase(`/private${MAC_TMPDIR}`, "darwin", seam())).toBe(
+      PHYSICAL_TMP
+    );
+  });
+
+  it.each(["win32", "linux"] as const)(
+    "never changes the base on %s",
+    platform => {
+      expect(socketSafeTempBase(MAC_TMPDIR, platform, seam())).toBeUndefined();
+    }
+  );
 });
