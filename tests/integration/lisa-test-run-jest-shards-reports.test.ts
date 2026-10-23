@@ -217,12 +217,17 @@ describe("Jest shard merge reports", () => {
     expect(coverageFile(merged, TEXT_FILE)).toContain(" src/a/b/c/x ");
   });
 
-  it("honours a summarizer the project's reporter options name", () => {
+  it("honours a summarizer and column limit the project's reporter options name", () => {
+    // LONG_NAME is wider than 120 columns leave for the name, so the table
+    // only matches when the reporter's own maxCols beats Jest's default.
     const flat: CoverageReporter = [
       "text",
       { file: TEXT_FILE, maxCols: 120, summarizer: "flat" },
     ];
-    const { whole, merged, status } = wholeAndMerged([flat]);
+    const { whole, merged, status } = wholeAndMerged([flat], {
+      sources: [...CLOVER_BREAKER, LONG_NAME],
+      tested: [...CLOVER_BREAKER.slice(0, 4), LONG_NAME],
+    });
 
     expect(status).toBe(0);
     expect(coverageFile(merged, TEXT_FILE)).toBe(
@@ -230,6 +235,15 @@ describe("Jest shard merge reports", () => {
     );
     expect(coverageFile(merged, TEXT_FILE)).toContain(" a/b/c/x/f.js ");
   });
+  it("sets the watermarks from a floor of 0, as Jest does", () => {
+    // Jest raises a bound whenever the floor is defined, so 0 gives [50, 0]
+    // and every file is "high"; istanbul's [50, 80] would say otherwise.
+    const { whole, merged, status } = wholeAndMerged(["html"]);
+
+    expect(status).toBe(0);
+    expect(watermarkClasses(merged)).toEqual(watermarkClasses(whole));
+  });
+
   it("hands the reporters Jest's watermarks and column limit", () => {
     // Jest raises each watermark's upper bound to the project's floor and
     // gives the text table no column limit when stdout is not a terminal. A
