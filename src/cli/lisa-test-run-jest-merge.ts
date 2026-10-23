@@ -13,6 +13,8 @@
  * same environment — so `LISA_COVERAGE_SCOPE=unit` still selects the unit
  * floor — and the merge writes the reporters the project configured, into the
  * directory it configured, which is where the SonarCloud hand-off looks.
+ * Jest configures no summarizer, so the merge uses the one Jest's reporter
+ * gets, and each reporter's own options pass through untouched.
  * @module cli/lisa-test-run-jest-merge
  */
 import { spawnSync } from "node:child_process";
@@ -63,6 +65,9 @@ interface Istanbul {
     ): { execute(context: unknown): void };
   };
 }
+
+/** The summarizer Jest's coverage reporter leaves istanbul on. */
+const JEST_SUMMARIZER = "pkg";
 
 /** Largest `--showConfig` document accepted, in bytes. */
 const SHOW_CONFIG_LIMIT = 64 * 1024 * 1024;
@@ -206,10 +211,14 @@ export function mergeJestShards(
       throw new Error(`shard ${receipt.index} left no coverage (${file}).`);
     map.merge(JSON.parse(fs.readFileSync(file, "utf8")) as object);
   }
+  // `pkg` is istanbul's default and the one Jest's own reporter gets, since
+  // Jest names none. `nested` breaks clover on a tree with three directories
+  // that hold only directories (#4488). A summarizer a reporter's options name
+  // still wins, for the reporters that read one, exactly as under Jest.
   const context = istanbul.report.createContext({
     dir: config.coverageDirectory,
     coverageMap: map,
-    defaultSummarizer: "nested",
+    defaultSummarizer: JEST_SUMMARIZER,
   });
   for (const reporter of config.coverageReporters) {
     const [name, options] =
