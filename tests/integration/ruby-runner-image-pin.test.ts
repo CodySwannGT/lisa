@@ -47,7 +47,12 @@ interface RubyJob {
   readonly workflow: string;
   readonly job: string;
   readonly runsOn: unknown;
+  /** The `if:` of each setup-ruby step in the job, or undefined when ungated. */
+  readonly rubyStepIfs: readonly (string | undefined)[];
 }
+
+/** The repository a `github.repository == '...'` comparison names. */
+const REPOSITORY_COMPARISON = /github\.repository\s*==\s*'([^']+)'/;
 
 /**
  * The image a runs-on value gives Lisa's own runs, or undefined when it does
@@ -82,12 +87,16 @@ function jobsNamingRuby(): RubyJob[] {
             String(step.uses ?? "").startsWith("ruby/setup-ruby") &&
             step.with?.["ruby-version"] !== undefined
         );
+        const rubyStepIfs = steps
+          .filter(step => String(step.uses ?? "").startsWith("ruby/setup-ruby"))
+          .map(step => step.if);
         return names
           ? [
               {
                 workflow,
                 job,
                 runsOn: (body as { "runs-on"?: unknown })["runs-on"],
+                rubyStepIfs,
               },
             ]
           : [];
@@ -120,6 +129,19 @@ describe("jobs that name a Ruby pin Lisa's runner image", () => {
     );
     expect(String(integration?.runsOn)).toMatch(LISA_CONDITIONAL);
     expect(String(integration?.runsOn)).toContain("|| 'ubuntu-latest'");
+    // The image is only safe for callers because the Ruby step never runs
+    // for them: without its gate, every caller would install Ruby 4.0.1 on
+    // ubuntu-latest again. Each setup-ruby step must name the repository the
+    // runs-on conditional pins.
+    const pinnedRepo = REPOSITORY_COMPARISON.exec(
+      String(integration?.runsOn)
+    )?.[1];
+    expect(pinnedRepo).toBe("CodySwannGT/lisa");
+    expect(integration?.rubyStepIfs.length).toBeGreaterThan(0);
+    for (const gate of integration?.rubyStepIfs ?? [])
+      expect(REPOSITORY_COMPARISON.exec(String(gate))?.[1], String(gate)).toBe(
+        pinnedRepo
+      );
   });
 });
 
