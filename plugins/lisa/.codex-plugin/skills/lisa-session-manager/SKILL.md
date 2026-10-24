@@ -266,10 +266,12 @@ Skip while `capacity` reports `paused`. Otherwise:
       queue was listed, skip it.
    2. **Validate it** with `lisa-tracker-validate` against the live item (identifier mode, all
       gates, including the stateless-pickup dry-run). This is what "can be taken to completion"
-      means. On anything but `PASS` (including could-not-validate), record
+      means. On a definitive `FAIL`, record
       `ledger validation-failed <ref> --updated-at <the item's updatedAt>` with a one-line summary
-      of the failing gates on STDIN, and skip it. Post nothing to Telegram: backlog grooming is not
-      the operator's inbox. The queue leaves it out until the item changes.
+      of the failing gates on STDIN, and skip it; the queue leaves it out until the item changes.
+      On could-not-validate (an outage or unreadable item, not a verdict), skip it WITHOUT
+      recording, so the next cycle retries it. Either way, post nothing to Telegram: backlog
+      grooming is not the operator's inbox.
    3. **Route the repo** as in step 2.2, but never ask: an ambiguous or multi-repo backlog item is
       skipped.
    4. **Promote** in ONE `lisa-tracker-write` update: assignee = the first `operatorIds` entry, move
@@ -277,8 +279,10 @@ Skip while `capacity` reports `paused`. Otherwise:
       `[lisa-session-manager] Promoted from backlog: validation passed; assigned to the operator.`
       Read it back with `lisa-tracker-read` and continue only when the role is `ready` and the
       assignee is that operator. Then `ledger validation-cleared <ref>`.
-   5. Continue with step 2.3 (claim in the child repo, re-read, spawn) exactly as for a Ready item.
-      Post `[<REF>] promoted from backlog and started in <repo> (<name>)` to Telegram.
+   5. Continue with steps 2.3 and 2.4 (claim in the child repo, re-read, spawn, handle the exit)
+      exactly as for a Ready item, with one change: on exit 0, post
+      `[<REF>] promoted from backlog and started in <repo> (<name>)` in place of the plain start
+      notice. Every other exit keeps its step 2.4 handling.
    A promotion written and read back counts as a state change for the run outcome; a spawn that
    then fails follows step 2.4's exits (the item stays in Ready, assigned to the operator).
 
