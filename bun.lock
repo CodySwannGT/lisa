@@ -1,5 +1,5 @@
 {
-  "lockfileVersion": 1,
+  "lockfileVersion": 3,
   "configVersion": 1,
   "workspaces": {
     "": {
@@ -125,6 +125,9 @@
   ],
   "overrides": {
     "@isaacs/brace-expansion": "^5.0.1",
+    "@istanbuljs/load-nyc-config": {
+      "js-yaml": "^3.15.1",
+    },
     "axios": ">=1.20.0",
     "browserslist": ">=4.28.8",
     "deepmerge-ts": "^8.0.1",

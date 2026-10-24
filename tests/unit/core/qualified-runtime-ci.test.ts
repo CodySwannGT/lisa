@@ -48,25 +48,27 @@ function jobs(file: string): Readonly<Record<string, Job>> {
   return workflow.jobs;
 }
 
+/** Lisa's pinned Bun, read from the manifest rather than restated here. */
+const PINNED_BUN = (
+  JSON.parse(readFileSync(path.join(ROOT, "package.json"), "utf8")) as {
+    engines: { bun: string };
+  }
+).engines.bun;
+
 /**
- * Require the genuine host Bun capture before selecting ordinary Lisa tooling.
+ * Require exactly one Bun, the pinned one. Native inherited-host checks run on
+ * it too (it meets their floor), so a second provisioned Bun would only bring
+ * back the capture-before-replace dance it replaced.
  * @param items - Ordered native job steps
  */
 function assertHostBun(items: readonly Step[]): void {
-  const provision = items.findIndex(
-    step => step.with?.["bun-version"] === "1.3.11"
+  const versions = items
+    .map(step => step.with?.["bun-version"])
+    .filter(version => version !== undefined);
+  expect(versions).toEqual([PINNED_BUN]);
+  expect(items.some(step => step.run?.includes("LISA_TEST_HOST_BUN="))).toBe(
+    false
   );
-  const capture = items.findIndex(step =>
-    step.run?.includes("LISA_TEST_HOST_BUN=")
-  );
-  const tooling = items.findIndex(
-    step => step.with?.["bun-version"] === "1.3.8"
-  );
-  expect(provision).toBeGreaterThanOrEqual(0);
-  expect(capture).toBeGreaterThan(provision);
-  expect(tooling).toBeGreaterThan(capture);
-  expect(items[capture]!.run).toContain('Bun.version !== "1.3.11"');
-  expect(items[capture]!.run).toContain("realpathSync(process.execPath)");
 }
 
 /**
@@ -91,13 +93,13 @@ function assertUpdaterNode(items: readonly Step[]): void {
 }
 
 describe("qualified runtimes in required CI execution paths", () => {
-  it("unit coverage retains real updater Node and native host Bun before shared tooling", () => {
+  it("unit coverage retains real updater Node and runs on the single pinned Bun", () => {
     const items = steps(".github/workflows/quality.yml", "test_unit");
     assertUpdaterNode(items);
     assertHostBun(items);
   });
 
-  it("integration retains actual native host Bun and the unchanged native test command", () => {
+  it("integration runs on the single pinned Bun and the unchanged native test command", () => {
     const items = steps(".github/workflows/quality.yml", "test_integration");
     assertUpdaterNode(items);
     assertHostBun(items);
