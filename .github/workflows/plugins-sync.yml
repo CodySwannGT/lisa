@@ -31,7 +31,12 @@ on:
 jobs:
   guard-trace:
     name: Shell guard trace shard ${{ matrix.shard }}/3
-    runs-on: ubuntu-latest
+    # Pinned, not ubuntu-latest: GitHub moved ubuntu-latest to the 26.04 image
+    # in October 2026, and ruby/setup-ruby publishes no Ruby 4.0.1 build for it
+    # ("Unavailable version 4.0.1 for ruby on ubuntu-26.04"), which fails
+    # the Ruby setup the shell guard traces use below. Move to ubuntu-26.04
+    # once setup-ruby ships the pinned Ruby for that image (CodySwannGT/lisa#4513).
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
     strategy:
       fail-fast: false
