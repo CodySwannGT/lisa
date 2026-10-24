@@ -443,7 +443,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "expo/copy-overwrite/eslint.expo.ts":
       "e43d528568450ba2acfc943c5dea07a34f0a03550ec739ba531f6d5a4bf234d7",
     "expo/copy-overwrite/eslint.slow.config.ts":
-      "48d6a35be75450becde07d30d859c970c48a0438e730845272629c8ec677d3eb",
+      "3189a36471d596f5d4c3ed43484a9b7a5d33ef27b4d0fdb93007b823cec6cad0",
     "expo/copy-overwrite/jest.config.ts":
       "b58454a9cf55cf5c1449457fe8eae8390471c57787bdee05b5e34710aa89950a",
     "expo/copy-overwrite/jest.expo.ts":
@@ -575,7 +575,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "expo/merge/.oxlintrc.json":
       "95b3069256c0040be0ef1a5adae46d14687ad56fb18f473a653ba2de45d106bb",
     "expo/package-lisa/package.lisa.json":
-      "5bf6eca6b95ec35cd7426862ee5e79074becec2b3a7b528b5958dd8298ad7e0a",
+      "e5bb649e5d3716885cc01c7142288494bb1f0d1881200228eef6ed62c9f34b7a",
     "harper-fabric/copy-contents/.prettierignore":
       "478c782f4c5611187e21584dfd5522e37fc636c5eb03394fea3db45321c6712c",
     "harper-fabric/copy-contents/gitignore":
@@ -10453,6 +10453,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "src/configs/eslint/index.ts": true,
     "src/configs/eslint/nestjs.ts": true,
     "src/configs/eslint/phaser.ts": true,
+    "src/configs/eslint/slow-expo.ts": true,
     "src/configs/eslint/slow.ts": true,
     "src/configs/eslint/typescript.ts": true,
     "src/configs/eslint/view-gate.ts": true,
@@ -11523,6 +11524,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/config/eslint-typescript-worktree-scope.test.ts": true,
     "tests/unit/config/expo-design-value-arming.test.ts": true,
     "tests/unit/config/expo-eslint-local-config.test.ts": true,
+    "tests/unit/config/expo-slow-react-rules.test.ts": true,
     "tests/unit/config/expo-view-purity-gate.test.ts": true,
     "tests/unit/config/fast-uri-audit-suppression.test.ts": true,
     "tests/unit/config/fast-xml-parser-security-floor.test.ts": true,
@@ -11582,11 +11584,13 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/config/scratch-tmpdir-trust.test.ts": true,
     "tests/unit/config/security-pin-floors.test.ts": true,
     "tests/unit/config/shipped-mjs-roster.test.ts": true,
+    "tests/unit/config/slow-config-module-isolation.test.ts": true,
     "tests/unit/config/socket-safe-temp-base.test.ts": true,
     "tests/unit/config/sonar-coverage-handoff.test.ts": true,
     "tests/unit/config/stale-deploy-guard.test.ts": true,
     "tests/unit/config/synthesis-scratch-reclaim.test.ts": true,
     "tests/unit/config/template-script-toolchain.test.ts": true,
+    "tests/unit/config/template-security-floors.test.ts": true,
     "tests/unit/config/test-run-child-process-analyzer.test.ts": true,
     "tests/unit/config/test-run-supervision-wiring.test.ts": true,
     "tests/unit/config/test-scratch-guard.test.ts": true,
@@ -11613,6 +11617,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/config/work-item-traceability-scope-gate.test.ts": true,
     "tests/unit/config/workspace-suite-collection.test.ts": true,
     "tests/unit/config/worktree-exclusion-anchoring.test.ts": true,
+    "tests/unit/config/zod-security-floor.test.ts": true,
     "tests/unit/configs/ast-grep-language-reach.test.ts": true,
     "tests/unit/configs/expo-jest-pre-setup.test.ts": true,
     "tests/unit/configs/lighthouse-collect-config.test.ts": true,
