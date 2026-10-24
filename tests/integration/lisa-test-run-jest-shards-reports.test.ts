@@ -52,8 +52,34 @@ const TEXT: CoverageReporter = ["text", { file: TEXT_FILE, maxCols: 120 }];
 
 const directories: string[] = [];
 
+/** `process.stdout.columns` as the suite found it, restored after each case. */
+const stdoutColumns = Object.getOwnPropertyDescriptor(
+  process.stdout,
+  "columns"
+);
+
+/**
+ * Give this process's stdout a terminal width, or none.
+ *
+ * The unsharded Jest child runs on a captured pipe, so it never has one. The
+ * in-process merge reads this process's stdout, which has a width whenever a
+ * developer runs the suite in a terminal, and Jest ranks that width above
+ * COLUMNS and the CI default. Pinning it keeps both sides on the same input.
+ * @param columns - Width to report, or undefined for none
+ */
+function stubStdoutColumns(columns: number | undefined): void {
+  Object.defineProperty(process.stdout, "columns", {
+    configurable: true,
+    value: columns,
+    writable: true,
+  });
+}
+
 afterEach(() => {
   vi.unstubAllEnvs();
+  if (stdoutColumns === undefined)
+    Reflect.deleteProperty(process.stdout, "columns");
+  else Object.defineProperty(process.stdout, "columns", stdoutColumns);
   for (const directory of directories.splice(0))
     fs.rmSync(directory, { recursive: true, force: true });
 });
@@ -273,6 +299,7 @@ describe("Jest shard merge reports", () => {
       // long path shows whether the table was cut, and where.
       for (const [name, value] of Object.entries(environment))
         vi.stubEnv(name, value);
+      stubStdoutColumns(undefined);
       const { whole, merged, status } = wholeAndMerged(
         ["html", ["text", { file: TEXT_FILE }]],
         {
