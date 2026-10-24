@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.82.3](https://github.com/CodySwannGT/lisa/compare/v4.82.2...v4.82.3) (2026-10-24)
+
+
+### Bug Fixes
+
+* **ci:** keep Bun on Lisa's own test jobs regardless of package manager ([c49ca92](https://github.com/CodySwannGT/lisa/commit/c49ca922183c7b6f233b54fee18c4850976620ff)), closes [CodySwannGT/lisa#4495](https://github.com/CodySwannGT/lisa/issues/4495) [CodySwannGT/lisa#4495](https://github.com/CodySwannGT/lisa/issues/4495)
+
 ### [4.82.2](https://github.com/CodySwannGT/lisa/compare/v4.82.1...v4.82.2) (2026-10-24)
 
 
