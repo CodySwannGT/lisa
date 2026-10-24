@@ -29,7 +29,6 @@ import {
 } from "../core/override-floors.js";
 import { LISA_PACKAGE_NAME } from "../core/self-apply.js";
 import { getPackageVersion } from "../cli/version.js";
-import { retainImportedRemovals } from "./package-lisa-import-guard.js";
 import type {
   PackageLisaTemplate,
   ResolvedPackageLisaTemplate,
@@ -434,8 +433,7 @@ export class PackageLisaStrategy implements ICopyStrategy {
       projectJson,
       effective,
       this.PACKAGE_JSON,
-      restricted,
-      projectDir
+      restricted
     );
     const plan = planSelfReferencingOverrideNormalization(
       forced.packageJson,
@@ -843,9 +841,6 @@ export class PackageLisaStrategy implements ICopyStrategy {
    * @param fileName - Basename used in error messages
    * @param restricted - True when the template was reduced to security pins,
    *   which is the postinstall path and Lisa's own repository
-   * @param projectDir - The project being applied to. When given, a guarded
-   *   `remove` entry the project's own files still import is kept, with a note
-   *   (#4507); planning and audit callers have no project directory to scan
    * @returns Modified package.json plus operator-visible notes
    * @private
    */
@@ -853,8 +848,7 @@ export class PackageLisaStrategy implements ICopyStrategy {
     projectJson: Record<string, unknown>,
     template: ResolvedPackageLisaTemplate,
     fileName: string,
-    restricted = false,
-    projectDir?: string
+    restricted = false
   ): PackageJsonPlan {
     // Phase 1: Apply force (Lisa's values completely replace project's), then
     // restore any dependency pin the host had raised ABOVE Lisa's floor.
@@ -878,13 +872,8 @@ export class PackageLisaStrategy implements ICopyStrategy {
     // Phase 3: Apply merge (concatenate and deduplicate arrays)
     const afterMerge = this.applyMergeSections(afterDefaults, template.merge);
 
-    // Phase 4: Apply remove (delete retired keys from their sections), keeping
-    // a guarded key the project's own files still import.
-    const guarded =
-      projectDir === undefined
-        ? { remove: template.remove, notes: [] }
-        : retainImportedRemovals(projectDir, template.remove, projectJson);
-    const afterRemove = this.applyRemoveSections(afterMerge, guarded.remove);
+    // Phase 4: Apply remove (delete retired keys from their sections)
+    const afterRemove = this.applyRemoveSections(afterMerge, template.remove);
 
     // Phase 5: Make the host's pin name the version that wrote these templates.
     // A restricted apply is the postinstall path, where the installed package
@@ -899,7 +888,6 @@ export class PackageLisaStrategy implements ICopyStrategy {
       packageJson: pinned.packageJson,
       notes: [
         ...afterForce.notes,
-        ...guarded.notes,
         ...pinned.notes,
         ...describeScriptChanges(projectJson, pinned.packageJson, template),
       ],

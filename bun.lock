@@ -32,6 +32,7 @@
         "eslint-plugin-jsx-a11y": "^6.10.0",
         "eslint-plugin-prettier": "^5.5.0",
         "eslint-plugin-react": "^7.37.0",
+        "eslint-plugin-react-compiler": "^19.1.0-rc.2",
         "eslint-plugin-react-hooks": "^7.0.0",
         "eslint-plugin-react-perf": "^3.3.0",
         "eslint-plugin-sonarjs": "4.0.3",
@@ -83,6 +84,7 @@
         "oxlint-tsgolint": "^0.24.0",
         "vite": "^8.3.3",
         "yaml": "^2.9.1",
+        "zod": "^4.6.7",
       },
     },
     "eslint-plugin-code-organization": {
@@ -140,7 +142,6 @@
     "undici": "^6.29.1",
     "vite": "^8.3.3",
     "ws": ">=8.21.0",
-    "zod": "^4.6.7",
     "zod-validation-error": "^4.0.0",
   },
   "packages": {
@@ -2383,6 +2384,8 @@
     "eslint-plugin-react/minimatch": ["minimatch@3.1.5", "", { "dependencies": { "brace-expansion": "^1.1.7" } }, "sha512-VgjWUsnnT6n+NUk6eZq77zeFdpW2LWDzP6zFGrCbHXiYNul5Dzqk2HHQ5uFH2DNW5Xbp8+jVzaeNt94ssEEl4w=="],
 
     "eslint-plugin-react/semver": ["semver@6.3.1", "", { "bin": { "semver": "bin/semver.js" } }, "sha512-BR7VvDCVHO+q2xBEWskxS6DJE1qRnb7DxzUrogb71CWoSficBxYsiAGd+Kl0mmq/MprG9yArRkyrQxTO6XjMzA=="],
+
+    "eslint-plugin-react-compiler/zod": ["zod@3.25.76", "", {}, "sha512-gzUt/qt81nXsFGKIFcC3YnfEAx5NkunCfnDlvuBSSFS02bcXu4Lmea0AFIUwbLWxWPx3d9p8S5QoaujKcNQxcQ=="],
 
     "eslint-plugin-sonarjs/globals": ["globals@17.13.0", "", {}, "sha512-RwMTC61u7hrG3ZJMkZQOK4JLJrKS8QtoTii63EmWvFXHqycY9FObBJQCbsLxSO8kjKhWE5kV1GC+Vb1g3RI0Zg=="],
 

@@ -20,6 +20,7 @@
  */
 import jsxA11y from "eslint-plugin-jsx-a11y";
 import react from "eslint-plugin-react";
+import reactCompiler from "eslint-plugin-react-compiler";
 // @ts-expect-error -- eslint-plugin-react-perf lacks type declarations
 import reactPerf from "eslint-plugin-react-perf";
 import tailwind from "eslint-plugin-tailwindcss";
@@ -42,7 +43,6 @@ import {
   getTsFilesOverride,
   getTsTestFilesOverride,
 } from "@codyswann/lisa/eslint/typescript";
-import { reactCompilerShim } from "@codyswann/lisa/eslint/expo";
 
 // Re-export for downstream configs
 export {
@@ -229,9 +229,7 @@ export function getExpoConfig({
       plugins: {
         "component-structure": componentStructure,
         "code-organization": codeOrganization,
-        // Lisa's no-op stand-in, so existing react-compiler/react-compiler
-        // references keep resolving without the zod-3 plugin (#4507).
-        "react-compiler": reactCompilerShim,
+        "react-compiler": reactCompiler,
         "ui-standards": uiStandards,
       },
       rules: {

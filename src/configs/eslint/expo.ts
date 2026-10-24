@@ -15,6 +15,7 @@
  */
 import oxlint from "eslint-plugin-oxlint";
 import react from "eslint-plugin-react";
+import reactCompiler from "eslint-plugin-react-compiler";
 import { readFileSync } from "fs";
 import { createRequire } from "module";
 import path from "path";
@@ -35,7 +36,6 @@ import {
   getTsFilesOverride,
   getTsTestFilesOverride,
 } from "./typescript.js";
-import { reactCompilerShim } from "./react-compiler-shim.js";
 import { getViewGateConfigs } from "./view-gate.js";
 
 // Re-export for downstream configs
@@ -45,7 +45,6 @@ export {
   getBaseConfigs,
   getBaseLanguageOptions,
   getSharedRules,
-  reactCompilerShim,
 };
 
 // Custom plugins — loaded via relative path so they are resolved from the Lisa
@@ -244,9 +243,7 @@ export function getExpoConfig({
       plugins: {
         "component-structure": componentStructure,
         "code-organization": codeOrganization,
-        // Lisa's no-op stand-in, so existing react-compiler/react-compiler
-        // references keep resolving without the zod-3 plugin (#4507).
-        "react-compiler": reactCompilerShim,
+        "react-compiler": reactCompiler,
         "ui-standards": uiStandards,
       },
       rules: {

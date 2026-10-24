@@ -9,6 +9,15 @@
       "review_by": "2026-10-16T23:59:59Z",
       "tracking": "CodySwannGT/lisa#4326",
       "expiry_enforced": false
+    },
+    {
+      "id": "GHSA-mrhx-c7xc-m3w5",
+      "package": "zod",
+      "owner": "CodySwannGT",
+      "review_by": "2026-11-24T23:59:59Z",
+      "tracking": "CodySwannGT/lisa#4507",
+      "expiry_enforced": false,
+      "reason": "Repository-specific exception for one copy: zod 3.25.76, nested under eslint-plugin-react-compiler 19.1.0-rc.2 (its latest release, which requires zod ^3.22.4). The advisory's only patched release is 4.6.6 and no 3.x fix exists. On 2026-10-24 the maintainer chose to keep the plugin, because its React Compiler rule runs in lint:slow, over forcing it onto zod 4. The plugin is lint-time tooling: it validates its own options while linting this repository's reviewed source, never untrusted or oversized input. Every other zod in the tree resolves to 4.6.7, and tests/unit/config/zod-security-floor.test.ts fails if any zod below 4.6.6 appears anywhere except that plugin's copy. The audit filter matches by advisory id only, so that test is what scopes this exception. It does not authorize adding the exception to shared templates or suppressing any other advisory. Recheck by 2026-11-24, and remove it once the plugin accepts zod 4.6.6+."
     }
   ]
 }
