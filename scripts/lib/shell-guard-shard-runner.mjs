@@ -136,7 +136,8 @@ export function snapshot(root, discover) {
     arch: process.arch,
     bun: binary(bunPath),
     updaterNode: binary(process.env.LISA_TEST_UPDATER_NODE),
-    nativeHostBun: binary(process.env.LISA_TEST_HOST_BUN),
+    // One Bun serves tooling and native host checks unless one is chosen.
+    nativeHostBun: binary(process.env.LISA_TEST_HOST_BUN ?? bunPath),
   };
   const row = {
     head,
