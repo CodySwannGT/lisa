@@ -205,6 +205,7 @@
     "./eslint/harper-fabric": "./dist/configs/eslint/harper-fabric.js",
     "./eslint/phaser": "./dist/configs/eslint/phaser.js",
     "./eslint/slow": "./dist/configs/eslint/slow.js",
+    "./eslint/slow-expo": "./dist/configs/eslint/slow-expo.js",
     "./jest": "./dist/configs/jest/index.js",
     "./jest/base": "./dist/configs/jest/base.js",
     "./jest/typescript": "./dist/configs/jest/typescript.js",

@@ -18,7 +18,7 @@ import * as path from "node:path";
 import { ESLint, type Linter } from "eslint";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
-import { getExpoSlowConfig } from "../../../src/configs/eslint/slow.js";
+import { getExpoSlowConfig } from "../../../src/configs/eslint/slow-expo.js";
 import { useIoLatencyBudget } from "../../helpers/io-latency-budget.js";
 
 // Type-aware parsing of a fresh program: measured at about 3s on a quiet box.
@@ -151,7 +151,7 @@ describe("the Expo slow config keeps both rules", () => {
       "utf8"
     );
     expect(template).toContain(
-      'import { getExpoSlowConfig } from "@codyswann/lisa/eslint/slow";'
+      'import { getExpoSlowConfig } from "@codyswann/lisa/eslint/slow-expo";'
     );
     expect(template).toMatch(/getExpoSlowConfig\(\{/);
   });

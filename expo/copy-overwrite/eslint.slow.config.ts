@@ -21,7 +21,7 @@ import { createRequire } from "module";
 import path from "path";
 import { fileURLToPath } from "url";
 
-import { getExpoSlowConfig } from "@codyswann/lisa/eslint/slow";
+import { getExpoSlowConfig } from "@codyswann/lisa/eslint/slow-expo";
 
 import ignoreConfig from "./eslint.ignore.config.json" with { type: "json" };
 

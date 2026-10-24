@@ -9,15 +9,12 @@
  * - import/namespace - Type checks all namespace imports (slow)
  * - import/no-cycle - Detects circular dependencies (very slow)
  *
- * Expo adds, through {@link getExpoSlowConfig}:
- * - react-compiler/react-compiler - React Compiler compatibility checks (slow)
- * - react-hooks/static-components - Static component optimization checks (slow)
+ * Expo's React rules live in ./slow-expo.ts, so this module loads no React
+ * plugin for the stacks that never need one (CodySwannGT/lisa#4507).
  * @see https://github.com/import-js/eslint-plugin-import
  * @module configs/eslint/slow
  */
 import importPlugin from "eslint-plugin-import";
-import reactCompilerPlugin from "eslint-plugin-react-compiler";
-import reactHooksPlugin from "eslint-plugin-react-hooks";
 import sonarjsPlugin from "eslint-plugin-sonarjs";
 import tseslint from "typescript-eslint";
 
@@ -94,44 +91,6 @@ export function getSlowConfig({
         // Off by default: codebase may have existing deprecated API usages.
         // Enable project-by-project once violations are addressed.
         "sonarjs/deprecation": "off",
-      },
-    },
-  ];
-}
-
-/**
- * Creates the slow ESLint configuration for Expo projects: the shared slow
- * rules plus the two React rules the main Expo config turns off for speed.
- *
- * `react-compiler/react-compiler` and `react-hooks/static-components` moved
- * here from the main Expo lint when lint:slow was introduced (0b58fe96a4).
- * A later rewrite of this module kept only the import rules, so neither ran
- * anywhere until they were restored (CodySwannGT/lisa#4507). The plugins are
- * resolved from Lisa's own dependencies, so a project needs no extra install.
- * @param options - Configuration options for the slow rules config
- * @param options.ignorePatterns - Patterns to ignore in addition to built-in ignores
- * @returns ESLint flat config array containing only slow rules
- */
-export function getExpoSlowConfig({
-  ignorePatterns = [],
-}: {
-  ignorePatterns?: readonly string[];
-} = {}): import("eslint").Linter.Config[] {
-  return [
-    ...getSlowConfig({ ignorePatterns }),
-    {
-      files: ["**/*.tsx", "**/*.ts"],
-      plugins: {
-        "react-compiler": reactCompilerPlugin,
-        // Rules only: the package's `configs` shape does not fit ESLint's
-        // Plugin type, and this config needs none of its presets.
-        "react-hooks": { rules: reactHooksPlugin.rules },
-      },
-      rules: {
-        // React Compiler compatibility (slow)
-        "react-compiler/react-compiler": "error",
-        // Static component optimization (slow)
-        "react-hooks/static-components": "error",
       },
     },
   ];
