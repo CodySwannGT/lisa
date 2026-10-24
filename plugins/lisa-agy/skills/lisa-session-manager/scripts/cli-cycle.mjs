@@ -24,9 +24,11 @@ import {
 import { parseJson, readJsonFile } from "./cli-queue.mjs";
 import {
   clearPendingQuestion,
+  clearValidationFailure,
   readLedger,
   recordFinish,
   recordSpawn,
+  recordValidationFailure,
   setControl,
   setPendingQuestion,
 } from "./ledger.mjs";
@@ -130,6 +132,14 @@ const LEDGER_ACTIONS = {
       reason: stdinText(ctx, "reason", { required: false }),
     });
   },
+  "validation-failed": ctx =>
+    recordValidationFailure(ctx.root, {
+      ref: requirePositional(ctx, "ref"),
+      updatedAt: requireValue(ctx, "updated-at"),
+      reason: stdinText(ctx, "reason", { required: false }),
+    }),
+  "validation-cleared": ctx =>
+    clearValidationFailure(ctx.root, { ref: requirePositional(ctx, "ref") }),
   control: ctx =>
     setControl(
       ctx.root,

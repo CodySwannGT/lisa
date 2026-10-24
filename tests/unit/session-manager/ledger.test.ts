@@ -89,6 +89,7 @@ describe("ledger", () => {
       version: 1,
       items: {},
       control: { paused: false, maxWorkers: null, me: null },
+      validationFailures: {},
     });
   });
 

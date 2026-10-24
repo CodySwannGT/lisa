@@ -816,8 +816,36 @@ export function validateSessionManager(block) {
         ]
       : []),
     ...validateOperatorIds(block.operatorIds),
+    ...validateBacklogPickup(block.backlogPickup, block.operatorIds),
     ...findCredentials(block, "sessionManager"),
   ];
+}
+
+/**
+ * Validate `sessionManager.backlogPickup`: opt-in promotion of validated
+ * backlog items to Ready, assigned to `operatorIds[0]`. Without an operator
+ * there is nobody to assign the promoted item to, so it is refused rather
+ * than promoting work into the agent's own name.
+ * @param {unknown} value The value, if present.
+ * @param {unknown} operatorIds `sessionManager.operatorIds`, if present.
+ * @returns {string[]} Problems found.
+ */
+function validateBacklogPickup(value, operatorIds) {
+  if (value === undefined) return [];
+  if (typeof value !== "boolean") {
+    return [
+      `sessionManager.backlogPickup must be true or false (absent means false).`,
+    ];
+  }
+  const hasOperator =
+    Array.isArray(operatorIds) &&
+    operatorIds.some(id => typeof id === "string" && id.trim() !== "");
+  return value && !hasOperator
+    ? [
+        `sessionManager.backlogPickup needs sessionManager.operatorIds: a ` +
+          `promoted backlog item is assigned to the first operator.`,
+      ]
+    : [];
 }
 
 /**
