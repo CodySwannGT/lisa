@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 /** Public entrypoint for birth-bound test supervision and scratch cleanup. */
+import * as os from "node:os";
 import * as path from "node:path";
 import { env } from "node:process";
 
@@ -11,6 +12,7 @@ import {
   resolveScratchRouteProfile,
   type ScratchRouteProfile,
 } from "../configs/vitest/scratch-route-profile.js";
+import { socketSafeTempBase } from "../configs/vitest/socket-safe-temp-base.js";
 import { mergeJestShards } from "./lisa-test-run-jest-merge.js";
 import {
   gatherVitestBlobs,
@@ -111,6 +113,20 @@ function applyShardPlan(
   return vitestMergeArgv(argv, blobs);
 }
 
+/**
+ * Move the run off a temp base too long for native Unix socket fixtures,
+ * before any scratch authority is pinned to it.
+ */
+function selectSocketSafeTempBase(): void {
+  const current = os.tmpdir();
+  const replacement = socketSafeTempBase(current);
+  if (replacement === undefined) return;
+  env.TMPDIR = replacement;
+  process.stderr.write(
+    `lisa-test-run: TMPDIR ${current} is too long for native Unix socket fixtures; using ${replacement}.\n`
+  );
+}
+
 /** Run the public CLI and preserve the child result only after cleanup. */
 async function main(): Promise<void> {
   const invocation = invocationOrExit();
@@ -118,6 +134,7 @@ async function main(): Promise<void> {
   try {
     const dependencyProblem = worktreeDependencyProblem();
     if (dependencyProblem) throw new Error(dependencyProblem);
+    selectSocketSafeTempBase();
     const payload = applyShardPlan(invocation.argv);
     if (typeof payload === "number") process.exit(payload);
     const outcome = await superviseTestRun(

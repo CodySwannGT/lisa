@@ -575,7 +575,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "expo/merge/.oxlintrc.json":
       "95b3069256c0040be0ef1a5adae46d14687ad56fb18f473a653ba2de45d106bb",
     "expo/package-lisa/package.lisa.json":
-      "4a2e6df44b00c5c7eacf786b95dc211f902c8ea567be824dbb100f33d5d1deef",
+      "5bf6eca6b95ec35cd7426862ee5e79074becec2b3a7b528b5958dd8298ad7e0a",
     "harper-fabric/copy-contents/.prettierignore":
       "478c782f4c5611187e21584dfd5522e37fc636c5eb03394fea3db45321c6712c",
     "harper-fabric/copy-contents/gitignore":
@@ -703,7 +703,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "nestjs/merge/.oxlintrc.json":
       "1de29d135744df0258e8659ee0b684acf84e687bbefade51db0576813e6ff097",
     "nestjs/package-lisa/package.lisa.json":
-      "ca3ad60aed40327d792d6c9c3a760a6d1d7570b266bd81644cd071378aba0854",
+      "b0ba7a415dfbf5dcfa6d067d13f6b38e71d131daf0571b89aa33b1b9a8ce9514",
     "npm-package/create-only/.github/workflows/publish-to-npm.yml":
       "20760529dd59186baf870fb2d0ac555ff95bc3dc75ea96ba4564bf37d61f708e",
     "npm-package/package-lisa/package.lisa.json":
@@ -2943,7 +2943,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/merge/.oxlintrc.json":
       "9504c20db80470c242c4ffe8cccad6951ed8141dfb5bf6503053e0b2712ab276",
     "typescript/package-lisa/package.lisa.json":
-      "25ab87ead8d54ac5458257ddb37edfd74cb1c4716d7789204ac35a3aa16ac6d5",
+      "95148ba47b925037d2211c4e31bce9030a10e52e465e3d6bbfec26b11ca25884",
     "ui/README.md":
       "7a67d7bdd49ff214ca204cc4e54ba70c37aa05fd6cc1e314fd9441a53eafc752",
     "ui/index.html":
@@ -10492,6 +10492,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "src/configs/vitest/scratch-sweep.ts": true,
     "src/configs/vitest/scratch-tmpdir-trust.ts": true,
     "src/configs/vitest/scratch.ts": true,
+    "src/configs/vitest/socket-safe-temp-base.ts": true,
     "src/configs/vitest/synthesis-scratch-reclaim.ts": true,
     "src/configs/vitest/typescript.ts": true,
     "src/configs/worktrees.ts": true,
@@ -11230,6 +11231,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/standards-proof-tamper.test.ts": true,
     "tests/integration/standards-proof-timeout.test.ts": true,
     "tests/integration/standards-proof-typescript.test.ts": true,
+    "tests/integration/support/bun-free-node-bin.ts": true,
     "tests/integration/support/cdk-ci-role-selection-harness.ts": true,
     "tests/integration/support/maestro-android-retry-fixtures.ts": true,
     "tests/integration/support/maestro-android-retry-harness.ts": true,
@@ -11263,6 +11265,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/platform/process-tree-runner.test.mjs": true,
     "tests/platform/windows-missing-handles.ps1": true,
     "tests/platform/windows-process-fixture.mjs": true,
+    "tests/support/ci-runtime.ts": true,
     "tests/support/codex-compatibility-candidate.mjs": true,
     "tests/support/codex-compatibility-proof.mjs": true,
     "tests/support/codex-compatibility-seed.mjs": true,
@@ -11580,6 +11583,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/config/scratch-tmpdir-trust.test.ts": true,
     "tests/unit/config/security-pin-floors.test.ts": true,
     "tests/unit/config/shipped-mjs-roster.test.ts": true,
+    "tests/unit/config/socket-safe-temp-base.test.ts": true,
     "tests/unit/config/sonar-coverage-handoff.test.ts": true,
     "tests/unit/config/stale-deploy-guard.test.ts": true,
     "tests/unit/config/synthesis-scratch-reclaim.test.ts": true,
@@ -11620,6 +11624,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/core/apply-receipt-deletion-record.test.ts": true,
     "tests/unit/core/bootstrap-environment.test.ts": true,
     "tests/unit/core/cdk-preset-adoption.test.ts": true,
+    "tests/unit/core/ci-runtime-deferral.test.ts": true,
     "tests/unit/core/deletion-basis.test.ts": true,
     "tests/unit/core/deploy-release-dependence.test.ts": true,
     "tests/unit/core/effectiveness-store.test.ts": true,
