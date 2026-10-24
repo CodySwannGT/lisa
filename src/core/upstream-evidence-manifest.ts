@@ -11082,6 +11082,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/jest-expo-haste-pruning.test.ts": true,
     "tests/integration/jira-shell-auth-destinations.test.ts": true,
     "tests/integration/job-names-name-properties.test.ts": true,
+    "tests/integration/lisa-test-run-jest-shards-fixture.ts": true,
+    "tests/integration/lisa-test-run-jest-shards-reports.test.ts": true,
     "tests/integration/lisa-test-run-jest-shards.test.ts": true,
     "tests/integration/lisa-test-run-packed-bin.test.ts": true,
     "tests/integration/lisa-test-run-shard-cli.test.ts": true,

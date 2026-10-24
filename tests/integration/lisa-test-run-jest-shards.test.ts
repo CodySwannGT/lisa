@@ -7,24 +7,21 @@
  * shard — and compares the merged totals with the whole run's.
  */
 import * as fs from "node:fs";
-import { tmpdir } from "node:os";
 import * as path from "node:path";
 
 import { afterEach, describe, expect, it } from "vitest";
 
 import { mergeJestShards } from "../../src/cli/lisa-test-run-jest-merge.js";
+import { readShardReceipts } from "../../src/cli/lisa-test-run-shard.js";
+import { useIoLatencyBudget } from "../helpers/io-latency-budget.js";
 import {
-  readShardReceipts,
-  shardArgv,
-  writeShardReceipt,
-} from "../../src/cli/lisa-test-run-shard.js";
-import {
-  boundedSpawnSync,
-  useIoLatencyBudget,
-} from "../helpers/io-latency-budget.js";
+  jestArgv,
+  project as fixture,
+  run,
+  shardTwice,
+  totals,
+} from "./lisa-test-run-jest-shards-fixture.js";
 
-const REPO_ROOT = path.resolve(import.meta.dirname, "../..");
-const JEST_BIN = path.join(REPO_ROOT, "node_modules", "jest", "bin", "jest.js");
 // Measured 2026-10-21 on a quiet box (`ps aux | grep -c '[v]itest'` = 0):
 // the slowest case ran 3.1s with real Jest/Vitest children of at most
 // ~4s each, so 25s keeps a 3x margin at base and the children's 8s base
@@ -39,111 +36,16 @@ afterEach(() => {
 });
 
 /**
- * Build a CommonJS Jest project whose tests each cover a different file.
+ * The suite's three-file project, two of whose files are tested.
  * @param floor - Global line floor written into the project's own config
  * @param collectCoverage - Whether the config itself turns coverage on
  * @returns Fixture root
  */
 function project(floor: number, collectCoverage = false): string {
-  const root = fs.mkdtempSync(path.join(tmpdir(), "lisa-jest-shards-"));
-  directories.push(root);
-  fs.mkdirSync(path.join(root, "src"));
-  fs.mkdirSync(path.join(root, "test"));
-  fs.writeFileSync(path.join(root, "package.json"), '{"type":"commonjs"}\n');
-  for (const [name, hit, miss] of [
-    ["a", 1, 2],
-    ["b", 3, 4],
-    ["c", 5, 6],
-  ] as const)
-    fs.writeFileSync(
-      path.join(root, "src", `${name}.js`),
-      `exports.${name} = x => {\n  if (x > 0) return ${hit};\n  return ${miss};\n};\n`
-    );
-  for (const name of ["a", "b"])
-    fs.writeFileSync(
-      path.join(root, "test", `${name}.test.js`),
-      `const { ${name} } = require("../src/${name}.js");\ntest("${name}", () => expect(${name}(1)).toBeGreaterThan(0));\n`
-    );
-  fs.writeFileSync(
-    path.join(root, "jest.config.js"),
-    `module.exports = ${JSON.stringify({
-      ...(collectCoverage ? { collectCoverage } : {}),
-      collectCoverageFrom: ["src/**/*.js"],
-      coverageReporters: ["json-summary", "lcov"],
-      coverageThreshold: { global: { lines: floor } },
-    })};\n`
-  );
-  return root;
-}
-
-/**
- * The argv a consumer's gate task hands `lisa-test-run`.
- * @param root - Fixture root
- * @param coverageFlag - Whether the command line asks for coverage
- * @returns Jest argv
- */
-function jestArgv(root: string, coverageFlag = true): [string, ...string[]] {
-  return [
-    process.execPath,
-    JEST_BIN,
-    "--config",
-    path.join(root, "jest.config.js"),
-    // Inside the fixture: Jest's default cache is a shared tmpdir entry.
-    `--cacheDirectory=${path.join(root, ".jest-cache")}`,
-    ...(coverageFlag ? ["--coverage"] : []),
-  ];
-}
-
-/**
- * Run one Jest command to completion in the fixture.
- * @param root - Fixture root
- * @param argv - Command and arguments
- * @returns Exit status
- */
-function run(root: string, argv: readonly string[]): number | null {
-  const [command, ...args] = argv;
-  return boundedSpawnSync({
-    label: "jest shard fixture run",
-    command: command ?? "",
-    args,
-    baseMs: 8_000,
-    cwd: root,
-  }).status;
-}
-
-/**
- * Read the totals Jest's json-summary reporter wrote.
- * @param root - Fixture root
- * @returns Totals per metric
- */
-function totals(root: string): Record<string, unknown> {
-  return JSON.parse(
-    fs.readFileSync(
-      path.join(root, "coverage", "coverage-summary.json"),
-      "utf8"
-    )
-  ).total;
-}
-
-/**
- * Run both shards the way two matrix legs would, then return their receipts.
- * @param root - Fixture root
- * @param argv - The gate task's Jest command
- * @returns The downloaded-artifact directory
- */
-function shardTwice(root: string, argv = jestArgv(root)): string {
-  const merge = path.join(root, "downloaded");
-  for (const index of [1, 2]) {
-    const plan = {
-      kind: "shard",
-      index,
-      total: 2,
-      output: path.join(merge, `unit-test-shard-x-${index}`),
-    } as const;
-    writeShardReceipt(plan, "jest", argv);
-    expect(run(root, shardArgv(argv, "jest", plan))).toBe(0);
-  }
-  return merge;
+  return fixture(directory => directories.push(directory), {
+    floor,
+    collectCoverage,
+  });
 }
 
 describe("Jest shard merge", () => {
