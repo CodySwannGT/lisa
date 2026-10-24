@@ -175,6 +175,19 @@ describe("forced HTTP security floors", () => {
       ).toBe(false);
     }
   );
+
+  // Multer (GHSA-q7qp-rjg7-q26m, first patched 2.5.0) is forced by the same
+  // template and floored in the same root sections, so it gets the same
+  // root-equals-template invariant (#4507).
+  it.each(SECTIONS)(
+    "root %s / multer matches the template and excludes every release below 2.5.0",
+    section => {
+      const root = fs.readJsonSync(path.join(REPO_ROOT, PACKAGE_JSON));
+      const template = fs.readJsonSync(path.join(REPO_ROOT, TEMPLATE));
+      expect(root[section].multer).toBe(template.force[section].multer);
+      expect(intersects(root[section].multer, "<2.5.0")).toBe(false);
+    }
+  );
 });
 
 describe("shipped HTTP force policy adoption", () => {
