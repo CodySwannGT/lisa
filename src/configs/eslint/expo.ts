@@ -15,7 +15,6 @@
  */
 import oxlint from "eslint-plugin-oxlint";
 import react from "eslint-plugin-react";
-import reactCompiler from "eslint-plugin-react-compiler";
 import { readFileSync } from "fs";
 import { createRequire } from "module";
 import path from "path";
@@ -243,7 +242,6 @@ export function getExpoConfig({
       plugins: {
         "component-structure": componentStructure,
         "code-organization": codeOrganization,
-        "react-compiler": reactCompiler,
         "ui-standards": uiStandards,
       },
       rules: {
@@ -300,7 +298,6 @@ export function getExpoConfig({
         "react-hooks/immutability": "error",
         // Slow rules - disabled by default, run via `lint:slow` script
         // @see eslint.slow.config.ts
-        "react-compiler/react-compiler": "off",
         "react-hooks/static-components": "off",
         // End Slow rules - disabled by default, run via `lint:slow` script
         // Environment variables - enforce validated env module usage

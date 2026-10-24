@@ -2515,8 +2515,36 @@ describe("PackageLisaStrategy", () => {
       );
 
       const content = await fs.readJson(destPath);
-      // Forced tooling wins over the project's pin.
-      expect(content.dependencies.zod).toBe("^4.3.5");
+      // Forced tooling wins over the project's pin. The zod floor clears
+      // GHSA-mrhx-c7xc-m3w5, which affects every zod below 4.6.6 (#4507).
+      expect(content.dependencies.zod).toBe("^4.6.7");
+      expect(content.devDependencies.oxlint).toBe("1.62.0");
+    });
+
+    it("removes eslint-plugin-react-compiler, which the Expo config no longer loads", async () => {
+      await createExpoProject(projectDir);
+      const destPath = path.join(projectDir, "package.json");
+      // Installed for the Expo ESLint template, which registered the plugin
+      // only to turn its one rule off. Its newest release still needs zod 3.
+      await fs.writeJson(destPath, {
+        devDependencies: {
+          "eslint-plugin-react-compiler": "^19.1.0-rc.2",
+          oxlint: "^1.0.0",
+        },
+        scripts: {},
+      });
+
+      await strategy.apply(
+        expoSource,
+        destPath,
+        "package.json",
+        createContext({ lisaDir: repoRoot })
+      );
+
+      const content = await fs.readJson(destPath);
+      expect(content.devDependencies).not.toHaveProperty(
+        "eslint-plugin-react-compiler"
+      );
       expect(content.devDependencies.oxlint).toBe("1.62.0");
     });
 

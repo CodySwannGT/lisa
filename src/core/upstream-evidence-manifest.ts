@@ -441,7 +441,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "expo/copy-overwrite/eslint.config.ts":
       "bb02718e1a809151c282d5fc54a1b570fe1cc86236dc1e5f2bcb570b06a22baa",
     "expo/copy-overwrite/eslint.expo.ts":
-      "e43d528568450ba2acfc943c5dea07a34f0a03550ec739ba531f6d5a4bf234d7",
+      "70c0b49a06968843181902116c05e43ddecbca347d566b8a18123ae47d93e5ef",
     "expo/copy-overwrite/eslint.slow.config.ts":
       "48d6a35be75450becde07d30d859c970c48a0438e730845272629c8ec677d3eb",
     "expo/copy-overwrite/jest.config.ts":
@@ -575,7 +575,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "expo/merge/.oxlintrc.json":
       "95b3069256c0040be0ef1a5adae46d14687ad56fb18f473a653ba2de45d106bb",
     "expo/package-lisa/package.lisa.json":
-      "4a2e6df44b00c5c7eacf786b95dc211f902c8ea567be824dbb100f33d5d1deef",
+      "611ea2745fc832505aae30ffc8689e5aa82b15084141600578903df05bd1e505",
     "harper-fabric/copy-contents/.prettierignore":
       "478c782f4c5611187e21584dfd5522e37fc636c5eb03394fea3db45321c6712c",
     "harper-fabric/copy-contents/gitignore":
@@ -11612,6 +11612,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/config/work-item-traceability-scope-gate.test.ts": true,
     "tests/unit/config/workspace-suite-collection.test.ts": true,
     "tests/unit/config/worktree-exclusion-anchoring.test.ts": true,
+    "tests/unit/config/zod-security-floor.test.ts": true,
     "tests/unit/configs/ast-grep-language-reach.test.ts": true,
     "tests/unit/configs/expo-jest-pre-setup.test.ts": true,
     "tests/unit/configs/lighthouse-collect-config.test.ts": true,
