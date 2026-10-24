@@ -21,7 +21,7 @@ import { createRequire } from "module";
 import path from "path";
 import { fileURLToPath } from "url";
 
-import { getSlowConfig } from "@codyswann/lisa/eslint/slow";
+import { getExpoSlowConfig } from "@codyswann/lisa/eslint/slow";
 
 import ignoreConfig from "./eslint.ignore.config.json" with { type: "json" };
 
@@ -42,7 +42,7 @@ const localIgnores: string[] = existsSync(
 // `declaration: true` does not surface @eslint/core's `RulesConfig` in the
 // emitted declaration (TS2883). Do NOT import `Linter` from "eslint" directly —
 // that trips knip's unlisted-dependency check.
-const config: ReturnType<typeof getSlowConfig> = getSlowConfig({
+const config: ReturnType<typeof getExpoSlowConfig> = getExpoSlowConfig({
   ignorePatterns: [...(ignoreConfig.ignores || []), ...localIgnores],
 });
 
