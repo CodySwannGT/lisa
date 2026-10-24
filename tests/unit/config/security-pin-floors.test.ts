@@ -41,6 +41,8 @@ const REPO_ROOT = path.resolve(__dirname, "..", "..", "..");
  * 2026-10-24 for https://github.com/advisories/GHSA-c4qx-w738-7hr3.
  * Zod4.6.6 was added on 2026-10-24 for
  * https://github.com/advisories/GHSA-mrhx-c7xc-m3w5.
+ * Multer2.5.0 (GHSA-q7qp-rjg7-q26m) and Undici6.29.1 (GHSA-xjj6-f33q-929c) were
+ * raised on 2026-10-24.
  * Other entries retain their provenance.
  */
 const ADVISORY_FLOORS: Readonly<Record<string, string>> = {
@@ -52,11 +54,11 @@ const ADVISORY_FLOORS: Readonly<Record<string, string>> = {
   "form-data": "4.0.6",
   handlebars: "4.7.10",
   lodash: "4.18.0",
-  multer: "2.3.0",
+  multer: "2.5.0",
   "smol-toml": "1.7.1",
   systeminformation: "5.31.7",
   tar: "7.5.21",
-  undici: "6.28.1",
+  undici: "6.29.1",
   vite: "8.3.3",
   "websocket-driver": "0.7.5",
   ws: "8.21.0",
