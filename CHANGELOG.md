@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.83.1](https://github.com/CodySwannGT/lisa/compare/v4.83.0...v4.83.1) (2026-10-24)
+
+
+### Bug Fixes
+
+* **deps,lint:** keep react-compiler, restore Expo's React slow-lint rules ([40e096e](https://github.com/CodySwannGT/lisa/commit/40e096e440103fd2bd269b428cbf83f0d486a5a0)), closes [#4507](https://github.com/CodySwannGT/lisa/issues/4507) [CodySwannGT/lisa#4507](https://github.com/CodySwannGT/lisa/issues/4507) [CodySwannGT/lisa#4507](https://github.com/CodySwannGT/lisa/issues/4507)
+* **deps:** clear zod GHSA-mrhx-c7xc-m3w5 (no zod < 4.6.6 in the tree) ([f8d58ed](https://github.com/CodySwannGT/lisa/commit/f8d58ed661e31b80e6f9cdd360c145a918ffce14)), closes [CodySwannGT/lisa#4507](https://github.com/CodySwannGT/lisa/issues/4507) [CodySwannGT/lisa#4507](https://github.com/CodySwannGT/lisa/issues/4507)
+* **deps:** raise five stale shipped floors past their high advisories ([7824a0b](https://github.com/CodySwannGT/lisa/commit/7824a0b69faa51fec299fd99400df5fb8f13b1ec)), closes [CodySwannGT/lisa#4507](https://github.com/CodySwannGT/lisa/issues/4507) [CodySwannGT/lisa#4507](https://github.com/CodySwannGT/lisa/issues/4507)
+* **deps:** settle the floor registries with the raised floors ([aaaf5e7](https://github.com/CodySwannGT/lisa/commit/aaaf5e75512ac18a4b2e37c1f47de240376309af)), closes [CodySwannGT/lisa#4507](https://github.com/CodySwannGT/lisa/issues/4507) [CodySwannGT/lisa#4507](https://github.com/CodySwannGT/lisa/issues/4507)
+* **eslint:** keep react-compiler references resolving without the zod-3 plugin ([27b6040](https://github.com/CodySwannGT/lisa/commit/27b6040d61a8e477c40233e7530d9f4ca197aa96)), closes [CodySwannGT/lisa#4507](https://github.com/CodySwannGT/lisa/issues/4507) [CodySwannGT/lisa#4507](https://github.com/CodySwannGT/lisa/issues/4507)
+* **lint:** load the React plugins only in Expo's lint:slow ([6fe1499](https://github.com/CodySwannGT/lisa/commit/6fe14997bbc6689e0e495419dab378293ba60118)), closes [CodySwannGT/lisa#4507](https://github.com/CodySwannGT/lisa/issues/4507) [CodySwannGT/lisa#4507](https://github.com/CodySwannGT/lisa/issues/4507)
+
 ## [4.83.0](https://github.com/CodySwannGT/lisa/compare/v4.82.4...v4.83.0) (2026-10-24)
 
 
