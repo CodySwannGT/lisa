@@ -552,13 +552,16 @@ function isPlainObject(value) {
  */
 function validateReposRoot(root) {
   if (root === undefined) return [];
+  // `.` means the repos are direct children of the project root.
+  if (root === ".") return [];
   const segments = typeof root === "string" ? root.split("/") : [];
   if (segments.length && segments.every(part => SAFE_SEGMENT.test(part))) {
     return [];
   }
   return [
     `sessionManager.repos.root ${JSON.stringify(root)} must be a relative ` +
-      `path inside the project, such as "projects". Workers start there with ` +
+      `path inside the project, such as "projects" (or "." for repos at the ` +
+      `project root). Workers start there with ` +
       `permissions bypassed.`,
   ];
 }
