@@ -135,7 +135,8 @@ Per cycle
       Caches a backlog item's failed validation; queue skips it until the
       item's updatedAt changes.
   ledger validation-cleared <ref>
-      Forgets that failure (after a promotion). stdout {cleared}.
+      Forgets that failure: after a promotion, or by hand to have the next
+      cycle re-validate an item without editing it. stdout {cleared}.
   ledger control [--paused true|false] [--max-workers <n>|none] [--me <id>|none]
   route [--reply-to <telegram message id>] [--owner <name>] STDIN: message
       stdout {kind:"answer",ref,body[,message]} | {kind:"command",name,...}
