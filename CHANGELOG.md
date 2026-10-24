@@ -2,6 +2,23 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [4.84.0](https://github.com/CodySwannGT/lisa/compare/v4.83.2...v4.84.0) (2026-10-24)
+
+
+### Features
+
+* **session-manager:** opt-in backlog pickup as the lowest dispatch tier ([5e44b06](https://github.com/CodySwannGT/lisa/commit/5e44b063a7111423679762864a4f66bf8fd143fe)), closes [CodySwannGT/lisa#4497](https://github.com/CodySwannGT/lisa/issues/4497) [CodySwannGT/lisa#4497](https://github.com/CodySwannGT/lisa/issues/4497)
+
+
+### Bug Fixes
+
+* **session-manager:** retry inconclusive backlog validation; one start notice ([da3b863](https://github.com/CodySwannGT/lisa/commit/da3b863b3f080d4f3757c4e96a9a30fe97c6e235)), closes [CodySwannGT/lisa#4497](https://github.com/CodySwannGT/lisa/issues/4497) [CodySwannGT/lisa#4497](https://github.com/CodySwannGT/lisa/issues/4497)
+
+
+### Documentation
+
+* **session-manager:** note validation-cleared can be run by hand ([00bda37](https://github.com/CodySwannGT/lisa/commit/00bda37187206ff6d82dcc97ab56d327ff0a4702)), closes [CodySwannGT/lisa#4497](https://github.com/CodySwannGT/lisa/issues/4497) [CodySwannGT/lisa#4497](https://github.com/CodySwannGT/lisa/issues/4497)
+
 ### [4.83.2](https://github.com/CodySwannGT/lisa/compare/v4.83.1...v4.83.2) (2026-10-24)
 
 
