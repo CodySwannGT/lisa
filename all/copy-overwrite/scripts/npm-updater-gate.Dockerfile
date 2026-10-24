@@ -29,11 +29,11 @@ RUN set -eu; \
     rm /tmp/npm.tgz /tmp/bundler.gem
 RUN set -eu; \
     case "$TARGETARCH" in \
-      amd64) bun_arch=x64; bun_sha=0322b17f0722da76a64298aad498225aedcbf6df1008a1dee45e16ecb226a3f1; gh_arch=amd64; gh_sha=83d5c2ccad5498f58bf6368acb1ab32588cf43ab3a4b1c301bf36328b1c8bd60; leaks_arch=x64; leaks_sha=551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb ;; \
-      arm64) bun_arch=aarch64; bun_sha=4e9deb6814a7ec7f68725ddd97d0d7b4065bcda9a850f69d497567e995a7fa33; gh_arch=arm64; gh_sha=06f86ec7103d41993b76cd78072f43595c34aaa56506d971d9860e67140bf909; leaks_arch=arm64; leaks_sha=e4a487ee7ccd7d3a7f7ec08657610aa3606637dab924210b3aee62570fb4b080 ;; \
+      amd64) bun_arch=x64; bun_sha=bf8ccbfb2b0b80159e0f9a6d15c55317add8077534dbc6130a3edb52fccb395c; gh_arch=amd64; gh_sha=83d5c2ccad5498f58bf6368acb1ab32588cf43ab3a4b1c301bf36328b1c8bd60; leaks_arch=x64; leaks_sha=551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb ;; \
+      arm64) bun_arch=aarch64; bun_sha=baa6bb36f51d6e58561e02bbea825038a9df454f673d6d776e8bbf86f8c7850e; gh_arch=arm64; gh_sha=06f86ec7103d41993b76cd78072f43595c34aaa56506d971d9860e67140bf909; leaks_arch=arm64; leaks_sha=e4a487ee7ccd7d3a7f7ec08657610aa3606637dab924210b3aee62570fb4b080 ;; \
       *) echo 'Unsupported qualified architecture' >&2; exit 1 ;; \
     esac; \
-    curl --fail --location --silent --show-error "https://github.com/oven-sh/bun/releases/download/bun-v1.3.8/bun-linux-${bun_arch}.zip" --output /tmp/bun.zip; \
+    curl --fail --location --silent --show-error "https://github.com/oven-sh/bun/releases/download/bun-v1.4.4/bun-linux-${bun_arch}.zip" --output /tmp/bun.zip; \
     echo "${bun_sha}  /tmp/bun.zip" | sha256sum --check --strict; \
     unzip -p /tmp/bun.zip "bun-linux-${bun_arch}/bun" > /usr/local/bin/bun; chmod 755 /usr/local/bin/bun; \
     curl --fail --location --silent --show-error "https://github.com/cli/cli/releases/download/v2.96.0/gh_2.96.0_linux_${gh_arch}.tar.gz" --output /tmp/gh.tgz; \

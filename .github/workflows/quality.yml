@@ -436,7 +436,7 @@ jobs:
         if: inputs.package_manager == 'bun'
         uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
-          bun-version: '1.3.8'
+          bun-version: '1.4.4'
 
       - name: 💾 Restore package downloads
         if: inputs.cache_dependencies
@@ -835,7 +835,7 @@ jobs:
         if: matrix.action == 'run' && inputs.package_manager == 'bun'
         uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
-          bun-version: '1.3.8'
+          bun-version: '1.4.4'
 
       - name: 💾 Restore package downloads
         if: inputs.cache_dependencies && (matrix.action == 'run' && matrix.install)
@@ -1040,7 +1040,7 @@ jobs:
         if: inputs.package_manager == 'bun'
         uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
-          bun-version: '1.3.8'
+          bun-version: '1.4.4'
 
       - name: 💾 Restore package downloads
         if: inputs.cache_dependencies
@@ -1316,7 +1316,7 @@ jobs:
         if: steps.gates_declared.outputs.declared == 'true' && inputs.package_manager == 'bun'
         uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
-          bun-version: '1.3.8'
+          bun-version: '1.4.4'
 
       - name: 💾 Restore package downloads
         if: inputs.cache_dependencies && (steps.gates_declared.outputs.declared == 'true')
@@ -1598,7 +1598,7 @@ jobs:
         if: (steps.check_script.outputs.exists == 'true' || steps.gate.outputs.configured == 'true') && inputs.package_manager == 'bun'
         uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
-          bun-version: '1.3.8'
+          bun-version: '1.4.4'
 
       - name: 💾 Restore package downloads
         if: inputs.cache_dependencies && (steps.check_script.outputs.exists == 'true' || steps.gate.outputs.configured == 'true')
@@ -1833,7 +1833,7 @@ jobs:
         if: steps.gate.outputs.configured == 'true' && inputs.package_manager == 'bun'
         uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
-          bun-version: '1.3.8'
+          bun-version: '1.4.4'
 
       - name: 💾 Restore package downloads
         if: inputs.cache_dependencies && (steps.gate.outputs.configured == 'true')
@@ -2059,7 +2059,7 @@ jobs:
         if: steps.gate.outputs.configured == 'true' && inputs.package_manager == 'bun'
         uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
-          bun-version: '1.3.8'
+          bun-version: '1.4.4'
 
       - name: 💾 Restore package downloads
         if: inputs.cache_dependencies && (steps.gate.outputs.configured == 'true')
@@ -2251,7 +2251,7 @@ jobs:
       - name: 🔧 Setup Bun
         uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
-          bun-version: '1.3.8'
+          bun-version: '1.4.4'
 
       # Gate façade — contract and fallback rationale documented in full on the
       # 🧹 Lint job above. This job deliberately runs NO `bun install`: its
@@ -2482,23 +2482,11 @@ jobs:
           package-manager-cache: false
           node-version: ${{ inputs.node_version }}
 
-      - name: Provision native inherited-host Bun
-        if: github.repository == 'CodySwannGT/lisa'
-        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
-        with:
-          # lisa-allow-duplicate-version: unchanged Harper/Phaser native host floor (#4367)
-          bun-version: '1.3.11'
-
-      - name: Preserve actual native host Bun before selecting Lisa tooling
-        if: github.repository == 'CodySwannGT/lisa'
-        run: |
-          bun -e 'if (Bun.version !== "1.3.11") throw Error("Wrong native host Bun"); const fs = require("node:fs"); const path = require("node:path"); const nativeBun = path.join(process.env.RUNNER_TEMP, "lisa-native-bun", "bin", "bun"); fs.mkdirSync(path.dirname(nativeBun), { recursive: true }); fs.copyFileSync(fs.realpathSync(process.execPath), nativeBun); fs.chmodSync(nativeBun, 0o755); if (require("node:child_process").execFileSync(nativeBun, ["--version"], { encoding: "utf8", timeout: 15_000 }).trim() !== "1.3.11") throw Error("Wrong preserved native host Bun"); fs.appendFileSync(process.env.GITHUB_ENV, `LISA_TEST_HOST_BUN=${nativeBun}\n`);'
-
       - name: 🍞 Setup Bun
-        if: inputs.package_manager == 'bun'
+        if: github.repository == 'CodySwannGT/lisa' || inputs.package_manager == 'bun'
         uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
-          bun-version: '1.3.8'
+          bun-version: '1.4.4'
 
       - name: 💾 Restore package downloads
         if: inputs.cache_dependencies
@@ -3038,23 +3026,11 @@ jobs:
           package-manager-cache: false
           node-version: ${{ inputs.node_version }}
 
-      - name: Provision native inherited-host Bun
-        if: github.repository == 'CodySwannGT/lisa'
-        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
-        with:
-          # lisa-allow-duplicate-version: unchanged Harper/Phaser native host floor (#4367)
-          bun-version: '1.3.11'
-
-      - name: Preserve actual native host Bun before selecting Lisa tooling
-        if: github.repository == 'CodySwannGT/lisa'
-        run: |
-          bun -e 'if (Bun.version !== "1.3.11") throw Error("Wrong native host Bun"); const fs = require("node:fs"); const path = require("node:path"); const nativeBun = path.join(process.env.RUNNER_TEMP, "lisa-native-bun", "bin", "bun"); fs.mkdirSync(path.dirname(nativeBun), { recursive: true }); fs.copyFileSync(fs.realpathSync(process.execPath), nativeBun); fs.chmodSync(nativeBun, 0o755); if (require("node:child_process").execFileSync(nativeBun, ["--version"], { encoding: "utf8", timeout: 15_000 }).trim() !== "1.3.11") throw Error("Wrong preserved native host Bun"); fs.appendFileSync(process.env.GITHUB_ENV, `LISA_TEST_HOST_BUN=${nativeBun}\n`);'
-
       - name: 🍞 Setup Bun
-        if: inputs.package_manager == 'bun'
+        if: github.repository == 'CodySwannGT/lisa' || inputs.package_manager == 'bun'
         uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
-          bun-version: '1.3.8'
+          bun-version: '1.4.4'
 
       - name: 💾 Restore package downloads
         if: inputs.cache_dependencies
@@ -3376,10 +3352,10 @@ jobs:
           node-version: ${{ inputs.node_version }}
 
       - name: 🍞 Setup Bun
-        if: inputs.package_manager == 'bun'
+        if: github.repository == 'CodySwannGT/lisa' || inputs.package_manager == 'bun'
         uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
-          bun-version: '1.3.8'
+          bun-version: '1.4.4'
 
       - name: 🔍 Check for test:mutation script
         id: check_script
@@ -3686,23 +3662,11 @@ jobs:
           package-manager-cache: false
           node-version: ${{ inputs.node_version }}
 
-      - name: Provision native inherited-host Bun
-        if: github.repository == 'CodySwannGT/lisa'
-        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
-        with:
-          # lisa-allow-duplicate-version: unchanged Harper/Phaser native host floor (#4367)
-          bun-version: '1.3.11'
-
-      - name: Preserve actual native host Bun before selecting Lisa tooling
-        if: github.repository == 'CodySwannGT/lisa'
-        run: |
-          bun -e 'if (Bun.version !== "1.3.11") throw Error("Wrong native host Bun"); const fs = require("node:fs"); const path = require("node:path"); const nativeBun = path.join(process.env.RUNNER_TEMP, "lisa-native-bun", "bin", "bun"); fs.mkdirSync(path.dirname(nativeBun), { recursive: true }); fs.copyFileSync(fs.realpathSync(process.execPath), nativeBun); fs.chmodSync(nativeBun, 0o755); if (require("node:child_process").execFileSync(nativeBun, ["--version"], { encoding: "utf8", timeout: 15_000 }).trim() !== "1.3.11") throw Error("Wrong preserved native host Bun"); fs.appendFileSync(process.env.GITHUB_ENV, `LISA_TEST_HOST_BUN=${nativeBun}\n`);'
-
       - name: 🍞 Setup Bun
         if: inputs.package_manager == 'bun'
         uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
-          bun-version: '1.3.8'
+          bun-version: '1.4.4'
 
       # Lisa's generated Rails helper regression executes real Ruby and the
       # Rails configuration resolver. Other Node consumers need neither gem.
@@ -4153,7 +4117,7 @@ jobs:
         if: inputs.package_manager == 'bun'
         uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
-          bun-version: '1.3.8'
+          bun-version: '1.4.4'
 
       - name: 💾 Restore package downloads
         if: inputs.cache_dependencies
@@ -4654,7 +4618,7 @@ jobs:
         if: inputs.package_manager == 'bun'
         uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
-          bun-version: '1.3.8'
+          bun-version: '1.4.4'
 
       - name: 💾 Restore package downloads
         if: inputs.cache_dependencies
@@ -5140,7 +5104,7 @@ jobs:
         if: inputs.package_manager == 'bun'
         uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
-          bun-version: '1.3.8'
+          bun-version: '1.4.4'
 
       - name: 💾 Restore package downloads
         if: inputs.cache_dependencies
@@ -5408,7 +5372,7 @@ jobs:
         if: inputs.package_manager == 'bun'
         uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
-          bun-version: '1.3.8'
+          bun-version: '1.4.4'
 
       - name: 💾 Restore package downloads
         if: inputs.cache_dependencies
@@ -5615,7 +5579,7 @@ jobs:
         if: inputs.package_manager == 'bun'
         uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
-          bun-version: '1.3.8'
+          bun-version: '1.4.4'
 
       - name: 💾 Restore package downloads
         if: inputs.cache_dependencies
@@ -5777,7 +5741,7 @@ jobs:
         if: inputs.package_manager == 'bun'
         uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
-          bun-version: '1.3.8'
+          bun-version: '1.4.4'
 
       - name: 💾 Restore package downloads
         if: inputs.cache_dependencies
@@ -5953,7 +5917,7 @@ jobs:
         if: inputs.package_manager == 'bun'
         uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
-          bun-version: '1.3.8'
+          bun-version: '1.4.4'
 
       - name: 💾 Restore package downloads
         if: inputs.cache_dependencies
@@ -6112,7 +6076,7 @@ jobs:
         if: inputs.package_manager == 'bun'
         uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
-          bun-version: '1.3.8'
+          bun-version: '1.4.4'
 
       - name: 💾 Restore package downloads
         if: inputs.cache_dependencies
@@ -6455,7 +6419,7 @@ jobs:
         if: steps.gate.outputs.configured == 'true' && inputs.package_manager == 'bun'
         uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
-          bun-version: '1.3.8'
+          bun-version: '1.4.4'
 
       - name: 💾 Restore package downloads
         if: inputs.cache_dependencies && (steps.gate.outputs.configured == 'true')
@@ -6573,7 +6537,7 @@ jobs:
         if: inputs.package_manager == 'bun'
         uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
-          bun-version: '1.3.8'
+          bun-version: '1.4.4'
 
       - name: 💾 Restore package downloads
         if: inputs.cache_dependencies
@@ -7199,7 +7163,7 @@ jobs:
         if: steps.gate.outputs.configured == 'false' && (inputs.package_manager == 'bun')
         uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
-          bun-version: '1.3.8'
+          bun-version: '1.4.4'
 
       - name: 💾 Restore package downloads
         if: inputs.cache_dependencies && (steps.gate.outputs.configured == 'false' && (steps.check_snyk.outputs.has_token == 'true'))

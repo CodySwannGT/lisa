@@ -508,18 +508,17 @@ qualified on Node22.23.3, so unit coverage, push gates and the shell-guard trace
 also need that real executable. On a Unix checkout using mise:
 
 ```sh
-mise install node@22.23.3 node@24.21.0 bun@1.3.8 bun@1.3.11
+mise install node@22.23.3 node@24.21.0 bun@1.4.4
 export LISA_TEST_UPDATER_NODE="$(mise where node@22.23.3)/bin/node"
-export LISA_TEST_HOST_BUN="$(mise where bun@1.3.11)/bin/bun"
 "$LISA_TEST_UPDATER_NODE" -p process.versions.node
-mise exec node@24.21.0 bun@1.3.8 -- bun run test:unit
+mise exec node@24.21.0 bun@1.4.4 -- bun run test:unit
 ```
 
 The probe must print22.23.3; the fixtures verify its actual version and bytes.
 On macOS, select the short, non-symlink temp base `/private/tmp` before the
 native wrapper when running Unix-socket fixtures. Inherited Harper and Phaser
-native host checks also require their unchanged Bun1.3.11 floor; keep that
-host runtime distinct from Lisa's Bun1.3.8 tooling.
+native host checks run on Lisa's own Bun1.4.4, which meets their >=1.3.11
+floor; set `LISA_TEST_HOST_BUN` only to test against a different Bun.
 
 > **Prompt for your coding agent**
 > "I want to add or change a skill, rule, hook, or agent in Lisa. Show me the source location, the build step, what I must commit alongside it, and the CI check that fails if I edit a generated artifact directly. Then check my change against those rules before I commit."
