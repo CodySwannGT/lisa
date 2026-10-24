@@ -42,6 +42,7 @@ import {
   getTsFilesOverride,
   getTsTestFilesOverride,
 } from "@codyswann/lisa/eslint/typescript";
+import { reactCompilerShim } from "@codyswann/lisa/eslint/expo";
 
 // Re-export for downstream configs
 export {
@@ -228,6 +229,9 @@ export function getExpoConfig({
       plugins: {
         "component-structure": componentStructure,
         "code-organization": codeOrganization,
+        // Lisa's no-op stand-in, so existing react-compiler/react-compiler
+        // references keep resolving without the zod-3 plugin (#4507).
+        "react-compiler": reactCompilerShim,
         "ui-standards": uiStandards,
       },
       rules: {
@@ -284,6 +288,7 @@ export function getExpoConfig({
         "react-hooks/immutability": "error",
         // Slow rules - disabled by default, run via `lint:slow` script
         // @see eslint.slow.config.ts
+        "react-compiler/react-compiler": "off",
         "react-hooks/static-components": "off",
         // End Slow rules - disabled by default, run via `lint:slow` script
         // Environment variables - enforce validated env module usage

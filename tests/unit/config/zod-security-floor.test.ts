@@ -131,9 +131,10 @@ describe(`${DROPPED_PLUGIN}, the zod 3 path`, () => {
   });
 
   it.each(["src/configs/eslint/expo.ts", "expo/copy-overwrite/eslint.expo.ts"])(
-    "is not imported or configured by %s",
+    "does not import the package in %s",
     file => {
-      expect(read(file)).not.toContain("react-compiler");
+      // The react-compiler namespace stays, served by Lisa's built-in shim.
+      expect(read(file)).not.toContain(DROPPED_PLUGIN);
     }
   );
 

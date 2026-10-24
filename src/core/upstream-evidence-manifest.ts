@@ -441,7 +441,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "expo/copy-overwrite/eslint.config.ts":
       "bb02718e1a809151c282d5fc54a1b570fe1cc86236dc1e5f2bcb570b06a22baa",
     "expo/copy-overwrite/eslint.expo.ts":
-      "70c0b49a06968843181902116c05e43ddecbca347d566b8a18123ae47d93e5ef",
+      "19dcf77507cb5d11747aaaef80b3052048880b8fee61376785564f7b996674a9",
     "expo/copy-overwrite/eslint.slow.config.ts":
       "48d6a35be75450becde07d30d859c970c48a0438e730845272629c8ec677d3eb",
     "expo/copy-overwrite/jest.config.ts":
@@ -10453,6 +10453,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "src/configs/eslint/index.ts": true,
     "src/configs/eslint/nestjs.ts": true,
     "src/configs/eslint/phaser.ts": true,
+    "src/configs/eslint/react-compiler-shim.ts": true,
     "src/configs/eslint/slow.ts": true,
     "src/configs/eslint/typescript.ts": true,
     "src/configs/eslint/view-gate.ts": true,
@@ -10698,6 +10699,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "src/strategies/create-only.ts": true,
     "src/strategies/index.ts": true,
     "src/strategies/merge.ts": true,
+    "src/strategies/package-lisa-import-guard.ts": true,
     "src/strategies/package-lisa-types.ts": true,
     "src/strategies/package-lisa.ts": true,
     "src/strategies/strategy.interface.ts": true,
@@ -11560,6 +11562,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/config/rails-scratch-supervisor-routes.test.ts": true,
     "tests/unit/config/rails-template.test.ts": true,
     "tests/unit/config/rails-tooling-refresh.test.ts": true,
+    "tests/unit/config/react-compiler-shim.test.ts": true,
     "tests/unit/config/release-package-identity-workflows.test.ts": true,
     "tests/unit/config/release-push-retry.test.ts": true,
     "tests/unit/config/release-quality-secret-forwarding.test.ts": true,
