@@ -29,6 +29,12 @@
  *
  * Held items are judged by {@link isHumanGated}, the one shared answer to "is
  * a person holding this?", rather than by a local label check (#3805).
+ *
+ * {@link orderBacklogQueue} ranks a second, lower tier: open leaf items in no
+ * lifecycle role, which the session manager may promote to Ready when
+ * `sessionManager.backlogPickup` is on. It applies every Ready exclusion plus
+ * two of its own (an unfinished blocker, an unchanged validation failure), and
+ * its list is always walked after the whole Ready queue.
  * @module ready-queue-order
  */
 
@@ -67,6 +73,9 @@ const LINEAR_NO_PRIORITY = 4;
 /** Linear workflow state types that leave a child finished. */
 const LINEAR_FINISHED_STATE_TYPES = new Set(["completed", "canceled"]);
 
+/** Jira link types whose inward side reads as "this item is blocked by". */
+const JIRA_BLOCKED_BY = /blocked by/i;
+
 /**
  * @param {unknown} value
  * @returns {string}
@@ -86,6 +95,26 @@ function idOrNull(value) {
     return value.trim();
   }
   return Number.isSafeInteger(value) ? String(value) : null;
+}
+
+/**
+ * A non-negative integer count, 0 for anything else.
+ * @param {unknown} value
+ * @returns {number}
+ */
+function count(value) {
+  const number = Number(value);
+  return Number.isInteger(number) && number > 0 ? number : 0;
+}
+
+/**
+ * The rows of an array or a GraphQL `{nodes}` connection.
+ * @param {unknown} list
+ * @returns {any[]}
+ */
+function nodesOf(list) {
+  if (Array.isArray(list)) return list;
+  return Array.isArray(list?.nodes) ? list.nodes : [];
 }
 
 /**
@@ -160,11 +189,14 @@ export function normalizeGithubIssue(issue, options = {}) {
     assigneeId: idOrNull(assignee?.login),
     priorityRank: ranks.length > 0 ? Math.min(...ranks) : GITHUB_NO_PRIORITY,
     createdAt: text(issue.created_at),
+    updatedAt: text(issue.updated_at),
     labels,
     body: text(issue.body),
     // Authors are trusted by stable id, never by login (ready-role-filing).
     authorId: idOrNull(issue.user?.id),
     isContainer: Number(summary?.total ?? 0) > Number(summary?.completed ?? 0),
+    // `blocked_by` in the dependency summary counts only OPEN blockers.
+    openBlockers: count(issue.issue_dependencies_summary?.blocked_by),
   });
 }
 
@@ -182,6 +214,12 @@ export function normalizeJiraIssue(issue) {
   const openSubtasks = (Array.isArray(fields.subtasks) ? fields.subtasks : [])
     .map(sub => sub?.fields?.status?.statusCategory?.key)
     .filter(category => category !== "done");
+  const openBlockers = nodesOf(fields.issuelinks).filter(
+    link =>
+      link?.inwardIssue &&
+      JIRA_BLOCKED_BY.test(text(link.type?.inward)) &&
+      link.inwardIssue.fields?.status?.statusCategory?.key !== "done"
+  ).length;
 
   return shape({
     ref: text(issue?.key),
@@ -189,6 +227,7 @@ export function normalizeJiraIssue(issue) {
     assigneeId: idOrNull(fields.assignee?.accountId),
     priorityRank: JIRA_PRIORITY_RANKS[priority] ?? JIRA_UNKNOWN_PRIORITY,
     createdAt: text(fields.created),
+    updatedAt: text(fields.updated),
     labels,
     body: adfText(fields.description),
     authorId: idOrNull(fields.reporter?.accountId ?? fields.creator?.accountId),
@@ -196,6 +235,7 @@ export function normalizeJiraIssue(issue) {
       Number(type.hierarchyLevel ?? 0) > 0 ||
       text(type.name).toLowerCase() === "epic" ||
       openSubtasks.length > 0,
+    openBlockers,
   });
 }
 
@@ -213,6 +253,13 @@ export function normalizeLinearIssue(issue) {
       ? issue.children
       : [];
   const labels = labelNames(issue?.labels);
+  // Linear has no "blocked by" relation type: B blocked by A is A's `blocks`
+  // relation, read from B as an inverse relation.
+  const openBlockers = nodesOf(issue?.inverseRelations).filter(
+    relation =>
+      relation?.type === "blocks" &&
+      !LINEAR_FINISHED_STATE_TYPES.has(relation.issue?.state?.type)
+  ).length;
 
   return shape({
     ref: text(issue?.identifier),
@@ -223,18 +270,22 @@ export function normalizeLinearIssue(issue) {
         ? native - 1
         : LINEAR_NO_PRIORITY,
     createdAt: text(issue?.createdAt),
+    updatedAt: text(issue?.updatedAt),
     labels,
     body: text(issue?.description),
     authorId: idOrNull(issue?.creator?.id),
     isContainer: children.some(
       child => !LINEAR_FINISHED_STATE_TYPES.has(child?.state?.type)
     ),
+    openBlockers,
   });
 }
 
 /**
  * The one item shape every normalizer returns, in a fixed key order.
- * @param {{ ref: string, title: string, assigneeId: string | null, priorityRank: number, createdAt: string, labels: string[], body: string, authorId: string | null, isContainer: boolean }} input
+ * `updatedAt` keys the backlog tier's validation cache; `openBlockers` counts
+ * dependencies whose blocker is not finished. The Ready tier ignores both.
+ * @param {{ ref: string, title: string, assigneeId: string | null, priorityRank: number, createdAt: string, updatedAt: string, labels: string[], body: string, authorId: string | null, isContainer: boolean, openBlockers: number }} input
  */
 function shape(input) {
   return {
@@ -243,10 +294,12 @@ function shape(input) {
     assigneeId: input.assigneeId,
     priorityRank: input.priorityRank,
     createdAt: input.createdAt,
+    updatedAt: input.updatedAt,
     labels: input.labels,
     body: input.body,
     authorId: input.authorId,
     isContainer: input.isContainer,
+    openBlockers: input.openBlockers,
     repoLabels: repoLabelsOf(input.labels),
   };
 }
@@ -320,7 +373,50 @@ function compareWithinGroup(left, right) {
  * @returns {{ ordered: Record<string, any>[], excluded: { ref: string, reason: string }[] }}
  */
 export function orderReadyQueue(items, options = {}) {
-  const context = {
+  const context = orderingContext(options);
+  return rank(items, item => exclusionReason(item, context), context);
+}
+
+/**
+ * Order normalized backlog items — open leaves in no lifecycle role — for
+ * promotion, the tier walked only after the whole Ready queue.
+ *
+ * Every Ready exclusion applies, then two more: an item with an unfinished
+ * blocker (`blocked-by-open-item`) cannot be taken to completion, and an item
+ * that already failed validation at its current `updatedAt`
+ * (`failed-validation-unchanged`, from `validationFailures`) would only fail
+ * again, so it waits until someone edits it. Grouping and ordering match
+ * {@link orderReadyQueue}.
+ * @param {readonly Record<string, any>[]} items - Normalized items
+ * @param {{ me?: string | null, operators?: readonly unknown[], trustedAuthorIds?: readonly unknown[], humanNeededLabel?: string, validationFailures?: Readonly<Record<string, { updatedAt?: string }>> }} [options]
+ * @returns {{ ordered: Record<string, any>[], excluded: { ref: string, reason: string }[] }}
+ */
+export function orderBacklogQueue(items, options = {}) {
+  const context = orderingContext(options);
+  const failures = options.validationFailures ?? {};
+  return rank(
+    items,
+    item => {
+      const reason = exclusionReason(item, context);
+      if (reason !== null) return reason;
+      if (count(item.openBlockers) > 0) return "blocked-by-open-item";
+      const failed = Object.hasOwn(failures, item.ref)
+        ? failures[item.ref]
+        : null;
+      return failed && text(failed.updatedAt) === text(item.updatedAt)
+        ? "failed-validation-unchanged"
+        : null;
+    },
+    context
+  );
+}
+
+/**
+ * The identities and policy every ordering judges against.
+ * @param {{ me?: string | null, operators?: readonly unknown[], trustedAuthorIds?: readonly unknown[], humanNeededLabel?: string }} options
+ */
+function orderingContext(options) {
+  return {
     me: idOrNull(options.me),
     operators: new Set((options.operators ?? []).map(idOrNull).filter(Boolean)),
     trusted: new Set(
@@ -328,10 +424,17 @@ export function orderReadyQueue(items, options = {}) {
     ),
     humanNeededLabel: options.humanNeededLabel ?? DEFAULT_HUMAN_NEEDED_LABEL,
   };
-  const judged = (items ?? []).map(item => ({
-    item,
-    reason: exclusionReason(item, context),
-  }));
+}
+
+/**
+ * Split items into ordered eligible ones and excluded ones with reasons.
+ * @param {readonly Record<string, any>[] | undefined} items
+ * @param {(item: Record<string, any>) => string | null} judge - Exclusion reason, or null
+ * @param {ReturnType<typeof orderingContext>} context
+ * @returns {{ ordered: Record<string, any>[], excluded: { ref: string, reason: string }[] }}
+ */
+function rank(items, judge, context) {
+  const judged = (items ?? []).map(item => ({ item, reason: judge(item) }));
   const eligible = judged
     .filter(one => one.reason === null)
     .map(one => one.item);

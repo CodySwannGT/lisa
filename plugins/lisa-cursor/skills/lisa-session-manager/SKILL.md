@@ -214,6 +214,17 @@ Skip while `capacity` reports `paused`. Otherwise:
      createdAt, assignee, labels, description, creator and children with their state type.
    - `ordered` is the dispatch order: assigned to an operator, then to "me", then unassigned; each
      group by priority, then age. `excluded` needs no action.
+   - **Backlog tier** (only when `sessionManager.backlogPickup` is `true`). GitHub: `queue` fetches
+     it itself (open issues with no build or PRD lifecycle label). Jira / Linear: also fetch the
+     open leaf items in **no** lifecycle role — Linear workflow state type `backlog` or `unstarted`
+     other than the configured `ready` state; Jira status category "To Do" other than the configured
+     `ready` status — paged to completion, including each item's `updatedAt` / `updated` and its
+     blockers (Linear `inverseRelations` with `type` and the blocking issue's `state.type`; Jira
+     `issuelinks`). Put them in the same input file as
+     `"backlog":{"complete":true,"pages":<n>,"items":[...]}`; `queue` refuses a missing or partial
+     backlog envelope while the key is on. It returns `backlogOrdered` (same grouping and order,
+     minus items with an unfinished blocker and items whose cached validation failure still matches
+     their `updatedAt`) and `backlogExcluded`.
 2. **While `capacity` says `can_spawn`** and items remain, take the next item that has no pending
    question in the ledger:
    1. Read it fully (`lisa-tracker-read`): title, description, labels, project, parent, comments.
@@ -244,6 +255,34 @@ Skip while `capacity` reports `paused`. Otherwise:
         `recovery-required` with that message as the summary. It is not a failed attempt; do not
         dispatch to that repo again until the operator fixes it.
       - any other exit: move the item back to the `ready` role, notify Telegram, continue.
+3. **Backlog tier, lowest priority.** Only when `backlogPickup` is on, every `ordered` item has been
+   taken or skipped, and `capacity` still says `can_spawn`. Ready work always wins: never promote a
+   backlog item while a dispatchable Ready item remains. For the next `backlogOrdered` item with no
+   pending question in the ledger:
+   1. Read it fully (`lisa-tracker-read`). If it gained an assignee who is neither "me" nor an
+      operator, a lifecycle role, open child work, a human hold or an unfinished blocker since the
+      queue was listed, skip it.
+   2. **Validate it** with `lisa-tracker-validate` against the live item (identifier mode, all
+      gates, including the stateless-pickup dry-run). This is what "can be taken to completion"
+      means. On a definitive `FAIL`, record
+      `ledger validation-failed <ref> --updated-at <the item's updatedAt>` with a one-line summary
+      of the failing gates on STDIN, and skip it; the queue leaves it out until the item changes.
+      On could-not-validate (an outage or unreadable item, not a verdict), skip it WITHOUT
+      recording, so the next cycle retries it. Either way, post nothing to Telegram: backlog
+      grooming is not the operator's inbox.
+   3. **Route the repo** as in step 2.2, but never ask: an ambiguous or multi-repo backlog item is
+      skipped.
+   4. **Promote** in ONE `lisa-tracker-write` update: assignee = the first `operatorIds` entry, move
+      to the `ready` role, comment
+      `[lisa-session-manager] Promoted from backlog: validation passed; assigned to the operator.`
+      Read it back with `lisa-tracker-read` and continue only when the role is `ready` and the
+      assignee is that operator. Then `ledger validation-cleared <ref>`.
+   5. Continue with steps 2.3 and 2.4 (claim in the child repo, re-read, spawn, handle the exit)
+      exactly as for a Ready item, with one change: on exit 0, post
+      `[<REF>] promoted from backlog and started in <repo> (<name>)` in place of the plain start
+      notice. Every other exit keeps its step 2.4 handling.
+   A promotion written and read back counts as a state change for the run outcome; a spawn that
+   then fails follows step 2.4's exits (the item stays in Ready, assigned to the operator).
 
 ### 3. Report and record
 

@@ -23,6 +23,12 @@ then to the manager's own tracker identity, then unassigned; within each, by pri
 Items assigned to someone else, containers, human-held items and (when configured) items by
 untrusted authors are skipped. As many as the machine has capacity for.
 
+When `sessionManager.backlogPickup` is on and capacity remains after every Ready item, a lowest tier
+follows: backlog items (open leaves in no lifecycle role) in the same order, minus those with an
+unfinished blocker and those that already failed validation and have not changed since. Each one
+must pass the full tracker validation before it is assigned to the first operator, moved to Ready
+and dispatched like any other item.
+
 ## Scope/bounds
 
 Only the repos listed in `sessionManager.repos` (or this repo). It never writes code itself, never

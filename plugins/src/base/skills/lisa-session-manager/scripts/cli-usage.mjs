@@ -117,6 +117,13 @@ Per cycle
       first, then to --me, then unassigned; each group by priority, then age.
       Items assigned to anyone else are excluded (assigned-to-other).
       --me defaults to the ledger's control.me.
+      With sessionManager.backlogPickup true, also prints backlogTotal,
+      backlogPages, backlogOrdered and backlogExcluded: open leaves in no
+      lifecycle role, same order, always after every ready item; excluded
+      also for blocked-by-open-item and failed-validation-unchanged (the
+      ledger's validationFailures entry matches the item's updatedAt).
+      GitHub fetches them itself; jira|linear need <file>.backlog =
+      {complete:true,pages,items}, else exit 2.
   ledger get [<ref>]
   ledger record-spawn <ref> --worker <name> [--session-id <id>] [--repo <key>]
   ledger set-question <ref> [--telegram-message-id <n>] [--sender <name>]
@@ -124,6 +131,12 @@ Per cycle
   ledger clear-question <ref>
   ledger finish <ref> --status DONE|FAILED [--sender <name>]  STDIN: reason
       --sender: exit 2 unless the ledger's worker for <ref> is exactly <name>.
+  ledger validation-failed <ref> --updated-at <ts>     STDIN: failing gates
+      Caches a backlog item's failed validation; queue skips it until the
+      item's updatedAt changes.
+  ledger validation-cleared <ref>
+      Forgets that failure: after a promotion, or by hand to have the next
+      cycle re-validate an item without editing it. stdout {cleared}.
   ledger control [--paused true|false] [--max-workers <n>|none] [--me <id>|none]
   route [--reply-to <telegram message id>] [--owner <name>] STDIN: message
       stdout {kind:"answer",ref,body[,message]} | {kind:"command",name,...}
