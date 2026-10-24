@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [4.83.0](https://github.com/CodySwannGT/lisa/compare/v4.82.4...v4.83.0) (2026-10-24)
+
+
+### Features
+
+* **session-manager:** detect repos directly under the project root ([34775e4](https://github.com/CodySwannGT/lisa/commit/34775e4a9c6df2e7fc3a751dd4b3ac115b4d7e7e)), closes [CodySwannGT/lisa#4493](https://github.com/CodySwannGT/lisa/issues/4493) [CodySwannGT/lisa#4493](https://github.com/CodySwannGT/lisa/issues/4493)
+
 ### [4.82.4](https://github.com/CodySwannGT/lisa/compare/v4.82.3...v4.82.4) (2026-10-24)
 
 
