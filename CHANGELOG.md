@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.82.2](https://github.com/CodySwannGT/lisa/compare/v4.82.1...v4.82.2) (2026-10-24)
+
+
+### Bug Fixes
+
+* **security:** raise @graphql-tools/utils and zod forced floors ([9b3ac58](https://github.com/CodySwannGT/lisa/commit/9b3ac58fc8da0faf34dff4baf93c3ef00a56b9f6)), closes [CodySwannGT/lisa#4501](https://github.com/CodySwannGT/lisa/issues/4501) [CodySwannGT/lisa#4501](https://github.com/CodySwannGT/lisa/issues/4501)
+* **security:** raise multer and undici forced floors ([3e6af84](https://github.com/CodySwannGT/lisa/commit/3e6af84300f890ca07d42b22fada65f7d6d52867)), closes [#4506](https://github.com/CodySwannGT/lisa/issues/4506) [CodySwannGT/lisa#4501](https://github.com/CodySwannGT/lisa/issues/4501) [CodySwannGT/lisa#4501](https://github.com/CodySwannGT/lisa/issues/4501)
+
 ### [4.82.1](https://github.com/CodySwannGT/lisa/compare/v4.82.0...v4.82.1) (2026-10-23)
 
 

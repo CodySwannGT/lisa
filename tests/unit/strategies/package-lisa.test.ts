@@ -2517,7 +2517,7 @@ describe("PackageLisaStrategy", () => {
       const content = await fs.readJson(destPath);
       // Forced tooling wins over the project's pin. The zod floor clears
       // GHSA-mrhx-c7xc-m3w5, which affects every zod below 4.6.6 (#4507).
-      expect(content.dependencies.zod).toBe("^4.6.7");
+      expect(content.dependencies.zod).toBe("^4.6.6");
       expect(content.devDependencies.oxlint).toBe("1.62.0");
     });
 

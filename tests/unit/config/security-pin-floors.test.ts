@@ -37,12 +37,12 @@ const REPO_ROOT = path.resolve(__dirname, "..", "..", "..");
  * https://github.com/advisories/GHSA-8r5x-fm3f-whwj
  * https://github.com/advisories/GHSA-p8wg-vrv2-v86f
  * GraphQL Tools Utils12.0.1 was rechecked on 2026-10-08 against
- * https://github.com/advisories/GHSA-7mx3-vvmw-hjmv.
- * Multer2.5.0 (GHSA-q7qp-rjg7-q26m), Undici6.29.1 (GHSA-xjj6-f33q-929c),
- * GraphQL Tools Utils12.0.2 (GHSA-c4qx-w738-7hr3) and zod4.6.6
- * (GHSA-mrhx-c7xc-m3w5) were read from `gh api /advisories/<ghsa>` on
- * 2026-10-24 (CodySwannGT/lisa#4507); template-security-floors.test.ts and
- * zod-security-floor.test.ts codify their exact ranges.
+ * https://github.com/advisories/GHSA-7mx3-vvmw-hjmv, and raised to 12.0.2 on
+ * 2026-10-24 for https://github.com/advisories/GHSA-c4qx-w738-7hr3.
+ * Zod4.6.6 was added on 2026-10-24 for
+ * https://github.com/advisories/GHSA-mrhx-c7xc-m3w5.
+ * Multer2.5.0 (GHSA-q7qp-rjg7-q26m) and Undici6.29.1 (GHSA-xjj6-f33q-929c) were
+ * raised on 2026-10-24.
  * Other entries retain their provenance.
  */
 const ADVISORY_FLOORS: Readonly<Record<string, string>> = {

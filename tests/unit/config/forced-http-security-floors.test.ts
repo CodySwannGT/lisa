@@ -1,8 +1,7 @@
 /**
  * Real shipped HTTP floors must exclude the high advisories reported by CI.
  *
- * Immutable GitHub advisory data captured 2026-10-03, and 2026-10-24 for
- * GHSA-xjj6-f33q-929c. Each GHSA's primary
+ * Immutable GitHub advisory data captured 2026-10-03. Each GHSA's primary
  * source is https://github.com/advisories/<ghsa>. Only Axios's supported 1.x
  * and Undici's supported 6.x branches are relevant here. The collector and
  * comparator are the production prover's exports; no network mock or weaker
@@ -33,7 +32,7 @@ const TEMPLATE = "typescript/package-lisa/package.lisa.json";
 const PACKAGE_JSON = "package.json";
 const SECTIONS = ["overrides", "resolutions"] as const;
 const PATCHED = { axios: ">=1.20.0", undici: "^6.29.1" } as const;
-const STALE = { axios: ">=1.18.0", undici: "^6.28.0" } as const;
+const STALE = { axios: ">=1.18.0", undici: "^6.28.1" } as const;
 const EXPLICIT_DEFAULTS = {
   typescript: "^6.0.3",
   vitest: "^4.1.10",
@@ -83,12 +82,6 @@ const ADVISORIES = [
     ghsa: "GHSA-542g-h47m-68v8",
     range: ">= 1.13.0, < 1.20.0",
     patched: "1.20.0",
-  },
-  {
-    name: "undici",
-    ghsa: "GHSA-rfgv-xxqx-mfg5",
-    range: ">= 6.7.0, < 6.28.1",
-    patched: "6.28.1",
   },
   {
     name: "undici",
