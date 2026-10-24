@@ -31,7 +31,8 @@ const TYPESCRIPT_PACKAGE_TEMPLATE = "typescript/package-lisa/package.lisa.json";
 // after GHSA-8xcm-r25x-g524, GHSA-m8rv-5g2x-5cg5, and GHSA-v3r7-h72x-cjcm all
 // landed their patch in 6.28.0 — `^6.27.0` still admitted 6.27.x.
 // GHSA-rfgv-xxqx-mfg5 subsequently raised the compatible patch floor to6.28.1.
-const UNDICI_V6_RANGE = "^6.28.1";
+// GHSA-xjj6-f33q-929c then raised it to 6.29.1.
+const UNDICI_V6_RANGE = "^6.29.1";
 
 /**
  * Minimal shape of a package.lisa.json for the assertions below.

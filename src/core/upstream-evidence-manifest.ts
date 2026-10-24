@@ -703,7 +703,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "nestjs/merge/.oxlintrc.json":
       "1de29d135744df0258e8659ee0b684acf84e687bbefade51db0576813e6ff097",
     "nestjs/package-lisa/package.lisa.json":
-      "ca3ad60aed40327d792d6c9c3a760a6d1d7570b266bd81644cd071378aba0854",
+      "b0ba7a415dfbf5dcfa6d067d13f6b38e71d131daf0571b89aa33b1b9a8ce9514",
     "npm-package/create-only/.github/workflows/publish-to-npm.yml":
       "20760529dd59186baf870fb2d0ac555ff95bc3dc75ea96ba4564bf37d61f708e",
     "npm-package/package-lisa/package.lisa.json":
@@ -2943,7 +2943,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/merge/.oxlintrc.json":
       "9504c20db80470c242c4ffe8cccad6951ed8141dfb5bf6503053e0b2712ab276",
     "typescript/package-lisa/package.lisa.json":
-      "25ab87ead8d54ac5458257ddb37edfd74cb1c4716d7789204ac35a3aa16ac6d5",
+      "95148ba47b925037d2211c4e31bce9030a10e52e465e3d6bbfec26b11ca25884",
     "ui/README.md":
       "7a67d7bdd49ff214ca204cc4e54ba70c37aa05fd6cc1e314fd9441a53eafc752",
     "ui/index.html":
@@ -11586,6 +11586,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/config/stale-deploy-guard.test.ts": true,
     "tests/unit/config/synthesis-scratch-reclaim.test.ts": true,
     "tests/unit/config/template-script-toolchain.test.ts": true,
+    "tests/unit/config/template-security-floors.test.ts": true,
     "tests/unit/config/test-run-child-process-analyzer.test.ts": true,
     "tests/unit/config/test-run-supervision-wiring.test.ts": true,
     "tests/unit/config/test-scratch-guard.test.ts": true,
