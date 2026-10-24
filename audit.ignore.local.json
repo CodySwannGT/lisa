@@ -9,6 +9,15 @@
       "review_by": "2026-10-16T23:59:59Z",
       "tracking": "CodySwannGT/lisa#4326",
       "expiry_enforced": false
+    },
+    {
+      "id": "GHSA-mrhx-c7xc-m3w5",
+      "package": "zod",
+      "owner": "CodySwannGT",
+      "review_by": "2026-11-24T23:59:59Z",
+      "tracking": "CodySwannGT/lisa#4501",
+      "expiry_enforced": false,
+      "reason": "Temporary repository-specific exception: zod 3.25.76 enters only through eslint-plugin-react-compiler 19.1.0-rc.2 (its latest release, which requires zod ^3.22.4), and the advisory's only patched release is 4.6.6, so no compatible fix exists. The plugin validates its own lint options with zod while linting reviewed checkouts; no untrusted request input reaches it. This accepts lint-process memory-exhaustion risk for reviewed checkouts rather than claiming the dependency is safe. It does not authorize suppressing GHSA-mrhx-c7xc-m3w5 for zod 4 (the expo governance floor is raised to ^4.6.6 in the same change), adding the exception to shared templates, or suppressing any other advisory. Recheck by 2026-11-24 and remove once the plugin accepts zod 4.6.6+."
     }
   ]
 }

@@ -37,11 +37,14 @@ const REPO_ROOT = path.resolve(__dirname, "..", "..", "..");
  * https://github.com/advisories/GHSA-8r5x-fm3f-whwj
  * https://github.com/advisories/GHSA-p8wg-vrv2-v86f
  * GraphQL Tools Utils12.0.1 was rechecked on 2026-10-08 against
- * https://github.com/advisories/GHSA-7mx3-vvmw-hjmv.
+ * https://github.com/advisories/GHSA-7mx3-vvmw-hjmv, and raised to 12.0.2 on
+ * 2026-10-24 for https://github.com/advisories/GHSA-c4qx-w738-7hr3.
+ * Zod4.6.6 was added on 2026-10-24 for
+ * https://github.com/advisories/GHSA-mrhx-c7xc-m3w5.
  * Other entries retain their provenance.
  */
 const ADVISORY_FLOORS: Readonly<Record<string, string>> = {
-  "@graphql-tools/utils": "12.0.1",
+  "@graphql-tools/utils": "12.0.2",
   "@isaacs/brace-expansion": "5.0.1",
   axios: "1.20.0",
   esbuild: "0.28.1",
@@ -57,6 +60,7 @@ const ADVISORY_FLOORS: Readonly<Record<string, string>> = {
   vite: "8.3.3",
   "websocket-driver": "0.7.5",
   ws: "8.21.0",
+  zod: "4.6.6",
 };
 
 /** package.json sections a `force` group may pin a dependency range in. */
