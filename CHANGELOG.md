@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.83.2](https://github.com/CodySwannGT/lisa/compare/v4.83.1...v4.83.2) (2026-10-24)
+
+
+### Bug Fixes
+
+* **test-run:** give merged Jest reports Jest's watermarks and column limit ([7facecb](https://github.com/CodySwannGT/lisa/commit/7facecb154dec9fc9d96947ef0fd641c7055e68b)), closes [CodySwannGT/lisa#4488](https://github.com/CodySwannGT/lisa/issues/4488) [CodySwannGT/lisa#4488](https://github.com/CodySwannGT/lisa/issues/4488)
+* **test-run:** merge sharded Jest coverage with the project's summarizer (default pkg) ([30ac320](https://github.com/CodySwannGT/lisa/commit/30ac32068ec17237ad4784302ef25dd3541f251a)), closes [CodySwannGT/lisa#4488](https://github.com/CodySwannGT/lisa/issues/4488) [CodySwannGT/lisa#4488](https://github.com/CodySwannGT/lisa/issues/4488)
+* **test-run:** take the merged table's column limit from Jest 30.5 ([a2cdbe4](https://github.com/CodySwannGT/lisa/commit/a2cdbe4d0c863a8d37732f139305bbe577911731)), closes [CodySwannGT/lisa#4488](https://github.com/CodySwannGT/lisa/issues/4488) [CodySwannGT/lisa#4488](https://github.com/CodySwannGT/lisa/issues/4488)
+
 ### [4.83.1](https://github.com/CodySwannGT/lisa/compare/v4.83.0...v4.83.1) (2026-10-24)
 
 
