@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.82.4](https://github.com/CodySwannGT/lisa/compare/v4.82.3...v4.82.4) (2026-10-24)
+
+
+### Bug Fixes
+
+* **ci:** pin the integration job's image for Lisa only ([3431a08](https://github.com/CodySwannGT/lisa/commit/3431a08c0e7b90e1d581e4d4cd005c690d70354f)), closes [#4517](https://github.com/CodySwannGT/lisa/issues/4517) [CodySwannGT/lisa#4513](https://github.com/CodySwannGT/lisa/issues/4513) [CodySwannGT/lisa#4513](https://github.com/CodySwannGT/lisa/issues/4513)
+* **ci:** pin the Lisa-only Ruby integration job to ubuntu-24.04 ([d992138](https://github.com/CodySwannGT/lisa/commit/d992138b08d900a3e16dcb5c708bd5284f5b8473)), closes [#4476](https://github.com/CodySwannGT/lisa/issues/4476) [CodySwannGT/lisa#4513](https://github.com/CodySwannGT/lisa/issues/4513) [CodySwannGT/lisa#4513](https://github.com/CodySwannGT/lisa/issues/4513)
+
 ### [4.82.3](https://github.com/CodySwannGT/lisa/compare/v4.82.2...v4.82.3) (2026-10-24)
 
 
