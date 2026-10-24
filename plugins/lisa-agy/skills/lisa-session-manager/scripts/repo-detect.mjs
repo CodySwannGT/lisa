@@ -11,6 +11,13 @@
  * ticket worktree builds on the wrong branch, so the detector keeps one
  * checkout per remote: the one named after the repo when there is one.
  *
+ * Not every multi-repo host has a `projects/` dir: some keep each repo as a
+ * direct child of the project root (`api/`, `web/`, `infra/`). Setup checks
+ * `projects/` first and falls back to the root's own children. At the root a
+ * child must also be its own checkout (it has a `.git`): a folder of a
+ * single-repo project that happens to hold a `.lisa.config.json` is part of
+ * that repo, not a repo to route workers into.
+ *
  * Every filesystem call goes through an injectable seam.
  * @module session-manager/repo-detect
  */
@@ -152,8 +159,9 @@ function onePerRemote(children) {
  * run `/lisa:implement` inside it, which needs that file), is not a linked
  * worktree, and is the chosen checkout of its remote.
  * @param {string} root - Project root
- * @param {{ reposRoot?: string, fs?: Partial<typeof NODE_FS> }} [options] -
- *   Repos root (default `projects`) and filesystem seam
+ * @param {{ reposRoot?: string, requireGit?: boolean,
+ *   fs?: Partial<typeof NODE_FS> }} [options] - Repos root (default
+ *   `projects`), whether a child needs its own `.git`, and filesystem seam
  * @returns {string[]} Child directory names, sorted
  */
 export function detectRepos(root, options = {}) {
@@ -165,6 +173,9 @@ export function detectRepos(root, options = {}) {
     .filter(entry => entry.isDirectory() && SAFE_SEGMENT.test(entry.name))
     .map(entry => ({ name: entry.name, dir: join(base, entry.name) }))
     .filter(child => fs.existsSync(join(child.dir, ".lisa.config.json")))
+    .filter(
+      child => !options.requireGit || fs.existsSync(join(child.dir, ".git"))
+    )
     .filter(child => !isLinkedWorktree(child.dir, fs))
     .map(child => ({
       name: child.name,
@@ -172,6 +183,33 @@ export function detectRepos(root, options = {}) {
     }))
     .sort((a, b) => (a.name < b.name ? -1 : 1));
   return onePerRemote(children);
+}
+
+/**
+ * Where setup looks for child repos, in order. `.` is the root itself, where
+ * only children with their own `.git` count.
+ */
+const LAYOUT_CANDIDATES = Object.freeze([
+  { reposRoot: "projects", requireGit: false },
+  { reposRoot: ".", requireGit: true },
+]);
+
+/**
+ * Find where a multi-repo project keeps its repos and which ones are routable.
+ * The first candidate that yields any repo wins: `projects/`, then the
+ * project root's direct children that are their own checkouts. A project
+ * where neither yields one is single-repo, reported with the default
+ * `projects` root and no repos.
+ * @param {string} root - Project root
+ * @param {{ fs?: Partial<typeof NODE_FS> }} [options] - Filesystem seam
+ * @returns {{ reposRoot: string, repos: string[] }} Repos root and names
+ */
+export function detectRepoLayout(root, options = {}) {
+  for (const { reposRoot, requireGit } of LAYOUT_CANDIDATES) {
+    const repos = detectRepos(root, { ...options, reposRoot, requireGit });
+    if (repos.length > 0) return { reposRoot, repos };
+  }
+  return { reposRoot: LAYOUT_CANDIDATES[0].reposRoot, repos: [] };
 }
 
 /**

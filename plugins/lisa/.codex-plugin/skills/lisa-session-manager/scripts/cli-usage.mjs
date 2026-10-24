@@ -82,9 +82,10 @@ Config and routing
   validate   stdout {valid,errors}; exit 2 when invalid or absent.
   init-config [--slug <slug>] [--write]
              stdout {written,block[,reason:"exists"][,path]}. Detects
-             projects/*/.lisa.config.json, skipping linked worktrees (.git is
-             a file) and keeping one child per origin remote (the one named
-             after the repo, else the first by name). Each repo's hints are a
+             projects/*/.lisa.config.json, else root children with their own
+             .lisa.config.json and .git (repos.root "."), skipping linked
+             worktrees (.git is a file) and keeping one child per origin
+             remote (the one named after the repo, else the first by name). Each repo's hints are a
              draft: its name, then one per well-known package.json dependency
              (e.g. @nestjs/* -> NestJS, expo -> Expo, aws-cdk-lib -> AWS CDK).
              Default slug: <github.repo or folder name>-<first 6 hex of

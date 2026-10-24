@@ -25,7 +25,7 @@ import {
 } from "../../lisa-secrets-access/scripts/validate-config.mjs";
 
 export { parseLoopInterval, validateSessionManager };
-export { detectRepos, draftHints } from "./repo-detect.mjs";
+export { detectRepoLayout, detectRepos, draftHints } from "./repo-detect.mjs";
 
 /**
  * Documented defaults for every optional key.
@@ -157,15 +157,19 @@ function normalizeSlug(projectSlug) {
  * no `repos` key, which is what makes a project single-repo. Each detected
  * repo's hints are its drafted hints when given (`draftHints`), else its own
  * name: valid either way, and setup asks the operator to review them.
+ * `reposRoot` is where the repos were found (`detectRepoLayout`): `projects`
+ * by default, or `.` when they sit directly under the project root.
  * @param {{ projectSlug: string, detectedRepos?: string[],
- *   hints?: Record<string, string[]> }} input Project slug, the output of
- *   `detectRepos`, and drafted hints per repo.
+ *   hints?: Record<string, string[]>, reposRoot?: string }} input Project
+ *   slug, the output of `detectRepos`, drafted hints per repo, and the repos
+ *   root they were found under.
  * @returns {SessionManagerBlock} A block `validateSessionManager` accepts.
  */
 export function buildDefaultBlock({
   projectSlug,
   detectedRepos = [],
   hints = {},
+  reposRoot = DEFAULT_REPOS_ROOT,
 }) {
   const slug = normalizeSlug(projectSlug);
   const repos = [...detectedRepos].sort();
@@ -175,7 +179,7 @@ export function buildDefaultBlock({
     ...(repos.length > 0
       ? {
           repos: {
-            root: DEFAULT_REPOS_ROOT,
+            root: reposRoot,
             entries: Object.fromEntries(
               repos.map(name => [
                 name,

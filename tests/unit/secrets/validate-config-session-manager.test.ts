@@ -123,13 +123,22 @@ describe("sessionManager block", () => {
   });
 
   it("rejects a repos.root that could leave the project", () => {
-    for (const root of ["../elsewhere", "/abs/path", ""]) {
+    const unsafe = ["../elsewhere", "/abs/path", "", "./", "./projects"];
+    for (const root of unsafe) {
       const problems = validateSessionManager({
         ...minimal,
         repos: { root, entries: { api: { hints: ["x"] } } },
       });
       expect(problems[0]).toMatch(/sessionManager\.repos\.root/);
     }
+  });
+
+  it('accepts repos.root "." for repos directly under the project root', () => {
+    const problems = validateSessionManager({
+      ...minimal,
+      repos: { root: ".", entries: { api: { hints: ["x"] } } },
+    });
+    expect(problems).toEqual([]);
   });
 
   it("rejects a repos block with no entries", () => {
