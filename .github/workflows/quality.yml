@@ -3630,12 +3630,14 @@ jobs:
     permissions:
       contents: read
     name: 🧪 Run Integration Tests
-    # Pinned, not ubuntu-latest: GitHub moved ubuntu-latest to the 26.04 image
-    # in October 2026, and ruby/setup-ruby publishes no Ruby 4.0.1 build for it
-    # ("Unavailable version 4.0.1 for ruby on ubuntu-26.04"), which fails
-    # the Lisa-only Ruby template-regression setup below. Move to ubuntu-26.04
-    # once setup-ruby ships the pinned Ruby for that image (CodySwannGT/lisa#4513).
-    runs-on: ubuntu-24.04
+    # Pinned for Lisa only: GitHub moved ubuntu-latest to the 26.04 image in
+    # October 2026, and ruby/setup-ruby publishes no Ruby 4.0.1 build for it
+    # ("Unavailable version 4.0.1 for ruby on ubuntu-26.04"), which fails the
+    # Lisa-only Ruby template-regression setup below. This is the reusable
+    # workflow consumers call, and that step never runs for them, so callers
+    # stay on ubuntu-latest like their other jobs. Move Lisa to ubuntu-26.04 once
+    # setup-ruby ships the pinned Ruby for that image (CodySwannGT/lisa#4513).
+    runs-on: ${{ github.repository == 'CodySwannGT/lisa' && 'ubuntu-24.04' || 'ubuntu-latest' }}
     # Baseline19.9–26.5min (mean22.9, sd2.8) outgrew30min. The60min
     # resource limit preserves quality assertions; the regression is tracked.
     timeout-minutes: 60
