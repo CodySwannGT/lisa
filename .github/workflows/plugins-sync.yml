@@ -31,7 +31,8 @@ on:
 jobs:
   guard-trace:
     name: Shell guard trace shard ${{ matrix.shard }}/3
-    runs-on: ubuntu-latest
+    # Pinned: setup-ruby publishes no 4.0.1 build for ubuntu-26.04 (#4513).
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
     strategy:
       fail-fast: false

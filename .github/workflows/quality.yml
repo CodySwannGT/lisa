@@ -3630,7 +3630,9 @@ jobs:
     permissions:
       contents: read
     name: 🧪 Run Integration Tests
-    runs-on: ubuntu-latest
+    # Pinned: its Lisa-only Ruby step asks for a version setup-ruby does not
+    # publish for ubuntu-26.04, which ubuntu-latest now resolves to (#4513).
+    runs-on: ubuntu-24.04
     # Baseline19.9–26.5min (mean22.9, sd2.8) outgrew30min. The60min
     # resource limit preserves quality assertions; the regression is tracked.
     timeout-minutes: 60
