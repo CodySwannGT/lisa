@@ -208,6 +208,28 @@ describe("generate-agy-plugin-artifacts (plugin-bundled root hooks.json)", () =>
     });
   });
 
+  it("ships the actual host-name command-context companion with its classifier", async () => {
+    const guard = "block-host-name-leak.sh";
+    const companion = "host-name-command-context.mjs";
+    await scaffoldSource(srcDir, {
+      hooks: { PreToolUse: [scriptEntry(guard)] },
+    });
+    for (const file of [
+      guard,
+      "block-host-name-leak.mjs",
+      "block-host-name-leak.agy.sh",
+      companion,
+    ])
+      await fs.copy(
+        path.join(process.cwd(), "plugins/src/base/hooks", file),
+        path.join(srcDir, "hooks", file)
+      );
+    generateAgyVariant(srcDir, outDir, "1.2.3");
+    expect(await fs.readFile(path.join(outDir, "hooks", companion))).toEqual(
+      await fs.readFile(path.join(srcDir, "hooks", companion))
+    );
+  });
+
   describe("error handling: missing agy hook script", () => {
     it("throws when a mapped agy script is referenced in source hooks but absent from srcDir/hooks/", async () => {
       // Scaffold a source that references block-no-verify in its hooks, but

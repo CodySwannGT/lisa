@@ -981,9 +981,9 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/hooks/block-host-name-leak.agy.sh":
       "9522a2db621178d9cee5bf70ff3948251c5043868f372924bfee19126dbd1c41",
     "plugins/src/base/hooks/block-host-name-leak.mjs":
-      "c0a43b67a711a39ee17238113c05b3f497fa45c78ac3c2cb99593378e45eed36",
+      "28af02b135a07c63c217cf36fc3af71086474a75c1773bad24142e7b92e2e760",
     "plugins/src/base/hooks/block-host-name-leak.sh":
-      "853a890c7fe9e490e9271d7606b087643e542954fcdec4631172a40ef36bf32b",
+      "e0b43b99104e0879d1f855f2f974c9534a7e66a70821647f8b6d65811d0e3133",
     "plugins/src/base/hooks/block-instruction-file-edits.agy.sh":
       "aa249cae53caeb3e0fb6d6af114e2756084f45a2896332fb063a9f20e4902125",
     "plugins/src/base/hooks/block-instruction-file-edits.sh":
@@ -1022,6 +1022,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "08ed520f59cf97056c3d17bc342e1a4d24802e8d460d77b546017c15a4ba2c55",
     "plugins/src/base/hooks/guard-dedupe.bash":
       "aa82809f78906811c1ca56054848e21f22a21e1d7cf70803be40a00ed25ba480",
+    "plugins/src/base/hooks/host-name-command-context.mjs":
+      "19ecd5ae1a22101c404141426d6996c4faa1f0f4dc2fbd194bae33c427d2601a",
     "plugins/src/base/hooks/inject-flow-context.sh":
       "f4ab07065762d592c0fc36be2e4918e767b293aaa4094b9d85d69010576c6dbf",
     "plugins/src/base/hooks/inject-resolved-config.mjs":
@@ -2611,7 +2613,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/fix-test-assertions.mjs":
       "59b5e8cc31e7c7323d20bd180f2ae97c08a9685758483b6fe00ba77317a845f2",
     "scripts/generate-agy-plugin-artifacts.mjs":
-      "dd137fcd9502db427c9679fae5088e996d92e1e013d71620612aef178a7be207",
+      "19bee3087ff1fedc79550f75cb021dc59b5b4466daa6261adb788ef13bb8c2b6",
     "scripts/generate-codex-plugin-artifacts.mjs":
       "3216e23962884cf2610e65ae95a6b6b28cc23b7bd93d0254aebbcc0f6c7ee827",
     "scripts/generate-copilot-plugin-artifacts.mjs":
@@ -2660,6 +2662,10 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "bf43913f423f5774a69b60f2541f7a49c173aabd4855e2c30cbe2984806a182b",
     "scripts/lib/hook-registration-audit.mjs":
       "2f148ce2179bfca2805c85675fdb4733bf12ca5c1aa651f660c7478c7ee289cb",
+    "scripts/lib/host-name-review-cases.mjs":
+      "242ca8024c12fcec568a5ad05346475f1e989a5f3d69416850b8a8a77847c0fa",
+    "scripts/lib/host-name-target-cases.mjs":
+      "097fa2bb680306c88cb49be43282113affe55d03ce515710f2d85ffc0938318a",
     "scripts/lib/invoked-as-script.mjs":
       "4711b3e900dc85c000c287dd6a675f519fd0f5f288508ae1d5acefdab136ad4e",
     "scripts/lib/mutation-performance-reporter.mjs":
@@ -2763,7 +2769,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/test-intent-routing.sh":
       "97b9dc86cbd805df8a7fdb8c99ffab9b8c5e751ba2e84c05420b2a124f80635d",
     "scripts/two-channel-couplings.json":
-      "bc7855d7ff1ba6c376c8ad8acf74da630d5b37abac95eb28dd5e6cb426127da5",
+      "f23d0b29145e50d3a591cb02ea92624495ad007fea3b9946a9274754685ce848",
     "scripts/update-node-version.ts":
       "9d37599ef73d5d624751f862cda330a867f6774392c1ab045b4fc885132582e4",
     "scripts/update-test-skill-paths.mjs":
@@ -2776,6 +2782,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "4041780d412bee7b9e1bbe24d908bac64705184a8b0698f0d5bb748ec36b0bcd",
     "scripts/verify-health-deterministic-built.mjs":
       "9016663d16c93d0d0d74b41a957d200cd3aa8ef5b12e0879d24ba5ea041ab307",
+    "scripts/verify-host-name-target-scope.mjs":
+      "20a76bc8c54afcb191d1760f387ef65eb8d67171562bbff0a1f024953a71b1cd",
     "scripts/verify-learner-frontmatter-built.mjs":
       "b8ac0240726721a047811e98d42f661426abc3e427a0c86f3b20082eb498809d",
     "scripts/verify-npm-advisories-4333.mjs":
@@ -4220,6 +4228,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-agy/hooks/block-shell-json-parsing.agy.sh": true,
     "plugins/lisa-agy/hooks/block-shell-json-parsing.sh": true,
     "plugins/lisa-agy/hooks/guard-dedupe.bash": true,
+    "plugins/lisa-agy/hooks/host-name-command-context.mjs": true,
     "plugins/lisa-agy/hooks/parity-safety-net-heredoc.py": true,
     "plugins/lisa-agy/hooks/parity-safety-net.agy.sh": true,
     "plugins/lisa-agy/hooks/parity-safety-net.sh": true,
@@ -4640,6 +4649,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-copilot/hooks/failure-signature-index.mjs": true,
     "plugins/lisa-copilot/hooks/failure-signature-index.sh": true,
     "plugins/lisa-copilot/hooks/guard-dedupe.bash": true,
+    "plugins/lisa-copilot/hooks/host-name-command-context.mjs": true,
     "plugins/lisa-copilot/hooks/inject-resolved-config.mjs": true,
     "plugins/lisa-copilot/hooks/inject-resolved-config.sh": true,
     "plugins/lisa-copilot/hooks/inject-rules.sh": true,
@@ -5146,6 +5156,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-cursor/hooks/failure-signature-index.sh": true,
     "plugins/lisa-cursor/hooks/guard-dedupe.bash": true,
     "plugins/lisa-cursor/hooks/hooks.json": true,
+    "plugins/lisa-cursor/hooks/host-name-command-context.mjs": true,
     "plugins/lisa-cursor/hooks/inject-resolved-config.mjs": true,
     "plugins/lisa-cursor/hooks/inject-resolved-config.sh": true,
     "plugins/lisa-cursor/hooks/install-pkgs.sh": true,
@@ -5582,6 +5593,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-devin/hooks/failure-signature-index.mjs": true,
     "plugins/lisa-devin/hooks/failure-signature-index.sh": true,
     "plugins/lisa-devin/hooks/guard-dedupe.bash": true,
+    "plugins/lisa-devin/hooks/host-name-command-context.mjs": true,
     "plugins/lisa-devin/hooks/inject-resolved-config.mjs": true,
     "plugins/lisa-devin/hooks/inject-resolved-config.sh": true,
     "plugins/lisa-devin/hooks/inject-rules.sh": true,
@@ -8549,6 +8561,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa/hooks/failure-signature-index.mjs": true,
     "plugins/lisa/hooks/failure-signature-index.sh": true,
     "plugins/lisa/hooks/guard-dedupe.bash": true,
+    "plugins/lisa/hooks/host-name-command-context.mjs": true,
     "plugins/lisa/hooks/inject-flow-context.sh": true,
     "plugins/lisa/hooks/inject-resolved-config.mjs": true,
     "plugins/lisa/hooks/inject-resolved-config.sh": true,
@@ -9240,6 +9253,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/src/base/hooks/failure-signature-index.mjs": true,
     "plugins/src/base/hooks/failure-signature-index.sh": true,
     "plugins/src/base/hooks/guard-dedupe.bash": true,
+    "plugins/src/base/hooks/host-name-command-context.mjs": true,
     "plugins/src/base/hooks/inject-flow-context.sh": true,
     "plugins/src/base/hooks/inject-resolved-config.mjs": true,
     "plugins/src/base/hooks/inject-resolved-config.sh": true,
@@ -10130,6 +10144,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "scripts/lib/dependency-tree.mjs": true,
     "scripts/lib/gitattributes-merge-drivers.mjs": true,
     "scripts/lib/hook-registration-audit.mjs": true,
+    "scripts/lib/host-name-review-cases.mjs": true,
+    "scripts/lib/host-name-target-cases.mjs": true,
     "scripts/lib/invoked-as-script.mjs": true,
     "scripts/lib/mutation-performance-reporter.mjs": true,
     "scripts/lib/nest-plugin-commands.mjs": true,
@@ -10188,6 +10204,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "scripts/verify-health-consumer-built.mjs": true,
     "scripts/verify-health-contract-built.mjs": true,
     "scripts/verify-health-deterministic-built.mjs": true,
+    "scripts/verify-host-name-target-scope.mjs": true,
     "scripts/verify-learner-frontmatter-built.mjs": true,
     "scripts/verify-npm-advisories-4333.mjs": true,
     "scripts/verify-packed-learnings-contract.mjs": true,

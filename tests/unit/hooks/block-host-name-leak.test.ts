@@ -28,11 +28,19 @@
  * keep unpublished — in the test for that guard.
  * @module tests/unit/hooks/block-host-name-leak
  */
-import { mkdirSync, mkdtempSync, symlinkSync, writeFileSync } from "node:fs";
+import {
+  copyFileSync,
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  symlinkSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import {
   boundedExecFileSync,
@@ -42,6 +50,9 @@ import { resolveGit } from "../../support/git-executable.js";
 
 /** git, resolved to a fixed path rather than through a writeable PATH. */
 const GIT = resolveGit();
+
+/** The executable guard filename. */
+const HOOK_BASENAME = "block-host-name-leak.sh";
 
 /** The guard under test, as it lives in the plugin source. */
 const SCRIPT_PATH = path.resolve(
@@ -73,6 +84,17 @@ const bodyFile = (contents: string): string => {
 };
 
 /**
+ * Isolate temporary repositories and local gh routing from the parent hook.
+ * @returns The fixture child environment.
+ */
+const fixtureEnv = (): NodeJS.ProcessEnv =>
+  Object.fromEntries(
+    Object.entries(process.env).filter(
+      ([key]) => !/^(?:GIT_|GH_|GITHUB_)/u.test(key)
+    )
+  );
+
+/**
  * Run the hook against one command.
  * @param command - The command the agent is about to run.
  * @param names - Names to load into the denylist for this run.
@@ -85,13 +107,15 @@ const runHook = (
   projectDir: string = PROJECT_DIR
 ): { status: number; output: string } => {
   const result = boundedSpawnSync({
-    label: "block-host-name-leak.sh",
+    label: HOOK_BASENAME,
     command: "/bin/bash",
     args: [SCRIPT_PATH],
     cwd: projectDir,
     input: JSON.stringify({ tool_name: "Bash", tool_input: { command } }),
     env: {
-      ...process.env,
+      ...fixtureEnv(),
+      GH_TOKEN: "local-fixture-no-network-token",
+      GH_PROMPT_DISABLED: "1",
       CLAUDE_PROJECT_DIR: projectDir,
       LISA_DOWNSTREAM_NAMES: names,
     },
@@ -227,12 +251,28 @@ const hostCheckout = (origin: string | undefined): string => {
         label: "git (host checkout fixture)",
         command: GIT,
         args: ["-C", dir, ...args],
+        env: fixtureEnv(),
       });
     git(["init", "-q"]);
     git(["remote", "add", "origin", origin]);
   }
   return dir;
 };
+
+it("isolates the actual host fixture from inherited Git repository locations", () => {
+  const untouched = hostCheckout("git@github.com:acme/fixture-only.git");
+  const config = path.join(untouched, ".git", "config");
+  const before = readFileSync(config, "utf8");
+  try {
+    vi.stubEnv("GIT_DIR", path.join(untouched, ".git"));
+    vi.stubEnv("GIT_WORK_TREE", untouched);
+    const isolated = hostCheckout("git@github.com:acme/isolated-fixture.git");
+    expect(existsSync(path.join(isolated, ".git", "config"))).toBe(true);
+    expect(readFileSync(config, "utf8")).toBe(before);
+  } finally {
+    vi.unstubAllEnvs();
+  }
+});
 
 describe("it guards writes into this repository, not a host's own tracker (#4462)", () => {
   // The rule protects THIS public repository. A host writing its own name into
@@ -303,13 +343,37 @@ describe("it guards writes into this repository, not a host's own tracker (#4462
 });
 
 describe("it never fails open silently", () => {
+  it("announces a missing command-context companion instead of a silent hook error", () => {
+    const plugin = scratch();
+    for (const file of [HOOK_BASENAME, "block-host-name-leak.mjs"])
+      copyFileSync(
+        path.join(PROJECT_DIR, "plugins/src/base/hooks", file),
+        path.join(plugin, file)
+      );
+    const result = boundedSpawnSync({
+      label: "host-name guard missing companion",
+      command: "/bin/bash",
+      args: [path.join(plugin, HOOK_BASENAME)],
+      input: JSON.stringify({
+        tool_name: "Bash",
+        tool_input: {
+          command: "gh issue create --repo CodySwannGT/lisa --body x",
+        },
+      }),
+      env: fixtureEnv(),
+    });
+    expect(result.status).toBe(EXIT_ALLOWED);
+    expect(String(result.stderr)).toContain("command-context helper missing");
+    expect(String(result.stderr)).toContain("NOT active");
+  });
+
   it("permits the write but announces itself when the detector is absent", () => {
     // Failing closed would block every tracker write on a machine with no built
     // dist/. Failing open quietly is worse than either: a guard that is
     // silently absent reads exactly like a guard that is passing.
     const file = bodyFile(`leaked ${FIXTURE_NAME}`);
     const result = boundedSpawnSync({
-      label: "block-host-name-leak.sh",
+      label: HOOK_BASENAME,
       command: "/bin/bash",
       args: [SCRIPT_PATH],
       cwd: PROJECT_DIR,

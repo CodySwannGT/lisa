@@ -63,11 +63,13 @@
  * guards contradicted each other and every agent-opened host PR failed
  * traceability.
  *
- * So the guard decides by where the text is going: `--repo`/`-R`, else a
- * `gh api` `repos/<owner>/<repo>` path, else the `origin` of the directory the
- * command runs in. It enforces only when that target is this repository —
- * which still covers the likeliest leak, an upstream filing made from inside a
- * host. When the target cannot be determined it enforces, as before.
+ * So the guard resolves the active gh call's explicit repository or API
+ * endpoint, then GH_REPO, the locally selected gh default, or one unambiguous
+ * Git remote. Literal cd and environment assignments use the command's actual
+ * directory; the project root still locates the detector. Body text is never
+ * routing. Unsupported shell syntax, unresolved expansions and ambiguous
+ * repositories earn no host exemption. This is bounded command inspection,
+ * not shell execution or a claim to close every shell/identity leak class.
  *
  * FAILING OPEN, LOUDLY
  *
@@ -78,10 +80,16 @@
  * reasoning as `block-direct-issue-create.sh`'s interpreter probe.
  * @module hooks/block-host-name-leak
  */
-import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync, realpathSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
+import {
+  commandRepository,
+  ghCommands,
+  repositoryFromSpec,
+} from "./host-name-command-context.mjs";
+
+export { repositoryFromSpec };
 
 /** Claude Code's refusal code. Every other non-zero exit is a hook error. */
 const EXIT_BLOCKED = 2;
@@ -127,7 +135,7 @@ const TEXT_FLAGS = new Set([
   "-m",
 ]);
 /** `gh api` field flags: `key=value`, or `key=@path` to read a file. */
-const FIELD_FLAGS = new Set(["-f", "--field", "--raw-field"]);
+const FIELD_FLAGS = new Set(["-f", "-F", "--field", "--raw-field"]);
 /** Field names whose value is published prose rather than metadata. */
 const PROSE_FIELDS = new Set(["body", "title", "text", "message"]);
 
@@ -138,13 +146,6 @@ const PROSE_FIELDS = new Set(["body", "title", "text", "message"]);
  * is not on the list, which is the point (#4462).
  */
 const GUARDED_REPOSITORIES = new Set(["codyswanngt/lisa"]);
-/** `gh` flags that name the repository a command targets. */
-const REPO_FLAGS = new Set(["--repo", "-R"]);
-/** A `gh api` path into one repository: `repos/<owner>/<repo>/...`. */
-const API_REPO_PATH = /(?:^|\/)repos\/([^/\s]+)\/([^/?#\s]+)/u;
-/** Ceiling for the `git remote` read, so a wedged git cannot hang the hook. */
-const GIT_TIMEOUT_MS = 5000;
-
 /**
  * Vendor endpoints quoted from guard source, which are not host identities.
  *
@@ -204,30 +205,10 @@ export function tokenize(command) {
  * @returns True when the command publishes text.
  */
 export function isOutboundTrackerWrite(tokens) {
-  const gh = tokens.indexOf("gh");
-  if (gh === -1) return false;
-  const rest = tokens.slice(gh + 1).filter(token => !token.startsWith("-"));
-  const [noun, verb] = rest;
-  if (noun === "api") return isMutatingApiCall(tokens);
-  return WRITE_NOUNS.has(noun ?? "") && WRITE_VERBS.has(verb ?? "");
-}
-
-/**
- * Whether a `gh api` call mutates.
- *
- * `gh api` defaults to GET, and to POST when any field flag is present — so a
- * field flag alone makes it a write even with no explicit method.
- * @param tokens - Command tokens.
- * @returns True when the call changes state.
- */
-function isMutatingApiCall(tokens) {
-  const method = tokens.findIndex(
-    token => token === "-X" || token === "--method"
-  );
-  if (method !== -1) {
-    return MUTATING_METHODS.has((tokens[method + 1] ?? "").toUpperCase());
-  }
-  return tokens.some(token => FIELD_FLAGS.has(token));
+  return ghCommands(
+    tokens.map(token => JSON.stringify(token)).join(" "),
+    process.cwd()
+  ).some(context => context.writes);
 }
 
 /**
@@ -244,61 +225,17 @@ function valueAt(tokens, index) {
 }
 
 /**
- * Normalize a repository spec to lowercased `owner/repo`.
- *
- * Accepts every form `gh` and git use: `owner/repo`, `HOST/owner/repo`,
- * `https://github.com/owner/repo(.git)` and `git@github.com:owner/repo.git`.
- * @param spec - The spec as written.
- * @returns `owner/repo`, or undefined when it does not name one.
- */
-export function repositoryFromSpec(spec) {
-  const segments = spec
-    .trim()
-    .replace(/\.git$/u, "")
-    .split(/[/:]/u)
-    .filter(segment => segment !== "");
-  if (segments.length < 2) return undefined;
-  return `${segments.at(-2)}/${segments.at(-1)}`.toLowerCase();
-}
-
-/**
- * The `origin` repository of a directory, read from git.
- * @param cwd - Directory the command runs in.
- * @returns `owner/repo`, or undefined when there is no readable origin.
- */
-function originRepository(cwd) {
-  try {
-    const url = execFileSync(
-      "git",
-      ["-C", cwd, "remote", "get-url", "origin"],
-      {
-        encoding: "utf-8",
-        stdio: ["ignore", "pipe", "ignore"],
-        timeout: GIT_TIMEOUT_MS,
-      }
-    );
-    return repositoryFromSpec(url);
-  } catch {
-    return undefined;
-  }
-}
-
-/**
- * The repository this write will land in.
- *
- * `--repo`/`-R` wins, as it does for `gh`; then a `gh api` `repos/` path; then
- * the origin of the directory the command runs in, which is what `gh` itself
- * falls back to.
- * @param tokens - Command tokens.
- * @param cwd - Directory the command runs in.
- * @returns `owner/repo`, or undefined when the target cannot be determined.
+ * Resolve the target of one tokenized command without treating prose as routing.
+ * @param tokens Command tokens.
+ * @param cwd Actual command working directory.
+ * @returns Verified owner/repository, or unknown.
  */
 export function targetRepository(tokens, cwd) {
-  const flag = tokens.findIndex(token => REPO_FLAGS.has(token.split("=")[0]));
-  if (flag !== -1) return repositoryFromSpec(valueAt(tokens, flag));
-  const apiPath = tokens.map(token => API_REPO_PATH.exec(token)).find(Boolean);
-  if (apiPath) return `${apiPath[1]}/${apiPath[2]}`.toLowerCase();
-  return originRepository(cwd);
+  const context = ghCommands(
+    tokens.map(token => JSON.stringify(token)).join(" "),
+    cwd
+  )[0];
+  return context === undefined ? undefined : commandRepository(context);
 }
 
 /**
@@ -337,19 +274,21 @@ function readIfPresent(candidate, cwd) {
  * from so the refusal can point at the thing to edit.
  * @param tokens - Command tokens.
  * @param cwd - Directory the command runs in.
+ * @param noun - The active gh noun, so api fields retain their own meaning.
  * @returns Sources of publishable text.
  */
-export function publishableText(tokens, cwd) {
+export function publishableText(tokens, cwd, noun) {
   return tokens.flatMap((token, index) => {
     const bare = token.startsWith("-") ? token.split("=")[0] : token;
-    if (TEXT_FLAGS.has(bare)) {
+    if (noun !== "api" && TEXT_FLAGS.has(bare)) {
       return [{ origin: bare, text: valueAt(tokens, index) }];
     }
     if (FILE_FLAGS.has(bare)) {
       const value = valueAt(tokens, index);
       // On `gh api`, `-F` is `--field`: `key=@path` or `key=value`. Read as a
       // bare path, `body=@file` named no file and published unchecked (#4462).
-      if (/^[\w.[\]-]+=/u.test(value)) return [fieldSource(value, cwd)];
+      if (noun === "api" && /^[\w.[\]-]+=/u.test(value))
+        return [fieldSource(value, cwd)];
       const file = value.replace(/^@/u, "");
       return [{ origin: file, text: readIfPresent(file, cwd) }];
     }
@@ -458,22 +397,53 @@ means "no known name appeared", not "this text is safe".`;
  * @returns The exit code and any message.
  */
 export async function evaluate(command, projectDir) {
-  const tokens = tokenize(command);
-  if (!isOutboundTrackerWrite(tokens)) return { code: EXIT_ALLOWED };
-  if (!isGuardedTarget(targetRepository(tokens, projectDir))) {
-    return { code: EXIT_ALLOWED };
+  let detector;
+  const findings = [];
+  for (const context of ghCommands(command, process.cwd())) {
+    if (!context.writes || !isGuardedTarget(commandRepository(context)))
+      continue;
+    detector ??= await loadDetector(projectDir);
+    if (detector === undefined) {
+      return {
+        code: EXIT_ALLOWED,
+        warning:
+          "block-host-name-leak: host-name denylist not found (no built dist/ or installed package); host-identity enforcement is NOT active",
+      };
+    }
+    // Without a known cwd a relative file cannot be inspected honestly. Keep
+    // protection, and name the unread input instead of claiming the text clean.
+    if (
+      context.cwd === undefined &&
+      [...context.flags].some(([flag, item]) => {
+        const field =
+          context.noun === "api" && FIELD_FLAGS.has(flag)
+            ? /^([^=]+)=@(.+)$/u.exec(item.value)
+            : null;
+        const file =
+          field !== null
+            ? PROSE_FIELDS.has(field[1])
+              ? field[2]
+              : undefined
+            : FILE_FLAGS.has(flag)
+              ? item.value.replace(/^@/, "")
+              : undefined;
+        return file !== undefined && !path.isAbsolute(file);
+      })
+    ) {
+      return {
+        code: EXIT_BLOCKED,
+        message:
+          "BLOCKED: the working directory for this tracker write's body file could not be resolved. Use a literal directory and readable body file so the host-name guard can inspect it.",
+      };
+    }
+    findings.push(
+      ...publishableText(
+        context.tokens,
+        context.cwd ?? projectDir,
+        context.noun
+      ).flatMap(source => findingsIn(source, detector))
+    );
   }
-  const detector = await loadDetector(projectDir);
-  if (detector === undefined) {
-    return {
-      code: EXIT_ALLOWED,
-      warning:
-        "block-host-name-leak: host-name denylist not found (no built dist/ or installed package); host-identity enforcement is NOT active",
-    };
-  }
-  const findings = publishableText(tokens, projectDir).flatMap(source =>
-    findingsIn(source, detector)
-  );
   if (findings.length === 0) return { code: EXIT_ALLOWED };
   return { code: EXIT_BLOCKED, message: formatRefusal(findings) };
 }

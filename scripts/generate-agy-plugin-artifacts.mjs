@@ -310,8 +310,8 @@ const AGY_PLUGIN_HOOKS = [
     supportScripts: ["block-blind-automerge.sh", GUARD_DEDUPE_LIB],
   },
   {
-    // Same shape as the entry above, plus one support file the others do not
-    // need: the classifier is Node, because the denylist it consults is
+    // The classifier and bounded command-context resolver are Node modules,
+    // because the denylist they consult is
     // compiled JavaScript and a bash reimplementation would be a second copy of
     // the thing the guard exists to protect.
     sourceScript: "block-host-name-leak.sh",
@@ -319,7 +319,11 @@ const AGY_PLUGIN_HOOKS = [
     event: "PreToolUse",
     matcher: "run_command",
     agyScript: "block-host-name-leak.agy.sh",
-    supportScripts: ["block-host-name-leak.sh", "block-host-name-leak.mjs"],
+    supportScripts: [
+      "block-host-name-leak.sh",
+      "block-host-name-leak.mjs",
+      "host-name-command-context.mjs",
+    ],
   },
 ];
 
