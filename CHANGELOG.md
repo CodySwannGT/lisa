@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.84.3](https://github.com/CodySwannGT/lisa/compare/v4.84.2...v4.84.3) (2026-10-26)
+
+
+### Bug Fixes
+
+* **opencode:** await the guard stdin write so its rejection is caught ([3f5419a](https://github.com/CodySwannGT/lisa/commit/3f5419ac3c75662d4e888e11d3a07fd3a178133c)), closes [#4533](https://github.com/CodySwannGT/lisa/issues/4533) [CodySwannGT/lisa#4534](https://github.com/CodySwannGT/lisa/issues/4534) [CodySwannGT/lisa#4532](https://github.com/CodySwannGT/lisa/issues/4532) [CodySwannGT/lisa#4532](https://github.com/CodySwannGT/lisa/issues/4532)
+* **opencode:** judge a guard that never reads stdin by its exit status ([8198434](https://github.com/CodySwannGT/lisa/commit/81984346a89d630ab98c7065b9c45b8d6b2ca103)), closes [CodySwannGT/lisa#4534](https://github.com/CodySwannGT/lisa/issues/4534) [CodySwannGT/lisa#4532](https://github.com/CodySwannGT/lisa/issues/4532) [CodySwannGT/lisa#4532](https://github.com/CodySwannGT/lisa/issues/4532)
+* **review-evidence:** a substitute also covers a rate-limited or skipped reviewer ([f22b1ed](https://github.com/CodySwannGT/lisa/commit/f22b1ed012d375cfa1cb8feb8c46f096d212f340)), closes [#4529](https://github.com/CodySwannGT/lisa/issues/4529) [CodySwannGT/lisa#4532](https://github.com/CodySwannGT/lisa/issues/4532) [CodySwannGT/lisa#4532](https://github.com/CodySwannGT/lisa/issues/4532)
+* **review-evidence:** a substitute for a reviewer that spoke needs a clean review surface ([21394da](https://github.com/CodySwannGT/lisa/commit/21394da52f4837b8dde2824fc230895a4c908f0f)), closes [#4533](https://github.com/CodySwannGT/lisa/issues/4533) [CodySwannGT/lisa#4532](https://github.com/CodySwannGT/lisa/issues/4532) [CodySwannGT/lisa#4532](https://github.com/CodySwannGT/lisa/issues/4532)
+* **review-evidence:** carried-work title does not say the review ran for a substitute ([2f470e7](https://github.com/CodySwannGT/lisa/commit/2f470e78d927c2b07587d4dbdd1b85a5fac993d3)), closes [#4533](https://github.com/CodySwannGT/lisa/issues/4533) [CodySwannGT/lisa#4532](https://github.com/CodySwannGT/lisa/issues/4532) [CodySwannGT/lisa#4532](https://github.com/CodySwannGT/lisa/issues/4532)
+* **review-evidence:** drop the vacuous finding for a substituted reviewer ([f10b643](https://github.com/CodySwannGT/lisa/commit/f10b643f594c2b29f3531ba33db27262004c32de)), closes [#4533](https://github.com/CodySwannGT/lisa/issues/4533) [CodySwannGT/lisa#4532](https://github.com/CodySwannGT/lisa/issues/4532) [CodySwannGT/lisa#4532](https://github.com/CodySwannGT/lisa/issues/4532)
+* **review-evidence:** every substitute needs a clean review surface ([0e4f159](https://github.com/CodySwannGT/lisa/commit/0e4f15979475825f29a4fcf6d8cddf058ac602c7)), closes [#4533](https://github.com/CodySwannGT/lisa/issues/4533) [CodySwannGT/lisa#4532](https://github.com/CodySwannGT/lisa/issues/4532) [CodySwannGT/lisa#4532](https://github.com/CodySwannGT/lisa/issues/4532)
+
 ### [4.84.2](https://github.com/CodySwannGT/lisa/compare/v4.84.1...v4.84.2) (2026-10-26)
 
 ### [4.84.1](https://github.com/CodySwannGT/lisa/compare/v4.84.0...v4.84.1) (2026-10-26)
