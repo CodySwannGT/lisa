@@ -4654,12 +4654,16 @@ export function inspectVacuity(argv, declaration, options = {}) {
     headSha: read.headSha,
     checked: evaluated.checked,
     violations: [
-      // "Did not report… NOBODY LOOKED" is false once a writer's substitute
-      // stands in for that exact check at this head, so it is not repeated.
+      // "Did not report… NOBODY LOOKED" and "reported green having reviewed
+      // nothing" are both answered once a writer's substitute stands in for
+      // that exact check at this head, so neither is repeated — and the
+      // vacuous one would otherwise still fail the job under
+      // `--fail-on-vacuous` while the verdict reads SUBSTITUTED.
       ...evaluated.violations.filter(
         violation =>
           !(
-            violation.kind === VIOLATIONS.unproven &&
+            (violation.kind === VIOLATIONS.unproven ||
+              violation.kind === VIOLATIONS.vacuous) &&
             gate.conditions[violation.token] ===
               REVIEW_GATE_CONDITIONS.substituted
           )

@@ -522,6 +522,21 @@ describe("the armed gate end to end", () => {
       mod.REVIEW_VERDICT_CONCLUSIONS.satisfied
     );
     expect(inspection?.verdict.title).toMatch(/^SUBSTITUTED/);
+    // The rate-limited row is also a vacuous green; once stood in for, that
+    // finding must not survive to fail the job under --fail-on-vacuous.
+    const kinds = inspection?.violations.map(violation => violation.kind);
+    expect(kinds).not.toContain(mod.VIOLATIONS.vacuous);
+    expect(kinds).not.toContain(mod.VIOLATIONS.unproven);
+  });
+
+  it("keeps the vacuous finding for a rate limit nobody stood in for", () => {
+    const { inspection } = inspect({
+      substitutes: () => new Set(),
+      rows: rateLimited,
+    });
+    expect(inspection?.violations.map(violation => violation.kind)).toContain(
+      mod.VIOLATIONS.vacuous
+    );
   });
 
   it("reads the review surface before standing in for a rate-limited reviewer", () => {
