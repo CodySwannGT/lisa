@@ -167,9 +167,9 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lib/npm-update-rails-tool-downloads.mjs":
       "7b0a01a1198b2aa92ff9297ecf0d06c61de1a786303cec000fdb4c9134c5c194",
     "all/copy-overwrite/scripts/lib/npm-update-rails-tool-identity.mjs":
-      "fbc6299ebaa9b6af346693aa8a3e4e8db23e5b4ad86464853bfd206d7e9c94b8",
+      "d940a4eb4c97bad4cc788620dc5c3de42c9d92e21c49527aa671b1d180002186",
     "all/copy-overwrite/scripts/lib/npm-update-rails-tools.mjs":
-      "a8f6be860dac7fd4f5ef663f42af3fa3e2d5e11c8e96c1ca2286b5eaaaa0ec5c",
+      "c6670b72d0d9bfdb93f96cbb499d0361669e0367ab90e276cf24eb141dfc4a57",
     "all/copy-overwrite/scripts/lib/npm-update-recovery.mjs":
       "3dcb1826fb92c37ecbd6e46863b48b7ebae8826117ed876ae0c0749444b1c4ff",
     "all/copy-overwrite/scripts/lib/npm-update-runtime-archive.mjs":
@@ -297,7 +297,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/npm-updater-gate.Dockerfile":
       "f5d85f8fccfd97f7800c03430a38c19d584314b0a6a63aa1de28fb62897fbcc5",
     "all/copy-overwrite/scripts/npm-updater-helper-graph.json":
-      "035a459e896b98e0f52a1b7dc61bf45ee0701891bb5d12c6d093f85d4fba8681",
+      "a9f7aff4ca32e9dafbd9f242d0253da86df5b3a38c66dd2a275aa44c14f032f2",
     "all/copy-overwrite/scripts/schemas/lisa-command-envelope.v1.schema.json":
       "d153b7c2953a30f180e38f09e98240c63327f5196eeba9bdf545e5a1f125a879",
     "all/copy-overwrite/scripts/schemas/lisa-state-contract.v1.schema.json":
@@ -10847,6 +10847,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/fixtures/npm-update-hosted-runtime/driver-diagnostic.mjs": true,
     "tests/fixtures/npm-update-hosted-runtime/driver-probe.mjs": true,
     "tests/fixtures/npm-update-hosted-runtime/observations.mjs": true,
+    "tests/fixtures/npm-update-hosted-runtime/package-observations.mjs": true,
     "tests/fixtures/npm-update-hosted-runtime/qualify.mjs": true,
     "tests/fixtures/npm-update-hosted-runtime/sandbox-status.mjs": true,
     "tests/fixtures/npm-update-hosted-runtime/socket-witness.mjs": true,
@@ -12281,6 +12282,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/npm-update-rails-runtime-descriptor.test.ts": true,
     "tests/unit/scripts/npm-update-rails-tool-downloads.test.ts": true,
     "tests/unit/scripts/npm-update-rails-tools.test.ts": true,
+    "tests/unit/scripts/npm-update-runtime-preservation.test.ts": true,
     "tests/unit/scripts/npm-update-runtime-qualification.test.ts": true,
     "tests/unit/scripts/npm-update-socket-witness.test.ts": true,
     "tests/unit/scripts/npm-update-tracker.test.ts": true,

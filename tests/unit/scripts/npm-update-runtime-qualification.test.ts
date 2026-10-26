@@ -18,7 +18,12 @@ import {
   failureMetadata,
   hookWitness,
   browserStderrMetadata,
+  finishQualification,
 } from "../../fixtures/npm-update-hosted-runtime/observations.mjs";
+import {
+  recordPackageFailure,
+  packageVersionObservation,
+} from "../../fixtures/npm-update-hosted-runtime/package-observations.mjs";
 import {
   browser,
   browserControl,
@@ -44,6 +49,161 @@ function fixture(operation: (root: string) => Promise<void> | void) {
 }
 
 describe("closed runtime qualification diagnostics", () => {
+  it.each(["update", "install"])(
+    "captures the original apt-%s refusal without exposing private native output",
+    async operation => {
+      await fixture(async root => {
+        const tools =
+          await import("../../../all/copy-overwrite/scripts/lib/npm-update-rails-tools.mjs");
+        const { runProcess } =
+          await import("../../../all/copy-overwrite/scripts/lib/npm-update-process.mjs");
+        const records: object[] = [];
+        let original: unknown;
+        try {
+          await tools.installRailsPackages(
+            async (_command: string, args: string[]) => {
+              if (args.includes(operation))
+                return runProcess(
+                  process.execPath,
+                  [
+                    "-e",
+                    "process.stdout.write('private-package-output'); process.stderr.write('private-mirror-config'); process.exitCode=100;",
+                  ],
+                  {
+                    cwd: root,
+                    env: { PATH: NATIVE_PATH },
+                    timeout: 2000,
+                    maximum: 4096,
+                  }
+                );
+              return {
+                code: 0,
+                stdout: Buffer.alloc(0),
+                stderr: Buffer.alloc(0),
+              };
+            },
+            true
+          );
+        } catch (error) {
+          original = error;
+        }
+        expect(original).toMatchObject({ code: 100 });
+        const phase = tools.railsPackageFailurePhase(original);
+        expect(phase).toBe(`apt-${operation}`);
+        recordPackageFailure(root, records, phase, original as Error);
+        expect(records).toEqual([
+          expect.objectContaining({
+            stage: `apt-${operation}`,
+            status: 100,
+            elapsedMs: null,
+            nativeFailure: expect.stringContaining("native=exit"),
+            stdoutSha256: expect.stringMatching(/^[a-f0-9]{64}$/),
+            stderrSha256: expect.stringMatching(/^[a-f0-9]{64}$/),
+          }),
+        ]);
+        expect(readFileSync(join(root, "capture-0-stdout"), "utf8")).toBe(
+          "private-package-output"
+        );
+        expect(readFileSync(join(root, "capture-0-stderr"), "utf8")).toBe(
+          "private-mirror-config"
+        );
+        expect(JSON.stringify(records)).not.toContain("private-");
+        expect(JSON.stringify(records)).not.toContain(root);
+      });
+    }
+  );
+  it("only publishes validated fixed-name package versions and distinguishes absence from read failure", () => {
+    expect(
+      packageVersionObservation("libx11-6", {
+        code: 0,
+        stdout: Buffer.from("libx11-6:amd64\t2:1.8.7-1ubuntu0.1\n"),
+      })
+    ).toEqual({
+      name: "libx11-6",
+      status: "installed",
+      version: "2:1.8.7-1ubuntu0.1",
+    });
+    expect(
+      packageVersionObservation("libx11-xcb1", {
+        code: 1,
+        nativeCompleted: true,
+        stdout: Buffer.alloc(0),
+      })
+    ).toEqual({ name: "libx11-xcb1", status: "absent" });
+    for (const result of [
+      { code: 2, stdout: Buffer.alloc(0) },
+      { code: 1, nativeCompleted: false, stdout: Buffer.alloc(0) },
+      { code: null, stdout: Buffer.alloc(0) },
+      {
+        code: 0,
+        stdout: Buffer.from(
+          "libx11-6\tprivate mirror https://private/credential\n"
+        ),
+      },
+      { code: 0, stdout: Buffer.from("other-package\t1.2.3\n") },
+      { code: 0, stdout: Buffer.from(`libx11-6\t1${"a".repeat(256)}\n`) },
+    ])
+      expect(packageVersionObservation("libx11-6", result)).toEqual({
+        name: "libx11-6",
+        status: "unavailable",
+      });
+    expect(() =>
+      packageVersionObservation("private-name", { code: 0 })
+    ).toThrow("unknown pre-state package");
+  });
+  it("refuses a foreign private package capture and rejects unknown phases before publication", async () => {
+    await fixture(root => {
+      const records: object[] = [];
+      const failure = Object.assign(new Error("private package refusal"), {
+        code: 100,
+        stdout: Buffer.from("private replacement"),
+        stderr: Buffer.alloc(0),
+      });
+      writeFileSync(join(root, CAPTURE_FILE), "foreign capture", {
+        mode: 0o600,
+        flag: "wx",
+      });
+      expect(() =>
+        recordPackageFailure(root, records, "apt-install", failure)
+      ).toThrow(expect.objectContaining({ code: "EEXIST" }));
+      expect(readFileSync(join(root, CAPTURE_FILE), "utf8")).toBe(
+        "foreign capture"
+      );
+      expect(records).toEqual([
+        expect.objectContaining({
+          stage: "apt-install",
+          status: 100,
+          captureFailure: expect.any(Array),
+        }),
+      ]);
+      expect(JSON.stringify(records)).not.toContain("private replacement");
+      expect(() =>
+        recordPackageFailure(root, records, "private-phase", failure)
+      ).toThrow("unknown package failure phase");
+      expect(records).toHaveLength(1);
+    });
+  });
+  it("a preservation success cannot hide an operation failure, owned-root survivor or cleanup refusal", () => {
+    for (const change of [
+      { ownedRootAbsent: false },
+      { cleanupFailures: [{}] },
+      { failure: new Error("private failure") },
+    ]) {
+      const summary = {
+        ownedRootAbsent: true,
+        foreignResourcesPreserved: true,
+        cleanupFailures: [] as object[],
+        ...change,
+        nativeSuccess: true,
+      };
+      finishQualification(
+        summary,
+        "failure" in change ? change.failure : undefined
+      );
+      expect(summary.nativeSuccess).toBe(false);
+      expect(JSON.stringify(summary)).not.toContain("private failure");
+    }
+  });
   it("caps vendor fingerprints and ignores unknown or malformed private log fields", () => {
     const prefix = "[1:2:1008/120000.000:ERROR:";
     const secret = "private credential /private/candidate/path";

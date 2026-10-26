@@ -921,7 +921,7 @@
       "children": []
     },
     "lib/npm-update-rails-tool-identity.mjs": {
-      "sha256": "fbc6299ebaa9b6af346693aa8a3e4e8db23e5b4ad86464853bfd206d7e9c94b8",
+      "sha256": "d940a4eb4c97bad4cc788620dc5c3de42c9d92e21c49527aa671b1d180002186",
       "staticImports": [
         "lib/npm-update-contract.mjs",
         "lib/npm-update-process.mjs",
@@ -933,7 +933,7 @@
       "children": []
     },
     "lib/npm-update-rails-tools.mjs": {
-      "sha256": "a8f6be860dac7fd4f5ef663f42af3fa3e2d5e11c8e96c1ca2286b5eaaaa0ec5c",
+      "sha256": "c6670b72d0d9bfdb93f96cbb499d0361669e0367ab90e276cf24eb141dfc4a57",
       "staticImports": [
         "lib/automation-provenance-contract.mjs",
         "lib/npm-update-contract.mjs",

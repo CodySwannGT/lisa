@@ -28,8 +28,16 @@ the sandbox or alter AppArmor policy. Docker fixture opt-in installs fixed
 Compose/Buildx plugins in a private config containing no inherited credentials.
 Every step and owned cleanup consumes the original absolute gate deadline.
 The fixed Ubuntu package versions come from the signed
-`20261008T000000Z` Ubuntu snapshot for both index update and installation, so
-moving archive updates cannot remove a required pinned version. Administrator
+`20261013T000000Z` Ubuntu snapshot for both index update and installation, so
+moving archive updates cannot remove a required pinned version. The unchanged
+21-package roster pins `libx11-xcb1` to `2:1.8.7-1ubuntu0.1`, matching Ubuntu's
+security-patched `libx11-6`; installation never permits a downgrade. The separate
+component qualifier records bounded pre-install versions for those two package
+names and, on a package refusal, its fixed `apt-update` or `apt-install` phase,
+native outcome and stream fingerprints. Original output remains in private
+captures; mirror URLs, command content and arbitrary stderr are not published.
+Its before/after census must preserve every prior container, network, volume
+and image ID before the component result can succeed. Administrator
 readiness uses TCP to `127.0.0.1`; the image's temporary initialization server
 has networking disabled and cannot satisfy that check through its Unix socket.
 Source and synthetic protocol controls do not establish Ubuntu execution,

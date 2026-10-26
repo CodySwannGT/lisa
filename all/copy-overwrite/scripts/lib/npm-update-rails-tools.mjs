@@ -41,7 +41,27 @@ export { assertDockerQualified, runtimeTime, toolIdentity };
 const CLIENT = SUPPORTED_RAILS_CLIENT;
 const BROWSER = "154.0.8037.92";
 const SUDO = "/usr/bin/sudo";
-const SNAPSHOT = "--snapshot=20261008T000000Z";
+const SNAPSHOT = "--snapshot=20261013T000000Z";
+const PACKAGE_FAILURE_PHASES = new WeakMap();
+
+/** Return only a source-observed package phase, without changing the original native exception. */
+export function railsPackageFailurePhase(error) {
+  return PACKAGE_FAILURE_PHASES.get(error) ?? null;
+}
+
+/** Keep original native failures, including frozen exceptions, while associating a finite diagnostic phase. */
+async function packageStep(step, phase, args) {
+  try {
+    return await step(SUDO, args);
+  } catch (error) {
+    if (
+      error !== null &&
+      (typeof error === "object" || typeof error === "function")
+    )
+      PACKAGE_FAILURE_PHASES.set(error, phase);
+    throw error;
+  }
+}
 
 /** Observe the actual supported OS; no caller-supplied platform can authorize installation. */
 function hostedPlatform() {
@@ -217,8 +237,13 @@ async function prepareDocker(root, profile, step, deadline) {
 /** One immutable signed Ubuntu snapshot retains the fixed roster when moving mirrors retire pins. */
 export async function installRailsPackages(step, browser) {
   const libraries = browser ? SUPPORTED_RAILS_BROWSER : [];
-  await step(SUDO, ["-n", "/usr/bin/apt-get", SNAPSHOT, "update"]);
-  await step(SUDO, [
+  await packageStep(step, "apt-update", [
+    "-n",
+    "/usr/bin/apt-get",
+    SNAPSHOT,
+    "update",
+  ]);
+  await packageStep(step, "apt-install", [
     "-n",
     "/usr/bin/apt-get",
     SNAPSHOT,
