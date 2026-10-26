@@ -29,7 +29,7 @@ export const LisaParitySafetyNet = async () => ({
     // Linux the write then fails with EPIPE. That is the guard's own failure,
     // which its exit status below reports.
     try {
-      processHandle.stdin.write(
+      await processHandle.stdin.write(
         JSON.stringify({ tool_name: "Bash", tool_input: { command } })
       );
       await processHandle.stdin.end();

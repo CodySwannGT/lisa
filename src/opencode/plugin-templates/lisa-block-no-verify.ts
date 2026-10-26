@@ -64,7 +64,7 @@ export const LisaBlockNoVerify = async () => ({
     // which its exit status below reports; letting the write error escape
     // instead published "EPIPE: broken pipe" as the verdict.
     try {
-      processHandle.stdin.write(
+      await processHandle.stdin.write(
         JSON.stringify({ tool_name: "Bash", tool_input: { command } })
       );
       await processHandle.stdin.end();

@@ -27,7 +27,7 @@ export const LisaDischargeWorkItemGates = async ({
     // A hook that exits before reading its input closes the pipe, and on Linux
     // the write then fails with EPIPE. Its exit status below is the verdict.
     try {
-      hook.stdin.write(
+      await hook.stdin.write(
         JSON.stringify({ tool_name: "Bash", tool_input: { command } })
       );
       await hook.stdin.end();
