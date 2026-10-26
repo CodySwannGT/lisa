@@ -2763,7 +2763,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/test-intent-routing.sh":
       "97b9dc86cbd805df8a7fdb8c99ffab9b8c5e751ba2e84c05420b2a124f80635d",
     "scripts/two-channel-couplings.json":
-      "fe6e4d031583af9ce125a2e0d03d4cdc0b9b4e8c2e98e93d5ffd0cbec905be10",
+      "bc7855d7ff1ba6c376c8ad8acf74da630d5b37abac95eb28dd5e6cb426127da5",
     "scripts/update-node-version.ts":
       "9d37599ef73d5d624751f862cda330a867f6774392c1ab045b4fc885132582e4",
     "scripts/update-test-skill-paths.mjs":
@@ -2865,7 +2865,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/copy-overwrite/scripts/check-nightly-e2e-health.mjs":
       "d1b26caeaf65950e3b60ff41964d234c032c50470072e7643310b1f6722e34e6",
     "typescript/copy-overwrite/scripts/check-skipped-required-checks.mjs":
-      "af04c65acc89f7575881433b21ab180a1088f72d53d409b513f6160c760fc1d3",
+      "53ec522511aa862dd186a0acc66848f361b4c3a02f53314c332cff640db6034b",
     "typescript/copy-overwrite/scripts/check-threshold-ratchet.mjs":
       "d4afc90ba8faf10925fff5fb0d6cd0ace22df2eaa0ec609ee969d0ec84092299",
     "typescript/copy-overwrite/scripts/check-verification-coverage.mjs":
@@ -2909,7 +2909,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/create-only/.github/workflows/ci.yml":
       "313e42045137c59f77cf61abeebb19c8005ba7fa6d5b7d92a169a1e86ab168b5",
     "typescript/create-only/.github/workflows/review-evidence.yml":
-      "732ac40a7e454d276387dd9dce818ac90103eabeda15c7fcfa22221309e74f22",
+      "cbe6584b59ee465b13672c1f7f8a9d48b310017fb5f62520ec2b71c469f41d61",
     "typescript/create-only/.github/workflows/third-party-review-evidence.yml":
       "6f90f3bb5074d4d7c0eadf279289faee3db444f90f1c9c9a789c8c5848a8c1c5",
     "typescript/create-only/.gitleaksignore":
@@ -10982,6 +10982,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/helpers/remote-env-materialized-artifact.ts": true,
     "tests/helpers/remote-env-materialized-fixture.ts": true,
     "tests/helpers/repo-file-walk.ts": true,
+    "tests/helpers/review-evidence-registration-fixture.ts": true,
     "tests/helpers/rollup-classifier-ladder-fixtures.ts": true,
     "tests/helpers/rollup-classifier-ladder-harness.ts": true,
     "tests/helpers/safety-net-guard-fixtures.ts": true,

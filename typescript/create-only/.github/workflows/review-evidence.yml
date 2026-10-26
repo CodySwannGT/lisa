@@ -208,11 +208,11 @@ jobs:
           # without the install being broken, and a green run that inspected
           # nothing is the exact defect being checked for.
           if [ ! -f scripts/check-skipped-required-checks.mjs ]; then
-            echo "::error title=Vacuity prover missing::scripts/check-skipped-required-checks.mjs does not exist, so no required check was read on this pull request. Run \`lisa apply\` to install the Lisa-managed script."
+            printf '::%s title=%s::%s\n' error "Vacuity prover missing" "scripts/check-skipped-required-checks.mjs does not exist, so no required check was read on this pull request. Run \`lisa apply\` to install the Lisa-managed script."
             exit 1
           fi
           if [ ! -f .github/required-checks.json ]; then
-            echo "::error title=Required-checks declaration missing::.github/required-checks.json does not exist, so nothing names which checks are supposed to carry review evidence. It is create-only and Lisa ships a seed — run \`lisa apply\` to get it."
+            printf '::%s title=%s::%s\n' error "Required-checks declaration missing" ".github/required-checks.json does not exist, so nothing names which checks are supposed to carry review evidence. It is create-only and Lisa ships a seed — run \`lisa apply\` to get it."
             exit 1
           fi
           if [ -n "${VACUITY_PR:-}" ]; then

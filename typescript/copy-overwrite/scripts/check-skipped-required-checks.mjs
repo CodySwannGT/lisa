@@ -1775,10 +1775,12 @@ export function evaluateAbsentRequiredChecks(
     return { violations: [], checked: 0, absent: [] };
   // #4484: judged against the BASE branch's own set when the declaration has
   // one, and against the union — reported, never silently — when it does not.
-  const requiredSet = selectRequiredContexts(
-    declaration,
-    options.base ?? { base: null, source: null }
-  );
+  const requiredSet =
+    options.requiredSet ??
+    selectRequiredContexts(
+      declaration,
+      options.base ?? { base: null, source: null }
+    );
   const required = requiredSet.contexts;
   const judgedFor =
     requiredSet.source === "branch"
@@ -1816,7 +1818,10 @@ export function evaluateAbsentRequiredChecks(
       kind: VIOLATIONS.absent,
       token: name,
       contexts: [name],
-      message: `\`${name}\` is ruleset-required but did not report on this pull request at all.${at}${judgedFor} It posted NO check-run — not pending, not failing, ABSENT. \`gh pr checks\` prints no line for it and the pull request page renders it exactly as one still in flight, so every surface says "wait" and none says "broken".${approval} (If the context was renamed, fix \`required_contexts\`; names are compared byte for byte.)`,
+      message:
+        options.registration === undefined
+          ? `\`${name}\` is ruleset-required but did not report on this pull request at all.${at}${judgedFor} It posted NO check-run — not pending, not failing, ABSENT. \`gh pr checks\` prints no line for it and the pull request page renders it exactly as one still in flight, so every surface says "wait" and none says "broken".${approval} (If the context was renamed, fix \`required_contexts\`; names are compared byte for byte.)`
+          : `${options.registration.line}${at}${judgedFor}${approval} The wait ending does not prove permanent absence or a defect in this change. If a required context was renamed or removed, reconcile its declared name with CI; names are compared byte for byte.`,
     })),
   };
 }
@@ -4152,12 +4157,23 @@ export function declaredEvidenceChecks(declaration) {
  * @returns {boolean} True when nothing declared is still in flight
  */
 export function checksSettled(declaration, checks) {
-  return declaredEvidenceChecks(declaration).every(name => {
-    const found = checks.find(check => check.name === name);
-    if (found === undefined) return false;
-    if (String(found.bucket ?? "").toLowerCase() === "pending") return false;
-    return String(found.state ?? "").toUpperCase() !== "PENDING";
-  });
+  return declaredEvidenceChecks(declaration).every(name =>
+    checkSettled(checks.find(check => check.name === name))
+  );
+}
+
+/**
+ * Distinguishes a completed reviewer from an absent or in-flight row.
+ *
+ * @param {object|undefined} found - One normalized check row
+ * @returns {boolean} Whether the row is terminal
+ */
+function checkSettled(found) {
+  return (
+    found !== undefined &&
+    String(found.bucket ?? "").toLowerCase() !== "pending" &&
+    String(found.state ?? "").toUpperCase() !== "PENDING"
+  );
 }
 
 /**
@@ -4176,15 +4192,20 @@ function sleepSync(ms) {
 }
 
 /**
- * Reads a pull request's checks, re-reading until the declared ones settle.
+ * Reads until reviewers settle and the selected required rows register.
+ *
+ * Registration needs a row, including a pending or failing row; reviewer
+ * completion is a separate observation. Both waits share one absolute deadline.
+ * A head-bound substitute can skip an unreported reviewer's evidence wait,
+ * but never the registration of a ruleset-required context.
  *
  * @param {object} declaration - The per-repo declaration
  * @param {string|number} pr - Pull request number
  * @param {string|undefined} repo - `OWNER/NAME`, or undefined
- * @param {{timeoutSeconds?: number, intervalSeconds?: number, fetch?: Function, now?: Function, sleep?: Function, headSha?: Function}} [options] -
+ * @param {{timeoutSeconds?: number, intervalSeconds?: number, fetch?: Function, now?: Function, sleep?: Function, headSha?: Function, requiredSet?: object, substitutes?: Set<string>, substituteHead?: string}} [options] -
  *   Injection seams; the suite drives the whole loop through them so nothing
  *   here has to sleep in real time
- * @returns {{checks: object[], settled: boolean, headSha: string|undefined}} The rows, whether they settled, and the head they were read at
+ * @returns {{checks: object[], settled: boolean, headSha: string|undefined, registration: object}} Rows, reviewer completion, head and required-registration observations
  */
 export function fetchSettledChecks(declaration, pr, repo, options = {}) {
   const timeoutMs = (options.timeoutSeconds ?? SETTLE_TIMEOUT_SECONDS) * 1000;
@@ -4203,7 +4224,27 @@ export function fetchSettledChecks(declaration, pr, repo, options = {}) {
   const resolveHead = options.headSha ?? resolveHeadSha;
   const clock = options.now ?? Date.now;
   const sleep = options.sleep ?? sleepSync;
-  const deadline = clock() + timeoutMs;
+  const started = clock();
+  const deadline = started + timeoutMs;
+  const requiredSet =
+    options.requiredSet ??
+    selectRequiredContexts(declaration, { base: null, source: null });
+  const missing = checks =>
+    requiredSet.contexts.filter(
+      name => !checks.some(check => check.name === name)
+    );
+  // A substitute is useful only at the head it was actually read for. Pending
+  // rows still wait, and a missing required reviewer still needs a real row.
+  const evidenceReady = observed =>
+    declaredEvidenceChecks(declaration).every(name => {
+      const found = observed.checks.find(check => check.name === name);
+      return (
+        checkSettled(found) ||
+        (found === undefined &&
+          observed.headSha === options.substituteHead &&
+          options.substitutes?.has(name))
+      );
+    });
 
   // Bracket every roster read with head reads. `gh pr checks` targets the PR's
   // current head but does not return the SHA it used, and the permission-light
@@ -4233,7 +4274,9 @@ export function fetchSettledChecks(declaration, pr, repo, options = {}) {
 
   let observed = snapshot();
   while (
-    (!observed.stable || !checksSettled(declaration, observed.checks)) &&
+    (!observed.stable ||
+      !evidenceReady(observed) ||
+      missing(observed.checks).length > 0) &&
     clock() < deadline
   ) {
     sleep(Math.min(intervalMs, deadline - clock()));
@@ -4244,10 +4287,36 @@ export function fetchSettledChecks(declaration, pr, repo, options = {}) {
       `check-skipped-required-checks: the pull request head changed while its checks were being read (${observed.headSha ?? "unresolved"} -> ${observed.after ?? "unresolved"}). Refusing to attach one commit's review evidence to another; re-read the pull request after the push settles.`
     );
   }
+  const elapsedSeconds = Math.max(0, clock() - started) / 1000;
+  const unregistered = missing(observed.checks);
+  const total = requiredSet.contexts.length;
+  const present = total - unregistered.length;
+  const expired = unregistered.length > 0;
+  const settled = checksSettled(declaration, observed.checks);
+  const evidence = {
+    settled,
+    // A missing reviewer covered by a head-bound substitute did not finish,
+    // but its evidence wait was skipped rather than expired. Reporting those
+    // as the same fact contradicts the substituted verdict.
+    expired: !evidenceReady(observed),
+    line: `Review evidence ${settled ? "settled" : evidenceReady(observed) ? "covered by head-bound substitutes" : "wait EXPIRED"} after ${elapsedSeconds}s.`,
+  };
+  const registration = {
+    elapsedSeconds,
+    present,
+    total,
+    missing: unregistered,
+    expired,
+    line: expired
+      ? `Required registration wait EXPIRED: the gate stopped waiting after ${elapsedSeconds}s; ${present} of ${total} required contexts observed; missing: ${unregistered.join(", ")}. RE-RUN this job before treating this as a finding about the change.`
+      : `Required registration settled after ${elapsedSeconds}s; ${present} of ${total} required contexts observed.`,
+  };
   return {
     checks: observed.checks,
-    settled: checksSettled(declaration, observed.checks),
+    settled,
     headSha: observed.headSha,
+    registration,
+    evidence,
   };
 }
 
@@ -4504,14 +4573,19 @@ export function inspectVacuity(argv, declaration, options = {}) {
   const allStoodIn =
     declaredReviewers.length > 0 &&
     declaredReviewers.every(name => earlySubstitutes.has(name));
-  const settle = skipWait =>
-    fetchSettledChecks(declaration, pr, repo, {
+  // Select once: polling and the absence verdict must judge the same base.
+  // resolveBaseRef retains its existing contract; live retargeting is #4487.
+  const requiredSet = selectRequiredContexts(
+    declaration,
+    resolveBaseRef(argv, options.env ?? process.env, { pr, repo })
+  );
+  let read;
+  try {
+    read = fetchSettledChecks(declaration, pr, repo, {
       timeoutSeconds: readSecondsFlag(
         argv,
         "--settle-timeout",
-        (wired || requireReviewEvidence) && !skipWait
-          ? SETTLE_TIMEOUT_SECONDS
-          : 0
+        wired || requireReviewEvidence ? SETTLE_TIMEOUT_SECONDS : 0
       ),
       intervalSeconds: readSecondsFlag(
         argv,
@@ -4522,23 +4596,10 @@ export function inspectVacuity(argv, declaration, options = {}) {
       now: options.now,
       sleep: options.sleep,
       headSha: options.headSha,
+      requiredSet,
+      substitutes: allStoodIn ? earlySubstitutes : undefined,
+      substituteHead: earlyHead,
     });
-  let read;
-  try {
-    read = settle(allStoodIn);
-    // The wait is skipped only for a reviewer that is NOT COMING. A declared
-    // reviewer whose row is already there but still in flight is coming, and
-    // a substitute does not stand in for it — so wait for its answer exactly
-    // as an ordinary run would, rather than going red on one snapshot.
-    if (
-      allStoodIn &&
-      !read.settled &&
-      declaredReviewers.some(name =>
-        read.checks.some(check => check.name === name)
-      )
-    ) {
-      read = settle(false);
-    }
   } catch (error) {
     return refused(vacuityRefusal({ declaration, pr, error }));
   }
@@ -4549,6 +4610,9 @@ export function inspectVacuity(argv, declaration, options = {}) {
       ...refused(refusal),
       headSha: read.headSha,
       settled: read.settled,
+      requiredSet,
+      registration: read.registration,
+      evidence: read.evidence,
     };
   }
   const evaluated = evaluateVacuousChecks(declaration, read.checks, {
@@ -4562,9 +4626,8 @@ export function inspectVacuity(argv, declaration, options = {}) {
   const absent = evaluateAbsentRequiredChecks(declaration, read.checks, {
     headSha: read.headSha,
     parkedRuns: options.parkedRuns,
-    // Tied to the pull request actually inspected, so a `--pr` naming another
-    // pull request is never judged against this run's own base.
-    base: resolveBaseRef(argv, options.env ?? process.env, { pr, repo }),
+    requiredSet,
+    registration: read.registration,
   });
   // The gate is evaluated on EVERY run, not only when a caller asked it to
   // block. Its findings are what make a waiver visible, and a waiver that is
@@ -4572,10 +4635,9 @@ export function inspectVacuity(argv, declaration, options = {}) {
   // repositories that have not opted in yet.
   const gateOptions = {
     headSha: read.headSha,
-    // The settle loop exits on one of two things: everything declared reached a
-    // terminal read, or the deadline passed. So `settled === false` IS "the
-    // wait expired", and it is the only place that fact exists — every reader
-    // downstream sees a check row that looks identical either way (#3716).
+    // Reviewer completion stays separate from required registration. Expiry
+    // while an ordinary required row is missing must not turn a completed
+    // reviewer into an undetermined one (#3716, #4527).
     waitExpired: read.settled === false,
     // Bound to the head the checks were read at. A push between the early read
     // and the settled one invalidates every substitute for the old head.
@@ -4674,7 +4736,9 @@ export function inspectVacuity(argv, declaration, options = {}) {
       ...(objection?.violations ?? []),
     ],
     absent: absent.absent,
-    requiredSet: absent.requiredSet,
+    requiredSet,
+    registration: read.registration,
+    evidence: read.evidence,
     gateStates: gate.states,
     gateConditions: gate.conditions,
     gateDescriptions: gate.descriptions,
@@ -5392,7 +5456,7 @@ function appendCleanResult(lines, result, refusal) {
   );
   if (result.pr === undefined) return;
   const settleNote =
-    result.vacuity?.settled === false
+    (result.vacuity?.evidence?.expired ?? result.vacuity?.settled === false)
       ? " (One or more had not settled when the wait expired, so this is what was true at that moment.)"
       : "";
   lines.push(
@@ -5444,7 +5508,7 @@ function appendFindingReport(lines, result, policy, blocking) {
  * @returns {void}
  */
 function appendFindingContext(lines, result, policy) {
-  if (result.vacuity?.settled === false) {
+  if (result.vacuity?.evidence?.expired ?? result.vacuity?.settled === false) {
     lines.push(
       "",
       "⏳ The settle wait EXPIRED before every declared review check reached a terminal state, so the readings above are where the wait stopped rather than where the reviewer finished. RE-RUN this job before treating any of it as a finding about the change."
@@ -5602,6 +5666,13 @@ function buildTextReport(result, policy, outcome) {
   const lines = ["## 🔒 Required checks that prove nothing", ""];
   appendVerdictReport(lines, result);
   appendRequiredSetReport(lines, result.vacuity?.requiredSet);
+  if (result.vacuity?.registration !== undefined) {
+    lines.push(
+      result.vacuity.evidence.line,
+      result.vacuity.registration.line,
+      ""
+    );
+  }
   appendSnapshotRefusal(lines, result, policy);
   appendInspectionRefusal(lines, outcome);
   appendOutcomeReport(lines, result.outcomes);
@@ -5622,6 +5693,26 @@ function buildTextReport(result, policy, outcome) {
  * @returns {void}
  */
 function writeTextResult(result, policy, outcome) {
+  if (outcome.failed) {
+    // Emit the actual verdict BEFORE any detailed error, including refusals.
+    const reasons = [
+      ...new Set([
+        ...outcome.blocking.map(violation => violation.kind),
+        ...(outcome.refusalBlocks ? [outcome.refusal.kind] : []),
+        ...(outcome.outcomesRefusal === null
+          ? []
+          : [outcome.outcomesRefusal.kind]),
+        ...(!result.trust.trusted && !policy.warnOnly
+          ? ["required-checks snapshot untrusted"]
+          : []),
+      ]),
+    ];
+    const registration = result.vacuity?.registration;
+    const summary = registration?.expired
+      ? `${registration.line} Blocking verdict: ${reasons.join(", ")}.`
+      : `${outcome.blocking.length} blocking finding(s): ${reasons.join(", ")}.`;
+    process.stderr.write(`::error title=Required checks verdict::${summary}\n`);
+  }
   const report = buildTextReport(result, policy, outcome);
   process.stdout.write(report);
   writeStepSummary(report);

@@ -2822,6 +2822,16 @@ jobs:
           --reporter=verbose
         working-directory: ${{ inputs.working_directory || '.' }}
 
+      - name: Execute and name required-check registration regression specs
+        if: github.repository == 'CodySwannGT/lisa' && steps.gate_run.outcome == 'success'
+        run: >-
+          bun run lisa-test-run -- --adapter vitest -- vitest run
+          tests/unit/scripts/vacuous-required-checks-wiring.test.ts
+          tests/unit/scripts/review-gate-substitute.test.ts
+          tests/unit/scripts/absent-required-checks-by-branch.test.ts
+          --reporter=verbose
+        working-directory: ${{ inputs.working_directory || '.' }}
+
       # Both declared test commands and the built-in fallback can produce
       # coverage. A unique name keeps repeated workflow calls from colliding.
       - name: 📦 Name the coverage artifact
