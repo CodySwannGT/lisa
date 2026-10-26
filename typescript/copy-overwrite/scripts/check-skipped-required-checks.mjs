@@ -3360,7 +3360,7 @@ export function reviewGateVerdict(reading = {}) {
       verdict: REVIEW_GATE_STATES.waived,
       conclusion: REVIEW_VERDICT_CONCLUSIONS.waived,
       title: fitTitle(
-        `CARRIED UNREVIEWED — this pull request's own review ran, but the work it carries was not reviewed with it${suffix}`
+        `CARRIED UNREVIEWED — this pull request's own ${names.some(name => conditions[name] === REVIEW_GATE_CONDITIONS.substituted) ? "head was covered by a local adversarial review standing in for the reviewer" : "review ran"}, but the work it carries was not reviewed with it${suffix}`
       ),
     };
   }

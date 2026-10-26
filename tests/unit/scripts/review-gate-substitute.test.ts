@@ -403,6 +403,28 @@ describe("what a substitute can and cannot stand in for", () => {
     expect(verdict.title).not.toMatch(/^REVIEWED/);
   });
 
+  it.each([
+    ["the objection read failed", { objection: { unread: "gh exited 1" } }],
+    [
+      "the pull request carries unreviewed work",
+      {
+        carried: { unreviewed: ["#1"], read: 1 },
+        objection: { objected: false, reviewers: [], staleDropped: 0 },
+      },
+    ],
+  ])(
+    "never says the review ran when a substitute stood in and %s",
+    (_label, extra) => {
+      const verdict = mod.reviewGateVerdict({
+        states: { [CODERABBIT]: mod.REVIEW_GATE_STATES.satisfied },
+        conditions: { [CODERABBIT]: mod.REVIEW_GATE_CONDITIONS.substituted },
+        descriptions: { [CODERABBIT]: RATE_LIMITED },
+        ...extra,
+      });
+      expect(verdict.title).not.toMatch(/review ran/);
+    }
+  );
+
   it("does not claim 'no third-party review' when another reviewer did review", () => {
     const verdict = mod.reviewGateVerdict({
       states: {
