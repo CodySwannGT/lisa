@@ -12,7 +12,13 @@ import {
   failureMetadata,
   nativeRecorder,
   privateResult,
+  finishQualification,
 } from "./observations.mjs";
+import {
+  recordPackageFailure,
+  observePackagePrestate,
+} from "./package-observations.mjs";
+import { railsPackageFailurePhase } from "../../../all/copy-overwrite/scripts/lib/npm-update-rails-tools.mjs";
 
 import { qualifyComponents } from "./components.mjs";
 
@@ -32,6 +38,7 @@ const SOURCES = [
   "all/copy-overwrite/scripts/lib/npm-update-rails-mysql-daemon.mjs",
   "tests/fixtures/npm-update-hosted-runtime/application.mjs",
   "tests/fixtures/npm-update-hosted-runtime/observations.mjs",
+  "tests/fixtures/npm-update-hosted-runtime/package-observations.mjs",
   "tests/fixtures/npm-update-hosted-runtime/driver-probe.mjs",
   "tests/fixtures/npm-update-hosted-runtime/driver-diagnostic.mjs",
   "tests/fixtures/npm-update-hosted-runtime/sandbox-status.mjs",
@@ -116,6 +123,11 @@ async function main() {
             digest(readBytes(join(values.source, path), 4194304, false)),
           ])
         );
+        summary.packagePrestate = await observePackagePrestate(
+          native,
+          values.source,
+          env
+        );
         await qualifyComponents(
           values.source,
           state.root,
@@ -126,6 +138,14 @@ async function main() {
         );
       } catch (error) {
         state.failure = error;
+        const phase = railsPackageFailurePhase(error);
+        if (phase) {
+          try {
+            recordPackageFailure(captures, summary.native, phase, error);
+          } catch (captureError) {
+            summary.cleanupFailures.push(failureMetadata(captureError));
+          }
+        }
       }
     });
     summary.ownedRootAbsent = !existsSync(state.root);
@@ -134,12 +154,7 @@ async function main() {
     if (state.failure) summary.cleanupFailures.push(failureMetadata(error));
     else state.failure = error;
   } finally {
-    summary.failure = failureMetadata(state.failure);
-    summary.nativeSuccess =
-      !state.failure &&
-      summary.ownedRootAbsent &&
-      summary.foreignResourcesPreserved &&
-      summary.cleanupFailures.length === 0;
+    finishQualification(summary, state.failure);
     try {
       output.write(summary);
     } finally {

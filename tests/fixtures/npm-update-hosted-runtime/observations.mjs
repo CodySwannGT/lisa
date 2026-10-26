@@ -36,6 +36,7 @@ const STAGES = new Set([
   "browser-driver-qualification",
   "daemon-before",
   "daemon-after",
+  "package-prestate",
 ]);
 const CLASSES = new Set([
   "Error",
@@ -134,6 +135,21 @@ export function failureMetadata(error) {
     });
   }
   return result;
+}
+
+/**
+ * Both the actual qualifier and its component controls use this final fail-closed decision.
+ * @param {object} summary Observed component report.
+ * @param {Error | undefined} failure Original operation failure, if any.
+ * @returns {void}
+ */
+export function finishQualification(summary, failure) {
+  summary.failure = failureMetadata(failure);
+  summary.nativeSuccess =
+    !failure &&
+    summary.ownedRootAbsent &&
+    summary.foreignResourcesPreserved &&
+    summary.cleanupFailures.length === 0;
 }
 
 /**
