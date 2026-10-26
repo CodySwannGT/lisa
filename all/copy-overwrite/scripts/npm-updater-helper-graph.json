@@ -234,7 +234,7 @@
       "children": []
     },
     "lib/npm-update-bun.mjs": {
-      "sha256": "0329fde91a497e8ec527b9c7d8ade979cc637f63a796fbb4b9b8b9a480f06739",
+      "sha256": "1205b0fe24f463244a5f10015de033e79aa85b22382a0a72fc92cdd29b4304d2",
       "staticImports": [
         "lib/automation-provenance-contract.mjs",
         "lib/github-attestation-verifier.mjs",
@@ -672,7 +672,7 @@
       "children": []
     },
     "lib/npm-update-leaf-contract.mjs": {
-      "sha256": "9a68e50c354cac20fec847e02668c153f0f3c5783faaa29f51f2b4adf93ba99a",
+      "sha256": "6623c574800641777e850531319ea8f21f8a7841a2c16cce2b6a503047c69f85",
       "staticImports": [
         "lib/npm-update-contract.mjs",
         "lisa-automation-provenance.mjs",
@@ -921,7 +921,7 @@
       "children": []
     },
     "lib/npm-update-rails-tool-identity.mjs": {
-      "sha256": "fbc6299ebaa9b6af346693aa8a3e4e8db23e5b4ad86464853bfd206d7e9c94b8",
+      "sha256": "d940a4eb4c97bad4cc788620dc5c3de42c9d92e21c49527aa671b1d180002186",
       "staticImports": [
         "lib/npm-update-contract.mjs",
         "lib/npm-update-process.mjs",
@@ -933,7 +933,7 @@
       "children": []
     },
     "lib/npm-update-rails-tools.mjs": {
-      "sha256": "a8f6be860dac7fd4f5ef663f42af3fa3e2d5e11c8e96c1ca2286b5eaaaa0ec5c",
+      "sha256": "c6670b72d0d9bfdb93f96cbb499d0361669e0367ab90e276cf24eb141dfc4a57",
       "staticImports": [
         "lib/automation-provenance-contract.mjs",
         "lib/npm-update-contract.mjs",
@@ -1298,7 +1298,7 @@
       "children": []
     },
     "npm-updater-gate.Dockerfile": {
-      "sha256": "c1f56c254f188d394fea0c0b9995ebf185c280aa1079233443c1eed1425d0239",
+      "sha256": "f5d85f8fccfd97f7800c03430a38c19d584314b0a6a63aa1de28fb62897fbcc5",
       "staticImports": [],
       "dynamicImports": [],
       "children": []

@@ -18,11 +18,14 @@
  * background sessions (`claude --bg`, `claude agents`), cross-session
  * messaging and channels, which no other supported agent has. Codex, Cursor,
  * OpenCode, Antigravity, Copilot and Devin can run the setup-time subcommands
- * (init-config, store-token, validate, start), and `start` hosts a Claude Code
- * manager in tmux whatever agent ran it; they cannot run a manager cycle
+ * (init-config, store-token, trust-status, coexistence, validate, start), and
+ * `start` hosts a Claude Code manager in tmux whatever agent ran it. Note that
+ * trust-status reads Claude Code's own trust record, which is the one that
+ * matters: workers are always Claude Code. They cannot run a manager cycle
  * themselves. OpenCode copies skill folders without the plugin-level
- * `scripts/` directory, so `queue` and `record-cycle` (which import from it)
- * are unavailable there unless the npm package provides that directory.
+ * `scripts/` directory, and this entry point statically imports modules that
+ * reach into it (cli-cycle.mjs, cli-runtime.mjs), so on OpenCode every
+ * subcommand runs only from the npm package, never from the skill-folder copy.
  * @module session-manager
  */
 import { readFileSync, realpathSync } from "node:fs";
@@ -38,17 +41,15 @@ import {
   recordCycle,
   route,
 } from "./cli-cycle.mjs";
-import {
-  initConfig,
-  repoDir,
-  start,
-  status,
-  stop,
-  storeToken,
-  validate,
-} from "./cli-manager.mjs";
+import { repoDir, start, status, stop, validate } from "./cli-manager.mjs";
 import { queue } from "./cli-queue.mjs";
 import { CliError, EXIT } from "./cli-runtime.mjs";
+import {
+  coexistence,
+  initConfig,
+  storeToken,
+  trustStatus,
+} from "./cli-setup.mjs";
 import { USAGE } from "./cli-usage.mjs";
 import { capacity, classify, resume, spawn } from "./cli-workers.mjs";
 
@@ -67,9 +68,11 @@ const COMMANDS = {
   stop: { run: stop, options: {}, positionals: 0 },
   "store-token": {
     run: storeToken,
-    options: { replace: flag },
+    options: { replace: flag, "from-clipboard": flag },
     positionals: 0,
   },
+  "trust-status": { run: trustStatus, options: {}, positionals: 0 },
+  coexistence: { run: coexistence, options: {}, positionals: 0 },
   "repo-dir": {
     run: repoDir,
     options: { repo: text, raw: flag },
@@ -127,6 +130,8 @@ const LEDGER_SPECS = {
   },
   "clear-question": { options: {}, positionals: 1 },
   finish: { options: { status: text, sender: text }, positionals: 1 },
+  "validation-failed": { options: { "updated-at": text }, positionals: 1 },
+  "validation-cleared": { options: {}, positionals: 1 },
   control: {
     options: { paused: text, "max-workers": text, me: text },
     positionals: 0,

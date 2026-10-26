@@ -37,11 +37,16 @@ const REPO_ROOT = path.resolve(__dirname, "..", "..", "..");
  * https://github.com/advisories/GHSA-8r5x-fm3f-whwj
  * https://github.com/advisories/GHSA-p8wg-vrv2-v86f
  * GraphQL Tools Utils12.0.1 was rechecked on 2026-10-08 against
- * https://github.com/advisories/GHSA-7mx3-vvmw-hjmv.
+ * https://github.com/advisories/GHSA-7mx3-vvmw-hjmv, and raised to 12.0.2 on
+ * 2026-10-24 for https://github.com/advisories/GHSA-c4qx-w738-7hr3.
+ * Zod4.6.6 was added on 2026-10-24 for
+ * https://github.com/advisories/GHSA-mrhx-c7xc-m3w5.
+ * Multer2.5.0 (GHSA-q7qp-rjg7-q26m) and Undici6.29.1 (GHSA-xjj6-f33q-929c) were
+ * raised on 2026-10-24.
  * Other entries retain their provenance.
  */
 const ADVISORY_FLOORS: Readonly<Record<string, string>> = {
-  "@graphql-tools/utils": "12.0.1",
+  "@graphql-tools/utils": "12.0.2",
   "@isaacs/brace-expansion": "5.0.1",
   axios: "1.20.0",
   esbuild: "0.28.1",
@@ -49,14 +54,15 @@ const ADVISORY_FLOORS: Readonly<Record<string, string>> = {
   "form-data": "4.0.6",
   handlebars: "4.7.10",
   lodash: "4.18.0",
-  multer: "2.3.0",
+  multer: "2.5.0",
   "smol-toml": "1.7.1",
   systeminformation: "5.31.7",
   tar: "7.5.21",
-  undici: "6.28.1",
-  vite: "8.3.2",
+  undici: "6.29.1",
+  vite: "8.3.3",
   "websocket-driver": "0.7.5",
   ws: "8.21.0",
+  zod: "4.6.6",
 };
 
 /** package.json sections a `force` group may pin a dependency range in. */

@@ -18,9 +18,16 @@ session list from `claude agents`; and the project's own Telegram chat.
 
 ## Candidate selection
 
-Leaf items in the `ready` role, ordered: assigned to the operator, then unassigned, then by priority,
-then oldest. Items assigned to someone else, containers, human-held items and (when configured)
-items by untrusted authors are skipped. As many as the machine has capacity for.
+Leaf items in the `ready` role, ordered: assigned to an operator (`sessionManager.operatorIds`),
+then to the manager's own tracker identity, then unassigned; within each, by priority, then oldest.
+Items assigned to someone else, containers, human-held items and (when configured) items by
+untrusted authors are skipped. As many as the machine has capacity for.
+
+When `sessionManager.backlogPickup` is on and capacity remains after every Ready item, a lowest tier
+follows: backlog items (open leaves in no lifecycle role) in the same order, minus those with an
+unfinished blocker and those that already failed validation and have not changed since. Each one
+must pass the full tracker validation before it is assigned to the first operator, moved to Ready
+and dispatched like any other item.
 
 ## Scope/bounds
 

@@ -63,7 +63,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lib/npm-update-broker-client.mjs":
       "bb785fc64de1dfeb09241d228c11eaf7aaf3821bafa96da4bc37f2bac28cd8d0",
     "all/copy-overwrite/scripts/lib/npm-update-bun.mjs":
-      "0329fde91a497e8ec527b9c7d8ade979cc637f63a796fbb4b9b8b9a480f06739",
+      "1205b0fe24f463244a5f10015de033e79aa85b22382a0a72fc92cdd29b4304d2",
     "all/copy-overwrite/scripts/lib/npm-update-cancel-origin.mjs":
       "1c88ed2cc4f697fd75c924bd98891d7e46373829584fa4fd0d12075c02734095",
     "all/copy-overwrite/scripts/lib/npm-update-cancellation-proof.mjs":
@@ -127,7 +127,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lib/npm-update-isolation.mjs":
       "66ec5390a0af0e016880c781eae47b8c60d6fca0c79ef500e1926e42eae043bf",
     "all/copy-overwrite/scripts/lib/npm-update-leaf-contract.mjs":
-      "9a68e50c354cac20fec847e02668c153f0f3c5783faaa29f51f2b4adf93ba99a",
+      "6623c574800641777e850531319ea8f21f8a7841a2c16cce2b6a503047c69f85",
     "all/copy-overwrite/scripts/lib/npm-update-leaf.mjs":
       "6638fa03bb9bb44bd84fc9b4a91d8a334030c108e2759a2a673000dcbfbfe637",
     "all/copy-overwrite/scripts/lib/npm-update-native-process.mjs":
@@ -167,9 +167,9 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lib/npm-update-rails-tool-downloads.mjs":
       "7b0a01a1198b2aa92ff9297ecf0d06c61de1a786303cec000fdb4c9134c5c194",
     "all/copy-overwrite/scripts/lib/npm-update-rails-tool-identity.mjs":
-      "fbc6299ebaa9b6af346693aa8a3e4e8db23e5b4ad86464853bfd206d7e9c94b8",
+      "d940a4eb4c97bad4cc788620dc5c3de42c9d92e21c49527aa671b1d180002186",
     "all/copy-overwrite/scripts/lib/npm-update-rails-tools.mjs":
-      "a8f6be860dac7fd4f5ef663f42af3fa3e2d5e11c8e96c1ca2286b5eaaaa0ec5c",
+      "c6670b72d0d9bfdb93f96cbb499d0361669e0367ab90e276cf24eb141dfc4a57",
     "all/copy-overwrite/scripts/lib/npm-update-recovery.mjs":
       "3dcb1826fb92c37ecbd6e46863b48b7ebae8826117ed876ae0c0749444b1c4ff",
     "all/copy-overwrite/scripts/lib/npm-update-runtime-archive.mjs":
@@ -261,7 +261,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-hooks/parity-safety-net-heredoc.py":
       "b37b843b738fd0c1c6f9639551cf64c409263064819bb820e3daa6af8c94d443",
     "all/copy-overwrite/scripts/lisa-hooks/parity-safety-net.sh":
-      "e63b511a942eb2735db2d1b26f13b7eabc60f56e2f40d343dbd58cd3ffe765ba",
+      "cecab19d8997af8a0864cebf25f32d9bb537043894fc06cc2389fe9c159da529",
     "all/copy-overwrite/scripts/lisa-hooks/sonar-secrets.sh":
       "e0b0073fe44f6e78b74f05cb232d30a3121acc3600bdbd5bc4299c1c710d56a2",
     "all/copy-overwrite/scripts/lisa-hooks/worktree-binding-guard.mjs":
@@ -295,9 +295,9 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/npm-updater-gate-supervisor.c":
       "e7d6ed62ce27a466a097c879372b8c2ec18731371e682d04542de4d83f3daa00",
     "all/copy-overwrite/scripts/npm-updater-gate.Dockerfile":
-      "c1f56c254f188d394fea0c0b9995ebf185c280aa1079233443c1eed1425d0239",
+      "f5d85f8fccfd97f7800c03430a38c19d584314b0a6a63aa1de28fb62897fbcc5",
     "all/copy-overwrite/scripts/npm-updater-helper-graph.json":
-      "2b904537d68eb957b6e90e7baacf1e2445003260ccb4a231b53a15886ec9368f",
+      "a9f7aff4ca32e9dafbd9f242d0253da86df5b3a38c66dd2a275aa44c14f032f2",
     "all/copy-overwrite/scripts/schemas/lisa-command-envelope.v1.schema.json":
       "d153b7c2953a30f180e38f09e98240c63327f5196eeba9bdf545e5a1f125a879",
     "all/copy-overwrite/scripts/schemas/lisa-state-contract.v1.schema.json":
@@ -371,7 +371,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "cdk/merge/.oxlintrc.json":
       "f7d248cf8a89561374d7e68e24aa780f4a6a523938475ad685f034ce0194d75c",
     "cdk/package-lisa/package.lisa.json":
-      "ff8d188e51a31d2c4ab57214e083a2664da499e7cc340114a668c8fe932d79b2",
+      "f0530a29e2bdd2ac6e59f57816792dffbc06ba7beac038eb688843564338eb0b",
     "eslint-plugin-code-organization/README.md":
       "e70c9e262ce3a97e1f9fe1897ffa71e3d1b124f10486b90ead5d4a5252977826",
     "eslint-plugin-code-organization/__tests__/enforce-statement-order.test.js":
@@ -443,7 +443,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "expo/copy-overwrite/eslint.expo.ts":
       "e43d528568450ba2acfc943c5dea07a34f0a03550ec739ba531f6d5a4bf234d7",
     "expo/copy-overwrite/eslint.slow.config.ts":
-      "48d6a35be75450becde07d30d859c970c48a0438e730845272629c8ec677d3eb",
+      "3189a36471d596f5d4c3ed43484a9b7a5d33ef27b4d0fdb93007b823cec6cad0",
     "expo/copy-overwrite/jest.config.ts":
       "b58454a9cf55cf5c1449457fe8eae8390471c57787bdee05b5e34710aa89950a",
     "expo/copy-overwrite/jest.expo.ts":
@@ -513,11 +513,11 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "expo/create-only/.github/nightly-e2e-policy.json":
       "a6fc52bbaa7943523fba35bd1ab51d8da4b29354bf0133b47aa299b725f51e8c",
     "expo/create-only/.github/required-checks.json":
-      "8d40acc337c42fbdfc55638dc4ab43b541b975270ecae8fffec9897c13a42884",
+      "789cfa7622ba801cb65065a6e493492548dc15bf59aac82263cc5e16990be0c7",
     "expo/create-only/.github/workflows/ci.yml":
       "f4a95f3895d906429b82e33bb13c77c7a2d63027634da61c249c0a800d353f44",
     "expo/create-only/.github/workflows/deploy.yml":
-      "d8abfa607942eb72b99d928d789befb94c2b9c18e5cb3b4a20e83392e1079566",
+      "fffc8c969665c98a9eeb8d93ebcb4345a5e9c08c4537b0f172d908183db3ad02",
     "expo/create-only/.github/workflows/maestro-e2e.yml":
       "11e6db515412702672edea910223b808be168b3d1f9ec15c349f44f3edcff247",
     "expo/create-only/.github/workflows/nightly-e2e-bypass-reaper.yml":
@@ -575,7 +575,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "expo/merge/.oxlintrc.json":
       "95b3069256c0040be0ef1a5adae46d14687ad56fb18f473a653ba2de45d106bb",
     "expo/package-lisa/package.lisa.json":
-      "4a2e6df44b00c5c7eacf786b95dc211f902c8ea567be824dbb100f33d5d1deef",
+      "e5bb649e5d3716885cc01c7142288494bb1f0d1881200228eef6ed62c9f34b7a",
     "harper-fabric/copy-contents/.prettierignore":
       "478c782f4c5611187e21584dfd5522e37fc636c5eb03394fea3db45321c6712c",
     "harper-fabric/copy-contents/gitignore":
@@ -601,9 +601,9 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "harper-fabric/copy-overwrite/vitest.config.ts":
       "94ee60be0e9a4b735cf1b053143751c9968465ff04fb59fbdfc252e7413ff337",
     "harper-fabric/create-only/.github/workflows/deploy.yml":
-      "a60575f6d7a9434f3eb59d7b377e8430ad0ea0426ace6c2461051a4ff83c3df8",
+      "924f78d7a7a78f7f6fe1e9f8a69e5609e813060ff983a3bbd80fb3ecb4b15f69",
     "harper-fabric/create-only/.github/workflows/zap-baseline.yml":
-      "37e02f04709c11dcd7a0a65110f19def3f06a5039dbb80d31e1bc3757bb4e330",
+      "e6142cb38b20084462bdae73cf3cc8009e67badc9bdb6c2d6a012876b0ded2c3",
     "harper-fabric/create-only/.zap/baseline.conf":
       "68aae4b1b9b5b7253b5aeb792d72b58f64e5eda1dcf8f3062bd9d77494a5a22f",
     "harper-fabric/create-only/scripts/zap-baseline.sh":
@@ -681,11 +681,11 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "nestjs/create-only/.github/k6/thresholds/strict.json":
       "e121ec72de4596b95c013a8c71f03653bcdf057cf7f8d1fec6f0e13c1381867f",
     "nestjs/create-only/.github/required-checks.json":
-      "6de377accd8355091e31ee7b3e412187d2268650ecbeb6c2cba42923c594cfc0",
+      "f5e22c52449ccf53d20eea3541b07ed016fd7633434b2406197590b3bad5c91f",
     "nestjs/create-only/.github/workflows/ci.yml":
       "5355a0152b04ba54bf2d207df536de18e2734429a1c030487b80aa3db0693df5",
     "nestjs/create-only/.github/workflows/deploy.yml":
-      "0dcef1749870398170361fe84ef85c997f6e1b63e3a7a7d068f4c42e5f0c90f8",
+      "25f2200d345e7dbcefe8e6324c3d822436f303b0fc3ec66bb680f6712d467f34",
     "nestjs/create-only/.zap/baseline.conf":
       "a7cd559b014555ef2efe7a6ce129384ec376ce4d66d5bc3ae9e2f3f883172c4d",
     "nestjs/create-only/scripts/zap-baseline.sh":
@@ -703,11 +703,11 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "nestjs/merge/.oxlintrc.json":
       "1de29d135744df0258e8659ee0b684acf84e687bbefade51db0576813e6ff097",
     "nestjs/package-lisa/package.lisa.json":
-      "6eccb6dc8c22740451f2374da78e38aff81c730c17559872381e01f4876a8254",
+      "b0ba7a415dfbf5dcfa6d067d13f6b38e71d131daf0571b89aa33b1b9a8ce9514",
     "npm-package/create-only/.github/workflows/publish-to-npm.yml":
-      "20760529dd59186baf870fb2d0ac555ff95bc3dc75ea96ba4564bf37d61f708e",
+      "cfffe18dfa58c3bf22f35173c0223fe458097e1c4e51e3effe1d068957c09a76",
     "npm-package/package-lisa/package.lisa.json":
-      "2a61fd5f0e27578e58ac9b1368cf5d6ad4df15591348f1f3ea97cd2c6d24974f",
+      "2336f61121c1fe3b17751bdc6d4c2285560f4704a645833c696b008fc8e13e5f",
     "oxlint/base.json":
       "8cbc563bdfbbaf455742cef24d33676f45b55baf1ea62b529018b2d112d70f8a",
     "oxlint/cdk.json":
@@ -763,7 +763,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "phaser/merge/.oxlintrc.json":
       "02c0d70e6e07bc0e981f94a1e2ccd01a2c295c4c66e8b8ea9b2f363d44fa5c06",
     "phaser/package-lisa/package.lisa.json":
-      "6d933a04c7b0e3a51683648eb1be2fe055796ced34f1b6c834dd8d765f9fd1ec",
+      "2862ccf524bbdc34fd191a677c674be80f254c097b98ba259950f5698dc161db",
     "plugins/src/base/agents/architecture-specialist.md":
       "2346c37ddce2b1ff059938d71be05f5f23acfe28066bcba4f9a1070ed6727a93",
     "plugins/src/base/agents/bug-fixer.md":
@@ -1041,7 +1041,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/hooks/parity-safety-net.agy.sh":
       "ce9bd2b4566ad9147e4ace56434cffbbe87edb4ccbb57549ab3fd9f4c671ced4",
     "plugins/src/base/hooks/parity-safety-net.sh":
-      "cdf796cc4f373521d35bd8e80f77d241cc9d68be6d5a1987dbbf75edf523d681",
+      "1eef68ecb04183ec75f0c049f039e60c6030d1e7ffb4974c59ef47488e4a3931",
     "plugins/src/base/hooks/secrets-preflight.sh":
       "cdc638627e5769770aefb061ea0ddfacc1888a8eab3a5fade6c43129a2d3ff6e",
     "plugins/src/base/hooks/setup-jira-cli.sh":
@@ -1141,7 +1141,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/rules/reference/coding-philosophy.md":
       "fed8381f16a5d6793a49d84d5813d62125808cb2f4981a558b119cf63e2586d9",
     "plugins/src/base/rules/reference/config-resolution.md":
-      "b053d2bdc297c596ea5a79eaeab72ce5f913940148307f27f40b43923d3d29ca",
+      "8f346851115d4d3ecd139adb9f35007489d9c2f7affde670532a3bdebc637bd3",
     "plugins/src/base/rules/reference/control-reachability.md":
       "0883f3480de79bcaa4a9da5685192c014d9267d0a12aed8153bba8c51161129a",
     "plugins/src/base/rules/reference/convergent-review.md":
@@ -1299,7 +1299,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/scripts/queue-status-prd-readers.mjs":
       "32b4366fc292062c869793aeaf5b006ff400df5da09ee510f862e15d59a77770",
     "plugins/src/base/scripts/ready-queue-order.mjs":
-      "dd647c428bc51f8c780686cc1ca3c5e8c3caad4e3758b2cfdffc66661992650a",
+      "42bdcc04f6caa628caa8803c919eb9feec54228d8e4efb3c2e8e4b002d938d4b",
     "plugins/src/base/scripts/remote-agent-aws-setup.sh":
       "2a5b21f4fa3df268fb579976b4bc5f480d9176dbf6e3ae64fe3a869df287ca30",
     "plugins/src/base/scripts/repo-scope-vocabulary-audit.mjs":
@@ -1623,7 +1623,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-secrets-access/scripts/tools-from-notes.mjs":
       "360f740cac081151491428043b04fec2f5db6f3ba36394f7378af312396d53ca",
     "plugins/src/base/skills/lisa-secrets-access/scripts/validate-config.mjs":
-      "e74487274a1d6437da51d4526a4ce2c552e69d05614c3366ed348bbf0d11c6d8",
+      "a20960898b63db8850b6253228fb39d2e1c94b999440aa8977166bbbe7aee93f",
     "plugins/src/base/skills/lisa-security-review/SKILL.md":
       "5a980eaf5efc4fcce66e75521ec5b1eda143a5b0d36e7157234a705dac94e3f5",
     "plugins/src/base/skills/lisa-security-zap-scan/SKILL.md":
@@ -1631,41 +1631,49 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-sentry-access/SKILL.md":
       "1c1881ca9a2020f6cd8f938dc5335ebf2d344ff280844bb98926198e5226e526",
     "plugins/src/base/skills/lisa-session-manager/SKILL.md":
-      "1d92e364dab68f866af6d5263e9ec9627b01bca1d96f1b91f90c6f55c75627a2",
+      "b47fb79478712c0d63ed01f052d3ea40cb9026891addd4fc570f9efb008e6cb3",
     "plugins/src/base/skills/lisa-session-manager/references/runbook-template.md":
-      "24abfd1c6d2ec1829a9c88415910438bb03e16277f0a118c30ea0a24022ab54c",
+      "6f491d6913f8cb9ff457a6a48633676f34d2a2e864811535d9323ad90b140582",
     "plugins/src/base/skills/lisa-session-manager/scripts/capacity.mjs":
       "ad5acc6097e375868b51eaf01b1506662505e2404b7ac1b06528679718504091",
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-cycle.mjs":
-      "e5a4b5a9c46431dae2ebe6f70bff4d8aa48aedc2691fdd8979c7651cc34ead91",
+      "77637fe3694f4dabcb5c7cc3fea5315afa745ea35c4a7f50c5a4519c3f4068cd",
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-manager.mjs":
-      "8b3fc10b8f4d92fe51b161700bde4f83606396fedf9eccffbd62567e5f5f7522",
+      "d128e3eb5600b62a103b7384144a3296bc7ac8917920279a99ea8dd5beae73a1",
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-queue.mjs":
-      "e3f6b5a49144613665f4ccd8a3ac51539b3196ba36d1a6bfd528f379103da1eb",
+      "52bb1d95506cd2b7d6d662eb888c4bd750eb897829ec3ca49ae3fec2949d9c77",
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-runtime.mjs":
-      "805ce5af2104c87502b8cb99d1376f232a51578a02e065652019b06bedcb9f6f",
+      "2948105addc10c0405d085cd2ba606f77f8f7c961bcfdaf1f09e7434d27e2b5e",
+    "plugins/src/base/skills/lisa-session-manager/scripts/cli-setup.mjs":
+      "433a5d2e4859e91c036eaf030ac0d4f2a26b5f5e45d9c875803ee8a8919cf4d2",
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-usage.mjs":
-      "afa0821ae1fd821f6b8a02d31cf722530d48296d63734ee2f0d0baffbf96dde3",
+      "6f70cf11f73074d91c69e60feef9898e99fb278546113eb6b78af26d2996ddea",
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-workers.mjs":
       "63ca4c92eb838f806be1dcb6b995cdcee56f77eb7ba4787959ec23a395b32bfe",
+    "plugins/src/base/skills/lisa-session-manager/scripts/clipboard.mjs":
+      "6becdcf8797bfdcfa31553c90d125be4b7f643ab305a3abc19aae73d29263e29",
     "plugins/src/base/skills/lisa-session-manager/scripts/config.mjs":
-      "3c66772809e726da9d23369f7fa7ae14d8aae2b5c34feb06be54fd12ca4e1593",
+      "9379e0338ee6070293f6c9ca9f82579d26ac6709b7935292de7cbc6c73c917be",
     "plugins/src/base/skills/lisa-session-manager/scripts/isolation.mjs":
       "c6161331dea68eec4112948d9e8841aa834632c7503de5c8fd5d9834e125dfbc",
     "plugins/src/base/skills/lisa-session-manager/scripts/launch.mjs":
-      "209d4c6e8121664b85b508760a8f87cee7fc85850b5be3859fb46e5dff9e5c93",
+      "9c5f3dbb65a7676d70c3df6072045c8dc9254044c588d8b964ff8ad6ef3ee073",
     "plugins/src/base/skills/lisa-session-manager/scripts/ledger.mjs":
-      "045f49f9b636239b7775b9003e2cc7334a5bfe00f0f58a8031f7308c2fcff19f",
+      "fd73fbbd725378cfcac968579672f24481f10af6acb03633954f91085b0defe5",
     "plugins/src/base/skills/lisa-session-manager/scripts/reconcile.mjs":
       "8ccd61b536709eb16dccb82c0049f25b042f3e61417c08c68defefa388584559",
+    "plugins/src/base/skills/lisa-session-manager/scripts/repo-detect.mjs":
+      "3ce714f1934433f2bc297c0b67931a28687ccef70c01639cb8542e9bb7f0a14d",
     "plugins/src/base/skills/lisa-session-manager/scripts/session-manager.mjs":
-      "e7e901126c5a534d22d5e213bf307b0f82a89e150b530c090bab567a5a8b47c8",
+      "cf76a93e3d3afbf2aa19e042c31817063c8c7ed773f36e8d2e6b1b454385b694",
+    "plugins/src/base/skills/lisa-session-manager/scripts/setup-checks.mjs":
+      "433c1afb36641eb3eb271f1803c7dfba556dd98e535627d00cfc8e3135a5d68f",
     "plugins/src/base/skills/lisa-session-manager/scripts/state-dir.mjs":
       "e1c3f0386249afc187b9711b3631ed58b23467e1e88d22c628167b5d3af45318",
     "plugins/src/base/skills/lisa-session-manager/scripts/telegram-route.mjs":
       "af176e882c928ce16fc51352035e06b13fb3eecd3edb40b20f17fc22fe1049d5",
     "plugins/src/base/skills/lisa-session-manager/scripts/token.mjs":
-      "05a9dbf6d78ad3f295373edca518371a6fdaaec51a76439c82ba278c80b02091",
+      "8c53e1e2cc5548e04ac0b47bc73df78c52231284cb495b8e4d10f9e427518852",
     "plugins/src/base/skills/lisa-session-manager/scripts/worker-launch.mjs":
       "5d17eed33302f8e22858f4c69d8323e60411fe7b089a11414d93613923287b0c",
     "plugins/src/base/skills/lisa-session-manager/scripts/workers.mjs":
@@ -1717,7 +1725,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-setup-remote-env/scripts/verify-remote-env.mjs":
       "bec0b624c1031d0936afd6e5dd4a3d09adea102d5936b5b9fcf545c7f86a3a11",
     "plugins/src/base/skills/lisa-setup-session-manager/SKILL.md":
-      "12ebc62338ee8fe5d0ab9201c41629b4731a08aae2e07cc41a0bdf93b1f9d125",
+      "127111e1c3f516a8f84965ea74345cc7277d52dd45aa5843b0126cb77c2e97dc",
     "plugins/src/base/skills/lisa-setup-sonar/SKILL.md":
       "de00597d260d5491837406a81b87a96b9307a7d87c040b35fc1d6e77ae2f5306",
     "plugins/src/base/skills/lisa-setup-workstation/SKILL.md":
@@ -2671,7 +2679,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/lib/shell-guard-refusal-coverage.mjs":
       "9bd530bae922022870c8bb1b69925778fa609c67561228cc8cfa94a0ee3f5e7c",
     "scripts/lib/shell-guard-shard-runner.mjs":
-      "e66b9acee96812374bc63d3569614aef5095124ddec08287128893889847cbcf",
+      "976e297e5b9ebeff787274ac4cffb5a898d8274253798a719ccedac932f60d7b",
     "scripts/lib/shell-guard-shards.mjs":
       "a5724f75bea3469aae76c9eb8ff13e0ba446c73a0466c43d9a670b3b7628dce1",
     "scripts/lib/shell-guard-terminal-reporter.mjs":
@@ -2755,7 +2763,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/test-intent-routing.sh":
       "97b9dc86cbd805df8a7fdb8c99ffab9b8c5e751ba2e84c05420b2a124f80635d",
     "scripts/two-channel-couplings.json":
-      "26d274f7cc3334e17eaedfc088cdf0550355cc0b40b1410f09ba181a17a006ac",
+      "bc7855d7ff1ba6c376c8ad8acf74da630d5b37abac95eb28dd5e6cb426127da5",
     "scripts/update-node-version.ts":
       "9d37599ef73d5d624751f862cda330a867f6774392c1ab045b4fc885132582e4",
     "scripts/update-test-skill-paths.mjs":
@@ -2857,7 +2865,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/copy-overwrite/scripts/check-nightly-e2e-health.mjs":
       "d1b26caeaf65950e3b60ff41964d234c032c50470072e7643310b1f6722e34e6",
     "typescript/copy-overwrite/scripts/check-skipped-required-checks.mjs":
-      "f403ef36885ed3d394813faa95aa9b3c813de2e134d9b8f1a838c6accf55c74e",
+      "53ec522511aa862dd186a0acc66848f361b4c3a02f53314c332cff640db6034b",
     "typescript/copy-overwrite/scripts/check-threshold-ratchet.mjs":
       "d4afc90ba8faf10925fff5fb0d6cd0ace22df2eaa0ec609ee969d0ec84092299",
     "typescript/copy-overwrite/scripts/check-verification-coverage.mjs":
@@ -2897,11 +2905,11 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/copy-overwrite/vitest.config.ts":
       "dc140e617db43da38f456bcc909ae621a62996fe25e7b0babd5e81941308365c",
     "typescript/create-only/.github/required-checks.json":
-      "9be2f3170b7c57cad1a483752d3c882213e90f36ece677d1dd4a1b1c1c66b76a",
+      "29c4770b0317c89c266e149f54b3b0707eeaea2b1271796a75be50e7b9fc150a",
     "typescript/create-only/.github/workflows/ci.yml":
       "313e42045137c59f77cf61abeebb19c8005ba7fa6d5b7d92a169a1e86ab168b5",
     "typescript/create-only/.github/workflows/review-evidence.yml":
-      "732ac40a7e454d276387dd9dce818ac90103eabeda15c7fcfa22221309e74f22",
+      "cbe6584b59ee465b13672c1f7f8a9d48b310017fb5f62520ec2b71c469f41d61",
     "typescript/create-only/.github/workflows/third-party-review-evidence.yml":
       "6f90f3bb5074d4d7c0eadf279289faee3db444f90f1c9c9a789c8c5848a8c1c5",
     "typescript/create-only/.gitleaksignore":
@@ -2935,11 +2943,11 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/merge/.oxlintrc.json":
       "9504c20db80470c242c4ffe8cccad6951ed8141dfb5bf6503053e0b2712ab276",
     "typescript/package-lisa/package.lisa.json":
-      "9f5fdfe64b2371ae00543abb3925a3019983cc18d0730d496063f6f35556eb85",
+      "19cacb230b929bf677e1d1473445858d83c64437ebf70bb63950113d95ae97d1",
     "ui/README.md":
       "7a67d7bdd49ff214ca204cc4e54ba70c37aa05fd6cc1e314fd9441a53eafc752",
     "ui/index.html":
-      "59a82b149a237027b36ce1a1586d03c33a5d372442abc016c1371fa0251afa1e",
+      "c10fc924b9dcdaa6fd786776f901f9cab09c208a26fa38c62bb2be14ad53cd9d",
   });
 
 /** Exact paths tracked by the public Lisa repository at generation time. */
@@ -4416,14 +4424,18 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-agy/skills/lisa-session-manager/scripts/cli-manager.mjs": true,
     "plugins/lisa-agy/skills/lisa-session-manager/scripts/cli-queue.mjs": true,
     "plugins/lisa-agy/skills/lisa-session-manager/scripts/cli-runtime.mjs": true,
+    "plugins/lisa-agy/skills/lisa-session-manager/scripts/cli-setup.mjs": true,
     "plugins/lisa-agy/skills/lisa-session-manager/scripts/cli-usage.mjs": true,
     "plugins/lisa-agy/skills/lisa-session-manager/scripts/cli-workers.mjs": true,
+    "plugins/lisa-agy/skills/lisa-session-manager/scripts/clipboard.mjs": true,
     "plugins/lisa-agy/skills/lisa-session-manager/scripts/config.mjs": true,
     "plugins/lisa-agy/skills/lisa-session-manager/scripts/isolation.mjs": true,
     "plugins/lisa-agy/skills/lisa-session-manager/scripts/launch.mjs": true,
     "plugins/lisa-agy/skills/lisa-session-manager/scripts/ledger.mjs": true,
     "plugins/lisa-agy/skills/lisa-session-manager/scripts/reconcile.mjs": true,
+    "plugins/lisa-agy/skills/lisa-session-manager/scripts/repo-detect.mjs": true,
     "plugins/lisa-agy/skills/lisa-session-manager/scripts/session-manager.mjs": true,
+    "plugins/lisa-agy/skills/lisa-session-manager/scripts/setup-checks.mjs": true,
     "plugins/lisa-agy/skills/lisa-session-manager/scripts/state-dir.mjs": true,
     "plugins/lisa-agy/skills/lisa-session-manager/scripts/telegram-route.mjs": true,
     "plugins/lisa-agy/skills/lisa-session-manager/scripts/token.mjs": true,
@@ -4934,14 +4946,18 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-copilot/skills/lisa-session-manager/scripts/cli-manager.mjs": true,
     "plugins/lisa-copilot/skills/lisa-session-manager/scripts/cli-queue.mjs": true,
     "plugins/lisa-copilot/skills/lisa-session-manager/scripts/cli-runtime.mjs": true,
+    "plugins/lisa-copilot/skills/lisa-session-manager/scripts/cli-setup.mjs": true,
     "plugins/lisa-copilot/skills/lisa-session-manager/scripts/cli-usage.mjs": true,
     "plugins/lisa-copilot/skills/lisa-session-manager/scripts/cli-workers.mjs": true,
+    "plugins/lisa-copilot/skills/lisa-session-manager/scripts/clipboard.mjs": true,
     "plugins/lisa-copilot/skills/lisa-session-manager/scripts/config.mjs": true,
     "plugins/lisa-copilot/skills/lisa-session-manager/scripts/isolation.mjs": true,
     "plugins/lisa-copilot/skills/lisa-session-manager/scripts/launch.mjs": true,
     "plugins/lisa-copilot/skills/lisa-session-manager/scripts/ledger.mjs": true,
     "plugins/lisa-copilot/skills/lisa-session-manager/scripts/reconcile.mjs": true,
+    "plugins/lisa-copilot/skills/lisa-session-manager/scripts/repo-detect.mjs": true,
     "plugins/lisa-copilot/skills/lisa-session-manager/scripts/session-manager.mjs": true,
+    "plugins/lisa-copilot/skills/lisa-session-manager/scripts/setup-checks.mjs": true,
     "plugins/lisa-copilot/skills/lisa-session-manager/scripts/state-dir.mjs": true,
     "plugins/lisa-copilot/skills/lisa-session-manager/scripts/telegram-route.mjs": true,
     "plugins/lisa-copilot/skills/lisa-session-manager/scripts/token.mjs": true,
@@ -5436,14 +5452,18 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-cursor/skills/lisa-session-manager/scripts/cli-manager.mjs": true,
     "plugins/lisa-cursor/skills/lisa-session-manager/scripts/cli-queue.mjs": true,
     "plugins/lisa-cursor/skills/lisa-session-manager/scripts/cli-runtime.mjs": true,
+    "plugins/lisa-cursor/skills/lisa-session-manager/scripts/cli-setup.mjs": true,
     "plugins/lisa-cursor/skills/lisa-session-manager/scripts/cli-usage.mjs": true,
     "plugins/lisa-cursor/skills/lisa-session-manager/scripts/cli-workers.mjs": true,
+    "plugins/lisa-cursor/skills/lisa-session-manager/scripts/clipboard.mjs": true,
     "plugins/lisa-cursor/skills/lisa-session-manager/scripts/config.mjs": true,
     "plugins/lisa-cursor/skills/lisa-session-manager/scripts/isolation.mjs": true,
     "plugins/lisa-cursor/skills/lisa-session-manager/scripts/launch.mjs": true,
     "plugins/lisa-cursor/skills/lisa-session-manager/scripts/ledger.mjs": true,
     "plugins/lisa-cursor/skills/lisa-session-manager/scripts/reconcile.mjs": true,
+    "plugins/lisa-cursor/skills/lisa-session-manager/scripts/repo-detect.mjs": true,
     "plugins/lisa-cursor/skills/lisa-session-manager/scripts/session-manager.mjs": true,
+    "plugins/lisa-cursor/skills/lisa-session-manager/scripts/setup-checks.mjs": true,
     "plugins/lisa-cursor/skills/lisa-session-manager/scripts/state-dir.mjs": true,
     "plugins/lisa-cursor/skills/lisa-session-manager/scripts/telegram-route.mjs": true,
     "plugins/lisa-cursor/skills/lisa-session-manager/scripts/token.mjs": true,
@@ -5868,14 +5888,18 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-devin/skills/lisa-session-manager/scripts/cli-manager.mjs": true,
     "plugins/lisa-devin/skills/lisa-session-manager/scripts/cli-queue.mjs": true,
     "plugins/lisa-devin/skills/lisa-session-manager/scripts/cli-runtime.mjs": true,
+    "plugins/lisa-devin/skills/lisa-session-manager/scripts/cli-setup.mjs": true,
     "plugins/lisa-devin/skills/lisa-session-manager/scripts/cli-usage.mjs": true,
     "plugins/lisa-devin/skills/lisa-session-manager/scripts/cli-workers.mjs": true,
+    "plugins/lisa-devin/skills/lisa-session-manager/scripts/clipboard.mjs": true,
     "plugins/lisa-devin/skills/lisa-session-manager/scripts/config.mjs": true,
     "plugins/lisa-devin/skills/lisa-session-manager/scripts/isolation.mjs": true,
     "plugins/lisa-devin/skills/lisa-session-manager/scripts/launch.mjs": true,
     "plugins/lisa-devin/skills/lisa-session-manager/scripts/ledger.mjs": true,
     "plugins/lisa-devin/skills/lisa-session-manager/scripts/reconcile.mjs": true,
+    "plugins/lisa-devin/skills/lisa-session-manager/scripts/repo-detect.mjs": true,
     "plugins/lisa-devin/skills/lisa-session-manager/scripts/session-manager.mjs": true,
+    "plugins/lisa-devin/skills/lisa-session-manager/scripts/setup-checks.mjs": true,
     "plugins/lisa-devin/skills/lisa-session-manager/scripts/state-dir.mjs": true,
     "plugins/lisa-devin/skills/lisa-session-manager/scripts/telegram-route.mjs": true,
     "plugins/lisa-devin/skills/lisa-session-manager/scripts/token.mjs": true,
@@ -8271,14 +8295,18 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa/.codex-plugin/skills/lisa-session-manager/scripts/cli-manager.mjs": true,
     "plugins/lisa/.codex-plugin/skills/lisa-session-manager/scripts/cli-queue.mjs": true,
     "plugins/lisa/.codex-plugin/skills/lisa-session-manager/scripts/cli-runtime.mjs": true,
+    "plugins/lisa/.codex-plugin/skills/lisa-session-manager/scripts/cli-setup.mjs": true,
     "plugins/lisa/.codex-plugin/skills/lisa-session-manager/scripts/cli-usage.mjs": true,
     "plugins/lisa/.codex-plugin/skills/lisa-session-manager/scripts/cli-workers.mjs": true,
+    "plugins/lisa/.codex-plugin/skills/lisa-session-manager/scripts/clipboard.mjs": true,
     "plugins/lisa/.codex-plugin/skills/lisa-session-manager/scripts/config.mjs": true,
     "plugins/lisa/.codex-plugin/skills/lisa-session-manager/scripts/isolation.mjs": true,
     "plugins/lisa/.codex-plugin/skills/lisa-session-manager/scripts/launch.mjs": true,
     "plugins/lisa/.codex-plugin/skills/lisa-session-manager/scripts/ledger.mjs": true,
     "plugins/lisa/.codex-plugin/skills/lisa-session-manager/scripts/reconcile.mjs": true,
+    "plugins/lisa/.codex-plugin/skills/lisa-session-manager/scripts/repo-detect.mjs": true,
     "plugins/lisa/.codex-plugin/skills/lisa-session-manager/scripts/session-manager.mjs": true,
+    "plugins/lisa/.codex-plugin/skills/lisa-session-manager/scripts/setup-checks.mjs": true,
     "plugins/lisa/.codex-plugin/skills/lisa-session-manager/scripts/state-dir.mjs": true,
     "plugins/lisa/.codex-plugin/skills/lisa-session-manager/scripts/telegram-route.mjs": true,
     "plugins/lisa/.codex-plugin/skills/lisa-session-manager/scripts/token.mjs": true,
@@ -8957,14 +8985,18 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa/skills/lisa-session-manager/scripts/cli-manager.mjs": true,
     "plugins/lisa/skills/lisa-session-manager/scripts/cli-queue.mjs": true,
     "plugins/lisa/skills/lisa-session-manager/scripts/cli-runtime.mjs": true,
+    "plugins/lisa/skills/lisa-session-manager/scripts/cli-setup.mjs": true,
     "plugins/lisa/skills/lisa-session-manager/scripts/cli-usage.mjs": true,
     "plugins/lisa/skills/lisa-session-manager/scripts/cli-workers.mjs": true,
+    "plugins/lisa/skills/lisa-session-manager/scripts/clipboard.mjs": true,
     "plugins/lisa/skills/lisa-session-manager/scripts/config.mjs": true,
     "plugins/lisa/skills/lisa-session-manager/scripts/isolation.mjs": true,
     "plugins/lisa/skills/lisa-session-manager/scripts/launch.mjs": true,
     "plugins/lisa/skills/lisa-session-manager/scripts/ledger.mjs": true,
     "plugins/lisa/skills/lisa-session-manager/scripts/reconcile.mjs": true,
+    "plugins/lisa/skills/lisa-session-manager/scripts/repo-detect.mjs": true,
     "plugins/lisa/skills/lisa-session-manager/scripts/session-manager.mjs": true,
+    "plugins/lisa/skills/lisa-session-manager/scripts/setup-checks.mjs": true,
     "plugins/lisa/skills/lisa-session-manager/scripts/state-dir.mjs": true,
     "plugins/lisa/skills/lisa-session-manager/scripts/telegram-route.mjs": true,
     "plugins/lisa/skills/lisa-session-manager/scripts/token.mjs": true,
@@ -9519,14 +9551,18 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-manager.mjs": true,
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-queue.mjs": true,
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-runtime.mjs": true,
+    "plugins/src/base/skills/lisa-session-manager/scripts/cli-setup.mjs": true,
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-usage.mjs": true,
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-workers.mjs": true,
+    "plugins/src/base/skills/lisa-session-manager/scripts/clipboard.mjs": true,
     "plugins/src/base/skills/lisa-session-manager/scripts/config.mjs": true,
     "plugins/src/base/skills/lisa-session-manager/scripts/isolation.mjs": true,
     "plugins/src/base/skills/lisa-session-manager/scripts/launch.mjs": true,
     "plugins/src/base/skills/lisa-session-manager/scripts/ledger.mjs": true,
     "plugins/src/base/skills/lisa-session-manager/scripts/reconcile.mjs": true,
+    "plugins/src/base/skills/lisa-session-manager/scripts/repo-detect.mjs": true,
     "plugins/src/base/skills/lisa-session-manager/scripts/session-manager.mjs": true,
+    "plugins/src/base/skills/lisa-session-manager/scripts/setup-checks.mjs": true,
     "plugins/src/base/skills/lisa-session-manager/scripts/state-dir.mjs": true,
     "plugins/src/base/skills/lisa-session-manager/scripts/telegram-route.mjs": true,
     "plugins/src/base/skills/lisa-session-manager/scripts/token.mjs": true,
@@ -10298,9 +10334,11 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "src/cli/learnings-overflow-cmd.ts": true,
     "src/cli/lisa-test-run-bootstrap.ts": true,
     "src/cli/lisa-test-run-ipc.ts": true,
+    "src/cli/lisa-test-run-jest-merge.ts": true,
     "src/cli/lisa-test-run-process-group.ts": true,
     "src/cli/lisa-test-run-reaper.ts": true,
     "src/cli/lisa-test-run-runtime.ts": true,
+    "src/cli/lisa-test-run-shard.ts": true,
     "src/cli/lisa-test-run-supervisor.ts": true,
     "src/cli/lisa-test-run.ts": true,
     "src/cli/merge-learnings-cmd.ts": true,
@@ -10415,6 +10453,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "src/configs/eslint/index.ts": true,
     "src/configs/eslint/nestjs.ts": true,
     "src/configs/eslint/phaser.ts": true,
+    "src/configs/eslint/slow-expo.ts": true,
     "src/configs/eslint/slow.ts": true,
     "src/configs/eslint/typescript.ts": true,
     "src/configs/eslint/view-gate.ts": true,
@@ -10454,6 +10493,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "src/configs/vitest/scratch-sweep.ts": true,
     "src/configs/vitest/scratch-tmpdir-trust.ts": true,
     "src/configs/vitest/scratch.ts": true,
+    "src/configs/vitest/socket-safe-temp-base.ts": true,
     "src/configs/vitest/synthesis-scratch-reclaim.ts": true,
     "src/configs/vitest/typescript.ts": true,
     "src/configs/worktrees.ts": true,
@@ -10807,6 +10847,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/fixtures/npm-update-hosted-runtime/driver-diagnostic.mjs": true,
     "tests/fixtures/npm-update-hosted-runtime/driver-probe.mjs": true,
     "tests/fixtures/npm-update-hosted-runtime/observations.mjs": true,
+    "tests/fixtures/npm-update-hosted-runtime/package-observations.mjs": true,
     "tests/fixtures/npm-update-hosted-runtime/qualify.mjs": true,
     "tests/fixtures/npm-update-hosted-runtime/sandbox-status.mjs": true,
     "tests/fixtures/npm-update-hosted-runtime/socket-witness.mjs": true,
@@ -10815,6 +10856,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/fixtures/npm-update-rails-mysql-native.mjs": true,
     "tests/fixtures/npm-update-rails-mysql-native.sh": true,
     "tests/fixtures/npm-update-rails-mysql-observation.mjs": true,
+    "tests/fixtures/parity-safety-net/gradle-start-script.sh": true,
     "tests/fixtures/pre-tool-refusal-pre-facade/codex-block-migration-edits.sh": true,
     "tests/fixtures/pre-tool-refusal-pre-facade/codex-block-suppress-directives.sh": true,
     "tests/fixtures/pre-tool-refusal-pre-facade/nestjs-block-migration-edits.sh": true,
@@ -10940,6 +10982,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/helpers/remote-env-materialized-artifact.ts": true,
     "tests/helpers/remote-env-materialized-fixture.ts": true,
     "tests/helpers/repo-file-walk.ts": true,
+    "tests/helpers/review-evidence-registration-fixture.ts": true,
     "tests/helpers/rollup-classifier-ladder-fixtures.ts": true,
     "tests/helpers/rollup-classifier-ladder-harness.ts": true,
     "tests/helpers/safety-net-guard-fixtures.ts": true,
@@ -11042,7 +11085,11 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/jest-expo-haste-pruning.test.ts": true,
     "tests/integration/jira-shell-auth-destinations.test.ts": true,
     "tests/integration/job-names-name-properties.test.ts": true,
+    "tests/integration/lisa-test-run-jest-shards-fixture.ts": true,
+    "tests/integration/lisa-test-run-jest-shards-reports.test.ts": true,
+    "tests/integration/lisa-test-run-jest-shards.test.ts": true,
     "tests/integration/lisa-test-run-packed-bin.test.ts": true,
+    "tests/integration/lisa-test-run-shard-cli.test.ts": true,
     "tests/integration/lisa.test.ts": true,
     "tests/integration/maestro-build-reuse.test.ts": true,
     "tests/integration/maestro-caller-template.test.ts": true,
@@ -11142,6 +11189,10 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/quality-shared-web-export.test.ts": true,
     "tests/integration/quality-ungated-jobs.test.ts": true,
     "tests/integration/quality-unit-progress.test.ts": true,
+    "tests/integration/quality-unit-test-shards-aggregate.test.ts": true,
+    "tests/integration/quality-unit-test-shards-env-scope.test.ts": true,
+    "tests/integration/quality-unit-test-shards-fixture.ts": true,
+    "tests/integration/quality-unit-test-shards.test.ts": true,
     "tests/integration/quality-verification-coverage-collapse.test.ts": true,
     "tests/integration/quality-workflow-size.test.ts": true,
     "tests/integration/quality-workflow.test.ts": true,
@@ -11166,6 +11217,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/reusable-workflow-caller-scopes.test.ts": true,
     "tests/integration/review-evidence-gate.test.ts": true,
     "tests/integration/review-evidence-template-policy.test.ts": true,
+    "tests/integration/ruby-runner-image-pin.test.ts": true,
     "tests/integration/security-floors-gate.test.ts": true,
     "tests/integration/seeded-gates-preserve-hook-outcomes.test.ts": true,
     "tests/integration/self-pin-drift-gate-wiring.test.ts": true,
@@ -11183,6 +11235,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/standards-proof-tamper.test.ts": true,
     "tests/integration/standards-proof-timeout.test.ts": true,
     "tests/integration/standards-proof-typescript.test.ts": true,
+    "tests/integration/support/bun-free-node-bin.ts": true,
     "tests/integration/support/cdk-ci-role-selection-harness.ts": true,
     "tests/integration/support/maestro-android-retry-fixtures.ts": true,
     "tests/integration/support/maestro-android-retry-harness.ts": true,
@@ -11216,6 +11269,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/platform/process-tree-runner.test.mjs": true,
     "tests/platform/windows-missing-handles.ps1": true,
     "tests/platform/windows-process-fixture.mjs": true,
+    "tests/support/ci-runtime.ts": true,
     "tests/support/codex-compatibility-candidate.mjs": true,
     "tests/support/codex-compatibility-proof.mjs": true,
     "tests/support/codex-compatibility-seed.mjs": true,
@@ -11339,6 +11393,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/cli/learnings-overflow-cmd.test.ts": true,
     "tests/unit/cli/lisa-test-run-process-group.test.ts": true,
     "tests/unit/cli/lisa-test-run-protocol-state.test.ts": true,
+    "tests/unit/cli/lisa-test-run-shard.test.ts": true,
     "tests/unit/cli/merge-learnings-cmd.test.ts": true,
     "tests/unit/cli/override-load-diagnostic.test.ts": true,
     "tests/unit/cli/parse-refresh-templates.test.ts": true,
@@ -11473,6 +11528,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/config/eslint-typescript-worktree-scope.test.ts": true,
     "tests/unit/config/expo-design-value-arming.test.ts": true,
     "tests/unit/config/expo-eslint-local-config.test.ts": true,
+    "tests/unit/config/expo-slow-react-rules.test.ts": true,
     "tests/unit/config/expo-view-purity-gate.test.ts": true,
     "tests/unit/config/fast-uri-audit-suppression.test.ts": true,
     "tests/unit/config/fast-xml-parser-security-floor.test.ts": true,
@@ -11532,10 +11588,13 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/config/scratch-tmpdir-trust.test.ts": true,
     "tests/unit/config/security-pin-floors.test.ts": true,
     "tests/unit/config/shipped-mjs-roster.test.ts": true,
+    "tests/unit/config/slow-config-module-isolation.test.ts": true,
+    "tests/unit/config/socket-safe-temp-base.test.ts": true,
     "tests/unit/config/sonar-coverage-handoff.test.ts": true,
     "tests/unit/config/stale-deploy-guard.test.ts": true,
     "tests/unit/config/synthesis-scratch-reclaim.test.ts": true,
     "tests/unit/config/template-script-toolchain.test.ts": true,
+    "tests/unit/config/template-security-floors.test.ts": true,
     "tests/unit/config/test-run-child-process-analyzer.test.ts": true,
     "tests/unit/config/test-run-supervision-wiring.test.ts": true,
     "tests/unit/config/test-scratch-guard.test.ts": true,
@@ -11562,6 +11621,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/config/work-item-traceability-scope-gate.test.ts": true,
     "tests/unit/config/workspace-suite-collection.test.ts": true,
     "tests/unit/config/worktree-exclusion-anchoring.test.ts": true,
+    "tests/unit/config/zod-security-floor.test.ts": true,
     "tests/unit/configs/ast-grep-language-reach.test.ts": true,
     "tests/unit/configs/expo-jest-pre-setup.test.ts": true,
     "tests/unit/configs/lighthouse-collect-config.test.ts": true,
@@ -11572,6 +11632,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/core/apply-receipt-deletion-record.test.ts": true,
     "tests/unit/core/bootstrap-environment.test.ts": true,
     "tests/unit/core/cdk-preset-adoption.test.ts": true,
+    "tests/unit/core/ci-runtime-deferral.test.ts": true,
     "tests/unit/core/deletion-basis.test.ts": true,
     "tests/unit/core/deploy-release-dependence.test.ts": true,
     "tests/unit/core/effectiveness-store.test.ts": true,
@@ -11648,7 +11709,6 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/core/project-config-nightly-e2e-default.test.ts": true,
     "tests/unit/core/project-config-nightly-e2e.test.ts": true,
     "tests/unit/core/project-config.test.ts": true,
-    "tests/unit/core/qualified-host-bun-capture.test.ts": true,
     "tests/unit/core/qualified-runtime-ci.test.ts": true,
     "tests/unit/core/rails-deploy-production-intent.test.ts": true,
     "tests/unit/core/retire-unmodified.test.ts": true,
@@ -11685,6 +11745,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/devin/plugin-installer.test.ts": true,
     "tests/unit/docs/onboarding-walkthrough.test.ts": true,
     "tests/unit/fixtures/shared-runtime-native-deadline.test.ts": true,
+    "tests/unit/fixtures/shared-runtime-patched-floors.test.ts": true,
     "tests/unit/governance-contracts.test.ts": true,
     "tests/unit/health/agentic.test.ts": true,
     "tests/unit/health/consumer.test.ts": true,
@@ -11817,6 +11878,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/hooks/parity-safety-net-and-branch-scope.test.ts": true,
     "tests/unit/hooks/parity-safety-net-brace-scope.test.ts": true,
     "tests/unit/hooks/parity-safety-net-cd-resolution.test.ts": true,
+    "tests/unit/hooks/parity-safety-net-closed-compound-scope.test.ts": true,
+    "tests/unit/hooks/parity-safety-net-closer-shadowing.test.ts": true,
     "tests/unit/hooks/parity-safety-net-compound-pipeline.test.ts": true,
     "tests/unit/hooks/parity-safety-net-compound-redirection.test.ts": true,
     "tests/unit/hooks/parity-safety-net-credentials.test.ts": true,
@@ -11948,6 +12011,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/plugins/hook-registration-agreement.test.ts": true,
     "tests/unit/plugins/hook-registration.test.ts": true,
     "tests/unit/plugins/support/hook-registration-fixture.ts": true,
+    "tests/unit/scripts/absent-required-checks-by-branch.test.ts": true,
     "tests/unit/scripts/absent-required-checks.test.ts": true,
     "tests/unit/scripts/ast-grep-enforcement.test.ts": true,
     "tests/unit/scripts/automation-provenance.test.ts": true,
@@ -12219,6 +12283,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/npm-update-rails-runtime-descriptor.test.ts": true,
     "tests/unit/scripts/npm-update-rails-tool-downloads.test.ts": true,
     "tests/unit/scripts/npm-update-rails-tools.test.ts": true,
+    "tests/unit/scripts/npm-update-runtime-preservation.test.ts": true,
     "tests/unit/scripts/npm-update-runtime-qualification.test.ts": true,
     "tests/unit/scripts/npm-update-socket-witness.test.ts": true,
     "tests/unit/scripts/npm-update-tracker.test.ts": true,
@@ -12241,6 +12306,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/process-tree-runner-interrupt.test.ts": true,
     "tests/unit/scripts/process-tree-runner-verdict-transport.test.ts": true,
     "tests/unit/scripts/process-tree-runner.test.ts": true,
+    "tests/unit/scripts/ready-queue-order-backlog.test.ts": true,
+    "tests/unit/scripts/ready-queue-order-operators.test.ts": true,
     "tests/unit/scripts/ready-queue-order.test.ts": true,
     "tests/unit/scripts/reconcile-release-tags.test.ts": true,
     "tests/unit/scripts/required-check-promotions-helpers.ts": true,
@@ -12250,6 +12317,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/required-check-promotions.wiring.test.ts": true,
     "tests/unit/scripts/review-evidence-check-name.test.ts": true,
     "tests/unit/scripts/review-gate-conditions.test.ts": true,
+    "tests/unit/scripts/review-gate-substitute.test.ts": true,
     "tests/unit/scripts/review-gate-waiver-vs-objection.test.ts": true,
     "tests/unit/scripts/review-objection-at-head.test.ts": true,
     "tests/unit/scripts/run-artifact-checks.test.ts": true,
@@ -12411,6 +12479,9 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/session-manager/cli-liveness.test.ts": true,
     "tests/unit/session-manager/cli-manager.test.ts": true,
     "tests/unit/session-manager/cli-messages.test.ts": true,
+    "tests/unit/session-manager/cli-queue-backlog.test.ts": true,
+    "tests/unit/session-manager/cli-queue-operators.test.ts": true,
+    "tests/unit/session-manager/cli-setup.test.ts": true,
     "tests/unit/session-manager/cli-spawn-trust.test.ts": true,
     "tests/unit/session-manager/cli-start-survival.test.ts": true,
     "tests/unit/session-manager/cli-trust.test.ts": true,
@@ -12419,12 +12490,16 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/session-manager/config.test.ts": true,
     "tests/unit/session-manager/launch-argv.test.ts": true,
     "tests/unit/session-manager/launch.test.ts": true,
+    "tests/unit/session-manager/ledger-validation.test.ts": true,
     "tests/unit/session-manager/ledger.test.ts": true,
     "tests/unit/session-manager/reconcile.test.ts": true,
+    "tests/unit/session-manager/repo-detect.test.ts": true,
+    "tests/unit/session-manager/setup-checks.test.ts": true,
     "tests/unit/session-manager/support/cli-fixtures.ts": true,
     "tests/unit/session-manager/support/cli-harness.ts": true,
     "tests/unit/session-manager/telegram-route-short-forms.test.ts": true,
     "tests/unit/session-manager/telegram-route.test.ts": true,
+    "tests/unit/session-manager/token-clipboard.test.ts": true,
     "tests/unit/session-manager/worker-launch-session-id.test.ts": true,
     "tests/unit/session-manager/workers-classify.test.ts": true,
     "tests/unit/session-manager/workers-fixtures.ts": true,

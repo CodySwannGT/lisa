@@ -2110,7 +2110,7 @@ describe("PackageLisaStrategy", () => {
       );
       const template = readTsTemplate();
 
-      expect(template.force.resolutions["vite"]).toBe("^8.3.2");
+      expect(template.force.resolutions["vite"]).toBe("^8.3.3");
       expect(template.force.overrides["vite"]).toBe(
         rootPackageJson.devDependencies.vite
       );
@@ -2516,7 +2516,7 @@ describe("PackageLisaStrategy", () => {
 
       const content = await fs.readJson(destPath);
       // Forced tooling wins over the project's pin.
-      expect(content.dependencies.zod).toBe("^4.3.5");
+      expect(content.dependencies.zod).toBe("^4.6.6");
       expect(content.devDependencies.oxlint).toBe("1.62.0");
     });
 

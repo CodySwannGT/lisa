@@ -72,7 +72,7 @@ describe("closed native Rails tool qualification", () => {
         const entry = join(root, "apt-transport.mjs");
         writeFileSync(
           entry,
-          'const args = process.argv.slice(2); if (args[0] !== "-n" || args[1] !== "/usr/bin/apt-get" || !args.includes("--snapshot=20261008T000000Z")) process.exit(17); process.stdout.write(JSON.stringify(args));\n',
+          'const args = process.argv.slice(2); if (args[0] !== "-n" || args[1] !== "/usr/bin/apt-get" || !args.includes("--snapshot=20261013T000000Z")) process.exit(17); process.stdout.write(JSON.stringify(args));\n',
           { flag: "wx", mode: 0o600 }
         );
         const calls: string[][] = [];
@@ -107,6 +107,59 @@ describe("closed native Rails tool qualification", () => {
         );
         expect(libraries).toHaveLength(browser ? 19 : 0);
       });
+    }
+  );
+  it("keeps the complete browser roster while pinning the libx11 security update", async () => {
+    const { installRailsPackages } =
+      await import("../../../all/copy-overwrite/scripts/lib/npm-update-rails-tools.mjs");
+    const calls: string[][] = [];
+    const libraries = await installRailsPackages(
+      async (_command: string, args: string[]) => {
+        calls.push(args);
+        return { code: 0, stdout: Buffer.alloc(0), stderr: Buffer.alloc(0) };
+      },
+      true
+    );
+    expect(libraries).toContain("libx11-xcb1=2:1.8.7-1ubuntu0.1");
+    expect(libraries.map((value: string) => value.split("=")[0])).toEqual([
+      "fonts-liberation",
+      "libasound2t64",
+      "libatk-bridge2.0-0t64",
+      "libatk1.0-0t64",
+      "libcairo2",
+      "libcups2t64",
+      "libdbus-1-3",
+      "libdrm2",
+      "libgbm1",
+      "libglib2.0-0t64",
+      "libnss3",
+      "libpango-1.0-0",
+      "libx11-xcb1",
+      "libxcomposite1",
+      "libxdamage1",
+      "libxext6",
+      "libxfixes3",
+      "libxkbcommon0",
+      "libxrandr2",
+    ]);
+    expect(calls.flat()).not.toContain("--allow-downgrades");
+  });
+  it.each(["update", "install"])(
+    "retains the original native %s refusal with its finite package phase",
+    async operation => {
+      const tools =
+        await import("../../../all/copy-overwrite/scripts/lib/npm-update-rails-tools.mjs");
+      const failure = Object.freeze(
+        new Error("private native package refusal")
+      );
+      await expect(
+        tools.installRailsPackages(async (_command: string, args: string[]) => {
+          if (args.includes(operation)) throw failure;
+          return { code: 0, stdout: Buffer.alloc(0), stderr: Buffer.alloc(0) };
+        }, true)
+      ).rejects.toBe(failure);
+      expect(tools.railsPackageFailurePhase(failure)).toBe(`apt-${operation}`);
+      expect(tools.railsPackageFailurePhase(new Error("unknown"))).toBe(null);
     }
   );
   it("refuses an aliased Ruby path before reading its synthetic foreign target", async () => {

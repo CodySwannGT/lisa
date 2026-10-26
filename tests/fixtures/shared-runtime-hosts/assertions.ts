@@ -38,7 +38,7 @@ export function assertGeneratedPolicy(host: string): void {
     manifest.overrides.vite === "$vite"
       ? manifest.devDependencies.vite
       : manifest.overrides.vite
-  ).toBe("^8.3.2");
+  ).toBe("^8.3.3");
 }
 
 /**
@@ -73,6 +73,26 @@ export function assertPackedRuntimePolicy(candidate: Candidate): void {
 }
 
 /**
+ * Assert the installed tools sit at or above their patched floors.
+ *
+ * Within the asserted major, `minor * 100_000 + patch` orders versions, so
+ * each floor is that encoding of the lowest acceptable release.
+ * @param versions - Installed version of each tool, by package name
+ */
+export function assertPatchedFloors(
+  versions: Readonly<Record<string, string>>
+): void {
+  const encoded = (name: string): number =>
+    Number(versions[name]!.split(".")[1]) * 100_000 +
+    Number(versions[name]!.split(".")[2]);
+  ["vitest", "@vitest/coverage-v8"].forEach(name =>
+    expect(encoded(name), name).toBeGreaterThanOrEqual(100_011)
+  );
+  // 8.3.3, the declared floor since GHSA-587h-7wmj-h5pm.
+  expect(encoded("vite"), "vite").toBeGreaterThanOrEqual(300_003);
+}
+
+/**
  * Assert actual installed supported majors, patched floors and lock identity.
  * @param candidate - Exact packed candidate and child environment
  * @param host - Generated host directory
@@ -104,17 +124,7 @@ export function installedVersions(
     expect(Number(versions[name]!.split(".")[0]), name).toBe(major);
     expect(lock, name).toContain(`${name}@${versions[name]}`);
   });
-  ["vitest", "@vitest/coverage-v8"].forEach(name =>
-    expect(
-      Number(versions[name]!.split(".")[1]) * 100_000 +
-        Number(versions[name]!.split(".")[2]),
-      name
-    ).toBeGreaterThanOrEqual(100_011)
-  );
-  expect(
-    Number(versions["vite"]!.split(".")[1]) * 100_000 +
-      Number(versions["vite"]!.split(".")[2])
-  ).toBeGreaterThanOrEqual(300_002);
+  assertPatchedFloors(versions);
   const installed = path.join(host, "node_modules", "@codyswann", "lisa");
   expect(
     JSON.parse(fs.readFileSync(path.join(installed, MANIFEST), "utf8")).version

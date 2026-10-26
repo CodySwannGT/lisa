@@ -8,6 +8,9 @@
  * Rules included:
  * - import/namespace - Type checks all namespace imports (slow)
  * - import/no-cycle - Detects circular dependencies (very slow)
+ *
+ * Expo's React rules live in ./slow-expo.ts, so this module loads no React
+ * plugin for the stacks that never need one (CodySwannGT/lisa#4507).
  * @see https://github.com/import-js/eslint-plugin-import
  * @module configs/eslint/slow
  */

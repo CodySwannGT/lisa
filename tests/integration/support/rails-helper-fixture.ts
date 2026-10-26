@@ -3,6 +3,21 @@ import { createHash } from "node:crypto";
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { boundedSpawnSync } from "../../helpers/io-latency-budget.js";
+import { probeSucceeds, suiteDeferral } from "../../support/ci-runtime.js";
+
+/**
+ * Whether this machine can run the emitted helper. CI installs the gem set in
+ * the integration job; a developer Ruby usually lacks it, and then every case
+ * fails at `require` before asserting anything.
+ * @returns The skip note when the suite must be deferred, else undefined
+ */
+export function railsResolverDeferral(): string | undefined {
+  return suiteDeferral(
+    () => probeSucceeds("ruby", ["-e", "require 'active_record'"]),
+    "Ruby with activerecord 8.1.4 (the Rails configuration resolver)",
+    "Run `gem install activerecord --version 8.1.4 --no-document`."
+  );
+}
 
 /** Captured executable behavior, independent of a success exit alone. */
 export interface Observation {

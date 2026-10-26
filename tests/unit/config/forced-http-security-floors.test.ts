@@ -31,8 +31,8 @@ const REPO_ROOT = path.resolve(__dirname, "..", "..", "..");
 const TEMPLATE = "typescript/package-lisa/package.lisa.json";
 const PACKAGE_JSON = "package.json";
 const SECTIONS = ["overrides", "resolutions"] as const;
-const PATCHED = { axios: ">=1.20.0", undici: "^6.28.1" } as const;
-const STALE = { axios: ">=1.18.0", undici: "^6.28.0" } as const;
+const PATCHED = { axios: ">=1.20.0", undici: "^6.29.1" } as const;
+const STALE = { axios: ">=1.18.0", undici: "^6.28.1" } as const;
 const EXPLICIT_DEFAULTS = {
   typescript: "^6.0.3",
   vitest: "^4.1.10",
@@ -85,9 +85,9 @@ const ADVISORIES = [
   },
   {
     name: "undici",
-    ghsa: "GHSA-rfgv-xxqx-mfg5",
-    range: ">= 6.7.0, < 6.28.1",
-    patched: "6.28.1",
+    ghsa: "GHSA-xjj6-f33q-929c",
+    range: ">= 6.23.0, < 6.29.1",
+    patched: "6.29.1",
   },
 ] as const;
 
@@ -163,9 +163,22 @@ describe("forced HTTP security floors", () => {
       expect(
         intersects(
           root[section][name],
-          `<${name === "axios" ? "1.20.0" : "6.28.1"}`
+          `<${name === "axios" ? "1.20.0" : "6.29.1"}`
         )
       ).toBe(false);
+    }
+  );
+
+  // Multer (GHSA-q7qp-rjg7-q26m, first patched 2.5.0) is forced by the same
+  // template and floored in the same root sections, so it gets the same
+  // root-equals-template invariant (#4507).
+  it.each(SECTIONS)(
+    "root %s / multer matches the template and excludes every release below 2.5.0",
+    section => {
+      const root = fs.readJsonSync(path.join(REPO_ROOT, PACKAGE_JSON));
+      const template = fs.readJsonSync(path.join(REPO_ROOT, TEMPLATE));
+      expect(root[section].multer).toBe(template.force[section].multer);
+      expect(intersects(root[section].multer, "<2.5.0")).toBe(false);
     }
   );
 });

@@ -2,11 +2,11 @@
 
 The reusable [npm updater](../.github/workflows/npm-updater.yml) prepares one selected root npm update, allocates its canonical leaf, runs ordinary gates and publishes the exact gated commit. It has no schedule. The host owns cadence and exact package versions in its committed `.lisa.config.json`. Root npm on `main` is the initial supported repository shape.
 
-When the original commit also contains a regular text `bun.lock`, preparation uses genuine Bun 1.3.8 to update that lock with lifecycle scripts disabled. Both native npm ci and frozen Bun installation must preserve the prepared bytes. The proposal and signed descriptor bind the original Bun lock SHA256 and exactly three updated files: `package.json`, `package-lock.json` and `bun.lock`. Staging, recovery, cancellation and raw Git publication preserve this closed file set. An npm-only host retains its original two-file proposal and does not acquire a Bun preparation prerequisite. No lock is migrated or introduced.
+When the original commit also contains a regular text `bun.lock`, preparation uses genuine Bun 1.4.4 to update that lock with lifecycle scripts disabled. Both native npm ci and frozen Bun installation must preserve the prepared bytes. The proposal and signed descriptor bind the original Bun lock SHA256 and exactly three updated files: `package.json`, `package-lock.json` and `bun.lock`. Staging, recovery, cancellation and raw Git publication preserve this closed file set. An npm-only host retains its original two-file proposal and does not acquire a Bun preparation prerequisite. No lock is migrated or introduced.
 
 Optional Bun preparation supports root registry dependencies whose Bun records agree with the validated public npm lock. Workspaces and non-registry package identities remain refused. Changed original bytes, removed or untracked Bun locks, symlinks, hardlinks and unsupported native Bun versions refuse. The selected executable's regular-file identity and bytes are checked around each native operation; a changed tool cannot reuse its earlier qualification. Preparation installs the pinned Bun action only when the original checkout has `bun.lock`. These local contracts do not establish hosted Bot acceptance.
 
-The initial gate target is a fresh GitHub-hosted Ubuntu Linux AMD64 runner with Node 22.23.3, npm 10.9.9 or 11.21.0, Bun 1.3.8 and, for Rails, Ruby 3.4.11/Bundler 2.4.10. The original Husky or Lefthook installation runs unchanged, using genuine native Git, Docker and MySQL fixtures. Other platforms refuse this gate. Commit actual GitHub repository and owner IDs, the approved reusable signer commit, caller workflow path and an assignable human maintainer. The workflow installs the fixed official [GH 2.96.0 Linux AMD64 release](https://github.com/cli/cli/releases/tag/v2.96.0) at `/usr/local/bin/gh` only after its actual extracted binary matches the committed `automationProvenance.ghSha256`; that policy must declare the same executable path. Qualification must measure those genuine Linux bytes. A macOS hash or a runner's ambient GH hash does not qualify this installation. Publishing also requires the repository's existing Actions PR creation policy to permit the genuine Actions Bot. The updater does not change that policy.
+The initial gate target is a fresh GitHub-hosted Ubuntu Linux AMD64 runner with Node 22.23.3, npm 10.9.9 or 11.21.0, Bun 1.4.4 and, for Rails, Ruby 3.4.11/Bundler 2.4.10. The original Husky or Lefthook installation runs unchanged, using genuine native Git, Docker and MySQL fixtures. Other platforms refuse this gate. Commit actual GitHub repository and owner IDs, the approved reusable signer commit, caller workflow path and an assignable human maintainer. The workflow installs the fixed official [GH 2.96.0 Linux AMD64 release](https://github.com/cli/cli/releases/tag/v2.96.0) at `/usr/local/bin/gh` only after its actual extracted binary matches the committed `automationProvenance.ghSha256`; that policy must declare the same executable path. Qualification must measure those genuine Linux bytes. A macOS hash or a runner's ambient GH hash does not qualify this installation. Publishing also requires the repository's existing Actions PR creation policy to permit the genuine Actions Bot. The updater does not change that policy.
 
 Rails hosts can opt into the closed committed `npmUpdater.runtime` object:
 `{"profile":"rails-mysql","database":"app","browser":true,"dockerFixtures":true}`.
@@ -28,8 +28,16 @@ the sandbox or alter AppArmor policy. Docker fixture opt-in installs fixed
 Compose/Buildx plugins in a private config containing no inherited credentials.
 Every step and owned cleanup consumes the original absolute gate deadline.
 The fixed Ubuntu package versions come from the signed
-`20261008T000000Z` Ubuntu snapshot for both index update and installation, so
-moving archive updates cannot remove a required pinned version. Administrator
+`20261013T000000Z` Ubuntu snapshot for both index update and installation, so
+moving archive updates cannot remove a required pinned version. The unchanged
+21-package roster pins `libx11-xcb1` to `2:1.8.7-1ubuntu0.1`, matching Ubuntu's
+security-patched `libx11-6`; installation never permits a downgrade. The separate
+component qualifier records bounded pre-install versions for those two package
+names and, on a package refusal, its fixed `apt-update` or `apt-install` phase,
+native outcome and stream fingerprints. Original output remains in private
+captures; mirror URLs, command content and arbitrary stderr are not published.
+Its before/after census must preserve every prior container, network, volume
+and image ID before the component result can succeed. Administrator
 readiness uses TCP to `127.0.0.1`; the image's temporary initialization server
 has networking disabled and cannot satisfy that check through its Unix socket.
 Source and synthetic protocol controls do not establish Ubuntu execution,

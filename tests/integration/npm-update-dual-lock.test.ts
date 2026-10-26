@@ -1,9 +1,11 @@
 /** Native registry installations expose lock coherence independently of provider fixtures. */
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { dirname, join } from "node:path";
+import { join } from "node:path";
 import { createHash } from "node:crypto";
 import { describe, expect, it } from "vitest";
 import { useIoLatencyBudget } from "../helpers/io-latency-budget.js";
+import { cleanupTempDir } from "../helpers/test-utils.js";
+import { bunFreeNodeBin } from "./support/bun-free-node-bin.js";
 import { prepareNativeUpdate as prepareUpdate } from "./support/npm-update-native-prepare.js";
 import {
   qualifiedBun,
@@ -67,7 +69,7 @@ async function baseline(
   );
   await npm(["install", "--package-lock-only", ...INSTALL_FLAGS]);
   if (dual) {
-    expect((await bun(["--version"])).stdout.toString().trim()).toBe("1.3.8");
+    expect((await bun(["--version"])).stdout.toString().trim()).toBe("1.4.4");
     await bun(["install", "--lockfile-only", IGNORE_SCRIPTS]);
     await bun(FROZEN);
   }
@@ -273,8 +275,9 @@ describe("native optional Bun lock preparation", () => {
     const node = await runProcess("node", ["-p", "process.execPath"], {
       env: process.env,
     });
+    const nodeOnly = await bunFreeNodeBin(node.stdout.toString().trim());
     try {
-      process.env.PATH = `${dirname(node.stdout.toString().trim())}:/usr/bin:/bin`;
+      process.env.PATH = `${nodeOnly.bin}:/usr/bin:/bin`;
       const observed = await withPrivateRoot(async (root, env) => {
         fixtureRoot = root;
         const { cwd } = await baseline(root, env, false);
@@ -300,6 +303,7 @@ describe("native optional Bun lock preparation", () => {
       expect(Object.hasOwn(observed.proposal, "bunLockSha256")).toBe(false);
     } finally {
       process.env.PATH = inheritedPath;
+      await cleanupTempDir(nodeOnly.root);
     }
   });
 });

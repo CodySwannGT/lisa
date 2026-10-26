@@ -215,6 +215,29 @@
  * credential. It is stated here rather than hidden, and it is not an invitation
  * to build a lighter-weight version of the same thing.
  *
+ * ## `required_contexts_by_branch` — absence is judged per BASE branch (#4484)
+ *
+ * `required_contexts` is the UNION across every protected branch. That is the
+ * right set for the skip and outcome arms, which ask "could this context gate
+ * a merge anywhere?", and the WRONG one for the absent arm, which asks "did a
+ * context THIS pull request's merge depends on fail to report?". Measured in a
+ * caller repository: two contexts required on `dev` only, so every
+ * staging-base pull request — green on everything staging requires — failed
+ * the evidence job with `absent_required_check` for a dev-only gate, and
+ * operators learned to ignore the job.
+ *
+ * So the declaration MAY carry `required_contexts_by_branch: { <branch>: [...] }`
+ * — transcribed from `rules/branches/<branch>`, which needs only read access,
+ * by hand or by a host refresh where a repository has one. Lisa ships no
+ * refresh and reads nothing live (#3599 stands). The absent arm selects the
+ * set for the base ref (`--base`, else `GITHUB_BASE_REF`, else the payload's
+ * `pull_request.base.ref`, the last two only for the event's own pull
+ * request). With no set
+ * for that base it falls back to the union — findings and exit code exactly as
+ * before — and REPORTS it as `required_contexts_branch_fallback`, never
+ * silently. Every run that reaches the arm prints which set it used. Trust is
+ * unchanged: the one `ruleset.baseline_fetched_at` stamp covers both lists.
+ *
  * ## `--pr` — the VACUOUS arm, and why it only ever reports
  *
  * Measured (CodySwannGT/lisa#2497): `CodeRabbit` was in this repository's
@@ -472,6 +495,22 @@ export const VIOLATIONS = Object.freeze({
   requiredNotRun: "required_context_not_run",
   requiredAmbiguous: "required_context_ambiguous",
 });
+
+/**
+ * The named notice a run carries when it judged absence against the UNION.
+ *
+ * `required_contexts` is the union of what every protected branch requires,
+ * which is the wrong set for any one pull request whose base requires less
+ * (CodySwannGT/lisa#4484): a staging-base pull request was flagged for a
+ * dev-only context on every run. `required_contexts_by_branch` carries the
+ * per-branch sets; when the base has none, the absent arm still falls back to
+ * the union — the pre-#4484 behaviour, findings and exit code unchanged — and
+ * this token is what makes that fallback impossible to miss. It is a notice
+ * about the DECLARATION'S coverage, not a finding about the pull request, so it
+ * travels beside the violations rather than among them and never changes a
+ * verdict on its own.
+ */
+export const REQUIRED_SET_FALLBACK = "required_contexts_branch_fallback";
 
 /**
  * The shipped description vocabulary for review-bot style checks.
@@ -990,6 +1029,7 @@ export function loadDeclaration(rootDir) {
   const declaration = JSON.parse(readFileSync(path, "utf8"));
   assertRequiredDeclarationKeys(declaration);
   assertDeclarationCollections(declaration);
+  assertRequiredContextsByBranch(declaration);
   assertEnforcementMode(declaration);
   assertSkipJobDeclarations(declaration.skip_job_declarations);
   assertEvidenceBearingChecks(declaration.evidence_bearing_checks ?? {});
@@ -1035,6 +1075,49 @@ function assertDeclarationCollections(declaration) {
     throw new Error(
       `check-skipped-required-checks: \`workflows\` must list at least one workflow file whose \`skip_jobs\` this guard reads.`
     );
+  }
+}
+
+/**
+ * Validates the optional per-branch required sets (CodySwannGT/lisa#4484).
+ *
+ * Optional so a declaration written before #4484 keeps loading. When present it
+ * must map each branch to an array of context strings, and every one of those
+ * contexts must also be in `required_contexts`: the union is DEFINED as the
+ * union of these sets, so a member missing from it means the two were written
+ * at different times and one is stale. Naming it beats picking one silently.
+ *
+ * @param {object} declaration - Parsed declaration
+ * @returns {void}
+ */
+function assertRequiredContextsByBranch(declaration) {
+  const byBranch = declaration.required_contexts_by_branch;
+  if (byBranch === undefined) return;
+  if (
+    byBranch === null ||
+    typeof byBranch !== "object" ||
+    Array.isArray(byBranch)
+  ) {
+    throw new Error(
+      `check-skipped-required-checks: \`required_contexts_by_branch\` must be an object mapping each branch name to the array of contexts its rules require, e.g. \`{ "staging": ["CodeRabbit"] }\`.`
+    );
+  }
+  const union = new Set(declaration.required_contexts);
+  for (const [branch, contexts] of Object.entries(byBranch)) {
+    if (
+      !Array.isArray(contexts) ||
+      !contexts.every(context => typeof context === "string")
+    ) {
+      throw new Error(
+        `check-skipped-required-checks: \`required_contexts_by_branch.${branch}\` must be an array of context strings, transcribed byte for byte from \`rules/branches/${branch}\`.`
+      );
+    }
+    const strays = contexts.filter(context => !union.has(context));
+    if (strays.length > 0) {
+      throw new Error(
+        `check-skipped-required-checks: \`required_contexts_by_branch.${branch}\` names ${strays.map(name => JSON.stringify(name)).join(", ")}, which \`required_contexts\` (the cross-branch union) does not carry. The two were written at different times and one of them is stale — re-run the host refresh so both come from the same read.`
+      );
+    }
   }
 }
 
@@ -1688,9 +1771,21 @@ export function evaluateAbsentRequiredChecks(
   checks,
   options = {}
 ) {
-  const required = declaration.required_contexts;
-  if (!Array.isArray(required))
+  if (!Array.isArray(declaration.required_contexts))
     return { violations: [], checked: 0, absent: [] };
+  // #4484: judged against the BASE branch's own set when the declaration has
+  // one, and against the union — reported, never silently — when it does not.
+  const requiredSet =
+    options.requiredSet ??
+    selectRequiredContexts(
+      declaration,
+      options.base ?? { base: null, source: null }
+    );
+  const required = requiredSet.contexts;
+  const judgedFor =
+    requiredSet.source === "branch"
+      ? ` Judged against the contexts required on base \`${requiredSet.base}\`.`
+      : "";
 
   const at = citeHeadSha(options.headSha);
   const parked = (options.parkedRuns ?? []).filter(
@@ -1718,13 +1813,187 @@ export function evaluateAbsentRequiredChecks(
   return {
     checked: required.length,
     absent,
+    requiredSet,
     violations: absent.map(name => ({
       kind: VIOLATIONS.absent,
       token: name,
       contexts: [name],
-      message: `\`${name}\` is ruleset-required but did not report on this pull request at all.${at} It posted NO check-run — not pending, not failing, ABSENT. \`gh pr checks\` prints no line for it and the pull request page renders it exactly as one still in flight, so every surface says "wait" and none says "broken".${approval} (If the context was renamed, fix \`required_contexts\`; names are compared byte for byte.)`,
+      message:
+        options.registration === undefined
+          ? `\`${name}\` is ruleset-required but did not report on this pull request at all.${at}${judgedFor} It posted NO check-run — not pending, not failing, ABSENT. \`gh pr checks\` prints no line for it and the pull request page renders it exactly as one still in flight, so every surface says "wait" and none says "broken".${approval} (If the context was renamed, fix \`required_contexts\`; names are compared byte for byte.)`
+          : `${options.registration.line}${at}${judgedFor}${approval} The wait ending does not prove permanent absence or a defect in this change. If a required context was renamed or removed, reconcile its declared name with CI; names are compared byte for byte.`,
     })),
   };
+}
+
+/** The prefix a full ref carries and a declaration's branch keys do not. */
+const HEADS_PREFIX = "refs/heads/";
+
+/**
+ * Normalises a base ref to the bare branch name the declaration is keyed by.
+ *
+ * @param {unknown} ref - A ref as some source reported it
+ * @returns {string|null} The branch name, or null when there is none
+ */
+function normaliseBaseRef(ref) {
+  if (typeof ref !== "string") return null;
+  const trimmed = ref.trim();
+  const bare = trimmed.startsWith(HEADS_PREFIX)
+    ? trimmed.slice(HEADS_PREFIX.length)
+    : trimmed;
+  return bare === "" ? null : bare;
+}
+
+/**
+ * Resolves the branch the pull request under inspection merges INTO.
+ *
+ * Most-explicit-first, the same order {@link resolvePullRequestNumber} uses:
+ * an operator's `--base`, then `GITHUB_BASE_REF` (set by Actions on every
+ * `pull_request` and `pull_request_target` run), then the event payload's
+ * `pull_request.base.ref`. Offline on purpose — every source is a fact this run
+ * already holds, so selecting a set costs no API call, no token scope and no
+ * rate limit, and works the same on a fork pull request. Returning null is a
+ * real answer: the caller falls back to the union and SAYS so.
+ *
+ * The run's own base describes the run's own pull request, and nothing else.
+ * When `options.pr` names the pull request being inspected, GITHUB_BASE_REF
+ * and the payload are used only if the payload's `pull_request.number` IS that
+ * pull request, in the same repository (`options.repo`, from `--repo`).
+ * Otherwise a `--pr=8` inspected from PR #7's staging-base run, or another
+ * repository's PR #7, would be judged against staging, and a dev-base PR could
+ * pass while missing a dev-only context. The ignored base is returned as
+ * `ignoredEventBase` so the fallback can say why it fell back; `--base` still
+ * names it explicitly.
+ *
+ * @param {ReadonlyArray<string>} argv - CLI arguments
+ * @param {NodeJS.ProcessEnv} [env] - Environment, injectable for tests
+ * @param {{pr?: string, repo?: string}} [options] - The pull request and repository being inspected, when known
+ * @returns {{base: string|null, source: string|null, ignoredEventBase?: string}} The base and where it came from
+ */
+export function resolveBaseRef(argv, env = process.env, options = {}) {
+  const explicit = normaliseBaseRef(readFlagValue(argv, "--base"));
+  if (explicit !== null) return { base: explicit, source: "--base" };
+
+  const eventPath = env.GITHUB_EVENT_PATH;
+  const payload =
+    eventPath !== undefined && eventPath !== "" && existsSync(eventPath)
+      ? readJsonOrNull(eventPath)
+      : null;
+  const fromEnv = normaliseBaseRef(env.GITHUB_BASE_REF);
+  const fromEvent = normaliseBaseRef(payload?.pull_request?.base?.ref);
+  const found =
+    fromEnv !== null
+      ? { base: fromEnv, source: "GITHUB_BASE_REF" }
+      : fromEvent !== null
+        ? { base: fromEvent, source: "GITHUB_EVENT_PATH" }
+        : null;
+  if (found === null) return { base: null, source: null };
+  if (options.pr === undefined) return found;
+
+  const eventPr = payload?.pull_request?.number ?? payload?.number;
+  return String(eventPr) === String(options.pr) &&
+    isEventRepository(options.repo, payload, env)
+    ? found
+    : { base: null, source: null, ignoredEventBase: found.base };
+}
+
+/**
+ * True when the inspected repository is the one this run's event belongs to.
+ *
+ * PR numbers are per repository, so `--repo=other/name --pr=7` from
+ * owner/name's PR #7 run is a different pull request with the same number. No
+ * `--repo` means the run's own repository. An event repository that cannot be
+ * read is not a match: the base would then be a guess.
+ *
+ * @param {string|undefined} repo - The inspected `owner/name`, if given
+ * @param {object|null} payload - The parsed event payload
+ * @param {NodeJS.ProcessEnv} env - Environment
+ * @returns {boolean} True when the event's base describes the inspected repository
+ */
+function isEventRepository(repo, payload, env) {
+  if (repo === undefined || repo === "") return true;
+  const eventRepo = payload?.repository?.full_name ?? env.GITHUB_REPOSITORY;
+  return (
+    typeof eventRepo === "string" &&
+    eventRepo.toLowerCase() === repo.toLowerCase()
+  );
+}
+
+/**
+ * Picks the required set the absent arm judges a pull request against.
+ *
+ * The base branch's own set when `required_contexts_by_branch` carries one —
+ * including an EMPTY one, which is a branch that requires nothing, not a branch
+ * nobody recorded. Otherwise the union in `required_contexts`, with a
+ * {@link REQUIRED_SET_FALLBACK} notice naming why. `line` is printed on every
+ * run that reaches the absent arm, so a downstream run proves which path it
+ * took from its own log.
+ *
+ * @param {object} declaration - The per-repo declaration
+ * @param {{base: string|null, source: string|null}} base - The resolved base ref
+ * @returns {{source: "branch"|"union", base: string|null, baseSource: string|null, contexts: string[], fallback: {kind: string, reason: string}|null, line: string}} The selection
+ */
+export function selectRequiredContexts(declaration, base) {
+  const byBranch = declaration.required_contexts_by_branch;
+  const branchSet =
+    base.base !== null &&
+    byBranch !== undefined &&
+    Object.hasOwn(byBranch, base.base)
+      ? byBranch[base.base]
+      : undefined;
+  if (Array.isArray(branchSet)) {
+    return {
+      source: "branch",
+      base: base.base,
+      baseSource: base.source,
+      contexts: [...branchSet],
+      fallback: null,
+      line: `required contexts: per-branch set for base '${base.base}' (${branchSet.length} contexts)`,
+    };
+  }
+  return {
+    source: "union",
+    base: base.base,
+    baseSource: base.source,
+    contexts: [...(declaration.required_contexts ?? [])],
+    fallback: {
+      kind: REQUIRED_SET_FALLBACK,
+      reason: unionFallbackReason(declaration, base),
+    },
+    line:
+      base.base === null
+        ? "required contexts: union fallback (no base ref resolved)"
+        : `required contexts: union fallback (no set for base '${base.base}')`,
+  };
+}
+
+/**
+ * Says why a run judged against the union, and what would end the fallback.
+ *
+ * The remedy is one a consumer of Lisa's shipped seed can always carry out:
+ * transcribe the branch's rules by hand. Lisa ships no refresh, so a host
+ * refresh is named only as an option for a repository that has one.
+ *
+ * @param {object} declaration - The per-repo declaration
+ * @param {{base: string|null, ignoredEventBase?: string}} resolved - The resolved base
+ * @returns {string} The reason
+ */
+function unionFallbackReason(declaration, resolved) {
+  const consequence =
+    "so absent required checks were judged against `required_contexts`, the UNION across every protected branch. A context only some other branch requires is reported absent here even though this base may not require it (CodySwannGT/lisa#4484).";
+  const base = resolved.base;
+  if (base === null) {
+    const ignored =
+      resolved.ignoredEventBase === undefined
+        ? ""
+        : ` This run's own base, \`${resolved.ignoredEventBase}\`, was NOT used: it belongs to the run's own pull request, and \`--pr\`/\`--repo\` named a different one.`;
+    return `No base ref could be resolved for the inspected pull request (looked at \`--base\`, GITHUB_BASE_REF and the event payload's \`pull_request.base.ref\`), ${consequence}${ignored} Pass \`--base=<branch>\` to name it.`;
+  }
+  const remedy = `Record it by hand: transcribe \`gh api repos/OWNER/NAME/rules/branches/${base} --jq '.[] | select(.type=="required_status_checks") | .parameters.required_status_checks[].context'\` (read access only) into \`required_contexts_by_branch.${base}\`, byte for byte, keeping every context in \`required_contexts\` too. A host refresh that writes per-branch sets does the same, if this repository has one.`;
+  if (declaration.required_contexts_by_branch === undefined) {
+    return `The declaration has no \`required_contexts_by_branch\`, ${consequence} ${remedy}`;
+  }
+  return `\`required_contexts_by_branch\` has no set for base \`${base}\`, ${consequence} ${remedy}`;
 }
 
 /**
@@ -1865,7 +2134,72 @@ export const REVIEW_GATE_CONDITIONS = Object.freeze({
   pending: "pending",
   unrecognised: "unrecognised",
   undetermined: "undetermined",
+  // A SATISFYING condition: the reviewer could not or did not review this
+  // head, and a writer posted a local adversarial review for it in its place.
+  // See `substitutable` for exactly which readings qualify. Never from
+  // `objected` or a review still in flight.
+  substituted: "substituted",
 });
+
+/**
+ * Review conditions where the reviewer FINISHED without reviewing, so a
+ * writer's substitute may stand in.
+ *
+ * WHY WAIVERS QUALIFY. A rate limit or a vendor skip is a billing or
+ * entitlement state, not a finding, and it must not pull a human into every
+ * merge. Standing in for it is safe because the two things a substitute must
+ * never hide are read from somewhere else: an objection from the review
+ * OBJECTS at this head ({@link readObjectionAtHead}), which outranks every
+ * state in the published verdict; and unresolved review threads, which the
+ * branch ruleset blocks on directly. `unrecognised` qualifies for the same
+ * reason — a green status whose sentence nobody classified carries no
+ * objection the review objects would not also carry.
+ */
+const SUBSTITUTABLE_REPORTED_CONDITIONS = Object.freeze(
+  new Set([
+    REVIEW_GATE_CONDITIONS.waived,
+    REVIEW_GATE_CONDITIONS.waivedWithReview,
+    REVIEW_GATE_CONDITIONS.unrecognised,
+  ])
+);
+
+/**
+ * Whether a substitute may stand in for one reviewer's reading.
+ *
+ * A reviewer that posted NO row qualifies whatever the wait concluded. A
+ * reviewer that posted a row qualifies only when that row is SETTLED and says
+ * it did not review. `undetermined` with a row present is a review STILL
+ * RUNNING once the wait expires, and a substitute must not race a review in
+ * flight whose objection would land after the merge. `objected` and `pending`
+ * never qualify.
+ *
+ * EVERY substitute — for a reviewer that spoke or one that never posted —
+ * also requires the pull request's review surface to have been READ and to
+ * show no objection: no CHANGES_REQUESTED decision and no unresolved thread.
+ * The review objects at head catch only a CHANGES_REQUESTED on this commit; a
+ * COMMENTED review with open threads, or an objection on an earlier push, is
+ * visible only on the surface. A surface that could not be read is not a clean
+ * one, so it substitutes nothing.
+ *
+ * KNOWN DEPENDENCY: GitHub fills `reviewDecision` only where the repository
+ * requires reviews. Without that rule an earlier push's CHANGES_REQUESTED is
+ * caught only if it left an unresolved thread, which reviewers that request
+ * changes ordinarily do.
+ *
+ * @param {object|undefined} found - The reviewer's check row, if it posted one
+ * @param {string} condition - The condition its reading produced
+ * @param {{read: boolean, present: boolean, objected: boolean}|undefined} activity - What the review surface showed, if it was read
+ * @returns {boolean} Whether a substitute may stand in
+ */
+function substitutable(found, condition, activity) {
+  const surfaceClean =
+    activity !== undefined &&
+    activity.read === true &&
+    activity.objected !== true;
+  if (!surfaceClean) return false;
+  if (found === undefined) return true;
+  return SUBSTITUTABLE_REPORTED_CONDITIONS.has(condition);
+}
 
 /**
  * What the pull request's OWN review surface says, independent of any check.
@@ -2236,6 +2570,16 @@ export function evaluateReviewGate(declaration, checks, options = {}) {
           },
       vocabulary
     );
+    if (
+      options.substitutes?.has(name) === true &&
+      substitutable(found, verdict.condition, options.reviewActivity)
+    ) {
+      states[name] = REVIEW_GATE_STATES.satisfied;
+      conditions[name] = REVIEW_GATE_CONDITIONS.substituted;
+      if (found !== undefined)
+        descriptions[name] = String(found.description ?? "");
+      continue;
+    }
     states[name] = verdict.state;
     conditions[name] = verdict.condition;
     // Assigned ONLY when the check reported. An absent check with a `""`
@@ -2277,6 +2621,191 @@ export function evaluateReviewGate(declaration, checks, options = {}) {
  * reading the string collapses those two, and it collapses them PERMISSIVELY.
  */
 export const REVIEW_OBJECTION_STATE = "CHANGES_REQUESTED";
+
+/**
+ * The marker a local adversarial review carries when it stands in for a
+ * declared reviewer that never reported.
+ *
+ * Byte-identical to `substituteMarker` in
+ * `check-third-party-review-evidence.mjs`, which is the format
+ * `lisa-drive-pr-to-merge` posts. Duplicated rather than imported because the
+ * two scripts ship from different template trees, and a host that has one need
+ * not have the other.
+ *
+ * WHY THIS GATE READS IT AT ALL. A repository that declares a reviewer it has
+ * not installed — or whose reviewer is down — saw this gate red on EVERY pull
+ * request, with no route to green that did not also delete the declaration.
+ * The response arm already accepted a posted substitute; this arm did not, so
+ * the two published opposite verdicts for the same head.
+ */
+export const REVIEW_SUBSTITUTE_MARKER = "lisa:review-substitute";
+
+/** Repository permissions whose holder may stand in for a reviewer. */
+const SUBSTITUTE_WRITER_PERMISSIONS = new Set(["admin", "maintain", "write"]);
+
+/**
+ * The lead of a satisfied verdict, which says whether a substitute was involved.
+ *
+ * @param {ReadonlyArray<string>} names - The declared reviewers
+ * @param {Record<string, string>} conditions - Each reviewer's condition
+ * @returns {string} `REVIEWED`, or a SUBSTITUTED lead accurate for all or some
+ */
+function substitutedLead(names, conditions) {
+  const substituted = names.filter(
+    name => conditions[name] === REVIEW_GATE_CONDITIONS.substituted
+  );
+  if (substituted.length === 0) return "REVIEWED";
+  if (substituted.length === names.length) {
+    return "SUBSTITUTED — no third-party review; a local adversarial review stands in";
+  }
+  return `SUBSTITUTED IN PART — a local adversarial review stands in for ${substituted.length} of ${names.length} declared reviewers; the rest reviewed`;
+}
+
+/**
+ * The marker line a substitute carries for one reviewer at one commit.
+ *
+ * @param {string} context - The declared evidence-bearing check name
+ * @param {string} sha - The head commit the substitute reviewed
+ * @returns {string} The marker line
+ */
+export function reviewSubstituteMarker(context, sha) {
+  return `<!-- ${REVIEW_SUBSTITUTE_MARKER} context="${context}" head="${sha}" -->`;
+}
+
+/**
+ * Which declared checks a WRITER posted a substitute for at exactly this head.
+ *
+ * Stricter than the response arm, on purpose, because here a match turns a
+ * blocking verdict green:
+ *
+ * - The marker must be the comment's FIRST LINE. A comment that merely quotes
+ *   the marker — instructions, a pasted log — is not a review.
+ * - The author must hold write access. Anyone who can comment can type the
+ *   marker; only someone who could have merged anyway can vouch for a review.
+ * - Evidence is per reviewer and per head: a substitute for another check, or
+ *   for an earlier push, satisfies nothing.
+ *
+ * @param {ReadonlyArray<{body?: string, author?: string}>} comments - Issue comments on the pull request
+ * @param {ReadonlyArray<string>} names - Declared evidence-bearing check names
+ * @param {string|undefined} headSha - The head commit under inspection
+ * @param {(login: string) => boolean} canWrite - Whether a login holds write access
+ * @returns {Set<string>} The names a writer's substitute stands in for
+ */
+export function substitutesAtHead(comments, names, headSha, canWrite) {
+  const found = new Set();
+  if (headSha === undefined || headSha === "") return found;
+  for (const name of names) {
+    const marker = reviewSubstituteMarker(name, headSha);
+    const posted = (comments ?? []).some(
+      comment =>
+        String(comment?.body ?? "")
+          .split("\n")[0]
+          .replace(/\r$/, "") === marker &&
+        canWrite(String(comment?.author ?? ""))
+    );
+    if (posted) found.add(name);
+  }
+  return found;
+}
+
+/**
+ * Reads the issue comments on one pull request.
+ *
+ * @param {string|number} pr - The pull request
+ * @param {string} [repo] - `OWNER/NAME`; defaults to the current repository
+ * @returns {Array<{body: string, author: string}>} The comments
+ */
+export function fetchIssueComments(pr, repo) {
+  const slug = resolveRepoSlug(repo);
+  if (slug === undefined) {
+    throw new Error(
+      `check-skipped-required-checks: cannot read the comments on PR ${pr} without an OWNER/NAME. Pass \`--repo=OWNER/NAME\`, or set GITHUB_REPOSITORY.`
+    );
+  }
+  return ghApiPaginatedArray(
+    `repos/${slug}/issues/${pr}/comments?per_page=100`,
+    "[.[] | {body: .body, author: .user.login}]"
+  );
+}
+
+/**
+ * Whether a login holds write access to the repository.
+ *
+ * probe-direction: fail-closed — any failure to read the permission answers
+ * `false`, which can only leave a substitute uncounted, never count one.
+ *
+ * Two known shapes never count, both in the safe direction: a login the
+ * pattern below rejects (Enterprise Managed User logins carry `_shortcode`),
+ * and a bot author such as `github-actions[bot]`, which is not a collaborator.
+ * A substitute posted from CI therefore needs a human writer's comment.
+ *
+ * @param {string} login - The comment author
+ * @param {string} [repo] - `OWNER/NAME`; defaults to the current repository
+ * @returns {boolean} Whether the login may stand in for a reviewer
+ */
+export function fetchWritePermission(login, repo) {
+  const slug = resolveRepoSlug(repo);
+  if (slug === undefined || !/^[A-Za-z0-9-]+(\[bot\])?$/.test(login)) {
+    return false;
+  }
+  try {
+    const permission = boundedExecFileSync(
+      "gh",
+      [
+        "api",
+        `repos/${slug}/collaborators/${encodeURIComponent(login)}/permission`,
+        "--jq",
+        ".permission",
+      ],
+      { encoding: "utf8" }
+    ).trim();
+    return SUBSTITUTE_WRITER_PERMISSIONS.has(permission);
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Reads which declared checks a writer's substitute stands in for at a head.
+ *
+ * probe-direction: fail-closed — an unreadable comment list returns an empty
+ * set, which leaves the gate exactly where it would have been without this
+ * read. Nothing here can redden a pull request; it can only fail to green one.
+ *
+ * @param {object} declaration - The per-repo declaration
+ * @param {string|number} pr - The pull request under inspection
+ * @param {string|undefined} repo - `OWNER/NAME`; defaults to the current repository
+ * @param {string|undefined} headSha - The head commit under inspection
+ * @param {{fetchComments?: Function, canWrite?: Function}} [options] - Injection seams
+ * @returns {Set<string>} The names a writer's substitute stands in for
+ */
+export function readReviewSubstitutes(
+  declaration,
+  pr,
+  repo,
+  headSha,
+  options = {}
+) {
+  const names = Object.keys(declaration.evidence_bearing_checks ?? {});
+  if (names.length === 0 || headSha === undefined || headSha === "") {
+    return new Set();
+  }
+  let comments;
+  try {
+    comments = (options.fetchComments ?? fetchIssueComments)(pr, repo);
+  } catch {
+    return new Set();
+  }
+  const permission =
+    options.canWrite ?? (login => fetchWritePermission(login, repo));
+  const seen = new Map();
+  const canWrite = login => {
+    if (login === "") return false;
+    if (!seen.has(login)) seen.set(login, permission(login) === true);
+    return seen.get(login);
+  };
+  return substitutesAtHead(comments, names, headSha, canWrite);
+}
 
 /**
  * Whether an objection STANDS at this head, from the review objects.
@@ -2737,6 +3266,12 @@ export function reviewGateVerdict(reading = {}) {
    * @returns {string} `<name> reported "<description>"`, or what the wait did
    */
   const quote = name => {
+    if (conditions[name] === REVIEW_GATE_CONDITIONS.substituted) {
+      const said = Object.hasOwn(descriptions, name)
+        ? `reported ${JSON.stringify(descriptions[name])} without reviewing`
+        : "posted NO review status";
+      return `${name} ${said}; a writer's ${REVIEW_SUBSTITUTE_MARKER} local adversarial review stands in for it at this head`;
+    }
     if (conditions[name] === REVIEW_GATE_CONDITIONS.undetermined) {
       return `${name} had not settled when the gate's wait EXPIRED — not observed to be unreviewed`;
     }
@@ -2830,7 +3365,7 @@ export function reviewGateVerdict(reading = {}) {
       verdict: REVIEW_GATE_STATES.waived,
       conclusion: REVIEW_VERDICT_CONCLUSIONS.waived,
       title: fitTitle(
-        `CARRIED UNREVIEWED — this pull request's own review ran, but the work it carries was not reviewed with it${suffix}`
+        `CARRIED UNREVIEWED — this pull request's own ${names.some(name => conditions[name] === REVIEW_GATE_CONDITIONS.substituted) ? "head was covered by a local adversarial review standing in for the reviewer" : "review ran"}, but the work it carries was not reviewed with it${suffix}`
       ),
     };
   }
@@ -2846,7 +3381,7 @@ export function reviewGateVerdict(reading = {}) {
       verdict: REVIEW_GATE_STATES.waived,
       conclusion: REVIEW_VERDICT_CONCLUSIONS.waived,
       title: fitTitle(
-        `REVIEWED, OBJECTION STANDING UNKNOWN — the review ran, and whether it requested changes at this head could not be read: ${names.map(quote).join("; ")}${suffix}`
+        `${names.some(name => conditions[name] === REVIEW_GATE_CONDITIONS.substituted) ? "SUBSTITUTED, OBJECTION STANDING UNKNOWN — a local adversarial review stood in" : "REVIEWED, OBJECTION STANDING UNKNOWN — the review ran"}, and whether a reviewer requested changes at this head could not be read: ${names.map(quote).join("; ")}${suffix}`
       ),
     };
   }
@@ -2854,7 +3389,14 @@ export function reviewGateVerdict(reading = {}) {
   return {
     verdict: REVIEW_GATE_STATES.satisfied,
     conclusion: REVIEW_VERDICT_CONCLUSIONS.satisfied,
-    title: fitTitle(`REVIEWED — ${names.map(quote).join("; ")}${suffix}`),
+    // SUBSTITUTED is not REVIEWED. A self-review standing in for a third-party
+    // one is a weaker claim, and the title is what gets quoted into a merge
+    // disclosure, so it says which one this was.
+    // And it is only "no third-party review" when that is true of EVERY
+    // declared reviewer: a mixed result had a real review alongside the stand-in.
+    title: fitTitle(
+      `${substitutedLead(names, conditions)} — ${names.map(quote).join("; ")}${suffix}`
+    ),
   };
 }
 
@@ -3615,12 +4157,23 @@ export function declaredEvidenceChecks(declaration) {
  * @returns {boolean} True when nothing declared is still in flight
  */
 export function checksSettled(declaration, checks) {
-  return declaredEvidenceChecks(declaration).every(name => {
-    const found = checks.find(check => check.name === name);
-    if (found === undefined) return false;
-    if (String(found.bucket ?? "").toLowerCase() === "pending") return false;
-    return String(found.state ?? "").toUpperCase() !== "PENDING";
-  });
+  return declaredEvidenceChecks(declaration).every(name =>
+    checkSettled(checks.find(check => check.name === name))
+  );
+}
+
+/**
+ * Distinguishes a completed reviewer from an absent or in-flight row.
+ *
+ * @param {object|undefined} found - One normalized check row
+ * @returns {boolean} Whether the row is terminal
+ */
+function checkSettled(found) {
+  return (
+    found !== undefined &&
+    String(found.bucket ?? "").toLowerCase() !== "pending" &&
+    String(found.state ?? "").toUpperCase() !== "PENDING"
+  );
 }
 
 /**
@@ -3639,15 +4192,20 @@ function sleepSync(ms) {
 }
 
 /**
- * Reads a pull request's checks, re-reading until the declared ones settle.
+ * Reads until reviewers settle and the selected required rows register.
+ *
+ * Registration needs a row, including a pending or failing row; reviewer
+ * completion is a separate observation. Both waits share one absolute deadline.
+ * A head-bound substitute can skip an unreported reviewer's evidence wait,
+ * but never the registration of a ruleset-required context.
  *
  * @param {object} declaration - The per-repo declaration
  * @param {string|number} pr - Pull request number
  * @param {string|undefined} repo - `OWNER/NAME`, or undefined
- * @param {{timeoutSeconds?: number, intervalSeconds?: number, fetch?: Function, now?: Function, sleep?: Function, headSha?: Function}} [options] -
+ * @param {{timeoutSeconds?: number, intervalSeconds?: number, fetch?: Function, now?: Function, sleep?: Function, headSha?: Function, requiredSet?: object, substitutes?: Set<string>, substituteHead?: string}} [options] -
  *   Injection seams; the suite drives the whole loop through them so nothing
  *   here has to sleep in real time
- * @returns {{checks: object[], settled: boolean, headSha: string|undefined}} The rows, whether they settled, and the head they were read at
+ * @returns {{checks: object[], settled: boolean, headSha: string|undefined, registration: object}} Rows, reviewer completion, head and required-registration observations
  */
 export function fetchSettledChecks(declaration, pr, repo, options = {}) {
   const timeoutMs = (options.timeoutSeconds ?? SETTLE_TIMEOUT_SECONDS) * 1000;
@@ -3666,7 +4224,27 @@ export function fetchSettledChecks(declaration, pr, repo, options = {}) {
   const resolveHead = options.headSha ?? resolveHeadSha;
   const clock = options.now ?? Date.now;
   const sleep = options.sleep ?? sleepSync;
-  const deadline = clock() + timeoutMs;
+  const started = clock();
+  const deadline = started + timeoutMs;
+  const requiredSet =
+    options.requiredSet ??
+    selectRequiredContexts(declaration, { base: null, source: null });
+  const missing = checks =>
+    requiredSet.contexts.filter(
+      name => !checks.some(check => check.name === name)
+    );
+  // A substitute is useful only at the head it was actually read for. Pending
+  // rows still wait, and a missing required reviewer still needs a real row.
+  const evidenceReady = observed =>
+    declaredEvidenceChecks(declaration).every(name => {
+      const found = observed.checks.find(check => check.name === name);
+      return (
+        checkSettled(found) ||
+        (found === undefined &&
+          observed.headSha === options.substituteHead &&
+          options.substitutes?.has(name))
+      );
+    });
 
   // Bracket every roster read with head reads. `gh pr checks` targets the PR's
   // current head but does not return the SHA it used, and the permission-light
@@ -3696,7 +4274,9 @@ export function fetchSettledChecks(declaration, pr, repo, options = {}) {
 
   let observed = snapshot();
   while (
-    (!observed.stable || !checksSettled(declaration, observed.checks)) &&
+    (!observed.stable ||
+      !evidenceReady(observed) ||
+      missing(observed.checks).length > 0) &&
     clock() < deadline
   ) {
     sleep(Math.min(intervalMs, deadline - clock()));
@@ -3707,10 +4287,36 @@ export function fetchSettledChecks(declaration, pr, repo, options = {}) {
       `check-skipped-required-checks: the pull request head changed while its checks were being read (${observed.headSha ?? "unresolved"} -> ${observed.after ?? "unresolved"}). Refusing to attach one commit's review evidence to another; re-read the pull request after the push settles.`
     );
   }
+  const elapsedSeconds = Math.max(0, clock() - started) / 1000;
+  const unregistered = missing(observed.checks);
+  const total = requiredSet.contexts.length;
+  const present = total - unregistered.length;
+  const expired = unregistered.length > 0;
+  const settled = checksSettled(declaration, observed.checks);
+  const evidence = {
+    settled,
+    // A missing reviewer covered by a head-bound substitute did not finish,
+    // but its evidence wait was skipped rather than expired. Reporting those
+    // as the same fact contradicts the substituted verdict.
+    expired: !evidenceReady(observed),
+    line: `Review evidence ${settled ? "settled" : evidenceReady(observed) ? "covered by head-bound substitutes" : "wait EXPIRED"} after ${elapsedSeconds}s.`,
+  };
+  const registration = {
+    elapsedSeconds,
+    present,
+    total,
+    missing: unregistered,
+    expired,
+    line: expired
+      ? `Required registration wait EXPIRED: the gate stopped waiting after ${elapsedSeconds}s; ${present} of ${total} required contexts observed; missing: ${unregistered.join(", ")}. RE-RUN this job before treating this as a finding about the change.`
+      : `Required registration settled after ${elapsedSeconds}s; ${present} of ${total} required contexts observed.`,
+  };
   return {
     checks: observed.checks,
-    settled: checksSettled(declaration, observed.checks),
+    settled,
     headSha: observed.headSha,
+    registration,
+    evidence,
   };
 }
 
@@ -3943,6 +4549,36 @@ export function inspectVacuity(argv, declaration, options = {}) {
   }
 
   const repo = readFlagValue(argv, "--repo");
+  // Substitutes are read only when the gate is armed, like every other review
+  // read here. Read BEFORE the settle wait as well as after it: when a writer
+  // has already stood in for every declared reviewer, waiting five minutes for
+  // a reviewer that is not coming proves nothing and only delays the green.
+  const readSubstitutes = sha =>
+    requireReviewEvidence
+      ? (options.readSubstitutes ?? readReviewSubstitutes)(
+          declaration,
+          pr,
+          repo,
+          sha,
+          options
+        )
+      : new Set();
+  const declaredReviewers = Object.keys(
+    declaration.evidence_bearing_checks ?? {}
+  );
+  const earlyHead = requireReviewEvidence
+    ? (options.headSha ?? resolveHeadSha)(pr, repo)
+    : undefined;
+  const earlySubstitutes = readSubstitutes(earlyHead);
+  const allStoodIn =
+    declaredReviewers.length > 0 &&
+    declaredReviewers.every(name => earlySubstitutes.has(name));
+  // Select once: polling and the absence verdict must judge the same base.
+  // resolveBaseRef retains its existing contract; live retargeting is #4487.
+  const requiredSet = selectRequiredContexts(
+    declaration,
+    resolveBaseRef(argv, options.env ?? process.env, { pr, repo })
+  );
   let read;
   try {
     read = fetchSettledChecks(declaration, pr, repo, {
@@ -3960,6 +4596,9 @@ export function inspectVacuity(argv, declaration, options = {}) {
       now: options.now,
       sleep: options.sleep,
       headSha: options.headSha,
+      requiredSet,
+      substitutes: allStoodIn ? earlySubstitutes : undefined,
+      substituteHead: earlyHead,
     });
   } catch (error) {
     return refused(vacuityRefusal({ declaration, pr, error }));
@@ -3971,6 +4610,9 @@ export function inspectVacuity(argv, declaration, options = {}) {
       ...refused(refusal),
       headSha: read.headSha,
       settled: read.settled,
+      requiredSet,
+      registration: read.registration,
+      evidence: read.evidence,
     };
   }
   const evaluated = evaluateVacuousChecks(declaration, read.checks, {
@@ -3984,6 +4626,8 @@ export function inspectVacuity(argv, declaration, options = {}) {
   const absent = evaluateAbsentRequiredChecks(declaration, read.checks, {
     headSha: read.headSha,
     parkedRuns: options.parkedRuns,
+    requiredSet,
+    registration: read.registration,
   });
   // The gate is evaluated on EVERY run, not only when a caller asked it to
   // block. Its findings are what make a waiver visible, and a waiver that is
@@ -3991,29 +4635,51 @@ export function inspectVacuity(argv, declaration, options = {}) {
   // repositories that have not opted in yet.
   const gateOptions = {
     headSha: read.headSha,
-    // The settle loop exits on one of two things: everything declared reached a
-    // terminal read, or the deadline passed. So `settled === false` IS "the
-    // wait expired", and it is the only place that fact exists — every reader
-    // downstream sees a check row that looks identical either way (#3716).
+    // Reviewer completion stays separate from required registration. Expiry
+    // while an ordinary required row is missing must not turn a completed
+    // reviewer into an undetermined one (#3716, #4527).
     waitExpired: read.settled === false,
+    // Bound to the head the checks were read at. A push between the early read
+    // and the settled one invalidates every substitute for the old head.
+    // Reused only when it was COMPLETE: a substitute posted while the gate
+    // waited is only seen by reading the comments again.
+    substitutes:
+      allStoodIn && read.headSha !== undefined && read.headSha === earlyHead
+        ? earlySubstitutes
+        : readSubstitutes(read.headSha),
   };
-  // TWO PASSES, AND THE SECOND IS PAID FOR ONLY BY A WAIVER (#3706). The review
-  // surface is read exactly when a waiver is on the table, which is the only
-  // condition whose verdict it can change: `satisfied`, `absent`, `pending`,
-  // `unrecognised` and `undetermined` all reach the same answer without it, and
-  // making them pay a network call would put a new failure mode on paths that
-  // work. Same shape, and the same reason, as the waive-rate sample below.
-  const gate = Object.values(
-    evaluateReviewGate(declaration, read.checks, gateOptions).states
-  ).includes(REVIEW_GATE_STATES.waived)
-    ? evaluateReviewGate(declaration, read.checks, {
-        ...gateOptions,
-        reviewActivity: (options.reviewActivity ?? fetchReviewActivity)(
-          pr,
-          repo
-        ),
-      })
-    : evaluateReviewGate(declaration, read.checks, gateOptions);
+  // TWO PASSES, AND THE SECOND IS PAID FOR ONLY BY A WAIVER OR A SUBSTITUTE
+  // (#3706, #4532). The review surface is read exactly when one of the two is
+  // on the table, the only inputs whose verdict it can change: `satisfied`,
+  // `absent`, `pending`, `unrecognised` and `undetermined` all reach the same
+  // answer without it when nobody stood in, and making them pay a network call
+  // would put a new failure mode on paths that work. Same shape, and the same
+  // reason, as the waive-rate sample below.
+  //
+  // The trigger is decided WITHOUT substitutes. A substitute turns a waived
+  // row satisfied, and deciding on that would skip the very read that finds an
+  // objection hidden inside a waiver. And ANY substitute pays for the read on
+  // its own, because standing in — for a reviewer that spoke or one that never
+  // posted — requires the surface to show no objection: an unresolved thread,
+  // or a CHANGES_REQUESTED from an earlier push, is visible only there.
+  const unsubstituted = evaluateReviewGate(declaration, read.checks, {
+    ...gateOptions,
+    substitutes: undefined,
+  });
+  const anyStandIn = Object.keys(unsubstituted.conditions).some(name =>
+    gateOptions.substitutes.has(name)
+  );
+  const gate =
+    Object.values(unsubstituted.states).includes(REVIEW_GATE_STATES.waived) ||
+    anyStandIn
+      ? evaluateReviewGate(declaration, read.checks, {
+          ...gateOptions,
+          reviewActivity: (options.reviewActivity ?? fetchReviewActivity)(
+            pr,
+            repo
+          ),
+        })
+      : evaluateReviewGate(declaration, read.checks, gateOptions);
   // #3658. Everything above judged ONE commit — this pull request's head — and
   // that is the one commit a batch integration pull request does not speak for.
   // Armed by the same flag as the gate itself, because this IS the gate,
@@ -4050,13 +4716,29 @@ export function inspectVacuity(argv, declaration, options = {}) {
     headSha: read.headSha,
     checked: evaluated.checked,
     violations: [
-      ...evaluated.violations,
+      // "Did not report… NOBODY LOOKED" and "reported green having reviewed
+      // nothing" are both answered once a writer's substitute stands in for
+      // that exact check at this head, so neither is repeated — and the
+      // vacuous one would otherwise still fail the job under
+      // `--fail-on-vacuous` while the verdict reads SUBSTITUTED.
+      ...evaluated.violations.filter(
+        violation =>
+          !(
+            (violation.kind === VIOLATIONS.unproven ||
+              violation.kind === VIOLATIONS.vacuous) &&
+            gate.conditions[violation.token] ===
+              REVIEW_GATE_CONDITIONS.substituted
+          )
+      ),
       ...absent.violations,
       ...gate.violations,
       ...(carried?.violations ?? []),
       ...(objection?.violations ?? []),
     ],
     absent: absent.absent,
+    requiredSet,
+    registration: read.registration,
+    evidence: read.evidence,
     gateStates: gate.states,
     gateConditions: gate.conditions,
     gateDescriptions: gate.descriptions,
@@ -4436,6 +5118,7 @@ export function runGuard(argv, options = {}) {
       "require-review-evidence": { type: "boolean" },
       outcomes: { type: "boolean" },
       pr: { type: "string" },
+      base: { type: "string" },
       repo: { type: "string" },
       "settle-timeout": { type: "string" },
       "settle-interval": { type: "string" },
@@ -4677,6 +5360,32 @@ function appendVerdictReport(lines, result) {
 }
 
 /**
+ * Prints which required set the absent arm judged against, and annotates a
+ * union fallback (CodySwannGT/lisa#4484).
+ *
+ * The line is printed on EVERY run that reached the absent arm, both paths, so
+ * a downstream run proves from its own log whether the per-branch set was used.
+ * A fallback is additionally a named `::warning` annotation — loud on the
+ * checks page — while the verdict stays whatever the union's findings make it.
+ *
+ * @param {string[]} lines - Report lines
+ * @param {{line: string, fallback: {kind: string, reason: string}|null}|undefined} requiredSet - The selection
+ * @returns {void}
+ */
+function appendRequiredSetReport(lines, requiredSet) {
+  if (requiredSet === undefined) return;
+  lines.push(requiredSet.line, "");
+  if (requiredSet.fallback === null) return;
+  lines.push(
+    `⚠️ **${requiredSet.fallback.kind}** — ${requiredSet.fallback.reason}`,
+    ""
+  );
+  process.stderr.write(
+    `::warning title=${requiredSet.fallback.kind}::${requiredSet.fallback.reason}\n`
+  );
+}
+
+/**
  * Appends and annotates an untrusted ruleset snapshot.
  *
  * @param {string[]} lines - Report lines
@@ -4747,7 +5456,7 @@ function appendCleanResult(lines, result, refusal) {
   );
   if (result.pr === undefined) return;
   const settleNote =
-    result.vacuity?.settled === false
+    (result.vacuity?.evidence?.expired ?? result.vacuity?.settled === false)
       ? " (One or more had not settled when the wait expired, so this is what was true at that moment.)"
       : "";
   lines.push(
@@ -4799,7 +5508,7 @@ function appendFindingReport(lines, result, policy, blocking) {
  * @returns {void}
  */
 function appendFindingContext(lines, result, policy) {
-  if (result.vacuity?.settled === false) {
+  if (result.vacuity?.evidence?.expired ?? result.vacuity?.settled === false) {
     lines.push(
       "",
       "⏳ The settle wait EXPIRED before every declared review check reached a terminal state, so the readings above are where the wait stopped rather than where the reviewer finished. RE-RUN this job before treating any of it as a finding about the change."
@@ -4956,6 +5665,14 @@ function appendUnexaminedContexts(lines, notExamined) {
 function buildTextReport(result, policy, outcome) {
   const lines = ["## 🔒 Required checks that prove nothing", ""];
   appendVerdictReport(lines, result);
+  appendRequiredSetReport(lines, result.vacuity?.requiredSet);
+  if (result.vacuity?.registration !== undefined) {
+    lines.push(
+      result.vacuity.evidence.line,
+      result.vacuity.registration.line,
+      ""
+    );
+  }
   appendSnapshotRefusal(lines, result, policy);
   appendInspectionRefusal(lines, outcome);
   appendOutcomeReport(lines, result.outcomes);
@@ -4976,6 +5693,26 @@ function buildTextReport(result, policy, outcome) {
  * @returns {void}
  */
 function writeTextResult(result, policy, outcome) {
+  if (outcome.failed) {
+    // Emit the actual verdict BEFORE any detailed error, including refusals.
+    const reasons = [
+      ...new Set([
+        ...outcome.blocking.map(violation => violation.kind),
+        ...(outcome.refusalBlocks ? [outcome.refusal.kind] : []),
+        ...(outcome.outcomesRefusal === null
+          ? []
+          : [outcome.outcomesRefusal.kind]),
+        ...(!result.trust.trusted && !policy.warnOnly
+          ? ["required-checks snapshot untrusted"]
+          : []),
+      ]),
+    ];
+    const registration = result.vacuity?.registration;
+    const summary = registration?.expired
+      ? `${registration.line} Blocking verdict: ${reasons.join(", ")}.`
+      : `${outcome.blocking.length} blocking finding(s): ${reasons.join(", ")}.`;
+    process.stderr.write(`::error title=Required checks verdict::${summary}\n`);
+  }
   const report = buildTextReport(result, policy, outcome);
   process.stdout.write(report);
   writeStepSummary(report);

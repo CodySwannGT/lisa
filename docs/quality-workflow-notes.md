@@ -769,3 +769,26 @@ this, declaring `dependency-vulnerability` off silenced the audit and
 left this scan running — a declaration satisfied in one job and ignored
 in another, which is the defect this epic keeps finding one layer up.
 ```
+
+
+## Required-check registration and review-evidence diagnostics
+
+The review-evidence prover gives the selected base branch's required contexts
+one shared, bounded settle window to register. A queued or failing ordinary
+check already counts as a reported row; this gate does not replace the quality
+job's outcome policy. Review completion remains separate, and a review substitute
+does not waive required-context registration. At expiry the report gives elapsed
+time, observed/total counts and missing names, and asks the operator to re-run.
+It does not establish that a missing row will never appear.
+
+Updating Lisa and running `lisa apply` installs the managed
+`scripts/check-skipped-required-checks.mjs` repair. The consumer
+`.github/workflows/review-evidence.yml` is **create-only** and remains owned by
+the host project. Existing consumers should compare their vacuity step with
+`typescript/create-only/.github/workflows/review-evidence.yml` from the installed
+Lisa package, then adopt the preflight diagnostic changes while preserving their
+workflow customizations. Each guard now builds its annotation at execution time,
+for example `printf '::%s title=%s::%s\n' error "Vacuity prover missing" "$message"`,
+so GitHub's echoed shell source cannot masquerade as a missing-file error.
+Both guards still fail when their input is actually missing. The managed prover
+prints a one-line actual failure summary before its detailed error annotations.

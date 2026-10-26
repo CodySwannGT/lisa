@@ -21,7 +21,11 @@ import {
 import { loadWorkflow } from "../helpers/workflow-test-utils.js";
 import type { WorkflowJob } from "../helpers/workflow-test-utils.js";
 import { boundedSpawnSync } from "../helpers/io-latency-budget.js";
-import { GATES_SCRIPT, QUALITY_YML } from "./quality-gate-facade-fixture.js";
+import {
+  GATES_SCRIPT,
+  isShardLeg,
+  QUALITY_YML,
+} from "./quality-gate-facade-fixture.js";
 
 /** Workflow job fields used by the preallocation contract. */
 interface PlannedWorkflowJob extends WorkflowJob {
@@ -70,6 +74,9 @@ const workflow = loadWorkflow(QUALITY_YML) as {
 
 /** Every quality job that invokes the existing in-job gate facade. */
 const facadeJobs = Object.entries(workflow.jobs)
+  // A shard leg rides its parent's plan key: a key of its own would break
+  // every consumer's installed planner (see SHARD_LEGS).
+  .filter(([jobId]) => !isShardLeg(jobId))
   .filter(([, job]) => job.steps?.some(step => step.id === "gate"))
   .map(([jobId]) => jobId);
 

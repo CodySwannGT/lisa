@@ -23,9 +23,9 @@ channels (Telegram) and cross-session messaging (`SendMessage`, `crossSessionInb
 | Runtime | lisa-setup-session-manager | lisa-session-manager (manager) | `managedBy=` |
 |---|---|---|---|
 | Claude Code | supported | supported (reference). Needs `claude` ≥ 2.1.224, `tmux`, `bun` | supported |
-| Codex | config, token and runbook are supported. `start` launches a Claude Code manager, so it works when the `claude` CLI is installed | the skill ships, but `cycle` refuses to run here (no `/loop`, channels or `SendMessage`); tell the operator to run `start` | rejected with the gap message |
+| Codex | config, token (prompt or `--from-clipboard`), runbook, `trust-status` and `coexistence` are supported. `trust-status` reads Claude Code's trust record, which is the one that matters (workers are Claude Code); accepting trust needs the `claude` CLI. `coexistence` sees only run logs, so also list Codex automations. `start` launches a Claude Code manager, so it works when the `claude` CLI is installed | the skill ships, but `cycle` refuses to run here (no `/loop`, channels or `SendMessage`); tell the operator to run `start` | rejected with the gap message |
 | Cursor / Antigravity (agy) / Copilot / Devin | same as Codex | same as Codex | rejected |
-| OpenCode | config and token are supported; script resolution relies on the npm rung, so `queue` and `record-cycle` need the npm package | gap | rejected |
+| OpenCode | same setup subcommands as Codex, but script resolution relies on the npm rung: the CLI imports plugin-level scripts the skill-folder copy lacks, so every subcommand needs the npm package | gap | rejected |
 
 On any runtime other than Claude Code, `cycle` stops with: "The session manager runs on Claude Code
 only (background sessions, channels, cross-session messaging). Run `/lisa:session-manager start`
@@ -66,7 +66,12 @@ the manager.
   claims go through `lisa-tracker-claim`. Never call a vendor API around them.
 - **"Me".** Resolve once per manager run and store it with `ledger control --me <id>`: GitHub
   `gh api user --jq .login`; Jira the accountId from the `lisa-atlassian-access` identity probe;
-  Linear `viewer.id` through `lisa-linear-access`.
+  Linear `viewer.id` through `lisa-linear-access`. "Me" is whoever the tracker credential belongs
+  to, which is often an agent account.
+- **Operators.** `sessionManager.operatorIds` names the people the manager works for (the same
+  kind of id as "me": GitHub login, Jira accountId, Linear user id). Their assigned items come
+  first, then items assigned to "me", then unassigned. Items assigned to anyone else are never
+  dispatched. Never treat an operator's item as someone else's.
 - **Workers** start only through `spawn`. The worker prompt is exactly
   `/lisa:implement <REF> managedBy=<manager-name>`; `lisa-implement` owns what `managedBy=` means.
   Never start a worker another way, and never reuse a worker for another item or a new attempt.
@@ -207,8 +212,19 @@ Skip while `capacity` reports `paused`. Otherwise:
      Raw Jira issues carry `key` and `fields` (summary, priority, assignee, created, labels,
      description, reporter, issuetype, subtasks); raw Linear nodes carry identifier, title, priority,
      createdAt, assignee, labels, description, creator and children with their state type.
-   - `ordered` is the dispatch order (mine, then unassigned, then priority, then age). `excluded`
-     needs no action.
+   - `ordered` is the dispatch order: assigned to an operator, then to "me", then unassigned; each
+     group by priority, then age. `excluded` needs no action.
+   - **Backlog tier** (only when `sessionManager.backlogPickup` is `true`). GitHub: `queue` fetches
+     it itself (open issues with no build or PRD lifecycle label). Jira / Linear: also fetch the
+     open leaf items in **no** lifecycle role — Linear workflow state type `backlog` or `unstarted`
+     other than the configured `ready` state; Jira status category "To Do" other than the configured
+     `ready` status — paged to completion, including each item's `updatedAt` / `updated` and its
+     blockers (Linear `inverseRelations` with `type` and the blocking issue's `state.type`; Jira
+     `issuelinks`). Put them in the same input file as
+     `"backlog":{"complete":true,"pages":<n>,"items":[...]}`; `queue` refuses a missing or partial
+     backlog envelope while the key is on. It returns `backlogOrdered` (same grouping and order,
+     minus items with an unfinished blocker and items whose cached validation failure still matches
+     their `updatedAt`) and `backlogExcluded`.
 2. **While `capacity` says `can_spawn`** and items remain, take the next item that has no pending
    question in the ledger:
    1. Read it fully (`lisa-tracker-read`): title, description, labels, project, parent, comments.
@@ -223,9 +239,11 @@ Skip while `capacity` reports `paused`. Otherwise:
       `cd "$(node "$SM/session-manager.mjs" repo-dir --repo <key> --raw --project-root "$ROOT")"`
       (omit `--repo` on a single-repo project), invoke `lisa-tracker-claim <ref>`, then
       `cd "$ROOT" && pwd` and confirm the path. Continue only on `claimed` or `reused` with the
-      assignee equal to "me"; anything else means skip. Then re-read the item with
-      `lisa-tracker-read`: if the re-read shows a different assignee, or shows the state did not
-      change to the `claimed` role, skip it (someone else holds it, or the claim did not land).
+      assignee equal to "me" or to one of `sessionManager.operatorIds` (the claim assigns only an
+      unassigned item, so an operator's item keeps the operator); anything else means skip. Then
+      re-read the item with `lisa-tracker-read`: if the re-read shows an assignee that is neither
+      "me" nor an operator, or shows the state did not change to the `claimed` role, skip it
+      (someone else holds it, or the claim did not land).
       Never spawn on the claim's word alone.
    4. **Spawn.** `spawn <ref> [--repo <key>]`.
       - exit 0: post `[<REF>] started in <repo> (<name>)` to Telegram.
@@ -237,6 +255,34 @@ Skip while `capacity` reports `paused`. Otherwise:
         `recovery-required` with that message as the summary. It is not a failed attempt; do not
         dispatch to that repo again until the operator fixes it.
       - any other exit: move the item back to the `ready` role, notify Telegram, continue.
+3. **Backlog tier, lowest priority.** Only when `backlogPickup` is on, every `ordered` item has been
+   taken or skipped, and `capacity` still says `can_spawn`. Ready work always wins: never promote a
+   backlog item while a dispatchable Ready item remains. For the next `backlogOrdered` item with no
+   pending question in the ledger:
+   1. Read it fully (`lisa-tracker-read`). If it gained an assignee who is neither "me" nor an
+      operator, a lifecycle role, open child work, a human hold or an unfinished blocker since the
+      queue was listed, skip it.
+   2. **Validate it** with `lisa-tracker-validate` against the live item (identifier mode, all
+      gates, including the stateless-pickup dry-run). This is what "can be taken to completion"
+      means. On a definitive `FAIL`, record
+      `ledger validation-failed <ref> --updated-at <the item's updatedAt>` with a one-line summary
+      of the failing gates on STDIN, and skip it; the queue leaves it out until the item changes.
+      On could-not-validate (an outage or unreadable item, not a verdict), skip it WITHOUT
+      recording, so the next cycle retries it. Either way, post nothing to Telegram: backlog
+      grooming is not the operator's inbox.
+   3. **Route the repo** as in step 2.2, but never ask: an ambiguous or multi-repo backlog item is
+      skipped.
+   4. **Promote** in ONE `lisa-tracker-write` update: assignee = the first `operatorIds` entry, move
+      to the `ready` role, comment
+      `[lisa-session-manager] Promoted from backlog: validation passed; assigned to the operator.`
+      Read it back with `lisa-tracker-read` and continue only when the role is `ready` and the
+      assignee is that operator. Then `ledger validation-cleared <ref>`.
+   5. Continue with steps 2.3 and 2.4 (claim in the child repo, re-read, spawn, handle the exit)
+      exactly as for a Ready item, with one change: on exit 0, post
+      `[<REF>] promoted from backlog and started in <repo> (<name>)` in place of the plain start
+      notice. Every other exit keeps its step 2.4 handling.
+   A promotion written and read back counts as a state change for the run outcome; a spawn that
+   then fails follows step 2.4's exits (the item stays in Ready, assigned to the operator).
 
 ### 3. Report and record
 

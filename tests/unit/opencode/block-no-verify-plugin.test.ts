@@ -184,6 +184,25 @@ describe("OpenCode block-no-verify plugin", () => {
     expect(verdict).toContain(path.join(tempDir, SCRIPT_FILENAME));
   });
 
+  // THE FLAKE, MADE DETERMINISTIC. The case above passed or failed on a race:
+  // the policy process exits without reading stdin, and when it won, the
+  // adapter's write hit a closed pipe and published "EPIPE: broken pipe" as
+  // the verdict. Closing stdin up front and writing more than a pipe buffer
+  // (64 KiB on Linux) makes that write fail every time on the platform CI runs.
+  it("reports a policy process that never reads its input as an environment failure", async () => {
+    await fs.writeFile(
+      path.join(tempDir, SCRIPT_FILENAME),
+      "#!/bin/bash\nexec 0<&-\necho policy unavailable >&2\nexit 127\n"
+    );
+
+    const verdict = invoke(`git status ${"x".repeat(100_000)}`);
+    expect(verdict).toContain(
+      "deny:block-no-verify: guard environment failure"
+    );
+    expect(verdict).toContain("status 127");
+    expect(verdict).not.toContain("EPIPE");
+  });
+
   // NEGATIVE CONTROLS. A guard that refuses these is not precise, it is broken —
   // and `-n` means something ordinary to almost every command that takes it.
   it("allows a line count on an unrelated command", () => {

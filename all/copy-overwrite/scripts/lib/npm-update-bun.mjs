@@ -106,8 +106,8 @@ export async function qualifiedBun(env, { executable, deadline } = {}) {
   };
   const version = await invoke(["--version"]);
   required(
-    version.stdout.toString() === "1.3.8\n" && !version.stderr.length,
-    "Bun1.3.8 is required"
+    version.stdout.toString() === "1.4.4\n" && !version.stderr.length,
+    "Bun1.4.4 is required"
   );
   return invoke;
 }
@@ -128,8 +128,10 @@ export async function verifyBunLock(bun, app, options = {}) {
   const value = JSON.parse(parsed.stdout.toString());
   const manifest = JSON.parse(readFileSync(join(app, "package.json"), "utf8"));
   const npm = JSON.parse(readFileSync(join(app, "package-lock.json"), "utf8"));
+  // Bun1.4 writes version 2 (3 once nested overrides appear) with the same
+  // package rows checked below; hosts not yet relocked still hold 1.
   required(
-    value.lockfileVersion === 1 &&
+    [1, 2, 3].includes(value.lockfileVersion) &&
       Object.keys(value.workspaces ?? {}).join() === "" &&
       value.workspaces?.[""]?.name === manifest.name,
     "unsupported Bun root lock"

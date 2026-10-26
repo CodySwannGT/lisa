@@ -203,7 +203,9 @@ describe("storeToken", () => {
     expect(result).toEqual({
       stored: false,
       reason: "no-tty",
+      message: expect.stringContaining("separate terminal app"),
       command: `node '${scriptsDir}/session-manager.mjs' store-token --project-root '${projectRoot}'`,
+      clipboardCommand: `node '${scriptsDir}/session-manager.mjs' store-token --from-clipboard --project-root '${projectRoot}'`,
     });
     expect(existsSync(path.join(dir, "tg"))).toBe(false);
   });

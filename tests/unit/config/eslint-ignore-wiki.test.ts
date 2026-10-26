@@ -137,11 +137,19 @@ describe("managed eslint config wrappers", () => {
     }
   );
 
-  it.each(SLOW_CONFIGS.map(p => [p]))(
-    "%s annotates the default export with ReturnType<typeof getSlowConfig>",
-    relPath => {
+  // Expo builds its slow config from the Expo factory, which adds the two
+  // React rules lint:slow exists for (#4507); every other stack uses the
+  // shared one.
+  it.each(
+    SLOW_CONFIGS.map(p => [
+      p,
+      p.startsWith("expo/") ? "getExpoSlowConfig" : "getSlowConfig",
+    ])
+  )(
+    "%s annotates the default export with ReturnType<typeof %s>",
+    (relPath, factory) => {
       const src = readText(relPath);
-      expect(src).toContain("ReturnType<typeof getSlowConfig>");
+      expect(src).toContain(`ReturnType<typeof ${factory}>`);
       // Only real import statements count — the header comment mentions the
       // `from "eslint"` it forbids, so filter to lines that actually import.
       const importsEslint = src

@@ -696,7 +696,8 @@ claims Ready leaf items and runs each one as `/lisa:implement` in a fresh backgr
 session. It is **opt-in**: an absent block means no manager, and `lisa sync` never populates it
 (it is deliberately not in the sync registry, because the manager starts sessions with permissions
 bypassed). `/lisa:setup:session-manager` writes it, detecting a multi-repo layout from
-`projects/*/.lisa.config.json`.
+`projects/*/.lisa.config.json`, or, when `projects/` holds none, from the root's own children that
+have a `.lisa.config.json` and their own `.git` (written as `"root": "."`).
 
 ```json
 "sessionManager": {
@@ -720,7 +721,7 @@ bypassed). `/lisa:setup:session-manager` writes it, detecting a multi-repo layou
 | `sessionManager.name` | **yes** | — | Manager session name: lowercase letters, digits, `-` or `_`, at most 64 characters. It names the tmux session and the session workers `SendMessage` to. Setup writes `<project>-manager`. |
 | `sessionManager.interval` | no | `5m` | `/loop` cadence: a positive integer plus `s`, `m`, `h` or `d`. |
 | `sessionManager.repos` | no | — | Omit for a single-repo project: every item routes to the project root. When present, `entries` must name at least one repo. |
-| `sessionManager.repos.root` | no | `projects` | Relative directory holding the child repos. It must stay inside the project. |
+| `sessionManager.repos.root` | no | `projects` | Relative directory holding the child repos. It must stay inside the project. `.` means the repos are direct children of the project root. |
 | `sessionManager.repos.entries.<key>.hints` | **yes** (per entry) | — | Non-empty list of words the manager matches a work item against to choose the repo. `<key>` is the child directory name (one safe path segment). |
 | `sessionManager.capacity.maxWorkers` | no | `6` | Hard cap on concurrent workers (a positive integer). Telegram `cap N` overrides it at runtime through the manager's ledger, not config. |
 | `sessionManager.capacity.gbPerWorker` | no | `3` | Memory budgeted per worker, in GB (positive). |
@@ -733,6 +734,8 @@ bypassed). `/lisa:setup:session-manager` writes it, detecting a multi-repo layou
 | `sessionManager.notify.provider` | no | `telegram` | Only `telegram` is implemented. |
 | `sessionManager.notify.stateDir` | **yes** | — | This project's own Telegram state dir. Never the shared default `~/.claude/channels/telegram`, because one bot per state dir is how projects stay isolated. Setup writes `~/.claude/channels/telegram-<project>`. |
 | `sessionManager.trustedAuthorIds` | no | — | Optional list of **stable tracker user ids**, as strings: the GitHub numeric user id (`gh api users/<login> --jq .id`), the Jira `accountId`, or the Linear user id. Not logins or display names: matching compares ids, so a login silently matches no one and excludes every item. When set, the manager takes only items authored by these people. |
+| `sessionManager.operatorIds` | no | — | Optional, non-empty list of the people the manager works for, as tracker user ids matched against the **assignee** the same way "me" is: the GitHub **login**, the Jira `accountId`, or the Linear user id, spelled exactly as the tracker API returns it (matching is case-sensitive, so look the OPERATOR up rather than typing from memory: `gh api users/<operator-login> --jq .login` returns the canonical GitHub spelling. Do not use `gh api user`, which returns whoever the credential belongs to — the agent account, when that is the case this key exists for). Dispatch order is assigned to an operator, then to "me" (the tracker credential's identity), then unassigned; items assigned to anyone else are skipped. Set it whenever the tracker credential is not the operator's own (an agent account), or the operator's Ready items are never dispatched. |
+| `sessionManager.backlogPickup` | no | `false` | Opt-in lowest dispatch tier. When the Ready queue is exhausted and capacity remains, the manager considers backlog items (open leaves in no lifecycle role) with the Ready exclusions plus any unfinished blocker; each one that passes the tracker validator (all gates, including the stateless-pickup dry-run) is assigned to the first `operatorIds` entry, moved to Ready in one write, read back and dispatched. A failed validation is cached against the item's `updatedAt`, so it is re-judged only after the item changes. Requires `operatorIds`. |
 
 - **Non-secret only.** The bot token lives in `<stateDir>/.env` (directory 0700, file 0600),
   written by setup. A credential-named field or a token-shaped value anywhere in this block is a

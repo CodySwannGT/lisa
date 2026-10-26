@@ -244,10 +244,25 @@ describe("the workflow stands alone", () => {
 // ─────────────────────────────────────────────────────────────────────────────
 
 describe("playwright_e2e job preservation", () => {
-  it("preserves runs-on ubuntu-latest and timeout-minutes 60", () => {
-    const matrix = job("playwright_e2e");
-    expect(matrix["runs-on"]).toBe("ubuntu-latest");
-    expect(matrix["timeout-minutes"]).toBe(60);
+  it("preserves timeout-minutes 60", () => {
+    expect(job("playwright_e2e")["timeout-minutes"]).toBe(60);
+  });
+
+  it("runs every browser-installing job on a pinned image, never ubuntu-latest", () => {
+    // ubuntu-latest moved to 26.04 in October 2026, where Playwright 1.59
+    // refuses to install Chromium and the required `🎭 Browser Journeys`
+    // check fails on every caller PR. Derived from the steps rather than
+    // listed by name, so a new job that installs browsers inherits the rule.
+    const installers = Object.entries(doc.jobs).filter(([, j]) =>
+      j.steps.some(step => step.run?.includes("playwright install"))
+    );
+    expect(installers.map(([name]) => name)).toEqual([
+      "playwright_e2e",
+      "playwright_e2e_aggregate",
+    ]);
+    for (const [, j] of installers) {
+      expect(j["runs-on"]).toBe("ubuntu-24.04");
+    }
   });
 
   it("declares matrix strategy fed by the setup job's shards output", () => {

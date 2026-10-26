@@ -28,12 +28,23 @@ describe.each(ALL_ROOTS)(
     it("skips an item whose post-claim re-read shows another assignee or no state change", () => {
       const dispatch = section(skill, "## The cycle");
       expect(dispatch).toContain(
-        "Then re-read the item with\n      `lisa-tracker-read`"
+        "Then\n      re-read the item with `lisa-tracker-read`"
       );
       expect(dispatch).toContain(
-        "if the re-read shows a different assignee, or shows the state did not\n      change to the `claimed` role, skip it"
+        'if the re-read shows an assignee that is neither\n      "me" nor an operator, or shows the state did not change to the `claimed` role, skip it'
       );
       expect(dispatch).toContain("Never spawn on the claim's word alone.");
+    });
+
+    // CodySwannGT/lisa#4467: an operator's item keeps the operator as assignee.
+    it("accepts a claim whose assignee is me or an operator", () => {
+      const dispatch = section(skill, "## The cycle");
+      expect(dispatch).toContain(
+        'assignee equal to "me" or to one of `sessionManager.operatorIds`'
+      );
+      expect(dispatch).toContain(
+        'assigned to an operator, then to "me", then unassigned'
+      );
     });
 
     it("accepts a worker message only from the ref's own worker", () => {
