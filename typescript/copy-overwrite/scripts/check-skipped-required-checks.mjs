@@ -2168,13 +2168,27 @@ const SUBSTITUTABLE_REPORTED_CONDITIONS = Object.freeze(
  * flight whose objection would land after the merge. `objected` and `pending`
  * never qualify.
  *
+ * A reviewer that SPOKE also requires the pull request's review surface to
+ * have been READ and to show no objection — no CHANGES_REQUESTED decision and
+ * no unresolved thread. The review objects at head catch only a
+ * CHANGES_REQUESTED on this commit; a COMMENTED review with open threads, or
+ * an objection on an earlier push whose status a re-request overwrote with a
+ * rate limit, is visible only on the surface. A surface that could not be read
+ * is not a clean one, so it substitutes nothing.
+ *
  * @param {object|undefined} found - The reviewer's check row, if it posted one
  * @param {string} condition - The condition its reading produced
+ * @param {{read: boolean, present: boolean, objected: boolean}|undefined} activity - What the review surface showed, if it was read
  * @returns {boolean} Whether a substitute may stand in
  */
-function substitutable(found, condition) {
+function substitutable(found, condition, activity) {
   if (found === undefined) return true;
-  return SUBSTITUTABLE_REPORTED_CONDITIONS.has(condition);
+  return (
+    SUBSTITUTABLE_REPORTED_CONDITIONS.has(condition) &&
+    activity !== undefined &&
+    activity.read === true &&
+    activity.objected !== true
+  );
 }
 
 /**
@@ -2548,7 +2562,7 @@ export function evaluateReviewGate(declaration, checks, options = {}) {
     );
     if (
       options.substitutes?.has(name) === true &&
-      substitutable(found, verdict.condition)
+      substitutable(found, verdict.condition, options.reviewActivity)
     ) {
       states[name] = REVIEW_GATE_STATES.satisfied;
       conditions[name] = REVIEW_GATE_CONDITIONS.substituted;
@@ -3357,7 +3371,7 @@ export function reviewGateVerdict(reading = {}) {
       verdict: REVIEW_GATE_STATES.waived,
       conclusion: REVIEW_VERDICT_CONCLUSIONS.waived,
       title: fitTitle(
-        `REVIEWED, OBJECTION STANDING UNKNOWN — the review ran, and whether it requested changes at this head could not be read: ${names.map(quote).join("; ")}${suffix}`
+        `${names.some(name => conditions[name] === REVIEW_GATE_CONDITIONS.substituted) ? "SUBSTITUTED, OBJECTION STANDING UNKNOWN — a local adversarial review stood in" : "REVIEWED, OBJECTION STANDING UNKNOWN — the review ran"}, and whether a reviewer requested changes at this head could not be read: ${names.map(quote).join("; ")}${suffix}`
       ),
     };
   }
@@ -4573,17 +4587,32 @@ export function inspectVacuity(argv, declaration, options = {}) {
   // `unrecognised` and `undetermined` all reach the same answer without it, and
   // making them pay a network call would put a new failure mode on paths that
   // work. Same shape, and the same reason, as the waive-rate sample below.
-  const gate = Object.values(
-    evaluateReviewGate(declaration, read.checks, gateOptions).states
-  ).includes(REVIEW_GATE_STATES.waived)
-    ? evaluateReviewGate(declaration, read.checks, {
-        ...gateOptions,
-        reviewActivity: (options.reviewActivity ?? fetchReviewActivity)(
-          pr,
-          repo
-        ),
-      })
-    : evaluateReviewGate(declaration, read.checks, gateOptions);
+  //
+  // The trigger is decided WITHOUT substitutes. A substitute turns a waived
+  // row satisfied, and deciding on that would skip the very read that finds an
+  // objection hidden inside a waiver (#4532). A substitute for a REPORTED row is
+  // the second thing that pays for it: standing in for a reviewer that spoke
+  // requires the review surface to have been read and to show no objection.
+  const unsubstituted = evaluateReviewGate(declaration, read.checks, {
+    ...gateOptions,
+    substitutes: undefined,
+  });
+  const standsInForReported = Object.entries(unsubstituted.conditions).some(
+    ([name, condition]) =>
+      gateOptions.substitutes.has(name) &&
+      SUBSTITUTABLE_REPORTED_CONDITIONS.has(condition)
+  );
+  const gate =
+    Object.values(unsubstituted.states).includes(REVIEW_GATE_STATES.waived) ||
+    standsInForReported
+      ? evaluateReviewGate(declaration, read.checks, {
+          ...gateOptions,
+          reviewActivity: (options.reviewActivity ?? fetchReviewActivity)(
+            pr,
+            repo
+          ),
+        })
+      : evaluateReviewGate(declaration, read.checks, gateOptions);
   // #3658. Everything above judged ONE commit — this pull request's head — and
   // that is the one commit a batch integration pull request does not speak for.
   // Armed by the same flag as the gate itself, because this IS the gate,

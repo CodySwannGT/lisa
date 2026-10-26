@@ -27,6 +27,9 @@ const OLDER = "0000111122223333444455556666777788889999";
 const WRITER = "maintainer";
 const READER = "drive-by";
 const RATE_LIMITED = "Review rate limited";
+const UNRECOGNISED = "Something new";
+/** A review surface that was read and shows no objection. */
+const CLEAN_SURFACE = { read: true, present: false, objected: false } as const;
 
 /** One issue comment as this suite builds them. */
 interface Comment {
@@ -295,14 +298,14 @@ describe("what a substitute can and cannot stand in for", () => {
   it.each([
     ["was rate limited", RATE_LIMITED],
     ["skipped", "Review skipped: manual review required"],
-    ["said something unrecognised", "Something new"],
+    ["said something unrecognised", UNRECOGNISED],
   ])(
     "stands in for a reviewer that %s, so a rate limit never needs a human",
     (_label, description) => {
       const gate = mod.evaluateReviewGate(
         DECLARATION,
         [{ name: CODERABBIT, state: "SUCCESS", description }],
-        { headSha: HEAD, substitutes }
+        { headSha: HEAD, substitutes, reviewActivity: CLEAN_SURFACE }
       );
       expect(gate.states[CODERABBIT]).toBe(mod.REVIEW_GATE_STATES.satisfied);
       expect(gate.conditions[CODERABBIT]).toBe(
@@ -311,6 +314,42 @@ describe("what a substitute can and cannot stand in for", () => {
       expect(gate.violations).toEqual([]);
     }
   );
+
+  it.each([
+    ["could not be read", { read: false, present: false, objected: false }],
+    ["was never read", undefined],
+    [
+      "shows an objection (CHANGES_REQUESTED or an unresolved thread)",
+      { read: true, present: true, objected: true },
+    ],
+  ])(
+    "never stands in for a reviewer that spoke when the review surface %s",
+    (_label, activity) => {
+      for (const description of [RATE_LIMITED, UNRECOGNISED]) {
+        const gate = mod.evaluateReviewGate(
+          DECLARATION,
+          [{ name: CODERABBIT, state: "SUCCESS", description }],
+          { headSha: HEAD, substitutes, reviewActivity: activity }
+        );
+        expect(gate.conditions[CODERABBIT], description).not.toBe(
+          mod.REVIEW_GATE_CONDITIONS.substituted
+        );
+        expect(gate.states[CODERABBIT], description).not.toBe(
+          mod.REVIEW_GATE_STATES.satisfied
+        );
+      }
+    }
+  );
+
+  it("needs no review surface for a reviewer that never posted", () => {
+    const gate = mod.evaluateReviewGate(DECLARATION, [], {
+      headSha: HEAD,
+      substitutes,
+    });
+    expect(gate.conditions[CODERABBIT]).toBe(
+      mod.REVIEW_GATE_CONDITIONS.substituted
+    );
+  });
 
   it("still files the waiver when nobody stood in for a rate limit", () => {
     const gate = mod.evaluateReviewGate(
@@ -380,16 +419,20 @@ describe("the armed gate end to end", () => {
     heads = [HEAD],
     declaration = DECLARATION,
     reviews = [],
+    activity = CLEAN_SURFACE,
   }: {
     substitutes: (sha: string | undefined) => Set<string>;
     rows?: readonly Check[];
     heads?: readonly string[];
     declaration?: Record<string, unknown>;
     reviews?: readonly { state: string; commitSha: string; author: string }[];
+    activity?: { read: boolean; present: boolean; objected: boolean };
   }): {
     inspection: ReturnType<GuardModule["inspectVacuity"]>;
     sleeps: number;
+    surfaceReads: number;
   } => {
+    let surfaceReads = 0;
     let sleeps = 0;
     let now = 0;
     let call = 0;
@@ -412,9 +455,13 @@ describe("the armed gate end to end", () => {
         ) => substitutes(sha),
         fetchCarried: () => [],
         fetchReviews: () => reviews,
+        reviewActivity: () => {
+          surfaceReads += 1;
+          return activity;
+        },
       }
     );
-    return { inspection, sleeps };
+    return { inspection, sleeps, surfaceReads };
   };
   const rateLimited: readonly Check[] = [
     {
@@ -435,6 +482,56 @@ describe("the armed gate end to end", () => {
       mod.REVIEW_VERDICT_CONCLUSIONS.satisfied
     );
     expect(inspection?.verdict.title).toMatch(/^SUBSTITUTED/);
+  });
+
+  it("reads the review surface before standing in for a rate-limited reviewer", () => {
+    const { surfaceReads } = inspect({
+      substitutes: atHead,
+      rows: rateLimited,
+    });
+    expect(surfaceReads).toBe(1);
+  });
+
+  it("never lets a substitute hide open threads or an earlier objection under a rate limit", () => {
+    // A COMMENTED review with unresolved threads, or a CHANGES_REQUESTED on an
+    // earlier push whose status a re-request overwrote with a rate limit: the
+    // review objects at THIS head show nothing, only the surface does.
+    const { inspection } = inspect({
+      substitutes: atHead,
+      rows: rateLimited,
+      activity: { read: true, present: true, objected: true },
+    });
+    expect(inspection?.verdict.conclusion).toBe(
+      mod.REVIEW_VERDICT_CONCLUSIONS.unsatisfied
+    );
+    expect(inspection?.verdict.title).not.toMatch(/^SUBSTITUTED/);
+  });
+
+  it("reads the review surface to stand in for an unrecognised reviewer, which is never waived", () => {
+    // Not waived, so only the substitute can pay for the surface read; without
+    // it there is no clean surface and the substitute must not count.
+    const { inspection, surfaceReads } = inspect({
+      substitutes: atHead,
+      rows: [
+        {
+          name: CODERABBIT,
+          state: "SUCCESS",
+          bucket: "pass",
+          description: UNRECOGNISED,
+        },
+      ],
+    });
+    expect(surfaceReads).toBe(1);
+    expect(inspection?.verdict.title).toMatch(/^SUBSTITUTED/);
+  });
+
+  it("does not stand in for a rate limit when the review surface cannot be read", () => {
+    const { inspection } = inspect({
+      substitutes: atHead,
+      rows: rateLimited,
+      activity: { read: false, present: false, objected: false },
+    });
+    expect(inspection?.verdict.title).not.toMatch(/^SUBSTITUTED/);
   });
 
   it("never lets a substitute hide an objection a rate-limited reviewer left at this head", () => {
