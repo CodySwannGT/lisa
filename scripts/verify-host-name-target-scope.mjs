@@ -244,6 +244,41 @@ try {
       localArgvControl: { actualArgv, inspectedWriteExecuted: false },
     })
   );
+  const continuation = "\\\n";
+  for (const [name, command, expected] of [
+    [
+      "continuation removes no real argument",
+      `gh issue ${continuation} create --body ${continuation} "$KNOWN_NAME"`,
+      ["issue", "create", "--body", fixtureName],
+    ],
+    [
+      "quoted empty word survives continuation",
+      `gh issue create --body ""${continuation} "$KNOWN_NAME"`,
+      ["issue", "create", "--body", "", fixtureName],
+    ],
+  ]) {
+    const argv = boundedExecFileSync(
+      "/bin/bash",
+      ["-c", `gh() { printf "%s\\n" "$@"; }; ${command}`],
+      {
+        cwd: hostCwd,
+        env: { ...fixtureEnv, KNOWN_NAME: fixtureName },
+        encoding: "utf8",
+      }
+    )
+      .trim()
+      .split("\n");
+    assert.deepEqual(argv, expected, name);
+    console.log(
+      JSON.stringify({
+        localContinuationArgvControl: {
+          name,
+          argv,
+          inspectedWriteExecuted: false,
+        },
+      })
+    );
+  }
   const context = {
     hostCwd,
     lisaCwd,

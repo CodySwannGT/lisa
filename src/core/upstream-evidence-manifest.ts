@@ -1023,7 +1023,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/hooks/guard-dedupe.bash":
       "aa82809f78906811c1ca56054848e21f22a21e1d7cf70803be40a00ed25ba480",
     "plugins/src/base/hooks/host-name-command-context.mjs":
-      "cf0a47b6df0ea82d06c78337fb58e777cc3d6bbcd0042139d8b2ae63ff46b6e4",
+      "3f64f90f899b76547f0bb5f36d774d8382a03e84eaa3063e9a341eb6fbee0396",
     "plugins/src/base/hooks/inject-flow-context.sh":
       "f4ab07065762d592c0fc36be2e4918e767b293aaa4094b9d85d69010576c6dbf",
     "plugins/src/base/hooks/inject-resolved-config.mjs":
@@ -2663,7 +2663,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/lib/hook-registration-audit.mjs":
       "2f148ce2179bfca2805c85675fdb4733bf12ca5c1aa651f660c7478c7ee289cb",
     "scripts/lib/host-name-review-cases.mjs":
-      "242ca8024c12fcec568a5ad05346475f1e989a5f3d69416850b8a8a77847c0fa",
+      "3ec645cbaae017007abdc471f8ce6758ad9dfe43f4efd0dbc1b65b163076bd0d",
     "scripts/lib/host-name-target-cases.mjs":
       "097fa2bb680306c88cb49be43282113affe55d03ce515710f2d85ffc0938318a",
     "scripts/lib/invoked-as-script.mjs":
@@ -2783,7 +2783,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/verify-health-deterministic-built.mjs":
       "9016663d16c93d0d0d74b41a957d200cd3aa8ef5b12e0879d24ba5ea041ab307",
     "scripts/verify-host-name-target-scope.mjs":
-      "20a76bc8c54afcb191d1760f387ef65eb8d67171562bbff0a1f024953a71b1cd",
+      "8a7e03c50c4b4d1480fe112e87b393766d1fc391cae9fe79ab3ff0bb84ae5003",
     "scripts/verify-learner-frontmatter-built.mjs":
       "b8ac0240726721a047811e98d42f661426abc3e427a0c86f3b20082eb498809d",
     "scripts/verify-npm-advisories-4333.mjs":

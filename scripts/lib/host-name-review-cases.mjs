@@ -1,7 +1,8 @@
-/** Actual-wrapper regressions for the independently reproduced T7 findings. */
+/** Actual-wrapper regressions for independently reproduced target/context findings. */
 export function hostNameReviewCases({
   hostCwd,
   lisaCwd,
+  unknownCwd,
   body,
   cdStart,
   cdSearch,
@@ -10,7 +11,99 @@ export function hostNameReviewCases({
   lisa,
   host,
 }) {
+  const continuation = "\\\n";
   const cases = [
+    [
+      "continuation before the noun retains protected inspection",
+      hostCwd,
+      `gh ${continuation} issue create --repo ${lisa} --body ${fixtureName}`,
+      2,
+    ],
+    [
+      "continuation between noun and verb retains protected inspection",
+      hostCwd,
+      `gh issue ${continuation} create --repo ${lisa} --body ${fixtureName}`,
+      2,
+    ],
+    [
+      "continuation before body text retains protected inspection",
+      hostCwd,
+      `gh issue create --repo ${lisa} --body ${continuation} ${fixtureName}`,
+      2,
+    ],
+    [
+      "continuation before a host API endpoint preserves exemption",
+      lisaCwd,
+      `gh api ${continuation} repos/${host}/issues -f body=${fixtureName}`,
+      0,
+    ],
+    [
+      "continuation before a protected API endpoint retains inspection",
+      hostCwd,
+      `gh api ${continuation} repos/${lisa}/issues -f body=${fixtureName}`,
+      2,
+    ],
+    [
+      "continuation before explicit host repository preserves exemption",
+      lisaCwd,
+      `gh issue create --repo ${continuation} ${host} --body ${fixtureName}`,
+      0,
+    ],
+    [
+      "continuation before explicit protected repository retains inspection",
+      hostCwd,
+      `gh issue create --repo ${continuation} ${lisa} --body ${fixtureName}`,
+      2,
+    ],
+    [
+      "continuation between noun and verb keeps unknown target guarded",
+      unknownCwd,
+      `gh issue ${continuation} create --body ${fixtureName}`,
+      2,
+    ],
+    [
+      "continuation between noun and verb keeps known host allowed",
+      hostCwd,
+      `gh issue ${continuation} create --repo ${host} --body ${fixtureName}`,
+      0,
+    ],
+    [
+      "continuation before an API field value retains protected inspection",
+      hostCwd,
+      `gh api repos/${lisa}/issues -f ${continuation} body=${fixtureName}`,
+      2,
+    ],
+    [
+      "continuation within an existing verb preserves the word",
+      hostCwd,
+      `gh issue cre${continuation}ate --repo ${lisa} --body ${fixtureName}`,
+      2,
+    ],
+    [
+      "double quoted continuation preserves existing body text",
+      hostCwd,
+      `gh issue create --repo ${lisa} --body "${fixtureName.slice(0, 8)}${continuation}${fixtureName.slice(8)}"`,
+      2,
+    ],
+    [
+      "a real quoted empty verb stays distinct from continuation whitespace",
+      hostCwd,
+      `gh issue "" create --repo ${lisa} --body ${fixtureName}`,
+      0,
+    ],
+    [
+      "continuation after a quoted empty body preserves the empty value",
+      hostCwd,
+      `gh issue create --repo ${lisa} --body ""${continuation} ${fixtureName}`,
+      0,
+    ],
+    [
+      "continuation preserves nonliteral argument uncertainty",
+      hostCwd,
+      `gh issue create --repo ${host} --title "$TITLE${continuation}" --body ${fixtureName}`,
+      2,
+      { TITLE: "Unresolved title" },
+    ],
     [
       "CDPATH inherited lookup cannot certify a host target",
       cdStart,

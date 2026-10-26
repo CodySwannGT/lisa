@@ -66,7 +66,7 @@ function words(command) {
         if (quote === '"' && !/[$`"\\]/u.test(next)) value += "\\";
         value += next;
       }
-      started = true;
+      if (next !== "\n") started = true;
     } else if (quote !== "") {
       if (char === quote) quote = "";
       else {
