@@ -55,6 +55,32 @@ interface RubyJob {
 const REPOSITORY_COMPARISON = /github\.repository\s*==\s*'([^']+)'/;
 
 /**
+ * A setup-ruby `if:` that is exactly one repository comparison, once the
+ * optional `${{ }}` wrapper and surrounding whitespace are removed.
+ */
+const LISA_ONLY_GATE = /^github\.repository\s*==\s*'([^']+)'$/;
+
+/** An optional `${{ ... }}` wrapper around a whole condition. */
+const EXPRESSION_WRAPPER = /^\$\{\{([\s\S]*)\}\}$/;
+
+/**
+ * The repository a setup-ruby step's `if:` restricts it to, or undefined
+ * when the condition is anything but exactly that one comparison.
+ *
+ * The WHOLE condition must match, not just contain the comparison: a
+ * broadened `... || true` or `... || github.event_name == 'pull_request'`
+ * still contains it, and would run setup-ruby for callers again.
+ * @param gate - The step's `if:` value
+ * @returns The repository, or undefined
+ */
+function lisaOnlyGateRepo(gate: unknown): string | undefined {
+  if (typeof gate !== "string") return undefined;
+  const trimmed = gate.trim();
+  const unwrapped = (EXPRESSION_WRAPPER.exec(trimmed)?.[1] ?? trimmed).trim();
+  return LISA_ONLY_GATE.exec(unwrapped)?.[1];
+}
+
+/**
  * The image a runs-on value gives Lisa's own runs, or undefined when it does
  * not give Lisa a fixed one.
  * @param runsOn - The job's runs-on value
@@ -139,9 +165,48 @@ describe("jobs that name a Ruby pin Lisa's runner image", () => {
     expect(pinnedRepo).toBe("CodySwannGT/lisa");
     expect(integration?.rubyStepIfs.length).toBeGreaterThan(0);
     for (const gate of integration?.rubyStepIfs ?? [])
-      expect(REPOSITORY_COMPARISON.exec(String(gate))?.[1], String(gate)).toBe(
-        pinnedRepo
-      );
+      expect(lisaOnlyGateRepo(gate), String(gate)).toBe(pinnedRepo);
+  });
+});
+
+/** The repository Lisa's conditional runs-on pins. */
+const LISA_REPO = "CodySwannGT/lisa";
+
+describe("the setup-ruby gate classifier", () => {
+  it.each([
+    ["the bare comparison", "github.repository == 'CodySwannGT/lisa'"],
+    [
+      "the comparison wrapped in an expression",
+      "${{ github.repository == 'CodySwannGT/lisa' }}",
+    ],
+    [
+      "the comparison with extra whitespace",
+      "  ${{github.repository   ==   'CodySwannGT/lisa'}}  ",
+    ],
+  ])("accepts %s", (_label, gate) => {
+    expect(lisaOnlyGateRepo(gate)).toBe(LISA_REPO);
+  });
+
+  // Mutants of the real step's `if:`. Each one would run setup-ruby for at
+  // least some callers of the reusable workflow, which is the regression the
+  // gate exists to prevent, so each must be rejected.
+  it.each([
+    ["no gate", undefined],
+    ["an empty gate", ""],
+    ["`|| true`", "${{ github.repository == 'CodySwannGT/lisa' || true }}"],
+    [
+      "`|| github.event_name == 'pull_request'`",
+      "github.repository == 'CodySwannGT/lisa' || github.event_name == 'pull_request'",
+    ],
+    ["a negation with `!`", "!(github.repository == 'CodySwannGT/lisa')"],
+    ["a negation with `!=`", "github.repository != 'CodySwannGT/lisa'"],
+    ["another repository", "github.repository == 'someone/else'"],
+    [
+      "a trailing extra condition",
+      "github.repository == 'CodySwannGT/lisa' && always()",
+    ],
+  ])("rejects %s", (_label, gate) => {
+    expect(lisaOnlyGateRepo(gate)).not.toBe(LISA_REPO);
   });
 });
 
