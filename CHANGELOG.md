@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.84.1](https://github.com/CodySwannGT/lisa/compare/v4.84.0...v4.84.1) (2026-10-26)
+
+
+### Bug Fixes
+
+* **review-evidence:** accurate mixed titles; reread substitutes after a wait ([872f23f](https://github.com/CodySwannGT/lisa/commit/872f23f5082ead9a17cffdc07db5853205ef682b)), closes [#4529](https://github.com/CodySwannGT/lisa/issues/4529) [CodySwannGT/lisa#4528](https://github.com/CodySwannGT/lisa/issues/4528) [CodySwannGT/lisa#4528](https://github.com/CodySwannGT/lisa/issues/4528)
+* **review-evidence:** let a writer's substitute satisfy an unreported reviewer ([512982f](https://github.com/CodySwannGT/lisa/commit/512982f20b8df6c3e5889dd914c4d6782cc37e1e)), closes [CodySwannGT/lisa#4528](https://github.com/CodySwannGT/lisa/issues/4528) [CodySwannGT/lisa#4528](https://github.com/CodySwannGT/lisa/issues/4528)
+* **review-evidence:** never stand in for a reviewer still in flight ([2792ac3](https://github.com/CodySwannGT/lisa/commit/2792ac3be0732ee1952b92194a3fc70dac95de33)), closes [#4529](https://github.com/CodySwannGT/lisa/issues/4529) [CodySwannGT/lisa#4528](https://github.com/CodySwannGT/lisa/issues/4528) [CodySwannGT/lisa#4528](https://github.com/CodySwannGT/lisa/issues/4528)
+
 ## [4.84.0](https://github.com/CodySwannGT/lisa/compare/v4.83.2...v4.84.0) (2026-10-24)
 
 
