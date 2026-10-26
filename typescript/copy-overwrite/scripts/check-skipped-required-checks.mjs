@@ -2129,13 +2129,53 @@ export const REVIEW_GATE_CONDITIONS = Object.freeze({
   pending: "pending",
   unrecognised: "unrecognised",
   undetermined: "undetermined",
-  // A SATISFYING condition, and only ever reached when the reviewer posted NO
-  // status row at all (`absent`, or `undetermined` while still unreported —
-  // never a row still in flight), and a writer posted a local
-  // adversarial review for this exact head in its place. Never from
-  // `objected` — a substitute does not overrule a review that ran and said no.
+  // A SATISFYING condition: the reviewer could not or did not review this
+  // head, and a writer posted a local adversarial review for it in its place.
+  // See `substitutable` for exactly which readings qualify. Never from
+  // `objected` or a review still in flight.
   substituted: "substituted",
 });
+
+/**
+ * Review conditions where the reviewer FINISHED without reviewing, so a
+ * writer's substitute may stand in.
+ *
+ * WHY WAIVERS QUALIFY. A rate limit or a vendor skip is a billing or
+ * entitlement state, not a finding, and it must not pull a human into every
+ * merge. Standing in for it is safe because the two things a substitute must
+ * never hide are read from somewhere else: an objection from the review
+ * OBJECTS at this head ({@link readObjectionAtHead}), which outranks every
+ * state in the published verdict; and unresolved review threads, which the
+ * branch ruleset blocks on directly. `unrecognised` qualifies for the same
+ * reason — a green status whose sentence nobody classified carries no
+ * objection the review objects would not also carry.
+ */
+const SUBSTITUTABLE_REPORTED_CONDITIONS = Object.freeze(
+  new Set([
+    REVIEW_GATE_CONDITIONS.waived,
+    REVIEW_GATE_CONDITIONS.waivedWithReview,
+    REVIEW_GATE_CONDITIONS.unrecognised,
+  ])
+);
+
+/**
+ * Whether a substitute may stand in for one reviewer's reading.
+ *
+ * A reviewer that posted NO row qualifies whatever the wait concluded. A
+ * reviewer that posted a row qualifies only when that row is SETTLED and says
+ * it did not review. `undetermined` with a row present is a review STILL
+ * RUNNING once the wait expires, and a substitute must not race a review in
+ * flight whose objection would land after the merge. `objected` and `pending`
+ * never qualify.
+ *
+ * @param {object|undefined} found - The reviewer's check row, if it posted one
+ * @param {string} condition - The condition its reading produced
+ * @returns {boolean} Whether a substitute may stand in
+ */
+function substitutable(found, condition) {
+  if (found === undefined) return true;
+  return SUBSTITUTABLE_REPORTED_CONDITIONS.has(condition);
+}
 
 /**
  * What the pull request's OWN review surface says, independent of any check.
@@ -2506,15 +2546,14 @@ export function evaluateReviewGate(declaration, checks, options = {}) {
           },
       vocabulary
     );
-    // Only a reviewer that NEVER REPORTED can be stood in for, keyed on the
-    // missing row rather than on the condition: `undetermined` is also what a
-    // reviewer STILL RUNNING reads as once the wait expires, and a substitute
-    // must not race a review in flight whose objection would land after the
-    // merge. One that is pending, said something unrecognised, or objected
-    // has spoken, and a substitute does not get to overrule it.
-    if (found === undefined && options.substitutes?.has(name) === true) {
+    if (
+      options.substitutes?.has(name) === true &&
+      substitutable(found, verdict.condition)
+    ) {
       states[name] = REVIEW_GATE_STATES.satisfied;
       conditions[name] = REVIEW_GATE_CONDITIONS.substituted;
+      if (found !== undefined)
+        descriptions[name] = String(found.description ?? "");
       continue;
     }
     states[name] = verdict.state;
@@ -3204,7 +3243,10 @@ export function reviewGateVerdict(reading = {}) {
    */
   const quote = name => {
     if (conditions[name] === REVIEW_GATE_CONDITIONS.substituted) {
-      return `${name} posted NO review status; a writer's ${REVIEW_SUBSTITUTE_MARKER} local adversarial review stands in for it at this head`;
+      const said = Object.hasOwn(descriptions, name)
+        ? `reported ${JSON.stringify(descriptions[name])} without reviewing`
+        : "posted NO review status";
+      return `${name} ${said}; a writer's ${REVIEW_SUBSTITUTE_MARKER} local adversarial review stands in for it at this head`;
     }
     if (conditions[name] === REVIEW_GATE_CONDITIONS.undetermined) {
       return `${name} had not settled when the gate's wait EXPIRED — not observed to be unreviewed`;

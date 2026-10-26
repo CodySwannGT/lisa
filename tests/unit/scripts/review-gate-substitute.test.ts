@@ -26,6 +26,7 @@ const HEAD = "a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0";
 const OLDER = "0000111122223333444455556666777788889999";
 const WRITER = "maintainer";
 const READER = "drive-by";
+const RATE_LIMITED = "Review rate limited";
 
 /** One issue comment as this suite builds them. */
 interface Comment {
@@ -291,15 +292,46 @@ describe("what a substitute can and cannot stand in for", () => {
     );
   });
 
-  it("does not stand in for a reviewer that said something unrecognised", () => {
+  it.each([
+    ["was rate limited", RATE_LIMITED],
+    ["skipped", "Review skipped: manual review required"],
+    ["said something unrecognised", "Something new"],
+  ])(
+    "stands in for a reviewer that %s, so a rate limit never needs a human",
+    (_label, description) => {
+      const gate = mod.evaluateReviewGate(
+        DECLARATION,
+        [{ name: CODERABBIT, state: "SUCCESS", description }],
+        { headSha: HEAD, substitutes }
+      );
+      expect(gate.states[CODERABBIT]).toBe(mod.REVIEW_GATE_STATES.satisfied);
+      expect(gate.conditions[CODERABBIT]).toBe(
+        mod.REVIEW_GATE_CONDITIONS.substituted
+      );
+      expect(gate.violations).toEqual([]);
+    }
+  );
+
+  it("still files the waiver when nobody stood in for a rate limit", () => {
     const gate = mod.evaluateReviewGate(
       DECLARATION,
-      [{ name: CODERABBIT, state: "SUCCESS", description: "Something new" }],
-      { headSha: HEAD, substitutes }
+      [{ name: CODERABBIT, state: "SUCCESS", description: RATE_LIMITED }],
+      { headSha: HEAD, substitutes: new Set() }
     );
-    expect(gate.conditions[CODERABBIT]).not.toBe(
-      mod.REVIEW_GATE_CONDITIONS.substituted
+    expect(gate.states[CODERABBIT]).toBe(mod.REVIEW_GATE_STATES.waived);
+  });
+
+  it("quotes what a rate-limited reviewer said rather than claiming it posted nothing", () => {
+    const verdict = mod.reviewGateVerdict({
+      states: { [CODERABBIT]: mod.REVIEW_GATE_STATES.satisfied },
+      conditions: { [CODERABBIT]: mod.REVIEW_GATE_CONDITIONS.substituted },
+      descriptions: { [CODERABBIT]: RATE_LIMITED },
+      objection: { objected: false, reviewers: [], staleDropped: 0 },
+    });
+    expect(verdict.title).toContain(
+      `CodeRabbit reported ${JSON.stringify(RATE_LIMITED)} without reviewing`
     );
+    expect(verdict.title).not.toContain("posted NO review status");
   });
 
   it("publishes SUBSTITUTED, not REVIEWED", () => {
@@ -347,11 +379,13 @@ describe("the armed gate end to end", () => {
     rows = [{ name: "🧹 Lint", state: "SUCCESS", bucket: "pass" }],
     heads = [HEAD],
     declaration = DECLARATION,
+    reviews = [],
   }: {
     substitutes: (sha: string | undefined) => Set<string>;
     rows?: readonly Check[];
     heads?: readonly string[];
     declaration?: Record<string, unknown>;
+    reviews?: readonly { state: string; commitSha: string; author: string }[];
   }): {
     inspection: ReturnType<GuardModule["inspectVacuity"]>;
     sleeps: number;
@@ -377,11 +411,45 @@ describe("the armed gate end to end", () => {
           sha: string | undefined
         ) => substitutes(sha),
         fetchCarried: () => [],
-        fetchReviews: () => [],
+        fetchReviews: () => reviews,
       }
     );
     return { inspection, sleeps };
   };
+  const rateLimited: readonly Check[] = [
+    {
+      name: CODERABBIT,
+      state: "SUCCESS",
+      bucket: "pass",
+      description: RATE_LIMITED,
+    },
+  ];
+
+  it("greens a rate-limited head with a substitute, without waiting", () => {
+    const { inspection, sleeps } = inspect({
+      substitutes: atHead,
+      rows: rateLimited,
+    });
+    expect(sleeps).toBe(0);
+    expect(inspection?.verdict.conclusion).toBe(
+      mod.REVIEW_VERDICT_CONCLUSIONS.satisfied
+    );
+    expect(inspection?.verdict.title).toMatch(/^SUBSTITUTED/);
+  });
+
+  it("never lets a substitute hide an objection a rate-limited reviewer left at this head", () => {
+    const { inspection } = inspect({
+      substitutes: atHead,
+      rows: rateLimited,
+      reviews: [
+        { state: "CHANGES_REQUESTED", commitSha: HEAD, author: "coderabbitai" },
+      ],
+    });
+    expect(inspection?.verdict.conclusion).toBe(
+      mod.REVIEW_VERDICT_CONCLUSIONS.unsatisfied
+    );
+    expect(inspection?.verdict.title).toMatch(/^OBJECTED/);
+  });
   const atHead = (sha: string | undefined): Set<string> =>
     sha === HEAD ? new Set([CODERABBIT]) : new Set();
 
