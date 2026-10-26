@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.84.4](https://github.com/CodySwannGT/lisa/compare/v4.84.3...v4.84.4) (2026-10-26)
+
+
+### Bug Fixes
+
+* **npm-updater:** restore pinned Rails package installation ([0e0f335](https://github.com/CodySwannGT/lisa/commit/0e0f335d64c96be596aad80cbba080f151cbbd79)), closes [CodySwannGT/lisa#4473](https://github.com/CodySwannGT/lisa/issues/4473)
+
 ### [4.84.3](https://github.com/CodySwannGT/lisa/compare/v4.84.2...v4.84.3) (2026-10-26)
 
 
