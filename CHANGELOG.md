@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.84.5](https://github.com/CodySwannGT/lisa/compare/v4.84.4...v4.84.5) (2026-10-26)
+
+
+### Bug Fixes
+
+* **review-evidence:** wait for required check registration ([b1e48d4](https://github.com/CodySwannGT/lisa/commit/b1e48d4242e7069d9e9c2537a7b2a699423f8e88)), closes [CodySwannGT/lisa#4527](https://github.com/CodySwannGT/lisa/issues/4527)
+* **review-evidence:** wait for required check registration ([#4537](https://github.com/CodySwannGT/lisa/issues/4537)) ([9381839](https://github.com/CodySwannGT/lisa/commit/9381839bfe73699f22845375b17d649978621936)), closes [#4527](https://github.com/CodySwannGT/lisa/issues/4527) [CodySwannGT/lisa#4527](https://github.com/CodySwannGT/lisa/issues/4527)
+
 ### [4.84.4](https://github.com/CodySwannGT/lisa/compare/v4.84.3...v4.84.4) (2026-10-26)
 
 
