@@ -2581,6 +2581,24 @@ export const REVIEW_SUBSTITUTE_MARKER = "lisa:review-substitute";
 const SUBSTITUTE_WRITER_PERMISSIONS = new Set(["admin", "maintain", "write"]);
 
 /**
+ * The lead of a satisfied verdict, which says whether a substitute was involved.
+ *
+ * @param {ReadonlyArray<string>} names - The declared reviewers
+ * @param {Record<string, string>} conditions - Each reviewer's condition
+ * @returns {string} `REVIEWED`, or a SUBSTITUTED lead accurate for all or some
+ */
+function substitutedLead(names, conditions) {
+  const substituted = names.filter(
+    name => conditions[name] === REVIEW_GATE_CONDITIONS.substituted
+  );
+  if (substituted.length === 0) return "REVIEWED";
+  if (substituted.length === names.length) {
+    return "SUBSTITUTED — no third-party review; a local adversarial review stands in";
+  }
+  return `SUBSTITUTED IN PART — a local adversarial review stands in for ${substituted.length} of ${names.length} declared reviewers; the rest reviewed`;
+}
+
+/**
  * The marker line a substitute carries for one reviewer at one commit.
  *
  * @param {string} context - The declared evidence-bearing check name
@@ -3308,8 +3326,10 @@ export function reviewGateVerdict(reading = {}) {
     // SUBSTITUTED is not REVIEWED. A self-review standing in for a third-party
     // one is a weaker claim, and the title is what gets quoted into a merge
     // disclosure, so it says which one this was.
+    // And it is only "no third-party review" when that is true of EVERY
+    // declared reviewer: a mixed result had a real review alongside the stand-in.
     title: fitTitle(
-      `${names.some(name => conditions[name] === REVIEW_GATE_CONDITIONS.substituted) ? "SUBSTITUTED — no third-party review; a local adversarial review stands in" : "REVIEWED"} — ${names.map(quote).join("; ")}${suffix}`
+      `${substitutedLead(names, conditions)} — ${names.map(quote).join("; ")}${suffix}`
     ),
   };
 }
@@ -4498,8 +4518,10 @@ export function inspectVacuity(argv, declaration, options = {}) {
     waitExpired: read.settled === false,
     // Bound to the head the checks were read at. A push between the early read
     // and the settled one invalidates every substitute for the old head.
+    // Reused only when it was COMPLETE: a substitute posted while the gate
+    // waited is only seen by reading the comments again.
     substitutes:
-      read.headSha !== undefined && read.headSha === earlyHead
+      allStoodIn && read.headSha !== undefined && read.headSha === earlyHead
         ? earlySubstitutes
         : readSubstitutes(read.headSha),
   };

@@ -310,8 +310,25 @@ describe("what a substitute can and cannot stand in for", () => {
       objection: { objected: false, reviewers: [], staleDropped: 0 },
     });
     expect(verdict.conclusion).toBe(mod.REVIEW_VERDICT_CONCLUSIONS.satisfied);
-    expect(verdict.title).toMatch(/^SUBSTITUTED/);
+    expect(verdict.title).toMatch(/^SUBSTITUTED — no third-party review/);
     expect(verdict.title).not.toMatch(/^REVIEWED/);
+  });
+
+  it("does not claim 'no third-party review' when another reviewer did review", () => {
+    const verdict = mod.reviewGateVerdict({
+      states: {
+        [CODERABBIT]: mod.REVIEW_GATE_STATES.satisfied,
+        "Other Reviewer": mod.REVIEW_GATE_STATES.satisfied,
+      },
+      conditions: {
+        [CODERABBIT]: mod.REVIEW_GATE_CONDITIONS.substituted,
+        "Other Reviewer": mod.REVIEW_GATE_CONDITIONS.satisfied,
+      },
+      descriptions: { "Other Reviewer": "Review completed" },
+      objection: { objected: false, reviewers: [], staleDropped: 0 },
+    });
+    expect(verdict.title).toMatch(/^SUBSTITUTED IN PART — .* 1 of 2 /);
+    expect(verdict.title).not.toContain("no third-party review");
   });
 });
 
@@ -414,6 +431,20 @@ describe("the armed gate end to end", () => {
     expect(inspection?.verdict.conclusion).toBe(
       mod.REVIEW_VERDICT_CONCLUSIONS.unsatisfied
     );
+  });
+
+  it("sees a substitute posted while the gate was waiting at the same head", () => {
+    let reads = 0;
+    const { inspection, sleeps } = inspect({
+      // Nothing on the early read; the marker lands during the wait.
+      substitutes: sha => {
+        reads += 1;
+        return reads > 1 && sha === HEAD ? new Set([CODERABBIT]) : new Set();
+      },
+    });
+    expect(sleeps).toBeGreaterThan(0);
+    expect(reads).toBe(2);
+    expect(inspection?.verdict.title).toMatch(/^SUBSTITUTED/);
   });
 
   it("drops a substitute for a head that was replaced before the settled read", () => {
