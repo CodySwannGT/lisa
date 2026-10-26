@@ -2129,6 +2129,11 @@ export const REVIEW_GATE_CONDITIONS = Object.freeze({
   pending: "pending",
   unrecognised: "unrecognised",
   undetermined: "undetermined",
+  // A SATISFYING condition, and only ever reached from `absent` or
+  // `undetermined`: the reviewer never reported, and a writer posted a local
+  // adversarial review for this exact head in its place. Never from
+  // `objected` — a substitute does not overrule a review that ran and said no.
+  substituted: "substituted",
 });
 
 /**
@@ -2500,6 +2505,18 @@ export function evaluateReviewGate(declaration, checks, options = {}) {
           },
       vocabulary
     );
+    // Only a reviewer that NEVER REPORTED can be stood in for. One that is
+    // still pending, said something unrecognised, or objected has spoken, and
+    // a substitute does not get to overrule it.
+    if (
+      options.substitutes?.has(name) === true &&
+      (verdict.condition === REVIEW_GATE_CONDITIONS.absent ||
+        verdict.condition === REVIEW_GATE_CONDITIONS.undetermined)
+    ) {
+      states[name] = REVIEW_GATE_STATES.satisfied;
+      conditions[name] = REVIEW_GATE_CONDITIONS.substituted;
+      continue;
+    }
     states[name] = verdict.state;
     conditions[name] = verdict.condition;
     // Assigned ONLY when the check reported. An absent check with a `""`
@@ -2541,6 +2558,168 @@ export function evaluateReviewGate(declaration, checks, options = {}) {
  * reading the string collapses those two, and it collapses them PERMISSIVELY.
  */
 export const REVIEW_OBJECTION_STATE = "CHANGES_REQUESTED";
+
+/**
+ * The marker a local adversarial review carries when it stands in for a
+ * declared reviewer that never reported.
+ *
+ * Byte-identical to `substituteMarker` in
+ * `check-third-party-review-evidence.mjs`, which is the format
+ * `lisa-drive-pr-to-merge` posts. Duplicated rather than imported because the
+ * two scripts ship from different template trees, and a host that has one need
+ * not have the other.
+ *
+ * WHY THIS GATE READS IT AT ALL. A repository that declares a reviewer it has
+ * not installed — or whose reviewer is down — saw this gate red on EVERY pull
+ * request, with no route to green that did not also delete the declaration.
+ * The response arm already accepted a posted substitute; this arm did not, so
+ * the two published opposite verdicts for the same head.
+ */
+export const REVIEW_SUBSTITUTE_MARKER = "lisa:review-substitute";
+
+/** Repository permissions whose holder may stand in for a reviewer. */
+const SUBSTITUTE_WRITER_PERMISSIONS = new Set(["admin", "maintain", "write"]);
+
+/**
+ * The marker line a substitute carries for one reviewer at one commit.
+ *
+ * @param {string} context - The declared evidence-bearing check name
+ * @param {string} sha - The head commit the substitute reviewed
+ * @returns {string} The marker line
+ */
+export function reviewSubstituteMarker(context, sha) {
+  return `<!-- ${REVIEW_SUBSTITUTE_MARKER} context="${context}" head="${sha}" -->`;
+}
+
+/**
+ * Which declared checks a WRITER posted a substitute for at exactly this head.
+ *
+ * Stricter than the response arm, on purpose, because here a match turns a
+ * blocking verdict green:
+ *
+ * - The marker must be the comment's FIRST LINE. A comment that merely quotes
+ *   the marker — instructions, a pasted log — is not a review.
+ * - The author must hold write access. Anyone who can comment can type the
+ *   marker; only someone who could have merged anyway can vouch for a review.
+ * - Evidence is per reviewer and per head: a substitute for another check, or
+ *   for an earlier push, satisfies nothing.
+ *
+ * @param {ReadonlyArray<{body?: string, author?: string}>} comments - Issue comments on the pull request
+ * @param {ReadonlyArray<string>} names - Declared evidence-bearing check names
+ * @param {string|undefined} headSha - The head commit under inspection
+ * @param {(login: string) => boolean} canWrite - Whether a login holds write access
+ * @returns {Set<string>} The names a writer's substitute stands in for
+ */
+export function substitutesAtHead(comments, names, headSha, canWrite) {
+  const found = new Set();
+  if (headSha === undefined || headSha === "") return found;
+  for (const name of names) {
+    const marker = reviewSubstituteMarker(name, headSha);
+    const posted = (comments ?? []).some(
+      comment =>
+        String(comment?.body ?? "")
+          .split("\n")[0]
+          .replace(/\r$/, "") === marker &&
+        canWrite(String(comment?.author ?? ""))
+    );
+    if (posted) found.add(name);
+  }
+  return found;
+}
+
+/**
+ * Reads the issue comments on one pull request.
+ *
+ * @param {string|number} pr - The pull request
+ * @param {string} [repo] - `OWNER/NAME`; defaults to the current repository
+ * @returns {Array<{body: string, author: string}>} The comments
+ */
+export function fetchIssueComments(pr, repo) {
+  const slug = resolveRepoSlug(repo);
+  if (slug === undefined) {
+    throw new Error(
+      `check-skipped-required-checks: cannot read the comments on PR ${pr} without an OWNER/NAME. Pass \`--repo=OWNER/NAME\`, or set GITHUB_REPOSITORY.`
+    );
+  }
+  return ghApiPaginatedArray(
+    `repos/${slug}/issues/${pr}/comments?per_page=100`,
+    "[.[] | {body: .body, author: .user.login}]"
+  );
+}
+
+/**
+ * Whether a login holds write access to the repository.
+ *
+ * probe-direction: fail-closed — any failure to read the permission answers
+ * `false`, which can only leave a substitute uncounted, never count one.
+ *
+ * @param {string} login - The comment author
+ * @param {string} [repo] - `OWNER/NAME`; defaults to the current repository
+ * @returns {boolean} Whether the login may stand in for a reviewer
+ */
+export function fetchWritePermission(login, repo) {
+  const slug = resolveRepoSlug(repo);
+  if (slug === undefined || !/^[A-Za-z0-9-]+(\[bot\])?$/.test(login)) {
+    return false;
+  }
+  try {
+    const permission = boundedExecFileSync(
+      "gh",
+      [
+        "api",
+        `repos/${slug}/collaborators/${encodeURIComponent(login)}/permission`,
+        "--jq",
+        ".permission",
+      ],
+      { encoding: "utf8" }
+    ).trim();
+    return SUBSTITUTE_WRITER_PERMISSIONS.has(permission);
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Reads which declared checks a writer's substitute stands in for at a head.
+ *
+ * probe-direction: fail-closed — an unreadable comment list returns an empty
+ * set, which leaves the gate exactly where it would have been without this
+ * read. Nothing here can redden a pull request; it can only fail to green one.
+ *
+ * @param {object} declaration - The per-repo declaration
+ * @param {string|number} pr - The pull request under inspection
+ * @param {string|undefined} repo - `OWNER/NAME`; defaults to the current repository
+ * @param {string|undefined} headSha - The head commit under inspection
+ * @param {{fetchComments?: Function, canWrite?: Function}} [options] - Injection seams
+ * @returns {Set<string>} The names a writer's substitute stands in for
+ */
+export function readReviewSubstitutes(
+  declaration,
+  pr,
+  repo,
+  headSha,
+  options = {}
+) {
+  const names = Object.keys(declaration.evidence_bearing_checks ?? {});
+  if (names.length === 0 || headSha === undefined || headSha === "") {
+    return new Set();
+  }
+  let comments;
+  try {
+    comments = (options.fetchComments ?? fetchIssueComments)(pr, repo);
+  } catch {
+    return new Set();
+  }
+  const permission =
+    options.canWrite ?? (login => fetchWritePermission(login, repo));
+  const seen = new Map();
+  const canWrite = login => {
+    if (login === "") return false;
+    if (!seen.has(login)) seen.set(login, permission(login) === true);
+    return seen.get(login);
+  };
+  return substitutesAtHead(comments, names, headSha, canWrite);
+}
 
 /**
  * Whether an objection STANDS at this head, from the review objects.
@@ -3001,6 +3180,9 @@ export function reviewGateVerdict(reading = {}) {
    * @returns {string} `<name> reported "<description>"`, or what the wait did
    */
   const quote = name => {
+    if (conditions[name] === REVIEW_GATE_CONDITIONS.substituted) {
+      return `${name} posted NO review status; a writer's ${REVIEW_SUBSTITUTE_MARKER} local adversarial review stands in for it at this head`;
+    }
     if (conditions[name] === REVIEW_GATE_CONDITIONS.undetermined) {
       return `${name} had not settled when the gate's wait EXPIRED — not observed to be unreviewed`;
     }
@@ -3118,7 +3300,12 @@ export function reviewGateVerdict(reading = {}) {
   return {
     verdict: REVIEW_GATE_STATES.satisfied,
     conclusion: REVIEW_VERDICT_CONCLUSIONS.satisfied,
-    title: fitTitle(`REVIEWED — ${names.map(quote).join("; ")}${suffix}`),
+    // SUBSTITUTED is not REVIEWED. A self-review standing in for a third-party
+    // one is a weaker claim, and the title is what gets quoted into a merge
+    // disclosure, so it says which one this was.
+    title: fitTitle(
+      `${names.some(name => conditions[name] === REVIEW_GATE_CONDITIONS.substituted) ? "SUBSTITUTED — no third-party review; a local adversarial review stands in" : "REVIEWED"} — ${names.map(quote).join("; ")}${suffix}`
+    ),
   };
 }
 
@@ -4207,13 +4394,39 @@ export function inspectVacuity(argv, declaration, options = {}) {
   }
 
   const repo = readFlagValue(argv, "--repo");
+  // Substitutes are read only when the gate is armed, like every other review
+  // read here. Read BEFORE the settle wait as well as after it: when a writer
+  // has already stood in for every declared reviewer, waiting five minutes for
+  // a reviewer that is not coming proves nothing and only delays the green.
+  const readSubstitutes = sha =>
+    requireReviewEvidence
+      ? (options.readSubstitutes ?? readReviewSubstitutes)(
+          declaration,
+          pr,
+          repo,
+          sha,
+          options
+        )
+      : new Set();
+  const declaredReviewers = Object.keys(
+    declaration.evidence_bearing_checks ?? {}
+  );
+  const earlyHead = requireReviewEvidence
+    ? (options.headSha ?? resolveHeadSha)(pr, repo)
+    : undefined;
+  const earlySubstitutes = readSubstitutes(earlyHead);
+  const allStoodIn =
+    declaredReviewers.length > 0 &&
+    declaredReviewers.every(name => earlySubstitutes.has(name));
   let read;
   try {
     read = fetchSettledChecks(declaration, pr, repo, {
       timeoutSeconds: readSecondsFlag(
         argv,
         "--settle-timeout",
-        wired || requireReviewEvidence ? SETTLE_TIMEOUT_SECONDS : 0
+        (wired || requireReviewEvidence) && !allStoodIn
+          ? SETTLE_TIMEOUT_SECONDS
+          : 0
       ),
       intervalSeconds: readSecondsFlag(
         argv,
@@ -4263,6 +4476,12 @@ export function inspectVacuity(argv, declaration, options = {}) {
     // wait expired", and it is the only place that fact exists — every reader
     // downstream sees a check row that looks identical either way (#3716).
     waitExpired: read.settled === false,
+    // Bound to the head the checks were read at. A push between the early read
+    // and the settled one invalidates every substitute for the old head.
+    substitutes:
+      read.headSha !== undefined && read.headSha === earlyHead
+        ? earlySubstitutes
+        : readSubstitutes(read.headSha),
   };
   // TWO PASSES, AND THE SECOND IS PAID FOR ONLY BY A WAIVER (#3706). The review
   // surface is read exactly when a waiver is on the table, which is the only
@@ -4317,7 +4536,16 @@ export function inspectVacuity(argv, declaration, options = {}) {
     headSha: read.headSha,
     checked: evaluated.checked,
     violations: [
-      ...evaluated.violations,
+      // "Did not report… NOBODY LOOKED" is false once a writer's substitute
+      // stands in for that exact check at this head, so it is not repeated.
+      ...evaluated.violations.filter(
+        violation =>
+          !(
+            violation.kind === VIOLATIONS.unproven &&
+            gate.conditions[violation.token] ===
+              REVIEW_GATE_CONDITIONS.substituted
+          )
+      ),
       ...absent.violations,
       ...gate.violations,
       ...(carried?.violations ?? []),
