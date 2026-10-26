@@ -2129,13 +2129,72 @@ export const REVIEW_GATE_CONDITIONS = Object.freeze({
   pending: "pending",
   unrecognised: "unrecognised",
   undetermined: "undetermined",
-  // A SATISFYING condition, and only ever reached when the reviewer posted NO
-  // status row at all (`absent`, or `undetermined` while still unreported —
-  // never a row still in flight), and a writer posted a local
-  // adversarial review for this exact head in its place. Never from
-  // `objected` — a substitute does not overrule a review that ran and said no.
+  // A SATISFYING condition: the reviewer could not or did not review this
+  // head, and a writer posted a local adversarial review for it in its place.
+  // See `substitutable` for exactly which readings qualify. Never from
+  // `objected` or a review still in flight.
   substituted: "substituted",
 });
+
+/**
+ * Review conditions where the reviewer FINISHED without reviewing, so a
+ * writer's substitute may stand in.
+ *
+ * WHY WAIVERS QUALIFY. A rate limit or a vendor skip is a billing or
+ * entitlement state, not a finding, and it must not pull a human into every
+ * merge. Standing in for it is safe because the two things a substitute must
+ * never hide are read from somewhere else: an objection from the review
+ * OBJECTS at this head ({@link readObjectionAtHead}), which outranks every
+ * state in the published verdict; and unresolved review threads, which the
+ * branch ruleset blocks on directly. `unrecognised` qualifies for the same
+ * reason — a green status whose sentence nobody classified carries no
+ * objection the review objects would not also carry.
+ */
+const SUBSTITUTABLE_REPORTED_CONDITIONS = Object.freeze(
+  new Set([
+    REVIEW_GATE_CONDITIONS.waived,
+    REVIEW_GATE_CONDITIONS.waivedWithReview,
+    REVIEW_GATE_CONDITIONS.unrecognised,
+  ])
+);
+
+/**
+ * Whether a substitute may stand in for one reviewer's reading.
+ *
+ * A reviewer that posted NO row qualifies whatever the wait concluded. A
+ * reviewer that posted a row qualifies only when that row is SETTLED and says
+ * it did not review. `undetermined` with a row present is a review STILL
+ * RUNNING once the wait expires, and a substitute must not race a review in
+ * flight whose objection would land after the merge. `objected` and `pending`
+ * never qualify.
+ *
+ * EVERY substitute — for a reviewer that spoke or one that never posted —
+ * also requires the pull request's review surface to have been READ and to
+ * show no objection: no CHANGES_REQUESTED decision and no unresolved thread.
+ * The review objects at head catch only a CHANGES_REQUESTED on this commit; a
+ * COMMENTED review with open threads, or an objection on an earlier push, is
+ * visible only on the surface. A surface that could not be read is not a clean
+ * one, so it substitutes nothing.
+ *
+ * KNOWN DEPENDENCY: GitHub fills `reviewDecision` only where the repository
+ * requires reviews. Without that rule an earlier push's CHANGES_REQUESTED is
+ * caught only if it left an unresolved thread, which reviewers that request
+ * changes ordinarily do.
+ *
+ * @param {object|undefined} found - The reviewer's check row, if it posted one
+ * @param {string} condition - The condition its reading produced
+ * @param {{read: boolean, present: boolean, objected: boolean}|undefined} activity - What the review surface showed, if it was read
+ * @returns {boolean} Whether a substitute may stand in
+ */
+function substitutable(found, condition, activity) {
+  const surfaceClean =
+    activity !== undefined &&
+    activity.read === true &&
+    activity.objected !== true;
+  if (!surfaceClean) return false;
+  if (found === undefined) return true;
+  return SUBSTITUTABLE_REPORTED_CONDITIONS.has(condition);
+}
 
 /**
  * What the pull request's OWN review surface says, independent of any check.
@@ -2506,15 +2565,14 @@ export function evaluateReviewGate(declaration, checks, options = {}) {
           },
       vocabulary
     );
-    // Only a reviewer that NEVER REPORTED can be stood in for, keyed on the
-    // missing row rather than on the condition: `undetermined` is also what a
-    // reviewer STILL RUNNING reads as once the wait expires, and a substitute
-    // must not race a review in flight whose objection would land after the
-    // merge. One that is pending, said something unrecognised, or objected
-    // has spoken, and a substitute does not get to overrule it.
-    if (found === undefined && options.substitutes?.has(name) === true) {
+    if (
+      options.substitutes?.has(name) === true &&
+      substitutable(found, verdict.condition, options.reviewActivity)
+    ) {
       states[name] = REVIEW_GATE_STATES.satisfied;
       conditions[name] = REVIEW_GATE_CONDITIONS.substituted;
+      if (found !== undefined)
+        descriptions[name] = String(found.description ?? "");
       continue;
     }
     states[name] = verdict.state;
@@ -3204,7 +3262,10 @@ export function reviewGateVerdict(reading = {}) {
    */
   const quote = name => {
     if (conditions[name] === REVIEW_GATE_CONDITIONS.substituted) {
-      return `${name} posted NO review status; a writer's ${REVIEW_SUBSTITUTE_MARKER} local adversarial review stands in for it at this head`;
+      const said = Object.hasOwn(descriptions, name)
+        ? `reported ${JSON.stringify(descriptions[name])} without reviewing`
+        : "posted NO review status";
+      return `${name} ${said}; a writer's ${REVIEW_SUBSTITUTE_MARKER} local adversarial review stands in for it at this head`;
     }
     if (conditions[name] === REVIEW_GATE_CONDITIONS.undetermined) {
       return `${name} had not settled when the gate's wait EXPIRED — not observed to be unreviewed`;
@@ -3299,7 +3360,7 @@ export function reviewGateVerdict(reading = {}) {
       verdict: REVIEW_GATE_STATES.waived,
       conclusion: REVIEW_VERDICT_CONCLUSIONS.waived,
       title: fitTitle(
-        `CARRIED UNREVIEWED — this pull request's own review ran, but the work it carries was not reviewed with it${suffix}`
+        `CARRIED UNREVIEWED — this pull request's own ${names.some(name => conditions[name] === REVIEW_GATE_CONDITIONS.substituted) ? "head was covered by a local adversarial review standing in for the reviewer" : "review ran"}, but the work it carries was not reviewed with it${suffix}`
       ),
     };
   }
@@ -3315,7 +3376,7 @@ export function reviewGateVerdict(reading = {}) {
       verdict: REVIEW_GATE_STATES.waived,
       conclusion: REVIEW_VERDICT_CONCLUSIONS.waived,
       title: fitTitle(
-        `REVIEWED, OBJECTION STANDING UNKNOWN — the review ran, and whether it requested changes at this head could not be read: ${names.map(quote).join("; ")}${suffix}`
+        `${names.some(name => conditions[name] === REVIEW_GATE_CONDITIONS.substituted) ? "SUBSTITUTED, OBJECTION STANDING UNKNOWN — a local adversarial review stood in" : "REVIEWED, OBJECTION STANDING UNKNOWN — the review ran"}, and whether a reviewer requested changes at this head could not be read: ${names.map(quote).join("; ")}${suffix}`
       ),
     };
   }
@@ -4525,23 +4586,38 @@ export function inspectVacuity(argv, declaration, options = {}) {
         ? earlySubstitutes
         : readSubstitutes(read.headSha),
   };
-  // TWO PASSES, AND THE SECOND IS PAID FOR ONLY BY A WAIVER (#3706). The review
-  // surface is read exactly when a waiver is on the table, which is the only
-  // condition whose verdict it can change: `satisfied`, `absent`, `pending`,
-  // `unrecognised` and `undetermined` all reach the same answer without it, and
-  // making them pay a network call would put a new failure mode on paths that
-  // work. Same shape, and the same reason, as the waive-rate sample below.
-  const gate = Object.values(
-    evaluateReviewGate(declaration, read.checks, gateOptions).states
-  ).includes(REVIEW_GATE_STATES.waived)
-    ? evaluateReviewGate(declaration, read.checks, {
-        ...gateOptions,
-        reviewActivity: (options.reviewActivity ?? fetchReviewActivity)(
-          pr,
-          repo
-        ),
-      })
-    : evaluateReviewGate(declaration, read.checks, gateOptions);
+  // TWO PASSES, AND THE SECOND IS PAID FOR ONLY BY A WAIVER OR A SUBSTITUTE
+  // (#3706, #4532). The review surface is read exactly when one of the two is
+  // on the table, the only inputs whose verdict it can change: `satisfied`,
+  // `absent`, `pending`, `unrecognised` and `undetermined` all reach the same
+  // answer without it when nobody stood in, and making them pay a network call
+  // would put a new failure mode on paths that work. Same shape, and the same
+  // reason, as the waive-rate sample below.
+  //
+  // The trigger is decided WITHOUT substitutes. A substitute turns a waived
+  // row satisfied, and deciding on that would skip the very read that finds an
+  // objection hidden inside a waiver. And ANY substitute pays for the read on
+  // its own, because standing in — for a reviewer that spoke or one that never
+  // posted — requires the surface to show no objection: an unresolved thread,
+  // or a CHANGES_REQUESTED from an earlier push, is visible only there.
+  const unsubstituted = evaluateReviewGate(declaration, read.checks, {
+    ...gateOptions,
+    substitutes: undefined,
+  });
+  const anyStandIn = Object.keys(unsubstituted.conditions).some(name =>
+    gateOptions.substitutes.has(name)
+  );
+  const gate =
+    Object.values(unsubstituted.states).includes(REVIEW_GATE_STATES.waived) ||
+    anyStandIn
+      ? evaluateReviewGate(declaration, read.checks, {
+          ...gateOptions,
+          reviewActivity: (options.reviewActivity ?? fetchReviewActivity)(
+            pr,
+            repo
+          ),
+        })
+      : evaluateReviewGate(declaration, read.checks, gateOptions);
   // #3658. Everything above judged ONE commit — this pull request's head — and
   // that is the one commit a batch integration pull request does not speak for.
   // Armed by the same flag as the gate itself, because this IS the gate,
@@ -4578,12 +4654,16 @@ export function inspectVacuity(argv, declaration, options = {}) {
     headSha: read.headSha,
     checked: evaluated.checked,
     violations: [
-      // "Did not report… NOBODY LOOKED" is false once a writer's substitute
-      // stands in for that exact check at this head, so it is not repeated.
+      // "Did not report… NOBODY LOOKED" and "reported green having reviewed
+      // nothing" are both answered once a writer's substitute stands in for
+      // that exact check at this head, so neither is repeated — and the
+      // vacuous one would otherwise still fail the job under
+      // `--fail-on-vacuous` while the verdict reads SUBSTITUTED.
       ...evaluated.violations.filter(
         violation =>
           !(
-            violation.kind === VIOLATIONS.unproven &&
+            (violation.kind === VIOLATIONS.unproven ||
+              violation.kind === VIOLATIONS.vacuous) &&
             gate.conditions[violation.token] ===
               REVIEW_GATE_CONDITIONS.substituted
           )

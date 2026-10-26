@@ -24,10 +24,16 @@ export const LisaDischargeWorkItemGates = async ({
       ["/bin/bash", `${import.meta.dir}/discharge-work-item-gates.sh`],
       { cwd, stdin: "pipe", stdout: "ignore", stderr: "pipe" }
     );
-    hook.stdin.write(
-      JSON.stringify({ tool_name: "Bash", tool_input: { command } })
-    );
-    hook.stdin.end();
+    // A hook that exits before reading its input closes the pipe, and on Linux
+    // the write then fails with EPIPE. Its exit status below is the verdict.
+    try {
+      await hook.stdin.write(
+        JSON.stringify({ tool_name: "Bash", tool_input: { command } })
+      );
+      await hook.stdin.end();
+    } catch {
+      // Judged by the exit status.
+    }
     const [status, reason] = await Promise.all([
       hook.exited,
       new Response(hook.stderr).text(),
