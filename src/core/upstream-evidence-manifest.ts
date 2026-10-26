@@ -1023,7 +1023,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/hooks/guard-dedupe.bash":
       "aa82809f78906811c1ca56054848e21f22a21e1d7cf70803be40a00ed25ba480",
     "plugins/src/base/hooks/host-name-command-context.mjs":
-      "19ecd5ae1a22101c404141426d6996c4faa1f0f4dc2fbd194bae33c427d2601a",
+      "cf0a47b6df0ea82d06c78337fb58e777cc3d6bbcd0042139d8b2ae63ff46b6e4",
     "plugins/src/base/hooks/inject-flow-context.sh":
       "f4ab07065762d592c0fc36be2e4918e767b293aaa4094b9d85d69010576c6dbf",
     "plugins/src/base/hooks/inject-resolved-config.mjs":

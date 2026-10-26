@@ -310,6 +310,8 @@ function localRepository(context) {
     if (remotes.length !== 1) return undefined;
     return repositoryFromSpec(read("git", ["remote", "get-url", remotes[0]]));
   } catch {
+    // probe-direction: fail-closed — failed lookup grants no host exemption;
+    // the caller retains its inspection path for an undetermined target.
     return undefined;
   }
 }
@@ -364,6 +366,8 @@ export function commandRepository(context) {
           identity = current;
           repository = repo;
         } catch {
+          // probe-direction: fail-closed — invalid URL grants no host exemption;
+          // the caller retains its inspection path for an undetermined target.
           return undefined;
         }
       }
