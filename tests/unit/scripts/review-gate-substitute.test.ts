@@ -226,6 +226,7 @@ describe("what a substitute can and cannot stand in for", () => {
     const gate = mod.evaluateReviewGate(DECLARATION, [], {
       headSha: HEAD,
       substitutes,
+      reviewActivity: CLEAN_SURFACE,
     });
     expect(gate.states[CODERABBIT]).toBe(mod.REVIEW_GATE_STATES.satisfied);
     expect(gate.conditions[CODERABBIT]).toBe(
@@ -239,6 +240,7 @@ describe("what a substitute can and cannot stand in for", () => {
       headSha: HEAD,
       waitExpired: true,
       substitutes,
+      reviewActivity: CLEAN_SURFACE,
     });
     expect(gate.conditions[CODERABBIT]).toBe(
       mod.REVIEW_GATE_CONDITIONS.substituted
@@ -255,7 +257,7 @@ describe("what a substitute can and cannot stand in for", () => {
           description: "Changes requested",
         },
       ],
-      { headSha: HEAD, substitutes }
+      { headSha: HEAD, substitutes, reviewActivity: CLEAN_SURFACE }
     );
     expect(gate.states[CODERABBIT]).toBe(mod.REVIEW_GATE_STATES.unsatisfied);
     expect(gate.conditions[CODERABBIT]).toBe(
@@ -267,7 +269,7 @@ describe("what a substitute can and cannot stand in for", () => {
     const gate = mod.evaluateReviewGate(
       DECLARATION,
       [{ name: CODERABBIT, state: "PENDING", description: "Review queued" }],
-      { headSha: HEAD, substitutes }
+      { headSha: HEAD, substitutes, reviewActivity: CLEAN_SURFACE }
     );
     expect(gate.conditions[CODERABBIT]).toBe(
       mod.REVIEW_GATE_CONDITIONS.pending
@@ -287,7 +289,12 @@ describe("what a substitute can and cannot stand in for", () => {
           description: "Review in progress",
         },
       ],
-      { headSha: HEAD, waitExpired: true, substitutes }
+      {
+        headSha: HEAD,
+        waitExpired: true,
+        substitutes,
+        reviewActivity: CLEAN_SURFACE,
+      }
     );
     expect(gate.states[CODERABBIT]).toBe(mod.REVIEW_GATE_STATES.unsatisfied);
     expect(gate.conditions[CODERABBIT]).toBe(
@@ -341,15 +348,26 @@ describe("what a substitute can and cannot stand in for", () => {
     }
   );
 
-  it("needs no review surface for a reviewer that never posted", () => {
-    const gate = mod.evaluateReviewGate(DECLARATION, [], {
-      headSha: HEAD,
-      substitutes,
-    });
-    expect(gate.conditions[CODERABBIT]).toBe(
-      mod.REVIEW_GATE_CONDITIONS.substituted
-    );
-  });
+  it.each([
+    ["was never read", undefined],
+    ["could not be read", { read: false, present: false, objected: false }],
+    [
+      "shows an earlier objection or an open thread",
+      { read: true, present: true, objected: true },
+    ],
+  ])(
+    "never stands in for a reviewer that never posted when the surface %s",
+    (_label, activity) => {
+      const gate = mod.evaluateReviewGate(DECLARATION, [], {
+        headSha: HEAD,
+        substitutes,
+        reviewActivity: activity,
+      });
+      expect(gate.conditions[CODERABBIT]).not.toBe(
+        mod.REVIEW_GATE_CONDITIONS.substituted
+      );
+    }
+  );
 
   it("still files the waiver when nobody stood in for a rate limit", () => {
     const gate = mod.evaluateReviewGate(

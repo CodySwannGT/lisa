@@ -2168,13 +2168,18 @@ const SUBSTITUTABLE_REPORTED_CONDITIONS = Object.freeze(
  * flight whose objection would land after the merge. `objected` and `pending`
  * never qualify.
  *
- * A reviewer that SPOKE also requires the pull request's review surface to
- * have been READ and to show no objection — no CHANGES_REQUESTED decision and
- * no unresolved thread. The review objects at head catch only a
- * CHANGES_REQUESTED on this commit; a COMMENTED review with open threads, or
- * an objection on an earlier push whose status a re-request overwrote with a
- * rate limit, is visible only on the surface. A surface that could not be read
- * is not a clean one, so it substitutes nothing.
+ * EVERY substitute — for a reviewer that spoke or one that never posted —
+ * also requires the pull request's review surface to have been READ and to
+ * show no objection: no CHANGES_REQUESTED decision and no unresolved thread.
+ * The review objects at head catch only a CHANGES_REQUESTED on this commit; a
+ * COMMENTED review with open threads, or an objection on an earlier push, is
+ * visible only on the surface. A surface that could not be read is not a clean
+ * one, so it substitutes nothing.
+ *
+ * KNOWN DEPENDENCY: GitHub fills `reviewDecision` only where the repository
+ * requires reviews. Without that rule an earlier push's CHANGES_REQUESTED is
+ * caught only if it left an unresolved thread, which reviewers that request
+ * changes ordinarily do.
  *
  * @param {object|undefined} found - The reviewer's check row, if it posted one
  * @param {string} condition - The condition its reading produced
@@ -2182,13 +2187,13 @@ const SUBSTITUTABLE_REPORTED_CONDITIONS = Object.freeze(
  * @returns {boolean} Whether a substitute may stand in
  */
 function substitutable(found, condition, activity) {
-  if (found === undefined) return true;
-  return (
-    SUBSTITUTABLE_REPORTED_CONDITIONS.has(condition) &&
+  const surfaceClean =
     activity !== undefined &&
     activity.read === true &&
-    activity.objected !== true
-  );
+    activity.objected !== true;
+  if (!surfaceClean) return false;
+  if (found === undefined) return true;
+  return SUBSTITUTABLE_REPORTED_CONDITIONS.has(condition);
 }
 
 /**
@@ -4581,30 +4586,30 @@ export function inspectVacuity(argv, declaration, options = {}) {
         ? earlySubstitutes
         : readSubstitutes(read.headSha),
   };
-  // TWO PASSES, AND THE SECOND IS PAID FOR ONLY BY A WAIVER (#3706). The review
-  // surface is read exactly when a waiver is on the table, which is the only
-  // condition whose verdict it can change: `satisfied`, `absent`, `pending`,
-  // `unrecognised` and `undetermined` all reach the same answer without it, and
-  // making them pay a network call would put a new failure mode on paths that
-  // work. Same shape, and the same reason, as the waive-rate sample below.
+  // TWO PASSES, AND THE SECOND IS PAID FOR ONLY BY A WAIVER OR A SUBSTITUTE
+  // (#3706, #4532). The review surface is read exactly when one of the two is
+  // on the table, the only inputs whose verdict it can change: `satisfied`,
+  // `absent`, `pending`, `unrecognised` and `undetermined` all reach the same
+  // answer without it when nobody stood in, and making them pay a network call
+  // would put a new failure mode on paths that work. Same shape, and the same
+  // reason, as the waive-rate sample below.
   //
   // The trigger is decided WITHOUT substitutes. A substitute turns a waived
   // row satisfied, and deciding on that would skip the very read that finds an
-  // objection hidden inside a waiver (#4532). A substitute for a REPORTED row is
-  // the second thing that pays for it: standing in for a reviewer that spoke
-  // requires the review surface to have been read and to show no objection.
+  // objection hidden inside a waiver. And ANY substitute pays for the read on
+  // its own, because standing in — for a reviewer that spoke or one that never
+  // posted — requires the surface to show no objection: an unresolved thread,
+  // or a CHANGES_REQUESTED from an earlier push, is visible only there.
   const unsubstituted = evaluateReviewGate(declaration, read.checks, {
     ...gateOptions,
     substitutes: undefined,
   });
-  const standsInForReported = Object.entries(unsubstituted.conditions).some(
-    ([name, condition]) =>
-      gateOptions.substitutes.has(name) &&
-      SUBSTITUTABLE_REPORTED_CONDITIONS.has(condition)
+  const anyStandIn = Object.keys(unsubstituted.conditions).some(name =>
+    gateOptions.substitutes.has(name)
   );
   const gate =
     Object.values(unsubstituted.states).includes(REVIEW_GATE_STATES.waived) ||
-    standsInForReported
+    anyStandIn
       ? evaluateReviewGate(declaration, read.checks, {
           ...gateOptions,
           reviewActivity: (options.reviewActivity ?? fetchReviewActivity)(
