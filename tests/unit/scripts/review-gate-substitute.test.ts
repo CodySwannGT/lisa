@@ -54,6 +54,7 @@ interface GuardModule {
     headSha: string | undefined,
     canWrite: (login: string) => boolean
   ): Set<string>;
+  fetchWritePermission(login: string, repo: string | undefined): boolean;
   readReviewSubstitutes(
     declaration: Record<string, unknown>,
     pr: string,
@@ -180,6 +181,14 @@ describe("which comments count as a substitute", () => {
     expect(found.size).toBe(0);
   });
 
+  it.each(["user_shortcode", "a/../b", "", "x y"])(
+    "refuses to look up a login the pattern rejects: %j",
+    login => {
+      // No `gh` is reachable for these: the pattern refuses before any call.
+      expect(mod.fetchWritePermission(login, "o/r")).toBe(false);
+    }
+  );
+
   it("fails closed when the comments cannot be read", () => {
     const found = mod.readReviewSubstitutes(DECLARATION, "1", "o/r", HEAD, {
       fetchComments: () => {
@@ -194,8 +203,7 @@ describe("which comments count as a substitute", () => {
     let asked = 0;
     mod.readReviewSubstitutes(DECLARATION, "1", "o/r", HEAD, {
       fetchComments: () => [
-        { body: "first", author: READER },
-        { body: "second", author: READER },
+        { body: substituteBody(HEAD), author: READER },
         { body: substituteBody(HEAD), author: READER },
       ],
       canWrite: () => {
@@ -203,7 +211,7 @@ describe("which comments count as a substitute", () => {
         return false;
       },
     });
-    expect(asked).toBeLessThanOrEqual(1);
+    expect(asked).toBe(1);
   });
 });
 
@@ -262,6 +270,38 @@ describe("what a substitute can and cannot stand in for", () => {
     );
   });
 
+  it("does not stand in for a reviewer still running when the wait expired", () => {
+    // `undetermined` is also what an IN-FLIGHT row reads as after the wait
+    // expires; standing in for it would race a review whose objection lands
+    // after the merge.
+    const gate = mod.evaluateReviewGate(
+      DECLARATION,
+      [
+        {
+          name: CODERABBIT,
+          state: "PENDING",
+          description: "Review in progress",
+        },
+      ],
+      { headSha: HEAD, waitExpired: true, substitutes }
+    );
+    expect(gate.states[CODERABBIT]).toBe(mod.REVIEW_GATE_STATES.unsatisfied);
+    expect(gate.conditions[CODERABBIT]).toBe(
+      mod.REVIEW_GATE_CONDITIONS.undetermined
+    );
+  });
+
+  it("does not stand in for a reviewer that said something unrecognised", () => {
+    const gate = mod.evaluateReviewGate(
+      DECLARATION,
+      [{ name: CODERABBIT, state: "SUCCESS", description: "Something new" }],
+      { headSha: HEAD, substitutes }
+    );
+    expect(gate.conditions[CODERABBIT]).not.toBe(
+      mod.REVIEW_GATE_CONDITIONS.substituted
+    );
+  });
+
   it("publishes SUBSTITUTED, not REVIEWED", () => {
     const verdict = mod.reviewGateVerdict({
       states: { [CODERABBIT]: mod.REVIEW_GATE_STATES.satisfied },
@@ -277,39 +317,59 @@ describe("what a substitute can and cannot stand in for", () => {
 
 describe("the armed gate end to end", () => {
   /**
-   * Inspects one pull request whose reviewer never reported.
-   * @param substitutes - What the substitute read returns
+   * Inspects one pull request.
+   * @param options - What the seams return
+   * @param options.substitutes - The substitute set, per head SHA
+   * @param options.rows - The check rows every snapshot returns
+   * @param options.heads - Successive head SHAs; the last one repeats
+   * @param options.declaration - The declaration to inspect against
    * @returns The inspection and how often the settle loop slept
    */
-  const inspect = (
-    substitutes: Set<string>
-  ): {
+  const inspect = ({
+    substitutes,
+    rows = [{ name: "🧹 Lint", state: "SUCCESS", bucket: "pass" }],
+    heads = [HEAD],
+    declaration = DECLARATION,
+  }: {
+    substitutes: (sha: string | undefined) => Set<string>;
+    rows?: readonly Check[];
+    heads?: readonly string[];
+    declaration?: Record<string, unknown>;
+  }): {
     inspection: ReturnType<GuardModule["inspectVacuity"]>;
     sleeps: number;
   } => {
     let sleeps = 0;
     let now = 0;
+    let call = 0;
     const inspection = mod.inspectVacuity(
       ["--vacuity", "--require-review-evidence", "--pr=1", "--repo=o/r"],
-      DECLARATION,
+      declaration,
       {
-        headSha: () => HEAD,
-        fetch: () => [{ name: "🧹 Lint", state: "SUCCESS", bucket: "pass" }],
+        headSha: () => heads[Math.min(call++, heads.length - 1)],
+        fetch: () => rows,
         now: () => now,
         sleep: (ms: number) => {
           sleeps += 1;
           now += ms;
         },
-        readSubstitutes: () => substitutes,
+        readSubstitutes: (
+          _declaration: unknown,
+          _pr: unknown,
+          _repo: unknown,
+          sha: string | undefined
+        ) => substitutes(sha),
         fetchCarried: () => [],
         fetchReviews: () => [],
       }
     );
     return { inspection, sleeps };
   };
+  const atHead = (sha: string | undefined): Set<string> =>
+    sha === HEAD ? new Set([CODERABBIT]) : new Set();
 
   it("passes without waiting when a writer stood in for every reviewer", () => {
-    const { inspection, sleeps } = inspect(new Set([CODERABBIT]));
+    const { inspection, sleeps } = inspect({ substitutes: atHead });
     expect(sleeps).toBe(0);
     expect(inspection?.verdict.conclusion).toBe(
       mod.REVIEW_VERDICT_CONCLUSIONS.satisfied
@@ -321,13 +381,51 @@ describe("the armed gate end to end", () => {
   });
 
   it("still waits and blocks when nobody stood in", () => {
-    const { inspection, sleeps } = inspect(new Set());
+    const { inspection, sleeps } = inspect({ substitutes: () => new Set() });
     expect(sleeps).toBeGreaterThan(0);
     expect(inspection?.verdict.conclusion).toBe(
       mod.REVIEW_VERDICT_CONCLUSIONS.unsatisfied
     );
     expect(inspection?.violations.map(violation => violation.kind)).toContain(
       mod.VIOLATIONS.reviewUnsatisfied
+    );
+  });
+
+  it("waits for a reviewer already in flight instead of standing in for it", () => {
+    const { inspection, sleeps } = inspect({
+      substitutes: atHead,
+      rows: [{ name: CODERABBIT, state: "PENDING", bucket: "pending" }],
+    });
+    expect(sleeps).toBeGreaterThan(0);
+    expect(inspection?.verdict.conclusion).toBe(
+      mod.REVIEW_VERDICT_CONCLUSIONS.unsatisfied
+    );
+    expect(inspection?.verdict.title).not.toMatch(/^SUBSTITUTED/);
+  });
+
+  it("still waits when only one of two declared reviewers was stood in for", () => {
+    const { inspection, sleeps } = inspect({
+      substitutes: atHead,
+      declaration: {
+        evidence_bearing_checks: { [CODERABBIT]: {}, "Other Reviewer": {} },
+      },
+    });
+    expect(sleeps).toBeGreaterThan(0);
+    expect(inspection?.verdict.conclusion).toBe(
+      mod.REVIEW_VERDICT_CONCLUSIONS.unsatisfied
+    );
+  });
+
+  it("drops a substitute for a head that was replaced before the settled read", () => {
+    // The early read sees OLDER, which carries a substitute; the settled read
+    // sees HEAD, which does not. Reusing the early set would green HEAD on a
+    // review of a different commit.
+    const { inspection } = inspect({
+      substitutes: sha => (sha === OLDER ? new Set([CODERABBIT]) : new Set()),
+      heads: [OLDER, HEAD],
+    });
+    expect(inspection?.verdict.conclusion).toBe(
+      mod.REVIEW_VERDICT_CONCLUSIONS.unsatisfied
     );
   });
 });

@@ -833,6 +833,9 @@ describe("the vacuity arm, as something that actually runs", () => {
           // finding about an unauthenticated `gh` and nothing to do with the
           // settle loop this asserts. No objection is what a settle test means.
           fetchReviews: () => [],
+          // And it reads posted substitutes (#4528), which reads the comments.
+          // No substitute is what a settle test means.
+          readSubstitutes: () => new Set(),
         }
       );
 

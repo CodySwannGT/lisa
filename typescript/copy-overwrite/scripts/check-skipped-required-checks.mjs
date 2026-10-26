@@ -2129,8 +2129,9 @@ export const REVIEW_GATE_CONDITIONS = Object.freeze({
   pending: "pending",
   unrecognised: "unrecognised",
   undetermined: "undetermined",
-  // A SATISFYING condition, and only ever reached from `absent` or
-  // `undetermined`: the reviewer never reported, and a writer posted a local
+  // A SATISFYING condition, and only ever reached when the reviewer posted NO
+  // status row at all (`absent`, or `undetermined` while still unreported —
+  // never a row still in flight), and a writer posted a local
   // adversarial review for this exact head in its place. Never from
   // `objected` — a substitute does not overrule a review that ran and said no.
   substituted: "substituted",
@@ -2505,14 +2506,13 @@ export function evaluateReviewGate(declaration, checks, options = {}) {
           },
       vocabulary
     );
-    // Only a reviewer that NEVER REPORTED can be stood in for. One that is
-    // still pending, said something unrecognised, or objected has spoken, and
-    // a substitute does not get to overrule it.
-    if (
-      options.substitutes?.has(name) === true &&
-      (verdict.condition === REVIEW_GATE_CONDITIONS.absent ||
-        verdict.condition === REVIEW_GATE_CONDITIONS.undetermined)
-    ) {
+    // Only a reviewer that NEVER REPORTED can be stood in for, keyed on the
+    // missing row rather than on the condition: `undetermined` is also what a
+    // reviewer STILL RUNNING reads as once the wait expires, and a substitute
+    // must not race a review in flight whose objection would land after the
+    // merge. One that is pending, said something unrecognised, or objected
+    // has spoken, and a substitute does not get to overrule it.
+    if (found === undefined && options.substitutes?.has(name) === true) {
       states[name] = REVIEW_GATE_STATES.satisfied;
       conditions[name] = REVIEW_GATE_CONDITIONS.substituted;
       continue;
@@ -2652,6 +2652,11 @@ export function fetchIssueComments(pr, repo) {
  *
  * probe-direction: fail-closed — any failure to read the permission answers
  * `false`, which can only leave a substitute uncounted, never count one.
+ *
+ * Two known shapes never count, both in the safe direction: a login the
+ * pattern below rejects (Enterprise Managed User logins carry `_shortcode`),
+ * and a bot author such as `github-actions[bot]`, which is not a collaborator.
+ * A substitute posted from CI therefore needs a human writer's comment.
  *
  * @param {string} login - The comment author
  * @param {string} [repo] - `OWNER/NAME`; defaults to the current repository
@@ -4418,13 +4423,12 @@ export function inspectVacuity(argv, declaration, options = {}) {
   const allStoodIn =
     declaredReviewers.length > 0 &&
     declaredReviewers.every(name => earlySubstitutes.has(name));
-  let read;
-  try {
-    read = fetchSettledChecks(declaration, pr, repo, {
+  const settle = skipWait =>
+    fetchSettledChecks(declaration, pr, repo, {
       timeoutSeconds: readSecondsFlag(
         argv,
         "--settle-timeout",
-        (wired || requireReviewEvidence) && !allStoodIn
+        (wired || requireReviewEvidence) && !skipWait
           ? SETTLE_TIMEOUT_SECONDS
           : 0
       ),
@@ -4438,6 +4442,22 @@ export function inspectVacuity(argv, declaration, options = {}) {
       sleep: options.sleep,
       headSha: options.headSha,
     });
+  let read;
+  try {
+    read = settle(allStoodIn);
+    // The wait is skipped only for a reviewer that is NOT COMING. A declared
+    // reviewer whose row is already there but still in flight is coming, and
+    // a substitute does not stand in for it — so wait for its answer exactly
+    // as an ordinary run would, rather than going red on one snapshot.
+    if (
+      allStoodIn &&
+      !read.settled &&
+      declaredReviewers.some(name =>
+        read.checks.some(check => check.name === name)
+      )
+    ) {
+      read = settle(false);
+    }
   } catch (error) {
     return refused(vacuityRefusal({ declaration, pr, error }));
   }
