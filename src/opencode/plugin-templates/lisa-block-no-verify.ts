@@ -59,10 +59,18 @@ export const LisaBlockNoVerify = async () => ({
       timeout: 2_000,
       killSignal: "SIGKILL",
     });
-    processHandle.stdin.write(
-      JSON.stringify({ tool_name: "Bash", tool_input: { command } })
-    );
-    processHandle.stdin.end();
+    // A guard that exits before reading its input closes the pipe, and on
+    // Linux the write then fails with EPIPE. That is the guard's own failure,
+    // which its exit status below reports; letting the write error escape
+    // instead published "EPIPE: broken pipe" as the verdict.
+    try {
+      processHandle.stdin.write(
+        JSON.stringify({ tool_name: "Bash", tool_input: { command } })
+      );
+      await processHandle.stdin.end();
+    } catch {
+      // Judged by the exit status, which still fails closed.
+    }
 
     const [status, reason] = await Promise.all([
       processHandle.exited,
