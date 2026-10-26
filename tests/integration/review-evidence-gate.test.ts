@@ -31,7 +31,13 @@ import { fileURLToPath } from "node:url";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { boundedSpawnSync } from "../helpers/io-latency-budget.js";
-import { loadWorkflow } from "../helpers/workflow-test-utils.js";
+import {
+  configureRegistrationReads,
+  installReviewEvidenceProver,
+  installReviewGh,
+  reviewEvidenceStep,
+  writeReviewDeclaration,
+} from "../helpers/review-evidence-registration-fixture.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(__dirname, "..", "..");
@@ -42,14 +48,11 @@ const SCRIPT_BASENAME = "check-skipped-required-checks.mjs";
 /** Where the gate looks for an installed copy, relative to a repo root. */
 const INSTALLED_RELATIVE = path.join("scripts", SCRIPT_BASENAME);
 
-/** The in-repo template directory the gate falls back to. */
-const TEMPLATE_DIR = path.join("typescript", "copy-overwrite", "scripts");
-
 /** The per-repo reviewed snapshot the prover reads. */
 const DECLARATION_RELATIVE = path.join(".github", "required-checks.json");
 
-/** The workflow whose `skip_jobs` the declaration points the prover at. */
-const CI_WORKFLOW = ".github/workflows/ci.yml";
+/** A completed status returned by the external-read fixture. */
+const SUCCESS = "SUCCESS";
 
 /** The measured review context. */
 const CODERABBIT = "CodeRabbit";
@@ -69,28 +72,6 @@ const HEAD_SHA = "a".repeat(40);
 
 /** `bash` by absolute path — never resolved through a writeable $PATH. */
 const BASH = "/bin/bash";
-
-/**
- * Extracts the gate's `run:` block from the shipped workflow.
- *
- * @returns The shell source GitHub Actions would execute for that step.
- */
-function gateStepScript(): string {
-  const workflow = loadWorkflow(
-    path.join(REPO_ROOT, ".github", "workflows", "review-evidence.yml")
-  );
-  const step = (workflow.jobs?.vacuity?.steps ?? []).find(candidate =>
-    candidate.run?.includes(SCRIPT_BASENAME)
-  );
-  const script = step?.run ?? "";
-
-  expect(
-    script,
-    `review-evidence.yml job 'vacuity' must run ${SCRIPT_BASENAME}`
-  ).toBeTruthy();
-
-  return script;
-}
 
 describe("🕵️ Review Evidence gate", () => {
   let workdir = "";
@@ -115,47 +96,37 @@ describe("🕵️ Review Evidence gate", () => {
   async function stubGh(
     rows: readonly Record<string, string>[] | null
   ): Promise<void> {
-    const payload = path.join(bindir, "checks.json");
-    await fs.writeJson(payload, rows ?? []);
-    const apiAnswer =
-      rows === null ? "exit 1" : `cat ${JSON.stringify(payload)}`;
-    await fs.writeFile(
-      path.join(bindir, "gh"),
-      `#!/bin/sh
-case "$1:$2" in
-  pr:view) printf '%s\n' ${JSON.stringify(HEAD_SHA)} ;;
-  pr:checks) ${rows === null ? "exit 1" : `cat ${JSON.stringify(payload)}`} ;;
-  api:*/pulls/*/commits*) printf '%s\n' '[]' ;;
-  api:*/pulls/*/reviews*) printf '%s\n' '[]' ;;
-  api:*/commits/*/pulls*) printf '%s\n' '[]' ;;
-  api:*/pulls/*) printf '%s\n' '0' ;;
-  api:*status*) ${apiAnswer} ;;
-  api:*check-runs*) ${rows === null ? "exit 1" : "printf '%s\\n' '[]'"} ;;
-  *) exit 1 ;;
-esac
-`,
-      { mode: 0o755 }
-    );
+    await installReviewGh(bindir, rows, HEAD_SHA);
   }
 
   /**
    * Runs the gate step in the temp workdir.
    *
    * @param pr The pull request number the dispatch input names.
+   * @param workflowPath Which actual workflow step to execute.
    * @returns Exit status and the step's combined output.
    */
-  function runGate(pr = "1234"): { status: number; output: string } {
+  function runGate(
+    pr = "1234",
+    workflowPath?: string
+  ): { status: number; output: string } {
     const result = boundedSpawnSync({
       label: "the review-evidence gate step",
       command: BASH,
-      args: ["-c", gateStepScript()],
+      args: ["-c", reviewEvidenceStep(REPO_ROOT, workflowPath)],
       cwd: workdir,
       env: {
         ...process.env,
         PATH: `${bindir}${path.delimiter}${process.env.PATH ?? ""}`,
         VACUITY_PR: pr,
         GITHUB_REPOSITORY: "owner/name",
-        GITHUB_EVENT_PATH: "",
+        GITHUB_BASE_REF: "main",
+        NODE_OPTIONS: fs.existsSync(path.join(bindir, "clock.mjs"))
+          ? `--import=${path.join(bindir, "clock.mjs")}`
+          : (process.env.NODE_OPTIONS ?? ""),
+        GITHUB_EVENT_PATH: fs.existsSync(path.join(bindir, "event.json"))
+          ? path.join(bindir, "event.json")
+          : "",
         GITHUB_REF: "",
         GITHUB_STEP_SUMMARY: "",
       },
@@ -167,43 +138,147 @@ esac
   }
 
   /**
-   * Installs the REAL prover under `scripts/`, with the lib it imports.
+   * Installs the real shipped prover and relative imports.
+   * @returns Completion after the real source bytes are installed.
    */
-  async function installProver(): Promise<void> {
-    await fs.ensureDir(path.join(workdir, "scripts"));
-    await fs.copy(
-      path.join(REPO_ROOT, TEMPLATE_DIR, "lib"),
-      path.join(workdir, "scripts", "lib")
+  const installProver = () => installReviewEvidenceProver(REPO_ROOT, workdir);
+
+  /**
+   * Writes a fresh declaration with an exact required roster.
+   * @param required The selected required roster.
+   * @returns Completion after the declaration is written.
+   */
+  const writeDeclaration = (required = [CODERABBIT]) =>
+    writeReviewDeclaration(workdir, required);
+
+  /**
+   * Controls external observations and the wait clock; the CLI is real.
+   * @param laterName The later row, or null when required registration never occurs.
+   * @param substitute Supply the all-reviewer substitute shortcut.
+   * @param absentReviewer Leave the substituted reviewer entirely unreported.
+   */
+  async function registrationFixture(
+    laterName: string | null,
+    substitute = false,
+    absentReviewer = false
+  ): Promise<void> {
+    await installProver();
+    await writeDeclaration(absentReviewer ? ["Lint"] : [CODERABBIT, "Lint"]);
+    await stubGh(
+      absentReviewer
+        ? []
+        : [
+            {
+              name: CODERABBIT,
+              state: SUCCESS,
+              description: substitute ? RATE_LIMITED : REVIEWED,
+            },
+          ]
     );
-    await fs.copy(
-      path.join(REPO_ROOT, TEMPLATE_DIR, SCRIPT_BASENAME),
-      path.join(workdir, INSTALLED_RELATIVE)
+    await configureRegistrationReads(
+      bindir,
+      laterName,
+      substitute,
+      absentReviewer
     );
   }
 
-  /**
-   * Writes a transcribed declaration naming CodeRabbit as evidence-bearing.
-   */
-  async function writeDeclaration(): Promise<void> {
-    await fs.ensureDir(path.join(workdir, ".github", "workflows"));
-    await fs.writeFile(
-      path.join(workdir, CI_WORKFLOW),
-      ["jobs:", "  quality:", "    with:", "      skip_jobs: ''", ""].join("\n")
-    );
-    await fs.writeJson(path.join(workdir, DECLARATION_RELATIVE), {
-      ruleset: {
-        repo: "owner/name",
-        ids: [1],
-        // Stamped NOW. An expired stamp makes the prover refuse rather than
-        // answer, which would pass the failure cases for the wrong reason.
-        baseline_fetched_at: new Date().toISOString().slice(0, 10),
-      },
-      workflows: [CI_WORKFLOW],
-      required_contexts: [CODERABBIT],
-      skip_job_declarations: {},
-      evidence_bearing_checks: { [CODERABBIT]: {} },
+  describe.each([
+    ".github/workflows/review-evidence.yml",
+    "typescript/create-only/.github/workflows/review-evidence.yml",
+  ])("real preflight and verdict diagnostics: %s", workflowPath => {
+    it("the actual armed CLI observes delayed required registration before judging absence", async () => {
+      await registrationFixture("Lint");
+      const run = runGate("1234", workflowPath);
+      expect(run.status).toBe(0);
+      expect(run.output).not.toContain("absent_required_check");
+      expect(run.output).toContain("2 of 2 required contexts observed");
+      expect(run.output).toContain("after 15s");
     });
-  }
+
+    it("the actual armed CLI keeps unrelated registration waiting with every reviewer substituted", async () => {
+      await registrationFixture("Lint", true);
+      const run = runGate("1234", workflowPath);
+      expect(run.status).toBe(0);
+      expect(run.output).toContain("SUBSTITUTED");
+      expect(run.output).toContain("after 15s");
+      expect(run.output).not.toContain("absent_required_check");
+    });
+
+    it("does not claim a review wait expired when an absent reviewer is substituted and registration succeeds", async () => {
+      await registrationFixture("Lint", true, true);
+      const run = runGate("1234", workflowPath);
+      expect(run.status).toBe(0);
+      expect(run.output).toContain("covered by head-bound substitutes");
+      expect(run.output).toContain(
+        "per-branch set for base 'main' (1 contexts)"
+      );
+      expect(run.output).not.toMatch(/wait expired/iu);
+    });
+
+    it.each([null, "Renamed Lint"])(
+      "the actual armed CLI refuses missing/renamed registration (%s) after one ceiling",
+      async laterName => {
+        await registrationFixture(laterName);
+        const run = runGate("1234", workflowPath);
+        expect(run.status).toBe(1);
+        expect(run.output).toContain("stopped waiting after 300s");
+        expect(run.output).toContain("1 of 2 required contexts observed");
+        expect(run.output).toContain("Lint");
+        expect(run.output).toContain("RE-RUN");
+        expect(run.output).not.toContain("not failing, ABSENT");
+      }
+    );
+
+    it("does not echo ready-made missing-file annotations when both inputs exist", async () => {
+      await installProver();
+      await writeDeclaration();
+      await stubGh([
+        { name: CODERABBIT, state: SUCCESS, description: REVIEWED },
+      ]);
+      const run = runGate("1234", workflowPath);
+      expect(run.status).toBe(0);
+      const echoedAndExecuted = `${reviewEvidenceStep(REPO_ROOT, workflowPath)}\n${run.output}`;
+      expect(echoedAndExecuted).not.toContain(
+        "::error title=Vacuity prover missing::"
+      );
+      expect(echoedAndExecuted).not.toContain(
+        "::error title=Required-checks declaration missing::"
+      );
+    });
+
+    it.each(["prover", "declaration"])(
+      "emits a real error only when the %s input is missing",
+      async missing => {
+        if (missing === "declaration") await installProver();
+        else await writeDeclaration();
+        const run = runGate("1234", workflowPath);
+        expect(run.status).not.toBe(0);
+        expect(run.output).toContain(
+          missing === "prover"
+            ? "::error title=Vacuity prover missing::"
+            : "::error title=Required-checks declaration missing::"
+        );
+      }
+    );
+
+    it("makes the first actual error summarize a real failed verdict before details", async () => {
+      await installProver();
+      await writeDeclaration();
+      await stubGh([
+        { name: CODERABBIT, state: SUCCESS, description: "Review deferred" },
+      ]);
+      const run = runGate("1234", workflowPath);
+      expect(run.status).toBe(1);
+      const errors = run.output
+        .split("\n")
+        .filter(line => line.startsWith("::error"));
+      expect(errors[0]).toMatch(
+        /title=Required checks verdict::.*review_evidence_unsatisfied/u
+      );
+      expect(errors.length).toBeGreaterThan(1);
+    });
+  });
 
   it("fails when the prover is absent from BOTH resolution paths", async () => {
     await stubGh([]);
@@ -233,7 +308,7 @@ esac
     await stubGh([
       {
         name: CODERABBIT,
-        state: "SUCCESS",
+        state: SUCCESS,
         bucket: "pass",
         description: RATE_LIMITED,
       },
@@ -267,7 +342,7 @@ esac
     await stubGh([
       {
         name: CODERABBIT,
-        state: "SUCCESS",
+        state: SUCCESS,
         bucket: "pass",
         description: MANUAL_REQUIRED,
       },
@@ -311,7 +386,7 @@ esac
     await stubGh([
       {
         name: CODERABBIT,
-        state: "SUCCESS",
+        state: SUCCESS,
         bucket: "pass",
         description: "Review deferred pending vendor maintenance",
       },
@@ -341,7 +416,7 @@ esac
     await stubGh([
       {
         name: CODERABBIT,
-        state: "SUCCESS",
+        state: SUCCESS,
         bucket: "pass",
         description: REVIEWED,
       },

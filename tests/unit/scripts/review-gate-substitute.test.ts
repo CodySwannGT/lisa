@@ -605,6 +605,59 @@ describe("the armed gate end to end", () => {
   const atHead = (sha: string | undefined): Set<string> =>
     sha === HEAD ? new Set([CODERABBIT]) : new Set();
 
+  it.each([
+    undefined,
+    RATE_LIMITED,
+    "Review skipped: reviews are disabled for this base branch",
+    UNRECOGNISED,
+  ])(
+    "a substitute for reviewer %s preserves the default wait for unrelated required registration",
+    description => {
+      let now = 0;
+      let reads = 0;
+      const reviewer =
+        description === undefined
+          ? []
+          : [{ name: CODERABBIT, state: "SUCCESS", description }];
+      const inspection = mod.inspectVacuity(
+        [
+          "--vacuity",
+          "--require-review-evidence",
+          "--pr=1",
+          "--repo=o/r",
+          "--base=main",
+        ],
+        {
+          ...DECLARATION,
+          required_contexts: ["Lint"],
+          required_contexts_by_branch: { main: ["Lint"] },
+        },
+        {
+          headSha: () => HEAD,
+          now: () => now,
+          sleep: (ms: number) => {
+            now += ms;
+          },
+          fetch: () => {
+            reads += 1;
+            return [
+              ...reviewer,
+              ...(reads > 1 ? [{ name: "Lint", state: "PENDING" }] : []),
+            ];
+          },
+          readSubstitutes: () => new Set([CODERABBIT]),
+          fetchCarried: () => [],
+          fetchReviews: () => [],
+          reviewActivity: () => CLEAN_SURFACE,
+        }
+      );
+      expect(reads).toBe(2);
+      expect(now).toBe(15_000);
+      expect(inspection?.verdict.title).toMatch(/^SUBSTITUTED/u);
+      expect(inspection?.violations).toEqual([]);
+    }
+  );
+
   it("passes without waiting when a writer stood in for every reviewer", () => {
     const { inspection, sleeps } = inspect({ substitutes: atHead });
     expect(sleeps).toBe(0);

@@ -4,11 +4,12 @@
  *
  * `lisa-test-run` turns into a shard leg or the merge whenever it sees these
  * variables. Lisa's own suite runs further `lisa-test-run` steps after the gate
- * (the Node 24 and nightly discovery regression specs), so a variable visible
- * to them would make them replay the shard reports instead of running their
- * specs, and they could pass without running a test. A `$GITHUB_ENV` write is
- * visible to every later step in the job, so the arm steps must hand their
- * values over as step outputs, and only the steps listed here may bind them.
+ * (the Node 24, nightly discovery and required-check registration regression
+ * specs), so a variable visible to them would make them replay the shard
+ * reports instead of running their specs, and they could pass without running
+ * a test. A `$GITHUB_ENV` write is visible to every later step in the job, so
+ * the arm steps must hand their values over as step outputs, and only the
+ * steps listed here may bind them.
  * Split from `quality-unit-test-shards.test.ts` for the file-length cap.
  */
 import * as fs from "node:fs";
@@ -112,7 +113,12 @@ describe.each(Object.keys(ARMS) as (keyof typeof ARMS)[])(
       const regression = steps.filter(s =>
         (s.name ?? "").startsWith("Execute and name")
       );
-      if (job === "test_unit") expect(regression).toHaveLength(2);
+      if (job === "test_unit")
+        expect(regression.map(step => step.name)).toEqual([
+          "Execute and name Node 24 regression specs",
+          "Execute and name nightly discovery regression specs",
+          "Execute and name required-check registration regression specs",
+        ]);
       for (const step of regression)
         expect(JSON.stringify(step), step.name).not.toContain(
           "LISA_TEST_SHARD"

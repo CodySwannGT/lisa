@@ -136,6 +136,16 @@ interface Inspection {
   readonly checked: number;
   readonly violations: readonly Violation[];
   readonly gateStates?: Record<string, string>;
+  readonly absent?: readonly string[];
+  readonly registration?: {
+    elapsedSeconds: number;
+    present: number;
+    total: number;
+    missing: string[];
+    expired: boolean;
+  };
+  readonly gateConditions?: Record<string, string>;
+  readonly requiredSet?: { source: string; contexts: string[] };
   readonly settled: boolean;
   readonly refusal: Refusal | null;
 }
@@ -842,6 +852,135 @@ describe("the vacuity arm, as something that actually runs", () => {
       expect(reads).toBe(2);
       expect(inspection?.settled).toBe(true);
       expect(inspection?.violations).toEqual([]);
+    });
+  });
+
+  describe("required registration shares the bounded evidence wait (#4527)", () => {
+    /** Drives the actual inspection with controlled observations and time. */
+    function inspectRegistration({
+      delay = 15,
+      state = "PENDING",
+      base = "main",
+      timeout = 30,
+      substitute = false,
+    } = {}) {
+      let clock = 0;
+      let reads = 0;
+      const inspection = mod.inspectVacuity(
+        [
+          VACUITY,
+          REQUIRE_REVIEW_EVIDENCE,
+          "--pr=1",
+          `--base=${base}`,
+          ...(substitute ? [] : [`--settle-timeout=${timeout}`]),
+        ],
+        declarationWith({
+          required_contexts: [CODERABBIT, "Lint", "Dev-only"],
+          required_contexts_by_branch: {
+            main: [CODERABBIT, "Lint"],
+            empty: [],
+          },
+        }),
+        {
+          now: () => clock,
+          sleep: (ms: number) => {
+            clock += ms;
+          },
+          fetch: () => {
+            reads += 1;
+            return [
+              coderabbit(REVIEWED),
+              ...(clock >= delay * 1000 ? [{ name: "Lint", state }] : []),
+            ];
+          },
+          headSha: () => HEAD_A,
+          fetchCarried: () => [],
+          fetchReviews: () => [],
+          readSubstitutes: () => new Set(substitute ? [CODERABBIT] : []),
+          reviewActivity: () => ({
+            read: true,
+            present: false,
+            objected: false,
+          }),
+        }
+      );
+      return { inspection, clock, reads };
+    }
+
+    it.each([15, 30])(
+      "observes required rows arriving after the reviewer settles, at %ss",
+      delay => {
+        const { inspection, clock, reads } = inspectRegistration({ delay });
+        expect(reads).toBe(delay / 15 + 1);
+        expect(clock).toBe(delay * 1000);
+        expect(inspection?.absent).toEqual([]);
+        expect(inspection?.registration).toMatchObject({
+          present: 2,
+          total: 2,
+          expired: false,
+        });
+      }
+    );
+
+    it.each(["PENDING", "FAILURE"])(
+      "treats an ordinary %s required row as registered without waiting for completion",
+      state => {
+        const { inspection, reads } = inspectRegistration({ state });
+        expect(reads).toBe(2);
+        expect(inspection?.absent).toEqual([]);
+        expect(inspection?.settled).toBe(true);
+      }
+    );
+
+    it("keeps the default registration allowance when every reviewer has a substitute", () => {
+      const { inspection, reads } = inspectRegistration({ substitute: true });
+      expect(reads).toBe(2);
+      expect(inspection?.absent).toEqual([]);
+    });
+
+    it("expires once with actual elapsed, counts, missing names and retry wording while completed evidence stays determined", () => {
+      const { inspection, clock } = inspectRegistration({ delay: Infinity });
+      expect(clock).toBe(30_000);
+      expect(inspection?.registration).toMatchObject({
+        elapsedSeconds: 30,
+        present: 1,
+        total: 2,
+        missing: ["Lint"],
+        expired: true,
+      });
+      expect(inspection?.gateConditions?.[CODERABBIT]).not.toBe("undetermined");
+      const message = inspection?.violations
+        .map(v => (v as unknown as { message: string }).message)
+        .join("\n");
+      expect(message).toMatch(
+        /stopped waiting after 30s.*1 of 2.*Lint.*RE-RUN/u
+      );
+      expect(message).not.toContain("not failing, ABSENT");
+    });
+
+    it("preserves explicit empty branch rosters and does not wait for another branch", () => {
+      const { inspection, reads } = inspectRegistration({ base: "empty" });
+      expect(reads).toBe(1);
+      expect(inspection?.absent).toEqual([]);
+      expect(inspection?.requiredSet?.contexts).toEqual([]);
+    });
+
+    it("waits for the visible union fallback when the base is undeclared", () => {
+      const { inspection, clock } = inspectRegistration({ base: "unknown" });
+      expect(clock).toBe(30_000);
+      expect(inspection?.absent).toEqual(["Dev-only"]);
+      expect(inspection?.requiredSet?.source).toBe("union");
+    });
+
+    it("honors explicit zero timeout without hiding a missing required row", () => {
+      const { inspection, clock, reads } = inspectRegistration({ timeout: 0 });
+      expect(clock).toBe(0);
+      expect(reads).toBe(1);
+      expect(inspection?.absent).toEqual(["Lint"]);
+      expect(inspection?.registration).toMatchObject({
+        elapsedSeconds: 0,
+        expired: true,
+      });
     });
   });
 
