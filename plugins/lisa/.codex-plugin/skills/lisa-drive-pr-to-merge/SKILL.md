@@ -1355,7 +1355,8 @@ Four properties make the command safe to run unconditionally:
    above does, and for the same reason. A merged pull request is not evidence
    on its own: the writer resolves `<baseRefName>` through `.lisa.config.json`
    `deploy.branches` and applies only the role that base earned. A merge into
-   the production deploy branch is terminal and closes the item; a merge into a
+   the production deploy branch becomes eligible for terminal completion only
+   after canonical accepted-for-completion proof passes; a merge into a
    branch mapping to a lower env records that env's role and leaves the item
    open; a merge into a branch the project does not deploy at all — an
    integration/stack branch — records nothing, closes nothing, and reports the
@@ -1376,6 +1377,19 @@ is closed *and* still reports as in progress.
 If the command refuses, do not close by hand. A refusal means the evidence is
 not there, and a lifecycle step performed by hand is one nothing can verify
 happened.
+
+`work-item pending-proof` is a normal nonterminal outcome: the merge does not
+prove the configured whole delivery run, runtime behavior, typed attachments,
+CONFORMS, canonical Verify usage, exact linkage and acceptance. Keep the item
+owned/open, finish canonical Verify and `lisa-tracker-evidence`, and use its
+shipped `publish-completion-proof` producer after actual uploads/readbacks.
+Then retry canonical completion. Read the sibling skill companion
+`../lisa-tracker-evidence/references/completion-authorization.md` relative to this
+skill directory; it is the portable `completion-authorization` reference.
+Publish an immutable required pending-state journey artifact first; append the
+real native terminal readback/acceptedAt afterward. Never require the future
+close event as its own authorization. A configured bot publisher's still-running
+pinned attempt keeps completion pending until that exact attempt succeeds.
 
 **The backstop, for the ones that still slip:** `lisa-work-item.mjs sweep`
 reports every open item — in the **ready** lane as well as the **claimed** one —

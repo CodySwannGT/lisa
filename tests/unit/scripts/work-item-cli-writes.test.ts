@@ -7,6 +7,7 @@
  */
 import { readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
+import { acceptedCompatibility } from "../../support/work-item-proof-compatibility.js";
 
 import { afterAll, afterEach, describe, expect, it } from "vitest";
 
@@ -110,8 +111,8 @@ function logPath(fixture: Fixture): string {
  * @param fixture - The repository the reads happen in.
  * @returns Environment entries staging the before and after reads.
  */
-function completionReads(fixture: Fixture): Record<string, string> {
-  return {
+function completionReads(fixture: Fixture, ref = REF): Record<string, string> {
+  const reads = {
     FAKE_GH_ISSUE_COUNT_FILE: path.join(fixture.root, "gh-issue.count"),
     FAKE_GH_ISSUE_JSON_1: issueJson(),
     FAKE_GH_ISSUE_JSON_2: issueJson({
@@ -120,6 +121,13 @@ function completionReads(fixture: Fixture): Record<string, string> {
       stateReason: "COMPLETED",
     }),
   };
+  acceptedCompatibility(
+    fixture,
+    ref,
+    reads.FAKE_GH_ISSUE_JSON_1,
+    reads.FAKE_GH_ISSUE_JSON_2
+  );
+  return {};
 }
 
 describe("in-process CLI: backlink", () => {
@@ -628,7 +636,7 @@ describe("in-process CLI: sweep", () => {
     const log = logPath(fixture);
     declareShipped(fixture, 42);
     const result = cli(fixture, ["sweep", "--apply"], {
-      ...completionReads(fixture),
+      ...completionReads(fixture, "acme/code#42"),
       FAKE_GH_LIST_JSON: MIXED_LIST,
       FAKE_GH_LOG: log,
       FAKE_GH_TIMELINE_43_JSON: "[]",
@@ -675,7 +683,7 @@ describe("in-process CLI: sweep", () => {
     const log = logPath(fixture);
     declareShipped(fixture, 42);
     const result = cli(fixture, ["sweep", "--apply"], {
-      ...completionReads(fixture),
+      ...completionReads(fixture, "acme/code#42"),
       FAKE_GH_LIST_JSON: LIST,
       FAKE_GH_LOG: log,
       FAKE_GH_TIMELINE_JSON: SWEPT_TIMELINE,

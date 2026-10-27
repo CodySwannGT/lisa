@@ -16,6 +16,11 @@ Apply `lisa-tracker-sync` — **Agent attribution** when composing evidence comm
 
 ## Workflow
 
+The portable accepted-completion contract is this skill's own
+`references/completion-authorization.md` companion. Read that file when preparing
+or publishing completion proof. It ships with the skill even on runtimes that
+omit the plugin rules tree; do not assume a runtime-specific rules directory.
+
 1. Resolve tracker config (same logic as `lisa-tracker-write`).
 2. Missing / empty → stop and report `"No tracker configured in .lisa.config.json. Run /lisa:setup:jira, /lisa:setup:github, or /lisa:setup:linear first."`
 3. Before dispatching, update the generated evidence artifact through `lisa-usage-accounting` so the comment body / PR evidence section carries a direct `lisa-verify` usage entry in the canonical `## Lisa Usage` section. If the originating work item's parentage or child refs are already known, prefer `record_and_rollup` so ancestor totals refresh in the same write; otherwise still write the direct entry, and if trustworthy runtime usage is unavailable, write `source: unavailable` with nullable token/cost fields instead of skipping the row.
@@ -24,7 +29,8 @@ Apply `lisa-tracker-sync` — **Agent attribution** when composing evidence comm
    - `github` → invoke `lisa-github-evidence` with `$ARGUMENTS` verbatim. Arg shape: `<ISSUE_REF> <EVIDENCE_DIR> <PR_NUMBER>` where `ISSUE_REF` is `org/repo#<number>` or a GitHub issue URL.
    - `linear` → invoke `lisa-linear-evidence` with `$ARGUMENTS` verbatim. Arg shape: `<IDENTIFIER> <EVIDENCE_DIR>` where `IDENTIFIER` is a Linear Issue identifier (e.g., `ENG-123`).
    - Anything else → stop and report `"Unknown tracker '<value>' in .lisa.config.json. Expected 'jira', 'github', or 'linear'."`
-5. Pass through the vendor skill's output.
+5. For supported GitHub/Linear production completion, after actual uploads and exact native readbacks, prepare the accepted-for-completion input from the observed source/delivery, schema2 verdicts, actual typed attachment pointers, complete requirement conjunction map, structured CONFORMS report, canonical Verify usage, linkage and explicit acceptance. Apply the shipped `completion-authorization` reference; the executable validates the contract in every installed host. Run `node scripts/lisa-work-item.mjs publish-completion-proof --ref <exact-work-item> --record <evidence-dir>/completion-record.json`. It uploads immutable hash-named acceptance bytes to the implementation repository's `pr-assets`, reads them back and publishes the exact-item native locator. Never construct a locator manually or treat a narrative evidence comment as acceptance. Jira completion remains unsupported.
+6. Pass through both the vendor output and actual producer category. `published/pending-producer` means the pinned configured automation attempt must finish successfully before completion; do not rewrite the asset after the job or invent a successful future outcome. A User publisher does not require a producer workflow run. Only after accepted publication may the canonical lifecycle owner retry `complete`; pending proof preserves ownership and state and names the Verify/evidence action. Capture actual terminal readback/usage acceptedAt afterward, not as a circular publication prerequisite. A required pending-state journey artifact is immutable Phase-A proof captured before completion; the later actual terminal readback is a separate Phase-B supplement.
 
 ## Rules
 

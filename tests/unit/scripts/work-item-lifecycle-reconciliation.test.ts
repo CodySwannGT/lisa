@@ -28,6 +28,7 @@
  */
 import { readFileSync } from "node:fs";
 import path from "node:path";
+import { acceptedCompatibility } from "../../support/work-item-proof-compatibility.js";
 
 import { afterAll, afterEach, describe, expect, it } from "vitest";
 
@@ -113,10 +114,13 @@ function complete(
   reads: Reads
 ): { invocations: string; stderr: string; exitCode: number | undefined } {
   const log = path.join(fixture.root, "gh.log");
-  const result = cli(fixture, ["complete", REF_FLAG, REF], {
-    FAKE_GH_ISSUE_COUNT_FILE: path.join(fixture.root, "gh-issue.count"),
-    FAKE_GH_ISSUE_JSON_1: reads.before,
-    FAKE_GH_ISSUE_JSON_2: reads.after,
+  const accepted = acceptedCompatibility(
+    fixture,
+    REF,
+    reads.before,
+    reads.after
+  );
+  const result = cli(accepted, ["complete", REF_FLAG, REF], {
     FAKE_GH_LOG: log,
     FAKE_GH_TIMELINE_JSON: MERGED_TIMELINE,
   });

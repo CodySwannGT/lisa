@@ -119,7 +119,7 @@ on:
         # argument.
         description: 'Work-item gate contract version this workflow speaks. A MAJOR mismatch against scripts/lisa-work-item.mjs fails the traceability gate closed; an older minor is reported. Bump in lockstep with WORK_ITEM_CONTRACT_VERSION.'
         required: false
-        default: '1.1.0'
+        default: '1.2.0'
         type: string
       skip_jobs:
         # PREFER `gates` IN .lisa.config.json: GitHub treats a SKIPPED required status check as
@@ -2843,6 +2843,25 @@ jobs:
             --reporter=verbose
           bun run lisa-test-run -- --adapter direct -- \
             node scripts/verify-host-name-target-scope.mjs --hooks=plugins/lisa/hooks
+        working-directory: ${{ inputs.working_directory || '.' }}
+
+      - name: Execute and name completion authorization regression specs
+        if: github.repository == 'CodySwannGT/lisa' && steps.gate_run.outcome == 'success'
+        run: >-
+          bun run lisa-test-run -- --adapter vitest -- vitest run
+          tests/unit/scripts/portable-usage-ledger.test.ts
+          tests/unit/scripts/work-item-completion-authorization.test.ts
+          tests/unit/scripts/work-item-accepted-proof.test.ts
+          tests/unit/scripts/work-item-proof-denials.test.ts
+          tests/unit/scripts/work-item-proof-scope.test.ts
+          tests/unit/scripts/work-item-proof-trust.test.ts
+          tests/unit/scripts/work-item-proof-late-read.test.ts
+          tests/unit/scripts/work-item-proof-write-errors.test.ts
+          tests/unit/scripts/work-item-proof-freshness-review.test.ts
+          tests/unit/scripts/work-item-linear-accepted-proof.test.ts
+          tests/unit/scripts/completion-proof-types.test.ts
+          tests/unit/scripts/terminal-transition-outcomes.test.ts
+          --reporter=verbose
         working-directory: ${{ inputs.working_directory || '.' }}
 
       # Both declared test commands and the built-in fallback can produce

@@ -1,152 +1,36 @@
+import {
+  LISA_USAGE_HEADING,
+  parseLisaUsageSection,
+} from "../../all/copy-overwrite/scripts/lib/usage-ledger.mjs";
+import { verifyLisaUsageSectionIntegrity } from "../../all/copy-overwrite/scripts/lib/usage-ledger-integrity.mjs";
+import type {
+  LisaUsageEntry,
+  LisaUsageRollup,
+  LisaUsageChildArtifact,
+  ParsedLisaUsageSection,
+  LisaUsageSectionIntegrityIssue,
+  LisaUsageSectionIntegrityResult,
+} from "../../all/copy-overwrite/scripts/lib/usage-ledger.mjs";
+export {
+  LISA_USAGE_HEADING,
+  parseLisaUsageSection,
+  verifyLisaUsageSectionIntegrity,
+};
+export type {
+  LisaUsageEntry,
+  LisaUsageRollup,
+  LisaUsageChildArtifact,
+  ParsedLisaUsageSection,
+  LisaUsageSectionIntegrityIssue,
+  LisaUsageSectionIntegrityResult,
+};
 /* eslint-disable max-lines -- Usage ledger parsing, rendering, and rollup helpers share one public utility surface. */
 
 import { collectLisaUsageChildArtifacts } from "./usage-accounting-rollup.js";
 import { sumNullableDecimals } from "./decimal-sum.js";
-import {
-  parseEffectivenessTokens,
-  renderEffectivenessToken,
-  type EffectivenessObservation,
-} from "./effectiveness.js";
-
-export const LISA_USAGE_HEADING = "## Lisa Usage";
-
-/**
- *
- */
-export interface LisaUsageEntry {
-  artifactRef: string;
-  cachedInputTokens: number | null;
-  cost: number | null;
-  currency: string | null;
-  entryId: string;
-  effectiveness?: EffectivenessObservation;
-  flow: string;
-  inputTokens: number | null;
-  measuredSubsetTokens?: number | null;
-  model: string;
-  outputTokens: number | null;
-  parentArtifactRef: string | null;
-  pricingSource: string | null;
-  pricingStatus: string;
-  provider: string;
-  reasoningTokens: number | null;
-  runId: string;
-  source: string;
-  totalTokens: number | null;
-}
-
-/**
- *
- */
-export interface LisaUsageRollup {
-  childCost: number | null;
-  childCurrency: string | null;
-  childEntryIds: readonly string[];
-  childRefs: readonly string[];
-  childTokens: number | null;
-  childTokensIncomplete?: boolean;
-  currency: string | null;
-  directCost: number | null;
-  directEntryIds: readonly string[];
-  directTokens: number | null;
-  totalCost: number | null;
-  totalTokens: number | null;
-}
-
-/**
- *
- */
-export interface LisaUsageChildArtifact {
-  artifactRef: string;
-  entries: readonly LisaUsageEntry[];
-}
-
-/**
- *
- */
-export interface ParsedLisaUsageSection {
-  entries: readonly LisaUsageEntry[];
-  range: { end: number; start: number } | null;
-  rollup: LisaUsageRollup | null;
-}
-
-const ENTRY_TOKEN_PATTERN = /<!-- lisa:usage-entry [^\r\n]*? -->/g;
-
-const LEGACY_ENTRY_PATTERN =
-  /^<!-- lisa:usage-entry entry_id=(\S+) flow=(\S+) run_id=(\S+) provider=(\S+) model=(\S+) source=(\S+) input_tokens=(\S+) cached_input_tokens=(\S+) output_tokens=(\S+) reasoning_tokens=(\S+) total_tokens=(\S+) cost=(\S+) currency=(\S+) pricing_status=(\S+) pricing_source=(\S+) artifact_ref=(\S+) parent_artifact_ref=(\S*) -->$/;
-
-const RELEASED_MIDDLE_FIELD_ENTRY_PATTERN =
-  /^<!-- lisa:usage-entry entry_id=(\S+) flow=(\S+) run_id=(\S+) provider=(\S+) model=(\S+) source=(\S+) input_tokens=(\S+) cached_input_tokens=(\S+) output_tokens=(\S+) reasoning_tokens=(\S+) total_tokens=(\S+) measured_subset_tokens=(\S+) cost=(\S+) currency=(\S+) pricing_status=(\S+) pricing_source=(\S+) artifact_ref=(\S+) parent_artifact_ref=(\S*) -->$/;
-
-const MEASURED_SUBSET_PATTERN =
-  /<!-- lisa:usage-entry-measured-subset entry_id=(\S+) measured_subset_tokens=(\S+) -->/g;
-
-const ROLLUP_PATTERN =
-  /<!-- lisa:usage-rollup direct_entry_ids=(\S*) child_entry_ids=(\S*) child_refs=(\S*) direct_tokens=(\S+) child_tokens=(\S+) total_tokens=(\S+) direct_cost=(\S+) child_cost=(\S+) total_cost=(\S+) currency=(\S+)(?: child_currency=(\S+))? -->/;
-
-const ROLLUP_TOKEN_STATUS_PATTERN =
-  /<!-- lisa:usage-rollup-token-status child_tokens_incomplete=true -->/;
+import { renderEffectivenessToken } from "./effectiveness.js";
 
 const MIXED_CURRENCY = "mixed";
-
-/**
- * Parse a nullable numeric token field.
- *
- * @param value Serialized numeric token value.
- * @returns The parsed number or null when the token is empty.
- */
-function parseNullableNumber(value: string): number | null {
-  if (value === "null" || value.length === 0) {
-    return null;
-  }
-
-  const parsed = Number(value);
-  if (!Number.isFinite(parsed)) {
-    throw new Error(`Invalid Lisa usage numeric token: ${value}`);
-  }
-
-  return parsed;
-}
-
-/**
- * Parse the additive field from the published 2.222.0 marker. Legacy callers
- * could serialize an omitted property as the literal `undefined`; no other
- * numeric field receives this compatibility exception.
- *
- * @param value Transitional measured-subset token value.
- * @returns The parsed subtotal, or null for the published undefined omission.
- */
-function parseReleasedMeasuredSubset(value: string): number | null {
-  return value === "undefined" ? null : parseNullableNumber(value);
-}
-
-/**
- * Parse a nullable string token field.
- *
- * @param value Serialized string token value.
- * @returns The parsed string or null when the token is empty.
- */
-function parseNullableString(value: string): string | null {
-  if (value === "null" || value.length === 0) {
-    return null;
-  }
-
-  return decodeTokenValue(value);
-}
-
-/**
- * Decode a percent-encoded token field.
- *
- * @param value Serialized token field.
- * @returns The decoded token value, or the original value for legacy tokens.
- */
-function decodeTokenValue(value: string): string {
-  try {
-    return decodeURIComponent(value);
-  } catch {
-    return value;
-  }
-}
 
 /**
  * Serialize a token field so whitespace, delimiters, and HTML comment endings
@@ -171,20 +55,6 @@ function renderNullable(value: number | string | null): string {
   }
 
   return typeof value === "number" ? String(value) : encodeTokenValue(value);
-}
-
-/**
- * Parse a comma-separated token field into stable document order.
- *
- * @param value Serialized CSV token field.
- * @returns The parsed item list.
- */
-function parseCsv(value: string): readonly string[] {
-  if (value.length === 0) {
-    return [];
-  }
-
-  return value.split(",").map(decodeTokenValue);
 }
 
 /**
@@ -244,37 +114,6 @@ function resolveDirectCostCurrency(
   }
 
   return currencies.values().next().value ?? null;
-}
-
-/**
- * Locate the current managed usage-section boundaries inside an artifact body.
- *
- * @param document Artifact markdown to inspect.
- * @returns The start/end character offsets for the section, if present.
- */
-function findUsageSectionRange(
-  document: string
-): { end: number; start: number } | null {
-  const heading = `${LISA_USAGE_HEADING}\n`;
-  const start = document.indexOf(heading);
-  if (start === -1) {
-    if (!document.endsWith(LISA_USAGE_HEADING)) {
-      return null;
-    }
-
-    return {
-      start: document.length - LISA_USAGE_HEADING.length,
-      end: document.length,
-    };
-  }
-
-  const afterHeading = start + heading.length;
-  const nextHeadingOffset = document.slice(afterHeading).search(/^##\s+/m);
-  const end =
-    nextHeadingOffset === -1
-      ? document.length
-      : afterHeading + nextHeadingOffset;
-  return { start, end };
 }
 
 /**
@@ -607,299 +446,6 @@ export function renderLisaUsageSection(input: {
   ];
 
   return `${lines.join("\n")}\n`;
-}
-
-/**
- * Parse the managed rollup and its optional token-completeness extension.
- *
- * @param section Managed usage section text.
- * @returns The parsed rollup, or null when the section has no rollup token.
- */
-function parseLisaUsageRollup(section: string): LisaUsageRollup | null {
-  const match = ROLLUP_PATTERN.exec(section);
-  if (match === null) {
-    return null;
-  }
-
-  return {
-    directEntryIds: parseCsv(match[1] ?? ""),
-    childEntryIds: parseCsv(match[2] ?? ""),
-    childRefs: parseCsv(match[3] ?? ""),
-    directTokens: parseNullableNumber(match[4] ?? ""),
-    childTokens: parseNullableNumber(match[5] ?? ""),
-    ...(ROLLUP_TOKEN_STATUS_PATTERN.test(section)
-      ? { childTokensIncomplete: true }
-      : {}),
-    totalTokens: parseNullableNumber(match[6] ?? ""),
-    directCost: parseNullableNumber(match[7] ?? ""),
-    childCost: parseNullableNumber(match[8] ?? ""),
-    totalCost: parseNullableNumber(match[9] ?? ""),
-    currency: parseNullableString(match[10] ?? ""),
-    childCurrency: parseNullableString(match[11] ?? ""),
-  };
-}
-
-/**
- * Parse the managed usage section out of an artifact body or comment.
- *
- * @param document Artifact markdown to inspect.
- * @returns Parsed direct entries, rollup token, and the located section range.
- */
-export function parseLisaUsageSection(
-  document: string
-): ParsedLisaUsageSection {
-  const range = findUsageSectionRange(document);
-  const section = range ? document.slice(range.start, range.end) : "";
-  const effectiveness = parseEffectivenessTokens(section);
-  const measuredSubsets = new Map(
-    Array.from(
-      section.matchAll(MEASURED_SUBSET_PATTERN),
-      match =>
-        [
-          decodeTokenValue(match[1] ?? ""),
-          parseNullableNumber(match[2] ?? ""),
-        ] as const
-    )
-  );
-  const entries = Array.from(
-    section.matchAll(ENTRY_TOKEN_PATTERN),
-    tokenMatch => {
-      const token = tokenMatch[0];
-      const releasedMatch = RELEASED_MIDDLE_FIELD_ENTRY_PATTERN.exec(token);
-      const match = releasedMatch ?? LEGACY_ENTRY_PATTERN.exec(token);
-      if (match === null) {
-        throw new Error(`Invalid Lisa usage entry token: ${token}`);
-      }
-
-      const releasedFieldOffset = releasedMatch === null ? 0 : 1;
-      const entryId = decodeTokenValue(match[1] ?? "");
-      const embeddedMeasuredSubset =
-        releasedMatch === null
-          ? null
-          : parseReleasedMeasuredSubset(match[12] ?? "");
-      return {
-        entryId,
-        ...(effectiveness.has(entryId)
-          ? { effectiveness: effectiveness.get(entryId)! }
-          : {}),
-        flow: decodeTokenValue(match[2] ?? ""),
-        runId: decodeTokenValue(match[3] ?? ""),
-        provider: decodeTokenValue(match[4] ?? ""),
-        model: decodeTokenValue(match[5] ?? ""),
-        source: decodeTokenValue(match[6] ?? ""),
-        inputTokens: parseNullableNumber(match[7] ?? ""),
-        cachedInputTokens: parseNullableNumber(match[8] ?? ""),
-        outputTokens: parseNullableNumber(match[9] ?? ""),
-        reasoningTokens: parseNullableNumber(match[10] ?? ""),
-        totalTokens: parseNullableNumber(match[11] ?? ""),
-        measuredSubsetTokens: measuredSubsets.has(entryId)
-          ? (measuredSubsets.get(entryId) ?? null)
-          : embeddedMeasuredSubset,
-        cost: parseNullableNumber(match[12 + releasedFieldOffset] ?? ""),
-        currency: parseNullableString(match[13 + releasedFieldOffset] ?? ""),
-        pricingStatus: decodeTokenValue(match[14 + releasedFieldOffset] ?? ""),
-        pricingSource: parseNullableString(
-          match[15 + releasedFieldOffset] ?? ""
-        ),
-        artifactRef: decodeTokenValue(match[16 + releasedFieldOffset] ?? ""),
-        parentArtifactRef: parseNullableString(
-          match[17 + releasedFieldOffset] ?? ""
-        ),
-      };
-    }
-  );
-
-  const entryIds = new Set(entries.map(entry => entry.entryId));
-  for (const entryId of effectiveness.keys()) {
-    if (!entryIds.has(entryId)) {
-      throw new Error(
-        `Effectiveness observation has no usage entry: ${entryId}`
-      );
-    }
-  }
-
-  return { entries, rollup: parseLisaUsageRollup(section), range };
-}
-
-/**
- * Describe one way a stored managed usage section fails to be a readable ledger.
- */
-export interface LisaUsageSectionIntegrityIssue {
-  code:
-    | "missing-entry-token"
-    | "missing-rollup-token"
-    | "missing-section"
-    | "unrecorded-entry";
-  entryIds: readonly string[];
-  message: string;
-}
-
-/**
- *
- */
-export interface LisaUsageSectionIntegrityResult {
-  issues: readonly LisaUsageSectionIntegrityIssue[];
-  ok: boolean;
-}
-
-/**
- * Sort ids so an integrity report is deterministic regardless of document order.
- *
- * @param ids Entry ids to normalize.
- * @returns The ids in stable sorted order.
- */
-function sortedIds(ids: Iterable<string>): readonly string[] {
-  return [...ids].sort((left, right) =>
-    left > right ? 1 : left < right ? -1 : 0
-  );
-}
-
-/**
- * Emit an issue only when it actually names something, so callers can compose
- * checks by concatenation instead of conditional accumulation.
- *
- * @param code Stable issue code.
- * @param entryIds Entry ids the issue is about.
- * @param message Operator-readable description.
- * @returns A zero- or one-element issue list.
- */
-function reportIssue(
-  code: LisaUsageSectionIntegrityIssue["code"],
-  entryIds: readonly string[],
-  message: string
-): readonly LisaUsageSectionIntegrityIssue[] {
-  return entryIds.length === 0 ? [] : [{ code, entryIds, message }];
-}
-
-/**
- * Report entries the caller just wrote that the stored surface cannot produce.
- *
- * @param expectedEntryIds Entry ids the caller believes it persisted.
- * @param parsedEntryIds Entry ids actually parseable from the stored section.
- * @returns Zero or one `missing-entry-token` issue.
- */
-function findDroppedExpectedEntries(
-  expectedEntryIds: readonly string[],
-  parsedEntryIds: ReadonlySet<string>
-): readonly LisaUsageSectionIntegrityIssue[] {
-  const missing = sortedIds(
-    expectedEntryIds.filter(entryId => !parsedEntryIds.has(entryId))
-  );
-  return reportIssue(
-    "missing-entry-token",
-    missing,
-    `Stored section does not contain a parseable lisa:usage-entry token for: ${missing.join(", ")}. The write surface dropped them.`
-  );
-}
-
-/**
- * Report rollup references that resolve to no direct entry in the same section.
- *
- * @param rollupEntryIds Entry ids named by the stored rollup token.
- * @param parsedEntryIds Entry ids actually parseable from the stored section.
- * @param alreadyReported Ids already reported as dropped caller expectations.
- * @returns Zero or one `missing-entry-token` issue.
- */
-function findUnresolvableRollupReferences(
-  rollupEntryIds: readonly string[],
-  parsedEntryIds: ReadonlySet<string>,
-  alreadyReported: readonly string[]
-): readonly LisaUsageSectionIntegrityIssue[] {
-  const unresolvable = sortedIds(
-    rollupEntryIds.filter(
-      entryId =>
-        !parsedEntryIds.has(entryId) && !alreadyReported.includes(entryId)
-    )
-  );
-  return reportIssue(
-    "missing-entry-token",
-    unresolvable,
-    `Rollup direct_entry_ids names entries that cannot be parsed from the same section: ${unresolvable.join(", ")}.`
-  );
-}
-
-/**
- * Report direct entries the stored rollup token fails to account for.
- *
- * @param rollup Stored rollup token, or null when the section carries none.
- * @param parsedEntryIds Entry ids actually parseable from the stored section.
- * @returns Zero or one issue describing the disagreement.
- */
-function findRollupCoverageGaps(
-  rollup: LisaUsageRollup | null,
-  parsedEntryIds: ReadonlySet<string>
-): readonly LisaUsageSectionIntegrityIssue[] {
-  const entryIds = sortedIds(parsedEntryIds);
-  if (rollup === null) {
-    // Every section Lisa writes carries a rollup token, even a child-only or
-    // fully empty ledger, so a missing token is always corruption -- report
-    // it unconditionally rather than routing through reportIssue(), which
-    // suppresses issues that name zero entries.
-    return [
-      {
-        code: "missing-rollup-token",
-        entryIds,
-        message: `Stored section has ${entryIds.length} direct entr${entryIds.length === 1 ? "y" : "ies"} but no lisa:usage-rollup token.`,
-      },
-    ];
-  }
-
-  const recorded = new Set(rollup.directEntryIds);
-  const unrecorded = entryIds.filter(entryId => !recorded.has(entryId));
-  return reportIssue(
-    "unrecorded-entry",
-    unrecorded,
-    `Stored section contains direct entries absent from rollup direct_entry_ids: ${unrecorded.join(", ")}.`
-  );
-}
-
-/**
- * Verify that a STORED managed usage section is still a readable ledger.
- *
- * This exists because a write surface can accept a section, report success, and
- * silently destroy part of it. Callers must run this against the bytes read back
- * from the host, never against the payload they sent and never against the
- * mutation's return value — trusting the mutation result is precisely what let a
- * Linear description strip every entry token while reporting `success: true`.
- *
- * @param storedDocument Artifact body or comment body as read back from the host.
- * @param expected Optional expectations from the write that was just performed.
- * @param expected.entryIds Entry ids the caller believes it just persisted.
- * @returns Whether the stored ledger is enumerable, plus every issue found.
- */
-export function verifyLisaUsageSectionIntegrity(
-  storedDocument: string,
-  expected?: { entryIds?: readonly string[] }
-): LisaUsageSectionIntegrityResult {
-  const parsed = parseLisaUsageSection(storedDocument);
-  const expectedEntryIds = expected?.entryIds ?? [];
-
-  if (parsed.range === null) {
-    const missing = sortedIds(expectedEntryIds);
-    const issues = reportIssue(
-      "missing-section",
-      missing,
-      `Stored artifact has no ${LISA_USAGE_HEADING} section, but ${missing.length} usage entr${missing.length === 1 ? "y was" : "ies were"} written to it.`
-    );
-    return { ok: issues.length === 0, issues };
-  }
-
-  const parsedEntryIds = new Set(parsed.entries.map(entry => entry.entryId));
-  const droppedExpected = findDroppedExpectedEntries(
-    expectedEntryIds,
-    parsedEntryIds
-  );
-  const issues = [
-    ...droppedExpected,
-    ...findUnresolvableRollupReferences(
-      parsed.rollup?.directEntryIds ?? [],
-      parsedEntryIds,
-      droppedExpected.flatMap(issue => issue.entryIds)
-    ),
-    ...findRollupCoverageGaps(parsed.rollup, parsedEntryIds),
-  ];
-
-  return { ok: issues.length === 0, issues };
 }
 
 /**

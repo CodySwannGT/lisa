@@ -302,7 +302,12 @@ const config: ViteUserConfig = {
       LISA_WORK_ITEM_TIMEOUT_MS: "48000",
     },
     coverage: {
-      include: ["src/**/*.ts"],
+      include: [
+        "src/**/*.ts",
+        "all/copy-overwrite/scripts/lib/usage-effectiveness.mjs",
+        "all/copy-overwrite/scripts/lib/usage-ledger.mjs",
+        "all/copy-overwrite/scripts/lib/usage-ledger-integrity.mjs",
+      ],
       exclude: ["src/index.ts"],
     },
   },

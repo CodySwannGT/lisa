@@ -17,11 +17,16 @@ name: 🎯 Terminal Transition On Merge
 # both answer and act on. The two are complements: this is the forward path,
 # the daily sweep is the backstop, and neither can do the other's job.
 #
-# The evidence is unchanged and is not a PR title or a branch name: a commit
+# Source selection is not a PR title or a branch name: a commit
 # reachable from the deploy branch whose own `Work-Item:` trailer names the
 # item, plus — inside `complete` — a merged pull request in this repository
 # whose BASE BRANCH resolves through `deploy.branches` to the production
-# environment. A merge onto an integration branch earns no terminal role.
+# environment. Production writes additionally require canonical durable
+# accepted-for-completion proof: actual configured whole-run delivery,
+# verification, typed evidence, CONFORMS, usage, linkage and acceptance. A
+# bounded push can find work before proof exists; it stays open and reports
+# pending rather than claiming delivery failed. A merge onto an integration
+# branch earns no terminal role.
 #
 # Idempotent by construction: a completed item is closed and no longer carries
 # the ready or claimed role, so it is not in the open-lane listing the subject
@@ -50,6 +55,8 @@ jobs:
     permissions:
       contents: read
       issues: write
+      pull-requests: read
+      actions: read
     steps:
       - uses: actions/checkout@v6
         with:
@@ -101,10 +108,15 @@ jobs:
           # without letting the exit status decide.
           refused="$(grep -c '^work-item NOT completed' transition.txt || true)"
           if [ "${refused:-0}" -gt 0 ]; then
-            echo "::error::${refused} work item(s) this push shipped could not be completed; the run summary says why."
+            echo "::error::${refused} work item(s) have an unusable proof or operational failure; the run summary names the evidence or access to repair."
             exit 1
           fi
-          echo "Nothing was left un-completed."
+          pending="$(grep -c '^work-item pending-proof:' transition.txt || true)"
+          if [ "${pending:-0}" -gt 0 ]; then
+            echo "${pending} work item(s) remain open awaiting delivery/verification proof. Run canonical Verify/evidence and retry completion."
+          else
+            echo "No pending completion proof or refused transition was reported for this bounded push."
+          fi
 
   # A run nobody reads is the same as no run. A red run files a deduplicated
   # issue, which is the named consumer a "reported, not guessed" outcome needs

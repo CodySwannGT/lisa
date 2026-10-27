@@ -34,6 +34,7 @@
  */
 import { readFileSync } from "node:fs";
 import path from "node:path";
+import { acceptedCompatibility } from "../../support/work-item-proof-compatibility.js";
 
 import { afterAll, afterEach, describe, expect, it } from "vitest";
 
@@ -133,7 +134,19 @@ function complete(
   overrides: Record<string, string>
 ): { invocations: string; stdout: string; exitCode: number | undefined } {
   const log = path.join(fixture.root, "gh.log");
-  const result = cli(fixture, ["complete", REF_FLAG, REF], {
+  const production =
+    overrides.FAKE_GH_PR_BASE === "main" ||
+    overrides.FAKE_GH_PR_BASE_8 === "main";
+  const subject = production
+    ? acceptedCompatibility(
+        fixture,
+        REF,
+        CLAIMED_ISSUE,
+        COMPLETED_ISSUE,
+        overrides.FAKE_GH_PR_BASE_8 === "main" ? 8 : 7
+      )
+    : fixture;
+  const result = cli(subject, ["complete", REF_FLAG, REF], {
     FAKE_GH_ISSUE_COUNT_FILE: path.join(fixture.root, "gh-issue.count"),
     FAKE_GH_ISSUE_JSON_1: CLAIMED_ISSUE,
     FAKE_GH_ISSUE_JSON_2: COMPLETED_ISSUE,

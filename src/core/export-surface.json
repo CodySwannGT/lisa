@@ -1,8 +1,8 @@
 {
   "$generatedBy": "scripts/generate-export-surface.mjs",
   "$doNotEdit": "The public export surface this package ships, recorded so a removal is an OBSERVATION rather than an inference from commit-message conventions. This file's diff is what makes a removed export visible in the pull request that causes it (CodySwannGT/lisa#3718).",
-  "$modules": 235,
-  "$names": 1749,
+  "$modules": 250,
+  "$names": 1804,
   "surface": {
     "all/copy-overwrite/scripts/check-conflict-markers.mjs": [
       "UsageError",
@@ -129,6 +129,78 @@
       "boundedSpawnSync",
       "isChildTimeout",
       "rethrowIfChildTimeout"
+    ],
+    "all/copy-overwrite/scripts/lib/completion-authorization.mjs": [
+      "authorizeCompletion",
+      "completionDenial",
+      "evaluateAcceptedRecord"
+    ],
+    "all/copy-overwrite/scripts/lib/completion-proof-adapters.mjs": [
+      "completionContext"
+    ],
+    "all/copy-overwrite/scripts/lib/completion-proof-conformance.mjs": [
+      "validateConformance"
+    ],
+    "all/copy-overwrite/scripts/lib/completion-proof-content.mjs": [
+      "validateManifest",
+      "validateObligations",
+      "validateTypedBytes",
+      "validateVerdict",
+      "validateVerifyUsage"
+    ],
+    "all/copy-overwrite/scripts/lib/completion-proof-errors.mjs": [
+      "CompletionProofError",
+      "requireProof"
+    ],
+    "all/copy-overwrite/scripts/lib/completion-proof-github.mjs": [
+      "githubProofTransport"
+    ],
+    "all/copy-overwrite/scripts/lib/completion-proof-markdown.mjs": [
+      "markdownSection",
+      "topLevelLines"
+    ],
+    "all/copy-overwrite/scripts/lib/completion-proof-projection.mjs": [
+      "canonicalCompletionBlock",
+      "usageSpecRemainder"
+    ],
+    "all/copy-overwrite/scripts/lib/completion-proof-publisher.mjs": [
+      "publishCompletionProof"
+    ],
+    "all/copy-overwrite/scripts/lib/completion-proof-reader.mjs": [
+      "completionRecordId",
+      "locatorHistoryFingerprint",
+      "readTrustedRecord",
+      "recordFingerprint"
+    ],
+    "all/copy-overwrite/scripts/lib/completion-proof-shape.mjs": [
+      "BOUNDARIES",
+      "CompletionProofError",
+      "KINDS",
+      "MAX_ATTACHMENT_BYTES",
+      "MAX_RECORD_BYTES",
+      "MAX_TOTAL_BYTES",
+      "PROOF_KIND",
+      "PROOF_MARKER",
+      "declaredScope",
+      "isDigest",
+      "isId",
+      "isObject",
+      "isOid",
+      "isText",
+      "isTime",
+      "localMarkers",
+      "parseLocator",
+      "primarySpecProjection",
+      "requireProof",
+      "section",
+      "sha256",
+      "validateRecordShape"
+    ],
+    "all/copy-overwrite/scripts/lib/completion-proof-source.mjs": [
+      "compareSource",
+      "validateDelivery",
+      "validateFrontier",
+      "validateSource"
     ],
     "all/copy-overwrite/scripts/lib/gate-failure-diagnosis.mjs": [
       "ATTRIBUTION",
@@ -684,6 +756,19 @@
     ],
     "all/copy-overwrite/scripts/lib/reusable-workflow-load-scan.mjs": [
       "scanForLoadFailures"
+    ],
+    "all/copy-overwrite/scripts/lib/usage-effectiveness.mjs": [
+      "isEvidenceString",
+      "isEvidenceTime",
+      "parseEffectiveness",
+      "parseEffectivenessTokens"
+    ],
+    "all/copy-overwrite/scripts/lib/usage-ledger-integrity.mjs": [
+      "verifyLisaUsageSectionIntegrity"
+    ],
+    "all/copy-overwrite/scripts/lib/usage-ledger.mjs": [
+      "LISA_USAGE_HEADING",
+      "parseLisaUsageSection"
     ],
     "all/copy-overwrite/scripts/lib/windows-process-job.mjs": [
       "startWindowsProcessJob"

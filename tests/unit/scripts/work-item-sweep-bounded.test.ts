@@ -19,6 +19,7 @@
  */
 import { readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
+import { acceptedCompatibility } from "../../support/work-item-proof-compatibility.js";
 
 import { afterAll, afterEach, describe, expect, it } from "vitest";
 
@@ -39,6 +40,7 @@ const SINCE = "--since";
 const APPLY = "--apply";
 const SWEEP = "sweep";
 const CURRENT_DRIFT = "DRIFT  acme/code#43";
+const CURRENT_REF = "acme/code#43";
 const EARLIER_REF = "acme/code#42";
 
 /** A timeline carrying one merged pull request in the swept repository. */
@@ -125,7 +127,7 @@ const BOTH = JSON.stringify([
  * @returns Environment entries staging the before and after reads.
  */
 function completionReads(fixture: Fixture): Record<string, string> {
-  return {
+  const reads = {
     FAKE_GH_ISSUE_COUNT_FILE: path.join(fixture.root, "gh-issue.count"),
     FAKE_GH_ISSUE_JSON_1: JSON.stringify({
       closedByPullRequestsReferences: [],
@@ -145,6 +147,13 @@ function completionReads(fixture: Fixture): Record<string, string> {
       url: "https://github.com/acme/code/issues/43",
     }),
   };
+  acceptedCompatibility(
+    fixture,
+    CURRENT_REF,
+    reads.FAKE_GH_ISSUE_JSON_1,
+    reads.FAKE_GH_ISSUE_JSON_2
+  );
+  return {};
 }
 
 describe("sweep --since bounds the evidence to one push (#3704)", () => {
