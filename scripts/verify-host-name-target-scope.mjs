@@ -17,6 +17,11 @@ import path from "node:path";
 import { boundedExecFileSync, boundedSpawnSync } from "./lib/bounded-spawn.mjs";
 import { hostNameTargetCases } from "./lib/host-name-target-cases.mjs";
 import { hostNameReviewCases } from "./lib/host-name-review-cases.mjs";
+import {
+  hostNameExpandedCommandCases,
+  verifyExpandedCommandArgv,
+} from "./lib/host-name-expanded-command-cases.mjs";
+import { hostNameFieldOccurrenceCases } from "./lib/host-name-field-occurrence-cases.mjs";
 
 const root = process.cwd();
 const DETECTOR_RELATIVE = "dist/core/downstream-references.js";
@@ -118,6 +123,15 @@ try {
   const identity = {
     proverCheckoutHead: git(root, ["rev-parse", "HEAD"]),
     proverSha256: digest(new URL(import.meta.url)),
+    caseModules: [
+      "host-name-target-cases.mjs",
+      "host-name-review-cases.mjs",
+      "host-name-expanded-command-cases.mjs",
+      "host-name-field-occurrence-cases.mjs",
+    ].map(file => ({
+      file,
+      sha256: digest(new URL(`./lib/${file}`, import.meta.url)),
+    })),
     payloadRoot,
     payloadPackageVersion: JSON.parse(
       readFileSync(path.join(payloadRoot, "package.json"), "utf8")
@@ -299,7 +313,10 @@ try {
   const cases = [
     ...hostNameTargetCases(context),
     ...hostNameReviewCases(context),
+    ...hostNameExpandedCommandCases(context),
+    ...hostNameFieldOccurrenceCases(context),
   ];
+  verifyExpandedCommandArgv(context, fixtureEnv);
   for (const [
     name,
     cwd,
@@ -330,7 +347,16 @@ try {
     );
     const passed =
       run.status === expected && (expected !== 2 || output.includes(refusal));
-    records.push({ name, expected, actual: run.status, passed, output });
+    records.push({
+      name,
+      cwd,
+      command,
+      overrides,
+      expected,
+      actual: run.status,
+      passed,
+      output,
+    });
     console.log(JSON.stringify(records.at(-1)));
   }
   const failed = records.filter(record => !record.passed);

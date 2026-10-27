@@ -103,6 +103,7 @@ function words(command) {
  */
 function argumentsOf(input) {
   const flags = new Map(),
+    fieldOccurrences = [],
     positional = [],
     tokens = [];
   // Any expansion can add/replace routing arguments after shell word splitting.
@@ -139,23 +140,34 @@ function argumentsOf(input) {
         flag === "-R" ? "--repo" : flag === "-X" ? "--method" : flag,
         value
       );
+      // API fields are additive even though routing options use last values.
+      if (FIELD_FLAGS.has(flag)) fieldOccurrences.push([flag, value]);
       tokens.push(value.value);
     } else if (!word.value.startsWith("-")) positional.push(word);
     else if (!word.literal) certain = false;
   }
-  const noun = positional[0]?.value,
-    verb = positional[1]?.value;
+  const nounWord = positional[0],
+    verbWord = positional[1];
+  const noun = nounWord?.literal ? nounWord.value : undefined,
+    verb = verbWord?.value;
+  // Command-name expansions can supply several argv words. A following
+  // read-looking literal does not prove that the expanded command is a read.
+  const uncertainName =
+    nounWord?.literal === false ||
+    (["issue", "pr"].includes(noun) && verbWord?.literal === false);
   const method = flags.get("--method");
   const writes =
-    noun === "api"
+    uncertainName ||
+    (noun === "api"
       ? method
         ? !method.literal || METHODS.has(method.value.toUpperCase())
         : [...FIELD_FLAGS].some(flag => flags.has(flag)) ||
           Boolean(flags.get("--input")?.value)
       : ["issue", "pr"].includes(noun) &&
-        ["create", "comment", "edit"].includes(verb);
+        ["create", "comment", "edit"].includes(verb));
   return {
     flags,
+    fieldOccurrences,
     positional,
     tokens: ["gh", ...tokens],
     noun,

@@ -343,6 +343,13 @@ describe("it guards writes into this repository, not a host's own tracker (#4462
 });
 
 describe("it never fails open silently", () => {
+  it.each(["-f", "--field", "-F"])("refuses unread %s files", flag => {
+    expect(runHook(`cd "$D"; gh $N ${flag} body=@b`)).toMatchObject({
+      status: EXIT_BLOCKED,
+      output: expect.stringContaining("BLOCKED: the working directory"),
+    });
+  });
+
   it("announces a missing command-context companion instead of a silent hook error", () => {
     const plugin = scratch();
     for (const file of [HOOK_BASENAME, "block-host-name-leak.mjs"])
