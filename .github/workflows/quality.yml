@@ -2832,6 +2832,19 @@ jobs:
           --reporter=verbose
         working-directory: ${{ inputs.working_directory || '.' }}
 
+      - name: Execute and name host-name target-scope regression cases
+        if: github.repository == 'CodySwannGT/lisa' && steps.gate_run.outcome == 'success'
+        run: |
+          set -euo pipefail
+          bun run lisa-test-run -- --adapter vitest -- vitest run \
+            tests/unit/hooks/block-host-name-leak.test.ts \
+            tests/unit/hooks/shipped-hook-companions.test.ts \
+            tests/unit/scripts/generate-agy-plugin-artifacts.test.ts \
+            --reporter=verbose
+          bun run lisa-test-run -- --adapter direct -- \
+            node scripts/verify-host-name-target-scope.mjs --hooks=plugins/lisa/hooks
+        working-directory: ${{ inputs.working_directory || '.' }}
+
       # Both declared test commands and the built-in fallback can produce
       # coverage. A unique name keeps repeated workflow calls from colliding.
       - name: 📦 Name the coverage artifact

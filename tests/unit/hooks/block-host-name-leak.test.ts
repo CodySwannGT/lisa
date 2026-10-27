@@ -28,13 +28,31 @@
  * keep unpublished — in the test for that guard.
  * @module tests/unit/hooks/block-host-name-leak
  */
-import { mkdtempSync, writeFileSync } from "node:fs";
+import {
+  copyFileSync,
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  symlinkSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
-import { boundedSpawnSync } from "../../helpers/io-latency-budget.js";
+import {
+  boundedExecFileSync,
+  boundedSpawnSync,
+} from "../../helpers/io-latency-budget.js";
+import { resolveGit } from "../../support/git-executable.js";
+
+/** git, resolved to a fixed path rather than through a writeable PATH. */
+const GIT = resolveGit();
+
+/** The executable guard filename. */
+const HOOK_BASENAME = "block-host-name-leak.sh";
 
 /** The guard under test, as it lives in the plugin source. */
 const SCRIPT_PATH = path.resolve(
@@ -66,24 +84,39 @@ const bodyFile = (contents: string): string => {
 };
 
 /**
+ * Isolate temporary repositories and local gh routing from the parent hook.
+ * @returns The fixture child environment.
+ */
+const fixtureEnv = (): NodeJS.ProcessEnv =>
+  Object.fromEntries(
+    Object.entries(process.env).filter(
+      ([key]) => !/^(?:GIT_|GH_|GITHUB_)/u.test(key)
+    )
+  );
+
+/**
  * Run the hook against one command.
  * @param command - The command the agent is about to run.
  * @param names - Names to load into the denylist for this run.
+ * @param projectDir - The project the hook governs (its cwd and CLAUDE_PROJECT_DIR).
  * @returns Exit status and combined output.
  */
 const runHook = (
   command: string,
-  names: string = FIXTURE_NAME
+  names: string = FIXTURE_NAME,
+  projectDir: string = PROJECT_DIR
 ): { status: number; output: string } => {
   const result = boundedSpawnSync({
-    label: "block-host-name-leak.sh",
+    label: HOOK_BASENAME,
     command: "/bin/bash",
     args: [SCRIPT_PATH],
-    cwd: PROJECT_DIR,
+    cwd: projectDir,
     input: JSON.stringify({ tool_name: "Bash", tool_input: { command } }),
     env: {
-      ...process.env,
-      CLAUDE_PROJECT_DIR: PROJECT_DIR,
+      ...fixtureEnv(),
+      GH_TOKEN: "local-fixture-no-network-token",
+      GH_PROMPT_DISABLED: "1",
+      CLAUDE_PROJECT_DIR: projectDir,
       LISA_DOWNSTREAM_NAMES: names,
     },
   });
@@ -130,7 +163,17 @@ describe("it finds the name where agents actually put it", () => {
 
   it("reads a gh api prose field", () => {
     const result = runHook(
-      `gh api -X POST repos/o/r/issues -f body="${FIXTURE_NAME} broke"`
+      `gh api -X POST repos/CodySwannGT/lisa/issues -f body="${FIXTURE_NAME} broke"`
+    );
+    expect(result.status).toBe(EXIT_BLOCKED);
+  });
+
+  it("reads a gh api -F field that points at a file (#4462)", () => {
+    // `-F` is `--field` on gh api. `body=@file` used to be read as the path
+    // "body=@file", which names nothing, so the body was never checked.
+    const file = bodyFile(`Context.\nProved in ${FIXTURE_NAME}.`);
+    const result = runHook(
+      `gh api -X POST repos/CodySwannGT/lisa/issues -F body=@${file}`
     );
     expect(result.status).toBe(EXIT_BLOCKED);
   });
@@ -185,14 +228,152 @@ describe("it stays quiet where a false positive would get it disabled", () => {
   });
 });
 
+/**
+ * A host project's checkout: a git repository whose origin is not this one,
+ * with Lisa installed the way hosts install it — `dist/` reachable under
+ * `node_modules/@codyswann/lisa`, which is exactly what lets the guard load its
+ * denylist inside a host (#4462).
+ * @param origin - The origin remote URL, or undefined for no git repository.
+ * @returns The checkout directory.
+ */
+const hostCheckout = (origin: string | undefined): string => {
+  const dir = scratch();
+  mkdirSync(path.join(dir, "node_modules", "@codyswann", "lisa"), {
+    recursive: true,
+  });
+  symlinkSync(
+    path.join(PROJECT_DIR, "dist"),
+    path.join(dir, "node_modules", "@codyswann", "lisa", "dist")
+  );
+  if (origin !== undefined) {
+    const git = (args: string[]): string =>
+      boundedExecFileSync({
+        label: "git (host checkout fixture)",
+        command: GIT,
+        args: ["-C", dir, ...args],
+        env: fixtureEnv(),
+      });
+    git(["init", "-q"]);
+    git(["remote", "add", "origin", origin]);
+  }
+  return dir;
+};
+
+it("isolates the actual host fixture from inherited Git repository locations", () => {
+  const untouched = hostCheckout("git@github.com:acme/fixture-only.git");
+  const config = path.join(untouched, ".git", "config");
+  const before = readFileSync(config, "utf8");
+  try {
+    vi.stubEnv("GIT_DIR", path.join(untouched, ".git"));
+    vi.stubEnv("GIT_WORK_TREE", untouched);
+    const isolated = hostCheckout("git@github.com:acme/isolated-fixture.git");
+    expect(existsSync(path.join(isolated, ".git", "config"))).toBe(true);
+    expect(readFileSync(config, "utf8")).toBe(before);
+  } finally {
+    vi.unstubAllEnvs();
+  }
+});
+
+describe("it guards writes into this repository, not a host's own tracker (#4462)", () => {
+  // The rule protects THIS public repository. A host writing its own name into
+  // its own tracker is normal — and gate 4 requires it, since a PR body must
+  // carry `Work-Item: <owner>/<repo>#<n>`. Refusing that made the two guards
+  // contradict each other in every host.
+  it.each([
+    ["--repo", `--repo acme/${FIXTURE_NAME}`],
+    ["-R", `-R acme/${FIXTURE_NAME}`],
+    ["--repo=", `--repo=acme/${FIXTURE_NAME}`],
+    ["a URL", `--repo https://github.com/acme/${FIXTURE_NAME}`],
+  ])(
+    "allows a host naming itself in its own tracker via %s",
+    (_label, flag) => {
+      const result = runHook(
+        `gh pr create ${flag} --title t --body "Work-Item: acme/${FIXTURE_NAME}#1"`
+      );
+      expect(result.status).toBe(EXIT_ALLOWED);
+    }
+  );
+
+  it("allows a gh api write into a host's own repository", () => {
+    const result = runHook(
+      `gh api -X POST repos/acme/${FIXTURE_NAME}/issues -f body="${FIXTURE_NAME} broke"`
+    );
+    expect(result.status).toBe(EXIT_ALLOWED);
+  });
+
+  it("allows a write with no --repo from a host checkout", () => {
+    const host = hostCheckout(`git@github.com:acme/${FIXTURE_NAME}.git`);
+    const result = runHook(
+      `gh issue create --title t --body "seen in ${FIXTURE_NAME}"`,
+      FIXTURE_NAME,
+      host
+    );
+    expect(result.status).toBe(EXIT_ALLOWED);
+  });
+
+  it.each([
+    ["--repo", "--repo CodySwannGT/lisa"],
+    ["a differently cased --repo", "--repo codyswanngt/LISA"],
+    ["a URL", "--repo https://github.com/CodySwannGT/lisa.git"],
+  ])(
+    "still refuses a host name written into this repository via %s from a host checkout",
+    (_label, flag) => {
+      // The case that keeps the guard worth having: an upstream filing made from
+      // inside a host is the most likely way a host name reaches this repository.
+      const host = hostCheckout(`git@github.com:acme/${FIXTURE_NAME}.git`);
+      const result = runHook(
+        `gh issue create ${flag} --title t --body "seen in ${FIXTURE_NAME}"`,
+        FIXTURE_NAME,
+        host
+      );
+      expect(result.status).toBe(EXIT_BLOCKED);
+    }
+  );
+
+  it("still refuses when the target cannot be determined", () => {
+    // No --repo, no repos/ path, no git origin: fail toward the protection.
+    const unknown = hostCheckout(undefined);
+    const result = runHook(
+      `gh issue create --title t --body "seen in ${FIXTURE_NAME}"`,
+      FIXTURE_NAME,
+      unknown
+    );
+    expect(result.status).toBe(EXIT_BLOCKED);
+  });
+});
+
 describe("it never fails open silently", () => {
+  it("announces a missing command-context companion instead of a silent hook error", () => {
+    const plugin = scratch();
+    for (const file of [HOOK_BASENAME, "block-host-name-leak.mjs"])
+      copyFileSync(
+        path.join(PROJECT_DIR, "plugins/src/base/hooks", file),
+        path.join(plugin, file)
+      );
+    const result = boundedSpawnSync({
+      label: "host-name guard missing companion",
+      command: "/bin/bash",
+      args: [path.join(plugin, HOOK_BASENAME)],
+      input: JSON.stringify({
+        tool_name: "Bash",
+        tool_input: {
+          command: "gh issue create --repo CodySwannGT/lisa --body x",
+        },
+      }),
+      env: fixtureEnv(),
+    });
+    expect(result.status).toBe(EXIT_ALLOWED);
+    expect(String(result.stderr)).toContain("command-context helper missing");
+    expect(String(result.stderr)).toContain("NOT active");
+  });
+
   it("permits the write but announces itself when the detector is absent", () => {
     // Failing closed would block every tracker write on a machine with no built
     // dist/. Failing open quietly is worse than either: a guard that is
     // silently absent reads exactly like a guard that is passing.
     const file = bodyFile(`leaked ${FIXTURE_NAME}`);
     const result = boundedSpawnSync({
-      label: "block-host-name-leak.sh",
+      label: HOOK_BASENAME,
       command: "/bin/bash",
       args: [SCRIPT_PATH],
       cwd: PROJECT_DIR,

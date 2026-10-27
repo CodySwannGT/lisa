@@ -56,6 +56,11 @@ if [ ! -r "$classifier" ]; then
   exit 0
 fi
 
+if [ ! -r "$hook_dir/host-name-command-context.mjs" ]; then
+  printf 'block-host-name-leak: command-context helper missing; host-identity enforcement is NOT active\n' >&2
+  exit 0
+fi
+
 status=0
 node "$classifier" "$command_str" "$project_dir" || status=$?
 exit "$status"

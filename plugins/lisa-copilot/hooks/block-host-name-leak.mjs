@@ -53,6 +53,24 @@
  * tempted to add it to `plugins/materialized-artifacts.json` should have a
  * reason why a host project should be refused its own name.
  *
+ * WHERE IT APPLIES: THE TARGET, NOT THE CHECKOUT (#4462)
+ *
+ * Not materializing it was not enough. The guard is registered by the PLUGIN,
+ * so it runs in every project the plugin is enabled in, and every host has the
+ * denylist at `node_modules/@codyswann/lisa/dist/`. Inside a host it refused
+ * that host's own tracker writes — including the `Work-Item: <owner>/<repo>#<n>`
+ * line the work-item gate REQUIRES in every pull-request body, so the two Lisa
+ * guards contradicted each other and every agent-opened host PR failed
+ * traceability.
+ *
+ * So the guard resolves the active gh call's explicit repository or API
+ * endpoint, then GH_REPO, the locally selected gh default, or one unambiguous
+ * Git remote. Literal cd and environment assignments use the command's actual
+ * directory; the project root still locates the detector. Body text is never
+ * routing. Unsupported shell syntax, unresolved expansions and ambiguous
+ * repositories earn no host exemption. This is bounded command inspection,
+ * not shell execution or a claim to close every shell/identity leak class.
+ *
  * FAILING OPEN, LOUDLY
  *
  * When the denylist cannot be loaded this permits the write and says so on
@@ -65,6 +83,13 @@
 import { existsSync, readFileSync, realpathSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
+import {
+  commandRepository,
+  ghCommands,
+  repositoryFromSpec,
+} from "./host-name-command-context.mjs";
+
+export { repositoryFromSpec };
 
 /** Claude Code's refusal code. Every other non-zero exit is a hook error. */
 const EXIT_BLOCKED = 2;
@@ -110,10 +135,17 @@ const TEXT_FLAGS = new Set([
   "-m",
 ]);
 /** `gh api` field flags: `key=value`, or `key=@path` to read a file. */
-const FIELD_FLAGS = new Set(["-f", "--field", "--raw-field"]);
+const FIELD_FLAGS = new Set(["-f", "-F", "--field", "--raw-field"]);
 /** Field names whose value is published prose rather than metadata. */
 const PROSE_FIELDS = new Set(["body", "title", "text", "message"]);
 
+/**
+ * The repositories this guard protects, lowercased `owner/repo`.
+ *
+ * Only this one: it is public and ships `dist/` to npm. A host's own tracker
+ * is not on the list, which is the point (#4462).
+ */
+const GUARDED_REPOSITORIES = new Set(["codyswanngt/lisa"]);
 /**
  * Vendor endpoints quoted from guard source, which are not host identities.
  *
@@ -173,30 +205,10 @@ export function tokenize(command) {
  * @returns True when the command publishes text.
  */
 export function isOutboundTrackerWrite(tokens) {
-  const gh = tokens.indexOf("gh");
-  if (gh === -1) return false;
-  const rest = tokens.slice(gh + 1).filter(token => !token.startsWith("-"));
-  const [noun, verb] = rest;
-  if (noun === "api") return isMutatingApiCall(tokens);
-  return WRITE_NOUNS.has(noun ?? "") && WRITE_VERBS.has(verb ?? "");
-}
-
-/**
- * Whether a `gh api` call mutates.
- *
- * `gh api` defaults to GET, and to POST when any field flag is present — so a
- * field flag alone makes it a write even with no explicit method.
- * @param tokens - Command tokens.
- * @returns True when the call changes state.
- */
-function isMutatingApiCall(tokens) {
-  const method = tokens.findIndex(
-    token => token === "-X" || token === "--method"
-  );
-  if (method !== -1) {
-    return MUTATING_METHODS.has((tokens[method + 1] ?? "").toUpperCase());
-  }
-  return tokens.some(token => FIELD_FLAGS.has(token));
+  return ghCommands(
+    tokens.map(token => JSON.stringify(token)).join(" "),
+    process.cwd()
+  ).some(context => context.writes);
 }
 
 /**
@@ -210,6 +222,32 @@ function valueAt(tokens, index) {
   const equals = token.indexOf("=");
   if (equals !== -1 && token.startsWith("-")) return token.slice(equals + 1);
   return tokens[index + 1] ?? "";
+}
+
+/**
+ * Resolve the target of one tokenized command without treating prose as routing.
+ * @param tokens Command tokens.
+ * @param cwd Actual command working directory.
+ * @returns Verified owner/repository, or unknown.
+ */
+export function targetRepository(tokens, cwd) {
+  const context = ghCommands(
+    tokens.map(token => JSON.stringify(token)).join(" "),
+    cwd
+  )[0];
+  return context === undefined ? undefined : commandRepository(context);
+}
+
+/**
+ * Whether the guard applies to a write landing in this repository.
+ *
+ * An undetermined target is guarded: not knowing where text is going is no
+ * reason to stop protecting the one place it must not go.
+ * @param target - `owner/repo`, or undefined.
+ * @returns True when the write must be checked.
+ */
+export function isGuardedTarget(target) {
+  return target === undefined || GUARDED_REPOSITORIES.has(target);
 }
 
 /**
@@ -236,16 +274,22 @@ function readIfPresent(candidate, cwd) {
  * from so the refusal can point at the thing to edit.
  * @param tokens - Command tokens.
  * @param cwd - Directory the command runs in.
+ * @param noun - The active gh noun, so api fields retain their own meaning.
  * @returns Sources of publishable text.
  */
-export function publishableText(tokens, cwd) {
+export function publishableText(tokens, cwd, noun) {
   return tokens.flatMap((token, index) => {
     const bare = token.startsWith("-") ? token.split("=")[0] : token;
-    if (TEXT_FLAGS.has(bare)) {
+    if (noun !== "api" && TEXT_FLAGS.has(bare)) {
       return [{ origin: bare, text: valueAt(tokens, index) }];
     }
     if (FILE_FLAGS.has(bare)) {
-      const file = valueAt(tokens, index).replace(/^@/u, "");
+      const value = valueAt(tokens, index);
+      // On `gh api`, `-F` is `--field`: `key=@path` or `key=value`. Read as a
+      // bare path, `body=@file` named no file and published unchecked (#4462).
+      if (noun === "api" && /^[\w.[\]-]+=/u.test(value))
+        return [fieldSource(value, cwd)];
+      const file = value.replace(/^@/u, "");
       return [{ origin: file, text: readIfPresent(file, cwd) }];
     }
     if (FIELD_FLAGS.has(bare))
@@ -353,19 +397,53 @@ means "no known name appeared", not "this text is safe".`;
  * @returns The exit code and any message.
  */
 export async function evaluate(command, projectDir) {
-  const tokens = tokenize(command);
-  if (!isOutboundTrackerWrite(tokens)) return { code: EXIT_ALLOWED };
-  const detector = await loadDetector(projectDir);
-  if (detector === undefined) {
-    return {
-      code: EXIT_ALLOWED,
-      warning:
-        "block-host-name-leak: host-name denylist not found (no built dist/ or installed package); host-identity enforcement is NOT active",
-    };
+  let detector;
+  const findings = [];
+  for (const context of ghCommands(command, process.cwd())) {
+    if (!context.writes || !isGuardedTarget(commandRepository(context)))
+      continue;
+    detector ??= await loadDetector(projectDir);
+    if (detector === undefined) {
+      return {
+        code: EXIT_ALLOWED,
+        warning:
+          "block-host-name-leak: host-name denylist not found (no built dist/ or installed package); host-identity enforcement is NOT active",
+      };
+    }
+    // Without a known cwd a relative file cannot be inspected honestly. Keep
+    // protection, and name the unread input instead of claiming the text clean.
+    if (
+      context.cwd === undefined &&
+      [...context.flags].some(([flag, item]) => {
+        const field =
+          context.noun === "api" && FIELD_FLAGS.has(flag)
+            ? /^([^=]+)=@(.+)$/u.exec(item.value)
+            : null;
+        const file =
+          field !== null
+            ? PROSE_FIELDS.has(field[1])
+              ? field[2]
+              : undefined
+            : FILE_FLAGS.has(flag)
+              ? item.value.replace(/^@/, "")
+              : undefined;
+        return file !== undefined && !path.isAbsolute(file);
+      })
+    ) {
+      return {
+        code: EXIT_BLOCKED,
+        message:
+          "BLOCKED: the working directory for this tracker write's body file could not be resolved. Use a literal directory and readable body file so the host-name guard can inspect it.",
+      };
+    }
+    findings.push(
+      ...publishableText(
+        context.tokens,
+        context.cwd ?? projectDir,
+        context.noun
+      ).flatMap(source => findingsIn(source, detector))
+    );
   }
-  const findings = publishableText(tokens, projectDir).flatMap(source =>
-    findingsIn(source, detector)
-  );
   if (findings.length === 0) return { code: EXIT_ALLOWED };
   return { code: EXIT_BLOCKED, message: formatRefusal(findings) };
 }
