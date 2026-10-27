@@ -1,3 +1,6 @@
+// This file is managed by Lisa and IS replaced on each `lisa` run.
+// Do not edit directly — durable changes belong upstream in Lisa.
+
 /** Validate captured bytes and the canonical v2 claim/obligation conjunctions. */
 import {
   BOUNDARIES,
@@ -38,6 +41,39 @@ function processCapture(row) {
     typeof row.stderr === "string" &&
     Number.isInteger(row.exit_code ?? row.exitCode ?? row.exit ?? row.status)
   );
+}
+
+/** Scan count substrings once; historical failed runs are real captures too. */
+function testSummary(text) {
+  const lower = text.toLowerCase();
+  for (let index = 0; index < lower.length; ) {
+    if (
+      lower.startsWith("# pass ", index) ||
+      lower.startsWith("# fail ", index)
+    ) {
+      if (/[1-9]/.test(lower[index + 7] ?? "")) return true;
+    }
+    if (!/\d/.test(lower[index])) {
+      index += 1;
+      continue;
+    }
+    let nonzero = false;
+    while (/\d/.test(lower[index] ?? "")) {
+      nonzero ||= lower[index] !== "0";
+      index += 1;
+    }
+    const end = index;
+    while (/\s/.test(lower[index] ?? "")) index += 1;
+    if (
+      nonzero &&
+      index > end &&
+      ["passed", "passing", "failed", "failing"].some(word =>
+        lower.startsWith(word, index)
+      )
+    )
+      return true;
+  }
+  return false;
 }
 
 /** Positive structural checks for the actual captured artifact type. */
@@ -122,9 +158,8 @@ export function validateTypedBytes(kind, bytes, name) {
           )
       ),
     "test-run-log": () =>
-      /(?:[1-9]\d*\s+(?:passed|passing|failed|failing)|# (?:pass|fail) [1-9]\d*)/i.test(
-        text
-      ) && /(?:✓|PASS|\bok\s+\d+|testName|test_name|fullName| > )/.test(text),
+      testSummary(text) &&
+      /(?:✓|PASS|\bok\s+\d+|testName|test_name|fullName| > )/.test(text),
     "deploy-log": () =>
       rows.some(
         row =>

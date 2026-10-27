@@ -73,6 +73,118 @@
       "dynamicImports": [],
       "children": []
     },
+    "lib/completion-authorization.mjs": {
+      "sha256": "7b5f81ae58eae89367ebda480a508c3c37a6924b4bd6a8b1dd64fff24c465e1e",
+      "staticImports": [
+        "lib/completion-proof-conformance.mjs",
+        "lib/completion-proof-content.mjs",
+        "lib/completion-proof-github.mjs",
+        "lib/completion-proof-reader.mjs",
+        "lib/completion-proof-shape.mjs",
+        "lib/completion-proof-source.mjs"
+      ],
+      "dynamicImports": [],
+      "children": []
+    },
+    "lib/completion-proof-adapters.mjs": {
+      "sha256": "478d453844ec1f890019d0984d69506aef469647e34051425867a71995acc7a1",
+      "staticImports": [
+        "lib/completion-proof-shape.mjs"
+      ],
+      "dynamicImports": [],
+      "children": []
+    },
+    "lib/completion-proof-conformance.mjs": {
+      "sha256": "51b2bfccc8ecca684dd80a4e2ae35896e76fa519389fe650f0890ffc0fef421d",
+      "staticImports": [
+        "lib/completion-proof-shape.mjs"
+      ],
+      "dynamicImports": [],
+      "children": []
+    },
+    "lib/completion-proof-content.mjs": {
+      "sha256": "78b34223d054913c2e900830070cbb1fb2dc267423ec458ae76553ceed0d38c6",
+      "staticImports": [
+        "lib/completion-proof-shape.mjs",
+        "lib/usage-ledger-integrity.mjs",
+        "lib/usage-ledger.mjs"
+      ],
+      "dynamicImports": [],
+      "children": []
+    },
+    "lib/completion-proof-errors.mjs": {
+      "sha256": "3422df7049227eff77f3ef7bf954eeb74a63e9879b06d8126c7c3a2485b6d1f3",
+      "staticImports": [],
+      "dynamicImports": [],
+      "children": []
+    },
+    "lib/completion-proof-github.mjs": {
+      "sha256": "b101b6cb5da8cb8d61cc45de8d1da0699713dfd39da0dc75ddd16e726db25228",
+      "staticImports": [
+        "lib/completion-proof-shape.mjs"
+      ],
+      "dynamicImports": [],
+      "children": []
+    },
+    "lib/completion-proof-markdown.mjs": {
+      "sha256": "00d00e2c251244d1eb0dc46464c1bb1e170f2576cd025b02518e132c0d467472",
+      "staticImports": [
+        "lib/completion-proof-errors.mjs"
+      ],
+      "dynamicImports": [],
+      "children": []
+    },
+    "lib/completion-proof-projection.mjs": {
+      "sha256": "a8acdd491693126fe6f1660f4bd29c7b218855ae59c76ec2b7c0d5703d8c0d43",
+      "staticImports": [
+        "lib/completion-proof-errors.mjs",
+        "lib/usage-ledger-integrity.mjs",
+        "lib/usage-ledger.mjs"
+      ],
+      "dynamicImports": [],
+      "children": []
+    },
+    "lib/completion-proof-publisher.mjs": {
+      "sha256": "801df8b694eced082695542dad3e189ce660aa65dda26f3bf11d962120487609",
+      "staticImports": [
+        "lib/completion-authorization.mjs",
+        "lib/completion-proof-github.mjs",
+        "lib/completion-proof-reader.mjs",
+        "lib/completion-proof-shape.mjs",
+        "node:fs",
+        "node:os",
+        "node:path"
+      ],
+      "dynamicImports": [],
+      "children": []
+    },
+    "lib/completion-proof-reader.mjs": {
+      "sha256": "f134b65158605510bf188429d6aa5e713ed75a4d78877efc6211b440b3a805f7",
+      "staticImports": [
+        "lib/completion-proof-shape.mjs"
+      ],
+      "dynamicImports": [],
+      "children": []
+    },
+    "lib/completion-proof-shape.mjs": {
+      "sha256": "83c3e4aa7f1386dc6e50c6fbb007d6505e83205a319cc60331e070dcffd95ef2",
+      "staticImports": [
+        "lib/completion-proof-errors.mjs",
+        "lib/completion-proof-markdown.mjs",
+        "lib/completion-proof-projection.mjs",
+        "node:crypto"
+      ],
+      "dynamicImports": [],
+      "children": []
+    },
+    "lib/completion-proof-source.mjs": {
+      "sha256": "1028cbeb9c8bb9cf685dd3f532ea41de2a25456b989fbda23d3315d8532877c0",
+      "staticImports": [
+        "lib/completion-proof-shape.mjs"
+      ],
+      "dynamicImports": [],
+      "children": []
+    },
     "lib/gate-failure-diagnosis.mjs": {
       "sha256": "31f2acced121662d6395b624aed2ae0ad642c1edb52cdb0eded1497886daad71",
       "staticImports": [
@@ -522,7 +634,7 @@
       "children": []
     },
     "lib/npm-update-helper-inventory.mjs": {
-      "sha256": "1a471b58bc9cb0b0e2786ccf57d1b11843d20ca0814d24446c09bbfcf2971894",
+      "sha256": "41ff29eb3c82b7cbff1f1b0ba88517df7c09fee1bbd951117371a2a826ce5823",
       "staticImports": [],
       "dynamicImports": [],
       "children": []
@@ -1100,6 +1212,28 @@
       "dynamicImports": [],
       "children": []
     },
+    "lib/usage-effectiveness.mjs": {
+      "sha256": "b4fb652293bf2c15f9a07b3f9f15cee75ddbfc17a5aa7fee30290629b77ba705",
+      "staticImports": [],
+      "dynamicImports": [],
+      "children": []
+    },
+    "lib/usage-ledger-integrity.mjs": {
+      "sha256": "67e115051fac99e846dea54297c8811f22aecce93d2743ce53bbf0b8e3572c5e",
+      "staticImports": [
+        "lib/usage-ledger.mjs"
+      ],
+      "dynamicImports": [],
+      "children": []
+    },
+    "lib/usage-ledger.mjs": {
+      "sha256": "cdeab41198a0284b6415975b1dd8cfd84114631b5673f1a6ab340996cd74f946",
+      "staticImports": [
+        "lib/usage-effectiveness.mjs"
+      ],
+      "dynamicImports": [],
+      "children": []
+    },
     "lib/windows-process-job.cs": {
       "sha256": "7bbe3b13bfc35ca2a0b85fbee9a8f0a6549bf8b05997f6ce4b361bd09d924218",
       "staticImports": [],
@@ -1273,8 +1407,12 @@
       "children": []
     },
     "lisa-work-item.mjs": {
-      "sha256": "cd1b16e056fefac17018d5c96ad063dc4002f304e4400765e473403186b7175a",
+      "sha256": "5d27574f0759af7d98bde4be670c81d04be1e1f5eba31b89f8b9a15527a698e7",
       "staticImports": [
+        "lib/completion-authorization.mjs",
+        "lib/completion-proof-adapters.mjs",
+        "lib/completion-proof-publisher.mjs",
+        "lib/completion-proof-shape.mjs",
         "lib/invoked-as-script.mjs",
         "node:child_process",
         "node:crypto",

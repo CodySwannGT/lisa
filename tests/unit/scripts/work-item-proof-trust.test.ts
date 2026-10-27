@@ -2,6 +2,7 @@
 import { readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { afterAll, afterEach, describe, expect, it } from "vitest";
+import { publishCompletionProof } from "../../../all/copy-overwrite/scripts/lib/completion-proof-publisher.mjs";
 import {
   parseLisaUsageSection,
   upsertLisaUsageSection,
@@ -164,6 +165,34 @@ describe("completion proof native authority and freshness", () => {
 });
 
 describe("explicit repository automation publisher", () => {
+  it("retains an unreadable publisher cause privately without exposing provider output", () => {
+    const context = {
+      repository: "example/project",
+      policy: {},
+      readSubject: () => ({}),
+      readComments: () => [],
+      run: (_command: string, args: string[]) =>
+        args[1] === "user"
+          ? {
+              status: 1,
+              stdout: "",
+              stderr: "synthetic private provider detail",
+            }
+          : { status: 0, stdout: JSON.stringify({ id: 1 }), stderr: "" },
+    };
+    let refusal: unknown;
+    try {
+      publishCompletionProof(context, {});
+    } catch (error) {
+      refusal = error;
+    }
+    expect(refusal).toBeInstanceOf(Error);
+    if (!(refusal instanceof Error)) throw Error("Expected publisher refusal");
+    expect(refusal.cause).toBeInstanceOf(Error);
+    expect(refusal.message).toContain("no explicit repository automation");
+    expect(refusal.message).not.toContain("synthetic private provider detail");
+  });
+
   it("publishes during its attempt then waits for that same attempt without rewriting bytes", () => {
     const fixture = proofFixture();
     configureBot(fixture);

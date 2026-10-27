@@ -1,3 +1,6 @@
+// This file is managed by Lisa and IS replaced on each `lisa` run.
+// Do not edit directly — durable changes belong upstream in Lisa.
+
 /** Shared terminal precondition for GitHub direct/sweep and Linear direct. */
 import {
   CompletionProofError,
@@ -31,6 +34,8 @@ import {
   validateDelivery,
 } from "./completion-proof-source.mjs";
 import { validateConformance } from "./completion-proof-conformance.mjs";
+
+const PENDING_PROOF = "pending-proof";
 
 /** Stable user-facing next action, without declaring merely pending delivery failed. */
 const NEXT =
@@ -104,7 +109,7 @@ export function evaluateAcceptedRecord(chosen, context, subject, transport) {
   requireProof(
     record.state === "accepted-for-completion",
     "Delivery/runtime verification proof is still pending.",
-    "pending-proof"
+    PENDING_PROOF
   );
   requireProof(
     record.environment === context.environment &&
@@ -185,7 +190,7 @@ export function authorizeCompletion(context) {
       )
     ) {
       return {
-        category: "pending-proof",
+        category: PENDING_PROOF,
         applied: false,
         native: subject,
         reason: `Required delivery/runtime verification and accepted evidence proof are pending. ${NEXT}`,
@@ -200,7 +205,7 @@ export function authorizeCompletion(context) {
     requireProof(
       chosen,
       `Accepted delivery/runtime evidence proof is absent or has no eligible publisher. ${NEXT}`,
-      "pending-proof"
+      PENDING_PROOF
     );
     // Full native comments include canonical usage and the complete locator history.
     subject = { ...subject, comments: context.readComments() };
@@ -217,7 +222,7 @@ export function authorizeCompletion(context) {
     requireProof(
       current && recordFingerprint(current) === recordFingerprint(chosen),
       "Completion proof changed while it was being verified; run canonical Verify/evidence again.",
-      "pending-proof"
+      PENDING_PROOF
     );
     // All slow source, delivery, asset and issuer reads precede these final
     // native reads. No provider read intervenes between local final checks and
@@ -227,12 +232,12 @@ export function authorizeCompletion(context) {
     requireProof(
       locatorHistoryFingerprint(comments) === current.history,
       "The native completion locator history changed before the terminal write; retry canonical verification.",
-      "pending-proof"
+      PENDING_PROOF
     );
     requireProof(
       sha256(primarySpecProjection(fresh.body)) === chosen.record.spec_sha256,
       "Work-item requirements changed before the terminal write; fresh verification proof is pending.",
-      "pending-proof"
+      PENDING_PROOF
     );
     validateVerifyUsage(
       [fresh.body, ...comments.map(row => row.body)],
@@ -243,7 +248,7 @@ export function authorizeCompletion(context) {
     requireProof(
       context.hasBacklink(fresh, evaluated.primary.html_url),
       "The primary pull-request backlink changed before the terminal write; restore canonical linkage.",
-      "pending-proof"
+      PENDING_PROOF
     );
     return {
       category: "authorized",
@@ -265,7 +270,7 @@ export function authorizeCompletion(context) {
 /** The same outcome vocabulary is consumed by direct CLI and workflow summaries. */
 export function completionDenial(ref, result) {
   const prefix =
-    result.category === "pending-proof"
+    result.category === PENDING_PROOF
       ? "work-item pending-proof"
       : "work-item NOT completed";
   return {

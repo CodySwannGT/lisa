@@ -1,3 +1,6 @@
+// This file is managed by Lisa and IS replaced on each `lisa` run.
+// Do not edit directly — durable changes belong upstream in Lisa.
+
 /** Explicit shared completion refusal categories. */
 export class CompletionProofError extends Error {
   constructor(category, message) {

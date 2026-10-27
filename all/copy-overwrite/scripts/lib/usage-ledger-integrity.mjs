@@ -1,3 +1,6 @@
+// This file is managed by Lisa and IS replaced on each `lisa` run.
+// Do not edit directly — durable changes belong upstream in Lisa.
+
 import { LISA_USAGE_HEADING, parseLisaUsageSection } from "./usage-ledger.mjs";
 /**
  * Sort ids so an integrity report is deterministic regardless of document order.

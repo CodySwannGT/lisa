@@ -35,29 +35,29 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lib/bounded-spawn.mjs":
       "72e277ada531914d7bc51c3cb8dc67b8881aa817d96fa2f9f4d81668a3d3bbc1",
     "all/copy-overwrite/scripts/lib/completion-authorization.mjs":
-      "c3b55b7fc815f546e2f16e86617097dabaa846739450d6dd302be8ab31af8caf",
+      "7b5f81ae58eae89367ebda480a508c3c37a6924b4bd6a8b1dd64fff24c465e1e",
     "all/copy-overwrite/scripts/lib/completion-proof-adapters.mjs":
-      "941ec605433c035fbcd9d1cbe9c7abf823953a9fe3c8573fd281f2a6e7ce0385",
+      "478d453844ec1f890019d0984d69506aef469647e34051425867a71995acc7a1",
     "all/copy-overwrite/scripts/lib/completion-proof-conformance.mjs":
-      "4b6ab24475ef82aa180f88ca7abb213461902be7c50af7079301a820bf6f2d84",
+      "51b2bfccc8ecca684dd80a4e2ae35896e76fa519389fe650f0890ffc0fef421d",
     "all/copy-overwrite/scripts/lib/completion-proof-content.mjs":
-      "cf836b48230a5b7fdfc2425abda1b2328fa4873fd853100f00d1f05412c415be",
+      "78b34223d054913c2e900830070cbb1fb2dc267423ec458ae76553ceed0d38c6",
     "all/copy-overwrite/scripts/lib/completion-proof-errors.mjs":
-      "18092420eba568270ab31cae0cbd3e57b525df99be3b79ba0ce8bd01ebadc045",
+      "3422df7049227eff77f3ef7bf954eeb74a63e9879b06d8126c7c3a2485b6d1f3",
     "all/copy-overwrite/scripts/lib/completion-proof-github.mjs":
-      "4b7f8b01ab846a7a16a4d7f66cb7731a83d4b7208aad627834df8a851a36fc32",
+      "b101b6cb5da8cb8d61cc45de8d1da0699713dfd39da0dc75ddd16e726db25228",
     "all/copy-overwrite/scripts/lib/completion-proof-markdown.mjs":
-      "3752a34d19dbda626d5876d954e4dc6a2a74e5fb50ef741e5274d0b178c0f5a3",
+      "00d00e2c251244d1eb0dc46464c1bb1e170f2576cd025b02518e132c0d467472",
     "all/copy-overwrite/scripts/lib/completion-proof-projection.mjs":
-      "1a6eabc8165a8945db5c359c12ca28303a25f9b07c3248f1236fb7ddcde72ea6",
+      "a8acdd491693126fe6f1660f4bd29c7b218855ae59c76ec2b7c0d5703d8c0d43",
     "all/copy-overwrite/scripts/lib/completion-proof-publisher.mjs":
-      "b0e0020ce5f6b9530a90daab4a8b7a8f563b99c4fc549c364c645bbeddcb0fcb",
+      "801df8b694eced082695542dad3e189ce660aa65dda26f3bf11d962120487609",
     "all/copy-overwrite/scripts/lib/completion-proof-reader.mjs":
-      "9d4221c4dc90ea0184e33347f8511d97c6ee6e8f43d532bd4ba0e49382612c71",
+      "f134b65158605510bf188429d6aa5e713ed75a4d78877efc6211b440b3a805f7",
     "all/copy-overwrite/scripts/lib/completion-proof-shape.mjs":
-      "574ff9682d32c6617e6c202b50d55189ebfaa175cdc4f1043e53ad4da9c650f1",
+      "83c3e4aa7f1386dc6e50c6fbb007d6505e83205a319cc60331e070dcffd95ef2",
     "all/copy-overwrite/scripts/lib/completion-proof-source.mjs":
-      "a94f2da29e8f2231a649f6bf407cd7c62601948c272d9fca367dae9e17f26cde",
+      "1028cbeb9c8bb9cf685dd3f532ea41de2a25456b989fbda23d3315d8532877c0",
     "all/copy-overwrite/scripts/lib/gate-failure-diagnosis.mjs":
       "31f2acced121662d6395b624aed2ae0ad642c1edb52cdb0eded1497886daad71",
     "all/copy-overwrite/scripts/lib/github-attestation-provider.mjs":
@@ -129,7 +129,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lib/npm-update-helper-graph.mjs":
       "7100aa6554d59c6a8f6fafefb983c12359b8cf727b8e4657362eba045051dd4e",
     "all/copy-overwrite/scripts/lib/npm-update-helper-inventory.mjs":
-      "1a471b58bc9cb0b0e2786ccf57d1b11843d20ca0814d24446c09bbfcf2971894",
+      "41ff29eb3c82b7cbff1f1b0ba88517df7c09fee1bbd951117371a2a826ce5823",
     "all/copy-overwrite/scripts/lib/npm-update-helper.mjs":
       "d705e0d8ae64285b539206f09784928a7fa678c2449252312a7079385e62ab90",
     "all/copy-overwrite/scripts/lib/npm-update-hook-installation.mjs":
@@ -233,17 +233,17 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lib/reusable-workflow-load-scan.mjs":
       "32e9968d27b7edead16c232bb93bebb8118dd24d175a837f61c2e1ff324dc223",
     "all/copy-overwrite/scripts/lib/usage-effectiveness.d.mts":
-      "51d815eab4b51837e17b4b1ee292fc73c617d53f3ddc7be57b3a757238d7a68c",
+      "58c774c89cbfe5a73960efbd469ff023fc95ac78596c4ca065ee91fdb5afa4b1",
     "all/copy-overwrite/scripts/lib/usage-effectiveness.mjs":
-      "1b4d330785af0e426176442963df58f8e4e372697b93111adddd80d4db8f8170",
+      "b4fb652293bf2c15f9a07b3f9f15cee75ddbfc17a5aa7fee30290629b77ba705",
     "all/copy-overwrite/scripts/lib/usage-ledger-integrity.d.mts":
-      "b5e193eeadc959703638689c79ec312e3bb2a96e42a2f2ad7799ab72b259ca74",
+      "75c8204833c1f390d585e9e12a0bbbae423c6982ef296dc4318e875b21c96e99",
     "all/copy-overwrite/scripts/lib/usage-ledger-integrity.mjs":
-      "ecc234d13f7b7817fa71690c6a7ab6fd56a6018d82df4bb21cad0dbd46944214",
+      "67e115051fac99e846dea54297c8811f22aecce93d2743ce53bbf0b8e3572c5e",
     "all/copy-overwrite/scripts/lib/usage-ledger.d.mts":
-      "89036761632f0992e2bca2ee7cfd70a76959fbfc3ac7869b2d7eaecede6a1c17",
+      "551d534acdd1fbd1fd86edf1feaee2f98763509af2ec17b593662c40badbb415",
     "all/copy-overwrite/scripts/lib/usage-ledger.mjs":
-      "e209f03a1228c3363cf39da1a378cdfe0c7276ed62c04ef7aa0f5957457772ef",
+      "cdeab41198a0284b6415975b1dd8cfd84114631b5673f1a6ab340996cd74f946",
     "all/copy-overwrite/scripts/lib/windows-process-job.cs":
       "7bbe3b13bfc35ca2a0b85fbee9a8f0a6549bf8b05997f6ce4b361bd09d924218",
     "all/copy-overwrite/scripts/lib/windows-process-job.mjs":
@@ -323,7 +323,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-test-node.mjs":
       "cd436584d756442fc393557a3244bbdacdf915bd0fb1a472ebe7afa8103d3475",
     "all/copy-overwrite/scripts/lisa-work-item.mjs":
-      "2946027e18c2cd028c757f40f0fcba5a92dbf0b36adc963705bf929c18f58bfa",
+      "5d27574f0759af7d98bde4be670c81d04be1e1f5eba31b89f8b9a15527a698e7",
     "all/copy-overwrite/scripts/lisa-worktree-guard.mjs":
       "2535ef2a60b3413dacb8491c008ab28f0a07929196277d1d1fed54a04740c025",
     "all/copy-overwrite/scripts/npm-updater-gate-runtime.json":
@@ -333,7 +333,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/npm-updater-gate.Dockerfile":
       "f5d85f8fccfd97f7800c03430a38c19d584314b0a6a63aa1de28fb62897fbcc5",
     "all/copy-overwrite/scripts/npm-updater-helper-graph.json":
-      "a9f7aff4ca32e9dafbd9f242d0253da86df5b3a38c66dd2a275aa44c14f032f2",
+      "1da2850fc87381120400046adb47de51954efcf6377e85b587877e03a404a4ae",
     "all/copy-overwrite/scripts/schemas/lisa-command-envelope.v1.schema.json":
       "d153b7c2953a30f180e38f09e98240c63327f5196eeba9bdf545e5a1f125a879",
     "all/copy-overwrite/scripts/schemas/lisa-state-contract.v1.schema.json":
@@ -2879,7 +2879,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/copy-overwrite/.nvmrc":
       "73fb1b615e2043a933be1c0895cde4358036acc28d785692509b822aa53c761f",
     "typescript/copy-overwrite/.prettierignore":
-      "de7aa85904617999b4a92eeb959fbc0d8a7e8db21fca793c22d1f2de0fbc5be9",
+      "4a56c18ad33ee1564a67a4bac9e0d1f55a213461374c288dc6bdb5b12d3e40aa",
     "typescript/copy-overwrite/.prettierrc.json":
       "a20621f79a064486fba53cc0ea3000a2ece3f312ff38495c6a6606a27d2a727c",
     "typescript/copy-overwrite/.versionrc":
@@ -12189,6 +12189,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/cleanup-worktrees-unreadable.test.ts": true,
     "tests/unit/scripts/codex-hook-filter.test.ts": true,
     "tests/unit/scripts/command-envelope.test.ts": true,
+    "tests/unit/scripts/completion-proof-grammar.test.ts": true,
     "tests/unit/scripts/completion-proof-types.test.ts": true,
     "tests/unit/scripts/conflict-prover-markers-and-index.test.ts": true,
     "tests/unit/scripts/cross-pollinate.test.ts": true,

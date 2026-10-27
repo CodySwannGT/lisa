@@ -479,39 +479,51 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
     "a9e4ebf6a91ef2b0b058566db425edd133fe7c0229fff5c5e4b916c8701822e0",
   ]),
   "scripts/lib/completion-authorization.mjs": Object.freeze([
+    "7b5f81ae58eae89367ebda480a508c3c37a6924b4bd6a8b1dd64fff24c465e1e",
     "c3b55b7fc815f546e2f16e86617097dabaa846739450d6dd302be8ab31af8caf",
   ]),
   "scripts/lib/completion-proof-adapters.mjs": Object.freeze([
+    "478d453844ec1f890019d0984d69506aef469647e34051425867a71995acc7a1",
     "941ec605433c035fbcd9d1cbe9c7abf823953a9fe3c8573fd281f2a6e7ce0385",
   ]),
   "scripts/lib/completion-proof-conformance.mjs": Object.freeze([
     "4b6ab24475ef82aa180f88ca7abb213461902be7c50af7079301a820bf6f2d84",
+    "51b2bfccc8ecca684dd80a4e2ae35896e76fa519389fe650f0890ffc0fef421d",
   ]),
   "scripts/lib/completion-proof-content.mjs": Object.freeze([
+    "78b34223d054913c2e900830070cbb1fb2dc267423ec458ae76553ceed0d38c6",
     "cf836b48230a5b7fdfc2425abda1b2328fa4873fd853100f00d1f05412c415be",
   ]),
   "scripts/lib/completion-proof-errors.mjs": Object.freeze([
     "18092420eba568270ab31cae0cbd3e57b525df99be3b79ba0ce8bd01ebadc045",
+    "3422df7049227eff77f3ef7bf954eeb74a63e9879b06d8126c7c3a2485b6d1f3",
   ]),
   "scripts/lib/completion-proof-github.mjs": Object.freeze([
     "4b7f8b01ab846a7a16a4d7f66cb7731a83d4b7208aad627834df8a851a36fc32",
+    "b101b6cb5da8cb8d61cc45de8d1da0699713dfd39da0dc75ddd16e726db25228",
   ]),
   "scripts/lib/completion-proof-markdown.mjs": Object.freeze([
+    "00d00e2c251244d1eb0dc46464c1bb1e170f2576cd025b02518e132c0d467472",
     "3752a34d19dbda626d5876d954e4dc6a2a74e5fb50ef741e5274d0b178c0f5a3",
   ]),
   "scripts/lib/completion-proof-projection.mjs": Object.freeze([
     "1a6eabc8165a8945db5c359c12ca28303a25f9b07c3248f1236fb7ddcde72ea6",
+    "a8acdd491693126fe6f1660f4bd29c7b218855ae59c76ec2b7c0d5703d8c0d43",
   ]),
   "scripts/lib/completion-proof-publisher.mjs": Object.freeze([
+    "801df8b694eced082695542dad3e189ce660aa65dda26f3bf11d962120487609",
     "b0e0020ce5f6b9530a90daab4a8b7a8f563b99c4fc549c364c645bbeddcb0fcb",
   ]),
   "scripts/lib/completion-proof-reader.mjs": Object.freeze([
     "9d4221c4dc90ea0184e33347f8511d97c6ee6e8f43d532bd4ba0e49382612c71",
+    "f134b65158605510bf188429d6aa5e713ed75a4d78877efc6211b440b3a805f7",
   ]),
   "scripts/lib/completion-proof-shape.mjs": Object.freeze([
     "574ff9682d32c6617e6c202b50d55189ebfaa175cdc4f1043e53ad4da9c650f1",
+    "83c3e4aa7f1386dc6e50c6fbb007d6505e83205a319cc60331e070dcffd95ef2",
   ]),
   "scripts/lib/completion-proof-source.mjs": Object.freeze([
+    "1028cbeb9c8bb9cf685dd3f532ea41de2a25456b989fbda23d3315d8532877c0",
     "a94f2da29e8f2231a649f6bf407cd7c62601948c272d9fca367dae9e17f26cde",
   ]),
   "scripts/lib/gate-failure-diagnosis.mjs": Object.freeze([
@@ -756,6 +768,7 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
     "33ab2fcba24552a378a75314fe021b25ae6862a6e3c7c4f6b83250f9749264bb",
     "3561c20458d74eff34650d6b4366f4f03ed4e7825ae886ea78394f63f98a18bb",
     "39bf4d553af77101e03946ebd4769a303af1098d8f5f938c3a3259695d59d065",
+    "41ff29eb3c82b7cbff1f1b0ba88517df7c09fee1bbd951117371a2a826ce5823",
     "647c83dc72c21c4d68e27679e9f3b35b4b541bd8957c779495f78392d099cdd9",
     "cda2582fb84457e49ade0d7d8c3805ffaeef951de9468c53604222c054a769c6",
     "da1bd212a20406c060d26c52bc8e67dac3fef51afafb604042b9c6e26b07bdb6",
@@ -1042,20 +1055,27 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
   ]),
   "scripts/lib/usage-effectiveness.d.mts": Object.freeze([
     "51d815eab4b51837e17b4b1ee292fc73c617d53f3ddc7be57b3a757238d7a68c",
+    "58c774c89cbfe5a73960efbd469ff023fc95ac78596c4ca065ee91fdb5afa4b1",
   ]),
   "scripts/lib/usage-effectiveness.mjs": Object.freeze([
     "1b4d330785af0e426176442963df58f8e4e372697b93111adddd80d4db8f8170",
+    "a863df28a7546aab07c501b95e737fea374af8e4606fcd35edcdd7858d2068e8",
+    "b4fb652293bf2c15f9a07b3f9f15cee75ddbfc17a5aa7fee30290629b77ba705",
   ]),
   "scripts/lib/usage-ledger-integrity.d.mts": Object.freeze([
+    "75c8204833c1f390d585e9e12a0bbbae423c6982ef296dc4318e875b21c96e99",
     "b5e193eeadc959703638689c79ec312e3bb2a96e42a2f2ad7799ab72b259ca74",
   ]),
   "scripts/lib/usage-ledger-integrity.mjs": Object.freeze([
+    "67e115051fac99e846dea54297c8811f22aecce93d2743ce53bbf0b8e3572c5e",
     "ecc234d13f7b7817fa71690c6a7ab6fd56a6018d82df4bb21cad0dbd46944214",
   ]),
   "scripts/lib/usage-ledger.d.mts": Object.freeze([
+    "551d534acdd1fbd1fd86edf1feaee2f98763509af2ec17b593662c40badbb415",
     "89036761632f0992e2bca2ee7cfd70a76959fbfc3ac7869b2d7eaecede6a1c17",
   ]),
   "scripts/lib/usage-ledger.mjs": Object.freeze([
+    "cdeab41198a0284b6415975b1dd8cfd84114631b5673f1a6ab340996cd74f946",
     "e209f03a1228c3363cf39da1a378cdfe0c7276ed62c04ef7aa0f5957457772ef",
   ]),
   "scripts/lib/windows-process-job.cs": Object.freeze([
@@ -1879,6 +1899,7 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
     "5a0b82045d9795284a109c28e5e9dd97a5488ff540bb7034b84077d1447ffd7c",
     "5ba15f6126e253ce9554579ddde86fc0bd744cd0c5c1395cb4e4b8f0472cc134",
     "5bc1466a79c18e565e62305d4adeca0c7de94a1e5a22b2c2a75c84f634fcec86",
+    "5d27574f0759af7d98bde4be670c81d04be1e1f5eba31b89f8b9a15527a698e7",
     "5d2afab0d8e8cfeae2424bfa332ebd8416b16c05657ef0cf99fde0d7e66ab133",
     "5e937e22bac62f66e91b288e9076e717147e4b382a431cdc8bbfc56681ebde8e",
     "5eb31c284e820a51312d4484f0669128007326af55ee515923fec33700d003a1",
@@ -2053,6 +2074,7 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
     "0b8d6e6cd22d8a2edef3437c772a7ddf7afc7e7c61e73476323da11d0972a888",
     "0d82401079f442dd1a617a2a85b910be321ba0badbef2120d9ad4b9cff3767bc",
     "15eceda920bf731bd12154af634b69d2f684d8672baff4d0f3e66f18b7a9806f",
+    "1da2850fc87381120400046adb47de51954efcf6377e85b587877e03a404a4ae",
     "1ef30003e2ae3e442ccdbe006202ba9374d9efd403961571060ce011f53ed642",
     "2124f4003b70a2123d4713c04ee2e30e4c4e186fdf9cfa8cc4ea7b5f602bdf62",
     "22d423cce63e31fd0e9d02db86358dbca09206d47af1f35054133552a7c459d8",
@@ -2649,39 +2671,51 @@ export const LISA_OWNED_HASH_HISTORY_DERIVED: Readonly<
     "a9e4ebf6a91ef2b0b058566db425edd133fe7c0229fff5c5e4b916c8701822e0",
   ]),
   "scripts/lib/completion-authorization.mjs": Object.freeze([
+    "7b5f81ae58eae89367ebda480a508c3c37a6924b4bd6a8b1dd64fff24c465e1e",
     "c3b55b7fc815f546e2f16e86617097dabaa846739450d6dd302be8ab31af8caf",
   ]),
   "scripts/lib/completion-proof-adapters.mjs": Object.freeze([
+    "478d453844ec1f890019d0984d69506aef469647e34051425867a71995acc7a1",
     "941ec605433c035fbcd9d1cbe9c7abf823953a9fe3c8573fd281f2a6e7ce0385",
   ]),
   "scripts/lib/completion-proof-conformance.mjs": Object.freeze([
     "4b6ab24475ef82aa180f88ca7abb213461902be7c50af7079301a820bf6f2d84",
+    "51b2bfccc8ecca684dd80a4e2ae35896e76fa519389fe650f0890ffc0fef421d",
   ]),
   "scripts/lib/completion-proof-content.mjs": Object.freeze([
+    "78b34223d054913c2e900830070cbb1fb2dc267423ec458ae76553ceed0d38c6",
     "cf836b48230a5b7fdfc2425abda1b2328fa4873fd853100f00d1f05412c415be",
   ]),
   "scripts/lib/completion-proof-errors.mjs": Object.freeze([
     "18092420eba568270ab31cae0cbd3e57b525df99be3b79ba0ce8bd01ebadc045",
+    "3422df7049227eff77f3ef7bf954eeb74a63e9879b06d8126c7c3a2485b6d1f3",
   ]),
   "scripts/lib/completion-proof-github.mjs": Object.freeze([
     "4b7f8b01ab846a7a16a4d7f66cb7731a83d4b7208aad627834df8a851a36fc32",
+    "b101b6cb5da8cb8d61cc45de8d1da0699713dfd39da0dc75ddd16e726db25228",
   ]),
   "scripts/lib/completion-proof-markdown.mjs": Object.freeze([
+    "00d00e2c251244d1eb0dc46464c1bb1e170f2576cd025b02518e132c0d467472",
     "3752a34d19dbda626d5876d954e4dc6a2a74e5fb50ef741e5274d0b178c0f5a3",
   ]),
   "scripts/lib/completion-proof-projection.mjs": Object.freeze([
     "1a6eabc8165a8945db5c359c12ca28303a25f9b07c3248f1236fb7ddcde72ea6",
+    "a8acdd491693126fe6f1660f4bd29c7b218855ae59c76ec2b7c0d5703d8c0d43",
   ]),
   "scripts/lib/completion-proof-publisher.mjs": Object.freeze([
+    "801df8b694eced082695542dad3e189ce660aa65dda26f3bf11d962120487609",
     "b0e0020ce5f6b9530a90daab4a8b7a8f563b99c4fc549c364c645bbeddcb0fcb",
   ]),
   "scripts/lib/completion-proof-reader.mjs": Object.freeze([
     "9d4221c4dc90ea0184e33347f8511d97c6ee6e8f43d532bd4ba0e49382612c71",
+    "f134b65158605510bf188429d6aa5e713ed75a4d78877efc6211b440b3a805f7",
   ]),
   "scripts/lib/completion-proof-shape.mjs": Object.freeze([
     "574ff9682d32c6617e6c202b50d55189ebfaa175cdc4f1043e53ad4da9c650f1",
+    "83c3e4aa7f1386dc6e50c6fbb007d6505e83205a319cc60331e070dcffd95ef2",
   ]),
   "scripts/lib/completion-proof-source.mjs": Object.freeze([
+    "1028cbeb9c8bb9cf685dd3f532ea41de2a25456b989fbda23d3315d8532877c0",
     "a94f2da29e8f2231a649f6bf407cd7c62601948c272d9fca367dae9e17f26cde",
   ]),
   "scripts/lib/gate-failure-diagnosis.mjs": Object.freeze([
@@ -2925,6 +2959,7 @@ export const LISA_OWNED_HASH_HISTORY_DERIVED: Readonly<
     "33ab2fcba24552a378a75314fe021b25ae6862a6e3c7c4f6b83250f9749264bb",
     "3561c20458d74eff34650d6b4366f4f03ed4e7825ae886ea78394f63f98a18bb",
     "39bf4d553af77101e03946ebd4769a303af1098d8f5f938c3a3259695d59d065",
+    "41ff29eb3c82b7cbff1f1b0ba88517df7c09fee1bbd951117371a2a826ce5823",
     "647c83dc72c21c4d68e27679e9f3b35b4b541bd8957c779495f78392d099cdd9",
     "cda2582fb84457e49ade0d7d8c3805ffaeef951de9468c53604222c054a769c6",
     "da1bd212a20406c060d26c52bc8e67dac3fef51afafb604042b9c6e26b07bdb6",
@@ -3211,20 +3246,27 @@ export const LISA_OWNED_HASH_HISTORY_DERIVED: Readonly<
   ]),
   "scripts/lib/usage-effectiveness.d.mts": Object.freeze([
     "51d815eab4b51837e17b4b1ee292fc73c617d53f3ddc7be57b3a757238d7a68c",
+    "58c774c89cbfe5a73960efbd469ff023fc95ac78596c4ca065ee91fdb5afa4b1",
   ]),
   "scripts/lib/usage-effectiveness.mjs": Object.freeze([
     "1b4d330785af0e426176442963df58f8e4e372697b93111adddd80d4db8f8170",
+    "a863df28a7546aab07c501b95e737fea374af8e4606fcd35edcdd7858d2068e8",
+    "b4fb652293bf2c15f9a07b3f9f15cee75ddbfc17a5aa7fee30290629b77ba705",
   ]),
   "scripts/lib/usage-ledger-integrity.d.mts": Object.freeze([
+    "75c8204833c1f390d585e9e12a0bbbae423c6982ef296dc4318e875b21c96e99",
     "b5e193eeadc959703638689c79ec312e3bb2a96e42a2f2ad7799ab72b259ca74",
   ]),
   "scripts/lib/usage-ledger-integrity.mjs": Object.freeze([
+    "67e115051fac99e846dea54297c8811f22aecce93d2743ce53bbf0b8e3572c5e",
     "ecc234d13f7b7817fa71690c6a7ab6fd56a6018d82df4bb21cad0dbd46944214",
   ]),
   "scripts/lib/usage-ledger.d.mts": Object.freeze([
+    "551d534acdd1fbd1fd86edf1feaee2f98763509af2ec17b593662c40badbb415",
     "89036761632f0992e2bca2ee7cfd70a76959fbfc3ac7869b2d7eaecede6a1c17",
   ]),
   "scripts/lib/usage-ledger.mjs": Object.freeze([
+    "cdeab41198a0284b6415975b1dd8cfd84114631b5673f1a6ab340996cd74f946",
     "e209f03a1228c3363cf39da1a378cdfe0c7276ed62c04ef7aa0f5957457772ef",
   ]),
   "scripts/lib/windows-process-job.cs": Object.freeze([
@@ -3980,6 +4022,7 @@ export const LISA_OWNED_HASH_HISTORY_DERIVED: Readonly<
     "5a0b82045d9795284a109c28e5e9dd97a5488ff540bb7034b84077d1447ffd7c",
     "5ba15f6126e253ce9554579ddde86fc0bd744cd0c5c1395cb4e4b8f0472cc134",
     "5bc1466a79c18e565e62305d4adeca0c7de94a1e5a22b2c2a75c84f634fcec86",
+    "5d27574f0759af7d98bde4be670c81d04be1e1f5eba31b89f8b9a15527a698e7",
     "5d2afab0d8e8cfeae2424bfa332ebd8416b16c05657ef0cf99fde0d7e66ab133",
     "5e937e22bac62f66e91b288e9076e717147e4b382a431cdc8bbfc56681ebde8e",
     "5eb31c284e820a51312d4484f0669128007326af55ee515923fec33700d003a1",
@@ -4152,6 +4195,7 @@ export const LISA_OWNED_HASH_HISTORY_DERIVED: Readonly<
     "0b8d6e6cd22d8a2edef3437c772a7ddf7afc7e7c61e73476323da11d0972a888",
     "0d82401079f442dd1a617a2a85b910be321ba0badbef2120d9ad4b9cff3767bc",
     "15eceda920bf731bd12154af634b69d2f684d8672baff4d0f3e66f18b7a9806f",
+    "1da2850fc87381120400046adb47de51954efcf6377e85b587877e03a404a4ae",
     "1ef30003e2ae3e442ccdbe006202ba9374d9efd403961571060ce011f53ed642",
     "2124f4003b70a2123d4713c04ee2e30e4c4e186fdf9cfa8cc4ea7b5f602bdf62",
     "22d423cce63e31fd0e9d02db86358dbca09206d47af1f35054133552a7c459d8",

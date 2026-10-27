@@ -1,3 +1,6 @@
+// This file is managed by Lisa and IS replaced on each `lisa` run.
+// Do not edit directly — durable changes belong upstream in Lisa.
+
 /** Strict shared data contract for accepted-for-completion records. */
 import { createHash } from "node:crypto";
 import {
@@ -13,6 +16,9 @@ import {
   requireProof,
 } from "./completion-proof-errors.mjs";
 
+const CLI_OUTPUT = "cli-output";
+const TEST_RUN_LOG = "test-run-log";
+
 export {
   CompletionProofError,
   requireProof,
@@ -27,23 +33,23 @@ export const KINDS = [
   "screenshot",
   "recording",
   "http-transcript",
-  "cli-output",
+  CLI_OUTPUT,
   "log-snippet",
   "db-query-output",
   "perf-trace",
-  "test-run-log",
+  TEST_RUN_LOG,
   "deploy-log",
   "state-dump",
 ];
 export const BOUNDARIES = {
-  "code-unit": ["test-run-log"],
+  "code-unit": [TEST_RUN_LOG],
   browser: ["screenshot", "recording"],
   "http-api": ["http-transcript"],
-  cli: ["cli-output"],
+  cli: [CLI_OUTPUT],
   data: ["db-query-output", "state-dump"],
   "deploy-health": ["deploy-log"],
   performance: ["perf-trace"],
-  "standards-compat": ["cli-output", "test-run-log"],
+  "standards-compat": [CLI_OUTPUT, TEST_RUN_LOG],
 };
 
 /** Hash actual bytes, never a caller's claimed digest. */
@@ -142,6 +148,26 @@ export function section(body, heading) {
   return markdownSection(body, heading);
 }
 
+/** Preserve the first whitespace-delimited environment suffix in linear work. */
+function environmentValue(declaration) {
+  let whitespaceStart = -1;
+  for (let index = 0; index < declaration.length; index += 1) {
+    const character = declaration[index];
+    if (/\s/.test(character)) {
+      if (whitespaceStart < 0) whitespaceStart = index;
+    } else {
+      if (
+        whitespaceStart >= 0 &&
+        (character === "-" || character === "—") &&
+        /\s/.test(declaration[index + 1] ?? "")
+      )
+        return declaration.slice(0, whitespaceStart).trim();
+      whitespaceStart = -1;
+    }
+  }
+  return declaration.trim();
+}
+
 /** Exemptions are explicit declarations, never an absent environment. */
 export function declaredScope(body, environment) {
   const declaration = section(body, "Target Backend Environment");
@@ -150,10 +176,9 @@ export function declaredScope(body, environment) {
       declaration
     );
   if (exemption) return { runtime: false, reason: exemption[1].toLowerCase() };
-  const value = declaration
-    .replace(/^(Assumption|Inferred|Confirmed):\s*/i, "")
-    .split(/\s+[—-]\s+/)[0]
-    .trim();
+  const value = environmentValue(
+    declaration.replace(/^(Assumption|Inferred|Confirmed):\s*/i, "")
+  );
   requireProof(
     value === environment,
     `The primary item does not declare target environment ${environment}; run canonical verification for its actual target.`,

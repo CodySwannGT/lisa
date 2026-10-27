@@ -1,5 +1,10 @@
+// This file is managed by Lisa and IS replaced on each `lisa` run.
+// Do not edit directly — durable changes belong upstream in Lisa.
+
 /** Native source/delivery reconciliation, independent of checkout credentials. */
 import { requireProof, isOid } from "./completion-proof-shape.mjs";
+
+const PENDING_PROOF = "pending-proof";
 
 /** Full native compare pagination; absence/truncation is never clean ancestry. */
 export function compareSource(transport, base, head) {
@@ -80,7 +85,7 @@ export function validateSource(record, context, transport) {
       context.declares(row.commit?.message ?? "", context.ref)
     ),
     "Newer source for this work item precedes the accepted snapshot but has no delivered verification proof.",
-    "pending-proof"
+    PENDING_PROOF
   );
   return pr;
 }
@@ -100,7 +105,7 @@ export function validateFrontier(record, context, transport) {
       context.declares(row.commit?.message ?? "", context.ref)
     ),
     "Newer source for this work item is awaiting fresh remote verification and evidence.",
-    "pending-proof"
+    PENDING_PROOF
   );
   return tip;
 }
@@ -116,7 +121,7 @@ export function validateDelivery(record, context, transport) {
         configured.mechanism
       ),
     "The actual delivery mechanism is not declared in verification.completion.delivery; configure it and run canonical Verify/evidence.",
-    "pending-proof"
+    PENDING_PROOF
   );
   requireProof(
     delivery.mechanism === configured.mechanism,
@@ -157,7 +162,7 @@ export function validateDelivery(record, context, transport) {
     requireProof(
       run.status === "completed",
       "The required delivery workflow is still pending; finish canonical Verify/evidence.",
-      "pending-proof"
+      PENDING_PROOF
     );
     requireProof(
       run.conclusion === "success",

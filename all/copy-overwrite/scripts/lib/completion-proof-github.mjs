@@ -1,3 +1,6 @@
+// This file is managed by Lisa and IS replaced on each `lisa` run.
+// Do not edit directly — durable changes belong upstream in Lisa.
+
 /** Bounded native GitHub transport; no locator URL is executed or fetched. */
 import {
   CompletionProofError,
@@ -6,6 +9,8 @@ import {
   MAX_ATTACHMENT_BYTES,
   MAX_RECORD_BYTES,
 } from "./completion-proof-shape.mjs";
+
+const READ_ERROR = "read-error";
 
 /** The transport reuses the canonical CLI's deadline and failure boundary. */
 export function githubProofTransport(run, repository, policy = {}) {
@@ -22,7 +27,7 @@ export function githubProofTransport(run, repository, policy = {}) {
     });
     if (result.status !== 0 || result.error)
       throw new CompletionProofError(
-        "read-error",
+        READ_ERROR,
         "A required GitHub completion-proof read did not complete; restore repository access and retry canonical Verify/evidence."
       );
     return result.stdout;
@@ -47,7 +52,7 @@ export function githubProofTransport(run, repository, policy = {}) {
     } catch (error) {
       if (error instanceof CompletionProofError) throw error;
       throw new CompletionProofError(
-        "read-error",
+        READ_ERROR,
         "A required GitHub proof response is not complete JSON."
       );
     }
@@ -153,7 +158,7 @@ export function githubProofTransport(run, repository, policy = {}) {
     if (result.status !== 0) {
       if (/HTTP 404/.test(result.stderr ?? "")) return false;
       throw new CompletionProofError(
-        "read-error",
+        READ_ERROR,
         "The native proof publisher's repository authority could not be read."
       );
     }
@@ -162,7 +167,7 @@ export function githubProofTransport(run, repository, policy = {}) {
       permission = JSON.parse(result.stdout);
     } catch {
       throw new CompletionProofError(
-        "read-error",
+        READ_ERROR,
         "Native publisher permissions are unreadable."
       );
     }

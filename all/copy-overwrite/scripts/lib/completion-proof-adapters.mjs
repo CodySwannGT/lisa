@@ -1,9 +1,15 @@
+// This file is managed by Lisa and IS replaced on each `lisa` run.
+// Do not edit directly — durable changes belong upstream in Lisa.
+
 /** Provider-native proof discovery/publication adapters; credentials stay in CLI. */
 import {
   CompletionProofError,
   MAX_RECORD_BYTES,
   requireProof,
 } from "./completion-proof-shape.mjs";
+
+const READ_ERROR = "read-error";
+const WRITE_ERROR = "write-error";
 
 /** Construct the same strict authorizer context for supported lifecycle writers. */
 export function completionContext(options) {
@@ -22,7 +28,7 @@ export function completionContext(options) {
     } catch (error) {
       if (error instanceof CompletionProofError) throw error;
       throw new CompletionProofError(
-        query.startsWith("mutation") ? "write-error" : "read-error",
+        query.startsWith("mutation") ? WRITE_ERROR : READ_ERROR,
         `The required native ${purpose} did not complete; restore Linear access and retry canonical verification.`
       );
     }
@@ -35,14 +41,14 @@ export function completionContext(options) {
     });
     if (result.status !== 0 || result.error)
       throw new CompletionProofError(
-        write ? "write-error" : "read-error",
+        write ? WRITE_ERROR : READ_ERROR,
         `The required native ${write ? "proof publication" : "work-item proof read"} did not complete.`
       );
     try {
       return JSON.parse(result.stdout);
     } catch {
       throw new CompletionProofError(
-        "read-error",
+        READ_ERROR,
         "A native work-item proof response is not complete JSON."
       );
     }
@@ -141,7 +147,7 @@ export function completionContext(options) {
       after = cursor;
     }
     throw new CompletionProofError(
-      "read-error",
+      READ_ERROR,
       "The Linear proof-locator pagination exceeds its page bound."
     );
   }
@@ -195,7 +201,7 @@ export function completionContext(options) {
       requireProof(
         result?.success === true && result.comment?.id,
         "The native Linear completion-proof publication failed.",
-        "write-error"
+        WRITE_ERROR
       );
       return result.comment;
     },

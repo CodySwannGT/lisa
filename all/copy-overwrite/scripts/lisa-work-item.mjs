@@ -35,6 +35,10 @@ import {
   CompletionProofError,
 } from "./lib/completion-proof-shape.mjs";
 
+const COMPLETION_WRITE_ERROR = "write-error";
+const COMPLETION_READ_ERROR = "read-error";
+const ALREADY_COMPLETED = "already-completed";
+
 /**
  * Contract version of the traceability gate's script half, reported by the
  * `contract-version` subcommand and read by the workflow half.
@@ -5246,7 +5250,7 @@ function completeGithubWorkItem(ref, contract, prUrl) {
       contract.lifecycle.terminalName
     ).length === 0;
   completionNativeOperation(
-    "write-error",
+    COMPLETION_WRITE_ERROR,
     "The terminal mutation failed; reread native state before retrying",
     () => reconcileGithubLifecycle(ref, current, contract)
   );
@@ -5254,21 +5258,21 @@ function completeGithubWorkItem(ref, contract, prUrl) {
   // success, and a writer that trusts those is asserting about tracker state it
   // never asked the tracker for — the same defect class as the one above it.
   const after = completionNativeOperation(
-    "read-error",
+    COMPLETION_READ_ERROR,
     "The post-write native state could not be read",
     () => githubLifecycleState(ref, `GitHub issue ${ref} completion readback`)
   );
   completionNativeOperation(
-    "write-error",
+    COMPLETION_WRITE_ERROR,
     "The actual native readback did not establish completion",
     () => assertCompletionReadback(ref, after, contract)
   );
   return {
     applied: !already,
-    category: already ? "already-completed" : "completed",
+    category: already ? ALREADY_COMPLETED : "completed",
     bases,
     merged,
-    report: `work-item ${already ? "already-completed" : "completed"}: ${ref} -> ${contract.lifecycle.terminalName} (merged: ${evidence}) bases: ${bases}`,
+    report: `work-item ${already ? ALREADY_COMPLETED : "completed"}: ${ref} -> ${contract.lifecycle.terminalName} (merged: ${evidence}) bases: ${bases}`,
     terminal: contract.lifecycle.terminalName,
   };
 }
@@ -5659,12 +5663,12 @@ function completeLinearWorkItem(ref, contract, prUrl) {
     return {
       merged: [evidence.number],
       terminal: displayName,
-      category: "already-completed",
+      category: ALREADY_COMPLETED,
       applied: false,
     };
   }
   const update = completionNativeOperation(
-    "write-error",
+    COMPLETION_WRITE_ERROR,
     "The Linear terminal mutation failed; reread native state before retrying",
     () =>
       linearGraphql(
@@ -5676,12 +5680,12 @@ function completeLinearWorkItem(ref, contract, prUrl) {
   );
   if (update?.success !== true) {
     throw new CompletionProofError(
-      "write-error",
+      COMPLETION_WRITE_ERROR,
       `Linear issue ${ref} completion update failed`
     );
   }
   const readback = completionNativeOperation(
-    "read-error",
+    COMPLETION_READ_ERROR,
     "The Linear post-write state could not be read",
     () =>
       linearCompletionIssue(
@@ -5696,7 +5700,7 @@ function completeLinearWorkItem(ref, contract, prUrl) {
     readback?.state?.type !== "completed"
   ) {
     throw new CompletionProofError(
-      "write-error",
+      COMPLETION_WRITE_ERROR,
       `Linear issue ${ref} did not read back in workflow state ${displayName}`
     );
   }
@@ -5796,11 +5800,15 @@ function complete(args) {
   // path has no such decision to report, so it keeps the original line.
   console.log(
     outcome.report ??
-      `work-item ${outcome.category === "already-completed" ? "already-completed" : "completed"}: ${ref} -> ${outcome.terminal} (merged: ${outcome.merged
+      `work-item ${outcome.category === ALREADY_COMPLETED ? ALREADY_COMPLETED : "completed"}: ${ref} -> ${outcome.terminal} (merged: ${outcome.merged
         .map(number => `#${number}`)
         .join(", ")})`
   );
-  if (["invalid-proof", "read-error", "write-error"].includes(outcome.category))
+  if (
+    ["invalid-proof", COMPLETION_READ_ERROR, COMPLETION_WRITE_ERROR].includes(
+      outcome.category
+    )
+  )
     process.exitCode = 1;
 }
 

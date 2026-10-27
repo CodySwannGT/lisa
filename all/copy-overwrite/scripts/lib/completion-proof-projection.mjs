@@ -1,10 +1,18 @@
+// This file is managed by Lisa and IS replaced on each `lisa` run.
+// Do not edit directly — durable changes belong upstream in Lisa.
+
 /** Exclude only actual canonical accounting; retain unknown requirement text. */
 import { parseLisaUsageSection } from "./usage-ledger.mjs";
 import { verifyLisaUsageSectionIntegrity } from "./usage-ledger-integrity.mjs";
 import { requireProof } from "./completion-proof-errors.mjs";
 
 /** Stable presentation matching; this does not parse or authorize usage data. */
-const normalizedRow = line => line.trim().replace(/\s*\|\s*/g, "|");
+const normalizedRow = line =>
+  line
+    .trim()
+    .split("|")
+    .map(part => part.trim())
+    .join("|");
 
 /** Match the canonical writer's visible table rows to the already parsed data. */
 function accountingRows(entries) {

@@ -55,7 +55,7 @@ describe("typed completion attachment structure", () => {
       { source: "synthetic-service", lines: ["Actual captured fixture line"] },
     ],
   ])(
-    "accepts actual %s capture independently of current gate outcome",
+    "accepts actual %s capture independently of current gate outcome (variant %#)",
     (kind, value) => {
       expect(() =>
         validateTypedBytes(kind, encoded(value), "synthetic-artifact")

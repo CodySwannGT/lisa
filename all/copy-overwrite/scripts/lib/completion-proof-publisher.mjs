@@ -1,8 +1,12 @@
+// This file is managed by Lisa and IS replaced on each `lisa` run.
+// Do not edit directly — durable changes belong upstream in Lisa.
+
 /** Publish accepted/pending/revoked proof without performing a terminal transition. */
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
+  CompletionProofError,
   PROOF_KIND,
   PROOF_MARKER,
   MAX_RECORD_BYTES,
@@ -16,6 +20,8 @@ import {
 import { githubProofTransport } from "./completion-proof-github.mjs";
 import { completionRecordId } from "./completion-proof-reader.mjs";
 import { evaluateAcceptedRecord } from "./completion-authorization.mjs";
+
+const READ_ERROR = "read-error";
 
 /** Recover the monotonic native index without treating old malformed proof as valid. */
 function previousLocator(
@@ -63,16 +69,20 @@ function publisherIdentity(context, input, transport, repository) {
     return actor.id;
   } catch (error) {
     const id = input.producer?.github_actor_id;
-    requireProof(
-      (context.policy.automationPublishers ?? []).some(
-        row =>
-          row.user_id === id &&
-          row.repository_id === repository.id &&
-          row.type === "Bot"
-      ),
-      "The publisher identity is unreadable and no explicit repository automation identity was configured.",
-      "read-error"
+    const configured = (context.policy.automationPublishers ?? []).some(
+      row =>
+        row.user_id === id &&
+        row.repository_id === repository.id &&
+        row.type === "Bot"
     );
+    if (!configured) {
+      const refusal = new CompletionProofError(
+        READ_ERROR,
+        "The publisher identity is unreadable and no explicit repository automation identity was configured."
+      );
+      refusal.cause = error;
+      throw refusal;
+    }
     return id;
   }
 }
@@ -162,13 +172,13 @@ export function publishCompletionProof(context, input) {
     requireProof(
       pages.every(Array.isArray),
       "The native completion-asset listing is incomplete.",
-      "read-error"
+      READ_ERROR
     );
     const matching = pages.flat().filter(asset => asset.name === name);
     requireProof(
       matching.length === 1,
       "The uploaded completion asset cannot be uniquely read back.",
-      "read-error"
+      READ_ERROR
     );
     const stored = transport.asset(matching[0].id, MAX_RECORD_BYTES);
     requireProof(

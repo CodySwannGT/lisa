@@ -1,3 +1,6 @@
+// This file is managed by Lisa and IS replaced on each `lisa` run.
+// Do not edit directly — durable changes belong upstream in Lisa.
+
 /** Four independent clocks and their provenance for one usage row. */
 export interface EffectivenessObservation {
   readonly schema: 1;

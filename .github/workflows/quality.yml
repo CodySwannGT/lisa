@@ -2860,6 +2860,9 @@ jobs:
           tests/unit/scripts/work-item-proof-freshness-review.test.ts
           tests/unit/scripts/work-item-linear-accepted-proof.test.ts
           tests/unit/scripts/completion-proof-types.test.ts
+          tests/unit/scripts/completion-proof-grammar.test.ts
+          tests/unit/scripts/npm-update-contract.test.ts
+          tests/unit/scripts/lisa-work-item.test.ts
           tests/unit/scripts/terminal-transition-outcomes.test.ts
           --reporter=verbose
         working-directory: ${{ inputs.working_directory || '.' }}
