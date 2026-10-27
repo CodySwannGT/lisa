@@ -981,7 +981,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/hooks/block-host-name-leak.agy.sh":
       "9522a2db621178d9cee5bf70ff3948251c5043868f372924bfee19126dbd1c41",
     "plugins/src/base/hooks/block-host-name-leak.mjs":
-      "28af02b135a07c63c217cf36fc3af71086474a75c1773bad24142e7b92e2e760",
+      "af54edf21348b807514fd63a1d98c7cdb458e438f3720ce7161dc52eb3ac7781",
     "plugins/src/base/hooks/block-host-name-leak.sh":
       "e0b43b99104e0879d1f855f2f974c9534a7e66a70821647f8b6d65811d0e3133",
     "plugins/src/base/hooks/block-instruction-file-edits.agy.sh":
@@ -1023,7 +1023,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/hooks/guard-dedupe.bash":
       "aa82809f78906811c1ca56054848e21f22a21e1d7cf70803be40a00ed25ba480",
     "plugins/src/base/hooks/host-name-command-context.mjs":
-      "3f64f90f899b76547f0bb5f36d774d8382a03e84eaa3063e9a341eb6fbee0396",
+      "48252b2ff8b97bd5a673f6dc1d963b373432ef2ca2e4f92f025fa9738e8f4484",
     "plugins/src/base/hooks/inject-flow-context.sh":
       "f4ab07065762d592c0fc36be2e4918e767b293aaa4094b9d85d69010576c6dbf",
     "plugins/src/base/hooks/inject-resolved-config.mjs":
@@ -2662,6 +2662,10 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "bf43913f423f5774a69b60f2541f7a49c173aabd4855e2c30cbe2984806a182b",
     "scripts/lib/hook-registration-audit.mjs":
       "2f148ce2179bfca2805c85675fdb4733bf12ca5c1aa651f660c7478c7ee289cb",
+    "scripts/lib/host-name-expanded-command-cases.mjs":
+      "de84b26b002560de209c81290373522c636a53a4e657a138441e76fe6752a57d",
+    "scripts/lib/host-name-field-occurrence-cases.mjs":
+      "1ae5faec18340dc1a310493148b98431eae91167aefa88878432ac40206e37bc",
     "scripts/lib/host-name-review-cases.mjs":
       "3ec645cbaae017007abdc471f8ce6758ad9dfe43f4efd0dbc1b65b163076bd0d",
     "scripts/lib/host-name-target-cases.mjs":
@@ -2783,7 +2787,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/verify-health-deterministic-built.mjs":
       "9016663d16c93d0d0d74b41a957d200cd3aa8ef5b12e0879d24ba5ea041ab307",
     "scripts/verify-host-name-target-scope.mjs":
-      "8a7e03c50c4b4d1480fe112e87b393766d1fc391cae9fe79ab3ff0bb84ae5003",
+      "8f92d0984b202e6fab0bdf0163ca1069409e4d84ffec75bd40ac9595f10fff31",
     "scripts/verify-learner-frontmatter-built.mjs":
       "b8ac0240726721a047811e98d42f661426abc3e427a0c86f3b20082eb498809d",
     "scripts/verify-npm-advisories-4333.mjs":
@@ -10144,6 +10148,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "scripts/lib/dependency-tree.mjs": true,
     "scripts/lib/gitattributes-merge-drivers.mjs": true,
     "scripts/lib/hook-registration-audit.mjs": true,
+    "scripts/lib/host-name-expanded-command-cases.mjs": true,
+    "scripts/lib/host-name-field-occurrence-cases.mjs": true,
     "scripts/lib/host-name-review-cases.mjs": true,
     "scripts/lib/host-name-target-cases.mjs": true,
     "scripts/lib/invoked-as-script.mjs": true,

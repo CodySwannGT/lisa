@@ -287,8 +287,16 @@ export function publishableText(tokens, cwd, noun) {
       const value = valueAt(tokens, index);
       // On `gh api`, `-F` is `--field`: `key=@path` or `key=value`. Read as a
       // bare path, `body=@file` named no file and published unchecked (#4462).
-      if (noun === "api" && /^[\w.[\]-]+=/u.test(value))
-        return [fieldSource(value, cwd)];
+      if (
+        (noun === "api" || (noun === undefined && bare === "-F")) &&
+        /^[\w.[\]-]+=/u.test(value)
+      ) {
+        const field = fieldSource(value, cwd);
+        if (noun === "api") return [field];
+        // An unresolved noun may become api or issue/pr. Inspect both possible
+        // meanings of -F without evaluating the expansion or certifying routing.
+        return [field, { origin: value, text: readIfPresent(value, cwd) }];
+      }
       const file = value.replace(/^@/u, "");
       return [{ origin: file, text: readIfPresent(file, cwd) }];
     }
@@ -414,20 +422,24 @@ export async function evaluate(command, projectDir) {
     // protection, and name the unread input instead of claiming the text clean.
     if (
       context.cwd === undefined &&
-      [...context.flags].some(([flag, item]) => {
+      [
+        ...context.flags,
+        ...(context.noun === "api" || context.noun === undefined
+          ? context.fieldOccurrences
+          : []),
+      ].some(([flag, item]) => {
         const field =
-          context.noun === "api" && FIELD_FLAGS.has(flag)
+          (context.noun === "api" || context.noun === undefined) &&
+          FIELD_FLAGS.has(flag)
             ? /^([^=]+)=@(.+)$/u.exec(item.value)
             : null;
-        const file =
-          field !== null
-            ? PROSE_FIELDS.has(field[1])
-              ? field[2]
-              : undefined
-            : FILE_FLAGS.has(flag)
-              ? item.value.replace(/^@/, "")
-              : undefined;
-        return file !== undefined && !path.isAbsolute(file);
+        const files = [
+          field !== null && PROSE_FIELDS.has(field[1]) ? field[2] : undefined,
+          FILE_FLAGS.has(flag) && (context.noun !== "api" || field === null)
+            ? item.value.replace(/^@/, "")
+            : undefined,
+        ];
+        return files.some(file => file !== undefined && !path.isAbsolute(file));
       })
     ) {
       return {
