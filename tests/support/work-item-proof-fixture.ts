@@ -27,6 +27,8 @@ import {
 import { putAsset, PUBLISHER } from "./work-item-proof-assets.js";
 import { prepareProofProvider } from "./work-item-proof-resources.js";
 import { makeProofRecord } from "./work-item-proof-payload.js";
+import { SPEC } from "./work-item-proof-spec.js";
+export { SPEC } from "./work-item-proof-spec.js";
 export {
   digest,
   putAsset,
@@ -39,27 +41,6 @@ const ENTRYPOINT = "scripts/lisa-work-item.mjs";
 
 export const PROOF_REF = "acme/code#42";
 const WORKFLOW = ".github/workflows/deploy.yml";
-export const SPEC = [
-  "# Synthetic work item",
-  "",
-  "## Target Backend Environment",
-  "production",
-  "",
-  "## Acceptance Criteria",
-  "```gherkin",
-  "Scenario: Observed feature is verified",
-  "  Given delivered source",
-  "  When it is exercised",
-  "  Then its required behavior passes",
-  "```",
-  "",
-  "## Validation Journey",
-  "Capture the actual command outcome.",
-  "[EVIDENCE: cli-output: delivered-behavior]",
-  "",
-  "",
-].join("\n");
-
 /**
  * Canonical unavailable metrics are valid; future acceptance is not invented.
  * @param sourceRef - Exact canonical source work-item reference.

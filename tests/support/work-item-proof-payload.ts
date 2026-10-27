@@ -6,7 +6,7 @@ import {
   digest,
   type ProofFacts,
 } from "./work-item-proof-assets.js";
-import { SPEC } from "./work-item-proof-fixture.js";
+import { SPEC } from "./work-item-proof-spec.js";
 const WORKFLOW = ".github/workflows/deploy.yml";
 const GITHUB_ACTIONS = "github-actions";
 const RUNTIME_EVIDENCE = "EV-runtime";

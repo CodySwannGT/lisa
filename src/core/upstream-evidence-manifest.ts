@@ -11381,6 +11381,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/support/work-item-proof-mutations.ts": true,
     "tests/support/work-item-proof-payload.ts": true,
     "tests/support/work-item-proof-resources.ts": true,
+    "tests/support/work-item-proof-spec.ts": true,
     "tests/support/work-item-provider-api.mjs": true,
     "tests/support/work-item-stateful-gh.mjs": true,
     "tests/support/work-item-stateful-linear.mjs": true,
