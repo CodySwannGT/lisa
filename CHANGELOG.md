@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.84.7](https://github.com/CodySwannGT/lisa/compare/v4.84.6...v4.84.7) (2026-10-27)
+
+
+### Bug Fixes
+
+* **hooks:** inspect expanded GitHub command names ([7d957c5](https://github.com/CodySwannGT/lisa/commit/7d957c521d469cb87e0ace78bfa55f480eea7520)), closes [CodySwannGT/lisa#4539](https://github.com/CodySwannGT/lisa/issues/4539)
+
 ### [4.84.6](https://github.com/CodySwannGT/lisa/compare/v4.84.5...v4.84.6) (2026-10-27)
 
 
