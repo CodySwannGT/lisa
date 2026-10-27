@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.84.6](https://github.com/CodySwannGT/lisa/compare/v4.84.5...v4.84.6) (2026-10-27)
+
+
+### Bug Fixes
+
+* **hooks:** preserve word state across line continuations ([8adaaad](https://github.com/CodySwannGT/lisa/commit/8adaaade840ff22af0f9f130392790dd8f46acc8)), closes [CodySwannGT/lisa#4462](https://github.com/CodySwannGT/lisa/issues/4462)
+* **hooks:** resolve tracker write targets before guarding host names ([611058a](https://github.com/CodySwannGT/lisa/commit/611058a4ca6dec31e85e1f89068a5b568dccff08)), closes [CodySwannGT/lisa#4462](https://github.com/CodySwannGT/lisa/issues/4462)
+* **hooks:** scope the host-name guard to writes that target this repository ([9d11d53](https://github.com/CodySwannGT/lisa/commit/9d11d5313efc50ed6dede38217fdd15c4a404b4b)), closes [CodySwannGT/lisa#4462](https://github.com/CodySwannGT/lisa/issues/4462) [CodySwannGT/lisa#4462](https://github.com/CodySwannGT/lisa/issues/4462)
+
+
+### Documentation
+
+* **hooks:** document conservative probe failures and public sources ([cd79251](https://github.com/CodySwannGT/lisa/commit/cd792515ae71278cf38d97e8c7d727e49ef02b2c)), closes [CodySwannGT/lisa#4462](https://github.com/CodySwannGT/lisa/issues/4462)
+
 ### [4.84.5](https://github.com/CodySwannGT/lisa/compare/v4.84.4...v4.84.5) (2026-10-26)
 
 
