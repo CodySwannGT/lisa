@@ -46,7 +46,7 @@ const WORKFLOW = ".github/workflows/deploy.yml";
  * @param sourceRef - Exact canonical source work-item reference.
  * @returns Canonical stored usage section with explicitly unavailable metrics.
  */
-function usage(sourceRef: string): string {
+export function proofUsage(sourceRef: string): string {
   const entry: LisaUsageEntry = {
     artifactRef: sourceRef.includes("#")
       ? `github:${sourceRef}`
@@ -140,7 +140,7 @@ export function proofFixture(sourceRef = PROOF_REF, existing?: Fixture) {
   );
   const merge = mergeOnMain(fixture);
   const now = new Date().toISOString();
-  const body = SPEC + usage(sourceRef);
+  const body = SPEC + proofUsage(sourceRef);
   const facts = prepareProofProvider(fixture, {
     repository,
     number,

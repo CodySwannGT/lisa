@@ -26,6 +26,10 @@ export function installStatefulProvider(
     path.join(process.cwd(), "tests/support/work-item-provider-api.mjs"),
     path.join(fixture.root, "fake-bin/work-item-provider-api.mjs")
   );
+  copyFileSync(
+    path.join(process.cwd(), "tests/support/work-item-provider-issues.mjs"),
+    path.join(fixture.root, "fake-bin/work-item-provider-issues.mjs")
+  );
   chmodSync(executable, 0o755);
   writeFileSync(state, initial);
   writeFileSync(writes, "");
