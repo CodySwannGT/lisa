@@ -20,7 +20,7 @@ import {
 import { tmpdir } from "node:os";
 import path from "node:path";
 
-import { afterEach, describe, expect, it } from "vitest";
+import { afterAll, afterEach, describe, expect, it } from "vitest";
 
 import {
   branchWorkItemFrom,
@@ -37,6 +37,11 @@ import {
 } from "../../helpers/io-latency-budget.js";
 import { cleanGitEnv } from "../../helpers/test-utils.js";
 import { resolveGit } from "../../support/git-executable.js";
+import { linearCompatibility } from "../../support/work-item-linear-proof-fixture.js";
+import {
+  cleanupFixtures as cleanupProofFixtures,
+  cleanupTemplates as cleanupProofTemplates,
+} from "../../support/work-item-cli.js";
 
 /**
  * Liveness bound for the SIGKILL-deadline case, calibrated to this machine.
@@ -82,7 +87,9 @@ afterEach(() => {
   for (const fixture of fixtures)
     rmSync(fixture, { force: true, recursive: true });
   fixtures = [];
+  cleanupProofFixtures();
 });
+afterAll(cleanupProofTemplates);
 
 /** Write an executable fake CLI. */
 function executable(file: string, body: string): void {
@@ -1492,11 +1499,11 @@ describe("provider liveness", () => {
   });
 
   it("completes Linear only after a merged, managed-backlink pull request", () => {
-    const fixture = createFixture({
+    const config = {
       tracker: "linear",
       repo: "code",
       linear: { workspace: "acme", teamKey: "LIN" },
-    });
+    };
     const prUrl = "https://github.com/acme/code/pull/7";
     const lookup = JSON.stringify({
       data: {
@@ -1518,36 +1525,30 @@ describe("provider liveness", () => {
         },
       },
     });
-    const update = JSON.stringify({
-      data: { issueUpdate: { success: true } },
-    });
-    const readback = JSON.stringify({
-      data: {
-        issue: {
-          id: "id-12",
-          identifier: "LIN-12",
-          state: { id: "done", name: "Done", type: "completed" },
-        },
-      },
-    });
-    const result = command(
-      fixture,
-      ["complete", "--ref", "LIN-12", "--pr-url", prUrl],
-      {
-        env: {
-          FAKE_CURL_COUNT_FILE: path.join(fixture.root, "curl-count"),
-          FAKE_CURL_JSON_1: lookup,
-          FAKE_CURL_JSON_2: update,
-          FAKE_CURL_JSON_3: readback,
-          FAKE_GH_PR_JSON: JSON.stringify({
-            baseRefName: "main",
-            mergedAt: "2026-08-26T00:00:00Z",
-            number: 7,
-            state: "MERGED",
-            url: prUrl,
-          }),
-        },
-      }
+    const accepted = linearCompatibility(config, lookup);
+    const fixture = { ...accepted, bin: path.join(accepted.root, "fake-bin") };
+    const result = command(fixture, [
+      "complete",
+      "--ref",
+      "LIN-12",
+      "--pr-url",
+      prUrl,
+    ]);
+    console.log(
+      JSON.stringify({
+        name: "legacy Linear merged-backlink completion",
+        command: [
+          "node",
+          SCRIPT,
+          "complete",
+          "--ref",
+          "LIN-12",
+          "--pr-url",
+          prUrl,
+        ],
+        ...result,
+        controlledProvider: true,
+      })
     );
     expect(result.status).toBe(0);
     expect(result.stderr).toBe("");
@@ -1556,6 +1557,18 @@ describe("provider liveness", () => {
     expect(result.stdout).toContain(
       "work-item completed: LIN-12 -> Done (merged: #7)"
     );
+    const writes = readFileSync(accepted.env.FAKE_GH_WRITES_FILE!, "utf8")
+      .trim()
+      .split("\n")
+      .filter(Boolean)
+      .map(line => JSON.parse(line));
+    expect(writes).toHaveLength(1);
+    expect(writes[0].query).toContain("issueUpdate");
+    expect(
+      JSON.parse(readFileSync(accepted.env.FAKE_LINEAR_STATE_FILE!, "utf8"))
+        .state.name
+    ).toBe("Done");
+    expect(readFileSync(accepted.env.FAKE_GH_UNHANDLED_FILE!, "utf8")).toBe("");
   });
 
   it("rejects merged evidence from a namesake repository under another owner", () => {

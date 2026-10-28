@@ -3472,8 +3472,10 @@ if [ -f "$rules_file" ]; then
     # here — before the remaining rules ran, and with an exit status that is
     # not a refusal. The `||` puts the pipeline in a condition context, where
     # a non-zero status is expected rather than fatal.
+    # Consume the whole input: grep -q can close an early match while printf
+    # is still writing, making pipefail report SIGPIPE instead of the match.
     rule_status=0
-    printf '%s' "$custom_command_str" | grep -Eiq -- "$rule" || rule_status=$?
+    printf '%s' "$custom_command_str" | grep -Ei -- "$rule" >/dev/null || rule_status=$?
     case "$rule_status" in
       0) block "matched a project custom safety rule (${rules_file##*/}): $rule" ;;
       1) ;; # no match

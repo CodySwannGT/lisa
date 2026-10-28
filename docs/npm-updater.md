@@ -31,8 +31,13 @@ The fixed Ubuntu package versions come from the signed
 `20261013T000000Z` Ubuntu snapshot for both index update and installation, so
 moving archive updates cannot remove a required pinned version. The unchanged
 21-package roster pins `libx11-xcb1` to `2:1.8.7-1ubuntu0.1`, matching Ubuntu's
-security-patched `libx11-6`; installation never permits a downgrade. The separate
-component qualifier records bounded pre-install versions for those two package
+security-patched `libx11-6`; production installation never permits a downgrade.
+After verifying its native Ubuntu identity and clean source, the separate
+disposable CI component qualifier first normalizes that same fixed roster from
+the signed snapshot, explicitly permitting downgrades of newer runner packages.
+It then runs the unchanged strict production installer and tool qualification.
+This prerequisite setup grants no consumer downgrade permission or provider proof.
+The component qualifier records bounded pre-install versions for those two package
 names and, on a package refusal, its fixed `apt-update` or `apt-install` phase,
 native outcome and stream fingerprints. Original output remains in private
 captures; mirror URLs, command content and arbitrary stderr are not published.

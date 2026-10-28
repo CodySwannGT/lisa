@@ -1,0 +1,21 @@
+/** Shared synthetic primary input; independent of fixture construction. */
+export const SPEC = [
+  "# Synthetic work item",
+  "",
+  "## Target Backend Environment",
+  "production",
+  "",
+  "## Acceptance Criteria",
+  "```gherkin",
+  "Scenario: Observed feature is verified",
+  "  Given delivered source",
+  "  When it is exercised",
+  "  Then its required behavior passes",
+  "```",
+  "",
+  "## Validation Journey",
+  "Capture the actual command outcome.",
+  "[EVIDENCE: cli-output: delivered-behavior]",
+  "",
+  "",
+].join("\n");

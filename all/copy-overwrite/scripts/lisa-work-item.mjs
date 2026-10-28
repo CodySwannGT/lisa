@@ -24,6 +24,20 @@ import { dirname, join, resolve } from "node:path";
 import { isIP } from "node:net";
 
 import { invokedAsScript } from "./lib/invoked-as-script.mjs";
+import {
+  authorizeCompletion,
+  completionDenial,
+} from "./lib/completion-authorization.mjs";
+import { completionContext } from "./lib/completion-proof-adapters.mjs";
+import { publishCompletionProof } from "./lib/completion-proof-publisher.mjs";
+import {
+  MAX_RECORD_BYTES,
+  CompletionProofError,
+} from "./lib/completion-proof-shape.mjs";
+
+const COMPLETION_WRITE_ERROR = "write-error";
+const COMPLETION_READ_ERROR = "read-error";
+const ALREADY_COMPLETED = "already-completed";
 
 /**
  * Contract version of the traceability gate's script half, reported by the
@@ -51,7 +65,7 @@ import { invokedAsScript } from "./lib/invoked-as-script.mjs";
  * Bump the MINOR whenever a change to this file would alter a verdict the gate
  * reports, so a consumer running old logic can be told how far behind it is.
  */
-export const WORK_ITEM_CONTRACT_VERSION = "1.1.0";
+export const WORK_ITEM_CONTRACT_VERSION = "1.2.0";
 
 /**
  * Subject of a release-bot commit, which is exempt from the work-item trailer.
@@ -543,7 +557,7 @@ const CHILD_TIMEOUT_MS = Number(
 export function run(command, args, options = {}) {
   const result = spawnSync(command, args, {
     cwd: options.cwd ?? process.cwd(),
-    encoding: "utf8",
+    encoding: options.binary === true ? null : "utf8",
     env: options.env ?? process.env,
     input: options.input,
     // Node's default is 1 MiB, and it is silent in exactly the wrong way: an
@@ -580,8 +594,13 @@ export function run(command, args, options = {}) {
   // added later inherits the guarantee instead of having to remember it.
   return {
     ...result,
-    stdout: result.stdout ?? "",
-    stderr: result.stderr ?? "",
+    stdout:
+      options.binary === true
+        ? Buffer.from(result.stdout ?? "")
+        : (result.stdout ?? ""),
+    stderr: Buffer.isBuffer(result.stderr)
+      ? result.stderr.toString("utf8")
+      : (result.stderr ?? ""),
   };
 }
 
@@ -5160,7 +5179,7 @@ function recordDeployRole(ref, before, role) {
  * @returns {{applied: boolean, bases: string, merged: number[], report: string, terminal: string|null}}
  *   What was applied, and why.
  */
-function completeGithubWorkItem(ref, contract) {
+function completeGithubWorkItem(ref, contract, prUrl) {
   const [repository] = ref.split("#");
   const merged = mergedPullRequestsIn(githubTimeline(ref), repository);
   if (merged.length === 0) {
@@ -5208,6 +5227,7 @@ function completeGithubWorkItem(ref, contract) {
     recordDeployRole(ref, before, decision.role);
     return {
       applied: true,
+      category: "intermediate",
       bases,
       merged,
       report:
@@ -5216,20 +5236,43 @@ function completeGithubWorkItem(ref, contract) {
       terminal: decision.role,
     };
   }
-  reconcileGithubLifecycle(ref, before, contract);
+  const authorization = authorizeCompletion(proofContext(ref, contract, prUrl));
+  if (authorization.category !== "authorized")
+    return completionDenial(ref, authorization);
+  const current = authorization.native;
+  assertNotAbandoned(ref, current);
+  const already =
+    current.state === "CLOSED" &&
+    carriesLabel(current.labels, contract.lifecycle.terminalName) &&
+    competingLifecycleRoles(
+      current.labels,
+      contract.lifecycle.roles,
+      contract.lifecycle.terminalName
+    ).length === 0;
+  completionNativeOperation(
+    COMPLETION_WRITE_ERROR,
+    "The terminal mutation failed; reread native state before retrying",
+    () => reconcileGithubLifecycle(ref, current, contract)
+  );
   // A SECOND read, deliberately. The edit and the close each reported their own
   // success, and a writer that trusts those is asserting about tracker state it
   // never asked the tracker for — the same defect class as the one above it.
-  const after = githubLifecycleState(
-    ref,
-    `GitHub issue ${ref} completion readback`
+  const after = completionNativeOperation(
+    COMPLETION_READ_ERROR,
+    "The post-write native state could not be read",
+    () => githubLifecycleState(ref, `GitHub issue ${ref} completion readback`)
   );
-  assertCompletionReadback(ref, after, contract);
+  completionNativeOperation(
+    COMPLETION_WRITE_ERROR,
+    "The actual native readback did not establish completion",
+    () => assertCompletionReadback(ref, after, contract)
+  );
   return {
-    applied: true,
+    applied: !already,
+    category: already ? ALREADY_COMPLETED : "completed",
     bases,
     merged,
-    report: `work-item completed: ${ref} -> ${contract.lifecycle.terminalName} (merged: ${evidence}) bases: ${bases}`,
+    report: `work-item ${already ? ALREADY_COMPLETED : "completed"}: ${ref} -> ${contract.lifecycle.terminalName} (merged: ${evidence}) bases: ${bases}`,
     terminal: contract.lifecycle.terminalName,
   };
 }
@@ -5582,6 +5625,12 @@ function completeLinearWorkItem(ref, contract, prUrl) {
     );
   }
   assertBacklink(ref, evidence.url, contract, issue);
+  const authorization = authorizeCompletion(
+    proofContext(ref, contract, prUrl, token)
+  );
+  if (authorization.category !== "authorized")
+    return completionDenial(ref, authorization);
+  const freshIssue = authorization.native.raw;
   // Folded for MATCHING only. Linear workflow states are display strings a
   // human named on the board, so `Done` and `done` are the same state and the
   // comparison has to say so — but nothing a person reads should be the folded
@@ -5589,7 +5638,7 @@ function completeLinearWorkItem(ref, contract, prUrl) {
   // either the configured spelling or the one Linear itself returned.
   const terminal = contract.lifecycle.terminal;
   const configuredName = contract.lifecycle.terminalName;
-  const states = issue.team?.states?.nodes ?? [];
+  const states = freshIssue.team?.states?.nodes ?? [];
   const target = states.find(
     state =>
       String(state?.name ?? "").toLowerCase() === terminal &&
@@ -5608,40 +5657,122 @@ function completeLinearWorkItem(ref, contract, prUrl) {
   // itself worth surfacing rather than hiding behind the config.
   const displayName = String(target.name ?? configuredName);
   if (
-    String(issue.state?.name ?? "").toLowerCase() === terminal &&
-    issue.state?.type === "completed"
+    String(freshIssue.state?.name ?? "").toLowerCase() === terminal &&
+    freshIssue.state?.type === "completed"
   ) {
-    return { merged: [evidence.number], terminal: displayName };
+    return {
+      merged: [evidence.number],
+      terminal: displayName,
+      category: ALREADY_COMPLETED,
+      applied: false,
+    };
   }
-  const update = linearGraphql(
-    token,
-    "mutation($id:String!,$stateId:String!){issueUpdate(id:$id,input:{stateId:$stateId}){success issue{id identifier state{id name type}}}}",
-    { id: issue.id, stateId: target.id },
-    `Linear issue ${ref} completion update`
-  ).issueUpdate;
+  const update = completionNativeOperation(
+    COMPLETION_WRITE_ERROR,
+    "The Linear terminal mutation failed; reread native state before retrying",
+    () =>
+      linearGraphql(
+        token,
+        "mutation($id:String!,$stateId:String!){issueUpdate(id:$id,input:{stateId:$stateId}){success issue{id identifier state{id name type}}}}",
+        { id: issue.id, stateId: target.id },
+        `Linear issue ${ref} completion update`
+      ).issueUpdate
+  );
   if (update?.success !== true) {
-    throw new TrackingError(`Linear issue ${ref} completion update failed`);
+    throw new CompletionProofError(
+      COMPLETION_WRITE_ERROR,
+      `Linear issue ${ref} completion update failed`
+    );
   }
-  const readback = linearCompletionIssue(
-    ref,
-    token,
-    `Linear issue ${ref} completion readback`
+  const readback = completionNativeOperation(
+    COMPLETION_READ_ERROR,
+    "The Linear post-write state could not be read",
+    () =>
+      linearCompletionIssue(
+        ref,
+        token,
+        `Linear issue ${ref} completion readback`
+      )
   );
   if (
     readback?.identifier !== ref ||
     String(readback?.state?.name ?? "").toLowerCase() !== terminal ||
     readback?.state?.type !== "completed"
   ) {
-    throw new TrackingError(
+    throw new CompletionProofError(
+      COMPLETION_WRITE_ERROR,
       `Linear issue ${ref} did not read back in workflow state ${displayName}`
     );
   }
-  return { merged: [evidence.number], terminal: displayName };
+  return {
+    merged: [evidence.number],
+    terminal: displayName,
+    category: "completed",
+    applied: true,
+  };
+}
+
+/** Preserve operational outcome categories even after a partial native write. */
+function completionNativeOperation(category, description, operation) {
+  try {
+    return operation();
+  } catch (error) {
+    if (error instanceof CompletionProofError) throw error;
+    throw new CompletionProofError(
+      category,
+      `${description}: ${error instanceof Error ? error.message : String(error)}`
+    );
+  }
+}
+
+/** The same portable proof boundary is reached by every supported terminal writer. */
+function proofContext(ref, contract, prUrl, suppliedToken) {
+  const token =
+    contract.provider === "linear"
+      ? (suppliedToken ?? readLinearKey(contract.workspace))
+      : null;
+  if (contract.provider === "linear" && !token)
+    throw new TrackingError(
+      "Linear completion proof requires the configured Linear API key."
+    );
+  return completionContext({
+    ref,
+    contract,
+    prUrl,
+    run,
+    config: readConfig(),
+    repository: currentRepository(),
+    linear: (query, variables, purpose) =>
+      linearGraphql(token, query, variables, purpose),
+    declares(message, currentRef) {
+      if (contract.provider === "github")
+        return declaredWorkItemNumbers(message, ref.split("#")[0]).includes(
+          Number(currentRef.split("#")[1])
+        );
+      return workItemLines(message).some(value => {
+        try {
+          return canonicalizeRef(value, contract) === currentRef;
+        } catch (error) {
+          if (error instanceof TrackingError) return false;
+          throw error;
+        }
+      });
+    },
+    hasBacklink(issue, url) {
+      try {
+        assertBacklink(ref, url, contract, issue);
+        return true;
+      } catch (error) {
+        if (error instanceof TrackingError) return false;
+        throw error;
+      }
+    },
+  });
 }
 
 function completeWorkItem(ref, contract, prUrl) {
   if (contract.provider === "github") {
-    return completeGithubWorkItem(ref, contract);
+    return completeGithubWorkItem(ref, contract, prUrl);
   }
   if (contract.provider === "linear") {
     return completeLinearWorkItem(ref, contract, prUrl);
@@ -5669,10 +5800,53 @@ function complete(args) {
   // path has no such decision to report, so it keeps the original line.
   console.log(
     outcome.report ??
-      `work-item completed: ${ref} -> ${outcome.terminal} (merged: ${outcome.merged
+      `work-item ${outcome.category === ALREADY_COMPLETED ? ALREADY_COMPLETED : "completed"}: ${ref} -> ${outcome.terminal} (merged: ${outcome.merged
         .map(number => `#${number}`)
         .join(", ")})`
   );
+  if (
+    ["invalid-proof", COMPLETION_READ_ERROR, COMPLETION_WRITE_ERROR].includes(
+      outcome.category
+    )
+  )
+    process.exitCode = 1;
+}
+
+/** Publish a durable accepted-for-completion record without closing the item. */
+function publishProof(args) {
+  const contract = trackerContract();
+  if (!["github", "linear"].includes(contract.provider))
+    throw new TrackingError(
+      "Completion-proof publication supports github and linear; Jira completion remains unsupported."
+    );
+  const ref = canonicalizeRef(
+    option(args, "--ref", "LISA_WORK_ITEM_REF") ?? boundRef(),
+    contract
+  );
+  const file = option(args, "--record");
+  if (!file)
+    throw new TrackingError(
+      "publish-completion-proof requires --record <verified-record.json>"
+    );
+  const path = resolve(process.cwd(), file);
+  const metadata = lstatSync(path);
+  if (
+    !metadata.isFile() ||
+    metadata.size <= 0 ||
+    metadata.size > MAX_RECORD_BYTES
+  )
+    throw new TrackingError(
+      "The completion record must be a bounded, nonempty regular JSON file."
+    );
+  const input = safeJson(
+    readFileSync(path, "utf8"),
+    "Completion publication record"
+  );
+  const result = publishCompletionProof(
+    proofContext(ref, contract, pullRequestUrlOption(args)),
+    input
+  );
+  console.log(JSON.stringify(result));
 }
 
 /**
@@ -5755,7 +5929,7 @@ function openIssuesWithRole(repository, role) {
 /**
  * The first of `origin/<branch>` and `<branch>` that resolves to a commit.
  * @param {string} branch Configured deploy branch name.
- * @returns {string|undefined} A resolvable rev, or undefined.
+ * @returns {{ref: string, sha: string}|undefined} Selected ref and pinned commit, or undefined.
  */
 function resolvedBranchRev(branch) {
   for (const candidate of [`origin/${branch}`, branch]) {
@@ -5764,7 +5938,8 @@ function resolvedBranchRev(branch) {
       ["rev-parse", "--verify", "--quiet", `${candidate}^{commit}`],
       { allowFailure: true }
     );
-    if (result.status === 0 && result.stdout.trim() !== "") return candidate;
+    const sha = result.stdout.trim();
+    if (result.status === 0 && sha !== "") return { ref: candidate, sha };
   }
   return undefined;
 }
@@ -5843,6 +6018,32 @@ function resolvedSinceRev(since) {
 }
 
 /**
+ * Prove that a bounded push starts in the exact selected branch history.
+ * A resolvable but disjoint commit excludes nothing and can widen the sweep.
+ * @param {string} since Resolved pre-push commit.
+ * @param {{ref: string, sha: string}} revision Selected deploy revision.
+ */
+function assertSweepAncestor(since, revision) {
+  const result =
+    /** @type {import("node:child_process").SpawnSyncReturns<string>} */ (
+      run("git", ["merge-base", "--is-ancestor", since, revision.sha], {
+        allowFailure: true,
+      })
+    );
+  if (!result.error && result.status === 0) return;
+  const reason =
+    !result.error && result.status === 1
+      ? "is not an ancestor"
+      : "could not be verified as an ancestor";
+  throw new TrackingError(
+    `NOT DETERMINED: ${SINCE_FLAG} ${since} ${reason} of ${revision.ref} (${revision.sha}), ` +
+      `so the bounded sweep cannot reconcile any item.\n` +
+      `Fetch the selected branch's complete history (\`git fetch --unshallow origin\` for a shallow checkout), ` +
+      `verify its pre-push revision, and re-run. No completion mutations were attempted.`
+  );
+}
+
+/**
  * The sentence a report owes its reader when the scan was bounded.
  * @param {string | undefined} since The bound as supplied.
  * @param {string[]} branches Selected deploy branches.
@@ -5901,11 +6102,17 @@ function deployedDeclarations(repository, contract, since, branches) {
       unresolved.push(branch);
       continue;
     }
+    if (sinceRev) assertSweepAncestor(sinceRev, rev);
     const bound = sinceRev ? ["--not", sinceRev] : [];
-    const result = run("git", ["log", rev, ...bound, "-z", "--format=%H%n%B"], {
-      allowFailure: true,
-      maxBuffer: DECLARATION_LOG_MAX_BYTES,
-    });
+    const logRev = sinceRev ? rev.sha : rev.ref;
+    const result = run(
+      "git",
+      ["log", logRev, ...bound, "-z", "--format=%H%n%B"],
+      {
+        allowFailure: true,
+        maxBuffer: DECLARATION_LOG_MAX_BYTES,
+      }
+    );
     // Loudly, not `continue`. This sweep's whole output is an absence claim,
     // and a read that failed is not an absence — under the default 1 MiB
     // buffer the real `origin/main` log (4.6 MiB) was truncated into an
@@ -5915,7 +6122,7 @@ function deployedDeclarations(repository, contract, since, branches) {
     // least trustworthy one.
     if (result.error || result.status !== 0) {
       throw new TrackingError(
-        `could not read the commit log of ${rev}, so no absence of drift can be reported: ` +
+        `could not read the commit log of ${rev.ref}, so no absence of drift can be reported: ` +
           `${result.error ? result.error.message : result.stderr.trim() || "git log failed"}.\n` +
           `The sweep reports what a deploy branch declares; a log it could not read is not an empty one.`
       );
@@ -6905,10 +7112,11 @@ function main() {
   if (command === "validate-push") return validatePush(args);
   if (command === "validate-push-destination")
     return validatePushDestination(args);
+  if (command === "publish-completion-proof") return publishProof(args);
   if (command === "validate-pr") return validatePr(args);
   if (command === DISCHARGE_COMMAND) return dischargePrGates(args);
   throw new TrackingError(
-    "Usage: lisa-work-item.mjs link|current|attach-branch|clear|verify-level|contract-version|backlink|complete|sweep|lane|prepare-commit-msg|validate-commit|validate-push|validate-push-destination|validate-pr|discharge-pr-gates" +
+    "Usage: lisa-work-item.mjs link|current|attach-branch|clear|verify-level|contract-version|backlink|publish-completion-proof|complete|sweep|lane|prepare-commit-msg|validate-commit|validate-push|validate-push-destination|validate-pr|discharge-pr-gates" +
       "\n(`bind` is accepted as an alias for `link`, but some agent harnesses refuse the token `bind` in a command line.)"
   );
 }
@@ -6928,6 +7136,14 @@ export function runCli() {
     main();
   } catch (error) {
     const detail = error instanceof Error ? error.message : String(error);
+    if (error instanceof CompletionProofError) {
+      console.error(`work-item proof ${error.category}: ${detail}`);
+      const pendingLifecycle =
+        error.category === "pending-proof" &&
+        ["complete", "sweep"].includes(process.argv[2]);
+      process.exitCode = pendingLifecycle ? 0 : 1;
+      return;
+    }
     console.error(
       error?.selfExplanatory === true
         ? `\n❌ ${detail}\n`

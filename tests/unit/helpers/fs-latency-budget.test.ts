@@ -18,8 +18,14 @@
  * that fixed nothing.
  * @module tests/unit/helpers/fs-latency-budget
  */
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import {
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  statfsSync,
+  writeFileSync,
+} from "node:fs";
+import { cpus, loadavg, release, tmpdir } from "node:os";
 import path from "node:path";
 
 import { afterEach, describe, expect, it } from "vitest";
@@ -171,12 +177,32 @@ describe("the probe stands for the operation it is a proxy for", () => {
    * whichever box recorded it.
    */
   it("agrees with a real corpus deletion measured in the same window", () => {
+    const machine = {
+      startedAt: new Date().toISOString(),
+      runtime: process.version,
+      platform: process.platform,
+      release: release(),
+      arch: process.arch,
+      cpuModel: cpus()[0]?.model ?? null,
+      cpuCount: cpus().length,
+      tmpdir: tmpdir(),
+      tmpFilesystemType: statfsSync(tmpdir()).type,
+      loadBefore: loadavg(),
+    };
     const probeUs = measureUnlinkLatencyUs();
     const realUs = timeRealDeletionUs(REAL_CORPUS_ENTRIES);
     const ratio = probeUs / realUs;
+    const observation = JSON.stringify({
+      probeUsPerEntry: probeUs,
+      realUsPerEntry: realUs,
+      ratio,
+      machine,
+      loadAfter: loadavg(),
+      completedAt: new Date().toISOString(),
+    });
 
-    expect(ratio).toBeGreaterThan(1 / AGREEMENT_TOLERANCE);
-    expect(ratio).toBeLessThan(AGREEMENT_TOLERANCE);
+    expect(ratio, observation).toBeGreaterThan(1 / AGREEMENT_TOLERANCE);
+    expect(ratio, observation).toBeLessThan(AGREEMENT_TOLERANCE);
   });
 });
 

@@ -37,6 +37,7 @@ const STAGES = new Set([
   "daemon-before",
   "daemon-after",
   "package-prestate",
+  "package-normalization",
 ]);
 const CLASSES = new Set([
   "Error",

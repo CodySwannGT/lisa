@@ -131,6 +131,55 @@ describe("authenticated scratch supervisor", () => {
     expect(verdict.stderr).toContain("project custom safety rule");
   });
 
+  it("keeps an early custom-rule match active before a large inert tail", () => {
+    const rules = path.join(fixtures, "large-tail.rules");
+    writeFileSync(rules, "^echo RULEMATCH$\n");
+    const command = `echo RULEMATCH\n# ${"z".repeat(100_000)}`;
+    const verdict = harness.runHook(command, {
+      cwd: process.cwd(),
+      env: { SAFETY_NET_RULES_FILE: rules },
+    });
+    expect(verdict.status).toBe(EXIT_BLOCKED);
+    expect(verdict.stderr).toContain("project custom safety rule");
+    expect(verdict.stderr).not.toContain("invalid regex");
+  });
+
+  it.each([
+    [
+      "case-insensitive anchored ERE",
+      "^ECHO (MATCH|OTHER)$\n",
+      "echo match",
+      EXIT_BLOCKED,
+    ],
+    ["anchored non-match", "^echo MATCH$\n", "echo unmatched", EXIT_ALLOWED],
+    [
+      "invalid rule before valid rule",
+      "[\n^echo match$\n",
+      "echo match",
+      EXIT_BLOCKED,
+    ],
+    [
+      "invalid rule without match",
+      "[\n^echo MATCH$\n",
+      "echo unmatched",
+      EXIT_ALLOWED,
+    ],
+  ])(
+    "preserves %s custom-rule semantics",
+    (_name, expression, command, expected) => {
+      const rules = path.join(fixtures, "custom-semantics.rules");
+      writeFileSync(rules, expression);
+      const verdict = harness.runHook(command, {
+        cwd: process.cwd(),
+        env: { SAFETY_NET_RULES_FILE: rules },
+      });
+      expect(verdict.status).toBe(expected);
+      if (expression.startsWith("[")) {
+        expect(verdict.stderr).toContain("invalid regex");
+      }
+    }
+  );
+
   it("binds the supervisor's actual inherited and empty-value base precedence", () => {
     const entry = `sh ${supervisor} --suite probe -- ruby`;
     expect(

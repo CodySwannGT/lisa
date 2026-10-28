@@ -87,6 +87,7 @@ describe("actual native hook table state", () => {
 
 const RAILS_PREPUSH = "lisa-rails-prepush.mjs";
 const WORK_ITEM_HELPER = "lisa-work-item.mjs";
+const USAGE_LEDGER_HELPER = "lib/usage-ledger.mjs";
 const MANIFEST_FILE = "package.json";
 const HISTORY_POLICY = "lib/history-secret-policy.mjs";
 const ARM64_PLATFORM = "linux/arm64";
@@ -1017,7 +1018,44 @@ describe("complete authenticated helper closure", () => {
     const bytes = new Map<string, Buffer>();
     for (const member of members)
       bytes.set(member, await helperAuditSource(member));
-    expect(members.length).toBe(109);
+    expect(members.length).toBe(124);
+    const completionMembers = [
+      "lib/completion-authorization.mjs",
+      "lib/completion-proof-adapters.mjs",
+      "lib/completion-proof-conformance.mjs",
+      "lib/completion-proof-content.mjs",
+      "lib/completion-proof-errors.mjs",
+      "lib/completion-proof-github.mjs",
+      "lib/completion-proof-markdown.mjs",
+      "lib/completion-proof-projection.mjs",
+      "lib/completion-proof-publisher.mjs",
+      "lib/completion-proof-reader.mjs",
+      "lib/completion-proof-shape.mjs",
+      "lib/completion-proof-source.mjs",
+      "lib/usage-effectiveness.mjs",
+      "lib/usage-ledger-integrity.mjs",
+      USAGE_LEDGER_HELPER,
+    ];
+    expect(members).toEqual(expect.arrayContaining(completionMembers));
+    const completionClosure = managedClosure(manifest, bytes, [
+      WORK_ITEM_HELPER,
+    ]);
+    expect(completionClosure).toEqual(
+      expect.arrayContaining(completionMembers)
+    );
+    const missingUsage = new Map(bytes);
+    missingUsage.delete(USAGE_LEDGER_HELPER);
+    expect(() =>
+      managedClosure(manifest, missingUsage, [WORK_ITEM_HELPER])
+    ).toThrow(/missing/);
+    const alteredUsage = new Map(bytes);
+    alteredUsage.set(
+      USAGE_LEDGER_HELPER,
+      Buffer.from("export const forged = true;")
+    );
+    expect(() =>
+      managedClosure(manifest, alteredUsage, [WORK_ITEM_HELPER])
+    ).toThrow(/hash/);
     expect(members).toContain("lib/npm-update-checkpoint-codec.mjs");
     expect(auditControllerClosure(manifest, bytes)).toEqual(
       [...members].sort((left, right) => left.localeCompare(right))
