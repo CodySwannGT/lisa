@@ -2133,6 +2133,7 @@ export const REVIEW_GATE_CONDITIONS = Object.freeze({
   objected: "objected",
   pending: "pending",
   unrecognised: "unrecognised",
+  notReviewed: "not_reviewed",
   undetermined: "undetermined",
   // A SATISFYING condition: the reviewer could not or did not review this
   // head, and a writer posted a local adversarial review for it in its place.
@@ -2160,6 +2161,7 @@ const SUBSTITUTABLE_REPORTED_CONDITIONS = Object.freeze(
     REVIEW_GATE_CONDITIONS.waived,
     REVIEW_GATE_CONDITIONS.waivedWithReview,
     REVIEW_GATE_CONDITIONS.unrecognised,
+    REVIEW_GATE_CONDITIONS.notReviewed,
   ])
 );
 
@@ -2364,6 +2366,14 @@ export function reviewGateState(reading, vocabulary = {}) {
   if (state === "FAILURE" || state === "ERROR") {
     return objectedReviewGateState(state, text, reading.description);
   }
+  if (state === "SKIPPED") {
+    return skippedReviewGateState(
+      text,
+      reading.description,
+      vocabulary,
+      reading.reviewActivity
+    );
+  }
   if (state !== "SUCCESS") {
     return pendingReviewGateState(state, reading.waitExpired);
   }
@@ -2373,6 +2383,28 @@ export function reviewGateState(reading, vocabulary = {}) {
     vocabulary,
     reading.reviewActivity
   );
+}
+
+/**
+ * A terminal skip never proves review, even when its title names completed work.
+ * Existing exact waivers retain their policy; all other skips need a trusted
+ * head-bound substitute and a clean, readable review surface to permit merging.
+ * @param {string} text - Normalized description
+ * @param {string|undefined} description - Original description
+ * @param {{waive?: readonly string[]}} vocabulary - Per-check waiver extensions
+ * @param {{read: boolean, present: boolean, objected: boolean}|undefined} activity - Independent review surface
+ * @returns {{state: string, condition: string, why: string}} Terminal no-review verdict
+ */
+function skippedReviewGateState(text, description, vocabulary, activity) {
+  const waivers = [...ENTITLEMENT_WAIVERS, ...(vocabulary.waive ?? [])];
+  if (waivers.some(phrase => text === normalizeDescription(phrase))) {
+    return waivedReviewGateState(description, activity);
+  }
+  return {
+    state: REVIEW_GATE_STATES.unsatisfied,
+    condition: REVIEW_GATE_CONDITIONS.notReviewed,
+    why: `reported terminal SKIPPED with the description ${JSON.stringify(description ?? "")}. This check did not complete a review; its title cannot prove otherwise. An existing exact waiver or a trusted substitute for this head is required, and no substitute covers an objection.`,
+  };
 }
 
 /**

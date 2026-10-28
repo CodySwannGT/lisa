@@ -2917,7 +2917,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/copy-overwrite/scripts/check-nightly-e2e-health.mjs":
       "d1b26caeaf65950e3b60ff41964d234c032c50470072e7643310b1f6722e34e6",
     "typescript/copy-overwrite/scripts/check-skipped-required-checks.mjs":
-      "53ec522511aa862dd186a0acc66848f361b4c3a02f53314c332cff640db6034b",
+      "b8c0a241a725f372f8ee0cc85eb72e1677f307b2ebe3c7d5eacfc35f1a8147e1",
     "typescript/copy-overwrite/scripts/check-threshold-ratchet.mjs":
       "d4afc90ba8faf10925fff5fb0d6cd0ace22df2eaa0ec609ee969d0ec84092299",
     "typescript/copy-overwrite/scripts/check-verification-coverage.mjs":
@@ -10967,6 +10967,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/fixtures/rails-helper-test-isolation/config/environment.rb": true,
     "tests/fixtures/rails-helper-test-isolation/rspec/rails.rb": true,
     "tests/fixtures/rails-helper-test-isolation/spec/spec_helper.rb": true,
+    "tests/fixtures/review-terminal-gh.cjs": true,
     "tests/fixtures/session-manager/meminfo.txt": true,
     "tests/fixtures/session-manager/stub-bin/claude": true,
     "tests/fixtures/session-manager/stub-bin/gh": true,
@@ -11077,6 +11078,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/helpers/remote-env-materialized-fixture.ts": true,
     "tests/helpers/repo-file-walk.ts": true,
     "tests/helpers/review-evidence-registration-fixture.ts": true,
+    "tests/helpers/review-terminal-fixture.ts": true,
+    "tests/helpers/review-terminal-responses.ts": true,
     "tests/helpers/rollup-classifier-ladder-fixtures.ts": true,
     "tests/helpers/rollup-classifier-ladder-harness.ts": true,
     "tests/helpers/safety-net-guard-fixtures.ts": true,
@@ -12434,6 +12437,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/review-evidence-check-name.test.ts": true,
     "tests/unit/scripts/review-gate-conditions.test.ts": true,
     "tests/unit/scripts/review-gate-substitute.test.ts": true,
+    "tests/unit/scripts/review-gate-terminal-skipped.test.ts": true,
     "tests/unit/scripts/review-gate-waiver-vs-objection.test.ts": true,
     "tests/unit/scripts/review-objection-at-head.test.ts": true,
     "tests/unit/scripts/run-artifact-checks.test.ts": true,
