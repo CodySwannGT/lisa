@@ -297,7 +297,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-hooks/parity-safety-net-heredoc.py":
       "b37b843b738fd0c1c6f9639551cf64c409263064819bb820e3daa6af8c94d443",
     "all/copy-overwrite/scripts/lisa-hooks/parity-safety-net.sh":
-      "cecab19d8997af8a0864cebf25f32d9bb537043894fc06cc2389fe9c159da529",
+      "3cc1b8a1730f7a35b82293824715538432bb4c410be38d64ee887eb55fea23b4",
     "all/copy-overwrite/scripts/lisa-hooks/sonar-secrets.sh":
       "e0b0073fe44f6e78b74f05cb232d30a3121acc3600bdbd5bc4299c1c710d56a2",
     "all/copy-overwrite/scripts/lisa-hooks/worktree-binding-guard.mjs":
@@ -1079,7 +1079,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/hooks/parity-safety-net.agy.sh":
       "ce9bd2b4566ad9147e4ace56434cffbbe87edb4ccbb57549ab3fd9f4c671ced4",
     "plugins/src/base/hooks/parity-safety-net.sh":
-      "1eef68ecb04183ec75f0c049f039e60c6030d1e7ffb4974c59ef47488e4a3931",
+      "3dcf3897381b6cd14903681b371ffde94e3839f34a39acb6192d69f20e06345d",
     "plugins/src/base/hooks/secrets-preflight.sh":
       "cdc638627e5769770aefb061ea0ddfacc1888a8eab3a5fade6c43129a2d3ff6e",
     "plugins/src/base/hooks/setup-jira-cli.sh":
@@ -1109,7 +1109,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/hooks/worktree-binding-guard.sh":
       "92511fa2fe3de504a78d0d79a2cacffac545baa1d0264cab0ca999a487adb98f",
     "plugins/src/base/rules/eager/00-rule-index.md":
-      "ad7b1ea148996912b5c0956a7420a2ec360f4c05450177bc0f39300819b80288",
+      "5c51e8ce25094c05ad969f61ea12d8b86c558cc668933bef1a0084c22b27c48b",
     "plugins/src/base/rules/eager/base-rules.md":
       "3de39af7d5ad74b0b91fb939ec67a76b806d05a4b5c071c3941af6cd4108083c",
     "plugins/src/base/rules/eager/coding-philosophy.md":

@@ -51,7 +51,7 @@ Paths are relative to this file.
 | `bdd-e2e-coverage` | the work item adds or changes a user-observable surface | [../reference/bdd-e2e-coverage.md](bdd-e2e-coverage-reference.mdc) |
 | `reset-seed-coverage` | the work item adds or changes persistent state | [../reference/reset-seed-coverage.md](reset-seed-coverage-reference.mdc) |
 | `claim-evidence-mapping` | citing evidence for a claim, or reviewing evidence someone cited | [../reference/claim-evidence-mapping.md](claim-evidence-mapping-reference.mdc) |
-| `completion-authorization` | publishing accepted proof or applying a terminal work-item transition | [../reference/completion-authorization.md](completion-authorization-reference.mdc) |
+| `completion-authorization` | publishing proof or completing work items | [../reference/completion-authorization.md](completion-authorization-reference.mdc) |
 | `observability-audit` | running the `lisa-monitor` audit-and-file arm | [../reference/observability-audit.md](observability-audit-reference.mdc) |
 | `readiness-rubric` | judging whether an unattended fleet may run in a repository | [../reference/readiness-rubric.md](readiness-rubric-reference.mdc) |
 

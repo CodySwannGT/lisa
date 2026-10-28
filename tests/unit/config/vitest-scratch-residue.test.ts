@@ -74,6 +74,58 @@ const makeNamespace = (): string => {
 const withNamespaceAuthority = <T>(namespace: string, operation: () => T): T =>
   withProcessPlatformTempRoot(path.dirname(namespace), operation);
 
+/**
+ * Read at most one diagnostic record from a fixture-owned file.
+ * @param filename - Exact diagnostic file
+ * @returns Bounded UTF-8 diagnostic prefix
+ */
+function diagnosticPrefix(filename: string): string {
+  const descriptor = fs.openSync(filename, "r");
+  try {
+    const bytes = Buffer.alloc(16 * 1024);
+    const read = fs.readSync(descriptor, bytes, 0, bytes.length, 0);
+    return bytes.subarray(0, read).toString("utf8");
+  } finally {
+    fs.closeSync(descriptor);
+  }
+}
+
+/**
+ * Preserve bounded native recovery evidence before fixture teardown.
+ * @param root - Exact fixture-owned run root
+ * @param companions - Exact companion process ids observed before foreground death
+ * @param stderr - Fixture-owned inherited companion stderr file
+ * @returns Diagnostic text for an unchanged failing assertion
+ */
+function preMarkerFailureDetails(
+  root: string,
+  companions: readonly number[],
+  stderr: string
+): string {
+  const rootStat = fs.existsSync(root) ? fs.lstatSync(root) : undefined;
+  const owner = path.join(root, SCRATCH_OWNER_FILE);
+  const ownerStat = fs.existsSync(owner) ? fs.lstatSync(owner) : undefined;
+  const processes = boundedSpawnSync({
+    label: "pre-marker failure companion states",
+    command: "/bin/ps",
+    args: ["-o", "pid=,ppid=,pgid=,stat=,command=", "-p", companions.join(",")],
+    baseMs: 2_000,
+    maxBuffer: 16 * 1024,
+  });
+  return JSON.stringify({
+    root,
+    identity: rootStat && { dev: rootStat.dev, ino: rootStat.ino },
+    entries: rootStat?.isDirectory() ? fs.readdirSync(root).slice(0, 32) : [],
+    owner:
+      ownerStat?.isFile() && ownerStat.size <= 16 * 1024
+        ? diagnosticPrefix(owner)
+        : undefined,
+    companions,
+    processes: processes.stdout,
+    companionStderr: diagnosticPrefix(stderr),
+  });
+}
+
 afterEach(() => {
   for (const base of temporaryBases.splice(0)) removeScratchDir(base);
 });
@@ -228,6 +280,8 @@ describe("detached lisa-test-run recovery", () => {
     );
     const marker = path.join(base, PAYLOAD_MARKER);
     const namespace = path.join(base, SCRATCH_NAMESPACE);
+    const companionStderr = path.join(base, "companions.stderr.log");
+    const stderrDescriptor = fs.openSync(companionStderr, "w");
     const child = spawn(process.execPath, [...TEST_RUN_SOURCE_ARGS], {
       cwd: REPO_ROOT,
       env: {
@@ -238,8 +292,9 @@ describe("detached lisa-test-run recovery", () => {
         LISA_TEST_RUN_MARKER: marker,
         LISA_TEST_RUN_TEST_FAULT: "pause-before-owner-marker",
       },
-      stdio: "ignore",
+      stdio: ["ignore", "ignore", stderrDescriptor],
     });
+    fs.closeSync(stderrDescriptor);
     await waitForTestRun(
       () =>
         fs.existsSync(namespace) &&
@@ -267,13 +322,28 @@ describe("detached lisa-test-run recovery", () => {
         // A companion that observed disconnect is already terminal.
       }
     }
-    await waitForTestRun(
-      () => companions.every(pid => !isProcessAlive(pid)),
-      "pre-marker companion exit"
-    );
+    try {
+      await waitForTestRun(
+        () => companions.every(pid => !isProcessAlive(pid)),
+        "pre-marker companion exit"
+      );
+    } catch (error) {
+      throw new Error(
+        preMarkerFailureDetails(root, companions, companionStderr),
+        {
+          cause: error,
+        }
+      );
+    }
 
     expect(fs.existsSync(marker)).toBe(false);
-    expect(fs.existsSync(root)).toBe(false);
+    const rootRemains = fs.existsSync(root);
+    expect(
+      rootRemains,
+      rootRemains
+        ? preMarkerFailureDetails(root, companions, companionStderr)
+        : undefined
+    ).toBe(false);
     expect(fs.readdirSync(namespace)).toEqual([]);
   });
 });
