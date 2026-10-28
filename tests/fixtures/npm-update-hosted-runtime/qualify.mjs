@@ -21,6 +21,7 @@ import {
 import { railsPackageFailurePhase } from "../../../all/copy-overwrite/scripts/lib/npm-update-rails-tools.mjs";
 
 import { qualifyComponents } from "./components.mjs";
+import { normalizeQualificationPackages } from "./packages.mjs";
 
 const GIT = "/usr/bin/git";
 const SOURCES = [
@@ -39,6 +40,7 @@ const SOURCES = [
   "tests/fixtures/npm-update-hosted-runtime/application.mjs",
   "tests/fixtures/npm-update-hosted-runtime/observations.mjs",
   "tests/fixtures/npm-update-hosted-runtime/package-observations.mjs",
+  "tests/fixtures/npm-update-hosted-runtime/packages.mjs",
   "tests/fixtures/npm-update-hosted-runtime/driver-probe.mjs",
   "tests/fixtures/npm-update-hosted-runtime/driver-diagnostic.mjs",
   "tests/fixtures/npm-update-hosted-runtime/sandbox-status.mjs",
@@ -128,6 +130,10 @@ async function main() {
           values.source,
           env
         );
+        await normalizeQualificationPackages((command, args) =>
+          native("package-normalization", values.source, env, command, args)
+        );
+        summary.packagePrerequisitesNormalized = true;
         await qualifyComponents(
           values.source,
           state.root,
