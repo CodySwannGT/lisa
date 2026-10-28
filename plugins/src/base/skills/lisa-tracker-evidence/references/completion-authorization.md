@@ -115,6 +115,19 @@ captured structure/header, not an extension. HTTP HEAD/204 and empty query rows
 can be legitimate observations. Structure checks do not claim to evaluate the
 visual truth of an image or the business meaning of every captured line.
 
+Native JSON reads use a separate 16 MiB ceiling per response, including the
+complete slurped output of a paginated listing. The immutable proof record
+remains limited to 2 MiB. Page and row limits are additional bounds: a listing
+with at most 100 pages or 10,000 comments can still exceed its byte ceiling and
+must fail closed without a lifecycle write. Visible local evidence markers
+claim attachments; fenced or indented examples and HTML comments do not.
+
+An ordinary pending result from `complete` or the applying sweep exits zero
+because it preserves the nonterminal state. A refused `publish-completion-proof`
+exits nonzero when no locator was published. A successful bot publication with
+category `published/pending-producer` remains a successful publication; only
+completion waits for its pinned producer attempt.
+
 ## Delivery and publisher configuration
 
 Configure the actual production delivery mechanism under

@@ -4,7 +4,7 @@
 /** Provider-native proof discovery/publication adapters; credentials stay in CLI. */
 import {
   CompletionProofError,
-  MAX_RECORD_BYTES,
+  MAX_NATIVE_JSON_BYTES,
   requireProof,
 } from "./completion-proof-shape.mjs";
 
@@ -37,9 +37,13 @@ export function completionContext(options) {
     const result = run("gh", args, {
       allowFailure: true,
       input,
-      maxBuffer: MAX_RECORD_BYTES,
+      maxBuffer: MAX_NATIVE_JSON_BYTES,
     });
-    if (result.status !== 0 || result.error)
+    if (
+      result.status !== 0 ||
+      result.error ||
+      Buffer.byteLength(result.stdout ?? "") > MAX_NATIVE_JSON_BYTES
+    )
       throw new CompletionProofError(
         write ? WRITE_ERROR : READ_ERROR,
         `The required native ${write ? "proof publication" : "work-item proof read"} did not complete.`

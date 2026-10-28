@@ -87,7 +87,7 @@
       "children": []
     },
     "lib/completion-proof-adapters.mjs": {
-      "sha256": "478d453844ec1f890019d0984d69506aef469647e34051425867a71995acc7a1",
+      "sha256": "0743d3ccb12a2dc4822170e7c299caa24576fc5a1862402adc4f6feb1bedd163",
       "staticImports": [
         "lib/completion-proof-shape.mjs"
       ],
@@ -119,7 +119,7 @@
       "children": []
     },
     "lib/completion-proof-github.mjs": {
-      "sha256": "b101b6cb5da8cb8d61cc45de8d1da0699713dfd39da0dc75ddd16e726db25228",
+      "sha256": "e8a5b585625c2d663c0f92046d8ff020b2e769860235634cd0e4bea4b3a234ae",
       "staticImports": [
         "lib/completion-proof-shape.mjs"
       ],
@@ -167,7 +167,7 @@
       "children": []
     },
     "lib/completion-proof-shape.mjs": {
-      "sha256": "83c3e4aa7f1386dc6e50c6fbb007d6505e83205a319cc60331e070dcffd95ef2",
+      "sha256": "2edf9120a019aa21a64b8ca01d69fb027b8ef6267a87db9747b3c05cf8a97840",
       "staticImports": [
         "lib/completion-proof-errors.mjs",
         "lib/completion-proof-markdown.mjs",
@@ -1407,7 +1407,7 @@
       "children": []
     },
     "lisa-work-item.mjs": {
-      "sha256": "5d27574f0759af7d98bde4be670c81d04be1e1f5eba31b89f8b9a15527a698e7",
+      "sha256": "e7cea69128e1936930a9450c17b2d882fc44d292158aaae6a1fdadbfd01d301e",
       "staticImports": [
         "lib/completion-authorization.mjs",
         "lib/completion-proof-adapters.mjs",

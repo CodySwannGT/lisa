@@ -2,7 +2,7 @@
   "$generatedBy": "scripts/generate-export-surface.mjs",
   "$doNotEdit": "The public export surface this package ships, recorded so a removal is an OBSERVATION rather than an inference from commit-message conventions. This file's diff is what makes a removed export visible in the pull request that causes it (CodySwannGT/lisa#3718).",
   "$modules": 250,
-  "$names": 1804,
+  "$names": 1805,
   "surface": {
     "all/copy-overwrite/scripts/check-conflict-markers.mjs": [
       "UsageError",
@@ -177,6 +177,7 @@
       "CompletionProofError",
       "KINDS",
       "MAX_ATTACHMENT_BYTES",
+      "MAX_NATIVE_JSON_BYTES",
       "MAX_RECORD_BYTES",
       "MAX_TOTAL_BYTES",
       "PROOF_KIND",

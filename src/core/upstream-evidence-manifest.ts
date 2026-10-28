@@ -37,7 +37,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lib/completion-authorization.mjs":
       "7b5f81ae58eae89367ebda480a508c3c37a6924b4bd6a8b1dd64fff24c465e1e",
     "all/copy-overwrite/scripts/lib/completion-proof-adapters.mjs":
-      "478d453844ec1f890019d0984d69506aef469647e34051425867a71995acc7a1",
+      "0743d3ccb12a2dc4822170e7c299caa24576fc5a1862402adc4f6feb1bedd163",
     "all/copy-overwrite/scripts/lib/completion-proof-conformance.mjs":
       "51b2bfccc8ecca684dd80a4e2ae35896e76fa519389fe650f0890ffc0fef421d",
     "all/copy-overwrite/scripts/lib/completion-proof-content.mjs":
@@ -45,7 +45,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lib/completion-proof-errors.mjs":
       "3422df7049227eff77f3ef7bf954eeb74a63e9879b06d8126c7c3a2485b6d1f3",
     "all/copy-overwrite/scripts/lib/completion-proof-github.mjs":
-      "b101b6cb5da8cb8d61cc45de8d1da0699713dfd39da0dc75ddd16e726db25228",
+      "e8a5b585625c2d663c0f92046d8ff020b2e769860235634cd0e4bea4b3a234ae",
     "all/copy-overwrite/scripts/lib/completion-proof-markdown.mjs":
       "00d00e2c251244d1eb0dc46464c1bb1e170f2576cd025b02518e132c0d467472",
     "all/copy-overwrite/scripts/lib/completion-proof-projection.mjs":
@@ -55,7 +55,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lib/completion-proof-reader.mjs":
       "f134b65158605510bf188429d6aa5e713ed75a4d78877efc6211b440b3a805f7",
     "all/copy-overwrite/scripts/lib/completion-proof-shape.mjs":
-      "83c3e4aa7f1386dc6e50c6fbb007d6505e83205a319cc60331e070dcffd95ef2",
+      "2edf9120a019aa21a64b8ca01d69fb027b8ef6267a87db9747b3c05cf8a97840",
     "all/copy-overwrite/scripts/lib/completion-proof-source.mjs":
       "1028cbeb9c8bb9cf685dd3f532ea41de2a25456b989fbda23d3315d8532877c0",
     "all/copy-overwrite/scripts/lib/gate-failure-diagnosis.mjs":
@@ -323,7 +323,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-test-node.mjs":
       "cd436584d756442fc393557a3244bbdacdf915bd0fb1a472ebe7afa8103d3475",
     "all/copy-overwrite/scripts/lisa-work-item.mjs":
-      "5d27574f0759af7d98bde4be670c81d04be1e1f5eba31b89f8b9a15527a698e7",
+      "e7cea69128e1936930a9450c17b2d882fc44d292158aaae6a1fdadbfd01d301e",
     "all/copy-overwrite/scripts/lisa-worktree-guard.mjs":
       "2535ef2a60b3413dacb8491c008ab28f0a07929196277d1d1fed54a04740c025",
     "all/copy-overwrite/scripts/npm-updater-gate-runtime.json":
@@ -333,7 +333,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/npm-updater-gate.Dockerfile":
       "f5d85f8fccfd97f7800c03430a38c19d584314b0a6a63aa1de28fb62897fbcc5",
     "all/copy-overwrite/scripts/npm-updater-helper-graph.json":
-      "1da2850fc87381120400046adb47de51954efcf6377e85b587877e03a404a4ae",
+      "6f622839070b59bcae79a96dfe0e2a2a60336ba78cc88ff117cc925e2d8bd5aa",
     "all/copy-overwrite/scripts/schemas/lisa-command-envelope.v1.schema.json":
       "d153b7c2953a30f180e38f09e98240c63327f5196eeba9bdf545e5a1f125a879",
     "all/copy-overwrite/scripts/schemas/lisa-state-contract.v1.schema.json":
@@ -1109,7 +1109,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/hooks/worktree-binding-guard.sh":
       "92511fa2fe3de504a78d0d79a2cacffac545baa1d0264cab0ca999a487adb98f",
     "plugins/src/base/rules/eager/00-rule-index.md":
-      "ec1348b307edeb1e974c56c7d3e395116eb998415f100bab1004b8b11b7f20cc",
+      "ad7b1ea148996912b5c0956a7420a2ec360f4c05450177bc0f39300819b80288",
     "plugins/src/base/rules/eager/base-rules.md":
       "3de39af7d5ad74b0b91fb939ec67a76b806d05a4b5c071c3941af6cd4108083c",
     "plugins/src/base/rules/eager/coding-philosophy.md":
@@ -1811,7 +1811,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-tracker-evidence/SKILL.md":
       "d385df95e787a4717e17f3d09b6288012d9c9b50c2ed8db70ba9f979d174909a",
     "plugins/src/base/skills/lisa-tracker-evidence/references/completion-authorization.md":
-      "c582190db9fcef897f2a67457646e39ce1e9006016160707ddda5b293a076953",
+      "9c3a74bc6539a86a6ff53dae511bea6100b158442100f0f460ec0b8533a5ed83",
     "plugins/src/base/skills/lisa-tracker-journey/SKILL.md":
       "65fe727adfdbcc22141ad009e89cd7d91195600377c5357d552d50ed98ecf66b",
     "plugins/src/base/skills/lisa-tracker-read/SKILL.md":

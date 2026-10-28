@@ -27,6 +27,9 @@ export {
 export const PROOF_MARKER = "[lisa-completion-authorization]";
 export const PROOF_KIND = "lisa-completion-authorization";
 export const MAX_RECORD_BYTES = 2 * 1024 * 1024;
+// Native subjects and slurped listings have an independent byte ceiling. The
+// separate page/row ceilings do not promise that arbitrarily large rows fit.
+export const MAX_NATIVE_JSON_BYTES = 16 * 1024 * 1024;
 export const MAX_ATTACHMENT_BYTES = 64 * 1024 * 1024;
 export const MAX_TOTAL_BYTES = 256 * 1024 * 1024;
 export const KINDS = [
@@ -118,14 +121,80 @@ export function primarySpecProjection(body) {
   return result;
 }
 
-/** Exact local claiming markers; cross-work-item references do not claim proof. */
+/** Read the maximal code-fence run without letting its suffix repartition it. */
+function claimingFence(line) {
+  let start = 0;
+  while (start < 3 && line[start] === " ") start += 1;
+  const character = line[start];
+  if (character !== "`" && character !== "~") return null;
+  let end = start;
+  while (line[end] === character) end += 1;
+  if (end - start < 3) return null;
+  const suffix = line.slice(end);
+  if (/[\r\n\u2028\u2029]/.test(suffix)) return null;
+  return { character, length: end - start, suffix };
+}
+
+/** Remove comment contents while preserving text on both sides of their ends. */
+function withoutClaimingComments(line, state) {
+  let visible = "";
+  let offset = 0;
+  while (offset < line.length) {
+    const boundary = line.indexOf(state.comment ? "-->" : "<!--", offset);
+    if (boundary < 0) {
+      if (!state.comment) visible += line.slice(offset);
+      break;
+    }
+    if (!state.comment) visible += line.slice(offset, boundary);
+    offset = boundary + (state.comment ? 3 : 4);
+    state.comment = !state.comment;
+  }
+  return visible;
+}
+
+/** Fence and comment contents cannot change the other construct's state. */
+function claimingLine(line, state) {
+  const marker = claimingFence(line);
+  if (state.fence) {
+    if (
+      marker &&
+      marker.character === state.fence.character &&
+      marker.length >= state.fence.length &&
+      !marker.suffix.trim()
+    )
+      state.fence = null;
+    return "";
+  }
+  if (!state.comment) {
+    if (/^ {4}|^\t/.test(line)) return "";
+    if (marker && !(marker.character === "`" && marker.suffix.includes("`"))) {
+      state.fence = marker;
+      return "";
+    }
+  }
+  return withoutClaimingComments(line, state);
+}
+
+/** Claim discovery keeps closing-line suffixes; full-spec projection is separate. */
+function claimingText(body) {
+  const state = { comment: false, fence: null };
+  return body
+    .split("\n")
+    .map(raw =>
+      claimingLine(raw.endsWith("\r") ? raw.slice(0, -1) : raw, state)
+    )
+    .join("\n");
+}
+
+/** Exact visible claiming markers; examples and other-item refs do not claim. */
 export function localMarkers(body) {
+  const text = claimingText(body);
   const matches = [
-    ...body.matchAll(/\[EVIDENCE:\s*([a-z-]+):\s*([a-z][a-z0-9-]*)\s*\]/g),
+    ...text.matchAll(/\[EVIDENCE:\s*([a-z-]+):\s*([a-z][a-z0-9-]*)\s*\]/g),
   ];
-  const legacy = [...body.matchAll(/\[SCREENSHOT:\s*([a-z][a-z0-9-]*)\s*\]/g)];
+  const legacy = [...text.matchAll(/\[SCREENSHOT:\s*([a-z][a-z0-9-]*)\s*\]/g)];
   requireProof(
-    matches.length === (body.match(/\[EVIDENCE:/g) ?? []).length,
+    matches.length === (text.match(/\[EVIDENCE:/g) ?? []).length,
     "A local evidence declaration is malformed; repair its type and name."
   );
   const markers = [

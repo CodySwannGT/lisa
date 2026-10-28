@@ -7,12 +7,16 @@ import { topLevelLines } from "../../../all/copy-overwrite/scripts/lib/completio
 import { usageSpecRemainder } from "../../../all/copy-overwrite/scripts/lib/completion-proof-projection.mjs";
 import {
   declaredScope,
+  localMarkers,
+  primarySpecProjection,
   sha256,
 } from "../../../all/copy-overwrite/scripts/lib/completion-proof-shape.mjs";
 import {
   createLisaUsageRollup,
   renderLisaUsageSection,
 } from "../../../src/utils/usage-accounting.js";
+const CLI_OUTPUT = "cli-output";
+const STATE_DUMP = "state-dump";
 
 /** Exercise the real report reader while comparing the former extraction oracle. */
 function conforms(criteria: string, scenarioNames: string[]): void {
@@ -45,6 +49,84 @@ function conforms(criteria: string, scenarioNames: string[]): void {
 }
 
 describe("linear completion grammar compatibility", () => {
+  it.each([
+    {
+      name: "visible marker on a standalone comment-closing line",
+      body: "<!-- example\n--> [EVIDENCE: cli-output: actual]\n",
+      expected: [{ kind: CLI_OUTPUT, name: "actual" }],
+    },
+    {
+      name: "visible prefix and suffix around a multiline comment",
+      body: "[EVIDENCE: cli-output: before] <!-- example\n--> [EVIDENCE: state-dump: after]\n",
+      expected: [
+        { kind: CLI_OUTPUT, name: "before" },
+        { kind: STATE_DUMP, name: "after" },
+      ],
+    },
+    {
+      name: "fence-looking lines inside a standalone HTML comment",
+      body: "<!-- example\n```\n~~~\n--> [EVIDENCE: cli-output: actual]\n",
+      expected: [{ kind: CLI_OUTPUT, name: "actual" }],
+    },
+    {
+      name: "literal unclosed HTML comment inside a fenced example",
+      body: "```markdown\n<!-- example\n[EVIDENCE: unknown-type: example]\n```\n[EVIDENCE: cli-output: actual]\n",
+      expected: [{ kind: CLI_OUTPUT, name: "actual" }],
+    },
+    {
+      name: "literal unclosed HTML comment inside an indented example",
+      body: "    <!-- example\n[EVIDENCE: cli-output: actual]\n",
+      expected: [{ kind: CLI_OUTPUT, name: "actual" }],
+    },
+    {
+      name: "inline-comment claiming policy with fence-looking content",
+      body: "visible <!-- example\n```\n--> [EVIDENCE: cli-output: actual]\n[EVIDENCE: state-dump: later]\n",
+      expected: [
+        { kind: CLI_OUTPUT, name: "actual" },
+        { kind: STATE_DUMP, name: "later" },
+      ],
+    },
+  ])("preserves claiming text for $name", ({ body, expected }) => {
+    // This tests the local claiming projection, not an external renderer.
+    expect(localMarkers(body)).toEqual(expected);
+    expect(primarySpecProjection(body)).toBe(body);
+  });
+
+  it.each([
+    "```markdown\n[EVIDENCE: unknown-type: example]\n```",
+    "~~~markdown\n[EVIDENCE: unknown-type: example]\n~~~",
+    "    [EVIDENCE: unknown-type: example]",
+    "\t[EVIDENCE: unknown-type: example]",
+    "<!-- [EVIDENCE: unknown-type: example] -->",
+    "<!-- example\n[EVIDENCE: unknown-type: example]\n-->",
+    "visible <!-- [EVIDENCE: unknown-type: example] --> prose",
+    "visible <!-- example\n[EVIDENCE: unknown-type: example]\n--> prose",
+  ])("does not claim example evidence in %j", example => {
+    const body = `## Validation Journey\n${example}\n1. Capture real output. [EVIDENCE: cli-output: actual]\n`;
+    expect(localMarkers(body)).toEqual([{ kind: CLI_OUTPUT, name: "actual" }]);
+    expect(primarySpecProjection(body)).toBe(body);
+  });
+
+  it("keeps visible evidence around inline comments and legacy screenshots", () => {
+    expect(
+      localMarkers(
+        "[EVIDENCE: cli-output: before] <!-- example --> [EVIDENCE: state-dump: after]\n[SCREENSHOT: legacy]\n"
+      )
+    ).toEqual([
+      { kind: CLI_OUTPUT, name: "before" },
+      { kind: STATE_DUMP, name: "after" },
+      { kind: "screenshot", name: "legacy" },
+    ]);
+  });
+
+  it.each([
+    "[EVIDENCE: cli-output: broken name]",
+    "[EVIDENCE: unknown-type: actual]",
+    "[EVIDENCE: cli-output: actual]\n[EVIDENCE: state-dump: actual]",
+  ])("still rejects a visible invalid declaration %j", body => {
+    expect(() => localMarkers(body)).toThrow();
+  });
+
   it.each([
     "Scenario: normal title",
     "  Scenario Outline: outline title\r\nExamples: fixture",
@@ -102,6 +184,11 @@ describe("linear completion grammar compatibility", () => {
       .filter((row: { heading: boolean }) => row.heading)
       .map((row: { text: string }) => row.text);
     expect(headings.includes("## hidden")).toBe(!opens);
+    expect(
+      localMarkers(
+        `${fence}\n[EVIDENCE: cli-output: actual]\n${"~".repeat(5)}\n${"`".repeat(5)}\n`
+      ).some((row: { name: string }) => row.name === "actual")
+    ).toBe(!opens);
   });
 
   it.each([
@@ -154,6 +241,11 @@ describe("linear completion grammar compatibility", () => {
         `${"`".repeat(100_000)}\n## hidden\n${"`".repeat(100_000)}\n## visible`
       ).filter((row: { heading: boolean }) => row.heading)
     ).toEqual([expect.objectContaining({ text: "## visible" })]);
+    expect(
+      localMarkers(
+        `${"`".repeat(100_000)}\n[EVIDENCE: unknown-type: example]\n${"`".repeat(100_000)}\n[EVIDENCE: cli-output: actual]\n`
+      )
+    ).toEqual([{ kind: CLI_OUTPUT, name: "actual" }]);
     expect(
       declaredScope(
         `## Target Backend Environment\nproduction${long}— suffix`,

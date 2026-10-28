@@ -7105,7 +7105,10 @@ export function runCli() {
     const detail = error instanceof Error ? error.message : String(error);
     if (error instanceof CompletionProofError) {
       console.error(`work-item proof ${error.category}: ${detail}`);
-      process.exitCode = error.category === "pending-proof" ? 0 : 1;
+      const pendingLifecycle =
+        error.category === "pending-proof" &&
+        ["complete", "sweep"].includes(process.argv[2]);
+      process.exitCode = pendingLifecycle ? 0 : 1;
       return;
     }
     console.error(

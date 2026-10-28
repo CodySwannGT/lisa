@@ -7,7 +7,7 @@ import {
   requireProof,
   isId,
   MAX_ATTACHMENT_BYTES,
-  MAX_RECORD_BYTES,
+  MAX_NATIVE_JSON_BYTES,
 } from "./completion-proof-shape.mjs";
 
 const READ_ERROR = "read-error";
@@ -20,12 +20,17 @@ export function githubProofTransport(run, repository, policy = {}) {
   );
   const root = `repos/${repository}`;
   function call(args, options = {}) {
+    const maxBuffer = options.maxBuffer ?? MAX_NATIVE_JSON_BYTES;
     const result = run("gh", args, {
       allowFailure: true,
-      maxBuffer: MAX_RECORD_BYTES,
+      maxBuffer,
       ...options,
     });
-    if (result.status !== 0 || result.error)
+    if (
+      result.status !== 0 ||
+      result.error ||
+      Buffer.byteLength(result.stdout ?? "") > maxBuffer
+    )
       throw new CompletionProofError(
         READ_ERROR,
         "A required GitHub completion-proof read did not complete; restore repository access and retry canonical Verify/evidence."
@@ -153,7 +158,7 @@ export function githubProofTransport(run, repository, policy = {}) {
         "api",
         `${root}/collaborators/${encodeURIComponent(user.login)}/permission`,
       ],
-      { allowFailure: true, maxBuffer: MAX_RECORD_BYTES }
+      { allowFailure: true, maxBuffer: MAX_NATIVE_JSON_BYTES }
     );
     if (result.status !== 0) {
       if (/HTTP 404/.test(result.stderr ?? "")) return false;
