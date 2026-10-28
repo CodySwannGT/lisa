@@ -5929,7 +5929,7 @@ function openIssuesWithRole(repository, role) {
 /**
  * The first of `origin/<branch>` and `<branch>` that resolves to a commit.
  * @param {string} branch Configured deploy branch name.
- * @returns {string|undefined} A resolvable rev, or undefined.
+ * @returns {{ref: string, sha: string}|undefined} Selected ref and pinned commit, or undefined.
  */
 function resolvedBranchRev(branch) {
   for (const candidate of [`origin/${branch}`, branch]) {
@@ -5938,7 +5938,8 @@ function resolvedBranchRev(branch) {
       ["rev-parse", "--verify", "--quiet", `${candidate}^{commit}`],
       { allowFailure: true }
     );
-    if (result.status === 0 && result.stdout.trim() !== "") return candidate;
+    const sha = result.stdout.trim();
+    if (result.status === 0 && sha !== "") return { ref: candidate, sha };
   }
   return undefined;
 }
@@ -6017,6 +6018,32 @@ function resolvedSinceRev(since) {
 }
 
 /**
+ * Prove that a bounded push starts in the exact selected branch history.
+ * A resolvable but disjoint commit excludes nothing and can widen the sweep.
+ * @param {string} since Resolved pre-push commit.
+ * @param {{ref: string, sha: string}} revision Selected deploy revision.
+ */
+function assertSweepAncestor(since, revision) {
+  const result =
+    /** @type {import("node:child_process").SpawnSyncReturns<string>} */ (
+      run("git", ["merge-base", "--is-ancestor", since, revision.sha], {
+        allowFailure: true,
+      })
+    );
+  if (!result.error && result.status === 0) return;
+  const reason =
+    !result.error && result.status === 1
+      ? "is not an ancestor"
+      : "could not be verified as an ancestor";
+  throw new TrackingError(
+    `NOT DETERMINED: ${SINCE_FLAG} ${since} ${reason} of ${revision.ref} (${revision.sha}), ` +
+      `so the bounded sweep cannot reconcile any item.\n` +
+      `Fetch the selected branch's complete history (\`git fetch --unshallow origin\` for a shallow checkout), ` +
+      `verify its pre-push revision, and re-run. No completion mutations were attempted.`
+  );
+}
+
+/**
  * The sentence a report owes its reader when the scan was bounded.
  * @param {string | undefined} since The bound as supplied.
  * @param {string[]} branches Selected deploy branches.
@@ -6075,11 +6102,17 @@ function deployedDeclarations(repository, contract, since, branches) {
       unresolved.push(branch);
       continue;
     }
+    if (sinceRev) assertSweepAncestor(sinceRev, rev);
     const bound = sinceRev ? ["--not", sinceRev] : [];
-    const result = run("git", ["log", rev, ...bound, "-z", "--format=%H%n%B"], {
-      allowFailure: true,
-      maxBuffer: DECLARATION_LOG_MAX_BYTES,
-    });
+    const logRev = sinceRev ? rev.sha : rev.ref;
+    const result = run(
+      "git",
+      ["log", logRev, ...bound, "-z", "--format=%H%n%B"],
+      {
+        allowFailure: true,
+        maxBuffer: DECLARATION_LOG_MAX_BYTES,
+      }
+    );
     // Loudly, not `continue`. This sweep's whole output is an absence claim,
     // and a read that failed is not an absence — under the default 1 MiB
     // buffer the real `origin/main` log (4.6 MiB) was truncated into an
@@ -6089,7 +6122,7 @@ function deployedDeclarations(repository, contract, since, branches) {
     // least trustworthy one.
     if (result.error || result.status !== 0) {
       throw new TrackingError(
-        `could not read the commit log of ${rev}, so no absence of drift can be reported: ` +
+        `could not read the commit log of ${rev.ref}, so no absence of drift can be reported: ` +
           `${result.error ? result.error.message : result.stderr.trim() || "git log failed"}.\n` +
           `The sweep reports what a deploy branch declares; a log it could not read is not an empty one.`
       );

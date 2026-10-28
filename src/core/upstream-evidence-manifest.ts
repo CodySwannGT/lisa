@@ -323,7 +323,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-test-node.mjs":
       "cd436584d756442fc393557a3244bbdacdf915bd0fb1a472ebe7afa8103d3475",
     "all/copy-overwrite/scripts/lisa-work-item.mjs":
-      "e7cea69128e1936930a9450c17b2d882fc44d292158aaae6a1fdadbfd01d301e",
+      "e7127de03c08a66d39612b6027b25b6d9bdf0359bb3a8eccba2feb440d0c2f14",
     "all/copy-overwrite/scripts/lisa-worktree-guard.mjs":
       "2535ef2a60b3413dacb8491c008ab28f0a07929196277d1d1fed54a04740c025",
     "all/copy-overwrite/scripts/npm-updater-gate-runtime.json":
@@ -12506,6 +12506,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/work-item-run-and-gh-version.test.ts": true,
     "tests/unit/scripts/work-item-session-url.test.ts": true,
     "tests/unit/scripts/work-item-stacked-push.test.ts": true,
+    "tests/unit/scripts/work-item-sweep-ancestry.test.ts": true,
     "tests/unit/scripts/work-item-sweep-bounded.test.ts": true,
     "tests/unit/scripts/work-item-tracker-unreachable.test.ts": true,
     "tests/unit/scripts/work-item-trailer-definition.test.ts": true,
