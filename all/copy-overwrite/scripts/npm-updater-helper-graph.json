@@ -1407,7 +1407,7 @@
       "children": []
     },
     "lisa-work-item.mjs": {
-      "sha256": "e7cea69128e1936930a9450c17b2d882fc44d292158aaae6a1fdadbfd01d301e",
+      "sha256": "e7127de03c08a66d39612b6027b25b6d9bdf0359bb3a8eccba2feb440d0c2f14",
       "staticImports": [
         "lib/completion-authorization.mjs",
         "lib/completion-proof-adapters.mjs",
