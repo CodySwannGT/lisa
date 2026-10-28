@@ -2877,7 +2877,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/copy-overwrite/scripts/check-nightly-e2e-health.mjs":
       "d1b26caeaf65950e3b60ff41964d234c032c50470072e7643310b1f6722e34e6",
     "typescript/copy-overwrite/scripts/check-skipped-required-checks.mjs":
-      "53ec522511aa862dd186a0acc66848f361b4c3a02f53314c332cff640db6034b",
+      "2511fc4dab57836e63579e3e5c140f6189842b14595303b8d177fe066676d9b6",
     "typescript/copy-overwrite/scripts/check-threshold-ratchet.mjs":
       "d4afc90ba8faf10925fff5fb0d6cd0ace22df2eaa0ec609ee969d0ec84092299",
     "typescript/copy-overwrite/scripts/check-verification-coverage.mjs":
@@ -11006,6 +11006,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/helpers/remote-env-materialized-fixture.ts": true,
     "tests/helpers/repo-file-walk.ts": true,
     "tests/helpers/review-evidence-registration-fixture.ts": true,
+    "tests/helpers/review-evidence-summary-fixture.ts": true,
     "tests/helpers/rollup-classifier-ladder-fixtures.ts": true,
     "tests/helpers/rollup-classifier-ladder-harness.ts": true,
     "tests/helpers/safety-net-guard-fixtures.ts": true,
@@ -11238,6 +11239,10 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/required-checks-drift-removed.test.ts": true,
     "tests/integration/retire-unmodified-deletion.test.ts": true,
     "tests/integration/reusable-workflow-caller-scopes.test.ts": true,
+    "tests/integration/review-evidence-check-summary-regression.test.ts": true,
+    "tests/integration/review-evidence-check-summary-vocabulary.test.ts": true,
+    "tests/integration/review-evidence-check-summary-waiver.test.ts": true,
+    "tests/integration/review-evidence-check-summary.test.ts": true,
     "tests/integration/review-evidence-gate.test.ts": true,
     "tests/integration/review-evidence-template-policy.test.ts": true,
     "tests/integration/ruby-runner-image-pin.test.ts": true,

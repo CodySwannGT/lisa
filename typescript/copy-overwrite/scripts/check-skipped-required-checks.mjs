@@ -2496,6 +2496,22 @@ function waivedReviewGateState(description, activity) {
 }
 
 /**
+ * Match explicit waivers exactly, independently of loose no-work detection.
+ *
+ * Shared by raw result decoding and the gate so normalization cannot discard
+ * a supported waiver merely because it is absent from the no-work list.
+ *
+ * @param {string|undefined} description - Original description.
+ * @param {{waive?: readonly string[]}} vocabulary - Per-check extensions.
+ * @returns {boolean} Whether the whole normalized phrase is an explicit waiver.
+ */
+function matchesReviewWaiver(description, vocabulary) {
+  const text = normalizeDescription(description);
+  const waivers = [...ENTITLEMENT_WAIVERS, ...(vocabulary.waive ?? [])];
+  return waivers.some(phrase => text === normalizeDescription(phrase));
+}
+
+/**
  * Classifies a successful check from its exact description vocabulary.
  *
  * @param {string} text - Normalized description
@@ -2513,8 +2529,7 @@ function successfulReviewGateState(text, description, vocabulary, activity) {
       why: `reported ${JSON.stringify(description ?? "")}, which is a review that ran.`,
     };
   }
-  const waivers = [...ENTITLEMENT_WAIVERS, ...(vocabulary.waive ?? [])];
-  if (waivers.some(phrase => text === normalizeDescription(phrase))) {
+  if (matchesReviewWaiver(description, vocabulary)) {
     return waivedReviewGateState(description, activity);
   }
   return {
@@ -3764,7 +3779,14 @@ export function readCarriedReview(declaration, pr, repo, options = {}) {
     declaration,
     listed.map(entry => {
       try {
-        return { ...entry, checks: readChecks(entry.headSha, repo) };
+        return {
+          ...entry,
+          checks: readChecks(
+            entry.headSha,
+            repo,
+            declaration.evidence_bearing_checks ?? {}
+          ),
+        };
       } catch (error) {
         return {
           ...entry,
@@ -3820,10 +3842,11 @@ export function writeVerdictOutputs(verdict, env = process.env) {
  *
  * @param {string|number} pr - Pull request number or URL
  * @param {string} [repo] - `OWNER/NAME`; defaults to the current repository
+ * @param {object} [evidenceChecks] - Per-context vocabulary from the declaration
  * @returns {Array<{name: string, state: string, bucket?: string, description?: string}>} The checks
  * @throws {Error} When `gh` is unavailable or its output cannot be parsed
  */
-export function fetchPullRequestChecks(pr, repo) {
+export function fetchPullRequestChecks(pr, repo, evidenceChecks = {}) {
   const args = [
     "pr",
     "checks",
@@ -3844,7 +3867,7 @@ export function fetchPullRequestChecks(pr, repo) {
       // shaped exactly like unreadable content, which never says the word
       // "permission". The commit-status route below needs no `actions` scope
       // and carries the description this arm reads, so try it before refusing.
-      return fetchChecksViaApi(pr, repo, error);
+      return fetchChecksViaApi(pr, repo, error, evidenceChecks);
     }
   }
   try {
@@ -3986,10 +4009,11 @@ function ghApiPaginatedArray(endpoint, query) {
  * @param {string|number} pr - Pull request number
  * @param {string|undefined} repo - `OWNER/NAME`, or undefined to resolve it
  * @param {unknown} cause - The `gh pr checks` failure this is falling back from
+ * @param {object} [evidenceChecks] - Per-context vocabulary from the declaration
  * @returns {Array<{name: string, state: string, bucket?: string, description?: string}>} The checks
  * @throws {Error} When the fallback cannot answer either
  */
-export function fetchChecksViaApi(pr, repo, cause) {
+export function fetchChecksViaApi(pr, repo, cause, evidenceChecks = {}) {
   const slug = resolveRepoSlug(repo);
   const why = cause instanceof Error ? cause.message : String(cause ?? "");
   if (slug === undefined) {
@@ -4013,7 +4037,7 @@ export function fetchChecksViaApi(pr, repo, cause) {
       ],
       { encoding: "utf8" }
     ).trim();
-    return fetchChecksForCommit(sha, slug);
+    return fetchChecksForCommit(sha, slug, evidenceChecks);
   } catch (error) {
     throw new Error(
       `check-skipped-required-checks: could not read checks for PR ${pr} in ${slug}. \`gh pr checks\` failed (${why}) — which is what a missing \`actions: read\` looks like, because it resolves the rollup through \`checkSuite.workflowRun\` and exits non-zero with empty output — and the commit-status fallback also failed (${error instanceof Error ? error.message : String(error)}). NOBODY LOOKED at this pull request; that is not the same as nothing being wrong with it.`
@@ -4030,9 +4054,10 @@ export function fetchChecksViaApi(pr, repo, cause) {
  *
  * @param {string} sha - Exact commit whose statuses and check runs to read
  * @param {string|undefined} repo - `OWNER/NAME`, or undefined to resolve it
+ * @param {object} [evidenceChecks] - Per-context vocabulary from the declaration
  * @returns {Array<{name: string, state: string, bucket?: string, description?: string}>} The checks
  */
-export function fetchChecksForCommit(sha, repo) {
+export function fetchChecksForCommit(sha, repo, evidenceChecks = {}) {
   const slug = resolveRepoSlug(repo);
   if (slug === undefined) {
     throw new Error(
@@ -4045,16 +4070,69 @@ export function fetchChecksForCommit(sha, repo) {
   );
   const runs = ghApiPaginatedArray(
     `repos/${slug}/commits/${sha}/check-runs?per_page=100`,
-    '[.check_runs[] | {id: .id, name: .name, conclusion: .conclusion, description: (.output.title // ""), completed_at: .completed_at, created_at: .created_at, started_at: .started_at}]'
+    '[.check_runs[] | {id: .id, name: .name, status: .status, conclusion: .conclusion, description: (.output.title // ""), summary: .output.summary, completed_at: .completed_at, created_at: .created_at, started_at: .started_at}]'
   );
   return mergeCheckRows(
     statuses.map(row =>
       normalizeCheckRow(row.name, row.state, row.description)
     ),
     newestCheckRuns(runs).map(row =>
-      normalizeCheckRow(row.name, row.conclusion, row.description)
+      normalizeCheckRow(
+        row.name,
+        row.status === "completed" ? row.conclusion : null,
+        checkRunReviewDescription(row, evidenceChecks[row.name] ?? {})
+      )
     )
   );
+}
+
+/**
+ * Decode a selected check run without changing legacy commit-status policy.
+ *
+ * The first physical line owns structured results. Only the supported positive
+ * result from a successful completed run becomes existing semantic proof;
+ * malformed/negative result data cannot inherit a positive title. Absent/plain
+ * summaries keep the existing title contract. Later prose supplies no new proof
+ * or denial. Configured exact waivers and loose no-work notices both retain
+ * their independent policies before any positive result is canonicalized.
+ *
+ * @param {object} row - Newest raw check run for this context.
+ * @param {object} vocabulary - This context's configured description vocabulary.
+ * @returns {string} Canonical proof, authoritative result, or legacy title.
+ */
+function checkRunReviewDescription(row, vocabulary) {
+  const title = typeof row.description === "string" ? row.description : "";
+  if (
+    classifyCheckDescription(title, vocabulary) ===
+      DESCRIPTION_VERDICTS.noWork ||
+    matchesReviewWaiver(title, vocabulary)
+  ) {
+    return title;
+  }
+  if (row.summary === null || row.summary === undefined) return title;
+  if (typeof row.summary !== "string") return "Malformed check-run summary";
+  const firstLine = row.summary.split(/\r?\n/u, 1)[0];
+  if (
+    classifyCheckDescription(firstLine, vocabulary) ===
+      DESCRIPTION_VERDICTS.noWork ||
+    matchesReviewWaiver(firstLine, vocabulary)
+  ) {
+    return firstLine;
+  }
+  if (
+    row.status === "completed" &&
+    row.conclusion === "success" &&
+    firstLine === "Result: Success - Review completed"
+  ) {
+    return "Review completed";
+  }
+  const resultLooking = /^\s*(?:[>#|]+\s*)*Result\b|\bResult\s*[:=-]/iu.test(
+    firstLine
+  );
+  if (resultLooking) {
+    return firstLine;
+  }
+  return title;
 }
 
 /**
@@ -4219,7 +4297,11 @@ export function fetchSettledChecks(declaration, pr, repo, options = {}) {
           "check-skipped-required-checks: cannot read review evidence without a concrete head commit."
         );
       }
-      return fetchChecksForCommit(headSha, slug);
+      return fetchChecksForCommit(
+        headSha,
+        slug,
+        declaration.evidence_bearing_checks ?? {}
+      );
     });
   const resolveHead = options.headSha ?? resolveHeadSha;
   const clock = options.now ?? Date.now;
