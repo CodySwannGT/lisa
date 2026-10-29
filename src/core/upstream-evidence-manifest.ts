@@ -2917,7 +2917,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/copy-overwrite/scripts/check-nightly-e2e-health.mjs":
       "d1b26caeaf65950e3b60ff41964d234c032c50470072e7643310b1f6722e34e6",
     "typescript/copy-overwrite/scripts/check-skipped-required-checks.mjs":
-      "720e3dc9183118a3b53ed3eafd6850c5eb5a669ce7ae93d5ebe3f7a1896a9174",
+      "8e7d533dc7d6ba1ce506fca8a57430169d80aa0ee8c15aa1f49613c88c9d1855",
     "typescript/copy-overwrite/scripts/check-threshold-ratchet.mjs":
       "d4afc90ba8faf10925fff5fb0d6cd0ace22df2eaa0ec609ee969d0ec84092299",
     "typescript/copy-overwrite/scripts/check-verification-coverage.mjs":
@@ -11313,6 +11313,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/required-checks-drift-removed.test.ts": true,
     "tests/integration/retire-unmodified-deletion.test.ts": true,
     "tests/integration/reusable-workflow-caller-scopes.test.ts": true,
+    "tests/integration/review-evidence-check-summary-prefix.test.ts": true,
     "tests/integration/review-evidence-check-summary-regression.test.ts": true,
     "tests/integration/review-evidence-check-summary-vocabulary.test.ts": true,
     "tests/integration/review-evidence-check-summary-waiver.test.ts": true,

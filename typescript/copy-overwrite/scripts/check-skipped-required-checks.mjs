@@ -4166,9 +4166,9 @@ function checkRunReviewDescription(row, vocabulary) {
   ) {
     return "Review completed";
   }
-  const resultLooking = /^\s*(?:[>#|]+\s*)*Result\b|\bResult\s*[:=-]/iu.test(
-    firstLine
-  );
+  const resultLooking =
+    /^[\s>#|]*Result\b/iu.test(firstLine) ||
+    /\bResult\s*[:=-]/iu.test(firstLine);
   if (resultLooking) {
     return firstLine;
   }
