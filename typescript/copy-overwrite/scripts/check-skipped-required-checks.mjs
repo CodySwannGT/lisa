@@ -3816,7 +3816,8 @@ export function readCarriedReview(declaration, pr, repo, options = {}) {
           checks: readChecks(
             entry.headSha,
             repo,
-            declaration.evidence_bearing_checks ?? {}
+            /** @type {{evidence_bearing_checks?: ReviewEvidenceChecks|null}} */
+            (declaration).evidence_bearing_checks ?? {}
           ),
         };
       } catch (error) {
@@ -3874,7 +3875,7 @@ export function writeVerdictOutputs(verdict, env = process.env) {
  *
  * @param {string|number} pr - Pull request number or URL
  * @param {string} [repo] - `OWNER/NAME`; defaults to the current repository
- * @param {object} [evidenceChecks] - Per-context vocabulary from the declaration
+ * @param {Record<string, {proof?: readonly string[], no_work?: readonly string[], satisfy?: readonly string[], waive?: readonly string[]}>} [evidenceChecks] - Per-context vocabulary from the declaration
  * @returns {Array<{name: string, state: string, bucket?: string, description?: string}>} The checks
  * @throws {Error} When `gh` is unavailable or its output cannot be parsed
  */
@@ -4041,7 +4042,7 @@ function ghApiPaginatedArray(endpoint, query) {
  * @param {string|number} pr - Pull request number
  * @param {string|undefined} repo - `OWNER/NAME`, or undefined to resolve it
  * @param {unknown} cause - The `gh pr checks` failure this is falling back from
- * @param {object} [evidenceChecks] - Per-context vocabulary from the declaration
+ * @param {Record<string, {proof?: readonly string[], no_work?: readonly string[], satisfy?: readonly string[], waive?: readonly string[]}>} [evidenceChecks] - Per-context vocabulary from the declaration
  * @returns {Array<{name: string, state: string, bucket?: string, description?: string}>} The checks
  * @throws {Error} When the fallback cannot answer either
  */
@@ -4077,6 +4078,8 @@ export function fetchChecksViaApi(pr, repo, cause, evidenceChecks = {}) {
   }
 }
 
+/** @typedef {Record<string, {proof?: readonly string[], no_work?: readonly string[], satisfy?: readonly string[], waive?: readonly string[]}>} ReviewEvidenceChecks */
+
 /**
  * Reads the evidence-bearing rows for one exact commit.
  *
@@ -4086,7 +4089,7 @@ export function fetchChecksViaApi(pr, repo, cause, evidenceChecks = {}) {
  *
  * @param {string} sha - Exact commit whose statuses and check runs to read
  * @param {string|undefined} repo - `OWNER/NAME`, or undefined to resolve it
- * @param {object} [evidenceChecks] - Per-context vocabulary from the declaration
+ * @param {ReviewEvidenceChecks} [evidenceChecks] - Per-context vocabulary from the declaration
  * @returns {Array<{name: string, state: string, bucket?: string, description?: string}>} The checks
  */
 export function fetchChecksForCommit(sha, repo, evidenceChecks = {}) {
@@ -4111,8 +4114,13 @@ export function fetchChecksForCommit(sha, repo, evidenceChecks = {}) {
     newestCheckRuns(runs).map(row =>
       normalizeCheckRow(
         row.name,
-        row.status === "completed" ? row.conclusion : null,
-        checkRunReviewDescription(row, evidenceChecks[row.name] ?? {})
+        /** @type {{status?: string|null}} */ (row).status === "completed"
+          ? row.conclusion
+          : null,
+        checkRunReviewDescription(
+          row,
+          evidenceChecks[/** @type {{name: string}} */ (row).name] ?? {}
+        )
       )
     )
   );
@@ -4128,7 +4136,7 @@ export function fetchChecksForCommit(sha, repo, evidenceChecks = {}) {
  * or denial. Configured exact waivers and loose no-work notices both retain
  * their independent policies before any positive result is canonicalized.
  *
- * @param {object} row - Newest raw check run for this context.
+ * @param {{description?: unknown, summary?: unknown, status?: string|null, conclusion?: string|null}} row - Structured fields on the newest raw check run.
  * @param {object} vocabulary - This context's configured description vocabulary.
  * @returns {string} Canonical proof, authoritative result, or legacy title.
  */
@@ -4143,7 +4151,7 @@ function checkRunReviewDescription(row, vocabulary) {
   }
   if (row.summary === null || row.summary === undefined) return title;
   if (typeof row.summary !== "string") return "Malformed check-run summary";
-  const firstLine = row.summary.split(/\r?\n/u, 1)[0];
+  const firstLine = /** @type {string} */ (row.summary.split(/\r?\n/u, 1)[0]);
   if (
     classifyCheckDescription(firstLine, vocabulary) ===
       DESCRIPTION_VERDICTS.noWork ||
@@ -4332,7 +4340,8 @@ export function fetchSettledChecks(declaration, pr, repo, options = {}) {
       return fetchChecksForCommit(
         headSha,
         slug,
-        declaration.evidence_bearing_checks ?? {}
+        /** @type {{evidence_bearing_checks?: ReviewEvidenceChecks|null}} */
+        (declaration).evidence_bearing_checks ?? {}
       );
     });
   const resolveHead = options.headSha ?? resolveHeadSha;
