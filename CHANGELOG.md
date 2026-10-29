@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.84.9](https://github.com/CodySwannGT/lisa/compare/v4.84.8...v4.84.9) (2026-10-29)
+
+
+### Bug Fixes
+
+* avoid backtracking in review result detection ([17b6b19](https://github.com/CodySwannGT/lisa/commit/17b6b195b24f9680dae4196fc22cd913e4af05ce)), closes [CodySwannGT/lisa#4547](https://github.com/CodySwannGT/lisa/issues/4547)
+* integrate terminal skipped review conformance ([829dae5](https://github.com/CodySwannGT/lisa/commit/829dae52b09433b69fb2fb82f0778a8bf2bdad16)), closes [CodySwannGT/lisa#4547](https://github.com/CodySwannGT/lisa/issues/4547)
+* recognize structured check-run review results ([1e4dea8](https://github.com/CodySwannGT/lisa/commit/1e4dea8850124559d5c865f44775a9be1c68495c)), closes [CodySwannGT/lisa#4547](https://github.com/CodySwannGT/lisa/issues/4547)
+* type structured review evidence observations ([9ca4ed3](https://github.com/CodySwannGT/lisa/commit/9ca4ed35278278cc13a5f874c68648881a4eb44e)), closes [CodySwannGT/lisa#4547](https://github.com/CodySwannGT/lisa/issues/4547)
+
 ### [4.84.8](https://github.com/CodySwannGT/lisa/compare/v4.84.7...v4.84.8) (2026-10-28)
 
 
