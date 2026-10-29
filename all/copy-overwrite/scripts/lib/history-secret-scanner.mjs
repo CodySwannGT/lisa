@@ -156,15 +156,30 @@ const pin = () => {
 export const provisionScanner = async destination => {
   const selected = pin();
   const archiveName = `gitleaks_${VERSION}_${process.platform}_${process.arch}.tar.gz`;
-  const response = await fetch(
-    `https://github.com/gitleaks/gitleaks/releases/download/v${VERSION}/${archiveName}`,
-    { signal: AbortSignal.timeout(120000) }
-  );
+  let response;
+  try {
+    response = await fetch(
+      `https://github.com/gitleaks/gitleaks/releases/download/v${VERSION}/${archiveName}`,
+      { signal: AbortSignal.timeout(120000) }
+    );
+  } catch {
+    throw new HistorySecretError(
+      "Pinned scanner download setup failed. Restore access to the official release and retry provisioning."
+    );
+  }
   if (!response.ok)
     throw new HistorySecretError(
       "Pinned scanner download failed. Restore access to the official release and retry provisioning."
     );
-  const bytes = Buffer.from(await response.arrayBuffer());
+  let body;
+  try {
+    body = await response.arrayBuffer();
+  } catch {
+    throw new HistorySecretError(
+      "Pinned scanner archive transfer failed. Restore access to the official release and retry provisioning."
+    );
+  }
+  const bytes = Buffer.from(body);
   if (digest(bytes) !== selected.archive)
     throw new HistorySecretError(
       "Scanner archive checksum mismatch. Discard the download and restore the official pinned release."

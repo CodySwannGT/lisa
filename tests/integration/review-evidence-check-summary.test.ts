@@ -2,7 +2,6 @@
 import * as fs from "fs-extra";
 import * as os from "node:os";
 import * as path from "node:path";
-import { fileURLToPath } from "node:url";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { boundedSpawnSync } from "../helpers/io-latency-budget.js";
@@ -16,10 +15,7 @@ import {
   rawSummaryCheckRun,
 } from "../helpers/review-evidence-summary-fixture.js";
 
-const ROOT = path.resolve(
-  path.dirname(fileURLToPath(import.meta.url)),
-  "../.."
-);
+const ROOT = path.resolve(import.meta.dirname, "../..");
 const HEAD = "a".repeat(40);
 const REVIEWER = "CodeRabbit";
 const REVIEWED = "Review completed";
@@ -256,6 +252,18 @@ describe("structured check-run review evidence through the installed CLI", () =>
       expect(result.report.vacuity.gateStates[REVIEWER]).toBe("unsatisfied");
     }
   );
+
+  it("does not credit a successful structured first line when the check is terminal skipped", async () => {
+    await installRawSummaryReviewGh(bindir, HEAD, {
+      checkRuns: [rawSummaryCheckRun(HEAD, { conclusion: "skipped" })],
+    });
+    const { run, report } = inspect();
+    expect(run.status).toBe(1);
+    expect(report.vacuity.gateStates[REVIEWER]).toBe("unsatisfied");
+    expect(report.vacuity.gateConditions[REVIEWER]).toBe("not_reviewed");
+    expect(report.verdict.conclusion).toBe("failure");
+    expect(report.verdict.title.startsWith("REVIEWED")).toBe(false);
+  });
 
   it.each(["unknown", "pending", "failed", "id tie"])(
     "keeps newest %s check ahead of older proof and duplicate legacy success",

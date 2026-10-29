@@ -47,6 +47,18 @@
       "production": "main"
     }
   },
+  "verification": {
+    "completion": {
+      "delivery": {
+        "production": {
+          "mechanism": "github-actions",
+          "workflow_path": ".github/workflows/deploy.yml",
+          "events": ["push", "workflow_dispatch"]
+        }
+      },
+      "automationPublishers": []
+    }
+  },
   "quality": {
     "testCoverage": {
       "global": {

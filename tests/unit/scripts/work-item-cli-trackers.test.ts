@@ -6,6 +6,7 @@
  */
 import { writeFileSync } from "node:fs";
 import path from "node:path";
+import { linearCompatibility } from "../../support/work-item-linear-proof-fixture.js";
 
 import { afterAll, afterEach, describe, expect, it } from "vitest";
 
@@ -128,7 +129,6 @@ describe("in-process CLI: Jira and Linear references", () => {
   });
 
   it("completes Linear only from a merged, managed-backlink PR", () => {
-    const fixture = createFixture(LINEAR);
     const lookup = JSON.stringify({
       data: {
         issue: {
@@ -149,6 +149,7 @@ describe("in-process CLI: Jira and Linear references", () => {
         },
       },
     });
+    const fixture = linearCompatibility(LINEAR, lookup);
     const update = JSON.stringify({
       data: { issueUpdate: { success: true } },
     });
@@ -229,7 +230,6 @@ describe("in-process CLI: Jira and Linear references", () => {
   });
 
   it("lets an explicit --url outrank LISA_PR_URL for Linear completion", () => {
-    const fixture = createFixture(LINEAR);
     const terminalIssue = JSON.stringify({
       data: {
         issue: {
@@ -247,6 +247,7 @@ describe("in-process CLI: Jira and Linear references", () => {
         },
       },
     });
+    const fixture = linearCompatibility(LINEAR, terminalIssue);
     const result = cli(
       fixture,
       ["complete", "--ref", "LIN-12", "--url", PR_URL],
@@ -259,7 +260,9 @@ describe("in-process CLI: Jira and Linear references", () => {
     );
 
     expect(result.stderr).toBe("");
-    expect(result.stdout).toContain("work-item completed: LIN-12 -> Done");
+    expect(result.stdout).toContain(
+      "work-item already-completed: LIN-12 -> Done"
+    );
   });
 
   it("names the configured workflow state, not the folded one, when it is missing", () => {
@@ -268,7 +271,6 @@ describe("in-process CLI: Jira and Linear references", () => {
     // operator. The message named a state the configuration does not contain
     // and the Linear board does not show, which sends someone looking for the
     // wrong string in both places.
-    const fixture = createFixture(LINEAR);
     const withoutTerminal = JSON.stringify({
       data: {
         issue: {
@@ -286,6 +288,7 @@ describe("in-process CLI: Jira and Linear references", () => {
         },
       },
     });
+    const fixture = linearCompatibility(LINEAR, withoutTerminal);
     const result = cli(
       fixture,
       ["complete", "--ref", "LIN-12", "--pr-url", PR_URL],
@@ -306,7 +309,6 @@ describe("in-process CLI: Jira and Linear references", () => {
     // for, so a board that spells it `DONE` against a configuration that says
     // `Done` still completes — and the message quotes what Linear returned
     // rather than either folded form.
-    const fixture = createFixture(LINEAR);
     const shouting = JSON.stringify({
       data: {
         issue: {
@@ -324,6 +326,7 @@ describe("in-process CLI: Jira and Linear references", () => {
         },
       },
     });
+    const fixture = linearCompatibility(LINEAR, shouting);
     const result = cli(
       fixture,
       ["complete", "--ref", "LIN-12", "--pr-url", PR_URL],
@@ -335,11 +338,12 @@ describe("in-process CLI: Jira and Linear references", () => {
     );
 
     expect(result.stderr).toBe("");
-    expect(result.stdout).toContain("work-item completed: LIN-12 -> DONE");
+    expect(result.stdout).toContain(
+      "work-item already-completed: LIN-12 -> DONE"
+    );
   });
 
   it("completes Linear from a trailing-slash pull-request url", () => {
-    const fixture = createFixture(LINEAR);
     const terminalIssue = JSON.stringify({
       data: {
         issue: {
@@ -357,6 +361,7 @@ describe("in-process CLI: Jira and Linear references", () => {
         },
       },
     });
+    const fixture = linearCompatibility(LINEAR, terminalIssue);
     const result = cli(
       fixture,
       ["complete", "--ref", "LIN-12", "--pr-url", `${PR_URL}/`],
@@ -373,7 +378,9 @@ describe("in-process CLI: Jira and Linear references", () => {
     // configured-state fix. This case is about the TRAILING SLASH being
     // tolerated in the pull-request url, so it asserts the completion happened
     // and leaves the suffix to the tests that own it.
-    expect(result.stdout).toContain("work-item completed: LIN-12 -> Done");
+    expect(result.stdout).toContain(
+      "work-item already-completed: LIN-12 -> Done"
+    );
   });
 
   it("refuses an empty --pr-url for Linear completion", () => {

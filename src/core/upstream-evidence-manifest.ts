@@ -34,6 +34,30 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "5847417a10ff0005114080d0023bb265d908990601caef7397bce83e1f19bfc2",
     "all/copy-overwrite/scripts/lib/bounded-spawn.mjs":
       "72e277ada531914d7bc51c3cb8dc67b8881aa817d96fa2f9f4d81668a3d3bbc1",
+    "all/copy-overwrite/scripts/lib/completion-authorization.mjs":
+      "7b5f81ae58eae89367ebda480a508c3c37a6924b4bd6a8b1dd64fff24c465e1e",
+    "all/copy-overwrite/scripts/lib/completion-proof-adapters.mjs":
+      "0743d3ccb12a2dc4822170e7c299caa24576fc5a1862402adc4f6feb1bedd163",
+    "all/copy-overwrite/scripts/lib/completion-proof-conformance.mjs":
+      "51b2bfccc8ecca684dd80a4e2ae35896e76fa519389fe650f0890ffc0fef421d",
+    "all/copy-overwrite/scripts/lib/completion-proof-content.mjs":
+      "78b34223d054913c2e900830070cbb1fb2dc267423ec458ae76553ceed0d38c6",
+    "all/copy-overwrite/scripts/lib/completion-proof-errors.mjs":
+      "3422df7049227eff77f3ef7bf954eeb74a63e9879b06d8126c7c3a2485b6d1f3",
+    "all/copy-overwrite/scripts/lib/completion-proof-github.mjs":
+      "e8a5b585625c2d663c0f92046d8ff020b2e769860235634cd0e4bea4b3a234ae",
+    "all/copy-overwrite/scripts/lib/completion-proof-markdown.mjs":
+      "00d00e2c251244d1eb0dc46464c1bb1e170f2576cd025b02518e132c0d467472",
+    "all/copy-overwrite/scripts/lib/completion-proof-projection.mjs":
+      "a8acdd491693126fe6f1660f4bd29c7b218855ae59c76ec2b7c0d5703d8c0d43",
+    "all/copy-overwrite/scripts/lib/completion-proof-publisher.mjs":
+      "801df8b694eced082695542dad3e189ce660aa65dda26f3bf11d962120487609",
+    "all/copy-overwrite/scripts/lib/completion-proof-reader.mjs":
+      "f134b65158605510bf188429d6aa5e713ed75a4d78877efc6211b440b3a805f7",
+    "all/copy-overwrite/scripts/lib/completion-proof-shape.mjs":
+      "2edf9120a019aa21a64b8ca01d69fb027b8ef6267a87db9747b3c05cf8a97840",
+    "all/copy-overwrite/scripts/lib/completion-proof-source.mjs":
+      "1028cbeb9c8bb9cf685dd3f532ea41de2a25456b989fbda23d3315d8532877c0",
     "all/copy-overwrite/scripts/lib/gate-failure-diagnosis.mjs":
       "31f2acced121662d6395b624aed2ae0ad642c1edb52cdb0eded1497886daad71",
     "all/copy-overwrite/scripts/lib/github-attestation-provider.mjs":
@@ -51,7 +75,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lib/history-secret-policy.mjs":
       "ca75ebbc45fca4c52400612ae818d231a28289b50a70f6cdee6feb51b144896f",
     "all/copy-overwrite/scripts/lib/history-secret-scanner.mjs":
-      "56bcbea184d8938ae9722cd48b020d474d8d75dde9bb577b3b1d410787f2224f",
+      "470a8e534252b3c3c8c62c2b5d83a11bde2287bd2187696107752c538bc20bda",
     "all/copy-overwrite/scripts/lib/invoked-as-script.mjs":
       "fbb9b88fc85a3e22f21af39e1c17acf67ff83fc6b5a6cdc8081bde333c48faa7",
     "all/copy-overwrite/scripts/lib/kill-marks.mjs":
@@ -105,7 +129,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lib/npm-update-helper-graph.mjs":
       "7100aa6554d59c6a8f6fafefb983c12359b8cf727b8e4657362eba045051dd4e",
     "all/copy-overwrite/scripts/lib/npm-update-helper-inventory.mjs":
-      "1a471b58bc9cb0b0e2786ccf57d1b11843d20ca0814d24446c09bbfcf2971894",
+      "41ff29eb3c82b7cbff1f1b0ba88517df7c09fee1bbd951117371a2a826ce5823",
     "all/copy-overwrite/scripts/lib/npm-update-helper.mjs":
       "d705e0d8ae64285b539206f09784928a7fa678c2449252312a7079385e62ab90",
     "all/copy-overwrite/scripts/lib/npm-update-hook-installation.mjs":
@@ -208,6 +232,18 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "318a262a0976f1e3559252c78f55a64e2ef32b11833a66d2d39d22161c813e90",
     "all/copy-overwrite/scripts/lib/reusable-workflow-load-scan.mjs":
       "32e9968d27b7edead16c232bb93bebb8118dd24d175a837f61c2e1ff324dc223",
+    "all/copy-overwrite/scripts/lib/usage-effectiveness.d.mts":
+      "58c774c89cbfe5a73960efbd469ff023fc95ac78596c4ca065ee91fdb5afa4b1",
+    "all/copy-overwrite/scripts/lib/usage-effectiveness.mjs":
+      "b4fb652293bf2c15f9a07b3f9f15cee75ddbfc17a5aa7fee30290629b77ba705",
+    "all/copy-overwrite/scripts/lib/usage-ledger-integrity.d.mts":
+      "75c8204833c1f390d585e9e12a0bbbae423c6982ef296dc4318e875b21c96e99",
+    "all/copy-overwrite/scripts/lib/usage-ledger-integrity.mjs":
+      "67e115051fac99e846dea54297c8811f22aecce93d2743ce53bbf0b8e3572c5e",
+    "all/copy-overwrite/scripts/lib/usage-ledger.d.mts":
+      "551d534acdd1fbd1fd86edf1feaee2f98763509af2ec17b593662c40badbb415",
+    "all/copy-overwrite/scripts/lib/usage-ledger.mjs":
+      "cdeab41198a0284b6415975b1dd8cfd84114631b5673f1a6ab340996cd74f946",
     "all/copy-overwrite/scripts/lib/windows-process-job.cs":
       "7bbe3b13bfc35ca2a0b85fbee9a8f0a6549bf8b05997f6ce4b361bd09d924218",
     "all/copy-overwrite/scripts/lib/windows-process-job.mjs":
@@ -261,7 +297,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-hooks/parity-safety-net-heredoc.py":
       "b37b843b738fd0c1c6f9639551cf64c409263064819bb820e3daa6af8c94d443",
     "all/copy-overwrite/scripts/lisa-hooks/parity-safety-net.sh":
-      "cecab19d8997af8a0864cebf25f32d9bb537043894fc06cc2389fe9c159da529",
+      "3cc1b8a1730f7a35b82293824715538432bb4c410be38d64ee887eb55fea23b4",
     "all/copy-overwrite/scripts/lisa-hooks/sonar-secrets.sh":
       "e0b0073fe44f6e78b74f05cb232d30a3121acc3600bdbd5bc4299c1c710d56a2",
     "all/copy-overwrite/scripts/lisa-hooks/worktree-binding-guard.mjs":
@@ -287,7 +323,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-test-node.mjs":
       "cd436584d756442fc393557a3244bbdacdf915bd0fb1a472ebe7afa8103d3475",
     "all/copy-overwrite/scripts/lisa-work-item.mjs":
-      "cd1b16e056fefac17018d5c96ad063dc4002f304e4400765e473403186b7175a",
+      "e7127de03c08a66d39612b6027b25b6d9bdf0359bb3a8eccba2feb440d0c2f14",
     "all/copy-overwrite/scripts/lisa-worktree-guard.mjs":
       "2535ef2a60b3413dacb8491c008ab28f0a07929196277d1d1fed54a04740c025",
     "all/copy-overwrite/scripts/npm-updater-gate-runtime.json":
@@ -297,7 +333,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/npm-updater-gate.Dockerfile":
       "f5d85f8fccfd97f7800c03430a38c19d584314b0a6a63aa1de28fb62897fbcc5",
     "all/copy-overwrite/scripts/npm-updater-helper-graph.json":
-      "a9f7aff4ca32e9dafbd9f242d0253da86df5b3a38c66dd2a275aa44c14f032f2",
+      "4eb102ead5b07918bd071a2e9588c7c515b55cfe7b06b77a1c735ecd90246195",
     "all/copy-overwrite/scripts/schemas/lisa-command-envelope.v1.schema.json":
       "d153b7c2953a30f180e38f09e98240c63327f5196eeba9bdf545e5a1f125a879",
     "all/copy-overwrite/scripts/schemas/lisa-state-contract.v1.schema.json":
@@ -1043,7 +1079,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/hooks/parity-safety-net.agy.sh":
       "ce9bd2b4566ad9147e4ace56434cffbbe87edb4ccbb57549ab3fd9f4c671ced4",
     "plugins/src/base/hooks/parity-safety-net.sh":
-      "1eef68ecb04183ec75f0c049f039e60c6030d1e7ffb4974c59ef47488e4a3931",
+      "3dcf3897381b6cd14903681b371ffde94e3839f34a39acb6192d69f20e06345d",
     "plugins/src/base/hooks/secrets-preflight.sh":
       "cdc638627e5769770aefb061ea0ddfacc1888a8eab3a5fade6c43129a2d3ff6e",
     "plugins/src/base/hooks/setup-jira-cli.sh":
@@ -1073,7 +1109,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/hooks/worktree-binding-guard.sh":
       "92511fa2fe3de504a78d0d79a2cacffac545baa1d0264cab0ca999a487adb98f",
     "plugins/src/base/rules/eager/00-rule-index.md":
-      "ec1348b307edeb1e974c56c7d3e395116eb998415f100bab1004b8b11b7f20cc",
+      "5c51e8ce25094c05ad969f61ea12d8b86c558cc668933bef1a0084c22b27c48b",
     "plugins/src/base/rules/eager/base-rules.md":
       "3de39af7d5ad74b0b91fb939ec67a76b806d05a4b5c071c3941af6cd4108083c",
     "plugins/src/base/rules/eager/coding-philosophy.md":
@@ -1142,6 +1178,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "a50664632190c94a68df74cf8e1893552e1507f0162e3dc497615a8360b40007",
     "plugins/src/base/rules/reference/coding-philosophy.md":
       "fed8381f16a5d6793a49d84d5813d62125808cb2f4981a558b119cf63e2586d9",
+    "plugins/src/base/rules/reference/completion-authorization.md":
+      "75646f8f5b1c5aedf750e37ed3b5a1f09f6fd85932037c85ac1e8930b67100b1",
     "plugins/src/base/rules/reference/config-resolution.md":
       "8f346851115d4d3ecd139adb9f35007489d9c2f7affde670532a3bdebc637bd3",
     "plugins/src/base/rules/reference/control-reachability.md":
@@ -1361,7 +1399,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-doctor/SKILL.md":
       "ab7bb855fd3ebe321e41b0143815f202b70f6ba38f6678791d6d9e933e0c3fd8",
     "plugins/src/base/skills/lisa-drive-pr-to-merge/SKILL.md":
-      "870dea7be223b85c65b2017e971e98a0684300be49773669f3b8d4badbd9cb74",
+      "4fcae84ea60fbab8f35d401daebfbd45ac46164c5b78f0c8460c96b7dc7fb10c",
     "plugins/src/base/skills/lisa-epic-triage/SKILL.md":
       "d02760411249bddbd396f283191fe3e82bb7b95bf9393a19a7025dc5a57c3ab7",
     "plugins/src/base/skills/lisa-evaluation-suite/SKILL.md":
@@ -1771,7 +1809,9 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-tracker-create/SKILL.md":
       "e8419ac02fa25d91a16eb0899d44f052e6da2884a3905a03a9e7ca4a8ddef7b4",
     "plugins/src/base/skills/lisa-tracker-evidence/SKILL.md":
-      "6831f916043afe3f0d27819e326ec4555d6cfee416495f36f58253584daea728",
+      "d385df95e787a4717e17f3d09b6288012d9c9b50c2ed8db70ba9f979d174909a",
+    "plugins/src/base/skills/lisa-tracker-evidence/references/completion-authorization.md":
+      "9c3a74bc6539a86a6ff53dae511bea6100b158442100f0f460ec0b8533a5ed83",
     "plugins/src/base/skills/lisa-tracker-journey/SKILL.md":
       "65fe727adfdbcc22141ad009e89cd7d91195600377c5357d552d50ed98ecf66b",
     "plugins/src/base/skills/lisa-tracker-read/SKILL.md":
@@ -2773,7 +2813,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/test-intent-routing.sh":
       "97b9dc86cbd805df8a7fdb8c99ffab9b8c5e751ba2e84c05420b2a124f80635d",
     "scripts/two-channel-couplings.json":
-      "f23d0b29145e50d3a591cb02ea92624495ad007fea3b9946a9274754685ce848",
+      "5b260014c7ed9fddccfc5a44c0b4bfc44a70d40cc058e956ff16efb149e5b33b",
     "scripts/update-node-version.ts":
       "9d37599ef73d5d624751f862cda330a867f6774392c1ab045b4fc885132582e4",
     "scripts/update-test-skill-paths.mjs":
@@ -2839,7 +2879,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/copy-overwrite/.nvmrc":
       "73fb1b615e2043a933be1c0895cde4358036acc28d785692509b822aa53c761f",
     "typescript/copy-overwrite/.prettierignore":
-      "de7aa85904617999b4a92eeb959fbc0d8a7e8db21fca793c22d1f2de0fbc5be9",
+      "4a56c18ad33ee1564a67a4bac9e0d1f55a213461374c288dc6bdb5b12d3e40aa",
     "typescript/copy-overwrite/.prettierrc.json":
       "a20621f79a064486fba53cc0ea3000a2ece3f312ff38495c6a6606a27d2a727c",
     "typescript/copy-overwrite/.versionrc":
@@ -2877,7 +2917,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/copy-overwrite/scripts/check-nightly-e2e-health.mjs":
       "d1b26caeaf65950e3b60ff41964d234c032c50470072e7643310b1f6722e34e6",
     "typescript/copy-overwrite/scripts/check-skipped-required-checks.mjs":
-      "2511fc4dab57836e63579e3e5c140f6189842b14595303b8d177fe066676d9b6",
+      "29dbdb82d3bf543e294252cbdbfa7c54f69af3ca8b8cd0e9fe8f6afec398d2ac",
     "typescript/copy-overwrite/scripts/check-threshold-ratchet.mjs":
       "d4afc90ba8faf10925fff5fb0d6cd0ace22df2eaa0ec609ee969d0ec84092299",
     "typescript/copy-overwrite/scripts/check-verification-coverage.mjs":
@@ -3128,6 +3168,18 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "all/copy-overwrite/scripts/lib/automation-provenance-files.mjs": true,
     "all/copy-overwrite/scripts/lib/automation-provenance-local.mjs": true,
     "all/copy-overwrite/scripts/lib/bounded-spawn.mjs": true,
+    "all/copy-overwrite/scripts/lib/completion-authorization.mjs": true,
+    "all/copy-overwrite/scripts/lib/completion-proof-adapters.mjs": true,
+    "all/copy-overwrite/scripts/lib/completion-proof-conformance.mjs": true,
+    "all/copy-overwrite/scripts/lib/completion-proof-content.mjs": true,
+    "all/copy-overwrite/scripts/lib/completion-proof-errors.mjs": true,
+    "all/copy-overwrite/scripts/lib/completion-proof-github.mjs": true,
+    "all/copy-overwrite/scripts/lib/completion-proof-markdown.mjs": true,
+    "all/copy-overwrite/scripts/lib/completion-proof-projection.mjs": true,
+    "all/copy-overwrite/scripts/lib/completion-proof-publisher.mjs": true,
+    "all/copy-overwrite/scripts/lib/completion-proof-reader.mjs": true,
+    "all/copy-overwrite/scripts/lib/completion-proof-shape.mjs": true,
+    "all/copy-overwrite/scripts/lib/completion-proof-source.mjs": true,
     "all/copy-overwrite/scripts/lib/gate-failure-diagnosis.mjs": true,
     "all/copy-overwrite/scripts/lib/github-attestation-provider.mjs": true,
     "all/copy-overwrite/scripts/lib/github-attestation-recovery.mjs": true,
@@ -3215,6 +3267,12 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "all/copy-overwrite/scripts/lib/reusable-workflow-load-failure.mjs": true,
     "all/copy-overwrite/scripts/lib/reusable-workflow-load-scan.d.mts": true,
     "all/copy-overwrite/scripts/lib/reusable-workflow-load-scan.mjs": true,
+    "all/copy-overwrite/scripts/lib/usage-effectiveness.d.mts": true,
+    "all/copy-overwrite/scripts/lib/usage-effectiveness.mjs": true,
+    "all/copy-overwrite/scripts/lib/usage-ledger-integrity.d.mts": true,
+    "all/copy-overwrite/scripts/lib/usage-ledger-integrity.mjs": true,
+    "all/copy-overwrite/scripts/lib/usage-ledger.d.mts": true,
+    "all/copy-overwrite/scripts/lib/usage-ledger.mjs": true,
     "all/copy-overwrite/scripts/lib/windows-process-job.cs": true,
     "all/copy-overwrite/scripts/lib/windows-process-job.mjs": true,
     "all/copy-overwrite/scripts/lib/windows-process-job.ps1": true,
@@ -4500,6 +4558,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-agy/skills/lisa-tracker-claim/SKILL.md": true,
     "plugins/lisa-agy/skills/lisa-tracker-create/SKILL.md": true,
     "plugins/lisa-agy/skills/lisa-tracker-evidence/SKILL.md": true,
+    "plugins/lisa-agy/skills/lisa-tracker-evidence/references/completion-authorization.md": true,
     "plugins/lisa-agy/skills/lisa-tracker-journey/SKILL.md": true,
     "plugins/lisa-agy/skills/lisa-tracker-read/SKILL.md": true,
     "plugins/lisa-agy/skills/lisa-tracker-source-artifacts/SKILL.md": true,
@@ -4709,6 +4768,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-copilot/rules/reference/claim-evidence-mapping.md": true,
     "plugins/lisa-copilot/rules/reference/claim-time-guards.md": true,
     "plugins/lisa-copilot/rules/reference/coding-philosophy.md": true,
+    "plugins/lisa-copilot/rules/reference/completion-authorization.md": true,
     "plugins/lisa-copilot/rules/reference/config-resolution.md": true,
     "plugins/lisa-copilot/rules/reference/control-reachability.md": true,
     "plugins/lisa-copilot/rules/reference/convergent-review.md": true,
@@ -5023,6 +5083,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-copilot/skills/lisa-tracker-claim/SKILL.md": true,
     "plugins/lisa-copilot/skills/lisa-tracker-create/SKILL.md": true,
     "plugins/lisa-copilot/skills/lisa-tracker-evidence/SKILL.md": true,
+    "plugins/lisa-copilot/skills/lisa-tracker-evidence/references/completion-authorization.md": true,
     "plugins/lisa-copilot/skills/lisa-tracker-journey/SKILL.md": true,
     "plugins/lisa-copilot/skills/lisa-tracker-read/SKILL.md": true,
     "plugins/lisa-copilot/skills/lisa-tracker-source-artifacts/SKILL.md": true,
@@ -5192,6 +5253,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-cursor/rules/claim-time-guards-reference.mdc": true,
     "plugins/lisa-cursor/rules/coding-philosophy-reference.mdc": true,
     "plugins/lisa-cursor/rules/coding-philosophy.mdc": true,
+    "plugins/lisa-cursor/rules/completion-authorization-reference.mdc": true,
     "plugins/lisa-cursor/rules/config-resolution-reference.mdc": true,
     "plugins/lisa-cursor/rules/config-resolution.mdc": true,
     "plugins/lisa-cursor/rules/control-reachability-reference.mdc": true,
@@ -5530,6 +5592,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-cursor/skills/lisa-tracker-claim/SKILL.md": true,
     "plugins/lisa-cursor/skills/lisa-tracker-create/SKILL.md": true,
     "plugins/lisa-cursor/skills/lisa-tracker-evidence/SKILL.md": true,
+    "plugins/lisa-cursor/skills/lisa-tracker-evidence/references/completion-authorization.md": true,
     "plugins/lisa-cursor/skills/lisa-tracker-journey/SKILL.md": true,
     "plugins/lisa-cursor/skills/lisa-tracker-read/SKILL.md": true,
     "plugins/lisa-cursor/skills/lisa-tracker-source-artifacts/SKILL.md": true,
@@ -5653,6 +5716,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-devin/rules/reference/claim-evidence-mapping.md": true,
     "plugins/lisa-devin/rules/reference/claim-time-guards.md": true,
     "plugins/lisa-devin/rules/reference/coding-philosophy.md": true,
+    "plugins/lisa-devin/rules/reference/completion-authorization.md": true,
     "plugins/lisa-devin/rules/reference/config-resolution.md": true,
     "plugins/lisa-devin/rules/reference/control-reachability.md": true,
     "plugins/lisa-devin/rules/reference/convergent-review.md": true,
@@ -5967,6 +6031,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-devin/skills/lisa-tracker-claim/SKILL.md": true,
     "plugins/lisa-devin/skills/lisa-tracker-create/SKILL.md": true,
     "plugins/lisa-devin/skills/lisa-tracker-evidence/SKILL.md": true,
+    "plugins/lisa-devin/skills/lisa-tracker-evidence/references/completion-authorization.md": true,
     "plugins/lisa-devin/skills/lisa-tracker-journey/SKILL.md": true,
     "plugins/lisa-devin/skills/lisa-tracker-read/SKILL.md": true,
     "plugins/lisa-devin/skills/lisa-tracker-source-artifacts/SKILL.md": true,
@@ -8405,6 +8470,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa/.codex-plugin/skills/lisa-tracker-create/agents/openai.yaml": true,
     "plugins/lisa/.codex-plugin/skills/lisa-tracker-evidence/SKILL.md": true,
     "plugins/lisa/.codex-plugin/skills/lisa-tracker-evidence/agents/openai.yaml": true,
+    "plugins/lisa/.codex-plugin/skills/lisa-tracker-evidence/references/completion-authorization.md": true,
     "plugins/lisa/.codex-plugin/skills/lisa-tracker-journey/SKILL.md": true,
     "plugins/lisa/.codex-plugin/skills/lisa-tracker-journey/agents/openai.yaml": true,
     "plugins/lisa/.codex-plugin/skills/lisa-tracker-read/SKILL.md": true,
@@ -8625,6 +8691,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa/rules/reference/claim-evidence-mapping.md": true,
     "plugins/lisa/rules/reference/claim-time-guards.md": true,
     "plugins/lisa/rules/reference/coding-philosophy.md": true,
+    "plugins/lisa/rules/reference/completion-authorization.md": true,
     "plugins/lisa/rules/reference/config-resolution.md": true,
     "plugins/lisa/rules/reference/control-reachability.md": true,
     "plugins/lisa/rules/reference/convergent-review.md": true,
@@ -9096,6 +9163,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa/skills/lisa-tracker-create/agents/openai.yaml": true,
     "plugins/lisa/skills/lisa-tracker-evidence/SKILL.md": true,
     "plugins/lisa/skills/lisa-tracker-evidence/agents/openai.yaml": true,
+    "plugins/lisa/skills/lisa-tracker-evidence/references/completion-authorization.md": true,
     "plugins/lisa/skills/lisa-tracker-journey/SKILL.md": true,
     "plugins/lisa/skills/lisa-tracker-journey/agents/openai.yaml": true,
     "plugins/lisa/skills/lisa-tracker-read/SKILL.md": true,
@@ -9317,6 +9385,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/src/base/rules/reference/claim-evidence-mapping.md": true,
     "plugins/src/base/rules/reference/claim-time-guards.md": true,
     "plugins/src/base/rules/reference/coding-philosophy.md": true,
+    "plugins/src/base/rules/reference/completion-authorization.md": true,
     "plugins/src/base/rules/reference/config-resolution.md": true,
     "plugins/src/base/rules/reference/control-reachability.md": true,
     "plugins/src/base/rules/reference/convergent-review.md": true,
@@ -9632,6 +9701,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/src/base/skills/lisa-tracker-claim/SKILL.md": true,
     "plugins/src/base/skills/lisa-tracker-create/SKILL.md": true,
     "plugins/src/base/skills/lisa-tracker-evidence/SKILL.md": true,
+    "plugins/src/base/skills/lisa-tracker-evidence/references/completion-authorization.md": true,
     "plugins/src/base/skills/lisa-tracker-journey/SKILL.md": true,
     "plugins/src/base/skills/lisa-tracker-read/SKILL.md": true,
     "plugins/src/base/skills/lisa-tracker-source-artifacts/SKILL.md": true,
@@ -10871,6 +10941,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/fixtures/npm-update-hosted-runtime/driver-probe.mjs": true,
     "tests/fixtures/npm-update-hosted-runtime/observations.mjs": true,
     "tests/fixtures/npm-update-hosted-runtime/package-observations.mjs": true,
+    "tests/fixtures/npm-update-hosted-runtime/packages.mjs": true,
     "tests/fixtures/npm-update-hosted-runtime/qualify.mjs": true,
     "tests/fixtures/npm-update-hosted-runtime/sandbox-status.mjs": true,
     "tests/fixtures/npm-update-hosted-runtime/socket-witness.mjs": true,
@@ -10896,6 +10967,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/fixtures/rails-helper-test-isolation/config/environment.rb": true,
     "tests/fixtures/rails-helper-test-isolation/rspec/rails.rb": true,
     "tests/fixtures/rails-helper-test-isolation/spec/spec_helper.rb": true,
+    "tests/fixtures/review-terminal-gh.cjs": true,
     "tests/fixtures/session-manager/meminfo.txt": true,
     "tests/fixtures/session-manager/stub-bin/claude": true,
     "tests/fixtures/session-manager/stub-bin/gh": true,
@@ -11007,6 +11079,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/helpers/repo-file-walk.ts": true,
     "tests/helpers/review-evidence-registration-fixture.ts": true,
     "tests/helpers/review-evidence-summary-fixture.ts": true,
+    "tests/helpers/review-terminal-fixture.ts": true,
+    "tests/helpers/review-terminal-responses.ts": true,
     "tests/helpers/rollup-classifier-ladder-fixtures.ts": true,
     "tests/helpers/rollup-classifier-ladder-harness.ts": true,
     "tests/helpers/safety-net-guard-fixtures.ts": true,
@@ -11307,6 +11381,22 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/support/qualified-host-bun.ts": true,
     "tests/support/qualified-updater-node.ts": true,
     "tests/support/work-item-cli.ts": true,
+    "tests/support/work-item-coherent-related.ts": true,
+    "tests/support/work-item-linear-proof-fixture.ts": true,
+    "tests/support/work-item-proof-assets.ts": true,
+    "tests/support/work-item-proof-compatibility.ts": true,
+    "tests/support/work-item-proof-denials.ts": true,
+    "tests/support/work-item-proof-fixture.ts": true,
+    "tests/support/work-item-proof-history.ts": true,
+    "tests/support/work-item-proof-mutations.ts": true,
+    "tests/support/work-item-proof-payload.ts": true,
+    "tests/support/work-item-proof-resources.ts": true,
+    "tests/support/work-item-proof-spec.ts": true,
+    "tests/support/work-item-provider-api.mjs": true,
+    "tests/support/work-item-provider-issues.mjs": true,
+    "tests/support/work-item-stateful-gh.mjs": true,
+    "tests/support/work-item-stateful-linear.mjs": true,
+    "tests/support/work-item-stateful-provider.ts": true,
     "tests/unit/agy/block-direct-issue-create-structured-agy.test.ts": true,
     "tests/unit/agy/block-managed-file-edits-agy.test.ts": true,
     "tests/unit/agy/block-no-verify-agy.test.ts": true,
@@ -12110,6 +12200,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/cleanup-worktrees-unreadable.test.ts": true,
     "tests/unit/scripts/codex-hook-filter.test.ts": true,
     "tests/unit/scripts/command-envelope.test.ts": true,
+    "tests/unit/scripts/completion-proof-grammar.test.ts": true,
+    "tests/unit/scripts/completion-proof-types.test.ts": true,
     "tests/unit/scripts/conflict-prover-markers-and-index.test.ts": true,
     "tests/unit/scripts/cross-pollinate.test.ts": true,
     "tests/unit/scripts/cursor-artifact-helpers.ts": true,
@@ -12152,6 +12244,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/history-secret-contract.test.ts": true,
     "tests/unit/scripts/history-secret-new-ref-range.test.ts": true,
     "tests/unit/scripts/history-secret-private-report.test.ts": true,
+    "tests/unit/scripts/history-secret-provision-errors.test.ts": true,
     "tests/unit/scripts/install-claude-plugins-self.test.ts": true,
     "tests/unit/scripts/invoked-as-script.test.ts": true,
     "tests/unit/scripts/jira-cli-config-consumption.test.ts": true,
@@ -12305,6 +12398,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/npm-update-husky-compatibility.test.ts": true,
     "tests/unit/scripts/npm-update-native-process.test.ts": true,
     "tests/unit/scripts/npm-update-provider-diagnostics.test.ts": true,
+    "tests/unit/scripts/npm-update-qualification-package-contract.test.ts": true,
+    "tests/unit/scripts/npm-update-qualification-packages.test.ts": true,
     "tests/unit/scripts/npm-update-rails-browser-environment.test.ts": true,
     "tests/unit/scripts/npm-update-rails-mysql.test.ts": true,
     "tests/unit/scripts/npm-update-rails-runtime-contract.test.ts": true,
@@ -12330,6 +12425,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/plugin-routing-validate.test.ts": true,
     "tests/unit/scripts/plugin-sync-scripts.test.ts": true,
     "tests/unit/scripts/plugin-sync-workflow.test.ts": true,
+    "tests/unit/scripts/portable-usage-ledger.test.ts": true,
     "tests/unit/scripts/probe-failure-not-absence.test.ts": true,
     "tests/unit/scripts/process-tree-runner-interrupt.test.ts": true,
     "tests/unit/scripts/process-tree-runner-verdict-transport.test.ts": true,
@@ -12346,6 +12442,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/review-evidence-check-name.test.ts": true,
     "tests/unit/scripts/review-gate-conditions.test.ts": true,
     "tests/unit/scripts/review-gate-substitute.test.ts": true,
+    "tests/unit/scripts/review-gate-terminal-skipped.test.ts": true,
     "tests/unit/scripts/review-gate-waiver-vs-objection.test.ts": true,
     "tests/unit/scripts/review-objection-at-head.test.ts": true,
     "tests/unit/scripts/run-artifact-checks.test.ts": true,
@@ -12363,6 +12460,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/skipped-required-outcomes.test.ts": true,
     "tests/unit/scripts/slow-lint-dead-code-enforcement.test.ts": true,
     "tests/unit/scripts/state-classification.test.ts": true,
+    "tests/unit/scripts/terminal-transition-outcomes.test.ts": true,
     "tests/unit/scripts/third-party-action-pins-warn-mode.test.ts": true,
     "tests/unit/scripts/third-party-review-evidence.test.ts": true,
     "tests/unit/scripts/threshold-ratchet-baseline.test.ts": true,
@@ -12379,6 +12477,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/vendored-script-defects.test.ts": true,
     "tests/unit/scripts/verification-coverage.test.ts": true,
     "tests/unit/scripts/windows-process-job.test.ts": true,
+    "tests/unit/scripts/work-item-accepted-proof.test.ts": true,
     "tests/unit/scripts/work-item-amended-merge-exemption.test.ts": true,
     "tests/unit/scripts/work-item-authored-trailers.test.ts": true,
     "tests/unit/scripts/work-item-back-merge-exemption.test.ts": true,
@@ -12391,18 +12490,27 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/work-item-cli-rebase.test.ts": true,
     "tests/unit/scripts/work-item-cli-trackers.test.ts": true,
     "tests/unit/scripts/work-item-cli-writes.test.ts": true,
+    "tests/unit/scripts/work-item-coherent-related.test.ts": true,
     "tests/unit/scripts/work-item-comment-projection.test.ts": true,
+    "tests/unit/scripts/work-item-completion-authorization.test.ts": true,
     "tests/unit/scripts/work-item-contract-version.test.ts": true,
     "tests/unit/scripts/work-item-gate-scope-advice.test.ts": true,
     "tests/unit/scripts/work-item-github-failure-diagnosis.test.ts": true,
     "tests/unit/scripts/work-item-jira-backlink-adf.test.ts": true,
     "tests/unit/scripts/work-item-jira-origin.test.ts": true,
     "tests/unit/scripts/work-item-lifecycle-reconciliation.test.ts": true,
+    "tests/unit/scripts/work-item-linear-accepted-proof.test.ts": true,
     "tests/unit/scripts/work-item-linear-production.test.ts": true,
     "tests/unit/scripts/work-item-merge-base-completion.test.ts": true,
     "tests/unit/scripts/work-item-merge-only-range.test.ts": true,
     "tests/unit/scripts/work-item-multi-item-range.test.ts": true,
     "tests/unit/scripts/work-item-optional-validation.test.ts": true,
+    "tests/unit/scripts/work-item-proof-denials.test.ts": true,
+    "tests/unit/scripts/work-item-proof-freshness-review.test.ts": true,
+    "tests/unit/scripts/work-item-proof-late-read.test.ts": true,
+    "tests/unit/scripts/work-item-proof-scope.test.ts": true,
+    "tests/unit/scripts/work-item-proof-trust.test.ts": true,
+    "tests/unit/scripts/work-item-proof-write-errors.test.ts": true,
     "tests/unit/scripts/work-item-push-destination.test.ts": true,
     "tests/unit/scripts/work-item-push-merge-defer.test.ts": true,
     "tests/unit/scripts/work-item-push-promote-exemption.test.ts": true,
@@ -12411,6 +12519,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/work-item-run-and-gh-version.test.ts": true,
     "tests/unit/scripts/work-item-session-url.test.ts": true,
     "tests/unit/scripts/work-item-stacked-push.test.ts": true,
+    "tests/unit/scripts/work-item-sweep-ancestry.test.ts": true,
     "tests/unit/scripts/work-item-sweep-bounded.test.ts": true,
     "tests/unit/scripts/work-item-tracker-unreachable.test.ts": true,
     "tests/unit/scripts/work-item-trailer-definition.test.ts": true,

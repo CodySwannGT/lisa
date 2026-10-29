@@ -61,6 +61,25 @@ async function observeAndRemoveHost(
   }
 }
 
+/**
+ * Identify the active teardown phase without inspecting the fixture corpus.
+ * @param phase - Bounded phase and boundary name
+ * @param startedAt - Monotonic start of this teardown
+ */
+function observeTeardownPhase(phase: string, startedAt: number): void {
+  console.error(
+    `PACKED_HOSTS_TEARDOWN ${JSON.stringify({
+      phase,
+      elapsedMs: Math.round(performance.now() - startedAt),
+      baseBudgetMs: 30_000,
+      budgetMs: fsLatencyBudgetMs(30_000),
+      node: process.versions.node,
+      platform: process.platform,
+      arch: process.arch,
+    })}`
+  );
+}
+
 beforeAll(async () => {
   expect(process.versions.node, "run using the reviewed CI runtime").toBe(
     CI_NODE
@@ -74,14 +93,19 @@ beforeAll(async () => {
 }, ioLatencyBudgetMs(600_000));
 
 afterAll(async () => {
+  const startedAt = performance.now();
   try {
+    observeTeardownPhase("registry-close:start", startedAt);
     await registry?.close();
+    observeTeardownPhase("registry-close:end", startedAt);
     expect(
       fs.existsSync(path.join(root, "github-was-invoked")),
       "no GitHub commands in the complete journey"
     ).toBe(false);
   } finally {
+    observeTeardownPhase("root-cleanup:start", startedAt);
     await cleanupTempDir(root);
+    observeTeardownPhase("root-cleanup:end", startedAt);
   }
 }, fsLatencyBudgetMs(30_000));
 

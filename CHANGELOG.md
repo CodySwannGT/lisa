@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.84.8](https://github.com/CodySwannGT/lisa/compare/v4.84.7...v4.84.8) (2026-10-28)
+
+
+### Bug Fixes
+
+* **ci:** classify skipped review checks as terminal ([c5fa900](https://github.com/CodySwannGT/lisa/commit/c5fa900d5583c39a8eafe876c7a0479e88a1ef91)), closes [CodySwannGT/lisa#4543](https://github.com/CodySwannGT/lisa/issues/4543)
+* **ci:** normalize pinned packages in disposable qualification ([86a9647](https://github.com/CodySwannGT/lisa/commit/86a964712a444375546c0518a6618000be8928f7)), closes [CodySwannGT/lisa#4543](https://github.com/CodySwannGT/lisa/issues/4543)
+* **history:** author provisioning phase refusals ([773362d](https://github.com/CodySwannGT/lisa/commit/773362daaa671ee618e5ece41cbe3f298586c576)), closes [CodySwannGT/lisa#4543](https://github.com/CodySwannGT/lisa/issues/4543)
+* **lifecycle:** address completion proof review findings ([7c68f0e](https://github.com/CodySwannGT/lisa/commit/7c68f0e3770b8275f17779744bb36cccc0ddff00)), closes [CodySwannGT/lisa#4543](https://github.com/CodySwannGT/lisa/issues/4543)
+* **lifecycle:** complete shipped proof helper contracts ([21c6dea](https://github.com/CodySwannGT/lisa/commit/21c6deafd916786e1532ce99ef7ace7761fa2134)), closes [CodySwannGT/lisa#4543](https://github.com/CodySwannGT/lisa/issues/4543)
+* **lifecycle:** require accepted proof before terminal completion ([608cbc6](https://github.com/CodySwannGT/lisa/commit/608cbc6670efa9b289f514e99a1b486be7650f0a)), closes [CodySwannGT/lisa#4543](https://github.com/CodySwannGT/lisa/issues/4543)
+* **lifecycle:** require bounded sweeps to start in branch ancestry ([48f24c7](https://github.com/CodySwannGT/lisa/commit/48f24c7b276a477b4db92817c0af1322203fea3c)), closes [CodySwannGT/lisa#4543](https://github.com/CodySwannGT/lisa/issues/4543)
+* **verify:** preserve supervisor rules under pipe pressure ([826e6a4](https://github.com/CodySwannGT/lisa/commit/826e6a4a6dafb27c7ba2c7974ecb7aa4cc825331)), closes [CodySwannGT/lisa#4543](https://github.com/CodySwannGT/lisa/issues/4543)
+
 ### [4.84.7](https://github.com/CodySwannGT/lisa/compare/v4.84.6...v4.84.7) (2026-10-27)
 
 

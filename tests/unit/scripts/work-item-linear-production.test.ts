@@ -1,8 +1,12 @@
 /** Linear completion must use the configured production merge destination. */
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
 import { afterAll, afterEach, describe, expect, it } from "vitest";
+import {
+  linearProofFixture,
+  attachLinearRecord,
+} from "../../support/work-item-linear-proof-fixture.js";
 
 import {
   cleanupFixtures,
@@ -31,6 +35,30 @@ function staged(
   config: object = CONFIG,
   done = false
 ) {
+  const settings = JSON.parse(JSON.stringify(config));
+  const production =
+    settings.deploy?.branches?.production ??
+    settings.policy?.repository?.default_branch ??
+    "main";
+  if (
+    base === production &&
+    settings.linear?.workflow?.done?.production !== null
+  ) {
+    const accepted = linearProofFixture("LIN-12", config);
+    if (done) {
+      const file = accepted.env.FAKE_LINEAR_STATE_FILE!;
+      const state = JSON.parse(readFileSync(file, "utf8"));
+      state.state = DONE;
+      writeFileSync(file, JSON.stringify(state));
+    }
+    attachLinearRecord(accepted);
+    return {
+      count: accepted.env.FAKE_LINEAR_LOG!,
+      result: cli(accepted, COMPLETE),
+      writes: accepted.env.FAKE_GH_WRITES_FILE!,
+      state: accepted.env.FAKE_LINEAR_STATE_FILE!,
+    };
+  }
   const fixture = createFixture(config);
   const count = path.join(fixture.root, "curl-count");
   const issue = {
@@ -59,7 +87,23 @@ function staged(
       data: { issue: { ...issue, state: DONE } },
     }),
   });
-  return { count, result };
+  return { count, result, writes: null, state: null };
+}
+
+/** Extra proof reads cannot advance state; only the recorded update can. */
+function assertTerminalUpdate(run: ReturnType<typeof staged>, updates: number) {
+  expect(run.writes).not.toBeNull();
+  const rows = readFileSync(run.writes!, "utf8")
+    .trim()
+    .split("\n")
+    .filter(Boolean)
+    .map(line => JSON.parse(line));
+  expect(rows.filter(row => row.query?.includes("issueUpdate"))).toHaveLength(
+    updates
+  );
+  expect(JSON.parse(readFileSync(run.state!, "utf8")).state.type).toBe(
+    "completed"
+  );
 }
 
 describe("Linear completion merge destination", () => {
@@ -98,18 +142,22 @@ describe("Linear completion merge destination", () => {
   ])(
     "completes production on $base while retaining default Done",
     ({ base, config }) => {
-      const { count, result } = staged(base, config);
+      const run = staged(base, config);
+      const { result } = run;
       expect(result.exitCode).toBeUndefined();
       expect(result.stdout).toContain("work-item completed: LIN-12 -> Done");
-      expect(readFileSync(count, "utf8").trim()).toBe("3");
+      assertTerminalUpdate(run, 1);
     }
   );
 
   it("keeps an already-completed production item idempotent", () => {
-    const { count, result } = staged("main", CONFIG, true);
+    const run = staged("main", CONFIG, true);
+    const { result } = run;
     expect(result.exitCode).toBeUndefined();
-    expect(result.stdout).toContain("work-item completed: LIN-12 -> Done");
-    expect(readFileSync(count, "utf8").trim()).toBe("1");
+    expect(result.stdout).toContain(
+      "work-item already-completed: LIN-12 -> Done"
+    );
+    assertTerminalUpdate(run, 0);
   });
 
   it.each(["dev", "staging"])(
@@ -135,12 +183,13 @@ describe("Linear completion merge destination", () => {
   it.each([{ dev: "Done", production: "Done" }, "Done"])(
     "completes production with shared or legacy done roles: %j",
     done => {
-      const { count, result } = staged("main", {
+      const run = staged("main", {
         ...CONFIG,
         linear: { ...CONFIG.linear, workflow: { done } },
       });
+      const { result } = run;
       expect(result.exitCode).toBeUndefined();
-      expect(readFileSync(count, "utf8").trim()).toBe("3");
+      assertTerminalUpdate(run, 1);
     }
   );
 
