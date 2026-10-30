@@ -8,6 +8,8 @@ Idempotently claims one live Linear leaf issue for direct Lisa work. Reuses line
 
 # Claim Linear Issue: $ARGUMENTS
 
+**Required-access preclaim gate.** Before this claim mutation, follow `tool-access-gate` → Task readiness. Enumerate the live body, all comments, proof and delivery requirements into the leading requirements-only header in the ignored context; run the existing secrets preflight `--task --ref <canonical-ref>`. `ESTABLISHED` proves only its exercised scope. `DENIED` stops affected work. `NATIVE_OWNER_REQUIRED` (CLI exit3, not PASS) hands the remaining route to its documented native access owner: that owner must perform the actual immediate identity/resource probe before claim or the affected continuation, retaining write/readback duties. Do not repeat an unobservable shell probe forever or accept a stored passed field. Report the exact shell/native enforcement gap. Only the bounded local intake metadata write may precede this gate. Held/leaf/scope/idempotency and failed tracker-read/write stops remain independent.
+
 Claim exactly one canonical Linear identifier such as `ENG-123`. All Linear access goes through `lisa-linear-access`. This is the reusable direct-session counterpart of `lisa-linear-build-intake` Phase 3b.
 
 1. Resolve merged `linear.workspace`, `linear.teamKey`, and the Linear build-lifecycle roles from local-over-global config. Require the identifier's team key to equal the configured team. Resolve the `ready` and `claimed` roles through `scripts/resolve-lifecycle-role.mjs` (`--vendor linear`). Both are REQUIRED roles with **no built-in default** — an unset one is a setup defect to report, never a name to substitute. Do not hardcode lifecycle decisions.

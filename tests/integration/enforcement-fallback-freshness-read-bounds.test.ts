@@ -186,8 +186,12 @@ describe("finite actual diagnostic file reads", () => {
       );
       expect(bytes).toBe(
         mode === "maximum"
-          ? 16 * 1024 * 1024 + 4 * 64 * 1024 + 4 * 1024 * 1024
-          : 14 * 1024 * 1024 + 4 * 64 * 1024 + 4 * 1024 * 1024
+          ? SELECTED_GUARDS.length * 2 * 1024 * 1024 +
+              4 * 64 * 1024 +
+              4 * 1024 * 1024
+          : (SELECTED_GUARDS.length - 1) * 2 * 1024 * 1024 +
+              4 * 64 * 1024 +
+              4 * 1024 * 1024
       );
       expect(result.output).toMatch(
         mode === "maximum"
@@ -196,7 +200,7 @@ describe("finite actual diagnostic file reads", () => {
       );
     }
   );
-  it("reads only eight selected pairs and five bounded metadata paths", () => {
+  it("reads only the nine selected pairs and five bounded metadata paths", () => {
     const result = observed();
     // Node loads the canonical helper module after this preload; that artifact
     // read is not guard/metadata evidence. Keep it visible and separate.
@@ -208,12 +212,15 @@ describe("finite actual diagnostic file reads", () => {
       (total, operation) => total + (operation.bytes ?? 0),
       0
     );
-    expect(opened).toHaveLength(21);
+    expect(opened).toHaveLength(SELECTED_GUARDS.length * 2 + 5);
     expect(
       opened.filter(operation => operation.file.endsWith(".sh"))
-    ).toHaveLength(16);
+    ).toHaveLength(SELECTED_GUARDS.length * 2);
     expect(bytes).toBeLessThanOrEqual(
-      16 * (1024 * 1024 + 1) + 4 * (64 * 1024 + 1) + 4 * 1024 * 1024 + 1
+      SELECTED_GUARDS.length * 2 * (1024 * 1024 + 1) +
+        4 * (64 * 1024 + 1) +
+        4 * 1024 * 1024 +
+        1
     );
     expect(result.output).toMatch(
       /Refused by .*block-no-verify\.sh \(matches installed template/u

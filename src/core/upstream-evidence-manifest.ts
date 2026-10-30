@@ -267,9 +267,9 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-destructive-guard.mjs":
       "f0f3c43bbb6d1e389135b0205a051e64891e539d4272df2a87841ee82a8b7a55",
     "all/copy-overwrite/scripts/lisa-enforcement-fallback.sh":
-      "480c23ba7ad52cf11b1a00b964c2ac6d244edd83292145e5212471ba86e43af3",
+      "72be2a449004e6f2f3fda99eeb6d83519dbdaa05efb13adede8996dceedfff22",
     "all/copy-overwrite/scripts/lisa-enforcement-freshness.mjs":
-      "3db0a7de30a0e0fb499e620353cf67842a1c429472cebf53d4b1a5e11bb4b07a",
+      "1372b6429d04eefbdc3281618c51a2c76c6e953c5f25e35981a6914f0a8cfbbf",
     "all/copy-overwrite/scripts/lisa-environment-prepare.mjs":
       "94d1d76b5c25059d93ee888dc824d1621adc8e3dbe368904543b37a82259c4a3",
     "all/copy-overwrite/scripts/lisa-floor-collisions.mjs":
@@ -300,6 +300,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "3cc1b8a1730f7a35b82293824715538432bb4c410be38d64ee887eb55fea23b4",
     "all/copy-overwrite/scripts/lisa-hooks/sonar-secrets.sh":
       "e0b0073fe44f6e78b74f05cb232d30a3121acc3600bdbd5bc4299c1c710d56a2",
+    "all/copy-overwrite/scripts/lisa-hooks/task-readiness-guard.sh":
+      "5bd8194d4ba490f3a788d77bc7186f15809bb9a8ccb7b64db02aeb5337409d97",
     "all/copy-overwrite/scripts/lisa-hooks/worktree-binding-guard.mjs":
       "da9ab36826dc4a215c01febb11321bd713d368a4c320da3248be195fdeb95a8b",
     "all/copy-overwrite/scripts/lisa-hooks/worktree-binding-guard.sh":
@@ -1080,14 +1082,20 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "ce9bd2b4566ad9147e4ace56434cffbbe87edb4ccbb57549ab3fd9f4c671ced4",
     "plugins/src/base/hooks/parity-safety-net.sh":
       "3dcf3897381b6cd14903681b371ffde94e3839f34a39acb6192d69f20e06345d",
+    "plugins/src/base/hooks/secrets-preflight.agy.sh":
+      "b353735de3846cb128a7d6927962ee36a56a66c92bd98555a6ce8f388082d9f5",
     "plugins/src/base/hooks/secrets-preflight.sh":
-      "cdc638627e5769770aefb061ea0ddfacc1888a8eab3a5fade6c43129a2d3ff6e",
+      "d439d44053da8f18e490797be767f5a64294baea0b5eb3df942c9ef9decffd09",
     "plugins/src/base/hooks/setup-jira-cli.sh":
       "384bc8d935a2ed5788d7185979b3e74c75c17cd4bc5c230d7d8f086ab2703443",
     "plugins/src/base/hooks/shell-write-nudge.sh":
       "69839af423f8792b1e52c71097316c3264425553031627c0a2f9409a9d5becd0",
     "plugins/src/base/hooks/sonar-secrets.sh":
       "8ec9d8eab090fd8aed69b6378160ae607b4341923ed076d9a5d08bf44d238064",
+    "plugins/src/base/hooks/task-readiness-guard.mjs":
+      "d9713ed54a3792862b033b5f82ff1ce39a0fb79a903e0569a4b982e31bd7f6ba",
+    "plugins/src/base/hooks/task-readiness-guard.sh":
+      "ee8f517505d83fff7f86da53855ef564f5a7b6ad1de7ae2c860de203e65031a4",
     "plugins/src/base/hooks/threshold-ratchet-compare.mjs":
       "5ef0d96ccf71eaba0e2eff64c0c17f3d61df36f05a0e97924ba3a72ca71e60b8",
     "plugins/src/base/hooks/threshold-ratchet-families.mjs":
@@ -1153,7 +1161,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/rules/eager/tool-access-gate.md":
       "854eb5b16a8e0f51fe7caa0517c10d1ec5ded5ca7324c8304beddc7b81befcf2",
     "plugins/src/base/rules/eager/tracked-work.md":
-      "e6ac1bcb50e04120d9e4c9a2be1d022cd873071a8b74d34f53f282a03676733e",
+      "ceba5f5284254a4cbcacdb6cf2eb00942b0978d7fb781f6dd81cbc988c1fba67",
     "plugins/src/base/rules/eager/upstream-to-lisa.md":
       "dcb3075bc48de76f3bae1ad066d0a1e14f82bd244c1015a48f9e2916cabaf03c",
     "plugins/src/base/rules/eager/verification.md":
@@ -1265,9 +1273,9 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/rules/reference/stale-state-claims.md":
       "6329e1a7629f9a12f10454c767842aecee4964df8b7bb4aebda9dde3c0959c2a",
     "plugins/src/base/rules/reference/tool-access-gate.md":
-      "29579f403648d3b550b8b7e5fba01986fba8d3f0f285b5b5bf6bb0a839f7f10e",
+      "053f3f24883f65210904fbc4c821989d5234d3ba2f3491e7e0c218e32afd7555",
     "plugins/src/base/rules/reference/tracked-work.md":
-      "eb8e7ceb11ba16dc5443ae2b1c83cce544a35db84af97d04aeca6018654fe9e0",
+      "ef38e31e889fd15722e984178846cdfc1089eccdce25ae0f2f1f7f063718a12c",
     "plugins/src/base/rules/reference/upstream-to-lisa.md":
       "e98974e4f48af05f788323c92badae6a97a2feec1ca8e8a9c05ddc3e3c948492",
     "plugins/src/base/rules/reference/usage-accounting.md":
@@ -1359,7 +1367,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-analyze-claude-remote/SKILL.md":
       "2579f5af46264c6e42543b2ecfeb51f2cbf26f0a35a4c4f147a1353d785c2d16",
     "plugins/src/base/skills/lisa-atlassian-access/SKILL.md":
-      "9c4ce4c7f9c0eeec22b43d0a9e0f28c8496e4dce2f4b1dfc87dc96a15074b8c7",
+      "3207312b60a7e14539d81be57fa8035e6ef552d81957b383f974f548dc1f1af1",
     "plugins/src/base/skills/lisa-atlassian-access/scripts/markdown-to-adf.mjs":
       "8ea94fa2b3fbe860cee365a6dd935a0f7ef9e749a2ab59c8b8dfc1838cdb0d37",
     "plugins/src/base/skills/lisa-attribute-failure/SKILL.md":
@@ -1419,9 +1427,9 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-github-add-journey/SKILL.md":
       "4ceda3474a9b32abae835c2676e8cb2b7e888c6ba04b95843dbe7254293bbf32",
     "plugins/src/base/skills/lisa-github-build-intake/SKILL.md":
-      "7f57561de7ab16b2187129866d8aa0b420bb676cd8b0fd9bb90d206da5686bbd",
+      "b70a5eb758361438b759064048767a4fcfc0a85b4a512cca9737e885a2a2cd18",
     "plugins/src/base/skills/lisa-github-claim/SKILL.md":
-      "71301c6d45d7eb5523e74aa7f070bb2becf57ca68fb8bde9e02ee937b78815f7",
+      "61219f568494a0775125ed1984bdf6adc707074fcdf8751a0b310ae2e1a903b3",
     "plugins/src/base/skills/lisa-github-create/SKILL.md":
       "2128a5069c2663a6a33cef7d0465e672682429b176183e101d3ea65f276a1b93",
     "plugins/src/base/skills/lisa-github-evidence/SKILL.md":
@@ -1433,7 +1441,9 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-github-project-v2/SKILL.md":
       "80fac6d91ae36c6e130c220d9d35c5a20e6610d790fbb91343503f49cdb9ec3a",
     "plugins/src/base/skills/lisa-github-read-issue/SKILL.md":
-      "fdd57e2c9f9f271a410d2532260eb3e58cefaeb58d3e53743c865bd303ec1367",
+      "62246fbf735ddf9a8816c1ec88ec2f221d70915a446db1a96e7b91e93abb5720",
+    "plugins/src/base/skills/lisa-github-read-issue/read-contract.mjs":
+      "7af558c65788a517a988576e56ecadc1860006c114b74f3ef0986531e39ab0e3",
     "plugins/src/base/skills/lisa-github-sync/SKILL.md":
       "3ecdd4bf91f1dd409cf2a8bd82b998cb7f9220e5e592195a0fa4040f4e53f6c6",
     "plugins/src/base/skills/lisa-github-to-tracker/SKILL.md":
@@ -1451,7 +1461,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-health/SKILL.md":
       "dfdb08a863e78bff42671793dcec29cfae0654db18ebf66a4aa77aeb56ddb775",
     "plugins/src/base/skills/lisa-implement/SKILL.md":
-      "04d0b2fd7db66573100c05cdde156b1bbd46072d123d477f731342679445b136",
+      "41cbebc2690d0bff0d2de59bc1038cbd7c9c92a467925b67d58f525ea0130a37",
     "plugins/src/base/skills/lisa-improve-code-complexity/SKILL.md":
       "24ab5b193b409db6ee6bee981a1c0a48d08991782d7846116ad01658c8bc1ae8",
     "plugins/src/base/skills/lisa-improve-harness/SKILL.md":
@@ -1473,9 +1483,9 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-jira-add-journey/SKILL.md":
       "a00606cc7927f034e847f34d7e44e72fa7f3a14ddf6a469deb7eae1e06531fd7",
     "plugins/src/base/skills/lisa-jira-build-intake/SKILL.md":
-      "a6cdec3ebf1d9471e575a43cd7483f3302696be36d3305a149a54cf8d212e2e2",
+      "6d2a91b1def6076d6175fc190cc5375b87750b0e88fe307215fa102bb029d40c",
     "plugins/src/base/skills/lisa-jira-claim/SKILL.md":
-      "9c4935441a4e6b55df0949178f96e927184c4909bffff8929b39a304bc5ac00a",
+      "a69890c29b5f8f5d93c54bb92bd47de5e4eb80a09e9c24bdc3158b1e2fd3c715",
     "plugins/src/base/skills/lisa-jira-create/SKILL.md":
       "77078002d2a16e0b2a65725f4e86b13caa1c43ba193eb37beb5b7da20feed3f1",
     "plugins/src/base/skills/lisa-jira-evidence/SKILL.md":
@@ -1511,9 +1521,9 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-linear-add-journey/SKILL.md":
       "e63ae35df1a928dac7b42535ce11e77e8c617e60838ba319f22081400e87886e",
     "plugins/src/base/skills/lisa-linear-build-intake/SKILL.md":
-      "a7ecab2631339e0c86ca70c1cc514e269fb4bfbefaccf39d627dcf84d718df03",
+      "4ee2dc7c97eba2eed09292927152117a8df90fab451ec4a2375bb0fba5fbe17d",
     "plugins/src/base/skills/lisa-linear-claim/SKILL.md":
-      "efde30b5eac8b2cc56499ce391bd3d43ebb017c4ce948b5d547b52acb66715bb",
+      "9d3e5390fc5d23d849c119425764a776cf5700437f87ef1f3a8e9014b4163b92",
     "plugins/src/base/skills/lisa-linear-create/SKILL.md":
       "b9b0b89903fc980e7b591109cffcf377f7397cc6c7b6110975d0b21bafb6de2e",
     "plugins/src/base/skills/lisa-linear-evidence/SKILL.md":
@@ -1545,7 +1555,9 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-nightly-lower-code-complexity/SKILL.md":
       "3fc2c519f3536d37daf0df147b9812d59ccac29a5fcc63225c93da20f3497eb7",
     "plugins/src/base/skills/lisa-notion-access/SKILL.md":
-      "732959f33da58c53648283ce70f3e21d13ddea66a1062a1921c95b7f531b2c00",
+      "678f26e8c1598efd3c7ba646be9d9b48f46b1fe1266a7c87d47295e930fbfc7c",
+    "plugins/src/base/skills/lisa-notion-access/scripts/readiness-probe.mjs":
+      "d13312cda4f4bbde4b35f2ad49e0a253827b8c0cfe626b87e503772060194495",
     "plugins/src/base/skills/lisa-notion-prd-intake/SKILL.md":
       "cf9be0a2173782696e2c1d2fcbc2fc2ae29c0eefa3815ae951f5afef7d029c94",
     "plugins/src/base/skills/lisa-notion-to-tracker/SKILL.md":
@@ -1626,6 +1638,10 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "7f6acaa7ac13f31ebbd12e41000b5796536f1fe708684e59f79ab23b85ee08f0",
     "plugins/src/base/skills/lisa-secrets-access/scripts/bootstrap-store.mjs":
       "35169ea70810f7b7291d75c93ec326e0ac04407bf335949b0742e74e69850ec4",
+    "plugins/src/base/skills/lisa-secrets-access/scripts/config-files.mjs":
+      "bb27649f9293cb1834b7af156ac1d4e976dd284812d837f136692ffca4458a2a",
+    "plugins/src/base/skills/lisa-secrets-access/scripts/config-layers.mjs":
+      "3ceb2d73766b18eb91d92ca0945e767439e384debbb17a8d3903c3d52277e8d1",
     "plugins/src/base/skills/lisa-secrets-access/scripts/doctor-secrets.mjs":
       "71fd7a3f26d7e4424bb8ef80caaaa3db136595a5b9e620a32084a00521277ba3",
     "plugins/src/base/skills/lisa-secrets-access/scripts/envfile.mjs":
@@ -1639,11 +1655,11 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-secrets-access/scripts/owner.mjs":
       "576b146e3f60306967b15e382105fe8a27644965b9fbb2870f701b042952461a",
     "plugins/src/base/skills/lisa-secrets-access/scripts/preflight-secrets.mjs":
-      "b9ac78a7b95d0f0c4617acf76d61d165df647f185797f14826dfa69b8c231b70",
+      "290072f40a19ad3153f013a8b3eea9cb10cebf173cbb22b3159b90e3b14c87aa",
     "plugins/src/base/skills/lisa-secrets-access/scripts/prompt-secret.mjs":
       "22b28bcdf49b9b0fcd1b15639e031655efacc028b74d48d57e2275f3e1557508",
     "plugins/src/base/skills/lisa-secrets-access/scripts/providers.mjs":
-      "46996ea3e23f9284face2cdbc3ac2e5f23295ac4b6f5b81a42633cce2ed06268",
+      "a96af928ba1f0f02ed8ef16fa69c39e5a018b9b828f329389c85f001f32b4941",
     "plugins/src/base/skills/lisa-secrets-access/scripts/publish-aws-bootstrap.mjs":
       "cca130bdd73b73c807baffc660510a37c3d7504ad0d6959a4bd28b141caf21db",
     "plugins/src/base/skills/lisa-secrets-access/scripts/read-secret-note.mjs":
@@ -1655,15 +1671,45 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-secrets-access/scripts/rotate-secret.mjs":
       "adada60f766760395858c69ef784654e9e096943485ed237c395c8fc2ca8e20f",
     "plugins/src/base/skills/lisa-secrets-access/scripts/routing-floor.mjs":
-      "fa1bdeda4e38bbd149f993ab0288f11b7ba6f2a3b9bf91a5918de7356e21f786",
+      "f6de84485d08552db0085e64d3d1788e58e07cd4128d2e52da5930aa3d9f6fa8",
     "plugins/src/base/skills/lisa-secrets-access/scripts/surfaces.mjs":
-      "d702dff9534b2cdbb0433320571d46bbf8e45eea8a57eb99c8d928907ccbcc29",
+      "be10b0705d563cf01eb7ee6e689336d162d362d09d8390b2c2a6a9c14cc5932b",
     "plugins/src/base/skills/lisa-secrets-access/scripts/sync-secret-to-ci.mjs":
       "b732c7ac19d1bf99d0ff5876100d1ddfb2543a90377c1ed79760fb3fb9102875",
+    "plugins/src/base/skills/lisa-secrets-access/scripts/task-access.mjs":
+      "2beb4e75b79312121985ba030e3348ede03236af2cc60e8216173ad8ba71e9ee",
+    "plugins/src/base/skills/lisa-secrets-access/scripts/task-action.mjs":
+      "36eaf06246efd650d005b0df472b1d7d9d3db9703f13ccdadb9369ff5d0019cd",
+    "plugins/src/base/skills/lisa-secrets-access/scripts/task-atlassian-native.mjs":
+      "c083046ff83524967f85cbaceb65cbf095e3d6f73bd5d768e57ec0553259546b",
+    "plugins/src/base/skills/lisa-secrets-access/scripts/task-context-data.mjs":
+      "14a1a873e92e45cc4e1f50ca6bf93484ad78315249e39c62772c6e4d2d305eed",
+    "plugins/src/base/skills/lisa-secrets-access/scripts/task-context-write.mjs":
+      "de1fb8167cacefcdccdad7763ea97d13d096675906403666b8a13670ba5f0f1d",
+    "plugins/src/base/skills/lisa-secrets-access/scripts/task-github.mjs":
+      "d8e2bd72294ee6b031545348c8d45e2d0d4837bb9c98b46f930d5d9bee3b8ab0",
+    "plugins/src/base/skills/lisa-secrets-access/scripts/task-intake-read.mjs":
+      "2677b52246610ca0eae4a74b95acedc5aec90fdbbbe1d413908119487b021bf1",
+    "plugins/src/base/skills/lisa-secrets-access/scripts/task-intake.mjs":
+      "36f66c6c20e3e06e2e3e0ac967721819315ddad586b0d69f9e3efb48625b2d54",
+    "plugins/src/base/skills/lisa-secrets-access/scripts/task-native-context.mjs":
+      "0d91e2d565cab388e25b5d0dfa64443ee6f29b28bdf429e6c86ac1e57734a61c",
+    "plugins/src/base/skills/lisa-secrets-access/scripts/task-native-contract.mjs":
+      "704601a56db28a1d4694c29ea3a20fba8c60b0a8b8350b859914d125fc9f7de8",
+    "plugins/src/base/skills/lisa-secrets-access/scripts/task-native-flow.mjs":
+      "e8880f8cfd8ee239a30bb4311d4db99ac587221ac68f056ee24216a9f70ad62d",
+    "plugins/src/base/skills/lisa-secrets-access/scripts/task-native-lifecycle.mjs":
+      "82b2cd93dcd35fd05e9d67516b83da7d0524556b3c627b0cf0f9a2361e137f06",
+    "plugins/src/base/skills/lisa-secrets-access/scripts/task-native-state.mjs":
+      "1125f4ed73ccec4c85ef5a117d1e6b79ac0dd22a4bf784affe6ec5f9ad977e4f",
+    "plugins/src/base/skills/lisa-secrets-access/scripts/task-readiness.mjs":
+      "e87f06cd8bd680e2ee450fa5e8dd5bfd8da1a0040ddf07cf4727cac1a4a0dd18",
+    "plugins/src/base/skills/lisa-secrets-access/scripts/task-requirements.mjs":
+      "04eb370cb0cb7c44faae97a34018a479c03149e7a64422803551bfd4ab2f9d39",
     "plugins/src/base/skills/lisa-secrets-access/scripts/tools-from-notes.mjs":
       "360f740cac081151491428043b04fec2f5db6f3ba36394f7378af312396d53ca",
     "plugins/src/base/skills/lisa-secrets-access/scripts/validate-config.mjs":
-      "a20960898b63db8850b6253228fb39d2e1c94b999440aa8977166bbbe7aee93f",
+      "f9882c41fe49c24420695693dfbf344f101192cdf391ce40f0062629aff77e28",
     "plugins/src/base/skills/lisa-security-review/SKILL.md":
       "5a980eaf5efc4fcce66e75521ec5b1eda143a5b0d36e7157234a705dac94e3f5",
     "plugins/src/base/skills/lisa-security-zap-scan/SKILL.md":
@@ -1799,13 +1845,13 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-ticket-triage/SKILL.md":
       "a4f2e75ee3792418aa3b6621f83c75832eea85ffe670e26e74da808611dcf34f",
     "plugins/src/base/skills/lisa-track/SKILL.md":
-      "0e1410e64144b13f28945c3c56dbc391ee0c299915fa51402649c3b93e33a1ec",
+      "657cfc82c4cf3550d6b3d5e5d80ecc1828d474b3b14d61bb54e76988c1f71406",
     "plugins/src/base/skills/lisa-tracker-add-journey/SKILL.md":
       "a3da2e0350bcdebcdcc05f2d7931af868382638d3a28d09d4718f2f458d4be0a",
     "plugins/src/base/skills/lisa-tracker-build-intake/SKILL.md":
       "aefaa429c6c8fc1361bbc60e8740f5e7ad4539580c65c408a8fc5ddab5cebcd1",
     "plugins/src/base/skills/lisa-tracker-claim/SKILL.md":
-      "481922dba26c4e62ae36193a2e1565860aecf7e344bf5c37b3a0759f42676846",
+      "04ab7cdf3d3e9cd3abd02158940135e3f5478b7b6727086737c8b186145eacb3",
     "plugins/src/base/skills/lisa-tracker-create/SKILL.md":
       "e8419ac02fa25d91a16eb0899d44f052e6da2884a3905a03a9e7ca4a8ddef7b4",
     "plugins/src/base/skills/lisa-tracker-evidence/SKILL.md":
@@ -2555,7 +2601,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "rails/merge/.claude/settings.json":
       "01174bd607fe8166e3b588a5679940e598a7b81affae7cd318d4efe47375c156",
     "scripts/build-plugins.sh":
-      "e66174eb6da5604628650b86b647a093909be6ea13273590178ed5665c95b445",
+      "d67feec99b3f93cab6ed076ee7f1ba7de4a7946b46af18f6d4dc159fbcf998fa",
     "scripts/check-cwd-resolution-corpus.mjs":
       "117248694ca2a0dc48f8e22c2a5169791fec554b3dcf61ab6cda210d84185017",
     "scripts/check-deletion-basis.mjs":
@@ -2639,7 +2685,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/copy-codex-scripts.mjs":
       "2d7082d5033088c85f66995aee9e3ee1e7751435e65bfde8e1cb002e6689d476",
     "scripts/copy-opencode-plugin-templates.mjs":
-      "c87d1759b02d20212da37d38b7860d82770c1067ebbe885c8ab6451840fafb60",
+      "91d16832178791558973f1f957601d83fa7dfc17d5360e8e39629b7b257db34c",
     "scripts/deployed-guard-advice.mjs":
       "c7471b6972b26bb0c2a66c680feb4980ec67d3dbd92732f48fe76c72ed7790f5",
     "scripts/detect-stale-workflow-inputs.mjs":
@@ -2653,7 +2699,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/fix-test-assertions.mjs":
       "59b5e8cc31e7c7323d20bd180f2ae97c08a9685758483b6fe00ba77317a845f2",
     "scripts/generate-agy-plugin-artifacts.mjs":
-      "19bee3087ff1fedc79550f75cb021dc59b5b4466daa6261adb788ef13bb8c2b6",
+      "158b8155b4b38faa33019641b829de800b0ead297ba91f6e6a18b98618f5ab52",
     "scripts/generate-codex-plugin-artifacts.mjs":
       "3216e23962884cf2610e65ae95a6b6b28cc23b7bd93d0254aebbcc0f6c7ee827",
     "scripts/generate-copilot-plugin-artifacts.mjs":
@@ -2717,7 +2763,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/lib/nest-plugin-commands.mjs":
       "c52b2f48edbc17edcc60ae33536549829cbc279c60c5d85d912ac6609cae9bea",
     "scripts/lib/per-agent-hook-filter.mjs":
-      "375abb50dd7aacd1df5cdea0b4d944db0a7d4abf7cc42f8ab0fefedc6ee92d8b",
+      "d76eacfff1bf6f170e52e511118e241f59b9639e98ecef7051f162c9cbf028eb",
     "scripts/lib/plugin-cache-resolution.mjs":
       "47a564e2f9d46c0a955defe8eb924f86d7a273098e6ccb118e10f9eeecf3950c",
     "scripts/lib/plugin-rule-citations.mjs":
@@ -2755,9 +2801,9 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/lisa-enforcement-census.mjs":
       "41490f30f30cbb5ff05454a52caa1d3286db225667847eee22b7b994809e64d4",
     "scripts/lisa-enforcement-fallback.sh":
-      "7d2c1d27ef8a7463005dffbe679bb5654cede2eb896c03dace9ed28c090af6b7",
+      "f5ac282f2fd402ee945089b27544bf0ca8af33386930dca03cc329d9de4ec74c",
     "scripts/lisa-enforcement-freshness.mjs":
-      "e40fafc358ca76c8bf1ae6479af4ec94dbdda0aa3b544d414b85ab5272a25d08",
+      "f858ff4f9da5e42fe27b1d8e071eeab3224ede1c9720d6902af30708b074b132",
     "scripts/lisa-github-environments.sh":
       "0a76e92f108519abaf3e29991299ec3b0db20ea533e69e6d2a53d802dba9c370",
     "scripts/lisa-github-repo-settings.sh":
@@ -2813,7 +2859,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/test-intent-routing.sh":
       "97b9dc86cbd805df8a7fdb8c99ffab9b8c5e751ba2e84c05420b2a124f80635d",
     "scripts/two-channel-couplings.json":
-      "5b260014c7ed9fddccfc5a44c0b4bfc44a70d40cc058e956ff16efb149e5b33b",
+      "efa2214553465ac6dac34c4858a5af797028e1f4e921188ee5ac07ea8100def2",
     "scripts/update-node-version.ts":
       "9d37599ef73d5d624751f862cda330a867f6774392c1ab045b4fc885132582e4",
     "scripts/update-test-skill-paths.mjs":
@@ -3301,6 +3347,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "all/copy-overwrite/scripts/lisa-hooks/parity-safety-net-heredoc.py": true,
     "all/copy-overwrite/scripts/lisa-hooks/parity-safety-net.sh": true,
     "all/copy-overwrite/scripts/lisa-hooks/sonar-secrets.sh": true,
+    "all/copy-overwrite/scripts/lisa-hooks/task-readiness-guard.sh": true,
     "all/copy-overwrite/scripts/lisa-hooks/worktree-binding-guard.mjs": true,
     "all/copy-overwrite/scripts/lisa-hooks/worktree-binding-guard.sh": true,
     "all/copy-overwrite/scripts/lisa-lint-staged-preflight.mjs": true,
@@ -4294,6 +4341,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-agy/hooks/parity-safety-net-heredoc.py": true,
     "plugins/lisa-agy/hooks/parity-safety-net.agy.sh": true,
     "plugins/lisa-agy/hooks/parity-safety-net.sh": true,
+    "plugins/lisa-agy/hooks/secrets-preflight.agy.sh": true,
+    "plugins/lisa-agy/hooks/secrets-preflight.sh": true,
     "plugins/lisa-agy/plugin.json": true,
     "plugins/lisa-agy/scripts/automation-run-record.mjs": true,
     "plugins/lisa-agy/scripts/automation-status-claude-adapter.mjs": true,
@@ -4371,6 +4420,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-agy/skills/lisa-github-prd-intake/SKILL.md": true,
     "plugins/lisa-agy/skills/lisa-github-project-v2/SKILL.md": true,
     "plugins/lisa-agy/skills/lisa-github-read-issue/SKILL.md": true,
+    "plugins/lisa-agy/skills/lisa-github-read-issue/read-contract.mjs": true,
     "plugins/lisa-agy/skills/lisa-github-sync/SKILL.md": true,
     "plugins/lisa-agy/skills/lisa-github-to-tracker/SKILL.md": true,
     "plugins/lisa-agy/skills/lisa-github-validate-issue/SKILL.md": true,
@@ -4427,6 +4477,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-agy/skills/lisa-nightly-improve-tests/SKILL.md": true,
     "plugins/lisa-agy/skills/lisa-nightly-lower-code-complexity/SKILL.md": true,
     "plugins/lisa-agy/skills/lisa-notion-access/SKILL.md": true,
+    "plugins/lisa-agy/skills/lisa-notion-access/scripts/readiness-probe.mjs": true,
     "plugins/lisa-agy/skills/lisa-notion-prd-intake/SKILL.md": true,
     "plugins/lisa-agy/skills/lisa-notion-to-tracker/SKILL.md": true,
     "plugins/lisa-agy/skills/lisa-notion-write-prd/SKILL.md": true,
@@ -4466,6 +4517,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-agy/skills/lisa-secrets-access/SKILL.md": true,
     "plugins/lisa-agy/skills/lisa-secrets-access/scripts/aws-bootstrap.mjs": true,
     "plugins/lisa-agy/skills/lisa-secrets-access/scripts/bootstrap-store.mjs": true,
+    "plugins/lisa-agy/skills/lisa-secrets-access/scripts/config-files.mjs": true,
+    "plugins/lisa-agy/skills/lisa-secrets-access/scripts/config-layers.mjs": true,
     "plugins/lisa-agy/skills/lisa-secrets-access/scripts/doctor-secrets.mjs": true,
     "plugins/lisa-agy/skills/lisa-secrets-access/scripts/envfile.mjs": true,
     "plugins/lisa-agy/skills/lisa-secrets-access/scripts/inspect-vault.mjs": true,
@@ -4483,6 +4536,21 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-agy/skills/lisa-secrets-access/scripts/routing-floor.mjs": true,
     "plugins/lisa-agy/skills/lisa-secrets-access/scripts/surfaces.mjs": true,
     "plugins/lisa-agy/skills/lisa-secrets-access/scripts/sync-secret-to-ci.mjs": true,
+    "plugins/lisa-agy/skills/lisa-secrets-access/scripts/task-access.mjs": true,
+    "plugins/lisa-agy/skills/lisa-secrets-access/scripts/task-action.mjs": true,
+    "plugins/lisa-agy/skills/lisa-secrets-access/scripts/task-atlassian-native.mjs": true,
+    "plugins/lisa-agy/skills/lisa-secrets-access/scripts/task-context-data.mjs": true,
+    "plugins/lisa-agy/skills/lisa-secrets-access/scripts/task-context-write.mjs": true,
+    "plugins/lisa-agy/skills/lisa-secrets-access/scripts/task-github.mjs": true,
+    "plugins/lisa-agy/skills/lisa-secrets-access/scripts/task-intake-read.mjs": true,
+    "plugins/lisa-agy/skills/lisa-secrets-access/scripts/task-intake.mjs": true,
+    "plugins/lisa-agy/skills/lisa-secrets-access/scripts/task-native-context.mjs": true,
+    "plugins/lisa-agy/skills/lisa-secrets-access/scripts/task-native-contract.mjs": true,
+    "plugins/lisa-agy/skills/lisa-secrets-access/scripts/task-native-flow.mjs": true,
+    "plugins/lisa-agy/skills/lisa-secrets-access/scripts/task-native-lifecycle.mjs": true,
+    "plugins/lisa-agy/skills/lisa-secrets-access/scripts/task-native-state.mjs": true,
+    "plugins/lisa-agy/skills/lisa-secrets-access/scripts/task-readiness.mjs": true,
+    "plugins/lisa-agy/skills/lisa-secrets-access/scripts/task-requirements.mjs": true,
     "plugins/lisa-agy/skills/lisa-secrets-access/scripts/tools-from-notes.mjs": true,
     "plugins/lisa-agy/skills/lisa-secrets-access/scripts/validate-config.mjs": true,
     "plugins/lisa-agy/skills/lisa-security-review/SKILL.md": true,
@@ -4725,6 +4793,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-copilot/hooks/setup-jira-cli.sh": true,
     "plugins/lisa-copilot/hooks/shell-write-nudge.sh": true,
     "plugins/lisa-copilot/hooks/sonar-secrets.sh": true,
+    "plugins/lisa-copilot/hooks/task-readiness-guard.mjs": true,
+    "plugins/lisa-copilot/hooks/task-readiness-guard.sh": true,
     "plugins/lisa-copilot/hooks/threshold-ratchet-compare.mjs": true,
     "plugins/lisa-copilot/hooks/threshold-ratchet-families.mjs": true,
     "plugins/lisa-copilot/hooks/threshold-ratchet.mjs": true,
@@ -4896,6 +4966,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-copilot/skills/lisa-github-prd-intake/SKILL.md": true,
     "plugins/lisa-copilot/skills/lisa-github-project-v2/SKILL.md": true,
     "plugins/lisa-copilot/skills/lisa-github-read-issue/SKILL.md": true,
+    "plugins/lisa-copilot/skills/lisa-github-read-issue/read-contract.mjs": true,
     "plugins/lisa-copilot/skills/lisa-github-sync/SKILL.md": true,
     "plugins/lisa-copilot/skills/lisa-github-to-tracker/SKILL.md": true,
     "plugins/lisa-copilot/skills/lisa-github-validate-issue/SKILL.md": true,
@@ -4952,6 +5023,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-copilot/skills/lisa-nightly-improve-tests/SKILL.md": true,
     "plugins/lisa-copilot/skills/lisa-nightly-lower-code-complexity/SKILL.md": true,
     "plugins/lisa-copilot/skills/lisa-notion-access/SKILL.md": true,
+    "plugins/lisa-copilot/skills/lisa-notion-access/scripts/readiness-probe.mjs": true,
     "plugins/lisa-copilot/skills/lisa-notion-prd-intake/SKILL.md": true,
     "plugins/lisa-copilot/skills/lisa-notion-to-tracker/SKILL.md": true,
     "plugins/lisa-copilot/skills/lisa-notion-write-prd/SKILL.md": true,
@@ -4991,6 +5063,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-copilot/skills/lisa-secrets-access/SKILL.md": true,
     "plugins/lisa-copilot/skills/lisa-secrets-access/scripts/aws-bootstrap.mjs": true,
     "plugins/lisa-copilot/skills/lisa-secrets-access/scripts/bootstrap-store.mjs": true,
+    "plugins/lisa-copilot/skills/lisa-secrets-access/scripts/config-files.mjs": true,
+    "plugins/lisa-copilot/skills/lisa-secrets-access/scripts/config-layers.mjs": true,
     "plugins/lisa-copilot/skills/lisa-secrets-access/scripts/doctor-secrets.mjs": true,
     "plugins/lisa-copilot/skills/lisa-secrets-access/scripts/envfile.mjs": true,
     "plugins/lisa-copilot/skills/lisa-secrets-access/scripts/inspect-vault.mjs": true,
@@ -5008,6 +5082,21 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-copilot/skills/lisa-secrets-access/scripts/routing-floor.mjs": true,
     "plugins/lisa-copilot/skills/lisa-secrets-access/scripts/surfaces.mjs": true,
     "plugins/lisa-copilot/skills/lisa-secrets-access/scripts/sync-secret-to-ci.mjs": true,
+    "plugins/lisa-copilot/skills/lisa-secrets-access/scripts/task-access.mjs": true,
+    "plugins/lisa-copilot/skills/lisa-secrets-access/scripts/task-action.mjs": true,
+    "plugins/lisa-copilot/skills/lisa-secrets-access/scripts/task-atlassian-native.mjs": true,
+    "plugins/lisa-copilot/skills/lisa-secrets-access/scripts/task-context-data.mjs": true,
+    "plugins/lisa-copilot/skills/lisa-secrets-access/scripts/task-context-write.mjs": true,
+    "plugins/lisa-copilot/skills/lisa-secrets-access/scripts/task-github.mjs": true,
+    "plugins/lisa-copilot/skills/lisa-secrets-access/scripts/task-intake-read.mjs": true,
+    "plugins/lisa-copilot/skills/lisa-secrets-access/scripts/task-intake.mjs": true,
+    "plugins/lisa-copilot/skills/lisa-secrets-access/scripts/task-native-context.mjs": true,
+    "plugins/lisa-copilot/skills/lisa-secrets-access/scripts/task-native-contract.mjs": true,
+    "plugins/lisa-copilot/skills/lisa-secrets-access/scripts/task-native-flow.mjs": true,
+    "plugins/lisa-copilot/skills/lisa-secrets-access/scripts/task-native-lifecycle.mjs": true,
+    "plugins/lisa-copilot/skills/lisa-secrets-access/scripts/task-native-state.mjs": true,
+    "plugins/lisa-copilot/skills/lisa-secrets-access/scripts/task-readiness.mjs": true,
+    "plugins/lisa-copilot/skills/lisa-secrets-access/scripts/task-requirements.mjs": true,
     "plugins/lisa-copilot/skills/lisa-secrets-access/scripts/tools-from-notes.mjs": true,
     "plugins/lisa-copilot/skills/lisa-secrets-access/scripts/validate-config.mjs": true,
     "plugins/lisa-copilot/skills/lisa-security-review/SKILL.md": true,
@@ -5233,6 +5322,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-cursor/hooks/setup-jira-cli.sh": true,
     "plugins/lisa-cursor/hooks/shell-write-nudge.sh": true,
     "plugins/lisa-cursor/hooks/sonar-secrets.sh": true,
+    "plugins/lisa-cursor/hooks/task-readiness-guard.mjs": true,
+    "plugins/lisa-cursor/hooks/task-readiness-guard.sh": true,
     "plugins/lisa-cursor/hooks/threshold-ratchet-compare.mjs": true,
     "plugins/lisa-cursor/hooks/threshold-ratchet-families.mjs": true,
     "plugins/lisa-cursor/hooks/threshold-ratchet.mjs": true,
@@ -5405,6 +5496,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-cursor/skills/lisa-github-prd-intake/SKILL.md": true,
     "plugins/lisa-cursor/skills/lisa-github-project-v2/SKILL.md": true,
     "plugins/lisa-cursor/skills/lisa-github-read-issue/SKILL.md": true,
+    "plugins/lisa-cursor/skills/lisa-github-read-issue/read-contract.mjs": true,
     "plugins/lisa-cursor/skills/lisa-github-sync/SKILL.md": true,
     "plugins/lisa-cursor/skills/lisa-github-to-tracker/SKILL.md": true,
     "plugins/lisa-cursor/skills/lisa-github-validate-issue/SKILL.md": true,
@@ -5461,6 +5553,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-cursor/skills/lisa-nightly-improve-tests/SKILL.md": true,
     "plugins/lisa-cursor/skills/lisa-nightly-lower-code-complexity/SKILL.md": true,
     "plugins/lisa-cursor/skills/lisa-notion-access/SKILL.md": true,
+    "plugins/lisa-cursor/skills/lisa-notion-access/scripts/readiness-probe.mjs": true,
     "plugins/lisa-cursor/skills/lisa-notion-prd-intake/SKILL.md": true,
     "plugins/lisa-cursor/skills/lisa-notion-to-tracker/SKILL.md": true,
     "plugins/lisa-cursor/skills/lisa-notion-write-prd/SKILL.md": true,
@@ -5500,6 +5593,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-cursor/skills/lisa-secrets-access/SKILL.md": true,
     "plugins/lisa-cursor/skills/lisa-secrets-access/scripts/aws-bootstrap.mjs": true,
     "plugins/lisa-cursor/skills/lisa-secrets-access/scripts/bootstrap-store.mjs": true,
+    "plugins/lisa-cursor/skills/lisa-secrets-access/scripts/config-files.mjs": true,
+    "plugins/lisa-cursor/skills/lisa-secrets-access/scripts/config-layers.mjs": true,
     "plugins/lisa-cursor/skills/lisa-secrets-access/scripts/doctor-secrets.mjs": true,
     "plugins/lisa-cursor/skills/lisa-secrets-access/scripts/envfile.mjs": true,
     "plugins/lisa-cursor/skills/lisa-secrets-access/scripts/inspect-vault.mjs": true,
@@ -5517,6 +5612,21 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-cursor/skills/lisa-secrets-access/scripts/routing-floor.mjs": true,
     "plugins/lisa-cursor/skills/lisa-secrets-access/scripts/surfaces.mjs": true,
     "plugins/lisa-cursor/skills/lisa-secrets-access/scripts/sync-secret-to-ci.mjs": true,
+    "plugins/lisa-cursor/skills/lisa-secrets-access/scripts/task-access.mjs": true,
+    "plugins/lisa-cursor/skills/lisa-secrets-access/scripts/task-action.mjs": true,
+    "plugins/lisa-cursor/skills/lisa-secrets-access/scripts/task-atlassian-native.mjs": true,
+    "plugins/lisa-cursor/skills/lisa-secrets-access/scripts/task-context-data.mjs": true,
+    "plugins/lisa-cursor/skills/lisa-secrets-access/scripts/task-context-write.mjs": true,
+    "plugins/lisa-cursor/skills/lisa-secrets-access/scripts/task-github.mjs": true,
+    "plugins/lisa-cursor/skills/lisa-secrets-access/scripts/task-intake-read.mjs": true,
+    "plugins/lisa-cursor/skills/lisa-secrets-access/scripts/task-intake.mjs": true,
+    "plugins/lisa-cursor/skills/lisa-secrets-access/scripts/task-native-context.mjs": true,
+    "plugins/lisa-cursor/skills/lisa-secrets-access/scripts/task-native-contract.mjs": true,
+    "plugins/lisa-cursor/skills/lisa-secrets-access/scripts/task-native-flow.mjs": true,
+    "plugins/lisa-cursor/skills/lisa-secrets-access/scripts/task-native-lifecycle.mjs": true,
+    "plugins/lisa-cursor/skills/lisa-secrets-access/scripts/task-native-state.mjs": true,
+    "plugins/lisa-cursor/skills/lisa-secrets-access/scripts/task-readiness.mjs": true,
+    "plugins/lisa-cursor/skills/lisa-secrets-access/scripts/task-requirements.mjs": true,
     "plugins/lisa-cursor/skills/lisa-secrets-access/scripts/tools-from-notes.mjs": true,
     "plugins/lisa-cursor/skills/lisa-secrets-access/scripts/validate-config.mjs": true,
     "plugins/lisa-cursor/skills/lisa-security-review/SKILL.md": true,
@@ -5673,6 +5783,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-devin/hooks/setup-jira-cli.sh": true,
     "plugins/lisa-devin/hooks/shell-write-nudge.sh": true,
     "plugins/lisa-devin/hooks/sonar-secrets.sh": true,
+    "plugins/lisa-devin/hooks/task-readiness-guard.mjs": true,
+    "plugins/lisa-devin/hooks/task-readiness-guard.sh": true,
     "plugins/lisa-devin/hooks/threshold-ratchet-compare.mjs": true,
     "plugins/lisa-devin/hooks/threshold-ratchet-families.mjs": true,
     "plugins/lisa-devin/hooks/threshold-ratchet.mjs": true,
@@ -5844,6 +5956,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-devin/skills/lisa-github-prd-intake/SKILL.md": true,
     "plugins/lisa-devin/skills/lisa-github-project-v2/SKILL.md": true,
     "plugins/lisa-devin/skills/lisa-github-read-issue/SKILL.md": true,
+    "plugins/lisa-devin/skills/lisa-github-read-issue/read-contract.mjs": true,
     "plugins/lisa-devin/skills/lisa-github-sync/SKILL.md": true,
     "plugins/lisa-devin/skills/lisa-github-to-tracker/SKILL.md": true,
     "plugins/lisa-devin/skills/lisa-github-validate-issue/SKILL.md": true,
@@ -5900,6 +6013,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-devin/skills/lisa-nightly-improve-tests/SKILL.md": true,
     "plugins/lisa-devin/skills/lisa-nightly-lower-code-complexity/SKILL.md": true,
     "plugins/lisa-devin/skills/lisa-notion-access/SKILL.md": true,
+    "plugins/lisa-devin/skills/lisa-notion-access/scripts/readiness-probe.mjs": true,
     "plugins/lisa-devin/skills/lisa-notion-prd-intake/SKILL.md": true,
     "plugins/lisa-devin/skills/lisa-notion-to-tracker/SKILL.md": true,
     "plugins/lisa-devin/skills/lisa-notion-write-prd/SKILL.md": true,
@@ -5939,6 +6053,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-devin/skills/lisa-secrets-access/SKILL.md": true,
     "plugins/lisa-devin/skills/lisa-secrets-access/scripts/aws-bootstrap.mjs": true,
     "plugins/lisa-devin/skills/lisa-secrets-access/scripts/bootstrap-store.mjs": true,
+    "plugins/lisa-devin/skills/lisa-secrets-access/scripts/config-files.mjs": true,
+    "plugins/lisa-devin/skills/lisa-secrets-access/scripts/config-layers.mjs": true,
     "plugins/lisa-devin/skills/lisa-secrets-access/scripts/doctor-secrets.mjs": true,
     "plugins/lisa-devin/skills/lisa-secrets-access/scripts/envfile.mjs": true,
     "plugins/lisa-devin/skills/lisa-secrets-access/scripts/inspect-vault.mjs": true,
@@ -5956,6 +6072,21 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-devin/skills/lisa-secrets-access/scripts/routing-floor.mjs": true,
     "plugins/lisa-devin/skills/lisa-secrets-access/scripts/surfaces.mjs": true,
     "plugins/lisa-devin/skills/lisa-secrets-access/scripts/sync-secret-to-ci.mjs": true,
+    "plugins/lisa-devin/skills/lisa-secrets-access/scripts/task-access.mjs": true,
+    "plugins/lisa-devin/skills/lisa-secrets-access/scripts/task-action.mjs": true,
+    "plugins/lisa-devin/skills/lisa-secrets-access/scripts/task-atlassian-native.mjs": true,
+    "plugins/lisa-devin/skills/lisa-secrets-access/scripts/task-context-data.mjs": true,
+    "plugins/lisa-devin/skills/lisa-secrets-access/scripts/task-context-write.mjs": true,
+    "plugins/lisa-devin/skills/lisa-secrets-access/scripts/task-github.mjs": true,
+    "plugins/lisa-devin/skills/lisa-secrets-access/scripts/task-intake-read.mjs": true,
+    "plugins/lisa-devin/skills/lisa-secrets-access/scripts/task-intake.mjs": true,
+    "plugins/lisa-devin/skills/lisa-secrets-access/scripts/task-native-context.mjs": true,
+    "plugins/lisa-devin/skills/lisa-secrets-access/scripts/task-native-contract.mjs": true,
+    "plugins/lisa-devin/skills/lisa-secrets-access/scripts/task-native-flow.mjs": true,
+    "plugins/lisa-devin/skills/lisa-secrets-access/scripts/task-native-lifecycle.mjs": true,
+    "plugins/lisa-devin/skills/lisa-secrets-access/scripts/task-native-state.mjs": true,
+    "plugins/lisa-devin/skills/lisa-secrets-access/scripts/task-readiness.mjs": true,
+    "plugins/lisa-devin/skills/lisa-secrets-access/scripts/task-requirements.mjs": true,
     "plugins/lisa-devin/skills/lisa-secrets-access/scripts/tools-from-notes.mjs": true,
     "plugins/lisa-devin/skills/lisa-secrets-access/scripts/validate-config.mjs": true,
     "plugins/lisa-devin/skills/lisa-security-review/SKILL.md": true,
@@ -8165,6 +8296,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa/.codex-plugin/skills/lisa-github-project-v2/agents/openai.yaml": true,
     "plugins/lisa/.codex-plugin/skills/lisa-github-read-issue/SKILL.md": true,
     "plugins/lisa/.codex-plugin/skills/lisa-github-read-issue/agents/openai.yaml": true,
+    "plugins/lisa/.codex-plugin/skills/lisa-github-read-issue/read-contract.mjs": true,
     "plugins/lisa/.codex-plugin/skills/lisa-github-sync/SKILL.md": true,
     "plugins/lisa/.codex-plugin/skills/lisa-github-sync/agents/openai.yaml": true,
     "plugins/lisa/.codex-plugin/skills/lisa-github-to-tracker/SKILL.md": true,
@@ -8273,6 +8405,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa/.codex-plugin/skills/lisa-nightly-lower-code-complexity/agents/openai.yaml": true,
     "plugins/lisa/.codex-plugin/skills/lisa-notion-access/SKILL.md": true,
     "plugins/lisa/.codex-plugin/skills/lisa-notion-access/agents/openai.yaml": true,
+    "plugins/lisa/.codex-plugin/skills/lisa-notion-access/scripts/readiness-probe.mjs": true,
     "plugins/lisa/.codex-plugin/skills/lisa-notion-prd-intake/SKILL.md": true,
     "plugins/lisa/.codex-plugin/skills/lisa-notion-prd-intake/agents/openai.yaml": true,
     "plugins/lisa/.codex-plugin/skills/lisa-notion-to-tracker/SKILL.md": true,
@@ -8343,6 +8476,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa/.codex-plugin/skills/lisa-secrets-access/agents/openai.yaml": true,
     "plugins/lisa/.codex-plugin/skills/lisa-secrets-access/scripts/aws-bootstrap.mjs": true,
     "plugins/lisa/.codex-plugin/skills/lisa-secrets-access/scripts/bootstrap-store.mjs": true,
+    "plugins/lisa/.codex-plugin/skills/lisa-secrets-access/scripts/config-files.mjs": true,
+    "plugins/lisa/.codex-plugin/skills/lisa-secrets-access/scripts/config-layers.mjs": true,
     "plugins/lisa/.codex-plugin/skills/lisa-secrets-access/scripts/doctor-secrets.mjs": true,
     "plugins/lisa/.codex-plugin/skills/lisa-secrets-access/scripts/envfile.mjs": true,
     "plugins/lisa/.codex-plugin/skills/lisa-secrets-access/scripts/inspect-vault.mjs": true,
@@ -8360,6 +8495,21 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa/.codex-plugin/skills/lisa-secrets-access/scripts/routing-floor.mjs": true,
     "plugins/lisa/.codex-plugin/skills/lisa-secrets-access/scripts/surfaces.mjs": true,
     "plugins/lisa/.codex-plugin/skills/lisa-secrets-access/scripts/sync-secret-to-ci.mjs": true,
+    "plugins/lisa/.codex-plugin/skills/lisa-secrets-access/scripts/task-access.mjs": true,
+    "plugins/lisa/.codex-plugin/skills/lisa-secrets-access/scripts/task-action.mjs": true,
+    "plugins/lisa/.codex-plugin/skills/lisa-secrets-access/scripts/task-atlassian-native.mjs": true,
+    "plugins/lisa/.codex-plugin/skills/lisa-secrets-access/scripts/task-context-data.mjs": true,
+    "plugins/lisa/.codex-plugin/skills/lisa-secrets-access/scripts/task-context-write.mjs": true,
+    "plugins/lisa/.codex-plugin/skills/lisa-secrets-access/scripts/task-github.mjs": true,
+    "plugins/lisa/.codex-plugin/skills/lisa-secrets-access/scripts/task-intake-read.mjs": true,
+    "plugins/lisa/.codex-plugin/skills/lisa-secrets-access/scripts/task-intake.mjs": true,
+    "plugins/lisa/.codex-plugin/skills/lisa-secrets-access/scripts/task-native-context.mjs": true,
+    "plugins/lisa/.codex-plugin/skills/lisa-secrets-access/scripts/task-native-contract.mjs": true,
+    "plugins/lisa/.codex-plugin/skills/lisa-secrets-access/scripts/task-native-flow.mjs": true,
+    "plugins/lisa/.codex-plugin/skills/lisa-secrets-access/scripts/task-native-lifecycle.mjs": true,
+    "plugins/lisa/.codex-plugin/skills/lisa-secrets-access/scripts/task-native-state.mjs": true,
+    "plugins/lisa/.codex-plugin/skills/lisa-secrets-access/scripts/task-readiness.mjs": true,
+    "plugins/lisa/.codex-plugin/skills/lisa-secrets-access/scripts/task-requirements.mjs": true,
     "plugins/lisa/.codex-plugin/skills/lisa-secrets-access/scripts/tools-from-notes.mjs": true,
     "plugins/lisa/.codex-plugin/skills/lisa-secrets-access/scripts/validate-config.mjs": true,
     "plugins/lisa/.codex-plugin/skills/lisa-security-review/SKILL.md": true,
@@ -8642,10 +8792,13 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa/hooks/parity-safety-net-heredoc.py": true,
     "plugins/lisa/hooks/parity-safety-net.agy.sh": true,
     "plugins/lisa/hooks/parity-safety-net.sh": true,
+    "plugins/lisa/hooks/secrets-preflight.agy.sh": true,
     "plugins/lisa/hooks/secrets-preflight.sh": true,
     "plugins/lisa/hooks/setup-jira-cli.sh": true,
     "plugins/lisa/hooks/shell-write-nudge.sh": true,
     "plugins/lisa/hooks/sonar-secrets.sh": true,
+    "plugins/lisa/hooks/task-readiness-guard.mjs": true,
+    "plugins/lisa/hooks/task-readiness-guard.sh": true,
     "plugins/lisa/hooks/threshold-ratchet-compare.mjs": true,
     "plugins/lisa/hooks/threshold-ratchet-families.mjs": true,
     "plugins/lisa/hooks/threshold-ratchet.mjs": true,
@@ -8858,6 +9011,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa/skills/lisa-github-project-v2/agents/openai.yaml": true,
     "plugins/lisa/skills/lisa-github-read-issue/SKILL.md": true,
     "plugins/lisa/skills/lisa-github-read-issue/agents/openai.yaml": true,
+    "plugins/lisa/skills/lisa-github-read-issue/read-contract.mjs": true,
     "plugins/lisa/skills/lisa-github-sync/SKILL.md": true,
     "plugins/lisa/skills/lisa-github-sync/agents/openai.yaml": true,
     "plugins/lisa/skills/lisa-github-to-tracker/SKILL.md": true,
@@ -8966,6 +9120,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa/skills/lisa-nightly-lower-code-complexity/agents/openai.yaml": true,
     "plugins/lisa/skills/lisa-notion-access/SKILL.md": true,
     "plugins/lisa/skills/lisa-notion-access/agents/openai.yaml": true,
+    "plugins/lisa/skills/lisa-notion-access/scripts/readiness-probe.mjs": true,
     "plugins/lisa/skills/lisa-notion-prd-intake/SKILL.md": true,
     "plugins/lisa/skills/lisa-notion-prd-intake/agents/openai.yaml": true,
     "plugins/lisa/skills/lisa-notion-to-tracker/SKILL.md": true,
@@ -9036,6 +9191,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa/skills/lisa-secrets-access/agents/openai.yaml": true,
     "plugins/lisa/skills/lisa-secrets-access/scripts/aws-bootstrap.mjs": true,
     "plugins/lisa/skills/lisa-secrets-access/scripts/bootstrap-store.mjs": true,
+    "plugins/lisa/skills/lisa-secrets-access/scripts/config-files.mjs": true,
+    "plugins/lisa/skills/lisa-secrets-access/scripts/config-layers.mjs": true,
     "plugins/lisa/skills/lisa-secrets-access/scripts/doctor-secrets.mjs": true,
     "plugins/lisa/skills/lisa-secrets-access/scripts/envfile.mjs": true,
     "plugins/lisa/skills/lisa-secrets-access/scripts/inspect-vault.mjs": true,
@@ -9053,6 +9210,21 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa/skills/lisa-secrets-access/scripts/routing-floor.mjs": true,
     "plugins/lisa/skills/lisa-secrets-access/scripts/surfaces.mjs": true,
     "plugins/lisa/skills/lisa-secrets-access/scripts/sync-secret-to-ci.mjs": true,
+    "plugins/lisa/skills/lisa-secrets-access/scripts/task-access.mjs": true,
+    "plugins/lisa/skills/lisa-secrets-access/scripts/task-action.mjs": true,
+    "plugins/lisa/skills/lisa-secrets-access/scripts/task-atlassian-native.mjs": true,
+    "plugins/lisa/skills/lisa-secrets-access/scripts/task-context-data.mjs": true,
+    "plugins/lisa/skills/lisa-secrets-access/scripts/task-context-write.mjs": true,
+    "plugins/lisa/skills/lisa-secrets-access/scripts/task-github.mjs": true,
+    "plugins/lisa/skills/lisa-secrets-access/scripts/task-intake-read.mjs": true,
+    "plugins/lisa/skills/lisa-secrets-access/scripts/task-intake.mjs": true,
+    "plugins/lisa/skills/lisa-secrets-access/scripts/task-native-context.mjs": true,
+    "plugins/lisa/skills/lisa-secrets-access/scripts/task-native-contract.mjs": true,
+    "plugins/lisa/skills/lisa-secrets-access/scripts/task-native-flow.mjs": true,
+    "plugins/lisa/skills/lisa-secrets-access/scripts/task-native-lifecycle.mjs": true,
+    "plugins/lisa/skills/lisa-secrets-access/scripts/task-native-state.mjs": true,
+    "plugins/lisa/skills/lisa-secrets-access/scripts/task-readiness.mjs": true,
+    "plugins/lisa/skills/lisa-secrets-access/scripts/task-requirements.mjs": true,
     "plugins/lisa/skills/lisa-secrets-access/scripts/tools-from-notes.mjs": true,
     "plugins/lisa/skills/lisa-secrets-access/scripts/validate-config.mjs": true,
     "plugins/lisa/skills/lisa-security-review/SKILL.md": true,
@@ -9336,10 +9508,13 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/src/base/hooks/parity-safety-net-heredoc.py": true,
     "plugins/src/base/hooks/parity-safety-net.agy.sh": true,
     "plugins/src/base/hooks/parity-safety-net.sh": true,
+    "plugins/src/base/hooks/secrets-preflight.agy.sh": true,
     "plugins/src/base/hooks/secrets-preflight.sh": true,
     "plugins/src/base/hooks/setup-jira-cli.sh": true,
     "plugins/src/base/hooks/shell-write-nudge.sh": true,
     "plugins/src/base/hooks/sonar-secrets.sh": true,
+    "plugins/src/base/hooks/task-readiness-guard.mjs": true,
+    "plugins/src/base/hooks/task-readiness-guard.sh": true,
     "plugins/src/base/hooks/threshold-ratchet-compare.mjs": true,
     "plugins/src/base/hooks/threshold-ratchet-families.mjs": true,
     "plugins/src/base/hooks/threshold-ratchet.mjs": true,
@@ -9513,6 +9688,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/src/base/skills/lisa-github-prd-intake/SKILL.md": true,
     "plugins/src/base/skills/lisa-github-project-v2/SKILL.md": true,
     "plugins/src/base/skills/lisa-github-read-issue/SKILL.md": true,
+    "plugins/src/base/skills/lisa-github-read-issue/read-contract.mjs": true,
     "plugins/src/base/skills/lisa-github-sync/SKILL.md": true,
     "plugins/src/base/skills/lisa-github-to-tracker/SKILL.md": true,
     "plugins/src/base/skills/lisa-github-validate-issue/SKILL.md": true,
@@ -9569,6 +9745,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/src/base/skills/lisa-nightly-improve-tests/SKILL.md": true,
     "plugins/src/base/skills/lisa-nightly-lower-code-complexity/SKILL.md": true,
     "plugins/src/base/skills/lisa-notion-access/SKILL.md": true,
+    "plugins/src/base/skills/lisa-notion-access/scripts/readiness-probe.mjs": true,
     "plugins/src/base/skills/lisa-notion-prd-intake/SKILL.md": true,
     "plugins/src/base/skills/lisa-notion-to-tracker/SKILL.md": true,
     "plugins/src/base/skills/lisa-notion-write-prd/SKILL.md": true,
@@ -9609,6 +9786,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/src/base/skills/lisa-secrets-access/SKILL.md": true,
     "plugins/src/base/skills/lisa-secrets-access/scripts/aws-bootstrap.mjs": true,
     "plugins/src/base/skills/lisa-secrets-access/scripts/bootstrap-store.mjs": true,
+    "plugins/src/base/skills/lisa-secrets-access/scripts/config-files.mjs": true,
+    "plugins/src/base/skills/lisa-secrets-access/scripts/config-layers.mjs": true,
     "plugins/src/base/skills/lisa-secrets-access/scripts/doctor-secrets.mjs": true,
     "plugins/src/base/skills/lisa-secrets-access/scripts/envfile.mjs": true,
     "plugins/src/base/skills/lisa-secrets-access/scripts/inspect-vault.mjs": true,
@@ -9626,6 +9805,21 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/src/base/skills/lisa-secrets-access/scripts/routing-floor.mjs": true,
     "plugins/src/base/skills/lisa-secrets-access/scripts/surfaces.mjs": true,
     "plugins/src/base/skills/lisa-secrets-access/scripts/sync-secret-to-ci.mjs": true,
+    "plugins/src/base/skills/lisa-secrets-access/scripts/task-access.mjs": true,
+    "plugins/src/base/skills/lisa-secrets-access/scripts/task-action.mjs": true,
+    "plugins/src/base/skills/lisa-secrets-access/scripts/task-atlassian-native.mjs": true,
+    "plugins/src/base/skills/lisa-secrets-access/scripts/task-context-data.mjs": true,
+    "plugins/src/base/skills/lisa-secrets-access/scripts/task-context-write.mjs": true,
+    "plugins/src/base/skills/lisa-secrets-access/scripts/task-github.mjs": true,
+    "plugins/src/base/skills/lisa-secrets-access/scripts/task-intake-read.mjs": true,
+    "plugins/src/base/skills/lisa-secrets-access/scripts/task-intake.mjs": true,
+    "plugins/src/base/skills/lisa-secrets-access/scripts/task-native-context.mjs": true,
+    "plugins/src/base/skills/lisa-secrets-access/scripts/task-native-contract.mjs": true,
+    "plugins/src/base/skills/lisa-secrets-access/scripts/task-native-flow.mjs": true,
+    "plugins/src/base/skills/lisa-secrets-access/scripts/task-native-lifecycle.mjs": true,
+    "plugins/src/base/skills/lisa-secrets-access/scripts/task-native-state.mjs": true,
+    "plugins/src/base/skills/lisa-secrets-access/scripts/task-readiness.mjs": true,
+    "plugins/src/base/skills/lisa-secrets-access/scripts/task-requirements.mjs": true,
     "plugins/src/base/skills/lisa-secrets-access/scripts/tools-from-notes.mjs": true,
     "plugins/src/base/skills/lisa-secrets-access/scripts/validate-config.mjs": true,
     "plugins/src/base/skills/lisa-security-review/SKILL.md": true,
@@ -10773,6 +10967,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "src/opencode/plugin-templates/lisa-rubocop-on-edit.ts": true,
     "src/opencode/plugin-templates/lisa-session-bootstrap.ts": true,
     "src/opencode/plugin-templates/lisa-sg-scan-on-edit.ts": true,
+    "src/opencode/plugin-templates/lisa-task-readiness.ts": true,
     "src/opencode/project-plugin-gate.ts": true,
     "src/opencode/settings-installer.ts": true,
     "src/opencode/skills-installer.ts": true,
@@ -11071,6 +11266,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/helpers/nightly-e2e-selection-harness.ts": true,
     "tests/helpers/nightly-e2e-tracking-harness.ts": true,
     "tests/helpers/nightly-e2e-waiver-harness.ts": true,
+    "tests/helpers/opencode-plugin-rosters.ts": true,
     "tests/helpers/package-lisa-apply-harness.ts": true,
     "tests/helpers/process-tree-runner-verdict.ts": true,
     "tests/helpers/readiness-workflow-fixtures.ts": true,
@@ -11092,6 +11288,24 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/helpers/shipped-mjs-roster.ts": true,
     "tests/helpers/staged-dependency-scan.ts": true,
     "tests/helpers/supervised-unix-fixture.ts": true,
+    "tests/helpers/task-codex-context.ts": true,
+    "tests/helpers/task-github-fixture.ts": true,
+    "tests/helpers/task-intake-data.ts": true,
+    "tests/helpers/task-intake-gh.ts": true,
+    "tests/helpers/task-intake-owner.ts": true,
+    "tests/helpers/task-native-bash.ts": true,
+    "tests/helpers/task-native-contention-process.ts": true,
+    "tests/helpers/task-native-contention.ts": true,
+    "tests/helpers/task-native-context.ts": true,
+    "tests/helpers/task-native-events.ts": true,
+    "tests/helpers/task-notion-api.ts": true,
+    "tests/helpers/task-preheader-failures.ts": true,
+    "tests/helpers/task-preheader-github.ts": true,
+    "tests/helpers/task-preheader-installation.ts": true,
+    "tests/helpers/task-readiness-continuation.ts": true,
+    "tests/helpers/task-readiness-fixture.ts": true,
+    "tests/helpers/task-readiness-matched.ts": true,
+    "tests/helpers/task-readiness-tools.ts": true,
     "tests/helpers/template-toolchain.ts": true,
     "tests/helpers/test-run-child-process-analysis.ts": true,
     "tests/helpers/test-run-child-process-binding-plan.ts": true,
@@ -11955,6 +12169,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/hooks/enforcement-fallback-channel-skew.test.ts": true,
     "tests/unit/hooks/enforcement-fallback-memo-trust.test.ts": true,
     "tests/unit/hooks/enforcement-fallback-notice-rate.test.ts": true,
+    "tests/unit/hooks/enforcement-fallback-readiness-isolation.test.ts": true,
     "tests/unit/hooks/enforcement-fallback-staleness.test.ts": true,
     "tests/unit/hooks/enforcement-fallback-status-aggregation.test.ts": true,
     "tests/unit/hooks/enforcement-fallback-sticky-exemption.test.ts": true,
@@ -12050,6 +12265,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/hooks/support/guard-dedupe-world.ts": true,
     "tests/unit/hooks/support/sonar-secrets-fixtures.ts": true,
     "tests/unit/hooks/support/worktree-binding.ts": true,
+    "tests/unit/hooks/task-readiness-adapters.test.ts": true,
     "tests/unit/hooks/track-plan-sessions.test.ts": true,
     "tests/unit/hooks/typecheck-hook-placement.test.ts": true,
     "tests/unit/hooks/verification-failure-mode-fixtures.test.ts": true,
@@ -12598,6 +12814,28 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/secrets/setup-field-notes-tools.test.ts": true,
     "tests/unit/secrets/setup-field-path.test.ts": true,
     "tests/unit/secrets/setup-secrets-nonfatal.test.ts": true,
+    "tests/unit/secrets/task-atlassian-native.test.ts": true,
+    "tests/unit/secrets/task-atlassian-routing.test.ts": true,
+    "tests/unit/secrets/task-codex-context.test.ts": true,
+    "tests/unit/secrets/task-context-dispatch.test.ts": true,
+    "tests/unit/secrets/task-fresh-intake.test.ts": true,
+    "tests/unit/secrets/task-github-sources.test.ts": true,
+    "tests/unit/secrets/task-native-contention.test.ts": true,
+    "tests/unit/secrets/task-native-context.test.ts": true,
+    "tests/unit/secrets/task-native-events.test.ts": true,
+    "tests/unit/secrets/task-native-lifecycle.test.ts": true,
+    "tests/unit/secrets/task-native-owner-flow.test.ts": true,
+    "tests/unit/secrets/task-notion-primary.test.ts": true,
+    "tests/unit/secrets/task-preheader-github.test.ts": true,
+    "tests/unit/secrets/task-readiness-capability-sources.test.ts": true,
+    "tests/unit/secrets/task-readiness-diagnostics.test.ts": true,
+    "tests/unit/secrets/task-readiness-discovery.test.ts": true,
+    "tests/unit/secrets/task-readiness-postlaunch.test.ts": true,
+    "tests/unit/secrets/task-readiness-qualification.test.ts": true,
+    "tests/unit/secrets/task-readiness-scope.test.ts": true,
+    "tests/unit/secrets/task-readiness.test.ts": true,
+    "tests/unit/secrets/task-requirements.test.ts": true,
+    "tests/unit/secrets/task-review-regressions.test.ts": true,
     "tests/unit/secrets/tool-executable-preflight.test.ts": true,
     "tests/unit/secrets/tool-floor.test.ts": true,
     "tests/unit/secrets/toolchain-platforms.test.ts": true,

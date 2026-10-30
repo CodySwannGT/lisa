@@ -14,13 +14,50 @@ Repository name for scoped comments and logs: `basename $(git rev-parse --show-t
 
 ## Phase 1 — Resolve Context
 
-1. Confirm `gh auth status` succeeds.
+1. Use the existing secrets/access owner's bounded `--intake-read` route below.
+   It proves the configured repository scope using native gh first and separately
+   observes the authenticated actor when available. Installation tokens without
+   `/user` retain established repository scope with actor explicitly unobserved;
+   repository ownership never supplies an actor. Genuine unavailability may use the existing environment, supported
+   materialized source, then configured provider; wrong identity stops. Native
+   auth success needs no vault call. Do not require login or an ambient token
+   before consulting that supported path. No requirements header is fabricated.
 2. Parse `$ARGUMENTS`. Accept either:
    - `<org>/<repo>#<number>` token, OR
    - `https://github.com/<org>/<repo>/issues/<number>` URL.
 
    If `$ARGUMENTS` is just `#<number>` or `<number>`, resolve `<org>/<repo>` from `.lisa.config.json` (`github.org` / `github.repo`).
 3. If the input doesn't parse cleanly, stop and report. Do NOT guess.
+
+### Pre-header configured-source reader
+
+Before the complete issue is known, invoke this exact installed owner command
+with only the configured canonical ref, fixed read name and issue/PR number:
+
+```text
+node '<absolute installed lisa-secrets-access>/scripts/preflight-secrets.mjs' --intake-read --ref <org>/<repo>#<primary-number> --read <operation> --number <read-number>
+```
+
+Use `issue`, `comments`, `comment-count`, `graph`, `history`, `closing-prs`,
+`blocked-by`, `blocking`, `pr`, or `review-threads`. For `thread-comments` ONLY,
+replace `--number <read-number>` with `--thread <returned-thread-node-id>`.
+Each invocation freshly proves the configured repository scope, validates any
+observed actor, then executes only its fixed read. A selected credential is carried in child environment
+memory, never command arguments/output/files or context. Comments are returned
+as one flattened array; graph/history/thread connections retain all raw pages.
+Read related issue/comment and PR/thread inputs with the same fixed operations;
+compare comment counts and terminal pagination before declaring completeness.
+Run the shipped hold classifier with the complete body/comments/actor inputs,
+then prepare the truthful private context/header and evaluate full task readiness
+before claim or implementation. This bounded repository read grants no mutation
+and proves no unrelated task capability or provider health.
+
+The gh snippets below specify the owner's fixed underlying API/JSON/query
+contracts, not a separate login-first bootstrap route. Raw native/env gh reads
+remain read-only orientation, but cannot discover configured materialization or
+provider credentials by themselves. Use the owner above for the complete intake
+route. Cross-repository/other-tracker operations outside this fixed configured
+repository remain explicit access-owner duties; do not widen the shell allowlist.
 
 ## Phase 2 — Fetch Primary Issue
 
@@ -73,29 +110,14 @@ Pagination is unconditional — never skip `--paginate` because an issue looks s
 
 ## Phase 3 — Fetch Sub-issue Graph (Parent + Children)
 
-GitHub native sub-issues are exposed via GraphQL:
-
-```graphql
-query($org:String!,$repo:String!,$number:Int!){
-  repository(owner:$org,name:$repo){
-    issue(number:$number){
-      id
-      parent { number title state url repository { nameWithOwner } }
-      subIssues(first: 100) {
-        nodes {
-          number title state url
-          repository { nameWithOwner }
-          labels(first: 50) { nodes { name } }
-          assignees(first: 5) { nodes { login } }
-        }
-      }
-    }
-  }
-}
-```
+GitHub native sub-issues use the fixed read-only query below inside `--read graph`.
+Only the parsed org/repo/number is substituted by the owner. The native
+readiness adapter recognizes this owning contract, not arbitrary GraphQL or
+shell loops. `--paginate --slurp` follows every `pageInfo`/`$endCursor` page.
+Keep all raw pages and compare the terminal page before calling the graph complete.
 
 ```bash
-gh api graphql -f query='<above>' -F org=<org> -F repo=<repo> -F number=<number>
+gh api graphql --paginate --slurp -f query='query($org:String!,$repo:String!,$number:Int!,$endCursor:String){repository(owner:$org,name:$repo){issue(number:$number){id parent{number title state url repository{nameWithOwner}} subIssues(first:100,after:$endCursor){pageInfo{hasNextPage endCursor} nodes{number title body state url repository{nameWithOwner} labels(first:50){nodes{name}} assignees(first:5){nodes{login}}}}}}}' -F org=<org> -F repo=<repo> -F number=<number>
 ```
 
 Capture:
@@ -121,7 +143,7 @@ For each parsed reference, fetch the linked issue/PR:
 
 ```bash
 gh issue view <link-number> --repo <link-org>/<link-repo> --json number,title,state,labels,assignees,url
-gh pr view <link-number> --repo <link-org>/<link-repo> --json number,title,state,reviewDecision,merged,mergedAt,url,reviewRequests,reviews,comments
+gh pr view <link-number> --repo <link-org>/<link-repo> --json number,title,state,reviewDecision,mergedAt,url,reviewRequests,reviews,comments
 ```
 
 For each linked **issue**, capture: number, title, state, type (from labels), status (from labels), assignees, url.
@@ -144,53 +166,21 @@ If the primary issue IS an Epic, capture all children via Phase 3's `subIssues` 
 
 GitHub's native `closingIssuesReferences` and timeline give the canonical PR↔Issue relationship. The same timeline read also exposes label events, which are Lisa's GitHub-native transition history. Keep this as one GraphQL read path; do not add a second REST timeline fetch.
 
-```bash
-query='query($org:String!,$repo:String!,$number:Int!,$cursor:String){
-  repository(owner:$org,name:$repo){
-    issue(number:$number){
-      closedByPullRequestsReferences(first:50){
-        nodes{number title state merged mergedAt url repository{nameWithOwner}}
-      }
-      timelineItems(
-        first:100
-        after:$cursor
-        itemTypes:[CROSS_REFERENCED_EVENT,LABELED_EVENT,UNLABELED_EVENT]
-      ){
-        pageInfo{hasNextPage endCursor}
-        nodes{
-          ...on CrossReferencedEvent{
-            createdAt
-            actor{login}
-            source{...on PullRequest{number title state url repository{nameWithOwner}}}
-          }
-          ...on LabeledEvent{
-            createdAt
-            actor{login}
-            label{name}
-          }
-          ...on UnlabeledEvent{
-            createdAt
-            actor{login}
-            label{name}
-          }
-        }
-      }
-    }
-  }
-}'
+Use these two fixed read-only paginated commands; preserve the complete raw
+pages. The first contains the native cross-references and all label/unlabel
+history; the second independently paginates closing PR references. Do not use a
+shell loop or interpolate a caller-supplied query/cursor program.
 
-cursor=null
-while :; do
-  if [ "$cursor" = null ]; then
-    page=$(gh api graphql -f query="$query" -F org=<org> -F repo=<repo> -F number=<number>)
-  else
-    page=$(gh api graphql -f query="$query" -F org=<org> -F repo=<repo> -F number=<number> -f cursor="$cursor")
-  fi
-  printf '%s\n' "$page"
-  has_next=$(printf '%s\n' "$page" | jq -r '.data.repository.issue.timelineItems.pageInfo.hasNextPage')
-  cursor=$(printf '%s\n' "$page" | jq -r '.data.repository.issue.timelineItems.pageInfo.endCursor')
-  [ "$has_next" = true ] || break
-done
+```bash
+gh api graphql --paginate --slurp -f query='query($org:String!,$repo:String!,$number:Int!,$endCursor:String){repository(owner:$org,name:$repo){issue(number:$number){timelineItems(first:100,after:$endCursor,itemTypes:[CROSS_REFERENCED_EVENT,LABELED_EVENT,UNLABELED_EVENT]){pageInfo{hasNextPage endCursor} nodes{__typename ...on CrossReferencedEvent{createdAt actor{login} source{...on PullRequest{number title state url repository{nameWithOwner}}}} ...on LabeledEvent{createdAt actor{login} label{name}} ...on UnlabeledEvent{createdAt actor{login} label{name}}}}}}}' -F org=<org> -F repo=<repo> -F number=<number>
+gh api graphql --paginate --slurp -f query='query($org:String!,$repo:String!,$number:Int!,$endCursor:String){repository(owner:$org,name:$repo){issue(number:$number){closedByPullRequestsReferences(first:50,after:$endCursor){pageInfo{hasNextPage endCursor} nodes{number title state merged mergedAt url repository{nameWithOwner}}}}}}' -F org=<org> -F repo=<repo> -F number=<number>
+```
+
+Also read both native dependency directions, preserving all pages:
+
+```bash
+gh api repos/<org>/<repo>/issues/<number>/dependencies/blocked_by --paginate --slurp
+gh api repos/<org>/<repo>/issues/<number>/dependencies/blocking --paginate --slurp
 ```
 
 Capture:
@@ -199,7 +189,17 @@ Capture:
 
 Pagination is mandatory. `timelineItems(first:100)` silently truncates busy issues unless `pageInfo.hasNextPage` / `endCursor` is followed. If a page fetch fails, record label-event history as `unknown` with the error and continue assembling the bundle; a history read failure must never block the build.
 
-For each PR, fetch unresolved review comments via `gh pr view <num> --repo <org>/<repo> --json reviews,reviewThreads`.
+For each PR, use the fixed paginated GraphQL review-thread request below.
+`gh pr view --json` does not expose `reviewThreads` or `merged`; derive merge
+state from `state`/`mergedAt`, and keep native GraphQL `merged` separately.
+For each thread whose nested comments page is incomplete, run the second fixed
+query with that thread's returned node ID and merge/dedupe all comments by URL.
+Do not call the review context complete while any page remains unread.
+
+```bash
+gh api graphql --paginate --slurp -f query='query($org:String!,$repo:String!,$number:Int!,$endCursor:String){repository(owner:$org,name:$repo){pullRequest(number:$number){reviewThreads(first:100,after:$endCursor){pageInfo{hasNextPage endCursor} nodes{id isResolved isOutdated comments(first:100){pageInfo{hasNextPage endCursor} nodes{body author{login} createdAt url}}}}}}}' -F org=<org> -F repo=<repo> -F number=<number>
+gh api graphql --paginate --slurp -f query='query($id:ID!,$endCursor:String){node(id:$id){...on PullRequestReviewThread{comments(first:100,after:$endCursor){pageInfo{hasNextPage endCursor} nodes{body author{login} createdAt url}}}}}' -F id=<thread-node-id>
+```
 
 ## Phase 7 — Assemble Context Bundle
 

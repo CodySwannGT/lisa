@@ -24,6 +24,8 @@ import path from "node:path";
 
 import { runBoundedBash } from "./bounded-bash.js";
 import { boundedSpawnSync } from "./io-latency-budget.js";
+import { readConfig } from "../../plugins/src/base/skills/lisa-secrets-access/scripts/surfaces.mjs";
+import { requirementsContext } from "../../plugins/src/base/skills/lisa-secrets-access/scripts/task-requirements.mjs";
 
 /** Absolute, so the interpreter is never resolved through a writeable PATH. */
 const BASH = "/bin/bash";
@@ -299,20 +301,57 @@ export function runFallback(
   tmpDir: string = scratchRoot(),
   overrides: Readonly<Record<string, string>> = {}
 ): Run {
+  // The dispatcher still resolves/attributes guard CODE from projectDir. Its
+  // task DATA must be an owned fixture, never this workstation's bound issue.
+  // These governance payloads require no external integration. A real nested
+  // Git boundary and complete empty requirements keep the readiness control on.
+  const env = {
+    // eslint-disable-next-line no-restricted-syntax -- a subprocess harness inherits the real environment; there is no ConfigService in a hook fixture
+    ...process.env,
+    CLAUDE_PROJECT_DIR: projectDir,
+    CLAUDE_CONFIG_DIR: NO_CONFIG,
+    TMPDIR: tmpDir,
+    ...overrides,
+  };
+  const scopedPayload = (() => {
+    if (projectDir !== REPO_ROOT) return payload;
+    const taskRoot = scratchRoot();
+    const initialized = boundedSpawnSync({
+      label: "isolated dispatcher task repository",
+      command: "git",
+      args: ["init", "-q"],
+      cwd: taskRoot,
+      env,
+    });
+    if (initialized.status !== 0)
+      throw new Error("Cannot initialize dispatcher task fixture");
+    mkdirSync(path.join(taskRoot, ".lisa"));
+    writeFileSync(
+      path.join(taskRoot, ".gitignore"),
+      ".lisa/work-item-context.md\n"
+    );
+    writeFileSync(
+      path.join(taskRoot, ".lisa/work-item-context.md"),
+      requirementsContext(
+        readConfig(taskRoot, env),
+        "fixture/dispatcher#1",
+        "github",
+        [],
+        "# Isolated governance fixture\n"
+      ),
+      { mode: 0o600 }
+    );
+    return typeof payload === "object" && payload !== null
+      ? { ...payload, cwd: taskRoot }
+      : payload;
+  })();
   const result = boundedSpawnSync({
     label: "lisa-enforcement-fallback.sh",
     command: BASH,
     args: [FALLBACK],
-    input: JSON.stringify(payload),
+    input: JSON.stringify(scopedPayload),
     cwd: projectDir,
-    env: {
-      // eslint-disable-next-line no-restricted-syntax -- a subprocess harness inherits the real environment; there is no ConfigService in a hook fixture
-      ...process.env,
-      CLAUDE_PROJECT_DIR: projectDir,
-      CLAUDE_CONFIG_DIR: NO_CONFIG,
-      TMPDIR: tmpDir,
-      ...overrides,
-    },
+    env,
   });
 
   return {

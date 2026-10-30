@@ -20,29 +20,16 @@ import {
 import { OPENCODE_CONFIG_DIR } from "../../../src/opencode/manifest.js";
 import { cleanupTempDir, createTempDir } from "../../helpers/test-utils.js";
 
-/** Plugin template basenames (de-duplicated for sonarjs/no-duplicate-string). */
-const SESS = "lisa-session-bootstrap.ts";
-const PARITY = "lisa-parity-safety-net.ts";
-const LINT = "lisa-lint-on-edit.ts";
-const SUPPR = "lisa-block-suppress-directives.ts";
-const SGSCAN = "lisa-sg-scan-on-edit.ts";
-const MIGRATION = "lisa-block-migration-edits.ts";
-const RUBOCOP = "lisa-rubocop-on-edit.ts";
-const INSTR = "lisa-block-instruction-file-edits.ts";
-const MANAGED = "lisa-block-managed-file-edits.ts";
-const ISSUE = "lisa-block-direct-issue-create.ts";
-const NO_VERIFY = "lisa-block-no-verify.ts";
-const DISCHARGE = "lisa-discharge-work-item-gates.ts";
-const BASE_RULES = "base-rules.md";
+import {
+  SESS,
+  LINT,
+  SUPPR,
+  MIGRATION,
+  TS_PLUGINS,
+  RAILS_PLUGINS,
+} from "../../helpers/opencode-plugin-rosters.js";
 
-/** Emit order per stack, named so the assertions stay one line each. */
-/** Guards every project gets, in the order the installer lists them. */
-const UNIVERSAL = [ISSUE, INSTR, MANAGED, NO_VERIFY, DISCHARGE];
-/** The tail every roster shares. */
-const TAIL = [SESS, SGSCAN];
-const byName = (a: string, b: string): number => a.localeCompare(b);
-const TS_PLUGINS = [...UNIVERSAL, SUPPR, LINT, PARITY, ...TAIL].sort(byName);
-const RAILS_PLUGINS = [...UNIVERSAL, PARITY, RUBOCOP, ...TAIL].sort(byName);
+const BASE_RULES = "base-rules.md";
 
 describe("opencode/hooks-installer", () => {
   let tempDir: string;
@@ -328,7 +315,8 @@ describe("opencode/hooks-installer", () => {
       // five since #3814 added the dedupe library those guards source as a
       // sibling of themselves, which has to be staged with them or the
       // reference resolves to nothing. The deferred PR gate adds the sixth.
-      expect(result.managedFiles).toHaveLength(files.length + 6);
+      // Task readiness adds its shell adapter and Node companion.
+      expect(result.managedFiles).toHaveLength(files.length + 8);
       // The auto-update engine is NOT among them: it runs from the installed
       // package (CodySwannGT/lisa#4337), so it adds nothing to this count.
     });

@@ -360,6 +360,8 @@ This gate never blocks a legitimate flat Task/Bug: those have no open children a
 
 #### 3b. Claim
 
+**Required-access preclaim gate.** Before this claim mutation, follow `tool-access-gate` → Task readiness. Enumerate the live body, all comments, proof and delivery requirements into the leading requirements-only header in the ignored context; run the existing secrets preflight `--task --ref <canonical-ref>`. `ESTABLISHED` proves only its exercised scope. `DENIED` stops affected work. `NATIVE_OWNER_REQUIRED` (CLI exit3, not PASS) hands the remaining route to its documented native access owner: that owner must perform the actual immediate identity/resource probe before claim or the affected continuation, retaining write/readback duties. Do not repeat an unobservable shell probe forever or accept a stored passed field. Report the exact shell/native enforcement gap. Only the bounded local intake metadata write may precede this gate. Held/leaf/scope/idempotency and failed tracker-read/write stops remain independent.
+
 Before the claim mutation, apply `claim-time-guards` — **Value before claim**, or **Worth doing** in `lisa-track` on runtimes without the rule tree (Antigravity). A ready label establishes neither value nor permission to expand scope. Respect the preceding human-hold gate; a declined incidental item consumes this cycle's one processed disposition.
 
 

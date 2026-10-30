@@ -8,6 +8,8 @@ Idempotently claims one live Jira leaf ticket for direct Lisa work. Reuses jira-
 
 # Claim Jira Ticket: $ARGUMENTS
 
+**Required-access preclaim gate.** Before this claim mutation, follow `tool-access-gate` → Task readiness. Enumerate the live body, all comments, proof and delivery requirements into the leading requirements-only header in the ignored context; run the existing secrets preflight `--task --ref <canonical-ref>`. `ESTABLISHED` proves only its exercised scope. `DENIED` stops affected work. `NATIVE_OWNER_REQUIRED` (CLI exit3, not PASS) hands the remaining route to its documented native access owner: that owner must perform the actual immediate identity/resource probe before claim or the affected continuation, retaining write/readback duties. Do not repeat an unobservable shell probe forever or accept a stored passed field. Report the exact shell/native enforcement gap. Only the bounded local intake metadata write may precede this gate. Held/leaf/scope/idempotency and failed tracker-read/write stops remain independent.
+
 Claim exactly one canonical Jira key. All Jira access goes through `lisa-atlassian-access`; do not call MCP tools or `acli` directly. This is the reusable direct-session counterpart of `lisa-jira-build-intake` Phase 3b.
 
 1. Resolve merged `atlassian.cloudId`, `jira.project`, and `jira.workflow` values from local-over-global config. Require the key's project prefix to equal the configured Jira project. Resolve ready, claimed, review, environment, and terminal roles from config; do not hardcode status decisions.

@@ -19,6 +19,7 @@ const IMPLEMENT_PATHS = [
   "plugins/lisa-cursor/skills/lisa-implement/SKILL.md",
   "plugins/lisa-agy/skills/lisa-implement/SKILL.md",
   "plugins/lisa-copilot/skills/lisa-implement/SKILL.md",
+  "plugins/lisa-devin/skills/lisa-implement/SKILL.md",
 ] as const;
 const TRACK_SKILL_PATHS = [
   `${BASE_SKILLS}/lisa-track/SKILL.md`,
@@ -27,6 +28,7 @@ const TRACK_SKILL_PATHS = [
   "plugins/lisa-cursor/skills/lisa-track/SKILL.md",
   "plugins/lisa-agy/skills/lisa-track/SKILL.md",
   "plugins/lisa-copilot/skills/lisa-track/SKILL.md",
+  "plugins/lisa-devin/skills/lisa-track/SKILL.md",
 ] as const;
 const PROVIDERS = ["github", "jira", "linear"] as const;
 const TRACKER_WRITE = "lisa-tracker-write";

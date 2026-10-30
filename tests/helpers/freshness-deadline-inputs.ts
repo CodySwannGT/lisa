@@ -13,20 +13,19 @@ import {
 } from "./host-guard-freshness-fixtures.js";
 
 const NODE_SHIM = [
-  "#!/bin/bash",
-  'case "$1" in *lisa-enforcement-freshness.mjs) ;; *) exec "$LISA_DEADLINE_REAL_NODE" "$@" ;; esac',
-  'printf "%s\\n" "$$" >> "$LISA_DEADLINE_ENTRIES"',
-  'case "$LISA_DEADLINE_MODE" in',
-  ' normal|delayed-qualification|missing-runner|unsafe-tmp|anchor-startup|anchor-qualification) exec "$LISA_DEADLINE_REAL_NODE" "$@" ;;',
-  ' stall|post-start-ps-failure|early-parent-exit) printf "installed\\t9.9.9\\nguard0\\tmatching\\n"; trap "" TERM; /bin/sleep 30 & printf "%s\\n" "$!" >> "$LISA_DEADLINE_ENTRIES"; wait ;;',
-  // Keep this child alive for two census periods before successful completion.
-  ' surviving-child) /bin/sleep 30 & printf "%s\\n" "$!" >> "$LISA_DEADLINE_ENTRIES"; /bin/sleep 0.2; exec "$LISA_DEADLINE_REAL_NODE" "$@" ;;',
-  ' *) printf "installed\\t9.9.9\\n"; for i in 0 1 2 3 4 5 6 7; do printf "guard%s\\tmatching\\n" "$i"; done',
-  '    case "$LISA_DEADLINE_MODE" in duplicate) printf "installed\\t9.9.9\\n" ;; malformed) printf "garbage\\n" ;; unknown) printf "extra\\tfact\\n" ;; esac',
-  '    [ "$LISA_DEADLINE_MODE" = incomplete ] || printf "complete\\t1\\n"',
-  '    [ "$LISA_DEADLINE_MODE" != trailing ] || printf "installed\\t9.9.9\\n"',
-  '    [ "$LISA_DEADLINE_MODE" != failed ] ;;',
-  "esac",
+  `#!${process.execPath}`,
+  "const fs=require('node:fs'),cp=require('node:child_process'),a=process.argv.slice(2),e=process.env,mode=e.LISA_DEADLINE_MODE;",
+  "const real=()=>{const r=cp.spawnSync(e.LISA_DEADLINE_REAL_NODE,a,{stdio:'inherit'});process.exitCode=r.status??1;};",
+  "const mark=pid=>fs.appendFileSync(e.LISA_DEADLINE_ENTRIES,String(pid)+'\\n');",
+  "if(!a[0]?.endsWith('/lisa-enforcement-freshness.mjs')){real();}else{",
+  "mark(process.pid);",
+  "if(['normal','delayed-qualification','missing-runner','unsafe-tmp','anchor-startup','anchor-qualification'].includes(mode)){real();}",
+  "else if(mode==='surviving-child'){const c=cp.spawn('/bin/sleep',['30'],{stdio:'ignore'});mark(c.pid);c.unref();setTimeout(real,200);}",
+  "else if(['stall','post-start-ps-failure','early-parent-exit','node-shim-startup'].includes(mode)){",
+  "if(mode==='post-start-ps-failure')cp.spawnSync('/bin/bash',['-c','ps -p \"$PPID\" -o pid='],{stdio:'ignore'});",
+  "process.stdout.write('installed\\t9.9.9\\nguard0\\tmatching\\n');process.on('SIGTERM',()=>{});const c=cp.spawn('/bin/sleep',['30'],{stdio:'ignore'});mark(c.pid);c.unref();setInterval(()=>{},1000);",
+  "}else{process.stdout.write('installed\\t9.9.9\\n');for(let i=0;i<8;i++)process.stdout.write('guard'+i+'\\tmatching\\n');if(mode==='duplicate')process.stdout.write('installed\\t9.9.9\\n');if(mode==='malformed')process.stdout.write('garbage\\n');if(mode==='unknown')process.stdout.write('extra\\tfact\\n');if(mode!=='incomplete')process.stdout.write('complete\\t1\\n');if(mode==='trailing')process.stdout.write('installed\\t9.9.9\\n');if(mode==='failed')process.exitCode=1;}",
+  "}",
   "",
 ].join("\n");
 
@@ -52,6 +51,11 @@ export interface DeadlineFixture {
  */
 function deadlineStartup(mode: string): string {
   return [
+    ...(mode === "node-shim-startup"
+      ? [
+          'case "$(/bin/ps -p $$ -o command=)" in *"$LISA_DEADLINE_NODE_SHIM"*) printf "redundant-shell-startup\\n" >> "$LISA_DEADLINE_PHASES"; /bin/sleep 1.25 ;; esac',
+        ]
+      : []),
     'trap \'case "${BASH_SOURCE[0]}" in */scripts/lisa-hooks/*.sh) printf "%s\\n" "${BASH_SOURCE[0]##*/}" >> "$LISA_DEADLINE_GUARDS"; trap - DEBUG ;; esac\' DEBUG',
     deadlineAdmission(mode),
     ...(mode === "anchor-startup"
@@ -76,7 +80,7 @@ function deadlineStartup(mode: string): string {
       : []),
     ...(mode === "post-start-ps-failure"
       ? [
-          'ps() { if [ -s "$LISA_DEADLINE_ENTRIES" ]; then return 127; fi; command ps "$@"; }; export -f ps',
+          'ps() { if [ -s "$LISA_DEADLINE_ENTRIES" ]; then printf "ps-after-startup-failed\\n" >> "$LISA_DEADLINE_PHASES"; return 127; fi; command ps "$@"; }; export -f ps',
         ]
       : []),
     "",
@@ -197,5 +201,6 @@ export function deadlineEnvironment(
     LISA_DEADLINE_PHASES: fixture.phases,
     LISA_DEADLINE_MODE: mode,
     LISA_DEADLINE_REAL_NODE: process.execPath,
+    LISA_DEADLINE_NODE_SHIM: path.join(fixture.bin, "node"),
   };
 }

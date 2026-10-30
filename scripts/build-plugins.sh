@@ -170,7 +170,7 @@ if [ -d "$SRC_DIR/base/hooks" ]; then
 fi
 for guard in block-no-verify parity-safety-net block-shell-json-parsing \
   block-instruction-file-edits block-direct-issue-create \
-  block-managed-file-edits block-blind-automerge worktree-binding-guard; do
+  block-managed-file-edits block-blind-automerge worktree-binding-guard task-readiness-guard; do
   if [ -f "$SRC_DIR/base/hooks/$guard.sh" ]; then
     materialize "$SRC_DIR/base/hooks/$guard.sh" "$HOST_GUARD_DIR/$guard.sh"
     # Both active channels must hash identical code, including the ownership

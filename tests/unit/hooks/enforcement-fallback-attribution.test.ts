@@ -253,7 +253,7 @@ describe("two resolved copies of different vintage that disagree", () => {
       rootWithDisagreeingCopies()
     );
 
-    expect(status).toBe(0);
+    expect(status, output).toBe(0);
     expect(output).toContain(`lisa ${BEHIND}`);
     expect(output).toContain("npx @codyswann/lisa apply");
   });

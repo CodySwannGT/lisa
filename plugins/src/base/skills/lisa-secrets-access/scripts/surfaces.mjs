@@ -13,12 +13,18 @@
  * @module surfaces
  */
 
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync, realpathSync, statSync } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 
 import { bootstrapKeyFor } from "./providers.mjs";
 import { routingFloor } from "./routing-floor.mjs";
+import { inspectConfigPath, readConfigLayer } from "./config-files.mjs";
+import {
+  AccessFailure,
+  mergeConfigLayers,
+  validateConfigLayer,
+} from "./config-layers.mjs";
 
 /**
  * Capabilities, per surface.
@@ -131,7 +137,7 @@ const DEFAULTS = {
 export function detectSurface(configured = null, env = process.env) {
   const explicit = (env.LISA_SECRETS_SURFACE ?? "").trim() || configured;
   if (explicit) {
-    if (!SURFACES[explicit]) {
+    if (!Object.hasOwn(SURFACES, explicit)) {
       throw new Error(
         `unknown surface "${explicit}".\n` +
           `Known: ${Object.keys(SURFACES).join(", ")}`
@@ -226,16 +232,27 @@ function projectAnchors(env) {
  */
 function locateConfig(cwd) {
   let dir = resolve(cwd);
+  const start = dir;
+  const present = inspectConfigPath;
+  const startStat = present(dir);
+  if (!startStat)
+    return { path: null, root: dir, status: "undiscovered", boundary: false };
+  if (!startStat.isDirectory()) throw new AccessFailure("config-unreadable");
   for (;;) {
-    const candidate = join(dir, ".lisa.config.json");
-    if (existsSync(candidate)) return candidate;
+    for (const name of [".lisa.config.json", ".lisa.config.local.json"]) {
+      const candidate = join(dir, name);
+      if (present(candidate))
+        return { path: candidate, root: dir, status: "valid", boundary: true };
+    }
     // Checked AFTER the config, so a repo root carrying one still matches.
     // Checked as a path rather than a directory because a worktree's `.git` is
     // a file, and treating that as "not a boundary" would walk out of the
     // worktree into whatever encloses it.
-    if (existsSync(join(dir, ".git"))) return null;
+    if (present(join(dir, ".git")))
+      return { path: null, root: dir, status: "absent", boundary: true };
     const parent = dirname(dir);
-    if (parent === dir) return null;
+    if (parent === dir)
+      return { path: null, root: start, status: "absent", boundary: false };
     dir = parent;
   }
 }
@@ -247,7 +264,7 @@ function locateConfig(cwd) {
  * provider means the environment *is* the provider. A credentials manager is
  * the preferred path, never a required one.
  * @param {string} [cwd] Directory to look in.
- * @returns {{provider: string, bootstrap: {sources: string[], key: string|null}, require: string[]|null, requiredFloor: readonly string[], rotating: string[], namespace: string, narrow: object, surface: string, routing: {tracker?: string, source?: string}, capabilities: object, configPath: string|null}} Resolved configuration with defaults applied. `configPath` is the file the values came from, or `null` when none was found and the defaults apply.
+ * @returns {{provider: string, bootstrap: {sources: string[], key: string|null}, require: string[]|null, requiredFloor: readonly string[], rotating: string[], namespace: string, narrow: object, surface: string, routing: {tracker?: string, source?: string}, capabilities: object, configPath: string|null, projectRoot: string, effective: object, provenance: {status: string, provider: string, files: string[]}}} Resolved configuration with defaults applied. `configPath` is the file the values came from, or `null` when none was found and the defaults apply.
  */
 export function readConfig(cwd = process.cwd(), env = process.env) {
   // Walk from `cwd` first, then from whatever the harness says the project is.
@@ -263,12 +280,13 @@ export function readConfig(cwd = process.cwd(), env = process.env) {
   //
   // cwd wins when it finds something, because an explicit working directory is
   // intent and the project variable is only ever a hint about the session.
-  const path =
-    locateConfig(cwd) ??
-    projectAnchors(env)
-      .map(anchor => locateConfig(anchor))
-      .find(found => found !== null) ??
-    null;
+  const own = locateConfig(cwd);
+  const found = own.boundary
+    ? own
+    : (projectAnchors(env)
+        .map(locateConfig)
+        .find(candidate => candidate.boundary) ?? own);
+  const path = found.path;
   // No repository is a real, supported state — not just a missing file.
   //
   // A Claude Tag channel session runs as the organization with no user account,
@@ -284,35 +302,73 @@ export function readConfig(cwd = process.cwd(), env = process.env) {
   // a caller say "no config found, assuming provider=env" instead of printing
   // a defaulted provider that is indistinguishable from a declared one.
   if (!path) {
-    return withSurface({ ...fromEnvironment(env), configPath: null });
+    return withSurface(
+      {
+        ...fromEnvironment(env),
+        configPath: null,
+        projectRoot:
+          found.status === "undiscovered"
+            ? found.root
+            : realpathSync(found.root),
+        provenance: {
+          status: found.status,
+          provider:
+            env.LISA_PROVIDER ||
+            env.LISA_SECRETS_PROVIDER ||
+            env.LISA_TENANT ||
+            env.LISA_SECRETS_NAMESPACE
+              ? "environment"
+              : "default",
+          files: [],
+        },
+        effective: {},
+      },
+      env
+    );
   }
-  let root;
-  try {
-    root = JSON.parse(readFileSync(path, "utf8"));
-  } catch (err) {
-    throw new Error(`.lisa.config.json is not readable: ${err.message}`);
-  }
+  const projectRoot = realpathSync(dirname(path));
+  const layerStates = [".lisa.config.json", ".lisa.config.local.json"]
+    .map(name => join(projectRoot, name))
+    .map(readConfigLayer);
+  const presentLayers = layerStates.filter(layer => layer.status === "valid");
+  const files = presentLayers.map(layer => layer.path);
+  const layers = presentLayers.map(layer => layer.value);
+  const root = mergeConfigLayers(...layers);
+  validateConfigLayer(root);
+  const metadata = {
+    projectRoot,
+    effective: root,
+    provenance: {
+      status: "valid",
+      provider: root.secrets?.provider === undefined ? "default" : "declared",
+      files,
+    },
+    configPath: path,
+  };
   const cfg = root.secrets;
   // Read outside the `secrets` block on purpose. The routing that implies a
   // credential is declared once, at the top level, and restating it under
   // `secrets` would be a second copy free to disagree with the one every other
   // skill dispatches on.
   const routing = { tracker: root.tracker, source: root.source };
-  if (!cfg) return withSurface({ ...DEFAULTS, routing, configPath: path });
+  if (!cfg) return withSurface({ ...DEFAULTS, routing, ...metadata }, env);
   const provider = cfg.provider ?? DEFAULTS.provider;
   const namespace = assertNamespace(cfg.namespace ?? DEFAULTS.namespace);
-  return withSurface({
-    provider,
-    bootstrap: resolveBootstrap(cfg.bootstrap, provider, namespace),
-    require: cfg.require ?? null,
-    rotating: cfg.rotating ?? [],
-    propagating: cfg.propagating ?? [],
-    namespace,
-    narrow: { ...DEFAULTS.narrow, ...cfg.narrow },
-    surface: cfg.surface ?? null,
-    routing,
-    configPath: path,
-  });
+  return withSurface(
+    {
+      provider,
+      bootstrap: resolveBootstrap(cfg.bootstrap, provider, namespace),
+      require: cfg.require ?? null,
+      rotating: cfg.rotating ?? [],
+      propagating: cfg.propagating ?? [],
+      namespace,
+      narrow: { ...DEFAULTS.narrow, ...cfg.narrow },
+      surface: cfg.surface ?? null,
+      routing,
+      ...metadata,
+    },
+    env
+  );
 }
 
 /**
@@ -438,8 +494,8 @@ function fromEnvironment(env) {
  * @param {object} cfg Configuration without surface resolution.
  * @returns {object} The same configuration plus surface-derived fields.
  */
-function withSurface(cfg) {
-  const surface = detectSurface(cfg.surface);
+function withSurface(cfg, env = process.env) {
+  const surface = detectSurface(cfg.surface, env);
   return {
     ...cfg,
     surface,

@@ -8,6 +8,19 @@ Vendor-neutral access layer for Atlassian (JIRA + Confluence). Every jira-* and 
 
 # Atlassian Access: $ARGUMENTS
 
+The shared readiness before/after owner represents the existing native
+`issue-type-metadata` and `list-spaces` reads. After the ordinary action is
+withheld, the approved Atlassian plugin's exact
+`getAccessibleAtlassianResources {}` must return the configured cloud ID and
+site. Then `getJiraProjectIssueTypesMetadata {cloudId,projectIdOrKey}` must return
+the documented typed issue-types page, or `getConfluenceSpaces {cloudId}` the
+typed spaces results. Returned tenant/resource identity must match where present.
+Every required row is proved on the same connection/call/session/action scope;
+only then can the identical ordinary action consume one observation. Discovery
+admission alone grants nothing. Unrecognized result variants remain an exact
+representation gap, not an authentication or platform-impossibility claim.
+Independent `secrets.require` and credential-only assertions are still mandatory.
+
 Single chokepoint for all Atlassian operations. Routes each op to a substrate, enforces connection match, returns structured result. Caller skills (`jira-*`, `confluence-*`) MUST go through this — they MUST NOT invoke `acli` directly, call Atlassian MCP tools directly, or curl the Atlassian REST API themselves.
 
 ## Invocation contract
