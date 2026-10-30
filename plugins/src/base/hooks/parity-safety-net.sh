@@ -3386,7 +3386,19 @@ readonly SSH_PRIVATE_KEY='\.ssh/(id_[[:alnum:]_-]+|[[:alnum:]_.-]*_(rsa|dsa|ecds
 readonly CLOUD_CREDENTIAL='(\.aws/(credentials|config)|\.config/gcloud/[[:alnum:]_./-]*credentials[[:alnum:]_.-]*|\.azure/(accessTokens|msal_token_cache)[[:alnum:]_.-]*|\.kube/config)([[:space:]'"$qc"']|$)'
 # 15c. Coding-agent credential stores — the tokens that impersonate the operator
 # to every service their agent can reach.
-readonly AGENT_CREDENTIAL='(\.(claude|codex|cursor|copilot|gemini|antigravity)/[[:alnum:]_./-]*(credentials|auth|token)[[:alnum:]_.-]*|\.netrc|\.npmrc|\.pypirc|\.docker/config\.json)([[:space:]'"$qc"']|$)'
+# Match store path components, not substrings in descriptive artifact names.
+# A store stem may have format/backup suffixes; a store directory protects its
+# descendants too. This is no artifact/directory/extension exemption: every
+# operand is still scanned, including a store beside an ordinary report.
+# OAuth's conventional oauth_creds name is a store, while authority, auth-design,
+# token-budget-notes and credentials-policy are not store components (#4544).
+readonly AGENT_STORE_STEM='(\.?credentials|auth|tokens?|oauth([_-](creds|tokens?))?|auth[_-]tokens?|access[_-]tokens?|refresh[_-]tokens?)'
+readonly AGENT_DIRECTORY='\.(claude|codex|cursor|copilot|gemini|antigravity)/'
+# Empty directory components are repeated separators for the same literal path.
+# A format suffix can continue through a quoted fragment (auth."json"); keep
+# refusing at that boundary instead of treating the quote as a new safe path.
+readonly AGENT_CREDENTIAL='('"$AGENT_DIRECTORY"'([[:alnum:]_.-]*/)*'"$AGENT_STORE_STEM"'(\.[[:alnum:]_.-]*)?(/[^[:space:]'"$qc"']*)?|\.netrc|\.npmrc|\.pypirc|\.docker/config\.json)([[:space:]'"$qc"']|$)'
+readonly AGENT_UNCERTAIN="$AGENT_DIRECTORY"'[^[:space:]'"$qc"']*(\$|\*|\?|\[)'
 # 15d. Dotenv files. `.env.example`, `.sample`, `.template`, `.dist` and
 # `.schema` are checked-in documentation of which keys exist, never the values,
 # so they are excluded — that collision is the one this rule most had to avoid.
@@ -3437,6 +3449,12 @@ if matches "$SECRET_READ_VERB"; then
   fi
   if matches "$AGENT_CREDENTIAL"; then
     block "reading, copying or transmitting a coding-agent or package-registry credential store. These tokens impersonate the operator to every service the agent can reach."
+  fi
+  # A literal artifact name can be distinguished from a store component, but a
+  # variable/glob below an agent directory can still resolve to a store. Refuse
+  # that uncertainty without expanding it or opening any credential file.
+  if matches_cs "$AGENT_UNCERTAIN"; then
+    block "reading a path inside a coding-agent credential directory whose target is variable-expanded or globbed, so the guard cannot tell which file it is. Name the file explicitly if it is genuinely not a secret."
   fi
   # A public path elsewhere in the command never exempts a private path. The
   # narrow public-template -> private-destination seed is write-only and remains

@@ -1,0 +1,96 @@
+{
+  "agentDirectories": [
+    ".claude",
+    ".codex",
+    ".cursor",
+    ".copilot",
+    ".gemini",
+    ".antigravity"
+  ],
+  "benignBasenames": [
+    "auth-design.md",
+    "authorization-notes.md",
+    "token-budget-notes.md",
+    "credentials-policy.md",
+    "operator-resume-authority-v1.md"
+  ],
+  "pathShapes": ["relative", "dot-relative", "absolute", "quoted-absolute"],
+  "agentStorePaths": [
+    ".claude/.credentials.json",
+    ".codex/auth.json",
+    ".cursor/auth.json",
+    ".copilot/auth.json",
+    ".gemini/oauth_creds.json",
+    ".antigravity/auth.json"
+  ],
+  "registryStorePaths": [".npmrc", ".pypirc", ".netrc", ".docker/config.json"],
+  "uncertainCommands": [
+    {
+      "id": "ssh-variable-leaf",
+      "command": "cat ~/.ssh/$KEYNAME",
+      "diagnostic": "credential directory"
+    },
+    {
+      "id": "ssh-braced-variable-leaf",
+      "command": "cat ~/.ssh/${KEYNAME}",
+      "diagnostic": "credential directory"
+    },
+    {
+      "id": "aws-variable-leaf",
+      "command": "cat ~/.aws/$CREDENTIAL_FILE",
+      "diagnostic": "credential directory"
+    },
+    {
+      "id": "gcloud-variable-leaf",
+      "command": "cat ~/.config/gcloud/$CREDENTIAL_FILE",
+      "diagnostic": "credential directory"
+    },
+    {
+      "id": "azure-variable-leaf",
+      "command": "cat ~/.azure/$TOKEN_FILE",
+      "diagnostic": "credential directory"
+    },
+    {
+      "id": "kube-braced-variable-leaf",
+      "command": "cat ~/.kube/${CONFIG_FILE}",
+      "diagnostic": "credential directory"
+    },
+    {
+      "id": "variable-home-known-codex-store",
+      "command": "cat \"$HOME/.codex/auth.json\"",
+      "diagnostic": "coding-agent or package-registry credential store"
+    },
+    {
+      "id": "braced-home-known-claude-store",
+      "command": "cat \"${HOME}/.claude/.credentials.json\"",
+      "diagnostic": "coding-agent or package-registry credential store"
+    }
+  ],
+  "mixedPathShapes": ["relative", "quoted-absolute"],
+  "mixedTemplates": [
+    { "id": "benign-first", "command": "cat {benign} {protected}" },
+    { "id": "protected-first", "command": "cat {protected} {benign}" },
+    { "id": "copy-to-benign-name", "command": "cp {protected} {benign}" },
+    {
+      "id": "archive-with-benign-name",
+      "command": "tar czf {archive} {benign} {protected}"
+    }
+  ],
+  "originalProtectionCommands": [
+    {
+      "id": "git-control-plane",
+      "command": "rm -rf .git",
+      "diagnostic": "git control plane"
+    },
+    {
+      "id": "unresolved-delete-target",
+      "command": "rm -rf \"$UNRESOLVED\"",
+      "diagnostic": "variable-expanded target"
+    },
+    {
+      "id": "private-dotenv",
+      "command": "cat .env",
+      "diagnostic": "dotenv file holding real values"
+    }
+  ]
+}

@@ -297,7 +297,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-hooks/parity-safety-net-heredoc.py":
       "b37b843b738fd0c1c6f9639551cf64c409263064819bb820e3daa6af8c94d443",
     "all/copy-overwrite/scripts/lisa-hooks/parity-safety-net.sh":
-      "3cc1b8a1730f7a35b82293824715538432bb4c410be38d64ee887eb55fea23b4",
+      "8a1a2e375c4f4ef22ddb81c841fd329eb3314d86480c355107b1c8dc796e3412",
     "all/copy-overwrite/scripts/lisa-hooks/sonar-secrets.sh":
       "e0b0073fe44f6e78b74f05cb232d30a3121acc3600bdbd5bc4299c1c710d56a2",
     "all/copy-overwrite/scripts/lisa-hooks/worktree-binding-guard.mjs":
@@ -1079,7 +1079,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/hooks/parity-safety-net.agy.sh":
       "ce9bd2b4566ad9147e4ace56434cffbbe87edb4ccbb57549ab3fd9f4c671ced4",
     "plugins/src/base/hooks/parity-safety-net.sh":
-      "3dcf3897381b6cd14903681b371ffde94e3839f34a39acb6192d69f20e06345d",
+      "93ae441de437457e3e63ca765e725b4efaed2a69ede78e7c7384270bdcb084d9",
     "plugins/src/base/hooks/secrets-preflight.sh":
       "cdc638627e5769770aefb061ea0ddfacc1888a8eab3a5fade6c43129a2d3ff6e",
     "plugins/src/base/hooks/setup-jira-cli.sh":
@@ -11994,6 +11994,9 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/hooks/operational-hazards-wiring.test.ts": true,
     "tests/unit/hooks/operational-hazards.test.ts": true,
     "tests/unit/hooks/parity-push-gate.test.ts": true,
+    "tests/unit/hooks/parity-safety-net-agent-store-aliases.test.ts": true,
+    "tests/unit/hooks/parity-safety-net-agent-store-boundaries.test.ts": true,
+    "tests/unit/hooks/parity-safety-net-agent-store-paths.test.ts": true,
     "tests/unit/hooks/parity-safety-net-and-branch-scope.test.ts": true,
     "tests/unit/hooks/parity-safety-net-brace-scope.test.ts": true,
     "tests/unit/hooks/parity-safety-net-cd-resolution.test.ts": true,
@@ -12041,6 +12044,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/hooks/shipped-hook-companions.test.ts": true,
     "tests/unit/hooks/sonar-resolver-deadline.test.ts": true,
     "tests/unit/hooks/sonar-secrets.test.ts": true,
+    "tests/unit/hooks/support/agent-store-paths.json": true,
     "tests/unit/hooks/support/blind-automerge.ts": true,
     "tests/unit/hooks/support/cwd-resolution-corpus.json": true,
     "tests/unit/hooks/support/cwd-resolution.ts": true,
