@@ -124,7 +124,7 @@ const SCRIPT_RULES = {
     claude: true,
     codex: true,
     cursor: true,
-    agy: false,
+    agy: true, // PreToolUse run_command adapter; agy still has no SessionStart.
     copilot: true,
     devin: true,
   },

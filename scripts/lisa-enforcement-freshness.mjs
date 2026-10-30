@@ -26,6 +26,7 @@ const GUARDS = new Set([
   "block-managed-file-edits",
   "block-blind-automerge",
   "worktree-binding-guard",
+  "task-readiness-guard",
 ]);
 const VERSION = /^\d{1,6}\.\d{1,6}\.\d{1,6}(?:[-+][A-Za-z0-9.-]{1,48})?$/u;
 

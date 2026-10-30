@@ -3,10 +3,16 @@
   "hooks": {
     "beforeSubmitPrompt": [
       {
+        "command": "${CURSOR_PLUGIN_ROOT}/hooks/secrets-preflight.sh --reset-native"
+      },
+      {
         "command": "${CURSOR_PLUGIN_ROOT}/hooks/enforce-verification-gate.sh"
       }
     ],
     "postToolUse": [
+      {
+        "command": "${CURSOR_PLUGIN_ROOT}/hooks/secrets-preflight.sh --observe-native"
+      },
       {
         "command": "${CURSOR_PLUGIN_ROOT}/hooks/shell-write-nudge.sh",
         "matcher": "Bash"
@@ -37,6 +43,9 @@
       }
     ],
     "preToolUse": [
+      {
+        "command": "${CURSOR_PLUGIN_ROOT}/hooks/secrets-preflight.sh --task-hook"
+      },
       {
         "command": "${CURSOR_PLUGIN_ROOT}/hooks/block-no-verify.sh",
         "matcher": "Bash"
@@ -118,7 +127,7 @@
         "command": "${CURSOR_PLUGIN_ROOT}/hooks/setup-jira-cli.sh"
       },
       {
-        "command": "${CURSOR_PLUGIN_ROOT}/hooks/secrets-preflight.sh"
+        "command": "${CURSOR_PLUGIN_ROOT}/hooks/secrets-preflight.sh --session-start"
       },
       {
         "command": "${CURSOR_PLUGIN_ROOT}/hooks/worktree-binding-guard.sh"
@@ -141,7 +150,15 @@
         "command": "${CURSOR_PLUGIN_ROOT}/hooks/enforce-verification-gate.sh"
       }
     ],
+    "PostToolUseFailure": [
+      {
+        "command": "${CURSOR_PLUGIN_ROOT}/hooks/secrets-preflight.sh --observe-native"
+      }
+    ],
     "sessionEnd": [
+      {
+        "command": "${CURSOR_PLUGIN_ROOT}/hooks/secrets-preflight.sh --reset-native"
+      },
       {
         "command": "${CURSOR_PLUGIN_ROOT}/hooks/cleanup-stale-worktrees.sh"
       }

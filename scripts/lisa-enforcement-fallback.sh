@@ -303,7 +303,7 @@ valid_freshness_result() {
       installed|applied|plugin|marketplace|channel)
         [[ "$value" =~ ^[0-9]{1,6}\.[0-9]{1,6}\.[0-9]{1,6}([-+][A-Za-z0-9.-]{1,48})?$ ]] || return 1 ;;
       channel_path) ;;
-      guard[0-7])
+      guard[0-8])
         [ "${key#guard}" -lt "$guard_count" ] || return 1
         case "$value" in matching|different|unknown) ;; *) return 1 ;; esac
         count=$((count + 1)) ;;
@@ -340,7 +340,7 @@ resolve_vintages() {
         marketplace) note_version "$value" "$config_dir/plugins/marketplaces/lisa/plugins/lisa/.claude-plugin/plugin.json" ;;
         channel) plugin_channel_version="$value" ;;
         channel_path) plugin_channel_path="$value" ;;
-        guard[0-7])
+        guard[0-8])
           state_index="${key#guard}"
           case "$value" in matching|different|unknown) host_guard_states[$state_index]="$value" ;; esac
           ;;
@@ -562,7 +562,7 @@ plugin_tree_used=0
 
 for guard in block-no-verify parity-safety-net block-shell-json-parsing \
   block-instruction-file-edits block-direct-issue-create \
-  block-managed-file-edits block-blind-automerge worktree-binding-guard; do
+  block-managed-file-edits block-blind-automerge worktree-binding-guard task-readiness-guard; do
   if [ -f "$host_tree/$guard.sh" ]; then
     guard_names+=("$guard")
     guard_scripts+=("$host_tree/$guard.sh")

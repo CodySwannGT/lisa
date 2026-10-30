@@ -152,7 +152,10 @@ describe.each(skillPaths("lisa-implement"))(
 
     it("states one writer order: keep the live read, or caller bundle plus live additions", () => {
       expect(skill).toContain("There is one writer order.");
-      expect(skill).toMatch(/`lisa-track` has already written its live read/);
+      expect(skill).toMatch(
+        /`lisa-track` has already written its leading requirements header and live read/
+      );
+      expect(skill).toMatch(/Preclaim required access/);
       expect(skill).toMatch(/append under `## Added by live read` only/);
       expect(skill).not.toContain("overwriting any earlier copy");
     });

@@ -10,6 +10,43 @@ Vendor-neutral access layer for Notion. Every notion-* skill MUST delegate throu
 
 Single chokepoint for all Notion operations. Routes each op to a substrate, enforces connection match, returns structured result. Caller skills (`notion-*`) MUST go through this — they MUST NOT call the Notion REST API or any `mcp__*notion*` tools directly.
 
+For the represented `database-read` task capability, the shared before owner
+uses this skill's fixed `scripts/readiness-probe.mjs`: supported candidate from
+the existing secrets chokepoint, authenticated `/v1/users/me`, then the configured
+`/v1/databases/<id>`, pinned version `2022-06-28`. Credentials enter curl config
+stdin only. Self workspace and returned database identity must match before the
+ordinary action runs. Every affected action performs a fresh read. Wrong identity
+refuses; genuine unavailable primary can proceed to the documented native pair.
+Token presence alone grants nothing, and primary API failure is not a vault outage.
+
+When shared task readiness returns `NATIVE_OWNER_REQUIRED`, the native before
+adapter withholds the original ordinary action. Resolve the supported primary
+first; use the connector only when that primary is genuinely unavailable. Load
+this owner, call the fixed `notion-get-self` with `{}`, then `notion-fetch` with
+only the configured database `id`. The registered after observer must match the
+same native call/session/input and approved connection provenance. Self verifies
+the configured workspace; the exact fetch verifies resource reachability.
+
+The bounded bridge accepts the documented stable self object and a positive MCP
+embedded-resource fetch (`resource.uri`, typed textual content), checking returned
+resource identity. It does not scrape page text or invent REST database fields.
+An installed standard response without that recognized positive contract is
+`native-response-unrepresented`. ChatGPT's `{id,title,text,url,metadata}` fetch
+variant is distinct from Codex/standard Notion and is not accepted on this route.
+Missing trusted provenance or native fields also remains an explicit adapter gap.
+
+After every required scope is proved, the next identical original action consumes
+the ephemeral observation once, before release. Replay, changed scope, wrong or
+missing identity, failed/error/unknown response, or an intervening action refuses.
+There is no durable PASS, header attestation, or permission from a warning string.
+Keep the ambient write/readback duties below. `notionOwnerContinuation` remains a
+trusted in-process primary/connector component boundary; callback tests are not
+native-agent execution or a substitute for the registered before decision.
+
+Producer references: [Notion tools](https://developers.notion.com/guides/mcp/mcp-supported-tools),
+[MCP tool results](https://modelcontextprotocol.io/specification/2025-06-18/server/tools),
+[Claude native events](https://code.claude.com/docs/en/hooks).
+
 ## Invocation contract
 
 ```text

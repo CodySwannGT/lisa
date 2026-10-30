@@ -1,7 +1,7 @@
 ---
 name: lisa-track
 description: "Resolves exactly one live configured-tracker leaf for durable project work, claims it idempotently, and persists its canonical reference in worktree-local state. Accepts an existing Jira/GitHub/Linear ref, a spec file, or plain text. Also accepts human_gate: <why a human must judge this first>, which files the leaf held — outside the build-ready lane, never claimed — instead of build-ready. Use directly to mention/create the related ticket, and as lisa-implement's mandatory input gate."
-allowed-tools: ["Skill", "Bash", "Read"]
+allowed-tools: ["Skill", "Bash", "Read", "Write"]
 ---
 
 # Track Work: $ARGUMENTS
@@ -96,6 +96,16 @@ never overrides a new caller-declared hold or another eligibility check.
 
 Otherwise:
 
+**Required-access preclaim gate.** Before this claim mutation, follow `tool-access-gate` → Task readiness. Enumerate the live body, all comments, proof and delivery requirements into the leading requirements-only header in the ignored context; run the existing secrets preflight `--task --ref <canonical-ref>`. `ESTABLISHED` proves only its exercised scope. `DENIED` stops affected work. `NATIVE_OWNER_REQUIRED` (CLI exit3, not PASS) hands the remaining route to its documented native access owner: that owner must perform the actual immediate identity/resource probe before claim or the affected continuation, retaining write/readback duties. Do not repeat an unobservable shell probe forever or accept a stored passed field. Report the exact shell/native enforcement gap. Only the bounded local intake metadata write may precede this gate. Held/leaf/scope/idempotency and failed tracker-read/write stops remain independent.
+
+For a native tool without structured terminal stdin, use the exact canonical
+ignored-context `Write` data adapter in `tool-access-gate`: supply the validated
+leading requirements-only header and complete unedited body as tool data. The
+existing atomic0600 owner prepares that file and DENIES the redundant raw Write
+with "Context prepared; run readiness". Read back the context, then run readiness;
+do not retry the raw Write or put private context/comments into Bash/heredoc argv.
+The permission to load Write does not authorize other files or bypass the guard.
+
 1. Invoke `lisa-tracker-claim <canonical-ref>`. Require its post-read verified `claim_outcome: claimed|reused`; no binding may be written after a failed/unverified claim.
 2. Persist only the canonical reference in worktree-local machine state:
 
@@ -105,7 +115,7 @@ Otherwise:
 
 3. Read the binding back through `node scripts/lisa-work-item.mjs current` and require it to equal the canonical reference. If binding fails, stop before durable project work.
    - A detached-HEAD worktree is valid at this stage: the binding records `branch: null` as a pending state. Create the feature branch only after the gate succeeds, then run `node scripts/lisa-work-item.mjs attach-branch`. Commit preparation and validation fail closed until that attachment succeeds.
-4. **Ignore guard before any write.** A host can receive these skills before its shipped `.gitignore` entry, so prove the path is ignored first, from the worktree root: `git check-ignore -q .lisa/work-item-context.md || printf '%s\n' '.lisa/work-item-context.md' >> "$(git rev-parse --git-common-dir)/info/exclude"`, then re-run `git check-ignore -q .lisa/work-item-context.md`. If it is still not ignored, stop and report — do not write the bundle. If an `.easignore` exists and `grep -qxF '.lisa/work-item-context.md' .easignore` fails, stop and report instead of writing: EAS uploads read `.easignore`, which is derived from `.gitignore`, not from `info/exclude`. Then write the full resolved work-item context — the live vendor read bundle, unedited, every comment included — to the worktree-local, git-ignored `<worktree root>/.lisa/work-item-context.md`, then return this structured result (the file is the context; a summary in the reply never substitutes for it). When a `caller_bundle_path` was forwarded for this work item and the file already exists, do not overwrite it — it holds the caller's bundle (or a previous run's) and is left for the resolver step. Otherwise this is the first write; when `lisa-implement` forwarded a `caller_bundle_path`, its resolver step then keeps the bundle at that path as the base and appends only what this live read adds, and in every case finishes it with the `## Comment inventory` section:
+4. **Ignore guard before any write.** A host can receive these skills before its shipped `.gitignore` entry, so prove the path is ignored first, from the worktree root: `git check-ignore -q .lisa/work-item-context.md || printf '%s\n' '.lisa/work-item-context.md' >> "$(git rev-parse --git-common-dir)/info/exclude"`, then re-run `git check-ignore -q .lisa/work-item-context.md`. If it is still not ignored, stop and report — do not write the bundle. If an `.easignore` exists and `grep -qxF '.lisa/work-item-context.md' .easignore` fails, stop and report instead of writing: EAS uploads read `.easignore`, which is derived from `.gitignore`, not from `info/exclude`. Keep the preclaim full vendor context and requirements header intact. Append the complete post-claim live read without trimming earlier body/comments, then refresh that same header through the preflight owner's `--prepare` mode and recheck task readiness. The live vendor read bundle stays unedited, every comment included, in the worktree-local, git-ignored `<worktree root>/.lisa/work-item-context.md`, then return this structured result (the file is the context; a summary in the reply never substitutes for it). When a `caller_bundle_path` was forwarded for this work item and the file already exists, do not overwrite it — it holds the caller's bundle (or a previous run's) and is left for the resolver step. Otherwise this is the first write; when `lisa-implement` forwarded a `caller_bundle_path`, its resolver step then keeps the bundle at that path as the base and appends only what this live read adds, and in every case finishes it with the `## Comment inventory` section:
 
    ```text
    tracker_provider: jira|github|linear

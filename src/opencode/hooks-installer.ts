@@ -109,6 +109,8 @@ const NO_VERIFY_DENY_PATTERNS: Readonly<Record<string, "deny">> = {
  * in a source checkout and is missing from every installed copy.
  */
 const PLUGIN_SUPPORT_FILES = [
+  "task-readiness-guard.sh",
+  "task-readiness-guard.mjs",
   "discharge-work-item-gates.sh",
   "block-managed-file-edits.sh",
   "block-no-verify.sh",

@@ -2871,6 +2871,48 @@ jobs:
           --reporter=verbose
         working-directory: ${{ inputs.working_directory || '.' }}
 
+      - name: Execute and name task readiness regression specs
+        if: github.repository == 'CodySwannGT/lisa' && steps.gate_run.outcome == 'success'
+        run: >-
+          bun run lisa-test-run -- --adapter vitest -- vitest run
+          tests/unit/secrets/preflight-secrets.test.ts
+          tests/unit/secrets/task-requirements.test.ts
+          tests/unit/secrets/task-readiness.test.ts
+          tests/unit/secrets/task-readiness-scope.test.ts
+          tests/unit/secrets/task-readiness-discovery.test.ts
+          tests/unit/secrets/task-readiness-diagnostics.test.ts
+          tests/unit/secrets/task-readiness-qualification.test.ts
+          tests/unit/secrets/task-readiness-capability-sources.test.ts
+          tests/unit/secrets/task-readiness-postlaunch.test.ts
+          tests/unit/secrets/task-native-owner-flow.test.ts
+          tests/unit/secrets/task-native-events.test.ts
+          tests/unit/secrets/task-native-lifecycle.test.ts
+          tests/unit/secrets/task-native-contention.test.ts
+          tests/unit/secrets/task-fresh-intake.test.ts
+          tests/unit/secrets/task-codex-context.test.ts
+          tests/unit/secrets/task-context-dispatch.test.ts
+          tests/unit/secrets/task-preheader-github.test.ts
+          tests/unit/secrets/task-native-context.test.ts
+          tests/unit/secrets/task-notion-primary.test.ts
+          tests/unit/secrets/task-atlassian-native.test.ts
+          tests/unit/secrets/task-review-regressions.test.ts
+          tests/unit/secrets/task-github-sources.test.ts
+          tests/unit/secrets/task-atlassian-routing.test.ts
+          tests/unit/hooks/secrets-preflight-hook.test.ts
+          tests/unit/hooks/task-readiness-adapters.test.ts
+          tests/unit/hooks/enforcement-fallback-readiness-isolation.test.ts
+          tests/unit/hooks/enforcement-fallback-attribution.test.ts
+          tests/unit/opencode/hooks-installer.test.ts
+          tests/unit/opencode/support-file-parity.test.ts
+          tests/unit/strategies/tracked-work-contract.test.ts
+          tests/unit/strategies/work-item-context-handoff-contract.test.ts
+          tests/unit/strategies/github-read-issue-label-history.test.ts
+          tests/integration/enforcement-fallback-freshness-read-bounds.test.ts
+          tests/integration/enforcement-fallback-freshness-deadline.test.ts
+          tests/integration/quality-unit-test-shards-env-scope.test.ts
+          --reporter=verbose
+        working-directory: ${{ inputs.working_directory || '.' }}
+
       # Both declared test commands and the built-in fallback can produce
       # coverage. A unique name keeps repeated workflow calls from colliding.
       - name: 📦 Name the coverage artifact

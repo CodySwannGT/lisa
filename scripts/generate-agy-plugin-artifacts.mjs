@@ -226,6 +226,14 @@ const GUARD_DEDUPE_LIB = "guard-dedupe.bash";
 
 const AGY_PLUGIN_HOOKS = [
   {
+    sourceScript: "secrets-preflight.sh",
+    hookName: "lisa-task-readiness",
+    event: "PreToolUse",
+    matcher: "run_command",
+    agyScript: "secrets-preflight.agy.sh",
+    supportScripts: ["secrets-preflight.sh"],
+  },
+  {
     sourceScript: "block-no-verify.sh",
     hookName: "lisa-block-no-verify",
     event: "PreToolUse",

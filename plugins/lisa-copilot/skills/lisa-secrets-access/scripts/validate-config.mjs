@@ -866,7 +866,8 @@ export function validateConfig(cfg) {
 }
 
 /** Keys a parsed JSON layer may not contribute to a merged object. */
-const UNSAFE_KEYS = new Set(["__proto__", "constructor", "prototype"]);
+export { mergeConfigLayers } from "./config-layers.mjs";
+import { mergeConfigLayers } from "./config-layers.mjs";
 
 /**
  * Merge config layers key by key, later layers winning — the
@@ -881,26 +882,6 @@ const UNSAFE_KEYS = new Set(["__proto__", "constructor", "prototype"]);
  * @param {...unknown} layers Lowest precedence first.
  * @returns {Record<string, unknown>} A new object; no layer is mutated.
  */
-export function mergeConfigLayers(...layers) {
-  const objects = layers.filter(isPlainObject);
-  const keys = [...new Set(objects.flatMap(Object.keys))].filter(
-    key => !UNSAFE_KEYS.has(key)
-  );
-  return Object.fromEntries(
-    keys.map(key => {
-      const values = objects
-        .filter(layer => Object.hasOwn(layer, key))
-        .map(layer => layer[key]);
-      const top = values.at(-1);
-      return [
-        key,
-        isPlainObject(top)
-          ? mergeConfigLayers(...values.filter(isPlainObject))
-          : top,
-      ];
-    })
-  );
-}
 
 /**
  * Read a JSON file, or undefined when it does not exist.

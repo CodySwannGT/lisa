@@ -1,5 +1,7 @@
 # Tracked Work
 
+Before claim or normal project mutations, follow `tool-access-gate` Task readiness. The only preclaim write exception is the bounded requirements-only header in the ignored work-item context; it grants no access. Preserve body/comments, holds, leaf/scope checks, and the canonical binding schema. Recheck new requirements and current scope before affected work; failure reporting never depends on a successful tracker write.
+
 Apply `do-it-now` before creating work from incidental findings. Declining an observation needs no new ticket. Related small accepted repairs may share one bounded maintenance leaf; traceability does not require a separate item for every nit.
 
 Before the first durable project mutation (code, tests, config, docs, committed research/plans/findings, commits, or PRs), establish exactly one live tracker leaf through `lisa-track`. Read-only discussion and orientation are exempt only while they produce no durable artifact.

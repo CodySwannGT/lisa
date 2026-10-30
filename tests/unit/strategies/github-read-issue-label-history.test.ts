@@ -34,7 +34,7 @@ describe("github read issue label history contract", () => {
 
     it("captures label event payload and preserves pagination", () => {
       expect(skill).toContain("pageInfo{hasNextPage endCursor}");
-      expect(skill).toContain("after:$cursor");
+      expect(skill).toContain("after:$endCursor");
       expect(skill).toMatch(/label\{name\}/);
       expect(skill).toMatch(/actor\{login\}/);
       expect(skill).toMatch(

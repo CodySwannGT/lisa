@@ -5,6 +5,166 @@ alwaysApply: false
 
 # Tool Access Gate
 
+## Task readiness
+
+The secrets access owner's `preflight-secrets.mjs` is the shared decision entry
+point. Before claim, the bounded resolver reads the complete live body/comments,
+acceptance, proof and delivery needs; enumerates credential availability separately
+from scoped capability/identity; and persists the complete vendor context after
+the normal git-ignore and EAS checks. Only this small local intake metadata write
+may precede claim. Normal source, branch, claim and business writes may not.
+
+Before a context exists, fixed Implement/Track/tracker-read/secrets-access owner
+loads and configured issue/comment/relationship reads remain available. The
+bounded native `Agent` route uses name `input-resolver`, type `general-purpose`,
+description `Resolve Lisa input`, and the exact prompt `Invoke lisa-track <ref>;
+resolve the complete live issue, comments and graph; prepare requirements and
+prove access before any claim. Do not implement or change source.` Only the
+configured canonical ref is substituted. Other agents, skills and mutations
+are not preclaim exceptions. Never create a fake complete empty header to load
+the resolver or read its inputs.
+
+Supply a complete values-free `required_access` array and
+`requirements_complete: true` as JSON on stdin to the owner's
+`--prepare --ref <canonical-ref>` mode. For the first context, include the complete
+unedited `context_body` on that same stdin; it creates
+only the fixed ignored0600 context after Git-ignore and EAS checks. Existing
+context cannot be replaced through `context_body`. This is the bounded initial
+resolver metadata transaction, not a general Write or shell exception.
+For the native Claude `Write` tool, pass the complete canonical context as
+`{file_path: "<absolute project root>/.lisa/work-item-context.md", content: "<leading requirements header plus full body>"}`.
+Use the header schema above with current root/ref/config/surface/body/requirements
+digests; no stored success field or credential value belongs in that header.
+The before hook treats this exact-path request as data for the existing validated
+atomic0600 metadata owner. It DENIES the redundant raw Write with
+"Context prepared; run readiness", while explicitly performing only that bounded
+metadata side effect. Run readiness next; a denial is not a fake successful tool
+result. Source writes, alternate paths, symlinks, conflicting refs/config/body,
+missing ignore/EAS proof and malformed headers still refuse. Existing body bytes
+cannot be replaced by this adapter. Never put the complete private body in a Bash
+command, heredoc, argv or Lisa-owned log; native tool payloads may still be retained
+in runtime transcripts. No universal transcript privacy is claimed.
+Codex retains native `tool_name: apply_patch`; its `tool_input.command` is patch
+data. Only ONE whole `*** Add File: <absolute canonical context path>` operation
+is decoded into the same strict metadata owner. Every content line starts with
+`+`; Add File reconstructs those lines with LF and a final LF. The before hook
+prepares0600 context and DENIES the redundant raw patch with the same recovery.
+Relative/normalized/symlink aliases, mixed operations, update/delete/move/hunks,
+bad framing/trailing text and bad headers/body/ref/config/binding still refuse.
+Ordinary non-context source patches are NOT metadata: they reach normal readiness,
+proceed only when qualified and remain withheld when required access is unproved.
+This is a protocol/wrapper component, not execution of every native app/version.
+
+Real SessionStart (including same-ID resume), UserPromptSubmit and SessionEnd
+rotate the existing temporary root/session epoch before config/header/provider
+evaluation, including subagent scopes. Early affected-action failures invalidate
+the epoch before reporting denial. Restoring exact config bytes cannot revive
+an old proof. SessionStart remains advisory; this reset grants no access.
+The owner prepends the strictly leading
+`<!-- lisa-required-access:v1` header and preserves every following body/comment
+byte. Then run `--task --ref <canonical-ref>` before claim and act on its semantic
+outcome. `ESTABLISHED` exits0 and proves only the exercised scope. `DENIED` exits2
+and stops the affected action. `NATIVE_OWNER_REQUIRED` exits3: the documented
+native owner must perform its actual immediate identity/resource probe before
+the claim or affected continuation. It is not shell PASS or a definitive access
+failure; do not repeat an unobservable check forever. A complete empty array checks routing and declared requirements;
+it proves no other integration. Never use credential-only for an integration
+whose identity/resource/operation must be proved. Never supply values, executable
+paths, commands, argv, arbitrary URLs, JSON programs or successful attestations.
+
+The header binds root, canonical ref/provider, body, effective config/provenance,
+surface and requirement digests. The owner rereads them and the canonical binding
+at every affected action. Missing, conflicting, incomplete, malformed or stale
+metadata refuses; no cached pass survives a changed task/config/surface/body.
+Only fixed owner adapters probe documented operations. GitHub's native keyring
+route checks the configured repository, and proves only that GitHub operation.
+Supported injected access needs no vault tool, bootstrap or health proof.
+Routing credential names are capability proxies: a complete task capability for
+the same routed vendor may establish access through its documented native owner.
+An explicit `secrets.require` or credential-only task assertion remains independent
+and must be satisfied before any handoff. An omitted routed capability still
+checks its routing floor; an unrelated capability cannot satisfy that floor.
+
+Native PreToolUse adapters call this same owner and withhold ordinary DENIED and
+NATIVE_OWNER_REQUIRED actions; no-context/no-binding is not a mutation grant.
+SessionStart stays advisory. Only fixed orientation/recovery, owner loading and
+the expected documented read-only probes remain available while pending.
+Fixed orientation reads remain available.
+Required source errors use fixed safe diagnoses and recovery actions; never
+reflect requirement identifiers/resources/paths, parse errors or provider output.
+Do not block unrelated tasks or require optional integrations universally.
+
+The exact readiness owner command (`node <owner>/preflight-secrets.mjs --task
+--ref <canonical-ref>`, or `--prepare` with that ref and JSON on terminal stdin)
+remains available during refusal. It grants no work: task mode still reports its
+real verdict, and preparation only refreshes the ignored requirements metadata.
+Only the exact native context Write/Add File forms above carry private metadata.
+General shell chaining, redirects and unrelated commands are not exceptions.
+
+### Native connector representation gap
+
+The reference native owner has one narrow Notion self/fetch before/after bridge.
+It uses runtime call/session/input and approved connection provenance, stable self
+identity, and a recognized positive exact-resource MCP output. Arbitrary text,
+empty success, supplied status, unsolicited/replayed results and wrong identity
+cannot mint proof. Every pending scope must be covered, and the next identical
+ordinary action atomically consumes the complete temporary observation once.
+State contains safe indexes/hashes, not arguments, private IDs, result text or
+credential values. Changed root/task/config/context/surface/action, failures and
+intervening work invalidate it; no durable PASS or new binding schema exists.
+
+Several runtimes have after-tool events but lack qualified response/provenance
+forwarding here. Standard Notion output without the supported typed positive
+contract, ChatGPT's different fetch shape, and missing native call/provenance
+fields are `native-response-unrepresented`, not vendor/tool/credential absence.
+Ordinary work remains withheld. The documented
+`lisa-notion-access`, `lisa-linear-access` and `lisa-atlassian-access` native routes
+remain valid when tier1 is genuinely unavailable; their actual immediate
+identity/resource probe and guarded write/readback own the affected native
+operation. A supplied passed status, transcript or shell absence proves nothing.
+Capability credential names are primary candidates, not independent mandatory
+secrets that can prevent a documented fallback. Explicit config assertions and
+routing-floor obligations remain mandatory with their existing exceptions.
+Supported primary resolution precedes eligible fallback; wrong identity cannot
+be hidden by connector handoff. Provider health and capability proof stay separate.
+Only the represented event/response contract is machine-enforced; fixture or
+callback results do not establish native-agent execution. Otherwise report the
+precise response mapping gap and retain the ordinary-action refusal and existing
+owner's immediate probe/write/readback duty. A mismatched identity never authorizes
+a fallback. Provider health and capability proof remain distinct observations.
+
+Descriptors can name integrations beyond the executable adapters. Existing
+documented native owners remain authoritative. Without such a native route,
+unsupported executable observation is DENIED (adapter-unsupported), not an
+invented connector handoff or malformed metadata. A documented cheapest
+authenticated read still needs an implemented supported adapter. No header supplies
+executable code, URLs, argv or attestations. Credential diagnoses use bounded
+schema-validated public keys and generated requirement indexes, never raw
+requirement IDs/resources or a fixture-name allowlist.
+The bounded GitGuardian `token-read` adapter resolves GITGUARDIAN_API_KEY through
+the same sources, reads the fixed API token-self endpoint, and compares its
+workspace to the optional task-specific `gitguardian.workspaceId` anchor. It
+proves that scoped token read, not a scan or vault health. API authority:
+[GitGuardian API](https://api.gitguardian.com/docs). Projects not needing this
+operation do not need this anchor or credential.
+GitHub reads its repository/permissions separately from the authenticated user.
+Native keyring success avoids a vault lookup. When native authentication is
+unavailable, the same supported env/file/provider ladder supplies GH_TOKEN only
+to the scoped gh child's in-memory environment, clearing conflicting aliases.
+Wrong native identity never silently falls back. API failure is not vault outage.
+An observed actor ID comes only from `/user`, never a repository viewer field;
+repository access does not imply the actor owns that repository. Installation
+tokens without `/user` prove repository scope only, with actor explicitly unobserved.
+
+Claude, Codex, Cursor, Copilot and Devin receive the shared native before-tool
+hook; OpenCode throws from tool.execute.before. Antigravity's run_command adapter
+can cancel shell work; it has no SessionStart. Equivalent file-edit/native-MCP
+response interception is not implemented by this adapter; the generator contract
+does list PostToolUse support, so this is not a claim that agy lacks that event.
+Generated artifact parity does not establish native
+execution on any platform. Preserve the existing access ordering and hold/leaf/
+scope/idempotency guards. Stop/report independently of tracker write success.
+
 - If you can't reach something you need, such as a repository, a secret, an API, or a connector, say exactly what's missing in your first message and stop. Don't substitute, mock, or guess.
 
 If the missing access is discovered after work begins, say exactly what's

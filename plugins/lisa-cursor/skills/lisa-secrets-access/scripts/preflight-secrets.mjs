@@ -32,12 +32,18 @@
  */
 
 import { execFileSync } from "node:child_process";
-import { realpathSync } from "node:fs";
+import { realpathSync, readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 
 import { fetchAll } from "./providers.mjs";
 import { readConfig } from "./surfaces.mjs";
 import { readMaterialized } from "./resolve-secret.mjs";
+import { failure } from "./task-readiness.mjs";
+import { runTaskAction } from "./task-action.mjs";
+import { AccessFailure } from "./config-layers.mjs";
+import { prepareRequirements } from "./task-requirements.mjs";
+import { runIntakeRead } from "./task-intake-read.mjs";
+export { taskReadiness, credentialAvailability } from "./task-readiness.mjs";
 import {
   routingFloorReasons,
   SUBSTITUTE_SUBSTRATES,
@@ -144,7 +150,10 @@ export function preflight(
       verdict: "unreachable",
       required,
       missing: unresolvedLocally,
-      reason: err.message,
+      reason:
+        err.message === "Missing access token"
+          ? "Missing access token"
+          : "Provider access could not be established.",
     };
   }
 
@@ -172,6 +181,32 @@ export function preflight(
  */
 export function report(result, cfg) {
   if (result.verdict === "ok") return "";
+  cfg = {
+    ...cfg,
+    provider: [
+      "env",
+      "bitwarden",
+      "doppler",
+      "1password",
+      "aws",
+      "vault",
+    ].includes(cfg.provider)
+      ? cfg.provider
+      : "unknown",
+    surface: [
+      "local",
+      "github-actions",
+      "codex-cloud",
+      "claude-web",
+      "container",
+    ].includes(cfg.surface)
+      ? cfg.surface
+      : "unknown",
+  };
+  const reason =
+    result.reason === "Missing access token"
+      ? result.reason
+      : "Provider access could not be established.";
 
   const lines = [];
   if (result.verdict === "unreachable") {
@@ -180,7 +215,7 @@ export function report(result, cfg) {
       `The "${cfg.provider}" provider could not be reached, so nothing is`,
       `known about any credential — this is not a report that they are fine.`,
       ``,
-      `  reason: ${result.reason}`,
+      `  reason: ${reason}`,
       ``,
       `Fix this machine's access to the provider (bootstrap token, CLI`,
       `install, network), then start a new session. Do not treat the`,
@@ -212,7 +247,23 @@ export function report(result, cfg) {
   }
   lines.push(``);
   for (const { name, reasons } of result.missing) {
-    lines.push(`  ${name} — required because ${reasons.join("; ")}`);
+    const named = [
+      "GH_TOKEN",
+      "NOTION_API_TOKEN",
+      "ATLASSIAN_API_TOKEN",
+      "LINEAR_API_KEY",
+    ].includes(name)
+      ? name
+      : "Required credential";
+    const safeReasons = reasons.filter(
+      value =>
+        /^(?:tracker|source) is "(?:github|notion|jira|confluence|linear)"$/.test(
+          value
+        ) || value === "declared in secrets.require"
+    );
+    lines.push(
+      `  ${named} — required because ${safeReasons.join("; ") || "the current project requires it"}`
+    );
   }
   lines.push(
     ``,
@@ -303,15 +354,39 @@ function safely(thunk) {
   }
 }
 
-/**
- * CLI entry point. Prints the report and exits non-zero on any failure.
- */
 function main() {
+  if (process.argv.includes("--intake-read")) {
+    runIntakeRead();
+    return;
+  }
+  if (process.argv.includes("--prepare")) {
+    const cfg = readConfig();
+    const index = process.argv.indexOf("--ref");
+    const input = JSON.parse(readFileSync(0, "utf8"));
+    console.log(
+      JSON.stringify(
+        prepareRequirements(
+          cfg,
+          index >= 0 ? process.argv[index + 1] : undefined,
+          input
+        )
+      )
+    );
+    return;
+  }
+  if (
+    ["--task", "--hook", "--observe-native", "--reset-native"].some(flag =>
+      process.argv.includes(flag)
+    )
+  ) {
+    runTaskAction();
+    return;
+  }
   const cfg = readConfig();
   const result = preflight(cfg);
   const text = report(result, cfg);
   if (text) console.error(text);
-  if (result.verdict !== "ok") process.exit(1);
+  if (result.verdict !== "ok") process.exitCode = 1;
 }
 
 /**
@@ -338,5 +413,13 @@ function invokedAsScript(moduleUrl, argv1 = process.argv[1]) {
 }
 
 if (invokedAsScript(import.meta.url)) {
-  main();
+  try {
+    main();
+  } catch (error) {
+    const result = failure(
+      error instanceof AccessFailure ? error.code : "config-invalid"
+    );
+    console.error(`${result.code}: ${result.action}`);
+    process.exitCode = process.argv.includes("--prepare") ? 2 : 1;
+  }
 }

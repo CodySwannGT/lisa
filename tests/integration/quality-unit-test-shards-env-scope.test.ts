@@ -119,6 +119,7 @@ describe.each(Object.keys(ARMS) as (keyof typeof ARMS)[])(
           "Execute and name required-check registration regression specs",
           "Execute and name host-name target-scope regression cases",
           "Execute and name completion authorization regression specs",
+          "Execute and name task readiness regression specs",
         ]);
       for (const step of regression)
         expect(JSON.stringify(step), step.name).not.toContain(

@@ -28,6 +28,7 @@ import path from "node:path";
 import { afterAll, describe, expect, it } from "vitest";
 
 import { boundedSpawnSync } from "../../helpers/io-latency-budget.js";
+import { taskFixture } from "../../helpers/task-readiness-fixture.js";
 
 /** The hook as it is installed into a plugin root. */
 const HOOK = path.resolve(
@@ -178,5 +179,50 @@ describe("the readiness hook without jq", () => {
     expect(status).toBe(0);
     expect(stdout.trim()).toBe("");
     expect(stderr).not.toMatch(/not found/u);
+  });
+});
+
+describe("task readiness at the real PreToolUse continuation", () => {
+  for (const routing of [true, false]) {
+    it(`stops all affected mutations with task API unproven (${routing ? "native GitHub success" : "empty routing floor"})`, () => {
+      const fixture = taskFixture(routing);
+      temporary.push(fixture.root);
+      const observed = fixture.run();
+      expect(observed.setupFailure).toBe(false);
+      expect(observed.taskUnproven).toBe(true);
+      console.info(
+        "TASK_READINESS_OBSERVATION",
+        JSON.stringify({
+          routing,
+          status: observed.status,
+          ordered: observed.ordered,
+          counters: observed.counters,
+          taskUnproven: observed.taskUnproven,
+          input_sha256: fixture.manifest.context_sha256,
+        })
+      );
+      expect(observed.counters).toEqual({
+        claim: 0,
+        branch: 0,
+        code: 0,
+        external: 0,
+      });
+      expect(observed.status).toBe(2);
+      expect(observed.ordered).toContain("bws:secret:list");
+    });
+  }
+
+  it("proves the same real continuation can mutate exactly once with complete empty task requirements", () => {
+    const fixture = taskFixture(false, false);
+    temporary.push(fixture.root);
+    fixture.refresh([]);
+    const observed = fixture.run();
+    expect(observed.status).toBe(0);
+    expect(observed.counters).toEqual({
+      claim: 1,
+      branch: 1,
+      code: 1,
+      external: 1,
+    });
   });
 });
