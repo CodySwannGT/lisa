@@ -2,6 +2,34 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [4.86.0](https://github.com/CodySwannGT/lisa/compare/v4.85.0...v4.86.0) (2026-10-31)
+
+
+### Features
+
+* **session-manager:** make Telegram notifications optional ([36d2b5e](https://github.com/CodySwannGT/lisa/commit/36d2b5ed2eb4aabd95e0cabe6c5dc8fb8adbeae4)), closes [CodySwannGT/lisa#4555](https://github.com/CodySwannGT/lisa/issues/4555) [CodySwannGT/lisa#4555](https://github.com/CodySwannGT/lisa/issues/4555)
+* **session-manager:** mark human-needed items and keep dispatching ([316c81f](https://github.com/CodySwannGT/lisa/commit/316c81f4e8aca9dc58732cfbaf7d81ef0f900248)), closes [CodySwannGT/lisa#4555](https://github.com/CodySwannGT/lisa/issues/4555) [CodySwannGT/lisa#4555](https://github.com/CodySwannGT/lisa/issues/4555)
+* **session-manager:** resolve the Telegram bot token from the secrets provider ([51c9395](https://github.com/CodySwannGT/lisa/commit/51c9395c9e89eaa47e1b7c555b87b7f68014348c)), closes [CodySwannGT/lisa#4555](https://github.com/CodySwannGT/lisa/issues/4555) [CodySwannGT/lisa#4555](https://github.com/CodySwannGT/lisa/issues/4555)
+
+
+### Bug Fixes
+
+* **session-manager:** harden answer pickup, migration and doctor after review ([bb0ba80](https://github.com/CodySwannGT/lisa/commit/bb0ba806bc0daeb93431783fd91dcf4346dc4aaa)), closes [CodySwannGT/lisa#4555](https://github.com/CodySwannGT/lisa/issues/4555)
+* **session-manager:** never lose an answer to a quote reply or a stray marker ([cfb54f7](https://github.com/CodySwannGT/lisa/commit/cfb54f7961d2dd259f3cdb203245cae82c0bc056)), closes [CodySwannGT/lisa#4555](https://github.com/CodySwannGT/lisa/issues/4555) [CodySwannGT/lisa#4555](https://github.com/CodySwannGT/lisa/issues/4555)
+* **session-manager:** one machine-comment predicate, and never read the manager's own comments ([bb723cd](https://github.com/CodySwannGT/lisa/commit/bb723cd7d94e53e1617e228456145ed744e83523)), closes [CodySwannGT/lisa#4555](https://github.com/CodySwannGT/lisa/issues/4555)
+* **session-manager:** refuse all-quoted answers and require the question id ([1fc721a](https://github.com/CodySwannGT/lisa/commit/1fc721a1916b599a15e569f49527bb617451a4bc)), closes [CodySwannGT/lisa#4555](https://github.com/CodySwannGT/lisa/issues/4555) [CodySwannGT/lisa#4555](https://github.com/CodySwannGT/lisa/issues/4555)
+
+
+### Documentation
+
+* **session-manager:** record the [#4555](https://github.com/CodySwannGT/lisa/issues/4555) roster and plan ([f184073](https://github.com/CodySwannGT/lisa/commit/f1840730c65e3e5a0f9ff24b0dbf120704c47f47))
+
+
+### Code Refactoring
+
+* **session-manager:** split cli-manager, launch and cli-queue under the line budget ([c785194](https://github.com/CodySwannGT/lisa/commit/c785194f314328a645f8de630ce6b99c11956406)), closes [CodySwannGT/lisa#4555](https://github.com/CodySwannGT/lisa/issues/4555) [CodySwannGT/lisa#4555](https://github.com/CodySwannGT/lisa/issues/4555)
+* **session-manager:** split token and keep ledger within its baseline ([80de8fa](https://github.com/CodySwannGT/lisa/commit/80de8fa4f9722d025d53a3d90fc80d02f5f86f6a)), closes [CodySwannGT/lisa#4555](https://github.com/CodySwannGT/lisa/issues/4555) [CodySwannGT/lisa#4555](https://github.com/CodySwannGT/lisa/issues/4555)
+
 ## [4.85.0](https://github.com/CodySwannGT/lisa/compare/v4.84.11...v4.85.0) (2026-10-31)
 
 
