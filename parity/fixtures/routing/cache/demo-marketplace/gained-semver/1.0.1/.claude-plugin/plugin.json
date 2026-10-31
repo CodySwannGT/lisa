@@ -1,0 +1,5 @@
+{
+  "name": "gained-semver",
+  "version": "1.0.1",
+  "description": "Routing-validate fixture — the upstream later started publishing a semver; this sibling dir is what made an approved unknown artifact stale."
+}

@@ -79,7 +79,7 @@ maps to an upstream plugin publishing semver still carries its `synced-from` pin
 | `parity-safety-net-rules`           | `safety-net@cc-marketplace@2.0.4`                   |
 | `parity-sentry-seer`                | `sentry@claude-plugins-official@1.4.0` (reviewed, diverged) |
 | `parity-sentry-sdk-setup`           | `sentry@claude-plugins-official@1.4.0` (reviewed, diverged) |
-| `parity-code-review`                | **no pin** — upstream has no semver → not drift-trackable (track manually) |
+| `parity-code-review`                | `code-review@claude-plugins-official@1.0.1` (reviewed, diverged; unpinned until upstream published semver — #4556) |
 | `parity-skill-creator`              | **no pin** — upstream has no semver → not drift-trackable (track manually) |
 
 A pin marked **(reviewed, diverged)** means the skill was reviewed against that

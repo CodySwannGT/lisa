@@ -1,0 +1,53 @@
+{
+  "schemaVersion": 1,
+  "plugin": "gained-semver@demo-marketplace",
+  "pluginName": "gained-semver",
+  "marketplace": "demo-marketplace",
+  "upstreamVersion": "1.0.1",
+  "analyzedAt": "2026-05-30",
+  "status": "approved",
+  "components": [
+    {
+      "kind": "command",
+      "id": "gained-semver",
+      "path": "commands/gained-semver.md",
+      "classification": "claude-command",
+      "notes": "gained-semver fixture component"
+    }
+  ],
+  "routing": {
+    "codex": {
+      "outcome": "reimplement",
+      "actions": [
+        "scaffold Lisa-native skill reimplementing the gained-semver command stamped synced-from: gained-semver@demo-marketplace@1.0.1"
+      ],
+      "rationale": "no plugin command surface; reimplement as a Lisa skill"
+    },
+    "cursor": {
+      "outcome": "claude-only",
+      "actions": [],
+      "rationale": "Cursor reads .claude-plugin/ natively"
+    },
+    "agy": {
+      "outcome": "reimplement",
+      "actions": [
+        "scaffold Lisa-native skill reimplementing the gained-semver command stamped synced-from: gained-semver@demo-marketplace@1.0.1"
+      ],
+      "rationale": "no plugin command surface; reimplement as a Lisa skill"
+    },
+    "copilot": {
+      "outcome": "enable-vendor-equivalent",
+      "actions": [
+        "enable the vendor native equivalent of the gained-semver command"
+      ],
+      "rationale": "vendor ships a comparable capability"
+    },
+    "devin": {
+      "outcome": "reimplement",
+      "actions": [
+        "ship the Lisa-native gained-semver command reimplementation in the lisa-devin variant stamped synced-from: gained-semver@demo-marketplace@1.0.1"
+      ],
+      "rationale": "no plugin command surface; reimplement as a Lisa skill"
+    }
+  }
+}
