@@ -24,7 +24,7 @@
  * reason printed.
  * @module tests/unit/session-manager/launch-real-tmux
  */
-import { spawn, spawnSync } from "node:child_process";
+import { spawn } from "node:child_process";
 import { createHash, randomBytes } from "node:crypto";
 import {
   accessSync,
@@ -47,12 +47,16 @@ import {
   buildManagerLaunch,
   buildSourcedLaunch,
 } from "../../../plugins/src/base/skills/lisa-session-manager/scripts/launch.mjs";
+import { boundedSpawnSync } from "../../helpers/io-latency-budget.js";
 
 /** macOS and Linux both cap a unix socket path at about 104 bytes. */
 const SOCKET_PATH_LIMIT = 104;
 
 /** `ps` by absolute path: `/bin/ps` on both macOS and Linux. */
 const PS = "/bin/ps";
+
+/** Room for a busy host's full process table with unlimited-width args. */
+const PS_MAX_BUFFER = 16 * 1024 * 1024;
 
 /** How often the `ps` scan samples the process table, in ms. */
 const PS_INTERVAL_MS = 25;
@@ -90,8 +94,10 @@ function findTmux(): string | null {
  */
 function shortTempBase(): string {
   if (process.platform === "darwin") {
-    const result = spawnSync("/usr/bin/getconf", ["DARWIN_USER_TEMP_DIR"], {
-      encoding: "utf8",
+    const result = boundedSpawnSync({
+      label: "getconf DARWIN_USER_TEMP_DIR",
+      command: "/usr/bin/getconf",
+      args: ["DARWIN_USER_TEMP_DIR"],
     });
     const dir = result.status === 0 ? result.stdout.trim() : "";
     if (dir && existsSync(dir)) return dir;
@@ -125,8 +131,11 @@ async function scanProcessTable(
   };
   const hits = new Set<string>();
   const sample = () => {
-    const ps = spawnSync(PS, ["-A", "-ww", "-o", "args="], {
-      encoding: "utf8",
+    const ps = boundedSpawnSync({
+      label: "ps -A -ww -o args=",
+      command: PS,
+      args: ["-A", "-ww", "-o", "args="],
+      maxBuffer: PS_MAX_BUFFER,
     });
     ps.stdout
       .split("\n")
@@ -178,17 +187,15 @@ let scriptsDir = "";
 /**
  * Run one tmux command against the private server only.
  * @param args - tmux arguments after the server selection
- * @returns spawnSync result
+ * @returns The completed child (a non-zero status is returned, not thrown)
  */
 function privateTmux(args: readonly string[]) {
-  return spawnSync(
-    tmuxPath as string,
-    ["-L", SERVER, "-f", "/dev/null", ...args],
-    {
-      env: serverEnv,
-      encoding: "utf8",
-    }
-  );
+  return boundedSpawnSync({
+    label: `tmux -L ${SERVER} ${args.join(" ")}`,
+    command: tmuxPath as string,
+    args: ["-L", SERVER, "-f", "/dev/null", ...args],
+    env: serverEnv,
+  });
 }
 
 describe.skipIf(!tmuxPath)("buildSourcedLaunch against a real tmux", () => {

@@ -12,11 +12,12 @@
  * with a stub-only PATH.
  * @module tests/unit/session-manager/cli-human-answer
  */
-import { spawnSync } from "node:child_process";
 import { existsSync, mkdtempSync, renameSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
 import { afterEach, describe, expect, it } from "vitest";
+
+import { boundedSpawnSync } from "../../helpers/io-latency-budget.js";
 
 import { removeSandboxes, type Sandbox } from "./support/cli-harness.js";
 import { stubOnlyPath } from "./support/provider-sandbox.js";
@@ -85,10 +86,12 @@ describe("status answerCommand", () => {
 
     const cwd = mkdtempSync(path.join(path.dirname(hostile), "answer-"));
     writeFileSync(path.join(cwd, "answer.txt"), CSV_PLEASE);
-    const shell = spawnSync("/bin/sh", ["-c", command], {
+    const shell = boundedSpawnSync({
+      label: "the printed answer command under /bin/sh",
+      command: "/bin/sh",
+      args: ["-c", command],
       cwd,
       env: { PATH: stubOnlyPath(), HOME: sandbox.home },
-      encoding: "utf8",
     });
     expect(shell.status).toBe(0);
     expect(existsSync(path.join(cwd, "pwned-dollar"))).toBe(false);
