@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.84.10](https://github.com/CodySwannGT/lisa/compare/v4.84.9...v4.84.10) (2026-10-31)
+
+
+### Bug Fixes
+
+* classify completed neutral review checks as terminal ([7679a50](https://github.com/CodySwannGT/lisa/commit/7679a501ba4a196cf7c1b5d5ab3498daa7a835c7)), closes [CodySwannGT/lisa#4558](https://github.com/CodySwannGT/lisa/issues/4558)
+
 ### [4.84.9](https://github.com/CodySwannGT/lisa/compare/v4.84.8...v4.84.9) (2026-10-29)
 
 
