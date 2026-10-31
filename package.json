@@ -190,7 +190,7 @@
   },
   "name": "@codyswann/lisa",
   "version": "4.86.1",
-  "description": "Claude Code governance framework that applies guardrails, guidance, and automated enforcement to projects",
+  "description": "Governance-as-code for AI coding agents: turns a repository into agent-operated software factories with guardrails, guidance and automated enforcement for Claude Code, Codex, Cursor, OpenCode, Antigravity, Copilot and Devin",
   "main": "dist/index.js",
   "exports": {
     ".": "./dist/index.js",
