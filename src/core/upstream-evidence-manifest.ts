@@ -1553,7 +1553,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-notion-write-prd/SKILL.md":
       "d470ed077aa58e53f770c171c8409fa65a3411e15212333fd196237cdfdbf73e",
     "plugins/src/base/skills/lisa-parity-code-review/SKILL.md":
-      "00dca9c7dc3cf07e403b0e9a3660eb880ae78d0b9891d68273113a7a06ab2246",
+      "d96b33df13c469e2eb6b6622d397fe53769da3b02b80ae71d2f33282c8ece99c",
     "plugins/src/base/skills/lisa-parity-code-simplifier/SKILL.md":
       "c721ae772e73abff633c43d93267066afac188e911a77322fbb102db673849d7",
     "plugins/src/base/skills/lisa-parity-coderabbit/SKILL.md":

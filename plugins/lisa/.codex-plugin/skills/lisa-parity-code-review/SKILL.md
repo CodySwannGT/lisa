@@ -69,7 +69,7 @@ Drop every candidate you cannot confirm. A false positive costs the reader more 
 
 Upstream 1.0.1 drops every input-dependent issue. This skill keeps one that you have validated as reachable, because a reachable null dereference or auth bypass is exactly what a reviewer must block. What it still drops is the hypothetical: an input nobody can show the code receiving.
 
-Never report: pre-existing issues on lines the change did not touch; things that look wrong but are correct; issues a linter will catch anyway; style or general-quality concerns that no project instruction requires; a lint or type finding that the code explicitly silences (for example with a lint-ignore comment).
+Never report: pre-existing issues on lines the change did not touch; things that look wrong but are correct; lint-only issues a linter will catch anyway (a parse, compile, correctness, or security defect stays reportable even when a linter also flags it); style or general-quality concerns that no project instruction requires; a lint or type finding that the code explicitly silences (for example with a lint-ignore comment).
 
 A suppression silences only the lint or type finding it names. It never hides a correctness or security defect in that code. A changed `eval(req.body.code)` under `eslint-disable no-eval` is still remote code execution, so report it as Critical.
 

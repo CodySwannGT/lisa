@@ -71,12 +71,15 @@ at `1.0.1` (CodySwannGT/lisa#4556). Once a semver directory appears in the
 cache, `plugin-routing-validate.mjs` refuses the old artifact
 (`upstreamVersion "unknown" but the cache has semver <v>`), and because it runs
 in the pre-push gate, that blocks every push from a machine with the current
-cache. Treat it as a re-analysis, not a version bump: read the new version's
-tree against the old snapshot, update the reimplementation for any behaviour
-change, then record the semver, add the `synced-from` stamp to every
-`reimplement` action and skill, and say in the component `notes` what was
-compared. Like any analysis, the re-analysed artifact is written
-`"status": "proposed"`; the human approval flip is a separate, visible edit.
+cache. Treat it as a re-analysis, not a version bump, and keep it plan-only
+like any other analysis: read the new version's tree against the old
+snapshot, record the semver, put the `synced-from` stamp in every `reimplement`
+action, say in the component `notes` what was compared, and record any
+behaviour change the reimplementation must absorb in the component `notes` or
+the affected agents' `rationale`. Write the artifact `"status": "proposed"` and
+STOP. Updating the reimplementation and its `synced-from` pin is source-tree
+work, so it is left to `implement-plugin-parity` once a human has approved the
+plan.
 
 **Drift-trackability consequence (state this in any `reimplement` rationale):**
 the `plugin-parity-drift` detector only parses **semver** pins, so a plugin whose
