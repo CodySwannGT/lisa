@@ -1,9 +1,9 @@
-import { execFileSync } from "node:child_process";
 import { readFileSync, mkdtempSync, writeFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { parse, stringify } from "yaml";
 import { describe, expect, it } from "vitest";
+import { boundedExecFileSync } from "../../helpers/io-latency-budget.js";
 import { extractSetup } from "../../fixtures/k6-installation/extract.mjs";
 import { judgeMetrics } from "../../fixtures/k6-installation/metrics.mjs";
 import { classifyBaseline } from "../../fixtures/k6-installation/classify-baseline.mjs";
@@ -30,7 +30,10 @@ const request = '127.0.0.1 - - [date] "GET /health HTTP/1.1" 200 -\n';
 
 it("keeps private captures from changing actual installer child permissions", () => {
   expect(() =>
-    execFileSync("python3", ["tests/fixtures/k6-installation/test-umask.py"], {
+    boundedExecFileSync({
+      label: "k6 installer child permissions regression",
+      command: "python3",
+      args: ["tests/fixtures/k6-installation/test-umask.py"],
       stdio: "pipe",
       env: { ...process.env, PYTHONDONTWRITEBYTECODE: "1" },
     })
@@ -69,9 +72,13 @@ describe("actual YAML k6 installation extraction", () => {
     try {
       const script = join(scratch, "actual.sh");
       writeFileSync(script, extracted.script);
-      expect(execFileSync("bash", ["-e", script], { encoding: "utf8" })).toBe(
-        "2.3.0"
-      );
+      expect(
+        boundedExecFileSync({
+          label: "actual YAML k6 input substitution",
+          command: "/bin/bash",
+          args: ["-e", script],
+        })
+      ).toBe("2.3.0");
     } finally {
       rmSync(scratch, { recursive: true, force: true });
     }

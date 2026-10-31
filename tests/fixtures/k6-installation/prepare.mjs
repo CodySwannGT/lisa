@@ -3,12 +3,13 @@ import { execFileSync } from "node:child_process";
 import { readFileSync, writeFileSync, mkdirSync, readdirSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { GIT_BIN } from "../../support/git-executable.ts";
 import { extractSetup } from "./extract.mjs";
 
 const hash = bytes => createHash("sha256").update(bytes).digest("hex");
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "../../..");
 const git = args =>
-  execFileSync("/usr/bin/git", args, { cwd: root, encoding: "utf8" }).trim();
+  execFileSync(GIT_BIN, args, { cwd: root, encoding: "utf8" }).trim();
 
 /**
  * Freeze candidate bytes and independent expectations before any installer execution.
@@ -33,7 +34,7 @@ export function prepare(
     throw new Error("Checked-out source differs from expected head");
   const source = readFileSync(join(root, ".github/workflows/load-test.yml"));
   const committed = execFileSync(
-    "/usr/bin/git",
+    GIT_BIN,
     ["show", "HEAD:.github/workflows/load-test.yml"],
     { cwd: root }
   );
