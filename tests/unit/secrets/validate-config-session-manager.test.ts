@@ -208,28 +208,49 @@ describe("sessionManager block", () => {
     expect(problems[0]).toMatch(new RegExp(`sessionManager\\.stall\\.${key}`));
   });
 
-  it("rejects a notify provider other than telegram", () => {
-    const problems = validateSessionManager({
-      ...minimal,
-      notify: { ...minimal.notify, provider: "slack" },
-    });
-    expect(problems).toHaveLength(1);
-    expect(problems[0]).toMatch(/sessionManager\.notify\.provider/);
+  it.each(["slack", "", 7])(
+    "rejects an unsupported notify provider %j",
+    provider => {
+      const problems = validateSessionManager({
+        name: minimal.name,
+        notify: { provider },
+      });
+      expect(problems).toHaveLength(1);
+      expect(problems[0]).toMatch(/sessionManager\.notify\.provider/);
+      expect(problems[0]).toMatch(/"none".*"telegram"/);
+    }
+  );
+
+  it("accepts no notification channel: an absent block, an empty one, or provider none", () => {
+    const { notify: _notify, ...noNotify } = minimal;
+    expect(validateSessionManager(noNotify)).toEqual([]);
+    expect(validateSessionManager({ ...noNotify, notify: {} })).toEqual([]);
+    expect(
+      validateSessionManager({ ...noNotify, notify: { provider: "none" } })
+    ).toEqual([]);
   });
 
-  it("rejects a missing notify.stateDir, and a missing notify block", () => {
+  it("requires notify.stateDir only when the provider is telegram", () => {
     const noDir = validateSessionManager({
       ...minimal,
       notify: { provider: "telegram" },
     });
     expect(noDir).toHaveLength(1);
-    expect(noDir[0]).toMatch(/sessionManager\.notify\.stateDir/);
-
-    const { notify: _notify, ...noNotify } = minimal;
-    expect(validateSessionManager(noNotify)[0]).toMatch(
-      /sessionManager\.notify\.stateDir/
-    );
+    expect(noDir[0]).toMatch(/sessionManager\.notify\.stateDir is missing/);
   });
+
+  it.each([{ provider: "none" }, {}])(
+    "rejects a notify.stateDir without the telegram provider (%j)",
+    extra => {
+      const problems = validateSessionManager({
+        name: minimal.name,
+        notify: { ...extra, stateDir: "~/.claude/channels/telegram-x" },
+      });
+      expect(problems).toHaveLength(1);
+      expect(problems[0]).toMatch(/sessionManager\.notify\.stateDir/);
+      expect(problems[0]).toMatch(/provider/);
+    }
+  );
 
   it("rejects a field whose value looks like a bot token, without echoing it", () => {
     const token = `123456789:${"A".repeat(35)}`;
@@ -241,6 +262,9 @@ describe("sessionManager block", () => {
     expect(problems[0]).toMatch(/sessionManager\.notify\.chat/);
     expect(problems[0]).toMatch(/token/i);
     expect(problems[0]).not.toContain(token);
+    // #4555: the token belongs in the secrets provider, not a state-dir file.
+    expect(problems[0]).toMatch(/secrets provider/);
+    expect(problems[0]).toMatch(/store-token/);
   });
 
   it.each(["token", "botToken", "apiKey", "secret", "password"])(
@@ -253,6 +277,7 @@ describe("sessionManager block", () => {
       expect(problems).toHaveLength(1);
       expect(problems[0]).toMatch(/token|secret|credential/i);
       expect(problems[0]).toContain(key);
+      expect(problems[0]).toMatch(/secrets provider/);
     }
   );
 

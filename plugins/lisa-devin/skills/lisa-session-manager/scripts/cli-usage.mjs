@@ -44,12 +44,29 @@ Workers and capacity
         pendingQuestion}], classification one of finished|waiting|requestion|
       working|stalled|dead|exhausted.
   status
-      stdout {manager:{name,running},control,workers:[{ref,worker,sessionId,
-      repo,status,attempts,pendingQuestion,live}],untracked:[wk- names]}.
+      stdout {manager:{name,running},notify,control,workers:[{ref,worker,
+      sessionId,repo,status,attempts,pendingQuestion,live}],untracked:[wk-
+      names],pendingQuestions:[{ref,kind,text,askedAt,marked,answerQueued,
+      answerCommand}]}. notify is the configured channel: "telegram" or
+      "none". pendingQuestions lists every item waiting on a human, oldest
+      first; answerCommand is the answer line to run at this machine.
 
 Manager
   start [--settle-ms <n>]
-             Refuses (exit 2) without <notify.stateDir>/.env (mode 0600) or for
+             With notify.provider "none" (or no notify block): no token, state
+             dir or Telegram plugin is needed; launches with no --channels, no
+             TELEGRAM_STATE_DIR and no plugin in --settings. With "telegram"
+             and a secrets provider (secrets.provider set, not "env"): reads
+             TELEGRAM_BOT_TOKEN_<NAME> from the provider once, before any tmux
+             call, and passes it to tmux on stdin (tmux start-server ;
+             source-file -), never in argv; tmux's stderr is never shown.
+             Exit 2 when a plaintext <notify.stateDir>/.env is left over (the
+             message names the store-token command that migrates it), when
+             the secret is missing, or when secrets.require does not list it.
+             Exit 1, "Nothing was started", when the provider cannot be
+             reached, is rate-limited or times out: wait a minute and run
+             start again. With "telegram" and no provider: refuses (exit 2)
+             without <notify.stateDir>/.env (mode 0600). Either way exit 2 for
              the shared default state dir. "already-running" when the tmux
              session =<name> exists and was started in this project root;
              exit 2 naming the conflict when it was started anywhere else.
@@ -57,21 +74,38 @@ Manager
              has-session -t =<name> every 250 ms for --settle-ms (default
              3000, at most 60000): exit 2, with the foreground command to run
              to see claude's error, when the session is gone.
-             stdout {status:"started"|"already-running",name,...}.
+             stdout {status:"started"|"already-running",name,notify,
+             [stateDir,tokenSource:"provider"|"file",secret,]attach}.
   stop       tmux kill-session -t =<name> only, and only for a session started
              in this root (exit 2 otherwise); workers keep running.
              stdout {status:"stopped"|"not-running",name}.
-  store-token [--replace] [--from-clipboard]
-             Prompts for the bot token on the terminal (echo off) and writes
-             <stateDir>/.env. Exit 2 when a token is already there, unless
-             --replace. With no TTY (an agent's Bash, and Claude Code's !
+  store-token [--replace] [--from-clipboard] [--vault-project <id>]
+             Telegram only: exit 2 when notify.provider is "none".
+             With a secrets provider: stores the token in it as
+             TELEGRAM_BOT_TOKEN_<NAME> and writes nothing to disk. A
+             plaintext <stateDir>/.env is migrated: stored, read back and
+             compared, then deleted (refused, exit 2, when the file holds
+             other keys or a different token than the stored one). An
+             already-stored token is kept (exit 0, alreadyStored:true) unless
+             --replace. --vault-project picks the provider project for a new
+             secret (default: the one in secrets.narrow.projectIds, else the
+             one every visible secret is in). stdout {stored:true,
+             storage:"provider",provider,secret,verified,[migratedFrom,
+             deleted]}. Provider unreachable or rate-limited: exit 1, nothing
+             stored, the file kept.
+             With no provider: prompts for the bot token on the terminal (echo
+             off) and writes <stateDir>/.env. Exit 2 when a token is already
+             there, unless --replace.
+             Either way, with no TTY (an agent's Bash, and Claude Code's !
              prefix too): exit 0, stdout {stored:false,reason:"no-tty",
              message,command,clipboardCommand}; command is the line the
              operator runs in a separate terminal app.
              --from-clipboard reads the token from the clipboard instead
              (pbpaste; wl-paste, xclip or xsel on Linux), needs no TTY, and
              clears the clipboard after a successful store. stdout
-             {stored:true,path,clipboardCleared}. The token is never printed.
+             {stored:true,storage:"file",path,clipboardCleared} (with a
+             provider, the provider shape plus clipboardCleared). The token
+             is never printed.
              Bad input, empty clipboard or no clipboard tool: exit 2,
              {stored:false,reason,message}.
 
@@ -80,8 +114,12 @@ Config and routing
              stdout {repo,dir}; --raw prints the bare dir. Exit 2 for an
              unknown key or a dir without .lisa.config.json.
   validate   stdout {valid,errors}; exit 2 when invalid or absent.
-  init-config [--slug <slug>] [--write]
-             stdout {written,block[,reason:"exists"][,path]}. Detects
+  init-config [--slug <slug>] [--notify none|telegram] [--write]
+             stdout {written,block[,reason:"exists"][,path]}. --notify picks
+             the notification channel (default none): none writes
+             notify {provider:"none"} and no state dir; telegram writes
+             {provider:"telegram",stateDir:"~/.claude/channels/telegram-<slug>"}.
+             Any other value: exit 2. Detects
              projects/*/.lisa.config.json, else root children with their own
              .lisa.config.json and .git (repos.root "."), skipping linked
              worktrees (.git is a file) and keeping one child per origin
@@ -113,7 +151,9 @@ Per cycle
       <file> = {complete:true,pages,items:[raw vendor issues]}; exit 2 unless
       complete is exactly true.
       Both print {tracker,me,operators,total,pages,ordered,excluded:[{ref,
-      reason}]}. ordered: items assigned to sessionManager.operatorIds
+      reason}]}. An item with a pending question in the ledger is excluded
+      (pending-question) from both tiers, and every other item still comes
+      back, so one item waiting on a human never stops dispatch. ordered: items assigned to sessionManager.operatorIds
       first, then to --me, then unassigned; each group by priority, then age.
       Items assigned to anyone else are excluded (assigned-to-other).
       --me defaults to the ledger's control.me.
@@ -126,9 +166,23 @@ Per cycle
       {complete:true,pages,items}, else exit 2.
   ledger get [<ref>]
   ledger record-spawn <ref> --worker <name> [--session-id <id>] [--repo <key>]
-  ledger set-question <ref> [--telegram-message-id <n>] [--sender <name>]
-                                                           STDIN: question
-  ledger clear-question <ref>
+  ledger set-question <ref> [--kind <kind>] [--telegram-message-id <n>]
+                           [--sender <name>]               STDIN: question
+      --kind: worker-question (default) | repo-route | exhausted | decision.
+      No message id with no channel. A re-ask keeps the item's marker
+      fields (markerType, marker, markedAt); a queued answer survives only a
+      re-ping of the same text.
+  ledger marked <ref> --marker-type label|role --marker <value>
+                     --comment-id <id>
+      Records that the human-needed marker was applied on the tracker and
+      read back (markedAt). --comment-id (required): the id of the question
+      comment the manager posted; item-answer anchors on it to find the
+      answer after it, and never reads it as an answer. Exit 2 when it is
+      missing or not a tracker comment id, or <ref> has no pending
+      question.
+  ledger clear-question <ref> [--reset-attempts]
+      After the answer is delivered and the marker removed. --reset-attempts
+      zeroes the attempt count (an exhausted item a human has answered).
   ledger finish <ref> --status DONE|FAILED [--sender <name>]  STDIN: reason
       --sender: exit 2 unless the ledger's worker for <ref> is exactly <name>.
   ledger validation-failed <ref> --updated-at <ts>     STDIN: failing gates
@@ -148,6 +202,42 @@ Per cycle
       unset); trustedHumanActorIds in the input is ignored. stdout
       {action:release|keep|escalate|skip-human-gate,reason,edges,gate}.
       --ref fills pendingQuestion from the ledger.
+  mark-plan <ref> --kind <kind>                 STDIN: question or reason
+      Plans marking an item that needs a human; writes nothing. kind:
+      worker-question | repo-route | exhausted | decision. stdout {ref,kind,
+      marker:{type:"label"|"role",value},[move:{role:"blocked",value},]
+      comment,answerWith:{item,cli,channel}}. marker is the tracker's
+      configured human-needed label, else the configured blocked role;
+      exhausted also moves to the blocked role. comment starts with
+      [lisa-session-manager-question] and says, in plain words, how to
+      answer: on the item (only when operatorIds or trustedAuthorIds is set;
+      answerWith.item is null otherwise), with the answerCommand that status
+      lists, or on Telegram when it is the channel. Exit 2 for an unknown
+      kind, empty or credential-shaped text, no marker configured, or
+      exhausted with no blocked role.
+  answer <ref>                                  STDIN: the answer
+      Queues an operator's answer (source "cli") for the next cycle to
+      deliver. stdout {queued:true,ref,source}. Exit 2 when <ref> has no
+      pending question, or the text looks like a credential.
+  item-answer <ref>          STDIN: {"comments":[{user|author,body,createdAt}]}
+      Queues the human's answer from the item's comments (source "item"):
+      the first comment after the latest [lisa-session-manager-question]
+      comment whose author's STABLE id (GitHub login or numeric id, Jira
+      accountId, Linear user id; never a name, displayName or email) is in
+      sessionManager.operatorIds or trustedAuthorIds, and that is not a
+      machine comment, checked first (body starting with a bracketed tag
+      such as [lisa-...] or [claude-sync]; [lisa- or <!-- lisa: anywhere;
+      "Written by Claude"; the agent "Generated with Claude Code" footer;
+      or an id in the ledger's managerCommentIds, so keep each comment's
+      id). For GitHub, pipe the rows of
+      gh api --paginate repos/<o>/<r>/issues/<n>/comments (user.login,
+      user.id). stdout {queued:true,ref,source,author} or {queued:false,ref,
+      reason:no-question-comment|no-answer-yet|already-queued|
+      no-answerers-configured[,explanation]}. no-answerers-configured (exit
+      0): neither list is set, so nothing on the item is read, because the
+      tracker identity is the one workers post as; answer with answer.
+      Exit 2 when <ref> has no pending question, or the answer looks like a
+      credential.
   record-cycle --outcome <outcome> [--ref <url>]... [--run-id <id>]
       STDIN: one-line summary. Records loop session-manager with runbook
       .lisa/automations/session-manager.runbook.md. stdout {path,appended,

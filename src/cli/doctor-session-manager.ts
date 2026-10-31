@@ -1,22 +1,31 @@
 /**
- * Doctor check for the session manager's Telegram isolation (#4448).
+ * Doctor check for the session manager's notification channel (#4448,
+ * #4555).
  *
- * The manager is the only Claude session that may poll the project's Telegram
- * bot. Two sessions polling one bot steal each other's messages, and a worker
- * that inherits the token can impersonate the manager. Setup and `start`
- * enforce isolation when they run; this check catches drift afterwards: a
- * plugin later enabled at user scope, a token copied into the shared default
- * dir, a token exported from a shell profile, a loosened file mode, or managed
- * settings that override the manager's `crossSessionInbound: accept`. Trust
- * findings (a public repo without `trustedAuthorIds`, the plugin enabled in
- * project-scope settings) live in `doctor-session-manager-trust`.
+ * Telegram is optional. With no channel (`notify.provider` `"none"`, or no
+ * `notify` block) there is no bot, token, state dir or plugin to require, so
+ * the check reports "notifications: none" and runs only the findings that
+ * matter either way: a plaintext bot token still lying around (an exported
+ * `TELEGRAM_BOT_TOKEN*` variable, or a token file in the shared Telegram
+ * dir), managed settings that override the manager's
+ * `crossSessionInbound: accept`, and the trust findings (a public repo
+ * without `trustedAuthorIds`). With Telegram it also runs the isolation
+ * findings in `doctor-session-manager-token` (state dir, where the bot token
+ * lives: a leftover plaintext file with a secrets provider configured, or a
+ * plaintext file because none is, and its mode; user-scope plugin, shared
+ * default dir, exported variables) and the
+ * project-scope plugin finding. An unsupported provider, or a `stateDir`
+ * without the telegram provider, fails the way the runtime validator refuses
+ * it.
+ *
+ * Either way it lists the items the manager has waiting on a human and warns
+ * about one recorded but never marked on the tracker
+ * (`doctor-session-manager-pending`, #4555).
  *
  * Gated on a `sessionManager` block in the merged config (the Kane model): a
  * project that never opted in gets `ok` / "not configured" and nothing is read
- * under HOME. Token files are only ever `stat`-ed, never read, so the token
- * value cannot reach the detail text; environment values are reported by name
- * only. HOME, env, file reads and managed-settings paths are injectable so
- * tests never touch the operator's real `~/.claude`.
+ * under HOME. HOME, env, file reads and managed-settings paths are injectable
+ * so tests never touch the operator's real `~/.claude`.
  */
 import { readFile as fsReadFile, stat as fsStat } from "node:fs/promises";
 import * as os from "node:os";
@@ -27,21 +36,24 @@ import {
   type RepoVisibilityProbe,
   ghRepoVisibility,
   isRecord,
-  modeOf,
   projectPluginFindings,
   readJson,
   trustFindings,
 } from "./doctor-session-manager-trust.js";
+import {
+  resolveStateDir,
+  plaintextTokenFindings,
+  secretsProviderAt,
+  telegramFindings,
+  telegramSecretNameFor,
+} from "./doctor-session-manager-token.js";
+import { pendingHumanReport } from "./doctor-session-manager-pending.js";
 import { mergeSessionManagerBlocks } from "./session-manager-config-merge.js";
 
-const CHECK_NAME = "Session manager Telegram isolation?";
-const PLUGIN_ID = "telegram@claude-plugins-official";
-const TOKEN_FILE = ".env";
-const ENV_NAMES = ["TELEGRAM_BOT_TOKEN", "TELEGRAM_STATE_DIR"] as const;
-/** Group + other permission bits are the low six bits of a file mode. */
-const GROUP_OTHER_SPAN = 0o100;
-/** All permission bits (owner, group, other) are the low nine. */
-const PERMISSION_SPAN = 0o1000;
+const CHECK_NAME = "Session manager notifications?";
+/** Detail for a valid setup with no notification channel. */
+const NO_CHANNEL = "notifications: none";
+const PROVIDERS = ["none", "telegram"] as const;
 
 /** Managed settings outrank `--settings`, so they can undo the manager's. */
 export const DEFAULT_MANAGED_SETTINGS_PATHS: readonly string[] = [
@@ -63,6 +75,8 @@ export interface SessionManagerDoctorDependencies {
   readonly managedSettingsPaths?: readonly string[];
   /** Repo visibility probe; defaults to `gh repo view --json visibility`. */
   readonly probeRepoVisibility?: RepoVisibilityProbe;
+  /** Clock for the age of items waiting on a human; defaults to now. */
+  readonly now?: () => Date;
 }
 
 /** The doctor options this check honours. */
@@ -71,142 +85,188 @@ export interface SessionManagerDoctorOptions {
   readonly offline?: boolean;
 }
 
-/** Resolved inputs shared by the finding collectors. */
-interface Context {
-  readonly claudeDir: string;
-  readonly sharedDir: string;
-  readonly env: NodeJS.ProcessEnv;
-  readonly read: (file: string) => Promise<string>;
-  readonly statFile: (file: string) => Promise<{ readonly mode: number }>;
-  readonly managedPaths: readonly string[];
+/** The notification mode a block runs with, or why it cannot run. */
+interface NotifyMode {
+  /** The provider, or undefined when the block cannot run as declared. */
+  readonly provider: (typeof PROVIDERS)[number] | undefined;
+  readonly problems: readonly Finding[];
 }
 
 /**
- * Resolve the configured state dir to an absolute path, expanding `~`.
- * @param raw - Configured `notify.stateDir`
- * @param home - Home directory
- * @param projectRoot - Base for a relative path
- * @returns Absolute path, or undefined when unset
+ * Read the notification provider the way the runtime validator does: absent
+ * or `"none"` is no channel, `"telegram"` is the bot, anything else fails, and
+ * a `stateDir` without telegram fails because no bot would use it.
+ * @param notify - The merged `notify` block, or `{}`
+ * @returns The provider (undefined when the block cannot run) and problems
  */
-function resolveStateDir(
-  raw: unknown,
-  home: string,
-  projectRoot: string
-): string | undefined {
-  if (typeof raw !== "string" || raw.trim() === "") return undefined;
-  const dir = raw.trim();
-  if (dir === "~") return home;
-  if (dir.startsWith("~/")) return path.resolve(home, dir.slice(2));
-  return path.resolve(projectRoot, dir);
+function notifyMode(notify: Record<string, unknown>): NotifyMode {
+  const raw = notify.provider ?? "none";
+  const provider = PROVIDERS.find(name => name === raw);
+  if (provider === undefined) {
+    return {
+      provider,
+      problems: [
+        {
+          status: "fail",
+          text: `sessionManager.notify.provider ${JSON.stringify(raw)} is not supported; use "none" (no notification channel) or "telegram"`,
+        },
+      ],
+    };
+  }
+  if (provider === "none" && notify.stateDir !== undefined) {
+    return {
+      provider: undefined,
+      problems: [
+        {
+          status: "fail",
+          text: 'sessionManager.notify.stateDir is set, but notify.provider is not "telegram", so no bot would use it; set notify.provider to "telegram" or remove notify.stateDir',
+        },
+      ],
+    };
+  }
+  return { provider, problems: [] };
 }
 
 /**
- * Findings about the configured per-project state dir and its token file.
- * @param ctx - Resolved inputs
- * @param stateDir - Absolute state dir, or undefined when unset
+ * Findings about managed settings, which outrank the manager's `--settings`
+ * whether or not it has a notification channel.
+ * @param read - Text reader
+ * @param managedPaths - Managed-settings files, in precedence order
  * @returns Findings
  */
-async function stateDirFindings(
-  ctx: Context,
-  stateDir: string | undefined
+async function managedFindings(
+  read: (file: string) => Promise<string>,
+  managedPaths: readonly string[]
 ): Promise<readonly Finding[]> {
-  if (stateDir === undefined) {
-    return [
-      {
-        status: "fail",
-        text: "sessionManager.notify.stateDir is not set; run /lisa:setup:session-manager to give this project its own Telegram state dir",
-      },
-    ];
-  }
-  if (stateDir === ctx.sharedDir) {
-    return [
-      {
-        status: "fail",
-        text: `notify.stateDir is the shared default ${ctx.sharedDir}, so every Telegram session on this machine would poll one bot; point it at a per-project dir such as ${ctx.sharedDir}-<project>`,
-      },
-    ];
-  }
-  const tokenFile = path.join(stateDir, TOKEN_FILE);
-  const mode = await modeOf(ctx.statFile, tokenFile);
-  if (mode === undefined) {
-    return [
-      {
-        status: "warn",
-        text: `token file ${tokenFile} is missing, so the manager cannot start; store the bot token with /lisa:setup:session-manager`,
-      },
-    ];
-  }
-  if (mode % GROUP_OTHER_SPAN === 0) return [];
-  const octal = (mode % PERMISSION_SPAN).toString(8).padStart(3, "0");
-  return [
-    {
-      status: "warn",
-      text: `token file ${tokenFile} has mode 0${octal}, open to other users; run chmod 600 ${tokenFile}`,
-    },
-  ];
-}
-
-/**
- * Findings about the user-scope plugin and the shared default token file.
- * @param ctx - Resolved inputs
- * @returns Findings
- */
-async function userScopeFindings(ctx: Context): Promise<readonly Finding[]> {
-  const settings = await readJson(
-    ctx.read,
-    path.join(ctx.claudeDir, "settings.json")
-  );
-  const plugins = settings?.enabledPlugins;
-  const sharedToken = path.join(ctx.sharedDir, TOKEN_FILE);
-  return [
-    ...(isRecord(plugins) && plugins[PLUGIN_ID] === true
-      ? [
-          {
-            status: "warn" as const,
-            text: `${PLUGIN_ID} is enabled at user scope, so every Claude session polls the bot; run claude plugin disable ${PLUGIN_ID} -s user (the manager enables it for itself)`,
-          },
-        ]
-      : []),
-    ...((await modeOf(ctx.statFile, sharedToken)) === undefined
-      ? []
-      : [
-          {
-            status: "warn" as const,
-            text: `a token file exists in the shared default dir (${sharedToken}); move it to the per-project state dir and delete it`,
-          },
-        ]),
-  ];
-}
-
-/**
- * Findings about the shell environment and managed settings.
- * @param ctx - Resolved inputs
- * @returns Findings
- */
-async function environmentFindings(ctx: Context): Promise<readonly Finding[]> {
-  const exported = ENV_NAMES.filter(name => (ctx.env[name] ?? "") !== "").map(
-    name => ({
-      status: "warn" as const,
-      text: `${name} is set in this shell's environment, so workers may inherit it; remove the export from your shell profile`,
-    })
-  );
   const managed = await Promise.all(
-    ctx.managedPaths.map(async file => ({
+    managedPaths.map(async file => ({
       file,
-      inbound: (await readJson(ctx.read, file))?.crossSessionInbound,
+      inbound: (await readJson(read, file))?.crossSessionInbound,
     }))
   );
-  const held = managed
+  return managed
     .filter(({ inbound }) => inbound !== undefined && inbound !== "accept")
     .map(({ file, inbound }) => ({
       status: "warn" as const,
       text: `managed settings ${file} set crossSessionInbound to ${JSON.stringify(inbound)}, which outranks the manager's "accept", so worker messages would be held`,
     }));
-  return [...exported, ...held];
 }
 
 /**
- * Check Telegram isolation for a configured session manager.
+ * The home directory doctor resolves `~` against.
+ * @param deps - Injected environment and HOME
+ * @returns Home directory
+ */
+function homeOf(deps: SessionManagerDoctorDependencies): string {
+  return deps.home ?? deps.env.HOME ?? os.homedir();
+}
+
+/**
+ * The Claude config dir doctor inspects: `CLAUDE_CONFIG_DIR`, else
+ * `<home>/.claude`.
+ * @param deps - Injected environment and HOME
+ * @returns Absolute dir
+ */
+function claudeDirOf(deps: SessionManagerDoctorDependencies): string {
+  return deps.env.CLAUDE_CONFIG_DIR
+    ? path.resolve(deps.env.CLAUDE_CONFIG_DIR)
+    : path.join(homeOf(deps), ".claude");
+}
+
+/**
+ * The Telegram-only findings, run only when Telegram is the channel.
+ * @param targetPath - Project root
+ * @param block - Merged `sessionManager` block
+ * @param deps - Injected environment, HOME and file access
+ * @param read - Text reader
+ * @param secretsProvider - Configured secrets provider, undefined for none
+ * @returns Findings
+ */
+async function channelFindings(
+  targetPath: string,
+  block: Record<string, unknown>,
+  deps: SessionManagerDoctorDependencies,
+  read: (file: string) => Promise<string>,
+  secretsProvider: string | undefined
+): Promise<readonly Finding[]> {
+  const home = homeOf(deps);
+  const claudeDir = claudeDirOf(deps);
+  const notify = isRecord(block.notify) ? block.notify : {};
+  const stateDir = resolveStateDir(notify.stateDir, home, targetPath);
+  return [
+    ...(await telegramFindings(
+      {
+        claudeDir,
+        sharedDir: path.join(claudeDir, "channels", "telegram"),
+        env: deps.env,
+        read,
+        statFile: deps.stat ?? fsStat,
+        secretsProvider,
+        secretName: telegramSecretNameFor(block.name),
+      },
+      stateDir
+    )),
+    ...(await projectPluginFindings(targetPath, block, read)),
+  ];
+}
+
+/** Where the bot token lives, for the telegram ok detail. */
+interface TokenHome {
+  readonly stateDir: string | undefined;
+  readonly secretsProvider: string | undefined;
+  readonly secretName: string;
+}
+
+/**
+ * The ok detail for a clean Telegram setup. With a provider, doctor can only
+ * say no plaintext copy is left: it never reads the vault (#4555).
+ * @param token - Where the token lives
+ * @returns Detail text
+ */
+function telegramOkDetail(token: TokenHome): string {
+  const where =
+    token.secretsProvider === undefined
+      ? "token file mode 0600 or tighter"
+      : `bot token kept in ${token.secretsProvider} as ${token.secretName} with no plaintext copy (doctor never reads the vault, so the secret itself is not checked)`;
+  return `isolated: per-project state dir ${String(token.stateDir)}, ${where}, plugin not enabled at user scope`;
+}
+
+/**
+ * The check's verdict once every finding is in. `note` (the items waiting on
+ * a human) is appended to the detail without changing the status.
+ * @param provider - Notification provider, undefined when unsupported
+ * @param findings - Every finding
+ * @param token - Where the bot token lives, for the telegram ok detail
+ * @param note - Extra detail, or undefined
+ * @returns Doctor check result
+ */
+function verdict(
+  provider: NotifyMode["provider"],
+  findings: readonly Finding[],
+  token: TokenHome,
+  note: string | undefined
+): DoctorCheck {
+  const withNote = (detail: string): string =>
+    note === undefined ? detail : `${detail}; ${note}`;
+  if (findings.length === 0) {
+    return {
+      name: CHECK_NAME,
+      status: "ok",
+      detail: withNote(
+        provider === "none" ? NO_CHANNEL : telegramOkDetail(token)
+      ),
+    };
+  }
+  const text = findings.map(f => f.text).join("; ");
+  return {
+    name: CHECK_NAME,
+    status: findings.some(f => f.status === "fail") ? "fail" : "warn",
+    detail: withNote(provider === "none" ? `${NO_CHANNEL}; ${text}` : text),
+  };
+}
+
+/**
+ * Check the notification channel of a configured session manager.
  * @param targetPath - Project root
  * @param deps - Injected environment, HOME and file access
  * @param options - Doctor options; `offline` skips the visibility probe
@@ -231,25 +291,28 @@ export async function checkSessionManagerIsolation(
     if (block === undefined) {
       return { name: CHECK_NAME, status: "ok", detail: "not configured" };
     }
-    const home = deps.home ?? deps.env.HOME ?? os.homedir();
-    const claudeDir = deps.env.CLAUDE_CONFIG_DIR
-      ? path.resolve(deps.env.CLAUDE_CONFIG_DIR)
-      : path.join(home, ".claude");
-    const ctx: Context = {
-      claudeDir,
-      sharedDir: path.join(claudeDir, "channels", "telegram"),
-      env: deps.env,
-      read,
-      statFile: deps.stat ?? fsStat,
-      managedPaths: deps.managedSettingsPaths ?? DEFAULT_MANAGED_SETTINGS_PATHS,
-    };
     const notify = isRecord(block.notify) ? block.notify : {};
-    const stateDir = resolveStateDir(notify.stateDir, home, targetPath);
+    const mode = notifyMode(notify);
+    const secretsProvider = await secretsProviderAt(targetPath, read, deps.env);
+    const pending = await pendingHumanReport(
+      targetPath,
+      block,
+      read,
+      deps.now ?? (() => new Date())
+    );
     const findings = [
-      ...(await stateDirFindings(ctx, stateDir)),
-      ...(await userScopeFindings(ctx)),
-      ...(await environmentFindings(ctx)),
-      ...(await projectPluginFindings(targetPath, block, read)),
+      ...mode.problems,
+      ...(mode.provider === "telegram"
+        ? await channelFindings(targetPath, block, deps, read, secretsProvider)
+        : await plaintextTokenFindings({
+            sharedDir: path.join(claudeDirOf(deps), "channels", "telegram"),
+            env: deps.env,
+            statFile: deps.stat ?? fsStat,
+          })),
+      ...(await managedFindings(
+        read,
+        deps.managedSettingsPaths ?? DEFAULT_MANAGED_SETTINGS_PATHS
+      )),
       ...(await trustFindings(
         { ...committed, ...local },
         block,
@@ -257,24 +320,23 @@ export async function checkSessionManagerIsolation(
           ? undefined
           : (deps.probeRepoVisibility ?? ghRepoVisibility)
       )),
+      ...pending.findings,
     ];
-    if (findings.length === 0) {
-      return {
-        name: CHECK_NAME,
-        status: "ok",
-        detail: `isolated: per-project state dir ${String(stateDir)}, token file mode 0600 or tighter, plugin not enabled at user scope`,
-      };
-    }
-    return {
-      name: CHECK_NAME,
-      status: findings.some(f => f.status === "fail") ? "fail" : "warn",
-      detail: findings.map(f => f.text).join("; "),
-    };
+    return verdict(
+      mode.provider,
+      findings,
+      {
+        stateDir: resolveStateDir(notify.stateDir, homeOf(deps), targetPath),
+        secretsProvider,
+        secretName: telegramSecretNameFor(block.name),
+      },
+      pending.note
+    );
   } catch (error) {
     return {
       name: CHECK_NAME,
       status: "warn",
-      detail: `could not evaluate session-manager isolation: ${
+      detail: `could not evaluate the session-manager notifications: ${
         error instanceof Error ? error.message : String(error)
       }`,
     };

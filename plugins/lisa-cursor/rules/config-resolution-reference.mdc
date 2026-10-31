@@ -285,7 +285,7 @@ fi
 | `health.schedule` | no | `off` | Health cadence contract: `off`, `daily`, or `weekly`. `lisa sync` populates the default with `_lisaSync.populated` provenance and rejects values outside this closed vocabulary. Runtime results live only at the gitignored `.lisa/health/latest.json`, never in either config file. |
 | `usage` | no | — | Optional token/cost pricing metadata consumed by the `usage-accounting` rule. Missing pricing never blocks a lifecycle flow; Lisa records token counts with `estimated_cost: null` when no trustworthy price source is configured. |
 | `wiki` | no | — | Wiki location for the `wiki-knowledge-source` rule. Omit for a local in-repo wiki (`wiki/`). See **Wiki source** below. |
-| `sessionManager` | no | — (opt-in) | Local session manager: polls the Ready queue, runs each item in a fresh background Claude Code session, and relays questions over a per-project Telegram bot. Absent means the manager is not used; `lisa sync` never populates it. Written by `/lisa:setup:session-manager`. See **Session manager (`sessionManager`)** below. |
+| `sessionManager` | no | — (opt-in) | Local session manager: polls the Ready queue, runs each item in a fresh background Claude Code session, and relays questions over a per-project Telegram bot when one is configured (optional). Absent means the manager is not used; `lisa sync` never populates it. Written by `/lisa:setup:session-manager`. See **Session manager (`sessionManager`)** below. |
 
 ### Host rules (`.agents/rules/`)
 
@@ -721,6 +721,11 @@ have a `.lisa.config.json` and their own `.git` (written as `"root": "."`).
 }
 ```
 
+Telegram is optional. `"notify": { "provider": "none" }`, or no `notify` key at all, runs the
+manager with no notification channel: no bot token, Telegram plugin or pairing, and questions wait
+in the manager's ledger (`status` shows them). Setup writes `{ "provider": "none" }` unless the
+operator chooses Telegram (`init-config --notify telegram`).
+
 | Key | Required | Default | Notes |
 |-----|----------|---------|-------|
 | `sessionManager.name` | **yes** | — | Manager session name: lowercase letters, digits, `-` or `_`, at most 64 characters. It names the tmux session and the session workers `SendMessage` to. Setup writes `<project>-manager`. |
@@ -736,20 +741,47 @@ have a `.lisa.config.json` and their own `.git` (written as `"root": "."`).
 | `sessionManager.stall.noOutputMinutes` | no | `60` | A live worker with no new output for this long counts as stalled (zero or positive). |
 | `sessionManager.stall.maxAttempts` | no | `3` | Fresh sessions per item before it moves to the configured `blocked` role (a positive integer). |
 | `sessionManager.stall.requestionHours` | no | `4` | How long an unanswered worker question waits before the manager asks again (zero or positive). |
-| `sessionManager.notify.provider` | no | `telegram` | Only `telegram` is implemented. |
-| `sessionManager.notify.stateDir` | **yes** | — | This project's own Telegram state dir. Never the shared default `~/.claude/channels/telegram`, because one bot per state dir is how projects stay isolated. Setup writes `~/.claude/channels/telegram-<project>`. |
+| `sessionManager.notify.provider` | no | `none` | `none` (no notification channel) or `telegram`. Absent, like an absent `notify` block, means `none`. Any other value fails validation. |
+| `sessionManager.notify.stateDir` | **yes** with `telegram`; must be absent otherwise | — | This project's own Telegram state dir. A `stateDir` without the `telegram` provider fails validation, because no bot would use it. Never the shared default `~/.claude/channels/telegram`, because one bot per state dir is how projects stay isolated. Setup writes `~/.claude/channels/telegram-<project>`. |
 | `sessionManager.trustedAuthorIds` | no | — | Optional list of **stable tracker user ids**, as strings: the GitHub numeric user id (`gh api users/<login> --jq .id`), the Jira `accountId`, or the Linear user id. Not logins or display names: matching compares ids, so a login silently matches no one and excludes every item. When set, the manager takes only items authored by these people. |
 | `sessionManager.operatorIds` | no | — | Optional, non-empty list of the people the manager works for, as tracker user ids matched against the **assignee** the same way "me" is: the GitHub **login**, the Jira `accountId`, or the Linear user id, spelled exactly as the tracker API returns it (matching is case-sensitive, so look the OPERATOR up rather than typing from memory: `gh api users/<operator-login> --jq .login` returns the canonical GitHub spelling. Do not use `gh api user`, which returns whoever the credential belongs to — the agent account, when that is the case this key exists for). Dispatch order is assigned to an operator, then to "me" (the tracker credential's identity), then unassigned; items assigned to anyone else are skipped. Set it whenever the tracker credential is not the operator's own (an agent account), or the operator's Ready items are never dispatched. |
 | `sessionManager.backlogPickup` | no | `false` | Opt-in lowest dispatch tier. When the Ready queue is exhausted and capacity remains, the manager considers backlog items (open leaves in no lifecycle role) with the Ready exclusions plus any unfinished blocker; each one that passes the tracker validator (all gates, including the stateless-pickup dry-run) is assigned to the first `operatorIds` entry, moved to Ready in one write, read back and dispatched. A failed validation is cached against the item's `updatedAt`, so it is re-judged only after the item changes. Requires `operatorIds`. |
 
-- **Non-secret only.** The bot token lives in `<stateDir>/.env` (directory 0700, file 0600),
-  written by setup. A credential-named field or a token-shaped value anywhere in this block is a
-  validation error.
+- **Non-secret only.** A credential-named field or a token-shaped value anywhere in this block is a
+  validation error. With Telegram, where the bot token lives follows the project's `secrets` block
+  (`lisa-secrets-access`):
+  - **A secrets provider is configured** (`secrets.provider` set and not `env`): the token is the
+    provider secret `TELEGRAM_BOT_TOKEN_<NAME>`, where `<NAME>` is `sessionManager.name`
+    upper-snaked (`lisa-1a2b-manager` → `TELEGRAM_BOT_TOKEN_LISA_1A2B_MANAGER`). There is no config
+    key for it. `store-token` writes it (migrating, then deleting, any plaintext `<stateDir>/.env`);
+    `start` reads it once and passes it to the manager's tmux session only. When `secrets.require`
+    is declared it must list that name. A plaintext `<stateDir>/.env` left beside a provider stops
+    `start` (exit 2) with the `store-token` command that migrates it, and doctor warns about it.
+  - **No provider**: the token lives in `<stateDir>/.env` (directory 0700, file 0600), written by
+    setup, and doctor warns that it is plaintext.
 - **Local over global, per key.** `.lisa.config.local.json` overrides `.lisa.config.json` key by key
   (for example, a smaller `capacity.maxWorkers` on one machine); arrays such as `hints` are
   replaced, not merged. Built-in defaults fill whatever neither file sets.
 - **Workflow roles are not here.** Ready, claimed and blocked come from the existing tracker
-  workflow config, through the single role resolver, like every other lifecycle flow.
+  workflow config, through the single role resolver, like every other lifecycle flow. When an item
+  needs a human, the manager marks it with the tracker's human-needed label
+  (`github.labels.build.human_needed`, `jira.labels.human_needed`,
+  `linear.labels.build.human_needed`, else the tracker's default), or with the `blocked` role when
+  no label resolves, and moves an `exhausted` item to the `blocked` role; `mark-plan` resolves
+  both, so neither name is ever hard-coded.
+- **Who may answer on the item.** A reply on a human-needed item is taken as the answer only from
+  `sessionManager.operatorIds` or `trustedAuthorIds`, matched on stable ids (GitHub login or
+  numeric id, Jira `accountId`, Linear user id; never a display name or email), and never from a
+  machine comment, which is excluded first, whoever wrote it: one starting with a Lisa or Claude
+  tag such as `[lisa-…]` or `[claude-sync]`, holding `[lisa-` or `<!-- lisa:`, saying "Written by
+  Claude", carrying the agent-attribution footer, or whose id the manager recorded as its own
+  (`ledger marked --comment-id`). Quoted (`>`) lines are ignored when testing those markers, so a
+  quote reply is still an answer. The answer must follow the question comment the manager
+  recorded last by id, or, with no recorded id, the latest comment that starts with the question
+  marker and is by an allowed answerer. With neither list set, nothing on the item is read
+  (`item-answer` reports `no-answerers-configured`): there is no fallback to the tracker
+  credential's identity, because the workers and the manager post as it. The operator then answers
+  with the `answerCommand` that `status` lists. Set `operatorIds` even in a single-user setup.
 - **Shape check.** `validateSessionManager` in
   `lisa-secrets-access/scripts/validate-config.mjs` runs as part of `validateConfig`, so
   `/lisa:doctor` reports a malformed block.

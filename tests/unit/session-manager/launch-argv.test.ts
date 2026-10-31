@@ -22,10 +22,11 @@ import {
 } from "../../../plugins/src/base/skills/lisa-session-manager/scripts/launch.mjs";
 
 const NAME = "demo-manager";
+const ROOT = "/work/demo";
 
 const INPUT = {
   name: NAME,
-  root: "/work/demo",
+  root: ROOT,
   stateDir: "/home/op/.claude/channels/telegram-demo",
   scriptsDir: "/opt/lisa/skills/lisa-session-manager/scripts",
   interval: "5m",
@@ -45,10 +46,17 @@ describe("buildManagerSettings", () => {
     });
   });
 
+  it("leaves the Telegram plugin out entirely with no notification channel", () => {
+    expect(buildManagerSettings("none")).toEqual({
+      crossSessionInbound: "accept",
+    });
+  });
+
   it("returns a fresh object each call", () => {
     const first = buildManagerSettings();
+    if (!first.enabledPlugins) throw new Error("expected enabledPlugins");
     first.enabledPlugins[TELEGRAM_PLUGIN_ID] = false;
-    expect(buildManagerSettings().enabledPlugins[TELEGRAM_PLUGIN_ID]).toBe(
+    expect(buildManagerSettings().enabledPlugins?.[TELEGRAM_PLUGIN_ID]).toBe(
       true
     );
   });
@@ -62,7 +70,7 @@ describe("buildManagerLaunch", () => {
       "-s",
       NAME,
       "-c",
-      "/work/demo",
+      ROOT,
       "-e",
       "TELEGRAM_STATE_DIR=/home/op/.claude/channels/telegram-demo",
       "-e",
@@ -112,6 +120,54 @@ describe("buildManagerLaunch", () => {
     expect(() => buildManagerLaunch({ ...INPUT, ...patch })).toThrow(message);
     expect(() => buildManagerLaunch({ ...INPUT, ...patch })).toThrow(
       LaunchError
+    );
+  });
+});
+
+describe("buildManagerLaunch with no notification channel", () => {
+  const { stateDir: _stateDir, ...NONE_INPUT } = INPUT;
+
+  it("builds the exact tmux argv: no state dir, no --channels, no plugin", () => {
+    expect(buildManagerLaunch({ ...NONE_INPUT, notify: "none" })).toEqual([
+      "new-session",
+      "-d",
+      "-s",
+      NAME,
+      "-c",
+      ROOT,
+      "-e",
+      "SM_SCRIPTS_DIR=/opt/lisa/skills/lisa-session-manager/scripts",
+      "claude",
+      "-n",
+      NAME,
+      "--dangerously-skip-permissions",
+      "--settings",
+      '{"crossSessionInbound":"accept"}',
+      "--",
+      LOOP_PROMPT,
+    ]);
+  });
+
+  it("refuses a state dir, which only the telegram provider uses", () => {
+    expect(() => buildManagerLaunch({ ...INPUT, notify: "none" })).toThrow(
+      /stateDir/
+    );
+  });
+
+  it("refuses a provider it does not implement", () => {
+    expect(() => buildManagerLaunch({ ...INPUT, notify: "slack" })).toThrow(
+      LaunchError
+    );
+  });
+
+  it("prints a foreground line with no Telegram variable", () => {
+    const argv = buildManagerLaunch({ ...NONE_INPUT, notify: "none" });
+    expect(buildForegroundCommand(argv)).toBe(
+      "cd '/work/demo' && " +
+        "SM_SCRIPTS_DIR='/opt/lisa/skills/lisa-session-manager/scripts' " +
+        `claude -n ${NAME} --dangerously-skip-permissions ` +
+        `--settings '{"crossSessionInbound":"accept"}' ` +
+        `-- '${LOOP_PROMPT}'`
     );
   });
 });

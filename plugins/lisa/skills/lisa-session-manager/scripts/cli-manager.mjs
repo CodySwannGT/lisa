@@ -3,13 +3,22 @@
  * repo-dir and validate. The setup ones (init-config, store-token,
  * trust-status, coexistence) live in cli-setup.mjs.
  *
- * `start` hosts the manager in tmux. It refuses (exit 2) unless the bot
- * token file exists with owner-only permissions in the project's own state
- * dir, and it treats an existing tmux session started in this root as
+ * `start` hosts the manager in tmux. With Telegram as the notification
+ * channel and a secrets provider configured, it resolves the bot token once
+ * from the provider and hands it to tmux on stdin (#4555; see
+ * token-store.mjs). With Telegram and no provider it refuses (exit 2) unless
+ * the bot token file exists with owner-only permissions in the project's own
+ * state dir; with no channel
+ * (`notify.provider` `"none"`, or no `notify` block) it needs no token, state
+ * dir or plugin and launches without `--channels` (#4555). It treats an existing tmux session started in this root as
  * "already running" rather than starting a second poller on the same bot. A
  * session of that name started in another root is another project's manager,
  * so both `start` and `stop` refuse it (exit 2). `stop` kills only the
  * manager's tmux session: workers hold claimed work and keep running.
+ *
+ * The token lookup and stdin launch live in cli-manager-token.mjs and
+ * `status` in cli-status.mjs (re-exported here), to keep each module under
+ * the line budget.
  * @module session-manager/cli-manager
  */
 import {
@@ -18,25 +27,25 @@ import {
   GLOBAL_CONFIG_FILE,
   asSetupError,
   intFlag,
-  listAgents,
   loadProject,
   mustRun,
   requireConfig,
   requireLisaRepo,
   run,
 } from "./cli-runtime.mjs";
-import { resolveRepoDir } from "./config.mjs";
+import { launchWithToken, telegramToken } from "./cli-manager-token.mjs";
+import { notifyProvider, resolveRepoDir } from "./config.mjs";
 import { probeOwnSession, sessionSurvives } from "./isolation.mjs";
 import {
   assertTokenPresent,
   buildForegroundCommand,
-  buildHasSession,
   buildManagerLaunch,
   buildStopManager,
   resolveStateDir,
 } from "./launch.mjs";
-import { readLedger } from "./ledger.mjs";
-import { parseWorkerName, scrubWorkerEnv } from "./workers.mjs";
+import { scrubWorkerEnv } from "./workers.mjs";
+
+export { status } from "./cli-status.mjs";
 
 /**
  * The configured state dir, resolved (exit 2 for the shared default dir).
@@ -85,32 +94,49 @@ function settleMsOf(ctx) {
 export async function start(ctx) {
   const settleMs = settleMsOf(ctx);
   const config = requireConfig(ctx);
-  const stateDir = stateDirOf(ctx, config);
+  const notify = notifyProvider(config);
+  const stateDir = notify === "telegram" ? stateDirOf(ctx, config) : undefined;
   // tmux gets the scrubbed env: if this call starts the tmux server, its
   // global environment must not carry a TELEGRAM_* value into other sessions.
   const env = scrubWorkerEnv(ctx.env);
+  // A running manager already holds its token, so it is reported before the
+  // provider is asked for one: a rate-limited vault must not turn "already
+  // running" into a failure, or spend a vault call on nothing.
   const session = probeOwnSession(ctx, config.name, env);
   if (session.missing) throw new CliError("tmux is not on PATH.", EXIT.SETUP);
   if (session.running) {
     return { json: { status: "already-running", name: config.name } };
   }
-  asSetupError(() => assertTokenPresent(stateDir));
+  // Resolved before any session is created: a provider that cannot answer
+  // must leave nothing half-started.
+  const token =
+    stateDir === undefined
+      ? null
+      : await telegramToken(ctx, config.name, stateDir);
+  if (token?.source === "file") {
+    asSetupError(() => assertTokenPresent(stateDir));
+  }
   const argv = asSetupError(() =>
     buildManagerLaunch({
       name: config.name,
       root: ctx.root,
-      stateDir,
+      ...(stateDir === undefined ? {} : { stateDir }),
       scriptsDir: ctx.scriptsDir,
       interval: config.interval,
+      notify,
     })
   );
-  mustRun("tmux", argv, { env, cwd: ctx.root });
+  const foreground = () => buildForegroundCommand(argv, token?.shellVars ?? {});
+  if (token?.source === "provider") {
+    launchWithToken({ ctx, argv, env, token, foreground });
+  } else {
+    mustRun("tmux", argv, { env, cwd: ctx.root });
+  }
   if (!(await sessionSurvives(config.name, env, settleMs))) {
-    const foreground = buildForegroundCommand(argv);
     throw new CliError(
       `The manager's tmux session "${config.name}" exited within ` +
         `${settleMs} ms of starting, so the manager is not running. Run the ` +
-        `launch in the foreground to see claude's error:\n  ${foreground}`,
+        `launch in the foreground to see claude's error:\n  ${foreground()}`,
       EXIT.SETUP
     );
   }
@@ -118,7 +144,14 @@ export async function start(ctx) {
     json: {
       status: "started",
       name: config.name,
-      stateDir,
+      notify,
+      ...(stateDir === undefined ? {} : { stateDir }),
+      ...(token === null
+        ? {}
+        : {
+            tokenSource: token.source,
+            ...(token.secret ? { secret: token.secret } : {}),
+          }),
       attach: `tmux attach -t ${config.name}`,
     },
   };
@@ -174,7 +207,10 @@ function environmentProblems(ctx, config) {
       return [`sessionManager.repos.entries.${key}: ${error.message}`];
     }
   });
-  if (typeof config.notify?.stateDir === "string") {
+  if (
+    notifyProvider(config) === "telegram" &&
+    typeof config.notify?.stateDir === "string"
+  ) {
     try {
       stateDirOf(ctx, config);
     } catch (error) {
@@ -197,41 +233,5 @@ export function validate(ctx) {
   return {
     json: { valid: errors.length === 0, errors },
     exitCode: errors.length === 0 ? EXIT.OK : EXIT.SETUP,
-  };
-}
-
-/**
- * `status`: is the manager's tmux session up, and what does the ledger say
- * about each worker it dispatched.
- * @param {object} ctx - CLI context
- * @returns {Promise<{ json: object }>} `{manager,control,workers,untracked}`
- */
-export async function status(ctx) {
-  const config = requireConfig(ctx);
-  const tmux = run("tmux", buildHasSession(config.name), { env: ctx.env });
-  const agents = listAgents(ctx, { all: true });
-  const ledger = await readLedger(ctx.root);
-  const liveNames = new Set(
-    agents.filter(agent => agent.active).map(agent => agent.name)
-  );
-  const tracked = new Set(Object.values(ledger.items).map(i => i.worker));
-  return {
-    json: {
-      manager: { name: config.name, running: tmux.status === 0 },
-      control: ledger.control,
-      workers: Object.entries(ledger.items).map(([ref, item]) => ({
-        ref,
-        worker: item.worker ?? null,
-        sessionId: item.sessionId ?? null,
-        repo: item.repo ?? null,
-        status: item.status ?? null,
-        attempts: item.attempts ?? 0,
-        pendingQuestion: Boolean(item.pendingQuestion),
-        live: liveNames.has(item.worker),
-      })),
-      untracked: [...liveNames]
-        .filter(name => parseWorkerName(name) !== null && !tracked.has(name))
-        .sort(),
-    },
   };
 }

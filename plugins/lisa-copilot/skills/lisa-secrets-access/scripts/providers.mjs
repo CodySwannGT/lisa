@@ -701,6 +701,72 @@ export function rawByKey(cfg, key) {
   return matches[0] ?? null;
 }
 
+/** A provider error that names a rate limit (HTTP 429). */
+const RATE_LIMITED = /\b429\b|too many requests|rate.?limit/i;
+
+/**
+ * Run a provider CLI whose argv carries a secret value, and never let that
+ * argv reach an error message.
+ *
+ * `execFileSync` puts the whole command line in its error (`Command failed:
+ * bws secret create KEY <value> ...`), so a failed write would print the very
+ * value it was writing. The rethrown error keeps only what a caller needs to
+ * act on: the operation, the exit status and whether the provider
+ * rate-limited the call. Every other error (a missing binary's
+ * `spawnSync bws ENOENT`, a deadline {@link run} already reworded) is
+ * rebuilt too, keeping only its message (with the value redacted) and its
+ * `code`/`errno`/`syscall`/`status`/`signal`: Node's spawn errors also carry
+ * `spawnargs`, the full argv, value included, which a caller that logs or
+ * serializes the error would publish.
+ * @param {string} bin Executable name.
+ * @param {string[]} args Arguments, one of them a secret value.
+ * @param {NodeJS.ProcessEnv} env Environment for the child.
+ * @param {string} operation What the call was doing, in operator words.
+ * @param {string} value The secret value in `args`, redacted from any error.
+ * @returns {string} Captured stdout.
+ */
+function runWithValue(bin, args, env, operation, value) {
+  try {
+    return run(bin, args, env, operation);
+  } catch (error) {
+    // Node's "Command failed: <command line>" error carries argv in its text.
+    if (!String(error?.message ?? "").startsWith("Command failed")) {
+      throw withoutArgv(error, value);
+    }
+    const why = RATE_LIMITED.test(String(error.stderr ?? ""))
+      ? "the provider rate-limited the request (429 Too Many Requests)"
+      : "the provider refused the request or could not be reached";
+    throw new Error(
+      `${operation} failed (exit ${error.status ?? error.signal}): ${why}. ` +
+        `The command's own output is withheld because its arguments carry ` +
+        `the secret value.`
+    );
+  }
+}
+
+/** The fields of a spawn error that carry no argv, output or value. */
+const SAFE_ERROR_FIELDS = ["code", "errno", "syscall", "status", "signal"];
+
+/**
+ * A copy of a child-process error with no argv on it: a fresh Error whose
+ * message has `value` redacted, and only {@link SAFE_ERROR_FIELDS}. Drops
+ * `spawnargs`, `cmd`, `path`, `stdout`, `stderr` and `output`.
+ * @param {unknown} error What the call threw.
+ * @param {string} value The secret value to redact.
+ * @returns {Error} The rebuilt error.
+ */
+function withoutArgv(error, value) {
+  const text = String(error?.message ?? error);
+  const message = value ? text.split(String(value)).join("<redacted>") : text;
+  const safe = Object.fromEntries(
+    SAFE_ERROR_FIELDS.filter(key => error?.[key] !== undefined).map(key => [
+      key,
+      error[key],
+    ])
+  );
+  return Object.assign(new Error(message), safe);
+}
+
 /**
  * Write a replacement value back to the provider.
  *
@@ -709,7 +775,8 @@ export function rawByKey(cfg, key) {
  * Bitwarden CLI exposes no stdin path for an edit, so this is a documented
  * exception rather than an oversight: it is confined to the one operation that
  * cannot be expressed otherwise, and `execFileSync` at least keeps the value
- * out of a shell and therefore out of shell history.
+ * out of a shell and therefore out of shell history. A failure is reported
+ * through {@link runWithValue}, so the value never reaches the error either.
  * @param {object} cfg Resolved configuration.
  * @param {string} id Provider-side identifier for the secret.
  * @param {string} value Replacement value.
@@ -718,17 +785,68 @@ export function writeSecret(cfg, id, value) {
   const env = providerEnv(cfg);
 
   if (cfg.provider === "bitwarden") {
-    run(
+    runWithValue(
       "bws",
       ["secret", "edit", id, "--value", value],
       env,
-      "updating a secret in Bitwarden"
+      "updating a secret in Bitwarden",
+      value
     );
     return;
   }
   throw new Error(
     `provider "${cfg.provider}" has no write implemented.\n` +
       `Rotation requires a proven write path; add one in providers.mjs.`
+  );
+}
+
+/**
+ * Create one new secret in the provider.
+ *
+ * The one caller is the session manager's `store-token` (#4555), which moves
+ * the Telegram bot token out of a plaintext file and into the vault, then
+ * reads it back to prove the write before deleting the file. It never
+ * replaces an existing record: that is {@link writeSecret}'s job.
+ *
+ * The value is a positional argument, the same documented exception as
+ * {@link writeSecret}: `bws secret create` (2.1.0) takes `<KEY> <VALUE>
+ * <PROJECT_ID>` and its help lists no stdin or file option for the value, so
+ * there is no way to keep it out of argv. `execFileSync` keeps it out of a
+ * shell, `--output none` keeps the created record (value included) off
+ * stdout, and {@link runWithValue} keeps it out of any error.
+ *
+ * Bitwarden only. Other providers fail with a message naming where to add
+ * one; until then the operator creates the secret in the vault themselves.
+ * @param {object} cfg Resolved configuration.
+ * @param {{name: string, value: string, projectId: string, note?: string}}
+ *   secret Exact key, value, target provider project and usage note.
+ */
+export function createSecret(cfg, { name, value, projectId, note }) {
+  if (!ENV_KEY.test(name)) {
+    throw new Error(`secret name is not an environment variable name: ${name}`);
+  }
+  if (cfg.provider === "bitwarden") {
+    runWithValue(
+      "bws",
+      [
+        "secret",
+        "create",
+        name,
+        value,
+        projectId,
+        ...(note ? ["--note", note] : []),
+        "--output",
+        "none",
+      ],
+      providerEnv(cfg),
+      "creating a secret in Bitwarden",
+      value
+    );
+    return;
+  }
+  throw new Error(
+    `provider "${cfg.provider}" has no create implemented.\n` +
+      `Create the secret in the provider yourself, or add one in providers.mjs.`
   );
 }
 

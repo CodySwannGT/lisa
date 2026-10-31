@@ -5,29 +5,39 @@
  * reachable), and never put in argv, a return value, an error message or a
  * log line. An existing token is replaced only on request. Split out of
  * launch.mjs, which re-exports everything here.
+ *
+ * The `.env` file is the storage only when the project has no secrets
+ * provider; with one, token-store.mjs stores the token there instead and
+ * reuses the prompt and clipboard readers (#4555).
+ *
+ * Validation, the prompt and clipboard readers and the printed `store-token`
+ * command live in token-read.mjs, re-exported here, to keep this module under
+ * the line budget.
  * @module token
  */
 import { randomUUID } from "node:crypto";
 import * as nodeFs from "node:fs";
 import path from "node:path";
 
-import { readClipboard } from "./clipboard.mjs";
 import { LaunchError, resolveStateDir } from "./state-dir.mjs";
+import {
+  readTokenFromClipboard,
+  readTokenFromPrompt,
+  shellQuote,
+  validateBotToken,
+} from "./token-read.mjs";
 
-/** The shape of a BotFather token: `<bot id>:<secret>`. */
-const BOT_TOKEN_PATTERN = /^\d+:[A-Za-z0-9_-]{30,}$/;
+export {
+  buildStoreTokenCommand,
+  loadPromptSecret,
+  readTokenFromClipboard,
+  readTokenFromPrompt,
+  shellQuote,
+  validateBotToken,
+} from "./token-read.mjs";
 
 /** The plugin reads its token from this file in the state dir. */
 const TOKEN_FILE_NAME = ".env";
-
-/**
- * Whether `token` looks like a BotFather bot token.
- * @param {unknown} token - Candidate
- * @returns {boolean} True for `<digits>:<30+ of [A-Za-z0-9_-]>`
- */
-export function validateBotToken(token) {
-  return typeof token === "string" && BOT_TOKEN_PATTERN.test(token);
-}
 
 /**
  * Write `<stateDir>/.env` as `TELEGRAM_BOT_TOKEN=<token>`.
@@ -63,65 +73,6 @@ export function writeTokenFile(stateDir, token, seams = {}) {
   fs.renameSync(temp, target);
   return { path: target };
 }
-
-/**
- * Load `promptSecret`/`canPrompt` from the secrets-access skill, by path
- * relative to this file, the same way other skills reach it. Lazy so the
- * argv builders never pay for it.
- * @returns {Promise<{ promptSecret: Function, canPrompt: Function }>} Module
- */
-export function loadPromptSecret() {
-  return import(
-    new URL(
-      "../../lisa-secrets-access/scripts/prompt-secret.mjs",
-      import.meta.url
-    ).href
-  );
-}
-
-/**
- * Quote one word for a POSIX shell.
- * @param {string} word - Word to quote
- * @returns {string} Single-quoted word
- */
-function shellQuote(word) {
-  const escaped = String(word).replaceAll("'", String.raw`'\''`);
-  return `'${escaped}'`;
-}
-
-/**
- * The command an operator pastes into their own terminal to store the token,
- * for when the caller (an agent's Bash) has no TTY to prompt on.
- * @param {{ scriptsDir: string, projectRoot: string, replace?: boolean }}
- *   input - Script and project locations, and whether to carry `--replace`
- * @returns {string} One shell line
- */
-export function buildStoreTokenCommand({
-  scriptsDir,
-  projectRoot,
-  replace,
-  fromClipboard = false,
-}) {
-  const script = shellQuote(path.join(scriptsDir, "session-manager.mjs"));
-  const flags =
-    (replace ? " --replace" : "") + (fromClipboard ? " --from-clipboard" : "");
-  return `node ${script} store-token${flags} --project-root ${shellQuote(projectRoot)}`;
-}
-
-/** Why `store-token` cannot prompt here, and the two ways forward. */
-const NO_TTY_HINT =
-  "No terminal to prompt on, and Claude Code's ! prefix has no TTY either. " +
-  "Run `command` in a separate terminal app, or copy the token from " +
-  "BotFather and run `clipboardCommand`.";
-
-/** The `invalid` outcome; names the expected shape, never the input. */
-const INVALID = Object.freeze({
-  stored: false,
-  reason: "invalid",
-  message:
-    "That does not look like a Telegram bot token " +
-    "(expected <digits>:<30 or more letters, digits, _ or ->).",
-});
 
 /**
  * Refuse to overwrite an existing token unless `replace` was asked for: a
@@ -161,31 +112,17 @@ export function storeTokenFromClipboard(input) {
   const { replace = false, io = {} } = input;
   const stateDir = resolveStateDir(input.stateDir, input);
   assertReplaceable(stateDir, replace, io);
-  const clip = (io.readClipboard ?? readClipboard)();
-  if (!clip.ok) {
-    return { stored: false, reason: clip.reason, message: clip.message };
-  }
-  const token = clip.text.trim();
-  if (!token) {
-    return {
-      stored: false,
-      reason: "empty",
-      message: "The clipboard is empty.",
-    };
-  }
-  if (!validateBotToken(token)) return { ...INVALID };
-  const written = writeTokenFile(stateDir, token, io);
-  return { stored: true, ...written, clipboardCleared: clip.clear() };
+  const read = readTokenFromClipboard(io);
+  if (read.token === undefined) return read;
+  const written = writeTokenFile(stateDir, read.token, io);
+  return { stored: true, ...written, clipboardCleared: read.clear() };
 }
 
 /**
- * Prompt for the bot token on the operator's terminal and store it.
- *
- * An existing token is never overwritten without `replace`. With no TTY this
- * does not prompt and does not fail: it returns the exact command for the
- * operator to run in a separate terminal app, and the `--from-clipboard` form
- * of it, because an agent's Bash (and Claude Code's `!` prefix) can never
- * answer a prompt and a hung setup looks like a slow one.
+ * Prompt for the bot token on the operator's terminal and store it in
+ * `<stateDir>/.env`. An existing token is never overwritten without
+ * `replace`; with no TTY it returns the commands that work instead (see
+ * {@link readTokenFromPrompt}).
  * @param {{ stateDir: string, scriptsDir: string, projectRoot: string,
  *   replace?: boolean, env?: Record<string, string | undefined>,
  *   homedir?: string, io?: { canPrompt?: () => boolean,
@@ -200,33 +137,15 @@ export async function storeToken(input) {
   const { scriptsDir, projectRoot, replace = false, io = {} } = input;
   const stateDir = resolveStateDir(input.stateDir, input);
   assertReplaceable(stateDir, replace, io);
-  const loaded =
-    io.canPrompt && io.promptSecret ? null : await loadPromptSecret();
-  const canPrompt = io.canPrompt ?? (() => loaded.canPrompt());
-  const promptSecret = io.promptSecret ?? loaded.promptSecret;
-
-  if (!canPrompt()) {
-    return {
-      stored: false,
-      reason: "no-tty",
-      message: NO_TTY_HINT,
-      command: buildStoreTokenCommand({ scriptsDir, projectRoot, replace }),
-      clipboardCommand: buildStoreTokenCommand({
-        scriptsDir,
-        projectRoot,
-        replace,
-        fromClipboard: true,
-      }),
-    };
-  }
-  const typed = promptSecret(
-    `Paste the Telegram bot token for ${stateDir} (input is hidden): `
-  );
-  if (!typed) {
-    return { stored: false, reason: "empty", message: "Nothing entered." };
-  }
-  if (!validateBotToken(typed)) return { ...INVALID };
-  return { stored: true, ...writeTokenFile(stateDir, typed, io) };
+  const read = await readTokenFromPrompt({
+    label: stateDir,
+    scriptsDir,
+    projectRoot,
+    replace,
+    io,
+  });
+  if (read.token === undefined) return read;
+  return { stored: true, ...writeTokenFile(stateDir, read.token, io) };
 }
 
 /**

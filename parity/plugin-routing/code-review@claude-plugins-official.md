@@ -3,7 +3,7 @@
 - **Plugin:** `code-review@claude-plugins-official`
 - **Upstream version:** `1.0.1`
 - **Analyzed:** 2026-10-31 (re-analysis; first analysed 2026-05-30 as `unknown`)
-- **Status:** `proposed` — re-analysis output. A human flips it to `approved` in a separate, visible edit before `implement-plugin-parity` may act on it. The routing validator and the drift detector accept either status, so this does not affect the push gate.
+- **Status:** `approved`. The repository owner approved this record on 2026-10-31, after reviewing the re-analysis in PR #4557. The approval is this separate, visible edit; until it, the re-analysis stayed `proposed`. The routing validator and the drift detector accept either status, so neither status affects the push gate.
 
 ## Why this was re-analysed
 

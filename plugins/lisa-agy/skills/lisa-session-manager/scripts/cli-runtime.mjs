@@ -227,15 +227,17 @@ export function requireLisaRepo(dir) {
  * Run a command with an argv array and no shell.
  * @param {string} command - Executable, looked up on PATH
  * @param {readonly string[]} args - argv
- * @param {{ env: Record<string, string | undefined>, cwd?: string }} options
- *   - Environment and working directory
+ * @param {{ env: Record<string, string | undefined>, cwd?: string,
+ *   input?: string }} options - Environment, working directory and stdin
+ *   (for text that must stay out of argv)
  * @returns {{ status: number | null, stdout: string, stderr: string,
  *   missing: boolean }} Outcome; `missing` when the command is not on PATH
  */
-export function run(command, args, { env, cwd }) {
+export function run(command, args, { env, cwd, input }) {
   const result = spawnSync(command, args, {
     cwd,
     env,
+    ...(input === undefined ? {} : { input }),
     encoding: "utf8",
     maxBuffer: MAX_BUFFER,
   });

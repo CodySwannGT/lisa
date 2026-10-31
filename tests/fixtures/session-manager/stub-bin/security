@@ -1,0 +1,11 @@
+#!/usr/bin/env node
+/**
+ * Stub `security` (the macOS keychain CLI) for the session-manager CLI tests.
+ * It records that it ran, with only its subcommand, and exits 44 ("item not
+ * found"). A test can then prove the real keychain was never consulted: the
+ * test configs read the secrets bootstrap from the environment only.
+ */
+import { record } from "../support/stub-record.mjs";
+
+record("security", { argv: process.argv.slice(2, 3) });
+process.exitCode = 44;

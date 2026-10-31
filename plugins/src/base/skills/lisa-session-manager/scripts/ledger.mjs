@@ -21,6 +21,14 @@ import { randomUUID } from "node:crypto";
 import * as nodeFs from "node:fs/promises";
 import { dirname, join } from "node:path";
 
+// The question writers live in ledger-questions.mjs (#4555), re-exported so
+// callers keep one import. They are called, never evaluated, at load time, so
+// the import cycle back to this module's primitives is safe.
+export {
+  clearPendingQuestion,
+  setPendingQuestion,
+} from "./ledger-questions.mjs";
+
 /** Shape version, bumped only on an incompatible change. */
 const LEDGER_VERSION = 1;
 
@@ -43,6 +51,16 @@ const FINISH_STATUSES = new Set(["DONE", "FAILED"]);
  * @property {string} askedAt - When it was first asked (ISO)
  * @property {string} lastPingAt - When it was last (re-)sent (ISO)
  * @property {number|null} telegramMessageId - Telegram message carrying it
+ * @property {string} [kind] - Why a human is needed: worker-question |
+ *   repo-route | exhausted | decision (#4555)
+ * @property {"label"|"role"|null} [markerType] - How the item is marked
+ *   human-needed on the tracker, once the manager has read the mark back
+ * @property {string|null} [marker] - The label or role value it carries
+ * @property {string|null} [markedAt] - When the mark was read back (ISO);
+ *   null means recorded but not yet marked on the tracker
+ * @property {string[]} [managerCommentIds] - Ids of the comments the manager
+ *   posted on the item (its question comment), never read as an answer
+ * @property {import("./ledger-questions.mjs").QueuedAnswer|null} [answer] - An answer waiting to be delivered
  */
 
 /**
@@ -199,7 +217,7 @@ export async function writeLedger(projectRoot, ledger, seams) {
  * @param {(ledger: Ledger, at: string) => {ledger: Ledger, result: T}} transform - Pure update
  * @returns {Promise<T>} The transform's result
  */
-async function updateLedger(projectRoot, seams, transform) {
+export async function updateLedger(projectRoot, seams, transform) {
   const { now } = resolveSeams(seams);
   const current = await readLedger(projectRoot, seams);
   const { ledger, result } = transform(current, now().toISOString());
@@ -214,7 +232,7 @@ async function updateLedger(projectRoot, seams, transform) {
  * @param {LedgerItem} entry - New item
  * @returns {{ledger: Ledger, result: LedgerItem}} Update
  */
-function withItem(ledger, ref, entry) {
+export function withItem(ledger, ref, entry) {
   return {
     ledger: { ...ledger, items: { ...ledger.items, [ref]: entry } },
     result: entry,
@@ -227,7 +245,7 @@ function withItem(ledger, ref, entry) {
  * @param {string} ref - Item key
  * @returns {LedgerItem} The item
  */
-function requireItem(ledger, ref) {
+export function requireItem(ledger, ref) {
   const entry = ledger.items[ref];
   if (!entry)
     throw new Error(
@@ -240,7 +258,7 @@ function requireItem(ledger, ref) {
  * A ledger item for a ref the manager has asked about but not dispatched.
  * @returns {LedgerItem} Placeholder item
  */
-function placeholderItem() {
+export function placeholderItem() {
   return {
     repo: null,
     worker: null,
@@ -287,58 +305,6 @@ export function recordSpawn(
         ...(previous.history ?? []),
         { event: "spawn", at, worker, sessionId, attempt: attempts },
       ],
-    });
-  });
-}
-
-/**
- * Record (or re-ping) the question an item is waiting on.
- *
- * The same text again is a re-ping: `askedAt` is kept and `lastPingAt` moves,
- * so the requestion clock restarts without forgetting how old the question
- * is. A ref with no item yet (a repo-routing question asked before dispatch)
- * gets a placeholder item with zero attempts.
- * @param {string} projectRoot - Absolute project root
- * @param {{ref: string, text: string, telegramMessageId: number|null}} question - Question
- * @param {LedgerSeams} [seams] - Injected seams
- * @returns {Promise<LedgerItem>} The updated item
- */
-export function setPendingQuestion(
-  projectRoot,
-  { ref, text, telegramMessageId },
-  seams
-) {
-  return updateLedger(projectRoot, seams, (ledger, at) => {
-    const previous = ledger.items[ref] ?? placeholderItem();
-    const existing = previous.pendingQuestion;
-    const askedAt = existing?.text === text ? existing.askedAt : at;
-    return withItem(ledger, ref, {
-      ...previous,
-      pendingQuestion: {
-        text,
-        askedAt,
-        lastPingAt: at,
-        telegramMessageId: telegramMessageId ?? null,
-      },
-      history: [...(previous.history ?? []), { event: "question", at }],
-    });
-  });
-}
-
-/**
- * Clear an item's pending question, once its answer has been delivered.
- * @param {string} projectRoot - Absolute project root
- * @param {{ref: string}} target - Item
- * @param {LedgerSeams} [seams] - Injected seams
- * @returns {Promise<LedgerItem>} The updated item
- */
-export function clearPendingQuestion(projectRoot, { ref }, seams) {
-  return updateLedger(projectRoot, seams, (ledger, at) => {
-    const previous = requireItem(ledger, ref);
-    return withItem(ledger, ref, {
-      ...previous,
-      pendingQuestion: null,
-      history: [...(previous.history ?? []), { event: "answered", at }],
     });
   });
 }

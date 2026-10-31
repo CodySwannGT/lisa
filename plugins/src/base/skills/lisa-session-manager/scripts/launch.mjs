@@ -1,6 +1,8 @@
 /**
  * Starting and stopping the session manager, and the Telegram bot token it
- * needs.
+ * needs when Telegram is its notification channel. Telegram is optional
+ * (#4555): with `notify.provider` `"none"` the manager launches with no
+ * channel, no state dir and no plugin, and none of the isolation below applies.
  *
  * The official Telegram plugin keeps its token, pairing list, inbox and
  * `bot.pid` in one state dir (`TELEGRAM_STATE_DIR`, else
@@ -11,16 +13,20 @@
  *   env, and the shared default dir is refused outright;
  * - the plugin is enabled only through the manager's own `--settings`, never
  *   at user scope, so worker sessions never start a poller;
- * - the token lives in `<stateDir>/.env` (dir 0700, file 0600), is read from
- *   the operator's terminal with echo off, and never appears in argv, a
- *   return value, an error message or a log line.
+ * - the token lives in the project's secrets provider when one is configured
+ *   (token-store.mjs, #4555), reaching the manager's tmux session through
+ *   `source-file -` on stdin ({@link buildSourcedLaunch}); with no provider it
+ *   lives in `<stateDir>/.env` (dir 0700, file 0600). Either way it is read
+ *   from the operator's terminal with echo off (or the clipboard), and never
+ *   appears in argv, a return value, an error message or a log line.
  *
  * The tmux argv is returned as an array and handed straight to `spawnSync`.
  * With more than one command argument tmux runs the command directly rather
  * than through `sh -c`, so the settings JSON and the loop prompt are never
  * re-parsed by a shell.
  *
- * The state dir lives in state-dir.mjs and the token in token.mjs; both are
+ * The state dir lives in state-dir.mjs, the token in token.mjs, and the
+ * foreground and stdin renderings of the launch in launch-shell.mjs; all are
  * re-exported here so callers keep one import.
  *
  * Everything here is pure or takes injected seams. This module never reads
@@ -34,6 +40,11 @@ import { parseLoopInterval } from "./config.mjs";
 import { LaunchError } from "./state-dir.mjs";
 
 export {
+  buildForegroundCommand,
+  buildSourcedLaunch,
+  tmuxQuote,
+} from "./launch-shell.mjs";
+export {
   LaunchError,
   realpathExisting,
   resolveStateDir,
@@ -42,6 +53,8 @@ export {
   assertTokenPresent,
   buildStoreTokenCommand,
   loadPromptSecret,
+  readTokenFromClipboard,
+  readTokenFromPrompt,
   storeToken,
   storeTokenFromClipboard,
   validateBotToken,
@@ -54,26 +67,28 @@ export const TELEGRAM_PLUGIN_ID = "telegram@claude-plugins-official";
 /** Same slug rule the config validator applies to `sessionManager.name`. */
 const SESSION_NAME_PATTERN = /^[a-z0-9][a-z0-9_-]{0,63}$/;
 
-/** A `'` inside a single-quoted shell word: close, escaped quote, reopen. */
-const ESCAPED_QUOTE = "'\\''";
-
-/** An argument a POSIX shell reads back unchanged without quotes. */
-const SHELL_SAFE = /^[A-Za-z0-9_@%+=:,./-]+$/;
-
 /** The skill command each manager loop iteration runs. */
 const CYCLE_COMMAND = "/lisa:session-manager cycle";
 
+/** The notification providers a launch can be built for. */
+const LAUNCH_NOTIFY = new Set(["none", "telegram"]);
+
 /**
- * Settings blob for the manager session only: the Telegram plugin on, and
- * workers' messages accepted.
+ * Settings blob for the manager session only: workers' messages accepted,
+ * and the Telegram plugin on when Telegram is the notification channel. With
+ * no channel (`"none"`) the plugin is left out entirely, so the manager never
+ * starts a poller (#4555).
+ * @param {string} [notify] - Notification provider: "telegram" (default) or "none"
  * @returns {{ crossSessionInbound: "accept",
- *   enabledPlugins: Record<string, boolean> }} Fresh settings object
+ *   enabledPlugins?: Record<string, boolean> }} Fresh settings object
  */
-export function buildManagerSettings() {
-  return {
-    crossSessionInbound: "accept",
-    enabledPlugins: { [TELEGRAM_PLUGIN_ID]: true },
-  };
+export function buildManagerSettings(notify = "telegram") {
+  return notify === "telegram"
+    ? {
+        crossSessionInbound: "accept",
+        enabledPlugins: { [TELEGRAM_PLUGIN_ID]: true },
+      }
+    : { crossSessionInbound: "accept" };
 }
 
 /**
@@ -111,9 +126,15 @@ function assertAbsolute(label, value) {
  * `TELEGRAM_STATE_DIR` goes only into this session's env so no other session
  * ever sees it. `SM_SCRIPTS_DIR` lets every cycle's Bash find these scripts
  * without re-resolving the plugin root.
- * @param {{ name: string, root: string, stateDir: string, scriptsDir: string,
- *   interval: string }} input - Session name, project root, resolved state
- *   dir, this scripts dir, and the loop interval (e.g. "5m")
+ *
+ * With `notify: "none"` there is no channel: no `TELEGRAM_STATE_DIR`, no
+ * `--channels` and no plugin in the settings, and a `stateDir` is refused
+ * because only the telegram provider uses one (#4555).
+ * @param {{ name: string, root: string, stateDir?: string,
+ *   scriptsDir: string, interval: string,
+ *   notify?: string }} input - Session name, project root,
+ *   resolved state dir (telegram only), this scripts dir, the loop interval
+ *   (e.g. "5m") and the notification provider (default telegram)
  * @returns {string[]} argv for `spawnSync("tmux", argv)`
  */
 export function buildManagerLaunch({
@@ -122,10 +143,11 @@ export function buildManagerLaunch({
   stateDir,
   scriptsDir,
   interval,
+  notify = "telegram",
 }) {
   assertSessionName(name);
   assertAbsolute("root", root);
-  assertAbsolute("stateDir", stateDir);
+  const telegram = assertNotify(notify, stateDir) === "telegram";
   assertAbsolute("scriptsDir", scriptsDir);
   if (parseLoopInterval(interval) === null) {
     throw new LaunchError(
@@ -139,8 +161,7 @@ export function buildManagerLaunch({
     name,
     "-c",
     root,
-    "-e",
-    `TELEGRAM_STATE_DIR=${stateDir}`,
+    ...(telegram ? ["-e", `TELEGRAM_STATE_DIR=${stateDir}`] : []),
     "-e",
     `SM_SCRIPTS_DIR=${scriptsDir}`,
     "claude",
@@ -148,50 +169,38 @@ export function buildManagerLaunch({
     name,
     "--dangerously-skip-permissions",
     "--settings",
-    JSON.stringify(buildManagerSettings()),
-    "--channels",
-    `plugin:${TELEGRAM_PLUGIN_ID}`,
+    JSON.stringify(buildManagerSettings(notify)),
+    ...(telegram ? ["--channels", `plugin:${TELEGRAM_PLUGIN_ID}`] : []),
     // `--channels` is variadic (claude 2.1.296): without `--` it takes the
     // prompt as a second channel entry and claude exits 1 ("--channels
-    // entries must be tagged") before the session starts.
+    // entries must be tagged") before the session starts. Kept with no
+    // channel too, so the prompt is never read as an option.
     "--",
     `/loop ${interval} ${CYCLE_COMMAND}`,
   ];
 }
 
 /**
- * Quote one argument for a POSIX shell, for display only.
- * @param {string} value - Argument
- * @returns {string} Single-quoted argument
+ * Refuse an unsupported provider, a telegram launch without an absolute state
+ * dir, and a state dir on a launch with no channel.
+ * @param {unknown} notify - Notification provider
+ * @param {unknown} stateDir - Resolved state dir, if any
+ * @returns {"telegram" | "none"} The provider
  */
-function shellQuote(value) {
-  return `'${value.replaceAll("'", ESCAPED_QUOTE)}'`;
-}
-
-/**
- * The shell line an operator runs to start the manager in the foreground,
- * from the tmux argv {@link buildManagerLaunch} returned: same cwd, the same
- * two session variables, the same claude argv. `start` prints it when the
- * tmux session dies at once, because tmux closes the window and claude's own
- * error goes with it. It is display text only and is never executed here.
- * The token is not in the argv, so it is not in this line either.
- * @param {readonly string[]} argv - Result of {@link buildManagerLaunch}
- * @returns {string} One shell line
- */
-export function buildForegroundCommand(argv) {
-  const claudeAt = argv.indexOf("claude");
-  const head = argv.slice(0, claudeAt);
-  const cwd = head[head.indexOf("-c") + 1];
-  const vars = head
-    .filter((_, index) => head[index - 1] === "-e")
-    .map(entry => {
-      const at = entry.indexOf("=");
-      return `${entry.slice(0, at)}=${shellQuote(entry.slice(at + 1))}`;
-    });
-  const command = argv
-    .slice(claudeAt)
-    .map(arg => (SHELL_SAFE.test(arg) ? arg : shellQuote(arg)));
-  return `cd ${shellQuote(cwd)} && ${[...vars, ...command].join(" ")}`;
+function assertNotify(notify, stateDir) {
+  if (!LAUNCH_NOTIFY.has(notify)) {
+    throw new LaunchError(
+      `notify "${String(notify)}" is not supported; use "none" or "telegram".`
+    );
+  }
+  if (notify === "telegram") {
+    assertAbsolute("stateDir", stateDir);
+  } else if (stateDir !== undefined) {
+    throw new LaunchError(
+      `stateDir is only used with the telegram provider; notify is "none".`
+    );
+  }
+  return notify;
 }
 
 /**
