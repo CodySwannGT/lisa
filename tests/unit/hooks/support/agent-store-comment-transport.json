@@ -1,0 +1,22 @@
+{
+  "cases": [
+    { "id": "physical-comment-quote-store", "command": ": # \"\ncat ~/.codex/auth.json\n# \"", "expected": 2 },
+    { "id": "physical-comment-quote-benign", "command": ": # \"\ncat ~/.codex/artifacts/research/auth-design.md\n# \"", "expected": 0 },
+    { "id": "literal-quoted-hash", "command": "cat \"{root}/.codex/artifacts/research/auth#design.md\"", "expected": 0 },
+    { "id": "literal-escaped-hash", "command": "cat {root}/.codex/artifacts/research/auth\\#design.md", "expected": 0 },
+    { "id": "literal-midword-hash", "command": "cat {root}/.codex/artifacts/research/auth#design.md", "expected": 0 },
+    { "id": "empty-quote-starts-hash-word", "command": ": \"\"#$(cat ~/.codex/auth.json)", "expected": 2 },
+    { "id": "real-store-after-comment", "command": ": # ordinary notes\ncat ~/.codex/auth.json", "expected": 2 },
+    { "id": "comment-backslash-physical-LF", "command": ": # \"\\\ncat ~/.codex/auth.json\n# \"", "expected": 2 },
+    { "id": "outside-comment-continuation", "command": "cat \\\n ~/.codex/auth.json", "expected": 2 },
+    { "id": "continued-prefix-before-comment", "command": ": \\\n# \"\ncat ~/.codex/auth.json\n# \"", "expected": 2 },
+    { "id": "store-text-only-in-comment", "command": ": # cat ~/.codex/auth.json\ncat ~/.codex/artifacts/research/auth-design.md", "expected": 0 },
+    { "id": "aggregate-benign", "command": "bash {root}/benign-a.sh; bash {root}/benign-b.sh", "expected": 0, "bodies": "benign" },
+    { "id": "aggregate-protected", "command": "bash {root}/protected-a.sh; bash {root}/protected-b.sh", "expected": 2, "bodies": "protected" },
+    { "id": "aggregate-mixed", "command": "bash {root}/mixed-a.sh; bash {root}/mixed-b.sh", "expected": 2, "bodies": "mixed" }
+  ],
+  "bodyBytes": 81920,
+  "paddingStatement": ": pppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppp\n",
+  "benignRead": "cat ~/.codex/artifacts/research/auth-design.md\n",
+  "protectedRead": "cat ~/.codex/auth.json\n"
+}

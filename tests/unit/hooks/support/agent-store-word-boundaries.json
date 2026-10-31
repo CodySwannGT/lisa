@@ -1,0 +1,18 @@
+{
+  "cases": [
+    { "id": "F1-quoted-literal-semicolon", "family": "literal-punctuation", "command": "cat \"{root}/.codex/artifacts/research/auth;design.md\"", "expected": 0 },
+    { "id": "F1-opposing-store-semicolon", "family": "protected", "command": "cat {root}/.codex/auth; printf safe", "expected": 2 },
+    { "id": "F1-mixed-literal-and-store", "family": "mixed", "command": "cat \"{root}/.codex/artifacts/research/auth;design.md\" {root}/.codex/auth.json", "expected": 2 },
+    { "id": "F2-empty-double-quote-brace", "family": "uncertainty", "command": "cat {root}/.codex/\"\"{auth,x}.json", "expected": 2 },
+    { "id": "F2-empty-single-quote-brace", "family": "uncertainty", "command": "cat {root}/.claude/''{.credentials,notes}.json", "expected": 2 },
+    { "id": "F2-opposing-benign-quote-join", "family": "benign", "command": "cat {root}/.codex/\"\"auth-design.md", "expected": 0 },
+    { "id": "F2-retained-protected-quoted-format", "family": "protected", "command": "cat {root}/.codex/auth.\"json\"", "expected": 2 },
+    { "id": "F3-separate-command-group", "family": "operator-boundary", "command": "cat {root}/.codex/artifacts/research/auth-design.md;{ printf safe; }", "expected": 0 },
+    { "id": "F3-opposing-brace-within-operand", "family": "uncertainty", "command": "cat {root}/.codex/artifacts/research/{auth,x}.json", "expected": 2 },
+    { "id": "F3-mixed-later-store", "family": "mixed", "command": "cat {root}/.codex/artifacts/research/auth-design.md;{ cat {root}/.claude/.credentials.json; }", "expected": 2 },
+    { "id": "literal-quoted-braces", "family": "literal-punctuation", "command": "cat {root}/.codex/\"{auth,x}.json\"", "expected": 0 },
+    { "id": "literal-escaped-braces", "family": "literal-punctuation", "command": "cat {root}/.codex/\\{auth,x\\}.json", "expected": 0 },
+    { "id": "literal-escaped-semicolon", "family": "literal-punctuation", "command": "cat {root}/.codex/artifacts/research/auth\\;design.md", "expected": 0 },
+    { "id": "literal-registry-prefix-punctuation", "family": "literal-punctuation", "command": "cat \"{root}/.npmrc;notes.md\"", "expected": 0 }
+  ]
+}

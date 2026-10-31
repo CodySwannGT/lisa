@@ -445,6 +445,10 @@ if [[ "$command_for_guards" =~ ^[[:blank:]]*(printf|echo)[[:blank:]] ]] \
   fi
 fi
 
+# Preserve physical source and independent shell-program boundaries for the
+# local credential projection. Other guards keep their established text views.
+agent_source_frames=("$command_for_guards")
+
 # ─── Follow execution into the file a command RUNS (issue #3612) ─────────────
 #
 # Every guard below classifies SHELL COMMAND TEXT, and until this block existed
@@ -1174,7 +1178,7 @@ follow_locate() {
 # executes, to a bounded depth. Full-line comments are dropped: a commented line
 # is never executed, so scanning it can only manufacture a false refusal.
 follow_take() {
-  local path="$1" depth="$2" size="" content="" rm_content="${3-}"
+  local path="$1" depth="$2" size="" content="" rm_content="${3-}" agent_content=""
   local invocation_kind=child
   if [ "$#" -eq 3 ]; then invocation_kind="$3"; fi
   case "$follow_paths" in
@@ -1203,11 +1207,16 @@ follow_take() {
   if [ "$#" -eq 4 ]; then
     # Scan the same complete bytes whose digest was authenticated, not a
     # second file read that could pair changed source with the cleanup view.
-    content="$(printf '%s' "$4" | sed 's/^[[:space:]]*#.*$//')" || follow_refuse "$path" "authenticated source could not be read"
+    agent_content="$4"
   else
-    content="$(LC_ALL=C tr -d '\000' <"$path" | sed 's/^[[:space:]]*#.*$//')" \
+    # A sentinel retains physical trailing LFs in the local frame. Keep the
+    # existing NUL treatment and read once; never reopen authenticated bytes.
+    agent_content="$(LC_ALL=C tr -d '\000' <"$path" && printf '.')" \
       || follow_refuse "$path" "it could not be read"
+    agent_content="${agent_content%.}"
   fi
+  agent_source_frames+=("$agent_content")
+  content="$(printf '%s' "$agent_content" | sed 's/^[[:space:]]*#.*$//')" || follow_refuse "$path" "inspected source could not be projected"
   follow_names="$follow_names $path"
   followed_text="$followed_text"$'\n'"$content"
   if [ "$#" -ne 4 ]; then
@@ -1378,6 +1387,9 @@ follow_inline() {
       printf "%s", substr(s, start, i - start);
     }
   ')" || follow_refuse "-c" "its command string could not be determined"
+  # The agent-store word view also needs the already-resolved executable body,
+  # rather than treating an interpreter's quoted program as one path operand.
+  agent_source_frames+=("$body")
   local saved_cwd="$follow_cwd" saved_unknown="$follow_cwd_unknown"
   follow_scan "$body" "$depth"
   follow_cwd="$saved_cwd"
@@ -3395,13 +3407,120 @@ readonly CLOUD_CREDENTIAL='(\.aws/(credentials|config)|\.config/gcloud/[[:alnum:
 # operand is still scanned, including a store beside an ordinary report.
 # OAuth's conventional oauth_creds name is a store, while authority, auth-design,
 # token-budget-notes and credentials-policy are not store components (#4544).
-readonly AGENT_STORE_STEM='(\.?credentials|auth|tokens?|oauth([_-](creds|tokens?))?|auth[_-]tokens?|access[_-]tokens?|refresh[_-]tokens?)'
-readonly AGENT_DIRECTORY='\.(claude|codex|cursor|copilot|gemini|antigravity)/'
-# Empty directory components are repeated separators for the same literal path.
-# A format suffix can continue through a quoted fragment (auth."json"); keep
-# refusing at that boundary instead of treating the quote as a new safe path.
-readonly AGENT_CREDENTIAL='('"$AGENT_DIRECTORY"'([[:alnum:]_.-]*/)*'"$AGENT_STORE_STEM"'(\.[[:alnum:]_.-]*)?(/[^[:space:]'"$qc"']*)?|\.netrc|\.npmrc|\.pypirc|\.docker/config\.json)([[:space:]'"$qc"']|$)'
-readonly AGENT_UNCERTAIN="$AGENT_DIRECTORY"'[^[:space:]'"$qc"']*(\$|\*|\?|\[)'
+# Reuse the literal quote/escape conventions of follow_redirect_io locally for
+# this decision. Join adjacent fragments, preserve literal punctuation, and end
+# words only at real operators. Expansion provenance stays attached to its word;
+# this neither expands paths nor opens files nor changes other text policies.
+agent_store_verdict() {
+  # Builtin printf streams complete NUL-framed DATA on stdin. The fixed Python
+  # program is separate on FD3; no source aggregate enters external argv/env.
+  printf '%s\0' "${agent_source_frames[@]}" | python3 /dev/fd/3 3<<'PY'
+import re
+import sys
+
+def classify(text):
+    words = []
+    value = []
+    dynamic = []
+    quote = ''
+    scopes = []
+    cursor = 0
+    incomplete = False
+    started = False
+
+    def finish():
+        nonlocal started
+        if value:
+            words.append((''.join(value), dynamic.copy()))
+        value.clear()
+        dynamic.clear()
+        started = False
+
+    while cursor < len(text):
+        char = text[cursor]
+        if char == '#' and not quote and not started:
+            # Comment text cannot alter quote/scope state. Only physical LF
+            # ends it, even when its last byte before that LF is a backslash.
+            newline = text.find('\n', cursor)
+            if newline < 0:
+                break
+            cursor = newline
+            continue
+        elif char == '\\' and quote != "'":
+            cursor += 1
+            if cursor == len(text):
+                incomplete = True
+                break
+            char = text[cursor]
+            if char != '\n':
+                started = True
+                if quote == '"' and char not in '$`"\\':
+                    value.append('\\'); dynamic.append(False)
+                value.append(char); dynamic.append(False)
+        elif char in ('"', "'") and quote in ('', char):
+            # Empty quote fragments still start a word before a literal hash.
+            started = True
+            quote = char if not quote else ''
+        elif quote != "'" and (text.startswith('$(', cursor) or char == '`'):
+            # Inspect substitution contents too, while retaining uncertainty on
+            # any path prefix that receives their output. Never run a payload.
+            if char == '`' and scopes and scopes[-1][1] == '`':
+                finish()
+                quote, _, _ = scopes.pop()
+                started = True
+            else:
+                value.append('$'); dynamic.append(True)
+                finish()
+                scopes.append([quote, ')' if char == '$' else '`', 0])
+                quote = ''
+                if char == '$':
+                    cursor += 1
+        elif not quote and char in ' \t\n;|&<>()':
+            finish()
+            if scopes and scopes[-1][1] == ')':
+                if char == '(':
+                    scopes[-1][2] += 1
+                elif char == ')':
+                    if scopes[-1][2]:
+                        scopes[-1][2] -= 1
+                    else:
+                        quote, _, _ = scopes.pop()
+                        started = True
+        else:
+            started = True
+            value.append(char)
+            dynamic.append((char == '$' and quote != "'") or (not quote and char in '*?[{'))
+        cursor += 1
+    incomplete = incomplete or bool(quote or scopes)
+    finish()
+
+    directory = r'\.(claude|codex|cursor|copilot|gemini|antigravity)/'
+    stem = r'(\.?credentials|auth|tokens?|oauth([_-](creds|tokens?))?|auth[_-]tokens?|access[_-]tokens?|refresh[_-]tokens?)'
+    # Complete words preserve quoted format suffixes and repeated separators.
+    store = re.compile(r'(' + directory + r'([a-z0-9_.-]*/)*' + stem + r'(\.[a-z0-9_.-]*)?(/.*)?|\.netrc|\.npmrc|\.pypirc|\.docker/config\.json)$', re.I | re.S)
+    uncertain = False
+    protected = False
+    for word, expansion in words:
+        protected = protected or store.search(word) is not None
+        uncertain = uncertain or any(any(expansion[match.end():]) for match in re.finditer(directory, word))
+        # Other guards own unrelated heredoc/prose syntax. Fail closed here
+        # only when incomplete syntax prevents placing an affected operand.
+        if incomplete and re.search(directory + r'|\.netrc|\.npmrc|\.pypirc|\.docker/config\.json', word, re.I):
+            uncertain = True
+    return 'store' if protected else 'uncertain' if uncertain else 'clear'
+
+try:
+    data = sys.stdin.buffer.read()
+    if not data or not data.endswith(b'\0'):
+        raise ValueError('incomplete source frames')
+    # Match the prior environment byte-decoding behavior, including arbitrary
+    # non-UTF8 source bytes, without dropping or executing any source data.
+    verdicts = [classify(frame.decode('utf-8', 'surrogateescape')) for frame in data[:-1].split(b'\0')]
+    print('store' if 'store' in verdicts else 'uncertain' if 'uncertain' in verdicts else 'clear')
+except (ValueError, OSError, re.error):
+    sys.exit(1)
+PY
+}
 # 15d. Dotenv files. `.env.example`, `.sample`, `.template`, `.dist` and
 # `.schema` are checked-in documentation of which keys exist, never the values,
 # so they are excluded — that collision is the one this rule most had to avoid.
@@ -3443,21 +3562,35 @@ EOF
 
 readonly SAFE_DOTENV_SEED='^[[:space:]]*(cp|mv)[[:space:]]+\.env\.(example|sample|template|dist|schema|defaults)[[:space:]]+\.env(\.[[:alnum:]_-]+)?[[:space:]]*$'
 
-if matches "$SECRET_READ_VERB"; then
+# Consume the full bounded text at this gate: grep -q can close its pipe after
+# the first followed body and make builtin printf fail before the next body.
+# Keep the same policy/pattern; the generic scanner and other guards are intact.
+secret_read_status=0
+printf '%s' "$normalized_command_str" | grep -Ei -- "$SECRET_READ_VERB" >/dev/null || secret_read_status=$?
+case "$secret_read_status" in
+  0 | 1) ;;
+  *) scan_failed "$secret_read_status" ;;
+esac
+if [ "$secret_read_status" -eq 0 ]; then
   if matches "$SSH_PRIVATE_KEY"; then
     block "reading, copying or transmitting an SSH PRIVATE key. Public keys (.pub), known_hosts and ssh config are unaffected; if you need the fingerprint use \`ssh-keygen -lf <key>.pub\`."
   fi
   if matches "$CLOUD_CREDENTIAL"; then
     block "reading, copying or transmitting a cloud provider credential file. Use the provider CLI's own identity command (\`aws sts get-caller-identity\`, \`gcloud auth list\`) instead of reading the file."
   fi
-  if matches "$AGENT_CREDENTIAL"; then
+  agent_verdict="$(agent_store_verdict)" || block "classifying a credential operand whose quoting or expansion could not be determined; refusing uncertainty."
+  case "$agent_verdict" in
+    store | uncertain | clear) ;;
+    *) block "classifying a credential operand whose word projection could not be determined; refusing uncertainty." ;;
+  esac
+  if [ "$agent_verdict" = store ]; then
     block "reading, copying or transmitting a coding-agent or package-registry credential store. These tokens impersonate the operator to every service the agent can reach."
   fi
   # A literal artifact name can be distinguished from a store component, but a
-  # variable/glob below an agent directory can still resolve to a store. Refuse
-  # that uncertainty without expanding it or opening any credential file.
-  if matches_cs "$AGENT_UNCERTAIN"; then
-    block "reading a path inside a coding-agent credential directory whose target is variable-expanded or globbed, so the guard cannot tell which file it is. Name the file explicitly if it is genuinely not a secret."
+  # variable, glob or brace expansion below an agent directory can still resolve
+  # to a store. Refuse without expanding it or opening any credential file.
+  if [ "$agent_verdict" = uncertain ]; then
+    block "reading a path inside a coding-agent credential directory whose target is variable-expanded, globbed or brace-expanded, so the guard cannot tell which file it is. Name the file explicitly if it is genuinely not a secret."
   fi
   # A public path elsewhere in the command never exempts a private path. The
   # narrow public-template -> private-destination seed is write-only and remains
