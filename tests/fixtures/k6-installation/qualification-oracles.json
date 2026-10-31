@@ -1,0 +1,12 @@
+{
+  "httpRequests": 1,
+  "iterations": 1,
+  "checksPass": 2,
+  "checksFail": 0,
+  "loopbackExit": 0,
+  "explicitVersion": "2.3.0",
+  "negativeExit": 23,
+  "serverRequests": 1,
+  "port": 18765,
+  "body": "ok\n"
+}

@@ -1,0 +1,14 @@
+{
+  "name": "K6 installation regression — unchanged baseline",
+  "input": { "supplied": false, "resolved": "latest" },
+  "platform": { "os": "ubuntu", "version": "26.04", "architecture": "x86_64" },
+  "required_absent_before": ["k6 binary", "k6 package", "k6 archive keyring", "k6 apt source"],
+  "shell": { "argv": ["bash", "-e", "{script}"], "pipefail": false },
+  "expected_exit": 100,
+  "required_missing_key": "C780D0BDB1A69C86",
+  "required_import_fingerprint": "C5AD17C747E3415A3642D57D77C6C491D6AC1D69",
+  "required_import_log_pattern": "public key[^\\n]*imported",
+  "required_failure_pattern": "NO_PUBKEY[ :]+C780D0BDB1A69C86",
+  "invalid_error_pattern": "keyserver receive failed|No keyserver available|Failed to fetch|Could not resolve|Connection failed|Network is unreachable|Connection timed out|TLS connection was non-properly terminated|Unable to locate package|Exec format error",
+  "scope": "Local Ubuntu supplemental only; no hosted ubuntu-latest, GREEN, explicit-version or released-workflow claim"
+}
