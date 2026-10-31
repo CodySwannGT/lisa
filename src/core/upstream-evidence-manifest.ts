@@ -297,7 +297,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-hooks/parity-safety-net-heredoc.py":
       "b37b843b738fd0c1c6f9639551cf64c409263064819bb820e3daa6af8c94d443",
     "all/copy-overwrite/scripts/lisa-hooks/parity-safety-net.sh":
-      "78870139596199a79704c8c3f032090a67811b6284c2d6ed22dc92f0295bc363",
+      "11db2242f0a408195de7bb4dff180b66d06a65c118133c7d1122c458a64f63b5",
     "all/copy-overwrite/scripts/lisa-hooks/sonar-secrets.sh":
       "e0b0073fe44f6e78b74f05cb232d30a3121acc3600bdbd5bc4299c1c710d56a2",
     "all/copy-overwrite/scripts/lisa-hooks/worktree-binding-guard.mjs":
@@ -1079,7 +1079,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/hooks/parity-safety-net.agy.sh":
       "ce9bd2b4566ad9147e4ace56434cffbbe87edb4ccbb57549ab3fd9f4c671ced4",
     "plugins/src/base/hooks/parity-safety-net.sh":
-      "b658d2c6afafe5e287b926475e6de9e0f9c90f92e594487253b669554c9dfc75",
+      "ddec578656c2b890a85c4ced6264534f429d29a98c40a10e87bc7aa7cbdbbf80",
     "plugins/src/base/hooks/secrets-preflight.sh":
       "cdc638627e5769770aefb061ea0ddfacc1888a8eab3a5fade6c43129a2d3ff6e",
     "plugins/src/base/hooks/setup-jira-cli.sh":
@@ -11997,7 +11997,12 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/hooks/parity-safety-net-agent-store-aliases.test.ts": true,
     "tests/unit/hooks/parity-safety-net-agent-store-boundaries.test.ts": true,
     "tests/unit/hooks/parity-safety-net-agent-store-comment-transport.test.ts": true,
+    "tests/unit/hooks/parity-safety-net-agent-store-git-program-pair.test.ts": true,
+    "tests/unit/hooks/parity-safety-net-agent-store-option-ownership.test.ts": true,
     "tests/unit/hooks/parity-safety-net-agent-store-paths.test.ts": true,
+    "tests/unit/hooks/parity-safety-net-agent-store-program-options.test.ts": true,
+    "tests/unit/hooks/parity-safety-net-agent-store-quoted-programs.test.ts": true,
+    "tests/unit/hooks/parity-safety-net-agent-store-review-suggestions.test.ts": true,
     "tests/unit/hooks/parity-safety-net-agent-store-shell-boundaries.test.ts": true,
     "tests/unit/hooks/parity-safety-net-agent-store-word-boundaries.test.ts": true,
     "tests/unit/hooks/parity-safety-net-and-branch-scope.test.ts": true,
@@ -12048,7 +12053,13 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/hooks/sonar-resolver-deadline.test.ts": true,
     "tests/unit/hooks/sonar-secrets.test.ts": true,
     "tests/unit/hooks/support/agent-store-comment-transport.json": true,
+    "tests/unit/hooks/support/agent-store-git-program-pair.json": true,
+    "tests/unit/hooks/support/agent-store-option-ownership.json": true,
     "tests/unit/hooks/support/agent-store-paths.json": true,
+    "tests/unit/hooks/support/agent-store-program-carrier-boundaries.json": true,
+    "tests/unit/hooks/support/agent-store-program-options.json": true,
+    "tests/unit/hooks/support/agent-store-quoted-programs.json": true,
+    "tests/unit/hooks/support/agent-store-review-suggestions.json": true,
     "tests/unit/hooks/support/agent-store-shell-boundaries.json": true,
     "tests/unit/hooks/support/agent-store-word-boundaries.json": true,
     "tests/unit/hooks/support/blind-automerge.ts": true,

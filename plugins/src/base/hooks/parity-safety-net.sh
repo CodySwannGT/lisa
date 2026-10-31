@@ -519,6 +519,20 @@ readonly FOLLOW_MAX_DEPTH=3
 readonly FOLLOW_MAX_FUNCTION_DEPTH=16
 readonly FOLLOW_MAX_FUNCTION_CALLS=128
 
+# One execution-prefix inventory for the follower and credential word view.
+# Keep path-prefixed spellings at the same supported surface as follow_scan.
+readonly FOLLOW_EXECUTION_PREFIXES='sudo env command exec nohup nice time builtin timeout'
+readonly FOLLOW_EXECUTION_PATH_PREFIXES='sudo env nohup nice time timeout'
+# Shared with the credential word view; keep the disclosure policy in one place.
+readonly SECRET_READ_COMMANDS='cat bat less more head tail strings xxd od base64 cp mv rsync scp sftp tar zip curl wget http nc'
+follow_is_execution_prefix() {
+  local token="$1" name="${1##*/}"
+  case "$token" in
+    */*) [[ " $FOLLOW_EXECUTION_PATH_PREFIXES " == *" $name "* ]] || return 1 ;;
+  esac
+  [[ " $FOLLOW_EXECUTION_PREFIXES " == *" $name "* ]]
+}
+
 # Effective working directory established by a literal `cd` in the command, and
 # the flag that says a `cd` happened whose target could NOT be read literally.
 # Empty + 0 means no `cd` has been seen and the session's own cwd governs.
@@ -716,13 +730,13 @@ follow_is_interpreter() {
 # than eating it as a value `-i` does not take.
 follow_may_invoke() {
   follow_is_interpreter "$1" && return 0
+  follow_is_execution_prefix "$1" && return 0
   # shellcheck disable=SC2088
   case "$1" in
     "" | -* | [A-Za-z_]*=*) return 0 ;;
     /* | ./* | ../* | '~/'* | */*) return 0 ;;
-    sudo | env | command | exec | nohup | nice | time | builtin | timeout \
-      | do | then | else | while | until | if | '!' | '{' \
-      | eval | find | xargs | cd | source | . | cat) return 0 ;;
+    do | then | else | while | until | if | '!' | '{' \
+      | eval | find | xargs | cd | source | . | cat | ssh) return 0 ;;
   esac
   return 1
 }
@@ -1343,6 +1357,297 @@ follow_source_target() {
   follow_target "$1" "$2" source
 }
 
+agent_word_projection() {
+  # Builtin printf streams complete NUL-framed DATA on stdin. The fixed Python
+  # program is separate on FD3; no source aggregate enters external argv/env.
+  { printf '%s\0' "$FOLLOW_EXECUTION_PREFIXES" "$FOLLOW_EXECUTION_PATH_PREFIXES" "$SECRET_READ_COMMANDS"; cat; } | python3 /dev/fd/3 "$1" 3<<'PY'
+import json
+import re
+import sys
+
+# These options own counts, patterns, file names or output flags, never shell
+# programs. Arity distinguishes a cluster/attached value from a separate one.
+# This proves only the option/value role: every complete operand still reaches
+# the ordinary store/expansion checks below, including a protected mixed source.
+# Unknown options retain the conservative generic program-value treatment.
+data_options = {
+    'head': ('qv', 'cn', {'quiet', 'silent', 'verbose'}, {'bytes', 'lines'}),
+    'grep': ('EFGHchilLnoqsvwx', 'ABCefm',
+             {'extended-regexp', 'fixed-strings', 'basic-regexp', 'line-number',
+              'with-filename', 'no-filename', 'ignore-case', 'files-with-matches',
+              'files-without-match', 'count', 'only-matching', 'quiet', 'silent',
+              'no-messages', 'invert-match', 'word-regexp', 'line-regexp'},
+             {'after-context', 'before-context', 'context', 'regexp', 'file', 'max-count'}),
+}
+
+def data_option(command_name, option):
+    declaration = data_options.get(command_name)
+    if declaration is None:
+        return False
+    flags, values, long_flags, long_values = declaration
+    if option.startswith('--'):
+        name, equals, _ = option[2:].partition('=')
+        return name in long_values or (not equals and name in long_flags)
+    if not option.startswith('-') or len(option) == 1:
+        return False
+    for flag in option[1:]:
+        if flag in values:
+            return True  # Remaining bytes are its attached literal value.
+        if flag not in flags:
+            return False
+    return True  # Argument-free flags do not own a following value.
+
+def classify(text, discover_programs=True):
+    words = []
+    commands = []
+    command = []
+    value = []
+    dynamic = []
+    quote = ''
+    scopes = []
+    cursor = 0
+    incomplete = False
+    started = False
+    word_start = 0
+
+    def finish():
+        nonlocal started
+        if started:
+            word = (''.join(value), dynamic.copy())
+            words.append(word)
+            command.append((*word, text[word_start:cursor]))
+        value.clear()
+        dynamic.clear()
+        started = False
+
+    def finish_command():
+        finish()
+        if command:
+            commands.append(command.copy())
+            command.clear()
+
+    while cursor < len(text):
+        if not started:
+            word_start = cursor
+        char = text[cursor]
+        if char == '#' and not quote and not started:
+            # Comment text cannot alter quote/scope state. Only physical LF
+            # ends it, even when its last byte before that LF is a backslash.
+            newline = text.find('\n', cursor)
+            if newline < 0:
+                break
+            cursor = newline
+            continue
+        elif char == '\\' and quote != "'":
+            cursor += 1
+            if cursor == len(text):
+                incomplete = True
+                break
+            char = text[cursor]
+            if char != '\n':
+                started = True
+                if quote == '"' and char not in '$`"\\':
+                    value.append('\\'); dynamic.append(False)
+                value.append(char); dynamic.append(False)
+        elif char in ('"', "'") and quote in ('', char):
+            # Empty quote fragments still start a word before a literal hash.
+            started = True
+            quote = char if not quote else ''
+        elif quote != "'" and (text.startswith('$(', cursor) or char == '`'):
+            # Inspect substitution contents too, while retaining uncertainty on
+            # any path prefix that receives their output. Never run a payload.
+            if char == '`' and scopes and scopes[-1][1] == '`':
+                finish_command()
+                quote, _, _, command = scopes.pop()
+                started = True
+            else:
+                value.append('$'); dynamic.append(True)
+                finish()
+                scopes.append([quote, ')' if char == '$' else '`', 0, command])
+                command = []
+                quote = ''
+                if char == '$':
+                    cursor += 1
+        elif not quote and char in ' \t\n;|&<>()':
+            finish()
+            if char in '<>':
+                command.append((char, None, char))
+            elif char not in ' \t':
+                finish_command()
+            if scopes and scopes[-1][1] == ')':
+                if char == '(':
+                    scopes[-1][2] += 1
+                elif char == ')':
+                    if scopes[-1][2]:
+                        scopes[-1][2] -= 1
+                    else:
+                        quote, _, _, command = scopes.pop()
+                        started = True
+        else:
+            started = True
+            value.append(char)
+            dynamic.append((char == '$' and quote != "'") or (not quote and char in '*?[{'))
+        cursor += 1
+    incomplete = incomplete or bool(quote or scopes)
+    finish_command()
+
+    # SSH joins argv after its destination into a remote shell program. Only
+    # this executable carrier owns another source frame: a quoted filename or
+    # display argument is still one literal operand, even with spaces/`;`.
+    # ProxyCommand is local shell source; RemoteCommand/positional argv are
+    # remote source. Only the former may reach the local executed-file owner.
+    programs = []
+    for args in commands if discover_programs else []:
+        index = 0
+        assignment_values = []
+        while index < len(args):
+            word, expansion, raw = args[index]
+            if expansion is None:
+                while index < len(args) and args[index][1] is None:
+                    index += 1
+                index += 1  # A redirection destination is not the command.
+            elif word.rsplit('/', 1)[-1] in prefix_names and ('/' not in word or word.rsplit('/', 1)[-1] in prefix_paths):
+                wrapper = word.rsplit('/', 1)[-1]
+                index += 1
+                while index < len(args) and args[index][0].startswith('-'):
+                    option = args[index][0]
+                    index += 1
+                    if option == '--':
+                        break
+                    if wrapper == 'command' and option in ('-v', '-V'):
+                        index = len(args)  # Lookup/display, not execution.
+                    elif option in {
+                        'env': ('-u', '--unset', '-C', '--chdir'),
+                        'exec': ('-a',),
+                        'sudo': ('-u', '-g', '-h', '-p', '-C', '-r', '-t', '-T', '-R', '-D'),
+                        'nice': ('-n', '--adjustment'),
+                        'time': ('-f', '--format', '-o', '--output'),
+                        'timeout': ('-s', '--signal', '-k', '--kill-after'),
+                    }.get(wrapper, ()):
+                        index += 1
+                if wrapper == 'timeout':
+                    index += 1  # Its mandatory duration precedes the command.
+            elif re.match(r'^[A-Za-z_][A-Za-z0-9_]*=', raw):
+                # Only a genuine shell prefix assignment owns this value.
+                # A quoted NAME=... command word remains opaque command data.
+                assignment_values.append(word.split('=', 1)[1])
+                index += 1
+            elif raw == word and word in ('if', 'then', 'elif', 'else', 'do', '!', '{'):
+                index += 1
+            else:
+                break
+        if index >= len(args):
+            continue
+        for source in assignment_values:
+            if re.search(affected_location, source, re.I) and classify(source, False)[2]:
+                programs.append({'kind': 'uncertain-value', 'source': source})
+        command_name = args[index][0].rsplit('/', 1)[-1]
+        if command_name != 'ssh':
+            # A configuration/argument value can be executable even when its
+            # carrier is not known here. Inspect ONLY affected disclosure-shaped
+            # values; do not recursively split arbitrary quoted whitespace.
+            # cat's file operands and printf/echo's display arguments are proven
+            # data. Their ordinary flat path/expansion checks still apply.
+            if command_name not in ('cat', 'printf', 'echo'):
+                options_ended = False
+                for argument in range(index + 1, len(args)):
+                    value, expansion, raw = args[argument]
+                    if expansion is None:
+                        continue
+                    if value == '--':
+                        options_ended = True
+                        continue
+                    if options_ended or (argument > index + 1 and args[argument - 1][1] is None):
+                        continue  # A redirection destination is literal data.
+                    setting = re.match(r'^-{0,2}[A-Za-z_][A-Za-z0-9_.-]*=(.*)\Z', value, re.S)
+                    # Opaque positional text is not a declared program value.
+                    # Keep its whole-word provenance unless an existing owner
+                    # (such as SSH/-c) establishes executable source authority.
+                    previous = args[argument - 1][0] if argument > index + 1 else ''
+                    attached = value.startswith('-') and setting and not data_option(command_name, value)
+                    separate = (previous.startswith('-') and previous != '--'
+                                and '=' not in previous and not data_option(command_name, previous))
+                    if not attached and not separate:
+                        continue
+                    source = setting[1] if setting else value
+                    # Reuse complete lexical words: c''a''t is cat, and a
+                    # disclosure verb at physical EOL needs no trailing space.
+                    # This does not grant a positional key=value file operand
+                    # program authority or follow unknown values as local files.
+                    if re.search(affected_location, source, re.I) and classify(source, False)[2]:
+                        programs.append({'kind': 'uncertain-value', 'source': source})
+            continue
+        index += 1
+        while index < len(args) and args[index][0].startswith('-'):
+            option = args[index][0]
+            index += 1
+            if option == '--':
+                break
+            # SSH short options with an argument accept attached or separate
+            # values. Consume that value before identifying the destination.
+            for offset, flag in enumerate(option[1:], 2):
+                if flag in 'BbcDEeFIiJLlmOopQRSWw':
+                    value = option[offset:]
+                    if offset == len(option):
+                        value = args[index][0] if index < len(args) else ''
+                        index += 1
+                    if flag == 'o':
+                        setting = re.match(r'\s*(ProxyCommand|RemoteCommand)\s*(?:=\s*|\s+)(.*)\Z', value, re.I | re.S)
+                        if setting and setting[2] and setting[2].lower() != 'none':
+                            programs.append({'kind': 'local' if setting[1].lower() == 'proxycommand' else 'remote', 'source': setting[2]})
+                    break
+        index += 1  # The SSH destination is data, not a shell program.
+        program = ' '.join(word for word, expansion, raw in args[index:] if expansion is not None)
+        if program:
+            programs.append({'kind': 'remote', 'source': program})
+
+    directory = r'\.(claude|codex|cursor|copilot|gemini|antigravity)/'
+    stem = r'(\.?credentials|auth|tokens?|oauth([_-](creds|tokens?))?|auth[_-]tokens?|access[_-]tokens?|refresh[_-]tokens?)'
+    # Complete words preserve quoted format suffixes and repeated separators.
+    store = re.compile(r'(' + directory + r'([a-z0-9_.-]*/)*' + stem + r'(\.[a-z0-9_.-]*)?(/.*)?|\.netrc|\.npmrc|\.pypirc|\.docker/config\.json)$', re.I | re.S)
+    uncertain = False
+    protected = False
+    for word, expansion in words:
+        protected = protected or store.search(word) is not None
+        uncertain = uncertain or any(any(expansion[match.end():]) for match in re.finditer(directory, word))
+        # Other guards own unrelated heredoc/prose syntax. Fail closed here
+        # only when incomplete syntax prevents placing an affected operand.
+        if incomplete and re.search(directory + r'|\.netrc|\.npmrc|\.pypirc|\.docker/config\.json', word, re.I):
+            uncertain = True
+    disclosure = any(word.rsplit('/', 1)[-1] in read_commands for word, expansion in words)
+    return ('store' if protected else 'uncertain' if uncertain else 'clear'), programs, disclosure
+
+try:
+    data = sys.stdin.buffer.read()
+    if not data or not data.endswith(b'\0'):
+        raise ValueError('incomplete source frames')
+    # Match the prior environment byte-decoding behavior, including arbitrary
+    # non-UTF8 source bytes, without dropping or executing any source data.
+    frames = [frame.decode('utf-8', 'surrogateescape') for frame in data[:-1].split(b'\0')]
+    prefix_names = set(frames.pop(0).split())
+    prefix_paths = set(frames.pop(0).split())
+    read_commands = frames.pop(0).split()
+    affected_location = r'\.(?:claude|codex|cursor|copilot|gemini|antigravity)/|\.netrc|\.npmrc|\.pypirc|\.docker/config\.json'
+    if sys.argv[1] == 'local-ssh':
+        # Complete local inline programs only; no remote file is resolved here.
+        print(json.dumps([program['source'] for frame in frames for program in classify(frame)[1] if program['kind'] == 'local']))
+        sys.exit(0)
+    if sys.argv[1] != 'classify':
+        raise ValueError('unknown projection mode')
+    frames = [(frame, False) for frame in frames]
+    verdicts = []
+    for frame, uncertain_value in frames:
+        verdict, programs, _ = classify(frame)
+        verdicts.append('program-uncertain' if uncertain_value and verdict != 'clear' else verdict)
+        # Each projection removes the SSH prefix; iterative frames avoid a
+        # Python recursion limit without evaluating any remote source.
+        frames.extend((program['source'], uncertain_value or program['kind'] == 'uncertain-value') for program in programs)
+    print('store' if 'store' in verdicts else 'uncertain' if 'uncertain' in verdicts else 'program-uncertain' if 'program-uncertain' in verdicts else 'clear')
+except (ValueError, OSError, IndexError, re.error):
+    sys.exit(1)
+PY
+}
+
 # Extract the literal -c operand without evaluating it or treating positional
 # arguments after its closing quote as commands. Prefix indexing matches the
 # whitespace tokens used by follow_scan; the operand keeps its internal bytes.
@@ -1391,6 +1696,28 @@ follow_inline() {
   follow_scan "$body" "$depth"
   follow_cwd="$saved_cwd"
   follow_cwd_unknown="$saved_unknown"
+}
+
+# ProxyCommand is a local shell program. Reuse the same quote-aware carrier
+# projection as the credential view, then the existing bounded local follower.
+# RemoteCommand/SSH argv remain remote DATA and never open a local script.
+follow_ssh() {
+  local stmt="$1" depth="$2" programs count index=0 body
+  local follow_inline_depth="${follow_inline_depth:-0}"
+  [ "$follow_inline_depth" -lt "$FOLLOW_MAX_FUNCTION_DEPTH" ] || follow_refuse "SSH ProxyCommand" "inline shells exceed the inspection depth"
+  follow_inline_depth=$((follow_inline_depth + 1))
+  programs="$(printf '%s\0' "$stmt" | agent_word_projection local-ssh)" || follow_refuse "SSH ProxyCommand" "its local command string could not be determined"
+  count="$(printf '%s' "$programs" | jq -er 'length')" || follow_refuse "SSH ProxyCommand" "its local program projection could not be determined"
+  while [ "$index" -lt "$count" ]; do
+    # A sentinel preserves trailing physical LF through command substitution.
+    body="$(printf '%s' "$programs" | jq -j --argjson index "$index" '.[$index]' && printf '\037')" || follow_refuse "SSH ProxyCommand" "its complete local program could not be decoded"
+    body="${body%$'\037'}"
+    agent_source_frames+=("$body")
+    local saved_cwd="$follow_cwd" saved_unknown="$follow_cwd_unknown"
+    follow_scan "$body" "$depth"
+    follow_cwd="$saved_cwd"; follow_cwd_unknown="$saved_unknown"
+    index=$((index + 1))
+  done
 }
 
 # Resolve literal descriptor duplication without running the proposed shell.
@@ -1944,6 +2271,15 @@ follow_scan() {
       if [ "$function_found" -eq 1 ]; then
         cmd_pos=0; i=$((i + 1)); continue
       fi
+      if follow_is_execution_prefix "$t"; then
+        case "$t" in
+          timeout | */timeout) pending_operand=1; function_lookup_allowed=0 ;;
+          time | */time) ;;
+          *) function_lookup_allowed=0 ;;
+        esac
+        i=$((i + 1))
+        continue
+      fi
       case "$t" in
         return)
           if [ "$statement_conditional" -ne 0 ]; then function_flow_unknown=1; fi
@@ -2026,22 +2362,8 @@ follow_scan() {
           fi
           continue
           ;;
-        timeout | */timeout)
-          # `timeout` takes a mandatory DURATION before the program. A bare
-          # number is not an option, so the short-option arm above cannot see
-          # it. Mark the operand pending and let the fall-through consume it,
-          # which keeps working when options sit in between — `timeout -s KILL
-          # 5 bash <file>` reaches `bash` just as `timeout 5 bash <file>` does.
-          pending_operand=1
-          function_lookup_allowed=0
-          i=$((i + 1))
-          continue
-          ;;
-        sudo | env | command | exec | nohup | nice | time | builtin \
-          | do | then | else | elif | '!' | '{' \
-          | */sudo | */env | */nohup | */nice | */time)
+        do | then | else | elif | '!' | '{')
           case "$t" in
-            sudo | env | command | exec | nohup | nice | builtin | */sudo | */env | */nohup | */nice) function_lookup_allowed=0 ;;
             # `elif` starts a condition list at a command position, so an
             # opener after it is a real compound (`elif if x; then …; fi`).
             do | then | else | elif) function_flow_unknown=1 ;;
@@ -2054,6 +2376,12 @@ follow_scan() {
           # interpolated into them is executed text.
           eval_mode=1
           i=$((i + 1))
+          continue
+          ;;
+        ssh | */ssh)
+          follow_ssh "$stmt" "$depth"
+          cmd_pos=0
+          i="$n"
           continue
           ;;
         find | */find)
@@ -3388,7 +3716,7 @@ done <<<"$git_segments"
 # The verbs that disclose: read it, duplicate it, or send it. Writing is NOT
 # here — `echo FOO=1 > .env` during setup creates a secret rather than leaking
 # one, and refusing it would block the very workflow that produces the file.
-readonly SECRET_READ_VERB='(^|[^[:alnum:]_./-])([[:alnum:]_./-]*/)?(cat|bat|less|more|head|tail|strings|xxd|od|base64|cp|mv|rsync|scp|sftp|tar|zip|curl|wget|http|nc)([[:space:]]|$)'
+readonly SECRET_READ_VERB='(^|[^[:alnum:]_./-])([[:alnum:]_./-]*/)?('"${SECRET_READ_COMMANDS// /|}"')([[:space:]]|$)'
 
 # 15a. SSH PRIVATE keys. `id_rsa.pub` and friends are public by construction and
 # stay readable; so do `known_hosts`, `config` and `authorized_keys`, which
@@ -3409,114 +3737,7 @@ readonly CLOUD_CREDENTIAL='(\.aws/(credentials|config)|\.config/gcloud/[[:alnum:
 # words only at real operators. Expansion provenance stays attached to its word;
 # this neither expands paths nor opens files nor changes other text policies.
 agent_store_verdict() {
-  # Builtin printf streams complete NUL-framed DATA on stdin. The fixed Python
-  # program is separate on FD3; no source aggregate enters external argv/env.
-  printf '%s\0' "${agent_source_frames[@]}" | python3 /dev/fd/3 3<<'PY'
-import re
-import sys
-
-def classify(text):
-    words = []
-    value = []
-    dynamic = []
-    quote = ''
-    scopes = []
-    cursor = 0
-    incomplete = False
-    started = False
-
-    def finish():
-        nonlocal started
-        if value:
-            words.append((''.join(value), dynamic.copy()))
-        value.clear()
-        dynamic.clear()
-        started = False
-
-    while cursor < len(text):
-        char = text[cursor]
-        if char == '#' and not quote and not started:
-            # Comment text cannot alter quote/scope state. Only physical LF
-            # ends it, even when its last byte before that LF is a backslash.
-            newline = text.find('\n', cursor)
-            if newline < 0:
-                break
-            cursor = newline
-            continue
-        elif char == '\\' and quote != "'":
-            cursor += 1
-            if cursor == len(text):
-                incomplete = True
-                break
-            char = text[cursor]
-            if char != '\n':
-                started = True
-                if quote == '"' and char not in '$`"\\':
-                    value.append('\\'); dynamic.append(False)
-                value.append(char); dynamic.append(False)
-        elif char in ('"', "'") and quote in ('', char):
-            # Empty quote fragments still start a word before a literal hash.
-            started = True
-            quote = char if not quote else ''
-        elif quote != "'" and (text.startswith('$(', cursor) or char == '`'):
-            # Inspect substitution contents too, while retaining uncertainty on
-            # any path prefix that receives their output. Never run a payload.
-            if char == '`' and scopes and scopes[-1][1] == '`':
-                finish()
-                quote, _, _ = scopes.pop()
-                started = True
-            else:
-                value.append('$'); dynamic.append(True)
-                finish()
-                scopes.append([quote, ')' if char == '$' else '`', 0])
-                quote = ''
-                if char == '$':
-                    cursor += 1
-        elif not quote and char in ' \t\n;|&<>()':
-            finish()
-            if scopes and scopes[-1][1] == ')':
-                if char == '(':
-                    scopes[-1][2] += 1
-                elif char == ')':
-                    if scopes[-1][2]:
-                        scopes[-1][2] -= 1
-                    else:
-                        quote, _, _ = scopes.pop()
-                        started = True
-        else:
-            started = True
-            value.append(char)
-            dynamic.append((char == '$' and quote != "'") or (not quote and char in '*?[{'))
-        cursor += 1
-    incomplete = incomplete or bool(quote or scopes)
-    finish()
-
-    directory = r'\.(claude|codex|cursor|copilot|gemini|antigravity)/'
-    stem = r'(\.?credentials|auth|tokens?|oauth([_-](creds|tokens?))?|auth[_-]tokens?|access[_-]tokens?|refresh[_-]tokens?)'
-    # Complete words preserve quoted format suffixes and repeated separators.
-    store = re.compile(r'(' + directory + r'([a-z0-9_.-]*/)*' + stem + r'(\.[a-z0-9_.-]*)?(/.*)?|\.netrc|\.npmrc|\.pypirc|\.docker/config\.json)$', re.I | re.S)
-    uncertain = False
-    protected = False
-    for word, expansion in words:
-        protected = protected or store.search(word) is not None
-        uncertain = uncertain or any(any(expansion[match.end():]) for match in re.finditer(directory, word))
-        # Other guards own unrelated heredoc/prose syntax. Fail closed here
-        # only when incomplete syntax prevents placing an affected operand.
-        if incomplete and re.search(directory + r'|\.netrc|\.npmrc|\.pypirc|\.docker/config\.json', word, re.I):
-            uncertain = True
-    return 'store' if protected else 'uncertain' if uncertain else 'clear'
-
-try:
-    data = sys.stdin.buffer.read()
-    if not data or not data.endswith(b'\0'):
-        raise ValueError('incomplete source frames')
-    # Match the prior environment byte-decoding behavior, including arbitrary
-    # non-UTF8 source bytes, without dropping or executing any source data.
-    verdicts = [classify(frame.decode('utf-8', 'surrogateescape')) for frame in data[:-1].split(b'\0')]
-    print('store' if 'store' in verdicts else 'uncertain' if 'uncertain' in verdicts else 'clear')
-except (ValueError, OSError, re.error):
-    sys.exit(1)
-PY
+  printf '%s\0' "${agent_source_frames[@]}" | agent_word_projection classify
 }
 # 15d. Dotenv files. `.env.example`, `.sample`, `.template`, `.dist` and
 # `.schema` are checked-in documentation of which keys exist, never the values,
@@ -3577,11 +3798,14 @@ if [ "$secret_read_status" -eq 0 ]; then
   fi
   agent_verdict="$(agent_store_verdict)" || block "classifying a credential operand whose quoting or expansion could not be determined; refusing uncertainty."
   case "$agent_verdict" in
-    store | uncertain | clear) ;;
+    store | uncertain | program-uncertain | clear) ;;
     *) block "classifying a credential operand whose word projection could not be determined; refusing uncertainty." ;;
   esac
   if [ "$agent_verdict" = store ]; then
     block "reading, copying or transmitting a coding-agent or package-registry credential store. These tokens impersonate the operator to every service the agent can reach."
+  fi
+  if [ "$agent_verdict" = program-uncertain ]; then
+    block "classifying an argument or configuration value that could execute a credential-store read; its role could not be proven to be literal file or display data. Refusing program uncertainty."
   fi
   # A literal artifact name can be distinguished from a store component, but a
   # variable, glob or brace expansion below an agent directory can still resolve

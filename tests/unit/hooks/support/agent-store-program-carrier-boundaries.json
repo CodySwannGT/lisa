@@ -1,0 +1,10 @@
+{
+  "cases": [
+    {"id":"empty-command-word-is-not-ssh-carrier","family":"carrier-literal-data","expected":0,"command":"'' ssh host 'cat ~/.codex/auth.json | base64'"},
+    {"id":"quoted-assignment-is-not-prefix","family":"carrier-literal-data","expected":0,"command":"'VAR=1' ssh host 'cat ~/.codex/auth.json | base64'"},
+    {"id":"quoted-keyword-is-not-prefix","family":"carrier-literal-data","expected":0,"command":"'then' ssh host 'cat ~/.codex/auth.json | base64'"},
+    {"id":"command-lookup-is-not-execution","family":"carrier-literal-data","expected":0,"command":"command -v ssh host 'cat ~/.codex/auth.json | base64'"},
+    {"id":"env-option-wrapped-ssh-protected","family":"remote-protected","expected":2,"command":"env -i ssh host 'cat ~/.codex/auth.json | base64'"},
+    {"id":"quoted-assignment-value-wrapped-ssh-protected","family":"remote-protected","expected":2,"command":"VAR=\"notes\" ssh host 'cat ~/.codex/auth.json | base64'"}
+  ]
+}
