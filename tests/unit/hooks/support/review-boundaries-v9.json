@@ -1,0 +1,100 @@
+{
+  "sentinel": "example\n",
+  "fixture_files": {
+    ".codex/artifacts/stdin-carrier-v8/nested/auth.json": "example\n",
+    ".codex/artifacts/stdin-carrier-v8/lint-authored.stdout": "example\n",
+    "ordinary-script.sh": "#!/usr/bin/env bash\nprintf '%s\\n' 'example'\n"
+  },
+  "wire_templates": {
+    "missing-body": "{}\n",
+    "known-body": {
+      "body": "cat {root}/.codex/artifacts/stdin-carrier-v8/nested/auth.json | base64\n"
+    },
+    "explicit-null": "{\"body\":null}\n"
+  },
+  "l1_input_note": "Original v8 protected printf template with the Bash consumer explicitly required by v9 GO; identical input for missing-body and valid-known-body controls.",
+  "cases": [
+    {
+      "id": "C8-1-1",
+      "finding": "C8-1",
+      "command": "printf '%s%s\\n' ca 't {root}/.codex/artifacts/stdin-carrier-v8/nested/auth.json' | bash",
+      "expected": 2,
+      "expected_category": "credential-store",
+      "fault": "none",
+      "observed": null
+    },
+    {
+      "id": "C8-1-2",
+      "finding": "C8-1",
+      "command": "printf '%s%s\\n' ca 't {root}/.codex/artifacts/stdin-carrier-v8/lint-authored.stdout' | bash",
+      "expected": 0,
+      "expected_category": "allow",
+      "fault": "none",
+      "observed": null
+    },
+    {
+      "id": "C8-1-3",
+      "finding": "C8-1",
+      "command": "printf '%s%s\\n' ca 't {root}/.codex/artifacts/stdin-carrier-v8/nested/auth.json'",
+      "expected": 0,
+      "expected_category": "allow",
+      "fault": "none",
+      "observed": null
+    },
+    {
+      "id": "C8-2-1",
+      "finding": "C8-2",
+      "command": "{ printf '%s\\n' 'cat {root}/.codex/artifacts/stdin-carrier-v8/nested/auth.json | base64' | bash; } < {root}/ordinary-script.sh",
+      "expected": 2,
+      "expected_category": "credential-store",
+      "fault": "none",
+      "observed": null
+    },
+    {
+      "id": "C8-2-2",
+      "finding": "C8-2",
+      "command": "{ printf '%s\\n' 'cat {root}/.codex/artifacts/stdin-carrier-v8/lint-authored.stdout | base64' | bash; } < {root}/ordinary-script.sh",
+      "expected": 0,
+      "expected_category": "allow",
+      "fault": "none",
+      "observed": null
+    },
+    {
+      "id": "C8-2-3",
+      "finding": "C8-2",
+      "command": "{ printf '%s\\n' 'cat {root}/.codex/artifacts/stdin-carrier-v8/nested/auth.json | base64' | bash < {root}/ordinary-script.sh; } < {root}/ordinary-script.sh",
+      "expected": 0,
+      "expected_category": "allow",
+      "fault": "none",
+      "observed": null
+    },
+    {
+      "id": "L1-missing-body",
+      "finding": "L1",
+      "command": "printf '%s\\n' 'cat {root}/.codex/artifacts/stdin-carrier-v8/nested/auth.json | base64' | bash",
+      "expected": 2,
+      "expected_category": "invalid-source-projection",
+      "fault": "missing-body",
+      "observed": null
+    },
+    {
+      "id": "L1-valid-known-body",
+      "finding": "L1",
+      "command": "printf '%s\\n' 'cat {root}/.codex/artifacts/stdin-carrier-v8/nested/auth.json | base64' | bash",
+      "expected": 2,
+      "expected_category": "credential-store",
+      "fault": "known-body",
+      "observed": null
+    },
+    {
+      "id": "L1-explicit-null-unsupported",
+      "finding": "L1",
+      "command": "printf '%b' 'printf harmless' | bash",
+      "expected": 0,
+      "expected_category": "allow",
+      "fault": "explicit-null",
+      "observed": null
+    }
+  ],
+  "helper_shim_template": "#!__REAL_PYTHON__\n\"\"\"Owned fault seam: intercept ONLY the exact literal-stdin helper; delegate all else.\"\"\"\nimport datetime\nimport hashlib\nimport json\nimport os\nimport sys\n\nREAL_PYTHON = __REAL_PYTHON_JSON__\nHELPERS = __HELPERS_JSON__\nargs = sys.argv[1:]\nintercept = len(args) == 3 and args[0] in HELPERS and args[1] == \"--literal-stdin\"\nentry = {\"at\": datetime.datetime.now(datetime.timezone.utc).isoformat(), \"argv\": sys.argv,\n         \"delegate\": REAL_PYTHON, \"action\": \"intercept\" if intercept else \"delegate\",\n         \"python_executable\": sys.executable}\nwire = None\nif intercept:\n    incoming = sys.stdin.buffer.read()\n    with open(os.environ[\"LISA_REVIEW_BOUNDARY_V9_WIRE\"], \"rb\") as source:\n        wire = source.read()\n    entry.update({\"input_sha256\": hashlib.sha256(incoming).hexdigest(), \"input_bytes\": len(incoming),\n                  \"wire\": wire.decode(\"utf8\"), \"wire_sha256\": hashlib.sha256(wire).hexdigest(),\n                  \"wire_path\": os.environ[\"LISA_REVIEW_BOUNDARY_V9_WIRE\"]})\nfd = os.open(os.environ[\"LISA_REVIEW_BOUNDARY_V9_HELPER_LOG\"], os.O_WRONLY | os.O_CREAT | os.O_APPEND, 0o600)\nwith os.fdopen(fd, \"a\") as stream:\n    stream.write(json.dumps(entry) + \"\\n\")\nif intercept:\n    sys.stdout.buffer.write(wire)\n    sys.stdout.buffer.flush()\n    sys.exit(0)\nos.execv(REAL_PYTHON, [REAL_PYTHON] + args)\n"
+}

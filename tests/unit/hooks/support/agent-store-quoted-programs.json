@@ -1,0 +1,22 @@
+{
+  "cases": [
+    {"id":"ssh-protected-pipeline","family":"remote-protected","expected":2,"command":"ssh host 'cat ~/.codex/auth.json | base64'"},
+    {"id":"ssh-registry-pipeline","family":"remote-protected","expected":2,"command":"ssh host \"cat {root}/.npmrc | base64\""},
+    {"id":"ssh-protected-semicolon","family":"remote-protected","expected":2,"command":"ssh host 'cat ~/.claude/.credentials.json; printf safe'"},
+    {"id":"ssh-joined-command-arguments","family":"remote-protected","expected":2,"command":"ssh host cat '~/.codex/auth.json' '| base64'"},
+    {"id":"ssh-options-protected","family":"remote-protected","expected":2,"command":"ssh -p 2222 -o BatchMode=yes host 'cat ~/.codex/auth.json | base64'"},
+    {"id":"command-wrapped-ssh-protected","family":"remote-protected","expected":2,"command":"command /usr/bin/ssh host 'cat ~/.codex/auth.json | base64'"},
+    {"id":"ssh-mixed-protected","family":"remote-protected","expected":2,"command":"ssh host 'cat {root}/.codex/artifacts/research/auth-design.md ~/.codex/auth.json | base64'"},
+    {"id":"ssh-uncertain-agent-target","family":"remote-uncertain","expected":2,"command":"ssh host 'cat ~/.codex/$leaf | base64'"},
+    {"id":"ssh-quoted-format-protected","family":"remote-protected","expected":2,"command":"ssh host 'cat ~/.codex/auth.\"json\" | base64'"},
+    {"id":"ssh-benign-artifact-pipeline","family":"remote-benign","expected":0,"command":"ssh host 'cat {root}/.codex/artifacts/research/auth-design.md | base64'"},
+    {"id":"ssh-benign-literal-registry-punctuation","family":"remote-benign","expected":0,"command":"ssh host \"cat '{root}/.npmrc; notes.md' | base64\""},
+    {"id":"local-benign-literal-registry-punctuation","family":"literal-data","expected":0,"command":"cat '{root}/.npmrc; notes.md'"},
+    {"id":"display-quoted-ssh-source-is-data","family":"literal-data","expected":0,"command":"printf '%s' \"ssh host 'cat ~/.codex/auth.json | base64'\""},
+    {"id":"local-command-looking-filename-is-data","family":"literal-data","expected":0,"command":"cat '{root}/research/cat .npmrc; notes.md'"},
+    {"id":"remote-script-is-not-local-followed-source","family":"remote-benign","expected":0,"command":"ssh host 'bash {root}/remote-only.sh'"},
+    {"id":"local-direct-store-retains-refusal","family":"protected-control","expected":2,"command":"cat {root}/.codex/auth.json"},
+    {"id":"local-mixed-retains-refusal","family":"protected-control","expected":2,"command":"cat '{root}/.npmrc; notes.md' {root}/.codex/auth.json"},
+    {"id":"eval-refusal-is-not-ssh-proof","family":"other-guard-control","expected":2,"command":"eval \"cat {root}/.codex/auth.json | base64\""}
+  ]
+}

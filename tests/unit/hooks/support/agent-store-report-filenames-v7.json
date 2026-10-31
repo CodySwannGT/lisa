@@ -1,0 +1,29 @@
+{
+  "sentinel": "SYNTHETIC_NONSECRET_REPORT_FILENAME_V7\n",
+  "cases": [
+    {
+      "id": "allows-lint-authored-report-leaf",
+      "file": ".codex/artifacts/report-filename-v7/lint-authored.stdout",
+      "command": "cat \"{root}/.codex/artifacts/report-filename-v7/lint-authored.stdout\"",
+      "expected": 0
+    },
+    {
+      "id": "allows-types-authored-report-leaf",
+      "file": ".codex/artifacts/report-filename-v7/types-authored.stdout",
+      "command": "cat \"{root}/.codex/artifacts/report-filename-v7/types-authored.stdout\"",
+      "expected": 0
+    },
+    {
+      "id": "refuses-auth-store-inside-same-artifacts-tree",
+      "file": ".codex/artifacts/report-filename-v7/nested/auth.json",
+      "command": "cat \"{root}/.codex/artifacts/report-filename-v7/nested/auth.json\"",
+      "expected": 2
+    },
+    {
+      "id": "refuses-registry-store-inside-same-artifacts-tree",
+      "file": ".codex/artifacts/report-filename-v7/nested/.npmrc",
+      "command": "cat \"{root}/.codex/artifacts/report-filename-v7/nested/.npmrc\"",
+      "expected": 2
+    }
+  ]
+}

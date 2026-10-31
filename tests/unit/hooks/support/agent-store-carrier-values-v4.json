@@ -1,0 +1,112 @@
+{
+  "cases": [
+    {
+      "id": "v4-bare-assignment-protected",
+      "family": "assignment-only",
+      "expected": 2,
+      "command": "GIT_SSH_COMMAND='cat {root}/.codex/auth.json | base64'; export GIT_SSH_COMMAND; git fetch ssh://example.invalid/repo"
+    },
+    {
+      "id": "v4-bare-assignment-neutral",
+      "family": "assignment-only",
+      "expected": 0,
+      "command": "GIT_SSH_COMMAND='cat {root}/.codex/artifacts/research/notes.md | base64'; export GIT_SSH_COMMAND; git fetch ssh://example.invalid/repo"
+    },
+    {
+      "id": "v4-export-assignment-protected",
+      "family": "declaration",
+      "expected": 2,
+      "command": "export GIT_SSH_COMMAND='cat {root}/.codex/auth.json | base64'; git fetch ssh://example.invalid/repo"
+    },
+    {
+      "id": "v4-export-assignment-neutral",
+      "family": "declaration",
+      "expected": 0,
+      "command": "export GIT_SSH_COMMAND='cat {root}/.codex/artifacts/research/notes.md | base64'; git fetch ssh://example.invalid/repo"
+    },
+    {
+      "id": "v4-typed-declare-protected",
+      "family": "typed-declaration",
+      "expected": 2,
+      "command": "declare -x -- GIT_SSH_COMMAND='cat {root}/.codex/auth.json | base64'; git fetch ssh://example.invalid/repo"
+    },
+    {
+      "id": "v4-typed-declare-neutral",
+      "family": "typed-declaration",
+      "expected": 0,
+      "command": "declare -x -- GIT_SSH_COMMAND='cat {root}/.codex/artifacts/research/notes.md | base64'; git fetch ssh://example.invalid/repo"
+    },
+    {
+      "id": "v4-localcommand-protected",
+      "family": "local-shell-setting",
+      "expected": 2,
+      "command": "ssh -o PermitLocalCommand=yes -o \"LocalCommand=cat {root}/.codex/auth.json | base64\" example.invalid"
+    },
+    {
+      "id": "v4-localcommand-neutral",
+      "family": "local-shell-setting",
+      "expected": 0,
+      "command": "ssh -o PermitLocalCommand=yes -o \"LocalCommand=cat {root}/.codex/artifacts/research/notes.md | base64\" example.invalid"
+    },
+    {
+      "id": "v4-knownhosts-explicit-shell-protected",
+      "family": "local-argv-setting",
+      "expected": 2,
+      "command": "ssh -o \"KnownHostsCommand=/bin/sh -c 'cat {root}/.codex/auth.json | base64'\" example.invalid"
+    },
+    {
+      "id": "v4-knownhosts-explicit-shell-neutral",
+      "family": "local-argv-setting",
+      "expected": 0,
+      "command": "ssh -o \"KnownHostsCommand=/bin/sh -c 'cat {root}/.codex/artifacts/research/notes.md | base64'\" example.invalid"
+    },
+    {
+      "id": "v4-python-nested-shell-protected",
+      "family": "marked-interpreter-value",
+      "expected": 2,
+      "command": "python3 -c \"import os; os.system('cat {root}/.codex/auth.json | base64')\""
+    },
+    {
+      "id": "v4-python-nested-shell-neutral",
+      "family": "marked-interpreter-value",
+      "expected": 0,
+      "command": "python3 -c \"import os; os.system('cat {root}/.codex/artifacts/research/notes.md | base64')\""
+    },
+    {
+      "id": "v4-node-nested-shell-protected",
+      "family": "marked-interpreter-value",
+      "expected": 2,
+      "command": "node -e \"require('child_process').execSync('cat {root}/.codex/auth.json | base64')\""
+    },
+    {
+      "id": "v4-node-nested-shell-neutral",
+      "family": "marked-interpreter-value",
+      "expected": 0,
+      "command": "node -e \"require('child_process').execSync('cat {root}/.codex/artifacts/research/notes.md | base64')\""
+    },
+    {
+      "id": "v4-assignment-looking-display-is-data",
+      "family": "proven-display-opposition",
+      "expected": 0,
+      "command": "printf '%s\\n' \"GIT_SSH_COMMAND=cat {root}/.codex/auth.json | base64\""
+    },
+    {
+      "id": "v4-literal-credential-shaped-artifact",
+      "family": "proven-file-opposition",
+      "expected": 0,
+      "command": "cat '{root}/.codex/artifacts/research/auth.\"json\"; notes.md'"
+    },
+    {
+      "id": "v4-knownhosts-argv-display-is-data",
+      "family": "local-argv-opposition",
+      "expected": 0,
+      "command": "ssh -o 'KnownHostsCommand=/usr/bin/printf \"%%s\" \"cat .npmrc; notes.md\"' example.invalid"
+    },
+    {
+      "id": "v4-declaration-uncertain-target-retains-refusal",
+      "family": "uncertain-value-opposition",
+      "expected": 2,
+      "command": "export GIT_SSH_COMMAND=\"cat {root}/.codex/$UNRESOLVED_AGENT_STORE | base64\"; git fetch ssh://example.invalid/repo"
+    }
+  ]
+}

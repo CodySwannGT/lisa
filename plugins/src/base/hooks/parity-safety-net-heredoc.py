@@ -62,6 +62,7 @@ proof — do not do it as a side effect of body-semantics work.
 
 from __future__ import annotations
 
+import json
 import re
 import shlex
 import sys
@@ -266,6 +267,113 @@ def literal_display_projection(command: str) -> str:
     return command
 
 
+def literal_words(command: str) -> list[str] | None:
+    """Reuse the simple-command grammar only when quote removal is the whole value.
+
+    The display grammar may retain expansion text because it does not execute
+    that text. Produced program bytes need a stronger proof: no expansion,
+    globbing, ANSI-C decoding or shlex/Bash double-quote escape disagreement.
+    Unsupported output stays unknown under the existing output-follow policy.
+    """
+    command = collapse_line_continuations(command)
+    if "$'" in command:
+        return None
+    quote = ""
+    escaped = False
+    for char in command:
+        if escaped:
+            if quote == '"' and char in "$`":
+                return None
+            escaped = False
+        elif char == "\\" and quote != "'":
+            escaped = True
+        elif char in ("'", '"') and quote in ("", char):
+            quote = char if not quote else ""
+        elif quote != "'" and (char in "$`" or (not quote and char in "*?[{~")):
+            return None
+    return shell_tokens(command)
+
+
+def literal_output(command: str, limit: int) -> str | None:
+    """Statically decode the proved literal subset of echo/printf; never run it."""
+    words = literal_words(command)
+    if not words:
+        return None
+    args = words[1:]
+    if words[0] == "echo":
+        newline = "\n"
+        while args and args[0] == "-n":
+            if "n" in args[0]:
+                newline = ""
+            args = args[1:]
+        # Backslash interpretation and -e are not portable/provably literal.
+        if (args and args[0].startswith("-")) or any("\\" in arg for arg in args):
+            return None
+        return " ".join(args) + newline
+    if words[0] != "printf":
+        return None
+    if args[:1] == ["--"]:
+        args = args[1:]
+    if not args or args[0].startswith("-"):
+        return None
+    form, values = args[0], args[1:]
+    pieces: list[str | None] = []
+    index = 0
+    escapes = {"a": "\a", "b": "\b", "e": "\x1b", "f": "\f", "n": "\n", "r": "\r", "t": "\t", "v": "\v", "\\": "\\"}
+    while index < len(form):
+        char = form[index]
+        if char in "%\\":
+            index += 1
+            if index == len(form):
+                return None
+            code = form[index]
+            if char == "%" and code in "%s":
+                pieces.append("%" if code == "%" else None)
+            elif char == "\\" and code in escapes:
+                pieces.append(escapes[code])
+            else:
+                return None
+        else:
+            pieces.append(char)
+        index += 1
+    # printf reuses its format for surplus arguments, supplying empty strings
+    # for missing %s operands. A conversion-free format is emitted only once.
+    conversions = pieces.count(None)
+    rounds = max(1, (len(values) + conversions - 1) // conversions) if conversions else 1
+    operands = iter(values)
+    output: list[str] = []
+    size = 0
+    for _ in range(rounds):
+        for piece in pieces:
+            value = next(operands, "") if piece is None else piece
+            size += len(value.encode())
+            if size > limit:
+                raise ValueError("literal output exceeds the source inspection cap")
+            output.append(value)
+    return "".join(output)
+
+
+def literal_stdin(statement: str, producer: str, limit: int) -> str | None:
+    """Return a complete literal here-string or direct printer's actual output.
+
+    The Bash follower has already selected stdin as the executing shell's
+    program. A prefix/suffix outside the simple literal grammar (including a
+    competing redirect or extra script operand) cannot grant source authority.
+    """
+    here_strings: list[int] = []
+    top_level_markers(statement, here_strings)
+    for start in here_strings:
+        if cross_line_quote_state(statement, start) != "plain":
+            continue
+        if not shell_tokens(statement[:start]):
+            raise ValueError("here-string has competing or unresolved source syntax")
+        words = literal_words(statement[start + 3:])
+        if words is None or len(words) != 1:
+            raise ValueError("here-string program is not one proved literal word")
+        return words[0] + "\n"
+    return literal_output(producer, limit) if producer else None
+
+
 def is_allowed_gh(tokens: list[str]) -> bool:
     return (
         len(tokens) >= 3
@@ -347,7 +455,7 @@ def classify_safe(command: str) -> str | None:
     return prefix.rstrip()
 
 
-def top_level_markers(command: str) -> list[Marker]:
+def top_level_markers(command: str, here_strings: list[int] | None = None) -> list[Marker]:
     """Find conservative top-level markers for malformed/duplicate detection."""
     markers: list[Marker] = []
     lines = bash_lines(command)
@@ -382,7 +490,14 @@ def top_level_markers(command: str) -> list[Marker]:
                 escaped = True
             elif char == "#" and (index == 0 or is_bash_blank(line[index - 1])):
                 break
-            elif line.startswith("<<", index) and not line.startswith("<<<", index):
+            elif line.startswith("<<<", index):
+                # Consume the WHOLE here-string operator. Advancing just one
+                # byte invents a heredoc marker at its second '<'.
+                if here_strings is not None:
+                    here_strings.append(offset + index)
+                index += 3
+                continue
+            elif line.startswith("<<", index):
                 marker = parse_marker(line, index, offset)
                 if marker is not None:
                     markers.append(marker)
@@ -942,6 +1057,18 @@ def marker_is_closed(command: str, marker: Marker) -> bool:
 
 def main() -> int:
     command = sys.stdin.read()
+    if sys.argv[1:2] == ["--literal-stdin"]:
+        try:
+            if not command.endswith("\0"):
+                raise ValueError("incomplete literal stdin frames")
+            statement, producer = command[:-1].split("\0")
+            body = literal_stdin(statement, producer, int(sys.argv[2]))
+            if body is not None and ("\0" in body or len(body.encode()) > int(sys.argv[2])):
+                raise ValueError("literal program exceeds supported source bytes")
+            print(json.dumps({"body": body}))
+            return SAFE
+        except (ValueError, KeyError, TypeError, IndexError):
+            return MALFORMED
     if sys.argv[1:] == ["--literal-display"]:
         print(literal_display_projection(command), end="")
         return SAFE
@@ -965,6 +1092,14 @@ def main() -> int:
     # Textual operators inside quotes or comments are not heredocs. Leave the
     # raw command unchanged so ordinary guard matching proceeds normally.
     if not markers and not has_active_command_substitution(logical_command):
+        # Only the newly proved literal simple-command here-string boundary
+        # changes verdict. Competing redirects/expansions/extra operands keep
+        # their prior ambiguous-input refusal rather than exposing a program
+        # the follower could mistakenly attribute to a different input owner.
+        try:
+            literal_stdin(logical_command, "", 0)
+        except ValueError:
+            return MALFORMED
         return UNSUPPORTED
 
     # A supported writer that failed the exact safe grammar is ambiguous: do

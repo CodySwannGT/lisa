@@ -442,6 +442,10 @@ if [[ "$command_for_guards" =~ ^[[:blank:]]*(printf|echo)[[:blank:]] ]] \
   fi
 fi
 
+# Preserve physical source and independent shell-program boundaries for the
+# local credential projection. Other guards keep their established text views.
+agent_source_frames=("$command_for_guards")
+
 # ─── Follow execution into the file a command RUNS (issue #3612) ─────────────
 #
 # Every guard below classifies SHELL COMMAND TEXT, and until this block existed
@@ -514,6 +518,20 @@ readonly FOLLOW_MAX_FILES=8
 readonly FOLLOW_MAX_DEPTH=3
 readonly FOLLOW_MAX_FUNCTION_DEPTH=16
 readonly FOLLOW_MAX_FUNCTION_CALLS=128
+
+# One execution-prefix inventory for the follower and credential word view.
+# Keep path-prefixed spellings at the same supported surface as follow_scan.
+readonly FOLLOW_EXECUTION_PREFIXES='sudo env command exec nohup nice time builtin timeout'
+readonly FOLLOW_EXECUTION_PATH_PREFIXES='sudo env nohup nice time timeout'
+# Shared with the credential word view; keep the disclosure policy in one place.
+readonly SECRET_READ_COMMANDS='cat bat less more head tail strings xxd od base64 cp mv rsync scp sftp tar zip curl wget http nc'
+follow_is_execution_prefix() {
+  local token="$1" name="${1##*/}"
+  case "$token" in
+    */*) [[ " $FOLLOW_EXECUTION_PATH_PREFIXES " == *" $name "* ]] || return 1 ;;
+  esac
+  [[ " $FOLLOW_EXECUTION_PREFIXES " == *" $name "* ]]
+}
 
 # Effective working directory established by a literal `cd` in the command, and
 # the flag that says a `cd` happened whose target could NOT be read literally.
@@ -712,13 +730,13 @@ follow_is_interpreter() {
 # than eating it as a value `-i` does not take.
 follow_may_invoke() {
   follow_is_interpreter "$1" && return 0
+  follow_is_execution_prefix "$1" && return 0
   # shellcheck disable=SC2088
   case "$1" in
     "" | -* | [A-Za-z_]*=*) return 0 ;;
     /* | ./* | ../* | '~/'* | */*) return 0 ;;
-    sudo | env | command | exec | nohup | nice | time | builtin | timeout \
-      | do | then | else | while | until | if | '!' | '{' \
-      | eval | find | xargs | cd | source | . | cat) return 0 ;;
+    do | then | else | while | until | if | '!' | '{' \
+      | eval | find | xargs | cd | source | . | cat | ssh) return 0 ;;
   esac
   return 1
 }
@@ -1171,7 +1189,7 @@ follow_locate() {
 # executes, to a bounded depth. Full-line comments are dropped: a commented line
 # is never executed, so scanning it can only manufacture a false refusal.
 follow_take() {
-  local path="$1" depth="$2" size="" content="" rm_content="${3-}"
+  local path="$1" depth="$2" size="" content="" rm_content="${3-}" agent_content=""
   local invocation_kind=child
   if [ "$#" -eq 3 ]; then invocation_kind="$3"; fi
   case "$follow_paths" in
@@ -1200,11 +1218,16 @@ follow_take() {
   if [ "$#" -eq 4 ]; then
     # Scan the same complete bytes whose digest was authenticated, not a
     # second file read that could pair changed source with the cleanup view.
-    content="$(printf '%s' "$4" | sed 's/^[[:space:]]*#.*$//')" || follow_refuse "$path" "authenticated source could not be read"
+    agent_content="$4"
   else
-    content="$(LC_ALL=C tr -d '\000' <"$path" | sed 's/^[[:space:]]*#.*$//')" \
+    # A sentinel retains physical trailing LFs in the local frame. Keep the
+    # existing NUL treatment and read once; never reopen authenticated bytes.
+    agent_content="$(LC_ALL=C tr -d '\000' <"$path" && printf '.')" \
       || follow_refuse "$path" "it could not be read"
+    agent_content="${agent_content%.}"
   fi
+  agent_source_frames+=("$agent_content")
+  content="$(printf '%s' "$agent_content" | sed 's/^[[:space:]]*#.*$//')" || follow_refuse "$path" "inspected source could not be projected"
   follow_names="$follow_names $path"
   followed_text="$followed_text"$'\n'"$content"
   if [ "$#" -ne 4 ]; then
@@ -1334,6 +1357,431 @@ follow_source_target() {
   follow_target "$1" "$2" source
 }
 
+agent_word_projection() {
+  # Builtin printf streams complete NUL-framed DATA on stdin. The fixed Python
+  # program is separate on FD3; no source aggregate enters external argv/env.
+  { printf '%s\0' "$FOLLOW_EXECUTION_PREFIXES" "$FOLLOW_EXECUTION_PATH_PREFIXES" "$SECRET_READ_COMMANDS"; cat; } | python3 /dev/fd/3 "$1" 3<<'PY'
+import json
+import re
+import shlex
+import sys
+
+# These options own counts, patterns, file names or output flags, never shell
+# programs. Arity distinguishes a cluster/attached value from a separate one.
+# This proves only the option/value role: every complete operand still reaches
+# the ordinary store/expansion checks below, including a protected mixed source.
+# Unknown options retain the conservative generic program-value treatment.
+data_options = {
+    'head': ('qv', 'cn', {'quiet', 'silent', 'verbose'}, {'bytes', 'lines'}),
+    'grep': ('EFGHchilLnoqsvwx', 'ABCefm',
+             {'extended-regexp', 'fixed-strings', 'basic-regexp', 'line-number',
+              'with-filename', 'no-filename', 'ignore-case', 'files-with-matches',
+              'files-without-match', 'count', 'only-matching', 'quiet', 'silent',
+              'no-messages', 'invert-match', 'word-regexp', 'line-regexp'},
+             {'after-context', 'before-context', 'context', 'regexp', 'file', 'max-count'}),
+}
+
+def data_option(command_name, option):
+    declaration = data_options.get(command_name)
+    if declaration is None:
+        return False
+    flags, values, long_flags, long_values = declaration
+    if option.startswith('--'):
+        name, equals, _ = option[2:].partition('=')
+        return name in long_values or (not equals and name in long_flags)
+    if not option.startswith('-') or len(option) == 1:
+        return False
+    for flag in option[1:]:
+        if flag in values:
+            return True  # Remaining bytes are its attached literal value.
+        if flag not in flags:
+            return False
+    return True  # Argument-free flags do not own a following value.
+
+def ssh_boolean(source):
+    # The readconf.c boolean path uses misc.c argv_split, not shell evaluation:
+    # space/tab separators, token-start comments, balanced quote fragments and
+    # selective quote/backslash escapes (plus unquoted escaped spaces).
+    # Decode one bounded scalar only; program strings keep their own quoting.
+    # Primary contract: openssh-portable V_10_0_P1 misc.c argv_split/readconf.c.
+    source = source.rstrip(' \t\r\n\f')
+    tokens = []
+    cursor = 0
+    while cursor < len(source):
+        if source[cursor] in ' \t':
+            cursor += 1
+            continue
+        if source[cursor] == '#':
+            break
+        value = []
+        quote = ''
+        while cursor < len(source):
+            char = source[cursor]
+            if char == '\\' and cursor + 1 < len(source) and (
+                    source[cursor + 1] in "'\"\\" or (not quote and source[cursor + 1] == ' ')):
+                cursor += 1
+                value.append(source[cursor])
+            elif not quote and char in ' \t':
+                break
+            elif not quote and char in "'\"":
+                quote = char
+            elif quote and char == quote:
+                quote = ''
+            else:
+                value.append(char)
+            cursor += 1
+        if quote:
+            return ''
+        tokens.append(''.join(value).lower())
+        if len(tokens) > 1:
+            return ''
+    # readconf.c multistate_flag accepts both boolean spellings.
+    return {'yes': 'yes', 'true': 'yes', 'no': 'no', 'false': 'no'}.get(tokens[0], '') if len(tokens) == 1 else ''
+
+def ssh_word_view(word, expansion, owners):
+    # Transform only the classification view. Discovery retains original source
+    # bytes, so inherited generic frames do not consume the same owner twice.
+    # A genuinely nested SSH setting adds one phase: %% may then expose %r.
+    for owner in owners:
+        if owner & 1:
+            value = []
+            dynamic = []
+            cursor = 0
+            while cursor < len(word):
+                if word.startswith('%%', cursor):
+                    value.append('%')
+                    dynamic.append(any(expansion[cursor:cursor + 2]))
+                    cursor += 2
+                    continue
+                value.append(word[cursor])
+                token = word[cursor] == '%' and cursor + 1 < len(word) and word[cursor + 1] in 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'
+                dynamic.append(expansion[cursor] or token)
+                cursor += 1
+            word, expansion = ''.join(value), dynamic
+        if owner & 2:
+            expansion = expansion.copy()
+            for match in re.finditer(r'\$\{[A-Za-z_][A-Za-z0-9_]*\}', word):
+                expansion[match.start()] = True
+    return word, expansion
+
+def classify(text, discover_programs=True, owned_value=False, argv_mode=False, ssh_owners=()):
+    words = []
+    commands = []
+    command = []
+    value = []
+    dynamic = []
+    quote = ''
+    scopes = []
+    cursor = 0
+    incomplete = False
+    started = False
+    word_start = 0
+
+    def finish():
+        nonlocal started
+        if started:
+            word = (''.join(value), dynamic.copy())
+            words.append(word)
+            command.append((*word, text[word_start:cursor]))
+        value.clear()
+        dynamic.clear()
+        started = False
+
+    def finish_command():
+        finish()
+        if command:
+            commands.append(command.copy())
+            command.clear()
+
+    while cursor < len(text):
+        if not started:
+            word_start = cursor
+        char = text[cursor]
+        if char == '#' and not quote and not started and not argv_mode:
+            # Comment text cannot alter quote/scope state. Only physical LF
+            # ends it, even when its last byte before that LF is a backslash.
+            newline = text.find('\n', cursor)
+            if newline < 0:
+                break
+            cursor = newline
+            continue
+        elif char == '\\' and quote != "'":
+            cursor += 1
+            if cursor == len(text):
+                incomplete = True
+                break
+            char = text[cursor]
+            if char != '\n':
+                started = True
+                if quote == '"' and char not in '$`"\\':
+                    value.append('\\'); dynamic.append(False)
+                value.append(char); dynamic.append(False)
+        elif char in ('"', "'") and quote in ('', char):
+            # Empty quote fragments still start a word before a literal hash.
+            started = True
+            quote = char if not quote else ''
+        elif not argv_mode and quote != "'" and (text.startswith('$(', cursor) or char == '`'):
+            # Inspect substitution contents too, while retaining uncertainty on
+            # any path prefix that receives their output. Never run a payload.
+            if char == '`' and scopes and scopes[-1][1] == '`':
+                finish_command()
+                quote, _, _, command = scopes.pop()
+                started = True
+            else:
+                value.append('$'); dynamic.append(True)
+                finish()
+                scopes.append([quote, ')' if char == '$' else '`', 0, command])
+                command = []
+                quote = ''
+                if char == '$':
+                    cursor += 1
+        elif not quote and (char in ' \t\n' or (not argv_mode and char in ';|&<>()')):
+            finish()
+            if not argv_mode and char in '<>':
+                command.append((char, None, char))
+            elif not argv_mode and char not in ' \t':
+                finish_command()
+            if scopes and scopes[-1][1] == ')':
+                if char == '(':
+                    scopes[-1][2] += 1
+                elif char == ')':
+                    if scopes[-1][2]:
+                        scopes[-1][2] -= 1
+                    else:
+                        quote, _, _, command = scopes.pop()
+                        started = True
+        else:
+            started = True
+            value.append(char)
+            dynamic.append(not argv_mode and ((char == '$' and quote != "'") or (not quote and char in '*?[{')))
+        cursor += 1
+    incomplete = incomplete or bool(quote or scopes)
+    finish_command()
+    if argv_mode and incomplete:
+        raise ValueError('incomplete SSH argv value')
+
+    # Proved program/value roles own additional frames; ordinary quoted file
+    # and display arguments remain literal, even with whitespace/operators.
+    # SSH joins destination-following argv into remote source. ProxyCommand
+    # and enabled LocalCommand are local shell; KnownHostsCommand is local
+    # argv, safely quoted before reaching an existing local/explicit -c owner.
+    programs = []
+
+    def inspect_value(source):
+        # Only a proved assignment/configuration/program role calls this.
+        # The next owned frame can inspect an affected opaque inner word; an
+        # interpreter string need not expose a shell read verb at its outside.
+        if re.search(affected_location, source, re.I):
+            programs.append({'kind': 'uncertain-value', 'source': source})
+
+    for args in commands if discover_programs else []:
+        index = 0
+        assignment_values = []
+        while index < len(args):
+            word, expansion, raw = args[index]
+            if expansion is None:
+                while index < len(args) and args[index][1] is None:
+                    index += 1
+                index += 1  # A redirection destination is not the command.
+            elif word.rsplit('/', 1)[-1] in prefix_names and ('/' not in word or word.rsplit('/', 1)[-1] in prefix_paths):
+                wrapper = word.rsplit('/', 1)[-1]
+                index += 1
+                while index < len(args) and args[index][0].startswith('-'):
+                    option = args[index][0]
+                    index += 1
+                    if option == '--':
+                        break
+                    if wrapper == 'command' and option in ('-v', '-V'):
+                        index = len(args)  # Lookup/display, not execution.
+                    elif option in {
+                        'env': ('-u', '--unset', '-C', '--chdir'),
+                        'exec': ('-a',),
+                        'sudo': ('-u', '-g', '-h', '-p', '-C', '-r', '-t', '-T', '-R', '-D'),
+                        'nice': ('-n', '--adjustment'),
+                        'time': ('-f', '--format', '-o', '--output'),
+                        'timeout': ('-s', '--signal', '-k', '--kill-after'),
+                    }.get(wrapper, ()):
+                        index += 1
+                if wrapper == 'timeout':
+                    index += 1  # Its mandatory duration precedes the command.
+            elif re.match(r'^[A-Za-z_][A-Za-z0-9_]*=', raw):
+                # Only a genuine shell prefix assignment owns this value.
+                # A quoted NAME=... command word remains opaque command data.
+                assignment_values.append(word.split('=', 1)[1])
+                index += 1
+            elif raw == word and word in ('if', 'then', 'elif', 'else', 'do', '!', '{'):
+                index += 1
+            else:
+                break
+        for source in assignment_values:
+            inspect_value(source)
+        if index >= len(args):
+            continue
+        command_name = args[index][0].rsplit('/', 1)[-1]
+        if command_name in ('export', 'declare', 'typeset', 'readonly', 'local'):
+            for argument in range(index + 1, len(args)):
+                value, expansion, raw = args[argument]
+                if expansion is None or (argument > index + 1 and args[argument - 1][1] is None):
+                    continue
+                # Declaration builtins own NAME=value arguments even after
+                # their option terminator; arbitrary positional values do not.
+                if re.match(r'^[A-Za-z_][A-Za-z0-9_]*=', value):
+                    inspect_value(value.split('=', 1)[1])
+            continue
+        if owned_value and command_name not in ('cat', 'printf', 'echo') and command_name not in data_options:
+            ended = False
+            for argument in range(index, len(args)):
+                word, expansion, raw = args[argument]
+                if word == '--':
+                    ended = True
+                if ended or expansion is None or (argument > index and args[argument - 1][1] is None):
+                    continue
+                if re.search(affected_location, word, re.I) and any(char.isspace() for char in word):
+                    inner, _, disclosure, _ = classify(word, False, ssh_owners=ssh_owners)
+                    if disclosure and inner != 'clear':
+                        programs.append({'kind': 'uncertain-value', 'source': word})
+        if command_name != 'ssh':
+            # A configuration/argument value can be executable even when its
+            # carrier is not known here. Inspect ONLY affected disclosure-shaped
+            # values; do not recursively split arbitrary quoted whitespace.
+            # cat's file operands and printf/echo's display arguments are proven
+            # data. Their ordinary flat path/expansion checks still apply.
+            if command_name not in ('cat', 'printf', 'echo'):
+                options_ended = False
+                for argument in range(index + 1, len(args)):
+                    value, expansion, raw = args[argument]
+                    if expansion is None:
+                        continue
+                    if value == '--':
+                        options_ended = True
+                        continue
+                    if options_ended or (argument > index + 1 and args[argument - 1][1] is None):
+                        continue  # A redirection destination is literal data.
+                    setting = re.match(r'^-{0,2}[A-Za-z_][A-Za-z0-9_.-]*=(.*)\Z', value, re.S)
+                    # Opaque positional text is not a declared program value.
+                    # Keep its whole-word provenance unless an existing owner
+                    # (such as SSH/-c) establishes executable source authority.
+                    previous = args[argument - 1][0] if argument > index + 1 else ''
+                    attached = value.startswith('-') and setting and not data_option(command_name, value)
+                    separate = (previous.startswith('-') and previous != '--'
+                                and '=' not in previous and not data_option(command_name, previous))
+                    if not attached and not separate:
+                        continue
+                    source = setting[1] if setting else value
+                    # Reuse complete lexical words: c''a''t is cat, and a
+                    # disclosure verb at physical EOL needs no trailing space.
+                    # This does not grant a positional key=value file operand
+                    # program authority or follow unknown values as local files.
+                    inspect_value(source)
+            continue
+        index += 1
+        settings = {}
+        while index < len(args) and args[index][0].startswith('-'):
+            option = args[index][0]
+            index += 1
+            if option == '--':
+                break
+            # SSH short options with an argument accept attached or separate
+            # values. Consume that value before identifying the destination.
+            for offset, flag in enumerate(option[1:], 2):
+                if flag in 'BbcDEeFIiJLlmOopQRSWw':
+                    value = option[offset:]
+                    if offset == len(option):
+                        value = args[index][0] if index < len(args) else ''
+                        index += 1
+                    if flag == 'o':
+                        setting = re.match(r'\s*(ProxyCommand|RemoteCommand|LocalCommand|KnownHostsCommand|PermitLocalCommand)\s*(?:=\s*|\s+)(.*)\Z', value, re.I | re.S)
+                        if setting:
+                            name = setting[1].lower()
+                            # OpenSSH obtains each participating directive's
+                            # first explicit value, including a disabling none.
+                            settings.setdefault(name, setting[2])
+                    break
+        # Missing CLI permission leaves selected config unknown. It cannot
+        # prove disabled, nor grant authority to follow a local script.
+        permit_local = ssh_boolean(settings.get('permitlocalcommand', ''))
+        for name, source in settings.items():
+            if name == 'permitlocalcommand' or not source or source.lower() == 'none':
+                continue
+            if name == 'localcommand' and permit_local == 'no':
+                continue
+            if name == 'knownhostscommand':
+                # OpenSSH executes an argv vector, not raw shell source.
+                # Preserve literal operators and quoted arguments when adapting
+                # that vector to the existing local command/explicit -c owner.
+                vector = classify(source, False, argv_mode=True)[3]
+                source = ' '.join(shlex.quote(word) for word, expansion in vector)
+                kind = 'local-argv'
+            elif name == 'remotecommand':
+                kind = 'remote'
+            elif name == 'localcommand' and permit_local != 'yes':
+                kind = 'uncertain-value'  # Unknown permission is not local-follow authority.
+            else:
+                kind = 'local'
+            # These existing setting carriers own client-side percent tokens;
+            # KnownHostsCommand additionally owns braced environment syntax.
+            # Local/remote execution roles remain separate from this phase.
+            expansion_owner = 3 if name == 'knownhostscommand' else 1
+            programs.append({'kind': kind, 'source': source, 'ssh_expansion': expansion_owner})
+        index += 1  # The SSH destination is data, not a shell program.
+        program = ' '.join(word for word, expansion, raw in args[index:] if expansion is not None)
+        if program:
+            programs.append({'kind': 'remote', 'source': program})
+
+    directory = r'\.(claude|codex|cursor|copilot|gemini|antigravity)/'
+    stem = r'(\.?credentials|auth|tokens?|oauth([_-](creds|tokens?))?|auth[_-]tokens?|access[_-]tokens?|refresh[_-]tokens?)'
+    # Complete words preserve quoted format suffixes and repeated separators.
+    store = re.compile(r'(' + directory + r'([a-z0-9_.-]*/)*' + stem + r'(\.[a-z0-9_.-]*)?(/.*)?|\.netrc|\.npmrc|\.pypirc|\.docker/config\.json)$', re.I | re.S)
+    uncertain = False
+    protected = False
+    for word, expansion in words:
+        word, expansion = ssh_word_view(word, expansion, ssh_owners)
+        protected = protected or store.search(word) is not None
+        uncertain = uncertain or any(any(expansion[match.end():]) for match in re.finditer(directory, word))
+        # Other guards own unrelated heredoc/prose syntax. Fail closed here
+        # only when incomplete syntax prevents placing an affected operand.
+        if incomplete and re.search(directory + r'|\.netrc|\.npmrc|\.pypirc|\.docker/config\.json', word, re.I):
+            uncertain = True
+    disclosure = any(word.rsplit('/', 1)[-1] in read_commands for word, expansion in words)
+    return ('store' if protected else 'uncertain' if uncertain else 'clear'), programs, disclosure, words
+
+try:
+    data = sys.stdin.buffer.read()
+    if not data or not data.endswith(b'\0'):
+        raise ValueError('incomplete source frames')
+    # Match the prior environment byte-decoding behavior, including arbitrary
+    # non-UTF8 source bytes, without dropping or executing any source data.
+    frames = [frame.decode('utf-8', 'surrogateescape') for frame in data[:-1].split(b'\0')]
+    prefix_names = set(frames.pop(0).split())
+    prefix_paths = set(frames.pop(0).split())
+    read_commands = frames.pop(0).split()
+    affected_location = r'\.(?:claude|codex|cursor|copilot|gemini|antigravity)/|\.netrc|\.npmrc|\.pypirc|\.docker/config\.json'
+    if sys.argv[1] == 'local-ssh':
+        # Complete local inline programs only; no remote file is resolved here.
+        print(json.dumps([program['source'] for frame in frames for program in classify(frame)[1] if program['kind'] in ('local', 'local-argv')]))
+        sys.exit(0)
+    if sys.argv[1] != 'classify':
+        raise ValueError('unknown projection mode')
+    frames = [(frame, False, False, ()) for frame in frames]
+    visited = set()
+    verdicts = []
+    for frame, uncertain_value, owned_value, ssh_owners in frames:
+        identity = (frame, uncertain_value, owned_value, ssh_owners)
+        if identity in visited:
+            continue
+        visited.add(identity)
+        verdict, programs, _, _ = classify(frame, owned_value=owned_value, ssh_owners=ssh_owners)
+        verdicts.append('program-uncertain' if uncertain_value and verdict != 'clear' else verdict)
+        # Each projection removes the SSH prefix; iterative frames avoid a
+        # Python recursion limit without evaluating any remote source.
+        frames.extend((program['source'], uncertain_value or program['kind'] == 'uncertain-value', True,
+                       ssh_owners + ((program['ssh_expansion'],) if program.get('ssh_expansion') else ())) for program in programs)
+    print('store' if 'store' in verdicts else 'uncertain' if 'uncertain' in verdicts else 'program-uncertain' if 'program-uncertain' in verdicts else 'clear')
+except (ValueError, OSError, IndexError, re.error):
+    sys.exit(1)
+PY
+}
+
 # Extract the literal -c operand without evaluating it or treating positional
 # arguments after its closing quote as commands. Prefix indexing matches the
 # whitespace tokens used by follow_scan; the operand keeps its internal bytes.
@@ -1375,10 +1823,74 @@ follow_inline() {
       printf "%s", substr(s, start, i - start);
     }
   ')" || follow_refuse "-c" "its command string could not be determined"
+  # The agent-store word view also needs the already-resolved executable body,
+  # rather than treating an interpreter's quoted program as one path operand.
+  agent_source_frames+=("$body")
   local saved_cwd="$follow_cwd" saved_unknown="$follow_cwd_unknown"
   follow_scan "$body" "$depth"
   follow_cwd="$saved_cwd"
   follow_cwd_unknown="$saved_unknown"
+}
+
+# Only the existing interpreter owner calls this after selecting stdin over
+# noexec, -c and a script operand. The companion decodes literal DATA without
+# running a printer, shell, expansion or substitution. Unknown output keeps the
+# accepted output-follow policy; a proved body gets its own complete frame.
+follow_literal_stdin() {
+  local stmt="$1" producer="$2" depth="$3" projection body known
+  local follow_inline_depth="${follow_inline_depth:-0}"
+  if [ -n "$producer" ]; then
+    # Reuse the descriptor owner before attributing a pipe to this shell.
+    # A file/closed/duplicated input can override that pipe independently of
+    # the shell's output redirections. Never inspect the wrong source.
+    follow_redirect_io "$stmt" cat
+    case "$follow_redirect_input" in
+      input) ;;
+      file) follow_pipe_target "$follow_redirect_path" "$depth" "$follow_redirect_input_cwd" "$follow_redirect_input_unknown"; return 0 ;;
+      closed) return 0 ;;
+      *) follow_refuse "literal stdin program" "its input descriptor does not establish the producer" ;;
+    esac
+  fi
+  projection="$(printf '%s\0' "$stmt" "$producer" | python3 "$lisa_guard_hook_dir/parity-safety-net-heredoc.py" --literal-stdin "$FOLLOW_MAX_BYTES")" || follow_refuse "literal stdin program" "its complete source could not be projected"
+  known="$(printf '%s' "$projection" | jq -ser 'if length != 1 then error("invalid literal source cardinality") else .[0] end | if type != "object" then error("invalid literal source object") elif (has("body") | not) then error("missing literal source body") elif .body == null then "unknown" elif (.body | type) == "string" then "known" else error("invalid literal source body") end')" || follow_refuse "literal stdin program" "its source projection is invalid"
+  [ "$known" = known ] || return 0
+  [ "$follow_inline_depth" -lt "$FOLLOW_MAX_FUNCTION_DEPTH" ] || follow_refuse "literal stdin program" "inline shells exceed the inspection depth"
+  follow_inline_depth=$((follow_inline_depth + 1))
+  body="$(printf '%s' "$projection" | jq -j '.body' && printf '\037')" || follow_refuse "literal stdin program" "its source could not be decoded"
+  body="${body%$'\037'}"
+  agent_source_frames+=("$body")
+  local content saved_cwd="$follow_cwd" saved_unknown="$follow_cwd_unknown"
+  content="$(printf '%s' "$body" | sed 's/^[[:space:]]*#.*$//')" || follow_refuse "literal stdin program" "its content view could not be projected"
+  followed_text="$followed_text"$'\n'"$content"
+  followed_rm_text="$followed_rm_text"$'\n'"$content"
+  # The selected input is consumed as this program, not inherited as a fresh
+  # program by every bare shell it happens to contain.
+  local follow_stdin_literal=""
+  follow_scan "$body" "$depth"
+  follow_cwd="$saved_cwd"; follow_cwd_unknown="$saved_unknown"
+}
+
+# Proved local SSH programs reuse the quote-aware projection and bounded local
+# follower. KnownHosts argv has already been safely represented as literal
+# words, so only an explicit shell -c gets shell-source authority. Remote
+# programs remain remote DATA and never open a local script.
+follow_ssh() {
+  local stmt="$1" depth="$2" programs count index=0 body
+  local follow_inline_depth="${follow_inline_depth:-0}"
+  [ "$follow_inline_depth" -lt "$FOLLOW_MAX_FUNCTION_DEPTH" ] || follow_refuse "SSH local command" "inline shells exceed the inspection depth"
+  follow_inline_depth=$((follow_inline_depth + 1))
+  programs="$(printf '%s\0' "$stmt" | agent_word_projection local-ssh)" || follow_refuse "SSH local command" "its local command string could not be determined"
+  count="$(printf '%s' "$programs" | jq -er 'length')" || follow_refuse "SSH local command" "its local program projection could not be determined"
+  while [ "$index" -lt "$count" ]; do
+    # A sentinel preserves trailing physical LF through command substitution.
+    body="$(printf '%s' "$programs" | jq -j --argjson index "$index" '.[$index]' && printf '\037')" || follow_refuse "SSH local command" "its complete local program could not be decoded"
+    body="${body%$'\037'}"
+    agent_source_frames+=("$body")
+    local saved_cwd="$follow_cwd" saved_unknown="$follow_cwd_unknown"
+    follow_scan "$body" "$depth"
+    follow_cwd="$saved_cwd"; follow_cwd_unknown="$saved_unknown"
+    index=$((index + 1))
+  done
 }
 
 # Resolve literal descriptor duplication without running the proposed shell.
@@ -1577,9 +2089,10 @@ follow_scan() {
   local return_flow_unknown=0
   local list_depth=0 list_index
   local split_out line sep stmt t tj i j n cmd_pos eval_mode inline arg_exec
-  local heredoc redirected pipe_cat prev_cat pending_operand stdin_mode
+  local heredoc redirected pipe_cat prev_cat pending_operand stdin_mode pipe_literal prev_literal
   local pipe_cwd pipe_unknown prev_cwd prev_unknown
   local follow_stdin_cat="${follow_stdin_cat:-}" follow_stdin_cwd="${follow_stdin_cwd:-}" follow_stdin_unknown="${follow_stdin_unknown:-1}"
+  local follow_stdin_literal="${follow_stdin_literal:-}"
   local follow_redirect_input follow_redirect_path follow_redirect_output follow_redirect_map follow_redirect_input_cwd follow_redirect_input_unknown
   local follow_descriptor_map="${follow_descriptor_map:-}"
   if [ -z "$follow_descriptor_map" ]; then
@@ -1592,6 +2105,7 @@ follow_scan() {
   local -a list_cwds=() list_unknowns=() list_functions=() list_flows=() list_asyncs=() list_scope_depths=() list_return_flows=() brace_flows=()
   local -a brace_descriptor_maps=() scope_descriptor_maps=()
   local -a brace_stdin_cats=() brace_stdin_cwds=() brace_stdin_unknowns=() scope_stdin_cats=() scope_stdin_cwds=() scope_stdin_unknowns=()
+  local -a brace_stdin_literals=() scope_stdin_literals=() cat_literal_scopes=()
   local -a case_cwds=() case_unknowns=() case_changes=()
   # Open compound commands of THIS text, innermost last. See
   # follow_compound_open. The stack starts empty, so a closer can never lower
@@ -1613,6 +2127,7 @@ follow_scan() {
   fi
   split_out="$(follow_split "$text")" || follow_refuse "shell scope" "scope parsing exceeds the inspection budget"
   prev_cat=""
+  prev_literal=""
   while IFS= read -r line; do
     sep="${line%%$'\t'*}"
     stmt="${line#*$'\t'}"
@@ -1661,8 +2176,10 @@ follow_scan() {
         brace_stdin_cats[list_depth]="$follow_stdin_cat"
         brace_stdin_cwds[list_depth]="$follow_stdin_cwd"
         brace_stdin_unknowns[list_depth]="$follow_stdin_unknown"
+        brace_stdin_literals[list_depth]="$follow_stdin_literal"
         if [ "$stmt" = "|" ]; then
           follow_stdin_cat="$prev_cat"; follow_stdin_cwd="${prev_cwd:-}"; follow_stdin_unknown="${prev_unknown:-1}"
+          follow_stdin_literal="$prev_literal"
         fi
         case "$stmt" in '&' | '?') function_flow_unknown=1 ;; esac
         list_depth=$((list_depth + 1)); continue
@@ -1674,6 +2191,7 @@ follow_scan() {
         follow_stdin_cat="${brace_stdin_cats[list_depth]}"
         follow_stdin_cwd="${brace_stdin_cwds[list_depth]}"
         follow_stdin_unknown="${brace_stdin_unknowns[list_depth]}"
+        follow_stdin_literal="${brace_stdin_literals[list_depth]}"
         # A conditional return may exit this function/source before commands
         # after the brace. Unlike a child return, that uncertainty persists.
         if [ "$return_flow_unknown" -ne 0 ]; then function_flow_unknown=1; fi
@@ -1747,6 +2265,7 @@ follow_scan() {
         cat_scopes[scope_depth]="$prev_cat"
         cat_cwd_scopes[scope_depth]="${prev_cwd:-}"
         cat_unknown_scopes[scope_depth]="${prev_unknown:-1}"
+        cat_literal_scopes[scope_depth]="$prev_literal"
         scope_descriptor_maps[scope_depth]="$follow_descriptor_map"
         function_scopes[scope_depth]=$function_count
         flow_scopes[scope_depth]=$function_flow_unknown
@@ -1758,8 +2277,10 @@ follow_scan() {
         scope_stdin_cats[scope_depth]="$follow_stdin_cat"
         scope_stdin_cwds[scope_depth]="$follow_stdin_cwd"
         scope_stdin_unknowns[scope_depth]="$follow_stdin_unknown"
+        scope_stdin_literals[scope_depth]="$follow_stdin_literal"
         if [ "$stmt" = "|" ] || [ "$stmt" = "|+" ]; then
           follow_stdin_cat="$prev_cat"; follow_stdin_cwd="${prev_cwd:-}"; follow_stdin_unknown="${prev_unknown:-1}"
+          follow_stdin_literal="$prev_literal"
           follow_descriptor_map="$(printf '%s' "$follow_descriptor_map" | jq -ce '.["0"] = {kind:"input"}')" || follow_refuse "pipeline input" "its descriptor could not be established"
         fi
         case "$stmt" in
@@ -1792,6 +2313,7 @@ follow_scan() {
         follow_stdin_cat="${scope_stdin_cats[scope_depth]}"
         follow_stdin_cwd="${scope_stdin_cwds[scope_depth]}"
         follow_stdin_unknown="${scope_stdin_unknowns[scope_depth]}"
+        follow_stdin_literal="${scope_stdin_literals[scope_depth]}"
         while [ "$function_count" -gt "${function_scopes[scope_depth]}" ]; do
           function_count=$((function_count - 1))
           function_index=$function_count
@@ -1801,6 +2323,7 @@ follow_scan() {
           prev_cat="${cat_scopes[scope_depth]}"
           prev_cwd="${cat_cwd_scopes[scope_depth]}"
           prev_unknown="${cat_unknown_scopes[scope_depth]}"
+          prev_literal="${cat_literal_scopes[scope_depth]}"
         fi
         if [ "$return_scope_depth" -ge 0 ] && [ "$scope_depth" -lt "$return_scope_depth" ]; then
           return_scope_depth=-1
@@ -1813,9 +2336,10 @@ follow_scan() {
         case "$follow_redirect_input" in
           file)
             follow_stdin_cat="$follow_redirect_path"
+            follow_stdin_literal=""
             follow_stdin_cwd="$follow_redirect_input_cwd"; follow_stdin_unknown="$follow_redirect_input_unknown"
             ;;
-          closed) follow_stdin_cat="" ;;
+          closed) follow_stdin_cat=""; follow_stdin_literal="" ;;
           input) ;;
           *) follow_refuse "compound redirection" "its input source could not be determined" ;;
         esac
@@ -1833,14 +2357,17 @@ follow_scan() {
     fi
     and_ready=0
     pipe_cat="$follow_stdin_cat"
+    pipe_literal="$follow_stdin_literal"
     pipe_cwd="$follow_stdin_cwd"
     pipe_unknown="$follow_stdin_unknown"
     if [ "$sep" = "|" ]; then
       pipe_cat="$prev_cat"
       pipe_cwd="${prev_cwd:-}"
       pipe_unknown="${prev_unknown:-1}"
+      pipe_literal="$prev_literal"
     fi
     prev_cat=""
+    prev_literal=""
     case "$stmt" in
       *[![:space:]]*) ;;
       *) continue ;;
@@ -1932,6 +2459,15 @@ follow_scan() {
       if [ "$function_found" -eq 1 ]; then
         cmd_pos=0; i=$((i + 1)); continue
       fi
+      if follow_is_execution_prefix "$t"; then
+        case "$t" in
+          timeout | */timeout) pending_operand=1; function_lookup_allowed=0 ;;
+          time | */time) ;;
+          *) function_lookup_allowed=0 ;;
+        esac
+        i=$((i + 1))
+        continue
+      fi
       case "$t" in
         return)
           if [ "$statement_conditional" -ne 0 ]; then function_flow_unknown=1; fi
@@ -2014,22 +2550,8 @@ follow_scan() {
           fi
           continue
           ;;
-        timeout | */timeout)
-          # `timeout` takes a mandatory DURATION before the program. A bare
-          # number is not an option, so the short-option arm above cannot see
-          # it. Mark the operand pending and let the fall-through consume it,
-          # which keeps working when options sit in between — `timeout -s KILL
-          # 5 bash <file>` reaches `bash` just as `timeout 5 bash <file>` does.
-          pending_operand=1
-          function_lookup_allowed=0
-          i=$((i + 1))
-          continue
-          ;;
-        sudo | env | command | exec | nohup | nice | time | builtin \
-          | do | then | else | elif | '!' | '{' \
-          | */sudo | */env | */nohup | */nice | */time)
+        do | then | else | elif | '!' | '{')
           case "$t" in
-            sudo | env | command | exec | nohup | nice | builtin | */sudo | */env | */nohup | */nice) function_lookup_allowed=0 ;;
             # `elif` starts a condition list at a command position, so an
             # opener after it is a real compound (`elif if x; then …; fi`).
             do | then | else | elif) function_flow_unknown=1 ;;
@@ -2042,6 +2564,12 @@ follow_scan() {
           # interpolated into them is executed text.
           eval_mode=1
           i=$((i + 1))
+          continue
+          ;;
+        ssh | */ssh)
+          follow_ssh "$stmt" "$depth"
+          cmd_pos=0
+          i="$n"
           continue
           ;;
         find | */find)
@@ -2093,6 +2621,15 @@ follow_scan() {
           i=$((j + 1))
           continue
           ;;
+        echo | printf)
+          # Keep the producer as DATA until a later shell actually selects its
+          # stdout as a program. The companion proves its complete literal
+          # output then; other consumers never grant program authority.
+          prev_literal="$stmt"
+          cmd_pos=0
+          i="$n"
+          continue
+          ;;
         cat | '<')
           follow_next_operand "$i" "$n"
           j="$follow_operand_index"
@@ -2101,6 +2638,7 @@ follow_scan() {
           if [ "$t" = cat ] && { [ "$j" -ge "$n" ] || [ "$follow_unwrapped" = - ]; }; then
             # Bare cat and cat - forward the group's named stdin unchanged.
             prev_cat="$pipe_cat"; prev_cwd="$pipe_cwd"; prev_unknown="$pipe_unknown"
+            prev_literal="$pipe_literal"
             if [ "$eval_mode" -eq 1 ] && [ -n "$prev_cat" ]; then
               follow_pipe_target "$prev_cat" "$depth" "$prev_cwd" "$prev_unknown"
             fi
@@ -2114,12 +2652,12 @@ follow_scan() {
               prev_cwd="$follow_cwd"; prev_unknown="$follow_cwd_unknown"
             fi
           fi
-          if [ -n "$prev_cat" ] && [ "$eval_mode" -eq 0 ]; then
+          if { [ -n "$prev_cat" ] || [ -n "$prev_literal" ]; } && [ "$eval_mode" -eq 0 ]; then
             if [[ "$stmt" == *'>'* ]] || [ "$follow_descriptor_map" != '{"0":{"kind":"input"},"1":{"kind":"pipe"},"2":{"kind":"stderr"}}' ]; then
               follow_redirect_io "$stmt" cat
               case "$follow_redirect_output" in
                 pipe) ;;
-                file | closed | stderr | input) prev_cat="" ;;
+                file | closed | stderr | input) prev_cat=""; prev_literal="" ;;
                 *) follow_refuse "cat redirection" "its output destination could not be determined" ;;
               esac
             fi
@@ -2195,6 +2733,9 @@ follow_scan() {
           continue
         fi
         if [ "$heredoc" -eq 1 ] && [ "$inline" -eq 0 ]; then
+          # Genuine heredocs retain their established text guards. Only a
+          # proved literal here-string supplies an independent stdin program.
+          follow_literal_stdin "$stmt" "" "$depth"
           cmd_pos=0
           i=$((j + 1))
           continue
@@ -2217,6 +2758,7 @@ follow_scan() {
           # `sh -s -- -y` reads its program from stdin; tokens after `--` are
           # positional arguments to that program, never a script path.
           [ -z "$pipe_cat" ] || follow_pipe_target "$pipe_cat" "$depth" "$pipe_cwd" "$pipe_unknown"
+          [ -z "$pipe_literal" ] || follow_literal_stdin "$stmt" "$pipe_literal" "$depth"
           cmd_pos=0
           i="$n"
           continue
@@ -2231,6 +2773,7 @@ follow_scan() {
           # No operand: an interactive or stdin-fed interpreter. Only the
           # `cat <file> | bash` shape names a FILE, and only that is followed.
           [ -z "$pipe_cat" ] || follow_pipe_target "$pipe_cat" "$depth" "$pipe_cwd" "$pipe_unknown"
+          [ -z "$pipe_literal" ] || follow_literal_stdin "$stmt" "$pipe_literal" "$depth"
           cmd_pos=0
           i="$j"
           continue
@@ -2308,8 +2851,10 @@ follow_scan() {
 
 follow_scan "$command_for_guards" 0
 rm_command_for_guards="$command_for_guards"$'\n'"$followed_rm_text"
-if [ -n "$follow_names" ]; then
+if [ -n "$followed_text" ]; then
   command_for_guards="$command_for_guards"$'\n'"$followed_text"
+fi
+if [ -n "$follow_names" ]; then
   # A refusal must say WHERE the match is. Without this the operator reads
   # advice about rewording a quoted string for a line they never typed.
   DESTRUCTIVE_GUIDANCE="$DESTRUCTIVE_GUIDANCE
@@ -3376,7 +3921,7 @@ done <<<"$git_segments"
 # The verbs that disclose: read it, duplicate it, or send it. Writing is NOT
 # here — `echo FOO=1 > .env` during setup creates a secret rather than leaking
 # one, and refusing it would block the very workflow that produces the file.
-readonly SECRET_READ_VERB='(^|[^[:alnum:]_./-])([[:alnum:]_./-]*/)?(cat|bat|less|more|head|tail|strings|xxd|od|base64|cp|mv|rsync|scp|sftp|tar|zip|curl|wget|http|nc)([[:space:]]|$)'
+readonly SECRET_READ_VERB='(^|[^[:alnum:]_./-])([[:alnum:]_./-]*/)?('"${SECRET_READ_COMMANDS// /|}"')([[:space:]]|$)'
 
 # 15a. SSH PRIVATE keys. `id_rsa.pub` and friends are public by construction and
 # stay readable; so do `known_hosts`, `config` and `authorized_keys`, which
@@ -3386,7 +3931,19 @@ readonly SSH_PRIVATE_KEY='\.ssh/(id_[[:alnum:]_-]+|[[:alnum:]_.-]*_(rsa|dsa|ecds
 readonly CLOUD_CREDENTIAL='(\.aws/(credentials|config)|\.config/gcloud/[[:alnum:]_./-]*credentials[[:alnum:]_.-]*|\.azure/(accessTokens|msal_token_cache)[[:alnum:]_.-]*|\.kube/config)([[:space:]'"$qc"']|$)'
 # 15c. Coding-agent credential stores — the tokens that impersonate the operator
 # to every service their agent can reach.
-readonly AGENT_CREDENTIAL='(\.(claude|codex|cursor|copilot|gemini|antigravity)/[[:alnum:]_./-]*(credentials|auth|token)[[:alnum:]_.-]*|\.netrc|\.npmrc|\.pypirc|\.docker/config\.json)([[:space:]'"$qc"']|$)'
+# Match store path components, not substrings in descriptive artifact names.
+# A store stem may have format/backup suffixes; a store directory protects its
+# descendants too. This is no artifact/directory/extension exemption: every
+# operand is still scanned, including a store beside an ordinary report.
+# OAuth's conventional oauth_creds name is a store, while authority, auth-design,
+# token-budget-notes and credentials-policy are not store components (#4544).
+# Reuse the literal quote/escape conventions of follow_redirect_io locally for
+# this decision. Join adjacent fragments, preserve literal punctuation, and end
+# words only at real operators. Expansion provenance stays attached to its word;
+# this neither expands paths nor opens files nor changes other text policies.
+agent_store_verdict() {
+  printf '%s\0' "${agent_source_frames[@]}" | agent_word_projection classify
+}
 # 15d. Dotenv files. `.env.example`, `.sample`, `.template`, `.dist` and
 # `.schema` are checked-in documentation of which keys exist, never the values,
 # so they are excluded — that collision is the one this rule most had to avoid.
@@ -3428,15 +3985,38 @@ EOF
 
 readonly SAFE_DOTENV_SEED='^[[:space:]]*(cp|mv)[[:space:]]+\.env\.(example|sample|template|dist|schema|defaults)[[:space:]]+\.env(\.[[:alnum:]_-]+)?[[:space:]]*$'
 
-if matches "$SECRET_READ_VERB"; then
+# Consume the full bounded text at this gate: grep -q can close its pipe after
+# the first followed body and make builtin printf fail before the next body.
+# Keep the same policy/pattern; the generic scanner and other guards are intact.
+secret_read_status=0
+printf '%s' "$normalized_command_str" | grep -Ei -- "$SECRET_READ_VERB" >/dev/null || secret_read_status=$?
+case "$secret_read_status" in
+  0 | 1) ;;
+  *) scan_failed "$secret_read_status" ;;
+esac
+if [ "$secret_read_status" -eq 0 ]; then
   if matches "$SSH_PRIVATE_KEY"; then
     block "reading, copying or transmitting an SSH PRIVATE key. Public keys (.pub), known_hosts and ssh config are unaffected; if you need the fingerprint use \`ssh-keygen -lf <key>.pub\`."
   fi
   if matches "$CLOUD_CREDENTIAL"; then
     block "reading, copying or transmitting a cloud provider credential file. Use the provider CLI's own identity command (\`aws sts get-caller-identity\`, \`gcloud auth list\`) instead of reading the file."
   fi
-  if matches "$AGENT_CREDENTIAL"; then
+  agent_verdict="$(agent_store_verdict)" || block "classifying a credential operand whose quoting or expansion could not be determined; refusing uncertainty."
+  case "$agent_verdict" in
+    store | uncertain | program-uncertain | clear) ;;
+    *) block "classifying a credential operand whose word projection could not be determined; refusing uncertainty." ;;
+  esac
+  if [ "$agent_verdict" = store ]; then
     block "reading, copying or transmitting a coding-agent or package-registry credential store. These tokens impersonate the operator to every service the agent can reach."
+  fi
+  if [ "$agent_verdict" = program-uncertain ]; then
+    block "classifying an argument or configuration value that could execute a credential-store read; its role could not be proven to be literal file or display data. Refusing program uncertainty."
+  fi
+  # A literal artifact name can be distinguished from a store component, but a
+  # variable, glob or brace expansion below an agent directory can still resolve
+  # to a store. Refuse without expanding it or opening any credential file.
+  if [ "$agent_verdict" = uncertain ]; then
+    block "reading a path inside a coding-agent credential directory whose target is variable-expanded, globbed or brace-expanded, so the guard cannot tell which file it is. Name the file explicitly if it is genuinely not a secret."
   fi
   # A public path elsewhere in the command never exempts a private path. The
   # narrow public-template -> private-destination seed is write-only and remains

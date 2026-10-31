@@ -1,0 +1,24 @@
+{
+  "cases": [
+    {
+      "id": "attached-head-literal",
+      "command": "head -n1 'note=cat .npmrc; notes.md'",
+      "expected": 0
+    },
+    {
+      "id": "attached-head-protected",
+      "command": "head -n1 {root}/.codex/auth.json",
+      "expected": 2
+    },
+    {
+      "id": "flag-grep-literal",
+      "command": "grep -n 'note=cat .npmrc; notes.md' README.md",
+      "expected": 0
+    },
+    {
+      "id": "flag-grep-mixed",
+      "command": "grep -n 'note=cat .npmrc; notes.md' {root}/.npmrc",
+      "expected": 2
+    }
+  ]
+}

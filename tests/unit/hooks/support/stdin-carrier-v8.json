@@ -1,0 +1,94 @@
+{
+  "sentinel": "example\n",
+  "fixture_files": {
+    ".codex/artifacts/stdin-carrier-v8/nested/auth.json": "example\n",
+    ".codex/artifacts/stdin-carrier-v8/lint-authored.stdout": "example\n",
+    "ordinary-script.sh": "#!/usr/bin/env bash\nprintf '%s\\n' 'example'\n"
+  },
+  "cases": [
+    {
+      "id": "v8-echo-pipe-shell-protected",
+      "role": "literal-stdin-executable",
+      "command": "echo 'cat {root}/.codex/artifacts/stdin-carrier-v8/nested/auth.json | base64' | bash",
+      "expected": 2,
+      "observed": null
+    },
+    {
+      "id": "v8-echo-pipe-shell-neutral-report",
+      "role": "literal-stdin-executable",
+      "command": "echo 'cat {root}/.codex/artifacts/stdin-carrier-v8/lint-authored.stdout | base64' | bash",
+      "expected": 0,
+      "observed": null
+    },
+    {
+      "id": "v8-printf-pipe-shell-protected",
+      "role": "literal-stdin-executable",
+      "command": "printf '%s\\n' 'cat {root}/.codex/artifacts/stdin-carrier-v8/nested/auth.json | base64' | sh",
+      "expected": 2,
+      "observed": null
+    },
+    {
+      "id": "v8-printf-pipe-shell-neutral-report",
+      "role": "literal-stdin-executable",
+      "command": "printf '%s\\n' 'cat {root}/.codex/artifacts/stdin-carrier-v8/lint-authored.stdout | base64' | sh",
+      "expected": 0,
+      "observed": null
+    },
+    {
+      "id": "v8-here-string-shell-protected",
+      "role": "literal-stdin-executable",
+      "command": "bash <<< 'cat {root}/.codex/artifacts/stdin-carrier-v8/nested/auth.json | base64'",
+      "expected": 2,
+      "observed": null
+    },
+    {
+      "id": "v8-here-string-shell-neutral-report",
+      "role": "literal-stdin-executable",
+      "command": "bash <<< 'cat {root}/.codex/artifacts/stdin-carrier-v8/lint-authored.stdout | base64'",
+      "expected": 0,
+      "observed": null
+    },
+    {
+      "id": "v8-echo-only-protected-looking-display",
+      "role": "display-only-opposition",
+      "command": "echo 'cat {root}/.codex/artifacts/stdin-carrier-v8/nested/auth.json | base64'",
+      "expected": 0,
+      "observed": null
+    },
+    {
+      "id": "v8-printf-only-protected-looking-display",
+      "role": "display-only-opposition",
+      "command": "printf '%s\\n' 'cat {root}/.codex/artifacts/stdin-carrier-v8/nested/auth.json | base64'",
+      "expected": 0,
+      "observed": null
+    },
+    {
+      "id": "v8-pipe-to-cat-is-data",
+      "role": "non-shell-consumer-opposition",
+      "command": "printf '%s\\n' 'cat {root}/.codex/artifacts/stdin-carrier-v8/nested/auth.json | base64' | cat",
+      "expected": 0,
+      "observed": null
+    },
+    {
+      "id": "v8-here-string-to-cat-is-data",
+      "role": "non-shell-consumer-opposition",
+      "command": "cat <<< 'cat {root}/.codex/artifacts/stdin-carrier-v8/nested/auth.json | base64'",
+      "expected": 0,
+      "observed": null
+    },
+    {
+      "id": "v8-here-string-shell-noexec",
+      "role": "noexec-precedence-opposition",
+      "command": "bash -n <<< 'cat {root}/.codex/artifacts/stdin-carrier-v8/nested/auth.json | base64'",
+      "expected": 0,
+      "observed": null
+    },
+    {
+      "id": "v8-explicit-script-owns-program-instead-of-pipe",
+      "role": "script-operand-precedence-opposition",
+      "command": "printf '%s\\n' 'cat {root}/.codex/artifacts/stdin-carrier-v8/nested/auth.json | base64' | bash {root}/ordinary-script.sh",
+      "expected": 0,
+      "observed": null
+    }
+  ]
+}
