@@ -52,6 +52,7 @@ import {
   resolveTelegramToken,
   telegramSecretName,
 } from "./token-store.mjs";
+import { shellQuote } from "./token.mjs";
 import { parseWorkerName, scrubWorkerEnv } from "./workers.mjs";
 
 /**
@@ -103,20 +104,23 @@ export async function start(ctx) {
   const config = requireConfig(ctx);
   const notify = notifyProvider(config);
   const stateDir = notify === "telegram" ? stateDirOf(ctx, config) : undefined;
-  // Resolved before any tmux call: a provider that cannot answer must leave
-  // nothing half-started.
-  const token =
-    stateDir === undefined
-      ? null
-      : await telegramToken(ctx, config.name, stateDir);
   // tmux gets the scrubbed env: if this call starts the tmux server, its
   // global environment must not carry a TELEGRAM_* value into other sessions.
   const env = scrubWorkerEnv(ctx.env);
+  // A running manager already holds its token, so it is reported before the
+  // provider is asked for one: a rate-limited vault must not turn "already
+  // running" into a failure, or spend a vault call on nothing.
   const session = probeOwnSession(ctx, config.name, env);
   if (session.missing) throw new CliError("tmux is not on PATH.", EXIT.SETUP);
   if (session.running) {
     return { json: { status: "already-running", name: config.name } };
   }
+  // Resolved before any session is created: a provider that cannot answer
+  // must leave nothing half-started.
+  const token =
+    stateDir === undefined
+      ? null
+      : await telegramToken(ctx, config.name, stateDir);
   if (token?.source === "file") {
     asSetupError(() => assertTokenPresent(stateDir));
   }
@@ -196,12 +200,13 @@ async function telegramToken(ctx, managerName, stateDir) {
     ctx.scriptsDir,
     "../../lisa-secrets-access/scripts/resolve-secret.mjs"
   );
-  const quoted = `'${resolver.replaceAll("'", String.raw`'\''`)}'`;
   return {
     source: "provider",
     secret,
     value,
-    shellVars: { TELEGRAM_BOT_TOKEN: `$(node ${quoted} get ${secret})` },
+    shellVars: {
+      TELEGRAM_BOT_TOKEN: `$(node ${shellQuote(resolver)} get ${secret})`,
+    },
   };
 }
 
@@ -315,14 +320,15 @@ export function validate(ctx) {
 
 /**
  * The line an operator at this machine runs to answer a pending question:
- * the answer goes on stdin, never in argv.
+ * the answer goes on stdin, never in argv. Every word is single-quoted for
+ * the shell, so a path or ref holding `$(…)` or a backtick runs nothing.
  * @param {{scriptsDir: string, root: string}} ctx - CLI context
  * @param {string} ref - Item ref
  * @returns {string} Command line
  */
 function answerCommandFor(ctx, ref) {
   const script = path.join(ctx.scriptsDir, "session-manager.mjs");
-  return `node ${JSON.stringify(script)} answer ${JSON.stringify(ref)} --project-root ${JSON.stringify(ctx.root)} < answer.txt`;
+  return `node ${shellQuote(script)} answer ${shellQuote(ref)} --project-root ${shellQuote(ctx.root)} < answer.txt`;
 }
 
 /**

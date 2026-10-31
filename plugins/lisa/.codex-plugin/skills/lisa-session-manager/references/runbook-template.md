@@ -56,7 +56,9 @@ configured human-needed marker, posts the question on the item with how to answe
 pending in the ledger, and keeps dispatching other items: one item waiting on a person never stops
 the queue. An item that failed `stall.maxAttempts` times also moves to the `blocked` role. With
 Telegram the question goes there too; `/lisa:session-manager status` lists every pending question.
-The operator answers on the item, on Telegram, or with the CLI `answer` command; the next cycle
+The operator answers with the CLI `answer` command that `status` lists, on Telegram, or on the
+item (a reply from an operator or trusted author, matched on stable tracker ids; with neither
+`operatorIds` nor `trustedAuthorIds` set, replies on the item are not read); the next cycle
 delivers the answer, removes the marker and clears the question. No question is ever asked in the
 manager's terminal. When the manager itself cannot proceed it records `recovery-required` with a one-line
 reason. Having no notification channel is not such a reason; a configured Telegram that is broken

@@ -4,7 +4,9 @@
  * on the tracker with its question, and the same cycle still dispatches
  * other Ready items").
  *
- * Drives the real CLI through the runbook's order for item A — `mark-plan`,
+ * Drives the real CLI, for each of the four kinds (a worker question, an
+ * ambiguous repo route, an `exhausted` item, a design or product decision),
+ * through the runbook's order for item A — `mark-plan`,
  * `ledger set-question`, (the tracker write, done by `lisa-tracker-write`),
  * `ledger marked` — and then the rest of the same cycle: `queue` must leave
  * A out as `pending-question` and still return B, `spawn B` must start a
@@ -35,6 +37,7 @@ const GH_REPO = "example-org/demo-repo";
 const A = `${GH_REPO}#1`;
 const B = `${GH_REPO}#2`;
 const QUESTION = "Which payment provider should the checkout use?";
+const KINDS = [WORKER_QUESTION, "repo-route", "exhausted", "decision"];
 
 /**
  * A Ready GitHub issue row, unassigned.
@@ -55,72 +58,91 @@ function ghIssue(number: number) {
 }
 
 describe("a cycle with one human-needed item", () => {
-  it("marks A, leaves it out of the queue, and still dispatches B", () => {
-    const sandbox = makeSandbox();
-    const pages = path.join(sandbox.root, "pages.json");
-    writeJson(pages, [[ghIssue(1), ghIssue(2)]]);
+  it.each(KINDS)(
+    "marks A (%s), leaves it out of the queue, and still dispatches B",
+    kind => {
+      const sandbox = makeSandbox({
+        extraConfig: {
+          github: {
+            org: "example-org",
+            repo: "demo-repo",
+            labels: {
+              build: { ready: "status:ready", blocked: "status:blocked" },
+            },
+          },
+        },
+      });
+      const pages = path.join(sandbox.root, "pages.json");
+      writeJson(pages, [[ghIssue(1), ghIssue(2)]]);
 
-    const plan = run(sandbox, ["mark-plan", A, "--kind", WORKER_QUESTION], {
-      input: QUESTION,
-    });
-    expect(plan.status).toBe(0);
-    expect(plan.json.marker).toEqual({ type: "label", value: "human-needed" });
-    expect(plan.json.comment).toContain(QUESTION);
+      const plan = run(sandbox, ["mark-plan", A, "--kind", kind], {
+        input: QUESTION,
+      });
+      expect(plan.status).toBe(0);
+      expect(plan.json.marker).toEqual({
+        type: "label",
+        value: "human-needed",
+      });
+      expect(plan.json.comment).toContain(QUESTION);
+      expect(Boolean(plan.json.move)).toBe(kind === "exhausted");
 
-    const asked = run(
-      sandbox,
-      ["ledger", "set-question", A, "--kind", WORKER_QUESTION],
-      { input: QUESTION }
-    );
-    expect(asked.status).toBe(0);
-    expect(asked.json.pendingQuestion.markedAt).toBeNull();
+      const asked = run(
+        sandbox,
+        ["ledger", "set-question", A, "--kind", kind],
+        { input: QUESTION }
+      );
+      expect(asked.status).toBe(0);
+      expect(asked.json.pendingQuestion.markedAt).toBeNull();
 
-    const marked = run(sandbox, [
-      "ledger",
-      "marked",
-      A,
-      "--marker-type",
-      plan.json.marker.type,
-      "--marker",
-      plan.json.marker.value,
-    ]);
-    expect(marked.status).toBe(0);
+      const marked = run(sandbox, [
+        "ledger",
+        "marked",
+        A,
+        "--marker-type",
+        plan.json.marker.type,
+        "--marker",
+        plan.json.marker.value,
+      ]);
+      expect(marked.status).toBe(0);
 
-    const queue = run(sandbox, ["queue", "--tracker", "github", "--me", "me"], {
-      env: { STUB_GH_FILE: pages },
-    });
-    expect(queue.status).toBe(0);
-    expect(queue.json.ordered.map((item: { ref: string }) => item.ref)).toEqual(
-      [B]
-    );
-    expect(queue.json.excluded).toContainEqual({
-      ref: A,
-      reason: "pending-question",
-    });
-
-    const spawn = run(sandbox, ["spawn", B, "--meminfo", MEMINFO]);
-    expect(spawn.stderr).toBe("");
-    expect(spawn.status).toBe(0);
-    expect(callsOf(spawn.calls, "claude", "--bg")).toHaveLength(1);
-
-    const status = run(sandbox, ["status"], {
-      agents: [activeAgent(spawn.json.name)],
-    });
-    expect(status.status).toBe(0);
-    expect(status.json.workers).toContainEqual(
-      expect.objectContaining({ ref: B, live: true })
-    );
-    expect(status.json.pendingQuestions).toEqual([
-      expect.objectContaining({
+      const queue = run(
+        sandbox,
+        ["queue", "--tracker", "github", "--me", "me"],
+        { env: { STUB_GH_FILE: pages } }
+      );
+      expect(queue.status).toBe(0);
+      expect(
+        queue.json.ordered.map((item: { ref: string }) => item.ref)
+      ).toEqual([B]);
+      expect(queue.json.excluded).toContainEqual({
         ref: A,
-        kind: WORKER_QUESTION,
-        text: QUESTION,
-        marked: true,
-        answerQueued: false,
-        answerCommand: expect.stringContaining(`answer "${A}"`),
-      }),
-    ]);
-  });
+        reason: "pending-question",
+      });
+
+      const spawn = run(sandbox, ["spawn", B, "--meminfo", MEMINFO]);
+      expect(spawn.stderr).toBe("");
+      expect(spawn.status).toBe(0);
+      expect(callsOf(spawn.calls, "claude", "--bg")).toHaveLength(1);
+
+      const status = run(sandbox, ["status"], {
+        agents: [activeAgent(spawn.json.name)],
+      });
+      expect(status.status).toBe(0);
+      expect(status.json.workers).toContainEqual(
+        expect.objectContaining({ ref: B, live: true })
+      );
+      expect(status.json.pendingQuestions).toEqual([
+        expect.objectContaining({
+          ref: A,
+          kind,
+          text: QUESTION,
+          marked: true,
+          answerQueued: false,
+          answerCommand: expect.stringContaining(`answer '${A}'`),
+        }),
+      ]);
+    }
+  );
 
   it("leaves a pending item out of the backlog tier too", () => {
     const sandbox = makeSandbox({

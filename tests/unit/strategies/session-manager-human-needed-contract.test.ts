@@ -123,6 +123,21 @@ describe.each(ALL_ROOTS)("mark and move on (%s)", root => {
       "`candidate-proposed` is the outcome for marking an item human-needed."
     );
     expect(outcome).not.toContain("is **not used**");
+    // A worker FAILED routed to the blocked role is a healthy hold, not a
+    // broken loop (automation-runbook-contract.md, "A run outcome is NOT a
+    // work-item lifecycle terminal state").
+    const rows = outcome.split("\n");
+    const row = (result: string) =>
+      rows.find(line => line.endsWith(`| \`${result}\` |`));
+    expect(row("candidate-proposed")).toContain(
+      "a worker `FAILED` moved the item to the `blocked` role"
+    );
+    const recovery = row("recovery-required");
+    expect(recovery).toBeDefined();
+    expect(recovery).not.toMatch(/a `FAILED` arrived/);
+    expect(recovery).toContain(
+      "a worker `FAILED`'s move to the `blocked` role could not be written or read back"
+    );
     expect(outcome).not.toContain(
       "an item moved to Blocked after `maxAttempts`"
     );

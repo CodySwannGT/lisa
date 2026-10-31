@@ -3,9 +3,11 @@
  * #4555).
  *
  * Telegram is optional. With no channel (`notify.provider` `"none"`, or no
- * `notify` block) there is no bot, token, state dir or plugin to check, so the
- * check reports "notifications: none" and runs only the findings that matter
- * either way: managed settings that override the manager's
+ * `notify` block) there is no bot, token, state dir or plugin to require, so
+ * the check reports "notifications: none" and runs only the findings that
+ * matter either way: a plaintext bot token still lying around (an exported
+ * `TELEGRAM_BOT_TOKEN*` variable, or a token file in the shared Telegram
+ * dir), managed settings that override the manager's
  * `crossSessionInbound: accept`, and the trust findings (a public repo
  * without `trustedAuthorIds`). With Telegram it also runs the isolation
  * findings in `doctor-session-manager-token` (state dir, where the bot token
@@ -40,7 +42,8 @@ import {
 } from "./doctor-session-manager-trust.js";
 import {
   resolveStateDir,
-  secretsProviderOf,
+  plaintextTokenFindings,
+  secretsProviderAt,
   telegramFindings,
   telegramSecretNameFor,
 } from "./doctor-session-manager-token.js";
@@ -159,6 +162,18 @@ function homeOf(deps: SessionManagerDoctorDependencies): string {
 }
 
 /**
+ * The Claude config dir doctor inspects: `CLAUDE_CONFIG_DIR`, else
+ * `<home>/.claude`.
+ * @param deps - Injected environment and HOME
+ * @returns Absolute dir
+ */
+function claudeDirOf(deps: SessionManagerDoctorDependencies): string {
+  return deps.env.CLAUDE_CONFIG_DIR
+    ? path.resolve(deps.env.CLAUDE_CONFIG_DIR)
+    : path.join(homeOf(deps), ".claude");
+}
+
+/**
  * The Telegram-only findings, run only when Telegram is the channel.
  * @param targetPath - Project root
  * @param block - Merged `sessionManager` block
@@ -175,9 +190,7 @@ async function channelFindings(
   secretsProvider: string | undefined
 ): Promise<readonly Finding[]> {
   const home = homeOf(deps);
-  const claudeDir = deps.env.CLAUDE_CONFIG_DIR
-    ? path.resolve(deps.env.CLAUDE_CONFIG_DIR)
-    : path.join(home, ".claude");
+  const claudeDir = claudeDirOf(deps);
   const notify = isRecord(block.notify) ? block.notify : {};
   const stateDir = resolveStateDir(notify.stateDir, home, targetPath);
   return [
@@ -280,7 +293,7 @@ export async function checkSessionManagerIsolation(
     }
     const notify = isRecord(block.notify) ? block.notify : {};
     const mode = notifyMode(notify);
-    const secretsProvider = secretsProviderOf({ ...committed, ...local });
+    const secretsProvider = await secretsProviderAt(targetPath, read, deps.env);
     const pending = await pendingHumanReport(
       targetPath,
       block,
@@ -291,7 +304,11 @@ export async function checkSessionManagerIsolation(
       ...mode.problems,
       ...(mode.provider === "telegram"
         ? await channelFindings(targetPath, block, deps, read, secretsProvider)
-        : []),
+        : await plaintextTokenFindings({
+            sharedDir: path.join(claudeDirOf(deps), "channels", "telegram"),
+            env: deps.env,
+            statFile: deps.stat ?? fsStat,
+          })),
       ...(await managedFindings(
         read,
         deps.managedSettingsPaths ?? DEFAULT_MANAGED_SETTINGS_PATHS

@@ -712,22 +712,26 @@ const RATE_LIMITED = /\b429\b|too many requests|rate.?limit/i;
  * bws secret create KEY <value> ...`), so a failed write would print the very
  * value it was writing. The rethrown error keeps only what a caller needs to
  * act on: the operation, the exit status and whether the provider
- * rate-limited the call. Any other error passes through as it is, because
- * none carries argv: a missing binary is `spawnSync bws ENOENT`, and a
- * deadline is already reworded by {@link run}.
+ * rate-limited the call. Every other error (a missing binary's
+ * `spawnSync bws ENOENT`, a deadline {@link run} already reworded) is
+ * rebuilt too, keeping only its message (with the value redacted) and its
+ * `code`/`errno`/`syscall`/`status`/`signal`: Node's spawn errors also carry
+ * `spawnargs`, the full argv, value included, which a caller that logs or
+ * serializes the error would publish.
  * @param {string} bin Executable name.
  * @param {string[]} args Arguments, one of them a secret value.
  * @param {NodeJS.ProcessEnv} env Environment for the child.
  * @param {string} operation What the call was doing, in operator words.
+ * @param {string} value The secret value in `args`, redacted from any error.
  * @returns {string} Captured stdout.
  */
-function runWithValue(bin, args, env, operation) {
+function runWithValue(bin, args, env, operation, value) {
   try {
     return run(bin, args, env, operation);
   } catch (error) {
-    // Only Node's "Command failed: <command line>" error carries argv.
+    // Node's "Command failed: <command line>" error carries argv in its text.
     if (!String(error?.message ?? "").startsWith("Command failed")) {
-      throw error;
+      throw withoutArgv(error, value);
     }
     const why = RATE_LIMITED.test(String(error.stderr ?? ""))
       ? "the provider rate-limited the request (429 Too Many Requests)"
@@ -738,6 +742,29 @@ function runWithValue(bin, args, env, operation) {
         `the secret value.`
     );
   }
+}
+
+/** The fields of a spawn error that carry no argv, output or value. */
+const SAFE_ERROR_FIELDS = ["code", "errno", "syscall", "status", "signal"];
+
+/**
+ * A copy of a child-process error with no argv on it: a fresh Error whose
+ * message has `value` redacted, and only {@link SAFE_ERROR_FIELDS}. Drops
+ * `spawnargs`, `cmd`, `path`, `stdout`, `stderr` and `output`.
+ * @param {unknown} error What the call threw.
+ * @param {string} value The secret value to redact.
+ * @returns {Error} The rebuilt error.
+ */
+function withoutArgv(error, value) {
+  const text = String(error?.message ?? error);
+  const message = value ? text.split(String(value)).join("<redacted>") : text;
+  const safe = Object.fromEntries(
+    SAFE_ERROR_FIELDS.filter(key => error?.[key] !== undefined).map(key => [
+      key,
+      error[key],
+    ])
+  );
+  return Object.assign(new Error(message), safe);
 }
 
 /**
@@ -762,7 +789,8 @@ export function writeSecret(cfg, id, value) {
       "bws",
       ["secret", "edit", id, "--value", value],
       env,
-      "updating a secret in Bitwarden"
+      "updating a secret in Bitwarden",
+      value
     );
     return;
   }
@@ -811,7 +839,8 @@ export function createSecret(cfg, { name, value, projectId, note }) {
         "none",
       ],
       providerEnv(cfg),
-      "creating a secret in Bitwarden"
+      "creating a secret in Bitwarden",
+      value
     );
     return;
   }

@@ -155,6 +155,44 @@ describe("storeTokenInProvider: migrating a plaintext .env", () => {
     expect(existsSync(envFile())).toBe(false);
   });
 
+  it.each([
+    ["an empty", ""],
+    ["a comment-only", "# old token file\n\n"],
+  ])(
+    "deletes %s file once the provider already holds a verified secret",
+    async (_label, body) => {
+      plant(body);
+      const rows = [
+        { key: NAME, id: "id-9", value: TOKEN, projectId: PROJECT },
+      ];
+      const { result, fake, readToken } = await store({ rows });
+      expect(result).toMatchObject({
+        stored: true,
+        alreadyStored: true,
+        verified: true,
+        deleted: true,
+      });
+      expect(readToken).not.toHaveBeenCalled();
+      expect(fake.calls.filter(call => /create|replace/.test(call))).toEqual(
+        []
+      );
+      expect(existsSync(envFile())).toBe(false);
+    }
+  );
+
+  it("deletes an empty file after storing a prompted token and reading it back", async () => {
+    plant("");
+    const { result, readToken } = await store();
+    expect(readToken).toHaveBeenCalledTimes(1);
+    expect(result).toMatchObject({
+      stored: true,
+      verified: true,
+      deleted: true,
+    });
+    expect(result).not.toHaveProperty("migratedFrom");
+    expect(existsSync(envFile())).toBe(false);
+  });
+
   it("keeps a file whose token differs from the stored one (exit 2)", async () => {
     plant();
     const rows = [{ key: NAME, id: "id-9", value: OTHER, projectId: PROJECT }];

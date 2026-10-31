@@ -88,7 +88,7 @@ export function loadPromptSecret() {
  * @param {string} word - Word to quote
  * @returns {string} Single-quoted word
  */
-function shellQuote(word) {
+export function shellQuote(word) {
   const escaped = String(word).replaceAll("'", String.raw`'\''`);
   return `'${escaped}'`;
 }

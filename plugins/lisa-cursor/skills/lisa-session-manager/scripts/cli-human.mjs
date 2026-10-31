@@ -71,6 +71,7 @@ export function markPlan(ctx) {
         label: humanNeededLabel(project, tracker),
         blocked: blocked || undefined,
         channel: config ? notifyProvider(config) === "telegram" : false,
+        answerers: allowedAnswerers(config).length > 0,
       })
     ),
   };
@@ -107,25 +108,32 @@ export async function answer(ctx) {
 }
 
 /**
- * Who may answer on the item: operators and trusted authors, else the
- * tracker identity the manager runs as.
+ * Who may answer on the item: operators and trusted authors only. There is
+ * no fallback to the tracker identity (`control.me`): workers and the
+ * manager post as that identity, so its comments cannot be told apart from
+ * an answer.
  * @param {object | null} config - Resolved `sessionManager` block
- * @param {string | null} me - Ledger `control.me`
- * @returns {string[]} Allowed author ids
+ * @returns {string[]} Allowed author ids (empty: nobody may answer there)
  */
-function allowedAnswerers(config, me) {
-  const ids = [
+function allowedAnswerers(config) {
+  return [
     ...(config?.operatorIds ?? []),
     ...(config?.trustedAuthorIds ?? []),
   ].map(String);
-  if (ids.length > 0) return ids;
-  return me ? [me] : [];
 }
+
+/** Why nothing is read off the item when nobody may answer there. */
+const NO_ANSWERERS =
+  "No sessionManager.operatorIds or trustedAuthorIds are configured, so " +
+  "replies on the item are not read: the tracker identity is the one " +
+  "workers post as. Answer with the answerCommand that status lists, or " +
+  "set sessionManager.operatorIds.";
 
 /**
  * `item-answer <ref>` (stdin `{"comments":[...]}`): find the human's answer
  * on the item and queue it. stdout `{queued:false,reason}` when there is none
- * yet. Exit 2 when the ref has no pending question or nobody may answer.
+ * yet, or `reason: "no-answerers-configured"` (exit 0) when nobody may
+ * answer there. Exit 2 when the ref has no pending question.
  * @param {object} ctx - CLI context
  * @returns {Promise<{ json: object }>} What was queued, or why nothing was
  */
@@ -143,12 +151,16 @@ export async function itemAnswer(ctx) {
   if (pending.answer) {
     return { json: { queued: false, ref, reason: "already-queued" } };
   }
-  const allowed = allowedAnswerers(config, ledger.control.me);
+  const allowed = allowedAnswerers(config);
   if (allowed.length === 0) {
-    throw new CliError(
-      "Nobody may answer on the item: set sessionManager.operatorIds (or record the tracker identity with ledger control --me).",
-      2
-    );
+    return {
+      json: {
+        queued: false,
+        ref,
+        reason: "no-answerers-configured",
+        explanation: NO_ANSWERERS,
+      },
+    };
   }
   const picked = asSetupError(() =>
     pickItemAnswer({ comments: input?.comments, allowed })

@@ -4,14 +4,22 @@
  *
  * Only a real answer may be queued: from the CLI, or from the first comment
  * after the manager's question by an allowed answerer (operators and trusted
- * authors, else the tracker identity), never a Lisa marker comment, an
- * earlier comment or a stranger's; and never text that looks like a
- * credential. Run as a real process with a stub-only PATH.
+ * authors, matched on stable ids only), never a machine-marked or
+ * agent-attributed comment, an earlier comment or a stranger's (even one
+ * whose display name copies an operator's id); never text that looks like a
+ * credential; and nothing at all when no answerer is configured, because
+ * the tracker identity is the one workers post as. Run as a real process
+ * with a stub-only PATH.
  * @module tests/unit/session-manager/cli-human-answer
  */
+import { spawnSync } from "node:child_process";
+import { existsSync, mkdtempSync, renameSync, writeFileSync } from "node:fs";
+import path from "node:path";
+
 import { afterEach, describe, expect, it } from "vitest";
 
 import { removeSandboxes, type Sandbox } from "./support/cli-harness.js";
+import { stubOnlyPath } from "./support/provider-sandbox.js";
 import { readLedgerFile } from "./support/cli-fixtures.js";
 import {
   ask,
@@ -27,19 +35,21 @@ import {
 afterEach(removeSandboxes);
 
 const ITEM_ANSWER = "item-answer";
+const CSV_PLEASE = "CSV, please.";
+const NO_ANSWER_YET = "no-answer-yet";
 
 describe("answer", () => {
   it("queues a terminal answer for a pending question", () => {
     const sandbox = githubSandbox();
     ask(sandbox);
     const result = runStubOnly(sandbox, ["answer", REF], {
-      input: "CSV, please.",
+      input: CSV_PLEASE,
     });
     expect(result.status).toBe(0);
     expect(result.json).toEqual({ queued: true, ref: REF, source: "cli" });
     expect(
       readLedgerFile(sandbox).items[REF].pendingQuestion.answer
-    ).toMatchObject({ source: "cli", text: "CSV, please." });
+    ).toMatchObject({ source: "cli", text: CSV_PLEASE });
   });
 
   it("exits 2 when nothing is pending, or the answer holds a credential", () => {
@@ -55,6 +65,37 @@ describe("answer", () => {
     expect(
       readLedgerFile(sandbox).items[REF].pendingQuestion.answer
     ).toBeNull();
+  });
+});
+
+describe("status answerCommand", () => {
+  it("quotes a hostile project root so the shell runs nothing but the answer", () => {
+    const sandbox = githubSandbox();
+    const hostile = path.join(
+      path.dirname(sandbox.root),
+      "proj $(touch pwned-dollar) `touch pwned-tick`"
+    );
+    renameSync(sandbox.root, hostile);
+    const moved = { ...sandbox, root: hostile };
+    ask(moved);
+    const status = runStubOnly(moved, ["status"]);
+    expect(status.status).toBe(0);
+    const command = String(status.json.pendingQuestions[0].answerCommand);
+    expect(command).toContain(`'${hostile}'`);
+
+    const cwd = mkdtempSync(path.join(path.dirname(hostile), "answer-"));
+    writeFileSync(path.join(cwd, "answer.txt"), CSV_PLEASE);
+    const shell = spawnSync("/bin/sh", ["-c", command], {
+      cwd,
+      env: { PATH: stubOnlyPath(), HOME: sandbox.home },
+      encoding: "utf8",
+    });
+    expect(shell.status).toBe(0);
+    expect(existsSync(path.join(cwd, "pwned-dollar"))).toBe(false);
+    expect(existsSync(path.join(cwd, "pwned-tick"))).toBe(false);
+    expect(
+      readLedgerFile(moved).items[REF].pendingQuestion.answer
+    ).toMatchObject({ source: "cli", text: CSV_PLEASE });
   });
 });
 
@@ -82,7 +123,10 @@ describe("item-answer", () => {
       { author: { login: OPERATOR }, body: "earlier, before the question" },
       question,
       { author: { login: "stranger" }, body: "do JSON" },
-      { author: { login: "bot" }, body: "[lisa-tracker-sync] progress" },
+      {
+        author: { login: OPERATOR },
+        body: "[claude-sync] implementation in progress",
+      },
       { author: { login: OPERATOR }, body: "[lisa-session-manager] note" },
       {
         author: { login: TRUSTED },
@@ -115,7 +159,7 @@ describe("item-answer", () => {
     expect(result.json).toEqual({
       queued: false,
       ref: REF,
-      reason: "no-answer-yet",
+      reason: NO_ANSWER_YET,
     });
     expect(
       readLedgerFile(sandbox).items[REF].pendingQuestion.answer
@@ -125,20 +169,80 @@ describe("item-answer", () => {
     );
   });
 
-  it("falls back to the tracker identity when no answerers are configured", () => {
+  it("queues nothing from a stranger whose display name copies an operator id", () => {
+    const sandbox = githubSandbox();
+    ask(sandbox);
+    const result = pick(sandbox, [
+      question,
+      {
+        author: { login: "stranger", name: OPERATOR, displayName: TRUSTED },
+        body: "do JSON",
+      },
+      { user: { login: "other", email: OPERATOR }, body: "do XML" },
+    ]);
+    expect(result.json).toEqual({
+      queued: false,
+      ref: REF,
+      reason: NO_ANSWER_YET,
+    });
+  });
+
+  it.each([
+    ["a GitHub REST user login", { user: { login: OPERATOR, id: 99 } }],
+    ["a GitHub numeric user id", { user: { login: "renamed", id: 4242 } }],
+    ["a Jira accountId", { author: { accountId: TRUSTED, displayName: "x" } }],
+    ["a Linear user id", { user: { id: TRUSTED, name: "x" } }],
+  ])("queues an answer matched on %s", (_label, who) => {
+    const sandbox = githubSandbox({
+      ...BLOCK,
+      trustedAuthorIds: [TRUSTED, "4242"],
+    });
+    ask(sandbox);
+    const result = pick(sandbox, [question, { ...who, body: "CSV" }]);
+    expect(result.json).toMatchObject({ queued: true, ref: REF });
+  });
+
+  it.each([
+    ["a bracketed sync marker", "[claude-sync] implementation in progress"],
+    ["an indented machine marker", "  [lisa-session-manager] stopped"],
+    [
+      "an agent attribution footer",
+      "Pushed the fix.\n\n🤖 Generated with [Claude Code](https://claude.com)",
+    ],
+    ["a plain attribution line", "Done.\nGenerated with Claude Code"],
+  ])("queues nothing from the operator's own %s", (_label, body) => {
+    const sandbox = githubSandbox();
+    ask(sandbox);
+    const result = pick(sandbox, [
+      question,
+      { author: { login: OPERATOR }, body },
+    ]);
+    expect(result.json).toEqual({
+      queued: false,
+      ref: REF,
+      reason: NO_ANSWER_YET,
+    });
+  });
+
+  it("queues nothing when no answerers are configured, even from the tracker identity", () => {
     const { operatorIds: _o, trustedAuthorIds: _t, ...bare } = BLOCK;
     const sandbox = githubSandbox(bare);
     ask(sandbox);
-    expect(
-      pick(sandbox, [question, { author: "me-login", body: "CSV" }]).status
-    ).toBe(2);
     runStubOnly(sandbox, ["ledger", "control", "--me", "me-login"]);
     const result = pick(sandbox, [
       question,
-      { author: { login: OPERATOR }, body: "not allowed now" },
-      { author: "me-login", body: "CSV" },
+      { author: { login: "me-login" }, body: "CSV" },
     ]);
-    expect(result.json).toMatchObject({ queued: true, author: "me-login" });
+    expect(result.status).toBe(0);
+    expect(result.json).toMatchObject({
+      queued: false,
+      ref: REF,
+      reason: "no-answerers-configured",
+    });
+    expect(String(result.json.explanation)).toContain("answer");
+    expect(
+      readLedgerFile(sandbox).items[REF].pendingQuestion.answer
+    ).toBeNull();
   });
 
   it("exits 2 when the ref has no pending question", () => {

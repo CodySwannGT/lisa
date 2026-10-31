@@ -24,9 +24,9 @@ channels (Telegram, only when it is the configured channel) and cross-session me
 | Runtime | lisa-setup-session-manager | lisa-session-manager (manager) | `managedBy=` |
 |---|---|---|---|
 | Claude Code | supported | supported (reference). Needs `claude` ≥ 2.1.224, `tmux`, `bun` | supported |
-| Codex | config, token (prompt or `--from-clipboard`), runbook, `trust-status` and `coexistence` are supported. `trust-status` reads Claude Code's trust record, which is the one that matters (workers are Claude Code); accepting trust needs the `claude` CLI. `coexistence` sees only run logs, so also list Codex automations. `start` launches a Claude Code manager, so it works when the `claude` CLI is installed | the skill ships, but `cycle` refuses to run here (no `/loop`, channels or `SendMessage`); tell the operator to run `start` | rejected with the gap message |
+| Codex | supported through the CLI from the Claude Code plugin install or the npm package (never the Codex overlay copy, whose plugin-level imports do not resolve): `init-config --notify none\|telegram`, runbook, `store-token` (into the configured secrets provider through `lisa-secrets-access`, migrating and deleting any plaintext token file; prompt or `--from-clipboard`; the old `.env` file only when no provider is configured), `trust-status` and `coexistence`. `trust-status` reads Claude Code's trust record, which is the one that matters (workers are Claude Code); accepting trust needs the `claude` CLI. `coexistence` sees only run logs, so also list Codex automations. `start` launches a Claude Code manager (resolving the token from the provider), so it works when the `claude` CLI is installed | the skill ships, but `cycle` refuses to run here (no `/loop`, channels or `SendMessage`); tell the operator to run `start`. `status` (with `pendingQuestions` and each `answerCommand`) and `answer` run here through the same CLI | rejected with the gap message |
 | Cursor / Antigravity (agy) / Copilot / Devin | same as Codex | same as Codex | rejected |
-| OpenCode | same setup subcommands as Codex, but script resolution relies on the npm rung: the CLI imports plugin-level scripts the skill-folder copy lacks, so every subcommand needs the npm package | gap | rejected |
+| OpenCode | same setup subcommands as Codex (`store-token`, `status` and `answer` included), but script resolution relies on the npm rung: the CLI imports plugin-level scripts the skill-folder copy lacks, so every subcommand needs the npm package | gap | rejected |
 
 On any runtime other than Claude Code, `cycle` stops with: "The session manager runs on Claude Code
 only (background sessions, channels, cross-session messaging). Run `/lisa:session-manager start`
@@ -122,8 +122,10 @@ the manager.
 - **No channel (`notify` is `none`).** Post nothing anywhere:
   every "post to Telegram" and "notify Telegram" step is skipped. Record each question as pending with `ledger set-question <ref>` without `--telegram-message-id`
   (text on STDIN), mark the item as "Mark and move on" says, and carry on with the rest of the
-  cycle. The operator sees pending questions with `status` (`pendingQuestions`), answers on the
-  item or with `answer <ref>`, and the next cycle picks the answer up. The cycle ends with whatever
+  cycle. The operator sees pending questions with `status` (`pendingQuestions`), answers with the
+  `answerCommand` that `status` lists for the item (or on the item, when
+  `sessionManager.operatorIds` or `trustedAuthorIds` is set), and the next cycle picks the answer
+  up. The cycle ends with whatever
   outcome its work earns: having no channel never makes a cycle `recovery-required`.
 - **Telegram configured** (`notify` is `telegram`):
   - Talk only to the paired, allowlisted chat. Every message starts with the ref in brackets, e.g.
@@ -240,13 +242,14 @@ leave the ledger as it is (`markedAt` stays null), carry on with the cycle and e
     - `cap N`: `ledger control --max-workers N`. This may raise the limit above
       `capacity.maxWorkers`, up to 32; `capacity` still bounds it by free memory and CPU load.
     - `stop REF`: `claude stop <worker>`, move the item to the `ready` role through
-      `lisa-tracker-write` with a comment that the operator stopped it, then
+      `lisa-tracker-write` with a comment `[lisa-session-manager] Stopped by the operator.`, then
       `ledger finish <ref> --status FAILED` with reason "stopped by the operator". This is an explicit
       human instruction, which is why it may return a claimed item to Ready.
 - **`[<REF>] DONE: …` / `[<REF>] FAILED: …` from a worker:**
   `ledger finish <ref> --status DONE|FAILED --sender <sender>` (reason on STDIN) and post one line
   to Telegram. On `FAILED`, also move the item to the `blocked`
-  role through `lisa-tracker-write` with a comment quoting the reason. When the reason says a
+  role through `lisa-tracker-write` with a comment `[lisa-session-manager] Worker failed: <reason>`,
+  and read both back with `lisa-tracker-read`. When the reason says a
   design or product decision is needed, mark it instead ("Mark and move on", `--kind decision`).
 
 ## The cycle
@@ -273,11 +276,20 @@ shows them.
   of "Mark and move on".
 - `answerQueued: true`: an answer arrived (`ledger get <ref>` holds it in
   `pendingQuestion.answer`). Run "Clearing" with it.
-- Otherwise read the item's comments with `lisa-tracker-read` and pipe
-  `{"comments":[{"author":…,"body":…,"createdAt":…}]}` to `item-answer <ref>`. It queues the first
-  reply after the question from an operator or trusted author, ignoring Lisa's own comments. On
-  `queued: true`, run "Clearing". On `queued: false`, leave the item: it stays marked and out of
-  the queue, and the cycle goes on.
+- Otherwise read the item's comments, in order, with each author's **stable id** (answerers are
+  matched on stable ids only, never a name, display name or email, which anyone can set): GitHub
+  `gh api --paginate repos/<owner>/<repo>/issues/<n>/comments` (each row carries `user.login` and
+  the numeric `user.id`, so a numeric `trustedAuthorIds` entry matches too); Jira the comment
+  `author.accountId` through `lisa-atlassian-access`; Linear the comment `user.id` through
+  `lisa-linear-access`. Pipe `{"comments":[{"user":…|"author":…,"body":…,"createdAt":…}]}` to
+  `item-answer <ref>`. It queues the first reply after the question from an operator or trusted
+  author, ignoring every machine comment: one that starts with a bracketed marker (`[lisa-…]`,
+  `[claude-sync] …`) or carries the coding-agent attribution footer. That is why every comment the
+  manager itself posts starts with `[lisa-session-manager]`. On `queued: true`, run "Clearing". On
+  `queued: false`, leave the item: it stays marked and out of the queue, and the cycle goes on.
+  `reason: "no-answerers-configured"` means neither `operatorIds` nor `trustedAuthorIds` is set,
+  so nothing on the item is read (the tracker identity is the one workers post as); the operator
+  answers with the `answerCommand` from `status`.
 
 **In Progress (ledger-driven).** Run `classify`. Items not in the ledger are not yours: leave them.
 
@@ -296,7 +308,7 @@ queue below). For each:
    rule); never treat "blocker closed" as "unblocked".
 2. Pipe `{labels,body,comments,edges}` as JSON to `blocked-plan --ref <ref>`. Act on `action`:
    - `release`: dissolve the edges and move the item to the `ready` role in one `lisa-tracker-write`
-     update, with a comment giving the reason; read it back with `lisa-tracker-read` and confirm the
+     update, with a comment `[lisa-session-manager] Released: <reason>`; read it back with `lisa-tracker-read` and confirm the
      role changed before you claim it did. Notify Telegram.
    - `keep` with a manager question pending: "Waiting on a human" above handles it.
    - `keep`, `escalate`, `skip-human-gate`: leave it. Gate self-blocks and clarification blocks
@@ -403,9 +415,9 @@ session `start` creates), every cycle ends in **exactly one** of the six outcome
 |---|---|
 | No dispatch, no state change, no question relayed or newly pending. The summary still states the denominator: "swept N ready, 0 dispatchable; R running/C cap". | `nothing-needed` |
 | At least one of: a worker spawned and seen live in `status`; a Blocked→Ready release written and read back; an answer delivered and its marker removed (`SendMessage` acknowledged, or `resume` returned a session id); a stalled item retried. | `change-proved` |
-| An item was marked human-needed ("Mark and move on": marker and question comment written and read back), in any of the four cases, including an `exhausted` item moved to the `blocked` role. The summary names each ref and where to answer it. | `candidate-proposed` |
+| An item was marked human-needed ("Mark and move on": marker and question comment written and read back), in any of the four cases, including an `exhausted` item moved to the `blocked` role; or a worker `FAILED` moved the item to the `blocked` role with its reason comment, both read back. The summary names each ref and where to answer it. | `candidate-proposed` |
 | No item was newly marked, but a pending question was re-sent on Telegram (`requestion`) and awaits the operator, and nothing else changed. | `approval-requested` |
-| The tracker, a configured Telegram or `claude` was unreachable; Telegram is configured but was unavailable or unpaired (a question stayed pending with no Telegram message id); a human-needed mark could not be written or read back, or no marker is configured; a spawn failed after the claim (the item went back to Ready); a `FAILED` arrived; the capacity probe failed. | `recovery-required` |
+| The tracker, a configured Telegram or `claude` was unreachable; Telegram is configured but was unavailable or unpaired (a question stayed pending with no Telegram message id); a human-needed mark could not be written or read back, or no marker is configured; a worker `FAILED`'s move to the `blocked` role could not be written or read back; a spawn failed after the claim (the item went back to Ready); the capacity probe failed. | `recovery-required` |
 | The retirement condition holds. | `policy-obsolete` |
 
 `candidate-proposed` is the outcome for marking an item human-needed. The contract's section "A run
@@ -413,7 +425,9 @@ outcome is NOT a work-item lifecycle terminal state" assigns it to exactly this 
 cycle that routes a work item to the blocked lane with clarifying questions has produced
 something, so it is never `nothing-needed` and never `recovery-required`. Holding an item for a
 human with its question on the item is that routing, whether the hold is the human-needed marker
-or the `blocked` role. The loop files no
+or the `blocked` role, and so is a worker's `FAILED` routed to the `blocked` role with its reason:
+the item failed, the loop did not. Only a hold that could not be written or read back is
+`recovery-required`. The loop files no
 other candidates. When several rows apply, the most urgent wins: `recovery-required`, then
 `candidate-proposed`, then `approval-requested`, then `change-proved`.
 A missing channel is never a reason for `recovery-required`: with `notify` `none`, a cycle ends

@@ -16,7 +16,11 @@ import path from "node:path";
 
 import { afterEach, describe, expect, it } from "vitest";
 
-import { readCalls, removeSandboxes } from "./support/cli-harness.js";
+import {
+  readCalls,
+  removeSandboxes,
+  type RunResult,
+} from "./support/cli-harness.js";
 import {
   filesContaining,
   providerSandbox,
@@ -40,6 +44,22 @@ const STORED = [
 const STORE_TOKEN = "store-token";
 const START_NOW = ["start", "--settle-ms", "0"];
 const NEW_SESSION = "new-session";
+const START_SERVER = "start-server";
+const RATE_LIMIT = "rate-limit";
+
+/**
+ * The tmux calls that would create a session. `start` may still probe for a
+ * running manager (`has-session`) first, which creates nothing.
+ * @param calls - Recorded stub calls
+ * @returns The session-creating tmux calls
+ */
+function launches(calls: RunResult["calls"]): RunResult["calls"] {
+  return calls.filter(
+    call =>
+      call.bin === "tmux" &&
+      [START_SERVER, NEW_SESSION].includes(String(call.argv[0]))
+  );
+}
 
 /**
  * Plant `<stateDir>/.env` holding the sentinel, as the old setup wrote it.
@@ -120,7 +140,7 @@ describe("store-token with a secrets provider", () => {
     const sandbox = providerSandbox();
     const file = plantEnvFile(sandbox);
     const result = runWithProvider(sandbox, [STORE_TOKEN], {
-      env: { STUB_BWS_FAIL: "rate-limit" },
+      env: { STUB_BWS_FAIL: RATE_LIMIT },
     });
     expect(result.status).toBe(1);
     expect(result.stderr).toMatch(/rate-limited/);
@@ -140,8 +160,8 @@ describe("start with a secrets provider", () => {
       secret: SECRET,
     });
     const sourced = result.calls.filter(call => call.bin === "tmux");
-    const launch = sourced.find(call => call.argv[0] === "start-server");
-    expect(launch?.argv).toEqual(["start-server", ";", "source-file", "-"]);
+    const launch = sourced.find(call => call.argv[0] === START_SERVER);
+    expect(launch?.argv).toEqual([START_SERVER, ";", "source-file", "-"]);
     expect(launch?.envKeys).not.toContain("TELEGRAM_BOT_TOKEN");
     expect(launch?.extra).toMatchObject({
       sourced: NEW_SESSION,
@@ -154,8 +174,8 @@ describe("start with a secrets provider", () => {
     expectNoLeak(sandbox, result);
   });
 
-  it.each(["rate-limit", "unavailable"])(
-    "fails (exit 1) with no tmux call when the provider is %s",
+  it.each([RATE_LIMIT, "unavailable"])(
+    "fails (exit 1) and starts no tmux session when the provider is %s",
     failure => {
       const sandbox = providerSandbox(STORED);
       const result = runWithProvider(sandbox, ["start"], {
@@ -164,10 +184,27 @@ describe("start with a secrets provider", () => {
       expect(result.status).toBe(1);
       expect(result.stderr).toContain("Nothing was started");
       expect(result.stderr).toContain("Wait a minute and run start again");
-      expect(result.calls.filter(call => call.bin === "tmux")).toEqual([]);
+      expect(launches(result.calls)).toEqual([]);
       expectNoLeak(sandbox, result);
     }
   );
+
+  it("reports already-running before asking a rate-limited provider for the token", () => {
+    const sandbox = providerSandbox(STORED);
+    plantEnvFile(sandbox);
+    const result = runWithProvider(sandbox, ["start"], {
+      env: {
+        STUB_BWS_FAIL: RATE_LIMIT,
+        STUB_TMUX_HAS_SESSION: "1",
+        STUB_TMUX_SESSION_PATH: sandbox.root,
+      },
+    });
+    expect(result.status).toBe(0);
+    expect(result.json).toMatchObject({ status: "already-running" });
+    expect(result.calls.filter(call => call.bin === "bws")).toEqual([]);
+    // The leftover .env holds the sentinel, so only the output is scanned.
+    expect(result.stdout + result.stderr).not.toContain(SENTINEL);
+  });
 
   it("refuses (exit 2) a leftover plaintext .env with the exact store-token command", () => {
     const sandbox = providerSandbox(STORED);
@@ -177,7 +214,7 @@ describe("start with a secrets provider", () => {
     expect(result.stderr).toMatch(
       /node '[^']*session-manager\.mjs' store-token --project-root '[^']+'/
     );
-    expect(result.calls.filter(call => call.bin === "tmux")).toEqual([]);
+    expect(launches(result.calls)).toEqual([]);
     expect(result.stderr).not.toContain(SENTINEL);
   });
 

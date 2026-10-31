@@ -81,6 +81,12 @@ writes `$SM`, and pass `--project-root "$ROOT"` (the absolute project root) on e
    "me", spelled as the tracker API returns it: the GitHub **login** (`gh api users/<login> --jq
    .login`), the Jira `accountId`, or the Linear user id (the operator's entry in the team's member
    list, or `viewer.id` only when the operator runs the lookup with their own credential).
+   **Recommend setting it in every setup**, even a single-user one: it is also who may answer a
+   human-needed question by replying on the item. With neither `operatorIds` nor
+   `trustedAuthorIds` set, the manager reads no answer off the item at all, because the tracker
+   credential's identity is the one the workers and the manager post as, so its comments cannot be
+   told apart from a human's answer. The operator then answers only at the terminal, with the
+   `answerCommand` that `status` lists. Say so plainly.
 5. Ask whether to set `sessionManager.backlogPickup` to `true` (default off). When the Ready queue
    is exhausted and a worker slot is still free, the manager then looks at backlog items (open
    leaves in no lifecycle role) that nobody else is assigned to, that are not human-held and have

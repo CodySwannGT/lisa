@@ -52,8 +52,36 @@ describe("mark-plan", () => {
     ).toBe(true);
     expect(result.json.comment).toContain(QUESTION);
     expect(result.json.comment).toContain("Reply in a comment on this item");
-    expect(result.json.comment).toContain(`answer ${REF}`);
     expect(result.json.comment).toContain(CUSTOM_LABEL);
+  });
+
+  it("tells a reader how to answer in plain English, with nothing to paste", () => {
+    const { comment } = runStubOnly(
+      githubSandbox(),
+      [MARK_PLAN, REF, KIND, DECISION],
+      { input: QUESTION }
+    ).json;
+    expect(comment).not.toContain("$SM");
+    expect(comment).not.toContain('node "');
+    expect(comment).toContain(
+      "On the machine running the session manager, run `session-manager.mjs status`"
+    );
+    expect(comment).toContain("`answerCommand`");
+  });
+
+  it("does not invite replies on the item when no answerer is configured", () => {
+    const { operatorIds: _o, trustedAuthorIds: _t, ...bare } = BLOCK;
+    const result = runStubOnly(
+      githubSandbox(bare),
+      [MARK_PLAN, REF, KIND, DECISION],
+      { input: QUESTION }
+    );
+    expect(result.status).toBe(0);
+    expect(result.json.comment).not.toContain("Reply in a comment");
+    expect(result.json.comment).toContain(
+      "Replies on this item are not picked up"
+    );
+    expect(result.json.answerWith.item).toBeNull();
   });
 
   it("moves only an exhausted item to the configured blocked role", () => {

@@ -88,19 +88,32 @@ describe("session-manager doctor check with no notification channel", () => {
     }
   );
 
-  it("skips the Telegram plugin, shared-dir and token-export findings", async () => {
+  it("skips the Telegram requirements: a user-scope plugin and state-dir variable are fine", async () => {
     const fx = await fixture({ name: MANAGER });
     await writeFile(
       path.join(fx.home, ".claude", "settings.json"),
       JSON.stringify({ enabledPlugins: { [PLUGIN_ID]: true } })
     );
-    const shared = path.join(fx.home, ".claude", "channels", "telegram");
-    await mkdir(shared, { recursive: true });
-    await writeFile(path.join(shared, ".env"), "x\n");
 
-    const check = await run(fx, { TELEGRAM_BOT_TOKEN: PLANTED });
+    const check = await run(fx, { TELEGRAM_STATE_DIR: "/somewhere" });
 
     expect(check).toMatchObject({ status: "ok", detail: NO_CHANNEL });
+  });
+
+  it("still warns on any plaintext bot token it finds, by name only", async () => {
+    const fx = await fixture({ name: MANAGER });
+    const shared = path.join(fx.home, ".claude", "channels", "telegram");
+    await mkdir(shared, { recursive: true });
+    const sharedToken = path.join(shared, ".env");
+    await writeFile(sharedToken, `TELEGRAM_BOT_TOKEN=${PLANTED}\n`);
+
+    const check = await run(fx, { TELEGRAM_BOT_TOKEN_P_MANAGER: PLANTED });
+
+    expect(check.status).toBe("warn");
+    expect(check.detail).toContain(NO_CHANNEL);
+    expect(check.detail).toContain("TELEGRAM_BOT_TOKEN_P_MANAGER");
+    expect(check.detail).toContain(sharedToken);
+    expect(check.detail).not.toContain(PLANTED);
   });
 
   it("still checks managed crossSessionInbound", async () => {

@@ -93,6 +93,19 @@ describe("resolveTelegramToken", () => {
     expect(calls).toEqual([]);
   });
 
+  it.each([
+    ["an empty", ""],
+    ["a comment-only", "# moved to the secrets provider\n\n"],
+  ])(
+    "starts past %s .env, which holds no token to migrate",
+    async (_label, body) => {
+      writeFileSync(path.join(stateDir, ".env"), body);
+      const { token, error } = await resolve();
+      expect(error).toBeUndefined();
+      expect(token).toBe(TOKEN);
+    }
+  );
+
   it.each<[FakeFailure, RegExp]>([
     ["rate-limit", /rate-limited/],
     ["unavailable", /could not be reached/],

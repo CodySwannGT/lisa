@@ -16,10 +16,16 @@
  * more. Names always come from config, never from this file.
  *
  * Tracker text is untrusted. An answer is picked only from an allowed
- * answerer (operators and trusted authors, else the tracker identity), only
- * after the manager's own question comment, and never from a comment that
- * carries a `[lisa-` marker, so neither a bot comment nor an earlier comment
- * nor a stranger can answer for the operator. The text is carried as data.
+ * answerer (operators and trusted authors), matched on stable ids only (a
+ * GitHub login or numeric id, a Jira accountId, a Linear user id: never a
+ * display name or email, which anyone can set), only after the manager's own
+ * question comment, and never from a comment that starts with a bracketed
+ * machine marker (`[lisa-…]`, `[claude-sync]`, …), carries a `[lisa-`
+ * marker anywhere, or carries the agent-attribution footer. In a
+ * single-user setup the operator's tracker identity is also the one workers
+ * and the manager post as, so those comments are the only thing telling an
+ * agent's milestone apart from the human's answer. The text is carried as
+ * data.
  * @module session-manager/human-needed
  */
 
@@ -34,8 +40,20 @@ export const HUMAN_NEEDED_KINDS = Object.freeze([
 /** Marks the manager's question comment, so its answer can be found after it. */
 export const QUESTION_MARKER = "[lisa-session-manager-question]";
 
-/** Any Lisa marker: a comment carrying one is Lisa's own, never an answer. */
-const LISA_MARKER = /\[lisa-/i;
+/**
+ * What makes a comment a machine's, never a human's answer: a Lisa marker
+ * anywhere, a body that opens with any bracketed marker (`[claude-sync] …`,
+ * `[lisa-session-manager] …`), or the coding-agent attribution footer.
+ */
+const MACHINE_COMMENT = [
+  /\[lisa-/i,
+  /^\s*\[[a-z][a-z0-9-]*\]/i,
+  /Generated with Claude Code/i,
+  /🤖 Generated with/,
+];
+
+/** The author fields that are stable ids, never settable display text. */
+const STABLE_ID_KEYS = ["login", "id", "accountId"];
 
 /** What each kind is called in the comment's first line. */
 const KIND_TITLES = {
@@ -83,15 +101,29 @@ export function answerLabel(ref) {
 
 /**
  * The comment the manager posts on the item. It names the ref, the reason,
- * the question verbatim, and every way to answer, with no local path in it.
+ * the question verbatim, and every way to answer, in plain English with
+ * nothing a reader has to paste and no local path. A reply on the item is
+ * offered only when someone may answer there (`answerers`): with no
+ * operator or trusted author configured, replies are never picked up.
  * @param {{ref: string, kind: string, text: string, label: string,
- *   markerText: string, channel: boolean}} input - What to say
+ *   markerText: string, channel: boolean, answerers: boolean}} input - What
+ *   to say
  * @returns {string} Comment body
  */
-function questionComment({ ref, kind, text, label, markerText, channel }) {
+function questionComment({
+  ref,
+  kind,
+  text,
+  label,
+  markerText,
+  channel,
+  answerers,
+}) {
   const ways = [
-    `- Reply in a comment on this item. The session manager reads the first reply from an operator or trusted author on its next cycle.`,
-    `- Or, on the machine running the session manager: \`node "$SM/session-manager.mjs" answer ${ref}\` with the answer on stdin.`,
+    answerers
+      ? `- Reply in a comment on this item, in plain words (do not start it with a bracketed tag). The session manager reads the first reply from an operator or trusted author on its next cycle.`
+      : `- Replies on this item are not picked up: no operator or trusted author is configured for the session manager.`,
+    `- On the machine running the session manager, run \`session-manager.mjs status\` and use the \`answerCommand\` it lists for this item.`,
     ...(channel
       ? [`- Or on Telegram: \`Answer with: ${label} <your answer>\`.`]
       : []),
@@ -127,14 +159,23 @@ function chooseMarker(label, blocked) {
  * unknown kind, empty or credential-shaped text, no marker, or an `exhausted`
  * item with no `blocked` role to move it to.
  * @param {{ref: string, kind: string, text: string, label?: string,
- *   blocked?: string, channel?: boolean}} input - The item, why, the question,
- *   the configured human-needed label and `blocked` role value, and whether a
- *   notification channel exists
+ *   blocked?: string, channel?: boolean, answerers?: boolean}} input - The
+ *   item, why, the question, the configured human-needed label and `blocked`
+ *   role value, whether a notification channel exists, and whether anyone
+ *   (operatorIds / trustedAuthorIds) may answer on the item
  * @returns {{ref: string, kind: string, marker: {type: string, value: string},
  *   move?: {role: "blocked", value: string}, comment: string,
- *   answerWith: {item: string, cli: string, channel: string|null}}} Plan
+ *   answerWith: {item: string|null, cli: string, channel: string|null}}} Plan
  */
-export function planMark({ ref, kind, text, label, blocked, channel = false }) {
+export function planMark({
+  ref,
+  kind,
+  text,
+  label,
+  blocked,
+  channel = false,
+  answerers = true,
+}) {
   if (!HUMAN_NEEDED_KINDS.includes(kind)) {
     throw new Error(`--kind must be one of: ${HUMAN_NEEDED_KINDS.join(", ")}.`);
   }
@@ -171,25 +212,27 @@ export function planMark({ ref, kind, text, label, blocked, channel = false }) {
       label: short,
       markerText,
       channel,
+      answerers,
     }),
     answerWith: {
-      item: `a comment on ${ref}`,
-      cli: `session-manager.mjs answer ${ref} (answer on stdin)`,
+      item: answerers ? `a comment on ${ref}` : null,
+      cli: `the answerCommand that session-manager.mjs status lists for ${ref} (answer on stdin)`,
       channel: channel ? `Answer with: ${short} <your answer>` : null,
     },
   };
 }
 
 /**
- * Every identity string a tracker author object can carry.
+ * The stable ids a tracker author object carries: the GitHub `login` and
+ * numeric `id` (`author` from `gh issue view`, `user` from the REST API), the
+ * Jira `accountId`, the Linear user `id`. Names, display names and emails are
+ * never matched: a stranger can set theirs to an operator's id.
  * @param {unknown} author - `author`/`user` from a comment
- * @returns {string[]} Ids, logins, account ids and names
+ * @returns {string[]} Stable ids
  */
 function authorIds(author) {
-  if (typeof author === "string") return [author];
   if (author === null || typeof author !== "object") return [];
-  return ["login", "id", "accountId", "name", "displayName", "email"]
-    .map(key => author[key])
+  return STABLE_ID_KEYS.map(key => author[key])
     .filter(value => typeof value === "string" || typeof value === "number")
     .map(String);
 }
@@ -206,9 +249,9 @@ function bodyOf(comment) {
 
 /**
  * Pick the human's answer from an item's comments: the first comment after
- * the manager's latest question comment whose author is allowed and whose
- * body carries no `[lisa-` marker. Comments are taken in the order given
- * (the tracker's chronological order).
+ * the manager's latest question comment whose author is allowed and that is
+ * not a machine's comment (see {@link MACHINE_COMMENT}). Comments are taken
+ * in the order given (the tracker's chronological order).
  * @param {{comments: unknown, allowed: readonly string[]}} input - The item's
  *   comments and the answerer ids
  * @returns {{answer: {text: string, author: string, at: string|null} | null,
@@ -229,7 +272,7 @@ export function pickItemAnswer({ comments, allowed }) {
     const text = bodyOf(row);
     return (
       ids.some(id => allow.has(id)) &&
-      !LISA_MARKER.test(text) &&
+      !MACHINE_COMMENT.some(pattern => pattern.test(text)) &&
       text.trim() !== ""
     );
   });

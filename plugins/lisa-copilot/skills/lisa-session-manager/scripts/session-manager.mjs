@@ -18,8 +18,11 @@
  * background sessions (`claude --bg`, `claude agents`), cross-session
  * messaging and channels, which no other supported agent has. Codex, Cursor,
  * OpenCode, Antigravity, Copilot and Devin can run the setup-time subcommands
- * (init-config, store-token, trust-status, coexistence, validate, start) and
- * `answer` (an operator answering a pending question at the terminal), and
+ * (init-config, store-token into the configured secrets provider,
+ * trust-status, coexistence, validate, start), `status` (pending questions
+ * and their answerCommand) and `answer` (an operator answering a pending
+ * question at the terminal), from the Claude Code plugin install or the npm
+ * package only (never the Codex overlay copy), and
  * `start` hosts a Claude Code manager in tmux whatever agent ran it. Note that
  * trust-status reads Claude Code's own trust record, which is the one that
  * matters: workers are always Claude Code. They cannot run a manager cycle

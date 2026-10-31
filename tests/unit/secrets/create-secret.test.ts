@@ -110,6 +110,44 @@ describe("createSecret", () => {
   });
 });
 
+/**
+ * The error `fn` throws, whole.
+ * @param fn - Call expected to throw
+ * @returns The thrown value
+ */
+function caught(fn: () => void): Error & Record<string, unknown> {
+  try {
+    fn();
+  } catch (error) {
+    return error as Error & Record<string, unknown>;
+  }
+  throw new Error("expected a throw");
+}
+
+describe("a provider binary that cannot be spawned", () => {
+  it.each([
+    [
+      "createSecret",
+      () =>
+        createSecret(CFG, { name: "X_TOKEN", value: VALUE, projectId: "p" }),
+    ],
+    ["writeSecret", () => writeSecret(CFG, "id-1", VALUE)],
+  ])("%s strips the argv from the spawn error", (_label, call) => {
+    // A PATH holding only an empty dir: no bws at all, stub or real.
+    const empty = mkdtempSync(path.join(dir, "empty-path-"));
+    vi.stubEnv("PATH", empty);
+    const error = caught(call);
+    expect(error.code).toBe("ENOENT");
+    expect(error).not.toHaveProperty("spawnargs");
+    expect(error).not.toHaveProperty("cmd");
+    expect(error.message).not.toContain(VALUE);
+    const everything = JSON.stringify(
+      Object.getOwnPropertyNames(error).map(key => [key, error[key]])
+    );
+    expect(everything).not.toContain(VALUE);
+  });
+});
+
 describe("writeSecret", () => {
   it("never puts the value in the error when bws fails", () => {
     vi.stubEnv("STUB_BWS_FAIL", "unavailable");

@@ -99,6 +99,22 @@ function waitingItems(ledger: Record<string, unknown>, now: number): Waiting[] {
 }
 
 /**
+ * Why the ledger could not be loaded: unparseable JSON, or a read that
+ * failed (permissions, a directory in its place), told apart so the
+ * operator fixes the right thing. Only the error code is shown.
+ * @param error - What reading or parsing threw
+ * @returns Phrase completing "<file> …"
+ */
+function ledgerProblem(error: unknown): string {
+  if (error instanceof SyntaxError) return "is not valid JSON";
+  const code =
+    isRecord(error) && typeof error.code === "string" ? error.code : undefined;
+  return code === undefined
+    ? "could not be read"
+    : `could not be read (${code})`;
+}
+
+/**
  * List the items pending a human and warn about unmarked ones.
  * @param targetPath - Project root
  * @param block - Merged `sessionManager` block
@@ -113,18 +129,22 @@ export async function pendingHumanReport(
   now: () => Date
 ): Promise<PendingHumanReport> {
   const file = path.join(targetPath, ".lisa", "session-manager", "ledger.json");
-  const ledger = await readJson(read, file).catch(() => null);
-  if (ledger === null) {
+  const loaded = await readJson(read, file).then(
+    value => ({ ledger: value, problem: undefined }),
+    (error: unknown) => ({ ledger: undefined, problem: ledgerProblem(error) })
+  );
+  if (loaded.problem !== undefined) {
     return {
       note: undefined,
       findings: [
         {
           status: "warn",
-          text: `${file} is not valid JSON, so doctor cannot list the items waiting on a human; the manager also refuses it until it is repaired`,
+          text: `${file} ${loaded.problem}, so doctor cannot list the items waiting on a human; the manager also refuses it until it is repaired`,
         },
       ],
     };
   }
+  const ledger = loaded.ledger;
   const waiting =
     ledger === undefined ? [] : waitingItems(ledger, now().getTime());
   if (waiting.length === 0) return { note: undefined, findings: [] };

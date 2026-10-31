@@ -21,31 +21,37 @@
  * adapter so tests run against a fake vault. The token is never returned to
  * the CLI, put in a message, or logged: errors carry fixed reason text, never
  * a provider's raw error, since a failed write's error can quote its argv.
+ *
+ * The adapter and provider-error handling live in token-provider.mjs and the
+ * plaintext-file migration helpers in token-migrate.mjs; this module keeps
+ * the two flows and re-exports what the CLI imports.
  * @module session-manager/token-store
  */
-import { createHash } from "node:crypto";
 import * as nodeFs from "node:fs";
-import path from "node:path";
 
+import {
+  TOKEN_VAR,
+  TokenStoreError,
+  assertMigratable,
+  digest,
+  holdsToken,
+  keepExisting,
+  readEnvFile,
+  removeAfterVerify,
+  setupError,
+} from "./token-migrate.mjs";
+import { guarded } from "./token-provider.mjs";
 import { validateBotToken } from "./token.mjs";
 
-/** The plugin's plaintext token file in the state dir (the old storage). */
-const TOKEN_FILE = ".env";
-
-/** The variable the Telegram plugin reads its token from. */
-const TOKEN_VAR = "TELEGRAM_BOT_TOKEN";
-
-/** One `KEY=value` line of a dotenv file, optionally `export`ed. */
-const ENV_LINE = /^(?:export\s+)?([A-Za-z_][A-Za-z0-9_]*)=(.*)$/;
-
-/** A provider error that names a rate limit (HTTP 429). */
-const RATE_LIMITED = /\b429\b|too many requests|rate.?limit/i;
+export { TokenStoreError } from "./token-migrate.mjs";
+export {
+  classifyProviderFailure,
+  defaultSecretsAdapter,
+  loadTokenSecrets,
+} from "./token-provider.mjs";
 
 /** Providers whose secrets live in a project that a create must name. */
 const PROJECT_SCOPED = new Set(["bitwarden"]);
-
-/** The bootstrap prefix whose CLI each provider runs, for the preflight. */
-const CLI_PREFIX = { bitwarden: "BWS_ACCESS_TOKEN", doppler: "DOPPLER_TOKEN" };
 
 /** The usage note stored with the secret (format: note-format.mjs). */
 const NOTE = [
@@ -53,33 +59,6 @@ const NOTE = [
   "scope: one Telegram bot - whoever holds it can read and send that bot's messages",
   "owner: lisa-session-manager",
 ].join("\n");
-
-/** Operator-facing reasons, by {@link classifyProviderFailure} kind. */
-const REASONS = {
-  "rate-limited": "it rate-limited the request (429 Too Many Requests)",
-  "timed-out": "it did not answer in time",
-  unavailable: "it could not be reached or refused the request",
-};
-
-/** A refusal or failure carrying the exit code the CLI should use. */
-export class TokenStoreError extends Error {
-  /**
-   * @param {string} message - Operator-readable reason; never a value
-   * @param {number} exitCode - 1 (failure, retry) or 2 (setup)
-   */
-  constructor(message, exitCode) {
-    super(message);
-    this.name = "TokenStoreError";
-    this.exitCode = exitCode;
-  }
-}
-
-/**
- * Exit 2: something the operator has to change.
- * @param {string} message - Reason
- * @returns {TokenStoreError} Error
- */
-const setupError = message => new TokenStoreError(message, 2);
 
 /**
  * The provider secret name for one manager: `TELEGRAM_BOT_TOKEN_<NAME>`, with
@@ -96,116 +75,6 @@ export function telegramSecretName(managerName) {
 }
 
 /**
- * What went wrong talking to the provider, read from the error's code and
- * text only (the text is matched, never repeated).
- * @param {unknown} error - Caught value
- * @returns {"setup" | "missing-cli" | "timed-out" | "rate-limited" |
- *   "unsupported" | "duplicate" | "unavailable"} Kind
- */
-export function classifyProviderFailure(error) {
-  const text = `${error?.message ?? ""} ${error?.stderr ?? ""}`;
-  if (error?.kind === "setup") return "setup";
-  if (error?.code === "ENOENT") return "missing-cli";
-  if (error?.code === "ETIMEDOUT" || /at its own deadline/.test(text)) {
-    return "timed-out";
-  }
-  if (RATE_LIMITED.test(text)) return "rate-limited";
-  if (/has no (bulk read|create|write) implemented/.test(text)) {
-    return "unsupported";
-  }
-  if (/duplicate secret key/.test(text)) return "duplicate";
-  return "unavailable";
-}
-
-/**
- * Turn a provider error into a {@link TokenStoreError} with fixed text.
- * @param {unknown} error - Caught value
- * @param {{ provider: string, name: string, retry: string }} where - The
- *   provider, the secret, and the retry advice for a transient failure
- * @returns {TokenStoreError} Error
- */
-function providerError(error, { provider, name, retry }) {
-  const kind = classifyProviderFailure(error);
-  if (kind === "setup") return setupError(String(error.message));
-  if (kind === "missing-cli") {
-    return setupError(
-      `The ${provider} command-line tool is not on PATH. Install it with ` +
-        `/lisa:setup:workstation, then try again.`
-    );
-  }
-  if (kind === "unsupported") {
-    return setupError(
-      `Lisa cannot read or write ${name} in provider "${provider}" yet. ` +
-        `Create ${name} in ${provider} yourself, then run store-token to ` +
-        `verify it and remove any plaintext copy.`
-    );
-  }
-  if (kind === "duplicate") {
-    return setupError(
-      `${provider} shows more than one secret with the same name, so Lisa ` +
-        `will not guess which is ${name}. Remove the duplicate in ${provider}.`
-    );
-  }
-  return new TokenStoreError(`${retry.replace("<reason>", REASONS[kind])}`, 1);
-}
-
-/**
- * The lazily-loaded secrets adapter over `lisa-secrets-access`, by path
- * relative to this file (the way token.mjs loads prompt-secret.mjs).
- * @returns {Promise<{ readConfig: Function, preflight: Function,
- *   list: Function, create: Function, replace: Function }>} Adapter
- */
-export async function defaultSecretsAdapter() {
-  const base = new URL("../../lisa-secrets-access/scripts/", import.meta.url);
-  const [surfaces, providers] = await Promise.all([
-    import(new URL("surfaces.mjs", base).href),
-    import(new URL("providers.mjs", base).href),
-  ]);
-  return {
-    readConfig: (root, env) => surfaces.readConfig(root, env),
-    preflight: cfg => {
-      const prefix = CLI_PREFIX[cfg.provider];
-      if (prefix && providers.providerCliPresent(prefix) === false) {
-        throw Object.assign(new Error("missing"), { code: "ENOENT" });
-      }
-      try {
-        providers.bootstrapToken(cfg.bootstrap);
-      } catch (error) {
-        throw Object.assign(new Error(error.message), { kind: "setup" });
-      }
-    },
-    list: cfg =>
-      [...providers.normalizeRows(providers.fetchRaw(cfg), cfg.narrow)].map(
-        ([key, row]) => ({ key, ...row })
-      ),
-    create: (cfg, secret) => providers.createSecret(cfg, secret),
-    replace: (cfg, { id, value }) => providers.writeSecret(cfg, id, value),
-  };
-}
-
-/**
- * The project's secrets config and adapter, or `null` when no provider is
- * configured (no `secrets` block, or `provider: "env"`): then the token stays
- * in the state dir's `.env` file.
- * @param {string} root - Project root
- * @param {Record<string, string | undefined>} env - Environment
- * @param {object} [adapter] - Injected adapter (tests)
- * @returns {Promise<{ cfg: object, adapter: object } | null>} Provider mode
- */
-export async function loadTokenSecrets(root, env, adapter) {
-  const secrets = adapter ?? (await defaultSecretsAdapter());
-  let cfg;
-  try {
-    cfg = secrets.readConfig(root, env);
-  } catch (error) {
-    throw setupError(`Could not read the secrets config: ${error.message}`);
-  }
-  const configured =
-    typeof cfg?.provider === "string" && cfg.provider !== "env";
-  return configured ? { cfg, adapter: secrets } : null;
-}
-
-/**
  * Refuse a name the project's `secrets.require` allowlist does not declare:
  * the provider would never hand it to this project.
  * @param {{ require?: string[] | null }} cfg - Secrets config
@@ -218,56 +87,6 @@ function assertDeclared(cfg, name) {
         `this project may not read it. Add "${name}" to secrets.require, ` +
         `then run this again.`
     );
-  }
-}
-
-/**
- * sha256 of a value, for comparing a written secret with its read-back.
- * @param {string} value - Value
- * @returns {string} Hex digest
- */
-function digest(value) {
-  return createHash("sha256").update(String(value)).digest("hex");
-}
-
-/**
- * Read the plaintext token file, if there is one: its token, and the names
- * of anything else in it (values are never kept or reported).
- * @param {string} stateDir - Resolved state dir
- * @param {Pick<typeof nodeFs, "existsSync" | "readFileSync">} fs - Seam
- * @returns {{ path: string, token: string | undefined, others: string[] } |
- *   null} The file, or null when absent
- */
-function readEnvFile(stateDir, fs) {
-  const file = path.join(stateDir, TOKEN_FILE);
-  if (!fs.existsSync(file)) return null;
-  const entries = fs
-    .readFileSync(file, "utf8")
-    .split(/\r?\n/)
-    .map((line, at) => ({ line: line.trim(), at }))
-    .filter(({ line }) => line !== "" && !line.startsWith("#"))
-    .map(({ line, at }) => ({ match: ENV_LINE.exec(line), at }));
-  const token = entries.find(({ match }) => match?.[1] === TOKEN_VAR)?.match;
-  return {
-    path: file,
-    token: token ? token[2].replace(/^(['"])(.*)\1$/, "$2") : undefined,
-    others: entries
-      .filter(({ match }) => match?.[1] !== TOKEN_VAR)
-      .map(({ match, at }) => match?.[1] ?? `an unrecognised line ${at + 1}`),
-  };
-}
-
-/**
- * Call the adapter, turning a provider error into a {@link TokenStoreError}.
- * @param {() => unknown} call - Adapter call
- * @param {{ provider: string, name: string, retry: string }} where - Context
- * @returns {Promise<unknown>} The call's result
- */
-async function guarded(call, where) {
-  try {
-    return await call();
-  } catch (error) {
-    throw providerError(error, where);
   }
 }
 
@@ -300,64 +119,6 @@ function chooseProject(cfg, rows, { name, vaultProject }) {
       `(${seen.length} projects are visible). Run store-token again with ` +
       `--vault-project <project id>.`
   );
-}
-
-/**
- * The result for a secret the provider already holds (no write): a matching
- * plaintext file is deleted; a different one is kept and refused.
- * @param {{ value: string }} existing - The stored secret
- * @param {ReturnType<typeof readEnvFile>} file - The plaintext file, if any
- * @param {{ cfg: object, name: string, fs: object }} input - Context
- * @returns {object} Outcome
- */
-function keepExisting(existing, file, { cfg, name, fs }) {
-  const result = {
-    stored: true,
-    storage: "provider",
-    provider: cfg.provider,
-    secret: name,
-    verified: true,
-    alreadyStored: true,
-  };
-  if (!validateBotToken(existing.value)) {
-    throw setupError(
-      `${name} in ${cfg.provider} does not look like a Telegram bot token. ` +
-        `Run store-token --replace to store the right one.`
-    );
-  }
-  if (file?.token === undefined) return result;
-  if (digest(file.token) !== digest(existing.value)) {
-    throw setupError(
-      `${file.path} holds a different token from the one ${cfg.provider} ` +
-        `already stores as ${name}. Nothing was changed. To make the file's ` +
-        `token the stored one, run store-token --replace; to keep the stored ` +
-        `one, delete ${file.path}.`
-    );
-  }
-  fs.rmSync(file.path);
-  return { ...result, migratedFrom: file.path, deleted: true };
-}
-
-/**
- * Refuse a plaintext file that cannot be migrated as it is.
- * @param {ReturnType<typeof readEnvFile>} file - The file, if any
- */
-function assertMigratable(file) {
-  if (file === null) return;
-  if (file.others.length > 0) {
-    throw setupError(
-      `${file.path} holds ${file.others.join(", ")} besides ${TOKEN_VAR}, so ` +
-        `it cannot be deleted after the token moves. Move the rest out of it, ` +
-        `then run store-token again. Nothing was changed.`
-    );
-  }
-  if (file.token !== undefined && !validateBotToken(file.token)) {
-    throw setupError(
-      `${file.path} holds a ${TOKEN_VAR} that does not look like a Telegram ` +
-        `bot token. Fix or delete the file, then run store-token again. ` +
-        `Nothing was changed.`
-    );
-  }
 }
 
 /**
@@ -394,8 +155,9 @@ export async function storeTokenInProvider(input) {
     return keepExisting(existing, file, { cfg, name, fs });
   }
 
-  const read =
-    file?.token === undefined ? await input.readToken() : { token: file.token };
+  const read = holdsToken(file)
+    ? { token: file.token }
+    : await input.readToken();
   if (read.token === undefined) return read;
   const projectId = existing ? undefined : chooseProject(cfg, rows, input);
   await guarded(
@@ -421,23 +183,23 @@ export async function storeTokenInProvider(input) {
       1
     );
   }
-  const migrated = file?.token !== undefined;
-  if (migrated) fs.rmSync(file.path);
   return {
     stored: true,
     storage: "provider",
     provider: cfg.provider,
     secret: name,
     verified: true,
-    ...(migrated ? { migratedFrom: file.path, deleted: true } : {}),
+    ...removeAfterVerify(file, fs),
     ...(read.clear ? { clipboardCleared: read.clear() } : {}),
   };
 }
 
 /**
  * Resolve the bot token for `start`, once, from the provider. Refuses (exit
- * 2) a leftover plaintext file, naming `fixCommand` (the `store-token` call
- * that migrates it), an undeclared or missing secret, and a value that is not
+ * 2) a leftover plaintext file that holds a token line, naming `fixCommand`
+ * (the `store-token` call that migrates it; an empty or comment-only file
+ * holds nothing to migrate and does not stop `start`), an undeclared or
+ * missing secret, and a value that is not
  * bot-token shaped; fails (exit 1) when the provider is unreachable,
  * rate-limited or slow, saying nothing was started.
  * @param {{ cfg: object, adapter: object, name: string, stateDir: string,
@@ -448,10 +210,10 @@ export async function storeTokenInProvider(input) {
 export async function resolveTelegramToken(input) {
   const { cfg, adapter, name, fixCommand, fs = nodeFs } = input;
   assertDeclared(cfg, name);
-  const file = path.join(input.stateDir, TOKEN_FILE);
-  if (fs.existsSync(file)) {
+  const file = readEnvFile(input.stateDir, fs);
+  if (holdsToken(file)) {
     throw setupError(
-      `A plaintext Telegram bot token file is still at ${file}. With a ` +
+      `A plaintext Telegram bot token file is still at ${file.path}. With a ` +
         `secrets provider configured the token must live in ` +
         `${cfg.provider} only. Nothing was started. Move it there (this ` +
         `stores the token, verifies it and deletes the file), then run start ` +

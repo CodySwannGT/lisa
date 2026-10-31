@@ -204,23 +204,33 @@ Per cycle
       comment,answerWith:{item,cli,channel}}. marker is the tracker's
       configured human-needed label, else the configured blocked role;
       exhausted also moves to the blocked role. comment starts with
-      [lisa-session-manager-question] and says how to answer (on the item,
-      with answer, or on Telegram when it is the channel). Exit 2 for an
-      unknown kind, empty or credential-shaped text, no marker configured,
-      or exhausted with no blocked role.
+      [lisa-session-manager-question] and says, in plain words, how to
+      answer: on the item (only when operatorIds or trustedAuthorIds is set;
+      answerWith.item is null otherwise), with the answerCommand that status
+      lists, or on Telegram when it is the channel. Exit 2 for an unknown
+      kind, empty or credential-shaped text, no marker configured, or
+      exhausted with no blocked role.
   answer <ref>                                  STDIN: the answer
       Queues an operator's answer (source "cli") for the next cycle to
       deliver. stdout {queued:true,ref,source}. Exit 2 when <ref> has no
       pending question, or the text looks like a credential.
-  item-answer <ref>                 STDIN: {"comments":[{author,body,createdAt}]}
+  item-answer <ref>          STDIN: {"comments":[{user|author,body,createdAt}]}
       Queues the human's answer from the item's comments (source "item"):
       the first comment after the latest [lisa-session-manager-question]
-      comment whose author is in sessionManager.operatorIds or
-      trustedAuthorIds (neither set: the ledger's control.me) and whose body
-      has no [lisa- marker. stdout {queued:true,ref,source,author} or
-      {queued:false,ref,reason:no-question-comment|no-answer-yet|
-      already-queued}. Exit 2 when <ref> has no pending question, nobody may
-      answer, or the answer looks like a credential.
+      comment whose author's STABLE id (GitHub login or numeric id, Jira
+      accountId, Linear user id; never a name, displayName or email) is in
+      sessionManager.operatorIds or trustedAuthorIds, and that is not a
+      machine comment (body starting with a bracketed marker such as
+      [lisa-...] or [claude-sync], a [lisa- marker anywhere, or the agent
+      "Generated with Claude Code" footer). For GitHub, pipe the rows of
+      gh api --paginate repos/<o>/<r>/issues/<n>/comments (user.login,
+      user.id). stdout {queued:true,ref,source,author} or {queued:false,ref,
+      reason:no-question-comment|no-answer-yet|already-queued|
+      no-answerers-configured[,explanation]}. no-answerers-configured (exit
+      0): neither list is set, so nothing on the item is read, because the
+      tracker identity is the one workers post as; answer with answer.
+      Exit 2 when <ref> has no pending question, or the answer looks like a
+      credential.
   record-cycle --outcome <outcome> [--ref <url>]... [--run-id <id>]
       STDIN: one-line summary. Records loop session-manager with runbook
       .lisa/automations/session-manager.runbook.md. stdout {path,appended,

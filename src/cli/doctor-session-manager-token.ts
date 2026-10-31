@@ -1,7 +1,8 @@
 /**
  * Telegram findings for the session-manager notifications doctor check
  * (#4448), split out of `doctor-session-manager` when Telegram became optional
- * (#4555). None of these run when the manager has no notification channel.
+ * (#4555). With no notification channel only {@link plaintextTokenFindings}
+ * runs: a plaintext token is worth flagging whether or not a bot is set up.
  *
  * The manager is the only Claude session that may poll the project's Telegram
  * bot. Two sessions polling one bot steal each other's messages, and a worker
@@ -67,19 +68,59 @@ export function telegramSecretNameFor(managerName: unknown): string {
 }
 
 /**
- * The secrets provider a merged config declares, or undefined when it
- * declares none or `env` (the environment is not a provider to store in).
- * @param config - Merged `.lisa.config.json` view
+ * The secrets provider the session-manager CLI will use for this project, or
+ * undefined when it uses none (`env`, or no provider at all). Decided exactly
+ * the way the CLI's `loadTokenSecrets` does through `lisa-secrets-access`'s
+ * `readConfig`: only the committed `.lisa.config.json` counts (the local
+ * override is never read for `secrets`), its `secrets.provider` defaulting
+ * to `env`; with no committed file at all, the environment fallback
+ * (`LISA_TENANT` or `LISA_SECRETS_NAMESPACE` names a tenant, and
+ * `LISA_PROVIDER` / `LISA_SECRETS_PROVIDER` its provider, default
+ * `bitwarden`). A test pins this to the CLI. Known gap: with no config file
+ * at the root the CLI also looks under `LISA_PROJECT_DIR` /
+ * `CLAUDE_PROJECT_DIR`; doctor only looks at the project it was pointed at.
+ * @param targetPath - Project root
+ * @param read - Text reader
+ * @param env - Doctor's environment
+ * @returns Provider name, or undefined for none
+ */
+export async function secretsProviderAt(
+  targetPath: string,
+  read: (file: string) => Promise<string>,
+  env: NodeJS.ProcessEnv
+): Promise<string | undefined> {
+  const committed = await readJson(
+    read,
+    path.join(targetPath, ".lisa.config.json")
+  );
+  const provider =
+    committed === undefined
+      ? providerFromEnvironment(env)
+      : committedProvider(committed);
+  return provider === "env" ? undefined : provider;
+}
+
+/**
+ * `secrets.provider` in the committed config, defaulting to `env`.
+ * @param committed - Parsed `.lisa.config.json`
  * @returns Provider name
  */
-export function secretsProviderOf(
-  config: Record<string, unknown>
-): string | undefined {
-  const secrets = config.secrets;
+function committedProvider(committed: Record<string, unknown>): string {
+  const secrets = committed.secrets;
   const provider = isRecord(secrets) ? secrets.provider : undefined;
-  return typeof provider === "string" && provider !== "env"
-    ? provider
-    : undefined;
+  return typeof provider === "string" ? provider : "env";
+}
+
+/**
+ * The provider `readConfig` falls back to with no config file.
+ * @param env - Environment
+ * @returns Provider name (`env` when no tenant is named)
+ */
+function providerFromEnvironment(env: NodeJS.ProcessEnv): string {
+  const tenant = (env.LISA_TENANT ?? env.LISA_SECRETS_NAMESPACE ?? "").trim();
+  if (tenant === "") return "env";
+  const named = (env.LISA_PROVIDER ?? env.LISA_SECRETS_PROVIDER ?? "").trim();
+  return named === "" ? "bitwarden" : named;
 }
 
 /**
@@ -212,18 +253,53 @@ async function userScopeFindings(
 
 /**
  * Findings for Telegram variables exported in doctor's own shell.
- * @param ctx - Resolved inputs
+ * @param env - Doctor's environment
+ * @param includeStateDir - Also flag `TELEGRAM_STATE_DIR` (Telegram only)
  * @returns Findings, naming each variable but never its value
  */
-function exportedFindings(ctx: TelegramContext): readonly Finding[] {
-  return Object.keys(ctx.env)
-    .filter(name => name === STATE_DIR_VAR || name.startsWith(TOKEN_VAR))
-    .filter(name => (ctx.env[name] ?? "") !== "")
+function exportedFindings(
+  env: NodeJS.ProcessEnv,
+  includeStateDir = true
+): readonly Finding[] {
+  return Object.keys(env)
+    .filter(
+      name =>
+        (includeStateDir && name === STATE_DIR_VAR) ||
+        name.startsWith(TOKEN_VAR)
+    )
+    .filter(name => (env[name] ?? "") !== "")
     .sort((a, b) => a.localeCompare(b))
     .map(name => ({
       status: "warn" as const,
       text: `${name} is set in this shell's environment, so workers may inherit it; remove the export from your shell profile`,
     }));
+}
+
+/**
+ * The plaintext-token findings that hold with no notification channel too
+ * (the spec's "doctor flags any plaintext token file it finds"): an exported
+ * `TELEGRAM_BOT_TOKEN*` variable, by name only, and a token file in the
+ * shared Telegram state dir, by existence only (never read). The Telegram
+ * requirements themselves (state dir, plugin scope, `TELEGRAM_STATE_DIR`)
+ * are skipped, since no bot is configured.
+ * @param ctx - The shared dir, environment and mode reader
+ * @returns Findings
+ */
+export async function plaintextTokenFindings(
+  ctx: Pick<TelegramContext, "sharedDir" | "env" | "statFile">
+): Promise<readonly Finding[]> {
+  const sharedToken = path.join(ctx.sharedDir, TOKEN_FILE);
+  return [
+    ...exportedFindings(ctx.env, false),
+    ...((await modeOf(ctx.statFile, sharedToken)) === undefined
+      ? []
+      : [
+          {
+            status: "warn" as const,
+            text: `a plaintext Telegram token file exists in the shared dir (${sharedToken}); no notification channel is configured, so nothing needs it: delete it`,
+          },
+        ]),
+  ];
 }
 
 /**
@@ -240,6 +316,6 @@ export async function telegramFindings(
   return [
     ...(await stateDirFindings(ctx, stateDir)),
     ...(await userScopeFindings(ctx)),
-    ...exportedFindings(ctx),
+    ...exportedFindings(ctx.env),
   ];
 }

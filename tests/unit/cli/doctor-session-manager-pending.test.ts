@@ -17,6 +17,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import { checkSessionManagerIsolation } from "../../../src/cli/doctor-session-manager.js";
 
 const NOW = new Date("2026-10-31T12:00:00.000Z");
+const LEDGER_DIR = [".lisa", "session-manager"] as const;
 const SECRETISH = "the question text never appears";
 const roots: string[] = [];
 
@@ -30,7 +31,7 @@ async function project(items: Record<string, unknown> | string | undefined) {
   const proj = path.join(root, "proj");
   const home = path.join(root, "home");
   roots.push(root);
-  await mkdir(path.join(proj, ".lisa", "session-manager"), { recursive: true });
+  await mkdir(path.join(proj, ...LEDGER_DIR), { recursive: true });
   await mkdir(home, { recursive: true });
   await writeFile(
     path.join(proj, ".lisa.config.json"),
@@ -41,7 +42,7 @@ async function project(items: Record<string, unknown> | string | undefined) {
   );
   if (items !== undefined) {
     await writeFile(
-      path.join(proj, ".lisa", "session-manager", "ledger.json"),
+      path.join(proj, ...LEDGER_DIR, "ledger.json"),
       typeof items === "string" ? items : JSON.stringify({ version: 1, items })
     );
   }
@@ -130,5 +131,15 @@ describe("session-manager doctor: items pending a human", () => {
     const result = await check(await project("{not json"));
     expect(result.status).toBe("warn");
     expect(result.detail).toContain("is not valid JSON");
+    expect(result.detail).not.toContain("could not be read");
+  });
+
+  it("says the ledger could not be read, not that it is invalid, when reading fails", async () => {
+    const fx = await project(undefined);
+    await mkdir(path.join(fx.proj, ...LEDGER_DIR, "ledger.json"));
+    const result = await check(fx);
+    expect(result.status).toBe("warn");
+    expect(result.detail).toContain("could not be read");
+    expect(result.detail).not.toContain("is not valid JSON");
   });
 });
