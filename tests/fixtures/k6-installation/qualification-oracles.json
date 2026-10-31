@@ -6,6 +6,11 @@
   "loopbackExit": 0,
   "explicitVersion": "2.3.0",
   "negativeExit": 23,
+  "keyring": {
+    "uid": 0,
+    "gid": 0,
+    "mode": "0o644"
+  },
   "serverRequests": 1,
   "port": 18765,
   "body": "ok\n"

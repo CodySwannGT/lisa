@@ -175,8 +175,11 @@ jobs:
           if [ "${{ inputs.k6_version }}" = "latest" ]; then
             # Preserve curl failure even if gpg accepts bytes received before it failed.
             set -o pipefail
+            # Protect the scoped trust file before any key bytes are written.
+            sudo install -o root -g root -m 0644 /dev/null /usr/share/keyrings/k6-archive-keyring.gpg
             curl -fsSL https://dl.k6.io/key.gpg \
-              | sudo gpg --batch --yes --dearmor -o /usr/share/keyrings/k6-archive-keyring.gpg
+              | gpg --batch --yes --dearmor \
+              | sudo tee /usr/share/keyrings/k6-archive-keyring.gpg > /dev/null
             echo "deb [signed-by=/usr/share/keyrings/k6-archive-keyring.gpg] https://dl.k6.io/deb stable main" \
               | sudo tee /etc/apt/sources.list.d/k6.list
             sudo apt-get update

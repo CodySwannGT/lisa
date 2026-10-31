@@ -28,6 +28,38 @@ const summary = {
 };
 const request = '127.0.0.1 - - [date] "GET /health HTTP/1.1" 200 -\n';
 
+it("rejects unsafe scoped keyring ownership and permissions, retaining actual raw stat", () => {
+  expect(
+    boundedExecFileSync({
+      label: "k6 scoped keyring security controls",
+      command: "python3",
+      args: ["tests/fixtures/k6-installation/test-keyring.py"],
+      env: { ...process.env, PYTHONDONTWRITEBYTECODE: "1" },
+    })
+  ).toBe("");
+});
+
+it("precreates the protected trust file before any key bytes and preserves upstream failure", () => {
+  const script = extractSetup(owner).script;
+  const create =
+    "sudo install -o root -g root -m 0644 /dev/null /usr/share/keyrings/k6-archive-keyring.gpg";
+  expect(script.indexOf("set -o pipefail")).toBeGreaterThanOrEqual(0);
+  expect(script.indexOf(create)).toBeGreaterThan(
+    script.indexOf("set -o pipefail")
+  );
+  expect(script.indexOf(create)).toBeLessThan(script.indexOf("curl -fsSL"));
+  expect(script).toMatch(
+    /curl -fsSL https:\/\/dl\.k6\.io\/key\.gpg\s*\\\n\s*\| gpg --batch --yes --dearmor\s*\\\n\s*\| sudo tee \/usr\/share\/keyrings\/k6-archive-keyring\.gpg > \/dev\/null/u
+  );
+  const oracles = JSON.parse(
+    readFileSync(
+      "tests/fixtures/k6-installation/qualification-oracles.json",
+      "utf8"
+    )
+  );
+  expect(oracles.keyring).toEqual({ uid: 0, gid: 0, mode: "0o644" });
+});
+
 it("keeps private captures from changing actual installer child permissions", () => {
   expect(() =>
     boundedExecFileSync({

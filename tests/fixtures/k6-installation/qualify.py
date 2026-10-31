@@ -5,6 +5,7 @@ All positive commands, apt, signatures, binaries and loopback traffic are real.
 """
 import sys, pathlib, os, json, hashlib, subprocess, datetime, time, urllib.request
 from execution import run_capture
+from keyring import capture_keyring, require_secure_keyring
 
 inherited_umask = os.umask(0o077)
 root = pathlib.Path(sys.argv[1]).resolve()
@@ -45,16 +46,21 @@ if freeze['control'] == 'negative':
     env.update(PATH=str(fault) + ':' + env['PATH'], K6_FAULT_DIR=str(root))
 exit_code = run('setup', ['bash', '-e', str(root / 'setup.sh')], env)
 keyring = pathlib.Path('/usr/share/keyrings/k6-archive-keyring.gpg')
-if keyring.exists():
-    (root / 'keyring-identity.json').write_text(json.dumps({'mode': oct(keyring.stat().st_mode & 0o777), 'sha256': sha(keyring)}))
+keyring_identity = None
+if freeze['control'] != 'explicit':
+    keyring_identity = capture_keyring(keyring, root / 'keyring-identity.json', freeze['expected']['keyring'])
 if freeze['control'] == 'negative':
     assert exit_code == freeze['expected']['negativeExit'], 'Download failure was hidden'
     assert (root / 'curl-route.txt').read_text() == '-fsSL https://dl.k6.io/key.gpg\n'
+    before_write = json.loads((root / 'keyring-before-write.json').read_text())
+    require_secure_keyring(before_write, freeze['expected']['keyring'])
+    assert before_write['sha256'] == hashlib.sha256(b'').hexdigest(), 'Key bytes preceded the protected-file check'
     assert not pathlib.Path('/etc/apt/sources.list.d/k6.list').exists(), 'Setup continued after failed download'
     assert subprocess.run(['sh', '-c', 'command -v k6'], stdout=subprocess.DEVNULL).returncode != 0
     assert run('accepted-key', ['sudo', 'gpg', '--show-keys', '--with-colons', '/usr/share/keyrings/k6-archive-keyring.gpg']) == 0
     result = {'control': 'negative', 'expectedFailureObserved': True, 'actualSetupExit': exit_code,
-              'validKeyAcceptedByGpg': True, 'k6Executed': False, 'environment': environment}
+              'validKeyAcceptedByGpg': True, 'k6Executed': False, 'environment': environment,
+              'keyringIdentity': keyring_identity, 'keyringBeforeWrite': before_write}
 else:
     assert exit_code == 0, 'Real installation failed; no substitute is allowed'
     assert run('binary-identity', ['bash', str(root / 'harness/binary-identity.sh'), freeze['control']]) == 0
@@ -81,6 +87,6 @@ else:
         finally:
             server.terminate(); server.wait(timeout=10)
     result = {'control': freeze['control'], 'actualSetupExit': exit_code, 'loopbackExit': loopback_exit,
-              'environment': environment, 'ownedServerStopped': True}
+              'environment': environment, 'ownedServerStopped': True, 'keyringIdentity': keyring_identity}
 (root / 'runtime-result.json').write_text(json.dumps(result, indent=2))
 print(json.dumps(result))
