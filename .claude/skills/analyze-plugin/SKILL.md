@@ -77,9 +77,9 @@ snapshot, record the semver, put the `synced-from` stamp in every `reimplement`
 action, say in the component `notes` what was compared, and record any
 behaviour change the reimplementation must absorb in the component `notes` or
 the affected agents' `rationale`. Write the artifact `"status": "proposed"` and
-STOP. Updating the reimplementation and its `synced-from` pin is source-tree
-work, so it is left to `implement-plugin-parity` once a human has approved the
-plan.
+STOP. Source-tree work waits for human approval. Then `implement-plugin-parity`
+applies only the scaffold and the `synced-from` pin, and the behaviour change
+recorded in the artifact is authored separately, never ported from upstream.
 
 **Drift-trackability consequence (state this in any `reimplement` rationale):**
 the `plugin-parity-drift` detector only parses **semver** pins, so a plugin whose
