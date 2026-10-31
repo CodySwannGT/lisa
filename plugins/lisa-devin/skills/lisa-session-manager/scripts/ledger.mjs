@@ -21,7 +21,13 @@ import { randomUUID } from "node:crypto";
 import * as nodeFs from "node:fs/promises";
 import { dirname, join } from "node:path";
 
-import { HUMAN_NEEDED_KINDS } from "./human-needed.mjs";
+// The question writers live in ledger-questions.mjs (#4555), re-exported so
+// callers keep one import. They are called, never evaluated, at load time, so
+// the import cycle back to this module's primitives is safe.
+export {
+  clearPendingQuestion,
+  setPendingQuestion,
+} from "./ledger-questions.mjs";
 
 /** Shape version, bumped only on an incompatible change. */
 const LEDGER_VERSION = 1;
@@ -54,16 +60,7 @@ const FINISH_STATUSES = new Set(["DONE", "FAILED"]);
  *   null means recorded but not yet marked on the tracker
  * @property {string[]} [managerCommentIds] - Ids of the comments the manager
  *   posted on the item (its question comment), never read as an answer
- * @property {QueuedAnswer|null} [answer] - An answer waiting to be delivered
- */
-
-/**
- * A human's answer, queued for the manager to deliver on its next cycle.
- * @typedef {object} QueuedAnswer
- * @property {"cli"|"item"|"channel"} source - Where it was given
- * @property {string} text - The answer (untrusted data, never instructions)
- * @property {string|null} author - Tracker author, for an answer on the item
- * @property {string} at - When it was queued (ISO)
+ * @property {import("./ledger-questions.mjs").QueuedAnswer|null} [answer] - An answer waiting to be delivered
  */
 
 /**
@@ -261,7 +258,7 @@ export function requireItem(ledger, ref) {
  * A ledger item for a ref the manager has asked about but not dispatched.
  * @returns {LedgerItem} Placeholder item
  */
-function placeholderItem() {
+export function placeholderItem() {
   return {
     repo: null,
     worker: null,
@@ -307,89 +304,6 @@ export function recordSpawn(
       history: [
         ...(previous.history ?? []),
         { event: "spawn", at, worker, sessionId, attempt: attempts },
-      ],
-    });
-  });
-}
-
-/**
- * Record (or re-ping) the question an item is waiting on.
- *
- * The same text again is a re-ping: `askedAt` is kept and `lastPingAt` moves,
- * so the requestion clock restarts without forgetting how old the question
- * is. A ref with no item yet (a repo-routing question asked before dispatch)
- * gets a placeholder item with zero attempts.
- *
- * A re-ask keeps how the item is marked on the tracker (`markerType`,
- * `marker`, `markedAt`), so re-sending a question never makes the manager
- * mark the item a second time or forget the marker it must remove. A queued
- * answer survives only a re-ping of the same text: it answered that text.
- * `kind` defaults to the previous kind, then `worker-question`.
- * @param {string} projectRoot - Absolute project root
- * @param {{ref: string, text: string, telegramMessageId: number|null,
- *   kind?: string}} question - Question
- * @param {LedgerSeams} [seams] - Injected seams
- * @returns {Promise<LedgerItem>} The updated item
- */
-export function setPendingQuestion(
-  projectRoot,
-  { ref, text, telegramMessageId, kind },
-  seams
-) {
-  if (kind !== undefined && !HUMAN_NEEDED_KINDS.includes(kind)) {
-    return Promise.reject(
-      new Error(
-        `question kind must be one of ${HUMAN_NEEDED_KINDS.join(", ")}, got ${JSON.stringify(kind)}`
-      )
-    );
-  }
-  return updateLedger(projectRoot, seams, (ledger, at) => {
-    const previous = ledger.items[ref] ?? placeholderItem();
-    const existing = previous.pendingQuestion;
-    const sameText = existing?.text === text;
-    return withItem(ledger, ref, {
-      ...previous,
-      pendingQuestion: {
-        text,
-        kind: kind ?? existing?.kind ?? "worker-question",
-        askedAt: sameText ? existing.askedAt : at,
-        lastPingAt: at,
-        telegramMessageId: telegramMessageId ?? null,
-        markerType: existing?.markerType ?? null,
-        marker: existing?.marker ?? null,
-        markedAt: existing?.markedAt ?? null,
-        managerCommentIds: existing?.managerCommentIds ?? [],
-        answer: sameText ? (existing.answer ?? null) : null,
-      },
-      history: [...(previous.history ?? []), { event: "question", at }],
-    });
-  });
-}
-
-/**
- * Clear an item's pending question, once its answer has been delivered and
- * the manager's own marker removed. `resetAttempts` zeroes the attempt count:
- * an `exhausted` item a human has answered starts again from attempt one
- * instead of being exhausted again on its first stall.
- * @param {string} projectRoot - Absolute project root
- * @param {{ref: string, resetAttempts?: boolean}} target - Item
- * @param {LedgerSeams} [seams] - Injected seams
- * @returns {Promise<LedgerItem>} The updated item
- */
-export function clearPendingQuestion(
-  projectRoot,
-  { ref, resetAttempts = false },
-  seams
-) {
-  return updateLedger(projectRoot, seams, (ledger, at) => {
-    const previous = requireItem(ledger, ref);
-    return withItem(ledger, ref, {
-      ...previous,
-      pendingQuestion: null,
-      ...(resetAttempts ? { attempts: 0 } : {}),
-      history: [
-        ...(previous.history ?? []),
-        { event: "answered", at, ...(resetAttempts ? { reset: true } : {}) },
       ],
     });
   });
