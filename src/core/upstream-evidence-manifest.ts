@@ -12719,6 +12719,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/session-manager/config.test.ts": true,
     "tests/unit/session-manager/human-answer.test.ts": true,
     "tests/unit/session-manager/launch-argv.test.ts": true,
+    "tests/unit/session-manager/launch-real-tmux.test.ts": true,
     "tests/unit/session-manager/launch.test.ts": true,
     "tests/unit/session-manager/ledger-questions.test.ts": true,
     "tests/unit/session-manager/ledger-validation.test.ts": true,
