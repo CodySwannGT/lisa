@@ -2510,6 +2510,12 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "6b639926b7c93417ac4a92fbfd278b5fa61685a80fcb59f9aa0f37ddb7c8c41f",
     "rails/copy-overwrite/scripts/check-threshold-ratchet.mjs":
       "d4afc90ba8faf10925fff5fb0d6cd0ace22df2eaa0ec609ee969d0ec84092299",
+    "rails/copy-overwrite/scripts/lisa-rspec-shards.mjs":
+      "75a864e4a05b39210d5bb3984efcfd450ff5387bea8551e977a40a9e8fd0f626",
+    "rails/copy-overwrite/scripts/lisa_rspec_shard_recorder.rb":
+      "92d7dfa434bf2aa94fc7fce2fafd1e7a32c03bf5610e46839432f4f7473006df",
+    "rails/copy-overwrite/scripts/lisa_simplecov_collate.rb":
+      "e9a11edd45c0442c2ec8f59b0fa5d2492d4cfac99398aa3697e70947063a5cc7",
     "rails/copy-overwrite/scripts/threshold-ratchet-compare.mjs":
       "761a0f32ab4bc138b3ed216f0edc9ad28c36783ccd3b62fbd57ef1b7fdc32681",
     "rails/copy-overwrite/scripts/threshold-ratchet-families.mjs":
@@ -2517,7 +2523,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "rails/copy-overwrite/sgconfig.yml":
       "ff5b62de42eb969a851fdc53ee6932a32ffe010b567ed2c62460ed454ad2a24f",
     "rails/create-only/.github/workflows/ci.yml":
-      "5aa2401acc1373afd0b9a114f7fd6b5904b3fcbaa2940f8eb527b2ce5ddf23f8",
+      "ca8edfa37aad2cf7955020ff4ca944c99377cc13af8b5f37786fa9442e5b85c0",
     "rails/create-only/.github/workflows/deploy.yml":
       "68fdb813f30cfa71121a96022021f4d351e1e2497c472796c56bb8d47b9655c8",
     "rails/create-only/.mise.toml":
@@ -2813,7 +2819,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/test-intent-routing.sh":
       "97b9dc86cbd805df8a7fdb8c99ffab9b8c5e751ba2e84c05420b2a124f80635d",
     "scripts/two-channel-couplings.json":
-      "5b260014c7ed9fddccfc5a44c0b4bfc44a70d40cc058e956ff16efb149e5b33b",
+      "f19499147d8ef21a35c83b625a3f43b4f76f3933b2a3710b05727a644d876cdb",
     "scripts/update-node-version.ts":
       "9d37599ef73d5d624751f862cda330a867f6774392c1ab045b4fc885132582e4",
     "scripts/update-test-skill-paths.mjs":
@@ -2879,7 +2885,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/copy-overwrite/.nvmrc":
       "73fb1b615e2043a933be1c0895cde4358036acc28d785692509b822aa53c761f",
     "typescript/copy-overwrite/.prettierignore":
-      "4a56c18ad33ee1564a67a4bac9e0d1f55a213461374c288dc6bdb5b12d3e40aa",
+      "a96f08b0c29714ba22b0185ce2d80b277ea8d3aa7a34f0710de4369916f026c6",
     "typescript/copy-overwrite/.prettierrc.json":
       "a20621f79a064486fba53cc0ea3000a2ece3f312ff38495c6a6606a27d2a727c",
     "typescript/copy-overwrite/.versionrc":
@@ -10125,6 +10131,9 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "rails/copy-overwrite/config/initializers/version.rb": true,
     "rails/copy-overwrite/lefthook.yml": true,
     "rails/copy-overwrite/scripts/check-threshold-ratchet.mjs": true,
+    "rails/copy-overwrite/scripts/lisa-rspec-shards.mjs": true,
+    "rails/copy-overwrite/scripts/lisa_rspec_shard_recorder.rb": true,
+    "rails/copy-overwrite/scripts/lisa_simplecov_collate.rb": true,
     "rails/copy-overwrite/scripts/threshold-ratchet-compare.mjs": true,
     "rails/copy-overwrite/scripts/threshold-ratchet-families.mjs": true,
     "rails/copy-overwrite/sgconfig.yml": true,
@@ -11286,6 +11295,9 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/quality-generic-gate-runner.test.ts": true,
     "tests/integration/quality-node-supervision.test.ts": true,
     "tests/integration/quality-non-declarable-jobs.test.ts": true,
+    "tests/integration/quality-rails-test-shards-fixture.ts": true,
+    "tests/integration/quality-rails-test-shards-merge.test.ts": true,
+    "tests/integration/quality-rails-test-shards.test.ts": true,
     "tests/integration/quality-runner-owned-gates.test.ts": true,
     "tests/integration/quality-script-presence-jobs.test.ts": true,
     "tests/integration/quality-shared-web-export.test.ts": true,
@@ -11301,6 +11313,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/rails-helper-test-isolation.test.ts": true,
     "tests/integration/rails-learnings-budget-gate.test.ts": true,
     "tests/integration/rails-prepush-hook.test.ts": true,
+    "tests/integration/rails-rspec-shard-ruby.test.ts": true,
     "tests/integration/rails-scratch-authority.test.ts": true,
     "tests/integration/rails-scratch-lifecycle.test.ts": true,
     "tests/integration/rails-scratch-ownership.test.ts": true,
@@ -12304,6 +12317,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/lisa-reconcile-policy-units.test.ts": true,
     "tests/unit/scripts/lisa-reconcile-policy-verdicts.test.ts": true,
     "tests/unit/scripts/lisa-reconcile-policy.test.ts": true,
+    "tests/unit/scripts/lisa-rspec-shards.test.ts": true,
     "tests/unit/scripts/lisa-ruleset-payload.test.ts": true,
     "tests/unit/scripts/lisa-ruleset-reach.test.ts": true,
     "tests/unit/scripts/lisa-run-gates-conditional-floor.test.ts": true,

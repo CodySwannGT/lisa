@@ -34,6 +34,17 @@ const RSPEC_POSTGRES_JOB = "test-postgres";
 const RSPEC_MYSQL_JOB = "test-mysql";
 const MUTATION_JOB = "mutation";
 
+/**
+ * The `test_shards` legs (CodySwannGT/lisa#4560). Each runs its slice of the
+ * same RSpec payload under a suite label built per leg, so a leak names the
+ * shard that left it.
+ */
+const RSPEC_POSTGRES_SHARD_JOB = "test-postgres-shard";
+const RSPEC_MYSQL_SHARD_JOB = "test-mysql-shard";
+const RSPEC_POSTGRES_SUITE = "rspec-postgres";
+const RSPEC_MYSQL_SUITE = "rspec-mysql";
+const SHARD_SUITE_INVOCATION = `bash scripts/lisa-scratch-run.sh --suite "$SUITE" --`;
+
 /** The two payloads those jobs and the pre-push hook wrap. */
 const RSPEC_PAYLOAD = "bundle exec rspec";
 const MUTANT_PAYLOAD = "bash scripts/lisa-mutation.sh";
@@ -67,6 +78,7 @@ function executableLines(source: string): string {
 interface WorkflowStep {
   readonly name?: string;
   readonly run?: string;
+  readonly env?: Readonly<Record<string, string>>;
 }
 
 /** One job of a workflow. */
@@ -200,8 +212,8 @@ describe("the supervisor assumes no JavaScript runtime", () => {
 
 describe("every shipped Rails route crosses exactly one supervisor boundary", () => {
   it.each([
-    [RSPEC_POSTGRES_JOB, "rspec-postgres", RSPEC_PAYLOAD],
-    [RSPEC_MYSQL_JOB, "rspec-mysql", RSPEC_PAYLOAD],
+    [RSPEC_POSTGRES_JOB, RSPEC_POSTGRES_SUITE, RSPEC_PAYLOAD],
+    [RSPEC_MYSQL_JOB, RSPEC_MYSQL_SUITE, RSPEC_PAYLOAD],
     [MUTATION_JOB, "mutant-postgres", MUTANT_PAYLOAD],
   ])(
     "supervises the %s job payload under suite %s",
@@ -218,7 +230,34 @@ describe("every shipped Rails route crosses exactly one supervisor boundary", ()
     }
   );
 
-  it.each([[RSPEC_POSTGRES_JOB], [RSPEC_MYSQL_JOB], [MUTATION_JOB]])(
+  it.each([
+    [RSPEC_POSTGRES_SHARD_JOB, RSPEC_POSTGRES_SUITE],
+    [RSPEC_MYSQL_SHARD_JOB, RSPEC_MYSQL_SUITE],
+  ])(
+    "supervises every %s leg's payload under a per-leg %s suite label",
+    (jobId, suite) => {
+      const bodies = runSteps(jobId).join("\n");
+      expect(count(bodies, "lisa-scratch-run.sh --suite")).toBe(1);
+      expect(bodies).toContain(
+        `${SHARD_SUITE_INVOCATION} ${RSPEC_PAYLOAD} --require`
+      );
+      expect(count(bodies, RSPEC_PAYLOAD)).toBe(1);
+      const env = (workflow().jobs?.[jobId]?.steps ?? []).find(step =>
+        step.run?.includes(SHARD_SUITE_INVOCATION)
+      )?.env;
+      expect(env?.SUITE).toBe(
+        `${suite}-shard-\${{ matrix.shard }}-of-\${{ inputs.test_shards }}`
+      );
+    }
+  );
+
+  it.each([
+    [RSPEC_POSTGRES_JOB],
+    [RSPEC_MYSQL_JOB],
+    [RSPEC_POSTGRES_SHARD_JOB],
+    [RSPEC_MYSQL_SHARD_JOB],
+    [MUTATION_JOB],
+  ])(
     "refuses to run the %s payload when the supervisor is not installed",
     jobId => {
       const bodies = runSteps(jobId).join("\n");
@@ -228,19 +267,22 @@ describe("every shipped Rails route crosses exactly one supervisor boundary", ()
     }
   );
 
-  it.each([[RSPEC_POSTGRES_JOB], [RSPEC_MYSQL_JOB], [MUTATION_JOB]])(
-    "keeps %s database preparation outside the supervisor",
-    jobId => {
-      const prepare = runSteps(jobId).filter(body =>
-        body.includes("bin/rails db:prepare")
-      );
-      expect(prepare).toHaveLength(1);
-      // A database-preparation failure must stay a database-preparation failure
-      // rather than being relabelled a test or cleanup outcome.
-      expect(prepare[0]).not.toContain(INSTALLED_SUPERVISOR);
-      expect(prepare[0]?.trim()).toBe("bin/rails db:prepare");
-    }
-  );
+  it.each([
+    [RSPEC_POSTGRES_JOB],
+    [RSPEC_MYSQL_JOB],
+    [RSPEC_POSTGRES_SHARD_JOB],
+    [RSPEC_MYSQL_SHARD_JOB],
+    [MUTATION_JOB],
+  ])("keeps %s database preparation outside the supervisor", jobId => {
+    const prepare = runSteps(jobId).filter(body =>
+      body.includes("bin/rails db:prepare")
+    );
+    expect(prepare).toHaveLength(1);
+    // A database-preparation failure must stay a database-preparation failure
+    // rather than being relabelled a test or cleanup outcome.
+    expect(prepare[0]).not.toContain(INSTALLED_SUPERVISOR);
+    expect(prepare[0]?.trim()).toBe("bin/rails db:prepare");
+  });
 
   it.each([
     ["rspec", "prepush-rspec", RSPEC_PAYLOAD],
@@ -258,16 +300,20 @@ describe("every shipped Rails route crosses exactly one supervisor boundary", ()
   );
 
   it("gives every route a distinct suite label so a leak names the right suite", () => {
+    // The shard legs pass `"$SUITE"`, built per leg from the step's env and
+    // pinned by the shard test above; every other route spells its label.
     const labels = [
       ...read(WORKFLOW).matchAll(/--suite (\S+) --/g),
       ...read(LEFTHOOK).matchAll(/--suite (\S+) --/g),
-    ].map(match => match[1] ?? "");
+    ]
+      .map(match => match[1] ?? "")
+      .filter(label => label !== '"$SUITE"');
     expect(labels.slice().sort((a, b) => a.localeCompare(b))).toEqual([
       "mutant-postgres",
       "prepush-mutant",
       "prepush-rspec",
-      "rspec-mysql",
-      "rspec-postgres",
+      RSPEC_MYSQL_SUITE,
+      RSPEC_POSTGRES_SUITE,
     ]);
   });
 

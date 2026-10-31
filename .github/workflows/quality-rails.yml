@@ -58,6 +58,11 @@ on:
         required: false
         type: string
         default: ''
+      test_shards:
+        description: 'Run the RSpec suite as this many parallel shards (1-20), then merge their SimpleCov coverage and check the thresholds once. Needs simplecov 1.x and the Lisa-managed scripts/lisa-rspec-shards.mjs, lisa_rspec_shard_recorder.rb and lisa_simplecov_collate.rb. The default, 1, runs one unsharded job.'
+        required: false
+        default: 1
+        type: number
       expected_work_item_contract:
         # The work-item gate's two halves travel by different routes — this
         # workflow by git ref, `scripts/lisa-work-item.mjs` by `lisa apply` — so
@@ -732,14 +737,111 @@ jobs:
       - name: 🔒 Run Bundler Audit
         run: bundle exec bundler-audit check --update
 
-  test-postgres:
+  # ─── RSpec shards (test_shards > 1 only, CodySwannGT/lisa#4560) ─────────
+  # The Rails counterpart of quality.yml's `unit_test_shards`, with the same
+  # shape: a plan job lays out the matrix and mints the per-call nonce that
+  # names the shard artifacts, one matrix leg per shard runs its slice, and the
+  # existing `Test (PostgreSQL)` / `Test (MySQL)` job becomes the aggregate. At
+  # the default of 1 the plan and both matrices are skipped and the test job
+  # runs exactly as it always has.
+  #
+  # The aggregate keeps its id and its static name at every shard count,
+  # because branch rulesets require `Quality Checks / Test (MySQL)` (or
+  # PostgreSQL) by that exact context. Neither the plan nor a leg may post a
+  # name containing the aggregate's: a skipped or idle context can show green
+  # and satisfy a ruleset that requires it.
+  #
+  # The plan splits spec files with scripts/lisa-rspec-shards.mjs, balanced by
+  # the previous run's per-file timings (restored from the Actions cache) and
+  # by file size where there are none, and proves the split is a partition of
+  # the suite before any leg starts. Pull-request caches are scoped to their
+  # pull request, so a new pull request's first run balances by size.
+  test-shard-plan:
     permissions:
       contents: read
-      checks: write
-      pull-requests: write
-    name: Test (PostgreSQL)
+    name: 🧮 Plan RSpec Shards
     runs-on: ubuntu-latest
-    if: ${{ !contains(format(',{0},', inputs.skip_jobs), ',test,') && inputs.database_type == 'postgres' }}
+    timeout-minutes: 10
+    if: ${{ inputs.test_shards != 1 && !contains(format(',{0},', inputs.skip_jobs), ',test,') && (inputs.database_type == 'postgres' || inputs.database_type == 'mysql') }}
+    outputs:
+      shards: ${{ steps.plan.outputs.shards }}
+      nonce: ${{ steps.plan.outputs.nonce }}
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: 🧹 Assert the RSpec shard tooling is installed
+        # The same two-channel window the scratch supervisor's assertion
+        # describes: this workflow is live at `@main` before `lisa apply` has
+        # delivered the scripts it runs. Sharding without them would run the
+        # whole suite in every leg, or not merge coverage, so their absence is
+        # a failure with a named remedy.
+        env:
+          SHARDS: ${{ inputs.test_shards }}
+        run: |
+          missing=""
+          for script in scripts/lisa-rspec-shards.mjs scripts/lisa_rspec_shard_recorder.rb scripts/lisa_simplecov_collate.rb; do
+            [ -f "$script" ] || missing="$missing $script"
+          done
+          if [ -n "$missing" ]; then
+            echo "::error title=RSpec shard tooling missing::test_shards is $SHARDS, but${missing} not installed. Run 'lisa' to install the Lisa-managed scripts, or leave test_shards at 1."
+            exit 1
+          fi
+
+      - name: ⏱️ Restore the previous run's spec timings
+        uses: actions/cache/restore@v5
+        with:
+          path: ${{ runner.temp }}/lisa-rspec-timings.json
+          key: lisa-rspec-timings-v1-${{ inputs.database_type }}-${{ github.run_id }}
+          restore-keys: |
+            lisa-rspec-timings-v1-${{ inputs.database_type }}-
+
+      - name: 🧮 Compute the RSpec shard plan
+        id: plan
+        env:
+          SHARDS: ${{ inputs.test_shards }}
+        run: |
+          set -euo pipefail
+          PLAN_DIR="$RUNNER_TEMP/lisa-rspec-shard-plan"
+          node scripts/lisa-rspec-shards.mjs plan \
+            --shards "$SHARDS" \
+            --timings "$RUNNER_TEMP/lisa-rspec-timings.json" \
+            --out "$PLAN_DIR/plan.json"
+          SHARD_LIST="$(node -e 'process.stdout.write(JSON.stringify(Array.from({ length: Number(process.argv[1]) }, (_, i) => i + 1)))' "$SHARDS")"
+          NONCE="$(node -p 'crypto.randomUUID()')"
+          {
+            echo "shards=$SHARD_LIST"
+            echo "nonce=$NONCE"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: 📤 Upload the RSpec shard plan
+        uses: actions/upload-artifact@v7
+        with:
+          name: rspec-shard-plan-${{ steps.plan.outputs.nonce }}
+          path: ${{ runner.temp }}/lisa-rspec-shard-plan
+          if-no-files-found: error
+          retention-days: 1
+
+  # One leg per shard. It prepares its own database outside the supervisor,
+  # as the unsharded route does, and runs only its planned files through
+  # scripts/lisa-scratch-run.sh under a suite label unique to the leg.
+  # lisa_rspec_shard_recorder.rb tells SimpleCov to store this leg's
+  # resultset without checking the project's minimums against a slice of the
+  # suite, and records which files RSpec loaded; the aggregate does the rest.
+  test-postgres-shard:
+    permissions:
+      contents: read
+    name: 🧪 RSpec shard ${{ matrix.shard }}/${{ inputs.test_shards }} (PostgreSQL)
+    runs-on: ubuntu-latest
+    needs: [test-shard-plan]
+    if: ${{ always() && !cancelled() && needs.test-shard-plan.result == 'success' && inputs.database_type == 'postgres' }}
+    strategy:
+      # Every leg finishes, so one failing shard does not hide another's.
+      fail-fast: false
+      matrix:
+        shard: ${{ fromJSON(needs.test-shard-plan.outputs.shards || '[1]') }}
     services:
       postgres:
         image: postgres:${{ inputs.database_version || '16' }}
@@ -791,17 +893,229 @@ jobs:
             exit 1
           fi
 
-      - name: 🧪 Run tests
-        run: bash scripts/lisa-scratch-run.sh --suite rspec-postgres -- bundle exec rspec
+      - name: 📥 Download the RSpec shard plan
+        uses: actions/download-artifact@v8
+        with:
+          name: rspec-shard-plan-${{ needs.test-shard-plan.outputs.nonce }}
+          path: ${{ runner.temp }}/lisa-rspec-shard-plan
 
-  test-mysql:
+      - name: 🧩 Arm this RSpec shard
+        env:
+          SHARD: ${{ matrix.shard }}
+        run: |
+          set -euo pipefail
+          OUTPUT="$RUNNER_TEMP/lisa-rspec-shard"
+          mkdir -p "$OUTPUT"
+          node scripts/lisa-rspec-shards.mjs files \
+            --plan "$RUNNER_TEMP/lisa-rspec-shard-plan/plan.json" \
+            --shard "$SHARD" \
+            --out "$OUTPUT/files.txt"
+          # Required from OUTSIDE the project root: loaded from scripts/, the
+          # recorder would be measured as application code and move the merged
+          # coverage. It refuses to run from inside the root.
+          cp scripts/lisa_rspec_shard_recorder.rb "$RUNNER_TEMP/lisa_rspec_shard_recorder.rb"
+
+      - name: 🧪 Run this shard's tests
+        id: shard_run
+        env:
+          LISA_RSPEC_SHARD: ${{ matrix.shard }}/${{ inputs.test_shards }}
+          LISA_RSPEC_SHARD_RECORD: ${{ runner.temp }}/lisa-rspec-shard/record.json
+          SUITE: rspec-postgres-shard-${{ matrix.shard }}-of-${{ inputs.test_shards }}
+        run: |
+          set -euo pipefail
+          SPEC_FILES=()
+          while IFS= read -r spec_file; do
+            if [ -n "$spec_file" ]; then SPEC_FILES+=("$spec_file"); fi
+          done < "$RUNNER_TEMP/lisa-rspec-shard/files.txt"
+          # An empty list would make a bare rspec run the WHOLE suite here.
+          if [ "${#SPEC_FILES[@]}" -eq 0 ]; then
+            echo "::error title=RSpec shard has no files::Shard $LISA_RSPEC_SHARD was planned no spec files; refusing rather than running the whole suite."
+            exit 1
+          fi
+          echo "Running ${#SPEC_FILES[@]} spec files as shard $LISA_RSPEC_SHARD."
+          bash scripts/lisa-scratch-run.sh --suite "$SUITE" -- bundle exec rspec --require "$RUNNER_TEMP/lisa_rspec_shard_recorder.rb" "${SPEC_FILES[@]}"
+
+      - name: 📦 Stage this shard's coverage
+        if: always() && (steps.shard_run.outcome == 'success' || steps.shard_run.outcome == 'failure')
+        run: |
+          set -euo pipefail
+          RECORD="$RUNNER_TEMP/lisa-rspec-shard/record.json"
+          if [ ! -f "$RECORD" ]; then
+            echo "::error title=RSpec shard left no run record::$RECORD is missing, so RSpec did not finish this shard. The aggregate cannot prove which files ran."
+            exit 1
+          fi
+          node scripts/lisa-rspec-shards.mjs stage --record "$RECORD" --out "$RUNNER_TEMP/lisa-rspec-shard"
+
+      - name: 📤 Upload this shard's results
+        if: always() && (steps.shard_run.outcome == 'success' || steps.shard_run.outcome == 'failure')
+        uses: actions/upload-artifact@v7
+        with:
+          name: rspec-shard-${{ needs.test-shard-plan.outputs.nonce }}-${{ matrix.shard }}
+          path: ${{ runner.temp }}/lisa-rspec-shard
+          if-no-files-found: error
+          # A failed-jobs rerun does not rerun the plan, so it keeps the nonce
+          # and a rerun leg uploads under its first attempt's name. Replacing
+          # that artifact keeps the aggregate's download to one copy per shard.
+          overwrite: true
+          retention-days: 1
+
+  test-postgres:
     permissions:
       contents: read
       checks: write
       pull-requests: write
-    name: Test (MySQL)
+    name: Test (PostgreSQL)
     runs-on: ubuntu-latest
-    if: ${{ !contains(format(',{0},', inputs.skip_jobs), ',test,') && inputs.database_type == 'mysql' }}
+    # With test_shards > 1 this job is the aggregate: the shard legs run the
+    # suite and this job proves they ran it exactly once, merges their
+    # coverage and enforces the project's thresholds once. It keeps its id and
+    # static name at every shard count, because rulesets require this context.
+    needs: [test-shard-plan, test-postgres-shard]
+    if: ${{ always() && !cancelled() && !contains(format(',{0},', inputs.skip_jobs), ',test,') && inputs.database_type == 'postgres' }}
+    services:
+      postgres:
+        image: postgres:${{ inputs.database_version || '16' }}
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: ${{ inputs.database_name }}
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      RAILS_ENV: test
+      DATABASE_URL: postgres://postgres:postgres@localhost:5432/${{ inputs.database_name }}
+    steps:
+      # First, before any install: with shards, this job is the one
+      # `Test (PostgreSQL)` context, so a partial run must not reach the merge.
+      # A plan that refused fails and its matrix is skipped; a leg that failed,
+      # timed out or was cancelled leaves the matrix not `success`. Every one
+      # of those is red here.
+      - name: 🚨 Fail if the RSpec shards did not pass
+        if: inputs.test_shards != 1 && (needs.test-shard-plan.result != 'success' || needs.test-postgres-shard.result != 'success')
+        env:
+          PLAN_RESULT: ${{ needs.test-shard-plan.result }}
+          SHARD_RESULT: ${{ needs.test-postgres-shard.result }}
+          SHARDS: ${{ inputs.test_shards }}
+        run: |
+          echo "::error title=RSpec shards did not pass::test_shards: $SHARDS, but the shard plan: '$PLAN_RESULT' and the shard matrix: '$SHARD_RESULT'. A shard failed, was cancelled, or never ran, so the suite did not run in full and Test (PostgreSQL) cannot pass."
+          exit 1
+
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v6
+
+      - name: 💎 Setup Ruby
+        uses: ruby/setup-ruby@14594264cd68ce8a2345dd349bc3d138a4ef85c8 # v1.327.0
+        with:
+          bundler-cache: true
+
+      - name: 🗄️ Prepare database
+        if: inputs.test_shards == 1
+        # Kept OUTSIDE the supervisor on purpose: a database-preparation
+        # failure must stay a database-preparation failure, not be relabelled
+        # as a test failure or a cleanup failure.
+        run: bin/rails db:prepare
+
+      - name: 🧹 Assert the scratch supervisor is installed
+        # Every Rails test and mutation route enters the supervisor, and it is
+        # the only boundary on that route.
+        #
+        # This workflow is consumed at `@main`, so it goes live in a caller the
+        # moment it merges, while `scripts/lisa-scratch-run.sh` arrives on the
+        # `lisa apply` channel — the two halves land in that order, and there is
+        # a window where a caller has this step and not that file. The window
+        # closes on the caller's next apply, and the same argument the threshold
+        # ratchet gate makes above applies here: a gate that passes because it
+        # found nothing is worse than no gate. Running the payload unsupervised
+        # is exactly the abandoned-scratch behavior this step exists to end, so
+        # the absence is a failure with a named remedy.
+        if: inputs.test_shards == 1
+        run: |
+          if [ ! -f scripts/lisa-scratch-run.sh ]; then
+            echo "::error title=Scratch supervisor missing::scripts/lisa-scratch-run.sh does not exist, so this suite has no run-scoped scratch ownership and no cleanup authority that survives a killed run. Run 'lisa' to install the Lisa-managed script, or add 'test' (or 'mutation') to skip_jobs to decline the job deliberately, which at least records the decision in the caller."
+            exit 1
+          fi
+
+      - name: 🧪 Run tests
+        if: inputs.test_shards == 1
+        run: bash scripts/lisa-scratch-run.sh --suite rspec-postgres -- bundle exec rspec
+
+      - name: 📥 Download the RSpec shard plan
+        if: inputs.test_shards != 1
+        uses: actions/download-artifact@v8
+        with:
+          name: rspec-shard-plan-${{ needs.test-shard-plan.outputs.nonce }}
+          path: ${{ runner.temp }}/lisa-rspec-shard-plan
+
+      - name: 📥 Download every RSpec shard
+        if: inputs.test_shards != 1
+        uses: actions/download-artifact@v8
+        with:
+          pattern: rspec-shard-${{ needs.test-shard-plan.outputs.nonce }}-*
+          path: ${{ runner.temp }}/lisa-rspec-shards
+
+      # From each leg's run record, written from RSpec's own `files_to_run`:
+      # every planned file ran, in exactly one shard, and the plan still
+      # matches this checkout. A dropped or duplicated file fails here.
+      - name: 🧾 Prove every spec file ran exactly once
+        id: shard_verify
+        if: inputs.test_shards != 1
+        run: |
+          set -euo pipefail
+          node scripts/lisa-rspec-shards.mjs verify \
+            --plan "$RUNNER_TEMP/lisa-rspec-shard-plan/plan.json" \
+            --shards-dir "$RUNNER_TEMP/lisa-rspec-shards" \
+            --resultsets "$RUNNER_TEMP/lisa-rspec-resultsets.txt"
+          node scripts/lisa-rspec-shards.mjs timings \
+            --shards-dir "$RUNNER_TEMP/lisa-rspec-shards" \
+            --out "$RUNNER_TEMP/lisa-rspec-timings.json"
+
+      - name: ⏱️ Save spec timings for the next plan
+        if: always() && steps.shard_verify.outcome == 'success'
+        uses: actions/cache/save@v5
+        with:
+          path: ${{ runner.temp }}/lisa-rspec-timings.json
+          key: lisa-rspec-timings-v1-${{ inputs.database_type }}-${{ github.run_id }}-${{ github.run_attempt }}
+
+      # `require 'simplecov'` loads the project's own `.simplecov`, so the merged
+      # result is checked against exactly the thresholds an unsharded run
+      # checks. This job sets none of its own.
+      - name: 📊 Collate coverage and enforce the thresholds
+        if: inputs.test_shards != 1
+        run: |
+          set -euo pipefail
+          RESULTSETS=()
+          while IFS= read -r resultset; do
+            if [ -n "$resultset" ]; then RESULTSETS+=("$resultset"); fi
+          done < "$RUNNER_TEMP/lisa-rspec-resultsets.txt"
+          if [ "${#RESULTSETS[@]}" -eq 0 ]; then
+            echo "No shard measured SimpleCov coverage, so there is nothing to collate; an unsharded run would check none either."
+            exit 0
+          fi
+          bundle exec ruby scripts/lisa_simplecov_collate.rb "${RESULTSETS[@]}"
+
+  # One leg per shard. It prepares its own database outside the supervisor,
+  # as the unsharded route does, and runs only its planned files through
+  # scripts/lisa-scratch-run.sh under a suite label unique to the leg.
+  # lisa_rspec_shard_recorder.rb tells SimpleCov to store this leg's
+  # resultset without checking the project's minimums against a slice of the
+  # suite, and records which files RSpec loaded; the aggregate does the rest.
+  test-mysql-shard:
+    permissions:
+      contents: read
+    name: 🧪 RSpec shard ${{ matrix.shard }}/${{ inputs.test_shards }} (MySQL)
+    runs-on: ubuntu-latest
+    needs: [test-shard-plan]
+    if: ${{ always() && !cancelled() && needs.test-shard-plan.result == 'success' && inputs.database_type == 'mysql' }}
+    strategy:
+      # Every leg finishes, so one failing shard does not hide another's.
+      fail-fast: false
+      matrix:
+        shard: ${{ fromJSON(needs.test-shard-plan.outputs.shards || '[1]') }}
     services:
       mysql:
         image: mysql:${{ inputs.database_version || '8.0' }}
@@ -854,8 +1168,211 @@ jobs:
             exit 1
           fi
 
+      - name: 📥 Download the RSpec shard plan
+        uses: actions/download-artifact@v8
+        with:
+          name: rspec-shard-plan-${{ needs.test-shard-plan.outputs.nonce }}
+          path: ${{ runner.temp }}/lisa-rspec-shard-plan
+
+      - name: 🧩 Arm this RSpec shard
+        env:
+          SHARD: ${{ matrix.shard }}
+        run: |
+          set -euo pipefail
+          OUTPUT="$RUNNER_TEMP/lisa-rspec-shard"
+          mkdir -p "$OUTPUT"
+          node scripts/lisa-rspec-shards.mjs files \
+            --plan "$RUNNER_TEMP/lisa-rspec-shard-plan/plan.json" \
+            --shard "$SHARD" \
+            --out "$OUTPUT/files.txt"
+          # Required from OUTSIDE the project root: loaded from scripts/, the
+          # recorder would be measured as application code and move the merged
+          # coverage. It refuses to run from inside the root.
+          cp scripts/lisa_rspec_shard_recorder.rb "$RUNNER_TEMP/lisa_rspec_shard_recorder.rb"
+
+      - name: 🧪 Run this shard's tests
+        id: shard_run
+        env:
+          LISA_RSPEC_SHARD: ${{ matrix.shard }}/${{ inputs.test_shards }}
+          LISA_RSPEC_SHARD_RECORD: ${{ runner.temp }}/lisa-rspec-shard/record.json
+          SUITE: rspec-mysql-shard-${{ matrix.shard }}-of-${{ inputs.test_shards }}
+        run: |
+          set -euo pipefail
+          SPEC_FILES=()
+          while IFS= read -r spec_file; do
+            if [ -n "$spec_file" ]; then SPEC_FILES+=("$spec_file"); fi
+          done < "$RUNNER_TEMP/lisa-rspec-shard/files.txt"
+          # An empty list would make a bare rspec run the WHOLE suite here.
+          if [ "${#SPEC_FILES[@]}" -eq 0 ]; then
+            echo "::error title=RSpec shard has no files::Shard $LISA_RSPEC_SHARD was planned no spec files; refusing rather than running the whole suite."
+            exit 1
+          fi
+          echo "Running ${#SPEC_FILES[@]} spec files as shard $LISA_RSPEC_SHARD."
+          bash scripts/lisa-scratch-run.sh --suite "$SUITE" -- bundle exec rspec --require "$RUNNER_TEMP/lisa_rspec_shard_recorder.rb" "${SPEC_FILES[@]}"
+
+      - name: 📦 Stage this shard's coverage
+        if: always() && (steps.shard_run.outcome == 'success' || steps.shard_run.outcome == 'failure')
+        run: |
+          set -euo pipefail
+          RECORD="$RUNNER_TEMP/lisa-rspec-shard/record.json"
+          if [ ! -f "$RECORD" ]; then
+            echo "::error title=RSpec shard left no run record::$RECORD is missing, so RSpec did not finish this shard. The aggregate cannot prove which files ran."
+            exit 1
+          fi
+          node scripts/lisa-rspec-shards.mjs stage --record "$RECORD" --out "$RUNNER_TEMP/lisa-rspec-shard"
+
+      - name: 📤 Upload this shard's results
+        if: always() && (steps.shard_run.outcome == 'success' || steps.shard_run.outcome == 'failure')
+        uses: actions/upload-artifact@v7
+        with:
+          name: rspec-shard-${{ needs.test-shard-plan.outputs.nonce }}-${{ matrix.shard }}
+          path: ${{ runner.temp }}/lisa-rspec-shard
+          if-no-files-found: error
+          # A failed-jobs rerun does not rerun the plan, so it keeps the nonce
+          # and a rerun leg uploads under its first attempt's name. Replacing
+          # that artifact keeps the aggregate's download to one copy per shard.
+          overwrite: true
+          retention-days: 1
+
+  test-mysql:
+    permissions:
+      contents: read
+      checks: write
+      pull-requests: write
+    name: Test (MySQL)
+    runs-on: ubuntu-latest
+    # With test_shards > 1 this job is the aggregate: the shard legs run the
+    # suite and this job proves they ran it exactly once, merges their
+    # coverage and enforces the project's thresholds once. It keeps its id and
+    # static name at every shard count, because rulesets require this context.
+    needs: [test-shard-plan, test-mysql-shard]
+    if: ${{ always() && !cancelled() && !contains(format(',{0},', inputs.skip_jobs), ',test,') && inputs.database_type == 'mysql' }}
+    services:
+      mysql:
+        image: mysql:${{ inputs.database_version || '8.0' }}
+        env:
+          MYSQL_ROOT_PASSWORD: password
+          MYSQL_DATABASE: ${{ inputs.database_name }}
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd "mysqladmin ping -h localhost"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      RAILS_ENV: test
+      PRIMARY_DB_HOST: 127.0.0.1
+      DATABASE_NAME: ${{ inputs.database_name }}
+      DATABASE_PASSWORD: password
+      DATABASE_USER: root
+      DATABASE_PORT: 3306
+    steps:
+      # First, before any install: with shards, this job is the one
+      # `Test (MySQL)` context, so a partial run must not reach the merge.
+      # A plan that refused fails and its matrix is skipped; a leg that failed,
+      # timed out or was cancelled leaves the matrix not `success`. Every one
+      # of those is red here.
+      - name: 🚨 Fail if the RSpec shards did not pass
+        if: inputs.test_shards != 1 && (needs.test-shard-plan.result != 'success' || needs.test-mysql-shard.result != 'success')
+        env:
+          PLAN_RESULT: ${{ needs.test-shard-plan.result }}
+          SHARD_RESULT: ${{ needs.test-mysql-shard.result }}
+          SHARDS: ${{ inputs.test_shards }}
+        run: |
+          echo "::error title=RSpec shards did not pass::test_shards: $SHARDS, but the shard plan: '$PLAN_RESULT' and the shard matrix: '$SHARD_RESULT'. A shard failed, was cancelled, or never ran, so the suite did not run in full and Test (MySQL) cannot pass."
+          exit 1
+
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v6
+
+      - name: 💎 Setup Ruby
+        uses: ruby/setup-ruby@14594264cd68ce8a2345dd349bc3d138a4ef85c8 # v1.327.0
+        with:
+          bundler-cache: true
+
+      - name: 🗄️ Prepare database
+        if: inputs.test_shards == 1
+        # Outside the supervisor for the same reason as the PostgreSQL route.
+        run: bin/rails db:prepare
+
+      - name: 🧹 Assert the scratch supervisor is installed
+        # Every Rails test and mutation route enters the supervisor, and it is
+        # the only boundary on that route.
+        #
+        # This workflow is consumed at `@main`, so it goes live in a caller the
+        # moment it merges, while `scripts/lisa-scratch-run.sh` arrives on the
+        # `lisa apply` channel — the two halves land in that order, and there is
+        # a window where a caller has this step and not that file. The window
+        # closes on the caller's next apply, and the same argument the threshold
+        # ratchet gate makes above applies here: a gate that passes because it
+        # found nothing is worse than no gate. Running the payload unsupervised
+        # is exactly the abandoned-scratch behavior this step exists to end, so
+        # the absence is a failure with a named remedy.
+        if: inputs.test_shards == 1
+        run: |
+          if [ ! -f scripts/lisa-scratch-run.sh ]; then
+            echo "::error title=Scratch supervisor missing::scripts/lisa-scratch-run.sh does not exist, so this suite has no run-scoped scratch ownership and no cleanup authority that survives a killed run. Run 'lisa' to install the Lisa-managed script, or add 'test' (or 'mutation') to skip_jobs to decline the job deliberately, which at least records the decision in the caller."
+            exit 1
+          fi
+
       - name: 🧪 Run tests
+        if: inputs.test_shards == 1
         run: bash scripts/lisa-scratch-run.sh --suite rspec-mysql -- bundle exec rspec
+
+      - name: 📥 Download the RSpec shard plan
+        if: inputs.test_shards != 1
+        uses: actions/download-artifact@v8
+        with:
+          name: rspec-shard-plan-${{ needs.test-shard-plan.outputs.nonce }}
+          path: ${{ runner.temp }}/lisa-rspec-shard-plan
+
+      - name: 📥 Download every RSpec shard
+        if: inputs.test_shards != 1
+        uses: actions/download-artifact@v8
+        with:
+          pattern: rspec-shard-${{ needs.test-shard-plan.outputs.nonce }}-*
+          path: ${{ runner.temp }}/lisa-rspec-shards
+
+      # From each leg's run record, written from RSpec's own `files_to_run`:
+      # every planned file ran, in exactly one shard, and the plan still
+      # matches this checkout. A dropped or duplicated file fails here.
+      - name: 🧾 Prove every spec file ran exactly once
+        id: shard_verify
+        if: inputs.test_shards != 1
+        run: |
+          set -euo pipefail
+          node scripts/lisa-rspec-shards.mjs verify \
+            --plan "$RUNNER_TEMP/lisa-rspec-shard-plan/plan.json" \
+            --shards-dir "$RUNNER_TEMP/lisa-rspec-shards" \
+            --resultsets "$RUNNER_TEMP/lisa-rspec-resultsets.txt"
+          node scripts/lisa-rspec-shards.mjs timings \
+            --shards-dir "$RUNNER_TEMP/lisa-rspec-shards" \
+            --out "$RUNNER_TEMP/lisa-rspec-timings.json"
+
+      - name: ⏱️ Save spec timings for the next plan
+        if: always() && steps.shard_verify.outcome == 'success'
+        uses: actions/cache/save@v5
+        with:
+          path: ${{ runner.temp }}/lisa-rspec-timings.json
+          key: lisa-rspec-timings-v1-${{ inputs.database_type }}-${{ github.run_id }}-${{ github.run_attempt }}
+
+      # `require 'simplecov'` loads the project's own `.simplecov`, so the merged
+      # result is checked against exactly the thresholds an unsharded run
+      # checks. This job sets none of its own.
+      - name: 📊 Collate coverage and enforce the thresholds
+        if: inputs.test_shards != 1
+        run: |
+          set -euo pipefail
+          RESULTSETS=()
+          while IFS= read -r resultset; do
+            if [ -n "$resultset" ]; then RESULTSETS+=("$resultset"); fi
+          done < "$RUNNER_TEMP/lisa-rspec-resultsets.txt"
+          if [ "${#RESULTSETS[@]}" -eq 0 ]; then
+            echo "No shard measured SimpleCov coverage, so there is nothing to collate; an unsharded run would check none either."
+            exit 0
+          fi
+          bundle exec ruby scripts/lisa_simplecov_collate.rb "${RESULTSETS[@]}"
 
   mutation:
     permissions:

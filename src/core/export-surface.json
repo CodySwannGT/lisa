@@ -1,8 +1,8 @@
 {
   "$generatedBy": "scripts/generate-export-surface.mjs",
   "$doNotEdit": "The public export surface this package ships, recorded so a removal is an OBSERVATION rather than an inference from commit-message conventions. This file's diff is what makes a removed export visible in the pull request that causes it (CodySwannGT/lisa#3718).",
-  "$modules": 250,
-  "$names": 1805,
+  "$modules": 251,
+  "$names": 1827,
   "surface": {
     "all/copy-overwrite/scripts/check-conflict-markers.mjs": [
       "UsageError",
@@ -1277,6 +1277,30 @@
     ],
     "rails/copy-overwrite/scripts/check-threshold-ratchet.mjs": [
       "invokedAsScript"
+    ],
+    "rails/copy-overwrite/scripts/lisa-rspec-shards.mjs": [
+      "MAX_SHARDS",
+      "MIN_SHARDS",
+      "RECORD_FILE",
+      "RESULTSET_FILE",
+      "SCHEMA_VERSION",
+      "ShardError",
+      "assertPartition",
+      "buildPlan",
+      "buildTimings",
+      "canonicalPath",
+      "discoverSpecFiles",
+      "main",
+      "parseShardCount",
+      "partition",
+      "readPlan",
+      "readShardRecords",
+      "readTimings",
+      "refuseCustomDiscovery",
+      "shardFiles",
+      "stageResultset",
+      "verifyShards",
+      "weighFiles"
     ],
     "rails/copy-overwrite/scripts/threshold-ratchet-compare.mjs": [
       "applyAllowList",

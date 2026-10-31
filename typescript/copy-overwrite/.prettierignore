@@ -95,6 +95,7 @@ scripts/lisa-npm-updater.mjs
 scripts/lisa-postinstall.mjs
 scripts/lisa-rails-prepush.mjs
 scripts/lisa-reconcile-policy.mjs
+scripts/lisa-rspec-shards.mjs
 scripts/lisa-run-gates.mjs
 scripts/lisa-schema-validate.mjs
 scripts/lisa-test-node.mjs
