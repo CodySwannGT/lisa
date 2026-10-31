@@ -103,8 +103,11 @@ describe("status answerCommand", () => {
 });
 
 describe("item-answer", () => {
+  // With no recorded comment id, the question is only a comment that starts
+  // with the marker AND is by an allowed answerer (#4561): here the manager
+  // posts as the operator's own identity, the single-user setup.
   const question = {
-    author: { login: "bot" },
+    author: { login: OPERATOR },
     body: `${MARKER} ${REF} needs a human`,
   };
 
@@ -148,6 +151,27 @@ describe("item-answer", () => {
     expect(
       readLedgerFile(sandbox).items[REF].pendingQuestion.answer
     ).toMatchObject({ source: "item", text: "CSV", author: TRUSTED });
+  });
+
+  it("queues a quote reply that quotes the question", () => {
+    const sandbox = githubSandbox();
+    ask(sandbox);
+    const result = pick(sandbox, [
+      question,
+      {
+        author: { login: OPERATOR },
+        body: `> ${MARKER} ${REF} needs a human\n\n${CSV_PLEASE}`,
+      },
+    ]);
+    expect(result.json).toEqual({
+      queued: true,
+      ref: REF,
+      source: "item",
+      author: OPERATOR,
+    });
+    expect(
+      readLedgerFile(sandbox).items[REF].pendingQuestion.answer.text
+    ).toContain(CSV_PLEASE);
   });
 
   it("queues nothing from earlier, marker or unauthorized comments", () => {

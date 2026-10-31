@@ -102,6 +102,10 @@ describe("doctor: the bot token and the secrets provider", () => {
     expect(check.detail).toMatch(/plaintext/);
     expect(check.detail).toContain("store-token");
     expect(check.detail).not.toContain(PLANTED);
+    // start refuses only a file that holds a TELEGRAM_BOT_TOKEN line, not
+    // any leftover file; doctor never reads it, so it says which.
+    expect(check.detail).toContain("TELEGRAM_BOT_TOKEN line");
+    expect(check.detail).not.toMatch(/refuses to run while it exists/);
   });
 
   it.each([undefined, { provider: "env" }])(

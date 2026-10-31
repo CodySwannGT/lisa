@@ -288,9 +288,14 @@ shows them.
   `lisa-linear-access`. Pipe `{"comments":[{"id":…,"user":…|"author":…,"body":…,"createdAt":…}]}`
   (keep each comment's own `id`) to `item-answer <ref>`. It queues the first reply after the
   question from an operator or trusted author, ignoring every machine comment first, whoever wrote
-  it: one that starts with a bracketed tag (`[lisa-…]`, `[claude-sync] …`), holds `[lisa-` or
-  `<!-- lisa:` anywhere, says "Written by Claude", or carries the coding-agent attribution footer,
-  and any comment whose id the manager recorded as its own (step 5 of "Mark and move on"). That is
+  it: one that starts with a Lisa or Claude tag (`[lisa-…]`, `[claude-sync] …`), holds `[lisa-` or
+  `<!-- lisa:`, says "Written by Claude", or carries the coding-agent attribution footer, and any
+  comment whose id the manager recorded as its own (step 5 of "Mark and move on"). Quoted (`>`)
+  lines are ignored before those markers are tested, so a "Quote reply" of the question is still
+  an answer, and so is a reply like `[x] option 1`. The question is the comment whose id the
+  manager recorded last; with none recorded, the latest comment that starts with the question
+  marker and is by an operator or trusted author, so a marker someone else posts or quotes never
+  hides an answer. That is
   why every comment the manager itself posts starts with `[lisa-session-manager]`. On `queued: true`, run "Clearing". On
   `queued: false`, leave the item: it stays marked and out of the queue, and the cycle goes on.
   `reason: "no-answerers-configured"` means neither `operatorIds` nor `trustedAuthorIds` is set,

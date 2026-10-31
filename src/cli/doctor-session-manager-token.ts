@@ -14,8 +14,9 @@
  * Where the token lives (#4555): with a secrets provider configured
  * (`secrets.provider` set and not `env`) it belongs in the provider as
  * `TELEGRAM_BOT_TOKEN_<NAME>`, so a plaintext token file in the state dir is
- * a leftover that `store-token` migrates (and `start` refuses to run
- * beside). With no provider that file is still how the token is stored, and
+ * a leftover that `store-token` migrates (and `start` refuses to run while
+ * it holds a `TELEGRAM_BOT_TOKEN` line; doctor only stats it, so it says so
+ * rather than claiming the file is refused outright). With no provider that file is still how the token is stored, and
  * it is flagged as plaintext. Doctor never reads the vault: it cannot prove
  * the secret exists, only that no plaintext copy is left.
  *
@@ -190,7 +191,7 @@ async function tokenFileFindings(
       : [
           {
             status: "warn",
-            text: `a plaintext token file ${tokenFile} is left over, but the token belongs in ${provider} as ${ctx.secretName}; run session-manager.mjs store-token to move it there (it verifies the copy, then deletes the file), because start refuses to run while it exists`,
+            text: `a plaintext token file ${tokenFile} is left over, but the token belongs in ${provider} as ${ctx.secretName}; run session-manager.mjs store-token to move it there (it verifies the copy, then deletes the file), because start refuses to run while that file holds a TELEGRAM_BOT_TOKEN line`,
           },
         ];
   }
