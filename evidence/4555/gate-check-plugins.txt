@@ -1,0 +1,5 @@
+$ bash scripts/check-plugins-sync.sh
+$ bash scripts/build-plugins.sh
+✓ Plugin artifacts are in sync with plugins/src.
+✓ 42 generated files outside plugins/ match their sources.
+✓ Marketplace registers every built plugin.

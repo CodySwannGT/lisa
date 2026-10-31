@@ -1,0 +1,79 @@
+## command -v under stub PATH
+/Users/cody/workspace/lisa/.claude/worktrees/4555-session-manager-optional-telegram/tests/fixtures/session-manager/stub-bin/bws
+/Users/cody/workspace/lisa/.claude/worktrees/4555-session-manager-optional-telegram/tests/fixtures/session-manager/stub-bin/tmux
+/Users/cody/workspace/lisa/.claude/worktrees/4555-session-manager-optional-telegram/tests/fixtures/session-manager/stub-bin/claude
+/Users/cody/workspace/lisa/.claude/worktrees/4555-session-manager-optional-telegram/tests/fixtures/session-manager/stub-bin/gh
+/Users/cody/workspace/lisa/.claude/worktrees/4555-session-manager-optional-telegram/tests/fixtures/session-manager/stub-bin/security
+## $ session-manager.mjs init-config --notify none --write
+{"written":true,"path":"/var/folders/7f/hb4kw66s7nbc126rz71s0td80000gn/T/lisa-4555-verify/none/project/.lisa.config.json","block":{"name":"demo-repo-e23b11-manager","interval":"5m","capacity":{"maxWorkers":6,"gbPerWorker":3,"reserveGb":8,"cpuFraction":0.75,"maxLoadPerCore":1.5},"stall":{"noOutputMinutes":60,"maxAttempts":3,"requestionHours":4},"notify":{"provider":"none"}}}
+exit=0
+## $ session-manager.mjs validate
+{"valid":true,"errors":[]}
+exit=0
+## $ session-manager.mjs start --settle-ms 500
+{"status":"started","name":"demo-repo-e23b11-manager","notify":"none","attach":"tmux attach -t demo-repo-e23b11-manager"}
+exit=0
+## $ session-manager.mjs status
+{"manager":{"name":"demo-repo-e23b11-manager","running":true},"notify":"none","control":{"paused":false,"maxWorkers":null,"me":null},"workers":[],"untracked":[],"pendingQuestions":[]}
+exit=0
+## config after init-config
+{
+  "tracker": "github",
+  "github": {
+    "org": "example-org",
+    "repo": "demo-repo",
+    "labels": {
+      "build": {
+        "ready": "status:ready",
+        "human_needed": "human-needed",
+        "blocked": "status:blocked"
+      }
+    }
+  },
+  "sessionManager": {
+    "name": "demo-repo-e23b11-manager",
+    "interval": "5m",
+    "capacity": {
+      "maxWorkers": 6,
+      "gbPerWorker": 3,
+      "reserveGb": 8,
+      "cpuFraction": 0.75,
+      "maxLoadPerCore": 1.5
+    },
+    "stall": {
+      "noOutputMinutes": 60,
+      "maxAttempts": 3,
+      "requestionHours": 4
+    },
+    "notify": {
+      "provider": "none"
+    }
+  }
+}
+## stub tmux calls
+{"bin":"tmux","argv":["has-session","-t","=demo-repo-e23b11-manager"],"cwd":"/Users/cody/workspace/lisa/.claude/worktrees/4555-session-manager-optional-telegram","envKeys":["PATH","HOME","XDG_CONFIG_HOME","TMPDIR","STUB_LOG","__CF_USER_TEXT_ENCODING"]}
+{"bin":"tmux","argv":["new-session","-d","-s","demo-repo-e23b11-manager","-c","/var/folders/7f/hb4kw66s7nbc126rz71s0td80000gn/T/lisa-4555-verify/none/project","-e","SM_SCRIPTS_DIR=/Users/cody/workspace/lisa/.claude/worktrees/4555-session-manager-optional-telegram/plugins/src/base/skills/lisa-session-manager/scripts","claude","-n","demo-repo-e23b11-manager","--dangerously-skip-permissions","--settings","{\"crossSessionInbound\":\"accept\"}","--","/loop 5m /lisa:session-manager cycle"],"cwd":"/private/var/folders/7f/hb4kw66s7nbc126rz71s0td80000gn/T/lisa-4555-verify/none/project","envKeys":["PATH","HOME","XDG_CONFIG_HOME","TMPDIR","STUB_LOG","__CF_USER_TEXT_ENCODING"]}
+{"bin":"tmux","argv":["has-session","-t","=demo-repo-e23b11-manager"],"cwd":"/Users/cody/workspace/lisa/.claude/worktrees/4555-session-manager-optional-telegram","envKeys":["PATH","HOME","XDG_CONFIG_HOME","TMPDIR","STUB_LOG","__CF_USER_TEXT_ENCODING"]}
+{"bin":"tmux","argv":["has-session","-t","=demo-repo-e23b11-manager"],"cwd":"/Users/cody/workspace/lisa/.claude/worktrees/4555-session-manager-optional-telegram","envKeys":["PATH","HOME","XDG_CONFIG_HOME","TMPDIR","STUB_LOG","__CF_USER_TEXT_ENCODING"]}
+{"bin":"tmux","argv":["has-session","-t","=demo-repo-e23b11-manager"],"cwd":"/Users/cody/workspace/lisa/.claude/worktrees/4555-session-manager-optional-telegram","envKeys":["PATH","HOME","XDG_CONFIG_HOME","TMPDIR","STUB_LOG","__CF_USER_TEXT_ENCODING"]}
+## grep --channels / TELEGRAM_ in stub log (expect none)
+0
+0
+## doctor (tsx src/index.ts doctor --offline --json <root>), session-manager check
+doctor exit=0
+[
+ {
+  "name": "Session manager notifications?",
+  "status": "warn",
+  "detail": "notifications: none; example-org/demo-repo visibility not checked (offline); if it is public, set sessionManager.trustedAuthorIds before starting the manager"
+ }
+]
+## doctor again with sessionManager.trustedAuthorIds set (removes the offline public-repo trust warning)
+doctor exit=0
+[
+ {
+  "name": "Session manager notifications?",
+  "status": "ok",
+  "detail": "notifications: none"
+ }
+]

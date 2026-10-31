@@ -1,0 +1,62 @@
+## plaintext token file planted beforehand by plant.sh (old setup shape); state dir listing:
+total 8
+drwx------@ 3 cody  staff  96 Oct 31 10:28 .
+drwxr-xr-x@ 3 cody  staff  96 Oct 31 10:28 ..
+-rw-------@ 1 cody  staff  77 Oct 31 10:28 .env
+## $ session-manager.mjs validate
+exit=0
+stdout: {"valid":true,"errors":[]}
+stderr: 
+## $ session-manager.mjs start --settle-ms 500
+exit=2
+stdout: 
+stderr: A plaintext Telegram bot token file is still at /var/folders/7f/hb4kw66s7nbc126rz71s0td80000gn/T/lisa-4555-verify/telegram/home/.claude/channels/telegram-demo/.env. With a secrets provider configured the token must live in bitwarden only. Nothing was started. Move it there (this stores the token, verifies it and deletes the file), then run start again:
+  node '/Users/cody/workspace/lisa/.claude/worktrees/4555-session-manager-optional-telegram/plugins/src/base/skills/lisa-session-manager/scripts/session-manager.mjs' store-token --project-root '/var/folders/7f/hb4kw66s7nbc126rz71s0td80000gn/T/lisa-4555-verify/telegram/project'
+## tmux calls after refused start:
+1
+## $ session-manager.mjs store-token
+exit=0
+stdout: {"stored":true,"storage":"provider","provider":"bitwarden","secret":"TELEGRAM_BOT_TOKEN_DEMO_MANAGER","verified":true,"migratedFrom":"/var/folders/7f/hb4kw66s7nbc126rz71s0td80000gn/T/lisa-4555-verify/telegram/home/.claude/channels/telegram-demo/.env","deleted":true}
+stderr: 
+## state dir listing after store-token:
+total 0
+drwx------@ 2 cody  staff  64 Oct 31 10:28 .
+drwxr-xr-x@ 3 cody  staff  96 Oct 31 10:28 ..
+## vault rows (key, projectId, value sha256 vs sentinel sha256)
+TELEGRAM_BOT_TOKEN_DEMO_MANAGER proj-demo valueSha256Matches= true
+## bws calls (argv redacted by stub)
+["--color","no","secret","list","--output","json"] BWS_ACCESS_TOKEN in env: true
+["--color","no","secret","create","TELEGRAM_BOT_TOKEN_DEMO_MANAGER","<redacted>","proj-demo","--note","Telegram bot token for a Lisa session manager, stored by its store-token command and read only by its start command.\nscope: one Telegram bot - whoever holds it can read and send that bot's messages\nowner: lisa-session-manager","--output","none"] BWS_ACCESS_TOKEN in env: true
+["--color","no","secret","list","--output","json"] BWS_ACCESS_TOKEN in env: true
+## $ session-manager.mjs start --settle-ms 500
+exit=0
+stdout: {"status":"started","name":"demo-manager","notify":"telegram","stateDir":"/var/folders/7f/hb4kw66s7nbc126rz71s0td80000gn/T/lisa-4555-verify/telegram/home/.claude/channels/telegram-demo","tokenSource":"provider","secret":"TELEGRAM_BOT_TOKEN_DEMO_MANAGER","attach":"tmux attach -t demo-manager"}
+stderr: 
+## tmux launch records
+argv= ["start-server",";","source-file","-"]
+stdin-line: {"sourced":"new-session","envNames":["TELEGRAM_STATE_DIR","SM_SCRIPTS_DIR","TELEGRAM_BOT_TOKEN"],"tokenSha256MatchesSentinel":true,"command":["claude","-n","demo-manager","--dangerously-skip-permissions"]}
+## $ session-manager.mjs status
+exit=0
+stdout: {"manager":{"name":"demo-manager","running":true},"notify":"telegram","control":{"paused":false,"maxWorkers":null,"me":null},"workers":[],"untracked":[],"pendingQuestions":[]}
+stderr: 
+## SENTINEL SWEEP: files under the sandbox containing the sentinel
+/var/folders/7f/hb4kw66s7nbc126rz71s0td80000gn/T/lisa-4555-verify/telegram/vault/vault.json
+## sentinel in this report's captured stdout/stderr files:
+none
+## bite control: the same sweep finds a planted copy
+/var/folders/7f/hb4kw66s7nbc126rz71s0td80000gn/T/lisa-4555-verify/telegram/bite-control.txt
+/var/folders/7f/hb4kw66s7nbc126rz71s0td80000gn/T/lisa-4555-verify/telegram/vault/vault.json
+
+######## Item 3: provider failures
+## $ STUB_BWS_FAIL=rate-limit session-manager.mjs start --settle-ms 500
+exit=1
+stdout: 
+stderr: Could not read the Telegram bot token from bitwarden: it rate-limited the request (429 Too Many Requests). Nothing was started. Wait a minute and run start again; if it keeps failing, check bitwarden's status and this machine's network.
+tmux calls this run: 1; session-creating tmux calls this run: 0
+{"bin":"tmux","argv":["has-session","-t","=demo-manager"],"cwd":"/Users/cody/workspace/lisa/.claude/worktrees/4555-sessi
+## $ STUB_BWS_FAIL=unavailable session-manager.mjs start --settle-ms 500
+exit=1
+stdout: 
+stderr: Could not read the Telegram bot token from bitwarden: it could not be reached or refused the request. Nothing was started. Wait a minute and run start again; if it keeps failing, check bitwarden's status and this machine's network.
+tmux calls this run: 1; session-creating tmux calls this run: 0
+{"bin":"tmux","argv":["has-session","-t","=demo-manager"],"cwd":"/Users/cody/workspace/lisa/.claude/worktrees/4555-sessi

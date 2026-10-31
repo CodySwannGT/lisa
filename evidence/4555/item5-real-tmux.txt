@@ -1,0 +1,12 @@
+base argv (from buildManagerLaunch): ["new-session","-d","-s","lisa4555probe","-c","/var/folders/7f/hb4kw66s7nbc126rz71s0td80000gn/T/lisa-4555-verify/realtmux","-e","TELEGRAM_STATE_DIR=/var/folders/7f/hb4kw66s7nbc126rz71s0td80000gn/T/lisa-4555-verify/realtmux/state","-e","SM_SCRIPTS_DIR=/Users/cody/workspace/lisa/.claude/worktrees/4555-session-manager-optional-telegram/plugins/src/base/skills/lisa-session-manager/scripts","claude","-n","lisa4555probe","--dangerously-skip-permissions","--settings","{\"crossSessionInbound\":\"accept\",\"enabledPlugins\":{\"telegram@claude-plugins-official\":true}}","--channels","plugin:telegram@claude-plugins-official","--","/loop 5m /lisa:session-manager cycle"]
+tmux argv: ["start-server",";","source-file","-"]
+stdin line contains sentinel: true (expected true; the line itself is not printed)
+tmux start exit: 0 stderr (sentinel redacted): ""
+has-session: 0
+child saw TELEGRAM_BOT_TOKEN equal to sentinel: true
+child saw QUOTE_PROBE intact (single+double quotes, $): true
+child args: -n lisa4555probe --dangerously-skip-permissions --settings {"crossSessionInbound":"accept","enabledPlugins":{"telegram@claude-plugins-official":true}} --channels plugin:telegram@claude-plugins-official -- /loop 5m /lisa:session-manager cycle
+ps polls: 28; ps lines containing the sentinel: 0
+bite control (decoy /bin/sh with sentinel-derived argv) found by the ps scan: true
+kill-server (isolated socket only): 1
+isolated server gone: true
