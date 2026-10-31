@@ -26,9 +26,17 @@ import {
 } from "./config.mjs";
 import { defaultProjectSlug } from "./isolation.mjs";
 import {
+  readTokenFromClipboard,
+  readTokenFromPrompt,
+  resolveStateDir,
   storeToken as storeTokenFile,
   storeTokenFromClipboard,
 } from "./launch.mjs";
+import {
+  loadTokenSecrets,
+  storeTokenInProvider,
+  telegramSecretName,
+} from "./token-store.mjs";
 import {
   coexistence as readCoexistence,
   trustStatus as readTrust,
@@ -89,11 +97,19 @@ export function initConfig(ctx) {
 }
 
 /**
- * `store-token [--replace] [--from-clipboard]`: store the bot token in the
- * project's state dir. By default it prompts on the operator's terminal (echo
- * off); with no TTY it prints the two commands that work instead and exits 0
- * with `stored:false`. `--from-clipboard` reads the system clipboard and needs
- * no TTY. An existing token is kept (exit 2) unless `--replace` is given.
+ * `store-token [--replace] [--from-clipboard] [--vault-project <id>]`: store
+ * the bot token. With a secrets provider configured (`secrets.provider` set
+ * and not `env`) it goes into the provider as `TELEGRAM_BOT_TOKEN_<NAME>`
+ * and nothing is written to disk: a plaintext `<stateDir>/.env` left by an
+ * older setup is migrated (stored, read back and compared, then deleted), and
+ * an already-stored token is kept (exit 0) unless `--replace` is given
+ * (#4555). With no provider it is written to `<stateDir>/.env` as before,
+ * and an existing file is kept (exit 2) unless `--replace`.
+ *
+ * Either way the token is read from the operator's terminal (echo off) or,
+ * with `--from-clipboard`, from the system clipboard; with no TTY it prints
+ * the two commands that work instead and exits 0 with `stored:false`. The
+ * token is never printed.
  * @param {object} ctx - CLI context
  * @returns {Promise<{ json: object, exitCode: number }>} Outcome
  */
@@ -116,11 +132,57 @@ export async function storeToken(ctx) {
     env: ctx.env,
     homedir: ctx.homedir,
   };
+  const secrets = await asSetupErrorAsync(() =>
+    loadTokenSecrets(ctx.root, ctx.env)
+  );
+  const result =
+    secrets === null
+      ? await storeInFile(ctx, input)
+      : await asSetupErrorAsync(() =>
+          storeInProvider(ctx, input, { ...secrets, name: config.name })
+        );
+  const refused = result.stored === false && result.reason !== "no-tty";
+  return { json: result, exitCode: refused ? EXIT.SETUP : EXIT.OK };
+}
+
+/**
+ * The no-provider path: `<stateDir>/.env`, as before #4555.
+ * @param {object} ctx - CLI context
+ * @param {object} input - Store input
+ * @returns {Promise<object>} Outcome, with `storage:"file"` once stored
+ */
+async function storeInFile(ctx, input) {
   const result = ctx.values["from-clipboard"]
     ? asSetupError(() => storeTokenFromClipboard(input))
     : await asSetupErrorAsync(() => storeTokenFile(input));
-  const refused = result.stored === false && result.reason !== "no-tty";
-  return { json: result, exitCode: refused ? EXIT.SETUP : EXIT.OK };
+  return result.stored ? { ...result, storage: "file" } : result;
+}
+
+/**
+ * The provider path: see {@link storeTokenInProvider}. The token reader
+ * (prompt or clipboard) runs only when there is no plaintext file to migrate
+ * and no stored token to keep.
+ * @param {object} ctx - CLI context
+ * @param {object} input - Store input
+ * @param {{ cfg: object, adapter: object, name: string }} secrets - Provider
+ *   config, adapter and the manager name
+ * @returns {Promise<object>} Outcome
+ */
+function storeInProvider(ctx, input, { cfg, adapter, name }) {
+  const secret = telegramSecretName(name);
+  const vaultProject = ctx.values["vault-project"];
+  return storeTokenInProvider({
+    cfg,
+    adapter,
+    name: secret,
+    stateDir: resolveStateDir(input.stateDir, input),
+    replace: input.replace,
+    vaultProject,
+    readToken: () =>
+      ctx.values["from-clipboard"]
+        ? readTokenFromClipboard()
+        : readTokenFromPrompt({ ...input, label: secret, vaultProject }),
+  });
 }
 
 /**

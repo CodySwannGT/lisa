@@ -716,8 +716,10 @@ function validateNotify(notify) {
  * Walk the block for anything that looks like a credential.
  *
  * Config is committed, and this block configures a bot that grants shell
- * access over chat. The token belongs in the state dir's dotenv file (mode
- * 0600), so a token here is both leaked and unused. The value is never echoed.
+ * access over chat. The token belongs in the project's secrets provider
+ * (#4555; the state dir's 0600 dotenv file only when no provider is
+ * configured), so a token here is both leaked and unused. The value is never
+ * echoed.
  * @param {unknown} value Subtree.
  * @param {string} path Dotted path so far.
  * @returns {string[]} Problems found.
@@ -726,8 +728,10 @@ function findCredentials(value, path) {
   if (typeof value === "string") {
     return TOKEN_VALUE.test(value.trim())
       ? [
-          `${path} looks like a bot token. Tokens never go in config; ` +
-            `/lisa:setup:session-manager stores it in the state dir.`,
+          `${path} looks like a bot token. Tokens never go in config: ` +
+            `remove it, and store the token in the project's secrets ` +
+            `provider with session-manager.mjs store-token ` +
+            `(/lisa:setup:session-manager runs it).`,
         ]
       : [];
   }
@@ -739,8 +743,9 @@ function findCredentials(value, path) {
     CREDENTIAL_KEY.test(key)
       ? [
           `${path}.${key} names a credential. Tokens and secrets never go in ` +
-            `config; /lisa:setup:session-manager stores the bot token in the ` +
-            `state dir.`,
+            `config: remove it, and keep the bot token in the project's ` +
+            `secrets provider (session-manager.mjs store-token, run by ` +
+            `/lisa:setup:session-manager).`,
         ]
       : findCredentials(child, `${path}.${key}`)
   );

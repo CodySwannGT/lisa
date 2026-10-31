@@ -12,7 +12,7 @@
  * `~/.claude` read happens.
  * @module tests/unit/cli/doctor-session-manager-trust
  */
-import { chmod, mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -56,13 +56,13 @@ async function fixture(
   await mkdir(path.join(home, CLAUDE_DIR), { recursive: true });
   await mkdir(project, { recursive: true });
   await mkdir(stateDir, { recursive: true });
-  await writeFile(path.join(stateDir, ".env"), "x\n");
-  await chmod(path.join(stateDir, ".env"), 0o600);
+  // The bot token is in the secrets provider (#4555), so no plaintext file.
   await writeFile(
     path.join(project, ".lisa.config.json"),
     JSON.stringify({
       tracker,
       github: { org: "example-org", repo: "demo-repo" },
+      secrets: { provider: "bitwarden" },
       sessionManager: {
         name: "p-manager",
         notify: { provider: "telegram", stateDir },

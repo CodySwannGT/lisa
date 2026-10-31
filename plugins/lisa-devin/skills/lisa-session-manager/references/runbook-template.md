@@ -60,7 +60,8 @@ or unpaired is.
 ## Recovery
 
 Restore whatever the last `recovery-required` summary names (tracker access, the Telegram token or
-pairing when Telegram is configured, the claude CLI), then `/lisa:session-manager stop` and `/lisa:session-manager start`. Items moved to
+pairing when Telegram is configured: the token is in the project's secrets provider, or in the
+state dir's `.env` with no provider; `store-token` stores or migrates it; the claude CLI), then `/lisa:session-manager stop` and `/lisa:session-manager start`. Items moved to
 `blocked` go back to `ready` once a human has dealt with the reason.
 
 ## Next-run state

@@ -979,7 +979,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/commands/setup/remote-env.md":
       "b1e8ec93bc660cc5ccf9e4c74a3a7bb6c94d5ff06c75f150479991fa1d564f2d",
     "plugins/src/base/commands/setup/session-manager.md":
-      "0ccc776b6aa00cca2c96a3f12c26e9e1cf50ec880a928b38b2e78c7931843f9b",
+      "3f02bfa7707ed0304614c49bba9ecf9fa948efb092ff9bc91f12c9154e435155",
     "plugins/src/base/commands/setup/sonar.md":
       "1d2e94fd9f21988ce6d4be2ce4268b8c0bb020eb7cd7baf8ca65def7d8a4f5bc",
     "plugins/src/base/commands/setup/workstation.md":
@@ -1181,7 +1181,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/rules/reference/completion-authorization.md":
       "75646f8f5b1c5aedf750e37ed3b5a1f09f6fd85932037c85ac1e8930b67100b1",
     "plugins/src/base/rules/reference/config-resolution.md":
-      "ef765a593e20550d6bdea7cb030134fe1b68fdd4fb1dfa174923fd2ba5688cb2",
+      "1ce5ca32d6102d5a8b2eb5436be389408c9f0969f7d2780da341fcea41ed612b",
     "plugins/src/base/rules/reference/control-reachability.md":
       "0883f3480de79bcaa4a9da5685192c014d9267d0a12aed8153bba8c51161129a",
     "plugins/src/base/rules/reference/convergent-review.md":
@@ -1621,7 +1621,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-root-cause-analysis/SKILL.md":
       "3fa14217ca36b238ebb8203d18f10eaaf98a3647f949cdada6cb9f56ddf9ed50",
     "plugins/src/base/skills/lisa-secrets-access/SKILL.md":
-      "6afe30e463c6bda5ba6320480fbb10afcb52b3eb8d91f0a6ded03c3bc86bb3d0",
+      "7ed1795ad29e83c40da1534f00607ab54da12eb2abcb67dc053f06f608948d2f",
     "plugins/src/base/skills/lisa-secrets-access/scripts/aws-bootstrap.mjs":
       "7f6acaa7ac13f31ebbd12e41000b5796536f1fe708684e59f79ab23b85ee08f0",
     "plugins/src/base/skills/lisa-secrets-access/scripts/bootstrap-store.mjs":
@@ -1643,7 +1643,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-secrets-access/scripts/prompt-secret.mjs":
       "22b28bcdf49b9b0fcd1b15639e031655efacc028b74d48d57e2275f3e1557508",
     "plugins/src/base/skills/lisa-secrets-access/scripts/providers.mjs":
-      "46996ea3e23f9284face2cdbc3ac2e5f23295ac4b6f5b81a42633cce2ed06268",
+      "4b699b8f723ca3b7df2df966b3cb7ef1e61eeeff917e73ae380181b078407181",
     "plugins/src/base/skills/lisa-secrets-access/scripts/publish-aws-bootstrap.mjs":
       "cca130bdd73b73c807baffc660510a37c3d7504ad0d6959a4bd28b141caf21db",
     "plugins/src/base/skills/lisa-secrets-access/scripts/read-secret-note.mjs":
@@ -1663,7 +1663,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-secrets-access/scripts/tools-from-notes.mjs":
       "360f740cac081151491428043b04fec2f5db6f3ba36394f7378af312396d53ca",
     "plugins/src/base/skills/lisa-secrets-access/scripts/validate-config.mjs":
-      "41f6cd5100c98443efea23fc05b79c09f5cc3abb6c3a30cddfe32de9ea5e6f53",
+      "ad26fedaf2639fccd087864f4486ce5d90f83e3f7cf0d15fe180c31a16bee37e",
     "plugins/src/base/skills/lisa-security-review/SKILL.md":
       "5a980eaf5efc4fcce66e75521ec5b1eda143a5b0d36e7157234a705dac94e3f5",
     "plugins/src/base/skills/lisa-security-zap-scan/SKILL.md":
@@ -1671,23 +1671,23 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-sentry-access/SKILL.md":
       "1c1881ca9a2020f6cd8f938dc5335ebf2d344ff280844bb98926198e5226e526",
     "plugins/src/base/skills/lisa-session-manager/SKILL.md":
-      "ef687f8e05d1cb162dfd2e2beb0872687f08c7badf3933cddfb650852587d4b4",
+      "333ece60d61d337e8d27eae030cbd0ad788dd916067591f8bec94171387c9622",
     "plugins/src/base/skills/lisa-session-manager/references/runbook-template.md":
-      "2323e5eab05765627c00ea9e1d782acf6eaa88eb1f15d78a84de8c3ddb3da062",
+      "912f3d7a22db61a667d3d8c230db908015c5b89a9ea7b6b5eaae25acd4fd436b",
     "plugins/src/base/skills/lisa-session-manager/scripts/capacity.mjs":
       "ad5acc6097e375868b51eaf01b1506662505e2404b7ac1b06528679718504091",
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-cycle.mjs":
       "77637fe3694f4dabcb5c7cc3fea5315afa745ea35c4a7f50c5a4519c3f4068cd",
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-manager.mjs":
-      "0810969615fb2c018baf20d5ab783acb2766fd5ad777d3941842086d20a57d21",
+      "e68e78b0636ced552b59f0804b6bdfe5ab10da4bd9420b4447566b43b8eb9d0d",
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-queue.mjs":
       "52bb1d95506cd2b7d6d662eb888c4bd750eb897829ec3ca49ae3fec2949d9c77",
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-runtime.mjs":
-      "2948105addc10c0405d085cd2ba606f77f8f7c961bcfdaf1f09e7434d27e2b5e",
+      "3e062dbbcada449afe3b15b711cbb53b2b2aaf483aae51ddbaac30df8e3992c7",
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-setup.mjs":
-      "5d0b22b794d952548e00422c7ffa158dd187b12dde7d6d6ab7b9146de145af94",
+      "d1823dbe8cf5b25e8faa9b52e46ac1343f573b93a750d9c879e6c366a7704a04",
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-usage.mjs":
-      "7d1c8d4952a48c3f409bc938168e97c209debcf14988a73a1b620f55b2c1df59",
+      "2355fe7694f011e84ac60f6467edbbb5957823df3661ef88441facb919e92c54",
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-workers.mjs":
       "63ca4c92eb838f806be1dcb6b995cdcee56f77eb7ba4787959ec23a395b32bfe",
     "plugins/src/base/skills/lisa-session-manager/scripts/clipboard.mjs":
@@ -1697,7 +1697,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-session-manager/scripts/isolation.mjs":
       "c6161331dea68eec4112948d9e8841aa834632c7503de5c8fd5d9834e125dfbc",
     "plugins/src/base/skills/lisa-session-manager/scripts/launch.mjs":
-      "ba071b41296958ed10a3595c18e978a8683fb8787b98678de2634f81b67c902b",
+      "d089bb4cc52f6d073c7712d05a437533aabab275a751d981ddd7fc386b8fac2d",
     "plugins/src/base/skills/lisa-session-manager/scripts/ledger.mjs":
       "fd73fbbd725378cfcac968579672f24481f10af6acb03633954f91085b0defe5",
     "plugins/src/base/skills/lisa-session-manager/scripts/reconcile.mjs":
@@ -1705,15 +1705,17 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-session-manager/scripts/repo-detect.mjs":
       "3ce714f1934433f2bc297c0b67931a28687ccef70c01639cb8542e9bb7f0a14d",
     "plugins/src/base/skills/lisa-session-manager/scripts/session-manager.mjs":
-      "24b1b92f805b9ae12cdcbec10ff297d7b97e066b726c16ed4c58f6f657e38363",
+      "d55303e46a4d4c41c59dcc8bd64bcfb292fbf1516fa27ad15cd81ed1940ec3f3",
     "plugins/src/base/skills/lisa-session-manager/scripts/setup-checks.mjs":
       "433c1afb36641eb3eb271f1803c7dfba556dd98e535627d00cfc8e3135a5d68f",
     "plugins/src/base/skills/lisa-session-manager/scripts/state-dir.mjs":
       "e1c3f0386249afc187b9711b3631ed58b23467e1e88d22c628167b5d3af45318",
     "plugins/src/base/skills/lisa-session-manager/scripts/telegram-route.mjs":
       "af176e882c928ce16fc51352035e06b13fb3eecd3edb40b20f17fc22fe1049d5",
+    "plugins/src/base/skills/lisa-session-manager/scripts/token-store.mjs":
+      "c531419b80f836fa1c22bac2a774e4694c046abc2a7f75781520d055baeb5c13",
     "plugins/src/base/skills/lisa-session-manager/scripts/token.mjs":
-      "8c53e1e2cc5548e04ac0b47bc73df78c52231284cb495b8e4d10f9e427518852",
+      "abe7ad4f35c63048277cd6807e4237fd96b26bb5828271e25475a1a0cdfb5829",
     "plugins/src/base/skills/lisa-session-manager/scripts/worker-launch.mjs":
       "5d17eed33302f8e22858f4c69d8323e60411fe7b089a11414d93613923287b0c",
     "plugins/src/base/skills/lisa-session-manager/scripts/workers.mjs":
@@ -1765,7 +1767,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-setup-remote-env/scripts/verify-remote-env.mjs":
       "bec0b624c1031d0936afd6e5dd4a3d09adea102d5936b5b9fcf545c7f86a3a11",
     "plugins/src/base/skills/lisa-setup-session-manager/SKILL.md":
-      "f9b9902676106ab458bd16eab1a05ac2d4b5a9f90734380af9aeacce5326bd43",
+      "720c3f9537675394ce9a2ce36c77b221ed5f7e4b990c0a3cdf9ab976750d2570",
     "plugins/src/base/skills/lisa-setup-sonar/SKILL.md":
       "de00597d260d5491837406a81b87a96b9307a7d87c040b35fc1d6e77ae2f5306",
     "plugins/src/base/skills/lisa-setup-workstation/SKILL.md":
@@ -4513,6 +4515,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-agy/skills/lisa-session-manager/scripts/setup-checks.mjs": true,
     "plugins/lisa-agy/skills/lisa-session-manager/scripts/state-dir.mjs": true,
     "plugins/lisa-agy/skills/lisa-session-manager/scripts/telegram-route.mjs": true,
+    "plugins/lisa-agy/skills/lisa-session-manager/scripts/token-store.mjs": true,
     "plugins/lisa-agy/skills/lisa-session-manager/scripts/token.mjs": true,
     "plugins/lisa-agy/skills/lisa-session-manager/scripts/worker-launch.mjs": true,
     "plugins/lisa-agy/skills/lisa-session-manager/scripts/workers.mjs": true,
@@ -5038,6 +5041,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-copilot/skills/lisa-session-manager/scripts/setup-checks.mjs": true,
     "plugins/lisa-copilot/skills/lisa-session-manager/scripts/state-dir.mjs": true,
     "plugins/lisa-copilot/skills/lisa-session-manager/scripts/telegram-route.mjs": true,
+    "plugins/lisa-copilot/skills/lisa-session-manager/scripts/token-store.mjs": true,
     "plugins/lisa-copilot/skills/lisa-session-manager/scripts/token.mjs": true,
     "plugins/lisa-copilot/skills/lisa-session-manager/scripts/worker-launch.mjs": true,
     "plugins/lisa-copilot/skills/lisa-session-manager/scripts/workers.mjs": true,
@@ -5547,6 +5551,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-cursor/skills/lisa-session-manager/scripts/setup-checks.mjs": true,
     "plugins/lisa-cursor/skills/lisa-session-manager/scripts/state-dir.mjs": true,
     "plugins/lisa-cursor/skills/lisa-session-manager/scripts/telegram-route.mjs": true,
+    "plugins/lisa-cursor/skills/lisa-session-manager/scripts/token-store.mjs": true,
     "plugins/lisa-cursor/skills/lisa-session-manager/scripts/token.mjs": true,
     "plugins/lisa-cursor/skills/lisa-session-manager/scripts/worker-launch.mjs": true,
     "plugins/lisa-cursor/skills/lisa-session-manager/scripts/workers.mjs": true,
@@ -5986,6 +5991,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-devin/skills/lisa-session-manager/scripts/setup-checks.mjs": true,
     "plugins/lisa-devin/skills/lisa-session-manager/scripts/state-dir.mjs": true,
     "plugins/lisa-devin/skills/lisa-session-manager/scripts/telegram-route.mjs": true,
+    "plugins/lisa-devin/skills/lisa-session-manager/scripts/token-store.mjs": true,
     "plugins/lisa-devin/skills/lisa-session-manager/scripts/token.mjs": true,
     "plugins/lisa-devin/skills/lisa-session-manager/scripts/worker-launch.mjs": true,
     "plugins/lisa-devin/skills/lisa-session-manager/scripts/workers.mjs": true,
@@ -8394,6 +8400,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa/.codex-plugin/skills/lisa-session-manager/scripts/setup-checks.mjs": true,
     "plugins/lisa/.codex-plugin/skills/lisa-session-manager/scripts/state-dir.mjs": true,
     "plugins/lisa/.codex-plugin/skills/lisa-session-manager/scripts/telegram-route.mjs": true,
+    "plugins/lisa/.codex-plugin/skills/lisa-session-manager/scripts/token-store.mjs": true,
     "plugins/lisa/.codex-plugin/skills/lisa-session-manager/scripts/token.mjs": true,
     "plugins/lisa/.codex-plugin/skills/lisa-session-manager/scripts/worker-launch.mjs": true,
     "plugins/lisa/.codex-plugin/skills/lisa-session-manager/scripts/workers.mjs": true,
@@ -9087,6 +9094,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa/skills/lisa-session-manager/scripts/setup-checks.mjs": true,
     "plugins/lisa/skills/lisa-session-manager/scripts/state-dir.mjs": true,
     "plugins/lisa/skills/lisa-session-manager/scripts/telegram-route.mjs": true,
+    "plugins/lisa/skills/lisa-session-manager/scripts/token-store.mjs": true,
     "plugins/lisa/skills/lisa-session-manager/scripts/token.mjs": true,
     "plugins/lisa/skills/lisa-session-manager/scripts/worker-launch.mjs": true,
     "plugins/lisa/skills/lisa-session-manager/scripts/workers.mjs": true,
@@ -9656,6 +9664,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/src/base/skills/lisa-session-manager/scripts/setup-checks.mjs": true,
     "plugins/src/base/skills/lisa-session-manager/scripts/state-dir.mjs": true,
     "plugins/src/base/skills/lisa-session-manager/scripts/telegram-route.mjs": true,
+    "plugins/src/base/skills/lisa-session-manager/scripts/token-store.mjs": true,
     "plugins/src/base/skills/lisa-session-manager/scripts/token.mjs": true,
     "plugins/src/base/skills/lisa-session-manager/scripts/worker-launch.mjs": true,
     "plugins/src/base/skills/lisa-session-manager/scripts/workers.mjs": true,
@@ -10974,8 +10983,10 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/fixtures/rails-helper-test-isolation/spec/spec_helper.rb": true,
     "tests/fixtures/review-terminal-gh.cjs": true,
     "tests/fixtures/session-manager/meminfo.txt": true,
+    "tests/fixtures/session-manager/stub-bin/bws": true,
     "tests/fixtures/session-manager/stub-bin/claude": true,
     "tests/fixtures/session-manager/stub-bin/gh": true,
+    "tests/fixtures/session-manager/stub-bin/security": true,
     "tests/fixtures/session-manager/stub-bin/tmux": true,
     "tests/fixtures/session-manager/stub-bin/vm_stat": true,
     "tests/fixtures/session-manager/support/stub-record.mjs": true,
@@ -11480,6 +11491,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/cli/doctor-reusable-workflow-refs.test.ts": true,
     "tests/unit/cli/doctor-serialize-legs-contract.test.ts": true,
     "tests/unit/cli/doctor-session-manager-notify.test.ts": true,
+    "tests/unit/cli/doctor-session-manager-provider.test.ts": true,
     "tests/unit/cli/doctor-session-manager-trust.test.ts": true,
     "tests/unit/cli/doctor-session-manager.test.ts": true,
     "tests/unit/cli/doctor-skip-jobs-migration.test.ts": true,
@@ -12550,6 +12562,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/secrets/bootstrap-missing-diagnosis.test.ts": true,
     "tests/unit/secrets/bootstrap-store.test.ts": true,
     "tests/unit/secrets/config-upward-walk.test.ts": true,
+    "tests/unit/secrets/create-secret.test.ts": true,
     "tests/unit/secrets/cross-project-collisions.test.ts": true,
     "tests/unit/secrets/detect-tooling-discovery.test.ts": true,
     "tests/unit/secrets/detect-tooling.test.ts": true,
@@ -12631,6 +12644,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/session-manager/cli-setup.test.ts": true,
     "tests/unit/session-manager/cli-spawn-trust.test.ts": true,
     "tests/unit/session-manager/cli-start-survival.test.ts": true,
+    "tests/unit/session-manager/cli-token-provider.test.ts": true,
     "tests/unit/session-manager/cli-trust.test.ts": true,
     "tests/unit/session-manager/cli.test.ts": true,
     "tests/unit/session-manager/config-repos.test.ts": true,
@@ -12644,9 +12658,13 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/session-manager/setup-checks.test.ts": true,
     "tests/unit/session-manager/support/cli-fixtures.ts": true,
     "tests/unit/session-manager/support/cli-harness.ts": true,
+    "tests/unit/session-manager/support/fake-secrets.ts": true,
+    "tests/unit/session-manager/support/provider-sandbox.ts": true,
     "tests/unit/session-manager/telegram-route-short-forms.test.ts": true,
     "tests/unit/session-manager/telegram-route.test.ts": true,
     "tests/unit/session-manager/token-clipboard.test.ts": true,
+    "tests/unit/session-manager/token-resolve.test.ts": true,
+    "tests/unit/session-manager/token-store.test.ts": true,
     "tests/unit/session-manager/worker-launch-session-id.test.ts": true,
     "tests/unit/session-manager/workers-classify.test.ts": true,
     "tests/unit/session-manager/workers-fixtures.ts": true,

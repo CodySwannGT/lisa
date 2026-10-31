@@ -64,6 +64,8 @@ export interface StubCall {
   readonly argv: string[];
   readonly cwd: string;
   readonly envKeys: string[];
+  /** Names-only detail a stub adds, e.g. what tmux's `source-file -` read. */
+  readonly extra?: Record<string, unknown>;
 }
 
 /** A throwaway project and its sandbox. */

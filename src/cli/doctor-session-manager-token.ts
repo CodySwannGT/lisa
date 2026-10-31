@@ -10,6 +10,14 @@
  * plugin later enabled at user scope, a token copied into the shared default
  * dir, a token exported from a shell profile, or a loosened file mode.
  *
+ * Where the token lives (#4555): with a secrets provider configured
+ * (`secrets.provider` set and not `env`) it belongs in the provider as
+ * `TELEGRAM_BOT_TOKEN_<NAME>`, so a plaintext token file in the state dir is
+ * a leftover that `store-token` migrates (and `start` refuses to run
+ * beside). With no provider that file is still how the token is stored, and
+ * it is flagged as plaintext. Doctor never reads the vault: it cannot prove
+ * the secret exists, only that no plaintext copy is left.
+ *
  * Token files are only ever `stat`-ed, never read, so the token value cannot
  * reach the detail text; environment values are reported by name only.
  */
@@ -23,7 +31,9 @@ import {
 
 const PLUGIN_ID = "telegram@claude-plugins-official";
 const TOKEN_FILE = ".env";
-const ENV_NAMES = ["TELEGRAM_BOT_TOKEN", "TELEGRAM_STATE_DIR"] as const;
+/** The plugin's token variable; any `TELEGRAM_BOT_TOKEN*` name is flagged. */
+const TOKEN_VAR = "TELEGRAM_BOT_TOKEN";
+const STATE_DIR_VAR = "TELEGRAM_STATE_DIR";
 /** Group + other permission bits are the low six bits of a file mode. */
 const GROUP_OTHER_SPAN = 0o100;
 /** All permission bits (owner, group, other) are the low nine. */
@@ -36,6 +46,40 @@ export interface TelegramContext {
   readonly env: NodeJS.ProcessEnv;
   readonly read: (file: string) => Promise<string>;
   readonly statFile: (file: string) => Promise<{ readonly mode: number }>;
+  /** The configured secrets provider, or undefined when none (or `env`). */
+  readonly secretsProvider: string | undefined;
+  /** The provider secret name for this manager. */
+  readonly secretName: string;
+}
+
+/**
+ * The provider secret name for a manager: `TELEGRAM_BOT_TOKEN_<NAME>` with
+ * the name upper-snaked. Must agree with the session-manager CLI's
+ * `telegramSecretName` (token-store.mjs); a test pins the two together.
+ * @param managerName - `sessionManager.name`
+ * @returns Secret name
+ */
+export function telegramSecretNameFor(managerName: unknown): string {
+  const suffix = String(managerName)
+    .toUpperCase()
+    .replaceAll(/[^A-Z0-9]+/g, "_");
+  return `${TOKEN_VAR}_${suffix}`;
+}
+
+/**
+ * The secrets provider a merged config declares, or undefined when it
+ * declares none or `env` (the environment is not a provider to store in).
+ * @param config - Merged `.lisa.config.json` view
+ * @returns Provider name
+ */
+export function secretsProviderOf(
+  config: Record<string, unknown>
+): string | undefined {
+  const secrets = config.secrets;
+  const provider = isRecord(secrets) ? secrets.provider : undefined;
+  return typeof provider === "string" && provider !== "env"
+    ? provider
+    : undefined;
 }
 
 /**
@@ -83,8 +127,32 @@ async function stateDirFindings(
       },
     ];
   }
-  const tokenFile = path.join(stateDir, TOKEN_FILE);
+  return tokenFileFindings(ctx, path.join(stateDir, TOKEN_FILE));
+}
+
+/**
+ * Findings about the plaintext token file, which means different things with
+ * and without a secrets provider.
+ * @param ctx - Resolved inputs
+ * @param tokenFile - The token file in the state dir
+ * @returns Findings
+ */
+async function tokenFileFindings(
+  ctx: TelegramContext,
+  tokenFile: string
+): Promise<readonly Finding[]> {
   const mode = await modeOf(ctx.statFile, tokenFile);
+  const provider = ctx.secretsProvider;
+  if (provider !== undefined) {
+    return mode === undefined
+      ? []
+      : [
+          {
+            status: "warn",
+            text: `a plaintext token file ${tokenFile} is left over, but the token belongs in ${provider} as ${ctx.secretName}; run session-manager.mjs store-token to move it there (it verifies the copy, then deletes the file), because start refuses to run while it exists`,
+          },
+        ];
+  }
   if (mode === undefined) {
     return [
       {
@@ -93,9 +161,14 @@ async function stateDirFindings(
       },
     ];
   }
-  if (mode % GROUP_OTHER_SPAN === 0) return [];
+  const plaintext: Finding = {
+    status: "warn",
+    text: `token file ${tokenFile} holds the bot token in plaintext because no secrets provider is configured; configure secrets.provider (see lisa-secrets-access), then run session-manager.mjs store-token to move it into the provider`,
+  };
+  if (mode % GROUP_OTHER_SPAN === 0) return [plaintext];
   const octal = (mode % PERMISSION_SPAN).toString(8).padStart(3, "0");
   return [
+    plaintext,
     {
       status: "warn",
       text: `token file ${tokenFile} has mode 0${octal}, open to other users; run chmod 600 ${tokenFile}`,
@@ -143,10 +216,14 @@ async function userScopeFindings(
  * @returns Findings, naming each variable but never its value
  */
 function exportedFindings(ctx: TelegramContext): readonly Finding[] {
-  return ENV_NAMES.filter(name => (ctx.env[name] ?? "") !== "").map(name => ({
-    status: "warn" as const,
-    text: `${name} is set in this shell's environment, so workers may inherit it; remove the export from your shell profile`,
-  }));
+  return Object.keys(ctx.env)
+    .filter(name => name === STATE_DIR_VAR || name.startsWith(TOKEN_VAR))
+    .filter(name => (ctx.env[name] ?? "") !== "")
+    .sort((a, b) => a.localeCompare(b))
+    .map(name => ({
+      status: "warn" as const,
+      text: `${name} is set in this shell's environment, so workers may inherit it; remove the export from your shell profile`,
+    }));
 }
 
 /**

@@ -3,14 +3,15 @@ name: lisa-setup-session-manager
 description: "Set up the local session…"
 allowed-tools: ["Bash", "Read", "Write", "Skill", "AskUserQuestion"]
 ---
-Set up the local session manager for this project: writes the non-secret `sessionManager` block to `.lisa.config.json` (detecting a multi-repo layout: repos under `projects/`, or directly under the project root), optionally sets up a Telegram notification channel (the project's own bot token stored outside the repo, the Telegram plugin installed but not enabled at user scope, pairing; skipped entirely with no channel, the default), keeps the manager's state out of git, seeds the checked-in runbook, starts the manager in tmux, and finishes with doctor's session-manager check. Idempotent.
+Set up the local session manager for this project: writes the non-secret `sessionManager` block to `.lisa.config.json` (detecting a multi-repo layout: repos under `projects/`, or directly under the project root), optionally sets up a Telegram notification channel (the project's own bot token stored in its secrets provider, or outside the repo when none is configured, with a leftover plaintext token file migrated into the provider, the Telegram plugin installed but not enabled at user scope, pairing; skipped entirely with no channel, the default), keeps the manager's state out of git, seeds the checked-in runbook, starts the manager in tmux, and finishes with doctor's session-manager check. Idempotent.
 
 
 # Setup session manager
 
 After this skill the project has a `sessionManager` block, a runbook at
 `.lisa/automations/session-manager.runbook.md`, and a running manager. Telegram is optional: with it,
-the project also has a bot token in its own state directory and a manager paired with the operator's
+the project also has its own bot token (in the project's secrets provider when one is configured,
+else in its own state directory) and a manager paired with the operator's
 Telegram chat; with no channel (the default), Steps 3 and 4 and the pairing in Step 9 are skipped,
 and questions wait in the manager's ledger, where `status` shows them. Re-running is safe: every
 step keeps what is already there.
@@ -98,9 +99,39 @@ block) there is no token: skip Steps 3 and 4 and go to Step 5.
 The operator creates a bot with @BotFather, one per project. Then run
 `node "$SM/session-manager.mjs" store-token --project-root "$ROOT"`.
 
+Where the token goes depends on the project's secrets provider (`secrets.provider` in
+`.lisa.config.json`, read through `lisa-secrets-access`):
+
+- **A provider is configured** (`secrets.provider` set and not `env`): the token is stored in it as
+  `TELEGRAM_BOT_TOKEN_<NAME>` (the manager name upper-snaked, e.g. `lisa-1a2b-manager` →
+  `TELEGRAM_BOT_TOKEN_LISA_1A2B_MANAGER`) and nothing is written to disk. `start` resolves it from
+  there each time. If `secrets.require` is declared, add that name to it first, or `store-token`
+  exits 2 saying so.
+  - **Migration.** If an older setup left a plaintext `<notify.stateDir>/.env`, `store-token`
+    moves it: it stores the token, reads it back and compares, and only then deletes the file. It
+    needs no prompt. Report it as "moved the bot token from `<path>` into `<provider>` and deleted
+    the file" (the `migratedFrom` and `deleted` fields), never with the value.
+  - `alreadyStored: true`: the provider already holds it; nothing to do. A matching leftover file
+    is deleted too.
+  - Exit 2 naming `--vault-project`: the provider project is ambiguous. Ask the operator which
+    project, then re-run with `--vault-project <id>`.
+  - Exit 2 because the file holds a different token or other keys: say what `message` reports and
+    let the operator decide (`--replace` makes the file's token the stored one).
+  - Exit 1 (provider unreachable or rate-limited): nothing was stored and the file was kept. Wait a
+    minute and run it again.
+  - A provider Lisa cannot write to (anything but Bitwarden today): the message asks the operator
+    to create `TELEGRAM_BOT_TOKEN_<NAME>` in the provider themselves; then re-run `store-token`,
+    which verifies it and deletes any plaintext copy.
+- **No provider configured**: the token is written to `<notify.stateDir>/.env` (mode 0600) as
+  before. Tell the operator that this is a plaintext file, that doctor will warn about it, and that
+  configuring a secrets provider and re-running `store-token` moves it there.
+
+Outcomes either way:
+
 - `stored: true`: done.
-- Exit 2 because a token already exists: keep it (re-running setup is safe). Only when the operator
-  says the stored token is wrong or belongs to another project, re-run with `store-token --replace`.
+- With no provider, exit 2 because a token already exists: keep it (re-running setup is safe). Only
+  when the operator says the stored token is wrong or belongs to another project, re-run with
+  `store-token --replace`.
 - `reason: "no-tty"` (an agent's Bash has no terminal): offer the operator both routes, and say
   plainly that Claude Code's `!` prefix has no terminal either, so it fails the same way:
   - **Clipboard (simplest):** they copy the token from the BotFather chat and tell you; then run
@@ -112,7 +143,9 @@ The operator creates a bot with @BotFather, one per project. Then run
 - `empty` / `invalid`: say what was wrong and ask again.
 
 Never ask for the token in chat, never echo, log or commit it, and never put it in
-`.lisa.config.json`. It lives only in `<notify.stateDir>/.env`.
+`.lisa.config.json`. It lives only in the secrets provider, or in `<notify.stateDir>/.env` when
+no provider is configured. Never read it back from either to check it: `store-token` already
+verified the stored copy.
 
 ## Step 4: Telegram plugin scope
 
@@ -190,10 +223,14 @@ project), on every machine that runs the manager:
    continue. `lisa doctor` fails on the same condition.
 1. `node "$SM/session-manager.mjs" start --project-root "$ROOT"`. `started` and `already-running`
    are both fine. With no channel it needs no token, plugin or pairing and launches without
-   `--channels`. Exit 2 names what is missing (with Telegram, usually the token from Step 3), or
-   that a tmux session of the same name belongs to another project root, or that the manager
-   exited right after starting. For the last, ask the operator to run the printed foreground command
-   in their own terminal: claude prints its own error there. Fix it, then run `start` again.
+   `--channels`. Exit 2 names what is missing (with Telegram, usually the token from Step 3, or a
+   plaintext `.env` left over beside a secrets provider: run the `store-token` command the message
+   names, which migrates it, then `start` again), or that a tmux session of the same name belongs
+   to another project root, or that the manager exited right after starting. For the last, ask the
+   operator to run the printed foreground command in their own terminal: claude prints its own
+   error there (with a provider, the line fetches the token itself; it never holds the value). Fix
+   it, then run `start` again. Exit 1 saying "Nothing was started" means the secrets provider could
+   not be reached or rate-limited the read: wait a minute and run `start` again.
 2. Only with Telegram (`notify` is `telegram` in the `start` output); with no channel there is no
    pairing, so skip to Step 10. Walk the operator through pairing, in their own terminal:
    1. `tmux attach -t <name>` (the `attach` value from the output).
@@ -214,7 +251,8 @@ confirm the "Session manager notifications?" check is green. With no channel its
 `node "$SM/session-manager.mjs" status --project-root "$ROOT"` should show the manager running.
 
 Report: the config block written (or kept), the notification channel (`telegram` or `none`), and
-with Telegram where the token lives (the path, never the value) and the plugin scope result, the
+with Telegram where the token lives (the provider and secret name, or the file path; never the
+value), whether a plaintext `.env` was migrated and deleted, and the plugin scope result, the
 runbook path, which repo dirs were already trusted and which the operator
 accepted trust in, what the competing-loop check found, the manager's tmux session name, and the
 doctor result.

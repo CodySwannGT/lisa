@@ -4,8 +4,11 @@
  * trust-status, coexistence) live in cli-setup.mjs.
  *
  * `start` hosts the manager in tmux. With Telegram as the notification
- * channel it refuses (exit 2) unless the bot token file exists with
- * owner-only permissions in the project's own state dir; with no channel
+ * channel and a secrets provider configured, it resolves the bot token once
+ * from the provider and hands it to tmux on stdin (#4555; see
+ * token-store.mjs). With Telegram and no provider it refuses (exit 2) unless
+ * the bot token file exists with owner-only permissions in the project's own
+ * state dir; with no channel
  * (`notify.provider` `"none"`, or no `notify` block) it needs no token, state
  * dir or plugin and launches without `--channels` (#4555). It treats an existing tmux session started in this root as
  * "already running" rather than starting a second poller on the same bot. A
@@ -14,11 +17,14 @@
  * manager's tmux session: workers hold claimed work and keep running.
  * @module session-manager/cli-manager
  */
+import path from "node:path";
+
 import {
   CliError,
   EXIT,
   GLOBAL_CONFIG_FILE,
   asSetupError,
+  asSetupErrorAsync,
   intFlag,
   listAgents,
   loadProject,
@@ -34,10 +40,17 @@ import {
   buildForegroundCommand,
   buildHasSession,
   buildManagerLaunch,
+  buildSourcedLaunch,
   buildStopManager,
+  buildStoreTokenCommand,
   resolveStateDir,
 } from "./launch.mjs";
 import { readLedger } from "./ledger.mjs";
+import {
+  loadTokenSecrets,
+  resolveTelegramToken,
+  telegramSecretName,
+} from "./token-store.mjs";
 import { parseWorkerName, scrubWorkerEnv } from "./workers.mjs";
 
 /**
@@ -89,6 +102,12 @@ export async function start(ctx) {
   const config = requireConfig(ctx);
   const notify = notifyProvider(config);
   const stateDir = notify === "telegram" ? stateDirOf(ctx, config) : undefined;
+  // Resolved before any tmux call: a provider that cannot answer must leave
+  // nothing half-started.
+  const token =
+    stateDir === undefined
+      ? null
+      : await telegramToken(ctx, config.name, stateDir);
   // tmux gets the scrubbed env: if this call starts the tmux server, its
   // global environment must not carry a TELEGRAM_* value into other sessions.
   const env = scrubWorkerEnv(ctx.env);
@@ -97,7 +116,9 @@ export async function start(ctx) {
   if (session.running) {
     return { json: { status: "already-running", name: config.name } };
   }
-  if (stateDir !== undefined) asSetupError(() => assertTokenPresent(stateDir));
+  if (token?.source === "file") {
+    asSetupError(() => assertTokenPresent(stateDir));
+  }
   const argv = asSetupError(() =>
     buildManagerLaunch({
       name: config.name,
@@ -108,13 +129,17 @@ export async function start(ctx) {
       notify,
     })
   );
-  mustRun("tmux", argv, { env, cwd: ctx.root });
+  const foreground = () => buildForegroundCommand(argv, token?.shellVars ?? {});
+  if (token?.source === "provider") {
+    launchWithToken({ ctx, argv, env, token, foreground });
+  } else {
+    mustRun("tmux", argv, { env, cwd: ctx.root });
+  }
   if (!(await sessionSurvives(config.name, env, settleMs))) {
-    const foreground = buildForegroundCommand(argv);
     throw new CliError(
       `The manager's tmux session "${config.name}" exited within ` +
         `${settleMs} ms of starting, so the manager is not running. Run the ` +
-        `launch in the foreground to see claude's error:\n  ${foreground}`,
+        `launch in the foreground to see claude's error:\n  ${foreground()}`,
       EXIT.SETUP
     );
   }
@@ -124,9 +149,88 @@ export async function start(ctx) {
       name: config.name,
       notify,
       ...(stateDir === undefined ? {} : { stateDir }),
+      ...(token === null
+        ? {}
+        : {
+            tokenSource: token.source,
+            ...(token.secret ? { secret: token.secret } : {}),
+          }),
       attach: `tmux attach -t ${config.name}`,
     },
   };
+}
+
+/**
+ * Where `start` gets the Telegram bot token (#4555). With a secrets provider
+ * it is resolved once from the provider (exit 2 for a leftover plaintext
+ * file, naming the `store-token` command that migrates it; exit 1 when the
+ * provider cannot answer). With none, the plugin reads `<stateDir>/.env`.
+ * The value is kept off the returned JSON; `shellVars` is the foreground
+ * line's way to resolve it in the operator's own shell instead.
+ * @param {object} ctx - CLI context
+ * @param {string} managerName - `sessionManager.name`
+ * @param {string} stateDir - Resolved state dir
+ * @returns {Promise<{ source: "file" } | { source: "provider",
+ *   secret: string, value: string, shellVars: Record<string, string> }>}
+ *   Token source
+ */
+async function telegramToken(ctx, managerName, stateDir) {
+  const secrets = await asSetupErrorAsync(() =>
+    loadTokenSecrets(ctx.root, ctx.env)
+  );
+  if (secrets === null) return { source: "file" };
+  const secret = telegramSecretName(managerName);
+  const value = await asSetupErrorAsync(() =>
+    resolveTelegramToken({
+      ...secrets,
+      name: secret,
+      stateDir,
+      fixCommand: buildStoreTokenCommand({
+        scriptsDir: ctx.scriptsDir,
+        projectRoot: ctx.root,
+      }),
+    })
+  );
+  const resolver = path.resolve(
+    ctx.scriptsDir,
+    "../../lisa-secrets-access/scripts/resolve-secret.mjs"
+  );
+  const quoted = `'${resolver.replaceAll("'", String.raw`'\''`)}'`;
+  return {
+    source: "provider",
+    secret,
+    value,
+    shellVars: { TELEGRAM_BOT_TOKEN: `$(node ${quoted} get ${secret})` },
+  };
+}
+
+/**
+ * Start the manager's tmux session with the bot token on tmux's stdin
+ * (`start-server ; source-file -`), never in argv. tmux's own stderr is never
+ * passed through: a parse error can quote the line, which holds the token.
+ * @param {{ ctx: object, argv: string[], env: object,
+ *   token: { value: string }, foreground: () => string }} input - Context,
+ *   the launch argv, the scrubbed env, the token and the foreground line
+ */
+function launchWithToken({ ctx, argv, env, token, foreground }) {
+  const sourced = asSetupError(() =>
+    buildSourcedLaunch(argv, { TELEGRAM_BOT_TOKEN: token.value })
+  );
+  const result = run("tmux", sourced.argv, {
+    env,
+    cwd: ctx.root,
+    input: sourced.input,
+  });
+  if (result.missing) throw new CliError("tmux is not on PATH.", EXIT.SETUP);
+  if (result.status !== 0) {
+    throw new CliError(
+      `tmux could not start the manager's session (exit ` +
+        `${String(result.status)}). tmux's own error is not shown, because ` +
+        `the command it read carries the bot token. Run the launch in the ` +
+        `foreground to see the error:\n  ${foreground()}`,
+      EXIT.FAILURE
+    );
+  }
 }
 
 /**

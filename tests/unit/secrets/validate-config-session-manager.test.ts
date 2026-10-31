@@ -262,6 +262,9 @@ describe("sessionManager block", () => {
     expect(problems[0]).toMatch(/sessionManager\.notify\.chat/);
     expect(problems[0]).toMatch(/token/i);
     expect(problems[0]).not.toContain(token);
+    // #4555: the token belongs in the secrets provider, not a state-dir file.
+    expect(problems[0]).toMatch(/secrets provider/);
+    expect(problems[0]).toMatch(/store-token/);
   });
 
   it.each(["token", "botToken", "apiKey", "secret", "password"])(
@@ -274,6 +277,7 @@ describe("sessionManager block", () => {
       expect(problems).toHaveLength(1);
       expect(problems[0]).toMatch(/token|secret|credential/i);
       expect(problems[0]).toContain(key);
+      expect(problems[0]).toMatch(/secrets provider/);
     }
   );
 

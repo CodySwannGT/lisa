@@ -5,6 +5,10 @@
  * reachable), and never put in argv, a return value, an error message or a
  * log line. An existing token is replaced only on request. Split out of
  * launch.mjs, which re-exports everything here.
+ *
+ * The `.env` file is the storage only when the project has no secrets
+ * provider; with one, token-store.mjs stores the token there instead and
+ * reuses the prompt and clipboard readers below (#4555).
  * @module token
  */
 import { randomUUID } from "node:crypto";
@@ -91,9 +95,12 @@ function shellQuote(word) {
 
 /**
  * The command an operator pastes into their own terminal to store the token,
- * for when the caller (an agent's Bash) has no TTY to prompt on.
- * @param {{ scriptsDir: string, projectRoot: string, replace?: boolean }}
- *   input - Script and project locations, and whether to carry `--replace`
+ * for when the caller (an agent's Bash) has no TTY to prompt on. `start`
+ * also names it when a plaintext token file is left over, since the same
+ * command migrates that file into the secrets provider (#4555).
+ * @param {{ scriptsDir: string, projectRoot: string, replace?: boolean,
+ *   fromClipboard?: boolean, vaultProject?: string }} input - Script and
+ *   project locations, and the flags to carry
  * @returns {string} One shell line
  */
 export function buildStoreTokenCommand({
@@ -101,10 +108,13 @@ export function buildStoreTokenCommand({
   projectRoot,
   replace,
   fromClipboard = false,
+  vaultProject,
 }) {
   const script = shellQuote(path.join(scriptsDir, "session-manager.mjs"));
   const flags =
-    (replace ? " --replace" : "") + (fromClipboard ? " --from-clipboard" : "");
+    (replace ? " --replace" : "") +
+    (fromClipboard ? " --from-clipboard" : "") +
+    (vaultProject ? ` --vault-project ${shellQuote(vaultProject)}` : "");
   return `node ${script} store-token${flags} --project-root ${shellQuote(projectRoot)}`;
 }
 
@@ -143,6 +153,83 @@ function assertReplaceable(stateDir, replace, io) {
 }
 
 /**
+ * Read a well-formed bot token from the system clipboard, with no TTY.
+ *
+ * The token is returned only to the caller that stores it, with a `clear`
+ * function to call after a successful store, so a failed attempt leaves the
+ * operator's copy in place to retry with. An invalid value is reported by
+ * shape, never echoed.
+ * @param {{ readClipboard?: typeof readClipboard }} [io] - Seams
+ * @returns {{ token: string, clear: () => boolean } |
+ *   { stored: false, reason: "empty" | "invalid" | "unsupported" |
+ *     "unavailable" | "failed", message: string }} Token, or why not
+ */
+export function readTokenFromClipboard(io = {}) {
+  const clip = (io.readClipboard ?? readClipboard)();
+  if (!clip.ok) {
+    return { stored: false, reason: clip.reason, message: clip.message };
+  }
+  const token = clip.text.trim();
+  if (!token) {
+    return {
+      stored: false,
+      reason: "empty",
+      message: "The clipboard is empty.",
+    };
+  }
+  if (!validateBotToken(token)) return { ...INVALID };
+  return { token, clear: clip.clear };
+}
+
+/**
+ * Prompt for a well-formed bot token on the operator's terminal (echo off).
+ *
+ * With no TTY this does not prompt and does not fail: it returns the exact
+ * command for the operator to run in a separate terminal app, and the
+ * `--from-clipboard` form of it, because an agent's Bash (and Claude Code's
+ * `!` prefix) can never answer a prompt and a hung setup looks like a slow
+ * one.
+ * @param {{ label: string, scriptsDir: string, projectRoot: string,
+ *   replace?: boolean, vaultProject?: string, io?: {
+ *   canPrompt?: () => boolean, promptSecret?: (message: string) => string } }}
+ *   input - What the token is for (shown in the prompt), locations, the
+ *   flags the printed commands carry, and seams
+ * @returns {Promise<{ token: string } |
+ *   { stored: false, reason: "no-tty", message: string, command: string,
+ *     clipboardCommand: string } |
+ *   { stored: false, reason: "empty" | "invalid", message: string }>} Token,
+ *   or why not
+ */
+export async function readTokenFromPrompt(input) {
+  const { label, io = {} } = input;
+  const loaded =
+    io.canPrompt && io.promptSecret ? null : await loadPromptSecret();
+  const canPrompt = io.canPrompt ?? (() => loaded.canPrompt());
+  const promptSecret = io.promptSecret ?? loaded.promptSecret;
+
+  if (!canPrompt()) {
+    return {
+      stored: false,
+      reason: "no-tty",
+      message: NO_TTY_HINT,
+      command: buildStoreTokenCommand(input),
+      clipboardCommand: buildStoreTokenCommand({
+        ...input,
+        fromClipboard: true,
+      }),
+    };
+  }
+  const typed = promptSecret(
+    `Paste the Telegram bot token for ${label} (input is hidden): `
+  );
+  if (!typed) {
+    return { stored: false, reason: "empty", message: "Nothing entered." };
+  }
+  if (!validateBotToken(typed)) return { ...INVALID };
+  return { token: typed };
+}
+
+/**
  * Store the bot token from the system clipboard, with no TTY needed.
  *
  * Same validation and the same existing-token rule as the prompt. The
@@ -161,31 +248,17 @@ export function storeTokenFromClipboard(input) {
   const { replace = false, io = {} } = input;
   const stateDir = resolveStateDir(input.stateDir, input);
   assertReplaceable(stateDir, replace, io);
-  const clip = (io.readClipboard ?? readClipboard)();
-  if (!clip.ok) {
-    return { stored: false, reason: clip.reason, message: clip.message };
-  }
-  const token = clip.text.trim();
-  if (!token) {
-    return {
-      stored: false,
-      reason: "empty",
-      message: "The clipboard is empty.",
-    };
-  }
-  if (!validateBotToken(token)) return { ...INVALID };
-  const written = writeTokenFile(stateDir, token, io);
-  return { stored: true, ...written, clipboardCleared: clip.clear() };
+  const read = readTokenFromClipboard(io);
+  if (read.token === undefined) return read;
+  const written = writeTokenFile(stateDir, read.token, io);
+  return { stored: true, ...written, clipboardCleared: read.clear() };
 }
 
 /**
- * Prompt for the bot token on the operator's terminal and store it.
- *
- * An existing token is never overwritten without `replace`. With no TTY this
- * does not prompt and does not fail: it returns the exact command for the
- * operator to run in a separate terminal app, and the `--from-clipboard` form
- * of it, because an agent's Bash (and Claude Code's `!` prefix) can never
- * answer a prompt and a hung setup looks like a slow one.
+ * Prompt for the bot token on the operator's terminal and store it in
+ * `<stateDir>/.env`. An existing token is never overwritten without
+ * `replace`; with no TTY it returns the commands that work instead (see
+ * {@link readTokenFromPrompt}).
  * @param {{ stateDir: string, scriptsDir: string, projectRoot: string,
  *   replace?: boolean, env?: Record<string, string | undefined>,
  *   homedir?: string, io?: { canPrompt?: () => boolean,
@@ -200,33 +273,15 @@ export async function storeToken(input) {
   const { scriptsDir, projectRoot, replace = false, io = {} } = input;
   const stateDir = resolveStateDir(input.stateDir, input);
   assertReplaceable(stateDir, replace, io);
-  const loaded =
-    io.canPrompt && io.promptSecret ? null : await loadPromptSecret();
-  const canPrompt = io.canPrompt ?? (() => loaded.canPrompt());
-  const promptSecret = io.promptSecret ?? loaded.promptSecret;
-
-  if (!canPrompt()) {
-    return {
-      stored: false,
-      reason: "no-tty",
-      message: NO_TTY_HINT,
-      command: buildStoreTokenCommand({ scriptsDir, projectRoot, replace }),
-      clipboardCommand: buildStoreTokenCommand({
-        scriptsDir,
-        projectRoot,
-        replace,
-        fromClipboard: true,
-      }),
-    };
-  }
-  const typed = promptSecret(
-    `Paste the Telegram bot token for ${stateDir} (input is hidden): `
-  );
-  if (!typed) {
-    return { stored: false, reason: "empty", message: "Nothing entered." };
-  }
-  if (!validateBotToken(typed)) return { ...INVALID };
-  return { stored: true, ...writeTokenFile(stateDir, typed, io) };
+  const read = await readTokenFromPrompt({
+    label: stateDir,
+    scriptsDir,
+    projectRoot,
+    replace,
+    io,
+  });
+  if (read.token === undefined) return read;
+  return { stored: true, ...writeTokenFile(stateDir, read.token, io) };
 }
 
 /**

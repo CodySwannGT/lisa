@@ -1,0 +1,100 @@
+#!/usr/bin/env node
+/**
+ * Stub Bitwarden Secrets Manager CLI (`bws`) for the session-manager CLI
+ * tests. It serves a fake vault, never a real one: a JSON array of
+ * `{id,key,value,note,projectId}` rows in the file named by STUB_BWS_VAULT.
+ *
+ * - `secret list` prints the rows as JSON.
+ * - `secret create <KEY> <VALUE> <PROJECT_ID> [--note N]` appends a row.
+ * - `secret edit <ID> --value <VALUE>` replaces a row's value.
+ * - With no BWS_ACCESS_TOKEN it fails the way bws does ("Missing access
+ *   token"), so a test proves the bootstrap reached it under that name.
+ * - STUB_BWS_FAIL=rate-limit fails every call with a 429, and
+ *   STUB_BWS_FAIL=unavailable with a connection error. Neither reads the vault.
+ *
+ * The leading `--color no` global option is accepted and skipped. Every call
+ * is recorded with secret values replaced by "<redacted>", so the log can be
+ * scanned for a sentinel token.
+ */
+import { readFileSync, writeFileSync } from "node:fs";
+
+import { record } from "../support/stub-record.mjs";
+
+const REDACTED = "<redacted>";
+const raw = process.argv.slice(2);
+const offset = raw[0] === "--color" ? 2 : 0;
+const argv = raw.slice(offset);
+const [group, action, ...rest] = argv;
+
+/**
+ * The argv with every secret value replaced.
+ * @returns {string[]} Redacted argv
+ */
+function redacted() {
+  const out = [...raw];
+  if (group === "secret" && action === "create" && rest.length >= 2) {
+    out[offset + 3] = REDACTED;
+  }
+  const valueAt = out.indexOf("--value");
+  if (valueAt !== -1 && valueAt + 1 < out.length) out[valueAt + 1] = REDACTED;
+  return out;
+}
+
+/**
+ * The value after `flag`, if present.
+ * @param {string[]} args - Arguments
+ * @param {string} flag - Option name
+ * @returns {string | undefined} Its value
+ */
+function option(args, flag) {
+  const at = args.indexOf(flag);
+  return at === -1 ? undefined : args[at + 1];
+}
+
+/**
+ * Exit 1 with a bws-style error on stderr.
+ * @param {string} message - Error text
+ */
+function fail(message) {
+  process.stderr.write(`Error: ${message}\n`);
+  process.exit(1);
+}
+
+record("bws", { argv: redacted() });
+if (!process.env.BWS_ACCESS_TOKEN) fail("Missing access token");
+if (process.env.STUB_BWS_FAIL === "rate-limit") {
+  fail("Received error message from server: [429 Too Many Requests]");
+}
+if (process.env.STUB_BWS_FAIL === "unavailable") {
+  fail("error sending request for url (https://api.bitwarden.com/)");
+}
+const vaultFile = process.env.STUB_BWS_VAULT;
+if (!vaultFile) fail("STUB_BWS_VAULT is not set");
+const vault = JSON.parse(readFileSync(vaultFile, "utf8"));
+
+if (group === "secret" && action === "list") {
+  process.stdout.write(JSON.stringify(vault));
+} else if (group === "secret" && action === "create") {
+  const [key, value, projectId] = rest;
+  const row = {
+    id: `stub-${vault.length + 1}`,
+    key,
+    value,
+    note: option(rest, "--note") ?? "",
+    projectId,
+  };
+  writeFileSync(vaultFile, JSON.stringify([...vault, row]));
+  if (option(rest, "--output") !== "none") {
+    process.stdout.write(JSON.stringify(row));
+  }
+} else if (group === "secret" && action === "edit") {
+  const [id] = rest;
+  const value = option(rest, "--value");
+  if (!vault.some(row => row.id === id)) fail(`secret ${id} not found`);
+  writeFileSync(
+    vaultFile,
+    JSON.stringify(vault.map(row => (row.id === id ? { ...row, value } : row)))
+  );
+} else {
+  fail(`stub bws does not implement: ${group} ${action}`);
+}

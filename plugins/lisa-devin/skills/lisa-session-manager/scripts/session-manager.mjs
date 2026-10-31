@@ -68,7 +68,7 @@ const COMMANDS = {
   stop: { run: stop, options: {}, positionals: 0 },
   "store-token": {
     run: storeToken,
-    options: { replace: flag, "from-clipboard": flag },
+    options: { replace: flag, "from-clipboard": flag, "vault-project": text },
     positionals: 0,
   },
   "trust-status": { run: trustStatus, options: {}, positionals: 0 },

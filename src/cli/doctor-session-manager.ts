@@ -8,8 +8,10 @@
  * either way: managed settings that override the manager's
  * `crossSessionInbound: accept`, and the trust findings (a public repo
  * without `trustedAuthorIds`). With Telegram it also runs the isolation
- * findings in `doctor-session-manager-token` (state dir, token file mode,
- * user-scope plugin, shared default dir, exported variables) and the
+ * findings in `doctor-session-manager-token` (state dir, where the bot token
+ * lives: a leftover plaintext file with a secrets provider configured, or a
+ * plaintext file because none is, and its mode; user-scope plugin, shared
+ * default dir, exported variables) and the
  * project-scope plugin finding. An unsupported provider, or a `stateDir`
  * without the telegram provider, fails the way the runtime validator refuses
  * it.
@@ -34,7 +36,9 @@ import {
 } from "./doctor-session-manager-trust.js";
 import {
   resolveStateDir,
+  secretsProviderOf,
   telegramFindings,
+  telegramSecretNameFor,
 } from "./doctor-session-manager-token.js";
 import { mergeSessionManagerBlocks } from "./session-manager-config-merge.js";
 
@@ -153,13 +157,15 @@ function homeOf(deps: SessionManagerDoctorDependencies): string {
  * @param block - Merged `sessionManager` block
  * @param deps - Injected environment, HOME and file access
  * @param read - Text reader
+ * @param secretsProvider - Configured secrets provider, undefined for none
  * @returns Findings
  */
 async function channelFindings(
   targetPath: string,
   block: Record<string, unknown>,
   deps: SessionManagerDoctorDependencies,
-  read: (file: string) => Promise<string>
+  read: (file: string) => Promise<string>,
+  secretsProvider: string | undefined
 ): Promise<readonly Finding[]> {
   const home = homeOf(deps);
   const claudeDir = deps.env.CLAUDE_CONFIG_DIR
@@ -175,6 +181,8 @@ async function channelFindings(
         env: deps.env,
         read,
         statFile: deps.stat ?? fsStat,
+        secretsProvider,
+        secretName: telegramSecretNameFor(block.name),
       },
       stateDir
     )),
@@ -182,26 +190,44 @@ async function channelFindings(
   ];
 }
 
+/** Where the bot token lives, for the telegram ok detail. */
+interface TokenHome {
+  readonly stateDir: string | undefined;
+  readonly secretsProvider: string | undefined;
+  readonly secretName: string;
+}
+
+/**
+ * The ok detail for a clean Telegram setup. With a provider, doctor can only
+ * say no plaintext copy is left: it never reads the vault (#4555).
+ * @param token - Where the token lives
+ * @returns Detail text
+ */
+function telegramOkDetail(token: TokenHome): string {
+  const where =
+    token.secretsProvider === undefined
+      ? "token file mode 0600 or tighter"
+      : `bot token kept in ${token.secretsProvider} as ${token.secretName} with no plaintext copy (doctor never reads the vault, so the secret itself is not checked)`;
+  return `isolated: per-project state dir ${String(token.stateDir)}, ${where}, plugin not enabled at user scope`;
+}
+
 /**
  * The check's verdict once every finding is in.
  * @param provider - Notification provider, undefined when unsupported
  * @param findings - Every finding
- * @param stateDir - Resolved `notify.stateDir`, for the telegram ok detail
+ * @param token - Where the bot token lives, for the telegram ok detail
  * @returns Doctor check result
  */
 function verdict(
   provider: NotifyMode["provider"],
   findings: readonly Finding[],
-  stateDir: string | undefined
+  token: TokenHome
 ): DoctorCheck {
   if (findings.length === 0) {
     return {
       name: CHECK_NAME,
       status: "ok",
-      detail:
-        provider === "none"
-          ? NO_CHANNEL
-          : `isolated: per-project state dir ${String(stateDir)}, token file mode 0600 or tighter, plugin not enabled at user scope`,
+      detail: provider === "none" ? NO_CHANNEL : telegramOkDetail(token),
     };
   }
   const text = findings.map(f => f.text).join("; ");
@@ -240,10 +266,11 @@ export async function checkSessionManagerIsolation(
     }
     const notify = isRecord(block.notify) ? block.notify : {};
     const mode = notifyMode(notify);
+    const secretsProvider = secretsProviderOf({ ...committed, ...local });
     const findings = [
       ...mode.problems,
       ...(mode.provider === "telegram"
-        ? await channelFindings(targetPath, block, deps, read)
+        ? await channelFindings(targetPath, block, deps, read, secretsProvider)
         : []),
       ...(await managedFindings(
         read,
@@ -257,11 +284,11 @@ export async function checkSessionManagerIsolation(
           : (deps.probeRepoVisibility ?? ghRepoVisibility)
       )),
     ];
-    return verdict(
-      mode.provider,
-      findings,
-      resolveStateDir(notify.stateDir, homeOf(deps), targetPath)
-    );
+    return verdict(mode.provider, findings, {
+      stateDir: resolveStateDir(notify.stateDir, homeOf(deps), targetPath),
+      secretsProvider,
+      secretName: telegramSecretNameFor(block.name),
+    });
   } catch (error) {
     return {
       name: CHECK_NAME,

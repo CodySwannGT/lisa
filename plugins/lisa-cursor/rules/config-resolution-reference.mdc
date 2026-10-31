@@ -747,9 +747,18 @@ operator chooses Telegram (`init-config --notify telegram`).
 | `sessionManager.operatorIds` | no | — | Optional, non-empty list of the people the manager works for, as tracker user ids matched against the **assignee** the same way "me" is: the GitHub **login**, the Jira `accountId`, or the Linear user id, spelled exactly as the tracker API returns it (matching is case-sensitive, so look the OPERATOR up rather than typing from memory: `gh api users/<operator-login> --jq .login` returns the canonical GitHub spelling. Do not use `gh api user`, which returns whoever the credential belongs to — the agent account, when that is the case this key exists for). Dispatch order is assigned to an operator, then to "me" (the tracker credential's identity), then unassigned; items assigned to anyone else are skipped. Set it whenever the tracker credential is not the operator's own (an agent account), or the operator's Ready items are never dispatched. |
 | `sessionManager.backlogPickup` | no | `false` | Opt-in lowest dispatch tier. When the Ready queue is exhausted and capacity remains, the manager considers backlog items (open leaves in no lifecycle role) with the Ready exclusions plus any unfinished blocker; each one that passes the tracker validator (all gates, including the stateless-pickup dry-run) is assigned to the first `operatorIds` entry, moved to Ready in one write, read back and dispatched. A failed validation is cached against the item's `updatedAt`, so it is re-judged only after the item changes. Requires `operatorIds`. |
 
-- **Non-secret only.** The bot token lives in `<stateDir>/.env` (directory 0700, file 0600),
-  written by setup. A credential-named field or a token-shaped value anywhere in this block is a
-  validation error.
+- **Non-secret only.** A credential-named field or a token-shaped value anywhere in this block is a
+  validation error. With Telegram, where the bot token lives follows the project's `secrets` block
+  (`lisa-secrets-access`):
+  - **A secrets provider is configured** (`secrets.provider` set and not `env`): the token is the
+    provider secret `TELEGRAM_BOT_TOKEN_<NAME>`, where `<NAME>` is `sessionManager.name`
+    upper-snaked (`lisa-1a2b-manager` → `TELEGRAM_BOT_TOKEN_LISA_1A2B_MANAGER`). There is no config
+    key for it. `store-token` writes it (migrating, then deleting, any plaintext `<stateDir>/.env`);
+    `start` reads it once and passes it to the manager's tmux session only. When `secrets.require`
+    is declared it must list that name. A plaintext `<stateDir>/.env` left beside a provider stops
+    `start` (exit 2) with the `store-token` command that migrates it, and doctor warns about it.
+  - **No provider**: the token lives in `<stateDir>/.env` (directory 0700, file 0600), written by
+    setup, and doctor warns that it is plaintext.
 - **Local over global, per key.** `.lisa.config.local.json` overrides `.lisa.config.json` key by key
   (for example, a smaller `capacity.maxWorkers` on one machine); arrays such as `hints` are
   replaced, not merged. Built-in defaults fill whatever neither file sets.

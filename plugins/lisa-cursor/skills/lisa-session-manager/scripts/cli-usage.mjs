@@ -52,8 +52,18 @@ Manager
   start [--settle-ms <n>]
              With notify.provider "none" (or no notify block): no token, state
              dir or Telegram plugin is needed; launches with no --channels, no
-             TELEGRAM_STATE_DIR and no plugin in --settings. With "telegram":
-             refuses (exit 2) without <notify.stateDir>/.env (mode 0600) or for
+             TELEGRAM_STATE_DIR and no plugin in --settings. With "telegram"
+             and a secrets provider (secrets.provider set, not "env"): reads
+             TELEGRAM_BOT_TOKEN_<NAME> from the provider once, before any tmux
+             call, and passes it to tmux on stdin (tmux start-server ;
+             source-file -), never in argv; tmux's stderr is never shown.
+             Exit 2 when a plaintext <notify.stateDir>/.env is left over (the
+             message names the store-token command that migrates it), when
+             the secret is missing, or when secrets.require does not list it.
+             Exit 1, "Nothing was started", when the provider cannot be
+             reached, is rate-limited or times out: wait a minute and run
+             start again. With "telegram" and no provider: refuses (exit 2)
+             without <notify.stateDir>/.env (mode 0600). Either way exit 2 for
              the shared default state dir. "already-running" when the tmux
              session =<name> exists and was started in this project root;
              exit 2 naming the conflict when it was started anywhere else.
@@ -62,22 +72,37 @@ Manager
              3000, at most 60000): exit 2, with the foreground command to run
              to see claude's error, when the session is gone.
              stdout {status:"started"|"already-running",name,notify,
-             [stateDir,]attach}.
+             [stateDir,tokenSource:"provider"|"file",secret,]attach}.
   stop       tmux kill-session -t =<name> only, and only for a session started
              in this root (exit 2 otherwise); workers keep running.
              stdout {status:"stopped"|"not-running",name}.
-  store-token [--replace] [--from-clipboard]
+  store-token [--replace] [--from-clipboard] [--vault-project <id>]
              Telegram only: exit 2 when notify.provider is "none".
-             Prompts for the bot token on the terminal (echo off) and writes
-             <stateDir>/.env. Exit 2 when a token is already there, unless
-             --replace. With no TTY (an agent's Bash, and Claude Code's !
+             With a secrets provider: stores the token in it as
+             TELEGRAM_BOT_TOKEN_<NAME> and writes nothing to disk. A
+             plaintext <stateDir>/.env is migrated: stored, read back and
+             compared, then deleted (refused, exit 2, when the file holds
+             other keys or a different token than the stored one). An
+             already-stored token is kept (exit 0, alreadyStored:true) unless
+             --replace. --vault-project picks the provider project for a new
+             secret (default: the one in secrets.narrow.projectIds, else the
+             one every visible secret is in). stdout {stored:true,
+             storage:"provider",provider,secret,verified,[migratedFrom,
+             deleted]}. Provider unreachable or rate-limited: exit 1, nothing
+             stored, the file kept.
+             With no provider: prompts for the bot token on the terminal (echo
+             off) and writes <stateDir>/.env. Exit 2 when a token is already
+             there, unless --replace.
+             Either way, with no TTY (an agent's Bash, and Claude Code's !
              prefix too): exit 0, stdout {stored:false,reason:"no-tty",
              message,command,clipboardCommand}; command is the line the
              operator runs in a separate terminal app.
              --from-clipboard reads the token from the clipboard instead
              (pbpaste; wl-paste, xclip or xsel on Linux), needs no TTY, and
              clears the clipboard after a successful store. stdout
-             {stored:true,path,clipboardCleared}. The token is never printed.
+             {stored:true,storage:"file",path,clipboardCleared} (with a
+             provider, the provider shape plus clipboardCleared). The token
+             is never printed.
              Bad input, empty clipboard or no clipboard tool: exit 2,
              {stored:false,reason,message}.
 
