@@ -15,45 +15,37 @@
  * session of that name started in another root is another project's manager,
  * so both `start` and `stop` refuse it (exit 2). `stop` kills only the
  * manager's tmux session: workers hold claimed work and keep running.
+ *
+ * The token lookup and stdin launch live in cli-manager-token.mjs and
+ * `status` in cli-status.mjs (re-exported here), to keep each module under
+ * the line budget.
  * @module session-manager/cli-manager
  */
-import path from "node:path";
-
 import {
   CliError,
   EXIT,
   GLOBAL_CONFIG_FILE,
   asSetupError,
-  asSetupErrorAsync,
   intFlag,
-  listAgents,
   loadProject,
   mustRun,
   requireConfig,
   requireLisaRepo,
   run,
 } from "./cli-runtime.mjs";
+import { launchWithToken, telegramToken } from "./cli-manager-token.mjs";
 import { notifyProvider, resolveRepoDir } from "./config.mjs";
 import { probeOwnSession, sessionSurvives } from "./isolation.mjs";
-import { listPendingQuestions } from "./ledger-questions.mjs";
 import {
   assertTokenPresent,
   buildForegroundCommand,
-  buildHasSession,
   buildManagerLaunch,
-  buildSourcedLaunch,
   buildStopManager,
-  buildStoreTokenCommand,
   resolveStateDir,
 } from "./launch.mjs";
-import { readLedger } from "./ledger.mjs";
-import {
-  loadTokenSecrets,
-  resolveTelegramToken,
-  telegramSecretName,
-} from "./token-store.mjs";
-import { shellQuote } from "./token.mjs";
-import { parseWorkerName, scrubWorkerEnv } from "./workers.mjs";
+import { scrubWorkerEnv } from "./workers.mjs";
+
+export { status } from "./cli-status.mjs";
 
 /**
  * The configured state dir, resolved (exit 2 for the shared default dir).
@@ -166,80 +158,6 @@ export async function start(ctx) {
 }
 
 /**
- * Where `start` gets the Telegram bot token (#4555). With a secrets provider
- * it is resolved once from the provider (exit 2 for a leftover plaintext
- * file, naming the `store-token` command that migrates it; exit 1 when the
- * provider cannot answer). With none, the plugin reads `<stateDir>/.env`.
- * The value is kept off the returned JSON; `shellVars` is the foreground
- * line's way to resolve it in the operator's own shell instead.
- * @param {object} ctx - CLI context
- * @param {string} managerName - `sessionManager.name`
- * @param {string} stateDir - Resolved state dir
- * @returns {Promise<{ source: "file" } | { source: "provider",
- *   secret: string, value: string, shellVars: Record<string, string> }>}
- *   Token source
- */
-async function telegramToken(ctx, managerName, stateDir) {
-  const secrets = await asSetupErrorAsync(() =>
-    loadTokenSecrets(ctx.root, ctx.env)
-  );
-  if (secrets === null) return { source: "file" };
-  const secret = telegramSecretName(managerName);
-  const value = await asSetupErrorAsync(() =>
-    resolveTelegramToken({
-      ...secrets,
-      name: secret,
-      stateDir,
-      fixCommand: buildStoreTokenCommand({
-        scriptsDir: ctx.scriptsDir,
-        projectRoot: ctx.root,
-      }),
-    })
-  );
-  const resolver = path.resolve(
-    ctx.scriptsDir,
-    "../../lisa-secrets-access/scripts/resolve-secret.mjs"
-  );
-  return {
-    source: "provider",
-    secret,
-    value,
-    shellVars: {
-      TELEGRAM_BOT_TOKEN: `$(node ${shellQuote(resolver)} get ${secret})`,
-    },
-  };
-}
-
-/**
- * Start the manager's tmux session with the bot token on tmux's stdin
- * (`start-server ; source-file -`), never in argv. tmux's own stderr is never
- * passed through: a parse error can quote the line, which holds the token.
- * @param {{ ctx: object, argv: string[], env: object,
- *   token: { value: string }, foreground: () => string }} input - Context,
- *   the launch argv, the scrubbed env, the token and the foreground line
- */
-function launchWithToken({ ctx, argv, env, token, foreground }) {
-  const sourced = asSetupError(() =>
-    buildSourcedLaunch(argv, { TELEGRAM_BOT_TOKEN: token.value })
-  );
-  const result = run("tmux", sourced.argv, {
-    env,
-    cwd: ctx.root,
-    input: sourced.input,
-  });
-  if (result.missing) throw new CliError("tmux is not on PATH.", EXIT.SETUP);
-  if (result.status !== 0) {
-    throw new CliError(
-      `tmux could not start the manager's session (exit ` +
-        `${String(result.status)}). tmux's own error is not shown, because ` +
-        `the command it read carries the bot token. Run the launch in the ` +
-        `foreground to see the error:\n  ${foreground()}`,
-      EXIT.FAILURE
-    );
-  }
-}
-
-/**
  * `stop`: kill the manager's tmux session only, and only when it was started
  * in this root (exit 2 for another project's session of the same name).
  * @param {object} ctx - CLI context
@@ -315,61 +233,5 @@ export function validate(ctx) {
   return {
     json: { valid: errors.length === 0, errors },
     exitCode: errors.length === 0 ? EXIT.OK : EXIT.SETUP,
-  };
-}
-
-/**
- * The line an operator at this machine runs to answer a pending question:
- * the answer goes on stdin, never in argv. Every word is single-quoted for
- * the shell, so a path or ref holding `$(…)` or a backtick runs nothing.
- * @param {{scriptsDir: string, root: string}} ctx - CLI context
- * @param {string} ref - Item ref
- * @returns {string} Command line
- */
-function answerCommandFor(ctx, ref) {
-  const script = path.join(ctx.scriptsDir, "session-manager.mjs");
-  return `node ${shellQuote(script)} answer ${shellQuote(ref)} --project-root ${shellQuote(ctx.root)} < answer.txt`;
-}
-
-/**
- * `status`: is the manager's tmux session up, and what does the ledger say
- * about each worker it dispatched.
- * @param {object} ctx - CLI context
- * `notify` is the configured notification provider (`telegram` or `none`),
- * so the manager knows each cycle whether a channel exists.
- * @returns {Promise<{ json: object }>}
- *   `{manager,notify,control,workers,untracked,pendingQuestions}`
- */
-export async function status(ctx) {
-  const config = requireConfig(ctx);
-  const tmux = run("tmux", buildHasSession(config.name), { env: ctx.env });
-  const agents = listAgents(ctx, { all: true });
-  const ledger = await readLedger(ctx.root);
-  const liveNames = new Set(
-    agents.filter(agent => agent.active).map(agent => agent.name)
-  );
-  const tracked = new Set(Object.values(ledger.items).map(i => i.worker));
-  return {
-    json: {
-      manager: { name: config.name, running: tmux.status === 0 },
-      notify: notifyProvider(config),
-      control: ledger.control,
-      workers: Object.entries(ledger.items).map(([ref, item]) => ({
-        ref,
-        worker: item.worker ?? null,
-        sessionId: item.sessionId ?? null,
-        repo: item.repo ?? null,
-        status: item.status ?? null,
-        attempts: item.attempts ?? 0,
-        pendingQuestion: Boolean(item.pendingQuestion),
-        live: liveNames.has(item.worker),
-      })),
-      untracked: [...liveNames]
-        .filter(name => parseWorkerName(name) !== null && !tracked.has(name))
-        .sort(),
-      pendingQuestions: listPendingQuestions(ledger, ref =>
-        answerCommandFor(ctx, ref)
-      ),
-    },
   };
 }

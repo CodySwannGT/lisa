@@ -13,159 +13,33 @@
  * With `sessionManager.backlogPickup` on, `queue` also ranks the backlog tier
  * (open leaves in no lifecycle role) as `backlogOrdered`, under the same
  * paging rule. The manager walks it only after the whole Ready queue.
+ *
+ * The GitHub fetches live in queue-github.mjs and JSON input in
+ * json-input.mjs (re-exported here), to keep each module under the line
+ * budget.
  * @module session-manager/cli-queue
  */
-import { readFileSync } from "node:fs";
-
 import {
   assertPagedToCompletion,
-  normalizeGithubIssue,
   normalizeJiraIssue,
   normalizeLinearIssue,
   orderBacklogQueue,
   orderReadyQueue,
 } from "../../../scripts/ready-queue-order.mjs";
-import { resolveRole } from "../../../scripts/resolve-lifecycle-role.mjs";
 import {
   CliError,
   asSetupError,
   humanNeededLabel,
   loadProject,
-  mustRun,
   validOrAbsent,
 } from "./cli-runtime.mjs";
+import { readJsonFile } from "./json-input.mjs";
 import { readLedger } from "./ledger.mjs";
-import { scrubWorkerEnv } from "./workers.mjs";
+import { fetchGithubBacklog, fetchGithubQueue } from "./queue-github.mjs";
+
+export { parseJson, readJsonFile } from "./json-input.mjs";
 
 const NORMALIZERS = { jira: normalizeJiraIssue, linear: normalizeLinearIssue };
-
-const OWNER_REPO = /^[\w.-]+\/[\w.-]+$/;
-
-/**
- * Parse JSON, or exit 2 naming the source.
- * @param {string} text - JSON text
- * @param {string} source - Where it came from
- * @returns {any} Parsed value
- */
-export function parseJson(text, source) {
-  try {
-    return JSON.parse(text);
-  } catch (error) {
-    throw new CliError(`${source} is not valid JSON: ${error.message}`, 2);
-  }
-}
-
-/**
- * Read a JSON file named by a flag, or exit 2.
- * @param {string} file - Path
- * @returns {any} Parsed value
- */
-export function readJsonFile(file) {
-  const text = asSetupError(() => readFileSync(file, "utf8"));
-  return parseJson(text, file);
-}
-
-/**
- * The GitHub repo to read: `--github-repo`, else github.org/github.repo.
- * @param {object} ctx - CLI context
- * @param {ReturnType<typeof loadProject>} project - Loaded project
- * @returns {string} `owner/repo`
- */
-function githubRepo(ctx, project) {
-  const merged = { ...project.global?.github, ...project.local?.github };
-  const repo =
-    ctx.values["github-repo"] ??
-    (merged.org && merged.repo ? `${merged.org}/${merged.repo}` : "");
-  if (!OWNER_REPO.test(repo)) {
-    throw new CliError(
-      "No GitHub repo: set github.org and github.repo, or pass --github-repo <owner/repo>.",
-      2
-    );
-  }
-  return repo;
-}
-
-/**
- * Every string leaf of an object (label names, including env-keyed `done`).
- * @param {unknown} value - Config subtree
- * @returns {string[]} Leaves
- */
-function stringLeaves(value) {
-  if (typeof value === "string") return value ? [value] : [];
-  if (!value || typeof value !== "object") return [];
-  return Object.values(value).flatMap(stringLeaves);
-}
-
-/**
- * Fetch every open GitHub issue carrying no lifecycle label (build or PRD),
- * all pages: the GitHub backlog tier.
- * @param {object} ctx - CLI context
- * @param {ReturnType<typeof loadProject>} project - Loaded project
- * @returns {{ items: object[], pages: number }} Normalized items
- */
-function fetchGithubBacklog(ctx, project) {
-  const repo = githubRepo(ctx, project);
-  const lifecycle = new Set(
-    [project.global?.github?.labels, project.local?.github?.labels]
-      .flatMap(labels => [
-        ...stringLeaves(labels?.build),
-        ...stringLeaves(labels?.prd),
-      ])
-      .map(label => label.toLowerCase())
-  );
-  const stdout = mustRun(
-    "gh",
-    [
-      "api",
-      "--paginate",
-      "--slurp",
-      `repos/${repo}/issues?state=open&per_page=100`,
-    ],
-    { env: scrubWorkerEnv(ctx.env) }
-  );
-  const pages = parseJson(stdout, "gh api output");
-  const rows = Array.isArray(pages) ? pages.flat() : [];
-  return {
-    items: rows
-      .map(row => normalizeGithubIssue(row, { repo }))
-      .filter(Boolean)
-      .filter(
-        item => !item.labels.some(label => lifecycle.has(label.toLowerCase()))
-      ),
-    pages: Array.isArray(pages) ? pages.length : 0,
-  };
-}
-
-/**
- * Fetch every open GitHub issue carrying the ready label, all pages.
- * @param {object} ctx - CLI context
- * @param {ReturnType<typeof loadProject>} project - Loaded project
- * @returns {{ items: object[], pages: number }} Normalized items
- */
-function fetchGithubQueue(ctx, project) {
-  const repo = githubRepo(ctx, project);
-  const role = resolveRole({
-    role: "ready",
-    vendor: "github",
-    intent: "read",
-    local: project.local,
-    global: project.global,
-  });
-  const label = ctx.values.label ?? role.value;
-  if (!label) throw new CliError(role.message, 2);
-  const endpoint =
-    `repos/${repo}/issues?state=open&labels=${encodeURIComponent(label)}` +
-    `&per_page=100`;
-  const stdout = mustRun("gh", ["api", "--paginate", "--slurp", endpoint], {
-    env: scrubWorkerEnv(ctx.env),
-  });
-  const pages = parseJson(stdout, "gh api output");
-  const rows = Array.isArray(pages) ? pages.flat() : [];
-  return {
-    items: rows.map(row => normalizeGithubIssue(row, { repo })).filter(Boolean),
-    pages: Array.isArray(pages) ? pages.length : 0,
-  };
-}
 
 /**
  * Check one paged envelope and normalize its raw issues.

@@ -25,7 +25,8 @@
  * than through `sh -c`, so the settings JSON and the loop prompt are never
  * re-parsed by a shell.
  *
- * The state dir lives in state-dir.mjs and the token in token.mjs; both are
+ * The state dir lives in state-dir.mjs, the token in token.mjs, and the
+ * foreground and stdin renderings of the launch in launch-shell.mjs; all are
  * re-exported here so callers keep one import.
  *
  * Everything here is pure or takes injected seams. This module never reads
@@ -38,6 +39,11 @@ import path from "node:path";
 import { parseLoopInterval } from "./config.mjs";
 import { LaunchError } from "./state-dir.mjs";
 
+export {
+  buildForegroundCommand,
+  buildSourcedLaunch,
+  tmuxQuote,
+} from "./launch-shell.mjs";
 export {
   LaunchError,
   realpathExisting,
@@ -60,12 +66,6 @@ export const TELEGRAM_PLUGIN_ID = "telegram@claude-plugins-official";
 
 /** Same slug rule the config validator applies to `sessionManager.name`. */
 const SESSION_NAME_PATTERN = /^[a-z0-9][a-z0-9_-]{0,63}$/;
-
-/** A `'` inside a single-quoted shell word: close, escaped quote, reopen. */
-const ESCAPED_QUOTE = "'\\''";
-
-/** An argument a POSIX shell reads back unchanged without quotes. */
-const SHELL_SAFE = /^[A-Za-z0-9_@%+=:,./-]+$/;
 
 /** The skill command each manager loop iteration runs. */
 const CYCLE_COMMAND = "/lisa:session-manager cycle";
@@ -201,100 +201,6 @@ function assertNotify(notify, stateDir) {
     );
   }
   return notify;
-}
-
-/**
- * Quote one argument for a POSIX shell, for display only.
- * @param {string} value - Argument
- * @returns {string} Single-quoted argument
- */
-function shellQuote(value) {
-  return `'${value.replaceAll("'", ESCAPED_QUOTE)}'`;
-}
-
-/**
- * The shell line an operator runs to start the manager in the foreground,
- * from the tmux argv {@link buildManagerLaunch} returned: same cwd, the same
- * two session variables, the same claude argv. `start` prints it when the
- * tmux session dies at once, because tmux closes the window and claude's own
- * error goes with it. It is display text only and is never executed here.
- * The token is not in the argv, so it is not in this line either. When the
- * token comes from a secrets provider, `shellVars` adds it as a command the
- * operator's own shell runs (`$(node …/resolve-secret.mjs get <NAME>)`), so
- * the line names the secret and never holds its value (#4555).
- * @param {readonly string[]} argv - Result of {@link buildManagerLaunch}
- * @param {Record<string, string>} [shellVars] - Extra variables, each value
- *   double-quoted so the operator's shell expands it
- * @returns {string} One shell line
- */
-export function buildForegroundCommand(argv, shellVars = {}) {
-  const claudeAt = argv.indexOf("claude");
-  const head = argv.slice(0, claudeAt);
-  const cwd = head[head.indexOf("-c") + 1];
-  const vars = head
-    .filter((_, index) => head[index - 1] === "-e")
-    .map(entry => {
-      const at = entry.indexOf("=");
-      return `${entry.slice(0, at)}=${shellQuote(entry.slice(at + 1))}`;
-    });
-  const expanded = Object.entries(shellVars).map(
-    ([name, value]) => `${name}="${value}"`
-  );
-  const command = argv
-    .slice(claudeAt)
-    .map(arg => (SHELL_SAFE.test(arg) ? arg : shellQuote(arg)));
-  return `cd ${shellQuote(cwd)} && ${[...vars, ...expanded, ...command].join(" ")}`;
-}
-
-/**
- * Quote one word for tmux's command parser: single quotes, inside which
- * nothing is special, and `'"'"'` for a quote (close, a double-quoted quote,
- * reopen; tmux joins adjacent quoted runs into one word).
- * @param {string} word - Word
- * @returns {string} Quoted word
- */
-export function tmuxQuote(word) {
-  return `'${String(word).replaceAll("'", `'"'"'`)}'`;
-}
-
-/**
- * The tmux call that starts the manager with secret session variables
- * (the Telegram bot token from the secrets provider, #4555) that must never
- * reach argv, where `ps` shows them to every user on the host.
- *
- * `tmux start-server ; source-file -` reads the `new-session` command from
- * stdin, so the argv holds no value. The `-e` variables join the session's
- * own environment only, the same as the ones {@link buildManagerLaunch}
- * already passes. A newline in any word would end the command early and run
- * the rest as a second tmux command, so it is refused.
- * @param {readonly string[]} argv - Result of {@link buildManagerLaunch}
- * @param {Record<string, string>} sessionVars - Extra session variables
- * @returns {{ argv: string[], input: string }} argv for `spawnSync("tmux")`
- *   and the line for its stdin
- */
-export function buildSourcedLaunch(argv, sessionVars) {
-  if (argv[0] !== "new-session") {
-    throw new LaunchError("buildSourcedLaunch needs a new-session argv.");
-  }
-  const claudeAt = argv.indexOf("claude");
-  const words = [
-    ...argv.slice(0, claudeAt),
-    ...Object.entries(sessionVars).flatMap(([name, value]) => [
-      "-e",
-      `${name}=${value}`,
-    ]),
-    ...argv.slice(claudeAt),
-  ];
-  if (words.some(word => /[\r\n]/.test(word))) {
-    throw new LaunchError(
-      "A launch argument contains a newline, which would end the tmux " +
-        "command early. Nothing was started."
-    );
-  }
-  return {
-    argv: ["start-server", ";", "source-file", "-"],
-    input: `${words.map(tmuxQuote).join(" ")}\n`,
-  };
 }
 
 /**
