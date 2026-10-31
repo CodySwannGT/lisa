@@ -1,8 +1,8 @@
 ## plaintext token file planted beforehand by plant.sh (old setup shape); state dir listing:
 total 8
-drwx------@ 3 cody  staff  96 Oct 31 10:28 .
-drwxr-xr-x@ 3 cody  staff  96 Oct 31 10:28 ..
--rw-------@ 1 cody  staff  77 Oct 31 10:28 .env
+drwx------@ 3 cody  staff  96 Oct 31 10:58 .
+drwxr-xr-x@ 3 cody  staff  96 Oct 31 10:58 ..
+-rw-------@ 1 cody  staff  77 Oct 31 10:58 .env
 ## $ session-manager.mjs validate
 exit=0
 stdout: {"valid":true,"errors":[]}
@@ -20,8 +20,8 @@ stdout: {"stored":true,"storage":"provider","provider":"bitwarden","secret":"TEL
 stderr: 
 ## state dir listing after store-token:
 total 0
-drwx------@ 2 cody  staff  64 Oct 31 10:28 .
-drwxr-xr-x@ 3 cody  staff  96 Oct 31 10:28 ..
+drwx------@ 2 cody  staff  64 Oct 31 10:58 .
+drwxr-xr-x@ 3 cody  staff  96 Oct 31 10:58 ..
 ## vault rows (key, projectId, value sha256 vs sentinel sha256)
 TELEGRAM_BOT_TOKEN_DEMO_MANAGER proj-demo valueSha256Matches= true
 ## bws calls (argv redacted by stub)

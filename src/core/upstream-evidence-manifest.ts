@@ -3607,6 +3607,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "evidence/4555/item1-notify-none.txt": true,
     "evidence/4555/item2-3-telegram-provider.txt": true,
     "evidence/4555/item4-human-needed.txt": true,
+    "evidence/4555/item5-codified-real-tmux-test.txt": true,
+    "evidence/4555/item5-codified-test-falsification.txt": true,
     "evidence/4555/item5-real-tmux.txt": true,
     "evidence/copilot-hook-mcp-probe-1056.md": true,
     "evidence/cursor-rule-probe-1055.md": true,

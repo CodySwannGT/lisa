@@ -6,7 +6,7 @@ has-session: 0
 child saw TELEGRAM_BOT_TOKEN equal to sentinel: true
 child saw QUOTE_PROBE intact (single+double quotes, $): true
 child args: -n lisa4555probe --dangerously-skip-permissions --settings {"crossSessionInbound":"accept","enabledPlugins":{"telegram@claude-plugins-official":true}} --channels plugin:telegram@claude-plugins-official -- /loop 5m /lisa:session-manager cycle
-ps polls: 28; ps lines containing the sentinel: 0
+ps polls: 27; ps lines containing the sentinel: 0
 bite control (decoy /bin/sh with sentinel-derived argv) found by the ps scan: true
 kill-server (isolated socket only): 1
 isolated server gone: true
