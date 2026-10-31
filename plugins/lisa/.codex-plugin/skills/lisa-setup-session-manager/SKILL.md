@@ -13,7 +13,8 @@ After this skill the project has a `sessionManager` block, a runbook at
 the project also has its own bot token (in the project's secrets provider when one is configured,
 else in its own state directory) and a manager paired with the operator's
 Telegram chat; with no channel (the default), Steps 3 and 4 and the pairing in Step 9 are skipped,
-and questions wait in the manager's ledger, where `status` shows them. Re-running is safe: every
+and questions wait in the manager's ledger, where `status` shows them, and on the item itself,
+which the manager marks human-needed while it keeps dispatching other work. Re-running is safe: every
 step keeps what is already there.
 
 The manager itself always runs on Claude Code (see `lisa-session-manager` "Runtime parity"). Setup

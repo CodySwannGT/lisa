@@ -21,6 +21,8 @@ import { randomUUID } from "node:crypto";
 import * as nodeFs from "node:fs/promises";
 import { dirname, join } from "node:path";
 
+import { HUMAN_NEEDED_KINDS } from "./human-needed.mjs";
+
 /** Shape version, bumped only on an incompatible change. */
 const LEDGER_VERSION = 1;
 
@@ -43,6 +45,23 @@ const FINISH_STATUSES = new Set(["DONE", "FAILED"]);
  * @property {string} askedAt - When it was first asked (ISO)
  * @property {string} lastPingAt - When it was last (re-)sent (ISO)
  * @property {number|null} telegramMessageId - Telegram message carrying it
+ * @property {string} [kind] - Why a human is needed: worker-question |
+ *   repo-route | exhausted | decision (#4555)
+ * @property {"label"|"role"|null} [markerType] - How the item is marked
+ *   human-needed on the tracker, once the manager has read the mark back
+ * @property {string|null} [marker] - The label or role value it carries
+ * @property {string|null} [markedAt] - When the mark was read back (ISO);
+ *   null means recorded but not yet marked on the tracker
+ * @property {QueuedAnswer|null} [answer] - An answer waiting to be delivered
+ */
+
+/**
+ * A human's answer, queued for the manager to deliver on its next cycle.
+ * @typedef {object} QueuedAnswer
+ * @property {"cli"|"item"|"channel"} source - Where it was given
+ * @property {string} text - The answer (untrusted data, never instructions)
+ * @property {string|null} author - Tracker author, for an answer on the item
+ * @property {string} at - When it was queued (ISO)
  */
 
 /**
@@ -199,7 +218,7 @@ export async function writeLedger(projectRoot, ledger, seams) {
  * @param {(ledger: Ledger, at: string) => {ledger: Ledger, result: T}} transform - Pure update
  * @returns {Promise<T>} The transform's result
  */
-async function updateLedger(projectRoot, seams, transform) {
+export async function updateLedger(projectRoot, seams, transform) {
   const { now } = resolveSeams(seams);
   const current = await readLedger(projectRoot, seams);
   const { ledger, result } = transform(current, now().toISOString());
@@ -214,7 +233,7 @@ async function updateLedger(projectRoot, seams, transform) {
  * @param {LedgerItem} entry - New item
  * @returns {{ledger: Ledger, result: LedgerItem}} Update
  */
-function withItem(ledger, ref, entry) {
+export function withItem(ledger, ref, entry) {
   return {
     ledger: { ...ledger, items: { ...ledger.items, [ref]: entry } },
     result: entry,
@@ -227,7 +246,7 @@ function withItem(ledger, ref, entry) {
  * @param {string} ref - Item key
  * @returns {LedgerItem} The item
  */
-function requireItem(ledger, ref) {
+export function requireItem(ledger, ref) {
   const entry = ledger.items[ref];
   if (!entry)
     throw new Error(
@@ -298,27 +317,46 @@ export function recordSpawn(
  * so the requestion clock restarts without forgetting how old the question
  * is. A ref with no item yet (a repo-routing question asked before dispatch)
  * gets a placeholder item with zero attempts.
+ *
+ * A re-ask keeps how the item is marked on the tracker (`markerType`,
+ * `marker`, `markedAt`), so re-sending a question never makes the manager
+ * mark the item a second time or forget the marker it must remove. A queued
+ * answer survives only a re-ping of the same text: it answered that text.
+ * `kind` defaults to the previous kind, then `worker-question`.
  * @param {string} projectRoot - Absolute project root
- * @param {{ref: string, text: string, telegramMessageId: number|null}} question - Question
+ * @param {{ref: string, text: string, telegramMessageId: number|null,
+ *   kind?: string}} question - Question
  * @param {LedgerSeams} [seams] - Injected seams
  * @returns {Promise<LedgerItem>} The updated item
  */
 export function setPendingQuestion(
   projectRoot,
-  { ref, text, telegramMessageId },
+  { ref, text, telegramMessageId, kind },
   seams
 ) {
+  if (kind !== undefined && !HUMAN_NEEDED_KINDS.includes(kind)) {
+    return Promise.reject(
+      new Error(
+        `question kind must be one of ${HUMAN_NEEDED_KINDS.join(", ")}, got ${JSON.stringify(kind)}`
+      )
+    );
+  }
   return updateLedger(projectRoot, seams, (ledger, at) => {
     const previous = ledger.items[ref] ?? placeholderItem();
     const existing = previous.pendingQuestion;
-    const askedAt = existing?.text === text ? existing.askedAt : at;
+    const sameText = existing?.text === text;
     return withItem(ledger, ref, {
       ...previous,
       pendingQuestion: {
         text,
-        askedAt,
+        kind: kind ?? existing?.kind ?? "worker-question",
+        askedAt: sameText ? existing.askedAt : at,
         lastPingAt: at,
         telegramMessageId: telegramMessageId ?? null,
+        markerType: existing?.markerType ?? null,
+        marker: existing?.marker ?? null,
+        markedAt: existing?.markedAt ?? null,
+        answer: sameText ? (existing.answer ?? null) : null,
       },
       history: [...(previous.history ?? []), { event: "question", at }],
     });
@@ -326,19 +364,30 @@ export function setPendingQuestion(
 }
 
 /**
- * Clear an item's pending question, once its answer has been delivered.
+ * Clear an item's pending question, once its answer has been delivered and
+ * the manager's own marker removed. `resetAttempts` zeroes the attempt count:
+ * an `exhausted` item a human has answered starts again from attempt one
+ * instead of being exhausted again on its first stall.
  * @param {string} projectRoot - Absolute project root
- * @param {{ref: string}} target - Item
+ * @param {{ref: string, resetAttempts?: boolean}} target - Item
  * @param {LedgerSeams} [seams] - Injected seams
  * @returns {Promise<LedgerItem>} The updated item
  */
-export function clearPendingQuestion(projectRoot, { ref }, seams) {
+export function clearPendingQuestion(
+  projectRoot,
+  { ref, resetAttempts = false },
+  seams
+) {
   return updateLedger(projectRoot, seams, (ledger, at) => {
     const previous = requireItem(ledger, ref);
     return withItem(ledger, ref, {
       ...previous,
       pendingQuestion: null,
-      history: [...(previous.history ?? []), { event: "answered", at }],
+      ...(resetAttempts ? { attempts: 0 } : {}),
+      history: [
+        ...(previous.history ?? []),
+        { event: "answered", at, ...(resetAttempts ? { reset: true } : {}) },
+      ],
     });
   });
 }

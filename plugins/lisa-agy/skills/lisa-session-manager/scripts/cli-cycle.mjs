@@ -32,6 +32,7 @@ import {
   setControl,
   setPendingQuestion,
 } from "./ledger.mjs";
+import { recordMarked } from "./ledger-questions.mjs";
 import { planBlockedRelease } from "./reconcile.mjs";
 import { formatAnswer, routeInbound } from "./telegram-route.mjs";
 
@@ -115,10 +116,20 @@ const LEDGER_ACTIONS = {
       telegramMessageId:
         intFlag(ctx.values["telegram-message-id"], "--telegram-message-id") ??
         null,
+      kind: ctx.values.kind,
     });
   },
+  marked: ctx =>
+    recordMarked(ctx.root, {
+      ref: requirePositional(ctx, "ref"),
+      markerType: requireValue(ctx, "marker-type"),
+      marker: requireValue(ctx, "marker"),
+    }),
   "clear-question": ctx =>
-    clearPendingQuestion(ctx.root, { ref: requirePositional(ctx, "ref") }),
+    clearPendingQuestion(ctx.root, {
+      ref: requirePositional(ctx, "ref"),
+      resetAttempts: ctx.values["reset-attempts"] === true,
+    }),
   async finish(ctx) {
     const status = ctx.values.status;
     if (status !== "DONE" && status !== "FAILED") {

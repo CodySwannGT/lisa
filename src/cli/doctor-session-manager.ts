@@ -16,6 +16,10 @@
  * without the telegram provider, fails the way the runtime validator refuses
  * it.
  *
+ * Either way it lists the items the manager has waiting on a human and warns
+ * about one recorded but never marked on the tracker
+ * (`doctor-session-manager-pending`, #4555).
+ *
  * Gated on a `sessionManager` block in the merged config (the Kane model): a
  * project that never opted in gets `ok` / "not configured" and nothing is read
  * under HOME. HOME, env, file reads and managed-settings paths are injectable
@@ -40,6 +44,7 @@ import {
   telegramFindings,
   telegramSecretNameFor,
 } from "./doctor-session-manager-token.js";
+import { pendingHumanReport } from "./doctor-session-manager-pending.js";
 import { mergeSessionManagerBlocks } from "./session-manager-config-merge.js";
 
 const CHECK_NAME = "Session manager notifications?";
@@ -67,6 +72,8 @@ export interface SessionManagerDoctorDependencies {
   readonly managedSettingsPaths?: readonly string[];
   /** Repo visibility probe; defaults to `gh repo view --json visibility`. */
   readonly probeRepoVisibility?: RepoVisibilityProbe;
+  /** Clock for the age of items waiting on a human; defaults to now. */
+  readonly now?: () => Date;
 }
 
 /** The doctor options this check honours. */
@@ -212,29 +219,36 @@ function telegramOkDetail(token: TokenHome): string {
 }
 
 /**
- * The check's verdict once every finding is in.
+ * The check's verdict once every finding is in. `note` (the items waiting on
+ * a human) is appended to the detail without changing the status.
  * @param provider - Notification provider, undefined when unsupported
  * @param findings - Every finding
  * @param token - Where the bot token lives, for the telegram ok detail
+ * @param note - Extra detail, or undefined
  * @returns Doctor check result
  */
 function verdict(
   provider: NotifyMode["provider"],
   findings: readonly Finding[],
-  token: TokenHome
+  token: TokenHome,
+  note: string | undefined
 ): DoctorCheck {
+  const withNote = (detail: string): string =>
+    note === undefined ? detail : `${detail}; ${note}`;
   if (findings.length === 0) {
     return {
       name: CHECK_NAME,
       status: "ok",
-      detail: provider === "none" ? NO_CHANNEL : telegramOkDetail(token),
+      detail: withNote(
+        provider === "none" ? NO_CHANNEL : telegramOkDetail(token)
+      ),
     };
   }
   const text = findings.map(f => f.text).join("; ");
   return {
     name: CHECK_NAME,
     status: findings.some(f => f.status === "fail") ? "fail" : "warn",
-    detail: provider === "none" ? `${NO_CHANNEL}; ${text}` : text,
+    detail: withNote(provider === "none" ? `${NO_CHANNEL}; ${text}` : text),
   };
 }
 
@@ -267,6 +281,12 @@ export async function checkSessionManagerIsolation(
     const notify = isRecord(block.notify) ? block.notify : {};
     const mode = notifyMode(notify);
     const secretsProvider = secretsProviderOf({ ...committed, ...local });
+    const pending = await pendingHumanReport(
+      targetPath,
+      block,
+      read,
+      deps.now ?? (() => new Date())
+    );
     const findings = [
       ...mode.problems,
       ...(mode.provider === "telegram"
@@ -283,12 +303,18 @@ export async function checkSessionManagerIsolation(
           ? undefined
           : (deps.probeRepoVisibility ?? ghRepoVisibility)
       )),
+      ...pending.findings,
     ];
-    return verdict(mode.provider, findings, {
-      stateDir: resolveStateDir(notify.stateDir, homeOf(deps), targetPath),
-      secretsProvider,
-      secretName: telegramSecretNameFor(block.name),
-    });
+    return verdict(
+      mode.provider,
+      findings,
+      {
+        stateDir: resolveStateDir(notify.stateDir, homeOf(deps), targetPath),
+        secretsProvider,
+        secretName: telegramSecretNameFor(block.name),
+      },
+      pending.note
+    );
   } catch (error) {
     return {
       name: CHECK_NAME,

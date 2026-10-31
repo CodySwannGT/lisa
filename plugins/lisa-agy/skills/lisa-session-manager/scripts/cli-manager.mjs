@@ -35,6 +35,7 @@ import {
 } from "./cli-runtime.mjs";
 import { notifyProvider, resolveRepoDir } from "./config.mjs";
 import { probeOwnSession, sessionSurvives } from "./isolation.mjs";
+import { listPendingQuestions } from "./ledger-questions.mjs";
 import {
   assertTokenPresent,
   buildForegroundCommand,
@@ -313,13 +314,25 @@ export function validate(ctx) {
 }
 
 /**
+ * The line an operator at this machine runs to answer a pending question:
+ * the answer goes on stdin, never in argv.
+ * @param {{scriptsDir: string, root: string}} ctx - CLI context
+ * @param {string} ref - Item ref
+ * @returns {string} Command line
+ */
+function answerCommandFor(ctx, ref) {
+  const script = path.join(ctx.scriptsDir, "session-manager.mjs");
+  return `node ${JSON.stringify(script)} answer ${JSON.stringify(ref)} --project-root ${JSON.stringify(ctx.root)} < answer.txt`;
+}
+
+/**
  * `status`: is the manager's tmux session up, and what does the ledger say
  * about each worker it dispatched.
  * @param {object} ctx - CLI context
  * `notify` is the configured notification provider (`telegram` or `none`),
  * so the manager knows each cycle whether a channel exists.
  * @returns {Promise<{ json: object }>}
- *   `{manager,notify,control,workers,untracked}`
+ *   `{manager,notify,control,workers,untracked,pendingQuestions}`
  */
 export async function status(ctx) {
   const config = requireConfig(ctx);
@@ -348,6 +361,9 @@ export async function status(ctx) {
       untracked: [...liveNames]
         .filter(name => parseWorkerName(name) !== null && !tracked.has(name))
         .sort(),
+      pendingQuestions: listPendingQuestions(ledger, ref =>
+        answerCommandFor(ctx, ref)
+      ),
     },
   };
 }

@@ -217,6 +217,40 @@ function readEnvelopeQueue(ctx, tracker, withBacklog) {
 }
 
 /**
+ * Refs waiting on a human: every ledger item with a pending question.
+ * @param {{items: Record<string, {pendingQuestion?: unknown}>}} ledger - Ledger
+ * @returns {Set<string>} Refs
+ */
+function pendingRefs(ledger) {
+  return new Set(
+    Object.entries(ledger.items)
+      .filter(([, item]) => item.pendingQuestion)
+      .map(([ref]) => ref)
+  );
+}
+
+/**
+ * Move items waiting on a human out of `ordered` into `excluded` with reason
+ * `pending-question` (#4555). The item stays marked for its human; every
+ * other item is still dispatched, so one question never stalls the queue.
+ * @param {{ordered: {ref: string}[], excluded: {ref: string, reason: string}[]}} order - Ordered tier
+ * @param {Set<string>} waiting - Refs with a pending question
+ * @returns {{ordered: {ref: string}[], excluded: {ref: string, reason: string}[]}} Filtered tier
+ */
+function withoutPending(order, waiting) {
+  return {
+    ...order,
+    ordered: order.ordered.filter(item => !waiting.has(item.ref)),
+    excluded: [
+      ...order.excluded,
+      ...order.ordered
+        .filter(item => waiting.has(item.ref))
+        .map(item => ({ ref: item.ref, reason: "pending-question" })),
+    ],
+  };
+}
+
+/**
  * `queue --tracker <github|jira|linear>`: the Ready queue, the operator's
  * items first (`sessionManager.operatorIds`), then mine, then unassigned.
  * @param {object} ctx - CLI context
@@ -251,7 +285,8 @@ export async function queue(ctx) {
     trustedAuthorIds: config?.trustedAuthorIds ?? undefined,
     humanNeededLabel: humanNeededLabel(project, tracker),
   };
-  const order = orderReadyQueue(items, policy);
+  const waiting = pendingRefs(ledger);
+  const order = withoutPending(orderReadyQueue(items, policy), waiting);
   const json = {
     tracker,
     me,
@@ -265,10 +300,13 @@ export async function queue(ctx) {
   // An item both Ready and in the backlog fetch is Ready work; never twice.
   const readyRefs = new Set(items.map(item => item.ref));
   const backlogItems = backlog.items.filter(item => !readyRefs.has(item.ref));
-  const tier = orderBacklogQueue(backlogItems, {
-    ...policy,
-    validationFailures: ledger.validationFailures,
-  });
+  const tier = withoutPending(
+    orderBacklogQueue(backlogItems, {
+      ...policy,
+      validationFailures: ledger.validationFailures,
+    }),
+    waiting
+  );
   return {
     json: {
       ...json,

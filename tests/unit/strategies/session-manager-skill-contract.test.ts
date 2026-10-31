@@ -214,6 +214,11 @@ describe("the skills use only real CLI subcommands and flags", () => {
       "ledger finish",
       "ledger set-question",
       "ledger control",
+      "ledger marked",
+      "ledger clear-question",
+      "mark-plan",
+      "item-answer",
+      "answer",
     ],
     [SETUP]: ["init-config", "validate", "store-token", "start", "status"],
   };

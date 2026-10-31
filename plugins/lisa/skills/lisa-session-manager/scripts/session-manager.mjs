@@ -18,7 +18,8 @@
  * background sessions (`claude --bg`, `claude agents`), cross-session
  * messaging and channels, which no other supported agent has. Codex, Cursor,
  * OpenCode, Antigravity, Copilot and Devin can run the setup-time subcommands
- * (init-config, store-token, trust-status, coexistence, validate, start), and
+ * (init-config, store-token, trust-status, coexistence, validate, start) and
+ * `answer` (an operator answering a pending question at the terminal), and
  * `start` hosts a Claude Code manager in tmux whatever agent ran it. Note that
  * trust-status reads Claude Code's own trust record, which is the one that
  * matters: workers are always Claude Code. They cannot run a manager cycle
@@ -41,6 +42,7 @@ import {
   recordCycle,
   route,
 } from "./cli-cycle.mjs";
+import { answer, itemAnswer, markPlan } from "./cli-human.mjs";
 import { repoDir, start, status, stop, validate } from "./cli-manager.mjs";
 import { queue } from "./cli-queue.mjs";
 import { CliError, EXIT } from "./cli-runtime.mjs";
@@ -106,6 +108,9 @@ const COMMANDS = {
     options: { input: text, ref: text },
     positionals: 0,
   },
+  "mark-plan": { run: markPlan, options: { kind: text }, positionals: 1 },
+  answer: { run: answer, options: {}, positionals: 1 },
+  "item-answer": { run: itemAnswer, options: {}, positionals: 1 },
   "record-cycle": {
     run: recordCycle,
     options: {
@@ -125,10 +130,14 @@ const LEDGER_SPECS = {
     positionals: 1,
   },
   "set-question": {
-    options: { "telegram-message-id": text, sender: text },
+    options: { "telegram-message-id": text, sender: text, kind: text },
     positionals: 1,
   },
-  "clear-question": { options: {}, positionals: 1 },
+  marked: {
+    options: { "marker-type": text, marker: text },
+    positionals: 1,
+  },
+  "clear-question": { options: { "reset-attempts": flag }, positionals: 1 },
   finish: { options: { status: text, sender: text }, positionals: 1 },
   "validation-failed": { options: { "updated-at": text }, positionals: 1 },
   "validation-cleared": { options: {}, positionals: 1 },

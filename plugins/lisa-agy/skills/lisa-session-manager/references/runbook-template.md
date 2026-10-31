@@ -21,8 +21,8 @@ project's own Telegram chat. Telegram is optional: with no channel, questions wa
 
 Leaf items in the `ready` role, ordered: assigned to an operator (`sessionManager.operatorIds`),
 then to the manager's own tracker identity, then unassigned; within each, by priority, then oldest.
-Items assigned to someone else, containers, human-held items and (when configured) items by
-untrusted authors are skipped. As many as the machine has capacity for.
+Items assigned to someone else, containers, human-held items, items waiting on a human's answer
+in the ledger and (when configured) items by untrusted authors are skipped. As many as the machine has capacity for.
 
 When `sessionManager.backlogPickup` is on and capacity remains after every Ready item, a lowest tier
 follows: backlog items (open leaves in no lifecycle role) in the same order, minus those with an
@@ -50,10 +50,15 @@ asks, any item whose repo is unclear, and any item that failed `stall.maxAttempt
 
 ## Escalation
 
-A worker's question goes to Telegram when it is configured; with no channel it is recorded as
-pending in the ledger, where `/lisa:session-manager status` shows it. No question is ever asked in
-the manager's terminal. An item that keeps failing moves to the `blocked` role with a comment that says what
-happened. When the manager itself cannot proceed it records `recovery-required` with a one-line
+When an item needs a human (a worker's question, an unclear repo, an item that failed
+`stall.maxAttempts` times, or a design or product decision), the manager marks it with the
+configured human-needed marker, posts the question on the item with how to answer it, records it
+pending in the ledger, and keeps dispatching other items: one item waiting on a person never stops
+the queue. An item that failed `stall.maxAttempts` times also moves to the `blocked` role. With
+Telegram the question goes there too; `/lisa:session-manager status` lists every pending question.
+The operator answers on the item, on Telegram, or with the CLI `answer` command; the next cycle
+delivers the answer, removes the marker and clears the question. No question is ever asked in the
+manager's terminal. When the manager itself cannot proceed it records `recovery-required` with a one-line
 reason. Having no notification channel is not such a reason; a configured Telegram that is broken
 or unpaired is.
 
@@ -75,4 +80,5 @@ counts.
 Propose teardown when BOTH hold: no item entered the `claimed` role in the last 14 days, AND this
 cycle found no Ready candidates. The manager files one proposal marked
 `[lisa-session-manager-retirement]` and keeps running until someone tears it down or lengthens its
-interval. `candidate-proposed` is never recorded by this loop: it files no build candidates.
+interval. A cycle that marks an item human-needed records `candidate-proposed`, the outcome the
+automation-runbook contract assigns to holding an item for a human with its questions.

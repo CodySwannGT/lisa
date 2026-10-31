@@ -46,7 +46,10 @@ Workers and capacity
   status
       stdout {manager:{name,running},notify,control,workers:[{ref,worker,
       sessionId,repo,status,attempts,pendingQuestion,live}],untracked:[wk-
-      names]}. notify is the configured channel: "telegram" or "none".
+      names],pendingQuestions:[{ref,kind,text,askedAt,marked,answerQueued,
+      answerCommand}]}. notify is the configured channel: "telegram" or
+      "none". pendingQuestions lists every item waiting on a human, oldest
+      first; answerCommand is the answer line to run at this machine.
 
 Manager
   start [--settle-ms <n>]
@@ -148,7 +151,9 @@ Per cycle
       <file> = {complete:true,pages,items:[raw vendor issues]}; exit 2 unless
       complete is exactly true.
       Both print {tracker,me,operators,total,pages,ordered,excluded:[{ref,
-      reason}]}. ordered: items assigned to sessionManager.operatorIds
+      reason}]}. An item with a pending question in the ledger is excluded
+      (pending-question) from both tiers, and every other item still comes
+      back, so one item waiting on a human never stops dispatch. ordered: items assigned to sessionManager.operatorIds
       first, then to --me, then unassigned; each group by priority, then age.
       Items assigned to anyone else are excluded (assigned-to-other).
       --me defaults to the ledger's control.me.
@@ -161,9 +166,18 @@ Per cycle
       {complete:true,pages,items}, else exit 2.
   ledger get [<ref>]
   ledger record-spawn <ref> --worker <name> [--session-id <id>] [--repo <key>]
-  ledger set-question <ref> [--telegram-message-id <n>] [--sender <name>]
-                                                           STDIN: question
-  ledger clear-question <ref>
+  ledger set-question <ref> [--kind <kind>] [--telegram-message-id <n>]
+                           [--sender <name>]               STDIN: question
+      --kind: worker-question (default) | repo-route | exhausted | decision.
+      No message id with no channel. A re-ask keeps the item's marker
+      fields (markerType, marker, markedAt); a queued answer survives only a
+      re-ping of the same text.
+  ledger marked <ref> --marker-type label|role --marker <value>
+      Records that the human-needed marker was applied on the tracker and
+      read back (markedAt). Exit 2 when <ref> has no pending question.
+  ledger clear-question <ref> [--reset-attempts]
+      After the answer is delivered and the marker removed. --reset-attempts
+      zeroes the attempt count (an exhausted item a human has answered).
   ledger finish <ref> --status DONE|FAILED [--sender <name>]  STDIN: reason
       --sender: exit 2 unless the ledger's worker for <ref> is exactly <name>.
   ledger validation-failed <ref> --updated-at <ts>     STDIN: failing gates
@@ -183,6 +197,30 @@ Per cycle
       unset); trustedHumanActorIds in the input is ignored. stdout
       {action:release|keep|escalate|skip-human-gate,reason,edges,gate}.
       --ref fills pendingQuestion from the ledger.
+  mark-plan <ref> --kind <kind>                 STDIN: question or reason
+      Plans marking an item that needs a human; writes nothing. kind:
+      worker-question | repo-route | exhausted | decision. stdout {ref,kind,
+      marker:{type:"label"|"role",value},[move:{role:"blocked",value},]
+      comment,answerWith:{item,cli,channel}}. marker is the tracker's
+      configured human-needed label, else the configured blocked role;
+      exhausted also moves to the blocked role. comment starts with
+      [lisa-session-manager-question] and says how to answer (on the item,
+      with answer, or on Telegram when it is the channel). Exit 2 for an
+      unknown kind, empty or credential-shaped text, no marker configured,
+      or exhausted with no blocked role.
+  answer <ref>                                  STDIN: the answer
+      Queues an operator's answer (source "cli") for the next cycle to
+      deliver. stdout {queued:true,ref,source}. Exit 2 when <ref> has no
+      pending question, or the text looks like a credential.
+  item-answer <ref>                 STDIN: {"comments":[{author,body,createdAt}]}
+      Queues the human's answer from the item's comments (source "item"):
+      the first comment after the latest [lisa-session-manager-question]
+      comment whose author is in sessionManager.operatorIds or
+      trustedAuthorIds (neither set: the ledger's control.me) and whose body
+      has no [lisa- marker. stdout {queued:true,ref,source,author} or
+      {queued:false,ref,reason:no-question-comment|no-answer-yet|
+      already-queued}. Exit 2 when <ref> has no pending question, nobody may
+      answer, or the answer looks like a credential.
   record-cycle --outcome <outcome> [--ref <url>]... [--run-id <id>]
       STDIN: one-line summary. Records loop session-manager with runbook
       .lisa/automations/session-manager.runbook.md. stdout {path,appended,

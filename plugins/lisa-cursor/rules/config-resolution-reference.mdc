@@ -763,7 +763,12 @@ operator chooses Telegram (`init-config --notify telegram`).
   (for example, a smaller `capacity.maxWorkers` on one machine); arrays such as `hints` are
   replaced, not merged. Built-in defaults fill whatever neither file sets.
 - **Workflow roles are not here.** Ready, claimed and blocked come from the existing tracker
-  workflow config, through the single role resolver, like every other lifecycle flow.
+  workflow config, through the single role resolver, like every other lifecycle flow. When an item
+  needs a human, the manager marks it with the tracker's human-needed label
+  (`github.labels.build.human_needed`, `jira.labels.human_needed`,
+  `linear.labels.build.human_needed`, else the tracker's default), or with the `blocked` role when
+  no label resolves, and moves an `exhausted` item to the `blocked` role; `mark-plan` resolves
+  both, so neither name is ever hard-coded.
 - **Shape check.** `validateSessionManager` in
   `lisa-secrets-access/scripts/validate-config.mjs` runs as part of `validateConfig`, so
   `/lisa:doctor` reports a malformed block.
