@@ -2856,6 +2856,7 @@ jobs:
           tests/unit/scripts/work-item-coherent-related.test.ts
           tests/unit/scripts/history-secret-provision-errors.test.ts
           tests/unit/scripts/review-gate-terminal-skipped.test.ts
+          tests/unit/scripts/review-gate-terminal-neutral.test.ts
           tests/unit/scripts/work-item-proof-denials.test.ts
           tests/unit/scripts/work-item-proof-scope.test.ts
           tests/unit/scripts/work-item-proof-trust.test.ts

@@ -2366,8 +2366,9 @@ export function reviewGateState(reading, vocabulary = {}) {
   if (state === "FAILURE" || state === "ERROR") {
     return objectedReviewGateState(state, text, reading.description);
   }
-  if (state === "SKIPPED") {
-    return skippedReviewGateState(
+  if (state === "SKIPPED" || state === "NEUTRAL") {
+    return terminalReviewGateState(
+      state,
       text,
       reading.description,
       vocabulary,
@@ -2386,16 +2387,23 @@ export function reviewGateState(reading, vocabulary = {}) {
 }
 
 /**
- * A terminal skip never proves review, even when its title names completed work.
- * Existing exact waivers retain their policy; all other skips need a trusted
+ * A terminal result alone never proves review, even with a positive title.
+ * Existing exact waivers retain their policy; other terminal results need a trusted
  * head-bound substitute and a clean, readable review surface to permit merging.
+ * @param {string} state - Observed terminal check state
  * @param {string} text - Normalized description
  * @param {string|undefined} description - Original description
  * @param {{waive?: readonly string[]}} vocabulary - Per-check waiver extensions
  * @param {{read: boolean, present: boolean, objected: boolean}|undefined} activity - Independent review surface
  * @returns {{state: string, condition: string, why: string}} Terminal no-review verdict
  */
-function skippedReviewGateState(text, description, vocabulary, activity) {
+function terminalReviewGateState(
+  state,
+  text,
+  description,
+  vocabulary,
+  activity
+) {
   const waivers = [...ENTITLEMENT_WAIVERS, ...(vocabulary.waive ?? [])];
   if (waivers.some(phrase => text === normalizeDescription(phrase))) {
     return waivedReviewGateState(description, activity);
@@ -2403,7 +2411,7 @@ function skippedReviewGateState(text, description, vocabulary, activity) {
   return {
     state: REVIEW_GATE_STATES.unsatisfied,
     condition: REVIEW_GATE_CONDITIONS.notReviewed,
-    why: `reported terminal SKIPPED with the description ${JSON.stringify(description ?? "")}. This check did not complete a review; its title cannot prove otherwise. An existing exact waiver or a trusted substitute for this head is required, and no substitute covers an objection.`,
+    why: `reported terminal ${state} with the description ${JSON.stringify(description ?? "")}. This result does not establish qualifying completed-review proof; its title cannot supply that proof. An existing exact waiver or a trusted substitute for this head is required, and no substitute covers an objection.`,
   };
 }
 

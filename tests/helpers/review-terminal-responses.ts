@@ -4,6 +4,10 @@ export interface TerminalScenario {
   state?: string | null;
   /** Raw title or legacy description. */
   title?: string;
+  /** Explicit native output, including realistic structured multiline results. */
+  summary?: string;
+  /** Explicit native lifecycle for queued or missing-conclusion controls. */
+  runStatus?: "queued" | "in_progress" | "completed";
   /** Marker authorization, identity, or absence. */
   marker?: "current" | "stale" | "other" | "reader";
   /** Independent review surface observation. */
@@ -28,21 +32,24 @@ const paused = "Review paused";
  */
 function checkRun(scenario: TerminalScenario) {
   const state = scenario.state === undefined ? "skipped" : scenario.state;
+  const status =
+    scenario.runStatus ?? (state === null ? "in_progress" : "completed");
   return {
     id: 101,
     name: "CodeRabbit",
     head_sha: head,
-    status: state === null ? "in_progress" : "completed",
+    status,
     conclusion: state,
     app: { id: 347564, slug: "coderabbitai" },
     created_at: "2026-10-28T10:00:00Z",
-    completed_at: state === null ? null : "2026-10-28T10:01:00Z",
+    completed_at: status === "completed" ? "2026-10-28T10:01:00Z" : null,
     output: {
       title: scenario.title ?? paused,
       summary:
-        state === "skipped" && (scenario.title ?? paused) === paused
+        scenario.summary ??
+        (state === "skipped" && (scenario.title ?? paused) === paused
           ? "Result: Skipped - Review paused\n\nSynthetic metadata"
-          : "Synthetic metadata",
+          : "Synthetic metadata"),
     },
   };
 }
