@@ -3,8 +3,8 @@
   "plugin": "code-review@claude-plugins-official",
   "pluginName": "code-review",
   "marketplace": "claude-plugins-official",
-  "upstreamVersion": "unknown",
-  "analyzedAt": "2026-05-30",
+  "upstreamVersion": "1.0.1",
+  "analyzedAt": "2026-10-31",
   "status": "approved",
   "components": [
     {
@@ -12,16 +12,16 @@
       "id": "code-review",
       "path": "commands/code-review.md",
       "classification": "claude-command",
-      "notes": "Single slash command; no MCP/LSP/hooks. Cache dirs are a git hash and 'unknown' — no semver, so upstreamVersion is 'unknown' (not drift-trackable)."
+      "notes": "Single slash command; no MCP/LSP/hooks/agents/skills (1.0.1 tree: .claude-plugin/plugin.json, commands/code-review.md, README.md, LICENSE). Approved 2026-05-30 as upstreamVersion 'unknown' because the cache held only 'unknown' and git-hash dirs. Re-analysed 2026-10-31 (CodySwannGT/lisa#4556) when upstream began publishing semver: the 1.0.1 manifest now carries version 1.0.1, and the cache's 1.0.1 dir was read against the 'unknown' snapshot. Component inventory is unchanged; the command's behaviour changed: (1) the review prints to the terminal by default and only posts to the PR with --comment; (2) the 0-100 confidence-scoring pass is replaced by a per-issue validation pass that drops anything not confirmed; (3) an explicit high-signal bar (fails to compile/parse, definitely wrong regardless of input, quotable instruction-file violation) plus a do-not-flag list replaces the old false-positive list; (4) with --comment, findings are posted as inline comments (committable suggestions only when they fully fix the issue) through mcp__github_inline_comment__create_inline_comment; (5) reviewers drop from five to four (two instruction-file compliance, two diff-only bug hunters). The Lisa-native lisa-parity-code-review skill was updated for (1)-(3) and documents (4)/(5) as deliberate divergences; it is now drift-tracked via synced-from."
     }
   ],
   "routing": {
     "codex": {
       "outcome": "reimplement",
       "actions": [
-        "scaffold Lisa-native skill reimplementing the code-review command (NO synced-from pin: upstream publishes no semver, so it is not drift-trackable — record drift-tracking as manual review)"
+        "keep the Lisa-native lisa-parity-code-review skill reimplementing the code-review command, stamped synced-from: code-review@claude-plugins-official@1.0.1, updated for 1.0.1's validate-before-report pass and high-signal bar"
       ],
-      "rationale": "Codex has no plugin command surface and is not in the fan-out; reimplement as a Lisa skill. Upstream publishes no semver, so the reimplementation is not drift-trackable — drift tracking is manual review."
+      "rationale": "Codex has no plugin command surface and is not in the fan-out; reimplement as a Lisa skill. Upstream now publishes semver (1.0.1), so the reimplementation is drift-tracked by plugin-parity-drift instead of by manual review."
     },
     "cursor": {
       "outcome": "claude-only",
@@ -31,21 +31,21 @@
     "agy": {
       "outcome": "reimplement",
       "actions": [
-        "scaffold Lisa-native skill reimplementing the code-review command (NO synced-from pin: upstream publishes no semver, so it is not drift-trackable — record drift-tracking as manual review)"
+        "keep the Lisa-native lisa-parity-code-review skill reimplementing the code-review command, stamped synced-from: code-review@claude-plugins-official@1.0.1, updated for 1.0.1's validate-before-report pass and high-signal bar"
       ],
-      "rationale": "Curated third-party plugins are not in agy's fan-out; reimplement as a Lisa skill. Upstream publishes no semver, so it is not drift-trackable — manual review."
+      "rationale": "Curated third-party plugins are not in agy's fan-out; reimplement as a Lisa skill. Upstream now publishes semver (1.0.1), so the reimplementation is drift-tracked by plugin-parity-drift instead of by manual review."
     },
     "copilot": {
       "outcome": "enable-vendor-equivalent",
       "actions": [
         "enable Copilot's native pull-request/code-review capability in the project-scoped marketplace"
       ],
-      "rationale": "Code review is a generic capability Copilot ships natively; prefer enabling over reimplementing."
+      "rationale": "Code review is a generic capability Copilot ships natively; prefer enabling over reimplementing. Re-checked against 1.0.1: the command is still a single PR-review command, so the vendor equivalent still fits."
     },
     "devin": {
       "outcome": "reimplement",
       "actions": [
-        "ship the existing Lisa-native code-review command reimplementation (lisa-parity-code-review skill) in the lisa-devin variant — Devin has no plugin command surface, so the skill is the slash command (NO synced-from pin: upstream publishes no semver, so it is not drift-trackable — record drift-tracking as manual review)"
+        "ship the existing Lisa-native code-review command reimplementation (lisa-parity-code-review skill) in the lisa-devin variant, stamped synced-from: code-review@claude-plugins-official@1.0.1 — Devin has no plugin command surface, so the skill is the slash command"
       ],
       "rationale": "Devin installs Lisa's own lisa-devin plugin variant, which ships the Lisa-native reimplementation; curated third-party Claude plugins are not part of Lisa's Devin install. Devin loads no plugin commands, so the command can only reach Devin as a skill."
     }

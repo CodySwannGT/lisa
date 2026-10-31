@@ -1553,7 +1553,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-notion-write-prd/SKILL.md":
       "d470ed077aa58e53f770c171c8409fa65a3411e15212333fd196237cdfdbf73e",
     "plugins/src/base/skills/lisa-parity-code-review/SKILL.md":
-      "5805254747c4ed9081fd514236f06e078be86d41694bf74b480bf7592cd58c1f",
+      "459c9dd721723d40e43e6f00b67a01ce9654f384167c29b6b3a49df5a5cc8390",
     "plugins/src/base/skills/lisa-parity-code-simplifier/SKILL.md":
       "c721ae772e73abff633c43d93267066afac188e911a77322fbb102db673849d7",
     "plugins/src/base/skills/lisa-parity-coderabbit/SKILL.md":
@@ -3729,6 +3729,10 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "parity/fixtures/drift/skills/code-simplifier/SKILL.md": true,
     "parity/fixtures/drift/skills/coderabbit/SKILL.md": true,
     "parity/fixtures/drift/skills/plain/SKILL.md": true,
+    "parity/fixtures/routing/gained-semver-repinned/gained-semver@demo-marketplace.json": true,
+    "parity/fixtures/routing/gained-semver-repinned/gained-semver@demo-marketplace.md": true,
+    "parity/fixtures/routing/gained-semver-stale/gained-semver@demo-marketplace.json": true,
+    "parity/fixtures/routing/gained-semver-stale/gained-semver@demo-marketplace.md": true,
     "parity/fixtures/routing/invalid/bad-outcome@demo-marketplace.json": true,
     "parity/fixtures/routing/invalid/bad-outcome@demo-marketplace.md": true,
     "parity/fixtures/routing/valid/has-manifest@demo-marketplace.json": true,
@@ -12422,6 +12426,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/plugin-payload-entry-guards.test.ts": true,
     "tests/unit/scripts/plugin-resolver-agreement.test.ts": true,
     "tests/unit/scripts/plugin-routing-validate-cache-visibility.test.ts": true,
+    "tests/unit/scripts/plugin-routing-validate-gained-semver.test.ts": true,
     "tests/unit/scripts/plugin-routing-validate-helpers.ts": true,
     "tests/unit/scripts/plugin-routing-validate.test.ts": true,
     "tests/unit/scripts/plugin-sync-scripts.test.ts": true,

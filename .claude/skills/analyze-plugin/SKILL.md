@@ -62,8 +62,20 @@ the max valid semver. Record it as `upstreamVersion`.
    record that directory name as `upstreamVersion` and note the source in the
    relevant component `notes` ("version from cache dir name; no plugin.json").
 3. Neither a semver `version` nor a semver subdir name exists (e.g. subdirs named
-   `unknown` or a git hash, as with `code-review` and `skill-creator`) → record
+   `unknown` or a git hash, as with `skill-creator`) → record
    `upstreamVersion: "unknown"`.
+
+**`"unknown"` is a snapshot, not a property of the plugin.** An upstream can
+start publishing semver after its artifact was approved — `code-review` did,
+at `1.0.1` (CodySwannGT/lisa#4556). Once a semver directory appears in the
+cache, `plugin-routing-validate.mjs` refuses the old artifact
+(`upstreamVersion "unknown" but the cache has semver <v>`), and because it runs
+in the pre-push gate, that blocks every push from a machine with the current
+cache. Treat it as a re-analysis, not a version bump: read the new version's
+tree against the old snapshot, update the reimplementation for any behaviour
+change, then record the semver, add the `synced-from` stamp to every
+`reimplement` action and skill, and say in the component `notes` what was
+compared.
 
 **Drift-trackability consequence (state this in any `reimplement` rationale):**
 the `plugin-parity-drift` detector only parses **semver** pins, so a plugin whose
