@@ -49,8 +49,13 @@ describe("SESSION_MANAGER_DEFAULTS", () => {
         maxLoadPerCore: 1.5,
       },
       stall: { noOutputMinutes: 60, maxAttempts: 3, requestionHours: 4 },
-      notify: { provider: "telegram" },
+      notify: { provider: "none" },
     });
+  });
+
+  it("resolves an absent notify block to no notification channel", () => {
+    const resolved = mustResolve({ sessionManager: { name: NAME } });
+    expect(resolved.notify).toEqual({ provider: "none" });
   });
 
   it("is frozen, so no caller can change another caller's defaults", () => {

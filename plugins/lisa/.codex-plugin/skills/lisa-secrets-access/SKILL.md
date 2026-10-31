@@ -3,7 +3,7 @@ name: lisa-secrets-access
 description: "Vendor-neutral access layer for…"
 allowed-tools: ["Bash", "Read", "Skill"]
 ---
-Vendor-neutral access layer for secrets. Every skill and script that needs an API key MUST resolve it through this skill rather than reading a keychain, an .env file, or a provider CLI directly. Models two independent axes — the provider a secret lives in (Bitwarden, 1Password, AWS Secrets Manager, Doppler, Vault) and the surface the code runs on (local, GitHub Actions, Codex Cloud) — resolving environment first, then a materialized file where the surface has one, then the provider by exact key name. Enforces one store per secret, fails closed on duplicate names, reads usage metadata from the provider's own note field, and never writes. Rotating credentials route through the separate rotate-secret writer, and copying one into a second store (Bitwarden → GitHub Actions) routes through the separate sync-secret-to-ci propagator.
+Vendor-neutral access layer for secrets. Every skill and script that needs an API key MUST resolve it through this skill rather than reading a keychain, an .env file, or a provider CLI directly. Models two independent axes — the provider a secret lives in (Bitwarden, 1Password, AWS Secrets Manager, Doppler, Vault) and the surface the code runs on (local, GitHub Actions, Codex Cloud) — resolving environment first, then a materialized file where the surface has one, then the provider by exact key name. Enforces one store per secret, fails closed on duplicate names, reads usage metadata from the provider's own note field, and never writes. Rotating credentials route through the separate rotate-secret writer, and copying one into a second store (Bitwarden → GitHub Actions) routes through the separate sync-secret-to-ci propagator; the session manager's Telegram bot token is stored through its own store-token, which uses this skill's provider write path.
 
 
 # Secrets Access: $ARGUMENTS
@@ -275,6 +275,8 @@ No create, no update, no rotate. Writing secrets or their notes requires an auth
 
 The two writers are siblings, not modes: `rotate-secret.mjs` replaces a value **at its source**, and `sync-secret-to-ci.mjs` copies one **into a second store** without touching the source. Each needs an authority the resolver must not hold, so each is its own program with its own declaration list.
 
+A third, narrow writer lives outside this skill: the session manager's `store-token` (`lisa-session-manager/scripts/token-store.mjs`) stores the Telegram bot token as `TELEGRAM_BOT_TOKEN_<NAME>` through `providers.mjs` `createSecret` (a new record) or `writeSecret` (`--replace`), then reads it back through the ordinary provider view and compares hashes before deleting the plaintext file it replaces. It writes that one name only, and only when an operator runs it. `createSecret` is Bitwarden-only; on any other provider the operator creates the secret and `store-token` verifies it. Like `bws secret edit`, `bws secret create` (2.1.0) takes the value as a positional argument and its help offers no stdin or file option, so the value is in argv for the life of that one call: the same documented exception, confined the same way (no shell, `--output none`, and a failure message that never repeats the command line).
+
 ## Rotating credentials
 
 A **consumable** credential is one where using it can invalidate the stored copy: an OAuth refresh token the issuer replaces on every exchange, a short-lived session, a single-use enrollment token. The defining property is not "OAuth" — it is that a successful use makes the value on record wrong.
@@ -368,9 +370,9 @@ Values never enter that process, so its output cannot leak one even if logged.
 
 ## Provider dispatch
 
-| Provider | Read | Write (rotation only) |
+| Provider | Read | Write (rotation, and the session manager's `store-token`) |
 | --- | --- | --- |
-| `bitwarden` | `bws secret list --output json` → index by `key` | `bws secret edit`; temporary `create`/`delete` for AWS publication coordination |
+| `bitwarden` | `bws secret list --output json` → index by `key` | `bws secret edit`; `bws secret create <KEY> <VALUE> <PROJECT_ID> --output none` for `store-token` (`createSecret`); temporary `create`/`delete` for AWS publication coordination |
 | `doppler` | `doppler secrets download --no-file --format json` | not implemented |
 | `env` | environment only; the provider is the environment | n/a |
 | `1password` | `op read "op://<vault>/<name>/credential"` | not implemented |

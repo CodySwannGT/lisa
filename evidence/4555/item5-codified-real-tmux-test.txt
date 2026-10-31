@@ -1,0 +1,21 @@
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - import "./vitest.config.local" without a file extension (vitest.config.ts:21:25). Add the file extension
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - import "./vitest.config.local" without a file extension (vitest.config.ts:21:25). Add the file extension
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - import "./vitest.config.local" without a file extension (vitest.config.ts:21:25). Add the file extension
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+
+ RUN  v4.1.12 /Users/cody/workspace/lisa/.claude/worktrees/4555-session-manager-optional-telegram
+
+lisa scratch: no supervised lease in the environment, so this run is self-supervised. Fixture directories are still bounded to a run root this process owns and removed on exit; what is missing is the detached reaper that reclaims the root after a SIGKILL, which the next run's startup sweep recovers instead. Run through `lisa-test-run --profile <profile> --adapter vitest -- vitest ...` for a supervised run.
+ ✓ |lisa| tests/unit/session-manager/launch-real-tmux.test.ts > buildSourcedLaunch against a real tmux > the ps scan can fail: it sees a decoy holding the token in argv 398ms
+ ✓ |lisa| tests/unit/session-manager/launch-real-tmux.test.ts > buildSourcedLaunch against a real tmux > delivers the token and quoted values to the child, never via argv 816ms
+
+ Test Files  1 passed (1)
+      Tests  2 passed (2)
+   Start at  10:58:44
+   Duration  1.63s (transform 113ms, setup 153ms, import 56ms, tests 1.23s, environment 0ms)
+
