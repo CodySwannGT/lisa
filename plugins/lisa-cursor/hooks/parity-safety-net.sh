@@ -1835,6 +1835,44 @@ follow_inline() {
   follow_cwd_unknown="$saved_unknown"
 }
 
+# Only the existing interpreter owner calls this after selecting stdin over
+# noexec, -c and a script operand. The companion decodes literal DATA without
+# running a printer, shell, expansion or substitution. Unknown output keeps the
+# accepted output-follow policy; a proved body gets its own complete frame.
+follow_literal_stdin() {
+  local stmt="$1" producer="$2" depth="$3" projection body known
+  local follow_inline_depth="${follow_inline_depth:-0}"
+  if [ -n "$producer" ]; then
+    # Reuse the descriptor owner before attributing a pipe to this shell.
+    # A file/closed/duplicated input can override that pipe independently of
+    # the shell's output redirections. Never inspect the wrong source.
+    follow_redirect_io "$stmt" cat
+    case "$follow_redirect_input" in
+      input) ;;
+      file) follow_pipe_target "$follow_redirect_path" "$depth" "$follow_redirect_input_cwd" "$follow_redirect_input_unknown"; return 0 ;;
+      closed) return 0 ;;
+      *) follow_refuse "literal stdin program" "its input descriptor does not establish the producer" ;;
+    esac
+  fi
+  projection="$(printf '%s\0' "$stmt" "$producer" | python3 "$lisa_guard_hook_dir/parity-safety-net-heredoc.py" --literal-stdin "$FOLLOW_MAX_BYTES")" || follow_refuse "literal stdin program" "its complete source could not be projected"
+  known="$(printf '%s' "$projection" | jq -ser 'if length != 1 then error("invalid literal source cardinality") else .[0] end | if type != "object" then error("invalid literal source object") elif (has("body") | not) then error("missing literal source body") elif .body == null then "unknown" elif (.body | type) == "string" then "known" else error("invalid literal source body") end')" || follow_refuse "literal stdin program" "its source projection is invalid"
+  [ "$known" = known ] || return 0
+  [ "$follow_inline_depth" -lt "$FOLLOW_MAX_FUNCTION_DEPTH" ] || follow_refuse "literal stdin program" "inline shells exceed the inspection depth"
+  follow_inline_depth=$((follow_inline_depth + 1))
+  body="$(printf '%s' "$projection" | jq -j '.body' && printf '\037')" || follow_refuse "literal stdin program" "its source could not be decoded"
+  body="${body%$'\037'}"
+  agent_source_frames+=("$body")
+  local content saved_cwd="$follow_cwd" saved_unknown="$follow_cwd_unknown"
+  content="$(printf '%s' "$body" | sed 's/^[[:space:]]*#.*$//')" || follow_refuse "literal stdin program" "its content view could not be projected"
+  followed_text="$followed_text"$'\n'"$content"
+  followed_rm_text="$followed_rm_text"$'\n'"$content"
+  # The selected input is consumed as this program, not inherited as a fresh
+  # program by every bare shell it happens to contain.
+  local follow_stdin_literal=""
+  follow_scan "$body" "$depth"
+  follow_cwd="$saved_cwd"; follow_cwd_unknown="$saved_unknown"
+}
+
 # Proved local SSH programs reuse the quote-aware projection and bounded local
 # follower. KnownHosts argv has already been safely represented as literal
 # words, so only an explicit shell -c gets shell-source authority. Remote
@@ -2054,9 +2092,10 @@ follow_scan() {
   local return_flow_unknown=0
   local list_depth=0 list_index
   local split_out line sep stmt t tj i j n cmd_pos eval_mode inline arg_exec
-  local heredoc redirected pipe_cat prev_cat pending_operand stdin_mode
+  local heredoc redirected pipe_cat prev_cat pending_operand stdin_mode pipe_literal prev_literal
   local pipe_cwd pipe_unknown prev_cwd prev_unknown
   local follow_stdin_cat="${follow_stdin_cat:-}" follow_stdin_cwd="${follow_stdin_cwd:-}" follow_stdin_unknown="${follow_stdin_unknown:-1}"
+  local follow_stdin_literal="${follow_stdin_literal:-}"
   local follow_redirect_input follow_redirect_path follow_redirect_output follow_redirect_map follow_redirect_input_cwd follow_redirect_input_unknown
   local follow_descriptor_map="${follow_descriptor_map:-}"
   if [ -z "$follow_descriptor_map" ]; then
@@ -2069,6 +2108,7 @@ follow_scan() {
   local -a list_cwds=() list_unknowns=() list_functions=() list_flows=() list_asyncs=() list_scope_depths=() list_return_flows=() brace_flows=()
   local -a brace_descriptor_maps=() scope_descriptor_maps=()
   local -a brace_stdin_cats=() brace_stdin_cwds=() brace_stdin_unknowns=() scope_stdin_cats=() scope_stdin_cwds=() scope_stdin_unknowns=()
+  local -a brace_stdin_literals=() scope_stdin_literals=() cat_literal_scopes=()
   local -a case_cwds=() case_unknowns=() case_changes=()
   # Open compound commands of THIS text, innermost last. See
   # follow_compound_open. The stack starts empty, so a closer can never lower
@@ -2090,6 +2130,7 @@ follow_scan() {
   fi
   split_out="$(follow_split "$text")" || follow_refuse "shell scope" "scope parsing exceeds the inspection budget"
   prev_cat=""
+  prev_literal=""
   while IFS= read -r line; do
     sep="${line%%$'\t'*}"
     stmt="${line#*$'\t'}"
@@ -2138,8 +2179,10 @@ follow_scan() {
         brace_stdin_cats[list_depth]="$follow_stdin_cat"
         brace_stdin_cwds[list_depth]="$follow_stdin_cwd"
         brace_stdin_unknowns[list_depth]="$follow_stdin_unknown"
+        brace_stdin_literals[list_depth]="$follow_stdin_literal"
         if [ "$stmt" = "|" ]; then
           follow_stdin_cat="$prev_cat"; follow_stdin_cwd="${prev_cwd:-}"; follow_stdin_unknown="${prev_unknown:-1}"
+          follow_stdin_literal="$prev_literal"
         fi
         case "$stmt" in '&' | '?') function_flow_unknown=1 ;; esac
         list_depth=$((list_depth + 1)); continue
@@ -2151,6 +2194,7 @@ follow_scan() {
         follow_stdin_cat="${brace_stdin_cats[list_depth]}"
         follow_stdin_cwd="${brace_stdin_cwds[list_depth]}"
         follow_stdin_unknown="${brace_stdin_unknowns[list_depth]}"
+        follow_stdin_literal="${brace_stdin_literals[list_depth]}"
         # A conditional return may exit this function/source before commands
         # after the brace. Unlike a child return, that uncertainty persists.
         if [ "$return_flow_unknown" -ne 0 ]; then function_flow_unknown=1; fi
@@ -2224,6 +2268,7 @@ follow_scan() {
         cat_scopes[scope_depth]="$prev_cat"
         cat_cwd_scopes[scope_depth]="${prev_cwd:-}"
         cat_unknown_scopes[scope_depth]="${prev_unknown:-1}"
+        cat_literal_scopes[scope_depth]="$prev_literal"
         scope_descriptor_maps[scope_depth]="$follow_descriptor_map"
         function_scopes[scope_depth]=$function_count
         flow_scopes[scope_depth]=$function_flow_unknown
@@ -2235,8 +2280,10 @@ follow_scan() {
         scope_stdin_cats[scope_depth]="$follow_stdin_cat"
         scope_stdin_cwds[scope_depth]="$follow_stdin_cwd"
         scope_stdin_unknowns[scope_depth]="$follow_stdin_unknown"
+        scope_stdin_literals[scope_depth]="$follow_stdin_literal"
         if [ "$stmt" = "|" ] || [ "$stmt" = "|+" ]; then
           follow_stdin_cat="$prev_cat"; follow_stdin_cwd="${prev_cwd:-}"; follow_stdin_unknown="${prev_unknown:-1}"
+          follow_stdin_literal="$prev_literal"
           follow_descriptor_map="$(printf '%s' "$follow_descriptor_map" | jq -ce '.["0"] = {kind:"input"}')" || follow_refuse "pipeline input" "its descriptor could not be established"
         fi
         case "$stmt" in
@@ -2269,6 +2316,7 @@ follow_scan() {
         follow_stdin_cat="${scope_stdin_cats[scope_depth]}"
         follow_stdin_cwd="${scope_stdin_cwds[scope_depth]}"
         follow_stdin_unknown="${scope_stdin_unknowns[scope_depth]}"
+        follow_stdin_literal="${scope_stdin_literals[scope_depth]}"
         while [ "$function_count" -gt "${function_scopes[scope_depth]}" ]; do
           function_count=$((function_count - 1))
           function_index=$function_count
@@ -2278,6 +2326,7 @@ follow_scan() {
           prev_cat="${cat_scopes[scope_depth]}"
           prev_cwd="${cat_cwd_scopes[scope_depth]}"
           prev_unknown="${cat_unknown_scopes[scope_depth]}"
+          prev_literal="${cat_literal_scopes[scope_depth]}"
         fi
         if [ "$return_scope_depth" -ge 0 ] && [ "$scope_depth" -lt "$return_scope_depth" ]; then
           return_scope_depth=-1
@@ -2290,9 +2339,10 @@ follow_scan() {
         case "$follow_redirect_input" in
           file)
             follow_stdin_cat="$follow_redirect_path"
+            follow_stdin_literal=""
             follow_stdin_cwd="$follow_redirect_input_cwd"; follow_stdin_unknown="$follow_redirect_input_unknown"
             ;;
-          closed) follow_stdin_cat="" ;;
+          closed) follow_stdin_cat=""; follow_stdin_literal="" ;;
           input) ;;
           *) follow_refuse "compound redirection" "its input source could not be determined" ;;
         esac
@@ -2310,14 +2360,17 @@ follow_scan() {
     fi
     and_ready=0
     pipe_cat="$follow_stdin_cat"
+    pipe_literal="$follow_stdin_literal"
     pipe_cwd="$follow_stdin_cwd"
     pipe_unknown="$follow_stdin_unknown"
     if [ "$sep" = "|" ]; then
       pipe_cat="$prev_cat"
       pipe_cwd="${prev_cwd:-}"
       pipe_unknown="${prev_unknown:-1}"
+      pipe_literal="$prev_literal"
     fi
     prev_cat=""
+    prev_literal=""
     case "$stmt" in
       *[![:space:]]*) ;;
       *) continue ;;
@@ -2571,6 +2624,15 @@ follow_scan() {
           i=$((j + 1))
           continue
           ;;
+        echo | printf)
+          # Keep the producer as DATA until a later shell actually selects its
+          # stdout as a program. The companion proves its complete literal
+          # output then; other consumers never grant program authority.
+          prev_literal="$stmt"
+          cmd_pos=0
+          i="$n"
+          continue
+          ;;
         cat | '<')
           follow_next_operand "$i" "$n"
           j="$follow_operand_index"
@@ -2579,6 +2641,7 @@ follow_scan() {
           if [ "$t" = cat ] && { [ "$j" -ge "$n" ] || [ "$follow_unwrapped" = - ]; }; then
             # Bare cat and cat - forward the group's named stdin unchanged.
             prev_cat="$pipe_cat"; prev_cwd="$pipe_cwd"; prev_unknown="$pipe_unknown"
+            prev_literal="$pipe_literal"
             if [ "$eval_mode" -eq 1 ] && [ -n "$prev_cat" ]; then
               follow_pipe_target "$prev_cat" "$depth" "$prev_cwd" "$prev_unknown"
             fi
@@ -2592,12 +2655,12 @@ follow_scan() {
               prev_cwd="$follow_cwd"; prev_unknown="$follow_cwd_unknown"
             fi
           fi
-          if [ -n "$prev_cat" ] && [ "$eval_mode" -eq 0 ]; then
+          if { [ -n "$prev_cat" ] || [ -n "$prev_literal" ]; } && [ "$eval_mode" -eq 0 ]; then
             if [[ "$stmt" == *'>'* ]] || [ "$follow_descriptor_map" != '{"0":{"kind":"input"},"1":{"kind":"pipe"},"2":{"kind":"stderr"}}' ]; then
               follow_redirect_io "$stmt" cat
               case "$follow_redirect_output" in
                 pipe) ;;
-                file | closed | stderr | input) prev_cat="" ;;
+                file | closed | stderr | input) prev_cat=""; prev_literal="" ;;
                 *) follow_refuse "cat redirection" "its output destination could not be determined" ;;
               esac
             fi
@@ -2673,6 +2736,9 @@ follow_scan() {
           continue
         fi
         if [ "$heredoc" -eq 1 ] && [ "$inline" -eq 0 ]; then
+          # Genuine heredocs retain their established text guards. Only a
+          # proved literal here-string supplies an independent stdin program.
+          follow_literal_stdin "$stmt" "" "$depth"
           cmd_pos=0
           i=$((j + 1))
           continue
@@ -2695,6 +2761,7 @@ follow_scan() {
           # `sh -s -- -y` reads its program from stdin; tokens after `--` are
           # positional arguments to that program, never a script path.
           [ -z "$pipe_cat" ] || follow_pipe_target "$pipe_cat" "$depth" "$pipe_cwd" "$pipe_unknown"
+          [ -z "$pipe_literal" ] || follow_literal_stdin "$stmt" "$pipe_literal" "$depth"
           cmd_pos=0
           i="$n"
           continue
@@ -2709,6 +2776,7 @@ follow_scan() {
           # No operand: an interactive or stdin-fed interpreter. Only the
           # `cat <file> | bash` shape names a FILE, and only that is followed.
           [ -z "$pipe_cat" ] || follow_pipe_target "$pipe_cat" "$depth" "$pipe_cwd" "$pipe_unknown"
+          [ -z "$pipe_literal" ] || follow_literal_stdin "$stmt" "$pipe_literal" "$depth"
           cmd_pos=0
           i="$j"
           continue
@@ -2786,8 +2854,10 @@ follow_scan() {
 
 follow_scan "$command_for_guards" 0
 rm_command_for_guards="$command_for_guards"$'\n'"$followed_rm_text"
-if [ -n "$follow_names" ]; then
+if [ -n "$followed_text" ]; then
   command_for_guards="$command_for_guards"$'\n'"$followed_text"
+fi
+if [ -n "$follow_names" ]; then
   # A refusal must say WHERE the match is. Without this the operator reads
   # advice about rewording a quoted string for a line they never typed.
   DESTRUCTIVE_GUIDANCE="$DESTRUCTIVE_GUIDANCE

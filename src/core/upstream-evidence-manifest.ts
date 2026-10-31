@@ -295,9 +295,9 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-hooks/guard-dedupe.bash":
       "c86555450a5d0e87dce1918ded0d894a6d9c2df5f4f8ca740d134cb018322481",
     "all/copy-overwrite/scripts/lisa-hooks/parity-safety-net-heredoc.py":
-      "b37b843b738fd0c1c6f9639551cf64c409263064819bb820e3daa6af8c94d443",
+      "46e612fe9f2e91b8146cd30e137f7fcd951d0ce96eb07549ddbcf195679f4450",
     "all/copy-overwrite/scripts/lisa-hooks/parity-safety-net.sh":
-      "fe080191aafea041caf7e30b4875b1a832db666065788a475656fd2433e00579",
+      "3c322b20f110b49acce5b5fd3f233a4692652d3009a39f3458ee2f2b1f043f5b",
     "all/copy-overwrite/scripts/lisa-hooks/sonar-secrets.sh":
       "e0b0073fe44f6e78b74f05cb232d30a3121acc3600bdbd5bc4299c1c710d56a2",
     "all/copy-overwrite/scripts/lisa-hooks/worktree-binding-guard.mjs":
@@ -1075,11 +1075,11 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/hooks/operational-hazards.sh":
       "d924b576559ea341d1b5bea88a44db7c3bf0b357ed62aab0611e6660ef5f155f",
     "plugins/src/base/hooks/parity-safety-net-heredoc.py":
-      "5ea0bc9310ce1225405f2c208b4b398d1fda3069402ceba3a6049b466d213352",
+      "8085e122b3f33b10e49c25b7373e0cca3f7417fc3db3104e1003c70f37d4826c",
     "plugins/src/base/hooks/parity-safety-net.agy.sh":
       "ce9bd2b4566ad9147e4ace56434cffbbe87edb4ccbb57549ab3fd9f4c671ced4",
     "plugins/src/base/hooks/parity-safety-net.sh":
-      "24f7da5f556e6081182dd62f7ae234afb58654a301ebc46deab704d12530ea2f",
+      "951b59eb7881d1ef4b30b8d998a12dd3e56e421e124dde5ef31da4b934d594eb",
     "plugins/src/base/hooks/secrets-preflight.sh":
       "cdc638627e5769770aefb061ea0ddfacc1888a8eab3a5fade6c43129a2d3ff6e",
     "plugins/src/base/hooks/setup-jira-cli.sh":
@@ -12035,8 +12035,10 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/hooks/parity-safety-net-plumbing-discard.test.ts": true,
     "tests/unit/hooks/parity-safety-net-preserve-remedy.test.ts": true,
     "tests/unit/hooks/parity-safety-net-prose-remedy.test.ts": true,
+    "tests/unit/hooks/parity-safety-net-review-boundaries-v9.test.ts": true,
     "tests/unit/hooks/parity-safety-net-scan-failure.test.ts": true,
     "tests/unit/hooks/parity-safety-net-sql-prose.test.ts": true,
+    "tests/unit/hooks/parity-safety-net-stdin-carrier-v8.test.ts": true,
     "tests/unit/hooks/parity-safety-net-subshell-cd.test.ts": true,
     "tests/unit/hooks/parity-safety-net-supervisor-profile.test.ts": true,
     "tests/unit/hooks/parity-safety-net.test.ts": true,
@@ -12077,7 +12079,9 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/hooks/support/executed-script-reach.ts": true,
     "tests/unit/hooks/support/gnu-stat-shim.ts": true,
     "tests/unit/hooks/support/guard-dedupe-world.ts": true,
+    "tests/unit/hooks/support/review-boundaries-v9.json": true,
     "tests/unit/hooks/support/sonar-secrets-fixtures.ts": true,
+    "tests/unit/hooks/support/stdin-carrier-v8.json": true,
     "tests/unit/hooks/support/worktree-binding.ts": true,
     "tests/unit/hooks/track-plan-sessions.test.ts": true,
     "tests/unit/hooks/typecheck-hook-placement.test.ts": true,
