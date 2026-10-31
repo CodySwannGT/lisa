@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.84.11](https://github.com/CodySwannGT/lisa/compare/v4.84.10...v4.84.11) (2026-10-31)
+
+
+### Bug Fixes
+
+* **parity:** address review on code-review 1.0.1 re-analysis ([966dbb9](https://github.com/CodySwannGT/lisa/commit/966dbb9190521d06ae3840035b5e4f566695ec68)), closes [#4556](https://github.com/CodySwannGT/lisa/issues/4556) [CodySwannGT/lisa#4556](https://github.com/CodySwannGT/lisa/issues/4556)
+* **parity:** let type errors through the code-review do-not-flag list ([84735b7](https://github.com/CodySwannGT/lisa/commit/84735b7e5905bcbbb027390df58d6f81ffec387c)), closes [#4556](https://github.com/CodySwannGT/lisa/issues/4556) [CodySwannGT/lisa#4556](https://github.com/CodySwannGT/lisa/issues/4556)
+* **parity:** re-analyse code-review routing at upstream 1.0.1 ([ff5082d](https://github.com/CodySwannGT/lisa/commit/ff5082d8b827cfe9aa24217727f9c6b6f53f5f06)), closes [#4556](https://github.com/CodySwannGT/lisa/issues/4556) [CodySwannGT/lisa#4556](https://github.com/CodySwannGT/lisa/issues/4556)
+* **parity:** scope the lint exclusion and keep re-analysis plan-only ([4b13315](https://github.com/CodySwannGT/lisa/commit/4b1331581623e925335b95b93e5a60d2656e955d)), closes [#4556](https://github.com/CodySwannGT/lisa/issues/4556) [CodySwannGT/lisa#4556](https://github.com/CodySwannGT/lisa/issues/4556)
+
+
+### Documentation
+
+* **parity:** match analyze-plugin's re-analysis hand-off to implement-plugin-parity ([a75a6c8](https://github.com/CodySwannGT/lisa/commit/a75a6c88b12ac0e03f4b5a9e9929812536e07f9d)), closes [#4556](https://github.com/CodySwannGT/lisa/issues/4556) [CodySwannGT/lisa#4556](https://github.com/CodySwannGT/lisa/issues/4556)
+
 ### [4.84.10](https://github.com/CodySwannGT/lisa/compare/v4.84.9...v4.84.10) (2026-10-31)
 
 
