@@ -75,7 +75,8 @@ cache. Treat it as a re-analysis, not a version bump: read the new version's
 tree against the old snapshot, update the reimplementation for any behaviour
 change, then record the semver, add the `synced-from` stamp to every
 `reimplement` action and skill, and say in the component `notes` what was
-compared.
+compared. Like any analysis, the re-analysed artifact is written
+`"status": "proposed"`; the human approval flip is a separate, visible edit.
 
 **Drift-trackability consequence (state this in any `reimplement` rationale):**
 the `plugin-parity-drift` detector only parses **semver** pins, so a plugin whose

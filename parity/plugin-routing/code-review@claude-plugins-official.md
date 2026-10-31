@@ -3,7 +3,7 @@
 - **Plugin:** `code-review@claude-plugins-official`
 - **Upstream version:** `1.0.1`
 - **Analyzed:** 2026-10-31 (re-analysis; first analysed 2026-05-30 as `unknown`)
-- **Status:** `approved`
+- **Status:** `proposed` — re-analysis output. A human flips it to `approved` in a separate, visible edit before `implement-plugin-parity` may act on it. The routing validator and the drift detector accept either status, so this does not affect the push gate.
 
 ## Why this was re-analysed
 
@@ -58,8 +58,8 @@ non-Claude agents it serves have no common subagent surface.
 
 | agent | outcome | actions | rationale |
 | --- | --- | --- | --- |
-| codex | `reimplement` | - keep the Lisa-native lisa-parity-code-review skill reimplementing the code-review command, stamped synced-from: code-review@claude-plugins-official@1.0.1, updated for 1.0.1's validate-before-report pass and high-signal bar | Codex has no plugin command surface and is not in the fan-out; reimplement as a Lisa skill. Upstream now publishes semver (1.0.1), so the reimplementation is drift-tracked by plugin-parity-drift instead of by manual review. |
+| codex | `reimplement` | - scaffold Lisa-native skill stamped synced-from: code-review@claude-plugins-official@1.0.1 | Codex has no plugin command surface and is not in the fan-out; reimplement as a Lisa skill. The skill already exists (lisa-parity-code-review) and was updated for 1.0.1's validate-before-report pass and high-signal bar. Upstream now publishes semver (1.0.1), so the reimplementation is drift-tracked by plugin-parity-drift instead of by manual review. |
 | cursor | `claude-only` | _(none)_ | Cursor reads .claude-plugin/ natively; the command loads unchanged. |
-| agy | `reimplement` | - keep the Lisa-native lisa-parity-code-review skill reimplementing the code-review command, stamped synced-from: code-review@claude-plugins-official@1.0.1, updated for 1.0.1's validate-before-report pass and high-signal bar | Curated third-party plugins are not in agy's fan-out; reimplement as a Lisa skill. Upstream now publishes semver (1.0.1), so the reimplementation is drift-tracked by plugin-parity-drift instead of by manual review. |
+| agy | `reimplement` | - scaffold Lisa-native skill stamped synced-from: code-review@claude-plugins-official@1.0.1 | Curated third-party plugins are not in agy's fan-out; reimplement as a Lisa skill. The skill already exists (lisa-parity-code-review) and was updated for 1.0.1's validate-before-report pass and high-signal bar. Upstream now publishes semver (1.0.1), so the reimplementation is drift-tracked by plugin-parity-drift instead of by manual review. |
 | copilot | `enable-vendor-equivalent` | - enable Copilot's native pull-request/code-review capability in the project-scoped marketplace | Code review is a generic capability Copilot ships natively; prefer enabling over reimplementing. Re-checked against 1.0.1: the command is still a single PR-review command, so the vendor equivalent still fits. |
-| devin | `reimplement` | - ship the existing Lisa-native code-review command reimplementation (lisa-parity-code-review skill) in the lisa-devin variant, stamped synced-from: code-review@claude-plugins-official@1.0.1 — Devin has no plugin command surface, so the skill is the slash command | Devin installs Lisa's own lisa-devin plugin variant, which ships the Lisa-native reimplementation; curated third-party Claude plugins are not part of Lisa's Devin install. Devin loads no plugin commands, so the command can only reach Devin as a skill. |
+| devin | `reimplement` | - ship the Lisa-native skill in the lisa-devin variant, stamped synced-from: code-review@claude-plugins-official@1.0.1 | Devin installs Lisa's own lisa-devin plugin variant, which ships the Lisa-native reimplementation (lisa-parity-code-review); curated third-party Claude plugins are not part of Lisa's Devin install. Devin loads no plugin commands, so the command can only reach Devin as a skill. |
