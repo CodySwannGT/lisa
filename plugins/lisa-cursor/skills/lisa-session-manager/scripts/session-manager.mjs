@@ -137,7 +137,7 @@ const LEDGER_SPECS = {
     positionals: 1,
   },
   marked: {
-    options: { "marker-type": text, marker: text },
+    options: { "marker-type": text, marker: text, "comment-id": text },
     positionals: 1,
   },
   "clear-question": { options: { "reset-attempts": flag }, positionals: 1 },

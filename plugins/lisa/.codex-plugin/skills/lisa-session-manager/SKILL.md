@@ -187,7 +187,11 @@ In this order, every time:
    `mark-plan` returned; never hard-code one.
 4. **Read back** with `lisa-tracker-read`: the marker (and the move) landed and the comment is
    there. Never claim a mark you did not read back.
-5. **Record the mark:** `ledger marked <ref> --marker-type <marker.type> --marker <marker.value>`.
+5. **Record the mark:** `ledger marked <ref> --marker-type <marker.type> --marker <marker.value> --comment-id <id>`,
+   where `<id>` is the posted question comment's own id as `lisa-tracker-write` returned it and
+   `lisa-tracker-read` showed it (the GitHub REST comment `id`, the Jira comment id, the Linear
+   comment id). The ledger keeps it, so `item-answer` never takes the manager's own comment as the
+   answer, whatever identity the tracker shows for it.
 6. **Continue the cycle.** With Telegram, also send the question there, ending with
    `answerWith.channel`, and re-record it with `ledger set-question <ref> --telegram-message-id <id>`
    (same text, which keeps its `askedAt` and its mark). Without a channel there is nothing else to
@@ -283,11 +287,13 @@ shows them.
   `gh api --paginate repos/<owner>/<repo>/issues/<n>/comments` (each row carries `user.login` and
   the numeric `user.id`, so a numeric `trustedAuthorIds` entry matches too); Jira the comment
   `author.accountId` through `lisa-atlassian-access`; Linear the comment `user.id` through
-  `lisa-linear-access`. Pipe `{"comments":[{"user":…|"author":…,"body":…,"createdAt":…}]}` to
-  `item-answer <ref>`. It queues the first reply after the question from an operator or trusted
-  author, ignoring every machine comment: one that starts with a bracketed marker (`[lisa-…]`,
-  `[claude-sync] …`) or carries the coding-agent attribution footer. That is why every comment the
-  manager itself posts starts with `[lisa-session-manager]`. On `queued: true`, run "Clearing". On
+  `lisa-linear-access`. Pipe `{"comments":[{"id":…,"user":…|"author":…,"body":…,"createdAt":…}]}`
+  (keep each comment's own `id`) to `item-answer <ref>`. It queues the first reply after the
+  question from an operator or trusted author, ignoring every machine comment first, whoever wrote
+  it: one that starts with a bracketed tag (`[lisa-…]`, `[claude-sync] …`), holds `[lisa-` or
+  `<!-- lisa:` anywhere, says "Written by Claude", or carries the coding-agent attribution footer,
+  and any comment whose id the manager recorded as its own (step 5 of "Mark and move on"). That is
+  why every comment the manager itself posts starts with `[lisa-session-manager]`. On `queued: true`, run "Clearing". On
   `queued: false`, leave the item: it stays marked and out of the queue, and the cycle goes on.
   `reason: "no-answerers-configured"` means neither `operatorIds` nor `trustedAuthorIds` is set,
   so nothing on the item is read (the tracker identity is the one workers post as); the operator

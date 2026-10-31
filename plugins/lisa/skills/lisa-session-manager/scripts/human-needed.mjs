@@ -15,17 +15,7 @@
  * also moved to the `blocked` role, because no worker is building it any
  * more. Names always come from config, never from this file.
  *
- * Tracker text is untrusted. An answer is picked only from an allowed
- * answerer (operators and trusted authors), matched on stable ids only (a
- * GitHub login or numeric id, a Jira accountId, a Linear user id: never a
- * display name or email, which anyone can set), only after the manager's own
- * question comment, and never from a comment that starts with a bracketed
- * machine marker (`[lisa-…]`, `[claude-sync]`, …), carries a `[lisa-`
- * marker anywhere, or carries the agent-attribution footer. In a
- * single-user setup the operator's tracker identity is also the one workers
- * and the manager post as, so those comments are the only thing telling an
- * agent's milestone apart from the human's answer. The text is carried as
- * data.
+ * Reading the answer back off the item lives in human-answer.mjs.
  * @module session-manager/human-needed
  */
 
@@ -39,21 +29,6 @@ export const HUMAN_NEEDED_KINDS = Object.freeze([
 
 /** Marks the manager's question comment, so its answer can be found after it. */
 export const QUESTION_MARKER = "[lisa-session-manager-question]";
-
-/**
- * What makes a comment a machine's, never a human's answer: a Lisa marker
- * anywhere, a body that opens with any bracketed marker (`[claude-sync] …`,
- * `[lisa-session-manager] …`), or the coding-agent attribution footer.
- */
-const MACHINE_COMMENT = [
-  /\[lisa-/i,
-  /^\s*\[[a-z][a-z0-9-]*\]/i,
-  /Generated with Claude Code/i,
-  /🤖 Generated with/,
-];
-
-/** The author fields that are stable ids, never settable display text. */
-const STABLE_ID_KEYS = ["login", "id", "accountId"];
 
 /** What each kind is called in the comment's first line. */
 const KIND_TITLES = {
@@ -219,74 +194,5 @@ export function planMark({
       cli: `the answerCommand that session-manager.mjs status lists for ${ref} (answer on stdin)`,
       channel: channel ? `Answer with: ${short} <your answer>` : null,
     },
-  };
-}
-
-/**
- * The stable ids a tracker author object carries: the GitHub `login` and
- * numeric `id` (`author` from `gh issue view`, `user` from the REST API), the
- * Jira `accountId`, the Linear user `id`. Names, display names and emails are
- * never matched: a stranger can set theirs to an operator's id.
- * @param {unknown} author - `author`/`user` from a comment
- * @returns {string[]} Stable ids
- */
-function authorIds(author) {
-  if (author === null || typeof author !== "object") return [];
-  return STABLE_ID_KEYS.map(key => author[key])
-    .filter(value => typeof value === "string" || typeof value === "number")
-    .map(String);
-}
-
-/**
- * The comment body, whatever the tracker calls it.
- * @param {Record<string, unknown>} comment - One comment
- * @returns {string} Body text
- */
-function bodyOf(comment) {
-  const body = comment.body ?? comment.text ?? "";
-  return typeof body === "string" ? body : "";
-}
-
-/**
- * Pick the human's answer from an item's comments: the first comment after
- * the manager's latest question comment whose author is allowed and that is
- * not a machine's comment (see {@link MACHINE_COMMENT}). Comments are taken
- * in the order given (the tracker's chronological order).
- * @param {{comments: unknown, allowed: readonly string[]}} input - The item's
- *   comments and the answerer ids
- * @returns {{answer: {text: string, author: string, at: string|null} | null,
- *   reason: string}} The answer, or null with why there is none
- */
-export function pickItemAnswer({ comments, allowed }) {
-  if (!Array.isArray(comments)) {
-    throw new Error('stdin must be JSON {"comments":[...]}');
-  }
-  const rows = comments.filter(row => row && typeof row === "object");
-  const asked = rows.findLastIndex(row =>
-    bodyOf(row).includes(QUESTION_MARKER)
-  );
-  if (asked === -1) return { answer: null, reason: "no-question-comment" };
-  const allow = new Set(allowed.map(String));
-  const reply = rows.slice(asked + 1).find(row => {
-    const ids = authorIds(row.author ?? row.user);
-    const text = bodyOf(row);
-    return (
-      ids.some(id => allow.has(id)) &&
-      !MACHINE_COMMENT.some(pattern => pattern.test(text)) &&
-      text.trim() !== ""
-    );
-  });
-  if (!reply) return { answer: null, reason: "no-answer-yet" };
-  const author = authorIds(reply.author ?? reply.user).find(id =>
-    allow.has(id)
-  );
-  const at = reply.createdAt ?? reply.created ?? reply.created_at ?? null;
-  return {
-    answer: {
-      text: bodyOf(reply).trim(),
-      author,
-      at: typeof at === "string" ? at : null,
-    },
-    reason: "answered",
   };
 }

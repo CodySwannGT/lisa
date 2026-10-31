@@ -50,6 +50,7 @@ const UNMARKED = {
   markerType: null,
   marker: null,
   markedAt: null,
+  managerCommentIds: [],
   answer: null,
 } as const;
 

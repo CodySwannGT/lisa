@@ -27,11 +27,8 @@ import {
 } from "./cli-runtime.mjs";
 import { parseJson } from "./cli-queue.mjs";
 import { notifyProvider } from "./config.mjs";
-import {
-  findCredentialShape,
-  pickItemAnswer,
-  planMark,
-} from "./human-needed.mjs";
+import { pickItemAnswer } from "./human-answer.mjs";
+import { findCredentialShape, planMark } from "./human-needed.mjs";
 import { readLedger } from "./ledger.mjs";
 import { queueAnswer } from "./ledger-questions.mjs";
 
@@ -163,7 +160,11 @@ export async function itemAnswer(ctx) {
     };
   }
   const picked = asSetupError(() =>
-    pickItemAnswer({ comments: input?.comments, allowed })
+    pickItemAnswer({
+      comments: input?.comments,
+      allowed,
+      managerCommentIds: pending.managerCommentIds ?? [],
+    })
   );
   if (!picked.answer) {
     return { json: { queued: false, ref, reason: picked.reason } };

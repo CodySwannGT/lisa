@@ -173,8 +173,12 @@ Per cycle
       fields (markerType, marker, markedAt); a queued answer survives only a
       re-ping of the same text.
   ledger marked <ref> --marker-type label|role --marker <value>
+                     [--comment-id <id>]
       Records that the human-needed marker was applied on the tracker and
-      read back (markedAt). Exit 2 when <ref> has no pending question.
+      read back (markedAt). --comment-id: the id of the question comment
+      the manager posted; kept in managerCommentIds so item-answer never
+      reads it as an answer. Exit 2 when <ref> has no pending question or
+      the id is not a tracker comment id.
   ledger clear-question <ref> [--reset-attempts]
       After the answer is delivered and the marker removed. --reset-attempts
       zeroes the attempt count (an exhausted item a human has answered).
@@ -220,9 +224,11 @@ Per cycle
       comment whose author's STABLE id (GitHub login or numeric id, Jira
       accountId, Linear user id; never a name, displayName or email) is in
       sessionManager.operatorIds or trustedAuthorIds, and that is not a
-      machine comment (body starting with a bracketed marker such as
-      [lisa-...] or [claude-sync], a [lisa- marker anywhere, or the agent
-      "Generated with Claude Code" footer). For GitHub, pipe the rows of
+      machine comment, checked first (body starting with a bracketed tag
+      such as [lisa-...] or [claude-sync]; [lisa- or <!-- lisa: anywhere;
+      "Written by Claude"; the agent "Generated with Claude Code" footer;
+      or an id in the ledger's managerCommentIds, so keep each comment's
+      id). For GitHub, pipe the rows of
       gh api --paginate repos/<o>/<r>/issues/<n>/comments (user.login,
       user.id). stdout {queued:true,ref,source,author} or {queued:false,ref,
       reason:no-question-comment|no-answer-yet|already-queued|

@@ -52,6 +52,8 @@ const FINISH_STATUSES = new Set(["DONE", "FAILED"]);
  * @property {string|null} [marker] - The label or role value it carries
  * @property {string|null} [markedAt] - When the mark was read back (ISO);
  *   null means recorded but not yet marked on the tracker
+ * @property {string[]} [managerCommentIds] - Ids of the comments the manager
+ *   posted on the item (its question comment), never read as an answer
  * @property {QueuedAnswer|null} [answer] - An answer waiting to be delivered
  */
 
@@ -356,6 +358,7 @@ export function setPendingQuestion(
         markerType: existing?.markerType ?? null,
         marker: existing?.marker ?? null,
         markedAt: existing?.markedAt ?? null,
+        managerCommentIds: existing?.managerCommentIds ?? [],
         answer: sameText ? (existing.answer ?? null) : null,
       },
       history: [...(previous.history ?? []), { event: "question", at }],

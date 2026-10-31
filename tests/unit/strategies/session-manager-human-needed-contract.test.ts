@@ -54,7 +54,7 @@ describe.each(ALL_ROOTS)("mark and move on (%s)", root => {
       "2. **Ledger first.** `ledger set-question <ref> --kind <kind>`",
       "3. **Tracker.** One `lisa-tracker-write` update",
       "4. **Read back** with `lisa-tracker-read`",
-      "5. **Record the mark:** `ledger marked <ref> --marker-type <marker.type> --marker <marker.value>`",
+      "5. **Record the mark:** `ledger marked <ref> --marker-type <marker.type> --marker <marker.value> --comment-id <id>`",
       "6. **Continue the cycle.**",
     ];
     const positions = steps.map(step => mark.indexOf(step));

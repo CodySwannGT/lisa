@@ -18,6 +18,9 @@ import { requireItem, updateLedger, withItem } from "./ledger.mjs";
 /** Ways an item can be marked human-needed. */
 const MARKER_TYPES = new Set(["label", "role"]);
 
+/** A tracker comment id: GitHub numeric or node id, Jira id, Linear uuid. */
+const COMMENT_ID = /^[A-Za-z0-9_.:-]{1,200}$/;
+
 /** Where a queued answer came from. */
 const ANSWER_SOURCES = new Set(["cli", "item", "channel"]);
 
@@ -38,23 +41,48 @@ function requirePending(entry, ref) {
 /**
  * Record that the item's human-needed marker was applied and read back.
  * @param {string} projectRoot - Absolute project root
- * @param {{ref: string, markerType: string, marker: string}} mark - The mark
+ * `commentId` is the id of the question comment the manager posted, read
+ * back from `lisa-tracker-write`. It is kept in `managerCommentIds` so
+ * `item-answer` never takes the manager's own comment as an answer, whoever
+ * the tracker says wrote it and whatever it says.
+ * @param {{ref: string, markerType: string, marker: string,
+ *   commentId?: string}} mark - The mark
  * @param {import("./ledger.mjs").LedgerSeams} [seams] - Injected seams
  * @returns {Promise<import("./ledger.mjs").LedgerItem>} The updated item
  */
-export function recordMarked(projectRoot, { ref, markerType, marker }, seams) {
+export function recordMarked(
+  projectRoot,
+  { ref, markerType, marker, commentId },
+  seams
+) {
   if (!MARKER_TYPES.has(markerType)) {
     return Promise.reject(new Error("--marker-type must be label or role."));
   }
   if (typeof marker !== "string" || marker.trim() === "") {
     return Promise.reject(new Error("--marker must name the label or role."));
   }
+  if (commentId !== undefined && !COMMENT_ID.test(commentId)) {
+    return Promise.reject(
+      new Error("--comment-id must be the tracker's comment id.")
+    );
+  }
   return updateLedger(projectRoot, seams, (ledger, at) => {
     const previous = requireItem(ledger, ref);
     const pending = requirePending(previous, ref);
     return withItem(ledger, ref, {
       ...previous,
-      pendingQuestion: { ...pending, markerType, marker, markedAt: at },
+      pendingQuestion: {
+        ...pending,
+        markerType,
+        marker,
+        markedAt: at,
+        managerCommentIds: [
+          ...new Set([
+            ...(pending.managerCommentIds ?? []),
+            ...(commentId === undefined ? [] : [commentId]),
+          ]),
+        ],
+      },
       history: [
         ...(previous.history ?? []),
         { event: "marked", at, markerType, marker },

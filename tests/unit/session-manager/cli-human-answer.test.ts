@@ -245,6 +245,60 @@ describe("item-answer", () => {
     ).toBeNull();
   });
 
+  it("never takes a comment the manager recorded as its own, even an operator's with no marker", () => {
+    const sandbox = githubSandbox();
+    ask(sandbox);
+    const marked = runStubOnly(sandbox, [
+      "ledger",
+      "marked",
+      REF,
+      "--marker-type",
+      "label",
+      "--marker",
+      "custom:needs-person",
+      "--comment-id",
+      "77",
+    ]);
+    expect(marked.status).toBe(0);
+    // A re-ask (a Telegram re-ping) keeps the manager's comment ids.
+    ask(sandbox);
+    expect(
+      readLedgerFile(sandbox).items[REF].pendingQuestion.managerCommentIds
+    ).toEqual(["77"]);
+    const result = pick(sandbox, [
+      question,
+      { id: 77, user: { login: OPERATOR }, body: "Marked; waiting on you." },
+    ]);
+    expect(result.json).toEqual({
+      queued: false,
+      ref: REF,
+      reason: NO_ANSWER_YET,
+    });
+    const answered = pick(sandbox, [
+      question,
+      { id: 77, user: { login: OPERATOR }, body: "Marked; waiting on you." },
+      { id: 78, user: { login: OPERATOR }, body: "CSV" },
+    ]);
+    expect(answered.json).toMatchObject({ queued: true, author: OPERATOR });
+  });
+
+  it("refuses (exit 2) a --comment-id that is not an id", () => {
+    const sandbox = githubSandbox();
+    ask(sandbox);
+    const result = runStubOnly(sandbox, [
+      "ledger",
+      "marked",
+      REF,
+      "--marker-type",
+      "label",
+      "--marker",
+      "x",
+      "--comment-id",
+      "two words",
+    ]);
+    expect(result.status).toBe(2);
+  });
+
   it("exits 2 when the ref has no pending question", () => {
     const result = pick(githubSandbox(), [question]);
     expect(result.status).toBe(2);

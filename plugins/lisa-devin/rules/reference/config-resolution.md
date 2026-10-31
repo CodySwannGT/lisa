@@ -767,8 +767,10 @@ operator chooses Telegram (`init-config --notify telegram`).
 - **Who may answer on the item.** A reply on a human-needed item is taken as the answer only from
   `sessionManager.operatorIds` or `trustedAuthorIds`, matched on stable ids (GitHub login or
   numeric id, Jira `accountId`, Linear user id; never a display name or email), and never from a
-  machine comment (one starting with a bracketed marker such as `[lisa-…]` or `[claude-sync]`, or
-  carrying the agent-attribution footer). With neither list set, nothing on the item is read
+  machine comment, which is excluded first, whoever wrote it: one starting with a bracketed tag
+  such as `[lisa-…]` or `[claude-sync]`, holding `[lisa-` or `<!-- lisa:` anywhere, saying
+  "Written by Claude", carrying the agent-attribution footer, or whose id the manager recorded as
+  its own (`ledger marked --comment-id`). With neither list set, nothing on the item is read
   (`item-answer` reports `no-answerers-configured`): there is no fallback to the tracker
   credential's identity, because the workers and the manager post as it. The operator then answers
   with the `answerCommand` that `status` lists. Set `operatorIds` even in a single-user setup.

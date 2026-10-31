@@ -124,6 +124,7 @@ const LEDGER_ACTIONS = {
       ref: requirePositional(ctx, "ref"),
       markerType: requireValue(ctx, "marker-type"),
       marker: requireValue(ctx, "marker"),
+      commentId: ctx.values["comment-id"],
     }),
   "clear-question": ctx =>
     clearPendingQuestion(ctx.root, {
