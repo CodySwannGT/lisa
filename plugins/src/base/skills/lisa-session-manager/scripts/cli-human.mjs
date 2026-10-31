@@ -120,6 +120,14 @@ function allowedAnswerers(config) {
 }
 
 /** Why nothing is read off the item when nobody may answer there. */
+/** Why no answer can be read, and the fix, when the question is not found. */
+const NO_QUESTION =
+  "The question comment was not found on the item: its id is not recorded " +
+  "(or not among these comments), and no comment by an operator or trusted " +
+  "author starts with the question marker. Replies cannot be read until it " +
+  "is. Re-post the question comment from mark-plan, then record its id " +
+  "with ledger marked --comment-id <id>.";
+
 const NO_ANSWERERS =
   "No sessionManager.operatorIds or trustedAuthorIds are configured, so " +
   "replies on the item are not read: the tracker identity is the one " +
@@ -167,7 +175,16 @@ export async function itemAnswer(ctx) {
     })
   );
   if (!picked.answer) {
-    return { json: { queued: false, ref, reason: picked.reason } };
+    return {
+      json: {
+        queued: false,
+        ref,
+        reason: picked.reason,
+        ...(picked.reason === "no-question-comment"
+          ? { explanation: NO_QUESTION }
+          : {}),
+      },
+    };
   }
   refuseCredential(picked.answer.text);
   await queueAnswer(ctx.root, {

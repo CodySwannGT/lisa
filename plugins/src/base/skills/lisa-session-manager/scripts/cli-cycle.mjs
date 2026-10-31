@@ -124,7 +124,7 @@ const LEDGER_ACTIONS = {
       ref: requirePositional(ctx, "ref"),
       markerType: requireValue(ctx, "marker-type"),
       marker: requireValue(ctx, "marker"),
-      commentId: ctx.values["comment-id"],
+      commentId: requireValue(ctx, "comment-id", COMMENT_ID_HINT),
     }),
   "clear-question": ctx =>
     clearPendingQuestion(ctx.root, {
@@ -176,11 +176,17 @@ export const LEDGER_ACTION_NAMES = Object.keys(LEDGER_ACTIONS);
  * @param {string} flag - Flag name without dashes
  * @returns {string} Value
  */
-function requireValue(ctx, flag) {
+function requireValue(ctx, flag, hint = "") {
   const value = ctx.values[flag];
-  if (!value) throw new CliError(`Missing --${flag}.`, 2);
+  if (!value) throw new CliError(`Missing --${flag}.${hint}`, 2);
   return value;
 }
+
+/** Why `ledger marked` needs the question comment's id (#4561). */
+const COMMENT_ID_HINT =
+  " Pass the id of the question comment the manager posted, as " +
+  "lisa-tracker-write returned it. Without it item-answer may never find " +
+  "the question, and the item would stay marked and out of the queue.";
 
 /**
  * `ledger <action>`: read or update the manager's ledger.

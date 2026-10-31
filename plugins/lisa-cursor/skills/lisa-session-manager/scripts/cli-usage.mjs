@@ -173,12 +173,13 @@ Per cycle
       fields (markerType, marker, markedAt); a queued answer survives only a
       re-ping of the same text.
   ledger marked <ref> --marker-type label|role --marker <value>
-                     [--comment-id <id>]
+                     --comment-id <id>
       Records that the human-needed marker was applied on the tracker and
-      read back (markedAt). --comment-id: the id of the question comment
-      the manager posted; kept in managerCommentIds so item-answer never
-      reads it as an answer. Exit 2 when <ref> has no pending question or
-      the id is not a tracker comment id.
+      read back (markedAt). --comment-id (required): the id of the question
+      comment the manager posted; item-answer anchors on it to find the
+      answer after it, and never reads it as an answer. Exit 2 when it is
+      missing or not a tracker comment id, or <ref> has no pending
+      question.
   ledger clear-question <ref> [--reset-attempts]
       After the answer is delivered and the marker removed. --reset-attempts
       zeroes the attempt count (an exhausted item a human has answered).

@@ -187,6 +187,8 @@ describe("ledger set-question --kind, marked and clear-question", () => {
       "label",
       "--marker",
       CUSTOM_LABEL,
+      "--comment-id",
+      "41",
     ]);
     expect(marked.status).toBe(0);
     expect(marked.json.pendingQuestion.markedAt).toEqual(expect.any(String));
@@ -221,6 +223,8 @@ describe("ledger set-question --kind, marked and clear-question", () => {
         "label",
         "--marker",
         "x",
+        "--comment-id",
+        "42",
       ]).status
     ).toBe(2);
   });

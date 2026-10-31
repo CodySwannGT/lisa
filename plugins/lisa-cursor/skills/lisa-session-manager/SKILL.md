@@ -188,7 +188,8 @@ In this order, every time:
 5. **Record the mark:** `ledger marked <ref> --marker-type <marker.type> --marker <marker.value> --comment-id <id>`,
    where `<id>` is the posted question comment's own id as `lisa-tracker-write` returned it and
    `lisa-tracker-read` showed it (the GitHub REST comment `id`, the Jira comment id, the Linear
-   comment id). The ledger keeps it, so `item-answer` never takes the manager's own comment as the
+   comment id). `--comment-id` is required (exit 2 without it). The ledger keeps it, so
+   `item-answer` finds the question by its id and never takes the manager's own comment as the
    answer, whatever identity the tracker shows for it.
 6. **Continue the cycle.** With Telegram, also send the question there, ending with
    `answerWith.channel`, and re-record it with `ledger set-question <ref> --telegram-message-id <id>`
@@ -297,7 +298,11 @@ shows them.
   marker and is by an operator or trusted author, so a marker someone else posts or quotes never
   hides an answer. That is
   why every comment the manager itself posts starts with `[lisa-session-manager]`. On `queued: true`, run "Clearing". On
-  `queued: false`, leave the item: it stays marked and out of the queue, and the cycle goes on.
+  `queued: false` with `no-answer-yet` or `already-queued`, leave the item: it stays marked and out
+  of the queue, and the cycle goes on. `reason: "no-question-comment"` on a marked item needs
+  attention, never a silent leave: no reply can be read until the question is found, so re-post
+  the question comment (`mark-plan` again, step 3), read it back, and record its id with
+  `ledger marked … --comment-id <id>`; that cycle's outcome is `candidate-proposed`.
   `reason: "no-answerers-configured"` means neither `operatorIds` nor `trustedAuthorIds` is set,
   so nothing on the item is read (the tracker identity is the one workers post as); the operator
   answers with the `answerCommand` from `status`.
@@ -426,7 +431,7 @@ session `start` creates), every cycle ends in **exactly one** of the six outcome
 |---|---|
 | No dispatch, no state change, no question relayed or newly pending. The summary still states the denominator: "swept N ready, 0 dispatchable; R running/C cap". | `nothing-needed` |
 | At least one of: a worker spawned and seen live in `status`; a Blocked→Ready release written and read back; an answer delivered and its marker removed (`SendMessage` acknowledged, or `resume` returned a session id); a stalled item retried. | `change-proved` |
-| An item was marked human-needed ("Mark and move on": marker and question comment written and read back), in any of the four cases, including an `exhausted` item moved to the `blocked` role; or a worker `FAILED` moved the item to the `blocked` role with its reason comment, both read back. The summary names each ref and where to answer it. | `candidate-proposed` |
+| An item was marked human-needed ("Mark and move on": marker and question comment written and read back), in any of the four cases, including an `exhausted` item moved to the `blocked` role, or a marked item whose question comment was re-posted after `item-answer` reported `no-question-comment`; or a worker `FAILED` moved the item to the `blocked` role with its reason comment, both read back. The summary names each ref and where to answer it. | `candidate-proposed` |
 | No item was newly marked, but a pending question was re-sent on Telegram (`requestion`) and awaits the operator, and nothing else changed. | `approval-requested` |
 | The tracker, a configured Telegram or `claude` was unreachable; Telegram is configured but was unavailable or unpaired (a question stayed pending with no Telegram message id); a human-needed mark could not be written or read back, or no marker is configured; a worker `FAILED`'s move to the `blocked` role could not be written or read back; a spawn failed after the claim (the item went back to Ready); the capacity probe failed. | `recovery-required` |
 | The retirement condition holds. | `policy-obsolete` |

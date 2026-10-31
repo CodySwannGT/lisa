@@ -124,9 +124,9 @@ function questionIndex(rows, managerCommentIds, authorOf) {
 /**
  * Pick the human's answer from an item's comments: the first comment after
  * the manager's latest question comment ({@link questionIndex}) that is not
- * a machine's
- * ({@link isMachineAuthoredComment}) and whose author's stable id is
- * allowed. Comments are taken in the order given (chronological).
+ * a machine's ({@link isMachineAuthoredComment}), has text of its own
+ * outside quoted lines (a comment made only of `>` lines quotes someone
+ * else and answers nothing), and whose author's stable id is allowed. Comments are taken in the order given (chronological).
  * @param {{comments: unknown, allowed: readonly string[],
  *   managerCommentIds?: readonly (string|number)[]}} input - The item's
  *   comments, the answerer ids, and the ids the manager posted
@@ -146,7 +146,9 @@ export function pickItemAnswer({ comments, allowed, managerCommentIds = [] }) {
   const reply = rows
     .slice(asked + 1)
     .filter(row => !isMachineAuthoredComment(row, { managerCommentIds }))
-    .find(row => authorOf(row) !== undefined && bodyOf(row).trim() !== "");
+    .find(
+      row => authorOf(row) !== undefined && unquoted(bodyOf(row)).trim() !== ""
+    );
   if (!reply) return { answer: null, reason: "no-answer-yet" };
   const at = reply.createdAt ?? reply.created ?? reply.created_at ?? null;
   return {

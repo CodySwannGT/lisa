@@ -251,3 +251,40 @@ describe("a human's reply is never mistaken for a machine's or for the question"
     expect(picked.answer?.text).toContain("Go with option 1.");
   });
 });
+
+describe("a comment made only of quoted lines is never an answer", () => {
+  const ALL_QUOTED =
+    "> [claude-sync] implementation in progress\n> Generated with Claude Code";
+
+  it("does not take an all-quoted comment from an allowed author", () => {
+    const picked = pickItemAnswer({
+      allowed: [OPERATOR],
+      comments: [
+        QUESTION,
+        { id: 2, user: { login: OPERATOR }, body: ALL_QUOTED },
+        { id: 3, user: { login: OPERATOR }, body: ">\n>   \n" },
+      ],
+    });
+    expect(picked).toEqual({ answer: null, reason: "no-answer-yet" });
+  });
+
+  it("skips the all-quoted comment and takes the next one with text of its own", () => {
+    const picked = pickItemAnswer({
+      allowed: [OPERATOR],
+      comments: [
+        QUESTION,
+        { id: 2, user: { login: OPERATOR }, body: ALL_QUOTED },
+        {
+          id: 3,
+          user: { login: OPERATOR },
+          body: "> [claude-sync] implementation in progress\n\nUse CSV.",
+        },
+      ],
+    });
+    expect(picked).toMatchObject({
+      reason: "answered",
+      answer: { author: OPERATOR },
+    });
+    expect(picked.answer?.text).toContain("Use CSV.");
+  });
+});

@@ -102,6 +102,8 @@ describe("a cycle with one human-needed item", () => {
         plan.json.marker.type,
         "--marker",
         plan.json.marker.value,
+        "--comment-id",
+        "43",
       ]);
       expect(marked.status).toBe(0);
 
