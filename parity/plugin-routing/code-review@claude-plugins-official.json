@@ -5,7 +5,7 @@
   "marketplace": "claude-plugins-official",
   "upstreamVersion": "1.0.1",
   "analyzedAt": "2026-10-31",
-  "status": "proposed",
+  "status": "approved",
   "components": [
     {
       "kind": "command",
