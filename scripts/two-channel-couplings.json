@@ -63,6 +63,18 @@
       "decision": "not-needed",
       "reason": "A runner, not a judge. The gate's verdict is mutant's exit code, and what it runs is read from the project's own `mutation.gate.yml` and `.mutant.yml`; this script's own logic decides whether the gate is enabled and what ref to diff against, both of which come from configuration it does not own. A superseded copy runs the wrong subjects loudly rather than returning a wrong verdict quietly."
     },
+    "quality-rails.yml::scripts/lisa_rspec_shard_recorder.rb": {
+      "decision": "not-needed",
+      "reason": "A reporter, not a judge. It hands SimpleCov's merge finalization to the aggregate and writes a run record; the verdict on that record is `lisa-rspec-shards.mjs verify`, which refuses any record not at the schema version it speaks. A superseded recorder either leaves a record verify rejects or leaves the shard's own minimum check armed, and both are loud reds, never a believed green."
+    },
+    "quality-rails.yml::scripts/lisa-rspec-shards.mjs": {
+      "decision": "warranted",
+      "reason": "Verdict-bearing when test_shards is above 1: its `verify` subcommand is what turns a dropped or duplicated spec file into a red `Test (MySQL)` / `Test (PostgreSQL)`, and its `plan` decides which files each leg runs. Plan and record documents carry a schema version that `verify` refuses on mismatch, and an unknown subcommand or flag fails loudly, so a copy too old to speak this workflow's interface is red rather than green. What that does not cover is a copy at the same schema whose partition check is weaker than the current one; the script exports no contract version the workflow could compare, so the obligation is recorded rather than claimed closed."
+    },
+    "quality-rails.yml::scripts/lisa_simplecov_collate.rb": {
+      "decision": "not-needed",
+      "reason": "A runner, not a judge. It forwards the shards' resultsets to `SimpleCov.collate`, and the threshold verdict is SimpleCov's own, read from the project's `.simplecov` and `simplecov.thresholds.json`; the script sets no threshold. A superseded copy can fail to collate, which is red, but cannot change what the thresholds are."
+    },
     "quality-rails.yml::scripts/lisa-scratch-run.sh": {
       "decision": "not-needed",
       "reason": "A supervisor that hosts a verdict rather than computing one: it owns run-scoped scratch and cleanup around whatever it wraps. Nothing it does can turn a passing suite red or a failing one green — a superseded copy misplaces or fails to reap a scratch directory, which surfaces as its own visible failure rather than as a believed verdict."
@@ -108,13 +120,13 @@
   },
   "inspected": {
     "workflows": 26,
-    "steps": 788,
-    "couplings": 37,
-    "inventory": 204
+    "steps": 823,
+    "couplings": 40,
+    "inventory": 207
   },
   "counts": {
     "package-backed": 11,
-    "apply-lagged": 23,
+    "apply-lagged": 26,
     "never-delivered": 0,
     "undelivered": 3
   },
@@ -122,13 +134,13 @@
     "version-handshake": 4,
     "capability-probe": 0,
     "existence-only": 5,
-    "no-probe": 14,
+    "no-probe": 17,
     "unchecked": 3
   },
   "decisionCounts": {
     "handshake": 4,
-    "not-needed": 12,
-    "warranted": 10
+    "not-needed": 14,
+    "warranted": 11
   },
   "couplings": [
     {
@@ -412,6 +424,53 @@
       "detail": "`quality-rails.yml` is delivered at `@main`, so this step is live in every consumer on their next run. It reads `scripts/check-threshold-ratchet.mjs` from the CALLER's tree with no package-relative candidate, and Lisa delivers that path on the `lisa apply` channel (all/copy-overwrite, rails/copy-overwrite, typescript/copy-overwrite). The two halves land in the wrong order: this step is live everywhere immediately, the file it needs is live only where somebody applied. No existence test guards the read, which is ALL this scan examined of the step's control flow: it did not read anything that could absorb the failure. An absent path most likely fails the job loudly — the better of the two failures, because it is visible — but that is inferred from the missing guard, NOT MEASURED. The step's text does carry `else-branch`, `exit-zero`, `exit-nonzero`, `error-annotation` — located in the step, deliberately NOT related to this read, and enough to make \"it skips silently\" a claim to check rather than assume. STALENESS (a separate dimension from the delivery verdict above): `no-probe`. Neither an existence test nor a version probe bears on this read, so nothing here distinguishes a current artifact from an absent or a superseded one. Tokens found: `workflow-requests-version`. `workflow-requests-version` is workflow-scoped — it does not say THIS step asks."
     },
     {
+      "key": "quality-rails.yml::scripts/lisa_rspec_shard_recorder.rb",
+      "workflow": "quality-rails.yml",
+      "path": "scripts/lisa_rspec_shard_recorder.rb",
+      "channel": "apply",
+      "verdict": "apply-lagged",
+      "remedy": "run-lisa-apply",
+      "guarded": false,
+      "handling": [
+        "exit-nonzero",
+        "error-annotation"
+      ],
+      "detection": "no-probe",
+      "stalenessSignals": [
+        "workflow-requests-version"
+      ],
+      "decision": "not-needed",
+      "reason": "A reporter, not a judge. It hands SimpleCov's merge finalization to the aggregate and writes a run record; the verdict on that record is `lisa-rspec-shards.mjs verify`, which refuses any record not at the schema version it speaks. A superseded recorder either leaves a record verify rejects or leaves the shard's own minimum check armed, and both are loud reds, never a believed green.",
+      "lanes": [
+        "rails/copy-overwrite"
+      ],
+      "detail": "`quality-rails.yml` is delivered at `@main`, so this step is live in every consumer on their next run. It reads `scripts/lisa_rspec_shard_recorder.rb` from the CALLER's tree with no package-relative candidate, and Lisa delivers that path on the `lisa apply` channel (rails/copy-overwrite). The two halves land in the wrong order: this step is live everywhere immediately, the file it needs is live only where somebody applied. No existence test guards the read, which is ALL this scan examined of the step's control flow: it did not read anything that could absorb the failure. An absent path most likely fails the job loudly — the better of the two failures, because it is visible — but that is inferred from the missing guard, NOT MEASURED. The step's text does carry `exit-nonzero`, `error-annotation` — located in the step, deliberately NOT related to this read, and enough to make \"it skips silently\" a claim to check rather than assume. STALENESS (a separate dimension from the delivery verdict above): `no-probe`. Neither an existence test nor a version probe bears on this read, so nothing here distinguishes a current artifact from an absent or a superseded one. Tokens found: `workflow-requests-version`. `workflow-requests-version` is workflow-scoped — it does not say THIS step asks."
+    },
+    {
+      "key": "quality-rails.yml::scripts/lisa_simplecov_collate.rb",
+      "workflow": "quality-rails.yml",
+      "path": "scripts/lisa_simplecov_collate.rb",
+      "channel": "apply",
+      "verdict": "apply-lagged",
+      "remedy": "run-lisa-apply",
+      "guarded": false,
+      "handling": [
+        "exit-zero",
+        "exit-nonzero",
+        "error-annotation"
+      ],
+      "detection": "no-probe",
+      "stalenessSignals": [
+        "workflow-requests-version"
+      ],
+      "decision": "not-needed",
+      "reason": "A runner, not a judge. It forwards the shards' resultsets to `SimpleCov.collate`, and the threshold verdict is SimpleCov's own, read from the project's `.simplecov` and `simplecov.thresholds.json`; the script sets no threshold. A superseded copy can fail to collate, which is red, but cannot change what the thresholds are.",
+      "lanes": [
+        "rails/copy-overwrite"
+      ],
+      "detail": "`quality-rails.yml` is delivered at `@main`, so this step is live in every consumer on their next run. It reads `scripts/lisa_simplecov_collate.rb` from the CALLER's tree with no package-relative candidate, and Lisa delivers that path on the `lisa apply` channel (rails/copy-overwrite). The two halves land in the wrong order: this step is live everywhere immediately, the file it needs is live only where somebody applied. No existence test guards the read, which is ALL this scan examined of the step's control flow: it did not read anything that could absorb the failure. An absent path most likely fails the job loudly — the better of the two failures, because it is visible — but that is inferred from the missing guard, NOT MEASURED. The step's text does carry `exit-zero`, `exit-nonzero`, `error-annotation` — located in the step, deliberately NOT related to this read, and enough to make \"it skips silently\" a claim to check rather than assume. STALENESS (a separate dimension from the delivery verdict above): `no-probe`. Neither an existence test nor a version probe bears on this read, so nothing here distinguishes a current artifact from an absent or a superseded one. Tokens found: `workflow-requests-version`. `workflow-requests-version` is workflow-scoped — it does not say THIS step asks."
+    },
+    {
       "key": "quality-rails.yml::scripts/lisa-mutation.sh",
       "workflow": "quality-rails.yml",
       "path": "scripts/lisa-mutation.sh",
@@ -434,6 +493,29 @@
         "all/copy-contents"
       ],
       "detail": "`quality-rails.yml` is delivered at `@main`, so this step is live in every consumer on their next run. It reads `scripts/lisa-mutation.sh` from the CALLER's tree with no package-relative candidate, and Lisa delivers that path on the `lisa apply` channel (all/copy-contents). The two halves land in the wrong order: this step is live everywhere immediately, the file it needs is live only where somebody applied. The read sits behind an existence test, which is ALL this scan examined of the step's control flow: it did not read the test's other branch, any fallback, any explicit `exit`, or any verification of the step's output. Whether an absent path skips quietly, falls back, or fails loudly is therefore NOT MEASURED — read the step before concluding it proves nothing. The shape worth ruling out is the silent one, where a skip posts no context and an absent required context is not a red one. The step's text does carry `exit-zero`, `exit-nonzero`, `error-annotation` — located in the step, deliberately NOT related to this read, and enough to make \"it skips silently\" a claim to check rather than assume. STALENESS (a separate dimension from the delivery verdict above): `existence-only`. An existence test and no version probe: this coupling can see that the artifact is MISSING and cannot see that it is OLD. A present copy of any vintage runs, and its verdict is believed. Tokens found: `workflow-requests-version`. `workflow-requests-version` is workflow-scoped — it does not say THIS step asks."
+    },
+    {
+      "key": "quality-rails.yml::scripts/lisa-rspec-shards.mjs",
+      "workflow": "quality-rails.yml",
+      "path": "scripts/lisa-rspec-shards.mjs",
+      "channel": "apply",
+      "verdict": "apply-lagged",
+      "remedy": "run-lisa-apply",
+      "guarded": false,
+      "handling": [
+        "exit-nonzero",
+        "error-annotation"
+      ],
+      "detection": "no-probe",
+      "stalenessSignals": [
+        "workflow-requests-version"
+      ],
+      "decision": "warranted",
+      "reason": "Verdict-bearing when test_shards is above 1: its `verify` subcommand is what turns a dropped or duplicated spec file into a red `Test (MySQL)` / `Test (PostgreSQL)`, and its `plan` decides which files each leg runs. Plan and record documents carry a schema version that `verify` refuses on mismatch, and an unknown subcommand or flag fails loudly, so a copy too old to speak this workflow's interface is red rather than green. What that does not cover is a copy at the same schema whose partition check is weaker than the current one; the script exports no contract version the workflow could compare, so the obligation is recorded rather than claimed closed.",
+      "lanes": [
+        "rails/copy-overwrite"
+      ],
+      "detail": "`quality-rails.yml` is delivered at `@main`, so this step is live in every consumer on their next run. It reads `scripts/lisa-rspec-shards.mjs` from the CALLER's tree with no package-relative candidate, and Lisa delivers that path on the `lisa apply` channel (rails/copy-overwrite). The two halves land in the wrong order: this step is live everywhere immediately, the file it needs is live only where somebody applied. No existence test guards the read, which is ALL this scan examined of the step's control flow: it did not read anything that could absorb the failure. An absent path most likely fails the job loudly — the better of the two failures, because it is visible — but that is inferred from the missing guard, NOT MEASURED. The step's text does carry `exit-nonzero`, `error-annotation` — located in the step, deliberately NOT related to this read, and enough to make \"it skips silently\" a claim to check rather than assume. STALENESS (a separate dimension from the delivery verdict above): `no-probe`. Neither an existence test nor a version probe bears on this read, so nothing here distinguishes a current artifact from an absent or a superseded one. Tokens found: `workflow-requests-version`. `workflow-requests-version` is workflow-scoped — it does not say THIS step asks."
     },
     {
       "key": "quality-rails.yml::scripts/lisa-scratch-run.sh",

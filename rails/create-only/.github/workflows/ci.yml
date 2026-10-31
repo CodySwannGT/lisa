@@ -36,6 +36,10 @@ jobs:
     # Rails projects default to PostgreSQL. For a MySQL app, uncomment:
     # with:
     #   database_type: 'mysql'
+    # To split a slow RSpec suite across parallel runners, add
+    # `test_shards: 4` (1-20) to the `with:` block. The legs' SimpleCov
+    # coverage is merged and checked once, and the required `Test (...)`
+    # check keeps its name.
     secrets:
       GITGUARDIAN_API_KEY: ${{ secrets.GITGUARDIAN_API_KEY }}
       FOSSA_API_KEY: ${{ secrets.FOSSA_API_KEY }}

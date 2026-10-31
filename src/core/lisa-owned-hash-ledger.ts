@@ -1772,6 +1772,14 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
     "f490aa56b466d961d7372f94c2fb3f0e5deb31e53212a67dd79ac4afee48d4b4",
     "f89fbf8baa62519b2527d9d3a7acc637c7e2080cf5174f4b293072b1fa9c6ccf",
   ]),
+  "scripts/lisa-rspec-shard-recorder.rb": Object.freeze([
+    "ef50d02e5e5871ae2e35b8e61cb088171d6eb7c74038f5dea182b3158ec4961e",
+  ]),
+  "scripts/lisa-rspec-shards.mjs": Object.freeze([
+    "58008cacb19b3b9f4517a79ee8431c27c2681aefa3b62b859559a1a146e9c347",
+    "660e07072d5cdddd1e3dc8c815c253e36827fc2c9ca1c93b7efc047e741043ed",
+    "75a864e4a05b39210d5bb3984efcfd450ff5387bea8551e977a40a9e8fd0f626",
+  ]),
   "scripts/lisa-run-gates.mjs": Object.freeze([
     "015bb944e7fe7aca26a84ff5e3e08a2fd063b089c6b0a3d3ceb292624d7833c4",
     "02c00db5a8af3ea0c8f47f8ec3e5c73c98c2529d34bf264111f8b32169f54295",
@@ -1854,6 +1862,9 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
     "80dc15053af22133cfe50e48484b24b098eb9f2095999b649694ad11ce64175a",
     "a123e9cdc7b090cec1ebaad1061487ed3fe7ae41ff29114182decb739c58ca7e",
     "afbc340a6512e495b80ddfd327202812fc4ae333be8b6bfad74fb6d46df6fdca",
+  ]),
+  "scripts/lisa-simplecov-collate.rb": Object.freeze([
+    "4e02147bac2aa171386f0b6431eb51f23616aceca3eea3bcce436825c00c0df7",
   ]),
   "scripts/lisa-test-node.mjs": Object.freeze([
     "31b338144af00e20e3de02202982846d7333433a9bbda76a8c77d50e6fdbc47b",
@@ -2027,6 +2038,12 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
     "71b67f940338e66864eec970b6881aba639176c9d262ab0ecf7203006d9f7cbf",
     "80ff38d47bdf125526bdbf4f41c1df6154baff2834dad4ec5a11a3dd3df5747e",
     "ebcea40e1484501f257128c9c92b8a3e2c4cefaeae397b96d267ef878d962da4",
+  ]),
+  "scripts/lisa_rspec_shard_recorder.rb": Object.freeze([
+    "92d7dfa434bf2aa94fc7fce2fafd1e7a32c03bf5610e46839432f4f7473006df",
+  ]),
+  "scripts/lisa_simplecov_collate.rb": Object.freeze([
+    "e9a11edd45c0442c2ec8f59b0fa5d2492d4cfac99398aa3697e70947063a5cc7",
   ]),
   "scripts/nightly-e2e-github-tracking.mjs": Object.freeze([
     "2606caa9d31b2488aa7e468e584c9f2afda8581fa1941f4da9ec8b3cab09c1de",
@@ -3926,6 +3943,14 @@ export const LISA_OWNED_HASH_HISTORY_DERIVED: Readonly<
     "f490aa56b466d961d7372f94c2fb3f0e5deb31e53212a67dd79ac4afee48d4b4",
     "f89fbf8baa62519b2527d9d3a7acc637c7e2080cf5174f4b293072b1fa9c6ccf",
   ]),
+  "scripts/lisa-rspec-shard-recorder.rb": Object.freeze([
+    "ef50d02e5e5871ae2e35b8e61cb088171d6eb7c74038f5dea182b3158ec4961e",
+  ]),
+  "scripts/lisa-rspec-shards.mjs": Object.freeze([
+    "58008cacb19b3b9f4517a79ee8431c27c2681aefa3b62b859559a1a146e9c347",
+    "660e07072d5cdddd1e3dc8c815c253e36827fc2c9ca1c93b7efc047e741043ed",
+    "75a864e4a05b39210d5bb3984efcfd450ff5387bea8551e977a40a9e8fd0f626",
+  ]),
   "scripts/lisa-run-gates.mjs": Object.freeze([
     "015bb944e7fe7aca26a84ff5e3e08a2fd063b089c6b0a3d3ceb292624d7833c4",
     "02c00db5a8af3ea0c8f47f8ec3e5c73c98c2529d34bf264111f8b32169f54295",
@@ -4001,6 +4026,9 @@ export const LISA_OWNED_HASH_HISTORY_DERIVED: Readonly<
     "80dc15053af22133cfe50e48484b24b098eb9f2095999b649694ad11ce64175a",
     "a123e9cdc7b090cec1ebaad1061487ed3fe7ae41ff29114182decb739c58ca7e",
     "afbc340a6512e495b80ddfd327202812fc4ae333be8b6bfad74fb6d46df6fdca",
+  ]),
+  "scripts/lisa-simplecov-collate.rb": Object.freeze([
+    "4e02147bac2aa171386f0b6431eb51f23616aceca3eea3bcce436825c00c0df7",
   ]),
   "scripts/lisa-test-node.mjs": Object.freeze([
     "31b338144af00e20e3de02202982846d7333433a9bbda76a8c77d50e6fdbc47b",
@@ -4171,6 +4199,12 @@ export const LISA_OWNED_HASH_HISTORY_DERIVED: Readonly<
     "71b67f940338e66864eec970b6881aba639176c9d262ab0ecf7203006d9f7cbf",
     "80ff38d47bdf125526bdbf4f41c1df6154baff2834dad4ec5a11a3dd3df5747e",
     "ebcea40e1484501f257128c9c92b8a3e2c4cefaeae397b96d267ef878d962da4",
+  ]),
+  "scripts/lisa_rspec_shard_recorder.rb": Object.freeze([
+    "92d7dfa434bf2aa94fc7fce2fafd1e7a32c03bf5610e46839432f4f7473006df",
+  ]),
+  "scripts/lisa_simplecov_collate.rb": Object.freeze([
+    "e9a11edd45c0442c2ec8f59b0fa5d2492d4cfac99398aa3697e70947063a5cc7",
   ]),
   "scripts/nightly-e2e-github-tracking.mjs": Object.freeze([
     "2606caa9d31b2488aa7e468e584c9f2afda8581fa1941f4da9ec8b3cab09c1de",
