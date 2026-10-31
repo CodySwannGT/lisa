@@ -1366,6 +1366,7 @@ agent_word_projection() {
   { printf '%s\0' "$FOLLOW_EXECUTION_PREFIXES" "$FOLLOW_EXECUTION_PATH_PREFIXES" "$SECRET_READ_COMMANDS"; cat; } | python3 /dev/fd/3 "$1" 3<<'PY'
 import json
 import re
+import shlex
 import sys
 
 # These options own counts, patterns, file names or output flags, never shell
@@ -1400,7 +1401,73 @@ def data_option(command_name, option):
             return False
     return True  # Argument-free flags do not own a following value.
 
-def classify(text, discover_programs=True):
+def ssh_boolean(source):
+    # The readconf.c boolean path uses misc.c argv_split, not shell evaluation:
+    # space/tab separators, token-start comments, balanced quote fragments and
+    # selective quote/backslash escapes (plus unquoted escaped spaces).
+    # Decode one bounded scalar only; program strings keep their own quoting.
+    # Primary contract: openssh-portable V_10_0_P1 misc.c argv_split/readconf.c.
+    source = source.rstrip(' \t\r\n\f')
+    tokens = []
+    cursor = 0
+    while cursor < len(source):
+        if source[cursor] in ' \t':
+            cursor += 1
+            continue
+        if source[cursor] == '#':
+            break
+        value = []
+        quote = ''
+        while cursor < len(source):
+            char = source[cursor]
+            if char == '\\' and cursor + 1 < len(source) and (
+                    source[cursor + 1] in "'\"\\" or (not quote and source[cursor + 1] == ' ')):
+                cursor += 1
+                value.append(source[cursor])
+            elif not quote and char in ' \t':
+                break
+            elif not quote and char in "'\"":
+                quote = char
+            elif quote and char == quote:
+                quote = ''
+            else:
+                value.append(char)
+            cursor += 1
+        if quote:
+            return ''
+        tokens.append(''.join(value).lower())
+        if len(tokens) > 1:
+            return ''
+    # readconf.c multistate_flag accepts both boolean spellings.
+    return {'yes': 'yes', 'true': 'yes', 'no': 'no', 'false': 'no'}.get(tokens[0], '') if len(tokens) == 1 else ''
+
+def ssh_word_view(word, expansion, owners):
+    # Transform only the classification view. Discovery retains original source
+    # bytes, so inherited generic frames do not consume the same owner twice.
+    # A genuinely nested SSH setting adds one phase: %% may then expose %r.
+    for owner in owners:
+        if owner & 1:
+            value = []
+            dynamic = []
+            cursor = 0
+            while cursor < len(word):
+                if word.startswith('%%', cursor):
+                    value.append('%')
+                    dynamic.append(any(expansion[cursor:cursor + 2]))
+                    cursor += 2
+                    continue
+                value.append(word[cursor])
+                token = word[cursor] == '%' and cursor + 1 < len(word) and word[cursor + 1] in 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'
+                dynamic.append(expansion[cursor] or token)
+                cursor += 1
+            word, expansion = ''.join(value), dynamic
+        if owner & 2:
+            expansion = expansion.copy()
+            for match in re.finditer(r'\$\{[A-Za-z_][A-Za-z0-9_]*\}', word):
+                expansion[match.start()] = True
+    return word, expansion
+
+def classify(text, discover_programs=True, owned_value=False, argv_mode=False, ssh_owners=()):
     words = []
     commands = []
     command = []
@@ -1433,7 +1500,7 @@ def classify(text, discover_programs=True):
         if not started:
             word_start = cursor
         char = text[cursor]
-        if char == '#' and not quote and not started:
+        if char == '#' and not quote and not started and not argv_mode:
             # Comment text cannot alter quote/scope state. Only physical LF
             # ends it, even when its last byte before that LF is a backslash.
             newline = text.find('\n', cursor)
@@ -1456,7 +1523,7 @@ def classify(text, discover_programs=True):
             # Empty quote fragments still start a word before a literal hash.
             started = True
             quote = char if not quote else ''
-        elif quote != "'" and (text.startswith('$(', cursor) or char == '`'):
+        elif not argv_mode and quote != "'" and (text.startswith('$(', cursor) or char == '`'):
             # Inspect substitution contents too, while retaining uncertainty on
             # any path prefix that receives their output. Never run a payload.
             if char == '`' and scopes and scopes[-1][1] == '`':
@@ -1471,11 +1538,11 @@ def classify(text, discover_programs=True):
                 quote = ''
                 if char == '$':
                     cursor += 1
-        elif not quote and char in ' \t\n;|&<>()':
+        elif not quote and (char in ' \t\n' or (not argv_mode and char in ';|&<>()')):
             finish()
-            if char in '<>':
+            if not argv_mode and char in '<>':
                 command.append((char, None, char))
-            elif char not in ' \t':
+            elif not argv_mode and char not in ' \t':
                 finish_command()
             if scopes and scopes[-1][1] == ')':
                 if char == '(':
@@ -1489,17 +1556,27 @@ def classify(text, discover_programs=True):
         else:
             started = True
             value.append(char)
-            dynamic.append((char == '$' and quote != "'") or (not quote and char in '*?[{'))
+            dynamic.append(not argv_mode and ((char == '$' and quote != "'") or (not quote and char in '*?[{')))
         cursor += 1
     incomplete = incomplete or bool(quote or scopes)
     finish_command()
+    if argv_mode and incomplete:
+        raise ValueError('incomplete SSH argv value')
 
-    # SSH joins argv after its destination into a remote shell program. Only
-    # this executable carrier owns another source frame: a quoted filename or
-    # display argument is still one literal operand, even with spaces/`;`.
-    # ProxyCommand is local shell source; RemoteCommand/positional argv are
-    # remote source. Only the former may reach the local executed-file owner.
+    # Proved program/value roles own additional frames; ordinary quoted file
+    # and display arguments remain literal, even with whitespace/operators.
+    # SSH joins destination-following argv into remote source. ProxyCommand
+    # and enabled LocalCommand are local shell; KnownHostsCommand is local
+    # argv, safely quoted before reaching an existing local/explicit -c owner.
     programs = []
+
+    def inspect_value(source):
+        # Only a proved assignment/configuration/program role calls this.
+        # The next owned frame can inspect an affected opaque inner word; an
+        # interpreter string need not expose a shell read verb at its outside.
+        if re.search(affected_location, source, re.I):
+            programs.append({'kind': 'uncertain-value', 'source': source})
+
     for args in commands if discover_programs else []:
         index = 0
         assignment_values = []
@@ -1539,12 +1616,33 @@ def classify(text, discover_programs=True):
                 index += 1
             else:
                 break
+        for source in assignment_values:
+            inspect_value(source)
         if index >= len(args):
             continue
-        for source in assignment_values:
-            if re.search(affected_location, source, re.I) and classify(source, False)[2]:
-                programs.append({'kind': 'uncertain-value', 'source': source})
         command_name = args[index][0].rsplit('/', 1)[-1]
+        if command_name in ('export', 'declare', 'typeset', 'readonly', 'local'):
+            for argument in range(index + 1, len(args)):
+                value, expansion, raw = args[argument]
+                if expansion is None or (argument > index + 1 and args[argument - 1][1] is None):
+                    continue
+                # Declaration builtins own NAME=value arguments even after
+                # their option terminator; arbitrary positional values do not.
+                if re.match(r'^[A-Za-z_][A-Za-z0-9_]*=', value):
+                    inspect_value(value.split('=', 1)[1])
+            continue
+        if owned_value and command_name not in ('cat', 'printf', 'echo') and command_name not in data_options:
+            ended = False
+            for argument in range(index, len(args)):
+                word, expansion, raw = args[argument]
+                if word == '--':
+                    ended = True
+                if ended or expansion is None or (argument > index and args[argument - 1][1] is None):
+                    continue
+                if re.search(affected_location, word, re.I) and any(char.isspace() for char in word):
+                    inner, _, disclosure, _ = classify(word, False, ssh_owners=ssh_owners)
+                    if disclosure and inner != 'clear':
+                        programs.append({'kind': 'uncertain-value', 'source': word})
         if command_name != 'ssh':
             # A configuration/argument value can be executable even when its
             # carrier is not known here. Inspect ONLY affected disclosure-shaped
@@ -1577,10 +1675,10 @@ def classify(text, discover_programs=True):
                     # disclosure verb at physical EOL needs no trailing space.
                     # This does not grant a positional key=value file operand
                     # program authority or follow unknown values as local files.
-                    if re.search(affected_location, source, re.I) and classify(source, False)[2]:
-                        programs.append({'kind': 'uncertain-value', 'source': source})
+                    inspect_value(source)
             continue
         index += 1
+        settings = {}
         while index < len(args) and args[index][0].startswith('-'):
             option = args[index][0]
             index += 1
@@ -1595,10 +1693,39 @@ def classify(text, discover_programs=True):
                         value = args[index][0] if index < len(args) else ''
                         index += 1
                     if flag == 'o':
-                        setting = re.match(r'\s*(ProxyCommand|RemoteCommand)\s*(?:=\s*|\s+)(.*)\Z', value, re.I | re.S)
-                        if setting and setting[2] and setting[2].lower() != 'none':
-                            programs.append({'kind': 'local' if setting[1].lower() == 'proxycommand' else 'remote', 'source': setting[2]})
+                        setting = re.match(r'\s*(ProxyCommand|RemoteCommand|LocalCommand|KnownHostsCommand|PermitLocalCommand)\s*(?:=\s*|\s+)(.*)\Z', value, re.I | re.S)
+                        if setting:
+                            name = setting[1].lower()
+                            # OpenSSH obtains each participating directive's
+                            # first explicit value, including a disabling none.
+                            settings.setdefault(name, setting[2])
                     break
+        # Missing CLI permission leaves selected config unknown. It cannot
+        # prove disabled, nor grant authority to follow a local script.
+        permit_local = ssh_boolean(settings.get('permitlocalcommand', ''))
+        for name, source in settings.items():
+            if name == 'permitlocalcommand' or not source or source.lower() == 'none':
+                continue
+            if name == 'localcommand' and permit_local == 'no':
+                continue
+            if name == 'knownhostscommand':
+                # OpenSSH executes an argv vector, not raw shell source.
+                # Preserve literal operators and quoted arguments when adapting
+                # that vector to the existing local command/explicit -c owner.
+                vector = classify(source, False, argv_mode=True)[3]
+                source = ' '.join(shlex.quote(word) for word, expansion in vector)
+                kind = 'local-argv'
+            elif name == 'remotecommand':
+                kind = 'remote'
+            elif name == 'localcommand' and permit_local != 'yes':
+                kind = 'uncertain-value'  # Unknown permission is not local-follow authority.
+            else:
+                kind = 'local'
+            # These existing setting carriers own client-side percent tokens;
+            # KnownHostsCommand additionally owns braced environment syntax.
+            # Local/remote execution roles remain separate from this phase.
+            expansion_owner = 3 if name == 'knownhostscommand' else 1
+            programs.append({'kind': kind, 'source': source, 'ssh_expansion': expansion_owner})
         index += 1  # The SSH destination is data, not a shell program.
         program = ' '.join(word for word, expansion, raw in args[index:] if expansion is not None)
         if program:
@@ -1611,6 +1738,7 @@ def classify(text, discover_programs=True):
     uncertain = False
     protected = False
     for word, expansion in words:
+        word, expansion = ssh_word_view(word, expansion, ssh_owners)
         protected = protected or store.search(word) is not None
         uncertain = uncertain or any(any(expansion[match.end():]) for match in re.finditer(directory, word))
         # Other guards own unrelated heredoc/prose syntax. Fail closed here
@@ -1618,7 +1746,7 @@ def classify(text, discover_programs=True):
         if incomplete and re.search(directory + r'|\.netrc|\.npmrc|\.pypirc|\.docker/config\.json', word, re.I):
             uncertain = True
     disclosure = any(word.rsplit('/', 1)[-1] in read_commands for word, expansion in words)
-    return ('store' if protected else 'uncertain' if uncertain else 'clear'), programs, disclosure
+    return ('store' if protected else 'uncertain' if uncertain else 'clear'), programs, disclosure, words
 
 try:
     data = sys.stdin.buffer.read()
@@ -1633,18 +1761,24 @@ try:
     affected_location = r'\.(?:claude|codex|cursor|copilot|gemini|antigravity)/|\.netrc|\.npmrc|\.pypirc|\.docker/config\.json'
     if sys.argv[1] == 'local-ssh':
         # Complete local inline programs only; no remote file is resolved here.
-        print(json.dumps([program['source'] for frame in frames for program in classify(frame)[1] if program['kind'] == 'local']))
+        print(json.dumps([program['source'] for frame in frames for program in classify(frame)[1] if program['kind'] in ('local', 'local-argv')]))
         sys.exit(0)
     if sys.argv[1] != 'classify':
         raise ValueError('unknown projection mode')
-    frames = [(frame, False) for frame in frames]
+    frames = [(frame, False, False, ()) for frame in frames]
+    visited = set()
     verdicts = []
-    for frame, uncertain_value in frames:
-        verdict, programs, _ = classify(frame)
+    for frame, uncertain_value, owned_value, ssh_owners in frames:
+        identity = (frame, uncertain_value, owned_value, ssh_owners)
+        if identity in visited:
+            continue
+        visited.add(identity)
+        verdict, programs, _, _ = classify(frame, owned_value=owned_value, ssh_owners=ssh_owners)
         verdicts.append('program-uncertain' if uncertain_value and verdict != 'clear' else verdict)
         # Each projection removes the SSH prefix; iterative frames avoid a
         # Python recursion limit without evaluating any remote source.
-        frames.extend((program['source'], uncertain_value or program['kind'] == 'uncertain-value') for program in programs)
+        frames.extend((program['source'], uncertain_value or program['kind'] == 'uncertain-value', True,
+                       ssh_owners + ((program['ssh_expansion'],) if program.get('ssh_expansion') else ())) for program in programs)
     print('store' if 'store' in verdicts else 'uncertain' if 'uncertain' in verdicts else 'program-uncertain' if 'program-uncertain' in verdicts else 'clear')
 except (ValueError, OSError, IndexError, re.error):
     sys.exit(1)
@@ -1701,19 +1835,20 @@ follow_inline() {
   follow_cwd_unknown="$saved_unknown"
 }
 
-# ProxyCommand is a local shell program. Reuse the same quote-aware carrier
-# projection as the credential view, then the existing bounded local follower.
-# RemoteCommand/SSH argv remain remote DATA and never open a local script.
+# Proved local SSH programs reuse the quote-aware projection and bounded local
+# follower. KnownHosts argv has already been safely represented as literal
+# words, so only an explicit shell -c gets shell-source authority. Remote
+# programs remain remote DATA and never open a local script.
 follow_ssh() {
   local stmt="$1" depth="$2" programs count index=0 body
   local follow_inline_depth="${follow_inline_depth:-0}"
-  [ "$follow_inline_depth" -lt "$FOLLOW_MAX_FUNCTION_DEPTH" ] || follow_refuse "SSH ProxyCommand" "inline shells exceed the inspection depth"
+  [ "$follow_inline_depth" -lt "$FOLLOW_MAX_FUNCTION_DEPTH" ] || follow_refuse "SSH local command" "inline shells exceed the inspection depth"
   follow_inline_depth=$((follow_inline_depth + 1))
-  programs="$(printf '%s\0' "$stmt" | agent_word_projection local-ssh)" || follow_refuse "SSH ProxyCommand" "its local command string could not be determined"
-  count="$(printf '%s' "$programs" | jq -er 'length')" || follow_refuse "SSH ProxyCommand" "its local program projection could not be determined"
+  programs="$(printf '%s\0' "$stmt" | agent_word_projection local-ssh)" || follow_refuse "SSH local command" "its local command string could not be determined"
+  count="$(printf '%s' "$programs" | jq -er 'length')" || follow_refuse "SSH local command" "its local program projection could not be determined"
   while [ "$index" -lt "$count" ]; do
     # A sentinel preserves trailing physical LF through command substitution.
-    body="$(printf '%s' "$programs" | jq -j --argjson index "$index" '.[$index]' && printf '\037')" || follow_refuse "SSH ProxyCommand" "its complete local program could not be decoded"
+    body="$(printf '%s' "$programs" | jq -j --argjson index "$index" '.[$index]' && printf '\037')" || follow_refuse "SSH local command" "its complete local program could not be decoded"
     body="${body%$'\037'}"
     agent_source_frames+=("$body")
     local saved_cwd="$follow_cwd" saved_unknown="$follow_cwd_unknown"

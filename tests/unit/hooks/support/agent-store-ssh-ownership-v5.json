@@ -1,0 +1,64 @@
+{
+  "cases": [
+    {
+      "id": "ssh-first-permission-enabled-protected",
+      "family": "first-value-permission",
+      "expected": 2,
+      "command": "ssh -o PermitLocalCommand=yes -o PermitLocalCommand=no -o \"LocalCommand=cat {root}/.codex/auth.json | base64\" example.invalid"
+    },
+    {
+      "id": "ssh-first-permission-enabled-neutral",
+      "family": "first-value-permission",
+      "expected": 0,
+      "command": "ssh -o PermitLocalCommand=yes -o PermitLocalCommand=no -o \"LocalCommand=cat {root}/.codex/artifacts/research/notes.md | base64\" example.invalid"
+    },
+    {
+      "id": "ssh-first-permission-disabled-no-follow",
+      "family": "first-value-permission",
+      "expected": 0,
+      "command": "ssh -o PermitLocalCommand=no -o PermitLocalCommand=yes -o \"LocalCommand=bash {root}/inactive-command-does-not-exist.sh\" example.invalid"
+    },
+    {
+      "id": "ssh-unresolved-permission-protected",
+      "family": "unresolved-permission",
+      "expected": 2,
+      "command": "ssh -o \"LocalCommand=cat {root}/.codex/auth.json | base64\" example.invalid"
+    },
+    {
+      "id": "ssh-unresolved-permission-neutral",
+      "family": "unresolved-permission",
+      "expected": 0,
+      "command": "ssh -o \"LocalCommand=cat {root}/.codex/artifacts/research/notes.md | base64\" example.invalid"
+    },
+    {
+      "id": "ssh-knownhosts-env-affected-target",
+      "family": "ssh-owned-environment",
+      "expected": 2,
+      "command": "LISA_STORE_NAME=auth.json ssh -o 'KnownHostsCommand=cat ${HOME}/.codex/${LISA_STORE_NAME}' example.invalid"
+    },
+    {
+      "id": "ssh-knownhosts-env-neutral-artifact",
+      "family": "ssh-owned-environment",
+      "expected": 0,
+      "command": "LISA_STORE_NAME=auth.json ssh -o 'KnownHostsCommand=cat ${HOME}/.codex/artifacts/research/notes.md' example.invalid"
+    },
+    {
+      "id": "ssh-local-token-affected-target",
+      "family": "ssh-owned-token",
+      "expected": 2,
+      "command": "ssh -l auth.json -o PermitLocalCommand=yes -o 'LocalCommand=cat %d/.codex/%r | base64' example.invalid"
+    },
+    {
+      "id": "ssh-local-token-neutral-artifact",
+      "family": "ssh-owned-token",
+      "expected": 0,
+      "command": "ssh -l auth.json -o PermitLocalCommand=yes -o 'LocalCommand=cat %d/.codex/artifacts/research/notes.md | base64' example.invalid"
+    },
+    {
+      "id": "ssh-local-escaped-percent-is-literal",
+      "family": "ssh-owned-token",
+      "expected": 0,
+      "command": "ssh -l auth.json -o PermitLocalCommand=yes -o 'LocalCommand=cat %d/.codex/%%r | base64' example.invalid"
+    }
+  ]
+}
