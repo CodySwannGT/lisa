@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [4.85.0](https://github.com/CodySwannGT/lisa/compare/v4.84.11...v4.85.0) (2026-10-31)
+
+
+### Features
+
+* **ci:** shard the Rails RSpec job (test_shards) ([36e36ac](https://github.com/CodySwannGT/lisa/commit/36e36ace497395a8fdb45aa2c013172e94340f11)), closes [#4560](https://github.com/CodySwannGT/lisa/issues/4560) [CodySwannGT/lisa#4560](https://github.com/CodySwannGT/lisa/issues/4560)
+
+
+### Bug Fixes
+
+* **ci:** exempt the RSpec shard planner from the host format gate ([8b596f1](https://github.com/CodySwannGT/lisa/commit/8b596f1875fd9adc99a21b619e8eb9c23cf30b53)), closes [#4560](https://github.com/CodySwannGT/lisa/issues/4560) [CodySwannGT/lisa#4560](https://github.com/CodySwannGT/lisa/issues/4560)
+
 ### [4.84.11](https://github.com/CodySwannGT/lisa/compare/v4.84.10...v4.84.11) (2026-10-31)
 
 
