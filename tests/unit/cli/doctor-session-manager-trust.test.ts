@@ -174,6 +174,33 @@ describe("public repo without trustedAuthorIds", () => {
   });
 });
 
+describe("trust with no notification channel (#4555)", () => {
+  const NONE = { notify: { provider: "none" } };
+
+  it("still fails for a public GitHub repo with trustedAuthorIds unset", async () => {
+    const probe = vi.fn(async () => "PUBLIC");
+    const check = await run(await fixture(NONE), probe);
+    expect(probe).toHaveBeenCalledWith(REPO);
+    expect(check.status).toBe("fail");
+    expect(check.detail).toContain("notifications: none");
+    expect(check.detail).toContain("trustedAuthorIds");
+  });
+
+  it("skips the project-scope Telegram plugin finding", async () => {
+    const fx = await fixture(NONE);
+    await mkdir(path.join(fx.project, CLAUDE_DIR), { recursive: true });
+    await writeFile(
+      path.join(fx.project, CLAUDE_DIR, LOCAL_SETTINGS),
+      JSON.stringify({ enabledPlugins: { [PLUGIN_ID]: true } })
+    );
+    const check = await run(fx, async () => PRIVATE);
+    expect(check).toMatchObject({
+      status: "ok",
+      detail: "notifications: none",
+    });
+  });
+});
+
 describe("Telegram plugin enabled at project scope", () => {
   /**
    * Enable the plugin in one settings file.

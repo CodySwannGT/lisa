@@ -44,12 +44,16 @@ Workers and capacity
         pendingQuestion}], classification one of finished|waiting|requestion|
       working|stalled|dead|exhausted.
   status
-      stdout {manager:{name,running},control,workers:[{ref,worker,sessionId,
-      repo,status,attempts,pendingQuestion,live}],untracked:[wk- names]}.
+      stdout {manager:{name,running},notify,control,workers:[{ref,worker,
+      sessionId,repo,status,attempts,pendingQuestion,live}],untracked:[wk-
+      names]}. notify is the configured channel: "telegram" or "none".
 
 Manager
   start [--settle-ms <n>]
-             Refuses (exit 2) without <notify.stateDir>/.env (mode 0600) or for
+             With notify.provider "none" (or no notify block): no token, state
+             dir or Telegram plugin is needed; launches with no --channels, no
+             TELEGRAM_STATE_DIR and no plugin in --settings. With "telegram":
+             refuses (exit 2) without <notify.stateDir>/.env (mode 0600) or for
              the shared default state dir. "already-running" when the tmux
              session =<name> exists and was started in this project root;
              exit 2 naming the conflict when it was started anywhere else.
@@ -57,11 +61,13 @@ Manager
              has-session -t =<name> every 250 ms for --settle-ms (default
              3000, at most 60000): exit 2, with the foreground command to run
              to see claude's error, when the session is gone.
-             stdout {status:"started"|"already-running",name,...}.
+             stdout {status:"started"|"already-running",name,notify,
+             [stateDir,]attach}.
   stop       tmux kill-session -t =<name> only, and only for a session started
              in this root (exit 2 otherwise); workers keep running.
              stdout {status:"stopped"|"not-running",name}.
   store-token [--replace] [--from-clipboard]
+             Telegram only: exit 2 when notify.provider is "none".
              Prompts for the bot token on the terminal (echo off) and writes
              <stateDir>/.env. Exit 2 when a token is already there, unless
              --replace. With no TTY (an agent's Bash, and Claude Code's !
@@ -80,8 +86,12 @@ Config and routing
              stdout {repo,dir}; --raw prints the bare dir. Exit 2 for an
              unknown key or a dir without .lisa.config.json.
   validate   stdout {valid,errors}; exit 2 when invalid or absent.
-  init-config [--slug <slug>] [--write]
-             stdout {written,block[,reason:"exists"][,path]}. Detects
+  init-config [--slug <slug>] [--notify none|telegram] [--write]
+             stdout {written,block[,reason:"exists"][,path]}. --notify picks
+             the notification channel (default none): none writes
+             notify {provider:"none"} and no state dir; telegram writes
+             {provider:"telegram",stateDir:"~/.claude/channels/telegram-<slug>"}.
+             Any other value: exit 2. Detects
              projects/*/.lisa.config.json, else root children with their own
              .lisa.config.json and .git (repos.root "."), skipping linked
              worktrees (.git is a file) and keeping one child per origin

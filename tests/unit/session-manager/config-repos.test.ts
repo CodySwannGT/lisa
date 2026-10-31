@@ -100,12 +100,26 @@ describe("buildDefaultBlock", () => {
         maxLoadPerCore: 1.5,
       },
       stall: { noOutputMinutes: 60, maxAttempts: 3, requestionHours: 4 },
-      notify: {
-        provider: "telegram",
-        stateDir: "~/.claude/channels/telegram-repo-a",
-      },
+      notify: { provider: "none" },
     });
     expect(block).not.toHaveProperty("repos");
+  });
+
+  it("writes a per-project Telegram state dir only when telegram is chosen", () => {
+    const block = buildDefaultBlock({ projectSlug: SLUG, notify: "telegram" });
+    expect(block.notify).toEqual({
+      provider: "telegram",
+      stateDir: "~/.claude/channels/telegram-repo-a",
+    });
+    expect(
+      buildDefaultBlock({ projectSlug: SLUG, notify: "none" }).notify
+    ).toEqual({ provider: "none" });
+  });
+
+  it("refuses a notify choice other than none or telegram", () => {
+    expect(() =>
+      buildDefaultBlock({ projectSlug: SLUG, notify: "slack" })
+    ).toThrow(/none.*telegram/);
   });
 
   it("treats an omitted detectedRepos as single-repo", () => {
@@ -129,6 +143,7 @@ describe("buildDefaultBlock", () => {
     const block = buildDefaultBlock({
       projectSlug: "My_Project.v2",
       detectedRepos: [],
+      notify: "telegram",
     });
     expect(block.name).toBe("my-project-v2-manager");
     expect(block.notify.stateDir).toBe(
@@ -138,8 +153,14 @@ describe("buildDefaultBlock", () => {
 
   it("produces a block the validator accepts", () => {
     for (const detectedRepos of [[], ["api", "web"]]) {
-      const block = buildDefaultBlock({ projectSlug: SLUG, detectedRepos });
-      expect(validateSessionManager(block)).toEqual([]);
+      for (const notify of ["none", "telegram"]) {
+        const block = buildDefaultBlock({
+          projectSlug: SLUG,
+          detectedRepos,
+          notify,
+        });
+        expect(validateSessionManager(block)).toEqual([]);
+      }
     }
   });
 

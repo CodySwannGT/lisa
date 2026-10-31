@@ -3,9 +3,11 @@
  * repo-dir and validate. The setup ones (init-config, store-token,
  * trust-status, coexistence) live in cli-setup.mjs.
  *
- * `start` hosts the manager in tmux. It refuses (exit 2) unless the bot
- * token file exists with owner-only permissions in the project's own state
- * dir, and it treats an existing tmux session started in this root as
+ * `start` hosts the manager in tmux. With Telegram as the notification
+ * channel it refuses (exit 2) unless the bot token file exists with
+ * owner-only permissions in the project's own state dir; with no channel
+ * (`notify.provider` `"none"`, or no `notify` block) it needs no token, state
+ * dir or plugin and launches without `--channels` (#4555). It treats an existing tmux session started in this root as
  * "already running" rather than starting a second poller on the same bot. A
  * session of that name started in another root is another project's manager,
  * so both `start` and `stop` refuse it (exit 2). `stop` kills only the
@@ -25,7 +27,7 @@ import {
   requireLisaRepo,
   run,
 } from "./cli-runtime.mjs";
-import { resolveRepoDir } from "./config.mjs";
+import { notifyProvider, resolveRepoDir } from "./config.mjs";
 import { probeOwnSession, sessionSurvives } from "./isolation.mjs";
 import {
   assertTokenPresent,
@@ -85,7 +87,8 @@ function settleMsOf(ctx) {
 export async function start(ctx) {
   const settleMs = settleMsOf(ctx);
   const config = requireConfig(ctx);
-  const stateDir = stateDirOf(ctx, config);
+  const notify = notifyProvider(config);
+  const stateDir = notify === "telegram" ? stateDirOf(ctx, config) : undefined;
   // tmux gets the scrubbed env: if this call starts the tmux server, its
   // global environment must not carry a TELEGRAM_* value into other sessions.
   const env = scrubWorkerEnv(ctx.env);
@@ -94,14 +97,15 @@ export async function start(ctx) {
   if (session.running) {
     return { json: { status: "already-running", name: config.name } };
   }
-  asSetupError(() => assertTokenPresent(stateDir));
+  if (stateDir !== undefined) asSetupError(() => assertTokenPresent(stateDir));
   const argv = asSetupError(() =>
     buildManagerLaunch({
       name: config.name,
       root: ctx.root,
-      stateDir,
+      ...(stateDir === undefined ? {} : { stateDir }),
       scriptsDir: ctx.scriptsDir,
       interval: config.interval,
+      notify,
     })
   );
   mustRun("tmux", argv, { env, cwd: ctx.root });
@@ -118,7 +122,8 @@ export async function start(ctx) {
     json: {
       status: "started",
       name: config.name,
-      stateDir,
+      notify,
+      ...(stateDir === undefined ? {} : { stateDir }),
       attach: `tmux attach -t ${config.name}`,
     },
   };
@@ -174,7 +179,10 @@ function environmentProblems(ctx, config) {
       return [`sessionManager.repos.entries.${key}: ${error.message}`];
     }
   });
-  if (typeof config.notify?.stateDir === "string") {
+  if (
+    notifyProvider(config) === "telegram" &&
+    typeof config.notify?.stateDir === "string"
+  ) {
     try {
       stateDirOf(ctx, config);
     } catch (error) {
@@ -204,7 +212,10 @@ export function validate(ctx) {
  * `status`: is the manager's tmux session up, and what does the ledger say
  * about each worker it dispatched.
  * @param {object} ctx - CLI context
- * @returns {Promise<{ json: object }>} `{manager,control,workers,untracked}`
+ * `notify` is the configured notification provider (`telegram` or `none`),
+ * so the manager knows each cycle whether a channel exists.
+ * @returns {Promise<{ json: object }>}
+ *   `{manager,notify,control,workers,untracked}`
  */
 export async function status(ctx) {
   const config = requireConfig(ctx);
@@ -218,6 +229,7 @@ export async function status(ctx) {
   return {
     json: {
       manager: { name: config.name, running: tmux.status === 0 },
+      notify: notifyProvider(config),
       control: ledger.control,
       workers: Object.entries(ledger.items).map(([ref, item]) => ({
         ref,

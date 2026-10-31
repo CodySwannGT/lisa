@@ -1,6 +1,8 @@
 /**
  * Starting and stopping the session manager, and the Telegram bot token it
- * needs.
+ * needs when Telegram is its notification channel. Telegram is optional
+ * (#4555): with `notify.provider` `"none"` the manager launches with no
+ * channel, no state dir and no plugin, and none of the isolation below applies.
  *
  * The official Telegram plugin keeps its token, pairing list, inbox and
  * `bot.pid` in one state dir (`TELEGRAM_STATE_DIR`, else
@@ -63,17 +65,25 @@ const SHELL_SAFE = /^[A-Za-z0-9_@%+=:,./-]+$/;
 /** The skill command each manager loop iteration runs. */
 const CYCLE_COMMAND = "/lisa:session-manager cycle";
 
+/** The notification providers a launch can be built for. */
+const LAUNCH_NOTIFY = new Set(["none", "telegram"]);
+
 /**
- * Settings blob for the manager session only: the Telegram plugin on, and
- * workers' messages accepted.
+ * Settings blob for the manager session only: workers' messages accepted,
+ * and the Telegram plugin on when Telegram is the notification channel. With
+ * no channel (`"none"`) the plugin is left out entirely, so the manager never
+ * starts a poller (#4555).
+ * @param {string} [notify] - Notification provider: "telegram" (default) or "none"
  * @returns {{ crossSessionInbound: "accept",
- *   enabledPlugins: Record<string, boolean> }} Fresh settings object
+ *   enabledPlugins?: Record<string, boolean> }} Fresh settings object
  */
-export function buildManagerSettings() {
-  return {
-    crossSessionInbound: "accept",
-    enabledPlugins: { [TELEGRAM_PLUGIN_ID]: true },
-  };
+export function buildManagerSettings(notify = "telegram") {
+  return notify === "telegram"
+    ? {
+        crossSessionInbound: "accept",
+        enabledPlugins: { [TELEGRAM_PLUGIN_ID]: true },
+      }
+    : { crossSessionInbound: "accept" };
 }
 
 /**
@@ -111,9 +121,15 @@ function assertAbsolute(label, value) {
  * `TELEGRAM_STATE_DIR` goes only into this session's env so no other session
  * ever sees it. `SM_SCRIPTS_DIR` lets every cycle's Bash find these scripts
  * without re-resolving the plugin root.
- * @param {{ name: string, root: string, stateDir: string, scriptsDir: string,
- *   interval: string }} input - Session name, project root, resolved state
- *   dir, this scripts dir, and the loop interval (e.g. "5m")
+ *
+ * With `notify: "none"` there is no channel: no `TELEGRAM_STATE_DIR`, no
+ * `--channels` and no plugin in the settings, and a `stateDir` is refused
+ * because only the telegram provider uses one (#4555).
+ * @param {{ name: string, root: string, stateDir?: string,
+ *   scriptsDir: string, interval: string,
+ *   notify?: string }} input - Session name, project root,
+ *   resolved state dir (telegram only), this scripts dir, the loop interval
+ *   (e.g. "5m") and the notification provider (default telegram)
  * @returns {string[]} argv for `spawnSync("tmux", argv)`
  */
 export function buildManagerLaunch({
@@ -122,10 +138,11 @@ export function buildManagerLaunch({
   stateDir,
   scriptsDir,
   interval,
+  notify = "telegram",
 }) {
   assertSessionName(name);
   assertAbsolute("root", root);
-  assertAbsolute("stateDir", stateDir);
+  const telegram = assertNotify(notify, stateDir) === "telegram";
   assertAbsolute("scriptsDir", scriptsDir);
   if (parseLoopInterval(interval) === null) {
     throw new LaunchError(
@@ -139,8 +156,7 @@ export function buildManagerLaunch({
     name,
     "-c",
     root,
-    "-e",
-    `TELEGRAM_STATE_DIR=${stateDir}`,
+    ...(telegram ? ["-e", `TELEGRAM_STATE_DIR=${stateDir}`] : []),
     "-e",
     `SM_SCRIPTS_DIR=${scriptsDir}`,
     "claude",
@@ -148,15 +164,38 @@ export function buildManagerLaunch({
     name,
     "--dangerously-skip-permissions",
     "--settings",
-    JSON.stringify(buildManagerSettings()),
-    "--channels",
-    `plugin:${TELEGRAM_PLUGIN_ID}`,
+    JSON.stringify(buildManagerSettings(notify)),
+    ...(telegram ? ["--channels", `plugin:${TELEGRAM_PLUGIN_ID}`] : []),
     // `--channels` is variadic (claude 2.1.296): without `--` it takes the
     // prompt as a second channel entry and claude exits 1 ("--channels
-    // entries must be tagged") before the session starts.
+    // entries must be tagged") before the session starts. Kept with no
+    // channel too, so the prompt is never read as an option.
     "--",
     `/loop ${interval} ${CYCLE_COMMAND}`,
   ];
+}
+
+/**
+ * Refuse an unsupported provider, a telegram launch without an absolute state
+ * dir, and a state dir on a launch with no channel.
+ * @param {unknown} notify - Notification provider
+ * @param {unknown} stateDir - Resolved state dir, if any
+ * @returns {"telegram" | "none"} The provider
+ */
+function assertNotify(notify, stateDir) {
+  if (!LAUNCH_NOTIFY.has(notify)) {
+    throw new LaunchError(
+      `notify "${String(notify)}" is not supported; use "none" or "telegram".`
+    );
+  }
+  if (notify === "telegram") {
+    assertAbsolute("stateDir", stateDir);
+  } else if (stateDir !== undefined) {
+    throw new LaunchError(
+      `stateDir is only used with the telegram provider; notify is "none".`
+    );
+  }
+  return notify;
 }
 
 /**

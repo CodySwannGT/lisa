@@ -30,8 +30,10 @@ export { detectRepoLayout, detectRepos, draftHints } from "./repo-detect.mjs";
 /**
  * Documented defaults for every optional key.
  *
- * `name` and `notify.stateDir` have none: both are per-project, and a shared
- * default for either is how two projects end up fighting over one bot.
+ * `notify.provider` defaults to `"none"`: a notification channel is optional
+ * (#4555), and an absent `notify` block means the manager runs without one.
+ * `name` and `notify.stateDir` have no default: both are per-project, and a
+ * shared default for either is how two projects end up fighting over one bot.
  * `buildDefaultBlock` derives them from the project slug at setup time.
  */
 export const SESSION_MANAGER_DEFAULTS = Object.freeze({
@@ -48,8 +50,23 @@ export const SESSION_MANAGER_DEFAULTS = Object.freeze({
     maxAttempts: 3,
     requestionHours: 4,
   }),
-  notify: Object.freeze({ provider: "telegram" }),
+  notify: Object.freeze({ provider: "none" }),
 });
+
+/** The `notify` choices `buildDefaultBlock` (and `init-config --notify`) take. */
+export const NOTIFY_CHOICES = Object.freeze(["none", "telegram"]);
+
+/**
+ * The notification provider a resolved (or raw) block runs with.
+ * @param {{ notify?: { provider?: unknown } } | null | undefined} config
+ *   Resolved or raw `sessionManager` block.
+ * @returns {string} `"telegram"`, `"none"`, or whatever unsupported value
+ *   was declared (validation refuses it).
+ */
+export function notifyProvider(config) {
+  const provider = config?.notify?.provider;
+  return provider === undefined || provider === null ? "none" : provider;
+}
 
 /**
  * @typedef {{ root: string, entries: Record<string, { hints: string[] }> }} ReposBlock
@@ -75,7 +92,7 @@ export const SESSION_MANAGER_DEFAULTS = Object.freeze({
  *   repos?: ReposBlock,
  *   capacity: CapacityBlock,
  *   stall: StallBlock,
- *   notify: { provider: string, stateDir: string },
+ *   notify: { provider: string, stateDir?: string },
  * }} SessionManagerBlock
  */
 
@@ -160,10 +177,14 @@ function normalizeSlug(projectSlug) {
  * name: valid either way, and setup asks the operator to review them.
  * `reposRoot` is where the repos were found (`detectRepoLayout`): `projects`
  * by default, or `.` when they sit directly under the project root.
+ * `notify` is the operator's channel choice: `"none"` (the default) writes
+ * `{provider:"none"}` and no state dir; `"telegram"` adds the per-project
+ * state dir derived from the slug.
  * @param {{ projectSlug: string, detectedRepos?: string[],
- *   hints?: Record<string, string[]>, reposRoot?: string }} input Project
- *   slug, the output of `detectRepos`, drafted hints per repo, and the repos
- *   root they were found under.
+ *   hints?: Record<string, string[]>, reposRoot?: string,
+ *   notify?: string }} input Project slug, the output of `detectRepos`,
+ *   drafted hints per repo, the repos root they were found under, and the
+ *   notification channel.
  * @returns {SessionManagerBlock} A block `validateSessionManager` accepts.
  */
 export function buildDefaultBlock({
@@ -171,7 +192,14 @@ export function buildDefaultBlock({
   detectedRepos = [],
   hints = {},
   reposRoot = DEFAULT_REPOS_ROOT,
+  notify = SESSION_MANAGER_DEFAULTS.notify.provider,
 }) {
+  if (!NOTIFY_CHOICES.includes(notify)) {
+    throw new Error(
+      `notify ${JSON.stringify(notify)} is not supported. Use one of: ` +
+        `${NOTIFY_CHOICES.join(", ")}.`
+    );
+  }
   const slug = normalizeSlug(projectSlug);
   const repos = [...detectedRepos].sort();
   return {
@@ -192,10 +220,10 @@ export function buildDefaultBlock({
       : {}),
     capacity: { ...SESSION_MANAGER_DEFAULTS.capacity },
     stall: { ...SESSION_MANAGER_DEFAULTS.stall },
-    notify: {
-      provider: SESSION_MANAGER_DEFAULTS.notify.provider,
-      stateDir: `~/.claude/channels/telegram-${slug}`,
-    },
+    notify:
+      notify === "telegram"
+        ? { provider: notify, stateDir: `~/.claude/channels/telegram-${slug}` }
+        : { provider: notify },
   };
 }
 

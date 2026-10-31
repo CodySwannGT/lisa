@@ -81,7 +81,7 @@ const COMMANDS = {
   validate: { run: validate, options: {}, positionals: 0 },
   "init-config": {
     run: initConfig,
-    options: { slug: text, write: flag },
+    options: { slug: text, write: flag, notify: text },
     positionals: 0,
   },
   queue: {

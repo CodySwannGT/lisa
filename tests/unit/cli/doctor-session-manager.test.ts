@@ -1,5 +1,5 @@
 /**
- * Coverage for the session-manager Telegram isolation doctor check (#4448).
+ * Coverage for the session-manager notifications doctor check (#4448, #4555).
  *
  * Every finding runs against a temp HOME and an injected environment, so the
  * operator's real `~/.claude` is never read. Token files are only ever
@@ -15,7 +15,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { runDoctor } from "../../../src/cli/doctor.js";
 import { checkSessionManagerIsolation } from "../../../src/cli/doctor-session-manager.js";
 
-const CHECK_NAME = "Session manager Telegram isolation?";
+const CHECK_NAME = "Session manager notifications?";
 const PLUGIN_ID = "telegram@claude-plugins-official";
 const PLANTED = "987654321:PLANTED_VALUE_abcdefghijklmnopqrstuvwxyz";
 const TOKEN_FILE = ".env";
@@ -129,7 +129,10 @@ describe("session-manager doctor check", () => {
       path.join(fx.project, CONFIG_FILE),
       JSON.stringify({
         sessionManager: {
-          notify: { stateDir: path.join(configDir, "channels", "telegram") },
+          notify: {
+            provider: "telegram",
+            stateDir: path.join(configDir, "channels", "telegram"),
+          },
         },
       })
     );
@@ -139,8 +142,10 @@ describe("session-manager doctor check", () => {
     expect(check.status).toBe("fail");
   });
 
-  it("fails when notify.stateDir is missing", async () => {
-    const check = await run(await fixture({ name: "p-manager" }));
+  it("fails when the telegram provider has no notify.stateDir", async () => {
+    const check = await run(
+      await fixture({ name: "p-manager", notify: { provider: "telegram" } })
+    );
 
     expect(check.status).toBe("fail");
     expect(check.detail).toMatch(/notify\.stateDir is not set/);
@@ -148,7 +153,7 @@ describe("session-manager doctor check", () => {
 
   it("uses the local config's stateDir over the committed one", async () => {
     const fx = await fixture({
-      notify: { stateDir: "~/.claude/channels/telegram" },
+      notify: { provider: "telegram", stateDir: "~/.claude/channels/telegram" },
     });
     await writeFile(
       path.join(fx.project, ".lisa.config.local.json"),

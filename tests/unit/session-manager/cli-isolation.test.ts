@@ -37,6 +37,7 @@ const TOKEN_FILE = ".env";
 const STORE_TOKEN = "store-token";
 const INIT_CONFIG = "init-config";
 const PLACEHOLDER = "placeholder\n";
+const NOTIFY_TELEGRAM = "--notify=telegram";
 
 /**
  * The 6-hex root hash the default slug must carry.
@@ -71,7 +72,7 @@ describe("init-config default slug", () => {
   it("adds a stable hash of the project root to the repo name", () => {
     const sandbox = makeSandbox({ sessionManager: null });
     const slug = `demo-repo-${rootHash(sandbox.root)}`;
-    const result = runCli(sandbox, [INIT_CONFIG]);
+    const result = runCli(sandbox, [INIT_CONFIG, NOTIFY_TELEGRAM]);
     expect(result.status).toBe(0);
     expect(result.json.block.name).toBe(`${slug}-manager`);
     expect(result.json.block.notify.stateDir).toBe(
@@ -80,8 +81,14 @@ describe("init-config default slug", () => {
   });
 
   it("gives two projects with the same repo name different managers and bots", () => {
-    const one = runCli(makeSandbox({ sessionManager: null }), [INIT_CONFIG]);
-    const two = runCli(makeSandbox({ sessionManager: null }), [INIT_CONFIG]);
+    const one = runCli(makeSandbox({ sessionManager: null }), [
+      INIT_CONFIG,
+      NOTIFY_TELEGRAM,
+    ]);
+    const two = runCli(makeSandbox({ sessionManager: null }), [
+      INIT_CONFIG,
+      NOTIFY_TELEGRAM,
+    ]);
     expect(one.json.block.name).not.toBe(two.json.block.name);
     expect(one.json.block.notify.stateDir).not.toBe(
       two.json.block.notify.stateDir

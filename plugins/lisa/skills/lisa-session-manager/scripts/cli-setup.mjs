@@ -21,6 +21,7 @@ import {
   buildDefaultBlock,
   detectRepoLayout,
   draftHints,
+  notifyProvider,
   resolveRepoDir,
 } from "./config.mjs";
 import { defaultProjectSlug } from "./isolation.mjs";
@@ -34,12 +35,14 @@ import {
 } from "./setup-checks.mjs";
 
 /**
- * `init-config [--slug <slug>] [--write]`: the default block for this
- * project, written to `.lisa.config.json` only with `--write` and only when
- * no block exists. Non-secret fields only; the token never goes here. Repos
- * are the routable children `detectRepoLayout` finds under `projects/`, else
- * directly under the root (linked worktrees and second clones of one remote
- * left out), each with drafted hints.
+ * `init-config [--slug <slug>] [--notify none|telegram] [--write]`: the
+ * default block for this project, written to `.lisa.config.json` only with
+ * `--write` and only when no block exists. Non-secret fields only; the token
+ * never goes here. Repos are the routable children `detectRepoLayout` finds
+ * under `projects/`, else directly under the root (linked worktrees and second
+ * clones of one remote left out), each with drafted hints. `--notify` defaults
+ * to `none` (no notification channel, so no state dir); `telegram` adds the
+ * per-project state dir. Anything else exits 2.
  * @param {object} ctx - CLI context
  * @returns {{ json: object }} `{written,block,...}`
  */
@@ -60,7 +63,13 @@ export function initConfig(ctx) {
     ])
   );
   const block = asSetupError(() =>
-    buildDefaultBlock({ projectSlug: slug, detectedRepos, hints, reposRoot })
+    buildDefaultBlock({
+      projectSlug: slug,
+      detectedRepos,
+      hints,
+      reposRoot,
+      notify: ctx.values.notify ?? "none",
+    })
   );
   if (!ctx.values.write) return { json: { written: false, block } };
 
@@ -90,6 +99,15 @@ export function initConfig(ctx) {
  */
 export async function storeToken(ctx) {
   const config = requireConfig(ctx);
+  if (notifyProvider(config) !== "telegram") {
+    throw new CliError(
+      `sessionManager.notify.provider is "none", so there is no bot token ` +
+        `to store. To use Telegram, set notify to {"provider":"telegram",` +
+        `"stateDir":"~/.claude/channels/telegram-<project>"} and run ` +
+        `store-token again.`,
+      EXIT.SETUP
+    );
+  }
   const input = {
     stateDir: config.notify?.stateDir,
     scriptsDir: ctx.scriptsDir,

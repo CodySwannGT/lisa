@@ -664,12 +664,19 @@ const STALL_RULES = {
   requestionHours: [n => n >= 0, "zero or a positive number"],
 };
 
+/** Notification providers `sessionManager.notify.provider` accepts. */
+const NOTIFY_PROVIDERS = ["none", "telegram"];
+
 /**
  * Validate `sessionManager.notify`.
  *
- * `stateDir` is required rather than defaulted here: the default dir is shared
- * by every project, and a shared dir is exactly how one project's bot gets
- * taken over by another's session.
+ * A notification channel is optional (#4555): an absent block, an absent
+ * provider and `"none"` all mean the manager runs with no channel, and then
+ * there is no state dir to name. A `stateDir` without the telegram provider is
+ * refused rather than ignored, because it means the operator believes a bot is
+ * attached when none will be. For telegram, `stateDir` is required rather than
+ * defaulted here: the default dir is shared by every project, and a shared dir
+ * is exactly how one project's bot gets taken over by another's session.
  * @param {unknown} notify The declared value.
  * @returns {string[]} Problems found.
  */
@@ -677,23 +684,32 @@ function validateNotify(notify) {
   if (notify !== undefined && !isPlainObject(notify)) {
     return ["sessionManager.notify must be an object"];
   }
-  const provider = notify?.provider;
-  const stateDir = notify?.stateDir;
-  return [
-    ...(provider === undefined || provider === "telegram"
-      ? []
-      : [
-          `sessionManager.notify.provider ${JSON.stringify(provider)} is not ` +
-            `supported. Only "telegram" is implemented.`,
-        ]),
-    ...(typeof stateDir === "string" && stateDir.trim() !== ""
-      ? []
-      : [
-          `sessionManager.notify.stateDir is missing. Each project needs its ` +
-            `own Telegram state dir, such as ` +
-            `"~/.claude/channels/telegram-<project>".`,
-        ]),
-  ];
+  const provider = notify?.provider ?? "none";
+  if (!NOTIFY_PROVIDERS.includes(provider)) {
+    return [
+      `sessionManager.notify.provider ${JSON.stringify(provider)} is not ` +
+        `supported. Use "none" (no notification channel) or "telegram".`,
+    ];
+  }
+  const hasStateDir = notify?.stateDir !== undefined;
+  const stateDirOk =
+    typeof notify?.stateDir === "string" && notify.stateDir.trim() !== "";
+  if (provider === "none") {
+    return hasStateDir
+      ? [
+          `sessionManager.notify.stateDir is set, but notify.provider is not ` +
+            `"telegram", so no bot would use it. Set notify.provider to ` +
+            `"telegram", or remove notify.stateDir.`,
+        ]
+      : [];
+  }
+  return stateDirOk
+    ? []
+    : [
+        `sessionManager.notify.stateDir is missing. Each project needs its ` +
+          `own Telegram state dir, such as ` +
+          `"~/.claude/channels/telegram-<project>".`,
+      ];
 }
 
 /**

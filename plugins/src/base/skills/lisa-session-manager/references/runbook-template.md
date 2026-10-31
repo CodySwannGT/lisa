@@ -8,13 +8,14 @@ the project: edit the prose to match how you run it. The loop follows the
 ## Intent
 
 Keeps Ready work moving on this machine: each Ready item gets its own fresh coding session, and the
-operator answers that session's questions from their phone.
+operator answers that session's questions, from their phone when the project has a Telegram bot.
 
 ## Sources of truth
 
 The configured tracker's lanes (the `ready`, `claimed` and `blocked` roles from `.lisa.config.json`),
 read through the tracker access layer; the manager's ledger in `.lisa/session-manager/`; the live
-session list from `claude agents`; and the project's own Telegram chat.
+session list from `claude agents`; and, when `sessionManager.notify.provider` is `telegram`, the
+project's own Telegram chat. Telegram is optional: with no channel, questions wait in the ledger.
 
 ## Candidate selection
 
@@ -49,14 +50,17 @@ asks, any item whose repo is unclear, and any item that failed `stall.maxAttempt
 
 ## Escalation
 
-A worker's question goes to Telegram. An item that keeps failing moves to the `blocked` role with a
-comment that says what happened. When the manager itself cannot proceed it records
-`recovery-required` with a one-line reason.
+A worker's question goes to Telegram when it is configured; with no channel it is recorded as
+pending in the ledger, where `/lisa:session-manager status` shows it. No question is ever asked in
+the manager's terminal. An item that keeps failing moves to the `blocked` role with a comment that says what
+happened. When the manager itself cannot proceed it records `recovery-required` with a one-line
+reason. Having no notification channel is not such a reason; a configured Telegram that is broken
+or unpaired is.
 
 ## Recovery
 
-Restore whatever the last `recovery-required` summary names (tracker access, the Telegram token, the
-claude CLI), then `/lisa:session-manager stop` and `/lisa:session-manager start`. Items moved to
+Restore whatever the last `recovery-required` summary names (tracker access, the Telegram token or
+pairing when Telegram is configured, the claude CLI), then `/lisa:session-manager stop` and `/lisa:session-manager start`. Items moved to
 `blocked` go back to `ready` once a human has dealt with the reason.
 
 ## Next-run state

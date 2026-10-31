@@ -3,14 +3,17 @@ name: lisa-setup-session-manager
 description: "Set up the local session…"
 allowed-tools: ["Bash", "Read", "Write", "Skill", "AskUserQuestion"]
 ---
-Set up the local session manager for this project: writes the non-secret `sessionManager` block to `.lisa.config.json` (detecting a multi-repo layout: repos under `projects/`, or directly under the project root), stores the project's own Telegram bot token outside the repo, checks the Telegram plugin is installed but not enabled at user scope, keeps the manager's state out of git, seeds the checked-in runbook, starts the manager in tmux, walks the operator through pairing, and finishes with doctor's session-manager check. Idempotent.
+Set up the local session manager for this project: writes the non-secret `sessionManager` block to `.lisa.config.json` (detecting a multi-repo layout: repos under `projects/`, or directly under the project root), optionally sets up a Telegram notification channel (the project's own bot token stored outside the repo, the Telegram plugin installed but not enabled at user scope, pairing; skipped entirely with no channel, the default), keeps the manager's state out of git, seeds the checked-in runbook, starts the manager in tmux, and finishes with doctor's session-manager check. Idempotent.
 
 
 # Setup session manager
 
-After this skill the project has a `sessionManager` block, a bot token in its own state directory, a
-runbook at `.lisa/automations/session-manager.runbook.md`, and a running manager paired with the
-operator's Telegram chat. Re-running is safe: every step keeps what is already there.
+After this skill the project has a `sessionManager` block, a runbook at
+`.lisa/automations/session-manager.runbook.md`, and a running manager. Telegram is optional: with it,
+the project also has a bot token in its own state directory and a manager paired with the operator's
+Telegram chat; with no channel (the default), Steps 3 and 4 and the pairing in Step 9 are skipped,
+and questions wait in the manager's ledger, where `status` shows them. Re-running is safe: every
+step keeps what is already there.
 
 The manager itself always runs on Claude Code (see `lisa-session-manager` "Runtime parity"). Setup
 can run from any agent that can reach the scripts; `start` launches the Claude Code manager.
@@ -42,15 +45,23 @@ writes `$SM`, and pass `--project-root "$ROOT"` (the absolute project root) on e
 
 ## Step 2: Write the config block
 
-1. Preview: `node "$SM/session-manager.mjs" init-config --project-root "$ROOT"`. It detects
+0. Ask the operator whether they want Telegram notifications: worker questions and status on their
+   phone, through a bot they create for this project. Say plainly that it is optional: without it
+   the manager runs normally, and questions wait in its ledger (shown by `status`) instead of
+   reaching a phone. Their answer is `<notify>`: `telegram` or `none` (the default).
+1. Preview: `node "$SM/session-manager.mjs" init-config --notify <notify> --project-root "$ROOT"`.
+   It detects
    `projects/*/.lisa.config.json`, or, when `projects/` holds none, the root's own children that
    have a `.lisa.config.json` and their own `.git` (written as `repos.root: "."`). It proposes
-   `name`, `interval`, `repos`, `capacity`, `stall` and a per-project `notify.stateDir`. Repo
+   `name`, `interval`, `repos`, `capacity`, `stall` and `notify`: `{"provider":"none"}`, or with
+   `--notify telegram` the telegram provider and a per-project `notify.stateDir`. Repo
    detection leaves out linked worktrees and keeps one checkout per remote, so ticket worktrees and
    second clones are not proposed. Show the block to the operator and ask whether any repo is
    missing or should not be routed.
 2. Write it: the same command with `--write`. It adds only non-secret fields and never overwrites an
-   existing block (`reason: "exists"` means keep it).
+   existing block (`reason: "exists"` means keep it). To add Telegram to an existing block later,
+   set `notify` to `{"provider":"telegram","stateDir":"~/.claude/channels/telegram-<project>"}`
+   (the `<project>` part as `init-config --notify telegram` would derive it) and re-run this skill.
 3. Each repo's `hints` are a draft: its name plus one per well-known dependency (`NestJS`, `Expo`,
    `AWS CDK`, ...). Ask the operator to correct them and add the areas that identify the repo
    (e.g. `api`: `["NestJS","migrations"]`, `web`: `["Expo","screens"]`), and whether to
@@ -81,6 +92,9 @@ writes `$SM`, and pass `--project-root "$ROOT"` (the absolute project root) on e
 
 ## Step 3: Store the bot token
 
+Only when `sessionManager.notify.provider` is `telegram`. With no channel (`none`, or no `notify`
+block) there is no token: skip Steps 3 and 4 and go to Step 5.
+
 The operator creates a bot with @BotFather, one per project. Then run
 `node "$SM/session-manager.mjs" store-token --project-root "$ROOT"`.
 
@@ -102,7 +116,7 @@ Never ask for the token in chat, never echo, log or commit it, and never put it 
 
 ## Step 4: Telegram plugin scope
 
-Read `claude plugin list --json` and look at the `telegram@claude-plugins-official` entries.
+Only when `notify.provider` is `telegram`. Read `claude plugin list --json` and look at the `telegram@claude-plugins-official` entries.
 
 - **Not installed:** ask the operator to install it with
   `claude plugin install telegram@claude-plugins-official -s user`, then re-check.
@@ -175,11 +189,13 @@ project), on every machine that runs the manager:
    bypass-permissions worker runs. Ask the operator for the IDs, add them, re-run `validate`, then
    continue. `lisa doctor` fails on the same condition.
 1. `node "$SM/session-manager.mjs" start --project-root "$ROOT"`. `started` and `already-running`
-   are both fine. Exit 2 names what is missing (usually the token from Step 3), or that a tmux
-   session of the same name belongs to another project root, or that the manager
+   are both fine. With no channel it needs no token, plugin or pairing and launches without
+   `--channels`. Exit 2 names what is missing (with Telegram, usually the token from Step 3), or
+   that a tmux session of the same name belongs to another project root, or that the manager
    exited right after starting. For the last, ask the operator to run the printed foreground command
    in their own terminal: claude prints its own error there. Fix it, then run `start` again.
-2. Walk the operator through pairing, in their own terminal:
+2. Only with Telegram (`notify` is `telegram` in the `start` output); with no channel there is no
+   pairing, so skip to Step 10. Walk the operator through pairing, in their own terminal:
    1. `tmux attach -t <name>` (the `attach` value from the output).
    2. Send any message to the bot in a private chat. The bot replies with a pairing code.
    3. In the attached manager session: `/telegram:access pair <code>`.
@@ -193,10 +209,12 @@ Telegram message asked for it. Every allowlisted sender effectively has shell ac
 ## Step 10: Verify
 
 Run `lisa doctor` (or `npx @codyswann/lisa doctor` when the `lisa` CLI is not on the PATH) and
-confirm the "Session manager Telegram isolation?" check is green. Fix every warning it names, then
+confirm the "Session manager notifications?" check is green. With no channel its detail is
+`notifications: none`, and it skips every Telegram check. Fix every warning it names, then
 `node "$SM/session-manager.mjs" status --project-root "$ROOT"` should show the manager running.
 
-Report: the config block written (or kept), where the token lives (the path, never the value), the
-plugin scope result, the runbook path, which repo dirs were already trusted and which the operator
+Report: the config block written (or kept), the notification channel (`telegram` or `none`), and
+with Telegram where the token lives (the path, never the value) and the plugin scope result, the
+runbook path, which repo dirs were already trusted and which the operator
 accepted trust in, what the competing-loop check found, the manager's tmux session name, and the
 doctor result.
