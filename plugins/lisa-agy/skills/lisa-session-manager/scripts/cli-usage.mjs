@@ -27,7 +27,8 @@ Workers and capacity
   spawn <ref> [--repo <key>] [--max-workers <n>]
       Checks, in order: repo dir resolves and has .lisa.config.json (exit 2);
       capacity (exit 3, stdout = capacity report); no live wk- worker for the
-      ref (exit 4, stdout = {ref,worker,sessionId}). Then runs, with cwd = repo
+      ref (exit 4, stdout = {ref,worker,sessionId}); no pending question in
+      the ledger for the ref (exit 2: clear it first). Then runs, with cwd = repo
       dir and every TELEGRAM_* variable removed:
         claude --bg -n wk-<token>-<MMDD-HHMM> --dangerously-skip-permissions
           --settings {"crossSessionInbound":"accept"}

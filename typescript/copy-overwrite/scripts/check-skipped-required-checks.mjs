@@ -2879,14 +2879,20 @@ const DECISIVE_REVIEW_STATES = new Set([
  * either does not, the later array position wins, which is the reviews
  * endpoint's chronological order.
  * @param {ReadonlyArray<{state?: string, author?: string, submittedAt?: string}>} reviews - Reviews, oldest first
- * @returns {Map<string, {state?: string, author?: string, submittedAt?: string}>} Latest decisive review per author
+ * @returns {Map<string|symbol, {state?: string, author?: string, submittedAt?: string}>} Latest decisive review per author; each author-less review keys alone
  */
 function latestDecisiveByAuthor(reviews) {
   const latest = new Map();
   for (const review of reviews) {
     const state = String(review?.state ?? "").toUpperCase();
     if (!DECISIVE_REVIEW_STATES.has(state)) continue;
-    const author = String(review?.author ?? "unknown");
+    // An author-less review (a deleted account) is never reduced against
+    // another: two of them are not the same reviewer, so a missing login can
+    // never let one's approval withdraw the other's objection.
+    const author =
+      typeof review?.author === "string" && review.author !== ""
+        ? review.author
+        : Symbol("unknown-author");
     const prior = latest.get(author);
     const priorAt = Date.parse(prior?.submittedAt ?? "");
     const thisAt = Date.parse(review?.submittedAt ?? "");

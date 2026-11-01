@@ -305,6 +305,24 @@ describe("each reviewer's LATEST verdict at head decides (#4571)", () => {
     expect(standing.objected).toBe(true);
   });
 
+  it("never lets one author-less review withdraw another's objection", () => {
+    // Deleted accounts come back with no login. Two of them are not one
+    // reviewer, so an approval from one must not clear the other's objection.
+    const standing = mod.readObjectionAtHead(
+      [
+        { state: "CHANGES_REQUESTED", commitSha: HEAD, author: "" },
+        {
+          state: "APPROVED",
+          commitSha: HEAD,
+          author: "",
+          submittedAt: APPROVED_AT,
+        },
+      ] as ReviewObject[],
+      HEAD
+    );
+    expect(standing.objected).toBe(true);
+  });
+
   it("readReviewObjection reports no violation for the object-then-approve sequence", () => {
     const result = mod.readReviewObjection("1", "o/r", HEAD, {
       fetchReviews: () => [objectAt(OBJECTED_AT), approveAt(APPROVED_AT)],

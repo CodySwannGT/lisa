@@ -297,7 +297,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-hooks/parity-safety-net-heredoc.py":
       "b37b843b738fd0c1c6f9639551cf64c409263064819bb820e3daa6af8c94d443",
     "all/copy-overwrite/scripts/lisa-hooks/parity-safety-net.sh":
-      "cc9b44042d184a65277116009fccc26a678b57dbc51699e5acaae8afdf9735ff",
+      "40e6c3a23809cf322441265600326fa8c45b184fd9193cd3f8ffdeed597b5365",
     "all/copy-overwrite/scripts/lisa-hooks/sonar-secrets.sh":
       "e0b0073fe44f6e78b74f05cb232d30a3121acc3600bdbd5bc4299c1c710d56a2",
     "all/copy-overwrite/scripts/lisa-hooks/worktree-binding-guard.mjs":
@@ -1079,7 +1079,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/hooks/parity-safety-net.agy.sh":
       "ce9bd2b4566ad9147e4ace56434cffbbe87edb4ccbb57549ab3fd9f4c671ced4",
     "plugins/src/base/hooks/parity-safety-net.sh":
-      "6e76a941e1afb0ebb223d527bc70f73eb101650df5b9d61f77ae951dd601e94d",
+      "38ae9df19e83950549d8832e888b18654e6d4c45ebfed857c423554cd3ead9f7",
     "plugins/src/base/hooks/secrets-preflight.sh":
       "cdc638627e5769770aefb061ea0ddfacc1888a8eab3a5fade6c43129a2d3ff6e",
     "plugins/src/base/hooks/setup-jira-cli.sh":
@@ -1671,7 +1671,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-sentry-access/SKILL.md":
       "1c1881ca9a2020f6cd8f938dc5335ebf2d344ff280844bb98926198e5226e526",
     "plugins/src/base/skills/lisa-session-manager/SKILL.md":
-      "24145bb19f4df13ce9b33c4d4d3bd523d5f7f09e2656d6dc132ce5b88c524846",
+      "c8818666089caeae98e8268c0313228b6ae540e100eca05492964ea984c38402",
     "plugins/src/base/skills/lisa-session-manager/references/runbook-template.md":
       "9a2a010400a6bcc49055fddef30afe4a936499793df90f8526ef7c298167d4e9",
     "plugins/src/base/skills/lisa-session-manager/scripts/capacity.mjs":
@@ -1693,9 +1693,9 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-status.mjs":
       "30bdd485e5c575a78456230712d4a51d1feddd4022a0c8e5c69e5edc3c32508a",
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-usage.mjs":
-      "8f3a0b70ec223038bd361dff0b5c801658d9e5b847a238e5b5ddfdeb56ca4bb2",
+      "06a754ab4ed5d2d5eec8fb0533129d199ce44f1b0536974d21f604f49275830a",
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-workers.mjs":
-      "63ca4c92eb838f806be1dcb6b995cdcee56f77eb7ba4787959ec23a395b32bfe",
+      "57ba40f04998584146eab88f879c8c3edb5bbc3b5d7eba8d0e79f320df09bcc7",
     "plugins/src/base/skills/lisa-session-manager/scripts/clipboard.mjs":
       "6becdcf8797bfdcfa31553c90d125be4b7f643ab305a3abc19aae73d29263e29",
     "plugins/src/base/skills/lisa-session-manager/scripts/config.mjs":
@@ -2949,7 +2949,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/copy-overwrite/scripts/check-nightly-e2e-health.mjs":
       "d1b26caeaf65950e3b60ff41964d234c032c50470072e7643310b1f6722e34e6",
     "typescript/copy-overwrite/scripts/check-skipped-required-checks.mjs":
-      "0db9340966fdd5620a58ab5ad959bbbe408f1806b91637131fb8a138bf8fd8bd",
+      "c1417200e7e77c5d2dbbebcf747bf042d481f0f711b71d3a892b3677bb90ce52",
     "typescript/copy-overwrite/scripts/check-threshold-ratchet.mjs":
       "d4afc90ba8faf10925fff5fb0d6cd0ace22df2eaa0ec609ee969d0ec84092299",
     "typescript/copy-overwrite/scripts/check-verification-coverage.mjs":

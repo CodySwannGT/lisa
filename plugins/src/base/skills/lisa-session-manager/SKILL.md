@@ -234,6 +234,10 @@ leave the ledger as it is (`markedAt` stays null), carry on with the cycle and e
      move the item to the `ready` role, and clear with `--reset-attempts` in step 3, so the next
      dispatch starts a fresh attempt that reads the answer on the item.
    - `decision` with no worker yet: nothing to deliver; the next worker reads it on the item.
+   - `worker-question` or `decision` whose worker already reported `DONE` or `FAILED` (the
+     question outlives the worker in the ledger, so its marker can still be removed): do not
+     resume the finished worker. Deliver nothing; the next attempt reads the answer on the item.
+     `spawn` refuses a ref while its question is pending, so finish this clearing first.
 2. **Remove the manager's own marker** (the `marker` the ledger recorded, nothing else) through
    `lisa-tracker-write`, with a short comment: `[lisa-session-manager] Answer delivered; removed the
    hold.` Read it back with `lisa-tracker-read`.
@@ -333,9 +337,12 @@ shows them.
   answers with the `answerCommand` from `status`. A reply that looks like it holds a credential is
   never queued: it is skipped and listed in `refused`, so a later reply is still read.
   Whenever `refused` is present (with `queued: true`, or `queued: false` and
-  `reason: "credential-refused"`), tell the operator once, in plain words, from
-  `refusedExplanation`: the secret is now on the item, so they should delete that comment, rotate
-  the secret, and reply again without it. Never repeat the refused text. Exit 2 from `item-answer`
+  `reason: "credential-refused"`), tell the operator in plain words, from `refusedExplanation`:
+  the secret is now on the item, so they should delete that comment, rotate the secret, and reply
+  again without it. `refused` comes back every cycle until the comment is deleted, so say it once
+  per refused comment `id` (note the ids you reported in the transcript). On `queued: true`, also
+  quote back what was queued, so a follow-up such as "ignore that" is not mistaken for the answer
+  unseen. Never repeat the refused text. Exit 2 from `item-answer`
   is a setup problem (no pending question for the ref, or an unreadable ledger): report its message
   to the operator and leave the item; it never means the reply was a credential.
 

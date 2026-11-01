@@ -137,6 +137,16 @@ export async function spawn(ctx) {
   }
 
   const ledger = await readLedger(ctx.root);
+  // A spawn no longer clears a pending question (lisa#4571), and a worker
+  // under one classifies as waiting, never stalled or dead. So refuse here:
+  // the question must be answered and cleared first ("Clearing").
+  if (ledger.items[ref]?.pendingQuestion) {
+    throw new CliError(
+      `${ref} has a pending question in the ledger; nothing was spawned. ` +
+        `Answer it and run "Clearing" (ledger clear-question ${ref}) first.`,
+      EXIT.SETUP
+    );
+  }
   const spec = asSetupError(() => {
     const name = buildWorkerName(ref, ctx.now(), knownNames(agents, ledger));
     return buildWorkerSpawn({
