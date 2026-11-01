@@ -111,7 +111,11 @@ describe("the retired base.json template", () => {
 });
 
 describe("buildRulesetPayload", () => {
-  it("reproduces the retired template's shape for a project declaring nothing", () => {
+  it("reproduces the retired template's shape for a project declaring nothing, except stale-review dismissal", () => {
+    // The one deliberate departure from the retired template is
+    // `dismiss_stale_reviews_on_push: true` (CodySwannGT/lisa#4574), so an
+    // approval on an older head does not survive a push. It dismisses stale
+    // approvals only; a CHANGES_REQUESTED review still needs a dismissal.
     expect(buildRulesetPayload()).toEqual({
       name: "base",
       target: "branch",
@@ -128,7 +132,7 @@ describe("buildRulesetPayload", () => {
           type: "pull_request",
           parameters: {
             required_approving_review_count: 0,
-            dismiss_stale_reviews_on_push: false,
+            dismiss_stale_reviews_on_push: true,
             require_code_owner_review: false,
             require_last_push_approval: false,
             required_review_thread_resolution: true,
@@ -338,6 +342,26 @@ describe("buildRulesetPayload", () => {
       expect(parameters?.required_review_thread_resolution).toBe(false);
       expect(parameters?.dismiss_stale_reviews_on_push).toBe(true);
       expect(parameters?.require_last_push_approval).toBe(true);
+    });
+
+    it("dismisses stale reviews on push by default (#4574)", () => {
+      const parameters = ruleOf(
+        buildRulesetPayload({ policy: {} }),
+        "pull_request"
+      )?.parameters;
+
+      expect(parameters?.dismiss_stale_reviews_on_push).toBe(true);
+    });
+
+    it("keeps a declared dismiss_stale_reviews: false (#4574)", () => {
+      const parameters = ruleOf(
+        buildRulesetPayload({
+          policy: { protect: { dismiss_stale_reviews: false } },
+        }),
+        "pull_request"
+      )?.parameters;
+
+      expect(parameters?.dismiss_stale_reviews_on_push).toBe(false);
     });
   });
 

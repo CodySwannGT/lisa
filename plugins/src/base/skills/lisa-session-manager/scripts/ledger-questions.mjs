@@ -177,9 +177,14 @@ export function listPendingQuestions(ledger, answerCommand) {
  * gets a placeholder item with zero attempts.
  *
  * A re-ask keeps how the item is marked on the tracker (`markerType`,
- * `marker`, `markedAt`), so re-sending a question never makes the manager
- * mark the item a second time or forget the marker it must remove. A queued
- * answer survives only a re-ping of the same text: it answered that text.
+ * `marker`), so re-sending a question never makes the manager forget the
+ * marker it must remove. `markedAt` survives only a re-ping of the same text:
+ * a changed question has not been posted or read back yet, so it reads as
+ * unmarked until `ledger marked` records the new question comment. Keeping it
+ * would let the next cycle run `item-answer` against the old question comment
+ * and queue a reply to the old question as the answer to the new one
+ * (CodySwannGT/lisa#4570). A queued answer survives only a re-ping of the same
+ * text for the same reason: it answered that text.
  * `kind` defaults to the previous kind, then `worker-question`.
  * @param {string} projectRoot - Absolute project root
  * @param {{ref: string, text: string, telegramMessageId: number|null,
@@ -213,7 +218,7 @@ export function setPendingQuestion(
         telegramMessageId: telegramMessageId ?? null,
         markerType: existing?.markerType ?? null,
         marker: existing?.marker ?? null,
-        markedAt: existing?.markedAt ?? null,
+        markedAt: sameText ? (existing?.markedAt ?? null) : null,
         managerCommentIds: existing?.managerCommentIds ?? [],
         answer: sameText ? (existing.answer ?? null) : null,
       },

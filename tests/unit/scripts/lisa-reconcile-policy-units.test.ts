@@ -18,6 +18,7 @@ import {
   rulesetSignals,
   unobservablePolicyFields,
 } from "../../../all/copy-overwrite/scripts/lisa-reconcile-policy.mjs";
+import { buildRulesetPayload } from "../../../scripts/lisa-ruleset-payload.mjs";
 import { QUALITY } from "./lisa-gates-fixtures.js";
 import {
   ACTIONS_ID,
@@ -268,6 +269,22 @@ describe("liveContexts and rulesetSignals", () => {
 
   it("reports every boolean signal false for a repository with no rules", () => {
     expect(Object.values(rulesetSignals([]))).toEqual(Array(8).fill(false));
+  });
+
+  it("observes the generated default ruleset as dismissing stale reviews (#4574)", () => {
+    // The generator and the drift check must agree: a project that declares
+    // `policy.protect.dismiss_stale_reviews: true` and applies the default
+    // ruleset has no drift on that field.
+    const signals = rulesetSignals([buildRulesetPayload()]);
+    expect(signals.dismiss_stale_reviews).toBe(true);
+    const result = reconcileSettings({
+      policy: { protect: { dismiss_stale_reviews: true } },
+      live: { settings: {}, signals },
+    });
+    expect(result.drift).toEqual([]);
+    expect(
+      result.matched.map((finding: { path: string }) => finding.path)
+    ).toEqual(["protect.dismiss_stale_reviews"]);
   });
 });
 

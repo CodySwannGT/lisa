@@ -386,14 +386,20 @@ function isVerifyEntryFor(entry, ref, context) {
  * Use the same canonical parser/integrity implementation as the TS writer.
  *
  * Every comment on the work item is read, from any author. A `## Lisa Usage`
- * section that is malformed or fails its integrity check therefore cannot be
- * allowed to fail the whole authorization: one stray or hand-edited comment
- * would otherwise turn a completed item into `invalid-proof`
+ * section in a COMMENT that is malformed or fails its integrity check therefore
+ * cannot be allowed to fail the whole authorization: one stray or hand-edited
+ * comment would otherwise turn a completed item into `invalid-proof`
  * (CodySwannGT/lisa#4564). Such a section contributes no entries and is
  * skipped, and an expected id is satisfied when ANY intact section carries the
- * matching Verify entry, so a later conflicting copy cannot shadow it. Nothing
- * is accepted that was not accepted before: every expected id still needs an
- * intact, well-formed section holding the Verify entry for this exact item.
+ * matching Verify entry, so a later conflicting copy cannot shadow it.
+ *
+ * The work-item BODY (`documents[0]`) is not a stray comment, and every
+ * failure there stays fatal: a duplicated heading, a section that does not
+ * parse, and a section that fails its integrity check (CodySwannGT/lisa#4570).
+ * Skipping a malformed or tampered body would let an intact comment authorize
+ * the item, which was refused before #4564. Nothing is accepted that was not
+ * accepted before: every expected id still needs an intact, well-formed
+ * section holding the Verify entry for this exact item.
  */
 export function validateVerifyUsage(documents, ref, expectedIds, context) {
   requireProof(
@@ -419,11 +425,19 @@ export function validateVerifyUsage(documents, ref, expectedIds, context) {
     try {
       parsed = parseLisaUsageSection(canonical);
     } catch {
+      requireProof(
+        index > 0,
+        "The work-item body's canonical Verify usage section is malformed."
+      );
       skipped += 1;
       continue;
     }
     if (!parsed.range) continue;
     if (!verifyLisaUsageSectionIntegrity(canonical).ok) {
+      requireProof(
+        index > 0,
+        "The work-item body's canonical usage ledger failed its stored-surface integrity check."
+      );
       skipped += 1;
       continue;
     }
