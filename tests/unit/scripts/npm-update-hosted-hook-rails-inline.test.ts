@@ -31,9 +31,10 @@ function shippedRailsInline(): string {
     "pre-push": { commands: { "rails-prepush": { run: string } } };
   };
   const run = config["pre-push"].commands["rails-prepush"].run;
-  const match = INLINE_RUN.exec(run);
-  if (!match) throw new Error(`unexpected rails-prepush command shape: ${run}`);
-  return match[1];
+  const payload = INLINE_RUN.exec(run)?.[1];
+  if (payload === undefined)
+    throw new Error(`unexpected rails-prepush command shape: ${run}`);
+  return payload;
 }
 
 describe("hookEntry recognises the shipped Rails pre-push hook (#4564)", () => {

@@ -91,8 +91,8 @@ describe("repos.entries keys are repo names, not credential fields (#4564)", () 
       readFileSync(path.join(sandbox.root, ".lisa.config.json"), "utf8")
     );
     expect(
-      Object.keys(config.sessionManager.repos.entries).toSorted((a, b) =>
-        a.localeCompare(b)
+      Object.keys(config.sessionManager.repos.entries).sort(
+        (a: string, b: string) => a.localeCompare(b)
       )
     ).toEqual([SECRETS_MANAGER, TOKEN_SERVICE]);
     expect(validateSessionManager(config.sessionManager)).toEqual([]);

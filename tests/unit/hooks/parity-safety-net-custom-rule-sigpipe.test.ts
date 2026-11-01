@@ -27,7 +27,7 @@ import path from "node:path";
 import {
   createGuardHarness,
   EXIT_BLOCKED,
-} from "../../helpers/safety-net-guard-harness";
+} from "../../helpers/safety-net-guard-harness.js";
 
 const MARKER = "LISA_SIGPIPE_MARKER_4564";
 /** Comfortably above the 64 KiB Linux and 16-64 KiB macOS pipe buffers. */
