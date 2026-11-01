@@ -255,7 +255,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lib/worktree-dependencies.mjs":
       "31cb1cd96e7bd692d10ed2c26aa83c6b0580e48dbe6d2393edf9652970def091",
     "all/copy-overwrite/scripts/lisa-audit.mjs":
-      "68bc4a842c6f8138d0d8a923809032eba5ef7e39b22949580d1bfdfa74aded8a",
+      "e8eb9c90ed906fb9b95bf788dc06fe3fa7ee339c526c62f54fd3556de67e8442",
     "all/copy-overwrite/scripts/lisa-automation-provenance.mjs":
       "d3d2ad9769b47ac988ff2bb4514ad37901cf5de854cf536cf1acf38fab9f94a0",
     "all/copy-overwrite/scripts/lisa-clean-git-env.sh":
@@ -277,7 +277,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-floor-collisions.mjs":
       "345832c63c85df32acbed9b183b06239fc10ccb1491bd11607b5840ac1d18573",
     "all/copy-overwrite/scripts/lisa-gates.mjs":
-      "72a14254480514c0497811055f73bcac57331acd58ff70ae9e433a83830fdbd8",
+      "640b0d07b61ac1d07c00dd6f7730ce34d05a76930a2984a7365dd6c26543defd",
     "all/copy-overwrite/scripts/lisa-history-secrets.mjs":
       "815fd6403aed6194d30939b59dc5ce894f7122a9da598acee4cd529a1b520de3",
     "all/copy-overwrite/scripts/lisa-hooks/block-blind-automerge.sh":
@@ -335,7 +335,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/npm-updater-gate.Dockerfile":
       "f5d85f8fccfd97f7800c03430a38c19d584314b0a6a63aa1de28fb62897fbcc5",
     "all/copy-overwrite/scripts/npm-updater-helper-graph.json":
-      "8ddd6ca8b29a14434ff287cb7f07c5652efd39649ba5da2d981f153721f26f5a",
+      "25bde11dcbd1253e63af13174c00a91d731079de82f72cc27b0ca784d0fcb065",
     "all/copy-overwrite/scripts/review-evidence-event.mjs":
       "1c5d510bc66f8ba23b6f046246f41182c17946a50126fb88e371d2aec9dfd6b2",
     "all/copy-overwrite/scripts/schemas/lisa-command-envelope.v1.schema.json":
@@ -2805,7 +2805,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/lisa-assert-eas-profile.mjs":
       "624e40d7f33ca17208fc6b7a19320a785cff19da5d2ff8062b67a432b2a34022",
     "scripts/lisa-audit.mjs":
-      "68bc4a842c6f8138d0d8a923809032eba5ef7e39b22949580d1bfdfa74aded8a",
+      "e8eb9c90ed906fb9b95bf788dc06fe3fa7ee339c526c62f54fd3556de67e8442",
     "scripts/lisa-commit-and-pr-local.sh":
       "70749548e302bc709000b0721c39470388c58fb0d08cfd3a2679b96e2b539cc4",
     "scripts/lisa-commit-msg-gates.mjs":
@@ -2937,7 +2937,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/copy-overwrite/.nvmrc":
       "73fb1b615e2043a933be1c0895cde4358036acc28d785692509b822aa53c761f",
     "typescript/copy-overwrite/.prettierignore":
-      "878c739d591a5ec4e86ef2afc6f168ad11839bbcf3b1f4911d947709dbcb56b9",
+      "f65bb1aedbcea46bee23080041d7df498d8100ff867a52982934f464c88b9955",
     "typescript/copy-overwrite/.prettierrc.json":
       "a20621f79a064486fba53cc0ea3000a2ece3f312ff38495c6a6606a27d2a727c",
     "typescript/copy-overwrite/.versionrc":

@@ -46,3 +46,26 @@ Product re-review found no further blocker in the action/wiring. Code and
 quality review confirmed the prior fixes and identified the severity-material
 case above, now covered symmetrically. Status: final bounded review of that
 fix and full normal gates remain. No hosted or delivery pass claimed.
+
+The first full normal push at head 83c81e6a ran 30,115 unit tests with verdicts:
+30,109 passed and 6 failed (plus 5 existing skips). Coverage was unproved and
+integration was not run after that failure. The branch was not pushed.
+The full log is preserved privately; no #4581 failure was observed in that run.
+
+The ensuing repairs preserve the existing contracts:
+
+- Stamp the new managed adapter's ownership header in its template and root copy.
+- Register that exact shipped script in the host-format exclusion list; no host
+  script glob is added, and upstream source formatting remains checked.
+- Retire dependency-vulnerability's obsolete unshipped-task exception. An explicit
+  fallbackWhenTaskMissing marker preserves the existing unconditional facade for
+  older callers; explicit tasks, supplied defaults and unsupported moments keep
+  their existing behavior, covered by controls.
+- Execute the real audit adapter in the Git-environment fixture and record only
+  actual work-item validation calls, retaining the foreign-repository assertions.
+- Resolve the migration fixture's release pin with the genuine GitHub tag:
+  v4.87.2 exists at fb6048f26c8b483de05edb23c5ceaaf1b1116edd and was fetched
+  normally. No migration test, release identity, or resolver was weakened.
+
+Focused validation of all prior cases plus all failed suites passed 19 files:
+397 tests passed, 2 pre-existing skips. This is not a full-floor pass.
