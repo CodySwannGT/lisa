@@ -1,0 +1,67 @@
+name: K6 installation regression
+
+# Lisa-only qualification of the canonical reusable workflow, not a consumer gate.
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/load-test.yml'
+      - '.github/workflows/k6-installation-regression.yml'
+      - 'tests/fixtures/k6-installation/**'
+      - 'tests/unit/scripts/k6-installation.test.ts'
+
+permissions:
+  contents: read
+
+jobs:
+  installation:
+    name: K6 installation regression (${{ matrix.control }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        control: [latest, explicit, negative]
+    env:
+      CI: '1'
+      LISA_BOOTSTRAP: '1'
+      EXPECTED_SOURCE_SHA: ${{ github.event.pull_request.head.sha }}
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6, existing repository pin
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6, existing repository pin
+        with:
+          node-version: '24.21.0'
+          package-manager-cache: false
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version: '1.4.4'
+      - name: Install frozen checkout dependencies
+        run: bun install --frozen-lockfile
+      - name: Freeze actual final-head workflow, input and oracles
+        env:
+          CONTROL: ${{ matrix.control }}
+        run: |
+          set -o noclobber
+          key="${RUNNER_TEMP}/k6-negative-public-key.gpg"
+          if [ "$CONTROL" = negative ]; then
+            curl -fsSL https://dl.k6.io/key.gpg > "$key"
+          fi
+          node tests/fixtures/k6-installation/prepare.mjs "$CONTROL" \
+            "${RUNNER_TEMP}/k6-installation-${CONTROL}" "$EXPECTED_SOURCE_SHA" "$key" --strict
+      - name: Execute actual installation and counted loopback or download-failure control
+        env:
+          CONTROL: ${{ matrix.control }}
+        run: |
+          # Preinstalled k6/package/keyring/source causes failure; no prior binary is reused.
+          proof="${RUNNER_TEMP}/k6-installation-${CONTROL}"
+          python3 "$proof/harness/qualify.py" "$proof"
+          node "$proof/harness/finish.mjs" "$proof"
+      - name: Retain complete installation regression diagnostics
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7, existing repository pin
+        with:
+          name: k6-installation-${{ matrix.control }}-${{ github.event.pull_request.head.sha }}
+          path: ${{ runner.temp }}/k6-installation-${{ matrix.control }}/
+          if-no-files-found: error
