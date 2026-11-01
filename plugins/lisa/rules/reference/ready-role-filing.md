@@ -100,6 +100,10 @@ Any defect discovered while doing something else, which is complete enough to bu
 
 The same explicitness applies in the other direction. A filing that is genuinely a human product call declares `human_gate`; it does not simply omit the flag and hope the tracker default is the merciful one.
 
+## Mid-build filings are a planning signal
+
+A ticket a worker has to file **while building** a dispatched item, because that item was mis-scoped, mis-split, or depends on work nobody filed, is filed exactly as above. It is also evidence that planning let a gap through, and it is routed as such: the filer sends one `planning-miss` candidate through `lisa-persist-learning`, with the item being built (never the new ticket) as `triggering_issue` and the check planning should have run as the rule. `lisa-implement` owns the step and its exclusions (outages, credentials, tool access, flaky tools, and decisions planning flagged as human gates); the judge decides whether it really was a miss. The signal never delays or changes the filing.
+
 ## The named exception: `lisa-exploratory-qa`
 
 `lisa-exploratory-qa` files its findings **not** build-ready by default, and that is **correct** — it is the named human-gate exception under this rule, not drift to be repaired.

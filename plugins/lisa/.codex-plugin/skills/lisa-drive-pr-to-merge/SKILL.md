@@ -393,15 +393,16 @@ declared, arm normally (the scope rule above). Where one IS declared, absent a
 description that positively states a review ran, treat the context as vacuous.
 Fail closed: absence of evidence is not evidence of a review.
 
-#### Vacuous and transient are different properties
+#### Vacuous, transient or standing: the response is the same
 
-A vacuous context is not automatically something to wait out, and this is the
-distinction a naive wait-and-arm gets wrong — it waits forever on a repository
-where the state never clears. **Only the rate limit has both properties.**
+A vacuous context is never something to wait out. Waiting looks like progress
+but it is a stall, and on a repository where the state never clears it waits
+forever. Some vacuities clear on their own and some do not. **That changes what
+the report says, not what you do:**
 
 | description | vacuous? | clears on its own? |
 | --- | --- | --- |
-| `Review rate limited` | yes | **yes** — a throughput window |
+| `Review rate limited` (and decorated forms such as `Review rate limited (retry in 12m)`) | yes | eventually — a throughput window of unknown length |
 | `Review skipped: manual review required for this OSS repository` | yes | **no** — a standing vendor policy for public repositories |
 | `Review skipped: N files exceed the limit of M` | yes | **no** — not without splitting the pull request |
 | `Review skipped` (bare, no stated reason) | yes | **unknown — treat as standing** |
@@ -410,17 +411,33 @@ A bare skip carries no machine-readable reason, so nothing distinguishes it from
 the standing forms. Requiring a stated reason before treating a skip as vacuous
 is how the commonest form gets missed.
 
-- **Transient (the rate limit, and only the rate limit)** — do not arm yet. Wait
-  the window out and re-request the review **at most once**, then re-classify.
-  If it now proves work, arm. If it does not, stop and treat it as standing.
-  **Never loop**: a retry loop re-triggers the very limit it is escaping, and
-  measured on #3220 a single explicit re-request in this repository was
-  acknowledged, went `Review in progress`, and settled back at
-  `Review rate limited` two seconds later having reviewed nothing — minting a
-  second hollow green. One attempt, then report.
-- **Standing** — do not wait at all, and do not re-request. There is no window
-  to wait out, so waiting produces a stall that reads as progress. Go straight
-  to the watch loop and let step (d) adjudicate the merge in the open.
+**Every row, the rate limit included: do not wait, and do not re-request.** Do
+not arm. Go straight to the watch loop, run the local adversarial review over the
+PR diff at the current head **now**, post it with the substitute marker (step
+(d), "In case 3, substitute"), and keep driving. Fix what it finds, substitute
+again on each new head, and let step (d) merge when the vacuous context is the
+sole remaining gate.
+
+The rate limit used to get a wait-the-window-out-and-re-request-once exception.
+That exception is removed, for three reasons:
+
+- **The window is not short.** Agents waiting it out stalled for an hour or more
+  per pull request, across a whole portfolio of repositories, and nothing about
+  the wait made the merge safer than a substitute review would.
+- **Re-requesting does not work under a throttle.** Measured on #3220, a single
+  explicit re-request was acknowledged, went `Review in progress`, and settled
+  back at `Review rate limited` two seconds later having reviewed nothing. That
+  minted a second hollow green.
+- **Re-requesting destroys evidence.** It overwrites the existing status (see
+  "Never re-request a review to 'refresh' it" in step (d)), so the exception
+  contradicted a rule this file states with no exceptions.
+
+If the reviewer later reviews on its own, nothing special happens. Its threads
+are review threads like any other, and step (d) handles them. A `CHANGES_REQUESTED`
+it leaves is a real blocker (step (e)), and the substitute never overrides it.
+If it now proves work, arm, per the table above. That is a re-classification
+the watch loop makes on what it reads anyway. It is never a reason to wait or
+re-request.
 
 #### A latch somebody else armed
 
@@ -1053,10 +1070,11 @@ configured reviewed-when phrase says what "did work" looks like for this
 project.
 
 Prove the signal from the commit status API as above; a merely pending or queued
-check is not proof of anything and must keep polling. **A transient vacuity is not adjudicated here until the arm gate's
-single wait-and-re-request has been spent** (section 1): a rate limit has a
-window, and merging past one you never waited out is a choice you did not have
-to make. A standing vacuity has no window, so it arrives here immediately.
+check is not proof of anything and must keep polling. **A settled vacuity, the
+rate limit included, arrives here immediately.** There is no wait to spend first
+and no re-request to try: a rate limit's window is of unknown length, and
+waiting it out stalls the pull request without reading a line of the diff. The
+substitute is what makes the merge safe, not the passage of time.
 
 Once the signal is explicit, merge directly with `gh pr merge <pr>
 --<merge_method>` (pass `--admin` only if branch protection lists the vacuous
@@ -1176,6 +1194,34 @@ gh api "repos/<owner>/<repo>/pulls/<pr>/reviews" \
 Deleting the fallback outright would over-correct: it is the only remedy a lane
 without dismissal permission has, and that permission is not universal. This
 narrows it to the case that costs nothing.
+
+**A stale bot verdict under a rate limit: substitute, then stop and report.**
+Under a rate limit or an exhausted review allowance, a bot's old
+`CHANGES_REQUESTED` on an outdated head can end up as the only thing blocking
+the merge. The bot cannot post a fresh review to replace it, so the verdict
+will not clear by itself while the throttle lasts. This was measured on a
+caller repo in the portfolio: every check green, zero unresolved threads, and
+the bot's verdict from an earlier head as the only blocker. In that case:
+
+1. **Do not wait for the window to reset, and do not re-request.** Waiting
+   leaves the pull request wedged for an hour or more. A re-request under the
+   throttle settles hollow and can take away the bot's standing review (see
+   above).
+2. Post the local adversarial review substitute for the **current** head, as
+   step (d) case 3 describes, if one is not already there.
+3. **Then stop** with `blocked:stale-bot-verdict` (section 4). Report exactly
+   that blocker: the bot reviewer, the review id, the outdated head it reviewed
+   and the current head, the unresolved thread count, and that the substitute
+   is posted for the current head. Name the decision that is needed: a human
+   with dismissal rights dismisses that review, or decides it must stand.
+
+Do not dismiss it on the strength of your own substitute. Here the bot's review
+is the only third-party review on the pull request. Dismissing it because of a
+review this run wrote would make the agent both author and judge of the change.
+That is the escalation the bullet above requires, reached right away instead of
+after a wait. A stranded verdict that is **not** the only substantive review, or
+one left by a reviewer that is not throttled, is still handled by the
+dismissal rule above.
 
 **Unverified, and stated as such rather than asserted:** that a bot's re-review
 REPLACES its predecessor in the effective set is inferred from the observed
@@ -1460,7 +1506,7 @@ Loop until one of:
   the mode forbids acting on them: `on_blocker=report`). The latch is
   deliberately not armed, so the PR sits OPEN rather than merging on a review
   nothing performed. Report the PR URL, the review context's settled
-  description, whether it is transient or standing, and which sole-gate
+  description, whether it clears on its own (a rate limit) or is standing, and which sole-gate
   condition failed. This is an outcome that needs an operator, stated in one
   line a non-technical reader can act on — for example: *"PR #123 is ready to
   merge but nobody reviewed it: the review tool says it skips public
@@ -1490,6 +1536,16 @@ Loop until one of:
   — but a review asked for changes and that is still on record, so it will sit
   there forever. Someone needs to clear that review or resolve the open
   comments."* Never report this PR as merging.
+- **`blocked:stale-bot-verdict`** — the only thing blocking the merge is a
+  bot's `CHANGES_REQUESTED` on an outdated head, the bot is rate limited or out
+  of review allowance so it cannot replace that verdict, and the local
+  adversarial review substitute is posted for the current head (step (e)).
+  Report the reviewer, the review id, both heads, the unresolved thread count,
+  and the dismissal decision a human needs to make. For example: *"PR #123 is
+  ready except for an old review from the review bot on an earlier version. The
+  bot is rate limited and cannot re-review, and I posted my own review of the
+  current version. Someone with dismissal rights needs to dismiss review 456,
+  or decide it should stand."* Do not wait for the bot's window to reset.
 - **`CLOSED`** → report (PR was closed without merge).
 - **Hard block needing a human**: an unresolvable conflict, a failing check that
   needs design input, or genuine unresolved human objection (not a bot gate). Stop
@@ -1598,7 +1654,8 @@ declare none, one, or several, and each shows its own evidence.
 
 Quote the description that was actually read. A report that says "rate limited"
 on a policy skip is a wrong record, and the two call for different operator
-actions: one clears itself, the other never will.
+actions: one clears itself, the other never will. Neither changes what this
+skill does in the meantime: it substitutes and keeps driving in both cases.
 
 `NOT REVIEWED` is reporting, and on a merged PR it is never a terminal state of
 its own: it does not turn a merged PR into a blocked one. What it does gate is
