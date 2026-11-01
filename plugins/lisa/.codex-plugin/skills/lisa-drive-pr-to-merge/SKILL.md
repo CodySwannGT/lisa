@@ -667,7 +667,9 @@ rather than assuming, with `gh api repos/<owner>/<repo>/rules/branches/<base>`
 `gh api repos/<owner>/<repo>/rulesets` list carries no rule parameters):
 
 - `dismiss_stale_reviews_on_push` dismisses stale **approvals** only. The `base`
-  ruleset Lisa generates sets it `true` (CodySwannGT/lisa#4574), but a
+  ruleset Lisa generates defaults it to `true` when
+  `policy.protect.dismiss_stale_reviews` is undeclared, and keeps a declared
+  value (CodySwannGT/lisa#4574), but a
   `CHANGES_REQUESTED` review made on an older head stays in force after a push
   under either setting (measured on a probe repository on 2026-11-01: the push
   changed the diff and `reviewDecision` stayed `CHANGES_REQUESTED`), so
