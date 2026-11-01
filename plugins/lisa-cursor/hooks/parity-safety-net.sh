@@ -3489,6 +3489,15 @@ if [ -f "$rules_file" ]; then
     # 1, the same status as "no match", so the rule would silently pass. The
     # brace group separates the two: grep's own status is captured INSIDE it,
     # so the group itself only fails when the redirection could not be set up.
+    #
+    # SIGXFSZ is ignored first, as defence in depth. A temp-file write that
+    # can place no bytes at all under the file-size limit raises SIGXFSZ, and
+    # by default that kills the shell before `unstaged` can run (measured:
+    # this step alone exits 153 on Bash 3.2 under `ulimit -f 0`); exit 153 is
+    # not a refusal to the enforcement fallback. In the whole hook an earlier
+    # heredoc fails closed first today, so this keeps the step correct on its
+    # own rather than relying on that ordering (CodySwannGT/lisa#4571).
+    trap '' XFSZ
     rule_status=0
     { grep -qEi -- "$rule" || rule_status=$?; } <<<"$custom_command_str" \
       || rule_status=unstaged
@@ -3508,6 +3517,7 @@ if [ -f "$rules_file" ]; then
         ;;
     esac
   done <"$rules_file"
+  trap - XFSZ
 fi
 
 exit 0

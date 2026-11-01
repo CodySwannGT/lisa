@@ -297,7 +297,9 @@ export function recordSpawn(
       startedAt: at,
       lastProgressAt: at,
       logsHash: null,
-      pendingQuestion: null,
+      // Kept, never reset: only clearPendingQuestion clears a question, once
+      // its answer is delivered and the marker removed (lisa#4571).
+      pendingQuestion: previous.pendingQuestion ?? null,
       reason: null,
       finishedAt: null,
       attempts,
@@ -354,7 +356,9 @@ export function recordFinish(projectRoot, { ref, status, reason }, seams) {
       status,
       reason,
       finishedAt: at,
-      pendingQuestion: null,
+      // Kept: a question recorded before the finish still holds its answer
+      // and the tracker marker the manager must remove (lisa#4571).
+      pendingQuestion: previous.pendingQuestion ?? null,
       history: [
         ...(previous.history ?? []),
         { event: "finish", at, status, reason },

@@ -220,6 +220,17 @@ describe("spawn", () => {
     expect(callsOf(result.calls, "claude", "--bg")).toEqual([]);
   });
 
+  it("exits 2 and spawns nothing while the ref has a pending question (#4571)", () => {
+    // A spawn no longer clears the question, and a worker under one is never
+    // judged stalled or dead, so the question must be cleared first.
+    const sandbox = makeSandbox();
+    runCli(sandbox, ["ledger", "set-question", REF], { input: "Which one?" });
+    const result = runCli(sandbox, ["spawn", REF, ...MEM]);
+    expect(result.status).toBe(2);
+    expect(result.stderr).toContain("pending question");
+    expect(callsOf(result.calls, "claude", "--bg")).toEqual([]);
+  });
+
   it("does not treat a worker for a longer ref as live (exact token)", () => {
     const sandbox = makeSandbox();
     const result = runCli(sandbox, ["spawn", "DEMO-1", ...MEM], {
