@@ -136,15 +136,17 @@ const EXTRA_APPROVAL = "require_extra_approval_for_unattributed_changes";
  * Branch-protection defaults, matching the retired template except for one
  * field.
  *
- * `dismiss_stale_reviews` is `true` (CodySwannGT/lisa#4574). The retired
- * template had `false`, and together with `required_approving_review_count: 0`
- * that blocked a PR for good: a bot reviewer's CHANGES_REQUESTED stayed
- * attached to the commit it was made on, pushing the fix did not clear it, and
- * since no approval was required, no later review was due to clear it either.
- * This was observed on a caller repository whose review bot had run out of
- * reviews. It could not post a fresh review on the new head, so the PR merged
- * only after the owner dismissed the old reviews by hand. A project that
- * declares `policy.protect.dismiss_stale_reviews` keeps its declared value.
+ * `dismiss_stale_reviews` is `true` (CodySwannGT/lisa#4574): an approval
+ * given on an older head no longer survives a push that changes the diff. The
+ * retired template had `false`. A project that declares
+ * `policy.protect.dismiss_stale_reviews` keeps its declared value.
+ *
+ * This does NOT clear a CHANGES_REQUESTED review. GitHub dismisses stale
+ * approvals only. Measured on a probe repository on 2026-11-01 with this
+ * parameter `true` and `required_approving_review_count: 0`: after a push that
+ * changed the diff, the review stayed CHANGES_REQUESTED on the old commit and
+ * the PR stayed BLOCKED. A stale change request still needs a fresh review from
+ * the same reviewer or a dismissal (see `lisa-drive-pr-to-merge`).
  */
 export const PROTECT_DEFAULTS = Object.freeze({
   deletion: true,

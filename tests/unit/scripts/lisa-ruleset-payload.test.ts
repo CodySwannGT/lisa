@@ -113,9 +113,9 @@ describe("the retired base.json template", () => {
 describe("buildRulesetPayload", () => {
   it("reproduces the retired template's shape for a project declaring nothing, except stale-review dismissal", () => {
     // The one deliberate departure from the retired template is
-    // `dismiss_stale_reviews_on_push: true` (CodySwannGT/lisa#4574): with it
-    // `false` and no approval required, a stale CHANGES_REQUESTED blocked the
-    // PR until someone dismissed it by hand.
+    // `dismiss_stale_reviews_on_push: true` (CodySwannGT/lisa#4574), so an
+    // approval on an older head does not survive a push. It dismisses stale
+    // approvals only; a CHANGES_REQUESTED review still needs a dismissal.
     expect(buildRulesetPayload()).toEqual({
       name: "base",
       target: "branch",

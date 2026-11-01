@@ -643,15 +643,17 @@ that this PR will merge, and that claim is false here. Clear the verdict through
 step (e) first — which discriminates a live objection from a stranded one by
 unresolved thread count, not by `reviewDecision` — and arm afterwards.
 
-**Two ruleset settings decide whether a standing verdict ever clears itself.**
-Verify them for the repo you are in rather than assuming, with
-`gh api repos/<owner>/<repo>/rulesets`:
+**Two ruleset settings decide whether a standing verdict ever clears itself, and
+neither one clears a change request.** Verify them for the repo you are in
+rather than assuming, with `gh api repos/<owner>/<repo>/rules/branches/<base>`
+(the rules in force on the base branch, with their parameters; the
+`gh api repos/<owner>/<repo>/rulesets` list carries no rule parameters):
 
-- `dismiss_stale_reviews_on_push` — the `base` ruleset Lisa generates sets it
-  `true` (CodySwannGT/lisa#4574), so a push dismisses a review made on an older
-  head. A ruleset that still has `dismiss_stale_reviews_on_push: false` (applied
-  before that change, or declared through `policy.protect.dismiss_stale_reviews`)
-  keeps the review attached to the commit it was made on, so
+- `dismiss_stale_reviews_on_push` dismisses stale **approvals** only. The `base`
+  ruleset Lisa generates sets it `true` (CodySwannGT/lisa#4574), but a
+  `CHANGES_REQUESTED` review made on an older head stays in force after a push
+  under either setting (measured on a probe repository on 2026-11-01: the push
+  changed the diff and `reviewDecision` stayed `CHANGES_REQUESTED`), so
   **pushing the fix never clears it**.
 - `required_approving_review_count: 0` — no approval is required to merge, so a
   standing `CHANGES_REQUESTED` is not holding a slot for a review that would

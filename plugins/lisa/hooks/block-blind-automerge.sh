@@ -16,14 +16,13 @@
 # for hours before someone queried the field by hand.
 #
 # The stale case is the one actually observed, and it is the one prose cannot
-# help with: where a ruleset sets `dismiss_stale_reviews_on_push: false`, a
-# CHANGES_REQUESTED review stays attached to the commit it was made on and
-# pushing the fix never clears it, while `required_approving_review_count: 0`
-# means no scheduled re-review will ever clear it either. The PR is blocked
-# indefinitely and every check-based signal reads ready. The `base` ruleset
-# Lisa generates now sets it `true` (CodySwannGT/lisa#4574), but a ruleset
-# applied before that change, or one that declares `false`, still behaves this
-# way, and a review on the CURRENT head blocks under either setting.
+# help with: a CHANGES_REQUESTED review stays attached to the commit it was made
+# on and pushing the fix never clears it, while
+# `required_approving_review_count: 0` means no scheduled re-review will ever
+# clear it either. The PR is blocked indefinitely and every check-based signal
+# reads ready. `dismiss_stale_reviews_on_push` does not help: GitHub dismisses
+# stale APPROVALS only, so a change request survives a push under either
+# setting (measured 2026-11-01, CodySwannGT/lisa#4574).
 #
 # WHAT IT CHECKS, AND WHY THAT AND NOT THE CHECK ROLLUP
 #
@@ -1051,10 +1050,9 @@ REFUSAL = """Blocked: arming auto-merge on %s would report a merge that can neve
 
 GitHub reports reviewDecision = CHANGES_REQUESTED. That is a merge blocker with
 NO check-run representation: the failing-check count reads 0 and the checks tab
-is entirely green while the PR is permanently unmergeable. Where the ruleset
-sets dismiss_stale_reviews_on_push: false (Lisa's generated base ruleset sets
-it true, but older or hand-declared rulesets may not), pushing the fix does not
-clear it and no re-review is scheduled to.
+is entirely green while the PR is permanently unmergeable. Pushing the fix does
+not clear it (dismiss_stale_reviews_on_push dismisses stale approvals only, not
+change requests), and no re-review is scheduled to.
 
 Clear the blocker, then arm:
   - resolve every review thread and address or reply to the feedback

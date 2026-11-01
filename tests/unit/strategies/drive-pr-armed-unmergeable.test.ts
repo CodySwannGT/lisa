@@ -121,15 +121,19 @@ describe.each(ROOTS)("drive-pr-to-merge armed-unmergeable (%s)", root => {
     // Without these the reader assumes pushing a fix clears the verdict, which
     // is the intuition that let three PRs sit parked.
     const gate = mergeGate();
-    expect(gate).toContain("dismiss_stale_reviews_on_push: false");
-    // Lisa's generated base ruleset now dismisses stale reviews (#4574); the
-    // prose must say so rather than claim every repo keeps them.
-    expect(gate).toMatch(/Lisa generates sets it\s+`true`/);
+    expect(gate).toContain("dismiss_stale_reviews_on_push");
+    // The generated base ruleset sets it `true` (#4574), and the prose must
+    // still say that does not clear a change request: GitHub dismisses stale
+    // approvals only, measured on a probe repository.
+    expect(gate).toMatch(/dismisses stale \*\*approvals\*\* only/);
+    expect(gate).toMatch(/stays in force after a push\s+under either setting/);
     expect(gate).toContain("required_approving_review_count: 0");
     expect(gate).toMatch(/pushing the fix never clears it/i);
     expect(gate).toMatch(/\*\*indefinite, not slow\*\*/);
     // And they are to be verified per repo, not assumed from this one.
-    expect(gate).toMatch(/gh api repos\/<owner>\/<repo>\/rulesets/);
+    expect(gate).toMatch(
+      /gh api repos\/<owner>\/<repo>\/rules\/branches\/<base>/
+    );
   });
 
   it("treats unresolved threads as a second, independent blocker", () => {
