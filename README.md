@@ -186,6 +186,13 @@ any direct override in the current directory's `package.json`. It preserves the
 original error and does not change dependencies. Nested selectors and unreadable
 manifests remain unverified; this diagnostic is not a full lockfile audit.
 
+Dependency-audit exceptions can be restricted to a package, affected versions,
+and the lockfile paths whose risk was accepted. Prefer path scope when the
+vulnerable copy belongs only to a development tool: a new vulnerable production
+copy must still block delivery. Hooks, CI, and project audit commands use the
+same matcher. See [dependency-audit exclusions](docs/dependency-audit-exclusions.md)
+for the file format, lockfile keys, diagnostics, and shared helper.
+
 Clean TypeScript and CDK hosts receive the shared Node 24.21.0 LTS baseline,
 Vitest and coverage-v8 4.1.11 minimums, and a Vite 8.3.3 minimum within Vite 8.
 Lisa retains the TypeScript 6, ESLint 9, Knip 5, Husky 8 and Vitest 4 families.

@@ -18,16 +18,11 @@ import {
   boundedSpawnSync,
   useIoLatencyBudget,
 } from "../helpers/io-latency-budget.js";
-import { stepsIn } from "./quality-gate-facade-fixture.js";
+import { createAuditActionCheckout } from "../helpers/audit-action-fixture.js";
 
 useIoLatencyBudget();
 
-const audit = stepsIn("npm_security_scan").find(
-  step => step.name === "🔒 Run security audit"
-);
-// The step reads its exclusion list from a prior step's outputs; an empty
-// list is the shape a project with no audit.ignore files produces.
-const body = (audit?.run ?? "exit 99").replace(/\$\{\{[^}]*\}\}/gu, "");
+const body = 'node "$LISA_AUDIT_ACTION_RUNNER"';
 const roots: string[] = [];
 const NOT_RUN = "nothing was audited";
 const CLEAN = "No high or critical vulnerabilities found";
@@ -56,12 +51,21 @@ const STUB = [
  */
 function run(manager: string, outputs: Record<string, string>) {
   const root = fs.mkdtempSync(path.join(tmpdir(), "lisa-audit-fail-closed-"));
+  const action = createAuditActionCheckout(root);
   const bin = path.join(root, "bin");
   const stub = path.join(root, "stub");
   // The retry delay is real time in CI and dead time here.
   const executables = { [manager]: STUB, sleep: "#!/bin/sh\nexit 0\n" };
   roots.push(root);
+  fs.writeFileSync(
+    path.join(root, "action-runner.txt"),
+    path.join(action, "run.mjs")
+  );
   for (const dir of [bin, stub]) fs.mkdirSync(dir);
+  fs.writeFileSync(
+    path.join(root, "package.json"),
+    JSON.stringify({ name: "controlled-audit-fixture", type: "module" })
+  );
   for (const [name, contents] of Object.entries(executables))
     fs.writeFileSync(path.join(bin, name), contents, { mode: 0o755 });
   for (const [name, contents] of Object.entries(outputs))
@@ -90,7 +94,15 @@ function observe(manager: string, root: string, stub: string) {
       ENV: "/dev/null",
       TMPDIR: root,
       PACKAGE_MANAGER: manager,
+      GITHUB_WORKSPACE: root,
+      LISA_AUDIT_ACTION_DIRECTORY: ".",
+      LISA_AUDIT_ACTION_MANAGER: manager,
+      LISA_AUDIT_ACTION_RUNNER: fs.readFileSync(
+        path.join(root, "action-runner.txt"),
+        "utf8"
+      ),
       STUB_DIR: stub,
+      LISA_AUDIT_RETRY_DELAY: "0",
     },
   });
   const count = Number(
@@ -118,7 +130,7 @@ const reports = {
     }),
   },
   yarn: {
-    clean: `${JSON.stringify({ type: "auditSummary", data: {} })}\n`,
+    clean: `${JSON.stringify({ type: "auditSummary", data: { vulnerabilities: { high: 0, critical: 0 } } })}\n`,
     error: `${JSON.stringify({ type: "error", data: "request failed" })}\n`,
     high: [
       {
@@ -131,7 +143,10 @@ const reports = {
           },
         },
       },
-      { type: "auditSummary", data: {} },
+      {
+        type: "auditSummary",
+        data: { vulnerabilities: { high: 1, critical: 0 } },
+      },
     ]
       .map(line => JSON.stringify(line))
       .join("\n"),
@@ -203,7 +218,9 @@ describe.each(["npm", "yarn", "bun"] as const)(
       const result = run(manager, { out: report.high });
       expect(result.status, result.output).toBe(1);
       expect(result.output).not.toContain(NOT_RUN);
-      expect(result.output).toContain("high or critical vulnerabilities");
+      expect(result.output.toLowerCase()).toContain(
+        "high or critical vulnerabilities"
+      );
     });
   }
 );

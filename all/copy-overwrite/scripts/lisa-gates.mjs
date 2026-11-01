@@ -893,7 +893,7 @@ export const REGISTRY = Object.freeze({
     summary: "No known high or critical advisory in shipped dependencies.",
     task: SECURITY_AUDIT_TASK,
     declareOnly:
-      "The prover is the package manager's own `audit`, which CI invokes natively alongside an exclusion list. There is no script form to ship.",
+      "The canonical scripts/lisa-audit.mjs runner invokes the package manager's own production audit and enforces exclusion scope. Explicit project tasks replace this fallback.",
     // Continuous matters most here: a CVE published today makes yesterday's
     // green wrong with no change to trigger a re-scan.
     moments: [...PUSH_ONWARD, CONTINUOUS],
@@ -1748,7 +1748,7 @@ const QUALITY_FALLBACKS = Object.freeze({
     // delegate here. Without the flag it fell through to `security:audit`, a
     // descriptive task Lisa does not ship (#3359).
     unconditional: true,
-    command: "<package-manager> audit, filtered through audit.ignore*.json",
+    command: "node scripts/lisa-audit.mjs --manager <package-manager>",
     seedRun: [SECURITY_AUDIT_TASK],
     steps: ["📋 Load audit exclusions", "🔒 Run security audit"],
   },

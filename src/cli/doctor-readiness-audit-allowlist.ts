@@ -18,6 +18,8 @@
  * @module cli/doctor-readiness-audit-allowlist
  */
 import { isRecord, readFileOrNull } from "./doctor-readiness-shared.js";
+import { auditScopeProblems, detectAuditManager } from "../core/audit.js";
+import { readAuditCopies } from "../core/audit-lockfile.js";
 
 /** Audit allowlists whose entries must each carry a decision record. */
 const ALLOWLIST_FILES: readonly string[] = [
@@ -191,6 +193,40 @@ function undocumentedExceptions(
 }
 
 /**
+ * The doctor uses the gate's validator rather than a second scope grammar.
+ * @param root - Project root containing the exact lockfile and exclusion documents
+ * @param file - Repository-relative allowlist filename
+ * @param parsed - Parsed allowlist document
+ * @returns The validated result described above
+ */
+function scopeViolations(
+  root: string,
+  file: string,
+  parsed: unknown
+): string[] {
+  if (file === ".nsprc") return [];
+  return exceptionEntries(parsed).flatMap(({ id, fields }) => {
+    if (fields === null || fields.active === false) return [];
+    const problems = auditScopeProblems(fields).map(
+      problem => `${file}: ${id}: ${problem}`
+    );
+    if (problems.length) return problems;
+    if (fields.paths !== undefined || fields.versions !== undefined) {
+      try {
+        readAuditCopies(root, detectAuditManager(root));
+      } catch (error) {
+        return [`${file}: ${id}: ${(error as Error).message}`];
+      }
+    } else if (fields.package === undefined) {
+      console.warn(
+        `${file}: ${id}: unscoped advisory-wide exclusion; prefer package, versions and paths for a dev-only exception`
+      );
+    }
+    return [];
+  });
+}
+
+/**
  * Collect the undocumented audit exceptions across every allowlist file.
  * @param root - Repository root
  * @returns Evidence lines, one per undocumented exception
@@ -205,7 +241,11 @@ export async function auditExceptionViolations(
         return [];
       }
       try {
-        return undocumentedExceptions(file, JSON.parse(source));
+        const parsed: unknown = JSON.parse(source);
+        return [
+          ...undocumentedExceptions(file, parsed),
+          ...scopeViolations(root, file, parsed),
+        ];
       } catch {
         // An unparseable allowlist establishes nothing about its entries, so it
         // is passed over rather than reported as an undocumented exception.
