@@ -703,6 +703,37 @@ describe("main", () => {
     expect(code).toBe(0);
   });
 
+  // Issue #4572: a rate limit is answered by an immediate substitute, never by
+  // waiting the window out. The vendor decorates the string, so the decorated
+  // form must reach the same verdict as the bare one — at this head, with
+  // nothing pending, and with no re-request.
+  it.each([
+    ["bare", THROTTLED],
+    ["decorated", "Review rate limited (retry in 12m)"],
+  ])(
+    "exits 0 on a %s rate limit once a substitute stands at this head",
+    (_label, description) => {
+      const verdict = reviewEvidenceVerdict({
+        reviewers: configuredReviewers({ gates: ONE_REVIEWER }),
+        statuses: [{ context: CONTEXT, state: "success", description }],
+        comments: [{ body: substituteMarker({ context: CONTEXT, sha: HEAD }) }],
+        sha: HEAD,
+      });
+      expect(verdict.outcome).toBe(EVIDENCE_OUTCOMES.substituted);
+      expect(verdict.readings[0]?.reading).toBe(EVIDENCE_READINGS.noWork);
+      const code = main([`--sha=${HEAD}`], {
+        gates: ONE_REVIEWER,
+        pulls: () => [1],
+        statuses: () => [{ context: CONTEXT, state: "success", description }],
+        comments: () => [
+          { body: substituteMarker({ context: CONTEXT, sha: HEAD }) },
+        ],
+        out: sink().stream,
+      });
+      expect(code).toBe(0);
+    }
+  );
+
   it("exits 2 without a --sha rather than deciding on nothing", () => {
     const err = sink();
     expect(main([], { gates: ONE_REVIEWER, err: err.stream })).toBe(2);
