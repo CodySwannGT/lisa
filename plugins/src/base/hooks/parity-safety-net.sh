@@ -297,12 +297,17 @@ EOF
 # (issue #1958 F6): a heredoc payload IS executable shell, so the quoted-content
 # branch is exactly the misdirection that finding removed, and the file-based
 # execution advice is exactly what an ordinary prose refusal must not be given.
+#
+# The refusal must not need file space. A heredoc is staged in a temp file on
+# Bash 3.2, and under a file-size limit that staging fails: `set -e` then ended
+# the hook with 1 (or SIGXFSZ with 153) instead of 2, so a refusal became an
+# allow to the enforcement fallback. `printf` is a builtin that writes straight
+# to stderr, SIGXFSZ is ignored so a refused write returns an error instead of
+# killing the shell, and a failed write never costs the exit 2
+# (CodySwannGT/lisa#4571). scan_failed() writes the same way.
 block() {
-  cat >&2 <<EOF
-Blocked by safety-net: $1
-
-${2:-$DESTRUCTIVE_GUIDANCE}
-EOF
+  trap '' XFSZ
+  printf 'Blocked by safety-net: %s\n\n%s\n' "$1" "${2:-$DESTRUCTIVE_GUIDANCE}" >&2 || true
   exit 2
 }
 
@@ -347,22 +352,22 @@ scan() {
 # the second is true is precisely what sends an operator to re-run instead of to
 # look — the reporting failure #3054 is about.
 scan_failed() {
-  cat >&2 <<EOF
-Blocked by safety-net: a guard's pattern scan FAILED TO RUN (grep exited $1); denying fail-closed.
-
-This is an ENVIRONMENT failure, not a property of your command. The guard could
-not be evaluated at all, so the safety net denied rather than guessed — a scan
-that cannot answer must never read as "safe".
-
-The usual cause is a machine at its per-user process limit, where fork() starts
-returning EAGAIN. Compare:
-
-    ps -u \$(id -u) | wc -l
-    sysctl -n kern.maxprocperuid     # Linux: ulimit -u
-
-Re-running is reasonable. If it repeats, the machine cannot fork and no number
-of re-runs will change that.
-EOF
+  trap '' XFSZ
+  printf '%s\n' \
+    "Blocked by safety-net: a guard's pattern scan FAILED TO RUN (grep exited $1); denying fail-closed." \
+    '' \
+    'This is an ENVIRONMENT failure, not a property of your command. The guard could' \
+    'not be evaluated at all, so the safety net denied rather than guessed — a scan' \
+    'that cannot answer must never read as "safe".' \
+    '' \
+    'The usual cause is a machine at its per-user process limit, where fork() starts' \
+    'returning EAGAIN. Compare:' \
+    '' \
+    '    ps -u $(id -u) | wc -l' \
+    '    sysctl -n kern.maxprocperuid     # Linux: ulimit -u' \
+    '' \
+    'Re-running is reasonable. If it repeats, the machine cannot fork and no number' \
+    'of re-runs will change that.' >&2 || true
   exit 2
 }
 
@@ -3487,13 +3492,13 @@ if [ -f "$rules_file" ]; then
     # brace group separates the two: grep's own status is captured INSIDE it,
     # so the group itself only fails when the redirection could not be set up.
     #
-    # SIGXFSZ is ignored first, as defence in depth. A temp-file write that
-    # can place no bytes at all under the file-size limit raises SIGXFSZ, and
-    # by default that kills the shell before `unstaged` can run (measured:
-    # this step alone exits 153 on Bash 3.2 under `ulimit -f 0`); exit 153 is
-    # not a refusal to the enforcement fallback. In the whole hook an earlier
-    # heredoc fails closed first today, so this keeps the step correct on its
-    # own rather than relying on that ordering (CodySwannGT/lisa#4571).
+    # SIGXFSZ is ignored first. A temp-file write that the file-size limit
+    # refuses raises SIGXFSZ, and by default that kills the shell before
+    # `unstaged` can run (measured: this step alone exits 153 on Bash 3.2
+    # under `ulimit -f 0`); exit 153 is not a refusal to the enforcement
+    # fallback. block() writes its refusal without a temp file for the same
+    # reason, so a rule that matched and a command that could not be staged
+    # both still end in exit 2 under that limit (CodySwannGT/lisa#4571).
     trap '' XFSZ
     rule_status=0
     { grep -qEi -- "$rule" || rule_status=$?; } <<<"$custom_command_str" \

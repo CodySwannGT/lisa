@@ -37,7 +37,9 @@ Workers and capacity
   resume <ref>                         STDIN: the message for the worker
       claude --bg --resume <full session id> -- "<stdin>" in the worker's repo
       dir, TELEGRAM_* removed; the full id comes from claude agents --json --all
-      (exit 2 when none does). stdout {ref,worker,sessionId,resumed:true}.
+      (exit 2 when none does). Exit 2 when the ledger item finished (DONE or
+      FAILED): a finished worker is never resumed.
+      stdout {ref,worker,sessionId,resumed:true}.
   classify [<ref>]
       Classifies one ledger item (or all) from claude agents --json --all and
       a hash of claude logs <worker>; records the hash as progress. stdout
@@ -250,7 +252,8 @@ Per cycle
       A reply that looks like a credential is skipped, never queued, and
       listed in refused [{id,author,why}], so a later reply is still read;
       credential-refused (exit 0) means no other reply answers yet. Exit 2
-      when <ref> has no pending question or the ledger is unreadable.
+      when <ref> has no pending question, the ledger is corrupt, or STDIN is
+      not valid JSON.
   record-cycle --outcome <outcome> [--ref <url>]... [--run-id <id>]
       STDIN: one-line summary. Records loop session-manager with runbook
       .lisa/automations/session-manager.runbook.md. stdout {path,appended,

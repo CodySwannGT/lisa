@@ -180,3 +180,103 @@ describe("parity-safety-net.sh custom rules fail closed when staging fails (#456
     expect({ stdout, status }).toEqual({ stdout: "unstaged", status: 0 });
   });
 });
+
+const XFSZ_MARKER = "LISA_XFSZ_MARKER_4571";
+/**
+ * A custom rule long enough that block()'s message, which quotes it, cannot
+ * fit under {@link LIMIT_KIB}. Kept well under what BSD grep accepts: it
+ * rejects a ~96 KB ERE, and a rejected rule is reported as not enforced.
+ */
+const LONG_RULE = `${XFSZ_MARKER}|${"y".repeat(8 * 1024)}`;
+/** Room for the hook's startup heredocs (about 1.5 KB), not for the refusal. */
+const LIMIT_KIB = 4;
+
+/**
+ * Runs the whole shipped hook under `ulimit -f` with one custom rule.
+ * @param command - The Bash command the tool call carries.
+ * @param projectDir - Working and project directory for the hook.
+ * @param rulesPath - The custom rules file.
+ * @returns The hook's exit status and stderr.
+ */
+function runUnderFileSizeLimit(
+  command: string,
+  projectDir: string,
+  rulesPath: string
+): { status: number | null; stderr: string } {
+  const env = Object.fromEntries(
+    Object.entries(process.env).filter(([key]) => !key.startsWith("GIT_"))
+  );
+  const result = boundedSpawnSync({
+    label: "the safety-net hook under a file-size limit",
+    command: "/bin/bash",
+    args: [
+      "-c",
+      'ulimit -f "$1" || exit 99; exec /bin/bash "$2"',
+      "bash",
+      String(LIMIT_KIB),
+      path.resolve("plugins/lisa/hooks/parity-safety-net.sh"),
+    ],
+    cwd: projectDir,
+    env: {
+      ...env,
+      CLAUDE_PROJECT_DIR: projectDir,
+      SAFETY_NET_RULES_FILE: rulesPath,
+    },
+    input: JSON.stringify({ tool_name: "Bash", tool_input: { command } }),
+  });
+  return { status: result.status, stderr: result.stderr };
+}
+
+/**
+ * The verdict, end to end. Reaching `unstaged` is not enough on its own: the
+ * refusal still has to leave the hook as exit 2. block() used to write its
+ * message through a heredoc, which Bash 3.2 stages in a temp file that the
+ * same limit refuses, so a rule that matched, or a command that could not be
+ * staged, ended the hook with 1 (CodySwannGT/lisa#4571). This discriminates
+ * on Bash 3.2, the macOS /bin/bash; a Bash that stages small heredocs in a
+ * pipe passes either way.
+ */
+describe("parity-safety-net.sh refuses with exit 2 under a file-size limit (#4571)", () => {
+  let workRoot: string;
+  let projectDir: string;
+  let rulesPath: string;
+
+  beforeAll(() => {
+    workRoot = mkdtempSync(path.join(tmpdir(), "lisa-safety-xfsz-"));
+    projectDir = path.join(workRoot, "project");
+    mkdirSync(projectDir);
+    rulesPath = path.join(workRoot, "rules.txt");
+    writeFileSync(rulesPath, `${LONG_RULE}\n`);
+  });
+
+  afterAll(() => {
+    rmSync(workRoot, {
+      recursive: true,
+      force: true,
+      maxRetries: 10,
+      retryDelay: 100,
+    });
+  });
+
+  it.each([
+    {
+      name: "a rule that matched",
+      command: `echo ${XFSZ_MARKER}`,
+      reason: "matched a project custom safety rule (rules.txt)",
+    },
+    {
+      name: "a command too large to stage",
+      command: `echo ${XFSZ_MARKER} ${"x".repeat(PAYLOAD_BYTES)}`,
+      reason:
+        "could not stage the command to check project custom safety rule (rules.txt)",
+    },
+  ])("refuses $name", ({ command, reason }) => {
+    const { status, stderr } = runUnderFileSizeLimit(
+      command,
+      projectDir,
+      rulesPath
+    );
+    expect(stderr).toContain(`Blocked by safety-net: ${reason}`);
+    expect(status, stderr.slice(0, 2000)).toBe(EXIT_BLOCKED);
+  });
+});

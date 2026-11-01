@@ -272,6 +272,45 @@ describe("each reviewer's LATEST verdict at head decides (#4571)", () => {
     expect(standing.objected).toBe(true);
   });
 
+  it("lets the SAME reviewer's later DISMISSED review withdraw an earlier objection", () => {
+    // A reviewer objected twice and the second objection was dismissed: the
+    // endpoint still lists the first as CHANGES_REQUESTED and the second as
+    // DISMISSED. The dismissal is that reviewer's latest verdict, so nothing
+    // of theirs still objects. Without DISMISSED among the decisive states,
+    // the first objection would stand again.
+    const standing = mod.readObjectionAtHead(
+      [
+        objectAt(OBJECTED_AT),
+        {
+          state: "DISMISSED",
+          commitSha: HEAD,
+          author: BOT,
+          submittedAt: APPROVED_AT,
+        },
+      ],
+      HEAD
+    );
+    expect(standing.objected).toBe(false);
+    expect(standing.reviewers).toEqual([]);
+  });
+
+  it("does not let ANOTHER reviewer's dismissed review clear this reviewer's objection", () => {
+    const standing = mod.readObjectionAtHead(
+      [
+        objectAt(OBJECTED_AT),
+        {
+          state: "DISMISSED",
+          commitSha: HEAD,
+          author: "a-human",
+          submittedAt: APPROVED_AT,
+        },
+      ],
+      HEAD
+    );
+    expect(standing.objected).toBe(true);
+    expect(standing.reviewers).toEqual([BOT]);
+  });
+
   it("does not let ANOTHER reviewer's approval clear this reviewer's objection", () => {
     const standing = mod.readObjectionAtHead(
       [
