@@ -13,6 +13,7 @@ probe outputs are preserved privately.
 | P1 Host audit composition | Template force of security:audit replaces existing project security checks | Accepted; force the governed security:audit:lisa task and default the project composition alias, with actual apply preservation coverage |
 | P2 Scalar CVE | An old accepted single-cve report stops matching a legacy CVE exception | Accepted; normalize scalar cve alongside cves, with a no-lockfile legacy regression |
 | P1 Incomplete Yarn report | A positive high/critical summary without advisory material produces a false pass | Accepted; validate summary shape/counts and reject positive summaries without concrete findings, retaining a real clean-shape control |
+| P1 Missing severity material | An excluded HIGH advisory masks a positive CRITICAL summary with no critical details, or the converse | Fixed; retain normalized severity and require concrete material for each positive governed severity, without equating occurrence counts with advisory counts |
 
 The independent quality reviewer also replayed the exact preserved doctor
 input three times: GREEN with unchanged input SHA256
@@ -27,19 +28,21 @@ tasks inherit the full metadata/context/access contract in plan-4521.md.
 The new action is a delivery adapter over the existing canonical implementation,
 and its outputs must be reviewed and empirically qualified before use.
 
-All five findings are fixed in the candidate. The workflow references source
-commit `a9b18a43160711b2d8db8b0342e5c8766ff4f1de`; a regression compares every
+All six findings are fixed in the candidate. The workflow references source
+commit `9eda9c429ca5fa2acc67539c5867f02c37d3474e`; a regression compares every
 canonical matcher module and all four action runtime/dependency files with
 the immutable commit's actual bytes. An older caller fixture has neither
 the adapter nor installed audit export, and the action runs independently.
 The former caller-tree staleness classification is removed with that coupling.
 
-The combined focused normal wrapper passed all 13 files: 263 tests passed,
+The combined focused normal wrapper passed all 14 files: 269 tests passed,
 2 pre-existing manager-specific skips. No skipped case receives proof credit.
 The isolated action's genuine frozen npm installation matched all five exact
 pins. Actual live Bun queries against the preserved alias lock passed when
 the alias was covered and failed naming the alias when uncovered. Controlled
 consumer fixtures remain separately labeled.
 
-Status: fixes and focused checks complete; independent review of the revised
-action/wiring and full normal gates remain. No hosted or delivery pass claimed.
+Product re-review found no further blocker in the action/wiring. Code and
+quality review confirmed the prior fixes and identified the severity-material
+case above, now covered symmetrically. Status: final bounded review of that
+fix and full normal gates remain. No hosted or delivery pass claimed.
