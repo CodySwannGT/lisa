@@ -94,6 +94,11 @@ describe("parity-safety-net.sh custom rules survive an early-exiting grep (#4564
       },
     });
     expect(stderr).not.toContain("NOT enforced");
+    // The refusal must come from the custom rule itself, not from an earlier
+    // fail-closed path (a missing jq, a malformed payload) that also exits 2.
+    expect(stderr).toContain(
+      `matched a project custom safety rule (custom-rules.txt): ${MARKER}`
+    );
     expect(status, stderr.slice(0, 2000)).toBe(EXIT_BLOCKED);
   });
 });

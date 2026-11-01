@@ -74,6 +74,16 @@ describe("repos.entries keys are repo names, not credential fields (#4564)", () 
     );
   });
 
+  it('does not extend the exemption to a literal "repos.entries" key', () => {
+    const problems = validateSessionManager({
+      ...base,
+      "repos.entries": { password: "hunter2" },
+    });
+    expect(problems).toHaveLength(1);
+    expect(problems[0]).toContain("password");
+    expect(problems[0]).not.toContain("hunter2");
+  });
+
   it("init-config --write emits a block that validate accepts", () => {
     const sandbox = makeSandbox({
       sessionManager: null,

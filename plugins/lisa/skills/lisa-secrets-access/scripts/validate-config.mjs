@@ -720,7 +720,22 @@ function validateNotify(notify) {
  * --write` emit a block that `validate` then refused (CodySwannGT/lisa#4564).
  * Their VALUES are still walked, so a token placed inside an entry is caught.
  */
-const NAME_KEYED_MAPS = new Set(["sessionManager.repos.entries"]);
+const NAME_KEYED_MAPS = [["repos", "entries"]];
+
+/**
+ * Whether a key trail below `sessionManager` is exactly a name-keyed map.
+ * Compared segment by segment, never as a dotted string: a literal key
+ * `"repos.entries"` would otherwise borrow the exemption.
+ * @param {readonly string[]} segments Object keys from the block root.
+ * @returns {boolean} True for a map whose keys are names.
+ */
+function isNameKeyedMap(segments) {
+  return NAME_KEYED_MAPS.some(
+    map =>
+      map.length === segments.length &&
+      map.every((segment, i) => segment === segments[i])
+  );
+}
 
 /**
  * Walk the block for anything that looks like a credential.
@@ -731,10 +746,12 @@ const NAME_KEYED_MAPS = new Set(["sessionManager.repos.entries"]);
  * configured), so a token here is both leaked and unused. The value is never
  * echoed.
  * @param {unknown} value Subtree.
- * @param {string} path Dotted path so far.
+ * @param {string} path Dotted path so far, for messages.
+ * @param {readonly string[] | null} [segments] Object keys from the block root;
+ *   `null` once an array is crossed, since no name-keyed map lives there.
  * @returns {string[]} Problems found.
  */
-function findCredentials(value, path) {
+function findCredentials(value, path, segments = []) {
   if (typeof value === "string") {
     return TOKEN_VALUE.test(value.trim())
       ? [
@@ -746,10 +763,12 @@ function findCredentials(value, path) {
       : [];
   }
   if (Array.isArray(value)) {
-    return value.flatMap((item, i) => findCredentials(item, `${path}[${i}]`));
+    return value.flatMap((item, i) =>
+      findCredentials(item, `${path}[${i}]`, null)
+    );
   }
   if (!isPlainObject(value)) return [];
-  const keysAreNames = NAME_KEYED_MAPS.has(path);
+  const keysAreNames = segments !== null && isNameKeyedMap(segments);
   return Object.entries(value).flatMap(([key, child]) =>
     !keysAreNames && CREDENTIAL_KEY.test(key)
       ? [
@@ -758,7 +777,11 @@ function findCredentials(value, path) {
             `secrets provider (session-manager.mjs store-token, run by ` +
             `/lisa:setup:session-manager).`,
         ]
-      : findCredentials(child, `${path}.${key}`)
+      : findCredentials(
+          child,
+          `${path}.${key}`,
+          segments === null ? null : [...segments, key]
+        )
   );
 }
 
