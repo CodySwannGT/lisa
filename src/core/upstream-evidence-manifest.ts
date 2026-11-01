@@ -41,7 +41,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lib/completion-proof-conformance.mjs":
       "51b2bfccc8ecca684dd80a4e2ae35896e76fa519389fe650f0890ffc0fef421d",
     "all/copy-overwrite/scripts/lib/completion-proof-content.mjs":
-      "679702f6e3cce3919e01c79fe5016d3215f15b067bcab2fb9eeffb0350e7c64f",
+      "364ca523509a506c8d92f3592b5e3041f6050a68ab90002e9fae7201a67044fb",
     "all/copy-overwrite/scripts/lib/completion-proof-errors.mjs":
       "3422df7049227eff77f3ef7bf954eeb74a63e9879b06d8126c7c3a2485b6d1f3",
     "all/copy-overwrite/scripts/lib/completion-proof-github.mjs":
@@ -333,7 +333,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/npm-updater-gate.Dockerfile":
       "f5d85f8fccfd97f7800c03430a38c19d584314b0a6a63aa1de28fb62897fbcc5",
     "all/copy-overwrite/scripts/npm-updater-helper-graph.json":
-      "79d41ce3eb5e6a2acf35dbe7a351b93f9d48631813c422814da4b8fed4717faa",
+      "f3c5ff735ddb1cc78b6d56dc6c0fd4af437ad2afa5b39bfb4fa2f0799351f8c5",
     "all/copy-overwrite/scripts/schemas/lisa-command-envelope.v1.schema.json":
       "d153b7c2953a30f180e38f09e98240c63327f5196eeba9bdf545e5a1f125a879",
     "all/copy-overwrite/scripts/schemas/lisa-state-contract.v1.schema.json":
@@ -1621,7 +1621,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-root-cause-analysis/SKILL.md":
       "3fa14217ca36b238ebb8203d18f10eaaf98a3647f949cdada6cb9f56ddf9ed50",
     "plugins/src/base/skills/lisa-secrets-access/SKILL.md":
-      "7ed1795ad29e83c40da1534f00607ab54da12eb2abcb67dc053f06f608948d2f",
+      "4b90e87571e5bc177e9586f2d84c016244cc2fe9221af6ae63c22bd9da0339fe",
     "plugins/src/base/skills/lisa-secrets-access/scripts/aws-bootstrap.mjs":
       "7f6acaa7ac13f31ebbd12e41000b5796536f1fe708684e59f79ab23b85ee08f0",
     "plugins/src/base/skills/lisa-secrets-access/scripts/bootstrap-store.mjs":
@@ -1693,7 +1693,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-status.mjs":
       "30bdd485e5c575a78456230712d4a51d1feddd4022a0c8e5c69e5edc3c32508a",
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-usage.mjs":
-      "f7a419f8d41cb4a754fc3c49da0feac1fbb44a9dac3da52c92a1042c17bbd900",
+      "4133d3929ee670121e297911649eb1a3fdef6a279d48499bb6bec932dee93aff",
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-workers.mjs":
       "63ca4c92eb838f806be1dcb6b995cdcee56f77eb7ba4787959ec23a395b32bfe",
     "plugins/src/base/skills/lisa-session-manager/scripts/clipboard.mjs":
@@ -1713,7 +1713,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-session-manager/scripts/launch.mjs":
       "db6d7bd4aaf5b37a2762dc1d6ce354afd731ff99f4ea1ebe22afacf018440fa1",
     "plugins/src/base/skills/lisa-session-manager/scripts/ledger-questions.mjs":
-      "01bc709cfa601f247e3b79b91d58226cec2308dc540075bd58741a9c295a7ad4",
+      "d757a62d6d252ee934a95b28729c12a3a82fa6737ffc98ac1f6f9021e23f56ea",
     "plugins/src/base/skills/lisa-session-manager/scripts/ledger.mjs":
       "6f77b0439c4e3e118274c61b1b366afefa9324e8a0a6dbf58a7b18de82f0d4fe",
     "plugins/src/base/skills/lisa-session-manager/scripts/queue-github.mjs":
