@@ -45,6 +45,15 @@ describe("planningMissFor", () => {
     expect(verdict.reason).not.toBe("");
   });
 
+  it.each(["toString", "constructor", "__proto__"])(
+    "never counts an inherited name (%s) as a kind",
+    kind => {
+      const verdict = planningMissFor({ kind });
+      expect(verdict.counts).toBe(false);
+      expect(verdict).not.toHaveProperty("stageHint");
+    }
+  );
+
   it("never counts an exhausted item: repeated failed attempts are not a planning gap", () => {
     const verdict = planningMissFor({ kind: "exhausted" });
     expect(verdict.counts).toBe(false);

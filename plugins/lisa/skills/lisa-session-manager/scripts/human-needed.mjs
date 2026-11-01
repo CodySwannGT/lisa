@@ -84,7 +84,10 @@ export function planningMissFor({ kind, cause = "planning" }) {
   if (cause !== "planning") {
     return { counts: false, reason: NOT_A_PLANNING_MISS[cause] };
   }
-  const stageHint = PLANNING_MISS_STAGES[kind];
+  // Own keys only: an inherited name such as `toString` is not a kind.
+  const stageHint = Object.hasOwn(PLANNING_MISS_STAGES, kind)
+    ? PLANNING_MISS_STAGES[kind]
+    : undefined;
   if (!stageHint) {
     return { counts: false, reason: NOT_A_PLANNING_MISS.exhausted };
   }
