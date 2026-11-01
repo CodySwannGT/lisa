@@ -42,7 +42,8 @@ function trackerOf(project) {
 }
 
 /**
- * `mark-plan <ref> --kind <kind>` (question or reason on stdin).
+ * `mark-plan <ref> --kind <kind> [--cause <cause>]` (question or reason on
+ * stdin).
  * @param {object} ctx - CLI context
  * @returns {{ json: object }} `{ref,kind,marker,move?,comment,answerWith}`
  */
@@ -69,6 +70,7 @@ export function markPlan(ctx) {
         blocked: blocked || undefined,
         channel: config ? notifyProvider(config) === "telegram" : false,
         answerers: allowedAnswerers(config).length > 0,
+        cause: ctx.values.cause ?? "planning",
       })
     ),
   };

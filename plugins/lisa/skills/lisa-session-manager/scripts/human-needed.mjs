@@ -27,6 +27,103 @@ export const HUMAN_NEEDED_KINDS = Object.freeze([
   "decision",
 ]);
 
+/**
+ * Why a stop needed a human, as far as the planning-miss signal cares
+ * (CodySwannGT/lisa#4569). `planning` is the default: the item passed the
+ * ready gate and still needed a person. `environment` is an outage, an
+ * expired credential or a flaky tool; `human-gate` is a decision planning
+ * flagged as a human gate on the item. Neither of those two is a planning
+ * miss.
+ */
+export const PLANNING_MISS_CAUSES = Object.freeze([
+  "planning",
+  "environment",
+  "human-gate",
+]);
+
+/**
+ * Each kind that counts as a planning miss, with the planning stage most
+ * likely to have let it through. A hint for the judge, never its verdict:
+ * `learning-judge` names the stage it can prove.
+ */
+const PLANNING_MISS_STAGES = Object.freeze({
+  // The stateless-pickup dry-run (S18) exists to find the question first.
+  "worker-question": "ready-gate",
+  // How the product should behave is the PRD's to decide.
+  decision: "prd",
+  // A leaf the router cannot place should have been split per repo-scope-split.
+  // Raised before the claim, but after the item passed the ready gate and was
+  // picked for dispatch: the operator ruled it a planning miss (#4569), and
+  // the planning-miss rate's denominator counts these routing holds too.
+  "repo-route": "decomposition",
+});
+
+/** Why a stop does not count, keyed by what ruled it out. */
+const NOT_A_PLANNING_MISS = Object.freeze({
+  exhausted:
+    "repeated failed attempts are a build or environment problem, not a gap in the plan",
+  environment:
+    "an outage, an expired credential or a flaky tool is not a gap in the plan",
+  "human-gate":
+    "planning flagged this decision as a human gate, so asking was the plan working",
+});
+
+/**
+ * Whether a human-needed stop is a planning miss: the PRD, decomposition or
+ * ready gate let through an item a dispatched worker could not finish without
+ * a person. Throws on an unknown cause.
+ * @param {{kind: string, cause?: string}} input - The `--kind` and `--cause`
+ * @returns {{counts: boolean, reason: string, stageHint?: string}} Verdict
+ */
+export function planningMissFor({ kind, cause = "planning" }) {
+  if (!PLANNING_MISS_CAUSES.includes(cause)) {
+    throw new Error(
+      `--cause must be one of: ${PLANNING_MISS_CAUSES.join(", ")}.`
+    );
+  }
+  if (cause !== "planning") {
+    return { counts: false, reason: NOT_A_PLANNING_MISS[cause] };
+  }
+  // Own keys only: an inherited name such as `toString` is not a kind.
+  const stageHint = Object.hasOwn(PLANNING_MISS_STAGES, kind)
+    ? PLANNING_MISS_STAGES[kind]
+    : undefined;
+  if (!stageHint) {
+    return { counts: false, reason: NOT_A_PLANNING_MISS.exhausted };
+  }
+  return {
+    counts: true,
+    stageHint,
+    reason:
+      "the item passed the ready gate and a dispatched worker still needed a human, so planning let a gap through",
+  };
+}
+
+/**
+ * The planning-miss verdict for `planMark`, plus the fields of the
+ * `lisa-persist-learning` candidate the manager can fill in without judgment.
+ * The rule and its why are the manager's to draft: they name the check
+ * planning should have run, which no script can know.
+ * @param {{ref: string, kind: string, cause?: string, question: string}}
+ *   input - The item, why, the cause and the question text
+ * @returns {object} `{counts, reason, stageHint?, candidate?}`
+ */
+function planningMissPlan({ ref, kind, cause, question }) {
+  const verdict = planningMissFor({ kind, cause });
+  if (!verdict.counts) return verdict;
+  return {
+    ...verdict,
+    candidate: {
+      signal: "planning-miss",
+      triggering_issue: ref,
+      provenance: [ref],
+      scope_hint: "project",
+      kind,
+      missing: question,
+    },
+  };
+}
+
 /** Marks the manager's question comment, so its answer can be found after it. */
 export const QUESTION_MARKER = "[lisa-session-manager-question]";
 
@@ -134,13 +231,16 @@ function chooseMarker(label, blocked) {
  * unknown kind, empty or credential-shaped text, no marker, or an `exhausted`
  * item with no `blocked` role to move it to.
  * @param {{ref: string, kind: string, text: string, label?: string,
- *   blocked?: string, channel?: boolean, answerers?: boolean}} input - The
- *   item, why, the question, the configured human-needed label and `blocked`
- *   role value, whether a notification channel exists, and whether anyone
- *   (operatorIds / trustedAuthorIds) may answer on the item
+ *   blocked?: string, channel?: boolean, answerers?: boolean, cause?: string}}
+ *   input - The item, why, the question, the configured human-needed label
+ *   and `blocked` role value, whether a notification channel exists, whether
+ *   anyone (operatorIds / trustedAuthorIds) may answer on the item, and the
+ *   cause the planning-miss signal needs (default `planning`)
  * @returns {{ref: string, kind: string, marker: {type: string, value: string},
  *   move?: {role: "blocked", value: string}, comment: string,
- *   answerWith: {item: string|null, cli: string, channel: string|null}}} Plan
+ *   answerWith: {item: string|null, cli: string, channel: string|null},
+ *   planningMiss: {counts: boolean, reason: string, stageHint?: string,
+ *   candidate?: object}}} Plan
  */
 export function planMark({
   ref,
@@ -150,9 +250,15 @@ export function planMark({
   blocked,
   channel = false,
   answerers = true,
+  cause = "planning",
 }) {
   if (!HUMAN_NEEDED_KINDS.includes(kind)) {
     throw new Error(`--kind must be one of: ${HUMAN_NEEDED_KINDS.join(", ")}.`);
+  }
+  if (!PLANNING_MISS_CAUSES.includes(cause)) {
+    throw new Error(
+      `--cause must be one of: ${PLANNING_MISS_CAUSES.join(", ")}.`
+    );
   }
   const question = String(text ?? "").trim();
   if (question === "") throw new Error("the question or reason is empty");
@@ -194,5 +300,6 @@ export function planMark({
       cli: `the answerCommand that session-manager.mjs status lists for ${ref} (answer on stdin)`,
       channel: channel ? `Answer with: ${short} <your answer>` : null,
     },
+    planningMiss: planningMissPlan({ ref, kind, cause, question }),
   };
 }

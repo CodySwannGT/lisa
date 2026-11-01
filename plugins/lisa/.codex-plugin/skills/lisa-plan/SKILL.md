@@ -61,6 +61,8 @@ If no PRD or specification exists, suggest running the `lisa-research` skill fir
 
 Execute the **Plan** flow as defined in the `intent-routing` rule (loaded via the lisa plugin). The rule contains the canonical step sequence (gates, sub-flows, output structure). This skill does NOT restate flow steps — change them in the rule, propagate everywhere.
 
+**Learned planning checks.** Whichever source skill runs the decomposition, it runs `lisa-task-decomposition` step 0 first: the `Planning (prd|decomposition|ready-gate)` checks that `learning-judge` persisted each time a dispatched worker still had to stop for a human or file a ticket mid-build, loaded through the learnings contract's bounded projection. For a file or plain-text spec, run that step yourself before decomposing. Planning that ignores them repeats the gap that stopped the last worker.
+
 ## Output
 
 Work items in the configured tracker (JIRA, GitHub Issues, or Linear, per `.lisa.config.json` `tracker`) with acceptance criteria, dependencies, and recommended skills/agents per item. Ordered by dependency. Before finishing, route usage writes through `lisa-usage-accounting`: record the Plan run as a direct entry on the source PRD/spec artifact, attach a plan usage entry (or an explicit `source: unavailable` entry with nullable token/cost fields) to each created work item, and refresh the PRD rollup after `lisa-prd-backlink` regenerates the `## Tickets` child refs. Do not invent plan-specific ledger formats or omit missing usage silently. If the specification cannot be decomposed without further clarification, stop and report what is missing.

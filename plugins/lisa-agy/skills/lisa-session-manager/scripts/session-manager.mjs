@@ -111,7 +111,11 @@ const COMMANDS = {
     options: { input: text, ref: text },
     positionals: 0,
   },
-  "mark-plan": { run: markPlan, options: { kind: text }, positionals: 1 },
+  "mark-plan": {
+    run: markPlan,
+    options: { kind: text, cause: text },
+    positionals: 1,
+  },
   answer: { run: answer, options: {}, positionals: 1 },
   "item-answer": { run: itemAnswer, options: {}, positionals: 1 },
   "record-cycle": {
