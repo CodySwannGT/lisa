@@ -69,3 +69,28 @@ The ensuing repairs preserve the existing contracts:
 
 Focused validation of all prior cases plus all failed suites passed 19 files:
 397 tests passed, 2 pre-existing skips. This is not a full-floor pass.
+
+All three independent bounded repair reviews converged at e63719dca8. The next
+normal push completed exit 1: unit/coverage passed (1,589 files, 30,116 tests,
+five skips), but integration failed (216 passing files, five failed files,
+3,714 passing tests, eight assertion failures, 47 skips). Three beforeAll
+timeouts in official pinned scanner provisioning prevented 17+25+3=45 cases
+from executing. The other two skips receive no credit. This independently
+observed preparation failure matches existing #4581; no new defect ticket or
+scanner capture, retry, policy change or deadline change is part of #4521.
+
+The eight assertion failures were incomplete hook fixture setup: six cases in
+push-collects-integration-tree-once could not import the canonical package, and
+two seeded-gates-preserve-hook-outcomes cases lacked the actual audit adapter.
+The fixtures now expose this checkout's actual manifest and built audit export
+without installing package guard scripts that would override their copied
+controls. The seeded fixture also copies the shipped adapter. Existing commands,
+assertions, integration collection counts and negative controls are unchanged.
+
+Both complete fixture files passed the normal wrapper after terminal build:
+12 tests, zero skips. Full-floor log SHA256:
+94a5695b3a62ef3f5c23681736d5b682e6b77dd57f5d8b9f228b080340f32acd.
+The independent schema-v2 quality verdict is BLOCKED. Complete full-floor,
+hosted, merge, release and independently downloaded shipped-byte proof remain
+unestablished. Preserve the owned claim, native binding, ignored context and
+worktree while the existing prerequisite is unresolved.
