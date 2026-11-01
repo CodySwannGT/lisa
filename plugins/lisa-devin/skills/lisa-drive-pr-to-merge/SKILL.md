@@ -417,7 +417,7 @@ again on each new head, and let step (d) merge when the vacuous context is the
 sole remaining gate.
 
 The rate limit used to get a wait-the-window-out-and-re-request-once exception.
-That exception is removed, for three measured reasons:
+That exception is removed, for three reasons:
 
 - **The window is not short.** Agents waiting it out stalled for an hour or more
   per pull request, across a whole portfolio of repositories, and nothing about
@@ -425,14 +425,14 @@ That exception is removed, for three measured reasons:
 - **Re-requesting does not work under a throttle.** Measured on #3220, a single
   explicit re-request was acknowledged, went `Review in progress`, and settled
   back at `Review rate limited` two seconds later having reviewed nothing. That
-  minted a second hollow green and spent quota the next pull request needed.
+  minted a second hollow green.
 - **Re-requesting destroys evidence.** It overwrites the existing status (see
   "Never re-request a review to 'refresh' it" in step (d)), so the exception
-  contradicted a rule this file states without one.
+  contradicted a rule this file states with no exceptions.
 
 If the reviewer later reviews on its own, nothing special happens. Its threads
-are review threads like any other, and step (e) handles them. A `CHANGES_REQUESTED`
-it leaves is a real blocker, and the substitute never overrides it.
+are review threads like any other, and step (d) handles them. A `CHANGES_REQUESTED`
+it leaves is a real blocker (step (e)), and the substitute never overrides it.
 If it now proves work, arm, per the table above. That is a re-classification
 the watch loop makes on what it reads anyway. It is never a reason to wait or
 re-request.
