@@ -643,18 +643,21 @@ that this PR will merge, and that claim is false here. Clear the verdict through
 step (e) first — which discriminates a live objection from a stranded one by
 unresolved thread count, not by `reviewDecision` — and arm afterwards.
 
-**Two ruleset settings decide whether a standing verdict ever clears itself, and
-in this repository both say no.** Verify them for the repo you are in rather
-than assuming, with `gh api repos/<owner>/<repo>/rulesets`:
+**Two ruleset settings decide whether a standing verdict ever clears itself.**
+Verify them for the repo you are in rather than assuming, with
+`gh api repos/<owner>/<repo>/rulesets`:
 
-- `dismiss_stale_reviews_on_push: false` — the review stays attached to the
-  commit it was made on, so **pushing the fix never clears it**. The intuition
-  that a new head resets the verdict is wrong here.
+- `dismiss_stale_reviews_on_push` — the `base` ruleset Lisa generates sets it
+  `true` (CodySwannGT/lisa#4574), so a push dismisses a review made on an older
+  head. A ruleset that still has `dismiss_stale_reviews_on_push: false` (applied
+  before that change, or declared through `policy.protect.dismiss_stale_reviews`)
+  keeps the review attached to the commit it was made on, so
+  **pushing the fix never clears it**.
 - `required_approving_review_count: 0` — no approval is required to merge, so a
   standing `CHANGES_REQUESTED` is not holding a slot for a review that would
   otherwise arrive. Nothing is scheduled to clear it.
 
-Together those mean the block is **indefinite, not slow**. Waiting is not a
+Where both hold, the block is **indefinite, not slow**. Waiting is not a
 strategy; something has to act.
 
 **Unresolved threads block independently of the verdict.** This repository sets

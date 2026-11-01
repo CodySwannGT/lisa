@@ -1389,6 +1389,7 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
     "966301ef764ddd5cfb37d26c22dd2dc4712496e67f63adddde9635fec6f6136c",
   ]),
   "scripts/lisa-hooks/block-blind-automerge.sh": Object.freeze([
+    "140461c1819d9e195e31e62c5453cbb797b6ef55229e0bd11b3f210a943517fb",
     "3f58a1bc31a36ae1720591013cd59fd3e9046c865aae2a795b29a2405aefb6a1",
     "699ec1a7470583916f3d36e301c4d4b6f52741f8e111e5528074bea05e3ee25c",
     "86c5d99fa55d83633e8cb025689925d68dc7b708f559e0395d5828e4710c8082",
@@ -3583,6 +3584,7 @@ export const LISA_OWNED_HASH_HISTORY_DERIVED: Readonly<
     "966301ef764ddd5cfb37d26c22dd2dc4712496e67f63adddde9635fec6f6136c",
   ]),
   "scripts/lisa-hooks/block-blind-automerge.sh": Object.freeze([
+    "140461c1819d9e195e31e62c5453cbb797b6ef55229e0bd11b3f210a943517fb",
     "3f58a1bc31a36ae1720591013cd59fd3e9046c865aae2a795b29a2405aefb6a1",
     "699ec1a7470583916f3d36e301c4d4b6f52741f8e111e5528074bea05e3ee25c",
     "86c5d99fa55d83633e8cb025689925d68dc7b708f559e0395d5828e4710c8082",

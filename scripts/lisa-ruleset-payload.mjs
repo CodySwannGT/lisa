@@ -132,12 +132,25 @@ export const REVIEW_DEFAULTS = Object.freeze({
  */
 const EXTRA_APPROVAL = "require_extra_approval_for_unattributed_changes";
 
-/** Branch-protection defaults, matching the retired template. */
+/**
+ * Branch-protection defaults, matching the retired template except for one
+ * field.
+ *
+ * `dismiss_stale_reviews` is `true` (CodySwannGT/lisa#4574). The retired
+ * template had `false`, and together with `required_approving_review_count: 0`
+ * that blocked a PR for good: a bot reviewer's CHANGES_REQUESTED stayed
+ * attached to the commit it was made on, pushing the fix did not clear it, and
+ * since no approval was required, no later review was due to clear it either.
+ * This was observed on a caller repository whose review bot had run out of
+ * reviews. It could not post a fresh review on the new head, so the PR merged
+ * only after the owner dismissed the old reviews by hand. A project that
+ * declares `policy.protect.dismiss_stale_reviews` keeps its declared value.
+ */
 export const PROTECT_DEFAULTS = Object.freeze({
   deletion: true,
   force_push: true,
   conversation_resolution: true,
-  dismiss_stale_reviews: false,
+  dismiss_stale_reviews: true,
   require_last_push_approval: false,
   up_to_date_before_merge: false,
 });
