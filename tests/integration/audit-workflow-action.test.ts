@@ -13,9 +13,11 @@ import {
   useIoLatencyBudget,
 } from "../helpers/io-latency-budget.js";
 import { createAuditActionCheckout } from "../helpers/audit-action-fixture.js";
+import { stepsIn } from "./quality-gate-facade-fixture.js";
 
 useIoLatencyBudget();
 const ACTION = ".github/actions/dependency-audit";
+const PACKAGE_JSON = "package.json";
 const roots: string[] = [];
 const DEPS = [
   "esbuild",
@@ -43,7 +45,7 @@ function actionFixture() {
   roots.push(root);
   fs.mkdirSync(path.join(host, "bin"), { recursive: true });
   fs.writeFileSync(
-    path.join(host, "package.json"),
+    path.join(host, PACKAGE_JSON),
     JSON.stringify({
       name: "controlled-older-audit-host",
       type: "module",
@@ -126,6 +128,40 @@ function executeAction(fixture: ReturnType<typeof actionFixture>) {
 }
 
 describe("workflow-owned canonical audit on an older caller", () => {
+  it("pins the exact canonical implementation and isolated runtime source being tested", () => {
+    const audit = stepsIn("npm_security_scan").find(
+      step => step.name === "🔒 Run security audit"
+    );
+    const revision = /@([0-9a-f]{40})$/u.exec(audit?.uses ?? "")?.[1];
+    if (revision === undefined)
+      throw new Error(
+        "Audit action is not pinned to an immutable source commit"
+      );
+    const files = [
+      ...fs
+        .readdirSync("src/core")
+        .filter(file => /^audit[-.]/u.test(file) && file.endsWith(".ts"))
+        .map(file => `src/core/${file}`),
+      ...["action.yml", "run.mjs", PACKAGE_JSON, "package-lock.json"].map(
+        file => `${ACTION}/${file}`
+      ),
+    ];
+    for (const file of files) {
+      const pinned = boundedSpawnSync({
+        label: "read pinned canonical audit source",
+        command: "git",
+        args: ["show", `${revision}:${file}`],
+      });
+      expect(
+        pinned.status,
+        `Pinned source unavailable: ${revision}:${file}`
+      ).toBe(0);
+      expect(
+        pinned.stdout,
+        `Refresh the immutable audit action source pin after changing ${file}`
+      ).toBe(fs.readFileSync(file, "utf8"));
+    }
+  });
   it("passes covered copies without the caller's adapter or ./audit export", () => {
     const result = observe("covered");
     expect(result.status, result.output).toBe(0);
@@ -143,7 +179,7 @@ describe("workflow-owned canonical audit on an older caller", () => {
   });
   it("installs action-owned exact dependencies and bundles the one canonical source", () => {
     const manifest = JSON.parse(
-      fs.readFileSync(path.join(ACTION, "package.json"), "utf8")
+      fs.readFileSync(path.join(ACTION, PACKAGE_JSON), "utf8")
     );
     const source = fs.readFileSync(path.join(ACTION, "run.mjs"), "utf8");
     expect(

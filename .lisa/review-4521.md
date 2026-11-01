@@ -27,4 +27,19 @@ tasks inherit the full metadata/context/access contract in plan-4521.md.
 The new action is a delivery adapter over the existing canonical implementation,
 and its outputs must be reviewed and empirically qualified before use.
 
-Status: accepted fixes in progress. No full-gate or delivery pass claimed.
+All five findings are fixed in the candidate. The workflow references source
+commit `a9b18a43160711b2d8db8b0342e5c8766ff4f1de`; a regression compares every
+canonical matcher module and all four action runtime/dependency files with
+the immutable commit's actual bytes. An older caller fixture has neither
+the adapter nor installed audit export, and the action runs independently.
+The former caller-tree staleness classification is removed with that coupling.
+
+The combined focused normal wrapper passed all 13 files: 263 tests passed,
+2 pre-existing manager-specific skips. No skipped case receives proof credit.
+The isolated action's genuine frozen npm installation matched all five exact
+pins. Actual live Bun queries against the preserved alias lock passed when
+the alias was covered and failed naming the alias when uncovered. Controlled
+consumer fixtures remain separately labeled.
+
+Status: fixes and focused checks complete; independent review of the revised
+action/wiring and full normal gates remain. No hosted or delivery pass claimed.

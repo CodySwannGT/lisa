@@ -6733,8 +6733,10 @@ jobs:
 
       - name: 🔒 Run security audit
         if: steps.gate.outputs.configured == 'false'
-        run: node scripts/lisa-audit.mjs --manager "$PACKAGE_MANAGER"
-        working-directory: ${{ inputs.working_directory || '.' }}
+        uses: CodySwannGT/lisa/.github/actions/dependency-audit@a9b18a43160711b2d8db8b0342e5c8766ff4f1de
+        with:
+          package-manager: ${{ inputs.package_manager }}
+          working-directory: ${{ inputs.working_directory || '.' }}
 
   sonarcloud:
     permissions:
