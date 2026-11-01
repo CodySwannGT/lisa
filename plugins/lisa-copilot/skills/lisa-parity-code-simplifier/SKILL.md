@@ -9,7 +9,7 @@ synced-from: code-simplifier@claude-plugins-official@1.0.0
 
 Make the **recently-changed** code simpler and easier to maintain **without changing what it does**. This is a quality pass: deduplication, reuse, readability, and dead-code removal. It is explicitly **not** a bug hunt — if you spot a likely defect, note it for a reviewer (or `parity-code-review`) and leave the behavior intact.
 
-> **Drift tracking.** Pinned to `code-simplifier@claude-plugins-official@1.0.0`. `scripts/plugin-parity-drift.mjs` compares this pin against the upstream version in the plugin cache and flags staleness. This is a Lisa-native reimplementation written from scratch — **do not port or copy upstream plugin code.**
+> **Drift tracking.** Pinned to `code-simplifier@claude-plugins-official@1.0.0`. In the Lisa repository, `scripts/plugin-parity-drift.mjs` (a Lisa-repository maintainer check that host projects do not ship, so it does not run in a host checkout) compares this pin against the upstream version in the plugin cache and flags staleness. This is a Lisa-native reimplementation written from scratch — **do not port or copy upstream plugin code.**
 
 ## Scope: recently-changed code only
 

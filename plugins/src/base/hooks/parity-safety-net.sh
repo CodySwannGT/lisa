@@ -3486,6 +3486,14 @@ if [ -f "$rules_file" ]; then
     # 1, the same status as "no match", so the rule would silently pass. The
     # brace group separates the two: grep's own status is captured INSIDE it,
     # so the group itself only fails when the redirection could not be set up.
+    #
+    # SIGXFSZ is ignored first. A file-size limit too small for the temp file
+    # does not fail the redirection by default: the write raises SIGXFSZ and
+    # kills the hook outright (measured: Bash 3.2 exits 153 under
+    # `ulimit -f 0`), so `unstaged` never ran and the enforcement fallback,
+    # which blocks only on exit 2, let the command through. Ignored, the write
+    # fails with EFBIG and lands in `unstaged` (CodySwannGT/lisa#4571).
+    trap '' XFSZ
     rule_status=0
     { grep -qEi -- "$rule" || rule_status=$?; } <<<"$custom_command_str" \
       || rule_status=unstaged
@@ -3505,6 +3513,7 @@ if [ -f "$rules_file" ]; then
         ;;
     esac
   done <"$rules_file"
+  trap - XFSZ
 fi
 
 exit 0

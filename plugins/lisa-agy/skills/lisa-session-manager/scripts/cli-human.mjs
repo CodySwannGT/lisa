@@ -130,6 +130,13 @@ const NO_QUESTION =
   "is. Re-post the question comment from mark-plan, then record its id " +
   "with ledger marked --comment-id <id>.";
 
+/** Why a reply was not used, and what the operator must do about it. */
+const CREDENTIAL_REPLY =
+  "A reply on the item looks like it holds a credential, so it was not " +
+  "used as the answer and nothing from it was queued. The credential is " +
+  "now in the tracker: delete that comment, rotate the secret, keep it in " +
+  "the secrets provider, and reply again without it.";
+
 const NO_ANSWERERS =
   "No sessionManager.operatorIds or trustedAuthorIds are configured, so " +
   "replies on the item are not read: the tracker identity is the one " +
@@ -140,7 +147,10 @@ const NO_ANSWERERS =
  * `item-answer <ref>` (stdin `{"comments":[...]}`): find the human's answer
  * on the item and queue it. stdout `{queued:false,reason}` when there is none
  * yet, or `reason: "no-answerers-configured"` (exit 0) when nobody may
- * answer there. Exit 2 when the ref has no pending question.
+ * answer there. A reply that looks like it holds a credential is skipped and
+ * listed in `refused` (with `reason: "credential-refused"` when no later
+ * reply answers), so it never wedges the item. Exit 2 when the ref has no
+ * pending question or the ledger is unreadable.
  * @param {object} ctx - CLI context
  * @returns {Promise<{ json: object }>} What was queued, or why nothing was
  */
@@ -148,7 +158,9 @@ export async function itemAnswer(ctx) {
   const ref = requirePositional(ctx, "ref");
   const input = parseJson(stdinText(ctx, "item comments JSON"), "stdin");
   const config = validOrAbsent(loadProject(ctx.root));
-  const ledger = await readLedger(ctx.root);
+  // Wrapped as `answer` wraps its ledger read: a corrupt ledger is a setup
+  // error (exit 2), not a run failure (CodySwannGT/lisa#4571).
+  const ledger = await asSetupErrorAsync(() => readLedger(ctx.root));
   const pending = Object.hasOwn(ledger.items, ref)
     ? ledger.items[ref].pendingQuestion
     : null;
@@ -174,8 +186,13 @@ export async function itemAnswer(ctx) {
       comments: input?.comments,
       allowed,
       managerCommentIds: pending.managerCommentIds ?? [],
+      refuses: findCredentialShape,
     })
   );
+  const refused =
+    picked.refused !== undefined
+      ? { refused: picked.refused, refusedExplanation: CREDENTIAL_REPLY }
+      : {};
   if (!picked.answer) {
     return {
       json: {
@@ -185,17 +202,25 @@ export async function itemAnswer(ctx) {
         ...(picked.reason === "no-question-comment"
           ? { explanation: NO_QUESTION }
           : {}),
+        ...refused,
       },
     };
   }
-  refuseCredential(picked.answer.text);
-  await queueAnswer(ctx.root, {
-    ref,
-    source: "item",
-    text: picked.answer.text,
-    author: picked.answer.author,
-  });
+  await asSetupErrorAsync(() =>
+    queueAnswer(ctx.root, {
+      ref,
+      source: "item",
+      text: picked.answer.text,
+      author: picked.answer.author,
+    })
+  );
   return {
-    json: { queued: true, ref, source: "item", author: picked.answer.author },
+    json: {
+      queued: true,
+      ref,
+      source: "item",
+      author: picked.answer.author,
+      ...refused,
+    },
   };
 }

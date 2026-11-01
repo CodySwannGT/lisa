@@ -309,7 +309,9 @@ shows them.
 - Otherwise read the item's comments, in order, with each author's **stable id** (answerers are
   matched on stable ids only, never a name, display name or email, which anyone can set): GitHub
   `gh api --paginate repos/<owner>/<repo>/issues/<n>/comments` (each row carries `user.login` and
-  the numeric `user.id`, so a numeric `trustedAuthorIds` entry matches too); Jira the comment
+  the numeric `user.id`, so a numeric `trustedAuthorIds` entry matches too; an all-digit entry is
+  always read as a numeric id and never matched against a login, because anyone can pick an
+  all-digit login); Jira the comment
   `author.accountId` through `lisa-atlassian-access`; Linear the comment `user.id` through
   `lisa-linear-access`. Pipe `{"comments":[{"id":…,"user":…|"author":…,"body":…,"createdAt":…}]}`
   (keep each comment's own `id`) to `item-answer <ref>`. It queues the first reply after the
@@ -330,7 +332,14 @@ shows them.
   `ledger marked … --comment-id <id>`; that cycle's outcome is `candidate-proposed`.
   `reason: "no-answerers-configured"` means neither `operatorIds` nor `trustedAuthorIds` is set,
   so nothing on the item is read (the tracker identity is the one workers post as); the operator
-  answers with the `answerCommand` from `status`.
+  answers with the `answerCommand` from `status`. A reply that looks like it holds a credential is
+  never queued: it is skipped and listed in `refused`, so a later reply is still read.
+  Whenever `refused` is present (with `queued: true`, or `queued: false` and
+  `reason: "credential-refused"`), tell the operator once, in plain words, from
+  `refusedExplanation`: the secret is now on the item, so they should delete that comment, rotate
+  the secret, and reply again without it. Never repeat the refused text. Exit 2 from `item-answer`
+  is a setup problem (no pending question for the ref, or an unreadable ledger): report its message
+  to the operator and leave the item; it never means the reply was a credential.
 
 **In Progress (ledger-driven).** Run `classify`. Items not in the ledger are not yours: leave them.
 

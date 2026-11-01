@@ -276,4 +276,59 @@ describe("item-answer", () => {
     const result = pick(githubSandbox(), [question]);
     expect(result.status).toBe(2);
   });
+
+  it("exits 2 (setup), not 1, when the ledger is not valid JSON (#4571)", () => {
+    const sandbox = githubSandbox();
+    ask(sandbox);
+    writeFileSync(
+      path.join(sandbox.root, ".lisa/session-manager/ledger.json"),
+      "{ not json"
+    );
+    const result = pick(sandbox, [question]);
+    expect(result.status).toBe(2);
+    expect(result.stderr).toContain("not valid JSON");
+  });
+
+  describe("a credential-shaped reply never wedges the item (#4571)", () => {
+    const leak = `key ${["AKIA", "ABCDEFGHIJKLMNOP"].join("")}`;
+
+    it("skips it and queues the corrected reply posted after it", () => {
+      const sandbox = githubSandbox();
+      ask(sandbox);
+      const result = pick(sandbox, [
+        question,
+        { id: 11, author: { login: OPERATOR }, body: leak },
+        { id: 12, author: { login: OPERATOR }, body: CSV_PLEASE },
+      ]);
+      expect(result.status).toBe(0);
+      expect(result.json).toMatchObject({
+        queued: true,
+        author: OPERATOR,
+        refused: [{ id: "11", author: OPERATOR }],
+      });
+      expect(result.json.refusedExplanation).toMatch(/delete that comment/);
+      expect(JSON.stringify(result.json)).not.toContain("AKIA");
+      expect(
+        readLedgerFile(sandbox).items[REF].pendingQuestion.answer
+      ).toMatchObject({ source: "item", text: CSV_PLEASE });
+    });
+
+    it("queues nothing, exit 0, while the credential reply is the only one", () => {
+      const sandbox = githubSandbox();
+      ask(sandbox);
+      const result = pick(sandbox, [
+        question,
+        { id: 11, author: { login: OPERATOR }, body: leak },
+      ]);
+      expect(result.status).toBe(0);
+      expect(result.json).toMatchObject({
+        queued: false,
+        reason: "credential-refused",
+        refused: [{ id: "11" }],
+      });
+      expect(
+        readLedgerFile(sandbox).items[REF].pendingQuestion.answer
+      ).toBeNull();
+    });
+  });
 });

@@ -107,7 +107,7 @@ describe("parity-safety-net.sh custom rules survive an early-exiting grep (#4564
 
 /**
  * The custom-rule evaluation exactly as the shipped hook spells it, from
- * `rule_status=0` through the line that records a staging failure.
+ * its `trap '' XFSZ` through the line that records a staging failure.
  * @returns The bash source of that step.
  */
 function shippedRuleStep(): string {
@@ -115,26 +115,32 @@ function shippedRuleStep(): string {
     path.resolve("plugins/lisa/hooks/parity-safety-net.sh"),
     "utf8"
   );
-  const step = /^ *rule_status=0\n[\s\S]*?\|\| rule_status=unstaged$/m.exec(
-    hook
-  );
+  const step =
+    /^ *trap '' XFSZ\n *rule_status=0\n[\s\S]*?\|\| rule_status=unstaged$/m.exec(
+      hook
+    );
   if (!step) throw new Error("custom-rule step not found in the shipped hook");
   return step[0];
 }
 
 /**
  * Runs one rule step with here-document staging made to fail: a zero
- * file-size limit with SIGXFSZ ignored, and a body large enough that every
- * Bash stages it in a temp file rather than a pipe.
+ * file-size limit, and a body large enough that every Bash stages it in a
+ * temp file rather than a pipe. SIGXFSZ is ignored by the harness only when
+ * `ignoreXfsz` is set; otherwise its disposition is whatever the step leaves.
  * @param step - Bash source that sets `rule_status`.
- * @returns What the step recorded in `rule_status`.
+ * @param ignoreXfsz - Whether the harness ignores SIGXFSZ before the step.
+ * @returns What the step recorded in `rule_status`, and the shell's status.
  */
-function statusWhenStagingFails(step: string): string {
+function stagingFailure(
+  step: string,
+  ignoreXfsz: boolean
+): { stdout: string; status: number | null } {
   const script = [
     "set -euo pipefail",
     'rule="NEVER_MATCHES_4564"',
     `custom_command_str="$(printf '%*s' ${PAYLOAD_BYTES} '')"`,
-    "trap '' XFSZ",
+    ...(ignoreXfsz ? ["trap '' XFSZ"] : []),
     "ulimit -f 0",
     step,
     'printf "%s" "$rule_status"',
@@ -144,7 +150,16 @@ function statusWhenStagingFails(step: string): string {
     command: "/bin/bash",
     args: ["-c", script],
   });
-  return result.stdout;
+  return { stdout: result.stdout, status: result.status };
+}
+
+/**
+ * {@link stagingFailure} with SIGXFSZ ignored by the harness.
+ * @param step - Bash source that sets `rule_status`.
+ * @returns What the step recorded in `rule_status`.
+ */
+function statusWhenStagingFails(step: string): string {
+  return stagingFailure(step, true).stdout;
 }
 
 describe("parity-safety-net.sh custom rules fail closed when staging fails (#4564)", () => {
@@ -156,5 +171,12 @@ describe("parity-safety-net.sh custom rules fail closed when staging fails (#456
 
   it("the shipped step tells a staging failure apart from no-match", () => {
     expect(statusWhenStagingFails(shippedRuleStep())).toBe("unstaged");
+  });
+
+  it("the shipped step reaches `unstaged` with SIGXFSZ at its default (#4571)", () => {
+    // No harness trap: the hook itself must ignore SIGXFSZ, or a write the
+    // limit refuses kills the shell before `unstaged` can run.
+    const { stdout, status } = stagingFailure(shippedRuleStep(), false);
+    expect({ stdout, status }).toEqual({ stdout: "unstaged", status: 0 });
   });
 });

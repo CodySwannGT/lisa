@@ -2863,6 +2863,44 @@ export function readReviewSubstitutes(
 }
 
 /**
+ * Review states that are a VERDICT — the ones that set or clear an objection.
+ * `COMMENTED` and `PENDING` are absent on purpose: neither withdraws one.
+ */
+const DECISIVE_REVIEW_STATES = new Set([
+  REVIEW_OBJECTION_STATE,
+  "APPROVED",
+  "DISMISSED",
+]);
+
+/**
+ * Reduces reviews to each author's latest decisive review.
+ *
+ * Later wins by `submittedAt` when both reviews carry a parseable one; when
+ * either does not, the later array position wins, which is the reviews
+ * endpoint's chronological order.
+ * @param {ReadonlyArray<{state?: string, author?: string, submittedAt?: string}>} reviews - Reviews, oldest first
+ * @returns {Map<string, {state?: string, author?: string, submittedAt?: string}>} Latest decisive review per author
+ */
+function latestDecisiveByAuthor(reviews) {
+  const latest = new Map();
+  for (const review of reviews) {
+    const state = String(review?.state ?? "").toUpperCase();
+    if (!DECISIVE_REVIEW_STATES.has(state)) continue;
+    const author = String(review?.author ?? "unknown");
+    const prior = latest.get(author);
+    const priorAt = Date.parse(prior?.submittedAt ?? "");
+    const thisAt = Date.parse(review?.submittedAt ?? "");
+    const earlier =
+      prior !== undefined &&
+      Number.isFinite(priorAt) &&
+      Number.isFinite(thisAt) &&
+      thisAt < priorAt;
+    if (!earlier) latest.set(author, review);
+  }
+  return latest;
+}
+
+/**
  * Whether an objection STANDS at this head, from the review objects.
  *
  * ## Filtered to the head, in both directions
@@ -2880,12 +2918,26 @@ export function readReviewSubstitutes(
  * those were at the merged head. An unfiltered read would have reddened the
  * other two for objections their authors had already addressed.
  *
+ * ## Each reviewer's LATEST verdict at head, not any verdict at head
+ *
+ * A reviewer can object and then approve the SAME commit — a bot running a
+ * request-changes workflow submits `CHANGES_REQUESTED`, the threads get
+ * resolved, and it submits `APPROVED` against the unchanged head a minute
+ * later. GitHub's own `reviewDecision` clears on that approval; counting every
+ * `CHANGES_REQUESTED` at head kept the gate red on an objection its author had
+ * withdrawn (CodySwannGT/lisa#4571). So the head-filtered reviews are reduced
+ * to each author's latest DECISIVE review — `APPROVED`, `CHANGES_REQUESTED` or
+ * `DISMISSED` — ordered by `submittedAt`, with the endpoint's chronological
+ * order breaking ties and standing in when a timestamp is missing. A
+ * `COMMENTED` review does not withdraw an objection, for the same reason it
+ * does not clear GitHub's `reviewDecision`: commenting is not a verdict.
+ *
  * ## Reported, never inferred
  *
  * This says only what the review objects say. It does NOT consult the status
  * description, and nothing about a waiver, a rate limit or an entitlement
  * reaches it — that is the point of having a second input at all.
- * @param {ReadonlyArray<{state?: string, commitSha?: string, author?: string}>} reviews - Review objects
+ * @param {ReadonlyArray<{state?: string, commitSha?: string, author?: string, submittedAt?: string}>} reviews - Review objects, in the endpoint's chronological order
  * @param {string|undefined} headSha - The head commit under inspection
  * @returns {{objected: boolean, reviewers: string[], staleDropped: number}} What stands at head
  */
@@ -2895,7 +2947,7 @@ export function readObjectionAtHead(reviews, headSha) {
     headSha === undefined || headSha === ""
       ? []
       : all.filter(review => review?.commitSha === headSha);
-  const objections = atHead.filter(
+  const objections = [...latestDecisiveByAuthor(atHead).values()].filter(
     review =>
       String(review?.state ?? "").toUpperCase() === REVIEW_OBJECTION_STATE
   );
@@ -2917,7 +2969,7 @@ export function readObjectionAtHead(reviews, headSha) {
  * carries `commit_id`, which is what makes the staleness filter possible.
  * @param {string|number} pr - The pull request
  * @param {string} [repo] - `OWNER/NAME`; defaults to the current repository
- * @returns {Array<{state: string, commitSha: string, author: string}>} Review objects
+ * @returns {Array<{state: string, commitSha: string, author: string, submittedAt: string}>} Review objects
  * @throws {Error} When the slug cannot be resolved or `gh` cannot answer
  */
 export function fetchPullRequestReviews(pr, repo) {
@@ -2929,7 +2981,7 @@ export function fetchPullRequestReviews(pr, repo) {
   }
   return ghApiPaginatedArray(
     `repos/${slug}/pulls/${pr}/reviews?per_page=100`,
-    "[.[] | {state: .state, commitSha: .commit_id, author: .user.login}]"
+    "[.[] | {state: .state, commitSha: .commit_id, author: .user.login, submittedAt: .submitted_at}]"
   );
 }
 

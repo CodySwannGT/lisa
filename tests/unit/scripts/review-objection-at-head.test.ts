@@ -60,6 +60,7 @@ interface ReviewObject {
   readonly state: string;
   readonly commitSha?: string;
   readonly author: string;
+  readonly submittedAt?: string;
 }
 
 /** What a verdict renders as. */
@@ -195,6 +196,121 @@ describe("an objection is read from review objects, at this head", () => {
       undefined
     );
     expect(standing.objected).toBe(false);
+  });
+});
+
+describe("each reviewer's LATEST verdict at head decides (#4571)", () => {
+  const BOT = "coderabbitai[bot]";
+  const OBJECTED_AT = "2026-10-30T16:10:52Z";
+  const APPROVED_AT = "2026-10-30T16:11:52Z";
+  const objectAt = (submittedAt?: string): ReviewObject => ({
+    state: "CHANGES_REQUESTED",
+    commitSha: HEAD,
+    author: BOT,
+    ...(submittedAt === undefined ? {} : { submittedAt }),
+  });
+  const approveAt = (submittedAt?: string): ReviewObject => ({
+    state: "APPROVED",
+    commitSha: HEAD,
+    author: BOT,
+    ...(submittedAt === undefined ? {} : { submittedAt }),
+  });
+
+  it("clears an objection the SAME reviewer later approved at the SAME head", () => {
+    // The observed sequence: a request-changes workflow objected at head, every
+    // thread was resolved, and the bot approved that unchanged head a minute
+    // later. GitHub's reviewDecision cleared; the gate must too.
+    const standing = mod.readObjectionAtHead(
+      [objectAt(OBJECTED_AT), approveAt(APPROVED_AT)],
+      HEAD
+    );
+    expect(standing.objected).toBe(false);
+    expect(standing.reviewers).toEqual([]);
+  });
+
+  it("still objects when the approval came FIRST and the objection after", () => {
+    // Rejection control: a gate that ignores CHANGES_REQUESTED whenever any
+    // APPROVED exists would pass the test above and fail this one.
+    const standing = mod.readObjectionAtHead(
+      [approveAt(OBJECTED_AT), objectAt(APPROVED_AT)],
+      HEAD
+    );
+    expect(standing.objected).toBe(true);
+    expect(standing.reviewers).toEqual([BOT]);
+  });
+
+  it("orders by submittedAt, not array position, when both carry one", () => {
+    const standing = mod.readObjectionAtHead(
+      [approveAt(APPROVED_AT), objectAt(OBJECTED_AT)],
+      HEAD
+    );
+    expect(standing.objected).toBe(false);
+  });
+
+  it("falls back to the endpoint's chronological order without timestamps", () => {
+    expect(
+      mod.readObjectionAtHead([objectAt(), approveAt()], HEAD).objected
+    ).toBe(false);
+    expect(
+      mod.readObjectionAtHead([approveAt(), objectAt()], HEAD).objected
+    ).toBe(true);
+  });
+
+  it("does not let a later COMMENTED review withdraw an objection", () => {
+    const standing = mod.readObjectionAtHead(
+      [
+        objectAt(OBJECTED_AT),
+        {
+          state: "COMMENTED",
+          commitSha: HEAD,
+          author: BOT,
+          submittedAt: APPROVED_AT,
+        },
+      ],
+      HEAD
+    );
+    expect(standing.objected).toBe(true);
+  });
+
+  it("does not let ANOTHER reviewer's approval clear this reviewer's objection", () => {
+    const standing = mod.readObjectionAtHead(
+      [
+        objectAt(OBJECTED_AT),
+        {
+          state: "APPROVED",
+          commitSha: HEAD,
+          author: "a-human",
+          submittedAt: APPROVED_AT,
+        },
+      ],
+      HEAD
+    );
+    expect(standing.objected).toBe(true);
+    expect(standing.reviewers).toEqual([BOT]);
+  });
+
+  it("does not let an approval at an OLDER head clear an objection at head", () => {
+    const standing = mod.readObjectionAtHead(
+      [
+        objectAt(OBJECTED_AT),
+        {
+          state: "APPROVED",
+          commitSha: OLDER,
+          author: BOT,
+          submittedAt: APPROVED_AT,
+        },
+      ],
+      HEAD
+    );
+    expect(standing.objected).toBe(true);
+  });
+
+  it("readReviewObjection reports no violation for the object-then-approve sequence", () => {
+    const result = mod.readReviewObjection("1", "o/r", HEAD, {
+      fetchReviews: () => [objectAt(OBJECTED_AT), approveAt(APPROVED_AT)],
+    });
+    expect(result.objected).toBe(false);
+    expect(result.violations).toEqual([]);
   });
 });
 

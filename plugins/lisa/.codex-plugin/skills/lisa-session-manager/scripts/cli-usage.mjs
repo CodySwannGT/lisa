@@ -115,7 +115,7 @@ Config and routing
              unknown key or a dir without .lisa.config.json.
   validate   stdout {valid,errors}; exit 2 when invalid or absent.
   init-config [--slug <slug>] [--notify none|telegram] [--write]
-             stdout {written,block[,reason:"exists"][,path]}. --notify picks
+             stdout {written,block[,reason:"exists",layer][,path]}. --notify picks
              the notification channel (default none): none writes
              notify {provider:"none"} and no state dir; telegram writes
              {provider:"telegram",stateDir:"~/.claude/channels/telegram-<slug>"}.
@@ -128,7 +128,9 @@ Config and routing
              (e.g. @nestjs/* -> NestJS, expo -> Expo, aws-cdk-lib -> AWS CDK).
              Default slug: <github.repo or folder name>-<first 6 hex of
              sha256(realpath(root))>; --slug is used as given. --write adds
-             the block to .lisa.config.json, never overwriting an existing one.
+             the block to .lisa.config.json, never overwriting an existing one;
+             a block in .lisa.config.local.json counts as existing too
+             (layer "local"), so nothing is written under it.
   trust-status
              stdout {file,dirs:[{dir,trusted:true|false|"unknown"}],
              needsTrust:[dir]}: whether Claude Code has recorded workspace
@@ -229,7 +231,8 @@ Per cycle
       Queues the human's answer from the item's comments (source "item"):
       the first comment after the latest [lisa-session-manager-question]
       comment whose author's STABLE id (GitHub login or numeric id, Jira
-      accountId, Linear user id; never a name, displayName or email) is in
+      accountId, Linear user id; never a name, displayName or email; an
+      all-digit entry is a numeric id, never matched against a login) is in
       sessionManager.operatorIds or trustedAuthorIds, and that is not a
       machine comment, checked first (body starting with a bracketed tag
       such as [lisa-...] or [claude-sync]; [lisa- or <!-- lisa: anywhere;
@@ -237,13 +240,16 @@ Per cycle
       or an id in the ledger's managerCommentIds, so keep each comment's
       id). For GitHub, pipe the rows of
       gh api --paginate repos/<o>/<r>/issues/<n>/comments (user.login,
-      user.id). stdout {queued:true,ref,source,author} or {queued:false,ref,
-      reason:no-question-comment|no-answer-yet|already-queued|
-      no-answerers-configured[,explanation]}. no-answerers-configured (exit
-      0): neither list is set, so nothing on the item is read, because the
-      tracker identity is the one workers post as; answer with answer.
-      Exit 2 when <ref> has no pending question, or the answer looks like a
-      credential.
+      user.id). stdout {queued:true,ref,source,author[,refused]} or
+      {queued:false,ref,reason:no-question-comment|no-answer-yet|
+      already-queued|no-answerers-configured|credential-refused
+      [,explanation][,refused,refusedExplanation]}. no-answerers-configured
+      (exit 0): neither list is set, so nothing on the item is read, because
+      the tracker identity is the one workers post as; answer with answer.
+      A reply that looks like a credential is skipped, never queued, and
+      listed in refused [{id,author,why}], so a later reply is still read;
+      credential-refused (exit 0) means no other reply answers yet. Exit 2
+      when <ref> has no pending question or the ledger is unreadable.
   record-cycle --outcome <outcome> [--ref <url>]... [--run-id <id>]
       STDIN: one-line summary. Records loop session-manager with runbook
       .lisa/automations/session-manager.runbook.md. stdout {path,appended,

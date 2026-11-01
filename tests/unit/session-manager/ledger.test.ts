@@ -193,6 +193,28 @@ describe("ledger", () => {
     expect(cleared.pendingQuestion).toBeNull();
   });
 
+  it("keeps a recorded question across a later finish and spawn (#4571)", async () => {
+    // Only clearPendingQuestion clears a question. A finish or a fresh spawn
+    // that ran after it was recorded used to drop the question, its queued
+    // answer and the tracker marker the manager must remove.
+    await spawn("s1");
+    await setPendingQuestion(
+      root,
+      { ref: REF, text: QUESTION, telegramMessageId: 7 },
+      seams
+    );
+    const finished = await recordFinish(
+      root,
+      { ref: REF, status: "FAILED", reason: "stopped" },
+      seams
+    );
+    expect(finished.pendingQuestion).toMatchObject({ text: QUESTION });
+    const respawned = await spawn("s2", "wk-TEAM-12-1012-0930");
+    expect(respawned.pendingQuestion).toMatchObject({ text: QUESTION });
+    const cleared = await clearPendingQuestion(root, { ref: REF }, seams);
+    expect(cleared.pendingQuestion).toBeNull();
+  });
+
   it("records a routing question for a ref that has not been dispatched", async () => {
     const entry = await setPendingQuestion(
       root,

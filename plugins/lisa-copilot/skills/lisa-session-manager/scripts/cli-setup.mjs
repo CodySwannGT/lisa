@@ -45,7 +45,8 @@ import {
 /**
  * `init-config [--slug <slug>] [--notify none|telegram] [--write]`: the
  * default block for this project, written to `.lisa.config.json` only with
- * `--write` and only when no block exists. Non-secret fields only; the token
+ * `--write` and only when no block exists in `.lisa.config.json` or
+ * `.lisa.config.local.json` (`layer` names the file that has one). Non-secret fields only; the token
  * never goes here. Repos are the routable children `detectRepoLayout` finds
  * under `projects/`, else directly under the root (linked worktrees and second
  * clones of one remote left out), each with drafted hints. `--notify` defaults
@@ -55,11 +56,26 @@ import {
  * @returns {{ json: object }} `{written,block,...}`
  */
 export function initConfig(ctx) {
-  const { global } = loadProject(ctx.root);
-  if (global?.sessionManager) {
-    return {
-      json: { written: false, reason: "exists", block: global.sessionManager },
-    };
+  const { global, local } = loadProject(ctx.root);
+  // A block in EITHER layer is existing configuration. Checking only the
+  // global file let `--write` add a generated global block under a
+  // local-only one; the local layer then overrode it field by field (say
+  // `notify.provider` with no `stateDir`) and the merged config failed
+  // validation, breaking `start` and `store-token` (CodySwannGT/lisa#4571).
+  for (const [layer, config] of [
+    ["global", global],
+    ["local", local],
+  ]) {
+    if (config?.sessionManager) {
+      return {
+        json: {
+          written: false,
+          reason: "exists",
+          layer,
+          block: config.sessionManager,
+        },
+      };
+    }
   }
   const slug =
     ctx.values.slug ?? defaultProjectSlug(ctx.root, global?.github?.repo);
