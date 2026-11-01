@@ -41,7 +41,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lib/completion-proof-conformance.mjs":
       "51b2bfccc8ecca684dd80a4e2ae35896e76fa519389fe650f0890ffc0fef421d",
     "all/copy-overwrite/scripts/lib/completion-proof-content.mjs":
-      "78b34223d054913c2e900830070cbb1fb2dc267423ec458ae76553ceed0d38c6",
+      "ed1a5b1f0ba44aca5333d8ce6584db2a63c612b36ab8773d25677103d2fd27ad",
     "all/copy-overwrite/scripts/lib/completion-proof-errors.mjs":
       "3422df7049227eff77f3ef7bf954eeb74a63e9879b06d8126c7c3a2485b6d1f3",
     "all/copy-overwrite/scripts/lib/completion-proof-github.mjs":
@@ -143,7 +143,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lib/npm-update-hosted-gate.mjs":
       "b9ced911733ab9c6afd06c9451bb9d9cc9363e0a6fd1059ef659aba0107065cc",
     "all/copy-overwrite/scripts/lib/npm-update-hosted-hook.mjs":
-      "0e9cf3bf55b9b979d22553f01ad4d17c0a85058b2b87657bd3126b9034e9f8c1",
+      "801b41f0f3f455c08b4e86a64f076190a5f245492959a154d70b897dd0d60a31",
     "all/copy-overwrite/scripts/lib/npm-update-hosted-scope.mjs":
       "bf046814b607f5449f80b18081b3a42a97a9a96d54fae302661471e166797459",
     "all/copy-overwrite/scripts/lib/npm-update-invariants.mjs":
@@ -297,7 +297,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-hooks/parity-safety-net-heredoc.py":
       "b37b843b738fd0c1c6f9639551cf64c409263064819bb820e3daa6af8c94d443",
     "all/copy-overwrite/scripts/lisa-hooks/parity-safety-net.sh":
-      "3cc1b8a1730f7a35b82293824715538432bb4c410be38d64ee887eb55fea23b4",
+      "307f934810a36f5889bc443d7ab3f4166eccd74820b44ff2973b6fc58fe0841d",
     "all/copy-overwrite/scripts/lisa-hooks/sonar-secrets.sh":
       "e0b0073fe44f6e78b74f05cb232d30a3121acc3600bdbd5bc4299c1c710d56a2",
     "all/copy-overwrite/scripts/lisa-hooks/worktree-binding-guard.mjs":
@@ -1079,7 +1079,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/hooks/parity-safety-net.agy.sh":
       "ce9bd2b4566ad9147e4ace56434cffbbe87edb4ccbb57549ab3fd9f4c671ced4",
     "plugins/src/base/hooks/parity-safety-net.sh":
-      "3dcf3897381b6cd14903681b371ffde94e3839f34a39acb6192d69f20e06345d",
+      "df2ff8dc0f4be6077c2824bb0ece2eb5e72b982538b87e3c758128bc824185f1",
     "plugins/src/base/hooks/secrets-preflight.sh":
       "cdc638627e5769770aefb061ea0ddfacc1888a8eab3a5fade6c43129a2d3ff6e",
     "plugins/src/base/hooks/setup-jira-cli.sh":
@@ -1559,7 +1559,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-parity-coderabbit/SKILL.md":
       "ae882837d43741293d1b639c4516331fa6124fa1f5da234a74ecb31c5d7e52cd",
     "plugins/src/base/skills/lisa-parity-sentry-sdk-setup/SKILL.md":
-      "17e21c3d1e944febd99ef5c445f105574dddd86dcb61d52aa93b296e3012d861",
+      "d0f128c944e90548ea08ef100216b8ecb304d87c4c0dc78c7a9e66f3deb3347f",
     "plugins/src/base/skills/lisa-parity-sentry-seer/SKILL.md":
       "322a7ae4a11cc4e2a35f5fd31ef5dd7e8525970a558e9bb19b2ca25431b2558a",
     "plugins/src/base/skills/lisa-parity-skill-creator/SKILL.md":
@@ -1663,7 +1663,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-secrets-access/scripts/tools-from-notes.mjs":
       "360f740cac081151491428043b04fec2f5db6f3ba36394f7378af312396d53ca",
     "plugins/src/base/skills/lisa-secrets-access/scripts/validate-config.mjs":
-      "ad26fedaf2639fccd087864f4486ce5d90f83e3f7cf0d15fe180c31a16bee37e",
+      "8f99b4cff1cbbd30a60e27a7b6819e5982508953e9d2bdf37a34cfe4500ce6e6",
     "plugins/src/base/skills/lisa-security-review/SKILL.md":
       "5a980eaf5efc4fcce66e75521ec5b1eda143a5b0d36e7157234a705dac94e3f5",
     "plugins/src/base/skills/lisa-security-zap-scan/SKILL.md":
@@ -12154,6 +12154,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/hooks/parity-safety-net-compound-pipeline.test.ts": true,
     "tests/unit/hooks/parity-safety-net-compound-redirection.test.ts": true,
     "tests/unit/hooks/parity-safety-net-credentials.test.ts": true,
+    "tests/unit/hooks/parity-safety-net-custom-rule-sigpipe.test.ts": true,
     "tests/unit/hooks/parity-safety-net-dirty-recovery.test.ts": true,
     "tests/unit/hooks/parity-safety-net-discard-remedy-executability.test.ts": true,
     "tests/unit/hooks/parity-safety-net-false-positives.test.ts": true,
@@ -12355,6 +12356,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/command-envelope.test.ts": true,
     "tests/unit/scripts/completion-proof-grammar.test.ts": true,
     "tests/unit/scripts/completion-proof-types.test.ts": true,
+    "tests/unit/scripts/completion-proof-verify-usage.test.ts": true,
     "tests/unit/scripts/conflict-prover-markers-and-index.test.ts": true,
     "tests/unit/scripts/cross-pollinate.test.ts": true,
     "tests/unit/scripts/cursor-artifact-helpers.ts": true,
@@ -12547,6 +12549,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/npm-update-hook-installation.test.ts": true,
     "tests/unit/scripts/npm-update-hook-provider.test.ts": true,
     "tests/unit/scripts/npm-update-hosted-gate.test.ts": true,
+    "tests/unit/scripts/npm-update-hosted-hook-rails-inline.test.ts": true,
     "tests/unit/scripts/npm-update-hosted-runtime.test.ts": true,
     "tests/unit/scripts/npm-update-hosted-scope.test.ts": true,
     "tests/unit/scripts/npm-update-husky-compatibility.test.ts": true,
@@ -12789,6 +12792,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/session-manager/config-repos.test.ts": true,
     "tests/unit/session-manager/config.test.ts": true,
     "tests/unit/session-manager/human-answer.test.ts": true,
+    "tests/unit/session-manager/init-config-credential-named-repo.test.ts": true,
     "tests/unit/session-manager/launch-argv.test.ts": true,
     "tests/unit/session-manager/launch-real-tmux.test.ts": true,
     "tests/unit/session-manager/launch.test.ts": true,

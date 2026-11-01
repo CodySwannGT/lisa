@@ -19,8 +19,13 @@ const ENTRY = fileURLToPath(import.meta.url);
 const PRELOAD = fileURLToPath(
   new URL("./npm-update-hook-preload.mjs", import.meta.url)
 );
+// Byte-for-byte the `-e` payload of `rails-prepush` in
+// rails/copy-overwrite/lefthook.yml. `hookEntry` matches it exactly, so any
+// edit to that lefthook command must be mirrored here; the regression test
+// `npm-update-hosted-hook-rails-inline.test.ts` reads the lefthook file and
+// fails when the two drift (CodySwannGT/lisa#4564).
 const RAILS_INLINE =
-  'try { const { main } = await import("./scripts/lisa-rails-prepush.mjs"); process.exitCode = await main(process.argv.slice(1)); } catch { console.error("Managed Rails push tooling is unavailable or damaged. Run full Lisa apply and retry; raw bootstrap errors are withheld."); process.exitCode = 1; }';
+  'try { const { main } = await import("./scripts/lisa-rails-prepush.mjs"); const rc = await main(process.argv.slice(1)); if (rc !== 0) console.error(`Rails pre-push refused (exit ${rc}). Retry the same git push command and inspect rails-prepush output for scanner and work-item details.`); process.exitCode = rc; } catch { console.error("Managed Rails push tooling is unavailable or damaged. Run full Lisa apply and retry; raw bootstrap errors are withheld."); process.exitCode = 1; }';
 
 /** Context carries no token; the broker independently retains its immutable read subject in parent memory. */
 export function hostedHookContext(file) {

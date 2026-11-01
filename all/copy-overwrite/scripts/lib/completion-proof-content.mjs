@@ -362,13 +362,46 @@ export function validateObligations(record, scope, claims) {
   );
 }
 
-/** Use the same canonical parser/integrity implementation as the TS writer. */
+/**
+ * Whether one usage entry is the canonical Verify entry for this work item.
+ * @param {any} entry Parsed usage entry, if any.
+ * @param {string} ref Work-item reference.
+ * @param {any} context Provider context.
+ * @returns {boolean} True when the flow and artifact identity both match.
+ */
+function isVerifyEntryFor(entry, ref, context) {
+  const identity = String(entry?.artifactRef ?? "").replace(/^github:/, "");
+  const linear =
+    context.provider === "linear" &&
+    identity === `linear:${context.scope.split("/")[0]}/${ref}`;
+  return (
+    ["lisa-verify", "verify"].includes(entry?.flow) &&
+    (linear ||
+      identity === ref ||
+      identity === `https://github.com/${ref.replace("#", "/issues/")}`)
+  );
+}
+
+/**
+ * Use the same canonical parser/integrity implementation as the TS writer.
+ *
+ * Every comment on the work item is read, from any author. A `## Lisa Usage`
+ * section that is malformed or fails its integrity check therefore cannot be
+ * allowed to fail the whole authorization: one stray or hand-edited comment
+ * would otherwise turn a completed item into `invalid-proof`
+ * (CodySwannGT/lisa#4564). Such a section contributes no entries and is
+ * skipped, and an expected id is satisfied when ANY intact section carries the
+ * matching Verify entry, so a later conflicting copy cannot shadow it. Nothing
+ * is accepted that was not accepted before: every expected id still needs an
+ * intact, well-formed section holding the Verify entry for this exact item.
+ */
 export function validateVerifyUsage(documents, ref, expectedIds, context) {
   requireProof(
     Array.isArray(expectedIds) && expectedIds.length > 0,
     "Canonical Verify usage is missing."
   );
   const found = new Map();
+  let skipped = 0;
   for (const document of documents) {
     const usage = section(document, "Lisa Usage");
     if (!usage) continue;
@@ -377,30 +410,29 @@ export function validateVerifyUsage(documents, ref, expectedIds, context) {
     try {
       parsed = parseLisaUsageSection(canonical);
     } catch {
-      requireProof(
-        false,
-        "The current canonical Verify usage section is malformed."
-      );
+      skipped += 1;
+      continue;
     }
     if (!parsed.range) continue;
-    requireProof(
-      verifyLisaUsageSectionIntegrity(canonical).ok,
-      "The canonical usage ledger failed its stored-surface integrity check."
-    );
-    for (const entry of parsed.entries) found.set(entry.entryId, entry);
+    if (!verifyLisaUsageSectionIntegrity(canonical).ok) {
+      skipped += 1;
+      continue;
+    }
+    for (const entry of parsed.entries) {
+      if (!found.has(entry.entryId)) found.set(entry.entryId, []);
+      found.get(entry.entryId).push(entry);
+    }
   }
+  const note =
+    skipped > 0
+      ? ` ${skipped} malformed or integrity-failing usage section(s) were ignored.`
+      : "";
   for (const id of expectedIds) {
-    const entry = found.get(id);
-    const identity = String(entry?.artifactRef ?? "").replace(/^github:/, "");
-    const linear =
-      context.provider === "linear" &&
-      identity === `linear:${context.scope.split("/")[0]}/${ref}`;
     requireProof(
-      ["lisa-verify", "verify"].includes(entry?.flow) &&
-        (linear ||
-          identity === ref ||
-          identity === `https://github.com/${ref.replace("#", "/issues/")}`),
-      `Canonical Verify usage entry ${id} is absent or belongs to another work item.`
+      (found.get(id) ?? []).some(entry =>
+        isVerifyEntryFor(entry, ref, context)
+      ),
+      `Canonical Verify usage entry ${id} is absent or belongs to another work item.${note}`
     );
     // acceptedAt/lifecycleSources attest the later native terminal event. They
     // are deliberately not prerequisites of the transition they describe.

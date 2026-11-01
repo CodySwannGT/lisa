@@ -713,6 +713,16 @@ function validateNotify(notify) {
 }
 
 /**
+ * Maps under `sessionManager` whose KEYS are names chosen by the project, not
+ * config field names. `repos.entries` is keyed by child repository directory,
+ * so a repo called `token-service` or `secrets-manager` is a name, not a
+ * credential field; testing it against CREDENTIAL_KEY made `init-config
+ * --write` emit a block that `validate` then refused (CodySwannGT/lisa#4564).
+ * Their VALUES are still walked, so a token placed inside an entry is caught.
+ */
+const NAME_KEYED_MAPS = new Set(["sessionManager.repos.entries"]);
+
+/**
  * Walk the block for anything that looks like a credential.
  *
  * Config is committed, and this block configures a bot that grants shell
@@ -739,8 +749,9 @@ function findCredentials(value, path) {
     return value.flatMap((item, i) => findCredentials(item, `${path}[${i}]`));
   }
   if (!isPlainObject(value)) return [];
+  const keysAreNames = NAME_KEYED_MAPS.has(path);
   return Object.entries(value).flatMap(([key, child]) =>
-    CREDENTIAL_KEY.test(key)
+    !keysAreNames && CREDENTIAL_KEY.test(key)
       ? [
           `${path}.${key} names a credential. Tokens and secrets never go in ` +
             `config: remove it, and keep the bot token in the project's ` +

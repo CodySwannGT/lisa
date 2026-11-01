@@ -3472,10 +3472,15 @@ if [ -f "$rules_file" ]; then
     # here — before the remaining rules ran, and with an exit status that is
     # not a refusal. The `||` puts the pipeline in a condition context, where
     # a non-zero status is expected rather than fatal.
-    # Consume the whole input: grep -q can close an early match while printf
-    # is still writing, making pipefail report SIGPIPE instead of the match.
+    # A here-string, never a pipe. With `printf | grep` under pipefail, a grep
+    # that stops at its first match (`-q`, and GNU grep whose stdout is
+    # /dev/null, which it treats as `-q`) closes the pipe while printf is still
+    # writing; printf takes SIGPIPE and the pipeline reports 141 instead of
+    # grep's 0. 141 lands in the `*)` arm below and a rule that MATCHED was
+    # reported as an invalid regex and not enforced (CodySwannGT/lisa#4564).
+    # A here-string has no writer process, so the status is grep's alone.
     rule_status=0
-    printf '%s' "$custom_command_str" | grep -Ei -- "$rule" >/dev/null || rule_status=$?
+    grep -qEi -- "$rule" <<<"$custom_command_str" || rule_status=$?
     case "$rule_status" in
       0) block "matched a project custom safety rule (${rules_file##*/}): $rule" ;;
       1) ;; # no match
