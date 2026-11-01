@@ -23,6 +23,7 @@ export interface AuditCopy {
 export interface AuditFinding {
   readonly ids: readonly string[];
   readonly name: string;
+  readonly severity: "high" | "critical";
   readonly range?: string;
 }
 

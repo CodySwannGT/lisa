@@ -12026,6 +12026,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/core/apply-mode.test.ts": true,
     "tests/unit/core/apply-receipt-deletion-record.test.ts": true,
     "tests/unit/core/audit-lockfile-formats.test.ts": true,
+    "tests/unit/core/audit-report-completeness.test.ts": true,
     "tests/unit/core/audit-scopes.test.ts": true,
     "tests/unit/core/bootstrap-environment.test.ts": true,
     "tests/unit/core/cdk-preset-adoption.test.ts": true,

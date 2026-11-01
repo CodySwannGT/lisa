@@ -38,6 +38,7 @@ function finding(
     {
       ids,
       name: typeof value.name === "string" ? value.name : name,
+      severity: level === "critical" ? "critical" : "high",
       ...(typeof range === "string" ? { range } : {}),
     },
   ];
@@ -111,7 +112,7 @@ function yarnFindings(source: string): AuditFinding[] {
   ) {
     throw new Error("Unknown yarn audit report shape (missing auditSummary)");
   }
-  const reportedHigh = yarnSummaryHigh(summaries[0]);
+  const counts = yarnSummaryCounts(summaries[0]);
   const result = lines.flatMap(line => {
     if (!auditRecord(line) || line.type !== "auditAdvisory") return [];
     if (!auditRecord(line.data) || !auditRecord(line.data.advisory))
@@ -122,9 +123,13 @@ function yarnFindings(source: string): AuditFinding[] {
       advisory
     );
   });
-  if (reportedHigh && result.length === 0) {
+  const missing = (["high", "critical"] as const).filter(
+    level =>
+      counts[level] > 0 && !result.some(advisory => advisory.severity === level)
+  );
+  if (missing.length > 0) {
     throw new Error(
-      "Yarn reported high/critical findings without concrete advisory data; nothing was audited completely"
+      `Yarn reported high/critical findings without concrete advisory data for ${missing.join(", ")}; nothing was audited completely`
     );
   }
   return result;
@@ -133,9 +138,12 @@ function yarnFindings(source: string): AuditFinding[] {
 /**
  * Validate the provider's summary before treating an advisory-free stream as clean.
  * @param value - The single Yarn summary record
- * @returns Whether Yarn reports high or critical vulnerabilities
+ * @returns Validated occurrence counts for each governed severity
  */
-function yarnSummaryHigh(value: unknown): boolean {
+function yarnSummaryCounts(value: unknown): {
+  readonly high: number;
+  readonly critical: number;
+} {
   const data = auditRecord(value) ? value.data : undefined;
   const counts = auditRecord(data) ? data.vulnerabilities : undefined;
   if (!auditRecord(counts))
@@ -149,7 +157,7 @@ function yarnSummaryHigh(value: unknown): boolean {
   ) {
     throw new Error("Unknown Yarn audit summary high/critical counts");
   }
-  return levels.some(count => (count as number) > 0);
+  return { high: counts.high as number, critical: counts.critical as number };
 }
 
 /**
