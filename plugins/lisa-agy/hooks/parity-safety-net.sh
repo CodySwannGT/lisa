@@ -3475,12 +3475,28 @@ if [ -f "$rules_file" ]; then
     # here — before the remaining rules ran, and with an exit status that is
     # not a refusal. The `||` puts the pipeline in a condition context, where
     # a non-zero status is expected rather than fatal.
-    # Consume the whole input: grep -q can close an early match while printf
-    # is still writing, making pipefail report SIGPIPE instead of the match.
+    # A here-string, never a pipe. With `printf | grep` under pipefail, a grep
+    # that stops at its first match (`-q`, and GNU grep whose stdout is
+    # /dev/null, which it treats as `-q`) closes the pipe while printf is still
+    # writing; printf takes SIGPIPE and the pipeline reports 141 instead of
+    # grep's 0. 141 lands in the `*)` arm below and a rule that MATCHED was
+    # reported as an invalid regex and not enforced (CodySwannGT/lisa#4564).
+    # A here-string has no writer process, so the status is grep's alone.
+    #
+    # The here-string is staged by the shell (a pipe, or a temp file for a
+    # large body or on Bash 3.2), and that staging can fail: no temp space,
+    # a file-size limit. A failed redirection on a bare `grep … <<<` returns
+    # 1, the same status as "no match", so the rule would silently pass. The
+    # brace group separates the two: grep's own status is captured INSIDE it,
+    # so the group itself only fails when the redirection could not be set up.
     rule_status=0
-    printf '%s' "$custom_command_str" | grep -Ei -- "$rule" >/dev/null || rule_status=$?
+    { grep -qEi -- "$rule" || rule_status=$?; } <<<"$custom_command_str" \
+      || rule_status=unstaged
     case "$rule_status" in
       0) block "matched a project custom safety rule (${rules_file##*/}): $rule" ;;
+      # Fail closed: the rule could not be evaluated at all, which is not the
+      # same thing as the rule not matching.
+      unstaged) block "could not stage the command to check project custom safety rule (${rules_file##*/}): $rule" ;;
       1) ;; # no match
       # grep exits 2 on a malformed ERE. Treated as no-match before, so a typo
       # in a project's rules file silently disabled that rule — a guard the

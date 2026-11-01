@@ -103,7 +103,7 @@
       "children": []
     },
     "lib/completion-proof-content.mjs": {
-      "sha256": "78b34223d054913c2e900830070cbb1fb2dc267423ec458ae76553ceed0d38c6",
+      "sha256": "679702f6e3cce3919e01c79fe5016d3215f15b067bcab2fb9eeffb0350e7c64f",
       "staticImports": [
         "lib/completion-proof-shape.mjs",
         "lib/usage-ledger-integrity.mjs",
@@ -733,7 +733,7 @@
       "children": []
     },
     "lib/npm-update-hosted-hook.mjs": {
-      "sha256": "0e9cf3bf55b9b979d22553f01ad4d17c0a85058b2b87657bd3126b9034e9f8c1",
+      "sha256": "801b41f0f3f455c08b4e86a64f076190a5f245492959a154d70b897dd0d60a31",
       "staticImports": [
         "lib/npm-update-contract.mjs",
         "lib/npm-update-invariants.mjs",

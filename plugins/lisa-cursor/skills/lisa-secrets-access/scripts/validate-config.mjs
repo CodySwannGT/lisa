@@ -713,6 +713,31 @@ function validateNotify(notify) {
 }
 
 /**
+ * Maps under `sessionManager` whose KEYS are names chosen by the project, not
+ * config field names. `repos.entries` is keyed by child repository directory,
+ * so a repo called `token-service` or `secrets-manager` is a name, not a
+ * credential field; testing it against CREDENTIAL_KEY made `init-config
+ * --write` emit a block that `validate` then refused (CodySwannGT/lisa#4564).
+ * Their VALUES are still walked, so a token placed inside an entry is caught.
+ */
+const NAME_KEYED_MAPS = [["repos", "entries"]];
+
+/**
+ * Whether a key trail below `sessionManager` is exactly a name-keyed map.
+ * Compared segment by segment, never as a dotted string: a literal key
+ * `"repos.entries"` would otherwise borrow the exemption.
+ * @param {readonly string[]} segments Object keys from the block root.
+ * @returns {boolean} True for a map whose keys are names.
+ */
+function isNameKeyedMap(segments) {
+  return NAME_KEYED_MAPS.some(
+    map =>
+      map.length === segments.length &&
+      map.every((segment, i) => segment === segments[i])
+  );
+}
+
+/**
  * Walk the block for anything that looks like a credential.
  *
  * Config is committed, and this block configures a bot that grants shell
@@ -721,10 +746,12 @@ function validateNotify(notify) {
  * configured), so a token here is both leaked and unused. The value is never
  * echoed.
  * @param {unknown} value Subtree.
- * @param {string} path Dotted path so far.
+ * @param {string} path Dotted path so far, for messages.
+ * @param {readonly string[] | null} [segments] Object keys from the block root;
+ *   `null` once an array is crossed, since no name-keyed map lives there.
  * @returns {string[]} Problems found.
  */
-function findCredentials(value, path) {
+function findCredentials(value, path, segments = []) {
   if (typeof value === "string") {
     return TOKEN_VALUE.test(value.trim())
       ? [
@@ -736,18 +763,25 @@ function findCredentials(value, path) {
       : [];
   }
   if (Array.isArray(value)) {
-    return value.flatMap((item, i) => findCredentials(item, `${path}[${i}]`));
+    return value.flatMap((item, i) =>
+      findCredentials(item, `${path}[${i}]`, null)
+    );
   }
   if (!isPlainObject(value)) return [];
+  const keysAreNames = segments !== null && isNameKeyedMap(segments);
   return Object.entries(value).flatMap(([key, child]) =>
-    CREDENTIAL_KEY.test(key)
+    !keysAreNames && CREDENTIAL_KEY.test(key)
       ? [
           `${path}.${key} names a credential. Tokens and secrets never go in ` +
             `config: remove it, and keep the bot token in the project's ` +
             `secrets provider (session-manager.mjs store-token, run by ` +
             `/lisa:setup:session-manager).`,
         ]
-      : findCredentials(child, `${path}.${key}`)
+      : findCredentials(
+          child,
+          `${path}.${key}`,
+          segments === null ? null : [...segments, key]
+        )
   );
 }
 
