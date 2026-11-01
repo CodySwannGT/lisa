@@ -83,6 +83,15 @@ a `last_confirmed` bump), **RETIRE** (provably redundant/stale — proof, not
 vibes), or leave alone. No evidence ⇒ no candidate; the gardener never files
 a recommendation it cannot evidence.
 
+**Learned planning checks.** A ledger entry whose rule begins
+`Planning (prd|decomposition|ready-gate):` is a `planning-miss` learning: the
+check planning should have run before a dispatched worker had to stop for a
+human (CodySwannGT/lisa#4569). When Recurrence shows the same class of gap
+stopping workers on more than one item, it is a PROMOTE candidate into the
+ready gate itself — the `work-item-definition-of-ready` rule or the validators'
+S18 dry-run — rather than one more ledger entry competing for the projection.
+A recurring miss counts once per `[lisa-planning-miss]` note on distinct items.
+
 **The eager tier is audited every run** — including
 **Lisa's own shipped eager rules**, not just host additions. Admission is demotion-biased and
 earned only by repeated-miss evidence (see the `promotion-contract` rule);

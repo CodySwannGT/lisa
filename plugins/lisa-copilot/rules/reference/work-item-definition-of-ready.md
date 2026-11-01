@@ -162,6 +162,14 @@ the caller posts to the source. This is the enforcement of the intake
 contract's core promise, and of TASC AC8.6: *ready means zero-clarification
 executable.*
 
+The dry-run also asks the **learned planning checks**: `planning-miss`
+learnings, the check planning should have run, persisted by `learning-judge`
+each time a dispatched worker still had to stop for a human or file a ticket
+mid-build (CodySwannGT/lisa#4569). They are read through the learnings
+contract's bounded projection (`lisa-task-decomposition` step 0), never the raw
+ledger. A worker that stops anyway is the signal this gate missed something,
+and the loop turns that stop into the next item's question.
+
 ## Relationship to the lifecycle
 
 - **Write time** — `*-write-*` runs the applicable pre-write gates; a spec
