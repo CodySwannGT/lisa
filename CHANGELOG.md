@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.87.2](https://github.com/CodySwannGT/lisa/compare/v4.87.1...v4.87.2) (2026-11-01)
+
+
+### Bug Fixes
+
+* dismiss stale reviews on push in the generated base ruleset ([e8e23c7](https://github.com/CodySwannGT/lisa/commit/e8e23c74dca5eceb3bdac418220a0194b0bfcaa0)), closes [CodySwannGT/lisa#4574](https://github.com/CodySwannGT/lisa/issues/4574)
+* resolve the three reviewer findings in Lisa-managed files ([#4570](https://github.com/CodySwannGT/lisa/issues/4570)) ([2ecb478](https://github.com/CodySwannGT/lisa/commit/2ecb478bec7d1f6cd0b272325b72e97d774bc82b)), closes [#4564](https://github.com/CodySwannGT/lisa/issues/4564)
+* say that stale-review dismissal does not clear a change request ([d7a4fdb](https://github.com/CodySwannGT/lisa/commit/d7a4fdb20758f1465661a3d9cf90eca60603af0d)), closes [CodySwannGT/lisa#4574](https://github.com/CodySwannGT/lisa/issues/4574)
+
+
+### Documentation
+
+* align the store-token paragraph with secrets-access Rule 4 ([d8092e4](https://github.com/CodySwannGT/lisa/commit/d8092e4cf4271b701eaf6f8360a12c840a627797)), closes [CodySwannGT/lisa#4570](https://github.com/CodySwannGT/lisa/issues/4570)
+* **drive-pr-to-merge:** call dismiss_stale_reviews true a default ([b891741](https://github.com/CodySwannGT/lisa/commit/b8917415db337dbb30c78c65358c09adefd74d75)), closes [CodySwannGT/lisa#4574](https://github.com/CodySwannGT/lisa/issues/4574)
+
 ### [4.87.1](https://github.com/CodySwannGT/lisa/compare/v4.87.0...v4.87.1) (2026-11-01)
 
 
