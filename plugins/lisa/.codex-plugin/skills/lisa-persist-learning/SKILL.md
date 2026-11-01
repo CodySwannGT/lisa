@@ -181,6 +181,7 @@ Then continue to Phase 3.
 No learning content is ever committed without a PR — there is no other write path, and the PR must touch **only** the learnings surface (any other changed file is a bug).
 
 1. **PR dedupe.** Search all PRs for the marker `[lisa-learning-pr] key=<fingerprint>` in the body (`gh pr list --state all --search '"<marker>" in:body' --json number,url`), with the stale-index guard above. If one exists, reference it and stop — never open a duplicate.
+   Then create (or reuse) branch `learning/<fingerprint>` in an **isolated worktree** off the default branch, never the caller's checkout, and run every step below from that worktree's root — `projectRoot` in each writer call is that root. A caller such as the session manager or an implement worker has its own branch and files in flight in its checkout; a writer run there would put the ledger change on the wrong branch and leave the learning branch empty.
 2. **Resolve the learnings surface path — never hardcode it.** The canonical path is `resolveProjectLearningsFile` from `@codyswann/lisa/learnings`: the machine-managed ledger resolved from `.lisa.config.json` (the `learnings.file` override, else the default `.lisa/PROJECT_LEARNINGS.md` — a cold path, never an auto-loaded rules tree):
 
    ```bash
@@ -210,7 +211,7 @@ No learning content is ever committed without a PR — there is no other write p
      The overflow is git-tracked and bound to the same union merge driver as the ledger, so **still open the pull request on a budget-forced drop** — carrying the overflow file instead of the ledger. That is the whole point of preserving it: a capture that reaches only a disposable `learning/<fingerprint>` worktree is durable in name only, and the gardener draining `main` would never see it. Never hand-edit the overflow, and never delete an entry from it to make room; the gardener drains it.
 
      So a budget-forced drop produces **both** halves and neither substitutes for the other: the `[lisa-ledger-saturated]` ticket (the signal that room must be reclaimed) and a pull request carrying the overflow file (the content itself). Report both in the run summary.
-4. **Branch + commit.** Work on branch `learning/<fingerprint>` in an isolated worktree, never the caller's checkout: a caller such as the session manager or an implement worker has its own branch and files in flight there. Commit only the learnings surface — the ledger, or the overflow buffer on a budget-forced drop; verify with `git diff --name-only` that the diff touches nothing else.
+4. **Commit.** In the step-1 worktree, on branch `learning/<fingerprint>`, commit only the learnings surface — the ledger, or the overflow buffer on a budget-forced drop; verify with `git diff --name-only` that the diff touches nothing else.
 5. **PR body.** Exactly one marker line plus the reviewable story:
 
    ```markdown

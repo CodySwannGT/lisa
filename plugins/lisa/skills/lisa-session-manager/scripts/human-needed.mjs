@@ -52,6 +52,9 @@ const PLANNING_MISS_STAGES = Object.freeze({
   // How the product should behave is the PRD's to decide.
   decision: "prd",
   // A leaf the router cannot place should have been split per repo-scope-split.
+  // Raised before the claim, but after the item passed the ready gate and was
+  // picked for dispatch: the operator ruled it a planning miss (#4569), and
+  // the planning-miss rate's denominator counts these routing holds too.
   "repo-route": "decomposition",
 });
 

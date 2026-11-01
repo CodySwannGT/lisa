@@ -19,7 +19,7 @@ Each needs a stated numerator, denominator and window, or it is a number-shaped 
 | **Escape rate** | Defects reaching production, over items released | What the gates did not catch |
 | **First-pass yield** | Items reaching terminal state with no rework, over items started | The one number that moves only when the whole line works |
 | **Cost per delivered item** | Metered spend, over items reaching terminal state | What a unit of accepted output actually costs |
-| **Planning-miss rate** | Items carrying a `[lisa-planning-miss]` note, over items dispatched (entered the claimed role) | How often planning let through work a worker could not finish without a human |
+| **Planning-miss rate** | Items carrying a `[lisa-planning-miss]` note, over items picked up for dispatch (entered the claimed role, or were held by the dispatcher at repository routing) | How often planning let through work a worker could not finish without a human |
 
 First-pass yield is the summary measure worth watching, because every other failure shows up in it. The other five exist to tell you *where* it went.
 

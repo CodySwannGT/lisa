@@ -25,7 +25,7 @@ Each check names the stage that owns it, and binds there:
 
 - **`Planning (prd): …`** — a requirement the PRD must settle. In PRD intake (`*-to-tracker` Phase 1.45) a register entry that fails one is a `product-clarity` item, like any other requirement-quality failure.
 - **`Planning (decomposition): …`** — binds in this skill: apply each as an extra obligation on every work unit it concerns, alongside steps 1–6 below. A unit that cannot meet it is split, re-scoped or given its missing dependency now, not left for the worker to discover.
-- **`Planning (ready-gate): …`** — binds in the validator's S18 stateless-pickup dry-run (`lisa-jira-validate-ticket`, `lisa-github-validate-issue`, `lisa-linear-validate-issue`): each becomes a question the dry-run must be able to answer from the item alone.
+- **`Planning (ready-gate): …`** — binds in the validator's S18 stateless-pickup dry-run (`lisa-jira-validate-ticket`, `lisa-github-validate-issue`, `lisa-linear-validate-issue`): each becomes a question the dry-run must be able to answer from the item and the links it can resolve.
 
 A check is a learned heuristic, not a new gate number: cite its `id` where it changed a decision, so `last_confirmed` can be advanced at claim time (`project-learnings`). When a check plainly does not apply to this work, skip it silently.
 
