@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [4.87.0](https://github.com/CodySwannGT/lisa/compare/v4.86.1...v4.87.0) (2026-11-01)
+
+
+### Features
+
+* **learnings:** treat a dispatched worker's human-needed stop as a planning miss ([#4569](https://github.com/CodySwannGT/lisa/issues/4569)) ([f95538e](https://github.com/CodySwannGT/lisa/commit/f95538ef815e3cbb16d6bb72bbb5ac008e7fc31c))
+
+
+### Bug Fixes
+
+* **learnings:** address review on the planning-miss loop ([#4569](https://github.com/CodySwannGT/lisa/issues/4569)) ([bb655f2](https://github.com/CodySwannGT/lisa/commit/bb655f2ac87669dd569829798105cff375f52bef))
+* **session-manager:** count only own kinds as planning misses ([#4569](https://github.com/CodySwannGT/lisa/issues/4569)) ([501bbf5](https://github.com/CodySwannGT/lisa/commit/501bbf57419ad553f4da8ede2b54ddb972cfb081))
+
 ### [4.86.1](https://github.com/CodySwannGT/lisa/compare/v4.86.0...v4.86.1) (2026-11-01)
 
 
