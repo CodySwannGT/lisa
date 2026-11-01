@@ -5,6 +5,7 @@
  * text is the contract. These assertions pin, in the source and in every
  * generated root: the four cases that need a human, each with its `--kind`;
  * the order (plan, ledger first, tracker write, read back, record the mark,
+ * route the planning-miss signal (#4569),
  * continue); that the cycle continues and dispatches the next item; how a
  * question is cleared; that the manager never asks in its terminal; and the
  * run outcome the automation-runbook contract assigns to marking an item.
@@ -47,7 +48,7 @@ describe.each(ALL_ROOTS)("mark and move on (%s)", root => {
     }
   });
 
-  it("marks in order: plan, ledger first, tracker, read back, record, continue", () => {
+  it("marks in order: plan, ledger first, tracker, read back, record, planning signal, continue", () => {
     const steps = [
       "1. **Plan.**",
       'mark-plan <ref> --kind <kind> --project-root "$ROOT" < .lisa/session-manager/msg.txt',
@@ -55,7 +56,8 @@ describe.each(ALL_ROOTS)("mark and move on (%s)", root => {
       "3. **Tracker.** One `lisa-tracker-write` update",
       "4. **Read back** with `lisa-tracker-read`",
       "5. **Record the mark:** `ledger marked <ref> --marker-type <marker.type> --marker <marker.value> --comment-id <id>`",
-      "6. **Continue the cycle.**",
+      "6. **Planning-miss signal.**",
+      "7. **Continue the cycle.**",
     ];
     const positions = steps.map(step => mark.indexOf(step));
     for (const [index, position] of positions.entries()) {

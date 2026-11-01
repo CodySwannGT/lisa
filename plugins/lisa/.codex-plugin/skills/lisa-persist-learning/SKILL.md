@@ -2,7 +2,7 @@
 name: lisa-persist-learning
 description: "a candidate learning (from a…"
 ---
-This skill should be used when a candidate learning (from a failure signal, rejection, or debrief) needs to be judged and routed. It computes a stable fingerprint, runs the candidate through the hostile-default learning-judge gate, and performs exactly the verdict's side effects — a dropped-with-reason note on the triggering issue (drop), an automatically filed upstream Lisa ticket with marker dedupe, evidence, and a per-run cap (lisa-upstream), or a confidence-routed pull request that touches only the learnings surface (durable-learning). Idempotent via marker dedupe; headless-safe; never blocks the primary build flow.
+This skill should be used when a candidate learning (from a failure signal, rejection, or debrief) needs to be judged and routed. It computes a stable fingerprint, runs the candidate through the hostile-default learning-judge gate, and performs exactly the verdict's side effects — a dropped-with-reason note on the triggering issue (drop), an automatically filed upstream Lisa ticket with marker dedupe, evidence, and a per-run cap (lisa-upstream), or a confidence-routed pull request that touches only the learnings surface (durable-learning, or planning-miss — a dispatched item that needed a human because planning let a gap through, which also leaves a countable planning-miss note on the item). Idempotent via marker dedupe; headless-safe; never blocks the primary build flow.
 
 
 # Persist Learning
@@ -23,6 +23,7 @@ Accept the candidate as JSON or `key=value` fields:
 - `evidence_links` — concrete evidence refs available for citation
 - `scope_hint` — `project` | `upstream` (a hint; the judge decides)
 - `triggering_issue` — the issue/work item whose failure produced this candidate (required)
+- `signal` — optional; `planning-miss` when a dispatched item stopped for a human or filed a new ticket mid-build (from `lisa-session-manager` or `lisa-implement`). A hint for the judge, never a verdict
 - `fingerprint` — optional; computed below when absent
 
 ## Phase 0 — Fingerprint (stable dedupe key)
@@ -43,9 +44,9 @@ FP="sll4-$(printf '%s\n%s' "$NORM" "$TRIGGERING_ISSUE" | shasum -a 1 | cut -c1-1
 
 ## Phase 1 — Judge (mandatory, never skipped)
 
-Invoke the `learning-judge` agent (via the Agent/Task tool with `subagent_type: "learning-judge"` — the same invoke pattern the gardener uses for the `skill-evaluator` ladder router) with the full candidate including the fingerprint. It returns a verdict: `classification`, `cited_evidence[]`, `rationale`, `confidence` (durable only), `disposition`.
+Invoke the `learning-judge` agent (via the Agent/Task tool with `subagent_type: "learning-judge"` — the same invoke pattern the gardener uses for the `skill-evaluator` ladder router) with the full candidate including the fingerprint. It returns a verdict: `classification`, `cited_evidence[]`, `rationale`, `confidence` (durable-learning and planning-miss only), `planning_stage` and the rewritten `rule` (planning-miss only), `disposition`.
 
-**Respect the verdict — do not override it.** Never re-run the judge hoping for a different answer, and never persist anything the judge did not classify `durable-learning`.
+**Respect the verdict — do not override it.** Never re-run the judge hoping for a different answer, and never persist anything the judge did not classify `durable-learning` or `planning-miss`. For a `planning-miss`, persist the judge's rewritten `Planning (<stage>): <check>` rule, never the submitted text: the check is what planning reads back, and the submitted text is often just the one ticket's answer.
 
 ## Phase 2 — Route by disposition
 
@@ -69,6 +70,8 @@ The note is one line naming the classification (with its fixed plain-language gl
 | `lisa-upstream` | root cause suspected in Lisa; routed for upstream attribution |
 
 (A `lisa-upstream` classification never produces a drop note — it routes through the `handoff-upstream` flow below, whose step-1 note uses this pre-attribution wording because filing only happens after attribution confirms the Lisa surface.) Dedupe before posting: if any comment on the triggering issue already carries `[lisa-learning-drop] key=<fingerprint>`, do not post again — report the existing note.
+
+On a tracker that strips HTML comments from comment bodies (Linear does), the hidden marker line is lost, so also begin the visible line with the bracketed marker (`[lisa-learning-drop] key=<fingerprint> Dropped (…)`). Dedupe still finds it, and so does every machine-comment filter that reads the item — the session manager's `item-answer` would otherwise read a markerless note on a held item as a human's answer.
 
 ### `handoff-upstream` (classification `lisa-upstream`)
 
@@ -161,11 +164,19 @@ First apply `do-it-now`'s **Worth doing** guidance. Attribution establishes owne
    Upstream filing did not complete — nothing was filed upstream and nothing was persisted locally; a later run retries.
    ```
 
-### `persist` (classification `durable-learning`)
+### `persist` (classification `durable-learning` or `planning-miss`)
 
-Continue to Phase 3.
+For a `planning-miss`, first post **one** note on the triggering issue, marker-deduped like the drop note, so the miss is visible on the item and countable from the tracker (`lisa-delivery-effectiveness` reads it for the planning-miss rate). The marker is in the visible text, not only an HTML comment, because some trackers strip those:
 
-## Phase 3 — Persist via PR (durable-learning only)
+```markdown
+[lisa-planning-miss] key=<fingerprint> Planning miss (<planning_stage>): <what the worker could not find>. Recorded as the planning check "<rewritten rule>"; the learning pull request names this item.
+```
+
+Post it even when Phase 3 then finds the rule already captured, or fails: the occurrence is still a miss, and the rate counts occurrences, not new rules. The `[lisa-planning-miss]` marker sits outside the `[lisa-learning-*]` namespace on purpose: it is a measurement of planning, and must not make the item look like learning machinery to `rejection-detection` or the judge's Step 0 guard.
+
+Then continue to Phase 3.
+
+## Phase 3 — Persist via PR (durable-learning and planning-miss)
 
 No learning content is ever committed without a PR — there is no other write path, and the PR must touch **only** the learnings surface (any other changed file is a bug).
 
@@ -179,7 +190,7 @@ No learning content is ever committed without a PR — there is no other write p
 3. **Consolidation check (mandatory before writing).** Parse the existing entries (`parseLearningsFile` from `@codyswann/lisa/learnings`). First compare `learningFingerprint(existing.rule)` with `learningFingerprint(candidate.rule)`: an equal rule is already captured, even if its legacy id or fingerprint has another prefix. Preserve the stored values, report the existing id, and stop without writing that candidate. Shared evidence alone never makes two rules duplicates. Only otherwise look for related entries (same failure class, overlapping topic, or near-duplicate wording) and write through the executable contract — **never hand-edit the markdown**:
    - **Related entry found** → consolidate with the exact versions returned by the parser: `persistConsolidatedLearning(projectRoot, entry, { supersede: [{ id: <related id>, fingerprint: <related fingerprint> }], onStaleSupersede: targets => report(targets) })`. The writer checks every stamp together inside the lock. If any target is absent or its fingerprint changed, the whole supersede is stale: it removes nothing, safely appends the new fingerprint, and reports the mismatch. Never append a near-duplicate sibling by choice — a sibling is a bug that fails review; the writer's stale append is the deliberate race-safe preservation path.
    - **No related entry** → append via `persistLearningEntry(projectRoot, entry)` and state in the PR body why appending was correct.
-   - Entry mapping (eight fields): `fingerprint` = `learningFingerprint(rule)` and initial `id = fingerprint`; `rule`/`why`/`provenance` from the candidate; `first_learned` = `last_confirmed` = today (ISO date; on consolidation keep the superseded entry's earliest `first_learned`); `confidence` = the judge's `high`/`low`. On an exact stamped consolidation the writer carries forward the deterministic primary target id while persisting the new fingerprint as the version token. Use exact parsed legacy stamps in `supersede`; never rewrite old ids or fingerprints just to adopt the helper. A duplicate fingerprint fails before mutation. The writer re-asserts the entry and token budgets — an over-budget failure means consolidate harder or drop, never truncate by hand.
+   - Entry mapping (eight fields): `fingerprint` = `learningFingerprint(rule)` and initial `id = fingerprint`; `rule`/`why`/`provenance` from the candidate (for a `planning-miss`, `rule` is the judge's rewritten check); `first_learned` = `last_confirmed` = today (ISO date; on consolidation keep the superseded entry's earliest `first_learned`); `confidence` = the judge's `high`/`low`. On an exact stamped consolidation the writer carries forward the deterministic primary target id while persisting the new fingerprint as the version token. Use exact parsed legacy stamps in `supersede`; never rewrite old ids or fingerprints just to adopt the helper. A duplicate fingerprint fails before mutation. The writer re-asserts the entry and token budgets — an over-budget failure means consolidate harder or drop, never truncate by hand.
    - **On a budget-forced drop, signal saturation once (never silent).** When the writer's budget re-assertion cannot fit the entry even after consolidating harder — a durable capture has to be DROPPED for budget — the ledger is saturated, and that pressure must be visible to an operator instead of swallowed. Emit **exactly one** tracker signal via `lisa-tracker-write` (`issue_type: Task`; GitHub trackers carry the `type:Task` label), then continue — dropping the capture never blocks the build. Follow the same marker-dedupe discipline as every other comment here (match on the **marker, never the title**; **exactly one marker per body**; the eventual-consistency guard when the search index is stale), with **one deliberate difference: dedupe against OPEN signals only.** A *closed* saturation ticket means room was already reclaimed, so a fresh saturation is a new actionable event — searching closed tickets too (as the drop/upstream markers do) would permanently suppress every later saturation.
 
      The saturation fingerprint keys on the **ledger, not the candidate**, so the signal fires once per saturation episode — never once per capture:
@@ -199,7 +210,7 @@ No learning content is ever committed without a PR — there is no other write p
      The overflow is git-tracked and bound to the same union merge driver as the ledger, so **still open the pull request on a budget-forced drop** — carrying the overflow file instead of the ledger. That is the whole point of preserving it: a capture that reaches only a disposable `learning/<fingerprint>` worktree is durable in name only, and the gardener draining `main` would never see it. Never hand-edit the overflow, and never delete an entry from it to make room; the gardener drains it.
 
      So a budget-forced drop produces **both** halves and neither substitutes for the other: the `[lisa-ledger-saturated]` ticket (the signal that room must be reclaimed) and a pull request carrying the overflow file (the content itself). Report both in the run summary.
-4. **Branch + commit.** Work on branch `learning/<fingerprint>`. Commit only the learnings surface — the ledger, or the overflow buffer on a budget-forced drop; verify with `git diff --name-only` that the diff touches nothing else.
+4. **Branch + commit.** Work on branch `learning/<fingerprint>` in an isolated worktree, never the caller's checkout: a caller such as the session manager or an implement worker has its own branch and files in flight there. Commit only the learnings surface — the ledger, or the overflow buffer on a budget-forced drop; verify with `git diff --name-only` that the diff touches nothing else.
 5. **PR body.** Exactly one marker line plus the reviewable story:
 
    ```markdown
@@ -216,6 +227,13 @@ No learning content is ever committed without a PR — there is no other write p
 
    ## Consolidation decision
    <"Superseded entry id(s) X, Y: <why they merged>" | "Appended: no related entry exists — <one-line search summary>">
+   ```
+
+   For a **planning-miss** PR, add one section after `## Learning`, so the reviewer sees which stage let the gap through and that the rule is a check rather than the ticket's answer:
+
+   ```markdown
+   ## Planning miss
+   Stage: <planning_stage>. The worker could not find: "<quoted>". Planning skills read this rule back through the bounded projection (`lisa-task-decomposition` step 0).
    ```
 
    For a **low-confidence** PR, the body must additionally end with this fixed decision-framing line so the human at the gate knows exactly what merging means:

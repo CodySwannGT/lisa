@@ -202,11 +202,17 @@ Per cycle
       unset); trustedHumanActorIds in the input is ignored. stdout
       {action:release|keep|escalate|skip-human-gate,reason,edges,gate}.
       --ref fills pendingQuestion from the ledger.
-  mark-plan <ref> --kind <kind>                 STDIN: question or reason
+  mark-plan <ref> --kind <kind> [--cause <cause>] STDIN: question or reason
       Plans marking an item that needs a human; writes nothing. kind:
-      worker-question | repo-route | exhausted | decision. stdout {ref,kind,
-      marker:{type:"label"|"role",value},[move:{role:"blocked",value},]
-      comment,answerWith:{item,cli,channel}}. marker is the tracker's
+      worker-question | repo-route | exhausted | decision. cause: planning
+      (default) | environment (outage, expired credential, flaky tool) |
+      human-gate (a decision planning flagged as a human gate). stdout
+      {ref,kind,marker:{type:"label"|"role",value},[move:{role:"blocked",
+      value},]comment,answerWith:{item,cli,channel},planningMiss:{counts,
+      reason[,stageHint,candidate]}}. planningMiss.counts is true for a
+      worker-question, decision or repo-route with cause planning; never
+      for exhausted. candidate is the persist-learning skeleton (signal,
+      triggering_issue, provenance, scope_hint, kind, missing). marker is the tracker's
       configured human-needed label, else the configured blocked role;
       exhausted also moves to the blocked role. comment starts with
       [lisa-session-manager-question] and says, in plain words, how to
@@ -214,7 +220,7 @@ Per cycle
       answerWith.item is null otherwise), with the answerCommand that status
       lists, or on Telegram when it is the channel. Exit 2 for an unknown
       kind, empty or credential-shaped text, no marker configured, or
-      exhausted with no blocked role.
+      exhausted with no blocked role, or an unknown cause.
   answer <ref>                                  STDIN: the answer
       Queues an operator's answer (source "cli") for the next cycle to
       deliver. stdout {queued:true,ref,source}. Exit 2 when <ref> has no

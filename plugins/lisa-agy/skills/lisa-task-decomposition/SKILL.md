@@ -9,6 +9,24 @@ Break work into ordered, well-scoped tasks that can be independently implemented
 
 ## Decomposition Process
 
+### 0. Load the learned planning checks
+
+Every time a dispatched worker had to stop for a human, or file a new ticket mid-build, because planning let a gap through, `learning-judge` may have persisted the check planning should have run as a `planning-miss` learning (CodySwannGT/lisa#4569). Those checks only help if planning reads them back. Before decomposing, load them through the learnings contract's **bounded projection** — never by reading the ledger file wholesale:
+
+```bash
+node -e 'import("@codyswann/lisa/learnings").then(async m => { const { readFile } = await import("node:fs/promises"); const file = m.resolveProjectLearningsFile(await m.readProjectConfig(process.cwd())); const raw = await readFile(file, "utf8").catch(() => null); if (raw === null) return; const { entries, omittedCount } = m.projectLearnings(m.parseLearningsFile(raw)); const checks = entries.filter(e => /^Planning \((prd|decomposition|ready-gate)\):/.test(e.rule)).map(e => ({ id: e.id, rule: e.rule, confidence: e.confidence })); console.log(JSON.stringify({ checks, omittedCount })); }).catch(error => console.error(`learned planning checks unavailable: ${error.message}`))' || true
+```
+
+Run it from the project root. No output means there is no ledger yet: carry on. A malformed ledger prints one warning and yields nothing: carry on without it. Never let this step block planning.
+
+Each check names the stage that owns it, and binds there:
+
+- **`Planning (prd): …`** — a requirement the PRD must settle. In PRD intake (`*-to-tracker` Phase 1.45) a register entry that fails one is a `product-clarity` item, like any other requirement-quality failure.
+- **`Planning (decomposition): …`** — binds in this skill: apply each as an extra obligation on every work unit it concerns, alongside steps 1–6 below. A unit that cannot meet it is split, re-scoped or given its missing dependency now, not left for the worker to discover.
+- **`Planning (ready-gate): …`** — binds in the validator's S18 stateless-pickup dry-run (`lisa-jira-validate-ticket`, `lisa-github-validate-issue`, `lisa-linear-validate-issue`): each becomes a question the dry-run must be able to answer from the item alone.
+
+A check is a learned heuristic, not a new gate number: cite its `id` where it changed a decision, so `last_confirmed` can be advanced at claim time (`project-learnings`). When a check plainly does not apply to this work, skip it silently.
+
 ### 1. Identify Units of Work
 
 - Break the work into the smallest units that are independently valuable

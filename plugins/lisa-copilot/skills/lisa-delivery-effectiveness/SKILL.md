@@ -1,6 +1,6 @@
 ---
 name: lisa-delivery-effectiveness
-description: "Measure whether the work the factory delivers was worth shipping — gate rejection, rework, escape, first-pass yield and cost per delivered item — so autonomy rate cannot stand alone as a success measure."
+description: "Measure whether the work the factory delivers was worth shipping — gate rejection, rework, escape, first-pass yield, cost per delivered item and planning-miss rate — so autonomy rate cannot stand alone as a success measure."
 allowed-tools: ["Read", "Grep", "Glob", "Bash"]
 ---
 
@@ -8,7 +8,7 @@ allowed-tools: ["Read", "Grep", "Glob", "Bash"]
 
 Autonomy rate answers how much ran without a human. It says nothing about whether any of it should have shipped, and on its own it rewards exactly the wrong thing: a factory that produces rejected work faster scores better.
 
-## The five measures
+## The six measures
 
 Each needs a stated numerator, denominator and window, or it is a number-shaped opinion.
 
@@ -19,8 +19,11 @@ Each needs a stated numerator, denominator and window, or it is a number-shaped 
 | **Escape rate** | Defects reaching production, over items released | What the gates did not catch |
 | **First-pass yield** | Items reaching terminal state with no rework, over items started | The one number that moves only when the whole line works |
 | **Cost per delivered item** | Metered spend, over items reaching terminal state | What a unit of accepted output actually costs |
+| **Planning-miss rate** | Items carrying a `[lisa-planning-miss]` note, over items dispatched (entered the claimed role) | How often planning let through work a worker could not finish without a human |
 
-First-pass yield is the summary measure worth watching, because every other failure shows up in it. The other four exist to tell you *where* it went.
+First-pass yield is the summary measure worth watching, because every other failure shows up in it. The other five exist to tell you *where* it went.
+
+The planning-miss rate is the one that points upstream of the build. Its numerator is the `[lisa-planning-miss]` note `lisa-persist-learning` leaves on an item when `learning-judge` confirms that a dispatched worker had to stop for a human, or file a new ticket mid-build, because planning let a gap through. Count distinct items, not notes. The note is posted only on a confirmed miss, so outages, expired credentials, flaky tools and decisions planning flagged as human gates are already out of it. Both halves come from the tracker. Each persisted miss also becomes a planning check that PRD intake, decomposition and the ready gate read back, so better planning shows up as this number falling.
 
 ## Where the numbers come from
 
@@ -55,6 +58,7 @@ Report both, together, always. The pairing is the point:
 | Escape rate | | | | | |
 | First-pass yield | | | | | |
 | Cost per delivered item | | | | | |
+| Planning-miss rate | | | | | |
 
 **Reading:** which of the four autonomy/yield quadrants this window sits in
 **Uncollected:** any measure not gathered, and why — never an estimate in its place
