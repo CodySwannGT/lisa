@@ -73,6 +73,14 @@ node scripts/check-skipped-required-checks.mjs --pr=<pr> --json
 It reports and never fails — a hollow check is often a vendor spending cap, not
 a repository defect, and it is not this skill's call to block on one.
 
+**Do not wait for a rate limit to reset, and do not re-request the review.** A
+`Review rate limited` status, including decorated forms such as
+`Review rate limited (retry in 12m)`, is handled like every other vacuous
+review. Report it here. `lisa-drive-pr-to-merge` then posts a local adversarial
+review substitute for the current head right away and keeps driving. Waiting
+out the window stalls the pull request for an hour or more and reads no code.
+Re-requesting overwrites the status and can destroy a real review.
+
 Carry the finding into your Step 4 report. **Do not write "no unresolved review
 threads" on its own** — it is true of an unreviewed PR too. Say which you
 observed:

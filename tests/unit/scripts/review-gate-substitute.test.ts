@@ -27,6 +27,8 @@ const OLDER = "0000111122223333444455556666777788889999";
 const WRITER = "maintainer";
 const READER = "drive-by";
 const RATE_LIMITED = "Review rate limited";
+/** The vendor decorates its own string; the decorated form must not stall. */
+const RATE_LIMITED_DECORATED = "Review rate limited (retry in 12m)";
 const UNRECOGNISED = "Something new";
 /** A review surface that was read and shows no objection. */
 const CLEAN_SURFACE = { read: true, present: false, objected: false } as const;
@@ -304,6 +306,7 @@ describe("what a substitute can and cannot stand in for", () => {
 
   it.each([
     ["was rate limited", RATE_LIMITED],
+    ["was rate limited with a decorated status", RATE_LIMITED_DECORATED],
     ["skipped", "Review skipped: manual review required"],
     ["said something unrecognised", UNRECOGNISED],
   ])(
@@ -524,6 +527,28 @@ describe("the armed gate end to end", () => {
     expect(inspection?.verdict.title).toMatch(/^SUBSTITUTED/);
     // The rate-limited row is also a vacuous green; once stood in for, that
     // finding must not survive to fail the job under --fail-on-vacuous.
+    const kinds = inspection?.violations.map(violation => violation.kind);
+    expect(kinds).not.toContain(mod.VIOLATIONS.vacuous);
+    expect(kinds).not.toContain(mod.VIOLATIONS.unproven);
+  });
+
+  it("greens a decorated rate limit with a substitute, without waiting (#4572)", () => {
+    const { inspection, sleeps } = inspect({
+      substitutes: atHead,
+      rows: [
+        {
+          name: CODERABBIT,
+          state: "SUCCESS",
+          bucket: "pass",
+          description: RATE_LIMITED_DECORATED,
+        },
+      ],
+    });
+    expect(sleeps).toBe(0);
+    expect(inspection?.verdict.conclusion).toBe(
+      mod.REVIEW_VERDICT_CONCLUSIONS.satisfied
+    );
+    expect(inspection?.verdict.title).toMatch(/^SUBSTITUTED/);
     const kinds = inspection?.violations.map(violation => violation.kind);
     expect(kinds).not.toContain(mod.VIOLATIONS.vacuous);
     expect(kinds).not.toContain(mod.VIOLATIONS.unproven);

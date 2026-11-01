@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.87.1](https://github.com/CodySwannGT/lisa/compare/v4.87.0...v4.87.1) (2026-11-01)
+
+
+### Bug Fixes
+
+* **drive-pr-to-merge:** substitute a local review immediately on a reviewer rate limit ([f9fd5f3](https://github.com/CodySwannGT/lisa/commit/f9fd5f3925d474464385da505980012c556812be)), closes [CodySwannGT/lisa#4572](https://github.com/CodySwannGT/lisa/issues/4572)
+
+
+### Documentation
+
+* **drive-pr-to-merge:** tighten rate-limit substitute wording ([8a0fa3c](https://github.com/CodySwannGT/lisa/commit/8a0fa3cd36f578122556a4aa1d14fa0a1ca9712c)), closes [CodySwannGT/lisa#4572](https://github.com/CodySwannGT/lisa/issues/4572)
+
 ## [4.87.0](https://github.com/CodySwannGT/lisa/compare/v4.86.1...v4.87.0) (2026-11-01)
 
 

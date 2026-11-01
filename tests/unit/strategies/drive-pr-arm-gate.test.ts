@@ -117,10 +117,17 @@ describe.each(ROOTS)("drive-pr-to-merge arm gate (%s)", root => {
     );
   });
 
-  it("treats the rate limit as vacuous AND transient", () => {
+  it("treats the rate limit as vacuous, and its window as no reason to wait", () => {
+    // Issue #4572: a rate limit clears eventually, but agents waiting the
+    // window out stalled for an hour or more. Whether a vacuity clears on its
+    // own changes the report, never the response.
     const gate = armGate();
     expect(gate).toMatch(/Review rate limited/);
+    expect(gate).toMatch(/Review rate limited \(retry in 12m\)/);
     expect(gate).toMatch(/throughput window/i);
+    expect(gate).toMatch(
+      /\*\*Every row, the rate limit included: do not wait, and do not re-request\.\*\*/
+    );
   });
 
   it("treats the public-repository policy skip as vacuous and NOT transient", () => {
@@ -132,7 +139,7 @@ describe.each(ROOTS)("drive-pr-to-merge arm gate (%s)", root => {
       /Review skipped: manual review required for this OSS repository/
     );
     expect(gate).toMatch(/standing vendor policy for public repositories/i);
-    expect(gate).toMatch(/do not wait at all/i);
+    expect(gate).toMatch(/do not wait, and do not re-request/i);
   });
 
   it("treats the size-limit skip as vacuous, exactly as a rate limit", () => {
@@ -159,14 +166,22 @@ describe.each(ROOTS)("drive-pr-to-merge arm gate (%s)", root => {
     expect(gate).toMatch(/If it now proves work, arm/i);
   });
 
-  it("re-requests at most once, and never loops", () => {
-    // A retry loop re-triggers the limit it is escaping, and a re-request in
-    // this repository was measured minting a second hollow green rather than
-    // obtaining a review (#3220).
+  it("substitutes immediately on a rate limit instead of waiting or re-requesting", () => {
+    // A re-request in this repository was measured minting a second hollow
+    // green rather than obtaining a review (#3220), and waiting the window out
+    // stalled agents for an hour or more (#4572). The rate limit gets no
+    // exception: substitute now and keep driving.
     const gate = armGate();
-    expect(gate).toMatch(/at most once/i);
-    expect(gate).toMatch(/Never loop/i);
     expect(gate).toMatch(/#3220/);
+    expect(gate).toMatch(
+      /run the local adversarial review over the\s+PR diff at the current head \*\*now\*\*/i
+    );
+    expect(gate).toMatch(/substitute marker/i);
+    expect(gate).toMatch(/That exception is removed/);
+    // The removed rule must not survive anywhere in the gate.
+    expect(gate).not.toMatch(/Wait\s+the window out/i);
+    expect(gate).not.toMatch(/at most once/i);
+    expect(gate).not.toMatch(/do not arm yet/i);
   });
 
   it("turns off a latch armed by somebody else, and fails closed", () => {
@@ -235,10 +250,37 @@ describe.each(ROOTS)("drive-pr-to-merge arm gate (%s)", root => {
     expect(content).toMatch(/Do not arm the latch to accomplish this/i);
   });
 
-  it("spends the transient wait before adjudicating a rate limit", () => {
+  it("adjudicates a rate limit immediately, with no wait to spend first", () => {
     expect(content).toMatch(
-      /A transient vacuity is not adjudicated here until the arm gate's\s+single wait-and-re-request has been spent/i
+      /A settled vacuity, the\s+rate limit included, arrives here immediately/i
     );
+    expect(content).not.toMatch(/wait-and-re-request/i);
+    expect(content).not.toMatch(/merging past one you never waited out/i);
+  });
+
+  it("substitutes then stops on a stale bot verdict a rate limit cannot replace", () => {
+    // #4572: under a throttle the bot cannot post a fresh review, so its old
+    // CHANGES_REQUESTED on an outdated head is the only blocker and will not
+    // clear on its own. Waiting for the window is the stall this removes.
+    const start = content.indexOf("### e. Review gate stall");
+    const end = content.indexOf("### f. Pending auto-fix PR");
+    expect(start).toBeGreaterThanOrEqual(0);
+    expect(end).toBeGreaterThan(start);
+    const stall = content.slice(start, end);
+    expect(stall).toMatch(
+      /A stale bot verdict under a rate limit: substitute, then stop and report/
+    );
+    expect(stall).toMatch(
+      /Do not wait for the window to reset, and do not re-request/
+    );
+    expect(stall).toMatch(/substitute for the \*\*current\*\* head/);
+    expect(stall).toMatch(/\*\*Then stop\*\* with `blocked:stale-bot-verdict`/);
+    expect(stall).toMatch(
+      /Do not dismiss it on the strength of your own substitute/
+    );
+    const terminal = content.slice(content.indexOf("## 4. Terminal states"));
+    expect(terminal).toMatch(/\*\*`blocked:stale-bot-verdict`\*\*/);
+    expect(terminal).toMatch(/dismissal decision a human needs to make/);
   });
 
   it("discriminates a stranded verdict by unresolved threads, not reviewDecision", () => {
