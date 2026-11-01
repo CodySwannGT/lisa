@@ -402,8 +402,17 @@ export function validateVerifyUsage(documents, ref, expectedIds, context) {
   );
   const found = new Map();
   let skipped = 0;
-  for (const document of documents) {
-    const usage = section(document, "Lisa Usage");
+  for (const [index, document] of documents.entries()) {
+    let usage;
+    try {
+      usage = section(document, "Lisa Usage");
+    } catch (error) {
+      // documents[0] is the work-item body; a duplicate heading there stays
+      // fatal. In a comment it is one more stray section to skip.
+      if (index === 0) throw error;
+      skipped += 1;
+      continue;
+    }
     if (!usage) continue;
     const canonical = `## Lisa Usage\n${usage}\n`;
     let parsed;

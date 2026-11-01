@@ -54,6 +54,16 @@ describe("validateVerifyUsage tolerates stray usage sections (#4564)", () => {
     expect(refusal(["Spec body", stray, genuine])).toBeNull();
   });
 
+  it("ignores a comment that repeats the Lisa Usage heading", () => {
+    const duplicated = `${genuine}\n${genuine}`;
+    expect(refusal(["Spec body", duplicated, genuine])).toBeNull();
+    expect(refusal(["Spec body", genuine, duplicated])).toBeNull();
+  });
+
+  it("keeps a duplicated Lisa Usage heading in the work-item body fatal", () => {
+    expect(refusal([`${genuine}\n${genuine}`, genuine])).not.toBeNull();
+  });
+
   it("does not let a later entry for another work item shadow the genuine one", () => {
     const other = proofUsage("acme/code#999");
     expect(refusal(["Spec body", genuine, other])).toBeNull();
