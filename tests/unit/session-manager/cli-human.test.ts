@@ -176,7 +176,7 @@ describe("mark-plan", () => {
 });
 
 describe("ledger set-question --kind, marked and clear-question", () => {
-  it("records the kind and keeps the marker fields on a re-ask", () => {
+  it("records the kind and keeps the marker fields on a re-ping", () => {
     const sandbox = githubSandbox();
     expect(ask(sandbox, DECISION).status).toBe(0);
     const marked = runStubOnly(sandbox, [
@@ -197,7 +197,7 @@ describe("ledger set-question --kind, marked and clear-question", () => {
         sandbox,
         ["ledger", SET_QUESTION, REF, "--telegram-message-id", "9"],
         {
-          input: "A different wording",
+          input: QUESTION,
         }
       ).status
     ).toBe(0);
@@ -209,6 +209,22 @@ describe("ledger set-question --kind, marked and clear-question", () => {
       telegramMessageId: 9,
     });
     expect(pending.markedAt).toBe(marked.json.pendingQuestion.markedAt);
+
+    // A changed question has not been posted or read back yet (#4570): it
+    // reads as unmarked, so the next cycle finishes the mark instead of
+    // reading replies to the old question comment. The marker to remove stays.
+    expect(
+      runStubOnly(sandbox, ["ledger", SET_QUESTION, REF], {
+        input: "A different wording",
+      }).status
+    ).toBe(0);
+    const reasked = readLedgerFile(sandbox).items[REF].pendingQuestion;
+    expect(reasked).toMatchObject({
+      kind: DECISION,
+      markerType: "label",
+      marker: CUSTOM_LABEL,
+      markedAt: null,
+    });
   });
 
   it("refuses an unknown kind and a mark with no pending question", () => {

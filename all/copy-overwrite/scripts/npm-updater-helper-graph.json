@@ -103,7 +103,7 @@
       "children": []
     },
     "lib/completion-proof-content.mjs": {
-      "sha256": "679702f6e3cce3919e01c79fe5016d3215f15b067bcab2fb9eeffb0350e7c64f",
+      "sha256": "364ca523509a506c8d92f3592b5e3041f6050a68ab90002e9fae7201a67044fb",
       "staticImports": [
         "lib/completion-proof-shape.mjs",
         "lib/usage-ledger-integrity.mjs",
