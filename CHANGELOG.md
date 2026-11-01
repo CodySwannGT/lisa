@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.86.1](https://github.com/CodySwannGT/lisa/compare/v4.86.0...v4.86.1) (2026-11-01)
+
+
+### Bug Fixes
+
+* fail closed when a custom-rule here-string cannot be staged ([22120f4](https://github.com/CodySwannGT/lisa/commit/22120f45c251769f35e0becded4cc20fb328d693)), closes [#4568](https://github.com/CodySwannGT/lisa/issues/4568) [CodySwannGT/lisa#4564](https://github.com/CodySwannGT/lisa/issues/4564)
+* match the repos.entries exemption by key segments ([9c06b9f](https://github.com/CodySwannGT/lisa/commit/9c06b9f9ddbf6b5a11bf99ea24f44e208143032f)), closes [#4568](https://github.com/CodySwannGT/lisa/issues/4568) [CodySwannGT/lisa#4564](https://github.com/CodySwannGT/lisa/issues/4564)
+* regenerate the npm updater helper graph for the new RAILS_INLINE ([3a45e57](https://github.com/CodySwannGT/lisa/commit/3a45e57fc7088c86cba8ebc70454149dd101d0d5)), closes [CodySwannGT/lisa#4564](https://github.com/CodySwannGT/lisa/issues/4564)
+* resolve reviewer findings in Lisa-managed files shipped by 4.85.0 ([8780b49](https://github.com/CodySwannGT/lisa/commit/8780b49ce4dc399168a2425c7c0dfb97ea043371)), closes [CodySwannGT/lisa#4564](https://github.com/CodySwannGT/lisa/issues/4564)
+* skip a duplicated Lisa Usage heading in a work-item comment ([dd4b64a](https://github.com/CodySwannGT/lisa/commit/dd4b64ae47cfe86af2c9c3d72c1007eace270dc6)), closes [#4568](https://github.com/CodySwannGT/lisa/issues/4568) [CodySwannGT/lisa#4564](https://github.com/CodySwannGT/lisa/issues/4564)
+
 ## [4.86.0](https://github.com/CodySwannGT/lisa/compare/v4.85.0...v4.86.0) (2026-10-31)
 
 
