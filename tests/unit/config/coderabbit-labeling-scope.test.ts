@@ -13,6 +13,11 @@
  * whether work happened, so the eight-second case is not a near-miss on a true
  * statement, it is the opposite of one.
  *
+ * On 2026-11-01 the same reasoning was extended to `type:` and `points:`
+ * (CodySwannGT/lisa#4617). Lisa's issue writer sets both itself, so the bot's
+ * guess overwrote a decision that had already been made, after nearly every
+ * create or edit and usually within a minute.
+ *
  * This test is the guard on the fix. The allowlist is prose in a YAML file that
  * nothing else reads, so without an assertion the entry that reintroduces the
  * defect is a one-line diff nobody would question.
@@ -28,6 +33,8 @@ import { describe, expect, it } from "vitest";
 const LIFECYCLE_PREFIX = "status:";
 /** Roles a bot must never decide, beyond the lifecycle family itself. */
 const HUMAN_ONLY_LABELS = ["human-needed"];
+/** Families Lisa's issue writer sets itself; a bot's guess only conflicts. */
+const WRITER_OWNED_PREFIXES = ["type:", "points:"];
 
 const config = parse(readFileSync(path.resolve(".coderabbit.yml"), "utf8")) as {
   issue_enrichment?: {
@@ -64,11 +71,29 @@ describe("CodeRabbit issue labeling", () => {
     }
   });
 
+  it("allowlists no type or points label", () => {
+    // Lisa's issue writer sets the type and the points itself when it files an
+    // item, and build intake and the validator read the type from that one
+    // label, so a bot's guess here is a conflict rather than enrichment. On
+    // 2026-11-01 it put `type:Bug` on a Story, `type:Story` on a Sub-task and
+    // `points:8` on an Epic, each within two minutes of the write, and
+    // `type:Spike` was never listed, so any type it gave a Spike was wrong
+    // (#4617). Compared case-insensitively because GitHub matches label names
+    // that way, so `Type:Bug` would still land as `type:Bug`.
+    expect(
+      allowed.filter(label =>
+        WRITER_OWNED_PREFIXES.some(prefix =>
+          label.toLowerCase().startsWith(prefix)
+        )
+      )
+    ).toEqual([]);
+  });
+
   it("keeps the enrichment that is actually useful", () => {
     // The blunt fix — turning auto-labelling off — would also lose these, and
     // they are the reason the feature is on at all. Asserting they survive
     // stops a future "just disable it" from looking like a clean fix.
-    for (const prefix of ["type:", "points:", "component:", "repo:"]) {
+    for (const prefix of ["component:", "repo:"]) {
       expect(
         allowed.some(label => label.startsWith(prefix)),
         prefix
