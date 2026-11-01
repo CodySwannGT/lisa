@@ -18,6 +18,7 @@ import {
   constants,
   mkdirSync,
   mkdtempSync,
+  readFileSync,
   rmSync,
   writeFileSync,
 } from "node:fs";
@@ -28,6 +29,7 @@ import {
   createGuardHarness,
   EXIT_BLOCKED,
 } from "../../helpers/safety-net-guard-harness.js";
+import { boundedSpawnSync } from "../../helpers/io-latency-budget.js";
 
 const MARKER = "LISA_SIGPIPE_MARKER_4564";
 /** Comfortably above the 64 KiB Linux and 16-64 KiB macOS pipe buffers. */
@@ -100,5 +102,59 @@ describe("parity-safety-net.sh custom rules survive an early-exiting grep (#4564
       `matched a project custom safety rule (custom-rules.txt): ${MARKER}`
     );
     expect(status, stderr.slice(0, 2000)).toBe(EXIT_BLOCKED);
+  });
+});
+
+/**
+ * The custom-rule evaluation exactly as the shipped hook spells it, from
+ * `rule_status=0` through the line that records a staging failure.
+ * @returns The bash source of that step.
+ */
+function shippedRuleStep(): string {
+  const hook = readFileSync(
+    path.resolve("plugins/lisa/hooks/parity-safety-net.sh"),
+    "utf8"
+  );
+  const step = /^ *rule_status=0\n[\s\S]*?\|\| rule_status=unstaged$/m.exec(
+    hook
+  );
+  if (!step) throw new Error("custom-rule step not found in the shipped hook");
+  return step[0];
+}
+
+/**
+ * Runs one rule step with here-document staging made to fail: a zero
+ * file-size limit with SIGXFSZ ignored, and a body large enough that every
+ * Bash stages it in a temp file rather than a pipe.
+ * @param step - Bash source that sets `rule_status`.
+ * @returns What the step recorded in `rule_status`.
+ */
+function statusWhenStagingFails(step: string): string {
+  const script = [
+    "set -euo pipefail",
+    'rule="NEVER_MATCHES_4564"',
+    `custom_command_str="$(printf '%*s' ${PAYLOAD_BYTES} '')"`,
+    "trap '' XFSZ",
+    "ulimit -f 0",
+    step,
+    'printf "%s" "$rule_status"',
+  ].join("\n");
+  const result = boundedSpawnSync({
+    label: "the custom-rule staging probe",
+    command: "/bin/bash",
+    args: ["-c", script],
+  });
+  return result.stdout;
+}
+
+describe("parity-safety-net.sh custom rules fail closed when staging fails (#4564)", () => {
+  it("a bare here-string reports a staging failure as no-match (the hazard)", () => {
+    const bare =
+      'rule_status=0\ngrep -qEi -- "$rule" <<<"$custom_command_str" || rule_status=$?';
+    expect(statusWhenStagingFails(bare)).toBe("1");
+  });
+
+  it("the shipped step tells a staging failure apart from no-match", () => {
+    expect(statusWhenStagingFails(shippedRuleStep())).toBe("unstaged");
   });
 });
