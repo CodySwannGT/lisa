@@ -4,42 +4,51 @@
 # `review-evidence.yml` answers "can the gate SEE a review that never happened?"
 # This one answers "and then what?".
 #
-# A third-party review app posts a COMMIT STATUS on the pull request head. When
-# it is throttled or declines, it still reports `state: success` — it never
-# blocks. Only the `description` separates a review that ran from one that never
-# started. Measured over the last 30 merged pull requests in the repository this
-# was written against: 24 of 30 merges passed a required review gate that
-# reviewed nothing, every one of them `success`.
+# A third-party review app reports on the pull request head through a COMMIT
+# STATUS or a CHECK RUN, and one app can move from the first to the second
+# without notice (#4553). When it is throttled or declines, it never blocks: a
+# status still reports `state: success`, and a check run concludes `neutral`,
+# which GitHub counts as passing a required check. Only the words separate a
+# review that ran from one that never started — a status's `description`, or
+# the first line of a check run's summary. Measured over the last 30 merged pull
+# requests in the repository this was written against: 24 of 30 merges passed a
+# required review gate that reviewed nothing.
 #
-# WHY `on: status` AND NOT A POLLING LOOP. The verdict changes the moment the
-# reviewer posts, and only then. A schedule that polled for it would burn
-# billable minutes on every repository, every interval, to learn nothing on
-# almost every run. This wakes on the event that carries the answer, does one
-# API read, decides, and exits.
+# WHY `status` AND `check_run`, AND NOT A POLLING LOOP. The verdict changes
+# the moment the reviewer answers, and only then. A schedule that polled for it
+# would burn billable minutes on every repository, every interval, to learn
+# nothing on almost every run. This wakes on the event that carries the answer,
+# reads it, decides, and exits. A check run fires no `status` event, so a
+# workflow that woke on `status` alone stopped running entirely the day its
+# reviewer switched (#4553). GitHub starts a `check_run` workflow only from the
+# default branch's copy of this file, and never for check suites GitHub Actions
+# created itself, so the reviewer's run wakes it and Actions' own jobs do not.
 #
-# WHY THE JOB DOES NOT CREATE A STATUS. Creating one would be a `status` event,
-# and this workflow triggers on `status`. Nothing here writes a status; the
-# verdict is the run's own exit code.
+# WHY THE JOB CREATES NEITHER A STATUS NOR A CHECK RUN. Either would be an event
+# this workflow triggers on. Nothing here writes one; the verdict is the run's
+# own exit code.
 #
 # WHAT MAKES IT RED. Neither real third-party review evidence at the head, nor a
 # posted adversarial-review substitute for that same head. A merge path that
 # substitutes a local review leaves a marked comment behind, and this reads it.
 #
 # THREE NO-OPS THAT SAY SO. No reviewer configured, a commit that is nobody's
-# pull request head, and a status from an app nobody declared are all no-ops —
-# and each PRINTS that it is one. A silent pass is the defect this exists to
-# end, so it is not reproduced here.
+# pull request head, and a status or check run from an app nobody declared are
+# all no-ops — and each PRINTS that it is one. A silent pass is the defect this
+# exists to end, so it is not reproduced here.
 #
 # AND ONE DEFERRAL. A declared reviewer still `pending` has not answered yet:
 # measured, a reviewer posts `Review queued` then `Review in progress` before
 # the verdict, up to seven statuses on one head. Judging the first would report
 # a finding on 100% of pull requests, and a guard that fires every time gets
-# deleted rather than read. The settled status fires its own event.
+# deleted rather than read. The settled status fires its own event; a check
+# run wakes this only once it has `completed`.
 #
-# THE TWO ARMS COVER DIFFERENT HALVES. This one wakes on a status and catches a
-# reviewer that ANSWERED HOLLOW. `review-evidence.yml` runs on the pull-request
-# event and catches a reviewer that NEVER ANSWERED, which produces no status and
-# therefore no event here. Neither replaces the other.
+# THE TWO ARMS COVER DIFFERENT HALVES. This one wakes on the reviewer's answer
+# and catches a reviewer that ANSWERED HOLLOW. `review-evidence.yml` runs on the
+# pull-request event and catches a reviewer that NEVER ANSWERED, which produces
+# no status or check run and therefore no event here. Neither replaces the
+# other.
 #
 # NOTHING RE-REQUESTS A REVIEW. Re-requesting OVERWRITES the existing status
 # rather than adding to it, so under a throttle it destroys a real review,
@@ -61,6 +70,8 @@ name: 🕵️ Third-Party Review Evidence
 
 on:
   status:
+  check_run:
+    types: [completed]
   workflow_dispatch:
     inputs:
       sha:
@@ -68,15 +79,21 @@ on:
         required: true
         type: string
 
-# `statuses: read` is the only route that carries a description at all;
-# `pull-requests: read` finds the head pull request and its comments.
+# A reviewer's words arrive by two routes: a status's description needs
+# `statuses: read` (the status rollup drops it entirely), and a check run's
+# summary needs `checks: read`. `pull-requests: read` finds the head pull
+# request and its comments.
 permissions:
   contents: read
   statuses: read
+  checks: read
   pull-requests: read
 
+# One run per reviewer per head. The reviewer is part of the key as well as the
+# commit, so another app's check run settling on the same head cannot cancel
+# the run that is judging the reviewer.
 concurrency:
-  group: third-party-review-evidence-${{ github.event.sha || inputs.sha }}
+  group: third-party-review-evidence-${{ github.event.check_run.head_sha || github.event.sha || inputs.sha }}-${{ github.event.check_run.name || github.event.context }}
   cancel-in-progress: true
 
 jobs:
@@ -84,8 +101,9 @@ jobs:
     name: 🕵️ Was this head reviewed, or reviewed for?
     # A pending status is the reviewer saying it has started, which is not yet
     # an answer. Judging it would report a finding on every pull request, and a
-    # guard that fires every time gets deleted rather than read.
-    if: github.event_name == 'workflow_dispatch' || github.event.state != 'pending'
+    # guard that fires every time gets deleted rather than read. A check run
+    # wakes this only once completed, and a manual run always proceeds.
+    if: github.event_name != 'status' || github.event.state != 'pending'
     runs-on: ubuntu-latest
     timeout-minutes: 5
 
@@ -93,7 +111,7 @@ jobs:
       - name: 📥 Checkout repository
         uses: actions/checkout@v6
         with:
-          ref: ${{ github.event.sha || inputs.sha }}
+          ref: ${{ github.event.check_run.head_sha || github.event.sha || inputs.sha }}
           persist-credentials: false
 
       - name: 🔧 Setup Node.js
@@ -106,10 +124,12 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           GITHUB_REPOSITORY: ${{ github.repository }}
-          EVIDENCE_SHA: ${{ github.event.sha || inputs.sha }}
+          # The commit and the reviewer come from whichever event woke the
+          # run: a check run's head and name, or a status's commit and context.
+          EVIDENCE_SHA: ${{ github.event.check_run.head_sha || github.event.sha || inputs.sha }}
           # Empty on the manual path, where nothing woke the run and every
           # declared reviewer is evaluated.
-          EVIDENCE_CONTEXT: ${{ github.event.context }}
+          EVIDENCE_CONTEXT: ${{ github.event.check_run.name || github.event.context }}
         run: |
           set -eu
           script=scripts/check-third-party-review-evidence.mjs

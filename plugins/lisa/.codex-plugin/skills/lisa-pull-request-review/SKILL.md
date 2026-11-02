@@ -61,8 +61,13 @@ gh pr checks <pr> --json name,state,bucket,description \
 **The state column reads `SUCCESS` whether the review was real or hollow — only
 the description distinguishes them.** `Review approved` / `Review completed` is
 a real review; `Review rate limited`, `Review queued`, or a missing context is
-not. Never read `gh pr view --json statusCheckRollup` for this: CodeRabbit posts
-a legacy commit status, which that route returns *without* the description.
+not. A reviewer can also report through a **check run** instead of a commit
+status, and then this column shows only the run's title, which can be a generic
+`Finished` even for a real review: the run's result is the first line of its
+summary, which this command does not print. For that, use
+`node scripts/check-third-party-review-evidence.mjs --sha <head-sha> --json`,
+which reads both. Never read `gh pr view --json statusCheckRollup` for this: it
+returns a commit status *without* its description.
 
 Where the project ships Lisa's guard, prefer its machine-readable form, which
 also says whether the check is ruleset-required (so whether branch protection
