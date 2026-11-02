@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.87.4](https://github.com/CodySwannGT/lisa/compare/v4.87.3...v4.87.4) (2026-11-02)
+
+
+### Bug Fixes
+
+* address self-review of [#4571](https://github.com/CodySwannGT/lisa/issues/4571) — author-less reviews, spawn under a question ([8cbdcdf](https://github.com/CodySwannGT/lisa/commit/8cbdcdfe104c772052389deb62c59f8a14d4560d))
+* clear a withdrawn objection at head, and harden session-manager reads ([194cad4](https://github.com/CodySwannGT/lisa/commit/194cad40651c5b972935eee1d312199e9bf2bbb5)), closes [CodySwannGT/lisa#4579](https://github.com/CodySwannGT/lisa/issues/4579) [CodySwannGT/lisa#4571](https://github.com/CodySwannGT/lisa/issues/4571)
+* fail closed under a file-size limit, and never resume a finished worker ([198127c](https://github.com/CodySwannGT/lisa/commit/198127cf7ce03123874a2b1517438c5e1fe64e8f)), closes [#4580](https://github.com/CodySwannGT/lisa/issues/4580) [CodySwannGT/lisa#3877](https://github.com/CodySwannGT/lisa/issues/3877) [CodySwannGT/lisa#4571](https://github.com/CodySwannGT/lisa/issues/4571)
+
+
+### Documentation
+
+* say what exit 2 from item-answer means in its JSDoc ([74550b2](https://github.com/CodySwannGT/lisa/commit/74550b2b8558e89332014a746849ab562193ff74)), closes [#4580](https://github.com/CodySwannGT/lisa/issues/4580) [CodySwannGT/lisa#4571](https://github.com/CodySwannGT/lisa/issues/4571)
+
 ### [4.87.3](https://github.com/CodySwannGT/lisa/compare/v4.87.2...v4.87.3) (2026-11-02)
 
 
