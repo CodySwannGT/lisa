@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.87.6](https://github.com/CodySwannGT/lisa/compare/v4.87.5...v4.87.6) (2026-11-02)
+
+
+### Bug Fixes
+
+* **ci:** judge check runs from the default branch, and close review findings ([05ada38](https://github.com/CodySwannGT/lisa/commit/05ada384ed16bdf5767d5625c9cf93778e17f895)), closes [#4553](https://github.com/CodySwannGT/lisa/issues/4553) [CodySwannGT/lisa#4553](https://github.com/CodySwannGT/lisa/issues/4553)
+* **ci:** recognise check-run review proof in the third-party evidence prover ([a6d9f01](https://github.com/CodySwannGT/lisa/commit/a6d9f01c342fa9075fa8c0a1851bbd8b337fe6de)), closes [#4547](https://github.com/CodySwannGT/lisa/issues/4547) [#4553](https://github.com/CodySwannGT/lisa/issues/4553) [CodySwannGT/lisa#4553](https://github.com/CodySwannGT/lisa/issues/4553)
+* **doctor:** also require the run-keyed concurrency group and the other read scopes ([744dd73](https://github.com/CodySwannGT/lisa/commit/744dd733ea96a97f0d9d45edb1287616f94aa2c7)), closes [#4553](https://github.com/CodySwannGT/lisa/issues/4553) [CodySwannGT/lisa#4553](https://github.com/CodySwannGT/lisa/issues/4553)
+* treat ENAMETOOLONG as unreadable in the evidence-seed doctor check ([bae8463](https://github.com/CodySwannGT/lisa/commit/bae846328bd3ea9e429368cf875165efc1ee74b4)), closes [#4553](https://github.com/CodySwannGT/lisa/issues/4553) [CodySwannGT/lisa#4553](https://github.com/CodySwannGT/lisa/issues/4553)
+
 ### [4.87.5](https://github.com/CodySwannGT/lisa/compare/v4.87.4...v4.87.5) (2026-11-02)
 
 
