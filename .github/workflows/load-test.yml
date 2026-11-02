@@ -95,7 +95,8 @@ jobs:
     # `check-workflow-contract-assertions.mjs` in Lisa refuses a template that
     # takes the `uses:` reference and drops the assertion — the two are one unit.
     name: 🔖 Workflow Contract
-    runs-on: ubuntu-latest
+    # Pinned with k6_test below, so the whole workflow runs on one image.
+    runs-on: ubuntu-24.04
     timeout-minutes: 2
     permissions: {}
     steps:
@@ -160,7 +161,13 @@ jobs:
 
   k6_test:
     name: K6 Load Test - ${{ inputs.test_scenario }}
-    runs-on: ubuntu-latest
+    # Pinned, not ubuntu-latest: GitHub moved ubuntu-latest to the 26.04 image
+    # in October 2026, where apt rejects the k6 archive keyring imported below
+    # ("NO_PUBKEY C780D0BDB1A69C86"), so `apt-get update` fails before k6 is
+    # installed and the load test never sends a request. Same move as
+    # playwright-e2e.yml (CodySwannGT/lisa#4476). Move to ubuntu-26.04 once
+    # the k6 apt repository is signed with a key that image accepts.
+    runs-on: ubuntu-24.04
     outputs:
       passed: ${{ steps.run_test.outputs.passed }}
       results_url: ${{ steps.upload_results.outputs.artifact-url }}
