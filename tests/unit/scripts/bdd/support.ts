@@ -522,6 +522,13 @@ export function healthyProject(
  * fourth: seven spawned processes become four with no change to what is
  * committed. `--no-gpg-sign` is the same refusal `commit.gpgsign=false` was
  * making, stated at the one command that could act on it.
+ *
+ * Automatic maintenance is off, through the environment for the same reason.
+ * Measured: after a commit here, git started a detached
+ * `git maintenance run --auto`, whose repack and pack-objects were still
+ * writing into `.git/objects/pack` after the commit returned. Under load that
+ * write lands in the teardown's recursive removal, which then fails with
+ * ENOTEMPTY on `.git/objects`. A fixture repository never needs a repack.
  * @param root - Project root.
  * @returns The commit SHA.
  */
@@ -532,6 +539,11 @@ export function commitAll(root: string): string {
     GIT_AUTHOR_EMAIL: "gate@example.test",
     GIT_COMMITTER_NAME: "Gate Test",
     GIT_COMMITTER_EMAIL: "gate@example.test",
+    GIT_CONFIG_COUNT: "2",
+    GIT_CONFIG_KEY_0: "maintenance.auto",
+    GIT_CONFIG_VALUE_0: "false",
+    GIT_CONFIG_KEY_1: "gc.auto",
+    GIT_CONFIG_VALUE_1: "0",
   };
   const git = (...args: string[]): string => {
     gitSpawns += 1;
