@@ -2,6 +2,7 @@
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
+import { Worker } from "node:worker_threads";
 import { cleanupTempDir } from "../../helpers/test-utils.js";
 
 /** The removal options `cleanupTempDir` asks Node for. */
@@ -15,11 +16,25 @@ const REMOVAL_OPTIONS = {
 /** The promise-based removal `cleanupTempDir` performs. */
 const PROMISES_RM = "promises-rm";
 
-/** One removal step: what it removed and which implementation removed it. */
+/** Interleaved slices of the shared cache, one per compared removal. */
+const CACHE_SLICES = 6;
+
+/** Native removal lanes per slice; zero means the promise-based removal. */
+const SLICE_WORKERS = [0, 4, 8, 16, 32, 0] as const;
+
+/** One removal lane: remove each target natively on its own thread. */
+const LANE_SOURCE = [
+  'const { rmSync } = require("node:fs");',
+  'const { parentPort, workerData } = require("node:worker_threads");',
+  "for (const target of workerData.targets) rmSync(target, workerData.options);",
+  "parentPort.postMessage(workerData.targets.length);",
+].join("\n");
+
+/** One removal step: what it removed and how many native lanes removed it. */
 interface RemovalStep {
   readonly label: string;
   readonly target: string;
-  readonly method: typeof PROMISES_RM | "rmSync";
+  readonly workers: number;
 }
 
 /** Linux block-device counters, in the kernel's `stat` field order. */
@@ -180,25 +195,65 @@ function sortedNames(directory: string): readonly string[] {
 }
 
 /**
- * Split the shared install cache into four interleaved quarters so the two
- * removal implementations each remove two statistically similar halves.
+ * Split the shared install cache into interleaved slices so each compared
+ * removal gets a statistically similar share of the same corpus.
  * @param root - Owned fixture root
- * @returns Quarter directories, in removal order
+ * @returns Slice directories, in removal order
  */
-function quarterCache(root: string): readonly string[] {
+function sliceCache(root: string): readonly string[] {
   const cache = path.join(root, "artifact-bun-cache");
-  const quarters = [0, 1, 2, 3].map(index =>
-    path.join(root, `cache-quarter-${index}`)
+  const slices = Array.from({ length: CACHE_SLICES }, (_unused, index) =>
+    path.join(root, `cache-slice-${index}`)
   );
-  quarters.forEach(directory => fs.mkdirSync(directory));
+  slices.forEach(directory => fs.mkdirSync(directory));
   if (fs.existsSync(cache))
     sortedNames(cache).forEach((name, index) =>
       fs.renameSync(
         path.join(cache, name),
-        path.join(quarters[index % 4] ?? cache, name)
+        path.join(slices[index % CACHE_SLICES] ?? cache, name)
       )
     );
-  return quarters;
+  return slices;
+}
+
+/**
+ * Remove a list of targets natively on one worker thread.
+ * @param targets - Disjoint subtrees for this lane
+ * @returns Resolves once the lane's thread has exited cleanly
+ */
+async function removeLane(targets: readonly string[]): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const worker = new Worker(LANE_SOURCE, {
+      eval: true,
+      execArgv: [],
+      workerData: { targets, options: REMOVAL_OPTIONS },
+    });
+    worker.once("error", reject);
+    worker.once("exit", code =>
+      code === 0
+        ? resolve()
+        : reject(new Error(`removal lane exited with code ${code}`))
+    );
+  });
+}
+
+/**
+ * Remove a directory's children across native lanes, then the directory.
+ * @param directory - Directory whose children are disjoint subtrees
+ * @param workers - Number of concurrent native lanes
+ */
+async function removeWithWorkers(
+  directory: string,
+  workers: number
+): Promise<void> {
+  const targets = sortedNames(directory).map(name =>
+    path.join(directory, name)
+  );
+  const lanes = Array.from({ length: workers }, (_unused, lane) =>
+    targets.filter((_target, index) => index % workers === lane)
+  ).filter(lane => lane.length > 0);
+  await Promise.all(lanes.map(removeLane));
+  fs.rmSync(directory, REMOVAL_OPTIONS);
 }
 
 /**
@@ -206,16 +261,18 @@ function quarterCache(root: string): readonly string[] {
  * @param step - Target and implementation
  */
 async function removeStep(step: RemovalStep): Promise<void> {
-  if (step.method === "rmSync") fs.rmSync(step.target, REMOVAL_OPTIONS);
+  if (step.workers > 0) await removeWithWorkers(step.target, step.workers);
   else await cleanupTempDir(step.target);
 }
 
 /**
  * Remove the owned root, observing each step on the machine it runs on.
  *
- * DIAGNOSTIC (CodySwannGT/lisa#4548): alternates the current promise-based
- * removal with `fs.rmSync` over interleaved quarters of the shared cache, so
- * one hosted run compares both on the same corpus at the same moment.
+ * DIAGNOSTIC (CodySwannGT/lisa#4548): compares the current promise-based
+ * removal (four libuv threads) with native removal spread over 4, 8, 16 and
+ * 32 worker threads, over interleaved slices of the shared cache, so one
+ * hosted run measures how removal scales with concurrent unlinkers on the
+ * same corpus at the same moment.
  * @param root - Owned fixture root
  * @param observe - Emits one named observation
  */
@@ -226,17 +283,17 @@ export async function removeOwnedRoot(
   const parent = path.dirname(root);
   const mount = mountOf(parent);
   const topLevel = fs.existsSync(root) ? sortedNames(root) : [];
-  const quarters = quarterCache(root);
+  const slices = sliceCache(root);
   const steps: readonly RemovalStep[] = [
-    { label: "tool", target: path.join(root, "tool"), method: PROMISES_RM },
-    ...quarters.map(
+    { label: "tool", target: path.join(root, "tool"), workers: 0 },
+    ...slices.map(
       (target, index): RemovalStep => ({
         label: path.basename(target),
         target,
-        method: index % 2 === 0 ? PROMISES_RM : "rmSync",
+        workers: SLICE_WORKERS[index] ?? 0,
       })
     ),
-    { label: "remainder", target: root, method: PROMISES_RM },
+    { label: "remainder", target: root, workers: 0 },
   ];
   observe("environment", {
     cpus: os.cpus().length,
@@ -251,7 +308,7 @@ export async function removeOwnedRoot(
     const before = sample(parent, mount);
     await removeStep(step);
     observe(`remove:${step.label}`, {
-      method: step.method,
+      method: step.workers > 0 ? `workers-${step.workers}` : PROMISES_RM,
       ...delta(before, sample(parent, mount)),
     });
   }
