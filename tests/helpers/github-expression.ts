@@ -44,3 +44,29 @@ export function githubCondition(
   );
   return evaluator.evaluate().coerceString() === "true";
 }
+
+/**
+ * Interpolate every `${{ … }}` in a workflow value the way a runner does.
+ *
+ * Each expression is evaluated by GitHub's own interpreter and coerced to a
+ * string, so a missing property interpolates as the empty string exactly as it
+ * does on a real runner — the case that decides which event's field wins in an
+ * `a || b || c` chain.
+ * @param template The shipped value, e.g. an `env:` entry or a concurrency group.
+ * @param context Plain workflow contexts for this case.
+ * @returns The interpolated string.
+ */
+export function githubTemplate(
+  template: string,
+  context: Record<string, unknown>
+): string {
+  const values = JSON.parse(
+    JSON.stringify(context),
+    data.reviver
+  ) as data.Dictionary;
+  return template.replace(/\$\{\{([\s\S]*?)\}\}/gu, (_match, source) => {
+    const tokens = new Lexer(String(source).trim()).lex().tokens;
+    const parsed = new Parser(tokens, Object.keys(context), []).parse();
+    return new Evaluator(parsed, values, new Map()).evaluate().coerceString();
+  });
+}

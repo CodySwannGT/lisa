@@ -379,8 +379,8 @@ export async function runDoctor(
     await checkSonarProvider(resolvedTarget, deps),
     await checkLegacyMonitorThresholds(resolvedTarget),
     await checkLisaOwnedArtifacts(resolvedTarget),
-    // The four seeded-artifact checks, in one call because they are one
-    // operator question asked four ways: what did Lisa write into this
+    // The five seeded-artifact checks, in one call because they are one
+    // operator question asked five ways: what did Lisa write into this
     // repository, and does it still say what it meant. Each is unreachable
     // from the write path that could have prevented it — that path runs once,
     // before the file exists — so an already-seeded project has no other way

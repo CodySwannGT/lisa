@@ -1,14 +1,14 @@
 /**
- * The four checks that ask what Lisa SEEDED into this repository, and whether
+ * The five checks that ask what Lisa SEEDED into this repository, and whether
  * what it seeded still says what it meant.
  *
- * They are grouped because they are one operator question asked four ways, and
+ * They are grouped because they are one operator question asked five ways, and
  * because each of them exists for the same structural reason: the write path
  * that could have prevented the defect is reached exactly once, before the file
  * exists. A repository that received the template earlier therefore has no
  * signal of any kind — the seeding postinstall is skipped under CI, the file is
  * untracked, and the tool the file disables reports only that it found nothing.
- * A fix on the write path reaches the NEXT adoption; these four are how an
+ * A fix on the write path reaches the NEXT adoption; these five are how an
  * existing one finds itself.
  *
  * `doctor-lisa-owned-artifacts` is the inverse and deliberately stays where it
@@ -23,6 +23,7 @@ import { checkCdkPresetAdoption } from "./doctor-cdk-preset-adoption.js";
 import { checkConfigShadowing } from "./doctor-config-shadowing.js";
 import { checkRailsDeployIntent } from "./doctor-rails-deploy-intent.js";
 import { checkStaleManagedBanner } from "./doctor-stale-managed-banner.js";
+import { checkThirdPartyEvidenceSeed } from "./doctor-third-party-evidence-seed.js";
 import type { DoctorCheck } from "./doctor.js";
 
 /**
@@ -45,6 +46,12 @@ export async function checkSeededArtifacts(
     // The seed fix reaches new adoptions only and the apply path will not
     // rewrite a host-owned workflow (CodySwannGT/lisa#3779).
     await checkRailsDeployIntent(targetPath),
+    // Whether a host-owned workflow Lisa is FORBIDDEN to refresh still runs at
+    // all. The evidence workflow woke only on `status`, and a reviewer that
+    // reports through a check run fires none, so seeded copies silently
+    // stopped running; the seed fix reaches new adoptions only
+    // (CodySwannGT/lisa#4553).
+    await checkThirdPartyEvidenceSeed(targetPath),
     // Whether a whole stack preset was delivered to a repository that never
     // qualified for it. The detection fix reaches the next decision only, and
     // the dead-code gate it skewed reports SUCCESS (CodySwannGT/lisa#3711).
