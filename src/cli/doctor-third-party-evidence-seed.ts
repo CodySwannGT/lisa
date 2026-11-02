@@ -48,8 +48,13 @@ const SHIPPED_SEED =
  * Errno codes that ANSWER the question rather than refusing it: the file is
  * genuinely not there. Anything else — a permission denial, an I/O error, a
  * symlink loop — means the probe could not look.
+ *
+ * `ENAMETOOLONG` is deliberately NOT here, although sibling doctor checks list
+ * it. It describes the path this check built, not the file: a project nested
+ * past the platform's path limit can still hold the workflow, and calling that
+ * "never seeded" would pass a copy nobody read.
  */
-const ABSENT_CODES = new Set(["ENOENT", "ENOTDIR", "ENAMETOOLONG"]);
+const ABSENT_CODES = new Set(["ENOENT", "ENOTDIR"]);
 
 /** The commit to judge, from whichever event woke the run. */
 const SHA_EXPRESSION = `\${{ ${CHECK_RUN_HEAD} || github.event.sha || inputs.sha }}`;

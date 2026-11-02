@@ -1,10 +1,14 @@
 /**
  * Which read failures the evidence-seed doctor check calls an absence.
  *
- * Only a definitive "not there" — `ENOENT`, `ENOTDIR`, `ENAMETOOLONG` — may read
- * as a project that was never seeded the workflow. Any other errno means the
- * check could not look, and must FAIL rather than pass: a workflow this check
- * could not read is not a workflow with nothing missing (CodySwannGT/lisa#4553).
+ * Only a definitive "not there" — `ENOENT`, `ENOTDIR` — may read as a project
+ * that was never seeded the workflow. Any other errno means the check could not
+ * look, and must FAIL rather than pass: a workflow this check could not read is
+ * not a workflow with nothing missing (CodySwannGT/lisa#4553).
+ *
+ * `ENAMETOOLONG` is on the failing side on purpose. It describes the path the
+ * check built, not the file, and a project nested past the platform's path
+ * limit can still hold the workflow.
  *
  * The read is replaced here rather than provoked through file modes, because a
  * permission bit does not stop root: under root a `chmod 000` file reads fine
@@ -62,8 +66,8 @@ describe("doctor third-party evidence seed check — read failures", () => {
     await cleanupTempDir(tempDir);
   });
 
-  it.each(["EACCES", "EPERM", "EIO", "ELOOP"])(
-    "fails, naming %s, when the workflow exists but cannot be read",
+  it.each(["EACCES", "EPERM", "EIO", "ELOOP", "ENAMETOOLONG"])(
+    "fails, naming %s, when the check cannot read the workflow",
     async code => {
       vi.mocked(readFile).mockRejectedValueOnce(readFailure(code));
 
@@ -76,7 +80,7 @@ describe("doctor third-party evidence seed check — read failures", () => {
     }
   );
 
-  it.each(["ENOENT", "ENOTDIR", "ENAMETOOLONG"])(
+  it.each(["ENOENT", "ENOTDIR"])(
     "reads %s as a project that was never seeded the workflow",
     async code => {
       vi.mocked(readFile).mockRejectedValueOnce(readFailure(code));
