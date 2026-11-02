@@ -2807,6 +2807,7 @@ jobs:
           tests/unit/core/qualified-host-bun-capture.test.ts
           tests/unit/configs/expo-jest-pre-setup.test.ts
           tests/unit/fixtures/shared-runtime-native-deadline.test.ts
+          tests/unit/fixtures/shared-runtime-teardown.test.ts
           tests/unit/scripts/bdd-projection-merge.test.ts
           tests/unit/scripts/bdd-projection-safety.test.ts
           tests/unit/scripts/bdd-writer-admission.test.ts
