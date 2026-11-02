@@ -89,6 +89,28 @@ describe(INIT_CONFIG, () => {
     expect(result.json).toMatchObject({ written: false, reason: "exists" });
   });
 
+  it("treats a block in .lisa.config.local.json as existing (#4571)", () => {
+    // A generated global block under a local-only one is overridden field by
+    // field, leaving notify.provider telegram with no stateDir: invalid.
+    const sandbox = makeSandbox({ sessionManager: null });
+    const globalFile = path.join(sandbox.root, LISA_CONFIG);
+    const before = readFileSync(globalFile, "utf8");
+    const local = { sessionManager: { notify: { provider: "telegram" } } };
+    writeFileSync(
+      path.join(sandbox.root, ".lisa.config.local.json"),
+      JSON.stringify(local)
+    );
+    const result = runCli(sandbox, [INIT_CONFIG, SLUG, DEMO, "--write"]);
+    expect(result.status).toBe(0);
+    expect(result.json).toEqual({
+      written: false,
+      reason: "exists",
+      layer: "local",
+      block: local.sessionManager,
+    });
+    expect(readFileSync(globalFile, "utf8")).toBe(before);
+  });
+
   it("proposes one entry per repo with drafted hints, not worktrees", () => {
     const sandbox = makeSandbox({ sessionManager: null, repos: ["api"] });
     const api = path.join(sandbox.root, PROJECTS, "api");

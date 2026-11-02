@@ -141,6 +141,27 @@ describe("storeTokenInProvider: migrating a plaintext .env", () => {
     expect(existsSync(envFile())).toBe(true);
   });
 
+  it("refuses (exit 2) a file with two TELEGRAM_BOT_TOKEN lines, keeping it (#4571)", async () => {
+    // Only the first token is verified and the whole file is deleted after,
+    // so the second would be lost unverified. Ambiguous input is refused.
+    plant(`TELEGRAM_BOT_TOKEN=${TOKEN}\nTELEGRAM_BOT_TOKEN=${OTHER}\n`);
+    const { error, fake } = await store();
+    expect(error?.exitCode).toBe(2);
+    expect(error?.message).toMatch(/2 TELEGRAM_BOT_TOKEN lines/);
+    expect(error?.message).not.toContain(TOKEN);
+    expect(error?.message).not.toContain(OTHER);
+    expect(fake.calls.some(call => call.startsWith("create"))).toBe(false);
+    expect(existsSync(envFile())).toBe(true);
+  });
+
+  it("refuses duplicate lines even when the provider already holds the first token", async () => {
+    plant(`TELEGRAM_BOT_TOKEN=${TOKEN}\nTELEGRAM_BOT_TOKEN=${OTHER}\n`);
+    const rows = [{ key: NAME, id: "id-9", value: TOKEN, projectId: PROJECT }];
+    const { error } = await store({ rows });
+    expect(error?.exitCode).toBe(2);
+    expect(existsSync(envFile())).toBe(true);
+  });
+
   it("deletes the file without a write when the provider already holds the same token", async () => {
     plant();
     const rows = [{ key: NAME, id: "id-9", value: TOKEN, projectId: PROJECT }];

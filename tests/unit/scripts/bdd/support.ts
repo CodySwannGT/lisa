@@ -287,9 +287,25 @@ export function fixtureBaseDir(): string | null {
   return fixtureBase ?? null;
 }
 
+/**
+ * Retries for the teardown removal, the values `cleanupTempDir` in
+ * tests/helpers/test-utils.ts uses (CodySwannGT/lisa#3877). Without them the
+ * first ENOTEMPTY propagates: an entry created inside a fixture's `.git`
+ * between readdir and rmdir failed this hook twice in a row in the push gate
+ * (`bdd-reporting.test.ts`). The writer there was git's own detached
+ * maintenance, now switched off in {@link commitAll}; the retries stay for any
+ * other writer that stops. Inlined rather than imported to keep this module's
+ * import cost out of the specs' latency budgets.
+ */
+const TEARDOWN_REMOVAL = { maxRetries: 10, retryDelay: 100 } as const;
+
 afterAll(() => {
   if (fixtureBase !== undefined) {
-    fs.rmSync(fixtureBase, { recursive: true, force: true });
+    fs.rmSync(fixtureBase, {
+      recursive: true,
+      force: true,
+      ...TEARDOWN_REMOVAL,
+    });
     fixtureBase = undefined;
     prototypes.clear();
   }

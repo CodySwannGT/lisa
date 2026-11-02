@@ -16,7 +16,10 @@
  * answer, and an ordinary reply such as `[x] option 1` is not a machine tag
  * (#4561). Only then is the author matched, on stable ids only: a GitHub
  * login or numeric id, a Jira accountId, a Linear user id, never a display
- * name or email, which anyone can set. The text is carried as data.
+ * name or email, which anyone can set. An all-digit allowed entry is a
+ * numeric id and matches only the `id` or `accountId` field, never a login,
+ * which its owner chooses and may make all digits (#4571). The text is
+ * carried as data.
  *
  * The question the answer must follow is the comment whose id the manager
  * recorded last; with no recorded id, the latest comment that STARTS with
@@ -45,6 +48,17 @@ const COMMENT_ID_KEYS = ["id", "node_id"];
 
 /** The author fields that are stable ids, never settable display text. */
 const STABLE_ID_KEYS = ["login", "id", "accountId"];
+
+/**
+ * The author fields an all-digit allowed entry may match. A GitHub login can
+ * be all digits and is chosen by its owner, so a numeric operator id must
+ * never be matched against a login: user `583231` would otherwise pass as the
+ * operator whose numeric id is 583231 (CodySwannGT/lisa#4571).
+ */
+const NUMERIC_ID_KEYS = ["id", "accountId"];
+
+/** An allowed entry that is a numeric account id, never a login. */
+const ALL_DIGITS = /^\d+$/;
 
 /**
  * The string or number values of `keys` on `value`, as strings.
@@ -126,37 +140,78 @@ function questionIndex(rows, managerCommentIds, authorOf) {
  * the manager's latest question comment ({@link questionIndex}) that is not
  * a machine's ({@link isMachineAuthoredComment}), has text of its own
  * outside quoted lines (a comment made only of `>` lines quotes someone
- * else and answers nothing), and whose author's stable id is allowed. Comments are taken in the order given (chronological).
+ * else and answers nothing), whose author's stable id is allowed, and that
+ * `refuses` does not refuse. Comments are taken in the order given
+ * (chronological).
+ *
+ * A refused reply (one that looks like it holds a credential) is skipped and
+ * reported in `refused`, never returned: returning it made every later cycle
+ * pick the same reply and fail on it again, so a corrected reply posted after
+ * it was never read (CodySwannGT/lisa#4571).
  * @param {{comments: unknown, allowed: readonly string[],
- *   managerCommentIds?: readonly (string|number)[]}} input - The item's
- *   comments, the answerer ids, and the ids the manager posted
+ *   managerCommentIds?: readonly (string|number)[],
+ *   refuses?: (text: string) => string | null | undefined}} input - The
+ *   item's comments, the answerer ids, the ids the manager posted, and why a
+ *   reply's text may not be queued (null when it may)
  * @returns {{answer: {text: string, author: string, at: string|null} | null,
- *   reason: string}} The answer, or null with why there is none
+ *   reason: string, refused?: {id: string|null, author: string, why: string}[]}}
+ *   The answer, or null with why there is none, and (only when any were)
+ *   the replies refused
  */
-export function pickItemAnswer({ comments, allowed, managerCommentIds = [] }) {
+export function pickItemAnswer({
+  comments,
+  allowed,
+  managerCommentIds = [],
+  refuses = () => null,
+}) {
   if (!Array.isArray(comments)) {
     throw new Error('stdin must be JSON {"comments":[...]}');
   }
   const rows = comments.filter(row => row && typeof row === "object");
-  const allow = new Set(allowed.map(String));
-  const authorOf = row =>
-    idsOf(row.author ?? row.user, STABLE_ID_KEYS).find(id => allow.has(id));
+  const allow = allowed.map(String);
+  const numeric = new Set(allow.filter(id => ALL_DIGITS.test(id)));
+  const named = new Set(allow.filter(id => !ALL_DIGITS.test(id)));
+  const authorOf = row => {
+    const author = row.author ?? row.user;
+    return (
+      idsOf(author, NUMERIC_ID_KEYS).find(id => numeric.has(id)) ??
+      idsOf(author, STABLE_ID_KEYS).find(id => named.has(id))
+    );
+  };
   const asked = questionIndex(rows, managerCommentIds, authorOf);
+  const refused = [];
   if (asked === -1) return { answer: null, reason: "no-question-comment" };
-  const reply = rows
+  const withRefused = result =>
+    refused.length > 0 ? { ...result, refused } : result;
+  const replies = rows
     .slice(asked + 1)
     .filter(row => !isMachineAuthoredComment(row, { managerCommentIds }))
-    .find(
+    .filter(
       row => authorOf(row) !== undefined && unquoted(bodyOf(row)).trim() !== ""
     );
-  if (!reply) return { answer: null, reason: "no-answer-yet" };
-  const at = reply.createdAt ?? reply.created ?? reply.created_at ?? null;
-  return {
-    answer: {
-      text: bodyOf(reply).trim(),
-      author: authorOf(reply),
-      at: typeof at === "string" ? at : null,
-    },
-    reason: "answered",
-  };
+  for (const reply of replies) {
+    const text = bodyOf(reply).trim();
+    const why = refuses(text);
+    if (why) {
+      refused.push({
+        id: idsOf(reply, COMMENT_ID_KEYS)[0] ?? null,
+        author: authorOf(reply),
+        why,
+      });
+      continue;
+    }
+    const at = reply.createdAt ?? reply.created ?? reply.created_at ?? null;
+    return withRefused({
+      answer: {
+        text,
+        author: authorOf(reply),
+        at: typeof at === "string" ? at : null,
+      },
+      reason: "answered",
+    });
+  }
+  return withRefused({
+    answer: null,
+    reason: refused.length > 0 ? "credential-refused" : "no-answer-yet",
+  });
 }

@@ -137,6 +137,16 @@ export async function spawn(ctx) {
   }
 
   const ledger = await readLedger(ctx.root);
+  // A spawn no longer clears a pending question (lisa#4571), and a worker
+  // under one classifies as waiting, never stalled or dead. So refuse here:
+  // the question must be answered and cleared first ("Clearing").
+  if (ledger.items[ref]?.pendingQuestion) {
+    throw new CliError(
+      `${ref} has a pending question in the ledger; nothing was spawned. ` +
+        `Answer it and run "Clearing" (ledger clear-question ${ref}) first.`,
+      EXIT.SETUP
+    );
+  }
   const spec = asSetupError(() => {
     const name = buildWorkerName(ref, ctx.now(), knownNames(agents, ledger));
     return buildWorkerSpawn({
@@ -191,6 +201,17 @@ export async function resume(ctx) {
   const text = stdinText(ctx, "message for the worker");
   const config = requireConfig(ctx);
   const item = ledgerItem(await readLedger(ctx.root), ref);
+  // A finish keeps a pending question (lisa#4571), so an answer can still
+  // arrive for a worker that reported DONE or FAILED. Resuming it would
+  // restart a worker the ledger no longer tracks, so refuse: "Clearing"
+  // delivers nothing to a finished worker.
+  if (item.status === "DONE" || item.status === "FAILED") {
+    throw new CliError(
+      `${ref} finished (${item.status}); a finished worker is never ` +
+        `resumed. Clear its question without delivering it ("Clearing").`,
+      EXIT.SETUP
+    );
+  }
   if (!item.sessionId && !item.worker) {
     throw new CliError(`${ref} has no recorded session id to resume.`, 2);
   }

@@ -220,6 +220,17 @@ describe("spawn", () => {
     expect(callsOf(result.calls, "claude", "--bg")).toEqual([]);
   });
 
+  it("exits 2 and spawns nothing while the ref has a pending question (#4571)", () => {
+    // A spawn no longer clears the question, and a worker under one is never
+    // judged stalled or dead, so the question must be cleared first.
+    const sandbox = makeSandbox();
+    runCli(sandbox, ["ledger", "set-question", REF], { input: "Which one?" });
+    const result = runCli(sandbox, ["spawn", REF, ...MEM]);
+    expect(result.status).toBe(2);
+    expect(result.stderr).toContain("pending question");
+    expect(callsOf(result.calls, "claude", "--bg")).toEqual([]);
+  });
+
   it("does not treat a worker for a longer ref as live (exact token)", () => {
     const sandbox = makeSandbox();
     const result = runCli(sandbox, ["spawn", "DEMO-1", ...MEM], {
@@ -294,4 +305,26 @@ describe("resume", () => {
     const result = runCli(sandbox, ["resume", "OTHER-1"], { input: "yes" });
     expect(result.status).toBe(2);
   });
+
+  it.each(["DONE", "FAILED"])(
+    "never resumes a worker that reported %s, even with its full session id listed (#4571)",
+    status => {
+      const sandbox = makeSandbox();
+      runCli(sandbox, ["spawn", REF, ...MEM]);
+      const { worker } = readLedgerFile(sandbox).items[REF];
+      const finish = runCli(
+        sandbox,
+        ["ledger", "finish", REF, "--status", status],
+        { input: "stopped by the operator" }
+      );
+      expect(finish.status).toBe(0);
+      const result = runCli(sandbox, ["resume", REF], {
+        input: "yes",
+        agents: [stoppedRow(worker)],
+      });
+      expect(result.status).toBe(2);
+      expect(result.stderr).toMatch(/a finished worker is never resumed/);
+      expect(callsOf(result.calls, "claude", "--bg")).toEqual([]);
+    }
+  );
 });

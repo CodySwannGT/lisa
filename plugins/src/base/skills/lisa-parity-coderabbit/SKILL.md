@@ -11,7 +11,7 @@ A comprehensive, PR-grade code review of the **entire diff** — the kind of pas
 
 > **Independent reimplementation.** This skill is **not** a wrapper around CodeRabbit's hosted service and does **not** port or invoke CodeRabbit's code. It is a Lisa-native review that produces a comparable artifact using only the model and local tooling. No network calls to any review SaaS are made.
 >
-> **Drift tracking.** Pinned to `coderabbit@claude-plugins-official@1.1.1`. `scripts/plugin-parity-drift.mjs` compares this pin against the upstream version in the plugin cache and flags staleness. Reimplemented from scratch — **do not port or copy upstream plugin code.**
+> **Drift tracking.** Pinned to `coderabbit@claude-plugins-official@1.1.1`. In the Lisa repository, `scripts/plugin-parity-drift.mjs` (a Lisa-repository maintainer check that host projects do not ship, so it does not run in a host checkout) compares this pin against the upstream version in the plugin cache and flags staleness. Reimplemented from scratch — **do not port or copy upstream plugin code.**
 
 ## Step 1: Assemble the full review surface
 
