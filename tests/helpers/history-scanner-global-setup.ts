@@ -1,0 +1,205 @@
+/**
+ * Vitest globalSetup for the `history-scanner` project.
+ *
+ * Runs once per invocation, before any of that project's suites, and only when
+ * the run's selected files include one of them: Vitest initialises a project's
+ * global setup only for projects with files to run (`vitest.config.local.ts`).
+ * It performs the invocation's one genuine cold acquisition of the pinned
+ * scanner (`tests/helpers/history-scanner-preparation.ts`) and provides the
+ * result to that project's suites, which take it through
+ * `tests/helpers/history-scanner-handoff.ts`.
+ *
+ * ## The temporary root is checked first
+ *
+ * Vitest initialises the root project's global setup after this one, so this
+ * setup runs the root's TMPDIR trust check itself, before it writes or executes
+ * anything there. The check is read-only, so running it again in the root's
+ * setup costs nothing.
+ *
+ * Fleet admission is left to the root. It bounds worker-pool demand, and the
+ * root's admission still runs before any worker starts. A download is not pool
+ * demand, and a second call here would give an over-capacity run a second full
+ * admission deadline.
+ *
+ * ## Where the scope lives
+ *
+ * In a run supervised by `lisa-test-run`, the scope sits in a worker-style
+ * scope inside the run's leased suite root. The supervisor reaps that root even
+ * after SIGKILL, and it adds no second run root for sibling runs to count. In
+ * an unsupervised run, it sits in an owned run root of this process, as each
+ * unsupervised worker's does, which the next run's sweep reclaims after a kill.
+ *
+ * Teardown, a failed acquisition and process exit release it directly. Vitest
+ * also turns SIGINT and SIGTERM into a process exit. The exit release is armed
+ * before the download starts.
+ *
+ * ## A failure fails only the suites that need a scanner
+ *
+ * A failed acquisition is provided rather than thrown, and so is any
+ * unexpected error here. Throwing would abort every project's suites in the
+ * same run; providing the failure fails exactly the suites that need a
+ * scanner, with its truthful reason, while the rest of the run still reports.
+ *
+ * One `HISTORY_SCANNER_COLD_PREPARATION` line on stderr records the command,
+ * outcome, elapsed time, deadline, enforced archive pin, measured executable
+ * digest and version. Machine-local paths are replaced so the line can be
+ * quoted as evidence.
+ * @module tests/helpers/history-scanner-global-setup
+ */
+import { dirname } from "node:path";
+import { env } from "node:process";
+
+import type { TestProject } from "vitest/node";
+
+import {
+  materializeOwnedScratchRunRoot,
+  prepareOwnedScratchRunRoot,
+  removeOwnedScratchRunRoot,
+} from "../../src/configs/vitest/scratch-run-root-intent.js";
+import {
+  SCRATCH_SUPERVISION_LEASE_ENV,
+  createSupervisedWorkerScope,
+  parseScratchSupervisionLease,
+  removeSupervisedWorkerScope,
+} from "../../src/configs/vitest/scratch-supervision.js";
+import { describeTmpdirTrustFailure } from "../../src/configs/vitest/scratch-tmpdir-trust.js";
+import {
+  PREPARATION_KEY,
+  PROVISION_CLI,
+  prepareHistoryScanner,
+  type HistoryScannerPreparation,
+  type PreparedScope,
+} from "./history-scanner-preparation.js";
+
+/** A reclaimable directory for the scope, and its exit-armed release. */
+interface OwnedParent {
+  readonly path: string;
+  readonly release: () => void;
+}
+
+/**
+ * The evidence line, without machine-local paths.
+ * @param preparation - The invocation's preparation
+ * @returns One line safe to quote
+ */
+function evidenceLine(preparation: HistoryScannerPreparation): string {
+  const { evidence } = preparation;
+  const destination = evidence?.argv.at(-1);
+  const record = {
+    ok: preparation.ok,
+    ...(preparation.ok ? {} : { reason: preparation.reason }),
+    ...(evidence === null
+      ? {}
+      : {
+          ...evidence,
+          argv: ["node", PROVISION_CLI, ...evidence.argv.slice(2)],
+        }),
+  };
+  const text = JSON.stringify(record);
+  return `HISTORY_SCANNER_COLD_PREPARATION ${
+    destination === undefined
+      ? text
+      : text.replaceAll(dirname(destination), "<owned-scope>")
+  }\n`;
+}
+
+/**
+ * A failure that happened before any provision child ran.
+ * @param reason - Why the preparation could not run
+ * @returns The failed preparation and a dispose with nothing to release
+ */
+function refused(reason: string): PreparedScope {
+  return {
+    preparation: { ok: false, reason, evidence: null },
+    dispose: () => undefined,
+  };
+}
+
+/**
+ * Create the reclaimable parent directory for the scope.
+ * @returns Its path and a remover for it
+ */
+function reclaimableDirectory(): {
+  readonly path: string;
+  readonly remove: () => void;
+} {
+  const lease = env[SCRATCH_SUPERVISION_LEASE_ENV];
+  if (lease !== undefined && lease !== "") {
+    const scope = createSupervisedWorkerScope(
+      parseScratchSupervisionLease(lease)
+    );
+    return {
+      path: scope.path,
+      remove: () => removeSupervisedWorkerScope(scope),
+    };
+  }
+  const root = materializeOwnedScratchRunRoot(prepareOwnedScratchRunRoot());
+  return { path: root.path, remove: () => removeOwnedScratchRunRoot(root) };
+}
+
+/**
+ * Create the parent and arm its release on process exit before anything runs.
+ *
+ * The release never throws: a failure is reported on stderr instead, because
+ * an exception thrown from an exit listener would crash the process. The
+ * scratch reaper still reclaims whatever a failed release leaves behind.
+ * @returns The parent and its idempotent, exit-armed release
+ */
+function ownedParent(): OwnedParent {
+  const directory = reclaimableDirectory();
+  const release = (): void => {
+    process.off("exit", release);
+    try {
+      directory.remove();
+    } catch (error) {
+      process.stderr.write(
+        `history-scanner preparation: its scratch scope could not be released (${error instanceof Error ? error.message : String(error)}); the scratch reaper reclaims it.\n`
+      );
+    }
+  };
+  process.once("exit", release);
+  return { path: directory.path, release };
+}
+
+/**
+ * Check the temporary root, then run the one cold acquisition in an owned parent.
+ * @returns The preparation and the dispose that releases everything it made
+ */
+async function prepareInOwnedParent(): Promise<PreparedScope> {
+  const untrusted = describeTmpdirTrustFailure();
+  if (untrusted !== undefined)
+    return refused(
+      `The temporary root is not trusted, so no scanner was acquired. ${untrusted}`
+    );
+  const parent = ownedParent();
+  const prepared = await prepareHistoryScanner({ parent: parent.path }).catch(
+    (error: unknown) => {
+      parent.release();
+      throw error;
+    }
+  );
+  return {
+    preparation: prepared.preparation,
+    dispose: () => {
+      prepared.dispose();
+      parent.release();
+    },
+  };
+}
+
+/**
+ * Acquire once, provide the result, and hand back the cleanup.
+ * @param project - The history-scanner project this setup belongs to
+ * @returns Teardown that removes the owned preparation scope and its parent
+ */
+export async function setup(project: TestProject): Promise<() => void> {
+  const { preparation, dispose } = await prepareInOwnedParent().catch(
+    (error: unknown) =>
+      refused(
+        `The cold scanner preparation failed unexpectedly: ${error instanceof Error ? error.message : String(error)}`
+      )
+  );
+  process.stderr.write(evidenceLine(preparation));
+  project.provide(PREPARATION_KEY, preparation);
+  return dispose;
+}

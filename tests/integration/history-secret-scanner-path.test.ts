@@ -6,7 +6,8 @@
 import { existsSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, inject, it } from "vitest";
+import { ownedPreparedScanner } from "../helpers/history-scanner-handoff.js";
 import {
   boundedSpawnSync,
   useIoLatencyBudget,
@@ -15,19 +16,17 @@ useIoLatencyBudget();
 const root = resolve(import.meta.dirname, "../..");
 const lease = mkdtempSync(join(tmpdir(), "history-scanner-path-"));
 const scanner = join(lease, "gitleaks");
+// The official pinned PATH-control scanner was provisioned once for this
+// invocation, by the production CLI, before any bounded control
+// (tests/helpers/history-scanner-preparation.ts). This lease receives its own
+// qualified copy of exactly that scanner.
 beforeAll(() => {
-  const result = boundedSpawnSync({
-    label: "official pinned PATH-control scanner provision",
-    command: process.execPath,
-    args: [
-      join(root, "all/copy-overwrite/scripts/lisa-history-secrets.mjs"),
-      "provision",
-      scanner,
-    ],
-    cwd: root,
-    baseMs: 30000,
-  });
-  expect(result.status, result.stderr).toBe(0);
+  const owned = ownedPreparedScanner(
+    scanner,
+    inject("historyScannerPreparation")
+  );
+  expect(owned.provision.status).toBe(0);
+  expect(owned).toMatchObject({ path: scanner, version: "8.30.1" });
 });
 afterAll(() => {
   rmSync(lease, { recursive: true, force: true });
