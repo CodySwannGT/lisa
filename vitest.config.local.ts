@@ -6,6 +6,7 @@
  * @module vitest.config.local
  */
 import type { ViteUserConfig } from "vitest/config";
+import { minimatch } from "minimatch";
 import * as path from "node:path";
 
 // From source, not from `dist/`, for the reason given on `setupFiles` below:
@@ -35,29 +36,51 @@ const scratchPrefixes =
 const config: ViteUserConfig = {
   plugins: [
     {
-      name: "lisa:freshness-deadline-groups",
+      name: "lisa:dedicated-suite-groups",
       configureVitest({ vitest, project }) {
         const deadlineSuites = [
           "tests/integration/enforcement-fallback-freshness-deadline.test.ts",
           "tests/integration/enforcement-fallback-freshness-anchor-startup.test.ts",
         ];
+        // Suites that run the genuine pinned history scanner. Their own
+        // project's global setup performs the invocation's one cold scanner
+        // acquisition, and Vitest runs it only for a run containing one of
+        // them, so no other suite gains a network prerequisite
+        // (tests/helpers/history-scanner-preparation.ts). They join only
+        // when the root's include admits them: a narrower root, such as the
+        // mutation config's unit-only list, keeps them out.
+        const scannerSuites = [
+          "tests/integration/history-secret-evidence.test.ts",
+          "tests/integration/history-secret-private-report.test.ts",
+          "tests/integration/history-secret-scanner-path.test.ts",
+          "tests/integration/history-secret-scanner-preparation.test.ts",
+        ];
         const deadlineProject = project.name === "freshness-deadline";
-        if (!deadlineProject && project.name !== "lisa") return;
+        const scannerProject = project.name === "history-scanner";
+        const bulkProject = project.name === "lisa";
+        if (!deadlineProject && !scannerProject && !bulkProject) return;
+        const rootInclude = [...vitest.config.include];
+        const admitted = scannerSuites.filter(suite =>
+          rootInclude.some(pattern => minimatch(suite, pattern))
+        );
 
         // Resolution concatenates inherited arrays and omits CLI exclusions
         // from child overrides. Use the normalized root before collection.
         /* eslint-disable functional/immutable-data -- native configuration hook assigns each resolved project's scheduling and discovery */
-        project.config.include = deadlineProject
-          ? deadlineSuites
-          : [...vitest.config.include];
+        project.config.include = bulkProject
+          ? rootInclude
+          : deadlineProject
+            ? deadlineSuites
+            : admitted;
         project.config.exclude = [
           ...new Set([
             ...vitest.config.exclude,
-            ...(deadlineProject ? [] : deadlineSuites),
+            ...(bulkProject ? [...deadlineSuites, ...scannerSuites] : []),
           ]),
         ];
         // Physical startup/deadline assertions keep their unscaled limits and
         // run before the bulk suite, with no sibling test worker competing.
+        // The scanner suites share the bulk group and its workers.
         project.config.maxWorkers = deadlineProject
           ? 1
           : vitest.config.maxWorkers;
@@ -67,9 +90,17 @@ const config: ViteUserConfig = {
           groupOrder: deadlineProject ? 1 : 2,
         };
         // Native initialization also runs the root's global setup. Keep
-        // admission, scratch audit and coverage guard there once, while both
-        // children retain their inherited per-worker setup and environment.
-        project.config.globalSetup = [];
+        // admission, scratch audit and coverage guard there once, while every
+        // child retains its inherited per-worker setup and environment. The
+        // scanner child adds exactly one global setup of its own.
+        project.config.globalSetup = scannerProject
+          ? [
+              path.resolve(
+                import.meta.dirname,
+                "tests/helpers/history-scanner-global-setup.ts"
+              ),
+            ]
+          : [];
         /* eslint-enable functional/immutable-data -- remaining configuration is immutable */
       },
     },
@@ -77,6 +108,7 @@ const config: ViteUserConfig = {
   test: {
     projects: [
       { extends: true, test: { name: "freshness-deadline" } },
+      { extends: true, test: { name: "history-scanner" } },
       { extends: true, test: { name: "lisa" } },
     ],
     // The bounded scratch space, wired from source rather than from the built
