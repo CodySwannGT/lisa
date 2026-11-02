@@ -54,14 +54,41 @@ If either is missing, **refuse to post**: stop and report the missing Not-establ
 3. **Upload each evidence file**
 
    ```bash
-   for f in "$EVIDENCE_DIR"/[0-9][0-9]-*.txt "$EVIDENCE_DIR"/[0-9][0-9]-*.json; do
-     [ -f "$f" ] || continue
-     name="pr-${PR_NUMBER}-$(basename "$f")"
-     gh release upload pr-assets --repo <impl-org>/<impl-repo> --clobber "$f#$name"
-   done
+   (
+     set -e
+     upload_dir=$(mktemp -d "${TMPDIR:-/tmp}/lisa-github-evidence.XXXXXXXX")
+     trap 'rm -rf "$upload_dir"' EXIT
+     expected_names="$upload_dir/expected-names.txt"
+     : > "$expected_names"
+
+     for f in "$EVIDENCE_DIR"/[0-9][0-9]-*.txt "$EVIDENCE_DIR"/[0-9][0-9]-*.json; do
+       [ -f "$f" ] || continue
+       name="pr-${PR_NUMBER}-$(basename "$f")"
+       cp "$f" "$upload_dir/$name"
+       gh release upload pr-assets --repo <impl-org>/<impl-repo> --clobber "$upload_dir/$name"
+       printf '%s\n' "$name" >> "$expected_names"
+     done
+
+     gh release view pr-assets --repo <impl-org>/<impl-repo> \
+       --json assets --jq '.assets[].name' > "$upload_dir/asset-names.txt"
+     while IFS= read -r name; do
+       if ! grep -Fxq -- "$name" "$upload_dir/asset-names.txt"; then
+         printf 'Expected evidence asset is missing: %s\n' "$name" >&2
+         exit 1
+       fi
+       printf 'Uploaded evidence asset: %s\n' "$name"
+     done < "$expected_names"
+   )
    ```
 
-   The `#$name` syntax sets the asset name. `--clobber` lets re-runs overwrite.
+   An asset takes its name from the uploaded file's basename. A `#` suffix only
+   sets its display label; it cannot rename the asset. Stage the copy under the
+   intended name before uploading. The subshell stops on copy, upload or release
+   read failure, checks every expected name, and removes staging on exit.
+   `--clobber` replaces an existing asset with that same PR-prefixed name.
+
+   Link to the actual name:
+   `https://github.com/<impl-org>/<impl-repo>/releases/download/pr-assets/pr-<number>-<file>`.
 
 4. **Update the PR description**
 
