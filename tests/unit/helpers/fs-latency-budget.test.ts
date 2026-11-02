@@ -291,8 +291,10 @@ describe("the derivation cites what it was measured from", () => {
 describe("the deletion-dominated call sites are wired to it", () => {
   /**
    * The wiring check. A calibrator nothing calls fixes nothing, and this is the
-   * assertion that fails against the pre-fix tree: all three of these teardowns
-   * were scaled by `ioLatencyBudgetMs` there.
+   * assertion that fails against the pre-fix tree: the first three of these
+   * teardowns were scaled by `ioLatencyBudgetMs` there. The fourth already
+   * used this proxy; its row pins that its budget stays this proxy at the
+   * unchanged 30 s base (CodySwannGT/lisa#4548).
    */
   it.each([
     [
@@ -309,6 +311,13 @@ describe("the deletion-dominated call sites are wired to it", () => {
       "the packed-bin scratch-tree teardown",
       "tests/integration/lisa-test-run-packed-bin.test.ts",
       "}, fsLatencyBudgetMs(TEARDOWN_BASE_MS));",
+    ],
+    [
+      // Its base stays 30 s: the corpus it removes got smaller instead
+      // (CodySwannGT/lisa#4548).
+      "the packed-host owned-root teardown",
+      "tests/integration/shared-runtime-packed-hosts.test.ts",
+      "}, fsLatencyBudgetMs(30_000));",
     ],
   ])("%s scales on the filesystem proxy", (_label, relative, expected) => {
     const source = readFileSync(path.join(REPO_ROOT, relative), "utf-8");

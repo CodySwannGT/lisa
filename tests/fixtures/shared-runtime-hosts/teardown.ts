@@ -1,315 +1,111 @@
-/** Owned-root removal for the packed-host journey, observed per removal step. */
-import * as fs from "node:fs";
-import * as os from "node:os";
-import * as path from "node:path";
-import { Worker } from "node:worker_threads";
+/**
+ * The packed-host journey's shared Bun install cache, freed by the last case
+ * that installs through it (CodySwannGT/lisa#4548).
+ *
+ * ## What the teardown was paying for
+ *
+ * Measured at the teardown boundary after all ten cases (2026-11-02): the
+ * owned root held 383,410 entries (3.9 GB), and 79% of them were this cache —
+ * every package the installing hosts and the packed tool resolved, kept once
+ * and hard-linked into each host's `node_modules`.
+ *
+ * The hosted runners mount their root filesystem ext4 `discard,data=writeback`.
+ * In that mode freeing a file's data discards it on the device synchronously,
+ * in the thread doing the unlink. Measured on six runners, removing the root
+ * freed about 341,000 inodes with about 309,000 device discards, and the
+ * devices completed 22,000-34,000 freed inodes a second however many unlinks
+ * were in flight from four up: the best of 4 to 32 native worker threads beat
+ * libuv's four threads by 3-26%, thirty-two did worse than eight, and a single
+ * native `rmSync` thread was two to three times slower. So the removal could
+ * not be made fast enough to fit reliably in the teardown's 30 s; it could
+ * only be made smaller.
+ *
+ * ## Why the cache, and why its last installer
+ *
+ * A host's `node_modules` holds a second hard link to each cache file, so a
+ * case removing its own host frees almost nothing: the cache still holds the
+ * data, and the teardown then freed all of it. The cache's last real user is
+ * the last installing case, and the journey already frees each host inside
+ * that host's own case budget for this same reason. So the cache is freed
+ * there too, by whichever installing case finishes last, and the teardown
+ * frees only the candidate's own fixtures — its checkout, oracle and
+ * installed tool — and the evidence.
+ * @module tests/fixtures/shared-runtime-hosts/teardown
+ */
 import { cleanupTempDir } from "../../helpers/test-utils.js";
 
-/** The removal options `cleanupTempDir` asks Node for. */
-const REMOVAL_OPTIONS = {
-  force: true,
-  maxRetries: 10,
-  recursive: true,
-  retryDelay: 100,
-} as const;
+/** Removes a directory the journey owns. */
+type Remove = (directory: string) => Promise<void>;
 
-/** The promise-based removal `cleanupTempDir` performs. */
-const PROMISES_RM = "promises-rm";
-
-/** Interleaved slices of the shared cache, one per compared removal. */
-const CACHE_SLICES = 6;
-
-/** Native removal lanes per slice; zero means the promise-based removal. */
-const SLICE_WORKERS = [0, 4, 8, 16, 32, 0] as const;
-
-/** One removal lane: remove each target natively on its own thread. */
-const LANE_SOURCE = [
-  'const { rmSync } = require("node:fs");',
-  'const { parentPort, workerData } = require("node:worker_threads");',
-  "for (const target of workerData.targets) rmSync(target, workerData.options);",
-  "parentPort.postMessage(workerData.targets.length);",
-].join("\n");
-
-/** One removal step: what it removed and how many native lanes removed it. */
-interface RemovalStep {
-  readonly label: string;
-  readonly target: string;
-  readonly workers: number;
-}
-
-/** Linux block-device counters, in the kernel's `stat` field order. */
-const DEVICE_FIELDS = [
-  "readIos",
-  "readMerges",
-  "readSectors",
-  "readMs",
-  "writeIos",
-  "writeMerges",
-  "writeSectors",
-  "writeMs",
-  "inFlight",
-  "ioMs",
-  "queueMs",
-  "discardIos",
-  "discardMerges",
-  "discardSectors",
-  "discardMs",
-  "flushIos",
-  "flushMs",
-] as const;
-
-/** The mount that holds the owned root, read from the kernel's own table. */
-interface MountRecord {
-  readonly device: string;
-  readonly mountPoint: string;
-  readonly fsType: string;
-  readonly options: string;
+/** The shared install cache's lifetime across the journey's cases. */
+export interface SharedInstallCache {
+  /** The shared cache directory. */
+  readonly directory: string;
+  /**
+   * Record that an installing case has finished, freeing the cache when no
+   * declared installer is left to run and it has not been freed yet.
+   * @param installer - The finished case's name
+   * @returns Whether this call freed the cache
+   */
+  readonly finish: (installer: string) => Promise<boolean>;
+  /**
+   * Whether every declared installer has finished.
+   * @returns True once the last installer has finished
+   */
+  readonly allFinished: () => boolean;
+  /**
+   * Whether the cache has actually been freed — its removal completed, not
+   * merely started.
+   * @returns True once a removal of the cache has resolved
+   */
+  readonly freed: () => boolean;
 }
 
 /**
- * Find the mount holding a path, by the longest mount point prefix.
- * @param target - Existing path on the filesystem of interest
- * @returns The mount record, or undefined off Linux
- */
-function mountOf(target: string): MountRecord | undefined {
-  const table = "/proc/self/mountinfo";
-  if (!fs.existsSync(table)) return undefined;
-  const real = fs.realpathSync(target);
-  return fs
-    .readFileSync(table, "utf8")
-    .split("\n")
-    .filter(line => line.includes(" - "))
-    .map(line => {
-      const [left = "", right = ""] = line.split(" - ");
-      const fields = left.split(" ");
-      const [fsType = "", , superOptions = ""] = right.split(" ");
-      return {
-        device: fields[2] ?? "",
-        mountPoint: fields[4] ?? "",
-        fsType,
-        options: `${fields[5] ?? ""};${superOptions}`,
-      };
-    })
-    .filter(
-      mount =>
-        real === mount.mountPoint ||
-        real.startsWith(
-          mount.mountPoint.endsWith("/")
-            ? mount.mountPoint
-            : `${mount.mountPoint}/`
-        )
-    )
-    .reduce<MountRecord | undefined>(
-      (best, mount) =>
-        best === undefined || mount.mountPoint.length > best.mountPoint.length
-          ? mount
-          : best,
-      undefined
-    );
-}
-
-/**
- * Read the block-device counters behind a mount, when there is a device.
- * @param mount - Mount holding the owned root
- * @returns Named counters, or undefined when none are readable
- */
-function deviceCounters(
-  mount: MountRecord | undefined
-): Readonly<Record<string, number>> | undefined {
-  const file = mount && `/sys/dev/block/${mount.device}/stat`;
-  if (!file || !fs.existsSync(file)) return undefined;
-  const values = fs.readFileSync(file, "utf8").trim().split(/\s+/).map(Number);
-  return Object.fromEntries(
-    DEVICE_FIELDS.map((name, index) => [name, values[index] ?? 0])
-  );
-}
-
-/** Everything one sample captures, at one instant. */
-interface Sample {
-  readonly at: number;
-  readonly cpu: NodeJS.CpuUsage;
-  readonly usage: NodeJS.ResourceUsage;
-  readonly fs: fs.StatsFs;
-  readonly device: Readonly<Record<string, number>> | undefined;
-}
-
-/**
- * Capture time, process CPU, I/O counters and filesystem free space together.
- * @param parent - Existing directory on the owned root's filesystem
- * @param mount - Mount holding the owned root
- * @returns The sample
- */
-function sample(parent: string, mount: MountRecord | undefined): Sample {
-  return {
-    at: performance.now(),
-    cpu: process.cpuUsage(),
-    usage: process.resourceUsage(),
-    fs: fs.statfsSync(parent),
-    device: deviceCounters(mount),
-  };
-}
-
-/**
- * Express what changed between two samples, in operator units.
- * @param before - Sample taken before the step
- * @param after - Sample taken after the step
- * @returns Wall, CPU, freed-space and I/O deltas
- */
-function delta(before: Sample, after: Sample): Record<string, unknown> {
-  const device =
-    before.device && after.device
-      ? Object.fromEntries(
-          Object.entries(after.device).map(([name, value]) => [
-            name,
-            value - (before.device?.[name] ?? 0),
-          ])
-        )
-      : null;
-  return {
-    ms: Math.round(after.at - before.at),
-    cpuUserMs: Math.round((after.cpu.user - before.cpu.user) / 1000),
-    cpuSystemMs: Math.round((after.cpu.system - before.cpu.system) / 1000),
-    inodesFreed: Number(after.fs.ffree - before.fs.ffree),
-    bytesFreed: Number(after.fs.bfree - before.fs.bfree) * after.fs.bsize,
-    inBlocks: after.usage.fsRead - before.usage.fsRead,
-    outBlocks: after.usage.fsWrite - before.usage.fsWrite,
-    voluntarySwitches:
-      after.usage.voluntaryContextSwitches -
-      before.usage.voluntaryContextSwitches,
-    involuntarySwitches:
-      after.usage.involuntaryContextSwitches -
-      before.usage.involuntaryContextSwitches,
-    device,
-  };
-}
-
-/**
- * List a directory's entries in a stable order.
- * @param directory - Existing directory
- * @returns Entry names, sorted
- */
-function sortedNames(directory: string): readonly string[] {
-  return [...fs.readdirSync(directory)].sort((left, right) =>
-    left.localeCompare(right)
-  );
-}
-
-/**
- * Split the shared install cache into interleaved slices so each compared
- * removal gets a statistically similar share of the same corpus.
- * @param root - Owned fixture root
- * @returns Slice directories, in removal order
- */
-function sliceCache(root: string): readonly string[] {
-  const cache = path.join(root, "artifact-bun-cache");
-  const slices = Array.from({ length: CACHE_SLICES }, (_unused, index) =>
-    path.join(root, `cache-slice-${index}`)
-  );
-  slices.forEach(directory => fs.mkdirSync(directory));
-  if (fs.existsSync(cache))
-    sortedNames(cache).forEach((name, index) =>
-      fs.renameSync(
-        path.join(cache, name),
-        path.join(slices[index % CACHE_SLICES] ?? cache, name)
-      )
-    );
-  return slices;
-}
-
-/**
- * Remove a list of targets natively on one worker thread.
- * @param targets - Disjoint subtrees for this lane
- * @returns Resolves once the lane's thread has exited cleanly
- */
-async function removeLane(targets: readonly string[]): Promise<void> {
-  return new Promise((resolve, reject) => {
-    const worker = new Worker(LANE_SOURCE, {
-      eval: true,
-      execArgv: [],
-      workerData: { targets, options: REMOVAL_OPTIONS },
-    });
-    worker.once("error", reject);
-    worker.once("exit", code =>
-      code === 0
-        ? resolve()
-        : reject(new Error(`removal lane exited with code ${code}`))
-    );
-  });
-}
-
-/**
- * Remove a directory's children across native lanes, then the directory.
- * @param directory - Directory whose children are disjoint subtrees
- * @param workers - Number of concurrent native lanes
- */
-async function removeWithWorkers(
-  directory: string,
-  workers: number
-): Promise<void> {
-  const targets = sortedNames(directory).map(name =>
-    path.join(directory, name)
-  );
-  const lanes = Array.from({ length: workers }, (_unused, lane) =>
-    targets.filter((_target, index) => index % workers === lane)
-  ).filter(lane => lane.length > 0);
-  await Promise.all(lanes.map(removeLane));
-  fs.rmSync(directory, REMOVAL_OPTIONS);
-}
-
-/**
- * Remove one step's target with its named implementation.
- * @param step - Target and implementation
- */
-async function removeStep(step: RemovalStep): Promise<void> {
-  if (step.workers > 0) await removeWithWorkers(step.target, step.workers);
-  else await cleanupTempDir(step.target);
-}
-
-/**
- * Remove the owned root, observing each step on the machine it runs on.
+ * Tie the shared Bun install cache's removal to the cases that install through
+ * it.
  *
- * DIAGNOSTIC (CodySwannGT/lisa#4548): compares the current promise-based
- * removal (four libuv threads) with native removal spread over 4, 8, 16 and
- * 32 worker threads, over interleaved slices of the shared cache, so one
- * hosted run measures how removal scales with concurrent unlinkers on the
- * same corpus at the same moment.
- * @param root - Owned fixture root
- * @param observe - Emits one named observation
+ * Installers are counted by name, so finishing one twice counts once, and the
+ * cache is removed at most once after a removal succeeds; a failed removal is
+ * tried again by the next finish. A run that filters an installer out never
+ * finishes them all, and its cache is left to the teardown's removal of the
+ * whole root, exactly as before. The suite configures no retries; under
+ * `--retry` a failed last installer would free the cache before its retry ran,
+ * and that retry would install into an empty cache.
+ * @param cache - The shared cache directory, inside the owned root
+ * @param installers - Every case that installs through the cache
+ * @param remove - Removal; injected only by the regression
+ * @returns The cache's lifetime
  */
-export async function removeOwnedRoot(
-  root: string,
-  observe: (phase: string, detail: Record<string, unknown>) => void
-): Promise<void> {
-  const parent = path.dirname(root);
-  const mount = mountOf(parent);
-  const topLevel = fs.existsSync(root) ? sortedNames(root) : [];
-  const slices = sliceCache(root);
-  const steps: readonly RemovalStep[] = [
-    { label: "tool", target: path.join(root, "tool"), workers: 0 },
-    ...slices.map(
-      (target, index): RemovalStep => ({
-        label: path.basename(target),
-        target,
-        workers: SLICE_WORKERS[index] ?? 0,
-      })
-    ),
-    { label: "remainder", target: root, workers: 0 },
-  ];
-  observe("environment", {
-    cpus: os.cpus().length,
-    cpuModel: os.cpus()[0]?.model ?? null,
-    loadAverage: os.loadavg(),
-    totalMemMb: Math.round(os.totalmem() / 2 ** 20),
-    freeMemMb: Math.round(os.freemem() / 2 ** 20),
-    mount: mount ?? null,
-    topLevel,
-  });
-  for (const step of steps) {
-    const before = sample(parent, mount);
-    await removeStep(step);
-    observe(`remove:${step.label}`, {
-      method: step.workers > 0 ? `workers-${step.workers}` : PROMISES_RM,
-      ...delta(before, sample(parent, mount)),
-    });
-  }
+export function sharedInstallCache(
+  cache: string,
+  installers: readonly string[],
+  remove: Remove = cleanupTempDir
+): SharedInstallCache {
+  const state: {
+    current: {
+      readonly finished: ReadonlySet<string>;
+      readonly freed: boolean;
+    };
+  } = { current: { finished: new Set(), freed: false } };
+  const allFinished = (): boolean =>
+    installers.every(name => state.current.finished.has(name));
+  return {
+    directory: cache,
+    allFinished,
+    freed: () => state.current.freed,
+    finish: async installer => {
+      if (!installers.includes(installer))
+        throw new Error(
+          `${installer} does not install through the shared cache`
+        );
+      state.current = {
+        ...state.current,
+        finished: new Set([...state.current.finished, installer]),
+      };
+      // TDD RED: the cache is still left to the teardown, as it always was;
+      // `remove` stays unused until the last installer frees it.
+      return allFinished() && remove === undefined;
+    },
+  };
 }
