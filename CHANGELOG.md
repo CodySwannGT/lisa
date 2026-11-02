@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.87.5](https://github.com/CodySwannGT/lisa/compare/v4.87.4...v4.87.5) (2026-11-02)
+
+
+### Bug Fixes
+
+* **coderabbit:** stop auto-applying type and points labels ([ef41117](https://github.com/CodySwannGT/lisa/commit/ef4111747d7ccd8fb1decfce375e26ef3abfbd8e)), closes [CodySwannGT/lisa#4617](https://github.com/CodySwannGT/lisa/issues/4617)
+
 ### [4.87.4](https://github.com/CodySwannGT/lisa/compare/v4.87.3...v4.87.4) (2026-11-02)
 
 
