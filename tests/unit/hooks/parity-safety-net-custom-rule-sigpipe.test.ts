@@ -182,14 +182,15 @@ describe("parity-safety-net.sh custom rules fail closed when staging fails (#456
 });
 
 const XFSZ_MARKER = "LISA_XFSZ_MARKER_4571";
-/**
- * A custom rule long enough that block()'s message, which quotes it, cannot
- * fit under {@link LIMIT_KIB}. Kept well under what BSD grep accepts: it
- * rejects a ~96 KB ERE, and a rejected rule is reported as not enforced.
- */
-const LONG_RULE = `${XFSZ_MARKER}|${"y".repeat(8 * 1024)}`;
 /** Room for the hook's startup heredocs (about 1.5 KB), not for the refusal. */
 const LIMIT_KIB = 4;
+/**
+ * ASCII padding alone fills {@link LIMIT_KIB}; the marker and separator make
+ * the rule, and thus block()'s quoted refusal, strictly larger than the cap.
+ * This rule compiles on native BSD grep; the previous 8192-character padding
+ * was rejected before matching and did not exercise the intended refusal.
+ */
+const LONG_RULE = `${XFSZ_MARKER}|${"y".repeat(LIMIT_KIB * 1024)}`;
 
 /**
  * Runs the whole shipped hook under `ulimit -f` with one custom rule.
