@@ -21,7 +21,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/check-third-party-action-pins.mjs":
       "4b6e1d444c50da031b848215913df7bfe87091b5eee2debfb60d5d0c42abe343",
     "all/copy-overwrite/scripts/check-third-party-review-evidence.mjs":
-      "61c6896f81d4ceec1f292cd80527a62dea3d985477a26d937d6359d129755713",
+      "444fdab01527fda3ce2bb4f5177bac2079cded0ba8f0166d71fda7ec2e8dc7b3",
     "all/copy-overwrite/scripts/check-threshold-ratchet.mjs":
       "d4afc90ba8faf10925fff5fb0d6cd0ace22df2eaa0ec609ee969d0ec84092299",
     "all/copy-overwrite/scripts/check-workflow-load-failures.mjs":
@@ -2995,7 +2995,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/create-only/.github/workflows/review-evidence.yml":
       "cbe6584b59ee465b13672c1f7f8a9d48b310017fb5f62520ec2b71c469f41d61",
     "typescript/create-only/.github/workflows/third-party-review-evidence.yml":
-      "4547af0badb46c5c059a6c4e4c94d4d01a6ea152dd29e1191df07282e655c4a8",
+      "8dd799be919a581f7a00efcfce6f01c70f72375c7c989252e3b96a825ab77f94",
     "typescript/create-only/.gitleaksignore":
       "6927d376648675331801c798a4390b652a22a3e5d350cd26f36d42c10af02d67",
     "typescript/create-only/audit.ignore.local.json":

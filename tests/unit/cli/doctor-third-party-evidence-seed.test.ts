@@ -19,6 +19,7 @@ import {
   CHECK_RUN_TRIGGER_LINES,
   CHECKS_READ_LINE,
   checkThirdPartyEvidenceSeed,
+  CONCURRENCY_GROUP_LINE,
   PERMISSIONS_BLOCK_LINES,
   RUN_IDENTITY_LINES,
   THIRD_PARTY_EVIDENCE_SEED_CHECK_NAME,
@@ -26,6 +27,7 @@ import {
 import { runDoctor } from "../../../src/cli/doctor.js";
 import { applyRewrites } from "../../../src/core/anchored-rewrite.js";
 import { THIRD_PARTY_EVIDENCE_WORKFLOW } from "../../../src/core/third-party-evidence-seed.js";
+import { loadYaml } from "../../../src/utils/yaml.js";
 import { cleanupTempDir, createTempDir } from "../../helpers/test-utils.js";
 
 const ROOT = path.resolve(import.meta.dirname, "../../..");
@@ -41,6 +43,10 @@ const NO_IDENTITY = "never reads the check run's head SHA and name";
 
 /** How the detail tells a host to stop checking out the event's head. */
 const DELETE_REF = "Delete the `ref:` line";
+
+/** How the detail names a copy whose runs can cancel the reviewer's. */
+const UNKEYED =
+  "concurrency group is not keyed on the check run's head and name";
 
 /** How the check spells "I could not answer that". */
 const UNDETERMINABLE = "Could not determine";
@@ -62,6 +68,18 @@ const CURRENT_SEED = fse.readFileSync(
   ),
   "utf8"
 );
+
+/** The printed trigger lines, put where the remedy says. */
+const ADD_TRIGGER = {
+  anchor: "on:\n  status:\n",
+  replacement: `on:\n  status:\n${CHECK_RUN_TRIGGER_LINES.join("\n")}\n`,
+};
+
+/** The printed permission line, put where the remedy says. */
+const ADD_CHECKS_READ = {
+  anchor: "permissions:\n  contents: read\n",
+  replacement: `permissions:\n  contents: read\n${CHECKS_READ_LINE}\n`,
+};
 
 describe("doctor third-party evidence seed check", () => {
   let tempDir: string;
@@ -104,25 +122,45 @@ describe("doctor third-party evidence seed check", () => {
         "Add under `permissions:`:",
         CHECKS_READ_LINE,
         ...RUN_IDENTITY_LINES,
+        CONCURRENCY_GROUP_LINE,
       ])
     );
+  });
+
+  it("prints values that are the shipped seed's own, byte for byte", () => {
+    // Ties the remedy to the seed rather than to itself: a wrong expression in
+    // a printed line fails here even though the doctor would accept it.
+    const seedDocument = loadYaml(CURRENT_SEED) as {
+      concurrency: { group: string };
+      jobs: {
+        evidence: { steps: Array<{ env?: Record<string, string> }> };
+      };
+    };
+    const env = seedDocument.jobs.evidence.steps.find(
+      step => step.env?.EVIDENCE_SHA !== undefined
+    )?.env;
+    const printed = Object.fromEntries(
+      [...RUN_IDENTITY_LINES, CONCURRENCY_GROUP_LINE].map(line => {
+        const [key, ...value] = line.trim().split(": ");
+        return [key, value.join(": ")];
+      })
+    );
+
+    expect(printed.EVIDENCE_SHA).toBe(env?.EVIDENCE_SHA);
+    expect(printed.EVIDENCE_CONTEXT).toBe(env?.EVIDENCE_CONTEXT);
+    expect(printed.group).toBe(seedDocument.concurrency.group);
   });
 
   it("prints lines that make the pre-fix seed read as current", async () => {
     // The remedy is checked by applying it, not by reading it: every printed
     // line goes where the check says, and the result must pass.
-    const [sha, context, group] = RUN_IDENTITY_LINES.map(line => line.trim());
+    const [sha, context] = RUN_IDENTITY_LINES.map(line => line.trim());
+    const group = CONCURRENCY_GROUP_LINE.trim();
     const repaired = applyRewrites(
       PRE_FIX_SEED,
       [
-        {
-          anchor: "on:\n  status:\n",
-          replacement: `on:\n  status:\n${CHECK_RUN_TRIGGER_LINES.join("\n")}\n`,
-        },
-        {
-          anchor: "permissions:\n  contents: read\n",
-          replacement: `permissions:\n  contents: read\n${CHECKS_READ_LINE}\n`,
-        },
+        ADD_TRIGGER,
+        ADD_CHECKS_READ,
         { anchor: /EVIDENCE_SHA: .*$/mu, replacement: String(sha) },
         { anchor: /EVIDENCE_CONTEXT: .*$/mu, replacement: String(context) },
         {
@@ -138,22 +176,51 @@ describe("doctor third-party evidence seed check", () => {
     expect((await checkThirdPartyEvidenceSeed(tempDir)).status).toBe("ok");
   });
 
+  it("still warns a copy that applied everything but the concurrency group", async () => {
+    // Under the old key every check run resolves to one group, so any app's
+    // run anywhere cancels the reviewer's verdict while it is being judged.
+    const [sha, context] = RUN_IDENTITY_LINES.map(line => line.trim());
+    await seed(
+      applyRewrites(
+        PRE_FIX_SEED,
+        [
+          ADD_TRIGGER,
+          ADD_CHECKS_READ,
+          { anchor: /EVIDENCE_SHA: .*$/mu, replacement: String(sha) },
+          { anchor: /EVIDENCE_CONTEXT: .*$/mu, replacement: String(context) },
+          { anchor: /^ *ref: .*\n/mu, replacement: "" },
+        ],
+        "the pre-fix seed, with every edit but the group"
+      )
+    );
+
+    const check = await checkThirdPartyEvidenceSeed(tempDir);
+
+    expect(check.status).toBe("warn");
+    expect(check.detail).toContain(UNKEYED);
+    expect(check.detail.split("\n")).toContain(CONCURRENCY_GROUP_LINE);
+    expect(check.detail).not.toContain(NO_IDENTITY);
+  });
+
+  it("prints the whole permissions block when the token cannot read pull requests", async () => {
+    await seed(CURRENT_SEED.replace("  pull-requests: read\n", ""));
+
+    const check = await checkThirdPartyEvidenceSeed(tempDir);
+
+    expect(check.status).toBe("warn");
+    expect(check.detail).toContain("Make the `permissions:` block");
+    expect(check.detail.split("\n")).toEqual(
+      expect.arrayContaining([...PERMISSIONS_BLOCK_LINES])
+    );
+  });
+
   it("still warns a copy that gained only the trigger and the permission", async () => {
     // Waking is not judging: this copy starts on every check run and passes an
     // empty --sha, so it must not read as repaired.
     await seed(
       applyRewrites(
         PRE_FIX_SEED,
-        [
-          {
-            anchor: "on:\n  status:\n",
-            replacement: `on:\n  status:\n${CHECK_RUN_TRIGGER_LINES.join("\n")}\n`,
-          },
-          {
-            anchor: "permissions:\n  contents: read\n",
-            replacement: `permissions:\n  contents: read\n${CHECKS_READ_LINE}\n`,
-          },
-        ],
+        [ADD_TRIGGER, ADD_CHECKS_READ],
         "the pre-fix seed, with only the trigger and the permission"
       )
     );

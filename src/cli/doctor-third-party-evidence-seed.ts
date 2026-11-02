@@ -66,7 +66,7 @@ export const CHECK_RUN_TRIGGER_LINES = [
 /** The permission line to add under an existing `permissions:` block. */
 export const CHECKS_READ_LINE = "  checks: read";
 
-/** The whole block, for a copy that declares no `permissions:` at all. */
+/** The whole block, for a copy missing any scope the prover reads with. */
 export const PERMISSIONS_BLOCK_LINES = [
   "permissions:",
   "  contents: read",
@@ -79,8 +79,10 @@ export const PERMISSIONS_BLOCK_LINES = [
 export const RUN_IDENTITY_LINES = [
   `  EVIDENCE_SHA: ${SHA_EXPRESSION}`,
   `  EVIDENCE_CONTEXT: ${CONTEXT_EXPRESSION}`,
-  `  group: third-party-review-evidence-\${{ github.event_name }}-${SHA_EXPRESSION}-${CONTEXT_EXPRESSION}`,
 ] as const;
+
+/** The concurrency key that keeps one run from cancelling another's verdict. */
+export const CONCURRENCY_GROUP_LINE = `  group: third-party-review-evidence-\${{ github.event_name }}-${SHA_EXPRESSION}-${CONTEXT_EXPRESSION}`;
 
 /**
  * Read the workflow, REJECTING when the filesystem declines to say.
@@ -124,10 +126,20 @@ function gapsOf(reading: EvidenceSeedReading): string[] {
       : [
           "it does not grant `checks: read`, so its prover cannot read the reviewer's check run",
         ]),
+    ...(reading.readsStatusesAndPullRequests
+      ? []
+      : [
+          "its token cannot read statuses and pull requests, so every run would read as not being a pull request head and judge nothing",
+        ]),
     ...(reading.readsRunIdentity
       ? []
       : [
           "it never reads the check run's head SHA and name, so on a check run it would pass an empty --sha and judge nothing",
+        ]),
+    ...(reading.keysConcurrencyPerRun
+      ? []
+      : [
+          "its concurrency group is not keyed on the check run's head and name, so any app's check run can cancel the run judging the reviewer",
         ]),
     ...(reading.checksOutEventHead
       ? [
@@ -138,22 +150,26 @@ function gapsOf(reading: EvidenceSeedReading): string[] {
 }
 
 /**
- * The exact lines that grant `checks: read`.
+ * The exact lines that grant what the prover reads with.
  *
- * A copy with no `permissions:` block gets the whole block, not the one line:
- * a block holding only `checks: read` sets every other scope to none, and the
- * prover could then no longer find the pull request it is judging.
+ * Only a copy whose block already reads statuses and pull requests gets the one
+ * `checks: read` line. Every other copy gets the whole block: a block holding
+ * only `checks: read` sets every other scope to none, and the prover could then
+ * no longer find the pull request it is judging.
  * @param reading - What the copy does
- * @returns The permission remedy, or nothing when the grant is there
+ * @returns The permission remedy, or nothing when the grants are there
  */
 function permissionRemedyOf(reading: EvidenceSeedReading): string[] {
-  if (reading.readsChecks) return [];
-  return reading.declaresPermissions
-    ? ["Add under `permissions:`:", CHECKS_READ_LINE]
-    : [
-        "Add this block at the top level, where the file declares none:",
-        ...PERMISSIONS_BLOCK_LINES,
-      ];
+  if (reading.readsChecks && reading.readsStatusesAndPullRequests) return [];
+  if (reading.declaresPermissions && reading.readsStatusesAndPullRequests) {
+    return ["Add under `permissions:`:", CHECKS_READ_LINE];
+  }
+  return [
+    reading.declaresPermissions
+      ? "Make the `permissions:` block that governs the prover's job read:"
+      : "Add this block at the top level, where the file declares none:",
+    ...PERMISSIONS_BLOCK_LINES,
+  ];
 }
 
 /**
@@ -170,9 +186,12 @@ function remedyOf(reading: EvidenceSeedReading): string[] {
     ...(reading.readsRunIdentity
       ? []
       : [
-          "Set these values — the first two in the prover step's `env:`, the third as the `concurrency:` group, so another app's check run cannot cancel the reviewer's:",
+          "Set these values in the prover step's `env:`:",
           ...RUN_IDENTITY_LINES,
         ]),
+    ...(reading.keysConcurrencyPerRun
+      ? []
+      : ["Set the `concurrency:` group to:", CONCURRENCY_GROUP_LINE]),
     ...(reading.checksOutEventHead
       ? [
           "Delete the `ref:` line under the `actions/checkout` step. The default branch is then checked out, and the commit to judge still arrives as --sha.",
@@ -188,7 +207,7 @@ function remedyOf(reading: EvidenceSeedReading): string[] {
  */
 export function describeStaleSeed(reading: EvidenceSeedReading): string {
   return [
-    `${THIRD_PARTY_EVIDENCE_WORKFLOW} does not judge a reviewer that reports through a check run: ${gapsOf(reading).join("; and ")}. ` +
+    `${THIRD_PARTY_EVIDENCE_WORKFLOW} is not ready for a reviewer that reports through a check run: ${gapsOf(reading).join("; and ")}. ` +
       "Lisa seeded this file once and will not rewrite it; the prover it runs is already current.",
     ...remedyOf(reading),
     `The current seed, ${SHIPPED_SEED} in the @codyswann/lisa package, is the full reference.`,

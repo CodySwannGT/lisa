@@ -70,9 +70,10 @@
  * authoritative over a status of the same name, and the newest run wins.
  *
  * Those two rules and the decoding below are the ones
- * `check-skipped-required-checks.mjs` applies (#4547). Three differences are
- * deliberate, and each can only keep a reviewer's real evidence from being
- * hidden, never turn something else into evidence:
+ * `check-skipped-required-checks.mjs` applies (#4547). Four differences are
+ * deliberate. The first three only keep a reviewer's real evidence from being
+ * hidden; the fourth follows from the two provers reading different
+ * declarations:
  *
  *  - a run from an app other than the pinned `posted_by` is set aside BEFORE
  *    the newest run is chosen, so another app's later run under the
@@ -82,7 +83,12 @@
  *    so a host whose token cannot read check runs keeps reading statuses
  *    exactly as before (that prover refuses the whole read);
  *  - a phrase is compared under this prover's existing normalisation — whole
- *    string, case-insensitive, whitespace-collapsed — as statuses always were.
+ *    string, case-insensitive, whitespace-collapsed — as statuses always were;
+ *  - the words that are denied first are Lisa's shipped no-work phrases, while
+ *    that prover also denies phrases its own declaration configures
+ *    (`no_work`, `waive`). A phrase only configured there is never one
+ *    this prover's allowlist declares as proof unless a project declares the
+ *    same words as both, which no shipped configuration does.
  *
  * A check run's title is often generic (`Finished`), so its result is read from
  * the FIRST line of its summary, exactly as #4547 reads it. Only

@@ -57,7 +57,9 @@ describe("readEvidenceSeed", () => {
     expect(reading).toEqual({
       wakesOnCheckRun: false,
       readsChecks: false,
+      readsStatusesAndPullRequests: true,
       readsRunIdentity: false,
+      keysConcurrencyPerRun: false,
       checksOutEventHead: true,
       declaresPermissions: true,
     });
@@ -226,6 +228,11 @@ describe("readEvidenceSeed", () => {
     ["the check run's head", "${{ github.event.check_run.head_sha }}", true],
     ["a status's commit", "${{ github.event.sha || inputs.sha }}", true],
     ["only the manual input", "${{ inputs.sha }}", false],
+    [
+      "the repository's default branch",
+      "${{ github.event.repository.default_branch }}",
+      false,
+    ],
   ])("judges a checkout of %s", (_name, ref, expected) => {
     const jobs = `jobs:
   evidence:
@@ -240,6 +247,59 @@ describe("readEvidenceSeed", () => {
       readEvidenceSeed(workflow(STATUS_ONLY, CHECKS_READ, jobs))
         .checksOutEventHead
     ).toBe(expected);
+  });
+
+  it("reads the run's commit and name from a workflow-level env too", () => {
+    const text = `name: evidence
+on:
+  status:
+${CHECKS_READ}
+env:
+  SHA: \${{ github.event.check_run.head_sha }}
+  NAME: \${{ github.event.check_run.name }}
+${PROVER_JOB}`;
+
+    expect(readEvidenceSeed(text).readsRunIdentity).toBe(true);
+  });
+
+  it.each([
+    ["no concurrency at all", "", true],
+    [
+      "queued runs that never cancel",
+      "concurrency:\n  group: evidence-${{ github.event.sha }}\n",
+      true,
+    ],
+    [
+      "cancelling runs keyed on the check run",
+      "concurrency:\n  group: evidence-${{ github.event.check_run.head_sha }}-${{ github.event.check_run.name }}\n  cancel-in-progress: true\n",
+      true,
+    ],
+    [
+      "cancelling runs keyed on a status's commit alone",
+      "concurrency:\n  group: evidence-${{ github.event.sha || inputs.sha }}\n  cancel-in-progress: true\n",
+      false,
+    ],
+  ])("judges the concurrency of %s", (_name, concurrency, expected) => {
+    expect(
+      readEvidenceSeed(
+        `${STATUS_ONLY}\n${CHECKS_READ}\n${concurrency}${PROVER_JOB}`
+      ).keysConcurrencyPerRun
+    ).toBe(expected);
+  });
+
+  it("requires the token to read statuses and pull requests as well", () => {
+    expect(
+      readEvidenceSeed(workflow(STATUS_ONLY, CHECKS_READ))
+        .readsStatusesAndPullRequests
+    ).toBe(false);
+    expect(
+      readEvidenceSeed(
+        workflow(
+          STATUS_ONLY,
+          "permissions:\n  checks: read\n  statuses: read\n  pull-requests: read"
+        )
+      ).readsStatusesAndPullRequests
+    ).toBe(true);
   });
 
   it("says whether any permissions block governs the prover's job", () => {

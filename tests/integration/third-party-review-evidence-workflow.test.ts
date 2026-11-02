@@ -181,7 +181,9 @@ describe.each(COPIES)("%s", copy => {
     expect(reading).toEqual({
       wakesOnCheckRun: true,
       readsChecks: true,
+      readsStatusesAndPullRequests: true,
       readsRunIdentity: true,
+      keysConcurrencyPerRun: true,
       checksOutEventHead: false,
       declaresPermissions: true,
     });

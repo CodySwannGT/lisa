@@ -23,8 +23,8 @@
 # reviewer switched (#4553). GitHub starts a `check_run` workflow only from the
 # default branch's copy of this file, and never when the check suite was created
 # by GitHub Actions or its head SHA is associated with GitHub Actions — so the
-# reviewer's run wakes it and Actions' own jobs do not, and a head pushed with
-# the Actions token wakes nothing here at all.
+# reviewer's run wakes it and Actions' own jobs do not, and no check run on a
+# head pushed with the Actions token wakes it either.
 #
 # WHY THE DEFAULT BRANCH IS CHECKED OUT, NEVER THE HEAD. `status` and
 # `check_run` runs start in this repository's own context, for every pull
@@ -34,8 +34,9 @@
 # scope. The prover reads the head's evidence through the API by SHA, so it
 # never needs the head's files: the commit to judge arrives as --sha.
 #
-# THE JOB WRITES NO STATUS AND NO CHECK RUN. The verdict is the run's own exit
-# code.
+# NOTHING IN THE JOB POSTS A STATUS OR A CHECK RUN. The verdict is the job's
+# own conclusion. The job's own check run belongs to a suite GitHub Actions
+# created, which by the rule above never starts this workflow again.
 #
 # WHAT MAKES IT RED. Neither real third-party review evidence at the head, nor a
 # posted adversarial-review substitute for that same head. A merge path that

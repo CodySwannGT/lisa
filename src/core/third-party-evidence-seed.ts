@@ -16,18 +16,26 @@
  * apply runs on postinstall, and a wrong silent edit to a host-owned workflow
  * is worse than a report.
  *
- * Waking is not enough to call a copy current, so four readings are taken, and
- * a copy is current only when all four hold:
+ * Waking is not enough to call a copy current, so five readings are taken,
+ * and a copy is current only when all five hold:
  *
  *  - it wakes on a completed check run;
- *  - the prover's job holds a token that may read check runs;
+ *  - the prover's job holds a token that may read check runs, statuses and
+ *    pull requests — without the last, every run quietly reads as "not a pull
+ *    request head";
  *  - that job takes the commit and the reviewer from the check run, because a
  *    copy that only gained the trigger passes an empty `--sha` on every check
  *    run and judges nothing;
+ *  - when runs cancel each other, they are keyed on that commit and reviewer,
+ *    because a key that resolves to the same string for every check run lets
+ *    any app's run, on any pull request, cancel the reviewer's verdict;
  *  - it does not check out the event's head, because a `check_run` run starts
  *    in this repository's context for any pull request — a fork's included —
  *    and checking out the head would run that pull request's own code with
  *    this repository's token and cache scope.
+ *
+ * The readings are textual and say so: they look for the event fields a copy
+ * must reference, not for every spelling a copy could use to reach them.
  *
  * The question lives here, apart from both callers, because two surfaces ask
  * it: the regression guard on the shipped seeds and the doctor check that lets
@@ -55,11 +63,20 @@ export const CHECK_RUN_HEAD = "github.event.check_run.head_sha";
 /** Where a check-run event carries the reviewer's name. */
 export const CHECK_RUN_NAME = "github.event.check_run.name";
 
-/** Scope values that include reading check runs. */
-const READS_CHECKS = new Set(["read", "write"]);
+/** The scopes the prover reads with: its two evidence routes and the PR. */
+const PROVER_SCOPES = ["checks", "statuses", "pull-requests"] as const;
+
+/** Scope values that include reading. */
+const READS = new Set(["read", "write"]);
 
 /** Shorthand `permissions:` values that grant every scope. */
 const GRANTS_EVERYTHING = new Set(["read-all", "write-all"]);
+
+/**
+ * An event field a checkout ref could take a commit from. The repository's
+ * own fields — its default branch, for one — name no pull request's code.
+ */
+const EVENT_COMMIT_FIELD = /github\.event\.(?!repository\.)/u;
 
 /** What a seeded evidence workflow does about check runs. */
 export interface EvidenceSeedReading {
@@ -67,8 +84,12 @@ export interface EvidenceSeedReading {
   readonly wakesOnCheckRun: boolean;
   /** The job running the prover holds a token that may read check runs. */
   readonly readsChecks: boolean;
+  /** That token may also read statuses and pull requests. */
+  readonly readsStatusesAndPullRequests: boolean;
   /** That job reads the check run's head SHA and name. */
   readonly readsRunIdentity: boolean;
+  /** Runs that cancel each other are keyed on the run's head and name. */
+  readonly keysConcurrencyPerRun: boolean;
   /** A checkout in that job takes its ref from the triggering event. */
   readonly checksOutEventHead: boolean;
   /** A `permissions:` block governs that job at all. */
@@ -80,12 +101,16 @@ interface WorkflowDocument {
   readonly on?: unknown;
   readonly true?: unknown;
   readonly permissions?: unknown;
+  readonly env?: unknown;
+  readonly concurrency?: unknown;
   readonly jobs?: unknown;
 }
 
 /** The slice of one job this module reads. */
 interface WorkflowJob {
   readonly permissions?: unknown;
+  readonly env?: unknown;
+  readonly concurrency?: unknown;
   readonly steps?: unknown;
 }
 
@@ -120,23 +145,22 @@ function wakesOnCompletedCheckRun(on: unknown): boolean {
 }
 
 /**
- * Whether one `permissions:` value lets the token read check runs.
+ * Whether one `permissions:` value lets the token read one scope.
  *
  * An absent block is not a grant here. It hands the token the repository's
  * default, which this file cannot see, and the remedy for "unknown" is the same
  * block the remedy for "missing" names.
  * @param permissions - A parsed `permissions:` value
- * @returns True when `checks` is readable under it
+ * @param scope - The scope to read
+ * @returns True when the scope is readable under it
  */
-function grantsChecksRead(permissions: unknown): boolean {
+function grantsRead(permissions: unknown, scope: string): boolean {
   if (typeof permissions === "string") {
     return GRANTS_EVERYTHING.has(permissions);
   }
-  return (
-    isMapping(permissions) &&
-    typeof permissions.checks === "string" &&
-    READS_CHECKS.has(permissions.checks)
-  );
+  if (!isMapping(permissions)) return false;
+  const value: unknown = permissions[scope];
+  return typeof value === "string" && READS.has(value);
 }
 
 /**
@@ -160,23 +184,18 @@ function runsProver(job: WorkflowJob): boolean {
 }
 
 /**
- * Whether a job reads the check run's commit and name somewhere in its steps.
- *
- * Read from the steps' own text — `env:`, `with:` and `run:` alike — because a
- * host may wire the value through any of them, and what matters is that the
- * event's fields reach the prover at all.
- * @param job - One parsed job
+ * Whether a text names both the check run's commit and its name.
+ * @param text - Serialized workflow fragment
  * @returns True when both fields are referenced
  */
-function readsRunIdentity(job: WorkflowJob): boolean {
-  const text = JSON.stringify(stepsOf(job));
+function namesRunIdentity(text: string): boolean {
   return text.includes(CHECK_RUN_HEAD) && text.includes(CHECK_RUN_NAME);
 }
 
 /**
  * Whether a job checks out a ref taken from the triggering event.
  * @param job - One parsed job
- * @returns True when a checkout step's `ref:` reads `github.event`
+ * @returns True when a checkout step's `ref:` reads an event commit field
  */
 function checksOutEventHead(job: WorkflowJob): boolean {
   return stepsOf(job).some(step => {
@@ -186,9 +205,29 @@ function checksOutEventHead(job: WorkflowJob): boolean {
       step.uses.startsWith("actions/checkout@") &&
       isMapping(options) &&
       typeof options.ref === "string" &&
-      options.ref.includes("github.event.")
+      EVENT_COMMIT_FIELD.test(options.ref)
     );
   });
+}
+
+/**
+ * Whether a `concurrency:` value lets one check run cancel another reviewer's.
+ *
+ * Without `cancel-in-progress`, runs queue rather than cancel, so the key does
+ * not matter. With it, the key must name the run's commit and reviewer, or a
+ * key that resolves the same for every check run lets any one cancel any other.
+ * @param concurrency - A parsed `concurrency:` value, or undefined
+ * @returns True when no cancellation can cross runs
+ */
+function keysPerRun(concurrency: unknown): boolean {
+  if (!isMapping(concurrency)) return true;
+  const cancels: unknown = concurrency["cancel-in-progress"];
+  if (cancels === false || cancels === undefined || cancels === null) {
+    return true;
+  }
+  return (
+    typeof concurrency.group === "string" && namesRunIdentity(concurrency.group)
+  );
 }
 
 /**
@@ -215,16 +254,30 @@ export function readEvidenceSeed(workflowText: string): EvidenceSeedReading {
   const judged = proverJobs.length > 0 ? proverJobs : jobs;
   const permissionsOf = (job: WorkflowJob): unknown =>
     job.permissions === undefined ? workflow.permissions : job.permissions;
-  const any = judged.length > 0;
+  const grants = (scopes: readonly string[]): boolean =>
+    judged.length > 0 &&
+    judged.every(job =>
+      scopes.every(scope => grantsRead(permissionsOf(job), scope))
+    );
   return {
     // `on:` is YAML 1.1 truthy, so a parser may key the trigger block `true`.
     wakesOnCheckRun: wakesOnCompletedCheckRun(workflow.on ?? workflow.true),
-    readsChecks:
-      any && judged.every(job => grantsChecksRead(permissionsOf(job))),
-    readsRunIdentity: any && judged.every(readsRunIdentity),
+    readsChecks: grants(["checks"]),
+    readsStatusesAndPullRequests: grants(
+      PROVER_SCOPES.filter(scope => scope !== "checks")
+    ),
+    readsRunIdentity:
+      judged.length > 0 &&
+      judged.every(job =>
+        namesRunIdentity(JSON.stringify([workflow.env, job.env, stepsOf(job)]))
+      ),
+    keysConcurrencyPerRun:
+      keysPerRun(workflow.concurrency) &&
+      judged.every(job => keysPerRun(job.concurrency)),
     checksOutEventHead: judged.some(checksOutEventHead),
     declaresPermissions:
-      any && judged.every(job => permissionsOf(job) !== undefined),
+      judged.length > 0 &&
+      judged.every(job => permissionsOf(job) !== undefined),
   };
 }
 
@@ -237,7 +290,9 @@ export function isCurrentEvidenceSeed(reading: EvidenceSeedReading): boolean {
   return (
     reading.wakesOnCheckRun &&
     reading.readsChecks &&
+    reading.readsStatusesAndPullRequests &&
     reading.readsRunIdentity &&
+    reading.keysConcurrencyPerRun &&
     !reading.checksOutEventHead
   );
 }
