@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.87.3](https://github.com/CodySwannGT/lisa/compare/v4.87.2...v4.87.3) (2026-11-02)
+
+
+### Bug Fixes
+
+* keep the scanner preparation inside the run's own scratch lease ([7c20cb3](https://github.com/CodySwannGT/lisa/commit/7c20cb3a92b9a080e9076163444ac385fc5dd76b)), closes [CodySwannGT/lisa#4581](https://github.com/CodySwannGT/lisa/issues/4581)
+* prepare the pinned history scanner once before bounded controls ([6528e1a](https://github.com/CodySwannGT/lisa/commit/6528e1aea8aa9a0faa2191e5beb9f18f0ea4e3fd)), closes [CodySwannGT/lisa#4581](https://github.com/CodySwannGT/lisa/issues/4581)
+* run the scanner preparation behind the root's controls in a reapable root ([37e67f7](https://github.com/CodySwannGT/lisa/commit/37e67f7e5530ea5a96c9ee95717eec5b096346a7)), closes [CodySwannGT/lisa#4581](https://github.com/CodySwannGT/lisa/issues/4581)
+
 ### [4.87.2](https://github.com/CodySwannGT/lisa/compare/v4.87.1...v4.87.2) (2026-11-01)
 
 
