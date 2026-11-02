@@ -2,8 +2,8 @@
  * The ledger side of "mark and move on" (CodySwannGT/lisa#4555, part 3).
  *
  * Pins the crash-safety order (a question recorded before its tracker mark
- * shows `markedAt: null` until `recordMarked`), that a re-ask keeps the mark
- * so the manager never marks an item twice or forgets what to remove, that a
+ * shows `markedAt: null` until `recordMarked`), that a re-ping keeps the mark
+ * while a changed question keeps only the marker to remove, that a
  * queued answer survives only a re-ping of the same text, that
  * `--reset-attempts` zeroes the count, and the `status` listing.
  * @module tests/unit/session-manager/ledger-questions
@@ -72,7 +72,7 @@ describe("ledger questions", () => {
       seams
     );
 
-  it("is unmarked until the mark is read back, then keeps it on a re-ask", async () => {
+  it("is unmarked until the mark is read back, then keeps it on a re-ping", async () => {
     expect((await ask()).pendingQuestion?.markedAt).toBeNull();
     const marked = await recordMarked(
       root(),
@@ -81,14 +81,41 @@ describe("ledger questions", () => {
     );
     const markedAt = marked.pendingQuestion?.markedAt;
     expect(markedAt).toEqual(expect.any(String));
+    const repinged = await ask(QUESTION, null);
+    expect(repinged.pendingQuestion).toMatchObject({
+      kind: "decision",
+      markerType: "label",
+      marker: LABEL,
+      markedAt,
+      text: QUESTION,
+    });
+  });
+
+  it("reads a changed question as unmarked but keeps the marker to remove (#4570)", async () => {
+    // A cycle that stops after `set-question` and before `ledger marked` must
+    // not leave the new question looking marked: the next cycle would run
+    // `item-answer` against the OLD question comment and queue a reply to the
+    // old question as the answer to the new one.
+    await ask();
+    await recordMarked(
+      root(),
+      { ref: REF, markerType: "label", marker: LABEL },
+      seams
+    );
     const reasked = await ask("New wording", null);
     expect(reasked.pendingQuestion).toMatchObject({
       kind: "decision",
       markerType: "label",
       marker: LABEL,
-      markedAt,
+      markedAt: null,
+      answer: null,
       text: "New wording",
     });
+    const [listed] = listPendingQuestions(
+      await readLedger(root()),
+      ref => `answer ${ref}`
+    );
+    expect(listed).toMatchObject({ ref: REF, marked: false });
   });
 
   it("keeps a queued answer only across a re-ping of the same text", async () => {

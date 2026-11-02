@@ -170,8 +170,8 @@ Per cycle
                            [--sender <name>]               STDIN: question
       --kind: worker-question (default) | repo-route | exhausted | decision.
       No message id with no channel. A re-ask keeps the item's marker
-      fields (markerType, marker, markedAt); a queued answer survives only a
-      re-ping of the same text.
+      fields (markerType, marker); markedAt and a queued answer survive only
+      a re-ping of the same text, so a changed question must be marked again.
   ledger marked <ref> --marker-type label|role --marker <value>
                      --comment-id <id>
       Records that the human-needed marker was applied on the tracker and

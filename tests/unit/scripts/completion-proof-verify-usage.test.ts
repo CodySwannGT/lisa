@@ -81,3 +81,41 @@ describe("validateVerifyUsage tolerates stray usage sections (#4564)", () => {
     );
   });
 });
+
+describe("validateVerifyUsage keeps the work-item body fail-closed (#4570)", () => {
+  // documents[0] is the work-item body. #4564 made a malformed or tampered
+  // usage section in a COMMENT skippable; the same skip on the body let an
+  // intact comment authorize an item whose own proof was malformed or
+  // tampered, which was refused before #4564.
+  const genuine = proofUsage(PROOF_REF);
+
+  it("refuses a body whose usage section does not parse, even with an intact comment", () => {
+    // An entry token with a field missing matches neither entry grammar, so
+    // the parser throws rather than returning a section that fails integrity.
+    const unparseable = genuine.replace("flow=lisa-verify ", "");
+    expect(unparseable).not.toBe(genuine);
+    expect(refusal([unparseable, genuine])).toMatch(
+      /work-item body's canonical Verify usage section is malformed/
+    );
+  });
+
+  it("still skips the same unparseable section in a comment (#4564)", () => {
+    const unparseable = genuine.replace("flow=lisa-verify ", "");
+    expect(refusal(["Spec body", unparseable, genuine])).toBeNull();
+  });
+
+  it("refuses a body whose usage section fails its integrity check, even with an intact comment", () => {
+    const tampered = genuine.replace(
+      "direct_entry_ids=verify-42",
+      "direct_entry_ids=verify-99"
+    );
+    expect(tampered).not.toBe(genuine);
+    expect(refusal([tampered, genuine])).toMatch(
+      /work-item body's canonical usage ledger failed its stored-surface integrity check/
+    );
+  });
+
+  it("still accepts an intact usage section in the body", () => {
+    expect(refusal([genuine])).toBeNull();
+  });
+});
