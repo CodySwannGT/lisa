@@ -305,17 +305,17 @@ describe("doctor third-party evidence seed check", () => {
   });
 
   it("fails rather than passing when the workflow cannot be read", async () => {
-    const file = await seed(PRE_FIX_SEED);
-    await fse.chmod(file, 0o000);
-    try {
-      const check = await checkThirdPartyEvidenceSeed(tempDir);
+    // A directory where the file should be is a read that fails for every
+    // user. A permission-denied file would not be: root reads it anyway, so a
+    // run as root would see a readable file and this control would prove
+    // nothing. Any errno other than a definitive absence takes the same path.
+    await fse.ensureDir(path.join(tempDir, THIRD_PARTY_EVIDENCE_WORKFLOW));
 
-      expect(check.status).toBe("fail");
-      expect(check.detail).toContain(UNDETERMINABLE);
-      expect(check.detail).toContain("EACCES");
-    } finally {
-      await fse.chmod(file, 0o600);
-    }
+    const check = await checkThirdPartyEvidenceSeed(tempDir);
+
+    expect(check.status).toBe("fail");
+    expect(check.detail).toContain(UNDETERMINABLE);
+    expect(check.detail).toContain("EISDIR");
   });
 
   it("fails rather than passing when the workflow will not parse", async () => {
