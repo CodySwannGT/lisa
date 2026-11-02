@@ -969,12 +969,13 @@ nothing. A second repository sampled `success` on 50 of 50.
 A check run's title is often a generic `Finished`; its result is the **first
 line of its summary** — `Result: Success - Review completed` when a review
 completed, `Result: Rate limited - Review rate limited` when it was throttled.
-Filter by name: a head commonly carries more check runs than one unfiltered
-page returns.
+Filter by name — the `?check_name=<context>` filter, sent as a field so a name
+with spaces is encoded for you — because a head commonly carries more check
+runs than one unfiltered page returns:
 
 ```bash
-gh api 'repos/<owner>/<repo>/commits/<head-sha>/check-runs?check_name=<context>' \
-  --jq '.check_runs[] | {name, status, conclusion, app: .app.id, title: .output.title, result: ((.output.summary // "") | split("\n")[0])}'
+gh api -X GET 'repos/<owner>/<repo>/commits/<head-sha>/check-runs' -f check_name='<context>' \
+  --jq '.check_runs[] | {id, name, head_sha, status, conclusion, app: .app.id, title: .output.title, result: ((.output.summary // "") | split("\n")[0])}'
 ```
 
 A commit status carries its words in its description, and
@@ -987,8 +988,10 @@ gh api repos/<owner>/<repo>/commits/<head-sha>/status \
 ```
 
 For a quick human look at one context, `gh pr checks <pr> --json name,state,description,bucket`
-prints a status's description or a check run's title, but never a run's summary.
-The prover and CI read the two APIs above instead, because `gh pr checks`
+prints a status's description, but its description column is EMPTY for a check
+run — it shows neither the run's title nor its summary — so it can never tell
+you a check run reviewed anything. The prover and CI read the two APIs above
+instead, because `gh pr checks`
 resolves the rollup through the workflow run and exits non-zero with EMPTY
 stdout when it lacks `actions: read`, which reads as a content problem and
 never says "permission". Reading a check run needs `checks: read`.

@@ -1,7 +1,7 @@
 /**
  * `lisa doctor` check: does this repository's seeded third-party review
- * evidence workflow still run now that the reviewer reports through a check
- * run?
+ * evidence workflow still run — and judge safely — now that the reviewer
+ * reports through a check run?
  *
  * The workflow woke only on `status` events. A reviewer that reports through a
  * check run fires none, so the workflow stopped running in every repository it
@@ -10,12 +10,13 @@
  * `create-only`: Lisa wrote it once, the host owns it, and `lisa apply` never
  * refreshes it.
  *
- * This check REPORTS and names the exact lines to add. It edits nothing, for
+ * This check REPORTS and names the exact lines to change. It edits nothing, for
  * the reason `doctor-skip-jobs-migration` gives: `lisa apply` runs on
  * postinstall, and a repair that edits a host-owned workflow there and gets it
  * wrong is silent. `retireUnmodified` can only delete, and nothing upgrades a
  * create-only file in place. The prover the workflow runs is copy-overwrite, so
- * it is already current; only the workflow's own trigger and token are stale.
+ * it is already current; only the workflow's own trigger, token, wiring and
+ * checkout are stale.
  *
  * Every filesystem answer is three-valued — present, absent, or
  * undeterminable — and the last one fails rather than passing quietly: a
@@ -26,6 +27,9 @@ import { readFile, stat } from "node:fs/promises";
 import * as path from "node:path";
 
 import {
+  CHECK_RUN_HEAD,
+  CHECK_RUN_NAME,
+  isCurrentEvidenceSeed,
   readEvidenceSeed,
   THIRD_PARTY_EVIDENCE_WORKFLOW,
   type EvidenceSeedReading,
@@ -47,14 +51,36 @@ const SHIPPED_SEED =
  */
 const ABSENT_CODES = new Set(["ENOENT", "ENOTDIR", "ENAMETOOLONG"]);
 
+/** The commit to judge, from whichever event woke the run. */
+const SHA_EXPRESSION = `\${{ ${CHECK_RUN_HEAD} || github.event.sha || inputs.sha }}`;
+
+/** The reviewer to judge, from whichever event woke the run. */
+const CONTEXT_EXPRESSION = `\${{ ${CHECK_RUN_NAME} || github.event.context }}`;
+
 /** The trigger lines to add under `on:`. */
 export const CHECK_RUN_TRIGGER_LINES = [
   "  check_run:",
   "    types: [completed]",
 ] as const;
 
-/** The permission line to add under `permissions:`. */
+/** The permission line to add under an existing `permissions:` block. */
 export const CHECKS_READ_LINE = "  checks: read";
+
+/** The whole block, for a copy that declares no `permissions:` at all. */
+export const PERMISSIONS_BLOCK_LINES = [
+  "permissions:",
+  "  contents: read",
+  "  statuses: read",
+  CHECKS_READ_LINE,
+  "  pull-requests: read",
+] as const;
+
+/** The values that carry the run's commit and reviewer to the prover. */
+export const RUN_IDENTITY_LINES = [
+  `  EVIDENCE_SHA: ${SHA_EXPRESSION}`,
+  `  EVIDENCE_CONTEXT: ${CONTEXT_EXPRESSION}`,
+  `  group: third-party-review-evidence-\${{ github.event_name }}-${SHA_EXPRESSION}-${CONTEXT_EXPRESSION}`,
+] as const;
 
 /**
  * Read the workflow, REJECTING when the filesystem declines to say.
@@ -82,18 +108,12 @@ async function readWorkflow(projectRoot: string): Promise<string | null> {
 }
 
 /**
- * The operator-facing finding and its exact remedy.
- *
- * The trigger alone is not a working repair. On a `check_run` event the commit
- * is `github.event.check_run.head_sha` and the reviewer is
- * `github.event.check_run.name`; a copy that still reads only
- * `github.event.sha` would start, pass an empty `--sha`, and fail on every
- * check run. So the remedy names those edits with the trigger.
- * @param reading - What the workflow does about check runs
- * @returns The detail line for a stale copy
+ * The plain-language gaps a copy has, in the order an operator fixes them.
+ * @param reading - What the copy does
+ * @returns One clause per gap
  */
-export function describeStaleSeed(reading: EvidenceSeedReading): string {
-  const gaps = [
+function gapsOf(reading: EvidenceSeedReading): string[] {
+  return [
     ...(reading.wakesOnCheckRun
       ? []
       : [
@@ -104,30 +124,80 @@ export function describeStaleSeed(reading: EvidenceSeedReading): string {
       : [
           "it does not grant `checks: read`, so its prover cannot read the reviewer's check run",
         ]),
-  ];
-  const lines = [
-    `${THIRD_PARTY_EVIDENCE_WORKFLOW} cannot see a reviewer that reports through a check run: ${gaps.join("; and ")}. ` +
-      "Lisa seeded this file once and will not rewrite it; the prover it runs is already current. Add these lines:",
-    ...(reading.wakesOnCheckRun
-      ? []
-      : ["under `on:`", ...CHECK_RUN_TRIGGER_LINES]),
-    ...(reading.readsChecks ? [] : ["under `permissions:`", CHECKS_READ_LINE]),
-    ...(reading.wakesOnCheckRun
+    ...(reading.readsRunIdentity
       ? []
       : [
-          "Then read the commit and the reviewer from the check run on that event: " +
-            "where the file reads `github.event.sha || inputs.sha` (the checkout ref, the concurrency group and EVIDENCE_SHA), read " +
-            "`github.event.check_run.head_sha || github.event.sha || inputs.sha`, and where it reads " +
-            "`github.event.context`, read `github.event.check_run.name || github.event.context`.",
+          "it never reads the check run's head SHA and name, so on a check run it would pass an empty --sha and judge nothing",
         ]),
-    `The current seed, ${SHIPPED_SEED} in the @codyswann/lisa package, is the full reference.`,
+    ...(reading.checksOutEventHead
+      ? [
+          "it checks out the head of the event that woke it, so a pull request's own code — a fork's included — runs with this repository's token and cache scope",
+        ]
+      : []),
   ];
-  return lines.join("\n");
 }
 
 /**
- * Report whether the seeded evidence workflow wakes on, and can read, the
- * reviewer's check run.
+ * The exact lines that grant `checks: read`.
+ *
+ * A copy with no `permissions:` block gets the whole block, not the one line:
+ * a block holding only `checks: read` sets every other scope to none, and the
+ * prover could then no longer find the pull request it is judging.
+ * @param reading - What the copy does
+ * @returns The permission remedy, or nothing when the grant is there
+ */
+function permissionRemedyOf(reading: EvidenceSeedReading): string[] {
+  if (reading.readsChecks) return [];
+  return reading.declaresPermissions
+    ? ["Add under `permissions:`:", CHECKS_READ_LINE]
+    : [
+        "Add this block at the top level, where the file declares none:",
+        ...PERMISSIONS_BLOCK_LINES,
+      ];
+}
+
+/**
+ * The exact lines that close each gap.
+ * @param reading - What the copy does
+ * @returns The remedy, one line per array entry
+ */
+function remedyOf(reading: EvidenceSeedReading): string[] {
+  return [
+    ...(reading.wakesOnCheckRun
+      ? []
+      : ["Add under `on:`:", ...CHECK_RUN_TRIGGER_LINES]),
+    ...permissionRemedyOf(reading),
+    ...(reading.readsRunIdentity
+      ? []
+      : [
+          "Set these values — the first two in the prover step's `env:`, the third as the `concurrency:` group, so another app's check run cannot cancel the reviewer's:",
+          ...RUN_IDENTITY_LINES,
+        ]),
+    ...(reading.checksOutEventHead
+      ? [
+          "Delete the `ref:` line under the `actions/checkout` step. The default branch is then checked out, and the commit to judge still arrives as --sha.",
+        ]
+      : []),
+  ];
+}
+
+/**
+ * The operator-facing finding and its exact remedy.
+ * @param reading - What the copy does
+ * @returns The detail for a stale copy
+ */
+export function describeStaleSeed(reading: EvidenceSeedReading): string {
+  return [
+    `${THIRD_PARTY_EVIDENCE_WORKFLOW} does not judge a reviewer that reports through a check run: ${gapsOf(reading).join("; and ")}. ` +
+      "Lisa seeded this file once and will not rewrite it; the prover it runs is already current.",
+    ...remedyOf(reading),
+    `The current seed, ${SHIPPED_SEED} in the @codyswann/lisa package, is the full reference.`,
+  ].join("\n");
+}
+
+/**
+ * Report whether the seeded evidence workflow wakes on, can read, and safely
+ * judges the reviewer's check run.
  *
  * Warns rather than fails on a stale copy: the remedy is an edit to a
  * host-owned file, and nothing about the project is broken locally. Fails when
@@ -148,9 +218,9 @@ export async function checkThirdPartyEvidenceSeed(
       return ok(`No ${THIRD_PARTY_EVIDENCE_WORKFLOW} in this project`);
     }
     const reading = readEvidenceSeed(workflowText);
-    if (reading.wakesOnCheckRun && reading.readsChecks) {
+    if (isCurrentEvidenceSeed(reading)) {
       return ok(
-        `${THIRD_PARTY_EVIDENCE_WORKFLOW} wakes on a completed check run and its token can read it`
+        `${THIRD_PARTY_EVIDENCE_WORKFLOW} wakes on a completed check run, can read it, and judges it from the default branch`
       );
     }
     return {

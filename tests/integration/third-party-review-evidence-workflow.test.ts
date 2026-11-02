@@ -19,7 +19,10 @@ import * as os from "node:os";
 import * as path from "node:path";
 import { describe, expect, it } from "vitest";
 
-import { readEvidenceSeed } from "../../src/core/third-party-evidence-seed.js";
+import {
+  isCurrentEvidenceSeed,
+  readEvidenceSeed,
+} from "../../src/core/third-party-evidence-seed.js";
 import {
   githubCondition,
   githubTemplate,
@@ -136,21 +139,17 @@ const reviewerCheckRun = (headSha = HEAD, name = REVIEWER) =>
 
 /**
  * What the workflow does for one event: whether the job runs, and the commit,
- * reviewer, checkout ref and concurrency group it resolves.
+ * reviewer and concurrency group it resolves.
  * @param workflow - A parsed copy
  * @param event - The event's contexts
  * @returns The resolved values
  */
 function resolve(workflow: EvidenceWorkflow, event: Record<string, unknown>) {
   const { env } = proverStep(workflow);
-  const checkout = workflow.jobs.evidence.steps.find(step =>
-    step.uses?.startsWith("actions/checkout@")
-  );
   return {
     runs: githubCondition(workflow.jobs.evidence.if, event),
     sha: githubTemplate(String(env.EVIDENCE_SHA), event),
     context: githubTemplate(String(env.EVIDENCE_CONTEXT), event),
-    ref: githubTemplate(String(checkout?.with?.ref), event),
     group: githubTemplate(workflow.concurrency.group, event),
   };
 }
@@ -175,9 +174,31 @@ describe.each(COPIES)("%s", copy => {
   });
 
   it("reads as current to the check lisa doctor runs on a seeded copy", () => {
-    expect(
-      readEvidenceSeed(fs.readFileSync(path.join(ROOT, copy), "utf8"))
-    ).toEqual({ wakesOnCheckRun: true, readsChecks: true });
+    const reading = readEvidenceSeed(
+      fs.readFileSync(path.join(ROOT, copy), "utf8")
+    );
+
+    expect(reading).toEqual({
+      wakesOnCheckRun: true,
+      readsChecks: true,
+      readsRunIdentity: true,
+      checksOutEventHead: false,
+      declaresPermissions: true,
+    });
+    expect(isCurrentEvidenceSeed(reading)).toBe(true);
+  });
+
+  it("checks out the default branch, never the head of the event that woke it", () => {
+    // Every `status` and `check_run` run starts in this repository's context
+    // for any pull request, a fork's included. With no `ref:` the checkout is
+    // the default branch, so the code and configuration that judge the head
+    // are this repository's own; the head arrives only as --sha.
+    const checkout = workflow.jobs.evidence.steps.find(step =>
+      step.uses?.startsWith("actions/checkout@")
+    );
+
+    expect(checkout).toBeDefined();
+    expect(checkout?.with).not.toHaveProperty("ref");
   });
 
   it("runs on the reviewer's check run with its head SHA and its name", () => {
@@ -185,8 +206,7 @@ describe.each(COPIES)("%s", copy => {
       runs: true,
       sha: HEAD,
       context: REVIEWER,
-      ref: HEAD,
-      group: `third-party-review-evidence-${HEAD}-${REVIEWER}`,
+      group: `third-party-review-evidence-check_run-${HEAD}-${REVIEWER}`,
     });
   });
 
@@ -206,7 +226,6 @@ describe.each(COPIES)("%s", copy => {
       runs: true,
       sha: HEAD,
       context: REVIEWER,
-      ref: HEAD,
     });
     expect(resolve(workflow, pending).runs).toBe(false);
   });
@@ -217,11 +236,16 @@ describe.each(COPIES)("%s", copy => {
         workflow,
         contexts("workflow_dispatch", { inputs: { sha: HEAD } }, { sha: HEAD })
       )
-    ).toMatchObject({ runs: true, sha: HEAD, context: "", ref: HEAD });
+    ).toMatchObject({ runs: true, sha: HEAD, context: "" });
   });
 
-  it("keys concurrency per reviewer per head, so another app cannot cancel the reviewer's run", () => {
+  it("keys concurrency per event, head and reviewer, so nothing else cancels the reviewer's run", () => {
     const reviewer = resolve(workflow, reviewerCheckRun()).group;
+    const pendingStatus = contexts("status", {
+      sha: HEAD,
+      context: REVIEWER,
+      state: "pending",
+    });
 
     expect(
       resolve(workflow, reviewerCheckRun(HEAD, OTHER_APP_CHECK)).group
@@ -229,6 +253,7 @@ describe.each(COPIES)("%s", copy => {
     expect(resolve(workflow, reviewerCheckRun(OTHER_HEAD)).group).not.toBe(
       reviewer
     );
+    expect(resolve(workflow, pendingStatus).group).not.toBe(reviewer);
   });
 });
 
@@ -237,18 +262,27 @@ describe.each(COPIES)("%s", copy => {
  * @param copy - Repository-relative workflow path
  * @param event - The event's contexts
  * @param observations - What GitHub shows at the head
+ * @param proverAt - Where the folder holds the prover: a host's `scripts/`,
+ *   or only this repository's in-repo template, as its own checkout does
  * @returns The step's exit, output, and the calls it made
  */
 function executeStep(
   copy: string,
   event: Record<string, unknown>,
-  observations: Observations
+  observations: Observations,
+  proverAt: "host" | "in-repo-template" = "host"
 ) {
   const workflow = workflowOf(copy);
   const { run, env } = proverStep(workflow);
   const folder = fs.mkdtempSync(path.join(os.tmpdir(), "evidence-step-"));
   try {
     installProverAsHost(folder);
+    if (proverAt === "in-repo-template") {
+      fs.moveSync(
+        path.join(folder, "scripts"),
+        path.join(folder, "all/copy-overwrite/scripts")
+      );
+    }
     const github = installControlledGitHub(folder, observations);
     fs.writeFileSync(path.join(folder, "step.sh"), run);
     const stepEnv = Object.fromEntries(
@@ -317,5 +351,22 @@ describe.each(COPIES)("%s, executed", copy => {
     expect(result.status).toBe(0);
     expect(result.stdout).toContain("NO-OP");
     expect(result.calls).toEqual([]);
+  });
+});
+
+describe("this repository's own copy, executed as its checkout runs it", () => {
+  it("falls back to the in-repo template when no installed prover exists", () => {
+    // This repository installs no copy under scripts/, so its own job always
+    // takes the template path; a broken fallback must fail here, not pass.
+    const result = executeStep(
+      COPIES[0],
+      reviewerCheckRun(),
+      { checkRuns: [rawCheckRun()] },
+      "in-repo-template"
+    );
+
+    expect(result.status).toBe(0);
+    expect(result.stdout).toContain("Using the in-repo template");
+    expect(result.stdout).toContain(`SATISFIED at ${HEAD}`);
   });
 });

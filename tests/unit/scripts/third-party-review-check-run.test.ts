@@ -63,7 +63,7 @@ interface Reviewer {
   readonly gateId: string;
   readonly context: string;
   readonly proof: string[];
-  readonly postedBy: number | null;
+  readonly postedBy?: unknown;
 }
 
 /**
@@ -101,8 +101,28 @@ describe("configuredReviewers carries the declared app", () => {
     expect(reviewerOf(PINNED).postedBy).toBe(APP);
   });
 
-  it("resolves an unpinned reviewer as pinned to nothing", () => {
-    expect(reviewerOf(UNPINNED).postedBy).toBeNull();
+  it("leaves an unpinned reviewer's app absent", () => {
+    expect(reviewerOf(UNPINNED)).not.toHaveProperty("postedBy");
+  });
+
+  it("carries a malformed pin as declared, so it matches no app", () => {
+    const declaredNull = reviewerOf({
+      "code-review": {
+        "pull-request": {
+          ...PINNED["code-review"]["pull-request"],
+          posted_by: null,
+        },
+      },
+    });
+
+    expect(declaredNull.postedBy).toBeNull();
+    expect(
+      selectReviewerCheckRun({
+        reviewer: declaredNull,
+        runs: [run()],
+        sha: HEAD,
+      }).run
+    ).toBeNull();
   });
 });
 
@@ -165,11 +185,10 @@ describe("checkRunResult reads the run's structured result", () => {
     ).toBe(FINISHED);
   });
 
-  it("names a summary that is not text instead of reading it", () => {
+  it("reads no phrase from a summary that is not text, and reports the value it was", () => {
     expect(
       checkRunResult(run({ output: { title: REVIEW_COMPLETED, summary: 7 } }))
-        .canonical
-    ).toBe("Malformed check-run summary");
+    ).toEqual({ text: "7", canonical: "Malformed check-run summary" });
   });
 
   it.each([
@@ -351,6 +370,25 @@ describe("readReviewerEvidence over both representations", () => {
     expect(reading.state).toBe("in_progress");
   });
 
+  it.each([
+    ["an uppercase lifecycle", { status: "COMPLETED" }],
+    ["an uppercase conclusion", { conclusion: "SUCCESS" }],
+  ])("credits nothing for %s GitHub never sends", (_name, spelling) => {
+    const reading = readReviewerEvidence({
+      reviewer: reviewerOf(PINNED),
+      statuses: [],
+      checkRuns: [
+        run({
+          output: { title: REVIEW_COMPLETED, summary: null },
+          ...spelling,
+        }),
+      ],
+      sha: HEAD,
+    });
+
+    expect(reading.reviewed).toBe(false);
+  });
+
   it("reads exactly as before when called the legacy way", () => {
     const reading = readReviewerEvidence({
       reviewer: reviewerOf(PINNED),
@@ -409,7 +447,13 @@ describe("the verdict and its report", () => {
       "without success"
     );
     expect(READING_SENTENCES[EVIDENCE_READINGS.unreadable]).toContain(
-      "checks: read"
+      "could not be read"
+    );
+  });
+
+  it("states what was observed when nothing could be read, never a guessed cause", () => {
+    expect(READING_SENTENCES[EVIDENCE_READINGS.unreadable]).not.toMatch(
+      /most often|token|permission/iu
     );
   });
 
@@ -552,6 +596,25 @@ describe("main reads check runs once per reviewer, and only when asked", () => {
       gates: PINNED,
       pulls: () => [1],
       statuses: () => [],
+      comments: () => [],
+      out: {
+        write: (text: string) => {
+          chunks.push(text);
+        },
+      },
+    });
+    const verdict = JSON.parse(chunks.join(""));
+
+    expect(code).toBe(1);
+    expect(verdict.readings[0].reading).toBe(EVIDENCE_READINGS.absent);
+  });
+
+  it("does not mix a live status read into a caller's injected check runs", () => {
+    const chunks: string[] = [];
+    const code = main([`--sha=${HEAD}`, "--repo=acme/code", "--json"], {
+      gates: PINNED,
+      pulls: () => [1],
+      checkRuns: () => [],
       comments: () => [],
       out: {
         write: (text: string) => {

@@ -134,7 +134,10 @@ describe("review work never overrides a substantive objection", () => {
     }
   );
 
-  it("leaves the merge driver's own readiness read reporting the objection and its threads", () => {
+  // This case proves independence, not interaction: the merge driver's
+  // readiness read takes no input from the prover at all, so the evidence
+  // verdict for the same head cannot clear the objection or its threads.
+  it("leaves the merge driver's readiness read, which takes nothing from the prover, reporting the objection and its threads", () => {
     const evidence = runThirdPartyReviewCli(
       { checkRuns: [rawCheckRun()], reviews: [OBJECTION] },
       process.env

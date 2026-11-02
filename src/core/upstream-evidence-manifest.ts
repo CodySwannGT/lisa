@@ -21,7 +21,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/check-third-party-action-pins.mjs":
       "4b6e1d444c50da031b848215913df7bfe87091b5eee2debfb60d5d0c42abe343",
     "all/copy-overwrite/scripts/check-third-party-review-evidence.mjs":
-      "404b5b002d0d639fd862e19c7e136b708a81409df0c14f9f808a6400b39643f2",
+      "61c6896f81d4ceec1f292cd80527a62dea3d985477a26d937d6359d129755713",
     "all/copy-overwrite/scripts/check-threshold-ratchet.mjs":
       "d4afc90ba8faf10925fff5fb0d6cd0ace22df2eaa0ec609ee969d0ec84092299",
     "all/copy-overwrite/scripts/check-workflow-load-failures.mjs":
@@ -1399,7 +1399,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-doctor/SKILL.md":
       "ab7bb855fd3ebe321e41b0143815f202b70f6ba38f6678791d6d9e933e0c3fd8",
     "plugins/src/base/skills/lisa-drive-pr-to-merge/SKILL.md":
-      "acea09c01cc902e92c1ec663175ef158fd2987c852dc9bc065b5b8724afccd9b",
+      "f9567926906d303bb86812077645047a3edd638064f9b4ae070d98b50046ffe4",
     "plugins/src/base/skills/lisa-epic-triage/SKILL.md":
       "d02760411249bddbd396f283191fe3e82bb7b95bf9393a19a7025dc5a57c3ab7",
     "plugins/src/base/skills/lisa-evaluation-suite/SKILL.md":
@@ -1597,7 +1597,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-project-ideation/examples/unavailable-data-rejection.md":
       "362835db13cb8f73179754bce427d0f7caef7738a575aa5b936a0383b7f81078",
     "plugins/src/base/skills/lisa-pull-request-review/SKILL.md":
-      "04881f5fadff1f7998202ee7cffc87a21507553d70e063b0e33047afe8f3dc30",
+      "27bdb123dea98fff3206bac696161ea34e215c505405530805bf017781bdb129",
     "plugins/src/base/skills/lisa-quality-review/SKILL.md":
       "c51afffe153f614bcef5bbd2a7b8ffb53c241ebd246900863448e3a6f4be7d47",
     "plugins/src/base/skills/lisa-queue-status/SKILL.md":
@@ -2995,7 +2995,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/create-only/.github/workflows/review-evidence.yml":
       "cbe6584b59ee465b13672c1f7f8a9d48b310017fb5f62520ec2b71c469f41d61",
     "typescript/create-only/.github/workflows/third-party-review-evidence.yml":
-      "1c947f3c5d5127d1202d956383df6f8595c77950e3e4faa6332371505fe183f3",
+      "4547af0badb46c5c059a6c4e4c94d4d01a6ea152dd29e1191df07282e655c4a8",
     "typescript/create-only/.gitleaksignore":
       "6927d376648675331801c798a4390b652a22a3e5d350cd26f36d42c10af02d67",
     "typescript/create-only/audit.ignore.local.json":

@@ -1,6 +1,6 @@
 /**
  * Does a third-party review evidence workflow wake when the reviewer reports
- * through a check run, and may its token read that run?
+ * through a check run, and does it then judge that run safely?
  *
  * A reviewer can report through a commit status or through a check run, and
  * the one this repository declares moved from the first to the second between
@@ -16,11 +16,24 @@
  * apply runs on postinstall, and a wrong silent edit to a host-owned workflow
  * is worse than a report.
  *
+ * Waking is not enough to call a copy current, so four readings are taken, and
+ * a copy is current only when all four hold:
+ *
+ *  - it wakes on a completed check run;
+ *  - the prover's job holds a token that may read check runs;
+ *  - that job takes the commit and the reviewer from the check run, because a
+ *    copy that only gained the trigger passes an empty `--sha` on every check
+ *    run and judges nothing;
+ *  - it does not check out the event's head, because a `check_run` run starts
+ *    in this repository's context for any pull request — a fork's included —
+ *    and checking out the head would run that pull request's own code with
+ *    this repository's token and cache scope.
+ *
  * The question lives here, apart from both callers, because two surfaces ask
  * it: the regression guard on the shipped seeds and the doctor check that lets
- * an already-seeded repository find itself. Two spellings of "wakes on a check
- * run" would drift, and the drift would be silent in the direction that
- * matters — a doctor check accepting a shape the seed guard rejects.
+ * an already-seeded repository find itself. Two spellings of "current" would
+ * drift, and the drift would be silent in the direction that matters — a
+ * doctor check accepting a shape the seed guard rejects.
  *
  * A document that cannot be parsed is thrown rather than read as "missing":
  * guessing an answer out of unparsed YAML would report a working workflow as
@@ -36,18 +49,30 @@ export const THIRD_PARTY_EVIDENCE_WORKFLOW =
 /** The prover the workflow runs, which marks the job whose token matters. */
 const PROVER = "check-third-party-review-evidence";
 
+/** Where a check-run event carries the commit it reports on. */
+export const CHECK_RUN_HEAD = "github.event.check_run.head_sha";
+
+/** Where a check-run event carries the reviewer's name. */
+export const CHECK_RUN_NAME = "github.event.check_run.name";
+
 /** Scope values that include reading check runs. */
 const READS_CHECKS = new Set(["read", "write"]);
 
 /** Shorthand `permissions:` values that grant every scope. */
 const GRANTS_EVERYTHING = new Set(["read-all", "write-all"]);
 
-/** What a seeded evidence workflow can and cannot do about check runs. */
+/** What a seeded evidence workflow does about check runs. */
 export interface EvidenceSeedReading {
   /** It starts when a check run completes. */
   readonly wakesOnCheckRun: boolean;
   /** The job running the prover holds a token that may read check runs. */
   readonly readsChecks: boolean;
+  /** That job reads the check run's head SHA and name. */
+  readonly readsRunIdentity: boolean;
+  /** A checkout in that job takes its ref from the triggering event. */
+  readonly checksOutEventHead: boolean;
+  /** A `permissions:` block governs that job at all. */
+  readonly declaresPermissions: boolean;
 }
 
 /** The slice of a workflow document this module reads. */
@@ -99,7 +124,7 @@ function wakesOnCompletedCheckRun(on: unknown): boolean {
  *
  * An absent block is not a grant here. It hands the token the repository's
  * default, which this file cannot see, and the remedy for "unknown" is the same
- * line the remedy for "missing" names.
+ * block the remedy for "missing" names.
  * @param permissions - A parsed `permissions:` value
  * @returns True when `checks` is readable under it
  */
@@ -115,31 +140,66 @@ function grantsChecksRead(permissions: unknown): boolean {
 }
 
 /**
+ * The steps of a job that YAML parsed as mappings.
+ * @param job - One parsed job
+ * @returns Its steps
+ */
+function stepsOf(job: WorkflowJob): ReadonlyArray<Record<string, unknown>> {
+  return Array.isArray(job.steps) ? job.steps.filter(isMapping) : [];
+}
+
+/**
  * Whether a job runs the third-party evidence prover.
  * @param job - One parsed job
  * @returns True when a step's `run:` names the prover
  */
 function runsProver(job: WorkflowJob): boolean {
-  return (
-    Array.isArray(job.steps) &&
-    job.steps.some(
-      step =>
-        isMapping(step) &&
-        typeof step.run === "string" &&
-        step.run.includes(PROVER)
-    )
+  return stepsOf(job).some(
+    step => typeof step.run === "string" && step.run.includes(PROVER)
   );
+}
+
+/**
+ * Whether a job reads the check run's commit and name somewhere in its steps.
+ *
+ * Read from the steps' own text — `env:`, `with:` and `run:` alike — because a
+ * host may wire the value through any of them, and what matters is that the
+ * event's fields reach the prover at all.
+ * @param job - One parsed job
+ * @returns True when both fields are referenced
+ */
+function readsRunIdentity(job: WorkflowJob): boolean {
+  const text = JSON.stringify(stepsOf(job));
+  return text.includes(CHECK_RUN_HEAD) && text.includes(CHECK_RUN_NAME);
+}
+
+/**
+ * Whether a job checks out a ref taken from the triggering event.
+ * @param job - One parsed job
+ * @returns True when a checkout step's `ref:` reads `github.event`
+ */
+function checksOutEventHead(job: WorkflowJob): boolean {
+  return stepsOf(job).some(step => {
+    const options: unknown = step.with;
+    return (
+      typeof step.uses === "string" &&
+      step.uses.startsWith("actions/checkout@") &&
+      isMapping(options) &&
+      typeof options.ref === "string" &&
+      options.ref.includes("github.event.")
+    );
+  });
 }
 
 /**
  * Read what a seeded evidence workflow does about check runs.
  *
- * The token that matters is the one the prover's job runs with: a job-level
+ * The job that matters is the one running the prover: a job-level
  * `permissions:` replaces the workflow-level block for that job. When no job
  * names the prover, every job is held to it, so an edited workflow cannot pass
  * by moving the prover somewhere this reader does not look.
  * @param workflowText - Full workflow source
- * @returns What the workflow wakes on and what its token may read
+ * @returns What the workflow wakes on, what its token may read, and what it runs
  * @throws {Error} When the document is not a parseable YAML mapping
  */
 export function readEvidenceSeed(workflowText: string): EvidenceSeedReading {
@@ -153,15 +213,31 @@ export function readEvidenceSeed(workflowText: string): EvidenceSeedReading {
     .map(job => job as WorkflowJob);
   const proverJobs = jobs.filter(runsProver);
   const judged = proverJobs.length > 0 ? proverJobs : jobs;
+  const permissionsOf = (job: WorkflowJob): unknown =>
+    job.permissions === undefined ? workflow.permissions : job.permissions;
+  const any = judged.length > 0;
   return {
     // `on:` is YAML 1.1 truthy, so a parser may key the trigger block `true`.
     wakesOnCheckRun: wakesOnCompletedCheckRun(workflow.on ?? workflow.true),
     readsChecks:
-      judged.length > 0 &&
-      judged.every(job =>
-        grantsChecksRead(
-          job.permissions === undefined ? workflow.permissions : job.permissions
-        )
-      ),
+      any && judged.every(job => grantsChecksRead(permissionsOf(job))),
+    readsRunIdentity: any && judged.every(readsRunIdentity),
+    checksOutEventHead: judged.some(checksOutEventHead),
+    declaresPermissions:
+      any && judged.every(job => permissionsOf(job) !== undefined),
   };
+}
+
+/**
+ * Whether a copy wakes on, can read, and safely judges the reviewer's run.
+ * @param reading - What the copy does
+ * @returns True when nothing needs to change
+ */
+export function isCurrentEvidenceSeed(reading: EvidenceSeedReading): boolean {
+  return (
+    reading.wakesOnCheckRun &&
+    reading.readsChecks &&
+    reading.readsRunIdentity &&
+    !reading.checksOutEventHead
+  );
 }

@@ -58,16 +58,17 @@ gh pr checks <pr> --json name,state,bucket,description \
   --jq '.[] | select(.name | test("(?i)coderabbit|review")) | "\(.name)\t\(.state)\t\(.description)"'
 ```
 
-**The state column reads `SUCCESS` whether the review was real or hollow — only
-the description distinguishes them.** `Review approved` / `Review completed` is
-a real review; `Review rate limited`, `Review queued`, or a missing context is
-not. A reviewer can also report through a **check run** instead of a commit
-status, and then this column shows only the run's title, which can be a generic
-`Finished` even for a real review: the run's result is the first line of its
-summary, which this command does not print. For that, use
-`node scripts/check-third-party-review-evidence.mjs --sha <head-sha> --json`,
-which reads both. Never read `gh pr view --json statusCheckRollup` for this: it
-returns a commit status *without* its description.
+**The state column passes whether the review was real or hollow — only the
+reviewer's words distinguish them.** For a commit status those words are the
+description: `Review approved` / `Review completed` is a real review;
+`Review rate limited`, `Review queued`, or a missing context is not. A reviewer
+can also report through a **check run** instead, and then this command cannot
+tell you anything: the description column is empty for a check run, which
+reads `SUCCESS` when it reviewed and `NEUTRAL` — still passing a required
+check — when it was throttled. The run's result is the first line of its
+summary, so use `node scripts/check-third-party-review-evidence.mjs --sha <head-sha> --json`,
+which reads both representations. Never read `gh pr view --json statusCheckRollup`
+for this: it returns a commit status *without* its description.
 
 Where the project ships Lisa's guard, prefer its machine-readable form, which
 also says whether the check is ruleset-required (so whether branch protection

@@ -418,6 +418,7 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
   "scripts/check-third-party-review-evidence.mjs": Object.freeze([
     "225e69c41b56f2eb82cdc1a16da26770090c3ccac85fe0dad278938d8ae4f769",
     "404b5b002d0d639fd862e19c7e136b708a81409df0c14f9f808a6400b39643f2",
+    "61c6896f81d4ceec1f292cd80527a62dea3d985477a26d937d6359d129755713",
     "95f91f2a74ed4e523d064d5d374eadd1c1114f03a3a4fa41532c9b0fd32089de",
   ]),
   "scripts/check-threshold-ratchet.mjs": Object.freeze([
@@ -2670,6 +2671,7 @@ export const LISA_OWNED_HASH_HISTORY_DERIVED: Readonly<
   "scripts/check-third-party-review-evidence.mjs": Object.freeze([
     "225e69c41b56f2eb82cdc1a16da26770090c3ccac85fe0dad278938d8ae4f769",
     "404b5b002d0d639fd862e19c7e136b708a81409df0c14f9f808a6400b39643f2",
+    "61c6896f81d4ceec1f292cd80527a62dea3d985477a26d937d6359d129755713",
     "95f91f2a74ed4e523d064d5d374eadd1c1114f03a3a4fa41532c9b0fd32089de",
   ]),
   "scripts/check-threshold-ratchet.mjs": Object.freeze([

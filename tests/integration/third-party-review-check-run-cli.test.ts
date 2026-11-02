@@ -174,6 +174,15 @@ describe("the control is bound to its source and inputs", () => {
     );
   });
 
+  it("refuses to report a run that made an unsupported call as evidence", () => {
+    // The validity guard, made to bite: a second --repo wins, so the CLI asks
+    // for routes no scenario supplied. The shim refuses them and the harness
+    // must throw rather than hand back a verdict built on refused reads.
+    expect(() =>
+      run({ checkRuns: [rawCheckRun()], args: ["--repo=other/repo"] })
+    ).toThrow(/Invalid replay/u);
+  });
+
   it("changes the input hash when one observed field changes", () => {
     const first = run({ checkRuns: [rawCheckRun()] });
     const second = run({

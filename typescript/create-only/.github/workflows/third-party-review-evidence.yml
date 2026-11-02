@@ -23,12 +23,21 @@
 # reads it, decides, and exits. A check run fires no `status` event, so a
 # workflow that woke on `status` alone stopped running entirely the day its
 # reviewer switched (#4553). GitHub starts a `check_run` workflow only from the
-# default branch's copy of this file, and never for check suites GitHub Actions
-# created itself, so the reviewer's run wakes it and Actions' own jobs do not.
+# default branch's copy of this file, and never when the check suite was created
+# by GitHub Actions or its head SHA is associated with GitHub Actions — so the
+# reviewer's run wakes it and Actions' own jobs do not, and a head pushed with
+# the Actions token wakes nothing here at all.
 #
-# WHY THE JOB CREATES NEITHER A STATUS NOR A CHECK RUN. Either would be an event
-# this workflow triggers on. Nothing here writes one; the verdict is the run's
-# own exit code.
+# WHY THE DEFAULT BRANCH IS CHECKED OUT, NEVER THE HEAD. `status` and
+# `check_run` runs start in this repository's own context, for every pull
+# request — a fork's included — with no approval prompt, and any app's check
+# run starts one. Checking out the head would run that pull request's own code,
+# and its own `.lisa.config.json`, with this repository's token and cache
+# scope. The prover reads the head's evidence through the API by SHA, so it
+# never needs the head's files: the commit to judge arrives as --sha.
+#
+# THE JOB WRITES NO STATUS AND NO CHECK RUN. The verdict is the run's own exit
+# code.
 #
 # WHAT MAKES IT RED. Neither real third-party review evidence at the head, nor a
 # posted adversarial-review substitute for that same head. A merge path that
@@ -79,11 +88,12 @@ permissions:
   checks: read
   pull-requests: read
 
-# One run per reviewer per head. The reviewer is part of the key as well as the
-# commit, so another app's check run settling on the same head cannot cancel
-# the run that is judging the reviewer.
+# One run per event, head and reviewer. The reviewer and the event are part of
+# the key as well as the commit, so neither another app's check run nor a
+# pending status settling on the same head can cancel the run that is judging
+# the reviewer's answer.
 concurrency:
-  group: third-party-review-evidence-${{ github.event.check_run.head_sha || github.event.sha || inputs.sha }}-${{ github.event.check_run.name || github.event.context }}
+  group: third-party-review-evidence-${{ github.event_name }}-${{ github.event.check_run.head_sha || github.event.sha || inputs.sha }}-${{ github.event.check_run.name || github.event.context }}
   cancel-in-progress: true
 
 jobs:
@@ -98,10 +108,11 @@ jobs:
     timeout-minutes: 5
 
     steps:
+      # No `ref:`. This checks out the default branch on `status` and
+      # `check_run`, never the pull request's head — see the header.
       - name: 📥 Checkout repository
         uses: actions/checkout@v6
         with:
-          ref: ${{ github.event.check_run.head_sha || github.event.sha || inputs.sha }}
           persist-credentials: false
 
       - name: 🔧 Setup Node.js

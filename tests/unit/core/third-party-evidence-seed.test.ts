@@ -12,7 +12,10 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 import { describe, expect, it } from "vitest";
 
-import { readEvidenceSeed } from "../../../src/core/third-party-evidence-seed.js";
+import {
+  isCurrentEvidenceSeed,
+  readEvidenceSeed,
+} from "../../../src/core/third-party-evidence-seed.js";
 
 const ROOT = path.resolve(import.meta.dirname, "../../..");
 
@@ -48,11 +51,17 @@ const STATUS_ONLY = "on:\n  status:";
 const CHECKS_READ = "permissions:\n  contents: read\n  checks: read";
 
 describe("readEvidenceSeed", () => {
-  it("finds both gaps in the seed Lisa shipped before the fix", () => {
-    expect(readEvidenceSeed(PRE_FIX_SEED)).toEqual({
+  it("finds every gap in the seed Lisa shipped before the fix", () => {
+    const reading = readEvidenceSeed(PRE_FIX_SEED);
+
+    expect(reading).toEqual({
       wakesOnCheckRun: false,
       readsChecks: false,
+      readsRunIdentity: false,
+      checksOutEventHead: true,
+      declaresPermissions: true,
     });
+    expect(isCurrentEvidenceSeed(reading)).toBe(false);
   });
 
   it.each([
@@ -176,5 +185,69 @@ describe("readEvidenceSeed", () => {
     ["a scalar document", "just a string"],
   ])("throws on %s instead of guessing", (_name, source) => {
     expect(() => readEvidenceSeed(source)).toThrow();
+  });
+
+  it.each([
+    [
+      "through env",
+      "env:\n          SHA: ${{ github.event.check_run.head_sha }}\n          NAME: ${{ github.event.check_run.name }}\n        ",
+    ],
+    ["inline in the script", ""],
+  ])("reads the run's commit and name wired %s", (_name, env) => {
+    const inline = env === "";
+    const jobs = `jobs:
+  evidence:
+    steps:
+      - ${env}run: node scripts/check-third-party-review-evidence.mjs${inline ? ' --sha="${{ github.event.check_run.head_sha }}" --context="${{ github.event.check_run.name }}"' : ""}
+`;
+
+    expect(
+      readEvidenceSeed(workflow(STATUS_ONLY, CHECKS_READ, jobs))
+        .readsRunIdentity
+    ).toBe(true);
+  });
+
+  it("does not credit a copy that reads only the run's commit", () => {
+    const jobs = `jobs:
+  evidence:
+    steps:
+      - env:
+          SHA: \${{ github.event.check_run.head_sha }}
+        run: node scripts/check-third-party-review-evidence.mjs
+`;
+
+    expect(
+      readEvidenceSeed(workflow(STATUS_ONLY, CHECKS_READ, jobs))
+        .readsRunIdentity
+    ).toBe(false);
+  });
+
+  it.each([
+    ["the check run's head", "${{ github.event.check_run.head_sha }}", true],
+    ["a status's commit", "${{ github.event.sha || inputs.sha }}", true],
+    ["only the manual input", "${{ inputs.sha }}", false],
+  ])("judges a checkout of %s", (_name, ref, expected) => {
+    const jobs = `jobs:
+  evidence:
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${ref}
+      - run: node scripts/check-third-party-review-evidence.mjs
+`;
+
+    expect(
+      readEvidenceSeed(workflow(STATUS_ONLY, CHECKS_READ, jobs))
+        .checksOutEventHead
+    ).toBe(expected);
+  });
+
+  it("says whether any permissions block governs the prover's job", () => {
+    expect(
+      readEvidenceSeed(workflow(STATUS_ONLY, "")).declaresPermissions
+    ).toBe(false);
+    expect(
+      readEvidenceSeed(workflow(STATUS_ONLY, CHECKS_READ)).declaresPermissions
+    ).toBe(true);
   });
 });

@@ -126,6 +126,28 @@ describe("which run speaks for the reviewer", () => {
     expect(onlyReading(result).reading).toBe("no-work");
   });
 
+  it("credits the reviewer's completed run over its own throttled status, the other direction of the same rule", () => {
+    const result = run({
+      statuses: [reviewerStatus("success", RATE_LIMITED)],
+      checkRuns: [rawCheckRun()],
+    });
+
+    expect(result.status).toBe(0);
+    expect(onlyReading(result).source).toBe("check-run");
+  });
+
+  it("does not let another app's newer run under the reviewer's name hide the reviewer's own", () => {
+    const result = run({
+      checkRuns: [
+        rawCheckRun({ id: 1 }),
+        { ...RATE_LIMITED_RUN, id: 2, app: { id: 999, slug: "other-app" } },
+      ],
+    });
+
+    expect(result.status).toBe(0);
+    expect(onlyReading(result).checkRunId).toBe(1);
+  });
+
   it.each([
     [
       "an older success behind a newer throttle",
