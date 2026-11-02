@@ -150,7 +150,9 @@ const NO_ANSWERERS =
  * answer there. A reply that looks like it holds a credential is skipped and
  * listed in `refused` (with `reason: "credential-refused"` when no later
  * reply answers), so it never wedges the item. Exit 2 when the ref has no
- * pending question or the ledger is unreadable.
+ * pending question, the ledger is corrupt, or stdin is not valid JSON. A
+ * system error reading the ledger (EACCES, say) is not a setup error and
+ * still exits 1.
  * @param {object} ctx - CLI context
  * @returns {Promise<{ json: object }>} What was queued, or why nothing was
  */
