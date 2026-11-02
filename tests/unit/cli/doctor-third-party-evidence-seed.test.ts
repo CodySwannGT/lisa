@@ -24,6 +24,7 @@ import {
   THIRD_PARTY_EVIDENCE_SEED_CHECK_NAME,
 } from "../../../src/cli/doctor-third-party-evidence-seed.js";
 import { runDoctor } from "../../../src/cli/doctor.js";
+import { applyRewrites } from "../../../src/core/anchored-rewrite.js";
 import { THIRD_PARTY_EVIDENCE_WORKFLOW } from "../../../src/core/third-party-evidence-seed.js";
 import { cleanupTempDir, createTempDir } from "../../helpers/test-utils.js";
 
@@ -61,24 +62,6 @@ const CURRENT_SEED = fse.readFileSync(
   ),
   "utf8"
 );
-
-/**
- * Apply edits in order, insisting each one changes the text.
- * @param text - Workflow source
- * @param edits - Each anchor and its replacement
- * @returns The edited source
- */
-function applyAll(
-  text: string,
-  edits: ReadonlyArray<readonly [string | RegExp, string]>
-): string {
-  return edits.reduce((current, [anchor, replacement]) => {
-    const next = current.replace(anchor, replacement);
-    if (next === current)
-      throw new Error(`edit did not apply: ${String(anchor)}`);
-    return next;
-  }, text);
-}
 
 describe("doctor third-party evidence seed check", () => {
   let tempDir: string;
@@ -129,20 +112,27 @@ describe("doctor third-party evidence seed check", () => {
     // The remedy is checked by applying it, not by reading it: every printed
     // line goes where the check says, and the result must pass.
     const [sha, context, group] = RUN_IDENTITY_LINES.map(line => line.trim());
-    const repaired = applyAll(PRE_FIX_SEED, [
+    const repaired = applyRewrites(
+      PRE_FIX_SEED,
       [
-        "on:\n  status:\n",
-        `on:\n  status:\n${CHECK_RUN_TRIGGER_LINES.join("\n")}\n`,
+        {
+          anchor: "on:\n  status:\n",
+          replacement: `on:\n  status:\n${CHECK_RUN_TRIGGER_LINES.join("\n")}\n`,
+        },
+        {
+          anchor: "permissions:\n  contents: read\n",
+          replacement: `permissions:\n  contents: read\n${CHECKS_READ_LINE}\n`,
+        },
+        { anchor: /EVIDENCE_SHA: .*$/mu, replacement: String(sha) },
+        { anchor: /EVIDENCE_CONTEXT: .*$/mu, replacement: String(context) },
+        {
+          anchor: /group: third-party-review-evidence-.*$/mu,
+          replacement: String(group),
+        },
+        { anchor: /^ *ref: .*\n/mu, replacement: "" },
       ],
-      [
-        "permissions:\n  contents: read\n",
-        `permissions:\n  contents: read\n${CHECKS_READ_LINE}\n`,
-      ],
-      [/EVIDENCE_SHA: .*$/mu, String(sha)],
-      [/EVIDENCE_CONTEXT: .*$/mu, String(context)],
-      [/group: third-party-review-evidence-.*$/mu, String(group)],
-      [/^ *ref: .*\n/mu, ""],
-    ]);
+      "the pre-fix seed, under the whole printed remedy"
+    );
     await seed(repaired);
 
     expect((await checkThirdPartyEvidenceSeed(tempDir)).status).toBe("ok");
@@ -152,16 +142,20 @@ describe("doctor third-party evidence seed check", () => {
     // Waking is not judging: this copy starts on every check run and passes an
     // empty --sha, so it must not read as repaired.
     await seed(
-      applyAll(PRE_FIX_SEED, [
+      applyRewrites(
+        PRE_FIX_SEED,
         [
-          "on:\n  status:\n",
-          `on:\n  status:\n${CHECK_RUN_TRIGGER_LINES.join("\n")}\n`,
+          {
+            anchor: "on:\n  status:\n",
+            replacement: `on:\n  status:\n${CHECK_RUN_TRIGGER_LINES.join("\n")}\n`,
+          },
+          {
+            anchor: "permissions:\n  contents: read\n",
+            replacement: `permissions:\n  contents: read\n${CHECKS_READ_LINE}\n`,
+          },
         ],
-        [
-          "permissions:\n  contents: read\n",
-          `permissions:\n  contents: read\n${CHECKS_READ_LINE}\n`,
-        ],
-      ])
+        "the pre-fix seed, with only the trigger and the permission"
+      )
     );
 
     const check = await checkThirdPartyEvidenceSeed(tempDir);

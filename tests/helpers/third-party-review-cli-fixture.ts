@@ -227,12 +227,10 @@ export function runThirdPartyReviewCli(
   }
 }
 
-/** The prover and every module it imports, relative to the shipped scripts. */
-const PROVER_CLOSURE = [
+/** The prover and its one flat peer; its `lib/` is copied whole. */
+const PROVER_FILES = [
   "check-third-party-review-evidence.mjs",
   "lisa-gates.mjs",
-  "lib/bounded-spawn.mjs",
-  "lib/invoked-as-script.mjs",
 ] as const;
 
 /**
@@ -243,13 +241,15 @@ const PROVER_CLOSURE = [
  * @param folder - A fixture folder standing in for a host checkout
  */
 export function installProverAsHost(folder: string): void {
-  for (const file of PROVER_CLOSURE) {
-    const destination = path.join(folder, "scripts", file);
-    fs.mkdirSync(path.dirname(destination), { recursive: true });
-    fs.copyFileSync(
-      path.join(ROOT, "all/copy-overwrite/scripts", file),
-      destination
-    );
+  const source = path.join(ROOT, "all/copy-overwrite/scripts");
+  const destination = path.join(folder, "scripts");
+  // The whole directory, never its members by name: a listed roster is a
+  // second copy of the prover's imports that goes stale without a sound.
+  fs.cpSync(path.join(source, "lib"), path.join(destination, "lib"), {
+    recursive: true,
+  });
+  for (const file of PROVER_FILES) {
+    fs.copyFileSync(path.join(source, file), path.join(destination, file));
   }
 }
 
