@@ -1,0 +1,72 @@
+/**
+ * Which read failures the evidence-seed doctor check calls an absence.
+ *
+ * Only a definitive "not there" — `ENOENT`, `ENOTDIR`, `ENAMETOOLONG` — may read
+ * as a project that was never seeded the workflow. Any other errno means the
+ * check could not look, and must FAIL rather than pass: a workflow this check
+ * could not read is not a workflow with nothing missing (CodySwannGT/lisa#4553).
+ *
+ * The read is replaced here rather than provoked through file modes, because a
+ * permission bit does not stop root: under root a `chmod 000` file reads fine
+ * and the case would prove nothing. Pinning the classification both ways also
+ * means moving `EACCES` into the absent list fails a test instead of passing
+ * every one.
+ * @module tests/unit/cli/doctor-third-party-evidence-seed-errno
+ */
+import { readFile } from "node:fs/promises";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
+import { checkThirdPartyEvidenceSeed } from "../../../src/cli/doctor-third-party-evidence-seed.js";
+import { cleanupTempDir, createTempDir } from "../../helpers/test-utils.js";
+
+vi.mock("node:fs/promises", async importOriginal => {
+  const actual = await importOriginal<typeof import("node:fs/promises")>();
+  return { ...actual, readFile: vi.fn(actual.readFile) };
+});
+
+/**
+ * A read failure carrying one errno, as Node reports it.
+ * @param code - The errno code
+ * @returns The rejection value
+ */
+function readFailure(code: string): NodeJS.ErrnoException {
+  return Object.assign(new Error(`${code}: simulated read failure`), { code });
+}
+
+describe("doctor third-party evidence seed check — read failures", () => {
+  let tempDir: string;
+
+  beforeEach(async () => {
+    tempDir = await createTempDir();
+  });
+
+  afterEach(async () => {
+    vi.mocked(readFile).mockReset();
+    await cleanupTempDir(tempDir);
+  });
+
+  it.each(["EACCES", "EPERM", "EIO", "ELOOP"])(
+    "fails, naming %s, when the workflow exists but cannot be read",
+    async code => {
+      vi.mocked(readFile).mockRejectedValueOnce(readFailure(code));
+
+      const check = await checkThirdPartyEvidenceSeed(tempDir);
+
+      expect(check.status).toBe("fail");
+      expect(check.detail).toContain("Could not determine");
+      expect(check.detail).toContain(code);
+    }
+  );
+
+  it.each(["ENOENT", "ENOTDIR", "ENAMETOOLONG"])(
+    "reads %s as a project that was never seeded the workflow",
+    async code => {
+      vi.mocked(readFile).mockRejectedValueOnce(readFailure(code));
+
+      const check = await checkThirdPartyEvidenceSeed(tempDir);
+
+      expect(check.status).toBe("ok");
+      expect(check.detail).toContain("No ");
+    }
+  );
+});
