@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.87.7](https://github.com/CodySwannGT/lisa/compare/v4.87.6...v4.87.7) (2026-11-02)
+
+
+### Bug Fixes
+
+* **packed-hosts:** free the shared install cache in its last installer ([97042d8](https://github.com/CodySwannGT/lisa/commit/97042d851c0fd42256c2a7720037eb70abfbd763)), closes [CodySwannGT/lisa#4548](https://github.com/CodySwannGT/lisa/issues/4548) [CodySwannGT/lisa#4548](https://github.com/CodySwannGT/lisa/issues/4548)
+* **packed-hosts:** keep teardown diagnostics through a removal overrun ([9c262c0](https://github.com/CodySwannGT/lisa/commit/9c262c029800a8f1c9d0d9dcae5931d941c9a774)), closes [CodySwannGT/lisa#4548](https://github.com/CodySwannGT/lisa/issues/4548) [CodySwannGT/lisa#4548](https://github.com/CodySwannGT/lisa/issues/4548)
+
 ### [4.87.6](https://github.com/CodySwannGT/lisa/compare/v4.87.5...v4.87.6) (2026-11-02)
 
 
