@@ -84,6 +84,20 @@ import path from "node:path";
  * a budget is never tighter than its quiet-box BASE ({@link fsSlowdownFactorFrom}
  * clamps at 1 from below, exactly as the spawn path does) — not that it is
  * never tighter than some other proxy's reading.
+ *
+ * ## What the probe does not see on a hosted runner
+ *
+ * CodySwannGT/lisa#4548. The hosted runners mount their root filesystem ext4
+ * `discard,data=writeback`, where freeing a file's data discards it on the
+ * device synchronously in the unlinking thread. The packed-host teardown
+ * freed about 341,000 inodes at 22,000-34,000 a second, the device's rate
+ * whatever the concurrency, and this probe derived a factor of exactly 1.00 in
+ * every sampled run all the same. Why is not established; one unmeasured
+ * reading is that its twenty freshly written one-byte files are freed before
+ * delayed allocation gives them a block, so they free nothing to discard.
+ * Either way the budget never widened for the runs that needed it. The repair
+ * there did not scale it: that teardown stopped freeing a corpus whose last
+ * user had finished long before.
  */
 
 /**

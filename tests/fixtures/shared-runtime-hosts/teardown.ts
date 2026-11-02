@@ -103,9 +103,10 @@ export function sharedInstallCache(
         ...state.current,
         finished: new Set([...state.current.finished, installer]),
       };
-      // TDD RED: the cache is still left to the teardown, as it always was;
-      // `remove` stays unused until the last installer frees it.
-      return allFinished() && remove === undefined;
+      if (!allFinished() || state.current.freed) return false;
+      await remove(cache);
+      state.current = { ...state.current, freed: true };
+      return true;
     },
   };
 }
