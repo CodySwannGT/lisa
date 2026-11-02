@@ -259,23 +259,46 @@ describe("the packed-host journey's shared install cache", () => {
     expect(fs.existsSync(journey.cache)).toBe(true);
   });
 
-  it("removes the cache at most once after it has been freed", async () => {
+  it("frees a cache an installer rebuilt after it was freed", async () => {
+    // A `--retry` of an installer that runs after the cache was freed
+    // installs again and so rebuilds it; that installer's finish frees it.
     const journey = seedJourney();
-    const removed: string[] = [];
+    const lifetime = sharedInstallCache(journey.cache, INSTALLERS);
+
+    for (const installer of INSTALLERS) await lifetime.finish(installer);
+    fs.mkdirSync(path.join(journey.cache, "package-rebuilt"), {
+      recursive: true,
+    });
+    const again = await lifetime.finish("cdk");
+
+    expect(again).toBe(true);
+    expect(fs.existsSync(journey.cache)).toBe(false);
+    expect(lifetime.freed()).toBe(true);
+  });
+
+  it("tries a failed removal again on the next finish", async () => {
+    const journey = seedJourney();
+    const attempts: string[] = [];
     const lifetime = sharedInstallCache(
       journey.cache,
       INSTALLERS,
       async directory => {
-        removed.push(directory);
+        attempts.push(directory);
+        if (attempts.length === 1)
+          throw new Error("EBUSY: resource busy or locked, rmdir");
         await cleanupTempDir(directory);
       }
     );
 
-    for (const installer of INSTALLERS) await lifetime.finish(installer);
-    const again = await lifetime.finish("cdk");
+    await lifetime.finish("inherited");
+    await lifetime.finish("typescript");
+    await expect(lifetime.finish("cdk")).rejects.toThrow(/EBUSY/);
+    expect(lifetime.freed()).toBe(false);
 
-    expect(again).toBe(false);
-    expect(removed).toEqual([journey.cache]);
+    await expect(lifetime.finish("cdk")).resolves.toBe(true);
+    expect(attempts).toEqual([journey.cache, journey.cache]);
+    expect(lifetime.freed()).toBe(true);
+    expect(fs.existsSync(journey.cache)).toBe(false);
   });
 
   it("refuses a case it was not told installs through the cache", async () => {
@@ -288,16 +311,22 @@ describe("the packed-host journey's shared install cache", () => {
   });
 
   it("leaves the cache to the teardown when an installer never runs", async () => {
-    // A filtered run. The teardown's removal of the whole root still removes
-    // it, as it always did.
+    // A filtered run: the cache is not freed early, and is not reported
+    // freed, so the teardown's removal of the whole root still owns it.
     const journey = seedJourney();
     const lifetime = sharedInstallCache(journey.cache, INSTALLERS);
 
     await runInstaller(journey, "inherited", lifetime);
+    await runInstaller(journey, "cdk", lifetime);
 
+    expect(lifetime.allFinished()).toBe(false);
+    expect(lifetime.freed()).toBe(false);
     expect(fs.existsSync(journey.cache)).toBe(true);
-    await cleanupTempDir(journey.root);
-    expect(fs.existsSync(journey.root)).toBe(false);
+    expect(inodesFreedByRemoving(journey.root)).toBe(
+      FILE_SCOPED_INODES -
+        TOOL_PACKAGES.length * FILES_PER_PACKAGE +
+        CACHE_INODES
+    );
   });
 
   it("fails the last installer when the cache cannot be freed", async () => {

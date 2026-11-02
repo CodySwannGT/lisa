@@ -172,15 +172,29 @@ function fullRun(): boolean {
 }
 
 /**
+ * The names the owned root still holds. Like every teardown measurement it
+ * must not stand between the teardown and the removal, so a failed read is
+ * reported rather than thrown.
+ * @returns Sorted top-level names, or "unreadable"
+ */
+function topLevelNames(): readonly string[] | "unreadable" {
+  try {
+    return fs.existsSync(root)
+      ? fs.readdirSync(root).sort((left, right) => left.localeCompare(right))
+      : [];
+  } catch {
+    return "unreadable";
+  }
+}
+
+/**
  * Read the owned root's state at the teardown boundary, cheaply: the names it
  * still holds and the shared cache's state, never a corpus walk.
  * @returns Owned-resource state for the phase record
  */
 function ownedRootState(): Record<string, unknown> {
   return {
-    topLevel: fs.existsSync(root)
-      ? fs.readdirSync(root).sort((left, right) => left.localeCompare(right))
-      : [],
+    topLevel: topLevelNames(),
     fullRun: fullRun(),
     installersFinished: sharedCache?.allFinished() ?? false,
     sharedCacheFreed: sharedCache?.freed() ?? false,
@@ -240,6 +254,10 @@ afterAll(async () => {
       ).toBe(false);
     }
   });
+  // Report a failed check before the removal runs: a removal that overruns
+  // the hook's budget ends the hook, and the kept failure with it.
+  if (checks !== undefined)
+    console.error("teardown checks failed before the removal:", checks);
   observeTeardownPhase("root-cleanup:start", startedAt, ownedRootState());
   const before = freeSpace();
   const removal = await attempt(async () => {

@@ -16,9 +16,11 @@
  * devices completed 22,000-34,000 freed inodes a second however many unlinks
  * were in flight from four up: the best of 4 to 32 native worker threads beat
  * libuv's four threads by 3-26%, thirty-two did worse than eight, and a single
- * native `rmSync` thread was two to three times slower. So the removal could
- * not be made fast enough to fit reliably in the teardown's 30 s; it could
- * only be made smaller.
+ * native `rmSync` thread was two to three times slower. At those rates the
+ * root takes 10-16 s; passing baseline runs took up to 28 s and the failing
+ * ones over 30 s, so slower devices exist and the rate is theirs, not the
+ * code's. The removal could not be made fast enough to fit reliably in the
+ * teardown's 30 s; it could only be made smaller.
  *
  * ## Why the cache, and why its last installer
  *
@@ -43,7 +45,7 @@ export interface SharedInstallCache {
   readonly directory: string;
   /**
    * Record that an installing case has finished, freeing the cache when no
-   * declared installer is left to run and it has not been freed yet.
+   * declared installer is left to run.
    * @param installer - The finished case's name
    * @returns Whether this call freed the cache
    */
@@ -65,13 +67,13 @@ export interface SharedInstallCache {
  * Tie the shared Bun install cache's removal to the cases that install through
  * it.
  *
- * Installers are counted by name, so finishing one twice counts once, and the
- * cache is removed at most once after a removal succeeds; a failed removal is
- * tried again by the next finish. A run that filters an installer out never
- * finishes them all, and its cache is left to the teardown's removal of the
- * whole root, exactly as before. The suite configures no retries; under
- * `--retry` a failed last installer would free the cache before its retry ran,
- * and that retry would install into an empty cache.
+ * Installers are counted by name, so finishing one twice counts once. Every
+ * finish once all of them have finished frees the cache, so a failed removal
+ * is tried again by the next finish, and an installer that finishes again
+ * after the cache was freed — a `--retry` that installed and so rebuilt it —
+ * frees what it rebuilt; removing a cache already gone costs nothing. A run
+ * that filters an installer out never finishes them all, and its cache is
+ * left to the teardown's removal of the whole root, exactly as before.
  * @param cache - The shared cache directory, inside the owned root
  * @param installers - Every case that installs through the cache
  * @param remove - Removal; injected only by the regression
@@ -103,7 +105,7 @@ export function sharedInstallCache(
         ...state.current,
         finished: new Set([...state.current.finished, installer]),
       };
-      if (!allFinished() || state.current.freed) return false;
+      if (!allFinished()) return false;
       await remove(cache);
       state.current = { ...state.current, freed: true };
       return true;
