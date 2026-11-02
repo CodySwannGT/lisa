@@ -18,6 +18,7 @@ import { verifyHost } from "../fixtures/shared-runtime-hosts/journey.js";
 import { verifyRuntimeOwnership } from "../fixtures/shared-runtime-hosts/ownership.js";
 import { verifyInheritedHost } from "../fixtures/shared-runtime-hosts/inherited-journey.js";
 import { assertPackedRuntimePolicy } from "../fixtures/shared-runtime-hosts/assertions.js";
+import { removeOwnedRoot } from "../fixtures/shared-runtime-hosts/teardown.js";
 import { suiteDeferral } from "../support/ci-runtime.js";
 
 /** The reviewed CI runtime this journey must run under. */
@@ -65,8 +66,13 @@ async function observeAndRemoveHost(
  * Identify the active teardown phase without inspecting the fixture corpus.
  * @param phase - Bounded phase and boundary name
  * @param startedAt - Monotonic start of this teardown
+ * @param detail - Optional measurements belonging to this phase
  */
-function observeTeardownPhase(phase: string, startedAt: number): void {
+function observeTeardownPhase(
+  phase: string,
+  startedAt: number,
+  detail: Record<string, unknown> = {}
+): void {
   console.error(
     `PACKED_HOSTS_TEARDOWN ${JSON.stringify({
       phase,
@@ -76,6 +82,7 @@ function observeTeardownPhase(phase: string, startedAt: number): void {
       node: process.versions.node,
       platform: process.platform,
       arch: process.arch,
+      ...detail,
     })}`
   );
 }
@@ -104,8 +111,12 @@ afterAll(async () => {
     ).toBe(false);
   } finally {
     observeTeardownPhase("root-cleanup:start", startedAt);
-    await cleanupTempDir(root);
-    observeTeardownPhase("root-cleanup:end", startedAt);
+    await removeOwnedRoot(root, (phase, detail) =>
+      observeTeardownPhase(phase, startedAt, detail)
+    );
+    observeTeardownPhase("root-cleanup:end", startedAt, {
+      rootExists: fs.existsSync(root),
+    });
   }
 }, fsLatencyBudgetMs(30_000));
 
