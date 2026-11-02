@@ -2,7 +2,8 @@
 import { existsSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, inject, it } from "vitest";
+import { ownedPreparedScanner } from "../helpers/history-scanner-handoff.js";
 import {
   boundedSpawnSync,
   useIoLatencyBudget,
@@ -47,22 +48,20 @@ const reservedNames = ["api_key", "access_token", "password"].flatMap(key => [
   `portable-source-key-${key}`,
 ]);
 
+// The official checksum/version-qualified default scanner was provisioned
+// once for this invocation, by the production CLI, before any bounded control
+// (tests/helpers/history-scanner-preparation.ts). This lease receives its own
+// qualified copy of exactly that scanner.
 beforeAll(() => {
-  const provision = boundedSpawnSync({
-    label: "official checksum/version-qualified default scanner provisioning",
-    command: process.execPath,
-    args: [
-      join(root, "all/copy-overwrite/scripts/lisa-history-secrets.mjs"),
-      "provision",
-      scanner,
-    ],
-    cwd: root,
-    baseMs: childBaseMs,
-  });
-  expect(provision.status, provision.stderr).toBe(0);
-  expect(provision.stdout).toBe(
+  const owned = ownedPreparedScanner(
+    scanner,
+    inject("historyScannerPreparation")
+  );
+  expect(owned.provision.status).toBe(0);
+  expect(owned.provision.stdout).toBe(
     "Provisioned checksum/version-pinned Gitleaks 8.30.1.\n"
   );
+  expect(owned).toMatchObject({ path: scanner, version: "8.30.1" });
 });
 
 afterAll(() => {
