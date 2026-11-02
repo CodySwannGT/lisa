@@ -44,11 +44,13 @@ const config: ViteUserConfig = {
         ];
         // Suites that run the genuine pinned history scanner. Their own
         // project's global setup performs the invocation's one cold scanner
-        // acquisition, and Vitest runs it only for a run containing one of
-        // them, so no other suite gains a network prerequisite
+        // acquisition, and Vitest runs it only when the run's selected files
+        // include one of them, so no other run gains a network prerequisite
         // (tests/helpers/history-scanner-preparation.ts). They join only
         // when the root's include admits them: a narrower root, such as the
-        // mutation config's unit-only list, keeps them out.
+        // mutation config's unit-only list, keeps them out. The bulk project
+        // excludes only the admitted ones, so a suite this matcher missed
+        // stays in bulk and fails loudly at its handoff instead of vanishing.
         const scannerSuites = [
           "tests/integration/history-secret-evidence.test.ts",
           "tests/integration/history-secret-private-report.test.ts",
@@ -75,7 +77,7 @@ const config: ViteUserConfig = {
         project.config.exclude = [
           ...new Set([
             ...vitest.config.exclude,
-            ...(bulkProject ? [...deadlineSuites, ...scannerSuites] : []),
+            ...(bulkProject ? [...deadlineSuites, ...admitted] : []),
           ]),
         ];
         // Physical startup/deadline assertions keep their unscaled limits and

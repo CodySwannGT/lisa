@@ -16,14 +16,15 @@
  * ## What happens instead
  *
  * The `history-scanner` Vitest project in `vitest.config.local.ts` owns the
- * affected suites, and Vitest runs a project's globalSetup only when that
- * project has files in the run, so no other suite gains a network
- * prerequisite. Its globalSetup calls {@link prepareHistoryScanner}, which
- * runs the unchanged production CLI `provision` verb once, against the public
- * official release, into a fresh owned scope. That child is bounded by the
- * provisioner's own declared phase limits, not by the per-control window.
- * Each suite then receives a qualified owned copy through
- * `tests/helpers/history-scanner-handoff.ts`.
+ * affected suites. Vitest runs a project's globalSetup only when that project
+ * has files among the run's selected files (before any `--shard` split), so no
+ * run without one of these suites gains a network prerequisite. Its
+ * globalSetup calls {@link prepareHistoryScanner}, which runs the unchanged
+ * production CLI `provision` verb once, against the public official release,
+ * into a fresh owned scope. That child is bounded by the provisioner's own
+ * declared phase limits, not by the per-control window, and its own temporary
+ * files land inside the scope. Each suite then receives a qualified owned copy
+ * through `tests/helpers/history-scanner-handoff.ts`.
  *
  * There is no cache and no reuse across invocations. Every applicable run
  * performs its own cold acquisition, and a run whose acquisition fails hands no
@@ -35,6 +36,7 @@ import { createHash, randomBytes } from "node:crypto";
 import {
   chmodSync,
   lstatSync,
+  mkdirSync,
   mkdtempSync,
   readFileSync,
   rmSync,
@@ -95,6 +97,9 @@ export const COLD_PROVISION_DEADLINE_MS = Object.values(
 /** Largest stream captured from the provision child, in characters. */
 const MAX_CAPTURE = 64 * 1024;
 
+/** Error code recorded when the containing deadline killed the child. */
+const TIMED_OUT = "ETIMEDOUT";
+
 /** Archive and executable pins for one platform. */
 export interface ScannerPin {
   readonly archive: string;
@@ -121,8 +126,13 @@ export interface ColdProvisionEvidence {
   readonly deadlineMs: number;
   /** `<platform>_<arch>` the pins were selected for. */
   readonly platform: string;
-  /** Archive SHA256 the provisioner verifies before it extracts anything. */
-  readonly archiveSha256: string | null;
+  /**
+   * The archive pin the provisioner enforces. It refuses any downloaded archive
+   * whose SHA256 differs before extracting anything, so a successful provision
+   * implies these bytes. Recorded from the pin, not re-measured here: the
+   * production CLI keeps the archive in its own scratch and removes it.
+   */
+  readonly archivePinSha256: string | null;
   /** Measured SHA256 of the executable it wrote, when it wrote a pinned one. */
   readonly executableSha256: string | null;
   /** Version the production qualification confirmed, when it passed. */
@@ -165,6 +175,8 @@ export interface ColdProvisionOptions {
   readonly argv?: (destination: string) => readonly [string, ...string[]];
   /** Containing deadline. Defaults to {@link COLD_PROVISION_DEADLINE_MS}. */
   readonly deadlineMs?: number;
+  /** Directory the owned scope is created in. Defaults to `os.tmpdir()`. */
+  readonly parent?: string;
 }
 
 /** One preparation, and how to give its scope back. */
@@ -236,14 +248,16 @@ export function qualificationFailure(path: string): string | undefined {
 /**
  * Run one child under a containing deadline, capturing bounded streams.
  * @param argv - Executable and arguments
- * @param deadlineMs - Kill the child with SIGKILL at this age
+ * @param limits - The containing deadline and the child's environment
+ * @param limits.deadlineMs - Kill the child with SIGKILL at this age
+ * @param limits.env - Complete environment for the child
  * @param live - Holds the running child so a dispose can stop it
  * @param live.child - The running child, while it runs
  * @returns What the child did
  */
 function runBounded(
   argv: readonly [string, ...string[]],
-  deadlineMs: number,
+  limits: { readonly deadlineMs: number; readonly env: NodeJS.ProcessEnv },
   live: { child?: ChildProcess | undefined }
 ): Promise<ChildRun> {
   return new Promise(settle => {
@@ -251,6 +265,7 @@ function runBounded(
     const [command, ...args] = argv;
     const child = spawn(command, args, {
       cwd: REPO_ROOT,
+      env: limits.env,
       stdio: ["ignore", "pipe", "pipe"],
     });
     /* eslint-disable functional/no-let, functional/immutable-data -- live child streams and outcome accumulate until the real process closes */
@@ -258,9 +273,9 @@ function runBounded(
     let errorCode: string | null = null;
     const timer = setTimeout(() => {
       if (child.exitCode !== null || child.signalCode !== null) return;
-      errorCode = "ETIMEDOUT";
+      errorCode = TIMED_OUT;
       child.kill("SIGKILL");
-    }, deadlineMs);
+    }, limits.deadlineMs);
     const finish = (
       status: number | null,
       signal: NodeJS.Signals | null
@@ -270,21 +285,26 @@ function runBounded(
       settle({
         status,
         signal,
-        errorCode,
+        // The deadline explains only a death it caused. A child that exited on
+        // its own in the turn the timer fired keeps its own outcome.
+        errorCode:
+          errorCode === TIMED_OUT && signal !== "SIGKILL" ? null : errorCode,
         ...captured,
         elapsedMs: Math.round(performance.now() - started),
       });
     };
-    live.child = child;
-    for (const name of ["stdout", "stderr"] as const)
-      child[name].on("data", (chunk: Buffer) => {
-        if (captured[name].length < MAX_CAPTURE)
-          captured[name] += chunk.toString("utf8");
-      });
+    // Listen for a spawn failure before touching the streams: when the spawn
+    // itself fails (EMFILE, ENOENT) they can be absent.
     child.once("error", (error: NodeJS.ErrnoException) => {
       errorCode ??= error.code ?? "ERROR";
       if (child.pid === undefined) finish(null, null);
     });
+    live.child = child;
+    for (const name of ["stdout", "stderr"] as const)
+      child[name]?.on("data", (chunk: Buffer) => {
+        if (captured[name].length < MAX_CAPTURE)
+          captured[name] += chunk.toString("utf8");
+      });
     /* eslint-enable functional/no-let, functional/immutable-data -- capture ends with the close event below */
     child.once("close", finish);
   });
@@ -292,12 +312,16 @@ function runBounded(
 
 /**
  * Why a finished provision child is not a successful one, if it is not.
+ *
+ * Success is the contract the suites asserted before: status 0 and the
+ * provisioner's exact success line. Stderr is recorded, not judged, so a
+ * runtime warning cannot turn a genuine acquisition into a failure.
  * @param run - What the child did
  * @param deadlineMs - The containing deadline it ran under
  * @returns The truthful failure, or undefined for an exact success
  */
 function childFailure(run: ChildRun, deadlineMs: number): string | undefined {
-  if (run.errorCode === "ETIMEDOUT")
+  if (run.errorCode === TIMED_OUT)
     return `The cold scanner provision did not complete within its ${deadlineMs}ms containing deadline, the sum of the provisioner's own phase limits: it was killed by SIGKILL after ${run.elapsedMs}ms.`;
   if (run.errorCode !== null)
     return `The cold scanner provision could not run: ${run.errorCode}.`;
@@ -305,8 +329,8 @@ function childFailure(run: ChildRun, deadlineMs: number): string | undefined {
     return `The cold scanner provision was killed by ${run.signal} after ${run.elapsedMs}ms.`;
   if (run.status !== 0)
     return `The cold scanner provision exited ${String(run.status)}: ${run.stderr.trim() || "no diagnostic"}`;
-  if (run.stdout !== PROVISIONED || run.stderr !== "")
-    return `The cold scanner provision exited 0 without the provisioner's exact success output (stdout ${JSON.stringify(run.stdout)}, ${run.stderr.length} stderr characters).`;
+  if (run.stdout !== PROVISIONED)
+    return `The cold scanner provision exited 0 without the provisioner's exact success line (stdout ${JSON.stringify(run.stdout)}).`;
   return undefined;
 }
 
@@ -340,17 +364,18 @@ function artifactJudgement(
  *
  * Vitest answers SIGINT and SIGTERM by calling `process.exit`, so the exit
  * listener also covers an interrupted run, including one interrupted while the
- * provision child is still downloading: dispose kills that child too.
+ * provision child is still downloading: dispose kills that child too. The
+ * scope holds a private `tmp` directory that the child uses as its TMPDIR, so
+ * the provisioner's own archive scratch is removed with the scope.
+ * @param parent - Directory to create the scope in
  * @returns The scope, the slot for its live child, and its idempotent dispose
  */
-function ownedScope(): {
+function ownedScope(parent: string): {
   readonly scope: string;
   readonly live: { child?: ChildProcess | undefined };
   readonly dispose: () => void;
 } {
-  const scope = mkdtempSync(
-    join(tmpdir(), "lisa-history-scanner-preparation-")
-  );
+  const scope = mkdtempSync(join(parent, "lisa-history-scanner-preparation-"));
   const live: { child?: ChildProcess | undefined } = {};
   const dispose = (): void => {
     process.off("exit", dispose);
@@ -358,6 +383,7 @@ function ownedScope(): {
     rmSync(scope, { recursive: true, force: true });
   };
   chmodSync(scope, 0o700);
+  mkdirSync(join(scope, "tmp"), { mode: 0o700 });
   process.once("exit", dispose);
   return { scope, live, dispose };
 }
@@ -375,7 +401,7 @@ export async function prepareHistoryScanner(
   options: ColdProvisionOptions = {}
 ): Promise<PreparedScope> {
   const deadlineMs = options.deadlineMs ?? COLD_PROVISION_DEADLINE_MS;
-  const { scope, live, dispose } = ownedScope();
+  const { scope, live, dispose } = ownedScope(options.parent ?? tmpdir());
   const executable = join(scope, "gitleaks");
   const argv = options.argv?.(executable) ?? [
     process.execPath,
@@ -383,7 +409,9 @@ export async function prepareHistoryScanner(
     "provision",
     executable,
   ];
-  const run = await runBounded(argv, deadlineMs, live);
+  // eslint-disable-next-line no-restricted-syntax -- the provision child inherits the real environment, as each suite's provision child did; only its TMPDIR moves into the owned scope
+  const env = { ...process.env, TMPDIR: join(scope, "tmp") };
+  const run = await runBounded(argv, { deadlineMs, env }, live);
   const pin = platformPin();
   const failure = childFailure(run, deadlineMs);
   const artifact =
@@ -396,7 +424,7 @@ export async function prepareHistoryScanner(
     ...run,
     deadlineMs,
     platform: `${process.platform}_${process.arch}`,
-    archiveSha256: pin?.archive ?? null,
+    archivePinSha256: pin?.archive ?? null,
     executableSha256: qualified ? artifact.digest : null,
     version: qualified ? VERSION : null,
   };

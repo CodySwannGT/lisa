@@ -39,29 +39,34 @@ const UNPINNED = `require("node:fs").writeFileSync(process.argv[1], ${JSON.strin
 
 /**
  * Run one stub provision child through the real preparation path.
+ *
+ * The scope must already be gone when the failure comes back: the failure
+ * path removes it on its own, and the dispose called afterwards only makes
+ * the case safe to rerun, so it cannot be what passes the check.
  * @param script - The stub child's program
  * @param deadlineMs - Its containing deadline
- * @returns The failure, after its owned scope was disposed
+ * @returns The failure, and the scope it ran in
  */
 async function coldFailure(
   script: string,
   deadlineMs = STUB_DEADLINE_MS
-): Promise<FailedPreparation> {
+): Promise<FailedPreparation & { readonly scope: string }> {
   const { preparation, dispose } = await prepareHistoryScanner({
     argv: destination => [process.execPath, "-e", script, destination],
     deadlineMs,
   });
   const scope = dirname(String(preparation.evidence?.argv.at(-1)));
+  const removedByFailurePath = !existsSync(scope);
   dispose();
   if (preparation.ok) throw new Error("The stub cold acquisition succeeded.");
   expect(scope).toMatch(/lisa-history-scanner-preparation-/u);
-  expect(existsSync(scope)).toBe(false);
+  expect(removedByFailurePath).toBe(true);
   expect(preparation.evidence).toMatchObject({
     deadlineMs,
     executableSha256: null,
     version: null,
   });
-  return preparation;
+  return { ...preparation, scope };
 }
 
 afterAll(() => {
@@ -101,7 +106,17 @@ describe("cold acquisition failures stay bounded, truthful and owned", () => {
       signal: "SIGKILL",
       errorCode: "ETIMEDOUT",
     });
-    expect(failure.evidence?.elapsedMs).toBeGreaterThanOrEqual(500);
+    // Killed at its own 500ms deadline, long before the stub's calibrated bound.
+    expect(failure.evidence?.elapsedMs).toBeLessThan(STUB_DEADLINE_MS);
+  });
+
+  it("gives the provision child a private TMPDIR inside its owned scope", async () => {
+    const failure = await coldFailure(
+      'process.stderr.write(require("node:os").tmpdir()); process.exitCode = 1;'
+    );
+    expect(failure.reason).toBe(
+      `The cold scanner provision exited 1: ${join(failure.scope, "tmp")}`
+    );
   });
 
   it.each([
@@ -120,7 +135,7 @@ describe("cold acquisition failures stay bounded, truthful and owned", () => {
     [
       "omits the success line",
       "",
-      /without the provisioner's exact success output/u,
+      /without the provisioner's exact success line/u,
       { status: 0, stdout: "" },
     ],
     [

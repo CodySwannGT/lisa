@@ -163,10 +163,8 @@ describe("the invocation's one genuine cold scanner acquisition", () => {
       signal: null,
       errorCode: null,
       stdout: PROVISIONED,
-      stderr: "",
       deadlineMs: COLD_PROVISION_DEADLINE_MS,
       platform: `${process.platform}_${process.arch}`,
-      archiveSha256: pin?.archive,
       executableSha256: pin?.binary,
       version: "8.30.1",
     });
