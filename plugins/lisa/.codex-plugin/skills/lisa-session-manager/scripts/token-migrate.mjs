@@ -62,8 +62,9 @@ export function digest(value) {
  * of anything else in it (values are never kept or reported).
  * @param {string} stateDir - Resolved state dir
  * @param {Pick<import("node:fs"), "existsSync" | "readFileSync">} fs - Seam
- * @returns {{ path: string, token: string | undefined, others: string[] } |
- *   null} The file, or null when absent
+ * @returns {{ path: string, token: string | undefined, tokenLines: number,
+ *   others: string[] } | null} The file, or null when absent; `token` is the
+ *   first `TELEGRAM_BOT_TOKEN` line's value and `tokenLines` counts them all
  */
 export function readEnvFile(stateDir, fs) {
   const file = path.join(stateDir, TOKEN_FILE);
@@ -74,10 +75,12 @@ export function readEnvFile(stateDir, fs) {
     .map((line, at) => ({ line: line.trim(), at }))
     .filter(({ line }) => line !== "" && !line.startsWith("#"))
     .map(({ line, at }) => ({ match: ENV_LINE.exec(line), at }));
-  const token = entries.find(({ match }) => match?.[1] === TOKEN_VAR)?.match;
+  const tokenLines = entries.filter(({ match }) => match?.[1] === TOKEN_VAR);
+  const token = tokenLines[0]?.match;
   return {
     path: file,
     token: token ? token[2].replace(/^(['"])(.*)\1$/, "$2") : undefined,
+    tokenLines: tokenLines.length,
     others: entries
       .filter(({ match }) => match?.[1] !== TOKEN_VAR)
       .map(({ match, at }) => match?.[1] ?? `an unrecognised line ${at + 1}`),
@@ -109,6 +112,15 @@ export function removable(file) {
  */
 export function assertMigratable(file) {
   if (file === null) return;
+  // Only the first line's token is verified, and the whole file is deleted
+  // after, so a later line would be lost unverified (CodySwannGT/lisa#4571).
+  if ((file.tokenLines ?? 0) > 1) {
+    throw setupError(
+      `${file.path} has ${file.tokenLines} ${TOKEN_VAR} lines, so which ` +
+        `token is meant is ambiguous. Keep exactly one, then run store-token ` +
+        `again. Nothing was changed.`
+    );
+  }
   if (file.others.length > 0) {
     throw setupError(
       `${file.path} holds ${file.others.join(", ")} besides ${TOKEN_VAR}, so ` +

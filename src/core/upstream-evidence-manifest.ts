@@ -21,7 +21,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/check-third-party-action-pins.mjs":
       "4b6e1d444c50da031b848215913df7bfe87091b5eee2debfb60d5d0c42abe343",
     "all/copy-overwrite/scripts/check-third-party-review-evidence.mjs":
-      "95f91f2a74ed4e523d064d5d374eadd1c1114f03a3a4fa41532c9b0fd32089de",
+      "444fdab01527fda3ce2bb4f5177bac2079cded0ba8f0166d71fda7ec2e8dc7b3",
     "all/copy-overwrite/scripts/check-threshold-ratchet.mjs":
       "d4afc90ba8faf10925fff5fb0d6cd0ace22df2eaa0ec609ee969d0ec84092299",
     "all/copy-overwrite/scripts/check-workflow-load-failures.mjs":
@@ -297,7 +297,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-hooks/parity-safety-net-heredoc.py":
       "b37b843b738fd0c1c6f9639551cf64c409263064819bb820e3daa6af8c94d443",
     "all/copy-overwrite/scripts/lisa-hooks/parity-safety-net.sh":
-      "a77a6a15a74a98135d73dcf41e26ee3bbc69f1575693c7c40e3d47a946a2eb07",
+      "bc67b489af67175696a4378d7e04fe3a7ad3e00029aabc6611bdcf740fc35b32",
     "all/copy-overwrite/scripts/lisa-hooks/sonar-secrets.sh":
       "e0b0073fe44f6e78b74f05cb232d30a3121acc3600bdbd5bc4299c1c710d56a2",
     "all/copy-overwrite/scripts/lisa-hooks/worktree-binding-guard.mjs":
@@ -1079,7 +1079,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/hooks/parity-safety-net.agy.sh":
       "ce9bd2b4566ad9147e4ace56434cffbbe87edb4ccbb57549ab3fd9f4c671ced4",
     "plugins/src/base/hooks/parity-safety-net.sh":
-      "7c5907f9c8f230963f49c4022ccf972cda26634d2ab766118477bbd62f2bdd88",
+      "1f4759053311d99f371b4f16b6a2c7cc8a6b9afc3f717512c9a4dab595616a17",
     "plugins/src/base/hooks/secrets-preflight.sh":
       "cdc638627e5769770aefb061ea0ddfacc1888a8eab3a5fade6c43129a2d3ff6e",
     "plugins/src/base/hooks/setup-jira-cli.sh":
@@ -1399,7 +1399,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-doctor/SKILL.md":
       "ab7bb855fd3ebe321e41b0143815f202b70f6ba38f6678791d6d9e933e0c3fd8",
     "plugins/src/base/skills/lisa-drive-pr-to-merge/SKILL.md":
-      "12c7929fd970e2254425e7bdbc761900161ec1a7f7592fa4ba9347c6a4881345",
+      "f9567926906d303bb86812077645047a3edd638064f9b4ae070d98b50046ffe4",
     "plugins/src/base/skills/lisa-epic-triage/SKILL.md":
       "d02760411249bddbd396f283191fe3e82bb7b95bf9393a19a7025dc5a57c3ab7",
     "plugins/src/base/skills/lisa-evaluation-suite/SKILL.md":
@@ -1553,11 +1553,11 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-notion-write-prd/SKILL.md":
       "d470ed077aa58e53f770c171c8409fa65a3411e15212333fd196237cdfdbf73e",
     "plugins/src/base/skills/lisa-parity-code-review/SKILL.md":
-      "d96b33df13c469e2eb6b6622d397fe53769da3b02b80ae71d2f33282c8ece99c",
+      "51597a7ec2e58c25ca8298e15a0dc98097d5ca8c6916c5de19a4f73695159581",
     "plugins/src/base/skills/lisa-parity-code-simplifier/SKILL.md":
-      "c721ae772e73abff633c43d93267066afac188e911a77322fbb102db673849d7",
+      "716a766f8b56c869df1076ccd47acef053d025d736eb65ae8af130b5cdf4469b",
     "plugins/src/base/skills/lisa-parity-coderabbit/SKILL.md":
-      "ae882837d43741293d1b639c4516331fa6124fa1f5da234a74ecb31c5d7e52cd",
+      "64d270e2e0263c0e27276fb6c908a40bd6fb9a9d7a71f034b1173780da452b93",
     "plugins/src/base/skills/lisa-parity-sentry-sdk-setup/SKILL.md":
       "d0f128c944e90548ea08ef100216b8ecb304d87c4c0dc78c7a9e66f3deb3347f",
     "plugins/src/base/skills/lisa-parity-sentry-seer/SKILL.md":
@@ -1597,7 +1597,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-project-ideation/examples/unavailable-data-rejection.md":
       "362835db13cb8f73179754bce427d0f7caef7738a575aa5b936a0383b7f81078",
     "plugins/src/base/skills/lisa-pull-request-review/SKILL.md":
-      "c95c6fd7948e1daaec760b1c7ff9504f83e3fdcf9f7e9409edeef41991254b03",
+      "27bdb123dea98fff3206bac696161ea34e215c505405530805bf017781bdb129",
     "plugins/src/base/skills/lisa-quality-review/SKILL.md":
       "c51afffe153f614bcef5bbd2a7b8ffb53c241ebd246900863448e3a6f4be7d47",
     "plugins/src/base/skills/lisa-queue-status/SKILL.md":
@@ -1671,7 +1671,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-sentry-access/SKILL.md":
       "1c1881ca9a2020f6cd8f938dc5335ebf2d344ff280844bb98926198e5226e526",
     "plugins/src/base/skills/lisa-session-manager/SKILL.md":
-      "0e40913abd439025f894dd83549ac49a7dc8931f567c7ffd03b01e8812b9adac",
+      "32fad4004d76ef351a294504b1867ad93f4f1a964438a5c1f65aaddd30090f76",
     "plugins/src/base/skills/lisa-session-manager/references/runbook-template.md":
       "9a2a010400a6bcc49055fddef30afe4a936499793df90f8526ef7c298167d4e9",
     "plugins/src/base/skills/lisa-session-manager/scripts/capacity.mjs":
@@ -1679,7 +1679,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-cycle.mjs":
       "0ba37e3b6cf2fea29ee176c493600504c2a53504cf799d0d6facd0ad0f37a198",
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-human.mjs":
-      "42c0a35c1f470765ba4b446bed687d67ce16a8384ffdcb23936813cd30f98834",
+      "62f19b775673207e4b4654c49371abbacef4b4ed5a1761d89f1bfce6a9c7d8ac",
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-manager-token.mjs":
       "7478baf8cdb72029aa04d31f0951f262d086004e1dfc5ad3e422b3a2eea326c6",
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-manager.mjs":
@@ -1689,19 +1689,19 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-runtime.mjs":
       "3e062dbbcada449afe3b15b711cbb53b2b2aaf483aae51ddbaac30df8e3992c7",
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-setup.mjs":
-      "d1823dbe8cf5b25e8faa9b52e46ac1343f573b93a750d9c879e6c366a7704a04",
+      "4b125971939f6e99863930a109315038520c1bc8e0543d1e34476c9987d30605",
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-status.mjs":
       "30bdd485e5c575a78456230712d4a51d1feddd4022a0c8e5c69e5edc3c32508a",
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-usage.mjs":
-      "f5f1371553c2ecd70b44703e1d4fb3da0b2c35ff6e4d8d5b3cacdb2a4d037789",
+      "edc8944355b120f048509b5dcc437166675454e2c380269fd75122da53752af4",
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-workers.mjs":
-      "63ca4c92eb838f806be1dcb6b995cdcee56f77eb7ba4787959ec23a395b32bfe",
+      "59a00278ab701a7830437597923379bad78ccd43857d574f333f6265efc4dcc7",
     "plugins/src/base/skills/lisa-session-manager/scripts/clipboard.mjs":
       "6becdcf8797bfdcfa31553c90d125be4b7f643ab305a3abc19aae73d29263e29",
     "plugins/src/base/skills/lisa-session-manager/scripts/config.mjs":
       "a54d3221833a3f687f6d0bad7a8fc46a583a875a01edf77b75c0de559259351d",
     "plugins/src/base/skills/lisa-session-manager/scripts/human-answer.mjs":
-      "a5dfd5cb9d270aa150a64c44f8c0f3708c038c5eae1aeecdfe9d3eecd545d155",
+      "a75c570362dc0c0223d8da6caf5e0b9ba01f203584a44a914bc8de30b112ea84",
     "plugins/src/base/skills/lisa-session-manager/scripts/human-needed.mjs":
       "17b13bff7f5bd8d1ffc26284e753870cf7fdca39749d9eee3d5d9c856abec98f",
     "plugins/src/base/skills/lisa-session-manager/scripts/isolation.mjs":
@@ -1715,7 +1715,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-session-manager/scripts/ledger-questions.mjs":
       "d757a62d6d252ee934a95b28729c12a3a82fa6737ffc98ac1f6f9021e23f56ea",
     "plugins/src/base/skills/lisa-session-manager/scripts/ledger.mjs":
-      "6f77b0439c4e3e118274c61b1b366afefa9324e8a0a6dbf58a7b18de82f0d4fe",
+      "6b43ff117a1a7aada67a1370309ed801085cfe9c9e04a72859f0bdff1b8324fc",
     "plugins/src/base/skills/lisa-session-manager/scripts/queue-github.mjs":
       "8bfc344dd3f63b2435b830df677efe832f749704eb98db6d423d772efabb52d3",
     "plugins/src/base/skills/lisa-session-manager/scripts/reconcile.mjs":
@@ -1731,7 +1731,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-session-manager/scripts/telegram-route.mjs":
       "af176e882c928ce16fc51352035e06b13fb3eecd3edb40b20f17fc22fe1049d5",
     "plugins/src/base/skills/lisa-session-manager/scripts/token-migrate.mjs":
-      "71290c2ce3157ff41807c1fc7f4388eaac44d2c32e217e965558aaa80ffd3951",
+      "44f5ce14dddc9619d1e521c31bc2398c7441d9733724c41504258c5ce9fb2d32",
     "plugins/src/base/skills/lisa-session-manager/scripts/token-provider.mjs":
       "aac2b87a07db8bced5cf8d21f19ae89460a543d8cff4c6551bc08528e7983f7d",
     "plugins/src/base/skills/lisa-session-manager/scripts/token-read.mjs":
@@ -2949,7 +2949,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/copy-overwrite/scripts/check-nightly-e2e-health.mjs":
       "d1b26caeaf65950e3b60ff41964d234c032c50470072e7643310b1f6722e34e6",
     "typescript/copy-overwrite/scripts/check-skipped-required-checks.mjs":
-      "36e3701d29a735e432b4061842c6e5008dacee1675196f29169c7c72b1f41f24",
+      "c1417200e7e77c5d2dbbebcf747bf042d481f0f711b71d3a892b3677bb90ce52",
     "typescript/copy-overwrite/scripts/check-threshold-ratchet.mjs":
       "d4afc90ba8faf10925fff5fb0d6cd0ace22df2eaa0ec609ee969d0ec84092299",
     "typescript/copy-overwrite/scripts/check-verification-coverage.mjs":
@@ -2995,7 +2995,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/create-only/.github/workflows/review-evidence.yml":
       "cbe6584b59ee465b13672c1f7f8a9d48b310017fb5f62520ec2b71c469f41d61",
     "typescript/create-only/.github/workflows/third-party-review-evidence.yml":
-      "6f90f3bb5074d4d7c0eadf279289faee3db444f90f1c9c9a789c8c5848a8c1c5",
+      "8dd799be919a581f7a00efcfce6f01c70f72375c7c989252e3b96a825ab77f94",
     "typescript/create-only/.gitleaksignore":
       "6927d376648675331801c798a4390b652a22a3e5d350cd26f36d42c10af02d67",
     "typescript/create-only/audit.ignore.local.json":
@@ -10524,6 +10524,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "src/cli/doctor-sonar.ts": true,
     "src/cli/doctor-stale-banner-scan.ts": true,
     "src/cli/doctor-stale-managed-banner.ts": true,
+    "src/cli/doctor-third-party-evidence-seed.ts": true,
     "src/cli/doctor-traceability-gate.ts": true,
     "src/cli/doctor-two-channel-drift.ts": true,
     "src/cli/doctor-wiki.ts": true,
@@ -10818,6 +10819,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "src/core/stale-managed-banner.ts": true,
     "src/core/template-ownership.ts": true,
     "src/core/third-party-action-pins.ts": true,
+    "src/core/third-party-evidence-seed.ts": true,
     "src/core/two-channel-delivery-scan.ts": true,
     "src/core/two-channel-delivery.ts": true,
     "src/core/two-channel-staleness.ts": true,
@@ -11147,6 +11149,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/fixtures/state-contract/unswept-fixture/state/inventory.json": true,
     "tests/fixtures/state-contract/unswept-fixture/state/state-contract.json": true,
     "tests/fixtures/stryker-json-report/two-guard-one-starved.json": true,
+    "tests/fixtures/third-party-review-evidence-seed/pre-4553.yml": true,
+    "tests/fixtures/third-party-review-gh.cjs": true,
     "tests/fixtures/verification/artifact_mismatch.json": true,
     "tests/fixtures/verification/evidence_digest_mismatch.json": true,
     "tests/fixtures/verification/evidence_kind_mismatch.json": true,
@@ -11187,6 +11191,9 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/helpers/gate-coverage-harness.ts": true,
     "tests/helpers/github-expression.ts": true,
     "tests/helpers/hardcoded-temp-path-scan.ts": true,
+    "tests/helpers/history-scanner-global-setup.ts": true,
+    "tests/helpers/history-scanner-handoff.ts": true,
+    "tests/helpers/history-scanner-preparation.ts": true,
     "tests/helpers/hook-roster.ts": true,
     "tests/helpers/host-guard-freshness-fixtures.ts": true,
     "tests/helpers/inject-resolved-config-harness.ts": true,
@@ -11249,6 +11256,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/helpers/test-run-module-closure.ts": true,
     "tests/helpers/test-run-supervision-analyzer.ts": true,
     "tests/helpers/test-utils.ts": true,
+    "tests/helpers/third-party-review-cli-fixture.ts": true,
+    "tests/helpers/third-party-review-observations.ts": true,
     "tests/helpers/tmpdir-growth-cap-boundary.ts": true,
     "tests/helpers/tmpdir-growth-command-harness.ts": true,
     "tests/helpers/tmpdir-growth-darwin-performance.ts": true,
@@ -11320,6 +11329,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/history-secret-evidence.test.ts": true,
     "tests/integration/history-secret-private-report.test.ts": true,
     "tests/integration/history-secret-scanner-path.test.ts": true,
+    "tests/integration/history-secret-scanner-preparation.test.ts": true,
     "tests/integration/history-secret-workflow.test.ts": true,
     "tests/integration/host-lint-gate-survives-apply.test.ts": true,
     "tests/integration/host-test-scripts-survive-apply.test.ts": true,
@@ -11508,6 +11518,13 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/support/rails-scratch-supervisor.ts": true,
     "tests/integration/support/reusable-workflow-scopes.ts": true,
     "tests/integration/support/shell-guard-refusal-fixture.ts": true,
+    "tests/integration/third-party-evidence-seed-apply.test.ts": true,
+    "tests/integration/third-party-review-check-run-cli.test.ts": true,
+    "tests/integration/third-party-review-check-run-legacy.test.ts": true,
+    "tests/integration/third-party-review-check-run-objection.test.ts": true,
+    "tests/integration/third-party-review-check-run-parity.test.ts": true,
+    "tests/integration/third-party-review-check-run-refusals.test.ts": true,
+    "tests/integration/third-party-review-evidence-workflow.test.ts": true,
     "tests/integration/threshold-ratchet-gate-fail-closed.test.ts": true,
     "tests/integration/tracked-source-nul-bytes.test.ts": true,
     "tests/integration/vitest-unsupervised-direct-run.test.ts": true,
@@ -11634,6 +11651,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/cli/doctor-stale-banner-scan.test.ts": true,
     "tests/unit/cli/doctor-stale-managed-banner.test.ts": true,
     "tests/unit/cli/doctor-starter-health.test.ts": true,
+    "tests/unit/cli/doctor-third-party-evidence-seed-errno.test.ts": true,
+    "tests/unit/cli/doctor-third-party-evidence-seed.test.ts": true,
     "tests/unit/cli/doctor-traceability-gate.test.ts": true,
     "tests/unit/cli/doctor-two-channel-drift.test.ts": true,
     "tests/unit/cli/doctor-worker-epoch.test.ts": true,
@@ -11998,6 +12017,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/core/stack-plugin-rules-split.test.ts": true,
     "tests/unit/core/stale-managed-banner.test.ts": true,
     "tests/unit/core/third-party-action-pins.test.ts": true,
+    "tests/unit/core/third-party-evidence-seed.test.ts": true,
     "tests/unit/core/two-channel-delivery-scan.test.ts": true,
     "tests/unit/core/two-channel-delivery.test.ts": true,
     "tests/unit/core/two-channel-staleness.test.ts": true,
@@ -12040,6 +12060,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/helpers/freshness-owned-processes.test.ts": true,
     "tests/unit/helpers/fs-latency-budget.test.ts": true,
     "tests/unit/helpers/gate-capture.test.ts": true,
+    "tests/unit/helpers/history-scanner-preparation.test.ts": true,
     "tests/unit/helpers/io-latency-budget.test.ts": true,
     "tests/unit/helpers/mutation-kill-counts.test.ts": true,
     "tests/unit/helpers/staged-dependency-conformance.test.ts": true,
@@ -12621,6 +12642,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/state-classification.test.ts": true,
     "tests/unit/scripts/terminal-transition-outcomes.test.ts": true,
     "tests/unit/scripts/third-party-action-pins-warn-mode.test.ts": true,
+    "tests/unit/scripts/third-party-review-check-run.test.ts": true,
     "tests/unit/scripts/third-party-review-evidence.test.ts": true,
     "tests/unit/scripts/threshold-ratchet-baseline.test.ts": true,
     "tests/unit/scripts/threshold-ratchet-exemption-expiry.test.ts": true,
@@ -12792,6 +12814,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/session-manager/cli.test.ts": true,
     "tests/unit/session-manager/config-repos.test.ts": true,
     "tests/unit/session-manager/config.test.ts": true,
+    "tests/unit/session-manager/human-answer-ids-and-refusals.test.ts": true,
     "tests/unit/session-manager/human-answer.test.ts": true,
     "tests/unit/session-manager/human-needed-planning-miss.test.ts": true,
     "tests/unit/session-manager/init-config-credential-named-repo.test.ts": true,

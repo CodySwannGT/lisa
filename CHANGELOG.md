@@ -2,6 +2,46 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.87.6](https://github.com/CodySwannGT/lisa/compare/v4.87.5...v4.87.6) (2026-11-02)
+
+
+### Bug Fixes
+
+* **ci:** judge check runs from the default branch, and close review findings ([05ada38](https://github.com/CodySwannGT/lisa/commit/05ada384ed16bdf5767d5625c9cf93778e17f895)), closes [#4553](https://github.com/CodySwannGT/lisa/issues/4553) [CodySwannGT/lisa#4553](https://github.com/CodySwannGT/lisa/issues/4553)
+* **ci:** recognise check-run review proof in the third-party evidence prover ([a6d9f01](https://github.com/CodySwannGT/lisa/commit/a6d9f01c342fa9075fa8c0a1851bbd8b337fe6de)), closes [#4547](https://github.com/CodySwannGT/lisa/issues/4547) [#4553](https://github.com/CodySwannGT/lisa/issues/4553) [CodySwannGT/lisa#4553](https://github.com/CodySwannGT/lisa/issues/4553)
+* **doctor:** also require the run-keyed concurrency group and the other read scopes ([744dd73](https://github.com/CodySwannGT/lisa/commit/744dd733ea96a97f0d9d45edb1287616f94aa2c7)), closes [#4553](https://github.com/CodySwannGT/lisa/issues/4553) [CodySwannGT/lisa#4553](https://github.com/CodySwannGT/lisa/issues/4553)
+* treat ENAMETOOLONG as unreadable in the evidence-seed doctor check ([bae8463](https://github.com/CodySwannGT/lisa/commit/bae846328bd3ea9e429368cf875165efc1ee74b4)), closes [#4553](https://github.com/CodySwannGT/lisa/issues/4553) [CodySwannGT/lisa#4553](https://github.com/CodySwannGT/lisa/issues/4553)
+
+### [4.87.5](https://github.com/CodySwannGT/lisa/compare/v4.87.4...v4.87.5) (2026-11-02)
+
+
+### Bug Fixes
+
+* **coderabbit:** stop auto-applying type and points labels ([ef41117](https://github.com/CodySwannGT/lisa/commit/ef4111747d7ccd8fb1decfce375e26ef3abfbd8e)), closes [CodySwannGT/lisa#4617](https://github.com/CodySwannGT/lisa/issues/4617)
+
+### [4.87.4](https://github.com/CodySwannGT/lisa/compare/v4.87.3...v4.87.4) (2026-11-02)
+
+
+### Bug Fixes
+
+* address self-review of [#4571](https://github.com/CodySwannGT/lisa/issues/4571) — author-less reviews, spawn under a question ([8cbdcdf](https://github.com/CodySwannGT/lisa/commit/8cbdcdfe104c772052389deb62c59f8a14d4560d))
+* clear a withdrawn objection at head, and harden session-manager reads ([194cad4](https://github.com/CodySwannGT/lisa/commit/194cad40651c5b972935eee1d312199e9bf2bbb5)), closes [CodySwannGT/lisa#4579](https://github.com/CodySwannGT/lisa/issues/4579) [CodySwannGT/lisa#4571](https://github.com/CodySwannGT/lisa/issues/4571)
+* fail closed under a file-size limit, and never resume a finished worker ([198127c](https://github.com/CodySwannGT/lisa/commit/198127cf7ce03123874a2b1517438c5e1fe64e8f)), closes [#4580](https://github.com/CodySwannGT/lisa/issues/4580) [CodySwannGT/lisa#3877](https://github.com/CodySwannGT/lisa/issues/3877) [CodySwannGT/lisa#4571](https://github.com/CodySwannGT/lisa/issues/4571)
+
+
+### Documentation
+
+* say what exit 2 from item-answer means in its JSDoc ([74550b2](https://github.com/CodySwannGT/lisa/commit/74550b2b8558e89332014a746849ab562193ff74)), closes [#4580](https://github.com/CodySwannGT/lisa/issues/4580) [CodySwannGT/lisa#4571](https://github.com/CodySwannGT/lisa/issues/4571)
+
+### [4.87.3](https://github.com/CodySwannGT/lisa/compare/v4.87.2...v4.87.3) (2026-11-02)
+
+
+### Bug Fixes
+
+* keep the scanner preparation inside the run's own scratch lease ([7c20cb3](https://github.com/CodySwannGT/lisa/commit/7c20cb3a92b9a080e9076163444ac385fc5dd76b)), closes [CodySwannGT/lisa#4581](https://github.com/CodySwannGT/lisa/issues/4581)
+* prepare the pinned history scanner once before bounded controls ([6528e1a](https://github.com/CodySwannGT/lisa/commit/6528e1aea8aa9a0faa2191e5beb9f18f0ea4e3fd)), closes [CodySwannGT/lisa#4581](https://github.com/CodySwannGT/lisa/issues/4581)
+* run the scanner preparation behind the root's controls in a reapable root ([37e67f7](https://github.com/CodySwannGT/lisa/commit/37e67f7e5530ea5a96c9ee95717eec5b096346a7)), closes [CodySwannGT/lisa#4581](https://github.com/CodySwannGT/lisa/issues/4581)
+
 ### [4.87.2](https://github.com/CodySwannGT/lisa/compare/v4.87.1...v4.87.2) (2026-11-01)
 
 

@@ -953,13 +953,30 @@ resolve every thread via `resolveReviewThread` so the branch-protection
 thread-resolution gate clears.
 
 **A green review check is not proof a review happened.** A third-party review
-app posts a **commit status** on the PR head; when it is throttled or declines,
-it still reports `success` and never blocks. Only the status **description**
-tells the two apart. Measured over the last 30 merged PRs in one repository: 24
-of 30 merges passed a required review gate that had reviewed nothing, every one
-of them `success`. A second repository sampled `success` on 50 of 50.
+app reports on the PR head through a **check run** or a **commit status**, and
+one app can move from the second to the first without notice: measured in one
+repository, its reviewer stopped posting statuses between 2026-10-26 and
+2026-10-27 and has reported only as a check run since. When it is throttled or
+declines it never blocks — a status still reports `success`, and a check run
+concludes `neutral`, which GitHub counts as passing a required check. Only the
+reviewer's own words tell the two apart. Measured over the last 30 merged PRs in
+one repository: 24 of 30 merges passed a required review gate that had reviewed
+nothing. A second repository sampled `success` on 50 of 50.
 
-**Read the description from the commit status API, never from the rollup.**
+**Read the words from the reviewer's own API object, never from the rollup.**
+A check run's title is often a generic `Finished`; its result is the **first
+line of its summary** — `Result: Success - Review completed` when a review
+completed, `Result: Rate limited - Review rate limited` when it was throttled.
+Filter by name — the `?check_name=<context>` filter, sent as a field so a name
+with spaces is encoded for you — because a head commonly carries more check
+runs than one unfiltered page returns:
+
+```bash
+gh api -X GET 'repos/<owner>/<repo>/commits/<head-sha>/check-runs' -f check_name='<context>' \
+  --jq '.check_runs[] | {id, name, head_sha, status, conclusion, app: .app.id, title: .output.title, result: ((.output.summary // "") | split("\n")[0])}'
+```
+
+A commit status carries its words in its description, and
 `gh pr view --json statusCheckRollup` returns a `StatusContext` with **no
 `description` key at all** — verified — so a hollow green is invisible there:
 
@@ -969,16 +986,22 @@ gh api repos/<owner>/<repo>/commits/<head-sha>/status \
 ```
 
 For a quick human look at one context, `gh pr checks <pr> --json name,state,description,bucket`
-prints the same description — but the prover and CI read the commit-status API,
-because `gh pr checks` resolves the rollup through the workflow run and exits
-non-zero with EMPTY stdout when it lacks `actions: read`, which reads as a
-content problem and never says "permission".
+prints a status's description, but its description column is EMPTY for a check
+run — it shows neither the run's title nor its summary — so it can never tell
+you a check run reviewed anything. The prover and CI read the two APIs above
+instead, because `gh pr checks`
+resolves the rollup through the workflow run and exits non-zero with EMPTY
+stdout when it lacks `actions: read`, which reads as a content problem and
+never says "permission". Reading a check run needs `checks: read`.
 
 **Which reviewers to read is configuration, never a vendor name.** Each gate in
 `.lisa.config.json` that declares `evidence.reviewer: true` on its
-`pull-request` moment names one third-party reviewer: `await` is its status
-context, and `evidence.proof` is the exact **reviewed-when** description. The
-shipped prover resolves them and returns the whole verdict:
+`pull-request` moment names one third-party reviewer: `await` is the status
+context or check-run name it reports under, `posted_by` (when declared) is the
+app whose check run counts, and `evidence.proof` is the exact **reviewed-when**
+phrase. The shipped prover reads both representations and returns the whole
+verdict. Take the verdict from it, not from your own reading of the payloads
+above:
 
 ```bash
 node scripts/check-third-party-review-evidence.mjs --sha <head-sha> --json
@@ -986,18 +1009,20 @@ node scripts/check-third-party-review-evidence.mjs --sha <head-sha> --json
 
 Three cases, and each is handled differently:
 
-1. **`satisfied`** — every configured reviewer's description matched its
-   reviewed-when phrase. Nothing further; record `reviewed` and the phrase.
+1. **`satisfied`** — every configured reviewer showed its reviewed-when
+   evidence: a status whose description is the phrase, or a check run that
+   completed with `success` and whose first summary line is the completed
+   result. Nothing further; record `reviewed` and the words it observed.
 2. **`no-reviewer-configured`** — no gate declares one. This is a legitimate
    state, **not** a pass: say so explicitly in the report ("no third-party
    reviewer configured; nothing read this diff on that path"), and do not
    invent a substitute for a reviewer the project never asked for.
-3. **anything else** — throttled, skipped, absent, empty, or a description in
-   no configured list. **Treat every one of these as NOT REVIEWED.** The
-   allowlist is the only thing that grants credit; a denylist of known-bad
-   phrases fails open, and the vocabulary is open-ended — four distinct strings
-   are known already, from two repositories. An unrecognised string costs an
-   extra local review, never a free pass.
+3. **anything else** — throttled, skipped, absent, empty, unreadable, a check
+   run that did not succeed, or words in no configured list. **Treat every one
+   of these as NOT REVIEWED.** The allowlist is the only thing that grants
+   credit; a denylist of known-bad phrases fails open, and the vocabulary is
+   open-ended — four distinct strings are known already, from two repositories.
+   An unrecognised string costs an extra local review, never a free pass.
 
 **In case 3, substitute — do not block, and do not wait.** Before merging, run
 the local adversarial review over the PR diff and **post it on the PR**, so the
@@ -1007,13 +1032,15 @@ code that merges has been read by something. The comment must:
   as its first line, so CI can find it for this reviewer at this head;
 - state plainly that it is a **self-review substitute**, not a third-party
   review;
-- **record the actual description string observed, verbatim**, so the trail says
-  *why* it was substituted rather than only that it was;
+- **record the actual words observed, verbatim** — the prover's `observed`: a
+  status's description, or a check run's title or first summary line — so the
+  trail says *why* it was substituted rather than only that it was;
 - **name the observed condition, not a guessed cause.** The prover returns a
   `reading` per reviewer and a sentence for it; copy that sentence in. In
   particular `absent` must read as *no third-party status was present at this
   head at all* — an operator seeing an empty pair of quotes cannot tell that
-  apart from a status whose description was blank.
+  apart from a status whose description was blank — and `unreadable` must read
+  as a read that failed, never as an absence.
 
 **Several different causes produce the same reading, and you cannot tell them
 apart from here.** A quota throttle, a per-repository decline, and **auto-review
@@ -1069,8 +1096,8 @@ directions and must agree: the prover says whether the context did work, and the
 configured reviewed-when phrase says what "did work" looks like for this
 project.
 
-Prove the signal from the commit status API as above; a merely pending or queued
-check is not proof of anything and must keep polling. **A settled vacuity, the
+Prove the signal from the check-run or commit-status API as above; a
+merely pending or queued check is not proof of anything and must keep polling. **A settled vacuity, the
 rate limit included, arrives here immediately.** There is no wait to spend first
 and no re-request to try: a rate limit's window is of unknown length, and
 waiting it out stalls the pull request without reading a line of the diff. The
@@ -1101,11 +1128,12 @@ from memory:
 - `mergeable == MERGEABLE` and `mergeStateStatus` is not `BEHIND`/`DIRTY`;
 - no pending auto-fix PR into this branch (step f).
 
-**A review OBJECT is not a status CONTEXT.** Everything above is about status
-descriptions. An **empty-bodied `APPROVED` review is an ordinary approval** and
-is never hollow — do not let empty-description reasoning leak onto review
-objects. A `CHANGES_REQUESTED` is a blocking objection **whatever its body**,
-because its content commonly lives entirely in inline threads.
+**A review OBJECT is not a status CONTEXT.** Everything above is about the
+words a status or check run reports. An **empty-bodied `APPROVED` review is an
+ordinary approval** and is never hollow — do not let empty-description
+reasoning leak onto review objects. A `CHANGES_REQUESTED` is a blocking
+objection **whatever its body**, because its content commonly lives entirely in
+inline threads.
 
 **Filter review objects on `commit_id == head`, in BOTH directions.** Writing the
 filter for one direction only is the easy bug, and each direction fails a

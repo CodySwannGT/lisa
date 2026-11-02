@@ -9,7 +9,7 @@ synced-from: code-review@claude-plugins-official@1.0.1
 
 Review the code that is *about to ship* — the current uncommitted/branch diff — for defects a reviewer would block on. This is a focused **defect hunt**: correctness, security, and obvious mistakes. It is not a style audit and not a refactor pass (use `parity-code-simplifier` for quality-only cleanup).
 
-> **Drift tracking.** Pinned to `code-review@claude-plugins-official@1.0.1`. Upstream published no semver until 1.0.1, so this skill used to carry no pin and was reviewed by hand; it is now tracked by `scripts/plugin-parity-drift.mjs`, which flags the pin as stale when the plugin cache holds a newer upstream version. This is a Lisa-native reimplementation, **not** a port of upstream code.
+> **Drift tracking.** Pinned to `code-review@claude-plugins-official@1.0.1`. Upstream published no semver until 1.0.1, so this skill used to carry no pin and was reviewed by hand; it is now tracked by the Lisa repository's `scripts/plugin-parity-drift.mjs` (a Lisa-repository maintainer check that host projects do not ship, so it does not run in a host checkout), which flags the pin as stale when the plugin cache holds a newer upstream version. This is a Lisa-native reimplementation, **not** a port of upstream code.
 >
 > **Reviewed against 1.0.1, partly diverged.** Adopted from upstream 1.0.1: findings print to the terminal only; every candidate finding is validated before it is reported (Step 4); and a high-signal bar governs what is blocking (relaxed to admit an input-dependent defect once its triggering input is shown to be reachable; see Step 4). Deliberately not reimplemented: upstream's `--comment` mode, which posts inline PR comments through `mcp__github_inline_comment__create_inline_comment` (use `lisa-pull-request-review` to act on a pull request), and its four-reviewer subagent pipeline. This skill is one reviewer over the local diff, because the agents it serves (Codex, agy, Copilot, Cursor, Devin) have no common subagent or inline-comment surface. The `synced-from` scalar cannot record that split, so this note does.
 
@@ -63,9 +63,10 @@ Drop every candidate you cannot confirm. A false positive costs the reader more 
 
 - the code will fail to compile, parse, or resolve (syntax or type errors, missing imports, unresolved references);
 - the code produces a wrong result or an exposure (clear logic or security errors) — either for every input, or for a specific triggering input you have named and confirmed the code can actually receive in practice, as in the example under Step 5;
+- the code fails at runtime in a material way — a crash, a hang, or a resource leak — on a path you have validated as reachable, under the same reachability rule as the class above;
 - the change breaks a project instruction you can quote.
 
-Upstream 1.0.1 drops every input-dependent issue. This skill keeps one that you have validated as reachable, because a reachable null dereference or auth bypass is exactly what a reviewer must block. What it still drops is the hypothetical: an input nobody can show the code receiving.
+Upstream 1.0.1 drops every input-dependent issue. This skill keeps one that you have validated as reachable, because a reachable null dereference, hang, leak or auth bypass is exactly what a reviewer must block. What it still drops is the hypothetical: an input nobody can show the code receiving.
 
 Never report: pre-existing issues on lines the change did not touch; things that look wrong but are correct; lint-only issues a linter will catch anyway (a parse, compile, correctness, or security defect stays reportable even when a linter also flags it); style or general-quality concerns that no project instruction requires; a lint or type finding that the code explicitly silences (for example with a lint-ignore comment).
 
