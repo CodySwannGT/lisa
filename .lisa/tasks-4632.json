@@ -310,7 +310,7 @@
         "command": "TMPDIR=/private/tmp mise exec node@24.21.0 bun@1.4.4 ruby@4.0.1 -- node /Users/codysai/.codex/artifacts/lisa-4632-runtime-proof-2026-11-03-v1/native-rails-hook-proof.mjs --mode candidate",
         "expected": "Candidate runtime produces four correct executable wrappers across clone/worktree/custom path, preserves repeats, handles failure nonblockingly, and exposes truthful doctor/health/apply outcomes."
       },
-      "evidence_status": "Candidate implementation and component controls complete: 103 tests in 13 files passed through normal managed runner, candidate-v5.log SHA256 81148ce5e3c1a0784c2eb2ff304a9c68597e13bdb92501edd5fac6bcd294f124. Real Ruby4/Bundler4/Lefthook2.1.16 startup and doctor candidate proof passed separately (candidate-runtime-v2.json SHA256 f6ca545866d04ae86f1013c550c74c3161bedb44e8191d62ab4447c5281e9c39). Not committed, pushed, independently verified or shipped yet. Follow-up candidate-v6: 131 tests in 16 suites passed, including the extracted doctor cases and existing deterministic health/Husky controls. Log SHA256 5e3d66134c3bda714fc6a4694a78c357409eaed0325a3265d2eb80ac9fe76d1a.",
+      "evidence_status": "Candidate implementation and component controls complete: 103 tests in 13 files passed through normal managed runner, candidate-v5.log SHA256 81148ce5e3c1a0784c2eb2ff304a9c68597e13bdb92501edd5fac6bcd294f124. Parent Ruby4/Bundler4 startup and doctor candidate proof passed separately using actual Lefthook2.2.0; the prior 2.1.16 label was wrong and is corrected here (candidate-runtime-v2.json SHA256 f6ca545866d04ae86f1013c550c74c3161bedb44e8191d62ab4447c5281e9c39). Not committed, pushed, independently verified or shipped yet. Follow-up candidate-v6: 131 tests in 16 suites passed, including the extracted doctor cases and existing deterministic health/Husky controls. Log SHA256 5e3d66134c3bda714fc6a4694a78c357409eaed0325a3265d2eb80ac9fe76d1a.",
       "target_environment": "production",
       "target_branch": "main",
       "baseline": "ac24c08818268db5a05bcebfeac35eec601bd320"
@@ -404,14 +404,14 @@
   {
     "id": "R5",
     "title": "Independently verify actual fixtures and judge scoped schema2 evidence",
-    "owner": "native-independent-verifier",
-    "status": "pending",
+    "owner": "native-verifier-01a1a18d-f568-7d40-99fa-06c9869fc515",
+    "status": "in-progress",
     "blockedBy": [
       "R3"
     ],
     "description": "Read the complete work-item context before acting. Comment 6587899188: owner-approved standalone filing and related-only scope (decision|constraint). Comment 6602879963: canonical authenticated claim/ownership (decision).",
     "metadata": {
-      "owner": "native-independent-verifier",
+      "owner": "native-verifier-01a1a18d-f568-7d40-99fa-06c9869fc515",
       "plan": ".lisa/plan-4632.md",
       "type": "bug",
       "work_item_ref": "CodySwannGT/lisa#4632",
@@ -480,7 +480,7 @@
         "command": "TMPDIR=/private/tmp mise exec node@24.21.0 bun@1.4.4 ruby@4.0.1 -- node /Users/codysai/.codex/artifacts/lisa-4632-runtime-proof-2026-11-03-v1/native-rails-hook-proof.mjs --mode candidate",
         "expected": "Independent nonimplementer observes actual native behavior, judges reaching typed evidence for all requirements, and records explicit limits plus learnings (empty is valid)."
       },
-      "evidence_status": "pending; planned commands are not observed proof",
+      "evidence_status": "Independent candidate pass at d6bfed7f0e88b4aaccec52c7b4e4db7ca584baba: seven ACs at explicit CLI/code-unit boundaries, actual Lefthook2.1.16 identity asserted with checksum-verified private gem, 37 managed targeted tests passed. Handoff SHA256 e5c80d9eef65d235f6cf2605071e5c9b029b325fff3aab1e14a94c563e3bfad6. Earlier parent 2.2.0 identity discrepancy and negative-fixture failures are preserved. The later CI/report-only commit needs final-head refresh; delivery is not established.",
       "target_environment": "production",
       "target_branch": "main",
       "baseline": "ac24c08818268db5a05bcebfeac35eec601bd320"
