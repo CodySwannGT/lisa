@@ -99,6 +99,10 @@
         "matcher": "startup"
       },
       {
+        "command": "${CURSOR_PLUGIN_ROOT}/hooks/install-rails-hooks.sh",
+        "matcher": "startup"
+      },
+      {
         "command": "${CURSOR_PLUGIN_ROOT}/hooks/withdrawn-rulings.sh --session-start"
       },
       {

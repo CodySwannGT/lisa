@@ -1,7 +1,7 @@
 # Rails tooling migration
 
 The shared Rails templates select the following supported tool lines. These
-sources apply to Claude Code, Codex, Cursor, OpenCode, Antigravity and Copilot.
+sources apply to Claude Code, Codex, Cursor, OpenCode, Antigravity, Copilot and Devin.
 The combined dependency floor is Ruby 3.3 and Rails 7.2. The exercised lane is
 Ruby 3.4.8 and Rails 8.1.4, rather than every combination above those floors.
 
@@ -19,6 +19,43 @@ Ruby 3.4.8 and Rails 8.1.4, rather than every combination above those floors.
 The separate minimum constraints matter. `~> 8.0.1` would also exclude 8.1,
 whereas `~> 8.0`, `>= 8.0.1` admits compatible 8.x releases while rejecting
 8.0.0. The same distinction applies to SimpleCov 1.3.2.
+
+## Git hook installation
+
+`lisa apply` installs the Rails Lefthook wrappers after applying the project
+configuration. Supported agent startup hooks also check them, independently of
+Node package installation. An interactive shell, a mise enter hook and
+`bin/setup` are not prerequisites.
+
+The check uses Git's resolved hooks directory, including linked worktrees and
+`core.hooksPath`. When `pre-commit`, `commit-msg`, `prepare-commit-msg` and
+`pre-push` are already executable Lefthook wrappers, it leaves them unchanged.
+Otherwise it runs `bundle exec lefthook install` once and checks the result.
+The attempt has a 30-second total budget. Missing Bundler or gems, a failed
+command or a timeout prints an actionable warning and lets the session
+continue. It does not install gems automatically.
+
+Lefthook versions that protect a configured `core.hooksPath` can refuse this
+plain install command. Lisa keeps that protection: it does not force an
+overwrite or reset the setting. Resolve the hook-manager configuration
+deliberately, then rerun the install and doctor. Existing valid wrappers in the
+configured directory are recognized without an installation attempt.
+
+After resolving the bundle, run:
+
+```sh
+bundle exec lefthook install
+lisa doctor
+```
+
+Doctor's **Git hooks installed?** check reports the missing or invalid wrappers
+and the repair command. `lisa health` uses the same installation reader for
+`hooks.managed`. Both can inspect installed hooks from a linked worktree.
+
+Claude Code, Codex, Cursor, Copilot and Devin receive the startup hook;
+OpenCode runs the same installer from its session bootstrap. Antigravity has
+no equivalent SessionStart event, so `lisa apply` supplies installation there
+and `lisa doctor` reports any remaining installation failure.
 
 ## Existing projects
 

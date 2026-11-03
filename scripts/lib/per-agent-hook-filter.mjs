@@ -215,6 +215,14 @@ const SCRIPT_RULES = {
     copilot: true,
     devin: true,
   },
+  "install-rails-hooks.sh": {
+    claude: true,
+    codex: true,
+    cursor: true,
+    agy: false, // No SessionStart event; apply installs and doctor reports the remaining gap.
+    copilot: true,
+    devin: true,
+  },
   "setup-jira-cli.sh": {
     claude: true,
     codex: true,

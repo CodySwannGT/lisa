@@ -2,25 +2,16 @@
 /* eslint-disable jsdoc/require-param-description, jsdoc/require-returns -- typed hook readers are self-describing */
 import { execFile } from "node:child_process";
 import path from "node:path";
+import { inspectRailsHooks } from "../../scripts/lib/rails-hooks.mjs";
 
 import type { ProjectType } from "../core/config.js";
-import {
-  projectPathKind,
-  readProjectFile,
-  readProjectText,
-} from "./read-only-fs.js";
+import { readProjectFile } from "./read-only-fs.js";
 
 const GIT_TIMEOUT_MS = 10_000;
 const MAX_GIT_OUTPUT_BYTES = 16 * 1024;
 const HUSKY_HOOKS = [
   "commit-msg",
   "post-checkout",
-  "pre-commit",
-  "pre-push",
-  "prepare-commit-msg",
-] as const;
-const LEFTHOOK_HOOKS = [
-  "commit-msg",
   "pre-commit",
   "pre-push",
   "prepare-commit-msg",
@@ -104,41 +95,6 @@ async function executableDrift(
 }
 
 /**
- * Inspect Lefthook wrappers when the git directory is locally readable.
- * @param projectRoot
- */
-async function inspectLefthook(
-  projectRoot: string
-): Promise<HookInstallationInspection> {
-  const gitKind = await projectPathKind(projectRoot, ".git");
-  if (gitKind !== "directory") {
-    return { status: "warn", drift: ["lefthook installation unavailable"] };
-  }
-  const modeDrift = await executableDrift(
-    projectRoot,
-    path.join(".git", "hooks"),
-    LEFTHOOK_HOOKS
-  );
-  const contentDrift = (
-    await Promise.all(
-      LEFTHOOK_HOOKS.map(async name => {
-        const relative = path.join(".git", "hooks", name);
-        const content = await readProjectText(projectRoot, relative);
-        return content !== undefined &&
-          !content.toLowerCase().includes("lefthook")
-          ? relative.split(path.sep).join("/")
-          : undefined;
-      })
-    )
-  ).filter((item): item is string => item !== undefined);
-  const drift = [...new Set([...modeDrift, ...contentDrift])].sort(
-    (left, right) => left.localeCompare(right)
-  );
-  return drift.length === 0
-    ? { status: "pass", drift: [] }
-    : { status: "fail", drift };
-}
-/**
  * Inspect actual installed hook state for applicable stacks.
  * @param projectRoot - Canonical host root
  * @param types - Safely detected project types
@@ -154,7 +110,10 @@ export async function inspectHookInstallation(
   timeoutMs: number,
   signal: AbortSignal
 ): Promise<HookInstallationInspection> {
-  if (types.includes("rails")) return inspectLefthook(projectRoot);
+  if (types.includes("rails")) {
+    const result = await inspectRailsHooks(projectRoot, { timeoutMs, signal });
+    return { status: result.status, drift: result.drift };
+  }
   if (!types.includes("typescript")) {
     return { status: "warn", drift: ["unsupported hook stack"] };
   }

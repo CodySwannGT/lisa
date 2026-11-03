@@ -1,6 +1,7 @@
 import { existsSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import * as path from "node:path";
+import type { ProjectType } from "../core/config.js";
 import { createDetectorRegistry } from "../detection/index.js";
 import type { DoctorCheck } from "./doctor.js";
 
@@ -17,30 +18,47 @@ const LISA_LOCAL_CONFIG = ".lisa.config.local.json";
 export async function checkProjectType(
   targetPath: string
 ): Promise<DoctorCheck> {
+  return (await inspectProjectType(targetPath)).check;
+}
+
+/**
+ * Keep detected stack types alongside their human-readable doctor result.
+ * @param targetPath - Project path to inspect
+ * @returns Detected types and the existing project-type check
+ */
+export async function inspectProjectType(targetPath: string): Promise<{
+  readonly detectedTypes: readonly ProjectType[];
+  readonly check: DoctorCheck;
+}> {
   const detectorRegistry = createDetectorRegistry();
   const detectedTypes = detectorRegistry.expandAndOrderTypes(
     await detectorRegistry.detectAll(targetPath)
   );
   if (detectedTypes.length > 0) {
     return {
-      name: PROJECT_TYPE_CHECK,
-      status: "ok",
-      detail: detectedTypes.join(", "),
+      detectedTypes,
+      check: {
+        name: PROJECT_TYPE_CHECK,
+        status: "ok",
+        detail: detectedTypes.join(", "),
+      },
     };
   }
 
   const wikiSource = await detectDeclaredWikiSource(targetPath);
-  return wikiSource === null
-    ? {
-        name: PROJECT_TYPE_CHECK,
-        status: "warn",
-        detail: "No Lisa project type detected",
-      }
-    : {
-        name: PROJECT_TYPE_CHECK,
-        status: "ok",
-        detail: `wiki (${wikiSource})`,
-      };
+  const check: DoctorCheck =
+    wikiSource === null
+      ? {
+          name: PROJECT_TYPE_CHECK,
+          status: "warn",
+          detail: "No Lisa project type detected",
+        }
+      : {
+          name: PROJECT_TYPE_CHECK,
+          status: "ok",
+          detail: `wiki (${wikiSource})`,
+        };
+  return { detectedTypes, check };
 }
 
 /**
