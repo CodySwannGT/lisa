@@ -328,6 +328,14 @@
         "additional_requirement": "Missing or invalid repository returns usage exit 2 before API reads; owning repository explicit in both canonical review commands and every equivalent generated surface.",
         "baseline": "94c4c527aab336b735612f18563b1f3f0e4038a8",
         "historical_results": "Earlier results remain scoped to their recorded source heads and do not establish the resumed candidate."
+      },
+      "followup_review_correction": {
+        "discussion": 4458547272,
+        "thread": "PRRT_kwDOQ78yN86zQ065",
+        "reviewed_head": "93daa353d6a888eb0e648107192a5001dcc545d1",
+        "finding": "Separate PR-review skill must report unknown and stop before binary review classification after unreadable PR discovery.",
+        "disposition": "Parent personally confirmed and corrected; final candidate validation and remote thread resolution pending.",
+        "verification_scope": "Static authored/generated instruction controls and full normal checks; no native-agent obedience claim."
       }
     },
     "description": "Read the complete ignored context at /Users/codysai/.codex/worktrees/a630/lisa/.lisa/work-item-context.md before acting. Comment 6587898843: approved standalone filing and separated scope (decision|constraint). Comment 6599727379: canonical claim (decision)."
