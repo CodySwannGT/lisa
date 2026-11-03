@@ -104,6 +104,25 @@ describe("safety-net inline shell comments (#4471)", () => {
     expect(result.status, String(result.stderr)).toBe(2);
   });
 
+  it.each(["\\", "\\\\\\"])(
+    "does not join an inline comment ending in %j to the next comment",
+    ending => {
+      const result = inspect(
+        `comment-newline-${ending.length}`,
+        `f () { sh ${LEAF}; }\n: # x${ending}\n# x; f () { echo ok; }\nf`
+      );
+      expect(result.status, String(result.stderr)).toBe(2);
+    }
+  );
+
+  it("retains comment-ending newlines inside a called function body", () => {
+    const result = inspect(
+      "body-comment-ending-newline",
+      `h () { sh ${LEAF}; }\ng () {\n: # x\\\n# y; h () { echo ok; }\n}\ng\nh`
+    );
+    expect(result.status, String(result.stderr)).toBe(2);
+  });
+
   it("allows a real safe function so refusal is not an unconditional file failure", () => {
     const result = inspect("safe-real-function", "f () { echo ok; }\nf");
     expect(result.status, String(result.stderr)).toBe(0);

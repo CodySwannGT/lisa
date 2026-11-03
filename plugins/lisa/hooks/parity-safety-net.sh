@@ -752,14 +752,14 @@ follow_split() {
     # escaped blank is part of a word, not a boundary before its next hash.
     function comment_start(at, before, escapes, k) {
       before = at - 1;
-      while (before > 1 && substr(s, before, 1) == "\n" && substr(s, before - 1, 1) == "\\") {
+      while (before > 1 && substr(s, before, 1) == "\n" && substr(s, before - 1, 1) == "\\" && !comment_newline[before]) {
         lookahead_step();
         escapes = 0;
         for (k = before - 1; k > 0 && substr(s, k, 1) == "\\"; k--) { lookahead_step(); escapes++ }
         if (escapes % 2 == 0) { break }
         before -= 2;
       }
-      if (before == 0) { return 1 }
+      if (before == 0 || comment_newline[before]) { return 1 }
       if (substr(s, before, 1) !~ /[ \t\n;&|()<>]/) { return 0 }
       escapes = 0;
       for (k = before - 1; k > 0 && substr(s, k, 1) == "\\"; k--) { lookahead_step(); escapes++ }
@@ -769,6 +769,9 @@ follow_split() {
       # Address one byte at a time rather than copying the remaining file for
       # every short comment. Repeated lookahead shares the existing work cap.
       for (end = at; end <= n && substr(s, end, 1) != "\n"; end++) { lookahead_step() }
+      # Backslashes inside discarded comments do not escape their newline.
+      # Share this fact with the main walk and every lookahead that skips it.
+      if (end <= n) { comment_newline[end] = 1 }
       return end;
     }
     # Lexical lookahead keeps an asynchronous return from ending its parent
