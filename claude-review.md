@@ -22,3 +22,14 @@ criteria at stated boundaries and 37 targeted tests. It also corrected the
 parent replay's mislabeled Lefthook version (actual 2.2.0); its own fresh replay
 asserted genuine 2.1.16. Earlier output is preserved. Final-head refresh and
 delivery remain pending.
+
+The parent personally confirmed and fixed the later CodeRabbit applicability
+finding: a TypeScript project using Lefthook incorrectly received the Rails hook
+failure. The new regression failed before the production edit (the two existing
+Rails cases passed). Doctor now consumes one shared typed detector result,
+preserves the existing project-type row/API, and adds the hook row only for
+detected Rails projects. No presentation text is parsed and no alternate Rails
+detector is introduced. All 53 tests in eight targeted suites passed afterward,
+including the existing doctor and wiki/project-type behavior. This is a working
+tree review; final commit/push, refreshed native proof and hosted checks remain
+separate obligations.

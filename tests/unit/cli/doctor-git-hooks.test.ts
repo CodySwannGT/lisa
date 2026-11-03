@@ -1,4 +1,5 @@
 import path from "node:path";
+import { rm, writeFile } from "node:fs/promises";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { runDoctor } from "../../../src/cli/doctor.js";
 import {
@@ -8,6 +9,8 @@ import {
   type RailsHookFixture,
 } from "../../helpers/rails-hook-install-fixture.js";
 import { cleanupTempDir } from "../../helpers/test-utils.js";
+
+const HOOK_CHECK_NAME = "Git hooks installed?";
 
 describe("runDoctor Rails hook installation", () => {
   let fixture: RailsHookFixture;
@@ -24,9 +27,7 @@ describe("runDoctor Rails hook installation", () => {
       { offline: true, json: true },
       { runUpdateCheck: vi.fn(), write: vi.fn(), setExitCode: vi.fn() }
     );
-    const check = result.checks.find(
-      row => row.name === "Git hooks installed?"
-    );
+    const check = result.checks.find(row => row.name === HOOK_CHECK_NAME);
     expect(check?.status).toBe("fail");
     expect(check?.detail).toContain("bundle exec lefthook install");
     for (const name of [
@@ -49,7 +50,28 @@ describe("runDoctor Rails hook installation", () => {
       { runUpdateCheck: vi.fn(), write: vi.fn(), setExitCode: vi.fn() }
     );
     expect(
-      result.checks.find(row => row.name === "Git hooks installed?")
+      result.checks.find(row => row.name === HOOK_CHECK_NAME)
     ).toMatchObject({ status: "ok" });
+  });
+
+  it("does not impose Rails wrappers on a TypeScript Lefthook project", async () => {
+    for (const name of ["Gemfile", "bin/rails", "config/application.rb"])
+      await rm(path.join(fixture.project, name));
+    await writeFile(path.join(fixture.project, "tsconfig.json"), "{}\n");
+    await writeFile(
+      path.join(fixture.project, "lefthook.yml"),
+      "pre-commit:\n  commands:\n    lint:\n      run: npm run lint\n"
+    );
+    const result = await runDoctor(
+      fixture.project,
+      { offline: true, json: true },
+      { runUpdateCheck: vi.fn(), write: vi.fn(), setExitCode: vi.fn() }
+    );
+    expect(
+      result.checks.find(row => row.name === "Project type detection")?.detail
+    ).toContain("typescript");
+    expect(
+      result.checks.find(row => row.name === HOOK_CHECK_NAME)
+    ).toBeUndefined();
   });
 });

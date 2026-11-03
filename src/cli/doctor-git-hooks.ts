@@ -5,7 +5,7 @@ import {
 import { projectRegularFileExists } from "../health/read-only-fs.js";
 import { RAILS_HOOK_INSTALL_COMMAND } from "../../scripts/lib/rails-hooks.mjs";
 import type { DoctorCheck } from "./doctor.js";
-import { checkProjectType } from "./doctor-project-type.js";
+import { inspectProjectType } from "./doctor-project-type.js";
 
 /**
  * Check project detection and its installed hooks together.
@@ -15,9 +15,12 @@ import { checkProjectType } from "./doctor-project-type.js";
 export async function checkProjectTypeAndHooks(
   projectRoot: string
 ): Promise<readonly DoctorCheck[]> {
+  const projectType = await inspectProjectType(projectRoot);
   return [
-    await checkProjectType(projectRoot),
-    ...(await checkGitHookInstallation(projectRoot)),
+    projectType.check,
+    ...(projectType.detectedTypes.includes("rails")
+      ? await checkGitHookInstallation(projectRoot)
+      : []),
   ];
 }
 
