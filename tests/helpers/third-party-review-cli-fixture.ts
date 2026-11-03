@@ -45,6 +45,8 @@ export interface Observations {
   readonly reviews?: readonly Record<string, unknown>[];
   /** Open pull requests whose head is the commit. */
   readonly pulls?: readonly Record<string, unknown>[];
+  /** The raw PR response, including deliberate API refusal or malformed bodies. */
+  readonly pullResponse?: unknown;
   /** Extra CLI arguments, such as `--context`. */
   readonly args?: readonly string[];
 }
@@ -80,9 +82,11 @@ export interface CliRun {
 function responsesFor(observations: Observations): Record<string, unknown> {
   const runs = observations.checkRuns ?? [];
   return {
-    [ROUTES.pulls]: observations.pulls ?? [
-      { number: PULL, state: "open", head: { sha: HEAD } },
-    ],
+    [ROUTES.pulls]: Object.hasOwn(observations, "pullResponse")
+      ? observations.pullResponse
+      : (observations.pulls ?? [
+          { number: PULL, state: "open", head: { sha: HEAD } },
+        ]),
     [ROUTES.status]: {
       sha: HEAD,
       total_count: (observations.statuses ?? []).length,

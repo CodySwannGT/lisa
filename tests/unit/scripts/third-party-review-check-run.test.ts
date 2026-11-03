@@ -27,6 +27,7 @@ import {
   selectReviewerCheckRun,
 } from "../../../all/copy-overwrite/scripts/check-third-party-review-evidence.mjs";
 
+const REPO_ARG = "--repo=acme/code";
 const CONTEXT = "Example Reviewer";
 const APP = 347564;
 const HEAD = "c".repeat(40);
@@ -539,7 +540,7 @@ describe("main reads check runs once per reviewer, and only when asked", () => {
 
   it("reads the reviewer's runs and credits a completed one", () => {
     const asked: Array<readonly [string, string]> = [];
-    const code = main([`--sha=${HEAD}`], {
+    const code = main([`--sha=${HEAD}`, REPO_ARG], {
       gates: PINNED,
       pulls: () => [1],
       statuses: () => [],
@@ -557,7 +558,7 @@ describe("main reads check runs once per reviewer, and only when asked", () => {
 
   it("reads a context two gates share only once", () => {
     const asked: string[] = [];
-    main([`--sha=${HEAD}`], {
+    main([`--sha=${HEAD}`, REPO_ARG], {
       gates: {
         ...PINNED,
         "second-review": PINNED["code-review"],
@@ -592,7 +593,7 @@ describe("main reads check runs once per reviewer, and only when asked", () => {
 
   it("does not mix a live read into a caller's injected status evidence", () => {
     const chunks: string[] = [];
-    const code = main([`--sha=${HEAD}`, "--repo=acme/code", "--json"], {
+    const code = main([`--sha=${HEAD}`, REPO_ARG, "--json"], {
       gates: PINNED,
       pulls: () => [1],
       statuses: () => [],
@@ -611,7 +612,7 @@ describe("main reads check runs once per reviewer, and only when asked", () => {
 
   it("does not mix a live status read into a caller's injected check runs", () => {
     const chunks: string[] = [];
-    const code = main([`--sha=${HEAD}`, "--repo=acme/code", "--json"], {
+    const code = main([`--sha=${HEAD}`, REPO_ARG, "--json"], {
       gates: PINNED,
       pulls: () => [1],
       checkRuns: () => [],
