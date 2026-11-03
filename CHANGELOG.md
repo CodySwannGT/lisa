@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.87.14](https://github.com/CodySwannGT/lisa/compare/v4.87.13...v4.87.14) (2026-11-03)
+
+
+### Bug Fixes
+
+* fail review evidence when pull requests are unreadable ([aeda9d8](https://github.com/CodySwannGT/lisa/commit/aeda9d8078b5a25cd27958cec9895442d71931b9)), closes [CodySwannGT/lisa#4631](https://github.com/CodySwannGT/lisa/issues/4631)
+* preserve unknown status in PR review reports ([791be4d](https://github.com/CodySwannGT/lisa/commit/791be4d8541ba36917df383c1bce7b9f45d4d0c1)), closes [CodySwannGT/lisa#4631](https://github.com/CodySwannGT/lisa/issues/4631)
+* require repository before reading review evidence ([93daa35](https://github.com/CodySwannGT/lisa/commit/93daa353d6a888eb0e648107192a5001dcc545d1)), closes [CodySwannGT/lisa#4631](https://github.com/CodySwannGT/lisa/issues/4631)
+* stop review decisions when pull request discovery is unreadable ([7c6e6e2](https://github.com/CodySwannGT/lisa/commit/7c6e6e2c7acd00dbd5895d36e08bc689ffc89bca)), closes [CodySwannGT/lisa#4631](https://github.com/CodySwannGT/lisa/issues/4631)
+
+
+### Documentation
+
+* keep no-reviewer handling independent of PR discovery ([ccb521f](https://github.com/CodySwannGT/lisa/commit/ccb521f2aa617c2e8f8ea32c5899d726c11ecb99)), closes [CodySwannGT/lisa#4631](https://github.com/CodySwannGT/lisa/issues/4631)
+
 ### [4.87.13](https://github.com/CodySwannGT/lisa/compare/v4.87.12...v4.87.13) (2026-11-03)
 
 
