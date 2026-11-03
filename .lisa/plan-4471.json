@@ -1,0 +1,368 @@
+{
+  "work_item_ref": "CodySwannGT/lisa#4471",
+  "tracker_provider": "github",
+  "target_environment": "production",
+  "target_branch": "main",
+  "base_sha": "ac24c08818268db5a05bcebfeac35eec601bd320",
+  "tasks": [
+    {
+      "id": "resolve",
+      "status": "completed",
+      "owner": "/root/resolve_4635",
+      "metadata": {
+        "plan": "4471-shell-inline-comment",
+        "type": "bug",
+        "acceptance_criteria": [
+          "Inline comments cannot register fake function definitions.",
+          "Hash characters in parameter expansion, argument-count and literal words preserve following refused statements.",
+          "Comments inside called function bodies cannot inject definitions.",
+          "Full-line comment controls preserve refusal.",
+          "New indirect-hook regressions prove RED before fix and GREEN after.",
+          "All generated copies and all existing parity-safety-net suites pass.",
+          "Owner comment 6215928978: function/name/header parsing rejects FF/VT/CR ambiguity or uses Bash space/tab semantics."
+        ],
+        "work_item_context": "/Users/codysai/workspace/lisa/.lisa/work-item-context.md",
+        "comment_inventory": [
+          {
+            "id": 6215650530,
+            "tags": [
+              "decision",
+              "constraint"
+            ]
+          },
+          {
+            "id": 6215928978,
+            "tags": [
+              "constraint",
+              "repro"
+            ]
+          },
+          {
+            "id": 6597541138,
+            "tags": [
+              "constraint"
+            ]
+          }
+        ],
+        "skills": [
+          "lisa-implement"
+        ],
+        "learnings": [],
+        "required_access": [
+          {
+            "tool": "GitHub CodySwannGT/lisa",
+            "probe": "native repository-scoped issue/graph reads and claim write independently read back",
+            "status": "pass"
+          },
+          {
+            "tool": "configured Bitwarden provider",
+            "probe": "configured preflight GH_TOKEN requirement resolved, three records reachable; values omitted",
+            "status": "pass"
+          }
+        ],
+        "verification": {
+          "type": "cli-test",
+          "command": "Run /bin/bash <exact-delivered-hook> with PreToolUse JSON command sh <inert-fixture>; never execute the fixture; capture status/stderr for candidate and retained base.",
+          "expected": "reported base inline-comment fixture exits0; delivered candidate exits2; hash/full-line/safe/whitespace controls preserve required verdicts."
+        },
+        "owner": "/root/resolve_4635",
+        "relevant_documentation": "live native context and configured claim contracts",
+        "testing_requirements": [
+          "Highest-practical native guard regression, indirect sh-file hop; fixture payload never executed.",
+          "Unchanged sibling control before interpreting RED.",
+          "No existing expectations changed or checks disabled.",
+          "Named new regression executions observed passing in hosted CI.",
+          "Exact published package guard replay plus configured production delivery."
+        ]
+      }
+    },
+    {
+      "id": "regression",
+      "status": "completed-local",
+      "owner": "/root/tests_4487",
+      "metadata": {
+        "plan": "4471-shell-inline-comment",
+        "type": "bug",
+        "acceptance_criteria": [
+          "Inline comments cannot register fake function definitions.",
+          "Hash characters in parameter expansion, argument-count and literal words preserve following refused statements.",
+          "Comments inside called function bodies cannot inject definitions.",
+          "Full-line comment controls preserve refusal.",
+          "New indirect-hook regressions prove RED before fix and GREEN after.",
+          "All generated copies and all existing parity-safety-net suites pass.",
+          "Owner comment 6215928978: function/name/header parsing rejects FF/VT/CR ambiguity or uses Bash space/tab semantics."
+        ],
+        "work_item_context": "/Users/codysai/workspace/lisa/.lisa/work-item-context.md",
+        "comment_inventory": [
+          {
+            "id": 6215650530,
+            "tags": [
+              "decision",
+              "constraint"
+            ]
+          },
+          {
+            "id": 6215928978,
+            "tags": [
+              "constraint",
+              "repro"
+            ]
+          },
+          {
+            "id": 6597541138,
+            "tags": [
+              "constraint"
+            ]
+          }
+        ],
+        "skills": [
+          "lisa-implement"
+        ],
+        "learnings": [],
+        "required_access": [
+          {
+            "tool": "GitHub CodySwannGT/lisa",
+            "probe": "native repository-scoped issue/graph reads and claim write independently read back",
+            "status": "pass"
+          },
+          {
+            "tool": "configured Bitwarden provider",
+            "probe": "configured preflight GH_TOKEN requirement resolved, three records reachable; values omitted",
+            "status": "pass"
+          }
+        ],
+        "verification": {
+          "type": "cli-test",
+          "command": "Run /bin/bash <exact-delivered-hook> with PreToolUse JSON command sh <inert-fixture>; never execute the fixture; capture status/stderr for candidate and retained base.",
+          "expected": "reported base inline-comment fixture exits0; delivered candidate exits2; hash/full-line/safe/whitespace controls preserve required verdicts."
+        },
+        "owner": "/root/tests_4487",
+        "relevant_documentation": "full context; existing function-source-scope suite; boundedSpawnSync and supervised test runner",
+        "testing_requirements": [
+          "Highest-practical native guard regression, indirect sh-file hop; fixture payload never executed.",
+          "Unchanged sibling control before interpreting RED.",
+          "No existing expectations changed or checks disabled.",
+          "Named new regression executions observed passing in hosted CI.",
+          "Exact published package guard replay plus configured production delivery."
+        ]
+      }
+    },
+    {
+      "id": "implement",
+      "status": "completed-local",
+      "owner": "/root",
+      "metadata": {
+        "plan": "4471-shell-inline-comment",
+        "type": "bug",
+        "acceptance_criteria": [
+          "Inline comments cannot register fake function definitions.",
+          "Hash characters in parameter expansion, argument-count and literal words preserve following refused statements.",
+          "Comments inside called function bodies cannot inject definitions.",
+          "Full-line comment controls preserve refusal.",
+          "New indirect-hook regressions prove RED before fix and GREEN after.",
+          "All generated copies and all existing parity-safety-net suites pass.",
+          "Owner comment 6215928978: function/name/header parsing rejects FF/VT/CR ambiguity or uses Bash space/tab semantics."
+        ],
+        "work_item_context": "/Users/codysai/workspace/lisa/.lisa/work-item-context.md",
+        "comment_inventory": [
+          {
+            "id": 6215650530,
+            "tags": [
+              "decision",
+              "constraint"
+            ]
+          },
+          {
+            "id": 6215928978,
+            "tags": [
+              "constraint",
+              "repro"
+            ]
+          },
+          {
+            "id": 6597541138,
+            "tags": [
+              "constraint"
+            ]
+          }
+        ],
+        "skills": [
+          "lisa-implement"
+        ],
+        "learnings": [],
+        "required_access": [
+          {
+            "tool": "GitHub CodySwannGT/lisa",
+            "probe": "native repository-scoped issue/graph reads and claim write independently read back",
+            "status": "pass"
+          },
+          {
+            "tool": "configured Bitwarden provider",
+            "probe": "configured preflight GH_TOKEN requirement resolved, three records reachable; values omitted",
+            "status": "pass"
+          }
+        ],
+        "verification": {
+          "type": "cli-test",
+          "command": "Run /bin/bash <exact-delivered-hook> with PreToolUse JSON command sh <inert-fixture>; never execute the fixture; capture status/stderr for candidate and retained base.",
+          "expected": "reported base inline-comment fixture exits0; delivered candidate exits2; hash/full-line/safe/whitespace controls preserve required verdicts."
+        },
+        "owner": "/root",
+        "relevant_documentation": "full context; owning parser source after reliable reproduction; generated-artifact contract",
+        "testing_requirements": [
+          "Highest-practical native guard regression, indirect sh-file hop; fixture payload never executed.",
+          "Unchanged sibling control before interpreting RED.",
+          "No existing expectations changed or checks disabled.",
+          "Named new regression executions observed passing in hosted CI.",
+          "Exact published package guard replay plus configured production delivery."
+        ]
+      }
+    },
+    {
+      "id": "review",
+      "status": "self-review-complete-checks-pending",
+      "owner": "/root",
+      "metadata": {
+        "plan": "4471-shell-inline-comment",
+        "type": "bug",
+        "acceptance_criteria": [
+          "Inline comments cannot register fake function definitions.",
+          "Hash characters in parameter expansion, argument-count and literal words preserve following refused statements.",
+          "Comments inside called function bodies cannot inject definitions.",
+          "Full-line comment controls preserve refusal.",
+          "New indirect-hook regressions prove RED before fix and GREEN after.",
+          "All generated copies and all existing parity-safety-net suites pass.",
+          "Owner comment 6215928978: function/name/header parsing rejects FF/VT/CR ambiguity or uses Bash space/tab semantics."
+        ],
+        "work_item_context": "/Users/codysai/workspace/lisa/.lisa/work-item-context.md",
+        "comment_inventory": [
+          {
+            "id": 6215650530,
+            "tags": [
+              "decision",
+              "constraint"
+            ]
+          },
+          {
+            "id": 6215928978,
+            "tags": [
+              "constraint",
+              "repro"
+            ]
+          },
+          {
+            "id": 6597541138,
+            "tags": [
+              "constraint"
+            ]
+          }
+        ],
+        "skills": [
+          "lisa-implement"
+        ],
+        "learnings": [],
+        "required_access": [
+          {
+            "tool": "GitHub CodySwannGT/lisa",
+            "probe": "native repository-scoped issue/graph reads and claim write independently read back",
+            "status": "pass"
+          },
+          {
+            "tool": "configured Bitwarden provider",
+            "probe": "configured preflight GH_TOKEN requirement resolved, three records reachable; values omitted",
+            "status": "pass"
+          }
+        ],
+        "verification": {
+          "type": "cli-test",
+          "command": "Run /bin/bash <exact-delivered-hook> with PreToolUse JSON command sh <inert-fixture>; never execute the fixture; capture status/stderr for candidate and retained base.",
+          "expected": "reported base inline-comment fixture exits0; delivered candidate exits2; hash/full-line/safe/whitespace controls preserve required verdicts."
+        },
+        "owner": "/root",
+        "relevant_documentation": "complete branch diff; host rules; git-submit-pr and drive-pr-to-merge",
+        "testing_requirements": [
+          "Highest-practical native guard regression, indirect sh-file hop; fixture payload never executed.",
+          "Unchanged sibling control before interpreting RED.",
+          "No existing expectations changed or checks disabled.",
+          "Named new regression executions observed passing in hosted CI.",
+          "Exact published package guard replay plus configured production delivery."
+        ]
+      }
+    },
+    {
+      "id": "deliver",
+      "status": "pending",
+      "owner": "/root",
+      "metadata": {
+        "plan": "4471-shell-inline-comment",
+        "type": "bug",
+        "acceptance_criteria": [
+          "Inline comments cannot register fake function definitions.",
+          "Hash characters in parameter expansion, argument-count and literal words preserve following refused statements.",
+          "Comments inside called function bodies cannot inject definitions.",
+          "Full-line comment controls preserve refusal.",
+          "New indirect-hook regressions prove RED before fix and GREEN after.",
+          "All generated copies and all existing parity-safety-net suites pass.",
+          "Owner comment 6215928978: function/name/header parsing rejects FF/VT/CR ambiguity or uses Bash space/tab semantics."
+        ],
+        "work_item_context": "/Users/codysai/workspace/lisa/.lisa/work-item-context.md",
+        "comment_inventory": [
+          {
+            "id": 6215650530,
+            "tags": [
+              "decision",
+              "constraint"
+            ]
+          },
+          {
+            "id": 6215928978,
+            "tags": [
+              "constraint",
+              "repro"
+            ]
+          },
+          {
+            "id": 6597541138,
+            "tags": [
+              "constraint"
+            ]
+          }
+        ],
+        "skills": [
+          "lisa-verify",
+          "lisa-spec-conformance",
+          "lisa-monitor",
+          "lisa-tracker-evidence",
+          "lisa-usage-accounting"
+        ],
+        "learnings": [],
+        "required_access": [
+          {
+            "tool": "GitHub CodySwannGT/lisa",
+            "probe": "native repository-scoped issue/graph reads and claim write independently read back",
+            "status": "pass"
+          },
+          {
+            "tool": "configured Bitwarden provider",
+            "probe": "configured preflight GH_TOKEN requirement resolved, three records reachable; values omitted",
+            "status": "pass"
+          }
+        ],
+        "verification": {
+          "type": "cli-test",
+          "command": "Run /bin/bash <exact-delivered-hook> with PreToolUse JSON command sh <inert-fixture>; never execute the fixture; capture status/stderr for candidate and retained base.",
+          "expected": "reported base inline-comment fixture exits0; delivered candidate exits2; hash/full-line/safe/whitespace controls preserve required verdicts."
+        },
+        "owner": "/root",
+        "relevant_documentation": "verification lifecycle, spec-conformance, accepted completion record and native closure",
+        "testing_requirements": [
+          "Highest-practical native guard regression, indirect sh-file hop; fixture payload never executed.",
+          "Unchanged sibling control before interpreting RED.",
+          "No existing expectations changed or checks disabled.",
+          "Named new regression executions observed passing in hosted CI.",
+          "Exact published package guard replay plus configured production delivery."
+        ]
+      }
+    }
+  ]
+}
