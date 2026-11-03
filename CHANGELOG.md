@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.87.10](https://github.com/CodySwannGT/lisa/compare/v4.87.9...v4.87.10) (2026-11-03)
+
+
+### Bug Fixes
+
+* **evidence:** upload assets with their PR-prefixed names ([0365423](https://github.com/CodySwannGT/lisa/commit/0365423fc186d5c5627c610f671f32f25d7ecd2f)), closes [CodySwannGT/lisa#4635](https://github.com/CodySwannGT/lisa/issues/4635)
+* **evidence:** validate all names before uploading or posting ([6499240](https://github.com/CodySwannGT/lisa/commit/6499240bdffe6a1089c422b7d9b989c9d6580ac7)), closes [CodySwannGT/lisa#4635](https://github.com/CodySwannGT/lisa/issues/4635)
+
 ### [4.87.9](https://github.com/CodySwannGT/lisa/compare/v4.87.8...v4.87.9) (2026-11-02)
 
 
