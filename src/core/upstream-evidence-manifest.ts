@@ -334,6 +334,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "f5d85f8fccfd97f7800c03430a38c19d584314b0a6a63aa1de28fb62897fbcc5",
     "all/copy-overwrite/scripts/npm-updater-helper-graph.json":
       "f3c5ff735ddb1cc78b6d56dc6c0fd4af437ad2afa5b39bfb4fa2f0799351f8c5",
+    "all/copy-overwrite/scripts/review-evidence-event.mjs":
+      "1c5d510bc66f8ba23b6f046246f41182c17946a50126fb88e371d2aec9dfd6b2",
     "all/copy-overwrite/scripts/schemas/lisa-command-envelope.v1.schema.json":
       "d153b7c2953a30f180e38f09e98240c63327f5196eeba9bdf545e5a1f125a879",
     "all/copy-overwrite/scripts/schemas/lisa-state-contract.v1.schema.json":
@@ -2845,7 +2847,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/test-intent-routing.sh":
       "97b9dc86cbd805df8a7fdb8c99ffab9b8c5e751ba2e84c05420b2a124f80635d",
     "scripts/two-channel-couplings.json":
-      "f19499147d8ef21a35c83b625a3f43b4f76f3933b2a3710b05727a644d876cdb",
+      "f74bd6c91d363dc8204f8f35901929907d0b252128decdc2753fc329902e64d6",
     "scripts/update-node-version.ts":
       "9d37599ef73d5d624751f862cda330a867f6774392c1ab045b4fc885132582e4",
     "scripts/update-test-skill-paths.mjs":
@@ -2949,7 +2951,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/copy-overwrite/scripts/check-nightly-e2e-health.mjs":
       "d1b26caeaf65950e3b60ff41964d234c032c50470072e7643310b1f6722e34e6",
     "typescript/copy-overwrite/scripts/check-skipped-required-checks.mjs":
-      "dee1d61491d5bc30b42936dd30e28eb781d3e88021a7ebe1fd251acea1622b41",
+      "193c8e061ad4897a6c8e70a3f8679218505924a41936212187e7cb46d367cbe6",
     "typescript/copy-overwrite/scripts/check-threshold-ratchet.mjs":
       "d4afc90ba8faf10925fff5fb0d6cd0ace22df2eaa0ec609ee969d0ec84092299",
     "typescript/copy-overwrite/scripts/check-verification-coverage.mjs":
@@ -2989,11 +2991,11 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/copy-overwrite/vitest.config.ts":
       "dc140e617db43da38f456bcc909ae621a62996fe25e7b0babd5e81941308365c",
     "typescript/create-only/.github/required-checks.json":
-      "cc2f57e86e79fc0a708b7317c9b7c3a89cb463ad0813dcfe3a87af809d8ec38d",
+      "d4a1db50edb7a072b02792cd39cd12076e1be01c2931a62aede1fda4e710d7e0",
     "typescript/create-only/.github/workflows/ci.yml":
       "313e42045137c59f77cf61abeebb19c8005ba7fa6d5b7d92a169a1e86ab168b5",
     "typescript/create-only/.github/workflows/review-evidence.yml":
-      "cbe6584b59ee465b13672c1f7f8a9d48b310017fb5f62520ec2b71c469f41d61",
+      "f8e7aa7aade0797fd07831d35ce6626bc4acbd13905f6cfac68ef404721c774e",
     "typescript/create-only/.github/workflows/third-party-review-evidence.yml":
       "8dd799be919a581f7a00efcfce6f01c70f72375c7c989252e3b96a825ab77f94",
     "typescript/create-only/.gitleaksignore":
@@ -3350,6 +3352,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "all/copy-overwrite/scripts/npm-updater-gate-supervisor.c": true,
     "all/copy-overwrite/scripts/npm-updater-gate.Dockerfile": true,
     "all/copy-overwrite/scripts/npm-updater-helper-graph.json": true,
+    "all/copy-overwrite/scripts/review-evidence-event.mjs": true,
     "all/copy-overwrite/scripts/schemas/lisa-command-envelope.v1.schema.json": true,
     "all/copy-overwrite/scripts/schemas/lisa-state-contract.v1.schema.json": true,
     "all/copy-overwrite/scripts/threshold-ratchet-compare.mjs": true,
@@ -11460,6 +11463,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/rails-scratch-lifecycle.test.ts": true,
     "tests/integration/rails-scratch-ownership.test.ts": true,
     "tests/integration/rails-version-initializer.test.ts": true,
+    "tests/integration/registration-deferred-cli.test.ts": true,
     "tests/integration/registry-path-agreement.test.ts": true,
     "tests/integration/release-changelog-entry.test.ts": true,
     "tests/integration/release-changelog-push-recovery.test.ts": true,
@@ -12616,12 +12620,14 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/ready-queue-order-operators.test.ts": true,
     "tests/unit/scripts/ready-queue-order.test.ts": true,
     "tests/unit/scripts/reconcile-release-tags.test.ts": true,
+    "tests/unit/scripts/registration-deferred.test.ts": true,
     "tests/unit/scripts/required-check-promotions-helpers.ts": true,
     "tests/unit/scripts/required-check-promotions.legs.test.ts": true,
     "tests/unit/scripts/required-check-promotions.repo.test.ts": true,
     "tests/unit/scripts/required-check-promotions.test.ts": true,
     "tests/unit/scripts/required-check-promotions.wiring.test.ts": true,
     "tests/unit/scripts/review-evidence-check-name.test.ts": true,
+    "tests/unit/scripts/review-evidence-wakeup.test.ts": true,
     "tests/unit/scripts/review-gate-conditions.test.ts": true,
     "tests/unit/scripts/review-gate-substitute.test.ts": true,
     "tests/unit/scripts/review-gate-terminal-neutral.test.ts": true,

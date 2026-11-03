@@ -1,5 +1,6 @@
 {
   "_readme": [
+    "Optional `registration_deferred` (#4622) maps exact required context names to non-empty reasons when those jobs register after the bounded five-minute wait introduced by #4527. The registration/absence probe excludes only these names; GitHub still requires them to pass before merge. Entries outside the selected base branch's required set, malformed reasons, and evidence-bearing checks are refused. Omit the key for unchanged behavior. A slow reviewer is never deferred: the review-evidence workflow re-evaluates on its terminal check_run or status event, using default-branch code and a fresh current-head read. This workflow is create-only; existing hosts must adopt the event job explicitly to receive the wake-up behavior.",
     "Two REVIEWED SNAPSHOTS that scripts/check-skipped-required-checks.mjs makes police each other.",
     "Neither is derivable from this repository: `required_contexts` lives in a GitHub ruleset that humans edit in an admin console, and the skip_jobs token -> job name map lives in Lisa's quality.yml, which is not vendored here.",
     "Why it matters: GitHub counts a SKIPPED required status check as SATISFIED. A job named in `skip_jobs` still reports green against its required context having run zero steps, so the merge gate can never be red and therefore can never block anything.",
