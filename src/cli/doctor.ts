@@ -31,7 +31,6 @@ import { checkWorkerEpoch } from "./doctor-worker-epoch.js";
 import { checkSerializeLegsContract } from "./doctor-serialize-legs-contract.js";
 import { checkApplyFailure } from "./doctor-apply-failure.js";
 import { checkApplyDeletions } from "./doctor-apply-deletions.js";
-import { checkProjectType } from "./doctor-project-type.js";
 import { checkSeededArtifacts } from "./doctor-seeded-artifacts.js";
 import { checkOverrideFloorConflicts } from "./doctor-override-floor-conflicts.js";
 import { renderDoctorResult } from "./doctor-render.js";
@@ -44,6 +43,7 @@ import { checkWiki } from "./doctor-wiki.js";
 import { checkDeclaredContexts } from "./doctor-declared-contexts.js";
 import { checkTraceabilityGate } from "./doctor-traceability-gate.js";
 import { checkHookCopyParity } from "./doctor-hook-copy-parity.js";
+import { checkProjectTypeAndHooks } from "./doctor-git-hooks.js";
 import { checkOwnershipBannerDrift } from "./doctor-ownership-banner-drift.js";
 import { checkWorktreeHygiene } from "./doctor-worktree-hygiene.js";
 import { checkWorktreeWorkAtRisk } from "./doctor-worktree-work-at-risk.js";
@@ -428,7 +428,7 @@ export async function runDoctor(
     // downwards is refused, and until now nothing said so in advance
     // (CodySwannGT/lisa#2754).
     await checkOverrideFloorConflicts(resolvedTarget),
-    await checkProjectType(resolvedTarget),
+    ...(await checkProjectTypeAndHooks(resolvedTarget)),
     await checkInstructionFiles(resolvedTarget),
     // Runs AFTER the instruction-files check because that check performs the
     // legacy ledger relocation. A project whose ledger merely needs moving is

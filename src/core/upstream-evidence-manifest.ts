@@ -1072,6 +1072,10 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "9d2d3352f57099fdb7a3442ddd266c672cd83d484d1216f341168323f5e354ca",
     "plugins/src/base/hooks/install-pkgs.sh":
       "51e9847de1cae1e1582f595d4b4e711de7bb1816a53c8e1507826e528b743af0",
+    "plugins/src/base/hooks/install-rails-hooks.mjs":
+      "366118f19ba1b1012caf511d02a8967a11846d959c54b4e30d487bb474e4e53a",
+    "plugins/src/base/hooks/install-rails-hooks.sh":
+      "7030ede07019868ad61056472d8c20fc3473a2c4214b789cb967c902e804c5f1",
     "plugins/src/base/hooks/operational-hazards.mjs":
       "f29f1a3a7d48bdcdd8ef1e154361b10577a8ea091c3c0c41b7ece47ffb8dfaa9",
     "plugins/src/base/hooks/operational-hazards.sh":
@@ -2589,7 +2593,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "rails/merge/.claude/settings.json":
       "01174bd607fe8166e3b588a5679940e598a7b81affae7cd318d4efe47375c156",
     "scripts/build-plugins.sh":
-      "e66174eb6da5604628650b86b647a093909be6ea13273590178ed5665c95b445",
+      "01e0a6e03835b9545e783a612394abb7b55751b10813bc1b06f1da57d3168c97",
     "scripts/check-cwd-resolution-corpus.mjs":
       "117248694ca2a0dc48f8e22c2a5169791fec554b3dcf61ab6cda210d84185017",
     "scripts/check-deletion-basis.mjs":
@@ -2673,7 +2677,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/copy-codex-scripts.mjs":
       "2d7082d5033088c85f66995aee9e3ee1e7751435e65bfde8e1cb002e6689d476",
     "scripts/copy-opencode-plugin-templates.mjs":
-      "c87d1759b02d20212da37d38b7860d82770c1067ebbe885c8ab6451840fafb60",
+      "a16291d2499a4c8e406574b7926f6eca99b078720a187bcc057772d778994ec0",
     "scripts/deployed-guard-advice.mjs":
       "c7471b6972b26bb0c2a66c680feb4980ec67d3dbd92732f48fe76c72ed7790f5",
     "scripts/detect-stale-workflow-inputs.mjs":
@@ -2751,11 +2755,19 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/lib/nest-plugin-commands.mjs":
       "c52b2f48edbc17edcc60ae33536549829cbc279c60c5d85d912ac6609cae9bea",
     "scripts/lib/per-agent-hook-filter.mjs":
-      "375abb50dd7aacd1df5cdea0b4d944db0a7d4abf7cc42f8ab0fefedc6ee92d8b",
+      "366564dc54c18145b745ecfe18fbc168e8df71f59e4be03cb5acc1899b16b461",
     "scripts/lib/plugin-cache-resolution.mjs":
       "47a564e2f9d46c0a955defe8eb924f86d7a273098e6ccb118e10f9eeecf3950c",
     "scripts/lib/plugin-rule-citations.mjs":
       "c9f0ed57d6da16ce90eab0a67a73a7f6783e7065406a39eea039619a10e517b9",
+    "scripts/lib/rails-hooks-command.mjs":
+      "dc695aa4920e83d9e757eaa2dcf3477ed2f5aa4df93814581e6254d5661c040e",
+    "scripts/lib/rails-hooks-inspection.mjs":
+      "f102499f3318bf9063057a9fb4f6109c027592cddd9b2da6e13a80a40501a2b6",
+    "scripts/lib/rails-hooks.d.mts":
+      "05a93fd5d1e70744ccabdc7e9e08fac74eac9e91a7d38218c10fd77ba2bb7918",
+    "scripts/lib/rails-hooks.mjs":
+      "3c34d314b0f232fe1ce6894c24ac239628ca57b3a349468c4fa374e805fbcd44",
     "scripts/lib/reusable-workflow-contract.d.mts":
       "791f01b55dd7a6b5d9a5f4cb9c44167caa146c2fc3c31a2ae4c2d8a350adc2f1",
     "scripts/lib/reusable-workflow-contract.mjs":
@@ -2847,7 +2859,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/test-intent-routing.sh":
       "97b9dc86cbd805df8a7fdb8c99ffab9b8c5e751ba2e84c05420b2a124f80635d",
     "scripts/two-channel-couplings.json":
-      "f74bd6c91d363dc8204f8f35901929907d0b252128decdc2753fc329902e64d6",
+      "afde052f4188e2c5481cb4391c922901ad53386a338c9091ea1512db32bfbddb",
     "scripts/update-node-version.ts":
       "9d37599ef73d5d624751f862cda330a867f6774392c1ab045b4fc885132582e4",
     "scripts/update-test-skill-paths.mjs":
@@ -3437,6 +3449,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "cdk/merge/.claude/settings.json": true,
     "cdk/merge/.oxlintrc.json": true,
     "cdk/package-lisa/package.lisa.json": true,
+    "claude-review.md": true,
     "commitlint.config.cjs": true,
     "docs/agentic-readiness-questionnaire.md": true,
     "docs/bdd-coverage-schema.md": true,
@@ -4779,10 +4792,15 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-copilot/hooks/inject-resolved-config.sh": true,
     "plugins/lisa-copilot/hooks/inject-rules.sh": true,
     "plugins/lisa-copilot/hooks/install-pkgs.sh": true,
+    "plugins/lisa-copilot/hooks/install-rails-hooks.mjs": true,
+    "plugins/lisa-copilot/hooks/install-rails-hooks.sh": true,
     "plugins/lisa-copilot/hooks/operational-hazards.mjs": true,
     "plugins/lisa-copilot/hooks/operational-hazards.sh": true,
     "plugins/lisa-copilot/hooks/parity-safety-net-heredoc.py": true,
     "plugins/lisa-copilot/hooks/parity-safety-net.sh": true,
+    "plugins/lisa-copilot/hooks/rails-hooks-command.mjs": true,
+    "plugins/lisa-copilot/hooks/rails-hooks-inspection.mjs": true,
+    "plugins/lisa-copilot/hooks/rails-hooks.mjs": true,
     "plugins/lisa-copilot/hooks/secrets-preflight.sh": true,
     "plugins/lisa-copilot/hooks/setup-jira-cli.sh": true,
     "plugins/lisa-copilot/hooks/shell-write-nudge.sh": true,
@@ -5300,10 +5318,15 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-cursor/hooks/inject-resolved-config.mjs": true,
     "plugins/lisa-cursor/hooks/inject-resolved-config.sh": true,
     "plugins/lisa-cursor/hooks/install-pkgs.sh": true,
+    "plugins/lisa-cursor/hooks/install-rails-hooks.mjs": true,
+    "plugins/lisa-cursor/hooks/install-rails-hooks.sh": true,
     "plugins/lisa-cursor/hooks/operational-hazards.mjs": true,
     "plugins/lisa-cursor/hooks/operational-hazards.sh": true,
     "plugins/lisa-cursor/hooks/parity-safety-net-heredoc.py": true,
     "plugins/lisa-cursor/hooks/parity-safety-net.sh": true,
+    "plugins/lisa-cursor/hooks/rails-hooks-command.mjs": true,
+    "plugins/lisa-cursor/hooks/rails-hooks-inspection.mjs": true,
+    "plugins/lisa-cursor/hooks/rails-hooks.mjs": true,
     "plugins/lisa-cursor/hooks/secrets-preflight.sh": true,
     "plugins/lisa-cursor/hooks/setup-jira-cli.sh": true,
     "plugins/lisa-cursor/hooks/shell-write-nudge.sh": true,
@@ -5753,10 +5776,15 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-devin/hooks/inject-resolved-config.sh": true,
     "plugins/lisa-devin/hooks/inject-rules.sh": true,
     "plugins/lisa-devin/hooks/install-pkgs.sh": true,
+    "plugins/lisa-devin/hooks/install-rails-hooks.mjs": true,
+    "plugins/lisa-devin/hooks/install-rails-hooks.sh": true,
     "plugins/lisa-devin/hooks/operational-hazards.mjs": true,
     "plugins/lisa-devin/hooks/operational-hazards.sh": true,
     "plugins/lisa-devin/hooks/parity-safety-net-heredoc.py": true,
     "plugins/lisa-devin/hooks/parity-safety-net.sh": true,
+    "plugins/lisa-devin/hooks/rails-hooks-command.mjs": true,
+    "plugins/lisa-devin/hooks/rails-hooks-inspection.mjs": true,
+    "plugins/lisa-devin/hooks/rails-hooks.mjs": true,
     "plugins/lisa-devin/hooks/secrets-preflight.sh": true,
     "plugins/lisa-devin/hooks/setup-jira-cli.sh": true,
     "plugins/lisa-devin/hooks/shell-write-nudge.sh": true,
@@ -8751,11 +8779,16 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa/hooks/inject-resolved-config.sh": true,
     "plugins/lisa/hooks/inject-rules.sh": true,
     "plugins/lisa/hooks/install-pkgs.sh": true,
+    "plugins/lisa/hooks/install-rails-hooks.mjs": true,
+    "plugins/lisa/hooks/install-rails-hooks.sh": true,
     "plugins/lisa/hooks/operational-hazards.mjs": true,
     "plugins/lisa/hooks/operational-hazards.sh": true,
     "plugins/lisa/hooks/parity-safety-net-heredoc.py": true,
     "plugins/lisa/hooks/parity-safety-net.agy.sh": true,
     "plugins/lisa/hooks/parity-safety-net.sh": true,
+    "plugins/lisa/hooks/rails-hooks-command.mjs": true,
+    "plugins/lisa/hooks/rails-hooks-inspection.mjs": true,
+    "plugins/lisa/hooks/rails-hooks.mjs": true,
     "plugins/lisa/hooks/secrets-preflight.sh": true,
     "plugins/lisa/hooks/setup-jira-cli.sh": true,
     "plugins/lisa/hooks/shell-write-nudge.sh": true,
@@ -9458,6 +9491,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/src/base/hooks/inject-resolved-config.sh": true,
     "plugins/src/base/hooks/inject-rules.sh": true,
     "plugins/src/base/hooks/install-pkgs.sh": true,
+    "plugins/src/base/hooks/install-rails-hooks.mjs": true,
+    "plugins/src/base/hooks/install-rails-hooks.sh": true,
     "plugins/src/base/hooks/operational-hazards.mjs": true,
     "plugins/src/base/hooks/operational-hazards.sh": true,
     "plugins/src/base/hooks/parity-safety-net-heredoc.py": true,
@@ -10371,6 +10406,10 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "scripts/lib/per-agent-hook-filter.mjs": true,
     "scripts/lib/plugin-cache-resolution.mjs": true,
     "scripts/lib/plugin-rule-citations.mjs": true,
+    "scripts/lib/rails-hooks-command.mjs": true,
+    "scripts/lib/rails-hooks-inspection.mjs": true,
+    "scripts/lib/rails-hooks.d.mts": true,
+    "scripts/lib/rails-hooks.mjs": true,
     "scripts/lib/reusable-workflow-contract.d.mts": true,
     "scripts/lib/reusable-workflow-contract.mjs": true,
     "scripts/lib/shell-guard-refusal-coverage.mjs": true,
@@ -10450,6 +10489,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "src/cli/doctor-declared-contexts.ts": true,
     "src/cli/doctor-enforcement-coverage.ts": true,
     "src/cli/doctor-gate-recommendation.ts": true,
+    "src/cli/doctor-git-hooks.ts": true,
     "src/cli/doctor-hook-copy-parity.ts": true,
     "src/cli/doctor-kane.ts": true,
     "src/cli/doctor-learnings-ledger.ts": true,
@@ -10920,6 +10960,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "src/opencode/plugin-templates/lisa-rubocop-on-edit.ts": true,
     "src/opencode/plugin-templates/lisa-session-bootstrap.ts": true,
     "src/opencode/plugin-templates/lisa-sg-scan-on-edit.ts": true,
+    "src/opencode/plugin-templates/rails-hooks.mjs": true,
     "src/opencode/project-plugin-gate.ts": true,
     "src/opencode/settings-installer.ts": true,
     "src/opencode/skills-installer.ts": true,
@@ -11228,6 +11269,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/helpers/nightly-e2e-waiver-harness.ts": true,
     "tests/helpers/package-lisa-apply-harness.ts": true,
     "tests/helpers/process-tree-runner-verdict.ts": true,
+    "tests/helpers/rails-hook-install-fixture.ts": true,
     "tests/helpers/readiness-workflow-fixtures.ts": true,
     "tests/helpers/remote-env-materialized-artifact.ts": true,
     "tests/helpers/remote-env-materialized-fixture.ts": true,
@@ -11456,6 +11498,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/quality-workflow-size.test.ts": true,
     "tests/integration/quality-workflow.test.ts": true,
     "tests/integration/rails-helper-test-isolation.test.ts": true,
+    "tests/integration/rails-hook-apply.test.ts": true,
     "tests/integration/rails-learnings-budget-gate.test.ts": true,
     "tests/integration/rails-prepush-hook.test.ts": true,
     "tests/integration/rails-rspec-shard-ruby.test.ts": true,
@@ -11588,6 +11631,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/cli/doctor-declared-contexts.test.ts": true,
     "tests/unit/cli/doctor-enforcement-coverage.test.ts": true,
     "tests/unit/cli/doctor-gate-recommendation.test.ts": true,
+    "tests/unit/cli/doctor-git-hooks.test.ts": true,
     "tests/unit/cli/doctor-hook-copy-parity.test.ts": true,
     "tests/unit/cli/doctor-kane.test.ts": true,
     "tests/unit/cli/doctor-learnings-ledger.test.ts": true,
@@ -12057,6 +12101,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/health/expo-splash-tag-migration.test.ts": true,
     "tests/unit/health/gitignore.test.ts": true,
     "tests/unit/health/package-surfaces.test.ts": true,
+    "tests/unit/health/rails-hook-installation.test.ts": true,
     "tests/unit/health/ruleset-reach-inspection.test.ts": true,
     "tests/unit/health/storage.test.ts": true,
     "tests/unit/helpers/bounded-bash.test.ts": true,
@@ -12168,6 +12213,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/hooks/inject-resolved-config.test.ts": true,
     "tests/unit/hooks/inject-rules.test.ts": true,
     "tests/unit/hooks/install-pkgs-worktree-node-modules.test.ts": true,
+    "tests/unit/hooks/install-rails-hooks.test.ts": true,
     "tests/unit/hooks/lint-on-edit.test.ts": true,
     "tests/unit/hooks/literal-display-content.test.ts": true,
     "tests/unit/hooks/managed-file-guard-parity-note.test.ts": true,
@@ -12214,6 +12260,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/hooks/pre-push-pushed-refs-file.test.ts": true,
     "tests/unit/hooks/pre-push-pushed-tree-scope.test.ts": true,
     "tests/unit/hooks/pre-push-traceability-gate.test.ts": true,
+    "tests/unit/hooks/rails-hook-agent-delivery.test.ts": true,
+    "tests/unit/hooks/rails-hook-engine.test.ts": true,
     "tests/unit/hooks/remedy-conformance-live.test.ts": true,
     "tests/unit/hooks/remedy-conformance.test.ts": true,
     "tests/unit/hooks/safety-net-worktree-delete.test.ts": true,

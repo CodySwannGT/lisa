@@ -1,6 +1,6 @@
 {
   "name": "lisa",
-  "version": "4.87.12",
+  "version": "4.87.13",
   "description": "Universal governance — agents, skills, commands, hooks, and rules for all projects",
   "author": {
     "name": "Cody Swann"
@@ -201,6 +201,11 @@
           {
             "type": "command",
             "command": "${CLAUDE_PLUGIN_ROOT}/hooks/install-pkgs.sh"
+          },
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/install-rails-hooks.sh",
+            "timeout": 45
           }
         ]
       },

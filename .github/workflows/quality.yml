@@ -2815,6 +2815,19 @@ jobs:
           --reporter=verbose
         working-directory: ${{ inputs.working_directory || '.' }}
 
+      - name: Execute and name Rails hook installation regression specs
+        if: github.repository == 'CodySwannGT/lisa' && steps.gate_run.outcome == 'success'
+        run: >-
+          bun run lisa-test-run -- --adapter vitest -- vitest run
+          tests/unit/hooks/install-rails-hooks.test.ts
+          tests/unit/hooks/rails-hook-engine.test.ts
+          tests/unit/hooks/rails-hook-agent-delivery.test.ts
+          tests/unit/health/rails-hook-installation.test.ts
+          tests/unit/cli/doctor-git-hooks.test.ts
+          tests/integration/rails-hook-apply.test.ts
+          --reporter=verbose
+        working-directory: ${{ inputs.working_directory || '.' }}
+
       - name: Execute and name nightly discovery regression specs
         if: github.repository == 'CodySwannGT/lisa' && steps.gate_run.outcome == 'success'
         run: >-
