@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.87.11](https://github.com/CodySwannGT/lisa/compare/v4.87.10...v4.87.11) (2026-11-03)
+
+
+### Bug Fixes
+
+* **ci:** select the current PR base after retargeting ([e9fd298](https://github.com/CodySwannGT/lisa/commit/e9fd29844089bd3a1b592baae72b0502fd4558d3)), closes [CodySwannGT/lisa#4487](https://github.com/CodySwannGT/lisa/issues/4487)
+
 ### [4.87.10](https://github.com/CodySwannGT/lisa/compare/v4.87.9...v4.87.10) (2026-11-03)
 
 
