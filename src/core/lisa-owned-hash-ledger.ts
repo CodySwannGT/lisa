@@ -310,6 +310,7 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
     "0d30998656799d1840cca0390783ff47ad4ca6f604d904d11020ec9c10934d3a",
     "0db9340966fdd5620a58ab5ad959bbbe408f1806b91637131fb8a138bf8fd8bd",
     "10ffcf7bd3fa43d006a7d4b4403308b6438a736493da42a2b83810e03ee024db",
+    "193c8e061ad4897a6c8e70a3f8679218505924a41936212187e7cb46d367cbe6",
     "1bcd3f065465731df4eb02b93b73a0162d287e365ed1a396138d97d71d403b31",
     "1e0bb41cc3aa0a87a35a162040bbecd461410dee3f0dc02f00b4448d793b326b",
     "2155fef86b5253faaa0a10b285abb07568fbc4b850021a0259081457f95237e3",
@@ -2225,6 +2226,9 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
   "scripts/resolve-published-version-floor.mjs": Object.freeze([
     "387def70af4f715e9b99980cf4aa43496e0baedc4bd0a69e311c366a3910db91",
   ]),
+  "scripts/review-evidence-event.mjs": Object.freeze([
+    "1c5d510bc66f8ba23b6f046246f41182c17946a50126fb88e371d2aec9dfd6b2",
+  ]),
   "scripts/schemas/lisa-command-envelope.v1.schema.json": Object.freeze([
     "d153b7c2953a30f180e38f09e98240c63327f5196eeba9bdf545e5a1f125a879",
   ]),
@@ -2565,6 +2569,7 @@ export const LISA_OWNED_HASH_HISTORY_DERIVED: Readonly<
     "0d30998656799d1840cca0390783ff47ad4ca6f604d904d11020ec9c10934d3a",
     "0db9340966fdd5620a58ab5ad959bbbe408f1806b91637131fb8a138bf8fd8bd",
     "10ffcf7bd3fa43d006a7d4b4403308b6438a736493da42a2b83810e03ee024db",
+    "193c8e061ad4897a6c8e70a3f8679218505924a41936212187e7cb46d367cbe6",
     "1bcd3f065465731df4eb02b93b73a0162d287e365ed1a396138d97d71d403b31",
     "1e0bb41cc3aa0a87a35a162040bbecd461410dee3f0dc02f00b4448d793b326b",
     "2155fef86b5253faaa0a10b285abb07568fbc4b850021a0259081457f95237e3",
@@ -4406,6 +4411,9 @@ export const LISA_OWNED_HASH_HISTORY_DERIVED: Readonly<
   ]),
   "scripts/resolve-published-version-floor.mjs": Object.freeze([
     "387def70af4f715e9b99980cf4aa43496e0baedc4bd0a69e311c366a3910db91",
+  ]),
+  "scripts/review-evidence-event.mjs": Object.freeze([
+    "1c5d510bc66f8ba23b6f046246f41182c17946a50126fb88e371d2aec9dfd6b2",
   ]),
   "scripts/schemas/lisa-command-envelope.v1.schema.json": Object.freeze([
     "d153b7c2953a30f180e38f09e98240c63327f5196eeba9bdf545e5a1f125a879",

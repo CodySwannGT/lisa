@@ -1033,7 +1033,46 @@ export function loadDeclaration(rootDir) {
   assertEnforcementMode(declaration);
   assertSkipJobDeclarations(declaration.skip_job_declarations);
   assertEvidenceBearingChecks(declaration.evidence_bearing_checks ?? {});
+  registrationContexts(declaration, {
+    contexts: declaration.required_contexts,
+  });
   return declaration;
+}
+
+/**
+ * Validate reasoned registration deferrals against the set actually judged.
+ * This only removes absence/registration observations. GitHub still requires
+ * each deferred check to pass; evidence-bearing checks can never be deferred.
+ * @param {object} declaration - Reviewed repository declaration.
+ * @param {{contexts: string[]}} requiredSet - Selected base branch or union.
+ * @returns {string[]} Contexts whose registration must still be observed.
+ */
+export function registrationContexts(declaration, requiredSet) {
+  const deferred = declaration.registration_deferred;
+  if (deferred === undefined) return requiredSet.contexts;
+  if (
+    deferred === null ||
+    typeof deferred !== "object" ||
+    Array.isArray(deferred)
+  )
+    throw new Error(
+      "check-skipped-required-checks: `registration_deferred` must be an object mapping required check names to non-empty reasons."
+    );
+  for (const [name, reason] of Object.entries(deferred)) {
+    if (typeof reason !== "string" || reason.trim() === "")
+      throw new Error(
+        `check-skipped-required-checks: registration_deferred entry ${JSON.stringify(name)} needs a non-empty reason.`
+      );
+    if (!requiredSet.contexts.includes(name))
+      throw new Error(
+        `check-skipped-required-checks: registration_deferred entry ${JSON.stringify(name)} is not in the selected required set. Refusing to judge this declaration.`
+      );
+    if (Object.hasOwn(declaration.evidence_bearing_checks ?? {}, name))
+      throw new Error(
+        `check-skipped-required-checks: registration_deferred entry ${JSON.stringify(name)} is evidence-bearing. Review evidence must still be waited for and judged.`
+      );
+  }
+  return requiredSet.contexts.filter(name => !Object.hasOwn(deferred, name));
 }
 
 /**
@@ -1781,7 +1820,7 @@ export function evaluateAbsentRequiredChecks(
       declaration,
       options.base ?? { base: null, source: null }
     );
-  const required = requiredSet.contexts;
+  const required = registrationContexts(declaration, requiredSet);
   const judgedFor =
     requiredSet.source === "branch"
       ? ` Judged against the contexts required on base \`${requiredSet.base}\`.`
@@ -4498,7 +4537,7 @@ export function fetchSettledChecks(declaration, pr, repo, options = {}) {
     selectRequiredContexts(declaration, { base: null, source: null });
   const selectSet = options.requiredSetFor ?? (() => defaultRequiredSet);
   const missing = observed =>
-    observed.requiredSet.contexts.filter(
+    registrationContexts(declaration, observed.requiredSet).filter(
       name => !observed.checks.some(check => check.name === name)
     );
   // A substitute is useful only at the head it was actually read for. Pending
@@ -4522,6 +4561,7 @@ export function fetchSettledChecks(declaration, pr, repo, options = {}) {
     const before = initial?.headSha === undefined ? observe(pr, repo) : initial;
     initial = undefined;
     const beforeSet = selectSet(before);
+    registrationContexts(declaration, beforeSet);
     if (before.headSha === undefined) {
       return {
         checks: [],
@@ -4536,6 +4576,7 @@ export function fetchSettledChecks(declaration, pr, repo, options = {}) {
     const checks = read(pr, repo, before.headSha);
     const after = observe(pr, repo);
     const afterSet = selectSet(after);
+    registrationContexts(declaration, afterSet);
     return {
       checks,
       headSha: before.headSha,
@@ -4571,7 +4612,12 @@ export function fetchSettledChecks(declaration, pr, repo, options = {}) {
   }
   const elapsedSeconds = Math.max(0, clock() - started) / 1000;
   const unregistered = missing(observed);
-  const total = observed.requiredSet.contexts.length;
+  const total = registrationContexts(declaration, observed.requiredSet).length;
+  const deferred = Object.keys(declaration.registration_deferred ?? {});
+  const deferralNote =
+    deferred.length === 0
+      ? ""
+      : ` (${deferred.length} deferred by declaration: ${deferred.join(", ")})`;
   const present = total - unregistered.length;
   const expired = unregistered.length > 0;
   const settled = checksSettled(declaration, observed.checks);
@@ -4589,9 +4635,10 @@ export function fetchSettledChecks(declaration, pr, repo, options = {}) {
     total,
     missing: unregistered,
     expired,
+    ...(deferred.length === 0 ? {} : { deferred }),
     line: expired
-      ? `Required registration wait EXPIRED: the gate stopped waiting after ${elapsedSeconds}s; ${present} of ${total} required contexts observed; missing: ${unregistered.join(", ")}. RE-RUN this job before treating this as a finding about the change.`
-      : `Required registration settled after ${elapsedSeconds}s; ${present} of ${total} required contexts observed.`,
+      ? `Required registration wait EXPIRED: the gate stopped waiting after ${elapsedSeconds}s; ${present} of ${total} required contexts observed${deferralNote}; missing: ${unregistered.join(", ")}. RE-RUN this job before treating this as a finding about the change.`
+      : `Required registration settled after ${elapsedSeconds}s; ${present} of ${total} required contexts observed${deferralNote}.`,
   };
   return {
     checks: observed.checks,
