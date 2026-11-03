@@ -84,7 +84,23 @@
             "decision"
           ]
         }
-      ]
+      ],
+      "resume_2026_11_03": {
+        "context_sha256": "e6296a0b44aeab2113a21f3c354f34301f7d5bf78424758d3d8d11a7c3f19290",
+        "roster": "https://github.com/CodySwannGT/lisa/issues/4631#issuecomment-6610563418",
+        "research_native_session": "01a1a26a-550a-71e0-80f5-b99701a2657b",
+        "relevant_documentation": [
+          "all/copy-overwrite/scripts/check-third-party-review-evidence.mjs",
+          "tests/helpers/third-party-review-cli-fixture.ts",
+          "tests/integration/third-party-review-pull-read-cli.test.ts",
+          "plugins/src/base/skills/lisa-drive-pr-to-merge/SKILL.md",
+          "plugins/src/base/skills/lisa-pull-request-review/SKILL.md",
+          "https://github.com/CodySwannGT/lisa/issues/4631#issuecomment-6601963324"
+        ],
+        "additional_requirement": "Missing or invalid repository returns usage exit 2 before API reads; owning repository explicit in both canonical review commands and every equivalent generated surface.",
+        "baseline": "94c4c527aab336b735612f18563b1f3f0e4038a8",
+        "historical_results": "Earlier results remain scoped to their recorded source heads and do not establish the resumed candidate."
+      }
     },
     "description": "Read the complete ignored context at /Users/codysai/.codex/worktrees/a630/lisa/.lisa/work-item-context.md before acting. Comment 6587898843: approved standalone filing and separated scope (decision|constraint). Comment 6599727379: canonical claim (decision)."
   },
@@ -181,6 +197,22 @@
         "green": "/Users/codysai/.codex/artifacts/lisa-4631-native-input-2026-11-03-v1/green-pull-read.json",
         "native_red": "/Users/codysai/.codex/artifacts/lisa-4631-native-input-2026-11-03-v1/native-cli-red.json",
         "native_green": "/Users/codysai/.codex/artifacts/lisa-4631-native-input-2026-11-03-v1/native-cli-green.json"
+      },
+      "resume_2026_11_03": {
+        "context_sha256": "e6296a0b44aeab2113a21f3c354f34301f7d5bf78424758d3d8d11a7c3f19290",
+        "roster": "https://github.com/CodySwannGT/lisa/issues/4631#issuecomment-6610563418",
+        "research_native_session": "01a1a26a-550a-71e0-80f5-b99701a2657b",
+        "relevant_documentation": [
+          "all/copy-overwrite/scripts/check-third-party-review-evidence.mjs",
+          "tests/helpers/third-party-review-cli-fixture.ts",
+          "tests/integration/third-party-review-pull-read-cli.test.ts",
+          "plugins/src/base/skills/lisa-drive-pr-to-merge/SKILL.md",
+          "plugins/src/base/skills/lisa-pull-request-review/SKILL.md",
+          "https://github.com/CodySwannGT/lisa/issues/4631#issuecomment-6601963324"
+        ],
+        "additional_requirement": "Missing or invalid repository returns usage exit 2 before API reads; owning repository explicit in both canonical review commands and every equivalent generated surface.",
+        "baseline": "94c4c527aab336b735612f18563b1f3f0e4038a8",
+        "historical_results": "Earlier results remain scoped to their recorded source heads and do not establish the resumed candidate."
       }
     },
     "description": "Read the complete ignored context at /Users/codysai/.codex/worktrees/a630/lisa/.lisa/work-item-context.md before acting. Comment 6587898843: approved standalone filing and separated scope (decision|constraint). Comment 6599727379: canonical claim (decision)."
@@ -280,6 +312,22 @@
         "new_primary_spec_sha256": "b2188c2efebbeff4aca7310a6979412ac13a00aa1a11e79f62b2535bb46deef7",
         "acceptance_criteria_unchanged": true,
         "status": "implementation complete; verification and normal commit pending"
+      },
+      "resume_2026_11_03": {
+        "context_sha256": "e6296a0b44aeab2113a21f3c354f34301f7d5bf78424758d3d8d11a7c3f19290",
+        "roster": "https://github.com/CodySwannGT/lisa/issues/4631#issuecomment-6610563418",
+        "research_native_session": "01a1a26a-550a-71e0-80f5-b99701a2657b",
+        "relevant_documentation": [
+          "all/copy-overwrite/scripts/check-third-party-review-evidence.mjs",
+          "tests/helpers/third-party-review-cli-fixture.ts",
+          "tests/integration/third-party-review-pull-read-cli.test.ts",
+          "plugins/src/base/skills/lisa-drive-pr-to-merge/SKILL.md",
+          "plugins/src/base/skills/lisa-pull-request-review/SKILL.md",
+          "https://github.com/CodySwannGT/lisa/issues/4631#issuecomment-6601963324"
+        ],
+        "additional_requirement": "Missing or invalid repository returns usage exit 2 before API reads; owning repository explicit in both canonical review commands and every equivalent generated surface.",
+        "baseline": "94c4c527aab336b735612f18563b1f3f0e4038a8",
+        "historical_results": "Earlier results remain scoped to their recorded source heads and do not establish the resumed candidate."
       }
     },
     "description": "Read the complete ignored context at /Users/codysai/.codex/worktrees/a630/lisa/.lisa/work-item-context.md before acting. Comment 6587898843: approved standalone filing and separated scope (decision|constraint). Comment 6599727379: canonical claim (decision)."
@@ -371,7 +419,23 @@
             "decision"
           ]
         }
-      ]
+      ],
+      "resume_2026_11_03": {
+        "context_sha256": "e6296a0b44aeab2113a21f3c354f34301f7d5bf78424758d3d8d11a7c3f19290",
+        "roster": "https://github.com/CodySwannGT/lisa/issues/4631#issuecomment-6610563418",
+        "research_native_session": "01a1a26a-550a-71e0-80f5-b99701a2657b",
+        "relevant_documentation": [
+          "all/copy-overwrite/scripts/check-third-party-review-evidence.mjs",
+          "tests/helpers/third-party-review-cli-fixture.ts",
+          "tests/integration/third-party-review-pull-read-cli.test.ts",
+          "plugins/src/base/skills/lisa-drive-pr-to-merge/SKILL.md",
+          "plugins/src/base/skills/lisa-pull-request-review/SKILL.md",
+          "https://github.com/CodySwannGT/lisa/issues/4631#issuecomment-6601963324"
+        ],
+        "additional_requirement": "Missing or invalid repository returns usage exit 2 before API reads; owning repository explicit in both canonical review commands and every equivalent generated surface.",
+        "baseline": "94c4c527aab336b735612f18563b1f3f0e4038a8",
+        "historical_results": "Earlier results remain scoped to their recorded source heads and do not establish the resumed candidate."
+      }
     },
     "description": "Read the complete ignored context at /Users/codysai/.codex/worktrees/a630/lisa/.lisa/work-item-context.md before acting. Comment 6587898843: approved standalone filing and separated scope (decision|constraint). Comment 6599727379: canonical claim (decision)."
   },
@@ -462,7 +526,23 @@
             "decision"
           ]
         }
-      ]
+      ],
+      "resume_2026_11_03": {
+        "context_sha256": "e6296a0b44aeab2113a21f3c354f34301f7d5bf78424758d3d8d11a7c3f19290",
+        "roster": "https://github.com/CodySwannGT/lisa/issues/4631#issuecomment-6610563418",
+        "research_native_session": "01a1a26a-550a-71e0-80f5-b99701a2657b",
+        "relevant_documentation": [
+          "all/copy-overwrite/scripts/check-third-party-review-evidence.mjs",
+          "tests/helpers/third-party-review-cli-fixture.ts",
+          "tests/integration/third-party-review-pull-read-cli.test.ts",
+          "plugins/src/base/skills/lisa-drive-pr-to-merge/SKILL.md",
+          "plugins/src/base/skills/lisa-pull-request-review/SKILL.md",
+          "https://github.com/CodySwannGT/lisa/issues/4631#issuecomment-6601963324"
+        ],
+        "additional_requirement": "Missing or invalid repository returns usage exit 2 before API reads; owning repository explicit in both canonical review commands and every equivalent generated surface.",
+        "baseline": "94c4c527aab336b735612f18563b1f3f0e4038a8",
+        "historical_results": "Earlier results remain scoped to their recorded source heads and do not establish the resumed candidate."
+      }
     },
     "description": "Read the complete ignored context at /Users/codysai/.codex/worktrees/a630/lisa/.lisa/work-item-context.md before acting. Comment 6587898843: approved standalone filing and separated scope (decision|constraint). Comment 6599727379: canonical claim (decision)."
   }

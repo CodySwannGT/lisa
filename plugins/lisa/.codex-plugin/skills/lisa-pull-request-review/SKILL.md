@@ -66,9 +66,12 @@ can also report through a **check run** instead, and then this command cannot
 tell you anything: the description column is empty for a check run, which
 reads `SUCCESS` when it reviewed and `NEUTRAL` — still passing a required
 check — when it was throttled. The run's result is the first line of its
-summary, so use `node scripts/check-third-party-review-evidence.mjs --sha <head-sha> --json`,
+summary, so use `node scripts/check-third-party-review-evidence.mjs --sha <head-sha> --repo <owner>/<repo> --json`,
 which reads both representations. Never read `gh pr view --json statusCheckRollup`
 for this: it returns a commit status *without* its description.
+
+Use the owning PR's repository. A missing or invalid repository is a usage
+error before any GitHub read; it establishes no review verdict.
 
 Where the project ships Lisa's guard, prefer its machine-readable form, which
 also says whether the check is ruleset-required (so whether branch protection

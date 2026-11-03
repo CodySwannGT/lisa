@@ -1171,6 +1171,12 @@ export function main(argv, io = {}) {
     reviewers.length === 0 ||
     opts.context === null ||
     reviewers.some(reviewer => reviewer.context === opts.context);
+  if (reviewers.length > 0 && woken && !/^[^/\s]+\/[^/\s]+$/.test(repo)) {
+    err.write(
+      "error: repository must be owner/repo; pass --repo <owner>/<repo> or set GITHUB_REPOSITORY\n"
+    );
+    return 2;
+  }
   // Nothing is read at all when nothing is configured. A no-op that still
   // spends three API calls invites someone to "optimise" it by dropping the
   // report rather than the calls.

@@ -1006,8 +1006,12 @@ verdict. Take the verdict from it, not from your own reading of the payloads
 above:
 
 ```bash
-node scripts/check-third-party-review-evidence.mjs --sha <head-sha> --json
+node scripts/check-third-party-review-evidence.mjs --sha <head-sha> --repo <owner>/<repo> --json
 ```
+
+Pass the owning PR's repository explicitly in local checkouts. Without
+`--repo` or a valid `GITHUB_REPOSITORY`, the prover exits with a usage error
+before reading GitHub; this is not a review verdict.
 
 **First, stop on `pull-requests-unreadable`.** The PR discovery read failed,
 so the head's review status is **unknown**. `readings: []` in this outcome is

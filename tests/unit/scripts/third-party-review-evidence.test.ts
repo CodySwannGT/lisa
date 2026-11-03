@@ -46,6 +46,7 @@ const THROTTLED = "Review rate limited";
 /** A description in no declared list — the fail-closed proof case. */
 const UNRECOGNISED = "Everything looks fine to me";
 const HEAD = "a".repeat(40);
+const REPO_ARG = "--repo=acme/code";
 const OTHER_HEAD = "b".repeat(40);
 
 /** One gates block declaring a single third-party reviewer. */
@@ -367,7 +368,7 @@ describe("an unsettled reviewer is deferred, never judged", () => {
 
   it("exits 0 while a declared reviewer is still working", () => {
     expect(
-      main([`--sha=${HEAD}`], {
+      main([`--sha=${HEAD}`, REPO_ARG], {
         gates: ONE_REVIEWER,
         pulls: () => [1],
         statuses: () => [
@@ -405,7 +406,7 @@ describe("a status from another app cannot change the answer", () => {
 
   it("still evaluates when the waking context IS a declared reviewer", () => {
     expect(
-      main([`--sha=${HEAD}`, `--context=${CONTEXT}`], {
+      main([`--sha=${HEAD}`, REPO_ARG, `--context=${CONTEXT}`], {
         gates: ONE_REVIEWER,
         pulls: () => [1],
         statuses: () => [
@@ -660,7 +661,7 @@ describe("main", () => {
   describe("pull-request read acceptance (#4631)", () => {
     it("reports a failed pull-request read as unreadable and exits 1", () => {
       const out = sink();
-      const code = main([`--sha=${HEAD}`], {
+      const code = main([`--sha=${HEAD}`, REPO_ARG], {
         gates: ONE_REVIEWER,
         pulls: () => null,
         out: out.stream,
@@ -687,7 +688,7 @@ describe("main", () => {
 
     it("keeps a successful empty pull-request read as an exit-0 no-op", () => {
       const out = sink();
-      const code = main([`--sha=${HEAD}`, "--json"], {
+      const code = main([`--sha=${HEAD}`, REPO_ARG, "--json"], {
         gates: ONE_REVIEWER,
         pulls: () => [],
         out: out.stream,
@@ -700,7 +701,7 @@ describe("main", () => {
 
     it("does not read statuses, check runs or comments after a failed PR read", () => {
       const reads: string[] = [];
-      const code = main([`--sha=${HEAD}`], {
+      const code = main([`--sha=${HEAD}`, REPO_ARG], {
         gates: ONE_REVIEWER,
         pulls: () => null,
         statuses: () => {
@@ -724,7 +725,7 @@ describe("main", () => {
 
   it("exits 1 and names the reviewer when evidence is missing at head", () => {
     const out = sink();
-    const code = main([`--sha=${HEAD}`], {
+    const code = main([`--sha=${HEAD}`, REPO_ARG], {
       gates: ONE_REVIEWER,
       pulls: () => [1],
       statuses: () => [
@@ -750,7 +751,7 @@ describe("main", () => {
   });
 
   it("exits 0 when a substitute review stands at this head", () => {
-    const code = main([`--sha=${HEAD}`], {
+    const code = main([`--sha=${HEAD}`, REPO_ARG], {
       gates: ONE_REVIEWER,
       pulls: () => [1],
       statuses: () => [
@@ -786,7 +787,7 @@ describe("main", () => {
       });
       expect(verdict.outcome).toBe(EVIDENCE_OUTCOMES.substituted);
       expect(verdict.readings[0]?.reading).toBe(EVIDENCE_READINGS.noWork);
-      const code = main([`--sha=${HEAD}`], {
+      const code = main([`--sha=${HEAD}`, REPO_ARG], {
         gates: ONE_REVIEWER,
         pulls: () => [1],
         statuses: () => [{ context: CONTEXT, state: "success", description }],
