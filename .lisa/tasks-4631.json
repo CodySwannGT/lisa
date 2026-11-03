@@ -188,13 +188,13 @@
   {
     "id": "T3",
     "title": "Fix owning PR reader, report and exit; regenerate equivalent agent artifacts",
-    "owner": "native-implementation-specialist",
+    "owner": "parent-code-review-and-delivery",
     "status": "in-progress",
     "blockedBy": [
       "T2"
     ],
     "metadata": {
-      "owner": "native-implementation-specialist",
+      "owner": "parent-code-review-and-delivery",
       "work_item_ref": "CodySwannGT/lisa#4631",
       "work_item_context": "/Users/codysai/.codex/worktrees/a630/lisa/.lisa/work-item-context.md",
       "plan": ".lisa/plan-4631.md",
@@ -272,7 +272,15 @@
             "decision"
           ]
         }
-      ]
+      ],
+      "review_correction": {
+        "thread": "PRRT_kwDOQ78yN86zEHL2",
+        "comment": 4453180704,
+        "requirement": "Unknown PR discovery stops under tool-access-gate before a review substitute or merge decision; no automatic retry.",
+        "new_primary_spec_sha256": "b2188c2efebbeff4aca7310a6979412ac13a00aa1a11e79f62b2535bb46deef7",
+        "acceptance_criteria_unchanged": true,
+        "status": "implementation complete; verification and normal commit pending"
+      }
     },
     "description": "Read the complete ignored context at /Users/codysai/.codex/worktrees/a630/lisa/.lisa/work-item-context.md before acting. Comment 6587898843: approved standalone filing and separated scope (decision|constraint). Comment 6599727379: canonical claim (decision)."
   },
