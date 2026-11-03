@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.87.13](https://github.com/CodySwannGT/lisa/compare/v4.87.12...v4.87.13) (2026-11-03)
+
+
+### Bug Fixes
+
+* install Rails git hooks during startup and apply ([b62d6a0](https://github.com/CodySwannGT/lisa/commit/b62d6a092f0fc6dcbb6e84d6863ae0078625b69d))
+* **rails:** install and inspect Git hooks at startup ([d6bfed7](https://github.com/CodySwannGT/lisa/commit/d6bfed7f0e88b4aaccec52c7b4e4db7ca584baba)), closes [CodySwannGT/lisa#4632](https://github.com/CodySwannGT/lisa/issues/4632)
+* **rails:** resolve the OpenCode source template helper ([ef6e8a9](https://github.com/CodySwannGT/lisa/commit/ef6e8a95afb9795f6a751ded1207dc520346d0de)), closes [CodySwannGT/lisa#4632](https://github.com/CodySwannGT/lisa/issues/4632)
+* restrict doctor Lefthook checks to Rails projects ([527d2a2](https://github.com/CodySwannGT/lisa/commit/527d2a2779695278e88e8edccb1f67ad3501b1f3)), closes [CodySwannGT/lisa#4632](https://github.com/CodySwannGT/lisa/issues/4632)
+
 ### [4.87.12](https://github.com/CodySwannGT/lisa/compare/v4.87.11...v4.87.12) (2026-11-03)
 
 
