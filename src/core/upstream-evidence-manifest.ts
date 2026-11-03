@@ -1425,7 +1425,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-github-create/SKILL.md":
       "2128a5069c2663a6a33cef7d0465e672682429b176183e101d3ea65f276a1b93",
     "plugins/src/base/skills/lisa-github-evidence/SKILL.md":
-      "73142ef660766f4b4e4947ad25d00614b8fb9ad4dfa7e4f45b19379ae981d84d",
+      "7931804f2beb2ea2ce3d5b99ba6eb229465f362f4d3388fcfb5e1f84fac9dd82",
     "plugins/src/base/skills/lisa-github-journey/SKILL.md":
       "0d13fb57fb2650c5909e208846a979e8dc08a6bbe507333093b1b7ae5bd2287c",
     "plugins/src/base/skills/lisa-github-prd-intake/SKILL.md":
@@ -12973,6 +12973,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/strategies/falsifiable-checks-rule.test.ts": true,
     "tests/unit/strategies/gardener-fingerprint-hash.test.ts": true,
     "tests/unit/strategies/git-discipline-force-lease-contract.test.ts": true,
+    "tests/unit/strategies/github-evidence-upload.test.ts": true,
     "tests/unit/strategies/github-linked-pr-project-membership.test.ts": true,
     "tests/unit/strategies/github-prd-intake-rollup.test.ts": true,
     "tests/unit/strategies/github-project-config-resolution.test.ts": true,

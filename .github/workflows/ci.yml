@@ -40,6 +40,10 @@ jobs:
         run: bun install --frozen-lockfile
       - name: Build package
         run: bun run build
+      - name: Execute and name GitHub evidence upload regression
+        run: >-
+          node dist/cli/lisa-test-run.js --profile lisa --adapter vitest -- ./node_modules/.bin/vitest run
+          tests/unit/strategies/github-evidence-upload.test.ts --reporter=verbose
       - name: Verify built Lisa CLI
         env:
           LISA_SKIP_UPDATE_CHECK: '1'

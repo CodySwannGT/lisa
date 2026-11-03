@@ -52,14 +52,65 @@ If either is missing, **refuse to post**: stop and report the missing Not-establ
 3. **Upload each evidence file**
 
    ```bash
-   for f in "$EVIDENCE_DIR"/[0-9][0-9]-*.txt "$EVIDENCE_DIR"/[0-9][0-9]-*.json; do
-     [ -f "$f" ] || continue
-     name="pr-${PR_NUMBER}-$(basename "$f")"
-     gh release upload pr-assets --repo <impl-org>/<impl-repo> --clobber "$f#$name"
-   done
+   (
+     set -e
+     export LC_ALL=C
+     upload_dir=$(mktemp -d "${TMPDIR:-/tmp}/lisa-github-evidence.XXXXXXXX")
+     trap 'rm -rf "$upload_dir"' EXIT
+     expected_names="$upload_dir/expected-names.txt"
+     basenames="$upload_dir/basenames.txt"
+     : > "$expected_names"
+     : > "$basenames"
+
+     for f in "$EVIDENCE_DIR"/[0-9][0-9]-*.txt "$EVIDENCE_DIR"/[0-9][0-9]-*.json; do
+       [ -f "$f" ] || continue
+       base=$(basename "$f")
+       if [[ ! "$base" =~ ^[0-9]{2}-[a-z0-9]+(-[a-z0-9]+)*\.(txt|json)$ ]]; then
+         printf 'Invalid evidence filename; use a name like 01-health-check.json or 02-output.txt: %s\n' "$base" >&2
+         exit 1
+       fi
+       printf '%s\n' "$base" >> "$basenames"
+     done
+
+     while IFS= read -r base; do
+       name="pr-${PR_NUMBER}-${base}"
+       cp "$EVIDENCE_DIR/$base" "$upload_dir/$name"
+       gh release upload pr-assets --repo <impl-org>/<impl-repo> --clobber "$upload_dir/$name"
+       printf '%s\n' "$name" >> "$expected_names"
+     done < "$basenames"
+
+     gh release view pr-assets --repo <impl-org>/<impl-repo> \
+       --json assets --jq '.assets[].name' > "$upload_dir/asset-names.txt"
+     while IFS= read -r name; do
+       if ! grep -Fxq -- "$name" "$upload_dir/asset-names.txt"; then
+         printf 'Expected evidence asset is missing: %s\n' "$name" >&2
+         exit 1
+       fi
+       printf 'Uploaded evidence asset: %s\n' "$name"
+     done < "$expected_names"
+   )
+   upload_status=$?
+   if [ "$upload_status" -ne 0 ]; then
+     printf 'Evidence upload failed; stop before posting.\n' >&2
+     exit "$upload_status"
+   fi
    ```
 
-   The `#$name` syntax sets the asset name. `--clobber` lets re-runs overwrite.
+   Validate the complete input batch before uploading anything: use numbered,
+   ASCII kebab-case names such as `01-health-check.json`. GitHub can
+   [normalize special characters in asset names](https://docs.github.com/en/rest/releases/assets#upload-a-release-asset),
+   so invalid names are refused rather than renamed into another asset.
+
+   An asset takes its name from the uploaded file's basename. A `#` suffix only
+   sets its display label; it cannot rename the asset. Stage the copy under the
+   intended name before uploading. The subshell stops on copy, upload or release
+   read failure, checks every expected name, and removes staging on exit.
+   Run steps 4 and 5 only if the upload block exits successfully. On failure,
+   stop and report it without updating the PR or posting an issue comment.
+   `--clobber` replaces an existing asset with that same PR-prefixed name.
+
+   Link to the actual name:
+   `https://github.com/<impl-org>/<impl-repo>/releases/download/pr-assets/pr-<number>-<file>`.
 
 4. **Update the PR description**
 
