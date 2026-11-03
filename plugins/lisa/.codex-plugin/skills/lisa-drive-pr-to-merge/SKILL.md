@@ -1017,7 +1017,7 @@ Do not post a reviewer-specific substitute or make a merge decision from this
 outcome. Restore the configured GitHub read access before rerunning the prover;
 this instruction adds no automatic retry loop.
 
-After successful PR discovery, three cases are handled differently:
+For the remaining outcomes, three cases are handled differently:
 
 1. **`satisfied`** — every configured reviewer showed its reviewed-when
    evidence: a status whose description is the phrase, or a check run that
