@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.87.12](https://github.com/CodySwannGT/lisa/compare/v4.87.11...v4.87.12) (2026-11-03)
+
+
+### Bug Fixes
+
+* handle late required checks and reviewer completions ([31da5d5](https://github.com/CodySwannGT/lisa/commit/31da5d5d9aac738f5e1732b77179a333008d3d8b)), closes [CodySwannGT/lisa#4622](https://github.com/CodySwannGT/lisa/issues/4622)
+* preserve formatting exemption for the managed reviewer resolver ([a1869cc](https://github.com/CodySwannGT/lisa/commit/a1869ccbb57dcf11a3bea2c4e19d74312aa6c55d)), closes [CodySwannGT/lisa#4622](https://github.com/CodySwannGT/lisa/issues/4622)
+
 ### [4.87.11](https://github.com/CodySwannGT/lisa/compare/v4.87.10...v4.87.11) (2026-11-03)
 
 
