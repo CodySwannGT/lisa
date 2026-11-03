@@ -18,6 +18,7 @@
 import * as fs from "fs-extra";
 import * as path from "node:path";
 import { describe, expect, it } from "vitest";
+import { RAILS_HOOK_ENGINE_FILES } from "../../../scripts/lib/rails-hooks.mjs";
 
 const INSTALLER = path.join(
   process.cwd(),
@@ -47,7 +48,15 @@ function arrayLiterals(source: string, name: string): string[] {
     throw new Error(`${name} not found — the probe cannot read this list`);
   }
   const body = source.slice(opened, source.indexOf("]", opened));
-  return [...body.matchAll(/"([^"]+)"/g)].map(match => match[1] as string);
+  const literals = [...body.matchAll(/"([^"]+)"/g)].map(
+    match => match[1] as string
+  );
+  for (const match of body.matchAll(/\.\.\.(\w+)/g)) {
+    if (match[1] !== "RAILS_HOOK_ENGINE_FILES")
+      throw new Error(`Unknown support-file spread: ${match[1]}`);
+    literals.push(...RAILS_HOOK_ENGINE_FILES);
+  }
+  return literals;
 }
 
 /**
@@ -73,7 +82,7 @@ describe("OpenCode plugin support files", () => {
     expect([...installer].sort(byName)).toEqual([...staged].sort(byName));
   });
 
-  it("names only files that exist in the canonical hook directory", async () => {
+  it("names only files that exist in their canonical source directory", async () => {
     // The other half of the same guarantee. A list that agrees with itself and
     // names a file nobody ships fails at install time, not at review time.
     const installer = arrayLiterals(
@@ -83,9 +92,14 @@ describe("OpenCode plugin support files", () => {
 
     expect(installer.length).toBeGreaterThan(0);
     for (const filename of installer) {
+      const directory = (RAILS_HOOK_ENGINE_FILES as readonly string[]).includes(
+        filename
+      )
+        ? path.join(process.cwd(), "scripts/lib")
+        : HOOK_DIR;
       expect(
-        await fs.pathExists(path.join(HOOK_DIR, filename)),
-        `${filename} is listed but absent from plugins/src/base/hooks/`
+        await fs.pathExists(path.join(directory, filename)),
+        `${filename} is listed but absent from its canonical source`
       ).toBe(true);
     }
   });
@@ -99,5 +113,8 @@ describe("OpenCode plugin support files", () => {
     );
 
     expect(installer).toContain("block-no-verify.sh");
+    expect(installer).toEqual(
+      expect.arrayContaining([...RAILS_HOOK_ENGINE_FILES])
+    );
   });
 });

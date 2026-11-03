@@ -6,6 +6,7 @@
 import * as fs from "fs-extra";
 import * as path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { RAILS_HOOK_ENGINE_FILES } from "../../../scripts/lib/rails-hooks.mjs";
 import {
   EDIT_GATE_LIB,
   EDIT_PATHS_LIB,
@@ -44,6 +45,8 @@ const BLOCK_NO_VERIFY_ID = "block-no-verify";
 const SHELL_WRITE_NUDGE_ID = "shell-write-nudge";
 /** Universal dependency bootstrap hook id */
 const INSTALL_PKGS_ID = "install-pkgs";
+/** Shared Rails installation hook is always registered and self-gates. */
+const INSTALL_RAILS_HOOKS_ID = "install-rails-hooks";
 /** Universal Jira configuration hook id */
 const SETUP_JIRA_CLI_ID = "setup-jira-cli";
 /** Filename of the rubocop-on-edit hook script */
@@ -64,6 +67,21 @@ describe("codex/hooks-installer", () => {
     lisaDir = path.join(tempDir, "lisa");
     destDir = path.join(tempDir, "project");
     await fs.ensureDir(destDir);
+    for (const filename of [
+      "install-rails-hooks.sh",
+      "install-rails-hooks.mjs",
+    ]) {
+      await fs.copy(
+        path.join(process.cwd(), "plugins/lisa/hooks", filename),
+        path.join(lisaDir, "plugins/lisa/hooks", filename)
+      );
+    }
+    for (const filename of RAILS_HOOK_ENGINE_FILES) {
+      await fs.copy(
+        path.join(process.cwd(), "scripts/lib", filename),
+        path.join(lisaDir, "scripts/lib", filename)
+      );
+    }
 
     // Seed Lisa rules directory with the eager/reference split layout
     // (current shape since the rules-eager-reference-split refactor).
@@ -202,7 +220,7 @@ describe("codex/hooks-installer", () => {
     const hooksFilePath = path.join(destDir, ".codex", HOOKS_FILENAME);
     expect(await fs.pathExists(hooksFilePath)).toBe(true);
     const parsed = parseHooksFile(await fs.readFile(hooksFilePath, "utf8"));
-    expect(parsed.hooks?.SessionStart).toHaveLength(3);
+    expect(parsed.hooks?.SessionStart).toHaveLength(4);
     const handler = parsed.hooks?.SessionStart?.[0]?.hooks[0];
     expect(handler?.[LISA_MANAGED_MARKER]).toBe(true);
     expect(handler?.[LISA_ID_MARKER]).toBe(INJECT_RULES_ID);
@@ -239,7 +257,7 @@ describe("codex/hooks-installer", () => {
       "./scripts/host-edit-hook.sh"
     );
     // Lisa's SessionStart entries were added alongside
-    expect(parsed.hooks?.SessionStart).toHaveLength(3);
+    expect(parsed.hooks?.SessionStart).toHaveLength(4);
   });
 
   it("idempotent: running twice produces the same hooks.json", async () => {
@@ -258,9 +276,8 @@ describe("codex/hooks-installer", () => {
 
   it("returns managedFiles list including script + rules + hooks.json", async () => {
     const result = await installHooks(lisaDir, destDir, []);
-    // Universal hooks: inject-rules + install-pkgs + setup-jira-cli +
-    // block-no-verify + shell-write-nudge = 5 entries
-    expect(result.hookEntries).toBe(6);
+    // Four startup hooks and three universal shell-policy hooks.
+    expect(result.hookEntries).toBe(7);
     const sortedFiles = [...result.managedFiles].sort((a, b) =>
       a.localeCompare(b)
     );
@@ -299,6 +316,7 @@ describe("codex/hooks-installer", () => {
       const ids = await readLisaHookIds(destDir);
       expect(ids).toContain(INJECT_RULES_ID);
       expect(ids).toContain(INSTALL_PKGS_ID);
+      expect(ids).toContain(INSTALL_RAILS_HOOKS_ID);
       expect(ids).toContain(SETUP_JIRA_CLI_ID);
       expect(ids).toContain(BLOCK_NO_VERIFY_ID);
       expect(ids).toContain(SHELL_WRITE_NUDGE_ID);
@@ -306,7 +324,7 @@ describe("codex/hooks-installer", () => {
       expect(ids).not.toContain(RUBOCOP_ON_EDIT_ID);
       expect(ids).not.toContain(BLOCK_MIGRATION_EDITS_ID);
       expect(ids).not.toContain(BLOCK_SUPPRESS_DIRECTIVES_ID);
-      expect(result.hookEntries).toBe(6);
+      expect(result.hookEntries).toBe(7);
     });
 
     it("ships TypeScript hooks when typescript is detected", async () => {
@@ -321,7 +339,7 @@ describe("codex/hooks-installer", () => {
       // NOT rails or nestjs
       expect(ids).not.toContain(RUBOCOP_ON_EDIT_ID);
       expect(ids).not.toContain(BLOCK_MIGRATION_EDITS_ID);
-      expect(result.hookEntries).toBe(10);
+      expect(result.hookEntries).toBe(11);
     });
 
     it("ships Rails hooks when rails is detected", async () => {
@@ -331,8 +349,8 @@ describe("codex/hooks-installer", () => {
       // ast-grep scanning applies to Rails too (Ruby files)
       expect(ids).toContain("sg-scan-on-edit");
       expect(ids).not.toContain(FORMAT_ON_EDIT_ID);
-      // rubocop + sg-scan + 5 universal
-      expect(result.hookEntries).toBe(8);
+      // rubocop + sg-scan + seven universal hooks
+      expect(result.hookEntries).toBe(9);
     });
 
     it("ships NestJS migration block when nestjs is detected", async () => {
@@ -347,7 +365,7 @@ describe("codex/hooks-installer", () => {
       expect(ids).toContain(FORMAT_ON_EDIT_ID);
       // typescript also brings the suppression-directive block
       expect(ids).toContain(BLOCK_SUPPRESS_DIRECTIVES_ID);
-      expect(result.hookEntries).toBe(11);
+      expect(result.hookEntries).toBe(12);
     });
 
     it("copies only the script files for applicable hooks", async () => {
@@ -366,6 +384,9 @@ describe("codex/hooks-installer", () => {
         "block-no-verify.sh",
         INJECT_RULES_SH,
         "install-pkgs.sh",
+        "install-rails-hooks.sh",
+        "install-rails-hooks.mjs",
+        ...RAILS_HOOK_ENGINE_FILES,
         RUBOCOP_ON_EDIT_SH,
         "setup-jira-cli.sh",
         "shell-write-nudge.sh",

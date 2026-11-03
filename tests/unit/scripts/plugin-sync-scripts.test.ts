@@ -21,6 +21,7 @@ import {
   useIoLatencyBudget,
 } from "../../helpers/io-latency-budget.js";
 import { cleanupTempDir, createTempDir } from "../../helpers/test-utils.js";
+import { RAILS_HOOK_ENGINE_FILES } from "../../../scripts/lib/rails-hooks.mjs";
 
 // `beforeEach` used to seed a plugin repo and run the real `build-plugins.sh`,
 // so every case paid a full shell build: 9.2s of the 10s default, measured at
@@ -167,7 +168,11 @@ describe("plugin sync shell scripts (#1398)", () => {
     )) as string[];
 
     expect(manifest).toContain(GENERATED_COPY);
-    expect(manifest.every(entry => !entry.startsWith("plugins/"))).toBe(true);
+    expect(manifest.filter(entry => entry.startsWith("plugins/"))).toEqual(
+      RAILS_HOOK_ENGINE_FILES.map(
+        filename => `plugins/lisa/hooks/${filename}`
+      ).sort((left, right) => left.localeCompare(right))
+    );
   });
 
   it("fails when a generated file outside plugins/ is edited directly", async () => {
@@ -299,7 +304,8 @@ describe("plugin sync shell scripts (#1398)", () => {
     gitIn(dir, ["init", "-b", "main"]);
     gitIn(dir, ["config", "user.email", "test@example.com"]);
     gitIn(dir, ["config", "user.name", "Test User"]);
-    expect(run(["bash", `scripts/${BUILD_SCRIPT}`], dir).status).toBe(0);
+    const build = run(["bash", `scripts/${BUILD_SCRIPT}`], dir);
+    expect(build.status, `${build.stdout}\n${build.stderr}`).toBe(0);
     gitIn(dir, ["add", "."]);
     gitIn(dir, ["commit", "-m", "test: seed plugin artifacts"]);
     expect(runCheckPlugins(dir).status).toBe(0);

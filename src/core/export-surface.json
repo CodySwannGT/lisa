@@ -1,8 +1,8 @@
 {
   "$generatedBy": "scripts/generate-export-surface.mjs",
   "$doNotEdit": "The public export surface this package ships, recorded so a removal is an OBSERVATION rather than an inference from commit-message conventions. This file's diff is what makes a removed export visible in the pull request that causes it (CodySwannGT/lisa#3718).",
-  "$modules": 252,
-  "$names": 1834,
+  "$modules": 255,
+  "$names": 1841,
   "surface": {
     "all/copy-overwrite/scripts/check-conflict-markers.mjs": [
       "UsageError",
@@ -1811,6 +1811,19 @@
     ],
     "scripts/lib/plugin-rule-citations.mjs": [
       "rewritePluginRuleCitations"
+    ],
+    "scripts/lib/rails-hooks-command.mjs": [
+      "runHookCommand"
+    ],
+    "scripts/lib/rails-hooks-inspection.mjs": [
+      "RAILS_HOOK_NAMES",
+      "inspectRailsHooks"
+    ],
+    "scripts/lib/rails-hooks.mjs": [
+      "RAILS_HOOK_ENGINE_FILES",
+      "RAILS_HOOK_INSTALL_COMMAND",
+      "ensureRailsHooks",
+      "inspectRailsHooks"
     ],
     "scripts/lib/reusable-workflow-contract.mjs": [
       "diffStaleKeys",

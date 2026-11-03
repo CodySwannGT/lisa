@@ -168,6 +168,11 @@
           {
             "type": "command",
             "command": "${PLUGIN_ROOT}/hooks/install-pkgs.sh"
+          },
+          {
+            "type": "command",
+            "command": "${PLUGIN_ROOT}/hooks/install-rails-hooks.sh",
+            "timeout": 45
           }
         ]
       },

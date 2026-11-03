@@ -35,6 +35,7 @@ import * as fse from "fs-extra";
 import { copyFile, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
+import { RAILS_HOOK_ENGINE_FILES } from "../../scripts/lib/rails-hooks.mjs";
 import {
   applyEdits,
   modify,
@@ -115,6 +116,7 @@ const PLUGIN_SUPPORT_FILES = [
   "parity-safety-net.sh",
   "parity-safety-net-heredoc.py",
   "guard-dedupe.bash",
+  ...RAILS_HOOK_ENGINE_FILES,
 ] as const;
 
 /** Result of the OpenCode hooks install pass */
