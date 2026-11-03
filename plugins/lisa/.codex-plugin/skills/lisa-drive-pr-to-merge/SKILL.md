@@ -1019,7 +1019,8 @@ Three cases, and each is handled differently:
    state, **not** a pass: say so explicitly in the report ("no third-party
    reviewer configured; nothing read this diff on that path"), and do not
    invent a substitute for a reviewer the project never asked for.
-3. **anything else** — throttled, skipped, absent, empty, unreadable, a check
+3. **anything else** — throttled, skipped, absent, empty, unreadable (including
+   `pull-requests-unreadable`), a check
    run that did not succeed, or words in no configured list. **Treat every one
    of these as NOT REVIEWED.** The allowlist is the only thing that grants
    credit; a denylist of known-bad phrases fails open, and the vocabulary is

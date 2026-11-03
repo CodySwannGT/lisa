@@ -657,6 +657,71 @@ describe("main", () => {
     };
   };
 
+  describe("pull-request read acceptance (#4631)", () => {
+    it("reports a failed pull-request read as unreadable and exits 1", () => {
+      const out = sink();
+      const code = main([`--sha=${HEAD}`], {
+        gates: ONE_REVIEWER,
+        pulls: () => null,
+        out: out.stream,
+      });
+      expect(code).toBe(1);
+      expect(out.chunks.join("")).toContain("UNREADABLE");
+      expect(out.chunks.join("")).toContain("open pull requests");
+      expect(out.chunks.join("")).toContain("could not be read");
+      expect(out.chunks.join("")).toContain("NOT a no-op");
+      expect(out.chunks.join("")).not.toContain("is not the head");
+    });
+
+    it("returns the unreadable outcome rather than a fact about the head", () => {
+      expect(
+        reviewEvidenceVerdict({
+          reviewers: reviewersOf(ONE_REVIEWER),
+          statuses: [],
+          comments: [],
+          sha: HEAD,
+          isPullRequestHead: null,
+        }).outcome
+      ).toBe("pull-requests-unreadable");
+    });
+
+    it("keeps a successful empty pull-request read as an exit-0 no-op", () => {
+      const out = sink();
+      const code = main([`--sha=${HEAD}`, "--json"], {
+        gates: ONE_REVIEWER,
+        pulls: () => [],
+        out: out.stream,
+      });
+      expect(code).toBe(0);
+      expect(JSON.parse(out.chunks.join("")).outcome).toBe(
+        "not-a-pull-request-head"
+      );
+    });
+
+    it("does not read statuses, check runs or comments after a failed PR read", () => {
+      const reads: string[] = [];
+      const code = main([`--sha=${HEAD}`], {
+        gates: ONE_REVIEWER,
+        pulls: () => null,
+        statuses: () => {
+          reads.push("statuses");
+          return [];
+        },
+        checkRuns: () => {
+          reads.push("check-runs");
+          return [];
+        },
+        comments: () => {
+          reads.push("comments");
+          return [];
+        },
+        out: sink().stream,
+      });
+      expect(code).toBe(1);
+      expect(reads).toEqual([]);
+    });
+  });
+
   it("exits 1 and names the reviewer when evidence is missing at head", () => {
     const out = sink();
     const code = main([`--sha=${HEAD}`], {
