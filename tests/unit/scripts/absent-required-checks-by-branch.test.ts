@@ -145,6 +145,12 @@ const HEAD_SHA = "c".repeat(40);
 /** Disables the settle wait, so a unit test never sleeps. */
 const NO_WAIT = "--settle-timeout=0";
 
+/** Explicit base override shared by resolver and CLI controls. */
+const MAIN_BASE_OVERRIDE = "--base=main";
+
+/** Captured controlled GitHub calls. */
+const GH_CALLS_LOG = "calls.jsonl";
+
 /** The repository the simulated `pull_request` event belongs to. */
 const EVENT_REPO = "owner/name";
 
@@ -457,7 +463,7 @@ describe("absent required checks are judged against the PR's base branch (#4484)
   describe("resolving the base ref", () => {
     it("prefers --base over everything", () => {
       expect(
-        mod.resolveBaseRef(["--base=main"], { GITHUB_BASE_REF: "staging" })
+        mod.resolveBaseRef([MAIN_BASE_OVERRIDE], { GITHUB_BASE_REF: "staging" })
       ).toEqual({ base: "main", source: "--base" });
     });
 
@@ -596,7 +602,7 @@ describe("absent required checks are judged against the PR's base branch (#4484)
 
       it("still lets --base name the base for a cross-repository inspection", () => {
         expect(
-          mod.resolveBaseRef(["--base=main"], env(), {
+          mod.resolveBaseRef([MAIN_BASE_OVERRIDE], env(), {
             pr: "7",
             repo: OTHER_REPO,
           })
@@ -734,30 +740,53 @@ describe("absent required checks are judged against the PR's base branch (#4484)
 });
 
 /**
- * Installs a `gh` on PATH that serves one head and its check rows.
+ * Installs a `gh` serving independent current PR metadata and check rows.
  *
- * @param rows - Rows `gh pr checks --json` prints
- * @returns A directory to prepend to PATH
+ * @param rows - Rows reported by the check adapter.
+ * @param liveBase - Current base, or null when current metadata is unreadable.
+ * @returns A directory to prepend to PATH.
  */
-function stubGh(rows: readonly CheckRow[]): string {
+function stubGh(
+  rows: readonly CheckRow[],
+  liveBase: string | null = "staging"
+): string {
   const bin = fs.mkdtempSync(path.join(os.tmpdir(), "by-branch-bin-"));
   leases.push(bin);
-  const payload = path.join(bin, "checks.json");
-  fs.writeFileSync(payload, `${JSON.stringify(rows)}\n`);
+  const metadata =
+    liveBase === null
+      ? null
+      : {
+          number: 1,
+          url: `https://github.com/${EVENT_REPO}/pull/1`,
+          headRefOid: HEAD_SHA,
+          baseRefName: liveBase,
+        };
+  fs.writeFileSync(path.join(bin, GH_CALLS_LOG), "");
   fs.writeFileSync(
     path.join(bin, "gh"),
-    `#!/bin/sh
-case "$1:$2" in
-  pr:view) printf '%s\\n' ${JSON.stringify(HEAD_SHA)} ;;
-  pr:checks) cat ${JSON.stringify(payload)} ;;
-  api:*/pulls/*/commits*) printf '%s\\n' '[]' ;;
-  api:*/pulls/*/reviews*) printf '%s\\n' '[]' ;;
-  api:*/commits/*/pulls*) printf '%s\\n' '[]' ;;
-  api:*/pulls/*) printf '%s\\n' '0' ;;
-  api:*status*) cat ${JSON.stringify(payload)} ;;
-  api:*check-runs*) printf '%s\\n' '[]' ;;
-  *) exit 1 ;;
-esac
+    `#!${process.execPath}
+const fs = require("node:fs");
+const args = process.argv.slice(2);
+const metadata = ${JSON.stringify(metadata)};
+const rows = ${JSON.stringify(rows)};
+fs.appendFileSync(${JSON.stringify(path.join(bin, GH_CALLS_LOG))}, JSON.stringify(args)+"\\n");
+const emit = value => console.log(typeof value === "string" ? value : JSON.stringify(value));
+if (args[0] === "pr" && args[1] === "view") {
+  const fields = (args[args.indexOf("--json")+1] ?? "").split(",");
+  if (fields.includes("baseRefName") && metadata === null) process.exit(1);
+  const current = metadata ?? {headRefOid: ${JSON.stringify(HEAD_SHA)}};
+  const jq = args.includes("--jq") ? args[args.indexOf("--jq")+1] : null;
+  if (jq === ".headRefOid") emit(current.headRefOid);
+  else if (jq === ".baseRefName") emit(current.baseRefName);
+  else emit(Object.fromEntries(fields.map(field => [field, current[field]])));
+} else if (args[0] === "pr" && args[1] === "checks") emit(rows);
+else if (args[0] === "api") {
+  const endpoint = args[1];
+  if (/\\/pulls\\/[^/]+\\/(commits|reviews)|\\/commits\\/[^/]+\\/pulls|check-runs/.test(endpoint)) emit([]);
+  else if (endpoint.includes("/pulls/")) emit("0");
+  else if (endpoint.includes("status")) emit(rows);
+  else process.exit(1);
+} else process.exit(1);
 `,
     { mode: 0o755 }
   );
@@ -775,8 +804,13 @@ esac
 function runCli(
   root: string,
   baseRef: string,
-  bin: string
-): { status: number; output: string } {
+  bin: string,
+  options: {
+    args?: readonly string[];
+    eventPr?: number;
+    eventRepo?: string;
+  } = {}
+): { status: number; output: string; prReads: number } {
   const run = boundedSpawnSync({
     label: "check-skipped-required-checks.mjs --vacuity (by branch)",
     command: process.execPath,
@@ -787,12 +821,17 @@ function runCli(
       "--pr=1",
       NO_WAIT,
       "--repo=owner/name",
+      ...(options.args ?? []),
     ],
     env: {
       ...process.env,
       PATH: `${bin}${path.delimiter}${process.env.PATH ?? ""}`,
       // The pull_request event this run would carry: PR #1 into `baseRef`.
-      GITHUB_EVENT_PATH: eventFor(1, baseRef),
+      GITHUB_EVENT_PATH: eventFor(
+        options.eventPr ?? 1,
+        baseRef,
+        options.eventRepo ?? EVENT_REPO
+      ),
       GITHUB_REF: "",
       GITHUB_STEP_SUMMARY: "",
       GITHUB_OUTPUT: "",
@@ -801,6 +840,13 @@ function runCli(
   });
   return {
     status: run.status ?? -1,
+    prReads: fs
+      .readFileSync(path.join(bin, GH_CALLS_LOG), "utf8")
+      .trim()
+      .split("\n")
+      .filter(Boolean)
+      .map(line => JSON.parse(line) as string[])
+      .filter(args => args[0] === "pr" && args[1] === "view").length,
     output: `${run.stdout ?? ""}${run.stderr ?? ""}`,
   };
 }
@@ -830,5 +876,116 @@ describe("the shipped CLI prints which set it judged against (#4484)", () => {
     // And the union's verdict is unchanged — the dev-only contexts still block.
     expect(run.output).toContain("absent_required_check");
     expect(run.status).not.toBe(0);
+  });
+});
+
+describe("the shipped CLI uses the current base after retargeting (#4487)", () => {
+  it("uses current staging metadata instead of the saved dev base", () => {
+    const run = runCli(
+      repoDeclaring(declarationWith()),
+      "dev",
+      stubGh(rowsFor(BY_BRANCH.staging), "staging"),
+      { args: ["--json"] }
+    );
+    expect(run.output).toContain(
+      "required contexts: per-branch set for base 'staging' (3 contexts)"
+    );
+    expect(run.output).not.toContain("absent_required_check");
+    expect(run.output).toContain(HEAD_SHA);
+    expect(run.status).toBe(0);
+    expect(run.prReads).toBe(2);
+  });
+
+  it("retains dev-only absences when saved staging metadata is stale", () => {
+    const run = runCli(
+      repoDeclaring(declarationWith()),
+      "staging",
+      stubGh(rowsFor(BY_BRANCH.staging), "dev"),
+      { args: ["--json"] }
+    );
+    expect(run.output).toContain(
+      "required contexts: per-branch set for base 'dev' (5 contexts)"
+    );
+    expect(run.output).toContain("absent_required_check");
+    expect(run.output).toContain(NIGHTLY);
+    expect(run.output).toContain(STAGE_GUARD);
+    expect(run.output).toContain(HEAD_SHA);
+    expect(run.status).not.toBe(0);
+    expect(run.prReads).toBe(2);
+  });
+
+  it("keeps an explicit base above current and saved metadata", () => {
+    const run = runCli(
+      repoDeclaring(declarationWith()),
+      "dev",
+      stubGh(rowsFor(BY_BRANCH.main), "staging"),
+      { args: [MAIN_BASE_OVERRIDE] }
+    );
+    expect(run.output).toContain(
+      "required contexts: per-branch set for base 'main' (2 contexts)"
+    );
+    expect(run.output).not.toContain("absent_required_check");
+    expect(run.status).toBe(0);
+  });
+
+  it("uses the matching event when current metadata is unreadable", () => {
+    const run = runCli(
+      repoDeclaring(declarationWith()),
+      "staging",
+      stubGh(rowsFor(BY_BRANCH.staging), null)
+    );
+    expect(run.output).toContain(
+      "required contexts: per-branch set for base 'staging' (3 contexts)"
+    );
+    expect(run.output).not.toContain(FALLBACK_TOKEN);
+    expect(run.status).toBe(0);
+  });
+
+  it.each([
+    { reason: "no event base", baseRef: "", eventPr: 1, eventRepo: EVENT_REPO },
+    {
+      reason: "another PR",
+      baseRef: "staging",
+      eventPr: 2,
+      eventRepo: EVENT_REPO,
+    },
+    {
+      reason: "another repository",
+      baseRef: "staging",
+      eventPr: 1,
+      eventRepo: OTHER_REPO,
+    },
+  ])(
+    "reports the union for $reason when current metadata is unreadable",
+    ({ baseRef, eventPr, eventRepo }) => {
+      const run = runCli(
+        repoDeclaring(declarationWith()),
+        baseRef,
+        stubGh(rowsFor(BY_BRANCH.staging), null),
+        { eventPr, eventRepo }
+      );
+      expect(run.output).toContain("required contexts: union fallback");
+      expect(run.output).toContain(FALLBACK_TOKEN);
+      expect(run.output).toContain(NIGHTLY);
+      expect(run.output).toContain(STAGE_GUARD);
+      expect(run.status).not.toBe(0);
+    }
+  );
+
+  it("keeps an empty current branch set instead of the saved dev set", () => {
+    const declaration = declarationWith({
+      required_contexts_by_branch: { ...BY_BRANCH, sandbox: [] },
+    });
+    const run = runCli(
+      repoDeclaring(declaration),
+      "dev",
+      stubGh(rowsFor(BY_BRANCH.staging), "sandbox")
+    );
+    expect(run.output).toContain(
+      "required contexts: per-branch set for base 'sandbox' (0 contexts)"
+    );
+    expect(run.output).not.toContain(FALLBACK_TOKEN);
+    expect(run.output).not.toContain("absent_required_check");
+    expect(run.status).toBe(0);
   });
 });

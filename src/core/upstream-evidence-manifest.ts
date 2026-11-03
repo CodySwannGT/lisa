@@ -2949,7 +2949,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/copy-overwrite/scripts/check-nightly-e2e-health.mjs":
       "d1b26caeaf65950e3b60ff41964d234c032c50470072e7643310b1f6722e34e6",
     "typescript/copy-overwrite/scripts/check-skipped-required-checks.mjs":
-      "c1417200e7e77c5d2dbbebcf747bf042d481f0f711b71d3a892b3677bb90ce52",
+      "dee1d61491d5bc30b42936dd30e28eb781d3e88021a7ebe1fd251acea1622b41",
     "typescript/copy-overwrite/scripts/check-threshold-ratchet.mjs":
       "d4afc90ba8faf10925fff5fb0d6cd0ace22df2eaa0ec609ee969d0ec84092299",
     "typescript/copy-overwrite/scripts/check-verification-coverage.mjs":
@@ -2989,7 +2989,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/copy-overwrite/vitest.config.ts":
       "dc140e617db43da38f456bcc909ae621a62996fe25e7b0babd5e81941308365c",
     "typescript/create-only/.github/required-checks.json":
-      "29c4770b0317c89c266e149f54b3b0707eeaea2b1271796a75be50e7b9fc150a",
+      "cc2f57e86e79fc0a708b7317c9b7c3a89cb463ad0813dcfe3a87af809d8ec38d",
     "typescript/create-only/.github/workflows/ci.yml":
       "313e42045137c59f77cf61abeebb19c8005ba7fa6d5b7d92a169a1e86ab168b5",
     "typescript/create-only/.github/workflows/review-evidence.yml":
@@ -12607,6 +12607,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/plugin-sync-scripts.test.ts": true,
     "tests/unit/scripts/plugin-sync-workflow.test.ts": true,
     "tests/unit/scripts/portable-usage-ledger.test.ts": true,
+    "tests/unit/scripts/pr-base-snapshot.test.ts": true,
     "tests/unit/scripts/probe-failure-not-absence.test.ts": true,
     "tests/unit/scripts/process-tree-runner-interrupt.test.ts": true,
     "tests/unit/scripts/process-tree-runner-verdict-transport.test.ts": true,
