@@ -1,6 +1,7 @@
 import * as fs from "fs-extra";
 import path from "node:path";
 import { env } from "node:process";
+import { GIT_BIN } from "../support/git-executable.js";
 
 import { boundedExecFileSync, boundedSpawnSync } from "./io-latency-budget.js";
 import {
@@ -112,7 +113,7 @@ export function fixtureGit(
 ): string {
   return boundedExecFileSync({
     label: "Rails hook fixture Git",
-    command: "git",
+    command: GIT_BIN,
     args,
     cwd,
     env: fixture.env,
@@ -240,7 +241,6 @@ export async function runFixtureStartup(
         ...overrides,
       },
       input: "{}",
-      baseMs: 30_000,
     });
   });
 }

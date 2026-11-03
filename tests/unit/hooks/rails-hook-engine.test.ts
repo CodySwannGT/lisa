@@ -16,6 +16,7 @@ import {
   type RailsHookFixture,
 } from "../../helpers/rails-hook-install-fixture.js";
 import { cleanupTempDir } from "../../helpers/test-utils.js";
+import { GIT_BIN } from "../../support/git-executable.js";
 import {
   boundedSpawnSync,
   ioLatencyBudgetMs,
@@ -111,14 +112,7 @@ describe("shared Rails hook engine", () => {
 
   it("reports missing Bundler through the actual spawn failure", async () => {
     const git = path.join(fixture.bin, "git");
-    const gitPath = fixtureGit(fixture, ["--exec-path"]);
-    // Git's installation supplies its executable alongside the core programs
-    // on supported fixture platforms; resolve the real executable explicitly.
-    const candidate = path.resolve(gitPath, "../../bin/git");
-    const realGit = (await fs.pathExists(candidate))
-      ? candidate
-      : "/usr/bin/git";
-    await fs.symlink(realGit, git);
+    await fs.symlink(GIT_BIN, git);
     await fs.remove(path.join(fixture.bin, "bundle"));
     const result = await ensureRailsHooks(fixture.project, {
       env: { ...fixture.env, PATH: fixture.bin },
