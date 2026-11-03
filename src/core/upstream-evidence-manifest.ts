@@ -10960,6 +10960,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "src/opencode/plugin-templates/lisa-rubocop-on-edit.ts": true,
     "src/opencode/plugin-templates/lisa-session-bootstrap.ts": true,
     "src/opencode/plugin-templates/lisa-sg-scan-on-edit.ts": true,
+    "src/opencode/plugin-templates/rails-hooks.mjs": true,
     "src/opencode/project-plugin-gate.ts": true,
     "src/opencode/settings-installer.ts": true,
     "src/opencode/skills-installer.ts": true,
