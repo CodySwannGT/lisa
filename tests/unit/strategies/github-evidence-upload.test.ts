@@ -1,6 +1,7 @@
 /** Execute the documented evidence upload against GitHub CLI filename semantics. */
 import {
   chmodSync,
+  existsSync,
   mkdirSync,
   mkdtempSync,
   readFileSync,
@@ -31,8 +32,11 @@ const variants = [
 const skill = readFileSync(path.join(variants[0]!, relativeSkill), "utf8");
 const roots: string[] = [];
 const HEALTH_CONTENT = '{"ok":true}\n';
-const SPACED_ASSET_NAME = "pr-123-01-health check.json";
+const VALID_ASSET_NAME = "pr-123-01-health-check.json";
 const FIRST_ASSET_NAME = "pr-123-01-health.json";
+const INPUT_FILE_NAME = "01-health.json";
+const PRIOR_ASSET_NAME = "pr-123-01-health.check.json";
+const PRIOR_CONTENT = "existing evidence\n";
 
 afterEach(() => {
   for (const root of roots.splice(0))
@@ -78,7 +82,7 @@ const args = process.argv.slice(2);
 if (args[0] !== "release") process.exit(77);
 if (args[1] === "upload") {
   const [file, label = ""] = args.at(-1).split("#");
-  const name = path.basename(file);
+  const name = path.basename(file).replaceAll(" ", ".");
   if (process.env.EVIDENCE_FAILURE === "upload" && name.includes("01-")) process.exit(7);
   fs.copyFileSync(file, path.join(process.env.EVIDENCE_STORE, name));
   fs.appendFileSync(process.env.EVIDENCE_LOG, JSON.stringify({name,label})+"\\n");
@@ -122,6 +126,7 @@ function runUpload(
       EVIDENCE_STORE: value.store,
       EVIDENCE_LOG: value.log,
       EVIDENCE_FAILURE: failure,
+      EVIDENCE_POST_MARKER: path.join(value.root, "posted.txt"),
     },
   });
 }
@@ -140,36 +145,35 @@ describe("documented GitHub evidence upload", () => {
   it("stores the prefixed name, preserves source bytes and leaves no display label", () => {
     const value = fixture();
     writeFileSync(
-      path.join(value.evidence, "01-health check.json"),
+      path.join(value.evidence, "01-health-check.json"),
       HEALTH_CONTENT
     );
     const result = runUpload(value, 123);
     expect(result.status, result.stderr).toBe(0);
-    expect(readdirSync(value.store)).toEqual([SPACED_ASSET_NAME]);
-    expect(
-      readFileSync(path.join(value.store, SPACED_ASSET_NAME), "utf8")
-    ).toBe(HEALTH_CONTENT);
+    expect(readdirSync(value.store)).toEqual([VALID_ASSET_NAME]);
+    expect(readFileSync(path.join(value.store, VALID_ASSET_NAME), "utf8")).toBe(
+      HEALTH_CONTENT
+    );
     expect(JSON.parse(readFileSync(value.log, "utf8"))).toEqual({
-      name: SPACED_ASSET_NAME,
+      name: VALID_ASSET_NAME,
       label: "",
     });
     expect(
-      readFileSync(path.join(value.evidence, "01-health check.json"), "utf8")
+      readFileSync(path.join(value.evidence, "01-health-check.json"), "utf8")
     ).toBe(HEALTH_CONTENT);
     expect(readdirSync(value.scratch)).toEqual([]);
   });
 
   it("keeps two pull requests' same-named evidence and contents independent", () => {
     const value = fixture();
-    const file = path.join(value.evidence, "01-health.json");
+    const file = path.join(value.evidence, INPUT_FILE_NAME);
     writeFileSync(file, "first\n");
     expect(runUpload(value, 123).status).toBe(0);
     writeFileSync(file, "second\n");
     expect(runUpload(value, 124).status).toBe(0);
-    expect(readdirSync(value.store)).toEqual([
-      FIRST_ASSET_NAME,
-      "pr-124-01-health.json",
-    ]);
+    expect(
+      readdirSync(value.store).sort((left, right) => left.localeCompare(right))
+    ).toEqual([FIRST_ASSET_NAME, "pr-124-01-health.json"]);
     expect(readFileSync(path.join(value.store, FIRST_ASSET_NAME), "utf8")).toBe(
       "first\n"
     );
@@ -178,11 +182,37 @@ describe("documented GitHub evidence upload", () => {
     ).toBe("second\n");
   });
 
+  it.each([
+    "01-health check.json",
+    "01-Health.json",
+    "01-health_check.json",
+    "01-health.check.json",
+    "01-health#check.json",
+    "01-health\ncheck.json",
+    "01-héalth.json",
+  ])(
+    "rejects invalid %j before uploading any file or replacing prior evidence",
+    invalid => {
+      const value = fixture();
+      const prior = path.join(value.store, PRIOR_ASSET_NAME);
+      writeFileSync(prior, PRIOR_CONTENT);
+      writeFileSync(path.join(value.evidence, "00-valid.json"), "valid\n");
+      writeFileSync(path.join(value.evidence, invalid), "invalid\n");
+      const result = runUpload(value, 123);
+      expect(readFileSync(prior, "utf8"), result.stderr).toBe(PRIOR_CONTENT);
+      expect(result.status).not.toBe(0);
+      expect(readFileSync(value.log, "utf8")).toBe("");
+      expect(readdirSync(value.store)).toEqual([PRIOR_ASSET_NAME]);
+      expect(result.stderr).toContain("Invalid evidence filename");
+      expect(readdirSync(value.scratch)).toEqual([]);
+    }
+  );
+
   it.each(["upload", "view", "missing", "lookalike"])(
     "stops on %s failure and removes temporary staging",
     failure => {
       const value = fixture();
-      writeFileSync(path.join(value.evidence, "01-health.json"), "first\n");
+      writeFileSync(path.join(value.evidence, INPUT_FILE_NAME), "first\n");
       writeFileSync(path.join(value.evidence, "02-other.json"), "second\n");
       const result = runUpload(value, 123, failure);
       expect(result.status).not.toBe(0);
@@ -197,6 +227,19 @@ describe("documented GitHub evidence upload", () => {
     const value = fixture();
     expect(runUpload(value, 123).status).toBe(0);
     expect(readFileSync(value.log, "utf8")).toBe("");
+    expect(readdirSync(value.scratch)).toEqual([]);
+  });
+
+  it("stops an outer Bash invocation before posting after an upload failure", () => {
+    const value = fixture();
+    writeFileSync(path.join(value.evidence, INPUT_FILE_NAME), "first\n");
+    writeFileSync(
+      value.script,
+      `${uploadSnippet()}\nprintf '%s\\n' posted > "$EVIDENCE_POST_MARKER"\n`
+    );
+    const result = runUpload(value, 123, "upload");
+    expect(existsSync(path.join(value.root, "posted.txt"))).toBe(false);
+    expect(result.status).not.toBe(0);
     expect(readdirSync(value.scratch)).toEqual([]);
   });
 });
