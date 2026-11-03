@@ -1848,12 +1848,12 @@ function normaliseBaseRef(ref) {
  * Resolves the branch the pull request under inspection merges INTO.
  *
  * Most-explicit-first, the same order {@link resolvePullRequestNumber} uses:
- * an operator's `--base`, then `GITHUB_BASE_REF` (set by Actions on every
- * `pull_request` and `pull_request_target` run), then the event payload's
- * `pull_request.base.ref`. Offline on purpose — every source is a fact this run
- * already holds, so selecting a set costs no API call, no token scope and no
- * rate limit, and works the same on a fork pull request. Returning null is a
- * real answer: the caller falls back to the union and SAYS so.
+ * an operator's `--base`, then current metadata for the inspected PR, then
+ * `GITHUB_BASE_REF` and the event payload's `pull_request.base.ref`. A rerun
+ * replays its old event even after retargeting. The caller supplies metadata
+ * from its existing head observation, so this pure selection adds no API call.
+ * When current metadata is unavailable, the identity-checked event remains a
+ * fallback. Returning null selects the reported union fallback.
  *
  * The run's own base describes the run's own pull request, and nothing else.
  * When `options.pr` names the pull request being inspected, GITHUB_BASE_REF
@@ -1867,12 +1867,20 @@ function normaliseBaseRef(ref) {
  *
  * @param {ReadonlyArray<string>} argv - CLI arguments
  * @param {NodeJS.ProcessEnv} [env] - Environment, injectable for tests
- * @param {{pr?: string, repo?: string}} [options] - The pull request and repository being inspected, when known
+ * @param {{pr?: string, repo?: string, currentPullRequest?: object}} [options] - Inspected identity and its current metadata, when available
  * @returns {{base: string|null, source: string|null, ignoredEventBase?: string}} The base and where it came from
  */
 export function resolveBaseRef(argv, env = process.env, options = {}) {
   const explicit = normaliseBaseRef(readFlagValue(argv, "--base"));
   if (explicit !== null) return { base: explicit, source: "--base" };
+
+  if (
+    isInspectedPullRequest(options.currentPullRequest, options.pr, options.repo)
+  ) {
+    const current = normaliseBaseRef(options.currentPullRequest.baseRefName);
+    if (current !== null)
+      return { base: current, source: "current PR metadata" };
+  }
 
   const eventPath = env.GITHUB_EVENT_PATH;
   const payload =
@@ -1895,6 +1903,34 @@ export function resolveBaseRef(argv, env = process.env, options = {}) {
     isEventRepository(options.repo, payload, env)
     ? found
     : { base: null, source: null, ignoredEventBase: found.base };
+}
+
+/**
+ * Match both native metadata identities before trusting its current base.
+ * @param {object|undefined} current - Native PR metadata
+ * @param {string|number|undefined} pr - Inspected PR
+ * @param {string|undefined} repo - Inspected repository
+ * @returns {boolean} Whether this is the requested PR in the requested repo
+ */
+function isInspectedPullRequest(current, pr, repo) {
+  if (
+    !current ||
+    pr === undefined ||
+    repo === undefined ||
+    String(current.number) !== String(pr) ||
+    typeof current.url !== "string"
+  )
+    return false;
+  try {
+    const url = new URL(current.url);
+    return (
+      ["https:", "http:"].includes(url.protocol) &&
+      url.pathname.replace(/\/$/u, "").toLowerCase() ===
+        `/${repo}/pull/${pr}`.toLowerCase()
+    );
+  } catch {
+    return false;
+  }
 }
 
 /**
@@ -4052,6 +4088,45 @@ export function resolveHeadSha(pr, repo) {
 }
 
 /**
+ * Observe head and current base together using the existing PR metadata read.
+ * A failed metadata read retains the old head probe, so an independently
+ * readable head can still use the declared event/union base fallbacks.
+ * @param {string|number} pr - Inspected PR
+ * @param {string|undefined} repo - Inspected repository
+ * @returns {{headSha: string|undefined, repo?: string, pullRequest?: object}} One observation
+ */
+function observePullRequest(pr, repo) {
+  const slug = resolveRepoSlug(repo);
+  if (slug === undefined) return { headSha: undefined };
+  try {
+    const current = JSON.parse(
+      boundedExecFileSync(
+        "gh",
+        [
+          "pr",
+          "view",
+          String(pr),
+          "--repo",
+          slug,
+          "--json",
+          "number,url,headRefOid,baseRefName",
+        ],
+        { encoding: "utf8" }
+      )
+    );
+    if (
+      isInspectedPullRequest(current, pr, slug) &&
+      typeof current.headRefOid === "string" &&
+      /^[a-f0-9]{40}$/iu.test(current.headRefOid)
+    )
+      return { headSha: current.headRefOid, repo: slug, pullRequest: current };
+  } catch {
+    // Current metadata is unavailable; preserve the existing head-only probe.
+  }
+  return { headSha: resolveHeadSha(pr, slug), repo: slug };
+}
+
+/**
  * How a finding cites the commit its evidence was read at.
  *
  * @param {string|undefined} headSha - The resolved head SHA, if any
@@ -4386,7 +4461,7 @@ function sleepSync(ms) {
  * @param {object} declaration - The per-repo declaration
  * @param {string|number} pr - Pull request number
  * @param {string|undefined} repo - `OWNER/NAME`, or undefined
- * @param {{timeoutSeconds?: number, intervalSeconds?: number, fetch?: Function, now?: Function, sleep?: Function, headSha?: Function, requiredSet?: object, substitutes?: Set<string>, substituteHead?: string}} [options] -
+ * @param {{timeoutSeconds?: number, intervalSeconds?: number, fetch?: Function, now?: Function, sleep?: Function, headSha?: Function, observe?: Function, initialObservation?: object, requiredSet?: object, requiredSetFor?: Function, substitutes?: Set<string>, substituteHead?: string}} [options] -
  *   Injection seams; the suite drives the whole loop through them so nothing
  *   here has to sleep in real time
  * @returns {{checks: object[], settled: boolean, headSha: string|undefined, registration: object}} Rows, reviewer completion, head and required-registration observations
@@ -4411,16 +4486,20 @@ export function fetchSettledChecks(declaration, pr, repo, options = {}) {
       );
     });
   const resolveHead = options.headSha ?? resolveHeadSha;
+  const observe =
+    options.observe ??
+    ((request, slug) => ({ headSha: resolveHead(request, slug) }));
   const clock = options.now ?? Date.now;
   const sleep = options.sleep ?? sleepSync;
   const started = clock();
   const deadline = started + timeoutMs;
-  const requiredSet =
+  const defaultRequiredSet =
     options.requiredSet ??
     selectRequiredContexts(declaration, { base: null, source: null });
-  const missing = checks =>
-    requiredSet.contexts.filter(
-      name => !checks.some(check => check.name === name)
+  const selectSet = options.requiredSetFor ?? (() => defaultRequiredSet);
+  const missing = observed =>
+    observed.requiredSet.contexts.filter(
+      name => !observed.checks.some(check => check.name === name)
     );
   // A substitute is useful only at the head it was actually read for. Pending
   // rows still wait, and a missing required reviewer still needs a real row.
@@ -4435,29 +4514,39 @@ export function fetchSettledChecks(declaration, pr, repo, options = {}) {
       );
     });
 
-  // Bracket every roster read with head reads. `gh pr checks` targets the PR's
-  // current head but does not return the SHA it used, and the permission-light
-  // fallback resolves the head internally. A push between either route and a
-  // later provenance lookup used to make findings cite a commit whose checks
-  // were never evaluated. Matching observations on both sides bind the roster
-  // to that head; a mismatch is discarded and re-read, never reported.
+  // Bracket checks with coherent head/base observations. The early substitute
+  // read can supply the first observation without another metadata request.
+  // A push or retarget during the read is discarded within this same deadline.
+  let initial = options.initialObservation;
   const snapshot = () => {
-    const before = resolveHead(pr, repo);
-    if (before === undefined) {
+    const before = initial?.headSha === undefined ? observe(pr, repo) : initial;
+    initial = undefined;
+    const beforeSet = selectSet(before);
+    if (before.headSha === undefined) {
       return {
         checks: [],
         headSha: undefined,
         stable: false,
         after: undefined,
+        requiredSet: beforeSet,
+        baseBefore: beforeSet.base,
+        baseAfter: undefined,
       };
     }
-    const checks = read(pr, repo, before);
-    const after = resolveHead(pr, repo);
+    const checks = read(pr, repo, before.headSha);
+    const after = observe(pr, repo);
+    const afterSet = selectSet(after);
     return {
       checks,
-      headSha: before,
-      stable: after !== undefined && before === after,
-      after,
+      headSha: before.headSha,
+      stable:
+        after.headSha !== undefined &&
+        before.headSha === after.headSha &&
+        beforeSet.base === afterSet.base,
+      after: after.headSha,
+      requiredSet: afterSet,
+      baseBefore: beforeSet.base,
+      baseAfter: afterSet.base,
     };
   };
 
@@ -4465,20 +4554,24 @@ export function fetchSettledChecks(declaration, pr, repo, options = {}) {
   while (
     (!observed.stable ||
       !evidenceReady(observed) ||
-      missing(observed.checks).length > 0) &&
+      missing(observed).length > 0) &&
     clock() < deadline
   ) {
     sleep(Math.min(intervalMs, deadline - clock()));
     observed = snapshot();
   }
   if (!observed.stable) {
+    if (observed.headSha !== undefined && observed.headSha === observed.after)
+      throw new Error(
+        `check-skipped-required-checks: the selected pull request base changed while its checks were being read (${observed.baseBefore ?? "unresolved"} -> ${observed.baseAfter ?? "unresolved"}). Refusing to judge checks against another base; re-read the pull request after retargeting settles.`
+      );
     throw new Error(
       `check-skipped-required-checks: the pull request head changed while its checks were being read (${observed.headSha ?? "unresolved"} -> ${observed.after ?? "unresolved"}). Refusing to attach one commit's review evidence to another; re-read the pull request after the push settles.`
     );
   }
   const elapsedSeconds = Math.max(0, clock() - started) / 1000;
-  const unregistered = missing(observed.checks);
-  const total = requiredSet.contexts.length;
+  const unregistered = missing(observed);
+  const total = observed.requiredSet.contexts.length;
   const present = total - unregistered.length;
   const expired = unregistered.length > 0;
   const settled = checksSettled(declaration, observed.checks);
@@ -4506,6 +4599,7 @@ export function fetchSettledChecks(declaration, pr, repo, options = {}) {
     headSha: observed.headSha,
     registration,
     evidence,
+    requiredSet: observed.requiredSet,
   };
 }
 
@@ -4701,7 +4795,7 @@ function readSecondsFlag(argv, name, fallback) {
  *
  * @param {ReadonlyArray<string>} argv - CLI arguments
  * @param {object} declaration - The per-repo declaration
- * @param {{trustRequiredContexts?: boolean, env?: NodeJS.ProcessEnv, fetch?: Function, probeBranch?: Function, now?: Function, sleep?: Function, headSha?: Function, reviewActivity?: Function}} [options] -
+ * @param {{trustRequiredContexts?: boolean, env?: NodeJS.ProcessEnv, fetch?: Function, probeBranch?: Function, now?: Function, sleep?: Function, headSha?: Function, observe?: Function, reviewActivity?: Function}} [options] -
  *   Injection seams for the suite
  * @returns {{pr: string|undefined, prSource: string|null, headSha: string|undefined, checked: number, violations: object[], settled: boolean, refusal: {kind: string, reason: string}|null}|undefined} The inspection
  */
@@ -4755,19 +4849,30 @@ export function inspectVacuity(argv, declaration, options = {}) {
   const declaredReviewers = Object.keys(
     declaration.evidence_bearing_checks ?? {}
   );
-  const earlyHead = requireReviewEvidence
-    ? (options.headSha ?? resolveHeadSha)(pr, repo)
+  const injectedHead = options.headSha;
+  const observe =
+    options.observe ??
+    (injectedHead
+      ? (request, slug) => ({ headSha: injectedHead(request, slug) })
+      : observePullRequest);
+  const earlyObservation = requireReviewEvidence
+    ? observe(pr, repo)
     : undefined;
+  const earlyHead = earlyObservation?.headSha;
   const earlySubstitutes = readSubstitutes(earlyHead);
   const allStoodIn =
     declaredReviewers.length > 0 &&
     declaredReviewers.every(name => earlySubstitutes.has(name));
-  // Select once: polling and the absence verdict must judge the same base.
-  // resolveBaseRef retains its existing contract; live retargeting is #4487.
-  const requiredSet = selectRequiredContexts(
-    declaration,
-    resolveBaseRef(argv, options.env ?? process.env, { pr, repo })
-  );
+  // Registration and absence share the selection returned with stable checks.
+  const requiredSetFor = observed =>
+    selectRequiredContexts(
+      declaration,
+      resolveBaseRef(argv, options.env ?? process.env, {
+        pr,
+        repo: repo ?? observed.repo,
+        currentPullRequest: observed.pullRequest,
+      })
+    );
   let read;
   try {
     read = fetchSettledChecks(declaration, pr, repo, {
@@ -4785,13 +4890,16 @@ export function inspectVacuity(argv, declaration, options = {}) {
       now: options.now,
       sleep: options.sleep,
       headSha: options.headSha,
-      requiredSet,
+      observe,
+      initialObservation: earlyObservation,
+      requiredSetFor,
       substitutes: allStoodIn ? earlySubstitutes : undefined,
       substituteHead: earlyHead,
     });
   } catch (error) {
     return refused(vacuityRefusal({ declaration, pr, error }));
   }
+  const requiredSet = read.requiredSet;
 
   const refusal = vacuityRefusal({ declaration, pr, checks: read.checks });
   if (refusal !== null) {

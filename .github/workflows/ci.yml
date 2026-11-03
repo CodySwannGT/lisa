@@ -44,6 +44,11 @@ jobs:
         run: >-
           node dist/cli/lisa-test-run.js --profile lisa --adapter vitest -- ./node_modules/.bin/vitest run
           tests/unit/strategies/github-evidence-upload.test.ts --reporter=verbose
+      - name: Execute and name current PR base regressions
+        run: >-
+          node dist/cli/lisa-test-run.js --profile lisa --adapter vitest -- ./node_modules/.bin/vitest run
+          tests/unit/scripts/absent-required-checks-by-branch.test.ts
+          tests/unit/scripts/pr-base-snapshot.test.ts --reporter=verbose
       - name: Verify built Lisa CLI
         env:
           LISA_SKIP_UPDATE_CHECK: '1'
