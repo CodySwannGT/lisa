@@ -933,7 +933,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/commands/parity-skill-creator.md":
       "927a70dc4b4c7c6623032c2d184a38ce40aa3ae2944d0c5f84ed488b97ddd62c",
     "plugins/src/base/commands/persist-learning.md":
-      "a403e22ba892a25282dc972105b6d1aa7c3077bd1661e68c395f0e263deffb62",
+      "7d47c05685c7b2dfca7d6562a71694645707294a07cace66d6cab96b3eb06af5",
     "plugins/src/base/commands/plan.md":
       "33bddcecd71ae57d7670ba98191aba385f1532e9c8b14f4a288ff0b24d7cfbc5",
     "plugins/src/base/commands/plugin-sync-explain.md":
@@ -1515,7 +1515,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-kane-browser/SKILL.md":
       "e082517cb42f437eeb22b3935aa0fef09299874736e55184e88d2b64f7860a7d",
     "plugins/src/base/skills/lisa-learnings-audit/SKILL.md":
-      "0a514fe306ec392237694eece01b98512868a2d4023f45949641c1ac8d3bd997",
+      "71ec83b59839fe684ecc06688610d1fb780738939ddec8ba7d3332ac3c7939a6",
     "plugins/src/base/skills/lisa-linear-access/SKILL.md":
       "83cbf20e7a9f5e5289f609f16079a95897aac5964380305d4a5193438230f965",
     "plugins/src/base/skills/lisa-linear-add-journey/SKILL.md":
@@ -1577,7 +1577,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-performance-review/SKILL.md":
       "351542c256e54940e6d672a70606b8414425c6435ae6f026841bcc02f9fce9c4",
     "plugins/src/base/skills/lisa-persist-learning/SKILL.md":
-      "23cd2fe82ae18bd0dd7042f92fda7b6fb4acedfbbab78e7d8ac6ae593d80d6a2",
+      "e352f642acaa0a6e84a8055996d6a24ba5cc6487d77fdc8b47893c93e78f45b9",
     "plugins/src/base/skills/lisa-plan/SKILL.md":
       "7c4f58544d503b68db4389e0af7f3d266bddee9a182ec874e580790bdd3f7497",
     "plugins/src/base/skills/lisa-plugin-sync-explain/SKILL.md":

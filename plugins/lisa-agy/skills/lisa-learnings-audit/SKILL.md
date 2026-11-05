@@ -97,16 +97,20 @@ that sets `learnings.lowConfidence: "auto-merge"` (resolve it with
 `resolveLearningsSettings(config).lowConfidence` from
 `@codyswann/lisa/learnings`) lets `lisa-persist-learning` merge `low`
 learnings without a human reading them (CodySwannGT/lisa#4659). In that mode,
-every parsed ledger entry with `confidence: "low"` goes to the **front** of
-this run's audit order and has all five evidence axes gathered, oldest
-`last_confirmed` first, before any other entry spends `max_candidates`. Its
-low confidence is the reason it is checked first, never evidence for a
-change: RETIRE or DEMOTE still needs proof (a contradiction, staleness, a
-mechanical owner), and Recurrence evidence that it applied is a CONFIRM.
-Name these entries in the run proof (`low-confidence re-reviewed: <ids>`), so
-an operator can see that the skipped human gate was paid for here. Under the
-default `human-triage` a `low` entry reached the ledger only through a human
-merge, so it keeps the normal order.
+every parsed ledger entry with `confidence: "low"` that has never been
+confirmed (`last_confirmed` equals `first_learned`) goes to the **front** of
+this run's audit order, oldest first, and has all five evidence axes
+gathered. A CONFIRM bumps `last_confirmed`, which ends the priority, so the
+front of the queue holds only entries nobody has checked yet. The ordering
+changes no cap: PROMOTE/DEMOTE tickets for these entries count toward
+`max_candidates` like any other. Low confidence is the reason an entry is
+checked first, never evidence for a change: RETIRE or DEMOTE still needs
+proof (a contradiction, staleness, a mechanical owner), and Recurrence
+evidence that it applied is a CONFIRM. Name these entries in the run proof
+(`low-confidence re-reviewed: <ids>`), so an operator can see that the
+skipped human gate was paid for here. Under the default `human-triage` a
+`low` entry reached the ledger only through a human merge, so it keeps the
+normal order.
 
 **The eager tier is audited every run** — including
 **Lisa's own shipped eager rules**, not just host additions. Admission is demotion-biased and

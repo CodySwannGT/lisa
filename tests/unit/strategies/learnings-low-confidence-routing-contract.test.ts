@@ -18,6 +18,7 @@ const SKILL_SURFACES = [
   "plugins/lisa-cursor/skills",
   "plugins/lisa-agy/skills",
   "plugins/lisa-copilot/skills",
+  "plugins/lisa-devin/skills",
 ] as const;
 
 /**

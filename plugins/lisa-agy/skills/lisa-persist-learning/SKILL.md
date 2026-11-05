@@ -247,7 +247,7 @@ No learning content is ever committed without a PR — there is no other write p
    Low-confidence learning: merges through the normal gates under `learnings.lowConfidence: "auto-merge"`; the gardener (`lisa-learnings-audit`) re-reviews it first.
    ```
 
-6. **Confidence routing.** A `signal: wrongly-escalated` candidate always takes its own bullet below, whatever its confidence and whatever this setting says. Any other `low` verdict routes by the project's `learnings.lowConfidence` setting. Resolve it through the same executable contract as the ledger path in step 2 — never by reading `.lisa.config.json` by hand, so an invalid value fails here exactly as it fails everywhere else (a value other than `"auto-merge"` or `"human-triage"` is rejected, and the run reports the failure without persisting):
+6. **Confidence routing.** A `signal: wrongly-escalated` candidate always takes its own bullet below, whatever its confidence and whatever this setting says. Any other `low` verdict routes by the project's `learnings.lowConfidence` setting. Resolve it through the same executable contract as the ledger path in step 2 — never by reading `.lisa.config.json` by hand. A value other than `"auto-merge"` or `"human-triage"` is rejected by the config read itself, so it already stopped the run at step 2 and nothing was persisted:
 
    ```bash
    LOW_CONFIDENCE=$(node -e 'import("@codyswann/lisa/learnings").then(async m => { const c = await m.readProjectConfig(process.cwd()); console.log(m.resolveLearningsSettings(c).lowConfidence); })')
