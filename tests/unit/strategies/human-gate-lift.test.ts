@@ -247,6 +247,23 @@ describe("review hardening", () => {
     expect(plan.comments).toEqual([]);
   });
 
+  it("reads the visible line past a heading between it and the marker", () => {
+    const body = [
+      "Held for a person to supply a credential only a person holds: the key.",
+      "## Design notes",
+      "<!-- [lisa-human-gate] reason=stripe-key -->",
+    ].join("\n");
+    expect(planHumanGateLift({ body, labels: [NEEDED] }).lift).toBe(false);
+  });
+
+  it("reads a marker-first hold's visible line below it", () => {
+    const body = [
+      "<!-- [lisa-human-gate] reason=stripe-key -->",
+      "Held for a person to supply a credential only a person holds: the key.",
+    ].join("\n");
+    expect(planHumanGateLift({ body, labels: [NEEDED] }).lift).toBe(false);
+  });
+
   it("classifies an oversized hostile line quickly", () => {
     const body = [
       "promote ".repeat(60_000),

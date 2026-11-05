@@ -319,7 +319,7 @@ export const HUMAN_GATE_ACTS = Object.freeze([
     act: "legal-signoff",
     label: "give a legal or compliance sign-off",
     pattern:
-      /\b(legal|lawyer|counsel|compliance|regulatory|hipaa|gdpr|soc ?2|contracts?|terms of service|licen[cs]e agreements?|protected (deploy|deployment|environment)s?)\b/u,
+      /\b(baa|business associate agreement|sign (a|an|the) [a-z ]{0,30}(agreement|contract|baa|dpa)|legal|lawyer|counsel|compliance|regulatory|hipaa|gdpr|soc ?2|contracts?|terms of service|licen[cs]e agreements?|protected (deploy|deployment|environment)s?)\b/u,
   }),
   Object.freeze({
     act: "accountable-person",
@@ -331,7 +331,7 @@ export const HUMAN_GATE_ACTS = Object.freeze([
     act: "unreachable-system",
     label: "act in a system the agent cannot reach",
     pattern:
-      /\b(physical|hardware|on site|in person|unreachable|cannot reach|can ?not reach|cant reach|no access|outside (the )?agent|grant(s|ed|ing)? ([a-z]+ ){0,3}(access|permissions?|roles?)|give (the )?agent ([a-z]+ ){0,3}access|access (the )?agent (lacks|does not have|doesnt have|cannot get)|agent (lacks|does not have|doesnt have) ([a-z]+ ){0,4}access|tool access|missing access|access grant|provision(ing)? access|phone call)\b/u,
+      /\b(admin (rights|access|permissions?|role)|workspace admin|physical|hardware|on site|in person|unreachable|cannot reach|can ?not reach|cant reach|no access|outside (the )?agent|grant(s|ed|ing)? ([a-z]+ ){0,3}(access|permissions?|roles?)|give (the )?agent ([a-z]+ ){0,3}access|access (the )?agent (lacks|does not have|doesnt have|cannot get)|agent (lacks|does not have|doesnt have) ([a-z]+ ){0,4}access|tool access|missing access|access grant|provision(ing)? access|phone call)\b/u,
   }),
   Object.freeze({
     act: "lisa-policy",
@@ -363,7 +363,7 @@ const KEYWORD_ACTS = new Set([
 
 /** Words that mark a reason as being about a topic, not an act. */
 const TOPIC_WORDS =
-  /\b(triage|dispatch|naming|rename|choice|choose|design|copy|colou?r|layout|wording|migration|refactor|classification|classify|cleanup|dashboard|page|button|ui|ux|docs?|documentation|schema|decision|selection|split|labels?|error message)\b/u;
+  /\b(triage|dispatch|naming|rename|choice|choose|design|copy|colou?r|layout|wording|migration|refactor|classification|classify|cleanup|dashboard|page|button|ui|ux|docs?|documentation|schema|decision|selection|split|labels?|error message|policy|strategy|approach|format|field|template|structure|flag|adoption|list|pagination|conversion|settings|framework|pick|banner|placement|table|flow|storage|rotation|scope|folder|report|logging|tests?)\b/u;
 
 /** Verbs that say what a person must actually do. */
 const ACT_VERBS =
@@ -411,7 +411,13 @@ function normalizeClasses(classes) {
 export function classifyHumanGateReason(reason, options = {}) {
   const text = normalizeGateText(reason);
   if (text.length > 0) {
-    const topicOnly = TOPIC_WORDS.test(text) && !ACT_VERBS.test(text);
+    // The topic veto applies to a SLUG only (one hyphenated token, no spaces).
+    // A prose reason describes the act in its own words ("the Stripe API key
+    // for the payments dashboard"), and refusing it for mentioning a topic
+    // would refuse real acts; a keyword in prose stays accepted, which keeps a
+    // hold rather than lifting one.
+    const slug = !/\s/u.test(String(reason ?? "").trim());
+    const topicOnly = slug && TOPIC_WORDS.test(text) && !ACT_VERBS.test(text);
     for (const entry of HUMAN_GATE_ACTS) {
       const match = entry.pattern.exec(text);
       if (match && !(topicOnly && KEYWORD_ACTS.has(entry.act))) {
@@ -467,6 +473,12 @@ export const HUMAN_GATE_LIFTED_MARKER = "[lisa-human-gate-lifted]";
 /** Longest slice of any one line the classifier reads. */
 const HOLD_TEXT_CAP = 2000;
 
+/** How many non-blank lines above a marker are read as its context. */
+const HOLD_CONTEXT_LINES = 3;
+
+/** @param {string} candidate - A body line @returns {boolean} Whether it has content */
+const nonBlank = candidate => candidate.trim().length > 0;
+
 /**
  * The text each declared hold is judged by, keyed by its reason.
  *
@@ -486,15 +498,36 @@ export function humanGateHoldTexts(body) {
   lines.forEach((line, index) => {
     if (!declaresOnLine(line)) return;
     const key = reasonOnLine(line, HUMAN_GATE_MARKER);
-    const nonBlank = candidate => candidate.trim().length > 0;
-    const previous = lines.slice(0, index).reverse().find(nonBlank) ?? "";
-    // Only the ADJACENT line below, and only when it is not the next hold's own
-    // visible line or marker, so one hold never borrows another's act.
-    const below = lines[index + 1] ?? "";
-    const next =
-      declaresOnLine(below) || /^\s*held for\b/iu.test(below) ? "" : below;
-    const own = line.split(HUMAN_GATE_MARKER).join(" ");
-    const parts = [key, own, previous, next].map(part =>
+    // Up to HOLD_CONTEXT_LINES non-blank lines above, stopping at another
+    // hold's marker, so a heading between the visible line and the marker
+    // does not hide the act. Below: the first non-blank line, unless it is
+    // itself a marker or the visible line of the NEXT hold (a line directly
+    // followed by a marker), so one hold never borrows another's act.
+    const above = [];
+    for (
+      let at = index - 1;
+      at >= 0 && above.length < HOLD_CONTEXT_LINES;
+      at -= 1
+    ) {
+      if (declaresOnLine(lines[at])) break;
+      if (nonBlank(lines[at])) above.push(lines[at]);
+    }
+    const belowAt = lines.findIndex(
+      (candidate, at) => at > index && nonBlank(candidate)
+    );
+    const afterBelow =
+      belowAt === -1 ? undefined : lines.slice(belowAt + 1).find(nonBlank);
+    const below =
+      belowAt === -1 ||
+      declaresOnLine(lines[belowAt]) ||
+      (afterBelow !== undefined && declaresOnLine(afterBelow))
+        ? ""
+        : lines[belowAt];
+    const own = line
+      .split(HUMAN_GATE_MARKER)
+      .join(" ")
+      .replace(/reason=\S*/u, " ");
+    const parts = [key, own, ...above, below].map(part =>
       part.slice(0, HOLD_TEXT_CAP)
     );
     texts.set(key, [texts.get(key), ...parts].filter(Boolean).join("\n"));

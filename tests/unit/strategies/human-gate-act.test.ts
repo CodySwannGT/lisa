@@ -45,6 +45,9 @@ describe("classifyHumanGateReason", () => {
     "no-access-error-copy",
     "buy-button-color",
     "monitoring-dashboard-spend-split",
+    "credential-rotation-policy",
+    "gdpr-banner-placement",
+    "api-keys-table-pagination",
   ])("refuses the topic-only reason %j and names decide-and-record", reason => {
     const verdict = classifyHumanGateReason(reason);
     expect(verdict.valid).toBe(false);
@@ -78,6 +81,14 @@ describe("classifyHumanGateReason", () => {
     ["CloudWatch tool access", UNREACHABLE],
     ["a hold the operator explicitly asked for", LISA_POLICY],
     ["Coverage work explicitly held for operator prioritization", LISA_POLICY],
+    ["the Stripe API key for the payments dashboard", CREDENTIAL],
+    ["the production database password for the migration", CREDENTIAL],
+    ["plug in the physical test device for the UI run", UNREACHABLE],
+    [
+      "a person with admin rights must add the bot to the workspace",
+      UNREACHABLE,
+    ],
+    ["the client must sign the BAA", "legal-signoff"],
   ])("accepts %j as the act %s", (reason, act) => {
     const verdict = classifyHumanGateReason(reason);
     expect(verdict.valid).toBe(true);
