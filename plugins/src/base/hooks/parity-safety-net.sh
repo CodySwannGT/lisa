@@ -728,6 +728,46 @@ follow_may_invoke() {
   return 1
 }
 
+# Both the policy view and statement parser use these exact comment boundaries.
+# This is fixed awk source, never source derived from the inspected command.
+follow_comment_awk() {
+  printf '%s\n' '
+    # A hash starts a comment only at an unescaped shell word boundary.
+    # Backslash-newline pairs disappear before token recognition; a quoted or
+    # escaped blank is part of a word, not a boundary before its next hash.
+    function comment_start(at, before, escapes, k) {
+      before = at - 1;
+      while (before > 1 && substr(s, before, 1) == "\n" && substr(s, before - 1, 1) == "\\" && !comment_newline[before]) {
+        lookahead_step();
+        escapes = 0;
+        for (k = before - 1; k > 0 && substr(s, k, 1) == "\\"; k--) { lookahead_step(); escapes++ }
+        if (escapes % 2 == 0) { break }
+        before -= 2;
+      }
+      if (before == 0 || comment_newline[before]) { return 1 }
+      if (substr(s, before, 1) !~ /[ \t\n;&|()<>]/) { return 0 }
+      escapes = 0;
+      for (k = before - 1; k > 0 && substr(s, k, 1) == "\\"; k--) { lookahead_step(); escapes++ }
+      return escapes % 2 == 0;
+    }
+    function comment_end(at, end) {
+      # Address one byte at a time rather than copying the remaining file for
+      # every short comment. Repeated lookahead shares the existing work cap.
+      for (end = at; end <= n && substr(s, end, 1) != "\n"; end++) { lookahead_step() }
+      # Backslashes inside discarded comments do not escape their newline.
+      # Share this fact with the main walk and every lookahead that skips it.
+      if (end <= n) { comment_newline[end] = 1 }
+      return end;
+    }
+    # Lexical lookahead keeps an asynchronous return from ending its parent
+    # scan before the trailing & event. Aggregate work is capped linearly in
+    # input size, including overlap from nested scopes; no partial parse passes.
+    function lookahead_step() {
+      if (++lookahead_work > 8 * n + 1024) { exit 2 }
+    }
+  '
+}
+
 # Split the command into statements at UNQUOTED separators, printing one
 # statement per line as "<separator><TAB><statement>". Quote-aware on purpose: a
 # `;` or `|` inside a quoted string is not a statement boundary, and splitting
@@ -743,21 +783,18 @@ follow_may_invoke() {
 # arrives through the ENVIRONMENT: `awk -v` processes backslash escapes in the
 # value it is given and would rewrite the command before it was ever read.
 follow_split() {
-  LC_ALL=C SN_FOLLOW_TEXT="$1" awk '
-    # Lexical lookahead keeps an asynchronous return from ending its parent
-    # scan before the trailing & event. Aggregate work is capped linearly in
-    # input size, including overlap from nested scopes; no partial parse passes.
-    function lookahead_step() {
-      if (++lookahead_work > 8 * n + 1024) { exit 2 }
-    }
-    function brace_pipe(from, opening, closing, j, c, quote, escape, braces, nesting, tail, tail_cases, tail_header, word, word_end) {
-      quote = ""; escape = 0; braces = 1; nesting = 0; brace_redirect = ""; tail_cases = 0; tail_header = 0;
+  LC_ALL=C SN_FOLLOW_TEXT="$1" awk "$(follow_comment_awk)"'
+    function brace_pipe(from, opening, closing, j, c, quote, escape, braces, nesting, tail, tail_cases, tail_header, word, word_end, parameters) {
+      quote = ""; escape = 0; braces = 1; nesting = 0; brace_redirect = ""; tail_cases = 0; tail_header = 0; parameters = 0;
       for (j = from; j <= n; j++) {
         lookahead_step(); c = substr(s, j, 1);
-        if (escape) { escape = 0; continue }
+        if (escape) { if (c == "$") { literal_dollars[j] = 1 } escape = 0; continue }
         if (c == "\\" && quote != "\047") { escape = 1; continue }
         if (quote != "") { if (c == quote) { quote = "" } continue }
         if (c == "\"" || c == "\047" || c == "`") { quote = c; continue }
+        if (c == "{" && (parameters > 0 || (substr(s, j - 1, 1) == "$" && !literal_dollars[j - 1]))) { parameters++; continue }
+        if (c == "}" && parameters > 0) { parameters--; continue }
+        if (c == "#" && parameters == 0 && comment_start(j)) { j = comment_end(j) - 1; continue }
         if (braces > 0) {
           # A case-pattern ) is not the closing parenthesis of its shell.
           if (opening == "(" && c ~ /[A-Za-z_]/) {
@@ -791,15 +828,18 @@ follow_split() {
       if (tail > 0) { brace_redirect = substr(s, tail) }
       return 0;
     }
-    function list_async(from, j, c, quote, escape, nesting, braces) {
-      quote = ""; escape = 0; nesting = 0; braces = 0;
+    function list_async(from, j, c, quote, escape, nesting, braces, parameters) {
+      quote = ""; escape = 0; nesting = 0; braces = 0; parameters = 0;
       for (j = from; j <= n; j++) {
         lookahead_step();
         c = substr(s, j, 1);
-        if (escape) { escape = 0; continue }
+        if (escape) { if (c == "$") { literal_dollars[j] = 1 } escape = 0; continue }
         if (c == "\\" && quote != "\047") { escape = 1; continue }
         if (quote != "") { if (c == quote) { quote = "" } continue }
         if (c == "\"" || c == "\047" || c == "`") { quote = c; continue }
+        if (c == "{" && (parameters > 0 || (substr(s, j - 1, 1) == "$" && !literal_dollars[j - 1]))) { parameters++; continue }
+        if (c == "}" && parameters > 0) { parameters--; continue }
+        if (c == "#" && parameters == 0 && comment_start(j)) { j = comment_end(j) - 1; continue }
         if (c == "(") { nesting++; continue }
         if (c == ")") { if (nesting == 0) { return 0 } nesting--; continue }
         if (c == "{") { braces++; continue }
@@ -810,6 +850,24 @@ follow_split() {
       }
       return 0;
     }
+    # The reader consumes physical lines, but an unquoted/double-quoted
+    # backslash-newline is absent from the shell word. Preserve that join in
+    # emitted statements too: otherwise the next physical line can start with
+    # a literal word-owned hash and be discarded as a full-line comment.
+    function logical_lines(text, k, c, quote, escape, from, out) {
+      quote = ""; escape = 0; from = 1; out = "";
+      for (k = 1; k <= length(text); k++) {
+        c = substr(text, k, 1);
+        if (escape) {
+          if (c == "\n") { out = out substr(text, from, k - from - 1); from = k + 1 }
+          escape = 0; continue;
+        }
+        if (c == "\\" && quote != "\047") { escape = 1; continue }
+        if (quote != "") { if (c == quote) { quote = "" } continue }
+        if (c == "\"" || c == "\047") { quote = c }
+      }
+      return out substr(text, from);
+    }
     # U records tell the walker the stream below may not match the shell, so
     # a compound closer can no longer be trusted (follow_compound_close). They
     # only ever ADD distrust; every other record is emitted exactly as before.
@@ -819,6 +877,7 @@ follow_split() {
     # can spell `done` or `fi` on its own.
     function record(kind, text) {
       if (text ~ /\n/) { printf "U\t\n" }
+      text = logical_lines(text);
       printf "%s\t%s\n", kind, text;
     }
     # The first word of one separator-delimited piece of a comment, as the
@@ -828,8 +887,10 @@ follow_split() {
       gsub(/["\047]/, "", piece);
       return piece ~ /^(fi|done|esac|case|if|then|else|elif|do|while|until|for|select|function|!|\{|\})$/;
     }
-    # This split does not recognise comments, so a comment is split as code. It
-    # is harmless only when that split cannot change any structure the walker
+    # Retain the existing distrust signal for comments whose former split could
+    # change scope. Removing their text must not loosen a refusal that depended
+    # on conservative flow tracking. A comment is harmless to that tracking only
+    # when its former split cannot change any structure the walker
     # tracks: no piece after a separator starts with a reserved word, quotes
     # close, parentheses and braces balance, and nothing escapes or substitutes.
     # Inside a case pattern a `)` ends the pattern, so it is never harmless
@@ -861,7 +922,13 @@ follow_split() {
       if (pieces > 0 && comment_reserved(piece)) { return 1 }
       return cq != "" || parens != 0 || braces != 0;
     }
-    function comment_check(at, pattern) {
+    function comment_check(at, pattern, from) {
+      # Full physical comment lines were absent from the old policy view and
+      # must not introduce new scope uncertainty merely because the parser now
+      # receives raw source. Inline comments keep the existing distrust rule.
+      if (at != 1 && substr(s, at - 1, 1) !~ /[[:space:];&|()]/) { return }
+      for (from = at - 1; from > 0 && substr(s, from, 1) != "\n"; from--) { lookahead_step() }
+      if (substr(s, from + 1, at - from - 1) ~ /^[[:space:]]*$/) { return }
       if ((at == 1 || substr(s, at - 1, 1) ~ /[[:space:];&|()]/) && comment_unsafe(at + 1, pattern)) {
         printf "U\t\n";
       }
@@ -869,16 +936,21 @@ follow_split() {
     BEGIN {
       s = ENVIRON["SN_FOLLOW_TEXT"]; n = length(s);
       q = ""; esc = 0; start = 1; sep = "o"; parens = 0;
-      functions = 0; cases = 0; backtick = 0; brace_depth = 0; post_brace = 0;
+      functions = 0; cases = 0; backtick = 0; brace_depth = 0; post_brace = 0; parameters = 0;
       printf "L\t%d\n", list_async(1);
       for (i = 1; i <= n; i++) {
-        c = substr(s, i, 1);
+        c = substr(s, i, 1); comment_from = 0;
         if (esc == 1) { if (c == "$") { literal_dollars[i] = 1 } esc = 0; continue }
         if (c == "\\" && q != "\047") { esc = 1; continue }
         if (functions > 0) {
           if (q != "") { if (c == q) { q = "" } continue }
           if (c == "\"" || c == "\047") { q = c; continue }
-          if (c == "#") { comment_check(i, 0) }
+          if (c == "{" && (parameters > 0 || (substr(s, i - 1, 1) == "$" && !literal_dollars[i - 1]))) { parameters++; continue }
+          if (parameters > 0) { if (c == "}") { parameters-- } continue }
+          if (c == "#") {
+            comment_check(i, 0);
+            if (comment_start(i)) { i = comment_end(i) - 1; continue }
+          }
           if (c == "{") { functions++ }
           if (c == "}" && --functions == 0) {
             printf "N\t%s\t%s\n", sep, function_name;
@@ -892,7 +964,12 @@ follow_split() {
         quoted_expression = q == "\"" && ((c == "(" && substr(s, i - 1, 1) == "$" && !literal_dollars[i - 1]) || c == "`");
         if (q != "" && !quoted_expression) { if (c == q) { q = "" } continue }
         if (c == "\"" || c == "\047") { q = c; continue }
-        if (c == "#") { comment_check(i, cases > 0 && case_scopes[cases] == parens && case_patterns[cases]) }
+        if (c == "{" && (parameters > 0 || (substr(s, i - 1, 1) == "$" && !literal_dollars[i - 1]))) { parameters++; continue }
+        if (c == "}" && parameters > 0) { parameters--; continue }
+        if (c == "#") {
+          comment_check(i, cases > 0 && case_scopes[cases] == parens && case_patterns[cases]);
+          if (parameters == 0 && comment_start(i)) { comment_from = i; i = comment_end(i); if (i > n) { i = n } c = "\n" }
+        }
         if (c == "`") {
           if (backtick) {
             piece = substr(s, start, i - start);
@@ -904,7 +981,7 @@ follow_split() {
           }
           continue;
         }
-        if (i == start && c ~ /[[:space:]]/) { start = i + 1; continue }
+        if (i == start && c ~ /[ \t\n]/) { start = i + 1; continue }
         if (c ~ /[[:space:]]/ && substr(s, i - 1, 1) !~ /[[:space:]]/ && substr(s, start, 4) == "case") {
           piece = substr(s, start, i - start);
           if (piece ~ /^case[[:space:]].*[[:space:]]in$/) {
@@ -922,17 +999,17 @@ follow_split() {
         }
         if (c == "{") {
           piece = substr(s, start, i - start);
-          definition = piece ~ /^[[:space:]]*([A-Za-z_][A-Za-z_0-9]*[[:space:]]*\([[:space:]]*\)|function[[:space:]]+[A-Za-z_][A-Za-z_0-9]*([[:space:]]*\([[:space:]]*\))?)[[:space:]]*$/;
+          definition = piece ~ /^[ \t\n]*([A-Za-z_][A-Za-z_0-9]*[ \t]*\([ \t]*\)|function[ \t]+[A-Za-z_][A-Za-z_0-9]*([ \t]*\([ \t]*\))?)[ \t\n]*$/;
           if (definition) {
             function_name = piece;
-            sub(/^[[:space:]]*(function[[:space:]]+)?/, "", function_name);
-            sub(/[[:space:]\(].*$/, "", function_name);
+            sub(/^[ \t\n]*(function[ \t]+)?/, "", function_name);
+            sub(/[ \t\n\(].*$/, "", function_name);
             functions = 1; function_start = i + 1;
             continue;
           }
           previous = i > 1 ? substr(s, i - 1, 1) : "";
-          group = (i == 1 || previous ~ /[[:space:];&|()]/) && substr(s, i + 1, 1) ~ /[[:space:];]/ &&
-            piece ~ /^[[:space:]]*((then|do|else|!|time)[[:space:]]+)*$/;
+          group = (i == 1 || previous ~ /[ \t\n;&|()]/) && substr(s, i + 1, 1) ~ /[ \t\n;]/ &&
+            piece ~ /^[ \t\n]*((then|do|else|!|time)[ \t\n]+)*$/;
           brace_groups[++brace_depth] = group;
           if (group) {
             brace_sep = sep;
@@ -963,10 +1040,10 @@ follow_split() {
         if (c == "(") {
           previous = i > 1 ? substr(s, i - 1, 1) : "";
           piece = substr(s, start, i - start);
-          header = piece ~ /^[[:space:]]*(function[[:space:]]+)?[A-Za-z_][A-Za-z_0-9]*[[:space:]]*$/ && substr(s, i + 1) ~ /^[[:space:]]*\)/;
+          header = piece ~ /^[ \t]*(function[ \t]+)?[A-Za-z_][A-Za-z_0-9]*[ \t]*$/ && substr(s, i + 1) ~ /^[ \t]*\)/;
           expression = previous ~ /[$<>]/ && !literal_dollars[i - 1] && substr(s, i + 1, 1) != "(";
           group = (parens == 0 || scopes[parens] != 0) &&
-            (i == 1 || previous ~ /[[:space:];&|()]/) && substr(s, i + 1, 1) != "(" && !header;
+            (i == 1 || previous ~ /[ \t\n;&|()]/) && substr(s, i + 1, 1) != "(" && !header;
           scopes[++parens] = expression ? 2 : group;
           if (expression) {
             expression_starts[parens] = start;
@@ -999,7 +1076,7 @@ follow_split() {
         if (c == ";" || c == "&" || c == "|" || c == "\n") {
           if (parens > 0 && scopes[parens] == 0) { continue }
           if (c == "&" && (substr(s, i - 1, 1) ~ /[<>]/ || substr(s, i + 1, 1) == ">")) { continue }
-          piece = substr(s, start, i - start);
+          piece = substr(s, start, (comment_from ? comment_from : i) - start);
           pipe = c == "|" && substr(s, i + 1, 1) != "|";
           if (pipe || sep == "|") { printf "(\t%s%s\nL\t%d\n", (sep == "|" ? "|" : ""), (pipe ? "+" : ""), list_async(start) }
           if (piece ~ /[^[:space:]]/) { record(post_brace ? "R" : sep, piece) }
@@ -1172,11 +1249,46 @@ follow_locate() {
   return 1
 }
 
+# Drop a physical comment line only at a real logical shell word boundary.
+# A blank after a joined newline can start a comment, but a hash in a quoted or
+# continued word cannot. Keep the old conservative inline-comment policy while
+# sharing comment/newline provenance and work bounds with the statement parser.
+follow_policy_text() {
+  LC_ALL=C SN_FOLLOW_TEXT="$1" awk "$(follow_comment_awk)"'
+    BEGIN {
+      s = ENVIRON["SN_FOLLOW_TEXT"]; n = length(s);
+      quote = ""; escape = 0; parameters = 0; line_start = 1; from = 1;
+      for (i = 1; i <= n; i++) {
+        lookahead_step(); c = substr(s, i, 1);
+        if (c == "\n") { line_start = i + 1 }
+        if (escape) { if (c == "$") { literal_dollars[i] = 1 } escape = 0; continue }
+        if (c == "\\" && quote != "\047") { escape = 1; continue }
+        if (quote != "") { if (c == quote) { quote = "" } continue }
+        if (c == "\"" || c == "\047" || c == "`") { quote = c; continue }
+        if (c == "{" && (parameters > 0 || (substr(s, i - 1, 1) == "$" && !literal_dollars[i - 1]))) { parameters++; continue }
+        if (c == "}" && parameters > 0) { parameters--; continue }
+        if (c == "#" && parameters == 0 && comment_start(i)) {
+          end = comment_end(i);
+          if (substr(s, line_start, i - line_start) ~ /^[ \t]*$/) {
+            printf "%s", substr(s, from, line_start - from);
+            from = end;
+          }
+          # Ignore quotes and backslashes owned by any real comment, including
+          # inline comments whose bytes the conservative policy view retains.
+          i = end - 1;
+        }
+      }
+      printf "%s", substr(s, from);
+    }
+  '
+}
+
 # Read one executed file into the text the guards will scan, then follow what IT
-# executes, to a bounded depth. Full-line comments are dropped: a commented line
-# is never executed, so scanning it can only manufacture a false refusal.
+# executes, to a bounded depth. Text policies retain their comment-free view;
+# the statement parser needs original physical lines to distinguish a comment
+# from a word-owned hash after a backslash-newline join.
 follow_take() {
-  local path="$1" depth="$2" size="" content="" rm_content="${3-}"
+  local path="$1" depth="$2" size="" content="" source_content="" rm_content="${3-}"
   local invocation_kind=child
   if [ "$#" -eq 3 ]; then invocation_kind="$3"; fi
   case "$follow_paths" in
@@ -1205,17 +1317,18 @@ follow_take() {
   if [ "$#" -eq 4 ]; then
     # Scan the same complete bytes whose digest was authenticated, not a
     # second file read that could pair changed source with the cleanup view.
-    content="$(printf '%s' "$4" | sed 's/^[[:space:]]*#.*$//')" || follow_refuse "$path" "authenticated source could not be read"
+    source_content="$4"
   else
-    content="$(LC_ALL=C tr -d '\000' <"$path" | sed 's/^[[:space:]]*#.*$//')" \
+    source_content="$(LC_ALL=C tr -d '\000' <"$path")" \
       || follow_refuse "$path" "it could not be read"
   fi
+  content="$(follow_policy_text "$source_content")" || follow_refuse "$path" "source policy view could not be read"
   follow_names="$follow_names $path"
   followed_text="$followed_text"$'\n'"$content"
   if [ "$#" -ne 4 ]; then
     rm_content="$content"
   else
-    rm_content="$(printf '%s' "$rm_content" | sed 's/^[[:space:]]*#.*$//')" || follow_refuse "$path" "supervisor cleanup view could not be read"
+    rm_content="$(follow_policy_text "$rm_content")" || follow_refuse "$path" "supervisor cleanup view could not be read"
   fi
   followed_rm_text="$followed_rm_text"$'\n'"$rm_content"
   if [ "$depth" -lt "$FOLLOW_MAX_DEPTH" ]; then
@@ -1229,9 +1342,9 @@ follow_take() {
       # followed separately by follow_supervisor. Re-expanding all bootstrap
       # functions would re-interpret its internal protocol, not inspect a new
       # user-controlled file, and multiplied its native hook time fourfold.
-      follow_scan "$content" "$((depth + 1))" 0 1
+      follow_scan "$source_content" "$((depth + 1))" 0 1
     else
-      follow_scan "$content" "$((depth + 1))" 0 0 "$invocation_kind"
+      follow_scan "$source_content" "$((depth + 1))" 0 0 "$invocation_kind"
     fi
     if [ "$invocation_kind" != source ]; then
       follow_cwd="$saved_cwd"
