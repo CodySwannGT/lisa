@@ -1,0 +1,557 @@
+[
+  {
+    "id": "T1",
+    "title": "Establish isolated production baseline and attach binding",
+    "owner": "native-implementation-specialist",
+    "status": "complete",
+    "blockedBy": [],
+    "metadata": {
+      "owner": "native-implementation-specialist",
+      "work_item_ref": "CodySwannGT/lisa#4631",
+      "work_item_context": "/Users/codysai/.codex/worktrees/a630/lisa/.lisa/work-item-context.md",
+      "plan": ".lisa/plan-4631.md",
+      "roster": ".lisa/roster-4631.md",
+      "relevant_documentation": [
+        ".lisa/work-item-context.md",
+        "all/copy-overwrite/scripts/check-third-party-review-evidence.mjs",
+        "plugins/src/base/skills/lisa-drive-pr-to-merge/SKILL.md",
+        ".agents/rules/regenerating-derived-artifacts.md"
+      ],
+      "required_access": [
+        {
+          "tool": "declared Node/Bun",
+          "probe": "mise exec node@24.21.0 bun@1.4.4 ruby@4.0.1 -- node --version",
+          "status": "pass"
+        },
+        {
+          "tool": "GitHub",
+          "probe": "gh api repos/CodySwannGT/lisa; gh api user",
+          "status": "pass"
+        },
+        {
+          "tool": "Bitwarden",
+          "probe": "lisa-secrets-access fetchAll(readConfig())",
+          "status": "pass"
+        }
+      ],
+      "verification": {
+        "type": "cli-test",
+        "command": "node scripts/lisa-work-item.mjs current",
+        "expected": "Observed acceptance behavior with genuine recorded command exits; no inferred success"
+      },
+      "baseline": "ac24c08818268db5a05bcebfeac35eec601bd320",
+      "target_environment": "production",
+      "target_branch": "main",
+      "skills": [],
+      "learnings": [],
+      "type": "task",
+      "acceptance_criteria": [
+        "Failed PR read returns pull-requests-unreadable, exit 1 and honest unreadable report.",
+        "A non-list PR response returns pull-requests-unreadable and exit 1.",
+        "Successful empty/nonmatching PR lists retain not-a-pull-request-head and exit 0.",
+        "No statuses, check runs or comments are read after a failed PR read."
+      ],
+      "testing_requirements": [
+        "Highest-practical-observation regression: real Node CLI and reader with journaled raw GitHub refusal/non-list/empty/nonmatching observations; preserve actual command, report, exit and read journal.",
+        "Focused unit, workflow, seed and plugin parity regressions; normal commit hooks and artifact checks.",
+        "Parent retains hosted CI, release/package and independent proof review obligations."
+      ],
+      "comment_inventory": [
+        {
+          "index": 1,
+          "id": 6587898843,
+          "author": "CodySwannGT",
+          "actor_id": 292923,
+          "actor_type": "User",
+          "date": "2026-11-02T20:38:52Z",
+          "url": "https://github.com/CodySwannGT/lisa/issues/4631#issuecomment-6587898843",
+          "gist": "Approved standalone Bug filing; ready lane; scope separated from #4628/#4630; no parent or PR at filing.",
+          "flags": [
+            "decision",
+            "constraint"
+          ]
+        },
+        {
+          "index": 2,
+          "id": 6599727379,
+          "author": "CodySwannGT",
+          "actor_id": 292923,
+          "actor_type": "User",
+          "date": "2026-11-03T09:13:55Z",
+          "url": "https://github.com/CodySwannGT/lisa/issues/4631#issuecomment-6599727379",
+          "gist": "Canonical Lisa claim marker; assigned to CodySwannGT and moved to configured in-progress role.",
+          "flags": [
+            "decision"
+          ]
+        }
+      ],
+      "resume_2026_11_03": {
+        "context_sha256": "e6296a0b44aeab2113a21f3c354f34301f7d5bf78424758d3d8d11a7c3f19290",
+        "roster": "https://github.com/CodySwannGT/lisa/issues/4631#issuecomment-6610563418",
+        "research_native_session": "01a1a26a-550a-71e0-80f5-b99701a2657b",
+        "relevant_documentation": [
+          "all/copy-overwrite/scripts/check-third-party-review-evidence.mjs",
+          "tests/helpers/third-party-review-cli-fixture.ts",
+          "tests/integration/third-party-review-pull-read-cli.test.ts",
+          "plugins/src/base/skills/lisa-drive-pr-to-merge/SKILL.md",
+          "plugins/src/base/skills/lisa-pull-request-review/SKILL.md",
+          "https://github.com/CodySwannGT/lisa/issues/4631#issuecomment-6601963324"
+        ],
+        "additional_requirement": "Missing or invalid repository returns usage exit 2 before API reads; owning repository explicit in both canonical review commands and every equivalent generated surface.",
+        "baseline": "94c4c527aab336b735612f18563b1f3f0e4038a8",
+        "historical_results": "Earlier results remain scoped to their recorded source heads and do not establish the resumed candidate."
+      }
+    },
+    "description": "Read the complete ignored context at /Users/codysai/.codex/worktrees/a630/lisa/.lisa/work-item-context.md before acting. Comment 6587898843: approved standalone filing and separated scope (decision|constraint). Comment 6599727379: canonical claim (decision)."
+  },
+  {
+    "id": "T2",
+    "title": "Reproduce all four acceptance cases and real-reader controls before the fix",
+    "owner": "native-implementation-specialist",
+    "status": "complete",
+    "blockedBy": [
+      "T1"
+    ],
+    "metadata": {
+      "owner": "native-implementation-specialist",
+      "work_item_ref": "CodySwannGT/lisa#4631",
+      "work_item_context": "/Users/codysai/.codex/worktrees/a630/lisa/.lisa/work-item-context.md",
+      "plan": ".lisa/plan-4631.md",
+      "roster": ".lisa/roster-4631.md",
+      "relevant_documentation": [
+        ".lisa/work-item-context.md",
+        "all/copy-overwrite/scripts/check-third-party-review-evidence.mjs",
+        "plugins/src/base/skills/lisa-drive-pr-to-merge/SKILL.md",
+        ".agents/rules/regenerating-derived-artifacts.md"
+      ],
+      "required_access": [
+        {
+          "tool": "declared Node/Bun",
+          "probe": "mise exec node@24.21.0 bun@1.4.4 ruby@4.0.1 -- node --version",
+          "status": "pass"
+        },
+        {
+          "tool": "GitHub",
+          "probe": "gh api repos/CodySwannGT/lisa; gh api user",
+          "status": "pass"
+        },
+        {
+          "tool": "Bitwarden",
+          "probe": "lisa-secrets-access fetchAll(readConfig())",
+          "status": "pass"
+        }
+      ],
+      "verification": {
+        "type": "cli-test",
+        "command": "mise exec node@24.21.0 bun@1.4.4 ruby@4.0.1 -- node /Users/codysai/.codex/artifacts/lisa-4631-native-input-2026-11-03-v1/native-cli-proof.mjs green",
+        "expected": "Real prover human/JSON runs return unreadable/exit 1 for failure and non-list, no-op/exit 0 for empty/nonmatching; every call journal contains only the PR read."
+      },
+      "baseline": "ac24c08818268db5a05bcebfeac35eec601bd320",
+      "target_environment": "production",
+      "target_branch": "main",
+      "skills": [],
+      "learnings": [],
+      "type": "bug",
+      "acceptance_criteria": [
+        "Failed PR read returns pull-requests-unreadable, exit 1 and honest unreadable report.",
+        "A non-list PR response returns pull-requests-unreadable and exit 1.",
+        "Successful empty/nonmatching PR lists retain not-a-pull-request-head and exit 0.",
+        "No statuses, check runs or comments are read after a failed PR read."
+      ],
+      "testing_requirements": [
+        "Highest-practical-observation regression: real Node CLI and reader with journaled raw GitHub refusal/non-list/empty/nonmatching observations; preserve actual command, report, exit and read journal.",
+        "Focused unit, workflow, seed and plugin parity regressions; normal commit hooks and artifact checks.",
+        "Parent retains hosted CI, release/package and independent proof review obligations."
+      ],
+      "comment_inventory": [
+        {
+          "index": 1,
+          "id": 6587898843,
+          "author": "CodySwannGT",
+          "actor_id": 292923,
+          "actor_type": "User",
+          "date": "2026-11-02T20:38:52Z",
+          "url": "https://github.com/CodySwannGT/lisa/issues/4631#issuecomment-6587898843",
+          "gist": "Approved standalone Bug filing; ready lane; scope separated from #4628/#4630; no parent or PR at filing.",
+          "flags": [
+            "decision",
+            "constraint"
+          ]
+        },
+        {
+          "index": 2,
+          "id": 6599727379,
+          "author": "CodySwannGT",
+          "actor_id": 292923,
+          "actor_type": "User",
+          "date": "2026-11-03T09:13:55Z",
+          "url": "https://github.com/CodySwannGT/lisa/issues/4631#issuecomment-6599727379",
+          "gist": "Canonical Lisa claim marker; assigned to CodySwannGT and moved to configured in-progress role.",
+          "flags": [
+            "decision"
+          ]
+        }
+      ],
+      "evidence": {
+        "red": "/Users/codysai/.codex/artifacts/lisa-4631-native-input-2026-11-03-v1/red-pull-read.json",
+        "green": "/Users/codysai/.codex/artifacts/lisa-4631-native-input-2026-11-03-v1/green-pull-read.json",
+        "native_red": "/Users/codysai/.codex/artifacts/lisa-4631-native-input-2026-11-03-v1/native-cli-red.json",
+        "native_green": "/Users/codysai/.codex/artifacts/lisa-4631-native-input-2026-11-03-v1/native-cli-green.json"
+      },
+      "resume_2026_11_03": {
+        "context_sha256": "e6296a0b44aeab2113a21f3c354f34301f7d5bf78424758d3d8d11a7c3f19290",
+        "roster": "https://github.com/CodySwannGT/lisa/issues/4631#issuecomment-6610563418",
+        "research_native_session": "01a1a26a-550a-71e0-80f5-b99701a2657b",
+        "relevant_documentation": [
+          "all/copy-overwrite/scripts/check-third-party-review-evidence.mjs",
+          "tests/helpers/third-party-review-cli-fixture.ts",
+          "tests/integration/third-party-review-pull-read-cli.test.ts",
+          "plugins/src/base/skills/lisa-drive-pr-to-merge/SKILL.md",
+          "plugins/src/base/skills/lisa-pull-request-review/SKILL.md",
+          "https://github.com/CodySwannGT/lisa/issues/4631#issuecomment-6601963324"
+        ],
+        "additional_requirement": "Missing or invalid repository returns usage exit 2 before API reads; owning repository explicit in both canonical review commands and every equivalent generated surface.",
+        "baseline": "94c4c527aab336b735612f18563b1f3f0e4038a8",
+        "historical_results": "Earlier results remain scoped to their recorded source heads and do not establish the resumed candidate."
+      }
+    },
+    "description": "Read the complete ignored context at /Users/codysai/.codex/worktrees/a630/lisa/.lisa/work-item-context.md before acting. Comment 6587898843: approved standalone filing and separated scope (decision|constraint). Comment 6599727379: canonical claim (decision)."
+  },
+  {
+    "id": "T3",
+    "title": "Fix owning PR reader, report and exit; regenerate equivalent agent artifacts",
+    "owner": "parent-code-review-and-delivery",
+    "status": "in-progress",
+    "blockedBy": [
+      "T2"
+    ],
+    "metadata": {
+      "owner": "parent-code-review-and-delivery",
+      "work_item_ref": "CodySwannGT/lisa#4631",
+      "work_item_context": "/Users/codysai/.codex/worktrees/a630/lisa/.lisa/work-item-context.md",
+      "plan": ".lisa/plan-4631.md",
+      "roster": ".lisa/roster-4631.md",
+      "relevant_documentation": [
+        ".lisa/work-item-context.md",
+        "all/copy-overwrite/scripts/check-third-party-review-evidence.mjs",
+        "plugins/src/base/skills/lisa-drive-pr-to-merge/SKILL.md",
+        ".agents/rules/regenerating-derived-artifacts.md"
+      ],
+      "required_access": [
+        {
+          "tool": "declared Node/Bun",
+          "probe": "mise exec node@24.21.0 bun@1.4.4 ruby@4.0.1 -- node --version",
+          "status": "pass"
+        },
+        {
+          "tool": "GitHub",
+          "probe": "gh api repos/CodySwannGT/lisa; gh api user",
+          "status": "pass"
+        },
+        {
+          "tool": "Bitwarden",
+          "probe": "lisa-secrets-access fetchAll(readConfig())",
+          "status": "pass"
+        }
+      ],
+      "verification": {
+        "type": "cli-test",
+        "command": "mise exec node@24.21.0 bun@1.4.4 ruby@4.0.1 -- node /Users/codysai/.codex/artifacts/lisa-4631-native-input-2026-11-03-v1/native-cli-proof.mjs green",
+        "expected": "Real prover human/JSON runs return unreadable/exit 1 for failure and non-list, no-op/exit 0 for empty/nonmatching; every call journal contains only the PR read."
+      },
+      "baseline": "ac24c08818268db5a05bcebfeac35eec601bd320",
+      "target_environment": "production",
+      "target_branch": "main",
+      "skills": [],
+      "learnings": [],
+      "type": "bug",
+      "acceptance_criteria": [
+        "Failed PR read returns pull-requests-unreadable, exit 1 and honest unreadable report.",
+        "A non-list PR response returns pull-requests-unreadable and exit 1.",
+        "Successful empty/nonmatching PR lists retain not-a-pull-request-head and exit 0.",
+        "No statuses, check runs or comments are read after a failed PR read."
+      ],
+      "testing_requirements": [
+        "Highest-practical-observation regression: real Node CLI and reader with journaled raw GitHub refusal/non-list/empty/nonmatching observations; preserve actual command, report, exit and read journal.",
+        "Focused unit, workflow, seed and plugin parity regressions; normal commit hooks and artifact checks.",
+        "Parent retains hosted CI, release/package and independent proof review obligations."
+      ],
+      "comment_inventory": [
+        {
+          "index": 1,
+          "id": 6587898843,
+          "author": "CodySwannGT",
+          "actor_id": 292923,
+          "actor_type": "User",
+          "date": "2026-11-02T20:38:52Z",
+          "url": "https://github.com/CodySwannGT/lisa/issues/4631#issuecomment-6587898843",
+          "gist": "Approved standalone Bug filing; ready lane; scope separated from #4628/#4630; no parent or PR at filing.",
+          "flags": [
+            "decision",
+            "constraint"
+          ]
+        },
+        {
+          "index": 2,
+          "id": 6599727379,
+          "author": "CodySwannGT",
+          "actor_id": 292923,
+          "actor_type": "User",
+          "date": "2026-11-03T09:13:55Z",
+          "url": "https://github.com/CodySwannGT/lisa/issues/4631#issuecomment-6599727379",
+          "gist": "Canonical Lisa claim marker; assigned to CodySwannGT and moved to configured in-progress role.",
+          "flags": [
+            "decision"
+          ]
+        }
+      ],
+      "review_correction": {
+        "thread": "PRRT_kwDOQ78yN86zEHL2",
+        "comment": 4453180704,
+        "requirement": "Unknown PR discovery stops under tool-access-gate before a review substitute or merge decision; no automatic retry.",
+        "new_primary_spec_sha256": "b2188c2efebbeff4aca7310a6979412ac13a00aa1a11e79f62b2535bb46deef7",
+        "acceptance_criteria_unchanged": true,
+        "status": "implementation complete; verification and normal commit pending"
+      },
+      "resume_2026_11_03": {
+        "context_sha256": "e6296a0b44aeab2113a21f3c354f34301f7d5bf78424758d3d8d11a7c3f19290",
+        "roster": "https://github.com/CodySwannGT/lisa/issues/4631#issuecomment-6610563418",
+        "research_native_session": "01a1a26a-550a-71e0-80f5-b99701a2657b",
+        "relevant_documentation": [
+          "all/copy-overwrite/scripts/check-third-party-review-evidence.mjs",
+          "tests/helpers/third-party-review-cli-fixture.ts",
+          "tests/integration/third-party-review-pull-read-cli.test.ts",
+          "plugins/src/base/skills/lisa-drive-pr-to-merge/SKILL.md",
+          "plugins/src/base/skills/lisa-pull-request-review/SKILL.md",
+          "https://github.com/CodySwannGT/lisa/issues/4631#issuecomment-6601963324"
+        ],
+        "additional_requirement": "Missing or invalid repository returns usage exit 2 before API reads; owning repository explicit in both canonical review commands and every equivalent generated surface.",
+        "baseline": "94c4c527aab336b735612f18563b1f3f0e4038a8",
+        "historical_results": "Earlier results remain scoped to their recorded source heads and do not establish the resumed candidate."
+      },
+      "followup_review_correction": {
+        "discussion": 4458547272,
+        "thread": "PRRT_kwDOQ78yN86zQ065",
+        "reviewed_head": "93daa353d6a888eb0e648107192a5001dcc545d1",
+        "finding": "Separate PR-review skill must report unknown and stop before binary review classification after unreadable PR discovery.",
+        "disposition": "Parent personally confirmed and corrected; final candidate validation and remote thread resolution pending.",
+        "verification_scope": "Static authored/generated instruction controls and full normal checks; no native-agent obedience claim."
+      }
+    },
+    "description": "Read the complete ignored context at /Users/codysai/.codex/worktrees/a630/lisa/.lisa/work-item-context.md before acting. Comment 6587898843: approved standalone filing and separated scope (decision|constraint). Comment 6599727379: canonical claim (decision)."
+  },
+  {
+    "id": "T4",
+    "title": "Independent requirement and native-proof review; parent code review",
+    "owner": "parent-with-independent-specialists",
+    "status": "pending",
+    "blockedBy": [
+      "T3"
+    ],
+    "metadata": {
+      "owner": "parent-with-independent-specialists",
+      "work_item_ref": "CodySwannGT/lisa#4631",
+      "work_item_context": "/Users/codysai/.codex/worktrees/a630/lisa/.lisa/work-item-context.md",
+      "plan": ".lisa/plan-4631.md",
+      "roster": ".lisa/roster-4631.md",
+      "relevant_documentation": [
+        ".lisa/work-item-context.md",
+        "all/copy-overwrite/scripts/check-third-party-review-evidence.mjs",
+        "plugins/src/base/skills/lisa-drive-pr-to-merge/SKILL.md",
+        ".agents/rules/regenerating-derived-artifacts.md"
+      ],
+      "required_access": [
+        {
+          "tool": "declared Node/Bun",
+          "probe": "mise exec node@24.21.0 bun@1.4.4 ruby@4.0.1 -- node --version",
+          "status": "pass"
+        },
+        {
+          "tool": "GitHub",
+          "probe": "gh api repos/CodySwannGT/lisa; gh api user",
+          "status": "pass"
+        },
+        {
+          "tool": "Bitwarden",
+          "probe": "lisa-secrets-access fetchAll(readConfig())",
+          "status": "pass"
+        }
+      ],
+      "verification": {
+        "type": "cli-test",
+        "command": "mise exec node@24.21.0 bun@1.4.4 ruby@4.0.1 -- node /Users/codysai/.codex/artifacts/lisa-4631-native-input-2026-11-03-v1/native-cli-proof.mjs green",
+        "expected": "Real prover human/JSON runs return unreadable/exit 1 for failure and non-list, no-op/exit 0 for empty/nonmatching; every call journal contains only the PR read."
+      },
+      "baseline": "ac24c08818268db5a05bcebfeac35eec601bd320",
+      "target_environment": "production",
+      "target_branch": "main",
+      "skills": [],
+      "learnings": [],
+      "type": "task",
+      "acceptance_criteria": [
+        "Failed PR read returns pull-requests-unreadable, exit 1 and honest unreadable report.",
+        "A non-list PR response returns pull-requests-unreadable and exit 1.",
+        "Successful empty/nonmatching PR lists retain not-a-pull-request-head and exit 0.",
+        "No statuses, check runs or comments are read after a failed PR read."
+      ],
+      "testing_requirements": [
+        "Highest-practical-observation regression: real Node CLI and reader with journaled raw GitHub refusal/non-list/empty/nonmatching observations; preserve actual command, report, exit and read journal.",
+        "Focused unit, workflow, seed and plugin parity regressions; normal commit hooks and artifact checks.",
+        "Parent retains hosted CI, release/package and independent proof review obligations."
+      ],
+      "comment_inventory": [
+        {
+          "index": 1,
+          "id": 6587898843,
+          "author": "CodySwannGT",
+          "actor_id": 292923,
+          "actor_type": "User",
+          "date": "2026-11-02T20:38:52Z",
+          "url": "https://github.com/CodySwannGT/lisa/issues/4631#issuecomment-6587898843",
+          "gist": "Approved standalone Bug filing; ready lane; scope separated from #4628/#4630; no parent or PR at filing.",
+          "flags": [
+            "decision",
+            "constraint"
+          ]
+        },
+        {
+          "index": 2,
+          "id": 6599727379,
+          "author": "CodySwannGT",
+          "actor_id": 292923,
+          "actor_type": "User",
+          "date": "2026-11-03T09:13:55Z",
+          "url": "https://github.com/CodySwannGT/lisa/issues/4631#issuecomment-6599727379",
+          "gist": "Canonical Lisa claim marker; assigned to CodySwannGT and moved to configured in-progress role.",
+          "flags": [
+            "decision"
+          ]
+        }
+      ],
+      "resume_2026_11_03": {
+        "context_sha256": "e6296a0b44aeab2113a21f3c354f34301f7d5bf78424758d3d8d11a7c3f19290",
+        "roster": "https://github.com/CodySwannGT/lisa/issues/4631#issuecomment-6610563418",
+        "research_native_session": "01a1a26a-550a-71e0-80f5-b99701a2657b",
+        "relevant_documentation": [
+          "all/copy-overwrite/scripts/check-third-party-review-evidence.mjs",
+          "tests/helpers/third-party-review-cli-fixture.ts",
+          "tests/integration/third-party-review-pull-read-cli.test.ts",
+          "plugins/src/base/skills/lisa-drive-pr-to-merge/SKILL.md",
+          "plugins/src/base/skills/lisa-pull-request-review/SKILL.md",
+          "https://github.com/CodySwannGT/lisa/issues/4631#issuecomment-6601963324"
+        ],
+        "additional_requirement": "Missing or invalid repository returns usage exit 2 before API reads; owning repository explicit in both canonical review commands and every equivalent generated surface.",
+        "baseline": "94c4c527aab336b735612f18563b1f3f0e4038a8",
+        "historical_results": "Earlier results remain scoped to their recorded source heads and do not establish the resumed candidate."
+      }
+    },
+    "description": "Read the complete ignored context at /Users/codysai/.codex/worktrees/a630/lisa/.lisa/work-item-context.md before acting. Comment 6587898843: approved standalone filing and separated scope (decision|constraint). Comment 6599727379: canonical claim (decision)."
+  },
+  {
+    "id": "T5",
+    "title": "Parent delivery and canonical completion after independent review",
+    "owner": "parent-delivery-coordinator",
+    "status": "pending",
+    "blockedBy": [
+      "T4"
+    ],
+    "metadata": {
+      "owner": "parent-delivery-coordinator",
+      "work_item_ref": "CodySwannGT/lisa#4631",
+      "work_item_context": "/Users/codysai/.codex/worktrees/a630/lisa/.lisa/work-item-context.md",
+      "plan": ".lisa/plan-4631.md",
+      "roster": ".lisa/roster-4631.md",
+      "relevant_documentation": [
+        ".lisa/work-item-context.md",
+        "all/copy-overwrite/scripts/check-third-party-review-evidence.mjs",
+        "plugins/src/base/skills/lisa-drive-pr-to-merge/SKILL.md",
+        ".agents/rules/regenerating-derived-artifacts.md"
+      ],
+      "required_access": [
+        {
+          "tool": "declared Node/Bun",
+          "probe": "mise exec node@24.21.0 bun@1.4.4 ruby@4.0.1 -- node --version",
+          "status": "pass"
+        },
+        {
+          "tool": "GitHub",
+          "probe": "gh api repos/CodySwannGT/lisa; gh api user",
+          "status": "pass"
+        },
+        {
+          "tool": "Bitwarden",
+          "probe": "lisa-secrets-access fetchAll(readConfig())",
+          "status": "pass"
+        }
+      ],
+      "verification": {
+        "type": "independent-review-and-delivery",
+        "command": "Parent-owned normal push/PR/deploy/package verification and lisa-work-item complete",
+        "expected": "Observed acceptance behavior with genuine recorded command exits; no inferred success"
+      },
+      "baseline": "ac24c08818268db5a05bcebfeac35eec601bd320",
+      "target_environment": "production",
+      "target_branch": "main",
+      "skills": [],
+      "learnings": [],
+      "type": "task",
+      "acceptance_criteria": [
+        "Failed PR read returns pull-requests-unreadable, exit 1 and honest unreadable report.",
+        "A non-list PR response returns pull-requests-unreadable and exit 1.",
+        "Successful empty/nonmatching PR lists retain not-a-pull-request-head and exit 0.",
+        "No statuses, check runs or comments are read after a failed PR read."
+      ],
+      "testing_requirements": [
+        "Highest-practical-observation regression: real Node CLI and reader with journaled raw GitHub refusal/non-list/empty/nonmatching observations; preserve actual command, report, exit and read journal.",
+        "Focused unit, workflow, seed and plugin parity regressions; normal commit hooks and artifact checks.",
+        "Parent retains hosted CI, release/package and independent proof review obligations."
+      ],
+      "comment_inventory": [
+        {
+          "index": 1,
+          "id": 6587898843,
+          "author": "CodySwannGT",
+          "actor_id": 292923,
+          "actor_type": "User",
+          "date": "2026-11-02T20:38:52Z",
+          "url": "https://github.com/CodySwannGT/lisa/issues/4631#issuecomment-6587898843",
+          "gist": "Approved standalone Bug filing; ready lane; scope separated from #4628/#4630; no parent or PR at filing.",
+          "flags": [
+            "decision",
+            "constraint"
+          ]
+        },
+        {
+          "index": 2,
+          "id": 6599727379,
+          "author": "CodySwannGT",
+          "actor_id": 292923,
+          "actor_type": "User",
+          "date": "2026-11-03T09:13:55Z",
+          "url": "https://github.com/CodySwannGT/lisa/issues/4631#issuecomment-6599727379",
+          "gist": "Canonical Lisa claim marker; assigned to CodySwannGT and moved to configured in-progress role.",
+          "flags": [
+            "decision"
+          ]
+        }
+      ],
+      "resume_2026_11_03": {
+        "context_sha256": "e6296a0b44aeab2113a21f3c354f34301f7d5bf78424758d3d8d11a7c3f19290",
+        "roster": "https://github.com/CodySwannGT/lisa/issues/4631#issuecomment-6610563418",
+        "research_native_session": "01a1a26a-550a-71e0-80f5-b99701a2657b",
+        "relevant_documentation": [
+          "all/copy-overwrite/scripts/check-third-party-review-evidence.mjs",
+          "tests/helpers/third-party-review-cli-fixture.ts",
+          "tests/integration/third-party-review-pull-read-cli.test.ts",
+          "plugins/src/base/skills/lisa-drive-pr-to-merge/SKILL.md",
+          "plugins/src/base/skills/lisa-pull-request-review/SKILL.md",
+          "https://github.com/CodySwannGT/lisa/issues/4631#issuecomment-6601963324"
+        ],
+        "additional_requirement": "Missing or invalid repository returns usage exit 2 before API reads; owning repository explicit in both canonical review commands and every equivalent generated surface.",
+        "baseline": "94c4c527aab336b735612f18563b1f3f0e4038a8",
+        "historical_results": "Earlier results remain scoped to their recorded source heads and do not establish the resumed candidate."
+      }
+    },
+    "description": "Read the complete ignored context at /Users/codysai/.codex/worktrees/a630/lisa/.lisa/work-item-context.md before acting. Comment 6587898843: approved standalone filing and separated scope (decision|constraint). Comment 6599727379: canonical claim (decision)."
+  }
+]

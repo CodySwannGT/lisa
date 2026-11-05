@@ -46,6 +46,8 @@
 # pull request head, and a status or check run from an app nobody declared are
 # all no-ops — and each PRINTS that it is one. A silent pass is the defect this
 # exists to end, so it is not reproduced here.
+# A failed or non-list pull-request read is UNREADABLE, not a no-op: the prover
+# reports pull-requests-unreadable and exits 1 without reading more evidence.
 #
 # AND ONE DEFERRAL. A declared reviewer still `pending` has not answered yet:
 # measured, a reviewer posts `Review queued` then `Review in progress` before

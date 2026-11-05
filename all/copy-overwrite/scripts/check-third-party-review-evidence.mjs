@@ -168,6 +168,8 @@ export const EVIDENCE_OUTCOMES = Object.freeze({
   noReviewerConfigured: "no-reviewer-configured",
   /** The commit is nobody's pull request head. Nothing to review here. */
   notAPullRequestHead: "not-a-pull-request-head",
+  /** The pull requests could not be read. Nothing establishes head membership. */
+  pullRequestsUnreadable: "pull-requests-unreadable",
   /** The triggering status belongs to no declared reviewer. An explicit no-op. */
   notAConfiguredReviewer: "not-a-configured-reviewer",
   /** A declared reviewer is still working. Not an answer, so not a verdict. */
@@ -762,7 +764,7 @@ export function reviewStanding({ reviews, sha }) {
 /**
  * Decide the whole question for one commit.
  *
- * Four outcomes, and the first is not a pass. `no-reviewer-configured` means
+ * A no-op is not a pass. `no-reviewer-configured` means
  * this project declared no third-party reviewer, which is a legitimate state
  * that must be SAID rather than passed through in silence.
  * @param {object} options - Decision inputs.
@@ -774,7 +776,7 @@ export function reviewStanding({ reviews, sha }) {
  *   were not read.
  * @param {ReadonlyArray<{body?: string}>} options.comments - Issue comments on the pull request.
  * @param {string} options.sha - The head commit.
- * @param {boolean} [options.isPullRequestHead] - Whether an open pull request has this commit as its head.
+ * @param {boolean|null} [options.isPullRequestHead] - Whether an open pull request has this commit as its head; null when the read failed.
  * @returns {{outcome: string, sha: string, readings: Array<EvidenceReading & {gateId: string, substituted: boolean}>}} The verdict.
  */
 export function reviewEvidenceVerdict({
@@ -788,6 +790,13 @@ export function reviewEvidenceVerdict({
   if ((reviewers ?? []).length === 0) {
     return {
       outcome: EVIDENCE_OUTCOMES.noReviewerConfigured,
+      sha,
+      readings: [],
+    };
+  }
+  if (isPullRequestHead === null) {
+    return {
+      outcome: EVIDENCE_OUTCOMES.pullRequestsUnreadable,
       sha,
       readings: [],
     };
@@ -870,6 +879,13 @@ export function humanReport(verdict) {
       `NO-OP — the triggering status or check run belongs to no declared reviewer.\n` +
       `Reviewers ARE configured; this one is not one of theirs, so it ` +
       `cannot change the answer. This is a no-op, NOT a pass.`
+    );
+  }
+  if (verdict.outcome === EVIDENCE_OUTCOMES.pullRequestsUnreadable) {
+    return (
+      `UNREADABLE — the open pull requests for ${verdict.sha} could not be read, ` +
+      `so nothing here can say whether it is a pull request head. ` +
+      `This is NOT a no-op.`
     );
   }
   if (verdict.outcome === EVIDENCE_OUTCOMES.notAPullRequestHead) {
@@ -972,9 +988,9 @@ function splitFlag(arg) {
  *
  * `gh` is asked for a path rather than handed a query, and the child is bounded
  * — a guard whose child never returned would otherwise report a verdict it
- * never reached. A failed read returns `null`. A failed pull-request read
- * reads as "not a pull request head", and a failed status or check-run read is
- * reported as unreadable rather than as evidence of anything — except that a
+ * never reached. A failed read returns `null`. A failed pull-request, status
+ * or check-run read is reported as unreadable rather than as evidence of
+ * anything — except that a
  * failed check-run read leaves the reviewer's own status standing, so a host
  * whose token cannot read check runs keeps reading statuses as before.
  * @param {string} path - The API path.
@@ -1043,11 +1059,11 @@ function readCheckRuns(repo, sha, context) {
  * redden pull requests for their ancestors' statuses.
  * @param {string} repo - `owner/repo`.
  * @param {string} sha - The commit.
- * @returns {number[]} The pull request numbers.
+ * @returns {number[]|null} The pull request numbers, or null when the read failed or was not a list.
  */
 function readHeadPulls(repo, sha) {
   const pulls = ghJson(`repos/${repo}/commits/${sha}/pulls`);
-  if (!Array.isArray(pulls)) return [];
+  if (!Array.isArray(pulls)) return null;
   return pulls
     .filter(
       pull =>
@@ -1124,7 +1140,7 @@ function checkRunsByContext(reviewers, sha, read) {
  * @param {string[]} argv - Arguments after the script path.
  * @param {object} [io] - Injected side effects, for tests.
  * @param {object} [io.gates] - The gates block, read from disk when absent.
- * @param {(sha: string) => number[]} [io.pulls] - Head-pull-request reader.
+ * @param {(sha: string) => number[]|null} [io.pulls] - Head-pull-request reader; null when the read failed.
  * @param {(sha: string) => ReadonlyArray<object>|null} [io.statuses] - Status reader.
  * @param {(sha: string, context: string) => ReadonlyArray<RawCheckRun>|null} [io.checkRuns] -
  *   Check-run reader for one reviewer's name. When a caller injects either
@@ -1155,6 +1171,12 @@ export function main(argv, io = {}) {
     reviewers.length === 0 ||
     opts.context === null ||
     reviewers.some(reviewer => reviewer.context === opts.context);
+  if (reviewers.length > 0 && woken && !/^[^/\s]+\/[^/\s]+$/.test(repo)) {
+    err.write(
+      "error: repository must be owner/repo; pass --repo <owner>/<repo> or set GITHUB_REPOSITORY\n"
+    );
+    return 2;
+  }
   // Nothing is read at all when nothing is configured. A no-op that still
   // spends three API calls invites someone to "optimise" it by dropping the
   // report rather than the calls.
@@ -1162,7 +1184,8 @@ export function main(argv, io = {}) {
     reviewers.length === 0 || !woken
       ? []
       : (io.pulls ?? (sha => readHeadPulls(repo, sha)))(opts.sha);
-  const evaluated = reviewers.length > 0 && woken && pulls.length > 0;
+  const isPullRequestHead = pulls === null ? null : pulls.length > 0;
+  const evaluated = reviewers.length > 0 && woken && isPullRequestHead === true;
   const verdict = !woken
     ? {
         outcome: EVIDENCE_OUTCOMES.notAConfiguredReviewer,
@@ -1176,15 +1199,20 @@ export function main(argv, io = {}) {
           ? checkRunsByContext(reviewers, opts.sha, checkRunReader(io, repo))
           : {},
         comments: evaluated
-          ? (io.comments ?? (numbers => readComments(repo, numbers)))(pulls)
+          ? (io.comments ?? (numbers => readComments(repo, numbers)))(
+              pulls ?? []
+            )
           : [],
         sha: opts.sha,
-        isPullRequestHead: pulls.length > 0,
+        isPullRequestHead,
       });
   out.write(
     `${opts.json ? JSON.stringify(verdict, null, 2) : humanReport(verdict)}\n`
   );
-  return verdict.outcome === EVIDENCE_OUTCOMES.unsatisfied ? 1 : 0;
+  return verdict.outcome === EVIDENCE_OUTCOMES.unsatisfied ||
+    verdict.outcome === EVIDENCE_OUTCOMES.pullRequestsUnreadable
+    ? 1
+    : 0;
 }
 
 if (invokedAsScript(import.meta.url)) {

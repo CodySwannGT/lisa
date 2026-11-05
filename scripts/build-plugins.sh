@@ -131,6 +131,18 @@ if [ -f "$ROOT_DIR/scripts/generate-scratch-supervisor-profile.mjs" ]; then
 fi
 build_plugin base lisa
 
+# Startup and the CLI share one Node-builtins-only Rails hook engine. Stage
+# the complete fresh closure before per-agent fan-out; source/type imports use
+# scripts/lib directly and do not depend on a previous plugin build.
+if [ -f "$ROOT_DIR/scripts/lib/rails-hooks.mjs" ] && \
+   [ -f "$ROOT_DIR/scripts/materialize-copy-overwrite.mjs" ]; then
+  mkdir -p "$PLUGINS_DIR/lisa/hooks"
+  for rails_hook_asset in rails-hooks.mjs rails-hooks-inspection.mjs rails-hooks-command.mjs; do
+    materialize "$ROOT_DIR/scripts/lib/$rails_hook_asset" \
+      "$PLUGINS_DIR/lisa/hooks/$rails_hook_asset"
+  done
+fi
+
 # Threshold-ratchet comparator: the canonical implementation lives in the base
 # plugin's hooks/ (agent-time layer). The pre-commit (husky/lefthook) and CI
 # layers in downstream projects run the same file as scripts/

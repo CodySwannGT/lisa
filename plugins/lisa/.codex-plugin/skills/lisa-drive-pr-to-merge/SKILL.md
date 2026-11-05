@@ -1006,10 +1006,22 @@ verdict. Take the verdict from it, not from your own reading of the payloads
 above:
 
 ```bash
-node scripts/check-third-party-review-evidence.mjs --sha <head-sha> --json
+node scripts/check-third-party-review-evidence.mjs --sha <head-sha> --repo <owner>/<repo> --json
 ```
 
-Three cases, and each is handled differently:
+Pass the owning PR's repository explicitly in local checkouts. Without
+`--repo` or a valid `GITHUB_REPOSITORY`, the prover exits with a usage error
+before reading GitHub; this is not a review verdict.
+
+**First, stop on `pull-requests-unreadable`.** The PR discovery read failed,
+so the head's review status is **unknown**. `readings: []` in this outcome is
+not a reviewer saying it did no work. Report the failed pull-request read and
+stop under `tool-access-gate`, keeping the PR open and every check enabled.
+Do not post a reviewer-specific substitute or make a merge decision from this
+outcome. Restore the configured GitHub read access before rerunning the prover;
+this instruction adds no automatic retry loop.
+
+For the remaining outcomes, three cases are handled differently:
 
 1. **`satisfied`** — every configured reviewer showed its reviewed-when
    evidence: a status whose description is the phrase, or a check run that
@@ -1019,7 +1031,8 @@ Three cases, and each is handled differently:
    state, **not** a pass: say so explicitly in the report ("no third-party
    reviewer configured; nothing read this diff on that path"), and do not
    invent a substitute for a reviewer the project never asked for.
-3. **anything else** — throttled, skipped, absent, empty, unreadable, a check
+3. **anything else** — throttled, skipped, absent, empty, unreadable reviewer
+   evidence after successful PR discovery, a check
    run that did not succeed, or words in no configured list. **Treat every one
    of these as NOT REVIEWED.** The allowlist is the only thing that grants
    credit; a denylist of known-bad phrases fails open, and the vocabulary is

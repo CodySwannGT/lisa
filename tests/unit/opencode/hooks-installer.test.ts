@@ -328,7 +328,8 @@ describe("opencode/hooks-installer", () => {
       // five since #3814 added the dedupe library those guards source as a
       // sibling of themselves, which has to be staged with them or the
       // reference resolves to nothing. The deferred PR gate adds the sixth.
-      expect(result.managedFiles).toHaveLength(files.length + 6);
+      // Rails adds the canonical three-module installer closure, not plugins.
+      expect(result.managedFiles).toHaveLength(files.length + 9);
       // The auto-update engine is NOT among them: it runs from the installed
       // package (CodySwannGT/lisa#4337), so it adds nothing to this count.
     });

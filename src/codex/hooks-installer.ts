@@ -41,6 +41,7 @@ import {
 } from "node:fs/promises";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
+import { RAILS_HOOK_ENGINE_FILES } from "../../scripts/lib/rails-hooks.mjs";
 import type { ProjectType } from "../core/config.js";
 import { mirrorLisaRules } from "../core/lisa-rules-mirror.js";
 import {
@@ -86,6 +87,7 @@ export const HOOKS_FILENAME = "hooks.json";
  */
 const WRITE_MATCHER = "Edit|Write|apply_patch";
 const INJECT_RULES_ID = "inject-rules";
+const INSTALL_RAILS_HOOKS_ID = "install-rails-hooks";
 const HARPER_PLUGIN = "lisa-harper-fabric";
 
 /** Stable definition of one Lisa-shipped Codex hook */
@@ -149,6 +151,15 @@ const HOOK_CATALOG: readonly HookCatalogEntry[] = [
     scriptFilename: "install-pkgs.sh",
     forProjectTypes: ["*"],
     statusMessage: "Checking project dependencies",
+  },
+  {
+    id: INSTALL_RAILS_HOOKS_ID,
+    event: "SessionStart",
+    matcher: "startup",
+    scriptFilename: "install-rails-hooks.sh",
+    sourcePlugin: "lisa",
+    forProjectTypes: ["*"],
+    statusMessage: "Checking Rails Git hook installation",
   },
   {
     id: "setup-jira-cli",
@@ -345,11 +356,11 @@ export async function installHooks(
     })
   );
 
-  const harperSupportFiles: readonly string[] = applicable.some(
-    entry => entry.sourcePlugin === HARPER_PLUGIN
-  )
-    ? await linkHarperSupportFiles(lisaDir, hooksDir)
-    : [];
+  const catalogSupportFiles = await linkCatalogSupportFiles(
+    lisaDir,
+    hooksDir,
+    applicable
+  );
 
   // Step 2: mirror rules from Lisa into .codex/lisa-rules/ (only when
   // inject-rules is being installed — i.e., always, since it's a "*" hook)
@@ -373,7 +384,7 @@ export async function installHooks(
   const managedFiles = [
     ...scriptFiles,
     ...libFiles,
-    ...harperSupportFiles,
+    ...catalogSupportFiles,
     ...ruleFiles,
     HOOKS_FILENAME,
   ];
@@ -558,6 +569,9 @@ function compatibilitySources(
       source: resolveBundledScript(filename),
       filename,
     })),
+    ...(retained.some(entry => entry.id === INSTALL_RAILS_HOOKS_ID)
+      ? railsHookSupportSources(lisaDir)
+      : []),
     ...(retained.some(entry => entry.sourcePlugin === "lisa")
       ? [
           {
@@ -570,6 +584,52 @@ function compatibilitySources(
       ? harperSupportSources(lisaDir)
       : []),
   ];
+}
+
+/**
+ * Complete runtime closure for linked hooks and copied loaded-session hooks.
+ * @param lisaDir - Lisa package root
+ * @returns Canonical source and installed basename for each required asset
+ */
+function railsHookSupportSources(
+  lisaDir: string
+): readonly { readonly source: string; readonly filename: string }[] {
+  return [
+    {
+      source: path.join(lisaDir, "plugins/lisa/hooks/install-rails-hooks.mjs"),
+      filename: "install-rails-hooks.mjs",
+    },
+    ...RAILS_HOOK_ENGINE_FILES.map(filename => ({
+      source: path.join(lisaDir, "scripts/lib", filename),
+      filename,
+    })),
+  ];
+}
+
+/**
+ * Link the dependency closures selected by the installed catalog.
+ * @param lisaDir Source/package root
+ * @param hooksDir Host hook directory
+ * @param applicable Filtered catalog entries
+ * @returns Paths tracked in the host's managed-file manifest
+ */
+async function linkCatalogSupportFiles(
+  lisaDir: string,
+  hooksDir: string,
+  applicable: readonly HookCatalogEntry[]
+): Promise<readonly string[]> {
+  const harper = applicable.some(entry => entry.sourcePlugin === HARPER_PLUGIN)
+    ? await linkHarperSupportFiles(lisaDir, hooksDir)
+    : [];
+  if (!applicable.some(entry => entry.id === INSTALL_RAILS_HOOKS_ID))
+    return harper;
+  const rails = await Promise.all(
+    railsHookSupportSources(lisaDir).map(async ({ source, filename }) => {
+      await linkManagedFile(source, path.join(hooksDir, filename));
+      return path.join(LISA_HOOKS_SUBDIR, filename);
+    })
+  );
+  return [...harper, ...rails];
 }
 
 /**

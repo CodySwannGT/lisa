@@ -21,7 +21,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/check-third-party-action-pins.mjs":
       "4b6e1d444c50da031b848215913df7bfe87091b5eee2debfb60d5d0c42abe343",
     "all/copy-overwrite/scripts/check-third-party-review-evidence.mjs":
-      "444fdab01527fda3ce2bb4f5177bac2079cded0ba8f0166d71fda7ec2e8dc7b3",
+      "72e90d2e5fc0a134313ffa63e67ac6adb360a7318659e75433d7ed1a8c1bdfee",
     "all/copy-overwrite/scripts/check-threshold-ratchet.mjs":
       "d4afc90ba8faf10925fff5fb0d6cd0ace22df2eaa0ec609ee969d0ec84092299",
     "all/copy-overwrite/scripts/check-workflow-load-failures.mjs":
@@ -829,7 +829,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/agents/learner.md":
       "f2bd83a552c27e771a1fa1d1a7a347565590f397c826e252432df3b3317c48bb",
     "plugins/src/base/agents/learning-judge.md":
-      "8f11d2cb26534665216c0de6235d21224ed8493a4b7e03e5a60a906d7db2d17c",
+      "920894112b0bc5a2606fb15255061e36b318a1ad5cce67cc59208d7f3c912c8e",
     "plugins/src/base/agents/learnings-synthesizer.md":
       "d3ffc4294df44813772d8c2641ebbd79a97cbc9051fa88b407ef7bfdc5b8e0d9",
     "plugins/src/base/agents/linear-agent.md":
@@ -1072,6 +1072,10 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "9d2d3352f57099fdb7a3442ddd266c672cd83d484d1216f341168323f5e354ca",
     "plugins/src/base/hooks/install-pkgs.sh":
       "51e9847de1cae1e1582f595d4b4e711de7bb1816a53c8e1507826e528b743af0",
+    "plugins/src/base/hooks/install-rails-hooks.mjs":
+      "366118f19ba1b1012caf511d02a8967a11846d959c54b4e30d487bb474e4e53a",
+    "plugins/src/base/hooks/install-rails-hooks.sh":
+      "7030ede07019868ad61056472d8c20fc3473a2c4214b789cb967c902e804c5f1",
     "plugins/src/base/hooks/operational-hazards.mjs":
       "f29f1a3a7d48bdcdd8ef1e154361b10577a8ea091c3c0c41b7ece47ffb8dfaa9",
     "plugins/src/base/hooks/operational-hazards.sh":
@@ -1183,7 +1187,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/rules/reference/completion-authorization.md":
       "75646f8f5b1c5aedf750e37ed3b5a1f09f6fd85932037c85ac1e8930b67100b1",
     "plugins/src/base/rules/reference/config-resolution.md":
-      "5e90e1571027d845b92bd73bc0ad0741b1c46fd1c190f34d7c638f79617c5cc0",
+      "1129b60481d1f8ec561b50d19406507b4c419d4f9bc55ee75e28d0b93494486b",
     "plugins/src/base/rules/reference/control-reachability.md":
       "0883f3480de79bcaa4a9da5685192c014d9267d0a12aed8153bba8c51161129a",
     "plugins/src/base/rules/reference/convergent-review.md":
@@ -1401,7 +1405,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-doctor/SKILL.md":
       "ab7bb855fd3ebe321e41b0143815f202b70f6ba38f6678791d6d9e933e0c3fd8",
     "plugins/src/base/skills/lisa-drive-pr-to-merge/SKILL.md":
-      "f9567926906d303bb86812077645047a3edd638064f9b4ae070d98b50046ffe4",
+      "cf1066a3a90d80f7a5f4c17ddbcc4900ce28cec85f213c67058b8ff285b86fc2",
     "plugins/src/base/skills/lisa-epic-triage/SKILL.md":
       "d02760411249bddbd396f283191fe3e82bb7b95bf9393a19a7025dc5a57c3ab7",
     "plugins/src/base/skills/lisa-evaluation-suite/SKILL.md":
@@ -1569,7 +1573,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-performance-review/SKILL.md":
       "351542c256e54940e6d672a70606b8414425c6435ae6f026841bcc02f9fce9c4",
     "plugins/src/base/skills/lisa-persist-learning/SKILL.md":
-      "694bd4c40614ff9039854dfdb0fd4ae5aef2ba70d699cba718b8a7196c13bdf9",
+      "29f5da66ddc07f9979ddcce0210d4210602145523b46426c5d0e2e42397e1c02",
     "plugins/src/base/skills/lisa-plan/SKILL.md":
       "7c4f58544d503b68db4389e0af7f3d266bddee9a182ec874e580790bdd3f7497",
     "plugins/src/base/skills/lisa-plugin-sync-explain/SKILL.md":
@@ -1599,7 +1603,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-project-ideation/examples/unavailable-data-rejection.md":
       "362835db13cb8f73179754bce427d0f7caef7738a575aa5b936a0383b7f81078",
     "plugins/src/base/skills/lisa-pull-request-review/SKILL.md":
-      "27bdb123dea98fff3206bac696161ea34e215c505405530805bf017781bdb129",
+      "73f4fa7527acd5d94763e5a74bf2422e72d8c715048be94d98d427fb7e2a8d25",
     "plugins/src/base/skills/lisa-quality-review/SKILL.md":
       "c51afffe153f614bcef5bbd2a7b8ffb53c241ebd246900863448e3a6f4be7d47",
     "plugins/src/base/skills/lisa-queue-status/SKILL.md":
@@ -1673,7 +1677,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-sentry-access/SKILL.md":
       "1c1881ca9a2020f6cd8f938dc5335ebf2d344ff280844bb98926198e5226e526",
     "plugins/src/base/skills/lisa-session-manager/SKILL.md":
-      "32fad4004d76ef351a294504b1867ad93f4f1a964438a5c1f65aaddd30090f76",
+      "299606a81e8a3ff28328d6b96d18b5675b6f0c972cefd37ad5e0529ff9e4c668",
     "plugins/src/base/skills/lisa-session-manager/references/runbook-template.md":
       "9a2a010400a6bcc49055fddef30afe4a936499793df90f8526ef7c298167d4e9",
     "plugins/src/base/skills/lisa-session-manager/scripts/capacity.mjs":
@@ -1681,11 +1685,13 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-cycle.mjs":
       "0ba37e3b6cf2fea29ee176c493600504c2a53504cf799d0d6facd0ad0f37a198",
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-human.mjs":
-      "62f19b775673207e4b4654c49371abbacef4b4ed5a1761d89f1bfce6a9c7d8ac",
+      "6cd87fc866719baaa132e672194d95a1bcd07c40d98e9f93596a48fa0ea31328",
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-manager-token.mjs":
       "7478baf8cdb72029aa04d31f0951f262d086004e1dfc5ad3e422b3a2eea326c6",
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-manager.mjs":
       "b41e664f324f4f1ab956515b909d6cb3da93fc7ff39a9c69f638a1f74ddefb7e",
+    "plugins/src/base/skills/lisa-session-manager/scripts/cli-overruled.mjs":
+      "cab60f2dfee7f33a8a5f16ec94cb1b2ab17cf384886ee5eb738fb015535d6567",
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-queue.mjs":
       "af45f57bdf0b7489c92b3fe969400a5c997318614dad846c5135844a2f90f2fa",
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-runtime.mjs":
@@ -1695,17 +1701,19 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-status.mjs":
       "30bdd485e5c575a78456230712d4a51d1feddd4022a0c8e5c69e5edc3c32508a",
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-usage.mjs":
-      "edc8944355b120f048509b5dcc437166675454e2c380269fd75122da53752af4",
+      "2f7411d871819f334b832f725344a96c307f18e42b8ed38d3782c39065fa7a04",
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-workers.mjs":
       "59a00278ab701a7830437597923379bad78ccd43857d574f333f6265efc4dcc7",
     "plugins/src/base/skills/lisa-session-manager/scripts/clipboard.mjs":
       "6becdcf8797bfdcfa31553c90d125be4b7f643ab305a3abc19aae73d29263e29",
     "plugins/src/base/skills/lisa-session-manager/scripts/config.mjs":
       "a54d3221833a3f687f6d0bad7a8fc46a583a875a01edf77b75c0de559259351d",
+    "plugins/src/base/skills/lisa-session-manager/scripts/escalation-overruled.mjs":
+      "42dc128249005547c2ebe405194e8c5d3798354e32b00697b8c45c1693cc65c4",
     "plugins/src/base/skills/lisa-session-manager/scripts/human-answer.mjs":
       "a75c570362dc0c0223d8da6caf5e0b9ba01f203584a44a914bc8de30b112ea84",
     "plugins/src/base/skills/lisa-session-manager/scripts/human-needed.mjs":
-      "17b13bff7f5bd8d1ffc26284e753870cf7fdca39749d9eee3d5d9c856abec98f",
+      "2eefe5d4a388deb466ded0d890210dfacf9dacddf3a54b2d693d86cdafa65413",
     "plugins/src/base/skills/lisa-session-manager/scripts/isolation.mjs":
       "c6161331dea68eec4112948d9e8841aa834632c7503de5c8fd5d9834e125dfbc",
     "plugins/src/base/skills/lisa-session-manager/scripts/json-input.mjs":
@@ -1719,13 +1727,13 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-session-manager/scripts/ledger.mjs":
       "6b43ff117a1a7aada67a1370309ed801085cfe9c9e04a72859f0bdff1b8324fc",
     "plugins/src/base/skills/lisa-session-manager/scripts/queue-github.mjs":
-      "8bfc344dd3f63b2435b830df677efe832f749704eb98db6d423d772efabb52d3",
+      "9af014661873a2971fbc29946739088fc3e089deb8d94e78af651647450f2999",
     "plugins/src/base/skills/lisa-session-manager/scripts/reconcile.mjs":
       "8ccd61b536709eb16dccb82c0049f25b042f3e61417c08c68defefa388584559",
     "plugins/src/base/skills/lisa-session-manager/scripts/repo-detect.mjs":
       "3ce714f1934433f2bc297c0b67931a28687ccef70c01639cb8542e9bb7f0a14d",
     "plugins/src/base/skills/lisa-session-manager/scripts/session-manager.mjs":
-      "5156a57e0fc2d30941323a26b58aca3bc7c478eceb59ca989f2035681ac7cf37",
+      "ca3fc4cf537c183956d1c3d5b76d6c01027c1a7a2c39e21bf7c8656eec4bc48f",
     "plugins/src/base/skills/lisa-session-manager/scripts/setup-checks.mjs":
       "433c1afb36641eb3eb271f1803c7dfba556dd98e535627d00cfc8e3135a5d68f",
     "plugins/src/base/skills/lisa-session-manager/scripts/state-dir.mjs":
@@ -1815,7 +1823,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-sync-down/SKILL.md":
       "cc25e8a1d7255ace5aad816bc8c67ee001521c7b59488f25de22f27690f73f6f",
     "plugins/src/base/skills/lisa-task-decomposition/SKILL.md":
-      "43ee246ab39094dc7af32bb4673e07077fc622fff4fc84dce8dc1a53dbebacf3",
+      "75994986ecbde2a44a7f37a3b51690a0e65ea8c808924acb68bcbeebede3660e",
     "plugins/src/base/skills/lisa-task-triage/SKILL.md":
       "c6e11b6d195560e6bd7b51fede65c155567c35208801a700a26d95679b03484e",
     "plugins/src/base/skills/lisa-tdd-implementation/SKILL.md":
@@ -2589,7 +2597,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "rails/merge/.claude/settings.json":
       "01174bd607fe8166e3b588a5679940e598a7b81affae7cd318d4efe47375c156",
     "scripts/build-plugins.sh":
-      "e66174eb6da5604628650b86b647a093909be6ea13273590178ed5665c95b445",
+      "01e0a6e03835b9545e783a612394abb7b55751b10813bc1b06f1da57d3168c97",
     "scripts/check-cwd-resolution-corpus.mjs":
       "117248694ca2a0dc48f8e22c2a5169791fec554b3dcf61ab6cda210d84185017",
     "scripts/check-deletion-basis.mjs":
@@ -2673,7 +2681,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/copy-codex-scripts.mjs":
       "2d7082d5033088c85f66995aee9e3ee1e7751435e65bfde8e1cb002e6689d476",
     "scripts/copy-opencode-plugin-templates.mjs":
-      "c87d1759b02d20212da37d38b7860d82770c1067ebbe885c8ab6451840fafb60",
+      "a16291d2499a4c8e406574b7926f6eca99b078720a187bcc057772d778994ec0",
     "scripts/deployed-guard-advice.mjs":
       "c7471b6972b26bb0c2a66c680feb4980ec67d3dbd92732f48fe76c72ed7790f5",
     "scripts/detect-stale-workflow-inputs.mjs":
@@ -2751,11 +2759,19 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/lib/nest-plugin-commands.mjs":
       "c52b2f48edbc17edcc60ae33536549829cbc279c60c5d85d912ac6609cae9bea",
     "scripts/lib/per-agent-hook-filter.mjs":
-      "375abb50dd7aacd1df5cdea0b4d944db0a7d4abf7cc42f8ab0fefedc6ee92d8b",
+      "366564dc54c18145b745ecfe18fbc168e8df71f59e4be03cb5acc1899b16b461",
     "scripts/lib/plugin-cache-resolution.mjs":
       "47a564e2f9d46c0a955defe8eb924f86d7a273098e6ccb118e10f9eeecf3950c",
     "scripts/lib/plugin-rule-citations.mjs":
       "c9f0ed57d6da16ce90eab0a67a73a7f6783e7065406a39eea039619a10e517b9",
+    "scripts/lib/rails-hooks-command.mjs":
+      "dc695aa4920e83d9e757eaa2dcf3477ed2f5aa4df93814581e6254d5661c040e",
+    "scripts/lib/rails-hooks-inspection.mjs":
+      "f102499f3318bf9063057a9fb4f6109c027592cddd9b2da6e13a80a40501a2b6",
+    "scripts/lib/rails-hooks.d.mts":
+      "05a93fd5d1e70744ccabdc7e9e08fac74eac9e91a7d38218c10fd77ba2bb7918",
+    "scripts/lib/rails-hooks.mjs":
+      "3c34d314b0f232fe1ce6894c24ac239628ca57b3a349468c4fa374e805fbcd44",
     "scripts/lib/reusable-workflow-contract.d.mts":
       "791f01b55dd7a6b5d9a5f4cb9c44167caa146c2fc3c31a2ae4c2d8a350adc2f1",
     "scripts/lib/reusable-workflow-contract.mjs":
@@ -2847,7 +2863,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/test-intent-routing.sh":
       "97b9dc86cbd805df8a7fdb8c99ffab9b8c5e751ba2e84c05420b2a124f80635d",
     "scripts/two-channel-couplings.json":
-      "f74bd6c91d363dc8204f8f35901929907d0b252128decdc2753fc329902e64d6",
+      "afde052f4188e2c5481cb4391c922901ad53386a338c9091ea1512db32bfbddb",
     "scripts/update-node-version.ts":
       "9d37599ef73d5d624751f862cda330a867f6774392c1ab045b4fc885132582e4",
     "scripts/update-test-skill-paths.mjs":
@@ -2997,7 +3013,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/create-only/.github/workflows/review-evidence.yml":
       "f8e7aa7aade0797fd07831d35ce6626bc4acbd13905f6cfac68ef404721c774e",
     "typescript/create-only/.github/workflows/third-party-review-evidence.yml":
-      "8dd799be919a581f7a00efcfce6f01c70f72375c7c989252e3b96a825ab77f94",
+      "55f56560e76bd71264064a608e6b260c98055503256e5254340589c0a4ed45f9",
     "typescript/create-only/.gitleaksignore":
       "6927d376648675331801c798a4390b652a22a3e5d350cd26f36d42c10af02d67",
     "typescript/create-only/audit.ignore.local.json":
@@ -3437,6 +3453,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "cdk/merge/.claude/settings.json": true,
     "cdk/merge/.oxlintrc.json": true,
     "cdk/package-lisa/package.lisa.json": true,
+    "claude-review.md": true,
     "commitlint.config.cjs": true,
     "docs/agentic-readiness-questionnaire.md": true,
     "docs/bdd-coverage-schema.md": true,
@@ -4544,6 +4561,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-agy/skills/lisa-session-manager/scripts/cli-human.mjs": true,
     "plugins/lisa-agy/skills/lisa-session-manager/scripts/cli-manager-token.mjs": true,
     "plugins/lisa-agy/skills/lisa-session-manager/scripts/cli-manager.mjs": true,
+    "plugins/lisa-agy/skills/lisa-session-manager/scripts/cli-overruled.mjs": true,
     "plugins/lisa-agy/skills/lisa-session-manager/scripts/cli-queue.mjs": true,
     "plugins/lisa-agy/skills/lisa-session-manager/scripts/cli-runtime.mjs": true,
     "plugins/lisa-agy/skills/lisa-session-manager/scripts/cli-setup.mjs": true,
@@ -4552,6 +4570,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-agy/skills/lisa-session-manager/scripts/cli-workers.mjs": true,
     "plugins/lisa-agy/skills/lisa-session-manager/scripts/clipboard.mjs": true,
     "plugins/lisa-agy/skills/lisa-session-manager/scripts/config.mjs": true,
+    "plugins/lisa-agy/skills/lisa-session-manager/scripts/escalation-overruled.mjs": true,
     "plugins/lisa-agy/skills/lisa-session-manager/scripts/human-answer.mjs": true,
     "plugins/lisa-agy/skills/lisa-session-manager/scripts/human-needed.mjs": true,
     "plugins/lisa-agy/skills/lisa-session-manager/scripts/isolation.mjs": true,
@@ -4779,10 +4798,15 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-copilot/hooks/inject-resolved-config.sh": true,
     "plugins/lisa-copilot/hooks/inject-rules.sh": true,
     "plugins/lisa-copilot/hooks/install-pkgs.sh": true,
+    "plugins/lisa-copilot/hooks/install-rails-hooks.mjs": true,
+    "plugins/lisa-copilot/hooks/install-rails-hooks.sh": true,
     "plugins/lisa-copilot/hooks/operational-hazards.mjs": true,
     "plugins/lisa-copilot/hooks/operational-hazards.sh": true,
     "plugins/lisa-copilot/hooks/parity-safety-net-heredoc.py": true,
     "plugins/lisa-copilot/hooks/parity-safety-net.sh": true,
+    "plugins/lisa-copilot/hooks/rails-hooks-command.mjs": true,
+    "plugins/lisa-copilot/hooks/rails-hooks-inspection.mjs": true,
+    "plugins/lisa-copilot/hooks/rails-hooks.mjs": true,
     "plugins/lisa-copilot/hooks/secrets-preflight.sh": true,
     "plugins/lisa-copilot/hooks/setup-jira-cli.sh": true,
     "plugins/lisa-copilot/hooks/shell-write-nudge.sh": true,
@@ -5082,6 +5106,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-copilot/skills/lisa-session-manager/scripts/cli-human.mjs": true,
     "plugins/lisa-copilot/skills/lisa-session-manager/scripts/cli-manager-token.mjs": true,
     "plugins/lisa-copilot/skills/lisa-session-manager/scripts/cli-manager.mjs": true,
+    "plugins/lisa-copilot/skills/lisa-session-manager/scripts/cli-overruled.mjs": true,
     "plugins/lisa-copilot/skills/lisa-session-manager/scripts/cli-queue.mjs": true,
     "plugins/lisa-copilot/skills/lisa-session-manager/scripts/cli-runtime.mjs": true,
     "plugins/lisa-copilot/skills/lisa-session-manager/scripts/cli-setup.mjs": true,
@@ -5090,6 +5115,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-copilot/skills/lisa-session-manager/scripts/cli-workers.mjs": true,
     "plugins/lisa-copilot/skills/lisa-session-manager/scripts/clipboard.mjs": true,
     "plugins/lisa-copilot/skills/lisa-session-manager/scripts/config.mjs": true,
+    "plugins/lisa-copilot/skills/lisa-session-manager/scripts/escalation-overruled.mjs": true,
     "plugins/lisa-copilot/skills/lisa-session-manager/scripts/human-answer.mjs": true,
     "plugins/lisa-copilot/skills/lisa-session-manager/scripts/human-needed.mjs": true,
     "plugins/lisa-copilot/skills/lisa-session-manager/scripts/isolation.mjs": true,
@@ -5300,10 +5326,15 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-cursor/hooks/inject-resolved-config.mjs": true,
     "plugins/lisa-cursor/hooks/inject-resolved-config.sh": true,
     "plugins/lisa-cursor/hooks/install-pkgs.sh": true,
+    "plugins/lisa-cursor/hooks/install-rails-hooks.mjs": true,
+    "plugins/lisa-cursor/hooks/install-rails-hooks.sh": true,
     "plugins/lisa-cursor/hooks/operational-hazards.mjs": true,
     "plugins/lisa-cursor/hooks/operational-hazards.sh": true,
     "plugins/lisa-cursor/hooks/parity-safety-net-heredoc.py": true,
     "plugins/lisa-cursor/hooks/parity-safety-net.sh": true,
+    "plugins/lisa-cursor/hooks/rails-hooks-command.mjs": true,
+    "plugins/lisa-cursor/hooks/rails-hooks-inspection.mjs": true,
+    "plugins/lisa-cursor/hooks/rails-hooks.mjs": true,
     "plugins/lisa-cursor/hooks/secrets-preflight.sh": true,
     "plugins/lisa-cursor/hooks/setup-jira-cli.sh": true,
     "plugins/lisa-cursor/hooks/shell-write-nudge.sh": true,
@@ -5604,6 +5635,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-cursor/skills/lisa-session-manager/scripts/cli-human.mjs": true,
     "plugins/lisa-cursor/skills/lisa-session-manager/scripts/cli-manager-token.mjs": true,
     "plugins/lisa-cursor/skills/lisa-session-manager/scripts/cli-manager.mjs": true,
+    "plugins/lisa-cursor/skills/lisa-session-manager/scripts/cli-overruled.mjs": true,
     "plugins/lisa-cursor/skills/lisa-session-manager/scripts/cli-queue.mjs": true,
     "plugins/lisa-cursor/skills/lisa-session-manager/scripts/cli-runtime.mjs": true,
     "plugins/lisa-cursor/skills/lisa-session-manager/scripts/cli-setup.mjs": true,
@@ -5612,6 +5644,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-cursor/skills/lisa-session-manager/scripts/cli-workers.mjs": true,
     "plugins/lisa-cursor/skills/lisa-session-manager/scripts/clipboard.mjs": true,
     "plugins/lisa-cursor/skills/lisa-session-manager/scripts/config.mjs": true,
+    "plugins/lisa-cursor/skills/lisa-session-manager/scripts/escalation-overruled.mjs": true,
     "plugins/lisa-cursor/skills/lisa-session-manager/scripts/human-answer.mjs": true,
     "plugins/lisa-cursor/skills/lisa-session-manager/scripts/human-needed.mjs": true,
     "plugins/lisa-cursor/skills/lisa-session-manager/scripts/isolation.mjs": true,
@@ -5753,10 +5786,15 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-devin/hooks/inject-resolved-config.sh": true,
     "plugins/lisa-devin/hooks/inject-rules.sh": true,
     "plugins/lisa-devin/hooks/install-pkgs.sh": true,
+    "plugins/lisa-devin/hooks/install-rails-hooks.mjs": true,
+    "plugins/lisa-devin/hooks/install-rails-hooks.sh": true,
     "plugins/lisa-devin/hooks/operational-hazards.mjs": true,
     "plugins/lisa-devin/hooks/operational-hazards.sh": true,
     "plugins/lisa-devin/hooks/parity-safety-net-heredoc.py": true,
     "plugins/lisa-devin/hooks/parity-safety-net.sh": true,
+    "plugins/lisa-devin/hooks/rails-hooks-command.mjs": true,
+    "plugins/lisa-devin/hooks/rails-hooks-inspection.mjs": true,
+    "plugins/lisa-devin/hooks/rails-hooks.mjs": true,
     "plugins/lisa-devin/hooks/secrets-preflight.sh": true,
     "plugins/lisa-devin/hooks/setup-jira-cli.sh": true,
     "plugins/lisa-devin/hooks/shell-write-nudge.sh": true,
@@ -6056,6 +6094,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-devin/skills/lisa-session-manager/scripts/cli-human.mjs": true,
     "plugins/lisa-devin/skills/lisa-session-manager/scripts/cli-manager-token.mjs": true,
     "plugins/lisa-devin/skills/lisa-session-manager/scripts/cli-manager.mjs": true,
+    "plugins/lisa-devin/skills/lisa-session-manager/scripts/cli-overruled.mjs": true,
     "plugins/lisa-devin/skills/lisa-session-manager/scripts/cli-queue.mjs": true,
     "plugins/lisa-devin/skills/lisa-session-manager/scripts/cli-runtime.mjs": true,
     "plugins/lisa-devin/skills/lisa-session-manager/scripts/cli-setup.mjs": true,
@@ -6064,6 +6103,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-devin/skills/lisa-session-manager/scripts/cli-workers.mjs": true,
     "plugins/lisa-devin/skills/lisa-session-manager/scripts/clipboard.mjs": true,
     "plugins/lisa-devin/skills/lisa-session-manager/scripts/config.mjs": true,
+    "plugins/lisa-devin/skills/lisa-session-manager/scripts/escalation-overruled.mjs": true,
     "plugins/lisa-devin/skills/lisa-session-manager/scripts/human-answer.mjs": true,
     "plugins/lisa-devin/skills/lisa-session-manager/scripts/human-needed.mjs": true,
     "plugins/lisa-devin/skills/lisa-session-manager/scripts/isolation.mjs": true,
@@ -8477,6 +8517,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa/.codex-plugin/skills/lisa-session-manager/scripts/cli-human.mjs": true,
     "plugins/lisa/.codex-plugin/skills/lisa-session-manager/scripts/cli-manager-token.mjs": true,
     "plugins/lisa/.codex-plugin/skills/lisa-session-manager/scripts/cli-manager.mjs": true,
+    "plugins/lisa/.codex-plugin/skills/lisa-session-manager/scripts/cli-overruled.mjs": true,
     "plugins/lisa/.codex-plugin/skills/lisa-session-manager/scripts/cli-queue.mjs": true,
     "plugins/lisa/.codex-plugin/skills/lisa-session-manager/scripts/cli-runtime.mjs": true,
     "plugins/lisa/.codex-plugin/skills/lisa-session-manager/scripts/cli-setup.mjs": true,
@@ -8485,6 +8526,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa/.codex-plugin/skills/lisa-session-manager/scripts/cli-workers.mjs": true,
     "plugins/lisa/.codex-plugin/skills/lisa-session-manager/scripts/clipboard.mjs": true,
     "plugins/lisa/.codex-plugin/skills/lisa-session-manager/scripts/config.mjs": true,
+    "plugins/lisa/.codex-plugin/skills/lisa-session-manager/scripts/escalation-overruled.mjs": true,
     "plugins/lisa/.codex-plugin/skills/lisa-session-manager/scripts/human-answer.mjs": true,
     "plugins/lisa/.codex-plugin/skills/lisa-session-manager/scripts/human-needed.mjs": true,
     "plugins/lisa/.codex-plugin/skills/lisa-session-manager/scripts/isolation.mjs": true,
@@ -8751,11 +8793,16 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa/hooks/inject-resolved-config.sh": true,
     "plugins/lisa/hooks/inject-rules.sh": true,
     "plugins/lisa/hooks/install-pkgs.sh": true,
+    "plugins/lisa/hooks/install-rails-hooks.mjs": true,
+    "plugins/lisa/hooks/install-rails-hooks.sh": true,
     "plugins/lisa/hooks/operational-hazards.mjs": true,
     "plugins/lisa/hooks/operational-hazards.sh": true,
     "plugins/lisa/hooks/parity-safety-net-heredoc.py": true,
     "plugins/lisa/hooks/parity-safety-net.agy.sh": true,
     "plugins/lisa/hooks/parity-safety-net.sh": true,
+    "plugins/lisa/hooks/rails-hooks-command.mjs": true,
+    "plugins/lisa/hooks/rails-hooks-inspection.mjs": true,
+    "plugins/lisa/hooks/rails-hooks.mjs": true,
     "plugins/lisa/hooks/secrets-preflight.sh": true,
     "plugins/lisa/hooks/setup-jira-cli.sh": true,
     "plugins/lisa/hooks/shell-write-nudge.sh": true,
@@ -9183,6 +9230,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa/skills/lisa-session-manager/scripts/cli-human.mjs": true,
     "plugins/lisa/skills/lisa-session-manager/scripts/cli-manager-token.mjs": true,
     "plugins/lisa/skills/lisa-session-manager/scripts/cli-manager.mjs": true,
+    "plugins/lisa/skills/lisa-session-manager/scripts/cli-overruled.mjs": true,
     "plugins/lisa/skills/lisa-session-manager/scripts/cli-queue.mjs": true,
     "plugins/lisa/skills/lisa-session-manager/scripts/cli-runtime.mjs": true,
     "plugins/lisa/skills/lisa-session-manager/scripts/cli-setup.mjs": true,
@@ -9191,6 +9239,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa/skills/lisa-session-manager/scripts/cli-workers.mjs": true,
     "plugins/lisa/skills/lisa-session-manager/scripts/clipboard.mjs": true,
     "plugins/lisa/skills/lisa-session-manager/scripts/config.mjs": true,
+    "plugins/lisa/skills/lisa-session-manager/scripts/escalation-overruled.mjs": true,
     "plugins/lisa/skills/lisa-session-manager/scripts/human-answer.mjs": true,
     "plugins/lisa/skills/lisa-session-manager/scripts/human-needed.mjs": true,
     "plugins/lisa/skills/lisa-session-manager/scripts/isolation.mjs": true,
@@ -9458,6 +9507,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/src/base/hooks/inject-resolved-config.sh": true,
     "plugins/src/base/hooks/inject-rules.sh": true,
     "plugins/src/base/hooks/install-pkgs.sh": true,
+    "plugins/src/base/hooks/install-rails-hooks.mjs": true,
+    "plugins/src/base/hooks/install-rails-hooks.sh": true,
     "plugins/src/base/hooks/operational-hazards.mjs": true,
     "plugins/src/base/hooks/operational-hazards.sh": true,
     "plugins/src/base/hooks/parity-safety-net-heredoc.py": true,
@@ -9765,6 +9816,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-human.mjs": true,
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-manager-token.mjs": true,
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-manager.mjs": true,
+    "plugins/src/base/skills/lisa-session-manager/scripts/cli-overruled.mjs": true,
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-queue.mjs": true,
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-runtime.mjs": true,
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-setup.mjs": true,
@@ -9773,6 +9825,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-workers.mjs": true,
     "plugins/src/base/skills/lisa-session-manager/scripts/clipboard.mjs": true,
     "plugins/src/base/skills/lisa-session-manager/scripts/config.mjs": true,
+    "plugins/src/base/skills/lisa-session-manager/scripts/escalation-overruled.mjs": true,
     "plugins/src/base/skills/lisa-session-manager/scripts/human-answer.mjs": true,
     "plugins/src/base/skills/lisa-session-manager/scripts/human-needed.mjs": true,
     "plugins/src/base/skills/lisa-session-manager/scripts/isolation.mjs": true,
@@ -10371,6 +10424,10 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "scripts/lib/per-agent-hook-filter.mjs": true,
     "scripts/lib/plugin-cache-resolution.mjs": true,
     "scripts/lib/plugin-rule-citations.mjs": true,
+    "scripts/lib/rails-hooks-command.mjs": true,
+    "scripts/lib/rails-hooks-inspection.mjs": true,
+    "scripts/lib/rails-hooks.d.mts": true,
+    "scripts/lib/rails-hooks.mjs": true,
     "scripts/lib/reusable-workflow-contract.d.mts": true,
     "scripts/lib/reusable-workflow-contract.mjs": true,
     "scripts/lib/shell-guard-refusal-coverage.mjs": true,
@@ -10450,6 +10507,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "src/cli/doctor-declared-contexts.ts": true,
     "src/cli/doctor-enforcement-coverage.ts": true,
     "src/cli/doctor-gate-recommendation.ts": true,
+    "src/cli/doctor-git-hooks.ts": true,
     "src/cli/doctor-hook-copy-parity.ts": true,
     "src/cli/doctor-kane.ts": true,
     "src/cli/doctor-learnings-ledger.ts": true,
@@ -10920,6 +10978,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "src/opencode/plugin-templates/lisa-rubocop-on-edit.ts": true,
     "src/opencode/plugin-templates/lisa-session-bootstrap.ts": true,
     "src/opencode/plugin-templates/lisa-sg-scan-on-edit.ts": true,
+    "src/opencode/plugin-templates/rails-hooks.mjs": true,
     "src/opencode/project-plugin-gate.ts": true,
     "src/opencode/settings-installer.ts": true,
     "src/opencode/skills-installer.ts": true,
@@ -11228,6 +11287,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/helpers/nightly-e2e-waiver-harness.ts": true,
     "tests/helpers/package-lisa-apply-harness.ts": true,
     "tests/helpers/process-tree-runner-verdict.ts": true,
+    "tests/helpers/rails-hook-install-fixture.ts": true,
     "tests/helpers/readiness-workflow-fixtures.ts": true,
     "tests/helpers/remote-env-materialized-artifact.ts": true,
     "tests/helpers/remote-env-materialized-fixture.ts": true,
@@ -11456,6 +11516,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/quality-workflow-size.test.ts": true,
     "tests/integration/quality-workflow.test.ts": true,
     "tests/integration/rails-helper-test-isolation.test.ts": true,
+    "tests/integration/rails-hook-apply.test.ts": true,
     "tests/integration/rails-learnings-budget-gate.test.ts": true,
     "tests/integration/rails-prepush-hook.test.ts": true,
     "tests/integration/rails-rspec-shard-ruby.test.ts": true,
@@ -11530,6 +11591,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/third-party-review-check-run-parity.test.ts": true,
     "tests/integration/third-party-review-check-run-refusals.test.ts": true,
     "tests/integration/third-party-review-evidence-workflow.test.ts": true,
+    "tests/integration/third-party-review-pull-read-cli.test.ts": true,
     "tests/integration/threshold-ratchet-gate-fail-closed.test.ts": true,
     "tests/integration/tracked-source-nul-bytes.test.ts": true,
     "tests/integration/vitest-unsupervised-direct-run.test.ts": true,
@@ -11587,6 +11649,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/cli/doctor-declared-contexts.test.ts": true,
     "tests/unit/cli/doctor-enforcement-coverage.test.ts": true,
     "tests/unit/cli/doctor-gate-recommendation.test.ts": true,
+    "tests/unit/cli/doctor-git-hooks.test.ts": true,
     "tests/unit/cli/doctor-hook-copy-parity.test.ts": true,
     "tests/unit/cli/doctor-kane.test.ts": true,
     "tests/unit/cli/doctor-learnings-ledger.test.ts": true,
@@ -12056,6 +12119,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/health/expo-splash-tag-migration.test.ts": true,
     "tests/unit/health/gitignore.test.ts": true,
     "tests/unit/health/package-surfaces.test.ts": true,
+    "tests/unit/health/rails-hook-installation.test.ts": true,
     "tests/unit/health/ruleset-reach-inspection.test.ts": true,
     "tests/unit/health/storage.test.ts": true,
     "tests/unit/helpers/bounded-bash.test.ts": true,
@@ -12167,6 +12231,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/hooks/inject-resolved-config.test.ts": true,
     "tests/unit/hooks/inject-rules.test.ts": true,
     "tests/unit/hooks/install-pkgs-worktree-node-modules.test.ts": true,
+    "tests/unit/hooks/install-rails-hooks.test.ts": true,
     "tests/unit/hooks/lint-on-edit.test.ts": true,
     "tests/unit/hooks/literal-display-content.test.ts": true,
     "tests/unit/hooks/managed-file-guard-parity-note.test.ts": true,
@@ -12214,6 +12279,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/hooks/pre-push-pushed-refs-file.test.ts": true,
     "tests/unit/hooks/pre-push-pushed-tree-scope.test.ts": true,
     "tests/unit/hooks/pre-push-traceability-gate.test.ts": true,
+    "tests/unit/hooks/rails-hook-agent-delivery.test.ts": true,
+    "tests/unit/hooks/rails-hook-engine.test.ts": true,
     "tests/unit/hooks/remedy-conformance-live.test.ts": true,
     "tests/unit/hooks/remedy-conformance.test.ts": true,
     "tests/unit/hooks/safety-net-worktree-delete.test.ts": true,
@@ -12814,6 +12881,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/session-manager/cli-manager.test.ts": true,
     "tests/unit/session-manager/cli-messages.test.ts": true,
     "tests/unit/session-manager/cli-notify-none.test.ts": true,
+    "tests/unit/session-manager/cli-overruled.test.ts": true,
     "tests/unit/session-manager/cli-queue-backlog.test.ts": true,
     "tests/unit/session-manager/cli-queue-operators.test.ts": true,
     "tests/unit/session-manager/cli-setup.test.ts": true,
@@ -12824,6 +12892,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/session-manager/cli.test.ts": true,
     "tests/unit/session-manager/config-repos.test.ts": true,
     "tests/unit/session-manager/config.test.ts": true,
+    "tests/unit/session-manager/escalation-overruled.test.ts": true,
     "tests/unit/session-manager/human-answer-ids-and-refusals.test.ts": true,
     "tests/unit/session-manager/human-answer.test.ts": true,
     "tests/unit/session-manager/human-needed-planning-miss.test.ts": true,

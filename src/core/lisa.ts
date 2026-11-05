@@ -4,6 +4,10 @@ import { existsSync } from "node:fs";
 import { readFile, stat, unlink, writeFile } from "node:fs/promises";
 import * as path from "node:path";
 import pc from "picocolors";
+import {
+  ensureRailsHooks,
+  RAILS_HOOK_INSTALL_COMMAND,
+} from "../../scripts/lib/rails-hooks.mjs";
 import type { IPrompter } from "../cli/prompts.js";
 import { getPackageVersion } from "../cli/version.js";
 import {
@@ -1354,6 +1358,30 @@ export class Lisa {
   }
 
   /**
+   * Install Rails wrappers through their manager after a real apply.
+   * Failure is reported without turning a usable agent checkout into a blocked
+   * startup; doctor and health independently report its actual installation.
+   * @returns Once the bounded installation attempt has settled
+   */
+  private async installRailsGitHooks(): Promise<void> {
+    if (
+      this.config.dryRun ||
+      this.config.validateOnly ||
+      !this.detectedTypes.includes("rails")
+    )
+      return;
+    try {
+      const result = await ensureRailsHooks(this.config.destDir);
+      if (result.status === "failed" && result.detail)
+        this.deps.logger.warn(result.detail);
+    } catch {
+      this.deps.logger.warn(
+        `Rails Git hooks could not be installed; run ${RAILS_HOOK_INSTALL_COMMAND}.`
+      );
+    }
+  }
+
+  /**
    * Create success result
    * @returns Success result with operation counters and detected types
    */
@@ -1448,6 +1476,7 @@ export class Lisa {
       await this.printMigrationNotices(this.config.destDir);
       await this.schedulePostinstallReconciliation(prePackageJsonHash);
       await this.reconcileLockfilesInProcess(prePackageJsonHash);
+      await this.installRailsGitHooks();
       return this.getSuccessResult();
     } catch (error) {
       return this.handleApplyError(error);
