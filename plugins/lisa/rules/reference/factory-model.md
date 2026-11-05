@@ -64,7 +64,7 @@ Humans act only at explicit exterior gates:
 
 - flipping a draft they chose to hold back to `prd-ready` / `status:ready`,
 - approving protected deployments (`github.environments.require_approval`),
-- reviewing low-confidence learning PRs (auto-merge off),
+- reviewing low-confidence learning PRs (auto-merge off, unless the project sets `learnings.lowConfidence: "auto-merge"`),
 - answering what intake rejected and raised.
 
 Inside a flow, never pause to ask a human whether to proceed — the invocation was the authorization.

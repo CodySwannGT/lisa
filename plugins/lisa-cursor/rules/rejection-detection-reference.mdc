@@ -42,7 +42,7 @@ Return exactly one of:
 
 ## Learning-loop exclusion (no learning about learning)
 
-An artifact this flow produced is **never** a rejection-reflection trigger, no matter how it moves. Before classifying as `rejection-reclaim`, exclude items carrying any learning marker — `[lisa-learning-drop]`, `[lisa-learning-pr]`, `[lisa-learning-upstream-handoff]` — or the `learning:needs-triage` label. Such items short-circuit to `forward-only` (treated as normal work) so the detector never fires on the flow's own learning PRs/issues.
+An artifact this flow produced is **never** a rejection-reflection trigger, no matter how it moves. Before classifying as `rejection-reclaim`, exclude items carrying any learning marker — `[lisa-learning-drop]`, `[lisa-learning-pr]`, `[lisa-learning-upstream-handoff]` — or the `learning:needs-triage` or `learning:low-confidence` label. Such items short-circuit to `forward-only` (treated as normal work) so the detector never fires on the flow's own learning PRs/issues.
 
 ## Reflect on a `rejection-reclaim`
 
@@ -125,7 +125,7 @@ resolved per the `config-resolution` rule with the `src/sync/registry.ts` `BUILD
 
 This flow persists learnings via PRs and files upstream issues, so its own artifacts are themselves rejectable. If a learning PR or an auto-filed upstream issue is ever moved backward, a naive detector would fire `rejection-reclaim` on it and reflect on the flow's own output — a learning about learning, recursively.
 
-The trigger is therefore **suppressed at the source**. Before an item is classified `rejection-reclaim`, exclude it if it carries any of the learning producer markers — `[lisa-learning-drop]`, `[lisa-learning-pr]`, `[lisa-learning-upstream-handoff]` (embedded in the artifact body/PR the same way other Lisa markers are) — or the `learning:needs-triage` label. An excluded item is treated as `forward-only` (normal work); the rejection-reflection path never fires on it, no matter how the artifact moved. (These markers ship with the learning-persistence flow; reference them by name — do not assume their files are present in this branch.)
+The trigger is therefore **suppressed at the source**. Before an item is classified `rejection-reclaim`, exclude it if it carries any of the learning producer markers — `[lisa-learning-drop]`, `[lisa-learning-pr]`, `[lisa-learning-upstream-handoff]` (embedded in the artifact body/PR the same way other Lisa markers are) — or the `learning:needs-triage` or `learning:low-confidence` label. An excluded item is treated as `forward-only` (normal work); the rejection-reflection path never fires on it, no matter how the artifact moved. (These markers ship with the learning-persistence flow; reference them by name — do not assume their files are present in this branch.)
 
 This is the **trigger-side** half of the no-learning-loops guard. The claim-time archaeology path carries the symmetric **scan-side** exclusion ("a learning PR is never treated as an ancestor").
 
@@ -291,7 +291,7 @@ The lanes compared ALWAYS come from `.lisa.config.json` — `github.labels.build
 
 ### Learning-loop exclusion
 
-The same learning-loop exclusion applies, for the same reason and by the same markers: an item carrying `[lisa-learning-drop]`, `[lisa-learning-pr]`, `[lisa-learning-upstream-handoff]` or the `learning:needs-triage` label is never classified `automation-reversal`, no matter how it moved. The flow must not remember being corrected about its own learning artifacts.
+The same learning-loop exclusion applies, for the same reason and by the same markers: an item carrying `[lisa-learning-drop]`, `[lisa-learning-pr]`, `[lisa-learning-upstream-handoff]` or the `learning:needs-triage` or `learning:low-confidence` label is never classified `automation-reversal`, no matter how it moved. The flow must not remember being corrected about its own learning artifacts.
 
 ### The rule — a reversal raises the bar, it never resets the clock
 
