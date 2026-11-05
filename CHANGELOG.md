@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.88.2](https://github.com/CodySwannGT/lisa/compare/v4.88.1...v4.88.2) (2026-11-05)
+
+
+### Bug Fixes
+
+* **guard:** classify policy comments at logical shell boundaries ([6bd3187](https://github.com/CodySwannGT/lisa/commit/6bd3187ba16231b93ffbda2b05773532e6a2f616)), closes [CodySwannGT/lisa#4471](https://github.com/CodySwannGT/lisa/issues/4471)
+* **guard:** ignore comment-owned function definitions ([deacfbd](https://github.com/CodySwannGT/lisa/commit/deacfbd5580bf758129d1e8410365223d90936ca)), closes [CodySwannGT/lisa#4471](https://github.com/CodySwannGT/lisa/issues/4471)
+* **guard:** preserve newlines that end shell comments ([6dbc951](https://github.com/CodySwannGT/lisa/commit/6dbc95159edfa844b4ef166a60b4071bb84b6c7a)), closes [CodySwannGT/lisa#4471](https://github.com/CodySwannGT/lisa/issues/4471)
+
+
+### Documentation
+
+* resume inline-comment guard delivery ([7916fe0](https://github.com/CodySwannGT/lisa/commit/7916fe092a6af75856581f6ed09729a54b41ed22)), closes [CodySwannGT/lisa#4471](https://github.com/CodySwannGT/lisa/issues/4471)
+
 ### [4.88.1](https://github.com/CodySwannGT/lisa/compare/v4.88.0...v4.88.1) (2026-11-05)
 
 
