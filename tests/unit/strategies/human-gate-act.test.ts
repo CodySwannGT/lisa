@@ -145,6 +145,8 @@ describe("classifyHumanGateReason", () => {
       CREDENTIAL,
     ],
     ["someone must pay the Apple developer fee", SPEND],
+    ["pay registration fee", SPEND],
+    ["pay $49 fee", SPEND],
     ["a person must physically reboot the office router", UNREACHABLE],
     ["invite the agent's bot user to the Linear workspace", UNREACHABLE],
   ])("accepts the real act %j", (reason, act) => {

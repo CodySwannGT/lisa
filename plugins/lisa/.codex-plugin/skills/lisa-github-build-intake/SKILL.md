@@ -252,9 +252,10 @@ true, and nothing re-read one before this phase. For each `$BLOCKED` candidate:
    Lift invalid holds first: call `planHumanGateLift({ labels, body, comments, trustedHumanActorIds, humanNeededLabel, humanOnly, readyLabel, lifecycleLabels })` from `scripts/human-gate-lift.mjs`. Post its `comments` and apply only
    `removeHumanNeededLabel` here; defer `addReadyLabel` until the remaining blocker checks below
    clear, exactly as for a release. A hold that names no act an agent cannot perform then never
-   blocks selection, and an item with a real blocker never skips the re-probe. A hold this step
-   lifted is a discharged condition, not a human decision still pending: record the decision on
-   the item (a `Decision:` line saying what was chosen and why) and exclude that condition from
+   blocks selection, and an item with a real blocker never skips the re-probe. A hold that is
+   lifted, by this call or in an earlier cycle (`humanGateVerdict(...).lifted` lists both), is a
+   discharged condition, not a human decision still pending: record the decision on
+   the item (a `Decision:` line saying what was chosen and why) if it does not carry one yet and exclude that condition from
    step 2's probe. Keep probing any independent blocker the item states.
 
 2. **Extract the stated discharge condition**, then **probe it**. Machine-testable conditions — a

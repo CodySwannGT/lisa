@@ -307,7 +307,7 @@ export const HUMAN_GATE_ACTS = Object.freeze([
     act: "spend",
     label: "approve spending money",
     pattern:
-      /\b(spend|spending|payments?|pay for|pay (a|an|the)|purchase|purchasing|buy|budget approval|credit card|money|paid (plan|tier|seat|account)s?)\b/u,
+      /\b(spend|spending|payments?|pay for|pay (a|an|the)|pay ([a-z0-9]+ ){0,3}fees?|purchase|purchasing|buy|budget approval|credit card|money|paid (plan|tier|seat|account)s?)\b/u,
   }),
   Object.freeze({
     act: "external-account",
