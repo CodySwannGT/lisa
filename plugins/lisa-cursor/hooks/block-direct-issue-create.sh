@@ -464,15 +464,19 @@ FILE IT THE SANCTIONED WAY — one of these three, always explicit:
    write, and claims it. Complete means the \`work-item-definition-of-ready\`
    bar — reproduction, observed-versus-expected, Gherkin acceptance criteria.
 
-2. A human product call is genuinely pending. Route the same way but pass
-   \`human_gate: "<why a human must judge this first>"\` in place of
+2. A person must perform an act an agent cannot: supply a credential only
+   they hold, approve spend, open an external account, give a legal or
+   compliance sign-off, or act in a system the agent cannot reach. A choice
+   with a reasonable default is NOT that: decide it, record the decision on
+   the item, and use 1. Otherwise route the same way but pass
+   \`human_gate: "<the act a person must perform>"\` in place of
    \`build_ready: true\` — the two are mutually exclusive. The leaf is filed
    into the default backlog role, outside the lane build-intake claims from,
    and is deliberately NOT claimed, so it keeps attracting the human attention
    it was filed for. The hold is stamped so it is auditable rather than
    indistinguishable from an accident:
 
-     Held for a human product call: <reason>.
+     Held for a person to <act>: <reason>.
      <!-- [lisa-human-gate] reason=<short-slug> -->
 
 3. The item is a CONTAINER — an Epic, or any item whose state rolls up from
@@ -499,8 +503,8 @@ declarations itself:
 
 $(declaration_hint)
 
-   Or a \`[lisa-human-gate]\` marker in the body it submits, when a human
-   product call really is pending.
+   Or a \`[lisa-human-gate]\` marker in the body it submits, when a person
+   really must perform an act an agent cannot.
 
    Or, for a container, \`None — container: state rolls up from children\` in
    that body, and no by-design leaf type on the command.
@@ -561,11 +565,11 @@ FILE IT THE SANCTIONED WAY:
 
 DO NOT reach for \`[lisa-human-gate]\` to get past this one. It still satisfies
 the guard — it is a real declaration — but on an upstream defect report it is a
-false one: it stamps the item as held for a human product call, and the
+false one: it stamps the item as held for a person, and the
 target's build queue scans the ready role and nothing else. The report is filed
 and never picked up, which is the incomplete handoff this guard exists to
-prevent, committed one repository over. Use it only when a human product call
-is genuinely pending on the target.
+prevent, committed one repository over. Use it only when a person must genuinely
+perform an act an agent cannot on the target.
 
 OPERATOR ESCAPE: a human can export \`LISA_ALLOW_DIRECT_ISSUE_CREATE=1\` in the
 environment before starting the session. It is deliberately not reachable by
@@ -985,7 +989,7 @@ def payload_is_inert(text):
 #
 # So on a Linear-tracked project the only declaration left that passed was
 # `[lisa-human-gate]`, which this file's own comments correctly forbid for a
-# build-ready item: it stamps the item as held for a human product call, and
+# build-ready item: it stamps the item as held for a person, and
 # build-intake scans the ready role and nothing else. An honest operator had NO
 # compliant command and exactly one dishonest one — a guard failing in the
 # harmful direction, where complying is worse than not.

@@ -222,8 +222,8 @@ vocabulary; it consumes it.
    skill (never a vendor write skill directly), carrying the five finding fields in the body. Per the `ready-role-filing` rule each
    create declares its readiness explicitly: pass **`build_ready: true`** when the correction is
    mechanical (an omitted flag is NOT build-ready on any tracker, so the mechanical branch would
-   otherwise file work nothing ever claims), and pass **`human_gate: "<the decision only a human can
-   make>"`** plus the `human-needed` marker when it is a genuine human decision. This is the skill's **only tracker write**, and it creates Lisa's *own* work item —
+   otherwise file work nothing ever claims), and pass **`human_gate: "<the act only a person can
+   perform>"`** plus the `human-needed` marker when it needs an act an agent cannot perform (a credential, spend, a sign-off, an accountable person, an unreachable system — `ready-role-filing`, "What a human gate is"); a correction with a reasonable default is decided, recorded, and filed `build_ready: true`. This is the skill's **only tracker write**, and it creates Lisa's *own* work item —
    it **never edits, comments on, transitions, or otherwise mutates any ingested source** (see the
    connected-source safety boundary above). The shipped never-ask posture is preserved: a blocker
    becomes a filed ticket, **never** a prompt, and the session **never pauses to ask a human anything**,
