@@ -25,6 +25,9 @@ import {
 const CREDENTIAL = "credential";
 const LISA_POLICY = "lisa-policy";
 const UNREACHABLE = "unreachable-system";
+const EXTERNAL_ACCOUNT = "external-account";
+const LEGAL = "legal-signoff";
+const SPEND = "spend";
 const AWS_ROOT = "aws-root-credential";
 
 describe("classifyHumanGateReason", () => {
@@ -38,16 +41,20 @@ describe("classifyHumanGateReason", () => {
     "compliance-dashboard-triage",
     "legal-page-copy-triage",
     "contract-renewal-dispatch",
-    "secrets-manager-migration-design",
     "payments-page-naming",
-    "oauth-provider-choice",
     "hardware-sku-naming",
     "no-access-error-copy",
     "buy-button-color",
     "monitoring-dashboard-spend-split",
-    "credential-rotation-policy",
     "gdpr-banner-placement",
-    "api-keys-table-pagination",
+    "regulatory-report-format",
+    "hipaa-logging-approach",
+    "legal-entity-field",
+    "soc2-evidence-folder-structure",
+    "contract-test-framework-pick",
+    "hardware-acceleration-flag",
+    "physical-units-conversion",
+    "spend-dashboard-triage",
   ])("refuses the topic-only reason %j and names decide-and-record", reason => {
     const verdict = classifyHumanGateReason(reason);
     expect(verdict.valid).toBe(false);
@@ -59,9 +66,9 @@ describe("classifyHumanGateReason", () => {
   it.each([
     ["needs the production API key only the founder holds", CREDENTIAL],
     [AWS_ROOT, CREDENTIAL],
-    ["approve spending $200/month on a paid plan", "spend"],
-    ["open a vendor account with the SMS provider", "external-account"],
-    ["HIPAA compliance sign-off", "legal-signoff"],
+    ["approve spending $200/month on a paid plan", SPEND],
+    ["open a vendor account with the SMS provider", EXTERNAL_ACCOUNT],
+    ["HIPAA compliance sign-off", LEGAL],
     ["name an accountable person for the data processor", "accountable-person"],
     ["flash firmware on the physical device", UNREACHABLE],
     [
@@ -73,7 +80,7 @@ describe("classifyHumanGateReason", () => {
       "a human decides whether this knowledge is promoted, demoted, or retired",
       LISA_POLICY,
     ],
-    ["a vendor or provider account in the company's name", "external-account"],
+    ["a vendor or provider account in the company's name", EXTERNAL_ACCOUNT],
     ["an owner or approver who answers for the result", "accountable-person"],
     ["granting an access the agent lacks", UNREACHABLE],
     ["CloudWatch read access the agent does not have", UNREACHABLE],
@@ -88,12 +95,51 @@ describe("classifyHumanGateReason", () => {
       "a person with admin rights must add the bot to the workspace",
       UNREACHABLE,
     ],
-    ["the client must sign the BAA", "legal-signoff"],
+    ["the client must sign the BAA", LEGAL],
   ])("accepts %j as the act %s", (reason, act) => {
     const verdict = classifyHumanGateReason(reason);
     expect(verdict.valid).toBe(true);
     expect(verdict.act).toBe(act);
     expect(verdict.remedy).toBeNull();
+  });
+
+  // A secret is never a topic: a credential keyword wins over the topic veto,
+  // even in a slug. A writer that accepts one of these keeps today's
+  // behaviour (a held item); refusing a real credential gate would not.
+  it.each([
+    "secrets-manager-migration-design",
+    "oauth-provider-choice",
+    "credential-rotation-policy",
+    "api-keys-table-pagination",
+    "credential-storage-strategy",
+    "secrets-manager-adoption",
+    "oauth-scope-list",
+    "password-reset-email-template",
+  ])("lets a secret keyword win over the topic veto for %j", reason => {
+    expect(classifyHumanGateReason(reason).act).toBe(CREDENTIAL);
+  });
+
+  // Known writer false-accepts, pinned so a change in either direction is
+  // deliberate: an act verb sits inside the slug.
+  it.each([
+    ["payment-approval-flow-design", SPEND],
+    ["open-account-settings-page-design", EXTERNAL_ACCOUNT],
+  ])("still accepts %j (act verb in a topic slug)", (reason, act) => {
+    expect(classifyHumanGateReason(reason).act).toBe(act);
+  });
+
+  it.each([
+    ["the operator's 2FA code for the AWS console migration", CREDENTIAL],
+    ["legal must review the new terms of service page", LEGAL],
+    ["someone must buy the domain for the docs site", SPEND],
+    [
+      "a person with admin rights must add the bot to the Slack workspace",
+      UNREACHABLE,
+    ],
+    ["add the bot to the workspace", UNREACHABLE],
+    ["grant admin to the deploy role", UNREACHABLE],
+  ])("accepts the real act %j", (reason, act) => {
+    expect(classifyHumanGateReason(reason).act).toBe(act);
   });
 
   it("lets a project widen the gate with a declared human-only class", () => {

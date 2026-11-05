@@ -333,7 +333,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/npm-updater-gate.Dockerfile":
       "f5d85f8fccfd97f7800c03430a38c19d584314b0a6a63aa1de28fb62897fbcc5",
     "all/copy-overwrite/scripts/npm-updater-helper-graph.json":
-      "b67b99e08c15aedbb2f1c4246c94106217eb83c5956d07e198f0e90d40893895",
+      "fd03f197b4db3dee95244df3d0af638fb371fd5d2726c173e0f6be40f5e92b88",
     "all/copy-overwrite/scripts/review-evidence-event.mjs":
       "1c5d510bc66f8ba23b6f046246f41182c17946a50126fb88e371d2aec9dfd6b2",
     "all/copy-overwrite/scripts/schemas/lisa-command-envelope.v1.schema.json":
@@ -1253,7 +1253,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/rules/reference/readiness-rubric.md":
       "d3ebc3fa6bacd80696613e116ab9c3ece5384d47238ad78ae6cde2f85ebf32d7",
     "plugins/src/base/rules/reference/ready-role-filing.md":
-      "efc3c661279c04f8e687194e51af80ceaa9fba10412252ec06b7cf6ac09cc0ce",
+      "ab6ef509ee3560b55cf0a7cb03edb0c63d97c71334ee3baafd54bdeb06451f81",
     "plugins/src/base/rules/reference/rejection-detection.md":
       "716e4758e6241c03363ea0754ea9d6f5bb476fb816168266c8ebc2b5d05bd5db",
     "plugins/src/base/rules/reference/repo-scope-split.md":
@@ -1321,11 +1321,11 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/scripts/human-gate-act.mjs":
       "952a185568e88b9077edf0a9f18d66d888dbebd285394b53457e1dea959a5a71",
     "plugins/src/base/scripts/human-gate-lift.mjs":
-      "1f33ad3175befa80604edde1bb9f642b59ae7d27b14b3c6daba85d389d31cd59",
+      "b14b119374de45d2876ff2688a043be0d13e9b387ce8508e964c8a9f177b1015",
     "plugins/src/base/scripts/install-remote-agent-aws.mjs":
       "a3b530e0053774f62aa768377e672388b586b1456fa59f33bc3553babf1a576d",
     "plugins/src/base/scripts/intake-blocker-reprobe.mjs":
-      "c28228b6b6fa8d8294492b68c7a000f9d13cca526e848cd455fd18e22cbdd912",
+      "277b3a9319fac400beb02b1cb8541f2e83358cd37ef232c8d8e5a4b084d3a28a",
     "plugins/src/base/scripts/intake-prework-denominator.mjs":
       "0a40cb91ab1c0e810f42d035d9652af3033e97c692b93b911de851991c12eca1",
     "plugins/src/base/scripts/lifecycle-label-trust.mjs":
@@ -1617,7 +1617,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-remote-dispatch/scripts/dispatch.mjs":
       "2c51d388ecb681905f6b2280ffefc03434f91bfe4901e637869b716be81ccc93",
     "plugins/src/base/skills/lisa-repair-intake/SKILL.md":
-      "0d04a2571c2920687c0db0e865b4edd3c6f544fea3da57efa6e2c667fcf48bf6",
+      "1904e8cfb6e46aab40746e2c2c4e34d91f8457e3fb3f178c8a2196e9a1c5752d",
     "plugins/src/base/skills/lisa-reproduce-bug/SKILL.md":
       "49dee0ea4d444a6df050d85fd57566497df288490f64b467d0505b1863fc1039",
     "plugins/src/base/skills/lisa-research/SKILL.md":
@@ -13086,6 +13086,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/strategies/health-skill-contract.test.ts": true,
     "tests/unit/strategies/human-gate-act.test.ts": true,
     "tests/unit/strategies/human-gate-declaration-precision.test.ts": true,
+    "tests/unit/strategies/human-gate-lift-battery.test.ts": true,
     "tests/unit/strategies/human-gate-lift.test.ts": true,
     "tests/unit/strategies/human-gate-markdown-escaping.test.ts": true,
     "tests/unit/strategies/human-gate-release-authorization.test.ts": true,

@@ -212,7 +212,7 @@ describe("a valid hold is never lifted", () => {
     );
   });
 
-  it("lifts only the invalid reason on a mixed item and leaves it held", () => {
+  it("keeps every hold on a mixed item when any hold names an act", () => {
     const mixed = [
       heldBody(NAMING, "Held for a human product call: naming triage."),
       "",
@@ -225,13 +225,9 @@ describe("a valid hold is never lifted", () => {
       readyLabel: READY,
       lifecycleLabels: LIFECYCLE,
     });
-    expect(plan.reason).toBe("partial-lift");
-    expect(plan.lifted).toEqual([NAMING]);
-    expect(plan.kept).toEqual(["paid-plan-spend"]);
-    expect(plan.actions).toEqual({
-      removeHumanNeededLabel: false,
-      addReadyLabel: null,
-    });
+    expect(plan.lift).toBe(false);
+    expect(plan.lifted).toEqual([]);
+    expect(plan.comments).toEqual([]);
   });
 });
 

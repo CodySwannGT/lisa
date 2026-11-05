@@ -1117,7 +1117,9 @@ with labels like `build-ready`, or with no Lisa status label at all, that are in
    Enumerate open items carrying a `[lisa-human-gate]` marker in the body and, for each, call
    `planHumanGateLift({ labels, body, comments, trustedHumanActorIds, humanNeededLabel, humanOnly, readyLabel, lifecycleLabels })`
    from `scripts/human-gate-lift.mjs`, with `humanOnly` read from `humanGate.humanOnly` in config.
-   Apply exactly what it returns: post each string in `comments` once (each begins
+   The planner lifts only when it is sure: a topic-only slug, no act on any hold-related line, and
+   no secret or act token anywhere in the hold text (`ready-role-filing`, "Existing invalid holds
+   are lifted"). Any doubt keeps the hold. Apply exactly what it returns: post each string in `comments` once (each begins
    `[lisa-human-gate-lifted] reason=<slug>` with a one-line rationale), then remove the human-needed
    marker and add the configured build `ready` label as `actions` say. Do **not** re-implement the
    classification here.

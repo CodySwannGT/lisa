@@ -19,9 +19,8 @@
  */
 import {
   HUMAN_GATE_LIFTED_MARKER,
-  classifyHoldText,
-  humanGateHoldTexts,
   humanGateVerdict,
+  invalidHumanGateHolds,
   planHumanGateRelease,
 } from "./intake-blocker-reprobe.mjs";
 
@@ -76,14 +75,8 @@ export function planHumanGateLift(input = {}) {
     addReadyLabel: null,
   });
   const verdict = humanGateVerdict(input);
-  const texts = humanGateHoldTexts(input.body);
-  const toLift = verdict.outstanding.filter(
-    reason =>
-      texts.has(reason) &&
-      !classifyHoldText(texts.get(reason), {
-        humanOnly: input.humanOnly,
-      }).valid
-  );
+  const liftable = new Set(invalidHumanGateHolds(input.body, input.humanOnly));
+  const toLift = verdict.outstanding.filter(reason => liftable.has(reason));
   const kept = verdict.outstanding.filter(reason => !toLift.includes(reason));
   const comments = toLift.map(reason => formatHumanGateLift({ reason }));
 

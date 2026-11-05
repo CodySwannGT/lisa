@@ -140,7 +140,7 @@ A reason naming a declared class (as a whole word) is accepted. `.lisa.config.lo
 
 ### Existing invalid holds are lifted, with no person involved
 
-Holds filed under the old wording keep stalling items, and an operator should never have to comment to release one. The intake and repair sweeps re-evaluate every open `[lisa-human-gate]` hold against this definition with `planHumanGateLift` (`scripts/human-gate-lift.mjs`). For a hold that names no act an agent cannot perform, the sweep:
+Holds filed under the old wording keep stalling items, and an operator should never have to comment to release one. The intake and repair sweeps re-evaluate every open `[lisa-human-gate]` hold against this definition with `planHumanGateLift` (`scripts/human-gate-lift.mjs`). The sweep lifts a hold only when it is sure. Its reason slug must name only a topic, no hold-related line (any marker line, any "Held for …" line, or the line beside one) may name an act, and no secret or act token (a credential, password, MFA code, API key, token, secret, signature, BAA or contract, admin rights, access, spend, budget, payment or money, legal or compliance) may appear anywhere in that text, judged as one set. Any doubt keeps the hold: a wrongly kept hold costs one interruption, while a wrongly lifted credential hold dispatches work that cannot succeed. For a hold that passes, the sweep:
 
 - posts a visible `[lisa-human-gate-lifted] reason=<slug>` comment explaining why;
 - removes the `human_needed` marker label;

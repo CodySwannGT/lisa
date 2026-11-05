@@ -331,7 +331,7 @@ export const HUMAN_GATE_ACTS = Object.freeze([
     act: "unreachable-system",
     label: "act in a system the agent cannot reach",
     pattern:
-      /\b(admin (rights|access|permissions?|role)|workspace admin|physical|hardware|on site|in person|unreachable|cannot reach|can ?not reach|cant reach|no access|outside (the )?agent|grant(s|ed|ing)? ([a-z]+ ){0,3}(access|permissions?|roles?)|give (the )?agent ([a-z]+ ){0,3}access|access (the )?agent (lacks|does not have|doesnt have|cannot get)|agent (lacks|does not have|doesnt have) ([a-z]+ ){0,4}access|tool access|missing access|access grant|provision(ing)? access|phone call)\b/u,
+      /\b(admin (rights|access|permissions?|role)|grant admin|add (the |a |our )?(bot|app|agent|integration) to|workspace admin|physical|hardware|on site|in person|unreachable|cannot reach|can ?not reach|cant reach|no access|outside (the )?agent|grant(s|ed|ing)? ([a-z]+ ){0,3}(access|permissions?|roles?)|give (the )?agent ([a-z]+ ){0,3}access|access (the )?agent (lacks|does not have|doesnt have|cannot get)|agent (lacks|does not have|doesnt have) ([a-z]+ ){0,4}access|tool access|missing access|access grant|provision(ing)? access|phone call)\b/u,
   }),
   Object.freeze({
     act: "lisa-policy",
@@ -420,7 +420,10 @@ export function classifyHumanGateReason(reason, options = {}) {
     const topicOnly = slug && TOPIC_WORDS.test(text) && !ACT_VERBS.test(text);
     for (const entry of HUMAN_GATE_ACTS) {
       const match = entry.pattern.exec(text);
-      if (match && !(topicOnly && KEYWORD_ACTS.has(entry.act))) {
+      // A secret is never a topic: a credential match always wins.
+      const vetoed =
+        topicOnly && entry.act !== "credential" && KEYWORD_ACTS.has(entry.act);
+      if (match && !vetoed) {
         return {
           valid: true,
           act: entry.act,
@@ -461,7 +464,7 @@ export function classifyHumanGateReason(reason, options = {}) {
  * cannot perform, so there is nothing for a person to authorize
  * (CodySwannGT/lisa#4658). Its authority therefore comes from re-classifying
  * the hold, not from who wrote the comment: a lift discharges a reason only
- * while {@link humanGateHoldTexts} still classifies that hold as invalid. A
+ * while {@link invalidHumanGateHolds} still treats that hold as liftable. A
  * lift naming a valid hold (a credential, spend, a sign-off) discharges
  * nothing, whoever posts it.
  *
@@ -470,99 +473,83 @@ export function classifyHumanGateReason(reason, options = {}) {
  */
 export const HUMAN_GATE_LIFTED_MARKER = "[lisa-human-gate-lifted]";
 
-/** Longest slice of any one line the classifier reads. */
+/** Longest slice of any one line the lift rule reads. */
 const HOLD_TEXT_CAP = 2000;
 
-/** How many non-blank lines above a marker are read as its context. */
-const HOLD_CONTEXT_LINES = 3;
-
-/** @param {string} candidate - A body line @returns {boolean} Whether it has content */
-const nonBlank = candidate => candidate.trim().length > 0;
+/**
+ * Tokens that keep a hold no matter how it is worded or laid out.
+ *
+ * A wrongly kept hold costs one interruption; a wrongly lifted credential hold
+ * dispatches work that cannot succeed. So the sweep never lifts an item whose
+ * hold text mentions any of these anywhere, even when the reason itself reads
+ * as a topic. The list is about safety, not about classification: it is
+ * deliberately broader than the act patterns.
+ */
+const HOLD_SAFETY_TOKENS =
+  /\b(credentials?|passwords?|passphrases?|passcodes?|mfa|2fa|otp|one time codes?|api keys?|keys?|tokens?|secrets?|oauth|sign|signs|signed|signing|signatures?|signoff|sign off|baa|contracts?|agreements?|admin|administrator|access|accounts?|spend\w*|budgets?|payments?|pay|paid|money|purchase|buy|billing|invoice|legal|lawyer|counsel|compliance|regulatory|hipaa|gdpr|soc ?2|physical|hardware|device)\b/u;
 
 /**
- * The text each declared hold is judged by, keyed by its reason.
- *
- * The slug alone is often terse, so the declaring line, the visible line just
- * above it (where every writer puts "Held for …: <reason>."), and the line just
- * directly below it (where a hand-written hold may explain itself) are judged with it.
- * Each line is judged on its own and the hold is valid when ANY line names an
- * act ({@link classifyHoldText}), so reading more lines can only keep a hold,
- * never lift one. A keyless hold is judged by those lines alone. Each line
- * is capped so an oversized body cannot make the classifier slow.
+ * Every line of a body that belongs to a hold: each declaring marker line and
+ * each visible "Held for …" line, wherever they sit, plus the nearest
+ * non-blank neighbour of each.
  * @param {unknown} body - The item body
- * @returns {Map<string, string>} Reason key → text to classify
+ * @returns {string[]} Hold-related lines, each capped
  */
-export function humanGateHoldTexts(body) {
+function holdRelatedLines(body) {
   const lines = declarativeText(body).split("\n");
-  const texts = new Map();
+  const isHoldLine = line =>
+    declaresOnLine(line) || /^\s*held for\b/iu.test(line);
+  const related = new Set();
   lines.forEach((line, index) => {
-    if (!declaresOnLine(line)) return;
-    const key = reasonOnLine(line, HUMAN_GATE_MARKER);
-    // Up to HOLD_CONTEXT_LINES non-blank lines above, stopping at another
-    // hold's marker, so a heading between the visible line and the marker
-    // does not hide the act. Below: the first non-blank line, unless it is
-    // itself a marker or the visible line of the NEXT hold (a line directly
-    // followed by a marker), so one hold never borrows another's act.
-    const above = [];
-    for (
-      let at = index - 1;
-      at >= 0 && above.length < HOLD_CONTEXT_LINES;
-      at -= 1
-    ) {
-      if (declaresOnLine(lines[at])) break;
-      if (nonBlank(lines[at])) above.push(lines[at]);
+    if (!isHoldLine(line)) return;
+    related.add(index);
+    // The nearest non-blank neighbour on each side, so a hand-written hold
+    // that explains itself next to its marker is read too. More text can
+    // only keep a hold under this rule, never lift one.
+    for (const step of [-1, 1]) {
+      let at = index + step;
+      while (at >= 0 && at < lines.length && lines[at].trim() === "")
+        at += step;
+      if (at >= 0 && at < lines.length) related.add(at);
     }
-    const belowAt = lines.findIndex(
-      (candidate, at) => at > index && nonBlank(candidate)
-    );
-    const afterBelow =
-      belowAt === -1 ? undefined : lines.slice(belowAt + 1).find(nonBlank);
-    const below =
-      belowAt === -1 ||
-      declaresOnLine(lines[belowAt]) ||
-      (afterBelow !== undefined && declaresOnLine(afterBelow))
-        ? ""
-        : lines[belowAt];
-    const own = line
-      .split(HUMAN_GATE_MARKER)
-      .join(" ")
-      .replace(/reason=\S*/u, " ");
-    const parts = [key, own, ...above, below].map(part =>
-      part.slice(0, HOLD_TEXT_CAP)
-    );
-    texts.set(key, [texts.get(key), ...parts].filter(Boolean).join("\n"));
   });
-  return texts;
+  return [...related]
+    .sort((a, b) => a - b)
+    .map(index => lines[index].slice(0, HOLD_TEXT_CAP));
 }
 
 /**
- * Classify a hold by its lines: valid when ANY line names an act.
+ * The reasons of every declared hold the sweep may lift.
  *
- * Judging the joined text instead would let an unrelated line flip a valid
- * hold: a topic word on the line below a credential hold would veto the
- * credential and the sweep would lift it. Per-line judgement is monotonic, so
- * context can keep a hold but never lift one.
- * @param {unknown} text - Hold text from {@link humanGateHoldTexts}
- * @param {{ humanOnly?: unknown }} [options] - Project-declared classes
- * @returns {ReturnType<typeof classifyHumanGateReason>} Verdict
- */
-export function classifyHoldText(text, options = {}) {
-  const verdicts = String(text ?? "")
-    .split("\n")
-    .map(part => classifyHumanGateReason(part, options));
-  return verdicts.find(verdict => verdict.valid) ?? classifyHumanGateReason("");
-}
-
-/**
- * The reasons of every declared hold that names no act an agent cannot do.
+ * Structural rather than positional, on purpose: layout heuristics (which line
+ * is "this hold's" visible line) kept finding layouts that lifted a credential
+ * hold. A hold is liftable only when ALL of these hold for the item as a whole:
+ *
+ * 1. its reason slug classifies as topic-only;
+ * 2. no hold-related line (any marker line, any "Held for …" line) names an
+ *    act, judged one line at a time;
+ * 3. no {@link HOLD_SAFETY_TOKENS} token appears anywhere in the reasons or
+ *    the hold-related lines, judged as one set.
+ *
+ * Any doubt keeps the hold. A topic hold that shares an item with a real one,
+ * or sits beside a line mentioning a budget, stays held; that conservatism is
+ * the intended trade.
  * @param {unknown} body - The item body
  * @param {unknown} humanOnly - Project-declared human-only decision classes
- * @returns {string[]} Reason keys whose hold is invalid
+ * @returns {string[]} Reason keys whose hold may be lifted
  */
 export function invalidHumanGateHolds(body, humanOnly) {
-  return [...humanGateHoldTexts(body)]
-    .filter(([, text]) => !classifyHoldText(text, { humanOnly }).valid)
-    .map(([reason]) => reason);
+  const holds = humanGateHolds(body);
+  if (holds.length === 0) return [];
+  const lines = holdRelatedLines(body);
+  const anyLineValid = lines.some(
+    line => classifyHumanGateReason(line, { humanOnly }).valid
+  );
+  const everything = normalizeGateText([...holds, ...lines].join(" "));
+  if (anyLineValid || HOLD_SAFETY_TOKENS.test(everything)) return [];
+  return holds.filter(
+    reason => !classifyHumanGateReason(reason, { humanOnly }).valid
+  );
 }
 
 /**
