@@ -220,8 +220,10 @@ true, and nothing re-read one before this phase. For each pre-work candidate out
    A still-active hold is never auto-selected, whatever any probe says. An absent or unreadable
    comment history cannot discharge a hold. A release removes only the human hold: continue the
    remaining blocker checks below before selecting the item.
-   Lift invalid holds first: call `planHumanGateLift({ labels, body, comments, trustedHumanActorIds, humanNeededLabel, humanOnly, readyLabel, lifecycleLabels })` from `scripts/human-gate-lift.mjs` and apply it exactly as the ready gate below
-   does, so a hold that names no act an agent cannot perform never blocks selection.
+   Lift invalid holds first: call `planHumanGateLift({ labels, body, comments, trustedHumanActorIds, humanNeededLabel, humanOnly, readyLabel, lifecycleLabels })` from `scripts/human-gate-lift.mjs`. Post its `comments` and apply only
+   `removeHumanNeededLabel` here; defer `addReadyLabel` until the remaining blocker checks below
+   clear, exactly as for a release. A hold that names no act an agent cannot perform then never
+   blocks selection, and an item with a real blocker never skips the re-probe.
 
 2. **Extract the stated discharge condition**, then **probe it**. Machine-testable conditions — a
    version on trunk, a published package, a CI run history, an advisory's patched status — rot
