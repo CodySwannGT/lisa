@@ -1,6 +1,6 @@
 ---
 name: lisa-track
-description: "Resolves exactly one live configured-tracker leaf for durable project work, claims it idempotently, and persists its canonical reference in worktree-local state. Accepts an existing Jira/GitHub/Linear ref, a spec file, or plain text. Also accepts human_gate: <why a human must judge this first>, which files the leaf held — outside the build-ready lane, never claimed — instead of build-ready. Use directly to mention/create the related ticket, and as lisa-implement's mandatory input gate."
+description: "Resolves exactly one live configured-tracker leaf for durable project work, claims it idempotently, and persists its canonical reference in worktree-local state. Accepts an existing Jira/GitHub/Linear ref, a spec file, or plain text. Also accepts human_gate: <the act a person must perform>, which files the leaf held — outside the build-ready lane, never claimed — instead of build-ready. Use directly to mention/create the related ticket, and as lisa-implement's mandatory input gate."
 allowed-tools: ["Skill", "Bash", "Read"]
 ---
 
@@ -47,7 +47,7 @@ For an existing incidental item, read its discussion, linked PRs and dependencie
    - an explicit reference matching the configured tracker (`KEY-123`, `org/repo#123` or issue URL, Linear team identifier);
    - an existing file path containing a specification (read the entire file, without offset/limit);
    - plain-text work description.
-3. Detect the caller's readiness declaration, which is orthogonal to the classification above. Absent any declaration this is the default build-ready path. A caller deliberately holding the work for a pending human product call passes `human_gate: "<why a human must judge this first>"`; the two declarations are mutually exclusive and a `human_gate` present but empty is a blocking error, because an unexplained hold is indistinguishable from an accident.
+3. Detect the caller's readiness declaration, which is orthogonal to the classification above. Absent any declaration this is the default build-ready path. A caller deliberately holding the work because it needs an act an agent cannot perform (a credential only a person holds, spend, an external account, a legal or compliance sign-off, an accountable person, a system the agent cannot reach, or a project-declared human-only class) passes `human_gate: "<the act a person must perform>"`. A choice with a reasonable default is not a gate: decide it, record the decision on the item, and take the build-ready path (`ready-role-filing`, "What a human gate is"). The writer refuses a topic-only reason with exit 1 from `scripts/human-gate-act.mjs check`; the two declarations are mutually exclusive and a `human_gate` present but empty is a blocking error, because an unexplained hold is indistinguishable from an accident.
 4. Preserve the full resolved specification for the caller. Do not treat a ticket-like token for a different provider/project as plain text; report the mismatch.
 
 ## Phase 2 — Resolve one live work item
@@ -77,7 +77,7 @@ This is intentionally conservative: ambiguity creates one explicit work item ins
 ## Phase 3 — Claim and bind
 
 The work item is **held** when the caller declared a `human_gate`, independently of any item history,
-or `classifyReadyCandidate({ labels, body, comments, trustedHumanActorIds, humanNeededLabel })` from the shipped
+or `classifyReadyCandidate({ labels, body, comments, trustedHumanActorIds, humanNeededLabel, humanOnly })` from the shipped
 `scripts/intake-blocker-reprobe.mjs` returns `claimable: false`. Pass the complete live comment
 history so a matching `[lisa-human-gate-release]` discharges the historical body marker. Never
 reimplement heldness as a substring test or as the negation of `planHumanGateRelease().released`:
@@ -90,7 +90,7 @@ A held item stops the flow here, whatever roles or labels it carries. Do not inv
 and carry its reason verbatim in `gate_reason` (null for a keyless hold), then stop.
 
 For a discharged item, call
-`planHumanGateRelease({ labels, body, comments, trustedHumanActorIds, humanNeededLabel, readyLabel, lifecycleLabels, alreadyNotified })`
+`planHumanGateRelease({ labels, body, comments, trustedHumanActorIds, humanNeededLabel, humanOnly, readyLabel, lifecycleLabels, alreadyNotified })`
 and apply only the returned actions before claiming. Keep the body marker as history; a release
 never overrides a new caller-declared hold or another eligibility check.
 
@@ -113,7 +113,7 @@ Otherwise:
    resolution_outcome: explicit|reused|created
    readiness_declaration: build-ready|human-gate
    held_by: none|caller-declaration|item-marker
-   gate_reason: <why a human must judge this first>|null
+   gate_reason: <the act a person must perform>|null
    claim_outcome: claimed|reused|held-by-gate
    binding_outcome: verified|skipped-human-gate
    work_item_context: <absolute path to .lisa/work-item-context.md>

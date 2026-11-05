@@ -326,10 +326,18 @@ For non-build-ready issues created fresh (Epics, Stories, and other containers),
 - **`build_ready: false`** → create the leaf **without** `status:ready`, so it sits in the backlog for a human to review and promote into the queue.
 - **`build_ready: true`** → ensure the leaf carries `status:ready` so `lisa-intake` / `lisa-github-build-intake` auto-picks it up.
 
-**A filing with neither is an incomplete handoff.** A leaf that is not build-ready must carry an explicit `human_gate: "<why a human must judge this first>"`; nothing in the ready lane means nothing ever claims it. When `human_gate` is supplied, stamp the hold on the issue so it is auditable — a visible line plus the verbatim marker:
+**A filing with neither is an incomplete handoff.** A leaf that is not build-ready must carry an explicit `human_gate: "<the act a person must perform>"`; nothing in the ready lane means nothing ever claims it. When `human_gate` is supplied, stamp the hold on the issue so it is auditable — after the check below.
+
+**Validate the gate before stamping it.** A `human_gate` is for an act an agent cannot perform — a credential only a person holds, spend, an external account, a legal or compliance sign-off, naming an accountable person, acting in a system the agent cannot reach, or a decision class the project declared human-only (`humanGate.humanOnly`). A choice with a reasonable default is a decision, not a gate (`ready-role-filing`, "What a human gate is"). Run the check on the reason:
+
+```bash
+node "${CLAUDE_PLUGIN_ROOT:-node_modules/@codyswann/lisa/plugins/lisa}/scripts/human-gate-act.mjs" check --reason "<the human_gate reason>"
+```
+
+Exit `1` refuses the gate: do **not** file the leaf held. Report the refusal with the verdict's `remedy` — **decide and record**: pick the reasonable default, write a `Decision:` line on the item, and file it `build_ready: true`. Exit `2` is a usage or config error: stop and report. On exit `0`, stamp the hold with the verdict's `label` naming the act — a visible line plus the verbatim marker:
 
 ```text
-Held for a human product call: <reason>.
+Held for a person to <label>: <reason>.
 <!-- [lisa-human-gate] reason=<short-slug> -->
 ```
 

@@ -241,12 +241,20 @@ true, and nothing re-read one before this phase. For each `$BLOCKED` candidate:
 
 1. **Read release comments before applying the human gate.** Pass all item comments, labels,
    body, `trustedHumanActorIds` and configured `humanNeededLabel` to `classifyReadyCandidate(...)`. For a discharged hold,
-   call `planHumanGateRelease({ labels, body, comments, trustedHumanActorIds, humanNeededLabel, readyLabel, lifecycleLabels, alreadyNotified })`
+   call `planHumanGateRelease({ labels, body, comments, trustedHumanActorIds, humanNeededLabel, humanOnly, readyLabel, lifecycleLabels, alreadyNotified })`
    and retain its plan. Apply human-marker cleanup only as planned; defer any ready-role restoration
    until steps 2–5 have cleared the remaining blockers (map the role to the vendor's state or label).
    A still-active hold is never auto-selected, whatever any probe says. An absent or unreadable
    comment history cannot discharge a hold. A release removes only the human hold: continue the
    remaining blocker checks below before selecting the item.
+   Lift invalid holds first: call `planHumanGateLift({ labels, body, comments, trustedHumanActorIds, humanNeededLabel, humanOnly, readyLabel, lifecycleLabels })` from `scripts/human-gate-lift.mjs`. Post its `comments` and apply only
+   `removeHumanNeededLabel` here; defer `addReadyLabel` until the remaining blocker checks below
+   clear, exactly as for a release. A hold that names no act an agent cannot perform then never
+   blocks selection, and an item with a real blocker never skips the re-probe. A hold that is
+   lifted, by this call or in an earlier cycle (`humanGateVerdict(...).lifted` lists both), is a
+   discharged condition, not a human decision still pending: record the decision on
+   the item (a `Decision:` line saying what was chosen and why) if it does not carry one yet and exclude that condition from
+   step 2's probe. Keep probing any independent blocker the item states.
 
 2. **Extract the stated discharge condition**, then **probe it**. Machine-testable conditions — a
    version on trunk, a published package, a CI run history, an advisory's patched status — rot
@@ -343,6 +351,16 @@ Run this **first**, ahead of the repo-scope gate (3a.0) and the leaf-only gate (
 candidate. Ordering is load-bearing for the same reason it is inside `classifyPreWorkCandidate`: no
 other gate's verdict — however conclusive — may promote an item a person parked.
 
+**Lift invalid holds before classifying.** A hold filed under the old "human product call"
+wording that names no act an agent cannot perform is not a hold (`ready-role-filing`, "What a human
+gate is"), and no person should have to comment to end it. Call `planHumanGateLift({ labels, body, comments, trustedHumanActorIds, humanNeededLabel, humanOnly, readyLabel, lifecycleLabels })` from `scripts/human-gate-lift.mjs`, with `humanOnly` read
+from `humanGate.humanOnly` in config. Post each string in its `comments` once (each begins
+`[lisa-human-gate-lifted] reason=<slug>` and explains why), apply its `actions` (remove the
+human-needed marker, add the ready role back), then classify below with those comments included. A
+valid hold (credential, spend, sign-off, and the rest) plans nothing and stays held; so does a
+label-only hold. Name lifted items in the cycle summary via `summarizeHumanGateLifts([...])`,
+printed even at zero.
+
 1. **Classify with `classifyReadyCandidate(...)`** from `scripts/intake-blocker-reprobe.mjs`. It
    shares the gate test with the pre-work classifier deliberately — two copies of a substring test
    drift, and a drifted gate fails *silently*, by quietly ceasing to match. Do **not** re-implement
@@ -359,7 +377,7 @@ other gate's verdict — however conclusive — may promote an item a person par
    and re-rejected every cycle forever and seen by nothing — `lisa-repair-intake` sweeps items that
    are **not** in the ready role and excludes gated ones outright, so a ready-and-gated item falls
    outside its filter twice over. Call
-   `planHumanGateReconciliation({ labels, body, comments, trustedHumanActorIds, humanNeededLabel, readyLabel, alreadyNotified })`
+   `planHumanGateReconciliation({ labels, body, comments, trustedHumanActorIds, humanNeededLabel, humanOnly, readyLabel, alreadyNotified })`
    and apply exactly the actions it returns: remove `$READY`, add the configured human-needed
    marker, and post `formatHumanGateNote()` once. The planner is idempotent by state, so an item
    already out of the lane and already marked yields no second mutation and no second comment. This
@@ -369,7 +387,7 @@ other gate's verdict — however conclusive — may promote an item a person par
    This ready-lane candidate can retain a historical body marker and a human-needed label.
    This step reconciles only candidates still in the ready lane; released holds outside it are
    recovered by `lisa-repair-intake` step 2b (or Phase 2.5 when included in this cycle). Call
-   `planHumanGateRelease({ labels, body, comments, trustedHumanActorIds, humanNeededLabel, readyLabel, lifecycleLabels, alreadyNotified })`
+   `planHumanGateRelease({ labels, body, comments, trustedHumanActorIds, humanNeededLabel, humanOnly, readyLabel, lifecycleLabels, alreadyNotified })`
    and apply exactly the actions it returns: remove the configured human-needed marker, add the
    configured ready role back, and post `formatHumanGateReleaseNote()` once. It is the exact inverse
    of step 3's planner and it refuses in both directions — an item still held plans nothing, and an

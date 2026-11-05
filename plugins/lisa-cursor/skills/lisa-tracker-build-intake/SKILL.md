@@ -85,6 +85,12 @@ whole-body replacement, so a release that went through the description would ris
 record it was releasing, which is why holds accumulated with no way out (CodySwannGT/lisa#3852).
 The hold note stays in the description as history and the release sits beside it as a comment.
 
+A hold that names no act an agent cannot perform is not a hold at all (`ready-role-filing`,
+"What a human gate is"). Every vendor scanner calls `planHumanGateLift(...)` from
+`scripts/human-gate-lift.mjs` before it classifies, posts the `[lisa-human-gate-lifted]
+reason=<slug>` comment it plans, and applies its label actions, so such a hold is lifted with no
+person involved. Valid holds and label-only holds are never lifted.
+
 Measured: sweeping one team by lane name saw 39 of 343 open rows; by category it sees 100. The
 61-row gap produced 31 consecutive false "dry lane" cycles, every record honest and every
 conclusion wrong (#2657).
