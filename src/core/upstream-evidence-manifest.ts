@@ -1875,7 +1875,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-validate-tracker-mapping/SKILL.md":
       "747531d1342d77d6fabd8e85778497bf22bffb4bcc329416a3e21374e769006f",
     "plugins/src/base/skills/lisa-verification-lifecycle/SKILL.md":
-      "3fbcb619281a91f229e4564549b7f7d0ea68e7fd2d874820515846f8cbd6e0e7",
+      "5cba99b0247cfb4ab8b95d9c7a91fc7c309ec569bf7a4d39d0eedb18c9f55682",
     "plugins/src/base/skills/lisa-verify-prd/SKILL.md":
       "fd4dc76c42c1083f5223e650f6c25d53694138860ebcb02588689f6eb6d0b416",
     "plugins/src/base/skills/lisa-verify-workflow-change/SKILL.md":
@@ -2698,6 +2698,10 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "baca043a291120ff52ce61c06397206dc21ca3bef9c23a5975b9c1f896d963c7",
     "scripts/fix-test-assertions.mjs":
       "59b5e8cc31e7c7323d20bd180f2ae97c08a9685758483b6fe00ba77317a845f2",
+    "scripts/fixtures/packaged-apply/Dockerfile":
+      "b201c26b3d3ed8c34a7be7db971423823c94438cca8b003337af16637910b194",
+    "scripts/fixtures/packaged-apply/guard-cases.json":
+      "94acbfe74aac569b2d20fb161f27244f909edbd67ff45250862f7699890f7686",
     "scripts/generate-agy-plugin-artifacts.mjs":
       "19bee3087ff1fedc79550f75cb021dc59b5b4466daa6261adb788ef13bb8c2b6",
     "scripts/generate-codex-plugin-artifacts.mjs":
@@ -2762,6 +2766,12 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "7f4fd67a2128797970b10a97b9947f9b63518fe1110c2f12e51fe2c430751235",
     "scripts/lib/nest-plugin-commands.mjs":
       "c52b2f48edbc17edcc60ae33536549829cbc279c60c5d85d912ac6609cae9bea",
+    "scripts/lib/packaged-apply-driver.mjs":
+      "7aa3e1efbdf211a731ffb5be040da332a5767a3d9949cff5349a888d85d90bae",
+    "scripts/lib/packaged-apply-isolation.d.mts":
+      "2e51437c0c222f691b0577f8fb8f3281b9995f67e274930d980fb410e5908521",
+    "scripts/lib/packaged-apply-isolation.mjs":
+      "24809f83711c843531aa40dcbe771df2acc39063580e0d26139a9a4a4b398729",
     "scripts/lib/per-agent-hook-filter.mjs":
       "366564dc54c18145b745ecfe18fbc168e8df71f59e4be03cb5acc1899b16b461",
     "scripts/lib/plugin-cache-resolution.mjs":
@@ -2886,6 +2896,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "b8ac0240726721a047811e98d42f661426abc3e427a0c86f3b20082eb498809d",
     "scripts/verify-npm-advisories-4333.mjs":
       "f0a94aead747c28cf1317d999a4eb80ae027461a43ed22b5b996173a5a096aae",
+    "scripts/verify-packaged-apply.mjs":
+      "851784d583ee1ae5aad2e654e5b201d03f076ba7b6fde22c7dc3debbe1ee8ed8",
     "scripts/verify-packed-learnings-contract.mjs":
       "2227b32f3b3dc2dc6817a60b4998b64881c03e30ecd15cb52b6d6f95a5870613",
     "scripts/verify-rails-tooling.rb":
@@ -3171,6 +3183,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     ".github/workflows/nightly-tmpdir-growth-benchmark.yml": true,
     ".github/workflows/npm-updater-runtime-qualification.yml": true,
     ".github/workflows/npm-updater.yml": true,
+    ".github/workflows/packaged-apply-isolation.yml": true,
     ".github/workflows/playwright-e2e.yml": true,
     ".github/workflows/plugins-sync.yml": true,
     ".github/workflows/publish-to-npm.yml": true,
@@ -10405,6 +10418,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "scripts/fix-namespace-test-assertions.mjs": true,
     "scripts/fix-test-assertions-pass2.mjs": true,
     "scripts/fix-test-assertions.mjs": true,
+    "scripts/fixtures/packaged-apply/Dockerfile": true,
+    "scripts/fixtures/packaged-apply/guard-cases.json": true,
     "scripts/generate-agy-plugin-artifacts.mjs": true,
     "scripts/generate-codex-plugin-artifacts.mjs": true,
     "scripts/generate-copilot-plugin-artifacts.mjs": true,
@@ -10437,6 +10452,9 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "scripts/lib/invoked-as-script.mjs": true,
     "scripts/lib/mutation-performance-reporter.mjs": true,
     "scripts/lib/nest-plugin-commands.mjs": true,
+    "scripts/lib/packaged-apply-driver.mjs": true,
+    "scripts/lib/packaged-apply-isolation.d.mts": true,
+    "scripts/lib/packaged-apply-isolation.mjs": true,
     "scripts/lib/per-agent-hook-filter.mjs": true,
     "scripts/lib/plugin-cache-resolution.mjs": true,
     "scripts/lib/plugin-rule-citations.mjs": true,
@@ -10499,6 +10517,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "scripts/verify-host-name-target-scope.mjs": true,
     "scripts/verify-learner-frontmatter-built.mjs": true,
     "scripts/verify-npm-advisories-4333.mjs": true,
+    "scripts/verify-packaged-apply.mjs": true,
     "scripts/verify-packed-learnings-contract.mjs": true,
     "scripts/verify-rails-tooling.rb": true,
     "scripts/workflow-contract-assertion.sh": true,
@@ -11172,6 +11191,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/fixtures/npm-update-rails-mysql-native.mjs": true,
     "tests/fixtures/npm-update-rails-mysql-native.sh": true,
     "tests/fixtures/npm-update-rails-mysql-observation.mjs": true,
+    "tests/fixtures/packaged-apply/run.mjs": true,
     "tests/fixtures/parity-safety-net/gradle-start-script.sh": true,
     "tests/fixtures/pre-tool-refusal-pre-facade/codex-block-migration-edits.sh": true,
     "tests/fixtures/pre-tool-refusal-pre-facade/codex-block-suppress-directives.sh": true,
@@ -12679,6 +12699,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/npm-update-socket-witness.test.ts": true,
     "tests/unit/scripts/npm-update-tracker.test.ts": true,
     "tests/unit/scripts/orphaned-branch-bindings.test.ts": true,
+    "tests/unit/scripts/packaged-apply-isolation.test.ts": true,
     "tests/unit/scripts/per-agent-hook-filter-devin.test.ts": true,
     "tests/unit/scripts/per-agent-hook-filter.test.ts": true,
     "tests/unit/scripts/pipeline-status-continuations.test.ts": true,
