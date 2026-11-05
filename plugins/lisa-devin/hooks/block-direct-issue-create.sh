@@ -464,15 +464,19 @@ FILE IT THE SANCTIONED WAY — one of these three, always explicit:
    write, and claims it. Complete means the \`work-item-definition-of-ready\`
    bar — reproduction, observed-versus-expected, Gherkin acceptance criteria.
 
-2. A human product call is genuinely pending. Route the same way but pass
-   \`human_gate: "<why a human must judge this first>"\` in place of
+2. A person must perform an act an agent cannot: supply a credential only
+   they hold, approve spend, open an external account, give a legal or
+   compliance sign-off, or act in a system the agent cannot reach. A choice
+   with a reasonable default is NOT that: decide it, record the decision on
+   the item, and use 1. Otherwise route the same way but pass
+   \`human_gate: "<the act a person must perform>"\` in place of
    \`build_ready: true\` — the two are mutually exclusive. The leaf is filed
    into the default backlog role, outside the lane build-intake claims from,
    and is deliberately NOT claimed, so it keeps attracting the human attention
    it was filed for. The hold is stamped so it is auditable rather than
    indistinguishable from an accident:
 
-     Held for a human product call: <reason>.
+     Held for a person to <act>: <reason>.
      <!-- [lisa-human-gate] reason=<short-slug> -->
 
 3. The item is a CONTAINER — an Epic, or any item whose state rolls up from
@@ -499,8 +503,8 @@ declarations itself:
 
 $(declaration_hint)
 
-   Or a \`[lisa-human-gate]\` marker in the body it submits, when a human
-   product call really is pending.
+   Or a \`[lisa-human-gate]\` marker in the body it submits, when a person
+   really must perform an act an agent cannot.
 
    Or, for a container, \`None — container: state rolls up from children\` in
    that body, and no by-design leaf type on the command.

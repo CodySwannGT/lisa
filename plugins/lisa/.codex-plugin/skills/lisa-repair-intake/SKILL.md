@@ -1110,6 +1110,31 @@ with labels like `build-ready`, or with no Lisa status label at all, that are in
    an item whose discharge cannot be seen. That fails closed — it stays held — which is the safe
    direction and precisely why the omission is invisible.
 
+2a.5. **Lift the holds that were never valid, with no person involved.** A human gate is for an act
+   an agent cannot perform (`ready-role-filing`, "What a human gate is"). Holds filed under the old
+   "a human product call is pending" wording often name only a topic (`*-triage`, `*-dispatch`, a
+   naming or classification choice), and each one stalls its item until someone notices. An operator
+   should never have to comment to release one.
+
+   Enumerate open items carrying a `[lisa-human-gate]` marker in the body and, for each, call
+   `planHumanGateLift({ labels, body, comments, trustedHumanActorIds, humanNeededLabel, humanOnly, readyLabel, lifecycleLabels })`
+   from `scripts/human-gate-lift.mjs`, with `humanOnly` read from `humanGate.humanOnly` in config.
+   Apply exactly what it returns: post each string in `comments` once (each begins
+   `[lisa-human-gate-lifted] reason=<slug>` with a one-line rationale), then remove the human-needed
+   marker and add the configured build `ready` label as `actions` say. Do **not** re-implement the
+   classification here.
+
+   This is not a forged human release, and it is a narrow exception to "never remove a
+   `human_needed` marker this skill did not apply": a lift records that the hold was invalid under
+   the contract, so there is nothing for a person to authorize. A lift's authority comes from
+   re-classifying the hold, not from who wrote the comment, so a lift naming a valid hold discharges
+   nothing. **Valid holds plan nothing** (credential, spend, external account, legal/compliance
+   sign-off, accountable person, unreachable system, Lisa's own human-only gates, and any
+   project-declared class). **Label-only holds plan nothing** — an access block or blocked verdict
+   declares no reason to judge. A mixed item lifts its invalid reasons and stays held for the valid
+   one. Never edit the description. Count these under `lifted_invalid_hold` and name them in the
+   cycle summary via `summarizeHumanGateLifts([...])`, printed even when it is zero.
+
 2b. **Release the holds that have been answered.** This is step 2a's inverse and it is the reason
    this sweep is where it lives: applying a hold had a path and lifting one had none, so a person
    could supply exactly what a held item asked for, record the decision on the item, and the item

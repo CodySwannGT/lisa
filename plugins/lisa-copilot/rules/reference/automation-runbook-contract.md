@@ -292,8 +292,9 @@ A loop that cannot proceed escalates by filing a tracker item (through `lisa-tra
 containing exactly these fields.
 
 Every escalation is a **declared human gate** under `ready-role-filing`: it passes
-`human_gate: "<the smallest unresolved choice>"` so the writer stamps the auditable
-`[lisa-human-gate]` marker. An escalation is precisely a filing whose readiness a human owns, so
+`human_gate: "<the act a person must perform to unblock it>"` so the writer stamps the auditable
+`[lisa-human-gate]` marker. An unresolved *choice* with a reasonable default is not an escalation:
+the loop decides it, records the decision, and continues (`ready-role-filing`, "What a human gate is"). An escalation is precisely a filing whose readiness a human owns, so
 omitting the flag and relying on a tracker default would make a deliberate gate indistinguishable
 from the accidental non-ready filing that rule exists to catch.
 

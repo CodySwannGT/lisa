@@ -219,6 +219,8 @@ For each pre-work candidate that is **not** in `$READY`:
    A still-active hold is never auto-selected, whatever any probe says. An absent or unreadable
    comment history cannot discharge a hold. A release removes only the human hold: continue the
    remaining blocker checks below before selecting the item.
+   Lift invalid holds first: call `planHumanGateLift({ labels, body, comments, trustedHumanActorIds, humanNeededLabel, humanOnly, readyLabel, lifecycleLabels })` from `scripts/human-gate-lift.mjs` and apply it exactly as the ready gate below
+   does, so a hold that names no act an agent cannot perform never blocks selection.
 
 2. **Extract the stated discharge condition** from the description or the most recent blocking comment — the sentence naming what has to become true.
 3. **Probe it.** Machine-testable conditions are the ones that rot fastest and are cheapest to check: a version on trunk (`git show origin/<trunk>:<manifest>`), a published package, a run history (`gh run list`), an advisory's patched status. A condition that is a human decision is not machine-testable — leave it and move on.
@@ -247,6 +249,16 @@ matters.
 Run this **first**, ahead of the repo-scope gate (3a.0) and the leaf-only gate (3a), for every ready
 candidate. Ordering is load-bearing for the same reason it is inside `classifyPreWorkCandidate`: no
 other gate's verdict — however conclusive — may promote an item a person parked.
+
+**Lift invalid holds before classifying.** A hold filed under the old "human product call"
+wording that names no act an agent cannot perform is not a hold (`ready-role-filing`, "What a human
+gate is"), and no person should have to comment to end it. Call `planHumanGateLift({ labels, body, comments, trustedHumanActorIds, humanNeededLabel, humanOnly, readyLabel, lifecycleLabels })` from `scripts/human-gate-lift.mjs`, with `humanOnly` read
+from `humanGate.humanOnly` in config. Post each string in its `comments` once (each begins
+`[lisa-human-gate-lifted] reason=<slug>` and explains why), apply its `actions` (remove the
+human-needed marker, add the ready role back), then classify below with those comments included. A
+valid hold (credential, spend, sign-off, and the rest) plans nothing and stays held; so does a
+label-only hold. Name lifted items in the cycle summary via `summarizeHumanGateLifts([...])`,
+printed even at zero.
 
 1. **Classify with `classifyReadyCandidate(...)`** from `scripts/intake-blocker-reprobe.mjs`. It
    shares the gate test with the pre-work classifier deliberately — two copies of a substring test

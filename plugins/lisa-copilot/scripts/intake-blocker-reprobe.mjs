@@ -12,6 +12,7 @@
  * which keeps the decision auditable and testable apart from the network.
  */
 
+import { classifyHumanGateReason } from "./human-gate-act.mjs";
 import { isPreWorkLaneType } from "./intake-prework-denominator.mjs";
 
 /** Marker a writer stamps on an item a human deliberately parked. */
@@ -277,6 +278,82 @@ export function humanGateHolds(body) {
 }
 
 /**
+ * Marker on the machine-authored comment that LIFTS an invalid hold.
+ *
+ * Not a release, and deliberately not spelled like one. A release records a
+ * person's answer and so must come from a trusted human. A lift records that
+ * the hold was never valid under `ready-role-filing`: it names no act an agent
+ * cannot perform, so there is nothing for a person to authorize
+ * (CodySwannGT/lisa#4658). Its authority therefore comes from re-classifying
+ * the hold, not from who wrote the comment: a lift discharges a reason only
+ * while {@link humanGateHoldTexts} still classifies that hold as invalid. A
+ * lift naming a valid hold (a credential, spend, a sign-off) discharges
+ * nothing, whoever posts it.
+ *
+ * Like the release marker it closes with its own `]`, so it never contains
+ * {@link HUMAN_GATE_MARKER} and never reads as a fresh hold.
+ */
+export const HUMAN_GATE_LIFTED_MARKER = "[lisa-human-gate-lifted]";
+
+/**
+ * The text each declared hold is judged by, keyed by its reason.
+ *
+ * The slug alone is often terse, so the declaring line and the visible line
+ * just above it (where every writer puts "Held for …: <reason>.") are judged
+ * with it. A keyless hold is judged by those lines alone.
+ * @param {unknown} body - The item body
+ * @returns {Map<string, string>} Reason key → text to classify
+ */
+export function humanGateHoldTexts(body) {
+  const lines = declarativeText(body).split("\n");
+  const texts = new Map();
+  lines.forEach((line, index) => {
+    if (!declaresOnLine(line)) return;
+    const key = reasonOnLine(line, HUMAN_GATE_MARKER);
+    const previous =
+      lines
+        .slice(0, index)
+        .reverse()
+        .find(candidate => candidate.trim().length > 0) ?? "";
+    const own = line.split(HUMAN_GATE_MARKER).join(" ");
+    texts.set(key, [texts.get(key) ?? "", key, own, previous].join(" "));
+  });
+  return texts;
+}
+
+/**
+ * The reasons of every declared hold that names no act an agent cannot do.
+ * @param {unknown} body - The item body
+ * @param {unknown} humanOnly - Project-declared human-only decision classes
+ * @returns {string[]} Reason keys whose hold is invalid
+ */
+export function invalidHumanGateHolds(body, humanOnly) {
+  return [...humanGateHoldTexts(body)]
+    .filter(([, text]) => !classifyHumanGateReason(text, { humanOnly }).valid)
+    .map(([reason]) => reason);
+}
+
+/**
+ * The reasons a lift comment discharges: named by a lift AND still invalid.
+ * @param {unknown} comments - Comments, structured or raw, any author
+ * @param {unknown} body - The item body
+ * @param {unknown} humanOnly - Project-declared human-only decision classes
+ * @returns {string[]} Reason keys lifted
+ */
+export function humanGateLifts(comments, body, humanOnly) {
+  const invalid = new Set(invalidHumanGateHolds(body, humanOnly));
+  const named = (Array.isArray(comments) ? comments : [])
+    .map(entry => (typeof entry === "string" ? entry : (entry?.body ?? "")))
+    .flatMap(text =>
+      declarativeText(text)
+        .split("\n")
+        .filter(line => declaresOnLine(line, HUMAN_GATE_LIFTED_MARKER))
+        .map(line => reasonOnLine(line, HUMAN_GATE_LIFTED_MARKER))
+    );
+  return [...new Set(named)].filter(reason => invalid.has(reason));
+}
+
+/**
  * Normalize stable provider IDs without case folding or trusting display names.
  * @param {unknown} value - Provider actor ID
  * @returns {string} Stable comparison key, or empty when invalid
@@ -398,8 +475,8 @@ export function humanGateDischarged(input = {}) {
  * no releases, so a held item stays held. Holding a gate that may be stale
  * beats releasing one that is not, and every caller that never passes comments
  * keeps its current behaviour by construction.
- * @param {{ labels?: unknown, body?: unknown, comments?: unknown, trustedHumanActorIds?: unknown, humanNeededLabel?: unknown }} input - Candidate surfaces
- * @returns {{ held: boolean, reason: string, declared: number, outstanding: string[], released: string[], labelPresent: boolean }} Held-ness verdict
+ * @param {{ labels?: unknown, body?: unknown, comments?: unknown, trustedHumanActorIds?: unknown, humanNeededLabel?: unknown, humanOnly?: unknown }} input - Candidate surfaces
+ * @returns {{ held: boolean, reason: string, declared: number, outstanding: string[], released: string[], lifted: string[], labelPresent: boolean }} Held-ness verdict
  */
 export function humanGateVerdict(input = {}) {
   const configured = String(
@@ -415,10 +492,18 @@ export function humanGateVerdict(input = {}) {
   );
   const releasedSet = new Set(released);
   const holds = humanGateHolds(input.body);
-  const outstanding = holds.filter(reason => !releasedSet.has(reason));
+  // A lift discharges only a declared body hold that is still invalid; it can
+  // never discharge a label-only hold (access blocks, blocked verdicts), which
+  // is why it is applied here and not in the label-only branch below.
+  const lifted = humanGateLifts(input.comments, input.body, input.humanOnly);
+  const liftedSet = new Set(lifted);
+  const outstanding = holds.filter(
+    reason => !releasedSet.has(reason) && !liftedSet.has(reason)
+  );
   const base = {
     declared: holds.length,
     released,
+    lifted,
     labelPresent,
   };
 
@@ -454,7 +539,7 @@ export function humanGateVerdict(input = {}) {
  * its discharge is how the gate became one-way in the first place. Pass the
  * item's structured comments and trustedHumanActorIds to honor an authorized
  * release; omit either and the item stays held.
- * @param {{ labels?: unknown, body?: unknown, comments?: unknown, trustedHumanActorIds?: unknown, humanNeededLabel?: unknown }} input - Candidate surfaces
+ * @param {{ labels?: unknown, body?: unknown, comments?: unknown, trustedHumanActorIds?: unknown, humanNeededLabel?: unknown, humanOnly?: unknown }} input - Candidate surfaces
  * @returns {boolean} True when a person is holding this item
  */
 export function isHumanGated(input) {
@@ -507,6 +592,7 @@ function judgeProbe(probe) {
  *   comments?: unknown
  *   trustedHumanActorIds?: unknown
  *   humanNeededLabel?: unknown
+ *   humanOnly?: unknown
  *   statedBlocker?: unknown
  *   probe?: { discharged?: unknown, evidence?: unknown } | null
  * }} input
@@ -618,7 +704,7 @@ export const HUMAN_GATE_NOTE_MARKER = "<!-- [lisa-human-gate-reconciled] -->";
  * a parser keyed on the structured field would miss those while appearing to
  * work on every item that happens to have one — reproducing this defect one
  * layer down.
- * @param {{ labels?: unknown, body?: unknown, comments?: unknown, trustedHumanActorIds?: unknown, humanNeededLabel?: unknown }} input - Candidate surfaces
+ * @param {{ labels?: unknown, body?: unknown, comments?: unknown, trustedHumanActorIds?: unknown, humanNeededLabel?: unknown, humanOnly?: unknown }} input - Candidate surfaces
  * @returns {{ claimable: boolean, reason: string, humanGated: boolean }} Claim verdict
  */
 export function classifyReadyCandidate(input = {}) {
@@ -649,6 +735,7 @@ export function classifyReadyCandidate(input = {}) {
  *   comments?: unknown
  *   trustedHumanActorIds?: unknown
  *   humanNeededLabel?: unknown
+ *   humanOnly?: unknown
  *   readyLabel?: unknown
  *   alreadyNotified?: unknown
  * }} input - Candidate surfaces plus the configured lane and marker labels
@@ -756,6 +843,7 @@ const RESUME_INSTRUCTION = [
  *   comments?: unknown
  *   trustedHumanActorIds?: unknown
  *   humanNeededLabel?: unknown
+ *   humanOnly?: unknown
  *   readyLabel?: unknown
  *   lifecycleLabels?: unknown
  *   alreadyNotified?: unknown
@@ -918,6 +1006,7 @@ export const NORMALIZATION_HOLD_NOTE_MARKER =
  *   comments?: unknown
  *   trustedHumanActorIds?: unknown
  *   humanNeededLabel?: unknown
+ *   humanOnly?: unknown
  *   lifecycleLabels?: unknown
  *   readyLabel?: unknown
  * }} input - Candidate surfaces plus the configured lifecycle vocabulary
