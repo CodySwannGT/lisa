@@ -28,7 +28,11 @@ import {
 import { parseJson } from "./cli-queue.mjs";
 import { notifyProvider } from "./config.mjs";
 import { wronglyEscalatedLabel } from "./cli-overruled.mjs";
-import { carriesWronglyEscalated } from "./escalation-overruled.mjs";
+import {
+  carriesWronglyEscalated,
+  overruledFingerprint,
+  overruledMarkerComment,
+} from "./escalation-overruled.mjs";
 import { pickItemAnswer } from "./human-answer.mjs";
 import { findCredentialShape, planMark } from "./human-needed.mjs";
 import { readLedger } from "./ledger.mjs";
@@ -64,23 +68,48 @@ export function markPlan(ctx) {
     local: project.local,
     global: project.global,
   }).value;
+  const overruledLabel = wronglyEscalatedLabel(project, tracker);
+  const plan = asSetupError(() =>
+    planMark({
+      ref,
+      kind: ctx.values.kind,
+      text,
+      label: humanNeededLabel(project, tracker),
+      blocked: blocked || undefined,
+      channel: config ? notifyProvider(config) === "telegram" : false,
+      answerers: allowedAnswerers(config).length > 0,
+      cause: ctx.values.cause ?? "planning",
+      overruled: carriesWronglyEscalated(
+        ctx.values["item-label"] ?? [],
+        overruledLabel
+      ),
+    })
+  );
+  return { json: withOverruledMarker(plan, ref, overruledLabel) };
+}
+
+/**
+ * A `wrongly-escalated` candidate is the same capture the overruled sweep
+ * makes, so it carries the same marker: the manager posts it after routing
+ * the candidate, and the sweep then skips the item instead of capturing the
+ * one ruling twice (#4657).
+ * @param {object} plan - `planMark` result
+ * @param {string} ref - Item ref
+ * @param {string} label - Resolved wrongly-escalated label
+ * @returns {object} The plan, with `planningMiss.overruledMarker` when due
+ */
+function withOverruledMarker(plan, ref, label) {
+  if (plan.planningMiss?.candidate?.signal !== "wrongly-escalated") return plan;
+  const fingerprint = overruledFingerprint(ref);
   return {
-    json: asSetupError(() =>
-      planMark({
-        ref,
-        kind: ctx.values.kind,
-        text,
-        label: humanNeededLabel(project, tracker),
-        blocked: blocked || undefined,
-        channel: config ? notifyProvider(config) === "telegram" : false,
-        answerers: allowedAnswerers(config).length > 0,
-        cause: ctx.values.cause ?? "planning",
-        overruled: carriesWronglyEscalated(
-          ctx.values["item-label"] ?? [],
-          wronglyEscalatedLabel(project, tracker)
-        ),
-      })
-    ),
+    ...plan,
+    planningMiss: {
+      ...plan.planningMiss,
+      overruledMarker: {
+        fingerprint,
+        comment: overruledMarkerComment(fingerprint, label),
+      },
+    },
   };
 }
 

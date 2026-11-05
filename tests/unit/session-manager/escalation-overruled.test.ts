@@ -20,10 +20,13 @@ import {
   overruledFingerprint,
   planOverruledCaptures,
 } from "../../../plugins/src/base/skills/lisa-session-manager/scripts/escalation-overruled.mjs";
+import { withoutRuling } from "../../../plugins/src/base/skills/lisa-session-manager/scripts/queue-github.mjs";
 
 const LABEL = DEFAULT_WRONGLY_ESCALATED_LABEL;
 const REF = "example-org/demo-repo#12";
 const REASON = "session-manager-dispatch";
+const READY = "status:ready";
+const HUMAN_NEEDED = "human-needed";
 const HOLD_BODY = `Pick the dispatch order.\n\n<!-- [lisa-human-gate] reason=${REASON} -->`;
 const RELEASE = {
   id: 901,
@@ -50,7 +53,7 @@ function firstCapture(plan: ReturnType<typeof planOverruledCaptures>) {
 function overruledItem(overrides: Record<string, unknown> = {}) {
   return {
     ref: REF,
-    labels: [{ name: LABEL }, { name: "status:ready" }],
+    labels: [{ name: LABEL }, { name: READY }],
     body: HOLD_BODY,
     comments: [RELEASE],
     ...overrides,
@@ -72,7 +75,7 @@ describe("the wrongly-escalated label", () => {
       true
     );
     expect(carriesWronglyEscalated([{ name: LABEL }], LABEL)).toBe(true);
-    expect(carriesWronglyEscalated(["human-needed"], LABEL)).toBe(false);
+    expect(carriesWronglyEscalated([HUMAN_NEEDED], LABEL)).toBe(false);
     expect(carriesWronglyEscalated([LABEL], "")).toBe(false);
   });
 });
@@ -152,7 +155,7 @@ describe("planOverruledCaptures", () => {
 
   it("skips items without the label", () => {
     const plan = planOverruledCaptures({
-      items: [overruledItem({ labels: ["human-needed"] }), { labels: [LABEL] }],
+      items: [overruledItem({ labels: [HUMAN_NEEDED] }), { labels: [LABEL] }],
       label: LABEL,
     });
     expect(plan.captures).toEqual([]);
@@ -188,9 +191,39 @@ describe("planOverruledCaptures", () => {
     ).toThrow(/non-negative/);
   });
 
+  it("reads Linear-escaped markers, so a Linear item is captured once and keeps its release", () => {
+    const escape = (text: string) => text.replace(/[[\]]/g, "\\$&");
+    const release = { id: 7, body: escape(RELEASE.body) };
+    const first = planOverruledCaptures({
+      items: [overruledItem({ comments: [release] })],
+      label: LABEL,
+    });
+    expect(firstCapture(first).candidate.evidence.release).toHaveLength(1);
+    const posted = { id: 8, body: escape(firstCapture(first).comment) };
+    const second = planOverruledCaptures({
+      items: [overruledItem({ comments: [release, posted] })],
+      label: LABEL,
+    });
+    expect(second.captures).toEqual([]);
+    expect(second.skipped).toEqual([{ ref: REF, reason: "already captured" }]);
+  });
+
   it("gives each item its own stable fingerprint", () => {
     expect(overruledFingerprint(REF)).toBe(overruledFingerprint(REF));
     expect(overruledFingerprint(REF)).not.toBe(overruledFingerprint("o/r#1"));
     expect(overruledFingerprint(REF)).toMatch(/^eo-[0-9a-f]{12}$/);
+  });
+});
+
+describe("the GitHub backlog tier", () => {
+  it("does not treat the ruling label as a lifecycle label", () => {
+    expect(
+      withoutRuling({
+        ready: READY,
+        human_needed: HUMAN_NEEDED,
+        wrongly_escalated: LABEL,
+      })
+    ).toEqual({ ready: READY, human_needed: HUMAN_NEEDED });
+    expect(withoutRuling(undefined)).toBeUndefined();
   });
 });

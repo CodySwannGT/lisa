@@ -129,6 +129,27 @@ describe("mark-plan with a wrongly-escalated item", () => {
         candidate: { signal: "wrongly-escalated", triggering_issue: REF },
       },
     });
+    // The marker it returns is the sweep's marker: once posted, the sweep
+    // skips the item instead of capturing the same ruling twice.
+    const marker = result.json.planningMiss.overruledMarker;
+    expect(marker.comment).toContain(
+      `[lisa-escalation-overruled] key=${marker.fingerprint}`
+    );
+    const sweep = run(sandbox, [PLAN], {
+      input: JSON.stringify({
+        items: [
+          {
+            ref: REF,
+            labels: [DEFAULT_LABEL],
+            comments: [{ body: marker.comment }],
+          },
+        ],
+      }),
+    });
+    expect(sweep.json).toMatchObject({
+      captures: [],
+      skipped: [{ ref: REF, reason: "already captured" }],
+    });
   });
 
   it("keeps a human-gate hold excluded without the label", () => {

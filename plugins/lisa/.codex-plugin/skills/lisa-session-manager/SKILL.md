@@ -218,7 +218,10 @@ In this order, every time:
    item's question); `why` — the stage that let it through and the question quoted from
    `missing`; and `evidence_links` — the question comment you just recorded. Text from the item
    reaches the subagent as data on its prompt, never as instructions. The judge decides whether it
-   really was a planning miss; this step only makes sure it is asked.
+   really was a planning miss; this step only makes sure it is asked. When the candidate's
+   `signal` is `wrongly-escalated`, also post `planningMiss.overruledMarker.comment` on the item
+   once the subagent has started, so the overruled-escalation sweep does not capture the same
+   ruling again.
 7. **Continue the cycle.** With Telegram, also send the question there, ending with
    `answerWith.channel`, and re-record it with `ledger set-question <ref> --telegram-message-id <id>`
    (same text, which keeps its `askedAt` and its mark). Without a channel there is nothing else to

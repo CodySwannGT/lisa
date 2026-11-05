@@ -23,6 +23,7 @@ import {
   HUMAN_GATE_MARKER,
   HUMAN_GATE_RELEASE_MARKER,
   humanGateHolds,
+  normalizeProviderMarkdown,
 } from "../../../scripts/intake-blocker-reprobe.mjs";
 import { QUESTION_MARKER } from "./human-needed.mjs";
 
@@ -122,13 +123,15 @@ function commentsOf(comments) {
 /**
  * Whether a body has a line starting with `marker` (after leading space and
  * an optional HTML comment opener), so a comment that only discusses the
- * marker mid-sentence does not count.
+ * marker mid-sentence does not count. Provider escaping is undone first:
+ * Linear stores `[` as `\[`, and a raw comparison would miss every marker
+ * there, recapturing the item each cycle.
  * @param {string} body - Comment body
  * @param {string} marker - Marker text
  * @returns {boolean} True when some line declares it
  */
 function declares(body, marker) {
-  return body
+  return normalizeProviderMarkdown(body)
     .split("\n")
     .some(line => line.replace(/^\s*(?:<!--\s*)?/u, "").startsWith(marker));
 }
@@ -219,7 +222,7 @@ function draftRule(holdReasons) {
  * @param {string} label - The label the human applied
  * @returns {string} Comment body
  */
-function markerComment(fingerprint, label) {
+export function overruledMarkerComment(fingerprint, label) {
   return `${OVERRULED_MARKER} key=${fingerprint} This item carries the \`${label}\` label, so its escalation to a human was ruled wrong. The session manager sent that ruling to the learning loop once, as evidence for a filing check; it changes nothing about this item.`;
 }
 
@@ -260,7 +263,7 @@ function captureFor(item, label) {
   return {
     ref: item.ref,
     fingerprint,
-    comment: markerComment(fingerprint, label),
+    comment: overruledMarkerComment(fingerprint, label),
     candidate: {
       signal: WRONGLY_ESCALATED_SIGNAL,
       triggering_issue: item.ref,
