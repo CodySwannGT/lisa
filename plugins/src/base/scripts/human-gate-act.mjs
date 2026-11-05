@@ -108,7 +108,7 @@ export function resolveHumanOnly(local, global) {
 /**
  * Parse `--key value` / `--key=value` flags.
  * @param {string[]} argv - Raw arguments
- * @returns {Record<string, string>} Flags
+ * @returns {Record<string, string | null>} Flags; null marks a missing operand
  */
 function parseFlags(argv) {
   const out = {};
@@ -125,7 +125,10 @@ function parseFlags(argv) {
       out[token.slice(2)] = next;
       index += 1;
     } else {
-      out[token.slice(2)] = "true";
+      // A flag with no operand is recorded as missing, never as the string
+      // "true": a reason of "true" would read as a refused gate, and a config
+      // path of "true" would silently drop the project's humanOnly classes.
+      out[token.slice(2)] = null;
     }
   }
   return out;
@@ -142,7 +145,10 @@ export function main(argv, io = {}) {
   const error = io.error ?? (text => process.stderr.write(text));
   const [command, ...rest] = argv;
   const flags = parseFlags(rest);
-  if (command !== "check" || flags.reason === undefined) {
+  const missing = ["reason", "config", "local"].filter(
+    key => key in flags && (flags[key] === null || flags[key].trim() === "")
+  );
+  if (command !== "check" || !flags.reason || missing.length > 0) {
     error(
       "usage: human-gate-act.mjs check --reason <text> [--config <path>] [--local <path>]\n"
     );

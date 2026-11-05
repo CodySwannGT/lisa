@@ -194,6 +194,16 @@ describe("the writer-side CLI", () => {
     expect(run(["check"]).code).toBe(2);
   });
 
+  it.each([
+    [["check", "--reason", "--config", "x"]],
+    [["check", "--reason=", "--config", "x"]],
+    [["check", "--reason", "   "]],
+    [["check", "--reason", AWS_ROOT, "--config"]],
+    [["check", "--reason", AWS_ROOT, "--local="]],
+  ])("exits 2, not 1, when an operand is missing: %j", argv => {
+    expect(run(argv).code).toBe(2);
+  });
+
   it("lets a local override replace the global classes", () => {
     expect(
       resolveHumanOnly(

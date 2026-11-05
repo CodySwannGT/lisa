@@ -241,7 +241,7 @@ true, and nothing re-read one before this phase. For each `$BLOCKED` candidate:
 
 1. **Read release comments before applying the human gate.** Pass all item comments, labels,
    body, `trustedHumanActorIds` and configured `humanNeededLabel` to `classifyReadyCandidate(...)`. For a discharged hold,
-   call `planHumanGateRelease({ labels, body, comments, trustedHumanActorIds, humanNeededLabel, readyLabel, lifecycleLabels, alreadyNotified })`
+   call `planHumanGateRelease({ labels, body, comments, trustedHumanActorIds, humanNeededLabel, humanOnly, readyLabel, lifecycleLabels, alreadyNotified })`
    and retain its plan. Apply human-marker cleanup only as planned; defer any ready-role restoration
    until steps 2–5 have cleared the remaining blockers (map the role to the vendor's state or label).
    A still-active hold is never auto-selected, whatever any probe says. An absent or unreadable
@@ -371,7 +371,7 @@ printed even at zero.
    and re-rejected every cycle forever and seen by nothing — `lisa-repair-intake` sweeps items that
    are **not** in the ready role and excludes gated ones outright, so a ready-and-gated item falls
    outside its filter twice over. Call
-   `planHumanGateReconciliation({ labels, body, comments, trustedHumanActorIds, humanNeededLabel, readyLabel, alreadyNotified })`
+   `planHumanGateReconciliation({ labels, body, comments, trustedHumanActorIds, humanNeededLabel, humanOnly, readyLabel, alreadyNotified })`
    and apply exactly the actions it returns: remove `$READY`, add the configured human-needed
    marker, and post `formatHumanGateNote()` once. The planner is idempotent by state, so an item
    already out of the lane and already marked yields no second mutation and no second comment. This
@@ -381,7 +381,7 @@ printed even at zero.
    This ready-lane candidate can retain a historical body marker and a human-needed label.
    This step reconciles only candidates still in the ready lane; released holds outside it are
    recovered by `lisa-repair-intake` step 2b (or Phase 2.5 when included in this cycle). Call
-   `planHumanGateRelease({ labels, body, comments, trustedHumanActorIds, humanNeededLabel, readyLabel, lifecycleLabels, alreadyNotified })`
+   `planHumanGateRelease({ labels, body, comments, trustedHumanActorIds, humanNeededLabel, humanOnly, readyLabel, lifecycleLabels, alreadyNotified })`
    and apply exactly the actions it returns: remove the configured human-needed marker, add the
    configured ready role back, and post `formatHumanGateReleaseNote()` once. It is the exact inverse
    of step 3's planner and it refuses in both directions — an item still held plans nothing, and an

@@ -1088,7 +1088,7 @@ with labels like `build-ready`, or with no Lisa status label at all, that are in
    `intake_mode=build`, every non-PRD issue is normalized as a build ticket. If `intake_mode=both`,
    classify PRDs first and normalize all remaining issues as build tickets.
 2a. **Ask whether a person is holding it, before anything else.** Call
-   `planLabelNormalization({ labels, body, comments, trustedHumanActorIds, humanNeededLabel, lifecycleLabels, readyLabel })` from
+   `planLabelNormalization({ labels, body, comments, trustedHumanActorIds, humanNeededLabel, humanOnly, lifecycleLabels, readyLabel })` from
    `scripts/intake-blocker-reprobe.mjs` for every candidate and apply exactly the verdict it
    returns. Do **not** re-implement the test here and do **not** decide held-ness from labels
    alone: the vendor writers stamp the `[lisa-human-gate]` marker into the body of a deliberate
@@ -1144,7 +1144,7 @@ with labels like `build-ready`, or with no Lisa status label at all, that are in
 
    Enumerate items carrying the configured `human_needed` marker **or** a `[lisa-human-gate]` marker
    in the body, and for each call
-   `planHumanGateRelease({ labels, body, comments, trustedHumanActorIds, humanNeededLabel, readyLabel, lifecycleLabels, alreadyNotified })`
+   `planHumanGateRelease({ labels, body, comments, trustedHumanActorIds, humanNeededLabel, humanOnly, readyLabel, lifecycleLabels, alreadyNotified })`
    from `scripts/intake-blocker-reprobe.mjs`. Apply exactly the actions it returns: remove the
    human-needed marker, add the configured build `ready` label back, and post
    `formatHumanGateReleaseNote()` once. Do **not** re-implement the discharge test, and do **not**

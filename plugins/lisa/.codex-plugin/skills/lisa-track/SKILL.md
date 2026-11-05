@@ -79,7 +79,7 @@ This is intentionally conservative: ambiguity creates one explicit work item ins
 ## Phase 3 — Claim and bind
 
 The work item is **held** when the caller declared a `human_gate`, independently of any item history,
-or `classifyReadyCandidate({ labels, body, comments, trustedHumanActorIds, humanNeededLabel })` from the shipped
+or `classifyReadyCandidate({ labels, body, comments, trustedHumanActorIds, humanNeededLabel, humanOnly })` from the shipped
 `scripts/intake-blocker-reprobe.mjs` returns `claimable: false`. Pass the complete live comment
 history so a matching `[lisa-human-gate-release]` discharges the historical body marker. Never
 reimplement heldness as a substring test or as the negation of `planHumanGateRelease().released`:
@@ -92,7 +92,7 @@ A held item stops the flow here, whatever roles or labels it carries. Do not inv
 and carry its reason verbatim in `gate_reason` (null for a keyless hold), then stop.
 
 For a discharged item, call
-`planHumanGateRelease({ labels, body, comments, trustedHumanActorIds, humanNeededLabel, readyLabel, lifecycleLabels, alreadyNotified })`
+`planHumanGateRelease({ labels, body, comments, trustedHumanActorIds, humanNeededLabel, humanOnly, readyLabel, lifecycleLabels, alreadyNotified })`
 and apply only the returned actions before claiming. Keep the body marker as history; a release
 never overrides a new caller-declared hold or another eligibility check.
 

@@ -143,6 +143,8 @@ Holds filed under the old wording keep stalling items, and an operator should ne
 
 This is not a forged human release. A release records a person's answer, so it must come from a trusted human. A lift records that the hold was invalid under this contract, so there is nothing for a person to authorize. Its authority comes from re-classifying the hold rather than from who wrote the comment: a lift comment naming a valid hold discharges nothing. Valid holds (a credential, spend, a sign-off) are untouched and still wait for their act. A label-only hold (an access block, a blocked verdict) declares no reason to judge and is never lifted.
 
+Every reader of the hold verdict passes the project's `humanOnly` classes (`humanGate.humanOnly`) alongside `comments` and `trustedHumanActorIds` (`classifyReadyCandidate`, `classifyPreWorkCandidate`, `planHumanGateReconciliation`, `planHumanGateRelease`, `planLabelNormalization`, `planHumanGateLift`). A reader that omits it judges a project-declared hold as invalid, so a lift comment naming that hold would discharge it there.
+
 ## Complete defects found during other work are filed build-ready
 
 Any defect discovered while doing something else, which is complete enough to build, is filed through `lisa-track` / `lisa-tracker-write` with **explicit `build_ready: true`**. It must be claimable by build-intake on the next cycle with no human flipping status. "Complete enough to build" is the `work-item-definition-of-ready` bar — reproduction, observed-versus-expected, and Gherkin acceptance criteria — not a placeholder to be fleshed out later.

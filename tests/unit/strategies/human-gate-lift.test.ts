@@ -40,6 +40,9 @@ const TENANCY = "tenancy-audit-triage";
 /** A second topic-only slug, for the mixed-item cases. */
 const NAMING = "naming-triage";
 
+/** A slug in the project-declared "pricing" class. */
+const PRICING = "pricing-tier";
+
 /**
  * A body held the way the old writers stamped it.
  * @param reason - The hold's slug
@@ -176,9 +179,25 @@ describe("a valid hold is never lifted", () => {
     ).toBe(true);
   });
 
+  it("does not let a lift discharge a project-declared hold when humanOnly is passed", () => {
+    const pricing = heldBody(
+      PRICING,
+      "Held for a human product call: pricing tier."
+    );
+    const comments = [{ body: formatHumanGateLift({ reason: PRICING }) }];
+    expect(
+      isHumanGated({
+        body: pricing,
+        labels: [NEEDED],
+        comments,
+        humanOnly: ["pricing"],
+      })
+    ).toBe(true);
+  });
+
   it("keeps a hold in a project-declared human-only class", () => {
     const pricing = heldBody(
-      "pricing-tier",
+      PRICING,
       "Held for a human product call: pricing tier."
     );
     expect(
