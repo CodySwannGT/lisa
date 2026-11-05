@@ -1,5 +1,16 @@
 # Roster decision: CodySwannGT/lisa#4471
 
+## Resumed roster — 2026-11-05
+
+The current bounded input, read-only research, independent empirical
+verification and learning roles are recorded at
+https://github.com/CodySwannGT/lisa/issues/4471#issuecomment-6667619999.
+The parent remains the sole code reviewer and product-source writer under the
+operator's instruction. Every required check remains enabled. The original
+implementation roster below is retained as history.
+
+## Original implementation roster
+
 INCLUDE — input resolver / Explore equivalent: /root/resolve_4635 performed read-only queue research, native graph/PR/worktree correlation, configured access preflight, claim and context binding.
 INCLUDE — independent test and verification specialist: /root/tests_4487 owns regression reproduction, inert test fixtures, and independent quality/remote evidence assessment.
 INCLUDE — root: implementation, direct code review, normal delivery gates, release proof and canonical tracker completion.

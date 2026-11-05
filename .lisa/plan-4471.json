@@ -3,12 +3,12 @@
   "tracker_provider": "github",
   "target_environment": "production",
   "target_branch": "main",
-  "base_sha": "ac24c08818268db5a05bcebfeac35eec601bd320",
+  "base_sha": "55640ae3d7b5c8a0e666dab6fffbf08308b23df1",
   "tasks": [
     {
       "id": "resolve",
       "status": "completed",
-      "owner": "/root/resolve_4635",
+      "owner": "/root/input_4471_resume",
       "metadata": {
         "plan": "4471-shell-inline-comment",
         "type": "bug",
@@ -21,7 +21,7 @@
           "All generated copies and all existing parity-safety-net suites pass.",
           "Owner comment 6215928978: function/name/header parsing rejects FF/VT/CR ambiguity or uses Bash space/tab semantics."
         ],
-        "work_item_context": "/Users/codysai/workspace/lisa/.lisa/work-item-context.md",
+        "work_item_context": ".lisa/work-item-context.md",
         "comment_inventory": [
           {
             "id": 6215650530,
@@ -40,6 +40,32 @@
           {
             "id": 6597541138,
             "tags": [
+              "constraint"
+            ]
+          },
+          {
+            "id": 6598210888,
+            "tags": [
+              "decision"
+            ]
+          },
+          {
+            "id": 6598235175,
+            "tags": [
+              "constraint"
+            ]
+          },
+          {
+            "id": 6599084020,
+            "tags": [
+              "constraint",
+              "repro"
+            ]
+          },
+          {
+            "id": 6614258755,
+            "tags": [
+              "decision",
               "constraint"
             ]
           }
@@ -65,7 +91,7 @@
           "command": "Run /bin/bash <exact-delivered-hook> with PreToolUse JSON command sh <inert-fixture>; never execute the fixture; capture status/stderr for candidate and retained base.",
           "expected": "reported base inline-comment fixture exits0; delivered candidate exits2; hash/full-line/safe/whitespace controls preserve required verdicts."
         },
-        "owner": "/root/resolve_4635",
+        "owner": "/root/input_4471_resume",
         "relevant_documentation": "live native context and configured claim contracts",
         "testing_requirements": [
           "Highest-practical native guard regression, indirect sh-file hop; fixture payload never executed.",
@@ -73,13 +99,24 @@
           "No existing expectations changed or checks disabled.",
           "Named new regression executions observed passing in hosted CI.",
           "Exact published package guard replay plus configured production delivery."
+        ],
+        "historical_owner": "/root/resolve_4635",
+        "historical_status": "completed",
+        "resume_roster": "https://github.com/CodySwannGT/lisa/issues/4471#issuecomment-6667619999",
+        "current_relevant_documentation": [
+          ".lisa/plan-4471.md",
+          ".lisa/work-item-context.md",
+          "plugins/src/base/hooks/parity-safety-net.sh",
+          "tests/unit/hooks/parity-safety-net-inline-comment.test.ts",
+          "tests/unit/hooks/parity-safety-net-function-source-scope.test.ts",
+          ".agents/rules/regenerating-derived-artifacts.md"
         ]
       }
     },
     {
       "id": "regression",
-      "status": "completed-local",
-      "owner": "/root/tests_4487",
+      "status": "current-head-validation-pending",
+      "owner": "/root/verify_4471",
       "metadata": {
         "plan": "4471-shell-inline-comment",
         "type": "bug",
@@ -92,7 +129,7 @@
           "All generated copies and all existing parity-safety-net suites pass.",
           "Owner comment 6215928978: function/name/header parsing rejects FF/VT/CR ambiguity or uses Bash space/tab semantics."
         ],
-        "work_item_context": "/Users/codysai/workspace/lisa/.lisa/work-item-context.md",
+        "work_item_context": ".lisa/work-item-context.md",
         "comment_inventory": [
           {
             "id": 6215650530,
@@ -111,6 +148,32 @@
           {
             "id": 6597541138,
             "tags": [
+              "constraint"
+            ]
+          },
+          {
+            "id": 6598210888,
+            "tags": [
+              "decision"
+            ]
+          },
+          {
+            "id": 6598235175,
+            "tags": [
+              "constraint"
+            ]
+          },
+          {
+            "id": 6599084020,
+            "tags": [
+              "constraint",
+              "repro"
+            ]
+          },
+          {
+            "id": 6614258755,
+            "tags": [
+              "decision",
               "constraint"
             ]
           }
@@ -136,7 +199,7 @@
           "command": "Run /bin/bash <exact-delivered-hook> with PreToolUse JSON command sh <inert-fixture>; never execute the fixture; capture status/stderr for candidate and retained base.",
           "expected": "reported base inline-comment fixture exits0; delivered candidate exits2; hash/full-line/safe/whitespace controls preserve required verdicts."
         },
-        "owner": "/root/tests_4487",
+        "owner": "/root/verify_4471",
         "relevant_documentation": "full context; existing function-source-scope suite; boundedSpawnSync and supervised test runner",
         "testing_requirements": [
           "Highest-practical native guard regression, indirect sh-file hop; fixture payload never executed.",
@@ -144,12 +207,23 @@
           "No existing expectations changed or checks disabled.",
           "Named new regression executions observed passing in hosted CI.",
           "Exact published package guard replay plus configured production delivery."
+        ],
+        "historical_owner": "/root/tests_4487",
+        "historical_status": "completed-local",
+        "resume_roster": "https://github.com/CodySwannGT/lisa/issues/4471#issuecomment-6667619999",
+        "current_relevant_documentation": [
+          ".lisa/plan-4471.md",
+          ".lisa/work-item-context.md",
+          "plugins/src/base/hooks/parity-safety-net.sh",
+          "tests/unit/hooks/parity-safety-net-inline-comment.test.ts",
+          "tests/unit/hooks/parity-safety-net-function-source-scope.test.ts",
+          ".agents/rules/regenerating-derived-artifacts.md"
         ]
       }
     },
     {
       "id": "implement",
-      "status": "completed-local",
+      "status": "implementation-present-validation-pending",
       "owner": "/root",
       "metadata": {
         "plan": "4471-shell-inline-comment",
@@ -163,7 +237,7 @@
           "All generated copies and all existing parity-safety-net suites pass.",
           "Owner comment 6215928978: function/name/header parsing rejects FF/VT/CR ambiguity or uses Bash space/tab semantics."
         ],
-        "work_item_context": "/Users/codysai/workspace/lisa/.lisa/work-item-context.md",
+        "work_item_context": ".lisa/work-item-context.md",
         "comment_inventory": [
           {
             "id": 6215650530,
@@ -182,6 +256,32 @@
           {
             "id": 6597541138,
             "tags": [
+              "constraint"
+            ]
+          },
+          {
+            "id": 6598210888,
+            "tags": [
+              "decision"
+            ]
+          },
+          {
+            "id": 6598235175,
+            "tags": [
+              "constraint"
+            ]
+          },
+          {
+            "id": 6599084020,
+            "tags": [
+              "constraint",
+              "repro"
+            ]
+          },
+          {
+            "id": 6614258755,
+            "tags": [
+              "decision",
               "constraint"
             ]
           }
@@ -215,12 +315,23 @@
           "No existing expectations changed or checks disabled.",
           "Named new regression executions observed passing in hosted CI.",
           "Exact published package guard replay plus configured production delivery."
+        ],
+        "historical_owner": "/root",
+        "historical_status": "completed-local",
+        "resume_roster": "https://github.com/CodySwannGT/lisa/issues/4471#issuecomment-6667619999",
+        "current_relevant_documentation": [
+          ".lisa/plan-4471.md",
+          ".lisa/work-item-context.md",
+          "plugins/src/base/hooks/parity-safety-net.sh",
+          "tests/unit/hooks/parity-safety-net-inline-comment.test.ts",
+          "tests/unit/hooks/parity-safety-net-function-source-scope.test.ts",
+          ".agents/rules/regenerating-derived-artifacts.md"
         ]
       }
     },
     {
       "id": "review",
-      "status": "self-review-complete-checks-pending",
+      "status": "personal-review-complete-checks-pending",
       "owner": "/root",
       "metadata": {
         "plan": "4471-shell-inline-comment",
@@ -234,7 +345,7 @@
           "All generated copies and all existing parity-safety-net suites pass.",
           "Owner comment 6215928978: function/name/header parsing rejects FF/VT/CR ambiguity or uses Bash space/tab semantics."
         ],
-        "work_item_context": "/Users/codysai/workspace/lisa/.lisa/work-item-context.md",
+        "work_item_context": ".lisa/work-item-context.md",
         "comment_inventory": [
           {
             "id": 6215650530,
@@ -253,6 +364,32 @@
           {
             "id": 6597541138,
             "tags": [
+              "constraint"
+            ]
+          },
+          {
+            "id": 6598210888,
+            "tags": [
+              "decision"
+            ]
+          },
+          {
+            "id": 6598235175,
+            "tags": [
+              "constraint"
+            ]
+          },
+          {
+            "id": 6599084020,
+            "tags": [
+              "constraint",
+              "repro"
+            ]
+          },
+          {
+            "id": 6614258755,
+            "tags": [
+              "decision",
               "constraint"
             ]
           }
@@ -286,6 +423,17 @@
           "No existing expectations changed or checks disabled.",
           "Named new regression executions observed passing in hosted CI.",
           "Exact published package guard replay plus configured production delivery."
+        ],
+        "historical_owner": "/root",
+        "historical_status": "self-review-complete-checks-pending",
+        "resume_roster": "https://github.com/CodySwannGT/lisa/issues/4471#issuecomment-6667619999",
+        "current_relevant_documentation": [
+          ".lisa/plan-4471.md",
+          ".lisa/work-item-context.md",
+          "plugins/src/base/hooks/parity-safety-net.sh",
+          "tests/unit/hooks/parity-safety-net-inline-comment.test.ts",
+          "tests/unit/hooks/parity-safety-net-function-source-scope.test.ts",
+          ".agents/rules/regenerating-derived-artifacts.md"
         ]
       }
     },
@@ -305,7 +453,7 @@
           "All generated copies and all existing parity-safety-net suites pass.",
           "Owner comment 6215928978: function/name/header parsing rejects FF/VT/CR ambiguity or uses Bash space/tab semantics."
         ],
-        "work_item_context": "/Users/codysai/workspace/lisa/.lisa/work-item-context.md",
+        "work_item_context": ".lisa/work-item-context.md",
         "comment_inventory": [
           {
             "id": 6215650530,
@@ -324,6 +472,32 @@
           {
             "id": 6597541138,
             "tags": [
+              "constraint"
+            ]
+          },
+          {
+            "id": 6598210888,
+            "tags": [
+              "decision"
+            ]
+          },
+          {
+            "id": 6598235175,
+            "tags": [
+              "constraint"
+            ]
+          },
+          {
+            "id": 6599084020,
+            "tags": [
+              "constraint",
+              "repro"
+            ]
+          },
+          {
+            "id": 6614258755,
+            "tags": [
+              "decision",
               "constraint"
             ]
           }
@@ -361,8 +535,31 @@
           "No existing expectations changed or checks disabled.",
           "Named new regression executions observed passing in hosted CI.",
           "Exact published package guard replay plus configured production delivery."
+        ],
+        "historical_owner": "/root",
+        "historical_status": "pending",
+        "resume_roster": "https://github.com/CodySwannGT/lisa/issues/4471#issuecomment-6667619999",
+        "current_relevant_documentation": [
+          ".lisa/plan-4471.md",
+          ".lisa/work-item-context.md",
+          "plugins/src/base/hooks/parity-safety-net.sh",
+          "tests/unit/hooks/parity-safety-net-inline-comment.test.ts",
+          "tests/unit/hooks/parity-safety-net-function-source-scope.test.ts",
+          ".agents/rules/regenerating-derived-artifacts.md"
         ]
       }
     }
-  ]
+  ],
+  "original_base_sha": "ac24c08818268db5a05bcebfeac35eec601bd320",
+  "resume": {
+    "date": "2026-11-05",
+    "local_branch": "codex/4471-resume-review-20261105",
+    "primary_pr": 4649,
+    "retained_pr_head": "6dbc95159edfa844b4ef166a60b4071bb84b6c7a",
+    "main_sync_commit": "009e8c88af0453c613740105d27c6c5f9691b5e6",
+    "roster_url": "https://github.com/CodySwannGT/lisa/issues/4471#issuecomment-6667619999",
+    "code_reviewer": "/root",
+    "status": "current-source-validation-pending",
+    "prior_results": "Historical to their original source identities; not reused as combined-head or shipping proof."
+  }
 }
