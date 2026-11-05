@@ -37,6 +37,9 @@ const LIFECYCLE = [
 /** The topic-only slug from the issue's own acceptance scenario. */
 const TENANCY = "tenancy-audit-triage";
 
+/** A second topic-only slug, for the mixed-item cases. */
+const NAMING = "naming-triage";
+
 /**
  * A body held the way the old writers stamped it.
  * @param reason - The hold's slug
@@ -192,10 +195,7 @@ describe("a valid hold is never lifted", () => {
 
   it("lifts only the invalid reason on a mixed item and leaves it held", () => {
     const mixed = [
-      heldBody(
-        "naming-triage",
-        "Held for a human product call: naming triage."
-      ),
+      heldBody(NAMING, "Held for a human product call: naming triage."),
       "",
       "Held for a person to approve spending money: the paid plan.",
       "<!-- [lisa-human-gate] reason=paid-plan-spend -->",
@@ -207,12 +207,54 @@ describe("a valid hold is never lifted", () => {
       lifecycleLabels: LIFECYCLE,
     });
     expect(plan.reason).toBe("partial-lift");
-    expect(plan.lifted).toEqual(["naming-triage"]);
+    expect(plan.lifted).toEqual([NAMING]);
     expect(plan.kept).toEqual(["paid-plan-spend"]);
     expect(plan.actions).toEqual({
       removeHumanNeededLabel: false,
       addReadyLabel: null,
     });
+  });
+});
+
+describe("review hardening", () => {
+  it("keeps a hold whose explanation sits on the line below the marker", () => {
+    const body = [
+      "<!-- [lisa-human-gate] reason=a -->",
+      "Need the legal sign-off from counsel.",
+    ].join("\n");
+    expect(planHumanGateLift({ body, labels: [NEEDED] }).lift).toBe(false);
+  });
+
+  it("never lets a topic word on a context line veto a valid hold", () => {
+    const body = [
+      "## Design notes",
+      "<!-- [lisa-human-gate] reason=aws-root-credential -->",
+    ].join("\n");
+    expect(planHumanGateLift({ body, labels: [NEEDED] }).lift).toBe(false);
+  });
+
+  it("does not report an earlier partial lift again on a later cycle", () => {
+    const body = [
+      heldBody(NAMING, "Held for a human product call: naming triage."),
+      "",
+      "Held for a person to approve spending money: the paid plan.",
+      "<!-- [lisa-human-gate] reason=paid-plan-spend -->",
+    ].join("\n");
+    const comments = [{ body: formatHumanGateLift({ reason: NAMING }) }];
+    const plan = planHumanGateLift({ body, labels: [NEEDED], comments });
+    expect(plan.lift).toBe(false);
+    expect(plan.reason).toBe("hold-valid");
+    expect(plan.comments).toEqual([]);
+  });
+
+  it("classifies an oversized hostile line quickly", () => {
+    const body = [
+      "promote ".repeat(60_000),
+      "<!-- [lisa-human-gate] reason=x -->",
+    ].join("\n");
+    const started = performance.now();
+    planHumanGateLift({ body, labels: [NEEDED] });
+    expect(performance.now() - started).toBeLessThan(1000);
   });
 });
 

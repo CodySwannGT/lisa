@@ -1,6 +1,6 @@
 ---
 name: lisa-track
-description: "Resolves exactly one live configured-tracker leaf for durable project work, claims it idempotently, and persists its canonical reference in worktree-local state. Accepts an existing Jira/GitHub/Linear ref, a spec file, or plain text. Also accepts human_gate: <why a human must judge this first>, which files the leaf held — outside the build-ready lane, never claimed — instead of build-ready. Use directly to mention/create the related ticket, and as lisa-implement's mandatory input gate."
+description: "Resolves exactly one live configured-tracker leaf for durable project work, claims it idempotently, and persists its canonical reference in worktree-local state. Accepts an existing Jira/GitHub/Linear ref, a spec file, or plain text. Also accepts human_gate: <the act a person must perform>, which files the leaf held — outside the build-ready lane, never claimed — instead of build-ready. Use directly to mention/create the related ticket, and as lisa-implement's mandatory input gate."
 allowed-tools: ["Skill", "Bash", "Read"]
 ---
 
@@ -113,7 +113,7 @@ Otherwise:
    resolution_outcome: explicit|reused|created
    readiness_declaration: build-ready|human-gate
    held_by: none|caller-declaration|item-marker
-   gate_reason: <why a human must judge this first>|null
+   gate_reason: <the act a person must perform>|null
    claim_outcome: claimed|reused|held-by-gate
    binding_outcome: verified|skipped-human-gate
    work_item_context: <absolute path to .lisa/work-item-context.md>

@@ -44,6 +44,7 @@ describe("classifyHumanGateReason", () => {
     "hardware-sku-naming",
     "no-access-error-copy",
     "buy-button-color",
+    "monitoring-dashboard-spend-split",
   ])("refuses the topic-only reason %j and names decide-and-record", reason => {
     const verdict = classifyHumanGateReason(reason);
     expect(verdict.valid).toBe(false);

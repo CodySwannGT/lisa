@@ -19,11 +19,11 @@
  */
 import {
   HUMAN_GATE_LIFTED_MARKER,
+  classifyHoldText,
   humanGateHoldTexts,
   humanGateVerdict,
   planHumanGateRelease,
 } from "./intake-blocker-reprobe.mjs";
-import { classifyHumanGateReason } from "./human-gate-act.mjs";
 
 /**
  * Render the lift comment for one invalid hold.
@@ -80,14 +80,16 @@ export function planHumanGateLift(input = {}) {
   const toLift = verdict.outstanding.filter(
     reason =>
       texts.has(reason) &&
-      !classifyHumanGateReason(texts.get(reason), {
+      !classifyHoldText(texts.get(reason), {
         humanOnly: input.humanOnly,
       }).valid
   );
   const kept = verdict.outstanding.filter(reason => !toLift.includes(reason));
   const comments = toLift.map(reason => formatHumanGateLift({ reason }));
 
-  if (toLift.length === 0 && verdict.lifted.length === 0) {
+  // Nothing new to lift and something still held: an earlier partial lift is
+  // history, not news, so a later cycle must not report the item again.
+  if (toLift.length === 0 && (verdict.lifted.length === 0 || kept.length > 0)) {
     return {
       lift: false,
       reason: kept.length > 0 ? "hold-valid" : "nothing-to-lift",

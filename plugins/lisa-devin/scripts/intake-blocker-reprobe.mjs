@@ -341,7 +341,7 @@ export const HUMAN_GATE_ACTS = Object.freeze([
     // interventions, automation retirement, and a hold the operator explicitly
     // asked for. Each is a gate the factory model places outside the factory.
     pattern:
-      /\b(exploratory (finding|qa)|harness intervention|(promot|demot|retir)\w*\b.*\b(knowledge|learnings?)|(knowledge|learnings?)\b.*\b(promot|demot|retir)\w*|automation retirement|retire (an |the )?automations?|operator (prioriti[sz]ation|requested)|operator (explicitly )?(asked|requested)|explicitly asked for|requested by (the )?operator)\b/u,
+      /\b(exploratory (finding|qa)|harness intervention|(promot|demot|retir)\w*\b.{0,80}?\b(knowledge|learnings?)|(knowledge|learnings?)\b.{0,80}?\b(promot|demot|retir)\w*|automation retirement|retire (an |the )?automations?|operator (prioriti[sz]ation|requested)|operator (explicitly )?(asked|requested)|explicitly asked for|requested by (the )?operator)\b/u,
   }),
 ]);
 
@@ -367,7 +367,7 @@ const TOPIC_WORDS =
 
 /** Verbs that say what a person must actually do. */
 const ACT_VERBS =
-  /\b(supply|supplies|provide|provides|enter|holds?|held by|approv\w*|sign(s|ed|ing)?|signoff|grant\w*|give|gives|open|opens|register\w*|attest\w*|pay|pays|spend\w*|only (a|the) (person|founder|owner|operator|human|admin)|lacks?|does not have|doesnt have|cannot|can not|physically|in person|on site)\b/u;
+  /\b(supply|supplies|provide|provides|enter|holds?|held by|approv\w*|sign(s|ed|ing)?|signoff|grant\w*|give|gives|open|opens|register\w*|attest\w*|pay|pays|only (a|the) (person|founder|owner|operator|human|admin)|lacks?|does not have|doesnt have|cannot|can not|physically|in person|on site)\b/u;
 
 /** The path a refused gate is pointed at. One string, so writers cannot drift. */
 export const DECIDE_AND_RECORD =
@@ -464,12 +464,19 @@ export function classifyHumanGateReason(reason, options = {}) {
  */
 export const HUMAN_GATE_LIFTED_MARKER = "[lisa-human-gate-lifted]";
 
+/** Longest slice of any one line the classifier reads. */
+const HOLD_TEXT_CAP = 2000;
+
 /**
  * The text each declared hold is judged by, keyed by its reason.
  *
- * The slug alone is often terse, so the declaring line and the visible line
- * just above it (where every writer puts "Held for …: <reason>.") are judged
- * with it. A keyless hold is judged by those lines alone.
+ * The slug alone is often terse, so the declaring line, the visible line just
+ * above it (where every writer puts "Held for …: <reason>."), and the line just
+ * directly below it (where a hand-written hold may explain itself) are judged with it.
+ * Each line is judged on its own and the hold is valid when ANY line names an
+ * act ({@link classifyHoldText}), so reading more lines can only keep a hold,
+ * never lift one. A keyless hold is judged by those lines alone. Each line
+ * is capped so an oversized body cannot make the classifier slow.
  * @param {unknown} body - The item body
  * @returns {Map<string, string>} Reason key → text to classify
  */
@@ -479,15 +486,38 @@ export function humanGateHoldTexts(body) {
   lines.forEach((line, index) => {
     if (!declaresOnLine(line)) return;
     const key = reasonOnLine(line, HUMAN_GATE_MARKER);
-    const previous =
-      lines
-        .slice(0, index)
-        .reverse()
-        .find(candidate => candidate.trim().length > 0) ?? "";
+    const nonBlank = candidate => candidate.trim().length > 0;
+    const previous = lines.slice(0, index).reverse().find(nonBlank) ?? "";
+    // Only the ADJACENT line below, and only when it is not the next hold's own
+    // visible line or marker, so one hold never borrows another's act.
+    const below = lines[index + 1] ?? "";
+    const next =
+      declaresOnLine(below) || /^\s*held for\b/iu.test(below) ? "" : below;
     const own = line.split(HUMAN_GATE_MARKER).join(" ");
-    texts.set(key, [texts.get(key) ?? "", key, own, previous].join(" "));
+    const parts = [key, own, previous, next].map(part =>
+      part.slice(0, HOLD_TEXT_CAP)
+    );
+    texts.set(key, [texts.get(key), ...parts].filter(Boolean).join("\n"));
   });
   return texts;
+}
+
+/**
+ * Classify a hold by its lines: valid when ANY line names an act.
+ *
+ * Judging the joined text instead would let an unrelated line flip a valid
+ * hold: a topic word on the line below a credential hold would veto the
+ * credential and the sweep would lift it. Per-line judgement is monotonic, so
+ * context can keep a hold but never lift one.
+ * @param {unknown} text - Hold text from {@link humanGateHoldTexts}
+ * @param {{ humanOnly?: unknown }} [options] - Project-declared classes
+ * @returns {ReturnType<typeof classifyHumanGateReason>} Verdict
+ */
+export function classifyHoldText(text, options = {}) {
+  const verdicts = String(text ?? "")
+    .split("\n")
+    .map(part => classifyHumanGateReason(part, options));
+  return verdicts.find(verdict => verdict.valid) ?? classifyHumanGateReason("");
 }
 
 /**
@@ -498,7 +528,7 @@ export function humanGateHoldTexts(body) {
  */
 export function invalidHumanGateHolds(body, humanOnly) {
   return [...humanGateHoldTexts(body)]
-    .filter(([, text]) => !classifyHumanGateReason(text, { humanOnly }).valid)
+    .filter(([, text]) => !classifyHoldText(text, { humanOnly }).valid)
     .map(([reason]) => reason);
 }
 
