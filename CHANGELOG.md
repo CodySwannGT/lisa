@@ -2,6 +2,23 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [4.88.0](https://github.com/CodySwannGT/lisa/compare/v4.87.14...v4.88.0) (2026-11-05)
+
+
+### Features
+
+* **session-manager:** capture a wrongly-escalated verdict as a learning ([a3f46aa](https://github.com/CodySwannGT/lisa/commit/a3f46aa4e402b711de9cf85c7b8def18f47be4c4)), closes [CodySwannGT/lisa#4657](https://github.com/CodySwannGT/lisa/issues/4657) [CodySwannGT/lisa#4657](https://github.com/CodySwannGT/lisa/issues/4657)
+
+
+### Bug Fixes
+
+* **session-manager:** read Linear-escaped overruled markers once ([f380ff3](https://github.com/CodySwannGT/lisa/commit/f380ff33ab485059330f51cd829c813dc685c68f)), closes [CodySwannGT/lisa#4657](https://github.com/CodySwannGT/lisa/issues/4657) [CodySwannGT/lisa#4657](https://github.com/CodySwannGT/lisa/issues/4657)
+
+
+### Documentation
+
+* **session-manager:** page the overruled sweep and document its marker ([d971005](https://github.com/CodySwannGT/lisa/commit/d971005da40775880626353ab693921b04942184)), closes [CodySwannGT/lisa#4657](https://github.com/CodySwannGT/lisa/issues/4657) [CodySwannGT/lisa#4657](https://github.com/CodySwannGT/lisa/issues/4657)
+
 ### [4.87.14](https://github.com/CodySwannGT/lisa/compare/v4.87.13...v4.87.14) (2026-11-03)
 
 
