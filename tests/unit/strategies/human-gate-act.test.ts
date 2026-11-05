@@ -55,6 +55,8 @@ describe("classifyHumanGateReason", () => {
     "hardware-acceleration-flag",
     "physical-units-conversion",
     "spend-dashboard-triage",
+    "fee-label-copy",
+    "choose the fee label",
   ])("refuses the topic-only reason %j and names decide-and-record", reason => {
     const verdict = classifyHumanGateReason(reason);
     expect(verdict.valid).toBe(false);

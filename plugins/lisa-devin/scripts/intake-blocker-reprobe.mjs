@@ -307,7 +307,7 @@ export const HUMAN_GATE_ACTS = Object.freeze([
     act: "spend",
     label: "approve spending money",
     pattern:
-      /\b(spend|spending|payments?|pay for|pay (a|an|the)|fees?|purchase|purchasing|buy|budget approval|credit card|money|paid (plan|tier|seat|account)s?)\b/u,
+      /\b(spend|spending|payments?|pay for|pay (a|an|the)|purchase|purchasing|buy|budget approval|credit card|money|paid (plan|tier|seat|account)s?)\b/u,
   }),
   Object.freeze({
     act: "external-account",
@@ -513,9 +513,15 @@ function holdRelatedLines(body) {
       if (at >= 0 && at < lines.length) related.add(at);
     }
   });
-  return [...related]
-    .sort((a, b) => a - b)
-    .map(index => lines[index].slice(0, HOLD_TEXT_CAP));
+  return (
+    [...related]
+      .sort((a, b) => a - b)
+      // A marker line's own `reason=` slug is judged once, as a slug, by the
+      // caller; read as prose here it would dodge the topic veto and re-hold a
+      // lifted decision (a `fee-label-copy` slug reading as spend).
+      .map(index => lines[index].replace(/reason=\S*/gu, " "))
+      .map(line => line.slice(0, HOLD_TEXT_CAP))
+  );
 }
 
 /**

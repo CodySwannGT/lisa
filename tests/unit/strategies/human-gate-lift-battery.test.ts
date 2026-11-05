@@ -143,6 +143,13 @@ describe("verifier battery: the sweep keeps every doubtful hold", () => {
         "<!-- [lisa-human-gate] reason=naming-triage -->",
       ],
     ],
+    [
+      "fee copy slug (a fee keyword is not spending)",
+      [
+        `${OLD_WORDING} fee label copy.`,
+        "<!-- [lisa-human-gate] reason=fee-label-copy -->",
+      ],
+    ],
   ])("lifts a clean topic hold: %s", (_name, lines) => {
     const result = plan(lines);
     expect(result.lift).toBe(true);
