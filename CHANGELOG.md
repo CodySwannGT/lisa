@@ -2,6 +2,26 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.88.1](https://github.com/CodySwannGT/lisa/compare/v4.88.0...v4.88.1) (2026-11-05)
+
+
+### Bug Fixes
+
+* **human-gate:** accept 'pay <amount> fee' and record earlier-cycle lifts ([e94481e](https://github.com/CodySwannGT/lisa/commit/e94481ee3cf3d9cac34da4f634b3735fc4663719)), closes [CodySwannGT/lisa#4658](https://github.com/CodySwannGT/lisa/issues/4658) [CodySwannGT/lisa#4658](https://github.com/CodySwannGT/lisa/issues/4658)
+* **human-gate:** accept four more real acts in the writer check ([43f6095](https://github.com/CodySwannGT/lisa/commit/43f609572144c02c6ea2253c8701445e7aad2655)), closes [CodySwannGT/lisa#4658](https://github.com/CodySwannGT/lisa/issues/4658) [CodySwannGT/lisa#4658](https://github.com/CodySwannGT/lisa/issues/4658)
+* **human-gate:** address CodeRabbit review ([ceea08a](https://github.com/CodySwannGT/lisa/commit/ceea08ab8e4934808d19db14a0588405eed3313f)), closes [CodySwannGT/lisa#4658](https://github.com/CodySwannGT/lisa/issues/4658) [CodySwannGT/lisa#4658](https://github.com/CodySwannGT/lisa/issues/4658)
+* **human-gate:** address CodeRabbit review on 43f6095721 ([a24f439](https://github.com/CodySwannGT/lisa/commit/a24f43912bbcdb5e43e9160785c862aa5835b5ee)), closes [CodySwannGT/lisa#4658](https://github.com/CodySwannGT/lisa/issues/4658) [CodySwannGT/lisa#4658](https://github.com/CodySwannGT/lisa/issues/4658)
+* **human-gate:** address local review findings ([f0e2e93](https://github.com/CodySwannGT/lisa/commit/f0e2e936b88dc8ebbe147f1f38b3246566fb15a1)), closes [CodySwannGT/lisa#4658](https://github.com/CodySwannGT/lisa/issues/4658) [CodySwannGT/lisa#4658](https://github.com/CodySwannGT/lisa/issues/4658)
+* **human-gate:** gate only acts an agent cannot perform, lift invalid holds ([43fec9f](https://github.com/CodySwannGT/lisa/commit/43fec9ff3e2dbc43719589091456095a5b16947d)), closes [CodySwannGT/lisa#4658](https://github.com/CodySwannGT/lisa/issues/4658) [CodySwannGT/lisa#4658](https://github.com/CodySwannGT/lisa/issues/4658)
+* **human-gate:** keep the reprobe dependency graph fixed for the npm updater ([cad9dcc](https://github.com/CodySwannGT/lisa/commit/cad9dcc0751b36e8e21457c9a65cdef95f400d33)), closes [CodySwannGT/lisa#4658](https://github.com/CodySwannGT/lisa/issues/4658) [CodySwannGT/lisa#4658](https://github.com/CodySwannGT/lisa/issues/4658)
+* **human-gate:** make the sweep's lift structurally fail-safe ([5dc17d1](https://github.com/CodySwannGT/lisa/commit/5dc17d1afc6c269ce0e33e198da7ab2601dc47a6)), closes [CodySwannGT/lisa#4658](https://github.com/CodySwannGT/lisa/issues/4658) [CodySwannGT/lisa#4658](https://github.com/CodySwannGT/lisa/issues/4658)
+* **human-gate:** slug-only topic veto and a wider hold context window ([6140407](https://github.com/CodySwannGT/lisa/commit/6140407ac453b09f5621f8433cb0b710650cd057)), closes [CodySwannGT/lisa#4658](https://github.com/CodySwannGT/lisa/issues/4658) [CodySwannGT/lisa#4658](https://github.com/CodySwannGT/lisa/issues/4658)
+
+
+### Documentation
+
+* **build-intake:** defer ready-role restore after a pre-work lift ([d557d48](https://github.com/CodySwannGT/lisa/commit/d557d481003a20f3daba3ecdafe69ee188027f12)), closes [CodySwannGT/lisa#4658](https://github.com/CodySwannGT/lisa/issues/4658) [CodySwannGT/lisa#4658](https://github.com/CodySwannGT/lisa/issues/4658)
+
 ## [4.88.0](https://github.com/CodySwannGT/lisa/compare/v4.87.14...v4.88.0) (2026-11-05)
 
 
