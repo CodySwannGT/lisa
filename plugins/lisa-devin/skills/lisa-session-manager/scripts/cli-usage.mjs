@@ -207,14 +207,22 @@ Per cycle
       unset); trustedHumanActorIds in the input is ignored. stdout
       {action:release|keep|escalate|skip-human-gate,reason,edges,gate}.
       --ref fills pendingQuestion from the ledger.
-  mark-plan <ref> --kind <kind> [--cause <cause>] STDIN: question or reason
+  mark-plan <ref> --kind <kind> [--cause <cause>] [--item-label <l>]...
+                                                STDIN: question or reason
       Plans marking an item that needs a human; writes nothing. kind:
       worker-question | repo-route | exhausted | decision. cause: planning
       (default) | environment (outage, expired credential, flaky tool) |
-      human-gate (a decision planning flagged as a human gate). stdout
+      human-gate (a decision planning flagged as a human gate).
+      --item-label (repeatable): the item's current labels. When one is the
+      configured wrongly-escalated label, cause human-gate counts as a
+      planning miss (stageHint filing, candidate signal wrongly-escalated).
+      stdout
       {ref,kind,marker:{type:"label"|"role",value},[move:{role:"blocked",
       value},]comment,answerWith:{item,cli,channel},planningMiss:{counts,
-      reason[,stageHint,candidate]}}. planningMiss.counts is true for a
+      reason[,stageHint,candidate][,overruledMarker:{fingerprint,comment}]}}.
+      overruledMarker is present only when candidate.signal is
+      wrongly-escalated: post its comment after routing the candidate, so
+      overruled-plan skips the item. planningMiss.counts is true for a
       worker-question, decision or repo-route with cause planning; never
       for exhausted. candidate is the persist-learning skeleton (signal,
       triggering_issue, provenance, scope_hint, kind, missing). marker is the tracker's
@@ -226,6 +234,18 @@ Per cycle
       lists, or on Telegram when it is the channel. Exit 2 for an unknown
       kind, empty or credential-shaped text, no marker configured, or
       exhausted with no blocked role, or an unknown cause.
+  overruled-plan [--input <file>] [--max <n>]   STDIN (without --input): JSON
+                                                {items:[{ref,labels,body,comments}]}
+      Plans this cycle's captures of escalations a human ruled wrong; writes
+      nothing. An item counts when it carries the configured wrongly-escalated
+      label (github/linear labels.build.wrongly_escalated,
+      jira.labels.wrongly_escalated; default wrongly-escalated-to-human) and
+      no comment starting [lisa-escalation-overruled] key=<fingerprint>.
+      stdout {label,captures:[{ref,fingerprint,comment,candidate}],skipped,
+      deferred}. candidate is the persist-learning candidate (signal
+      wrongly-escalated, hold and release evidence, a draft
+      Planning (filing) rule); comment is the marker to post afterwards.
+      --max caps captures per cycle (default 3); the rest are deferred.
   answer <ref>                                  STDIN: the answer
       Queues an operator's answer (source "cli") for the next cycle to
       deliver. stdout {queued:true,ref,source}. Exit 2 when <ref> has no

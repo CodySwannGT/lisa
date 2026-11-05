@@ -22,6 +22,9 @@ export const BUILD_LABEL_DEFAULTS = {
   blocked: "status:blocked",
   human_needed: "human-needed",
   spec_defect: "blocked:spec-defect",
+  // Applied by a human (or an agent at an operator's direction) to rule an
+  // escalation wrong; the session manager captures it as a learning (#4657).
+  wrongly_escalated: "wrongly-escalated-to-human",
   done: {
     dev: "status:on-dev",
     staging: "status:on-stg",
