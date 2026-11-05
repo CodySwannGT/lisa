@@ -301,13 +301,13 @@ export const HUMAN_GATE_ACTS = Object.freeze([
     act: "credential",
     label: "supply a credential only a person holds",
     pattern:
-      /\b(credentials?|secrets?|passwords?|passphrases?|api keys?|access keys?|private keys?|auth tokens?|oauth|2fa|mfa|otp|one time codes?)\b/u,
+      /\b(credentials?|secrets?|passwords?|passphrases?|api keys?|access keys?|private keys?|deploy keys?|ssh keys?|signing keys?|auth tokens?|oauth|2fa|mfa|otp|one time codes?)\b/u,
   }),
   Object.freeze({
     act: "spend",
     label: "approve spending money",
     pattern:
-      /\b(spend|spending|payments?|pay for|purchase|purchasing|buy|budget approval|credit card|money|paid (plan|tier|seat|account)s?)\b/u,
+      /\b(spend|spending|payments?|pay for|pay (a|an|the)|fees?|purchase|purchasing|buy|budget approval|credit card|money|paid (plan|tier|seat|account)s?)\b/u,
   }),
   Object.freeze({
     act: "external-account",
@@ -331,7 +331,7 @@ export const HUMAN_GATE_ACTS = Object.freeze([
     act: "unreachable-system",
     label: "act in a system the agent cannot reach",
     pattern:
-      /\b(admin (rights|access|permissions?|role)|grant admin|add (the |a |our )?(bot|app|agent|integration) to|workspace admin|physical|hardware|on site|in person|unreachable|cannot reach|can ?not reach|cant reach|no access|outside (the )?agent|grant(s|ed|ing)? ([a-z]+ ){0,3}(access|permissions?|roles?)|give (the )?agent ([a-z]+ ){0,3}access|access (the )?agent (lacks|does not have|doesnt have|cannot get)|agent (lacks|does not have|doesnt have) ([a-z]+ ){0,4}access|tool access|missing access|access grant|provision(ing)? access|phone call)\b/u,
+      /\b(admin (rights|access|permissions?|role)|grant admin|physically|invite ([a-z]+ ){0,4}to (the |a |our )?([a-z]+ )?(workspace|org|organization|team|repo|repository|project)|add (the |a |our )?(bot|app|agent|integration) to|workspace admin|physical|hardware|on site|in person|unreachable|cannot reach|can ?not reach|cant reach|no access|outside (the )?agent|grant(s|ed|ing)? ([a-z]+ ){0,3}(access|permissions?|roles?)|give (the )?agent ([a-z]+ ){0,3}access|access (the )?agent (lacks|does not have|doesnt have|cannot get)|agent (lacks|does not have|doesnt have) ([a-z]+ ){0,4}access|tool access|missing access|access grant|provision(ing)? access|phone call)\b/u,
   }),
   Object.freeze({
     act: "lisa-policy",

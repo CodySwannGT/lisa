@@ -138,6 +138,13 @@ describe("classifyHumanGateReason", () => {
     ],
     ["add the bot to the workspace", UNREACHABLE],
     ["grant admin to the deploy role", UNREACHABLE],
+    [
+      "a person must add the deploy key to the GitHub repo settings page",
+      CREDENTIAL,
+    ],
+    ["someone must pay the Apple developer fee", SPEND],
+    ["a person must physically reboot the office router", UNREACHABLE],
+    ["invite the agent's bot user to the Linear workspace", UNREACHABLE],
   ])("accepts the real act %j", (reason, act) => {
     expect(classifyHumanGateReason(reason).act).toBe(act);
   });
