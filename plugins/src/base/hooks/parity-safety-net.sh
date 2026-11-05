@@ -728,22 +728,10 @@ follow_may_invoke() {
   return 1
 }
 
-# Split the command into statements at UNQUOTED separators, printing one
-# statement per line as "<separator><TAB><statement>". Quote-aware on purpose: a
-# `;` or `|` inside a quoted string is not a statement boundary, and splitting
-# there would invent a command position in the middle of a quoted argument and
-# make prose look like an invocation — the #3604 failure mode, arrived at from
-# the other side. Literal subshell parentheses carry scope events, while quoted
-# parentheses and substitutions stay in their original statement so `eval
-# "$(cat <file>)"` retains its command position and executed-file inspection.
-#
-# awk rather than a bash char loop because this runs on EVERY intercepted Bash
-# command, and it addresses the text by index instead of accumulating it a
-# character at a time so the cost stays linear on a followed file. The text
-# arrives through the ENVIRONMENT: `awk -v` processes backslash escapes in the
-# value it is given and would rewrite the command before it was ever read.
-follow_split() {
-  LC_ALL=C SN_FOLLOW_TEXT="$1" awk '
+# Both the policy view and statement parser use these exact comment boundaries.
+# This is fixed awk source, never source derived from the inspected command.
+follow_comment_awk() {
+  printf '%s\n' '
     # A hash starts a comment only at an unescaped shell word boundary.
     # Backslash-newline pairs disappear before token recognition; a quoted or
     # escaped blank is part of a word, not a boundary before its next hash.
@@ -777,6 +765,25 @@ follow_split() {
     function lookahead_step() {
       if (++lookahead_work > 8 * n + 1024) { exit 2 }
     }
+  '
+}
+
+# Split the command into statements at UNQUOTED separators, printing one
+# statement per line as "<separator><TAB><statement>". Quote-aware on purpose: a
+# `;` or `|` inside a quoted string is not a statement boundary, and splitting
+# there would invent a command position in the middle of a quoted argument and
+# make prose look like an invocation — the #3604 failure mode, arrived at from
+# the other side. Literal subshell parentheses carry scope events, while quoted
+# parentheses and substitutions stay in their original statement so `eval
+# "$(cat <file>)"` retains its command position and executed-file inspection.
+#
+# awk rather than a bash char loop because this runs on EVERY intercepted Bash
+# command, and it addresses the text by index instead of accumulating it a
+# character at a time so the cost stays linear on a followed file. The text
+# arrives through the ENVIRONMENT: `awk -v` processes backslash escapes in the
+# value it is given and would rewrite the command before it was ever read.
+follow_split() {
+  LC_ALL=C SN_FOLLOW_TEXT="$1" awk "$(follow_comment_awk)"'
     function brace_pipe(from, opening, closing, j, c, quote, escape, braces, nesting, tail, tail_cases, tail_header, word, word_end, parameters) {
       quote = ""; escape = 0; braces = 1; nesting = 0; brace_redirect = ""; tail_cases = 0; tail_header = 0; parameters = 0;
       for (j = from; j <= n; j++) {
@@ -1242,19 +1249,36 @@ follow_locate() {
   return 1
 }
 
-# Drop standalone physical comment lines from the text-policy view, retaining
-# lines that may belong to a continued word. Treating every leading hash as a
-# comment would hide direct refused operations after `word` plus a line join.
-# This view stays conservative: uncertain continuations retain bytes for the
-# destructive-operation scan; the scope parser resolves their actual syntax.
+# Drop a physical comment line only at a real logical shell word boundary.
+# A blank after a joined newline can start a comment, but a hash in a quoted or
+# continued word cannot. Keep the old conservative inline-comment policy while
+# sharing comment/newline provenance and work bounds with the statement parser.
 follow_policy_text() {
-  LC_ALL=C awk '
-    {
-      if (!continued && $0 ~ /^[[:space:]]*#/) { print ""; continued = 0; next }
-      print;
-      escapes = 0;
-      for (at = length($0); at > 0 && substr($0, at, 1) == "\\"; at--) { escapes++ }
-      continued = escapes % 2;
+  LC_ALL=C SN_FOLLOW_TEXT="$1" awk "$(follow_comment_awk)"'
+    BEGIN {
+      s = ENVIRON["SN_FOLLOW_TEXT"]; n = length(s);
+      quote = ""; escape = 0; parameters = 0; line_start = 1; from = 1;
+      for (i = 1; i <= n; i++) {
+        lookahead_step(); c = substr(s, i, 1);
+        if (c == "\n") { line_start = i + 1 }
+        if (escape) { if (c == "$") { literal_dollars[i] = 1 } escape = 0; continue }
+        if (c == "\\" && quote != "\047") { escape = 1; continue }
+        if (quote != "") { if (c == quote) { quote = "" } continue }
+        if (c == "\"" || c == "\047" || c == "`") { quote = c; continue }
+        if (c == "{" && (parameters > 0 || (substr(s, i - 1, 1) == "$" && !literal_dollars[i - 1]))) { parameters++; continue }
+        if (c == "}" && parameters > 0) { parameters--; continue }
+        if (c == "#" && parameters == 0 && comment_start(i)) {
+          end = comment_end(i);
+          if (substr(s, line_start, i - line_start) ~ /^[ \t]*$/) {
+            printf "%s", substr(s, from, line_start - from);
+            from = end;
+          }
+          # Ignore quotes and backslashes owned by any real comment, including
+          # inline comments whose bytes the conservative policy view retains.
+          i = end - 1;
+        }
+      }
+      printf "%s", substr(s, from);
     }
   '
 }
@@ -1298,13 +1322,13 @@ follow_take() {
     source_content="$(LC_ALL=C tr -d '\000' <"$path")" \
       || follow_refuse "$path" "it could not be read"
   fi
-  content="$(printf '%s' "$source_content" | follow_policy_text)" || follow_refuse "$path" "source policy view could not be read"
+  content="$(follow_policy_text "$source_content")" || follow_refuse "$path" "source policy view could not be read"
   follow_names="$follow_names $path"
   followed_text="$followed_text"$'\n'"$content"
   if [ "$#" -ne 4 ]; then
     rm_content="$content"
   else
-    rm_content="$(printf '%s' "$rm_content" | follow_policy_text)" || follow_refuse "$path" "supervisor cleanup view could not be read"
+    rm_content="$(follow_policy_text "$rm_content")" || follow_refuse "$path" "supervisor cleanup view could not be read"
   fi
   followed_rm_text="$followed_rm_text"$'\n'"$rm_content"
   if [ "$depth" -lt "$FOLLOW_MAX_DEPTH" ]; then

@@ -257,6 +257,27 @@ describe("safety-net inline shell comments (#4471)", () => {
     expect(result.status, String(result.stderr)).toBe(2);
   });
 
+  it.each([
+    ["continued space comment", `: word\\\n # ${DANGEROUS}`, 0],
+    ["continued tab comment", `: word\\\n\t# ${DANGEROUS}`, 0],
+    [
+      "continued comment before another line",
+      `: word\\\n # ${DANGEROUS}\necho safe`,
+      0,
+    ],
+    ["quoted continuation", `: "word\\\n #literal"; ${DANGEROUS}`, 2],
+    ["single quoted multiline word", `: 'word\n #literal'; ${DANGEROUS}`, 2],
+    ["continued word-owned hash", `: word\\\n#literal; ${DANGEROUS}`, 2],
+    ["standalone comment control", `# ${DANGEROUS}\necho safe`, 0],
+    ["conservative inline comment control", `: # ${DANGEROUS}`, 2],
+    ["continued form-feed word", `: word\\\n\f#literal; ${DANGEROUS}`, 2],
+    ["continued vertical-tab word", `: word\\\n\v#literal; ${DANGEROUS}`, 2],
+    ["continued carriage-return word", `: word\\\n\r#literal; ${DANGEROUS}`, 2],
+  ])("classifies the policy view of %s", (name, source, expected) => {
+    const result = inspect(`policy-${name}`, String(source));
+    expect(result.status, String(result.stderr)).toBe(expected);
+  });
+
   it("keeps a direct refused operation after a joined word-owned hash", () => {
     const result = inspect(
       "joined-hash-direct-operation",
