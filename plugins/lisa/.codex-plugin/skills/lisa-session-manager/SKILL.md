@@ -385,9 +385,11 @@ with the configured wrongly-escalated label has ruled that an agent asked a pers
 could have decided. That ruling is the strongest learning signal the factory gets, so capture it
 once per item, every cycle, whatever else the cycle does:
 
-1. **List** the items carrying the label, open or closed, most recently updated first, at most 50
-   (GitHub: `gh issue list --label <label> --state all --limit 50 --json number,labels,body,comments,url`;
-   Jira / Linear: the same query through `lisa-atlassian-access` or `lisa-linear-access`). The
+1. **List** every item carrying the label, open or closed, **paging until the last page** (GitHub:
+   `gh issue list --label <label> --state all --limit 10000 --json number,labels,body,comments,url`;
+   Jira / Linear: the same query through `lisa-atlassian-access` or `lisa-linear-access`). Never
+   stop at a first page: posting a capture's marker makes that item the most recently updated, so
+   a capped listing would keep showing captured items and never reach the uncaptured ones. The
    label is `github.labels.build.wrongly_escalated`, `linear.labels.build.wrongly_escalated` or
    `jira.labels.wrongly_escalated`, default `wrongly-escalated-to-human`; `overruled-plan` reports
    the one it used as `label`. Who applied it does not matter: the label is a classification, not
@@ -396,6 +398,10 @@ once per item, every cycle, whatever else the cycle does:
 2. **Plan.** Write `{"items":[{ref,labels,body,comments}]}` (comments with their `id` and `url`) to
    `.lisa/session-manager/overruled-input.json` and run
    `node "$SM/session-manager.mjs" overruled-plan --input .lisa/session-manager/overruled-input.json --project-root "$ROOT"`.
+   Each `ref` is the item's canonical ref, exactly as dispatch uses it: `owner/repo#<number>` for
+   GitHub (the configured `github.org`/`github.repo`, never a bare number or a URL), the issue key
+   for Jira and Linear. The capture fingerprint is derived from it, so any other spelling would
+   capture the same item twice. Leave out an item whose ref you cannot form.
    It skips items already carrying their `[lisa-escalation-overruled] key=<fingerprint>` comment,
    returns at most 3 `captures` (the rest are `deferred` to the next cycle), and writes nothing.
 3. **Route each capture** through `lisa-persist-learning` in a **background** subagent, exactly as

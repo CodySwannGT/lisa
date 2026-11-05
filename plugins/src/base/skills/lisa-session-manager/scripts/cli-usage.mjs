@@ -219,7 +219,10 @@ Per cycle
       stdout
       {ref,kind,marker:{type:"label"|"role",value},[move:{role:"blocked",
       value},]comment,answerWith:{item,cli,channel},planningMiss:{counts,
-      reason[,stageHint,candidate]}}. planningMiss.counts is true for a
+      reason[,stageHint,candidate][,overruledMarker:{fingerprint,comment}]}}.
+      overruledMarker is present only when candidate.signal is
+      wrongly-escalated: post its comment after routing the candidate, so
+      overruled-plan skips the item. planningMiss.counts is true for a
       worker-question, decision or repo-route with cause planning; never
       for exhausted. candidate is the persist-learning skeleton (signal,
       triggering_issue, provenance, scope_hint, kind, missing). marker is the tracker's
