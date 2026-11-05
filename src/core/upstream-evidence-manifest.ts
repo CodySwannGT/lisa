@@ -333,7 +333,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/npm-updater-gate.Dockerfile":
       "f5d85f8fccfd97f7800c03430a38c19d584314b0a6a63aa1de28fb62897fbcc5",
     "all/copy-overwrite/scripts/npm-updater-helper-graph.json":
-      "f3c5ff735ddb1cc78b6d56dc6c0fd4af437ad2afa5b39bfb4fa2f0799351f8c5",
+      "4147c90547b1b67d1ea213fbd1e1e55917335325374e65b0ec4039311184713e",
     "all/copy-overwrite/scripts/review-evidence-event.mjs":
       "1c5d510bc66f8ba23b6f046246f41182c17946a50126fb88e371d2aec9dfd6b2",
     "all/copy-overwrite/scripts/schemas/lisa-command-envelope.v1.schema.json":
@@ -1319,13 +1319,13 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/scripts/doctor-report.mjs":
       "f183e62848ac539da56a525fe2105fc6251a49e555a01dd1bba10d9227b1a6bf",
     "plugins/src/base/scripts/human-gate-act.mjs":
-      "0a8cdd2d57e3c401f5e87651084764f811116af91d98693e100184ba2a72027c",
+      "0b52e16f6d6782040419af49ed8ccbd7314c56a42e928d6d42a66fe5efa34019",
     "plugins/src/base/scripts/human-gate-lift.mjs":
       "d6601aaaefd23920dff1e68ff1ab6d936a94b7ffed22c01e85cdbd44a030c0a4",
     "plugins/src/base/scripts/install-remote-agent-aws.mjs":
       "a3b530e0053774f62aa768377e672388b586b1456fa59f33bc3553babf1a576d",
     "plugins/src/base/scripts/intake-blocker-reprobe.mjs":
-      "349575008ee442f3ec7828754c1409da2582d3016862af6526767e96aa733e6b",
+      "704bccdbc00f27aaf9d917291d4cddb39fdeda5d38beb24cbd73fedcd16df083",
     "plugins/src/base/scripts/intake-prework-denominator.mjs":
       "0a40cb91ab1c0e810f42d035d9652af3033e97c692b93b911de851991c12eca1",
     "plugins/src/base/scripts/lifecycle-label-trust.mjs":
