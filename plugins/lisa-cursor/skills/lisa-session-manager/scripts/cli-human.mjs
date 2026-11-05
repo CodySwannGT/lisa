@@ -27,6 +27,8 @@ import {
 } from "./cli-runtime.mjs";
 import { parseJson } from "./cli-queue.mjs";
 import { notifyProvider } from "./config.mjs";
+import { wronglyEscalatedLabel } from "./cli-overruled.mjs";
+import { carriesWronglyEscalated } from "./escalation-overruled.mjs";
 import { pickItemAnswer } from "./human-answer.mjs";
 import { findCredentialShape, planMark } from "./human-needed.mjs";
 import { readLedger } from "./ledger.mjs";
@@ -42,8 +44,10 @@ function trackerOf(project) {
 }
 
 /**
- * `mark-plan <ref> --kind <kind> [--cause <cause>]` (question or reason on
- * stdin).
+ * `mark-plan <ref> --kind <kind> [--cause <cause>] [--item-label <l>]...`
+ * (question or reason on stdin). `--item-label` names the item's current
+ * labels; when one is the configured wrongly-escalated label, a
+ * `--cause human-gate` hold counts as a planning miss (#4657).
  * @param {object} ctx - CLI context
  * @returns {{ json: object }} `{ref,kind,marker,move?,comment,answerWith}`
  */
@@ -71,6 +75,10 @@ export function markPlan(ctx) {
         channel: config ? notifyProvider(config) === "telegram" : false,
         answerers: allowedAnswerers(config).length > 0,
         cause: ctx.values.cause ?? "planning",
+        overruled: carriesWronglyEscalated(
+          ctx.values["item-label"] ?? [],
+          wronglyEscalatedLabel(project, tracker)
+        ),
       })
     ),
   };

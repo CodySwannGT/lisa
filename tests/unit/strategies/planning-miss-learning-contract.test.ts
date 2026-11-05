@@ -114,6 +114,16 @@ describe.each(JUDGES)("learning-judge (%s)", judgePath => {
     );
   });
 
+  it("treats a wrongly-escalated label as a human ruling, not a flagged gate (#4657)", () => {
+    expect(judge).toContain(
+      "### Step 2.6: Overruled escalation (`signal: wrongly-escalated`)"
+    );
+    expect(judge).toContain("`filing`");
+    expect(judge).toContain("this exclusion does not apply to it");
+    expect(judge).toContain("an automation identity applying it");
+    expect(judge).toContain("the persistence PR never waits for a human");
+  });
+
   it("excludes environmental stops and flagged human gates", () => {
     const miss = judge.slice(judge.indexOf("- **`planning-miss`** —"));
     expect(miss).toMatch(/outage/);
@@ -143,6 +153,23 @@ describe.each(SKILL_ROOTS)("planning-miss loop (%s)", root => {
     expect(manager).toContain("never waits for it");
     expect(manager).toContain("`--cause environment`");
     expect(manager).toContain("`--cause human-gate`");
+    expect(manager).toContain("`--item-label <label>`");
+  });
+
+  it("the session manager captures overruled escalations once, off the dispatch path (#4657)", () => {
+    const manager = skill("lisa-session-manager");
+    expect(manager).toContain("**Overruled escalations**");
+    expect(manager).toContain("overruled-plan");
+    expect(manager).toContain("[lisa-escalation-overruled] key=<fingerprint>");
+    expect(manager).toContain("never changes the cycle's run outcome");
+  });
+
+  it("persist-learning merges a wrongly-escalated learning without a human (#4657)", () => {
+    const persist = skill(PERSIST);
+    expect(persist).toContain(
+      "**`signal: wrongly-escalated`, at either confidence**"
+    );
+    expect(persist).toContain("apply no triage label");
   });
 
   it("lisa-implement routes a mid-build ticket and an unmanaged human-needed stop", () => {
@@ -161,8 +188,9 @@ describe.each(SKILL_ROOTS)("planning-miss loop (%s)", root => {
     expect(decomposition).toContain("projectLearnings");
     expect(decomposition).toContain("resolveProjectLearningsFile");
     expect(decomposition).toContain(
-      "Planning \\((prd|decomposition|ready-gate)\\):"
+      "Planning \\((prd|decomposition|ready-gate|filing)\\):"
     );
+    expect(decomposition).toContain("**`Planning (filing): …`**");
     expect(decomposition).not.toMatch(/cat [^\n]*PROJECT_LEARNINGS/);
   });
 

@@ -79,6 +79,29 @@ describe("planningMissFor", () => {
     }
   );
 
+  it.each(HUMAN_NEEDED_KINDS)(
+    "counts a %s human gate a human labeled wrongly escalated, at the filing stage (#4657)",
+    kind => {
+      const verdict = planningMissFor({
+        kind,
+        cause: HUMAN_GATE,
+        overruled: true,
+      });
+      expect(verdict.counts).toBe(true);
+      expect(verdict.stageHint).toBe("filing");
+    }
+  );
+
+  it("never lets the wrongly-escalated label override an environmental cause", () => {
+    expect(
+      planningMissFor({
+        kind: "decision",
+        cause: "environment",
+        overruled: true,
+      }).counts
+    ).toBe(false);
+  });
+
   it("defaults the cause to planning", () => {
     expect(PLANNING_MISS_CAUSES).toEqual([
       "planning",
@@ -122,6 +145,20 @@ describe("planMark carries the planning-miss verdict", () => {
     expect(
       planMark({ ...BASE, kind: "decision", cause: HUMAN_GATE }).planningMiss
     ).toMatchObject({ counts: false });
+  });
+
+  it("routes an overruled human gate as a wrongly-escalated candidate", () => {
+    const plan = planMark({
+      ...BASE,
+      kind: "decision",
+      cause: HUMAN_GATE,
+      overruled: true,
+    });
+    expect(plan.planningMiss).toMatchObject({
+      counts: true,
+      stageHint: "filing",
+      candidate: { signal: "wrongly-escalated", triggering_issue: REF },
+    });
   });
 
   it("leaves the marker, move and comment exactly as before", () => {

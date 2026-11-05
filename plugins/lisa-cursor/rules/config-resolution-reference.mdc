@@ -592,12 +592,13 @@ Exit `0` with a value → configured. Exit `0` with **empty** output → an opti
 
 #### Build markers (additive labels, not lifecycle roles)
 
-A **marker** is an additive label applied *alongside* a lifecycle role, not a state the item transitions *to*. Markers carry no rollup or transition semantics — they annotate an item that is already in some role, and the rollup reads them to say *which kind* of hold a `blocked` item is (`rollup-blocker-classification`). The build lifecycle defines two markers:
+A **marker** is an additive label applied *alongside* a lifecycle role, not a state the item transitions *to*. Markers carry no rollup or transition semantics — they annotate an item that is already in some role, and the rollup reads them to say *which kind* of hold a `blocked` item is (`rollup-blocker-classification`). The build lifecycle defines three markers:
 
 | Marker | What it means | JIRA default | GitHub/Linear default |
 |---|---|---|---|
 | `human_needed` | Applied with `blocked` when — **after the agent has drafted every authorable missing section via the `pre-flight-autofill` procedure** — the block still requires a human to confirm the drafted assumptions or supply something no agent can invent: real missing credentials, access/permissions, or an irreducible product/scoping decision. | `Human Needed` (label) | `human-needed` (label) |
 | `spec_defect` | Applied with `blocked` when the thing holding the item is the item's **own specification** — an acceptance criterion that cannot be satisfied as written, a field naming an environment or surface the project does not have, a validation journey demanding something the project cannot produce. **Human-applied only.** No agent sets it, because judging a criterion unbuildable is a product call, and the agent that wrote a bad criterion is the least likely to know it did. | `Spec Defect` (label) | `blocked:spec-defect` (label) |
+| `wrongly_escalated` | A **ruling** that an earlier escalation to a human was wrong: the hold asked a person for a decision an agent could have made. Applied by a human, or by an agent at an operator's direction — who applied it does not matter. It is a classification, not a release: it moves no lane and needs no release authorization. The session manager's overruled-escalation sweep captures each labeled item once as a `wrongly-escalated` learning candidate (CodySwannGT/lisa#4657). Resolved from `jira.labels.wrongly_escalated`, `github.labels.build.wrongly_escalated` or `linear.labels.build.wrongly_escalated`. | `wrongly-escalated-to-human` (label) | `wrongly-escalated-to-human` (label) |
 
 Markers are labels on **every** vendor, Linear included — that is the one place the Linear build lane still touches `linear.labels`.
 

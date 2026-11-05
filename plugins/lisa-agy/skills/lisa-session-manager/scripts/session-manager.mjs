@@ -46,6 +46,7 @@ import {
   route,
 } from "./cli-cycle.mjs";
 import { answer, itemAnswer, markPlan } from "./cli-human.mjs";
+import { overruledPlan } from "./cli-overruled.mjs";
 import { repoDir, start, status, stop, validate } from "./cli-manager.mjs";
 import { queue } from "./cli-queue.mjs";
 import { CliError, EXIT } from "./cli-runtime.mjs";
@@ -113,8 +114,17 @@ const COMMANDS = {
   },
   "mark-plan": {
     run: markPlan,
-    options: { kind: text, cause: text },
+    options: {
+      kind: text,
+      cause: text,
+      "item-label": { ...text, multiple: true },
+    },
     positionals: 1,
+  },
+  "overruled-plan": {
+    run: overruledPlan,
+    options: { input: text, max: text },
+    positionals: 0,
   },
   answer: { run: answer, options: {}, positionals: 1 },
   "item-answer": { run: itemAnswer, options: {}, positionals: 1 },

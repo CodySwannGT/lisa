@@ -260,7 +260,11 @@ export const SYNC_REGISTRY: readonly SyncedSetting[] = [
   },
   {
     key: "jira.labels",
-    defaultValue: { human_needed: "Human Needed", spec_defect: "Spec Defect" },
+    defaultValue: {
+      human_needed: "Human Needed",
+      spec_defect: "Spec Defect",
+      wrongly_escalated: BUILD_LABEL_DEFAULTS.wrongly_escalated,
+    },
     relevantWhen: ["jira", WHEN_TRACKER_JIRA],
     description: "JIRA marker labels",
   },
@@ -288,6 +292,7 @@ export const SYNC_REGISTRY: readonly SyncedSetting[] = [
       build: {
         human_needed: BUILD_LABEL_DEFAULTS.human_needed,
         spec_defect: BUILD_LABEL_DEFAULTS.spec_defect,
+        wrongly_escalated: BUILD_LABEL_DEFAULTS.wrongly_escalated,
       },
       prd: PRD_LABEL_DEFAULTS,
     },

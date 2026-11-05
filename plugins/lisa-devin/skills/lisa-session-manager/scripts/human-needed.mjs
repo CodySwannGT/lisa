@@ -33,7 +33,8 @@ export const HUMAN_NEEDED_KINDS = Object.freeze([
  * ready gate and still needed a person. `environment` is an outage, an
  * expired credential or a flaky tool; `human-gate` is a decision planning
  * flagged as a human gate on the item. Neither of those two is a planning
- * miss.
+ * miss, except a `human-gate` a human has since labeled wrongly escalated
+ * (`overruled`, CodySwannGT/lisa#4657).
  */
 export const PLANNING_MISS_CAUSES = Object.freeze([
   "planning",
@@ -72,14 +73,33 @@ const NOT_A_PLANNING_MISS = Object.freeze({
  * Whether a human-needed stop is a planning miss: the PRD, decomposition or
  * ready gate let through an item a dispatched worker could not finish without
  * a person. Throws on an unknown cause.
- * @param {{kind: string, cause?: string}} input - The `--kind` and `--cause`
+ *
+ * `overruled` is true when the item carries the configured wrongly-escalated
+ * label (CodySwannGT/lisa#4657). A human has then ruled that the gate was
+ * not the plan working, so the label overrides `cause=human-gate`: the stop
+ * counts, pointing at the `filing` stage that let the gate on. It never
+ * overrides `environment`: the ruling is about the gate, not an outage.
+ * @param {{kind: string, cause?: string, overruled?: boolean}} input - The
+ *   `--kind` and `--cause`, and whether the escalation was ruled wrong
  * @returns {{counts: boolean, reason: string, stageHint?: string}} Verdict
  */
-export function planningMissFor({ kind, cause = "planning" }) {
+export function planningMissFor({
+  kind,
+  cause = "planning",
+  overruled = false,
+}) {
   if (!PLANNING_MISS_CAUSES.includes(cause)) {
     throw new Error(
       `--cause must be one of: ${PLANNING_MISS_CAUSES.join(", ")}.`
     );
+  }
+  if (cause === "human-gate" && overruled === true) {
+    return {
+      counts: true,
+      stageHint: "filing",
+      reason:
+        "a human labeled this escalation wrong, so the human gate was not the plan working: the filing check let it through",
+    };
   }
   if (cause !== "planning") {
     return { counts: false, reason: NOT_A_PLANNING_MISS[cause] };
@@ -104,17 +124,22 @@ export function planningMissFor({ kind, cause = "planning" }) {
  * `lisa-persist-learning` candidate the manager can fill in without judgment.
  * The rule and its why are the manager's to draft: they name the check
  * planning should have run, which no script can know.
- * @param {{ref: string, kind: string, cause?: string, question: string}}
- *   input - The item, why, the cause and the question text
+ * @param {{ref: string, kind: string, cause?: string, question: string,
+ *   overruled?: boolean}} input - The item, why, the cause, the question
+ *   text and whether the escalation was ruled wrong
  * @returns {object} `{counts, reason, stageHint?, candidate?}`
  */
-function planningMissPlan({ ref, kind, cause, question }) {
-  const verdict = planningMissFor({ kind, cause });
+function planningMissPlan({ ref, kind, cause, question, overruled }) {
+  const verdict = planningMissFor({ kind, cause, overruled });
   if (!verdict.counts) return verdict;
+  const signal =
+    cause === "human-gate" && overruled === true
+      ? "wrongly-escalated"
+      : "planning-miss";
   return {
     ...verdict,
     candidate: {
-      signal: "planning-miss",
+      signal,
       triggering_issue: ref,
       provenance: [ref],
       scope_hint: "project",
@@ -231,11 +256,13 @@ function chooseMarker(label, blocked) {
  * unknown kind, empty or credential-shaped text, no marker, or an `exhausted`
  * item with no `blocked` role to move it to.
  * @param {{ref: string, kind: string, text: string, label?: string,
- *   blocked?: string, channel?: boolean, answerers?: boolean, cause?: string}}
+ *   blocked?: string, channel?: boolean, answerers?: boolean, cause?: string,
+ *   overruled?: boolean}}
  *   input - The item, why, the question, the configured human-needed label
  *   and `blocked` role value, whether a notification channel exists, whether
  *   anyone (operatorIds / trustedAuthorIds) may answer on the item, and the
- *   cause the planning-miss signal needs (default `planning`)
+ *   cause the planning-miss signal needs (default `planning`), and whether
+ *   the item carries the wrongly-escalated label (`overruled`)
  * @returns {{ref: string, kind: string, marker: {type: string, value: string},
  *   move?: {role: "blocked", value: string}, comment: string,
  *   answerWith: {item: string|null, cli: string, channel: string|null},
@@ -251,6 +278,7 @@ export function planMark({
   channel = false,
   answerers = true,
   cause = "planning",
+  overruled = false,
 }) {
   if (!HUMAN_NEEDED_KINDS.includes(kind)) {
     throw new Error(`--kind must be one of: ${HUMAN_NEEDED_KINDS.join(", ")}.`);
@@ -300,6 +328,6 @@ export function planMark({
       cli: `the answerCommand that session-manager.mjs status lists for ${ref} (answer on stdin)`,
       channel: channel ? `Answer with: ${short} <your answer>` : null,
     },
-    planningMiss: planningMissPlan({ ref, kind, cause, question }),
+    planningMiss: planningMissPlan({ ref, kind, cause, question, overruled }),
   };
 }
