@@ -23,7 +23,7 @@ Accept the candidate as JSON or `key=value` fields:
 - `evidence_links` — concrete evidence refs available for citation
 - `scope_hint` — `project` | `upstream` (a hint; the judge decides)
 - `triggering_issue` — the issue/work item whose failure produced this candidate (required)
-- `signal` — optional; `planning-miss` when a dispatched item stopped for a human or filed a new ticket mid-build (from `lisa-session-manager` or `lisa-implement`). A hint for the judge, never a verdict
+- `signal` — optional; `planning-miss` when a dispatched item stopped for a human or filed a new ticket mid-build (from `lisa-session-manager` or `lisa-implement`); `wrongly-escalated` when a human labeled an item's escalation wrong with the configured wrongly-escalated label (from `lisa-session-manager`'s overruled-escalation sweep, CodySwannGT/lisa#4657), carrying the hold and release as `evidence`. A hint for the judge, never a verdict
 - `fingerprint` — optional; computed below when absent
 
 ## Phase 0 — Fingerprint (stable dedupe key)
@@ -237,7 +237,7 @@ No learning content is ever committed without a PR — there is no other write p
    Stage: <planning_stage>. The worker could not find: "<quoted>". Planning skills read this rule back through the bounded projection (`lisa-task-decomposition` step 0).
    ```
 
-   For a **low-confidence** PR, the body must additionally end with this fixed decision-framing line so the human at the gate knows exactly what merging means:
+   For a **low-confidence** PR (other than a `wrongly-escalated` one, which no human merges — step 6), the body must additionally end with this fixed decision-framing line so the human at the gate knows exactly what merging means:
 
    ```markdown
    **Merge** to adopt this rule into every future session for all six coding agents; **close** to discard it.
@@ -257,6 +257,7 @@ No learning content is ever committed without a PR — there is no other write p
      ```
 
      A low-confidence PR sitting OPEN with green checks and `autoMergeRequest: null` is this mode's **success** state — a human merges or closes it. All pending low-confidence learning PRs are findable by filtering on the `learning:needs-triage` label (`gh pr list --label "learning:needs-triage"`).
+   - **`signal: wrongly-escalated`, at either confidence** → submit through `lisa-git-submit-pr` with its defaults, exactly like `high`, and apply no triage label. The candidate exists because a human already ruled — the wrongly-escalated label on the item is the review a low-confidence PR would otherwise wait for — and waiting for a second human to merge the learning is the very interruption the ruling objected to. Who applied the label does not change this: an automation identity applying it at an operator's direction counts. A `low` entry stays `confidence: low` in the ledger, so the gardener (`lisa-learnings-audit`) can find it and retire the rule if the call was wrong.
 
 ## Rules
 

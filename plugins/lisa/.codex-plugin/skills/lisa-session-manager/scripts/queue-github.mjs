@@ -46,6 +46,19 @@ function stringLeaves(value) {
 }
 
 /**
+ * The build label map without `wrongly_escalated`: that label is a ruling
+ * left on an item for good (CodySwannGT/lisa#4657), not a lane or a hold,
+ * so it must not hide a released item from the backlog tier.
+ * @param {unknown} build - `github.labels.build`
+ * @returns {unknown} The map minus the ruling label
+ */
+export function withoutRuling(build) {
+  if (!build || typeof build !== "object") return build;
+  const { wrongly_escalated: _ruling, ...rest } = build;
+  return rest;
+}
+
+/**
  * Fetch every open GitHub issue carrying no lifecycle label (build or PRD),
  * all pages: the GitHub backlog tier.
  * @param {object} ctx - CLI context
@@ -57,7 +70,7 @@ export function fetchGithubBacklog(ctx, project) {
   const lifecycle = new Set(
     [project.global?.github?.labels, project.local?.github?.labels]
       .flatMap(labels => [
-        ...stringLeaves(labels?.build),
+        ...stringLeaves(withoutRuling(labels?.build)),
         ...stringLeaves(labels?.prd),
       ])
       .map(label => label.toLowerCase())
