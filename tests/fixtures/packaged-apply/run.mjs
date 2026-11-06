@@ -5,6 +5,7 @@ import { createHash } from "node:crypto";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { parseArgs } from "node:util";
+import { qualifySymlinkChange } from "./symlink-control.mjs";
 
 const { values } = parseArgs({
   options: {
@@ -115,7 +116,15 @@ for (const [name, harness, failed] of [
   summary.scenarios.push(row);
   console.log(JSON.stringify(row));
 }
-assert.equal(summary.scenarios.length, 3);
+const symlinkControl = await qualifySymlinkChange({
+  controller: values.controller,
+  archive: path.resolve(values.archive),
+  image: values.image,
+  output: path.join(output, "owned-symlink-control"),
+});
+summary.scenarios.push(symlinkControl);
+console.log(JSON.stringify(symlinkControl));
+assert.equal(summary.scenarios.length, 4);
 summary.passed = true;
 writeFileSync(
   path.join(output, "summary.json"),

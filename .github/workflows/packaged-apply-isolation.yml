@@ -32,7 +32,7 @@ jobs:
           bun run build
           bun pm pack --ignore-scripts --filename "$RUNNER_TEMP/lisa-candidate.tgz"
           docker build -t lisa-packaged-verification -f scripts/fixtures/packaged-apply/Dockerfile scripts/fixtures/packaged-apply
-      - name: Run scoped apply, fleet apply and failed-child preservation
+      - name: Run applies, failed-child preservation and symlink detection
         run: |
           node tests/fixtures/packaged-apply/run.mjs --archive "$RUNNER_TEMP/lisa-candidate.tgz" --image lisa-packaged-verification --output "$RUNNER_TEMP/lisa-packaged-proof"
       - name: Retain native scenario summary
