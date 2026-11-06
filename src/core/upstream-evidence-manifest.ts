@@ -2897,7 +2897,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/verify-npm-advisories-4333.mjs":
       "f0a94aead747c28cf1317d999a4eb80ae027461a43ed22b5b996173a5a096aae",
     "scripts/verify-packaged-apply.mjs":
-      "851784d583ee1ae5aad2e654e5b201d03f076ba7b6fde22c7dc3debbe1ee8ed8",
+      "527fb5e0155a4b5232b373ee18ec2c1d208bfc02aeed819ab51754742c4f0588",
     "scripts/verify-packed-learnings-contract.mjs":
       "2227b32f3b3dc2dc6817a60b4998b64881c03e30ecd15cb52b6d6f95a5870613",
     "scripts/verify-rails-tooling.rb":

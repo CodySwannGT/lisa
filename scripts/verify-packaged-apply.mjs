@@ -2,7 +2,7 @@
 /** Genuine packaged verification with a checked disposable filesystem boundary. */
 import { execFile } from "node:child_process";
 import { createHash, randomUUID } from "node:crypto";
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { chmod, mkdir, readFile, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
@@ -113,16 +113,19 @@ async function main() {
   // Docker may retain the copying client's UID. Keep this public package
   // readable inside the capability-dropped container; its host parent is 0700.
   await writeFile(ownedArchive, archiveBytes, { mode: 0o644, flag: "wx" });
+  await chmod(ownedArchive, 0o644);
   const driverBytes = await readFile(
     path.join(import.meta.dirname, "lib/packaged-apply-driver.mjs")
   );
   const driverCopy = path.join(output, "driver.mjs");
   await writeFile(driverCopy, driverBytes, { mode: 0o644, flag: "wx" });
+  await chmod(driverCopy, 0o644);
   const casesBytes = await readFile(
     path.join(import.meta.dirname, "fixtures/packaged-apply/guard-cases.json")
   );
   const casesCopy = path.join(output, "guard-cases.json");
   await writeFile(casesCopy, casesBytes, { mode: 0o644, flag: "wx" });
+  await chmod(casesCopy, 0o644);
   const files = [
     ...new Set([
       agyDestination,

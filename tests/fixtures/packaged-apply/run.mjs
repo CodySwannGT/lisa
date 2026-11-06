@@ -23,6 +23,9 @@ const { values } = parseArgs({
 for (const key of ["archive", "image", "output"])
   assert.ok(values[key], `Missing --${key}`);
 const output = path.resolve(values.output);
+// The actual controller and every child must work with private agent defaults.
+// A permissive caller umask otherwise hides unreadable copied-container inputs.
+process.umask(0o077);
 mkdirSync(output, { mode: 0o700 });
 const sentinel = path.join(output, "outside.json");
 const absent = path.join(output, "outside-absent.json");
@@ -104,6 +107,7 @@ for (const [name, harness, failed] of [
     controller_status: child.status,
     apply_status: native.apply.status,
     full_apply: native.apply_receipt?.apply_mode ?? null,
+    guard_cases: native.guard_cases?.length ?? 0,
     outside_files: Object.keys(preservation.before).length,
     preserved: true,
     native_agent_activation: "not established",
