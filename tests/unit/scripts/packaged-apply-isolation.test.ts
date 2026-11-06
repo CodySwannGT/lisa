@@ -211,6 +211,29 @@ describe("outside destination preservation", () => {
     expect(await readFile(target, "utf8")).toBe(privateBytes);
     expect(recovery.restored).toBe(false);
   });
+  it("preserves non-UTF8 symlink bytes in after-images and unknown-content recovery", async () => {
+    const root = await fixture();
+    const link = path.join(root, "raw-link");
+    const target = Buffer.from([0x6c, 0x69, 0x6e, 0x6b, 0xff]);
+    await symlink(target, link);
+    const images = path.join(root, "raw-images");
+    const after = await snapshotFiles([link], images, { phase: "after" });
+    expect(after[link]).toMatchObject({
+      present: true,
+      kind: "symlink",
+      bytes: target.length,
+    });
+    const [name] = await readdir(images);
+    if (!name) throw new Error("No captured raw link image");
+    expect(await readFile(path.join(images, name))).toEqual(target);
+    const recovery = await preserveUnexpectedWrite(
+      link,
+      path.join(root, "raw-recovery")
+    );
+    expect(await readFile(recovery.copy)).toEqual(target);
+    expect(recovery.prior_content).toBe("unknown");
+    expect(recovery.restored).toBe(false);
+  });
   it("retains complete private before-images without exposing bytes in reports", async () => {
     const root = await fixture();
     const file = path.join(root, "settings.json");

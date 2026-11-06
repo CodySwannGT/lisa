@@ -92,7 +92,7 @@ export async function snapshotFiles(files, evidenceDirectory, options = {}) {
       if (!info.isFile() && !postRunLink)
         throw new Error(`Preservation path is not a regular file: ${file}`);
       const bytes = postRunLink
-        ? Buffer.from(await readlink(file))
+        ? await readlink(file, { encoding: "buffer" })
         : await readFile(file);
       if (evidenceDirectory) {
         const name = `${createHash("sha256").update(file).digest("hex")}.private`;
@@ -139,7 +139,7 @@ export async function preserveUnexpectedWrite(file, evidenceDirectory) {
   const copy = path.join(evidenceDirectory, `${randomUUID()}.private`);
   const info = await lstat(file);
   const current = info.isSymbolicLink()
-    ? Buffer.from(await readlink(file))
+    ? await readlink(file, { encoding: "buffer" })
     : await readFile(file);
   await writeFile(copy, current, { mode: 0o600, flag: "wx" });
   return { copy, prior_content: "unknown", restored: false };
