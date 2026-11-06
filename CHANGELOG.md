@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [4.89.0](https://github.com/CodySwannGT/lisa/compare/v4.88.2...v4.89.0) (2026-11-06)
+
+
+### Features
+
+* **learnings:** let low-confidence learning PRs auto-merge on opt-in ([a0269f5](https://github.com/CodySwannGT/lisa/commit/a0269f540a73b6fa5d9b684b541e562f1fbb3c67)), closes [CodySwannGT/lisa#4659](https://github.com/CodySwannGT/lisa/issues/4659) [CodySwannGT/lisa#4659](https://github.com/CodySwannGT/lisa/issues/4659)
+
+
+### Bug Fixes
+
+* **learnings:** address local review of low-confidence routing ([74443d4](https://github.com/CodySwannGT/lisa/commit/74443d4a325d77767ecfb4a61a4364fd60dd0dbd)), closes [CodySwannGT/lisa#4659](https://github.com/CodySwannGT/lisa/issues/4659) [CodySwannGT/lisa#4659](https://github.com/CodySwannGT/lisa/issues/4659)
+
 ### [4.88.2](https://github.com/CodySwannGT/lisa/compare/v4.88.1...v4.88.2) (2026-11-05)
 
 
