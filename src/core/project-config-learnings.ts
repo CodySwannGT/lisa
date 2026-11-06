@@ -2,15 +2,37 @@
  * Validated `.lisa.config.json` settings for the project-learnings ledger.
  *
  * Keeping the closed nested schema and its pure resolver together gives every
- * mutating caller one typed snapshot: the ledger path and merge-driver opt-out
- * can no longer be read through independent parsers that disagree on errors or
- * timing.
+ * mutating caller one typed snapshot: the ledger path, merge-driver opt-out,
+ * and low-confidence PR routing can no longer be read through independent
+ * parsers that disagree on errors or timing.
  * @module core/project-config-learnings
  */
 import { DEFAULT_PROJECT_LEARNINGS_FILE } from "./learnings-location.js";
 import { validateConfiguredLearningsFile } from "./configured-learnings-path.js";
 
-const LEARNINGS_FIELDS = ["file", "mergeDriver"] as const;
+const LEARNINGS_FIELDS = ["file", "mergeDriver", "lowConfidence"] as const;
+
+const HUMAN_TRIAGE = "human-triage";
+const AUTO_MERGE = "auto-merge";
+
+/**
+ * How `lisa-persist-learning` submits a low-confidence learning PR.
+ *
+ * `human-triage` (the default) keeps auto-merge off and waits for a human at
+ * the `learning:needs-triage` gate. `auto-merge` submits it like a
+ * high-confidence PR — through the project's normal gates — for operators who
+ * involve humans only when an agent is genuinely stuck; the gardener
+ * (`lisa-learnings-audit`) re-reviews those entries first
+ * (CodySwannGT/lisa#4659).
+ */
+export const LOW_CONFIDENCE_ROUTINGS = [HUMAN_TRIAGE, AUTO_MERGE] as const;
+
+/** One closed value of `learnings.lowConfidence`. */
+export type LowConfidenceRouting = (typeof LOW_CONFIDENCE_ROUTINGS)[number];
+
+/** Routing used when `learnings.lowConfidence` is absent. */
+export const DEFAULT_LOW_CONFIDENCE_ROUTING: LowConfidenceRouting =
+  HUMAN_TRIAGE;
 
 /** Optional `learnings` configuration block in `.lisa.config.json`. */
 export interface LearningsConfig {
@@ -18,6 +40,8 @@ export interface LearningsConfig {
   readonly file?: string;
   /** Explicit false declines local merge-driver installation. */
   readonly mergeDriver?: boolean;
+  /** How low-confidence learning PRs are submitted; default `human-triage`. */
+  readonly lowConfidence?: LowConfidenceRouting;
 }
 
 /** Minimum project-config shape consumed by the pure settings resolver. */
@@ -29,6 +53,7 @@ interface ConfigWithLearnings {
 export type ResolvedLearningsSettings = Readonly<{
   learningsFile: string;
   mergeDriverEnabled: boolean;
+  lowConfidence: LowConfidenceRouting;
 }>;
 
 /**
@@ -63,7 +88,7 @@ export function validateLearningsConfig(
   );
   if (unknown !== undefined) {
     throw new Error(
-      `Invalid learnings.${unknown} in ${source}: unknown field; expected file or mergeDriver`
+      `Invalid learnings.${unknown} in ${source}: unknown field; expected file, mergeDriver, or lowConfidence`
     );
   }
   const file =
@@ -71,9 +96,11 @@ export function validateLearningsConfig(
       ? undefined
       : validateLearningsFile(object.file, source);
   const mergeDriver = validateMergeDriver(object.mergeDriver, source);
+  const lowConfidence = validateLowConfidence(object.lowConfidence, source);
   return {
     ...(file === undefined ? {} : { file }),
     ...(mergeDriver === undefined ? {} : { mergeDriver }),
+    ...(lowConfidence === undefined ? {} : { lowConfidence }),
   };
 }
 
@@ -83,8 +110,10 @@ export function validateLearningsConfig(
  * The driver is strictly opt-out: only literal false disables it. Runtime
  * config reads validate the boolean before this resolver runs; keeping the
  * comparison here as `!== false` preserves the safe default for typed callers.
+ * Low-confidence routing is opt-in the same way: only an exact `auto-merge`
+ * leaves the human-triage default.
  * @param config - Validated project config snapshot
- * @returns Resolved ledger path and merge-driver enablement
+ * @returns Resolved ledger path, merge-driver enablement, and low-confidence routing
  */
 export function resolveLearningsSettings(
   config: ConfigWithLearnings
@@ -92,6 +121,10 @@ export function resolveLearningsSettings(
   return Object.freeze({
     learningsFile: resolveProjectLearningsFile(config),
     mergeDriverEnabled: config.learnings?.mergeDriver !== false,
+    lowConfidence:
+      config.learnings?.lowConfidence === AUTO_MERGE
+        ? AUTO_MERGE
+        : DEFAULT_LOW_CONFIDENCE_ROUTING,
   });
 }
 
@@ -124,6 +157,29 @@ function validateMergeDriver(
   }
   throw new Error(
     `Invalid learnings.mergeDriver in ${source}: expected boolean, received ${JSON.stringify(
+      value
+    )}`
+  );
+}
+
+/**
+ * Validate an optional low-confidence routing value while preserving absence.
+ * @param value - Raw lowConfidence setting
+ * @param source - Config source for errors
+ * @returns Closed routing value or undefined
+ */
+function validateLowConfidence(
+  value: unknown,
+  source: string
+): LowConfidenceRouting | undefined {
+  if (value === undefined) {
+    return undefined;
+  }
+  if ((LOW_CONFIDENCE_ROUTINGS as readonly unknown[]).includes(value)) {
+    return value as LowConfidenceRouting;
+  }
+  throw new Error(
+    `Invalid learnings.lowConfidence in ${source}: expected "${AUTO_MERGE}" or "${HUMAN_TRIAGE}", received ${JSON.stringify(
       value
     )}`
   );

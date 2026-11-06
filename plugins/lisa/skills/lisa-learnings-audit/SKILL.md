@@ -92,6 +92,26 @@ ready gate itself — the `work-item-definition-of-ready` rule or the validators
 S18 dry-run — rather than one more ledger entry competing for the projection.
 A recurring miss counts once per `[lisa-planning-miss]` note on distinct items.
 
+**Auto-merged low-confidence entries are re-reviewed first.** A project
+that sets `learnings.lowConfidence: "auto-merge"` (resolve it with
+`resolveLearningsSettings(config).lowConfidence` from
+`@codyswann/lisa/learnings`) lets `lisa-persist-learning` merge `low`
+learnings without a human reading them (CodySwannGT/lisa#4659). In that mode,
+every parsed ledger entry with `confidence: "low"` that has never been
+confirmed (`last_confirmed` equals `first_learned`) goes to the **front** of
+this run's audit order, oldest first, and has all five evidence axes
+gathered. A CONFIRM bumps `last_confirmed`, which ends the priority, so the
+front of the queue holds only entries nobody has checked yet. The ordering
+changes no cap: PROMOTE/DEMOTE tickets for these entries count toward
+`max_candidates` like any other. Low confidence is the reason an entry is
+checked first, never evidence for a change: RETIRE or DEMOTE still needs
+proof (a contradiction, staleness, a mechanical owner), and Recurrence
+evidence that it applied is a CONFIRM. Name these entries in the run proof
+(`low-confidence re-reviewed: <ids>`), so an operator can see that the
+skipped human gate was paid for here. Under the default `human-triage` a
+`low` entry reached the ledger only through a human merge, so it keeps the
+normal order.
+
 **The eager tier is audited every run** — including
 **Lisa's own shipped eager rules**, not just host additions. Admission is demotion-biased and
 earned only by repeated-miss evidence (see the `promotion-contract` rule);
@@ -106,7 +126,10 @@ evidence:
 - All learning-machinery artifacts: items carrying `[lisa-learning-drop]`,
   `[lisa-learning-pr]`, `[lisa-learning-upstream-handoff]` (any
   `[lisa-learning-*]` marker), `[lisa-rejection-candidate]`, or
-  `[lisa-archaeology-candidate]`, and the `learning:needs-triage` label.
+  `[lisa-archaeology-candidate]`, and the `learning:needs-triage` and
+  `learning:low-confidence` labels. The label exclusion covers the PR
+  artifact only; the ledger entry it merged is still audited (see
+  **Auto-merged low-confidence entries** above).
 
 ## Scope
 

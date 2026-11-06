@@ -67,7 +67,7 @@ A missing, ambiguous, contradictory or undecided requirement is not always a one
 
 **The rule is the check planning should have run, never the answer.** Rewrite the candidate's `rule` as `Planning (<stage>): <check>` — e.g. `Planning (decomposition): an export ticket must name its report format before it is Ready.` — never `Exports use CSV.`, which only answers the one ticket and belongs on the item. A rule that only makes sense for this one item is not a check: drop it as `misunderstanding/spec-gap`. The `why` names the stage that let it through and quotes what the worker could not find. The prefix is load-bearing: planning skills select these entries from the bounded projection by it (`lisa-task-decomposition` step 0).
 
-**Recurrence never blocks a first occurrence.** A first-occurrence planning miss persists at `low` confidence, so its persistence PR waits for a human to merge it. That is a deliberate, bounded exception to Step 2's recurrence requirement. The hostile default exists because a plausible-but-wrong rule would reach every future session unattended; a `low` rule never does, because a human reads it at the gate first. Meanwhile the signal is unusually strong and unusually rare: each occurrence already cost the human interruption the gate exists to prevent, so waiting for a second occurrence costs a second interruption and teaches nothing new. And the rule only adds a check to planning — a wrong one costs a planning question, not changed build behaviour. With recurrence evidence (another dispatched item that stopped on the same class of gap), Step 4 may grant `high`.
+**Recurrence never blocks a first occurrence.** A first-occurrence planning miss persists at `low` confidence, so by default its persistence PR waits for a human to merge it. That is a deliberate, bounded exception to Step 2's recurrence requirement. The hostile default exists because a plausible-but-wrong rule would reach every future session unattended; a `low` rule does not by default, because a human reads it at the gate first. A project that opts into `learnings.lowConfidence: "auto-merge"` accepts that a `low` rule lands unread, in exchange for the gardener re-reviewing those entries first. Meanwhile the signal is unusually strong and unusually rare: each occurrence already cost the human interruption the gate exists to prevent, so waiting for a second occurrence costs a second interruption and teaches nothing new. And the rule only adds a check to planning — a wrong one costs a planning question, not changed build behaviour. With recurrence evidence (another dispatched item that stopped on the same class of gap), Step 4 may grant `high`.
 
 ### Step 2.6: Overruled escalation (`signal: wrongly-escalated`)
 
@@ -98,7 +98,9 @@ When multiple classifications seem defensible, choose the one that does **not** 
 ### Step 4: Confidence (durable-learning and planning-miss)
 
 - **`high`** — the causal story is unambiguous and the recurrence citations are directly on point. The persistence PR may merge through the project's normal gates unattended.
-- **`low`** — durable on the evidence, but the causal chain has an inferential step or the recurrence evidence is indirect. The persistence PR must wait for a human (auto-merge off + triage label).
+- **`low`** — durable on the evidence, but the causal chain has an inferential step or the recurrence evidence is indirect. By default the persistence PR waits for a human (auto-merge off + `learning:needs-triage`). A project that sets `learnings.lowConfidence: "auto-merge"` instead merges it through its normal gates, labeled `learning:low-confidence` so the gardener re-reviews it first. A `wrongly-escalated` candidate never waits for a human, whatever this setting says (Step 2.6).
+
+Grade confidence on the evidence alone. The project's `learnings.lowConfidence` setting decides only what happens to a `low` PR; it never moves a candidate between `high` and `low`, so do not read it before grading.
 
 If you cannot justify `high` in one sentence a non-engineer would accept, it is `low`. A `planning-miss` with no recurrence citation is always `low`.
 
@@ -147,7 +149,7 @@ Also echo back the candidate's `fingerprint` and `triggering_issue` so the calle
 ## Important Reminders
 
 1. **Most candidates DROP** — a session where you persist everything you saw is a failed gate, not a productive one.
-2. **No recurrence citation, no durable-learning** — this is absolute; there are no exceptions for "obviously true" rules. A `planning-miss` is not a durable-learning: without recurrence it persists only at `low`, behind a human merge, and the recurrence requirement never blocks a first occurrence of it.
+2. **No recurrence citation, no durable-learning** — this is absolute; there are no exceptions for "obviously true" rules. A `planning-miss` is not a durable-learning: without recurrence it persists only at `low` (behind a human merge unless the project set `learnings.lowConfidence: "auto-merge"`), and the recurrence requirement never blocks a first occurrence of it.
 3. **Cite what you relied on** — a verdict without `cited_evidence` is invalid; re-run the evaluation.
 4. **`lisa-upstream` never becomes a local rule** — classify and hand off; filing the upstream ticket is the caller's flow, not yours.
 5. **You classify; you do not write** — never touch the learnings surface, post comments, or open PRs. The caller (`lisa-persist-learning`) owns all side effects.
