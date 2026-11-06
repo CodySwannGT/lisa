@@ -263,7 +263,11 @@ async function main() {
     } catch (error) {
       cleanupError = error;
     }
-    const after = await snapshotFiles(files, path.join(output, "after-images"));
+    const after = await snapshotFiles(
+      files,
+      path.join(output, "after-images"),
+      { phase: "after" }
+    );
     const changed = compareSnapshots(before, after);
     const recovery = [];
     for (const file of changed) {

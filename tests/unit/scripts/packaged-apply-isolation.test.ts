@@ -7,6 +7,7 @@ import {
   readdir,
   rm,
   stat,
+  symlink,
   writeFile,
 } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -164,6 +165,52 @@ describe("packaged apply preflight", () => {
 });
 
 describe("outside destination preservation", () => {
+  it("refuses an initial symlink even when its target is absent", async () => {
+    const root = await fixture();
+    const link = path.join(root, "initial-link.json");
+    await symlink("absent-target.json", link);
+    await expect(snapshotFiles([link])).rejects.toThrow(/not a regular file/u);
+  });
+  it("records a post-run symlink and still captures another changed file", async () => {
+    const root = await fixture();
+    const config = path.join(root, "replaced.json");
+    const other = path.join(root, "other.json");
+    const targetName = "private-link-target.json";
+    const target = path.join(root, targetName);
+    const otherAfter = "independent change";
+    await writeFile(config, "original config");
+    await writeFile(other, "original other");
+    await writeFile(target, privateBytes);
+    const before = await snapshotFiles(
+      [config, other],
+      path.join(root, "before")
+    );
+    await rm(config);
+    await symlink(targetName, config);
+    await writeFile(other, otherAfter);
+    const images = path.join(root, "after");
+    const after = await snapshotFiles([config, other], images, {
+      phase: "after",
+    });
+    expect(compareSnapshots(before, after)).toEqual([config, other]);
+    expect(after[config]).toMatchObject({ present: true, kind: "symlink" });
+    expect(JSON.stringify(after)).not.toContain(targetName);
+    expect(JSON.stringify(after)).not.toContain(privateBytes);
+    const captured = await Promise.all(
+      (await readdir(images)).map(name =>
+        readFile(path.join(images, name), "utf8")
+      )
+    );
+    expect(captured).toEqual(expect.arrayContaining([targetName, otherAfter]));
+    const recovery = await preserveUnexpectedWrite(
+      config,
+      path.join(root, "link-recovery")
+    );
+    expect(await readFile(recovery.copy, "utf8")).toBe(targetName);
+    expect((await stat(recovery.copy)).mode & 0o777).toBe(0o600);
+    expect(await readFile(target, "utf8")).toBe(privateBytes);
+    expect(recovery.restored).toBe(false);
+  });
   it("retains complete private before-images without exposing bytes in reports", async () => {
     const root = await fixture();
     const file = path.join(root, "settings.json");

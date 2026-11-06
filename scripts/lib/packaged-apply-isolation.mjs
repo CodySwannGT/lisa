@@ -75,20 +75,25 @@ export function assertDisposableContainer(row, id) {
 
 /**
  * Capture complete file bytes by digest or absence; never print config contents.
- * Symlinks are refused rather than silently snapshotting a different file.
+ * Refuse initial symlinks. After execution, capture changed link bytes without
+ * following the link or exposing its target in the public observation.
  * @param {readonly string[]} files - Every declared outside file, no exclusions.
  * @param {string} [evidenceDirectory] - Private directory for complete before/after images.
+ * @param {{phase?: "before" | "after"}} [options] - Only the post-run observation accepts changed symlinks.
  * @returns {Promise<Record<string, object>>} Ordered path-to-observation map.
  */
-export async function snapshotFiles(files, evidenceDirectory) {
+export async function snapshotFiles(files, evidenceDirectory, options = {}) {
   const result = {};
   if (evidenceDirectory) await privateDirectory(evidenceDirectory);
   for (const file of files) {
     try {
       const info = await lstat(file);
-      if (!info.isFile())
+      const postRunLink = options.phase === "after" && info.isSymbolicLink();
+      if (!info.isFile() && !postRunLink)
         throw new Error(`Preservation path is not a regular file: ${file}`);
-      const bytes = await readFile(file);
+      const bytes = postRunLink
+        ? Buffer.from(await readlink(file))
+        : await readFile(file);
       if (evidenceDirectory) {
         const name = `${createHash("sha256").update(file).digest("hex")}.private`;
         await writeFile(path.join(evidenceDirectory, name), bytes, {
@@ -98,6 +103,7 @@ export async function snapshotFiles(files, evidenceDirectory) {
       }
       result[file] = {
         present: true,
+        ...(postRunLink ? { kind: "symlink" } : {}),
         bytes: bytes.length,
         mode: info.mode & 0o777,
         sha256: createHash("sha256").update(bytes).digest("hex"),
@@ -133,7 +139,7 @@ export async function preserveUnexpectedWrite(file, evidenceDirectory) {
   const copy = path.join(evidenceDirectory, `${randomUUID()}.private`);
   const info = await lstat(file);
   const current = info.isSymbolicLink()
-    ? Buffer.from(`Observed symlink target: ${await readlink(file)}\n`)
+    ? Buffer.from(await readlink(file))
     : await readFile(file);
   await writeFile(copy, current, { mode: 0o600, flag: "wx" });
   return { copy, prior_content: "unknown", restored: false };

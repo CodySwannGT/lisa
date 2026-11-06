@@ -8,7 +8,8 @@ export declare function assertDisposableContainer(
 ): void;
 export declare function snapshotFiles(
   files: readonly string[],
-  evidenceDirectory?: string
+  evidenceDirectory?: string,
+  options?: { phase?: "before" | "after" }
 ): Promise<Record<string, object>>;
 export declare function compareSnapshots(
   before: Record<string, object>,

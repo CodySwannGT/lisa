@@ -2769,9 +2769,9 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/lib/packaged-apply-driver.mjs":
       "7aa3e1efbdf211a731ffb5be040da332a5767a3d9949cff5349a888d85d90bae",
     "scripts/lib/packaged-apply-isolation.d.mts":
-      "2e51437c0c222f691b0577f8fb8f3281b9995f67e274930d980fb410e5908521",
+      "11378f7f0a7f7e2db4064021d13f4f70f3b5bc8189d02ef88fec2af38e6da675",
     "scripts/lib/packaged-apply-isolation.mjs":
-      "24809f83711c843531aa40dcbe771df2acc39063580e0d26139a9a4a4b398729",
+      "bc2e9ec1eb9d9893dd9f1e3af151332c469bbe95a7e1b5fd17ba23f2c8ee47a2",
     "scripts/lib/per-agent-hook-filter.mjs":
       "366564dc54c18145b745ecfe18fbc168e8df71f59e4be03cb5acc1899b16b461",
     "scripts/lib/plugin-cache-resolution.mjs":
@@ -2897,7 +2897,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/verify-npm-advisories-4333.mjs":
       "f0a94aead747c28cf1317d999a4eb80ae027461a43ed22b5b996173a5a096aae",
     "scripts/verify-packaged-apply.mjs":
-      "527fb5e0155a4b5232b373ee18ec2c1d208bfc02aeed819ab51754742c4f0588",
+      "c9d046d6d6b604d3594fdbe9b708dad614f8f7dd0f0b8bb88865e2f5703ae470",
     "scripts/verify-packed-learnings-contract.mjs":
       "2227b32f3b3dc2dc6817a60b4998b64881c03e30ecd15cb52b6d6f95a5870613",
     "scripts/verify-rails-tooling.rb":
