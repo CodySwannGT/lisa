@@ -1,0 +1,397 @@
+[
+  [
+    "primary-inline",
+    "#!/bin/bash\nf () { sh payload.sh; }\n: # x; f () { echo ok; }\nf\n",
+    2
+  ],
+  [
+    "full-line-control",
+    "#!/bin/bash\nf () { sh payload.sh; }\n# x; f () { echo ok; }\nf\n",
+    2
+  ],
+  [
+    "called-body-inline",
+    "#!/bin/bash\nh () { sh payload.sh; }\ng () {\n: # y; h () { echo ok; }\n}\ng\nh\n",
+    2
+  ],
+  [
+    "comment-newline-1",
+    "#!/bin/bash\nf () { sh payload.sh; }\n: # x\\\n# x; f () { echo ok; }\nf\n",
+    2
+  ],
+  [
+    "comment-newline-3",
+    "#!/bin/bash\nf () { sh payload.sh; }\n: # x\\\\\\\n# x; f () { echo ok; }\nf\n",
+    2
+  ],
+  [
+    "body-comment-ending-newline",
+    "#!/bin/bash\nh () { sh payload.sh; }\ng () {\n: # x\\\n# y; h () { echo ok; }\n}\ng\nh\n",
+    2
+  ],
+  [
+    "safe-real-function",
+    "#!/bin/bash\nf () { echo ok; }\nf\n",
+    0
+  ],
+  [
+    "direct-body-control",
+    "#!/bin/bash\nf () { rm -rf /Users/probe/outside-project; }\n: # x; f () { echo ok; }\nf\n",
+    2
+  ],
+  [
+    "uncalled-function-control",
+    "#!/bin/bash\nf () { sh payload.sh; }\necho safe\n",
+    0
+  ],
+  [
+    "tab-comment",
+    "#!/bin/bash\nf () { sh payload.sh; }\n:\t# x; f () { echo ok; }\nf\n",
+    2
+  ],
+  [
+    "semicolon-comment",
+    "#!/bin/bash\nf () { sh payload.sh; }\n:;# x; f () { echo ok; }\nf\n",
+    2
+  ],
+  [
+    "keyword-comment",
+    "#!/bin/bash\nf () { sh payload.sh; }\n: # x; function f () { echo ok; }\nf\n",
+    2
+  ],
+  [
+    "unmatched-quotes-comment",
+    "#!/bin/bash\nf () { sh payload.sh; }\n: # \" ' x; f () { echo ok; }\nf\n",
+    2
+  ],
+  [
+    "parameter-pattern",
+    "#!/bin/bash\nf () { sh payload.sh; }\n: ${x#pat}; f\n",
+    2
+  ],
+  [
+    "argument-count",
+    "#!/bin/bash\nf () { sh payload.sh; }\n: $#; f\n",
+    2
+  ],
+  [
+    "word-hash",
+    "#!/bin/bash\nf () { sh payload.sh; }\n: a#b; f\n",
+    2
+  ],
+  [
+    "single-quoted-hash",
+    "#!/bin/bash\nf () { sh payload.sh; }\n: '# x; f () { echo ok; }'; f\n",
+    2
+  ],
+  [
+    "double-quoted-hash",
+    "#!/bin/bash\nf () { sh payload.sh; }\n: \"# x; f () { echo ok; }\"; f\n",
+    2
+  ],
+  [
+    "escaped-hash",
+    "#!/bin/bash\nf () { sh payload.sh; }\n: \\#; f\n",
+    2
+  ],
+  [
+    "quoted-parameter-pattern",
+    "#!/bin/bash\nf () { sh payload.sh; }\n: \"${x#pat}\"; f\n",
+    2
+  ],
+  [
+    "quoted-escaped-hash",
+    "#!/bin/bash\nf () { sh payload.sh; }\n: \"\\#\"; f\n",
+    2
+  ],
+  [
+    "safe-parameter-pattern",
+    "#!/bin/bash\n: ${x#pat}; echo safe\n",
+    0
+  ],
+  [
+    "safe-argument-count",
+    "#!/bin/bash\n: $#; echo safe\n",
+    0
+  ],
+  [
+    "safe-word-hash",
+    "#!/bin/bash\n: a#b; echo safe\n",
+    0
+  ],
+  [
+    "safe-single-quoted-hash",
+    "#!/bin/bash\n: '# text'; echo safe\n",
+    0
+  ],
+  [
+    "safe-double-quoted-hash",
+    "#!/bin/bash\n: \"# text\"; echo safe\n",
+    0
+  ],
+  [
+    "safe-escaped-hash",
+    "#!/bin/bash\n: \\#; echo safe\n",
+    0
+  ],
+  [
+    "FF-name-parens",
+    "#!/bin/bash\nf () { sh payload.sh; }\nf\f() { echo safe; }\nf\n",
+    2
+  ],
+  [
+    "FF-keyword-name",
+    "#!/bin/bash\nf () { sh payload.sh; }\nfunction\ff () { echo safe; }\nf\n",
+    2
+  ],
+  [
+    "FF-keyword-name-parens",
+    "#!/bin/bash\nf () { sh payload.sh; }\nfunction f\f() { echo safe; }\nf\n",
+    2
+  ],
+  [
+    "FF-spaced-parens",
+    "#!/bin/bash\nf () { sh payload.sh; }\nf\f( ) { echo safe; }\nf\n",
+    2
+  ],
+  [
+    "FF-leading-name",
+    "#!/bin/bash\nf () { sh payload.sh; }\n\ff () { echo safe; }\nf\n",
+    2
+  ],
+  [
+    "FF-leading-keyword",
+    "#!/bin/bash\nf () { sh payload.sh; }\n\ffunction f () { echo safe; }\nf\n",
+    2
+  ],
+  [
+    "FF-brace-header",
+    "#!/bin/bash\nf () { sh payload.sh; }\n{\f echo safe; }\nf\n",
+    2
+  ],
+  [
+    "VT-name-parens",
+    "#!/bin/bash\nf () { sh payload.sh; }\nf\u000b() { echo safe; }\nf\n",
+    2
+  ],
+  [
+    "VT-keyword-name",
+    "#!/bin/bash\nf () { sh payload.sh; }\nfunction\u000bf () { echo safe; }\nf\n",
+    2
+  ],
+  [
+    "VT-keyword-name-parens",
+    "#!/bin/bash\nf () { sh payload.sh; }\nfunction f\u000b() { echo safe; }\nf\n",
+    2
+  ],
+  [
+    "VT-spaced-parens",
+    "#!/bin/bash\nf () { sh payload.sh; }\nf\u000b( ) { echo safe; }\nf\n",
+    2
+  ],
+  [
+    "VT-leading-name",
+    "#!/bin/bash\nf () { sh payload.sh; }\n\u000bf () { echo safe; }\nf\n",
+    2
+  ],
+  [
+    "VT-leading-keyword",
+    "#!/bin/bash\nf () { sh payload.sh; }\n\u000bfunction f () { echo safe; }\nf\n",
+    2
+  ],
+  [
+    "VT-brace-header",
+    "#!/bin/bash\nf () { sh payload.sh; }\n{\u000b echo safe; }\nf\n",
+    2
+  ],
+  [
+    "CR-name-parens",
+    "#!/bin/bash\nf () { sh payload.sh; }\nf\r() { echo safe; }\nf\n",
+    2
+  ],
+  [
+    "CR-keyword-name",
+    "#!/bin/bash\nf () { sh payload.sh; }\nfunction\rf () { echo safe; }\nf\n",
+    2
+  ],
+  [
+    "CR-keyword-name-parens",
+    "#!/bin/bash\nf () { sh payload.sh; }\nfunction f\r() { echo safe; }\nf\n",
+    2
+  ],
+  [
+    "CR-spaced-parens",
+    "#!/bin/bash\nf () { sh payload.sh; }\nf\r( ) { echo safe; }\nf\n",
+    2
+  ],
+  [
+    "CR-leading-name",
+    "#!/bin/bash\nf () { sh payload.sh; }\n\rf () { echo safe; }\nf\n",
+    2
+  ],
+  [
+    "CR-leading-keyword",
+    "#!/bin/bash\nf () { sh payload.sh; }\n\rfunction f () { echo safe; }\nf\n",
+    2
+  ],
+  [
+    "CR-brace-header",
+    "#!/bin/bash\nf () { sh payload.sh; }\n{\r echo safe; }\nf\n",
+    2
+  ],
+  [
+    "safe-real-space-redefinition",
+    "#!/bin/bash\nf () { sh payload.sh; }\nf () { echo safe; }\nf\n",
+    0
+  ],
+  [
+    "safe-real-tab-redefinition",
+    "#!/bin/bash\nf () { sh payload.sh; }\nf\t() { echo safe; }\nf\n",
+    0
+  ],
+  [
+    "escaped-blank",
+    "#!/bin/bash\nf () { sh payload.sh; }\n: word\\ #literal; f\n",
+    2
+  ],
+  [
+    "word-continuation",
+    "#!/bin/bash\nf () { sh payload.sh; }\n: word\\\n#literal; f\n",
+    2
+  ],
+  [
+    "quoted-word-continuation",
+    "#!/bin/bash\nf () { sh payload.sh; }\n: 'word'\\\n#literal; f\n",
+    2
+  ],
+  [
+    "adjacent-single-quote",
+    "#!/bin/bash\nf () { sh payload.sh; }\n: 'word'#literal; f\n",
+    2
+  ],
+  [
+    "adjacent-double-quote",
+    "#!/bin/bash\nf () { sh payload.sh; }\n: \"word\"#literal; f\n",
+    2
+  ],
+  [
+    "adjacent-empty-quote",
+    "#!/bin/bash\nf () { sh payload.sh; }\n: ''#literal; f\n",
+    2
+  ],
+  [
+    "parameter-boundary-hash",
+    "#!/bin/bash\nf () { sh payload.sh; }\n: ${x:- #literal}; f\n",
+    2
+  ],
+  [
+    "parameter-nested-command",
+    "#!/bin/bash\nf () { sh payload.sh; }\n: \"${x:-$(echo '# literal')}\"; f\n",
+    2
+  ],
+  [
+    "no-final-newline",
+    "#!/bin/bash\nf () { sh payload.sh; }\nf # x; f () { echo safe; }",
+    2
+  ],
+  [
+    "continued-real-comment",
+    "#!/bin/bash\nf () { sh payload.sh; }\n: word\\\n # x; f () { echo safe; }\nf\n",
+    2
+  ],
+  [
+    "continued-direct-operation",
+    "#!/bin/bash\n: word\\\n#literal; rm -rf /Users/probe/outside-project\n",
+    2
+  ],
+  [
+    "safe-full-line-operation-comment",
+    "#!/bin/bash\n# rm -rf /Users/probe/outside-project\necho safe\n",
+    0
+  ],
+  [
+    "multiline-quoted-hash",
+    "#!/bin/bash\nf () { sh payload.sh; }\n: 'text\n#literal'; f\n",
+    2
+  ],
+  [
+    "body-comment-fake-closers",
+    "#!/bin/bash\nf () { sh payload.sh; }\ng () {\n: # } ; f () { echo safe; } ; ) & |\necho ok\n}\ng\nf\n",
+    2
+  ],
+  [
+    "safe-cd-comment-ampersand",
+    "#!/bin/bash\ncd safe # &\nsh payload.sh\n",
+    0
+  ],
+  [
+    "safe-function-comment-ampersand",
+    "#!/bin/bash\nmove () { cd safe; }\nmove # &\nsh payload.sh\n",
+    0
+  ],
+  [
+    "safe-cd-comment-pipe",
+    "#!/bin/bash\ncd safe # | cat\nsh payload.sh\n",
+    0
+  ],
+  [
+    "safe-function-comment-pipe",
+    "#!/bin/bash\nmove () { cd safe; }\nmove # | cat\nsh payload.sh\n",
+    0
+  ],
+  [
+    "policy-continued space comment",
+    "#!/bin/bash\n: word\\\n # rm -rf /Users/probe/outside-project\n",
+    0
+  ],
+  [
+    "policy-continued tab comment",
+    "#!/bin/bash\n: word\\\n\t# rm -rf /Users/probe/outside-project\n",
+    0
+  ],
+  [
+    "policy-continued comment before another line",
+    "#!/bin/bash\n: word\\\n # rm -rf /Users/probe/outside-project\necho safe\n",
+    0
+  ],
+  [
+    "policy-quoted continuation",
+    "#!/bin/bash\n: \"word\\\n #literal\"; rm -rf /Users/probe/outside-project\n",
+    2
+  ],
+  [
+    "policy-single quoted multiline word",
+    "#!/bin/bash\n: 'word\n #literal'; rm -rf /Users/probe/outside-project\n",
+    2
+  ],
+  [
+    "policy-continued word-owned hash",
+    "#!/bin/bash\n: word\\\n#literal; rm -rf /Users/probe/outside-project\n",
+    2
+  ],
+  [
+    "policy-standalone comment control",
+    "#!/bin/bash\n# rm -rf /Users/probe/outside-project\necho safe\n",
+    0
+  ],
+  [
+    "policy-conservative inline comment control",
+    "#!/bin/bash\n: # rm -rf /Users/probe/outside-project\n",
+    2
+  ],
+  [
+    "policy-continued form-feed word",
+    "#!/bin/bash\n: word\\\n\f#literal; rm -rf /Users/probe/outside-project\n",
+    2
+  ],
+  [
+    "policy-continued vertical-tab word",
+    "#!/bin/bash\n: word\\\n\u000b#literal; rm -rf /Users/probe/outside-project\n",
+    2
+  ],
+  [
+    "policy-continued carriage-return word",
+    "#!/bin/bash\n: word\\\n\r#literal; rm -rf /Users/probe/outside-project\n",
+    2
+  ]
+]
