@@ -11,10 +11,10 @@ import {
 } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { spawnSync } from "node:child_process";
 
 import { afterEach, describe, expect, it } from "vitest";
 import { checkoutFiles } from "../../helpers/tracked-files.js";
+import { boundedSpawnSync } from "../../helpers/io-latency-budget.js";
 
 import { defaultUserMcpConfigPath } from "../../../src/agy/mcp-installer.js";
 import {
@@ -83,11 +83,16 @@ describe("packaged apply preflight", () => {
   });
   it("the executable refuses with no vendor CLIs and prints only the destination", async () => {
     const emptyPath = await fixture();
-    const result = spawnSync(
-      process.execPath,
-      [path.resolve("scripts/verify-packaged-apply.mjs"), "--harness", "fleet"],
-      { encoding: "utf8", env: { ...process.env, PATH: emptyPath } }
-    );
+    const result = boundedSpawnSync({
+      command: process.execPath,
+      args: [
+        path.resolve("scripts/verify-packaged-apply.mjs"),
+        "--harness",
+        "fleet",
+      ],
+      env: { ...process.env, PATH: emptyPath },
+      label: "refuse uncontained packaged apply before spawning its CLI",
+    });
     expect(result.status).toBe(1);
     expect(result.stderr).toContain(defaultUserMcpConfigPath());
     expect(result.stderr).toContain("Refused before spawning apply");
