@@ -1255,7 +1255,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/rules/reference/ready-role-filing.md":
       "ab6ef509ee3560b55cf0a7cb03edb0c63d97c71334ee3baafd54bdeb06451f81",
     "plugins/src/base/rules/reference/rejection-detection.md":
-      "9a9057d9c392b9d7e3411bb71a7b2f7f678e2668fd0110b9a976a00959a157d6",
+      "1610bae863696a2607894c5a36482fd34b828e1abf15a9162b2641d7408e6b3a",
     "plugins/src/base/rules/reference/repo-scope-split.md":
       "20b1aa6999a9376d7b9990c0022f40a4d48d5d09af9c709bf1b6ead3f1443b16",
     "plugins/src/base/rules/reference/report-actionability.md":
@@ -1429,7 +1429,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-github-add-journey/SKILL.md":
       "4ceda3474a9b32abae835c2676e8cb2b7e888c6ba04b95843dbe7254293bbf32",
     "plugins/src/base/skills/lisa-github-build-intake/SKILL.md":
-      "54be96208f76e1a9cdd23aa953c5d405ba94645f5975f413d9c2e1b5b3134516",
+      "97cec1d74b897ecca1af78f6ba62e76cb11b9496388ef3b2f20e7279c6b49ac6",
     "plugins/src/base/skills/lisa-github-claim/SKILL.md":
       "71301c6d45d7eb5523e74aa7f070bb2becf57ca68fb8bde9e02ee937b78815f7",
     "plugins/src/base/skills/lisa-github-create/SKILL.md":
@@ -12518,6 +12518,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/kill-marks.test.ts": true,
     "tests/unit/scripts/lint-staged-preflight.test.ts": true,
     "tests/unit/scripts/lisa-assert-eas-profile.test.ts": true,
+    "tests/unit/scripts/lisa-ci-failure-redispatch-intake.test.ts": true,
     "tests/unit/scripts/lisa-environment-prepare.test.ts": true,
     "tests/unit/scripts/lisa-gates-await-deploy-refusal.test.ts": true,
     "tests/unit/scripts/lisa-gates-await-moment-reach.test.ts": true,
