@@ -18,11 +18,12 @@ import {
 import { rejectOnReaperExit } from "../../../src/cli/lisa-test-run-runtime.js";
 
 const REPO_ROOT = path.resolve(import.meta.dirname, "../../..");
+const ARMED_BIRTH = "armed-birth";
 
 const TARGET: TestRunTargetIntent = {
   pid: 4242,
   pgid: 4242,
-  processBirthFingerprint: "armed-birth",
+  processBirthFingerprint: ARMED_BIRTH,
 };
 
 /**
@@ -141,7 +142,39 @@ describe("test-run companion terminal state", () => {
 
 describe("test-run process-group birth authority", () => {
   it("refuses a live recycled group when its armed leader is absent", async () => {
+    vi.useFakeTimers();
     const signal = vi.fn();
+
+    try {
+      await expect(
+        drainTestRunTarget(TARGET, {
+          probes: {
+            isProcessAlive: () => false,
+            processBirthFingerprint: () => {
+              throw new Error("an absent leader has no birth authority");
+            },
+            processGroupAlive: () => true,
+            signalGroup: signal,
+            delay: async milliseconds => {
+              await vi.advanceTimersByTimeAsync(milliseconds);
+            },
+          },
+        })
+      ).rejects.toThrow(/leader is absent.*refusing group signal/iu);
+      expect(signal).not.toHaveBeenCalled();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("observes an exiting group disappear after its leader without signalling", async () => {
+    const signal = vi.fn();
+    const delay = vi.fn(async () => undefined);
+    const group = vi
+      .fn<() => boolean>()
+      .mockReturnValueOnce(true)
+      .mockReturnValueOnce(true)
+      .mockReturnValue(false);
 
     await expect(
       drainTestRunTarget(TARGET, {
@@ -150,13 +183,44 @@ describe("test-run process-group birth authority", () => {
           processBirthFingerprint: () => {
             throw new Error("an absent leader has no birth authority");
           },
-          processGroupAlive: () => true,
+          processGroupAlive: group,
           signalGroup: signal,
-          delay: async () => undefined,
+          delay,
         },
       })
-    ).rejects.toThrow(/leader is absent.*refusing group signal/iu);
+    ).resolves.toBeUndefined();
+    expect(delay).toHaveBeenCalled();
     expect(signal).not.toHaveBeenCalled();
+  });
+
+  it("observes group exit after TERM loses its leader without sending KILL", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(0);
+    const signal = vi.fn();
+    const leaderAlive = vi
+      .fn<() => boolean>()
+      .mockReturnValueOnce(true)
+      .mockReturnValue(false);
+
+    try {
+      await expect(
+        drainTestRunTarget(TARGET, {
+          probes: {
+            isProcessAlive: leaderAlive,
+            processBirthFingerprint: () => ARMED_BIRTH,
+            processGroupAlive: () => Date.now() <= 2_000,
+            signalGroup: signal,
+            delay: async milliseconds => {
+              await vi.advanceTimersByTimeAsync(milliseconds);
+            },
+          },
+        })
+      ).resolves.toBeUndefined();
+      expect(signal).toHaveBeenCalledTimes(1);
+      expect(signal).toHaveBeenCalledWith(TARGET.pgid, "SIGTERM");
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("accepts an already-absent leader and group without signalling", async () => {
@@ -225,7 +289,7 @@ describe("test-run process-group birth authority", () => {
         drainTestRunTarget(TARGET, {
           probes: {
             isProcessAlive: leaderAlive,
-            processBirthFingerprint: () => "armed-birth",
+            processBirthFingerprint: () => ARMED_BIRTH,
             processGroupAlive: () => true,
             signalGroup: signal,
             delay: async milliseconds => {
