@@ -103,6 +103,16 @@ describe("the CI-rework route is executable", () => {
     );
   });
 
+  it("never resets a local head branch that holds commits not on origin", () => {
+    expect(dispatch).toContain(
+      "git rev-list --count origin/<headRefName>..<headRefName>"
+    );
+    expect(dispatch).toContain("git worktree add <path> <headRefName>");
+    expect(dispatch).toMatch(
+      /only when the local branch is absent or has nothing unpushed/u
+    );
+  });
+
   it("writes the bundle for the agent to read, without claiming the PR skill reads it", () => {
     expect(dispatch).not.toMatch(
       /lisa-drive-pr-to-merge[^\n]*reads the bundle/u
