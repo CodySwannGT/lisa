@@ -3494,6 +3494,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "docs/quality-workflow-notes.md": true,
     "docs/rails-test-isolation.md": true,
     "docs/rails-tooling-migration.md": true,
+    "docs/release-runbook.md": true,
     "docs/remote-agent-aws.md": true,
     "docs/wiki-inbox/.gitkeep": true,
     "docs/wiki-inbox/2026-08-12-lisa-improvement-notes.md": true,
