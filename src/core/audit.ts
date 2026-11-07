@@ -1,13 +1,19 @@
 import { existsSync } from "node:fs";
 import { join } from "node:path";
-import { readAuditExclusions } from "./audit-exclusions.js";
+import {
+  readAuditExclusions,
+  requiresLockfileScope,
+} from "./audit-exclusions.js";
 import { readAuditCopies } from "./audit-lockfile.js";
 import { matchAuditFindings } from "./audit-matcher.js";
 import { parseAuditReport } from "./audit-report.js";
 import { captureAudit, type AuditCaptureOptions } from "./audit-capture.js";
 import type { AuditManager, AuditVerdict } from "./audit-types.js";
 
-export { auditScopeProblems } from "./audit-exclusions.js";
+export {
+  auditScopeProblems,
+  requiresLockfileScope,
+} from "./audit-exclusions.js";
 export type {
   AuditCopy,
   AuditExclusion,
@@ -48,9 +54,7 @@ export function evaluateAuditReport(
   source: string
 ): AuditVerdict {
   const exclusions = readAuditExclusions(root);
-  const scoped = exclusions.some(
-    entry => entry.paths !== undefined || entry.versions !== undefined
-  );
+  const scoped = exclusions.some(requiresLockfileScope);
   const copies = scoped ? readAuditCopies(root, manager) : [];
   return matchAuditFindings(
     parseAuditReport(source, manager),
@@ -73,9 +77,7 @@ export async function runDependencyAudit(
 ): Promise<AuditVerdict> {
   const exclusions = readAuditExclusions(root);
   // Validate scope before the network call, even when the report would be {}.
-  const scoped = exclusions.some(
-    entry => entry.paths !== undefined || entry.versions !== undefined
-  );
+  const scoped = exclusions.some(requiresLockfileScope);
   const copies = scoped ? readAuditCopies(root, manager) : [];
   const findings = await captureAudit(root, manager, options);
   return matchAuditFindings(findings, exclusions, copies);

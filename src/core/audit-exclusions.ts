@@ -12,6 +12,77 @@ export function auditRecord(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === "object" && !Array.isArray(value);
 }
 
+/** Fields an exclusion may carry: identity, scope, and decision record. */
+const KNOWN_FIELDS: ReadonlySet<string> = new Set([
+  // identity and scope — the only fields the matcher reads
+  "id",
+  "cve",
+  "package",
+  "versions",
+  "paths",
+  "active",
+  // the written decision (doctor's B5 keys) and its bookkeeping
+  "reason",
+  "notes",
+  "justification",
+  "decision",
+  "rationale",
+  "comment",
+  "owner",
+  "tracking",
+  "review_by",
+  "expiry_enforced",
+]);
+
+/** The scope field a likely misspelling was meant to be. */
+const SCOPE_SPELLINGS: Readonly<Record<string, string>> = {
+  path: "paths",
+  version: "versions",
+  packages: "package",
+  pkg: "package",
+  range: "versions",
+  ranges: "versions",
+};
+
+/**
+ * Reject fields the matcher does not know.
+ *
+ * A misspelled scope (`path`, `version`) used to be ignored, which turned the
+ * entry into an advisory- or package-wide exclusion — the opposite of what its
+ * author wrote. An unknown field therefore fails closed. Keys starting with
+ * `//` are the JSON comment convention and carry no meaning.
+ * @param entry - Exclusion fields to validate
+ * @returns One problem per unknown field
+ */
+function unknownFieldProblems(entry: Record<string, unknown>): string[] {
+  return Object.keys(entry)
+    .filter(key => !KNOWN_FIELDS.has(key) && !key.startsWith("//"))
+    .map(key => {
+      const meant = SCOPE_SPELLINGS[key.toLowerCase()];
+      const hint = meant ? ` (did you mean "${meant}"?)` : "";
+      return (
+        `unknown field "${key}"${hint}; ` +
+        "an unrecognized field may be a misspelled scope, so the exclusion is " +
+        "rejected rather than applied more widely than written"
+      );
+    });
+}
+
+/** The two scope fields only lockfile copies can satisfy. */
+interface LockfileScopeFields {
+  readonly paths?: unknown;
+  readonly versions?: unknown;
+}
+
+/**
+ * Whether an exclusion's scope can only be checked against lockfile copies.
+ * @param entry - Exclusion fields
+ * @returns True when `paths` or `versions` is present
+ */
+export function requiresLockfileScope(entry: LockfileScopeFields): boolean {
+  return entry.paths !== undefined || entry.versions !== undefined;
+}
+
 /**
  * Validate the optional scope without changing legacy advisory-only meaning.
  * @param entry - Exclusion fields to validate or match
@@ -19,6 +90,7 @@ export function auditRecord(value: unknown): value is Record<string, unknown> {
  */
 export function auditScopeProblems(entry: Record<string, unknown>): string[] {
   return [
+    ...unknownFieldProblems(entry),
     ...(Object.hasOwn(entry, "package") &&
     (typeof entry.package !== "string" || !entry.package.trim())
       ? ["package must be a non-empty package name"]

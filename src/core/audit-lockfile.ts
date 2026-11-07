@@ -1,11 +1,71 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { parse as parseJsonc, type ParseError } from "jsonc-parser";
-import { parse as parseYarn } from "@yarnpkg/lockfile";
+import * as yarnLockfile from "@yarnpkg/lockfile";
 import { load as parseYaml } from "js-yaml";
 import { valid, validRange } from "semver";
 import { auditRecord } from "./audit-exclusions.js";
 import type { AuditCopy, AuditManager } from "./audit-types.js";
+
+// Node 22's CommonJS lexer cannot see `parse` on this webpack bundle, so a named
+// import crashes the module at load there. A namespace import always loads; the
+// function is on it directly (bundlers, Node 24) or on its `default` (Node 22).
+const yarnModule = yarnLockfile as typeof yarnLockfile & {
+  readonly default?: typeof yarnLockfile;
+};
+const parseYarn = yarnModule.parse ?? yarnModule.default?.parse;
+
+/**
+ * Protocols whose copies come from somewhere other than the package registry.
+ * A registry advisory is reported for registry copies; a git, file, link,
+ * tarball, workspace or patch entry is not one, and treating it as unknown data
+ * used to fail every scoped exclusion in a project that has any such entry.
+ */
+const NON_REGISTRY_PROTOCOLS: ReadonlySet<string> = new Set([
+  "workspace",
+  "root",
+  "file",
+  "link",
+  "portal",
+  "patch",
+  "exec",
+  "git",
+  "github",
+  "gitlab",
+  "bitbucket",
+  "http",
+  "https",
+]);
+
+/**
+ * Whether a resolved spec names a non-registry source.
+ * @param spec - The part after the package name (`1.2.3`, `file:../x`, …)
+ * @returns True for a non-registry source
+ */
+function isNonRegistrySpec(spec: string): boolean {
+  const protocol = /^([a-z][a-z0-9+.-]*):/u.exec(spec)?.[1];
+  if (protocol === undefined) return false;
+  // `git+https:`, `git+ssh:` and any `scheme://` URL are not registry copies.
+  return (
+    NON_REGISTRY_PROTOCOLS.has(protocol) ||
+    protocol.startsWith("git+") ||
+    spec.startsWith(`${protocol}://`)
+  );
+}
+
+/**
+ * Split `name@spec`, honoring a leading scope; an `@` inside the spec stays.
+ * @param identity - Resolved identity such as `@scope/name@1.2.3`
+ * @returns The name and spec, or null when there is no separator
+ */
+function splitIdentity(
+  identity: string
+): { readonly name: string; readonly spec: string } | null {
+  const index = identity.indexOf("@", identity.startsWith("@") ? 1 : 0);
+  return index < 1
+    ? null
+    : { name: identity.slice(0, index), spec: identity.slice(index + 1) };
+}
 
 /**
  * Split an exact resolved identity, including scoped package names.
@@ -14,13 +74,11 @@ import type { AuditCopy, AuditManager } from "./audit-types.js";
  * @returns The validated result described above
  */
 function resolvedCopy(path: string, identity: string): AuditCopy {
-  const index = identity.lastIndexOf("@");
-  const name = identity.slice(0, index);
-  const version = identity.slice(index + 1);
-  if (index < 1 || valid(version) === null) {
+  const split = splitIdentity(identity);
+  if (split === null || valid(split.spec) === null) {
     throw new Error(`Unknown lockfile package data at ${path}: ${identity}`);
   }
-  return { path, name, version };
+  return { path, name: split.name, version: split.spec };
 }
 
 /**
@@ -40,8 +98,9 @@ function bunCopies(source: string): AuditCopy[] {
     if (!Array.isArray(tuple) || typeof tuple[0] !== "string") {
       throw new Error(`Unknown bun.lock package data at ${path}`);
     }
-    // Workspaces have no registry version; their dependencies are separate keys.
-    if (/^(?:@[^/]+\/)?[^@]+@workspace:[^\s]+$/u.test(tuple[0])) return [];
+    // Workspace, git, file, link and tarball entries are not registry copies;
+    // their own dependencies are separate keys.
+    if (isNonRegistrySpec(splitIdentity(tuple[0])?.spec ?? "")) return [];
     return [resolvedCopy(path, tuple[0])];
   });
 }
@@ -63,6 +122,9 @@ function npmCopies(source: string): AuditCopy[] {
     if (!auditRecord(entry))
       throw new Error(`Unknown package-lock.json entry at ${path}`);
     if (entry.link === true) return [];
+    const source =
+      typeof entry.version === "string" ? entry.version : entry.resolved;
+    if (typeof source === "string" && isNonRegistrySpec(source)) return [];
     const name =
       typeof entry.name === "string"
         ? entry.name
@@ -109,6 +171,8 @@ function yarnCopies(source: string): AuditCopy[] {
     const selectorRange = selector.startsWith("npm:")
       ? selector.slice(4)
       : selector;
+    // A file, git, tarball, workspace or patch selector is not a registry copy.
+    if (separator > 0 && isNonRegistrySpec(selectorRange)) return [];
     const realRange = selectorRange.includes("@")
       ? selectorRange.slice(selectorRange.lastIndexOf("@") + 1)
       : selectorRange;

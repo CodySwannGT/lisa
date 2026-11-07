@@ -1,4 +1,5 @@
 import { satisfies, validRange } from "semver";
+import { requiresLockfileScope } from "./audit-exclusions.js";
 import type {
   AuditCopy,
   AuditExclusion,
@@ -64,6 +65,36 @@ function matchExclusion(
 }
 
 /**
+ * Choose which exclusions may decide a finding.
+ *
+ * A paths/versions entry records that someone reviewed particular copies. An
+ * advisory-wide entry for the same advisory and package — typically a managed,
+ * shared decision — must not quietly accept the copies that review rejected,
+ * so once a scoped entry applies to this package only scoped entries decide.
+ * A scoped entry for a DIFFERENT package says nothing about this one.
+ * @param candidates - Active exclusions whose id or CVE names the finding
+ * @param finding - Normalized provider advisory
+ * @returns The entries that decide, and the wide ones set aside
+ */
+function narrowestCandidates(
+  candidates: readonly AuditExclusion[],
+  finding: AuditFinding
+): { applied: readonly AuditExclusion[]; shadowed: readonly AuditExclusion[] } {
+  const samePackage = (entry: AuditExclusion) =>
+    entry.package === undefined || entry.package === finding.name;
+  const scoped = candidates.filter(
+    entry => samePackage(entry) && requiresLockfileScope(entry)
+  );
+  if (!scoped.length) return { applied: candidates, shadowed: [] };
+  return {
+    applied: candidates.filter(entry => requiresLockfileScope(entry)),
+    shadowed: candidates.filter(
+      entry => samePackage(entry) && !requiresLockfileScope(entry)
+    ),
+  };
+}
+
+/**
  * Evaluate every finding; an unmatched finding remains a finding.
  * @param findings - All normalized high and critical advisories
  * @param exclusions - Validated active exclusions from both decision files
@@ -82,20 +113,26 @@ export function matchAuditFindings(
         (finding.ids.includes(entry.id) ||
           (entry.cve !== undefined && finding.ids.includes(entry.cve)))
     );
-    const matches = candidates.map(entry =>
+    const { applied, shadowed } = narrowestCandidates(candidates, finding);
+    const notes = shadowed.length
+      ? [
+          `${finding.ids[0]}: advisory-wide exclusion was not applied because a narrower paths/versions exclusion exists for ${finding.name}`,
+        ]
+      : [];
+    const matches = applied.map(entry =>
       matchExclusion(entry, finding, copies)
     );
     const accepted = matches.find(match => match.passed);
-    return (
-      accepted ?? {
-        passed: false,
-        messages: matches.length
-          ? matches.flatMap(match => match.messages)
-          : [
-              `${finding.ids[0]}: unresolved high/critical advisory for ${finding.name}`,
-            ],
-      }
-    );
+    if (accepted)
+      return { passed: true, messages: [...notes, ...accepted.messages] };
+    return {
+      passed: false,
+      messages: matches.length
+        ? [...notes, ...matches.flatMap(match => match.messages)]
+        : [
+            `${finding.ids[0]}: unresolved high/critical advisory for ${finding.name}`,
+          ],
+    };
   });
   return {
     passed: outcomes.every(outcome => outcome.passed),
