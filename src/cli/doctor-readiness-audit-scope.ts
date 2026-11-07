@@ -12,6 +12,7 @@
  */
 import {
   auditScopeProblems,
+  classifyUnknownFields,
   detectAuditManager,
   requiresLockfileScope,
 } from "../core/audit.js";
@@ -150,18 +151,24 @@ function assessOne(
       violations: problems.map(problem => `${where}: ${problem}`),
       observations: [],
     };
+  const ignored = classifyUnknownFields(fields).ignored.map(
+    key =>
+      `\`${exclusion.file}\`: the entry for \`${exclusion.id}\` has an ` +
+      `unrecognized field \`${key}\`, which the audit ignores. It changes ` +
+      "nothing about what is excused; use `reason` or `notes` for the decision."
+  );
   if (!requiresLockfileScope(fields))
     return {
       exclusion,
       valid: true,
       violations: [],
-      observations: [wideObservation(exclusion, fields.package)],
+      observations: [wideObservation(exclusion, fields.package), ...ignored],
     };
   return {
     exclusion,
     valid: true,
     violations: lockfile === null ? [] : [`${where}: ${lockfile}`],
-    observations: [],
+    observations: ignored,
   };
 }
 

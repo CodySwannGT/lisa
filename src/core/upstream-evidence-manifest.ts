@@ -1265,7 +1265,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/rules/reference/reset-seed-coverage.md":
       "cfbb50fc9fdb6f0a354255802392adc717ea18af65aca92cc866416bf9256d91",
     "plugins/src/base/rules/reference/security-audit-handling.md":
-      "5a107625f070629518836c17cc06b765bcc6d49831c1c9b5b8528845bbe0152b",
+      "3d946eda3171a451c0bb278027400ffb3d8b9126e460a5421397f7453cc70fe4",
     "plugins/src/base/rules/reference/session-status-updates.md":
       "8878eceb7d81ee4d1ebd51f2f179e659ce36fac3ee7d04bc8631f44923d5e9ae",
     "plugins/src/base/rules/reference/settled-decisions.md":
@@ -10832,6 +10832,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "src/core/apply-receipt.ts": true,
     "src/core/audit-capture.ts": true,
     "src/core/audit-exclusions.ts": true,
+    "src/core/audit-field-names.ts": true,
     "src/core/audit-lockfile.ts": true,
     "src/core/audit-matcher.ts": true,
     "src/core/audit-report.ts": true,

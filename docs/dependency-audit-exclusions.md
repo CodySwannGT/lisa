@@ -33,13 +33,17 @@ rather than a note in `reason` or a comparison of two advisory ranges. Keep the
 reason readable and record the owner, tracking item, and review date required
 by the project's exception policy.
 
-An entry may carry only these fields: `id`, `cve`, `package`, `versions`,
-`paths`, `active`, and the decision record — `reason`, `notes`,
-`justification`, `decision`, `rationale`, `comment`, `owner`, `tracking`,
-`review_by`, and `expiry_enforced`. Keys that start with `//` are comments.
-Any other field fails the audit with a diagnostic. A misspelled scope such as
-`path` or `version` would otherwise be ignored, which would excuse every copy
-instead of the one you meant, so the audit names the field it expected.
+The documented fields are `id`, `cve`, `package`, `versions`, `paths`,
+`active`, and the decision record: `reason`, `notes`, `justification`,
+`decision`, `rationale`, `comment`, `owner`, `tracking`, `review_by`, and
+`expiry_enforced`. Keys that start with `//` are comments. A key that nearly
+matches one of the five scope fields fails the audit with a diagnostic that
+names the field it expected. This covers a different case (`Paths`), a
+singular or plural (`path`, `version`, `packages`), or a small typo
+(`pathes`). Without that check the misspelled scope would be ignored and the
+entry would excuse every copy instead of the one you meant. Any other extra key,
+such as `url` or `title`, is ignored by the audit as before, and doctor notes
+it so nobody mistakes it for a scope.
 
 For a matching advisory, the matcher reads the resolved package name and exact
 version of every lockfile copy inside the advisory's vulnerable range. An npm

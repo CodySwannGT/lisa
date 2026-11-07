@@ -69,6 +69,19 @@ describe("doctor audit scope", () => {
     );
   });
 
+  it.each(["url", "title", "expires"])(
+    "passes B5 but notes the ignored extra field %s",
+    async key => {
+      const root = tree({
+        "audit.ignore.local.json": [{ ...SCOPED, [key]: "x" }],
+      });
+      expect(await auditExceptionViolations(root)).toEqual([]);
+      expect((await auditExceptionObservations(root)).join("\n")).toContain(
+        `unrecognized field \`${key}\`, which the audit ignores`
+      );
+    }
+  );
+
   it("names the gate's own lockfile message when bun.lock is missing", async () => {
     const root = tree({ "audit.ignore.local.json": [SCOPED] }, false);
     writeFileSync(join(root, "bun.lockb"), "");

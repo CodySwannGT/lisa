@@ -20,6 +20,7 @@ import { afterEach, describe, expect, it } from "vitest";
 
 import {
   auditScopeProblems,
+  classifyUnknownFields,
   evaluateAuditReport,
   requiresLockfileScope,
 } from "../../../src/core/audit.js";
@@ -88,11 +89,15 @@ afterEach(() => {
     rmSync(root, { recursive: true, force: true });
 });
 
-describe("unknown exclusion fields fail closed (B2)", () => {
+describe("a misspelled scope field fails closed; other extra keys do not (B2)", () => {
   it.each([
     ["path", { path: [DEV_PATH] }, "paths"],
     ["version", { version: "3.x" }, "versions"],
     ["packages", { packages: ["zod"] }, "package"],
+    ["Paths", { Paths: [DEV_PATH] }, "paths"],
+    ["pathes", { pathes: [DEV_PATH] }, "paths"],
+    ["Package", { Package: "zod" }, "package"],
+    ["ids", { ids: [GHSA] }, "id"],
   ])(
     "rejects a misspelled %s field and names the real one",
     (_, typo, real) => {
@@ -130,6 +135,26 @@ describe("unknown exclusion fields fail closed (B2)", () => {
     ).toEqual([]);
   });
 
+  it.each([
+    ["url", "https://example.invalid/advisory"],
+    ["title", "Prototype pollution"],
+    ["expires", "2026-12-01"],
+    ["by", "a reviewer"],
+    ["pr", 123],
+  ])(
+    "accepts an unrelated %s key, which the audit ignores as before",
+    (key, value) => {
+      const entry = { ...SCOPED, [key]: value };
+      expect(auditScopeProblems(entry)).toEqual([]);
+      expect(classifyUnknownFields(entry)).toEqual({
+        misspelledScope: [],
+        ignored: [key],
+      });
+      const root = tree({ "audit.ignore.local.json": [entry] }, bunLock());
+      expect(evaluateAuditReport(root, "bun", REPORT).passed).toBe(true);
+    }
+  );
+
   it("the repository's own exclusion files contain no unknown field", () => {
     for (const file of [
       "audit.ignore.config.json",
@@ -140,9 +165,9 @@ describe("unknown exclusion fields fail closed (B2)", () => {
       };
       for (const entry of exclusions)
         expect(
-          auditScopeProblems(entry),
+          classifyUnknownFields(entry),
           `${file} ${String(entry.id)}`
-        ).toEqual([]);
+        ).toEqual({ misspelledScope: [], ignored: [] });
     }
   });
 });

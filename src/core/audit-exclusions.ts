@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { validRange } from "semver";
+import { classifyUnknownFields } from "./audit-field-names.js";
 import type { AuditExclusion } from "./audit-types.js";
 
 /**
@@ -12,60 +13,23 @@ export function auditRecord(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === "object" && !Array.isArray(value);
 }
 
-/** Fields an exclusion may carry: identity, scope, and decision record. */
-const KNOWN_FIELDS: ReadonlySet<string> = new Set([
-  // identity and scope — the only fields the matcher reads
-  "id",
-  "cve",
-  "package",
-  "versions",
-  "paths",
-  "active",
-  // the written decision (doctor's B5 keys) and its bookkeeping
-  "reason",
-  "notes",
-  "justification",
-  "decision",
-  "rationale",
-  "comment",
-  "owner",
-  "tracking",
-  "review_by",
-  "expiry_enforced",
-]);
-
-/** The scope field a likely misspelling was meant to be. */
-const SCOPE_SPELLINGS: Readonly<Record<string, string>> = {
-  path: "paths",
-  version: "versions",
-  packages: "package",
-  pkg: "package",
-  range: "versions",
-  ranges: "versions",
-};
-
 /**
- * Reject fields the matcher does not know.
+ * Reject near-misses of a scope field.
  *
- * A misspelled scope (`path`, `version`) used to be ignored, which turned the
- * entry into an advisory- or package-wide exclusion — the opposite of what its
- * author wrote. An unknown field therefore fails closed. Keys starting with
- * `//` are the JSON comment convention and carry no meaning.
+ * A misspelled scope (`path`, `Paths`, `version`) used to be ignored, which
+ * turned the entry into an advisory- or package-wide exclusion — the opposite
+ * of what its author wrote — so it fails closed. Any other unrecognized key is
+ * harmless documentation and keeps its existing meaning: ignored.
  * @param entry - Exclusion fields to validate
- * @returns One problem per unknown field
+ * @returns One problem per misspelled scope field
  */
-function unknownFieldProblems(entry: Record<string, unknown>): string[] {
-  return Object.keys(entry)
-    .filter(key => !KNOWN_FIELDS.has(key) && !key.startsWith("//"))
-    .map(key => {
-      const meant = SCOPE_SPELLINGS[key.toLowerCase()];
-      const hint = meant ? ` (did you mean "${meant}"?)` : "";
-      return (
-        `unknown field "${key}"${hint}; ` +
-        "an unrecognized field may be a misspelled scope, so the exclusion is " +
-        "rejected rather than applied more widely than written"
-      );
-    });
+function misspelledScopeProblems(entry: Record<string, unknown>): string[] {
+  return classifyUnknownFields(entry).misspelledScope.map(
+    ({ key, meant }) =>
+      `unknown field "${key}" (did you mean "${meant}"?); a misspelled scope ` +
+      "field would otherwise be ignored and excuse more copies than written, " +
+      "so the exclusion is rejected"
+  );
 }
 
 /** The two scope fields only lockfile copies can satisfy. */
@@ -90,7 +54,7 @@ export function requiresLockfileScope(entry: LockfileScopeFields): boolean {
  */
 export function auditScopeProblems(entry: Record<string, unknown>): string[] {
   return [
-    ...unknownFieldProblems(entry),
+    ...misspelledScopeProblems(entry),
     ...(Object.hasOwn(entry, "package") &&
     (typeof entry.package !== "string" || !entry.package.trim())
       ? ["package must be a non-empty package name"]

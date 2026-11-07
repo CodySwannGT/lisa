@@ -14,6 +14,7 @@ export {
   auditScopeProblems,
   requiresLockfileScope,
 } from "./audit-exclusions.js";
+export { classifyUnknownFields } from "./audit-field-names.js";
 export type {
   AuditCopy,
   AuditExclusion,
