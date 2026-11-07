@@ -59,7 +59,6 @@ const FALLBACK = path.join(
 /** Every guard the dispatcher's own loop resolves. */
 const GUARDS = [
   "block-no-verify",
-  "parity-safety-net",
   "block-shell-json-parsing",
   "block-instruction-file-edits",
   "block-direct-issue-create",

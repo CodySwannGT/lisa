@@ -42,7 +42,6 @@ const BLOCKED = 2;
 /** The guards the fallback replays a payload to. */
 const GUARDS = [
   "block-no-verify",
-  "parity-safety-net",
   "block-shell-json-parsing",
   "block-instruction-file-edits",
   "block-direct-issue-create",
@@ -137,7 +136,7 @@ describe("enforcement fallback status aggregation", () => {
   it("still reports a non-blocking error when nothing refused", () => {
     // Dominance must not swallow diagnostics. With no refusal, a guard's error
     // is still the exit status, so a broken guard stays visible.
-    const root = projectWithGuards({ "parity-safety-net": 3 });
+    const root = projectWithGuards({ "block-shell-json-parsing": 3 });
 
     expect(runFallback(root)).toBe(3);
   });

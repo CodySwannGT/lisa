@@ -53,13 +53,18 @@ const SCRIPT_NAMES = [
   "generate-copilot-plugin-artifacts.mjs",
   "generate-cursor-plugin-artifacts.mjs",
   "generate-devin-plugin-artifacts.mjs",
-  // #3064. Every materialize call in build-plugins.sh is guarded on this
-  // generator being present, so a fixture without it produced a build that
-  // wrote NOTHING outside plugins/ — which is exactly the state the sync check
-  // now refuses. Vendoring it is not widening the fixture to suit the check:
-  // materializing is part of what build-plugins.sh does, and a fixture that
-  // skipped it was under-representing the script it exists to exercise.
+  "generate-retired-safety-net-manifest.mjs",
+  "generate-lisa-owned-hash-ledger.mjs",
+  // Materialization is part of the real build. Include its actual writer so
+  // this fixture exercises generated copies outside plugins/ as well (#3064).
   "materialize-copy-overwrite.mjs",
+] as const;
+
+/** Real source inputs required by the build's retired-handler ownership catalog. */
+const RETIREMENT_SOURCES = [
+  "plugins/src/base/hooks/parity-safety-net.sh",
+  "plugins/src/base/hooks/parity-safety-net.agy.sh",
+  "src/opencode/plugin-templates/lisa-parity-safety-net.ts",
 ] as const;
 
 /** Manifest of every destination the build materialized, written by the build. */
@@ -169,9 +174,12 @@ describe("plugin sync shell scripts (#1398)", () => {
 
     expect(manifest).toContain(GENERATED_COPY);
     expect(manifest.filter(entry => entry.startsWith("plugins/"))).toEqual(
-      RAILS_HOOK_ENGINE_FILES.map(
-        filename => `plugins/lisa/hooks/${filename}`
-      ).sort((left, right) => left.localeCompare(right))
+      [
+        ...RAILS_HOOK_ENGINE_FILES.map(
+          filename => `plugins/lisa/hooks/${filename}`
+        ),
+        "plugins/lisa/hooks/parity-safety-net.sh",
+      ].sort((left, right) => left.localeCompare(right))
     );
   });
 
@@ -232,11 +240,16 @@ describe("plugin sync shell scripts (#1398)", () => {
   });
 
   it("refuses to pass when the build resolved zero generated files", async () => {
-    // Every materialize call is guarded on this generator, so removing it
-    // reproduces the shape that matters: a build that quietly stops writing
-    // anything outside plugins/ and a tree that is clean because of it.
-    await fs.remove(
-      path.join(repoDir, "scripts", "materialize-copy-overwrite.mjs")
+    // Make materialization silently stop, retaining the real generator module
+    // imported by the ownership catalog. Deleting that module now fails the
+    // build earlier and cannot reach the zero-output sync-check boundary.
+    const buildPath = path.join(repoDir, "scripts", BUILD_SCRIPT);
+    const source = await fs.readFile(buildPath, "utf8");
+    const entry = "materialize() {";
+    expect(source).toContain(entry);
+    await fs.writeFile(
+      buildPath,
+      source.replace(entry, `${entry}\n  return 0`)
     );
     expect(run(["bash", `scripts/${BUILD_SCRIPT}`], repoDir).status).toBe(0);
     expect(
@@ -268,6 +281,8 @@ describe("plugin sync shell scripts (#1398)", () => {
       path.join(REPO_ROOT, "scripts", "lib"),
       path.join(dir, "scripts", "lib")
     );
+    for (const source of RETIREMENT_SOURCES)
+      await fs.copy(path.join(REPO_ROOT, source), path.join(dir, source));
     await fs.writeJson(path.join(dir, "package.json"), {
       name: "plugin-sync-script-fixture",
       version: "9.9.9",

@@ -14,7 +14,7 @@
  * evidence the dispatcher reads, by the same rules, and returns what that
  * checkout resolves right now:
  *
- *   - Six guards, first-wins PER GUARD: `scripts/lisa-hooks/` (written into a
+ *   - The census cohort, first-wins PER GUARD: `scripts/lisa-hooks/` (written into a
  *     host by `lisa apply`) shadows `plugins/lisa/hooks/` (the Lisa monorepo's
  *     own source) outright, and the shadowed copy never runs.
  *   - The aggregate takes the strongest refusal, so **the oldest resolved copy
@@ -37,7 +37,7 @@ import { readJsonOrNull } from "../utils/json-utils.js";
 import { pathExists } from "../utils/file-operations.js";
 
 /**
- * The guards the dispatcher runs, in its own order.
+ * The census cohort, in dispatcher order. The retired safety net is excluded.
  *
  * Kept as data rather than inferred from the directory listing: a census that
  * asks "which guard files are here" cannot notice a guard that is missing
@@ -45,7 +45,6 @@ import { pathExists } from "../utils/file-operations.js";
  */
 export const ENFORCEMENT_GUARDS = [
   "block-no-verify",
-  "parity-safety-net",
   "block-shell-json-parsing",
   "block-instruction-file-edits",
   "block-direct-issue-create",

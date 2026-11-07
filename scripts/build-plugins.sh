@@ -352,3 +352,6 @@ for agent in "${PER_AGENT_VARIANTS[@]}"; do
     build_per_agent_variant "$agent" "$src_name" "$out_name"
   done
 done
+
+# Historical ownership plus the newly emitted compatibility handlers must agree.
+node "$ROOT_DIR/scripts/generate-retired-safety-net-manifest.mjs"
