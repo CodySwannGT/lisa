@@ -2889,26 +2889,35 @@ jobs:
       # passed. An explicit file list fails when none of them is found, and the
       # quality-unit-test-shards-env-scope test fails if any listed file is
       # renamed away, so this step can never pass having run zero of them.
+      # A skipped case proves nothing either, so any skip fails the step —
+      # except the two intentional bun-only `it.runIf` cases in
+      # quality-audit-fail-closed, which do not apply to its npm/yarn rows.
       - name: Execute and name dependency-audit scope regression specs
         if: github.repository == 'CodySwannGT/lisa' && steps.gate_run.outcome == 'success'
-        run: >-
-          bun run lisa-test-run -- --adapter vitest -- vitest run
-          tests/unit/core/audit-scopes.test.ts
-          tests/unit/core/audit-scope-hardening.test.ts
-          tests/unit/core/audit-lockfile-sources.test.ts
-          tests/unit/core/audit-lockfile-formats.test.ts
-          tests/unit/core/audit-report-completeness.test.ts
-          tests/unit/config/zod-security-floor.test.ts
-          tests/unit/config/audit-ignore-package-names.test.ts
-          tests/unit/cli/doctor-readiness-supply-chain-exceptions.test.ts
-          tests/unit/cli/doctor-audit-scope.test.ts
-          tests/unit/hooks/pre-push-audit-transport-parity.test.ts
-          tests/unit/strategies/security-audit-handling-scope.test.ts
-          tests/unit/strategies/package-lisa-audit-script-governance.test.ts
-          tests/integration/audit-consumer-parity.test.ts
-          tests/integration/audit-workflow-action.test.ts
-          tests/integration/quality-audit-fail-closed.test.ts
-          --reporter=verbose
+        run: |
+          set -euo pipefail
+          AUDIT_SPEC_LOG="${RUNNER_TEMP:-/tmp}/dependency-audit-scope-specs.log"
+          bun run lisa-test-run -- --adapter vitest -- vitest run \
+            tests/unit/core/audit-scopes.test.ts \
+            tests/unit/core/audit-scope-hardening.test.ts \
+            tests/unit/core/audit-lockfile-sources.test.ts \
+            tests/unit/core/audit-lockfile-formats.test.ts \
+            tests/unit/core/audit-report-completeness.test.ts \
+            tests/unit/config/zod-security-floor.test.ts \
+            tests/unit/config/audit-ignore-package-names.test.ts \
+            tests/unit/cli/doctor-readiness-supply-chain-exceptions.test.ts \
+            tests/unit/cli/doctor-audit-scope.test.ts \
+            tests/unit/hooks/pre-push-audit-transport-parity.test.ts \
+            tests/unit/strategies/security-audit-handling-scope.test.ts \
+            tests/unit/strategies/package-lisa-audit-script-governance.test.ts \
+            tests/integration/audit-consumer-parity.test.ts \
+            tests/integration/audit-workflow-action.test.ts \
+            tests/integration/quality-audit-fail-closed.test.ts \
+            --reporter=verbose 2>&1 | tee "$AUDIT_SPEC_LOG"
+          if grep -E '↓ .*tests/' "$AUDIT_SPEC_LOG" | grep -v 'quality-audit-fail-closed.test.ts'; then
+            echo "::error title=Skipped audit spec::A dependency-audit scope spec above was skipped, so it proved nothing. Un-skip it or remove it from this step."
+            exit 1
+          fi
         working-directory: ${{ inputs.working_directory || '.' }}
 
       # Both declared test commands and the built-in fallback can produce

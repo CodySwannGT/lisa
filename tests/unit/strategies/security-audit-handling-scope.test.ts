@@ -57,3 +57,33 @@ describe.each(ROOTS)("security-audit-handling scope guidance (%s)", root => {
     expect(reference).toMatch(/never widens into an ID-wide exclusion/u);
   });
 });
+
+describe("the exclusion guide the rules link to (docs/dependency-audit-exclusions.md)", () => {
+  const guide = readFileSync(
+    path.resolve("docs", "dependency-audit-exclusions.md"),
+    "utf8"
+  );
+
+  it("documents paths as exact lockfile keys", () => {
+    expect(guide).toContain('"paths": ["lint-tool/schema-lib"]');
+    expect(guide).toMatch(/Paths are exact keys, without glob expansion/u);
+  });
+
+  it("recommends path scope over an advisory-wide exception for dev-only copies", () => {
+    expect(guide).toMatch(
+      /Prefer `paths` over an advisory-wide exception whenever the\s+accepted vulnerable copy belongs only to a development tool/u
+    );
+  });
+
+  it("documents that a narrower entry is never widened by an advisory-wide one", () => {
+    expect(guide).toMatch(/A narrower entry always wins/u);
+    expect(guide).toMatch(/advisory-wide exclusion was not applied/u);
+  });
+
+  it("documents that a misspelled scope field fails closed and other keys are ignored", () => {
+    expect(guide).toMatch(
+      /nearly\s+matches one of the five scope fields fails the audit/u
+    );
+    expect(guide).toMatch(/is ignored by the audit as before/u);
+  });
+});

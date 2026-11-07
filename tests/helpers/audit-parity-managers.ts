@@ -26,7 +26,12 @@ export const PARITY_MANAGERS = {
       JSON.stringify({
         packages: {
           zod: ["zod@4.6.7"],
-          "lint-plugin/zod": [`zod@${PARITY_VULNERABLE}`],
+          // zod 4.5.0 is still below the 4.6.6 fix, but outside a 3.x scope.
+          "lint-plugin/zod": [
+            kind === "zod4-on-listed-path"
+              ? "zod@4.5.0"
+              : `zod@${PARITY_VULNERABLE}`,
+          ],
           ...(kind === "alias"
             ? { "legacy-zod": [`zod@${PARITY_VULNERABLE}`] }
             : {}),

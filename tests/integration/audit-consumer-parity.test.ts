@@ -34,6 +34,9 @@ const OTHER_PACKAGE = "left-pad";
 const PACKAGE_MISMATCH = `outside exclusion package ${OTHER_PACKAGE}`;
 const PACKAGE_MISMATCH_KIND = "package-mismatch";
 const CLEAN = "No high or critical";
+const VERSION_MISMATCH = "version-mismatch";
+const MISSING_LOCK = "missing-lock";
+const MALFORMED_LOCK = "malformed-lock";
 const roots: string[] = [];
 
 const SCRIPT = "node scripts/lisa-audit.mjs";
@@ -92,7 +95,7 @@ function fixtureEntry(kind: string, devPath: string) {
   if (kind === "legacy")
     return { id: GHSA, reason: "Controlled legacy decision" };
   if (kind === "empty-paths") return { ...scoped, paths: [] };
-  if (kind === "version-mismatch") return { ...scoped, versions: "4.x" };
+  if (kind === VERSION_MISMATCH) return { ...scoped, versions: "4.x" };
   if (kind === PACKAGE_MISMATCH_KIND)
     return { ...scoped, package: OTHER_PACKAGE };
   return scoped;
@@ -159,10 +162,10 @@ function fixture(kind: string, manager: AuditManager = "bun"): string {
   if (kind === "lockb-only")
     // Binary lockfile: selects bun, but cannot establish path coverage.
     fs.writeFileSync(path.join(root, "bun.lockb"), "");
-  else if (kind !== "missing-lock")
+  else if (kind !== MISSING_LOCK)
     fs.writeFileSync(
       path.join(root, shape.lockfile),
-      kind === "malformed-lock" ? '{"packages": broken}' : shape.lock(kind)
+      kind === MALFORMED_LOCK ? '{"packages": broken}' : shape.lock(kind)
     );
   writeManagerStub(root, manager);
   return root;
@@ -279,10 +282,12 @@ describe("audit-consumer parity on the identical tree", () => {
     ["shadowed", 1, "advisory-wide exclusion was not applied"],
     ["empty-paths", 1, "paths must be a non-empty array"],
     // With no lockfile at all the registry task cannot even pick a manager.
-    ["missing-lock", 1, NO_BUN_LOCK, "No supported audit lockfile found"],
+    [MISSING_LOCK, 1, NO_BUN_LOCK, "No supported audit lockfile found"],
     ["lockb-only", 1, NO_BUN_LOCK],
-    ["malformed-lock", 1, "Cannot parse bun.lock"],
-    ["version-mismatch", 1, bun.devPath],
+    [MALFORMED_LOCK, 1, "Cannot parse bun.lock"],
+    [VERSION_MISMATCH, 1, bun.devPath],
+    // Same advisory, same listed path, but zod 4.5.0 is outside the 3.x scope.
+    ["zod4-on-listed-path", 1, `${bun.devPath} (zod@4.5.0)`],
   ] as const)(
     "%s: hook, registry and CI agree and name the measured result",
     (kind, status, message, registryMessage?: string) => {
@@ -295,15 +300,20 @@ describe.each(["npm", "yarn"] as const)(
   "audit-consumer parity through the hook's %s branch",
   manager => {
     const shape = MANAGERS[manager];
+    const unreadable = `Cannot evaluate scoped audit exclusions from ${shape.lockfile}`;
     it.each([
       ["covered", 0, `excluded ${GHSA} for ${shape.devPath}`],
       ["alias", 1, shape.aliasPath],
       ["legacy", 0, CLEAN],
       [PACKAGE_MISMATCH_KIND, 1, PACKAGE_MISMATCH],
+      // With no lockfile at all the registry task cannot even pick a manager.
+      [MISSING_LOCK, 1, unreadable, "No supported audit lockfile found"],
+      [MALFORMED_LOCK, 1, unreadable],
+      [VERSION_MISMATCH, 1, shape.devPath],
     ] as const)(
       "%s: hook, registry and CI agree and name the measured result",
-      (kind, status, message) => {
-        expectParity(kind, manager, status, message);
+      (kind, status, message, registryMessage?: string) => {
+        expectParity(kind, manager, status, message, registryMessage);
       }
     );
   }
