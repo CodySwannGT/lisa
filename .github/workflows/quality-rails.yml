@@ -58,6 +58,17 @@ on:
         required: false
         type: string
         default: ''
+      runner:
+        description: >-
+          Runner image for the jobs that install the caller's Ruby (lint,
+          security, code quality, mutation and the RSpec test jobs). Newer
+          images get ruby/setup-ruby builds of only each Ruby series' latest
+          patch, so a `.ruby-version` pinned to an older patch (for example
+          4.0.2 on ubuntu-26.04) fails at setup; pin `ubuntu-24.04` for it
+          (CodySwannGT/lisa#4517).
+        required: false
+        type: string
+        default: 'ubuntu-latest'
       test_shards:
         description: 'Run the RSpec suite as this many parallel shards (1-20), then merge their SimpleCov coverage and check the thresholds once. Needs simplecov 1.x and the Lisa-managed scripts/lisa-rspec-shards.mjs, lisa_rspec_shard_recorder.rb and lisa_simplecov_collate.rb. The default, 1, runs one unsharded job.'
         required: false
@@ -289,8 +300,8 @@ jobs:
       checks: write
       pull-requests: write
     name: Lint
-    # Not ubuntu-latest: newer images get only each Ruby series' latest patch (#4517).
-    runs-on: ubuntu-24.04
+    # The caller's choice: see the runner input (#4517).
+    runs-on: ${{ inputs.runner }}
     if: ${{ !contains(format(',{0},', inputs.skip_jobs), ',lint,') }}
     steps:
       - name: 📥 Checkout repository
@@ -721,8 +732,8 @@ jobs:
       checks: write
       pull-requests: write
     name: Security
-    # Not ubuntu-latest: newer images get only each Ruby series' latest patch (#4517).
-    runs-on: ubuntu-24.04
+    # The caller's choice: see the runner input (#4517).
+    runs-on: ${{ inputs.runner }}
     if: ${{ !contains(format(',{0},', inputs.skip_jobs), ',security,') }}
     steps:
       - name: 📥 Checkout repository
@@ -836,8 +847,8 @@ jobs:
     permissions:
       contents: read
     name: 🧪 RSpec shard ${{ matrix.shard }}/${{ inputs.test_shards }} (PostgreSQL)
-    # Not ubuntu-latest: newer images get only each Ruby series' latest patch (#4517).
-    runs-on: ubuntu-24.04
+    # The caller's choice: see the runner input (#4517).
+    runs-on: ${{ inputs.runner }}
     needs: [test-shard-plan]
     if: ${{ always() && !cancelled() && needs.test-shard-plan.result == 'success' && inputs.database_type == 'postgres' }}
     strategy:
@@ -968,8 +979,8 @@ jobs:
       checks: write
       pull-requests: write
     name: Test (PostgreSQL)
-    # Not ubuntu-latest: newer images get only each Ruby series' latest patch (#4517).
-    runs-on: ubuntu-24.04
+    # The caller's choice: see the runner input (#4517).
+    runs-on: ${{ inputs.runner }}
     # With test_shards > 1 this job is the aggregate: the shard legs run the
     # suite and this job proves they ran it exactly once, merges their
     # coverage and enforces the project's thresholds once. It keeps its id and
@@ -1112,8 +1123,8 @@ jobs:
     permissions:
       contents: read
     name: 🧪 RSpec shard ${{ matrix.shard }}/${{ inputs.test_shards }} (MySQL)
-    # Not ubuntu-latest: newer images get only each Ruby series' latest patch (#4517).
-    runs-on: ubuntu-24.04
+    # The caller's choice: see the runner input (#4517).
+    runs-on: ${{ inputs.runner }}
     needs: [test-shard-plan]
     if: ${{ always() && !cancelled() && needs.test-shard-plan.result == 'success' && inputs.database_type == 'mysql' }}
     strategy:
@@ -1245,8 +1256,8 @@ jobs:
       checks: write
       pull-requests: write
     name: Test (MySQL)
-    # Not ubuntu-latest: newer images get only each Ruby series' latest patch (#4517).
-    runs-on: ubuntu-24.04
+    # The caller's choice: see the runner input (#4517).
+    runs-on: ${{ inputs.runner }}
     # With test_shards > 1 this job is the aggregate: the shard legs run the
     # suite and this job proves they ran it exactly once, merges their
     # coverage and enforces the project's thresholds once. It keeps its id and
@@ -1386,8 +1397,8 @@ jobs:
       checks: write
       pull-requests: write
     name: 🧬 Mutation Testing Gate
-    # Not ubuntu-latest: newer images get only each Ruby series' latest patch (#4517).
-    runs-on: ubuntu-24.04
+    # The caller's choice: see the runner input (#4517).
+    runs-on: ${{ inputs.runner }}
     timeout-minutes: 60
     # Diff-only mutation gate. Self-skips instantly when disabled
     # (mutation.gate.yml: enabled: false). PostgreSQL-based; MySQL projects can
@@ -1453,8 +1464,8 @@ jobs:
       checks: write
       pull-requests: write
     name: Code Quality
-    # Not ubuntu-latest: newer images get only each Ruby series' latest patch (#4517).
-    runs-on: ubuntu-24.04
+    # The caller's choice: see the runner input (#4517).
+    runs-on: ${{ inputs.runner }}
     if: ${{ !contains(format(',{0},', inputs.skip_jobs), ',code_quality,') }}
     steps:
       - name: 📥 Checkout repository

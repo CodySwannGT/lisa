@@ -15,10 +15,10 @@
  * Bare `ubuntu-latest`, any other expression and label lists fail.
  *
  * `quality-rails.yml`'s setup-ruby jobs take the caller's `.ruby-version`
- * instead of naming one, but their image is still Lisa's choice, so they are
- * held to a bare fixed image too (CodySwannGT/lisa#4517): on 26.04 a caller
- * pinned to an older patch (4.0.2) failed at setup, because newer images get
- * only each series' latest patch. Jobs are found by their steps rather than
+ * instead of naming one, so the caller picks their image through the
+ * workflow's `runner` input (CodySwannGT/lisa#4517): on 26.04 a caller pinned
+ * to an older patch (4.0.2) failed at setup, because newer images get only
+ * each series' latest patch. They are held to that input or a fixed image. Jobs are found by their steps rather than
  * listed by name, so a new job that installs a Ruby inherits the rule.
  */
 import * as fs from "node:fs";
@@ -265,6 +265,9 @@ function qualityRailsRubyJobs(): { job: string; runsOn: unknown }[] {
   });
 }
 
+/** The caller-supplied runner input quality-rails.yml exposes (#4517). */
+const RUNNER_INPUT = /^\$\{\{\s*inputs\.runner\s*\}\}$/;
+
 describe("quality-rails jobs that install the caller's Ruby (#4517)", () => {
   it("finds the lint, security and test jobs", () => {
     expect(qualityRailsRubyJobs().map(({ job }) => job)).toEqual(
@@ -278,9 +281,20 @@ describe("quality-rails jobs that install the caller's Ruby (#4517)", () => {
   });
 
   it.each(qualityRailsRubyJobs().map(entry => [entry.job, entry]))(
-    "%s runs on a bare fixed image, not ubuntu-latest",
+    "%s runs on the caller's runner input or a bare fixed image",
     (_name, entry) => {
-      expect(String(entry.runsOn)).toMatch(FIXED_IMAGE);
+      const runsOn = String(entry.runsOn);
+      expect(
+        RUNNER_INPUT.test(runsOn) || FIXED_IMAGE.test(runsOn),
+        runsOn
+      ).toBe(true);
     }
   );
+
+  it("exposes the runner input to callers", () => {
+    const doc = loadWorkflow(path.join(WORKFLOWS, "quality-rails.yml")) as {
+      on?: { workflow_call?: { inputs?: Record<string, { type?: string }> } };
+    };
+    expect(doc.on?.workflow_call?.inputs?.runner?.type).toBe("string");
+  });
 });

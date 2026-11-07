@@ -2563,7 +2563,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "rails/copy-overwrite/sgconfig.yml":
       "ff5b62de42eb969a851fdc53ee6932a32ffe010b567ed2c62460ed454ad2a24f",
     "rails/create-only/.github/workflows/ci.yml":
-      "ca8edfa37aad2cf7955020ff4ca944c99377cc13af8b5f37786fa9442e5b85c0",
+      "52755137de2a3716530b36e17f7ec92fafa98f0bbfac6d20773565af9232587e",
     "rails/create-only/.github/workflows/deploy.yml":
       "68fdb813f30cfa71121a96022021f4d351e1e2497c472796c56bb8d47b9655c8",
     "rails/create-only/.mise.toml":
