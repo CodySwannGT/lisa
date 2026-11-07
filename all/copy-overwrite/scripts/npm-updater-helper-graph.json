@@ -300,7 +300,7 @@
       "children": []
     },
     "lib/lisa-cleanup-sweep-processes.mjs": {
-      "sha256": "cedb9d9acc3759b1ced3b4cb330e3027c031de0becd2b63c90e0920f765021e4",
+      "sha256": "3efb5d2b1cf299fa48742c1e77d2a3b35b9ee6377b038de85fcbdda45363b2c4",
       "staticImports": [
         "lib/bounded-spawn.mjs",
         "node:fs",
@@ -310,7 +310,7 @@
       "children": []
     },
     "lib/lisa-cleanup-sweep.mjs": {
-      "sha256": "48003f887ca744592f2c4f106563e14ce20f48a44b57fe141a52f8309b368157",
+      "sha256": "6c69bcf512fbe169e0b3c51546e21e72d6203a1d3c3ee5651fb0129fb7d57f91",
       "staticImports": [
         "lib/bounded-spawn.mjs",
         "lib/invoked-as-script.mjs",

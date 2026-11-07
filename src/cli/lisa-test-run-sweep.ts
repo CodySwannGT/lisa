@@ -5,11 +5,13 @@
  * Two jobs. It returns the variables the payload must inherit —
  * `LISA_TEST_RUN_OWNER=<pid>:<start>`, so every test process and descendant
  * carries the name of the run that owns it (a later sweep kills them only once
- * this run is gone), and `LISA_CLEANUP_SWEPT=1`, so nested runs skip the sweep.
- * And it sweeps stale Lisa temp entries and orphans of earlier, dead runs —
- * unless `LISA_CLEANUP_SWEPT` says an enclosing run (the gate runner at push,
- * or an outer `lisa-test-run`) already did. A nested `lisa-test-run` fixture
- * therefore marks itself but never sweeps again.
+ * this run is gone), and `LISA_CLEANUP_SWEPT` set to that same value, so
+ * nested runs skip the sweep while this run lives. And it sweeps stale Lisa
+ * temp entries and orphans of earlier, dead runs — unless `LISA_CLEANUP_SWEPT`
+ * names an enclosing sweeper (the gate runner at push, or an outer
+ * `lisa-test-run`) that is still alive, in which case it says so in one line.
+ * A nested `lisa-test-run` fixture therefore marks itself but never sweeps
+ * again.
  *
  * Nothing here fails the run. A marker whose start time cannot be read falls
  * back to `<pid>:0` (children are then reaped only once this pid is dead), a
@@ -18,6 +20,7 @@
  * @module cli/lisa-test-run-sweep
  */
 import {
+  formatAlreadySwept,
   formatSummary,
   sweep as defaultSweep,
   SWEPT_ENV,
@@ -25,6 +28,7 @@ import {
 } from "../../all/copy-overwrite/scripts/lib/lisa-cleanup-sweep.mjs";
 import {
   formatOwnerMarker,
+  liveSweeper as defaultLiveSweeper,
   OWNER_ENV,
   ownerMarkerFor,
 } from "../../all/copy-overwrite/scripts/lib/lisa-cleanup-sweep-processes.mjs";
@@ -38,6 +42,7 @@ export interface StartOfRunSweepSeams {
   readonly ownerMarker?: () => string;
   readonly write?: (line: string) => void;
   readonly timeoutMs?: number;
+  readonly liveSweeper?: (value: unknown) => number | null;
 }
 
 /**
@@ -131,11 +136,11 @@ export async function startOfRunSweep(
     ownerMarker = () => ownerMarkerFor(process.pid),
     write = (line: string) => process.stderr.write(line),
     timeoutMs = SWEEP_DEADLINE_MS,
+    liveSweeper = defaultLiveSweeper,
   } = seams;
-  const inherit = {
-    [OWNER_ENV]: markerOrFallback(ownerMarker, write),
-    [SWEPT_ENV]: "1",
-  };
-  if (!environment[SWEPT_ENV]) await reportSweep(sweep, timeoutMs, write);
-  return inherit;
+  const marker = markerOrFallback(ownerMarker, write);
+  const sweeper = liveSweeper(environment[SWEPT_ENV]);
+  if (sweeper === null) await reportSweep(sweep, timeoutMs, write);
+  else write(`${formatAlreadySwept(sweeper)}\n`);
+  return { [OWNER_ENV]: marker, [SWEPT_ENV]: marker };
 }

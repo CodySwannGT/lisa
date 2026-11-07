@@ -45,6 +45,14 @@ export function processStartTimes(
 /** The `<pid>:<start>` marker value a test run started by `pid` exports. */
 export function ownerMarkerFor(pid?: number): string;
 export function isAlive(pid: number): boolean;
+/** The pid of the sweeper a `LISA_CLEANUP_SWEPT` value names, while it still runs. */
+export function liveSweeper(
+  value: unknown,
+  lookups?: {
+    isAlive?: (pid: number) => boolean;
+    startTimesOf?: (pids: number[]) => Map<number, string>;
+  }
+): number | null;
 export function selectOrphans(
   rows: readonly ProcessRow[],
   seams: {

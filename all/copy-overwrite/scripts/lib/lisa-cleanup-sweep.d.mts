@@ -55,7 +55,11 @@ export function parseSweepArgs(argv: readonly string[]): {
   dryRun: boolean;
   json: boolean;
   maxAgeHours: number;
+  processes: boolean;
 };
+
+/** The line printed when a live sweeper already swept. */
+export function formatAlreadySwept(pid: number): string;
 
 /** CLI entry point; resolves to the exit code. */
 export function main(
@@ -71,4 +75,6 @@ export function runStartOfRunSweep(seams?: {
   env?: Record<string, string | undefined>;
   spawn?: (...args: never[]) => unknown;
   log?: (line: string) => void;
+  ownerMarker?: () => string;
+  liveSweeper?: (value: unknown) => number | null;
 }): void;

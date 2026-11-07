@@ -12,7 +12,7 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 import { tmpdir } from "node:os";
 
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
   formatSummary,
@@ -240,11 +240,15 @@ describe("CLI", () => {
   it("parses --dry-run, --json and --max-age-hours in both spellings", () => {
     expect(
       parseSweepArgs(["--dry-run", "--json", "--max-age-hours", "6"])
-    ).toEqual({ dryRun: true, json: true, maxAgeHours: 6 });
+    ).toEqual({ dryRun: true, json: true, maxAgeHours: 6, processes: true });
+    expect(parseSweepArgs(["--no-processes"])).toMatchObject({
+      processes: false,
+    });
     expect(parseSweepArgs(["--max-age-hours=0.5"])).toEqual({
       dryRun: false,
       json: false,
       maxAgeHours: 0.5,
+      processes: true,
     });
   });
 
@@ -271,6 +275,19 @@ describe("CLI", () => {
       errors: [],
       durationMs: expect.any(Number),
     });
+  });
+
+  it("leaves processes alone under --no-processes", async () => {
+    const root = privateRoot();
+    const lines: string[] = [];
+    const listProcesses = vi.fn(() => []);
+    const code = await main(["--json", "--no-processes"], {
+      sweepOptions: { root, now: NOW, orphans: { listProcesses } },
+      write: line => lines.push(line),
+    });
+    expect(code).toBe(0);
+    expect(listProcesses).not.toHaveBeenCalled();
+    expect(JSON.parse(lines[0] as string).killed).toEqual([]);
   });
 
   it("exits 2 with usage on a bad flag", async () => {

@@ -15,6 +15,10 @@ import {
 } from "../../../all/copy-overwrite/scripts/lib/lisa-cleanup-sweep.mjs";
 
 const SUMMARY = "🧹 swept 2 stale temp dirs, 1 orphaned test process (40 ms)";
+/** This gate runner's own marker. */
+const SELF_MARKER = "77:7";
+/** A marker naming a sweeper that is still alive with the same start time. */
+const LIVE_SWEEPER = "4242:9";
 
 /**
  * Run the launcher with a fresh env and a recording log.
@@ -28,7 +32,13 @@ function launch(
 ) {
   const lines: string[] = [];
   const spawnMock = vi.fn(spawn);
-  runStartOfRunSweep({ env, spawn: spawnMock, log: line => lines.push(line) });
+  runStartOfRunSweep({
+    env,
+    spawn: spawnMock,
+    log: line => lines.push(line),
+    ownerMarker: () => SELF_MARKER,
+    liveSweeper: value => (value === LIVE_SWEEPER ? 4242 : null),
+  });
   return { env, lines, spawnMock };
 }
 
@@ -49,15 +59,30 @@ describe("start-of-run launcher", () => {
     expect(command).toBe(process.execPath);
     expect(args[0]).toMatch(/lisa-cleanup-sweep\.mjs$/u);
     expect(options.timeout).toBeLessThanOrEqual(15_000);
-    expect(env[SWEPT_ENV]).toBe("1");
+    expect(env[SWEPT_ENV]).toBe(SELF_MARKER);
   });
 
-  it("skips when an enclosing run already swept, and spawns nothing", () => {
-    const { lines, spawnMock } = launch(() => ({ status: 0, stdout: "" }), {
-      [SWEPT_ENV]: "1",
-    });
+  it("skips, saying so, when a live sweeper already swept, and spawns nothing", () => {
+    const { env, lines, spawnMock } = launch(
+      () => ({ status: 0, stdout: "" }),
+      { [SWEPT_ENV]: LIVE_SWEEPER }
+    );
     expect(spawnMock).not.toHaveBeenCalled();
-    expect(lines).toEqual([]);
+    expect(lines).toEqual([
+      "🧹 cleanup sweep already ran (pid 4242); skipping",
+    ]);
+    expect(env[SWEPT_ENV]).toBe(LIVE_SWEEPER);
+  });
+
+  it("sweeps anyway, and takes over the mark, when the recorded sweeper is gone", () => {
+    for (const stale of ["1", "999999:0", "4242:8"]) {
+      const { env, spawnMock } = launch(
+        () => ({ status: 0, stdout: `${SUMMARY}\n` }),
+        { [SWEPT_ENV]: stale }
+      );
+      expect(spawnMock).toHaveBeenCalledTimes(1);
+      expect(env[SWEPT_ENV]).toBe(SELF_MARKER);
+    }
   });
 
   it("prints a line and continues when the sweep exits non-zero", () => {
@@ -71,7 +96,7 @@ describe("start-of-run launcher", () => {
         /cleanup sweep did not finish.*exit 3.*continuing/u
       ),
     ]);
-    expect(env[SWEPT_ENV]).toBe("1");
+    expect(env[SWEPT_ENV]).toBe(SELF_MARKER);
   });
 
   it("prints a line and continues when the sweep times out or cannot start", () => {

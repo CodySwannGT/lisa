@@ -81,13 +81,13 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lib/kill-marks.mjs":
       "13388da7203b02ba84a845abd7885074bc8a495e215437a97122060d69367030",
     "all/copy-overwrite/scripts/lib/lisa-cleanup-sweep-processes.d.mts":
-      "1e4e18dc0b447e7d9dca95ead0ad3b47bc4e98d70a0cc00a6d9cb70b07b70149",
+      "e122ce4420e81d2d9f352e3f1400f686dcd73ee9996c99172e1a3d3035b485c6",
     "all/copy-overwrite/scripts/lib/lisa-cleanup-sweep-processes.mjs":
-      "cedb9d9acc3759b1ced3b4cb330e3027c031de0becd2b63c90e0920f765021e4",
+      "3efb5d2b1cf299fa48742c1e77d2a3b35b9ee6377b038de85fcbdda45363b2c4",
     "all/copy-overwrite/scripts/lib/lisa-cleanup-sweep.d.mts":
-      "72cb6e3bfa87c3392d9f20c70f81d142064377a75ebee0ec2953eccdc03649ad",
+      "46fbb6730747ddee90b9275797de67cacfceab26ca14436460c11da638fb604b",
     "all/copy-overwrite/scripts/lib/lisa-cleanup-sweep.mjs":
-      "48003f887ca744592f2c4f106563e14ce20f48a44b57fe141a52f8309b368157",
+      "6c69bcf512fbe169e0b3c51546e21e72d6203a1d3c3ee5651fb0129fb7d57f91",
     "all/copy-overwrite/scripts/lib/npm-update-allocate.mjs":
       "85de2576d1c5e954b57f1c9274dbc34d0d24689fbc0964d8f86ec4f91f52b7bc",
     "all/copy-overwrite/scripts/lib/npm-update-authorization.mjs":
@@ -341,7 +341,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/npm-updater-gate.Dockerfile":
       "f5d85f8fccfd97f7800c03430a38c19d584314b0a6a63aa1de28fb62897fbcc5",
     "all/copy-overwrite/scripts/npm-updater-helper-graph.json":
-      "88f23c2b0763bc51976bb035011533bb655433f6dbf9ce6efd3278cdd43681ec",
+      "44774fb225e22b19697907c32aa9582f0a114a3206bde1c1d95d0797994a7bef",
     "all/copy-overwrite/scripts/review-evidence-event.mjs":
       "1c5d510bc66f8ba23b6f046246f41182c17946a50126fb88e371d2aec9dfd6b2",
     "all/copy-overwrite/scripts/schemas/lisa-command-envelope.v1.schema.json":
@@ -11269,6 +11269,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/helpers/bounded-bash.ts": true,
     "tests/helpers/cdk-scratch-lifecycle.ts": true,
     "tests/helpers/child-bound-scan.ts": true,
+    "tests/helpers/cleanup-sweep-skip.ts": true,
     "tests/helpers/codex-skill-parity.ts": true,
     "tests/helpers/committed-case-table.ts": true,
     "tests/helpers/cpu-budget.ts": true,

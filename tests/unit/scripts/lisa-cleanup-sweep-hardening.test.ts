@@ -120,6 +120,36 @@ describe.runIf(typeof process.getuid === "function")(
   }
 );
 
+describe("git checkouts one level down", () => {
+  it("keeps a stale folder whose direct child is a git checkout", async () => {
+    const root = privateRoot();
+    const holder = staleDir(root, "lisa-4316-workspace");
+    fs.mkdirSync(path.join(holder, "repo", ".git"), { recursive: true });
+    fs.utimesSync(holder, STALE, STALE);
+    expect((await sweepRoot(root)).removed).toEqual([]);
+    expect(fs.existsSync(path.join(holder, "repo", ".git"))).toBe(true);
+  });
+
+  it("keeps a stale folder whose children cannot be listed", async () => {
+    const root = privateRoot();
+    const sealed = staleDir(root, "lisa-sealed", 0o300);
+    try {
+      expect((await sweepRoot(root)).removed).toEqual([]);
+      expect(fs.existsSync(sealed)).toBe(true);
+    } finally {
+      fs.chmodSync(sealed, 0o700);
+    }
+  });
+
+  it("still removes a stale folder whose children hold no checkout", async () => {
+    const root = privateRoot();
+    const plain = staleDir(root, "lisa-plain");
+    fs.mkdirSync(path.join(plain, "child"));
+    fs.utimesSync(plain, STALE, STALE);
+    expect((await sweepRoot(root)).removed).toEqual([plain]);
+  });
+});
+
 describe("rollback copies", () => {
   it("never sweeps a `lisa apply` backup", async () => {
     expect(LISA_PROTECTED_TEMP_PREFIXES).toContain("lisa-backup-");
@@ -136,7 +166,6 @@ describe("root refusal", () => {
     ["the filesystem root", "/"],
     ["the home directory", "HOME"],
     ["an ancestor of the home directory", "HOME_PARENT"],
-    ["an ancestor of the working directory", "CWD_PARENT"],
   ])("refuses %s and sweeps nothing", async (_label, which) => {
     const base = privateRoot();
     const home = path.join(base, "home", "me");
@@ -148,7 +177,6 @@ describe("root refusal", () => {
       "/": "/",
       HOME: home,
       HOME_PARENT: path.join(base, "home"),
-      CWD_PARENT: path.join(base, "work"),
     }[which] as string;
     const result = await sweepRoot(root, { home, cwd });
     expect(result.removed).toEqual([]);
@@ -156,6 +184,22 @@ describe("root refusal", () => {
       expect.stringMatching(/refusing to sweep/u),
     ]);
     expect(fs.existsSync(stale)).toBe(true);
+  });
+
+  it("sweeps an ancestor of the working directory but keeps the entry holding it", async () => {
+    const root = privateRoot();
+    const holder = staleDir(root, "lisa-agent-worktree");
+    const cwd = path.join(holder, "repo", "src");
+    fs.mkdirSync(cwd, { recursive: true });
+    fs.utimesSync(holder, STALE, STALE);
+    const other = staleDir(root, "lisa-other-old");
+    const result = await sweepRoot(root, {
+      home: path.join(privateRoot(), "home"),
+      cwd,
+    });
+    expect(result.errors).toEqual([]);
+    expect(result.removed).toEqual([other]);
+    expect(fs.existsSync(holder)).toBe(true);
   });
 
   it("sweeps a root that is neither", async () => {

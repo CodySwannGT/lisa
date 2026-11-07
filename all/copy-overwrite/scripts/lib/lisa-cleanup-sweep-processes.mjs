@@ -348,6 +348,32 @@ export function ownerMarkerFor(pid = process.pid) {
 }
 
 /**
+ * The pid of the sweeper a `LISA_CLEANUP_SWEPT` value names, if it still runs.
+ *
+ * The value is the sweeper's own `<pid>:<start>`. It proves "already swept"
+ * only while that exact process is alive: a dead pid, a reused pid (start
+ * time differs) or an unknown start time all mean nobody can vouch for a
+ * sweep, so the caller sweeps again — a second sweep is cheap, a silently
+ * disabled one is not.
+ * @param {unknown} value - The inherited `LISA_CLEANUP_SWEPT` value.
+ * @param {object} [lookups] - Liveness and start-time seams.
+ * @param {(pid: number) => boolean} [lookups.isAlive] - Liveness check.
+ * @param {(pids: number[]) => Map<number, string>} [lookups.startTimesOf] - Start-time lookup.
+ * @returns {number | null} The live sweeper's pid, or null.
+ */
+export function liveSweeper(
+  value,
+  { isAlive: alive = isAlive, startTimesOf = processStartTimes } = {}
+) {
+  const sweeper = parseOwnerMarker(value);
+  if (!sweeper || sweeper.start === UNKNOWN_START || !alive(sweeper.pid)) {
+    return null;
+  }
+  const current = startTimesOf([sweeper.pid]).get(sweeper.pid);
+  return current === sweeper.start ? sweeper.pid : null;
+}
+
+/**
  * Whether a pid names a live process. EPERM means alive but not ours.
  * @param {number} pid - Process id.
  * @returns {boolean} True when the process exists.
@@ -369,22 +395,23 @@ export function isAlive(pid) {
  */
 function lineageOf(selfPid, rows) {
   const parent = new Map(rows.map(row => [row.pid, row.ppid]));
-  const spared = new Set([selfPid, process.ppid]);
-  for (
-    let pid = parent.get(selfPid);
-    pid && !spared.has(pid);
-    pid = parent.get(pid)
-  ) {
-    spared.add(pid);
-  }
-  for (
-    let pid = parent.get(process.ppid);
-    pid && !spared.has(pid);
-    pid = parent.get(pid)
-  ) {
-    spared.add(pid);
-  }
+  const spared = new Set();
+  addLineage(selfPid, parent, spared);
+  addLineage(process.ppid, parent, spared);
   return spared;
+}
+
+/**
+ * Add a pid and every ancestor the table knows to `spared`.
+ * @param {number | undefined} start - First pid of the walk.
+ * @param {Map<number, number>} parent - Parent pid by pid.
+ * @param {Set<number>} spared - Collector; the walk stops at a pid already in it.
+ * @returns {void}
+ */
+function addLineage(start, parent, spared) {
+  for (let pid = start; pid && !spared.has(pid); pid = parent.get(pid)) {
+    spared.add(pid);
+  }
 }
 
 /**

@@ -36,7 +36,6 @@ const SCRIPT = path.resolve(
   "../../all/copy-overwrite/scripts/lib/lisa-cleanup-sweep.mjs"
 );
 const HOUR_MS = 60 * 60 * 1000;
-const DEAD_OWNER = "999999:0";
 const children: ChildProcess[] = [];
 const roots: string[] = [];
 
@@ -75,6 +74,25 @@ function markedChild(marker: string): ChildProcess {
 }
 
 /**
+ * The marker of an owner that has certainly exited: a real child whose start
+ * time is read while it runs, then killed and awaited.
+ * @returns `<pid>:<start>` naming a dead process
+ */
+async function deadOwnerMarker(): Promise<string> {
+  const owner = spawn(process.execPath, ["-e", "setTimeout(() => {}, 60000)"], {
+    stdio: "ignore",
+  });
+  const exited = new Promise(resolve => owner.once("exit", resolve));
+  const marker = await new Promise<string>(resolve =>
+    setTimeout(() => resolve(ownerMarkerFor(owner.pid as number)), 100)
+  );
+  children.push(owner);
+  owner.kill("SIGKILL");
+  await exited;
+  return marker;
+}
+
+/**
  * Wait until a pid is no longer alive, or a deadline passes.
  * @param pid - Process id
  * @param deadlineMs - Longest wait
@@ -105,10 +123,16 @@ describe("cleanup sweep, real filesystem and processes", () => {
     const stale = agedDir(root, "lisa-sweep-demo-old", 25);
     const fresh = agedDir(root, "lisa-sweep-demo-new", 1);
     const foreign = agedDir(root, "other-sweep-demo-old", 25);
-    const child = boundedSpawnSync(process.execPath, [SCRIPT, "--json"], {
-      encoding: "utf8",
-      env: { ...process.env, TMPDIR: root },
-    });
+    // `--no-processes` and a private TMPDIR: this case must never touch the
+    // machine's real processes or its real temp directory.
+    const child = boundedSpawnSync(
+      process.execPath,
+      [SCRIPT, "--json", "--no-processes"],
+      {
+        encoding: "utf8",
+        env: { ...process.env, TMPDIR: root },
+      }
+    );
     expect(child.status).toBe(0);
     const report = JSON.parse(String(child.stdout).trim());
     expect(report.removed.map((entry: string) => path.basename(entry))).toEqual(
@@ -122,7 +146,7 @@ describe("cleanup sweep, real filesystem and processes", () => {
   it.runIf(process.platform === "darwin" || process.platform === "linux")(
     "kills the orphan of a dead owner and leaves a live run's child running",
     async () => {
-      const orphan = markedChild(DEAD_OWNER);
+      const orphan = markedChild(await deadOwnerMarker());
       const liveChild = markedChild(ownerMarkerFor(process.pid));
       const ours = new Set([orphan.pid, liveChild.pid]);
       // Let both start so the listing shows their real environment.

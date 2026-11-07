@@ -45,8 +45,11 @@
  * entry another user owns, a directory group or other can open, or a file
  * group or other can write: in a shared temp directory a Lisa-looking name
  * proves nothing about who made it. And the whole temp half is refused when
- * the root is `/`, the home directory, or an ancestor of the home or working
- * directory — a misconfigured `TMPDIR` must not become a sweep of real files. A folder holding a `.git` entry is kept too,
+ * the root is `/`, the home directory, or an ancestor of the home directory —
+ * a misconfigured `TMPDIR` must not become a sweep of real files. A root that
+ * merely contains the working directory is swept, except for the one
+ * top-level entry that holds it. A git checkout, or a folder whose direct
+ * child is one, is kept. A folder holding a `.git` entry is kept too,
  * because agents put worktrees in the temp directory and a directory's own
  * mtime says nothing about edits deeper inside it.
  *
@@ -54,10 +57,11 @@
  *
  * The gate runner sweeps at `--moment=push` and then starts `test:*:push`
  * scripts, each of which starts `lisa-test-run`; Lisa's own suite also starts
- * nested `lisa-test-run` fixtures. Whoever sweeps first sets
- * {@link SWEPT_ENV} in its environment, everything it starts inherits it, and
- * an entry point that sees it skips the sweep. A nested `lisa-test-run` still
- * sets its own owner marker.
+ * nested `lisa-test-run` fixtures. Whoever sweeps first writes its own
+ * `<pid>:<start>` into {@link SWEPT_ENV}, everything it starts inherits it, and
+ * an entry point skips the sweep — saying so in one line — only while that
+ * exact process is still alive. A stale or copied value cannot disable the
+ * sweep for good. A nested `lisa-test-run` still sets its own owner marker.
  * @module scripts/lib/lisa-cleanup-sweep
  */
 import { lstat, opendir, realpath, rm } from "node:fs/promises";
@@ -67,7 +71,11 @@ import { fileURLToPath } from "node:url";
 
 import { boundedSpawnSync, isChildTimeout } from "./bounded-spawn.mjs";
 import { invokedAsScript } from "./invoked-as-script.mjs";
-import { sweepOrphans } from "./lisa-cleanup-sweep-processes.mjs";
+import {
+  liveSweeper,
+  ownerMarkerFor,
+  sweepOrphans,
+} from "./lisa-cleanup-sweep-processes.mjs";
 
 /** Name prefixes Lisa uses for top-level temp entries. */
 export const LISA_OWNED_TEMP_PREFIXES = Object.freeze(["lisa-", "lisa."]);
@@ -96,7 +104,10 @@ export const LISA_PROTECTED_TEMP_PREFIXES = Object.freeze([
   "lisa-backup-",
 ]);
 
-/** Set by whoever swept first; everything it starts skips the sweep. */
+/**
+ * Set by whoever swept first to its own `<pid>:<start>`; everything it starts
+ * skips the sweep while that process is still alive with that start time.
+ */
 export const SWEPT_ENV = "LISA_CLEANUP_SWEPT";
 
 /** Default age, in hours, past which a Lisa temp entry is stale. */
@@ -111,7 +122,7 @@ const LAUNCH_TIMEOUT_MS = 15_000;
 const HOUR_MS = 60 * 60 * 1000;
 const SELF = fileURLToPath(import.meta.url);
 const USAGE =
-  "usage: lisa-cleanup-sweep.mjs [--dry-run] [--json] [--max-age-hours N]";
+  "usage: lisa-cleanup-sweep.mjs [--dry-run] [--json] [--no-processes] [--max-age-hours N]";
 
 /**
  * Whether a top-level temp name is Lisa-owned and sweepable.
@@ -126,17 +137,39 @@ export function isLisaOwnedTempName(name) {
 }
 
 /**
- * Whether a stale candidate directory is a git checkout.
- * @param {string} entry - Absolute path of a directory.
- * @returns {Promise<boolean>} True when it holds a `.git` entry.
+ * Whether `directory` holds a `.git` entry. Any answer but "absent" is yes.
+ * @param {string} directory - Absolute path.
+ * @returns {Promise<boolean>} True unless `.git` is provably absent.
  */
-async function isGitCheckout(entry) {
+async function holdsGit(directory) {
   try {
-    await lstat(path.join(entry, ".git"));
+    await lstat(path.join(directory, ".git"));
     return true;
   } catch (error) {
-    // Anything but "absent" keeps the entry: an unknown answer never deletes.
     return error?.code !== "ENOENT";
+  }
+}
+
+/**
+ * Whether a stale candidate directory is, or directly holds, a git checkout.
+ *
+ * Agents keep worktrees in the temp directory, sometimes one level down
+ * (`lisa-<n>-workspace/repo`), and a folder's own mtime says nothing about
+ * edits deeper inside it. Unknown — an unreadable folder or child — keeps it.
+ * @param {string} entry - Absolute path of a directory.
+ * @returns {Promise<boolean>} True when it must be kept as a checkout.
+ */
+async function isGitCheckout(entry) {
+  if (await holdsGit(entry)) return true;
+  try {
+    const children = [];
+    for await (const child of await opendir(entry)) {
+      if (child.isDirectory()) children.push(path.join(entry, child.name));
+    }
+    const verdicts = await Promise.all(children.map(holdsGit));
+    return verdicts.includes(true);
+  } catch {
+    return true;
   }
 }
 
@@ -205,77 +238,115 @@ function contains(outer, inner) {
 /**
  * Why a root must not be swept, or null when it may be.
  *
- * A misconfigured `TMPDIR` (`/`, `$HOME`, a checkout's parent) would otherwise
+ * A misconfigured `TMPDIR` (`/`, `$HOME`, `$HOME`'s parent) would otherwise
  * turn a temp sweep into a sweep of the user's own files.
- * @param {string} root - Proposed sweep root.
- * @param {{home: string, cwd: string}} places - The home and working directories.
- * @returns {Promise<string | null>} An operator-readable refusal, or null.
+ * @param {string} resolved - Canonical sweep root.
+ * @param {string} home - Canonical home directory.
+ * @returns {string | null} The refusal reason, or null.
  */
-async function rootRefusal(root, { home, cwd }) {
-  const resolved = await canonical(root);
-  const why = [
-    [path.dirname(resolved) === resolved, "it is the filesystem root"],
-    [
-      contains(resolved, await canonical(home)),
-      "it is or contains the home directory",
-    ],
-    [
-      contains(resolved, await canonical(cwd)),
-      "it contains the working directory",
-    ],
-  ].find(([refused]) => refused);
-  return why ? `refusing to sweep ${root}: ${why[1]}` : null;
+function rootRefusal(resolved, home) {
+  if (path.dirname(resolved) === resolved) return "it is the filesystem root";
+  if (contains(resolved, home)) return "it is or contains the home directory";
+  return null;
 }
 
 /**
- * Run `worker` over `items` with at most `limit` in flight.
- * @template T
+ * The top-level entry name that holds the working directory, if any.
+ *
+ * A temp root may legitimately contain the cwd — an agent worktree under
+ * `/tmp/lisa-…/` — and the sweep must never delete the folder it runs in.
+ * @param {string} resolved - Canonical sweep root.
+ * @param {string} cwd - Canonical working directory.
+ * @returns {string | null} That entry's name, or null.
+ */
+function entryHolding(resolved, cwd) {
+  if (!contains(resolved, cwd) || resolved === cwd) return null;
+  return path.relative(resolved, cwd).split(path.sep)[0] ?? null;
+}
+
+/**
+ * Map `worker` over `items` with at most `limit` in flight, in order.
+ * @template T, R
  * @param {readonly T[]} items - Work items.
  * @param {number} limit - Maximum concurrency.
- * @param {(item: T) => Promise<void>} worker - Async worker.
- * @returns {Promise<void>} Resolves when every item is done.
+ * @param {(item: T) => Promise<R>} worker - Async worker; must not throw.
+ * @returns {Promise<R[]>} Results, index-aligned with `items`.
  */
-async function inPool(items, limit, worker) {
-  const queue = [...items];
-  const lanes = Array.from(
-    { length: Math.min(limit, queue.length) },
-    async () => {
-      for (let item = queue.shift(); item !== undefined; item = queue.shift()) {
-        await worker(item);
+async function mapPool(items, limit, worker) {
+  const lanes = Math.min(limit, items.length);
+  const laneResults = await Promise.all(
+    Array.from({ length: lanes }, async (_, lane) => {
+      const mine = [];
+      for (let index = lane; index < items.length; index += lanes) {
+        mine.push([index, await worker(items[index])]);
       }
-    }
+      return mine;
+    })
   );
-  await Promise.all(lanes);
+  return laneResults
+    .flat()
+    .sort(([left], [right]) => left - right)
+    .map(([, result]) => result);
 }
 
 /**
- * Select the stale Lisa entries at the top level of `root`.
- * @param {string} root - Temp root.
+ * Classify one Lisa-named entry, turning a failure into a reported verdict.
+ * @param {string} entry - Absolute path.
  * @param {number} cutoffMs - Staleness cutoff.
  * @param {number | undefined} uid - This user's id.
- * @param {{skippedUnsafe: number, errors: string[]}} tally - Collector.
- * @returns {Promise<string[]>} Absolute paths to remove.
+ * @returns {Promise<{entry: string, verdict: string, error?: string}>} Verdict.
  */
-async function staleEntries(root, cutoffMs, uid, tally) {
-  const resolvedRoot = path.resolve(root);
+async function classify(entry, cutoffMs, uid) {
+  try {
+    return { entry, verdict: await verdictFor(entry, cutoffMs, uid) };
+  } catch (error) {
+    // An entry that vanished mid-sweep is simply gone; anything else is kept
+    // and reported.
+    if (error?.code === "ENOENT") return { entry, verdict: "keep" };
+    return {
+      entry,
+      verdict: "error",
+      error: `${entry}: ${error?.message ?? error}`,
+    };
+  }
+}
+
+/**
+ * Classify the Lisa-named entries at the top level of `root`.
+ * @param {string} resolvedRoot - Canonical temp root.
+ * @param {string | null} holding - Name of the entry holding the cwd.
+ * @param {number} cutoffMs - Staleness cutoff.
+ * @param {number | undefined} uid - This user's id.
+ * @returns {Promise<Array<{entry: string, verdict: string, error?: string}>>} Verdicts.
+ */
+async function classifyEntries(resolvedRoot, holding, cutoffMs, uid) {
   const candidates = [];
   for await (const dirent of await opendir(resolvedRoot)) {
     if (dirent.isSymbolicLink() || !isLisaOwnedTempName(dirent.name)) continue;
+    if (dirent.name === holding) continue;
     const entry = path.join(resolvedRoot, dirent.name);
     if (path.dirname(entry) === resolvedRoot) candidates.push(entry);
   }
-  const stale = [];
-  await inPool(candidates, REMOVE_CONCURRENCY, async entry => {
-    try {
-      const verdict = await verdictFor(entry, cutoffMs, uid);
-      if (verdict === "remove") stale.push(entry);
-      if (verdict === "unsafe") tally.skippedUnsafe += 1;
-    } catch (error) {
-      if (error?.code !== "ENOENT")
-        tally.errors.push(`${entry}: ${error?.message ?? error}`);
-    }
-  });
-  return stale.sort();
+  return mapPool(candidates, REMOVE_CONCURRENCY, entry =>
+    classify(entry, cutoffMs, uid)
+  );
+}
+
+/**
+ * Remove one entry, reporting instead of throwing.
+ * @param {string} entry - Absolute path.
+ * @returns {Promise<{entry: string, error?: string}>} Outcome.
+ */
+async function removeEntry(entry) {
+  try {
+    await rm(entry, { recursive: true, force: true });
+    return { entry };
+  } catch (error) {
+    return {
+      entry,
+      error: `could not remove ${entry}: ${error?.message ?? error}`,
+    };
+  }
 }
 
 /**
@@ -299,12 +370,20 @@ export async function sweepTemp({
   home = homedir(),
   cwd = process.cwd(),
 }) {
-  const refusal = await rootRefusal(root, { home, cwd });
-  if (refusal) return { removed: [], skippedUnsafe: 0, errors: [refusal] };
-  const tally = { skippedUnsafe: 0, errors: [] };
-  let stale;
+  const resolvedRoot = await canonical(root);
+  const refusal = rootRefusal(resolvedRoot, await canonical(home));
+  if (refusal) {
+    return {
+      removed: [],
+      skippedUnsafe: 0,
+      errors: [`refusing to sweep ${root}: ${refusal}`],
+    };
+  }
+  let verdicts;
   try {
-    stale = await staleEntries(root, now - maxAgeHours * HOUR_MS, uid, tally);
+    const holding = entryHolding(resolvedRoot, await canonical(cwd));
+    const cutoffMs = now - maxAgeHours * HOUR_MS;
+    verdicts = await classifyEntries(resolvedRoot, holding, cutoffMs, uid);
   } catch (error) {
     return {
       removed: [],
@@ -312,18 +391,19 @@ export async function sweepTemp({
       errors: [`cannot read ${root}: ${error?.message ?? error}`],
     };
   }
-  const { skippedUnsafe, errors } = tally;
-  if (dryRun) return { removed: stale, skippedUnsafe, errors };
-  const removed = [];
-  await inPool(stale, REMOVE_CONCURRENCY, async entry => {
-    try {
-      await rm(entry, { recursive: true, force: true });
-      removed.push(entry);
-    } catch (error) {
-      errors.push(`could not remove ${entry}: ${error?.message ?? error}`);
-    }
-  });
-  return { removed: removed.sort(), skippedUnsafe, errors };
+  const stale = verdicts.filter(v => v.verdict === "remove").map(v => v.entry);
+  const skippedUnsafe = verdicts.filter(v => v.verdict === "unsafe").length;
+  const classifyErrors = verdicts.flatMap(v => (v.error ? [v.error] : []));
+  if (dryRun) return { removed: stale, skippedUnsafe, errors: classifyErrors };
+  const outcomes = await mapPool(stale, REMOVE_CONCURRENCY, removeEntry);
+  return {
+    removed: outcomes.filter(o => !o.error).map(o => o.entry),
+    skippedUnsafe,
+    errors: [
+      ...classifyErrors,
+      ...outcomes.flatMap(o => (o.error ? [o.error] : [])),
+    ],
+  };
 }
 
 /**
@@ -407,7 +487,7 @@ export function formatSummary(result) {
 /**
  * Parse CLI flags.
  * @param {readonly string[]} argv - Arguments after the script path.
- * @returns {{dryRun: boolean, json: boolean, maxAgeHours: number}} Parsed flags.
+ * @returns {{dryRun: boolean, json: boolean, maxAgeHours: number, processes: boolean}} Parsed flags.
  * @throws {Error} On an unknown flag or an invalid age.
  */
 export function parseSweepArgs(argv) {
@@ -415,30 +495,35 @@ export function parseSweepArgs(argv) {
     dryRun: false,
     json: false,
     maxAgeHours: DEFAULT_MAX_AGE_HOURS,
+    processes: true,
   };
-  const args = [...argv];
-  for (let arg = args.shift(); arg !== undefined; arg = args.shift()) {
+  for (let index = 0; index < argv.length; index += 1) {
+    const arg = argv[index];
     if (arg === "--dry-run") parsed.dryRun = true;
     else if (arg === "--json") parsed.json = true;
+    else if (arg === "--no-processes") parsed.processes = false;
     else if (arg === "--max-age-hours" || arg.startsWith("--max-age-hours=")) {
-      const raw = arg.includes("=")
-        ? arg.slice(arg.indexOf("=") + 1)
-        : args.shift();
-      const hours = Number(raw);
-      if (
-        raw === undefined ||
-        raw === "" ||
-        !Number.isFinite(hours) ||
-        hours < 0
-      ) {
-        throw new Error(
-          `--max-age-hours needs a non-negative number, got ${raw}`
-        );
-      }
-      parsed.maxAgeHours = hours;
+      const inline = arg.includes("=");
+      const raw = inline ? arg.slice(arg.indexOf("=") + 1) : argv[index + 1];
+      if (!inline) index += 1;
+      parsed.maxAgeHours = parseAge(raw);
     } else throw new Error(`unknown flag ${arg}`);
   }
   return parsed;
+}
+
+/**
+ * Validate an age in hours.
+ * @param {string | undefined} raw - The flag's value.
+ * @returns {number} The age.
+ * @throws {Error} When it is not a non-negative number.
+ */
+function parseAge(raw) {
+  const hours = Number(raw);
+  if (raw === undefined || raw === "" || !Number.isFinite(hours) || hours < 0) {
+    throw new Error(`--max-age-hours needs a non-negative number, got ${raw}`);
+  }
+  return hours;
 }
 
 /**
@@ -462,22 +547,35 @@ export async function main(argv = process.argv.slice(2), seams = {}) {
     dryRun: flags.dryRun,
     maxAgeHours: flags.maxAgeHours,
     ...seams.sweepOptions,
+    ...(flags.processes ? {} : { orphans: false }),
   });
   write(flags.json ? JSON.stringify(result) : formatSummary(result));
   return 0;
 }
 
 /**
+ * The line printed when a live sweeper already swept.
+ * @param {number} pid - The sweeper's pid.
+ * @returns {string} One line, no trailing newline.
+ */
+export function formatAlreadySwept(pid) {
+  return `🧹 cleanup sweep already ran (pid ${pid}); skipping`;
+}
+
+/**
  * Sweep once from a synchronous caller (the gate runner), never failing it.
  *
  * Runs this file as a bounded child because the caller cannot await, forwards
- * its one summary line, and on any failure prints one line and returns. Skips
- * entirely when {@link SWEPT_ENV} is already set, and sets it afterwards so
- * everything the caller starts skips too.
+ * its one summary line, and on any failure prints one line and returns. Skips,
+ * with one line, when {@link SWEPT_ENV} names a sweeper that is still alive;
+ * otherwise writes the CALLER's own `<pid>:<start>` there first, so everything
+ * the caller starts afterwards skips for as long as the caller runs.
  * @param {object} [seams] - Test seams.
  * @param {Record<string, string | undefined>} [seams.env] - Environment, defaults to `process.env`.
  * @param {typeof boundedSpawnSync} [seams.spawn] - Child launcher.
  * @param {(line: string) => void} [seams.log] - Output sink.
+ * @param {() => string} [seams.ownerMarker] - This process's `<pid>:<start>`.
+ * @param {(value: unknown) => number | null} [seams.liveSweeper] - Who already swept.
  * @returns {void}
  */
 export function runStartOfRunSweep(seams = {}) {
@@ -485,9 +583,26 @@ export function runStartOfRunSweep(seams = {}) {
     env = process.env,
     spawn = boundedSpawnSync,
     log = console.log,
+    ownerMarker = () => ownerMarkerFor(process.pid),
+    liveSweeper: sweptBy = liveSweeper,
   } = seams;
-  if (env[SWEPT_ENV]) return;
-  env[SWEPT_ENV] = "1";
+  const sweeper = sweptBy(env[SWEPT_ENV]);
+  if (sweeper !== null) {
+    log(formatAlreadySwept(sweeper));
+    return;
+  }
+  env[SWEPT_ENV] = ownerMarker();
+  launchSweep(spawn, env, log);
+}
+
+/**
+ * Run the sweep CLI as a bounded child and forward its one line.
+ * @param {typeof boundedSpawnSync} spawn - Child launcher.
+ * @param {Record<string, string | undefined>} env - Child environment.
+ * @param {(line: string) => void} log - Output sink.
+ * @returns {void}
+ */
+function launchSweep(spawn, env, log) {
   const didNotFinish = why =>
     log(`🧹 cleanup sweep did not finish (${why}); continuing`);
   try {

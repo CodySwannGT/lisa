@@ -14,6 +14,7 @@
 import { describe, expect, it, vi } from "vitest";
 
 import {
+  liveSweeper,
   parseDarwinProcessTable,
   parseLinuxEnviron,
   selectOrphans,
@@ -77,6 +78,23 @@ describe("macOS argument spoofing", () => {
   it("spares an environment carrying two different markers", () => {
     const row = parseOne(NODE, `${LIVE} X=1 ${DEAD}`);
     expect(row?.owner).toBeNull();
+  });
+});
+
+describe("who already swept", () => {
+  const lookups = {
+    isAlive: (pid: number) => pid === 600,
+    startTimesOf: () => new Map([[600, "111"]]),
+  };
+
+  it("names a sweeper that is alive with the recorded start time", () => {
+    expect(liveSweeper("600:111", lookups)).toBe(600);
+  });
+
+  it("answers null for a dead, reused, unknown-start or malformed mark", () => {
+    for (const value of ["700:111", "600:222", "600:0", "1", "", undefined]) {
+      expect(liveSweeper(value, lookups)).toBeNull();
+    }
   });
 });
 
