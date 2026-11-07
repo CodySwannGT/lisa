@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.90.2](https://github.com/CodySwannGT/lisa/compare/v4.90.1...v4.90.2) (2026-11-07)
+
+
+### Bug Fixes
+
+* **completion-proof:** read Linear-escaped evidence markers ([175fd72](https://github.com/CodySwannGT/lisa/commit/175fd72c7d0834d9d3b3d2731b4d90028dec522c)), closes [#4391](https://github.com/CodySwannGT/lisa/issues/4391) [CodySwannGT/lisa#4670](https://github.com/CodySwannGT/lisa/issues/4670) [CodySwannGT/lisa#4670](https://github.com/CodySwannGT/lisa/issues/4670)
+
 ### [4.90.1](https://github.com/CodySwannGT/lisa/compare/v4.90.0...v4.90.1) (2026-11-07)
 
 
