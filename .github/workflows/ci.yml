@@ -22,6 +22,10 @@ jobs:
       node_version: '24.21.0'
       package_manager: 'bun'
       skip_jobs: ''
+      # Split the unit suite across 4 parallel legs (#4598). quality.yml merges
+      # shard coverage and checks thresholds once in the aggregate job, so the
+      # required check `🔍 Quality Checks / 🧪 Run Unit Tests` keeps its name.
+      unit_test_shards: 4
     secrets: inherit
   bin_smoke:
     name: Lisa CLI bin smoke
