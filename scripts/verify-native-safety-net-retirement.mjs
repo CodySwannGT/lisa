@@ -172,6 +172,7 @@ try {
       "invoke-opencode.mjs",
       "Dockerfile",
       "reduced-core.mjs",
+      "isolated-linker.mjs",
     ].map(file => ({
       file,
       sha256: sha(readFileSync(path.join(fixture, file))),
@@ -244,6 +245,16 @@ try {
     readFileSync(path.join(out, "runtime/retirement-proof.json"), "utf8")
   );
   assert.match(result.outcome, /^PASS:/);
+  const isolated = JSON.parse(result.isolated_linker_update.stdout);
+  assert.match(isolated.outcome, /^PASS:/);
+  assert.deepEqual(
+    isolated.before.results.map(row => row.status),
+    [2, 2, 0]
+  );
+  assert.deepEqual(
+    isolated.after.results.map(row => row.status),
+    [0, 2, 0]
+  );
   record("result.json", {
     outcome: result.outcome,
     archive_sha256: sha(readFileSync(candidate)),

@@ -5,6 +5,9 @@ dependency with its normal package lifecycle disables old Lisa-owned copies
 automatically. An additional full template apply is not required. All other
 guards, tests, lint, review and verification checks remain enabled.
 
+This includes ordinary installs and Bun/pnpm virtual-store layouts: the update
+reconciles the host repository, rather than the package's storage directory.
+
 The shell hook, Antigravity adapter and OpenCode module remain as harmless
 compatibility entries. Existing registrations and commands captured by a running
 agent can still call those paths. They do not parse or execute the proposed

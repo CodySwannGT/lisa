@@ -2702,8 +2702,10 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "923b5e0b3f2981aecf45d779d3eb0cd18fcdd5e289e0f6726c0448b6a61025c1",
     "scripts/fixtures/native-safety-net-retirement/invoke-opencode.mjs":
       "837063cc8eed944a00e996cd03b4d09eee108f47ca675e186976dcee3ca0804a",
+    "scripts/fixtures/native-safety-net-retirement/isolated-linker.mjs":
+      "df3db970a643d358a936a15ccde1b5f4c1e87c0321a74264c550ed6340165235",
     "scripts/fixtures/native-safety-net-retirement/journey.mjs":
-      "89592a0c8e67c736844b4a663f0b1e218bb369b9ea5e11f6d20dc5ea6b776911",
+      "54f9c52eca945e1054db963813a0db8a6a53f4c51aea54871826db59a091cbb4",
     "scripts/fixtures/native-safety-net-retirement/probes.mjs":
       "e66ac93861ff9b84ac41203f6ffa663647a40977c9b838e5904ad0afcd7d15fd",
     "scripts/fixtures/native-safety-net-retirement/reduced-core.mjs":
@@ -2875,7 +2877,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/remote-agent-aws-setup.sh":
       "f181062436c214c95fe15be8000cce18de0b553b3dab06b822a4fe55cb285ca6",
     "scripts/retire-native-safety-net.mjs":
-      "241bd3b201d68cf98981b45829215c2d85f16a3591321bac260d8d6b9bd6d28e",
+      "afe37aefe9b13afafa33cd8748dd7891eae023164268f09f45bcf12b44d593bd",
     "scripts/run-artifact-checks.mjs":
       "2992d673bb3c1ebfa50bda9ed323b8410afdab2ffc925eee6eab19fcab312a90",
     "scripts/setup-deploy-key.sh":
@@ -2901,7 +2903,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/verify-learner-frontmatter-built.mjs":
       "b8ac0240726721a047811e98d42f661426abc3e427a0c86f3b20082eb498809d",
     "scripts/verify-native-safety-net-retirement.mjs":
-      "f1610d4c96039646901c21f636e63edc63373cf1199ef125540eb8d9aa806ed6",
+      "6bff582556199f2d0c2cf8d68880141491c9e5223db5247600a930ac369b7c11",
     "scripts/verify-npm-advisories-4333.mjs":
       "f0a94aead747c28cf1317d999a4eb80ae027461a43ed22b5b996173a5a096aae",
     "scripts/verify-packed-learnings-contract.mjs":
@@ -10426,6 +10428,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "scripts/fix-test-assertions.mjs": true,
     "scripts/fixtures/native-safety-net-retirement/Dockerfile": true,
     "scripts/fixtures/native-safety-net-retirement/invoke-opencode.mjs": true,
+    "scripts/fixtures/native-safety-net-retirement/isolated-linker.mjs": true,
     "scripts/fixtures/native-safety-net-retirement/journey.mjs": true,
     "scripts/fixtures/native-safety-net-retirement/probes.mjs": true,
     "scripts/fixtures/native-safety-net-retirement/reduced-core.mjs": true,

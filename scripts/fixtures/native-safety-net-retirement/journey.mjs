@@ -312,6 +312,12 @@ try {
     reconciliation_idempotent: true,
   };
 
+  proof.isolated_linker_update = ok(proof, process.execPath, [
+    "/proof/isolated-linker.mjs",
+    root,
+    preview,
+  ]);
+
   proof.reduced_core_apply = ok(proof, process.execPath, [
     "/proof/reduced-core.mjs",
     pkg,

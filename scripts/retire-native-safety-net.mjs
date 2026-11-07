@@ -202,8 +202,12 @@ if (invokedAsScript(import.meta.url)) {
   const dependency = packageRoot.endsWith(
     path.join(path.sep, "node_modules", "@codyswann", "lisa")
   );
-  const virtualStore = path.join(path.sep, "node_modules", ".pnpm") + path.sep;
-  const installRoot = packageRoot.includes(virtualStore)
+  const virtualStore = dependency
+    ? [".pnpm", ".bun"]
+        .map(store => path.join(path.sep, "node_modules", store) + path.sep)
+        .find(marker => packageRoot.includes(marker))
+    : undefined;
+  const installRoot = virtualStore
     ? packageRoot.split(virtualStore)[0]
     : dependency
       ? path.resolve(packageRoot, "../../..")
