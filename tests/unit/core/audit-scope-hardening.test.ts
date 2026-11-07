@@ -196,7 +196,7 @@ describe("an advisory-wide entry cannot widen a scoped one (B3)", () => {
 });
 
 describe("one helper decides when lockfile data is required (N8)", () => {
-  it.each([
+  it.each<[Readonly<Record<string, unknown>>, boolean]>([
     [{ id: GHSA }, false],
     [{ id: GHSA, package: "zod" }, false],
     [{ id: GHSA, versions: "3.x" }, true],
