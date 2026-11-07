@@ -1,35 +1,36 @@
+HEAD 41973cd93670b20e1be3061c2456b3ab605f1bf8
 === Part A: integration test, verbose reporter (npx vitest run tests/integration/lisa-rollback-release.test.ts --reporter=verbose) ===
 
  RUN  v4.1.12 /Users/codysai/workspace/lisa/.claude/worktrees/4605-release-rollback
 
 lisa scratch: no supervised lease in the environment, so this run is self-supervised. Fixture directories are still bounded to a run root this process owns and removed on exit; what is missing is the detached reaper that reclaims the root after a SIGKILL, which the next run's startup sweep recovers instead. Run through `lisa-test-run --profile <profile> --adapter vitest -- vitest ...` for a supervised run.
- ✓ |lisa| tests/integration/lisa-rollback-release.test.ts > with credentials present > a dry run prints the three commands with 4.90.0 and changes nothing 63ms
- ✓ |lisa| tests/integration/lisa-rollback-release.test.ts > with credentials present > a real run deprecates 4.90.1, moves latest to 4.90.0 and verifies 1022ms
- ✓ |lisa| tests/integration/lisa-rollback-release.test.ts > without an npm token > refuses before any write, naming the missing npm sign-in 759ms
+ ✓ |lisa| tests/integration/lisa-rollback-release.test.ts > with credentials present > a dry run prints the three commands with 4.90.0 and changes nothing 84ms
+ ✓ |lisa| tests/integration/lisa-rollback-release.test.ts > with credentials present > a real run deprecates 4.90.1, moves latest to 4.90.0 and verifies 1348ms
+ ✓ |lisa| tests/integration/lisa-rollback-release.test.ts > without an npm token > refuses before any write, naming the missing npm sign-in 369ms
 
  Test Files  1 passed (1)
       Tests  3 passed (3)
-   Start at  14:09:21
-   Duration  2.38s (transform 121ms, setup 147ms, import 152ms, tests 1.89s, environment 0ms)
+   Start at  14:29:01
+   Duration  2.44s (transform 167ms, setup 189ms, import 160ms, tests 1.86s, environment 0ms)
 
 exit=0
 === Part B: real command run by the verifier against a fresh writable test registry, isolated npm user config with the fake token, gh stub on PATH ===
-### registry: http://127.0.0.1:58137 (fresh; versions 4.90.0, 4.90.1; latest=4.90.1)
+### registry: http://127.0.0.1:60321 (fresh; versions 4.90.0, 4.90.1; latest=4.90.1)
 ### npmrc (isolated, NPM_CONFIG_USERCONFIG):
-registry=http://127.0.0.1:58137/
-//127.0.0.1:58137/:_authToken=<fake-test-token>
-### packument BEFORE (http://127.0.0.1:58137/@codyswann%2flisa?write=true):
+registry=http://127.0.0.1:60321/
+//127.0.0.1:60321/:_authToken=<fake-test-token>
+### packument BEFORE (http://127.0.0.1:60321/@codyswann%2flisa?write=true):
 {"name":"@codyswann/lisa","dist-tags":{"latest":"4.90.1"},"versions":{"4.90.0":{"name":"@codyswann/lisa","version":"4.90.0"},"4.90.1":{"name":"@codyswann/lisa","version":"4.90.1"}}}
-### command: node scripts/lisa-rollback-release.mjs --bad 4.90.1 --reason breaks apply --registry http://127.0.0.1:58137
+### command: node scripts/lisa-rollback-release.mjs --bad 4.90.1 --reason breaks apply --registry http://127.0.0.1:60321
 ### stdout:
-Warning: the npm writes go to http://127.0.0.1:58137, while the GitHub notes edit goes to CodySwannGT/lisa.
-$ npm deprecate @codyswann/lisa@4.90.1 'breaks apply' --registry http://127.0.0.1:58137
-$ npm dist-tag add @codyswann/lisa@4.90.0 latest --registry http://127.0.0.1:58137
-$ gh release edit v4.90.1 --repo CodySwannGT/lisa --notes-file /tmp/lisa-rollback-7N1Xf9/v4.90.1-notes.md
+Warning: the npm writes go to http://127.0.0.1:60321, while the GitHub notes edit goes to CodySwannGT/lisa.
+$ npm deprecate @codyswann/lisa@4.90.1 'breaks apply' --registry http://127.0.0.1:60321
+$ npm dist-tag add @codyswann/lisa@4.90.0 latest --registry http://127.0.0.1:60321
+$ gh release edit v4.90.1 --repo CodySwannGT/lisa --notes-file /tmp/lisa-rollback-Ry9At0/v4.90.1-notes.md
 Verified: 4.90.1 is deprecated and latest is 4.90.0. Now prepare the fix-forward release.
 ### stderr:
 ### exit code: 0
-### packument AFTER (http://127.0.0.1:58137/@codyswann%2flisa?write=true):
+### packument AFTER (http://127.0.0.1:60321/@codyswann%2flisa?write=true):
 {"name":"@codyswann/lisa","dist-tags":{"latest":"4.90.0"},"versions":{"4.90.0":{"name":"@codyswann/lisa","version":"4.90.0"},"4.90.1":{"name":"@codyswann/lisa","version":"4.90.1","deprecated":"breaks apply"}}}
 ### every request the registry saw (method path authorized):
 GET /@codyswann%2flisa?write=true false
@@ -45,7 +46,7 @@ PUT count: 2
 ### gh stub calls:
 ["auth","status"]
 ["release","view","v4.90.1","--repo","CodySwannGT/lisa","--json","body"]
-["release","edit","v4.90.1","--repo","CodySwannGT/lisa","--notes-file","/tmp/lisa-rollback-7N1Xf9/v4.90.1-notes.md"]
+["release","edit","v4.90.1","--repo","CodySwannGT/lisa","--notes-file","/tmp/lisa-rollback-Ry9At0/v4.90.1-notes.md"]
 ### edited release notes passed to gh release edit:
 > **This release is deprecated:** breaks apply
 >
@@ -53,4 +54,39 @@ PUT count: 2
 
 ## 4.90.1
 
-- the change that broke apply
+- the change that broke apply=== Part C: real run where the gh stub fails 'release view' (stdout and stderr merged, in order) ===
+### registry: http://127.0.0.1:60367 (fresh; versions 4.90.0, 4.90.1; latest=4.90.1)
+### npm user config (isolated, NPM_CONFIG_USERCONFIG):
+registry=http://127.0.0.1:60367/
+//127.0.0.1:60367/:_authToken=<fake-test-token>
+### gh stub: release view fails = 1
+### packument BEFORE (http://127.0.0.1:60367/@codyswann%2flisa?write=true):
+{"name":"@codyswann/lisa","dist-tags":{"latest":"4.90.1"},"versions":{"4.90.0":{"name":"@codyswann/lisa","version":"4.90.0"},"4.90.1":{"name":"@codyswann/lisa","version":"4.90.1"}}}
+### command: node scripts/lisa-rollback-release.mjs --bad 4.90.1 --reason breaks apply --registry http://127.0.0.1:60367
+### stdout and stderr, interleaved in order:
+Warning: the npm writes go to http://127.0.0.1:60367, while the GitHub notes edit goes to CodySwannGT/lisa.
+$ npm deprecate @codyswann/lisa@4.90.1 'breaks apply' --registry http://127.0.0.1:60367
+$ npm dist-tag add @codyswann/lisa@4.90.0 latest --registry http://127.0.0.1:60367
+Verified: 4.90.1 is deprecated and latest is 4.90.0. Now prepare the fix-forward release.
+The deprecation notice was NOT added to GitHub release v4.90.1 in CodySwannGT/lisa: Could not read the GitHub release v4.90.1:
+release not found
+
+Already done: deprecated 4.90.1; moved latest to 4.90.0. Not done: added the deprecation notice to the v4.90.1 release notes. Re-running the same command is safe and will finish the rest.
+### exit code: 1
+### packument AFTER (http://127.0.0.1:60367/@codyswann%2flisa?write=true):
+{"name":"@codyswann/lisa","dist-tags":{"latest":"4.90.0"},"versions":{"4.90.0":{"name":"@codyswann/lisa","version":"4.90.0"},"4.90.1":{"name":"@codyswann/lisa","version":"4.90.1","deprecated":"breaks apply"}}}
+### every request the registry saw (method path authorized):
+GET /@codyswann%2flisa?write=true false
+GET /@codyswann%2flisa?write=true false
+GET /-/whoami true
+GET /@codyswann%2flisa?write=true true
+PUT /@codyswann%2flisa true
+GET /-/package/@codyswann%2flisa/dist-tags true
+PUT /-/package/@codyswann%2flisa/dist-tags/latest true
+GET /@codyswann%2flisa?write=true false
+GET /@codyswann%2flisa?write=true false
+PUT count: 2
+### gh stub calls:
+["auth","status"]
+["release","view","v4.90.1","--repo","CodySwannGT/lisa","--json","body"]
+### no release notes were edited

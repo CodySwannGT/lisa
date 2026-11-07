@@ -25,6 +25,13 @@ projects already have installed.
   Run `npm login`, then check with `npm whoami` — it should print your npm
   username. (CI publishes through npm trusted publishing, which can only
   publish, so a rollback always runs under a person's own npm sign-in.)
+- **npm two-factor codes:** if your npm account uses two-factor
+  authentication for writes, npm needs a one-time code from your
+  authenticator app. Pass it with `--otp <code>`; the command uses it for both
+  npm steps and never prints it (it shows `--otp <redacted>`). Get a fresh code
+  right before the real run. Each code only lasts a short time and can expire
+  between the two npm steps. If that happens, run the same command again with a
+  new code. That is safe, and it finishes whatever is left.
 - **GitHub:** the GitHub CLI signed in with write access to this repository's
   releases. Run `gh auth login`, then check with `gh auth status`.
 - A checkout of this repository with `bun install` done.
@@ -55,9 +62,19 @@ Run the same command without `--dry-run`:
 bun run release:rollback -- --bad 4.90.1 --reason "breaks lisa apply"
 ```
 
+With npm two-factor authentication, add `--otp` and a fresh code:
+
+```bash
+bun run release:rollback -- --bad 4.90.1 --reason "breaks lisa apply" --otp 123456
+```
+
 It runs, in order: `npm deprecate`, `npm dist-tag add … latest`, and
-`gh release edit` on the `v4.90.1` release notes. If any step fails it stops
-there and prints the failing command and its error.
+`gh release edit` on the `v4.90.1` release notes. If an npm step fails, it
+stops there and prints the failing command and its error. If only the GitHub
+release notes step fails, for example because `v4.90.1` has no published
+release, it still checks npm. It then tells you that npm is contained and only
+the notice is missing, and it exits with an error so the notice isn't
+forgotten.
 
 ### Step 3: confirm it worked
 

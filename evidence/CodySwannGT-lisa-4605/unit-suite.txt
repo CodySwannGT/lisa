@@ -1,10 +1,11 @@
+HEAD 41973cd93670b20e1be3061c2456b3ab605f1bf8
 
  RUN  v4.1.12 /Users/codysai/workspace/lisa/.claude/worktrees/4605-release-rollback
 
 lisa scratch: no supervised lease in the environment, so this run is self-supervised. Fixture directories are still bounded to a run root this process owns and removed on exit; what is missing is the detached reaper that reclaims the root after a SIGKILL, which the next run's startup sweep recovers instead. Run through `lisa-test-run --profile <profile> --adapter vitest -- vitest ...` for a supervised run.
  ✓ |lisa| tests/unit/scripts/lisa-rollback-release.test.ts > parseArgs > reads every flag 1ms
  ✓ |lisa| tests/unit/scripts/lisa-rollback-release.test.ts > parseArgs > defaults the registry to npm, or to LISA_NPM_REGISTRY 0ms
- ✓ |lisa| tests/unit/scripts/lisa-rollback-release.test.ts > parseArgs > requires --bad and a non-empty --reason 0ms
+ ✓ |lisa| tests/unit/scripts/lisa-rollback-release.test.ts > parseArgs > requires --bad and a non-empty --reason 1ms
  ✓ |lisa| tests/unit/scripts/lisa-rollback-release.test.ts > parseArgs > refuses versions that are not exact semver 0ms
  ✓ |lisa| tests/unit/scripts/lisa-rollback-release.test.ts > parseArgs > refuses unknown flags rather than ignoring them 0ms
  ✓ |lisa| tests/unit/scripts/lisa-rollback-release.test.ts > resolveGoodVersion > picks the highest published version below the bad one 0ms
@@ -16,7 +17,7 @@ lisa scratch: no supervised lease in the environment, so this run is self-superv
  ✓ |lisa| tests/unit/scripts/lisa-rollback-release.test.ts > planCommands and formatting > orders deprecate, dist-tag, release edit — all against the registry 0ms
  ✓ |lisa| tests/unit/scripts/lisa-rollback-release.test.ts > planCommands and formatting > builds the uncached packument URL 0ms
  ✓ |lisa| tests/unit/scripts/lisa-rollback-release.test.ts > planCommands and formatting > states the reason and where latest now points 0ms
- ✓ |lisa| tests/unit/scripts/lisa-rollback-release.test.ts > rollback — a real run > writes in order, prepends the notice, verifies, exits 0 0ms
+ ✓ |lisa| tests/unit/scripts/lisa-rollback-release.test.ts > rollback — a real run > writes in order, prepends the notice, verifies, exits 0 1ms
  ✓ |lisa| tests/unit/scripts/lisa-rollback-release.test.ts > rollback — a real run > checks npm and gh sign-in before the first write 0ms
  ✓ |lisa| tests/unit/scripts/lisa-rollback-release.test.ts > rollback — a real run > exits non-zero when the read-back does not show both facts 0ms
  ✓ |lisa| tests/unit/scripts/lisa-rollback-release.test.ts > rollback — a real run > stops at the first failed write 0ms
@@ -33,10 +34,16 @@ lisa scratch: no supervised lease in the environment, so this run is self-superv
  ✓ |lisa| tests/unit/scripts/lisa-rollback-release.test.ts > review fixes > retries a stale read-back and passes once it is fresh 0ms
  ✓ |lisa| tests/unit/scripts/lisa-rollback-release.test.ts > review fixes > rejects a v-prefixed version with the fix spelled out 0ms
  ✓ |lisa| tests/unit/scripts/lisa-rollback-release.test.ts > review fixes > warns when npm writes and the GitHub edit go to different places 0ms
+ ✓ |lisa| tests/unit/scripts/lisa-rollback-release.test.ts > local review fixes > passes --otp to both npm writes and never prints the code 0ms
+ ✓ |lisa| tests/unit/scripts/lisa-rollback-release.test.ts > local review fixes > reports a read-back error as not verified, not as stopped 0ms
+ ✓ |lisa| tests/unit/scripts/lisa-rollback-release.test.ts > local review fixes > still verifies npm when the release notes step fails, then exits 1 0ms
+ ✓ |lisa| tests/unit/scripts/lisa-rollback-release.test.ts > local review fixes > reads the registry with a timeout 0ms
+ ✓ |lisa| tests/unit/scripts/lisa-rollback-release.test.ts > local review fixes > does not stack the notice on a body GitHub trimmed 0ms
+ ✓ |lisa| tests/unit/scripts/lisa-rollback-release.test.ts > local review fixes > calls a timed-out step not confirmed rather than not done 0ms
 
  Test Files  1 passed (1)
-      Tests  31 passed (31)
-   Start at  14:12:17
-   Duration  333ms (transform 88ms, setup 133ms, import 30ms, tests 8ms, environment 0ms)
+      Tests  37 passed (37)
+   Start at  14:29:04
+   Duration  437ms (transform 152ms, setup 187ms, import 43ms, tests 9ms, environment 0ms)
 
 exit=0
