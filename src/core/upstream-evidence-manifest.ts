@@ -1151,7 +1151,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/rules/eager/report-actionability.md":
       "b817c042d834fb046ead75db19cf827322b1abfbb0886fd4545213dd68a80554",
     "plugins/src/base/rules/eager/security-audit-handling.md":
-      "795a90e9a1d2e7b8210b3918a58dd735bc9c5cc55e851ae5e5efb4fd30fa9b98",
+      "3f0e239a4ae962c4470423132b76d5c74b28f7d8eb89da485e26140a7cd2e3ee",
     "plugins/src/base/rules/eager/session-status-updates.md":
       "d2d657eda85ce00c3c0699e1c32bc0080df1140b940f9271800f233953f91b4c",
     "plugins/src/base/rules/eager/settled-decisions.md":
@@ -1265,7 +1265,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/rules/reference/reset-seed-coverage.md":
       "cfbb50fc9fdb6f0a354255802392adc717ea18af65aca92cc866416bf9256d91",
     "plugins/src/base/rules/reference/security-audit-handling.md":
-      "f1d9907139605c9bca99bb63d4a287e2550f0f0dfe7066f7be403883a69d7597",
+      "5a107625f070629518836c17cc06b765bcc6d49831c1c9b5b8528845bbe0152b",
     "plugins/src/base/rules/reference/session-status-updates.md":
       "8878eceb7d81ee4d1ebd51f2f179e659ce36fac3ee7d04bc8631f44923d5e9ae",
     "plugins/src/base/rules/reference/settled-decisions.md":

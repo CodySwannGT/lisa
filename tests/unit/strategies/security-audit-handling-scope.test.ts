@@ -16,6 +16,8 @@ import { describe, expect, it } from "vitest";
 
 const ROOTS = ["plugins/src/base", "plugins/lisa"] as const;
 const RULE = "security-audit-handling.md";
+const DOC_URL =
+  "https://github.com/CodySwannGT/lisa/blob/main/docs/dependency-audit-exclusions.md";
 
 const read = (root: string, tier: "eager" | "reference"): string =>
   readFileSync(path.resolve(root, "rules", tier, RULE), "utf8");
@@ -34,6 +36,17 @@ describe.each(ROOTS)("security-audit-handling scope guidance (%s)", root => {
     expect(reference).toContain("`paths`");
     expect(reference).toMatch(/lockfile key path/u);
     expect(reference).toContain('"paths": ["lint-plugin/pkg"]');
+  });
+
+  it("both tiers link the exclusion guide by absolute URL (docs/ is not shipped)", () => {
+    for (const tier of ["eager", "reference"] as const)
+      expect(read(root, tier), tier).toContain(DOC_URL);
+  });
+
+  it("the reference ladder states the weaker isolation of Yarn and hoisted npm keys", () => {
+    const reference = read(root, "reference");
+    expect(reference).toMatch(/requested range, not a parent/u);
+    expect(reference).toMatch(/hoisted/u);
   });
 
   it("the reference ladder recommends paths over an ID-wide entry for dev-only copies", () => {
