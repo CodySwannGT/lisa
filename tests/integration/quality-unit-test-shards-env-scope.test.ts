@@ -3,12 +3,17 @@
  * (CodySwannGT/lisa#4479).
  *
  * `lisa-test-run` turns into a shard leg or the merge whenever it sees these
- * variables. Lisa's own suite runs further `lisa-test-run` steps after the gate
- * (the Node 24, Rails hook installation, nightly discovery, required-check registration, host-name
- * target-scope and completion authorization regression cases). A variable visible there could make those
- * steps replay shard reports and pass without running their tests. A `$GITHUB_ENV` write is visible to every later step in the job, so
- * the arm steps must hand their values over as step outputs, and only the
+ * variables. A `$GITHUB_ENV` write is visible to every later step in the job,
+ * so the arm steps must hand their values over as step outputs, and only the
  * steps listed here may bind them.
+ *
+ * Lisa's own named regression specs (Node 24, Rails hook installation, nightly
+ * discovery, required-check registration, host-name target-scope, completion
+ * authorization) also run `lisa-test-run`. They live in their own job,
+ * `🧾 Named Regression Specs`, which starts beside the shards instead of
+ * after the aggregate (CodySwannGT/lisa#4675). A shard variable visible there
+ * could make those steps replay shard reports and pass without running their
+ * tests, so that job must never mention one either.
  * Split from `quality-unit-test-shards.test.ts` for the file-length cap.
  */
 import * as fs from "node:fs";
@@ -108,23 +113,65 @@ describe.each(Object.keys(ARMS) as (keyof typeof ARMS)[])(
       }
     });
 
-    it("keeps them away from Lisa's own regression specs", () => {
-      const regression = steps.filter(s =>
-        (s.name ?? "").startsWith("Execute and name")
-      );
-      if (job === "test_unit")
-        expect(regression.map(step => step.name)).toEqual([
-          "Execute and name Node 24 regression specs",
-          "Execute and name Rails hook installation regression specs",
-          "Execute and name nightly discovery regression specs",
-          "Execute and name required-check registration regression specs",
-          "Execute and name host-name target-scope regression cases",
-          "Execute and name completion authorization regression specs",
-        ]);
-      for (const step of regression)
-        expect(JSON.stringify(step), step.name).not.toContain(
-          "LISA_TEST_SHARD"
-        );
+    it("runs none of Lisa's named regression specs", () => {
+      expect(
+        steps.filter(s => (s.name ?? "").startsWith("Execute and name"))
+      ).toEqual([]);
     });
   }
 );
+
+/** The six named steps, in the order the job runs them. */
+const NAMED_REGRESSION_STEPS = [
+  "Execute and name Node 24 regression specs",
+  "Execute and name Rails hook installation regression specs",
+  "Execute and name nightly discovery regression specs",
+  "Execute and name required-check registration regression specs",
+  "Execute and name host-name target-scope regression cases",
+  "Execute and name completion authorization regression specs",
+] as const;
+
+describe("test_named_regression_specs job (#4675)", () => {
+  const job = jobIn("test_named_regression_specs") as WorkflowJob & {
+    needs?: string | string[];
+  };
+  const steps = stepsIn("test_named_regression_specs");
+  const named = steps.filter(s =>
+    (s.name ?? "").startsWith("Execute and name")
+  );
+
+  it("is the 🧾 Named Regression Specs job, Lisa-only", () => {
+    expect(job.name).toBe("🧾 Named Regression Specs");
+    expect(job.if).toContain("github.repository == 'CodySwannGT/lisa'");
+  });
+
+  it("starts beside the shards: it needs no unit-test job", () => {
+    const needs = [job.needs ?? []].flat();
+    for (const id of ["test_unit", "test_unit_shard", "test_unit_shard_plan"])
+      expect(needs, id).not.toContain(id);
+  });
+
+  it("runs the six named steps in order", () => {
+    expect(named.map(step => step.name)).toEqual([...NAMED_REGRESSION_STEPS]);
+  });
+
+  it("keeps each step Lisa-only, verbose, and failing CI on a failure", () => {
+    for (const step of named) {
+      expect(step.if, step.name).toContain(
+        "github.repository == 'CodySwannGT/lisa'"
+      );
+      expect(step.run, step.name).toContain("--reporter=verbose");
+    }
+    for (const step of steps) {
+      const key = step.name ?? step.id ?? "";
+      expect(JSON.stringify(step), key).not.toContain("steps.gate_run");
+      expect(step, key).not.toHaveProperty("continue-on-error");
+      expect(JSON.stringify(step), key).not.toContain("LISA_TEST_SHARD");
+    }
+  });
+
+  it("leaves the coverage enforcement in 🧪 Run Unit Tests", () => {
+    const ids = stepsIn("test_unit").map(step => step.id);
+    expect(ids).toEqual(expect.arrayContaining(["gate_run", "test_coverage"]));
+  });
+});
