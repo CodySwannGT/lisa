@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [4.90.0](https://github.com/CodySwannGT/lisa/compare/v4.89.0...v4.90.0) (2026-11-07)
+
+
+### Features
+
+* **ci:** let quality-rails callers choose the Ruby jobs' runner ([40c1de4](https://github.com/CodySwannGT/lisa/commit/40c1de4e710b3744b4c9cd5283899760ad66e568)), closes [#4517](https://github.com/CodySwannGT/lisa/issues/4517) [CodySwannGT/lisa#4517](https://github.com/CodySwannGT/lisa/issues/4517) [CodySwannGT/lisa#4517](https://github.com/CodySwannGT/lisa/issues/4517)
+
+
+### Bug Fixes
+
+* **ci:** pin ruby/setup-ruby v1.338.0 for ubuntu-26.04 runners ([85220c1](https://github.com/CodySwannGT/lisa/commit/85220c1aaaa4580006ff5e32dd46950fabde38b4)), closes [CodySwannGT/lisa#4668](https://github.com/CodySwannGT/lisa/issues/4668) [CodySwannGT/lisa#4668](https://github.com/CodySwannGT/lisa/issues/4668)
+* **ci:** run quality-rails Ruby jobs on ubuntu-24.04 ([7b4850a](https://github.com/CodySwannGT/lisa/commit/7b4850a47f81bfde6dbd4682494c87525e4bf4d7)), closes [CodySwannGT/lisa#4517](https://github.com/CodySwannGT/lisa/issues/4517) [CodySwannGT/lisa#4668](https://github.com/CodySwannGT/lisa/issues/4668) [CodySwannGT/lisa#4517](https://github.com/CodySwannGT/lisa/issues/4517)
+
 ## [4.89.0](https://github.com/CodySwannGT/lisa/compare/v4.88.2...v4.89.0) (2026-11-06)
 
 
