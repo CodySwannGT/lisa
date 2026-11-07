@@ -192,66 +192,177 @@ function undocumentedExceptions(
   });
 }
 
+/** What the doctor established about one allowlist's exclusion scopes. */
+interface ScopeAssessment {
+  /** Invalid or unprovable scopes: each one fails B5. */
+  readonly violations: readonly string[];
+  /** Valid but advisory-wide exclusions: reported, never blocking. */
+  readonly observations: readonly string[];
+}
+
+/** An assessment that established nothing either way. */
+const EMPTY_SCOPE_ASSESSMENT: ScopeAssessment = {
+  violations: [],
+  observations: [],
+};
+
+/**
+ * Explain an ID-only exclusion in words a non-technical operator can act on.
+ *
+ * This is the case #4521 exists for: an exclusion with no package, versions or
+ * paths silences the advisory for every copy in the tree, including a future
+ * production copy. It is legal (legacy files keep working), so it is an
+ * observation in the doctor's own report rather than a failure — and never a
+ * bare `console.warn`, which a reader of the doctor's report would not see.
+ * @param file - Repository-relative allowlist filename
+ * @param id - The advisory id the entry excludes
+ * @returns One operator-language observation
+ */
+function advisoryWideObservation(file: string, id: string): string {
+  return (
+    `\`${file}\` hides this advisory for every copy of the affected package: ` +
+    `the entry for \`${id}\` names no package, version range or lockfile ` +
+    "path, so a later " +
+    "copy used in production would also be hidden. If the risky copy is only " +
+    "used by development tools, add `package`, `versions` and `paths` so " +
+    "only that copy is excused."
+  );
+}
+
+/**
+ * Assess one live exclusion's scope with the gate's own validator.
+ * @param root - Project root containing the exact lockfile
+ * @param file - Repository-relative allowlist filename
+ * @param entry - The normalized exclusion
+ * @returns The violations and observations for this entry
+ */
+function assessEntryScope(
+  root: string,
+  file: string,
+  entry: ExceptionEntry
+): ScopeAssessment {
+  const { id, fields } = entry;
+  if (fields === null || fields.active === false) return EMPTY_SCOPE_ASSESSMENT;
+  const problems = auditScopeProblems(fields).map(
+    problem => `${file}: ${id}: ${problem}`
+  );
+  if (problems.length) return { violations: problems, observations: [] };
+  if (fields.paths !== undefined || fields.versions !== undefined) {
+    try {
+      readAuditCopies(root, detectAuditManager(root));
+    } catch (error) {
+      return {
+        violations: [`${file}: ${id}: ${(error as Error).message}`],
+        observations: [],
+      };
+    }
+    return EMPTY_SCOPE_ASSESSMENT;
+  }
+  return fields.package === undefined
+    ? { violations: [], observations: [advisoryWideObservation(file, id)] }
+    : EMPTY_SCOPE_ASSESSMENT;
+}
+
 /**
  * The doctor uses the gate's validator rather than a second scope grammar.
  * @param root - Project root containing the exact lockfile and exclusion documents
  * @param file - Repository-relative allowlist filename
  * @param parsed - Parsed allowlist document
- * @returns The validated result described above
+ * @returns The scope violations and observations across the document
  */
-function scopeViolations(
+function assessScopes(
   root: string,
   file: string,
   parsed: unknown
-): string[] {
-  if (file === ".nsprc") return [];
-  return exceptionEntries(parsed).flatMap(({ id, fields }) => {
-    if (fields === null || fields.active === false) return [];
-    const problems = auditScopeProblems(fields).map(
-      problem => `${file}: ${id}: ${problem}`
-    );
-    if (problems.length) return problems;
-    if (fields.paths !== undefined || fields.versions !== undefined) {
-      try {
-        readAuditCopies(root, detectAuditManager(root));
-      } catch (error) {
-        return [`${file}: ${id}: ${(error as Error).message}`];
-      }
-    } else if (fields.package === undefined) {
-      console.warn(
-        `${file}: ${id}: unscoped advisory-wide exclusion; prefer package, versions and paths for a dev-only exception`
-      );
-    }
-    return [];
-  });
+): ScopeAssessment {
+  if (file === ".nsprc") return EMPTY_SCOPE_ASSESSMENT;
+  const assessed = exceptionEntries(parsed).map(entry =>
+    assessEntryScope(root, file, entry)
+  );
+  return {
+    violations: assessed.flatMap(entry => entry.violations),
+    observations: assessed.flatMap(entry => entry.observations),
+  };
+}
+
+/** Sentinel for a document that is not JSON (distinct from a JSON `null`). */
+const UNPARSEABLE = Symbol("unparseable");
+
+/**
+ * Parse an allowlist document without throwing.
+ * @param source - Raw file contents
+ * @returns The parsed value, or UNPARSEABLE when the text is not JSON
+ */
+function parseAllowlist(source: string): unknown {
+  try {
+    return JSON.parse(source) as unknown;
+  } catch {
+    return UNPARSEABLE;
+  }
 }
 
 /**
- * Collect the undocumented audit exceptions across every allowlist file.
+ * Assess one allowlist file: undocumented exceptions plus scope findings.
  * @param root - Repository root
- * @returns Evidence lines, one per undocumented exception
+ * @param file - Repository-relative allowlist filename
+ * @returns The violations and observations this file establishes
+ */
+async function assessAllowlistFile(
+  root: string,
+  file: string
+): Promise<ScopeAssessment> {
+  const source = await readFileOrNull(root, file);
+  if (source === null) {
+    return EMPTY_SCOPE_ASSESSMENT;
+  }
+  const parsed = parseAllowlist(source);
+  if (parsed === UNPARSEABLE) {
+    // An unparseable allowlist establishes nothing about its entries, so it
+    // is passed over rather than reported as an undocumented exception.
+    return EMPTY_SCOPE_ASSESSMENT;
+  }
+  const scopes = assessScopes(root, file, parsed);
+  return {
+    violations: [...undocumentedExceptions(file, parsed), ...scopes.violations],
+    observations: scopes.observations,
+  };
+}
+
+/**
+ * Assess every audit allowlist once, returning blocking and non-blocking lines.
+ * @param root - Repository root
+ * @returns Violations (fail B5) and observations (reported, non-blocking)
+ */
+export async function assessAuditExceptions(
+  root: string
+): Promise<ScopeAssessment> {
+  const perFile = await Promise.all(
+    ALLOWLIST_FILES.map(file => assessAllowlistFile(root, file))
+  );
+  return {
+    violations: perFile.flatMap(file => file.violations),
+    observations: perFile.flatMap(file => file.observations),
+  };
+}
+
+/**
+ * Collect the undocumented or invalidly scoped audit exceptions.
+ * @param root - Repository root
+ * @returns Evidence lines, one per violation
  */
 export async function auditExceptionViolations(
   root: string
 ): Promise<readonly string[]> {
-  const perFile = await Promise.all(
-    ALLOWLIST_FILES.map(async file => {
-      const source = await readFileOrNull(root, file);
-      if (source === null) {
-        return [];
-      }
-      try {
-        const parsed: unknown = JSON.parse(source);
-        return [
-          ...undocumentedExceptions(file, parsed),
-          ...scopeViolations(root, file, parsed),
-        ];
-      } catch {
-        // An unparseable allowlist establishes nothing about its entries, so it
-        // is passed over rather than reported as an undocumented exception.
-        return [];
-      }
-    })
-  );
-  return perFile.flat();
+  return (await assessAuditExceptions(root)).violations;
+}
+
+/**
+ * Collect the non-blocking observations about advisory-wide exclusions.
+ * @param root - Repository root
+ * @returns Operator-language observations, one per ID-only exclusion
+ */
+export async function auditExceptionObservations(
+  root: string
+): Promise<readonly string[]> {
+  return (await assessAuditExceptions(root)).observations;
 }

@@ -4,7 +4,10 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { evaluateAuditReport } from "../../../src/core/audit.js";
-import { auditExceptionViolations } from "../../../src/cli/doctor-readiness-audit-allowlist.js";
+import {
+  auditExceptionObservations,
+  auditExceptionViolations,
+} from "../../../src/cli/doctor-readiness-audit-allowlist.js";
 
 const GHSA = "GHSA-aaaa-bbbb-cccc";
 const CVE = "CVE-2026-1234";
@@ -262,13 +265,17 @@ describe("canonical audit exclusion scope", () => {
 
   it("doctor warns about an otherwise documented legacy advisory-wide exclusion", async () => {
     const warning = vi.spyOn(console, "warn").mockImplementation(() => {});
-    expect(
-      await auditExceptionViolations(
-        fixture({ id: GHSA, reason: "Legacy decision" })
-      )
-    ).toEqual([]);
-    expect(warning).toHaveBeenCalledWith(
-      expect.stringContaining("unscoped advisory-wide exclusion")
-    );
+    const root = fixture({ id: GHSA, reason: "Legacy decision" });
+    expect(await auditExceptionViolations(root)).toEqual([]);
+    const observations = await auditExceptionObservations(root);
+    expect(observations).toHaveLength(1);
+    expect(observations[0]).toContain(GHSA);
+    expect(observations[0]).toContain("hides this advisory for every copy");
+    // The warning belongs in the doctor's returned report, not on stderr.
+    expect(warning).not.toHaveBeenCalled();
+  });
+
+  it("doctor raises no advisory-wide warning for a package-scoped exclusion", async () => {
+    expect(await auditExceptionObservations(fixture(exclusion))).toEqual([]);
   });
 });

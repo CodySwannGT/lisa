@@ -62,8 +62,9 @@ data even when the audit reports no high or critical findings. Binary
 
 An entry without `paths` keeps its existing non-path behavior. Any declared
 `package` or `versions` restriction still applies. Omitting all three scope
-fields retains the legacy advisory-ID-only behavior; doctor warns that such
-an exception is unscoped. A written reason does not make an invalid scope valid.
+fields retains the legacy advisory-ID-only behavior; doctor's report lists
+such an exception as a non-blocking observation that names the file and
+advisory and recommends adding `package`, `versions` and `paths`. A written reason does not make an invalid scope valid.
 
 The pre-push built-in, dependency-vulnerability registry task, CI audit job,
 and doctor share the canonical audit implementation. Lisa owns the governed

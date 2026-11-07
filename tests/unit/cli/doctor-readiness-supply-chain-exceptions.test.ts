@@ -13,7 +13,7 @@
  * @module tests/unit/cli/doctor-readiness-supply-chain-exceptions
  */
 import { rm } from "node:fs/promises";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { assessDependenciesSupplyChainDimension } from "../../../src/cli/doctor-readiness-supply-chain.js";
 import { assessReadiness } from "../../../src/cli/doctor-readiness-blockers.js";
 import {
@@ -27,6 +27,9 @@ import {
 
 /** The audit allowlist the exception fixtures write. */
 const ALLOWLIST_PATH = "audit.ignore.config.json";
+
+/** A documented advisory id the exception fixtures exclude. */
+const ADVISORY_ID = "GHSA-1111-aaaa-bbbb";
 
 /** The ship blocker this producer can stand up. */
 const BLOCKER_ID = "B5";
@@ -144,7 +147,7 @@ describe("assessDependenciesSupplyChainDimension — undocumented exceptions tha
     await writeCleanRepo(cwd);
     await writeRepoJson(cwd, ALLOWLIST_PATH, {
       exclusions: [
-        { id: "GHSA-1111-aaaa-bbbb", reason: "dev only" },
+        { id: ADVISORY_ID, reason: "dev only" },
         { severity: "low" },
       ],
     });
@@ -182,5 +185,50 @@ describe("assessDependenciesSupplyChainDimension — evidence states what it act
     // happened, and the PASS evidence must not claim every spec names a version.
     expect(serialized).not.toContain("0 locally linked");
     expect(serialized).toContain("no member manifests resolved");
+  });
+});
+
+describe("assessDependenciesSupplyChainDimension — an advisory-wide exclusion is named in the report (#4521)", () => {
+  it("reports an ID-only exclusion as a non-blocking observation, not a console line", async () => {
+    const cwd = await getTempDir();
+    await writeCleanRepo(cwd);
+    await writeRepoJson(cwd, ALLOWLIST_PATH, {
+      exclusions: [{ id: ADVISORY_ID, reason: "dev only" }],
+    });
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+
+    const record = await assessDependenciesSupplyChainDimension(cwd);
+
+    // The exclusion is documented, so B5 still passes; the warning travels in
+    // the doctor's own report, where an operator reading it will see it.
+    expect(record.status).toBe(PASS);
+    expect(assessReadiness([record]).blockers).toEqual([]);
+    const observation = asFindings(record.findings).find(
+      candidate =>
+        typeof candidate.observation === "string" &&
+        candidate.observation.includes(ADVISORY_ID)
+    );
+    expect(observation).toMatchObject({ blocking: false });
+    expect(observation?.observation).toContain(
+      "hides this advisory for every copy"
+    );
+    expect(observation).not.toHaveProperty("blocker");
+    expect(warn).not.toHaveBeenCalled();
+    warn.mockRestore();
+  });
+
+  it("adds no observation once the exclusion names the package it covers", async () => {
+    const cwd = await getTempDir();
+    await writeCleanRepo(cwd);
+    await writeRepoJson(cwd, ALLOWLIST_PATH, {
+      exclusions: [
+        { id: ADVISORY_ID, package: "left-pad", reason: "dev only" },
+      ],
+    });
+
+    const record = await assessDependenciesSupplyChainDimension(cwd);
+
+    expect(record.status).toBe(PASS);
+    expect(JSON.stringify(record.findings)).not.toContain(ADVISORY_ID);
   });
 });
