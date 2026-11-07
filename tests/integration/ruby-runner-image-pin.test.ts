@@ -14,11 +14,12 @@
  * `ubuntu-NN.NN` in Lisa's own repository and leaves callers on their image.
  * Bare `ubuntu-latest`, any other expression and label lists fail.
  *
- * Out of scope here: `quality-rails.yml`'s setup-ruby jobs, which take the
- * caller's `.ruby-version` but hardcode `ubuntu-latest`. Their image is still
- * Lisa's choice, and that defect is tracked in CodySwannGT/lisa#4517. Jobs are
- * found by their steps rather than listed by name, so a new job that names a
- * Ruby inherits the rule.
+ * `quality-rails.yml`'s setup-ruby jobs take the caller's `.ruby-version`
+ * instead of naming one, but their image is still Lisa's choice, so they are
+ * held to a bare fixed image too (CodySwannGT/lisa#4517): on 26.04 a caller
+ * pinned to an older patch (4.0.2) failed at setup, because newer images get
+ * only each series' latest patch. Jobs are found by their steps rather than
+ * listed by name, so a new job that installs a Ruby inherits the rule.
  */
 import * as fs from "node:fs";
 import * as path from "node:path";
@@ -34,6 +35,9 @@ const WORKFLOWS = path.resolve(__dirname, "..", "..", ".github", "workflows");
 
 /** A fixed GitHub-hosted Ubuntu image, e.g. ubuntu-24.04. */
 const FIXED_IMAGE = /^ubuntu-\d{2}\.\d{2}$/;
+
+/** The action whose steps install a Ruby. */
+const SETUP_RUBY = "ruby/setup-ruby";
 
 /**
  * The one accepted expression: Lisa's repository gets a fixed image, every
@@ -110,11 +114,11 @@ function jobsNamingRuby(): RubyJob[] {
           []) as WorkflowStep[];
         const names = steps.some(
           step =>
-            String(step.uses ?? "").startsWith("ruby/setup-ruby") &&
+            String(step.uses ?? "").startsWith(SETUP_RUBY) &&
             step.with?.["ruby-version"] !== undefined
         );
         const rubyStepIfs = steps
-          .filter(step => String(step.uses ?? "").startsWith("ruby/setup-ruby"))
+          .filter(step => String(step.uses ?? "").startsWith(SETUP_RUBY))
           .map(step => step.if);
         return names
           ? [
@@ -241,4 +245,42 @@ describe("the runs-on classifier", () => {
   ])("rejects %s", (_label, runsOn) => {
     expect(lisaImage(runsOn)).toBeUndefined();
   });
+});
+
+/**
+ * Every quality-rails.yml job with a setup-ruby step, whether or not it names
+ * a ruby-version (most take the caller's `.ruby-version`).
+ * @returns Job names and their runs-on
+ */
+function qualityRailsRubyJobs(): { job: string; runsOn: unknown }[] {
+  const doc = loadWorkflow(path.join(WORKFLOWS, "quality-rails.yml")) as
+    | ParsedWorkflow
+    | undefined;
+  return Object.entries(doc?.jobs ?? {}).flatMap(([job, body]) => {
+    const steps = ((body as { steps?: WorkflowStep[] }).steps ??
+      []) as WorkflowStep[];
+    return steps.some(step => String(step.uses ?? "").startsWith(SETUP_RUBY))
+      ? [{ job, runsOn: (body as { "runs-on"?: unknown })["runs-on"] }]
+      : [];
+  });
+}
+
+describe("quality-rails jobs that install the caller's Ruby (#4517)", () => {
+  it("finds the lint, security and test jobs", () => {
+    expect(qualityRailsRubyJobs().map(({ job }) => job)).toEqual(
+      expect.arrayContaining([
+        "lint",
+        "security",
+        "test-mysql",
+        "test-postgres",
+      ])
+    );
+  });
+
+  it.each(qualityRailsRubyJobs().map(entry => [entry.job, entry]))(
+    "%s runs on a bare fixed image, not ubuntu-latest",
+    (_name, entry) => {
+      expect(String(entry.runsOn)).toMatch(FIXED_IMAGE);
+    }
+  );
 });

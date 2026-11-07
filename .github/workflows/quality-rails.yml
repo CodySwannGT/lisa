@@ -289,7 +289,8 @@ jobs:
       checks: write
       pull-requests: write
     name: Lint
-    runs-on: ubuntu-latest
+    # Not ubuntu-latest: newer images get only each Ruby series' latest patch (#4517).
+    runs-on: ubuntu-24.04
     if: ${{ !contains(format(',{0},', inputs.skip_jobs), ',lint,') }}
     steps:
       - name: 📥 Checkout repository
@@ -720,7 +721,8 @@ jobs:
       checks: write
       pull-requests: write
     name: Security
-    runs-on: ubuntu-latest
+    # Not ubuntu-latest: newer images get only each Ruby series' latest patch (#4517).
+    runs-on: ubuntu-24.04
     if: ${{ !contains(format(',{0},', inputs.skip_jobs), ',security,') }}
     steps:
       - name: 📥 Checkout repository
@@ -834,7 +836,8 @@ jobs:
     permissions:
       contents: read
     name: 🧪 RSpec shard ${{ matrix.shard }}/${{ inputs.test_shards }} (PostgreSQL)
-    runs-on: ubuntu-latest
+    # Not ubuntu-latest: newer images get only each Ruby series' latest patch (#4517).
+    runs-on: ubuntu-24.04
     needs: [test-shard-plan]
     if: ${{ always() && !cancelled() && needs.test-shard-plan.result == 'success' && inputs.database_type == 'postgres' }}
     strategy:
@@ -965,7 +968,8 @@ jobs:
       checks: write
       pull-requests: write
     name: Test (PostgreSQL)
-    runs-on: ubuntu-latest
+    # Not ubuntu-latest: newer images get only each Ruby series' latest patch (#4517).
+    runs-on: ubuntu-24.04
     # With test_shards > 1 this job is the aggregate: the shard legs run the
     # suite and this job proves they ran it exactly once, merges their
     # coverage and enforces the project's thresholds once. It keeps its id and
@@ -1108,7 +1112,8 @@ jobs:
     permissions:
       contents: read
     name: 🧪 RSpec shard ${{ matrix.shard }}/${{ inputs.test_shards }} (MySQL)
-    runs-on: ubuntu-latest
+    # Not ubuntu-latest: newer images get only each Ruby series' latest patch (#4517).
+    runs-on: ubuntu-24.04
     needs: [test-shard-plan]
     if: ${{ always() && !cancelled() && needs.test-shard-plan.result == 'success' && inputs.database_type == 'mysql' }}
     strategy:
@@ -1240,7 +1245,8 @@ jobs:
       checks: write
       pull-requests: write
     name: Test (MySQL)
-    runs-on: ubuntu-latest
+    # Not ubuntu-latest: newer images get only each Ruby series' latest patch (#4517).
+    runs-on: ubuntu-24.04
     # With test_shards > 1 this job is the aggregate: the shard legs run the
     # suite and this job proves they ran it exactly once, merges their
     # coverage and enforces the project's thresholds once. It keeps its id and
@@ -1380,7 +1386,8 @@ jobs:
       checks: write
       pull-requests: write
     name: 🧬 Mutation Testing Gate
-    runs-on: ubuntu-latest
+    # Not ubuntu-latest: newer images get only each Ruby series' latest patch (#4517).
+    runs-on: ubuntu-24.04
     timeout-minutes: 60
     # Diff-only mutation gate. Self-skips instantly when disabled
     # (mutation.gate.yml: enabled: false). PostgreSQL-based; MySQL projects can
@@ -1446,7 +1453,8 @@ jobs:
       checks: write
       pull-requests: write
     name: Code Quality
-    runs-on: ubuntu-latest
+    # Not ubuntu-latest: newer images get only each Ruby series' latest patch (#4517).
+    runs-on: ubuntu-24.04
     if: ${{ !contains(format(',{0},', inputs.skip_jobs), ',code_quality,') }}
     steps:
       - name: 📥 Checkout repository
