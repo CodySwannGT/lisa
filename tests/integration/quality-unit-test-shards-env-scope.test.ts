@@ -59,6 +59,9 @@ const ARMS = {
   },
 } as const;
 
+/** Every named regression step, and only those, starts with this. */
+const NAMED_PREFIX = "Execute and name";
+
 const roots: string[] = [];
 
 afterEach(() => {
@@ -115,7 +118,7 @@ describe.each(Object.keys(ARMS) as (keyof typeof ARMS)[])(
 
     it("runs none of Lisa's named regression specs", () => {
       expect(
-        steps.filter(s => (s.name ?? "").startsWith("Execute and name"))
+        steps.filter(s => (s.name ?? "").startsWith(NAMED_PREFIX))
       ).toEqual([]);
     });
   }
@@ -136,19 +139,18 @@ describe("test_named_regression_specs job (#4675)", () => {
     needs?: string | string[];
   };
   const steps = stepsIn("test_named_regression_specs");
-  const named = steps.filter(s =>
-    (s.name ?? "").startsWith("Execute and name")
-  );
+  const named = steps.filter(s => (s.name ?? "").startsWith(NAMED_PREFIX));
 
   it("is the 🧾 Named Regression Specs job, Lisa-only", () => {
     expect(job.name).toBe("🧾 Named Regression Specs");
     expect(job.if).toContain("github.repository == 'CodySwannGT/lisa'");
   });
 
-  it("starts beside the shards: it needs no unit-test job", () => {
-    const needs = [job.needs ?? []].flat();
-    for (const id of ["test_unit", "test_unit_shard", "test_unit_shard_plan"])
-      expect(needs, id).not.toContain(id);
+  it("starts beside the shards: it needs only gate_plan", () => {
+    expect([job.needs ?? []].flat()).toEqual(["gate_plan"]);
+    expect(job.if).toContain("always() && !cancelled()");
+    expect(job.if).toContain('"test_unit":"skip"');
+    expect(job.if).not.toContain(",test:unit,");
   });
 
   it("runs the six named steps in order", () => {
@@ -173,5 +175,25 @@ describe("test_named_regression_specs job (#4675)", () => {
   it("leaves the coverage enforcement in 🧪 Run Unit Tests", () => {
     const ids = stepsIn("test_unit").map(step => step.id);
     expect(ids).toEqual(expect.arrayContaining(["gate_run", "test_coverage"]));
+  });
+
+  it("keeps the enforcing host-name target-scope run in 🧪 Run Unit Tests", () => {
+    const unit = stepsIn("test_unit");
+    const at = unit.findIndex(
+      step => step.name === "🔒 Enforce host-name target scope"
+    );
+    const enforce = unit[at];
+    expect(enforce?.if).toBe(
+      "github.repository == 'CodySwannGT/lisa' && steps.gate_run.outcome == 'success'"
+    );
+    expect(enforce?.run).toContain(
+      "node scripts/verify-host-name-target-scope.mjs --hooks=plugins/lisa/hooks"
+    );
+    expect(enforce?.run).not.toContain("lisa-test-run");
+    expect(enforce?.name?.startsWith(NAMED_PREFIX)).toBe(false);
+    expect(enforce).not.toHaveProperty("continue-on-error");
+    expect(at).toBeGreaterThan(
+      unit.findIndex(step => step.id === "test_coverage")
+    );
   });
 });
