@@ -217,7 +217,7 @@ describe("assessDependenciesSupplyChainDimension — an advisory-wide exclusion 
     warn.mockRestore();
   });
 
-  it("adds no observation once the exclusion names the package it covers", async () => {
+  it("still observes a package-only exclusion, which hides every copy of that package", async () => {
     const cwd = await getTempDir();
     await writeCleanRepo(cwd);
     await writeRepoJson(cwd, ALLOWLIST_PATH, {
@@ -229,6 +229,12 @@ describe("assessDependenciesSupplyChainDimension — an advisory-wide exclusion 
     const record = await assessDependenciesSupplyChainDimension(cwd);
 
     expect(record.status).toBe(PASS);
-    expect(JSON.stringify(record.findings)).not.toContain(ADVISORY_ID);
+    const observation = asFindings(record.findings).find(
+      candidate =>
+        typeof candidate.observation === "string" &&
+        candidate.observation.includes(ADVISORY_ID)
+    );
+    expect(observation?.observation).toContain("every copy of `left-pad`");
+    expect(observation).toMatchObject({ blocking: false });
   });
 });

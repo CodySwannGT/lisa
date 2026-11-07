@@ -275,7 +275,7 @@ describe("canonical audit exclusion scope", () => {
     expect(warning).not.toHaveBeenCalled();
   });
 
-  it("doctor raises no advisory-wide warning for a package-scoped exclusion", async () => {
+  it("doctor raises no advisory-wide warning for a paths/versions-scoped exclusion", async () => {
     expect(await auditExceptionObservations(fixture(exclusion))).toEqual([]);
   });
 });
