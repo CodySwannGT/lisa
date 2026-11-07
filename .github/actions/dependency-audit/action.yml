@@ -12,7 +12,9 @@ runs:
   steps:
     - name: Install isolated audit runtime
       shell: bash
-      run: npm ci --prefix "$GITHUB_ACTION_PATH"
+      # --ignore-scripts: no dependency lifecycle script runs in the caller's
+      # job. esbuild's platform binary is an optional dependency and needs none.
+      run: npm ci --ignore-scripts --prefix "$GITHUB_ACTION_PATH"
     - name: Run workflow-owned canonical audit
       shell: bash
       env:

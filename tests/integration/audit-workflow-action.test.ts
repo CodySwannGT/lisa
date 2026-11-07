@@ -191,7 +191,9 @@ describe("workflow-owned canonical audit on an older caller", () => {
       )
     ).toBe(true);
     expect(fs.readFileSync(path.join(ACTION, "action.yml"), "utf8")).toContain(
-      'npm ci --prefix "$GITHUB_ACTION_PATH"'
+      // No dependency lifecycle script runs inside the caller's CI job; the
+      // bundler's platform binary arrives as an optional dependency.
+      'npm ci --ignore-scripts --prefix "$GITHUB_ACTION_PATH"'
     );
     expect(source).toContain("../../../src/core/audit.ts");
     expect(source).toContain('nodePaths: [join(actionRoot, "node_modules")]');
