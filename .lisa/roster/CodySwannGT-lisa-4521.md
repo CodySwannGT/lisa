@@ -45,3 +45,59 @@ metadata.owner are `lifecycle_specialist`; it uses the already-proven GitHub
 issue/workflow/release APIs and official public package metadata. Its proof is
 an exact native readback of any authorized issue/accounting update, with
 validated complete requirement conjunctions and no claimed future delivery.
+
+---
+
+## Resume roster (Claude Code, 2026-11-07)
+
+Resumes the six prior commits rebased onto origin/main f7355b414b as branch
+`claude/4521-path-scoped-audit-exclusions`. Work type: Fix (type:Bug).
+
+INCLUDE - lisa:github-agent - Served as bounded input-resolver (read, reuse-claim, bind) for the GitHub-tracked issue.
+INCLUDE - Explore - Mandatory read-only research of the existing matcher, consumers and prior branch commits.
+INCLUDE - general-purpose - Team-lead helper for base-branch resolution and branch sync, per the skill's explicit general-purpose steps.
+INCLUDE - lisa:bug-fixer - Owns the Fix: re-validates the reproduction (empty paths accepted) and closes the remaining gaps.
+INCLUDE - lisa:test-specialist - Consumer-parity and fixture-lockfile test design (alias, uncovered path, fail-closed).
+INCLUDE - lisa:quality-specialist - Concurrent code-quality review after implementation.
+INCLUDE - lisa:product-specialist - Concurrent review that operator-facing messages/docs are readable by a non-technical operator.
+INCLUDE - lisa:security-specialist - The change governs vulnerability suppression; must confirm no fail-open path.
+INCLUDE - lisa:verification-specialist - Independent empirical verification and schema-v2 verdict.
+INCLUDE - lisa:spec-conformance-specialist - Coverage matrix against the issue's AC and Out of Scope.
+INCLUDE - lisa:learner - Captures task MLD to the ledger.
+EXCLUDE - claude - Catch-all; specific specialists cover every role.
+EXCLUDE - claude-code-guide - No Claude Code product questions involved.
+EXCLUDE - code-simplifier:code-simplifier - quality-specialist covers simplification review; avoids churn on a resumed branch.
+EXCLUDE - hookify:conversation-analyzer - Not analyzing transcripts for hooks.
+EXCLUDE - lisa:architecture-specialist - Design is fully specified in the issue and already implemented on the prior branch.
+EXCLUDE - lisa:builder - This is a Fix; bug-fixer owns implementation.
+EXCLUDE - lisa:confluence-prd-intake - No Confluence PRD intake.
+EXCLUDE - lisa:debug-specialist - Defect cause already proven by the recorded reproduction; bug-fixer re-confirms it.
+EXCLUDE - lisa:eval-specialist - Not measuring the factory.
+EXCLUDE - lisa:git-history-analyzer - Explore covered the 6 prior branch commits.
+EXCLUDE - lisa:github-build-intake - Not running an intake cycle.
+EXCLUDE - lisa:github-prd-intake - Not PRD intake.
+EXCLUDE - lisa:jira-agent - Tracker is GitHub.
+EXCLUDE - lisa:jira-build-intake - Tracker is GitHub.
+EXCLUDE - lisa:learning-judge - Invoked by learner/persist-learning as needed, not as a teammate.
+EXCLUDE - lisa:learnings-synthesizer - Debrief-only.
+EXCLUDE - lisa:linear-agent - Tracker is GitHub.
+EXCLUDE - lisa:linear-build-intake - Tracker is GitHub.
+EXCLUDE - lisa:linear-prd-intake - Tracker is GitHub.
+EXCLUDE - lisa:notion-prd-intake - No Notion.
+EXCLUDE - lisa:performance-specialist - Lockfile parse per audit run; no performance-sensitive surface.
+EXCLUDE - lisa:pr-mining-specialist - Debrief-only.
+EXCLUDE - lisa:skill-evaluator - No learning routing in this flow.
+EXCLUDE - lisa:tracker-mining-specialist - Debrief-only.
+EXCLUDE - Plan - Plan already exists in the issue body; Explore + bug-fixer suffice.
+EXCLUDE - statusline-setup - Unrelated.
+
+Tool access preflight (2026-11-07): `gh auth status` logged in as the repo
+owner with push=true; `npm view @codyswann/lisa version` → 4.90.0; bun 1.4.4 /
+node 24.21.0 via mise; `gh run list --workflow deploy.yml -L 1` readable
+(last: success on main). All pass.
+
+Completion condition: on the merged+released package, the same fixture trees
+give identical verdicts across pre-push, registry (`security:audit`), CI action
+and exported `@codyswann/lisa/audit`; `paths: []` is rejected by doctor; an
+uncovered or aliased vulnerable copy fails naming its path; legacy id-only
+entries are unchanged; and the new audit specs appear by name in hosted CI.
