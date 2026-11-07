@@ -120,10 +120,12 @@ _linear_post() {  # $1=key $2=query $3=variables JSON
   { set +x; } 2>/dev/null
   # The header goes through a process-substitution file descriptor, written by
   # the `printf` builtin, so the key is never in curl's argv (`ps` shows argv
-  # to every user on the machine).
+  # to every user on the machine). Bounded timeouts: an unattended worker has
+  # nobody to notice a hung connection, and a hang is the stall this file
+  # exists to prevent. A timeout is a failed request (exit 1 from the CLI).
   jq -cn --arg query "$2" --argjson variables "$3" \
     '{query:$query, variables:$variables}' |
-    curl -sS -X POST "https://api.linear.app/graphql" \
+    curl -sS --connect-timeout 10 --max-time 60 -X POST "https://api.linear.app/graphql" \
       -H "Content-Type: application/json" \
       -H @<(printf 'Authorization: %s\n' "$1") \
       --data-binary @-

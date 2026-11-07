@@ -1519,7 +1519,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-linear-access/SKILL.md":
       "52bcc384207d7e47ec003e7f067a03d6c65f2eb371133c5c14f31d19637ecb56",
     "plugins/src/base/skills/lisa-linear-access/scripts/linear-graphql.sh":
-      "809eb9773eb1761b4656f39ed2727fb564e59e802c1ccedf571f2a2ef95795a5",
+      "392cee454de85aa9c6d4776c09ffcd1552e54592e8fe6214c28f1b9e67160ab5",
     "plugins/src/base/skills/lisa-linear-add-journey/SKILL.md":
       "e63ae35df1a928dac7b42535ce11e77e8c617e60838ba319f22081400e87886e",
     "plugins/src/base/skills/lisa-linear-build-intake/SKILL.md":

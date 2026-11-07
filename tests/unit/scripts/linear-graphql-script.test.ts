@@ -265,6 +265,8 @@ describe("linear-graphql.sh sends a request without exposing the key", () => {
       query: QUERY,
       variables: { id: "ENG-1" },
     });
+    // Bounded, so a hung network cannot stall an unattended worker.
+    expect(result.argv).toContain("--connect-timeout 10 --max-time 60");
     // The key was delivered, as a header read from a file descriptor.
     expect(result.auth.at(-1)).toBe(`Authorization: ${SENTINEL}`);
     expectKeyNeverPrinted(result);
