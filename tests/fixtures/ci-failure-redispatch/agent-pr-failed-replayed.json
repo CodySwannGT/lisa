@@ -1,0 +1,104 @@
+{
+  "description": "The same failure replayed after the marker was posted and the item moved to the ready lane: plan nothing.",
+  "event": {
+    "workflow_run": {
+      "id": 42394865888,
+      "name": "🔍 CI Quality Checks",
+      "event": "pull_request",
+      "status": "completed",
+      "conclusion": "failure",
+      "head_sha": "3db71f89a186d5dbeb78015aa5735fa9d8efda48",
+      "head_branch": "codex/4672-example-branch",
+      "pull_requests": [
+        {
+          "number": 4673,
+          "head": {
+            "sha": "3db71f89a186d5dbeb78015aa5735fa9d8efda48",
+            "ref": "codex/4672-example-branch"
+          },
+          "base": {
+            "ref": "main",
+            "repo": {
+              "name": "lisa"
+            }
+          }
+        }
+      ],
+      "repository": {
+        "full_name": "CodySwannGT/lisa"
+      }
+    },
+    "repository": {
+      "full_name": "CodySwannGT/lisa"
+    }
+  },
+  "gh": {
+    "pr view 4673 --repo CodySwannGT/lisa --json number,state,body,headRefOid,isCrossRepository": {
+      "stdout": {
+        "number": 4673,
+        "state": "OPEN",
+        "headRefOid": "3db71f89a186d5dbeb78015aa5735fa9d8efda48",
+        "isCrossRepository": false,
+        "body": "Retire the native safety net.\n\nWork-Item: CodySwannGT/lisa#4672\n"
+      }
+    },
+    "issue view 4672 --repo CodySwannGT/lisa --json state,labels": {
+      "stdout": {
+        "state": "OPEN",
+        "labels": [
+          {
+            "name": "status:ready"
+          },
+          {
+            "name": "type:Task"
+          }
+        ]
+      }
+    },
+    "api repos/CodySwannGT/lisa/issues/4672/comments --paginate --slurp": {
+      "stdout": [
+        [
+          {
+            "id": 6700000001,
+            "created_at": "2026-11-05T10:00:00Z",
+            "body": "[claude-build-intake] Claimed by Claude. Starting build."
+          },
+          {
+            "id": 6700000002,
+            "created_at": "2026-11-05T11:00:00Z",
+            "body": "A required check failed on pull request #4673 at commit 3db71f89a186d5dbeb78015aa5735fa9d8efda48: 🔍 Quality Checks / 🧪 Run Unit Tests.\n\nLisa moved this item from `status:in-progress` back to `status:ready` so build intake sends the owning agent back to fix the existing pull request. The work is not complete until every required check passes.\n\n<!-- [lisa-ci-failed] pr=4673 sha=3db71f89a186d5dbeb78015aa5735fa9d8efda48 -->"
+          }
+        ]
+      ]
+    },
+    "pr checks 4673 --repo CodySwannGT/lisa --required --json name,state,bucket": {
+      "stdout": [
+        {
+          "name": "🔍 Quality Checks / 🧪 Run Unit Tests",
+          "state": "FAILURE",
+          "bucket": "fail"
+        },
+        {
+          "name": "🔍 Quality Checks / 🧹 Lint",
+          "state": "SUCCESS",
+          "bucket": "pass"
+        },
+        {
+          "name": "🧩 Plugin artifacts match source",
+          "state": "SUCCESS",
+          "bucket": "pass"
+        },
+        {
+          "name": "CodeRabbit",
+          "state": "NEUTRAL",
+          "bucket": "skipping"
+        },
+        {
+          "name": "GitGuardian Security Checks",
+          "state": "SUCCESS",
+          "bucket": "pass"
+        }
+      ]
+    }
+  }
+}
