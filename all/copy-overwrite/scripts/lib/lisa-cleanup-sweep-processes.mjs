@@ -42,6 +42,12 @@
  * processes under it — whose environment IS shown — are killed. Linux reads
  * `/proc/<pid>/environ` and has no such gap.
  *
+ * `ps -E` also joins variables with bare spaces, so on macOS another
+ * variable whose VALUE contains ` LISA_TEST_RUN_OWNER=<pid>:<start>` is
+ * indistinguishable from the real variable. Only a process whose environment
+ * deliberately carries that text is exposed, and only to the same user's
+ * sweep; Linux reads whole environ entries and has no such ambiguity.
+ *
  * Deliberately independent of `src/configs/vitest/scratch-*.ts`, which the
  * per-test policing this sweep replaces (C2) will retire. The start-time
  * reading mirrors `scratch-owner.ts` rather than importing it.

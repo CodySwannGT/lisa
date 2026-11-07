@@ -83,7 +83,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lib/lisa-cleanup-sweep-processes.d.mts":
       "e122ce4420e81d2d9f352e3f1400f686dcd73ee9996c99172e1a3d3035b485c6",
     "all/copy-overwrite/scripts/lib/lisa-cleanup-sweep-processes.mjs":
-      "3efb5d2b1cf299fa48742c1e77d2a3b35b9ee6377b038de85fcbdda45363b2c4",
+      "e1521dbd34de3cc9b694c207cd3a172ff0b4969e52ebed292648c03ccff69bb0",
     "all/copy-overwrite/scripts/lib/lisa-cleanup-sweep.d.mts":
       "46fbb6730747ddee90b9275797de67cacfceab26ca14436460c11da638fb604b",
     "all/copy-overwrite/scripts/lib/lisa-cleanup-sweep.mjs":
