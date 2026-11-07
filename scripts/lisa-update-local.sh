@@ -10,6 +10,9 @@
 # This enables batch-updating all locally managed projects in a single command
 # rather than manually visiting each project directory.
 #
+# Not canary-gated: every listed project is updated. The lisa-update-projects
+# skill is the canary-first, gated rollout path (CodySwannGT/lisa#4604).
+#
 # Usage:
 #   ./scripts/lisa-update-local.sh [--dry-run]
 #
@@ -80,6 +83,16 @@ fi
 # Validate JSON
 if ! jq empty "$CONFIG_FILE" 2>/dev/null; then
   log_error "Invalid JSON in $CONFIG_FILE"
+  exit 1
+fi
+
+# A value is either the legacy branch string or the canary-first object form
+# { "branch": "<target branch>", "canary": true } (CodySwannGT/lisa#4604).
+# Validated up front: the loop reads it through process substitution, whose
+# exit status `set -e` ignores, so a bad entry would otherwise be skipped.
+WORKSPACE_ENTRIES_JQ='to_entries[] | .key as $k | (.value | if type == "object" then (.branch // error("entry \($k) has no branch")) else . end) as $b | "\($k)\t\($b)"'
+if ! jq -r "$WORKSPACE_ENTRIES_JQ" "$CONFIG_FILE" >/dev/null; then
+  log_error "Invalid workspace entry in $CONFIG_FILE"
   exit 1
 fi
 
@@ -201,7 +214,7 @@ while IFS=$'\t' read -r project_path target_branch; do
   log_success "Updated $project_path"
   ((success_count++)) || true
 
-done < <(jq -r 'to_entries[] | "\(.key)\t\(.value)"' "$CONFIG_FILE")
+done < <(jq -r "$WORKSPACE_ENTRIES_JQ" "$CONFIG_FILE")
 
 # Summary
 echo ""

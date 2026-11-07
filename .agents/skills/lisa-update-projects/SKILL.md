@@ -1,55 +1,127 @@
 ---
 name: lisa-update-projects
-description: This skill should be used when updating local Lisa projects in batches. It reads the project list from .lisa.config.local.json, checks out the target branch, pulls the latest, creates an update branch, runs the package manager update for @codyswann/lisa, migrates legacy CI workflows, checks for upstream changes, then commits, pushes, and opens a PR for each project.
+description: This skill should be used when updating local Lisa projects in batches. It rolls out canary-first - it reads the project list, each project's target branch and the one designated canary host from the .lisa.workspaces.json workspace config, upgrades the canary first and waits (bounded) for its update PR's required checks, and only if they pass updates the remaining hosts; a failing or timed-out canary halts the rollout with no other host touched. For each host it works in a dedicated git worktree based off that target branch, runs the package manager update for @codyswann/lisa, migrates legacy CI workflows, checks for upstream changes, commits, pushes, and opens a PR targeting the configured branch with auto-merge enabled, auto-fixing any blockers to mergeability (upstreaming fixes when needed). As the final step, Lisa upgrades itself, unless the canary halted the rollout. It always ends with a report that includes a canary section.
 ---
 
 # Lisa Update Projects
 
 Updates local Lisa projects in batches by running the package manager update command for `@codyswann/lisa` in each configured project, which triggers Lisa's postinstall script to apply template changes automatically.
 
+The rollout is **canary-first** (CodySwannGT/lisa#4604): one designated canary host is upgraded first, and the rest are touched only once the canary's update PR passes its required checks. A bad Lisa release then breaks one host, not every host. See [Rollout Order](#rollout-order-canary-first) for the phases and [Report](#report) for what the run must print.
+
 ## Instructions
 
-1. Read @.lisa.config.local.json to get the list of projects and their target branches.
-2. For each project directory, checkout the target branch and pull the latest from the remote.
-3. If you can't because of existing changes or a dirty worktree, don't do anything. Ask the human what should be done about it before moving on.
-4. Once you have resolution, within each clean project, check out a new branch (e.g. `chore/lisa-update-YYYY-MM-DD`).
+1. Read @.lisa.workspaces.json to get the list of host projects, each project's target branch, and the canary. The file is a JSON map of project path → target branch. Each value is either the legacy branch string (e.g. `"~/workspace/foo/backend": "staging"`) or the object form `{ "branch": "<target branch>", "canary": true }` (`canary` is optional and boolean; `{ "branch": "main" }` is also valid). The branch is the one that project's update PR must target. Branches vary per project (`main`, `staging`, `dev`, …) — never assume `main`. **Exactly one** entry must set `"canary": true`. Do not parse the file by hand — run the plan script from the Lisa repo root:
+
+   ```bash
+   node scripts/lisa-update-projects-plan.mjs            # reads ./.lisa.workspaces.json
+   # prints {"canary":{"path":…,"branch":…},"rest":[{"path":…,"branch":…},…]}
+   ```
+
+   Use its `canary` and `rest` phases (and each entry's `branch`) for every step below. If it exits non-zero — no canary, two or more canaries, or a malformed entry — **stop before touching any host**, show the human its stderr message, and ask them to designate exactly one canary by changing that host's value to the object form, e.g. `"<host path>": { "branch": "<target branch>", "canary": true }`. Never pick a canary yourself, and never fall back to updating every host at once. Then run steps 2–17 only in the order given by Rollout Order below — never across all hosts at once.
+2. For each project, `git fetch` the configured target branch from the remote so you have the latest commit to branch from.
+3. Do **all** work for a host project inside a dedicated git worktree based off that project's configured target branch — never modify the project's primary checkout. Create it with the update branch in one step, e.g. `git worktree add <worktree-path>/<project>-lisa-update-YYYY-MM-DD -b chore/lisa-update-YYYY-MM-DD origin/<target-branch>`, where `<target-branch>` is that host's `branch` from step 1's plan. This keeps the project's main working tree untouched, isolates each project's changes, and lets the parallel subagents operate without colliding. Clean up the worktree (`git worktree remove`) after the PR is opened and the branch is pushed — for the canary, only after its push timing has been recorded (Rollout Order, phase 3).
+4. If you can't create the worktree cleanly (e.g. an update branch already exists, the target branch can't be fetched, or the project has uncommitted changes you'd be discarding), don't do anything for that project. Ask the human what should be done about it before moving on.
 5. Check if `@codyswann/lisa` is in the project's `trustedDependencies` array in `package.json`. If missing, add it using `jq`. Bun only runs postinstall scripts for trusted packages, so without this entry Lisa's postinstall (template application and file deletions) is silently skipped.
 6. Determine the project's package manager from `package.json` `engines` BEFORE choosing a command. The `engines` field is authoritative — lockfile presence is not.
    - Read `engines` with `jq -r '.engines // {}' package.json`.
    - If `engines.bun === "please-use-npm"` (or `engines.yarn` / `engines.pnpm` use the same sentinel), that package manager is **forbidden**. Use `npm`.
-   - If a forbidden lockfile exists anyway (e.g., `bun.lockb` in a project where `engines.bun === "please-use-npm"`), it is rogue — bun ignores the engines string and writes the lockfile if invoked. Delete it (`git rm bun.lockb`) and include the deletion in the commit.
+   - If a forbidden lockfile exists anyway (e.g., `bun.lock` in a project where `engines.bun === "please-use-npm"`), it is rogue — bun ignores the engines string and writes the lockfile if invoked. Delete it (`git rm bun.lock`) and include the deletion in the commit.
    - Pick the update command from the surviving package manager:
-     - `bun.lockb` exists and bun is allowed → `bun add -D @codyswann/lisa@latest` (use `bun add -D <pkg>@latest`, **not** `bun update <pkg>`. `bun update` only walks within the existing semver range, so an exact-pinned `1.95.0` or a caret-pinned `^1.95.0` against a new major like `2.x` is a no-op. `bun add -D <pkg>@latest` always resolves to the latest published version and rewrites the manifest.)
+     - `bun.lock` exists and bun is allowed → `bun add -D @codyswann/lisa@latest` (use `bun add -D <pkg>@latest`, **not** `bun update <pkg>`. `bun update` only walks within the existing semver range, so an exact-pinned `1.95.0` or a caret-pinned `^1.95.0` against a new major like `2.x` is a no-op. `bun add -D <pkg>@latest` always resolves to the latest published version and rewrites the manifest.)
      - otherwise → `npm install -D @codyswann/lisa@latest` (use `install -D` not `update`; `npm update` only bumps within the existing semver range and won't move pinned versions or update the manifest)
-   - Bun's postinstall and npm's both run only the reduced `postinstall-safe` apply, which skips every agent emit and the Sonar integration — they declare it with `LISA_POSTINSTALL=1`, the only thing that selects that mode (CodySwannGT/lisa#3066). Commit the install first, then apply in full: `LISA_BOOTSTRAP=1 node node_modules/@codyswann/lisa/dist/index.js --yes .`. Verify `.lisa/apply-receipt.json` records `"apply_mode": "full"`.
+   - Lisa's apply bootstrapper **self-skips in non-interactive shells** — it prints `lisa: skipped (non-interactive environment; set LISA_BOOTSTRAP=1 to force)`. A tool/CI shell is non-interactive, so neither the bun postinstall hook nor a bare `node node_modules/@codyswann/lisa/dist/index.js …` applies templates during this skill. The apply must therefore be forced explicitly.
+   - **Commit the package-manager change first, then apply.** The apply must be a FULL one: the reduced `postinstall-safe` apply deliberately skips every agent emit (Codex, Claude, agy, Copilot, OpenCode) and the Sonar integration, and it is the same subset the install's own postinstall hook already ran — so an update that lands in that mode performs **no agent-emit work at all**, and `.codex/config.toml` and the pre-2.198 overlay are never migrated, on any project, at any version. The mode is now selected only by the `LISA_POSTINSTALL=1` / `--postinstall-safe` declaration a package manager's own hook carries (CodySwannGT/lisa#3066), which nothing here passes. A clean tree is still required because the apply's git check is armed, and the tree is dirty from the install that just ran, so the order has to be:
+     1. `git add -A && git commit` the `package.json` + lockfile change from the install.
+     2. `LISA_BOOTSTRAP=1 node node_modules/@codyswann/lisa/dist/index.js --yes .`
+     3. Commit the template diff separately.
+   - Run the apply **serially** across worktrees (never concurrent applies — see the cross-project corruption note).
+   - Then verify **two** things, not one. `git status` shows the expected template diff — a project many minor versions behind that shows only `package.json` + lockfile changed means the apply silently skipped and must be re-forced. And `.lisa/apply-receipt.json` records `"apply_mode": "full"` — a receipt reading `"postinstall-safe"` means the emits did not run, which `git status` alone will not tell you, because the reduced apply still produces a plausible-looking diff.
    - **Never run both `bun add` and `npm install` against the same project.** That perpetuates the dual-lockfile bug. Pick one based on the engines field and stick to it.
 7. After updating, check if `@codyswann/lisa` appears in the project's `dependencies` (not `devDependencies`). If so, move it: remove from `dependencies` and ensure it's in `devDependencies`. Use `jq` to check and the package manager to reinstall correctly.
-8. Check for legacy inline Codex workflows that need migration. For each file in `.github/workflows/` matching `Codex*.yml`, `Codex*.yaml`, `ci.yml`, `ci.yaml`, `deploy.yml`, and `deploy.yaml`:
+8. Check for legacy inline Claude workflows that need migration. For each file in `.github/workflows/` matching `claude*.yml`, `claude*.yaml`, `ci.yml`, `ci.yaml`, `deploy.yml`, and `deploy.yaml`:
    - If the workflow has inline `steps:` blocks instead of calling `uses: CodySwannGT/lisa/.github/workflows/reusable-*.yml@main`, it is legacy.
    - Detect project capabilities independently (Rails: has `bin/rails` or `config/application.rb`; TypeScript: has `tsconfig.json` or `package.json` with TypeScript signals). A repo may be both.
    - Apply per-file mapping rules — not a single repo-wide template selection — so dual-stack repos get the correct template for each workflow file:
      - `ci.yml`/`ci.yaml` in a Rails project → `rails/create-only/.github/workflows/ci.yml` (calls `quality-rails.yml@main`)
      - `deploy.yml`/`deploy.yaml` in a Rails project → `rails/create-only/.github/workflows/deploy.yml` (calls `release-rails.yml@main`)
      - `ci.yml`/`ci.yaml` in a TypeScript-only project → `typescript/create-only/.github/workflows/ci.yml` (calls `quality.yml@main`)
-     - `Codex*.yml`/`Codex*.yaml` → `typescript/create-only/.github/workflows/` (e.g., `Codex.yml` → `reusable-Codex.yml@main`, `Codex-ci-auto-fix.yml` → `reusable-Codex-ci-auto-fix.yml@main`)
+     - `claude*.yml`/`claude*.yaml` → `typescript/create-only/.github/workflows/` (e.g., `claude.yml` → `reusable-claude.yml@main`, `claude-ci-auto-fix.yml` → `reusable-claude-ci-auto-fix.yml@main`)
      - `auto-update-pr-branches.yml`/`auto-update-pr-branches-dispatch.yml` → **no template; do not migrate.** The auto-update-PR-branches subsystem was removed (CodySwannGT/lisa#3590) and both paths are listed in `typescript/deletions.json`, so the apply deletes them. If one survives an apply, that is a bug — report it rather than re-creating the workflow by hand.
    - The create-only templates are the source of truth for the correct caller format.
-   - A caller that already correctly uses `uses: CodySwannGT/lisa/.github/workflows/reusable-*.yml@main` is NOT automatically clean — its `with:` block can still carry an input the reusable workflow's current contract no longer declares (e.g. an early-generation `claude.yml` still passing `package_manager`, which `reusable-claude.yml` historically did not accept — issue #1423). GitHub hard-fails such a run at startup, and because create-only workflow files are not overwritten automatically the repo can never self-heal on its own. Run `node scripts/detect-stale-workflow-inputs.mjs --project <project> --json` (from the Lisa repo checkout) against the project to catch this: it diffs each caller's `with:` keys against the corresponding `reusable-*.yml`'s declared `workflow_call.inputs` in this repo's `.github/workflows/`. For every row reported `"status": "stale"`, remove just the listed `staleInputs` key(s) from the caller's `with:` block (this is a contract-breaking-input migration, not a customization edit, so it's in scope even though the file is otherwise create-only) — do not otherwise touch the file. A `"status": "unknown-contract"` row means the caller references a reusable workflow this repo doesn't have a file for; leave it and flag for human review rather than guessing.
+   - **Secrets-propagation migration**: if `claude-ci-auto-fix.yml` or `claude-deploy-auto-fix.yml` has a `secrets:` block that is `secrets: inherit`, a mapping missing the tracker tokens (e.g. only `CLAUDE_CODE_OAUTH_TOKEN`), or **no `secrets:` block at all** (which forwards none of the credentials), replace/insert the entire block with the least-privilege mapping from the current create-only templates:
+
+     ```yaml
+     secrets:
+       CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+       PAT: ${{ secrets.PAT }}
+       JIRA_API_TOKEN: ${{ secrets.JIRA_API_TOKEN }}
+       LINEAR_API_KEY: ${{ secrets.LINEAR_API_KEY }}
+     ```
+
+     The reusable workflows forward these to the failure-issue dispatcher, which needs `JIRA_API_TOKEN` / `LINEAR_API_KEY` to reach the tracker declared in `.lisa.config.json`; a CLAUDE-only mapping strands failure tickets in GitHub Issues (how acmeorgb/frontend-v2 got GitHub issues despite full Jira config). Do NOT migrate to `secrets: inherit`: it hands the chain every repo secret and SonarCloud's new-code security gate blocks it as a vulnerability (seen on AcmeOrgA/backend#900). Unset secrets pass as empty, so the full mapping is safe on repos that don't use a given tracker. Like the stale-input migration above, this is a contract migration, not a customization edit — do not otherwise touch the file.
+   - A caller that already correctly uses `uses: CodySwannGT/lisa/.github/workflows/reusable-*.yml@main` is NOT automatically clean — its `with:` block can still carry an input the reusable workflow's current contract no longer declares (e.g. an early-generation `claude.yml` still passing `package_manager`, which `reusable-claude.yml` has never declared — issue #1423). GitHub hard-fails such a run at startup, and because `claude.yml` is create-only the repo can never self-heal on its own. Run `node scripts/detect-stale-workflow-inputs.mjs --project <project> --json` (from the Lisa repo checkout) against the project to catch this: it diffs each caller's `with:` keys against the corresponding `reusable-*.yml`'s declared `workflow_call.inputs` in this repo's `.github/workflows/`. For every row reported `"status": "stale"`, remove just the listed `staleInputs` key(s) from the caller's `with:` block (this is a contract-breaking-input migration, not a customization edit, so it's in scope even though the file is otherwise create-only) — do not otherwise touch the file. A `"status": "unknown-contract"` row means the caller references a reusable workflow this repo doesn't have a file for; leave it and flag for human review rather than guessing.
 9. Remove stale `file:` references to bundled ESLint plugins from the project's `package.json`. Previous Lisa versions copied plugin directories and added `file:./` dependencies; current Lisa deletes the directories but the `package.json` references remain. Use `jq` to remove these keys from both `dependencies` and `devDependencies` if they exist:
    - `eslint-plugin-code-organization`
    - `eslint-plugin-component-structure`
    - `eslint-plugin-ui-standards`
-10. Remove stale `$CLAUDE_PROJECT_DIR/.Codex/hooks/` references from the project's `.Codex/settings.json`. Previous Lisa versions installed hook scripts into the project's `.Codex/hooks/` directory and registered them in `.Codex/settings.json`. Current Lisa deletes these scripts via `all/deletions.json` and provides them through the plugin system (`${CLAUDE_PLUGIN_ROOT}/hooks/` in `plugin.json`) instead. The settings.json references to the deleted scripts cause "No such file or directory" errors. Use `jq` to:
-   - Remove any hook entry objects where the `command` contains `$CLAUDE_PROJECT_DIR/.Codex/hooks/`
+10. Remove stale `$CLAUDE_PROJECT_DIR/.claude/hooks/` references from the project's `.claude/settings.json`. Previous Lisa versions installed hook scripts into the project's `.claude/hooks/` directory and registered them in `.claude/settings.json`. Current Lisa deletes these scripts via `all/deletions.json` and provides them through the plugin system (`${CLAUDE_PLUGIN_ROOT}/hooks/` in `plugin.json`) instead. The settings.json references to the deleted scripts cause "No such file or directory" errors. Use `jq` to:
+   - Remove any hook entry objects where the `command` contains `$CLAUDE_PROJECT_DIR/.claude/hooks/`
    - Remove entire hook matcher blocks that become empty after removing those entries
    - Remove entire hook category arrays that have no remaining matcher blocks
    - Preserve all non-file-path hook entries (inline commands like `echo ...`, `command -v entire ...`, etc.)
-11. Update create-only workflow schedules that have drifted from the current templates. For each create-only workflow in `.github/workflows/` (e.g., `Codex-nightly-jira-triage.yml`), compare the `cron` schedule against the corresponding template in `typescript/create-only/.github/workflows/` (or `rails/create-only/` for Rails projects) in the Lisa repo. If the project's schedule differs from the template, update it to match. For example, if the template uses `0 */2 * * *` but the project still has `0 6 * * 1-5`, update the project file.
-12. Check `git diff` to see if the project changed any Lisa-managed files. If so, examine them to see if any changes need to be upstreamed back to Lisa and do so if necessary.
-13. Commit, push, and PR the branch to the project's target branch specified in @.lisa.config.local.json.
-14. If you hit any pre-push blockers, fix them and upstream anything that needs to. Do not lower any thresholds to get around a pre-push block. Instead, fix the code.
+11. Update create-only workflow schedules that have drifted from the current templates. For each create-only workflow in `.github/workflows/` (e.g., `claude-nightly-jira-triage.yml`), compare the `cron` schedule against the corresponding template in `typescript/create-only/.github/workflows/` (or `rails/create-only/` for Rails projects) in the Lisa repo. If the project's schedule differs from the template, update it to match. For example, if the template uses `0 */2 * * *` but the project still has `0 6 * * 1-5`, update the project file.
+12. Migrate the back-sync chain to config-driven form. The reusable workflow `reusable-claude-sync-down-branches.yml` now derives its source→target chain from `.lisa.config.json` `deploy.order` + `deploy.branches` (an explicit `chain:` in the wrapper still overrides it). For this project, using `jq` only:
+    - Read `deploy.branches`. If it is absent or declares a single environment, make no change — single-env derives to an empty chain, and both a chain-less and an explicit wrapper stay valid.
+    - If it declares **multiple** environments and `deploy.order` is missing, add `deploy.order` as the env-name keys ordered low→high by environment rank (`dev` < `qa`/`test` < `staging` < `preprod`/`uat` < `production`). If any env name is non-conventional and unrankable, leave `deploy.order` unset and flag the project for human review rather than guessing.
+    - Compute the derived chain from `deploy.order` + `deploy.branches`. If `.github/workflows/claude-sync-down-branches.yml` carries a hardcoded `chain:` and the derived chain is **byte-identical** to it, remove the `chain:` line (and the now-empty `with:` block) so the wrapper becomes config-driven — behavior is provably unchanged. If the derived chain **differs** from the hardcoded one, leave both untouched and flag it: the mismatch means the project's `deploy.branches`/`deploy.order` disagrees with its actual back-sync wiring, and a human must reconcile which is correct (do not silently "fix" either side).
+    - The Lisa repo's `scripts/migrate-deploy-order.sh` implements exactly this logic across all workspace projects (dry-run by default) and is the reference for the per-project behavior.
+13. Check `git diff` to see if the project changed any Lisa-managed files. If so, examine them to see if any changes need to be upstreamed back to Lisa and do so if necessary.
+14. Commit, push, and open a PR from the worktree's update branch targeting the project's configured target branch (its `branch` from step 1's plan; the PR base must be that branch — not assumed `main`). Enable auto-merge on the PR if the repository supports it (e.g. `gh pr merge --auto --squash`). If the repository has auto-merge disabled, note it and leave the PR open for manual merge — do not treat the absence of auto-merge as a failure.
+15. If you hit any pre-push blockers, fix them and upstream anything that needs to. Do not lower any thresholds to get around a pre-push block. Instead, fix the code.
+16. After the PR is open, drive it to a mergeable state. Poll the PR's checks and mergeability and auto-fix any blockers: failing CI checks, merge conflicts with the target branch, lint/typecheck/test failures, and required-check gates. When the root cause of a blocker is a Lisa template or postinstall bug (not project-specific code), fix it upstream in the Lisa source per "Fixing Upstream Bugs" below and propagate the fix down, rather than patching only the downstream project. Never lower thresholds or disable checks to force mergeability — fix the underlying code. Continue until the PR is mergeable (and auto-merge can complete) or you hit a blocker that genuinely requires human input, in which case stop and ask.
+17. As the final step, have Lisa upgrade itself: run this same update flow against the Lisa monorepo (the current working directory) — bump `@codyswann/lisa` to latest where Lisa consumes its own templates, apply templates, and commit/push/PR a self-update branch with auto-merge enabled, following the same worktree (rule 3), auto-merge (step 14), and blocker-fixing (step 16) rules. Skip this step if the Lisa repo has no pending self-update changes after running the flow, **and always skip it when the canary halted the rollout** (see Rollout Order).
 
-For steps 4-13, use up to 4 parallel subagents to accomplish those steps.
+## Rollout Order (canary first)
+
+Steps 2–15 above describe the work for ONE host. Run them in this order — never all hosts at once:
+
+1. **Plan.** Run step 1's plan script. A refusal stops the run here, before any host is touched.
+2. **Canary.** Run steps 2–15 for the plan's `canary` host only, exactly as for any other host: worktree off its `branch`, update, full apply, commit, push, PR. No other host is started while the canary is in flight. If the canary yields no update PR for any reason (worktree refused, nothing to commit, push or PR failure), its result is `fail`: halt and report why. Never move on to `rest` without a canary PR whose required checks passed.
+3. **Record the canary's push timing** — before removing its worktree (step 3's cleanup). Read the newest `.lisa/push-timing/*.json` report in the canary worktree (written by the pre-push timing report, CodySwannGT/lisa#4591) and keep its `startedAt` and `wallMs`. If the directory is absent or empty, record `push timing: not recorded (no .lisa/push-timing report in the canary worktree)` — do not estimate one.
+4. **Wait for the canary PR's required checks** with a bounded, foreground, blocking watch, all within one 540-second budget. Never start a detached or background watcher, and never poll in an open-ended loop.
+   - First, poll `gh pr checks <canary-pr> --required --json name` (every 30 seconds, inside the same 540-second budget) until at least one required check is registered — checks can take a moment to appear after the push. If none ever appears, the result is `fail` with the reason `no required checks reported` (report that reason, not an empty list of failing checks): nothing proved the release is safe.
+   - Then watch for the remaining budget (`remaining` = 540 minus the seconds spent polling):
+
+   ```bash
+   timeout "$remaining" gh pr checks <canary-pr> --required --watch --interval 30 --fail-fast
+   ```
+
+   Run it in the foreground with the tool's own command timeout set to at least 600000 ms, so the command's exit code actually arrives; a command the harness kills (no exit code) counts as `timeout`. (`timeout` is GNU coreutils; on macOS use `gtimeout` from Homebrew coreutils. If neither exists, use `perl -e 'alarm shift; exec @ARGV or die "exec failed: $!\n"' "$remaining" gh pr checks …`, whose expiry exits 142; the `or die` keeps a failed exec from exiting 0 and reading as a pass.) Map the exit status to a canary result: `0` → `pass`; `124` (or `142` under the perl fallback) → `timeout`; any other non-zero → `fail`. On `fail`, collect the failing check names with `gh pr checks <canary-pr> --required --json name,bucket --jq '.[] | select(.bucket == "fail" or .bucket == "cancel") | .name'`.
+5. **Decide** with the plan script — do not decide by reading the exit code yourself:
+
+   ```bash
+   node scripts/lisa-update-projects-plan.mjs decide --canary-result <pass|fail|timeout>
+   # prints proceed (pass) or halt (fail, timeout)
+   ```
+
+6. **On `halt`:** touch no other host — no worktree, no install, no PR for anything in `rest`. Skip step 16 for the rest and **skip step 17** (Lisa's self-upgrade). Leave the canary PR open as it is for the human to judge; do not auto-fix it in this run (a failing canary is the signal that this release may be bad — rolling it back is a separate, deliberate act). Go straight to the [Report](#report).
+7. **On `proceed`:** run steps 2–15 for every host in `rest`, each with its own `branch` from the plan. For this phase, use up to 4 parallel subagents to accomplish those steps (the apply itself still runs serially, per step 6). Then run step 16 for every open update PR (the canary's included), then step 17, then the Report.
+
+## Report
+
+End every run — proceed or halt — with a report printed to the operator. It is local output only: it may name host paths, because it never leaves this machine. **Never copy a host path or host name into anything committed, filed or pushed** (commit messages, PR bodies, tracker comments, Lisa issues) — see the "Never name a downstream project" rule.
+
+The report always opens with a **Canary** section:
+
+- **Host:** the canary's local path and target branch.
+- **PR:** the canary update PR's URL.
+- **Required checks:** `pass`, `fail` (followed by every failing check name), or `timeout` (the 540-second wait expired), plus the decision (`proceed` or `halt`).
+- **Push timing:** the `startedAt` and `wallMs` from the canary's push-timing report, or `not recorded (no .lisa/push-timing report in the canary worktree)`.
+
+If the plan script refused, the Canary section reads `not designated`, followed by the plan script's message and the line `no host was touched`.
+
+Then a **Rest** section: on `proceed`, one line per host with its PR URL and merge state (or why it was skipped, per step 4); on `halt`, the line `halted by the canary — no other host was touched, Lisa's self-upgrade was skipped` followed by the hosts that were not updated. Finally, the **Lisa self-upgrade** outcome (PR URL, "no pending changes", or "skipped: canary halted").
 
 ## Fixing Upstream Bugs
 
