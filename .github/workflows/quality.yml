@@ -2710,9 +2710,10 @@ jobs:
           path: ${{ runner.temp }}/lisa-unit-test-shards
 
       # Step outputs, not $GITHUB_ENV: an env-file write reaches every later
-      # step, and Lisa's own regression steps below also run `lisa-test-run`,
-      # which would replay these reports instead of running their specs. Only
-      # the two test-command steps bind the outputs.
+      # step, and any later `lisa-test-run` would replay these reports instead
+      # of running its specs. Only the two test-command steps bind the outputs.
+      # Lisa's own named regression specs run in `test_named_regression_specs`
+      # (#4675), a separate job these values never reach.
       - name: 🧩 Arm the unit-test shard merge
         id: shard_arm
         if: steps.shard_download.outcome == 'success'
@@ -2797,95 +2798,6 @@ jobs:
           LISA_TEST_SHARD_TOTAL: ${{ steps.shard_arm.outputs.total }}
         working-directory: ${{ inputs.working_directory || '.' }}
 
-      - name: Execute and name Node 24 regression specs
-        if: github.repository == 'CodySwannGT/lisa' && steps.gate_run.outcome == 'success'
-        run: >-
-          bun run lisa-test-run -- --adapter vitest -- vitest run
-          tests/unit/core/shared-runtime-policy.test.ts
-          tests/unit/core/managed-nvmrc-adoption.test.ts
-          tests/unit/core/qualified-runtime-ci.test.ts
-          tests/unit/core/qualified-host-bun-capture.test.ts
-          tests/unit/configs/expo-jest-pre-setup.test.ts
-          tests/unit/fixtures/shared-runtime-native-deadline.test.ts
-          tests/unit/fixtures/shared-runtime-teardown.test.ts
-          tests/unit/scripts/bdd-projection-merge.test.ts
-          tests/unit/scripts/bdd-projection-safety.test.ts
-          tests/unit/scripts/bdd-writer-admission.test.ts
-          tests/unit/scripts/bdd-ci-summary.test.ts
-          --reporter=verbose
-        working-directory: ${{ inputs.working_directory || '.' }}
-
-      - name: Execute and name Rails hook installation regression specs
-        if: github.repository == 'CodySwannGT/lisa' && steps.gate_run.outcome == 'success'
-        run: >-
-          bun run lisa-test-run -- --adapter vitest -- vitest run
-          tests/unit/hooks/install-rails-hooks.test.ts
-          tests/unit/hooks/rails-hook-engine.test.ts
-          tests/unit/hooks/rails-hook-agent-delivery.test.ts
-          tests/unit/health/rails-hook-installation.test.ts
-          tests/unit/cli/doctor-git-hooks.test.ts
-          tests/integration/rails-hook-apply.test.ts
-          --reporter=verbose
-        working-directory: ${{ inputs.working_directory || '.' }}
-
-      - name: Execute and name nightly discovery regression specs
-        if: github.repository == 'CodySwannGT/lisa' && steps.gate_run.outcome == 'success'
-        run: >-
-          bun run lisa-test-run -- --adapter vitest -- vitest run
-          tests/unit/scripts/nightly-e2e-health-discovery.test.ts
-          --reporter=verbose
-        working-directory: ${{ inputs.working_directory || '.' }}
-
-      - name: Execute and name required-check registration regression specs
-        if: github.repository == 'CodySwannGT/lisa' && steps.gate_run.outcome == 'success'
-        run: >-
-          bun run lisa-test-run -- --adapter vitest -- vitest run
-          tests/unit/scripts/vacuous-required-checks-wiring.test.ts
-          tests/unit/scripts/review-gate-substitute.test.ts
-          tests/unit/scripts/absent-required-checks-by-branch.test.ts
-          --reporter=verbose
-        working-directory: ${{ inputs.working_directory || '.' }}
-
-      - name: Execute and name host-name target-scope regression cases
-        if: github.repository == 'CodySwannGT/lisa' && steps.gate_run.outcome == 'success'
-        run: |
-          set -euo pipefail
-          bun run lisa-test-run -- --adapter vitest -- vitest run \
-            tests/unit/hooks/block-host-name-leak.test.ts \
-            tests/unit/hooks/shipped-hook-companions.test.ts \
-            tests/unit/scripts/generate-agy-plugin-artifacts.test.ts \
-            --reporter=verbose
-          bun run lisa-test-run -- --adapter direct -- \
-            node scripts/verify-host-name-target-scope.mjs --hooks=plugins/lisa/hooks
-        working-directory: ${{ inputs.working_directory || '.' }}
-
-      - name: Execute and name completion authorization regression specs
-        if: github.repository == 'CodySwannGT/lisa' && steps.gate_run.outcome == 'success'
-        run: >-
-          bun run lisa-test-run -- --adapter vitest -- vitest run
-          tests/unit/scripts/portable-usage-ledger.test.ts
-          tests/unit/scripts/work-item-completion-authorization.test.ts
-          tests/unit/scripts/work-item-accepted-proof.test.ts
-          tests/unit/scripts/work-item-sweep-ancestry.test.ts
-          tests/unit/scripts/work-item-coherent-related.test.ts
-          tests/unit/scripts/history-secret-provision-errors.test.ts
-          tests/unit/scripts/review-gate-terminal-skipped.test.ts
-          tests/unit/scripts/review-gate-terminal-neutral.test.ts
-          tests/unit/scripts/work-item-proof-denials.test.ts
-          tests/unit/scripts/work-item-proof-scope.test.ts
-          tests/unit/scripts/work-item-proof-trust.test.ts
-          tests/unit/scripts/work-item-proof-late-read.test.ts
-          tests/unit/scripts/work-item-proof-write-errors.test.ts
-          tests/unit/scripts/work-item-proof-freshness-review.test.ts
-          tests/unit/scripts/work-item-linear-accepted-proof.test.ts
-          tests/unit/scripts/completion-proof-types.test.ts
-          tests/unit/scripts/completion-proof-grammar.test.ts
-          tests/unit/scripts/npm-update-contract.test.ts
-          tests/unit/scripts/lisa-work-item.test.ts
-          tests/unit/scripts/terminal-transition-outcomes.test.ts
-          --reporter=verbose
-        working-directory: ${{ inputs.working_directory || '.' }}
-
       # Both declared test commands and the built-in fallback can produce
       # coverage. A unique name keeps repeated workflow calls from colliding.
       - name: 📦 Name the coverage artifact
@@ -2951,6 +2863,211 @@ jobs:
               exit 1
               ;;
           esac
+        working-directory: ${{ inputs.working_directory || '.' }}
+
+  # Lisa's own named regression specs (#4675). These specs already run inside
+  # the unit suite; these steps re-run them so the log names each one. They
+  # used to run serially in `test_unit` after the suite, which with
+  # unit_test_shards > 1 put about 4.5 minutes of extra work behind every
+  # shard. Here they start beside the shards: no `needs`, so nothing on the
+  # unit path waits for them and they wait for nothing.
+  #
+  # A failing step still fails this job, and `skipped_required_checks` needs
+  # it like every other job.
+  #
+  # NO `skip_jobs` token, for the reason `test_unit_shard_plan` gives: the
+  # shipped registry derives `SKIP_JOB_TOKENS` from these conditions, and a
+  # second job on `test:unit` would change what `gateForSkipJob("test:unit")`
+  # advertises to every consumer. The job is Lisa-only, so no caller's
+  # `skip_jobs` reaches it.
+  #
+  # The setup steps are `test_unit`'s, unchanged, so the specs see the same
+  # checkout depth, witness refs, updater runtime and dependencies.
+  test_named_regression_specs:
+    permissions:
+      contents: read
+    name: 🧾 Named Regression Specs
+    runs-on: ubuntu-latest
+    timeout-minutes: ${{ inputs.unit_test_timeout_minutes }}
+    if: ${{ github.repository == 'CodySwannGT/lisa' }}
+
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+          # Lisa's tests inspect real historical revisions; callers stay shallow.
+          # Quoted depths are truthy: bare 0 would fall through the || expression.
+          fetch-depth: ${{ github.repository == 'CodySwannGT/lisa' && '0' || '1' }}
+
+      - name: 📎 Fetch retained nightly guard release tags
+        if: github.repository == 'CodySwannGT/lisa'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # Lisa-only witness refs; callers have neither these tags nor credentials.
+          if [ "${GITHUB_REPOSITORY:-}" != "CodySwannGT/lisa" ] || [ ! -f scripts/generate-nightly-e2e-guard-certificate.mjs ]; then
+            echo "::notice::Retained nightly guard artifacts are not present in this caller; exact-ref fetch is not applicable."
+            exit 0
+          fi
+          # The token is available only to this contents:read step. A command-
+          # scoped helper avoids writing credentials into git configuration.
+          git -c credential.helper= \
+            -c 'credential.helper=!f() { echo username=x-access-token; echo "password=$GH_TOKEN"; }; f' \
+            fetch --no-tags origin \
+            refs/tags/v2.353.0:refs/tags/v2.353.0 \
+            refs/tags/v4.17.16:refs/tags/v4.17.16 \
+            refs/tags/v4.26.1:refs/tags/v4.26.1 \
+            refs/tags/v4.26.0:refs/tags/v4.26.0 \
+            refs/tags/v4.50.3:refs/tags/v4.50.3
+
+      - name: 📎 Fetch export-removal witness history
+        if: github.repository == 'CodySwannGT/lisa'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # Export-removal tests need real ancestry, not isolated tag objects.
+          # Deepen history, filter blobs, and pin immutable release/export witnesses.
+          git -c credential.helper= \
+            -c 'credential.helper=!f() { echo username=x-access-token; echo "password=$GH_TOKEN"; }; f' \
+            fetch --deepen=2147483647 --filter=blob:none --no-tags origin \
+            "+${GITHUB_SHA}:refs/lisa-test-witnesses/export-head" \
+            refs/tags/v3.0.0:refs/tags/v3.0.0 \
+            refs/tags/v4.0.0:refs/tags/v4.0.0 \
+            c32f33010f5e58879381b0d4c370c630bb179acc:refs/lisa-test-witnesses/export-before \
+            f13bb00ec73e0ebbb2dfd9f030164d2913dcf98d:refs/lisa-test-witnesses/export-after
+
+      - name: Provision separately qualified Lisa updater test runtime
+        if: github.repository == 'CodySwannGT/lisa'
+        uses: actions/setup-node@v6
+        with:
+          package-manager-cache: false
+          # lisa-allow-duplicate-version: independently qualified updater identity (#4367)
+          node-version: '22.23.3' # lisa-preserve-node-version: independently qualified updater (#4367)
+
+      - name: Preserve actual updater test executable before selecting shared Node
+        if: github.repository == 'CodySwannGT/lisa'
+        run: |
+          node -e 'if (process.versions.node !== "22.23.3") throw Error("Wrong updater test runtime"); require("node:fs").appendFileSync(process.env.GITHUB_ENV, `LISA_TEST_UPDATER_NODE=${require("node:fs").realpathSync(process.execPath)}\n`);'
+
+      - name: 🔧 Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          package-manager-cache: false
+          node-version: ${{ inputs.node_version }}
+
+      - name: 🍞 Setup Bun
+        if: github.repository == 'CodySwannGT/lisa' || inputs.package_manager == 'bun'
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version: '1.4.4'
+
+      - name: 💾 Restore package downloads
+        if: inputs.cache_dependencies
+        uses: actions/cache/restore@v5
+        with: *package_download_cache
+
+      - name: 📦 Install dependencies
+        run: |
+          case "$PACKAGE_MANAGER" in
+            npm) npm ci ;;
+            yarn) yarn install --frozen-lockfile ;;
+            pnpm) corepack enable && pnpm install --frozen-lockfile ;;
+            bun) bun install --frozen-lockfile ;;
+            *)
+              echo "::error::package_manager must be one of npm, yarn, pnpm, bun (got: $PACKAGE_MANAGER)."
+              exit 1
+              ;;
+          esac
+        working-directory: ${{ inputs.working_directory || '.' }}
+
+      - name: Execute and name Node 24 regression specs
+        if: github.repository == 'CodySwannGT/lisa'
+        run: >-
+          bun run lisa-test-run -- --adapter vitest -- vitest run
+          tests/unit/core/shared-runtime-policy.test.ts
+          tests/unit/core/managed-nvmrc-adoption.test.ts
+          tests/unit/core/qualified-runtime-ci.test.ts
+          tests/unit/core/qualified-host-bun-capture.test.ts
+          tests/unit/configs/expo-jest-pre-setup.test.ts
+          tests/unit/fixtures/shared-runtime-native-deadline.test.ts
+          tests/unit/fixtures/shared-runtime-teardown.test.ts
+          tests/unit/scripts/bdd-projection-merge.test.ts
+          tests/unit/scripts/bdd-projection-safety.test.ts
+          tests/unit/scripts/bdd-writer-admission.test.ts
+          tests/unit/scripts/bdd-ci-summary.test.ts
+          --reporter=verbose
+        working-directory: ${{ inputs.working_directory || '.' }}
+
+      - name: Execute and name Rails hook installation regression specs
+        if: github.repository == 'CodySwannGT/lisa'
+        run: >-
+          bun run lisa-test-run -- --adapter vitest -- vitest run
+          tests/unit/hooks/install-rails-hooks.test.ts
+          tests/unit/hooks/rails-hook-engine.test.ts
+          tests/unit/hooks/rails-hook-agent-delivery.test.ts
+          tests/unit/health/rails-hook-installation.test.ts
+          tests/unit/cli/doctor-git-hooks.test.ts
+          tests/integration/rails-hook-apply.test.ts
+          --reporter=verbose
+        working-directory: ${{ inputs.working_directory || '.' }}
+
+      - name: Execute and name nightly discovery regression specs
+        if: github.repository == 'CodySwannGT/lisa'
+        run: >-
+          bun run lisa-test-run -- --adapter vitest -- vitest run
+          tests/unit/scripts/nightly-e2e-health-discovery.test.ts
+          --reporter=verbose
+        working-directory: ${{ inputs.working_directory || '.' }}
+
+      - name: Execute and name required-check registration regression specs
+        if: github.repository == 'CodySwannGT/lisa'
+        run: >-
+          bun run lisa-test-run -- --adapter vitest -- vitest run
+          tests/unit/scripts/vacuous-required-checks-wiring.test.ts
+          tests/unit/scripts/review-gate-substitute.test.ts
+          tests/unit/scripts/absent-required-checks-by-branch.test.ts
+          --reporter=verbose
+        working-directory: ${{ inputs.working_directory || '.' }}
+
+      - name: Execute and name host-name target-scope regression cases
+        if: github.repository == 'CodySwannGT/lisa'
+        run: |
+          set -euo pipefail
+          bun run lisa-test-run -- --adapter vitest -- vitest run \
+            tests/unit/hooks/block-host-name-leak.test.ts \
+            tests/unit/hooks/shipped-hook-companions.test.ts \
+            tests/unit/scripts/generate-agy-plugin-artifacts.test.ts \
+            --reporter=verbose
+          bun run lisa-test-run -- --adapter direct -- \
+            node scripts/verify-host-name-target-scope.mjs --hooks=plugins/lisa/hooks
+        working-directory: ${{ inputs.working_directory || '.' }}
+
+      - name: Execute and name completion authorization regression specs
+        if: github.repository == 'CodySwannGT/lisa'
+        run: >-
+          bun run lisa-test-run -- --adapter vitest -- vitest run
+          tests/unit/scripts/portable-usage-ledger.test.ts
+          tests/unit/scripts/work-item-completion-authorization.test.ts
+          tests/unit/scripts/work-item-accepted-proof.test.ts
+          tests/unit/scripts/work-item-sweep-ancestry.test.ts
+          tests/unit/scripts/work-item-coherent-related.test.ts
+          tests/unit/scripts/history-secret-provision-errors.test.ts
+          tests/unit/scripts/review-gate-terminal-skipped.test.ts
+          tests/unit/scripts/review-gate-terminal-neutral.test.ts
+          tests/unit/scripts/work-item-proof-denials.test.ts
+          tests/unit/scripts/work-item-proof-scope.test.ts
+          tests/unit/scripts/work-item-proof-trust.test.ts
+          tests/unit/scripts/work-item-proof-late-read.test.ts
+          tests/unit/scripts/work-item-proof-write-errors.test.ts
+          tests/unit/scripts/work-item-proof-freshness-review.test.ts
+          tests/unit/scripts/work-item-linear-accepted-proof.test.ts
+          tests/unit/scripts/completion-proof-types.test.ts
+          tests/unit/scripts/completion-proof-grammar.test.ts
+          tests/unit/scripts/npm-update-contract.test.ts
+          tests/unit/scripts/lisa-work-item.test.ts
+          tests/unit/scripts/terminal-transition-outcomes.test.ts
+          --reporter=verbose
         working-directory: ${{ inputs.working_directory || '.' }}
 
   # unit_test_shards > 1 only (#4479). Checks the input and lays out the matrix,
@@ -4278,6 +4395,7 @@ jobs:
         bdd_coverage,
         learnings_budget,
         test_unit,
+        test_named_regression_specs,
         test_unit_shard_plan,
         test_unit_shard,
         test_mutation,
@@ -4363,6 +4481,7 @@ jobs:
               "bdd_coverage": "🧾 BDD Behavior Contract",
               "learnings_budget": "📚 Learnings Budget",
               "test_unit": "🧪 Run Unit Tests",
+              "test_named_regression_specs": "🧾 Named Regression Specs",
               "test_unit_shard_plan": "🧮 Plan Unit-Test Shards",
               "test_mutation": "🧬 Mutation Testing Gate",
               "test_mutation_measured": "🧬 Did the mutation gate measure anything?",
