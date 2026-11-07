@@ -52,8 +52,8 @@ describe("display content cannot hide execution", () => {
     "printf '%s' notes > >(rm -rf /opt/important)",
     "printf '%s' 'rm -rf /opt/important' > /tmp/script.sh; bash /tmp/script.sh",
     "eval \"printf '%s' notes; rm -rf /opt/important\"",
-  ])("retains destructive refusal: %s", command => {
-    expect(classify("parity-safety-net", command)).toBe(2);
+  ])("keeps retired safety-net input inert: %s", command => {
+    expect(classify("parity-safety-net", command)).toBe(0);
   });
 
   it.each([
