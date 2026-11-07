@@ -1,0 +1,31 @@
+### registry: http://127.0.0.1:58125 (fresh; versions 4.90.0, 4.90.1; latest=4.90.1)
+### npmrc (isolated, NPM_CONFIG_USERCONFIG):
+registry=http://127.0.0.1:58125/
+//127.0.0.1:58125/:_authToken=<fake-test-token>
+### packument BEFORE (http://127.0.0.1:58125/@codyswann%2flisa?write=true):
+{"name":"@codyswann/lisa","dist-tags":{"latest":"4.90.1"},"versions":{"4.90.0":{"name":"@codyswann/lisa","version":"4.90.0"},"4.90.1":{"name":"@codyswann/lisa","version":"4.90.1"}}}
+### command: node scripts/lisa-rollback-release.mjs --bad 4.90.1 --reason test --dry-run --registry http://127.0.0.1:58125
+### stdout:
+Dry run: nothing will be changed.
+Rolling back @codyswann/lisa@4.90.1; latest would point to 4.90.0.
+A real run would check `npm whoami` and `gh auth status`, then run, in order:
+  1. npm deprecate @codyswann/lisa@4.90.1 test --registry http://127.0.0.1:58125
+  2. npm dist-tag add @codyswann/lisa@4.90.0 latest --registry http://127.0.0.1:58125
+  3. gh release edit v4.90.1 --repo CodySwannGT/lisa --notes-file '<notes-file>'
+<notes-file> is the current v4.90.1 notes with this notice on top:
+> **This release is deprecated:** test
+>
+> npm latest now points to 4.90.0.
+
+Then it reads http://127.0.0.1:58125/@codyswann%2flisa?write=true and exits 0 only if latest is 4.90.0 and 4.90.1 is deprecated.
+### stderr:
+### exit code: 0
+### packument AFTER (http://127.0.0.1:58125/@codyswann%2flisa?write=true):
+{"name":"@codyswann/lisa","dist-tags":{"latest":"4.90.1"},"versions":{"4.90.0":{"name":"@codyswann/lisa","version":"4.90.0"},"4.90.1":{"name":"@codyswann/lisa","version":"4.90.1"}}}
+### every request the registry saw (method path authorized):
+GET /@codyswann%2flisa?write=true false
+GET /@codyswann%2flisa?write=true false
+GET /@codyswann%2flisa?write=true false
+PUT count: 0
+### gh stub calls:
+### no release notes were edited

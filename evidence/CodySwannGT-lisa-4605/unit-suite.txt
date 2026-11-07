@@ -1,0 +1,42 @@
+
+ RUN  v4.1.12 /Users/codysai/workspace/lisa/.claude/worktrees/4605-release-rollback
+
+lisa scratch: no supervised lease in the environment, so this run is self-supervised. Fixture directories are still bounded to a run root this process owns and removed on exit; what is missing is the detached reaper that reclaims the root after a SIGKILL, which the next run's startup sweep recovers instead. Run through `lisa-test-run --profile <profile> --adapter vitest -- vitest ...` for a supervised run.
+ ✓ |lisa| tests/unit/scripts/lisa-rollback-release.test.ts > parseArgs > reads every flag 1ms
+ ✓ |lisa| tests/unit/scripts/lisa-rollback-release.test.ts > parseArgs > defaults the registry to npm, or to LISA_NPM_REGISTRY 0ms
+ ✓ |lisa| tests/unit/scripts/lisa-rollback-release.test.ts > parseArgs > requires --bad and a non-empty --reason 0ms
+ ✓ |lisa| tests/unit/scripts/lisa-rollback-release.test.ts > parseArgs > refuses versions that are not exact semver 0ms
+ ✓ |lisa| tests/unit/scripts/lisa-rollback-release.test.ts > parseArgs > refuses unknown flags rather than ignoring them 0ms
+ ✓ |lisa| tests/unit/scripts/lisa-rollback-release.test.ts > resolveGoodVersion > picks the highest published version below the bad one 0ms
+ ✓ |lisa| tests/unit/scripts/lisa-rollback-release.test.ts > resolveGoodVersion > skips deprecated versions and prereleases 0ms
+ ✓ |lisa| tests/unit/scripts/lisa-rollback-release.test.ts > resolveGoodVersion > honours an explicit --to, prerelease included 0ms
+ ✓ |lisa| tests/unit/scripts/lisa-rollback-release.test.ts > resolveGoodVersion > refuses a --to that is unpublished, deprecated or the bad version 0ms
+ ✓ |lisa| tests/unit/scripts/lisa-rollback-release.test.ts > resolveGoodVersion > refuses when the bad version is not published 0ms
+ ✓ |lisa| tests/unit/scripts/lisa-rollback-release.test.ts > resolveGoodVersion > refuses when nothing below the bad version is usable 0ms
+ ✓ |lisa| tests/unit/scripts/lisa-rollback-release.test.ts > planCommands and formatting > orders deprecate, dist-tag, release edit — all against the registry 0ms
+ ✓ |lisa| tests/unit/scripts/lisa-rollback-release.test.ts > planCommands and formatting > builds the uncached packument URL 0ms
+ ✓ |lisa| tests/unit/scripts/lisa-rollback-release.test.ts > planCommands and formatting > states the reason and where latest now points 0ms
+ ✓ |lisa| tests/unit/scripts/lisa-rollback-release.test.ts > rollback — a real run > writes in order, prepends the notice, verifies, exits 0 0ms
+ ✓ |lisa| tests/unit/scripts/lisa-rollback-release.test.ts > rollback — a real run > checks npm and gh sign-in before the first write 0ms
+ ✓ |lisa| tests/unit/scripts/lisa-rollback-release.test.ts > rollback — a real run > exits non-zero when the read-back does not show both facts 0ms
+ ✓ |lisa| tests/unit/scripts/lisa-rollback-release.test.ts > rollback — a real run > stops at the first failed write 0ms
+ ✓ |lisa| tests/unit/scripts/lisa-rollback-release.test.ts > rollback — nothing is written when it should not be > a dry run prints the commands and runs none of them 0ms
+ ✓ |lisa| tests/unit/scripts/lisa-rollback-release.test.ts > rollback — nothing is written when it should not be > refuses without npm sign-in, naming it, before any write 0ms
+ ✓ |lisa| tests/unit/scripts/lisa-rollback-release.test.ts > rollback — nothing is written when it should not be > refuses without gh sign-in, naming it, before any write 0ms
+ ✓ |lisa| tests/unit/scripts/lisa-rollback-release.test.ts > rollback — nothing is written when it should not be > refuses when the version cannot be resolved 0ms
+ ✓ |lisa| tests/unit/scripts/lisa-rollback-release.test.ts > main > turns a usage error into a non-zero exit with the reason 0ms
+ ✓ |lisa| tests/unit/scripts/lisa-rollback-release.test.ts > main > runs a dry run end to end through injected seams 0ms
+ ✓ |lisa| tests/unit/scripts/lisa-rollback-release.test.ts > review fixes > refuses to move latest backward when latest is newer than --bad 0ms
+ ✓ |lisa| tests/unit/scripts/lisa-rollback-release.test.ts > review fixes > allows a re-run once latest already points at the good version 0ms
+ ✓ |lisa| tests/unit/scripts/lisa-rollback-release.test.ts > review fixes > names what already changed when a later step fails 0ms
+ ✓ |lisa| tests/unit/scripts/lisa-rollback-release.test.ts > review fixes > does not edit notes that already start with the notice 0ms
+ ✓ |lisa| tests/unit/scripts/lisa-rollback-release.test.ts > review fixes > retries a stale read-back and passes once it is fresh 0ms
+ ✓ |lisa| tests/unit/scripts/lisa-rollback-release.test.ts > review fixes > rejects a v-prefixed version with the fix spelled out 0ms
+ ✓ |lisa| tests/unit/scripts/lisa-rollback-release.test.ts > review fixes > warns when npm writes and the GitHub edit go to different places 0ms
+
+ Test Files  1 passed (1)
+      Tests  31 passed (31)
+   Start at  14:12:17
+   Duration  333ms (transform 88ms, setup 133ms, import 30ms, tests 8ms, environment 0ms)
+
+exit=0
