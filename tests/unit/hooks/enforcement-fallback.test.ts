@@ -84,12 +84,10 @@ describe("enforcement fallback when no plugin is installed", () => {
     expect(output).toMatch(/bypasses pre-commit/i);
   });
 
-  it("blocks a destructive command the safety net owns", () => {
-    // Not only the commit guard: a container with no plugin also had nothing
-    // standing between an agent and a forced recursive delete.
+  it("leaves the retired native safety net inactive", () => {
     const { status } = runFallback("rm -rf $UNSET_VAR/data", NO_PLUGIN);
 
-    expect(status).toBe(BLOCKED);
+    expect(status).toBe(0);
   });
 
   it("lets an ordinary command through", () => {
