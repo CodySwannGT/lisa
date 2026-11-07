@@ -95,6 +95,31 @@ describe("the CI-rework route is executable", () => {
     );
     expect(dispatch).toMatch(/ordinary 3d done transition/u);
   });
+
+  it("reuses a worktree already on the PR head, else creates one from the fetched remote branch", () => {
+    expect(dispatch).toContain("git worktree list");
+    expect(dispatch).toContain(
+      "git worktree add -B <headRefName> <path> origin/<headRefName>"
+    );
+  });
+
+  it("writes the bundle for the agent to read, without claiming the PR skill reads it", () => {
+    expect(dispatch).not.toMatch(
+      /lisa-drive-pr-to-merge[^\n]*reads the bundle/u
+    );
+    expect(dispatch).toMatch(/for the agent and its teammates to read/u);
+  });
+});
+
+describe("a repeatedly failing PR does not loop forever", () => {
+  it("blocks for a human at three bot-authored markers for the same PR instead of re-dispatching", () => {
+    const claim = section("3b. Claim");
+    expect(claim).toMatch(
+      /3 or more bot-authored `\[lisa-ci-failed\]` markers for the same PR/u
+    );
+    expect(claim).toMatch(/does not re-dispatch/u);
+    expect(claim).toMatch(/blocked role[^\n]*human_needed/u);
+  });
 });
 
 describe("the rejection-detection rule", () => {
