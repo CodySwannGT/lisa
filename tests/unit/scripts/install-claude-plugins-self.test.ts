@@ -219,7 +219,11 @@ async function copyLisaScriptTo(
 ): Promise<string> {
   const scriptPath = path.join(root, ...segments, INSTALL_SCRIPT_NAME);
   await mkdir(path.dirname(scriptPath), { recursive: true });
-  await cp(SCRIPT_PATH, scriptPath);
+  // Stage the complete shipped lane; dependencies can grow without a frozen
+  // fixture list silently dropping a required module or data artifact.
+  await cp(path.dirname(SCRIPT_PATH), path.dirname(scriptPath), {
+    recursive: true,
+  });
   await chmod(scriptPath, 0o755);
   return scriptPath;
 }
@@ -407,7 +411,7 @@ describe("install-claude-plugins self postinstall path", () => {
         await Promise.all(preservedFiles.map(file => readFile(file)))
       ).toEqual(before);
       expect(result.stdout).toContain(
-        "installation leaves project templates unchanged"
+        "installation leaves unrelated project templates unchanged"
       );
       expect(result.stdout).toContain("lisa apply");
     }

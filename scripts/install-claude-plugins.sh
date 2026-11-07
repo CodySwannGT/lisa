@@ -1,17 +1,21 @@
 #!/usr/bin/env bash
-# Explicit setup helper. Dependency installation leaves project files alone.
+# Explicit setup helper. Installation reconciles only the retired safety net.
 set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
+PACKAGE_ROOT="$(cd "$SCRIPT_DIR/.." && pwd -P)"
+
+# Target-only retirement also runs for legacy direct setup callers. It never
+# invokes full apply or changes unrelated templates, checks or plugin choices.
+node "$SCRIPT_DIR/retire-native-safety-net.mjs" --install
 
 # Inspect the lifecycle before sanitizing the package manager's environment.
 # Older host postinstall commands are also handled by the CLI bootstrap guard.
 if [[ "${npm_lifecycle_event:-}" = "postinstall" ||
       ( -z "${npm_lifecycle_event:-}" && "${npm_config_user_agent:-}" = bun/* ) ]]; then
-  echo 'lisa: installation leaves project templates unchanged. Run `lisa apply .` to apply updates, or `lisa doctor` to check freshness.'
+  echo 'lisa: installation leaves unrelated project templates unchanged. Run `lisa apply .` to apply updates, or `lisa doctor` to check freshness.'
   exit 0
 fi
-
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
-PACKAGE_ROOT="$(cd "$SCRIPT_DIR/.." && pwd -P)"
 
 case "$PACKAGE_ROOT" in
   */node_modules/.pnpm/*/node_modules/@codyswann/lisa)

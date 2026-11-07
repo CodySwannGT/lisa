@@ -394,6 +394,10 @@ export function formatRemedyConformanceReport(sweep) {
 export function guardChainClassifier(guardPath, cwd) {
   return command =>
     spawnSync("/bin/bash", [guardPath], {
+      cwd,
+      env: { ...process.env, CLAUDE_PROJECT_DIR: cwd },
+      timeout: 30_000,
+      maxBuffer: 1024 * 1024,
       input: JSON.stringify({
         tool_name: "Bash",
         tool_input: { command },
@@ -426,7 +430,7 @@ if (invokedAsScript(import.meta.url)) {
   const sweep = sweepRemedyConformance({
     probes: raw.length === 0 ? null : JSON.parse(raw).probes,
     permits: guardChainClassifier(
-      process.argv[2] ?? "plugins/lisa/hooks/parity-safety-net.sh",
+      process.argv[2] ?? "scripts/lisa-enforcement-fallback.sh",
       process.cwd()
     ),
   });
