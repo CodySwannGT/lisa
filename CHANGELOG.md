@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.90.1](https://github.com/CodySwannGT/lisa/compare/v4.90.0...v4.90.1) (2026-11-07)
+
+
+### Bug Fixes
+
+* retire native safety net on downstream updates ([04f2764](https://github.com/CodySwannGT/lisa/commit/04f276444bf56afaeafbd2f14ffe1f6a096312da)), closes [CodySwannGT/lisa#4672](https://github.com/CodySwannGT/lisa/issues/4672)
+* retire safety-net hooks in Bun isolated installs ([706bc4f](https://github.com/CodySwannGT/lisa/commit/706bc4faf85c5771f7d581936ed895d16d34b4be)), closes [CodySwannGT/lisa#4672](https://github.com/CodySwannGT/lisa/issues/4672) [CodySwannGT/lisa#4672](https://github.com/CodySwannGT/lisa/issues/4672)
+* wait for exiting test groups before scratch cleanup ([5aeba16](https://github.com/CodySwannGT/lisa/commit/5aeba16ddeb87f8f48db7dba16308baa2a0b9342)), closes [CodySwannGT/lisa#4672](https://github.com/CodySwannGT/lisa/issues/4672)
+
 ## [4.90.0](https://github.com/CodySwannGT/lisa/compare/v4.89.0...v4.90.0) (2026-11-07)
 
 

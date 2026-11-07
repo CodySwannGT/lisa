@@ -23,6 +23,7 @@ import { PruneRetiredEntireHooksMigration } from "./prune-retired-entire-hooks.j
 import { PreserveVerificationOptInsMigration } from "./preserve-verification-opt-ins.js";
 import { ReconcileClaudeStackPluginsMigration } from "./reconcile-claude-stack-plugins.js";
 import { UntrackCodexMarketplaceMigration } from "./untrack-codex-marketplace.js";
+import { RetireNativeSafetyNetMigration } from "./retire-native-safety-net.js";
 import type {
   Migration,
   MigrationContext,
@@ -60,6 +61,7 @@ export { PruneRetiredEntireHooksMigration } from "./prune-retired-entire-hooks.j
 export { PreserveVerificationOptInsMigration } from "./preserve-verification-opt-ins.js";
 export { ReconcileClaudeStackPluginsMigration } from "./reconcile-claude-stack-plugins.js";
 export { UntrackCodexMarketplaceMigration } from "./untrack-codex-marketplace.js";
+export { RetireNativeSafetyNetMigration } from "./retire-native-safety-net.js";
 
 /**
  * Registry that runs applicable migrations against a destination project
@@ -97,6 +99,7 @@ export class MigrationRegistry {
       new PruneRetiredEntireHooksMigration(),
       new ReconcileClaudeStackPluginsMigration(),
       new UntrackCodexMarketplaceMigration(),
+      new RetireNativeSafetyNetMigration(),
       // Last: every other workflow migration has finished editing caller files,
       // so the pin this writes is the one that survives the apply.
       new EnsurePinnedReusableWorkflowRefsMigration(),
