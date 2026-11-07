@@ -11946,6 +11946,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/config/release-quality-secret-forwarding.test.ts": true,
     "tests/unit/config/repo-scan-exclusions.test.ts": true,
     "tests/unit/config/required-checks-declaration.test.ts": true,
+    "tests/unit/config/required-checks-unit-tests-deferred.test.ts": true,
     "tests/unit/config/reusable-workflow-secret-channel.test.ts": true,
     "tests/unit/config/scratch-authority-concurrency.test.ts": true,
     "tests/unit/config/scratch-authority.test.ts": true,
