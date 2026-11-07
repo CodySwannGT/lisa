@@ -2894,10 +2894,15 @@ jobs:
         run: >-
           bun run lisa-test-run -- --adapter vitest -- vitest run
           tests/unit/core/audit-scopes.test.ts
+          tests/unit/core/audit-scope-hardening.test.ts
+          tests/unit/core/audit-lockfile-sources.test.ts
           tests/unit/core/audit-lockfile-formats.test.ts
           tests/unit/core/audit-report-completeness.test.ts
           tests/unit/config/zod-security-floor.test.ts
+          tests/unit/config/audit-ignore-package-names.test.ts
           tests/unit/cli/doctor-readiness-supply-chain-exceptions.test.ts
+          tests/unit/cli/doctor-audit-scope.test.ts
+          tests/unit/hooks/pre-push-audit-transport-parity.test.ts
           tests/unit/strategies/security-audit-handling-scope.test.ts
           tests/unit/strategies/package-lisa-audit-script-governance.test.ts
           tests/integration/audit-consumer-parity.test.ts
