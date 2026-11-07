@@ -77,8 +77,11 @@ Verified: 4.90.1 is deprecated and latest is 4.90.0. Now prepare the fix-forward
 ```
 
 If it prints `Rollback NOT verified` instead, the registry did not show both
-facts. Run the same command again — it is safe to repeat, and it will not add a
-second notice to the release notes.
+facts. Re-run the same command with the same reason — that is safe to repeat,
+and it will not add a second notice to the release notes. (A different reason
+would add a second, different notice.) If a step fails partway through, the
+command lists what is already done and what is not; re-running with the same
+reason finishes the rest.
 
 You can also look for yourself: the
 [GitHub releases page](https://github.com/CodySwannGT/lisa/releases) shows the
