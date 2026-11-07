@@ -161,7 +161,12 @@ describe("orphan termination", () => {
         selfPid: SELF,
         listProcesses: table,
         isAlive: (pid: number) => live.has(pid),
-        startTimesOf: () => new Map([[LIVE_OWNER, "111"]]),
+        startTimesOf: () =>
+          new Map([
+            [LIVE_OWNER, "111"],
+            [701, "701"],
+            [702, "702"],
+          ]),
         kill,
         sleep: vi.fn(async () => {}),
         graceMs: 5,

@@ -517,9 +517,10 @@ export async function sweepOrphans(options = {}) {
   const survivors = killed.filter(pid => alive(pid));
   const current = survivors.length > 0 ? startTimesOf(survivors) : new Map();
   // A survivor whose start time changed during the grace is a NEW process
-  // that inherited the pid; it gets no SIGKILL.
+  // that inherited the pid; it gets no SIGKILL. One whose start time was never
+  // recorded cannot be proven the same process, so it gets SIGTERM only.
   const samePid = pid =>
-    !recorded.has(pid) || current.get(pid) === recorded.get(pid);
+    recorded.has(pid) && current.get(pid) === recorded.get(pid);
   for (const pid of survivors.filter(samePid))
     signal(kill, pid, "SIGKILL", errors);
   return { killed, errors };

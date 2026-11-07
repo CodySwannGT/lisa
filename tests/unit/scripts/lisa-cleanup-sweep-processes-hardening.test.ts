@@ -149,4 +149,23 @@ describe("pid reuse during the grace", () => {
       [702, "SIGKILL"],
     ]);
   });
+
+  it("does not SIGKILL a survivor whose start time was never recorded", async () => {
+    const signals: Array<[number, string]> = [];
+    const result = await sweepOrphans({
+      selfPid: 500,
+      listProcesses: () => [
+        { pid: 703, ppid: 1, owner: { pid: 700, start: "1" } },
+      ],
+      isAlive: pid => pid !== 700,
+      startTimesOf: () => new Map(),
+      kill: (pid, signal) => {
+        signals.push([pid, signal]);
+      },
+      sleep: async () => {},
+      graceMs: 1,
+    });
+    expect(result.killed).toEqual([703]);
+    expect(signals).toEqual([[703, "SIGTERM"]]);
+  });
 });
