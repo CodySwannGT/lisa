@@ -35,6 +35,7 @@ const REGISTRY = "http://registry.test";
 const REASON = "breaks apply";
 const REGISTRY_FLAG = "--registry";
 const DEPRECATE = "npm deprecate";
+const GH_EDIT = "gh release edit";
 
 /** One version entry in a packument, optionally deprecated. */
 const entry = (deprecated?: string) =>
@@ -177,7 +178,7 @@ const writes = (calls: readonly Call[]) =>
       line =>
         line.startsWith(DEPRECATE) ||
         line.startsWith("npm dist-tag add") ||
-        line.startsWith("gh release edit")
+        line.startsWith(GH_EDIT)
     );
 
 describe("parseArgs", () => {
@@ -324,7 +325,7 @@ describe("rollback — a real run", () => {
     expect(writes(runner.calls)).toEqual([
       `${DEPRECATE} ${PACKAGE}@4.90.1`,
       "npm dist-tag add",
-      "gh release edit",
+      GH_EDIT,
     ]);
     expect(notes[0]?.startsWith(deprecationNotice(REASON, "4.90.0"))).toBe(
       true
@@ -448,5 +449,99 @@ describe("main", () => {
     );
     expect(code).toBe(0);
     expect(output.out.join("\n")).toContain(`--registry ${REGISTRY}`);
+  });
+});
+
+describe("review fixes", () => {
+  it("refuses to move latest backward when latest is newer than --bad", async () => {
+    const runner = fakeRunner(ghServes());
+    const newer = packument({ "4.90.2": entry() }, "4.90.2");
+    for (const dryRun of [true, false]) {
+      const { injected, output } = deps(runner.run, fakeFetch([newer]).impl);
+      expect(await rollback(options({ dryRun }), injected)).toBe(1);
+      expect(output.err.join("\n")).toContain(
+        "latest is 4.90.2, not 4.90.1; pass --to <version> to move latest anyway"
+      );
+    }
+    expect(writes(runner.calls)).toEqual([]);
+  });
+
+  it("allows a re-run once latest already points at the good version", async () => {
+    const runner = fakeRunner(ghServes());
+    const { injected } = deps(
+      runner.run,
+      fakeFetch([rolledBack, rolledBack]).impl
+    );
+    expect(await rollback(options(), injected)).toBe(0);
+  });
+
+  it("names what already changed when a later step fails", async () => {
+    const runner = fakeRunner(call =>
+      call.command === "gh" && call.args[1] === "view"
+        ? { status: 1, stderr: "release not found" }
+        : { status: 0 }
+    );
+    const { injected, output } = deps(
+      runner.run,
+      fakeFetch([packument()]).impl
+    );
+    expect(await rollback(options(), injected)).toBe(1);
+    const said = output.err.join("\n");
+    expect(said).toContain(
+      "Already done: deprecated 4.90.1; moved latest to 4.90.0."
+    );
+    expect(said).toContain(
+      "Not done: added the deprecation notice to the v4.90.1 release notes."
+    );
+    expect(said).toContain(
+      "Re-running the same command is safe and will finish the rest."
+    );
+  });
+
+  it("does not edit notes that already start with the notice", async () => {
+    const already = `${deprecationNotice(REASON, "4.90.0")}\nOriginal notes.`;
+    const runner = fakeRunner(ghServes(already));
+    const { injected, notes } = deps(
+      runner.run,
+      fakeFetch([packument(), rolledBack]).impl
+    );
+    expect(await rollback(options(), injected)).toBe(0);
+    expect(writes(runner.calls)).not.toContain(GH_EDIT);
+    expect(notes).toEqual([]);
+  });
+
+  it("retries a stale read-back and passes once it is fresh", async () => {
+    const runner = fakeRunner(ghServes());
+    const { injected } = deps(
+      runner.run,
+      fakeFetch([packument(), packument(), rolledBack]).impl
+    );
+    const slept: number[] = [];
+    const sleep = async (ms: number) => {
+      slept.push(ms);
+    };
+    expect(await rollback(options(), { ...injected, sleep })).toBe(0);
+    expect(slept).toHaveLength(1);
+  });
+
+  it("rejects a v-prefixed version with the fix spelled out", () => {
+    expect(() =>
+      parseArgs(["--bad", "v4.90.1", "--reason", REASON], {})
+    ).toThrow("use 4.90.1, not v4.90.1");
+    expect(() =>
+      parseArgs(["--bad", "4.90.1", "--to", "v4.90.0", "--reason", REASON], {})
+    ).toThrow("use 4.90.0, not v4.90.0");
+  });
+
+  it("warns when npm writes and the GitHub edit go to different places", async () => {
+    const runner = fakeRunner(ghServes());
+    const { injected, output } = deps(
+      runner.run,
+      fakeFetch([packument(), rolledBack]).impl
+    );
+    await rollback(options(), injected);
+    expect(output.out.join("\n")).toContain(
+      `Warning: the npm writes go to ${REGISTRY}, while the GitHub notes edit goes to CodySwannGT/lisa.`
+    );
   });
 });

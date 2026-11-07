@@ -124,6 +124,26 @@ export function parseArgs(argv, env) {
 }
 
 /**
+ * Require a version spelled exactly as npm records it. `semver.valid` alone
+ * accepts `v4.90.1` and returns `4.90.1`, which npm would not find under that
+ * spelling — so the input must equal its own normalised form.
+ * @param {string} flag - The flag being checked, for the message.
+ * @param {string} value - What was passed.
+ * @param {string} example - An example version for the message.
+ * @returns {void}
+ * @throws {Error} When the value is not an exact version.
+ */
+function exactVersion(flag, value, example) {
+  const normalised = semver.valid(value);
+  if (normalised === value) return;
+  throw new Error(
+    normalised !== null && value.startsWith("v")
+      ? `${flag} takes the bare version number: use ${normalised}, not ${value}`
+      : `${flag} must be an exact published version, e.g. ${example}`
+  );
+}
+
+/**
  * Apply defaults and check the parsed values.
  * @param {Record<string, string>} values - Flag values by option name.
  * @param {boolean} dryRun - Whether `--dry-run` was given.
@@ -131,12 +151,8 @@ export function parseArgs(argv, env) {
  * @returns {ReturnType<typeof parseArgs>} Complete options.
  */
 function validated(values, dryRun, env) {
-  if (!semver.valid(values.bad ?? "")) {
-    throw new Error("--bad must be an exact published version, e.g. 4.90.1");
-  }
-  if (values.to !== undefined && !semver.valid(values.to)) {
-    throw new Error("--to must be an exact published version, e.g. 4.90.0");
-  }
+  exactVersion("--bad", values.bad ?? "", "4.90.1");
+  if (values.to !== undefined) exactVersion("--to", values.to, "4.90.0");
   // npm treats an empty deprecation message as "un-deprecate", so a blank
   // reason would silently do the opposite of what was asked.
   if ((values.reason ?? "").trim() === "") {
@@ -233,6 +249,27 @@ function checkedTarget(versions, bad, to) {
     throw new Error(`--to ${to} is itself deprecated; choose another version.`);
   }
   return to;
+}
+
+/**
+ * Refuse to move `latest` backward past a release that is not the bad one.
+ *
+ * Rolling back an OLDER version than `latest` would otherwise point `latest`
+ * below a newer, good release. Allowed without `--to` only when `latest` is
+ * the bad version, or already the good one (a re-run finishing a partial
+ * rollback); an explicit `--to` is a deliberate choice and is honoured.
+ * @param {{"dist-tags"?: {latest?: string}}} packument - The packument.
+ * @param {{bad: string, to?: string}} options - Run options.
+ * @param {string} good - Resolved good version.
+ * @returns {void}
+ * @throws {Error} When the move would go backward unasked.
+ */
+function refuseBackwardMove(packument, { bad, to }, good) {
+  const latest = packument["dist-tags"]?.latest;
+  if (to !== undefined || latest === bad || latest === good) return;
+  throw new Error(
+    `latest is ${String(latest)}, not ${bad}; pass --to <version> to move latest anyway.`
+  );
 }
 
 /**
@@ -464,6 +501,71 @@ function printDryRun(options, good, log) {
 }
 
 /**
+ * Run the three writes in order, recording each one that completes.
+ *
+ * A failure partway through leaves the registry half-changed, and the person
+ * running this needs to know which half. So any failure after the first write
+ * is re-raised with what is already done and what is not — and that re-running
+ * finishes the rest, because every step is safe to repeat.
+ * @param {object} options - Run options.
+ * @param {string} good - Resolved good version.
+ * @param {RollbackDeps} deps - Injected seams.
+ * @param {string} notesFile - Where the edited notes are written.
+ * @returns {void}
+ */
+function applyWrites(options, good, deps, notesFile) {
+  const [deprecate, distTag, editNotes] = planCommands({
+    ...options,
+    good,
+    notesFile,
+  });
+  const steps = [
+    [`deprecated ${options.bad}`, () => runStep(deprecate, deps.run, deps.log)],
+    [`moved latest to ${good}`, () => runStep(distTag, deps.run, deps.log)],
+    [
+      `added the deprecation notice to the v${options.bad} release notes`,
+      () => writeNotes(options, good, deps, editNotes),
+    ],
+  ];
+  const done = [];
+  try {
+    for (const [label, step] of steps) {
+      step();
+      done.push(label);
+    }
+  } catch (error) {
+    if (done.length === 0) throw error;
+    const notDone = steps.slice(done.length).map(([label]) => label);
+    throw new Error(
+      `${error.message}\nAlready done: ${done.join("; ")}. Not done: ${notDone.join("; ")}. Re-running the same command is safe and will finish the rest.`
+    );
+  }
+}
+
+/**
+ * Prepend the notice to the bad release's notes, unless it is already there.
+ * @param {object} options - Run options.
+ * @param {string} good - Resolved good version.
+ * @param {RollbackDeps} deps - Injected seams.
+ * @param {{command: string, args: string[]}} editNotes - The edit command.
+ * @returns {void}
+ */
+function writeNotes(options, good, deps, editNotes) {
+  const notes = noticedNotes(
+    options,
+    deprecationNotice(options.reason, good),
+    deps.run
+  );
+  if (notes === null) {
+    deps.log(`v${options.bad} notes already carry the notice.`);
+    return;
+  }
+  const notesFile = editNotes.args[editNotes.args.indexOf("--notes-file") + 1];
+  deps.writeFile(notesFile, notes);
+  runStep(editNotes, deps.run, deps.log);
+}
+
+/**
  * Do the writes, then verify.
  * @param {object} options - Run options.
  * @param {string} good - Resolved good version.
@@ -478,27 +580,19 @@ async function realRun(options, good, deps) {
     );
     return 1;
   }
+  if (options.registry !== DEFAULT_REGISTRY) {
+    deps.log(
+      `Warning: the npm writes go to ${options.registry}, while the GitHub notes edit goes to ${options.repo}.`
+    );
+  }
   const dir = deps.makeTempDir();
   try {
-    const notesFile = path.join(dir, `v${options.bad}-notes.md`);
-    const [deprecate, distTag, editNotes] = planCommands({
-      ...options,
-      good,
-      notesFile,
-    });
-    runStep(deprecate, deps.run, deps.log);
-    runStep(distTag, deps.run, deps.log);
-    const notes = noticedNotes(
+    applyWrites(
       options,
-      deprecationNotice(options.reason, good),
-      deps.run
+      good,
+      deps,
+      path.join(dir, `v${options.bad}-notes.md`)
     );
-    if (notes === null)
-      deps.log(`v${options.bad} notes already carry the notice.`);
-    else {
-      deps.writeFile(notesFile, notes);
-      runStep(editNotes, deps.run, deps.log);
-    }
   } finally {
     deps.removeDir(dir);
   }
@@ -555,6 +649,7 @@ export async function rollback(options, injected = {}) {
       fetchImpl: deps.fetchImpl,
     });
     const good = resolveGoodVersion(packument, options.bad, options.to);
+    refuseBackwardMove(packument, options, good);
     return options.dryRun
       ? printDryRun(options, good, deps.log)
       : await realRun(options, good, deps);
