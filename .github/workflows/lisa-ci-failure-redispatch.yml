@@ -21,7 +21,15 @@ name: 🔁 CI Failure Re-dispatch
 # token, even for a run a PR triggered. This job therefore reads metadata only:
 # it checks out the DEFAULT branch (no `ref`), installs nothing, never fetches
 # or runs the PR's code, and hands event data to the script through `env:` and
-# the event file rather than interpolating it into a shell script. All of the
+# the event file rather than interpolating it into a shell script. Markers
+# count only when `github-actions[bot]` (this job's GITHUB_TOKEN identity)
+# authored them, so a forged marker comment is ignored.
+#
+# KNOWN GAP: the verdict is taken only when one of the two trigger workflows
+# completes. When a third-party required check (CodeRabbit, GitGuardian)
+# finishes AFTER both, nothing re-triggers this workflow: a late third-party
+# failure is not re-dispatched, and a late pass does not clear the marker
+# until the next run of a trigger workflow. Tracked as a follow-up. All of the
 # decision logic lives in `scripts/lisa-ci-failure-redispatch.mjs`, which is
 # unit-tested over recorded payloads.
 #

@@ -60,6 +60,10 @@
         [
           {
             "id": 6700000001,
+            "user": {
+              "login": "CodySwannGT",
+              "type": "User"
+            },
             "created_at": "2026-11-05T10:00:00Z",
             "body": "[claude-build-intake] Claimed by Claude. Starting build."
           }
@@ -67,6 +71,10 @@
         [
           {
             "id": 6700000002,
+            "user": {
+              "login": "github-actions[bot]",
+              "type": "Bot"
+            },
             "created_at": "2026-11-05T11:00:00Z",
             "body": "A required check failed on pull request #4673 at commit 3db71f89a186d5dbeb78015aa5735fa9d8efda48: 🔍 Quality Checks / 🧪 Run Unit Tests.\n\nLisa moved this item from `status:in-progress` back to `status:ready` so build intake sends the owning agent back to fix the existing pull request. The work is not complete until every required check passes.\n\n<!-- [lisa-ci-failed] pr=4673 sha=3db71f89a186d5dbeb78015aa5735fa9d8efda48 -->"
           }
@@ -100,6 +108,62 @@
           "state": "SUCCESS",
           "bucket": "pass"
         }
+      ]
+    },
+    "api repos/CodySwannGT/lisa/issues/4672/events --paginate --slurp": {
+      "stdout": [
+        [
+          {
+            "event": "labeled",
+            "label": {
+              "name": "status:ready"
+            },
+            "created_at": "2026-11-04T09:00:00Z",
+            "actor": {
+              "login": "CodySwannGT"
+            }
+          },
+          {
+            "event": "unlabeled",
+            "label": {
+              "name": "status:ready"
+            },
+            "created_at": "2026-11-05T10:00:00Z",
+            "actor": {
+              "login": "CodySwannGT"
+            }
+          },
+          {
+            "event": "labeled",
+            "label": {
+              "name": "status:in-progress"
+            },
+            "created_at": "2026-11-05T10:00:00Z",
+            "actor": {
+              "login": "CodySwannGT"
+            }
+          },
+          {
+            "event": "unlabeled",
+            "label": {
+              "name": "status:in-progress"
+            },
+            "created_at": "2026-11-05T11:00:01Z",
+            "actor": {
+              "login": "CodySwannGT"
+            }
+          },
+          {
+            "event": "labeled",
+            "label": {
+              "name": "status:ready"
+            },
+            "created_at": "2026-11-05T11:00:01Z",
+            "actor": {
+              "login": "CodySwannGT"
+            }
+          }
+        ]
       ]
     }
   }

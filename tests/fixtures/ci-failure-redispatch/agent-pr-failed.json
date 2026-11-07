@@ -60,6 +60,10 @@
         [
           {
             "id": 6700000001,
+            "user": {
+              "login": "CodySwannGT",
+              "type": "User"
+            },
             "created_at": "2026-11-05T10:00:00Z",
             "body": "[claude-build-intake] Claimed by Claude. Starting build."
           }

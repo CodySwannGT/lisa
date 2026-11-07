@@ -48,6 +48,15 @@ const CLEARED_MARKER = /<!-- \[lisa-ci-cleared\] run=\d+ -->/u;
 /** Any Lisa lifecycle marker — the claim, attempt, and CI markers alike. */
 const LISA_MARKER = /\[(?:lisa-[a-z0-9-]+|claude-build-intake)\]/u;
 const NO_REQUIRED = /no (?:required )?checks reported/iu;
+
+/**
+ * The only comment authors whose `[lisa-ci-failed]` / `[lisa-ci-cleared]`
+ * markers count. Anyone who can comment on an issue can type a marker; a
+ * forged one must neither suppress a real re-dispatch nor make the workflow
+ * edit an outsider's comment and restore a lane. The workflow posts with
+ * `GITHUB_TOKEN`, whose author is `github-actions[bot]`.
+ */
+export const MARKER_AUTHORS = Object.freeze(["github-actions[bot]"]);
 /**
  * One write a plan would make.
  * @typedef {object} PlannedAction
@@ -323,6 +332,7 @@ function readRequiredChecks(pr, repo, gh) {
  */
 function markerComment(comments, pr, sha) {
   return comments.find(c => {
+    if (!trustedAuthor(c)) return false;
     const match = FAILURE_MARKER.exec(c.body ?? "");
     return match !== null && Number(match[1]) === pr && match[2] === sha;
   });
@@ -334,8 +344,53 @@ function markerComment(comments, pr, sha) {
  * @returns {number|null} PR number.
  */
 function markerPr(comment) {
+  if (!trustedAuthor(comment)) return null;
   const match = FAILURE_MARKER.exec(comment.body ?? "");
   return match === null ? null : Number(match[1]);
+}
+
+/**
+ * True when the comment was posted by an identity whose markers count.
+ * @param {object} comment - Item comment.
+ * @returns {boolean} Whether its markers are trusted.
+ */
+function trustedAuthor(comment) {
+  return MARKER_AUTHORS.includes(comment.user?.login ?? "");
+}
+
+/**
+ * True when the item gained `lane` after `comment` was posted. Comments alone
+ * cannot say a claim happened: a claim path that posts its claim comment once
+ * per item leaves no newer comment when it re-claims, but the label event is
+ * always recorded.
+ * @param {object[]} events - Issue events.
+ * @param {object} comment - The marker comment.
+ * @param {string} lane - Lane label.
+ * @returns {boolean} Whether a later `labeled` event exists.
+ */
+function laneGainedSince(events, comment, lane) {
+  return events.some(
+    e =>
+      e.event === "labeled" &&
+      e.label?.name === lane &&
+      String(e.created_at) > String(comment.created_at)
+  );
+}
+
+/**
+ * Read the item's issue events (label history).
+ * @param {string} number - Issue number.
+ * @param {string} repo - Repository.
+ * @param {Function} gh - Runner.
+ * @returns {object[]} Events.
+ */
+function readEvents(number, repo, gh) {
+  return readJson(gh, [
+    "api",
+    `repos/${repo}/issues/${number}/events`,
+    "--paginate",
+    "--slurp",
+  ]).flat();
 }
 
 /**
@@ -346,7 +401,12 @@ function markerPr(comment) {
  * @returns {boolean} Whether it is the newest.
  */
 function isNewestLisaMarker(comments, comment) {
-  const marked = comments.filter(c => LISA_MARKER.test(c.body ?? ""));
+  // A forged failure marker counts for nothing, including as "something newer".
+  const marked = comments.filter(
+    c =>
+      LISA_MARKER.test(c.body ?? "") &&
+      (trustedAuthor(c) || !FAILURE_MARKER.test(c.body ?? ""))
+  );
   return marked.at(-1)?.id === comment.id;
 }
 
@@ -370,7 +430,8 @@ function planFailure(ctx) {
     if (
       claimed &&
       !CLEARED_MARKER.test(existing.body) &&
-      isNewestLisaMarker(view.comments, existing)
+      isNewestLisaMarker(view.comments, existing) &&
+      !laneGainedSince(ctx.events(), existing, lanes.claimed)
     )
       return {
         ...known,
@@ -440,7 +501,12 @@ function planClear(ctx) {
   }));
   const unclaimed =
     view.labels.includes(lanes.ready) && !view.labels.includes(lanes.claimed);
-  if (unclaimed && open.some(c => isNewestLisaMarker(view.comments, c))) {
+  const newest = open.find(c => isNewestLisaMarker(view.comments, c));
+  if (
+    unclaimed &&
+    newest !== undefined &&
+    !laneGainedSince(ctx.events(), newest, lanes.claimed)
+  ) {
     actions.push({
       kind: ACTION.relabel,
       item,
@@ -492,6 +558,8 @@ export function planRedispatch({ run, repository, contract, gh }) {
     failing,
     runId: run.id,
     lanes: contract.lifecycle,
+    // Read lazily: only a lane repair or restore needs the label history.
+    events: () => readEvents(view.number, contract.repository, gh),
   };
   if (verdict === "fail") return planFailure(ctx);
   if (verdict === "pass") return planClear(ctx);

@@ -2803,7 +2803,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/lisa-assert-eas-profile.mjs":
       "624e40d7f33ca17208fc6b7a19320a785cff19da5d2ff8062b67a432b2a34022",
     "scripts/lisa-ci-failure-redispatch.mjs":
-      "300e20388fe21a29cb5b52119fc64dbe8a4b0d8c9d1e88cbd4f927d4c238bc6d",
+      "2af56097888ea0d1737957aed0a81fec739107c9214184787dd97821bf6560c7",
     "scripts/lisa-commit-and-pr-local.sh":
       "70749548e302bc709000b0721c39470388c58fb0d08cfd3a2679b96e2b539cc4",
     "scripts/lisa-commit-msg-gates.mjs":
@@ -11083,8 +11083,11 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/fixtures/ci-failure-redispatch/agent-pr-failed-replayed.json": true,
     "tests/fixtures/ci-failure-redispatch/agent-pr-failed.json": true,
     "tests/fixtures/ci-failure-redispatch/agent-pr-passed-rerun.json": true,
+    "tests/fixtures/ci-failure-redispatch/forged-marker-failure.json": true,
+    "tests/fixtures/ci-failure-redispatch/forged-marker-pass.json": true,
     "tests/fixtures/ci-failure-redispatch/item-not-claimed.json": true,
     "tests/fixtures/ci-failure-redispatch/pr-without-work-item.json": true,
+    "tests/fixtures/ci-failure-redispatch/reclaimed-without-comment-replayed.json": true,
     "tests/fixtures/dependency-internalization-kit/dependency-internalization-ticket.md": true,
     "tests/fixtures/dependency-internalization-kit/version-bump-ticket.md": true,
     "tests/fixtures/dependency-ownership/addition/.github/workflows/deploy.yml": true,
@@ -12530,6 +12533,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/lisa-ci-failure-redispatch-cli.test.ts": true,
     "tests/unit/scripts/lisa-ci-failure-redispatch-edges.test.ts": true,
     "tests/unit/scripts/lisa-ci-failure-redispatch-intake.test.ts": true,
+    "tests/unit/scripts/lisa-ci-failure-redispatch-trust.test.ts": true,
     "tests/unit/scripts/lisa-ci-failure-redispatch-workflow.test.ts": true,
     "tests/unit/scripts/lisa-ci-failure-redispatch.test.ts": true,
     "tests/unit/scripts/lisa-environment-prepare.test.ts": true,
