@@ -7,9 +7,10 @@
  * `--dry-run` CLI prints the plan without writing.
  * @module tests/unit/scripts/lisa-ci-failure-redispatch-cli
  */
-import { spawnSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
+
+import { boundedSpawnSync } from "../../helpers/io-latency-budget.js";
 
 import {
   applyPlan,
@@ -171,11 +172,11 @@ describe("main", () => {
 
 describe("the CLI under plain node", () => {
   it("prints exactly one planned comment and one lane move for the failed-agent fixture", () => {
-    const result = spawnSync(
-      process.execPath,
-      [SCRIPT, "--payload", FIXTURE, "--dry-run"],
-      { encoding: "utf8" }
-    );
+    const result = boundedSpawnSync({
+      label: "ci-failure-redispatch dry-run CLI",
+      command: process.execPath,
+      args: [SCRIPT, "--payload", FIXTURE, "--dry-run"],
+    });
     expect(result.status).toBe(0);
     expect(result.stdout).toContain("dry run");
     const json = JSON.parse(result.stdout.slice(result.stdout.indexOf("{")));
