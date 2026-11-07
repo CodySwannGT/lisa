@@ -1,0 +1,37 @@
+# Validation Journey step 2 — orphan of a dead run killed, live run's child spared
+# head: 80d5d40ec0bdc11bc35daefc65b83faa9b2f7220  captured: 2026-11-07T22:16:05Z  host: Darwin 25.2.0  node: v22.22.0
+# macOS ps -E hides the environment of Apple-signed /bin/sleep, so node children stand in for test processes.
+## make a genuinely dead owner marker
+$ node -e 'setTimeout(()=>{},600000)' &   -> pid 64738, ownerMarkerFor(64738) = 64738:1794089765
+$ kill -9 64738; ps -p 64738
+(pid 64738 is gone — exit 1)
+## a live owner (stands in for a running lisa-test-run)
+live owner pid 65827, marker 65827:1794089765
+## the two marked test processes
+$ LISA_TEST_RUN_OWNER=64738:1794089765 node -e 'setTimeout(()=>{},600000)' &   -> orphan pid 66975
+$ LISA_TEST_RUN_OWNER=65827:1794089765 node -e 'setTimeout(()=>{},600000)' &   -> live-run child pid 66978
+$ ps -p 66975,66978,65827 -o pid=,ppid=,command=
+65827 64692 node -e setTimeout(()=>{},600000)
+66975 64692 node -e setTimeout(()=>{},600000)
+66978 64692 node -e setTimeout(()=>{},600000)
+$ ps -E -ww -p 66975,66978 -o pid=,command= | grep -o 'LISA_TEST_RUN_OWNER=[0-9:]*'
+LISA_TEST_RUN_OWNER=64738:1794089765
+LISA_TEST_RUN_OWNER=65827:1794089765
+$ TMPDIR=/private/tmp/c1v-demo/s2 node all/copy-overwrite/scripts/lib/lisa-cleanup-sweep.mjs --dry-run --json
+{"removed":[],"skippedUnsafe":0,"killed":[66975],"errors":[],"dryRun":true,"durationMs":116}
+exit=0
+$ TMPDIR=/private/tmp/c1v-demo/s2 node all/copy-overwrite/scripts/lib/lisa-cleanup-sweep.mjs --json
+{"removed":[],"skippedUnsafe":0,"killed":[66975],"errors":[],"dryRun":false,"durationMs":625}
+/Users/codysai/.claude/jobs/39f36ea1/tmp/step2.sh: line 41: 66975 Terminated: 15          LISA_TEST_RUN_OWNER=$DEAD node -e "$IDLE"
+exit=0
+$ ps -p 66975 -o pid=,command=   # orphan
+(orphan 66975 is gone — ps exit 1)
+$ ps -p 66978 -o pid=,command=   # live-run child
+66978 node -e setTimeout(()=>{},600000)
+(live-run child 66978 still running)
+$ ps -p 65827 -o pid=,command=   # live owner
+65827 node -e setTimeout(()=>{},600000)
+(owner 65827 still running)
+orphan wait status: 143 (143 = SIGTERM, 137 = SIGKILL)
+## cleanup
+(no process this script started is left — ps exit 1)
