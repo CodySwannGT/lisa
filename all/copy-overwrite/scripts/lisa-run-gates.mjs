@@ -58,6 +58,7 @@ import {
 } from "./lib/kill-marks.mjs";
 import { boundedSpawnSync, isChildTimeout } from "./lib/bounded-spawn.mjs";
 import { invokedAsScript } from "./lib/invoked-as-script.mjs";
+import { runStartOfRunSweep } from "./lib/lisa-cleanup-sweep.mjs";
 import { worktreeDependencyProblem } from "./lib/worktree-dependencies.mjs";
 import {
   interruptionReason,
@@ -1931,6 +1932,17 @@ export function main(argv = process.argv.slice(2)) {
     });
   }
 
+  // One cleanup sweep per push, before the first gate (CodySwannGT/lisa#4597).
+  // It never fails the run: whatever goes wrong is printed and the gates run.
+  if (moment === "push") {
+    try {
+      runStartOfRunSweep();
+    } catch (err) {
+      console.log(
+        `🧹 cleanup sweep did not finish (${err.message}); continuing`
+      );
+    }
+  }
   console.log(`🚦 Gates at ${moment}:`);
   const result = runGates({
     gates: config.gates,

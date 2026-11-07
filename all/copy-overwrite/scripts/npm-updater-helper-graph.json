@@ -299,6 +299,30 @@
       "dynamicImports": [],
       "children": []
     },
+    "lib/lisa-cleanup-sweep-processes.mjs": {
+      "sha256": "5833dc29c45da58fcd95209e73b026958b7bffaaecb8bff82502cad9fc58153c",
+      "staticImports": [
+        "lib/bounded-spawn.mjs",
+        "node:fs",
+        "node:timers/promises"
+      ],
+      "dynamicImports": [],
+      "children": []
+    },
+    "lib/lisa-cleanup-sweep.mjs": {
+      "sha256": "ad8dafbc3589df27e9cfc339e116a833f48eb9595b34a6973f3bd37911a992e3",
+      "staticImports": [
+        "lib/bounded-spawn.mjs",
+        "lib/invoked-as-script.mjs",
+        "lib/lisa-cleanup-sweep-processes.mjs",
+        "node:fs/promises",
+        "node:os",
+        "node:path",
+        "node:url"
+      ],
+      "dynamicImports": [],
+      "children": []
+    },
     "lib/npm-update-allocate.mjs": {
       "sha256": "85de2576d1c5e954b57f1c9274dbc34d0d24689fbc0964d8f86ec4f91f52b7bc",
       "staticImports": [
@@ -634,7 +658,7 @@
       "children": []
     },
     "lib/npm-update-helper-inventory.mjs": {
-      "sha256": "41ff29eb3c82b7cbff1f1b0ba88517df7c09fee1bbd951117371a2a826ce5823",
+      "sha256": "0a19cdcdcfe26f12530351ae5afeb7ef5448abc06a82d5becb82ff1dc4ee41e0",
       "staticImports": [],
       "dynamicImports": [],
       "children": []
@@ -1370,12 +1394,13 @@
       ]
     },
     "lisa-run-gates.mjs": {
-      "sha256": "92c3de77e2158e86db54876bf9f02ccd51ef892fdd8326ab9107b08044222a6a",
+      "sha256": "3e14f9ff1b82b5d1247c285688c66423816c7f12faf88f6c32b8bfe90219a1c6",
       "staticImports": [
         "lib/bounded-spawn.mjs",
         "lib/gate-failure-diagnosis.mjs",
         "lib/invoked-as-script.mjs",
         "lib/kill-marks.mjs",
+        "lib/lisa-cleanup-sweep.mjs",
         "lib/process-tree-runner.mjs",
         "lib/worktree-dependencies.mjs",
         "lisa-gates.mjs",

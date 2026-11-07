@@ -28,6 +28,7 @@ import {
   superviseTestRun,
   type TestRunAdapter,
 } from "./lisa-test-run-supervisor.js";
+import { startOfRunSweep } from "./lisa-test-run-sweep.js";
 
 export { assertTestRunPlatform } from "./lisa-test-run-process-group.js";
 
@@ -135,6 +136,8 @@ async function main(): Promise<void> {
     const dependencyProblem = worktreeDependencyProblem();
     if (dependencyProblem) throw new Error(dependencyProblem);
     selectSocketSafeTempBase();
+    // After the temp base is final, so the sweep reads the TMPDIR the run uses.
+    await startOfRunSweep(env);
     const payload = applyShardPlan(invocation.argv);
     if (typeof payload === "number") process.exit(payload);
     const outcome = await superviseTestRun(

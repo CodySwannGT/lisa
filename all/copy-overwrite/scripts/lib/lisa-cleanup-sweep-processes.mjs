@@ -1,0 +1,432 @@
+// This file is managed by Lisa and IS replaced on each `lisa` run.
+// Do not edit directly — durable changes belong upstream in Lisa.
+
+/**
+ * The orphaned-process half of the start-of-run cleanup sweep
+ * (CodySwannGT/lisa#4597).
+ *
+ * ## How a test process says who owns it
+ *
+ * `lisa-test-run` (and, for RSpec, the Rails pre-push) puts
+ * `LISA_TEST_RUN_OWNER=<pid>:<start>` in its own environment before it starts
+ * anything, so every test process and every descendant inherits it. `<start>`
+ * is the owner's process start time — Linux start ticks from `/proc`, or whole
+ * epoch seconds from `ps -o lstart=` on macOS — so a pid the kernel has since
+ * handed to an unrelated process is not mistaken for the owner. `0` means the
+ * start time could not be read when the marker was written.
+ *
+ * ## What is killed, and what never is
+ *
+ * A marked process is killed only when its owner is gone: the owner pid is
+ * dead, or it is alive with a start time that differs from the recorded one.
+ * Everything that cannot be proven gone is spared — an owner whose current or
+ * recorded start time is unknown, a process listing that failed, a pid that
+ * answers EPERM. The sweep itself and every one of its ancestors are spared
+ * unconditionally, so a nested run can never kill the run that launched it.
+ *
+ * Only the current user's processes are listed, and nothing but the pid, the
+ * parent pid and the marker is kept from a listing: `ps -E` prints the whole
+ * environment, which routinely holds tokens.
+ *
+ * ## A macOS visibility gap, and why it fails safe
+ *
+ * macOS withholds the environment of Apple-signed binaries (`/bin/sleep`,
+ * `/bin/sh`, `/bin/bash`, the system `ruby` and `perl`) from `ps -E`, even for
+ * the same user. Such a process shows no marker, so the sweep never selects
+ * it: an orphaned `sh -c` wrapper survives, while the `node`/`bun` test
+ * processes under it — whose environment IS shown — are killed. Linux reads
+ * `/proc/<pid>/environ` and has no such gap.
+ *
+ * Deliberately independent of `src/configs/vitest/scratch-*.ts`, which the
+ * per-test policing this sweep replaces (C2) will retire. The start-time
+ * reading mirrors `scratch-owner.ts` rather than importing it.
+ * @module scripts/lib/lisa-cleanup-sweep-processes
+ */
+import { readdirSync, readFileSync, statSync } from "node:fs";
+import { setTimeout as delay } from "node:timers/promises";
+
+import { boundedSpawnSync } from "./bounded-spawn.mjs";
+
+/** Environment variable every test run's processes inherit. */
+export const OWNER_ENV = "LISA_TEST_RUN_OWNER";
+
+/** Recorded start time meaning "could not be read when the marker was set". */
+export const UNKNOWN_START = "0";
+
+/** Default wait between SIGTERM and SIGKILL. */
+export const DEFAULT_GRACE_MS = 500;
+
+/** Deadline for each `ps` call; the sweep must stay inside seconds. */
+const PS_TIMEOUT_MS = 5_000;
+
+/** `ps -E` prints every environment; leave room for a busy desktop. */
+const PS_MAX_BUFFER = 64 * 1024 * 1024;
+
+/** Pids per `ps -p` call, matching the batching `scratch-owner.ts` uses. */
+const PS_BATCH = 256;
+
+/** Locale-independent `ps` output, so `lstart` parses the same everywhere. */
+const PS_ENV = { ...process.env, LC_ALL: "C", LANG: "C" };
+
+const MARKER_IN_TEXT = /(?:^|[\s\0])LISA_TEST_RUN_OWNER=(\d+:\d+)(?=[\s\0]|$)/u;
+
+/**
+ * Format the owner marker value.
+ * @param {number} pid - Owner process id.
+ * @param {string | undefined} start - Owner start time, when known.
+ * @returns {string} `<pid>:<start>`.
+ */
+export function formatOwnerMarker(pid, start) {
+  return `${pid}:${start ?? UNKNOWN_START}`;
+}
+
+/**
+ * Parse an owner marker value.
+ * @param {unknown} value - Raw `LISA_TEST_RUN_OWNER` value.
+ * @returns {{pid: number, start: string} | null} The owner, or null when malformed.
+ */
+export function parseOwnerMarker(value) {
+  const match = /^(\d+):(\d+)$/u.exec(typeof value === "string" ? value : "");
+  if (!match) return null;
+  const pid = Number(match[1]);
+  return Number.isSafeInteger(pid) && pid > 0 ? { pid, start: match[2] } : null;
+}
+
+/**
+ * Find the owner marker in an environment dump.
+ * @param {string} text - `ps -E` command text or a NUL-separated environ.
+ * @returns {{pid: number, start: string} | null} The owner, if marked.
+ */
+function ownerIn(text) {
+  const match = MARKER_IN_TEXT.exec(text);
+  return match ? parseOwnerMarker(match[1]) : null;
+}
+
+/**
+ * Parse `ps -E -ww -o pid=,ppid=,command=` output, keeping only pid, ppid and owner.
+ * @param {string} stdout - Raw `ps` output.
+ * @returns {Array<{pid: number, ppid: number, owner: {pid: number, start: string} | null}>} Rows.
+ */
+export function parseDarwinProcessTable(stdout) {
+  return stdout.split("\n").flatMap(line => {
+    const match = /^\s*(\d+)\s+(\d+)(?:\s(.*))?$/u.exec(line);
+    if (!match) return [];
+    return [
+      {
+        pid: Number(match[1]),
+        ppid: Number(match[2]),
+        owner: ownerIn(match[3] ?? ""),
+      },
+    ];
+  });
+}
+
+/**
+ * Parse `ps -o pid= -o lstart=` output into whole epoch seconds.
+ * @param {string} stdout - Raw `ps` output.
+ * @returns {Map<number, string>} Start time by pid.
+ */
+export function parseDarwinStartTimes(stdout) {
+  return new Map(
+    stdout.split("\n").flatMap(line => {
+      const match = /^\s*(\d+)\s+(\S.*\S)\s*$/u.exec(line);
+      const epochMs = match ? Date.parse(match[2].replace(/\s+/gu, " ")) : NaN;
+      if (!match || !Number.isFinite(epochMs)) return [];
+      return [[Number(match[1]), String(Math.floor(epochMs / 1000))]];
+    })
+  );
+}
+
+/**
+ * Read ppid and start ticks from a `/proc/<pid>/stat` line.
+ *
+ * Fields are counted from the LAST `)`, because the command name between the
+ * parentheses may itself contain spaces and parentheses.
+ * @param {string} stat - Contents of `/proc/<pid>/stat`.
+ * @returns {{ppid: number, start: string} | null} Parsed fields, or null.
+ */
+export function parseLinuxStat(stat) {
+  const commEnd = stat.lastIndexOf(")");
+  if (commEnd < 0) return null;
+  const fields = stat
+    .slice(commEnd + 2)
+    .trim()
+    .split(/\s+/u);
+  const ppid = Number(fields[1]);
+  const start = fields[19];
+  if (!Number.isSafeInteger(ppid) || !start || !/^\d+$/u.test(start))
+    return null;
+  return { ppid, start };
+}
+
+/**
+ * Run `ps` under a deadline with a locale-independent environment.
+ * @param {readonly string[]} args - `ps` arguments.
+ * @returns {string} Its stdout; empty when it could not run.
+ */
+function runPs(args) {
+  try {
+    const child = boundedSpawnSync("/bin/ps", args, {
+      encoding: "utf8",
+      env: PS_ENV,
+      maxBuffer: PS_MAX_BUFFER,
+      stdio: ["ignore", "pipe", "ignore"],
+      timeout: PS_TIMEOUT_MS,
+    });
+    // probe-direction: fail-closed — no rows means no process is selected and
+    // no owner is known, so nothing is killed. `ps -p` exits 1 when any listed
+    // pid is gone but still prints the rest, so the status is not consulted.
+    return child.error ? "" : String(child.stdout ?? "");
+  } catch {
+    // probe-direction: fail-closed — a killed `ps` selects nothing to kill.
+    return "";
+  }
+}
+
+/**
+ * Read one Linux process's stat, or null when it has gone or is unreadable.
+ * @param {string} procRoot - Usually `/proc`.
+ * @param {number} pid - Process id.
+ * @returns {{ppid: number, start: string} | null} Parsed stat.
+ */
+function linuxStat(procRoot, pid) {
+  try {
+    return parseLinuxStat(readFileSync(`${procRoot}/${pid}/stat`, "utf8"));
+  } catch {
+    // probe-direction: fail-closed — an unreadable process is never selected.
+    return null;
+  }
+}
+
+/**
+ * One Linux row for a process this user owns, or null.
+ * @param {string} procRoot - Usually `/proc`.
+ * @param {number} pid - Process id.
+ * @param {number | undefined} uid - Current user id.
+ * @returns {{pid: number, ppid: number, owner: {pid: number, start: string} | null} | null} Row.
+ */
+function linuxRow(procRoot, pid, uid) {
+  const stat = linuxStat(procRoot, pid);
+  if (!stat) return null;
+  try {
+    const mine =
+      uid === undefined || statSync(`${procRoot}/${pid}`).uid === uid;
+    const environ = mine
+      ? readFileSync(`${procRoot}/${pid}/environ`, "utf8")
+      : "";
+    return { pid, ppid: stat.ppid, owner: ownerIn(environ) };
+  } catch {
+    // probe-direction: fail-closed — an unreadable environment carries no
+    // marker, so the process is kept for ancestry and never killed.
+    return { pid, ppid: stat.ppid, owner: null };
+  }
+}
+
+/**
+ * List this user's processes with their parent and owner marker.
+ * @param {object} [options] - Platform seams.
+ * @param {string} [options.platform] - Defaults to `process.platform`.
+ * @param {string} [options.procRoot] - Linux proc mount, defaults to `/proc`.
+ * @returns {Array<{pid: number, ppid: number, owner: {pid: number, start: string} | null}>} Rows.
+ */
+export function listProcesses({
+  platform = process.platform,
+  procRoot = "/proc",
+} = {}) {
+  const uid = process.getuid?.();
+  if (platform === "linux") {
+    return readdirSync(procRoot)
+      .filter(name => /^\d+$/u.test(name))
+      .map(name => linuxRow(procRoot, Number(name), uid))
+      .filter(row => row !== null);
+  }
+  if (platform !== "darwin") return [];
+  const user = uid === undefined ? ["-A"] : ["-U", String(uid)];
+  return parseDarwinProcessTable(
+    runPs(["-E", "-ww", ...user, "-o", "pid=,ppid=,command="])
+  );
+}
+
+/**
+ * Read start times for a set of pids.
+ * @param {readonly number[]} pids - Process ids to inspect.
+ * @param {object} [options] - Platform seams.
+ * @param {string} [options.platform] - Defaults to `process.platform`.
+ * @param {string} [options.procRoot] - Linux proc mount, defaults to `/proc`.
+ * @returns {Map<number, string>} Start time by pid; a missing pid is unknown.
+ */
+export function processStartTimes(
+  pids,
+  { platform = process.platform, procRoot = "/proc" } = {}
+) {
+  const unique = [...new Set(pids)].filter(
+    pid => Number.isSafeInteger(pid) && pid > 0
+  );
+  if (platform === "linux") {
+    return new Map(
+      unique.flatMap(pid => {
+        const stat = linuxStat(procRoot, pid);
+        return stat ? [[pid, stat.start]] : [];
+      })
+    );
+  }
+  if (platform !== "darwin") return new Map();
+  const batches = Array.from(
+    { length: Math.ceil(unique.length / PS_BATCH) },
+    (_, i) => unique.slice(i * PS_BATCH, (i + 1) * PS_BATCH)
+  );
+  return new Map(
+    batches.flatMap(batch => [
+      ...parseDarwinStartTimes(
+        runPs(["-p", batch.join(","), "-o", "pid=", "-o", "lstart="])
+      ),
+    ])
+  );
+}
+
+/**
+ * The marker value a test run started by `pid` should export.
+ * @param {number} [pid] - Owner process id, defaults to this process.
+ * @returns {string} `<pid>:<start>`, with `0` when the start time is unknown.
+ */
+export function ownerMarkerFor(pid = process.pid) {
+  return formatOwnerMarker(pid, processStartTimes([pid]).get(pid));
+}
+
+/**
+ * Whether a pid names a live process. EPERM means alive but not ours.
+ * @param {number} pid - Process id.
+ * @returns {boolean} True when the process exists.
+ */
+export function isAlive(pid) {
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch (error) {
+    return error?.code === "EPERM";
+  }
+}
+
+/**
+ * The sweep's own pid and every ancestor reachable through the table.
+ * @param {number} selfPid - The sweeping process.
+ * @param {ReadonlyArray<{pid: number, ppid: number}>} rows - Process table.
+ * @returns {Set<number>} Pids that must never be signalled.
+ */
+function lineageOf(selfPid, rows) {
+  const parent = new Map(rows.map(row => [row.pid, row.ppid]));
+  const spared = new Set([selfPid, process.ppid]);
+  for (
+    let pid = parent.get(selfPid);
+    pid && !spared.has(pid);
+    pid = parent.get(pid)
+  ) {
+    spared.add(pid);
+  }
+  for (
+    let pid = parent.get(process.ppid);
+    pid && !spared.has(pid);
+    pid = parent.get(pid)
+  ) {
+    spared.add(pid);
+  }
+  return spared;
+}
+
+/**
+ * Whether an owner is provably gone.
+ * @param {{start: string}} owner - Recorded owner.
+ * @param {boolean} alive - Whether the owner pid is alive now.
+ * @param {string | undefined} current - Its current start time, when known.
+ * @returns {boolean} True only when the owner is dead or its pid was reused.
+ */
+function ownerIsGone(owner, alive, current) {
+  if (!alive) return true;
+  if (owner.start === UNKNOWN_START || current === undefined) return false;
+  return current !== owner.start;
+}
+
+/**
+ * Select the pids of marked processes whose owning run is gone.
+ * @param {ReadonlyArray<{pid: number, ppid: number, owner: {pid: number, start: string} | null}>} rows - Process table.
+ * @param {object} seams - Injected lookups.
+ * @param {number} seams.selfPid - The sweeping process.
+ * @param {(pid: number) => boolean} seams.isAlive - Liveness check.
+ * @param {(pids: number[]) => Map<number, string>} seams.startTimesOf - Start-time lookup.
+ * @returns {number[]} Orphan pids, in table order.
+ */
+export function selectOrphans(rows, { selfPid, isAlive: alive, startTimesOf }) {
+  const spared = lineageOf(selfPid, rows);
+  const marked = rows.filter(row => row.owner && !spared.has(row.pid));
+  const owners = [...new Set(marked.map(row => row.owner.pid))];
+  const liveOwners = owners.filter(pid => alive(pid));
+  const starts = liveOwners.length > 0 ? startTimesOf(liveOwners) : new Map();
+  const live = new Set(liveOwners);
+  return marked
+    .filter(row =>
+      ownerIsGone(row.owner, live.has(row.owner.pid), starts.get(row.owner.pid))
+    )
+    .map(row => row.pid);
+}
+
+/**
+ * Send one signal, reporting whether it was delivered.
+ * @param {(pid: number, signal: string) => void} kill - Signal seam.
+ * @param {number} pid - Target.
+ * @param {string} signal - Signal name.
+ * @param {string[]} errors - Collector for undeliverable signals.
+ * @returns {boolean} True when the signal was delivered.
+ */
+function signal(kill, pid, signal, errors) {
+  try {
+    kill(pid, signal);
+    return true;
+  } catch (error) {
+    if (error?.code !== "ESRCH")
+      errors.push(`could not ${signal} ${pid}: ${error?.code ?? error}`);
+    return false;
+  }
+}
+
+/**
+ * Kill every orphaned test process: SIGTERM, a short grace, then SIGKILL.
+ * @param {object} [options] - Seams and switches; every one has a real default.
+ * @param {number} [options.selfPid] - The sweeping process.
+ * @param {() => ReturnType<typeof listProcesses>} [options.listProcesses] - Table source.
+ * @param {(pid: number) => boolean} [options.isAlive] - Liveness check.
+ * @param {(pids: number[]) => Map<number, string>} [options.startTimesOf] - Start-time lookup.
+ * @param {(pid: number, signal: string) => void} [options.kill] - Signal seam.
+ * @param {(ms: number) => Promise<unknown>} [options.sleep] - Grace wait.
+ * @param {number} [options.graceMs] - SIGTERM-to-SIGKILL grace.
+ * @param {boolean} [options.dryRun] - Select but signal nothing.
+ * @returns {Promise<{killed: number[], errors: string[]}>} What was terminated.
+ */
+export async function sweepOrphans(options = {}) {
+  const {
+    selfPid = process.pid,
+    listProcesses: list = listProcesses,
+    isAlive: alive = isAlive,
+    startTimesOf = processStartTimes,
+    kill = (pid, sig) => process.kill(pid, sig),
+    sleep = delay,
+    graceMs = DEFAULT_GRACE_MS,
+    dryRun = false,
+  } = options;
+  const errors = [];
+  let orphans;
+  try {
+    orphans = selectOrphans(list(), { selfPid, isAlive: alive, startTimesOf });
+  } catch (error) {
+    return {
+      killed: [],
+      errors: [`process listing failed: ${error?.message ?? error}`],
+    };
+  }
+  if (dryRun || orphans.length === 0) return { killed: orphans, errors };
+  const killed = orphans.filter(pid => signal(kill, pid, "SIGTERM", errors));
+  if (killed.length === 0) return { killed, errors };
+  await sleep(graceMs);
+  for (const pid of killed.filter(pid => alive(pid)))
+    signal(kill, pid, "SIGKILL", errors);
+  return { killed, errors };
+}
