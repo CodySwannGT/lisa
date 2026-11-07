@@ -35,7 +35,6 @@ import {
   CURRENT,
   GUARDS,
   HOST_TREE,
-  PARITY_SAFETY_NET,
   PLUGIN_HOOKS,
   PLUGIN_TREE,
   REPO_ROOT,
@@ -106,17 +105,17 @@ const PAYLOAD_TABLE: readonly Row[] = [
   {
     label: "deleting root",
     payload: bash("rm -rf /"),
-    refusedBy: PARITY_SAFETY_NET,
+    refusedBy: null,
   },
   {
     label: "deleting home",
     payload: bash("rm -rf ~"),
-    refusedBy: PARITY_SAFETY_NET,
+    refusedBy: null,
   },
   {
     label: "a force push",
     payload: bash("git push --force origin main"),
-    refusedBy: PARITY_SAFETY_NET,
+    refusedBy: null,
   },
   {
     label: "parsing JSON in the shell",
@@ -164,7 +163,7 @@ describe("the payload table, through the real stdin contract", () => {
 
 describe("two resolved copies of different vintage that disagree", () => {
   /**
-   * A checkout holding a behind-the-times `scripts/lisa-hooks/` safety net and
+   * A checkout holding a behind-the-times `scripts/lisa-hooks/` JSON guard and
    * current copies of everything else under `plugins/lisa/hooks/`.
    *
    * This is the shape the defect was measured in: resolution is first-wins per
@@ -177,13 +176,13 @@ describe("two resolved copies of different vintage that disagree", () => {
     const hostTree = path.join(root, HOST_TREE);
 
     mkdirSync(hostTree, { recursive: true });
-    writeBehindGuard(path.join(hostTree, `${PARITY_SAFETY_NET}.sh`));
+    writeBehindGuard(path.join(hostTree, `${BLOCK_SHELL_JSON}.sh`));
     dateHostTree(root, BEHIND);
     installCurrentTemplates(root);
 
     installRealGuards(
       path.join(root, PLUGIN_TREE),
-      GUARDS.filter(guard => guard !== PARITY_SAFETY_NET)
+      GUARDS.filter(guard => guard !== BLOCK_SHELL_JSON)
     );
     datePluginTree(root, CURRENT);
     return root;
@@ -219,7 +218,7 @@ describe("two resolved copies of different vintage that disagree", () => {
 
   it("names the behind-the-times copy as the one that refused", () => {
     const root = rootWithDisagreeingCopies();
-    const producer = path.join(root, HOST_TREE, `${PARITY_SAFETY_NET}.sh`);
+    const producer = path.join(root, HOST_TREE, `${BLOCK_SHELL_JSON}.sh`);
     const { output } = runFallback(CONTESTED, root);
 
     expect(output).toContain(`Refused by ${producer}`);

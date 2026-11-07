@@ -234,7 +234,7 @@ describe("a refusal after the notice has been spent", () => {
     runFallback(bash("ls -la", SESSION), root, tmp);
 
     const { status, output } = runFallback(
-      bash("rm -rf /", SESSION),
+      bash("git commit --no-verify -m x", SESSION),
       root,
       tmp
     );
@@ -242,7 +242,7 @@ describe("a refusal after the notice has been spent", () => {
     expect(status).toBe(BLOCKED);
     expect(output).not.toContain(NOTICE);
     expect(output).toContain(
-      `Refused by ${path.join(root, HOST_TREE, "parity-safety-net.sh")}`
+      `Refused by ${path.join(root, HOST_TREE, "block-no-verify.sh")}`
     );
     expect(output).toContain(
       `installed lisa ${CURRENT}; last applied lisa ${BEHIND}`
