@@ -140,7 +140,7 @@ if (
     marketplace?.name === "lisa" ? version(marketplace.version) : ""
   );
 
-  // Eight pairs / sixteen MiB, plus one overflow-probe byte per file. Only
+  // Seven pairs / fourteen MiB, plus one overflow-probe byte per file. Only
   // host-selected names are nonempty; plugin-selected guards are not compared.
   for (const [index, name] of names.entries()) {
     let state = "unknown";
