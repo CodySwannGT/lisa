@@ -455,7 +455,7 @@ describe("lisa-generated-artifact merge driver", () => {
    * larger piece of work and deliberately not attempted here.
    */
   describe("the remedy the driver prints", () => {
-    const HOOK = path.resolve("plugins/lisa/hooks/parity-safety-net.sh");
+    const HOOK = path.resolve("plugins/lisa/hooks/block-no-verify.sh");
     const EXIT_ALLOWED = 0;
     const EXIT_BLOCKED = 2;
 
@@ -516,25 +516,20 @@ describe("lisa-generated-artifact merge driver", () => {
       );
     });
 
-    it("controlOldRemedyIsStillRefused: the command it used to print is blocked", () => {
-      // ON THE DEFECT. Verbatim the shape the driver printed before #3692.
-      // The guard refuses it today exactly as it did then, which is what made
-      // the driver's own documented resolution unrunnable. If this ever goes
-      // green the guard stopped catching the shape, and the remedy rewrite is
-      // no longer what keeps operators out of a blocked command.
+    it("old remedy remains callable after native safety-net retirement", () => {
+      // Historical remedy from before #3692. The native destructive-command
+      // classifier retired in #4672; the surviving no-verify guard allows it.
       expect(
         classify(
           `git checkout --theirs -- ${ARTIFACT} && bun run build:upstream-evidence-manifest`
         )
-      ).toBe(EXIT_BLOCKED);
+      ).toBe(EXIT_ALLOWED);
     });
 
     it("controlHarnessStillRefuses: the classifier can still produce a refusal", () => {
       // Without this, the ALLOWED verdicts above cannot be told apart from a
       // harness failing open — the hook exiting 0 on every input.
-      expect(classify(`git restore --worktree -- ${ARTIFACT}`)).toBe(
-        EXIT_BLOCKED
-      );
+      expect(classify("git commit --no-verify -m x")).toBe(EXIT_BLOCKED);
     });
 
     it("remedyTakesTheirsAndLeavesOursRecoverable: running it discards nothing", () => {

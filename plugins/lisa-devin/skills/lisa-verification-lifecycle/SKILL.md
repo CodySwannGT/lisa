@@ -94,6 +94,12 @@ node scripts/verify-packaged-apply.mjs --backend docker --archive /absolute/path
 
 Run those paths from the installed package. Record registry integrity/version
 for a published archive; a local pack establishes candidate behavior only.
+Keep the CLI's release-pin checks enabled. If an unstamped local CLI pack
+refuses full apply, record that refusal instead of inventing a release stamp.
+To qualify a new verifier before publication, run the candidate package's
+controller against an identified, genuine public CLI archive and record both
+identities separately. That proves the candidate verifier and that public CLI;
+repeat with the exact new public package after release before completing work.
 The controller inspects the actual stopped container before starting it,
 rejects host mounts/shared namespaces/privileges, and copies inputs into its
 disposable filesystem. It does not change the operator's HOME or CODEX_HOME,

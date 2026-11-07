@@ -44,9 +44,12 @@ export {
 } from "./learnings-location.js";
 
 export {
+  DEFAULT_LOW_CONFIDENCE_ROUTING,
+  LOW_CONFIDENCE_ROUTINGS,
   resolveLearningsSettings,
   resolveProjectLearningsFile,
   type LearningsConfig,
+  type LowConfidenceRouting,
   type ResolvedLearningsSettings,
 } from "./project-config-learnings.js";
 

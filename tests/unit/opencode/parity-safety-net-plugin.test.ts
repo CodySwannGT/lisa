@@ -84,8 +84,8 @@ describe("OpenCode parity-safety-net plugin", () => {
     return result.stdout.trim();
   };
 
-  it("throws to block destructive bash calls", () => {
-    expect(invoke("rm -rf /")).toContain("deny:Blocked by safety-net");
+  it("allows former target inputs after retirement", () => {
+    expect(invoke("rm -rf /")).toBe("allow");
   });
 
   it("allows ordinary bash calls", () => {

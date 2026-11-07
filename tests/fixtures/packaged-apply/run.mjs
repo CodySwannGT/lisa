@@ -44,6 +44,37 @@ const summary = {
   archive_sha256: createHash("sha256")
     .update(readFileSync(values.archive))
     .digest("hex"),
+  controller: Object.fromEntries(
+    [
+      ["controller", values.controller],
+      [
+        "isolation",
+        path.join(
+          path.dirname(values.controller),
+          "lib/packaged-apply-isolation.mjs"
+        ),
+      ],
+      [
+        "driver",
+        path.join(
+          path.dirname(values.controller),
+          "lib/packaged-apply-driver.mjs"
+        ),
+      ],
+      [
+        "guard_cases",
+        path.join(
+          path.dirname(values.controller),
+          "fixtures/packaged-apply/guard-cases.json"
+        ),
+      ],
+    ].map(([name, file]) => [
+      name,
+      createHash("sha256").update(readFileSync(file)).digest("hex"),
+    ])
+  ),
+  identity_limit:
+    "Controller source/module hashes and actual CLI archive digest are distinct. Their source/release relationship requires separate native readback; no release stamp is fabricated.",
 };
 const read = file => JSON.parse(readFileSync(file, "utf8"));
 for (const [name, harness, failed] of [
@@ -96,7 +127,8 @@ for (const [name, harness, failed] of [
     assert.equal(native.apply.status, 0);
     assert.equal(native.apply_receipt.apply_mode, "full");
     assert.equal(native.passed, true);
-    assert.equal(native.guard_cases.length, 79);
+    assert.equal(native.guard_cases.length, 14);
+    assert.equal(native.retired_safety_net.status, 0);
     for (const row of native.guard_cases)
       assert.equal(row.status, row.expected);
     if (harness === "fleet")

@@ -23,6 +23,8 @@ import { cleanupTempDir, createTempDir } from "../../helpers/test-utils.js";
 
 const DEFAULT_LEARNINGS_FILE = ".lisa/PROJECT_LEARNINGS.md";
 const RELOCATED_LEARNINGS_FILE = "docs/knowledge/PROJECT_LEARNINGS.md";
+const HUMAN_TRIAGE = "human-triage";
+const AUTO_MERGE = "auto-merge";
 
 describe("project-config learnings", () => {
   let tempDir: string;
@@ -56,6 +58,7 @@ describe("project-config learnings", () => {
       expect(resolveLearningsSettings(config)).toEqual({
         learningsFile: DEFAULT_LEARNINGS_FILE,
         mergeDriverEnabled,
+        lowConfidence: HUMAN_TRIAGE,
       });
     }
   );
@@ -77,23 +80,61 @@ describe("project-config learnings", () => {
     expect(resolveLearningsSettings(config)).toEqual({
       learningsFile: RELOCATED_LEARNINGS_FILE,
       mergeDriverEnabled: false,
+      lowConfidence: HUMAN_TRIAGE,
     });
   });
 
-  it("accepts the two declared nested fields together", async () => {
+  it("accepts the three declared nested fields together", async () => {
     await writeConfig({
       learnings: {
         file: RELOCATED_LEARNINGS_FILE,
         mergeDriver: true,
+        lowConfidence: AUTO_MERGE,
       },
     });
     await expect(readProjectConfig(tempDir)).resolves.toEqual({
       learnings: {
         file: RELOCATED_LEARNINGS_FILE,
         mergeDriver: true,
+        lowConfidence: AUTO_MERGE,
       },
     });
   });
+
+  it.each([
+    [undefined, HUMAN_TRIAGE],
+    [HUMAN_TRIAGE, HUMAN_TRIAGE],
+    [AUTO_MERGE, AUTO_MERGE],
+  ] as const)(
+    "resolves learnings.lowConfidence %j to %s (default unchanged)",
+    async (lowConfidence, expected) => {
+      await writeConfig({
+        learnings: lowConfidence === undefined ? {} : { lowConfidence },
+      });
+      const config = await readProjectConfig(tempDir);
+      expect(resolveLearningsSettings(config).lowConfidence).toBe(expected);
+    }
+  );
+
+  it.each([
+    ["auto_merge", '"auto_merge"'],
+    ["Auto-Merge", '"Auto-Merge"'],
+    ["", '""'],
+    [true, "true"],
+    [null, "null"],
+    [[AUTO_MERGE], '["auto-merge"]'],
+  ])(
+    "rejects learnings.lowConfidence %j with the closed vocabulary in the diagnostic",
+    async (lowConfidence, rendered) => {
+      await writeConfig({ learnings: { lowConfidence } });
+      await expect(readProjectConfig(tempDir)).rejects.toThrow(
+        `Invalid learnings.lowConfidence in ${path.join(
+          tempDir,
+          PROJECT_CONFIG_FILENAME
+        )}: expected "auto-merge" or "human-triage", received ${rendered}`
+      );
+    }
+  );
 
   it.each(["mergedriver", "merge_driver", "futureNestedField"])(
     "rejects unknown nested field learnings.%s while top-level stays open",
@@ -131,8 +172,10 @@ describe("project-config learnings", () => {
     const learnings: LearningsConfig = {
       file: RELOCATED_LEARNINGS_FILE,
       mergeDriver: false,
+      lowConfidence: AUTO_MERGE,
     };
     const config: ProjectConfig = { learnings };
     expect(resolveLearningsSettings(config).mergeDriverEnabled).toBe(false);
+    expect(resolveLearningsSettings(config).lowConfidence).toBe(AUTO_MERGE);
   });
 });

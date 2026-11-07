@@ -35,7 +35,7 @@ Return exactly one of:
 
 ## Learning-loop exclusion (scan-side)
 
-An artifact this flow produced is **never** an ancestor. Exclude anything carrying `[lisa-learning-drop]`, `[lisa-learning-pr]`, `[lisa-learning-upstream-handoff]`, `[lisa-rejection-candidate]`, or `[lisa-archaeology-candidate]` markers, or the `learning:needs-triage` label.
+An artifact this flow produced is **never** an ancestor. Exclude anything carrying `[lisa-learning-drop]`, `[lisa-learning-pr]`, `[lisa-learning-upstream-handoff]`, `[lisa-rejection-candidate]`, or `[lisa-archaeology-candidate]` markers, or the `learning:needs-triage` or `learning:low-confidence` label.
 
 ## Cost budget — never block the claim
 
@@ -119,7 +119,7 @@ Before any candidate is promoted to ancestor, exclude every artifact carrying an
 - `[lisa-learning-upstream-handoff]`
 - `[lisa-rejection-candidate]`
 - `[lisa-archaeology-candidate]` (this rule's own producer tag — archaeology's output must not seed the next claim's input)
-- the `learning:needs-triage` label
+- the `learning:needs-triage` or `learning:low-confidence` label
 
 This is the **scan-side** half of the no-learning-loops guard; `rejection-detection` carries the symmetric **trigger-side** half ("a learning artifact is never a rejection-reflection trigger").
 

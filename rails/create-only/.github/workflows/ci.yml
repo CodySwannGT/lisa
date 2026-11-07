@@ -40,6 +40,10 @@ jobs:
     # `test_shards: 4` (1-20) to the `with:` block. The legs' SimpleCov
     # coverage is merged and checked once, and the required `Test (...)`
     # check keeps its name.
+    # If `.ruby-version` pins an older patch release, add
+    # `runner: 'ubuntu-24.04'`: newer runner images only get builds of each
+    # Ruby series' latest patch, and setup fails there
+    # (CodySwannGT/lisa#4517).
     secrets:
       GITGUARDIAN_API_KEY: ${{ secrets.GITGUARDIAN_API_KEY }}
       FOSSA_API_KEY: ${{ secrets.FOSSA_API_KEY }}

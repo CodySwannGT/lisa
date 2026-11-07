@@ -201,14 +201,36 @@ try {
   );
   proof.apply_receipt = receipt;
   assert.equal(receipt.apply_mode, "full");
-  // Drive the emitted inspection hook; the shell fixture itself is never run.
-  const guard = path.join(root, "scripts/lisa-hooks/parity-safety-net.sh");
+  // #4672 retired the safety net. Exercise a surviving emitted guard while
+  // keeping every proposed command inert, including the retired-target control.
+  const retired = path.join(root, "scripts/lisa-hooks/parity-safety-net.sh");
+  const retiredResult = spawnSync("/bin/bash", [retired], {
+    cwd: root,
+    encoding: "utf8",
+    timeout: 60_000,
+    env: { ...process.env, CLAUDE_PROJECT_DIR: root },
+    input: JSON.stringify({
+      tool_name: "Bash",
+      tool_input: { command: "rm -rf /outside-project" },
+    }),
+  });
+  proof.retired_safety_net = {
+    sha256: createHash("sha256").update(readFileSync(retired)).digest("hex"),
+    status: retiredResult.status,
+    signal: retiredResult.signal,
+    stdout: retiredResult.stdout,
+    stderr: retiredResult.stderr,
+  };
+  assert.equal(retiredResult.error, undefined);
+  assert.equal(retiredResult.signal, null);
+  assert.equal(retiredResult.status, 0);
+  const guard = path.join(root, "scripts/lisa-hooks/block-no-verify.sh");
   const guardBytes = readFileSync(guard);
   proof.guard_sha256 = createHash("sha256").update(guardBytes).digest("hex");
-  const dangerous = `rm -rf /outside-project`;
+  const prohibited = "git commit --no-verify -m fixture";
   const cases = JSON.parse(readFileSync("/lisa-guard-cases.json", "utf8"));
-  assert.equal(cases.length, 79);
-  assert.equal(new Set(cases.map(row => row[0])).size, 79);
+  assert.equal(cases.length, 14);
+  assert.equal(new Set(cases.map(row => row[0])).size, 14);
   proof.guard_cases = [];
   for (const [name, source, expected] of cases) {
     assert.ok(
@@ -217,7 +239,7 @@ try {
     assert.ok(typeof source === "string" && [0, 2].includes(expected));
     const directory = path.join(root, "native-guard-cases", name);
     mkdirSync(path.join(directory, "safe"), { recursive: true });
-    writeFileSync(path.join(directory, "payload.sh"), `${dangerous}\n`);
+    writeFileSync(path.join(directory, "payload.sh"), `${prohibited}\n`);
     writeFileSync(path.join(directory, "safe/payload.sh"), "echo safe\n");
     writeFileSync(path.join(directory, "run.sh"), source);
     const result = spawnSync("/bin/bash", [guard], {

@@ -142,6 +142,7 @@ async function main() {
     throw new Error("Unresolved Docker image identity");
   let id;
   let failure;
+  let cleanupError;
   let preservation = false;
   try {
     id = (
@@ -257,7 +258,6 @@ async function main() {
     });
   } finally {
     // Stop every process in the owned namespace before examining host state.
-    let cleanupError;
     try {
       if (id) await docker(["rm", "--force", "--volumes", id]);
     } catch (error) {
@@ -299,11 +299,11 @@ async function main() {
       limit:
         "Declared product-config destinations; Docker infrastructure bookkeeping is expected",
     });
-    if (cleanupError)
-      throw new Error(
-        `Could not stop/remove owned container ${id}: ${cleanupError.message}`
-      );
   }
+  if (cleanupError)
+    throw new Error(
+      `Could not stop/remove owned container ${id}: ${cleanupError.message}`
+    );
   if (!preservation)
     throw new Error(
       `Unexpected outside write; stopped and preserved current bytes privately in ${output}`

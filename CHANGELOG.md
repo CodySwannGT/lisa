@@ -2,6 +2,40 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.90.1](https://github.com/CodySwannGT/lisa/compare/v4.90.0...v4.90.1) (2026-11-07)
+
+
+### Bug Fixes
+
+* retire native safety net on downstream updates ([04f2764](https://github.com/CodySwannGT/lisa/commit/04f276444bf56afaeafbd2f14ffe1f6a096312da)), closes [CodySwannGT/lisa#4672](https://github.com/CodySwannGT/lisa/issues/4672)
+* retire safety-net hooks in Bun isolated installs ([706bc4f](https://github.com/CodySwannGT/lisa/commit/706bc4faf85c5771f7d581936ed895d16d34b4be)), closes [CodySwannGT/lisa#4672](https://github.com/CodySwannGT/lisa/issues/4672) [CodySwannGT/lisa#4672](https://github.com/CodySwannGT/lisa/issues/4672)
+* wait for exiting test groups before scratch cleanup ([5aeba16](https://github.com/CodySwannGT/lisa/commit/5aeba16ddeb87f8f48db7dba16308baa2a0b9342)), closes [CodySwannGT/lisa#4672](https://github.com/CodySwannGT/lisa/issues/4672)
+
+## [4.90.0](https://github.com/CodySwannGT/lisa/compare/v4.89.0...v4.90.0) (2026-11-07)
+
+
+### Features
+
+* **ci:** let quality-rails callers choose the Ruby jobs' runner ([40c1de4](https://github.com/CodySwannGT/lisa/commit/40c1de4e710b3744b4c9cd5283899760ad66e568)), closes [#4517](https://github.com/CodySwannGT/lisa/issues/4517) [CodySwannGT/lisa#4517](https://github.com/CodySwannGT/lisa/issues/4517) [CodySwannGT/lisa#4517](https://github.com/CodySwannGT/lisa/issues/4517)
+
+
+### Bug Fixes
+
+* **ci:** pin ruby/setup-ruby v1.338.0 for ubuntu-26.04 runners ([85220c1](https://github.com/CodySwannGT/lisa/commit/85220c1aaaa4580006ff5e32dd46950fabde38b4)), closes [CodySwannGT/lisa#4668](https://github.com/CodySwannGT/lisa/issues/4668) [CodySwannGT/lisa#4668](https://github.com/CodySwannGT/lisa/issues/4668)
+* **ci:** run quality-rails Ruby jobs on ubuntu-24.04 ([7b4850a](https://github.com/CodySwannGT/lisa/commit/7b4850a47f81bfde6dbd4682494c87525e4bf4d7)), closes [CodySwannGT/lisa#4517](https://github.com/CodySwannGT/lisa/issues/4517) [CodySwannGT/lisa#4668](https://github.com/CodySwannGT/lisa/issues/4668) [CodySwannGT/lisa#4517](https://github.com/CodySwannGT/lisa/issues/4517)
+
+## [4.89.0](https://github.com/CodySwannGT/lisa/compare/v4.88.2...v4.89.0) (2026-11-06)
+
+
+### Features
+
+* **learnings:** let low-confidence learning PRs auto-merge on opt-in ([a0269f5](https://github.com/CodySwannGT/lisa/commit/a0269f540a73b6fa5d9b684b541e562f1fbb3c67)), closes [CodySwannGT/lisa#4659](https://github.com/CodySwannGT/lisa/issues/4659) [CodySwannGT/lisa#4659](https://github.com/CodySwannGT/lisa/issues/4659)
+
+
+### Bug Fixes
+
+* **learnings:** address local review of low-confidence routing ([74443d4](https://github.com/CodySwannGT/lisa/commit/74443d4a325d77767ecfb4a61a4364fd60dd0dbd)), closes [CodySwannGT/lisa#4659](https://github.com/CodySwannGT/lisa/issues/4659) [CodySwannGT/lisa#4659](https://github.com/CodySwannGT/lisa/issues/4659)
+
 ### [4.88.2](https://github.com/CodySwannGT/lisa/compare/v4.88.1...v4.88.2) (2026-11-05)
 
 

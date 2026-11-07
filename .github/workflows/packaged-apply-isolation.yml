@@ -31,15 +31,25 @@ jobs:
           bun install --frozen-lockfile
           bun run build
           bun pm pack --ignore-scripts --filename "$RUNNER_TEMP/lisa-candidate.tgz"
+          mkdir "$RUNNER_TEMP/lisa-candidate-controller"
+          tar -xzf "$RUNNER_TEMP/lisa-candidate.tgz" -C "$RUNNER_TEMP/lisa-candidate-controller"
           docker build -t lisa-packaged-verification -f scripts/fixtures/packaged-apply/Dockerfile scripts/fixtures/packaged-apply
+      - name: Fetch the exact published CLI reference
+        run: node tests/fixtures/packaged-apply/reference-package.mjs "$RUNNER_TEMP/lisa-published-reference"
       - name: Run applies, failed-child preservation and symlink detection
         run: |
-          node tests/fixtures/packaged-apply/run.mjs --archive "$RUNNER_TEMP/lisa-candidate.tgz" --image lisa-packaged-verification --output "$RUNNER_TEMP/lisa-packaged-proof"
+          # The candidate controller is the package under test. Its actual CLI
+          # input is a pinned public release: an unstamped local CLI pack must
+          # retain its release-pin refusal. Published verification repeats this
+          # with the newly released package as both controller and CLI input.
+          node tests/fixtures/packaged-apply/run.mjs --controller "$RUNNER_TEMP/lisa-candidate-controller/package/scripts/verify-packaged-apply.mjs" --archive "$RUNNER_TEMP/lisa-published-reference/reference.tgz" --image lisa-packaged-verification --output "$RUNNER_TEMP/lisa-packaged-proof"
       - name: Retain native scenario summary
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: packaged-apply-isolation
-          path: ${{ runner.temp }}/lisa-packaged-proof/summary.json
+          path: |
+            ${{ runner.temp }}/lisa-packaged-proof/summary.json
+            ${{ runner.temp }}/lisa-published-reference/identity.json
           if-no-files-found: error
           retention-days: 7

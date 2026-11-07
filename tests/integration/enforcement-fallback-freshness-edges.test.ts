@@ -152,10 +152,10 @@ describe("host content evidence edge cases", () => {
 
   it("does not borrow the refusing guard's content state from a different selected guard", () => {
     const root = currentHost();
-    writeFileSync(template(root, "parity-safety-net"), "different\n");
+    writeFileSync(template(root, "block-shell-json-parsing"), "different\n");
     const output = refusal(root, "matches installed template");
     expect(output).toMatch(
-      /parity-safety-net\.sh — DIFFERENT from installed template/u
+      /block-shell-json-parsing\.sh — DIFFERENT from installed template/u
     );
     expect(output.split("Refused by")[1]).not.toContain(
       "THIS VERDICT MAY NOT REFLECT"
