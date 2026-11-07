@@ -15,7 +15,7 @@ For each high/critical advisory the gate reports, take the **first** action that
 2. **If an upgrade isn't possible** (no compatible patched version on the dependency graph): **force a resolution/override** on the vulnerable leaf package (both `resolutions` and `overrides`), regenerate the lockfile, retry. Done.
 3. **If an override isn't possible either** (would break a dependent, or no fixed version exists anywhere): **evaluate whether the advisory actually affects this project** — is the vulnerable code path reachable, does it process untrusted input, is it runtime vs. dev/build-only?
 4. **If it does affect the project** and neither (1) nor (2) was possible: **ask a human** what to do. This is the only rung that pauses for a person.
-5. **If it does not affect the project**: **add a documented exclusion yourself** to `audit.ignore.local.json` (`{"id", "package", "reason"}` — reason states the impact evaluation), commit, retry. No human approval needed.
+5. **If it does not affect the project**: **add a documented exclusion yourself** to `audit.ignore.local.json` (`id`, `package`, `reason` = impact evaluation; dev-only copy: add `versions`, `paths`), commit, retry. No human approval needed.
 
 Steps 1, 2, 3, and 5 are autonomous. Only step 4 escalates.
 

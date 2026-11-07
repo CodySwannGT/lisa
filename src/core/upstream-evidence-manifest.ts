@@ -1151,7 +1151,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/rules/eager/report-actionability.md":
       "b817c042d834fb046ead75db19cf827322b1abfbb0886fd4545213dd68a80554",
     "plugins/src/base/rules/eager/security-audit-handling.md":
-      "1f6effe92be66736a0c9fab634c5fdd6ad1e789865faa67bb783c67ddb4ad490",
+      "795a90e9a1d2e7b8210b3918a58dd735bc9c5cc55e851ae5e5efb4fd30fa9b98",
     "plugins/src/base/rules/eager/session-status-updates.md":
       "d2d657eda85ce00c3c0699e1c32bc0080df1140b940f9271800f233953f91b4c",
     "plugins/src/base/rules/eager/settled-decisions.md":
@@ -1265,7 +1265,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/rules/reference/reset-seed-coverage.md":
       "cfbb50fc9fdb6f0a354255802392adc717ea18af65aca92cc866416bf9256d91",
     "plugins/src/base/rules/reference/security-audit-handling.md":
-      "9633e11ac89af26444a272449f36fe03f26e61fab40ca16a0ab50464725f7d8c",
+      "f1d9907139605c9bca99bb63d4a287e2550f0f0dfe7066f7be403883a69d7597",
     "plugins/src/base/rules/reference/session-status-updates.md":
       "8878eceb7d81ee4d1ebd51f2f179e659ce36fac3ee7d04bc8631f44923d5e9ae",
     "plugins/src/base/rules/reference/settled-decisions.md":
@@ -13237,6 +13237,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/strategies/runtime-behavior-change-sources.ts": true,
     "tests/unit/strategies/scoping-label-drift.test.ts": true,
     "tests/unit/strategies/scoping-label-vocabulary-contract.test.ts": true,
+    "tests/unit/strategies/security-audit-handling-scope.test.ts": true,
     "tests/unit/strategies/security-two-bucket-contract.test.ts": true,
     "tests/unit/strategies/sentry-plugin-preference.test.ts": true,
     "tests/unit/strategies/session-manager-dispatch-contract.test.ts": true,

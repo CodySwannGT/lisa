@@ -23,6 +23,14 @@ Steps 1, 2, 3, and 5 are autonomous. Do not stop and ask the user except at step
 5. **Step 3 — evaluate impact:** If neither an upgrade nor an override is possible (no fixed version exists, or every compatible pin breaks a dependent), determine whether the vulnerability actually affects this project. Consider: is the vulnerable code path reachable from this project's usage? Does it process untrusted input? Is the dependency runtime, or dev/build-only? Record the conclusion.
 6. **Step 4 — escalate:** If the evaluation shows the vulnerability **does** affect the project and neither step 1 nor step 2 was possible, ask the user what to do. This is the only step that pauses for a human.
 7. **Step 5 — ignore:** If the evaluation shows the vulnerability **does not** affect the project, add an exclusion entry to `audit.ignore.local.json` yourself, in the format `{"id": "GHSA-xxx", "package": "pkg-name", "reason": "<impact evaluation: why this advisory does not affect this project>"}`, then commit and retry the push. No human approval is required for this step — the `reason` field is the record of your evaluation.
+   - **Scope the exclusion to the copy you evaluated.** An entry with only `id` (and `package`) hides the advisory for every copy of the package, including one a production dependency pulls in later. Two optional fields narrow it, and every field present must hold together:
+     - `versions` — a semver range the excused installed copies must fall inside, such as `">=3.0.0 <4.0.0"`.
+     - `paths` — a non-empty array of exact lockfile key paths for the excused copies: a `bun.lock` `packages` key such as `"lint-plugin/pkg"`, a `package-lock.json` `packages` key such as `"node_modules/lint-plugin/node_modules/pkg"`, or a `yarn.lock` selector key. No globs.
+   - **Whenever the vulnerable copy is dev-only** (reached only through a devDependency, such as a lint plugin pinned to an old major), add `versions` and `paths` rather than an ID-wide entry:
+     ```json
+     {"id": "GHSA-xxx", "package": "pkg", "versions": ">=3.0.0 <4.0.0", "paths": ["lint-plugin/pkg"], "reason": "<impact evaluation>"}
+     ```
+     Then any other vulnerable copy — on an unlisted path or through an npm alias — still fails the audit and is named by its lockfile path. An empty `paths` array, an invalid range, or an unreadable lockfile fails the audit with a diagnostic; it never widens into an ID-wide exclusion. The pre-push hook, the gate registry, CI, and `lisa doctor` all use the same matcher, and `lisa doctor` reports any remaining ID-only exclusion. Full contract: `docs/dependency-audit-exclusions.md` in the Lisa repository.
 
 ### Critical: Override the vulnerable package, not its parent
 
