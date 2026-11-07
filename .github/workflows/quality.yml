@@ -2886,7 +2886,8 @@ jobs:
   # A failing step fails this job, but this job is NOT ruleset-required, so a
   # red run here does not on its own stop a merge. That is acceptable because
   # nothing here is the only enforcement: every vitest spec below also runs in
-  # the required `🧪 Run Unit Tests` suite (or its shards), and the host-name
+  # a required suite (`🧪 Run Unit Tests` or its shards for `tests/unit/`,
+  # `🧪 Run Integration Tests` for `tests/integration/`), and the host-name
   # target-scope driver keeps its enforcing run in `test_unit` as
   # `🔒 Enforce host-name target scope`. This job exists to name them.
   #
@@ -3149,7 +3150,8 @@ jobs:
   # the runner's own shard flag. Copies rather than YAML anchors because this
   # repository's text-based workflow scans read steps by their `- name:` lines
   # and do not see an aliased step. A leg leaves the unproven verdict, the
-  # Lisa-only regression specs and the coverage hand-off to the aggregate.
+  # host-name target-scope enforcement and the coverage hand-off to the
+  # aggregate; the named regression specs run in `test_named_regression_specs`.
   test_unit_shard:
     permissions:
       contents: read
