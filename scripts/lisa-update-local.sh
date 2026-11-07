@@ -90,7 +90,7 @@ fi
 # { "branch": "<target branch>", "canary": true } (CodySwannGT/lisa#4604).
 # Validated up front: the loop reads it through process substitution, whose
 # exit status `set -e` ignores, so a bad entry would otherwise be skipped.
-WORKSPACE_ENTRIES_JQ='to_entries[] | .key as $k | (.value | if type == "object" then (.branch // error("entry \($k) has no branch")) else . end) as $b | "\($k)\t\($b)"'
+WORKSPACE_ENTRIES_JQ='to_entries[] | .key as $k | (.value | if type == "object" then .branch else . end) as $raw | (if ($raw | type) == "string" and ($raw | length) > 0 then $raw else error("entry \($k) has no valid branch (expected a non-empty string)") end) as $b | "\($k)\t\($b)"'
 if ! jq -r "$WORKSPACE_ENTRIES_JQ" "$CONFIG_FILE" >/dev/null; then
   log_error "Invalid workspace entry in $CONFIG_FILE"
   exit 1

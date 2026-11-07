@@ -2819,7 +2819,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/lisa-assert-eas-profile.mjs":
       "624e40d7f33ca17208fc6b7a19320a785cff19da5d2ff8062b67a432b2a34022",
     "scripts/lisa-commit-and-pr-local.sh":
-      "256be4b2c1af937aecdef82a3cbd5e9fccbc9ee106971934c8ac0a931ef12deb",
+      "cc9f1be63bcd881125aa59aa35432c2ab1d41119b2a28e8de817536b0f302b01",
     "scripts/lisa-commit-msg-gates.mjs":
       "f961cb70a525e7b0a94b8ca7a76d1e2bb5b1929d5477417e159dbf58312ce0d8",
     "scripts/lisa-enforcement-census.mjs":
@@ -2849,7 +2849,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/lisa-ruleset-reach.mjs":
       "e51b12092062379e7317b368c89a789e2067ec302388e557ea84a29a35ffc238",
     "scripts/lisa-update-local.sh":
-      "b393bf4aa7e2aa68582bfdd8484ab4e7246a8915a50f492f914715d8fe1259cd",
+      "f346f96ba9ac7075a4256b0a55ae71dc62f840c219c146cdbd7df8b5c65e1de0",
     "scripts/lisa-update-projects-plan.mjs":
       "eca5fac53b579a0e81216f91aa17317347ab7a34338d8f08deda714c231be78b",
     "scripts/lisa-work-item.mjs":
