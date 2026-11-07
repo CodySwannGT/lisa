@@ -764,7 +764,6 @@ else
     if ! printf '%s\n' "$AUDIT_JSON" | node scripts/lisa-audit.mjs --manager bun --stdin; then
       exit 1
     fi
-    echo "✅ No high or critical vulnerabilities found in production dependencies (excluding known false positives)"
   fi
 fi
 

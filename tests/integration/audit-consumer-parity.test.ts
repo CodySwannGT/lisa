@@ -20,93 +20,21 @@ import {
   useIoLatencyBudget,
 } from "../helpers/io-latency-budget.js";
 import { createAuditActionCheckout } from "../helpers/audit-action-fixture.js";
+import {
+  PARITY_GHSA,
+  PARITY_MANAGERS,
+} from "../helpers/audit-parity-managers.js";
 
 useIoLatencyBudget();
 const ROOT = process.cwd();
-const GHSA = "GHSA-aaaa-bbbb-cccc";
-const VULNERABLE = "3.25.76";
+const GHSA = PARITY_GHSA;
+const MANAGERS = PARITY_MANAGERS;
 /** A package the advisory does not name: excluding it must not excuse zod. */
 const OTHER_PACKAGE = "left-pad";
 const PACKAGE_MISMATCH = `outside exclusion package ${OTHER_PACKAGE}`;
 const PACKAGE_MISMATCH_KIND = "package-mismatch";
+const CLEAN = "No high or critical";
 const roots: string[] = [];
-const ADVISORY = {
-  severity: "high",
-  id: 123,
-  url: `https://github.com/advisories/${GHSA}`,
-  vulnerable_versions: "<4.6.6",
-};
-
-/** Per-manager controlled lockfile, report, and the lockfile key of each copy. */
-const MANAGERS = {
-  bun: {
-    lockfile: "bun.lock",
-    devPath: "lint-plugin/zod",
-    aliasPath: "legacy-zod",
-    lock: (kind: string) =>
-      JSON.stringify({
-        packages: {
-          zod: ["zod@4.6.7"],
-          "lint-plugin/zod": [`zod@${VULNERABLE}`],
-          ...(kind === "alias" ? { "legacy-zod": [`zod@${VULNERABLE}`] } : {}),
-          ...(kind === "production"
-            ? { "production/zod": [`zod@${VULNERABLE}`] }
-            : {}),
-        },
-      }),
-    report: JSON.stringify({ zod: [ADVISORY] }),
-  },
-  npm: {
-    lockfile: "package-lock.json",
-    devPath: "node_modules/lint-plugin/node_modules/zod",
-    aliasPath: "node_modules/legacy-zod",
-    lock: (kind: string) =>
-      JSON.stringify({
-        lockfileVersion: 3,
-        packages: {
-          "": {},
-          "node_modules/zod": { version: "4.6.7" },
-          "node_modules/lint-plugin/node_modules/zod": { version: VULNERABLE },
-          ...(kind === "alias"
-            ? {
-                "node_modules/legacy-zod": { name: "zod", version: VULNERABLE },
-              }
-            : {}),
-        },
-      }),
-    report: JSON.stringify({
-      vulnerabilities: {
-        zod: {
-          severity: "high",
-          via: [{ ...ADVISORY, name: "zod", range: "<4.6.6" }],
-        },
-      },
-    }),
-  },
-  yarn: {
-    lockfile: "yarn.lock",
-    devPath: "zod@^3.22.4",
-    aliasPath: "legacy-zod@npm:zod@^3",
-    lock: (kind: string) =>
-      `# yarn lockfile v1\n\nzod@^4.6.7:\n  version "4.6.7"\n\nzod@^3.22.4:\n  version "${VULNERABLE}"\n${
-        kind === "alias"
-          ? `\n"legacy-zod@npm:zod@^3":\n  version "${VULNERABLE}"\n`
-          : ""
-      }`,
-    report: [
-      {
-        type: "auditAdvisory",
-        data: { advisory: { ...ADVISORY, module_name: "zod" } },
-      },
-      {
-        type: "auditSummary",
-        data: { vulnerabilities: { high: 1, critical: 0 } },
-      },
-    ]
-      .map(value => JSON.stringify(value))
-      .join("\n"),
-  },
-} as const satisfies Record<AuditManager, unknown>;
 
 const SCRIPT = "node scripts/lisa-audit.mjs";
 const SCRIPTS = {
@@ -123,10 +51,18 @@ const DISPATCH = HOOK.findIndex(line =>
     'if [ "$PACKAGE_MANAGER" = "npm" ] || [ "$PACKAGE_MANAGER" = "yarn" ]; then'
   )
 );
+// The dispatch ends after the bun branch hands its captured report to the
+// canonical matcher: that `if … fi`, then the dispatch's own `fi`.
 const END = HOOK.findIndex(
-  (line, index) => index > DISPATCH && line.includes("✅ No high or critical")
+  (line, index) =>
+    index > DISPATCH &&
+    line.includes("node scripts/lisa-audit.mjs --manager bun --stdin")
 );
-const HOOK_BODY = HOOK.slice(DISPATCH, END + 2).join("\n");
+const HOOK_BODY = HOOK.slice(DISPATCH, END + 4).join("\n");
+/** The operator next step printed whenever a real finding fails the audit. */
+const NEXT_STEP = "add its lockfile path to `paths` in audit.ignore.local.json";
+/** The precise fail-closed diagnostic for a scoped entry without bun.lock. */
+const NO_BUN_LOCK = "Cannot evaluate scoped audit exclusions from bun.lock";
 /** The real npm, so a stubbed `npm` can still run the registry's `npm run`. */
 const REAL_NPM = boundedSpawnSync({
   label: "locate npm",
@@ -211,8 +147,19 @@ function fixture(kind: string, manager: AuditManager = "bun"): string {
     path.join(root, "audit.ignore.local.json"),
     JSON.stringify({ exclusions: [fixtureEntry(kind, shape.devPath)] })
   );
+  if (kind === "shadowed")
+    // A managed package-wide decision for the same advisory and package.
+    fs.writeFileSync(
+      path.join(root, "audit.ignore.config.json"),
+      JSON.stringify({
+        exclusions: [{ id: GHSA, package: "zod", reason: "Managed wide" }],
+      })
+    );
   fs.writeFileSync(path.join(root, "report.json"), shape.report);
-  if (kind !== "missing-lock")
+  if (kind === "lockb-only")
+    // Binary lockfile: selects bun, but cannot establish path coverage.
+    fs.writeFileSync(path.join(root, "bun.lockb"), "");
+  else if (kind !== "missing-lock")
     fs.writeFileSync(
       path.join(root, shape.lockfile),
       kind === "malformed-lock" ? '{"packages": broken}' : shape.lock(kind)
@@ -269,9 +216,10 @@ function observeHelper(root: string, manager: AuditManager) {
     return {
       status: verdict.passed ? 0 : 1,
       output: verdict.messages.join("\n"),
+      threw: false,
     };
   } catch (error) {
-    return { status: 1, output: (error as Error).message };
+    return { status: 1, output: (error as Error).message, threw: true };
   }
 }
 
@@ -281,12 +229,15 @@ function observeHelper(root: string, manager: AuditManager) {
  * @param manager - The package manager under test
  * @param status - The expected exit status for every consumer
  * @param message - Text every consumer's output must contain
+ * @param registryMessage - What the registry task says instead, when it must
+ *   first detect the manager from the lockfile the others are told about
  */
 function expectParity(
   kind: string,
   manager: AuditManager,
   status: number,
-  message: string
+  message: string,
+  registryMessage = message
 ): void {
   const root = fixture(kind, manager);
   const [gate] = resolveMoment({
@@ -296,15 +247,24 @@ function expectParity(
     scripts: SCRIPTS,
   });
   const helper = observeHelper(root, manager);
+  const registry = gate?.command ?? "exit 98";
   expect(gate?.mode).toBe("run");
   expect(gate?.command).toBe("npm run security:audit");
   expect(DISPATCH).toBeGreaterThan(-1);
   expect(END).toBeGreaterThan(DISPATCH);
   expect(helper.status, helper.output).toBe(status);
-  for (const body of [HOOK_BODY, gate?.command ?? "exit 98", CI_BODY]) {
+  // The helper returns verdict messages only; the CLI success line is not one.
+  if (!(status === 0 && message === CLEAN))
+    expect(helper.output).toContain(message);
+  for (const body of [HOOK_BODY, registry, CI_BODY]) {
     const result = observe(root, body, manager);
     expect(result.status, result.output).toBe(status);
-    expect(result.output).toContain(message);
+    expect(result.output).toContain(
+      body === registry ? registryMessage : message
+    );
+    // A real finding (not a fail-closed input) always says what to do next.
+    if (status === 1 && !helper.threw)
+      expect(result.output).toContain(NEXT_STEP);
   }
 }
 
@@ -314,16 +274,19 @@ describe("audit-consumer parity on the identical tree", () => {
     ["covered", 0, `excluded ${GHSA} for ${bun.devPath}`],
     ["production", 1, "production/zod"],
     ["alias", 1, bun.aliasPath],
-    ["legacy", 0, "No high or critical"],
+    ["legacy", 0, CLEAN],
     [PACKAGE_MISMATCH_KIND, 1, PACKAGE_MISMATCH],
+    ["shadowed", 1, "advisory-wide exclusion was not applied"],
     ["empty-paths", 1, "paths must be a non-empty array"],
-    ["missing-lock", 1, "bun.lock"],
+    // With no lockfile at all the registry task cannot even pick a manager.
+    ["missing-lock", 1, NO_BUN_LOCK, "No supported audit lockfile found"],
+    ["lockb-only", 1, NO_BUN_LOCK],
     ["malformed-lock", 1, "Cannot parse bun.lock"],
     ["version-mismatch", 1, bun.devPath],
   ] as const)(
     "%s: hook, registry and CI agree and name the measured result",
-    (kind, status, message) => {
-      expectParity(kind, "bun", status, message);
+    (kind, status, message, registryMessage?: string) => {
+      expectParity(kind, "bun", status, message, registryMessage);
     }
   );
 });
@@ -335,7 +298,7 @@ describe.each(["npm", "yarn"] as const)(
     it.each([
       ["covered", 0, `excluded ${GHSA} for ${shape.devPath}`],
       ["alias", 1, shape.aliasPath],
-      ["legacy", 0, "No high or critical"],
+      ["legacy", 0, CLEAN],
       [PACKAGE_MISMATCH_KIND, 1, PACKAGE_MISMATCH],
     ] as const)(
       "%s: hook, registry and CI agree and name the measured result",

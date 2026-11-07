@@ -37,6 +37,10 @@ try {
       ? "✅ No high or critical vulnerabilities found in production dependencies (excluding documented exceptions)"
       : "❌ High or critical vulnerabilities found in production dependencies"
   );
+  if (!verdict.passed)
+    console.log(
+      "   Next step: upgrade or override the named copy; if it is dev-only and reviewed, add its lockfile path to `paths` in audit.ignore.local.json — see https://github.com/CodySwannGT/lisa/blob/main/docs/dependency-audit-exclusions.md"
+    );
   process.exitCode = verdict.passed ? 0 : 1;
 } catch (error) {
   console.error(`❌ Security audit failed closed: ${error.message}`);

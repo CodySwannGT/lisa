@@ -101,14 +101,18 @@ const hook = (relative: string) =>
 function auditBlock(relative: string): string {
   const lines = hook(relative).split("\n");
   const start = lines.findIndex(line => /AUDIT_OUTPUT="\$\(/u.test(line));
-  // Searched from `start`: the npm and yarn branches print the same success
-  // line earlier in the hook, and the first match belongs to one of those.
+  // The block ends where the captured report is handed to the canonical
+  // matcher, which prints the one success or failure verdict itself; the slice
+  // runs through that `if … fi`.
   const end = lines.findIndex(
-    (line, index) => index > start && line.includes(`✅ ${CLEAN_VERDICT}`)
+    (line, index) =>
+      index > start &&
+      line.includes("node scripts/lisa-audit.mjs --manager bun --stdin")
   );
   expect(start).toBeGreaterThan(-1);
   expect(end).toBeGreaterThan(start);
-  return lines.slice(start, end + 1).join("\n");
+  expect(lines[end + 2]?.trim()).toBe("fi");
+  return lines.slice(start, end + 3).join("\n");
 }
 
 /**

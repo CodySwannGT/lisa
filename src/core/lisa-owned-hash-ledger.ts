@@ -1133,6 +1133,7 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
     "31cb1cd96e7bd692d10ed2c26aa83c6b0580e48dbe6d2393edf9652970def091",
   ]),
   "scripts/lisa-audit.mjs": Object.freeze([
+    "0c386b25ec8f91de3a0182014b65703a5041e59400360ece40f376937ba53d80",
     "68bc4a842c6f8138d0d8a923809032eba5ef7e39b22949580d1bfdfa74aded8a",
     "e8eb9c90ed906fb9b95bf788dc06fe3fa7ee339c526c62f54fd3556de67e8442",
   ]),
@@ -3413,6 +3414,7 @@ export const LISA_OWNED_HASH_HISTORY_DERIVED: Readonly<
     "31cb1cd96e7bd692d10ed2c26aa83c6b0580e48dbe6d2393edf9652970def091",
   ]),
   "scripts/lisa-audit.mjs": Object.freeze([
+    "0c386b25ec8f91de3a0182014b65703a5041e59400360ece40f376937ba53d80",
     "68bc4a842c6f8138d0d8a923809032eba5ef7e39b22949580d1bfdfa74aded8a",
     "e8eb9c90ed906fb9b95bf788dc06fe3fa7ee339c526c62f54fd3556de67e8442",
   ]),
