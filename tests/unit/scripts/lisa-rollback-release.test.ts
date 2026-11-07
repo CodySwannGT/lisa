@@ -36,6 +36,7 @@ const REASON = "breaks apply";
 const REGISTRY_FLAG = "--registry";
 const DEPRECATE = "npm deprecate";
 const GH_EDIT = "gh release edit";
+const NO_RELEASE = "release not found";
 
 /** One version entry in a packument, optionally deprecated. */
 const entry = (deprecated?: string) =>
@@ -105,12 +106,15 @@ const ghServes =
  */
 function fakeFetch(documents: readonly unknown[]) {
   const urls: string[] = [];
-  const impl = (async (url: string) => {
+  const inits: (RequestInit | undefined)[] = [];
+  const impl = (async (url: string, init?: RequestInit) => {
     urls.push(String(url));
+    inits.push(init);
     const body = documents[Math.min(urls.length - 1, documents.length - 1)];
+    if (body instanceof Error) throw body;
     return { ok: true, status: 200, json: async () => body };
   }) as unknown as typeof fetch;
-  return { impl, urls };
+  return { impl, urls, inits };
 }
 
 /** A packument as it should read after a successful rollback. */
@@ -478,7 +482,7 @@ describe("review fixes", () => {
   it("names what already changed when a later step fails", async () => {
     const runner = fakeRunner(call =>
       call.command === "gh" && call.args[1] === "view"
-        ? { status: 1, stderr: "release not found" }
+        ? { status: 1, stderr: NO_RELEASE }
         : { status: 0 }
     );
     const { injected, output } = deps(
@@ -542,6 +546,114 @@ describe("review fixes", () => {
     await rollback(options(), injected);
     expect(output.out.join("\n")).toContain(
       `Warning: the npm writes go to ${REGISTRY}, while the GitHub notes edit goes to CodySwannGT/lisa.`
+    );
+  });
+});
+
+describe("local review fixes", () => {
+  const OTP = "123456";
+
+  it("passes --otp to both npm writes and never prints the code", async () => {
+    expect(
+      parseArgs(["--bad", "4.90.1", "--reason", REASON, "--otp", OTP], {}).otp
+    ).toBe(OTP);
+    const plan = planCommands({
+      ...options(),
+      otp: OTP,
+      good: "4.90.0",
+      notesFile: "/scratch/notes.md",
+    });
+    expect(plan[0]?.args.slice(-2)).toEqual(["--otp", OTP]);
+    expect(plan[1]?.args.slice(-2)).toEqual(["--otp", OTP]);
+    expect(plan[2]?.args).not.toContain("--otp");
+    expect(formatCommand(plan[0]!)).toContain("--otp <redacted>");
+
+    const runner = fakeRunner(ghServes());
+    const { injected, output } = deps(
+      runner.run,
+      fakeFetch([packument(), rolledBack]).impl
+    );
+    expect(await rollback(options({ otp: OTP }), injected)).toBe(0);
+    const dry = deps(runner.run, fakeFetch([packument()]).impl);
+    await rollback(options({ otp: OTP, dryRun: true }), dry.injected);
+    const printed = [...output.out, ...output.err, ...dry.output.out];
+    expect(printed.join("\n")).toContain("--otp <redacted>");
+    expect(printed.join("\n")).not.toContain(OTP);
+  });
+
+  it("reports a read-back error as not verified, not as stopped", async () => {
+    const runner = fakeRunner(ghServes());
+    const { injected, output } = deps(
+      runner.run,
+      fakeFetch([packument(), new Error("socket hang up")]).impl
+    );
+    expect(await rollback(options(), injected)).toBe(1);
+    const said = output.err.join("\n");
+    expect(said).toContain("Rollback NOT verified");
+    expect(said).toContain("socket hang up");
+    expect(said).not.toContain("Rollback stopped");
+  });
+
+  it("still verifies npm when the release notes step fails, then exits 1", async () => {
+    const runner = fakeRunner(call =>
+      call.command === "gh" && call.args[1] === "view"
+        ? { status: 1, stderr: NO_RELEASE }
+        : { status: 0 }
+    );
+    const { injected, output } = deps(
+      runner.run,
+      fakeFetch([packument(), rolledBack]).impl
+    );
+    expect(await rollback(options(), injected)).toBe(1);
+    expect(output.out.join("\n")).toContain(
+      "Verified: 4.90.1 is deprecated and latest is 4.90.0."
+    );
+    const said = output.err.join("\n");
+    expect(said).toContain(
+      "The deprecation notice was NOT added to GitHub release v4.90.1 in CodySwannGT/lisa"
+    );
+    expect(said).toContain(NO_RELEASE);
+  });
+
+  it("reads the registry with a timeout", async () => {
+    const registry = fakeFetch([packument()]);
+    const { injected } = deps(fakeRunner().run, registry.impl);
+    await rollback(options({ dryRun: true }), injected);
+    expect(registry.inits[0]?.signal).toBeInstanceOf(AbortSignal);
+  });
+
+  it("does not stack the notice on a body GitHub trimmed", async () => {
+    const trimmed = deprecationNotice(REASON, "4.90.0").trimEnd();
+    const runner = fakeRunner(ghServes(trimmed));
+    const { injected } = deps(
+      runner.run,
+      fakeFetch([packument(), rolledBack]).impl
+    );
+    expect(await rollback(options(), injected)).toBe(0);
+    expect(writes(runner.calls)).not.toContain(GH_EDIT);
+  });
+
+  it("calls a timed-out step not confirmed rather than not done", async () => {
+    const runner = fakeRunner(call => {
+      if (call.args[0] === "dist-tag") {
+        throw Object.assign(new Error("spawnSync npm ETIMEDOUT"), {
+          code: "ETIMEDOUT",
+        });
+      }
+      return ghServes()(call);
+    });
+    const { injected, output } = deps(
+      runner.run,
+      fakeFetch([packument()]).impl
+    );
+    expect(await rollback(options(), injected)).toBe(1);
+    const said = output.err.join("\n");
+    expect(said).toContain("Already done: deprecated 4.90.1.");
+    expect(said).toContain(
+      "Not confirmed (timed out): moved latest to 4.90.0."
+    );
+    expect(said).toContain(
+      "Not done: added the deprecation notice to the v4.90.1 release notes."
     );
   });
 });

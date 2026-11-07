@@ -54,7 +54,7 @@ import process from "node:process";
 
 import semver from "semver";
 
-import { boundedSpawnSync } from "./lib/bounded-spawn.mjs";
+import { boundedSpawnSync, isChildTimeout } from "./lib/bounded-spawn.mjs";
 import { invokedAsScript } from "./lib/invoked-as-script.mjs";
 
 /** Public npm registry, the default for every Lisa release. */
@@ -76,6 +76,15 @@ const VERIFY_DELAY_MS = 3_000;
 /** The registry flag, passed through to every npm call. */
 const REGISTRY_FLAG = "--registry";
 
+/**
+ * npm's one-time 2FA code flag. An account with 2FA on writes refuses a write
+ * without it (EOTP), and with piped stdio npm cannot prompt for one.
+ */
+const OTP_FLAG = "--otp";
+
+/** How long one registry read may take before it is abandoned. */
+const FETCH_TIMEOUT_MS = 30_000;
+
 /** Flags that take a value, mapped to the option they set. */
 const VALUE_FLAGS = new Map([
   ["--bad", "bad"],
@@ -84,11 +93,12 @@ const VALUE_FLAGS = new Map([
   [REGISTRY_FLAG, "registry"],
   ["--package", "packageName"],
   ["--repo", "repo"],
+  [OTP_FLAG, "otp"],
 ]);
 
 /** Shown on any usage error, so the fix is on the same screen. */
 const USAGE =
-  'Usage: node scripts/lisa-rollback-release.mjs --bad <version> --reason "<text>" [--to <version>] [--dry-run] [--registry <url>]';
+  'Usage: node scripts/lisa-rollback-release.mjs --bad <version> --reason "<text>" [--to <version>] [--otp <code>] [--dry-run] [--registry <url>]';
 
 /**
  * Read the command line into options.
@@ -99,7 +109,7 @@ const USAGE =
  * @param {Record<string, string | undefined>} env - Environment to read
  *   `LISA_NPM_REGISTRY` from.
  * @returns {{bad: string, to?: string, reason: string, dryRun: boolean,
- *   registry: string, packageName: string, repo: string}} Parsed options.
+ *   registry: string, packageName: string, repo: string, otp?: string}} Parsed options.
  * @throws {Error} On a missing, malformed or unknown argument.
  */
 export function parseArgs(argv, env) {
@@ -166,6 +176,7 @@ function validated(values, dryRun, env) {
     registry: values.registry ?? env.LISA_NPM_REGISTRY ?? DEFAULT_REGISTRY,
     packageName: values.packageName ?? DEFAULT_PACKAGE,
     repo: values.repo ?? DEFAULT_REPO,
+    ...(values.otp === undefined ? {} : { otp: values.otp }),
   };
 }
 
@@ -192,6 +203,7 @@ async function readPackument({ registry, packageName, fetchImpl }) {
   const url = packumentUrl(registry, packageName);
   const response = await fetchImpl(url, {
     headers: { accept: "application/json" },
+    signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
   }).catch(error => {
     throw new Error(
       `Could not reach ${registry} to read ${packageName} (${error.cause?.code ?? error.message}).`
@@ -285,7 +297,8 @@ export function deprecationNotice(reason, good) {
 /**
  * The three writes, in the order they must run.
  * @param {{bad: string, good: string, reason: string, registry: string,
- *   packageName: string, repo: string, notesFile: string}} input - What to write.
+ *   packageName: string, repo: string, notesFile: string, otp?: string}} input
+ *   What to write. `otp` is a one-time npm 2FA code, added to both npm writes.
  * @returns {{command: string, args: string[]}[]} Commands as argv arrays.
  */
 export function planCommands({
@@ -296,7 +309,9 @@ export function planCommands({
   packageName,
   repo,
   notesFile,
+  otp,
 }) {
+  const otpArgs = otp === undefined ? [] : [OTP_FLAG, otp];
   return [
     {
       command: "npm",
@@ -306,6 +321,7 @@ export function planCommands({
         reason,
         REGISTRY_FLAG,
         registry,
+        ...otpArgs,
       ],
     },
     {
@@ -317,6 +333,7 @@ export function planCommands({
         "latest",
         REGISTRY_FLAG,
         registry,
+        ...otpArgs,
       ],
     },
     {
@@ -346,7 +363,11 @@ export function formatCommand({ command, args }) {
     /^[\w@%+=:,./-]+$/.test(arg)
       ? arg
       : `'${arg.replaceAll("'", escapedQuote)}'`;
-  return [command, ...args].map(quote).join(" ");
+  // The 2FA code is a credential for its validity window: never echo it.
+  const shown = args.map((arg, index) =>
+    args[index - 1] === OTP_FLAG ? "<redacted>" : quote(arg)
+  );
+  return [command, ...shown].join(" ");
 }
 
 /**
@@ -430,7 +451,9 @@ function noticedNotes({ bad, repo }, notice, run) {
     );
   }
   const body = JSON.parse(view.stdout).body ?? "";
-  return body.startsWith(notice) ? null : `${notice}\n${body}`;
+  // GitHub strips trailing newlines, so a body that is ONLY the notice comes
+  // back without the notice's last newline. Compare without it.
+  return body.startsWith(notice.trimEnd()) ? null : `${notice}\n${body}`;
 }
 
 /**
@@ -462,11 +485,13 @@ function verificationProblems(packument, bad, good) {
 async function verify(options, good, deps) {
   let problems = [];
   for (let attempt = 1; attempt <= VERIFY_ATTEMPTS; attempt += 1) {
-    const packument = await readPackument({
-      ...options,
-      fetchImpl: deps.fetchImpl,
-    });
-    problems = verificationProblems(packument, options.bad, good);
+    // The writes have already happened, so a failed read is "not verified",
+    // never "stopped": the operator must still learn the writes went out.
+    problems = await readPackument({ ...options, fetchImpl: deps.fetchImpl })
+      .then(packument => verificationProblems(packument, options.bad, good))
+      .catch(error => [
+        `the registry could not be read back: ${error.message}`,
+      ]);
     if (problems.length === 0 || attempt === VERIFY_ATTEMPTS) break;
     await deps.sleep(VERIFY_DELAY_MS);
   }
@@ -501,17 +526,43 @@ function printDryRun(options, good, log) {
 }
 
 /**
+ * What a partial run changed, for the person who has to finish it.
+ *
+ * A step whose child was killed at its deadline is "not confirmed", not "not
+ * done": the write may have reached the registry before the kill.
+ * @param {string[]} labels - Every step, in order.
+ * @param {number} doneCount - How many completed.
+ * @param {unknown} error - Why the next one stopped.
+ * @returns {string} The report.
+ */
+function progressReport(labels, doneCount, error) {
+  const timedOut = isChildTimeout(error);
+  const notDone = labels.slice(doneCount + (timedOut ? 1 : 0));
+  return [
+    doneCount > 0
+      ? `Already done: ${labels.slice(0, doneCount).join("; ")}.`
+      : "",
+    timedOut ? `Not confirmed (timed out): ${labels[doneCount]}.` : "",
+    notDone.length > 0 ? `Not done: ${notDone.join("; ")}.` : "",
+    "Re-running the same command is safe and will finish the rest.",
+  ]
+    .filter(Boolean)
+    .join(" ");
+}
+
+/**
  * Run the three writes in order, recording each one that completes.
  *
  * A failure partway through leaves the registry half-changed, and the person
- * running this needs to know which half. So any failure after the first write
- * is re-raised with what is already done and what is not — and that re-running
- * finishes the rest, because every step is safe to repeat.
+ * running this needs to know which half. A failed npm write is re-raised with
+ * that report. A failed notes step is RETURNED instead, so the caller still
+ * verifies the npm containment — which is the part that protects installs —
+ * before reporting that only the notice is missing.
  * @param {object} options - Run options.
  * @param {string} good - Resolved good version.
  * @param {RollbackDeps} deps - Injected seams.
  * @param {string} notesFile - Where the edited notes are written.
- * @returns {void}
+ * @returns {string | null} The notes-step failure report, or null.
  */
 function applyWrites(options, good, deps, notesFile) {
   const [deprecate, distTag, editNotes] = planCommands({
@@ -519,26 +570,26 @@ function applyWrites(options, good, deps, notesFile) {
     good,
     notesFile,
   });
-  const steps = [
-    [`deprecated ${options.bad}`, () => runStep(deprecate, deps.run, deps.log)],
-    [`moved latest to ${good}`, () => runStep(distTag, deps.run, deps.log)],
-    [
-      `added the deprecation notice to the v${options.bad} release notes`,
-      () => writeNotes(options, good, deps, editNotes),
-    ],
+  const labels = [
+    `deprecated ${options.bad}`,
+    `moved latest to ${good}`,
+    `added the deprecation notice to the v${options.bad} release notes`,
   ];
-  const done = [];
+  let done = 0;
   try {
-    for (const [label, step] of steps) {
-      step();
-      done.push(label);
-    }
+    runStep(deprecate, deps.run, deps.log);
+    done = 1;
+    runStep(distTag, deps.run, deps.log);
+    done = 2;
   } catch (error) {
-    if (done.length === 0) throw error;
-    const notDone = steps.slice(done.length).map(([label]) => label);
-    throw new Error(
-      `${error.message}\nAlready done: ${done.join("; ")}. Not done: ${notDone.join("; ")}. Re-running the same command is safe and will finish the rest.`
-    );
+    if (done === 0 && !isChildTimeout(error)) throw error;
+    throw new Error(`${error.message}\n${progressReport(labels, done, error)}`);
+  }
+  try {
+    writeNotes(options, good, deps, editNotes);
+    return null;
+  } catch (error) {
+    return `The deprecation notice was NOT added to GitHub release v${options.bad} in ${options.repo}: ${error.message}\n${progressReport(labels, done, error)}`;
   }
 }
 
@@ -586,8 +637,9 @@ async function realRun(options, good, deps) {
     );
   }
   const dir = deps.makeTempDir();
+  let notesFailure;
   try {
-    applyWrites(
+    notesFailure = applyWrites(
       options,
       good,
       deps,
@@ -599,14 +651,15 @@ async function realRun(options, good, deps) {
   const problems = await verify(options, good, deps);
   if (problems.length > 0) {
     deps.error(
-      `Rollback NOT verified on ${options.registry}: ${problems.join("; ")}.`
+      `Rollback NOT verified on ${options.registry}: ${problems.join("; ")}. The npm writes were applied.`
     );
-    return 1;
+  } else {
+    deps.log(
+      `Verified: ${options.bad} is deprecated and latest is ${good}. Now prepare the fix-forward release.`
+    );
   }
-  deps.log(
-    `Verified: ${options.bad} is deprecated and latest is ${good}. Now prepare the fix-forward release.`
-  );
-  return 0;
+  if (notesFailure !== null) deps.error(notesFailure);
+  return problems.length > 0 || notesFailure !== null ? 1 : 0;
 }
 
 /**
