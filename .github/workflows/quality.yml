@@ -2804,7 +2804,6 @@ jobs:
           tests/unit/core/shared-runtime-policy.test.ts
           tests/unit/core/managed-nvmrc-adoption.test.ts
           tests/unit/core/qualified-runtime-ci.test.ts
-          tests/unit/core/qualified-host-bun-capture.test.ts
           tests/unit/configs/expo-jest-pre-setup.test.ts
           tests/unit/fixtures/shared-runtime-native-deadline.test.ts
           tests/unit/fixtures/shared-runtime-teardown.test.ts
@@ -2883,6 +2882,27 @@ jobs:
           tests/unit/scripts/npm-update-contract.test.ts
           tests/unit/scripts/lisa-work-item.test.ts
           tests/unit/scripts/terminal-transition-outcomes.test.ts
+          --reporter=verbose
+        working-directory: ${{ inputs.working_directory || '.' }}
+
+      # #4521: the hosted log must name each scoped-audit spec as executed and
+      # passed. An explicit file list fails when none of them is found, and the
+      # quality-unit-test-shards-env-scope test fails if any listed file is
+      # renamed away, so this step can never pass having run zero of them.
+      - name: Execute and name dependency-audit scope regression specs
+        if: github.repository == 'CodySwannGT/lisa' && steps.gate_run.outcome == 'success'
+        run: >-
+          bun run lisa-test-run -- --adapter vitest -- vitest run
+          tests/unit/core/audit-scopes.test.ts
+          tests/unit/core/audit-lockfile-formats.test.ts
+          tests/unit/core/audit-report-completeness.test.ts
+          tests/unit/config/zod-security-floor.test.ts
+          tests/unit/cli/doctor-readiness-supply-chain-exceptions.test.ts
+          tests/unit/strategies/security-audit-handling-scope.test.ts
+          tests/unit/strategies/package-lisa-audit-script-governance.test.ts
+          tests/integration/audit-consumer-parity.test.ts
+          tests/integration/audit-workflow-action.test.ts
+          tests/integration/quality-audit-fail-closed.test.ts
           --reporter=verbose
         working-directory: ${{ inputs.working_directory || '.' }}
 

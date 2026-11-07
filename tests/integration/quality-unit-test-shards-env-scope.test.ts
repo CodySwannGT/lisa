@@ -120,11 +120,46 @@ describe.each(Object.keys(ARMS) as (keyof typeof ARMS)[])(
           "Execute and name required-check registration regression specs",
           "Execute and name host-name target-scope regression cases",
           "Execute and name completion authorization regression specs",
+          "Execute and name dependency-audit scope regression specs",
         ]);
       for (const step of regression)
         expect(JSON.stringify(step), step.name).not.toContain(
           "LISA_TEST_SHARD"
         );
+    });
+
+    it("names only spec files that exist, so no step can pass having run none", () => {
+      // vitest fails when NONE of the listed files is found, but runs the rest
+      // and passes when only SOME are missing. A rename would then silently
+      // drop a spec from the hosted log, so every listed path must exist.
+      const regression = steps.filter(s =>
+        (s.name ?? "").startsWith("Execute and name")
+      );
+      for (const step of regression) {
+        const specs = (step.run ?? "").match(/tests\/\S+\.test\.ts/gu) ?? [];
+        expect(specs.length, step.name).toBeGreaterThan(0);
+        for (const spec of specs)
+          expect(fs.existsSync(spec), `${step.name}: ${spec}`).toBe(true);
+      }
+    });
+
+    it("names every dependency-audit scope spec in the hosted log (#4521)", () => {
+      const step = steps.find(
+        s =>
+          s.name === "Execute and name dependency-audit scope regression specs"
+      );
+      if (job !== "test_unit") {
+        expect(step).toBeUndefined();
+        return;
+      }
+      expect(step?.run).toContain("--reporter=verbose");
+      for (const spec of [
+        "tests/unit/core/audit-scopes.test.ts",
+        "tests/unit/config/zod-security-floor.test.ts",
+        "tests/integration/audit-consumer-parity.test.ts",
+        "tests/integration/audit-workflow-action.test.ts",
+      ])
+        expect(step?.run).toContain(spec);
     });
   }
 );
