@@ -14,7 +14,6 @@
  *
  * @module tests/unit/scripts/lisa-update-projects-plan
  */
-import { spawnSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
@@ -26,6 +25,7 @@ import {
   parseWorkspaces,
   planFromText,
 } from "../../../scripts/lisa-update-projects-plan.mjs";
+import { boundedSpawnSync } from "../../helpers/io-latency-budget.js";
 
 /** Repository root, resolved from this file rather than from cwd. */
 const ROOT = path.resolve(__dirname, "../../..");
@@ -49,9 +49,11 @@ const fixture = (name: string): string =>
  * @returns exit status and captured streams
  */
 const runCli = (args: readonly string[]) => {
-  const result = spawnSync(process.execPath, [SCRIPT, ...args], {
+  const result = boundedSpawnSync({
+    label: "lisa-update-projects-plan",
+    command: process.execPath,
+    args: [SCRIPT, ...args],
     cwd: FIXTURES,
-    encoding: "utf8",
   });
   return {
     status: result.status,
