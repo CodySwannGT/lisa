@@ -35,9 +35,19 @@ try {
     format: "esm",
     target: "node20",
     metafile: true,
-    // Bundled CJS dependencies still require Node builtins at runtime.
+    // Bundled CJS dependencies still require Node builtins at runtime, and
+    // @yarnpkg/lockfile reads __filename/__dirname at module load. ESM defines
+    // neither, so without these the yarn.lock parser throws and every scoped
+    // exclusion in a Yarn project fails closed in CI (#4521).
     banner: {
-      js: 'import { createRequire as actionCreateRequire } from "node:module"; const require = actionCreateRequire(import.meta.url);',
+      js: [
+        'import { createRequire as actionCreateRequire } from "node:module";',
+        'import { fileURLToPath as actionFileURLToPath } from "node:url";',
+        'import { dirname as actionDirname } from "node:path";',
+        "const require = actionCreateRequire(import.meta.url);",
+        "const __filename = actionFileURLToPath(import.meta.url);",
+        "const __dirname = actionDirname(__filename);",
+      ].join(" "),
     },
   });
   const imports = Object.values(bundled.metafile.outputs).flatMap(
