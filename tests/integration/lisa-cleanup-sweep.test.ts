@@ -50,7 +50,8 @@ const roots: string[] = [];
 function agedDir(root: string, name: string, ageHours: number): string {
   const entry = path.join(root, name);
   const when = new Date(Date.now() - ageHours * HOUR_MS);
-  fs.mkdirSync(entry);
+  // 0700, as `mkdtemp` makes it: the sweep skips anything group or other can open.
+  fs.mkdirSync(entry, { mode: 0o700 });
   fs.utimesSync(entry, when, when);
   return entry;
 }

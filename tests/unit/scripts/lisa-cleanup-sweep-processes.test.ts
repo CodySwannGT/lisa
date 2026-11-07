@@ -220,14 +220,19 @@ describe("platform parsers", () => {
       "  12     1 /usr/sbin/cfprefsd agent",
       "garbage",
     ].join("\n");
-    expect(parseDarwinProcessTable(stdout)).toEqual([
+    const argsOnly = [
+      "  10 /bin/sleep 600",
+      "  11 node x.js",
+      "  12 /usr/sbin/cfprefsd agent",
+    ].join("\n");
+    expect(parseDarwinProcessTable(stdout, argsOnly)).toEqual([
       { pid: 10, ppid: 1, owner: { pid: 999999, start: "0" } },
       { pid: 11, ppid: 10, owner: { pid: 600, start: "1794063600" } },
       { pid: 12, ppid: 1, owner: null },
     ]);
-    expect(JSON.stringify(parseDarwinProcessTable(stdout))).not.toContain(
-      "s3cr3t"
-    );
+    expect(
+      JSON.stringify(parseDarwinProcessTable(stdout, argsOnly))
+    ).not.toContain("s3cr3t");
   });
 
   it("converts ps lstart rows into whole epoch seconds", () => {

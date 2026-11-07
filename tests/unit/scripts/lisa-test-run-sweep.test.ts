@@ -25,19 +25,20 @@ const RESULT = {
  * Run the start-up step with injected seams.
  * @param env - Starting environment
  * @param sweep - Injected sweep
- * @returns The env after the call, written lines, and the sweep mock
+ * @returns The payload environment, written lines, and the sweep mock
  */
 async function start(
-  env: Record<string, string | undefined>,
+  inherited: Record<string, string | undefined>,
   sweep: () => Promise<typeof RESULT> = async () => RESULT
 ) {
   const lines: string[] = [];
   const sweepMock = vi.fn(sweep);
-  await startOfRunSweep(env, {
+  const added = await startOfRunSweep(inherited, {
     sweep: sweepMock,
     ownerMarker: () => MARKER,
     write: line => lines.push(line),
   });
+  const env: Record<string, string | undefined> = { ...inherited, ...added };
   return { env, lines, sweepMock };
 }
 
@@ -70,5 +71,43 @@ describe("lisa-test-run start-of-run sweep", () => {
       expect.stringMatching(/cleanup sweep failed: disk on fire; continuing/u),
     ]);
     expect(env["LISA_TEST_RUN_OWNER"]).toBe(MARKER);
+  });
+
+  it("prints an owner-marker failure, falls back to an unknown start, and still sweeps", async () => {
+    const lines: string[] = [];
+    const sweep = vi.fn(async () => RESULT);
+    const env = await startOfRunSweep(
+      {},
+      {
+        sweep,
+        ownerMarker: () => {
+          throw new Error("ps exploded");
+        },
+        write: line => lines.push(line),
+      }
+    );
+    expect(env["LISA_TEST_RUN_OWNER"]).toBe(`${process.pid}:0`);
+    expect(env["LISA_CLEANUP_SWEPT"]).toBe("1");
+    expect(sweep).toHaveBeenCalledTimes(1);
+    expect(lines[0]).toMatch(/owner marker failed: ps exploded; continuing/u);
+    expect(lines).toHaveLength(2);
+  });
+
+  it("gives up on a sweep that outlives its deadline and continues", async () => {
+    const lines: string[] = [];
+    await startOfRunSweep(
+      {},
+      {
+        sweep: () => new Promise(() => {}),
+        ownerMarker: () => MARKER,
+        write: line => lines.push(line),
+        timeoutMs: 20,
+      }
+    );
+    expect(lines).toEqual([
+      expect.stringMatching(
+        /cleanup sweep did not finish \(timed out after .*\); continuing/u
+      ),
+    ]);
   });
 });

@@ -49,6 +49,7 @@ vi.mock(
   })
 );
 
+const PUSH_FLAG = "--moment=push";
 const roots: string[] = [];
 
 /**
@@ -77,7 +78,7 @@ describe("gate runner start-of-run sweep", () => {
     vi.spyOn(console, "log").mockImplementation(line => {
       order.push(String(line));
     });
-    const code = main(["--moment=push", `--coverage=${coveragePath()}`]);
+    const code = main([PUSH_FLAG, `--coverage=${coveragePath()}`]);
     expect(code).toBe(EXIT.PROVED);
     expect(runStartOfRunSweep).toHaveBeenCalledTimes(1);
     const sweepAt = order.indexOf("sweep");
@@ -103,9 +104,21 @@ describe("gate runner start-of-run sweep", () => {
     vi.spyOn(console, "log").mockImplementation(line => {
       lines.push(String(line));
     });
-    const code = main(["--moment=push", `--coverage=${coveragePath()}`]);
+    const code = main([PUSH_FLAG, `--coverage=${coveragePath()}`]);
     expect(code).toBe(EXIT.PROVED);
     expect(lines.some(line => /sweep exploded/u.test(line))).toBe(true);
     expect(lines.some(line => line.startsWith("🚦 Gates at push"))).toBe(true);
+  });
+
+  it("also sweeps on the push path that falls back to the built-in checks", () => {
+    const lines: string[] = [];
+    vi.spyOn(console, "log").mockImplementation(line => {
+      lines.push(String(line));
+    });
+    // No --coverage: the push floor the block leaves undeclared sends the
+    // hook back to its built-in steps, which still run tests.
+    expect(main([PUSH_FLAG])).toBe(EXIT.NO_GATES);
+    expect(lines.some(line => /built-in checks/u.test(line))).toBe(true);
+    expect(runStartOfRunSweep).toHaveBeenCalledTimes(1);
   });
 });

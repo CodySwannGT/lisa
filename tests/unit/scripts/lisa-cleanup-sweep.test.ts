@@ -47,7 +47,8 @@ function privateRoot(): string {
  */
 function agedDir(root: string, name: string, ageHours: number): string {
   const entry = path.join(root, name);
-  fs.mkdirSync(entry);
+  // 0700, as `mkdtemp` makes it: the sweep skips anything group or other can open.
+  fs.mkdirSync(entry, { mode: 0o700 });
   fs.writeFileSync(path.join(entry, "payload.txt"), "x");
   const when = new Date(NOW - ageHours * HOUR_MS);
   fs.utimesSync(entry, when, when);
@@ -203,6 +204,20 @@ describe("summary line", () => {
     });
     expect(line).toBe(
       "🧹 swept 37 stale temp dirs, 2 orphaned test processes (412 ms)"
+    );
+  });
+
+  it("names entries kept as not private without calling them errors", () => {
+    const line = formatSummary({
+      removed: [],
+      skippedUnsafe: 3,
+      killed: [],
+      errors: [],
+      dryRun: false,
+      durationMs: 5,
+    });
+    expect(line).toBe(
+      "🧹 swept 0 stale temp dirs, 0 orphaned test processes (5 ms); kept 3 entries not private to this user"
     );
   });
 

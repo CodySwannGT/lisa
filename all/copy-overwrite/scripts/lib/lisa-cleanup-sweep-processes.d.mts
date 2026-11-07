@@ -23,7 +23,13 @@ export function formatOwnerMarker(
   start: string | undefined
 ): string;
 export function parseOwnerMarker(value: unknown): RunOwner | null;
-export function parseDarwinProcessTable(stdout: string): ProcessRow[];
+/** Parse `ps -E` output, stripping each process's own arguments (from `argumentsOnly`) first. */
+export function parseDarwinProcessTable(
+  withEnvironment: string,
+  argumentsOnly: string
+): ProcessRow[];
+/** The owner from a NUL-separated `/proc/<pid>/environ`; whole entries only. */
+export function parseLinuxEnviron(environ: string): RunOwner | null;
 export function parseDarwinStartTimes(stdout: string): Map<number, string>;
 export function parseLinuxStat(
   stat: string

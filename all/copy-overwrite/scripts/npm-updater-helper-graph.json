@@ -300,7 +300,7 @@
       "children": []
     },
     "lib/lisa-cleanup-sweep-processes.mjs": {
-      "sha256": "5833dc29c45da58fcd95209e73b026958b7bffaaecb8bff82502cad9fc58153c",
+      "sha256": "cedb9d9acc3759b1ced3b4cb330e3027c031de0becd2b63c90e0920f765021e4",
       "staticImports": [
         "lib/bounded-spawn.mjs",
         "node:fs",
@@ -310,7 +310,7 @@
       "children": []
     },
     "lib/lisa-cleanup-sweep.mjs": {
-      "sha256": "ad8dafbc3589df27e9cfc339e116a833f48eb9595b34a6973f3bd37911a992e3",
+      "sha256": "48003f887ca744592f2c4f106563e14ce20f48a44b57fe141a52f8309b368157",
       "staticImports": [
         "lib/bounded-spawn.mjs",
         "lib/invoked-as-script.mjs",
@@ -1394,7 +1394,7 @@
       ]
     },
     "lisa-run-gates.mjs": {
-      "sha256": "3e14f9ff1b82b5d1247c285688c66423816c7f12faf88f6c32b8bfe90219a1c6",
+      "sha256": "f18880e3f1b015de3ef826b3507101603d6dd43ac4a790840d64d34e3bc67f2d",
       "staticImports": [
         "lib/bounded-spawn.mjs",
         "lib/gate-failure-diagnosis.mjs",

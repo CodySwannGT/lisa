@@ -48,7 +48,8 @@ function seed(root: string): void {
     const isLisa = index < STALE_COUNT + FRESH_LISA_COUNT;
     const name = isLisa ? `lisa-perf-${index}` : `foreign-perf-${index}`;
     const entry = path.join(root, name);
-    fs.mkdirSync(entry);
+    // 0700, as `mkdtemp` makes it: the sweep skips anything group or other can open.
+    fs.mkdirSync(entry, { mode: 0o700 });
     if (isStale) fs.utimesSync(entry, stale, stale);
   }
 }

@@ -4,6 +4,8 @@
 /** What one cleanup sweep did. */
 export interface SweepResult {
   readonly removed: string[];
+  /** Stale Lisa-named entries kept because another user owns or could write them. */
+  readonly skippedUnsafe?: number;
   readonly killed: number[];
   readonly errors: string[];
   readonly dryRun: boolean;
@@ -16,6 +18,9 @@ export interface SweepOptions {
   readonly maxAgeHours?: number;
   readonly now?: number;
   readonly dryRun?: boolean;
+  readonly uid?: number;
+  readonly home?: string;
+  readonly cwd?: string;
   readonly orphans?: false | Record<string, unknown>;
 }
 
@@ -34,7 +39,10 @@ export function sweepTemp(options: {
   maxAgeHours: number;
   now: number;
   dryRun: boolean;
-}): Promise<{ removed: string[]; errors: string[] }>;
+  uid?: number;
+  home?: string;
+  cwd?: string;
+}): Promise<{ removed: string[]; skippedUnsafe: number; errors: string[] }>;
 
 /** Run the whole sweep: stale temp entries, then orphaned test processes. */
 export function sweep(options?: SweepOptions): Promise<SweepResult>;

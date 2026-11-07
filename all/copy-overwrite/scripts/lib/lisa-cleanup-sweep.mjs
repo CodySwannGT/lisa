@@ -39,9 +39,14 @@
  * what Lisa does not own. Every Lisa `mkdtemp`/`mktemp` that lands at the top
  * level is spelled `lisa-…` or `lisa.…`.
  *
- * {@link LISA_PROTECTED_TEMP_NAMES} and `lisa-preserve-*` are never swept,
- * whatever their age: they are persistent state, live run roots, or patch
- * backups of an agent's work. A folder holding a `.git` entry is kept too,
+ * {@link LISA_PROTECTED_TEMP_NAMES}, `lisa-preserve-*` and `lisa-backup-*` are
+ * never swept, whatever their age: they are persistent state, live run roots,
+ * patch backups of an agent's work, or `lisa apply`'s rollback copy. Nor is an
+ * entry another user owns, a directory group or other can open, or a file
+ * group or other can write: in a shared temp directory a Lisa-looking name
+ * proves nothing about who made it. And the whole temp half is refused when
+ * the root is `/`, the home directory, or an ancestor of the home or working
+ * directory — a misconfigured `TMPDIR` must not become a sweep of real files. A folder holding a `.git` entry is kept too,
  * because agents put worktrees in the temp directory and a directory's own
  * mtime says nothing about edits deeper inside it.
  *
@@ -55,8 +60,8 @@
  * sets its own owner marker.
  * @module scripts/lib/lisa-cleanup-sweep
  */
-import { lstat, opendir, rm } from "node:fs/promises";
-import { tmpdir } from "node:os";
+import { lstat, opendir, realpath, rm } from "node:fs/promises";
+import { homedir, tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -81,8 +86,15 @@ export const LISA_PROTECTED_TEMP_NAMES = Object.freeze([
   "lisa-verification-gate",
 ]);
 
-/** Prefixes that are never swept: patch backups of an agent's work. */
-export const LISA_PROTECTED_TEMP_PREFIXES = Object.freeze(["lisa-preserve-"]);
+/**
+ * Prefixes that are never swept: `lisa-preserve-*` holds patch backups of an
+ * agent's work, and `lisa-backup-*` is the rollback copy `lisa apply` takes
+ * (`src/transaction/backup.ts`).
+ */
+export const LISA_PROTECTED_TEMP_PREFIXES = Object.freeze([
+  "lisa-preserve-",
+  "lisa-backup-",
+]);
 
 /** Set by whoever swept first; everything it starts skips the sweep. */
 export const SWEPT_ENV = "LISA_CLEANUP_SWEPT";
@@ -129,15 +141,90 @@ async function isGitCheckout(entry) {
 }
 
 /**
- * Decide whether one Lisa-named entry should be removed.
+ * Whether this user alone could have created and filled an entry.
+ *
+ * A Lisa-looking name in a shared temp directory proves nothing: another user
+ * can create `lisa-anything`, or leave a group- or world-writable one for this
+ * user's sweep to recurse into. So an entry is removable only when this user
+ * owns it and nobody else could have written into it — a directory closed to
+ * group and other (`mkdtemp` makes them 0700), a file not writable by group or
+ * other. Skipped where there is no uid to compare (Windows).
+ * @param {import("node:fs").Stats} stats - The entry's own lstat.
+ * @param {number | undefined} uid - This user's id.
+ * @returns {boolean} True when the entry is safe to remove.
+ */
+function isOwnedAndPrivate(stats, uid) {
+  if (uid === undefined) return true;
+  if (stats.uid !== uid) return false;
+  const openBits = stats.isDirectory() ? 0o077 : 0o022;
+  return (stats.mode & openBits) === 0;
+}
+
+/**
+ * Decide what to do with one Lisa-named entry.
  * @param {string} entry - Absolute path, a direct child of the root.
  * @param {number} cutoffMs - Entries modified before this are stale.
- * @returns {Promise<boolean>} True when it is a stale, non-symlink, non-checkout entry.
+ * @param {number | undefined} uid - This user's id.
+ * @returns {Promise<"remove" | "keep" | "unsafe">} The verdict.
  */
-async function isStale(entry, cutoffMs) {
+async function verdictFor(entry, cutoffMs, uid) {
   const stats = await lstat(entry);
-  if (stats.isSymbolicLink() || stats.mtimeMs >= cutoffMs) return false;
-  return !(stats.isDirectory() && (await isGitCheckout(entry)));
+  if (stats.isSymbolicLink() || stats.mtimeMs >= cutoffMs) return "keep";
+  if (!isOwnedAndPrivate(stats, uid)) return "unsafe";
+  if (stats.isDirectory() && (await isGitCheckout(entry))) return "keep";
+  return "remove";
+}
+
+/**
+ * Canonical spelling of a path, or its resolved spelling when it cannot be read.
+ * @param {string} target - Path.
+ * @returns {Promise<string>} Absolute path.
+ */
+async function canonical(target) {
+  try {
+    return await realpath(target);
+  } catch {
+    return path.resolve(target);
+  }
+}
+
+/**
+ * Whether `outer` is `inner` or one of its ancestors.
+ * @param {string} outer - Candidate ancestor.
+ * @param {string} inner - Candidate descendant.
+ * @returns {boolean} True when `inner` lies at or below `outer`.
+ */
+function contains(outer, inner) {
+  const relative = path.relative(outer, inner);
+  return (
+    relative === "" ||
+    (!relative.startsWith("..") && !path.isAbsolute(relative))
+  );
+}
+
+/**
+ * Why a root must not be swept, or null when it may be.
+ *
+ * A misconfigured `TMPDIR` (`/`, `$HOME`, a checkout's parent) would otherwise
+ * turn a temp sweep into a sweep of the user's own files.
+ * @param {string} root - Proposed sweep root.
+ * @param {{home: string, cwd: string}} places - The home and working directories.
+ * @returns {Promise<string | null>} An operator-readable refusal, or null.
+ */
+async function rootRefusal(root, { home, cwd }) {
+  const resolved = await canonical(root);
+  const why = [
+    [path.dirname(resolved) === resolved, "it is the filesystem root"],
+    [
+      contains(resolved, await canonical(home)),
+      "it is or contains the home directory",
+    ],
+    [
+      contains(resolved, await canonical(cwd)),
+      "it contains the working directory",
+    ],
+  ].find(([refused]) => refused);
+  return why ? `refusing to sweep ${root}: ${why[1]}` : null;
 }
 
 /**
@@ -165,10 +252,11 @@ async function inPool(items, limit, worker) {
  * Select the stale Lisa entries at the top level of `root`.
  * @param {string} root - Temp root.
  * @param {number} cutoffMs - Staleness cutoff.
- * @param {string[]} errors - Collector.
+ * @param {number | undefined} uid - This user's id.
+ * @param {{skippedUnsafe: number, errors: string[]}} tally - Collector.
  * @returns {Promise<string[]>} Absolute paths to remove.
  */
-async function staleEntries(root, cutoffMs, errors) {
+async function staleEntries(root, cutoffMs, uid, tally) {
   const resolvedRoot = path.resolve(root);
   const candidates = [];
   for await (const dirent of await opendir(resolvedRoot)) {
@@ -179,10 +267,12 @@ async function staleEntries(root, cutoffMs, errors) {
   const stale = [];
   await inPool(candidates, REMOVE_CONCURRENCY, async entry => {
     try {
-      if (await isStale(entry, cutoffMs)) stale.push(entry);
+      const verdict = await verdictFor(entry, cutoffMs, uid);
+      if (verdict === "remove") stale.push(entry);
+      if (verdict === "unsafe") tally.skippedUnsafe += 1;
     } catch (error) {
       if (error?.code !== "ENOENT")
-        errors.push(`${entry}: ${error?.message ?? error}`);
+        tally.errors.push(`${entry}: ${error?.message ?? error}`);
     }
   });
   return stale.sort();
@@ -195,20 +285,35 @@ async function staleEntries(root, cutoffMs, errors) {
  * @param {number} options.maxAgeHours - Age limit.
  * @param {number} options.now - Clock, epoch milliseconds.
  * @param {boolean} options.dryRun - Select but remove nothing.
- * @returns {Promise<{removed: string[], errors: string[]}>} What was removed.
+ * @param {number} [options.uid] - This user's id; defaults to `process.getuid()`.
+ * @param {string} [options.home] - Home directory; defaults to `os.homedir()`.
+ * @param {string} [options.cwd] - Working directory; defaults to `process.cwd()`.
+ * @returns {Promise<{removed: string[], skippedUnsafe: number, errors: string[]}>} What was removed.
  */
-export async function sweepTemp({ root, maxAgeHours, now, dryRun }) {
-  const errors = [];
+export async function sweepTemp({
+  root,
+  maxAgeHours,
+  now,
+  dryRun,
+  uid = process.getuid?.(),
+  home = homedir(),
+  cwd = process.cwd(),
+}) {
+  const refusal = await rootRefusal(root, { home, cwd });
+  if (refusal) return { removed: [], skippedUnsafe: 0, errors: [refusal] };
+  const tally = { skippedUnsafe: 0, errors: [] };
   let stale;
   try {
-    stale = await staleEntries(root, now - maxAgeHours * HOUR_MS, errors);
+    stale = await staleEntries(root, now - maxAgeHours * HOUR_MS, uid, tally);
   } catch (error) {
     return {
       removed: [],
+      skippedUnsafe: 0,
       errors: [`cannot read ${root}: ${error?.message ?? error}`],
     };
   }
-  if (dryRun) return { removed: stale, errors };
+  const { skippedUnsafe, errors } = tally;
+  if (dryRun) return { removed: stale, skippedUnsafe, errors };
   const removed = [];
   await inPool(stale, REMOVE_CONCURRENCY, async entry => {
     try {
@@ -218,7 +323,7 @@ export async function sweepTemp({ root, maxAgeHours, now, dryRun }) {
       errors.push(`could not remove ${entry}: ${error?.message ?? error}`);
     }
   });
-  return { removed: removed.sort(), errors };
+  return { removed: removed.sort(), skippedUnsafe, errors };
 }
 
 /**
@@ -228,9 +333,12 @@ export async function sweepTemp({ root, maxAgeHours, now, dryRun }) {
  * @param {number} [options.maxAgeHours] - Age limit, defaults to 24.
  * @param {number} [options.now] - Clock for ages, defaults to `Date.now()`.
  * @param {boolean} [options.dryRun] - Select but change nothing.
+ * @param {number} [options.uid] - This user's id, for the ownership check.
+ * @param {string} [options.home] - Home directory, for the root refusal.
+ * @param {string} [options.cwd] - Working directory, for the root refusal.
  * @param {false | object} [options.orphans] - `false` to skip processes, or
  *   seams for `sweepOrphans`.
- * @returns {Promise<{removed: string[], killed: number[], errors: string[], dryRun: boolean, durationMs: number}>} Result.
+ * @returns {Promise<{removed: string[], skippedUnsafe: number, killed: number[], errors: string[], dryRun: boolean, durationMs: number}>} Result.
  */
 export async function sweep(options = {}) {
   const started = performance.now();
@@ -240,14 +348,16 @@ export async function sweep(options = {}) {
     now = Date.now(),
     dryRun = false,
     orphans = {},
+    ...identity
   } = options;
-  const temp = await sweepTemp({ root, maxAgeHours, now, dryRun });
+  const temp = await sweepTemp({ root, maxAgeHours, now, dryRun, ...identity });
   const processes =
     orphans === false
       ? { killed: [], errors: [] }
       : await sweepOrphans({ ...orphans, dryRun });
   return {
     removed: temp.removed,
+    skippedUnsafe: temp.skippedUnsafe,
     killed: processes.killed,
     errors: [...temp.errors, ...processes.errors],
     dryRun,
@@ -283,7 +393,12 @@ export function formatSummary(result) {
     "orphaned test process",
     "orphaned test processes"
   );
-  const line = `🧹 ${verb} ${dirs}, ${procs} (${Math.round(result.durationMs)} ms)`;
+  const unsafe = result.skippedUnsafe ?? 0;
+  const kept =
+    unsafe > 0
+      ? `; kept ${counted(unsafe, "entry", "entries")} not private to this user`
+      : "";
+  const line = `🧹 ${verb} ${dirs}, ${procs} (${Math.round(result.durationMs)} ms)${kept}`;
   if (result.errors.length === 0) return line;
   const first = String(result.errors[0]).replace(/\s+/gu, " ");
   return `${line}; ${counted(result.errors.length, "error", "errors")}, first: ${first}`;

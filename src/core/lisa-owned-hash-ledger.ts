@@ -660,15 +660,19 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
     "ad8e20fbc7519cfdcb6a656a5b0dabf17b7acef2de56ba700b1c53e7ba7891cc",
   ]),
   "scripts/lib/lisa-cleanup-sweep-processes.d.mts": Object.freeze([
+    "1e4e18dc0b447e7d9dca95ead0ad3b47bc4e98d70a0cc00a6d9cb70b07b70149",
     "cb9a7afdaf96c108738beb98ea99ba974e301e76a479ff84eb806dbfda10168f",
   ]),
   "scripts/lib/lisa-cleanup-sweep-processes.mjs": Object.freeze([
     "5833dc29c45da58fcd95209e73b026958b7bffaaecb8bff82502cad9fc58153c",
+    "cedb9d9acc3759b1ced3b4cb330e3027c031de0becd2b63c90e0920f765021e4",
   ]),
   "scripts/lib/lisa-cleanup-sweep.d.mts": Object.freeze([
+    "72cb6e3bfa87c3392d9f20c70f81d142064377a75ebee0ec2953eccdc03649ad",
     "daf47b952e09e9a25361bec7e7b0bfb61df7f669db842e7fdc318d2254efffe3",
   ]),
   "scripts/lib/lisa-cleanup-sweep.mjs": Object.freeze([
+    "48003f887ca744592f2c4f106563e14ce20f48a44b57fe141a52f8309b368157",
     "ad8dafbc3589df27e9cfc339e116a833f48eb9595b34a6973f3bd37911a992e3",
   ]),
   "scripts/lib/npm-update-allocate.mjs": Object.freeze([
@@ -1875,6 +1879,7 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
     "e00f16cdc399c8ee61c7a3972469fbb4b662e0fff00bd9d3d6910f3f27a5f04c",
     "e429308896cf0450b2e5dfae9a580dde1a8da351503998c07ca3506e8b2ffdce",
     "ed643bb28356e9c3f7e351227e690763d6b5e275a78d232cd9dba2d1fc55cffe",
+    "f18880e3f1b015de3ef826b3507101603d6dd43ac4a790840d64d34e3bc67f2d",
   ]),
   "scripts/lisa-schema-validate.mjs": Object.freeze([
     "08cb25c2c49e0e5fd01e29861bbb8c90f612f9736ca2df86789fa72bd26d271e",
@@ -2191,6 +2196,7 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
     "805f46fe1c469ee4192d31bd96d4288f96905d5ca86d6eebe0516cf692389a99",
     "8222dc8691ef84a30c06a6427aa17b353082ee53ee513cdd5cbe69e936d82698",
     "882eea5c12e86fbf038c46142ce3ead3a2f6cdb014fc24a3bf67a1adeec0fa21",
+    "88f23c2b0763bc51976bb035011533bb655433f6dbf9ce6efd3278cdd43681ec",
     "8a3c46d3501797ebb53a081c8b35e78e0ceb2b060503332b48e44ccc30d6d0df",
     "8b3ef61c17d94bdf8eee99e02d396c975a12a8b8a3c2e34231eff6aaea3bf392",
     "901c52e08a53f0c7420ddc3308aa49e656429827770c1fd6a3f4ba8c9029d8ad",
@@ -2945,15 +2951,19 @@ export const LISA_OWNED_HASH_HISTORY_DERIVED: Readonly<
     "ad8e20fbc7519cfdcb6a656a5b0dabf17b7acef2de56ba700b1c53e7ba7891cc",
   ]),
   "scripts/lib/lisa-cleanup-sweep-processes.d.mts": Object.freeze([
+    "1e4e18dc0b447e7d9dca95ead0ad3b47bc4e98d70a0cc00a6d9cb70b07b70149",
     "cb9a7afdaf96c108738beb98ea99ba974e301e76a479ff84eb806dbfda10168f",
   ]),
   "scripts/lib/lisa-cleanup-sweep-processes.mjs": Object.freeze([
     "5833dc29c45da58fcd95209e73b026958b7bffaaecb8bff82502cad9fc58153c",
+    "cedb9d9acc3759b1ced3b4cb330e3027c031de0becd2b63c90e0920f765021e4",
   ]),
   "scripts/lib/lisa-cleanup-sweep.d.mts": Object.freeze([
+    "72cb6e3bfa87c3392d9f20c70f81d142064377a75ebee0ec2953eccdc03649ad",
     "daf47b952e09e9a25361bec7e7b0bfb61df7f669db842e7fdc318d2254efffe3",
   ]),
   "scripts/lib/lisa-cleanup-sweep.mjs": Object.freeze([
+    "48003f887ca744592f2c4f106563e14ce20f48a44b57fe141a52f8309b368157",
     "ad8dafbc3589df27e9cfc339e116a833f48eb9595b34a6973f3bd37911a992e3",
   ]),
   "scripts/lib/npm-update-allocate.mjs": Object.freeze([
@@ -4094,6 +4104,7 @@ export const LISA_OWNED_HASH_HISTORY_DERIVED: Readonly<
     "daf2f7b54950869632c7ecc02201a0c3fd482195594ae641075dd9718cfdfebd",
     "e00f16cdc399c8ee61c7a3972469fbb4b662e0fff00bd9d3d6910f3f27a5f04c",
     "ed643bb28356e9c3f7e351227e690763d6b5e275a78d232cd9dba2d1fc55cffe",
+    "f18880e3f1b015de3ef826b3507101603d6dd43ac4a790840d64d34e3bc67f2d",
   ]),
   "scripts/lisa-schema-validate.mjs": Object.freeze([
     "08cb25c2c49e0e5fd01e29861bbb8c90f612f9736ca2df86789fa72bd26d271e",
@@ -4406,6 +4417,7 @@ export const LISA_OWNED_HASH_HISTORY_DERIVED: Readonly<
     "805f46fe1c469ee4192d31bd96d4288f96905d5ca86d6eebe0516cf692389a99",
     "8222dc8691ef84a30c06a6427aa17b353082ee53ee513cdd5cbe69e936d82698",
     "882eea5c12e86fbf038c46142ce3ead3a2f6cdb014fc24a3bf67a1adeec0fa21",
+    "88f23c2b0763bc51976bb035011533bb655433f6dbf9ce6efd3278cdd43681ec",
     "8a3c46d3501797ebb53a081c8b35e78e0ceb2b060503332b48e44ccc30d6d0df",
     "8b3ef61c17d94bdf8eee99e02d396c975a12a8b8a3c2e34231eff6aaea3bf392",
     "901c52e08a53f0c7420ddc3308aa49e656429827770c1fd6a3f4ba8c9029d8ad",

@@ -26,7 +26,12 @@
  *
  * Only the current user's processes are listed, and nothing but the pid, the
  * parent pid and the marker is kept from a listing: `ps -E` prints the whole
- * environment, which routinely holds tokens.
+ * environment, which routinely holds tokens. A marker counts only where it is
+ * genuinely environment — a whole `/proc/<pid>/environ` entry, or the text
+ * `ps -E` prints after the process's own arguments — so a marker typed as an
+ * argument cannot get a process killed. Each orphan's start time is recorded
+ * before SIGTERM, and a pid whose start time changed during the grace (a new
+ * process that inherited the pid) gets no SIGKILL.
  *
  * ## A macOS visibility gap, and why it fails safe
  *
@@ -68,7 +73,10 @@ const PS_BATCH = 256;
 /** Locale-independent `ps` output, so `lstart` parses the same everywhere. */
 const PS_ENV = { ...process.env, LC_ALL: "C", LANG: "C" };
 
-const MARKER_IN_TEXT = /(?:^|[\s\0])LISA_TEST_RUN_OWNER=(\d+:\d+)(?=[\s\0]|$)/u;
+const MARKER_IN_TEXT = /(?:^|\s)LISA_TEST_RUN_OWNER=(\d+:\d+)(?=\s|$)/gu;
+
+/** Prefix of the one environ entry that carries the owner. */
+const MARKER_ENTRY = `${OWNER_ENV}=`;
 
 /**
  * Format the owner marker value.
@@ -93,31 +101,73 @@ export function parseOwnerMarker(value) {
 }
 
 /**
- * Find the owner marker in an environment dump.
- * @param {string} text - `ps -E` command text or a NUL-separated environ.
- * @returns {{pid: number, start: string} | null} The owner, if marked.
+ * Find the owner marker in the environment half of a `ps -E` line.
+ *
+ * Two different markers there mean something other than the real variable
+ * says so — another variable's value — and the row is spared.
+ * @param {string} environment - Space-separated environment text.
+ * @returns {{pid: number, start: string} | null} The owner, if unambiguous.
  */
-function ownerIn(text) {
-  const match = MARKER_IN_TEXT.exec(text);
-  return match ? parseOwnerMarker(match[1]) : null;
+function ownerInEnvironment(environment) {
+  const found = new Set(
+    [...environment.matchAll(MARKER_IN_TEXT)].map(match => match[1])
+  );
+  return found.size === 1 ? parseOwnerMarker([...found][0]) : null;
 }
 
 /**
- * Parse `ps -E -ww -o pid=,ppid=,command=` output, keeping only pid, ppid and owner.
- * @param {string} stdout - Raw `ps` output.
+ * Find the owner in a NUL-separated `/proc/<pid>/environ`.
+ *
+ * Only a whole entry counts, so a marker quoted inside another variable's
+ * value is not mistaken for the real one.
+ * @param {string} environ - Raw environ contents.
+ * @returns {{pid: number, start: string} | null} The owner, if marked.
+ */
+export function parseLinuxEnviron(environ) {
+  const entry = environ.split("\0").find(item => item.startsWith(MARKER_ENTRY));
+  return entry ? parseOwnerMarker(entry.slice(MARKER_ENTRY.length)) : null;
+}
+
+/**
+ * Map pid to its arguments from `ps -ww -o pid=,command=` output.
+ * @param {string} stdout - Raw `ps` output, without `-E`.
+ * @returns {Map<number, string>} Arguments by pid.
+ */
+function argumentsByPid(stdout) {
+  return new Map(
+    stdout.split("\n").flatMap(line => {
+      const match = /^\s*(\d+) (.*)$/u.exec(line);
+      return match ? [[Number(match[1]), match[2]]] : [];
+    })
+  );
+}
+
+/**
+ * Parse `ps -E` output, keeping only pid, ppid and owner.
+ *
+ * `ps -E -o command=` prints a process's ARGUMENTS and then its environment
+ * on one line, so a marker typed as an argument reads exactly like one in the
+ * environment. The same process's arguments, listed without `-E`, are stripped
+ * off the front first, and only what follows is searched. A row whose
+ * arguments do not line up — the process exec'd or exited between the two
+ * listings — is given no marker, which spares it.
+ * @param {string} withEnvironment - `ps -E -ww -o pid=,ppid=,command=` output.
+ * @param {string} argumentsOnly - `ps -ww -o pid=,command=` output.
  * @returns {Array<{pid: number, ppid: number, owner: {pid: number, start: string} | null}>} Rows.
  */
-export function parseDarwinProcessTable(stdout) {
-  return stdout.split("\n").flatMap(line => {
+export function parseDarwinProcessTable(withEnvironment, argumentsOnly) {
+  const args = argumentsByPid(argumentsOnly);
+  return withEnvironment.split("\n").flatMap(line => {
     const match = /^\s*(\d+)\s+(\d+)(?:\s(.*))?$/u.exec(line);
     if (!match) return [];
-    return [
-      {
-        pid: Number(match[1]),
-        ppid: Number(match[2]),
-        owner: ownerIn(match[3] ?? ""),
-      },
-    ];
+    const pid = Number(match[1]);
+    const command = match[3] ?? "";
+    const known = args.get(pid);
+    const aligned = known !== undefined && command.startsWith(known);
+    const owner = aligned
+      ? ownerInEnvironment(command.slice(known.length))
+      : null;
+    return [{ pid, ppid: Number(match[2]), owner }];
   });
 }
 
@@ -214,7 +264,7 @@ function linuxRow(procRoot, pid, uid) {
     const environ = mine
       ? readFileSync(`${procRoot}/${pid}/environ`, "utf8")
       : "";
-    return { pid, ppid: stat.ppid, owner: ownerIn(environ) };
+    return { pid, ppid: stat.ppid, owner: parseLinuxEnviron(environ) };
   } catch {
     // probe-direction: fail-closed — an unreadable environment carries no
     // marker, so the process is kept for ancestry and never killed.
@@ -242,8 +292,12 @@ export function listProcesses({
   }
   if (platform !== "darwin") return [];
   const user = uid === undefined ? ["-A"] : ["-U", String(uid)];
+  // Arguments first: a process that starts between the two calls is then
+  // missing from the arguments map and is spared, never misread.
+  const argumentsOnly = runPs(["-ww", ...user, "-o", "pid=,command="]);
   return parseDarwinProcessTable(
-    runPs(["-E", "-ww", ...user, "-o", "pid=,ppid=,command="])
+    runPs(["-E", "-ww", ...user, "-o", "pid=,ppid=,command="]),
+    argumentsOnly
   );
 }
 
@@ -423,10 +477,17 @@ export async function sweepOrphans(options = {}) {
     };
   }
   if (dryRun || orphans.length === 0) return { killed: orphans, errors };
+  const recorded = startTimesOf(orphans);
   const killed = orphans.filter(pid => signal(kill, pid, "SIGTERM", errors));
   if (killed.length === 0) return { killed, errors };
   await sleep(graceMs);
-  for (const pid of killed.filter(pid => alive(pid)))
+  const survivors = killed.filter(pid => alive(pid));
+  const current = survivors.length > 0 ? startTimesOf(survivors) : new Map();
+  // A survivor whose start time changed during the grace is a NEW process
+  // that inherited the pid; it gets no SIGKILL.
+  const samePid = pid =>
+    !recorded.has(pid) || current.get(pid) === recorded.get(pid);
+  for (const pid of survivors.filter(samePid))
     signal(kill, pid, "SIGKILL", errors);
   return { killed, errors };
 }

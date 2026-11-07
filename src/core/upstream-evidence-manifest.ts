@@ -81,13 +81,13 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lib/kill-marks.mjs":
       "13388da7203b02ba84a845abd7885074bc8a495e215437a97122060d69367030",
     "all/copy-overwrite/scripts/lib/lisa-cleanup-sweep-processes.d.mts":
-      "cb9a7afdaf96c108738beb98ea99ba974e301e76a479ff84eb806dbfda10168f",
+      "1e4e18dc0b447e7d9dca95ead0ad3b47bc4e98d70a0cc00a6d9cb70b07b70149",
     "all/copy-overwrite/scripts/lib/lisa-cleanup-sweep-processes.mjs":
-      "5833dc29c45da58fcd95209e73b026958b7bffaaecb8bff82502cad9fc58153c",
+      "cedb9d9acc3759b1ced3b4cb330e3027c031de0becd2b63c90e0920f765021e4",
     "all/copy-overwrite/scripts/lib/lisa-cleanup-sweep.d.mts":
-      "daf47b952e09e9a25361bec7e7b0bfb61df7f669db842e7fdc318d2254efffe3",
+      "72cb6e3bfa87c3392d9f20c70f81d142064377a75ebee0ec2953eccdc03649ad",
     "all/copy-overwrite/scripts/lib/lisa-cleanup-sweep.mjs":
-      "ad8dafbc3589df27e9cfc339e116a833f48eb9595b34a6973f3bd37911a992e3",
+      "48003f887ca744592f2c4f106563e14ce20f48a44b57fe141a52f8309b368157",
     "all/copy-overwrite/scripts/lib/npm-update-allocate.mjs":
       "85de2576d1c5e954b57f1c9274dbc34d0d24689fbc0964d8f86ec4f91f52b7bc",
     "all/copy-overwrite/scripts/lib/npm-update-authorization.mjs":
@@ -323,7 +323,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-reconcile-policy.mjs":
       "263860fba7fadae3c1096973eaf4f25dca1683ef2ce64279dea6845ac90faf6a",
     "all/copy-overwrite/scripts/lisa-run-gates.mjs":
-      "3e14f9ff1b82b5d1247c285688c66423816c7f12faf88f6c32b8bfe90219a1c6",
+      "f18880e3f1b015de3ef826b3507101603d6dd43ac4a790840d64d34e3bc67f2d",
     "all/copy-overwrite/scripts/lisa-schema-validate.mjs":
       "f70ecd3712dd2ca77a8851c7505ce79f948a57e5a2e28f56c5d0ccd047712688",
     "all/copy-overwrite/scripts/lisa-scratch-run.sh":
@@ -341,7 +341,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/npm-updater-gate.Dockerfile":
       "f5d85f8fccfd97f7800c03430a38c19d584314b0a6a63aa1de28fb62897fbcc5",
     "all/copy-overwrite/scripts/npm-updater-helper-graph.json":
-      "e6c2ba2036e39587dd8cd01791dc24f7cf228796be59eea36514a3e1c2f758eb",
+      "88f23c2b0763bc51976bb035011533bb655433f6dbf9ce6efd3278cdd43681ec",
     "all/copy-overwrite/scripts/review-evidence-event.mjs":
       "1c5d510bc66f8ba23b6f046246f41182c17946a50126fb88e371d2aec9dfd6b2",
     "all/copy-overwrite/scripts/schemas/lisa-command-envelope.v1.schema.json":
@@ -12532,8 +12532,10 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/kill-marks.test.ts": true,
     "tests/unit/scripts/lint-staged-preflight.test.ts": true,
     "tests/unit/scripts/lisa-assert-eas-profile.test.ts": true,
+    "tests/unit/scripts/lisa-cleanup-sweep-hardening.test.ts": true,
     "tests/unit/scripts/lisa-cleanup-sweep-launch.test.ts": true,
     "tests/unit/scripts/lisa-cleanup-sweep-performance.test.ts": true,
+    "tests/unit/scripts/lisa-cleanup-sweep-processes-hardening.test.ts": true,
     "tests/unit/scripts/lisa-cleanup-sweep-processes.test.ts": true,
     "tests/unit/scripts/lisa-cleanup-sweep.test.ts": true,
     "tests/unit/scripts/lisa-environment-prepare.test.ts": true,
