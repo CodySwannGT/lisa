@@ -53,10 +53,47 @@ describe("github build intake on an uncleared [lisa-ci-failed] marker", () => {
     expect(dispatch).toMatch(/instead of `lisa-implement`/u);
   });
 
-  it("states that the work is not complete while the marker is uncleared", () => {
+  it("ties completion to the named PR's checks, and counts a merged or closed PR's marker as cleared", () => {
     expect(SKILL).toMatch(
-      /not complete while a `\[lisa-ci-failed\]` marker is uncleared/u
+      /not complete while the named PR's required checks are failing/u
     );
+    expect(SKILL).toMatch(/merged or closed counts as cleared/u);
+  });
+});
+
+describe("a [lisa-ci-failed] marker is evidence only when it checks out", () => {
+  const claim = section("3b. Claim");
+
+  it("accepts the marker only when github-actions[bot] authored it", () => {
+    expect(claim).toMatch(/authored by `github-actions\[bot\]`/u);
+  });
+
+  it("requires the named PR to be open, same-repository, and bound to this item, or treats it as no marker", () => {
+    expect(claim).toMatch(/`state` is `OPEN`/u);
+    expect(claim).toMatch(/`isCrossRepository` is `false`/u);
+    expect(claim).toMatch(/`Work-Item:` binds this item/u);
+    expect(claim).toMatch(/treat the item as carrying no marker/u);
+  });
+});
+
+describe("the CI-rework route is executable", () => {
+  const dispatch = section(
+    "3c. Run the per-issue lifecycle in-session (never as a subagent)"
+  );
+
+  it("checks out the PR's head branch in a worktree bound to the item and writes the bundle there", () => {
+    expect(dispatch).toMatch(/head branch[^\n]*worktree[^\n]*bound to/u);
+    expect(dispatch).toMatch(
+      /`\.lisa\/work-item-context\.md` in that worktree/u
+    );
+  });
+
+  it("invokes lisa-drive-pr-to-merge pr=<n>, skips archaeology and triage, then runs the ordinary 3d transition", () => {
+    expect(dispatch).toContain("`lisa-drive-pr-to-merge pr=<n>`");
+    expect(dispatch).toMatch(
+      /skip `claim-archaeology` and `lisa-ticket-triage`/u
+    );
+    expect(dispatch).toMatch(/ordinary 3d done transition/u);
   });
 });
 
@@ -67,6 +104,7 @@ describe("the rejection-detection rule", () => {
     for (const part of [head, body]) {
       expect(part).toContain(MARKER);
       expect(part).toMatch(/CI rework/u);
+      expect(part).toContain("github-actions[bot]");
     }
   });
 });
