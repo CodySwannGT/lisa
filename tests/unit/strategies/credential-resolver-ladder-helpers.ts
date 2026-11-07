@@ -73,10 +73,35 @@ export interface LadderSkill {
   readonly credential: string;
   /** True when a legacy OS-keychain rung follows the ladder. */
   readonly keychain: boolean;
+  /**
+   * File under `<surface>/` that defines the function, when it is not the
+   * skill's `SKILL.md`. `lisa-linear-access` ships its ladder in an executable
+   * script rather than a Markdown snippet, because the snippet was pasted into
+   * inline commands that stall background workers on an approval prompt.
+   */
+  readonly file?: string;
 }
 
 export const readSkill = (surface: string, skill: string): string =>
   readFileSync(path.resolve(surface, `skills/${skill}/SKILL.md`), "utf8");
+
+/** Where `lisa-linear-access` ships `read_linear_key()`, relative to a surface. */
+export const LINEAR_ACCESS_SCRIPT =
+  "skills/lisa-linear-access/scripts/linear-graphql.sh";
+
+/**
+ * Read the file that defines one ladder copy on a surface.
+ * @param surface Surface root.
+ * @param entry The ladder copy.
+ * @returns The defining file's text.
+ */
+export const readLadderSource = (
+  surface: string,
+  entry: LadderSkill
+): string =>
+  entry.file === undefined
+    ? readSkill(surface, entry.skill)
+    : readFileSync(path.resolve(surface, entry.file), "utf8");
 
 /** Where the scan for a function's closing brace has got to. */
 interface ScanState {
@@ -259,7 +284,8 @@ export const runLadder = (
 ): LadderRun => {
   const { root, cwd, marker, stubBin } = buildTree(resolvers, options.cwd);
   const fnText =
-    fnTextOverride ?? extractFunction(readSkill(SOURCE, entry.skill), entry.fn);
+    fnTextOverride ??
+    extractFunction(readLadderSource(SOURCE, entry), entry.fn);
   const result = spawnSync("bash", ["-c", `${fnText}\n${entry.invoke}\n`], {
     cwd,
     encoding: "utf8",

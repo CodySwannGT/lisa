@@ -405,6 +405,10 @@ Skip this step only on UPDATE when no material change was made.
 
 Nothing here stops a consumer from writing to Linear through the Linear GraphQL API directly, a direct API call, or your own script, and nothing should
 try to — a script that owns the credential plumbing is often the only practical transport.
+Let that script be `lisa-linear-access/scripts/linear-graphql.sh`: run it by absolute path, or
+source it on the first line of your own script file. It resolves the key, identity-matches it,
+and never prints it, so the key never appears in an inline command (a shape that stalls a
+background worker on an approval prompt).
 **The transport is not the gate.** A bespoke write path still owes both halves of the quality
 gate this skill runs, and owes them explicitly, because no phase of this flow will ever run
 for it.
