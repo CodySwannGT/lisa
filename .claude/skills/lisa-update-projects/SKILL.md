@@ -91,7 +91,7 @@ Steps 2–15 above describe the work for ONE host. Run them in this order — ne
 3. **Record the canary's push timing** — before removing its worktree (step 3's cleanup). Read the newest `.lisa/push-timing/*.json` report in the canary worktree (written by the pre-push timing report, CodySwannGT/lisa#4591) and keep its `startedAt` and `wallMs`. If the directory is absent or empty, record `push timing: not recorded (no .lisa/push-timing report in the canary worktree)` — do not estimate one.
 4. **Wait for the canary PR's required checks** with a bounded, foreground, blocking watch, all within one 540-second budget. Never start a detached or background watcher, and never poll in an open-ended loop.
    - First, poll `gh pr checks <canary-pr> --required --json name` (every 30 seconds, inside the same 540-second budget) until at least one required check is registered — checks can take a moment to appear after the push. If none ever appears, the result is `fail` with the reason `no required checks reported` (report that reason, not an empty list of failing checks): nothing proved the release is safe.
-   - Then watch for the remaining budget (`remaining` = 540 minus the seconds spent polling):
+   - Then watch for the remaining budget (`remaining` = 540 minus the seconds spent polling). If `remaining` is 0 or less, do not start the watch: the result is `timeout` (a zero alarm under the perl fallback would mean no bound at all):
 
    ```bash
    timeout "$remaining" gh pr checks <canary-pr> --required --watch --interval 30 --fail-fast
