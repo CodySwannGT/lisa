@@ -1,11 +1,13 @@
 /**
  * Internal-consistency coverage for the `runtime_behavior_change` contract —
- * the falsifiable half of the decidability suite.
+ * the falsifiable half of the contract's presence checks.
  *
- * Read this together with `runtime-behavior-change-decidability.test.ts`. The
- * two files divide one contract along the axis that actually broke:
+ * Read this together with the `runtime_behavior_change` entries in
+ * `tests/phrase-manifest/required-phrases.json`, checked by
+ * `tests/unit/docs/required-phrases.test.ts`. The two divide one contract
+ * along the axis that actually broke:
  *
- * - **Decidability (sibling file)** asserts the contract wording is *present*.
+ * - **Presence (the manifest)** asserts the contract wording is *present*.
  *   That pins it against silent deletion or a lossy regeneration. Every
  *   assertion there is existential — "some copy says the right thing".
  * - **Consistency (this file)** asserts no copy says the *wrong* thing. Every
@@ -31,12 +33,19 @@
  * These are still assertions over prose. What changed is the quantifier, and
  * that is the half that binds: a universal negative over the whole corpus
  * cannot be satisfied by a correct copy elsewhere in the file. Deletion is the
- * sibling file's job; contradiction is this one's. Neither catches an agent
+ * manifest's job; contradiction is this one's. Neither catches an agent
  * that reads a correct instruction and disobeys it.
  * @module tests/unit/strategies/runtime-behavior-change-consistency
  */
+import { readFileSync } from "node:fs";
+import path from "node:path";
+
 import { describe, expect, it } from "vitest";
 
+import {
+  MANIFEST_PATH,
+  type Manifest,
+} from "../../../scripts/lib/phrase-tests/manifest.mjs";
 import {
   CONTRACT_SKILLS,
   RULE_ROOTS,
@@ -204,5 +213,23 @@ describe("no copy hands authority back to the caller", () => {
         expect(content).not.toMatch(pattern);
       }
     });
+  });
+});
+
+describe("every copy this suite reads is pinned present by the manifest", () => {
+  // Presence lives in the required-phrases manifest, not here. A skill root
+  // added to SKILL_ROOTS without manifest coverage would be checked for
+  // contradiction only, and a deleted contract there would go unnoticed.
+  it("lists each SKILL_ROOTS x CONTRACT_SKILLS SKILL.md as a manifest key", () => {
+    const manifest = JSON.parse(
+      readFileSync(path.resolve(MANIFEST_PATH), "utf8")
+    ) as Manifest;
+    const expected = SKILL_ROOTS.flatMap(root =>
+      CONTRACT_SKILLS.map(slug => `${root}/${slug}/SKILL.md`)
+    );
+
+    expect(expected.filter(file => !(file in manifest.files))).toStrictEqual(
+      []
+    );
   });
 });

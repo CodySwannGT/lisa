@@ -44,18 +44,16 @@ const RECORDER_NAME = "lisa_rspec_shard_recorder.rb";
  * cannot parse; treat Ruby below the documented 3.2 floor as absent rather than
  * failing every case.
  *
- * One process both names its own interpreter (`RbConfig.ruby`) and checks its
- * version, so the Ruby that passes the check is exactly the Ruby the drivers
- * run — a version manager shim cannot pick a different one later, when the
- * drivers change HOME. The check avoids RubyGems (`Gem::Version` is undefined
- * under `--disable-gems`) and drops an inherited RUBYOPT, either of which
- * would make a usable Ruby read as absent.
+ * One process names its own interpreter (`RbConfig.ruby`) and checks its
+ * version, so the drivers run exactly the Ruby that passed, whatever a version
+ * manager shim would pick under their HOME. It avoids RubyGems and drops an
+ * inherited RUBYOPT: `--disable-gems` would make a usable Ruby read as absent.
  * @returns The interpreter path, or undefined when Ruby is unusable here
  */
 function resolveRuby(): string | undefined {
   const { RUBYOPT: _ignored, ...env } = process.env;
   try {
-    const outcome = boundedSpawnSync({
+    const { status, stdout } = boundedSpawnSync({
       label: "probe ruby",
       command: "ruby",
       args: [
@@ -65,8 +63,8 @@ function resolveRuby(): string | undefined {
       ],
       env,
     });
-    return outcome.status === 0 && outcome.stdout !== ""
-      ? outcome.stdout
+    return status === 0 && path.isAbsolute(stdout) && fs.existsSync(stdout)
+      ? stdout
       : undefined;
   } catch {
     return undefined;
@@ -74,6 +72,16 @@ function resolveRuby(): string | undefined {
 }
 
 const RUBY = resolveRuby();
+
+/**
+ * The resolved Ruby for a driver; drivers run only when the suite is not
+ * deferred, so a missing one here is a harness bug.
+ * @returns The interpreter path the probe resolved
+ */
+function ruby(): string {
+  if (RUBY === undefined) throw new Error("probe did not resolve Ruby");
+  return RUBY;
+}
 
 const deferred = suiteDeferral(
   () => RUBY !== undefined,
@@ -194,7 +202,7 @@ puts "CALLS=" + (defined?(SimpleCov) ? SimpleCov::CALLS.inspect : "none")
   );
   return boundedSpawnSync({
     label: "ruby recorder driver",
-    command: RUBY ?? "ruby",
+    command: ruby(),
     args: [driver],
     cwd,
     env: { PATH: process.env.PATH ?? "", HOME: cwd, ...env },
@@ -343,7 +351,7 @@ function collateOutcome(root: string, lib: string, args: string[]) {
   const received = path.join(root, "received.json");
   const outcome = boundedSpawnSync({
     label: "ruby collate",
-    command: RUBY ?? "ruby",
+    command: ruby(),
     args: ["-I", lib, COLLATE, ...args],
     cwd: root,
     env: { PATH: process.env.PATH ?? "", HOME: root },
