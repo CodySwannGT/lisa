@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.97.4](https://github.com/CodySwannGT/lisa/compare/v4.97.3...v4.97.4) (2026-11-08)
+
+
+### Bug Fixes
+
+* **security:** raise forced systeminformation floor to >=5.33.16 (GHSA-3f7j-7jwc-fxfj) ([97fae0b](https://github.com/CodySwannGT/lisa/commit/97fae0bca13e5ed7eea6210cad2500893e643a50)), closes [CodySwannGT/lisa#4712](https://github.com/CodySwannGT/lisa/issues/4712) [CodySwannGT/lisa#4712](https://github.com/CodySwannGT/lisa/issues/4712)
+
 ### [4.97.3](https://github.com/CodySwannGT/lisa/compare/v4.97.2...v4.97.3) (2026-11-08)
 
 
