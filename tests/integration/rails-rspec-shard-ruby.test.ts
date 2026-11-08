@@ -36,6 +36,10 @@ const COLLATE = path.join(
 
 const RECORDER_NAME = "lisa_rspec_shard_recorder.rb";
 
+/** Prints its interpreter path; exits 0 only on Ruby 3.2 or newer. */
+const RUBY_PROBE =
+  'print RbConfig.ruby; exit((RUBY_VERSION.split(".").map(&:to_i).first(2) <=> [3, 2]) >= 0 ? 0 : 1)';
+
 /**
  * The Ruby both drivers run, as an absolute path, or undefined when the `ruby`
  * on PATH is missing or older than 3.2.
@@ -46,8 +50,9 @@ const RECORDER_NAME = "lisa_rspec_shard_recorder.rb";
  *
  * One process names its own interpreter (`RbConfig.ruby`) and checks its
  * version, so the drivers run exactly the Ruby that passed, whatever a version
- * manager shim would pick under their HOME. It avoids RubyGems and drops an
- * inherited RUBYOPT: `--disable-gems` would make a usable Ruby read as absent.
+ * manager shim would pick under their HOME. It runs with RubyGems disabled and
+ * drops an inherited RUBYOPT, so neither RUBYOPT nor a stale BUNDLER_SETUP can
+ * make a usable Ruby read as absent.
  * @returns The interpreter path, or undefined when Ruby is unusable here
  */
 function resolveRuby(): string | undefined {
@@ -56,11 +61,7 @@ function resolveRuby(): string | undefined {
     const { status, stdout } = boundedSpawnSync({
       label: "probe ruby",
       command: "ruby",
-      args: [
-        "-rrbconfig",
-        "-e",
-        'print RbConfig.ruby; exit((RUBY_VERSION.split(".").map(&:to_i).first(2) <=> [3, 2]) >= 0 ? 0 : 1)',
-      ],
+      args: ["--disable-gems", "-rrbconfig", "-e", RUBY_PROBE],
       env,
     });
     return status === 0 && path.isAbsolute(stdout) && fs.existsSync(stdout)
