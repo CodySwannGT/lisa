@@ -1,0 +1,74 @@
+# captured_at 2026-11-07T19:38:09Z head cf887192e5c17bbd9e9e5d2affd0ecb3f848701a
+
+## run 42403141516: failure pull_request codex/4672-retire-native-safety-net 706bc4faf85c5771f7d581936ed895d16d34b4be
+PR for branch: 4673 OPEN head=706bc4faf85c5771f7d581936ed895d16d34b4be
+PR body binding: Work-Item: CodySwannGT/lisa#4672
+snapshot issue #4672: {"comments":5,"labels":["status:in-progress","priority:high","type:Task","repo:lisa","component:tests","component:plugins","self-hardening"],"updatedAt":"2026-11-07T18:31:29Z"}
+$ node scripts/lisa-ci-failure-redispatch.mjs --run-id 42403141516 --dry-run
+run 42403141516 -> PR #4673 -> work item CodySwannGT/lisa#4672
+outcome: redispatch — a required check failed (dry run: nothing written)
+planned: comment on CodySwannGT/lisa#4672: A required check failed on pull request #4673 at commit 706bc4faf85c5771f7d581936ed895d16d34b4be: 🔍 Quality Checks / 🧪 Run Unit Tests.
+planned: move CodySwannGT/lisa#4672 from status:in-progress to status:ready
+{
+  "repository": "CodySwannGT/lisa",
+  "runId": 42403141516,
+  "pr": 4673,
+  "sha": "706bc4faf85c5771f7d581936ed895d16d34b4be",
+  "item": "CodySwannGT/lisa#4672",
+  "outcome": "redispatch",
+  "reason": "a required check failed",
+  "actions": [
+    {
+      "kind": "comment",
+      "item": "CodySwannGT/lisa#4672",
+      "body": "A required check failed on pull request #4673 at commit 706bc4faf85c5771f7d581936ed895d16d34b4be: 🔍 Quality Checks / 🧪 Run Unit Tests.\n\nLisa moved this item from `status:in-progress` back to `status:ready` so build intake sends the owning agent back to fix the existing pull request. The work is not complete until every required check passes.\n\n<!-- [lisa-ci-failed] pr=4673 sha=706bc4faf85c5771f7d581936ed895d16d34b4be -->"
+    },
+    {
+      "kind": "relabel",
+      "item": "CodySwannGT/lisa#4672",
+      "remove": "status:in-progress",
+      "add": "status:ready"
+    }
+  ]
+}
+EXIT=0
+snapshot issue #4672: {"comments":5,"labels":["status:in-progress","priority:high","type:Task","repo:lisa","component:tests","component:plugins","self-hardening"],"updatedAt":"2026-11-07T18:31:29Z"}
+
+## run 42394865888: failure pull_request codex/4672-retire-native-safety-net 3db71f89a186d5dbeb78015aa5735fa9d8efda48
+PR for branch: 4673 OPEN head=706bc4faf85c5771f7d581936ed895d16d34b4be
+PR body binding: Work-Item: CodySwannGT/lisa#4672
+snapshot issue #4672: {"comments":5,"labels":["status:in-progress","priority:high","type:Task","repo:lisa","component:tests","component:plugins","self-hardening"],"updatedAt":"2026-11-07T18:31:29Z"}
+$ node scripts/lisa-ci-failure-redispatch.mjs --run-id 42394865888 --dry-run
+run 42394865888 -> PR #4673 -> work item (none)
+outcome: superseded-head — the PR head is now 706bc4faf85c5771f7d581936ed895d16d34b4be (dry run: nothing written)
+{
+  "repository": "CodySwannGT/lisa",
+  "runId": 42394865888,
+  "sha": "3db71f89a186d5dbeb78015aa5735fa9d8efda48",
+  "pr": 4673,
+  "outcome": "superseded-head",
+  "reason": "the PR head is now 706bc4faf85c5771f7d581936ed895d16d34b4be",
+  "actions": []
+}
+EXIT=0
+snapshot issue #4672: {"comments":5,"labels":["status:in-progress","priority:high","type:Task","repo:lisa","component:tests","component:plugins","self-hardening"],"updatedAt":"2026-11-07T18:31:29Z"}
+
+## run 42399251289: success pull_request codex/4598-shard-unit-ci 19359aff303d47ee388560741ff4d2f8f2f10c88
+PR for branch: 4674 OPEN head=19359aff303d47ee388560741ff4d2f8f2f10c88
+PR body binding: Work-Item: CodySwannGT/lisa#4598
+snapshot issue #4598: {"comments":9,"labels":["status:blocked","type:Sub-task","priority:high","repo:lisa","component:tests","component:ci","points:2"],"updatedAt":"2026-11-07T18:36:11Z"}
+$ node scripts/lisa-ci-failure-redispatch.mjs --run-id 42399251289 --dry-run
+run 42399251289 -> PR #4674 -> work item CodySwannGT/lisa#4598
+outcome: nothing-to-clear — every required check passed and no uncleared marker names this PR (dry run: nothing written)
+{
+  "repository": "CodySwannGT/lisa",
+  "runId": 42399251289,
+  "pr": 4674,
+  "sha": "19359aff303d47ee388560741ff4d2f8f2f10c88",
+  "item": "CodySwannGT/lisa#4598",
+  "outcome": "nothing-to-clear",
+  "reason": "every required check passed and no uncleared marker names this PR",
+  "actions": []
+}
+EXIT=0
+snapshot issue #4598: {"comments":9,"labels":["status:blocked","type:Sub-task","priority:high","repo:lisa","component:tests","component:ci","points:2"],"updatedAt":"2026-11-07T18:36:11Z"}

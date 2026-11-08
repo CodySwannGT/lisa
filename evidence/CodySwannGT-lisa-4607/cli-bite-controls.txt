@@ -1,0 +1,28 @@
+## B1: forged-marker-failure with the marker author changed to github-actions[bot] -> expect already-reported (no actions)
+0
+$ node scripts/lisa-ci-failure-redispatch.mjs --payload /tmp/verify-4607/mut/b1.json --dry-run
+EXIT=1
+## B2: agent-pr-failed with the failing check flipped to pass -> expect no comment, no relabel
+$ node scripts/lisa-ci-failure-redispatch.mjs --payload /tmp/verify-4607/mut/b2.json --dry-run
+outcome: nothing-to-clear — every required check passed and no uncleared marker names this PR (dry run: nothing written)
+EXIT=0
+## B3: agent-pr-failed with the failing bucket set to cancel -> expect no write (cancel is not a failure)
+$ node scripts/lisa-ci-failure-redispatch.mjs --payload /tmp/verify-4607/mut/b3.json --dry-run
+outcome: checks-pending — no required check has failed and some have not finished (dry run: nothing written)
+EXIT=0
+## B4: fixture replay without --dry-run -> expect refusal, nonzero exit
+lisa-ci-failure-redispatch: a recorded fixture can only be replayed with --dry-run
+EXIT=2
+
+## B1 note: the bot-authored variant of forged-marker-failure made the script request the label-event history (gh call not recorded: gh api repos/CodySwannGT/lisa/issues/4672/events). The author check gates the trust path.
+## B1b: agent-pr-failed-replayed with the bot marker author changed to drive-by-user -> expect redispatch
+$ node scripts/lisa-ci-failure-redispatch.mjs --payload /tmp/verify-4607/mut/b1b.json --dry-run
+outcome: not-claimed — the item is not in the claimed lane (status:in-progress) (dry run: nothing written)
+EXIT=0
+
+## B1c: forged-marker-failure, marker author -> github-actions[bot], label history from reclaimed-without-comment-replayed -> expect already-reported
+marker created_at in forged fixture: 2026-11-05T11:00:00Z
+marker created_at in reclaimed fixture: 2026-11-05T11:00:00Z
+$ node scripts/lisa-ci-failure-redispatch.mjs --payload /tmp/verify-4607/mut/b1c.json --dry-run
+outcome: already-reported — this PR head already has a [lisa-ci-failed] marker (dry run: nothing written)
+EXIT=0
