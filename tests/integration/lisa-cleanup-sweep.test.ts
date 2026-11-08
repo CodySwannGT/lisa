@@ -30,12 +30,17 @@ import {
   sweepOrphans,
 } from "../../all/copy-overwrite/scripts/lib/lisa-cleanup-sweep-processes.mjs";
 import { boundedSpawnSync } from "../../all/copy-overwrite/scripts/lib/bounded-spawn.mjs";
+import { fsLatencyBudgetMs } from "../helpers/fs-latency-budget.js";
 
 const SCRIPT = path.resolve(
   import.meta.dirname,
   "../../all/copy-overwrite/scripts/lib/lisa-cleanup-sweep.mjs"
 );
 const HOUR_MS = 60 * 60 * 1000;
+/** Entries in the piped-output corpus: the #4694 reproduction's own count. */
+const PIPED_ENTRY_COUNT = 10_000;
+/** Room to seed, sweep and delete the 10,000-entry corpus, scaled by fs load. */
+const PIPED_BASE_MS = 120_000;
 const children: ChildProcess[] = [];
 const roots: string[] = [];
 
@@ -161,4 +166,71 @@ describe("cleanup sweep, real filesystem and processes", () => {
       expect(isAlive(liveChild.pid as number)).toBe(true);
     }
   );
+
+  it(
+    "writes the whole --json report into a pipe, listing all 10,000 stale entries",
+    () => {
+      // CodySwannGT/lisa#4694: the CLI called `process.exit` straight after
+      // writing its JSON, and a write to a pipe is asynchronous, so a reader
+      // got only the first 65,536 bytes — invalid JSON. The sweep's stdout
+      // must be a PIPE for this to bite: `| cat` gives it one, exactly as the
+      // ticket's reproduction does (spawnSync captures `sh`, not the sweep).
+      // Pipe writes are asynchronous on macOS but synchronous on Linux, so the
+      // red-before-green control of this case is only reachable on darwin;
+      // elsewhere it guards the contract.
+      const root = fs.mkdtempSync(path.join(tmpdir(), "lisa-sweep-pipe-"));
+      roots.push(root);
+      const names = Array.from(
+        { length: PIPED_ENTRY_COUNT },
+        (_, index) => `lisa-sweep-pipe-${index}`
+      );
+      for (const name of names) agedDir(root, name, 48);
+      const child = boundedSpawnSync(
+        "sh",
+        [
+          "-c",
+          '"$0" "$1" --json --dry-run --no-processes | cat',
+          process.execPath,
+          SCRIPT,
+        ],
+        {
+          encoding: "utf8",
+          env: { ...process.env, TMPDIR: root },
+          maxBuffer: 16 * 1024 * 1024,
+          timeout: fsLatencyBudgetMs(PIPED_BASE_MS),
+        }
+      );
+      expect(child.status).toBe(0);
+      const output = String(child.stdout);
+      expect(Buffer.byteLength(output)).toBeGreaterThan(65_536);
+      const report = JSON.parse(output.trim());
+      expect(report.removed).toHaveLength(PIPED_ENTRY_COUNT);
+      expect(
+        new Set(report.removed.map((entry: string) => path.basename(entry)))
+      ).toEqual(new Set(names));
+      // `--dry-run`: the report lists them, the disk still holds them.
+      expect(fs.readdirSync(root)).toHaveLength(PIPED_ENTRY_COUNT);
+    },
+    fsLatencyBudgetMs(PIPED_BASE_MS)
+  );
+
+  it("prints one summary line and exits 0 without --json", () => {
+    const root = fs.mkdtempSync(path.join(tmpdir(), "lisa-sweep-int-"));
+    roots.push(root);
+    agedDir(root, "lisa-sweep-summary-old", 25);
+    const child = boundedSpawnSync(
+      process.execPath,
+      [SCRIPT, "--dry-run", "--no-processes"],
+      {
+        encoding: "utf8",
+        env: { ...process.env, TMPDIR: root },
+      }
+    );
+    expect(child.status).toBe(0);
+    const lines = String(child.stdout).trimEnd().split("\n");
+    expect(lines).toHaveLength(1);
+    expect(lines[0]).toMatch(
+      /^🧹 would sweep 1 stale temp dir, 0 orphaned test processes \(\d+ ms\)$/u
+    );
+  });
 });
