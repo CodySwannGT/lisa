@@ -147,6 +147,10 @@ function addMergeLearningsCommand(program: Command): void {
     .option("--ours <file>", "Our version; receives the result (git %A)")
     .option("--theirs <file>", "Their version (git %B)")
     .option("--path <path>", "Real pathname for diagnostics (git %P)")
+    .option(
+      "--conflict-ack <file>",
+      "File to create on a deliberate conflict (set by the driver script)"
+    )
     .action(async (options: MergeLearningsOptions) => {
       const code = await runMergeLearnings(options);
       if (code !== 0) process.exitCode = code;

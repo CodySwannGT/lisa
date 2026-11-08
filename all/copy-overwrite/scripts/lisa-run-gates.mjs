@@ -352,7 +352,7 @@ function normaliseExec(raw) {
  * code says so — the transcript it leaves behind is truncated and reads like
  * an ordinary failure.
  * @param {GateOutcome} gate The resolved gate.
- * @param {function(string, GateOutcome): (number|null|object)} exec Executor.
+ * @param {(command: string, gate: GateOutcome) => (number|null|object)} exec Executor.
  * @returns {{state: string, detail: string, code: number|null,
  *   diagnosis: string|null, evidence: string[]}} The outcome.
  */
@@ -795,7 +795,7 @@ function verdictFor(gate, { proved, blockedBy, exec, siblings, declarations }) {
  * @param {object} options.gates The gates block from `.lisa.config.json`.
  * @param {string} options.moment The moment to run.
  * @param {string} [options.runner] Task-runner prefix, e.g. `bun run`.
- * @param {function(string, GateOutcome): (number|null|undefined|{code: number|null, output: string|null})} options.exec
+ * @param {(command: string, gate: GateOutcome) => (number|null|undefined|{code: number|null, output: string|null})} options.exec
  *   Executor. BOTH shapes, because `normaliseExec` accepts both and the shipped
  *   default executor returns the object one. Declaring only `number|null` here
  *   was not merely narrow, it was wrong about the case this runner exists to
@@ -803,7 +803,7 @@ function verdictFor(gate, { proved, blockedBy, exec, siblings, declarations }) {
  *   transcript, and a number-only type can express the null while silently
  *   erasing the transcript that says what the run was doing when it died.
  *   A type that cannot describe `spawnExec` is a type no caller can trust.
- * @param {function(string): void} [options.out] Line sink; defaults to stdout.
+ * @param {(line: string) => void} [options.out] Line sink; defaults to stdout.
  * @param {Record<string, string>|null} [options.scripts] The project's package
  *   scripts, from `projectScripts`. `null` means unknown, and an unknown
  *   manifest resolves exactly as it did before `shippedAs` was consulted.
@@ -812,10 +812,10 @@ function verdictFor(gate, { proved, blockedBy, exec, siblings, declarations }) {
  *   history instead of having to terminate a real run an hour ago. Defaults to
  *   reading them, and the default is evaluated HERE — before any gate runs —
  *   so a run cannot read back the mark it is about to write.
- * @param {function({kind: string, gateId: string}): boolean} [options.recordKill]
+ * @param {(kill: {kind: string, gateId: string}) => boolean} [options.recordKill]
  *   Kill-marker writer, injectable so marker cardinality can be proved without
  *   writing to the host's shared marker directory.
- * @param {function(): (string|null)} [options.interrupted] Asks, between gates and before returning,
+ * @param {() => (string|null)} [options.interrupted] Asks, between gates and before returning,
  *   whether the run this chain serves is still there. Injectable for the same
  *   reason `exec` is: a test states that the caller went away instead of having
  *   to kill a real hook mid-chain.
@@ -1724,7 +1724,7 @@ function validateCommand() {
  * says when the problem is gone.
  * @param {string} moment The moment that was asked for.
  * @param {string[]} problems Blocking problems, from `configurationProblems`.
- * @param {function(string): void} out Line sink.
+ * @param {(line: string) => void} out Line sink.
  */
 function reportRefusal(moment, problems, out) {
   const many = problems.length !== 1;

@@ -124,6 +124,30 @@ describe("EnsureLearningsMergeDriverMigration", () => {
     expect(registeredDriver()).toBe(first);
   });
 
+  it("replaces an absolute registration and reports the change (#4640)", async () => {
+    initRepo();
+    const absolute =
+      "'/gone/worktree/node' '/gone/worktree/node_modules/@codyswann/lisa/dist/index.js' merge-learnings --base %O --ours %A --theirs %B --path %P";
+    boundedExecFileSync({
+      label: "git config legacy absolute driver",
+      command: GIT,
+      args: [
+        "config",
+        "--local",
+        `merge.${LEARNINGS_MERGE_DRIVER_NAME}.driver`,
+        absolute,
+      ],
+      cwd: projectDir,
+      env: cleanGitEnv(),
+      stdio: "ignore",
+    });
+    const result = await migration.apply(ctx());
+    expect(result.action).toBe("applied");
+    expect(result.message).toContain(absolute);
+    expect(result.message).toMatch(/worktree-portable/u);
+    expect(registeredDriver()).not.toContain("'/");
+  });
+
   it("does not register when the host opted out", async () => {
     initRepo();
     await fs.writeJson(path.join(projectDir, CONFIG_FILE), {

@@ -5456,13 +5456,13 @@ export function auditConfigKeys(config) {
  * @param {object} options Resolution inputs.
  * @param {object} options.gates The gates block.
  * @param {string} options.moment The moment to resolve.
- * @param {string} [options.runner] Task-runner prefix.
+ * @param {string|undefined} [options.runner] Task-runner prefix.
  * @param {boolean} [options.includeOff] Also report gates declared `off`, as
  *   entries with `level: "off"` and no task. Default false, because every
  *   consumer that RUNS these entries must not see a gate the project turned
  *   off. Callers that need to tell "declared off" from "never declared" — the
  *   CI façade does — pass true and branch on the level themselves.
- * @param {Record<string, string>|null} [options.scripts] The project's
+ * @param {Record<string, string>|null|undefined} [options.scripts] The project's
  *   `package.json` scripts, from `projectScripts`. Omitted or `null` means
  *   UNKNOWN, and an unknown manifest resolves exactly as it did before this
  *   option existed — a caller that has not been taught to read the manifest

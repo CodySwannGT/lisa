@@ -33,6 +33,10 @@ import { readFile } from "node:fs/promises";
 import * as path from "node:path";
 
 import { mergeDriversInAttributes } from "../core/gitattributes-merge-drivers.js";
+import {
+  inspectLearningsDriverCommand,
+  type LearningsDriverCommandFinding,
+} from "./doctor-learnings-driver-command.js";
 import { probeLearningsMergeDriverRegistration } from "../core/learnings-merge-driver-install.js";
 import { LEARNINGS_MERGE_DRIVER_NAME } from "../core/learnings-merge-driver.js";
 import { probeMergeDriverRegistration } from "../core/merge-driver-registration.js";
@@ -55,7 +59,10 @@ interface MergeDriverCheckResult {
  * @param detail - Operator-readable explanation
  * @returns Doctor check result
  */
-function result(status: "ok" | "warn", detail: string): MergeDriverCheckResult {
+function result(
+  status: MergeDriverCheckResult["status"],
+  detail: string
+): MergeDriverCheckResult {
   return { name: MERGE_DRIVERS_CHECK_NAME, status, detail };
 }
 
@@ -127,6 +134,42 @@ async function unregisteredAmong(
 }
 
 /**
+ * Whether the REGISTERED learnings command can run, beyond being set.
+ *
+ * Only asked when the learnings driver is expected here and registered; an
+ * unregistered one is already reported, and an opted-out one is not ours to
+ * judge.
+ * @param targetPath - Project path to inspect
+ * @param expected - Drivers this checkout is expected to have registered
+ * @param unregistered - The expected drivers that are not registered
+ * @returns A finding about the command, when there is one
+ */
+async function learningsCommandFinding(
+  targetPath: string,
+  expected: readonly string[],
+  unregistered: readonly string[]
+): Promise<LearningsDriverCommandFinding | undefined> {
+  return expected.includes(LEARNINGS_MERGE_DRIVER_NAME) &&
+    !unregistered.includes(LEARNINGS_MERGE_DRIVER_NAME)
+    ? inspectLearningsDriverCommand(targetPath)
+    : undefined;
+}
+
+/**
+ * One check result for several findings: the worst status, every detail.
+ * @param findings - Non-empty findings
+ * @returns Doctor check result
+ */
+function worstOf(
+  findings: readonly LearningsDriverCommandFinding[]
+): MergeDriverCheckResult {
+  return result(
+    findings.some(finding => finding.status === "fail") ? "fail" : "warn",
+    findings.map(finding => finding.detail).join(" ")
+  );
+}
+
+/**
  * The "everything is fine" sentence, which says WHICH fine it is.
  * @param expected - Drivers this checkout is expected to have registered
  * @param optedOut - Drivers a host config has declined
@@ -148,9 +191,13 @@ function satisfiedDetail(
 /**
  * Report whether this checkout can actually run the merge drivers it maps.
  *
- * Warn, never fail: an unregistered driver degrades to a merge that conflicts
- * loudly instead of one that loses content, so reddening a CI checkout over it
- * would trade a real signal for noise. The states that are genuinely fine — a
+ * Warn, not fail, for an unregistered driver: it degrades to a merge that
+ * conflicts loudly instead of one that loses content, so reddening a CI
+ * checkout over it would trade a real signal for noise. The one deliberate
+ * exception is a learnings driver whose registered command names a path that
+ * no longer exists (CodySwannGT/lisa#4640): git then reports a conflict but
+ * leaves the ledger as our side with NO markers, so it does lose content, and
+ * that fails. The states that are genuinely fine — a
  * host that opted out, a directory that is not a git repository, a repository
  * with nothing mapped — report ok and say which one they are, rather than
  * sharing one indistinguishable "skipped".
@@ -191,9 +238,21 @@ export async function checkMergeDrivers(
       : [LEARNINGS_MERGE_DRIVER_NAME];
     const expected = drivers.filter(driver => !optedOut.includes(driver));
     const unregistered = await unregisteredAmong(targetPath, expected);
-    return unregistered.length === 0
+    const command = await learningsCommandFinding(
+      targetPath,
+      expected,
+      unregistered
+    );
+    const findings = [
+      ...(command === undefined ? [] : [command]),
+      ...unregistered.map(driver => ({
+        status: "warn" as const,
+        detail: unregisteredDetail(driver),
+      })),
+    ];
+    return findings.length === 0
       ? result("ok", satisfiedDetail(expected, optedOut))
-      : result("warn", unregistered.map(unregisteredDetail).join(" "));
+      : worstOf(findings);
   } catch (error) {
     return result(
       "warn",

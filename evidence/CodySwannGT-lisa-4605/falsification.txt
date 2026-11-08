@@ -1,0 +1,39 @@
+Falsification of the checks used in this verification (HEAD 41973cd93670b20e1be3061c2456b3ab605f1bf8).
+Each mutation was applied to scripts/lisa-rollback-release.mjs, the suites (integration + unit, 40 tests)
+and/or the verifier's registry probe were re-run, and the mutation was reverted with a reverse patch.
+After all reverts: git status clean for tracked source, 40/40 tests green.
+
+M1. npm sign-in check disabled  (`.status !== 0` -> `.status === 999` on the `npm whoami` call)
+    vitest: 2 failed | 38 passed
+      FAIL tests/integration/lisa-rollback-release.test.ts > without an npm token > refuses before any write, naming the missing npm sign-in
+      FAIL tests/unit/scripts/lisa-rollback-release.test.ts > rollback — nothing is written when it should not be > refuses without npm sign-in, naming it, before any write
+    verifier probe (no token): "PUT /@codyswann%2flisa false" ... "PUT count: 1"
+      -> the probe's PUT counter detects a write reaching the registry (bite control for step 3).
+
+M2. Read-back verification made a no-op  (both `verificationProblems` conditions short-circuited to false)
+    vitest: 2 failed | 38 passed
+      FAIL tests/unit/scripts/lisa-rollback-release.test.ts > rollback — a real run > exits non-zero when the read-back does not show both facts
+      FAIL tests/unit/scripts/lisa-rollback-release.test.ts > review fixes > retries a stale read-back and passes once it is fresh
+    The integration suite stayed green: its real run genuinely succeeds, so it cannot tell a real
+    verifier from a no-op one. Verification-failure behaviour is established at code-unit only.
+
+M3. Dry run falls through to the real run  (`return options.dryRun ? ...` -> `return false ? ...`)
+    vitest: 3 failed | 37 passed
+      FAIL tests/integration/lisa-rollback-release.test.ts > with credentials present > a dry run prints the three commands with 4.90.0 and changes nothing
+      FAIL tests/unit/scripts/lisa-rollback-release.test.ts > rollback — nothing is written when it should not be > a dry run prints the commands and runs none of them
+      FAIL tests/unit/scripts/lisa-rollback-release.test.ts > main > runs a dry run end to end through injected seams
+    verifier probe (--dry-run, with token): "PUT count: 2" and "edited release notes passed to gh release edit"
+      -> the probe's PUT counter and notes-edit detector both fire on a dry run that writes (bite control for step 1).
+
+M4. A release-notes failure no longer forces exit 1
+    (`return problems.length > 0 || notesFailure !== null ? 1 : 0;` -> `return problems.length > 0 ? 1 : 0;`)
+    vitest: 1 failed | 39 passed
+      FAIL tests/unit/scripts/lisa-rollback-release.test.ts > local review fixes > still verifies npm when the release notes step fails, then exits 1
+    verifier probe (gh stub fails `release view`): "### exit code: 0"
+      -> the gh-failure probe's exit-code reading flips under the mutation (bite control for the gh-failure case).
+    The integration suite has no gh-failure case, so this behaviour is proven by the verifier's CLI probe
+    plus the unit test, not by an integration test.
+
+Inherent control in the real-run probe (step 2): the same PUT counter reported "PUT count: 2" and the
+notes-edit detector showed the edited notes on the genuine real run, so "PUT count: 0" / "no release
+notes were edited" in steps 1 and 3 are readings from a detector proven to see writes.
