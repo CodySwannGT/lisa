@@ -739,18 +739,23 @@ gh api "repos/<owner>/<repo>/rules/branches/<base>" \
   --jq '[.[] | select(.type == "required_status_checks")] | length'
 gh api "repos/<owner>/<repo>/branches/<base>/protection/required_status_checks" \
   --jq '(.contexts // []) + [(.checks // [])[].context] | length'
+gh api "repos/<owner>/<repo>/branches/<base>" --jq .protected
 ```
 
 The wait does not apply only when BOTH say none: the rules read returns `0`
-AND the classic read returns 404 or `0`. Any other error from either read means
-the requirement is unknown — treat the base as requiring checks. Otherwise the
+AND the classic read returns `0`, or 404 while the branch read says `.protected`
+is `false`. GitHub also answers 404 when the token cannot read protection (it
+needs admin), so a 404 on a protected branch — or any other error from either
+read — means the requirement is unknown: treat the base as requiring checks.
+With no required checks, the loop just re-polls for the other blockers. Otherwise the
 head's checks have not started: re-poll, and re-run the bounded watch once the
 re-poll shows required checks registered. Between those re-polls, wait with this
-one foreground bounded gap — the `sleep` covers a head with no checks at all,
-where the watch returns at once:
+one foreground bounded gap — the `sleep` always runs, because the watch can
+return at once (no checks yet, or every reported check already green while a
+required one has not registered):
 
 ```bash
-timeout 60 gh pr checks <pr> --watch --interval 10 || sleep 30
+timeout 60 gh pr checks <pr> --watch --interval 10; sleep 30
 ```
 
 Never a detached or unbounded sleep loop. After 10 re-polls with no required

@@ -160,10 +160,10 @@ describe.each(ROOTS)("drive-pr-to-merge bounded CI watch (%s)", root => {
 
   it("contains no runnable instruction that starts a background watcher", () => {
     // The one sleep allowed is the bounded foreground gap between re-polls for
-    // a head with no checks yet: a single `timeout N gh pr checks ... || sleep N`
+    // a head with no checks yet: a single `timeout N gh pr checks ...; sleep N`
     // line. A standalone, looped or backgrounded sleep is still an offender.
     const boundedGap =
-      /^\s*timeout \d+ gh pr checks <pr> --watch --interval \d+ \|\| sleep \d+\s*$/;
+      /^\s*timeout \d+ gh pr checks <pr> --watch --interval \d+; sleep \d+\s*$/;
     const lines = fencedLines(content);
     expect(lines.length).toBeGreaterThan(0);
     const offenders = lines.filter(
@@ -222,15 +222,24 @@ describe.each(ROOTS)("drive-pr-to-merge bounded CI watch (%s)", root => {
     const loop = watchLoop();
     expect(loop).toMatch(/\*\*No required checks reported yet\.\*\*/);
     expect(loop).toMatch(
-      /does not apply only when BOTH say none: the rules read returns `0`\s+AND the classic read returns 404 or `0`/
+      /does not apply only when BOTH say none: the rules read returns `0`\s+AND the classic read returns `0`, or 404 while the branch read says `\.protected`\s+is `false`/
     );
     expect(loop).toContain("/protection/required_status_checks");
+    // A 404 is also what a token without admin gets on a protected branch.
+    expect(loop).toContain('branches/<base>" --jq .protected');
+    expect(loop).toMatch(/a 404 on a protected branch/);
+    expect(loop).toMatch(
+      /With no required checks, the loop just re-polls for the other blockers/
+    );
     expect(loop).toMatch(
       /re-run the bounded watch once the\s+re-poll shows required checks registered/
     );
     expect(loop).toContain(
-      "timeout 60 gh pr checks <pr> --watch --interval 10 || sleep 30"
+      "timeout 60 gh pr checks <pr> --watch --interval 10; sleep 30"
     );
+    // `||` would skip the pause when the watch exits 0 at once (every reported
+    // check green, a required one not yet registered) and spin the re-polls.
+    expect(loop).not.toContain("--interval 10 || sleep");
     expect(loop).toMatch(/Never a detached or unbounded sleep loop/);
     expect(loop).toMatch(
       /After 10 re-polls with no required\s+check registered/
