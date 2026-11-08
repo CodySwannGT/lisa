@@ -1,0 +1,11 @@
+mise actionlint@1.7.12 [1/3] install
+mise actionlint@1.7.12 [1/3] download actionlint_1.7.12_darwin_arm64.tar.gz
+mise actionlint@1.7.12 [2/3] verify GitHub artifact attestations
+mise Cannot parse Rekor public key with id cf1199155bddd051268d1f16ac5c0c75c009f6fb5a63f4177f8e18d7051e3fa0: Pkcs8 spki error : Ecdsa-P256 from der bytes to public key failed: unknown/unsupported algorithm OID: 1.2.840.10045.2.1
+mise actionlint@1.7.12 [2/3] ✓ GitHub artifact attestations verified
+mise actionlint@1.7.12 [2/3] checksum actionlint_1.7.12_darwin_arm64.tar.gz
+mise actionlint@1.7.12 [3/3] extract actionlint_1.7.12_darwin_arm64.tar.gz
+mise actionlint@1.7.12 ✓ installed
+1.7.12
+installed by downloading from release page
+built with go1.26.1 compiler for darwin/arm64
