@@ -55,11 +55,20 @@ export async function answerPlan(ctx) {
   const ledger = await asSetupErrorAsync(() => readLedger(ctx.root));
   const entry = Object.hasOwn(ledger.items, ref) ? ledger.items[ref] : null;
   const pending = entry?.pendingQuestion ?? null;
+  // Deliberate defence in depth: planAnswerRecord refuses a credential too,
+  // but this check runs first, whatever the plan would decide, so a
+  // credential that reached the ledger by any route is always reported as
+  // one (exit 2, nothing printed) and never as an ordinary plan.
   if (pending?.answer) {
     refuseCredential(pending.answer.text, "nothing will be posted on the item");
   }
   const plan = asSetupError(() =>
-    planAnswerRecord({ ref, status: entry?.status, pending })
+    planAnswerRecord({
+      ref,
+      status: entry?.status,
+      worker: entry?.worker ?? null,
+      pending,
+    })
   );
   return { json: plan };
 }

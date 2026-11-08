@@ -181,6 +181,11 @@ const CREDENTIAL_SHAPES = [
   ["API key", /\bsk-(?:ant-)?[A-Za-z0-9_-]{20,}/],
   ["private key", /-----BEGIN [A-Z ]*PRIVATE KEY-----/],
   ["bearer token", /\bbearer\s+[A-Za-z0-9._~+/=-]{20,}/i],
+  ["URI with a password", /\b[a-z][a-z0-9+.-]*:\/\/[^\s:/@]+:[^\s@]+@/i],
+  [
+    "password or secret assignment",
+    /\b(?:password|passwd|secret|token)\s*[=:]\s*\S{6,}/i,
+  ],
 ];
 
 /**

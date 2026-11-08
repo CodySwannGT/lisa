@@ -37,6 +37,9 @@ afterEach(removeSandboxes);
 const ANSWER = "use the v2 endpoint";
 const ANSWER_PLAN = "answer-plan";
 const LEDGER = "ledger";
+const DECISION = "decision";
+const CHANNEL_ANSWER = "channel-answer";
+const REMOVE_MARKER = "remove-marker";
 const CLEAR_QUESTION = "clear-question";
 const SPAWN_A = [LEDGER, "record-spawn", REF, "--worker", "wk-a"];
 const RECORD_PREFIX =
@@ -80,7 +83,7 @@ describe("answer-plan", () => {
   it("plans posting a Telegram answer (channel-answer) to a DONE worker's question", () => {
     const sandbox = githubSandbox();
     finishedWithQuestion(sandbox, "DONE");
-    const queued = runStubOnly(sandbox, ["channel-answer", REF], {
+    const queued = runStubOnly(sandbox, [CHANNEL_ANSWER, REF], {
       input: ANSWER,
     });
     expect(queued.status).toBe(0);
@@ -100,6 +103,35 @@ describe("answer-plan", () => {
     expect(runStubOnly(sandbox, [ANSWER_PLAN, REF]).json).toMatchObject({
       record: true,
       source: "cli",
+    });
+  });
+
+  it.each([
+    ["answer", "cli"],
+    [CHANNEL_ANSWER, "channel"],
+  ])(
+    "plans posting an answer from %s to a decision no worker has picked up",
+    (command, source) => {
+      const sandbox = githubSandbox();
+      ask(sandbox, DECISION);
+      expect(
+        runStubOnly(sandbox, [command, REF], { input: ANSWER }).status
+      ).toBe(0);
+      const plan = runStubOnly(sandbox, [ANSWER_PLAN, REF]);
+      expect(plan.json).toMatchObject({ ref: REF, record: true, source });
+      expect(plan.json.comment.endsWith(`: ${ANSWER}`)).toBe(true);
+    }
+  );
+
+  it("posts nothing for a decision whose worker is still running", () => {
+    const sandbox = githubSandbox();
+    runStubOnly(sandbox, SPAWN_A);
+    ask(sandbox, DECISION);
+    runStubOnly(sandbox, ["answer", REF], { input: ANSWER });
+    expect(runStubOnly(sandbox, [ANSWER_PLAN, REF]).json).toEqual({
+      ref: REF,
+      record: false,
+      reason: "worker-not-finished",
     });
   });
 
@@ -138,7 +170,7 @@ describe("answer-plan", () => {
   it("refuses a credential-shaped answer: exit 2, nothing to post", () => {
     const sandbox = githubSandbox();
     finishedWithQuestion(sandbox, "FAILED");
-    const leak = runStubOnly(sandbox, ["channel-answer", REF], {
+    const leak = runStubOnly(sandbox, [CHANNEL_ANSWER, REF], {
       input: LEAK,
     });
     expect(leak.status).toBe(2);
@@ -194,18 +226,21 @@ function stubTracker(fail: "none" | "post" | "read-back") {
 }
 
 /**
- * The runbook's Clearing for a finished worker (SKILL.md "Clearing"):
- * `answer-plan`, post its comment, read it back, and only then remove the
- * marker and `ledger clear-question`. A failed post or read-back stops
- * before clearing, leaving the question pending (the cycle ends
- * recovery-required).
+ * A scripted replay of the runbook's Clearing sequence (SKILL.md "Clearing"),
+ * driving the real CLI with a stub tracker: `answer-plan`, post its comment,
+ * read it back, and only then remove the marker and `ledger clear-question`.
+ * A failed post or read-back stops before clearing. It demonstrates that the
+ * CLI pieces support that order (Validation Journey step 2); it does not
+ * test the SKILL.md text, which the strategies contract tests pin.
  * @param sandbox - Project sandbox
  * @param tracker - Stub tracker
+ * @param clearFlags - Extra `ledger clear-question` flags
  * @returns Whether the question was cleared
  */
-function clearing(
+function replayClearing(
   sandbox: Sandbox,
-  tracker: ReturnType<typeof stubTracker>
+  tracker: ReturnType<typeof stubTracker>,
+  clearFlags: readonly string[] = []
 ): boolean {
   const plan = runStubOnly(sandbox, [ANSWER_PLAN, REF]);
   expect(plan.status).toBe(0);
@@ -213,24 +248,47 @@ function clearing(
     if (!tracker.post(plan.json.comment)) return false;
     if (!tracker.readBack(plan.json.comment)) return false;
   }
-  tracker.steps.push({ step: "remove-marker" });
-  expect(runStubOnly(sandbox, [LEDGER, CLEAR_QUESTION, REF]).status).toBe(0);
+  tracker.steps.push({ step: REMOVE_MARKER });
+  expect(
+    runStubOnly(sandbox, [LEDGER, CLEAR_QUESTION, REF, ...clearFlags]).status
+  ).toBe(0);
   tracker.steps.push({ step: CLEAR_QUESTION });
   return true;
 }
 
-describe("Clearing a finished worker's question", () => {
+describe("replaying the runbook's Clearing sequence with a stub tracker", () => {
+  it("an exhausted item's answer is posted and read back before clear-question --reset-attempts", () => {
+    const sandbox = githubSandbox();
+    runStubOnly(sandbox, SPAWN_A);
+    runStubOnly(sandbox, SPAWN_A);
+    ask(sandbox, "exhausted");
+    runStubOnly(sandbox, ["answer", REF], { input: ANSWER });
+    const tracker = stubTracker("none");
+
+    expect(replayClearing(sandbox, tracker, ["--reset-attempts"])).toBe(true);
+    expect(tracker.steps.map(step => step.step)).toEqual([
+      "post",
+      "read-back",
+      REMOVE_MARKER,
+      CLEAR_QUESTION,
+    ]);
+    expect(tracker.steps[0]?.detail).toContain(ANSWER);
+    const entry = readLedgerFile(sandbox).items[REF];
+    expect(entry.pendingQuestion).toBeNull();
+    expect(entry.attempts).toBe(0);
+  });
+
   it("posts the answer and reads it back before clear-question", () => {
     const sandbox = githubSandbox();
     finishedWithQuestion(sandbox, "FAILED");
     runStubOnly(sandbox, ["answer", REF], { input: ANSWER });
     const tracker = stubTracker("none");
 
-    expect(clearing(sandbox, tracker)).toBe(true);
+    expect(replayClearing(sandbox, tracker)).toBe(true);
     expect(tracker.steps.map(step => step.step)).toEqual([
       "post",
       "read-back",
-      "remove-marker",
+      REMOVE_MARKER,
       CLEAR_QUESTION,
     ]);
     expect(tracker.steps[0]?.detail).toContain(ANSWER);
@@ -245,7 +303,7 @@ describe("Clearing a finished worker's question", () => {
       runStubOnly(sandbox, ["answer", REF], { input: ANSWER });
       const tracker = stubTracker(fail);
 
-      expect(clearing(sandbox, tracker)).toBe(false);
+      expect(replayClearing(sandbox, tracker)).toBe(false);
       expect(tracker.steps.map(step => step.step)).not.toContain(
         CLEAR_QUESTION
       );

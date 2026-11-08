@@ -43,32 +43,36 @@ function withAnswer(head, text) {
 }
 
 /**
- * Why no comment is needed, or null when one is.
+ * Why no comment is needed, or null when one is. No worker receives the
+ * answer when the worker finished, the item is `exhausted`, or no worker has
+ * been started yet (a `decision`, say): then only the item can carry it. A
+ * `repo-route` answer with no worker is carried by the `repo:<name>` stamp.
  * @param {string | undefined} status - The ledger item's status
+ * @param {string | null | undefined} worker - The ledger item's worker
  * @param {{kind?: string, answer?: {source: string} | null} | null} pending
  *   - The pending question
  * @returns {string | null} Reason
  */
-function skipReason(status, pending) {
+function skipReason(status, worker, pending) {
   if (!pending) return "no-pending-question";
   if (!pending.answer) return "no-answer-queued";
   if (pending.answer.source === "item") return "answered-on-item";
-  if (!FINISHED.has(status ?? "") && pending.kind !== "exhausted") {
-    return "worker-not-finished";
-  }
-  return null;
+  if (pending.kind === "exhausted" || FINISHED.has(status ?? "")) return null;
+  if (worker) return "worker-not-finished";
+  return pending.kind === "repo-route" ? "routed-by-repo-stamp" : null;
 }
 
 /**
  * Plan recording a queued answer on the item. Throws when the answer looks
  * like it holds a credential: it would be posted on the item.
- * @param {{ref: string, status?: string, pending: object | null}} input -
- *   The item's ref, its ledger status and its pending question
+ * @param {{ref: string, status?: string, worker?: string | null,
+ *   pending: object | null}} input - The item's ref, its ledger status and
+ *   worker, and its pending question
  * @returns {{ref: string, record: false, reason: string} |
  *   {ref: string, record: true, source: string, comment: string}} Plan
  */
-export function planAnswerRecord({ ref, status, pending }) {
-  const reason = skipReason(status, pending);
+export function planAnswerRecord({ ref, status, worker, pending }) {
+  const reason = skipReason(status, worker, pending);
   if (reason) return { ref, record: false, reason };
   const { source, text, at } = pending.answer;
   const shape = findCredentialShape(text);
@@ -83,7 +87,7 @@ export function planAnswerRecord({ ref, status, pending }) {
     record: true,
     source,
     comment: withAnswer(
-      `${MANAGER_COMMENT_PREFIX} The operator answered the question above (by ${by}, ${at}):`,
+      `${MANAGER_COMMENT_PREFIX} The operator answered the question above (by ${by}, ${at ?? "time unknown"}):`,
       text
     ),
   };

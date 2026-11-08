@@ -112,18 +112,47 @@ describe.each(ALL_ROOTS)("mark and move on (%s)", root => {
       "`[lisa-session-manager] Answer recorded on the item; removed the hold.`"
     );
     expect(clearing).not.toContain("Deliver nothing; the next attempt reads");
+    expect(clearing).toContain(
+      "`decision` with no worker yet: nothing to deliver. Record the answer on the item (below)"
+    );
     const handling = section(
       skill,
       "## Handling messages (any time, not only during a cycle)"
     );
-    expect(handling).toContain(
-      "first queue it in the ledger: `channel-answer <ref>` with `body` on STDIN"
+    // Live-worker delivery is unchanged from main (Scenario 5): the route
+    // still opens with Clearing, and channel-answer runs only for an answer
+    // no worker will receive.
+    const telegramAnswer = handling.slice(
+      handling.indexOf("  - `answer`: "),
+      handling.indexOf("  - `ambiguous`: ")
+    );
+    expect(telegramAnswer).toMatch(
+      /^ {2}- `answer`: follow "Clearing" in "Mark and move on" with `message` as the answer \(`SendMessage`\n {4}to a live worker, `resume <ref>`/
+    );
+    expect(telegramAnswer).toContain("**Only when no worker will receive it**");
+    expect(telegramAnswer).toContain(
+      "first queue it in the ledger with `channel-answer <ref>`"
+    );
+    expect(telegramAnswer).toContain(
+      "A live or resumable\n    worker gets its answer exactly as before, without `channel-answer`."
+    );
+    expect(
+      telegramAnswer.indexOf("**Only when no worker will receive it**")
+    ).toBeLessThan(telegramAnswer.indexOf("`channel-answer <ref>`"));
+    expect(telegramAnswer).toContain(
+      "has two causes, told apart by its stderr"
+    );
+    expect(telegramAnswer).toContain(
+      "reply that the question was already answered or nothing is pending"
+    );
+    expect(telegramAnswer).toContain(
+      "When the answer was recorded on the item, say so in the acknowledgement: it was posted on the\n    item"
     );
     const recovery = section(skill, "## Run outcome")
       .split("\n")
       .find(line => line.endsWith("| `recovery-required` |"));
     expect(recovery).toContain(
-      "an answer for a finished worker or an `exhausted` item could not be posted on the item or read back"
+      "an answer for a finished worker, an `exhausted` item or a `decision` no worker has picked up could not be posted on the item or read back"
     );
   });
 

@@ -15,13 +15,19 @@
 import { describe, expect, it } from "vitest";
 
 import { planAnswerRecord } from "../../../plugins/src/base/skills/lisa-session-manager/scripts/answer-record.mjs";
-import { MANAGER_COMMENT_PREFIX } from "../../../plugins/src/base/skills/lisa-session-manager/scripts/human-needed.mjs";
+import {
+  MANAGER_COMMENT_PREFIX,
+  findCredentialShape,
+} from "../../../plugins/src/base/skills/lisa-session-manager/scripts/human-needed.mjs";
 
 const REF = "o/r#7";
 const AT = "2026-11-08T12:00:00.000Z";
 const ANSWER = "use the v2 endpoint";
 const WORKER_QUESTION = "worker-question";
 const FAILED = "FAILED";
+const DECISION = "decision";
+/** A made-up value, assembled so secret scanners do not flag the fixture. */
+const FAKE = ["not", "real", "value"].join("-");
 
 /**
  * A pending question with a queued answer.
@@ -88,14 +94,60 @@ describe("planAnswerRecord", () => {
     ).toEqual({ ref: REF, record: false, reason: "answered-on-item" });
   });
 
-  it.each(["running", "question"])(
-    "leaves an answer to a worker that has not finished (%s) unchanged",
-    status => {
+  it.each([
+    ["running", WORKER_QUESTION],
+    ["question", WORKER_QUESTION],
+    ["running", DECISION],
+  ])(
+    "leaves an answer to a worker that has not finished (%s, %s) unchanged",
+    (status, kind) => {
       expect(
-        planAnswerRecord({ ref: REF, status, pending: pending("cli") })
+        planAnswerRecord({
+          ref: REF,
+          status,
+          worker: "wk-a",
+          pending: pending("cli", ANSWER, kind),
+        })
       ).toEqual({ ref: REF, record: false, reason: "worker-not-finished" });
     }
   );
+
+  it.each(["cli", "channel"])(
+    "records a %s answer to a decision no worker has picked up yet",
+    source => {
+      const plan = planAnswerRecord({
+        ref: REF,
+        status: "question",
+        worker: null,
+        pending: pending(source, ANSWER, DECISION),
+      });
+      expect(plan).toMatchObject({ record: true, source });
+      expect(commentOf(plan)).toContain(ANSWER);
+    }
+  );
+
+  it("leaves a repo-route answer with no worker to the repo stamp", () => {
+    expect(
+      planAnswerRecord({
+        ref: REF,
+        status: "question",
+        worker: null,
+        pending: pending("cli", "backend", "repo-route"),
+      })
+    ).toEqual({ ref: REF, record: false, reason: "routed-by-repo-stamp" });
+  });
+
+  it("says the time is unknown when the queued answer has none", () => {
+    const base = pending("cli");
+    const plan = planAnswerRecord({
+      ref: REF,
+      status: FAILED,
+      pending: { ...base, answer: { ...base.answer, at: undefined } },
+    });
+    expect(commentOf(plan)).toBe(
+      `[lisa-session-manager] The operator answered the question above (by answer, time unknown): ${ANSWER}`
+    );
+  });
 
   it("records nothing when no question or no answer is pending", () => {
     expect(
@@ -119,6 +171,25 @@ describe("planAnswerRecord", () => {
         pending: pending("cli", leak),
       })
     ).toThrow(/credential/);
+  });
+
+  it.each([
+    ["a URI with a password", `use postgres://app:${FAKE}@db.internal/x`],
+    ["a password assignment", `password=${FAKE}`],
+    ["a token assignment", `Token: ${FAKE}`],
+    ["a secret assignment", `SECRET = ${FAKE}`],
+  ])("refuses %s", (_label, text) => {
+    expect(findCredentialShape(text)).not.toBeNull();
+  });
+
+  it.each([
+    "use the v2 endpoint at https://api.example.com/v2",
+    "the token expires daily, so refresh it",
+    "https://ops@example.com/runbook",
+    "rotate the secret: yes",
+    "mailto:ops@example.com",
+  ])("does not refuse ordinary prose: %s", text => {
+    expect(findCredentialShape(text)).toBeNull();
   });
 
   it("keeps a multi-line answer verbatim as a quote under the first line", () => {
