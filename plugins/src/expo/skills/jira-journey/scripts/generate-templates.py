@@ -21,6 +21,37 @@ import sys
 from pathlib import Path
 
 
+def evidence_release():
+    """The GitHub release evidence is uploaded to, matching post-evidence.sh.
+
+    LISA_EVIDENCE_RELEASE wins when set. Otherwise ask the project's
+    `scripts/lisa-work-item.mjs evidence-release`, the one resolver every
+    writer shares, so a configured rotation such as `pr-assets-{YYYY-MM}`
+    reaches these links too (CodySwannGT/lisa#4692). A host without the
+    resolver keeps the legacy `pr-assets` release.
+    """
+    configured = os.environ.get("LISA_EVIDENCE_RELEASE", "").strip()
+    if configured:
+        return configured
+    try:
+        root = subprocess.run(
+            ["git", "rev-parse", "--show-toplevel"],
+            capture_output=True, text=True, check=True,
+        ).stdout.strip()
+    except (OSError, subprocess.CalledProcessError):
+        root = os.getcwd()
+    cli = Path(root) / "scripts" / "lisa-work-item.mjs"
+    if cli.is_file():
+        result = subprocess.run(
+            ["node", str(cli), "evidence-release"],
+            capture_output=True, text=True, cwd=root,
+        )
+        if result.returncode != 0:
+            sys.exit(f"ERROR: could not resolve the evidence release: {result.stderr.strip()}")
+        return result.stdout.strip()
+    return "pr-assets"
+
+
 def get_jira_server():
     """Read JIRA server URL from jira-cli config."""
     config_path = Path.home() / ".config" / ".jira" / ".config.yml"
@@ -162,7 +193,7 @@ def generate_jira_wiki(ticket_id, pr_number, branch, screenshots, journey, gh_re
 def generate_github_md(ticket_id, pr_number, branch, screenshots, journey, gh_repo):
     """Generate GitHub markdown comment."""
     jira_server = get_jira_server()
-    release_base = f"https://github.com/{gh_repo}/releases/download/pr-assets"
+    release_base = f"https://github.com/{gh_repo}/releases/download/{evidence_release()}"
 
     lines = []
     lines.append(f"## Evidence — PR #{pr_number}")

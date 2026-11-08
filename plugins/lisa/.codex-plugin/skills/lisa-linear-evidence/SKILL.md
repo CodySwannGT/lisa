@@ -3,7 +3,7 @@ name: lisa-linear-evidence
 description: "Uploads text evidence to the…"
 allowed-tools: ["Bash", "Skill"]
 ---
-Uploads text evidence to the GitHub `pr-assets` release, updates the PR description, posts a comment on the originating Linear Issue with code blocks, and transitions the Issue from the configured `claimed` workflow state to the configured `review` workflow state. Reusable by any skill that captures evidence and generates evidence/comment.txt + evidence/code-blocks.md. Linear counterpart of lisa-jira-evidence and lisa-github-evidence.
+Uploads text evidence to the configured GitHub evidence release (default `pr-assets`), updates the PR description, posts a comment on the originating Linear Issue with code blocks, and transitions the Issue from the configured `claimed` workflow state to the configured `review` workflow state. Reusable by any skill that captures evidence and generates evidence/comment.txt + evidence/code-blocks.md. Linear counterpart of lisa-jira-evidence and lisa-github-evidence.
 
 
 # Linear Evidence: $ARGUMENTS
@@ -48,7 +48,7 @@ The caller must produce:
 
 - `evidence/comment.txt` — the human-readable comment body posted on the Linear Issue.
 - `evidence/code-blocks.md` — fenced code blocks (test outputs, command output, log excerpts) appended to the comment.
-- `evidence/files/` (optional) — any text files that should be uploaded to the GitHub `pr-assets` release for permalink-style references.
+- `evidence/files/` (optional) — any text files that should be uploaded to the configured evidence release (`node scripts/lisa-work-item.mjs evidence-release --ensure` prints it; default `pr-assets`) for permalink-style references.
 
 If any of these are missing, stop and report.
 
@@ -69,7 +69,7 @@ If either is missing, **refuse to post**: stop and report the missing Not-establ
 
 ## Phase 2 — Upload Evidence Files (optional)
 
-If `evidence/files/` is non-empty, upload each text file to the GitHub `pr-assets` release on the current repo via `gh release upload`. The release is the permalink store — keeps the Linear comment lightweight while preserving large outputs.
+If `evidence/files/` is non-empty, resolve the release with `RELEASE=$(node scripts/lisa-work-item.mjs evidence-release --ensure)` (it creates a missing release and stops when one is nearly full; default `pr-assets`), then upload each text file to it on the current repo via `gh release upload "$RELEASE"`. The release is the permalink store — keeps the Linear comment lightweight while preserving large outputs.
 
 For each uploaded file, capture the public release URL.
 

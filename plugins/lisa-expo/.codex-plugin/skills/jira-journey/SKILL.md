@@ -132,6 +132,8 @@ This generates `evidence/comment.txt` (JIRA wiki markup) and `evidence/comment.m
 - The verification journey steps
 - Assertions as verification results
 
+The GitHub links point at the configured evidence release, the same one `post-evidence.sh` uploads to: the generator asks `node scripts/lisa-work-item.mjs evidence-release` (default `pr-assets`). Set `LISA_EVIDENCE_RELEASE` to override it for one run.
+
 ### Step 5: Post Evidence
 
 Use the jira-evidence skill to post everything:

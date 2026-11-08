@@ -1,8 +1,8 @@
 ---
 name: lisa-jira-evidence
-description: "Upload text evidence to GitHub…"
+description: "Upload text evidence to the…"
 ---
-Upload text evidence to GitHub pr-assets release, update PR description, post JIRA comment with code blocks, and move ticket to the configured review status only when `jira.workflow.review` is set (otherwise leave it in `claimed`). Reusable by any skill that captures evidence and generates evidence/comment.txt + evidence/comment.md.
+Upload text evidence to the configured GitHub evidence release (default pr-assets), update PR description, post JIRA comment with code blocks, and move ticket to the configured review status only when `jira.workflow.review` is set (otherwise leave it in `claimed`). Reusable by any skill that captures evidence and generates evidence/comment.txt + evidence/comment.md.
 
 
 # JIRA Evidence Posting
@@ -75,7 +75,7 @@ bash .claude/skills/jira-evidence/scripts/post-evidence.sh PROJ-123 ./evidence 4
 ## What It Does
 
 1. **Read JIRA config** — Resolves the jira-cli config (`$PROJECT_DIR/.lisa/jira-cli/.config.yml` first, then `~/.config/.jira/.config.yml`, announcing the fallback) and reads `server` and `login` from it dynamically — no hardcoded values. Exits 1 naming both paths when neither exists. The same resolved path is then passed to `jira issue move` as `--config`, so the CLI cannot end up on a different config than the one this script parsed.
-2. **Upload to GitHub `pr-assets` release** — Uploads evidence files via `gh release upload --clobber`
+2. **Upload to the configured evidence release (`node scripts/lisa-work-item.mjs evidence-release --ensure` prints it; default `pr-assets`)** — Uploads evidence files via `gh release upload --clobber`
 3. **Update PR description** — Replaces or appends the `## Evidence` section in the PR body
 4. **Post JIRA comment** — Posts `comment.txt` as a new comment (wiki markup with code blocks)
 5. **Move ticket to the configured review status** — Transitions the JIRA ticket to `$REVIEW` (default: `Code Review`).
@@ -97,11 +97,16 @@ evidence/
 
 ### Evidence not appearing in GitHub PR
 
-Evidence files must be in the `pr-assets` GitHub release. If the release does not exist:
+Evidence files must be in the configured evidence release (`node scripts/lisa-work-item.mjs evidence-release --ensure` prints it; default `pr-assets`). Create it when it is missing, and
+check it is not at GitHub's 1000-file limit, with:
 
 ```bash
-gh release create pr-assets --title "PR Assets" --notes "CDN for PR evidence"
+node scripts/lisa-work-item.mjs evidence-release --ensure
 ```
+
+If it reports the release is nearly full, set
+`verification.completion.evidenceRelease` in `.lisa.config.json` to a rotating
+name such as `pr-assets-{YYYY-MM}`; older evidence keeps validating.
 
 ### JIRA API returns 403
 
