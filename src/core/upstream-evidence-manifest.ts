@@ -277,7 +277,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-floor-collisions.mjs":
       "345832c63c85df32acbed9b183b06239fc10ccb1491bd11607b5840ac1d18573",
     "all/copy-overwrite/scripts/lisa-gates.mjs":
-      "640b0d07b61ac1d07c00dd6f7730ce34d05a76930a2984a7365dd6c26543defd",
+      "2f0f7156c1ad237551f96aec7541e9c498e80165356604cb5581fcc35e0aad23",
     "all/copy-overwrite/scripts/lisa-history-secrets.mjs":
       "815fd6403aed6194d30939b59dc5ce894f7122a9da598acee4cd529a1b520de3",
     "all/copy-overwrite/scripts/lisa-hooks/block-blind-automerge.sh":
@@ -335,7 +335,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/npm-updater-gate.Dockerfile":
       "f5d85f8fccfd97f7800c03430a38c19d584314b0a6a63aa1de28fb62897fbcc5",
     "all/copy-overwrite/scripts/npm-updater-helper-graph.json":
-      "25bde11dcbd1253e63af13174c00a91d731079de82f72cc27b0ca784d0fcb065",
+      "bf7f41d6c90b3f0f7e3443ebe69962a9e910e2c6a8506dae8d77a46106e3592f",
     "all/copy-overwrite/scripts/review-evidence-event.mjs":
       "1c5d510bc66f8ba23b6f046246f41182c17946a50126fb88e371d2aec9dfd6b2",
     "all/copy-overwrite/scripts/schemas/lisa-command-envelope.v1.schema.json":
@@ -11380,6 +11380,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/apply-rollback-removes-created-files.test.ts": true,
     "tests/integration/apply-unattended-preserves-host-config.test.ts": true,
     "tests/integration/audit-consumer-parity.test.ts": true,
+    "tests/integration/audit-registry-verdict.test.ts": true,
     "tests/integration/audit-workflow-action.test.ts": true,
     "tests/integration/auto-update-pr-branches-removed.test.ts": true,
     "tests/integration/bootstrap-keychain.test.ts": true,

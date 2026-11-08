@@ -900,6 +900,16 @@ export const REGISTRY = Object.freeze({
     // green wrong with no change to trigger a re-scan.
     moments: [...PUSH_ONWARD, CONTINUOUS],
     work: "manifests scanned",
+    // The canonical audit's own verdict lines (scripts/lisa-audit.mjs). The
+    // shipped classifier reads vitest and tsc, not this audit, so without them
+    // a real finding was reported UNPROVABLE — "nothing here is a verdict about
+    // the code" — about an audit that had named the uncovered copy (#4521).
+    // A project's own `failure_shape` replaces this default; like any declared
+    // shape it is consulted only when nothing else classified the output.
+    failureShape: [
+      "❌ High or critical vulnerabilities found",
+      "Security audit failed closed",
+    ],
   },
   "static-security": {
     label: "🔍 Static Security Analysis",
@@ -5621,8 +5631,10 @@ export function resolveMoment({
       // Carried on every resolved entry, including an awaited one. It describes
       // what the project SAID about this moment's prover, and the project said
       // it whatever mode the moment resolves to — the same argument `declared`
-      // makes one field up.
-      failureShape: entry[FAILURE_SHAPE_FIELD] ?? null,
+      // makes one field up. Absent a declaration, a built-in's own known
+      // verdict lines apply (today only the canonical dependency audit's).
+      failureShape:
+        entry[FAILURE_SHAPE_FIELD] ?? definition?.failureShape ?? null,
       mayRewrite: definition?.mayRewrite === true,
       costly: definition?.costly === true,
     });
