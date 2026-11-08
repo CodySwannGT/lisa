@@ -1,0 +1,68 @@
+### MUTATION: pending status no longer ignored (scripts/lisa-ci-failure-redispatch.mjs)
+ scripts/lisa-ci-failure-redispatch.mjs | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+     × status-pending.json plans nothing (ignored-pending-status)
+     × reads nothing at all for a pending status or an Actions-owned check run
+     × replays status-pending.json as ignored-pending-status with 0 planned writes
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 3 ⎯⎯⎯⎯⎯⎯⎯
+ FAIL  |lisa| tests/unit/scripts/lisa-ci-failure-redispatch-third-party.test.ts > irrelevant events do nothing > status-pending.json plans nothing (ignored-pending-status)
+ FAIL  |lisa| tests/unit/scripts/lisa-ci-failure-redispatch-third-party.test.ts > irrelevant events do nothing > reads nothing at all for a pending status or an Actions-owned check run
+ FAIL  |lisa| tests/unit/scripts/lisa-ci-failure-redispatch-third-party.test.ts > the CLI under plain node > replays status-pending.json as ignored-pending-status with 0 planned writes
+ Test Files  1 failed | 6 passed (7)
+      Tests  3 failed | 96 passed (99)
+
+### MUTATION: actions-owned check run no longer ignored (script) (scripts/lisa-ci-failure-redispatch.mjs)
+ scripts/lisa-ci-failure-redispatch.mjs | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+     × check-run-actions-owned.json plans nothing (ignored-actions-check)
+     × reads nothing at all for a pending status or an Actions-owned check run
+     × replays check-run-actions-owned.json as ignored-actions-check with 0 planned writes
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 3 ⎯⎯⎯⎯⎯⎯⎯
+ FAIL  |lisa| tests/unit/scripts/lisa-ci-failure-redispatch-third-party.test.ts > irrelevant events do nothing > check-run-actions-owned.json plans nothing (ignored-actions-check)
+ FAIL  |lisa| tests/unit/scripts/lisa-ci-failure-redispatch-third-party.test.ts > irrelevant events do nothing > reads nothing at all for a pending status or an Actions-owned check run
+ FAIL  |lisa| tests/unit/scripts/lisa-ci-failure-redispatch-third-party.test.ts > the CLI under plain node > replays check-run-actions-owned.json as ignored-actions-check with 0 planned writes
+ Test Files  1 failed | 6 passed (7)
+      Tests  3 failed | 96 passed (99)
+
+### MUTATION: required-context gate removed (scripts/lisa-ci-failure-redispatch.mjs)
+ scripts/lisa-ci-failure-redispatch.mjs | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+     × check-run-non-required.json plans nothing (not-required-context)
+     × treats a required-context read that fails as a failed read, not as 'not required'
+     × replays check-run-non-required.json as not-required-context with 0 planned writes
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 3 ⎯⎯⎯⎯⎯⎯⎯
+ FAIL  |lisa| tests/unit/scripts/lisa-ci-failure-redispatch-third-party.test.ts > irrelevant events do nothing > check-run-non-required.json plans nothing (not-required-context)
+ FAIL  |lisa| tests/unit/scripts/lisa-ci-failure-redispatch-third-party.test.ts > irrelevant events do nothing > treats a required-context read that fails as a failed read, not as 'not required'
+ FAIL  |lisa| tests/unit/scripts/lisa-ci-failure-redispatch-third-party.test.ts > the CLI under plain node > replays check-run-non-required.json as not-required-context with 0 planned writes
+ Test Files  1 failed | 6 passed (7)
+      Tests  3 failed | 96 passed (99)
+
+### MUTATION: queue: max removed (.github/workflows/lisa-ci-failure-redispatch.yml)
+ .github/workflows/lisa-ci-failure-redispatch.yml | 1 -
+ 1 file changed, 1 deletion(-)
+     × never cancels a waiting run when a newer event for the same head joins
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+ FAIL  |lisa| tests/unit/scripts/lisa-ci-failure-redispatch-workflow.test.ts > third-party required checks (CodySwannGT/lisa#4678) > never cancels a waiting run when a newer event for the same head joins
+ Test Files  1 failed | 6 passed (7)
+      Tests  1 failed | 98 passed (99)
+
+### MUTATION: job if: drops actions-slug clause (.github/workflows/lisa-ci-failure-redispatch.yml)
+ .github/workflows/lisa-ci-failure-redispatch.yml | 3 +--
+ 1 file changed, 1 insertion(+), 2 deletions(-)
+     × drops pending statuses and Actions-owned check runs before the job starts
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+ FAIL  |lisa| tests/unit/scripts/lisa-ci-failure-redispatch-workflow.test.ts > third-party required checks (CodySwannGT/lisa#4678) > drops pending statuses and Actions-owned check runs before the job starts
+ Test Files  1 failed | 6 passed (7)
+      Tests  1 failed | 98 passed (99)
+
+### MUTATION: status trigger removed (.github/workflows/lisa-ci-failure-redispatch.yml)
+ .github/workflows/lisa-ci-failure-redispatch.yml | 1 -
+ 1 file changed, 1 deletion(-)
+     × also fires when any check run completes or any commit status changes
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+ FAIL  |lisa| tests/unit/scripts/lisa-ci-failure-redispatch-workflow.test.ts > third-party required checks (CodySwannGT/lisa#4678) > also fires when any check run completes or any commit status changes
+ Test Files  1 failed | 6 passed (7)
+      Tests  1 failed | 98 passed (99)
+
+### RESTORE CHECK
+restored-clean=yes
