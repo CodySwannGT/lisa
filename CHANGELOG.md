@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.96.1](https://github.com/CodySwannGT/lisa/compare/v4.96.0...v4.96.1) (2026-11-08)
+
+
+### Bug Fixes
+
+* **drive-pr-to-merge:** engage the arm gate on hosts that declare a reviewer gate ([bf2cda2](https://github.com/CodySwannGT/lisa/commit/bf2cda24738bb08505962af2d566ac8d450ceae8)), closes [CodySwannGT/lisa#4653](https://github.com/CodySwannGT/lisa/issues/4653) [CodySwannGT/lisa#4653](https://github.com/CodySwannGT/lisa/issues/4653)
+* **review-evidence:** address CodeRabbit review of the arm decision ([ad8253f](https://github.com/CodySwannGT/lisa/commit/ad8253f430d23e536be6449fbe2ba63aee379a64)), closes [CodySwannGT/lisa#4653](https://github.com/CodySwannGT/lisa/issues/4653) [CodySwannGT/lisa#4653](https://github.com/CodySwannGT/lisa/issues/4653)
+* **review-evidence:** close fail-open paths in the arm decision ([25c645c](https://github.com/CodySwannGT/lisa/commit/25c645c35a83f5213dbfd4d3f1ce8673547d776f)), closes [CodySwannGT/lisa#4653](https://github.com/CodySwannGT/lisa/issues/4653) [CodySwannGT/lisa#4653](https://github.com/CodySwannGT/lisa/issues/4653)
+* **review-evidence:** declare the verdict sha on armDecision's evidence type ([a29b3dd](https://github.com/CodySwannGT/lisa/commit/a29b3ddfda63540eb53802408fc8c42a943924b6)), closes [CodySwannGT/lisa#4653](https://github.com/CodySwannGT/lisa/issues/4653) [CodySwannGT/lisa#4653](https://github.com/CodySwannGT/lisa/issues/4653)
+* **review-evidence:** hold the arm on in-flight, mixed and unseen reviews ([d10135e](https://github.com/CodySwannGT/lisa/commit/d10135eba1259d165ffc9305e688eae40dd81d1b)), closes [CodySwannGT/lisa#4653](https://github.com/CodySwannGT/lisa/issues/4653) [CodySwannGT/lisa#4653](https://github.com/CodySwannGT/lisa/issues/4653)
+* **review-evidence:** scope classifier absence to review contexts in --arm ([4291966](https://github.com/CodySwannGT/lisa/commit/429196681c5bed6ced259f553930643fd66e51e8)), closes [CodySwannGT/lisa#4653](https://github.com/CodySwannGT/lisa/issues/4653) [CodySwannGT/lisa#4653](https://github.com/CodySwannGT/lisa/issues/4653)
+
 ## [4.96.0](https://github.com/CodySwannGT/lisa/compare/v4.95.4...v4.96.0) (2026-11-08)
 
 
