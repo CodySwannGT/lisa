@@ -139,7 +139,7 @@ This is **not** an executable control. `ready-role-filing`'s sibling guard is a 
 
 The regression suite has two halves. **Why they bind differently is `falsifiable-checks`' subject, not this rule's** — read the quantifier guidance there. What belongs here is the measurement, because this contract happens to be where it was taken.
 
-- `runtime-behavior-change-decidability.test.ts` asserts the wording is *present* across all six generated skill roots. It pins the contract against silent deletion or a lossy regeneration, and proves nothing about any particular copy.
+- `tests/phrase-manifest/required-phrases.json`, checked by `tests/unit/docs/required-phrases.test.ts`, asserts the wording is *present* across all six generated skill roots. It pins the contract against silent deletion or a lossy regeneration, and proves nothing about any particular copy.
 - `runtime-behavior-change-consistency.test.ts` asserts no copy says the *wrong* thing, over every occurrence in the corpus: every declaration marker uses the em-dash discriminator, every absence-derivation site resolves to *underivable* within its own sentence, and no phrasing maps an absent section to `false` or hands authority back to the caller.
 
 This document states its rule **twice** — once in gate S8, once in the execution step — which is what made the gap observable. `lisa-linear-validate-issue` once spelled the discriminator with an ASCII hyphen in its execution step while its own S8 used the em-dash, and 192 assertions stayed green through that mutation twice running. The fix pinned the execution step and left S8's copy bare. Mutating each site separately, whole suite, before and after the second half landed:
