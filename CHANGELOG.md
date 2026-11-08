@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [4.93.0](https://github.com/CodySwannGT/lisa/compare/v4.92.2...v4.93.0) (2026-11-08)
+
+
+### Features
+
+* **drive-pr:** wait on CI with a bounded foreground watch ([7815c0e](https://github.com/CodySwannGT/lisa/commit/7815c0e8459d9ec3244a895cbad087b36184eed9)), closes [CodySwannGT/lisa#4608](https://github.com/CodySwannGT/lisa/issues/4608) [CodySwannGT/lisa#4608](https://github.com/CodySwannGT/lisa/issues/4608)
+
+
+### Bug Fixes
+
+* **drive-pr:** always pause between no-checks re-polls ([74b7275](https://github.com/CodySwannGT/lisa/commit/74b7275e952c4e9d1a6249354e24d7843daac627)), closes [CodySwannGT/lisa#4608](https://github.com/CodySwannGT/lisa/issues/4608) [CodySwannGT/lisa#4608](https://github.com/CodySwannGT/lisa/issues/4608)
+* **drive-pr:** bound the no-required-checks wait and read classic protection ([23a462e](https://github.com/CodySwannGT/lisa/commit/23a462e66834ed56d89ff2ca15a817fbc53e66d1)), closes [CodySwannGT/lisa#4608](https://github.com/CodySwannGT/lisa/issues/4608) [CodySwannGT/lisa#4608](https://github.com/CodySwannGT/lisa/issues/4608)
+* **drive-pr:** tighten bounded CI watch per review ([839d00f](https://github.com/CodySwannGT/lisa/commit/839d00ff128207d4d8d387403623fa7c5c351b14)), closes [CodySwannGT/lisa#4608](https://github.com/CodySwannGT/lisa/issues/4608) [CodySwannGT/lisa#4608](https://github.com/CodySwannGT/lisa/issues/4608)
+
 ### [4.92.2](https://github.com/CodySwannGT/lisa/compare/v4.92.1...v4.92.2) (2026-11-08)
 
 
