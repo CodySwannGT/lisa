@@ -1263,7 +1263,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/rules/reference/ready-role-filing.md":
       "ab6ef509ee3560b55cf0a7cb03edb0c63d97c71334ee3baafd54bdeb06451f81",
     "plugins/src/base/rules/reference/rejection-detection.md":
-      "79b465c6bf11a27ba37b3ef581ced121b31ae45f0e75cc2bce0d5ba083b2943f",
+      "a2d19eaa5e9eb6a2b0906257e1d765ab1ec203675f40465ab98a7e38975ebe68",
     "plugins/src/base/rules/reference/repo-scope-split.md":
       "20b1aa6999a9376d7b9990c0022f40a4d48d5d09af9c709bf1b6ead3f1443b16",
     "plugins/src/base/rules/reference/report-actionability.md":
@@ -1437,7 +1437,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-github-add-journey/SKILL.md":
       "4ceda3474a9b32abae835c2676e8cb2b7e888c6ba04b95843dbe7254293bbf32",
     "plugins/src/base/skills/lisa-github-build-intake/SKILL.md":
-      "15637afeb68266fba692b666488b9041535b37e16f92cf2c633e8ea0c04abe07",
+      "0662db3f105d6cf9099b439b7dbecca6bec8c619ffa724a9b9197a3922151476",
     "plugins/src/base/skills/lisa-github-claim/SKILL.md":
       "71301c6d45d7eb5523e74aa7f070bb2becf57ca68fb8bde9e02ee937b78815f7",
     "plugins/src/base/skills/lisa-github-create/SKILL.md":
@@ -1469,7 +1469,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-health/SKILL.md":
       "dfdb08a863e78bff42671793dcec29cfae0654db18ebf66a4aa77aeb56ddb775",
     "plugins/src/base/skills/lisa-implement/SKILL.md":
-      "04604b84e09ec42c8ae05b6791b28573ae4078da743087d2e193c0431710b1bd",
+      "083e99c9910a9ff7437fd741e824c789fa4193c0b411be8198dd712e401ccf81",
     "plugins/src/base/skills/lisa-improve-code-complexity/SKILL.md":
       "24ab5b193b409db6ee6bee981a1c0a48d08991782d7846116ad01658c8bc1ae8",
     "plugins/src/base/skills/lisa-improve-harness/SKILL.md":
@@ -1847,7 +1847,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-ticket-triage/SKILL.md":
       "a4f2e75ee3792418aa3b6621f83c75832eea85ffe670e26e74da808611dcf34f",
     "plugins/src/base/skills/lisa-track/SKILL.md":
-      "9c6fcdff3e527e4c9cb394ba531f23f9fcbc02f7594801c07c474a274136c391",
+      "f41ddcc072281831abd50699d8ab5e170303a059c93b2e3aa2214e0735e21a9b",
     "plugins/src/base/skills/lisa-tracker-add-journey/SKILL.md":
       "a3da2e0350bcdebcdcc05f2d7931af868382638d3a28d09d4718f2f458d4be0a",
     "plugins/src/base/skills/lisa-tracker-build-intake/SKILL.md":
@@ -2837,7 +2837,9 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/lisa-assert-eas-profile.mjs":
       "624e40d7f33ca17208fc6b7a19320a785cff19da5d2ff8062b67a432b2a34022",
     "scripts/lisa-ci-failure-redispatch.mjs":
-      "2af56097888ea0d1737957aed0a81fec739107c9214184787dd97821bf6560c7",
+      "f012d4484e4e4dbf850789866fc8cd5d04b2c1f0cba4ef36a3e1ed05cd9b427e",
+    "scripts/lisa-ci-rework-route.mjs":
+      "f968c83d0e59b5368e423d65173d065bb34f57e723be7c961a5815ac25076211",
     "scripts/lisa-commit-and-pr-local.sh":
       "cc9f1be63bcd881125aa59aa35432c2ab1d41119b2a28e8de817536b0f302b01",
     "scripts/lisa-commit-msg-gates.mjs":
@@ -10593,6 +10595,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "scripts/lib/worktree-dependencies.mjs": true,
     "scripts/lisa-assert-eas-profile.mjs": true,
     "scripts/lisa-ci-failure-redispatch.mjs": true,
+    "scripts/lisa-ci-rework-route.mjs": true,
     "scripts/lisa-commit-and-pr-local.sh": true,
     "scripts/lisa-commit-msg-gates.mjs": true,
     "scripts/lisa-enforcement-census.mjs": true,
@@ -11230,6 +11233,14 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/fixtures/ci-failure-redispatch/item-not-claimed.json": true,
     "tests/fixtures/ci-failure-redispatch/pr-without-work-item.json": true,
     "tests/fixtures/ci-failure-redispatch/reclaimed-without-comment-replayed.json": true,
+    "tests/fixtures/ci-rework-route/cleared-marker.json": true,
+    "tests/fixtures/ci-rework-route/closed-pr.json": true,
+    "tests/fixtures/ci-rework-route/fork-pr.json": true,
+    "tests/fixtures/ci-rework-route/human-authored.json": true,
+    "tests/fixtures/ci-rework-route/loop-bound.json": true,
+    "tests/fixtures/ci-rework-route/not-newest.json": true,
+    "tests/fixtures/ci-rework-route/other-item.json": true,
+    "tests/fixtures/ci-rework-route/trusted-marker.json": true,
     "tests/fixtures/dependency-internalization-kit/dependency-internalization-ticket.md": true,
     "tests/fixtures/dependency-internalization-kit/version-bump-ticket.md": true,
     "tests/fixtures/dependency-ownership/addition/.github/workflows/deploy.yml": true,
@@ -12659,6 +12670,9 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/lisa-ci-failure-redispatch-trust.test.ts": true,
     "tests/unit/scripts/lisa-ci-failure-redispatch-workflow.test.ts": true,
     "tests/unit/scripts/lisa-ci-failure-redispatch.test.ts": true,
+    "tests/unit/scripts/lisa-ci-rework-route-cli.test.ts": true,
+    "tests/unit/scripts/lisa-ci-rework-route-skills.test.ts": true,
+    "tests/unit/scripts/lisa-ci-rework-route.test.ts": true,
     "tests/unit/scripts/lisa-cleanup-sweep-hardening.test.ts": true,
     "tests/unit/scripts/lisa-cleanup-sweep-launch.test.ts": true,
     "tests/unit/scripts/lisa-cleanup-sweep-performance.test.ts": true,

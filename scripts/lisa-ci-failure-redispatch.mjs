@@ -42,11 +42,18 @@ import {
 } from "../all/copy-overwrite/scripts/lisa-work-item.mjs";
 
 const SHA = /^[0-9a-f]{40}$/u;
-const FAILURE_MARKER =
+/**
+ * The failure marker; captures the PR number and head SHA. Exported with the
+ * other marker patterns and predicates below so the dispatch-side reader
+ * (`scripts/lisa-ci-rework-route.mjs`, CodySwannGT/lisa#4677) shares one
+ * definition with the producer instead of a copy that could drift.
+ */
+export const FAILURE_MARKER =
   /<!-- \[lisa-ci-failed\] pr=(\d+) sha=([0-9a-f]{40}) -->/u;
-const CLEARED_MARKER = /<!-- \[lisa-ci-cleared\] run=\d+ -->/u;
+/** The line a later all-green run appends to a failure marker's comment. */
+export const CLEARED_MARKER = /<!-- \[lisa-ci-cleared\] run=\d+ -->/u;
 /** Any Lisa lifecycle marker — the claim, attempt, and CI markers alike. */
-const LISA_MARKER = /\[(?:lisa-[a-z0-9-]+|claude-build-intake)\]/u;
+export const LISA_MARKER = /\[(?:lisa-[a-z0-9-]+|claude-build-intake)\]/u;
 const NO_REQUIRED = /no (?:required )?checks reported/iu;
 
 /**
@@ -273,23 +280,34 @@ function readItem(item, repo, gh) {
     "--json",
     "state,labels",
   ]);
+  return {
+    number,
+    open: view.state === "OPEN",
+    labels: view.labels.map(l => l.name),
+    comments: readItemComments(number, repo, gh),
+  };
+}
+
+/**
+ * Read every comment on an issue, oldest first. Throws naming the call when
+ * the read fails. Shared with `scripts/lisa-ci-rework-route.mjs`.
+ * @param {string} number - Issue number.
+ * @param {string} repo - Repository.
+ * @param {Function} gh - Runner.
+ * @returns {object[]} Comments sorted by `created_at`.
+ */
+export function readItemComments(number, repo, gh) {
   const pages = readJson(gh, [
     "api",
     `repos/${repo}/issues/${number}/comments`,
     "--paginate",
     "--slurp",
   ]);
-  const comments = pages
+  return pages
     .flat()
     .toSorted((a, b) =>
       String(a.created_at).localeCompare(String(b.created_at))
     );
-  return {
-    number,
-    open: view.state === "OPEN",
-    labels: view.labels.map(l => l.name),
-    comments,
-  };
 }
 
 /**
@@ -354,7 +372,7 @@ function markerPr(comment) {
  * @param {object} comment - Item comment.
  * @returns {boolean} Whether its markers are trusted.
  */
-function trustedAuthor(comment) {
+export function trustedAuthor(comment) {
   return MARKER_AUTHORS.includes(comment.user?.login ?? "");
 }
 
@@ -400,7 +418,7 @@ function readEvents(number, repo, gh) {
  * @param {object} comment - The marker comment.
  * @returns {boolean} Whether it is the newest.
  */
-function isNewestLisaMarker(comments, comment) {
+export function isNewestLisaMarker(comments, comment) {
   // A forged failure marker counts for nothing, including as "something newer".
   const marked = comments.filter(
     c =>
