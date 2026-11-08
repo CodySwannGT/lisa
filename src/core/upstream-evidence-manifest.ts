@@ -2891,7 +2891,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/test-intent-routing.sh":
       "97b9dc86cbd805df8a7fdb8c99ffab9b8c5e751ba2e84c05420b2a124f80635d",
     "scripts/two-channel-couplings.json":
-      "afde052f4188e2c5481cb4391c922901ad53386a338c9091ea1512db32bfbddb",
+      "df83a4d735a258391ba2291a5f50637b220aed16d1eefd085e882113098494c7",
     "scripts/update-node-version.ts":
       "9d37599ef73d5d624751f862cda330a867f6774392c1ab045b4fc885132582e4",
     "scripts/update-test-skill-paths.mjs":
@@ -12026,6 +12026,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/config/release-quality-secret-forwarding.test.ts": true,
     "tests/unit/config/repo-scan-exclusions.test.ts": true,
     "tests/unit/config/required-checks-declaration.test.ts": true,
+    "tests/unit/config/required-checks-unit-tests-deferred.test.ts": true,
     "tests/unit/config/reusable-workflow-secret-channel.test.ts": true,
     "tests/unit/config/scratch-authority-concurrency.test.ts": true,
     "tests/unit/config/scratch-authority.test.ts": true,

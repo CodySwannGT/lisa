@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.92.1](https://github.com/CodySwannGT/lisa/compare/v4.92.0...v4.92.1) (2026-11-08)
+
+
+### Documentation
+
+* **ci:** correct the comments that describe where the named specs run ([6a14ef5](https://github.com/CodySwannGT/lisa/commit/6a14ef5e22222607521144626bb00ae1095bf71c)), closes [CodySwannGT/lisa#4675](https://github.com/CodySwannGT/lisa/issues/4675) [CodySwannGT/lisa#4675](https://github.com/CodySwannGT/lisa/issues/4675)
+
 ## [4.92.0](https://github.com/CodySwannGT/lisa/compare/v4.91.0...v4.92.0) (2026-11-08)
 
 

@@ -61,7 +61,8 @@
     ]
   },
   "registration_deferred": {
-    "🧩 Plugin artifacts match source": "Plugins Sync posts its final job after three prerequisite shell-guard shards that can take about 25 minutes; GitHub's merge rules still require this check to pass."
+    "🧩 Plugin artifacts match source": "Plugins Sync posts its final job after three prerequisite shell-guard shards that can take about 25 minutes; GitHub's merge rules still require this check to pass.",
+    "🔍 Quality Checks / 🧪 Run Unit Tests": "Sharded unit tests (unit_test_shards > 1) post this aggregate only after every shard finishes, past the registration wait; GitHub's merge rules still require this check to pass."
   },
   "skip_job_declarations": {},
   "evidence_bearing_checks": {
