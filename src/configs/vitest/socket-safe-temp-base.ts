@@ -8,9 +8,10 @@
  * tests failed before asserting anything unless the developer happened to
  * export a short TMPDIR. Linux CI runners use `/tmp` and never reach this.
  *
- * Only that stock macOS default is replaced. Any other TMPDIR was chosen on
- * purpose (a nested run's scratch root, an operator's override) and is kept
- * even when long; the fixture then reports the length itself.
+ * Only that stock macOS default itself is replaced. Any other TMPDIR, including
+ * a directory nested below the default, was chosen on purpose (a nested run's
+ * scratch root, an operator's override) and is kept even when long; the
+ * fixture then reports the length itself.
  * @module configs/vitest/socket-safe-temp-base
  */
 import * as fs from "node:fs";
@@ -31,8 +32,14 @@ const FIXTURE_SUFFIX_BYTES = Buffer.byteLength(
 export const MAX_SOCKET_SAFE_TEMP_BASE_BYTES =
   UNIX_SOCKET_PATH_LIMIT - FIXTURE_SUFFIX_BYTES;
 
-/** macOS's per-user default temp dir (`confstr(_CS_DARWIN_USER_TEMP_DIR)`). */
-const DARWIN_DEFAULT_TEMP = /^\/(?:private\/)?var\/folders\//;
+/**
+ * macOS's per-user default temp dir (`confstr(_CS_DARWIN_USER_TEMP_DIR)`):
+ * exactly `/var/folders/<xx>/<id>/T`, optionally `/private`-prefixed or with a
+ * trailing slash. Anchored at both ends so a TMPDIR nested below it (a parent
+ * run's scratch root, a test's own base) counts as chosen and is kept.
+ */
+const DARWIN_DEFAULT_TEMP =
+  /^\/(?:private\/)?var\/folders\/[^/]+\/[^/]+\/T\/?$/;
 
 /** Filesystem seam for tests. */
 export interface TempBaseFs {

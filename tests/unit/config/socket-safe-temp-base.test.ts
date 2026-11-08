@@ -89,6 +89,26 @@ describe("socketSafeTempBase", () => {
     );
   });
 
+  it("also recognises the stock default spelled with a trailing slash", () => {
+    expect(socketSafeTempBase(`${MAC_TMPDIR}/`, "darwin", seam())).toBe(
+      PHYSICAL_TMP
+    );
+    expect(socketSafeTempBase(`/private${MAC_TMPDIR}/`, "darwin", seam())).toBe(
+      PHYSICAL_TMP
+    );
+  });
+
+  it.each([
+    ["the stock spelling", MAC_TMPDIR],
+    ["the /private spelling", `/private${MAC_TMPDIR}`],
+  ])(
+    "keeps a TMPDIR deliberately nested below the macOS default (%s)",
+    (_label, stock) => {
+      const nested = `${stock}/lisa-scratch/run-1-2-3/worker-4-5/packed-bin-x`;
+      expect(socketSafeTempBase(nested, "darwin", seam())).toBeUndefined();
+    }
+  );
+
   it.each(["win32", "linux"] as const)(
     "never changes the base on %s",
     platform => {
