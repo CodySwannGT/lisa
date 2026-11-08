@@ -183,6 +183,41 @@ describe("runMergeLearnings", () => {
     expect(code).toBe(1);
   });
 
+  describe("acknowledging a deliberate conflict to the driver script (#4640)", () => {
+    // The portable driver writes both-sides conflict markers whenever Lisa
+    // fails without touching ours, unless Lisa acknowledges that the failure
+    // is its own semantic-conflict verdict.
+    it("acknowledges a semantic conflict", async () => {
+      const ack = path.join(dir, "ack");
+      await fs.writeFile(base, ledger([SHARED]));
+      await fs.writeFile(
+        ours,
+        renderLearningsFile([{ ...entry(SHARED), rule: "Our rewrite." }])
+      );
+      await fs.writeFile(
+        theirs,
+        renderLearningsFile([{ ...entry(SHARED), rule: "Their rewrite." }])
+      );
+      const code = await runMergeLearnings(
+        { base, ours, theirs, conflictAck: ack },
+        { error: message => errors.push(message) }
+      );
+      expect(code).toBe(1);
+      expect(await fs.pathExists(ack)).toBe(true);
+    });
+
+    it("does not acknowledge a failure to read the sides", async () => {
+      const ack = path.join(dir, "ack");
+      await fs.writeFile(base, ledger([SHARED]));
+      const code = await runMergeLearnings(
+        { base, ours, theirs, conflictAck: ack },
+        { error: message => errors.push(message) }
+      );
+      expect(code).toBe(1);
+      expect(await fs.pathExists(ack)).toBe(false);
+    });
+  });
+
   it("leaves our file untouched when the merge conflicts", async () => {
     await fs.writeFile(base, ledger([SHARED]));
     await fs.writeFile(

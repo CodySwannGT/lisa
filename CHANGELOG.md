@@ -2,6 +2,26 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.95.2](https://github.com/CodySwannGT/lisa/compare/v4.95.1...v4.95.2) (2026-11-08)
+
+
+### Bug Fixes
+
+* **learnings:** fall back to conflict markers when installed Lisa crashes ([570254c](https://github.com/CodySwannGT/lisa/commit/570254ceae3107a71218830359377499b5a5dbf0)), closes [#4640](https://github.com/CodySwannGT/lisa/issues/4640) [#4640](https://github.com/CodySwannGT/lisa/issues/4640) [CodySwannGT/lisa#4640](https://github.com/CodySwannGT/lisa/issues/4640)
+* **learnings:** register a worktree-portable learnings merge driver ([2fd0378](https://github.com/CodySwannGT/lisa/commit/2fd0378db64cf560dfd39a89c74d8e6321f78dfd)), closes [#4640](https://github.com/CodySwannGT/lisa/issues/4640) [CodySwannGT/lisa#4640](https://github.com/CodySwannGT/lisa/issues/4640)
+
+### [4.95.1](https://github.com/CodySwannGT/lisa/compare/v4.95.0...v4.95.1) (2026-11-08)
+
+
+### Bug Fixes
+
+* **types:** write shipped gate JSDoc in forms tsgo reads the same as tsc ([6579d6e](https://github.com/CodySwannGT/lisa/commit/6579d6e7650e1a119451cf3e2818699ece17fa3f)), closes [CodySwannGT/lisa#4695](https://github.com/CodySwannGT/lisa/issues/4695) [CodySwannGT/lisa#4695](https://github.com/CodySwannGT/lisa/issues/4695)
+
+
+### Documentation
+
+* **scripts:** correct the tsgo diagnostics claim in the gate scripts ([62de1d3](https://github.com/CodySwannGT/lisa/commit/62de1d3ea02940eaa8dc647a964f0d8ffe061d4f)), closes [CodySwannGT/lisa#4695](https://github.com/CodySwannGT/lisa/issues/4695) [CodySwannGT/lisa#4695](https://github.com/CodySwannGT/lisa/issues/4695)
+
 ## [4.95.0](https://github.com/CodySwannGT/lisa/compare/v4.94.0...v4.95.0) (2026-11-08)
 
 

@@ -3,7 +3,7 @@
  *
  * The defect these exist for is not a wrong comparison — it is a correct
  * comparison run against inputs that never resolved. With an empty
- * `node_modules` the gate spawns `node node_modules/typescript/bin/tsc`, the
+ * `node_modules` the gate spawns `node node_modules/@typescript/native-preview/bin/tsgo`, the
  * SPAWN succeeds (node starts; node is what cannot find the module), nothing is
  * compiled, no diagnostic matches the gate's pattern, and every quarantined file
  * therefore satisfies "has no errors". The gate reported all 370 entries as
@@ -32,7 +32,8 @@
  * which holds repo-relative paths, then matches nothing. That is a property of
  * the fixture, not of the gate.
  *
- * `typescript` is symlinked rather than installed: the gate only ever reads it.
+ * `@typescript/native-preview` (the compiler the gate spawns) is symlinked
+ * rather than installed: the gate only ever reads it.
  *
  * Per the Test Isolation house rule, expected values are HARDCODED.
  *
@@ -54,7 +55,8 @@ import { afterEach, describe, expect, it } from "vitest";
 import { boundedSpawnSync } from "../../helpers/io-latency-budget.js";
 
 const SCRIPT = path.resolve("scripts/check-typecheck-tests.mjs");
-const TYPESCRIPT = path.resolve("node_modules/typescript");
+/** The compiler the gate spawns: the TypeScript native compiler (`tsgo`). */
+const TYPESCRIPT = path.resolve("node_modules/@typescript/native-preview");
 
 /** A self-contained project config, so the fixture compiles in well under a second. */
 const TSCONFIG = {
@@ -121,8 +123,13 @@ function fixture({
     JSON.stringify({ files: quarantined, reason: "fixture" })
   );
   if (installed) {
-    mkdirSync(path.join(root, "node_modules"));
-    symlinkSync(TYPESCRIPT, path.join(root, "node_modules/typescript"));
+    mkdirSync(path.join(root, "node_modules/@typescript"), {
+      recursive: true,
+    });
+    symlinkSync(
+      TYPESCRIPT,
+      path.join(root, "node_modules/@typescript/native-preview")
+    );
   }
   return root;
 }
@@ -155,7 +162,9 @@ describe("check-typecheck-tests", () => {
       );
 
       expect(output).toContain(CANNOT_MEASURE);
-      expect(output).toContain("node_modules/typescript/bin/tsc");
+      expect(output).toContain(
+        "node_modules/@typescript/native-preview/bin/tsgo"
+      );
     });
 
     it("denies the inference a reader would otherwise draw", () => {

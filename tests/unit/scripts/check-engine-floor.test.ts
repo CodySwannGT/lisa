@@ -32,7 +32,8 @@
  * The root is REALPATH'd: tsc reports diagnostic paths relative to its resolved
  * working directory, and the per-user temp root is a symlink on macOS.
  *
- * `typescript` is symlinked rather than installed — the gate only reads it.
+ * `@typescript/native-preview` (the compiler the gate spawns) is symlinked
+ * rather than installed — the gate only reads it.
  *
  * Per the Test Isolation house rule, expected values are HARDCODED.
  *
@@ -54,7 +55,8 @@ import { afterEach, describe, expect, it } from "vitest";
 import { boundedSpawnSync } from "../../helpers/io-latency-budget.js";
 
 const SCRIPT = path.resolve("scripts/check-engine-floor.mjs");
-const TYPESCRIPT = path.resolve("node_modules/typescript");
+/** The compiler the gate spawns: the TypeScript native compiler (`tsgo`). */
+const TYPESCRIPT = path.resolve("node_modules/@typescript/native-preview");
 
 /** A floor whose library covers the ES2023 change-array-by-copy methods. */
 const MODERN_FLOOR = "22.21.1";
@@ -154,8 +156,13 @@ function fixture({
     JSON.stringify(TSCONFIG)
   );
   if (installed) {
-    mkdirSync(path.join(root, "node_modules"));
-    symlinkSync(TYPESCRIPT, path.join(root, "node_modules/typescript"));
+    mkdirSync(path.join(root, "node_modules/@typescript"), {
+      recursive: true,
+    });
+    symlinkSync(
+      TYPESCRIPT,
+      path.join(root, "node_modules/@typescript/native-preview")
+    );
   }
   return root;
 }
@@ -246,7 +253,9 @@ describe("check-engine-floor", () => {
       );
 
       expect(output).toContain(CANNOT_MEASURE);
-      expect(output).toContain("node_modules/typescript/bin/tsc");
+      expect(output).toContain(
+        "node_modules/@typescript/native-preview/bin/tsgo"
+      );
     });
 
     it("denies the inference a reader would otherwise draw", () => {
