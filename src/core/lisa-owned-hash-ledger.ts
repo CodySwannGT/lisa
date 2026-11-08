@@ -2300,6 +2300,7 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
     "fd03f197b4db3dee95244df3d0af638fb371fd5d2726c173e0f6be40f5e92b88",
     "fd96a6f85f2a3dae85c032d7a32a31258305e04aaaa0aa8ed5c25a39e5a3d73c",
     "fdb4437f15a0be6a5a14377d1efcd93b2fc7b0d86d780200a4df249ec1b8f3d1",
+    "fe29a7b692576d3a3fbfacaf0f6e92d13958daf7c11bbcdbfe3256559f5e11f4",
     "fe96d8b0227ca76e2ee92bcc233fa60b011d0990e69c35e80fc752ca7977e6b9",
   ]),
   "scripts/reconcile-nightly-e2e-tracking-cli.mjs": Object.freeze([
@@ -4579,6 +4580,7 @@ export const LISA_OWNED_HASH_HISTORY_DERIVED: Readonly<
     "fd03f197b4db3dee95244df3d0af638fb371fd5d2726c173e0f6be40f5e92b88",
     "fd96a6f85f2a3dae85c032d7a32a31258305e04aaaa0aa8ed5c25a39e5a3d73c",
     "fdb4437f15a0be6a5a14377d1efcd93b2fc7b0d86d780200a4df249ec1b8f3d1",
+    "fe29a7b692576d3a3fbfacaf0f6e92d13958daf7c11bbcdbfe3256559f5e11f4",
     "fe96d8b0227ca76e2ee92bcc233fa60b011d0990e69c35e80fc752ca7977e6b9",
   ]),
   "scripts/reconcile-nightly-e2e-tracking-cli.mjs": Object.freeze([
