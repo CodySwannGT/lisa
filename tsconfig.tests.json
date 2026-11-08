@@ -1,5 +1,5 @@
 {
-  "//": "Type-checks tests/, which tsconfig.json deliberately does not (CodySwannGT/lisa#3811). Run through scripts/check-typecheck-tests.mjs, never bare: the quarantine in typecheck-quarantine.json is what makes it green today, and tsc alone cannot read it.",
+  "//": "Type-checks tests/, which tsconfig.json deliberately does not (CodySwannGT/lisa#3811). Run through scripts/check-typecheck-tests.mjs, never bare: the quarantine in typecheck-quarantine.json is what makes it green today, and the compiler (tsgo) alone cannot read it.",
   "extends": "./tsconfig.json",
   "compilerOptions": {
     "rootDir": ".",
