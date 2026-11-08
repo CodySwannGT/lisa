@@ -37,12 +37,14 @@ const COLLATE = path.join(
 const RECORDER_NAME = "lisa_rspec_shard_recorder.rb";
 
 const deferred = suiteDeferral(
-  // A Ruby older than 3.2 cannot parse the scripts under test, so it counts as
-  // absent here rather than failing every case on a syntax error.
+  // The test's Ruby stand-ins use one-line method definitions, which older Ruby
+  // cannot parse; treat Ruby below the documented 3.2 floor as absent rather
+  // than failing every case. The probe avoids Gem so RUBYOPT=--disable-gems
+  // cannot make a usable Ruby read as absent.
   () =>
     probeSucceeds("ruby", [
       "-e",
-      'exit(Gem::Version.new(RUBY_VERSION) >= Gem::Version.new("3.2") ? 0 : 1)',
+      'exit((RUBY_VERSION.split(".").map(&:to_i).first(2) <=> [3, 2]) >= 0 ? 0 : 1)',
     ]),
   "Ruby",
   "Install any Ruby >= 3.2 on PATH."
