@@ -310,7 +310,7 @@
       "children": []
     },
     "lib/lisa-cleanup-sweep.mjs": {
-      "sha256": "6c69bcf512fbe169e0b3c51546e21e72d6203a1d3c3ee5651fb0129fb7d57f91",
+      "sha256": "08450444d7f03d5a0e560f023a4e30db74821209ea45df41959b46636f6191bd",
       "staticImports": [
         "lib/bounded-spawn.mjs",
         "lib/invoked-as-script.mjs",

@@ -87,7 +87,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lib/lisa-cleanup-sweep.d.mts":
       "46fbb6730747ddee90b9275797de67cacfceab26ca14436460c11da638fb604b",
     "all/copy-overwrite/scripts/lib/lisa-cleanup-sweep.mjs":
-      "6c69bcf512fbe169e0b3c51546e21e72d6203a1d3c3ee5651fb0129fb7d57f91",
+      "08450444d7f03d5a0e560f023a4e30db74821209ea45df41959b46636f6191bd",
     "all/copy-overwrite/scripts/lib/npm-update-allocate.mjs":
       "85de2576d1c5e954b57f1c9274dbc34d0d24689fbc0964d8f86ec4f91f52b7bc",
     "all/copy-overwrite/scripts/lib/npm-update-authorization.mjs":
@@ -3823,6 +3823,11 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "evidence/4692/c3-legacy-validates.txt": true,
     "evidence/4692/c4-override.txt": true,
     "evidence/4692/gates.txt": true,
+    "evidence/4694/cli-piped-json-head.txt": true,
+    "evidence/4694/cli-piped-json-prefix-control.txt": true,
+    "evidence/4694/cli-summary-no-json.txt": true,
+    "evidence/4694/test-run-log-head.txt": true,
+    "evidence/4694/test-run-log-red-control-prefix.txt": true,
     "evidence/4711/cli-absent-required-context-blocks-clear.txt": true,
     "evidence/4711/cli-complete-pass-still-clears.txt": true,
     "evidence/4711/cli-live-head-sha-dry-run-pr4710.txt": true,

@@ -1,0 +1,94 @@
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - import "./vitest.config.local" without a file extension (vitest.config.ts:21:25). Add the file extension
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - import "./vitest.config.local" without a file extension (vitest.config.ts:21:25). Add the file extension
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - import "./vitest.config.local" without a file extension (vitest.config.ts:21:25). Add the file extension
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - import "./vitest.config.local" without a file extension (vitest.config.ts:21:25). Add the file extension
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+
+ RUN  v4.1.11 /Users/codysai/workspace/lisa/.claude/worktrees/4694-sweep-json-flush
+
+lisa scratch: no supervised lease in the environment, so this run is self-supervised. Fixture directories are still bounded to a run root this process owns and removed on exit; what is missing is the detached reaper that reclaims the root after a SIGKILL, which the next run's startup sweep recovers instead. Run through `lisa-test-run --profile <profile> --adapter vitest -- vitest ...` for a supervised run.
+lisa scratch: no supervised lease in the environment, so this run is self-supervised. Fixture directories are still bounded to a run root this process owns and removed on exit; what is missing is the detached reaper that reclaims the root after a SIGKILL, which the next run's startup sweep recovers instead. Run through `lisa-test-run --profile <profile> --adapter vitest -- vitest ...` for a supervised run.
+lisa scratch: no supervised lease in the environment, so this run is self-supervised. Fixture directories are still bounded to a run root this process owns and removed on exit; what is missing is the detached reaper that reclaims the root after a SIGKILL, which the next run's startup sweep recovers instead. Run through `lisa-test-run --profile <profile> --adapter vitest -- vitest ...` for a supervised run.
+ ✓ |lisa| tests/unit/scripts/lisa-cleanup-sweep-hardening.test.ts > owner and mode refusal > skips an entry another user owns and counts it, without an error 3ms
+ ✓ |lisa| tests/unit/scripts/lisa-cleanup-sweep-hardening.test.ts > owner and mode refusal > skips a directory open to group or other, and a group- or world-writable file 2ms
+ ✓ |lisa| tests/unit/scripts/lisa-cleanup-sweep-hardening.test.ts > owner and mode refusal > still removes a private directory and a readable but not writable file 2ms
+ ✓ |lisa| tests/unit/scripts/lisa-cleanup-sweep-hardening.test.ts > git checkouts one level down > keeps a stale folder whose direct child is a git checkout 2ms
+ ✓ |lisa| tests/unit/scripts/lisa-cleanup-sweep-hardening.test.ts > git checkouts one level down > keeps a stale folder whose children cannot be listed 1ms
+ ✓ |lisa| tests/unit/scripts/lisa-cleanup-sweep-hardening.test.ts > git checkouts one level down > still removes a stale folder whose children hold no checkout 2ms
+ ✓ |lisa| tests/unit/scripts/lisa-cleanup-sweep-hardening.test.ts > rollback copies > never sweeps a `lisa apply` backup 2ms
+ ✓ |lisa| tests/unit/scripts/lisa-cleanup-sweep-hardening.test.ts > root refusal > refuses the filesystem root and sweeps nothing 2ms
+ ✓ |lisa| tests/unit/scripts/lisa-cleanup-sweep-hardening.test.ts > root refusal > refuses the home directory and sweeps nothing 3ms
+ ✓ |lisa| tests/unit/scripts/lisa-cleanup-sweep-hardening.test.ts > root refusal > refuses an ancestor of the home directory and sweeps nothing 2ms
+ ✓ |lisa| tests/unit/scripts/lisa-cleanup-sweep-hardening.test.ts > root refusal > sweeps an ancestor of the working directory but keeps the entry holding it 5ms
+ ✓ |lisa| tests/unit/scripts/lisa-cleanup-sweep-hardening.test.ts > root refusal > sweeps a root that is neither 3ms
+ ✓ |lisa| tests/integration/lisa-cleanup-sweep.test.ts > cleanup sweep, real filesystem and processes > removes the 25-hour Lisa folder and keeps the 1-hour one and the non-Lisa one 42ms
+lisa scratch: no supervised lease in the environment, so this run is self-supervised. Fixture directories are still bounded to a run root this process owns and removed on exit; what is missing is the detached reaper that reclaims the root after a SIGKILL, which the next run's startup sweep recovers instead. Run through `lisa-test-run --profile <profile> --adapter vitest -- vitest ...` for a supervised run.
+ ✓ |lisa| tests/unit/scripts/lisa-cleanup-sweep.test.ts > Lisa-owned temp names > matches the lisa- and lisa. prefixes, including mktemp forms 1ms
+ ✓ |lisa| tests/unit/scripts/lisa-cleanup-sweep.test.ts > Lisa-owned temp names > refuses generic prefixes that only mean something inside a run root 0ms
+ ✓ |lisa| tests/unit/scripts/lisa-cleanup-sweep.test.ts > Lisa-owned temp names > never matches persistent state or a preserved patch backup 0ms
+ ✓ |lisa| tests/unit/scripts/lisa-cleanup-sweep.test.ts > temp sweep selection > removes a 25-hour Lisa folder and keeps a 1-hour one and a non-Lisa one 4ms
+ ✓ |lisa| tests/unit/scripts/lisa-cleanup-sweep.test.ts > temp sweep selection > honours --max-age-hours 2ms
+ ✓ |lisa| tests/unit/scripts/lisa-cleanup-sweep.test.ts > temp sweep selection > also removes stale Lisa-owned FILES left by mktemp without -d 1ms
+ ✓ |lisa| tests/unit/scripts/lisa-cleanup-sweep.test.ts > temp sweep selection > keeps protected state and preserved backups whatever their age 4ms
+ ✓ |lisa| tests/unit/scripts/lisa-cleanup-sweep.test.ts > temp sweep selection > keeps a stale folder that is a git checkout 1ms
+ ✓ |lisa| tests/unit/scripts/lisa-cleanup-sweep.test.ts > temp sweep selection > refuses symlinks and never follows one out of the root 2ms
+ ✓ |lisa| tests/unit/scripts/lisa-cleanup-sweep.test.ts > temp sweep selection > selects at the top level only 2ms
+ ✓ |lisa| tests/unit/scripts/lisa-cleanup-sweep.test.ts > temp sweep selection > reports what it would remove in a dry run and removes nothing 2ms
+ ✓ |lisa| tests/unit/scripts/lisa-cleanup-sweep.test.ts > temp sweep selection > reports an unreadable root as an error instead of throwing 1ms
+ ✓ |lisa| tests/unit/scripts/lisa-cleanup-sweep.test.ts > summary line > prints the one line the ticket specifies 0ms
+ ✓ |lisa| tests/unit/scripts/lisa-cleanup-sweep.test.ts > summary line > names entries kept as not private without calling them errors 0ms
+ ✓ |lisa| tests/unit/scripts/lisa-cleanup-sweep.test.ts > summary line > names errors and dry runs on the same single line 0ms
+ ✓ |lisa| tests/unit/scripts/lisa-cleanup-sweep.test.ts > CLI > parses --dry-run, --json and --max-age-hours in both spellings 0ms
+ ✓ |lisa| tests/unit/scripts/lisa-cleanup-sweep.test.ts > CLI > rejects an unknown flag or a bad age 0ms
+ ✓ |lisa| tests/unit/scripts/lisa-cleanup-sweep.test.ts > CLI > prints JSON with removed, killed, errors and durationMs, and exits 0 2ms
+ ✓ |lisa| tests/unit/scripts/lisa-cleanup-sweep.test.ts > CLI > leaves processes alone under --no-processes 1ms
+ ✓ |lisa| tests/unit/scripts/lisa-cleanup-sweep.test.ts > CLI > exits 2 with usage on a bad flag 0ms
+lisa scratch: no supervised lease in the environment, so this run is self-supervised. Fixture directories are still bounded to a run root this process owns and removed on exit; what is missing is the detached reaper that reclaims the root after a SIGKILL, which the next run's startup sweep recovers instead. Run through `lisa-test-run --profile <profile> --adapter vitest -- vitest ...` for a supervised run.
+ ✓ |lisa| tests/unit/scripts/lisa-cleanup-sweep-processes.test.ts > owner marker > round-trips pid:start and refuses malformed values 1ms
+ ✓ |lisa| tests/unit/scripts/lisa-cleanup-sweep-processes.test.ts > orphan selection > selects only processes whose owner is dead 0ms
+ ✓ |lisa| tests/unit/scripts/lisa-cleanup-sweep-processes.test.ts > orphan selection > treats a live owner whose start time changed as a reused pid 0ms
+ ✓ |lisa| tests/unit/scripts/lisa-cleanup-sweep-processes.test.ts > orphan selection > spares a live owner's children when its start time is unknown 0ms
+ ✓ |lisa| tests/unit/scripts/lisa-cleanup-sweep-processes.test.ts > orphan selection > never selects the sweep itself or any of its ancestors 0ms
+ ✓ |lisa| tests/unit/scripts/lisa-cleanup-sweep-processes.test.ts > orphan selection > asks for start times of live owners only 1ms
+ ✓ |lisa| tests/unit/scripts/lisa-cleanup-sweep-processes.test.ts > orphan termination > sends SIGTERM, waits the grace, then SIGKILLs survivors 0ms
+ ✓ |lisa| tests/unit/scripts/lisa-cleanup-sweep-processes.test.ts > orphan termination > signals nothing in a dry run but reports the selection 0ms
+ ✓ |lisa| tests/unit/scripts/lisa-cleanup-sweep-processes.test.ts > orphan termination > does not count a process that was already gone, and reports EPERM 0ms
+ ✓ |lisa| tests/unit/scripts/lisa-cleanup-sweep-processes.test.ts > orphan termination > reports a failed process listing as an error, not a throw 0ms
+ ✓ |lisa| tests/unit/scripts/lisa-cleanup-sweep-processes.test.ts > platform parsers > reads pid, ppid and the marker from ps -E output without keeping the rest 0ms
+ ✓ |lisa| tests/unit/scripts/lisa-cleanup-sweep-processes.test.ts > platform parsers > converts ps lstart rows into whole epoch seconds 0ms
+ ✓ |lisa| tests/unit/scripts/lisa-cleanup-sweep-processes.test.ts > platform parsers > reads ppid and start ticks from /proc stat past a hostile comm 0ms
+lisa scratch: no supervised lease in the environment, so this run is self-supervised. Fixture directories are still bounded to a run root this process owns and removed on exit; what is missing is the detached reaper that reclaims the root after a SIGKILL, which the next run's startup sweep recovers instead. Run through `lisa-test-run --profile <profile> --adapter vitest -- vitest ...` for a supervised run.
+ ✓ |lisa| tests/unit/scripts/lisa-cleanup-sweep-processes-hardening.test.ts > macOS argument spoofing > ignores a marker that appears only in the arguments 1ms
+ ✓ |lisa| tests/unit/scripts/lisa-cleanup-sweep-processes-hardening.test.ts > macOS argument spoofing > reads the environment marker past a stale marker in the arguments 0ms
+ ✓ |lisa| tests/unit/scripts/lisa-cleanup-sweep-processes-hardening.test.ts > macOS argument spoofing > still selects a genuine environment marker naming a dead owner 0ms
+ ✓ |lisa| tests/unit/scripts/lisa-cleanup-sweep-processes-hardening.test.ts > macOS argument spoofing > spares a row whose arguments no longer match, or are missing 0ms
+ ✓ |lisa| tests/unit/scripts/lisa-cleanup-sweep-processes-hardening.test.ts > macOS argument spoofing > spares an environment carrying two different markers 0ms
+ ✓ |lisa| tests/unit/scripts/lisa-cleanup-sweep-processes-hardening.test.ts > who already swept > names a sweeper that is alive with the recorded start time 0ms
+ ✓ |lisa| tests/unit/scripts/lisa-cleanup-sweep-processes-hardening.test.ts > who already swept > answers null for a dead, reused, unknown-start or malformed mark 0ms
+ ✓ |lisa| tests/unit/scripts/lisa-cleanup-sweep-processes-hardening.test.ts > Linux environ > counts only a whole environ entry 0ms
+ ✓ |lisa| tests/unit/scripts/lisa-cleanup-sweep-processes-hardening.test.ts > pid reuse during the grace > does not SIGKILL a pid whose start time changed after SIGTERM 1ms
+ ✓ |lisa| tests/unit/scripts/lisa-cleanup-sweep-processes-hardening.test.ts > pid reuse during the grace > does not SIGKILL a survivor whose start time was never recorded 0ms
+lisa scratch: no supervised lease in the environment, so this run is self-supervised. Fixture directories are still bounded to a run root this process owns and removed on exit; what is missing is the detached reaper that reclaims the root after a SIGKILL, which the next run's startup sweep recovers instead. Run through `lisa-test-run --profile <profile> --adapter vitest -- vitest ...` for a supervised run.
+ ✓ |lisa| tests/unit/scripts/lisa-cleanup-sweep-launch.test.ts > start-of-run launcher > runs the sweep CLI once under a short deadline and forwards its one line 1ms
+ ✓ |lisa| tests/unit/scripts/lisa-cleanup-sweep-launch.test.ts > start-of-run launcher > skips, saying so, when a live sweeper already swept, and spawns nothing 0ms
+ ✓ |lisa| tests/unit/scripts/lisa-cleanup-sweep-launch.test.ts > start-of-run launcher > sweeps anyway, and takes over the mark, when the recorded sweeper is gone 0ms
+ ✓ |lisa| tests/unit/scripts/lisa-cleanup-sweep-launch.test.ts > start-of-run launcher > prints a line and continues when the sweep exits non-zero 0ms
+ ✓ |lisa| tests/unit/scripts/lisa-cleanup-sweep-launch.test.ts > start-of-run launcher > prints a line and continues when the sweep times out or cannot start 0ms
+ ✓ |lisa| tests/unit/scripts/lisa-cleanup-sweep-performance.test.ts > cleanup sweep performance > sweeps a 10,000-entry temp directory in under 5 seconds 1096ms
+ ✓ |lisa| tests/integration/lisa-cleanup-sweep.test.ts > cleanup sweep, real filesystem and processes > kills the orphan of a dead owner and leaves a live run's child running 607ms
+ ✓ |lisa| tests/integration/lisa-cleanup-sweep.test.ts > cleanup sweep, real filesystem and processes > writes the whole --json report into a pipe, listing all 10,000 stale entries 2847ms
+ ✓ |lisa| tests/integration/lisa-cleanup-sweep.test.ts > cleanup sweep, real filesystem and processes > prints one summary line and exits 0 without --json 37ms
+
+ Test Files  7 passed (7)
+      Tests  65 passed (65)
+   Start at  13:23:06
+   Duration  4.03s (transform 393ms, setup 850ms, import 203ms, tests 5.43s, environment 0ms)
+
+exit=0
