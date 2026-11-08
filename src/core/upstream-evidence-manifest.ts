@@ -1340,6 +1340,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "fc6f4a657dac7dc957b1e45269aa083528b97a6ff0cccfe66f3436e8696fd5d4",
     "plugins/src/base/scripts/linear-state-write-target.mjs":
       "71cee45d5d88e6e5065cbf10542acddc4a2a521484801ae1c2ad215d65daa392",
+    "plugins/src/base/scripts/operator-id-kinds.mjs":
+      "cc8b03b26c6410ee84c007c26313ca21fb0624694b2bae2420d71e366b31b712",
     "plugins/src/base/scripts/plugin-sync-explain.mjs":
       "17cc7dde8f269b0cbc848c6385d6630a5926327c24e5769b2a16ed7d6aba2d76",
     "plugins/src/base/scripts/pr-arming-sweep.mjs":
@@ -9816,6 +9818,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/src/base/scripts/intake-prework-denominator.mjs": true,
     "plugins/src/base/scripts/lifecycle-label-trust.mjs": true,
     "plugins/src/base/scripts/linear-state-write-target.mjs": true,
+    "plugins/src/base/scripts/operator-id-kinds.mjs": true,
     "plugins/src/base/scripts/plugin-sync-explain.mjs": true,
     "plugins/src/base/scripts/pr-arming-sweep.mjs": true,
     "plugins/src/base/scripts/project-ideation-idempotency-harness.mjs": true,
