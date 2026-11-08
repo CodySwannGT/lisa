@@ -1,0 +1,8 @@
+$ gh run view 42514279008 --json headSha,conclusion,event,url
+{"conclusion":"success","event":"pull_request","headSha":"c37315ea4e95799895415e31410f96705908556a","url":"https://github.com/CodySwannGT/lisa/actions/runs/42514279008"}
+
+$ gh run list --commit c37315ea4e95799895415e31410f96705908556a
+[{"conclusion":"success","databaseId":42514279008,"event":"pull_request","name":"🔍 CI Quality Checks"},{"conclusion":"success","databaseId":42514278801,"event":"pull_request","name":"🔢 Duplicate Versions"},{"conclusion":"failure","databaseId":42514278773,"event":"pull_request","name":"🕵️ Review Evidence"},{"conclusion":"success","databaseId":42514278834,"event":"pull_request","name":"🧩 Plugins Sync"},{"conclusion":"success","databaseId":42514278799,"event":"pull_request","name":"npm updater Rails runtime qualification"},{"conclusion":"success","databaseId":42514278793,"event":"pull_request","name":"Packaged apply isolation"}]
+
+$ gh run list --commit fc1b7500267cf5a94ef2ca5e4aad01b936231a13
+[{"conclusion":"","databaseId":42516786531,"event":"push","name":"Release and Deploy","status":"in_progress"},{"conclusion":"success","databaseId":42516786091,"event":"push","name":"🎯 Terminal Transition On Merge","status":"completed"}]

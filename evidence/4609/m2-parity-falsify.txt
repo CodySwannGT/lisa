@@ -1,0 +1,10 @@
+$ node scripts/check-phrase-manifest-parity.mjs --base 02b59a6297 --head 5207036771 --exact
+02b59a6297..5207036771: 66 test file(s) deleted by the range
+  phrase-only:     66
+  not phrase-only: 0
+before: 5375 runtime phrase assertions, 5183 distinct (file, polarity, kind, value)
+after:  5182 manifest entries
+FAIL missing from the manifest: ["plugins/src/base/skills/lisa-agent-ready/SKILL.md","required","string","scripts/verify-wiki-safety.mjs"]
+parity: 1 failure(s)
+error: script "check:phrase-manifest-parity" exited with code 1
+rc=1

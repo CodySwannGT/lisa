@@ -1,0 +1,131 @@
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - import "./vitest.config.local" without a file extension (vitest.config.ts:21:25). Add the file extension
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - import "./vitest.config.local" without a file extension (vitest.config.ts:21:25). Add the file extension
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - import "./vitest.config.local" without a file extension (vitest.config.ts:21:25). Add the file extension
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - import "./vitest.config.local" without a file extension (vitest.config.ts:21:25). Add the file extension
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+
+ RUN  v4.1.11 <scratch>
+
+lisa scratch: no supervised lease in the environment, so this run is self-supervised. Fixture directories are still bounded to a run root this process owns and removed on exit; what is missing is the detached reaper that reclaims the root after a SIGKILL, which the next run's startup sweep recovers instead. Run through `lisa-test-run --profile <profile> --adapter vitest -- vitest ...` for a supervised run.
+ ❯ |lisa| tests/unit/docs/required-phrases.test.ts (5184 tests | 43 failed) 155ms
+       × required "@codyswann/lisa/learnings" 2ms
+       × required "LEARNINGS_CONTRACT" 0ms
+       × required "PROJECT_LEARNINGS.md" 0ms
+       × required "`fingerprint`" 0ms
+       × required "confidence" 0ms
+       × required "fingerprint" 0ms
+       × required "first_learned" 0ms
+       × required "gardener" 0ms
+       × required "last_confirmed" 0ms
+       × required "learningFingerprint" 0ms
+       × required "lisa-tooling-gap" 0ms
+       × required "onStaleSupersede" 0ms
+       × required "persistConsolidatedLearning" 0ms
+       × required "persistLearningEntry" 0ms
+       × required "provenance" 0ms
+       × required "resolveProjectLearningsFile" 0ms
+       × required "scope:upstream-candidate" 0ms
+       × required "supersede" 0ms
+       × required "tooling_gap_candidates" 0ms
+       × forbidden "`debrief-` +" 0ms
+       × forbidden "fingerprint` = the deterministic Phase 0 fingerprint" 0ms
+       × required /\{\s*id[^}]*fingerprint[^}]*\}/s 0ms
+       × required /capture-only/i 0ms
+       × required /consolidat/i 0ms
+       × required /desire/i 0ms
+       × required /desire-recorded/ 0ms
+       × required /dropped-duplicate/ 0ms
+       × required /duplicate fingerprint/i 0ms
+       × required /eight-field/i 0ms
+       × required /fingerprint\s*=\s*id|id\s*=\s*fingerprint/i 0ms
+       × required /legacy.*(?:id|fingerprint)/is 0ms
+       × required /low/ 0ms
+       × required /merged-into/ 0ms
+       × required /never file|file no issue/i 0ms
+       × required /parseLearningsFile/ 0ms
+       × required /sibling/i 0ms
+       × required /status:ready/ 0ms
+       × forbidden /PROJECT_RULES/ 0ms
+       × forbidden /gh issue create/ 0ms
+       × forbidden /hardening\.upstreamRepo/ 0ms
+       × forbidden /self-hardening/ 0ms
+       × forbidden /skill-creator/ 0ms
+       × forbidden /skill-evaluator/ 0ms
+
+⎯⎯⎯⎯⎯⎯ Failed Tests 43 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  |lisa| tests/unit/docs/required-phrases.test.ts > the required-phrases manifest > plugins/lisa-agy/agents/learner.md > required "@codyswann/lisa/learnings"
+ FAIL  |lisa| tests/unit/docs/required-phrases.test.ts > the required-phrases manifest > plugins/lisa-agy/agents/learner.md > required "LEARNINGS_CONTRACT"
+ FAIL  |lisa| tests/unit/docs/required-phrases.test.ts > the required-phrases manifest > plugins/lisa-agy/agents/learner.md > required "PROJECT_LEARNINGS.md"
+ FAIL  |lisa| tests/unit/docs/required-phrases.test.ts > the required-phrases manifest > plugins/lisa-agy/agents/learner.md > required "`fingerprint`"
+ FAIL  |lisa| tests/unit/docs/required-phrases.test.ts > the required-phrases manifest > plugins/lisa-agy/agents/learner.md > required "confidence"
+ FAIL  |lisa| tests/unit/docs/required-phrases.test.ts > the required-phrases manifest > plugins/lisa-agy/agents/learner.md > required "fingerprint"
+ FAIL  |lisa| tests/unit/docs/required-phrases.test.ts > the required-phrases manifest > plugins/lisa-agy/agents/learner.md > required "first_learned"
+ FAIL  |lisa| tests/unit/docs/required-phrases.test.ts > the required-phrases manifest > plugins/lisa-agy/agents/learner.md > required "gardener"
+ FAIL  |lisa| tests/unit/docs/required-phrases.test.ts > the required-phrases manifest > plugins/lisa-agy/agents/learner.md > required "last_confirmed"
+ FAIL  |lisa| tests/unit/docs/required-phrases.test.ts > the required-phrases manifest > plugins/lisa-agy/agents/learner.md > required "learningFingerprint"
+ FAIL  |lisa| tests/unit/docs/required-phrases.test.ts > the required-phrases manifest > plugins/lisa-agy/agents/learner.md > required "lisa-tooling-gap"
+ FAIL  |lisa| tests/unit/docs/required-phrases.test.ts > the required-phrases manifest > plugins/lisa-agy/agents/learner.md > required "onStaleSupersede"
+ FAIL  |lisa| tests/unit/docs/required-phrases.test.ts > the required-phrases manifest > plugins/lisa-agy/agents/learner.md > required "persistConsolidatedLearning"
+ FAIL  |lisa| tests/unit/docs/required-phrases.test.ts > the required-phrases manifest > plugins/lisa-agy/agents/learner.md > required "persistLearningEntry"
+ FAIL  |lisa| tests/unit/docs/required-phrases.test.ts > the required-phrases manifest > plugins/lisa-agy/agents/learner.md > required "provenance"
+ FAIL  |lisa| tests/unit/docs/required-phrases.test.ts > the required-phrases manifest > plugins/lisa-agy/agents/learner.md > required "resolveProjectLearningsFile"
+ FAIL  |lisa| tests/unit/docs/required-phrases.test.ts > the required-phrases manifest > plugins/lisa-agy/agents/learner.md > required "scope:upstream-candidate"
+ FAIL  |lisa| tests/unit/docs/required-phrases.test.ts > the required-phrases manifest > plugins/lisa-agy/agents/learner.md > required "supersede"
+ FAIL  |lisa| tests/unit/docs/required-phrases.test.ts > the required-phrases manifest > plugins/lisa-agy/agents/learner.md > required "tooling_gap_candidates"
+ FAIL  |lisa| tests/unit/docs/required-phrases.test.ts > the required-phrases manifest > plugins/lisa-agy/agents/learner.md > forbidden "`debrief-` +"
+ FAIL  |lisa| tests/unit/docs/required-phrases.test.ts > the required-phrases manifest > plugins/lisa-agy/agents/learner.md > forbidden "fingerprint` = the deterministic Phase 0 fingerprint"
+ FAIL  |lisa| tests/unit/docs/required-phrases.test.ts > the required-phrases manifest > plugins/lisa-agy/agents/learner.md > required /\{\s*id[^}]*fingerprint[^}]*\}/s
+ FAIL  |lisa| tests/unit/docs/required-phrases.test.ts > the required-phrases manifest > plugins/lisa-agy/agents/learner.md > required /capture-only/i
+ FAIL  |lisa| tests/unit/docs/required-phrases.test.ts > the required-phrases manifest > plugins/lisa-agy/agents/learner.md > required /consolidat/i
+ FAIL  |lisa| tests/unit/docs/required-phrases.test.ts > the required-phrases manifest > plugins/lisa-agy/agents/learner.md > required /desire/i
+ FAIL  |lisa| tests/unit/docs/required-phrases.test.ts > the required-phrases manifest > plugins/lisa-agy/agents/learner.md > required /desire-recorded/
+ FAIL  |lisa| tests/unit/docs/required-phrases.test.ts > the required-phrases manifest > plugins/lisa-agy/agents/learner.md > required /dropped-duplicate/
+ FAIL  |lisa| tests/unit/docs/required-phrases.test.ts > the required-phrases manifest > plugins/lisa-agy/agents/learner.md > required /duplicate fingerprint/i
+ FAIL  |lisa| tests/unit/docs/required-phrases.test.ts > the required-phrases manifest > plugins/lisa-agy/agents/learner.md > required /eight-field/i
+ FAIL  |lisa| tests/unit/docs/required-phrases.test.ts > the required-phrases manifest > plugins/lisa-agy/agents/learner.md > required /fingerprint\s*=\s*id|id\s*=\s*fingerprint/i
+ FAIL  |lisa| tests/unit/docs/required-phrases.test.ts > the required-phrases manifest > plugins/lisa-agy/agents/learner.md > required /legacy.*(?:id|fingerprint)/is
+ FAIL  |lisa| tests/unit/docs/required-phrases.test.ts > the required-phrases manifest > plugins/lisa-agy/agents/learner.md > required /low/
+ FAIL  |lisa| tests/unit/docs/required-phrases.test.ts > the required-phrases manifest > plugins/lisa-agy/agents/learner.md > required /merged-into/
+ FAIL  |lisa| tests/unit/docs/required-phrases.test.ts > the required-phrases manifest > plugins/lisa-agy/agents/learner.md > required /never file|file no issue/i
+ FAIL  |lisa| tests/unit/docs/required-phrases.test.ts > the required-phrases manifest > plugins/lisa-agy/agents/learner.md > required /parseLearningsFile/
+ FAIL  |lisa| tests/unit/docs/required-phrases.test.ts > the required-phrases manifest > plugins/lisa-agy/agents/learner.md > required /sibling/i
+ FAIL  |lisa| tests/unit/docs/required-phrases.test.ts > the required-phrases manifest > plugins/lisa-agy/agents/learner.md > required /status:ready/
+ FAIL  |lisa| tests/unit/docs/required-phrases.test.ts > the required-phrases manifest > plugins/lisa-agy/agents/learner.md > forbidden /PROJECT_RULES/
+ FAIL  |lisa| tests/unit/docs/required-phrases.test.ts > the required-phrases manifest > plugins/lisa-agy/agents/learner.md > forbidden /gh issue create/
+ FAIL  |lisa| tests/unit/docs/required-phrases.test.ts > the required-phrases manifest > plugins/lisa-agy/agents/learner.md > forbidden /hardening\.upstreamRepo/
+ FAIL  |lisa| tests/unit/docs/required-phrases.test.ts > the required-phrases manifest > plugins/lisa-agy/agents/learner.md > forbidden /self-hardening/
+ FAIL  |lisa| tests/unit/docs/required-phrases.test.ts > the required-phrases manifest > plugins/lisa-agy/agents/learner.md > forbidden /skill-creator/
+ FAIL  |lisa| tests/unit/docs/required-phrases.test.ts > the required-phrases manifest > plugins/lisa-agy/agents/learner.md > forbidden /skill-evaluator/
+AssertionError: plugins/lisa-agy/agents/learner.md does not exist, but the required-phrases manifest lists it: expected 'plugins/lisa-agy/agents/learner.md do…' to be undefined
+
+- Expected:
+undefined
+
++ Received:
+"plugins/lisa-agy/agents/learner.md does not exist, but the required-phrases manifest lists it"
+
+ ❯ tests/unit/docs/required-phrases.test.ts:59:34
+     57|       )("%s", (_title, check) => {
+     58|         const failure = phraseFailure(text, check);
+     59|         expect(failure, failure).toBeUndefined();
+       |                                  ^
+     60|       });
+     61|     });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/43]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  43 failed | 5141 passed (5184)
+   Start at  16:03:49
+   Duration  627ms (transform 78ms, setup 128ms, import 97ms, tests 155ms, environment 0ms)
+
+rc=1

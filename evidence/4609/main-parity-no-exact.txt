@@ -1,0 +1,14 @@
+base 2df2cb05cd: 73 test file(s) deleted on HEAD
+  phrase-only:     66
+  not phrase-only: 7
+before: 5375 runtime phrase assertions, 5183 distinct (file, polarity, kind, value)
+after:  5183 manifest entries
+FAIL deleted but not phrase-only: tests/unit/codex/skills-installer-internal-skill-policy.test.ts
+FAIL deleted but not phrase-only: tests/unit/scripts/completion-proof-verify-usage.test.ts
+FAIL deleted but not phrase-only: tests/unit/scripts/gate-diagnosis-type-errors.test.ts
+FAIL deleted but not phrase-only: tests/unit/scripts/generate-cursor-plugin-artifacts.artifacts.test.ts
+FAIL deleted but not phrase-only: tests/unit/scripts/lisa-reconcile-policy-units.test.ts
+FAIL deleted but not phrase-only: tests/unit/strategies/package-lisa-integration-script-layout.test.ts
+FAIL deleted but not phrase-only: tests/unit/strategies/wiki-status-verdicts.test.ts
+parity: 7 failure(s)
+rc=1

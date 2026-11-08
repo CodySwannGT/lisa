@@ -1,0 +1,14 @@
+Why `bun run check:phrase-manifest-parity` exits 1 on merged main (fc1b7500267cf5a94ef2ca5e4aad01b936231a13)
+
+$ git diff --name-status 2df2cb05cd c37315ea4e -- tests | grep -c '^D'      (parity base -> PR head)
+66
+$ git diff --name-status fc1b750026^1 fc1b750026 -- tests | grep -c '^D'   (deletions the merge brought into main)
+66
+$ git log --oneline --diff-filter=D 2df2cb05cd..fc1b750026 -- <the 7 "deleted but not phrase-only" files>
+b13edd6613 test: merge seven one-off regression files into their module's main tests
+  (main-side work; `git merge-base --is-ancestor b13edd6613 c37315ea4e` -> 1, not part of the PR)
+
+The only parity failures on main are those 7 files, which a different change on main deleted after the
+fixed base 2df2cb05cd. There is no "missing from the manifest" line: 5183 distinct before == 5183 entries after.
+The package script's fixed base makes the "runnable again" proof fail on main whenever another change
+deletes any test file after 2df2cb05cd.

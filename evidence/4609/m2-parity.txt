@@ -1,0 +1,8 @@
+$ node scripts/check-phrase-manifest-parity.mjs --base 02b59a6297 --head 5207036771 --exact
+02b59a6297..5207036771: 66 test file(s) deleted by the range
+  phrase-only:     66
+  not phrase-only: 0
+before: 5375 runtime phrase assertions, 5183 distinct (file, polarity, kind, value)
+after:  5183 manifest entries
+parity: OK
+rc=0

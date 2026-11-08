@@ -1,0 +1,47 @@
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - import "./vitest.config.local" without a file extension (vitest.config.ts:21:25). Add the file extension
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - import "./vitest.config.local" without a file extension (vitest.config.ts:21:25). Add the file extension
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - import "./vitest.config.local" without a file extension (vitest.config.ts:21:25). Add the file extension
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - import "./vitest.config.local" without a file extension (vitest.config.ts:21:25). Add the file extension
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+
+ RUN  v4.1.11 <scratch>
+
+lisa scratch: no supervised lease in the environment, so this run is self-supervised. Fixture directories are still bounded to a run root this process owns and removed on exit; what is missing is the detached reaper that reclaims the root after a SIGKILL, which the next run's startup sweep recovers instead. Run through `lisa-test-run --profile <profile> --adapter vitest -- vitest ...` for a supervised run.
+ ❯ |lisa| tests/unit/docs/required-phrases.test.ts (5184 tests | 1 failed) 153ms
+       × required "scripts/verify-wiki-safety.mjs" 3ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  |lisa| tests/unit/docs/required-phrases.test.ts > the required-phrases manifest > plugins/src/base/skills/lisa-agent-ready/SKILL.md > required "scripts/verify-wiki-safety.mjs"
+AssertionError: plugins/src/base/skills/lisa-agent-ready/SKILL.md is missing required phrase "scripts/verify-wiki-safety.mjs": expected 'plugins/src/base/skills/lisa-agent-re…' to be undefined
+
+- Expected:
+undefined
+
++ Received:
+"plugins/src/base/skills/lisa-agent-ready/SKILL.md is missing required phrase \"scripts/verify-wiki-safety.mjs\""
+
+ ❯ tests/unit/docs/required-phrases.test.ts:59:34
+     57|       )("%s", (_title, check) => {
+     58|         const failure = phraseFailure(text, check);
+     59|         expect(failure, failure).toBeUndefined();
+       |                                  ^
+     60|       });
+     61|     });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 5183 passed (5184)
+   Start at  14:50:02
+   Duration  703ms (transform 107ms, setup 172ms, import 152ms, tests 153ms, environment 0ms)
+
+rc=1

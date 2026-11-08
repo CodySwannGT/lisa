@@ -1,0 +1,16 @@
+$ git ls-tree -r --name-only <ref> tests | grep -cE '\.test\.(ts|mjs|js)$'
+4e39b6d989 (main just before #4717; first parent of fc1b750026): 1855
+fc1b750026 (#4717 merge commit):                                1794
+drop: 61
+
+$ git diff --name-status 4e39b6d989 fc1b750026 -- tests   (m2-ac4-diff-name-status.txt)
+deleted (D): 66 test files
+added   (A): 5 test files (+ tests/phrase-manifest/required-phrases.json, not a test file)
+  tests/unit/docs/required-phrases.test.ts
+  tests/unit/scripts/phrase-tests-classify.test.ts
+  tests/unit/scripts/phrase-tests-manifest.test.ts
+  tests/unit/scripts/phrase-tests-parity.test.ts
+  tests/unit/scripts/phrase-tests-record.test.ts
+
+66 - 5 = 61 == measured drop. MATCH.
+(Literal AC wording "deleted, plus one for the manifest test" predicts 65; the other 4 added files test the new scripts.)
