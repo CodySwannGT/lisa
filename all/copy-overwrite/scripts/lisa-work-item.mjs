@@ -34,6 +34,7 @@ import {
   publishCompletionProof,
 } from "./lib/completion-proof-publisher.mjs";
 import {
+  evidenceReleaseOverride,
   githubProofTransport,
   resolveEvidenceRelease,
 } from "./lib/completion-proof-github.mjs";
@@ -5869,18 +5870,26 @@ function publishProof(args) {
  *
  * `--ensure` also creates the release when it is absent and fails, in plain
  * words, when it is nearly full; without it nothing touches GitHub.
+ *
+ * `LISA_EVIDENCE_RELEASE` pins the name for one run, so a script that resolved
+ * it once (the journey template generator, then post-evidence.sh) cannot split
+ * links and uploads across a month boundary. The pinned name is still checked
+ * against the accepted releases, and `--ensure` still capacity-checks it.
  */
 function evidenceRelease(args) {
   const policy = readConfig().verification?.completion ?? {};
-  if (!args.includes("--ensure"))
-    return console.log(resolveEvidenceRelease(policy));
+  const pinned = process.env.LISA_EVIDENCE_RELEASE?.trim();
+  const tag = pinned
+    ? evidenceReleaseOverride(policy, pinned)
+    : resolveEvidenceRelease(policy);
+  if (!args.includes("--ensure")) return console.log(tag);
   const repository = currentRepository();
   if (!repository)
     throw new TrackingError(
       "evidence-release --ensure needs the GitHub repository; run it inside a checkout with a GitHub remote, or set GITHUB_REPOSITORY."
     );
   const transport = githubProofTransport(run, repository, policy);
-  console.log(ensureEvidenceRelease(run, transport, policy).tag);
+  console.log(ensureEvidenceRelease(run, transport, policy, { tag }).tag);
 }
 
 /**

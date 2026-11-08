@@ -31,11 +31,25 @@ const RELEASE_TAG = /^[A-Za-z0-9][A-Za-z0-9._-]{0,99}$/;
 const RELEASE_KEY = "verification.completion.evidenceRelease";
 const ACCEPTED_KEY = "verification.completion.acceptedEvidenceReleases";
 
+/**
+ * Whether a concrete name is a tag GitHub and git both accept: the character
+ * set and length, and none of git's ref-name exclusions that the character set
+ * still lets through (`..`, a trailing `.`, a `.lock` ending).
+ */
+function usableTag(name) {
+  return (
+    RELEASE_TAG.test(name) &&
+    !name.includes("..") &&
+    !name.endsWith(".") &&
+    !name.toLowerCase().endsWith(".lock")
+  );
+}
+
 /** One configured release name or `{YYYY-MM}` template, validated as a tag. */
 function releaseTemplate(value, key) {
   const resolved =
     typeof value === "string" ? value.split(MONTH_TOKEN).join("2000-01") : "";
-  if (!RELEASE_TAG.test(resolved))
+  if (!usableTag(resolved))
     throw new CompletionProofError(
       INVALID_CONFIG,
       `\`${key}\` in .lisa.config.json is ${JSON.stringify(value)}, which is not a usable GitHub release name. Use letters, digits, ".", "_" or "-" (start with a letter or digit, at most 100 characters); the only placeholder allowed is ${MONTH_TOKEN}, for example \`pr-assets-${MONTH_TOKEN}\`.`
@@ -85,6 +99,35 @@ export function resolveEvidenceRelease(policy = {}, now = new Date()) {
   return configuredTemplate(policy)
     .split(MONTH_TOKEN)
     .join(now.toISOString().slice(0, 7));
+}
+
+/**
+ * A concrete release named for one run, such as `LISA_EVIDENCE_RELEASE`.
+ *
+ * Skill scripts resolve the release once and pass it to every step, so the
+ * links a template generator writes and the uploads that follow agree even
+ * across a month boundary. The name must still be a usable tag and one the
+ * validator accepts, or evidence would land where proof cannot be read back.
+ * @param {object} [policy] - `verification.completion` from the Lisa config.
+ * @param {string} value - The concrete release name supplied for this run.
+ * @param {string} [source] - What supplied it, for the refusal message.
+ * @returns {string} The accepted concrete tag.
+ */
+export function evidenceReleaseOverride(
+  policy,
+  value,
+  source = "LISA_EVIDENCE_RELEASE"
+) {
+  if (
+    typeof value !== "string" ||
+    !usableTag(value) ||
+    !isAcceptedEvidenceRelease(policy, value)
+  )
+    throw new CompletionProofError(
+      INVALID_CONFIG,
+      `${source} is ${JSON.stringify(value)}, which is not one of this project's evidence releases (${acceptedEvidenceReleases(policy).join(", ")}). Unset it, or set it to the name \`node scripts/lisa-work-item.mjs evidence-release\` prints.`
+    );
+  return value;
 }
 
 /** An anchored pattern where only `{YYYY-MM}` varies; all else is literal. */

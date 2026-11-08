@@ -9,6 +9,7 @@ import {
   CompletionProofError,
   PROOF_KIND,
   PROOF_MARKER,
+  MAX_NATIVE_JSON_BYTES,
   MAX_RECORD_BYTES,
   sha256,
   primarySpecProjection,
@@ -38,12 +39,47 @@ function fullReleaseMessage(tag, repository, count) {
   return `The evidence release \`${tag}\` in ${repository} ${held}, so new proof can't be uploaded. Set \`verification.completion.evidenceRelease\` in .lisa.config.json to a rotating name such as \`pr-assets-{YYYY-MM}\` (older proof keeps validating), or prune old evidence (CodySwannGT/lisa#4720).`;
 }
 
-/** Read a release by tag; `null` only for GitHub's explicit 404. */
+/** The last few lines of a native CLI's diagnostics, bounded for a message. */
+function excerpt(stderr) {
+  const text = String(stderr ?? "").trim();
+  return text.length > 400 ? `…${text.slice(-400)}` : text;
+}
+
+/**
+ * Read a release by tag in one call; `null` only for GitHub's explicit 404.
+ * Any other failure goes through the bounded transport, which reports it as a
+ * read error instead of guessing the release is absent and creating it.
+ */
 function readRelease(run, transport, tag) {
   const path = `${transport.root}/releases/tags/${tag}`;
-  const result = run("gh", ["api", path], { allowFailure: true });
-  if (result.status !== 0 && /HTTP 404/.test(result.stderr ?? "")) return null;
+  const result = run("gh", ["api", path], {
+    allowFailure: true,
+    maxBuffer: MAX_NATIVE_JSON_BYTES,
+  });
+  if (result.status === 0 && !result.error) {
+    try {
+      return JSON.parse(result.stdout);
+    } catch {
+      throw new CompletionProofError(
+        READ_ERROR,
+        "The evidence release metadata is not complete JSON."
+      );
+    }
+  }
+  if (/HTTP 404/.test(result.stderr ?? "")) return null;
   return transport.json(path);
+}
+
+/**
+ * Whether a failed upload means the release is full. GitHub's 422 also covers
+ * an asset name that already exists, so a bare 422 is not enough: the error
+ * has to name the limit, or a fresh count has to show the release at it.
+ */
+function uploadHitLimit(stderr, transport, release) {
+  if (/asset[^\n]*limit|limit[^\n]*asset/i.test(stderr)) return null;
+  if (!/HTTP 422/.test(stderr)) return false;
+  const count = releaseAssets(transport, release).length;
+  return count + 1 >= EVIDENCE_RELEASE_ASSET_LIMIT ? count : false;
 }
 
 /**
@@ -57,20 +93,18 @@ function readRelease(run, transport, tag) {
  * @param {Function} run - The canonical child-process runner.
  * @param {object} transport - The bounded GitHub proof transport.
  * @param {object} [policy] - `verification.completion` from the Lisa config.
- * @param {Date} [now] - Resolution time for a `{YYYY-MM}` template.
+ * @param {object} [options] - Optional resolution inputs.
+ * @param {Date} [options.now] - Resolution time for a `{YYYY-MM}` template.
+ * @param {string} [options.tag] - An already-validated concrete tag to use.
  * @returns {{tag: string, release: object, count: number}} The usable release.
  */
-export function ensureEvidenceRelease(
-  run,
-  transport,
-  policy,
-  now = new Date()
-) {
-  const tag = resolveEvidenceRelease(policy, now);
+export function ensureEvidenceRelease(run, transport, policy, options = {}) {
+  const tag =
+    options.tag ?? resolveEvidenceRelease(policy, options.now ?? new Date());
   let release = readRelease(run, transport, tag);
   if (!release) {
     // A concurrent creator may win; the re-read below decides either way.
-    run(
+    const created = run(
       "gh",
       [
         "release",
@@ -81,15 +115,16 @@ export function ensureEvidenceRelease(
         "--title",
         `Lisa evidence ${tag}`,
         "--notes",
-        "Completion-proof and verification evidence assets (managed by Lisa).",
+        "Evidence storage only — not a product release. Completion-proof and verification evidence assets, managed by Lisa.",
         "--latest=false",
       ],
       { allowFailure: true }
     );
     release = readRelease(run, transport, tag);
+    const reason = excerpt(created.stderr);
     requireProof(
       release,
-      `The evidence release \`${tag}\` does not exist in ${transport.repository} and could not be created; check that the publisher can create releases there.`,
+      `The evidence release \`${tag}\` does not exist in ${transport.repository} and could not be created; check that the publisher can create releases there.${reason ? ` GitHub said: ${reason}` : ""}`,
       WRITE_ERROR
     );
   }
@@ -257,13 +292,21 @@ export function publishCompletionProof(context, input) {
       ["release", "upload", evidence.tag, file, "--repo", context.repository],
       { allowFailure: true }
     );
-    if (uploaded.status !== 0 || uploaded.error)
+    if (uploaded.status !== 0 || uploaded.error) {
+      const stderr = uploaded.stderr ?? "";
+      const full = uploadHitLimit(stderr, transport, evidence.release);
+      const reason = excerpt(stderr);
       throw new CompletionProofError(
         WRITE_ERROR,
-        /HTTP 422|asset[^\n]*limit/i.test(uploaded.stderr ?? "")
-          ? fullReleaseMessage(evidence.tag, context.repository)
-          : "Immutable completion-proof upload failed; no acceptance locator was published."
+        full === false
+          ? `Immutable completion-proof upload failed; no acceptance locator was published.${reason ? ` GitHub said: ${reason}` : ""}`
+          : fullReleaseMessage(
+              evidence.tag,
+              context.repository,
+              full ?? undefined
+            )
       );
+    }
     const matching = releaseAssets(transport, evidence.release).filter(
       asset => asset.name === name
     );

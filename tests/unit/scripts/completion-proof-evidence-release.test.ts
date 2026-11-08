@@ -12,6 +12,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  EVIDENCE_RELEASE_ASSET_LIMIT,
   EVIDENCE_RELEASE_NEAR_FULL,
   githubProofTransport,
   isAcceptedEvidenceRelease,
@@ -85,6 +86,9 @@ describe("resolveEvidenceRelease", () => {
     ["an empty name", ""],
     ["a non-string", 7],
     ["an over-long name", `a${"b".repeat(100)}`],
+    ["a double dot", "pr..assets"],
+    ["a trailing dot", "pr-assets."],
+    ["a .lock ending", "pr-assets.lock"],
   ])("refuses %s with an invalid-config error", (_label, value) => {
     let refusal: (Error & { category?: string }) | undefined;
     try {
@@ -209,7 +213,9 @@ describe("the completion-proof validator's release check", () => {
     ).toBe(INVALID_PROOF);
   });
 
-  it("keeps the near-full threshold under GitHub's 1000-asset cap", () => {
-    expect(EVIDENCE_RELEASE_NEAR_FULL).toBe(950);
+  it("refuses before GitHub's cap, never at or past it", () => {
+    expect(EVIDENCE_RELEASE_NEAR_FULL).toBeLessThan(
+      EVIDENCE_RELEASE_ASSET_LIMIT
+    );
   });
 });

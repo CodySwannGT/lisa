@@ -96,6 +96,32 @@ describe("post-evidence.sh uploads to the configured evidence release", () => {
     ).not.toContain("release upload");
   });
 
+  it.each(SCRIPT_COPIES)(
+    "%s uploads to LISA_EVIDENCE_RELEASE on a host without the resolver",
+    async copy => {
+      await run(copy, { LISA_EVIDENCE_RELEASE: ROTATED });
+
+      expect(await fs.readFile(ghLog, "utf8")).toContain(
+        `release upload ${ROTATED} `
+      );
+    }
+  );
+
+  it("hands LISA_EVIDENCE_RELEASE to the resolver so it is still validated and capacity-checked", async () => {
+    await writeCli(
+      `appendFileSync(${JSON.stringify(cliLog)}, "env=" + process.env.LISA_EVIDENCE_RELEASE + "\\n"); console.log(process.env.LISA_EVIDENCE_RELEASE);`
+    );
+
+    await run(SCRIPT_COPIES[0], { LISA_EVIDENCE_RELEASE: "pr-assets-2026-10" });
+
+    expect(await fs.readFile(cliLog, "utf8")).toContain(
+      "env=pr-assets-2026-10"
+    );
+    expect(await fs.readFile(ghLog, "utf8")).toContain(
+      "release upload pr-assets-2026-10 "
+    );
+  });
+
   it("keeps every source copy byte-identical", async () => {
     const [first, ...rest] = await Promise.all(
       SCRIPT_COPIES.map(copy => fs.readFile(path.join(repoRoot, copy), "utf8"))
@@ -117,9 +143,10 @@ describe("post-evidence.sh uploads to the configured evidence release", () => {
   /**
    * Run one copy of post-evidence.sh with an offline `gh` that logs its argv.
    * @param copy - Repository-relative script path.
+   * @param extra - Additional environment for the script.
    * @returns The completed spawn result.
    */
-  async function run(copy: string) {
+  async function run(copy: string, extra: Record<string, string> = {}) {
     const stubDir = path.join(tempDir, "stub-bin");
     await fs.outputFile(
       path.join(stubDir, "gh"),
@@ -139,6 +166,7 @@ describe("post-evidence.sh uploads to the configured evidence release", () => {
         HOME: tempDir,
         JIRA_API_TOKEN: "tok",
         PATH: `${stubDir}:${SAFE_COMMAND_PATH}`,
+        ...extra,
       },
       label: "post-evidence.sh under test",
     });

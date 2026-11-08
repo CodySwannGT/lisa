@@ -114,7 +114,11 @@ GH_REPO=$(gh repo view --json nameWithOwner --jq '.nameWithOwner')
 # raw HTTP 422 (CodySwannGT/lisa#4692). `--ensure` creates the release when it
 # is absent and refuses, in plain words, when it is nearly full. A host whose
 # Lisa predates the resolver keeps the legacy release.
-RELEASE_TAG="pr-assets"
+#
+# LISA_EVIDENCE_RELEASE, when set, pins the release for this run so the links
+# generate-templates.py wrote match these uploads. The resolver still checks
+# that name and the release's capacity; it reads the variable itself.
+RELEASE_TAG="${LISA_EVIDENCE_RELEASE:-pr-assets}"
 WORK_ITEM_CLI="${PROJECT_DIR}/scripts/lisa-work-item.mjs"
 if [[ -f "$WORK_ITEM_CLI" ]]; then
   if ! RELEASE_TAG=$(cd "$PROJECT_DIR" && node "$WORK_ITEM_CLI" evidence-release --ensure); then

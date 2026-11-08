@@ -29,6 +29,7 @@ const COMMAND = "evidence-release";
 const NOT_FOUND = "gh: Not Found (HTTP 404)\n";
 const FULL_MESSAGE = "GitHub's 1000-file limit";
 const CONFIG_HINT = "verification.completion.evidenceRelease";
+const UPLOAD_FAILED = "Immutable completion-proof upload failed";
 
 useIoLatencyBudget();
 afterEach(cleanupFixtures);
@@ -36,8 +37,24 @@ afterAll(cleanupTemplates);
 
 type ProofFixture = ReturnType<typeof proofFixture>;
 
-/** The tag a rotating template resolves to for this run. */
-const rotatedTag = () => `pr-assets-${new Date().toISOString().slice(0, 7)}`;
+const MONTHLY_TAG = /^pr-assets-\d{4}-(?:0[1-9]|1[0-2])$/;
+const NOTES =
+  "Evidence storage only — not a product release. Completion-proof and verification evidence assets, managed by Lisa.";
+const OVERRIDE = "LISA_EVIDENCE_RELEASE";
+const PINNED = "pr-assets-2026-10";
+const INVALID_CONFIG = "invalid-config";
+
+/**
+ * The tag the CLI itself resolves for this fixture, read once and reused, so
+ * the test never recomputes the month on its own clock.
+ * @param fixture - Owned disposable repository with its config written.
+ * @returns The resolved concrete tag.
+ */
+function rotatedTag(fixture: ProofFixture): string {
+  const tag = proofCli(fixture, [COMMAND]).stdout.trim();
+  expect(tag).toMatch(MONTHLY_TAG);
+  return tag;
+}
 
 /**
  * Set evidence-release keys under `verification.completion` in the host config.
@@ -100,7 +117,7 @@ function absentRelease(fixture: ProofFixture, tag: string): string[] {
     "--title",
     `Lisa evidence ${tag}`,
     "--notes",
-    "Completion-proof and verification evidence assets (managed by Lisa).",
+    NOTES,
     "--latest=false",
   ];
   setApi(fixture, create, { json: {} });
@@ -136,7 +153,7 @@ describe("completion-proof publication to the configured evidence release", () =
   it("creates the missing rotated release, uploads there, and the proof completes", () => {
     const fixture = proofFixture();
     configure(fixture, { evidenceRelease: ROTATING });
-    const tag = rotatedTag();
+    const tag = rotatedTag(fixture);
     const create = absentRelease(fixture, tag);
     const result = publish(fixture);
     expect(result.stderr).toBe("");
@@ -206,8 +223,82 @@ describe("completion-proof publication to the configured evidence release", () =
     fixture.env.FAKE_GH_UPLOAD_FAILURE = "HTTP 503: Service Unavailable\n";
     const result = publish(fixture);
     expect(result.status).toBe(1);
-    expect(result.stderr).toContain("Immutable completion-proof upload failed");
+    expect(result.stderr).toContain(UPLOAD_FAILED);
+    expect(result.stderr).toContain("HTTP 503: Service Unavailable");
     expect(result.stderr).not.toContain(FULL_MESSAGE);
+  });
+
+  it("does not call a duplicate-name 422 a full release", () => {
+    const fixture = proofFixture();
+    fixture.env.FAKE_GH_UPLOAD_FAILURE =
+      "HTTP 422: Validation Failed\nname already_exists\n";
+    const result = publish(fixture);
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain(UPLOAD_FAILED);
+    expect(result.stderr).toContain("already_exists");
+    expect(result.stderr).not.toContain(FULL_MESSAGE);
+  });
+
+  it("calls an unexplained 422 full when the release filled up meanwhile", () => {
+    const fixture = proofFixture();
+    const assets = (count: number) => [
+      Array.from({ length: count }, (_, index) => ({
+        id: 5000 + index,
+        name: `old-${index}.json`,
+      })),
+    ];
+    setApi(
+      fixture,
+      ["api", PAGINATE, "--slurp", `${REPO}/releases/19/assets?per_page=100`],
+      { sequence: [{ json: assets(10) }, { json: assets(999) }] }
+    );
+    fixture.env.FAKE_GH_UPLOAD_FAILURE = "HTTP 422: Validation Failed\n";
+    const result = publish(fixture);
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain(`holds 999 of ${FULL_MESSAGE}`);
+  });
+
+  it("uses a release a concurrent publisher created first", () => {
+    const fixture = proofFixture();
+    configure(fixture, { evidenceRelease: ROTATING });
+    const tag = rotatedTag(fixture);
+    const create = absentRelease(fixture, tag);
+    setApi(fixture, create, {
+      failure: "a release with the same tag name already exists\n",
+    });
+    const result = publish(fixture);
+    expect(result.stderr).toBe("");
+    expect(result.status).toBe(0);
+    expect(writes(fixture).find(args => args[1] === "upload")?.[2]).toBe(tag);
+  });
+
+  it("names GitHub's reason when the release cannot be created", () => {
+    const fixture = proofFixture();
+    configure(fixture, { evidenceRelease: ROTATING });
+    const tag = rotatedTag(fixture);
+    const create = absentRelease(fixture, tag);
+    setApi(fixture, ["api", `${REPO}/releases/tags/${tag}`], {
+      failure: NOT_FOUND,
+    });
+    setApi(fixture, create, {
+      failure: "HTTP 403: Resource not accessible by integration\n",
+    });
+    const result = publish(fixture);
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain("could not be created");
+    expect(result.stderr).toContain("Resource not accessible by integration");
+    expect(writes(fixture).some(args => args[1] === "upload")).toBe(false);
+  });
+
+  it("refuses a release lookup that fails for a reason other than 404, without creating", () => {
+    const fixture = proofFixture();
+    setApi(fixture, ["api", `${REPO}/releases/tags/pr-assets`], {
+      failure: "HTTP 500: Internal Server Error\n",
+    });
+    const result = publish(fixture);
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain("read-error");
+    expect(writes(fixture)).toEqual([]);
   });
 
   it("refuses an invalid evidenceRelease template before any write", () => {
@@ -215,7 +306,7 @@ describe("completion-proof publication to the configured evidence release", () =
     configure(fixture, { evidenceRelease: "pr-assets-{YYYY}" });
     const result = publish(fixture);
     expect(result.status).toBe(1);
-    expect(result.stderr).toContain("invalid-config");
+    expect(result.stderr).toContain(INVALID_CONFIG);
     expect(result.stderr).toContain(CONFIG_HINT);
     expect(writes(fixture)).toEqual([]);
   });
@@ -236,7 +327,7 @@ describe("lisa-work-item.mjs evidence-release", () => {
     configure(fixture, { evidenceRelease: ROTATING });
     const result = proofCli(fixture, [COMMAND]);
     expect(result.status).toBe(0);
-    expect(result.stdout.trim()).toBe(rotatedTag());
+    expect(result.stdout.trim()).toMatch(MONTHLY_TAG);
     const log = fixture.env.FAKE_GH_LOG!;
     expect(existsSync(log) ? readFileSync(log, "utf8") : "").not.toContain(
       "release"
@@ -246,7 +337,7 @@ describe("lisa-work-item.mjs evidence-release", () => {
   it("--ensure creates the missing release and prints its tag", () => {
     const fixture = proofFixture();
     configure(fixture, { evidenceRelease: ROTATING });
-    const tag = rotatedTag();
+    const tag = rotatedTag(fixture);
     const create = absentRelease(fixture, tag);
     const result = proofCli(fixture, [COMMAND, "--ensure"]);
     expect(result.stderr).toBe("");
@@ -265,11 +356,52 @@ describe("lisa-work-item.mjs evidence-release", () => {
     expect(result.stderr).toContain(CONFIG_HINT);
   });
 
+  it("honours LISA_EVIDENCE_RELEASE when it names an accepted release", () => {
+    const fixture = proofFixture();
+    configure(fixture, { evidenceRelease: ROTATING });
+    fixture.env[OVERRIDE] = PINNED;
+    const result = proofCli(fixture, [COMMAND]);
+    expect(result.stderr).toBe("");
+    expect(result.stdout.trim()).toBe(PINNED);
+  });
+
+  it("--ensure creates and capacity-checks the LISA_EVIDENCE_RELEASE override", () => {
+    const fixture = proofFixture();
+    configure(fixture, { evidenceRelease: ROTATING });
+    fixture.env[OVERRIDE] = PINNED;
+    const create = absentRelease(fixture, PINNED);
+    const result = proofCli(fixture, [COMMAND, "--ensure"]);
+    expect(result.stderr).toBe("");
+    expect(result.stdout.trim()).toBe(PINNED);
+    expect(writes(fixture)).toEqual([create]);
+  });
+
+  it("--ensure refuses a full LISA_EVIDENCE_RELEASE override", () => {
+    const fixture = proofFixture();
+    fixture.env[OVERRIDE] = "pr-assets";
+    fillLegacyRelease(fixture, 960);
+    const result = proofCli(fixture, [COMMAND, "--ensure"]);
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain(`holds 960 of ${FULL_MESSAGE}`);
+  });
+
+  it.each(["v1.0.0", "bad/name", "pr-assets-{YYYY-MM}"])(
+    "refuses a LISA_EVIDENCE_RELEASE of %s that is not an accepted concrete release",
+    value => {
+      const fixture = proofFixture();
+      fixture.env[OVERRIDE] = value;
+      const result = proofCli(fixture, [COMMAND]);
+      expect(result.status).toBe(1);
+      expect(result.stderr).toContain(INVALID_CONFIG);
+      expect(result.stderr).toContain(OVERRIDE);
+    }
+  );
+
   it("refuses an invalid template", () => {
     const fixture = proofFixture();
     configure(fixture, { evidenceRelease: "bad/name" });
     const result = proofCli(fixture, [COMMAND]);
     expect(result.status).toBe(1);
-    expect(result.stderr).toContain("invalid-config");
+    expect(result.stderr).toContain(INVALID_CONFIG);
   });
 });
