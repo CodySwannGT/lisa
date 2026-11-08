@@ -306,13 +306,27 @@ are two different questions with two different answers: arming prematurely is
 what this gate prevents; turning off a live latch is what the rest of section
 1 forbids.
 
-**Scope: repositories that declare a review check.** The defect is a required
-review context reporting satisfied having read nothing, so where no such
-context exists there is no false green to withhold the latch from, and arming is
-unchanged. A repository with no `evidence_bearing_checks` in
-`.github/required-checks.json` — or none at all — passes this gate immediately.
-Holding those PRs would redden a whole fleet for a gate none of them asked for,
-which is how a guard gets deleted rather than adopted.
+**Scope: repositories that declare a review check — in EITHER place.** The
+defect is a required review context reporting satisfied having read nothing, so
+where no such context exists there is no false green to withhold the latch from,
+and arming is unchanged. A review context is declared by either of two signals,
+and the gate engages on either one:
+
+- a gate in `.lisa.config.json` whose `pull-request` moment declares
+  `evidence.reviewer: true` — every stack can carry this, Rails included;
+- an `evidence_bearing_checks` entry in `.github/required-checks.json` — seeded
+  only on TypeScript-family hosts.
+
+Only a repository that declares neither passes this gate immediately. Holding
+those PRs would redden a whole fleet for a gate none of them asked for, which is
+how a guard gets deleted rather than adopted.
+
+Measured (#4653): keyed to `required-checks.json` alone, the gate passed by
+construction on every Rails host, because Lisa seeds that file, the classifier
+and `review-evidence.yml` only on TypeScript-family hosts. A Rails host that
+declared `code-review` with `evidence.reviewer: true` exactly as Lisa does still
+armed at open and merged on a rate-limited reviewer's `neutral` check run,
+which GitHub counts as passing the required context.
 
 Arming is a decision to merge, made in advance and executed by GitHub without
 you. Everything this skill knows about the review — step (d)'s `reviewed` /
@@ -340,9 +354,35 @@ reports itself.
 
 #### Classify before arming
 
-**Vacuity is the prover's answer, not a string you match here.** The repository
-already ships the detector; consult it on the merge path instead of re-deriving
-its vocabulary, which is how the two drift apart:
+**The arm decision is the prover's answer, not a judgement you make here.** It
+ships to every stack from `all/copy-overwrite/scripts/`, and it decides from
+both signals at once:
+
+```bash
+node scripts/check-third-party-review-evidence.mjs --sha <head-sha> --repo <owner>/<repo> \
+  --arm --json [--vacuity-report <path>]
+```
+
+Read `arm` and `action`, not the exit code. Only `arm: true` (`action: arm`)
+turns auto-merge on. It requires every engaged signal to have proved work: the
+config-declared reviewer `satisfied`, or `substituted` by a writer's
+first-line substitute for this exact head (#4628); and, where the classifier
+below ran, a non-vacuous review context. The other actions keep the latch off
+and name the next step:
+
+| `action` | what it means | do |
+| --- | --- | --- |
+| `substitute` | nothing read this head | post the local adversarial review now (step (d), "In case 3, substitute"), then decide again |
+| `watch` | not an answer yet, or vacuous with the substitute already posted | do not arm; keep driving — step (d) merges when the vacuous context is the sole gate |
+| `blocker` | a review ran and objected | a real blocker; steps (d)/(e) |
+| `stop` | the pull requests could not be read | stop under `tool-access-gate`, as for `pull-requests-unreadable` in step (d) |
+
+**Where the host ships the vacuity classifier, keep it — pass its report in.**
+On a TypeScript-family host, run the classifier first, save its JSON, and hand
+the path to `--vacuity-report`; a Rails or other host without it omits the flag
+and the decision rests on the config-declared reviewer alone. Vacuity is the
+classifier's answer, not a string you match here; consult it on the merge path
+instead of re-deriving its vocabulary, which is how the two drift apart:
 
 ```bash
 node scripts/check-skipped-required-checks.mjs --vacuity --pr=<pr> --json
@@ -366,7 +406,7 @@ zero exit is not evidence that a review happened:
 | `review_evidence_waived` | a named vendor entitlement | no — vacuous |
 | `vacuous_required_check` | success carrying a no-work description | no — vacuous |
 | `unproven_required_check` | a description proving nothing either way, or no status at all | no — vacuous |
-| `inspected: false` with `vacuity_none_declared` | this repository declares no review check | **arm** — out of scope, see above |
+| `inspected: false` with `vacuity_none_declared` | `required-checks.json` declares no review check | the classifier is out of scope; the config-declared reviewer still decides (`--arm` does this) |
 | `inspected: false`, any other refusal | something was supposed to be read and was not | no — an empty inspection is not a pass |
 
 The last two rows are the same field and opposite answers, so read the refusal
@@ -386,8 +426,9 @@ gh pr checks <pr> --json name,state,description,bucket \
 ```
 
 `<review-context>` is whatever `.github/required-checks.json` declares under
-`evidence_bearing_checks` — do not assume `CodeRabbit`, and if nothing is
-declared, arm normally (the scope rule above). Where one IS declared, absent a
+`evidence_bearing_checks`, plus the `await` of every `.lisa.config.json` gate
+that declares `evidence.reviewer: true` — do not assume `CodeRabbit`, and if
+neither declares anything, arm normally (the scope rule above). Where one IS declared, absent a
 description that positively states a review ran, treat the context as vacuous.
 Fail closed: absence of evidence is not evidence of a review.
 

@@ -425,6 +425,7 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
     "71c2c5c82e09cb42d5c7817fe179be8abf05cb3fa4abab2061388b06e1092b43",
     "72e90d2e5fc0a134313ffa63e67ac6adb360a7318659e75433d7ed1a8c1bdfee",
     "95f91f2a74ed4e523d064d5d374eadd1c1114f03a3a4fa41532c9b0fd32089de",
+    "abe7221e1cfcee930b4fa3788eccb8a25ee4d499c3b90dc568f3862796c94de0",
   ]),
   "scripts/check-threshold-ratchet.mjs": Object.freeze([
     "04f660131bf50864239eb09cbf4d9555e53921254f6ab45ff2b85c173e160901",
@@ -2741,6 +2742,7 @@ export const LISA_OWNED_HASH_HISTORY_DERIVED: Readonly<
     "71c2c5c82e09cb42d5c7817fe179be8abf05cb3fa4abab2061388b06e1092b43",
     "72e90d2e5fc0a134313ffa63e67ac6adb360a7318659e75433d7ed1a8c1bdfee",
     "95f91f2a74ed4e523d064d5d374eadd1c1114f03a3a4fa41532c9b0fd32089de",
+    "abe7221e1cfcee930b4fa3788eccb8a25ee4d499c3b90dc568f3862796c94de0",
   ]),
   "scripts/check-threshold-ratchet.mjs": Object.freeze([
     "04f660131bf50864239eb09cbf4d9555e53921254f6ab45ff2b85c173e160901",

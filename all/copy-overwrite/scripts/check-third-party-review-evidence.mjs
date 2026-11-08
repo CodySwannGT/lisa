@@ -121,6 +121,14 @@
  * CLI:
  *   node scripts/check-third-party-review-evidence.mjs --sha <sha> [--json]
  *     [--context <context>] [--root <dir>] [--repo <owner/repo>]
+ *     [--arm [--vacuity-report <path>]]
+ *
+ * `--arm` answers the merge driver's arm gate instead (#4653): whether
+ * auto-merge may be turned on for this head, and if not, what to do next.
+ * `--vacuity-report` is the saved `check-skipped-required-checks.mjs --vacuity
+ * --json` output on hosts that ship that classifier; without it the decision
+ * rests on the config-declared reviewer alone, which is every stack's case.
+ * Exit 0 means arm; read `arm` and `action`, not the exit code, to know why.
  *
  * `--context` names the status context or check-run name that woke the run.
  * When it is given and belongs to no declared reviewer, the run is an explicit
@@ -130,6 +138,8 @@
  *
  * @module scripts/check-third-party-review-evidence
  */
+import { readFileSync } from "node:fs";
+
 import { boundedExecFileSync } from "./lib/bounded-spawn.mjs";
 import { invokedAsScript } from "./lib/invoked-as-script.mjs";
 import { EVIDENCE_DEFAULTS, PULL_REQUEST, readGates } from "./lisa-gates.mjs";
@@ -847,6 +857,188 @@ export function reviewEvidenceVerdict({
 }
 
 /**
+ * What the merge driver does after the arm decision (#4653).
+ *
+ * Only `arm` turns auto-merge on. Every other action leaves it off, and names
+ * the next step so the caller never has to re-derive it from a verdict.
+ */
+export const ARM_ACTIONS = Object.freeze({
+  /** Every engaged signal proved work. Turn auto-merge on. */
+  arm: "arm",
+  /** Nothing read this head. Post the local adversarial review, then decide again. */
+  substitute: "substitute",
+  /** Not an answer yet, or vacuous with the substitute already posted. Keep driving. */
+  watch: "watch",
+  /** A review ran and objected. A real blocker. */
+  blocker: "blocker",
+  /** A read the decision depends on failed. Stop under the access gate. */
+  stop: "stop",
+});
+
+/** Vacuity-classifier violation kinds that concern the review context. */
+const VACUOUS_REVIEW_KINDS = new Set([
+  "review_evidence_waived",
+  "vacuous_required_check",
+  "unproven_required_check",
+]);
+
+/** The classifier's refusal that means it has nothing declared to read. */
+const VACUITY_NONE_DECLARED = "vacuity_none_declared";
+
+/** Which non-arm action wins when the two signals disagree; earlier wins. */
+const ACTION_PRIORITY = [
+  ARM_ACTIONS.stop,
+  ARM_ACTIONS.blocker,
+  ARM_ACTIONS.watch,
+  ARM_ACTIONS.substitute,
+];
+
+/**
+ * What the config-declared reviewer says about arming.
+ * @param {{outcome: string}} evidence - This prover's verdict.
+ * @returns {{engaged: boolean, action: string, reason: string}} The signal.
+ */
+function evidenceSignal(evidence) {
+  switch (evidence.outcome) {
+    case EVIDENCE_OUTCOMES.noReviewerConfigured:
+      return {
+        engaged: false,
+        action: ARM_ACTIONS.arm,
+        reason: "no gate in .lisa.config.json declares a third-party reviewer",
+      };
+    case EVIDENCE_OUTCOMES.satisfied:
+      return {
+        engaged: true,
+        action: ARM_ACTIONS.arm,
+        reason: "every configured reviewer showed its reviewed-when evidence",
+      };
+    case EVIDENCE_OUTCOMES.substituted:
+      return {
+        engaged: true,
+        action: ARM_ACTIONS.arm,
+        reason: "a substitute review is posted for this head",
+      };
+    case EVIDENCE_OUTCOMES.pullRequestsUnreadable:
+      return {
+        engaged: true,
+        action: ARM_ACTIONS.stop,
+        reason: "the pull requests could not be read, so the review is unknown",
+      };
+    case EVIDENCE_OUTCOMES.unsatisfied:
+      return {
+        engaged: true,
+        action: ARM_ACTIONS.substitute,
+        reason: "a configured reviewer showed no evidence it read this head",
+      };
+    default:
+      return {
+        engaged: true,
+        action: ARM_ACTIONS.watch,
+        reason: `the reviewer evidence is not an answer yet (${evidence.outcome})`,
+      };
+  }
+}
+
+/**
+ * What the vacuity classifier says about arming, where a host ships one.
+ * @param {object|null} vacuity - `check-skipped-required-checks.mjs --vacuity --json` output, or null.
+ * @param {boolean} substituted - Whether a substitute already stands for this head.
+ * @returns {{engaged: boolean, action: string, reason: string}} The signal.
+ */
+function vacuitySignal(vacuity, substituted) {
+  const report = /** @type {any} */ (vacuity);
+  if (report === null || report === undefined) {
+    return { engaged: false, action: ARM_ACTIONS.arm, reason: "" };
+  }
+  const refusal = report.vacuity?.refusal?.kind ?? report.refusal?.kind ?? null;
+  if (refusal === VACUITY_NONE_DECLARED) {
+    return { engaged: false, action: ARM_ACTIONS.arm, reason: "" };
+  }
+  if (report.inspected !== true) {
+    return {
+      engaged: true,
+      action: ARM_ACTIONS.watch,
+      reason: `the vacuity classifier read nothing (${refusal ?? "uninspected"}); an empty inspection is not a pass`,
+    };
+  }
+  const kinds = [
+    ...(report.violations ?? []),
+    ...(report.vacuity?.violations ?? []),
+  ].map(violation => violation?.kind);
+  if (kinds.includes("review_evidence_unsatisfied")) {
+    return {
+      engaged: true,
+      action: ARM_ACTIONS.blocker,
+      reason: "a review ran and objected",
+    };
+  }
+  if (kinds.some(kind => VACUOUS_REVIEW_KINDS.has(kind))) {
+    return {
+      engaged: true,
+      action: substituted ? ARM_ACTIONS.watch : ARM_ACTIONS.substitute,
+      reason: substituted
+        ? "the declared review check is vacuous; the substitute is posted, so step (d) merges"
+        : "the declared review check is vacuous",
+    };
+  }
+  return {
+    engaged: true,
+    action: ARM_ACTIONS.arm,
+    reason: "the declared review check did work",
+  };
+}
+
+/**
+ * Decide whether auto-merge may be armed (#4653).
+ *
+ * The gate engages on EITHER signal: a reviewer declared in `.lisa.config.json`
+ * (this prover, which ships to every stack), or an evidence-bearing check in
+ * `.github/required-checks.json` (the vacuity classifier, which ships only to
+ * TypeScript-family hosts). Keying it to the second alone left every other
+ * stack arming against a rate-limited `neutral` check run. Arming requires
+ * every engaged signal to say arm; with neither engaged there is no review
+ * context to protect, and arming is unchanged.
+ * @param {object} options - Decision inputs.
+ * @param {{outcome: string}} options.evidence - This prover's verdict for the head.
+ * @param {object|null} [options.vacuity] - The vacuity classifier's JSON report, or null where none ships.
+ * @returns {{arm: boolean, action: string, reason: string, engaged: {reviewer: boolean, vacuity: boolean}}} The decision.
+ */
+export function armDecision({ evidence, vacuity = null }) {
+  const reviewer = evidenceSignal(evidence);
+  const classifier = vacuitySignal(
+    vacuity,
+    evidence.outcome === EVIDENCE_OUTCOMES.substituted
+  );
+  const engaged = { reviewer: reviewer.engaged, vacuity: classifier.engaged };
+  const held = [reviewer, classifier].filter(
+    signal => signal.engaged && signal.action !== ARM_ACTIONS.arm
+  );
+  if (held.length === 0) {
+    const proving = [reviewer, classifier].filter(signal => signal.engaged);
+    return {
+      arm: true,
+      action: ARM_ACTIONS.arm,
+      reason:
+        proving.length === 0
+          ? "no review context is declared anywhere; nothing to withhold the latch from"
+          : proving.map(signal => signal.reason).join("; "),
+      engaged,
+    };
+  }
+  const [first] = [...held].sort(
+    (left, right) =>
+      ACTION_PRIORITY.indexOf(left.action) -
+      ACTION_PRIORITY.indexOf(right.action)
+  );
+  return {
+    arm: false,
+    action: first.action,
+    reason: held.map(signal => signal.reason).join("; "),
+    engaged,
+  };
+}
+
+/**
  * A reading as the report prints it.
  * @typedef {object} ReportedReading
  * @property {string} context - The reviewer's context.
@@ -942,7 +1134,7 @@ function describeSeen(reading) {
 /**
  * Parse the CLI arguments.
  * @param {string[]} argv - Arguments after the script path.
- * @returns {{sha: string|null, context: string|null, root: string, repo: string|null, json: boolean}} Options.
+ * @returns {{sha: string|null, context: string|null, root: string, repo: string|null, json: boolean, arm: boolean, "vacuity-report": string|null}} Options.
  */
 export function parseArgs(argv) {
   const opts = {
@@ -951,11 +1143,13 @@ export function parseArgs(argv) {
     root: process.cwd(),
     repo: null,
     json: false,
+    arm: false,
+    "vacuity-report": null,
   };
   for (let index = 0; index < argv.length; index += 1) {
     const arg = argv[index];
-    if (arg === "--json") {
-      opts.json = true;
+    if (arg === "--json" || arg === "--arm") {
+      opts[arg.slice(2)] = true;
       continue;
     }
     const [flag, inline] = arg.startsWith("--") ? splitFlag(arg) : [null, null];
@@ -1136,6 +1330,54 @@ function checkRunsByContext(reviewers, sha, read) {
 }
 
 /**
+ * The vacuity classifier's saved report, when the caller passed one.
+ *
+ * A path that cannot be read or parsed is NOT "no classifier": the caller said
+ * one exists, so it is reported as an inspection that read nothing.
+ * @param {string|null} path - `--vacuity-report`, or null.
+ * @param {(path: string) => string} read - File reader.
+ * @returns {object|null} The parsed report, null when none was passed.
+ */
+function loadVacuityReport(path, read) {
+  if (path === null) return null;
+  try {
+    return JSON.parse(read(path));
+  } catch {
+    return {
+      inspected: false,
+      vacuity: { refusal: { kind: "vacuity_report_unreadable" } },
+    };
+  }
+}
+
+/**
+ * Write the `--arm` decision and return its exit code: 0 to arm, 1 otherwise.
+ * @param {{outcome: string, sha: string}} verdict - This prover's verdict.
+ * @param {{json: boolean, "vacuity-report": string|null}} opts - Parsed options.
+ * @param {{readFile?: (path: string) => string}} io - Injected side effects.
+ * @param {{write: (text: string) => void}} out - Stdout.
+ * @returns {number} The exit code.
+ */
+function writeArmDecision(verdict, opts, io, out) {
+  const decision = armDecision({
+    evidence: verdict,
+    vacuity: loadVacuityReport(
+      opts["vacuity-report"],
+      io.readFile ?? (path => readFileSync(path, "utf8"))
+    ),
+  });
+  const report = { ...decision, evidence: verdict };
+  const held = `DO NOT ARM — ${decision.action}`;
+  const headline = decision.arm ? "ARM" : held;
+  out.write(
+    opts.json
+      ? `${JSON.stringify(report, null, 2)}\n`
+      : `${headline}: ${decision.reason}\n${humanReport(verdict)}\n`
+  );
+  return decision.arm ? 0 : 1;
+}
+
+/**
  * The CLI body.
  * @param {string[]} argv - Arguments after the script path.
  * @param {object} [io] - Injected side effects, for tests.
@@ -1148,6 +1390,7 @@ function checkRunsByContext(reviewers, sha, read) {
  *   means the caller supplies the evidence, and mixing a live read into it
  *   would judge a fixture against the network.
  * @param {(numbers: number[]) => ReadonlyArray<object>} [io.comments] - Comment reader.
+ * @param {(path: string) => string} [io.readFile] - Reader for `--vacuity-report`.
  * @param {{write: (text: string) => void}} [io.out] - Stdout.
  * @param {{write: (text: string) => void}} [io.err] - Stderr.
  * @returns {number} The exit code.
@@ -1206,6 +1449,7 @@ export function main(argv, io = {}) {
         sha: opts.sha,
         isPullRequestHead,
       });
+  if (opts.arm) return writeArmDecision(verdict, opts, io, out);
   out.write(
     `${opts.json ? JSON.stringify(verdict, null, 2) : humanReport(verdict)}\n`
   );
