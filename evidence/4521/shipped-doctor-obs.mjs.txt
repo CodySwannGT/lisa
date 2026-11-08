@@ -1,0 +1,11 @@
+// Shipped doctor: auditExceptionObservations + auditExceptionViolations from
+// <package>/dist/cli/doctor-readiness-audit-allowlist.js (4.96.3 bytes).
+import { pathToFileURL } from "node:url";
+
+const [, , pkgRoot, root, label] = process.argv;
+const mod = await import(
+  pathToFileURL(`${pkgRoot}/dist/cli/doctor-readiness-audit-allowlist.js`).href
+);
+const observations = await mod.auditExceptionObservations(root);
+const violations = await mod.auditExceptionViolations(root);
+console.log(JSON.stringify({ case: label, observations, violations }, null, 1));
