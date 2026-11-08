@@ -33,12 +33,13 @@
     }
   },
   "gh": {
-    "pr view 4673 --repo CodySwannGT/lisa --json number,state,body,headRefOid,isCrossRepository": {
+    "pr view 4673 --repo CodySwannGT/lisa --json number,state,body,headRefOid,isCrossRepository,baseRefName": {
       "stdout": {
         "number": 4673,
         "state": "OPEN",
         "headRefOid": "3db71f89a186d5dbeb78015aa5735fa9d8efda48",
         "isCrossRepository": false,
+        "baseRefName": "main",
         "body": "Retire the native safety net.\n\nWork-Item: CodySwannGT/lisa#4672\n"
       }
     },

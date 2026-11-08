@@ -21,10 +21,11 @@ import { isAbsolute, resolve, sep } from "node:path";
 import {
   mergeConfigLayers as mergeLayers,
   parseLoopInterval,
+  sessionManagerWarnings,
   validateSessionManager,
 } from "../../lisa-secrets-access/scripts/validate-config.mjs";
 
-export { parseLoopInterval, validateSessionManager };
+export { parseLoopInterval, sessionManagerWarnings, validateSessionManager };
 export { detectRepoLayout, detectRepos, draftHints } from "./repo-detect.mjs";
 
 /**

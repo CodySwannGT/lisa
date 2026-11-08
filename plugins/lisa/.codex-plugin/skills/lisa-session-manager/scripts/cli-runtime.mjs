@@ -16,6 +16,7 @@ import path from "node:path";
 
 import {
   resolveSessionManagerConfig,
+  sessionManagerWarnings,
   validateSessionManager,
 } from "./config.mjs";
 import {
@@ -134,15 +135,19 @@ function validationView(config) {
  * Read both config files and resolve the `sessionManager` block.
  * @param {string} root - Absolute project root
  * @returns {{ global: object | undefined, local: object | undefined,
- *   config: object | null, errors: string[] }} Raw files, resolved block
- *   (null when absent) and validation errors
+ *   config: object | null, errors: string[], warnings: string[] }} Raw
+ *   files, resolved block (null when absent), validation errors, and
+ *   warnings that never block a command (such as a plain all-digit
+ *   operator entry, #4623)
  */
 export function loadProject(root) {
   const global = readConfigFile(path.join(root, GLOBAL_CONFIG_FILE));
   const local = readConfigFile(path.join(root, LOCAL_CONFIG_FILE));
   const config = resolveSessionManagerConfig(global, local);
-  const errors = config ? validateSessionManager(validationView(config)) : [];
-  return { global, local, config, errors };
+  const view = config ? validationView(config) : null;
+  const errors = view ? validateSessionManager(view) : [];
+  const warnings = view ? sessionManagerWarnings(view) : [];
+  return { global, local, config, errors, warnings };
 }
 
 /**

@@ -27,6 +27,13 @@
  * {@link assertPagedToCompletion} refuses to order a half-read queue, because
  * a truncated sweep silently reorders by omission (#3529, #4105).
  *
+ * Operator and trusted-author entries may be kind-keyed (#4623): `login:<v>`
+ * matches only a GitHub login, `id:<v>` only an account id, and a plain entry
+ * is compared exactly as before (with the normalized assignee id, or the
+ * normalized author id). Each normalizer therefore also carries the login and
+ * the account id of the assignee and the login of the author, where its
+ * tracker has them, so the kinds never have to be guessed.
+ *
  * Held items are judged by {@link isHumanGated}, the one shared answer to "is
  * a person holding this?", rather than by a local label check (#3805).
  *
@@ -42,6 +49,7 @@ import {
   DEFAULT_HUMAN_NEEDED_LABEL,
   isHumanGated,
 } from "./intake-blocker-reprobe.mjs";
+import { entryMatches, parseIdEntries } from "./operator-id-kinds.mjs";
 
 /** Rank for GitHub `priority:<value>` labels; no label ranks 4. */
 const GITHUB_PRIORITY_RANKS = Object.freeze({
@@ -187,13 +195,18 @@ export function normalizeGithubIssue(issue, options = {}) {
     title: text(issue.title),
     // GitHub "me" is the login (`gh api user --jq .login`), so match on it.
     assigneeId: idOrNull(assignee?.login),
+    assigneeLogin: idOrNull(assignee?.login),
+    assigneeAccountId: idOrNull(assignee?.id),
     priorityRank: ranks.length > 0 ? Math.min(...ranks) : GITHUB_NO_PRIORITY,
     createdAt: text(issue.created_at),
     updatedAt: text(issue.updated_at),
     labels,
     body: text(issue.body),
-    // Authors are trusted by stable id, never by login (ready-role-filing).
+    // Plain and `id:` trusted-author entries trust by stable id (ready-role-
+    // filing); a `login:` entry trusts a login the operator opted into
+    // explicitly, knowing a freed login can be re-registered (#4623).
     authorId: idOrNull(issue.user?.id),
+    authorLogin: idOrNull(issue.user?.login),
     isContainer: Number(summary?.total ?? 0) > Number(summary?.completed ?? 0),
     // `blocked_by` in the dependency summary counts only OPEN blockers.
     openBlockers: count(issue.issue_dependencies_summary?.blocked_by),
@@ -225,12 +238,15 @@ export function normalizeJiraIssue(issue) {
     ref: text(issue?.key),
     title: text(fields.summary),
     assigneeId: idOrNull(fields.assignee?.accountId),
+    assigneeLogin: null,
+    assigneeAccountId: idOrNull(fields.assignee?.accountId),
     priorityRank: JIRA_PRIORITY_RANKS[priority] ?? JIRA_UNKNOWN_PRIORITY,
     createdAt: text(fields.created),
     updatedAt: text(fields.updated),
     labels,
     body: adfText(fields.description),
     authorId: idOrNull(fields.reporter?.accountId ?? fields.creator?.accountId),
+    authorLogin: null,
     isContainer:
       Number(type.hierarchyLevel ?? 0) > 0 ||
       text(type.name).toLowerCase() === "epic" ||
@@ -265,6 +281,8 @@ export function normalizeLinearIssue(issue) {
     ref: text(issue?.identifier),
     title: text(issue?.title),
     assigneeId: idOrNull(issue?.assignee?.id),
+    assigneeLogin: null,
+    assigneeAccountId: idOrNull(issue?.assignee?.id),
     priorityRank:
       Number.isInteger(native) && native >= 1 && native <= 4
         ? native - 1
@@ -274,6 +292,7 @@ export function normalizeLinearIssue(issue) {
     labels,
     body: text(issue?.description),
     authorId: idOrNull(issue?.creator?.id),
+    authorLogin: null,
     isContainer: children.some(
       child => !LINEAR_FINISHED_STATE_TYPES.has(child?.state?.type)
     ),
@@ -285,23 +304,64 @@ export function normalizeLinearIssue(issue) {
  * The one item shape every normalizer returns, in a fixed key order.
  * `updatedAt` keys the backlog tier's validation cache; `openBlockers` counts
  * dependencies whose blocker is not finished. The Ready tier ignores both.
- * @param {{ ref: string, title: string, assigneeId: string | null, priorityRank: number, createdAt: string, updatedAt: string, labels: string[], body: string, authorId: string | null, isContainer: boolean, openBlockers: number }} input
+ * `assigneeLogin` / `authorLogin` are GitHub logins (null on trackers with
+ * none) and `assigneeAccountId` the assignee's account id, for kind-keyed
+ * entries (#4623).
+ * @param {{ ref: string, title: string, assigneeId: string | null, assigneeLogin: string | null, assigneeAccountId: string | null, priorityRank: number, createdAt: string, updatedAt: string, labels: string[], body: string, authorId: string | null, authorLogin: string | null, isContainer: boolean, openBlockers: number }} input
  */
 function shape(input) {
   return {
     ref: input.ref,
     title: input.title,
     assigneeId: input.assigneeId,
+    assigneeLogin: input.assigneeLogin,
+    assigneeAccountId: input.assigneeAccountId,
     priorityRank: input.priorityRank,
     createdAt: input.createdAt,
     updatedAt: input.updatedAt,
     labels: input.labels,
     body: input.body,
     authorId: input.authorId,
+    authorLogin: input.authorLogin,
     isContainer: input.isContainer,
     openBlockers: input.openBlockers,
     repoLabels: repoLabelsOf(input.labels),
   };
+}
+
+/**
+ * Whether an operator entry names the item's assignee: a plain entry by the
+ * normalized assignee id, as before; `login:` by the assignee's GitHub login;
+ * `id:` by the assignee's account id.
+ * @param {Record<string, any>} item
+ * @param {ReturnType<typeof orderingContext>} context
+ * @returns {boolean}
+ */
+function isOperatorItem(item, context) {
+  const fields = {
+    plain: idOrNull(item.assigneeId),
+    login: idOrNull(item.assigneeLogin),
+    id: idOrNull(item.assigneeAccountId),
+  };
+  return context.operators.some(entry => entryMatches(entry, fields));
+}
+
+/**
+ * Whether a trusted-author entry names the item's author: a plain entry by
+ * the normalized author id, as before; `login:` by the author's GitHub login;
+ * `id:` by the author id (a GitHub numeric id, Jira accountId, Linear id).
+ * @param {Record<string, any>} item
+ * @param {ReturnType<typeof orderingContext>} context
+ * @returns {boolean}
+ */
+function isTrustedAuthor(item, context) {
+  const author = idOrNull(item.authorId);
+  const fields = {
+    plain: author,
+    login: idOrNull(item.authorLogin),
+    id: author,
+  };
+  return context.trusted.some(entry => entryMatches(entry, fields));
 }
 
 /**
@@ -310,7 +370,7 @@ function shape(input) {
  * Order matters only for the reason reported: an item can fail several rules,
  * and "someone else owns it" is the most useful thing to say about it.
  * @param {Record<string, any>} item
- * @param {{ me: string | null, operators: ReadonlySet<string>, trusted: ReadonlySet<string>, humanNeededLabel: string }} context
+ * @param {ReturnType<typeof orderingContext>} context
  * @returns {string | null}
  */
 function exclusionReason(item, context) {
@@ -318,7 +378,7 @@ function exclusionReason(item, context) {
   if (
     assignee !== null &&
     assignee !== context.me &&
-    !context.operators.has(assignee)
+    !isOperatorItem(item, context)
   ) {
     return "assigned-to-other";
   }
@@ -334,10 +394,7 @@ function exclusionReason(item, context) {
   ) {
     return "human-gated";
   }
-  if (
-    context.trusted.size > 0 &&
-    !context.trusted.has(idOrNull(item.authorId))
-  ) {
+  if (context.trusted.length > 0 && !isTrustedAuthor(item, context)) {
     return "untrusted-author";
   }
   return null;
@@ -366,8 +423,10 @@ function compareWithinGroup(left, right) {
  * `me` and no operators, every assigned item is someone else's — the safe
  * direction, since claiming assigned work steals it.
  *
- * `operators` match the way `me` does, against the normalized assignee id:
- * GitHub login, Jira accountId, Linear user id.
+ * A plain `operators` entry matches the way `me` does, against the
+ * normalized assignee id: GitHub login, Jira accountId, Linear user id. A
+ * `login:` entry matches only a GitHub assignee login, an `id:` entry only
+ * the assignee's account id (#4623).
  * @param {readonly Record<string, any>[]} items - Normalized items
  * @param {{ me?: string | null, operators?: readonly unknown[], trustedAuthorIds?: readonly unknown[], humanNeededLabel?: string }} [options]
  * @returns {{ ordered: Record<string, any>[], excluded: { ref: string, reason: string }[] }}
@@ -412,16 +471,31 @@ export function orderBacklogQueue(items, options = {}) {
 }
 
 /**
+ * Parsed operator or trusted-author entries. A plain entry is trimmed and a
+ * blank one dropped, as before; an invalid kind-keyed entry is kept so it
+ * still counts as a configured filter while matching nobody.
+ * @param {readonly unknown[] | undefined} entries
+ * @returns {import("./operator-id-kinds.mjs").IdEntry[]}
+ */
+function configuredEntries(entries) {
+  return parseIdEntries(entries)
+    .map(entry =>
+      entry.kind === "plain"
+        ? { ...entry, value: idOrNull(entry.value) }
+        : entry
+    )
+    .filter(entry => entry.kind !== "plain" || entry.value !== null);
+}
+
+/**
  * The identities and policy every ordering judges against.
  * @param {{ me?: string | null, operators?: readonly unknown[], trustedAuthorIds?: readonly unknown[], humanNeededLabel?: string }} options
  */
 function orderingContext(options) {
   return {
     me: idOrNull(options.me),
-    operators: new Set((options.operators ?? []).map(idOrNull).filter(Boolean)),
-    trusted: new Set(
-      (options.trustedAuthorIds ?? []).map(idOrNull).filter(Boolean)
-    ),
+    operators: configuredEntries(options.operators),
+    trusted: configuredEntries(options.trustedAuthorIds),
     humanNeededLabel: options.humanNeededLabel ?? DEFAULT_HUMAN_NEEDED_LABEL,
   };
 }
@@ -441,7 +515,7 @@ function rank(items, judge, context) {
   const group = item => {
     const assignee = idOrNull(item.assigneeId);
     if (assignee === null) return 2;
-    return context.operators.has(assignee) ? 0 : 1;
+    return isOperatorItem(item, context) ? 0 : 1;
   };
 
   return {

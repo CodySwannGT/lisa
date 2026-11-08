@@ -2,6 +2,55 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.97.3](https://github.com/CodySwannGT/lisa/compare/v4.97.2...v4.97.3) (2026-11-08)
+
+
+### Bug Fixes
+
+* **session-manager:** address review of kind-keyed operator ids ([0164fe6](https://github.com/CodySwannGT/lisa/commit/0164fe65502c2ce6b4c735cf097d058610e63d9e)), closes [CodySwannGT/lisa#4623](https://github.com/CodySwannGT/lisa/issues/4623) [CodySwannGT/lisa#4623](https://github.com/CodySwannGT/lisa/issues/4623)
+* **session-manager:** key operator and trusted-author ids by kind ([2ab2478](https://github.com/CodySwannGT/lisa/commit/2ab2478995a41625267f1e67c9992905796266b1)), closes [CodySwannGT/lisa#4623](https://github.com/CodySwannGT/lisa/issues/4623) [CodySwannGT/lisa#4623](https://github.com/CodySwannGT/lisa/issues/4623)
+* **session-manager:** say a padded all-digit operator entry matches no answer ([20846ab](https://github.com/CodySwannGT/lisa/commit/20846abb7ddba4880ae83f615aa2e367a6f09513)), closes [CodySwannGT/lisa#4623](https://github.com/CodySwannGT/lisa/issues/4623) [CodySwannGT/lisa#4623](https://github.com/CodySwannGT/lisa/issues/4623)
+
+
+### Documentation
+
+* **session-manager:** document login: and id: operator entries ([7a187b0](https://github.com/CodySwannGT/lisa/commit/7a187b0a883c23ce619200cf911fc1e2ada59647)), closes [CodySwannGT/lisa#4623](https://github.com/CodySwannGT/lisa/issues/4623) [CodySwannGT/lisa#4623](https://github.com/CodySwannGT/lisa/issues/4623)
+
+### [4.97.2](https://github.com/CodySwannGT/lisa/compare/v4.97.1...v4.97.2) (2026-11-08)
+
+
+### Documentation
+
+* **evidence:** leave the saturated learnings ledger to the gardener ([6ac1609](https://github.com/CodySwannGT/lisa/commit/6ac160916b5c0f7decd553a59968a4c82dd5e2c1)), closes [#4521](https://github.com/CodySwannGT/lisa/issues/4521) [#4521](https://github.com/CodySwannGT/lisa/issues/4521) [#4521](https://github.com/CodySwannGT/lisa/issues/4521) [#4521](https://github.com/CodySwannGT/lisa/issues/4521) [CodySwannGT/lisa#4521](https://github.com/CodySwannGT/lisa/issues/4521) [CodySwannGT/lisa#4521](https://github.com/CodySwannGT/lisa/issues/4521)
+* **evidence:** record [#4521](https://github.com/CodySwannGT/lisa/issues/4521) delivery verification and learnings ([3e821a8](https://github.com/CodySwannGT/lisa/commit/3e821a869d34690978a8acd69e830a24cb9eb0f8)), closes [#4693](https://github.com/CodySwannGT/lisa/issues/4693) [#4678](https://github.com/CodySwannGT/lisa/issues/4678)
+
+### [4.97.1](https://github.com/CodySwannGT/lisa/compare/v4.97.0...v4.97.1) (2026-11-08)
+
+
+### Bug Fixes
+
+* **ci:** hold a CI-failure clear while any required check has not reported ([8dc66bd](https://github.com/CodySwannGT/lisa/commit/8dc66bd01ba648b52bc048842ff0b8282474f856)), closes [CodySwannGT/lisa#4711](https://github.com/CodySwannGT/lisa/issues/4711) [CodySwannGT/lisa#4711](https://github.com/CodySwannGT/lisa/issues/4711)
+
+## [4.97.0](https://github.com/CodySwannGT/lisa/compare/v4.96.3...v4.97.0) (2026-11-08)
+
+
+### Features
+
+* **skills:** route CI-bounced items to their existing PR on session-manager dispatch ([e287082](https://github.com/CodySwannGT/lisa/commit/e2870820f8403f4b98969f17c5394c410d93db12)), closes [CodySwannGT/lisa#4677](https://github.com/CodySwannGT/lisa/issues/4677) [CodySwannGT/lisa#4677](https://github.com/CodySwannGT/lisa/issues/4677)
+
+
+### Bug Fixes
+
+* **skills:** address review findings on the CI-rework route ([86787e1](https://github.com/CodySwannGT/lisa/commit/86787e1e0d1323827f30b7cb5f439e21ebc27590)), closes [#4707](https://github.com/CodySwannGT/lisa/issues/4707) [CodySwannGT/lisa#4677](https://github.com/CodySwannGT/lisa/issues/4677) [CodySwannGT/lisa#4677](https://github.com/CodySwannGT/lisa/issues/4677)
+* **skills:** honour a human hold before the CI loop-bound blocks an item ([4cb66b1](https://github.com/CodySwannGT/lisa/commit/4cb66b1b37e0bd45c2f2f4dc25ee0a917bd2b963)), closes [CodySwannGT/lisa#4677](https://github.com/CodySwannGT/lisa/issues/4677) [CodySwannGT/lisa#4677](https://github.com/CodySwannGT/lisa/issues/4677)
+* **skills:** ignore session-manager notes when reading the CI failure marker ([cd3e904](https://github.com/CodySwannGT/lisa/commit/cd3e904fbc654789b226bc6f936890485a5fd1c1)), closes [CodySwannGT/lisa#4677](https://github.com/CodySwannGT/lisa/issues/4677) [CodySwannGT/lisa#4677](https://github.com/CodySwannGT/lisa/issues/4677)
+* **skills:** never let a claim comment hide an uncleared CI failure marker ([afb2ce6](https://github.com/CodySwannGT/lisa/commit/afb2ce60cf7b32661caf3bc364ad637225205181)), closes [CodySwannGT/lisa#4677](https://github.com/CodySwannGT/lisa/issues/4677) [CodySwannGT/lisa#4677](https://github.com/CodySwannGT/lisa/issues/4677)
+
+
+### Documentation
+
+* **evidence:** commit the [#4677](https://github.com/CodySwannGT/lisa/issues/4677) run logs as text so the README's record resolves ([e7a2f67](https://github.com/CodySwannGT/lisa/commit/e7a2f67791613a0f9727dda72c0d73923c5b2295))
+
 ### [4.96.3](https://github.com/CodySwannGT/lisa/compare/v4.96.2...v4.96.3) (2026-11-08)
 
 

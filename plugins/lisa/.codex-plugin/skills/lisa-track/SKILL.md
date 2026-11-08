@@ -78,6 +78,26 @@ This is intentionally conservative: ambiguity creates one explicit work item ins
 
 ## Phase 3 — Claim and bind
 
+### CI-rework route (first, before any claim write)
+
+Decide the dispatch route from the item's comments as they stand **before** this phase writes anything (CodySwannGT/lisa#4677). When the configured tracker is `github` **and** `scripts/lisa-ci-rework-route.mjs` exists at the repository root, run it from the repository root:
+
+```bash
+node scripts/lisa-ci-rework-route.mjs --item <canonical-ref>
+```
+
+It only reads, and prints one JSON object. It is the one place the trust rules live, shared with `lisa-github-build-intake` 3b so the two dispatch paths cannot disagree: the newest counted Lisa marker must be an uncleared `[lisa-ci-failed]` marker authored by `github-actions[bot]` — claim comments and session-manager notes (`[lisa-tracker-claim]`, `[claude-build-intake]`, `[lisa-session-manager]`) and failure markers from anyone other than `github-actions[bot]` do not count as Lisa markers for this purpose — and the pull request it names must be open, from this repository rather than a fork, and bound to this item by its `Work-Item:` line. Act on its `route`:
+
+- When `route` is `implement` (any `reason`): resolve and claim the item the normal way below, and return `route: implement`.
+- When `route` is `ci-rework`: return `route: ci-rework pr=<n>`, `failing_checks` and `head_ref` (the JSON's `pr`, `failingChecks` and `headRefName`). Continue through the hold check and the claim below unchanged: the claim is what moves the item from the ready lane back to the claimed lane, the same re-claim build intake 3b performs, and the binding names the same item. A ci-rework item is CI rework, not a rejection: it takes no rejection detection and records no rejection learning (the `rejection-detection` rule's CI-rework exemption).
+- When `route` is `blocked` (`reason: ci-loop-bound`, 3 or more bot-authored `[lisa-ci-failed]` markers for the same PR): first run the hold check below; if the item is held, return its `held-by-gate` outcome and stop without changing labels or posting anything. Otherwise do not claim and write no binding — the same loop bound build intake 3b applies. Move the item to the configured blocked role from whichever lane it is in: remove the configured ready and claimed labels if present (`github.labels.build.ready`, `github.labels.build.claimed` — on the session-manager path the item is already claimed), then apply the configured blocked role and the `human_needed` label (`github.labels.build.blocked` and `github.labels.build.human_needed`, per `config-resolution`), post a plain-English comment naming the PR and its failing checks (for example: "Pull request #<n> has failed its required checks <k> times (<check names>). Lisa has stopped retrying; a person needs to look at why it keeps failing."), return `route: blocked pr=<n>`, `claim_outcome: blocked-ci-loop` and `binding_outcome: skipped-ci-loop`, then stop.
+
+Skip this step silently and return `route: implement` when the tracker is Jira or Linear (only this repository's GitHub workflow writes the marker) or when the script is absent: `scripts/` at the Lisa repository root is not shipped to host projects, so a host never has the helper and never receives the marker. A non-zero exit or output that is not one JSON object is also `route: implement` — falling back to the normal path is always recoverable. A held item still stops at the hold check below, whatever its route.
+
+**Why claim comments are ignored.** On the session-manager path the manager has already claimed the item before the worker starts, so the helper runs after a claim and the claim below comes back `reused`; a re-claim can also post another claim comment. Claim comments are ignored for exactly that reason: an uncleared marker on an open, bound pull request still means that pull request is red, whoever has claimed the item since.
+
+### Hold check and claim
+
 The work item is **held** when the caller declared a `human_gate`, independently of any item history,
 or `classifyReadyCandidate({ labels, body, comments, trustedHumanActorIds, humanNeededLabel, humanOnly })` from the shipped
 `scripts/intake-blocker-reprobe.mjs` returns `claimable: false`. Pass the complete live comment
@@ -116,8 +136,11 @@ Otherwise:
    readiness_declaration: build-ready|human-gate
    held_by: none|caller-declaration|item-marker
    gate_reason: <the act a person must perform>|null
-   claim_outcome: claimed|reused|held-by-gate
-   binding_outcome: verified|skipped-human-gate
+   claim_outcome: claimed|reused|held-by-gate|blocked-ci-loop
+   binding_outcome: verified|skipped-human-gate|skipped-ci-loop
+   route: implement|ci-rework pr=<n>|blocked pr=<n>
+   failing_checks: <comma-separated check names from the marker comment>|none
+   head_ref: <the pull request's head branch>|null
    work_item_context: <absolute path to .lisa/work-item-context.md>
    ```
 

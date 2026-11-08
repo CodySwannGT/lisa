@@ -19,7 +19,8 @@ project's own Telegram chat. Telegram is optional: with no channel, questions wa
 
 ## Candidate selection
 
-Leaf items in the `ready` role, ordered: assigned to an operator (`sessionManager.operatorIds`),
+Leaf items in the `ready` role, ordered: assigned to an operator (`sessionManager.operatorIds`; a
+`login:` entry matches a GitHub assignee login, an `id:` entry an assignee account id),
 then to the manager's own tracker identity, then unassigned; within each, by priority, then oldest.
 Items assigned to someone else, containers, human-held items, items waiting on a human's answer
 in the ledger and (when configured) items by untrusted authors are skipped. As many as the machine has capacity for.
@@ -57,7 +58,8 @@ pending in the ledger, and keeps dispatching other items: one item waiting on a 
 the queue. An item that failed `stall.maxAttempts` times also moves to the `blocked` role. With
 Telegram the question goes there too; `/lisa:session-manager status` lists every pending question.
 The operator answers with the CLI `answer` command that `status` lists, on Telegram, or on the
-item (a reply from an operator or trusted author, matched on stable tracker ids; with neither
+item (a reply from an operator or trusted author, matched on stable tracker ids, each
+`login:` / `id:` entry by its own kind; with neither
 `operatorIds` nor `trustedAuthorIds` set, replies on the item are not read); the next cycle
 delivers the answer, removes the marker and clears the question. No question is ever asked in the
 manager's terminal. When the manager itself cannot proceed it records `recovery-required` with a one-line

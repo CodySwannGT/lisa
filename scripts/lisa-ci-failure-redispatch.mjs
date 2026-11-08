@@ -20,7 +20,12 @@
  *   a newer push or a manual re-run, and bouncing an item for it would
  *   re-dispatch an agent for a failure nobody observed. It is not a pass
  *   either, so it holds the clear path until it resolves.
- * - Every required check PASSED when each bucket is `pass` or `skipping`.
+ * - Every required check PASSED when each bucket is `pass` or `skipping` AND
+ *   every required context the PR's base-branch rulesets name has reported.
+ *   `gh pr checks --required` lists only checks that reported, so a required
+ *   context with no row — CI never dispatched, or not started — is pending,
+ *   not passed (CodySwannGT/lisa#4711). A reported failure is still a failure
+ *   however many contexts are missing.
  * - Anything else is still running: no write.
  *
  * What triggers a decision (CodySwannGT/lisa#4678): a CI workflow run, and
@@ -51,11 +56,18 @@ import {
 } from "../all/copy-overwrite/scripts/lisa-work-item.mjs";
 
 const SHA = /^[0-9a-f]{40}$/u;
-const FAILURE_MARKER =
+/**
+ * The failure marker; captures the PR number and head SHA. Exported with the
+ * other marker patterns and predicates below so the dispatch-side reader
+ * (`scripts/lisa-ci-rework-route.mjs`, CodySwannGT/lisa#4677) shares one
+ * definition with the producer instead of a copy that could drift.
+ */
+export const FAILURE_MARKER =
   /<!-- \[lisa-ci-failed\] pr=(\d+) sha=([0-9a-f]{40}) -->/u;
-const CLEARED_MARKER = /<!-- \[lisa-ci-cleared\] run=\d+ -->/u;
+/** The line a later all-green run appends to a failure marker's comment. */
+export const CLEARED_MARKER = /<!-- \[lisa-ci-cleared\] run=\d+ -->/u;
 /** Any Lisa lifecycle marker — the claim, attempt, and CI markers alike. */
-const LISA_MARKER = /\[(?:lisa-[a-z0-9-]+|claude-build-intake)\]/u;
+export const LISA_MARKER = /\[(?:lisa-[a-z0-9-]+|claude-build-intake)\]/u;
 const NO_REQUIRED = /no (?:required )?checks reported/iu;
 /** Read every page of a REST list as one array of pages. */
 const PAGINATE = Object.freeze(["--paginate", "--slurp"]);
@@ -205,7 +217,7 @@ function candidatePullRequests(run, repo, gh) {
  * @param {object} run - `workflow_run` object.
  * @param {object} contract - Tracker contract.
  * @param {Function} gh - Runner.
- * @returns {{stop?: object, pr?: number, item?: string}} A stop decision or the binding.
+ * @returns {{stop?: object, pr?: number, baseRef?: string, item?: string}} A stop decision or the binding.
  */
 function resolveBinding(run, contract, gh) {
   const repo = contract.repository;
@@ -228,7 +240,7 @@ function resolveBinding(run, contract, gh) {
     "--repo",
     repo,
     "--json",
-    "number,state,body,headRefOid,isCrossRepository",
+    "number,state,body,headRefOid,isCrossRepository,baseRefName",
   ]);
   const base = { pr: pr.number };
   if (pr.state !== "OPEN")
@@ -248,6 +260,7 @@ function resolveBinding(run, contract, gh) {
   try {
     return {
       pr: pr.number,
+      baseRef: pr.baseRefName,
       item: soleWorkItem(pr.body ?? "", contract, "pull-request body"),
     };
   } catch (error) {
@@ -284,22 +297,33 @@ function readItem(item, repo, gh) {
     "--json",
     "state,labels",
   ]);
+  return {
+    number,
+    open: view.state === "OPEN",
+    labels: view.labels.map(l => l.name),
+    comments: readItemComments(number, repo, gh),
+  };
+}
+
+/**
+ * Read every comment on an issue, oldest first. Throws naming the call when
+ * the read fails. Shared with `scripts/lisa-ci-rework-route.mjs`.
+ * @param {string} number - Issue number.
+ * @param {string} repo - Repository.
+ * @param {Function} gh - Runner.
+ * @returns {object[]} Comments sorted by `created_at`.
+ */
+export function readItemComments(number, repo, gh) {
   const pages = readJson(gh, [
     "api",
     `repos/${repo}/issues/${number}/comments`,
     ...PAGINATE,
   ]);
-  const comments = pages
+  return pages
     .flat()
     .toSorted((a, b) =>
       String(a.created_at).localeCompare(String(b.created_at))
     );
-  return {
-    number,
-    open: view.state === "OPEN",
-    labels: view.labels.map(l => l.name),
-    comments,
-  };
 }
 
 /**
@@ -364,7 +388,7 @@ function markerPr(comment) {
  * @param {object} comment - Item comment.
  * @returns {boolean} Whether its markers are trusted.
  */
-function trustedAuthor(comment) {
+export function trustedAuthor(comment) {
   return MARKER_AUTHORS.includes(comment.user?.login ?? "");
 }
 
@@ -409,7 +433,7 @@ function readEvents(number, repo, gh) {
  * @param {object} comment - The marker comment.
  * @returns {boolean} Whether it is the newest.
  */
-function isNewestLisaMarker(comments, comment) {
+export function isNewestLisaMarker(comments, comment) {
   // A forged failure marker counts for nothing, including as "something newer".
   const marked = comments.filter(
     c =>
@@ -538,6 +562,38 @@ function planClear(ctx) {
 }
 
 /**
+ * Hold a pass whose reported rows leave a required context unreported.
+ *
+ * `gh pr checks --required` lists only checks that have REPORTED, so a
+ * required check that never ran — CI not dispatched on a conflicting PR, or
+ * not started yet — is missing from the rows rather than failing in them
+ * (CodySwannGT/lisa#4711). The base branch's rulesets are the authority on
+ * what is required; a context they name with no row has not passed, so the
+ * pass is pending. Read only on a pass, or when no required row has reported
+ * at all: a reported failure is a failure whatever else is missing, and a
+ * pending verdict is already pending.
+ * @param {Array<{name: string}>} checks - Reported required rows.
+ * @param {string} baseRef - The PR's base branch.
+ * @param {object} contract - Tracker contract.
+ * @param {Function} gh - Runner.
+ * @param {object} known - Fields already known.
+ * @returns {Plan|null} A `checks-pending` stop, or null when nothing is unreported.
+ */
+function holdUnreported(checks, baseRef, contract, gh, known) {
+  if (typeof baseRef !== "string" || baseRef === "")
+    throw new Error("the pull request read carries no base branch");
+  const required = requiredContexts(contract.repository, baseRef, gh);
+  const reported = new Set(checks.map(c => c.name));
+  const unreported = [...required].filter(context => !reported.has(context));
+  if (unreported.length === 0) return null;
+  return stop(
+    "checks-pending",
+    `${unreported.length} of ${required.size} required checks on ${baseRef} have not reported on this head: ${unreported.join(", ")}`,
+    known
+  );
+}
+
+/**
  * Decide what one completed run means for its PR's work item. Reads only.
  * @param {{run: object, repository: string, contract: object, gh: Function}} input - Run and readers.
  * @returns {Plan} What to write, and why.
@@ -558,8 +614,18 @@ export function planRedispatch({ run, repository, contract, gh }) {
   if (!view.open)
     return stop("work-item-closed", "the work item is closed", known);
   const checks = readRequiredChecks(pr, contract.repository, gh);
+  // gh answers "no required checks reported" both when nothing is required
+  // and when nothing required has reported YET; only the ruleset tells them
+  // apart.
   if (checks === null)
-    return stop("no-required-checks", "the PR has no required checks", known);
+    return (
+      holdUnreported([], binding.baseRef, contract, gh, known) ??
+      stop(
+        "no-required-checks",
+        `the rulesets on ${binding.baseRef} require no status checks`,
+        known
+      )
+    );
   const { verdict, failing } = classifyRequiredChecks(checks);
   const ctx = {
     ...known,
@@ -571,7 +637,11 @@ export function planRedispatch({ run, repository, contract, gh }) {
     events: () => readEvents(view.number, contract.repository, gh),
   };
   if (verdict === "fail") return planFailure(ctx);
-  if (verdict === "pass") return planClear(ctx);
+  if (verdict === "pass")
+    return (
+      holdUnreported(checks, binding.baseRef, contract, gh, known) ??
+      planClear(ctx)
+    );
   return stop(
     "checks-pending",
     "no required check has failed and some have not finished",
