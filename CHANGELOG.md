@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.99.3](https://github.com/CodySwannGT/lisa/compare/v4.99.2...v4.99.3) (2026-11-08)
+
+
+### Bug Fixes
+
+* **review-evidence:** count prover substitutes only from writers ([d65cd32](https://github.com/CodySwannGT/lisa/commit/d65cd32f1402cbf967cdd97bb20ff58292ebdcfe)), closes [#4528](https://github.com/CodySwannGT/lisa/issues/4528) [CodySwannGT/lisa#4628](https://github.com/CodySwannGT/lisa/issues/4628) [CodySwannGT/lisa#4628](https://github.com/CodySwannGT/lisa/issues/4628)
+* **review-evidence:** refuse bot substitutes unasked and read every comment page ([736f190](https://github.com/CodySwannGT/lisa/commit/736f1901ec9e5e4fe8ce098efe284e88c6056175)), closes [CodySwannGT/lisa#4628](https://github.com/CodySwannGT/lisa/issues/4628) [CodySwannGT/lisa#4628](https://github.com/CodySwannGT/lisa/issues/4628)
+
 ### [4.99.2](https://github.com/CodySwannGT/lisa/compare/v4.99.1...v4.99.2) (2026-11-08)
 
 
