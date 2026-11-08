@@ -37,6 +37,9 @@ export function ensurePinnedRevision(
   revision: string,
   cwd = process.cwd()
 ): "present" | "fetched" | "unavailable" {
+  // Only a full commit SHA may reach git: option-like input (`--upload-pack=…`)
+  // must never become a `git fetch` argument.
+  if (!/^[0-9a-f]{40}$/u.test(revision)) return "unavailable";
   const present = () =>
     git(cwd, ["cat-file", "-e", `${revision}^{commit}`]).status === 0;
   if (present()) return "present";
