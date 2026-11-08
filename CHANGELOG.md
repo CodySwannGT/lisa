@@ -2,6 +2,74 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [4.95.0](https://github.com/CodySwannGT/lisa/compare/v4.94.0...v4.95.0) (2026-11-08)
+
+
+### Features
+
+* add a one-command rollback for a bad Lisa release (TDD GREEN) ([24aa913](https://github.com/CodySwannGT/lisa/commit/24aa9130a583922c41a055ec1c9fa3817b9df6dd)), closes [CodySwannGT/lisa#4605](https://github.com/CodySwannGT/lisa/issues/4605) [CodySwannGT/lisa#4605](https://github.com/CodySwannGT/lisa/issues/4605)
+
+
+### Bug Fixes
+
+* document npm 2FA and the notes-only failure in the release runbook ([41973cd](https://github.com/CodySwannGT/lisa/commit/41973cd93670b20e1be3061c2456b3ab605f1bf8)), closes [CodySwannGT/lisa#4605](https://github.com/CodySwannGT/lisa/issues/4605) [CodySwannGT/lisa#4605](https://github.com/CodySwannGT/lisa/issues/4605)
+* end npm option parsing before the rollback target and reason ([647d145](https://github.com/CodySwannGT/lisa/commit/647d145c011da0e9f255e9370259168fa7c78306)), closes [#4680](https://github.com/CodySwannGT/lisa/issues/4680) [CodySwannGT/lisa#4605](https://github.com/CodySwannGT/lisa/issues/4605) [CodySwannGT/lisa#4605](https://github.com/CodySwannGT/lisa/issues/4605)
+* guard the release rollback against backward moves and partial runs ([07ce383](https://github.com/CodySwannGT/lisa/commit/07ce383605a97dbe1f2c143986f73a7a40e89095)), closes [CodySwannGT/lisa#4605](https://github.com/CodySwannGT/lisa/issues/4605) [CodySwannGT/lisa#4605](https://github.com/CodySwannGT/lisa/issues/4605)
+* merge main and accept a rollback reason that starts with -- ([334f26b](https://github.com/CodySwannGT/lisa/commit/334f26bb4448b13c6cc4f127d181ce14de0b09f0)), closes [CodySwannGT/lisa#4605](https://github.com/CodySwannGT/lisa/issues/4605) [CodySwannGT/lisa#4605](https://github.com/CodySwannGT/lisa/issues/4605)
+* say re-running a rollback is safe only with the same reason ([41fe2c7](https://github.com/CodySwannGT/lisa/commit/41fe2c7899171d146c8355693af719e05ad409d4)), closes [CodySwannGT/lisa#4605](https://github.com/CodySwannGT/lisa/issues/4605) [CodySwannGT/lisa#4605](https://github.com/CodySwannGT/lisa/issues/4605)
+* support npm 2FA and always verify npm in the release rollback ([4ae58bc](https://github.com/CodySwannGT/lisa/commit/4ae58bcc0cc56ca6adfbf1472ab8bef1781f1c07)), closes [CodySwannGT/lisa#4605](https://github.com/CodySwannGT/lisa/issues/4605) [CodySwannGT/lisa#4605](https://github.com/CodySwannGT/lisa/issues/4605)
+
+
+### Documentation
+
+* add a release runbook with a rollback section ([d93ab9b](https://github.com/CodySwannGT/lisa/commit/d93ab9b33632fd56c4d7e7cbc1adfb7b443d5635)), closes [CodySwannGT/lisa#4605](https://github.com/CodySwannGT/lisa/issues/4605) [CodySwannGT/lisa#4605](https://github.com/CodySwannGT/lisa/issues/4605)
+
+## [4.94.0](https://github.com/CodySwannGT/lisa/compare/v4.93.0...v4.94.0) (2026-11-08)
+
+
+### Features
+
+* **sweep:** add a start-of-run cleanup sweep for stale temp entries and orphaned test processes ([380b1bc](https://github.com/CodySwannGT/lisa/commit/380b1bcadc34c5ce1967fbbd29a65281405b5b6b)), closes [CodySwannGT/lisa#4597](https://github.com/CodySwannGT/lisa/issues/4597) [CodySwannGT/lisa#4597](https://github.com/CodySwannGT/lisa/issues/4597)
+
+
+### Bug Fixes
+
+* **sweep:** harden the cleanup sweep after security and spec review ([29f6919](https://github.com/CodySwannGT/lisa/commit/29f6919d1e36d15d37c3d072e8a554d1cb451bfd)), closes [CodySwannGT/lisa#4597](https://github.com/CodySwannGT/lisa/issues/4597) [CodySwannGT/lisa#4597](https://github.com/CodySwannGT/lisa/issues/4597)
+* **sweep:** key the once-per-run skip on a live sweeper and keep tests off the machine ([80d5d40](https://github.com/CodySwannGT/lisa/commit/80d5d40ec0bdc11bc35daefc65b83faa9b2f7220)), closes [CodySwannGT/lisa#4597](https://github.com/CodySwannGT/lisa/issues/4597) [CodySwannGT/lisa#4597](https://github.com/CodySwannGT/lisa/issues/4597)
+* **sweep:** never SIGKILL an orphan whose start time was not recorded ([e2fce41](https://github.com/CodySwannGT/lisa/commit/e2fce415bbdfa3e07a20e90b7c15542e498b6a5e)), closes [CodySwannGT/lisa#4597](https://github.com/CodySwannGT/lisa/issues/4597) [CodySwannGT/lisa#4597](https://github.com/CodySwannGT/lisa/issues/4597)
+
+
+### Documentation
+
+* **sweep:** document the macOS ps -E value ambiguity ([ad0222b](https://github.com/CodySwannGT/lisa/commit/ad0222bfddf3b0e746f2cfe6e5faabf32f1effec)), closes [CodySwannGT/lisa#4597](https://github.com/CodySwannGT/lisa/issues/4597) [CodySwannGT/lisa#4597](https://github.com/CodySwannGT/lisa/issues/4597)
+
+## [4.93.0](https://github.com/CodySwannGT/lisa/compare/v4.92.2...v4.93.0) (2026-11-08)
+
+
+### Features
+
+* **drive-pr:** wait on CI with a bounded foreground watch ([7815c0e](https://github.com/CodySwannGT/lisa/commit/7815c0e8459d9ec3244a895cbad087b36184eed9)), closes [CodySwannGT/lisa#4608](https://github.com/CodySwannGT/lisa/issues/4608) [CodySwannGT/lisa#4608](https://github.com/CodySwannGT/lisa/issues/4608)
+
+
+### Bug Fixes
+
+* **drive-pr:** always pause between no-checks re-polls ([74b7275](https://github.com/CodySwannGT/lisa/commit/74b7275e952c4e9d1a6249354e24d7843daac627)), closes [CodySwannGT/lisa#4608](https://github.com/CodySwannGT/lisa/issues/4608) [CodySwannGT/lisa#4608](https://github.com/CodySwannGT/lisa/issues/4608)
+* **drive-pr:** bound the no-required-checks wait and read classic protection ([23a462e](https://github.com/CodySwannGT/lisa/commit/23a462e66834ed56d89ff2ca15a817fbc53e66d1)), closes [CodySwannGT/lisa#4608](https://github.com/CodySwannGT/lisa/issues/4608) [CodySwannGT/lisa#4608](https://github.com/CodySwannGT/lisa/issues/4608)
+* **drive-pr:** tighten bounded CI watch per review ([839d00f](https://github.com/CodySwannGT/lisa/commit/839d00ff128207d4d8d387403623fa7c5c351b14)), closes [CodySwannGT/lisa#4608](https://github.com/CodySwannGT/lisa/issues/4608) [CodySwannGT/lisa#4608](https://github.com/CodySwannGT/lisa/issues/4608)
+
+### [4.92.2](https://github.com/CodySwannGT/lisa/compare/v4.92.1...v4.92.2) (2026-11-08)
+
+
+### Bug Fixes
+
+* **hooks:** avoid a fork in freshness job admission ([a734ef5](https://github.com/CodySwannGT/lisa/commit/a734ef5d91d637848ebecd082acd163a1bd7cccd)), closes [CodySwannGT/lisa#4666](https://github.com/CodySwannGT/lisa/issues/4666) [CodySwannGT/lisa#4505](https://github.com/CodySwannGT/lisa/issues/4505)
+* **tests:** wait for CDK assembly marker contents ([6a6eb04](https://github.com/CodySwannGT/lisa/commit/6a6eb04b7e6a3361a41366b076625af96885a5f1)), closes [CodySwannGT/lisa#4666](https://github.com/CodySwannGT/lisa/issues/4666)
+* **verify:** honor restrictive umask in disposable inputs ([4ebc912](https://github.com/CodySwannGT/lisa/commit/4ebc9129290f7d0b41e86b60a32074cc8fbad8c3)), closes [CodySwannGT/lisa#4666](https://github.com/CodySwannGT/lisa/issues/4666) [CodySwannGT/lisa#4666](https://github.com/CodySwannGT/lisa/issues/4666)
+* **verify:** isolate packaged applies from operator configuration ([a8221d9](https://github.com/CodySwannGT/lisa/commit/a8221d9765a2d8d90db3b1114fd47968004be231)), closes [CodySwannGT/lisa#4666](https://github.com/CodySwannGT/lisa/issues/4666) [CodySwannGT/lisa#4666](https://github.com/CodySwannGT/lisa/issues/4666)
+* **verify:** keep packaged isolation current after safety-net retirement ([4e40397](https://github.com/CodySwannGT/lisa/commit/4e403971ce51c11ea9cb159014168cd045f85f2d)), closes [CodySwannGT/lisa#4666](https://github.com/CodySwannGT/lisa/issues/4666)
+* **verify:** preserve raw symlink target bytes ([ac0316d](https://github.com/CodySwannGT/lisa/commit/ac0316d90dc49c188efabd3274871497f49d34ba)), closes [CodySwannGT/lisa#4666](https://github.com/CodySwannGT/lisa/issues/4666) [CodySwannGT/lisa#4666](https://github.com/CodySwannGT/lisa/issues/4666)
+* **verify:** retain changed symlink observations after apply ([44cac18](https://github.com/CodySwannGT/lisa/commit/44cac18ab96ae148b4f28d9fa90f06c7a63ac35b)), closes [CodySwannGT/lisa#4666](https://github.com/CodySwannGT/lisa/issues/4666) [CodySwannGT/lisa#4666](https://github.com/CodySwannGT/lisa/issues/4666)
+
 ### [4.92.1](https://github.com/CodySwannGT/lisa/compare/v4.92.0...v4.92.1) (2026-11-08)
 
 

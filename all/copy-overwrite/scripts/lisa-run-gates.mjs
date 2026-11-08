@@ -58,6 +58,7 @@ import {
 } from "./lib/kill-marks.mjs";
 import { boundedSpawnSync, isChildTimeout } from "./lib/bounded-spawn.mjs";
 import { invokedAsScript } from "./lib/invoked-as-script.mjs";
+import { runStartOfRunSweep } from "./lib/lisa-cleanup-sweep.mjs";
 import { worktreeDependencyProblem } from "./lib/worktree-dependencies.mjs";
 import {
   interruptionReason,
@@ -1896,6 +1897,19 @@ export function main(argv = process.argv.slice(2)) {
 
   const wired = wiredConditionalFloor({ moment });
   const missing = undeclaredFloor({ gates: config.gates, moment, wired });
+
+  // One cleanup sweep per push (CodySwannGT/lisa#4597), before the first gate
+  // and before the built-in fallback below, which runs tests too. It never
+  // fails the run: whatever goes wrong is printed and the gates run.
+  if (moment === "push") {
+    try {
+      runStartOfRunSweep();
+    } catch (err) {
+      console.log(
+        `🧹 cleanup sweep did not finish (${err.message}); continuing`
+      );
+    }
+  }
 
   // `--coverage` is how a caller says "I skip my built-in steps ONE AT A TIME,
   // against the names in this file". Such a caller does not need the moment

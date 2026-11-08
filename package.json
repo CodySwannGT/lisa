@@ -12,7 +12,7 @@
     "test:unit": "node scripts/lib/worktree-dependencies.mjs && $npm_execpath run lisa-test-run -- --adapter vitest -- vitest run --exclude='**/integration/**' --exclude='**/*.integration.*'",
     "test:cov": "node scripts/lib/worktree-dependencies.mjs && $npm_execpath run lisa-test-run -- --adapter vitest -- vitest run --coverage",
     "test:cov:unit": "node scripts/lib/worktree-dependencies.mjs && LISA_COVERAGE_SCOPE=unit $npm_execpath run lisa-test-run -- --adapter vitest -- vitest run --coverage --exclude='**/integration/**' --exclude='**/*.integration.*'",
-    "test:cov:unit:push": "node scripts/lib/worktree-dependencies.mjs && LISA_COVERAGE_SCOPE=unit $npm_execpath run lisa-test-run -- --adapter vitest -- vitest run --coverage --exclude='**/integration/**' --exclude='**/*.integration.*' --exclude='**/measure-tmpdir-growth-performance.test.ts'",
+    "test:cov:unit:push": "node scripts/lib/worktree-dependencies.mjs && LISA_COVERAGE_SCOPE=unit $npm_execpath run lisa-test-run -- --adapter vitest -- vitest run --coverage --exclude='**/integration/**' --exclude='**/*.integration.*' --exclude='**/measure-tmpdir-growth-performance.test.ts' --exclude='**/lisa-cleanup-sweep-performance.test.ts'",
     "pretest:mutation": "bun run build",
     "test:mutation": "node scripts/lib/worktree-dependencies.mjs && LISA_TEST_SCRATCH_PREFIXES='[\"lisa-mutation-\",\"worker-\"]' $npm_execpath run lisa-test-run -- --adapter direct -- node scripts/lisa-mutation.mjs",
     "test:mutation:full": "node scripts/lib/worktree-dependencies.mjs && LISA_TEST_SCRATCH_PREFIXES='[\"lisa-mutation-\",\"worker-\"]' $npm_execpath run lisa-test-run -- --adapter direct -- node scripts/lisa-mutation.mjs --all",
@@ -39,6 +39,7 @@
     "cleanup:github-branches": "bash scripts/cleanup-github-branches.sh",
     "github:status": "bash scripts/github-status-check.sh",
     "setup:deploy-key": "bash scripts/setup-deploy-key.sh",
+    "release:rollback": "node scripts/lisa-rollback-release.mjs",
     "lisa:enforcement-census": "bun run build:dist:in-place && node scripts/lisa-enforcement-census.mjs",
     "lisa:update:local": "bash scripts/lisa-update-local.sh",
     "lisa:commit-and-pr:local": "bash scripts/lisa-commit-and-pr-local.sh",
@@ -191,7 +192,7 @@
     "qs": "^6.16.0"
   },
   "name": "@codyswann/lisa",
-  "version": "4.92.1",
+  "version": "4.95.0",
   "description": "Governance-as-code for AI coding agents: turns a repository into agent-operated software factories with guardrails, guidance and automated enforcement for Claude Code, Codex, Cursor, OpenCode, Antigravity, Copilot and Devin",
   "main": "dist/index.js",
   "exports": {
