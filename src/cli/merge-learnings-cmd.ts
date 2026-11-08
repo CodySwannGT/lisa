@@ -16,7 +16,7 @@
  * ledgers corrupted while this driver was NOT registered.
  * @module cli/merge-learnings-cmd
  */
-import { readFile } from "node:fs/promises";
+import { readFile, writeFile } from "node:fs/promises";
 import { mergeLearningsDocuments } from "../core/learnings-merge.js";
 import { writeFileAtomically } from "../utils/atomic-file-write.js";
 
@@ -30,6 +30,12 @@ export interface MergeLearningsOptions {
   readonly theirs?: string;
   /** `%P` — the real pathname, used only in diagnostics. */
   readonly path?: string;
+  /**
+   * File to create when the merge reaches its deliberate semantic-conflict
+   * verdict, so the worktree-portable driver script (#4640) can tell that
+   * apart from a crash. Supplied by the script, never by git.
+   */
+  readonly conflictAck?: string;
 }
 
 /** Injectable collaborators for {@link runMergeLearnings}. */
@@ -60,6 +66,28 @@ async function readSide(file: string): Promise<SideRead> {
     return { ok: true, content: await readFile(file, "utf8") };
   } catch {
     return { ok: false };
+  }
+}
+
+/**
+ * Tell the registered driver script this conflict is Lisa's deliberate verdict.
+ *
+ * The worktree-portable driver (#4640) writes a both-sides conflict-marker file
+ * whenever Lisa exits non-zero without touching "ours", so a crash can never
+ * leave a markerless ours-only ledger. A real semantic conflict deliberately
+ * leaves "ours" parseable (see the module comment), and this acknowledgement is
+ * how the script tells the two apart. Best-effort: failing to write it only
+ * means the script falls back to markers, the safe direction.
+ * @param ack - Acknowledgement file the script asked for, when it did
+ */
+async function acknowledgeConflict(ack: string | undefined): Promise<void> {
+  if (ack === undefined || ack === "") {
+    return;
+  }
+  try {
+    await writeFile(ack, "");
+  } catch {
+    // Safe direction: the driver writes conflict markers instead.
   }
 }
 
@@ -111,6 +139,7 @@ export async function runMergeLearnings(
   );
   if (result.kind === "conflict") {
     error(`merge-learnings: ${label}: ${result.reason}`);
+    await acknowledgeConflict(options.conflictAck);
     return 1;
   }
   await writeFileAtomically(oursPath, result.content);

@@ -21,6 +21,7 @@ const DRIVER_KEY = `merge.${LEARNINGS_MERGE_DRIVER_NAME}.driver`;
 const STUB_INVOCATION = "'/opt/lisa' 'index.js'";
 const ENTRY_SCRIPT = "'index.js'";
 const DRIVER_SUBCOMMAND = "merge-learnings";
+const HOST_ENTRY = "node_modules/@codyswann/lisa/dist/index.js";
 
 const GIT = resolveGit();
 
@@ -92,6 +93,60 @@ describe("installLearningsMergeDriver", () => {
     await installLearningsMergeDriver(repo, { invocation });
     const second = await installLearningsMergeDriver(repo, { invocation });
     expect(second.kind).toBe("unchanged");
+  });
+
+  describe("worktree-portable default registration (#4640)", () => {
+    // `.git/config` is shared by every linked worktree, so a command naming
+    // one checkout's absolute paths breaks every worktree's merges the day that
+    // checkout is removed. The default command must resolve Lisa relative to
+    // the worktree git is merging in, which is the cwd git runs a driver with.
+    it("registers a command naming no absolute path", async () => {
+      const result = await installLearningsMergeDriver(repo);
+      expect(result.kind).toBe("installed");
+      const command = registered() ?? "";
+      expect(command).toContain(HOST_ENTRY);
+      expect(command).not.toContain("'/");
+      expect(command).toMatch(/ %O %A %B %P$/u);
+    });
+
+    it("reports a repeated default registration as unchanged", async () => {
+      await installLearningsMergeDriver(repo);
+      const second = await installLearningsMergeDriver(repo);
+      expect(second.kind).toBe("unchanged");
+    });
+
+    it("runs Lisa's own built entry inside the Lisa repository", async () => {
+      await fs.writeJson(path.join(repo, "package.json"), {
+        name: "@codyswann/lisa",
+      });
+      await installLearningsMergeDriver(repo);
+      const command = registered() ?? "";
+      expect(command).toContain("'./dist/index.js'");
+      expect(command).not.toContain("node_modules");
+    });
+
+    it("resolves the entry from a project nested below the repository root", async () => {
+      const nested = path.join(repo, "packages", "app");
+      await fs.ensureDir(nested);
+      await installLearningsMergeDriver(nested);
+      expect(registered()).toContain(`'./packages/app/${HOST_ENTRY}'`);
+    });
+
+    it("escapes a percent sign so git cannot expand it as a placeholder", async () => {
+      const nested = path.join(repo, "100%A");
+      await fs.ensureDir(nested);
+      await installLearningsMergeDriver(nested);
+      expect(registered()).toContain(`'./100%%A/${HOST_ENTRY}'`);
+    });
+
+    it("names the command it replaced", async () => {
+      await installLearningsMergeDriver(repo, { invocation: STUB_INVOCATION });
+      const result = await installLearningsMergeDriver(repo);
+      expect(result.kind).toBe("installed");
+      expect(result.detail).toContain(STUB_INVOCATION);
+      expect(result.detail).toMatch(/worktree-portable/u);
+      expect(registered()).not.toContain(STUB_INVOCATION);
+    });
   });
 
   it("skips a directory that is not a git repository", async () => {
