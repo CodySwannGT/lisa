@@ -685,6 +685,7 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
     "daf47b952e09e9a25361bec7e7b0bfb61df7f669db842e7fdc318d2254efffe3",
   ]),
   "scripts/lib/lisa-cleanup-sweep.mjs": Object.freeze([
+    "08450444d7f03d5a0e560f023a4e30db74821209ea45df41959b46636f6191bd",
     "48003f887ca744592f2c4f106563e14ce20f48a44b57fe141a52f8309b368157",
     "6c69bcf512fbe169e0b3c51546e21e72d6203a1d3c3ee5651fb0129fb7d57f91",
     "ad8dafbc3589df27e9cfc339e116a833f48eb9595b34a6973f3bd37911a992e3",
@@ -3024,6 +3025,7 @@ export const LISA_OWNED_HASH_HISTORY_DERIVED: Readonly<
     "daf47b952e09e9a25361bec7e7b0bfb61df7f669db842e7fdc318d2254efffe3",
   ]),
   "scripts/lib/lisa-cleanup-sweep.mjs": Object.freeze([
+    "08450444d7f03d5a0e560f023a4e30db74821209ea45df41959b46636f6191bd",
     "48003f887ca744592f2c4f106563e14ce20f48a44b57fe141a52f8309b368157",
     "6c69bcf512fbe169e0b3c51546e21e72d6203a1d3c3ee5651fb0129fb7d57f91",
     "ad8dafbc3589df27e9cfc339e116a833f48eb9595b34a6973f3bd37911a992e3",

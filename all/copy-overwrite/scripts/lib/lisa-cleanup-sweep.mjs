@@ -628,12 +628,22 @@ function launchSweep(spawn, env, log) {
   }
 }
 
+// Set the exit code and let the process end on its own; never `process.exit`.
+// A write to a pipe is asynchronous on macOS, so exiting straight after
+// `main` writes would drop everything past the pipe buffer: a piped `--json`
+// report was cut at exactly 65,536 bytes (CodySwannGT/lisa#4694). Nothing is
+// left on the event loop once `main` settles — the child launches are
+// synchronous and the grace delay is awaited — so ending naturally only waits
+// for stdout to drain. The failure branch keeps exit 0: a sweep never fails
+// the run it precedes.
 if (invokedAsScript(import.meta.url)) {
   main().then(
-    code => process.exit(code),
+    code => {
+      process.exitCode = code;
+    },
     error => {
       console.log(`🧹 cleanup sweep failed: ${error?.message ?? error}`);
-      process.exit(0);
+      process.exitCode = 0;
     }
   );
 }
