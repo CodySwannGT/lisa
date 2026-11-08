@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.97.2](https://github.com/CodySwannGT/lisa/compare/v4.97.1...v4.97.2) (2026-11-08)
+
+
+### Documentation
+
+* **evidence:** leave the saturated learnings ledger to the gardener ([6ac1609](https://github.com/CodySwannGT/lisa/commit/6ac160916b5c0f7decd553a59968a4c82dd5e2c1)), closes [#4521](https://github.com/CodySwannGT/lisa/issues/4521) [#4521](https://github.com/CodySwannGT/lisa/issues/4521) [#4521](https://github.com/CodySwannGT/lisa/issues/4521) [#4521](https://github.com/CodySwannGT/lisa/issues/4521) [CodySwannGT/lisa#4521](https://github.com/CodySwannGT/lisa/issues/4521) [CodySwannGT/lisa#4521](https://github.com/CodySwannGT/lisa/issues/4521)
+* **evidence:** record [#4521](https://github.com/CodySwannGT/lisa/issues/4521) delivery verification and learnings ([3e821a8](https://github.com/CodySwannGT/lisa/commit/3e821a869d34690978a8acd69e830a24cb9eb0f8)), closes [#4693](https://github.com/CodySwannGT/lisa/issues/4693) [#4678](https://github.com/CodySwannGT/lisa/issues/4678)
+
 ### [4.97.1](https://github.com/CodySwannGT/lisa/compare/v4.97.0...v4.97.1) (2026-11-08)
 
 
