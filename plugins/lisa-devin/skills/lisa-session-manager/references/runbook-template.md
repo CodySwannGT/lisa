@@ -41,7 +41,8 @@ than `capacity` allows.
 
 A worker counts as started only when it is visible as a live session. A Blocked→Ready release counts
 only after the item is read back in the `ready` role. An answer counts only once it was delivered to
-the worker.
+the worker, or, when no worker will receive it (the worker finished, or the item was exhausted),
+once it was posted on the item and read back there.
 
 ## Autonomous-vs-approval boundary
 
@@ -61,7 +62,8 @@ The operator answers with the CLI `answer` command that `status` lists, on Teleg
 item (a reply from an operator or trusted author, matched on stable tracker ids, each
 `login:` / `id:` entry by its own kind; with neither
 `operatorIds` nor `trustedAuthorIds` set, replies on the item are not read); the next cycle
-delivers the answer, removes the marker and clears the question. No question is ever asked in the
+delivers the answer (or, for a finished worker or an exhausted item, records it on the item for the
+next attempt and reads it back), removes the marker and clears the question. No question is ever asked in the
 manager's terminal. When the manager itself cannot proceed it records `recovery-required` with a one-line
 reason. Having no notification channel is not such a reason; a configured Telegram that is broken
 or unpaired is.
