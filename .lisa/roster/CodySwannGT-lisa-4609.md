@@ -39,4 +39,5 @@ INCLUDE - lisa:quality-specialist - reviews the rebased diff and the probe chang
 INCLUDE - lisa:verification-specialist - independent verifier; re-runs parity, mutate-a-phrase red checks, and the probe under RUBYOPT=--disable-gems; writes the verdict.
 INCLUDE - lisa:learner - captures this session's MLD to the ledger.
 EXCLUDE - general-purpose - plan name, base (`main`; Target Backend Environment "None — test-only", so no branch plan), flow (Implement/Improve) and completion condition are recorded above; the lead carries them forward.
+INCLUDE - lisa:debug-specialist - added mid-flow: push gate failed on tests/integration/npm-update-dual-lock.test.ts ("Bun executable is aliased"), untouched by this branch; prove whether it reproduces on origin/main and why.
 EXCLUDE - all other types - same reasons as the original roster above.
