@@ -23,12 +23,22 @@
  * Two skills from different plugins may reach the same emitted path. Identical
  * content is copied once; different content is a packaging defect and fails
  * the emit loudly rather than shipping whichever module happened to win.
+ *
+ * Emitted paths are Lisa-managed: a host file at the same path is overwritten,
+ * exactly as for every other managed path in `.opencode/`.
+ *
+ * Returned paths use forward slashes on every platform, matching how the
+ * `.lisa-managed.json` manifest stores them (`opencode/manifest`).
  * @module opencode/shared-scripts-emitter
  */
 import * as fse from "fs-extra";
-import { copyFile, mkdir, readFile, rm } from "node:fs/promises";
+import { copyFile, mkdir, readFile } from "node:fs/promises";
 import * as path from "node:path";
 import type { BundledSkillSource } from "../core/lisa-skill-sources.js";
+import {
+  SHARED_SCRIPTS_PREFIX,
+  toManifestPath,
+} from "./shared-scripts-cleanup.js";
 import {
   isScriptModule,
   isWithin,
@@ -138,27 +148,55 @@ async function escapingImports(
   module: PendingModule,
   roots: EmitRoots
 ): Promise<readonly SharedModule[]> {
-  const sharedRoot = path.join(roots.opencodeDir, SHARED_ROOT_SUBDIR);
   const imports = await resolveRelativeImports(module.sourcePath);
-  return imports
+  const escaping = imports
     .map(({ specifier }) => ({
       specifier,
       emittedPath: path.resolve(path.dirname(module.emittedPath), specifier),
     }))
-    .filter(entry => !isWithin(roots.skillsDir, entry.emittedPath))
-    .map(entry => {
-      if (!isWithin(sharedRoot, entry.emittedPath)) {
-        throw new Error(
-          `OpenCode emit: ${module.sourcePath} imports "${entry.specifier}", which resolves outside .opencode/skills/ once emitted`
-        );
-      }
-      const fromSharedRoot = path.relative(sharedRoot, entry.emittedPath);
-      return {
-        sourcePath: path.join(module.pluginRoot, fromSharedRoot),
-        emittedRelative: path.relative(roots.opencodeDir, entry.emittedPath),
-        pluginRoot: module.pluginRoot,
-      };
-    });
+    .filter(entry => !isWithin(roots.skillsDir, entry.emittedPath));
+  return Promise.all(
+    escaping.map(entry =>
+      toSharedModule(module, entry.specifier, entry.emittedPath, roots)
+    )
+  );
+}
+
+/**
+ * Map one escaping import onto its plugin source, failing with a named error
+ * when it would land outside the owned `.opencode/skills/scripts/` subtree
+ * (the only one stale cleanup may delete from) or its source is missing.
+ * @param module - Importing module.
+ * @param specifier - The specifier as written.
+ * @param emittedPath - Absolute path the specifier resolves to once emitted.
+ * @param roots - Emit roots for this host project.
+ * @returns The shared module to emit.
+ */
+async function toSharedModule(
+  module: PendingModule,
+  specifier: string,
+  emittedPath: string,
+  roots: EmitRoots
+): Promise<SharedModule> {
+  const sharedRoot = path.join(roots.opencodeDir, SHARED_ROOT_SUBDIR);
+  const emittedRelative = toManifestPath(
+    path.relative(roots.opencodeDir, emittedPath)
+  );
+  if (!emittedRelative.startsWith(SHARED_SCRIPTS_PREFIX)) {
+    throw new Error(
+      `OpenCode emit: ${module.sourcePath} imports "${specifier}", which resolves outside .opencode/${SHARED_SCRIPTS_PREFIX} once emitted`
+    );
+  }
+  const sourcePath = path.join(
+    module.pluginRoot,
+    path.relative(sharedRoot, emittedPath)
+  );
+  if (!(await fse.pathExists(sourcePath))) {
+    throw new Error(
+      `OpenCode emit: ${module.sourcePath} imports "${specifier}" but ${sourcePath} does not exist`
+    );
+  }
+  return { sourcePath, emittedRelative, pluginRoot: module.pluginRoot };
 }
 
 /**
@@ -221,42 +259,4 @@ async function assertSameModule(
       `OpenCode emit: ${first.emittedRelative} would be written from two different modules: ${first.sourcePath} and ${second.sourcePath}`
     );
   }
-}
-
-/**
- * Delete shared modules Lisa emitted last run that this run no longer needs.
- *
- * Only paths under `.opencode/skills/` but outside the skill-owned
- * `skills/lisa/` subtree are this emitter's; skill folders are replaced whole
- * by the skills installer and every other manifest entry belongs to another
- * installer.
- * @param previousManagedFiles - Manifest entries from the previous run.
- * @param currentShared - Shared modules emitted this run.
- * @param roots - Emit roots for this host project.
- * @returns Deleted paths, relative to `.opencode/`, sorted.
- */
-export async function deleteStaleSharedScripts(
-  previousManagedFiles: readonly string[],
-  currentShared: readonly string[],
-  roots: EmitRoots
-): Promise<readonly string[]> {
-  const keep = new Set(currentShared);
-  const skillsRoot = path.join(roots.opencodeDir, SHARED_ROOT_SUBDIR);
-  const stale = previousManagedFiles.filter(rel => {
-    const abs = path.join(roots.opencodeDir, rel);
-    return (
-      !keep.has(rel) &&
-      isWithin(skillsRoot, abs) &&
-      !isWithin(roots.skillsDir, abs)
-    );
-  });
-  await Promise.all(
-    stale.map(async rel => {
-      const abs = path.join(roots.opencodeDir, rel);
-      if (await fse.pathExists(abs)) {
-        await rm(abs, { force: true });
-      }
-    })
-  );
-  return Object.freeze([...stale].sort((a, b) => a.localeCompare(b)));
 }

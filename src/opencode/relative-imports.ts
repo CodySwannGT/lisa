@@ -8,8 +8,9 @@
  * self-containment guard need the same answer to "which relative files does
  * this module load?", so the parse lives here once.
  *
- * The parse is a deliberate regex over `from "…"`, `import "…"`, and
- * `import("…")` with a string-literal relative specifier (`./` or `../`).
+ * The parse is a deliberate regex over `from "…"`, `import "…"`,
+ * `import("…")`, and `require("…")` with a string-literal relative specifier
+ * (`./` or `../`), after comments that open a line are removed.
  * Bare specifiers (`node:fs`, packages) are not files Lisa ships and are
  * ignored. Template-literal or computed dynamic imports cannot be resolved
  * statically and are out of reach by construction.
@@ -30,7 +31,30 @@ const SCRIPT_MODULE_EXTENSIONS: readonly string[] = [".mjs", ".js", ".cjs"];
  * the pattern free of adjacent optional whitespace runs (linear-time).
  */
 const RELATIVE_SPECIFIER_PATTERN =
-  /\b(?:from|import\(?)\s*(["'])(\.\.?\/[^"'\n]*)\1/g;
+  /\b(?:from|import\(?|require\()\s*(["'])(\.\.?\/[^"'\n]*)\1/g;
+
+/**
+ * Block comments that open a line (after indentation). Anchoring at line start
+ * is the conservative choice: a `/*` inside a string such as the glob
+ * `"src/**\/*.ts"` never opens a line, so it cannot swallow real imports.
+ */
+const LINE_OPENING_BLOCK_COMMENT = /^[ \t]*\/\*[\s\S]*?\*\//gm;
+
+/** Line comments that open a line; `"https://…"` inside code is untouched. */
+const LINE_OPENING_LINE_COMMENT = /^[ \t]*\/\/.*$/gm;
+
+/**
+ * Remove comments that open a line, so commented-out or documented imports
+ * are not followed. Trailing comments after code are left in place; the
+ * import pattern only matches a quoted specifier after a keyword anyway.
+ * @param source - JavaScript module source.
+ * @returns Source with line-opening comments blanked.
+ */
+export function stripLineOpeningComments(source: string): string {
+  return source
+    .replace(LINE_OPENING_BLOCK_COMMENT, "")
+    .replace(LINE_OPENING_LINE_COMMENT, "");
+}
 
 /** One relative import whose target does not exist inside the checked tree. */
 export interface UnresolvedImport {
@@ -58,7 +82,7 @@ export function isScriptModule(file: string): boolean {
  */
 export function extractRelativeSpecifiers(source: string): readonly string[] {
   const specifiers = Array.from(
-    source.matchAll(RELATIVE_SPECIFIER_PATTERN),
+    stripLineOpeningComments(source).matchAll(RELATIVE_SPECIFIER_PATTERN),
     match => match[2]
   ).filter((specifier): specifier is string => Boolean(specifier));
   return Object.freeze(Array.from(new Set(specifiers)));

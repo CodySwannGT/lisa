@@ -38,10 +38,8 @@ import { convertCommandToSkill } from "../codex/command-skill-transformer.js";
 import type { ProjectType } from "../core/config.js";
 import { opencodeProjectPluginFilter } from "./project-plugin-gate.js";
 import { OPENCODE_CONFIG_DIR } from "./manifest.js";
-import {
-  deleteStaleSharedScripts,
-  emitSharedScripts,
-} from "./shared-scripts-emitter.js";
+import { deleteStaleSharedScripts } from "./shared-scripts-cleanup.js";
+import { emitSharedScripts } from "./shared-scripts-emitter.js";
 
 /** Runtime label threaded into generated command-as-skill compatibility notes */
 const OPENCODE_RUNTIME_LABEL = "OpenCode";
@@ -72,7 +70,10 @@ export interface InstalledSkill {
 export interface SkillsInstallResult {
   readonly installed: readonly InstalledSkill[];
   readonly managedFiles: readonly string[];
-  /** Skill directories deleted because Lisa stopped shipping them */
+  /**
+   * What Lisa removed because it stopped shipping it: bare skill directory
+   * names, then shared modules in manifest form (`skills/scripts/<m>.mjs`).
+   */
   readonly deleted: readonly string[];
 }
 
@@ -127,7 +128,7 @@ export async function installSkills(
   // emitted scripts' own import specifiers (CodySwannGT/lisa#4642).
   const sharedRoots = { opencodeDir, skillsDir };
   const sharedFiles = await emitSharedScripts(bundled, sharedRoots);
-  await deleteStaleSharedScripts(
+  const deletedShared = await deleteStaleSharedScripts(
     previousManagedFiles,
     sharedFiles,
     sharedRoots
@@ -165,7 +166,7 @@ export async function installSkills(
       ...sharedFiles,
       ...commandFiles,
     ]),
-    deleted: Object.freeze(deleted),
+    deleted: Object.freeze([...deleted, ...deletedShared]),
   };
 }
 

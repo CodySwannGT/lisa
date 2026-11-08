@@ -229,6 +229,7 @@ describe("opencode/skills-installer shared-script emit", () => {
 
     expect(await fs.pathExists(stalePath)).toBe(false);
     expect(result.managedFiles).not.toContain(staleRel);
+    expect(result.deleted).toEqual(["skills/scripts/retired.mjs"]);
   });
 
   it("refuses to emit two different modules onto the same shared path", async () => {
