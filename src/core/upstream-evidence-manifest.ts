@@ -2643,7 +2643,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/check-orphan-test-processes.mjs":
       "123822f43b53a84b619ed97d5c18069feb5964b8216248968a7ab165e345106a",
     "scripts/check-phrase-manifest-parity.mjs":
-      "1edb35891e4a401d6e01362f86453f5f772762b6945ad2dc93ac555a0a055ad8",
+      "a6eca31ae4e57517a420df3128e77dbd05d58a29dd1639815126d78e0c379464",
     "scripts/check-pipeline-status-reads.mjs":
       "1fba15dfe50eb060bd229066a35a852679b23c11292981015b5746e1d639fb31",
     "scripts/check-plugins-sync.sh":
@@ -2815,7 +2815,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/lib/phrase-tests/manifest.mjs":
       "581a1525f4e6576f8395781d82186dac1b5d536a4b002c0223f8b074c3f5b2a5",
     "scripts/lib/phrase-tests/parity.mjs":
-      "649e15663413aa90a24e1390c0f8daeb726dedb79d0de985785f00028db299bf",
+      "60325734223abec4d32ac66f7d14e9861bca4bba3c2b6f274f2b9dd1fa8ac554",
     "scripts/lib/phrase-tests/record.mjs":
       "95f65b50281127905cdef2d980f8c46a5e03e4b9b5a32f7a1f1eb8bffaa364f1",
     "scripts/lib/phrase-tests/repo.mjs":

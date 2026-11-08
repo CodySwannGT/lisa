@@ -3,7 +3,7 @@
  * separate from the CLI so every way it can fail is unit-tested.
  *
  * The check must never pass vacuously. It fails when:
- * - the base deletes no test file at all (a base already past the fold
+ * - the range deletes no test file at all (a range that is not the fold
  *   proves nothing);
  * - a deleted test file was not phrase-only, or was phrase-only but not
  *   fully translatable (it should have been kept);
@@ -26,9 +26,22 @@ function minus(left, right) {
 }
 
 /**
+ * The test files a range deletes: present at its base, gone at its head.
+ *
+ * The range is the fold's own commit, not "base to today", so a test file
+ * deleted later on main (by unrelated work) is never counted against the fold.
+ * @param {readonly string[]} atBase - Test files at the range's base.
+ * @param {readonly string[]} atHead - Test files at the range's head.
+ * @returns {string[]} The deleted test files, sorted.
+ */
+export function deletedTestFiles(atBase, atHead) {
+  return minus(atBase, new Set(atHead));
+}
+
+/**
  * Every way the fold fails to match the manifest.
  * @param {object} input - What to compare.
- * @param {readonly string[]} input.deleted - Test files at the base but not at HEAD.
+ * @param {readonly string[]} input.deleted - Test files at the base but not at the head.
  * @param {import("./fold.mjs").Fold} input.fold - Their classification and recording.
  * @param {import("./manifest.mjs").Manifest} input.manifest - The manifest.
  * @param {boolean} input.exact - Also fail on manifest entries no deleted file asserted.
@@ -45,7 +58,7 @@ export function parityFailures({ deleted, fold, manifest, exact }) {
   return [
     ...(deleted.length === 0
       ? [
-          `no test file is deleted between the base and HEAD, so nothing is proved; use the commit before the fold as --base (the manifest came from ${[...sources].sort().slice(0, 3).join(", ")}${sources.size > 3 ? ", ..." : ""})`,
+          `no test file is deleted between the base and the head, so nothing is proved; use the commit before the fold as --base and the fold as --head (the manifest came from ${[...sources].sort().slice(0, 3).join(", ")}${sources.size > 3 ? ", ..." : ""})`,
         ]
       : []),
     ...minus(deleted, recorded).map(
