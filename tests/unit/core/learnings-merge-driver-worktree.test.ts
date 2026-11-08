@@ -86,26 +86,30 @@ function entry(id: string): LearningEntry {
   };
 }
 
+/** A shim body that forwards to this checkout's real Lisa CLI. */
+const FORWARD_TO_LISA = [
+  `const { spawnSync } = require("node:child_process");`,
+  `const run = spawnSync("bun", [${JSON.stringify(CLI_ENTRY)}, ...process.argv.slice(2)], { stdio: "inherit" });`,
+  `process.exit(run.status ?? 1);`,
+  "",
+].join("\n");
+
 /**
  * Install a Lisa stand-in at the host-layout entry path of one checkout.
  * @param checkout - Worktree root to install into
+ * @param body - Entry script source; defaults to forwarding to the real CLI
  * @returns Absolute path of the installed entry
  */
-async function installLisaShim(checkout: string): Promise<string> {
+async function installLisaShim(
+  checkout: string,
+  body: string = FORWARD_TO_LISA
+): Promise<string> {
   const entryPath = path.join(checkout, HOST_ENTRY);
   await fs.outputFile(
     path.join(path.dirname(entryPath), "..", "package.json"),
     JSON.stringify({ name: "@codyswann/lisa", type: "commonjs" })
   );
-  await fs.outputFile(
-    entryPath,
-    [
-      `const { spawnSync } = require("node:child_process");`,
-      `const run = spawnSync("bun", [${JSON.stringify(CLI_ENTRY)}, ...process.argv.slice(2)], { stdio: "inherit" });`,
-      `process.exit(run.status ?? 1);`,
-      "",
-    ].join("\n")
-  );
+  await fs.outputFile(entryPath, body);
   return entryPath;
 }
 
@@ -205,6 +209,52 @@ describe("learnings merge driver across linked worktrees", () => {
     expect(content).toContain(FROM_OURS);
     expect(content).toContain(FROM_THEIRS);
     expect(clean).toBe(true);
+  });
+
+  it("leaves conflict markers holding both sides when installed Lisa crashes", async () => {
+    // An entry that exists but cannot run — pruned dependencies, a runtime
+    // too old for the build — exits non-zero without touching %A. Handing
+    // that straight back to git is the markerless ours-only file again.
+    await applyFrom(
+      primary,
+      await installLisaShim(primary, "process.exit(1);\n")
+    );
+
+    const clean = await mergeDivergentLearnings();
+
+    expect(clean).toBe(false);
+    const content = await fs.readFile(path.join(primary, LEDGER), "utf8");
+    expect(content).toContain("<<<<<<<");
+    expect(content).toContain(FROM_OURS);
+    expect(content).toContain(FROM_THEIRS);
+    const leftovers = (await fs.readdir(primary)).filter(name =>
+      /lisa-(?:snapshot|handled|conflict)/u.test(name)
+    );
+    expect(leftovers).toEqual([]);
+  });
+
+  it("keeps Lisa's own parseable conflict when both branches rewrote one entry", async () => {
+    // merge-learnings deliberately leaves ours untouched (no markers) on a
+    // real semantic conflict, with the reason on stderr. The crash fallback
+    // must not override that decision.
+    await applyFrom(primary, await installLisaShim(primary));
+    git(primary, "checkout", "-b", THEIR_BRANCH);
+    await fs.outputFile(
+      path.join(primary, LEDGER),
+      renderLearningsFile([{ ...entry(SHARED), rule: "Their rewrite." }])
+    );
+    git(primary, "commit", "-am", "theirs");
+    git(primary, "checkout", "main");
+    await fs.outputFile(
+      path.join(primary, LEDGER),
+      renderLearningsFile([{ ...entry(SHARED), rule: "Our rewrite." }])
+    );
+    git(primary, "commit", "-am", "ours");
+
+    expect(() => git(primary, "merge", THEIR_BRANCH, "-m", "merge")).toThrow();
+    const content = await fs.readFile(path.join(primary, LEDGER), "utf8");
+    expect(content).not.toContain("<<<<<<<");
+    expect(content).toContain("Our rewrite.");
   });
 
   it("leaves conflict markers holding both sides when Lisa is missing here", async () => {

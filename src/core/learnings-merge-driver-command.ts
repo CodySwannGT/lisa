@@ -20,13 +20,29 @@
  *
  * ## Why it is a self-contained `sh -c` script
  *
- * The command has to stay correct in a worktree where Lisa is NOT installed.
- * Exiting non-zero there would reproduce the markerless "ours" file, so the
- * script writes a conflict-marked file holding both sides into `%A` first and
- * only then exits 1. Keeping the script in git config rather than in a tracked
- * wrapper adds no file to every host repository.
+ * The command has to stay correct in a worktree where Lisa is NOT installed,
+ * and where Lisa is installed but cannot run (pruned dependencies, a runtime
+ * too old for the build). Exiting non-zero in either case would reproduce the
+ * markerless "ours" file, so the script writes a conflict-marked file holding
+ * both sides into `%A` and only then exits non-zero. Lisa is therefore not
+ * `exec`ed: the script snapshots `%A`, runs Lisa, and falls back when Lisa
+ * failed WITHOUT reaching its own deliberate semantic-conflict verdict (which
+ * it acknowledges by creating the `--conflict-ack` file) and left `%A`
+ * unchanged. A Lisa too old to know that flag rejects it without touching
+ * `%A`, so it, too, lands in the safe both-sides fallback.
+ * Keeping the script in git config rather than in a tracked wrapper adds no
+ * file to every host repository.
+ *
+ * ## One key per repository
+ *
+ * `merge.lisa-learnings.driver` is a single repository-wide key, so a
+ * repository holding several Lisa projects at different depths registers the
+ * entry of whichever project applied last — last writer wins. That was equally
+ * true of the absolute form; this module does not make it worse.
  * @module core/learnings-merge-driver-command
  */
+import * as path from "node:path";
+
 import { LEARNINGS_MERGE_DRIVER_NAME } from "./learnings-merge-driver.js";
 
 /** Lisa's entry script, relative to a host project's root. */
@@ -48,10 +64,11 @@ const SCRIPT_NAME = "lisa-learnings-driver";
 const DRIVER_SCRIPT = [
   `e="$1"; shift`,
   `if command -v node >/dev/null 2>&1; then r=node; else r=bun; fi`,
-  `if [ -f "$e" ] && command -v "$r" >/dev/null 2>&1; then exec "$r" "$e" merge-learnings --base "$1" --ours "$2" --theirs "$3" --path "$4"; fi`,
+  `t="$2.lisa-conflict.$$"; k="$2.lisa-snapshot.$$"; a="$2.lisa-handled.$$"`,
   `side() { cat "$1"; [ -z "$(tail -c 1 "$1")" ] || echo; }`,
-  `t="$2.lisa-conflict.$$"`,
-  `{ echo "<<<<<<< ours"; side "$2"; echo "======="; side "$3"; echo ">>>>>>> theirs"; } > "$t" && mv "$t" "$2"`,
+  `conflict() { { echo "<<<<<<< ours"; side "$1"; echo "======="; side "$2"; echo ">>>>>>> theirs"; } > "$t" && mv "$t" "$1"; }`,
+  `if [ -f "$e" ] && command -v "$r" >/dev/null 2>&1; then cp "$2" "$k"; "$r" "$e" merge-learnings --base "$1" --ours "$2" --theirs "$3" --path "$4" --conflict-ack "$a"; s=$?; if [ "$s" -ne 0 ] && [ ! -f "$a" ] && cmp -s "$2" "$k"; then conflict "$2" "$3"; echo "${LEARNINGS_MERGE_DRIVER_NAME} merge driver: Lisa ($e) exited $s without merging $4, so it was left with conflict markers holding both sides." >&2; fi; rm -f "$k" "$a"; exit "$s"; fi`,
+  `conflict "$2" "$3"`,
   `echo "${LEARNINGS_MERGE_DRIVER_NAME} merge driver: cannot run Lisa here ($e, or a node or bun runtime, is missing in this worktree), so $4 was left with conflict markers holding both sides. Install dependencies here, then run lisa install-merge-driver." >&2`,
   `exit 1`,
 ].join("; ");
@@ -110,6 +127,19 @@ function singleQuotedTokens(fragment: string): readonly string[] | undefined {
 }
 
 /**
+ * Whether a token is an absolute path on POSIX or Windows.
+ *
+ * Checked explicitly for both, because doctor may run on one platform against
+ * a registration written on the other (a Windows drive-letter path is not
+ * absolute to `path.isAbsolute` on POSIX).
+ * @param token - Unquoted command token
+ * @returns True for `/…`, `C:\…` or `C:/…`
+ */
+function isAbsolutePath(token: string): boolean {
+  return path.isAbsolute(token) || /^[A-Za-z]:[\\/]/u.test(token);
+}
+
+/**
  * Classify a registered `merge.lisa-learnings.driver` command.
  *
  * `absolute` is the pre-#4640 `'<runtime>' '<entry>' merge-learnings …`
@@ -136,6 +166,6 @@ export function classifyLearningsDriverCommand(
     head === undefined || head === command
       ? undefined
       : singleQuotedTokens(head);
-  const paths = (tokens ?? []).filter(token => token.startsWith("/"));
+  const paths = (tokens ?? []).filter(isAbsolutePath);
   return paths.length === 0 ? { kind: "other" } : { kind: "absolute", paths };
 }

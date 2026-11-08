@@ -12205,6 +12205,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/core/learnings-lock-acquire.test.ts": true,
     "tests/unit/core/learnings-lock-reclaim.test.ts": true,
     "tests/unit/core/learnings-lost-write-detection.test.ts": true,
+    "tests/unit/core/learnings-merge-driver-command.test.ts": true,
     "tests/unit/core/learnings-merge-driver-install.test.ts": true,
     "tests/unit/core/learnings-merge-driver-worktree.test.ts": true,
     "tests/unit/core/learnings-merge-driver.test.ts": true,
