@@ -204,21 +204,27 @@ fi
 
 echo "  ✓ GitHub release assets uploaded"
 
-# Every release link in the description must name an asset THIS pull request
-# owns and the release really holds. A bare or other-PR name would show some
-# other pull request's evidence.
+# Every markdown link or image target, `](<url>)`, that points into the release
+# must name an asset THIS run uploaded, and therefore one the check above just
+# found in the release. A bare or other-PR name would show some other pull
+# request's evidence, and a pr-<n>- asset left over from an earlier run would
+# show evidence this run did not produce. Only link targets count: text
+# evidence inlined into comment.md may quote a release URL as plain text.
+THIS_RUN_ASSETS=$(printf '%s\n' "${UPLOADED_ASSETS[@]}")
 BAD_LINKS=0
-while IFS= read -r LINK; do
-  [[ -z "$LINK" ]] && continue
+while IFS= read -r TARGET; do
+  LINK="${TARGET#](}"
+  LINK="${LINK%)}"
+  [[ "$LINK" == *"releases/download/${RELEASE_TAG}/"* ]] || continue
   LINK_NAME="${LINK##*/}"
   if [[ "$LINK_NAME" != "pr-${PR_NUMBER}-"* ]]; then
     echo "ERROR: $COMMENT_MD links $LINK, which is not scoped to PR #$PR_NUMBER (expected pr-${PR_NUMBER}-<file>)" >&2
     BAD_LINKS=1
-  elif ! grep -qxF "$LINK_NAME" <<< "$RELEASE_ASSETS"; then
-    echo "ERROR: $COMMENT_MD links $LINK, which is not an asset of release '$RELEASE_TAG'" >&2
+  elif ! grep -qxF "$LINK_NAME" <<< "$THIS_RUN_ASSETS"; then
+    echo "ERROR: $COMMENT_MD links $LINK, which this run did not upload to release '$RELEASE_TAG'" >&2
     BAD_LINKS=1
   fi
-done < <(grep -oE "releases/download/${RELEASE_TAG}/[^][()<>\"'[:space:]]+" "$COMMENT_MD" || true)
+done < <(grep -oE '\]\([^)[:space:]]+\)' "$COMMENT_MD" || true)
 if [[ $BAD_LINKS -ne 0 ]]; then
   exit 1
 fi
