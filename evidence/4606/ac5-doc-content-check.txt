@@ -1,0 +1,22 @@
+PRESENT  packaging: package.json files/exports/bin
+PRESENT  packaging: dependencies
+PRESENT  packaging: scripts/build-plugins.sh
+PRESENT  packaging: scripts/clean-dist.mjs
+PRESENT  packaging: tsconfig*.json
+PRESENT  packaging: apply/postinstall under src/
+PRESENT  packaging: template directories
+PRESENT  packaging: tests/fixtures/shared-runtime-hosts
+PRESENT  how: workflow dispatch command
+PRESENT  how: local command
+PRESENT  protection: canary rollout #4604
+PRESENT  protection: one-command rollback #4605
+PRESENT  no post-release run stated
+EXISTS   file .github/workflows/packed-host-journey.yml
+EXISTS   file scripts/build-plugins.sh
+EXISTS   file scripts/clean-dist.mjs
+EXISTS   file scripts/lisa-update-projects-plan.mjs
+EXISTS   file docs/release-runbook.md
+EXISTS   dir tests/fixtures/shared-runtime-hosts
+EXISTS   package script release:rollback
+EXISTS   package script test:integration:packed-hosts
+RESULT: PASS
