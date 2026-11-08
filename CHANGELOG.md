@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.96.2](https://github.com/CodySwannGT/lisa/compare/v4.96.1...v4.96.2) (2026-11-08)
+
+
+### Bug Fixes
+
+* **test-run:** keep deliberately nested macOS TMPDIRs ([#4701](https://github.com/CodySwannGT/lisa/issues/4701)) ([b87dbc4](https://github.com/CodySwannGT/lisa/commit/b87dbc4d85fcd6cddc385c41ae43395b678cefdc))
+* **test:** defer the Ruby shard suite when local Ruby is older than 3.2 ([#4609](https://github.com/CodySwannGT/lisa/issues/4609)) ([a2a9a45](https://github.com/CodySwannGT/lisa/commit/a2a9a45eb3086b7d73b6b70e82bf0d6c223c8d45))
+* **test:** make the Ruby shard probe independent of RubyGems ([#4701](https://github.com/CodySwannGT/lisa/issues/4701)) ([15cb90e](https://github.com/CodySwannGT/lisa/commit/15cb90ef34a656231863318c9676f644db216432)), closes [#4609](https://github.com/CodySwannGT/lisa/issues/4609)
+
 ### [4.96.1](https://github.com/CodySwannGT/lisa/compare/v4.96.0...v4.96.1) (2026-11-08)
 
 
