@@ -74,6 +74,55 @@ A claim that the change is "behavior-preserving", a "no-visual-regression" refac
 
 After implementation, run the verification plan. Execute each verification type in order.
 
+#### Packaged Lisa applies: destination preflight
+
+Before running a packaged Lisa apply for verification, use the package's shared
+`scripts/verify-packaged-apply.mjs` controller. Select the narrowest harness
+that exercises the required behavior; measure generated-copy parity separately.
+Never run a verification apply directly against the operator's environment.
+The controller's default host preflight refuses before spawning apply: a
+temporary project, missing agent CLI, XDG override, or unchanged HOME does not
+contain Antigravity's unconditional user-global MCP writer, vendor plugin
+registrations, Git configuration, temporary backups, or package-manager caches.
+
+Build the tool image from the shipped `scripts/fixtures/packaged-apply/Dockerfile`,
+then use the exact candidate or published archive, a new private evidence
+directory, and the same shared controller on every agent:
+
+```bash
+docker build -t lisa-packaged-verification -f scripts/fixtures/packaged-apply/Dockerfile scripts/fixtures/packaged-apply
+node scripts/verify-packaged-apply.mjs --backend docker --archive /absolute/path/lisa.tgz --image lisa-packaged-verification --harness codex --output /absolute/path/new-evidence-directory
+```
+
+Run those paths from the installed package. Record registry integrity/version
+for a published archive; a local pack establishes candidate behavior only.
+Keep the CLI's release-pin checks enabled. If an unstamped local CLI pack
+refuses full apply, record that refusal instead of inventing a release stamp.
+To qualify a new verifier before publication, run the candidate package's
+controller against an identified, genuine public CLI archive and record both
+identities separately. That proves the candidate verifier and that public CLI;
+repeat with the exact new public package after release before completing work.
+The controller inspects the actual stopped container before starting it,
+rejects host mounts/shared namespaces/privileges, and copies inputs into its
+disposable filesystem. It does not change the operator's HOME or CODEX_HOME,
+forward credentials, replace runtime tools, or change normal apply defaults.
+Fleet requires that same proved boundary for every writer and descendant;
+unresolved host destinations cause refusal, not a weaker fallback.
+
+Add every declared outside configuration/sentinel file with repeated
+`--preserve /absolute/path/file` arguments. Capture both host-authored and
+Lisa-managed entries, plus absent paths, without exclusions. Preserve the full
+before/after comparison on success and failure; use `--failure-control` to
+exercise a genuine failed CLI child with `--harness fleet` and require
+preservation even though that command returns nonzero. The control reaches
+Antigravity's user-config writer after project mutations, inside the disposable
+filesystem. An unexpected write stops execution; privately
+preserve current bytes and report any missing before-image as unknown. Never
+guess a restoration or delete the operator's settings. Generated hooks and
+native allow/refuse controls establish emitted behavior; absent vendor
+authentication or activation remains explicitly unverified. Docker image and
+container bookkeeping is expected infrastructure state, not agent settings.
+
 Evidence output must explicitly label each verification result as either `verified empirically` or `artifact-only / verification deferred`. Artifact-only evidence can support a blocked escalation packet, but it cannot mark a required runtime verification complete.
 
 For a required user-visible regression spec, evidence must prove execution, not only existence. Record a CI log line, reporter output, or equivalent artifact that names the new spec and shows it ran and passed in the PR. A green CI run without named execution proof is not enough; explicitly check for `test.skip`, suite-level environment gates, shard filters, and "0 tests" passes.

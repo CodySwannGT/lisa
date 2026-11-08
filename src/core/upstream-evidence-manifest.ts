@@ -267,7 +267,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-destructive-guard.mjs":
       "f0f3c43bbb6d1e389135b0205a051e64891e539d4272df2a87841ee82a8b7a55",
     "all/copy-overwrite/scripts/lisa-enforcement-fallback.sh":
-      "49aead9c8719f39b6333a2be3bcd8c955a7beca3636090ce8bb4329cc0d45276",
+      "38ce0cbc3bd1d3a1fd8ce6893b26473d503db6a3480f389e641b9a42b1877dd8",
     "all/copy-overwrite/scripts/lisa-enforcement-freshness.mjs":
       "5f303bc2c0427fbf686bc75fe2f481da9f70708165c6d2a51d0432aedfcd205d",
     "all/copy-overwrite/scripts/lisa-environment-prepare.mjs":
@@ -1875,7 +1875,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-validate-tracker-mapping/SKILL.md":
       "747531d1342d77d6fabd8e85778497bf22bffb4bcc329416a3e21374e769006f",
     "plugins/src/base/skills/lisa-verification-lifecycle/SKILL.md":
-      "3fbcb619281a91f229e4564549b7f7d0ea68e7fd2d874820515846f8cbd6e0e7",
+      "369cbdab522005c28c0fd08814c3e4287c574e8c22f10cba00aa0d792159042d",
     "plugins/src/base/skills/lisa-verify-prd/SKILL.md":
       "fd4dc76c42c1083f5223e650f6c25d53694138860ebcb02588689f6eb6d0b416",
     "plugins/src/base/skills/lisa-verify-workflow-change/SKILL.md":
@@ -2710,6 +2710,10 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "e66ac93861ff9b84ac41203f6ffa663647a40977c9b838e5904ad0afcd7d15fd",
     "scripts/fixtures/native-safety-net-retirement/reduced-core.mjs":
       "ef7b9565d7c77a3b6854e12cf45f3ec73a5e0826157065a1326e2cbf4c4251ef",
+    "scripts/fixtures/packaged-apply/Dockerfile":
+      "b201c26b3d3ed8c34a7be7db971423823c94438cca8b003337af16637910b194",
+    "scripts/fixtures/packaged-apply/guard-cases.json":
+      "b64b236a9783db995722074756512e5eb77c3fabc8ea8aec98fa6ab7c117014a",
     "scripts/generate-agy-plugin-artifacts.mjs":
       "19bee3087ff1fedc79550f75cb021dc59b5b4466daa6261adb788ef13bb8c2b6",
     "scripts/generate-codex-plugin-artifacts.mjs":
@@ -2776,6 +2780,12 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "7f4fd67a2128797970b10a97b9947f9b63518fe1110c2f12e51fe2c430751235",
     "scripts/lib/nest-plugin-commands.mjs":
       "c52b2f48edbc17edcc60ae33536549829cbc279c60c5d85d912ac6609cae9bea",
+    "scripts/lib/packaged-apply-driver.mjs":
+      "dbe963bd452834affd56524f9dcf850c28af0bfea9c7952e1ec6698e4ddedbc1",
+    "scripts/lib/packaged-apply-isolation.d.mts":
+      "11378f7f0a7f7e2db4064021d13f4f70f3b5bc8189d02ef88fec2af38e6da675",
+    "scripts/lib/packaged-apply-isolation.mjs":
+      "578bbc864bb29ae34008547d523d1aebb6646da6310373d4e7cf28702e9b2096",
     "scripts/lib/per-agent-hook-filter.mjs":
       "366564dc54c18145b745ecfe18fbc168e8df71f59e4be03cb5acc1899b16b461",
     "scripts/lib/plugin-cache-resolution.mjs":
@@ -2827,7 +2837,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/lisa-enforcement-census.mjs":
       "41490f30f30cbb5ff05454a52caa1d3286db225667847eee22b7b994809e64d4",
     "scripts/lisa-enforcement-fallback.sh":
-      "b7d5f953d722dce0df3514283a5555987f3a733a12d2cca218bbd8ecc4ca93f2",
+      "5971482c13ba1b31171d35b640cca5e4a5c8c2fb6c353f9b5b720f2ada5b175f",
     "scripts/lisa-enforcement-freshness.mjs":
       "b3e91b689b7cb83957e46ecfae35765422b7c7343270cfb31007ef510ac05086",
     "scripts/lisa-github-environments.sh":
@@ -2912,6 +2922,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "6bff582556199f2d0c2cf8d68880141491c9e5223db5247600a930ac369b7c11",
     "scripts/verify-npm-advisories-4333.mjs":
       "f0a94aead747c28cf1317d999a4eb80ae027461a43ed22b5b996173a5a096aae",
+    "scripts/verify-packaged-apply.mjs":
+      "29576e131201d0275ee00c1d85362a852767d09e9d3e7aa6db7bf7c70a4a2576",
     "scripts/verify-packed-learnings-contract.mjs":
       "2227b32f3b3dc2dc6817a60b4998b64881c03e30ecd15cb52b6d6f95a5870613",
     "scripts/verify-rails-tooling.rb":
@@ -3198,6 +3210,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     ".github/workflows/nightly-tmpdir-growth-benchmark.yml": true,
     ".github/workflows/npm-updater-runtime-qualification.yml": true,
     ".github/workflows/npm-updater.yml": true,
+    ".github/workflows/packaged-apply-isolation.yml": true,
     ".github/workflows/playwright-e2e.yml": true,
     ".github/workflows/plugins-sync.yml": true,
     ".github/workflows/publish-to-npm.yml": true,
@@ -10465,6 +10478,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "scripts/fixtures/native-safety-net-retirement/journey.mjs": true,
     "scripts/fixtures/native-safety-net-retirement/probes.mjs": true,
     "scripts/fixtures/native-safety-net-retirement/reduced-core.mjs": true,
+    "scripts/fixtures/packaged-apply/Dockerfile": true,
+    "scripts/fixtures/packaged-apply/guard-cases.json": true,
     "scripts/generate-agy-plugin-artifacts.mjs": true,
     "scripts/generate-codex-plugin-artifacts.mjs": true,
     "scripts/generate-copilot-plugin-artifacts.mjs": true,
@@ -10498,6 +10513,9 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "scripts/lib/invoked-as-script.mjs": true,
     "scripts/lib/mutation-performance-reporter.mjs": true,
     "scripts/lib/nest-plugin-commands.mjs": true,
+    "scripts/lib/packaged-apply-driver.mjs": true,
+    "scripts/lib/packaged-apply-isolation.d.mts": true,
+    "scripts/lib/packaged-apply-isolation.mjs": true,
     "scripts/lib/per-agent-hook-filter.mjs": true,
     "scripts/lib/plugin-cache-resolution.mjs": true,
     "scripts/lib/plugin-rule-citations.mjs": true,
@@ -10566,6 +10584,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "scripts/verify-learner-frontmatter-built.mjs": true,
     "scripts/verify-native-safety-net-retirement.mjs": true,
     "scripts/verify-npm-advisories-4333.mjs": true,
+    "scripts/verify-packaged-apply.mjs": true,
     "scripts/verify-packed-learnings-contract.mjs": true,
     "scripts/verify-rails-tooling.rb": true,
     "scripts/workflow-contract-assertion.sh": true,
@@ -11249,6 +11268,9 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/fixtures/npm-update-rails-mysql-native.mjs": true,
     "tests/fixtures/npm-update-rails-mysql-native.sh": true,
     "tests/fixtures/npm-update-rails-mysql-observation.mjs": true,
+    "tests/fixtures/packaged-apply/reference-package.mjs": true,
+    "tests/fixtures/packaged-apply/run.mjs": true,
+    "tests/fixtures/packaged-apply/symlink-control.mjs": true,
     "tests/fixtures/parity-safety-net/gradle-start-script.sh": true,
     "tests/fixtures/pre-tool-refusal-pre-facade/codex-block-migration-edits.sh": true,
     "tests/fixtures/pre-tool-refusal-pre-facade/codex-block-suppress-directives.sh": true,
@@ -12736,6 +12758,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/npm-update-socket-witness.test.ts": true,
     "tests/unit/scripts/npm-update-tracker.test.ts": true,
     "tests/unit/scripts/orphaned-branch-bindings.test.ts": true,
+    "tests/unit/scripts/packaged-apply-isolation.test.ts": true,
     "tests/unit/scripts/per-agent-hook-filter-devin.test.ts": true,
     "tests/unit/scripts/per-agent-hook-filter.test.ts": true,
     "tests/unit/scripts/pipeline-status-continuations.test.ts": true,

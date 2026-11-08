@@ -274,7 +274,17 @@ run_optional_freshness() (
     builtin kill -KILL -- -"$group"
   ) &
   anchor=$!
-  if [ "$(builtin jobs -pr)" = "$anchor" ]; then
+  # The child's admission timer is already running. Keep the job census in this
+  # shell: an extra command-substitution fork can consume that fixed window.
+  # Accept exactly one live job with the freshly captured anchor identity.
+  builtin jobs -pr >"$scratch/jobs" || exit 1
+  live_job_count=0
+  live_job=""
+  while IFS= builtin read -r observed_job; do
+    live_job_count=$((live_job_count + 1))
+    live_job="$observed_job"
+  done <"$scratch/jobs"
+  if [ "$live_job_count" -eq 1 ] && [ "$live_job" = "$anchor" ]; then
     # Preauthorize termination only after the helper finishes. This removes
     # parent polling and external sleep startup without accepting partial facts.
     builtin printf 'anchor:%s\nstop\n' "$anchor" >&8
