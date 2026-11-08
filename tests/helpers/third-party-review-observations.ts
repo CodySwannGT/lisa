@@ -156,18 +156,31 @@ export const RATE_LIMITED_RUN = rawCheckRun({
   },
 });
 
+/** The comment author the default permission routes call a writer. */
+export const SUBSTITUTE_WRITER = "maintainer";
+
+/**
+ * The route the prover reads one comment author's repository permission from.
+ * @param login - The comment author
+ * @returns The API path
+ */
+export const permissionRoute = (login: string): string =>
+  `repos/${REPO}/collaborators/${encodeURIComponent(login)}/permission`;
+
 /**
  * The comment a posted substitute review carries, for one reviewer at one head.
  * @param context - The reviewer it stands in for
  * @param sha - The head it reviewed
+ * @param login - Its author; a writer unless a case says otherwise
  * @returns A raw issue comment
  */
 export function substituteComment(
   context: string,
-  sha: string
+  sha: string,
+  login = SUBSTITUTE_WRITER
 ): Record<string, unknown> {
   return {
-    user: { login: "maintainer" },
+    user: { login },
     body: `<!-- lisa:review-substitute context="${context}" head="${sha}" -->\nSelf-review substitute.`,
   };
 }
