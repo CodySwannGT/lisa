@@ -23,7 +23,6 @@ import { boundedSpawnSync } from "./io-latency-budget.js";
 
 export const SELECTED_GUARDS = [
   "block-no-verify",
-  "parity-safety-net",
   "block-shell-json-parsing",
   "block-instruction-file-edits",
   "block-direct-issue-create",

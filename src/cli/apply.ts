@@ -8,9 +8,10 @@ import {
   resolvePostinstallDeclaration,
 } from "../core/apply-mode.js";
 import { recordSuccessfulApply } from "../core/apply-receipt.js";
-import { getBootstrapApplySkipNotice } from "../core/bootstrap-environment.js";
+import { getBootstrapApplySkip } from "../core/bootstrap-environment.js";
 import { ACCEPTED_HARNESS_INPUTS } from "../core/config.js";
 import { Lisa } from "../core/lisa.js";
+import { retireNativeSafetyNet } from "../core/native-safety-net-retirement.js";
 import {
   detectLegacyHarnessMigration,
   projectConfigExists,
@@ -370,13 +371,13 @@ export async function runApply(
   const logger = new ConsoleLogger();
 
   const postinstall = readPostinstallDeclaration(options);
-  const skipNotice = getBootstrapApplySkipNotice({
+  const skip = getBootstrapApplySkip({
     validateOnly,
     postinstall,
     fullApply: options.fullApply ?? false,
   });
-  if (skipNotice !== undefined) {
-    console.log(skipNotice);
+  if (skip !== undefined) {
+    await finishSkippedApply(skip, destDir, dryRun);
     return;
   }
 
@@ -440,4 +441,34 @@ export async function runApply(
     logger.error(error instanceof Error ? error.message : String(error));
     process.exit(1);
   }
+}
+
+/**
+ * Perform only the retirement explicitly owed by an install lifecycle.
+ * @param skip - Typed bootstrap disposition
+ * @param skip.kind - Install cleanup or noninteractive stand-down
+ * @param skip.notice - Operator-facing explanation
+ * @param destination - Project root
+ * @param dryRun - Preview without changes
+ */
+async function finishSkippedApply(
+  skip: { readonly kind: "install" | "environment"; readonly notice: string },
+  destination: string,
+  dryRun: boolean
+): Promise<void> {
+  const decisions =
+    skip.kind === "install"
+      ? await retireNativeSafetyNet(destination, dryRun)
+      : [];
+  for (const decision of decisions) {
+    if (decision.status === "would-retire")
+      console.log(
+        `lisa: would disable the retired safety net: ${decision.path}`
+      );
+    if (decision.status.startsWith("preserved"))
+      console.warn(
+        `lisa: kept your customized safety-net file: ${decision.path}`
+      );
+  }
+  console.log(skip.notice);
 }

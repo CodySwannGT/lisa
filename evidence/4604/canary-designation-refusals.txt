@@ -1,0 +1,15 @@
+$ node scripts/lisa-update-projects-plan.mjs --workspaces tests/fixtures/update-projects/no-canary.json
+lisa-update-projects-plan: tests/fixtures/update-projects/no-canary.json: workspace file designates no canary; the rollout needs one before any host is touched. Designate exactly one canary host in .lisa.workspaces.json by giving its entry the object form: "<host path>": { "branch": "<target branch>", "canary": true }. Every other entry keeps its plain branch string (or uses { "branch": "<target branch>" }).
+exit=1
+$ node scripts/lisa-update-projects-plan.mjs --workspaces tests/fixtures/update-projects/two-canaries.json
+lisa-update-projects-plan: tests/fixtures/update-projects/two-canaries.json: workspace file designates 2 canaries ("fixture-canary", "fixture-host-a"); exactly one is allowed. Designate exactly one canary host in .lisa.workspaces.json by giving its entry the object form: "<host path>": { "branch": "<target branch>", "canary": true }. Every other entry keeps its plain branch string (or uses { "branch": "<target branch>" }).
+exit=1
+$ node scripts/lisa-update-projects-plan.mjs --workspaces tests/fixtures/update-projects/legacy-strings.json
+lisa-update-projects-plan: tests/fixtures/update-projects/legacy-strings.json: workspace file designates no canary; the rollout needs one before any host is touched. Designate exactly one canary host in .lisa.workspaces.json by giving its entry the object form: "<host path>": { "branch": "<target branch>", "canary": true }. Every other entry keeps its plain branch string (or uses { "branch": "<target branch>" }).
+exit=1
+$ node scripts/lisa-update-projects-plan.mjs --workspaces tests/fixtures/update-projects/malformed.json
+lisa-update-projects-plan: tests/fixtures/update-projects/malformed.json: entry "fixture-host-a" must be a branch string or { "branch": "<target branch>", "canary": true }.
+exit=1
+$ node scripts/lisa-update-projects-plan.mjs --workspaces tests/fixtures/update-projects/does-not-exist.json
+lisa-update-projects-plan: cannot read tests/fixtures/update-projects/does-not-exist.json: ENOENT
+exit=1

@@ -16,7 +16,7 @@ export const BOOTSTRAP_SKIP_NOTICE =
   "lisa: skipped (non-interactive environment; set LISA_BOOTSTRAP=1 to force)";
 
 const INSTALL_SKIP_NOTICE =
-  "lisa: installation leaves project templates unchanged. Run `lisa apply .` " +
+  "lisa: installation leaves unrelated project templates unchanged. Run `lisa apply .` " +
   "to apply updates, or `lisa doctor` to check freshness.";
 
 /**
@@ -61,11 +61,13 @@ function readProcessEnv(): NodeJS.ProcessEnv {
  * Real apply must be explicitly opted in when running without a TTY or under a
  * known build-system fingerprint.
  * @param options - Guard options and injectable runtime state
- * @returns The skip notice when apply should be skipped, otherwise undefined
+ * @returns Typed skip reason and notice, otherwise undefined
  */
-export function getBootstrapApplySkipNotice(
+export function getBootstrapApplySkip(
   options: BootstrapGuardOptions
-): string | undefined {
+):
+  | { readonly kind: "install" | "environment"; readonly notice: string }
+  | undefined {
   if (options.validateOnly) return undefined;
 
   const environment = options.environment ?? {
@@ -84,12 +86,13 @@ export function getBootstrapApplySkipNotice(
     environment.env.npm_lifecycle_event === "postinstall" ||
     isUnnamedBun;
   if (isInstall && options.fullApply !== true) {
-    return isUnnamedBun
+    const notice = isUnnamedBun
       ? `${
           INSTALL_SKIP_NOTICE
         } Bun did not name its lifecycle; for an intentional apply use ` +
-          `\`bunx lisa apply .\` or pass \`--full-apply\`.`
+        `\`bunx lisa apply .\` or pass \`--full-apply\`.`
       : INSTALL_SKIP_NOTICE;
+    return { kind: "install", notice };
   }
 
   if (environment.env[LISA_BOOTSTRAP_ENV] === "1") return undefined;
@@ -100,8 +103,19 @@ export function getBootstrapApplySkipNotice(
   });
 
   if (!environment.stdinIsTTY || hasBuildEnvFingerprint) {
-    return BOOTSTRAP_SKIP_NOTICE;
+    return { kind: "environment", notice: BOOTSTRAP_SKIP_NOTICE };
   }
 
   return undefined;
+}
+
+/**
+ * Preserve the public notice-only bootstrap API.
+ * @param options - Guard options and injectable runtime state
+ * @returns Skip notice, when any
+ */
+export function getBootstrapApplySkipNotice(
+  options: BootstrapGuardOptions
+): string | undefined {
+  return getBootstrapApplySkip(options)?.notice;
 }
