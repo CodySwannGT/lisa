@@ -1,0 +1,55 @@
+name: Packaged apply isolation
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  native:
+    name: Packaged apply preserves operator configuration
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: '24.21.0'
+          package-manager-cache: false
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version: '1.4.4'
+      - name: Build the candidate and genuine runtime image
+        env:
+          CI: '1'
+          LISA_BOOTSTRAP: '1'
+        run: |
+          bun install --frozen-lockfile
+          bun run build
+          bun pm pack --ignore-scripts --filename "$RUNNER_TEMP/lisa-candidate.tgz"
+          mkdir "$RUNNER_TEMP/lisa-candidate-controller"
+          tar -xzf "$RUNNER_TEMP/lisa-candidate.tgz" -C "$RUNNER_TEMP/lisa-candidate-controller"
+          docker build -t lisa-packaged-verification -f scripts/fixtures/packaged-apply/Dockerfile scripts/fixtures/packaged-apply
+      - name: Fetch the exact published CLI reference
+        run: node tests/fixtures/packaged-apply/reference-package.mjs "$RUNNER_TEMP/lisa-published-reference"
+      - name: Run applies, failed-child preservation and symlink detection
+        run: |
+          # The candidate controller is the package under test. Its actual CLI
+          # input is a pinned public release: an unstamped local CLI pack must
+          # retain its release-pin refusal. Published verification repeats this
+          # with the newly released package as both controller and CLI input.
+          node tests/fixtures/packaged-apply/run.mjs --controller "$RUNNER_TEMP/lisa-candidate-controller/package/scripts/verify-packaged-apply.mjs" --archive "$RUNNER_TEMP/lisa-published-reference/reference.tgz" --image lisa-packaged-verification --output "$RUNNER_TEMP/lisa-packaged-proof"
+      - name: Retain native scenario summary
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: packaged-apply-isolation
+          path: |
+            ${{ runner.temp }}/lisa-packaged-proof/summary.json
+            ${{ runner.temp }}/lisa-published-reference/identity.json
+          if-no-files-found: error
+          retention-days: 7

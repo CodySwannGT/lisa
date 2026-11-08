@@ -343,7 +343,13 @@ export async function waitForCdkAssembly(
   const budget = ioLatencyBudgetMs(CDK_MARKER_BUDGET_MS);
   const deadline = Date.now() + budget;
   while (Date.now() < deadline) {
-    if (fs.existsSync(marker)) return fs.readFileSync(marker, "utf8");
+    if (fs.existsSync(marker)) {
+      const assembly = fs.readFileSync(marker, "utf8");
+      // The fixture's writeFileSync creates the file before writing the path.
+      // Existence alone can expose an empty value and make the caller inspect
+      // the current directory instead of the actual CDK worker's owner marker.
+      if (assembly !== "") return assembly;
+    }
     await new Promise(resolve => setTimeout(resolve, 25));
   }
   // A live child and a dead one produce the same silence here, and the two
