@@ -86,4 +86,25 @@ describe("the exclusion guide the rules link to (docs/dependency-audit-exclusion
     );
     expect(guide).toMatch(/is ignored by the audit as before/u);
   });
+
+  it("names only genuinely unrecognized keys as ignored, and accepts advisory metadata", () => {
+    // `url` and `title` are known metadata fields, so doctor does not report them.
+    expect(guide).not.toMatch(/such as `url` or `title`, is ignored/u);
+    expect(guide).toMatch(/`cwe`,\s+`ghsa`,\s+`url`,\s+`title`,\s+`severity`/u);
+  });
+
+  it("does not claim doctor matches advisories against lockfile copies", () => {
+    expect(guide).not.toMatch(/CI audit job,\s+and doctor share/u);
+    expect(guide).toMatch(/doctor does not match advisories against/u);
+  });
+});
+
+describe("the reference rule separates doctor's checks from advisory matching", () => {
+  it.each(ROOTS)("%s", root => {
+    const reference = read(root, "reference");
+    expect(reference).not.toMatch(
+      /and `lisa doctor` all use the same matcher/u
+    );
+    expect(reference).toMatch(/`lisa doctor` checks the scope fields/u);
+  });
 });

@@ -1273,7 +1273,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/rules/reference/reset-seed-coverage.md":
       "cfbb50fc9fdb6f0a354255802392adc717ea18af65aca92cc866416bf9256d91",
     "plugins/src/base/rules/reference/security-audit-handling.md":
-      "3d946eda3171a451c0bb278027400ffb3d8b9126e460a5421397f7453cc70fe4",
+      "f100212e69199e501b0eb2bcbd401c2fff9dd4bdde65f6edef93606a62c68b5f",
     "plugins/src/base/rules/reference/session-status-updates.md":
       "8878eceb7d81ee4d1ebd51f2f179e659ce36fac3ee7d04bc8631f44923d5e9ae",
     "plugins/src/base/rules/reference/settled-decisions.md":
@@ -10967,6 +10967,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "src/core/audit-exclusions.ts": true,
     "src/core/audit-field-names.ts": true,
     "src/core/audit-lockfile.ts": true,
+    "src/core/audit-manager.ts": true,
     "src/core/audit-matcher.ts": true,
     "src/core/audit-report.ts": true,
     "src/core/audit-types.ts": true,
@@ -12187,6 +12188,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/core/audit-lockfile-formats.test.ts": true,
     "tests/unit/core/audit-lockfile-sources.test.ts": true,
     "tests/unit/core/audit-report-completeness.test.ts": true,
+    "tests/unit/core/audit-review-4693.test.ts": true,
     "tests/unit/core/audit-scope-hardening.test.ts": true,
     "tests/unit/core/audit-scopes.test.ts": true,
     "tests/unit/core/bootstrap-environment.test.ts": true,

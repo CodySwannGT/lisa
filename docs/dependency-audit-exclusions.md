@@ -36,13 +36,15 @@ by the project's exception policy.
 The documented fields are `id`, `cve`, `package`, `versions`, `paths`,
 `active`, and the decision record: `reason`, `notes`, `justification`,
 `decision`, `rationale`, `comment`, `owner`, `tracking`, `review_by`, and
-`expiry_enforced`. Keys that start with `//` are comments. A key that nearly
+`expiry_enforced`. Advisory metadata copied from an audit report — `cwe`,
+`ghsa`, `url`, `title`, `severity`, `cvss`, and `advisory` — is accepted too,
+and doctor does not report it. Keys that start with `//` are comments. A key that nearly
 matches one of the five scope fields fails the audit with a diagnostic that
 names the field it expected. This covers a different case (`Paths`), a
 singular or plural (`path`, `version`, `packages`), or a small typo
 (`pathes`). Without that check the misspelled scope would be ignored and the
 entry would excuse every copy instead of the one you meant. Any other extra key,
-such as `url` or `title`, is ignored by the audit as before, and doctor notes
+such as `href` or `ticket`, is ignored by the audit as before, and doctor notes
 it so nobody mistakes it for a scope.
 
 For a matching advisory, the matcher reads the resolved package name and exact
@@ -98,8 +100,12 @@ or not it names a `package`. Such an entry still hides every copy of the
 package, so doctor names the file and advisory and recommends adding `versions`
 and `paths`. A written reason does not make an invalid scope valid.
 
-The pre-push built-in, dependency-vulnerability registry task, CI audit job,
-and doctor share the canonical audit implementation. Lisa owns the governed
+The pre-push built-in, dependency-vulnerability registry task, and CI audit job
+share the canonical audit implementation, including its package-manager
+selection. Doctor uses the same field and scope validation and checks that the
+lockfile is readable, but doctor does not match advisories against lockfile
+copies: a valid-looking path that names the wrong copy can pass doctor and
+still be rejected by the audit. Lisa owns the governed
 `security:audit:lisa` task and supplies `security:audit` as its default alias.
 Applying Lisa preserves a project's existing `security:audit` composition and
 its additional checks. Project-owned provers can call the governed task or
