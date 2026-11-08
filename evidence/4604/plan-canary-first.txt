@@ -1,0 +1,18 @@
+$ node scripts/lisa-update-projects-plan.mjs --workspaces tests/fixtures/update-projects/one-canary.json
+{
+  "canary": {
+    "path": "fixture-canary",
+    "branch": "dev"
+  },
+  "rest": [
+    {
+      "path": "fixture-host-a",
+      "branch": "staging"
+    },
+    {
+      "path": "fixture-host-b",
+      "branch": "main"
+    }
+  ]
+}
+exit=0

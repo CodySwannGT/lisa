@@ -1,0 +1,4 @@
+{
+  "fixture-canary": { "branch": "dev", "canary": true },
+  "fixture-host-a": 42
+}
