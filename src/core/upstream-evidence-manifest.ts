@@ -2837,7 +2837,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/lisa-assert-eas-profile.mjs":
       "624e40d7f33ca17208fc6b7a19320a785cff19da5d2ff8062b67a432b2a34022",
     "scripts/lisa-ci-failure-redispatch.mjs":
-      "2af56097888ea0d1737957aed0a81fec739107c9214184787dd97821bf6560c7",
+      "0f25d202cc7ba4b9c9cbf9bf3544584d9a8c2c6bb03429269c72ff3412cecc3b",
     "scripts/lisa-commit-and-pr-local.sh":
       "cc9f1be63bcd881125aa59aa35432c2ab1d41119b2a28e8de817536b0f302b01",
     "scripts/lisa-commit-msg-gates.mjs":
@@ -11225,11 +11225,18 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/fixtures/ci-failure-redispatch/agent-pr-failed-replayed.json": true,
     "tests/fixtures/ci-failure-redispatch/agent-pr-failed.json": true,
     "tests/fixtures/ci-failure-redispatch/agent-pr-passed-rerun.json": true,
+    "tests/fixtures/ci-failure-redispatch/check-run-actions-owned.json": true,
+    "tests/fixtures/ci-failure-redispatch/check-run-coderabbit-failed-replayed.json": true,
+    "tests/fixtures/ci-failure-redispatch/check-run-coderabbit-failed.json": true,
+    "tests/fixtures/ci-failure-redispatch/check-run-non-required.json": true,
     "tests/fixtures/ci-failure-redispatch/forged-marker-failure.json": true,
     "tests/fixtures/ci-failure-redispatch/forged-marker-pass.json": true,
     "tests/fixtures/ci-failure-redispatch/item-not-claimed.json": true,
     "tests/fixtures/ci-failure-redispatch/pr-without-work-item.json": true,
     "tests/fixtures/ci-failure-redispatch/reclaimed-without-comment-replayed.json": true,
+    "tests/fixtures/ci-failure-redispatch/status-coderabbit-passed-clears.json": true,
+    "tests/fixtures/ci-failure-redispatch/status-gitguardian-failed.json": true,
+    "tests/fixtures/ci-failure-redispatch/status-pending.json": true,
     "tests/fixtures/dependency-internalization-kit/dependency-internalization-ticket.md": true,
     "tests/fixtures/dependency-internalization-kit/version-bump-ticket.md": true,
     "tests/fixtures/dependency-ownership/addition/.github/workflows/deploy.yml": true,
@@ -12656,6 +12663,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/lisa-ci-failure-redispatch-cli.test.ts": true,
     "tests/unit/scripts/lisa-ci-failure-redispatch-edges.test.ts": true,
     "tests/unit/scripts/lisa-ci-failure-redispatch-intake.test.ts": true,
+    "tests/unit/scripts/lisa-ci-failure-redispatch-third-party.test.ts": true,
     "tests/unit/scripts/lisa-ci-failure-redispatch-trust.test.ts": true,
     "tests/unit/scripts/lisa-ci-failure-redispatch-workflow.test.ts": true,
     "tests/unit/scripts/lisa-ci-failure-redispatch.test.ts": true,

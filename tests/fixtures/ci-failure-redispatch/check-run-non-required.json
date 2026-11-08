@@ -1,0 +1,85 @@
+{
+  "description": "A third-party check that is not a required context on main completed as failed: plan nothing and read nothing beyond the required contexts.",
+  "event": {
+    "action": "completed",
+    "check_run": {
+      "id": 51200000002,
+      "name": "SonarCloud Code Analysis",
+      "head_sha": "3db71f89a186d5dbeb78015aa5735fa9d8efda48",
+      "status": "completed",
+      "conclusion": "failure",
+      "app": {
+        "slug": "sonarqubecloud"
+      },
+      "pull_requests": [
+        {
+          "number": 4673,
+          "head": {
+            "sha": "3db71f89a186d5dbeb78015aa5735fa9d8efda48",
+            "ref": "codex/4672-example-branch"
+          },
+          "base": {
+            "ref": "main",
+            "repo": {
+              "name": "lisa"
+            }
+          }
+        }
+      ]
+    },
+    "repository": {
+      "full_name": "CodySwannGT/lisa",
+      "default_branch": "main"
+    }
+  },
+  "gh": {
+    "api repos/CodySwannGT/lisa/rules/branches/main --paginate --slurp": {
+      "stdout": [
+        [
+          {
+            "type": "deletion",
+            "ruleset_id": 11912821
+          },
+          {
+            "type": "required_status_checks",
+            "ruleset_id": 11912821,
+            "parameters": {
+              "strict_required_status_checks_policy": false,
+              "required_status_checks": [
+                {
+                  "context": "CodeRabbit",
+                  "integration_id": 347564
+                },
+                {
+                  "context": "GitGuardian Security Checks",
+                  "integration_id": 46505
+                }
+              ]
+            }
+          },
+          {
+            "type": "required_status_checks",
+            "ruleset_id": 18805189,
+            "parameters": {
+              "strict_required_status_checks_policy": false,
+              "required_status_checks": [
+                {
+                  "context": "🔍 Quality Checks / 🧪 Run Unit Tests",
+                  "integration_id": 15368
+                },
+                {
+                  "context": "🔍 Quality Checks / 🧹 Lint",
+                  "integration_id": 15368
+                },
+                {
+                  "context": "🧩 Plugin artifacts match source",
+                  "integration_id": 15368
+                }
+              ]
+            }
+          }
+        ]
+      ]
+    }
+  }
+}

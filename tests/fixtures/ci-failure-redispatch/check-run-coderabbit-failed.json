@@ -1,0 +1,151 @@
+{
+  "description": "CodeRabbit, a required third-party context, completed as failed after the CI workflows finished green, and the work item is in the claimed lane: plan one marker comment and one claimed-to-ready move.",
+  "event": {
+    "action": "completed",
+    "check_run": {
+      "id": 51200000001,
+      "name": "CodeRabbit",
+      "head_sha": "3db71f89a186d5dbeb78015aa5735fa9d8efda48",
+      "status": "completed",
+      "conclusion": "failure",
+      "app": {
+        "slug": "coderabbitai"
+      },
+      "pull_requests": [
+        {
+          "number": 4673,
+          "head": {
+            "sha": "3db71f89a186d5dbeb78015aa5735fa9d8efda48",
+            "ref": "codex/4672-example-branch"
+          },
+          "base": {
+            "ref": "main",
+            "repo": {
+              "name": "lisa"
+            }
+          }
+        }
+      ]
+    },
+    "repository": {
+      "full_name": "CodySwannGT/lisa",
+      "default_branch": "main"
+    }
+  },
+  "gh": {
+    "api repos/CodySwannGT/lisa/rules/branches/main --paginate --slurp": {
+      "stdout": [
+        [
+          {
+            "type": "deletion",
+            "ruleset_id": 11912821
+          },
+          {
+            "type": "required_status_checks",
+            "ruleset_id": 11912821,
+            "parameters": {
+              "strict_required_status_checks_policy": false,
+              "required_status_checks": [
+                {
+                  "context": "CodeRabbit",
+                  "integration_id": 347564
+                },
+                {
+                  "context": "GitGuardian Security Checks",
+                  "integration_id": 46505
+                }
+              ]
+            }
+          },
+          {
+            "type": "required_status_checks",
+            "ruleset_id": 18805189,
+            "parameters": {
+              "strict_required_status_checks_policy": false,
+              "required_status_checks": [
+                {
+                  "context": "🔍 Quality Checks / 🧪 Run Unit Tests",
+                  "integration_id": 15368
+                },
+                {
+                  "context": "🔍 Quality Checks / 🧹 Lint",
+                  "integration_id": 15368
+                },
+                {
+                  "context": "🧩 Plugin artifacts match source",
+                  "integration_id": 15368
+                }
+              ]
+            }
+          }
+        ]
+      ]
+    },
+    "pr view 4673 --repo CodySwannGT/lisa --json number,state,body,headRefOid,isCrossRepository": {
+      "stdout": {
+        "number": 4673,
+        "state": "OPEN",
+        "headRefOid": "3db71f89a186d5dbeb78015aa5735fa9d8efda48",
+        "isCrossRepository": false,
+        "body": "Retire the native safety net.\n\nWork-Item: CodySwannGT/lisa#4672\n"
+      }
+    },
+    "issue view 4672 --repo CodySwannGT/lisa --json state,labels": {
+      "stdout": {
+        "state": "OPEN",
+        "labels": [
+          {
+            "name": "status:in-progress"
+          },
+          {
+            "name": "type:Task"
+          }
+        ]
+      }
+    },
+    "api repos/CodySwannGT/lisa/issues/4672/comments --paginate --slurp": {
+      "stdout": [
+        [
+          {
+            "id": 6700000001,
+            "user": {
+              "login": "CodySwannGT",
+              "type": "User"
+            },
+            "created_at": "2026-11-05T10:00:00Z",
+            "body": "[claude-build-intake] Claimed by Claude. Starting build."
+          }
+        ]
+      ]
+    },
+    "pr checks 4673 --repo CodySwannGT/lisa --required --json name,state,bucket": {
+      "stdout": [
+        {
+          "name": "🔍 Quality Checks / 🧪 Run Unit Tests",
+          "state": "SUCCESS",
+          "bucket": "pass"
+        },
+        {
+          "name": "🔍 Quality Checks / 🧹 Lint",
+          "state": "SUCCESS",
+          "bucket": "pass"
+        },
+        {
+          "name": "🧩 Plugin artifacts match source",
+          "state": "SUCCESS",
+          "bucket": "pass"
+        },
+        {
+          "name": "CodeRabbit",
+          "state": "FAILURE",
+          "bucket": "fail"
+        },
+        {
+          "name": "GitGuardian Security Checks",
+          "state": "SUCCESS",
+          "bucket": "pass"
+        }
+      ]
+    }
+  }
+}
