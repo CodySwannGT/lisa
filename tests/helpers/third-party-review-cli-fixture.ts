@@ -18,11 +18,13 @@ import * as path from "node:path";
 import { boundedSpawnSync } from "./io-latency-budget.js";
 import {
   HEAD,
+  permissionRoute,
   PINNED_CONFIG,
   PROVER,
   PULL,
   REPO,
   ROUTES,
+  SUBSTITUTE_WRITER,
 } from "./third-party-review-observations.js";
 
 export * from "./third-party-review-observations.js";
@@ -41,6 +43,12 @@ export interface Observations {
   readonly checkRunEnvelope?: unknown;
   /** Issue comments on the pull request. */
   readonly comments?: readonly Record<string, unknown>[];
+  /**
+   * Each comment author's raw permission response, keyed by login. Defaults to
+   * {@link SUBSTITUTE_WRITER} holding `write`; a login with no entry is an
+   * unsupported read, so a case that names another author supplies its answer.
+   */
+  readonly permissions?: Readonly<Record<string, unknown>>;
   /** Review objects on the pull request — supplied, never expected to be read. */
   readonly reviews?: readonly Record<string, unknown>[];
   /** Open pull requests whose head is the commit. */
@@ -98,6 +106,13 @@ function responsesFor(observations: Observations): Record<string, unknown> {
     },
     [ROUTES.comments]: observations.comments ?? [],
     [ROUTES.reviews]: observations.reviews ?? [],
+    ...Object.fromEntries(
+      Object.entries(
+        observations.permissions ?? {
+          [SUBSTITUTE_WRITER]: { permission: "write" },
+        }
+      ).map(([login, answer]) => [permissionRoute(login), answer])
+    ),
   };
 }
 

@@ -106,6 +106,15 @@
  * `CHANGES_REQUESTED` is a blocking objection whatever its body, because its
  * content commonly lives entirely in inline threads.
  *
+ * ## Only a writer can stand in for a reviewer (#4628)
+ *
+ * The substitute marker is plain text, and anyone who can comment can type
+ * it. A substitute counts only when the marker is the comment's first line and
+ * its author holds write, maintain or admin permission — the merge-path gate's
+ * rule, so the two arms never publish opposite verdicts for one head. A
+ * permission that cannot be read fails closed. Every marker that is not
+ * counted is printed with its author and the reason, never dropped silently.
+ *
  * ## Never re-request a review to refresh it
  *
  * Re-requesting OVERWRITES the existing status rather than adding to it. Under
@@ -681,22 +690,138 @@ export function substituteMarker({ context, sha }) {
 }
 
 /**
- * Whether a substitute review was posted for this reviewer at this commit.
+ * Why a comment carrying this reviewer's marker at this head was not counted.
  *
- * Both halves must match. A substitute posted for a different reviewer says
- * nothing about this one, and one posted against an earlier head reviewed code
- * that is no longer what would merge — review evidence decays on every push.
+ * Each one is printed beside the comment's author, so a refused marker is
+ * never silent: an operator who posted one learns why it did not stand, and a
+ * stranger's marker is visible as exactly that (#4628).
+ */
+export const SUBSTITUTE_REFUSALS = Object.freeze({
+  /** The marker appears in the comment, but not as its whole first line. */
+  notFirstLine: "not the first line",
+  /** The author's permission was read, and it is not write, maintain or admin. */
+  noWriteAccess: "no write access",
+  /** The author's permission could not be read, so it fails closed. */
+  permissionUnreadable: "permission unreadable",
+});
+
+/**
+ * One permission answer per login for the life of the reader.
+ *
+ * The reader answers `true` for a writer, `false` for anyone else, and `null`
+ * — or throws — when the permission could not be read. Anything that is not a
+ * boolean is unreadable, which can only leave a substitute uncounted.
+ * @param {(login: string) => boolean|null} canWrite - The permission reader.
+ * @returns {(login: string) => boolean|null} The same answers, each read once.
+ */
+function rememberPermissions(canWrite) {
+  const seen = new Map();
+  return login => {
+    if (!seen.has(login)) seen.set(login, askPermission(canWrite, login));
+    return seen.get(login);
+  };
+}
+
+/**
+ * Ask a permission reader once, failing closed.
+ * @param {(login: string) => boolean|null} canWrite - The permission reader.
+ * @param {string} login - The comment author.
+ * @returns {boolean|null} The answer, or null when it could not be read.
+ */
+function askPermission(canWrite, login) {
+  // probe-direction: fail-closed — a reader that throws or answers anything but a boolean is unreadable.
+  try {
+    const answer = canWrite(login);
+    return typeof answer === "boolean" ? answer : null;
+  } catch {
+    return null;
+  }
+}
+
+/** A permission reader that can read nothing: every marker stays uncounted. */
+const UNREAD_PERMISSIONS = () => null;
+
+/**
+ * Why one comment carrying the marker does not count, or null when it does.
+ * @param {string} body - The comment body, which contains the marker.
+ * @param {string} marker - The marker for this reviewer at this head.
+ * @param {() => boolean|null} isWriter - The author's permission, read on demand.
+ * @returns {string|null} One of {@link SUBSTITUTE_REFUSALS}, or null.
+ */
+function substituteRefusal(body, marker, isWriter) {
+  if (body.split("\n")[0].replace(/\r$/u, "") !== marker) {
+    return SUBSTITUTE_REFUSALS.notFirstLine;
+  }
+  const writer = isWriter();
+  if (writer === null) return SUBSTITUTE_REFUSALS.permissionUnreadable;
+  return writer ? null : SUBSTITUTE_REFUSALS.noWriteAccess;
+}
+
+/**
+ * Judge every comment that carries this reviewer's marker at this commit.
+ *
+ * The merge-path gate's rule (`check-skipped-required-checks.mjs`
+ * `substitutesAtHead`), applied here so the two arms stop publishing opposite
+ * verdicts for one head (#4528, #4628). The repository is public, so anyone
+ * can type the marker:
+ *
+ *  - the marker must be the comment's FIRST LINE, ignoring a trailing `\r` —
+ *    a comment that quotes it, such as instructions or a pasted log, is not a
+ *    review;
+ *  - the author must hold write, maintain or admin permission — only someone
+ *    who could have merged anyway can vouch for a review. A login the
+ *    permission reader rejects, and a bot, which is no collaborator, never
+ *    count;
+ *  - a permission that cannot be read fails closed.
+ *
+ * Both halves of the marker must match as well. A substitute posted for a
+ * different reviewer says nothing about this one, and one posted against an
+ * earlier head reviewed code that is no longer what would merge — review
+ * evidence decays on every push. A comment that carries neither this
+ * reviewer's nor this head's marker is not a candidate, so it is not refused.
+ *
+ * The rule is duplicated rather than imported, as the gate's marker is: the
+ * two scripts ship from different template trees. A parity test feeds both the
+ * same comments and expects the same decisions.
  * @param {object} options - Search inputs.
- * @param {ReadonlyArray<{body?: string}>} options.comments - Issue comments on the pull request.
+ * @param {ReadonlyArray<{body?: string, user?: {login?: string}}>} options.comments - Issue comments on the pull request.
  * @param {string} options.context - The reviewer's status context.
  * @param {string} options.sha - The head commit.
- * @returns {boolean} Whether a matching substitute exists.
+ * @param {(login: string) => boolean|null} [options.canWrite] - Whether a login holds write access; null when unreadable. Absent reads nothing, so nothing counts.
+ * @returns {{counted: boolean, refused: Array<{author: string, reason: string}>}} Whether a writer's substitute stands, and every marker that does not.
  */
-export function substitutePosted({ comments, context, sha }) {
+export function judgeSubstitutes({
+  comments,
+  context,
+  sha,
+  canWrite = UNREAD_PERMISSIONS,
+}) {
   const marker = substituteMarker({ context, sha });
-  return (comments ?? []).some(comment =>
-    String(comment?.body ?? "").includes(marker)
-  );
+  const permission = rememberPermissions(canWrite);
+  const refused = [];
+  let counted = false;
+  for (const comment of comments ?? []) {
+    const body = String(comment?.body ?? "");
+    if (!body.includes(marker)) continue;
+    const author = String(comment?.user?.login ?? "");
+    const reason = substituteRefusal(body, marker, () => permission(author));
+    if (reason === null) counted = true;
+    else refused.push({ author, reason });
+  }
+  return { counted, refused };
+}
+
+/**
+ * Whether a writer posted a substitute review for this reviewer at this commit.
+ * @param {object} options - Search inputs, as {@link judgeSubstitutes} takes them.
+ * @param {ReadonlyArray<{body?: string, user?: {login?: string}}>} options.comments - Issue comments on the pull request.
+ * @param {string} options.context - The reviewer's status context.
+ * @param {string} options.sha - The head commit.
+ * @param {(login: string) => boolean|null} [options.canWrite] - Whether a login holds write access.
+ * @returns {boolean} Whether a writer's first-line substitute exists.
+ */
+export function substitutePosted(options) {
+  return judgeSubstitutes(options).counted;
 }
 
 /**
@@ -784,10 +909,13 @@ export function reviewStanding({ reviews, sha }) {
  *   Check runs read for each reviewer's context, keyed by that context; a null
  *   entry is a read that failed, and a missing key is a reviewer whose runs
  *   were not read.
- * @param {ReadonlyArray<{body?: string}>} options.comments - Issue comments on the pull request.
+ * @param {ReadonlyArray<{body?: string, user?: {login?: string}}>} options.comments - Issue comments on the pull request.
  * @param {string} options.sha - The head commit.
  * @param {boolean|null} [options.isPullRequestHead] - Whether an open pull request has this commit as its head; null when the read failed.
- * @returns {{outcome: string, sha: string, readings: Array<EvidenceReading & {gateId: string, substituted: boolean}>}} The verdict.
+ * @param {(login: string) => boolean|null} [options.canWrite] -
+ *   Whether a comment author holds write access; null when unreadable. Absent
+ *   reads nothing, so no substitute counts — see {@link judgeSubstitutes}.
+ * @returns {{outcome: string, sha: string, readings: Array<EvidenceReading & {gateId: string, substituted: boolean, substituteRefusals?: Array<{author: string, reason: string}>}>}} The verdict.
  */
 export function reviewEvidenceVerdict({
   reviewers,
@@ -796,6 +924,7 @@ export function reviewEvidenceVerdict({
   comments,
   sha,
   isPullRequestHead = true,
+  canWrite = UNREAD_PERMISSIONS,
 }) {
   if ((reviewers ?? []).length === 0) {
     return {
@@ -818,6 +947,7 @@ export function reviewEvidenceVerdict({
       readings: [],
     };
   }
+  const permission = rememberPermissions(canWrite);
   const readings = reviewers.map(reviewer => {
     const reading = readReviewerEvidence({
       reviewer,
@@ -828,12 +958,20 @@ export function reviewEvidenceVerdict({
           : undefined,
       sha,
     });
+    if (reading.reviewed) {
+      return { ...reading, gateId: reviewer.gateId, substituted: false };
+    }
+    const judged = judgeSubstitutes({
+      comments,
+      context: reviewer.context,
+      sha,
+      canWrite: permission,
+    });
     return {
       ...reading,
       gateId: reviewer.gateId,
-      substituted:
-        !reading.reviewed &&
-        substitutePosted({ comments, context: reviewer.context, sha }),
+      substituted: judged.counted,
+      substituteRefusals: judged.refused,
     };
   });
   if (readings.every(reading => reading.reviewed)) {
@@ -928,12 +1066,13 @@ const allSubstituted = (contexts, substitutes) =>
 /**
  * What the config-declared reviewer says about arming.
  *
- * The prover's own `substituted` outcome counts a marker ANYWHERE in ANY
- * comment, which is right for the response arm and wrong here: arming turns a
- * blocking verdict into a merge, so a substitute counts only as the first line
- * of a comment by someone with write access — the classifier's rule, for the
- * same reason. A `Changes requested` proof proves the reviewer worked, not that
- * the head may merge.
+ * A substitute counts here only as the first line of a comment by someone with
+ * write access — the classifier's rule, for the same reason: arming turns a
+ * blocking verdict into a merge. The response arm's own `substituted` outcome
+ * applies the same rule since #4628; the arm still reads the substitutes
+ * itself, across every page of comments, rather than trusting a verdict that
+ * read only the first. A `Changes requested` proof proves the reviewer
+ * worked, not that the head may merge.
  * @param {{outcome: string, readings?: ReadonlyArray<{context: string, reviewed: boolean, observed?: string|null}>}} evidence - This prover's verdict.
  * @param {ReadonlySet<string>} substitutes - Contexts a writer substituted for at this head.
  * @returns {{engaged: boolean, action: string, reason: string, viaSubstitute?: boolean}} The signal.
@@ -1259,7 +1398,8 @@ export function armDecision({
  * @property {string|null} observed - The words that decided, verbatim.
  * @property {string|null} state - The state, conclusion or lifecycle seen.
  * @property {string|null} [source] - One of {@link EVIDENCE_SOURCES}.
- * @property {boolean} [substituted] - Whether a substitute stands in.
+ * @property {boolean} [substituted] - Whether a writer's substitute stands in.
+ * @property {Array<{author: string, reason: string}>} [substituteRefusals] - Markers not counted, by whom, and why.
  * @property {Array<{id: unknown, reason: string}>} [ignoredCheckRuns] - Runs set aside, and why.
  */
 
@@ -1310,12 +1450,17 @@ export function humanReport(verdict) {
       );
     }
     const stood = reading.substituted
-      ? "a local adversarial review was posted in its place"
+      ? "a writer's local adversarial review was posted in its place"
       : "NOTHING stands in its place";
+    const refused = (reading.substituteRefusals ?? []).map(
+      entry =>
+        `    substitute marker by @${entry.author || "(unknown author)"} not counted: ${entry.reason}`
+    );
     return [
       `  NOT REVIEWED ${reading.context} (${reading.reading}): ${seen}`,
       `    observed: ${READING_SENTENCES[reading.reading]}`,
       `    ${stood}`,
+      ...refused,
       ...ignored,
     ].join("\n");
   });
@@ -1553,51 +1698,64 @@ const FIRST_LINE_MARKER = new RegExp(
 /**
  * Whether a login holds write access to the repository.
  *
- * probe-direction: fail-closed — any failure to read the permission answers
- * `false`, which can only leave a substitute uncounted, never count one. A bot author such as
- * `github-actions[bot]` is not a collaborator and never counts.
+ * probe-direction: fail-closed — a permission that cannot be read answers
+ * `null`, reported as "permission unreadable", and a login outside the gate's
+ * pattern answers `false`; both can only leave a substitute uncounted, never
+ * count one. The pattern is the merge-path gate's own,
+ * `^[A-Za-z0-9-]+(\[bot\])?$`, so the two arms ask about the same logins. A
+ * bot author such as `github-actions[bot]` passes the pattern but is not a
+ * collaborator, so it never counts.
  * @param {string} repo - `owner/repo`.
  * @param {string} login - The comment author.
- * @returns {boolean} Whether the login may stand in for a reviewer.
+ * @returns {boolean|null} Whether the login may stand in for a reviewer; null when unreadable.
  */
 function fetchWritePermission(repo, login) {
-  if (!/^[A-Za-z0-9-]+$/u.test(login)) return false;
-  try {
-    const permission = boundedExecFileSync(
-      "gh",
-      [
-        "api",
-        `repos/${repo}/collaborators/${encodeURIComponent(login)}/permission`,
-        "--jq",
-        ".permission",
-      ],
-      { encoding: "utf8" }
-    ).trim();
-    return SUBSTITUTE_WRITER_PERMISSIONS.has(permission);
-  } catch {
-    return false;
-  }
+  if (!/^[A-Za-z0-9-]+(\[bot\])?$/u.test(login)) return false;
+  const body = /** @type {{permission?: unknown}|null} */ (
+    ghJson(
+      `repos/${repo}/collaborators/${encodeURIComponent(login)}/permission`
+    )
+  );
+  const permission = body?.permission;
+  return typeof permission === "string"
+    ? SUBSTITUTE_WRITER_PERMISSIONS.has(permission)
+    : null;
+}
+
+/**
+ * The permission reader a run uses: the injected one, or a live read.
+ *
+ * Shared by the reading and the `--arm` decision, and remembered per login, so
+ * one run asks about each comment author once.
+ * @param {{canWrite?: (login: string) => boolean|null}} io - Injected side effects.
+ * @param {string} repo - `owner/repo`, possibly empty.
+ * @returns {(login: string) => boolean|null} The remembered reader.
+ */
+function permissionReader(io, repo) {
+  const validRepo = /^[^/\s]+\/[^/\s]+$/u.test(repo);
+  return rememberPermissions(
+    io.canWrite ??
+      (login => (validRepo ? fetchWritePermission(repo, login) : null))
+  );
 }
 
 /**
  * The contexts a writer posted a first-line substitute for at this head.
  *
- * Stricter than the response arm on purpose, because here a match arms a
+ * The same rule as {@link judgeSubstitutes}, because here a match arms a
  * merge: the marker must be the comment's FIRST LINE (a comment that quotes
  * it is not a review), and the author must hold write access (anyone who can
- * comment can type the marker).
+ * comment can type the marker). It answers for every context at once, which
+ * is what the arm needs; the reading names the refusals.
  * @param {ReadonlyArray<{body?: string, user?: {login?: string}}>} comments - Pull request comments.
  * @param {string} sha - The head commit.
- * @param {(login: string) => boolean} canWrite - Whether a login holds write access.
+ * @param {(login: string) => boolean|null} canWrite - Whether a login holds write access; null when unreadable.
  * @returns {Set<string>} The substituted contexts.
  */
 export function writerSubstitutes(comments, sha, canWrite) {
   const found = new Set();
-  const seen = new Map();
-  const writer = login => {
-    if (!seen.has(login)) seen.set(login, canWrite(login) === true);
-    return seen.get(login);
-  };
+  const permission = rememberPermissions(canWrite);
+  const writer = login => permission(login) === true;
   for (const comment of comments ?? []) {
     const firstLine = String(comment?.body ?? "")
       .split("\n")[0]
@@ -1762,9 +1920,10 @@ function loadVacuityReport(path, read) {
  * @param {{write: (text: string) => void}} context.out - Stdout.
  * @param {string} context.repo - `owner/repo`, possibly empty.
  * @param {number[]|null|undefined} context.pulls - Head pull requests already read, if any.
+ * @param {(login: string) => boolean|null} context.canWrite - The run's remembered permission reader.
  * @returns {number} The exit code.
  */
-function writeArmDecision(verdict, { opts, io, out, repo, pulls }) {
+function writeArmDecision(verdict, { opts, io, out, repo, pulls, canWrite }) {
   const readFile = io.readFile ?? (path => readFileSync(path, "utf8"));
   const validRepo = /^[^/\s]+\/[^/\s]+$/u.test(repo);
   const numbers =
@@ -1785,9 +1944,6 @@ function writeArmDecision(verdict, { opts, io, out, repo, pulls }) {
       : heads.length === 0
         ? []
         : (io.reviews ?? (list => readReviews(repo, list)))(heads);
-  const canWrite =
-    io.canWrite ??
-    (login => (validRepo ? fetchWritePermission(repo, login) : false));
   const decision = armDecision({
     evidence: verdict,
     vacuity: loadVacuityReport(opts["vacuity-report"], readFile),
@@ -1828,7 +1984,11 @@ function writeArmDecision(verdict, { opts, io, out, repo, pulls }) {
  * @param {(numbers: number[]) => ReadonlyArray<object>} [io.comments] - Comment reader.
  * @param {(path: string) => string} [io.readFile] - Reader for `--vacuity-report` and `required-checks.json`.
  * @param {(numbers: number[]) => ReadonlyArray<object>|null} [io.reviews] - Review-object reader, `--arm` only.
- * @param {(login: string) => boolean} [io.canWrite] - Write-permission reader, `--arm` only.
+ * @param {(login: string) => boolean|null} [io.canWrite] -
+ *   Write-permission reader for substitute authors: true for write, maintain
+ *   or admin, false otherwise, null (or a throw) when unreadable. Used by the
+ *   reading and by `--arm`; absent, it reads
+ *   `repos/{repo}/collaborators/{login}/permission`.
  * @param {() => boolean} [io.requiredChecks] - Whether `required-checks.json` declares an evidence-bearing check, `--arm` only.
  * @param {{write: (text: string) => void}} [io.out] - Stdout.
  * @param {{write: (text: string) => void}} [io.err] - Stderr.
@@ -1868,6 +2028,7 @@ export function main(argv, io = {}) {
       : (io.pulls ?? (sha => readHeadPulls(repo, sha)))(opts.sha);
   const isPullRequestHead = pulls === null ? null : pulls.length > 0;
   const evaluated = reviewers.length > 0 && woken && isPullRequestHead === true;
+  const canWrite = permissionReader(io, repo);
   const verdict = !woken
     ? {
         outcome: EVIDENCE_OUTCOMES.notAConfiguredReviewer,
@@ -1887,9 +2048,17 @@ export function main(argv, io = {}) {
           : [],
         sha: opts.sha,
         isPullRequestHead,
+        canWrite,
       });
   if (opts.arm) {
-    return writeArmDecision(verdict, { opts, io, out, repo, pulls });
+    return writeArmDecision(verdict, {
+      opts,
+      io,
+      out,
+      repo,
+      pulls,
+      canWrite,
+    });
   }
   out.write(
     `${opts.json ? JSON.stringify(verdict, null, 2) : humanReport(verdict)}\n`
