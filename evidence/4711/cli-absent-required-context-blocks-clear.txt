@@ -1,0 +1,62 @@
+## BRANCH: verifier-built ticket repro (2 of 15 reported, marker uncleared)
+$ node scripts/lisa-ci-failure-redispatch.mjs --payload /Users/codysai/.claude/jobs/915748cb/tmp/repro-absent.json --dry-run
+exit=0
+run 51200000005 -> PR #4673 -> work item CodySwannGT/lisa#4672
+outcome: checks-pending — 13 of 15 required checks on main have not reported on this head: 🔍 Quality Checks / 🧹 Lint, 🔍 Quality Checks / 🔍 Type Check, 🔍 Quality Checks / 🏗️ Build, 🔍 Quality Checks / 📐 Check Formatting, 🔍 Quality Checks / 🔒 Security Scan, 🔍 Quality Checks / 🧪 Run Unit Tests, 🔍 Quality Checks / 🧪 Run Integration Tests, 🔍 Quality Checks / 🔗 Work-Item Traceability, 🔍 Quality Checks / 🐢 Slow Lint Rules, 🔍 Quality Checks / 🗑️ Dead Code Detection, 🧩 Plugin artifacts match source, 🔍 Quality Checks / 🔎 Structural Rules, 🔍 Quality Checks / 📚 Learnings Budget (dry run: nothing written)
+{
+  "repository": "CodySwannGT/lisa",
+  "runId": 51200000005,
+  "pr": 4673,
+  "sha": "3db71f89a186d5dbeb78015aa5735fa9d8efda48",
+  "item": "CodySwannGT/lisa#4672",
+  "outcome": "checks-pending",
+  "reason": "13 of 15 required checks on main have not reported on this head: 🔍 Quality Checks / 🧹 Lint, 🔍 Quality Checks / 🔍 Type Check, 🔍 Quality Checks / 🏗️ Build, 🔍 Quality Checks / 📐 Check Formatting, 🔍 Quality Checks / 🔒 Security Scan, 🔍 Quality Checks / 🧪 Run Unit Tests, 🔍 Quality Checks / 🧪 Run Integration Tests, 🔍 Quality Checks / 🔗 Work-Item Traceability, 🔍 Quality Checks / 🐢 Slow Lint Rules, 🔍 Quality Checks / 🗑️ Dead Code Detection, 🧩 Plugin artifacts match source, 🔍 Quality Checks / 🔎 Structural Rules, 🔍 Quality Checks / 📚 Learnings Budget",
+  "actions": []
+}
+
+## CONTROL origin/main: same repro (old argv key) -> bug
+$ node scripts/.tmp-main-redispatch.mjs --payload /Users/codysai/.claude/jobs/915748cb/tmp/repro-absent-oldkey.json --dry-run
+exit=0
+run 51200000005 -> PR #4673 -> work item CodySwannGT/lisa#4672
+outcome: clear-and-restore — checks passed while the marker left the item unclaimed (dry run: nothing written)
+planned: mark comment 6700000002 cleared
+planned: move CodySwannGT/lisa#4672 from status:ready to status:in-progress
+{
+  "repository": "CodySwannGT/lisa",
+  "runId": 51200000005,
+  "pr": 4673,
+  "sha": "3db71f89a186d5dbeb78015aa5735fa9d8efda48",
+  "item": "CodySwannGT/lisa#4672",
+  "outcome": "clear-and-restore",
+  "reason": "checks passed while the marker left the item unclaimed",
+  "actions": [
+    {
+      "kind": "edit-comment",
+      "commentId": 6700000002,
+      "body": "A required check failed on pull request #4673 at commit 3db71f89a186d5dbeb78015aa5735fa9d8efda48: CodeRabbit.\n\nLisa moved this item from `status:in-progress` back to `status:ready` so build intake sends the owning agent back to fix the existing pull request. The work is not complete until every required check passes.\n\n<!-- [lisa-ci-failed] pr=4673 sha=3db71f89a186d5dbeb78015aa5735fa9d8efda48 -->\n\nEvery required check now passes on 3db71f89a186d5dbeb78015aa5735fa9d8efda48; cleared by run 51200000005.\n<!-- [lisa-ci-cleared] run=51200000005 -->"
+    },
+    {
+      "kind": "relabel",
+      "item": "CodySwannGT/lisa#4672",
+      "remove": "status:ready",
+      "add": "status:in-progress"
+    }
+  ]
+}
+
+## BRANCH: builder fixture check-run-passed-absent-required-contexts.json
+$ node scripts/lisa-ci-failure-redispatch.mjs --payload tests/fixtures/ci-failure-redispatch/check-run-passed-absent-required-contexts.json --dry-run
+exit=0
+run 51200000005 -> PR #4673 -> work item CodySwannGT/lisa#4672
+outcome: checks-pending — 13 of 15 required checks on main have not reported on this head: 🔍 Quality Checks / 🧹 Lint, 🔍 Quality Checks / 🔍 Type Check, 🔍 Quality Checks / 🏗️ Build, 🔍 Quality Checks / 📐 Check Formatting, 🔍 Quality Checks / 🔒 Security Scan, 🔍 Quality Checks / 🧪 Run Unit Tests, 🔍 Quality Checks / 🧪 Run Integration Tests, 🔍 Quality Checks / 🔗 Work-Item Traceability, 🔍 Quality Checks / 🐢 Slow Lint Rules, 🔍 Quality Checks / 🗑️ Dead Code Detection, 🧩 Plugin artifacts match source, 🔍 Quality Checks / 🔎 Structural Rules, 🔍 Quality Checks / 📚 Learnings Budget (dry run: nothing written)
+{
+  "repository": "CodySwannGT/lisa",
+  "runId": 51200000005,
+  "pr": 4673,
+  "sha": "3db71f89a186d5dbeb78015aa5735fa9d8efda48",
+  "item": "CodySwannGT/lisa#4672",
+  "outcome": "checks-pending",
+  "reason": "13 of 15 required checks on main have not reported on this head: 🔍 Quality Checks / 🧹 Lint, 🔍 Quality Checks / 🔍 Type Check, 🔍 Quality Checks / 🏗️ Build, 🔍 Quality Checks / 📐 Check Formatting, 🔍 Quality Checks / 🔒 Security Scan, 🔍 Quality Checks / 🧪 Run Unit Tests, 🔍 Quality Checks / 🧪 Run Integration Tests, 🔍 Quality Checks / 🔗 Work-Item Traceability, 🔍 Quality Checks / 🐢 Slow Lint Rules, 🔍 Quality Checks / 🗑️ Dead Code Detection, 🧩 Plugin artifacts match source, 🔍 Quality Checks / 🔎 Structural Rules, 🔍 Quality Checks / 📚 Learnings Budget",
+  "actions": []
+}
+

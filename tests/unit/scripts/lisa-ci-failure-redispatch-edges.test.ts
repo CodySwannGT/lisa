@@ -18,7 +18,7 @@ import {
 } from "../../../scripts/lisa-ci-failure-redispatch.mjs";
 
 const REPO = "CodySwannGT/lisa";
-const PR_KEY = `pr view 4673 --repo ${REPO} --json number,state,body,headRefOid,isCrossRepository`;
+const PR_KEY = `pr view 4673 --repo ${REPO} --json number,state,body,headRefOid,isCrossRepository,baseRefName`;
 const ISSUE_KEY = `issue view 4672 --repo ${REPO} --json state,labels`;
 const COMMENTS_KEY = `api repos/${REPO}/issues/4672/comments --paginate --slurp`;
 const CHECKS_KEY = `pr checks 4673 --repo ${REPO} --required --json name,state,bucket`;
@@ -138,6 +138,10 @@ describe("work item and check states that write nothing", () => {
       ok: false,
       stdout: "",
       stderr: "no required checks reported on the 'x' branch",
+    };
+    // The base branch's rulesets require nothing, so nothing can be absent.
+    data.gh[`api repos/${REPO}/rules/branches/main --paginate --slurp`] = {
+      stdout: [[]],
     };
     expect(planFromFixture(data, contract).outcome).toBe("no-required-checks");
   });

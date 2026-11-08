@@ -2841,7 +2841,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/lisa-audit.mjs":
       "8ca83977e7df232bf22912df6c6044c9162363a02ef77d5d518e03d73c280543",
     "scripts/lisa-ci-failure-redispatch.mjs":
-      "3fb3cb897c81f373b0991d439bf7c3c14865e03bbab23d5bf2b662e0aaa6a23a",
+      "bcf307e1364a592d05688eca48e04500bd95fd00a5a1b109df727711aa769fb8",
     "scripts/lisa-ci-rework-route.mjs":
       "ba2c7097bfada8c23686b71d41e139b3aa5f94a3c8ee6ea9ebf2b81a04c4acea",
     "scripts/lisa-commit-and-pr-local.sh":
@@ -3752,6 +3752,11 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "evidence/4604/skill-canary-steps.txt": true,
     "evidence/4604/update-projects-plan-tests.txt": true,
     "evidence/4604/zero-budget-probe.txt": true,
+    "evidence/4711/cli-absent-required-context-blocks-clear.txt": true,
+    "evidence/4711/cli-complete-pass-still-clears.txt": true,
+    "evidence/4711/cli-live-head-sha-dry-run-pr4710.txt": true,
+    "evidence/4711/cli-reported-failure-still-redispatches.txt": true,
+    "evidence/4711/test-run-log-redispatch.txt": true,
     "evidence/CodySwannGT-lisa-4605/falsification.txt": true,
     "evidence/CodySwannGT-lisa-4605/rollback-dry-run-commands.txt": true,
     "evidence/CodySwannGT-lisa-4605/rollback-missing-credentials-refusal.txt": true,
@@ -11318,8 +11323,10 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/fixtures/ci-failure-redispatch/check-run-coderabbit-failed-replayed.json": true,
     "tests/fixtures/ci-failure-redispatch/check-run-coderabbit-failed.json": true,
     "tests/fixtures/ci-failure-redispatch/check-run-coderabbit-passed-clears.json": true,
+    "tests/fixtures/ci-failure-redispatch/check-run-failed-absent-required-contexts.json": true,
     "tests/fixtures/ci-failure-redispatch/check-run-gitguardian-failed.json": true,
     "tests/fixtures/ci-failure-redispatch/check-run-non-required.json": true,
+    "tests/fixtures/ci-failure-redispatch/check-run-passed-absent-required-contexts.json": true,
     "tests/fixtures/ci-failure-redispatch/forged-marker-failure.json": true,
     "tests/fixtures/ci-failure-redispatch/forged-marker-pass.json": true,
     "tests/fixtures/ci-failure-redispatch/item-not-claimed.json": true,
@@ -12781,6 +12788,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/kill-marks.test.ts": true,
     "tests/unit/scripts/lint-staged-preflight.test.ts": true,
     "tests/unit/scripts/lisa-assert-eas-profile.test.ts": true,
+    "tests/unit/scripts/lisa-ci-failure-redispatch-absent.test.ts": true,
     "tests/unit/scripts/lisa-ci-failure-redispatch-check-runs.test.ts": true,
     "tests/unit/scripts/lisa-ci-failure-redispatch-cli.test.ts": true,
     "tests/unit/scripts/lisa-ci-failure-redispatch-edges.test.ts": true,
