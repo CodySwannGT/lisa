@@ -92,9 +92,12 @@ const GATE = "type-correctness (engine floor)";
 /**
  * Where the compiler is spawned from, relative to the root: the TypeScript
  * native compiler (`tsgo`, npm `@typescript/native-preview`), which checks this
- * program about ten times faster than `tsc` with identical diagnostics
- * (CodySwannGT/lisa#4614, #4695). Its bin is a plain Node script, so it is
- * spawned under `node` exactly as `tsc` was.
+ * program about ten times faster than `tsc` (CodySwannGT/lisa#4614, #4695). On
+ * this program it puts the same set of files in error as `tsc`, though error
+ * counts, codes and wording can differ — which is enough, because this gate
+ * compares file sets (or runs of the same compiler), never raw diagnostics
+ * across compilers. Its bin is a plain Node script, so it is spawned under
+ * `node` exactly as `tsc` was.
  */
 const TSC = path.join(
   "node_modules",

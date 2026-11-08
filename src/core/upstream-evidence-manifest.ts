@@ -2625,7 +2625,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/check-empty-subject-guards.mjs":
       "02fc6af8de14fa2230e5f601225bda2f51d4ed7a462e67c46a36a6c7d92e1833",
     "scripts/check-engine-floor.mjs":
-      "bf474c3631158d97cd60bcbe3d7f8260bf89211bcc2f76e9f33c87d9b076b6c4",
+      "5df12d2fb8b2ef177b4951a95e8ef3248fdfa2bfb78e67a4fd5f80cdc88d1657",
     "scripts/check-generated-artifact-merge-coverage.mjs":
       "7590efa831b193c090abc6bb39a976ae08e747b1f3e842fc3f8943f8886f425e",
     "scripts/check-guard-parity-notes.mjs":
@@ -2667,7 +2667,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/check-third-party-action-pins.mjs":
       "39420e981ebd85279dc92f07eed5cb948c17b810a45951b4b3a7c7b3950bb3e5",
     "scripts/check-typecheck-tests.mjs":
-      "65e1e4d3ba9cc5e6c1869f089fb9d77f6f47290784711bcca1846133f819e462",
+      "6487ebab67d10900d1453e4d7dde07f8ec517a82864e364fa2950e5d8cea2383",
     "scripts/check-ui-demo-data.mjs":
       "82a5ed89ae830482dbaab99e2f8eeededcde60a7dd6ac145f191b4ac8394c85b",
     "scripts/check-whole-output-guards.mjs":
