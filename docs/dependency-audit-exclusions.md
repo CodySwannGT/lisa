@@ -101,11 +101,23 @@ package, so doctor names the file and advisory and recommends adding `versions`
 and `paths`. A written reason does not make an invalid scope valid.
 
 The pre-push built-in, dependency-vulnerability registry task, and CI audit job
-share the canonical audit implementation, including its package-manager
-selection. Doctor uses the same field and scope validation and checks that the
-lockfile is readable, but doctor does not match advisories against lockfile
-copies: a valid-looking path that names the wrong copy can pass doctor and
-still be rejected by the audit. Lisa owns the governed
+share the canonical audit implementation. The hook and the registry task choose
+the package manager the same way: the `packageManager` field, then an engines
+`please-use-<pm>` sentinel, then the lockfiles the engines do not forbid. The
+CI fallback does not detect a manager. It audits the one its `package_manager`
+input names, and that input defaults to `npm`. A caller of the reusable quality
+workflow must set `package_manager` to the project's manager, or CI can audit a
+different lockfile than the hook does — for example, a stale
+`package-lock.json` in a Bun project.
+
+Doctor uses the same field and scope validation and checks that the lockfile is
+readable, but it does not perform every check the audit does. It does not match
+advisories against lockfile copies, so a valid-looking path that names the
+wrong copy can pass doctor and still be rejected by the audit. It names an
+entry with no `id` by its package or position rather than rejecting it, while
+the audit refuses that entry. It also passes over an exclusion file that does
+not parse, which the audit refuses too. A doctor pass is not proof that the
+audit will accept the exclusion files; the audit itself is. Lisa owns the governed
 `security:audit:lisa` task and supplies `security:audit` as its default alias.
 Applying Lisa preserves a project's existing `security:audit` composition and
 its additional checks. Project-owned provers can call the governed task or

@@ -93,9 +93,25 @@ describe("the exclusion guide the rules link to (docs/dependency-audit-exclusion
     expect(guide).toMatch(/`cwe`,\s+`ghsa`,\s+`url`,\s+`title`,\s+`severity`/u);
   });
 
+  it("says the CI fallback audits the manager its package_manager input names", () => {
+    // The reusable workflow's input defaults to npm; it does not run the
+    // hook's detection, so the guide must not claim one shared selection.
+    expect(guide).not.toMatch(/including its package-manager\s+selection/u);
+    expect(guide).toMatch(/`package_manager`\s+input/u);
+    expect(guide).toMatch(/defaults\s+to\s+`npm`/u);
+  });
+
+  it("states that a doctor pass does not guarantee the audit accepts the files", () => {
+    expect(guide).toMatch(/entry\s+with\s+no\s+`id`/u);
+    expect(guide).toMatch(/does\s+not\s+parse/u);
+    expect(guide).toMatch(/A\s+doctor\s+pass\s+is\s+not\s+proof/u);
+  });
+
   it("does not claim doctor matches advisories against lockfile copies", () => {
     expect(guide).not.toMatch(/CI audit job,\s+and doctor share/u);
-    expect(guide).toMatch(/doctor does not match advisories against/u);
+    expect(guide).toMatch(
+      /does not match\s+advisories against lockfile copies/u
+    );
   });
 });
 
