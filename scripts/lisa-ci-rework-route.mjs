@@ -33,6 +33,7 @@ import { invokedAsScript } from "../all/copy-overwrite/scripts/lib/invoked-as-sc
 import {
   soleWorkItem,
   trackerContract,
+  workItemLines,
 } from "../all/copy-overwrite/scripts/lisa-work-item.mjs";
 import {
   CLEARED_MARKER,
@@ -168,7 +169,12 @@ function judgePull(view, item, contract) {
   try {
     bound = soleWorkItem(view.body ?? "", contract, "pull-request body");
   } catch (error) {
-    return implement("other-work-item", String(error.message));
+    // Exactly one declared value that still fails names something else (an
+    // item in another repository); zero or several declarations bind nothing.
+    const declared = new Set(workItemLines(view.body ?? ""));
+    const reason =
+      declared.size === 1 ? "other-work-item" : "unbound-pull-request";
+    return implement(reason, String(error.message));
   }
   if (bound.toLowerCase() !== item.toLowerCase())
     return implement(

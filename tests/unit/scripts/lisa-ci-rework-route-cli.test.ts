@@ -14,6 +14,7 @@ import { main } from "../../../scripts/lisa-ci-rework-route.mjs";
 
 const SCRIPT = "scripts/lisa-ci-rework-route.mjs";
 const FIXTURES = "tests/fixtures/ci-rework-route";
+const NOT_NEWEST = "not-newest";
 const REPO = "CodySwannGT/lisa";
 
 /**
@@ -44,7 +45,10 @@ describe("the CLI under plain node", () => {
     ["closed-pr", "pull-request-not-open"],
     ["fork-pr", "fork-pull-request"],
     ["other-item", "other-work-item"],
-    ["not-newest", "not-newest"],
+    [NOT_NEWEST, NOT_NEWEST],
+    ["merged-pr", "pull-request-not-open"],
+    ["unbound-pr", "unbound-pull-request"],
+    ["claim-after-marker", NOT_NEWEST],
   ])("prints route implement for %s (%s)", (name, reason) => {
     const { status, json } = runFixture(name);
     expect(status).toBe(0);

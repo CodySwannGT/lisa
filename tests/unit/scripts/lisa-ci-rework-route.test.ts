@@ -111,9 +111,14 @@ describe("an untrusted or stale marker is ignored", () => {
     ["cleared-marker", "cleared"],
     ["closed-pr", "pull-request-not-open"],
     ["fork-pr", "fork-pull-request"],
+    ["merged-pr", "pull-request-not-open"],
+    ["fork-pr", "fork-pull-request"],
     ["other-item", "other-work-item"],
+    ["unbound-pr", "unbound-pull-request"],
     [NOT_NEWEST, NOT_NEWEST],
   ])("%s -> route implement (%s)", (name, reason) => {
+    // The recorded runner throws on any unrecorded call, so a fixture that
+    // records no PR read also proves the PR was never read for that reason.
     const decision = route(name);
     expect(decision.route).toBe(IMPLEMENT);
     expect(decision.reason).toBe(reason);
@@ -125,11 +130,38 @@ describe("an untrusted or stale marker is ignored", () => {
     expect(decideRoute({ item: "1", contract, gh }).reason).toBe("no-marker");
   });
 
-  it("does not read the PR when the marker is already ruled out", () => {
-    // The recorded runner throws on any unrecorded call, and these fixtures
-    // record no PR read: a PR read would surface as read-failed.
-    for (const name of ["human-authored", "cleared-marker", NOT_NEWEST])
-      expect(route(name).reason).not.toBe(READ_FAILED);
+  it.each([
+    [
+      "names two different items",
+      `Work-Item: ${REPO}#1\nWork-Item: ${REPO}#2\n`,
+      "unbound-pull-request",
+    ],
+    [
+      "names one item in another repository",
+      "Work-Item: Other/repo#1\n",
+      "other-work-item",
+    ],
+  ])("a PR body that %s -> %s", (_case, body, reason) => {
+    const data = fixture(TRUSTED);
+    const gh = recordedGh({
+      ...data.gh,
+      [PR_VIEW]: { stdout: { ...data.gh[PR_VIEW].stdout, body } },
+    });
+    expect(decideRoute({ item: "1", contract, gh }).reason).toBe(reason);
+  });
+});
+
+describe("known gap: a claim comment posted after the marker (CodySwannGT/lisa#4707)", () => {
+  it("routes implement (not-newest) when the first [lisa-tracker-claim] lands after the marker", () => {
+    // This pins CURRENT behaviour, which is the known gap, not the desired
+    // one: an item first claimed by build intake, bounced by CI, then
+    // re-dispatched by the session manager gets its first [lisa-tracker-claim]
+    // comment after the marker and is rebuilt instead of sent to its PR.
+    // CodySwannGT/lisa#4707 will change this expectation to ci-rework.
+    expect(route("claim-after-marker")).toMatchObject({
+      route: IMPLEMENT,
+      reason: NOT_NEWEST,
+    });
   });
 });
 
