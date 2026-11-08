@@ -1,0 +1,29 @@
+{
+  "description": "The bot marker carries a [lisa-ci-cleared] line: the PR went green, so implement normally.",
+  "gh": {
+    "api repos/CodySwannGT/lisa/issues/1/comments --paginate --slurp": {
+      "stdout": [
+        [
+          {
+            "id": 1001,
+            "user": {
+              "login": "CodySwannGT",
+              "type": "User"
+            },
+            "created_at": "2026-11-05T10:00:00Z",
+            "body": "[lisa-tracker-claim] Claimed by Lisa. Starting implementation."
+          },
+          {
+            "id": 1002,
+            "user": {
+              "login": "github-actions[bot]",
+              "type": "Bot"
+            },
+            "created_at": "2026-11-05T11:00:00Z",
+            "body": "A required check failed on pull request #101 at commit 3db71f89a186d5dbeb78015aa5735fa9d8efda48: 🔍 Quality Checks / 🧪 Run Unit Tests, 🧩 Plugin artifacts match source.\n\nLisa moved this item from `status:in-progress` back to `status:ready` so build intake sends the owning agent back to fix the existing pull request. The work is not complete until every required check passes.\n\n<!-- [lisa-ci-failed] pr=101 sha=3db71f89a186d5dbeb78015aa5735fa9d8efda48 -->\n\nEvery required check now passes on 2222222222222222222222222222222222222222; cleared by run 900.\n<!-- [lisa-ci-cleared] run=900 -->"
+          }
+        ]
+      ]
+    }
+  }
+}

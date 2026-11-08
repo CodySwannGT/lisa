@@ -3010,7 +3010,6 @@ jobs:
           tests/unit/core/shared-runtime-policy.test.ts
           tests/unit/core/managed-nvmrc-adoption.test.ts
           tests/unit/core/qualified-runtime-ci.test.ts
-          tests/unit/core/qualified-host-bun-capture.test.ts
           tests/unit/configs/expo-jest-pre-setup.test.ts
           tests/unit/fixtures/shared-runtime-native-deadline.test.ts
           tests/unit/fixtures/shared-runtime-teardown.test.ts
@@ -3090,6 +3089,43 @@ jobs:
           tests/unit/scripts/lisa-work-item.test.ts
           tests/unit/scripts/terminal-transition-outcomes.test.ts
           --reporter=verbose
+        working-directory: ${{ inputs.working_directory || '.' }}
+
+      # #4521: the hosted log must name each scoped-audit spec as executed and
+      # passed. An explicit file list fails when none of them is found, and the
+      # quality-unit-test-shards-env-scope test fails if any listed file is
+      # renamed away, so this step can never pass having run zero of them.
+      # A skipped case proves nothing either, so any skip fails the step —
+      # except the two intentional bun-only `it.runIf` cases in
+      # quality-audit-fail-closed, which do not apply to its npm/yarn rows.
+      - name: Execute and name dependency-audit scope regression specs
+        if: github.repository == 'CodySwannGT/lisa'
+        run: |
+          set -euo pipefail
+          AUDIT_SPEC_LOG="${RUNNER_TEMP:-/tmp}/dependency-audit-scope-specs.log"
+          bun run lisa-test-run -- --adapter vitest -- vitest run \
+            tests/unit/core/audit-scopes.test.ts \
+            tests/unit/core/audit-scope-hardening.test.ts \
+            tests/unit/core/audit-lockfile-sources.test.ts \
+            tests/unit/core/audit-lockfile-formats.test.ts \
+            tests/unit/core/audit-review-4693.test.ts \
+            tests/unit/core/audit-report-completeness.test.ts \
+            tests/unit/config/zod-security-floor.test.ts \
+            tests/unit/config/audit-ignore-package-names.test.ts \
+            tests/unit/cli/doctor-readiness-supply-chain-exceptions.test.ts \
+            tests/unit/cli/doctor-audit-scope.test.ts \
+            tests/unit/hooks/pre-push-audit-transport-parity.test.ts \
+            tests/unit/strategies/security-audit-handling-scope.test.ts \
+            tests/unit/strategies/package-lisa-audit-script-governance.test.ts \
+            tests/integration/audit-consumer-parity.test.ts \
+            tests/integration/audit-workflow-action.test.ts \
+            tests/integration/audit-registry-verdict.test.ts \
+            tests/integration/quality-audit-fail-closed.test.ts \
+            --reporter=verbose 2>&1 | tee "$AUDIT_SPEC_LOG"
+          if grep -E '↓ .*tests/' "$AUDIT_SPEC_LOG" | grep -v 'quality-audit-fail-closed.test.ts'; then
+            echo "::error title=Skipped audit spec::A dependency-audit scope spec above was skipped, so it proved nothing. Un-skip it or remove it from this step."
+            exit 1
+          fi
         working-directory: ${{ inputs.working_directory || '.' }}
 
   # unit_test_shards > 1 only (#4479). Checks the input and lays out the matrix,
@@ -6869,175 +6905,16 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: 📋 Load audit exclusions
-        # FALLBACK ONLY — the exclusion list and the audit invocation below are
-        # npm/yarn/bun `audit` specifics. A project declaring its own
-        # `dependency-vulnerability` task has said what proves the property, and
-        # may well use a scanner with no notion of a GHSA exclusion file.
         if: steps.gate.outputs.configured == 'false'
-        id: audit_exclusions
-        shell: bash
-        run: |
-          # Disable -e so jq exiting non-zero (e.g. on an empty/missing
-          # `.exclusions` array under `set -e`) does not abort the step.
-          # An exclusion file that doesn't parse should yield zero
-          # exclusions, not a failed build.
-          set +e
-          GHSA_IDS=""
-          CVE_IDS=""
-          for config_file in audit.ignore.config.json audit.ignore.local.json; do
-            if [ ! -f "$config_file" ]; then continue; fi
-            FILE_IDS=$(jq -r '.exclusions[]?.id // empty' "$config_file" 2>/dev/null)
-            [ -n "$FILE_IDS" ] && GHSA_IDS="$GHSA_IDS $FILE_IDS"
-            FILE_CVES=$(jq -r '.exclusions[]? | select(.cve != null) | .cve' "$config_file" 2>/dev/null)
-            [ -n "$FILE_CVES" ] && CVE_IDS="$CVE_IDS $FILE_CVES"
-          done
-          GHSA_IDS=$(echo "$GHSA_IDS" | tr ' ' '\n' | sort -u | grep -v '^$' | tr '\n' ' ')
-          CVE_IDS=$(echo "$CVE_IDS" | tr ' ' '\n' | sort -u | grep -v '^$' | tr '\n' ' ')
-          echo "ghsa_ids=$GHSA_IDS" >> "$GITHUB_OUTPUT"
-          echo "cve_ids=$CVE_IDS" >> "$GITHUB_OUTPUT"
-          echo "Loaded GHSA exclusions: $GHSA_IDS"
-          echo "Loaded CVE exclusions: $CVE_IDS"
+        run: echo "The canonical audit runner reads and validates both audit.ignore files."
         working-directory: ${{ inputs.working_directory || '.' }}
 
       - name: 🔒 Run security audit
         if: steps.gate.outputs.configured == 'false'
-        run: |
-          GHSA_IDS="${{ steps.audit_exclusions.outputs.ghsa_ids }}"
-          CVE_IDS="${{ steps.audit_exclusions.outputs.cve_ids }}"
-          # Fail closed (lisa-gates.mjs marks this `unconditional`): a pass needs
-          # the manager's own report shape ($1, over slurped output). The audit
-          # is a network call, so a missing report is retried before failing.
-          AUDIT_OUT="$(mktemp)"
-          audit_capture() {
-            _shape="$1"; shift
-            for _try in 1 2 3; do
-              "$@" > "$AUDIT_OUT" 2> "$AUDIT_OUT.err" || true
-              # bun can print gzip-compressed JSON on stdout.
-              if gzip -dc "$AUDIT_OUT" > "$AUDIT_OUT.d" 2>/dev/null; then mv "$AUDIT_OUT.d" "$AUDIT_OUT"; fi
-              if jq -e -s "$_shape" "$AUDIT_OUT" >/dev/null 2>&1; then return 0; fi
-              if [ "$_try" -lt 3 ]; then sleep 5; fi
-            done
-            echo "::error::'$*' printed no advisory report, so nothing was audited. This is NOT a clean result and NOT a finding."
-            tail -n 20 "$AUDIT_OUT.err" 2>/dev/null || true
-            exit 1
-          }
-
-          if [ "$PACKAGE_MANAGER" = "npm" ]; then
-            # Build jq exclusion filter for npm audit GHSA IDs
-            NPM_EXCLUDE_FILTER=""
-            for _id in $GHSA_IDS; do
-              if [ -n "$NPM_EXCLUDE_FILTER" ]; then
-                NPM_EXCLUDE_FILTER="$NPM_EXCLUDE_FILTER or . == \"$_id\""
-              else
-                NPM_EXCLUDE_FILTER=". == \"$_id\""
-              fi
-            done
-
-            audit_capture '.[0].vulnerabilities | type == "object"' npm audit --production --json
-            AUDIT_JSON=$(cat "$AUDIT_OUT")
-            if [ -n "$NPM_EXCLUDE_FILTER" ]; then
-              UNFIXED_HIGH=$(echo "$AUDIT_JSON" | jq "[.vulnerabilities | to_entries[] | select(.value.severity == \"high\" or .value.severity == \"critical\") | .value.via[] | select(type == \"object\") | .url | ltrimstr(\"https://github.com/advisories/\")] | unique | map(select($NPM_EXCLUDE_FILTER | not)) | length")
-            else
-              UNFIXED_HIGH=$(echo "$AUDIT_JSON" | jq '[.vulnerabilities | to_entries[] | select(.value.severity == "high" or .value.severity == "critical") | .value.via[] | select(type == "object") | .url | ltrimstr("https://github.com/advisories/")] | unique | length')
-            fi
-            if [ "$UNFIXED_HIGH" -gt 0 ]; then
-              echo "::warning::Found high or critical vulnerabilities (after excluding known false positives)"
-              npm audit --production --audit-level=high || true
-              exit 1
-            fi
-            echo "::notice::No high or critical vulnerabilities found (excluding known false positives)"
-          elif [ "$PACKAGE_MANAGER" = "yarn" ]; then
-            # Build jq filter for GHSA IDs
-            GHSA_FILTER=""
-            for _id in $GHSA_IDS; do
-              if [ -n "$GHSA_FILTER" ]; then
-                GHSA_FILTER="$GHSA_FILTER or .data.advisory.github_advisory_id == \"$_id\""
-              else
-                GHSA_FILTER=".data.advisory.github_advisory_id == \"$_id\""
-              fi
-            done
-
-            # Build jq filter for CVE IDs
-            CVE_FILTER=""
-            for _cve in $CVE_IDS; do
-              if [ -n "$CVE_FILTER" ]; then
-                CVE_FILTER="$CVE_FILTER or . == \"$_cve\""
-              else
-                CVE_FILTER=". == \"$_cve\""
-              fi
-            done
-
-            # Combine GHSA and CVE filters
-            COMBINED_FILTER=""
-            if [ -n "$GHSA_FILTER" ] && [ -n "$CVE_FILTER" ]; then
-              COMBINED_FILTER="($GHSA_FILTER or (.data.advisory.cves | any($CVE_FILTER)))"
-            elif [ -n "$GHSA_FILTER" ]; then
-              COMBINED_FILTER="($GHSA_FILTER)"
-            elif [ -n "$CVE_FILTER" ]; then
-              COMBINED_FILTER="((.data.advisory.cves | any($CVE_FILTER)))"
-            fi
-
-            audit_capture 'any(.[]; .type == "auditSummary")' yarn audit --groups dependencies --json
-            if [ -n "$COMBINED_FILTER" ]; then
-              jq -r "select(.type == \"auditAdvisory\") | select(.data.advisory.severity == \"high\" or .data.advisory.severity == \"critical\") | select(($COMBINED_FILTER) | not) | .data.advisory" "$AUDIT_OUT" > high_vulns.json
-            else
-              jq -r 'select(.type == "auditAdvisory") | select(.data.advisory.severity == "high" or .data.advisory.severity == "critical") | .data.advisory' "$AUDIT_OUT" > high_vulns.json
-            fi
-
-            if [ -s high_vulns.json ]; then
-              echo "::error::Found high or critical vulnerabilities:"
-              cat high_vulns.json
-              exit 1
-            else
-              echo "::notice::No high or critical vulnerabilities found (excluding known false positives)"
-            fi
-          elif [ "$PACKAGE_MANAGER" = "bun" ]; then
-            GHSA_IDS_JSON=$(printf '%s\n' $GHSA_IDS | jq -R . | jq -s 'map(select(length > 0))')
-            CVE_IDS_JSON=$(printf '%s\n' $CVE_IDS | jq -R . | jq -s 'map(select(length > 0))')
-            # `--production` matches every other audit path (the pre-push hook,
-            # npm `--production`, yarn `--groups dependencies`). Without it bun
-            # alone failed on dev-only advisories that never ship while the local
-            # hook passed; dev/supply-chain coverage is the Snyk step's job.
-            # bun honours `--production` even though `bun audit --help` omits it.
-            # A clean audit prints `{}`; empty stdout is no longer read as one.
-            audit_capture 'length == 1 and (.[0] | type == "object") and all(.[0][]; type == "array")' bun audit --production --json
-            AUDIT_JSON=$(cat "$AUDIT_OUT")
-
-            BUN_HIGH_VULNS=$(echo "$AUDIT_JSON" | jq \
-              --argjson ghsa_ids "$GHSA_IDS_JSON" \
-              --argjson cve_ids "$CVE_IDS_JSON" \
-              '[
-                to_entries[]
-                | .key as $package
-                | (.value // [])[]?
-                | select(.severity == "high" or .severity == "critical")
-                | . + {
-                    package: $package,
-                    ghsa_id: (.url // "" | split("/") | last),
-                    advisory_id: (.id // "" | tostring),
-                    cves: ([.cve?, .cves[]?] | map(select(. != null and . != "")))
-                  }
-                | select(
-                    (
-                      ([.ghsa_id, .advisory_id] | map(select(. != "")) | any(.[]; . as $id | $ghsa_ids | index($id)))
-                      or (.cves | any(.[]; . as $cve | $cve_ids | index($cve)))
-                    )
-                    | not
-                  )
-              ]')
-            UNFIXED_HIGH=$(echo "$BUN_HIGH_VULNS" | jq 'length')
-
-            if [ "$UNFIXED_HIGH" -gt 0 ]; then
-              echo "::error::Found high or critical vulnerabilities (after excluding known false positives):"
-              echo "$BUN_HIGH_VULNS" | jq .
-              exit 1
-            fi
-            echo "::notice::No high or critical vulnerabilities found (excluding known false positives)"
-          else
-            echo "Unsupported package manager: $PACKAGE_MANAGER"
-            exit 1
-          fi
-        working-directory: ${{ inputs.working_directory || '.' }}
+        uses: CodySwannGT/lisa/.github/actions/dependency-audit@9a6a589083095d0cb5d4d4335ed80cf9b9c17222
+        with:
+          package-manager: ${{ inputs.package_manager }}
+          working-directory: ${{ inputs.working_directory || '.' }}
 
   sonarcloud:
     permissions:

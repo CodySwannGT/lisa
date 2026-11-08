@@ -107,7 +107,7 @@ describe("resolveMoment", () => {
     expect(resolved[0]?.command).toBe("bun run test:mutation");
   });
 
-  it("keeps a bare declare-only gate on its facade built-in", () => {
+  it("keeps a bare gate with an owned fallback on its facade built-in", () => {
     for (const id of [
       "dependency-vulnerability",
       "learnings-budget",
@@ -130,7 +130,7 @@ describe("resolveMoment", () => {
     }
   });
 
-  it("lets an explicit run replace a declare-only facade built-in", () => {
+  it("lets an explicit run replace an owned facade built-in", () => {
     const [resolved] = resolveMoment({
       gates: {
         "dependency-vulnerability": {
@@ -149,7 +149,7 @@ describe("resolveMoment", () => {
     });
   });
 
-  it("runs a declare-only registry task when the project actually supplies it", () => {
+  it("runs the registry task when the project actually supplies it", () => {
     const [resolved] = resolveMoment({
       gates: {
         "dependency-vulnerability": { [PULL_REQUEST]: "required" },
@@ -164,6 +164,34 @@ describe("resolveMoment", () => {
       task: AUDIT_TASK,
       command: `bun run ${AUDIT_TASK}`,
     });
+  });
+
+  it("does not hide an explicitly requested audit task when its script is missing", () => {
+    const [resolved] = resolveMoment({
+      gates: {
+        "dependency-vulnerability": {
+          [PULL_REQUEST]: { level: "required", run: AUDIT_TASK },
+        },
+      },
+      moment: PULL_REQUEST,
+      runner: "bun run",
+      scripts: {},
+    });
+    expect(resolved).toMatchObject({
+      mode: "run",
+      declared: AUDIT_TASK,
+      command: `bun run ${AUDIT_TASK}`,
+    });
+  });
+
+  it("does not invent an audit facade at a moment without an unconditional owned prover", () => {
+    const [resolved] = resolveMoment({
+      gates: { "dependency-vulnerability": { commit: "required" } },
+      moment: "commit",
+      runner: "bun run",
+      scripts: {},
+    });
+    expect(resolved).toMatchObject({ mode: "run", task: AUDIT_TASK });
   });
 
   it("marks a whole-suite gate costly, so a blocked run does not pay for it", () => {

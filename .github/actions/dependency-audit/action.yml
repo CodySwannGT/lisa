@@ -1,0 +1,23 @@
+name: Lisa canonical dependency audit
+description: Evaluate production advisories with the workflow revision's canonical scoped matcher.
+inputs:
+  package-manager:
+    description: The caller's package manager (bun, npm or yarn).
+    required: true
+  working-directory:
+    description: The caller's project directory, relative to its checkout.
+    default: .
+runs:
+  using: composite
+  steps:
+    - name: Install isolated audit runtime
+      shell: bash
+      # --ignore-scripts: no dependency lifecycle script runs in the caller's
+      # job. esbuild's platform binary is an optional dependency and needs none.
+      run: npm ci --ignore-scripts --prefix "$GITHUB_ACTION_PATH"
+    - name: Run workflow-owned canonical audit
+      shell: bash
+      env:
+        LISA_AUDIT_ACTION_MANAGER: ${{ inputs.package-manager }}
+        LISA_AUDIT_ACTION_DIRECTORY: ${{ inputs.working-directory }}
+      run: node "$GITHUB_ACTION_PATH/run.mjs"

@@ -1,0 +1,97 @@
+/**
+ * The reusable workflow owns this action and the source beside it at one
+ * immutable revision. A caller may have an older Lisa without ./audit or the
+ * adapter script; neither can choose or replace the matcher used here.
+ */
+import { mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { dirname, join, resolve } from "node:path";
+import { fileURLToPath, pathToFileURL } from "node:url";
+import { builtinModules } from "node:module";
+import { build } from "esbuild";
+
+const actionRoot = dirname(fileURLToPath(import.meta.url));
+const source = resolve(actionRoot, "../../../src/core/audit.ts");
+const workspace = resolve(process.env.GITHUB_WORKSPACE ?? process.cwd());
+const root = resolve(workspace, process.env.LISA_AUDIT_ACTION_DIRECTORY ?? ".");
+const manager = process.env.LISA_AUDIT_ACTION_MANAGER;
+const scratch = mkdtempSync(join(tmpdir(), "lisa-audit-action-"));
+const output = join(scratch, "audit.mjs");
+
+try {
+  if (!["bun", "npm", "yarn"].includes(manager)) {
+    throw new Error("Unsupported audit package manager");
+  }
+  const bundled = await build({
+    entryPoints: [source],
+    outfile: output,
+    absWorkingDir: actionRoot,
+    nodePaths: [join(actionRoot, "node_modules")],
+    bundle: true,
+    platform: "node",
+    // jsonc-parser's UMD main passes require as a parameter. Prefer its ESM
+    // entry so internal relative loads are statically bundled, not deferred.
+    mainFields: ["module", "main"],
+    format: "esm",
+    target: "node20",
+    metafile: true,
+    // Bundled CJS dependencies still require Node builtins at runtime, and
+    // @yarnpkg/lockfile reads __filename/__dirname at module load. ESM defines
+    // neither, so without these the yarn.lock parser throws and every scoped
+    // exclusion in a Yarn project fails closed in CI (#4521).
+    banner: {
+      js: [
+        'import { createRequire as actionCreateRequire } from "node:module";',
+        'import { fileURLToPath as actionFileURLToPath } from "node:url";',
+        'import { dirname as actionDirname } from "node:path";',
+        "const require = actionCreateRequire(import.meta.url);",
+        "const __filename = actionFileURLToPath(import.meta.url);",
+        "const __dirname = actionDirname(__filename);",
+      ].join(" "),
+    },
+  });
+  const imports = Object.values(bundled.metafile.outputs).flatMap(
+    value => value.imports
+  );
+  if (
+    imports.some(
+      value => !builtinModules.includes(value.path.replace(/^node:/u, ""))
+    )
+  ) {
+    throw new Error(
+      "Audit bundle retained an external dependency instead of the isolated action runtime"
+    );
+  }
+  const { runDependencyAudit } = await import(pathToFileURL(output).href);
+  const verdict = await runDependencyAudit(root, manager, {
+    attempts: process.env.LISA_AUDIT_ATTEMPTS,
+    retryDelay: process.env.LISA_AUDIT_RETRY_DELAY,
+  }).catch(error => {
+    // An error from the audit itself is either a capture that audited nothing
+    // (re-run) or the project's own exclusion/lockfile input (fix the files).
+    // Everything before this point is the action's own runtime, not the
+    // project's, so only errors raised here can be a configuration verdict.
+    if (error?.name !== "AuditCaptureError") error.configuration = true;
+    throw error;
+  });
+  for (const message of verdict.messages) console.log(message);
+  console.log(
+    verdict.passed
+      ? "✅ No high or critical vulnerabilities found in production dependencies (excluding documented exceptions)"
+      : "❌ High or critical vulnerabilities found in production dependencies"
+  );
+  if (!verdict.passed)
+    console.log(
+      "   Next step: upgrade or override the named copy; if it is dev-only and reviewed, add its lockfile path to `paths` in audit.ignore.local.json — see https://github.com/CodySwannGT/lisa/blob/main/docs/dependency-audit-exclusions.md"
+    );
+  process.exitCode = verdict.passed ? 0 : 1;
+} catch (error) {
+  console.error(
+    error?.configuration === true
+      ? `❌ Security audit configuration invalid: ${error.message}`
+      : `❌ Security audit failed closed: ${error.message}`
+  );
+  process.exitCode = 1;
+} finally {
+  rmSync(scratch, { recursive: true, force: true });
+}

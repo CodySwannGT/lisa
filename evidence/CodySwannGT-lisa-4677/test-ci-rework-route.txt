@@ -1,0 +1,136 @@
+$ bun run build
+$ bun run build:dist && bun run build:plugins
+$ node scripts/lib/worktree-dependencies.mjs && node scripts/clean-dist.mjs && tsc && node scripts/copy-codex-scripts.mjs && node scripts/copy-opencode-plugin-templates.mjs
+$ bash scripts/build-plugins.sh
+Built plugins/lisa (v4.95.2)
+Built plugins/lisa-typescript (v4.95.2)
+Built plugins/lisa-expo (v4.95.2)
+Built plugins/lisa-nestjs (v4.95.2)
+Built plugins/lisa-cdk (v4.95.2)
+Built plugins/lisa-harper-fabric (v4.95.2)
+Built plugins/lisa-phaser (v4.95.2)
+Built plugins/lisa-rails (v4.95.2)
+Built plugins/lisa-wiki (v4.95.2)
+Built plugins/lisa-openclaw (v4.95.2)
+Generated Cursor variant at /Users/codysai/workspace/lisa/.claude/worktrees/4677-ci-rework-route/plugins/lisa-cursor (v4.95.2)
+Generated Cursor variant at /Users/codysai/workspace/lisa/.claude/worktrees/4677-ci-rework-route/plugins/lisa-typescript-cursor (v4.95.2)
+Generated Cursor variant at /Users/codysai/workspace/lisa/.claude/worktrees/4677-ci-rework-route/plugins/lisa-expo-cursor (v4.95.2)
+Generated Cursor variant at /Users/codysai/workspace/lisa/.claude/worktrees/4677-ci-rework-route/plugins/lisa-nestjs-cursor (v4.95.2)
+Generated Cursor variant at /Users/codysai/workspace/lisa/.claude/worktrees/4677-ci-rework-route/plugins/lisa-cdk-cursor (v4.95.2)
+Generated Cursor variant at /Users/codysai/workspace/lisa/.claude/worktrees/4677-ci-rework-route/plugins/lisa-harper-fabric-cursor (v4.95.2)
+Generated Cursor variant at /Users/codysai/workspace/lisa/.claude/worktrees/4677-ci-rework-route/plugins/lisa-phaser-cursor (v4.95.2)
+Generated Cursor variant at /Users/codysai/workspace/lisa/.claude/worktrees/4677-ci-rework-route/plugins/lisa-rails-cursor (v4.95.2)
+Generated Cursor variant at /Users/codysai/workspace/lisa/.claude/worktrees/4677-ci-rework-route/plugins/lisa-wiki-cursor (v4.95.2)
+Generated Cursor variant at /Users/codysai/workspace/lisa/.claude/worktrees/4677-ci-rework-route/plugins/lisa-openclaw-cursor (v4.95.2)
+Generated agy variant at /Users/codysai/workspace/lisa/.claude/worktrees/4677-ci-rework-route/plugins/lisa-agy (v4.95.2)
+Generated agy variant at /Users/codysai/workspace/lisa/.claude/worktrees/4677-ci-rework-route/plugins/lisa-typescript-agy (v4.95.2)
+Generated agy variant at /Users/codysai/workspace/lisa/.claude/worktrees/4677-ci-rework-route/plugins/lisa-expo-agy (v4.95.2)
+Generated agy variant at /Users/codysai/workspace/lisa/.claude/worktrees/4677-ci-rework-route/plugins/lisa-nestjs-agy (v4.95.2)
+Generated agy variant at /Users/codysai/workspace/lisa/.claude/worktrees/4677-ci-rework-route/plugins/lisa-cdk-agy (v4.95.2)
+Generated agy variant at /Users/codysai/workspace/lisa/.claude/worktrees/4677-ci-rework-route/plugins/lisa-harper-fabric-agy (v4.95.2)
+Generated agy variant at /Users/codysai/workspace/lisa/.claude/worktrees/4677-ci-rework-route/plugins/lisa-phaser-agy (v4.95.2)
+Generated agy variant at /Users/codysai/workspace/lisa/.claude/worktrees/4677-ci-rework-route/plugins/lisa-rails-agy (v4.95.2)
+Generated agy variant at /Users/codysai/workspace/lisa/.claude/worktrees/4677-ci-rework-route/plugins/lisa-wiki-agy (v4.95.2)
+Generated agy variant at /Users/codysai/workspace/lisa/.claude/worktrees/4677-ci-rework-route/plugins/lisa-openclaw-agy (v4.95.2)
+Generated Copilot variant at /Users/codysai/workspace/lisa/.claude/worktrees/4677-ci-rework-route/plugins/lisa-copilot (v4.95.2)
+Generated Copilot variant at /Users/codysai/workspace/lisa/.claude/worktrees/4677-ci-rework-route/plugins/lisa-typescript-copilot (v4.95.2)
+Generated Copilot variant at /Users/codysai/workspace/lisa/.claude/worktrees/4677-ci-rework-route/plugins/lisa-expo-copilot (v4.95.2)
+Generated Copilot variant at /Users/codysai/workspace/lisa/.claude/worktrees/4677-ci-rework-route/plugins/lisa-nestjs-copilot (v4.95.2)
+Generated Copilot variant at /Users/codysai/workspace/lisa/.claude/worktrees/4677-ci-rework-route/plugins/lisa-cdk-copilot (v4.95.2)
+Generated Copilot variant at /Users/codysai/workspace/lisa/.claude/worktrees/4677-ci-rework-route/plugins/lisa-harper-fabric-copilot (v4.95.2)
+Generated Copilot variant at /Users/codysai/workspace/lisa/.claude/worktrees/4677-ci-rework-route/plugins/lisa-phaser-copilot (v4.95.2)
+Generated Copilot variant at /Users/codysai/workspace/lisa/.claude/worktrees/4677-ci-rework-route/plugins/lisa-rails-copilot (v4.95.2)
+Generated Copilot variant at /Users/codysai/workspace/lisa/.claude/worktrees/4677-ci-rework-route/plugins/lisa-wiki-copilot (v4.95.2)
+Generated Copilot variant at /Users/codysai/workspace/lisa/.claude/worktrees/4677-ci-rework-route/plugins/lisa-openclaw-copilot (v4.95.2)
+Generated Devin variant at /Users/codysai/workspace/lisa/.claude/worktrees/4677-ci-rework-route/plugins/lisa-devin (v4.95.2)
+Generated Devin variant at /Users/codysai/workspace/lisa/.claude/worktrees/4677-ci-rework-route/plugins/lisa-typescript-devin (v4.95.2)
+Generated Devin variant at /Users/codysai/workspace/lisa/.claude/worktrees/4677-ci-rework-route/plugins/lisa-expo-devin (v4.95.2)
+Generated Devin variant at /Users/codysai/workspace/lisa/.claude/worktrees/4677-ci-rework-route/plugins/lisa-nestjs-devin (v4.95.2)
+Generated Devin variant at /Users/codysai/workspace/lisa/.claude/worktrees/4677-ci-rework-route/plugins/lisa-cdk-devin (v4.95.2)
+Generated Devin variant at /Users/codysai/workspace/lisa/.claude/worktrees/4677-ci-rework-route/plugins/lisa-harper-fabric-devin (v4.95.2)
+Generated Devin variant at /Users/codysai/workspace/lisa/.claude/worktrees/4677-ci-rework-route/plugins/lisa-phaser-devin (v4.95.2)
+Generated Devin variant at /Users/codysai/workspace/lisa/.claude/worktrees/4677-ci-rework-route/plugins/lisa-rails-devin (v4.95.2)
+Generated Devin variant at /Users/codysai/workspace/lisa/.claude/worktrees/4677-ci-rework-route/plugins/lisa-wiki-devin (v4.95.2)
+Generated Devin variant at /Users/codysai/workspace/lisa/.claude/worktrees/4677-ci-rework-route/plugins/lisa-openclaw-devin (v4.95.2)
+$ node scripts/lib/worktree-dependencies.mjs && $npm_execpath run lisa-test-run -- --adapter vitest -- vitest run ci-rework-route
+$ node scripts/lib/worktree-dependencies.mjs && bun run build && node dist/cli/lisa-test-run.js --profile lisa --adapter vitest -- vitest run ci-rework-route
+$ bun run build:dist && bun run build:plugins
+$ node scripts/lib/worktree-dependencies.mjs && node scripts/clean-dist.mjs && tsc && node scripts/copy-codex-scripts.mjs && node scripts/copy-opencode-plugin-templates.mjs
+$ bash scripts/build-plugins.sh
+Built plugins/lisa (v4.95.2)
+Built plugins/lisa-typescript (v4.95.2)
+Built plugins/lisa-expo (v4.95.2)
+Built plugins/lisa-nestjs (v4.95.2)
+Built plugins/lisa-cdk (v4.95.2)
+Built plugins/lisa-harper-fabric (v4.95.2)
+Built plugins/lisa-phaser (v4.95.2)
+Built plugins/lisa-rails (v4.95.2)
+Built plugins/lisa-wiki (v4.95.2)
+Built plugins/lisa-openclaw (v4.95.2)
+Generated Cursor variant at /Users/codysai/workspace/lisa/.claude/worktrees/4677-ci-rework-route/plugins/lisa-cursor (v4.95.2)
+Generated Cursor variant at /Users/codysai/workspace/lisa/.claude/worktrees/4677-ci-rework-route/plugins/lisa-typescript-cursor (v4.95.2)
+Generated Cursor variant at /Users/codysai/workspace/lisa/.claude/worktrees/4677-ci-rework-route/plugins/lisa-expo-cursor (v4.95.2)
+Generated Cursor variant at /Users/codysai/workspace/lisa/.claude/worktrees/4677-ci-rework-route/plugins/lisa-nestjs-cursor (v4.95.2)
+Generated Cursor variant at /Users/codysai/workspace/lisa/.claude/worktrees/4677-ci-rework-route/plugins/lisa-cdk-cursor (v4.95.2)
+Generated Cursor variant at /Users/codysai/workspace/lisa/.claude/worktrees/4677-ci-rework-route/plugins/lisa-harper-fabric-cursor (v4.95.2)
+Generated Cursor variant at /Users/codysai/workspace/lisa/.claude/worktrees/4677-ci-rework-route/plugins/lisa-phaser-cursor (v4.95.2)
+Generated Cursor variant at /Users/codysai/workspace/lisa/.claude/worktrees/4677-ci-rework-route/plugins/lisa-rails-cursor (v4.95.2)
+Generated Cursor variant at /Users/codysai/workspace/lisa/.claude/worktrees/4677-ci-rework-route/plugins/lisa-wiki-cursor (v4.95.2)
+Generated Cursor variant at /Users/codysai/workspace/lisa/.claude/worktrees/4677-ci-rework-route/plugins/lisa-openclaw-cursor (v4.95.2)
+Generated agy variant at /Users/codysai/workspace/lisa/.claude/worktrees/4677-ci-rework-route/plugins/lisa-agy (v4.95.2)
+Generated agy variant at /Users/codysai/workspace/lisa/.claude/worktrees/4677-ci-rework-route/plugins/lisa-typescript-agy (v4.95.2)
+Generated agy variant at /Users/codysai/workspace/lisa/.claude/worktrees/4677-ci-rework-route/plugins/lisa-expo-agy (v4.95.2)
+Generated agy variant at /Users/codysai/workspace/lisa/.claude/worktrees/4677-ci-rework-route/plugins/lisa-nestjs-agy (v4.95.2)
+Generated agy variant at /Users/codysai/workspace/lisa/.claude/worktrees/4677-ci-rework-route/plugins/lisa-cdk-agy (v4.95.2)
+Generated agy variant at /Users/codysai/workspace/lisa/.claude/worktrees/4677-ci-rework-route/plugins/lisa-harper-fabric-agy (v4.95.2)
+Generated agy variant at /Users/codysai/workspace/lisa/.claude/worktrees/4677-ci-rework-route/plugins/lisa-phaser-agy (v4.95.2)
+Generated agy variant at /Users/codysai/workspace/lisa/.claude/worktrees/4677-ci-rework-route/plugins/lisa-rails-agy (v4.95.2)
+Generated agy variant at /Users/codysai/workspace/lisa/.claude/worktrees/4677-ci-rework-route/plugins/lisa-wiki-agy (v4.95.2)
+Generated agy variant at /Users/codysai/workspace/lisa/.claude/worktrees/4677-ci-rework-route/plugins/lisa-openclaw-agy (v4.95.2)
+Generated Copilot variant at /Users/codysai/workspace/lisa/.claude/worktrees/4677-ci-rework-route/plugins/lisa-copilot (v4.95.2)
+Generated Copilot variant at /Users/codysai/workspace/lisa/.claude/worktrees/4677-ci-rework-route/plugins/lisa-typescript-copilot (v4.95.2)
+Generated Copilot variant at /Users/codysai/workspace/lisa/.claude/worktrees/4677-ci-rework-route/plugins/lisa-expo-copilot (v4.95.2)
+Generated Copilot variant at /Users/codysai/workspace/lisa/.claude/worktrees/4677-ci-rework-route/plugins/lisa-nestjs-copilot (v4.95.2)
+Generated Copilot variant at /Users/codysai/workspace/lisa/.claude/worktrees/4677-ci-rework-route/plugins/lisa-cdk-copilot (v4.95.2)
+Generated Copilot variant at /Users/codysai/workspace/lisa/.claude/worktrees/4677-ci-rework-route/plugins/lisa-harper-fabric-copilot (v4.95.2)
+Generated Copilot variant at /Users/codysai/workspace/lisa/.claude/worktrees/4677-ci-rework-route/plugins/lisa-phaser-copilot (v4.95.2)
+Generated Copilot variant at /Users/codysai/workspace/lisa/.claude/worktrees/4677-ci-rework-route/plugins/lisa-rails-copilot (v4.95.2)
+Generated Copilot variant at /Users/codysai/workspace/lisa/.claude/worktrees/4677-ci-rework-route/plugins/lisa-wiki-copilot (v4.95.2)
+Generated Copilot variant at /Users/codysai/workspace/lisa/.claude/worktrees/4677-ci-rework-route/plugins/lisa-openclaw-copilot (v4.95.2)
+Generated Devin variant at /Users/codysai/workspace/lisa/.claude/worktrees/4677-ci-rework-route/plugins/lisa-devin (v4.95.2)
+Generated Devin variant at /Users/codysai/workspace/lisa/.claude/worktrees/4677-ci-rework-route/plugins/lisa-typescript-devin (v4.95.2)
+Generated Devin variant at /Users/codysai/workspace/lisa/.claude/worktrees/4677-ci-rework-route/plugins/lisa-expo-devin (v4.95.2)
+Generated Devin variant at /Users/codysai/workspace/lisa/.claude/worktrees/4677-ci-rework-route/plugins/lisa-nestjs-devin (v4.95.2)
+Generated Devin variant at /Users/codysai/workspace/lisa/.claude/worktrees/4677-ci-rework-route/plugins/lisa-cdk-devin (v4.95.2)
+Generated Devin variant at /Users/codysai/workspace/lisa/.claude/worktrees/4677-ci-rework-route/plugins/lisa-harper-fabric-devin (v4.95.2)
+Generated Devin variant at /Users/codysai/workspace/lisa/.claude/worktrees/4677-ci-rework-route/plugins/lisa-phaser-devin (v4.95.2)
+Generated Devin variant at /Users/codysai/workspace/lisa/.claude/worktrees/4677-ci-rework-route/plugins/lisa-rails-devin (v4.95.2)
+Generated Devin variant at /Users/codysai/workspace/lisa/.claude/worktrees/4677-ci-rework-route/plugins/lisa-wiki-devin (v4.95.2)
+Generated Devin variant at /Users/codysai/workspace/lisa/.claude/worktrees/4677-ci-rework-route/plugins/lisa-openclaw-devin (v4.95.2)
+lisa-test-run: TMPDIR /var/folders/vc/t6bx6dwx0h7_3bj316vkb72r0000gn/T is too long for native Unix socket fixtures; using /private/tmp.
+🧹 swept 0 stale temp dirs, 0 orphaned test processes (116 ms)
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - import "./vitest.config.local" without a file extension (vitest.config.ts:21:25). Add the file extension
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - import "./vitest.config.local" without a file extension (vitest.config.ts:21:25). Add the file extension
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - import "./vitest.config.local" without a file extension (vitest.config.ts:21:25). Add the file extension
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - import "./vitest.config.local" without a file extension (vitest.config.ts:21:25). Add the file extension
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+
+ RUN  v4.1.11 /Users/codysai/workspace/lisa/.claude/worktrees/4677-ci-rework-route
+
+lisa fleet admission: waiting for a worker slot — 4 run(s) live, this run is #4, 3 may execute at once. Starting anyway in 120s. Set LISA_FLEET_ADMISSION=off to disable this wait.
+lisa fleet admission: starting OVER CAPACITY after 120s — 4 run(s) live, this run is #4, 3 may execute at once. The machine is oversubscribed; expect timeouts rather than failures.
+lisa fleet admission: waiting for a worker slot — 4 run(s) live, this run is #4, 3 may execute at once. Starting anyway in 120s. Set LISA_FLEET_ADMISSION=off to disable this wait.
+lisa fleet admission: starting OVER CAPACITY after 120s — 4 run(s) live, this run is #4, 3 may execute at once. The machine is oversubscribed; expect timeouts rather than failures.
+
+ Test Files  3 passed (3)
+      Tests  89 passed (89)
+   Start at  04:22:42
+   Duration  241.34s (transform 560ms, setup 588ms, import 329ms, tests 414ms, environment 0ms)
+

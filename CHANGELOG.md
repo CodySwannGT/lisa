@@ -2,6 +2,68 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [4.97.0](https://github.com/CodySwannGT/lisa/compare/v4.96.3...v4.97.0) (2026-11-08)
+
+
+### Features
+
+* **skills:** route CI-bounced items to their existing PR on session-manager dispatch ([e287082](https://github.com/CodySwannGT/lisa/commit/e2870820f8403f4b98969f17c5394c410d93db12)), closes [CodySwannGT/lisa#4677](https://github.com/CodySwannGT/lisa/issues/4677) [CodySwannGT/lisa#4677](https://github.com/CodySwannGT/lisa/issues/4677)
+
+
+### Bug Fixes
+
+* **skills:** address review findings on the CI-rework route ([86787e1](https://github.com/CodySwannGT/lisa/commit/86787e1e0d1323827f30b7cb5f439e21ebc27590)), closes [#4707](https://github.com/CodySwannGT/lisa/issues/4707) [CodySwannGT/lisa#4677](https://github.com/CodySwannGT/lisa/issues/4677) [CodySwannGT/lisa#4677](https://github.com/CodySwannGT/lisa/issues/4677)
+* **skills:** honour a human hold before the CI loop-bound blocks an item ([4cb66b1](https://github.com/CodySwannGT/lisa/commit/4cb66b1b37e0bd45c2f2f4dc25ee0a917bd2b963)), closes [CodySwannGT/lisa#4677](https://github.com/CodySwannGT/lisa/issues/4677) [CodySwannGT/lisa#4677](https://github.com/CodySwannGT/lisa/issues/4677)
+* **skills:** ignore session-manager notes when reading the CI failure marker ([cd3e904](https://github.com/CodySwannGT/lisa/commit/cd3e904fbc654789b226bc6f936890485a5fd1c1)), closes [CodySwannGT/lisa#4677](https://github.com/CodySwannGT/lisa/issues/4677) [CodySwannGT/lisa#4677](https://github.com/CodySwannGT/lisa/issues/4677)
+* **skills:** never let a claim comment hide an uncleared CI failure marker ([afb2ce6](https://github.com/CodySwannGT/lisa/commit/afb2ce60cf7b32661caf3bc364ad637225205181)), closes [CodySwannGT/lisa#4677](https://github.com/CodySwannGT/lisa/issues/4677) [CodySwannGT/lisa#4677](https://github.com/CodySwannGT/lisa/issues/4677)
+
+
+### Documentation
+
+* **evidence:** commit the [#4677](https://github.com/CodySwannGT/lisa/issues/4677) run logs as text so the README's record resolves ([e7a2f67](https://github.com/CodySwannGT/lisa/commit/e7a2f67791613a0f9727dda72c0d73923c5b2295))
+
+### [4.96.3](https://github.com/CodySwannGT/lisa/compare/v4.96.2...v4.96.3) (2026-11-08)
+
+
+### Bug Fixes
+
+* **audit:** accept advisory metadata keys instead of reading cwe as cve ([b86a2c0](https://github.com/CodySwannGT/lisa/commit/b86a2c039daa97959f05b4b33513a4449d2ee519)), closes [#4521](https://github.com/CodySwannGT/lisa/issues/4521) [CodySwannGT/lisa#4521](https://github.com/CodySwannGT/lisa/issues/4521) [CodySwannGT/lisa#4521](https://github.com/CodySwannGT/lisa/issues/4521)
+* **audit:** close the remaining ways an exclusion widens past its scope ([a909eb4](https://github.com/CodySwannGT/lisa/commit/a909eb4898f008bd2e4b6d3ff663a48753a59e94)), closes [#4521](https://github.com/CodySwannGT/lisa/issues/4521) [CodySwannGT/lisa#4521](https://github.com/CodySwannGT/lisa/issues/4521) [CodySwannGT/lisa#4521](https://github.com/CodySwannGT/lisa/issues/4521)
+* **audit:** fail closed only on misspelled scope fields, keep other keys ([96de2c3](https://github.com/CodySwannGT/lisa/commit/96de2c39a5c8ac1af12ff1cfca48a14cfb693f00)), closes [#4521](https://github.com/CodySwannGT/lisa/issues/4521) [CodySwannGT/lisa#4521](https://github.com/CodySwannGT/lisa/issues/4521) [CodySwannGT/lisa#4521](https://github.com/CodySwannGT/lisa/issues/4521)
+* **audit:** keep an audit that measured nothing UNPROVABLE ([a28e86d](https://github.com/CodySwannGT/lisa/commit/a28e86d36604e714de487babdc9d10aa830d9c56)), closes [#4521](https://github.com/CodySwannGT/lisa/issues/4521) [CodySwannGT/lisa#4521](https://github.com/CodySwannGT/lisa/issues/4521) [CodySwannGT/lisa#4521](https://github.com/CodySwannGT/lisa/issues/4521)
+* **audit:** preserve host fallback and managed adapter contracts ([c64a1a8](https://github.com/CodySwannGT/lisa/commit/c64a1a8c8aab81734727770bb853eadbdf7246d3)), closes [#4521](https://github.com/CodySwannGT/lisa/issues/4521) [CodySwannGT/lisa#4521](https://github.com/CodySwannGT/lisa/issues/4521) [CodySwannGT/lisa#4521](https://github.com/CodySwannGT/lisa/issues/4521)
+* **audit:** print the next step on failure and one verdict per push ([520d96b](https://github.com/CodySwannGT/lisa/commit/520d96b88ffd883f0e87b64b4a3d09980a1724f4)), closes [#4521](https://github.com/CodySwannGT/lisa/issues/4521) [CodySwannGT/lisa#4521](https://github.com/CodySwannGT/lisa/issues/4521) [CodySwannGT/lisa#4521](https://github.com/CodySwannGT/lisa/issues/4521)
+* **audit:** select the manager like the hook and skip npm workspace sources ([65a052c](https://github.com/CodySwannGT/lisa/commit/65a052ca8843d3f80c0264cf57c3b2153bf9af72)), closes [#4693](https://github.com/CodySwannGT/lisa/issues/4693) [#4521](https://github.com/CodySwannGT/lisa/issues/4521) [CodySwannGT/lisa#4521](https://github.com/CodySwannGT/lisa/issues/4521) [CodySwannGT/lisa#4521](https://github.com/CodySwannGT/lisa/issues/4521)
+* **ci:** let the CI audit action parse yarn.lock, and prove npm/yarn parity ([1949f63](https://github.com/CodySwannGT/lisa/commit/1949f631b166823b0a61e75420b25979f29b5e1a)), closes [#4521](https://github.com/CodySwannGT/lisa/issues/4521) [CodySwannGT/lisa#4521](https://github.com/CodySwannGT/lisa/issues/4521) [CodySwannGT/lisa#4521](https://github.com/CodySwannGT/lisa/issues/4521)
+* **config:** name managed audit exclusions by their npm package ([43bb063](https://github.com/CodySwannGT/lisa/commit/43bb063f8e3ba431d18af220ee8c479cd5b0b946)), closes [#4521](https://github.com/CodySwannGT/lisa/issues/4521) [CodySwannGT/lisa#4521](https://github.com/CodySwannGT/lisa/issues/4521) [CodySwannGT/lisa#4521](https://github.com/CodySwannGT/lisa/issues/4521)
+* **doctor:** assess exclusion scope across files with one lockfile read ([eac8966](https://github.com/CodySwannGT/lisa/commit/eac89668537e98a070a9b6bfcaf5b44e30fba238)), closes [#4521](https://github.com/CodySwannGT/lisa/issues/4521) [CodySwannGT/lisa#4521](https://github.com/CodySwannGT/lisa/issues/4521) [CodySwannGT/lisa#4521](https://github.com/CodySwannGT/lisa/issues/4521)
+* **doctor:** describe shadowed exclusions exactly as the matcher applies them ([41047d7](https://github.com/CodySwannGT/lisa/commit/41047d77d13d72e7564a176a880b948aa578dd3b)), closes [#4693](https://github.com/CodySwannGT/lisa/issues/4693) [#4521](https://github.com/CodySwannGT/lisa/issues/4521) [CodySwannGT/lisa#4521](https://github.com/CodySwannGT/lisa/issues/4521) [CodySwannGT/lisa#4521](https://github.com/CodySwannGT/lisa/issues/4521)
+* **doctor:** report ID-only audit exclusions in the doctor's own findings ([7ccda2f](https://github.com/CodySwannGT/lisa/commit/7ccda2f653112cf935072d4b887fff37c480b814)), closes [#4521](https://github.com/CodySwannGT/lisa/issues/4521) [CodySwannGT/lisa#4521](https://github.com/CodySwannGT/lisa/issues/4521) [CodySwannGT/lisa#4521](https://github.com/CodySwannGT/lisa/issues/4521)
+* **gates:** report a real dependency-audit finding as FAILED, not UNPROVABLE ([45e3e01](https://github.com/CodySwannGT/lisa/commit/45e3e017b4270eba626f960dd11017f0e3b5449d)), closes [#4521](https://github.com/CodySwannGT/lisa/issues/4521) [CodySwannGT/lisa#4521](https://github.com/CodySwannGT/lisa/issues/4521) [CodySwannGT/lisa#4521](https://github.com/CodySwannGT/lisa/issues/4521)
+* pin CI audit to complete per-severity report validation ([7321083](https://github.com/CodySwannGT/lisa/commit/73210833ec086a437693e63fd920cbf8bfaf23ca)), closes [#4521](https://github.com/CodySwannGT/lisa/issues/4521) [CodySwannGT/lisa#4521](https://github.com/CodySwannGT/lisa/issues/4521) [CodySwannGT/lisa#4521](https://github.com/CodySwannGT/lisa/issues/4521)
+* require Yarn advisory material at each reported severity ([8f4053f](https://github.com/CodySwannGT/lisa/commit/8f4053f52b3a3d42215e4e014448635d06a9eec9)), closes [#4521](https://github.com/CodySwannGT/lisa/issues/4521) [CodySwannGT/lisa#4521](https://github.com/CodySwannGT/lisa/issues/4521) [CodySwannGT/lisa#4521](https://github.com/CodySwannGT/lisa/issues/4521)
+* run CI audit from the pinned canonical action ([7169c6e](https://github.com/CodySwannGT/lisa/commit/7169c6e78cc6eb55caad002efef70bd0b0555621)), closes [#4521](https://github.com/CodySwannGT/lisa/issues/4521) [CodySwannGT/lisa#4521](https://github.com/CodySwannGT/lisa/issues/4521) [CodySwannGT/lisa#4521](https://github.com/CodySwannGT/lisa/issues/4521)
+* scope audit exclusions to vulnerable lockfile copies ([ff03dd7](https://github.com/CodySwannGT/lisa/commit/ff03dd78e94264ad97aec52e5debfb87eedadb21)), closes [#4521](https://github.com/CodySwannGT/lisa/issues/4521) [CodySwannGT/lisa#4521](https://github.com/CodySwannGT/lisa/issues/4521) [CodySwannGT/lisa#4521](https://github.com/CodySwannGT/lisa/issues/4521)
+
+
+### Documentation
+
+* **audit:** correct ignored-key examples and doctor's role in matching ([d961cc2](https://github.com/CodySwannGT/lisa/commit/d961cc204a2697fa0e2c4a5ef5f4f9af0394d178)), closes [#4693](https://github.com/CodySwannGT/lisa/issues/4693) [#4521](https://github.com/CodySwannGT/lisa/issues/4521) [CodySwannGT/lisa#4521](https://github.com/CodySwannGT/lisa/issues/4521) [CodySwannGT/lisa#4521](https://github.com/CodySwannGT/lisa/issues/4521)
+* **audit:** state CI's package_manager input and the limits of doctor's checks ([c09cb15](https://github.com/CodySwannGT/lisa/commit/c09cb15873166107fb4414fd3e25b6737f0d5a12)), closes [#4693](https://github.com/CodySwannGT/lisa/issues/4693) [#4521](https://github.com/CodySwannGT/lisa/issues/4521) [CodySwannGT/lisa#4521](https://github.com/CodySwannGT/lisa/issues/4521) [CodySwannGT/lisa#4521](https://github.com/CodySwannGT/lisa/issues/4521)
+* **evidence:** record the [#4521](https://github.com/CodySwannGT/lisa/issues/4521) empty-paths RED/GREEN replay ([cd574ab](https://github.com/CodySwannGT/lisa/commit/cd574ab813b9ea79b594a6974747d7626c36d66a))
+* **evidence:** record the independent [#4521](https://github.com/CodySwannGT/lisa/issues/4521) consumer-parity verification ([d174d30](https://github.com/CodySwannGT/lisa/commit/d174d3053989f75391a098068e95d92c9cde6fce))
+* **rules:** state key isolation limits and link the exclusion guide ([662adc6](https://github.com/CodySwannGT/lisa/commit/662adc65bbd1a518de1ce3bbb0a8d073499f2546)), closes [#4521](https://github.com/CodySwannGT/lisa/issues/4521) [CodySwannGT/lisa#4521](https://github.com/CodySwannGT/lisa/issues/4521) [CodySwannGT/lisa#4521](https://github.com/CodySwannGT/lisa/issues/4521)
+* **rules:** teach scoped audit exclusions in the security-audit ladder ([861cd95](https://github.com/CodySwannGT/lisa/commit/861cd952de7f0c467346b757d49dae8f6af01f16)), closes [#4521](https://github.com/CodySwannGT/lisa/issues/4521) [CodySwannGT/lisa#4521](https://github.com/CodySwannGT/lisa/issues/4521) [CodySwannGT/lisa#4521](https://github.com/CodySwannGT/lisa/issues/4521)
+
+### [4.96.2](https://github.com/CodySwannGT/lisa/compare/v4.96.1...v4.96.2) (2026-11-08)
+
+
+### Bug Fixes
+
+* **test-run:** keep deliberately nested macOS TMPDIRs ([#4701](https://github.com/CodySwannGT/lisa/issues/4701)) ([b87dbc4](https://github.com/CodySwannGT/lisa/commit/b87dbc4d85fcd6cddc385c41ae43395b678cefdc))
+* **test:** defer the Ruby shard suite when local Ruby is older than 3.2 ([#4609](https://github.com/CodySwannGT/lisa/issues/4609)) ([a2a9a45](https://github.com/CodySwannGT/lisa/commit/a2a9a45eb3086b7d73b6b70e82bf0d6c223c8d45))
+* **test:** make the Ruby shard probe independent of RubyGems ([#4701](https://github.com/CodySwannGT/lisa/issues/4701)) ([15cb90e](https://github.com/CodySwannGT/lisa/commit/15cb90ef34a656231863318c9676f644db216432)), closes [#4609](https://github.com/CodySwannGT/lisa/issues/4609)
+
 ### [4.96.1](https://github.com/CodySwannGT/lisa/compare/v4.96.0...v4.96.1) (2026-11-08)
 
 

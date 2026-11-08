@@ -17,6 +17,7 @@ const WORKFLOWS_DIR = path.join(REPO_ROOT, ...GITHUB_WORKFLOWS_PARTS);
 const DEPLOY_WORKFLOW_FILE = "deploy.yml";
 const QUALITY_WORKFLOW_FILE = "quality.yml";
 const QUALITY_RAILS_WORKFLOW_FILE = "quality-rails.yml";
+const PACKAGE_MANAGER_INPUT = "${{ inputs.package_manager }}";
 const QUALITY_YML = path.join(WORKFLOWS_DIR, QUALITY_WORKFLOW_FILE);
 const QUALITY_RAILS_YML = path.join(WORKFLOWS_DIR, QUALITY_RAILS_WORKFLOW_FILE);
 const RELEASE_YML = path.join(WORKFLOWS_DIR, "release.yml");
@@ -749,10 +750,8 @@ describe("quality.yml reusable workflow", () => {
       expect(install?.if).toBe(
         "steps.check_script.outputs.exists == 'true' || steps.gate.outputs.configured == 'true'"
       );
-      expect(install?.env?.PACKAGE_MANAGER).toBe(
-        "${{ inputs.package_manager }}"
-      );
-      expect(install?.run).not.toContain("${{ inputs.package_manager }}");
+      expect(install?.env?.PACKAGE_MANAGER).toBe(PACKAGE_MANAGER_INPUT);
+      expect(install?.run).not.toContain(PACKAGE_MANAGER_INPUT);
       expect(install?.run).toMatch(
         /case\s+"\$PACKAGE_MANAGER"\s+in[\s\S]*npm\)\s*npm ci/
       );
@@ -917,24 +916,18 @@ describe("quality.yml reusable workflow", () => {
     });
   });
 
-  describe("bun audit allowlist handling", () => {
-    it("filters bun audit JSON by GHSA, advisory id, and CVE allowlists", () => {
+  describe("canonical audit workflow delivery", () => {
+    it("runs an immutable workflow-owned audit without requiring a newly applied caller adapter", () => {
       const steps = workflow.jobs.npm_security_scan.steps ?? [];
       const audit = steps.find(s => s.name === "🔒 Run security audit");
-      const run = audit?.run ?? "";
-
-      // Production-scoped, matching the pre-push hook and the npm/yarn paths so
-      // the local and CI audit gates agree (dev/supply-chain is Snyk's job).
-      expect(run).toContain("bun audit --production --json");
-      expect(run).not.toContain(
-        "bun audit --audit-level=high $BUN_IGNORE_FLAGS"
+      expect(audit?.uses).toMatch(
+        /^CodySwannGT\/lisa\/\.github\/actions\/dependency-audit@[0-9a-f]{40}$/u
       );
-      expect(run).not.toContain("--ignore=$_id");
-      expect(run).toContain('ghsa_id: (.url // "" | split("/") | last)');
-      expect(run).toContain('advisory_id: (.id // "" | tostring)');
-      expect(run).toContain("cves: ([.cve?, .cves[]?]");
-      expect(run).toContain("$ghsa_ids | index($id)");
-      expect(run).toContain("$cve_ids | index($cve)");
+      expect(audit?.run).toBeUndefined();
+      expect(audit?.with).toEqual({
+        "package-manager": PACKAGE_MANAGER_INPUT,
+        "working-directory": "${{ inputs.working_directory || '.' }}",
+      });
     });
   });
 });
