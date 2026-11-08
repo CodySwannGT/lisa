@@ -49,3 +49,9 @@ Regression-spec exit 1: no e2e harness applies to a CI caller-workflow input. Th
 Roster unchanged; every INCLUDE/EXCLUDE above re-affirmed for the resume run (rebase onto main, re-measure the unit path, tune `unit_test_shards`, unhold and merge #4674).
 
 - INCLUDE - lisa:verification-specialist - Re-measures the unit path on the rebased PR's CI run and refreshes the verdict.
+
+## Resumption 2 — 2026-11-08 (PR #4674 conflicted with main; the 7-shard commit had no CI run)
+
+Roster unchanged; every INCLUDE/EXCLUDE above re-affirmed. Work: merge origin/main into the branch, push, measure the 7-leg unit path on the PR's own CI run, check the Review evidence gate, then unhold and merge.
+
+Blocker note (re-affirmed): #4591 is still open/human-needed, and lisa-track's claim check flagged it. The Technical Approach makes its timing artifacts optional ("Otherwise keep 4"), the item is already claimed (`status:in-progress`), and tuning uses raw `gh run view` job timings, so the lead proceeds rather than parking on an optional input.
