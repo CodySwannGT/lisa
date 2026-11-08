@@ -22,7 +22,7 @@ import * as path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 
 import { boundedSpawnSync } from "../helpers/io-latency-budget.js";
-import { probeSucceeds, suiteDeferral } from "../support/ci-runtime.js";
+import { suiteDeferral } from "../support/ci-runtime.js";
 
 const REPO_ROOT = path.resolve(__dirname, "..", "..");
 const RECORDER = path.join(
@@ -36,8 +36,47 @@ const COLLATE = path.join(
 
 const RECORDER_NAME = "lisa_rspec_shard_recorder.rb";
 
+/**
+ * The Ruby both drivers run, as an absolute path, or undefined when the `ruby`
+ * on PATH is missing or older than 3.2.
+ *
+ * The test's Ruby stand-ins use one-line method definitions, which older Ruby
+ * cannot parse; treat Ruby below the documented 3.2 floor as absent rather than
+ * failing every case.
+ *
+ * One process both names its own interpreter (`RbConfig.ruby`) and checks its
+ * version, so the Ruby that passes the check is exactly the Ruby the drivers
+ * run — a version manager shim cannot pick a different one later, when the
+ * drivers change HOME. The check avoids RubyGems (`Gem::Version` is undefined
+ * under `--disable-gems`) and drops an inherited RUBYOPT, either of which
+ * would make a usable Ruby read as absent.
+ * @returns The interpreter path, or undefined when Ruby is unusable here
+ */
+function resolveRuby(): string | undefined {
+  const { RUBYOPT: _ignored, ...env } = process.env;
+  try {
+    const outcome = boundedSpawnSync({
+      label: "probe ruby",
+      command: "ruby",
+      args: [
+        "-rrbconfig",
+        "-e",
+        'print RbConfig.ruby; exit((RUBY_VERSION.split(".").map(&:to_i).first(2) <=> [3, 2]) >= 0 ? 0 : 1)',
+      ],
+      env,
+    });
+    return outcome.status === 0 && outcome.stdout !== ""
+      ? outcome.stdout
+      : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+const RUBY = resolveRuby();
+
 const deferred = suiteDeferral(
-  () => probeSucceeds("ruby", ["-e", "exit 0"]),
+  () => RUBY !== undefined,
   "Ruby",
   "Install any Ruby >= 3.2 on PATH."
 );
@@ -155,7 +194,7 @@ puts "CALLS=" + (defined?(SimpleCov) ? SimpleCov::CALLS.inspect : "none")
   );
   return boundedSpawnSync({
     label: "ruby recorder driver",
-    command: "ruby",
+    command: RUBY ?? "ruby",
     args: [driver],
     cwd,
     env: { PATH: process.env.PATH ?? "", HOME: cwd, ...env },
@@ -304,7 +343,7 @@ function collateOutcome(root: string, lib: string, args: string[]) {
   const received = path.join(root, "received.json");
   const outcome = boundedSpawnSync({
     label: "ruby collate",
-    command: "ruby",
+    command: RUBY ?? "ruby",
     args: ["-I", lib, COLLATE, ...args],
     cwd: root,
     env: { PATH: process.env.PATH ?? "", HOME: root },
