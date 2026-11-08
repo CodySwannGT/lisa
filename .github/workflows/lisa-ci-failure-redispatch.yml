@@ -13,9 +13,18 @@ name: 🔁 CI Failure Re-dispatch
 # marker is the only reason the item is unclaimed, restores the claimed lane.
 #
 # Trigger: the workflows that carry the required status checks on `main`
-# (`gh api repos/CodySwannGT/lisa/rules/branches/main`). Third-party required
-# contexts (CodeRabbit, GitGuardian) are not workflows; the script reads their
-# state with every other required check.
+# (`gh api repos/CodySwannGT/lisa/rules/branches/main`), AND every check run
+# or commit status that completes (CodySwannGT/lisa#4678). Two required
+# contexts, CodeRabbit and GitGuardian Security Checks, are not workflows in
+# this repository and finish on their own schedule: without `check_run` and
+# `status`, a late third-party failure was never re-dispatched and a late pass
+# never cleared the marker. GitHub delivers both events only to this file on
+# the default branch. The job drops pending statuses before it starts, and
+# defensively drops any check run GitHub Actions created (GitHub does not
+# deliver `check_run` for Actions-created suites, and `workflow_run` covers
+# CI jobs anyway); the script then acts
+# only when the context is a required one, read from the ruleset — no context
+# is hard-coded here.
 #
 # Safety: `workflow_run` runs in the base repository with a write-capable
 # token, even for a run a PR triggered. This job therefore reads metadata only:
@@ -25,12 +34,11 @@ name: 🔁 CI Failure Re-dispatch
 # count only when `github-actions[bot]` (this job's GITHUB_TOKEN identity)
 # authored them, so a forged marker comment is ignored.
 #
-# KNOWN GAP: the verdict is taken only when one of the two trigger workflows
-# completes. When a third-party required check (CodeRabbit, GitGuardian)
-# finishes AFTER both, nothing re-triggers this workflow: a late third-party
-# failure is not re-dispatched, and a late pass does not clear the marker
-# until the next run of a trigger workflow. Tracked as a follow-up. All of the
-# decision logic lives in `scripts/lisa-ci-failure-redispatch.mjs`, which is
+# Dedupe: a third-party context and a CI workflow can complete for the same
+# head at nearly the same moment, so runs serialise per head SHA. The
+# per-PR-and-SHA marker stays the idempotency guarantee: a replayed or
+# concurrent event posts at most one comment and moves the lane at most once.
+# All of the decision logic lives in `scripts/lisa-ci-failure-redispatch.mjs`, which is
 # unit-tested over recorded payloads.
 #
 # NOTE: repo-specific to the Lisa monorepo, NOT a Lisa template — shipping this
@@ -40,11 +48,18 @@ on:
   workflow_run:
     workflows: ['🔍 CI Quality Checks', '🧩 Plugins Sync']
     types: [completed]
+  check_run:
+    types: [completed]
+  status:
   workflow_dispatch:
     inputs:
       run_id:
-        description: 'Actions run id to evaluate (for verification against a past run)'
-        required: true
+        description: 'Actions run id to evaluate (for verification against a past run). Give exactly one of run_id or head_sha.'
+        required: false
+        type: string
+      head_sha:
+        description: 'PR head commit to re-evaluate (for verification after a past third-party check completed). Give exactly one of run_id or head_sha.'
+        required: false
         type: string
       dry_run:
         description: 'Print the planned comment and label moves without writing anything'
@@ -55,17 +70,32 @@ on:
 permissions:
   contents: read
 
-# Both trigger workflows can complete for the same head at nearly the same
-# moment. Serialise per head so the second run sees the first run's marker,
-# and never cancel: a cancelled run is a decision nobody made.
+# Any two triggers (both CI workflows, or a CI workflow and a third-party
+# context) can complete for the same head at nearly the same moment. Serialise
+# per head so the second run sees the first run's marker. A cancelled run is a
+# decision nobody made, so cancel neither the running run
+# (`cancel-in-progress: false`) nor a waiting one: with the default
+# `queue: single`, GitHub cancels an already-PENDING run when a newer run joins
+# the group, so a later pending status or non-required check would silently
+# drop a queued late failure. `queue: max` keeps up to 100 pending runs in
+# FIFO order; only a 101st waiting run for one head would be cancelled.
 concurrency:
-  group: lisa-ci-failure-redispatch-${{ github.event.workflow_run.head_sha || inputs.run_id }}
+  group: lisa-ci-failure-redispatch-${{ github.event.workflow_run.head_sha || github.event.check_run.head_sha || github.event.sha || inputs.head_sha || inputs.run_id }}
   cancel-in-progress: false
+  queue: max
 
 jobs:
   redispatch:
     name: 🔁 Re-dispatch the owning agent
-    if: ${{ github.repository == 'CodySwannGT/lisa' }}
+    # A pending status has not finished. The check-run clause is a defensive
+    # guard: GitHub does not deliver `check_run` for Actions-created suites,
+    # and if it ever did, `workflow_run` already covers CI jobs.
+    if: >-
+      ${{
+        github.repository == 'CodySwannGT/lisa' &&
+        !(github.event_name == 'status' && github.event.state == 'pending') &&
+        !(github.event_name == 'check_run' && github.event.check_run.app.slug == 'github-actions')
+      }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
@@ -82,17 +112,24 @@ jobs:
         with:
           package-manager-cache: false
           node-version: '24.21.0'
-      - name: Decide and act on the completed run
+      - name: Decide and act on the completed run or check
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           EVENT_NAME: ${{ github.event_name }}
           RUN_ID: ${{ inputs.run_id }}
+          HEAD_SHA: ${{ inputs.head_sha }}
           DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run }}
         run: |
           set -o pipefail
           args=()
           if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
-            args+=(--run-id "$RUN_ID")
+            # The script refuses anything but exactly one of the two.
+            if [ -n "$RUN_ID" ]; then
+              args+=(--run-id "$RUN_ID")
+            fi
+            if [ -n "$HEAD_SHA" ]; then
+              args+=(--head-sha "$HEAD_SHA")
+            fi
           else
             args+=(--payload "$GITHUB_EVENT_PATH")
           fi

@@ -23,6 +23,15 @@
  * - Every required check PASSED when each bucket is `pass` or `skipping`.
  * - Anything else is still running: no write.
  *
+ * What triggers a decision (CodySwannGT/lisa#4678): a CI workflow run, and
+ * also a third-party required check (CodeRabbit, GitGuardian) completing on
+ * its own schedule — a `check_run` or a `status` event. Those are gated first:
+ * a pending status, a context that is not required on the default branch's
+ * rulesets, and — defensively, since GitHub does not deliver `check_run` for
+ * Actions-created suites and workflow_run covers CI jobs — an Actions-owned
+ * check run all end with no write and no further read. A passing gate runs the same pipeline; the
+ * decision logic is shared. `--head-sha` re-evaluates a past head by hand.
+ *
  * Writes need positive evidence. A run for a superseded head, a fork PR, a PR
  * with no or a foreign `Work-Item:`, a closed item, or an item outside the
  * claimed lane all end with no write.
@@ -55,6 +64,8 @@ export const CLEARED_MARKER = /<!-- \[lisa-ci-cleared\] run=\d+ -->/u;
 /** Any Lisa lifecycle marker — the claim, attempt, and CI markers alike. */
 export const LISA_MARKER = /\[(?:lisa-[a-z0-9-]+|claude-build-intake)\]/u;
 const NO_REQUIRED = /no (?:required )?checks reported/iu;
+/** Read every page of a REST list as one array of pages. */
+const PAGINATE = Object.freeze(["--paginate", "--slurp"]);
 
 /**
  * The only comment authors whose `[lisa-ci-failed]` / `[lisa-ci-cleared]`
@@ -300,8 +311,7 @@ export function readItemComments(number, repo, gh) {
   const pages = readJson(gh, [
     "api",
     `repos/${repo}/issues/${number}/comments`,
-    "--paginate",
-    "--slurp",
+    ...PAGINATE,
   ]);
   return pages
     .flat()
@@ -406,8 +416,7 @@ function readEvents(number, repo, gh) {
   return readJson(gh, [
     "api",
     `repos/${repo}/issues/${number}/events`,
-    "--paginate",
-    "--slurp",
+    ...PAGINATE,
   ]).flat();
 }
 
@@ -592,27 +601,127 @@ export function planRedispatch({ run, repository, contract, gh }) {
  * Plan a recorded fixture: its event payload plus the gh answers it recorded.
  * @param {{event: object, gh: object}} fixture - Recorded fixture.
  * @param {object} contract - Tracker contract.
+ * @param {Record<string, string|undefined>} [env] - Environment (`GITHUB_RUN_ID`).
  * @returns {Plan} Plan.
  */
-export function planFromFixture(fixture, contract) {
-  return planFromEvent(fixture.event, contract, recordedGh(fixture.gh));
+export function planFromFixture(fixture, contract, env = {}) {
+  return planFromEvent(fixture.event, contract, recordedGh(fixture.gh), env);
 }
 
 /**
- * Plan a `workflow_run` event payload (or a bare run object).
+ * The Actions run that is making this decision, when the environment names
+ * one. A third-party completion has no CI run of its own, so the run that
+ * clears a marker is this re-dispatch run — linkable from the comment.
+ * @param {Record<string, string|undefined>} env - Environment.
+ * @returns {number|undefined} Positive run id, or undefined.
+ */
+function actingRunId(env) {
+  const value = String(env.GITHUB_RUN_ID ?? "");
+  return /^[1-9]\d*$/u.test(value) ? Number(value) : undefined;
+}
+
+/**
+ * Reduce a `check_run` or `status` event to the run shape `planRedispatch`
+ * reads, plus the context it reports and why it can be ignored outright.
+ *
+ * The cleared marker records `run=<digits>`, so every mode needs a numeric
+ * run id: the acting Actions run (`GITHUB_RUN_ID`) when there is one, else the
+ * event's own numeric id (the check run id, or the status id).
+ * @param {object} event - Event payload.
+ * @param {Record<string, string|undefined>} env - Environment.
+ * @returns {{run: object, context: string, ignore?: object}|null} Null for any other event.
+ */
+function thirdPartyCompletion(event, env) {
+  const repository = event.repository;
+  if (event.check_run) {
+    const check = event.check_run;
+    return {
+      context: check.name,
+      run: {
+        id: actingRunId(env) ?? check.id,
+        head_sha: check.head_sha,
+        pull_requests: check.pull_requests ?? [],
+        repository,
+      },
+      ignore:
+        check.app?.slug === "github-actions"
+          ? stop(
+              "ignored-actions-check",
+              "a check run created by GitHub Actions is covered by workflow_run"
+            )
+          : undefined,
+    };
+  }
+  if (typeof event.context === "string" && typeof event.state === "string")
+    return {
+      context: event.context,
+      run: {
+        id: actingRunId(env) ?? event.id,
+        head_sha: event.sha,
+        pull_requests: [],
+        repository,
+      },
+      ignore:
+        event.state === "pending"
+          ? stop("ignored-pending-status", "a pending status has not finished")
+          : undefined,
+    };
+  return null;
+}
+
+/**
+ * The required status-check contexts on a branch, read from its rulesets.
+ * Read live rather than hard-coded, so changing which checks are required
+ * needs no change here.
+ * @param {string} repo - Repository.
+ * @param {string} branch - Branch the rulesets apply to.
+ * @param {Function} gh - Runner.
+ * @returns {Set<string>} Required contexts.
+ */
+function requiredContexts(repo, branch, gh) {
+  const rules = readJson(gh, [
+    "api",
+    `repos/${repo}/rules/branches/${encodeURIComponent(branch)}`,
+    ...PAGINATE,
+  ]).flat();
+  return new Set(
+    rules
+      .filter(rule => rule.type === "required_status_checks")
+      .flatMap(rule => rule.parameters?.required_status_checks ?? [])
+      .map(check => check.context)
+  );
+}
+
+/**
+ * Plan a `workflow_run`, `check_run` or `status` event payload (or a bare run
+ * object). A check run or status first has to concern a finished, required,
+ * non-Actions context; then it runs the same pipeline a `workflow_run` does.
  * @param {object} event - Event payload.
  * @param {object} contract - Tracker contract.
  * @param {Function} gh - Runner.
+ * @param {Record<string, string|undefined>} [env] - Environment.
  * @returns {Plan} Plan.
  */
-function planFromEvent(event, contract, gh) {
-  const run = event.workflow_run ?? event;
+function planFromEvent(event, contract, gh, env = {}) {
+  const completion = thirdPartyCompletion(event, env);
+  const run = completion?.run ?? event.workflow_run ?? event;
   const repository = run.repository?.full_name ?? event.repository?.full_name;
-  return {
-    repository: contract.repository,
-    runId: run.id,
-    ...planRedispatch({ run, repository, contract, gh }),
-  };
+  const base = { repository: contract.repository, runId: run.id };
+  if (completion?.ignore) return { ...base, ...completion.ignore };
+  if (completion) {
+    const branch = event.repository?.default_branch ?? "main";
+    if (
+      !requiredContexts(contract.repository, branch, gh).has(completion.context)
+    )
+      return {
+        ...base,
+        ...stop(
+          "not-required-context",
+          `'${completion.context}' is not a required check on ${branch}`
+        ),
+      };
+  }
+  return { ...base, ...planRedispatch({ run, repository, contract, gh }) };
 }
 
 /**
@@ -705,7 +814,7 @@ function describePlan(plan, dryRun) {
 /**
  * Parse CLI flags.
  * @param {string[]} argv - Arguments.
- * @returns {{runId?: string, payload?: string, dryRun: boolean}} Options.
+ * @returns {{runId?: string, payload?: string, headSha?: string, dryRun: boolean}} Options.
  */
 function parseArgs(argv) {
   const options = { dryRun: false };
@@ -713,25 +822,51 @@ function parseArgs(argv) {
     if (argv[i] === "--dry-run") options.dryRun = true;
     else if (argv[i] === "--run-id") options.runId = argv[++i];
     else if (argv[i] === "--payload") options.payload = argv[++i];
+    else if (argv[i] === "--head-sha") options.headSha = argv[++i];
     else throw new Error(`unknown argument: ${argv[i]}`);
   }
-  if (!options.runId === !options.payload)
-    throw new Error("pass exactly one of --run-id <id> or --payload <file>");
+  const sources = [options.runId, options.payload, options.headSha];
+  if (sources.filter(Boolean).length !== 1)
+    throw new Error(
+      "pass exactly one of --run-id <id>, --payload <file> or --head-sha <sha>"
+    );
   if (options.runId !== undefined && !/^[1-9]\d*$/u.test(options.runId))
     throw new Error(
       `--run-id must be a positive integer, got '${options.runId}'`
+    );
+  if (options.headSha !== undefined && !SHA.test(options.headSha))
+    throw new Error(
+      `--head-sha must be a full 40-character lowercase commit SHA, got '${options.headSha}'`
     );
   return options;
 }
 
 /**
  * Load the event and choose the runner it is read through.
- * @param {{runId?: string, payload?: string, dryRun: boolean}} options - Options.
+ *
+ * `--head-sha` re-evaluates a head whose third-party check already completed
+ * (a manual dry run against the past). It names no context, so it skips the
+ * required-context gate and runs the pipeline as a bare run; the PR comes from
+ * searching for the SHA, and the run id is the acting run (`GITHUB_RUN_ID`),
+ * or 0 when there is none — numeric either way, so a cleared marker stays
+ * well-formed.
+ * @param {{runId?: string, payload?: string, headSha?: string, dryRun: boolean}} options - Options.
  * @param {object} contract - Tracker contract.
  * @param {Function} gh - Live runner.
+ * @param {Record<string, string|undefined>} env - Environment.
  * @returns {{event: object, gh: Function}} Event and runner.
  */
-function loadEvent(options, contract, gh) {
+function loadEvent(options, contract, gh, env) {
+  if (options.headSha)
+    return {
+      event: {
+        id: actingRunId(env) ?? 0,
+        head_sha: options.headSha,
+        pull_requests: [],
+        repository: { full_name: contract.repository },
+      },
+      gh,
+    };
   if (options.runId)
     return {
       event: readJson(gh, [
@@ -750,23 +885,27 @@ function loadEvent(options, contract, gh) {
 /**
  * CLI entry: plan one run and, unless `--dry-run`, apply it.
  * @param {string[]} argv - Arguments.
- * @param {{gh?: Function, write?: Function, contract?: object}} [deps] - Injectables.
+ * @param {{gh?: Function, write?: Function, contract?: object, env?: Record<string, string|undefined>}} [deps] - Injectables.
  * @returns {number} Exit code: 0 decided, 1 failed read/write, 2 bad usage.
  */
 export function main(argv, deps = {}) {
   const write = deps.write ?? (line => process.stdout.write(`${line}\n`));
+  const env = deps.env ?? process.env;
   let options;
   let source;
   try {
     options = parseArgs(argv);
     const contract = deps.contract ?? trackerContract();
-    source = { contract, ...loadEvent(options, contract, deps.gh ?? liveGh) };
+    source = {
+      contract,
+      ...loadEvent(options, contract, deps.gh ?? liveGh, env),
+    };
   } catch (error) {
     write(`lisa-ci-failure-redispatch: ${error.message}`);
     return 2;
   }
   try {
-    const plan = planFromEvent(source.event, source.contract, source.gh);
+    const plan = planFromEvent(source.event, source.contract, source.gh, env);
     if (!options.dryRun) applyPlan(plan, source.gh);
     for (const line of describePlan(plan, options.dryRun)) write(line);
     write(JSON.stringify(plan, null, 2));

@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [4.96.0](https://github.com/CodySwannGT/lisa/compare/v4.95.4...v4.96.0) (2026-11-08)
+
+
+### Features
+
+* **ci:** re-dispatch on late third-party required check completions ([dfb8713](https://github.com/CodySwannGT/lisa/commit/dfb8713f4c1cccca627c977d800ea9160714992e)), closes [CodySwannGT/lisa#4678](https://github.com/CodySwannGT/lisa/issues/4678) [CodySwannGT/lisa#4678](https://github.com/CodySwannGT/lisa/issues/4678)
+* **ci:** trigger CI-failure re-dispatch on check_run and status events ([d1dd683](https://github.com/CodySwannGT/lisa/commit/d1dd683c5ca961f74556073fa9c9075609c3b8f0)), closes [CodySwannGT/lisa#4678](https://github.com/CodySwannGT/lisa/issues/4678) [CodySwannGT/lisa#4678](https://github.com/CodySwannGT/lisa/issues/4678)
+
+
+### Bug Fixes
+
+* **ci:** keep queued re-dispatch runs from being cancelled ([68ca1b3](https://github.com/CodySwannGT/lisa/commit/68ca1b31795ba5f0de17b1b40488bb29bfe7e02d)), closes [CodySwannGT/lisa#4678](https://github.com/CodySwannGT/lisa/issues/4678) [CodySwannGT/lisa#4678](https://github.com/CodySwannGT/lisa/issues/4678)
+
+### [4.95.4](https://github.com/CodySwannGT/lisa/compare/v4.95.3...v4.95.4) (2026-11-08)
+
 ### [4.95.3](https://github.com/CodySwannGT/lisa/compare/v4.95.2...v4.95.3) (2026-11-08)
 
 

@@ -1,0 +1,15 @@
+$ node scripts/lisa-ci-failure-redispatch.mjs --payload tests/fixtures/ci-failure-redispatch/status-coderabbit-passed-gitguardian-pending.json --dry-run
+# worktree head_sha=68ca1b31795ba5f0de17b1b40488bb29bfe7e02d captured_at=2026-11-08T09:49:21Z
+run 38800000004 -> PR #4673 -> work item CodySwannGT/lisa#4672
+outcome: checks-pending — no required check has failed and some have not finished (dry run: nothing written)
+{
+  "repository": "CodySwannGT/lisa",
+  "runId": 38800000004,
+  "pr": 4673,
+  "sha": "3db71f89a186d5dbeb78015aa5735fa9d8efda48",
+  "item": "CodySwannGT/lisa#4672",
+  "outcome": "checks-pending",
+  "reason": "no required check has failed and some have not finished",
+  "actions": []
+}
+exit=0
