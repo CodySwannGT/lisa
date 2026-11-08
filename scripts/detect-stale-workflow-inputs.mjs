@@ -30,9 +30,18 @@
  * CLI:
  *   node scripts/detect-stale-workflow-inputs.mjs [--project <dir>]... [--contracts-root <dir>] [--json]
  *
+ * Caller lines are read in every shape Lisa's pin step writes, including the
+ * trailing `# v<version>` comment and quoted references (#4641). A `uses:` line
+ * that names a Lisa reusable workflow but cannot be read is reported with
+ * status `unparsed` rather than dropped, so a file the detector could not read
+ * never counts as clean.
+ *
  * Exit codes:
- *   0 — no stale inputs found (includes the case of zero callers scanned).
- *   1 — stale input(s) found in at least one caller.
+ *   0 — every Lisa caller was read and none has a stale input. This includes a
+ *       project with no Lisa reusable-workflow callers at all; the summary line
+ *       says so explicitly.
+ *   1 — stale input(s) found in at least one caller, or at least one Lisa
+ *       caller line could not be read (`unparsed`).
  *   2 — operational/usage error: unknown flag, a flag missing its value, a
  *       `--project` that isn't a directory, or a filesystem error while scanning.
  *
@@ -48,6 +57,7 @@ import {
   diffStaleKeys,
   extractCallerJobs,
   extractDeclaredInputs,
+  findUnparsedLisaCallerLines,
   parseReusableReference,
 } from "./lib/reusable-workflow-contract.mjs";
 
@@ -55,6 +65,7 @@ export {
   diffStaleKeys,
   extractCallerJobs,
   extractDeclaredInputs,
+  findUnparsedLisaCallerLines,
   parseReusableReference,
 };
 
@@ -104,21 +115,48 @@ function resolveContractInputs(contractsRoot, reusableFile) {
 }
 
 /**
+ * Whether a parsed caller job calls one of Lisa's reusable workflows. Owner and
+ * repository compare case-insensitively, as GitHub resolves them.
+ *
+ * @param {{ owner?: string | null, repo?: string | null }} job - a caller row.
+ * @returns {boolean} true for a Lisa caller.
+ */
+function isLisaCaller(job) {
+  return (
+    job.owner?.toLowerCase() === LISA_OWNER &&
+    job.repo?.toLowerCase() === LISA_REPO
+  );
+}
+
+/**
  * Scan one caller workflow file and classify each of its reusable-workflow
  * jobs against the contracts root.
  *
  * @param {string} filePath - absolute path to the caller workflow file.
  * @param {string} contractsRoot - directory holding current reusable workflows.
- * @returns {{ reusableFile: string, ref: string, withKeys: string[], staleInputs: string[], status: "ok" | "stale" | "unknown-contract" }[]}
- *   one row per reusable-workflow job found in the file.
+ * @returns {{ reusableFile: string | null, ref: string | null, withKeys: string[], staleInputs: string[], status: "ok" | "stale" | "unknown-contract" | "unparsed", line?: number, text?: string }[]}
+ *   one row per reusable-workflow job found in the file, plus one `unparsed`
+ *   row per line naming a Lisa reusable workflow that the parser could not
+ *   read.
  */
 function scanCallerFile(filePath, contractsRoot) {
-  const jobs = extractCallerJobs(fs.readFileSync(filePath, "utf8"));
-  return jobs.map(job => {
-    const isLisaContract =
-      job.owner?.toLowerCase() === LISA_OWNER &&
-      job.repo?.toLowerCase() === LISA_REPO;
-    const declared = isLisaContract
+  const content = fs.readFileSync(filePath, "utf8");
+  const jobs = extractCallerJobs(content);
+  // Fail closed (#4641): a Lisa caller line the parser cannot read must be
+  // reported, never silently counted as "nothing stale".
+  const unparsed = findUnparsedLisaCallerLines(content).map(entry => ({
+    line: entry.line,
+    owner: null,
+    ref: null,
+    repo: null,
+    reusableFile: null,
+    staleInputs: [],
+    status: "unparsed",
+    text: entry.text,
+    withKeys: [],
+  }));
+  const classified = jobs.map(job => {
+    const declared = isLisaCaller(job)
       ? resolveContractInputs(contractsRoot, job.reusableFile)
       : null;
     if (declared === null) {
@@ -131,6 +169,7 @@ function scanCallerFile(filePath, contractsRoot) {
       status: staleInputs.length > 0 ? "stale" : "ok",
     };
   });
+  return [...classified, ...unparsed];
 }
 
 /**
@@ -175,16 +214,21 @@ export function buildReport(results, opts) {
   const unknownContract = results.filter(
     r => r.status === "unknown-contract"
   ).length;
+  const unparsed = results.filter(r => r.status === "unparsed").length;
+  // An unparsed line is a caller the detector could NOT check, so it is
+  // reported separately and never counted among the caller jobs scanned.
+  const scanned = results.length - unparsed;
   return {
     contractsRoot: opts.contractsRoot,
     projects: opts.projects,
     results,
     schemaVersion: 1,
     summary: {
-      ok: results.length - stale - unknownContract,
-      scanned: results.length,
+      ok: scanned - stale - unknownContract,
+      scanned,
       stale,
       unknownContract,
+      unparsed,
     },
   };
 }
@@ -204,9 +248,41 @@ function cell(value) {
 }
 
 /**
+ * Render the summary line under the human-readable table.
+ *
+ * A project with no Lisa caller is stated outright, so a reader can tell
+ * "nothing of Lisa's to check" apart from "checked and clean" (#4641) — also
+ * when the project has third-party callers that were counted. Unreadable Lisa
+ * caller lines get a hint naming the shape the detector needs; when nothing
+ * else was scanned, that hint leads and the "0 of 0" counts are dropped.
+ *
+ * @param {{ scanned: number, stale: number, unknownContract: number, unparsed: number }} summary
+ *   the report's summary counts.
+ * @param {boolean} hasLisaCaller - whether any row is a Lisa caller, parsed or
+ *   not.
+ * @returns {string} the summary line.
+ */
+function summaryLine(summary, hasLisaCaller) {
+  const noLisa = "no Lisa reusable-workflow callers found";
+  if (summary.scanned === 0 && !hasLisaCaller) {
+    return `${noLisa} — nothing to check`;
+  }
+  // Detection stays fail-closed: any non-comment line naming a Lisa workflow
+  // path is listed. The hint covers both reasons a line can land here, so an
+  // operator is not told to "fix" a caller that is really prose in a script.
+  const unparsed = `${summary.unparsed} Lisa caller line(s) could not be read. If a listed line is a real caller, rewrite it as \`uses: CodySwannGT/lisa/.github/workflows/<file>@<ref>\`; if it only mentions the path (for example inside a \`run:\` script), reword or move that text.`;
+  if (summary.scanned === 0 && summary.unparsed > 0) {
+    return unparsed;
+  }
+  const counts = `${summary.stale} of ${summary.scanned} caller jobs have stale inputs (${summary.unknownContract} unresolvable contract(s))`;
+  const tail = summary.unparsed > 0 ? `; ${unparsed}` : "";
+  return `${counts}${tail}${hasLisaCaller ? "" : ` — ${noLisa}`}`;
+}
+
+/**
  * Render the human-readable markdown table + summary line.
  *
- * @param {{ results: ReadonlyArray<Record<string, unknown>>, summary: { scanned: number, stale: number, unknownContract: number } }} report
+ * @param {{ results: ReadonlyArray<Record<string, unknown>>, summary: { scanned: number, stale: number, unknownContract: number, unparsed: number } }} report
  *   the report object.
  * @returns {string} the rendered table.
  */
@@ -216,10 +292,12 @@ function humanTable(report) {
     "| --- | --- | --- | --- | --- |";
   const rows = report.results.map(
     r =>
-      `| ${cell(r.project)} | ${cell(r.file)} | ${cell(r.reusableFile)} | ${cell(r.staleInputs)} | ${cell(r.status)} |`
+      `| ${cell(r.project)} | ${cell(r.line === undefined ? r.file : `${r.file}:${r.line}`)} | ${cell(r.reusableFile)} | ${cell(r.staleInputs)} | ${cell(r.status)} |`
   );
-  const summary = `\n${report.summary.stale} of ${report.summary.scanned} caller jobs have stale inputs (${report.summary.unknownContract} unresolvable contract(s))`;
-  return [header, ...rows].join("\n") + summary;
+  const hasLisaCaller = report.results.some(
+    r => r.status === "unparsed" || isLisaCaller(r)
+  );
+  return `${[header, ...rows].join("\n")}\n${summaryLine(report.summary, hasLisaCaller)}`;
 }
 
 /**
@@ -282,7 +360,8 @@ export function parseArgs(argv) {
  * @param {readonly string[]} argv - arguments (without node/script prefix).
  * @param {{ stdout?: { write(s: string): void }, stderr?: { write(s: string): void } }} [io]
  *   injectable streams (defaults to process streams).
- * @returns {number} the exit code (0 ok, 1 stale found, 2 usage error).
+ * @returns {number} the exit code (0 ok, 1 stale or unparsed found, 2 usage
+ *   error).
  */
 export function main(argv, io = {}) {
   const out = io.stdout ?? process.stdout;
@@ -317,7 +396,9 @@ export function main(argv, io = {}) {
   }
   const report = buildReport(results, opts);
   emitReport(out, report, opts.json);
-  return results.some(r => r.status === "stale") ? 1 : 0;
+  return results.some(r => r.status === "stale" || r.status === "unparsed")
+    ? 1
+    : 0;
 }
 
 if (invokedAsScript(import.meta.url)) {

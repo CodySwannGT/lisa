@@ -34,6 +34,7 @@ import {
   diffStaleKeys,
   extractCallerJobs,
   extractDeclaredInputs,
+  findUnparsedLisaCallerLines,
 } from "../../scripts/lib/reusable-workflow-contract.mjs";
 import {
   projectPathKind,
@@ -606,6 +607,91 @@ export async function inspectCreateOnlyWorkflows(
 }
 
 /**
+ * Read a reusable workflow's declared inputs from whichever side owns it.
+ * @param lisaRoot - Lisa package root
+ * @param projectRoot - Canonical host root
+ * @param contractOwner - Which repository ships the reusable workflow
+ * @param reusableFile - Basename of the reusable workflow
+ * @returns Declared input names, or null when the contract is unreadable
+ */
+async function declaredWorkflowInputs(
+  lisaRoot: string,
+  projectRoot: string,
+  contractOwner: "lisa" | "project",
+  reusableFile: string
+): Promise<readonly string[] | null> {
+  if (contractOwner === "lisa") {
+    return readFile(
+      path.join(lisaRoot, ".github", WORKFLOWS, path.basename(reusableFile)),
+      "utf8"
+    )
+      .then(content => extractDeclaredInputs(content))
+      .catch(() => null);
+  }
+  return readProjectText(
+    projectRoot,
+    path.join(".github", WORKFLOWS, reusableFile)
+  )
+    .then(content =>
+      content === undefined ? null : extractDeclaredInputs(content)
+    )
+    .catch(() => null);
+}
+
+/**
+ * Compare one caller file's reusable-workflow jobs with their contracts.
+ *
+ * A Lisa `uses:` line the shared parser cannot read is reported as unknown
+ * rather than skipped (CodySwannGT/lisa#4641): skipping it made `ci.workflows`
+ * pass on every pinned host having compared nothing.
+ * @param lisaRoot - Lisa package root
+ * @param projectRoot - Canonical host root
+ * @param destination - Caller path relative to the host root
+ * @param caller - Caller file text
+ * @param config - Safe project config
+ * @returns Stale and unknown caller descriptions for this file
+ */
+async function inspectCallerFile(
+  lisaRoot: string,
+  projectRoot: string,
+  destination: string,
+  caller: string,
+  config: Readonly<Record<string, unknown>>
+): Promise<WorkflowInputInspection> {
+  const file = destination.split(path.sep).join("/");
+  const unparsed = findUnparsedLisaCallerLines(caller).map(
+    entry => `${file} line ${entry.line} (unreadable uses line)`
+  );
+  const jobs = await Promise.all(
+    extractCallerJobs(caller).map(async job => {
+      const label = `${file}#${job.reusableFile}`;
+      const contractOwner = workflowContractOwner(job.owner, job.repo, config);
+      const declared =
+        contractOwner === undefined
+          ? null
+          : await declaredWorkflowInputs(
+              lisaRoot,
+              projectRoot,
+              contractOwner,
+              job.reusableFile
+            );
+      return declared === null
+        ? { stale: [], unknown: [label] }
+        : {
+            stale: diffStaleKeys(job.withKeys, declared).map(
+              key => `${label}:${key}`
+            ),
+            unknown: [],
+          };
+    })
+  );
+  return {
+    stale: jobs.flatMap(job => job.stale),
+    unknown: [...jobs.flatMap(job => job.unknown), ...unparsed],
+  };
+}
+
+/**
  * Inspect applicable create-only workflow caller inputs against shipped contracts.
  * @param lisaRoot - Lisa package root
  * @param projectRoot - Canonical host root
@@ -613,7 +699,6 @@ export async function inspectCreateOnlyWorkflows(
  * @param config - Safe project config
  * @returns Stale and unknown caller descriptions
  */
-// eslint-disable-next-line sonarjs/cognitive-complexity -- parser outcomes remain explicit and bounded
 export async function inspectWorkflowInputs(
   lisaRoot: string,
   projectRoot: string,
@@ -623,56 +708,25 @@ export async function inspectWorkflowInputs(
   const candidates = (
     await applicableCandidates(lisaRoot, projectRoot, types, config)
   ).filter(candidate => categoryFor(candidate.destination) === WORKFLOWS);
-  const stale: string[] = [];
-  const unknown: string[] = [];
-  for (const candidate of candidates) {
-    const caller = await readProjectText(projectRoot, candidate.destination);
-    if (caller === undefined) continue;
-    for (const job of extractCallerJobs(caller)) {
-      const label = `${candidate.destination.split(path.sep).join("/")}#${job.reusableFile}`;
-      const contractOwner = workflowContractOwner(job.owner, job.repo, config);
-      if (contractOwner === undefined) {
-        // eslint-disable-next-line functional/immutable-data -- bounded local result collector
-        unknown.push(label);
-        continue;
-      }
-      const declared =
-        contractOwner === "lisa"
-          ? await readFile(
-              path.join(
-                lisaRoot,
-                ".github",
-                WORKFLOWS,
-                path.basename(job.reusableFile)
-              ),
-              "utf8"
-            )
-              .then(content => extractDeclaredInputs(content))
-              .catch(() => null)
-          : await readProjectText(
-              projectRoot,
-              path.join(".github", WORKFLOWS, job.reusableFile)
-            )
-              .then(content =>
-                content === undefined ? null : extractDeclaredInputs(content)
-              )
-              .catch(() => null);
-      if (declared === null) {
-        // eslint-disable-next-line functional/immutable-data -- bounded local result collector
-        unknown.push(label);
-        continue;
-      }
-      for (const key of diffStaleKeys(job.withKeys, declared)) {
-        // eslint-disable-next-line functional/immutable-data -- bounded local result collector
-        stale.push(`${label}:${key}`);
-      }
-    }
-  }
+  const files = await Promise.all(
+    candidates.map(async candidate => {
+      const caller = await readProjectText(projectRoot, candidate.destination);
+      return caller === undefined
+        ? { stale: [], unknown: [] }
+        : inspectCallerFile(
+            lisaRoot,
+            projectRoot,
+            candidate.destination,
+            caller,
+            config
+          );
+    })
+  );
+  const sortedUnique = (items: readonly string[]): readonly string[] =>
+    [...new Set(items)].sort((left, right) => left.localeCompare(right));
   return {
-    stale: [...new Set(stale)].sort((left, right) => left.localeCompare(right)),
-    unknown: [...new Set(unknown)].sort((left, right) =>
-      left.localeCompare(right)
-    ),
+    stale: sortedUnique(files.flatMap(file => file.stale)),
+    unknown: sortedUnique(files.flatMap(file => file.unknown)),
   };
 }
 

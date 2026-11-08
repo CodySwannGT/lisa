@@ -1,0 +1,18 @@
+# Fixture: a caller exactly as Lisa's pin step writes it — full SHA plus a
+# trailing `# v<version>` comment (issue #4641) — still passing the stale
+# `package_manager` input. The detector must parse it and report the input.
+name: Example Agent
+
+on:
+  issue_comment:
+    types: [created]
+
+jobs:
+  agent:
+    uses: CodySwannGT/lisa/.github/workflows/reusable-example.yml@35d0951f9250572d16872c36b242d679cbc22d72 # v4.87.7
+    with:
+      event_name: ${{ github.event_name }}
+      author_association: ${{ github.event.comment.author_association || '' }}
+      package_manager: 'bun'
+    secrets:
+      EXAMPLE_AGENT_TOKEN: ${{ secrets.EXAMPLE_AGENT_TOKEN }}

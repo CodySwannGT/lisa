@@ -62,6 +62,7 @@ describe("detect-stale-workflow-inputs end-to-end", () => {
       ok: 0,
       stale: 1,
       unknownContract: 0,
+      unparsed: 0,
     });
     const result = findResult(report, EXAMPLE_AGENT_YML);
     expect(result?.reusableFile).toBe(REUSABLE_EXAMPLE_AGENT_YML);
@@ -84,6 +85,7 @@ describe("detect-stale-workflow-inputs end-to-end", () => {
       ok: 1,
       stale: 0,
       unknownContract: 0,
+      unparsed: 0,
     });
     const result = findResult(report, EXAMPLE_AGENT_YML);
     expect(result?.staleInputs).toEqual([]);
@@ -105,6 +107,7 @@ describe("detect-stale-workflow-inputs end-to-end", () => {
       ok: 1,
       stale: 1,
       unknownContract: 1,
+      unparsed: 0,
     });
     expect(findResult(report, EXAMPLE_AUTO_FIX_YML)?.status).toBe("stale");
     expect(findResult(report, EXAMPLE_AGENT_YML)?.status).toBe("ok");
@@ -129,6 +132,7 @@ describe("detect-stale-workflow-inputs end-to-end", () => {
       ok: 0,
       stale: 0,
       unknownContract: 0,
+      unparsed: 0,
     });
   });
 
@@ -159,6 +163,7 @@ describe("detect-stale-workflow-inputs end-to-end", () => {
       ok: 1,
       stale: 1,
       unknownContract: 0,
+      unparsed: 0,
     });
   });
 });
@@ -290,12 +295,13 @@ describe("diffStaleKeys", () => {
 });
 
 describe("buildReport", () => {
-  it("computes ok/stale/unknownContract summary counts from hardcoded rows", () => {
+  it("computes ok/stale/unknownContract/unparsed summary counts from hardcoded rows", () => {
     const results = [
       { status: "ok" },
       { status: "stale" },
       { status: "stale" },
       { status: "unknown-contract" },
+      { status: "unparsed" },
     ];
     expect(
       buildReport(results, { projects: ["/p"], contractsRoot: "/c" })
@@ -304,7 +310,13 @@ describe("buildReport", () => {
       projects: ["/p"],
       results,
       schemaVersion: 1,
-      summary: { ok: 1, scanned: 4, stale: 2, unknownContract: 1 },
+      summary: {
+        ok: 1,
+        scanned: 4,
+        stale: 2,
+        unknownContract: 1,
+        unparsed: 1,
+      },
     });
   });
 });
