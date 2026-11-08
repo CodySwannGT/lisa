@@ -1,0 +1,10 @@
+== CONTROL pre-fix 9c6940de39^ (a7fc3ee4eb) copy ==
+script: /Users/codysai/workspace/lisa/.claude/worktrees/4694-sweep-json-flush/all/copy-overwrite/scripts/lib/zz-prefix-sweep-4694.mjs
+node: v22.22.0  os: Darwin 25.2.0
+seeded: 10000 dirs; sample mtime/mode: Nov  5 00:00:00 2026 drwx------
+piped (| cat): exit=0 bytes=65536  PARSE=FAIL Unterminated string in JSON at position 65536 (line 1 column 65537)
+direct (>):    exit=0 bytes=528977  PARSE=ok removed=10000 unique_seeded_names=10000
+cmp piped vs direct (byte-for-byte): DIFFER
+normalized compare: N/A (one side does not parse)
+after --dry-run, entries still on disk: 10000
+piped head(100): {"removed":["/private/tmp/v4694-run/root-BPFoEu/lisa-repro-4726","/private/tmp/v4694-run/root-BPFoEu
