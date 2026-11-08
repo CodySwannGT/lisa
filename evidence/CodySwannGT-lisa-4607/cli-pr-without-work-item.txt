@@ -1,0 +1,14 @@
+$ node scripts/lisa-ci-failure-redispatch.mjs --payload tests/fixtures/ci-failure-redispatch/pr-without-work-item.json --dry-run
+# captured_at 2026-11-07T19:35:44Z head cf887192e5c17bbd9e9e5d2affd0ecb3f848701a
+run 42394865888 -> PR #4673 -> work item (none)
+outcome: non-agent-pr — No Work-Item trailer anywhere in the pull-request body (dry run: nothing written)
+{
+  "repository": "CodySwannGT/lisa",
+  "runId": 42394865888,
+  "sha": "3db71f89a186d5dbeb78015aa5735fa9d8efda48",
+  "pr": 4673,
+  "outcome": "non-agent-pr",
+  "reason": "No Work-Item trailer anywhere in the pull-request body",
+  "actions": []
+}
+EXIT=0

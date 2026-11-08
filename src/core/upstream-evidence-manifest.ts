@@ -1255,7 +1255,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/rules/reference/ready-role-filing.md":
       "ab6ef509ee3560b55cf0a7cb03edb0c63d97c71334ee3baafd54bdeb06451f81",
     "plugins/src/base/rules/reference/rejection-detection.md":
-      "9a9057d9c392b9d7e3411bb71a7b2f7f678e2668fd0110b9a976a00959a157d6",
+      "79b465c6bf11a27ba37b3ef581ced121b31ae45f0e75cc2bce0d5ba083b2943f",
     "plugins/src/base/rules/reference/repo-scope-split.md":
       "20b1aa6999a9376d7b9990c0022f40a4d48d5d09af9c709bf1b6ead3f1443b16",
     "plugins/src/base/rules/reference/report-actionability.md":
@@ -1429,7 +1429,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-github-add-journey/SKILL.md":
       "4ceda3474a9b32abae835c2676e8cb2b7e888c6ba04b95843dbe7254293bbf32",
     "plugins/src/base/skills/lisa-github-build-intake/SKILL.md":
-      "54be96208f76e1a9cdd23aa953c5d405ba94645f5975f413d9c2e1b5b3134516",
+      "15637afeb68266fba692b666488b9041535b37e16f92cf2c633e8ea0c04abe07",
     "plugins/src/base/skills/lisa-github-claim/SKILL.md":
       "71301c6d45d7eb5523e74aa7f070bb2becf57ca68fb8bde9e02ee937b78815f7",
     "plugins/src/base/skills/lisa-github-create/SKILL.md":
@@ -2818,6 +2818,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "31cb1cd96e7bd692d10ed2c26aa83c6b0580e48dbe6d2393edf9652970def091",
     "scripts/lisa-assert-eas-profile.mjs":
       "624e40d7f33ca17208fc6b7a19320a785cff19da5d2ff8062b67a432b2a34022",
+    "scripts/lisa-ci-failure-redispatch.mjs":
+      "2af56097888ea0d1737957aed0a81fec739107c9214184787dd97821bf6560c7",
     "scripts/lisa-commit-and-pr-local.sh":
       "cc9f1be63bcd881125aa59aa35432c2ab1d41119b2a28e8de817536b0f302b01",
     "scripts/lisa-commit-msg-gates.mjs":
@@ -3183,6 +3185,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     ".github/workflows/lifecycle-terminal-transition.yml": true,
     ".github/workflows/lighthouse.yml": true,
     ".github/workflows/lisa-build-intake.yml": true,
+    ".github/workflows/lisa-ci-failure-redispatch.yml": true,
     ".github/workflows/load-test.yml": true,
     ".github/workflows/maestro-native-e2e.yml": true,
     ".github/workflows/mutation-performance-baseline.yml": true,
@@ -3671,6 +3674,17 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "evidence/4604/skill-canary-steps.txt": true,
     "evidence/4604/update-projects-plan-tests.txt": true,
     "evidence/4604/zero-budget-probe.txt": true,
+    "evidence/CodySwannGT-lisa-4607/cli-agent-pr-failed-replayed.txt": true,
+    "evidence/CodySwannGT-lisa-4607/cli-agent-pr-failed.txt": true,
+    "evidence/CodySwannGT-lisa-4607/cli-agent-pr-passed-rerun.txt": true,
+    "evidence/CodySwannGT-lisa-4607/cli-bite-controls.txt": true,
+    "evidence/CodySwannGT-lisa-4607/cli-forged-marker-failure.txt": true,
+    "evidence/CodySwannGT-lisa-4607/cli-forged-marker-pass.txt": true,
+    "evidence/CodySwannGT-lisa-4607/cli-item-not-claimed.txt": true,
+    "evidence/CodySwannGT-lisa-4607/cli-live-probe.txt": true,
+    "evidence/CodySwannGT-lisa-4607/cli-pr-without-work-item.txt": true,
+    "evidence/CodySwannGT-lisa-4607/cli-reclaimed-without-comment-replayed.txt": true,
+    "evidence/CodySwannGT-lisa-4607/cli-skill-routing.txt": true,
     "evidence/copilot-hook-mcp-probe-1056.md": true,
     "evidence/cursor-rule-probe-1055.md": true,
     "expo/copy-overwrite/.easignore.extra": true,
@@ -10496,6 +10510,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "scripts/lib/worktree-dependencies.d.mts": true,
     "scripts/lib/worktree-dependencies.mjs": true,
     "scripts/lisa-assert-eas-profile.mjs": true,
+    "scripts/lisa-ci-failure-redispatch.mjs": true,
     "scripts/lisa-commit-and-pr-local.sh": true,
     "scripts/lisa-commit-msg-gates.mjs": true,
     "scripts/lisa-enforcement-census.mjs": true,
@@ -11120,6 +11135,14 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/e2e/ui-version-status.spec.ts": true,
     "tests/fixtures/automation-status/attention-needed-codex.json": true,
     "tests/fixtures/automation-status/partial-support-codex.json": true,
+    "tests/fixtures/ci-failure-redispatch/agent-pr-failed-replayed.json": true,
+    "tests/fixtures/ci-failure-redispatch/agent-pr-failed.json": true,
+    "tests/fixtures/ci-failure-redispatch/agent-pr-passed-rerun.json": true,
+    "tests/fixtures/ci-failure-redispatch/forged-marker-failure.json": true,
+    "tests/fixtures/ci-failure-redispatch/forged-marker-pass.json": true,
+    "tests/fixtures/ci-failure-redispatch/item-not-claimed.json": true,
+    "tests/fixtures/ci-failure-redispatch/pr-without-work-item.json": true,
+    "tests/fixtures/ci-failure-redispatch/reclaimed-without-comment-replayed.json": true,
     "tests/fixtures/dependency-internalization-kit/dependency-internalization-ticket.md": true,
     "tests/fixtures/dependency-internalization-kit/version-bump-ticket.md": true,
     "tests/fixtures/dependency-ownership/addition/.github/workflows/deploy.yml": true,
@@ -12531,6 +12554,12 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/kill-marks.test.ts": true,
     "tests/unit/scripts/lint-staged-preflight.test.ts": true,
     "tests/unit/scripts/lisa-assert-eas-profile.test.ts": true,
+    "tests/unit/scripts/lisa-ci-failure-redispatch-cli.test.ts": true,
+    "tests/unit/scripts/lisa-ci-failure-redispatch-edges.test.ts": true,
+    "tests/unit/scripts/lisa-ci-failure-redispatch-intake.test.ts": true,
+    "tests/unit/scripts/lisa-ci-failure-redispatch-trust.test.ts": true,
+    "tests/unit/scripts/lisa-ci-failure-redispatch-workflow.test.ts": true,
+    "tests/unit/scripts/lisa-ci-failure-redispatch.test.ts": true,
     "tests/unit/scripts/lisa-environment-prepare.test.ts": true,
     "tests/unit/scripts/lisa-gates-await-deploy-refusal.test.ts": true,
     "tests/unit/scripts/lisa-gates-await-moment-reach.test.ts": true,
