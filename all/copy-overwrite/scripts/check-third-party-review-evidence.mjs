@@ -121,6 +121,14 @@
  * CLI:
  *   node scripts/check-third-party-review-evidence.mjs --sha <sha> [--json]
  *     [--context <context>] [--root <dir>] [--repo <owner/repo>]
+ *     [--arm [--vacuity-report <path>]]
+ *
+ * `--arm` answers the merge driver's arm gate instead (#4653): whether
+ * auto-merge may be turned on for this head, and if not, what to do next.
+ * `--vacuity-report` is the saved `check-skipped-required-checks.mjs --vacuity
+ * --json` output on hosts that ship that classifier; without it the decision
+ * rests on the config-declared reviewer alone, which is every stack's case.
+ * Exit 0 means arm; read `arm` and `action`, not the exit code, to know why.
  *
  * `--context` names the status context or check-run name that woke the run.
  * When it is given and belongs to no declared reviewer, the run is an explicit
@@ -130,6 +138,8 @@
  *
  * @module scripts/check-third-party-review-evidence
  */
+import { existsSync, readFileSync } from "node:fs";
+
 import { boundedExecFileSync } from "./lib/bounded-spawn.mjs";
 import { invokedAsScript } from "./lib/invoked-as-script.mjs";
 import { EVIDENCE_DEFAULTS, PULL_REQUEST, readGates } from "./lisa-gates.mjs";
@@ -847,6 +857,400 @@ export function reviewEvidenceVerdict({
 }
 
 /**
+ * What the merge driver does after the arm decision (#4653).
+ *
+ * Only `arm` turns auto-merge on. Every other action leaves it off, and names
+ * the next step so the caller never has to re-derive it from a verdict.
+ */
+export const ARM_ACTIONS = Object.freeze({
+  /** Every engaged signal proved work. Turn auto-merge on. */
+  arm: "arm",
+  /** Nothing read this head. Post the local adversarial review, then decide again. */
+  substitute: "substitute",
+  /** Not an answer yet. Do not arm; keep driving. */
+  watch: "watch",
+  /** A review ran and objected. A real blocker. */
+  blocker: "blocker",
+  /** A read the decision depends on failed. Stop under the access gate. */
+  stop: "stop",
+});
+
+/**
+ * Classifier violation kinds that say the review context did no work, which a
+ * writer's substitute for this head may stand in for.
+ */
+const SUBSTITUTABLE_KINDS = new Set([
+  "review_evidence_waived",
+  "review_evidence_carried_unreviewed",
+  "vacuous_required_check",
+  "unproven_required_check",
+  "absent_required_check",
+]);
+
+/** The classifier's refusal that means it has nothing declared to read. */
+const VACUITY_NONE_DECLARED = "vacuity_none_declared";
+
+/** The proof phrase that proves work was done AND that the work objected. */
+const OBJECTING_PROOF = normalizeDescription("Changes requested");
+
+/** Which non-arm action wins when signals disagree; earlier wins. */
+const ACTION_PRIORITY = [
+  ARM_ACTIONS.stop,
+  ARM_ACTIONS.blocker,
+  ARM_ACTIONS.watch,
+  ARM_ACTIONS.substitute,
+];
+
+/**
+ * One signal's answer.
+ * @param {string} action - One of {@link ARM_ACTIONS}.
+ * @param {string} reason - Why, in an operator's words.
+ * @returns {{engaged: boolean, action: string, reason: string, viaSubstitute?: boolean}} The signal.
+ */
+const engagedSignal = (action, reason) => ({ engaged: true, action, reason });
+
+/** A signal that has nothing declared to read. */
+const NOT_ENGAGED = Object.freeze({
+  engaged: false,
+  action: ARM_ACTIONS.arm,
+  reason: "",
+});
+
+/**
+ * Whether every given context has a writer's first-line substitute at this head.
+ * @param {ReadonlyArray<string>} contexts - Contexts that showed no review.
+ * @param {ReadonlySet<string>} substitutes - Contexts a writer substituted for.
+ * @returns {boolean} True only when there is something to cover and all of it is.
+ */
+const allSubstituted = (contexts, substitutes) =>
+  contexts.length > 0 && contexts.every(context => substitutes.has(context));
+
+/**
+ * What the config-declared reviewer says about arming.
+ *
+ * The prover's own `substituted` outcome counts a marker ANYWHERE in ANY
+ * comment, which is right for the response arm and wrong here: arming turns a
+ * blocking verdict into a merge, so a substitute counts only as the first line
+ * of a comment by someone with write access — the classifier's rule, for the
+ * same reason. A `Changes requested` proof proves the reviewer worked, not that
+ * the head may merge.
+ * @param {{outcome: string, readings?: ReadonlyArray<{context: string, reviewed: boolean, observed?: string|null}>}} evidence - This prover's verdict.
+ * @param {ReadonlySet<string>} substitutes - Contexts a writer substituted for at this head.
+ * @returns {{engaged: boolean, action: string, reason: string, viaSubstitute?: boolean}} The signal.
+ */
+function evidenceSignal(evidence, substitutes) {
+  const readings = evidence.readings ?? [];
+  const unreviewed = readings
+    .filter(reading => !reading.reviewed)
+    .map(reading => reading.context);
+  if (evidence.outcome === EVIDENCE_OUTCOMES.noReviewerConfigured) {
+    return NOT_ENGAGED;
+  }
+  if (evidence.outcome === EVIDENCE_OUTCOMES.pullRequestsUnreadable) {
+    return engagedSignal(
+      ARM_ACTIONS.stop,
+      "the pull requests could not be read, so the review is unknown"
+    );
+  }
+  // Under EVERY outcome, not only `satisfied`: one reviewer's objection is
+  // not cancelled by another reviewer's substitute.
+  if (
+    readings.some(
+      reading => normalizeDescription(reading.observed) === OBJECTING_PROOF
+    )
+  ) {
+    return engagedSignal(
+      ARM_ACTIONS.blocker,
+      "a configured reviewer requested changes"
+    );
+  }
+  // A substitute never stands in for a review still in flight: armed now, the
+  // latch would merge on whatever that review concludes, objection included.
+  if (readings.some(reading => reading.reading === EVIDENCE_READINGS.pending)) {
+    return engagedSignal(
+      ARM_ACTIONS.watch,
+      "a configured reviewer is still running"
+    );
+  }
+  switch (evidence.outcome) {
+    case EVIDENCE_OUTCOMES.satisfied:
+      return engagedSignal(
+        ARM_ACTIONS.arm,
+        "every configured reviewer showed its reviewed-when evidence"
+      );
+    case EVIDENCE_OUTCOMES.substituted:
+    case EVIDENCE_OUTCOMES.unsatisfied:
+      return allSubstituted(unreviewed, substitutes)
+        ? {
+            ...engagedSignal(
+              ARM_ACTIONS.arm,
+              "a writer's first-line substitute review is posted for this head"
+            ),
+            viaSubstitute: true,
+          }
+        : engagedSignal(
+            ARM_ACTIONS.substitute,
+            "a configured reviewer showed no evidence it read this head, and no writer's first-line substitute stands in for it"
+          );
+    default:
+      return engagedSignal(
+        ARM_ACTIONS.watch,
+        `the reviewer evidence is not an answer yet (${evidence.outcome})`
+      );
+  }
+}
+
+/**
+ * The action one classifier violation calls for, or null when it says nothing
+ * about the review context.
+ * @param {{kind?: string, condition?: string, contexts?: string[]}} violation - One violation.
+ * @param {ReadonlySet<string>} substitutes - Contexts a writer substituted for at this head.
+ * @param {ReadonlySet<string>|null} reviewContexts - The classifier's review contexts; null when unknown.
+ * @returns {string|null} One of {@link ARM_ACTIONS}, or null.
+ */
+function violationAction(violation, substitutes, reviewContexts) {
+  const kind = String(violation?.kind ?? "");
+  const named = violationContexts(violation);
+  // vacuous / unproven / absent name ANY required check, a CI job included.
+  // Only a review context's absence is a review signal; a CI job that has not
+  // reported yet is GitHub's to wait for, and the latch already does.
+  if (
+    !kind.startsWith("review_evidence_") &&
+    reviewContexts !== null &&
+    !named.some(name => reviewContexts.has(name))
+  ) {
+    return null;
+  }
+  const condition = String(violation?.condition ?? "");
+  if (kind === "review_evidence_objected") return ARM_ACTIONS.blocker;
+  if (kind === "review_evidence_objection_unread") return ARM_ACTIONS.stop;
+  if (kind === "review_evidence_unsatisfied" && condition === "objected") {
+    return ARM_ACTIONS.blocker;
+  }
+  if (kind === "review_evidence_unsatisfied" && condition === "pending") {
+    return ARM_ACTIONS.watch;
+  }
+  const substitutable =
+    SUBSTITUTABLE_KINDS.has(kind) || kind === "review_evidence_unsatisfied";
+  // A review kind this file does not know — a newer classifier's — is not
+  // evidence of work. Fail closed rather than read it as silence.
+  if (!substitutable) {
+    return kind.startsWith("review_evidence_") ? ARM_ACTIONS.watch : null;
+  }
+  return allSubstituted(
+    reviewContexts === null
+      ? named
+      : named.filter(name => reviewContexts.has(name)),
+    substitutes
+  )
+    ? null
+    : ARM_ACTIONS.substitute;
+}
+
+/**
+ * The check names one classifier violation is about.
+ * @param {{contexts?: unknown, token?: unknown}} violation - One violation.
+ * @returns {string[]} Its contexts, else its token, else nothing.
+ */
+function violationContexts(violation) {
+  if (Array.isArray(violation?.contexts) && violation.contexts.length > 0) {
+    return violation.contexts.map(String);
+  }
+  return typeof violation?.token === "string" ? [violation.token] : [];
+}
+
+/**
+ * The review contexts the classifier judged, or null when it did not say.
+ *
+ * Null fails closed: every vacuous, unproven or absent check is then read as a
+ * possible review context.
+ * @param {any} report - The classifier report.
+ * @returns {Set<string>|null} The evidence-bearing check names.
+ */
+function reviewContextsOf(report) {
+  const states = report?.vacuity?.gateStates;
+  return states && typeof states === "object" && Object.keys(states).length > 0
+    ? new Set(Object.keys(states))
+    : null;
+}
+
+/**
+ * What the vacuity classifier says about arming, where a host ships one.
+ *
+ * An allowlist: it proves work only when it inspected, trusted its own
+ * declaration, read THIS head, and found nothing wrong with the review context.
+ * @param {object|null} vacuity - `check-skipped-required-checks.mjs --vacuity --json` output, or null.
+ * @param {{sha: string, substitutes: ReadonlySet<string>, classifierDeclared: boolean}} context - The head and what else is known.
+ * @returns {{engaged: boolean, action: string, reason: string, viaSubstitute?: boolean}} The signal.
+ */
+function vacuitySignal(vacuity, { sha, substitutes, classifierDeclared }) {
+  const report = /** @type {any} */ (vacuity);
+  if (report === null || report === undefined) {
+    return classifierDeclared
+      ? engagedSignal(
+          ARM_ACTIONS.watch,
+          ".github/required-checks.json declares an evidence-bearing check, but no --vacuity-report was passed"
+        )
+      : NOT_ENGAGED;
+  }
+  const refusal = report.vacuity?.refusal?.kind ?? report.refusal?.kind ?? null;
+  if (refusal === VACUITY_NONE_DECLARED) {
+    return classifierDeclared
+      ? engagedSignal(
+          ARM_ACTIONS.watch,
+          "the vacuity report says nothing is declared, but .github/required-checks.json declares an evidence-bearing check"
+        )
+      : NOT_ENGAGED;
+  }
+  if (report.inspected !== true || report.answered === false) {
+    return engagedSignal(
+      ARM_ACTIONS.watch,
+      `the vacuity classifier did not answer (${refusal ?? "uninspected"}); an empty inspection is not a pass`
+    );
+  }
+  const reportSha = report.vacuity?.headSha ?? report.headSha ?? null;
+  if (reportSha !== sha) {
+    return engagedSignal(
+      ARM_ACTIONS.watch,
+      `the vacuity report is for ${reportSha ?? "an unnamed head"}, not ${sha}`
+    );
+  }
+  const reviewContexts = reviewContextsOf(report);
+  const violations = [
+    ...(report.violations ?? []),
+    ...(report.vacuity?.violations ?? []),
+  ];
+  const actions = violations
+    .map(violation => violationAction(violation, substitutes, reviewContexts))
+    .filter(action => action !== null);
+  if (actions.length === 0) {
+    // Clean only because a substitute covered it: the arm is head-scoped.
+    const viaSubstitute = violations.some(
+      violation =>
+        violationAction(violation, new Set(), reviewContexts) ===
+        ARM_ACTIONS.substitute
+    );
+    return {
+      ...engagedSignal(
+        ARM_ACTIONS.arm,
+        viaSubstitute
+          ? "a writer's substitute covers the declared review check at this head"
+          : "the declared review check did work at this head"
+      ),
+      viaSubstitute,
+    };
+  }
+  const [first] = [...actions].sort(byPriority);
+  return engagedSignal(first, "the declared review check did not prove work");
+}
+
+/**
+ * Order actions so the most serious comes first.
+ * @param {string} left - An action.
+ * @param {string} right - An action.
+ * @returns {number} Sort order.
+ */
+const byPriority = (left, right) =>
+  ACTION_PRIORITY.indexOf(left) - ACTION_PRIORITY.indexOf(right);
+
+/**
+ * Decide whether auto-merge may be armed (#4653).
+ *
+ * The gate engages on EITHER declaration: a reviewer in `.lisa.config.json`
+ * (this prover, which ships to every stack), or an evidence-bearing check in
+ * `.github/required-checks.json` (the vacuity classifier, which ships only to
+ * TypeScript-family hosts). Keying it to the second alone left every other
+ * stack arming against a rate-limited `neutral` check run. Arming requires
+ * every engaged signal to say arm; with neither engaged there is no review
+ * context to protect, and arming is unchanged. A standing objection at the
+ * head blocks whatever the signals say.
+ * @param {object} options - Decision inputs.
+ * @param {{outcome: string, sha?: string, readings?: ReadonlyArray<object>}} options.evidence - This prover's verdict for the head.
+ * @param {object|null} [options.vacuity] - The vacuity classifier's JSON report, or null.
+ * @param {string} [options.sha] - The head commit being decided.
+ * @param {ReadonlySet<string>} [options.substitutes] - Contexts a writer posted a first-line substitute for at this head.
+ * @param {number|null} [options.objections] - `CHANGES_REQUESTED` reviews at this head; null when they could not be read.
+ * @param {boolean} [options.classifierDeclared] - Whether `required-checks.json` declares an evidence-bearing check.
+ * @param {boolean} [options.projectRoot] - Whether the root read has a `.lisa.config.json`; false means the declarations were never seen.
+ * @returns {{arm: boolean, action: string, reason: string, engaged: {reviewer: boolean, vacuity: boolean}, basis?: "review"|"substitute"|"none"}} The decision; `basis` is set only when arming.
+ */
+export function armDecision({
+  evidence,
+  vacuity = null,
+  sha = evidence.sha,
+  substitutes = new Set(),
+  objections = 0,
+  classifierDeclared = false,
+  projectRoot = true,
+}) {
+  // An empty declaration read from the wrong directory looks exactly like a
+  // project that declares nothing, which is the one case that arms.
+  if (!projectRoot) {
+    return {
+      arm: false,
+      action: ARM_ACTIONS.stop,
+      reason:
+        "no .lisa.config.json at --root, so the reviewer declarations were never read; run from the project root",
+      engaged: { reviewer: false, vacuity: false },
+    };
+  }
+  const reviewer = evidenceSignal(evidence, substitutes);
+  const classifier = vacuitySignal(vacuity, {
+    sha,
+    substitutes,
+    classifierDeclared,
+  });
+  const engaged = { reviewer: reviewer.engaged, vacuity: classifier.engaged };
+  const reviewEngaged = reviewer.engaged || classifier.engaged;
+  const standing =
+    objections === null && reviewEngaged
+      ? engagedSignal(
+          ARM_ACTIONS.stop,
+          "the reviews on this pull request could not be read, or the repository is unknown"
+        )
+      : (objections ?? 0) > 0
+        ? engagedSignal(
+            ARM_ACTIONS.blocker,
+            "a review requested changes and has not been approved or dismissed since"
+          )
+        : NOT_ENGAGED;
+  const signals = [standing, reviewer, classifier];
+  const held = signals.filter(
+    signal => signal.engaged && signal.action !== ARM_ACTIONS.arm
+  );
+  if (held.length === 0) {
+    const proving = signals.filter(signal => signal.engaged);
+    // `substitute` means the latch is authorised for THIS head only: a push
+    // makes a new head that no substitute covers, so the caller must disarm
+    // before pushing and decide again afterwards.
+    const basis = proving.some(signal => signal.viaSubstitute === true)
+      ? "substitute"
+      : proving.length === 0
+        ? "none"
+        : "review";
+    return {
+      arm: true,
+      action: ARM_ACTIONS.arm,
+      basis,
+      reason:
+        proving.length === 0
+          ? "no review context is declared anywhere; nothing to withhold the latch from"
+          : proving.map(signal => signal.reason).join("; "),
+      engaged,
+    };
+  }
+  const [first] = [...held].sort((left, right) =>
+    byPriority(left.action, right.action)
+  );
+  return {
+    arm: false,
+    action: first.action,
+    reason: held.map(signal => signal.reason).join("; "),
+    engaged,
+  };
+}
+
+/**
  * A reading as the report prints it.
  * @typedef {object} ReportedReading
  * @property {string} context - The reviewer's context.
@@ -942,7 +1346,7 @@ function describeSeen(reading) {
 /**
  * Parse the CLI arguments.
  * @param {string[]} argv - Arguments after the script path.
- * @returns {{sha: string|null, context: string|null, root: string, repo: string|null, json: boolean}} Options.
+ * @returns {{sha: string|null, context: string|null, root: string, repo: string|null, json: boolean, arm: boolean, "vacuity-report": string|null}} Options.
  */
 export function parseArgs(argv) {
   const opts = {
@@ -951,11 +1355,13 @@ export function parseArgs(argv) {
     root: process.cwd(),
     repo: null,
     json: false,
+    arm: false,
+    "vacuity-report": null,
   };
   for (let index = 0; index < argv.length; index += 1) {
     const arg = argv[index];
-    if (arg === "--json") {
-      opts.json = true;
+    if (arg === "--json" || arg === "--arm") {
+      opts[arg.slice(2)] = true;
       continue;
     }
     const [flag, inline] = arg.startsWith("--") ? splitFlag(arg) : [null, null];
@@ -1135,6 +1541,278 @@ function checkRunsByContext(reviewers, sha, read) {
   return runs;
 }
 
+/** Repository permissions whose holder may stand in for a reviewer. */
+const SUBSTITUTE_WRITER_PERMISSIONS = new Set(["admin", "maintain", "write"]);
+
+/** A substitute marker as a comment's whole first line. */
+const FIRST_LINE_MARKER = new RegExp(
+  `^<!-- ${SUBSTITUTE_MARKER} context="([^"]+)" head="([^"]+)" -->$`,
+  "u"
+);
+
+/**
+ * Whether a login holds write access to the repository.
+ *
+ * probe-direction: fail-closed — any failure to read the permission answers
+ * `false`, which can only leave a substitute uncounted, never count one. A bot author such as
+ * `github-actions[bot]` is not a collaborator and never counts.
+ * @param {string} repo - `owner/repo`.
+ * @param {string} login - The comment author.
+ * @returns {boolean} Whether the login may stand in for a reviewer.
+ */
+function fetchWritePermission(repo, login) {
+  if (!/^[A-Za-z0-9-]+$/u.test(login)) return false;
+  try {
+    const permission = boundedExecFileSync(
+      "gh",
+      [
+        "api",
+        `repos/${repo}/collaborators/${encodeURIComponent(login)}/permission`,
+        "--jq",
+        ".permission",
+      ],
+      { encoding: "utf8" }
+    ).trim();
+    return SUBSTITUTE_WRITER_PERMISSIONS.has(permission);
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * The contexts a writer posted a first-line substitute for at this head.
+ *
+ * Stricter than the response arm on purpose, because here a match arms a
+ * merge: the marker must be the comment's FIRST LINE (a comment that quotes
+ * it is not a review), and the author must hold write access (anyone who can
+ * comment can type the marker).
+ * @param {ReadonlyArray<{body?: string, user?: {login?: string}}>} comments - Pull request comments.
+ * @param {string} sha - The head commit.
+ * @param {(login: string) => boolean} canWrite - Whether a login holds write access.
+ * @returns {Set<string>} The substituted contexts.
+ */
+export function writerSubstitutes(comments, sha, canWrite) {
+  const found = new Set();
+  const seen = new Map();
+  const writer = login => {
+    if (!seen.has(login)) seen.set(login, canWrite(login) === true);
+    return seen.get(login);
+  };
+  for (const comment of comments ?? []) {
+    const firstLine = String(comment?.body ?? "")
+      .split("\n")[0]
+      .replace(/\r$/u, "");
+    const match = FIRST_LINE_MARKER.exec(firstLine);
+    if (match === null || match[2] !== sha) continue;
+    if (writer(String(comment?.user?.login ?? ""))) found.add(match[1]);
+  }
+  return found;
+}
+
+/**
+ * Standing `CHANGES_REQUESTED` reviews, latest decisive review per author.
+ *
+ * Across EVERY commit, not only the head: a change request stands until its
+ * author approves or it is dismissed, and a later push clears neither. Reading
+ * only the head would let a push arm the latch over an objection nobody
+ * addressed. A dismissed review reads as a comment, so it never counts.
+ * @param {ReadonlyArray<{commit_id?: string, state?: string, submitted_at?: string, user?: {login?: string}}>|null} reviews - Review objects; null when the read failed.
+ * @returns {number|null} The count, or null when the reviews could not be read.
+ */
+export function standingObjections(reviews) {
+  if (reviews === null) return null;
+  const latest = new Map();
+  [...reviews]
+    .sort((left, right) =>
+      String(left?.submitted_at ?? "").localeCompare(
+        String(right?.submitted_at ?? "")
+      )
+    )
+    .forEach((review, index) => {
+      const author = String(review?.user?.login ?? `#${index}`);
+      if (classifyReviewObject(review) !== REVIEW_OBJECT_VERDICTS.comment) {
+        latest.set(author, review);
+      }
+    });
+  return [...latest.values()].filter(
+    review => classifyReviewObject(review) === REVIEW_OBJECT_VERDICTS.objection
+  ).length;
+}
+
+/**
+ * Every issue comment on the given pull requests, across all pages.
+ *
+ * A writer's substitute for the current head is among the NEWEST comments, so
+ * a single page of a long pull request is exactly the one that misses it.
+ * @param {string} repo - `owner/repo`.
+ * @param {number[]} numbers - Pull request numbers.
+ * @returns {ReadonlyArray<object>} The comments; a failed page reads as none, which only leaves a substitute uncounted.
+ */
+function readAllComments(repo, numbers) {
+  return numbers.flatMap(
+    number =>
+      readAllPages(`repos/${repo}/issues/${number}/comments?per_page=100`) ?? []
+  );
+}
+
+/**
+ * Review objects on the given pull requests; null when any read failed.
+ * @param {string} repo - `owner/repo`.
+ * @param {number[]} numbers - Pull request numbers.
+ * @returns {ReadonlyArray<object>|null} The reviews.
+ */
+function readReviews(repo, numbers) {
+  const lists = numbers.map(number => readAllReviews(repo, number));
+  return lists.every(Array.isArray) ? lists.flat() : null;
+}
+
+/**
+ * Every review on one pull request, across all pages.
+ *
+ * The reviews at the current head are the NEWEST, so a single page of a long
+ * pull request is exactly the one that leaves them out.
+ * @param {string} repo - `owner/repo`.
+ * @param {number} number - Pull request number.
+ * @returns {ReadonlyArray<object>|null} The reviews, or null when any page failed.
+ */
+function readAllReviews(repo, number) {
+  return readAllPages(`repos/${repo}/pulls/${number}/reviews?per_page=100`);
+}
+
+/**
+ * Every row of one paginated list endpoint.
+ * @param {string} path - The API path.
+ * @returns {ReadonlyArray<object>|null} The rows, or null when any page failed.
+ */
+function readAllPages(path) {
+  // probe-direction: fail-closed — a failed read is null; reviews then stop the arm decision, and comments then count no substitute.
+  try {
+    const pages = JSON.parse(
+      boundedExecFileSync("gh", ["api", "--paginate", "--slurp", path], {
+        encoding: "utf8",
+      })
+    );
+    return Array.isArray(pages) && pages.every(Array.isArray)
+      ? pages.flat()
+      : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Whether `.github/required-checks.json` declares an evidence-bearing check.
+ *
+ * probe-direction: fail-closed — only a file that does not exist answers
+ * "not declared". A file that exists but cannot be read, or does not parse,
+ * counts as declared: the caller then needs the classifier's report, which
+ * holds the latch off rather than arming past it.
+ * @param {string} root - The project root.
+ * @param {(path: string) => string} read - File reader.
+ * @returns {boolean} Whether the classifier has something declared to read.
+ */
+function declaresEvidenceBearingChecks(root, read) {
+  let text;
+  try {
+    text = read(`${root}/.github/required-checks.json`);
+  } catch (error) {
+    // probe-direction: fail-closed — anything but ENOENT counts as declared.
+    return /** @type {{code?: string}} */ (error)?.code !== "ENOENT";
+  }
+  // probe-direction: fail-closed — a file that does not parse counts as declared.
+  try {
+    const checks = JSON.parse(text)?.evidence_bearing_checks;
+    if (checks === undefined || checks === null) return false;
+    return Array.isArray(checks)
+      ? checks.length > 0
+      : Object.keys(checks).length > 0;
+  } catch {
+    return true;
+  }
+}
+
+/**
+ * The vacuity classifier's saved report, when the caller passed one.
+ *
+ * A path that cannot be read or parsed is NOT "no classifier": the caller said
+ * one exists, so it is reported as an inspection that read nothing.
+ * @param {string|null} path - `--vacuity-report`, or null.
+ * @param {(path: string) => string} read - File reader.
+ * @returns {object|null} The parsed report, null when none was passed.
+ */
+function loadVacuityReport(path, read) {
+  if (path === null) return null;
+  // probe-direction: fail-closed — an unreadable report is an empty inspection, never a pass.
+  try {
+    return JSON.parse(read(path));
+  } catch {
+    return {
+      inspected: false,
+      vacuity: { refusal: { kind: "vacuity_report_unreadable" } },
+    };
+  }
+}
+
+/**
+ * Write the `--arm` decision and return its exit code: 0 to arm, 1 otherwise.
+ * @param {{outcome: string, sha: string}} verdict - This prover's verdict.
+ * @param {object} context - What the CLI already resolved.
+ * @param {{json: boolean, root: string, "vacuity-report": string|null}} context.opts - Parsed options.
+ * @param {object} context.io - Injected side effects.
+ * @param {{write: (text: string) => void}} context.out - Stdout.
+ * @param {string} context.repo - `owner/repo`, possibly empty.
+ * @param {number[]|null|undefined} context.pulls - Head pull requests already read, if any.
+ * @returns {number} The exit code.
+ */
+function writeArmDecision(verdict, { opts, io, out, repo, pulls }) {
+  const readFile = io.readFile ?? (path => readFileSync(path, "utf8"));
+  const validRepo = /^[^/\s]+\/[^/\s]+$/u.test(repo);
+  const numbers =
+    Array.isArray(pulls) && pulls.length > 0
+      ? pulls
+      : validRepo
+        ? (io.pulls ?? (sha => readHeadPulls(repo, sha)))(verdict.sha)
+        : [];
+  const heads = numbers ?? [];
+  const comments =
+    heads.length === 0
+      ? []
+      : (io.comments ?? (list => readAllComments(repo, list)))(heads);
+  // An unknown repository is an unread review surface, never an empty one.
+  const reviews =
+    numbers === null || !validRepo
+      ? null
+      : heads.length === 0
+        ? []
+        : (io.reviews ?? (list => readReviews(repo, list)))(heads);
+  const canWrite =
+    io.canWrite ??
+    (login => (validRepo ? fetchWritePermission(repo, login) : false));
+  const decision = armDecision({
+    evidence: verdict,
+    vacuity: loadVacuityReport(opts["vacuity-report"], readFile),
+    sha: verdict.sha,
+    substitutes: writerSubstitutes(comments, verdict.sha, canWrite),
+    objections: standingObjections(reviews),
+    classifierDeclared: (
+      io.requiredChecks ??
+      (() => declaresEvidenceBearingChecks(opts.root, readFile))
+    )(),
+    // Injected gates stand for a project the caller already read.
+    projectRoot:
+      io.gates !== undefined || existsSync(`${opts.root}/.lisa.config.json`),
+  });
+  const report = { ...decision, evidence: verdict };
+  const held = `DO NOT ARM — ${decision.action}`;
+  const headline = decision.arm ? "ARM" : held;
+  out.write(
+    opts.json
+      ? `${JSON.stringify(report, null, 2)}\n`
+      : `${headline}: ${decision.reason}\n${humanReport(verdict)}\n`
+  );
+  return decision.arm ? 0 : 1;
+}
+
 /**
  * The CLI body.
  * @param {string[]} argv - Arguments after the script path.
@@ -1148,6 +1826,10 @@ function checkRunsByContext(reviewers, sha, read) {
  *   means the caller supplies the evidence, and mixing a live read into it
  *   would judge a fixture against the network.
  * @param {(numbers: number[]) => ReadonlyArray<object>} [io.comments] - Comment reader.
+ * @param {(path: string) => string} [io.readFile] - Reader for `--vacuity-report` and `required-checks.json`.
+ * @param {(numbers: number[]) => ReadonlyArray<object>|null} [io.reviews] - Review-object reader, `--arm` only.
+ * @param {(login: string) => boolean} [io.canWrite] - Write-permission reader, `--arm` only.
+ * @param {() => boolean} [io.requiredChecks] - Whether `required-checks.json` declares an evidence-bearing check, `--arm` only.
  * @param {{write: (text: string) => void}} [io.out] - Stdout.
  * @param {{write: (text: string) => void}} [io.err] - Stderr.
  * @returns {number} The exit code.
@@ -1206,6 +1888,9 @@ export function main(argv, io = {}) {
         sha: opts.sha,
         isPullRequestHead,
       });
+  if (opts.arm) {
+    return writeArmDecision(verdict, { opts, io, out, repo, pulls });
+  }
   out.write(
     `${opts.json ? JSON.stringify(verdict, null, 2) : humanReport(verdict)}\n`
   );
