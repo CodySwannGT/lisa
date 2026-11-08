@@ -143,6 +143,26 @@ fi
 
 echo "Found ${#SCREENSHOTS[@]} screenshots and ${#TEXT_EVIDENCE[@]} text evidence files to upload"
 
+# GitHub rewrites special characters (spaces, brackets, non-ASCII) in release
+# asset names, so a link built from the local name would point at an asset that
+# does not exist under that name. Refuse such names before anything is uploaded.
+for FILE in "${ALL_EVIDENCE[@]}"; do
+  if [[ ! "$(basename "$FILE")" =~ ^[0-9]{2}-[A-Za-z0-9._-]+\.(png|txt|json)$ ]]; then
+    echo "ERROR: evidence file name '$(basename "$FILE")' is not release-safe." >&2
+    echo "  Rename it to NN-name.ext using only letters, digits, '.', '_' and '-'" >&2
+    echo "  (e.g. '01-search step.png' -> '01-search-step.png'), then re-run generate-templates.py." >&2
+    exit 1
+  fi
+done
+
+# The description is checked against the release after uploading, so it must
+# exist before anything is uploaded.
+COMMENT_MD="$EVIDENCE_DIR/comment.md"
+if [[ ! -f "$COMMENT_MD" ]]; then
+  echo "ERROR: $COMMENT_MD not found — run generate-templates.py first" >&2
+  exit 1
+fi
+
 # Compute JIRA auth early (used in steps 3 and 4)
 JIRA_AUTH=$(printf '%s' "$JIRA_USER:$JIRA_API_TOKEN" | base64 | tr -d '\n')
 
@@ -184,13 +204,26 @@ fi
 
 echo "  ✓ GitHub release assets uploaded"
 
-# ── Step 2: Update GitHub PR description with evidence ──────────────────────
-COMMENT_MD="$EVIDENCE_DIR/comment.md"
-if [[ ! -f "$COMMENT_MD" ]]; then
-  echo "ERROR: $COMMENT_MD not found — run generate-templates.py first" >&2
+# Every release link in the description must name an asset THIS pull request
+# owns and the release really holds. A bare or other-PR name would show some
+# other pull request's evidence.
+BAD_LINKS=0
+while IFS= read -r LINK; do
+  [[ -z "$LINK" ]] && continue
+  LINK_NAME="${LINK##*/}"
+  if [[ "$LINK_NAME" != "pr-${PR_NUMBER}-"* ]]; then
+    echo "ERROR: $COMMENT_MD links $LINK, which is not scoped to PR #$PR_NUMBER (expected pr-${PR_NUMBER}-<file>)" >&2
+    BAD_LINKS=1
+  elif ! grep -qxF "$LINK_NAME" <<< "$RELEASE_ASSETS"; then
+    echo "ERROR: $COMMENT_MD links $LINK, which is not an asset of release '$RELEASE_TAG'" >&2
+    BAD_LINKS=1
+  fi
+done < <(grep -oE "releases/download/${RELEASE_TAG}/[^][()<>\"'[:space:]]+" "$COMMENT_MD" || true)
+if [[ $BAD_LINKS -ne 0 ]]; then
   exit 1
 fi
 
+# ── Step 2: Update GitHub PR description with evidence ──────────────────────
 echo ""
 echo "==> Updating GitHub PR #$PR_NUMBER description..."
 
