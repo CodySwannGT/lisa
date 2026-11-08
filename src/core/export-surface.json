@@ -1,8 +1,8 @@
 {
   "$generatedBy": "scripts/generate-export-surface.mjs",
   "$doNotEdit": "The public export surface this package ships, recorded so a removal is an OBSERVATION rather than an inference from commit-message conventions. This file's diff is what makes a removed export visible in the pull request that causes it (CodySwannGT/lisa#3718).",
-  "$modules": 263,
-  "$names": 1918,
+  "$modules": 270,
+  "$names": 1946,
   "surface": {
     "all/copy-overwrite/scripts/check-conflict-markers.mjs": [
       "UsageError",
@@ -1860,6 +1860,48 @@
       "shouldShipScript",
       "translateEventName",
       "translateMatcherForDevin"
+    ],
+    "scripts/lib/phrase-tests/ast.mjs": [
+      "PHRASE_MATCHERS",
+      "booleanLiteral",
+      "expectChains",
+      "isExpectCall",
+      "isIncludesCall",
+      "isPhraseChain",
+      "parseSource",
+      "readExpectChain",
+      "walk"
+    ],
+    "scripts/lib/phrase-tests/classify.mjs": [
+      "ALLOWED_MODULES",
+      "READ_CALLS",
+      "classifyTestSource",
+      "resolveTestImport"
+    ],
+    "scripts/lib/phrase-tests/fold.mjs": [
+      "foldPhraseTests"
+    ],
+    "scripts/lib/phrase-tests/manifest.mjs": [
+      "MANIFEST_COMMENT",
+      "MANIFEST_PATH",
+      "buildManifest",
+      "describePhrase",
+      "entryKey",
+      "manifestEntries",
+      "phraseFailure"
+    ],
+    "scripts/lib/phrase-tests/record.mjs": [
+      "recordTestFile"
+    ],
+    "scripts/lib/phrase-tests/repo.mjs": [
+      "REPO_ROOT",
+      "commitReader",
+      "testFilesAt",
+      "workingTreeReader",
+      "workingTreeTestFiles"
+    ],
+    "scripts/lib/phrase-tests/runner.mjs": [
+      "createRunner"
     ],
     "scripts/lib/plugin-cache-resolution.mjs": [
       "TOKEN_RE",

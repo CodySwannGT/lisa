@@ -2640,6 +2640,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "9e79501cd7271b05149a275cf42cc092f6cb11a993696822ac6ef0d1f79a7e78",
     "scripts/check-orphan-test-processes.mjs":
       "123822f43b53a84b619ed97d5c18069feb5964b8216248968a7ab165e345106a",
+    "scripts/check-phrase-manifest-parity.mjs":
+      "fbf54c0386d100490252ea9c4767f251f1d59cc0bb6facadc542499048f59621",
     "scripts/check-pipeline-status-reads.mjs":
       "1fba15dfe50eb060bd229066a35a852679b23c11292981015b5746e1d639fb31",
     "scripts/check-plugins-sync.sh":
@@ -2680,6 +2682,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "31e8404316dc95527ff87ee2bcbc7d19bcf70f6cb54b608fd7235e9c767506a1",
     "scripts/check-workflow-package-paths.mjs":
       "07ebf3f8a4504f6231c5ae492ecda7f95a80a0fa5f0424b9d3368544b1b612dd",
+    "scripts/classify-phrase-tests.mjs":
+      "11553629a6c167d9ed0851c6bc4cf9a818df2693d5a30afb2c30fb23a7b14eea",
     "scripts/claude-remote-setup.sh":
       "5947c48ee78f2efdf321f6a516e0aad427ac77345ce26d4e29d0eecc5cd5d307",
     "scripts/clean-dist.mjs":
@@ -2742,6 +2746,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "cfa441fced288d9e82d6b4a0a5e6c0d66b513f50b87751b879e8d2410a8054a3",
     "scripts/generate-npm-updater-helper-graph.mjs":
       "f128835f309f5a4b8d2015d57018da44fd558778efa4eed382747c6d6319260a",
+    "scripts/generate-phrase-manifest.mjs":
+      "4d3d0fa126dacaee166940d959ddfad1a67ec954ee1f8b8425beb27f791238d9",
     "scripts/generate-retired-safety-net-manifest.mjs":
       "e4b80a391709197736bc3d6821adb0c2748ff55bdb8e692c686fefe189817a9d",
     "scripts/generate-scratch-supervisor-profile.mjs":
@@ -2798,6 +2804,20 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "578bbc864bb29ae34008547d523d1aebb6646da6310373d4e7cf28702e9b2096",
     "scripts/lib/per-agent-hook-filter.mjs":
       "366564dc54c18145b745ecfe18fbc168e8df71f59e4be03cb5acc1899b16b461",
+    "scripts/lib/phrase-tests/ast.mjs":
+      "816310d0ed40e570a488856f6e34114acf8db7deedd498ccec82515a804c32bb",
+    "scripts/lib/phrase-tests/classify.mjs":
+      "5553f7e9a52aee0d54afbc34bb3a61a26492ed51220254d6009a1ca392469518",
+    "scripts/lib/phrase-tests/fold.mjs":
+      "36e1a914cfc384bc310ba84ce0df7e407a741dbca8352bdf762e67c0d0bee623",
+    "scripts/lib/phrase-tests/manifest.mjs":
+      "54680cf1b403dedf830bb7d7609ad4e40154df67e86dec20a4819e24fbd5476d",
+    "scripts/lib/phrase-tests/record.mjs":
+      "823e861241b9bb7d0ee572fc58102f00e1fb91e4745099e1812896d89c2c9682",
+    "scripts/lib/phrase-tests/repo.mjs":
+      "4c0d7f5fc13a7f1c20aa3712c16013cbae07ef6ebdfc61f33e06b421f8eb6d0d",
+    "scripts/lib/phrase-tests/runner.mjs":
+      "7d75f0b65c11e7c52f6fbabe064e5f4fc0cc192ae4228de7cdc9713d5ce0145c",
     "scripts/lib/plugin-cache-resolution.mjs":
       "47a564e2f9d46c0a955defe8eb924f86d7a273098e6ccb118e10f9eeecf3950c",
     "scripts/lib/plugin-rule-citations.mjs":
@@ -10553,6 +10573,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "scripts/check-merge-driver-registration.mjs": true,
     "scripts/check-npm-publish-landed.mjs": true,
     "scripts/check-orphan-test-processes.mjs": true,
+    "scripts/check-phrase-manifest-parity.mjs": true,
     "scripts/check-pipeline-status-reads.mjs": true,
     "scripts/check-plugins-sync.sh": true,
     "scripts/check-probe-absence-direction.mjs": true,
@@ -10573,6 +10594,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "scripts/check-workflow-contract-assertions.mjs": true,
     "scripts/check-workflow-load-failures.mjs": true,
     "scripts/check-workflow-package-paths.mjs": true,
+    "scripts/classify-phrase-tests.mjs": true,
     "scripts/claude-remote-setup.sh": true,
     "scripts/clean-dist.mjs": true,
     "scripts/cleanup-amplify-branches.sh": true,
@@ -10604,6 +10626,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "scripts/generate-lisa-owned-hash-ledger.mjs": true,
     "scripts/generate-nightly-e2e-guard-certificate.mjs": true,
     "scripts/generate-npm-updater-helper-graph.mjs": true,
+    "scripts/generate-phrase-manifest.mjs": true,
     "scripts/generate-retired-safety-net-manifest.mjs": true,
     "scripts/generate-scratch-supervisor-profile.mjs": true,
     "scripts/generate-two-channel-couplings.ts": true,
@@ -10632,6 +10655,13 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "scripts/lib/packaged-apply-isolation.d.mts": true,
     "scripts/lib/packaged-apply-isolation.mjs": true,
     "scripts/lib/per-agent-hook-filter.mjs": true,
+    "scripts/lib/phrase-tests/ast.mjs": true,
+    "scripts/lib/phrase-tests/classify.mjs": true,
+    "scripts/lib/phrase-tests/fold.mjs": true,
+    "scripts/lib/phrase-tests/manifest.mjs": true,
+    "scripts/lib/phrase-tests/record.mjs": true,
+    "scripts/lib/phrase-tests/repo.mjs": true,
+    "scripts/lib/phrase-tests/runner.mjs": true,
     "scripts/lib/plugin-cache-resolution.mjs": true,
     "scripts/lib/plugin-rule-citations.mjs": true,
     "scripts/lib/rails-hooks-command.mjs": true,
@@ -12933,6 +12963,9 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/packaged-apply-isolation.test.ts": true,
     "tests/unit/scripts/per-agent-hook-filter-devin.test.ts": true,
     "tests/unit/scripts/per-agent-hook-filter.test.ts": true,
+    "tests/unit/scripts/phrase-tests-classify.test.ts": true,
+    "tests/unit/scripts/phrase-tests-manifest.test.ts": true,
+    "tests/unit/scripts/phrase-tests-record.test.ts": true,
     "tests/unit/scripts/pipeline-status-continuations.test.ts": true,
     "tests/unit/scripts/placeholder-expiry.test.ts": true,
     "tests/unit/scripts/plugin-parity-drift-helpers.ts": true,
