@@ -12,22 +12,23 @@ import {
   entryKey,
 } from "../../../scripts/lib/phrase-tests/manifest.mjs";
 import { parityFailures } from "../../../scripts/lib/phrase-tests/parity.mjs";
+import type { Recording } from "../../../scripts/lib/phrase-tests/record.mjs";
 
 const A_TEST = "tests/a.test.ts";
 const B_TEST = "tests/b.test.ts";
 
-const entry = {
+const entry: Recording["entries"][number] = {
   file: "docs/a.md",
   polarity: "required",
   kind: "string",
   value: "alpha",
   source: `${A_TEST} › a > pins`,
-} as const;
+};
 
-const recording = {
+const recording: Recording = {
   file: A_TEST,
   raw: 1,
-  reasons: [] as string[],
+  reasons: [],
   entries: [entry],
 };
 
@@ -36,7 +37,7 @@ const recording = {
  * @param recordings - Recordings of the deleted phrase-only files
  * @returns The fold
  */
-function fold(recordings: readonly (typeof recording)[]) {
+function fold(recordings: readonly Recording[]) {
   const translated = recordings.filter(item => item.reasons.length === 0);
   return {
     testFiles: recordings.length,
