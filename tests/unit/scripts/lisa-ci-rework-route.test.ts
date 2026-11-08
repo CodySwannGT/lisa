@@ -151,17 +151,37 @@ describe("an untrusted or stale marker is ignored", () => {
   });
 });
 
-describe("known gap: a claim comment posted after the marker (CodySwannGT/lisa#4707)", () => {
-  it("routes implement (not-newest) when the first [lisa-tracker-claim] lands after the marker", () => {
-    // This pins CURRENT behaviour, which is the known gap, not the desired
-    // one: an item first claimed by build intake, bounced by CI, then
-    // re-dispatched by the session manager gets its first [lisa-tracker-claim]
-    // comment after the marker and is rebuilt instead of sent to its PR.
-    // CodySwannGT/lisa#4707 will change this expectation to ci-rework.
-    expect(route("claim-after-marker")).toMatchObject({
-      route: IMPLEMENT,
-      reason: NOT_NEWEST,
-    });
+describe("claim comments never supersede a failure marker", () => {
+  // The session manager claims the item before its worker runs the helper,
+  // and live items carry more than one [lisa-tracker-claim] comment, so a
+  // claim posted after the marker must not hide it (AC1, AC4).
+  it.each([
+    [
+      "claim-after-marker",
+      "a first [lisa-tracker-claim] after a build-intake claim",
+    ],
+    ["reclaim-twice", "two [lisa-tracker-claim] comments after the marker"],
+  ])("%s (%s) -> ci-rework", name => {
+    expect(route(name)).toMatchObject({ route: "ci-rework", pr: 101 });
+  });
+
+  it("still yields to a newer non-claim Lisa marker", () => {
+    const [, , newer] = fixture(NOT_NEWEST).gh[COMMENTS].stdout[0];
+    expect(newer.body).toContain("[lisa-human-gate]");
+    expect(newer.body).not.toMatch(/lisa-tracker-claim|claude-build-intake/u);
+    expect(route(NOT_NEWEST).reason).toBe(NOT_NEWEST);
+  });
+
+  it("counts a comment carrying a claim AND another Lisa marker", () => {
+    const mixed = {
+      id: 1003,
+      user: { login: "CodySwannGT" },
+      created_at: "2026-11-05T12:00:00Z",
+      body: "[lisa-tracker-claim] Claimed.\n<!-- [lisa-human-gate] reason=x -->",
+    };
+    expect(
+      decideRoute({ item: "1", contract, gh: withComments([mixed]) }).reason
+    ).toBe(NOT_NEWEST);
   });
 });
 

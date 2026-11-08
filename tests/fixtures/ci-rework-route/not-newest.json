@@ -1,9 +1,18 @@
 {
-  "description": "A claim comment was posted after the bot marker: the marker is not the newest Lisa marker, so implement normally.",
+  "description": "A human-gate hold marker (a Lisa marker that is not a claim) was posted after the bot marker: the marker no longer describes the item, so implement normally.",
   "gh": {
     "api repos/CodySwannGT/lisa/issues/1/comments --paginate --slurp": {
       "stdout": [
         [
+          {
+            "id": 1001,
+            "user": {
+              "login": "CodySwannGT",
+              "type": "User"
+            },
+            "created_at": "2026-11-05T10:00:00Z",
+            "body": "[lisa-tracker-claim] Claimed by Lisa. Starting implementation."
+          },
           {
             "id": 1002,
             "user": {
@@ -20,7 +29,7 @@
               "type": "User"
             },
             "created_at": "2026-11-05T12:00:00Z",
-            "body": "[lisa-tracker-claim] Claimed by Lisa. Starting implementation."
+            "body": "Holding this item until the vendor account is approved.\n\n<!-- [lisa-human-gate] reason=vendor-account -->"
           }
         ]
       ]

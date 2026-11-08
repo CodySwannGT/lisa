@@ -1263,7 +1263,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/rules/reference/ready-role-filing.md":
       "ab6ef509ee3560b55cf0a7cb03edb0c63d97c71334ee3baafd54bdeb06451f81",
     "plugins/src/base/rules/reference/rejection-detection.md":
-      "3945e787ce7bd1f8b339b1b56d6c53665d78f9d6c9d0484dcbc54ddbfed6330f",
+      "bad57eef9b04a0dafac50c01d7d9022f4baf4e6bc988b7135976d02ac2453563",
     "plugins/src/base/rules/reference/repo-scope-split.md":
       "20b1aa6999a9376d7b9990c0022f40a4d48d5d09af9c709bf1b6ead3f1443b16",
     "plugins/src/base/rules/reference/report-actionability.md":
@@ -1437,7 +1437,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-github-add-journey/SKILL.md":
       "4ceda3474a9b32abae835c2676e8cb2b7e888c6ba04b95843dbe7254293bbf32",
     "plugins/src/base/skills/lisa-github-build-intake/SKILL.md":
-      "d2bedbcda5af3ae675f3b931141ed32b3c49d3b9cb2361fec63fe7346ea66044",
+      "c11bcdb4cee16749f184abf128b688a7d42c4754ae5289f275589a739a1769b7",
     "plugins/src/base/skills/lisa-github-claim/SKILL.md":
       "71301c6d45d7eb5523e74aa7f070bb2becf57ca68fb8bde9e02ee937b78815f7",
     "plugins/src/base/skills/lisa-github-create/SKILL.md":
@@ -1469,7 +1469,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-health/SKILL.md":
       "dfdb08a863e78bff42671793dcec29cfae0654db18ebf66a4aa77aeb56ddb775",
     "plugins/src/base/skills/lisa-implement/SKILL.md":
-      "2d5d014abefd3242367f1009281ed1b09620867619053a910564995e002e1df0",
+      "3a562de38844a1913502207f6c825d440bb28c8537b43321d250d54930ac2256",
     "plugins/src/base/skills/lisa-improve-code-complexity/SKILL.md":
       "24ab5b193b409db6ee6bee981a1c0a48d08991782d7846116ad01658c8bc1ae8",
     "plugins/src/base/skills/lisa-improve-harness/SKILL.md":
@@ -1847,7 +1847,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-ticket-triage/SKILL.md":
       "a4f2e75ee3792418aa3b6621f83c75832eea85ffe670e26e74da808611dcf34f",
     "plugins/src/base/skills/lisa-track/SKILL.md":
-      "6e3b07f953905249de60d30a2966318fa7be345677cbfaf2d3c0b3162709db9f",
+      "1d06b3edbee5c19eac74215035ac78e875c93e62c8accf6bb63e85749288788f",
     "plugins/src/base/skills/lisa-tracker-add-journey/SKILL.md":
       "a3da2e0350bcdebcdcc05f2d7931af868382638d3a28d09d4718f2f458d4be0a",
     "plugins/src/base/skills/lisa-tracker-build-intake/SKILL.md":
@@ -2839,7 +2839,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/lisa-ci-failure-redispatch.mjs":
       "f012d4484e4e4dbf850789866fc8cd5d04b2c1f0cba4ef36a3e1ed05cd9b427e",
     "scripts/lisa-ci-rework-route.mjs":
-      "b0e4fe12f8edd3f447b57c54be9f96ce791c3ae597c38ba7d05801fb32a7c57e",
+      "ff988664c9bfcc5bbd5ccdd1eb4d077b9f436c2c988145f26a2d815de72c26ca",
     "scripts/lisa-commit-and-pr-local.sh":
       "cc9f1be63bcd881125aa59aa35432c2ab1d41119b2a28e8de817536b0f302b01",
     "scripts/lisa-commit-msg-gates.mjs":
@@ -11242,6 +11242,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/fixtures/ci-rework-route/merged-pr.json": true,
     "tests/fixtures/ci-rework-route/not-newest.json": true,
     "tests/fixtures/ci-rework-route/other-item.json": true,
+    "tests/fixtures/ci-rework-route/reclaim-twice.json": true,
     "tests/fixtures/ci-rework-route/trusted-marker.json": true,
     "tests/fixtures/ci-rework-route/unbound-pr.json": true,
     "tests/fixtures/dependency-internalization-kit/dependency-internalization-ticket.md": true,

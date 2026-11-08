@@ -39,6 +39,7 @@ import {
   CLEARED_MARKER,
   FAILURE_MARKER,
   MARKER_AUTHORS,
+  LISA_MARKER,
   isNewestLisaMarker,
   liveGh,
   readItemComments,
@@ -75,6 +76,8 @@ const FAILURE_LINE =
 const ITEM_NUMBER = /^[1-9]\d*$/u;
 const ITEM_REF = /^([A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+)#([1-9]\d*)$/u;
 const REPO = /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/u;
+/** Claim markers: the lifecycle claim and build intake's legacy claim. */
+const CLAIM_MARKERS = /\[(?:lisa-tracker-claim|claude-build-intake)\]/gu;
 
 /**
  * A decision to resolve and implement the item the normal way.
@@ -106,6 +109,37 @@ function carriesFailure(comment) {
 }
 
 /**
+ * True when every Lisa marker the comment carries is a claim marker.
+ * @param {object} comment - Item comment.
+ * @returns {boolean} Whether it is a claim-only comment.
+ */
+function claimOnly(comment) {
+  const body = String(comment.body ?? "");
+  return (
+    LISA_MARKER.test(body) &&
+    !LISA_MARKER.test(body.replaceAll(CLAIM_MARKERS, ""))
+  );
+}
+
+/**
+ * The producer's newest-marker test with claim comments left out. The
+ * session manager claims an item before its worker runs this helper, and a
+ * re-claim can post another claim comment, so a claim posted after the
+ * failure marker must not hide it: an uncleared marker on an open, bound PR
+ * still means the PR is red, whoever claimed the item since. Forged failure
+ * markers are already left out by the producer's predicate.
+ * @param {object[]} comments - Item comments, oldest first.
+ * @param {object} marker - The failure marker comment.
+ * @returns {boolean} Whether it is the newest counted marker.
+ */
+function isNewestCountedMarker(comments, marker) {
+  return isNewestLisaMarker(
+    comments.filter(c => c === marker || !claimOnly(c)),
+    marker
+  );
+}
+
+/**
  * Pick the failure marker that could count, or say why none does.
  * @param {object[]} comments - Item comments, oldest first.
  * @returns {{marker?: object, decision?: object}} The marker or a decision.
@@ -130,11 +164,11 @@ function judgeMarker(comments) {
       ),
     };
   }
-  if (!isNewestLisaMarker(comments, marker))
+  if (!isNewestCountedMarker(comments, marker))
     return {
       decision: implement(
         "not-newest",
-        "a newer Lisa marker was posted after the [lisa-ci-failed] marker, so it no longer describes the item"
+        "a newer Lisa marker (not a claim) was posted after the [lisa-ci-failed] marker, so it no longer describes the item"
       ),
     };
   if (CLEARED_MARKER.test(marker.body))

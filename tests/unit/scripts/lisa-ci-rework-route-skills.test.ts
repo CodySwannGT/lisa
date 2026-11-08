@@ -56,6 +56,14 @@ describe.each(skillPaths("lisa-track"))("%s", file => {
     expect(phase3).toMatch(/before[^.]*claim comment/iu);
   });
 
+  it("ignores claim comments, so the session manager's earlier claim never hides the marker", () => {
+    expect(phase3).toContain(
+      "claim comments (`[lisa-tracker-claim]`, `[claude-build-intake]`) and failure markers from anyone other than `github-actions[bot]` do not count as Lisa markers"
+    );
+    expect(phase3).toMatch(/session-manager path[^\n]*already claimed/u);
+    expect(phase3).not.toContain("Known limitation");
+  });
+
   it("runs the helper only on GitHub when the script exists, else continues normally", () => {
     expect(phase3).toMatch(/tracker is `github`/u);
     expect(phase3).toMatch(new RegExp(`\`${HELPER}\` exists`, "u"));

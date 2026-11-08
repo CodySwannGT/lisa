@@ -1,5 +1,5 @@
 {
-  "description": "Known gap (CodySwannGT/lisa#4707): first claimed by build intake, bounced by CI, then the session manager's first [lisa-tracker-claim] comment lands after the marker, so the marker is not the newest Lisa marker.",
+  "description": "First claimed by build intake, bounced by CI, then the session manager's first [lisa-tracker-claim] comment lands after the marker. Claim comments never supersede a failure marker: route to the PR.",
   "gh": {
     "api repos/CodySwannGT/lisa/issues/1/comments --paginate --slurp": {
       "stdout": [
@@ -33,6 +33,14 @@
           }
         ]
       ]
+    },
+    "pr view 101 --repo CodySwannGT/lisa --json state,isCrossRepository,body,headRefName": {
+      "stdout": {
+        "state": "OPEN",
+        "isCrossRepository": false,
+        "headRefName": "claude/1-example-branch",
+        "body": "Fix the example.\n\nWork-Item: CodySwannGT/lisa#1\n"
+      }
     }
   }
 }

@@ -80,13 +80,13 @@ This is intentionally conservative: ambiguity creates one explicit work item ins
 
 ### CI-rework route (first, before any claim write)
 
-Decide the dispatch route from the item's comments as they stand **before** this phase writes anything, because the claim comment is itself a newer Lisa marker and would hide a `[lisa-ci-failed]` marker (CodySwannGT/lisa#4677). When the configured tracker is `github` **and** `scripts/lisa-ci-rework-route.mjs` exists at the repository root, run it from the repository root:
+Decide the dispatch route from the item's comments as they stand **before** this phase writes anything (CodySwannGT/lisa#4677). When the configured tracker is `github` **and** `scripts/lisa-ci-rework-route.mjs` exists at the repository root, run it from the repository root:
 
 ```bash
 node scripts/lisa-ci-rework-route.mjs --item <canonical-ref>
 ```
 
-It only reads, and prints one JSON object. It is the one place the trust rules live, shared with `lisa-github-build-intake` 3b so the two dispatch paths cannot disagree: the newest counted Lisa marker must be an uncleared `[lisa-ci-failed]` marker authored by `github-actions[bot]` (a marker typed by anyone else counts for nothing), and the pull request it names must be open, from this repository rather than a fork, and bound to this item by its `Work-Item:` line. Act on its `route`:
+It only reads, and prints one JSON object. It is the one place the trust rules live, shared with `lisa-github-build-intake` 3b so the two dispatch paths cannot disagree: the newest counted Lisa marker must be an uncleared `[lisa-ci-failed]` marker authored by `github-actions[bot]` — claim comments (`[lisa-tracker-claim]`, `[claude-build-intake]`) and failure markers from anyone other than `github-actions[bot]` do not count as Lisa markers for this purpose — and the pull request it names must be open, from this repository rather than a fork, and bound to this item by its `Work-Item:` line. Act on its `route`:
 
 - When `route` is `implement` (any `reason`): resolve and claim the item the normal way below, and return `route: implement`.
 - When `route` is `ci-rework`: return `route: ci-rework pr=<n>`, `failing_checks` and `head_ref` (the JSON's `pr`, `failingChecks` and `headRefName`). Continue through the hold check and the claim below unchanged: the claim is what moves the item from the ready lane back to the claimed lane, the same re-claim build intake 3b performs, and the binding names the same item. A ci-rework item is CI rework, not a rejection: it takes no rejection detection and records no rejection learning (the `rejection-detection` rule's CI-rework exemption).
@@ -94,7 +94,7 @@ It only reads, and prints one JSON object. It is the one place the trust rules l
 
 Skip this step silently and return `route: implement` when the tracker is Jira or Linear (only this repository's GitHub workflow writes the marker) or when the script is absent: `scripts/` at the Lisa repository root is not shipped to host projects, so a host never has the helper and never receives the marker. A non-zero exit or output that is not one JSON object is also `route: implement` — falling back to the normal path is always recoverable. A held item still stops at the hold check below, whatever its route.
 
-**Known limitation — a claim comment posted after the marker.** On the session-manager path the manager has already claimed the item before the worker starts, so the claim below comes back `reused` and this step runs after that claim, not before it. Routing still works because `lisa-github-claim` posts its claim comment only once per item lifetime: an item first claimed through `lisa-tracker-claim` already carries that comment from before the bounce, and the re-claim adds no newer marker. The gap is an item whose first claim went through build intake (a `[claude-build-intake]` comment) and which the session manager later re-dispatches after a CI bounce: its first `[lisa-tracker-claim]` comment is then posted after the `[lisa-ci-failed]` marker, the marker is no longer the newest Lisa marker, and the helper returns `route: implement` with `reason: not-newest`, so the item is rebuilt instead of sent back to its PR. This is a known gap tracked by CodySwannGT/lisa#4707; until it lands, such an item takes the normal path.
+**Why claim comments are ignored.** On the session-manager path the manager has already claimed the item before the worker starts, so the helper runs after a claim and the claim below comes back `reused`; a re-claim can also post another claim comment. Claim comments are ignored for exactly that reason: an uncleared marker on an open, bound pull request still means that pull request is red, whoever has claimed the item since.
 
 ### Hold check and claim
 
