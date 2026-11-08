@@ -2847,7 +2847,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/lisa-remote-env/setup.sh":
       "803ceee995da51503202458a24b4f5bd80ace8c779d0c782bf1197c36e1ebe91",
     "scripts/lisa-rollback-release.mjs":
-      "d720ff9a862852b7ed639e85567b4700caf3e8b843ec859166a1105025e4e194",
+      "3fb7e5d3e3f127b0d1403bdca3d01f58dd3ede8bbfb77e8e991cfdeddbdae636",
     "scripts/lisa-ruleset-payload.mjs":
       "5f0c3624de08eab1c78ef9ef7df3f10497aa795c90e64b3ed6fa508207d3187e",
     "scripts/lisa-ruleset-reach.mjs":

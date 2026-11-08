@@ -177,7 +177,15 @@ function deps(
 /** The write commands a runner saw, as `command subcommand`. */
 const writes = (calls: readonly Call[]) =>
   calls
-    .map(call => `${call.command} ${call.args[0]} ${call.args[1] ?? ""}`)
+    .map(call => {
+      // npm deprecate takes its target after the `--` that ends option parsing.
+      const end = call.args.indexOf("--");
+      const target =
+        call.args[0] === "deprecate" && end >= 0
+          ? call.args[end + 1]
+          : call.args[1];
+      return `${call.command} ${call.args[0]} ${target ?? ""}`;
+    })
     .filter(
       line =>
         line.startsWith(DEPRECATE) ||
@@ -311,7 +319,7 @@ describe("planCommands and formatting", () => {
       notesFile: "/scratch/notes.md",
     });
     expect(plan.map(formatCommand)).toEqual([
-      `npm deprecate ${PACKAGE}@4.90.1 'breaks apply' --registry ${REGISTRY}`,
+      `npm deprecate --registry ${REGISTRY} -- ${PACKAGE}@4.90.1 'breaks apply'`,
       `npm dist-tag add ${PACKAGE}@4.90.0 latest --registry ${REGISTRY}`,
       "gh release edit v4.90.1 --repo CodySwannGT/lisa --notes-file /scratch/notes.md",
     ]);
@@ -402,7 +410,7 @@ describe("rollback — nothing is written when it should not be", () => {
     expect(runner.calls).toEqual([]);
     expect(notes).toEqual([]);
     const printed = output.out.join("\n");
-    expect(printed).toContain(`npm deprecate ${PACKAGE}@4.90.1 'breaks apply'`);
+    expect(printed).toContain(`-- ${PACKAGE}@4.90.1 'breaks apply'`);
     expect(printed).toContain(`npm dist-tag add ${PACKAGE}@4.90.0 latest`);
     expect(printed).toContain("gh release edit v4.90.1");
   });
@@ -576,7 +584,9 @@ describe("local review fixes", () => {
       good: "4.90.0",
       notesFile: "/scratch/notes.md",
     });
-    expect(plan[0]?.args.slice(-2)).toEqual(["--otp", OTP]);
+    // npm deprecate puts --otp before the `--` that ends option parsing.
+    const end = plan[0]?.args.indexOf("--") ?? -1;
+    expect(plan[0]?.args.slice(end - 2, end)).toEqual(["--otp", OTP]);
     expect(plan[1]?.args.slice(-2)).toEqual(["--otp", OTP]);
     expect(plan[2]?.args).not.toContain("--otp");
     expect(formatCommand(plan[0]!)).toContain("--otp <redacted>");

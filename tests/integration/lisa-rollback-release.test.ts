@@ -199,7 +199,7 @@ describe("with credentials present", () => {
 
     expect(result.ok).toBe(true);
     expect(result.output).toContain(
-      `npm deprecate @codyswann/lisa@4.90.1 'breaks apply' --registry ${box!.registry.url}`
+      `npm deprecate --registry ${box!.registry.url} -- @codyswann/lisa@4.90.1 'breaks apply'`
     );
     expect(result.output).toContain(
       `npm dist-tag add @codyswann/lisa@4.90.0 latest --registry ${box!.registry.url}`
@@ -238,6 +238,19 @@ describe("with credentials present", () => {
           r => r.method === "GET" && r.path === "/@codyswann%2flisa?write=true"
         )
     ).toBe(true);
+  });
+
+  it("passes a reason that starts with -- to npm as the message, not as an option", async () => {
+    const reason = "--dry-run breaks apply";
+    const result = await rollback(box!, "dash-reason", ["--reason", reason]);
+
+    expect(result.output).toContain(
+      "Verified: 4.90.1 is deprecated and latest is 4.90.0."
+    );
+    expect(result.ok).toBe(true);
+    expect(box!.registry.packument().versions["4.90.1"]?.deprecated).toBe(
+      reason
+    );
   });
 });
 

@@ -323,11 +323,14 @@ export function planCommands({
       command: "npm",
       args: [
         "deprecate",
-        `${packageName}@${bad}`,
-        reason,
         REGISTRY_FLAG,
         registry,
         ...otpArgs,
+        // `--` ends npm's option parsing, so a reason that starts with `-`
+        // reaches npm as the message rather than being read as a flag.
+        "--",
+        `${packageName}@${bad}`,
+        reason,
       ],
     },
     {
