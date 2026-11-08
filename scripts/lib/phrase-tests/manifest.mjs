@@ -16,8 +16,21 @@ export const MANIFEST_COMMENT = Object.freeze([
   "Phrases that must (required) or must not (forbidden) appear in each file, checked by tests/unit/docs/required-phrases.test.ts.",
   "Generated ONCE by scripts/generate-phrase-manifest.mjs from the phrase-only test files it replaced (CodySwannGT/lisa#4609); those files are deleted, so it cannot be regenerated.",
   "It is now the hand-maintained source of truth: add, change or remove phrases here directly, keeping keys and arrays sorted.",
-  "Patterns are RegExp { source, flags } and use String#match semantics. `source` lists the deleted test files each file's phrases came from.",
+  "Patterns are RegExp { source, flags } and use String#match semantics. `source` lists the deleted tests each file's phrases came from, as `<test file> › <describe > it title>`.",
 ]);
+
+/** Separates the test file from the test title in a `source` entry. */
+export const SOURCE_SEPARATOR = " › ";
+
+/**
+ * The test file a `source` entry names.
+ * @param {string} source - `<test file> › <title>`.
+ * @returns {string} The test file.
+ */
+export function sourceTestFile(source) {
+  const at = source.indexOf(SOURCE_SEPARATOR);
+  return at === -1 ? source : source.slice(0, at);
+}
 
 /**
  * @typedef {{ source: string, flags: string }} Pattern
@@ -57,8 +70,8 @@ function sortedUnique(values) {
 
 /**
  * Fold recordings into a manifest: keyed by the file read, every array sorted
- * and deduped, each file listing the test files its phrases came from.
- * @param {readonly { entries: readonly (PhraseCheck & { test: string })[] }[]} recordings - Translated recordings.
+ * and deduped, each file listing the tests its phrases came from.
+ * @param {readonly { entries: readonly (PhraseCheck & { source: string })[] }[]} recordings - Translated recordings.
  * @returns {Manifest} The manifest.
  */
 export function buildManifest(recordings) {
@@ -73,7 +86,7 @@ export function buildManifest(recordings) {
       source: [],
     };
     /** @type {unknown[]} */ (current[bucket(entry)]).push(entry.value);
-    current.source.push(entry.test);
+    current.source.push(entry.source);
     files.set(entry.file, current);
   }
   const sorted = [...files.keys()].sort().map(file => {

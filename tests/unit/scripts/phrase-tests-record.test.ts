@@ -77,14 +77,14 @@ describe("recordTestFile", () => {
       polarity: "required",
       kind: "pattern",
       value: { source: "^gamma$", flags: "mu" },
-      test: TEST,
+      source: `${TEST} › docs/a.md > pins`,
     });
     expect(result.entries).toContainEqual({
       file: "docs/b.md",
       polarity: "forbidden",
       kind: "string",
       value: "zeta",
-      test: TEST,
+      source: `${TEST} › docs/b.md > pins`,
     });
     expect(
       result.entries.filter(entry => entry.file === "docs/a.md")
@@ -163,6 +163,16 @@ describe("recordTestFile", () => {
     const result = await record({ "docs/a.md": DOC, [TEST]: test }, TEST);
     expect(result.reasons).toEqual([]);
     expect(result.entries[0]?.file).toBe("docs/a.md");
+  });
+
+  it("exposes only the read members of the file-system modules", async () => {
+    const test = [
+      'import fs from "node:fs";',
+      'import { describe, expect, it } from "vitest";',
+      'it("a", () => { fs.statSync("docs/a.md"); expect("t").toContain("t"); });',
+    ].join("\n");
+    const result = await record({ "docs/a.md": DOC, [TEST]: test }, TEST);
+    expect(result.reasons.join("\n")).toContain("statSync");
   });
 
   it("provides __dirname like vitest, and lets a file declare its own", async () => {

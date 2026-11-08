@@ -132,6 +132,37 @@ describe("classifyTestSource", () => {
     expect(verdict.phraseOnly).toBe(false);
   });
 
+  it.each([
+    ["destructuring a write member", "const { writeFileSync } = fs;"],
+    ["element access", 'fs["rmSync"]("x");'],
+    ["passing the module along", "JSON.stringify(fs);"],
+    ["a non-read promises member", 'fs.promises.writeFile("x", "y");'],
+  ])("rejects an fs namespace escaping through %s", (_label, statement) => {
+    const verdict = classifyTestSource(
+      TOP_TEST,
+      source(
+        `${PHRASE_BODY}\n${statement}`,
+        `import fs from "node:fs";\n${HEADER}`
+      )
+    );
+    expect(verdict.phraseOnly).toBe(false);
+  });
+
+  it("accepts reads through an fs namespace", () => {
+    const verdict = classifyTestSource(
+      TOP_TEST,
+      source(
+        [
+          PHRASE_BODY,
+          'const a = fs.readFileSync("docs/a.md", "utf8");',
+          'const b = fs.promises.readFile("docs/a.md", "utf8");',
+        ].join("\n"),
+        `import * as fs from "node:fs";\n${HEADER}`
+      )
+    );
+    expect(verdict.reasons).toEqual([]);
+  });
+
   it("rejects process access other than process.cwd()", () => {
     const verdict = classifyTestSource(
       TOP_TEST,

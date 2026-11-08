@@ -32,6 +32,7 @@ import ts from "typescript";
 
 import { isExpectCall, isIncludesCall } from "./ast.mjs";
 import { resolveTestImport } from "./classify.mjs";
+import { SOURCE_SEPARATOR } from "./manifest.mjs";
 import { createRunner } from "./runner.mjs";
 
 /** Tag on the value `__phraseIncludes` hands to `expect`. */
@@ -54,7 +55,7 @@ const MODULE_PARAMETERS = Object.freeze([
  * @property {"required" | "forbidden"} polarity - Must the phrase be present?
  * @property {"string" | "pattern"} kind - Substring or regular expression.
  * @property {string | { source: string, flags: string }} value - The phrase.
- * @property {string} test - Repository-relative test file it came from.
+ * @property {string} source - Where it came from: `<test file> › <test title path>`.
  */
 
 /**
@@ -229,8 +230,11 @@ function fileSystemModules(state) {
       )
     );
   };
-  const promises = { ...fsPromises, readFile: readFilePromise };
-  const nodeFs = { ...fs, readFileSync, readFile, promises };
+  // Only the read members exist: a phrase-only file never needs more, and a
+  // write reached through some path the classifier missed must fail loudly
+  // rather than touch the repository.
+  const promises = { readFile: readFilePromise };
+  const nodeFs = { readFileSync, readFile, promises };
   return {
     "node:fs": nodeFs,
     fs: nodeFs,
@@ -550,7 +554,7 @@ export async function recordTestFile(testFile, options) {
       polarity: assertion.polarity,
       kind: assertion.kind,
       value: manifestValue(assertion.value),
-      test: testFile,
+      source: `${testFile}${SOURCE_SEPARATOR}${where}`,
     });
   });
   if (first.state.assertions.length === 0)

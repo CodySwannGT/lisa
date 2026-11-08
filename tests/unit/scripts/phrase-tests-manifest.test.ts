@@ -29,21 +29,21 @@ const records = [
         polarity: "required",
         kind: "string",
         value: "zulu",
-        test: B_TEST,
+        source: `${B_TEST} › b > one`,
       },
       {
         file: A_DOC,
         polarity: "forbidden",
         kind: "pattern",
         value: { source: "bad", flags: "i" },
-        test: B_TEST,
+        source: `${B_TEST} › b > one`,
       },
       {
         file: A_DOC,
         polarity: "required",
         kind: "string",
         value: "alpha",
-        test: B_TEST,
+        source: `${B_TEST} › b > one`,
       },
     ],
   },
@@ -57,7 +57,7 @@ const records = [
         polarity: "required",
         kind: "string",
         value: "alpha",
-        test: A_TEST,
+        source: `${A_TEST} › a > one`,
       },
     ],
   },
@@ -77,7 +77,7 @@ describe("buildManifest", () => {
       forbidden: [],
       requiredPatterns: [],
       forbiddenPatterns: [{ source: "bad", flags: "i" }],
-      source: [A_TEST, B_TEST],
+      source: [`${A_TEST} › a > one`, `${B_TEST} › b > one`],
     });
   });
 

@@ -147,17 +147,41 @@ function packageImportReasons(statement, specifier, fsNamespaces) {
  */
 function nodeReason(node, fsNamespaces) {
   if (node.kind === ts.SyntaxKind.ImportKeyword) return "dynamic import()";
-  if (ts.isIdentifier(node) && node.text === "require") return "require()";
+  if (ts.isIdentifier(node)) {
+    if (node.text === "require") return "require()";
+    return fsNamespaces.has(node.text) ? fsNamespaceReason(node) : undefined;
+  }
   if (!ts.isPropertyAccessExpression(node)) return undefined;
   const owner = node.expression;
   if (!ts.isIdentifier(owner)) return undefined;
   const member = node.name.text;
   if (owner.text === "process" && member !== "cwd") return `process.${member}`;
   if (owner.text === "expect") return `expect.${member}`;
-  if (fsNamespaces.has(owner.text) && !READ_CALLS.includes(member)) {
-    return member === "promises" ? promisesReason(node) : `uses fs.${member}`;
-  }
   return undefined;
+}
+
+/**
+ * A namespace or default `fs` binding may only be used as `fs.readFileSync`,
+ * `fs.readFile` or `fs.promises.readFile`. Any other use — destructuring,
+ * element access, passing the module along — could reach a write, so it
+ * rejects the file.
+ * @param {ts.Identifier} identifier - A reference to an fs binding.
+ * @returns {string | undefined} A reason, or undefined for a read.
+ */
+function fsNamespaceReason(identifier) {
+  const parent = identifier.parent;
+  if (ts.isImportClause(parent) || ts.isNamespaceImport(parent)) {
+    return undefined;
+  }
+  if (ts.isPropertyAccessExpression(parent) && parent.name === identifier) {
+    return undefined;
+  }
+  if (!ts.isPropertyAccessExpression(parent)) {
+    return `uses the ${identifier.text} module other than to read`;
+  }
+  const member = parent.name.text;
+  if (READ_CALLS.includes(member)) return undefined;
+  return member === "promises" ? promisesReason(parent) : `uses fs.${member}`;
 }
 
 /**

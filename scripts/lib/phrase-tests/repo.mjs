@@ -34,12 +34,20 @@ function git(root, args) {
 }
 
 /**
- * Every tracked test file in the working tree that still exists on disk.
+ * Every test file on disk in the working tree, tracked or not (but not
+ * ignored), so files restored from an older commit are seen too.
  * @param {string} root - Repository root.
  * @returns {string[]} Sorted repository-relative paths.
  */
 export function workingTreeTestFiles(root) {
-  return git(root, ["ls-files", "--", TEST_PATHSPEC])
+  return git(root, [
+    "ls-files",
+    "--cached",
+    "--others",
+    "--exclude-standard",
+    "--",
+    TEST_PATHSPEC,
+  ])
     .split("\n")
     .filter(file => file !== "" && existsSync(path.join(root, file)))
     .sort();

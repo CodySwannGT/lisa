@@ -2641,7 +2641,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/check-orphan-test-processes.mjs":
       "123822f43b53a84b619ed97d5c18069feb5964b8216248968a7ab165e345106a",
     "scripts/check-phrase-manifest-parity.mjs":
-      "fbf54c0386d100490252ea9c4767f251f1d59cc0bb6facadc542499048f59621",
+      "1edb35891e4a401d6e01362f86453f5f772762b6945ad2dc93ac555a0a055ad8",
     "scripts/check-pipeline-status-reads.mjs":
       "1fba15dfe50eb060bd229066a35a852679b23c11292981015b5746e1d639fb31",
     "scripts/check-plugins-sync.sh":
@@ -2707,7 +2707,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/downstream-name-digest.mjs":
       "7db91654f03ddd37bfdf1c34acfbfad9832a44ab762ca94c179809ad8faf4aa3",
     "scripts/fix-namespace-test-assertions.mjs":
-      "b083f7de09c10402d92730320d1ffb958d6fa17d058aad5230350986a1a61adf",
+      "91205014b0ed0734c30012d36d5ed21d7ac9b493f5c811ea8288040b4835594c",
     "scripts/fix-test-assertions-pass2.mjs":
       "baca043a291120ff52ce61c06397206dc21ca3bef9c23a5975b9c1f896d963c7",
     "scripts/fix-test-assertions.mjs":
@@ -2807,15 +2807,17 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/lib/phrase-tests/ast.mjs":
       "816310d0ed40e570a488856f6e34114acf8db7deedd498ccec82515a804c32bb",
     "scripts/lib/phrase-tests/classify.mjs":
-      "5553f7e9a52aee0d54afbc34bb3a61a26492ed51220254d6009a1ca392469518",
+      "4f791a20b1d87cfe88600ba7374776823dbc535c5d6e1699f5795e7e5bf2677f",
     "scripts/lib/phrase-tests/fold.mjs":
       "36e1a914cfc384bc310ba84ce0df7e407a741dbca8352bdf762e67c0d0bee623",
     "scripts/lib/phrase-tests/manifest.mjs":
-      "54680cf1b403dedf830bb7d7609ad4e40154df67e86dec20a4819e24fbd5476d",
+      "581a1525f4e6576f8395781d82186dac1b5d536a4b002c0223f8b074c3f5b2a5",
+    "scripts/lib/phrase-tests/parity.mjs":
+      "649e15663413aa90a24e1390c0f8daeb726dedb79d0de985785f00028db299bf",
     "scripts/lib/phrase-tests/record.mjs":
-      "823e861241b9bb7d0ee572fc58102f00e1fb91e4745099e1812896d89c2c9682",
+      "95f65b50281127905cdef2d980f8c46a5e03e4b9b5a32f7a1f1eb8bffaa364f1",
     "scripts/lib/phrase-tests/repo.mjs":
-      "4c0d7f5fc13a7f1c20aa3712c16013cbae07ef6ebdfc61f33e06b421f8eb6d0d",
+      "5a94612c509e17e175d2c18207ff0e205079c65a8a7c74e133162894670c99ea",
     "scripts/lib/phrase-tests/runner.mjs":
       "7d75f0b65c11e7c52f6fbabe064e5f4fc0cc192ae4228de7cdc9713d5ce0145c",
     "scripts/lib/plugin-cache-resolution.mjs":
@@ -10659,6 +10661,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "scripts/lib/phrase-tests/classify.mjs": true,
     "scripts/lib/phrase-tests/fold.mjs": true,
     "scripts/lib/phrase-tests/manifest.mjs": true,
+    "scripts/lib/phrase-tests/parity.mjs": true,
     "scripts/lib/phrase-tests/record.mjs": true,
     "scripts/lib/phrase-tests/repo.mjs": true,
     "scripts/lib/phrase-tests/runner.mjs": true,
@@ -12963,6 +12966,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/per-agent-hook-filter.test.ts": true,
     "tests/unit/scripts/phrase-tests-classify.test.ts": true,
     "tests/unit/scripts/phrase-tests-manifest.test.ts": true,
+    "tests/unit/scripts/phrase-tests-parity.test.ts": true,
     "tests/unit/scripts/phrase-tests-record.test.ts": true,
     "tests/unit/scripts/pipeline-status-continuations.test.ts": true,
     "tests/unit/scripts/placeholder-expiry.test.ts": true,
