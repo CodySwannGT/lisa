@@ -467,6 +467,46 @@ describe("armDecision keeps the vacuity classifier where it exists", () => {
     expect(decision.action).toBe(action);
   });
 
+  it("ignores a CI job that has not reported yet — only review contexts count", () => {
+    const decision = armDecision({
+      evidence: satisfied,
+      vacuity: {
+        inspected: true,
+        ok: false,
+        vacuity: {
+          headSha: HEAD,
+          gateStates: { [CONTEXT]: "satisfied" },
+          violations: [
+            {
+              kind: "absent_required_check",
+              token: "Quality Checks / Lint",
+              contexts: ["Quality Checks / Lint"],
+            },
+          ],
+        },
+      },
+    });
+
+    expect(decision.arm).toBe(true);
+  });
+
+  it("still holds on an unproven review context named only by its token", () => {
+    const decision = armDecision({
+      evidence: satisfied,
+      vacuity: {
+        inspected: true,
+        vacuity: {
+          headSha: HEAD,
+          gateStates: { [CONTEXT]: "waived" },
+          violations: [{ kind: "unproven_required_check", token: CONTEXT }],
+        },
+      },
+    });
+
+    expect(decision.arm).toBe(false);
+    expect(decision.action).toBe(ARM_ACTIONS.substitute);
+  });
+
   it("does not arm on a review kind it does not know", () => {
     const decision = armDecision({
       evidence: satisfied,

@@ -1002,10 +1002,22 @@ function evidenceSignal(evidence, substitutes) {
  * about the review context.
  * @param {{kind?: string, condition?: string, contexts?: string[]}} violation - One violation.
  * @param {ReadonlySet<string>} substitutes - Contexts a writer substituted for at this head.
+ * @param {ReadonlySet<string>|null} reviewContexts - The classifier's review contexts; null when unknown.
  * @returns {string|null} One of {@link ARM_ACTIONS}, or null.
  */
-function violationAction(violation, substitutes) {
+function violationAction(violation, substitutes, reviewContexts) {
   const kind = String(violation?.kind ?? "");
+  const named = violationContexts(violation);
+  // vacuous / unproven / absent name ANY required check, a CI job included.
+  // Only a review context's absence is a review signal; a CI job that has not
+  // reported yet is GitHub's to wait for, and the latch already does.
+  if (
+    !kind.startsWith("review_evidence_") &&
+    reviewContexts !== null &&
+    !named.some(name => reviewContexts.has(name))
+  ) {
+    return null;
+  }
   const condition = String(violation?.condition ?? "");
   if (kind === "review_evidence_objected") return ARM_ACTIONS.blocker;
   if (kind === "review_evidence_objection_unread") return ARM_ACTIONS.stop;
@@ -1022,9 +1034,41 @@ function violationAction(violation, substitutes) {
   if (!substitutable) {
     return kind.startsWith("review_evidence_") ? ARM_ACTIONS.watch : null;
   }
-  return allSubstituted(violation?.contexts ?? [], substitutes)
+  return allSubstituted(
+    reviewContexts === null
+      ? named
+      : named.filter(name => reviewContexts.has(name)),
+    substitutes
+  )
     ? null
     : ARM_ACTIONS.substitute;
+}
+
+/**
+ * The check names one classifier violation is about.
+ * @param {{contexts?: unknown, token?: unknown}} violation - One violation.
+ * @returns {string[]} Its contexts, else its token, else nothing.
+ */
+function violationContexts(violation) {
+  if (Array.isArray(violation?.contexts) && violation.contexts.length > 0) {
+    return violation.contexts.map(String);
+  }
+  return typeof violation?.token === "string" ? [violation.token] : [];
+}
+
+/**
+ * The review contexts the classifier judged, or null when it did not say.
+ *
+ * Null fails closed: every vacuous, unproven or absent check is then read as a
+ * possible review context.
+ * @param {any} report - The classifier report.
+ * @returns {Set<string>|null} The evidence-bearing check names.
+ */
+function reviewContextsOf(report) {
+  const states = report?.vacuity?.gateStates;
+  return states && typeof states === "object" && Object.keys(states).length > 0
+    ? new Set(Object.keys(states))
+    : null;
 }
 
 /**
@@ -1055,11 +1099,7 @@ function vacuitySignal(vacuity, { sha, substitutes, classifierDeclared }) {
         )
       : NOT_ENGAGED;
   }
-  if (
-    report.inspected !== true ||
-    report.answered === false ||
-    report.ok === false
-  ) {
+  if (report.inspected !== true || report.answered === false) {
     return engagedSignal(
       ARM_ACTIONS.watch,
       `the vacuity classifier did not answer (${refusal ?? "uninspected"}); an empty inspection is not a pass`
@@ -1076,7 +1116,9 @@ function vacuitySignal(vacuity, { sha, substitutes, classifierDeclared }) {
     ...(report.violations ?? []),
     ...(report.vacuity?.violations ?? []),
   ]
-    .map(violation => violationAction(violation, substitutes))
+    .map(violation =>
+      violationAction(violation, substitutes, reviewContextsOf(report))
+    )
     .filter(action => action !== null);
   if (actions.length === 0) {
     return engagedSignal(
