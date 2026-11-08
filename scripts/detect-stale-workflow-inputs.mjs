@@ -253,7 +253,8 @@ function cell(value) {
  * A project with no Lisa caller is stated outright, so a reader can tell
  * "nothing of Lisa's to check" apart from "checked and clean" (#4641) — also
  * when the project has third-party callers that were counted. Unreadable Lisa
- * caller lines get a hint naming the shape the detector needs.
+ * caller lines get a hint naming the shape the detector needs; when nothing
+ * else was scanned, that hint leads and the "0 of 0" counts are dropped.
  *
  * @param {{ scanned: number, stale: number, unknownContract: number, unparsed: number }} summary
  *   the report's summary counts.
@@ -266,12 +267,16 @@ function summaryLine(summary, hasLisaCaller) {
   if (summary.scanned === 0 && !hasLisaCaller) {
     return `${noLisa} — nothing to check`;
   }
+  // Detection stays fail-closed: any non-comment line naming a Lisa workflow
+  // path is listed. The hint covers both reasons a line can land here, so an
+  // operator is not told to "fix" a caller that is really prose in a script.
+  const unparsed = `${summary.unparsed} Lisa caller line(s) could not be read. If a listed line is a real caller, rewrite it as \`uses: CodySwannGT/lisa/.github/workflows/<file>@<ref>\`; if it only mentions the path (for example inside a \`run:\` script), reword or move that text.`;
+  if (summary.scanned === 0 && summary.unparsed > 0) {
+    return unparsed;
+  }
   const counts = `${summary.stale} of ${summary.scanned} caller jobs have stale inputs (${summary.unknownContract} unresolvable contract(s))`;
-  const unparsed =
-    summary.unparsed > 0
-      ? `; ${summary.unparsed} Lisa caller line(s) could not be read — each Lisa caller line must read \`uses: CodySwannGT/lisa/.github/workflows/<file>@<ref>\``
-      : "";
-  return `${counts}${unparsed}${hasLisaCaller ? "" : ` — ${noLisa}`}`;
+  const tail = summary.unparsed > 0 ? `; ${unparsed}` : "";
+  return `${counts}${tail}${hasLisaCaller ? "" : ` — ${noLisa}`}`;
 }
 
 /**

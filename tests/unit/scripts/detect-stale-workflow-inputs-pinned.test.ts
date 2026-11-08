@@ -32,6 +32,8 @@ import {
 
 const JSON_FLAG = "--json";
 const NO_LISA_CALLERS = "no Lisa reusable-workflow callers found";
+const UNPARSED_ONE =
+  "1 Lisa caller line(s) could not be read. If a listed line is a real caller, rewrite it as `uses: CodySwannGT/lisa/.github/workflows/<file>@<ref>`; if it only mentions the path (for example inside a `run:` script), reword or move that text.";
 
 describe("detect-stale-workflow-inputs on pinned callers", () => {
   it("reports the stale input on a caller pinned with Lisa's version comment (exit 1)", () => {
@@ -92,10 +94,26 @@ describe("detect-stale-workflow-inputs on pinned callers", () => {
 
     expect(code).toBe(1);
     expect(stdout).toContain("| unparsed |");
-    expect(stdout).toContain(
-      "0 of 0 caller jobs have stale inputs (0 unresolvable contract(s)); 1 Lisa caller line(s) could not be read — each Lisa caller line must read `uses: CodySwannGT/lisa/.github/workflows/<file>@<ref>`"
-    );
+    // Nothing else was scanned, so the unparsed sentence leads the summary.
+    expect(stdout.trimEnd().split("\n").at(-1)).toBe(UNPARSED_ONE);
+    expect(stdout).not.toContain("0 of 0 caller jobs");
     expect(stdout).not.toContain(NO_LISA_CALLERS);
+  });
+
+  it("keeps the counts and appends the hint when other callers were scanned", () => {
+    const { code, stdout } = runDetectorText([
+      PROJECT_FLAG,
+      PROJECT_PINNED_STALE,
+      PROJECT_FLAG,
+      PROJECT_UNPARSED,
+      CONTRACTS_FLAG,
+      CONTRACTS_ROOT,
+    ]);
+
+    expect(code).toBe(1);
+    expect(stdout.trimEnd().split("\n").at(-1)).toBe(
+      `1 of 1 caller jobs have stale inputs (0 unresolvable contract(s)); ${UNPARSED_ONE}`
+    );
   });
 
   it("says no Lisa callers were found when every caller is third-party (exit 0)", () => {

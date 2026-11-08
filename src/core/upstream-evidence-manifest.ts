@@ -2697,7 +2697,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/deployed-guard-advice.mjs":
       "c7471b6972b26bb0c2a66c680feb4980ec67d3dbd92732f48fe76c72ed7790f5",
     "scripts/detect-stale-workflow-inputs.mjs":
-      "385d31979f3a5caa16575f75ea1e8f0b6eafe5d5dfb91187485888c1e4d48539",
+      "672e64375a914750c5a50c16d414bea12df7cdddfa921ccc3f944b857aaaba4d",
     "scripts/downstream-name-digest.mjs":
       "7db91654f03ddd37bfdf1c34acfbfad9832a44ab762ca94c179809ad8faf4aa3",
     "scripts/fix-namespace-test-assertions.mjs":
