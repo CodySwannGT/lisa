@@ -1,0 +1,98 @@
+name: 📦 Packed-host journey
+
+# The by-hand run of tests/integration/shared-runtime-packed-hosts.test.ts
+# (CodySwannGT/lisa#4606).
+#
+# ## Why this exists as a dispatch-only workflow
+#
+# Owner decision 4 of CodySwannGT/lisa#4587 took the packed-host journey off the
+# pull-request path entirely: it took ≈ 880 s, 57% of the integration job in
+# CI run 41330364793. Its routine protection is now the canary-first rollout
+# (CodySwannGT/lisa#4604) plus the one-command rollback (CodySwannGT/lisa#4605).
+# There is deliberately no post-release run either.
+#
+# The journey stays runnable on demand for packaging changes, and this is the
+# hosted way to run it. docs/packed-host-journey.md says WHEN a change needs
+# it. Dispatch it with:
+#
+#   gh workflow run packed-host-journey.yml -f ref=main
+#
+# ## Provisioning
+#
+# Copied from the shell-guard trace shards in plugins-sync.yml, which provision
+# the same runtimes the integration job does: the separately qualified updater
+# Node 22.23.3 captured first, then the reviewed CI Node from .nvmrc (24.21.0;
+# the journey refuses any other outer Node), Bun 1.4.4, and Ruby with
+# activerecord for the Rails template host. ubuntu-24.04 is pinned for the
+# same Ruby reason plugins-sync.yml records (CodySwannGT/lisa#4513).
+#
+# NOTE: repo-specific to the Lisa monorepo, NOT a Lisa template — do not move it
+# under plugins/src or the create-only template sets.
+
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: Branch, tag, or commit SHA to run the packed-host journey against
+        required: false
+        default: main
+        type: string
+
+concurrency:
+  group: packed-host-journey-${{ inputs.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  packed_host_journey:
+    name: 📦 Packed-host journey
+    # Forks have neither the runner minutes nor the reason.
+    if: github.repository == 'CodySwannGT/lisa'
+    runs-on: ubuntu-24.04
+    # The journey measured ≈ 880 s inside the integration job; 45 minutes
+    # leaves room for install and build without letting a hang run for hours.
+    timeout-minutes: 45
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.ref }}
+          persist-credentials: false
+      # The journey includes genuine updater fixtures. Retain their qualified
+      # executable while the enclosing suite uses the shared runtime.
+      - name: Provision separately qualified updater test runtime
+        uses: actions/setup-node@v6
+        with:
+          package-manager-cache: false
+          # lisa-allow-duplicate-version: independently qualified updater identity (#4367)
+          node-version: '22.23.3' # lisa-preserve-node-version: independently qualified updater (#4367)
+      - name: Preserve actual updater test executable
+        run: |
+          node -e 'if (process.versions.node !== "22.23.3") throw Error("Wrong updater test runtime"); require("node:fs").appendFileSync(process.env.GITHUB_ENV, `LISA_TEST_UPDATER_NODE=${require("node:fs").realpathSync(process.execPath)}\n`);'
+      # .nvmrc holds the reviewed CI Node (24.21.0), the only outer Node the
+      # journey runs under; a literal here would be one more copy to drift.
+      - name: Select the reviewed CI Node
+        uses: actions/setup-node@v6
+        with:
+          package-manager-cache: false
+          node-version-file: '.nvmrc'
+      - name: '🍞 Setup Bun'
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version: '1.4.4'
+      - name: Setup Ruby for the Rails template host
+        uses: ruby/setup-ruby@b3aaceaef7e0ee231b499e7b5f49c03fc1d32199 # v1.338.0
+        with:
+          ruby-version: '4.0.1'
+      - name: Install Rails configuration resolver
+        run: gem install activerecord --version 8.1.4 --no-document
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+      # The named script builds once and supplies genuine Bun lifecycle context,
+      # and it targets exactly the one journey file.
+      - name: 📦 Run the packed-host journey
+        env:
+          NODE_OPTIONS: --max-old-space-size=6144
+        run: bun run test:integration:packed-hosts

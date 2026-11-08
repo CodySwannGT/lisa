@@ -60,8 +60,46 @@ describe("mutation control scheduling", () => {
   it("collects the integration controls in pull-request CI", () => {
     const task = taskAt("pull-request");
     expect(task).toBe("test:integration");
+    // Every mutation control still runs on the pull request; the one exclusion
+    // is the packed-host journey, which owner decision 4 of
+    // CodySwannGT/lisa#4587 took off the PR path (CodySwannGT/lisa#4606).
     expect(script(task as string)).toBe(
-      "node scripts/lib/worktree-dependencies.mjs && $npm_execpath run lisa-test-run -- --adapter vitest -- vitest run tests/integration"
+      "node scripts/lib/worktree-dependencies.mjs && $npm_execpath run lisa-test-run -- --adapter vitest -- vitest run tests/integration --exclude='**/shared-runtime-packed-hosts.test.ts'"
     );
+  });
+});
+
+/** The journey owner decision 4 of CodySwannGT/lisa#4587 took off the PR path. */
+const PACKED_HOST_JOURNEY =
+  "tests/integration/shared-runtime-packed-hosts.test.ts";
+
+describe("packed-host journey scheduling (CodySwannGT/lisa#4606)", () => {
+  it("runs at neither the pull-request nor the push moment", () => {
+    for (const moment of ["pull-request", "push"]) {
+      const task = taskAt(moment);
+      expect(task, moment).not.toBeNull();
+      expect(script(task as string), moment).toContain(
+        "--exclude='**/shared-runtime-packed-hosts.test.ts'"
+      );
+    }
+  });
+
+  it("stays runnable by hand through its own script", () => {
+    expect(script("test:integration:packed-hosts")).toBe(
+      `node scripts/lib/worktree-dependencies.mjs && $npm_execpath run lisa-test-run -- --adapter vitest -- vitest run ${PACKED_HOST_JOURNEY}`
+    );
+  });
+
+  it("tells a deferred run to use the hand-run script, not the excluding one", () => {
+    // The journey defers off the reviewed CI Node and prints a remedy. A remedy
+    // naming `test:integration` would now run a pass that excludes the journey.
+    const journey = readFileSync(
+      path.join(REPO_ROOT, PACKED_HOST_JOURNEY),
+      "utf8"
+    );
+    expect(journey).toContain(
+      "mise exec node@${CI_NODE} -- bun run test:integration:packed-hosts"
+    );
+    expect(journey).not.toContain("bun run test:integration`");
   });
 });
