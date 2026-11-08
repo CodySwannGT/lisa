@@ -174,6 +174,17 @@ template listed in `verification.completion.acceptedEvidenceReleases`, so
 proof published before a rename or rotation keeps validating. Only releases in
 the implementation repository are accepted.
 
+`LISA_EVIDENCE_RELEASE` pins the concrete release for one run (skill scripts
+export it once so links and uploads agree). It must be one of the accepted
+releases; `evidence-release --ensure` still creates and capacity-checks it.
+
+Creating an evidence release is a real GitHub release: it fires `release`
+webhook and workflow events and adds a git tag of the same name. Workflows
+triggered `on: release` should skip evidence releases, for example with
+`if: ${{ !startsWith(github.event.release.tag_name, 'pr-assets') }}` adapted to
+the configured name. Lisa creates them with `--latest=false` and the release
+notes "Evidence storage only — not a product release."
+
 ## Freshness and readbacks
 
 The full primary specification is hashed except positively recognized canonical

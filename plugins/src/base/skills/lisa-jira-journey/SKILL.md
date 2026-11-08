@@ -132,7 +132,13 @@ python3 .claude/skills/jira-journey/scripts/generate-templates.py \
 
 This generates `evidence/comment.txt` (JIRA wiki markup) and `evidence/comment.md` (GitHub markdown) with evidence formatted as code blocks.
 
-The GitHub links point at the configured evidence release, the same one `post-evidence.sh` uploads to: the generator asks `node scripts/lisa-work-item.mjs evidence-release` (default `pr-assets`). Set `LISA_EVIDENCE_RELEASE` to override it for one run.
+The GitHub links point at the evidence release. Resolve it once, before generating templates, and keep it exported for Step 5 so the links and the uploads name the same release even across a month boundary:
+
+```bash
+export LISA_EVIDENCE_RELEASE=$(node scripts/lisa-work-item.mjs evidence-release --ensure)
+```
+
+`--ensure` creates the release when it is missing and stops, in plain words, when it is nearly full. Both `generate-templates.py` and `post-evidence.sh` read `LISA_EVIDENCE_RELEASE`; `post-evidence.sh` still validates and capacity-checks it. Without it they resolve the configured release themselves (default `pr-assets`).
 
 ### Step 5: Post Evidence
 

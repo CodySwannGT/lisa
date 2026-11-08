@@ -45,6 +45,14 @@ bash .claude/skills/jira-evidence/scripts/post-evidence.sh <TICKET_ID> <EVIDENCE
 bash .claude/skills/jira-evidence/scripts/post-evidence.sh PROJ-123 ./evidence 42
 ```
 
+When `generate-templates.py` wrote the evidence links, run both with the same exported release so the links match the uploads:
+
+```bash
+export LISA_EVIDENCE_RELEASE=$(node scripts/lisa-work-item.mjs evidence-release --ensure)
+```
+
+`post-evidence.sh` uses `LISA_EVIDENCE_RELEASE` when it is set, after the resolver confirms it is one of the project's evidence releases and is not nearly full.
+
 ## What It Does
 
 1. **Read JIRA config** — Resolves the jira-cli config (`$PROJECT_DIR/.lisa/jira-cli/.config.yml` first, then `~/.config/.jira/.config.yml`, announcing the fallback) and reads `server` and `login` from it dynamically — no hardcoded values. Exits 1 naming both paths when neither exists. The same resolved path is then passed to `jira issue move` as `--config`, so the CLI cannot end up on a different config than the one this script parsed.
