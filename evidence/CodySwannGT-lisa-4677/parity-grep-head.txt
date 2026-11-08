@@ -1,0 +1,12 @@
+plugins/lisa-cursor/skills/lisa-track/SKILL.md:3
+plugins/lisa/.codex-plugin/skills/lisa-track/SKILL.md:3
+plugins/lisa-agy/skills/lisa-track/SKILL.md:3
+plugins/lisa/skills/lisa-track/SKILL.md:3
+plugins/lisa-devin/skills/lisa-track/SKILL.md:3
+plugins/lisa-copilot/skills/lisa-track/SKILL.md:3
+plugins/lisa/skills/lisa-implement/SKILL.md:3
+plugins/lisa/.codex-plugin/skills/lisa-implement/SKILL.md:3
+plugins/lisa-agy/skills/lisa-implement/SKILL.md:3
+plugins/lisa-cursor/skills/lisa-implement/SKILL.md:3
+plugins/lisa-devin/skills/lisa-implement/SKILL.md:3
+plugins/lisa-copilot/skills/lisa-implement/SKILL.md:3
