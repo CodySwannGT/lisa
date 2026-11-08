@@ -703,6 +703,98 @@ Handle every blocker class; after any fix, re-poll and continue. Do not stop whi
 the PR is still open and progress is possible. On each iteration, refresh the
 babysitter lease if its last stamp is older than ~30 minutes (section 0).
 
+**Waiting on CI: one bounded CI watch, in the foreground.** When the only thing
+left is required checks still running, wait with a blocking watch, run under a
+timeout no longer than the harness's single-command limit (`timeout 540` where
+the `timeout` utility exists; otherwise the harness's own command timeout):
+
+```bash
+timeout 540 gh pr checks <pr> --required --watch --interval 30 --fail-fast
+```
+
+Give the tool call that runs it a timeout above that value (for example
+600000 ms on Claude Code's Bash tool), or lower 540 to fit under the harness's
+limit: a harness that kills the command first loses the result the bound exists
+to deliver.
+
+When it returns, for any reason, re-poll the full PR state (the `gh pr view`
+line above) and handle whatever blocker it shows exactly as below — a failed
+check is step (c).
+Repeat until the PR is merged, a blocker needs action, or the run's budget is spent.
+**The run's budget** is the caller's stated limit when one was passed, otherwise
+the point where this session cannot keep running (the harness's turn, context or
+wall-clock limit). One watch timing out is NOT the budget being spent — it is
+the cue to re-poll and watch again.
+**A non-zero exit is not a CI failure on its own**: the
+watch exits non-zero when `--fail-fast` sees a failed check, when the timeout
+fires, and — with empty stdout — when the token lacks `actions: read` (section 1's arm gate).
+The re-poll of `statusCheckRollup` is the authority on which one happened.
+
+**No required checks reported yet.** The watch also returns at once when no
+required check has registered on the head. First confirm whether the base
+requires any, reading both places a requirement can live:
+
+```bash
+gh api "repos/<owner>/<repo>/rules/branches/<base>" \
+  --jq '[.[] | select(.type == "required_status_checks")] | length'
+gh api "repos/<owner>/<repo>/branches/<base>/protection/required_status_checks" \
+  --jq '(.contexts // []) + [(.checks // [])[].context] | length'
+gh api "repos/<owner>/<repo>/branches/<base>" --jq .protected
+```
+
+The wait does not apply only when BOTH say none: the rules read returns `0`
+AND the classic read returns `0`, or 404 while the branch read says `.protected`
+is `false`. GitHub also answers 404 when the token cannot read protection (it
+needs admin), so a 404 on a protected branch — or any other error from either
+read — means the requirement is unknown: treat the base as requiring checks.
+With no required checks, the loop just re-polls for the other blockers. Otherwise the
+head's checks have not started: re-poll, and re-run the bounded watch once the
+re-poll shows required checks registered. Between those re-polls, wait with this
+one foreground bounded gap — the `sleep` always runs, because the watch can
+return at once (no checks yet, or every reported check already green while a
+required one has not registered):
+
+```bash
+timeout 60 gh pr checks <pr> --watch --interval 10; sleep 30
+```
+
+Never a detached or unbounded sleep loop. After 10 re-polls with no required
+check registered on the head, that is a blocker, not a wait: stop and name the
+missing checks (report mode: `blocked:checks`).
+
+**Report mode does not wait on CI.** With `on_blocker=report`, never run the
+watch and never end in `ci-pending`: pending required checks classify through
+the existing report-mode outcomes. When auto-merge is armed and pending checks
+are the only thing outstanding, return `will-merge-after-resync` — the caller
+keeps the item claimed and a later cycle re-reads the PR; any other standing
+blocker returns its own `blocked:<reason>`.
+
+**Never start a detached or background watcher as the way to wait on CI** — no
+trailing `&`, no `nohup`, no harness background task, no scheduled re-check, no
+detached or unbounded sleep loop. Each of those stalls silently, dies with the
+session, or lets the session end while required checks are still pending, and
+the later result then reaches nobody. The wait is the bounded watch above, and
+nothing else.
+
+**Budget spent with required checks still pending.** Do not end silently and do
+not report success. Record the state on the PR in one comment carrying the
+PR number, the head SHA, and the names of the required checks still pending,
+deduplicated by a marker so a resumed run updates rather than repeats it. A
+later run that finds that head's required checks finished edits the marker
+comment to say so, so the record never reads as still pending:
+
+```text
+<!-- [lisa-ci-pending] sha=<head-sha> -->
+```
+
+A check that fails later is not this run's to catch: the CI-failure re-dispatch
+(its `[lisa-ci-failed]` marker on the work item) wakes the owning agent. End
+with the `ci-pending` terminal state (section 4) and this exact report line:
+
+```text
+CI PENDING — <n> required checks still running at <sha>
+```
+
 **Poll by PR number, and never discover the PR set from "what is currently open".**
 A watcher whose target list comes from `gh pr list --state open` **cannot observe a
 merge**: the moment the PR merges it leaves that list, so the branch that would
@@ -1357,8 +1449,8 @@ gh run list --branch <baseRefName> --commit "$merge_sha" \
 ```
 
 **Bounded wait:** a just-created run can take a few seconds to register — poll
-briefly (a small number of short intervals / a short ceiling, mirroring the "wait
-for that head's checks to start" bound used above) before concluding the run is
+briefly (a small number of short intervals / a short ceiling, mirroring section 2's
+bounded CI watch) before concluding the run is
 absent, so a not-yet-registered run is not mis-read as zero. When no run matches
 the merge SHA directly, also accept a descendant run whose head has `$merge_sha`
 as an ancestor (`git merge-base --is-ancestor "$merge_sha" <run_head_sha>`).
@@ -1587,6 +1679,15 @@ Loop until one of:
   bot is rate limited and cannot re-review, and I posted my own review of the
   current version. Someone with dismissal rights needs to dismiss review 456,
   or decide it should stand."* Do not wait for the bot's window to reset.
+- **`ci-pending`** — the run's budget was spent while required checks were still
+  running on an OPEN PR. The PR number, head SHA and pending check names are
+  recorded in the `[lisa-ci-pending]` comment (section 2), a later failure is
+  left to the `[lisa-ci-failed]` re-dispatch, and the run ends with
+  `CI PENDING — <n> required checks still running at <sha>`. This is never
+  reported as success: the work is not done until CI is green. If the checks
+  later pass and auto-merge merges the PR, post-merge verification and
+  work-item completion (section 3) are left to `lisa-repair-intake`'s
+  merged-PR recovery; re-invoking this skill on the PR also completes them.
 - **`CLOSED`** → report (PR was closed without merge).
 - **Hard block needing a human**: an unresolvable conflict, a failing check that
   needs design input, or genuine unresolved human objection (not a bot gate). Stop

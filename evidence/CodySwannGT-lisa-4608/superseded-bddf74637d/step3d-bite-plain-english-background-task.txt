@@ -1,0 +1,63 @@
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - import "./vitest.config.local" without a file extension (vitest.config.ts:21:25). Add the file extension
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - import "./vitest.config.local" without a file extension (vitest.config.ts:21:25). Add the file extension
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - import "./vitest.config.local" without a file extension (vitest.config.ts:21:25). Add the file extension
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - import "./vitest.config.local" without a file extension (vitest.config.ts:21:25). Add the file extension
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+
+ RUN  v4.1.12 /Users/codysai/workspace/lisa/.claude/worktrees/4608-bounded-ci-watch
+
+lisa scratch: no supervised lease in the environment, so this run is self-supervised. Fixture directories are still bounded to a run root this process owns and removed on exit; what is missing is the detached reaper that reclaims the root after a SIGKILL, which the next run's startup sweep recovers instead. Run through `lisa-test-run --profile <profile> --adapter vitest -- vitest ...` for a supervised run.
+ ❯ |lisa| tests/unit/strategies/drive-pr-bounded-ci-watch.test.ts (133 tests | 1 failed) 23ms
+     × mentions background or detached waiting only inside the prohibition 3ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  |lisa| tests/unit/strategies/drive-pr-bounded-ci-watch.test.ts > drive-pr-to-merge bounded CI watch (plugins/src/base/skills) > mentions background or detached waiting only inside the prohibition
+AssertionError: expected [ 'background task' ] to deeply equal []
+
+- Expected
++ Received
+
+- []
++ [
++   "background task",
++ ]
+
+ ❯ tests/unit/strategies/drive-pr-bounded-ci-watch.test.ts:203:36
+    201|       ),
+    202|     ].filter(m => m.index < pStart || m.index > pEnd);
+    203|     expect(outside.map(m => m[0])).toEqual([]);
+       |                                    ^
+    204|   });
+    205|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 132 passed (133)
+   Start at  20:31:21
+   Duration  490ms (transform 148ms, setup 222ms, import 14ms, tests 23ms, environment 0ms)
+
+vitest exit=1
+(empty above = plugins/ and tests/ clean after restore)
+diff --git a/plugins/src/base/skills/lisa-drive-pr-to-merge/SKILL.md b/plugins/src/base/skills/lisa-drive-pr-to-merge/SKILL.md
+index 15e6ba51f2..0423a5018f 100644
+--- a/plugins/src/base/skills/lisa-drive-pr-to-merge/SKILL.md
++++ b/plugins/src/base/skills/lisa-drive-pr-to-merge/SKILL.md
+@@ -712,6 +712,8 @@ the `timeout` utility exists; otherwise the harness's own command timeout):
+ timeout 540 gh pr checks <pr> --required --watch --interval 30 --fail-fast
+ ```
+ 
++If CI is slow, start the watch as a background task and check back later.
++
+ Give the tool call that runs it a timeout above that value (for example
+ 600000 ms on Claude Code's Bash tool), or lower 540 to fit under the harness's
+ limit: a harness that kills the command first loses the result the bound exists
