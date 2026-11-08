@@ -94,6 +94,26 @@ const CHILD_STARTS = Object.freeze([
 ]);
 
 /**
+ * Suites deliberately kept OUT of the candidate set, each with its reason.
+ *
+ * The candidate filter is a superset on purpose, so an entry here is a decision
+ * about cost, never a claim that the suite cannot run a guard:
+ *
+ * - `tests/integration/shared-runtime-packed-hosts.test.ts` — owner decision 4
+ *   of CodySwannGT/lisa#4587 (CodySwannGT/lisa#4606) takes the ~880 s
+ *   packed-host journey off the pull-request path entirely. It runs by hand
+ *   through `.github/workflows/packed-host-journey.yml`, and its routine
+ *   protection is the canary rollout (CodySwannGT/lisa#4604) plus the
+ *   one-command rollback (CodySwannGT/lisa#4605). It drove no guard: Plugins
+ *   Sync run 42505996595 collected it in shard 3, and none of that shard's 350
+ *   trace records originated from it, so leaving it out narrows no guard's
+ *   observed refusals.
+ */
+export const HAND_RUN_SUITES = Object.freeze([
+  "tests/integration/shared-runtime-packed-hosts.test.ts",
+]);
+
+/**
  * Read one tracked file, tolerating a path git lists but the tree lacks.
  * @param {string} root - Repository root.
  * @param {string} file - Repository-relative path.
@@ -114,7 +134,8 @@ function readOrEmpty(root, file) {
  * `tests/` modules it transitively imports — both names something ending in
  * `.sh` and starts a child process. Over-inclusion costs runtime;
  * under-inclusion costs a guard silently leaving the population, which is the
- * failure this check exists to prevent.
+ * failure this check exists to prevent. The only exceptions are the
+ * {@link HAND_RUN_SUITES}, each excluded by an owner decision named there.
  * @param {string} root - Repository root.
  * @returns {string[]} Repository-relative test file paths, sorted.
  */
@@ -149,6 +170,7 @@ export function candidateSuites(root) {
 
   return tracked
     .filter(file => file.endsWith(".test.ts"))
+    .filter(file => !HAND_RUN_SUITES.includes(file))
     .filter(file => {
       const sources = unit(file, new Set()).map(part => text.get(part) ?? "");
       return (

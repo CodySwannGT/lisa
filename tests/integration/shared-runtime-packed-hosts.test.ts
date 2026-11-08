@@ -29,7 +29,7 @@ const CI_NODE = "24.21.0";
 const deferred = suiteDeferral(
   () => process.versions.node === CI_NODE,
   `the reviewed CI Node ${CI_NODE} as the outer test runtime`,
-  `Run the integration suite under it, e.g. \`mise exec node@${CI_NODE} -- bun run test:integration\`.`
+  `Run the journey under it, e.g. \`mise exec node@${CI_NODE} -- bun run test:integration:packed-hosts\`.`
 );
 
 /** Framework hosts that inherit Node 24 and install through the shared cache. */
