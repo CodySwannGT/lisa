@@ -219,6 +219,8 @@ describe("the skills use only real CLI subcommands and flags", () => {
       "mark-plan",
       "item-answer",
       "answer",
+      "channel-answer",
+      "answer-plan",
     ],
     [SETUP]: ["init-config", "validate", "store-token", "start", "status"],
   };

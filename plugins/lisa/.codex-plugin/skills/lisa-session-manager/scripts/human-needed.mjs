@@ -149,6 +149,14 @@ function planningMissPlan({ ref, kind, cause, question, overruled }) {
   };
 }
 
+/**
+ * Starts every other comment the manager posts. `item-answer` never reads a
+ * comment that starts with a bracketed `[lisa-...]` tag as an answer, so the
+ * manager's own notes (and the answers it records on the item) are never
+ * taken for a new answer.
+ */
+export const MANAGER_COMMENT_PREFIX = "[lisa-session-manager]";
+
 /** Marks the manager's question comment, so its answer can be found after it. */
 export const QUESTION_MARKER = "[lisa-session-manager-question]";
 
@@ -173,6 +181,23 @@ const CREDENTIAL_SHAPES = [
   ["API key", /\bsk-(?:ant-)?[A-Za-z0-9_-]{20,}/],
   ["private key", /-----BEGIN [A-Z ]*PRIVATE KEY-----/],
   ["bearer token", /\bbearer\s+[A-Za-z0-9._~+/=-]{20,}/i],
+  // The password part cannot cross a `/`, so a port, a path or a query
+  // holding an `@` (`http://host:3000/q?owner=a@b.com`) is not refused.
+  ["URI with a password", /\b[a-z][a-z0-9+.-]*:\/\/[^\s:/@]+:[^\s/@]+@/i],
+  // Env-style names (GITHUB_TOKEN, client_secret, DB_PASSWORD) are caught by
+  // allowing an identifier prefix: `\b` does not fire after `_`. The value
+  // must hold a digit and be 8+ characters, so ordinary prose ("token:
+  // expires daily", "secret: yes") is not refused.
+  [
+    "password or secret assignment",
+    /(?:^|[^A-Za-z0-9])[A-Za-z0-9_-]*(?:password|passwd|secret|token)\s*[=:]\s*(?=\S*\d)\S{8,}/i,
+  ],
+  // A password needs no digit to be one: refuse a long value outright
+  // (`password: changeme` is still accepted).
+  [
+    "password assignment",
+    /(?:^|[^A-Za-z0-9])[A-Za-z0-9_-]*(?:password|passwd)\s*[=:]\s*\S{12,}/i,
+  ],
 ];
 
 /**
@@ -233,7 +258,7 @@ function questionComment({
     "How to answer:",
     ...ways,
     "",
-    `The session manager keeps working on other items meanwhile. Once the answer is delivered it removes ${markerText} and says so here.`,
+    `The session manager keeps working on other items meanwhile. Once the answer is delivered to the worker, or recorded here for the next attempt, it removes ${markerText} and says so here.`,
   ].join("\n");
 }
 

@@ -177,6 +177,28 @@ for code review: an agentic review before push, a bot on the pull request.
 Awaiting before a pull request exists is refused. A check that can never fire is
 a declared guarantee that never runs.
 
+`lisa doctor` follows that distinction for CodeRabbit. A `pull-request` gate
+awaiting CodeRabbit is proven by the hosted check run; the local CLI is optional.
+An installed optional CLI whose authentication cannot be verified produces a
+warning. A project that runs CodeRabbit locally declares its tool dependency
+beside the task:
+
+```json
+"code-review": {
+  "needs": { "tools": ["coderabbit"] },
+  "push": { "level": "required", "run": "review:local" },
+  "pull-request": { "level": "required", "await": "CodeRabbit" }
+}
+```
+
+Here `review:local` is the project's own task that invokes the CLI; Lisa does not
+ship a CodeRabbit review runner or infer tool dependencies from shell text.
+Doctor names `code-review at push` if that required CLI is missing or signed out.
+An `optional` local task stays advisory, and an `off` task needs no CLI. Gate-level
+`needs` on an awaited signal alone does not turn hosted proof into local work.
+These diagnostics share one CLI across all supported agents and do not change
+hosted evidence requirements or the optional CodeRabbit Claude plugin.
+
 ## An exit code is one bit, and two gates may share one prover
 
 A coverage-instrumented suite proves `test-correctness` by passing and
