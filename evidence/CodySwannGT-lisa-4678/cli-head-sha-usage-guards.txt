@@ -1,0 +1,12 @@
+$ node scripts/lisa-ci-failure-redispatch.mjs --head-sha abc123 --dry-run
+lisa-ci-failure-redispatch: --head-sha must be a full 40-character lowercase commit SHA, got 'abc123'
+exit=2
+$ node scripts/lisa-ci-failure-redispatch.mjs --head-sha 3DB71F89A186D5DBEB78015AA5735FA9D8EFDA48 --dry-run
+lisa-ci-failure-redispatch: --head-sha must be a full 40-character lowercase commit SHA, got '3DB71F89A186D5DBEB78015AA5735FA9D8EFDA48'
+exit=2
+$ node scripts/lisa-ci-failure-redispatch.mjs --head-sha 3db71f89a186d5dbeb78015aa5735fa9d8efda48 --run-id 42394865888 --dry-run
+lisa-ci-failure-redispatch: pass exactly one of --run-id <id>, --payload <file> or --head-sha <sha>
+exit=2
+$ node scripts/lisa-ci-failure-redispatch.mjs --dry-run
+lisa-ci-failure-redispatch: pass exactly one of --run-id <id>, --payload <file> or --head-sha <sha>
+exit=2

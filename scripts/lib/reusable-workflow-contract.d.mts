@@ -15,6 +15,16 @@ export function parseReusableReference(usesValue: string): {
 export function extractCallerJobs(
   content: string
 ): readonly ReusableCallerJob[];
+export interface UnparsedLisaCallerLine {
+  /** 1-based line number within the file. */
+  readonly line: number;
+  /** The line's text, trimmed. */
+  readonly text: string;
+}
+
+export function findUnparsedLisaCallerLines(
+  content: string
+): readonly UnparsedLisaCallerLine[];
 export function extractDeclaredInputs(
   content: string
 ): readonly string[] | null;

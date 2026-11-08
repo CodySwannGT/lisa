@@ -1,5 +1,52 @@
 /** Pure reusable-workflow caller/contract comparison shared by health and CLI. */
 
+/**
+ * A job-level `uses:` line, in every shape Lisa itself writes.
+ *
+ * `src/core/reusable-workflow-pin.ts` rewrites each caller to
+ * `uses: <owner>/<repo>/.github/workflows/<file>@<sha> # v<version>`, keeping
+ * any surrounding quotes. This pattern accepts that shape: an optional matching
+ * `"` or `'` around the reference and an optional trailing YAML comment. It
+ * used to be end-anchored right after the reference, so the pin comment made
+ * every pinned caller invisible and both stale-input checks passed having
+ * compared nothing (CodySwannGT/lisa#4641). A round-trip test keeps the
+ * pinner's output and this reader in agreement.
+ *
+ * A `#` starts a YAML comment only after whitespace: `@main#note` is the ref
+ * `main#note` to GitHub, so that shape is rejected here (and then reported as
+ * unparsed) rather than read as ref `main`.
+ *
+ * Split in two so each pattern stays readable: `USES_LINE` finds the key and
+ * its indentation, `USES_VALUE` reads what follows it.
+ * `USES_VALUE` groups: 1 = double-quoted, 2 = single-quoted, 3 = bare value.
+ */
+const USES_LINE = /^(\s*)uses:[ \t]*(.*)$/;
+const USES_VALUE =
+  /^(?:"([^"\s]+)"|'([^'\s]+)'|([^\s"'#]+))(?:[ \t]+#.*)?[ \t]*$/;
+
+/**
+ * Any mention of a Lisa reusable workflow path. Owner and repository match
+ * case-insensitively, as GitHub resolves them.
+ */
+const LISA_WORKFLOW_PATH = /codyswanngt\/lisa\/\.github\/workflows\//i;
+
+/** A line that is entirely a YAML comment. */
+const COMMENT_LINE = /^\s*#/;
+
+/**
+ * Parse one line as a reusable-workflow `uses:` reference.
+ *
+ * @param {string} line
+ * @returns {{ indentation: number, reference: { file: string, ref: string, owner: string | null, repo: string | null } } | null}
+ */
+function parseUsesLine(line) {
+  const match = USES_LINE.exec(line);
+  const value = match ? USES_VALUE.exec(match[2]) : null;
+  if (!match || !value) return null;
+  const reference = parseReusableReference(value[1] ?? value[2] ?? value[3]);
+  return reference ? { indentation: match[1].length, reference } : null;
+}
+
 /** @param {string} line @returns {number} */
 function indentOf(line) {
   return line.length - line.trimStart().length;
@@ -56,11 +103,9 @@ export function extractCallerJobs(content) {
   const lines = content.split(/\r?\n/);
   const jobs = [];
   for (let index = 0; index < lines.length; index++) {
-    const usesMatch = /^(\s*)uses:\s*(\S+)\s*$/.exec(lines[index]);
-    if (!usesMatch) continue;
-    const reference = parseReusableReference(usesMatch[2]);
-    if (!reference) continue;
-    const indentation = usesMatch[1].length;
+    const parsed = parseUsesLine(lines[index]);
+    if (!parsed) continue;
+    const { indentation, reference } = parsed;
     let withKeys = [];
     for (let child = index + 1; child < lines.length; child++) {
       const line = lines[child];
@@ -83,6 +128,36 @@ export function extractCallerJobs(content) {
     });
   }
   return jobs;
+}
+
+/**
+ * Every `uses:` line naming a Lisa reusable workflow that `extractCallerJobs`
+ * cannot read.
+ *
+ * Both stale-input checks treat "no callers parsed" as "nothing stale". A Lisa
+ * caller the parser skips is therefore a check that passes having inspected
+ * nothing — the failure CodySwannGT/lisa#4641 found on every pinned host. This
+ * lets each check fail closed: report the line instead of dropping it.
+ *
+ * Any non-comment line mentioning a Lisa reusable workflow path counts, not
+ * only `uses:` lines: a `uses:` value split onto the next line, or a flow
+ * mapping such as `job: { uses: … }`, is still a call the parser cannot check.
+ * Commented-out lines are documentation, not calls, and are never reported.
+ *
+ * @param {string} content
+ * @returns {{ line: number, text: string }[]} 1-based line number and the
+ *   trimmed line text, in file order.
+ */
+export function findUnparsedLisaCallerLines(content) {
+  return content
+    .split(/\r?\n/)
+    .flatMap((line, index) =>
+      !COMMENT_LINE.test(line) &&
+      LISA_WORKFLOW_PATH.test(line) &&
+      parseUsesLine(line) === null
+        ? [{ line: index + 1, text: line.trim() }]
+        : []
+    );
 }
 
 /** @param {string} content @returns {string[] | null} */

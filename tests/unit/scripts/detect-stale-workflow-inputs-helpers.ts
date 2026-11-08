@@ -11,11 +11,8 @@ import process from "node:process";
 import { boundedExecFileSync } from "../../helpers/io-latency-budget.js";
 
 export const REPO_ROOT = path.resolve(__dirname, "../../..");
-export const SCRIPT = path.join(
-  REPO_ROOT,
-  "scripts",
-  "detect-stale-workflow-inputs.mjs"
-);
+const SCRIPT_NAME = "detect-stale-workflow-inputs.mjs";
+export const SCRIPT = path.join(REPO_ROOT, "scripts", SCRIPT_NAME);
 export const FIXTURES_ROOT = path.join(
   REPO_ROOT,
   "parity/fixtures/stale-workflow-inputs"
@@ -25,6 +22,15 @@ export const PROJECT_VINTAGE = path.join(FIXTURES_ROOT, "project-vintage");
 export const PROJECT_CURRENT = path.join(FIXTURES_ROOT, "project-current");
 export const PROJECT_MIXED = path.join(FIXTURES_ROOT, "project-mixed");
 export const PROJECT_NO_CALLER = path.join(FIXTURES_ROOT, "project-no-caller");
+export const PROJECT_PINNED_STALE = path.join(
+  FIXTURES_ROOT,
+  "project-pinned-stale"
+);
+export const PROJECT_UNPARSED = path.join(FIXTURES_ROOT, "project-unparsed");
+export const PROJECT_THIRD_PARTY = path.join(
+  FIXTURES_ROOT,
+  "project-third-party"
+);
 export const ABSENT_PROJECT = path.join(FIXTURES_ROOT, "does-not-exist");
 
 export const PROJECT_FLAG = "--project";
@@ -41,11 +47,13 @@ export const REUSABLE_EXAMPLE_AGENT_YML = "reusable-example.yml";
 export interface StaleInputResult {
   readonly file: string;
   readonly project: string;
-  readonly reusableFile: string;
-  readonly ref: string;
+  readonly reusableFile: string | null;
+  readonly ref: string | null;
   readonly withKeys: readonly string[];
   readonly staleInputs: readonly string[];
-  readonly status: "ok" | "stale" | "unknown-contract";
+  readonly status: "ok" | "stale" | "unknown-contract" | "unparsed";
+  /** 1-based line of the unreadable `uses:` line; only on `unparsed` rows. */
+  readonly line?: number;
 }
 
 /** The machine-readable report emitted with `--json`. */
@@ -58,6 +66,7 @@ export interface StaleInputReport {
     readonly ok: number;
     readonly stale: number;
     readonly unknownContract: number;
+    readonly unparsed: number;
   };
   readonly results: readonly StaleInputResult[];
 }
@@ -75,7 +84,7 @@ export function runDetector(args: readonly string[]): {
 } {
   try {
     const stdout = boundedExecFileSync({
-      label: "detect-stale-workflow-inputs.mjs",
+      label: SCRIPT_NAME,
       command: process.execPath,
       args: [SCRIPT, ...args],
     });
@@ -88,6 +97,32 @@ export function runDetector(args: readonly string[]): {
       report: (stdout.trim() === ""
         ? {}
         : JSON.parse(stdout)) as StaleInputReport,
+    };
+  }
+}
+
+/**
+ * Run the detector without `--json` and capture the human-readable table.
+ *
+ * @param args - CLI arguments after the script path.
+ * @returns The exit code and raw stdout.
+ */
+export function runDetectorText(args: readonly string[]): {
+  code: number;
+  stdout: string;
+} {
+  try {
+    const stdout = boundedExecFileSync({
+      label: SCRIPT_NAME,
+      command: process.execPath,
+      args: [SCRIPT, ...args],
+    });
+    return { code: 0, stdout };
+  } catch (error) {
+    const e = error as { exitCode?: number; stdout?: string };
+    return {
+      code: typeof e.exitCode === "number" ? e.exitCode : -1,
+      stdout: e.stdout ?? "",
     };
   }
 }

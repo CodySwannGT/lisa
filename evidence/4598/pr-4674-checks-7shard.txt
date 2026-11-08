@@ -1,0 +1,68 @@
+GitGuardian Security Checks	pass	5s	https://dashboard.gitguardian.com	
+Lisa CLI bin smoke	pass	2m4s	https://github.com/CodySwannGT/lisa/actions/runs/42456747818/job/128657293840	
+Packaged apply preserves operator configuration	pass	1m53s	https://github.com/CodySwannGT/lisa/actions/runs/42456747651/job/128657291903	
+Shell guard trace shard 1/3	pass	7m50s	https://github.com/CodySwannGT/lisa/actions/runs/42456747673/job/128657292194	
+Shell guard trace shard 2/3	pass	9m34s	https://github.com/CodySwannGT/lisa/actions/runs/42456747673/job/128657292102	
+Shell guard trace shard 3/3	pass	19m56s	https://github.com/CodySwannGT/lisa/actions/runs/42456747673/job/128657292223	
+Windows lint-staged preflight	pass	1m5s	https://github.com/CodySwannGT/lisa/actions/runs/42456747818/job/128657293709	
+npm updater Ubuntu runtime	pass	2m19s	https://github.com/CodySwannGT/lisa/actions/runs/42456747661/job/128657291880	
+🔍 Quality Checks / History Secrets / 🔐 Introduced History Credential Leakage	pass	20s	https://github.com/CodySwannGT/lisa/actions/runs/42456747818/job/128657293995	
+🔍 Quality Checks / History Secrets / 🔖 Workflow Contract	pass	3s	https://github.com/CodySwannGT/lisa/actions/runs/42456747818/job/128657294034	
+🔍 Quality Checks / ♻️ Environment Reset Guard	pass	26s	https://github.com/CodySwannGT/lisa/actions/runs/42456747818/job/128657321546	
+🔍 Quality Checks / ⚡ Performance Budget	pass	28s	https://github.com/CodySwannGT/lisa/actions/runs/42456747818/job/128657321287	
+🔍 Quality Checks / ⚡ Performance Summary	pass	4s	https://github.com/CodySwannGT/lisa/actions/runs/42456747818/job/128661837168	
+🔍 Quality Checks / ✅ Verification Coverage	pass	32s	https://github.com/CodySwannGT/lisa/actions/runs/42456747818/job/128657321167	
+🔍 Quality Checks / 🌱 Environment Reseed Guard	pass	26s	https://github.com/CodySwannGT/lisa/actions/runs/42456747818/job/128657321445	
+🔍 Quality Checks / 🏗️ Build	pass	1m1s	https://github.com/CodySwannGT/lisa/actions/runs/42456747818/job/128657322197	
+🔍 Quality Checks / 🐢 Slow Lint Rules	pass	1m26s	https://github.com/CodySwannGT/lisa/actions/runs/42456747818/job/128657322181	
+🔍 Quality Checks / 📊 Audit Logger	pass	5s	https://github.com/CodySwannGT/lisa/actions/runs/42456747818/job/128661837391	
+🔍 Quality Checks / 📐 Check Formatting	pass	1m32s	https://github.com/CodySwannGT/lisa/actions/runs/42456747818/job/128657322184	
+🔍 Quality Checks / 📐 Threshold Ratchet	pass	21s	https://github.com/CodySwannGT/lisa/actions/runs/42456747818/job/128657321282	
+🔍 Quality Checks / 📚 Learnings Budget	pass	10s	https://github.com/CodySwannGT/lisa/actions/runs/42456747818/job/128657321310	
+🔍 Quality Checks / 📜 Licence Check	pass	8s	https://github.com/CodySwannGT/lisa/actions/runs/42456747818/job/128657321517	
+🔍 Quality Checks / 📱 Native Device Journeys	pass	8s	https://github.com/CodySwannGT/lisa/actions/runs/42456747818/job/128657321220	
+🔍 Quality Checks / 🔍 Static Security Analysis	pass	21s	https://github.com/CodySwannGT/lisa/actions/runs/42456747818/job/128659085533	
+🔍 Quality Checks / 🔍 Type Check	pass	1m32s	https://github.com/CodySwannGT/lisa/actions/runs/42456747818/job/128657322168	
+🔍 Quality Checks / 🔎 Structural Rules	pass	26s	https://github.com/CodySwannGT/lisa/actions/runs/42456747818/job/128657321516	
+🔍 Quality Checks / 🔐 Credential Leakage	pass	20s	https://github.com/CodySwannGT/lisa/actions/runs/42456747818/job/128657321578	
+🔍 Quality Checks / 🔒 Security Scan	pass	28s	https://github.com/CodySwannGT/lisa/actions/runs/42456747818/job/128657321520	
+🔍 Quality Checks / 🔒 Security Tools Summary	pass	4s	https://github.com/CodySwannGT/lisa/actions/runs/42456747818/job/128659165244	
+🔍 Quality Checks / 🔒 Skipped Required Checks	pass	13s	https://github.com/CodySwannGT/lisa/actions/runs/42456747818/job/128661864762	
+🔍 Quality Checks / 🔖 Which Lisa Ran This	pass	36s	https://github.com/CodySwannGT/lisa/actions/runs/42456747818/job/128657293963	
+🔍 Quality Checks / 🔖 Workflow Contract	pass	3s	https://github.com/CodySwannGT/lisa/actions/runs/42456747818/job/128657293934	
+🔍 Quality Checks / 🔗 Work-Item Traceability	pass	43s	https://github.com/CodySwannGT/lisa/actions/runs/42456747818/job/128657321362	
+🔍 Quality Checks / 🗑️ Dead Code Detection	pass	39s	https://github.com/CodySwannGT/lisa/actions/runs/42456747818/job/128657322235	
+🔍 Quality Checks / 🗺️ Gate Preallocation Plan	pass	7s	https://github.com/CodySwannGT/lisa/actions/runs/42456747818/job/128657293912	
+🔍 Quality Checks / 🛡️ Supply Chain Scan	pass	25s	https://github.com/CodySwannGT/lisa/actions/runs/42456747818/job/128657321387	
+🔍 Quality Checks / 🧪 Run Integration Tests	pass	22m3s	https://github.com/CodySwannGT/lisa/actions/runs/42456747818/job/128657321231	
+🔍 Quality Checks / 🧪 Run Unit Tests	pass	1m25s	https://github.com/CodySwannGT/lisa/actions/runs/42456747818/job/128658775621	
+🔍 Quality Checks / 🧪 Unit Tests shard 1/7	pass	3m41s	https://github.com/CodySwannGT/lisa/actions/runs/42456747818/job/128657342482	
+🔍 Quality Checks / 🧪 Unit Tests shard 2/7	pass	4m39s	https://github.com/CodySwannGT/lisa/actions/runs/42456747818/job/128657342484	
+🔍 Quality Checks / 🧪 Unit Tests shard 3/7	pass	3m56s	https://github.com/CodySwannGT/lisa/actions/runs/42456747818/job/128657342454	
+🔍 Quality Checks / 🧪 Unit Tests shard 4/7	pass	3m38s	https://github.com/CodySwannGT/lisa/actions/runs/42456747818/job/128657342496	
+🔍 Quality Checks / 🧪 Unit Tests shard 5/7	pass	6m14s	https://github.com/CodySwannGT/lisa/actions/runs/42456747818/job/128657342490	
+🔍 Quality Checks / 🧪 Unit Tests shard 6/7	pass	2m48s	https://github.com/CodySwannGT/lisa/actions/runs/42456747818/job/128657342495	
+🔍 Quality Checks / 🧪 Unit Tests shard 7/7	pass	2m35s	https://github.com/CodySwannGT/lisa/actions/runs/42456747818/job/128657342493	
+🔍 Quality Checks / 🧬 Mutation Testing Gate	pass	1m10s	https://github.com/CodySwannGT/lisa/actions/runs/42456747818/job/128657321294	
+🔍 Quality Checks / 🧬 State Classification	pass	11s	https://github.com/CodySwannGT/lisa/actions/runs/42456747818/job/128657321274	
+🔍 Quality Checks / 🧭 E2E Route Coverage	pass	15s	https://github.com/CodySwannGT/lisa/actions/runs/42456747818/job/128657321288	
+🔍 Quality Checks / 🧭 Gate Config Validity	pass	29s	https://github.com/CodySwannGT/lisa/actions/runs/42456747818/job/128657293962	
+🔍 Quality Checks / 🧭 Which Copy The Gates Ran	pass	5s	https://github.com/CodySwannGT/lisa/actions/runs/42456747818/job/128659085624	
+🔍 Quality Checks / 🧪 Run .mjs Suites	skipping	0	https://github.com/CodySwannGT/lisa/actions/runs/42456747818/job/128657322071	
+🔍 Quality Checks / 🧮 Declared Gate Legs	pass	6s	https://github.com/CodySwannGT/lisa/actions/runs/42456747818/job/128657293888	
+🔍 Quality Checks / ✅ Compliance Validation	skipping	0	https://github.com/CodySwannGT/lisa/actions/runs/42456747818/job/128661837798	
+🔍 Quality Checks / 🧱 Security Floor Collisions	pass	12s	https://github.com/CodySwannGT/lisa/actions/runs/42456747818/job/128657321433	
+🔍 Quality Checks / 🧾 BDD Behavior Contract	pass	41s	https://github.com/CodySwannGT/lisa/actions/runs/42456747818/job/128657321361	
+🔍 Quality Checks / 🧹 Lint	pass	2m51s	https://github.com/CodySwannGT/lisa/actions/runs/42456747818/job/128657321465	
+CodeRabbit	skipping	0	https://coderabbit.ai?utm_source=cr_app&utm_medium=github	
+🔍 Quality Checks / 🧾 Generated Artifacts	pass	40s	https://github.com/CodySwannGT/lisa/actions/runs/42456747818/job/128657322241	
+🔍 Quality Checks / 🩹 Conflict Markers	pass	26s	https://github.com/CodySwannGT/lisa/actions/runs/42456747818/job/128657321394	
+🔍 Quality Checks / 🚦 Approval Gate	skipping	0	https://github.com/CodySwannGT/lisa/actions/runs/42456747818/job/128661838279	
+🔍 Quality Checks / 🧮 Plan Unit-Test Shards	pass	4s	https://github.com/CodySwannGT/lisa/actions/runs/42456747818/job/128657321224	
+🔍 Quality Checks / 🧾 Named Regression Specs	pass	4m32s	https://github.com/CodySwannGT/lisa/actions/runs/42456747818/job/128657321299	
+🧩 Plugin artifacts match source	pass	1m19s	https://github.com/CodySwannGT/lisa/actions/runs/42456747673/job/128661348403	
+🔢 Manifest-authoritative version pins (advisory)	pass	8s	https://github.com/CodySwannGT/lisa/actions/runs/42456747667/job/128657291843	
+🕵️ Review evidence gate	pass	25s	https://github.com/CodySwannGT/lisa/actions/runs/42456747680/job/128657292335	
+🔍 Quality Checks / 🧬 Did the mutation gate measure anything?	skipping	0	https://github.com/CodySwannGT/lisa/actions/runs/42456747818/job/128657600170	
+🕵️ Re-evaluate a completed reviewer	skipping	0	https://github.com/CodySwannGT/lisa/actions/runs/42456747680/job/128657293263	
+🕵️ Review evidence verdict	skipping	0	https://github.com/CodySwannGT/lisa/runs/128657432875	

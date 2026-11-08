@@ -1,0 +1,14 @@
+$ node scripts/lisa-ci-failure-redispatch.mjs --head-sha b30b7a6895bb66d17d5372796422079d524bceb6 --dry-run
+# worktree head_sha=68ca1b31795ba5f0de17b1b40488bb29bfe7e02d captured_at=2026-11-08T09:50:01Z
+run 0 -> PR #4704 -> work item (none)
+outcome: non-agent-pr — Pull-request body names 2 different work items (CodySwannGT/lisa#4701, CodySwannGT/lisa#4609); it must name exactly one (dry run: nothing written)
+{
+  "repository": "CodySwannGT/lisa",
+  "runId": 0,
+  "sha": "b30b7a6895bb66d17d5372796422079d524bceb6",
+  "pr": 4704,
+  "outcome": "non-agent-pr",
+  "reason": "Pull-request body names 2 different work items (CodySwannGT/lisa#4701, CodySwannGT/lisa#4609); it must name exactly one",
+  "actions": []
+}
+exit=0

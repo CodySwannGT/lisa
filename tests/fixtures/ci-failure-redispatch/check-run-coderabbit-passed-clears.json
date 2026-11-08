@@ -1,0 +1,216 @@
+{
+  "description": "CodeRabbit, which reports as a check run (app coderabbitai), was pending when the CI workflows finished and a marker was posted for this head; it later completed as success and every required check now passes. The item is still unclaimed in the ready lane because of that marker: plan the clear and the claimed-lane restore.",
+  "event": {
+    "action": "completed",
+    "check_run": {
+      "id": 51200000005,
+      "name": "CodeRabbit",
+      "head_sha": "3db71f89a186d5dbeb78015aa5735fa9d8efda48",
+      "status": "completed",
+      "conclusion": "success",
+      "app": {
+        "slug": "coderabbitai"
+      },
+      "pull_requests": [
+        {
+          "number": 4673,
+          "head": {
+            "sha": "3db71f89a186d5dbeb78015aa5735fa9d8efda48",
+            "ref": "codex/4672-example-branch"
+          },
+          "base": {
+            "ref": "main",
+            "repo": {
+              "name": "lisa"
+            }
+          }
+        }
+      ]
+    },
+    "repository": {
+      "full_name": "CodySwannGT/lisa",
+      "default_branch": "main"
+    }
+  },
+  "gh": {
+    "api repos/CodySwannGT/lisa/rules/branches/main --paginate --slurp": {
+      "stdout": [
+        [
+          {
+            "type": "deletion",
+            "ruleset_id": 11912821
+          },
+          {
+            "type": "required_status_checks",
+            "ruleset_id": 11912821,
+            "parameters": {
+              "strict_required_status_checks_policy": false,
+              "required_status_checks": [
+                {
+                  "context": "CodeRabbit",
+                  "integration_id": 347564
+                },
+                {
+                  "context": "GitGuardian Security Checks",
+                  "integration_id": 46505
+                }
+              ]
+            }
+          },
+          {
+            "type": "required_status_checks",
+            "ruleset_id": 18805189,
+            "parameters": {
+              "strict_required_status_checks_policy": false,
+              "required_status_checks": [
+                {
+                  "context": "🔍 Quality Checks / 🧪 Run Unit Tests",
+                  "integration_id": 15368
+                },
+                {
+                  "context": "🔍 Quality Checks / 🧹 Lint",
+                  "integration_id": 15368
+                },
+                {
+                  "context": "🧩 Plugin artifacts match source",
+                  "integration_id": 15368
+                }
+              ]
+            }
+          }
+        ]
+      ]
+    },
+    "pr view 4673 --repo CodySwannGT/lisa --json number,state,body,headRefOid,isCrossRepository": {
+      "stdout": {
+        "number": 4673,
+        "state": "OPEN",
+        "headRefOid": "3db71f89a186d5dbeb78015aa5735fa9d8efda48",
+        "isCrossRepository": false,
+        "body": "Retire the native safety net.\n\nWork-Item: CodySwannGT/lisa#4672\n"
+      }
+    },
+    "issue view 4672 --repo CodySwannGT/lisa --json state,labels": {
+      "stdout": {
+        "state": "OPEN",
+        "labels": [
+          {
+            "name": "status:ready"
+          },
+          {
+            "name": "type:Task"
+          }
+        ]
+      }
+    },
+    "api repos/CodySwannGT/lisa/issues/4672/comments --paginate --slurp": {
+      "stdout": [
+        [
+          {
+            "id": 6700000001,
+            "user": {
+              "login": "CodySwannGT",
+              "type": "User"
+            },
+            "created_at": "2026-11-05T10:00:00Z",
+            "body": "[claude-build-intake] Claimed by Claude. Starting build."
+          },
+          {
+            "id": 6700000002,
+            "user": {
+              "login": "github-actions[bot]",
+              "type": "Bot"
+            },
+            "created_at": "2026-11-05T11:00:00Z",
+            "body": "A required check failed on pull request #4673 at commit 3db71f89a186d5dbeb78015aa5735fa9d8efda48: CodeRabbit.\n\nLisa moved this item from `status:in-progress` back to `status:ready` so build intake sends the owning agent back to fix the existing pull request. The work is not complete until every required check passes.\n\n<!-- [lisa-ci-failed] pr=4673 sha=3db71f89a186d5dbeb78015aa5735fa9d8efda48 -->"
+          }
+        ]
+      ]
+    },
+    "pr checks 4673 --repo CodySwannGT/lisa --required --json name,state,bucket": {
+      "stdout": [
+        {
+          "name": "🔍 Quality Checks / 🧪 Run Unit Tests",
+          "state": "SUCCESS",
+          "bucket": "pass"
+        },
+        {
+          "name": "🔍 Quality Checks / 🧹 Lint",
+          "state": "SUCCESS",
+          "bucket": "pass"
+        },
+        {
+          "name": "🧩 Plugin artifacts match source",
+          "state": "SUCCESS",
+          "bucket": "pass"
+        },
+        {
+          "name": "CodeRabbit",
+          "state": "SUCCESS",
+          "bucket": "pass"
+        },
+        {
+          "name": "GitGuardian Security Checks",
+          "state": "SUCCESS",
+          "bucket": "pass"
+        }
+      ]
+    },
+    "api repos/CodySwannGT/lisa/issues/4672/events --paginate --slurp": {
+      "stdout": [
+        [
+          {
+            "event": "labeled",
+            "label": {
+              "name": "status:ready"
+            },
+            "created_at": "2026-11-04T09:00:00Z",
+            "actor": {
+              "login": "CodySwannGT"
+            }
+          },
+          {
+            "event": "unlabeled",
+            "label": {
+              "name": "status:ready"
+            },
+            "created_at": "2026-11-05T10:00:00Z",
+            "actor": {
+              "login": "CodySwannGT"
+            }
+          },
+          {
+            "event": "labeled",
+            "label": {
+              "name": "status:in-progress"
+            },
+            "created_at": "2026-11-05T10:00:00Z",
+            "actor": {
+              "login": "CodySwannGT"
+            }
+          },
+          {
+            "event": "unlabeled",
+            "label": {
+              "name": "status:in-progress"
+            },
+            "created_at": "2026-11-05T11:00:01Z",
+            "actor": {
+              "login": "CodySwannGT"
+            }
+          },
+          {
+            "event": "labeled",
+            "label": {
+              "name": "status:ready"
+            },
+            "created_at": "2026-11-05T11:00:01Z",
+            "actor": {
+              "login": "CodySwannGT"
+            }
+          }
+        ]
+      ]
+    }
+  }
+}
