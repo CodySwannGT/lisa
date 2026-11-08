@@ -1,0 +1,126 @@
+name: 🔁 CI Failure Re-dispatch
+
+# Wakes the agent that owns a pull request when one of its required checks
+# fails (CodySwannGT/lisa#4607).
+#
+# The gap: CI is the only place the full suite runs, and when a required check
+# fails on an agent's PR nothing tells the agent. The work item sits in the
+# claimed lane and the PR stalls until a human notices. Agent work is not
+# complete until CI is green, so a failed required check moves the item back to
+# the ready lane with a `[lisa-ci-failed]` marker, and build intake sends the
+# agent back to the EXISTING PR (`lisa-drive-pr-to-merge`) instead of starting
+# over. A later all-green run on the same head clears the marker and, when the
+# marker is the only reason the item is unclaimed, restores the claimed lane.
+#
+# Trigger: the workflows that carry the required status checks on `main`
+# (`gh api repos/CodySwannGT/lisa/rules/branches/main`). Third-party required
+# contexts (CodeRabbit, GitGuardian) are not workflows; the script reads their
+# state with every other required check.
+#
+# Safety: `workflow_run` runs in the base repository with a write-capable
+# token, even for a run a PR triggered. This job therefore reads metadata only:
+# it checks out the DEFAULT branch (no `ref`), installs nothing, never fetches
+# or runs the PR's code, and hands event data to the script through `env:` and
+# the event file rather than interpolating it into a shell script. Markers
+# count only when `github-actions[bot]` (this job's GITHUB_TOKEN identity)
+# authored them, so a forged marker comment is ignored.
+#
+# KNOWN GAP: the verdict is taken only when one of the two trigger workflows
+# completes. When a third-party required check (CodeRabbit, GitGuardian)
+# finishes AFTER both, nothing re-triggers this workflow: a late third-party
+# failure is not re-dispatched, and a late pass does not clear the marker
+# until the next run of a trigger workflow. Tracked as a follow-up. All of the
+# decision logic lives in `scripts/lisa-ci-failure-redispatch.mjs`, which is
+# unit-tested over recorded payloads.
+#
+# NOTE: repo-specific to the Lisa monorepo, NOT a Lisa template — shipping this
+# to host projects is a separate decision (#4607 Out of Scope).
+
+on:
+  workflow_run:
+    workflows: ['🔍 CI Quality Checks', '🧩 Plugins Sync']
+    types: [completed]
+  workflow_dispatch:
+    inputs:
+      run_id:
+        description: 'Actions run id to evaluate (for verification against a past run)'
+        required: true
+        type: string
+      dry_run:
+        description: 'Print the planned comment and label moves without writing anything'
+        required: false
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+# Both trigger workflows can complete for the same head at nearly the same
+# moment. Serialise per head so the second run sees the first run's marker,
+# and never cancel: a cancelled run is a decision nobody made.
+concurrency:
+  group: lisa-ci-failure-redispatch-${{ github.event.workflow_run.head_sha || inputs.run_id }}
+  cancel-in-progress: false
+
+jobs:
+  redispatch:
+    name: 🔁 Re-dispatch the owning agent
+    if: ${{ github.repository == 'CodySwannGT/lisa' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      issues: write
+      pull-requests: read
+      checks: read
+      actions: read
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v6
+        with:
+          package-manager-cache: false
+          node-version: '24.21.0'
+      - name: Decide and act on the completed run
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          EVENT_NAME: ${{ github.event_name }}
+          RUN_ID: ${{ inputs.run_id }}
+          DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run }}
+        run: |
+          set -o pipefail
+          args=()
+          if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
+            args+=(--run-id "$RUN_ID")
+          else
+            args+=(--payload "$GITHUB_EVENT_PATH")
+          fi
+          if [ "$DRY_RUN" = "true" ]; then
+            args+=(--dry-run)
+          fi
+          node scripts/lisa-ci-failure-redispatch.mjs "${args[@]}" | tee redispatch.txt
+      - name: Publish what happened
+        if: always()
+        run: |
+          {
+            echo '## CI failure re-dispatch'
+            echo
+            echo '```'
+            cat redispatch.txt 2>/dev/null || echo 'the script produced no output'
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  # A red run files a deduplicated issue: a re-dispatch that silently failed is
+  # exactly the stall this workflow exists to end.
+  create_issue_on_failure:
+    if: ${{ failure() && github.repository == 'CodySwannGT/lisa' }}
+    needs: redispatch
+    uses: ./.github/workflows/create-github-issue-on-failure.yml
+    permissions:
+      contents: read
+      issues: write
+    with:
+      workflow_name: 'CI failure re-dispatch'
+      failed_job: 'redispatch'
+      package_manager: 'bun'

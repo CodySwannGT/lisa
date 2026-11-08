@@ -1,0 +1,46 @@
+{
+  "description": "A required check failed on a PR whose body binds no work item: a non-agent PR, plan nothing.",
+  "event": {
+    "workflow_run": {
+      "id": 42394865888,
+      "name": "🔍 CI Quality Checks",
+      "event": "pull_request",
+      "status": "completed",
+      "conclusion": "failure",
+      "head_sha": "3db71f89a186d5dbeb78015aa5735fa9d8efda48",
+      "head_branch": "codex/4672-example-branch",
+      "pull_requests": [
+        {
+          "number": 4673,
+          "head": {
+            "sha": "3db71f89a186d5dbeb78015aa5735fa9d8efda48",
+            "ref": "codex/4672-example-branch"
+          },
+          "base": {
+            "ref": "main",
+            "repo": {
+              "name": "lisa"
+            }
+          }
+        }
+      ],
+      "repository": {
+        "full_name": "CodySwannGT/lisa"
+      }
+    },
+    "repository": {
+      "full_name": "CodySwannGT/lisa"
+    }
+  },
+  "gh": {
+    "pr view 4673 --repo CodySwannGT/lisa --json number,state,body,headRefOid,isCrossRepository": {
+      "stdout": {
+        "number": 4673,
+        "state": "OPEN",
+        "headRefOid": "3db71f89a186d5dbeb78015aa5735fa9d8efda48",
+        "isCrossRepository": false,
+        "body": "A human-authored change with no tracker binding.\n"
+      }
+    }
+  }
+}
