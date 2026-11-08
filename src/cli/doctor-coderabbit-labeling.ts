@@ -59,25 +59,43 @@ function isAbsence(error: unknown): boolean {
 }
 
 /**
- * Read the first CodeRabbit config present, REJECTING when one exists but
- * cannot be read.
+ * Read every CodeRabbit config present, REJECTING when one exists but cannot
+ * be read. Both spellings are read because a repository can carry both, and
+ * which one CodeRabbit honours is not something this check can see — so
+ * either one being unsafe is a finding.
  * @param projectRoot - Absolute project root
- * @returns The config, or null when no file is present
+ * @returns The configs present, in lookup order (empty when none)
  * @throws {Error} When a config file exists but could not be read
  */
-async function findConfig(projectRoot: string): Promise<FoundConfig | null> {
-  for (const name of CONFIG_FILES) {
-    try {
-      return { name, bytes: await readFile(path.join(projectRoot, name)) };
-    } catch (error) {
-      if (isAbsence(error)) continue;
-      const code = (error as { code?: unknown } | null)?.code;
-      throw new Error(`could not read ${name}: ${String(code ?? error)}`, {
-        cause: error,
-      });
-    }
+async function findConfigs(
+  projectRoot: string
+): Promise<readonly FoundConfig[]> {
+  const found = await Promise.all(
+    CONFIG_FILES.map(async name => await readConfig(projectRoot, name))
+  );
+  return found.filter((config): config is FoundConfig => config !== null);
+}
+
+/**
+ * Read one CodeRabbit config, REJECTING when it exists but cannot be read.
+ * @param projectRoot - Absolute project root
+ * @param name - Config file name
+ * @returns The config, or null when the file is absent
+ * @throws {Error} When the file exists but could not be read
+ */
+async function readConfig(
+  projectRoot: string,
+  name: string
+): Promise<FoundConfig | null> {
+  try {
+    return { name, bytes: await readFile(path.join(projectRoot, name)) };
+  } catch (error) {
+    if (isAbsence(error)) return null;
+    const code = (error as { code?: unknown } | null)?.code;
+    throw new Error(`could not read ${name}: ${String(code ?? error)}`, {
+      cause: error,
+    });
   }
-  return null;
 }
 
 /**
@@ -128,15 +146,19 @@ export async function checkCoderabbitLabeling(
   targetPath: string
 ): Promise<DoctorCheck> {
   try {
-    const found = await findConfig(targetPath);
-    if (found === null) {
+    const found = await findConfigs(targetPath);
+    if (found.length === 0) {
       return ok(
         "No .coderabbit.yml in this repository. CodeRabbit's organisation " +
           "settings are not visible to this check; make sure they do not " +
           "auto-apply labels either"
       );
     }
-    return await describe(targetPath, found);
+    const humanOnly = await humanOnlyLabels(targetPath);
+    return verdictCheck(
+      found.map(config => judgeFile(config, humanOnly)),
+      humanOnly
+    );
   } catch (error) {
     return {
       name: CODERABBIT_LABELING_CHECK_NAME,
@@ -151,26 +173,43 @@ export async function checkCoderabbitLabeling(
   }
 }
 
+/** What one config file earns: safe or not, and the sentence saying why. */
+interface FileVerdict {
+  readonly safe: boolean;
+  readonly detail: string;
+}
+
 /**
- * Turn a located config into the check line it earns.
- * @param targetPath - Project path
+ * Judge one located config.
  * @param found - The located config
- * @returns Doctor check result
- * @throws {Error} When the config does not parse
+ * @param humanOnly - Human-only labels
+ * @returns The file's verdict
+ * @throws {Error} When the config does not parse, or sets `auto_apply_labels`
+ *   to something that is neither true nor false
  */
-async function describe(
-  targetPath: string,
-  found: FoundConfig
-): Promise<DoctorCheck> {
-  const parsed = loadYaml(found.bytes.toString("utf8"));
-  const humanOnly = await humanOnlyLabels(targetPath);
-  const verdict = evaluateCoderabbitLabeling(parsed, humanOnly);
-  if (verdict.safe) {
-    return ok(
-      verdict.reason === "auto-apply-off"
-        ? `${found.name} does not auto-apply labels`
-        : `${found.name} allowlists no lifecycle, human-only, type or points label`
+function judgeFile(
+  found: FoundConfig,
+  humanOnly: readonly string[]
+): FileVerdict {
+  const verdict = evaluateCoderabbitLabeling(
+    loadYaml(found.bytes.toString("utf8")),
+    humanOnly
+  );
+  if (verdict.reason === "undeterminable") {
+    throw new Error(
+      `${found.name} sets \`auto_apply_labels\` to ${JSON.stringify(
+        verdict.value
+      )}, which is neither true nor false`
     );
+  }
+  if (verdict.safe) {
+    return {
+      safe: true,
+      detail:
+        verdict.reason === "auto-apply-off"
+          ? `${found.name} does not auto-apply labels`
+          : `${found.name} allowlists no lifecycle, human-only, type or points label`,
+    };
   }
   const cause =
     verdict.reason === "no-allowlist"
@@ -188,10 +227,29 @@ async function describe(
       "2026-03-01) and it is unedited; `npx @codyswann/lisa@latest .` " +
       "rewrites it with auto-apply off."
     : "";
+  return { safe: false, detail: `${cause}.${authorship}` };
+}
+
+/**
+ * Turn every file's verdict into the one check line they earn together:
+ * a failure if any file is unsafe, naming each unsafe file.
+ * @param verdicts - One verdict per config file present
+ * @param humanOnly - Human-only labels
+ * @returns Doctor check result
+ */
+function verdictCheck(
+  verdicts: readonly FileVerdict[],
+  humanOnly: readonly string[]
+): DoctorCheck {
+  const unsafe = verdicts.filter(verdict => !verdict.safe);
+  if (unsafe.length === 0) {
+    return ok(verdicts.map(verdict => verdict.detail).join("; "));
+  }
+  const causes = unsafe.map(verdict => verdict.detail).join(" ");
   return {
     name: CODERABBIT_LABELING_CHECK_NAME,
     status: "fail",
-    detail: `${cause}.${authorship} ${remedies(humanOnly)}`,
+    detail: `${causes} ${remedies(humanOnly)}`,
   };
 }
 

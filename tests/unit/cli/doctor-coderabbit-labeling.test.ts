@@ -45,6 +45,12 @@ const SAFE_LABEL = "component:doctor";
 /** A human-needed label a project configured for itself. */
 const CUSTOM_HUMAN_NEEDED = "needs-a-human";
 
+/** The other config spelling CodeRabbit reads. */
+const YAML_SPELLING = ".coderabbit.yaml";
+
+/** A lifecycle label no bot may apply. */
+const READY_LABEL = "status:ready";
+
 /** The config file name CodeRabbit reads first. */
 const CONFIG_FILE = ".coderabbit.yml";
 
@@ -141,7 +147,7 @@ describe("doctor CodeRabbit labeling check", () => {
   });
 
   it.each([
-    ["status:ready"],
+    [READY_LABEL],
     ["human-needed"],
     ["type:Bug"],
     ["points:3"],
@@ -201,12 +207,64 @@ describe("doctor CodeRabbit labeling check", () => {
   });
 
   it("reads the .coderabbit.yaml spelling", async () => {
-    await seed(autoApplyConfig(["status:ready"]), ".coderabbit.yaml");
+    await seed(autoApplyConfig([READY_LABEL]), YAML_SPELLING);
 
     const check = await checkCoderabbitLabeling(tempDir);
 
     expect(check.status).toBe("fail");
-    expect(check.detail).toContain(".coderabbit.yaml");
+    expect(check.detail).toContain(YAML_SPELLING);
+  });
+
+  it("reads both spellings when both exist, failing on the unsafe one and naming it", async () => {
+    // Which file CodeRabbit honours is not visible here, so a safe
+    // .coderabbit.yml must not hide an unsafe .coderabbit.yaml beside it.
+    await seed(
+      "issue_enrichment:\n  labeling:\n    auto_apply_labels: false\n"
+    );
+    await seed(autoApplyConfig([READY_LABEL]), YAML_SPELLING);
+
+    const check = await checkCoderabbitLabeling(tempDir);
+
+    expect(check.status).toBe("fail");
+    expect(check.detail).toContain(
+      ".coderabbit.yaml lets CodeRabbit auto-apply `status:ready`"
+    );
+    expect(check.detail).not.toContain(CONFIG_FILE);
+  });
+
+  it("fails with 'Could not determine' when auto_apply_labels is not a boolean, naming the value", async () => {
+    await seed(
+      'issue_enrichment:\n  labeling:\n    auto_apply_labels: "true"\n'
+    );
+
+    const check = await checkCoderabbitLabeling(tempDir);
+
+    expect(check.status).toBe("fail");
+    expect(check.detail).toContain(UNDETERMINABLE);
+    expect(check.detail).toContain('"true"');
+  });
+
+  it("passes a config with no issue_enrichment block", async () => {
+    await seed("reviews:\n  profile: chill\n");
+
+    expect((await checkCoderabbitLabeling(tempDir)).status).toBe("ok");
+  });
+
+  it("passes an empty file, which sets nothing and so leaves auto-apply at CodeRabbit's default of off", async () => {
+    await seed("");
+
+    expect((await checkCoderabbitLabeling(tempDir)).status).toBe("ok");
+  });
+
+  it("treats allowlist entries with no label key as no allowlist", async () => {
+    await seed(
+      `${AUTO_APPLY_HEAD}    labeling_instructions:\n      - status:ready\n      - component:doctor\n`
+    );
+
+    const check = await checkCoderabbitLabeling(tempDir);
+
+    expect(check.status).toBe("fail");
+    expect(check.detail).toContain("no `labeling_instructions` allowlist");
   });
 
   it("runs as part of lisa doctor, which leaves the file alone", async () => {

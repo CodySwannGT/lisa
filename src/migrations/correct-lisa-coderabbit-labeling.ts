@@ -32,6 +32,8 @@ import { SHIPPED_CODERABBIT_CONFIG_DIGESTS } from "../core/coderabbit-labeling.j
 import {
   isShippedVersion,
   readRegularFile,
+  type RegularFileProof,
+  stillProved,
 } from "../core/retire-unmodified.js";
 import type {
   Migration,
@@ -58,7 +60,18 @@ const EXPLANATION: readonly string[] = [
 interface PlannedCorrection {
   readonly absolute: string;
   readonly source: string;
+  /** The bytes and inode the "unedited" proof was computed over. */
+  readonly proof: RegularFileProof;
 }
+
+/**
+ * Re-checks, immediately before the write, that a path still holds exactly
+ * the file a proof was computed over.
+ */
+export type ProofRecheck = (
+  filePath: string,
+  proof: RegularFileProof
+) => Promise<boolean>;
 
 /**
  * Rewrite the template's auto-apply line with the comment above it, keeping
@@ -84,6 +97,13 @@ export class CorrectLisaCoderabbitLabelingMigration implements Migration {
   readonly name = "correct-lisa-coderabbit-labeling";
   readonly description =
     "Turn off CodeRabbit label auto-apply in the unedited .coderabbit.yml Lisa shipped";
+
+  /**
+   * Build the migration.
+   * @param recheck - Proof re-check run just before writing; injectable so a
+   *   test can stand in for a file edited between the proof and the write
+   */
+  constructor(private readonly recheck: ProofRecheck = stillProved) {}
 
   /**
    * Applies when the host still holds the unedited template.
@@ -118,6 +138,13 @@ export class CorrectLisaCoderabbitLabelingMigration implements Migration {
       ctx.logger.dry(`Would update ${CONFIG_FILE}`);
       return { name: this.name, action: "applied", changedFiles, message };
     }
+    // The proof is about the bytes read when planning. A file edited or
+    // swapped since then may now hold the host's work, so it is left alone.
+    if (!(await this.recheck(planned.absolute, planned.proof))) {
+      const changed = `Left ${CONFIG_FILE} unchanged: it changed after Lisa proved it unedited, so it may now hold this project's own work`;
+      ctx.logger.warn(changed);
+      return { name: this.name, action: "noop", message: changed };
+    }
     await writeFile(planned.absolute, planned.source);
     ctx.logger.success(message);
     return { name: this.name, action: "applied", changedFiles, message };
@@ -136,6 +163,6 @@ export class CorrectLisaCoderabbitLabelingMigration implements Migration {
       return null;
     }
     const source = correct(proof.bytes.toString("utf8"));
-    return source === null ? null : { absolute, source };
+    return source === null ? null : { absolute, source, proof };
   }
 }

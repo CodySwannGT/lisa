@@ -18,6 +18,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { checkCoderabbitLabeling } from "../../../src/cli/doctor-coderabbit-labeling.js";
 import { SHIPPED_CODERABBIT_CONFIG_DIGESTS } from "../../../src/core/coderabbit-labeling.js";
+import { stillProved } from "../../../src/core/retire-unmodified.js";
 import { SilentLogger } from "../../../src/logging/silent-logger.js";
 import { CorrectLisaCoderabbitLabelingMigration } from "../../../src/migrations/correct-lisa-coderabbit-labeling.js";
 import type { MigrationContext } from "../../../src/migrations/migration.interface.js";
@@ -152,6 +153,26 @@ describe("correct-lisa-coderabbit-labeling migration", () => {
 
     expect(result.action).toBe("applied");
     expect(await fse.readFile(file, "utf8")).toBe(SHIPPED_TEMPLATE);
+  });
+
+  it("leaves the file alone when it is edited between the proof and the write", async () => {
+    // The real re-check, with an edit landing just before it runs: the
+    // window between planning and writing is where a host's work could be
+    // overwritten on the strength of bytes the file no longer has.
+    const edited = `${SHIPPED_TEMPLATE}# edited meanwhile\n`;
+    const racing = new CorrectLisaCoderabbitLabelingMigration(
+      async (filePath, proof) => {
+        await fse.outputFile(filePath, edited);
+        return await stillProved(filePath, proof);
+      }
+    );
+    await fse.outputFile(file, SHIPPED_TEMPLATE);
+
+    const result = await racing.apply(ctx());
+
+    expect(result.action).toBe("noop");
+    expect(result.message).toContain("changed after Lisa proved it unedited");
+    expect(await fse.readFile(file, "utf8")).toBe(edited);
   });
 
   it("declines an install, naming the file and the command", async () => {

@@ -58,6 +58,11 @@ export type CoderabbitLabelingVerdict =
   | { readonly safe: false; readonly reason: "no-allowlist" }
   | {
       readonly safe: false;
+      readonly reason: "undeterminable";
+      readonly value: unknown;
+    }
+  | {
+      readonly safe: false;
       readonly reason: "protected-labels";
       readonly offending: readonly string[];
     };
@@ -118,7 +123,8 @@ function allowlistedLabels(instructions: unknown): readonly string[] {
  * protected label.
  *
  * CodeRabbit's own default for `auto_apply_labels` is off, so a config that
- * never mentions it is safe; only an explicit `true` turns it on.
+ * never mentions it is safe, and so is an explicit `false`. Any value that is
+ * not a boolean is `undeterminable`, never safe.
  * @param config - Parsed CodeRabbit config (any shape)
  * @param humanOnly - Exact labels reserved for humans
  * @returns The verdict, naming offending labels as the config spells them
@@ -128,8 +134,15 @@ export function evaluateCoderabbitLabeling(
   humanOnly: readonly string[] = DEFAULT_HUMAN_ONLY_LABELS
 ): CoderabbitLabelingVerdict {
   const labeling = labelingBlock(config);
-  if (labeling["auto_apply_labels"] !== true) {
+  const autoApply = labeling["auto_apply_labels"];
+  if (autoApply === undefined || autoApply === false) {
     return { safe: true, reason: "auto-apply-off" };
+  }
+  // A quoted "true", a number, or a bare `auto_apply_labels:` (null) is not
+  // something this check can read as off. How CodeRabbit coerces it is not
+  // visible here, so it must not pass as safe.
+  if (autoApply !== true) {
+    return { safe: false, reason: "undeterminable", value: autoApply };
   }
   const allowed = allowlistedLabels(labeling["labeling_instructions"]);
   if (allowed.length === 0) return { safe: false, reason: "no-allowlist" };
