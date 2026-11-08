@@ -1,6 +1,6 @@
 /**
  * The manifest parity verdict (CodySwannGT/lisa#4609). It must never pass
- * vacuously: a base that deletes nothing, a deleted file that was not
+ * vacuously: a range that deletes nothing, a deleted file that was not
  * phrase-only, or a deleted set that differs from the files the manifest says
  * it came from are all failures, as is a missing assertion.
  * @module tests/unit/scripts/phrase-tests-parity
@@ -11,7 +11,10 @@ import {
   buildManifest,
   entryKey,
 } from "../../../scripts/lib/phrase-tests/manifest.mjs";
-import { parityFailures } from "../../../scripts/lib/phrase-tests/parity.mjs";
+import {
+  deletedTestFiles,
+  parityFailures,
+} from "../../../scripts/lib/phrase-tests/parity.mjs";
 import type { Recording } from "../../../scripts/lib/phrase-tests/record.mjs";
 
 const A_TEST = "tests/a.test.ts";
@@ -117,5 +120,38 @@ describe("parityFailures", () => {
       exact: false,
     });
     expect(failures.join("\n")).toContain("not translatable");
+  });
+});
+
+describe("deletedTestFiles", () => {
+  const LATER_TEST = "tests/later.test.ts";
+
+  it("ignores a test file deleted after the range's head", () => {
+    // LATER_TEST still exists at the fold; main deleted it afterwards.
+    const deleted = deletedTestFiles([A_TEST, LATER_TEST], [LATER_TEST]);
+
+    expect(deleted).toEqual([A_TEST]);
+    expect(
+      parityFailures({
+        deleted,
+        fold: fold([recording]),
+        manifest,
+        exact: true,
+      })
+    ).toEqual([]);
+  });
+
+  it("still fails on a non-phrase-only file the range itself deletes", () => {
+    const deleted = deletedTestFiles([A_TEST, B_TEST], []);
+
+    expect(deleted).toEqual([A_TEST, B_TEST]);
+    expect(
+      parityFailures({
+        deleted,
+        fold: fold([recording]),
+        manifest,
+        exact: true,
+      }).join("\n")
+    ).toContain(`not phrase-only: ${B_TEST}`);
   });
 });
