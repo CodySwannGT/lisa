@@ -3759,6 +3759,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "evidence/4610/ac4-full-test-unit-before.txt": true,
     "evidence/4610/ac4-full-test-unit-implementer.txt": true,
     "evidence/4610/ac4-subset-bench.txt": true,
+    "evidence/4610/ac5-pr-kept-list-check.txt": true,
+    "evidence/4610/final-recheck-at-head.txt": true,
     "evidence/4610/gate-check-artifacts.txt": true,
     "evidence/4610/gate-eslint-primaries.txt": true,
     "evidence/4610/gate-typecheck-tests.txt": true,
