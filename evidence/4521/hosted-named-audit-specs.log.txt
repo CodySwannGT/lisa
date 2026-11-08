@@ -1,0 +1,385 @@
+ ✓  lisa  tests/unit/hooks/pre-push-audit-transport-parity.test.ts > pre-push audit transport > .claude-pr/.husky/pre-push normalizes bun's gzip transport before parsing 2ms
+ ✓  lisa  tests/unit/hooks/pre-push-audit-transport-parity.test.ts > pre-push audit transport > .husky/pre-push normalizes bun's gzip transport before parsing 0ms
+ ✓  lisa  tests/unit/hooks/pre-push-audit-transport-parity.test.ts > pre-push audit transport > typescript/copy-contents/.husky/pre-push normalizes bun's gzip transport before parsing 0ms
+ ✓  lisa  tests/unit/hooks/pre-push-audit-transport-parity.test.ts > pre-push audit transport > keeps every copy's transport handling identical 2ms
+ ✓  lisa  tests/unit/hooks/pre-push-audit-transport-parity.test.ts > .claude-pr/.husky/pre-push blocks when it audited nothing > refuses when bun produced no output, and says why 23ms
+ ✓  lisa  tests/unit/hooks/pre-push-audit-transport-parity.test.ts > .claude-pr/.husky/pre-push blocks when it audited nothing > refuses successful empty output as unaudited 20ms
+ ✓  lisa  tests/unit/hooks/pre-push-audit-transport-parity.test.ts > .claude-pr/.husky/pre-push blocks when it audited nothing > refuses a payload that is neither JSON nor gzip 38ms
+ ✓  lisa  tests/unit/hooks/pre-push-audit-transport-parity.test.ts > .claude-pr/.husky/pre-push blocks when it audited nothing > still passes a genuinely clean audit 104ms
+ ✓  lisa  tests/unit/hooks/pre-push-audit-transport-parity.test.ts > .claude-pr/.husky/pre-push blocks when it audited nothing > still fails an audit reporting a critical advisory 109ms
+ ✓  lisa  tests/unit/hooks/pre-push-audit-transport-parity.test.ts > .claude-pr/.husky/pre-push blocks when it audited nothing > still reads the gzip transport shape that started this 110ms
+ ✓  lisa  tests/unit/hooks/pre-push-audit-transport-parity.test.ts > .husky/pre-push blocks when it audited nothing > refuses when bun produced no output, and says why 22ms
+ ✓  lisa  tests/unit/hooks/pre-push-audit-transport-parity.test.ts > .husky/pre-push blocks when it audited nothing > refuses successful empty output as unaudited 19ms
+ ✓  lisa  tests/unit/hooks/pre-push-audit-transport-parity.test.ts > .husky/pre-push blocks when it audited nothing > refuses a payload that is neither JSON nor gzip 37ms
+ ✓  lisa  tests/unit/hooks/pre-push-audit-transport-parity.test.ts > .husky/pre-push blocks when it audited nothing > still passes a genuinely clean audit 113ms
+ ✓  lisa  tests/unit/hooks/pre-push-audit-transport-parity.test.ts > .husky/pre-push blocks when it audited nothing > still fails an audit reporting a critical advisory 102ms
+ ✓  lisa  tests/unit/hooks/pre-push-audit-transport-parity.test.ts > .husky/pre-push blocks when it audited nothing > still reads the gzip transport shape that started this 114ms
+ ✓  lisa  tests/unit/hooks/pre-push-audit-transport-parity.test.ts > typescript/copy-contents/.husky/pre-push blocks when it audited nothing > refuses when bun produced no output, and says why 22ms
+ ✓  lisa  tests/unit/hooks/pre-push-audit-transport-parity.test.ts > typescript/copy-contents/.husky/pre-push blocks when it audited nothing > refuses successful empty output as unaudited 20ms
+ ✓  lisa  tests/unit/hooks/pre-push-audit-transport-parity.test.ts > typescript/copy-contents/.husky/pre-push blocks when it audited nothing > refuses a payload that is neither JSON nor gzip 39ms
+ ✓  lisa  tests/unit/hooks/pre-push-audit-transport-parity.test.ts > typescript/copy-contents/.husky/pre-push blocks when it audited nothing > still passes a genuinely clean audit 118ms
+ ✓  lisa  tests/integration/audit-consumer-parity.test.ts > audit-consumer parity on the identical tree > covered: hook, registry and CI agree and name the measured result 513ms
+ ✓  lisa  tests/unit/hooks/pre-push-audit-transport-parity.test.ts > typescript/copy-contents/.husky/pre-push blocks when it audited nothing > still fails an audit reporting a critical advisory 104ms
+ ✓  lisa  tests/unit/hooks/pre-push-audit-transport-parity.test.ts > typescript/copy-contents/.husky/pre-push blocks when it audited nothing > still reads the gzip transport shape that started this 114ms
+ ✓  lisa  tests/unit/hooks/pre-push-audit-transport-parity.test.ts > .claude-pr/.husky/pre-push retries only what it could not determine > clears a transient timeout and evaluates the successful attempt 111ms
+ ✓  lisa  tests/unit/hooks/pre-push-audit-transport-parity.test.ts > .claude-pr/.husky/pre-push retries only what it could not determine > clears a transient unparseable payload the same way 120ms
+ ✓  lisa  tests/integration/audit-consumer-parity.test.ts > audit-consumer parity on the identical tree > production: hook, registry and CI agree and name the measured result 482ms
+ ✓  lisa  tests/unit/hooks/pre-push-audit-transport-parity.test.ts > .claude-pr/.husky/pre-push retries only what it could not determine > still names an advisory found only on the retried attempt 117ms
+ ✓  lisa  tests/unit/hooks/pre-push-audit-transport-parity.test.ts > .claude-pr/.husky/pre-push retries only what it could not determine > never retries an audit that found a critical advisory 109ms
+ ✓  lisa  tests/unit/hooks/pre-push-audit-transport-parity.test.ts > .claude-pr/.husky/pre-push retries only what it could not determine > never retries a clean audit 103ms
+ ✓  lisa  tests/unit/hooks/pre-push-audit-transport-parity.test.ts > .claude-pr/.husky/pre-push retries only what it could not determine > exhausts its budget before refusing a persistent timeout 23ms
+ ✓  lisa  tests/unit/hooks/pre-push-audit-transport-parity.test.ts > .claude-pr/.husky/pre-push retries only what it could not determine > honours a caller-supplied attempt budget 17ms
+ ✓  lisa  tests/unit/hooks/pre-push-audit-transport-parity.test.ts > .claude-pr/.husky/pre-push retries only what it could not determine > falls back to the default budget when the knob is not a number 24ms
+ ✓  lisa  tests/unit/hooks/pre-push-audit-transport-parity.test.ts > .claude-pr/.husky/pre-push retries only what it could not determine > keeps a budget of zero from skipping the audit entirely 14ms
+ ✓  lisa  tests/unit/hooks/pre-push-audit-transport-parity.test.ts > .claude-pr/.husky/pre-push retries only what it could not determine > reports the retry as an audit that did not run, not as a finding 21ms
+ ✓  lisa  tests/unit/hooks/pre-push-audit-transport-parity.test.ts > .claude-pr/.husky/pre-push retries only what it could not determine > keeps the two blocking failures distinguishable 66ms
+ ✓  lisa  tests/integration/audit-consumer-parity.test.ts > audit-consumer parity on the identical tree > alias: hook, registry and CI agree and name the measured result 480ms
+ ✓  lisa  tests/unit/hooks/pre-push-audit-transport-parity.test.ts > .husky/pre-push retries only what it could not determine > clears a transient timeout and evaluates the successful attempt 115ms
+ ✓  lisa  tests/unit/hooks/pre-push-audit-transport-parity.test.ts > .husky/pre-push retries only what it could not determine > clears a transient unparseable payload the same way 124ms
+ ✓  lisa  tests/unit/hooks/pre-push-audit-transport-parity.test.ts > .husky/pre-push retries only what it could not determine > still names an advisory found only on the retried attempt 176ms
+ ✓  lisa  tests/unit/hooks/pre-push-audit-transport-parity.test.ts > .husky/pre-push retries only what it could not determine > never retries an audit that found a critical advisory 117ms
+ ✓  lisa  tests/integration/audit-consumer-parity.test.ts > audit-consumer parity on the identical tree > legacy: hook, registry and CI agree and name the measured result 483ms
+ ✓  lisa  tests/unit/hooks/pre-push-audit-transport-parity.test.ts > .husky/pre-push retries only what it could not determine > never retries a clean audit 113ms
+ ✓  lisa  tests/unit/hooks/pre-push-audit-transport-parity.test.ts > .husky/pre-push retries only what it could not determine > exhausts its budget before refusing a persistent timeout 25ms
+ ✓  lisa  tests/unit/hooks/pre-push-audit-transport-parity.test.ts > .husky/pre-push retries only what it could not determine > honours a caller-supplied attempt budget 27ms
+ ✓  lisa  tests/unit/hooks/pre-push-audit-transport-parity.test.ts > .husky/pre-push retries only what it could not determine > falls back to the default budget when the knob is not a number 22ms
+ ✓  lisa  tests/unit/hooks/pre-push-audit-transport-parity.test.ts > .husky/pre-push retries only what it could not determine > keeps a budget of zero from skipping the audit entirely 17ms
+ ✓  lisa  tests/unit/hooks/pre-push-audit-transport-parity.test.ts > .husky/pre-push retries only what it could not determine > reports the retry as an audit that did not run, not as a finding 29ms
+ ✓  lisa  tests/unit/hooks/pre-push-audit-transport-parity.test.ts > .husky/pre-push retries only what it could not determine > keeps the two blocking failures distinguishable 59ms
+ ✓  lisa  tests/unit/hooks/pre-push-audit-transport-parity.test.ts > typescript/copy-contents/.husky/pre-push retries only what it could not determine > clears a transient timeout and evaluates the successful attempt 113ms
+ ✓  lisa  tests/unit/hooks/pre-push-audit-transport-parity.test.ts > typescript/copy-contents/.husky/pre-push retries only what it could not determine > clears a transient unparseable payload the same way 124ms
+ ✓  lisa  tests/integration/audit-consumer-parity.test.ts > audit-consumer parity on the identical tree > package-mismatch: hook, registry and CI agree and name the measured result 512ms
+ ✓  lisa  tests/unit/hooks/pre-push-audit-transport-parity.test.ts > typescript/copy-contents/.husky/pre-push retries only what it could not determine > still names an advisory found only on the retried attempt 109ms
+ ✓  lisa  tests/unit/hooks/pre-push-audit-transport-parity.test.ts > typescript/copy-contents/.husky/pre-push retries only what it could not determine > never retries an audit that found a critical advisory 101ms
+ ✓  lisa  tests/unit/hooks/pre-push-audit-transport-parity.test.ts > typescript/copy-contents/.husky/pre-push retries only what it could not determine > never retries a clean audit 113ms
+ ✓  lisa  tests/integration/audit-consumer-parity.test.ts > audit-consumer parity on the identical tree > shadowed: hook, registry and CI agree and name the measured result 512ms
+ ✓  lisa  tests/unit/hooks/pre-push-audit-transport-parity.test.ts > typescript/copy-contents/.husky/pre-push retries only what it could not determine > exhausts its budget before refusing a persistent timeout 23ms
+ ✓  lisa  tests/unit/hooks/pre-push-audit-transport-parity.test.ts > typescript/copy-contents/.husky/pre-push retries only what it could not determine > honours a caller-supplied attempt budget 17ms
+ ✓  lisa  tests/unit/hooks/pre-push-audit-transport-parity.test.ts > typescript/copy-contents/.husky/pre-push retries only what it could not determine > falls back to the default budget when the knob is not a number 20ms
+ ✓  lisa  tests/unit/hooks/pre-push-audit-transport-parity.test.ts > typescript/copy-contents/.husky/pre-push retries only what it could not determine > keeps a budget of zero from skipping the audit entirely 13ms
+ ✓  lisa  tests/unit/hooks/pre-push-audit-transport-parity.test.ts > typescript/copy-contents/.husky/pre-push retries only what it could not determine > reports the retry as an audit that did not run, not as a finding 26ms
+ ✓  lisa  tests/unit/hooks/pre-push-audit-transport-parity.test.ts > typescript/copy-contents/.husky/pre-push retries only what it could not determine > keeps the two blocking failures distinguishable 64ms
+ ✓  lisa  tests/unit/core/audit-scopes.test.ts > canonical audit exclusion scope > excludes every vulnerable copy only on listed paths and prints the decision 6ms
+ ✓  lisa  tests/unit/core/audit-scopes.test.ts > canonical audit exclusion scope > fails and names an unlisted vulnerable copy at production/zod 1ms
+ ✓  lisa  tests/unit/core/audit-scopes.test.ts > canonical audit exclusion scope > fails and names an unlisted vulnerable copy at legacy-zod 1ms
+ ✓  lisa  tests/unit/core/audit-scopes.test.ts > canonical audit exclusion scope > fails and names an unlisted vulnerable copy at @app/alias 1ms
+ ✓  lisa  tests/unit/core/audit-scopes.test.ts > canonical audit exclusion scope > covers multiple listed vulnerable copies and ignores fixed copies 1ms
+ ✓  lisa  tests/unit/core/audit-scopes.test.ts > canonical audit exclusion scope > keeps advisory-only exclusions working without any lockfile 1ms
+ ✓  lisa  tests/unit/core/audit-scopes.test.ts > canonical audit exclusion scope > retains numeric advisory ids and CVE identity matching 1ms
+ ✓  lisa  tests/unit/core/audit-scopes.test.ts > canonical audit exclusion scope > enforces package even when advisory id matches 1ms
+ ✓  lisa  tests/unit/core/audit-scopes.test.ts > canonical audit exclusion scope > retains scalar CVE identity for a legacy exclusion without a lockfile 1ms
+ ✓  lisa  tests/unit/core/audit-scopes.test.ts > canonical audit exclusion scope > rejects a Yarn high summary with no concrete advisory 1ms
+ ✓  lisa  tests/unit/core/audit-scopes.test.ts > canonical audit exclusion scope > rejects a Yarn critical summary with no concrete advisory 1ms
+ ✓  lisa  tests/unit/core/audit-scopes.test.ts > canonical audit exclusion scope > accepts an actual clean Yarn summary shape without advisory records 0ms
+ ✓  lisa  tests/unit/core/audit-scopes.test.ts > canonical audit exclusion scope > fails closed on unknown Yarn summary counts {} 0ms
+ ✓  lisa  tests/unit/core/audit-scopes.test.ts > canonical audit exclusion scope > fails closed on unknown Yarn summary counts {"high":"0","critical":0} 0ms
+ ✓  lisa  tests/unit/core/audit-scopes.test.ts > canonical audit exclusion scope > fails closed on unknown Yarn summary counts {"high":-1,"critical":0} 0ms
+ ✓  lisa  tests/unit/core/audit-scopes.test.ts > canonical audit exclusion scope > does not suppress zod4.5.0 with a zod3 versions scope on a listed path 1ms
+ ✓  lisa  tests/unit/core/audit-scopes.test.ts > canonical audit exclusion scope > honors versions without paths 1ms
+ ✓  lisa  tests/unit/core/audit-scopes.test.ts > canonical audit exclusion scope > rejects invalid paths undefined before even a clean report 1ms
+ ✓  lisa  tests/unit/core/audit-scopes.test.ts > canonical audit exclusion scope > rejects invalid paths null before even a clean report 1ms
+ ✓  lisa  tests/unit/core/audit-scopes.test.ts > canonical audit exclusion scope > rejects invalid paths "lint-plugin/zod" before even a clean report 0ms
+ ✓  lisa  tests/unit/core/audit-scopes.test.ts > canonical audit exclusion scope > rejects invalid paths "" before even a clean report 0ms
+ ✓  lisa  tests/unit/core/audit-scopes.test.ts > canonical audit exclusion scope > rejects invalid paths 1 before even a clean report 0ms
+ ✓  lisa  tests/unit/core/audit-scopes.test.ts > canonical audit exclusion scope > rejects invalid versions "" 0ms
+ ✓  lisa  tests/unit/core/audit-scopes.test.ts > canonical audit exclusion scope > rejects invalid versions "not-a-range" 0ms
+ ✓  lisa  tests/unit/core/audit-scopes.test.ts > canonical audit exclusion scope > rejects invalid versions null 0ms
+ ✓  lisa  tests/unit/core/audit-scopes.test.ts > canonical audit exclusion scope > cannot silently scope an advisory with missing vulnerable range 1ms
+ ✓  lisa  tests/unit/core/audit-scopes.test.ts > canonical audit exclusion scope > cannot infer coverage from an empty or unrelated copy set 1ms
+ ✓  lisa  tests/unit/core/audit-scopes.test.ts > canonical audit exclusion scope > fails closed with a clear diagnostic for missing lockfile data even with a clean report 1ms
+ ✓  lisa  tests/unit/core/audit-scopes.test.ts > canonical audit exclusion scope > fails closed with a clear diagnostic for directory lockfile data even with a clean report 1ms
+ ✓  lisa  tests/unit/core/audit-scopes.test.ts > canonical audit exclusion scope > fails closed with a clear diagnostic for invalid lockfile data even with a clean report 1ms
+ ✓  lisa  tests/unit/core/audit-scopes.test.ts > canonical audit exclusion scope > fails closed with a clear diagnostic for unknown lockfile data even with a clean report 1ms
+ ✓  lisa  tests/unit/core/audit-scopes.test.ts > canonical audit exclusion scope > doctor rejects the exact invalid empty-path scope 3ms
+ ✓  lisa  tests/unit/core/audit-scopes.test.ts > canonical audit exclusion scope > doctor warns about an otherwise documented legacy advisory-wide exclusion 3ms
+ ✓  lisa  tests/unit/core/audit-scopes.test.ts > canonical audit exclusion scope > doctor raises no advisory-wide warning for a paths/versions-scoped exclusion 1ms
+ ✓  lisa  tests/integration/audit-consumer-parity.test.ts > audit-consumer parity on the identical tree > empty-paths: hook, registry and CI agree and name the measured result 462ms
+ ✓  lisa  tests/unit/cli/doctor-readiness-supply-chain-exceptions.test.ts > assessDependenciesSupplyChainDimension — undocumented exceptions that must not be dropped > reports an exclusion entry that carries no advisory id at all 10ms
+ ✓  lisa  tests/unit/cli/doctor-readiness-supply-chain-exceptions.test.ts > assessDependenciesSupplyChainDimension — undocumented exceptions that must not be dropped > reports a bare-string exclusion, which has nowhere to record a decision 5ms
+ ✓  lisa  tests/unit/cli/doctor-readiness-supply-chain-exceptions.test.ts > assessDependenciesSupplyChainDimension — undocumented exceptions that must not be dropped > locates an anonymous exclusion by its position in the list 4ms
+ ✓  lisa  tests/unit/cli/doctor-readiness-supply-chain-exceptions.test.ts > assessDependenciesSupplyChainDimension — evidence states what it actually established > names the bare-`*` fallback instead of claiming zero exemptions 5ms
+ ✓  lisa  tests/unit/cli/doctor-readiness-supply-chain-exceptions.test.ts > assessDependenciesSupplyChainDimension — an advisory-wide exclusion is named in the report (#4521) > reports an ID-only exclusion as a non-blocking observation, not a console line 5ms
+ ✓  lisa  tests/unit/cli/doctor-readiness-supply-chain-exceptions.test.ts > assessDependenciesSupplyChainDimension — an advisory-wide exclusion is named in the report (#4521) > still observes a package-only exclusion, which hides every copy of that package 3ms
+ ✓  lisa  tests/unit/core/audit-scope-hardening.test.ts > a misspelled scope field fails closed; other extra keys do not (B2) > rejects a misspelled path field and names the real one 3ms
+ ✓  lisa  tests/unit/core/audit-scope-hardening.test.ts > a misspelled scope field fails closed; other extra keys do not (B2) > rejects a misspelled version field and names the real one 1ms
+ ✓  lisa  tests/unit/core/audit-scope-hardening.test.ts > a misspelled scope field fails closed; other extra keys do not (B2) > rejects a misspelled packages field and names the real one 1ms
+ ✓  lisa  tests/unit/core/audit-scope-hardening.test.ts > a misspelled scope field fails closed; other extra keys do not (B2) > rejects a misspelled Paths field and names the real one 1ms
+ ✓  lisa  tests/unit/core/audit-scope-hardening.test.ts > a misspelled scope field fails closed; other extra keys do not (B2) > rejects a misspelled pathes field and names the real one 1ms
+ ✓  lisa  tests/unit/core/audit-scope-hardening.test.ts > a misspelled scope field fails closed; other extra keys do not (B2) > rejects a misspelled Package field and names the real one 1ms
+ ✓  lisa  tests/unit/core/audit-scope-hardening.test.ts > a misspelled scope field fails closed; other extra keys do not (B2) > rejects a misspelled ids field and names the real one 1ms
+ ✓  lisa  tests/unit/core/audit-scope-hardening.test.ts > a misspelled scope field fails closed; other extra keys do not (B2) > rejects a misspelled cev field and names the real one 0ms
+ ✓  lisa  tests/unit/core/audit-scope-hardening.test.ts > a misspelled scope field fails closed; other extra keys do not (B2) > rejects a misspelled cves field and names the real one 1ms
+ ✓  lisa  tests/unit/core/audit-scope-hardening.test.ts > a misspelled scope field fails closed; other extra keys do not (B2) > accepts every decision-record field shipped exclusion files use 2ms
+ ✓  lisa  tests/unit/core/audit-scope-hardening.test.ts > a misspelled scope field fails closed; other extra keys do not (B2) > accepts an unrelated href key, which the audit ignores as before 3ms
+ ✓  lisa  tests/unit/core/audit-scope-hardening.test.ts > a misspelled scope field fails closed; other extra keys do not (B2) > accepts an unrelated ticket key, which the audit ignores as before 1ms
+ ✓  lisa  tests/unit/core/audit-scope-hardening.test.ts > a misspelled scope field fails closed; other extra keys do not (B2) > accepts an unrelated expires key, which the audit ignores as before 1ms
+ ✓  lisa  tests/unit/core/audit-scope-hardening.test.ts > a misspelled scope field fails closed; other extra keys do not (B2) > accepts an unrelated by key, which the audit ignores as before 1ms
+ ✓  lisa  tests/unit/core/audit-scope-hardening.test.ts > a misspelled scope field fails closed; other extra keys do not (B2) > accepts an unrelated pr key, which the audit ignores as before 1ms
+ ✓  lisa  tests/unit/core/audit-scope-hardening.test.ts > a misspelled scope field fails closed; other extra keys do not (B2) > accepts advisory metadata copied from a report, including cwe (one edit from cve) 1ms
+ ✓  lisa  tests/unit/core/audit-scope-hardening.test.ts > a misspelled scope field fails closed; other extra keys do not (B2) > the repository's own exclusion files contain no unknown field 1ms
+ ✓  lisa  tests/unit/core/audit-scope-hardening.test.ts > an advisory-wide entry cannot widen a scoped one (B3) > fails an uncovered copy even when the managed file has a package-wide entry 1ms
+ ✓  lisa  tests/unit/core/audit-scope-hardening.test.ts > an advisory-wide entry cannot widen a scoped one (B3) > still passes covered copies, and says the wide entry was set aside 1ms
+ ✓  lisa  tests/unit/core/audit-scope-hardening.test.ts > an advisory-wide entry cannot widen a scoped one (B3) > a scoped entry for a different package does not shadow this package's wide entry 1ms
+ ✓  lisa  tests/unit/core/audit-scope-hardening.test.ts > one helper decides when lockfile data is required (N8) > {"id":"GHSA-aaaa-bbbb-cccc"} → false 0ms
+ ✓  lisa  tests/unit/core/audit-scope-hardening.test.ts > one helper decides when lockfile data is required (N8) > {"id":"GHSA-aaaa-bbbb-cccc","package":"zod"} → false 0ms
+ ✓  lisa  tests/unit/core/audit-scope-hardening.test.ts > one helper decides when lockfile data is required (N8) > {"id":"GHSA-aaaa-bbbb-cccc","versions":"3.x"} → true 0ms
+ ✓  lisa  tests/unit/core/audit-scope-hardening.test.ts > one helper decides when lockfile data is required (N8) > {"id":"GHSA-aaaa-bbbb-cccc","paths":["lint-plugin/zod"]} → true 0ms
+ ✓  lisa  tests/unit/core/audit-scope-hardening.test.ts > the yarn lockfile parser loads on every supported Node (N1) > never imports a named binding from the CommonJS @yarnpkg/lockfile 0ms
+ ✓  lisa  tests/integration/audit-consumer-parity.test.ts > audit-consumer parity on the identical tree > missing-lock: hook, registry and CI agree and name the measured result 479ms
+ ✓  lisa  tests/integration/quality-audit-fail-closed.test.ts > the npm built-in audit fails closed > fails, after retrying, when the audit prints nothing 150ms
+ ✓  lisa  tests/integration/audit-consumer-parity.test.ts > audit-consumer parity on the identical tree > lockb-only: hook, registry and CI agree and name the measured result 507ms
+ ✓  lisa  tests/integration/quality-audit-fail-closed.test.ts > the npm built-in audit fails closed > fails when the audit prints something other than a report 153ms
+ ✓  lisa  tests/integration/quality-audit-fail-closed.test.ts > the npm built-in audit fails closed > passes a clean report even though the audit exited non-zero 157ms
+ ✓  lisa  tests/integration/quality-audit-fail-closed.test.ts > the npm built-in audit fails closed > passes when a retry recovers from a transient empty report 130ms
+ ↓  lisa  tests/integration/quality-audit-fail-closed.test.ts > the npm built-in audit fails closed > fails when bun prints a registry error body as JSON
+ ✓  lisa  tests/integration/audit-consumer-parity.test.ts > audit-consumer parity on the identical tree > malformed-lock: hook, registry and CI agree and name the measured result 474ms
+ ✓  lisa  tests/integration/quality-audit-fail-closed.test.ts > the npm built-in audit fails closed > fails on a high advisory as a finding, not as an unrun audit 128ms
+ ✓  lisa  tests/integration/quality-audit-fail-closed.test.ts > the yarn built-in audit fails closed > fails, after retrying, when the audit prints nothing 144ms
+ ✓  lisa  tests/integration/quality-audit-fail-closed.test.ts > the yarn built-in audit fails closed > fails when the audit prints something other than a report 151ms
+ ✓  lisa  tests/integration/quality-audit-fail-closed.test.ts > the yarn built-in audit fails closed > passes a clean report even though the audit exited non-zero 131ms
+ ✓  lisa  tests/integration/audit-consumer-parity.test.ts > audit-consumer parity on the identical tree > version-mismatch: hook, registry and CI agree and name the measured result 507ms
+ ✓  lisa  tests/integration/quality-audit-fail-closed.test.ts > the yarn built-in audit fails closed > passes when a retry recovers from a transient empty report 148ms
+ ↓  lisa  tests/integration/quality-audit-fail-closed.test.ts > the yarn built-in audit fails closed > fails when bun prints a registry error body as JSON
+ ✓  lisa  tests/integration/quality-audit-fail-closed.test.ts > the yarn built-in audit fails closed > fails on a high advisory as a finding, not as an unrun audit 130ms
+ ✓  lisa  tests/integration/quality-audit-fail-closed.test.ts > the bun built-in audit fails closed > fails, after retrying, when the audit prints nothing 135ms
+ ✓  lisa  tests/integration/quality-audit-fail-closed.test.ts > the bun built-in audit fails closed > fails when the audit prints something other than a report 144ms
+ ✓  lisa  tests/integration/audit-consumer-parity.test.ts > audit-consumer parity on the identical tree > zod4-on-listed-path: hook, registry and CI agree and name the measured result 519ms
+ ✓  lisa  tests/integration/quality-audit-fail-closed.test.ts > the bun built-in audit fails closed > passes a clean report even though the audit exited non-zero 130ms
+ ✓  lisa  tests/integration/quality-audit-fail-closed.test.ts > the bun built-in audit fails closed > passes when a retry recovers from a transient empty report 128ms
+ ✓  lisa  tests/integration/quality-audit-fail-closed.test.ts > the bun built-in audit fails closed > fails when bun prints a registry error body as JSON 147ms
+ ✓  lisa  tests/integration/quality-audit-fail-closed.test.ts > the bun built-in audit fails closed > fails on a high advisory as a finding, not as an unrun audit 124ms
+ ✓  lisa  tests/integration/audit-consumer-parity.test.ts > audit-consumer parity through the hook's npm branch > covered: hook, registry and CI agree and name the measured result 504ms
+ ✓  lisa  tests/integration/audit-workflow-action.test.ts > workflow-owned canonical audit on an older caller > pins the exact canonical implementation and isolated runtime source being tested 47ms
+ ✓  lisa  tests/integration/audit-consumer-parity.test.ts > audit-consumer parity through the hook's npm branch > alias: hook, registry and CI agree and name the measured result 502ms
+ ✓  lisa  tests/integration/audit-workflow-action.test.ts > workflow-owned canonical audit on an older caller > passes covered copies without the caller's adapter or ./audit export 136ms
+ ✓  lisa  tests/integration/audit-workflow-action.test.ts > workflow-owned canonical audit on an older caller > fails and names an uncovered npm alias through the action's bundled matcher 140ms
+ ✓  lisa  tests/integration/audit-workflow-action.test.ts > workflow-owned canonical audit on an older caller > fails closed on malformed caller lock data without loading caller dependencies 148ms
+ ✓  lisa  tests/integration/audit-workflow-action.test.ts > workflow-owned canonical audit on an older caller > installs action-owned exact dependencies and bundles the one canonical source 1ms
+ ✓  lisa  tests/unit/core/audit-lockfile-sources.test.ts > non-registry lockfile entries are not advisory copies (N2) > bun git entries are skipped, not fatal 8ms
+ ✓  lisa  tests/unit/core/audit-lockfile-sources.test.ts > non-registry lockfile entries are not advisory copies (N2) > bun git+ssh with user entries are skipped, not fatal 1ms
+ ✓  lisa  tests/unit/core/audit-lockfile-sources.test.ts > non-registry lockfile entries are not advisory copies (N2) > bun github entries are skipped, not fatal 1ms
+ ✓  lisa  tests/unit/core/audit-lockfile-sources.test.ts > non-registry lockfile entries are not advisory copies (N2) > bun file entries are skipped, not fatal 1ms
+ ✓  lisa  tests/unit/core/audit-lockfile-sources.test.ts > non-registry lockfile entries are not advisory copies (N2) > bun link entries are skipped, not fatal 1ms
+ ✓  lisa  tests/unit/core/audit-lockfile-sources.test.ts > non-registry lockfile entries are not advisory copies (N2) > bun tarball entries are skipped, not fatal 1ms
+ ✓  lisa  tests/unit/core/audit-lockfile-sources.test.ts > non-registry lockfile entries are not advisory copies (N2) > bun root entries are skipped, not fatal 1ms
+ ✓  lisa  tests/unit/core/audit-lockfile-sources.test.ts > non-registry lockfile entries are not advisory copies (N2) > bun workspace entries are skipped, not fatal 1ms
+ ✓  lisa  tests/unit/core/audit-lockfile-sources.test.ts > non-registry lockfile entries are not advisory copies (N2) > bun still fails closed on a genuinely unparseable registry identity 2ms
+ ✓  lisa  tests/unit/core/audit-lockfile-sources.test.ts > non-registry lockfile entries are not advisory copies (N2) > npm file entries are skipped, not fatal 1ms
+ ✓  lisa  tests/unit/core/audit-lockfile-sources.test.ts > non-registry lockfile entries are not advisory copies (N2) > npm git entries are skipped, not fatal 1ms
+ ✓  lisa  tests/unit/core/audit-lockfile-sources.test.ts > non-registry lockfile entries are not advisory copies (N2) > npm tarball entries are skipped, not fatal 0ms
+ ✓  lisa  tests/unit/core/audit-lockfile-sources.test.ts > non-registry lockfile entries are not advisory copies (N2) > npm git resolved without version entries are skipped, not fatal 0ms
+ ✓  lisa  tests/unit/core/audit-lockfile-sources.test.ts > non-registry lockfile entries are not advisory copies (N2) > yarn classic file entries are skipped, not fatal 2ms
+ ✓  lisa  tests/unit/core/audit-lockfile-sources.test.ts > non-registry lockfile entries are not advisory copies (N2) > yarn classic git entries are skipped, not fatal 1ms
+ ✓  lisa  tests/unit/core/audit-lockfile-sources.test.ts > non-registry lockfile entries are not advisory copies (N2) > yarn classic tarball entries are skipped, not fatal 1ms
+ ✓  lisa  tests/unit/core/audit-lockfile-sources.test.ts > non-registry lockfile entries are not advisory copies (N2) > yarn berry workspace and patch entries are skipped, not fatal 3ms
+ ✓  lisa  tests/integration/audit-consumer-parity.test.ts > audit-consumer parity through the hook's npm branch > legacy: hook, registry and CI agree and name the measured result 490ms
+ ✓  lisa  tests/integration/audit-consumer-parity.test.ts > audit-consumer parity through the hook's npm branch > package-mismatch: hook, registry and CI agree and name the measured result 532ms
+ ✓  lisa  tests/integration/audit-consumer-parity.test.ts > audit-consumer parity through the hook's npm branch > missing-lock: hook, registry and CI agree and name the measured result 454ms
+ ✓  lisa  tests/integration/audit-registry-verdict.test.ts > registry dependency-vulnerability verdicts > reports an uncovered vulnerable copy as FAILED and names it 312ms
+ ✓  lisa  tests/integration/audit-registry-verdict.test.ts > registry dependency-vulnerability verdicts > reports an invalid audit configuration as FAILED with the audit's own line 270ms
+ ✓  lisa  tests/integration/audit-consumer-parity.test.ts > audit-consumer parity through the hook's npm branch > malformed-lock: hook, registry and CI agree and name the measured result 434ms
+ ✓  lisa  tests/integration/audit-registry-verdict.test.ts > registry dependency-vulnerability verdicts > keeps a capture that audited nothing (no output) UNPROVABLE, not FAILED 269ms
+ ✓  lisa  tests/integration/audit-registry-verdict.test.ts > registry dependency-vulnerability verdicts > keeps a capture that audited nothing (garbage) UNPROVABLE, not FAILED 285ms
+ ✓  lisa  tests/integration/audit-consumer-parity.test.ts > audit-consumer parity through the hook's npm branch > version-mismatch: hook, registry and CI agree and name the measured result 463ms
+ ✓  lisa  tests/integration/audit-registry-verdict.test.ts > registry dependency-vulnerability verdicts > still passes a tree whose only vulnerable copy is covered 263ms
+ ✓  lisa  tests/unit/config/zod-security-floor.test.ts > zod security floor (GHSA-mrhx-c7xc-m3w5) > leaves only the accepted plugin copy inside the advisory's range 3ms
+ ✓  lisa  tests/unit/config/zod-security-floor.test.ts > zod security floor (GHSA-mrhx-c7xc-m3w5) > resolves every other zod to a patched 4.x 2ms
+ ✓  lisa  tests/unit/config/zod-security-floor.test.ts > zod security floor (GHSA-mrhx-c7xc-m3w5) > has exactly one package that still needs zod 3 1ms
+ ✓  lisa  tests/unit/config/zod-security-floor.test.ts > zod security floor (GHSA-mrhx-c7xc-m3w5) > floors the root zod past the advisory 1ms
+ ✓  lisa  tests/unit/config/zod-security-floor.test.ts > zod security floor (GHSA-mrhx-c7xc-m3w5) > ships no zod floor that admits the advisory 17ms
+ ✓  lisa  tests/unit/config/zod-security-floor.test.ts > zod security floor (GHSA-mrhx-c7xc-m3w5) > rejects the vulnerable controls and clears the patched release 0ms
+ ✓  lisa  tests/unit/config/zod-security-floor.test.ts > zod security floor (GHSA-mrhx-c7xc-m3w5) > records the exception for Lisa's own tree, with its tracking and reason 0ms
+ ✓  lisa  tests/unit/config/zod-security-floor.test.ts > zod security floor (GHSA-mrhx-c7xc-m3w5) > keeps the exception out of the managed audit.ignore.config.json 1ms
+ ✓  lisa  tests/unit/config/zod-security-floor.test.ts > zod security floor (GHSA-mrhx-c7xc-m3w5) > keeps the exception out of the managed typescript/copy-overwrite/audit.ignore.config.json 0ms
+ ✓  lisa  tests/unit/cli/doctor-audit-scope.test.ts > doctor audit scope > fails B5 on a misspelled scope field, as the gate does 6ms
+ ✓  lisa  tests/unit/cli/doctor-audit-scope.test.ts > doctor audit scope > passes B5 but notes the ignored extra field expires 6ms
+ ✓  lisa  tests/unit/cli/doctor-audit-scope.test.ts > doctor audit scope > passes B5 but notes the ignored extra field href 4ms
+ ✓  lisa  tests/unit/cli/doctor-audit-scope.test.ts > doctor audit scope > passes B5 but notes the ignored extra field ticket 1ms
+ ✓  lisa  tests/unit/cli/doctor-audit-scope.test.ts > doctor audit scope > names the gate's own lockfile message when bun.lock is missing 1ms
+ ✓  lisa  tests/unit/cli/doctor-audit-scope.test.ts > doctor audit scope > observes a package-only entry, which still hides every copy 1ms
+ ✓  lisa  tests/unit/cli/doctor-audit-scope.test.ts > doctor audit scope > explains a wide entry set aside by a narrower one in the other file 1ms
+ ✓  lisa  tests/unit/cli/doctor-audit-scope.test.ts > doctor audit scope > says a package-less wide entry is set aside only for the narrower entry's package 1ms
+ ✓  lisa  tests/unit/cli/doctor-audit-scope.test.ts > doctor audit scope > recognizes the same advisory when one entry names it by CVE 1ms
+ ✓  lisa  tests/unit/cli/doctor-audit-scope.test.ts > doctor audit scope > reads the lockfile once per run however many scoped entries exist 3ms
+ ✓  lisa  tests/integration/audit-consumer-parity.test.ts > audit-consumer parity through the hook's yarn branch > covered: hook, registry and CI agree and name the measured result 470ms
+ ✓  lisa  tests/unit/strategies/security-audit-handling-scope.test.ts > security-audit-handling scope guidance (plugins/src/base) > the eager ladder names versions and paths for a dev-only copy 1ms
+ ✓  lisa  tests/unit/strategies/security-audit-handling-scope.test.ts > security-audit-handling scope guidance (plugins/src/base) > the reference ladder documents both scope fields with lockfile keys 0ms
+ ✓  lisa  tests/unit/strategies/security-audit-handling-scope.test.ts > security-audit-handling scope guidance (plugins/src/base) > both tiers link the exclusion guide by absolute URL (docs/ is not shipped) 0ms
+ ✓  lisa  tests/unit/strategies/security-audit-handling-scope.test.ts > security-audit-handling scope guidance (plugins/src/base) > the reference ladder states the weaker isolation of Yarn and hoisted npm keys 0ms
+ ✓  lisa  tests/unit/strategies/security-audit-handling-scope.test.ts > security-audit-handling scope guidance (plugins/src/base) > the reference ladder recommends paths over an ID-wide entry for dev-only copies 0ms
+ ✓  lisa  tests/unit/strategies/security-audit-handling-scope.test.ts > security-audit-handling scope guidance (plugins/lisa) > the eager ladder names versions and paths for a dev-only copy 0ms
+ ✓  lisa  tests/unit/strategies/security-audit-handling-scope.test.ts > security-audit-handling scope guidance (plugins/lisa) > the reference ladder documents both scope fields with lockfile keys 0ms
+ ✓  lisa  tests/unit/strategies/security-audit-handling-scope.test.ts > security-audit-handling scope guidance (plugins/lisa) > both tiers link the exclusion guide by absolute URL (docs/ is not shipped) 0ms
+ ✓  lisa  tests/unit/strategies/security-audit-handling-scope.test.ts > security-audit-handling scope guidance (plugins/lisa) > the reference ladder states the weaker isolation of Yarn and hoisted npm keys 0ms
+ ✓  lisa  tests/unit/strategies/security-audit-handling-scope.test.ts > security-audit-handling scope guidance (plugins/lisa) > the reference ladder recommends paths over an ID-wide entry for dev-only copies 0ms
+ ✓  lisa  tests/unit/strategies/security-audit-handling-scope.test.ts > the exclusion guide the rules link to (docs/dependency-audit-exclusions.md) > documents paths as exact lockfile keys 0ms
+ ✓  lisa  tests/unit/strategies/security-audit-handling-scope.test.ts > the exclusion guide the rules link to (docs/dependency-audit-exclusions.md) > recommends path scope over an advisory-wide exception for dev-only copies 0ms
+ ✓  lisa  tests/unit/strategies/security-audit-handling-scope.test.ts > the exclusion guide the rules link to (docs/dependency-audit-exclusions.md) > documents that a narrower entry is never widened by an advisory-wide one 0ms
+ ✓  lisa  tests/unit/strategies/security-audit-handling-scope.test.ts > the exclusion guide the rules link to (docs/dependency-audit-exclusions.md) > documents that a misspelled scope field fails closed and other keys are ignored 0ms
+ ✓  lisa  tests/unit/strategies/security-audit-handling-scope.test.ts > the exclusion guide the rules link to (docs/dependency-audit-exclusions.md) > names only genuinely unrecognized keys as ignored, and accepts advisory metadata 0ms
+ ✓  lisa  tests/unit/strategies/security-audit-handling-scope.test.ts > the exclusion guide the rules link to (docs/dependency-audit-exclusions.md) > says the CI fallback audits the manager its package_manager input names 0ms
+ ✓  lisa  tests/unit/strategies/security-audit-handling-scope.test.ts > the exclusion guide the rules link to (docs/dependency-audit-exclusions.md) > states that a doctor pass does not guarantee the audit accepts the files 0ms
+ ✓  lisa  tests/unit/strategies/security-audit-handling-scope.test.ts > the exclusion guide the rules link to (docs/dependency-audit-exclusions.md) > does not claim doctor matches advisories against lockfile copies 0ms
+ ✓  lisa  tests/unit/strategies/security-audit-handling-scope.test.ts > the reference rule separates doctor's checks from advisory matching > plugins/src/base 0ms
+ ✓  lisa  tests/unit/strategies/security-audit-handling-scope.test.ts > the reference rule separates doctor's checks from advisory matching > plugins/lisa 0ms
+ ✓  lisa  tests/unit/core/audit-lockfile-formats.test.ts > canonical audit lockfile formats > npm resolves alias identities from packages names and exact versions 6ms
+ ✓  lisa  tests/unit/core/audit-lockfile-formats.test.ts > canonical audit lockfile formats > npm also understands the legacy npm: alias version representation 1ms
+ ✓  lisa  tests/unit/core/audit-lockfile-formats.test.ts > canonical audit lockfile formats > Yarn classic keys preserve aliased selectors as paths 3ms
+ ✓  lisa  tests/unit/core/audit-lockfile-formats.test.ts > canonical audit lockfile formats > Yarn Berry metadata can start at byte zero 2ms
+ ✓  lisa  tests/unit/core/audit-lockfile-formats.test.ts > canonical audit lockfile formats > Yarn cannot establish scoped coverage from "" 1ms
+ ✓  lisa  tests/unit/core/audit-lockfile-formats.test.ts > canonical audit lockfile formats > Yarn cannot establish scoped coverage from "# yarn lockfile v1\n" 1ms
+ ✓  lisa  tests/unit/core/audit-lockfile-formats.test.ts > canonical audit lockfile formats > Yarn cannot establish scoped coverage from "broken {{{" 1ms
+ ✓  lisa  tests/unit/core/audit-lockfile-formats.test.ts > canonical audit lockfile formats > npm v1's missing packages map fails clearly rather than becoming id-wide 1ms
+ ✓  lisa  tests/integration/audit-consumer-parity.test.ts > audit-consumer parity through the hook's yarn branch > alias: hook, registry and CI agree and name the measured result 521ms
+ ✓  lisa  tests/unit/config/audit-ignore-package-names.test.ts > shipped audit exclusions name real npm packages > finds the managed and local exclusion files 2ms
+ ✓  lisa  tests/unit/config/audit-ignore-package-names.test.ts > shipped audit exclusions name real npm packages > audit.ignore.config.json > holds an exclusions array 0ms
+ ✓  lisa  tests/unit/config/audit-ignore-package-names.test.ts > shipped audit exclusions name real npm packages > audit.ignore.config.json > 'GHSA-5j98-mcp5-4vw2' names a valid lowercase npm package 0ms
+ ✓  lisa  tests/unit/config/audit-ignore-package-names.test.ts > shipped audit exclusions name real npm packages > audit.ignore.config.json > 'GHSA-8qq5-rm4j-mr97' names a valid lowercase npm package 0ms
+ ✓  lisa  tests/unit/config/audit-ignore-package-names.test.ts > shipped audit exclusions name real npm packages > audit.ignore.config.json > 'GHSA-37qj-frw5-hhjh' names a valid lowercase npm package 0ms
+ ✓  lisa  tests/unit/config/audit-ignore-package-names.test.ts > shipped audit exclusions name real npm packages > audit.ignore.config.json > 'GHSA-3ppc-4f35-3m26' names a valid lowercase npm package 0ms
+ ✓  lisa  tests/unit/config/audit-ignore-package-names.test.ts > shipped audit exclusions name real npm packages > audit.ignore.config.json > 'GHSA-7r86-cg39-jmmj' names a valid lowercase npm package 0ms
+ ✓  lisa  tests/unit/config/audit-ignore-package-names.test.ts > shipped audit exclusions name real npm packages > audit.ignore.config.json > 'GHSA-23c5-xmqv-rm74' names a valid lowercase npm package 0ms
+ ✓  lisa  tests/unit/config/audit-ignore-package-names.test.ts > shipped audit exclusions name real npm packages > audit.ignore.config.json > 'GHSA-2g4f-4pwh-qvx6' names a valid lowercase npm package 0ms
+ ✓  lisa  tests/unit/config/audit-ignore-package-names.test.ts > shipped audit exclusions name real npm packages > audit.ignore.config.json > 'GHSA-jmr7-xgp7-cmfj' names a valid lowercase npm package 0ms
+ ✓  lisa  tests/unit/config/audit-ignore-package-names.test.ts > shipped audit exclusions name real npm packages > audit.ignore.config.json > 'GHSA-m7jm-9gc2-mpf2' names a valid lowercase npm package 0ms
+ ✓  lisa  tests/unit/config/audit-ignore-package-names.test.ts > shipped audit exclusions name real npm packages > audit.ignore.config.json > 'GHSA-8gc5-j5rx-235r' names a valid lowercase npm package 0ms
+ ✓  lisa  tests/unit/config/audit-ignore-package-names.test.ts > shipped audit exclusions name real npm packages > audit.ignore.config.json > 'GHSA-r6q2-hw4h-h46w' names a valid lowercase npm package 0ms
+ ✓  lisa  tests/unit/config/audit-ignore-package-names.test.ts > shipped audit exclusions name real npm packages > audit.ignore.config.json > 'GHSA-34x7-hfp2-rc4v' names a valid lowercase npm package 0ms
+ ✓  lisa  tests/unit/config/audit-ignore-package-names.test.ts > shipped audit exclusions name real npm packages > audit.ignore.config.json > 'GHSA-83g3-92jg-28cx' names a valid lowercase npm package 0ms
+ ✓  lisa  tests/unit/config/audit-ignore-package-names.test.ts > shipped audit exclusions name real npm packages > audit.ignore.config.json > 'GHSA-3h5v-q93c-6h6q' names a valid lowercase npm package 0ms
+ ✓  lisa  tests/unit/config/audit-ignore-package-names.test.ts > shipped audit exclusions name real npm packages > audit.ignore.config.json > 'GHSA-w532-jxjh-hjhj' names a valid lowercase npm package 0ms
+ ✓  lisa  tests/unit/config/audit-ignore-package-names.test.ts > shipped audit exclusions name real npm packages > audit.ignore.config.json > 'GHSA-8mvj-3j78-4qmw' names a valid lowercase npm package 0ms
+ ✓  lisa  tests/unit/config/audit-ignore-package-names.test.ts > shipped audit exclusions name real npm packages > audit.ignore.config.json > 'GHSA-36jr-mh4h-2g58' names a valid lowercase npm package 0ms
+ ✓  lisa  tests/unit/config/audit-ignore-package-names.test.ts > shipped audit exclusions name real npm packages > audit.ignore.config.json > 'GHSA-v2wj-q39q-566r' names a valid lowercase npm package 0ms
+ ✓  lisa  tests/unit/config/audit-ignore-package-names.test.ts > shipped audit exclusions name real npm packages > audit.ignore.config.json > 'GHSA-p9ff-h696-f583' names a valid lowercase npm package 0ms
+ ✓  lisa  tests/unit/config/audit-ignore-package-names.test.ts > shipped audit exclusions name real npm packages > audit.ignore.config.json > 'GHSA-3mfm-83xf-c92r' names a valid lowercase npm package 0ms
+ ✓  lisa  tests/unit/config/audit-ignore-package-names.test.ts > shipped audit exclusions name real npm packages > audit.ignore.config.json > 'GHSA-2w6w-674q-4c4q' names a valid lowercase npm package 0ms
+ ✓  lisa  tests/unit/config/audit-ignore-package-names.test.ts > shipped audit exclusions name real npm packages > audit.ignore.config.json > 'GHSA-xjpj-3mr7-gcpf' names a valid lowercase npm package 0ms
+ ✓  lisa  tests/unit/config/audit-ignore-package-names.test.ts > shipped audit exclusions name real npm packages > audit.ignore.config.json > 'GHSA-xhpv-hc6g-r9c6' names a valid lowercase npm package 0ms
+ ✓  lisa  tests/unit/config/audit-ignore-package-names.test.ts > shipped audit exclusions name real npm packages > audit.ignore.config.json > 'GHSA-9cx6-37pm-9jff' names a valid lowercase npm package 0ms
+ ✓  lisa  tests/unit/config/audit-ignore-package-names.test.ts > shipped audit exclusions name real npm packages > audit.ignore.config.json > 'GHSA-c2c7-rcm5-vvqj' names a valid lowercase npm package 0ms
+ ✓  lisa  tests/unit/config/audit-ignore-package-names.test.ts > shipped audit exclusions name real npm packages > audit.ignore.config.json > 'GHSA-3v7f-55p6-f55p' names a valid lowercase npm package 0ms
+ ✓  lisa  tests/unit/config/audit-ignore-package-names.test.ts > shipped audit exclusions name real npm packages > audit.ignore.config.json > 'GHSA-v39h-62p7-jpjc' names a valid lowercase npm package 0ms
+ ✓  lisa  tests/unit/config/audit-ignore-package-names.test.ts > shipped audit exclusions name real npm packages > audit.ignore.config.json > 'GHSA-q3j6-qgpj-74h6' names a valid lowercase npm package 0ms
+ ✓  lisa  tests/unit/config/audit-ignore-package-names.test.ts > shipped audit exclusions name real npm packages > audit.ignore.config.json > 'GHSA-v3rj-xjv7-4jmq' names a valid lowercase npm package 0ms
+ ✓  lisa  tests/unit/config/audit-ignore-package-names.test.ts > shipped audit exclusions name real npm packages > audit.ignore.config.json > 'GHSA-qx2v-qp2m-jg93' names a valid lowercase npm package 0ms
+ ✓  lisa  tests/unit/config/audit-ignore-package-names.test.ts > shipped audit exclusions name real npm packages > audit.ignore.config.json > 'GHSA-4x5r-pxfx-6jf8' names a valid lowercase npm package 0ms
+ ✓  lisa  tests/unit/config/audit-ignore-package-names.test.ts > shipped audit exclusions name real npm packages > audit.ignore.config.json > 'GHSA-48c2-rrv3-qjmp' names a valid lowercase npm package 0ms
+ ✓  lisa  tests/unit/config/audit-ignore-package-names.test.ts > shipped audit exclusions name real npm packages > audit.ignore.config.json > 'GHSA-h67p-54hq-rp68' names a valid lowercase npm package 0ms
+ ✓  lisa  tests/unit/config/audit-ignore-package-names.test.ts > shipped audit exclusions name real npm packages > audit.ignore.config.json > 'GHSA-5j98-mcp5-4vw2' is not a guessed alias of an installed package 0ms
+ ✓  lisa  tests/unit/config/audit-ignore-package-names.test.ts > shipped audit exclusions name real npm packages > audit.ignore.config.json > 'GHSA-8qq5-rm4j-mr97' is not a guessed alias of an installed package 0ms
+ ✓  lisa  tests/unit/config/audit-ignore-package-names.test.ts > shipped audit exclusions name real npm packages > audit.ignore.config.json > 'GHSA-37qj-frw5-hhjh' is not a guessed alias of an installed package 0ms
+ ✓  lisa  tests/unit/config/audit-ignore-package-names.test.ts > shipped audit exclusions name real npm packages > audit.ignore.config.json > 'GHSA-3ppc-4f35-3m26' is not a guessed alias of an installed package 0ms
+ ✓  lisa  tests/unit/config/audit-ignore-package-names.test.ts > shipped audit exclusions name real npm packages > audit.ignore.config.json > 'GHSA-7r86-cg39-jmmj' is not a guessed alias of an installed package 0ms
+ ✓  lisa  tests/unit/config/audit-ignore-package-names.test.ts > shipped audit exclusions name real npm packages > audit.ignore.config.json > 'GHSA-23c5-xmqv-rm74' is not a guessed alias of an installed package 0ms
+ ✓  lisa  tests/unit/config/audit-ignore-package-names.test.ts > shipped audit exclusions name real npm packages > audit.ignore.config.json > 'GHSA-2g4f-4pwh-qvx6' is not a guessed alias of an installed package 0ms
+ ✓  lisa  tests/unit/config/audit-ignore-package-names.test.ts > shipped audit exclusions name real npm packages > audit.ignore.config.json > 'GHSA-jmr7-xgp7-cmfj' is not a guessed alias of an installed package 0ms
+ ✓  lisa  tests/unit/config/audit-ignore-package-names.test.ts > shipped audit exclusions name real npm packages > audit.ignore.config.json > 'GHSA-m7jm-9gc2-mpf2' is not a guessed alias of an installed package 0ms
+ ✓  lisa  tests/unit/config/audit-ignore-package-names.test.ts > shipped audit exclusions name real npm packages > audit.ignore.config.json > 'GHSA-8gc5-j5rx-235r' is not a guessed alias of an installed package 0ms
+ ✓  lisa  tests/unit/config/audit-ignore-package-names.test.ts > shipped audit exclusions name real npm packages > audit.ignore.config.json > 'GHSA-r6q2-hw4h-h46w' is not a guessed alias of an installed package 0ms
+ ✓  lisa  tests/unit/config/audit-ignore-package-names.test.ts > shipped audit exclusions name real npm packages > audit.ignore.config.json > 'GHSA-34x7-hfp2-rc4v' is not a guessed alias of an installed package 0ms
+ ✓  lisa  tests/unit/config/audit-ignore-package-names.test.ts > shipped audit exclusions name real npm packages > audit.ignore.config.json > 'GHSA-83g3-92jg-28cx' is not a guessed alias of an installed package 0ms
+ ✓  lisa  tests/unit/config/audit-ignore-package-names.test.ts > shipped audit exclusions name real npm packages > audit.ignore.config.json > 'GHSA-3h5v-q93c-6h6q' is not a guessed alias of an installed package 0ms
+ ✓  lisa  tests/unit/config/audit-ignore-package-names.test.ts > shipped audit exclusions name real npm packages > audit.ignore.config.json > 'GHSA-w532-jxjh-hjhj' is not a guessed alias of an installed package 0ms
+ ✓  lisa  tests/unit/config/audit-ignore-package-names.test.ts > shipped audit exclusions name real npm packages > audit.ignore.config.json > 'GHSA-8mvj-3j78-4qmw' is not a guessed alias of an installed package 0ms
+ ✓  lisa  tests/unit/config/audit-ignore-package-names.test.ts > shipped audit exclusions name real npm packages > audit.ignore.config.json > 'GHSA-36jr-mh4h-2g58' is not a guessed alias of an installed package 0ms
+ ✓  lisa  tests/unit/config/audit-ignore-package-names.test.ts > shipped audit exclusions name real npm packages > audit.ignore.config.json > 'GHSA-v2wj-q39q-566r' is not a guessed alias of an installed package 0ms
+ ✓  lisa  tests/unit/config/audit-ignore-package-names.test.ts > shipped audit exclusions name real npm packages > audit.ignore.config.json > 'GHSA-p9ff-h696-f583' is not a guessed alias of an installed package 0ms
+ ✓  lisa  tests/unit/config/audit-ignore-package-names.test.ts > shipped audit exclusions name real npm packages > audit.ignore.config.json > 'GHSA-3mfm-83xf-c92r' is not a guessed alias of an installed package 0ms
+ ✓  lisa  tests/unit/config/audit-ignore-package-names.test.ts > shipped audit exclusions name real npm packages > audit.ignore.config.json > 'GHSA-2w6w-674q-4c4q' is not a guessed alias of an installed package 0ms
+ ✓  lisa  tests/unit/config/audit-ignore-package-names.test.ts > shipped audit exclusions name real npm packages > audit.ignore.config.json > 'GHSA-xjpj-3mr7-gcpf' is not a guessed alias of an installed package 0ms
+ ✓  lisa  tests/unit/config/audit-ignore-package-names.test.ts > shipped audit exclusions name real npm packages > audit.ignore.config.json > 'GHSA-xhpv-hc6g-r9c6' is not a guessed alias of an installed package 0ms
+ ✓  lisa  tests/unit/config/audit-ignore-package-names.test.ts > shipped audit exclusions name real npm packages > audit.ignore.config.json > 'GHSA-9cx6-37pm-9jff' is not a guessed alias of an installed package 0ms
+ ✓  lisa  tests/unit/config/audit-ignore-package-names.test.ts > shipped audit exclusions name real npm packages > audit.ignore.config.json > 'GHSA-c2c7-rcm5-vvqj' is not a guessed alias of an installed package 0ms
+ ✓  lisa  tests/unit/config/audit-ignore-package-names.test.ts > shipped audit exclusions name real npm packages > audit.ignore.config.json > 'GHSA-3v7f-55p6-f55p' is not a guessed alias of an installed package 0ms
+ ✓  lisa  tests/unit/config/audit-ignore-package-names.test.ts > shipped audit exclusions name real npm packages > audit.ignore.config.json > 'GHSA-v39h-62p7-jpjc' is not a guessed alias of an installed package 0ms
+ ✓  lisa  tests/unit/config/audit-ignore-package-names.test.ts > shipped audit exclusions name real npm packages > audit.ignore.config.json > 'GHSA-q3j6-qgpj-74h6' is not a guessed alias of an installed package 0ms
+ ✓  lisa  tests/unit/config/audit-ignore-package-names.test.ts > shipped audit exclusions name real npm packages > audit.ignore.config.json > 'GHSA-v3rj-xjv7-4jmq' is not a guessed alias of an installed package 0ms
+ ✓  lisa  tests/unit/config/audit-ignore-package-names.test.ts > shipped audit exclusions name real npm packages > audit.ignore.config.json > 'GHSA-qx2v-qp2m-jg93' is not a guessed alias of an installed package 0ms
+ ✓  lisa  tests/unit/config/audit-ignore-package-names.test.ts > shipped audit exclusions name real npm packages > audit.ignore.config.json > 'GHSA-4x5r-pxfx-6jf8' is not a guessed alias of an installed package 0ms
+ ✓  lisa  tests/unit/config/audit-ignore-package-names.test.ts > shipped audit exclusions name real npm packages > audit.ignore.config.json > 'GHSA-48c2-rrv3-qjmp' is not a guessed alias of an installed package 0ms
+ ✓  lisa  tests/unit/config/audit-ignore-package-names.test.ts > shipped audit exclusions name real npm packages > audit.ignore.config.json > 'GHSA-h67p-54hq-rp68' is not a guessed alias of an installed package 0ms
+ ✓  lisa  tests/unit/config/audit-ignore-package-names.test.ts > shipped audit exclusions name real npm packages > audit.ignore.local.json > holds an exclusions array 0ms
+ ✓  lisa  tests/unit/config/audit-ignore-package-names.test.ts > shipped audit exclusions name real npm packages > audit.ignore.local.json > 'GHSA-vfj7-8cjw-p6xm' names a valid lowercase npm package 0ms
+ ✓  lisa  tests/unit/config/audit-ignore-package-names.test.ts > shipped audit exclusions name real npm packages > audit.ignore.local.json > 'GHSA-mrhx-c7xc-m3w5' names a valid lowercase npm package 0ms
+ ✓  lisa  tests/unit/config/audit-ignore-package-names.test.ts > shipped audit exclusions name real npm packages > audit.ignore.local.json > 'GHSA-vfj7-8cjw-p6xm' is not a guessed alias of an installed package 0ms
+ ✓  lisa  tests/unit/config/audit-ignore-package-names.test.ts > shipped audit exclusions name real npm packages > audit.ignore.local.json > 'GHSA-mrhx-c7xc-m3w5' is not a guessed alias of an installed package 0ms
+ ✓  lisa  tests/unit/config/audit-ignore-package-names.test.ts > shipped audit exclusions name real npm packages > typescript/copy-overwrite/audit.ignore.config.json > holds an exclusions array 0ms
+ ✓  lisa  tests/unit/config/audit-ignore-package-names.test.ts > shipped audit exclusions name real npm packages > typescript/copy-overwrite/audit.ignore.config.json > 'GHSA-5j98-mcp5-4vw2' names a valid lowercase npm package 0ms
+ ✓  lisa  tests/unit/config/audit-ignore-package-names.test.ts > shipped audit exclusions name real npm packages > typescript/copy-overwrite/audit.ignore.config.json > 'GHSA-8qq5-rm4j-mr97' names a valid lowercase npm package 0ms
+ ✓  lisa  tests/unit/config/audit-ignore-package-names.test.ts > shipped audit exclusions name real npm packages > typescript/copy-overwrite/audit.ignore.config.json > 'GHSA-37qj-frw5-hhjh' names a valid lowercase npm package 0ms
+ ✓  lisa  tests/unit/config/audit-ignore-package-names.test.ts > shipped audit exclusions name real npm packages > typescript/copy-overwrite/audit.ignore.config.json > 'GHSA-3ppc-4f35-3m26' names a valid lowercase npm package 0ms
+ ✓  lisa  tests/unit/config/audit-ignore-package-names.test.ts > shipped audit exclusions name real npm packages > typescript/copy-overwrite/audit.ignore.config.json > 'GHSA-7r86-cg39-jmmj' names a valid lowercase npm package 0ms
+ ✓  lisa  tests/unit/config/audit-ignore-package-names.test.ts > shipped audit exclusions name real npm packages > typescript/copy-overwrite/audit.ignore.config.json > 'GHSA-23c5-xmqv-rm74' names a valid lowercase npm package 0ms
+ ✓  lisa  tests/unit/config/audit-ignore-package-names.test.ts > shipped audit exclusions name real npm packages > typescript/copy-overwrite/audit.ignore.config.json > 'GHSA-2g4f-4pwh-qvx6' names a valid lowercase npm package 0ms
+ ✓  lisa  tests/unit/config/audit-ignore-package-names.test.ts > shipped audit exclusions name real npm packages > typescript/copy-overwrite/audit.ignore.config.json > 'GHSA-jmr7-xgp7-cmfj' names a valid lowercase npm package 0ms
+ ✓  lisa  tests/unit/config/audit-ignore-package-names.test.ts > shipped audit exclusions name real npm packages > typescript/copy-overwrite/audit.ignore.config.json > 'GHSA-m7jm-9gc2-mpf2' names a valid lowercase npm package 0ms
+ ✓  lisa  tests/unit/config/audit-ignore-package-names.test.ts > shipped audit exclusions name real npm packages > typescript/copy-overwrite/audit.ignore.config.json > 'GHSA-8gc5-j5rx-235r' names a valid lowercase npm package 0ms
+ ✓  lisa  tests/unit/config/audit-ignore-package-names.test.ts > shipped audit exclusions name real npm packages > typescript/copy-overwrite/audit.ignore.config.json > 'GHSA-r6q2-hw4h-h46w' names a valid lowercase npm package 0ms
+ ✓  lisa  tests/unit/config/audit-ignore-package-names.test.ts > shipped audit exclusions name real npm packages > typescript/copy-overwrite/audit.ignore.config.json > 'GHSA-34x7-hfp2-rc4v' names a valid lowercase npm package 0ms
+ ✓  lisa  tests/unit/config/audit-ignore-package-names.test.ts > shipped audit exclusions name real npm packages > typescript/copy-overwrite/audit.ignore.config.json > 'GHSA-83g3-92jg-28cx' names a valid lowercase npm package 0ms
+ ✓  lisa  tests/unit/config/audit-ignore-package-names.test.ts > shipped audit exclusions name real npm packages > typescript/copy-overwrite/audit.ignore.config.json > 'GHSA-3h5v-q93c-6h6q' names a valid lowercase npm package 0ms
+ ✓  lisa  tests/unit/config/audit-ignore-package-names.test.ts > shipped audit exclusions name real npm packages > typescript/copy-overwrite/audit.ignore.config.json > 'GHSA-w532-jxjh-hjhj' names a valid lowercase npm package 0ms
+ ✓  lisa  tests/unit/config/audit-ignore-package-names.test.ts > shipped audit exclusions name real npm packages > typescript/copy-overwrite/audit.ignore.config.json > 'GHSA-8mvj-3j78-4qmw' names a valid lowercase npm package 0ms
+ ✓  lisa  tests/unit/config/audit-ignore-package-names.test.ts > shipped audit exclusions name real npm packages > typescript/copy-overwrite/audit.ignore.config.json > 'GHSA-36jr-mh4h-2g58' names a valid lowercase npm package 0ms
+ ✓  lisa  tests/unit/config/audit-ignore-package-names.test.ts > shipped audit exclusions name real npm packages > typescript/copy-overwrite/audit.ignore.config.json > 'GHSA-chqc-8p9q-pq6q' names a valid lowercase npm package 0ms
+ ✓  lisa  tests/unit/config/audit-ignore-package-names.test.ts > shipped audit exclusions name real npm packages > typescript/copy-overwrite/audit.ignore.config.json > 'GHSA-6v7q-wjvx-w8wg' names a valid lowercase npm package 0ms
+ ✓  lisa  tests/unit/config/audit-ignore-package-names.test.ts > shipped audit exclusions name real npm packages > typescript/copy-overwrite/audit.ignore.config.json > 'GHSA-r5fr-rjxr-66jc' names a valid lowercase npm package 0ms
+ ✓  lisa  tests/unit/config/audit-ignore-package-names.test.ts > shipped audit exclusions name real npm packages > typescript/copy-overwrite/audit.ignore.config.json > 'GHSA-jg4p-7fhp-p32p' names a valid lowercase npm package 0ms
+ ✓  lisa  tests/unit/config/audit-ignore-package-names.test.ts > shipped audit exclusions name real npm packages > typescript/copy-overwrite/audit.ignore.config.json > 'GHSA-3p68-rc4w-qgx5' names a valid lowercase npm package 0ms
+ ✓  lisa  tests/unit/config/audit-ignore-package-names.test.ts > shipped audit exclusions name real npm packages > typescript/copy-overwrite/audit.ignore.config.json > 'GHSA-fvcv-3m26-pcqx' names a valid lowercase npm package 0ms
+ ✓  lisa  tests/unit/config/audit-ignore-package-names.test.ts > shipped audit exclusions name real npm packages > typescript/copy-overwrite/audit.ignore.config.json > 'GHSA-2v35-w6hq-6mfw' names a valid lowercase npm package 0ms
+ ✓  lisa  tests/unit/config/audit-ignore-package-names.test.ts > shipped audit exclusions name real npm packages > typescript/copy-overwrite/audit.ignore.config.json > 'GHSA-f6ww-3ggp-fr8h' names a valid lowercase npm package 0ms
+ ✓  lisa  tests/unit/config/audit-ignore-package-names.test.ts > shipped audit exclusions name real npm packages > typescript/copy-overwrite/audit.ignore.config.json > 'GHSA-x6wf-f3px-wcqx' names a valid lowercase npm package 0ms
+ ✓  lisa  tests/unit/config/audit-ignore-package-names.test.ts > shipped audit exclusions name real npm packages > typescript/copy-overwrite/audit.ignore.config.json > 'GHSA-j759-j44w-7fr8' names a valid lowercase npm package 0ms
+ ✓  lisa  tests/unit/config/audit-ignore-package-names.test.ts > shipped audit exclusions name real npm packages > typescript/copy-overwrite/audit.ignore.config.json > 'GHSA-5j98-mcp5-4vw2' is not a guessed alias of an installed package 0ms
+ ✓  lisa  tests/unit/config/audit-ignore-package-names.test.ts > shipped audit exclusions name real npm packages > typescript/copy-overwrite/audit.ignore.config.json > 'GHSA-8qq5-rm4j-mr97' is not a guessed alias of an installed package 0ms
+ ✓  lisa  tests/unit/config/audit-ignore-package-names.test.ts > shipped audit exclusions name real npm packages > typescript/copy-overwrite/audit.ignore.config.json > 'GHSA-37qj-frw5-hhjh' is not a guessed alias of an installed package 0ms
+ ✓  lisa  tests/unit/config/audit-ignore-package-names.test.ts > shipped audit exclusions name real npm packages > typescript/copy-overwrite/audit.ignore.config.json > 'GHSA-3ppc-4f35-3m26' is not a guessed alias of an installed package 0ms
+ ✓  lisa  tests/unit/config/audit-ignore-package-names.test.ts > shipped audit exclusions name real npm packages > typescript/copy-overwrite/audit.ignore.config.json > 'GHSA-7r86-cg39-jmmj' is not a guessed alias of an installed package 0ms
+ ✓  lisa  tests/unit/config/audit-ignore-package-names.test.ts > shipped audit exclusions name real npm packages > typescript/copy-overwrite/audit.ignore.config.json > 'GHSA-23c5-xmqv-rm74' is not a guessed alias of an installed package 0ms
+ ✓  lisa  tests/unit/config/audit-ignore-package-names.test.ts > shipped audit exclusions name real npm packages > typescript/copy-overwrite/audit.ignore.config.json > 'GHSA-2g4f-4pwh-qvx6' is not a guessed alias of an installed package 0ms
+ ✓  lisa  tests/unit/config/audit-ignore-package-names.test.ts > shipped audit exclusions name real npm packages > typescript/copy-overwrite/audit.ignore.config.json > 'GHSA-jmr7-xgp7-cmfj' is not a guessed alias of an installed package 0ms
+ ✓  lisa  tests/unit/config/audit-ignore-package-names.test.ts > shipped audit exclusions name real npm packages > typescript/copy-overwrite/audit.ignore.config.json > 'GHSA-m7jm-9gc2-mpf2' is not a guessed alias of an installed package 0ms
+ ✓  lisa  tests/unit/config/audit-ignore-package-names.test.ts > shipped audit exclusions name real npm packages > typescript/copy-overwrite/audit.ignore.config.json > 'GHSA-8gc5-j5rx-235r' is not a guessed alias of an installed package 0ms
+ ✓  lisa  tests/unit/config/audit-ignore-package-names.test.ts > shipped audit exclusions name real npm packages > typescript/copy-overwrite/audit.ignore.config.json > 'GHSA-r6q2-hw4h-h46w' is not a guessed alias of an installed package 0ms
+ ✓  lisa  tests/unit/config/audit-ignore-package-names.test.ts > shipped audit exclusions name real npm packages > typescript/copy-overwrite/audit.ignore.config.json > 'GHSA-34x7-hfp2-rc4v' is not a guessed alias of an installed package 0ms
+ ✓  lisa  tests/unit/config/audit-ignore-package-names.test.ts > shipped audit exclusions name real npm packages > typescript/copy-overwrite/audit.ignore.config.json > 'GHSA-83g3-92jg-28cx' is not a guessed alias of an installed package 0ms
+ ✓  lisa  tests/unit/config/audit-ignore-package-names.test.ts > shipped audit exclusions name real npm packages > typescript/copy-overwrite/audit.ignore.config.json > 'GHSA-3h5v-q93c-6h6q' is not a guessed alias of an installed package 0ms
+ ✓  lisa  tests/unit/config/audit-ignore-package-names.test.ts > shipped audit exclusions name real npm packages > typescript/copy-overwrite/audit.ignore.config.json > 'GHSA-w532-jxjh-hjhj' is not a guessed alias of an installed package 0ms
+ ✓  lisa  tests/unit/config/audit-ignore-package-names.test.ts > shipped audit exclusions name real npm packages > typescript/copy-overwrite/audit.ignore.config.json > 'GHSA-8mvj-3j78-4qmw' is not a guessed alias of an installed package 0ms
+ ✓  lisa  tests/unit/config/audit-ignore-package-names.test.ts > shipped audit exclusions name real npm packages > typescript/copy-overwrite/audit.ignore.config.json > 'GHSA-36jr-mh4h-2g58' is not a guessed alias of an installed package 0ms
+ ✓  lisa  tests/unit/config/audit-ignore-package-names.test.ts > shipped audit exclusions name real npm packages > typescript/copy-overwrite/audit.ignore.config.json > 'GHSA-chqc-8p9q-pq6q' is not a guessed alias of an installed package 0ms
+ ✓  lisa  tests/unit/config/audit-ignore-package-names.test.ts > shipped audit exclusions name real npm packages > typescript/copy-overwrite/audit.ignore.config.json > 'GHSA-6v7q-wjvx-w8wg' is not a guessed alias of an installed package 0ms
+ ✓  lisa  tests/unit/config/audit-ignore-package-names.test.ts > shipped audit exclusions name real npm packages > typescript/copy-overwrite/audit.ignore.config.json > 'GHSA-r5fr-rjxr-66jc' is not a guessed alias of an installed package 0ms
+ ✓  lisa  tests/unit/config/audit-ignore-package-names.test.ts > shipped audit exclusions name real npm packages > typescript/copy-overwrite/audit.ignore.config.json > 'GHSA-jg4p-7fhp-p32p' is not a guessed alias of an installed package 0ms
+ ✓  lisa  tests/unit/config/audit-ignore-package-names.test.ts > shipped audit exclusions name real npm packages > typescript/copy-overwrite/audit.ignore.config.json > 'GHSA-3p68-rc4w-qgx5' is not a guessed alias of an installed package 0ms
+ ✓  lisa  tests/unit/config/audit-ignore-package-names.test.ts > shipped audit exclusions name real npm packages > typescript/copy-overwrite/audit.ignore.config.json > 'GHSA-fvcv-3m26-pcqx' is not a guessed alias of an installed package 0ms
+ ✓  lisa  tests/unit/config/audit-ignore-package-names.test.ts > shipped audit exclusions name real npm packages > typescript/copy-overwrite/audit.ignore.config.json > 'GHSA-2v35-w6hq-6mfw' is not a guessed alias of an installed package 0ms
+ ✓  lisa  tests/unit/config/audit-ignore-package-names.test.ts > shipped audit exclusions name real npm packages > typescript/copy-overwrite/audit.ignore.config.json > 'GHSA-f6ww-3ggp-fr8h' is not a guessed alias of an installed package 0ms
+ ✓  lisa  tests/unit/config/audit-ignore-package-names.test.ts > shipped audit exclusions name real npm packages > typescript/copy-overwrite/audit.ignore.config.json > 'GHSA-x6wf-f3px-wcqx' is not a guessed alias of an installed package 0ms
+ ✓  lisa  tests/unit/config/audit-ignore-package-names.test.ts > shipped audit exclusions name real npm packages > typescript/copy-overwrite/audit.ignore.config.json > 'GHSA-j759-j44w-7fr8' is not a guessed alias of an installed package 0ms
+ ✓  lisa  tests/unit/config/audit-ignore-package-names.test.ts > shipped audit exclusions name real npm packages > typescript/create-only/audit.ignore.local.json > holds an exclusions array 0ms
+ ✓  lisa  tests/unit/core/audit-review-4693.test.ts > detectAuditManager follows the hook's lisa_detect_pm precedence > prefers the packageManager field over any lockfile 3ms
+ ✓  lisa  tests/unit/core/audit-review-4693.test.ts > detectAuditManager follows the hook's lisa_detect_pm precedence > honors an engines please-use sentinel over a stray lockfile 1ms
+ ✓  lisa  tests/unit/core/audit-review-4693.test.ts > detectAuditManager follows the hook's lisa_detect_pm precedence > skips a lockfile whose manager the engines forbid 1ms
+ ✓  lisa  tests/unit/core/audit-review-4693.test.ts > detectAuditManager follows the hook's lisa_detect_pm precedence > falls back to lockfile priority without package.json hints 1ms
+ ✓  lisa  tests/unit/core/audit-review-4693.test.ts > detectAuditManager follows the hook's lisa_detect_pm precedence > refuses a selected manager the audit cannot run, rather than guessing 1ms
+ ✓  lisa  tests/unit/core/audit-review-4693.test.ts > npm workspace source entries are not installed copies > skips a versionless workspace source entry instead of failing 4ms
+ ✓  lisa  tests/integration/audit-consumer-parity.test.ts > audit-consumer parity through the hook's yarn branch > legacy: hook, registry and CI agree and name the measured result 518ms
+ ✓  lisa  tests/unit/strategies/package-lisa-audit-script-governance.test.ts > audit script governance through PackageLisaStrategy.apply > retains an existing project audit chain and supplies its governed Lisa base 10ms
+ ✓  lisa  tests/unit/strategies/package-lisa-audit-script-governance.test.ts > audit script governance through PackageLisaStrategy.apply > defaults the public script only when the host has not supplied one 4ms
+ ✓  lisa  tests/unit/strategies/package-lisa-audit-script-governance.test.ts > audit script governance through PackageLisaStrategy.apply > keeps the exact custom chain across a second real apply 12ms
+ ✓  lisa  tests/unit/strategies/package-lisa-audit-script-governance.test.ts > audit script governance through PackageLisaStrategy.apply > keeps source-repository package policy in parity with the reserved/default split 1ms
+ ✓  lisa  tests/integration/audit-consumer-parity.test.ts > audit-consumer parity through the hook's yarn branch > package-mismatch: hook, registry and CI agree and name the measured result 535ms
+ ✓  lisa  tests/unit/core/audit-report-completeness.test.ts > Yarn report completeness before applying exclusions > does not let an excluded opposite severity hide missing high material 3ms
+ ✓  lisa  tests/unit/core/audit-report-completeness.test.ts > Yarn report completeness before applying exclusions > does not let an excluded opposite severity hide missing critical material 1ms
+ ✓  lisa  tests/unit/core/audit-report-completeness.test.ts > Yarn report completeness before applying exclusions > accepts a complete single-high report under the same legacy exclusion 1ms
+ ✓  lisa  tests/unit/core/audit-report-completeness.test.ts > Yarn report completeness before applying exclusions > accepts a complete single-critical report under the same legacy exclusion 0ms
+ ✓  lisa  tests/unit/core/audit-report-completeness.test.ts > Yarn report completeness before applying exclusions > accepts an excluded report with concrete material at both positive severities 0ms
+ ✓  lisa  tests/unit/core/audit-report-completeness.test.ts > Yarn report completeness before applying exclusions > does not mistake occurrence counts for the number of advisory records 0ms
+ ✓  lisa  tests/integration/audit-consumer-parity.test.ts > audit-consumer parity through the hook's yarn branch > missing-lock: hook, registry and CI agree and name the measured result 477ms
+ ✓  lisa  tests/integration/audit-consumer-parity.test.ts > audit-consumer parity through the hook's yarn branch > malformed-lock: hook, registry and CI agree and name the measured result 400ms
+ ✓  lisa  tests/integration/audit-consumer-parity.test.ts > audit-consumer parity through the hook's yarn branch > version-mismatch: hook, registry and CI agree and name the measured result 426ms
+ Test Files  17 passed (17)
+      Tests  381 passed | 2 skipped (383)

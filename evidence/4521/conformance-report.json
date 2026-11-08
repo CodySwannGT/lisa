@@ -1,0 +1,32 @@
+{
+  "verdict": "CONFORMS",
+  "work_item": "CodySwannGT/lisa#4521",
+  "spec_sha256": "19583ad2cd77cf97f10dac61f75f94bdff9d600147ac3ca3bf22decc22a1f40f",
+  "requirements": [
+    { "requirement_id": "AC-1", "operator": "all", "status": "pass", "claim_ids": ["AC-1-covered-only-passes"] },
+    { "requirement_id": "AC-2", "operator": "all", "status": "pass", "claim_ids": ["AC-2-uncovered-and-alias-fail-naming-path"] },
+    { "requirement_id": "AC-3", "operator": "all", "status": "pass", "claim_ids": ["AC-3-legacy-id-only-unchanged"] },
+    { "requirement_id": "AC-4", "operator": "all", "status": "pass", "claim_ids": ["AC-4-lockfile-fail-closed"] },
+    { "requirement_id": "AC-5", "operator": "all", "status": "pass", "claim_ids": ["AC-5-consumer-parity", "VJ2-npm-yarn-parity", "VJ3-hosted-named-spec-execution"] },
+    { "requirement_id": "AC-6", "operator": "all", "status": "pass", "claim_ids": ["AC-11-documentation"] },
+    { "requirement_id": "SCN-1", "operator": "all", "status": "pass", "claim_ids": ["AC-1-covered-only-passes", "AC-9-zod-exception-scoped-live"] },
+    { "requirement_id": "SCN-2", "operator": "all", "status": "pass", "claim_ids": ["AC-2-uncovered-and-alias-fail-naming-path", "AC-8-unscoped-cannot-override-scoped"] },
+    { "requirement_id": "SCN-3", "operator": "all", "status": "pass", "claim_ids": ["AC-3-legacy-id-only-unchanged", "AC-2-uncovered-and-alias-fail-naming-path", "AC-5-consumer-parity", "SCN3-doctor-id-only-warning-shipped"] },
+    { "requirement_id": "SCN-4", "operator": "all", "status": "pass", "claim_ids": ["AC-4-lockfile-fail-closed", "AC-6-empty-paths-rejected", "AC-7-misspelled-scope-key-fails-closed"] },
+    { "requirement_id": "SCN-5", "operator": "all", "status": "pass", "claim_ids": ["AC-5-consumer-parity", "VJ2-npm-yarn-parity", "AC-6-empty-paths-rejected"] },
+    { "requirement_id": "SCN-6", "operator": "all", "status": "pass", "claim_ids": ["AC-11-documentation", "AC-9-zod-exception-scoped-live", "AC-10-compensating-zod-control"] },
+    { "requirement_id": "VJ-1", "operator": "all", "status": "pass", "claim_ids": ["AC-6-empty-paths-rejected", "AC-3-legacy-id-only-unchanged"] },
+    { "requirement_id": "VJ-2", "operator": "all", "status": "pass", "claim_ids": ["AC-5-consumer-parity", "VJ2-npm-yarn-parity", "AC-9-zod-exception-scoped-live"] },
+    { "requirement_id": "VJ-3", "operator": "all", "status": "pass", "claim_ids": ["VJ3-hosted-named-spec-execution", "AC-10-compensating-zod-control"] },
+    { "requirement_id": "VJ-4", "operator": "all", "status": "pass", "claim_ids": ["VJ4-merge-release-deploy"] },
+    { "requirement_id": "VJ-5", "operator": "all", "status": "pass", "claim_ids": ["VJ5-shipped-byte-replay"] }
+  ],
+  "scenario_names": [
+    "Exclude only covered vulnerable copies",
+    "Reject an uncovered vulnerable copy, including an npm alias",
+    "Preserve legacy exclusions and package-version boundaries",
+    "Fail closed on invalid scope or unavailable lock data",
+    "Keep all audit consumers consistent",
+    "Make the safe exclusion understandable"
+  ]
+}
