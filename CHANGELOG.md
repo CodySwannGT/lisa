@@ -2,6 +2,26 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [4.97.0](https://github.com/CodySwannGT/lisa/compare/v4.96.3...v4.97.0) (2026-11-08)
+
+
+### Features
+
+* **skills:** route CI-bounced items to their existing PR on session-manager dispatch ([e287082](https://github.com/CodySwannGT/lisa/commit/e2870820f8403f4b98969f17c5394c410d93db12)), closes [CodySwannGT/lisa#4677](https://github.com/CodySwannGT/lisa/issues/4677) [CodySwannGT/lisa#4677](https://github.com/CodySwannGT/lisa/issues/4677)
+
+
+### Bug Fixes
+
+* **skills:** address review findings on the CI-rework route ([86787e1](https://github.com/CodySwannGT/lisa/commit/86787e1e0d1323827f30b7cb5f439e21ebc27590)), closes [#4707](https://github.com/CodySwannGT/lisa/issues/4707) [CodySwannGT/lisa#4677](https://github.com/CodySwannGT/lisa/issues/4677) [CodySwannGT/lisa#4677](https://github.com/CodySwannGT/lisa/issues/4677)
+* **skills:** honour a human hold before the CI loop-bound blocks an item ([4cb66b1](https://github.com/CodySwannGT/lisa/commit/4cb66b1b37e0bd45c2f2f4dc25ee0a917bd2b963)), closes [CodySwannGT/lisa#4677](https://github.com/CodySwannGT/lisa/issues/4677) [CodySwannGT/lisa#4677](https://github.com/CodySwannGT/lisa/issues/4677)
+* **skills:** ignore session-manager notes when reading the CI failure marker ([cd3e904](https://github.com/CodySwannGT/lisa/commit/cd3e904fbc654789b226bc6f936890485a5fd1c1)), closes [CodySwannGT/lisa#4677](https://github.com/CodySwannGT/lisa/issues/4677) [CodySwannGT/lisa#4677](https://github.com/CodySwannGT/lisa/issues/4677)
+* **skills:** never let a claim comment hide an uncleared CI failure marker ([afb2ce6](https://github.com/CodySwannGT/lisa/commit/afb2ce60cf7b32661caf3bc364ad637225205181)), closes [CodySwannGT/lisa#4677](https://github.com/CodySwannGT/lisa/issues/4677) [CodySwannGT/lisa#4677](https://github.com/CodySwannGT/lisa/issues/4677)
+
+
+### Documentation
+
+* **evidence:** commit the [#4677](https://github.com/CodySwannGT/lisa/issues/4677) run logs as text so the README's record resolves ([e7a2f67](https://github.com/CodySwannGT/lisa/commit/e7a2f67791613a0f9727dda72c0d73923c5b2295))
+
 ### [4.96.3](https://github.com/CodySwannGT/lisa/compare/v4.96.2...v4.96.3) (2026-11-08)
 
 
