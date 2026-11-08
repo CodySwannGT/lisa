@@ -27,7 +27,7 @@ const WORKER_QUESTION = "worker-question";
 const FAILED = "FAILED";
 const DECISION = "decision";
 /** A made-up value, assembled so secret scanners do not flag the fixture. */
-const FAKE = ["not", "real", "value"].join("-");
+const FAKE = ["not", "real", "value9"].join("-");
 
 /**
  * A pending question with a queued answer.
@@ -175,7 +175,7 @@ describe("planAnswerRecord", () => {
 
   it.each([
     ["a URI with a password", `use postgres://app:${FAKE}@db.internal/x`],
-    ["a password assignment", `password=${FAKE}`],
+    ["a password assignment", `password=${["hunter", "2x9"].join("")}`],
     ["a token assignment", `Token: ${FAKE}`],
     ["a secret assignment", `SECRET = ${FAKE}`],
   ])("refuses %s", (_label, text) => {
@@ -186,7 +186,10 @@ describe("planAnswerRecord", () => {
     "use the v2 endpoint at https://api.example.com/v2",
     "the token expires daily, so refresh it",
     "https://ops@example.com/runbook",
-    "rotate the secret: yes",
+    "secret: yes",
+    "token: expires daily",
+    "password: changeme",
+    "token=abc12",
     "mailto:ops@example.com",
   ])("does not refuse ordinary prose: %s", text => {
     expect(findCredentialShape(text)).toBeNull();

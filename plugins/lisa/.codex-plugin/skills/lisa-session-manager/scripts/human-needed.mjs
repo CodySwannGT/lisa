@@ -184,7 +184,9 @@ const CREDENTIAL_SHAPES = [
   ["URI with a password", /\b[a-z][a-z0-9+.-]*:\/\/[^\s:/@]+:[^\s@]+@/i],
   [
     "password or secret assignment",
-    /\b(?:password|passwd|secret|token)\s*[=:]\s*\S{6,}/i,
+    // The value must hold a digit and be 8+ characters, so ordinary prose
+    // ("token: expires daily", "secret: yes") is not refused.
+    /\b(?:password|passwd|secret|token)\s*[=:]\s*(?=\S*\d)\S{8,}/i,
   ],
 ];
 

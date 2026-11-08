@@ -1733,7 +1733,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-session-manager/scripts/human-answer.mjs":
       "cd3a049ddefd96e067683ec8d1b4f5a3c38800fcd328af1d560c578280de2b2c",
     "plugins/src/base/skills/lisa-session-manager/scripts/human-needed.mjs":
-      "f5dfe6b533e3836228dccd2e9edfb848c66a4d2b19215c4967e18f362e245ad9",
+      "0dba0df14760305e6cc9439838d9c58a11c0c955442c0f37edc76a108382d595",
     "plugins/src/base/skills/lisa-session-manager/scripts/isolation.mjs":
       "c6161331dea68eec4112948d9e8841aa834632c7503de5c8fd5d9834e125dfbc",
     "plugins/src/base/skills/lisa-session-manager/scripts/json-input.mjs":
