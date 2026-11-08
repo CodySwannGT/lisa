@@ -2,6 +2,22 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [4.92.0](https://github.com/CodySwannGT/lisa/compare/v4.91.0...v4.92.0) (2026-11-08)
+
+
+### Features
+
+* **ci:** re-dispatch the owning agent when a required check fails ([f0159f8](https://github.com/CodySwannGT/lisa/commit/f0159f84ab60fa36bcb9c3f2b2263b9513571ab4)), closes [CodySwannGT/lisa#4607](https://github.com/CodySwannGT/lisa/issues/4607) [CodySwannGT/lisa#4607](https://github.com/CodySwannGT/lisa/issues/4607)
+* **skills:** route a CI-failed item back to its existing PR ([34fd96e](https://github.com/CodySwannGT/lisa/commit/34fd96e06f6459dc4260f003dadfd09c252cac7c)), closes [CodySwannGT/lisa#4607](https://github.com/CodySwannGT/lisa/issues/4607) [CodySwannGT/lisa#4607](https://github.com/CodySwannGT/lisa/issues/4607)
+
+
+### Bug Fixes
+
+* **ci:** trust only bot-authored markers and the label history ([2668297](https://github.com/CodySwannGT/lisa/commit/26682978c5b6b0db0a0784016a81cbf255673c40)), closes [CodySwannGT/lisa#4607](https://github.com/CodySwannGT/lisa/issues/4607) [CodySwannGT/lisa#4607](https://github.com/CodySwannGT/lisa/issues/4607)
+* **skills:** harden the CI-rework route's worktree and retry bound ([aa6bcb3](https://github.com/CodySwannGT/lisa/commit/aa6bcb35750821c4f0dfae05c0bb5a3dbf718570)), closes [CodySwannGT/lisa#4607](https://github.com/CodySwannGT/lisa/issues/4607) [CodySwannGT/lisa#4607](https://github.com/CodySwannGT/lisa/issues/4607)
+* **skills:** never reset a local PR branch holding unpushed commits ([a29160a](https://github.com/CodySwannGT/lisa/commit/a29160ae091cdfbdca608f40e7c26ead3ea22a11)), closes [CodySwannGT/lisa#4607](https://github.com/CodySwannGT/lisa/issues/4607) [CodySwannGT/lisa#4607](https://github.com/CodySwannGT/lisa/issues/4607)
+* **skills:** verify a CI-failed marker and make the rework route runnable ([cf88719](https://github.com/CodySwannGT/lisa/commit/cf887192e5c17bbd9e9e5d2affd0ecb3f848701a)), closes [CodySwannGT/lisa#4607](https://github.com/CodySwannGT/lisa/issues/4607) [CodySwannGT/lisa#4607](https://github.com/CodySwannGT/lisa/issues/4607)
+
 ## [4.91.0](https://github.com/CodySwannGT/lisa/compare/v4.90.2...v4.91.0) (2026-11-08)
 
 

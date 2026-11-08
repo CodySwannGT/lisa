@@ -44,6 +44,10 @@ Return exactly one of:
 
 An artifact this flow produced is **never** a rejection-reflection trigger, no matter how it moves. Before classifying as `rejection-reclaim`, exclude items carrying any learning marker — `[lisa-learning-drop]`, `[lisa-learning-pr]`, `[lisa-learning-upstream-handoff]` — or the `learning:needs-triage` or `learning:low-confidence` label. Such items short-circuit to `forward-only` (treated as normal work) so the detector never fires on the flow's own learning PRs/issues.
 
+## CI-rework exemption (a failed required check is not a rejection)
+
+When the newest Lisa marker comment on the item is an uncleared `<!-- [lisa-ci-failed] pr=<n> sha=<head> -->` (no `[lisa-ci-cleared]` on that comment) **authored by `github-actions[bot]`**, naming a PR that is open, same-repository, and bound to this item, its return to `$READY` is **CI rework**: an automation moved it because a required check failed on its PR, not because a reviewer rejected it. Short-circuit to `forward-only` — no rejection learning, no candidate — and route the claim to the existing PR, as the build-intake arm specifies. Read the markers before the claim posts its own comment. A marker from any other author, or one whose PR fails those checks, is no marker; a marker whose PR has merged or closed counts as cleared.
+
 ## Reflect on a `rejection-reclaim`
 
 On `rejection-reclaim` only, before re-implementing: read the rejection evidence (comments after the backward transition, review threads on the rejected PR) through the access layers, assemble **one** candidate learning with the rejection linked as provenance, and route it to the `lisa-persist-learning` skill. If that skill is absent, record the candidate as a comment that carries a **visible prose line** plus the marker (a bare marker renders as an empty comment bubble) — `Recorded a candidate learning from this rejection (queued for the judgment gate): <one-line candidate rule>.` followed by `<!-- [lisa-rejection-candidate] key=<issue>-<transition-ts> -->` — and proceed. **Marker-dedupe** on `<issue>-<backward-transition-timestamp>`: re-claiming twice produces no duplicate. Unreadable/absent evidence → proceed without a candidate, never block.
@@ -128,6 +132,14 @@ This flow persists learnings via PRs and files upstream issues, so its own artif
 The trigger is therefore **suppressed at the source**. Before an item is classified `rejection-reclaim`, exclude it if it carries any of the learning producer markers — `[lisa-learning-drop]`, `[lisa-learning-pr]`, `[lisa-learning-upstream-handoff]` (embedded in the artifact body/PR the same way other Lisa markers are) — or the `learning:needs-triage` or `learning:low-confidence` label. An excluded item is treated as `forward-only` (normal work); the rejection-reflection path never fires on it, no matter how the artifact moved. (These markers ship with the learning-persistence flow; reference them by name — do not assume their files are present in this branch.)
 
 This is the **trigger-side** half of the no-learning-loops guard. The claim-time archaeology path carries the symmetric **scan-side** exclusion ("a learning PR is never treated as an ancestor").
+
+## CI-rework exemption
+
+A backward move is only a teaching signal when a person judged the work. The Lisa repository's `lisa-ci-failure-redispatch` workflow also moves items backward — `$CLAIMED` to `$READY` — when a required check fails on the item's PR, and posts `<!-- [lisa-ci-failed] pr=<n> sha=<head> -->` as it does. That move is **CI rework**: the defect is a red check the agent has not fixed yet, not an approach a reviewer named as wrong, and reflecting on it would file a learning about a failure the agent is about to fix on the same branch.
+
+So before classifying as `rejection-reclaim`, read the item's comments: when the newest comment carrying a Lisa marker is an uncleared `[lisa-ci-failed]` marker (its comment carries no `<!-- [lisa-ci-cleared] run=<id> -->`) **authored by `github-actions[bot]`** — the workflow's identity; anyone can type the marker, so no other author counts — and the PR it names is open, not cross-repository, and binds this item through its `Work-Item:` line, treat the item as `forward-only`. No rejection learning is assembled and no `[lisa-rejection-candidate]` is recorded. Read the markers **before** the claim writes its own comment, which is itself a newer Lisa marker. The build-intake arm routes such an item to `lisa-drive-pr-to-merge` on the PR the marker names rather than to `lisa-implement`; agent work is not complete while the named PR's required checks are failing, and a marker whose PR has merged or closed counts as cleared.
+
+Today only the GitHub arm has a producer (the workflow is Lisa-repository-only and is not shipped to hosts), so the Jira and Linear arms never see the marker; the exemption is stated vendor-neutrally so a future producer on those trackers inherits it.
 
 ## Reflection at re-claim (`rejection-reclaim` only)
 
