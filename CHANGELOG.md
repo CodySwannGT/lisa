@@ -2,6 +2,28 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [4.95.0](https://github.com/CodySwannGT/lisa/compare/v4.94.0...v4.95.0) (2026-11-08)
+
+
+### Features
+
+* add a one-command rollback for a bad Lisa release (TDD GREEN) ([24aa913](https://github.com/CodySwannGT/lisa/commit/24aa9130a583922c41a055ec1c9fa3817b9df6dd)), closes [CodySwannGT/lisa#4605](https://github.com/CodySwannGT/lisa/issues/4605) [CodySwannGT/lisa#4605](https://github.com/CodySwannGT/lisa/issues/4605)
+
+
+### Bug Fixes
+
+* document npm 2FA and the notes-only failure in the release runbook ([41973cd](https://github.com/CodySwannGT/lisa/commit/41973cd93670b20e1be3061c2456b3ab605f1bf8)), closes [CodySwannGT/lisa#4605](https://github.com/CodySwannGT/lisa/issues/4605) [CodySwannGT/lisa#4605](https://github.com/CodySwannGT/lisa/issues/4605)
+* end npm option parsing before the rollback target and reason ([647d145](https://github.com/CodySwannGT/lisa/commit/647d145c011da0e9f255e9370259168fa7c78306)), closes [#4680](https://github.com/CodySwannGT/lisa/issues/4680) [CodySwannGT/lisa#4605](https://github.com/CodySwannGT/lisa/issues/4605) [CodySwannGT/lisa#4605](https://github.com/CodySwannGT/lisa/issues/4605)
+* guard the release rollback against backward moves and partial runs ([07ce383](https://github.com/CodySwannGT/lisa/commit/07ce383605a97dbe1f2c143986f73a7a40e89095)), closes [CodySwannGT/lisa#4605](https://github.com/CodySwannGT/lisa/issues/4605) [CodySwannGT/lisa#4605](https://github.com/CodySwannGT/lisa/issues/4605)
+* merge main and accept a rollback reason that starts with -- ([334f26b](https://github.com/CodySwannGT/lisa/commit/334f26bb4448b13c6cc4f127d181ce14de0b09f0)), closes [CodySwannGT/lisa#4605](https://github.com/CodySwannGT/lisa/issues/4605) [CodySwannGT/lisa#4605](https://github.com/CodySwannGT/lisa/issues/4605)
+* say re-running a rollback is safe only with the same reason ([41fe2c7](https://github.com/CodySwannGT/lisa/commit/41fe2c7899171d146c8355693af719e05ad409d4)), closes [CodySwannGT/lisa#4605](https://github.com/CodySwannGT/lisa/issues/4605) [CodySwannGT/lisa#4605](https://github.com/CodySwannGT/lisa/issues/4605)
+* support npm 2FA and always verify npm in the release rollback ([4ae58bc](https://github.com/CodySwannGT/lisa/commit/4ae58bcc0cc56ca6adfbf1472ab8bef1781f1c07)), closes [CodySwannGT/lisa#4605](https://github.com/CodySwannGT/lisa/issues/4605) [CodySwannGT/lisa#4605](https://github.com/CodySwannGT/lisa/issues/4605)
+
+
+### Documentation
+
+* add a release runbook with a rollback section ([d93ab9b](https://github.com/CodySwannGT/lisa/commit/d93ab9b33632fd56c4d7e7cbc1adfb7b443d5635)), closes [CodySwannGT/lisa#4605](https://github.com/CodySwannGT/lisa/issues/4605) [CodySwannGT/lisa#4605](https://github.com/CodySwannGT/lisa/issues/4605)
+
 ## [4.94.0](https://github.com/CodySwannGT/lisa/compare/v4.93.0...v4.94.0) (2026-11-08)
 
 
