@@ -181,7 +181,73 @@ describe.each(ROOTS)("drive-pr-to-merge bounded CI watch (%s)", root => {
     expect(content).not.toMatch(/run_in_background:\s*true/);
   });
 
+  it("mentions background or detached waiting only inside the prohibition", () => {
+    // Plain English can instruct as well as a code block can ("start the watch
+    // as a background task and check back later"). Every such phrase in the
+    // whole file must sit in the one paragraph that forbids it.
+    const pStart = content.indexOf(
+      "**Never start a detached or background watcher"
+    );
+    const pEnd = content.indexOf("\n\n", pStart);
+    expect(pStart).toBeGreaterThanOrEqual(0);
+    const outside = [
+      ...content.matchAll(/background (task|watcher|job)|detached/gi),
+    ].filter(m => m.index < pStart || m.index > pEnd);
+    expect(outside.map(m => m[0])).toEqual([]);
+  });
+
+  // --- Review tightening ---------------------------------------------------
+
+  it("defines the run's budget, and a watch timeout is not it", () => {
+    const loop = watchLoop();
+    expect(loop).toMatch(/caller's stated limit when one was passed/);
+    expect(loop).toMatch(/turn, context or\s+wall-clock limit/);
+    expect(loop).toMatch(/One watch timing out is NOT the budget being spent/);
+  });
+
+  it("keeps the harness from killing the watch before its own timeout", () => {
+    expect(watchLoop()).toMatch(
+      /tool call that runs it a timeout above that value/
+    );
+  });
+
+  it("handles a head with no required checks registered yet without spinning", () => {
+    const loop = watchLoop();
+    expect(loop).toMatch(/\*\*No required checks reported yet\.\*\*/);
+    expect(loop).toMatch(/when it requires none, this wait does not apply/);
+    expect(loop).toMatch(
+      /re-run the bounded watch once the re-poll\s+shows required checks registered/
+    );
+    expect(loop).toMatch(/never a sleep loop/);
+  });
+
+  it("points the actions: read behaviour at where it is explained", () => {
+    const loop = watchLoop();
+    expect(loop).not.toMatch(/`actions: read` \(step c\)/);
+    expect(loop).toMatch(/`actions: read` \(section 1's arm gate\)/);
+  });
+
+  it("keeps report mode out of the wait and out of ci-pending", () => {
+    const loop = watchLoop();
+    expect(loop).toMatch(/\*\*Report mode does not wait on CI\.\*\*/);
+    expect(loop).toMatch(/never end in `ci-pending`/);
+    // The value must be one repair-intake already parses.
+    expect(loop).toMatch(/return `will-merge-after-resync`/);
+  });
+
   // --- Scenario: ending with checks pending is explicit --------------------
+
+  it("closes out a pending record once that head's checks finish", () => {
+    expect(watchLoop()).toMatch(
+      /later run that finds that head's required checks finished edits the marker\s+comment/
+    );
+  });
+
+  it("names who completes the work item when a pending PR later merges", () => {
+    expect(terminal()).toMatch(
+      /left to `lisa-repair-intake`'s\s+merged-PR recovery; re-invoking this skill on the PR also completes them/
+    );
+  });
 
   it("records the PR, head SHA and pending checks when the budget runs out", () => {
     const loop = watchLoop();

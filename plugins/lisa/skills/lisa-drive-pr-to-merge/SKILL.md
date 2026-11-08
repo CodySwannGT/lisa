@@ -712,14 +712,42 @@ the `timeout` utility exists; otherwise the harness's own command timeout):
 timeout 540 gh pr checks <pr> --required --watch --interval 30 --fail-fast
 ```
 
+Give the tool call that runs it a timeout above that value (for example
+600000 ms on Claude Code's Bash tool), or lower 540 to fit under the harness's
+limit: a harness that kills the command first loses the result the bound exists
+to deliver.
+
 When it returns, for any reason, re-poll the full PR state (the `gh pr view`
 line above) and handle whatever blocker it shows exactly as below — a failed
 check is step (c).
 Repeat until the PR is merged, a blocker needs action, or the run's budget is spent.
+**The run's budget** is the caller's stated limit when one was passed, otherwise
+the point where this session cannot keep running (the harness's turn, context or
+wall-clock limit). One watch timing out is NOT the budget being spent — it is
+the cue to re-poll and watch again.
 **A non-zero exit is not a CI failure on its own**: the
 watch exits non-zero when `--fail-fast` sees a failed check, when the timeout
-fires, and — with empty stdout — when the token lacks `actions: read` (step c).
+fires, and — with empty stdout — when the token lacks `actions: read` (section 1's arm gate).
 The re-poll of `statusCheckRollup` is the authority on which one happened.
+
+**No required checks reported yet.** The watch also returns at once when no
+required check has registered on the head. First confirm the base requires any
+(the `rules/branches/<base>` read in step (a), its `required_status_checks`
+rule); when it requires none, this wait does not apply. Otherwise the head's
+checks have not started: re-poll, and re-run the bounded watch once the re-poll
+shows required checks registered. Between those re-polls, wait with one
+foreground bounded command, for example
+`timeout 60 gh pr checks <pr> --watch --interval 10` (it blocks while any check
+on the head is still running) — never a sleep loop. If about ten minutes pass
+with no required check registered, that is a blocker, not a wait: stop and name
+the missing contexts (report mode: `blocked:checks`).
+
+**Report mode does not wait on CI.** With `on_blocker=report`, never run the
+watch and never end in `ci-pending`: pending required checks classify through
+the existing report-mode outcomes. When auto-merge is armed and pending checks
+are the only thing outstanding, return `will-merge-after-resync` — the caller
+keeps the item claimed and a later cycle re-reads the PR; any other standing
+blocker returns its own `blocked:<reason>`.
 
 **Never start a detached or background watcher as the way to wait on CI** — no
 trailing `&`, no `nohup`, no harness background task, no scheduled re-check, no
@@ -730,7 +758,9 @@ reaches nobody. The wait is the bounded watch above, and nothing else.
 **Budget spent with required checks still pending.** Do not end silently and do
 not report success. Record the state on the PR in one comment carrying the
 PR number, the head SHA, and the names of the required checks still pending,
-deduplicated by a marker so a resumed run updates rather than repeats it:
+deduplicated by a marker so a resumed run updates rather than repeats it. A
+later run that finds that head's required checks finished edits the marker
+comment to say so, so the record never reads as still pending:
 
 ```text
 <!-- [lisa-ci-pending] sha=<head-sha> -->
@@ -1633,7 +1663,10 @@ Loop until one of:
   recorded in the `[lisa-ci-pending]` comment (section 2), a later failure is
   left to the `[lisa-ci-failed]` re-dispatch, and the run ends with
   `CI PENDING — <n> required checks still running at <sha>`. This is never
-  reported as success: the work is not done until CI is green.
+  reported as success: the work is not done until CI is green. If the checks
+  later pass and auto-merge merges the PR, post-merge verification and
+  work-item completion (section 3) are left to `lisa-repair-intake`'s
+  merged-PR recovery; re-invoking this skill on the PR also completes them.
 - **`CLOSED`** → report (PR was closed without merge).
 - **Hard block needing a human**: an unresolvable conflict, a failing check that
   needs design input, or genuine unresolved human objection (not a bot gate). Stop
