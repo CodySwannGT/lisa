@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.99.1](https://github.com/CodySwannGT/lisa/compare/v4.99.0...v4.99.1) (2026-11-08)
+
+
+### Bug Fixes
+
+* **sweep:** flush full --json output before exiting ([9c6940d](https://github.com/CodySwannGT/lisa/commit/9c6940de39e60c740037eb31e675b0cb341be7cf)), closes [CodySwannGT/lisa#4694](https://github.com/CodySwannGT/lisa/issues/4694) [CodySwannGT/lisa#4694](https://github.com/CodySwannGT/lisa/issues/4694)
+
 ## [4.99.0](https://github.com/CodySwannGT/lisa/compare/v4.98.3...v4.99.0) (2026-11-08)
 
 
