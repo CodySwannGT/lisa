@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.98.3](https://github.com/CodySwannGT/lisa/compare/v4.98.2...v4.98.3) (2026-11-08)
+
+
+### Bug Fixes
+
+* **session-manager:** keep a replacement answer pending until it is recorded ([11d250c](https://github.com/CodySwannGT/lisa/commit/11d250c108c8c6ff4e41def5f2e54e5ac51ed6f7)), closes [#4723](https://github.com/CodySwannGT/lisa/issues/4723) [CodySwannGT/lisa#4624](https://github.com/CodySwannGT/lisa/issues/4624) [CodySwannGT/lisa#4624](https://github.com/CodySwannGT/lisa/issues/4624)
+* **session-manager:** record answers to finished or exhausted items on the item ([35cd471](https://github.com/CodySwannGT/lisa/commit/35cd471d67fee408518bff2eb6382ba70f30f044)), closes [CodySwannGT/lisa#4624](https://github.com/CodySwannGT/lisa/issues/4624) [CodySwannGT/lisa#4624](https://github.com/CodySwannGT/lisa/issues/4624)
+* **session-manager:** record decision answers with no worker, widen credential shapes ([6a4547a](https://github.com/CodySwannGT/lisa/commit/6a4547ac9b75ce3ba7b225fcefe58473cc457746)), closes [CodySwannGT/lisa#4624](https://github.com/CodySwannGT/lisa/issues/4624) [CodySwannGT/lisa#4624](https://github.com/CodySwannGT/lisa/issues/4624)
+* **session-manager:** refuse only digit-bearing credential assignments ([bcee2c7](https://github.com/CodySwannGT/lisa/commit/bcee2c7cc8fc893012e4c7f27c9f6feb8c08a238)), closes [CodySwannGT/lisa#4624](https://github.com/CodySwannGT/lisa/issues/4624) [CodySwannGT/lisa#4624](https://github.com/CodySwannGT/lisa/issues/4624)
+* **session-manager:** tighten answer recording after local review ([fa14858](https://github.com/CodySwannGT/lisa/commit/fa14858a38748ba18a781ab8e72b6209ca5bcda2)), closes [CodySwannGT/lisa#4624](https://github.com/CodySwannGT/lisa/issues/4624) [CodySwannGT/lisa#4624](https://github.com/CodySwannGT/lisa/issues/4624)
+
 ### [4.98.2](https://github.com/CodySwannGT/lisa/compare/v4.98.1...v4.98.2) (2026-11-08)
 
 ### [4.98.1](https://github.com/CodySwannGT/lisa/compare/v4.98.0...v4.98.1) (2026-11-08)
