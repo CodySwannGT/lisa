@@ -1501,9 +1501,9 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-jira-create/SKILL.md":
       "2a409fe3755112f98587db66325fadf5e0d4f34b512755cdbb53b5bec107dab3",
     "plugins/src/base/skills/lisa-jira-evidence/SKILL.md":
-      "f1db5f1aa2bd530ec13c933362182a0e6520b0d7dd80acb096710ab5845d6e66",
+      "2dab1c60143415f5fd617ecf3181b3964562154f8e9a13518feca39602f2844a",
     "plugins/src/base/skills/lisa-jira-evidence/scripts/post-evidence.sh":
-      "6e8cf695da0f4983434c320e9f4731869c4a89a1a3aa2983f6087e34c0125ee8",
+      "7eda19fd3140f31813fb7093997aa0f51da7d286e79fca8e7b7ab34a1776afa9",
     "plugins/src/base/skills/lisa-jira-journey/SKILL.md":
       "8712a24e0ef39364b9ce60140bdca5800321a129eae541e320a93e2dca3e35ef",
     "plugins/src/base/skills/lisa-jira-journey/scripts/generate-templates.py":
@@ -2079,9 +2079,9 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/expo/skills/jira-create/SKILL.md":
       "0fb4378b7399580e180beaacd22f832af3ff0ddae7c5d7761039bc81832c0c43",
     "plugins/src/expo/skills/jira-evidence/SKILL.md":
-      "05192afb0974a47439d020fbf91a247e131547f44a1c45ffb22927d56ced3523",
+      "3c8879a24e2bd369b472c410ce3d2b8b42fe7e2a09c00509ac9b3cb9d7a9e55e",
     "plugins/src/expo/skills/jira-evidence/scripts/post-evidence.sh":
-      "6e8cf695da0f4983434c320e9f4731869c4a89a1a3aa2983f6087e34c0125ee8",
+      "7eda19fd3140f31813fb7093997aa0f51da7d286e79fca8e7b7ab34a1776afa9",
     "plugins/src/expo/skills/jira-journey/SKILL.md":
       "f5fecd9f17263f976a7e26d0c47a0d69477da31caaf9e299f5f5eeefbef52c34",
     "plugins/src/expo/skills/jira-journey/scripts/generate-templates.py":
@@ -2359,9 +2359,9 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/rails/skills/jira-create/SKILL.md":
       "789b1ed68e983029e0b57c3eefa90fdce000615d0f23b1699a6d9c0099b4e1d0",
     "plugins/src/rails/skills/jira-evidence/SKILL.md":
-      "f1d7961b7f58711dc2fbc1599292cb18c251ed2e18a8635d10d229fc828faf84",
+      "623e8e5f35086231483b6a234faf11e4062783336f668e963a276425c7da925c",
     "plugins/src/rails/skills/jira-evidence/scripts/post-evidence.sh":
-      "6e8cf695da0f4983434c320e9f4731869c4a89a1a3aa2983f6087e34c0125ee8",
+      "7eda19fd3140f31813fb7093997aa0f51da7d286e79fca8e7b7ab34a1776afa9",
     "plugins/src/rails/skills/jira-journey/SKILL.md":
       "c65cf8bcde3dbfe4995d26dcce62067cf1a08314a9ba9ca7f7c1fdd53d61feb6",
     "plugins/src/rails/skills/jira-verify/SKILL.md":

@@ -215,4 +215,38 @@ describe.each(SOURCES)("description links match the release: %s", script => {
     expect(result.status, result.stderr).toBe(0);
     expect(result.stdout).toContain(DESCRIPTION_UPDATED);
   });
+
+  it("fails naming a link to a stale asset an earlier run left behind", () => {
+    const repo = prepareRepository();
+    const stale = `${RELEASE}/pr-101-${SHOT}`;
+    expect(runFor(repo, script, "101").status).toBe(0);
+
+    const result = runFor(repo, script, "101", {
+      tag: "rerun",
+      files: [HEALTH],
+      commentMd: `## Evidence\n\n![Shot](${stale})\n`,
+    });
+
+    expect(result.status).not.toBe(0);
+    expect(result.stderr).toContain(stale);
+    expect(result.stderr).toContain("did not upload");
+    expect(result.stdout).not.toContain(DESCRIPTION_UPDATED);
+  });
+
+  it("ignores a release URL quoted as plain text in inlined evidence", () => {
+    const repo = prepareRepository();
+    const result = runFor(repo, script, "101", {
+      commentMd: [
+        "## Evidence",
+        "",
+        "```text",
+        "fetched releases/download/pr-assets/foo.txt",
+        "```",
+        "",
+      ].join("\n"),
+    });
+
+    expect(result.status, result.stderr).toBe(0);
+    expect(result.stdout).toContain(DESCRIPTION_UPDATED);
+  });
 });
