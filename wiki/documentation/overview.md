@@ -106,6 +106,18 @@ like the learnings ledger, whose entries are independent records that genuinely 
 ignore rule binds untracked paths only, `lisa doctor` also reports a checkout that still tracks a
 report committed before the rule shipped, naming `git rm --cached .lisa/readiness.json`.
 
+`lisa doctor` also reports a host CodeRabbit config that lets the review bot write Lisa's own
+labels (check "CodeRabbit kept off Lisa's lifecycle labels?"). From 2026-02-11 to 2026-03-01 Lisa
+shipped a `.coderabbit.yml` that turns `issue_enrichment.labeling.auto_apply_labels` on with no
+`labeling_instructions` allowlist, and `all/deletions.json` keeps that file, so the bot could put
+`status:ready` back onto claimed issues. The check fails when auto-apply is on and the allowlist is
+missing, empty, or names any `status:`, `type:` or `points:` label or the human-needed label. The
+host remedy is either `auto_apply_labels: false` or an allowlist naming none of those. `lisa apply`
+makes the first change itself, with an explanatory comment, but only to a copy whose bytes prove it
+is the unedited one Lisa wrote; an edited copy is left for the host to fix. The families are
+defined once in `src/core/coderabbit-labeling.ts`, shared with the test that guards Lisa's own
+`.coderabbit.yml`.
+
 Every normal command performs a timeout-bound npm latest-version check before it runs. The project-local cache lives under `node_modules/.cache`; the check is non-fatal when offline and can be skipped with `--no-update-check` or `LISA_SKIP_UPDATE_CHECK=1`. `lisa update --yes` updates this project's dependency and triggers the same automatic apply path.
 
 Lisa's Codex delivery is entirely project-scoped. `lisa apply` writes only the
