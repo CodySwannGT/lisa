@@ -1,6 +1,7 @@
 import { accessSync, constants } from "node:fs";
 import {
   chmod,
+  copyFile,
   mkdir,
   mkdtemp,
   readFile,
@@ -224,6 +225,16 @@ async function createHookFixture(): Promise<{
     path.join(root, "scripts/lisa-work-item.mjs"),
     "// fixture\n"
   );
+  await copyFile(
+    path.resolve("all/copy-overwrite/scripts/lisa-audit.mjs"),
+    path.join(root, "scripts/lisa-audit.mjs")
+  );
+  await mkdir(path.join(root, "node_modules/@codyswann"), { recursive: true });
+  await symlink(
+    await realpath(process.cwd()),
+    path.join(root, "node_modules/@codyswann/lisa"),
+    "dir"
+  );
   boundedExecFileSync({
     label: "git init",
     command: GIT,
@@ -241,10 +252,12 @@ async function createHookFixture(): Promise<{
   // package.json is `{}`, so the honest answer is "no" and the hook must fall
   // back to `test:cov`, which is what the command log below asserts. Faking it
   // would make the fixture agree with whatever the hook did. So `-e` is
-  // delegated to the real node, and only the work-item invocation is recorded.
+  // delegated to the real node, as is the canonical audit adapter copied above.
+  // Only the actual work-item validation invocation is recorded; a new Node
+  // consumer must execute rather than silently overwrite the validator log.
   await writeExecutable(
     path.join(bin, "node"),
-    '#!/bin/sh\nif [ "$1" = "-e" ]; then\n  exec "$REAL_NODE" "$@"\nfi\nprintf "%s\\n" "$*" > "$HOOK_VALIDATE_LOG"\n'
+    '#!/bin/sh\nif [ "$1" = "scripts/lisa-work-item.mjs" ] && [ "$2" = "validate-push" ]; then\n  printf "%s\\n" "$*" >> "$HOOK_VALIDATE_LOG"\n  exit 0\nfi\nexec "$REAL_NODE" "$@"\n'
   );
   await writeExecutable(path.join(bin, "npm"), FAKE_NPM);
   return { root, bin, commandLog, discoveryLog, validateLog };

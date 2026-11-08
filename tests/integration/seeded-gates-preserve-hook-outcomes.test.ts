@@ -24,8 +24,8 @@
  * `bun audit --production --json`, which needs the network and a real
  * dependency tree; neither is available to a hermetic test, and a step that
  * fails for want of a network in BOTH runs compares equal while proving
- * nothing. The stub answers `audit` with `{}` — a clean payload the hook's own
- * jq filters then evaluate for real — and `run <task>` by executing the
+ * nothing. The stub answers `audit` with `{}` — a clean controlled payload the
+ * canonical audit matcher evaluates for real — and `run <task>` by executing the
  * fixture's own script. The hook's logic is untouched; only the tools it
  * shells out to are fixtures.
  *
@@ -62,6 +62,9 @@ const TYPE_CORRECTNESS = "type-correctness";
 /** The fixture package name. */
 const FIXTURE_NAME = "fixture";
 
+/** Manifest filename shared by the consumer and current package export. */
+const PACKAGE_MANIFEST = "package.json";
+
 /** The shipped hook this suite executes. */
 const HOOK_TEMPLATE = path.join(
   REPO_ROOT,
@@ -72,7 +75,11 @@ const HOOK_TEMPLATE = path.join(
 );
 
 /** Shipped scripts the fixture installs so the hook resolves a real registry. */
-const SHIPPED_SCRIPTS = ["lisa-gates.mjs", "lisa-run-gates.mjs"];
+const SHIPPED_SCRIPTS = [
+  "lisa-gates.mjs",
+  "lisa-run-gates.mjs",
+  "lisa-audit.mjs",
+];
 
 /**
  * The fixture's package scripts.
@@ -97,7 +104,7 @@ const FIXTURE_SCRIPTS: Readonly<Record<string, string>> = Object.freeze({
 const BUN_STUB = `#!/bin/sh
 # Fixture stand-in for bun. Two verbs, both hermetic.
 if [ "$1" = "audit" ]; then
-  # A clean payload the hook's own jq filters evaluate for real. Emitting
+  # A clean controlled payload the canonical audit matcher evaluates. Emitting
   # nothing would (correctly) block the push, which is the transport hole the
   # hook is written to refuse.
   echo '{}'
@@ -182,7 +189,7 @@ describe("seeding the gates block preserves what the pre-push hook proves", () =
     // A lockfile is how the hook picks its runner, and how the migration picks
     // the `gates.runner` it writes. Both must land on the stub.
     await fs.writeFile(path.join(projectDir, "bun.lock"), "");
-    await fs.writeJson(path.join(projectDir, "package.json"), {
+    await fs.writeJson(path.join(projectDir, PACKAGE_MANIFEST), {
       name: FIXTURE_NAME,
       version: "1.0.0",
       scripts: { ...FIXTURE_SCRIPTS },
@@ -197,6 +204,25 @@ describe("seeding the gates block preserves what the pre-push hook proves", () =
         path.join(projectDir, "scripts", script)
       );
     }
+    // Expose the real package export used by the copied audit adapter without
+    // installing package guard scripts that would take precedence over the
+    // copied registry and the traceability instrument below.
+    const currentLisa = path.join(
+      projectDir,
+      "node_modules",
+      "@codyswann",
+      "lisa"
+    );
+    await fs.ensureDir(currentLisa);
+    await fs.copy(
+      path.join(REPO_ROOT, PACKAGE_MANIFEST),
+      path.join(currentLisa, PACKAGE_MANIFEST)
+    );
+    await fs.symlink(
+      path.join(REPO_ROOT, "dist"),
+      path.join(currentLisa, "dist"),
+      "dir"
+    );
     // The gate runner imports its diagnosis helpers by relative path, so the
     // installed copy is a directory beside it, not a lone file.
     await fs.copy(
@@ -333,7 +359,7 @@ describe("seeding the gates block preserves what the pre-push hook proves", () =
     };
     const before = runHook();
     await fs.writeJson(path.join(projectDir, LISA_CONFIG), broken);
-    await fs.writeJson(path.join(projectDir, "package.json"), manifest);
+    await fs.writeJson(path.join(projectDir, PACKAGE_MANIFEST), manifest);
     const after = runHook();
 
     expect(before.proved).toContain(TYPE_CORRECTNESS);

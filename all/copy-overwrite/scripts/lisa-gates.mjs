@@ -533,6 +533,9 @@ const KNIP = "knip";
  *   stack, and says what to do about it.
  * - `shippedAs` names the script a template already ships for that concern,
  *   where one exists, so an operator can point `run:` straight at it.
+ * - `fallbackWhenTaskMissing` retains an unconditional owned facade for
+ *   callers whose older templates do not yet install a now-universal task.
+ *   It never replaces an explicit task or a default the caller supplies.
  *
  * `shippedAs` is RESOLVED THROUGH, not merely documented — see `resolveMoment`.
  * Recording the alias and then never reading it (#2916) left the registry
@@ -892,12 +895,24 @@ export const REGISTRY = Object.freeze({
     label: "🔒 Security Scan",
     summary: "No known high or critical advisory in shipped dependencies.",
     task: SECURITY_AUDIT_TASK,
-    declareOnly:
-      "The prover is the package manager's own `audit`, which CI invokes natively alongside an exclusion list. There is no script form to ship.",
+    fallbackWhenTaskMissing: true,
     // Continuous matters most here: a CVE published today makes yesterday's
     // green wrong with no change to trigger a re-scan.
     moments: [...PUSH_ONWARD, CONTINUOUS],
     work: "manifests scanned",
+    // The canonical audit's own verdict lines (scripts/lisa-audit.mjs). The
+    // shipped classifier reads vitest and tsc, not this audit, so without them
+    // a real finding was reported UNPROVABLE — "nothing here is a verdict about
+    // the code" — about an audit that had named the uncovered copy (#4521).
+    // Deliberately NOT "Security audit failed closed": that is a capture that
+    // audited nothing (registry outage, garbage output), which must stay
+    // UNPROVABLE so the operator re-runs rather than hunts for a defect.
+    // A project's own `failure_shape` replaces this default; like any declared
+    // shape it is consulted only when nothing else classified the output.
+    failureShape: [
+      "❌ High or critical vulnerabilities found",
+      "Security audit configuration invalid",
+    ],
   },
   "static-security": {
     label: "🔍 Static Security Analysis",
@@ -1743,12 +1758,11 @@ const QUALITY_FALLBACKS = Object.freeze({
     steps: ["🌱 No environment reseed adapter declared"],
   },
   npm_security_scan: {
-    // Every package-manager branch fails when the audit yields no report
-    // (retried first — it is a network call), so a mode-only declaration may
-    // delegate here. Without the flag it fell through to `security:audit`, a
-    // descriptive task Lisa does not ship (#3359).
+    // The workflow-owned action uses the canonical audit implementation and
+    // fails when the provider yields no complete report. Older callers may
+    // therefore delegate here before apply installs the now-shipped task.
     unconditional: true,
-    command: "<package-manager> audit, filtered through audit.ignore*.json",
+    command: "workflow-owned canonical dependency-audit action",
     seedRun: [SECURITY_AUDIT_TASK],
     steps: ["📋 Load audit exclusions", "🔒 Run security audit"],
   },
@@ -5551,9 +5565,9 @@ export function resolveMoment({
     const task = declared ?? alias?.to ?? registryTask;
     const intercepts = Object.hasOwn(INTERCEPTORS, id);
     // A bare level declaration governs the façade that already proves this
-    // property; it does not invent a package script. `declareOnly` is the
-    // registry's explicit statement that the default task is descriptive and
-    // is not shipped. When the matching hard-coded invocation exists, keep the
+    // property; it does not invent a package script. `declareOnly` identifies
+    // an unshipped default; `fallbackWhenTaskMissing` retains the same route
+    // for older callers when a default starts shipping. Keep the
     // declaration visible (so contexts and requiredness still derive from it)
     // but only delegate to an explicitly unconditional prover. A fallback that
     // skips for missing credentials or files cannot carry a required property.
@@ -5564,7 +5578,8 @@ export function resolveMoment({
       !entry.await &&
       !intercepts &&
       declared === null &&
-      definition?.declareOnly !== undefined &&
+      (definition?.declareOnly !== undefined ||
+        definition?.fallbackWhenTaskMissing === true) &&
       definition?.shippedAs === undefined &&
       ((scripts !== null &&
         typeof scripts === "object" &&
@@ -5619,8 +5634,10 @@ export function resolveMoment({
       // Carried on every resolved entry, including an awaited one. It describes
       // what the project SAID about this moment's prover, and the project said
       // it whatever mode the moment resolves to — the same argument `declared`
-      // makes one field up.
-      failureShape: entry[FAILURE_SHAPE_FIELD] ?? null,
+      // makes one field up. Absent a declaration, a built-in's own known
+      // verdict lines apply (today only the canonical dependency audit's).
+      failureShape:
+        entry[FAILURE_SHAPE_FIELD] ?? definition?.failureShape ?? null,
       mayRewrite: definition?.mayRewrite === true,
       costly: definition?.costly === true,
     });

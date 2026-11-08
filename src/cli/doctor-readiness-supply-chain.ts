@@ -28,7 +28,7 @@
  * @module cli/doctor-readiness-supply-chain
  */
 import { informationalFindings } from "./doctor-readiness-shared.js";
-import { auditExceptionViolations } from "./doctor-readiness-audit-allowlist.js";
+import { assessAuditExceptions } from "./doctor-readiness-audit-allowlist.js";
 import {
   collectSpecs,
   type DependencySpec,
@@ -80,6 +80,7 @@ async function collectFindings(
   const lockfileInstallGate =
     lockfile === null ? null : await findLockfileInstallGate(root);
   const auditGate = await findAuditGate(root);
+  const exceptions = await assessAuditExceptions(root);
   const inputs = {
     auditGate,
     lockfile,
@@ -91,10 +92,11 @@ async function collectFindings(
     violations: [
       ...dependencyConfidenceViolations(inputs),
       ...installTimeExecutionViolations(manifests),
-      ...(await auditExceptionViolations(root)),
+      ...exceptions.violations,
     ],
     observations: [
       ...dependencyConfidenceObservations(inputs),
+      ...exceptions.observations,
       ...(workspaces.declared ? [workspaceObservation(workspaces)] : []),
     ],
   };

@@ -8,7 +8,7 @@
     },
     {
       "id": "GHSA-8qq5-rm4j-mr97",
-      "package": "node-tar",
+      "package": "tar",
       "reason": "Path sanitization vulnerability — nested in @expo/cli, tar extraction not in our code path"
     },
     {
@@ -53,17 +53,17 @@
     },
     {
       "id": "GHSA-r6q2-hw4h-h46w",
-      "package": "node-tar",
+      "package": "tar",
       "reason": "Race condition via Unicode Ligature Collisions on macOS APFS — transitive via NestJS/Apollo, tar not used in production"
     },
     {
       "id": "GHSA-34x7-hfp2-rc4v",
-      "package": "node-tar",
+      "package": "tar",
       "reason": "Arbitrary file creation via hardlink path traversal — same path as GHSA-r6q2-hw4h-h46w"
     },
     {
       "id": "GHSA-83g3-92jg-28cx",
-      "package": "node-tar",
+      "package": "tar",
       "reason": "Arbitrary file read/write via hardlink target escape — same path as GHSA-r6q2-hw4h-h46w"
     },
     {
@@ -74,13 +74,13 @@
     {
       "id": "GHSA-w532-jxjh-hjhj",
       "cve": "CVE-2025-29907",
-      "package": "jsPDF",
+      "package": "jspdf",
       "reason": "ReDoS in addImage — controlled usage only, no user-controlled input to addImage"
     },
     {
       "id": "GHSA-8mvj-3j78-4qmw",
       "cve": "CVE-2025-57810",
-      "package": "jsPDF",
+      "package": "jspdf",
       "reason": "DoS in addImage — controlled usage only, no user-controlled input to addImage"
     },
     {

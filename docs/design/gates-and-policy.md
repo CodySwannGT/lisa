@@ -772,9 +772,10 @@ guess.
   `include: ["src/**/*"]`, `exclude: ["**/*.test.ts", ...]`), so the
   `🔍 Type Check` gate has never checked a test file. Three agents shipped
   `@returns {object}` without CI noticing.
-- `security:audit` has no package script, so the `dependency-vulnerability`
-  gate cannot yet be wired and its required context cannot be derived.
-  `check:work-item` and `check:thresholds` now exist in `package.json`.
+- The former missing `security:audit` task is supplied by the canonical
+  audit runner introduced for #4521. It shares package/version/path matching
+  with the built-in consumers; see [audit exclusions](../dependency-audit-exclusions.md).
+  `check:work-item` and `check:thresholds` also exist in `package.json`.
 - Count-shaped hollow detection is **specified but not implemented** for `run`
   gates. `lisa-run-gates.mjs` carries each gate's `work` phrase through
   `resolveMoment` and never inspects it — it classifies purely on the exit
