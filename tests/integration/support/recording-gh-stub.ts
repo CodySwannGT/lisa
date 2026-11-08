@@ -31,7 +31,10 @@ case "$1 $2" in
     case " $* " in *" --clobber "*) ;; *) [ -e "$state/release/$name" ] && exit 1 ;; esac
     [ "$name" = "\${LISA_GH_DROP:-}" ] || cp "$4" "$state/release/$name"
     ;;
-  "release view") ls "$state/release" ;;
+  "release view")
+    case " $* " in *" --json assets "*) ;; *) exit 1 ;; esac
+    case " $* " in *" --jq .assets[].name "*) ;; *) exit 1 ;; esac
+    ls "$state/release" ;;
 esac
 exit 0
 `;

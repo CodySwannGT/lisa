@@ -37,7 +37,17 @@ const SOURCES = [
 ];
 const SHOT = "01-search-step-desktop.png";
 const HEALTH = "01-health-check.json";
+const RELEASE = "https://github.com/org/repo/releases/download/pr-assets";
+const DESCRIPTION_UPDATED = "PR description updated";
 const roots: string[] = [];
+
+/** Controls for one {@link runFor} invocation. */
+interface RunOptions {
+  readonly tag?: string;
+  readonly drop?: string;
+  readonly files?: readonly string[];
+  readonly commentMd?: string;
+}
 
 afterEach(() => {
   for (const root of roots.splice(0))
@@ -72,18 +82,23 @@ function prepareRepository() {
  * @param options - Run controls.
  * @param options.tag - Text written into each evidence file, to tell runs apart.
  * @param options.drop - Asset name the stubbed release silently loses.
+ * @param options.files - Evidence file names to stage instead of the default pair.
+ * @param options.commentMd - Description markdown instead of the default text.
  * @returns The completed process.
  */
 function runFor(
   repo: ReturnType<typeof prepareRepository>,
   script: string,
   pr: string,
-  options: { tag?: string; drop?: string } = {}
+  options: RunOptions = {}
 ) {
   const evidence = path.join(repo.root, `evidence-${pr}-${options.tag ?? ""}`);
+  const files = options.files ?? [SHOT, HEALTH];
   mkdirSync(evidence, { recursive: true });
-  for (const name of [SHOT, HEALTH, "comment.md", "comment.txt"])
+  for (const name of [...files, "comment.md", "comment.txt"])
     writeFileSync(path.join(evidence, name), `${options.tag ?? pr}\n`);
+  if (options.commentMd !== undefined)
+    writeFileSync(path.join(evidence, "comment.md"), options.commentMd);
   return boundedSpawnSync({
     label: `post-evidence.sh for PR ${pr}`,
     command: BASH,
@@ -160,6 +175,44 @@ describe.each(SOURCES)("pull-request-scoped evidence uploads: %s", script => {
 
     expect(result.status).not.toBe(0);
     expect(result.stderr).toContain(missing);
-    expect(result.stdout).not.toContain("PR description updated");
+    expect(result.stdout).not.toContain(DESCRIPTION_UPDATED);
+  });
+
+  it("refuses an evidence name GitHub would rewrite, before any upload", () => {
+    const repo = prepareRepository();
+    const result = runFor(repo, script, "101", {
+      files: ["01-search step-desktop.png", HEALTH],
+    });
+
+    expect(result.status).not.toBe(0);
+    expect(result.stderr).toContain("01-search step-desktop.png");
+    expect(result.stderr).toContain("Rename it");
+    expect(recordedUploads(repo.state)).toEqual([]);
+  });
+});
+
+describe.each(SOURCES)("description links match the release: %s", script => {
+  it.each([
+    ["a bare name", `${RELEASE}/${SHOT}`],
+    ["another pull request's name", `${RELEASE}/pr-102-${SHOT}`],
+  ])("fails naming a description link to %s", (_kind, link) => {
+    const repo = prepareRepository();
+    const result = runFor(repo, script, "101", {
+      commentMd: `## Evidence\n\n![Shot](${link})\n`,
+    });
+
+    expect(result.status).not.toBe(0);
+    expect(result.stderr).toContain(link.slice(link.indexOf("releases/")));
+    expect(result.stdout).not.toContain(DESCRIPTION_UPDATED);
+  });
+
+  it("accepts a description linking only this pull request's assets", () => {
+    const repo = prepareRepository();
+    const result = runFor(repo, script, "101", {
+      commentMd: `## Evidence\n\n![Shot](${RELEASE}/pr-101-${SHOT})\n`,
+    });
+
+    expect(result.status, result.stderr).toBe(0);
+    expect(result.stdout).toContain(DESCRIPTION_UPDATED);
   });
 });

@@ -161,7 +161,9 @@ describe.each(SOURCES.slice(1))("Jira missing evidence kinds: %s", script => {
     expect(result.trace).not.toContain(AUTH_CONSTRUCTED);
   });
 
-  it.each([["01-log file.txt"], ["02-shot file.png"]])(
+  // Release-safe names: the script refuses a space, which GitHub would rewrite
+  // in the asset name (CodySwannGT/lisa#4639).
+  it.each([["01-log-file.txt"], ["02-shot-file.png"]])(
     "uploads a single evidence kind: %s",
     file => {
       const result = runHelper(script, ORIGIN, undefined, { files: [file] });

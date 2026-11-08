@@ -77,12 +77,32 @@ describe("every post-evidence.sh uploads pull-request-scoped asset names", () =>
     }
   });
 
+  // Pins the acceptance-criteria clause "it fails for any --clobber upload of a
+  // name that does not include the pull request number". --clobber deletes the
+  // same-named asset first, so on an unscoped name it destroys another pull
+  // request's evidence; on a scoped name it can only replace this PR's own.
   it.each(COPIES)("%s clobbers only pull-request-scoped names", copy => {
     const found = uploads(readFileSync(path.join(repoRoot, copy), "utf8"));
     const clobbering = found.filter(({ line }) => line.includes("--clobber"));
 
     for (const { line, asset } of clobbering) {
       expect(asset, line).toContain(SCOPED_PREFIX);
+    }
+  });
+
+  // `gh release create <tag> <files…>` uploads its file arguments under their
+  // bare names — a second upload path that would dodge the checks above.
+  it.each(COPIES)("%s never uploads files through gh release create", copy => {
+    const creates = readFileSync(path.join(repoRoot, copy), "utf8")
+      .split("\n")
+      .filter(line => /^\s*gh release create\b/.test(line));
+
+    for (const line of creates) {
+      const positional = line.trim().split(/\s+/).slice(4);
+      const firstFlag = positional.findIndex(token => token.startsWith("-"));
+      const files =
+        firstFlag === -1 ? positional : positional.slice(0, firstFlag);
+      expect(files, line).toEqual([]);
     }
   });
 
