@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.97.1](https://github.com/CodySwannGT/lisa/compare/v4.97.0...v4.97.1) (2026-11-08)
+
+
+### Bug Fixes
+
+* **ci:** hold a CI-failure clear while any required check has not reported ([8dc66bd](https://github.com/CodySwannGT/lisa/commit/8dc66bd01ba648b52bc048842ff0b8282474f856)), closes [CodySwannGT/lisa#4711](https://github.com/CodySwannGT/lisa/issues/4711) [CodySwannGT/lisa#4711](https://github.com/CodySwannGT/lisa/issues/4711)
+
 ## [4.97.0](https://github.com/CodySwannGT/lisa/compare/v4.96.3...v4.97.0) (2026-11-08)
 
 
