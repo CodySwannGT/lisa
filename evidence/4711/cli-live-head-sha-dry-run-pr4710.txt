@@ -1,0 +1,26 @@
+run 0 -> PR #4710 -> work item CodySwannGT/lisa#4677
+outcome: checks-pending — 13 of 15 required checks on main have not reported on this head: 🔍 Quality Checks / 🧹 Lint, 🔍 Quality Checks / 🔍 Type Check, 🔍 Quality Checks / 🏗️ Build, 🔍 Quality Checks / 📐 Check Formatting, 🔍 Quality Checks / 🔒 Security Scan, 🔍 Quality Checks / 🧪 Run Unit Tests, 🔍 Quality Checks / 🧪 Run Integration Tests, 🔍 Quality Checks / 🔗 Work-Item Traceability, 🔍 Quality Checks / 🐢 Slow Lint Rules, 🔍 Quality Checks / 🗑️ Dead Code Detection, 🧩 Plugin artifacts match source, 🔍 Quality Checks / 🔎 Structural Rules, 🔍 Quality Checks / 📚 Learnings Budget (dry run: nothing written)
+{
+  "repository": "CodySwannGT/lisa",
+  "runId": 0,
+  "pr": 4710,
+  "sha": "d9c108f566bb7e343598ba2ba3bbe9d198e24ed7",
+  "item": "CodySwannGT/lisa#4677",
+  "outcome": "checks-pending",
+  "reason": "13 of 15 required checks on main have not reported on this head: 🔍 Quality Checks / 🧹 Lint, 🔍 Quality Checks / 🔍 Type Check, 🔍 Quality Checks / 🏗️ Build, 🔍 Quality Checks / 📐 Check Formatting, 🔍 Quality Checks / 🔒 Security Scan, 🔍 Quality Checks / 🧪 Run Unit Tests, 🔍 Quality Checks / 🧪 Run Integration Tests, 🔍 Quality Checks / 🔗 Work-Item Traceability, 🔍 Quality Checks / 🐢 Slow Lint Rules, 🔍 Quality Checks / 🗑️ Dead Code Detection, 🧩 Plugin artifacts match source, 🔍 Quality Checks / 🔎 Structural Rules, 🔍 Quality Checks / 📚 Learnings Budget",
+  "actions": []
+}
+
+## CONTROL origin/main script, same live --head-sha dry run (read-only)
+run 0 -> PR #4710 -> work item CodySwannGT/lisa#4677
+outcome: nothing-to-clear — every required check passed and no uncleared marker names this PR (dry run: nothing written)
+{
+  "repository": "CodySwannGT/lisa",
+  "runId": 0,
+  "pr": 4710,
+  "sha": "d9c108f566bb7e343598ba2ba3bbe9d198e24ed7",
+  "item": "CodySwannGT/lisa#4677",
+  "outcome": "nothing-to-clear",
+  "reason": "every required check passed and no uncleared marker names this PR",
+  "actions": []
+}

@@ -1,0 +1,30 @@
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - import "./vitest.config.local" without a file extension (vitest.config.ts:21:25). Add the file extension
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - import "./vitest.config.local" without a file extension (vitest.config.ts:21:25). Add the file extension
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - import "./vitest.config.local" without a file extension (vitest.config.ts:21:25). Add the file extension
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - import "./vitest.config.local" without a file extension (vitest.config.ts:21:25). Add the file extension
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+
+ RUN  v4.1.11 /Users/codysai/workspace/lisa/.claude/worktrees/4711-absent-required-checks
+
+lisa scratch: no supervised lease in the environment, so this run is self-supervised. Fixture directories are still bounded to a run root this process owns and removed on exit; what is missing is the detached reaper that reclaims the root after a SIGKILL, which the next run's startup sweep recovers instead. Run through `lisa-test-run --profile <profile> --adapter vitest -- vitest ...` for a supervised run.
+lisa scratch: no supervised lease in the environment, so this run is self-supervised. Fixture directories are still bounded to a run root this process owns and removed on exit; what is missing is the detached reaper that reclaims the root after a SIGKILL, which the next run's startup sweep recovers instead. Run through `lisa-test-run --profile <profile> --adapter vitest -- vitest ...` for a supervised run.
+lisa scratch: no supervised lease in the environment, so this run is self-supervised. Fixture directories are still bounded to a run root this process owns and removed on exit; what is missing is the detached reaper that reclaims the root after a SIGKILL, which the next run's startup sweep recovers instead. Run through `lisa-test-run --profile <profile> --adapter vitest -- vitest ...` for a supervised run.
+lisa scratch: no supervised lease in the environment, so this run is self-supervised. Fixture directories are still bounded to a run root this process owns and removed on exit; what is missing is the detached reaper that reclaims the root after a SIGKILL, which the next run's startup sweep recovers instead. Run through `lisa-test-run --profile <profile> --adapter vitest -- vitest ...` for a supervised run.
+lisa scratch: no supervised lease in the environment, so this run is self-supervised. Fixture directories are still bounded to a run root this process owns and removed on exit; what is missing is the detached reaper that reclaims the root after a SIGKILL, which the next run's startup sweep recovers instead. Run through `lisa-test-run --profile <profile> --adapter vitest -- vitest ...` for a supervised run.
+lisa scratch: no supervised lease in the environment, so this run is self-supervised. Fixture directories are still bounded to a run root this process owns and removed on exit; what is missing is the detached reaper that reclaims the root after a SIGKILL, which the next run's startup sweep recovers instead. Run through `lisa-test-run --profile <profile> --adapter vitest -- vitest ...` for a supervised run.
+lisa scratch: no supervised lease in the environment, so this run is self-supervised. Fixture directories are still bounded to a run root this process owns and removed on exit; what is missing is the detached reaper that reclaims the root after a SIGKILL, which the next run's startup sweep recovers instead. Run through `lisa-test-run --profile <profile> --adapter vitest -- vitest ...` for a supervised run.
+lisa scratch: no supervised lease in the environment, so this run is self-supervised. Fixture directories are still bounded to a run root this process owns and removed on exit; what is missing is the detached reaper that reclaims the root after a SIGKILL, which the next run's startup sweep recovers instead. Run through `lisa-test-run --profile <profile> --adapter vitest -- vitest ...` for a supervised run.
+lisa scratch: no supervised lease in the environment, so this run is self-supervised. Fixture directories are still bounded to a run root this process owns and removed on exit; what is missing is the detached reaper that reclaims the root after a SIGKILL, which the next run's startup sweep recovers instead. Run through `lisa-test-run --profile <profile> --adapter vitest -- vitest ...` for a supervised run.
+
+ Test Files  9 passed (9)
+      Tests  115 passed (115)
+   Start at  08:38:47
+   Duration  1.57s (transform 413ms, setup 569ms, import 924ms, tests 842ms, environment 0ms)
+
