@@ -39,6 +39,7 @@
     "cleanup:github-branches": "bash scripts/cleanup-github-branches.sh",
     "github:status": "bash scripts/github-status-check.sh",
     "setup:deploy-key": "bash scripts/setup-deploy-key.sh",
+    "release:rollback": "node scripts/lisa-rollback-release.mjs",
     "lisa:enforcement-census": "bun run build:dist:in-place && node scripts/lisa-enforcement-census.mjs",
     "lisa:update:local": "bash scripts/lisa-update-local.sh",
     "lisa:commit-and-pr:local": "bash scripts/lisa-commit-and-pr-local.sh",
