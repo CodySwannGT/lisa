@@ -1,0 +1,16 @@
+[
+  ["ordinary-status", "git status --short\n", 0],
+  ["normal-commit", "git commit -m fixture\n", 0],
+  ["normal-push", "git push\n", 0],
+  ["push-dry-run", "git push -n\n", 0],
+  ["literal-prose", "printf '%s\\n' 'git commit --no-verify'\n", 0],
+  ["literal-option", "printf '%s\\n' '--no-verify'\n", 0],
+  ["safe-script", "sh safe/payload.sh\n", 0],
+  ["syntax-only", "bash -n payload.sh\n", 0],
+  ["commit-long-bypass", "git commit --no-verify -m fixture\n", 2],
+  ["commit-short-bypass", "git commit -nm fixture\n", 2],
+  ["push-bypass", "git push --no-verify\n", 2],
+  ["husky-environment", "HUSKY=0 git commit -m fixture\n", 2],
+  ["hooks-path", "git -c core.hooksPath=/dev/null commit -m fixture\n", 2],
+  ["executed-script", "sh payload.sh\n", 2]
+]
