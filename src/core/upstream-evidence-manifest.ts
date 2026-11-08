@@ -2841,7 +2841,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/lisa-audit.mjs":
       "8ca83977e7df232bf22912df6c6044c9162363a02ef77d5d518e03d73c280543",
     "scripts/lisa-ci-failure-redispatch.mjs":
-      "b09c743c96eb40c252a2d385eab6a0fd0c47ca9f5eb84addb36aad5aef80c700",
+      "bcf307e1364a592d05688eca48e04500bd95fd00a5a1b109df727711aa769fb8",
     "scripts/lisa-ci-rework-route.mjs":
       "ba2c7097bfada8c23686b71d41e139b3aa5f94a3c8ee6ea9ebf2b81a04c4acea",
     "scripts/lisa-commit-and-pr-local.sh":
