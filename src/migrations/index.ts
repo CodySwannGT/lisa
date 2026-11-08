@@ -1,3 +1,4 @@
+import { CorrectLisaCoderabbitLabelingMigration } from "./correct-lisa-coderabbit-labeling.js";
 import { EnsureAuditIgnoreLocalExclusionsMigration } from "./ensure-audit-ignore-local-exclusions.js";
 import { EnsureDeployOutcomeGuardMigration } from "./ensure-deploy-outcome-guard.js";
 import { EnsureJestRnMockAccessibilityManagerMigration } from "./ensure-jest-rn-mock-accessibility-manager.js";
@@ -36,6 +37,7 @@ export type {
   MigrationContext,
   MigrationResult,
 } from "./migration.interface.js";
+export { CorrectLisaCoderabbitLabelingMigration } from "./correct-lisa-coderabbit-labeling.js";
 export { EnsureAuditIgnoreLocalExclusionsMigration } from "./ensure-audit-ignore-local-exclusions.js";
 export { EnsureDeployOutcomeGuardMigration } from "./ensure-deploy-outcome-guard.js";
 export { EnsureJestRnMockAccessibilityManagerMigration } from "./ensure-jest-rn-mock-accessibility-manager.js";
@@ -100,6 +102,7 @@ export class MigrationRegistry {
       new ReconcileClaudeStackPluginsMigration(),
       new UntrackCodexMarketplaceMigration(),
       new RetireNativeSafetyNetMigration(),
+      new CorrectLisaCoderabbitLabelingMigration(),
       // Last: every other workflow migration has finished editing caller files,
       // so the pin this writes is the one that survives the apply.
       new EnsurePinnedReusableWorkflowRefsMigration(),
