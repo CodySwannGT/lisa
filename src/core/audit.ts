@@ -1,10 +1,9 @@
-import { existsSync } from "node:fs";
-import { join } from "node:path";
 import {
   readAuditExclusions,
   requiresLockfileScope,
 } from "./audit-exclusions.js";
 import { readAuditCopies } from "./audit-lockfile.js";
+import { detectAuditManager } from "./audit-manager.js";
 import { matchAuditFindings } from "./audit-matcher.js";
 import { parseAuditReport } from "./audit-report.js";
 import {
@@ -28,24 +27,7 @@ export type {
   AuditVerdict,
 } from "./audit-types.js";
 
-/**
- * Select the manager using the same lockfile priority as the shipped hook.
- * @param root - Project root containing the exact lockfile and exclusion documents
- * @returns The validated result described above
- */
-export function detectAuditManager(root: string): AuditManager {
-  for (const [file, manager] of [
-    ["bun.lock", "bun"],
-    ["bun.lockb", "bun"],
-    ["yarn.lock", "yarn"],
-    ["package-lock.json", "npm"],
-  ] as const) {
-    if (existsSync(join(root, file))) return manager;
-  }
-  throw new Error(
-    "No supported audit lockfile found (bun.lock, package-lock.json or yarn.lock)"
-  );
-}
+export { detectAuditManager };
 
 /**
  * One canonical evaluator for captured reports and project-owned audit provers.

@@ -119,6 +119,12 @@ function npmCopies(source: string): AuditCopy[] {
   }
   return Object.entries(parsed.packages).flatMap(([path, entry]) => {
     if (!path) return [];
+    // A workspace source (`packages/app`) is not an installed registry copy;
+    // every installed copy lives under node_modules/, and a workspace's own
+    // installed form is a `link: true` entry skipped below. Private workspaces
+    // often declare no version, so treating the source as package data failed
+    // every scoped exclusion in an npm monorepo.
+    if (!path.includes("node_modules/")) return [];
     if (!auditRecord(entry))
       throw new Error(`Unknown package-lock.json entry at ${path}`);
     if (entry.link === true) return [];
