@@ -19,7 +19,7 @@
     "lint": "node scripts/lib/worktree-dependencies.mjs && oxlint --disable-nested-config && eslint . --quiet",
     "lint:fix": "node scripts/lib/worktree-dependencies.mjs && oxlint --fix --disable-nested-config && eslint . --fix",
     "lint:slow": "node scripts/lib/worktree-dependencies.mjs && eslint . --config eslint.slow.config.ts --quiet",
-    "typecheck": "node scripts/lib/worktree-dependencies.mjs && tsc --noEmit && bun run typecheck:tests && bun run typecheck:engine-floor",
+    "typecheck": "node scripts/lib/worktree-dependencies.mjs && tsgo --noEmit && bun run typecheck:tests && bun run typecheck:engine-floor",
     "typecheck:tests": "node scripts/check-typecheck-tests.mjs",
     "typecheck:engine-floor": "node scripts/check-engine-floor.mjs",
     "measure:scripts-profile-gap": "bun scripts/measure-scripts-profile-gap.mts",

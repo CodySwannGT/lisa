@@ -89,8 +89,20 @@ const DEFAULT_ROOT = path.resolve(
 /** The gate's name, as it prints in both the report and the refusal. */
 const GATE = "type-correctness (engine floor)";
 
-/** Where the compiler is spawned from, relative to the root. */
-const TSC = path.join("node_modules", "typescript", "bin", "tsc");
+/**
+ * Where the compiler is spawned from, relative to the root: the TypeScript
+ * native compiler (`tsgo`, npm `@typescript/native-preview`), which checks this
+ * program about ten times faster than `tsc` with identical diagnostics
+ * (CodySwannGT/lisa#4614, #4695). Its bin is a plain Node script, so it is
+ * spawned under `node` exactly as `tsc` was.
+ */
+const TSC = path.join(
+  "node_modules",
+  "@typescript",
+  "native-preview",
+  "bin",
+  "tsgo"
+);
 
 /** The program describing the shipped JavaScript. */
 const PROJECT = "tsconfig.shipped-js.json";
@@ -185,6 +197,8 @@ function compileUnder(root, lib) {
     [
       path.join(root, TSC),
       "--noEmit",
+      "--pretty",
+      "false",
       "-p",
       path.join(root, PROJECT),
       "--lib",
@@ -265,7 +279,7 @@ export function main(root) {
   if (missing.length > 0) {
     console.error(
       refuseUnmeasurable(
-        `the TypeScript compiler is not installed — no file at ` +
+        `the TypeScript native compiler (tsgo) is not installed — no file at ` +
           `${missing[0]}. Run \`${INSTALL_COMMAND}\`, then re-run this gate.`
       )
     );
@@ -288,7 +302,7 @@ export function main(root) {
     const quoted = run.first === "" ? "" : ` First output line: ${run.first}`;
     console.error(
       refuseUnmeasurable(
-        `tsc exited ${run.status} under --lib ${label} without emitting one ` +
+        `tsgo exited ${run.status} under --lib ${label} without emitting one ` +
           `diagnostic this gate could parse, so the comparison had no ` +
           `subject.${quoted}`
       )

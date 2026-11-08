@@ -84,8 +84,20 @@ const DEFAULT_ROOT = path.resolve(
 /** The gate's name, as it prints in both the report and the refusal. */
 const GATE = "type-correctness (tests)";
 
-/** Where the compiler is spawned from, relative to the root. */
-const TSC = path.join("node_modules", "typescript", "bin", "tsc");
+/**
+ * Where the compiler is spawned from, relative to the root: the TypeScript
+ * native compiler (`tsgo`, npm `@typescript/native-preview`), which checks this
+ * program about ten times faster than `tsc` with identical diagnostics
+ * (CodySwannGT/lisa#4614, #4695). Its bin is a plain Node script, so it is
+ * spawned under `node` exactly as `tsc` was.
+ */
+const TSC = path.join(
+  "node_modules",
+  "@typescript",
+  "native-preview",
+  "bin",
+  "tsgo"
+);
 
 /** Matches `path/to/file.ts(12,34): error TS1234: message`. */
 const ERROR_LINE = /^(?<file>[^(]+)\((?<line>\d+),\d+\): error (?<code>TS\d+):/;
@@ -114,7 +126,7 @@ function readQuarantine(root) {
 }
 
 /**
- * Parse tsc's output into a per-file error count.
+ * Parse the compiler's output into a per-file error count.
  * @param {string} output - Combined stdout and stderr.
  * @returns {Map<string, number>} Errors keyed by forward-slashed path.
  */
@@ -180,7 +192,7 @@ export function main(root) {
   if (missing.length > 0) {
     console.error(
       refuseUnmeasurable(
-        `the TypeScript compiler is not installed — no file at ${missing[0]}.`,
+        `the TypeScript native compiler (tsgo) is not installed — no file at ${missing[0]}.`,
         quarantined.length,
         `Run \`${INSTALL_COMMAND}\`, then re-run this gate.`
       )
@@ -193,6 +205,8 @@ export function main(root) {
     [
       path.join(root, TSC),
       "--noEmit",
+      "--pretty",
+      "false",
       "-p",
       path.join(root, "tsconfig.tests.json"),
     ],
@@ -201,7 +215,7 @@ export function main(root) {
 
   if (tsc.error) {
     console.error(
-      `check-typecheck-tests: could not run tsc — ${tsc.error.message}`
+      `check-typecheck-tests: could not run tsgo — ${tsc.error.message}`
     );
     return 1;
   }
@@ -222,7 +236,7 @@ export function main(root) {
       .find(Boolean);
     console.error(
       refuseUnmeasurable(
-        `tsc exited ${tsc.status} without emitting one diagnostic this gate ` +
+        `tsgo exited ${tsc.status} without emitting one diagnostic this gate ` +
           `could parse, so the comparison had no subject.` +
           `${firstLine ? ` First output line: ${firstLine}` : ""}`,
         quarantined.length,

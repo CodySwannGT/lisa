@@ -6,7 +6,7 @@
  * ## The defect this exists for
  *
  * The `type-correctness` gate spawns the compiler by PATH:
- * `node node_modules/typescript/bin/tsc`. With an empty `node_modules` the
+ * `node node_modules/@typescript/native-preview/bin/tsgo`. With an empty `node_modules` the
  * SPAWN still succeeds — node starts, and it is node that then cannot find the
  * module — so the gate's `if (tsc.error)` guard does not fire. node's
  * "Cannot find module" goes to stderr and does not match the gate's
