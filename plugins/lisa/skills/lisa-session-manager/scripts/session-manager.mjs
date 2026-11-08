@@ -38,6 +38,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { parseArgs } from "node:util";
 
+import { answerPlan, channelAnswer } from "./cli-answer-record.mjs";
 import {
   LEDGER_ACTION_NAMES,
   blockedPlan,
@@ -128,6 +129,8 @@ const COMMANDS = {
   },
   answer: { run: answer, options: {}, positionals: 1 },
   "item-answer": { run: itemAnswer, options: {}, positionals: 1 },
+  "channel-answer": { run: channelAnswer, options: {}, positionals: 1 },
+  "answer-plan": { run: answerPlan, options: {}, positionals: 1 },
   "record-cycle": {
     run: recordCycle,
     options: {

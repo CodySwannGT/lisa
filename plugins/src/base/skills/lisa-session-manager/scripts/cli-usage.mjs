@@ -190,7 +190,8 @@ Per cycle
       missing or not a tracker comment id, or <ref> has no pending
       question.
   ledger clear-question <ref> [--reset-attempts]
-      After the answer is delivered and the marker removed. --reset-attempts
+      After the answer is delivered (or recorded on the item and read back,
+      per answer-plan) and the marker removed. --reset-attempts
       zeroes the attempt count (an exhausted item a human has answered).
   ledger finish <ref> --status DONE|FAILED [--sender <name>]  STDIN: reason
       --sender: exit 2 unless the ledger's worker for <ref> is exactly <name>.
@@ -253,7 +254,8 @@ Per cycle
       --max caps captures per cycle (default 3); the rest are deferred.
   answer <ref>                                  STDIN: the answer
       Queues an operator's answer (source "cli") for the next cycle to
-      deliver. stdout {queued:true,ref,source}. Exit 2 when <ref> has no
+      deliver to the worker, or record on the item when the worker has
+      finished or the item is exhausted. stdout {queued:true,ref,source}. Exit 2 when <ref> has no
       pending question, or the text looks like a credential.
   item-answer <ref>          STDIN: {"comments":[{user|author,body,createdAt}]}
       Queues the human's answer from the item's comments (source "item"):
@@ -280,6 +282,23 @@ Per cycle
       credential-refused (exit 0) means no other reply answers yet. Exit 2
       when <ref> has no pending question, the ledger is corrupt, or STDIN is
       not valid JSON.
+  channel-answer <ref>                          STDIN: the answer
+      Manager only: queues the operator's Telegram answer (source
+      "channel"), so answer-plan can record it on the item. stdout
+      {queued:true,ref,source}. Exit 2 when <ref> has no pending question,
+      or the text looks like a credential.
+  answer-plan <ref>
+      Plans recording the queued answer on the item before clearing; writes
+      nothing. stdout {ref,record:true,source,comment} when the worker
+      reported DONE or FAILED, or the question is exhausted, and the answer
+      came from answer (source cli) or Telegram (source channel): post
+      comment ([lisa-session-manager] The operator answered the question
+      above (by answer|Telegram, <time>): <answer>) and read it back before
+      ledger clear-question. Otherwise {ref,record:false,reason:
+      no-pending-question|no-answer-queued|answered-on-item|
+      worker-not-finished}. Exit 2 when the queued answer looks like a
+      credential (nothing printed, nothing to post) or the ledger is
+      corrupt.
   record-cycle --outcome <outcome> [--ref <url>]... [--run-id <id>]
       STDIN: one-line summary. Records loop session-manager with runbook
       .lisa/automations/session-manager.runbook.md. stdout {path,appended,

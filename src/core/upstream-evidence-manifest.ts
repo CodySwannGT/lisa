@@ -1693,15 +1693,19 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-sentry-access/SKILL.md":
       "1c1881ca9a2020f6cd8f938dc5335ebf2d344ff280844bb98926198e5226e526",
     "plugins/src/base/skills/lisa-session-manager/SKILL.md":
-      "6ff2a32bea10fd3cac27fc86dd69489c87127c92c36950b281a989e88e1fe7fb",
+      "d6176ffae054a18fb02665d391ec3d9bd5b6d91a7be946ded428ff3dadd911e8",
     "plugins/src/base/skills/lisa-session-manager/references/runbook-template.md":
-      "98ac56ef3a40d999ffb19f5297117900120bf7574369b45d26277db48b1f0465",
+      "62942a381e7dfb66d44d53e82df4121333ce88b4212acc53be9df9becaa6e100",
+    "plugins/src/base/skills/lisa-session-manager/scripts/answer-record.mjs":
+      "1e1985f7884587851353657b26f8c159c1b488639c1b14aa07e94632985f917e",
     "plugins/src/base/skills/lisa-session-manager/scripts/capacity.mjs":
       "ad5acc6097e375868b51eaf01b1506662505e2404b7ac1b06528679718504091",
+    "plugins/src/base/skills/lisa-session-manager/scripts/cli-answer-record.mjs":
+      "37dc9234138b6d14f8e863e012fca08981af58560e66e32b03a974452526c183",
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-cycle.mjs":
       "02db00a5f343edc932466eea345e3d78193ff35223a7ade33e0133ab0ee29f9f",
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-human.mjs":
-      "6cd87fc866719baaa132e672194d95a1bcd07c40d98e9f93596a48fa0ea31328",
+      "9c3030873d04222cf0c1defb95675957af17c216f1187fb451dc328cc69be2ce",
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-manager-token.mjs":
       "7478baf8cdb72029aa04d31f0951f262d086004e1dfc5ad3e422b3a2eea326c6",
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-manager.mjs":
@@ -1717,7 +1721,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-status.mjs":
       "30bdd485e5c575a78456230712d4a51d1feddd4022a0c8e5c69e5edc3c32508a",
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-usage.mjs":
-      "b1a1583142e0896567aea65204dbeb33c95dfe1fa8ab2bc2a8a8a8d0764d86b1",
+      "fcb15d2d3a61e91220638f71064808ccc75828443d9fabb235f7be03058a70ca",
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-workers.mjs":
       "59a00278ab701a7830437597923379bad78ccd43857d574f333f6265efc4dcc7",
     "plugins/src/base/skills/lisa-session-manager/scripts/clipboard.mjs":
@@ -1729,7 +1733,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-session-manager/scripts/human-answer.mjs":
       "cd3a049ddefd96e067683ec8d1b4f5a3c38800fcd328af1d560c578280de2b2c",
     "plugins/src/base/skills/lisa-session-manager/scripts/human-needed.mjs":
-      "2eefe5d4a388deb466ded0d890210dfacf9dacddf3a54b2d693d86cdafa65413",
+      "95295c5d7d6a7fad5fe48967bfa89bf36be2aa3634d28056bc0f7f5f43e6bec8",
     "plugins/src/base/skills/lisa-session-manager/scripts/isolation.mjs":
       "c6161331dea68eec4112948d9e8841aa834632c7503de5c8fd5d9834e125dfbc",
     "plugins/src/base/skills/lisa-session-manager/scripts/json-input.mjs":
@@ -1749,7 +1753,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-session-manager/scripts/repo-detect.mjs":
       "3ce714f1934433f2bc297c0b67931a28687ccef70c01639cb8542e9bb7f0a14d",
     "plugins/src/base/skills/lisa-session-manager/scripts/session-manager.mjs":
-      "ca3fc4cf537c183956d1c3d5b76d6c01027c1a7a2c39e21bf7c8656eec4bc48f",
+      "7fa90e42b067fa8a30a4a67c2c201c0f7bb463ff68683fdedcdb67b543508092",
     "plugins/src/base/skills/lisa-session-manager/scripts/setup-checks.mjs":
       "433c1afb36641eb3eb271f1803c7dfba556dd98e535627d00cfc8e3135a5d68f",
     "plugins/src/base/skills/lisa-session-manager/scripts/state-dir.mjs":
@@ -4778,7 +4782,9 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-agy/skills/lisa-sentry-access/SKILL.md": true,
     "plugins/lisa-agy/skills/lisa-session-manager/SKILL.md": true,
     "plugins/lisa-agy/skills/lisa-session-manager/references/runbook-template.md": true,
+    "plugins/lisa-agy/skills/lisa-session-manager/scripts/answer-record.mjs": true,
     "plugins/lisa-agy/skills/lisa-session-manager/scripts/capacity.mjs": true,
+    "plugins/lisa-agy/skills/lisa-session-manager/scripts/cli-answer-record.mjs": true,
     "plugins/lisa-agy/skills/lisa-session-manager/scripts/cli-cycle.mjs": true,
     "plugins/lisa-agy/skills/lisa-session-manager/scripts/cli-human.mjs": true,
     "plugins/lisa-agy/skills/lisa-session-manager/scripts/cli-manager-token.mjs": true,
@@ -5326,7 +5332,9 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-copilot/skills/lisa-sentry-access/SKILL.md": true,
     "plugins/lisa-copilot/skills/lisa-session-manager/SKILL.md": true,
     "plugins/lisa-copilot/skills/lisa-session-manager/references/runbook-template.md": true,
+    "plugins/lisa-copilot/skills/lisa-session-manager/scripts/answer-record.mjs": true,
     "plugins/lisa-copilot/skills/lisa-session-manager/scripts/capacity.mjs": true,
+    "plugins/lisa-copilot/skills/lisa-session-manager/scripts/cli-answer-record.mjs": true,
     "plugins/lisa-copilot/skills/lisa-session-manager/scripts/cli-cycle.mjs": true,
     "plugins/lisa-copilot/skills/lisa-session-manager/scripts/cli-human.mjs": true,
     "plugins/lisa-copilot/skills/lisa-session-manager/scripts/cli-manager-token.mjs": true,
@@ -5858,7 +5866,9 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-cursor/skills/lisa-sentry-access/SKILL.md": true,
     "plugins/lisa-cursor/skills/lisa-session-manager/SKILL.md": true,
     "plugins/lisa-cursor/skills/lisa-session-manager/references/runbook-template.md": true,
+    "plugins/lisa-cursor/skills/lisa-session-manager/scripts/answer-record.mjs": true,
     "plugins/lisa-cursor/skills/lisa-session-manager/scripts/capacity.mjs": true,
+    "plugins/lisa-cursor/skills/lisa-session-manager/scripts/cli-answer-record.mjs": true,
     "plugins/lisa-cursor/skills/lisa-session-manager/scripts/cli-cycle.mjs": true,
     "plugins/lisa-cursor/skills/lisa-session-manager/scripts/cli-human.mjs": true,
     "plugins/lisa-cursor/skills/lisa-session-manager/scripts/cli-manager-token.mjs": true,
@@ -6320,7 +6330,9 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-devin/skills/lisa-sentry-access/SKILL.md": true,
     "plugins/lisa-devin/skills/lisa-session-manager/SKILL.md": true,
     "plugins/lisa-devin/skills/lisa-session-manager/references/runbook-template.md": true,
+    "plugins/lisa-devin/skills/lisa-session-manager/scripts/answer-record.mjs": true,
     "plugins/lisa-devin/skills/lisa-session-manager/scripts/capacity.mjs": true,
+    "plugins/lisa-devin/skills/lisa-session-manager/scripts/cli-answer-record.mjs": true,
     "plugins/lisa-devin/skills/lisa-session-manager/scripts/cli-cycle.mjs": true,
     "plugins/lisa-devin/skills/lisa-session-manager/scripts/cli-human.mjs": true,
     "plugins/lisa-devin/skills/lisa-session-manager/scripts/cli-manager-token.mjs": true,
@@ -8743,7 +8755,9 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa/.codex-plugin/skills/lisa-session-manager/SKILL.md": true,
     "plugins/lisa/.codex-plugin/skills/lisa-session-manager/agents/openai.yaml": true,
     "plugins/lisa/.codex-plugin/skills/lisa-session-manager/references/runbook-template.md": true,
+    "plugins/lisa/.codex-plugin/skills/lisa-session-manager/scripts/answer-record.mjs": true,
     "plugins/lisa/.codex-plugin/skills/lisa-session-manager/scripts/capacity.mjs": true,
+    "plugins/lisa/.codex-plugin/skills/lisa-session-manager/scripts/cli-answer-record.mjs": true,
     "plugins/lisa/.codex-plugin/skills/lisa-session-manager/scripts/cli-cycle.mjs": true,
     "plugins/lisa/.codex-plugin/skills/lisa-session-manager/scripts/cli-human.mjs": true,
     "plugins/lisa/.codex-plugin/skills/lisa-session-manager/scripts/cli-manager-token.mjs": true,
@@ -9459,7 +9473,9 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa/skills/lisa-session-manager/SKILL.md": true,
     "plugins/lisa/skills/lisa-session-manager/agents/openai.yaml": true,
     "plugins/lisa/skills/lisa-session-manager/references/runbook-template.md": true,
+    "plugins/lisa/skills/lisa-session-manager/scripts/answer-record.mjs": true,
     "plugins/lisa/skills/lisa-session-manager/scripts/capacity.mjs": true,
+    "plugins/lisa/skills/lisa-session-manager/scripts/cli-answer-record.mjs": true,
     "plugins/lisa/skills/lisa-session-manager/scripts/cli-cycle.mjs": true,
     "plugins/lisa/skills/lisa-session-manager/scripts/cli-human.mjs": true,
     "plugins/lisa/skills/lisa-session-manager/scripts/cli-manager-token.mjs": true,
@@ -10048,7 +10064,9 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/src/base/skills/lisa-sentry-access/SKILL.md": true,
     "plugins/src/base/skills/lisa-session-manager/SKILL.md": true,
     "plugins/src/base/skills/lisa-session-manager/references/runbook-template.md": true,
+    "plugins/src/base/skills/lisa-session-manager/scripts/answer-record.mjs": true,
     "plugins/src/base/skills/lisa-session-manager/scripts/capacity.mjs": true,
+    "plugins/src/base/skills/lisa-session-manager/scripts/cli-answer-record.mjs": true,
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-cycle.mjs": true,
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-human.mjs": true,
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-manager-token.mjs": true,
@@ -13198,8 +13216,10 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/secrets/validate-config-operator-id-kinds.test.ts": true,
     "tests/unit/secrets/validate-config-session-manager.test.ts": true,
     "tests/unit/secrets/validate-config.test.ts": true,
+    "tests/unit/session-manager/answer-record.test.ts": true,
     "tests/unit/session-manager/capacity-stats.test.ts": true,
     "tests/unit/session-manager/capacity.test.ts": true,
+    "tests/unit/session-manager/cli-answer-record.test.ts": true,
     "tests/unit/session-manager/cli-classify.test.ts": true,
     "tests/unit/session-manager/cli-cycle-human-needed.test.ts": true,
     "tests/unit/session-manager/cli-cycle.test.ts": true,

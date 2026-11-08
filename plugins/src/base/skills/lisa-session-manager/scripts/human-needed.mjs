@@ -149,6 +149,14 @@ function planningMissPlan({ ref, kind, cause, question, overruled }) {
   };
 }
 
+/**
+ * Starts every other comment the manager posts. `item-answer` never reads a
+ * comment that starts with a bracketed `[lisa-...]` tag as an answer, so the
+ * manager's own notes (and the answers it records on the item) are never
+ * taken for a new answer.
+ */
+export const MANAGER_COMMENT_PREFIX = "[lisa-session-manager]";
+
 /** Marks the manager's question comment, so its answer can be found after it. */
 export const QUESTION_MARKER = "[lisa-session-manager-question]";
 
@@ -233,7 +241,7 @@ function questionComment({
     "How to answer:",
     ...ways,
     "",
-    `The session manager keeps working on other items meanwhile. Once the answer is delivered it removes ${markerText} and says so here.`,
+    `The session manager keeps working on other items meanwhile. Once the answer is delivered to the worker, or recorded here for the next attempt, it removes ${markerText} and says so here.`,
   ].join("\n");
 }
 

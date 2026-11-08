@@ -94,6 +94,39 @@ describe.each(ALL_ROOTS)("mark and move on (%s)", root => {
     );
   });
 
+  it("records an answer no worker will receive on the item, read back, before clearing (#4624)", () => {
+    const clearing = mark.slice(mark.indexOf("**Clearing**"));
+    const order = [
+      "**Record the answer on the item**",
+      "Run `answer-plan <ref>`.",
+      "post its `comment` exactly as given through `lisa-tracker-write` and read it\n   back with `lisa-tracker-read`; only then go on to step 2.",
+      "2. **Remove the manager's own marker**",
+      "3. `ledger clear-question <ref>`",
+    ].map(step => clearing.indexOf(step));
+    expect(order.every(position => position > -1)).toBe(true);
+    expect([...order].sort((a, b) => a - b)).toEqual(order);
+    expect(clearing).toContain(
+      "leave the marker and the question pending (do not run step 3)"
+    );
+    expect(clearing).toContain(
+      "`[lisa-session-manager] Answer recorded on the item; removed the hold.`"
+    );
+    expect(clearing).not.toContain("Deliver nothing; the next attempt reads");
+    const handling = section(
+      skill,
+      "## Handling messages (any time, not only during a cycle)"
+    );
+    expect(handling).toContain(
+      "first queue it in the ledger: `channel-answer <ref>` with `body` on STDIN"
+    );
+    const recovery = section(skill, "## Run outcome")
+      .split("\n")
+      .find(line => line.endsWith("| `recovery-required` |"));
+    expect(recovery).toContain(
+      "an answer for a finished worker or an `exhausted` item could not be posted on the item or read back"
+    );
+  });
+
   it("routes every case through the section, and picks up answers each cycle", () => {
     const cycle = section(skill, "## The cycle");
     expect(cycle).toContain(

@@ -249,18 +249,32 @@ leave the ledger as it is (`markedAt` stays null), carry on with the cycle and e
    - `worker-question` or `decision` with a worker that has not finished: `SendMessage` it to the
      worker when `classify <ref>` shows it live, else `resume <ref>` with the answer on STDIN.
    - `repo-route`: stamp `repo:<name>` through `lisa-tracker-write`; the next dispatch routes it.
-   - `exhausted`: no worker is left to resume. In the step 2 update, also
-     move the item to the `ready` role, and clear with `--reset-attempts` in step 3, so the next
-     dispatch starts a fresh attempt that reads the answer on the item.
+   - `exhausted`: no worker is left to resume. Record the answer on the item (below). In the
+     step 2 update, also move the item to the `ready` role, and clear with `--reset-attempts` in
+     step 3, so the next dispatch starts a fresh attempt that reads the answer on the item.
    - `decision` with no worker yet: nothing to deliver; the next worker reads it on the item.
    - `worker-question` or `decision` whose worker already reported `DONE` or `FAILED` (the
      question outlives the worker in the ledger, so its marker can still be removed): do not
-     resume the finished worker. Deliver nothing; the next attempt reads the answer on the item.
-     `resume` refuses a finished worker (exit 2), and `spawn` refuses a ref while its question is
-     pending, so finish this clearing first.
+     resume the finished worker. Record the answer on the item (below); the next attempt reads it
+     there. `resume` refuses a finished worker (exit 2), and `spawn` refuses a ref while its
+     question is pending, so finish this clearing first.
+
+   **Record the answer on the item** (a finished worker or an `exhausted` item): the next attempt
+   can only read an answer that is on the item, and an answer given with `answer` or on Telegram
+   is only in the ledger, which step 3 empties. Run `answer-plan <ref>`. When it returns
+   `record: true`, post its `comment` exactly as given through `lisa-tracker-write` and read it
+   back with `lisa-tracker-read`; only then go on to step 2. `record: false` with `reason`
+   `answered-on-item` (the answer is already on the item) needs nothing posted. If the post or the
+   read-back fails, stop here: leave the marker and the question pending (do not run step 3),
+   carry on with the cycle and end it `recovery-required`; the next cycle's "Waiting on a human"
+   step tries again. Exit 2 means the queued answer looks like it holds a credential: post
+   nothing, keep the question pending, and ask the operator to answer again without it (a new
+   `answer` replaces the queued one).
 2. **Remove the manager's own marker** (the `marker` the ledger recorded, nothing else) through
    `lisa-tracker-write`, with a short comment: `[lisa-session-manager] Answer delivered; removed the
-   hold.` Read it back with `lisa-tracker-read`.
+   hold.` when a worker received the answer (`SendMessage` or `resume`), else
+   `[lisa-session-manager] Answer recorded on the item; removed the hold.` Read it back with
+   `lisa-tracker-read`.
 3. `ledger clear-question <ref>` (`--reset-attempts` for an `exhausted` item).
 
 ## Handling messages (any time, not only during a cycle)
@@ -280,10 +294,13 @@ leave the ledger as it is (`markedAt` stays null), carry on with the cycle and e
 - **Telegram message** (only with `notify` `telegram`). Route it: `route --owner Operator` with the text on STDIN. Add
   `--reply-to <id>` only when the inbound message actually names the message it replies to; the
   Telegram plugin (0.0.7) does not, so never guess one.
-  - `answer`: follow "Clearing" in "Mark and move on" with `message` as the answer (`SendMessage`
-    to a live worker, `resume <ref>` for one that was idle-stopped or is gone without finishing,
-    nothing for one that reported `DONE` or `FAILED`, the `repo:<name>` stamp for a repo-routing
-    question), then acknowledge on Telegram.
+  - `answer`: first queue it in the ledger: `channel-answer <ref>` with `body` on STDIN (source
+    `channel`; exit 2 when it looks like a credential: deliver nothing, and reply on Telegram that
+    it was refused and should be sent again without the secret). Then follow "Clearing" in "Mark
+    and move on" with `message` as the answer (`SendMessage` to a live worker, `resume <ref>` for
+    one that was idle-stopped or is gone without finishing, the answer recorded on the item with
+    `answer-plan` for one that reported `DONE` or `FAILED` or an `exhausted` item, the
+    `repo:<name>` stamp for a repo-routing question), then acknowledge on Telegram.
   - `ambiguous`: ask which ref it is for, listing `candidates`, each with the label to start the
     answer with (`Answer with: #12 <your answer>`).
   - `invalid-command`: a mistyped command (`cap 40`, `stop A B`). Deliver it to no worker. Reply on
@@ -536,10 +553,10 @@ session `start` creates), every cycle ends in **exactly one** of the six outcome
 | This cycle | Run outcome |
 |---|---|
 | No dispatch, no state change, no question relayed or newly pending. The summary still states the denominator: "swept N ready, 0 dispatchable; R running/C cap". | `nothing-needed` |
-| At least one of: a worker spawned and seen live in `status`; a Blocked→Ready release written and read back; an answer delivered and its marker removed (`SendMessage` acknowledged, or `resume` returned a session id); a stalled item retried. | `change-proved` |
+| At least one of: a worker spawned and seen live in `status`; a Blocked→Ready release written and read back; an answer delivered and its marker removed (`SendMessage` acknowledged, or `resume` returned a session id), or recorded on the item and read back before its marker was removed; a stalled item retried. | `change-proved` |
 | An item was marked human-needed ("Mark and move on": marker and question comment written and read back), in any of the four cases, including an `exhausted` item moved to the `blocked` role, or a marked item whose question comment was re-posted after `item-answer` reported `no-question-comment`; or a worker `FAILED` moved the item to the `blocked` role with its reason comment, both read back. The summary names each ref and where to answer it. | `candidate-proposed` |
 | No item was newly marked, but a pending question was re-sent on Telegram (`requestion`) and awaits the operator, and nothing else changed. | `approval-requested` |
-| The tracker, a configured Telegram or `claude` was unreachable; Telegram is configured but was unavailable or unpaired (a question stayed pending with no Telegram message id); a human-needed mark could not be written or read back, or no marker is configured; a worker `FAILED`'s move to the `blocked` role could not be written or read back; a spawn failed after the claim (the item went back to Ready); the capacity probe failed. | `recovery-required` |
+| The tracker, a configured Telegram or `claude` was unreachable; Telegram is configured but was unavailable or unpaired (a question stayed pending with no Telegram message id); a human-needed mark could not be written or read back, or no marker is configured; an answer for a finished worker or an `exhausted` item could not be posted on the item or read back (its question stays pending); a worker `FAILED`'s move to the `blocked` role could not be written or read back; a spawn failed after the claim (the item went back to Ready); the capacity probe failed. | `recovery-required` |
 | The retirement condition holds. | `policy-obsolete` |
 
 `candidate-proposed` is the outcome for marking an item human-needed. The contract's section "A run
