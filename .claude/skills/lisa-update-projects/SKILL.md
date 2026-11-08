@@ -1,17 +1,26 @@
 ---
 name: lisa-update-projects
-description: This skill should be used when updating local Lisa projects in batches. It reads the project list and each project's target branch from the .lisa.workspaces.json workspace config, then for each host project works in a dedicated git worktree based off that target branch, runs the package manager update for @codyswann/lisa, migrates legacy CI workflows, checks for upstream changes, commits, pushes, and opens a PR targeting the configured branch with auto-merge enabled, auto-fixing any blockers to mergeability (upstreaming fixes when needed). As the final step, Lisa upgrades itself.
+description: This skill should be used when updating local Lisa projects in batches. It rolls out canary-first - it reads the project list, each project's target branch and the one designated canary host from the .lisa.workspaces.json workspace config, upgrades the canary first and waits (bounded) for its update PR's required checks, and only if they pass updates the remaining hosts; a failing or timed-out canary halts the rollout with no other host touched. For each host it works in a dedicated git worktree based off that target branch, runs the package manager update for @codyswann/lisa, migrates legacy CI workflows, checks for upstream changes, commits, pushes, and opens a PR targeting the configured branch with auto-merge enabled, auto-fixing any blockers to mergeability (upstreaming fixes when needed). As the final step, Lisa upgrades itself, unless the canary halted the rollout. It always ends with a report that includes a canary section.
 ---
 
 # Lisa Update Projects
 
 Updates local Lisa projects in batches by running the package manager update command for `@codyswann/lisa` in each configured project, which triggers Lisa's postinstall script to apply template changes automatically.
 
+The rollout is **canary-first** (CodySwannGT/lisa#4604): one designated canary host is upgraded first, and the rest are touched only once the canary's update PR passes its required checks. A bad Lisa release then breaks one host, not every host. See [Rollout Order](#rollout-order-canary-first) for the phases and [Report](#report) for what the run must print.
+
 ## Instructions
 
-1. Read @.lisa.workspaces.json to get the list of host projects and each project's target branch. The file is a JSON map of project path → target branch (e.g. `"~/workspace/foo/backend": "staging"`); the value is the branch that project's update PR must target. Branches vary per project (`main`, `staging`, `dev`, …) — never assume `main`. Parse it with `jq`, never grep/sed.
+1. Read @.lisa.workspaces.json to get the list of host projects, each project's target branch, and the canary. The file is a JSON map of project path → target branch. Each value is either the legacy branch string (e.g. `"~/workspace/foo/backend": "staging"`) or the object form `{ "branch": "<target branch>", "canary": true }` (`canary` is optional and boolean; `{ "branch": "main" }` is also valid). The branch is the one that project's update PR must target. Branches vary per project (`main`, `staging`, `dev`, …) — never assume `main`. **Exactly one** entry must set `"canary": true`. Do not parse the file by hand — run the plan script from the Lisa repo root:
+
+   ```bash
+   node scripts/lisa-update-projects-plan.mjs            # reads ./.lisa.workspaces.json
+   # prints {"canary":{"path":…,"branch":…},"rest":[{"path":…,"branch":…},…]}
+   ```
+
+   Use its `canary` and `rest` phases (and each entry's `branch`) for every step below. If it exits non-zero — no canary, two or more canaries, or a malformed entry — **stop before touching any host**, show the human its stderr message, and ask them to designate exactly one canary by changing that host's value to the object form, e.g. `"<host path>": { "branch": "<target branch>", "canary": true }`. Never pick a canary yourself, and never fall back to updating every host at once. Then run steps 2–17 only in the order given by Rollout Order below — never across all hosts at once.
 2. For each project, `git fetch` the configured target branch from the remote so you have the latest commit to branch from.
-3. Do **all** work for a host project inside a dedicated git worktree based off that project's configured target branch — never modify the project's primary checkout. Create it with the update branch in one step, e.g. `git worktree add <worktree-path>/<project>-lisa-update-YYYY-MM-DD -b chore/lisa-update-YYYY-MM-DD origin/<target-branch>`, where `<target-branch>` is the value from @.lisa.workspaces.json. This keeps the project's main working tree untouched, isolates each project's changes, and lets the parallel subagents operate without colliding. Clean up the worktree (`git worktree remove`) after the PR is opened and the branch is pushed.
+3. Do **all** work for a host project inside a dedicated git worktree based off that project's configured target branch — never modify the project's primary checkout. Create it with the update branch in one step, e.g. `git worktree add <worktree-path>/<project>-lisa-update-YYYY-MM-DD -b chore/lisa-update-YYYY-MM-DD origin/<target-branch>`, where `<target-branch>` is that host's `branch` from step 1's plan. This keeps the project's main working tree untouched, isolates each project's changes, and lets the parallel subagents operate without colliding. Clean up the worktree (`git worktree remove`) after the PR is opened and the branch is pushed — for the canary, only after its push timing has been recorded (Rollout Order, phase 3).
 4. If you can't create the worktree cleanly (e.g. an update branch already exists, the target branch can't be fetched, or the project has uncommitted changes you'd be discarding), don't do anything for that project. Ask the human what should be done about it before moving on.
 5. Check if `@codyswann/lisa` is in the project's `trustedDependencies` array in `package.json`. If missing, add it using `jq`. Bun only runs postinstall scripts for trusted packages, so without this entry Lisa's postinstall (template application and file deletions) is silently skipped.
 6. Determine the project's package manager from `package.json` `engines` BEFORE choosing a command. The `engines` field is authoritative — lockfile presence is not.
@@ -68,12 +77,52 @@ Updates local Lisa projects in batches by running the package manager update com
     - Compute the derived chain from `deploy.order` + `deploy.branches`. If `.github/workflows/claude-sync-down-branches.yml` carries a hardcoded `chain:` and the derived chain is **byte-identical** to it, remove the `chain:` line (and the now-empty `with:` block) so the wrapper becomes config-driven — behavior is provably unchanged. If the derived chain **differs** from the hardcoded one, leave both untouched and flag it: the mismatch means the project's `deploy.branches`/`deploy.order` disagrees with its actual back-sync wiring, and a human must reconcile which is correct (do not silently "fix" either side).
     - The Lisa repo's `scripts/migrate-deploy-order.sh` implements exactly this logic across all workspace projects (dry-run by default) and is the reference for the per-project behavior.
 13. Check `git diff` to see if the project changed any Lisa-managed files. If so, examine them to see if any changes need to be upstreamed back to Lisa and do so if necessary.
-14. Commit, push, and open a PR from the worktree's update branch targeting the project's configured target branch from @.lisa.workspaces.json (the PR base must be that branch — not assumed `main`). Enable auto-merge on the PR if the repository supports it (e.g. `gh pr merge --auto --squash`). If the repository has auto-merge disabled, note it and leave the PR open for manual merge — do not treat the absence of auto-merge as a failure.
+14. Commit, push, and open a PR from the worktree's update branch targeting the project's configured target branch (its `branch` from step 1's plan; the PR base must be that branch — not assumed `main`). Enable auto-merge on the PR if the repository supports it — **except for the canary, whose auto-merge is enabled only after the canary decision is `proceed`** (see Rollout Order), so a halted canary cannot merge on its own (e.g. `gh pr merge --auto --squash`). If the repository has auto-merge disabled, note it and leave the PR open for manual merge — do not treat the absence of auto-merge as a failure.
 15. If you hit any pre-push blockers, fix them and upstream anything that needs to. Do not lower any thresholds to get around a pre-push block. Instead, fix the code.
 16. After the PR is open, drive it to a mergeable state. Poll the PR's checks and mergeability and auto-fix any blockers: failing CI checks, merge conflicts with the target branch, lint/typecheck/test failures, and required-check gates. When the root cause of a blocker is a Lisa template or postinstall bug (not project-specific code), fix it upstream in the Lisa source per "Fixing Upstream Bugs" below and propagate the fix down, rather than patching only the downstream project. Never lower thresholds or disable checks to force mergeability — fix the underlying code. Continue until the PR is mergeable (and auto-merge can complete) or you hit a blocker that genuinely requires human input, in which case stop and ask.
-17. As the final step, have Lisa upgrade itself: run this same update flow against the Lisa monorepo (the current working directory) — bump `@codyswann/lisa` to latest where Lisa consumes its own templates, apply templates, and commit/push/PR a self-update branch with auto-merge enabled, following the same worktree (rule 3), auto-merge (step 14), and blocker-fixing (step 16) rules. Skip this step only if the Lisa repo has no pending self-update changes after running the flow.
+17. As the final step, have Lisa upgrade itself: run this same update flow against the Lisa monorepo (the current working directory) — bump `@codyswann/lisa` to latest where Lisa consumes its own templates, apply templates, and commit/push/PR a self-update branch with auto-merge enabled, following the same worktree (rule 3), auto-merge (step 14), and blocker-fixing (step 16) rules. Skip this step if the Lisa repo has no pending self-update changes after running the flow, **and always skip it when the canary halted the rollout** (see Rollout Order).
 
-For steps 4-14, use up to 4 parallel subagents to accomplish those steps.
+## Rollout Order (canary first)
+
+Steps 2–15 above describe the work for ONE host. Run them in this order — never all hosts at once:
+
+1. **Plan.** Run step 1's plan script. A refusal stops the run here, before any host is touched.
+2. **Canary.** Run steps 2–15 for the plan's `canary` host only, exactly as for any other host: worktree off its `branch`, update, full apply, commit, push, PR. No other host is started while the canary is in flight. If the canary yields no update PR for any reason (worktree refused, nothing to commit, push or PR failure), its result is `fail`: halt and report why. When the reason is "nothing to commit" because the canary already runs the target Lisa version, say exactly that in the report and tell the human to designate a different canary (or confirm the canary's last update PR passed) before re-running. Never move on to `rest` without a canary PR whose required checks passed.
+3. **Record the canary's push timing** — before removing its worktree (step 3's cleanup). Read the newest `.lisa/push-timing/*.json` report in the canary worktree (written by the pre-push timing report, CodySwannGT/lisa#4591) and keep its `startedAt` and `wallMs`. If the directory is absent or empty, record `push timing: not recorded (no .lisa/push-timing report in the canary worktree)` — do not estimate one.
+4. **Wait for the canary PR's required checks** with a bounded, foreground, blocking watch, all within one 540-second budget. Never start a detached or background watcher, and never poll in an open-ended loop.
+   - First, poll `gh pr checks <canary-pr> --required --json name` (every 30 seconds, inside the same 540-second budget) until at least one required check is registered — checks can take a moment to appear after the push. While polling, an exit 1 saying `no required checks reported` means "not yet" — keep polling; any other error is `fail`. If none ever appears, the result is `fail` with the reason `no required checks reported` (report that reason, not an empty list of failing checks): nothing proved the release is safe.
+   - Then watch for the remaining budget (`remaining` = 540 minus the seconds spent polling). If `remaining` is 0 or less, do not start the watch: the result is `timeout` (a zero alarm under the perl fallback would mean no bound at all):
+
+   ```bash
+   timeout "$remaining" gh pr checks <canary-pr> --required --watch --interval 30 --fail-fast
+   ```
+
+   Run it in the foreground with the tool's own command timeout set to at least 600000 ms, so the command's exit code actually arrives; a command the harness kills (no exit code) counts as `timeout`. (`timeout` is GNU coreutils; on macOS use `gtimeout` from Homebrew coreutils. If neither exists, use `perl -e 'alarm shift; exec @ARGV or die "exec failed: $!\n"' "$remaining" gh pr checks …`, whose expiry exits 142; the `or die` keeps a failed exec from exiting 0 and reading as a pass.) Map the exit status to a canary result: `0` → `pass`; `124` (or `142` under the perl fallback) → `timeout`; any other non-zero → `fail`. On `fail`, collect the failing check names with `gh pr checks <canary-pr> --required --json name,bucket --jq '.[] | select(.bucket == "fail" or .bucket == "cancel") | .name'`.
+   - **A `0` exit is not yet a `pass`.** The watch only follows checks that had registered when it started, so a required check that registers late (for example one behind a `needs:` job) is never watched. After a `0`, read the canary target branch's required check names (`gh api repos/<owner>/<repo>/rules/branches/<branch> --jq '[.[] | select(.type == "required_status_checks") | .parameters.required_status_checks[].context]'`, falling back to classic branch protection's `required_status_checks.contexts`) and confirm every one appears in `gh pr checks <canary-pr> --required --json name,bucket` with bucket `pass`. Any required check missing or not `pass` makes the result `fail`, naming the missing checks. If the required names cannot be read at all, the result is `fail` (`required checks unreadable`) — never assume a pass.
+5. **Decide** with the plan script — do not decide by reading the exit code yourself:
+
+   ```bash
+   node scripts/lisa-update-projects-plan.mjs decide --canary-result <pass|fail|timeout>
+   # prints proceed (pass) or halt (fail, timeout)
+   ```
+
+6. **On `halt`:** touch no other host — no worktree, no install, no PR for anything in `rest`. Skip step 16 for the rest and **skip step 17** (Lisa's self-upgrade). Leave the canary PR open, with auto-merge off (if it was somehow enabled, run `gh pr merge <canary-pr> --disable-auto`), for the human to judge; do not auto-fix it in this run (a failing canary is the signal that this release may be bad — rolling it back is a separate, deliberate act). Go straight to the [Report](#report).
+7. **On `proceed`:** enable auto-merge on the canary PR (step 14's rule), then run steps 2–15 for every host in `rest`, each with its own `branch` from the plan. For this phase, use up to 4 parallel subagents to accomplish those steps (the apply itself still runs serially, per step 6). Then run step 16 for every open update PR (the canary's included), then step 17, then the Report.
+
+## Report
+
+End every run — proceed or halt — with a report printed to the operator. It is local output only: it may name host paths, because it never leaves this machine. **Never copy a host path or host name into anything committed, filed or pushed** (commit messages, PR bodies, tracker comments, Lisa issues) — see the "Never name a downstream project" rule.
+
+The report always opens with a **Canary** section:
+
+- **Host:** the canary's local path and target branch.
+- **PR:** the canary update PR's URL.
+- **Required checks:** `pass`, `fail` (followed by every failing check name), or `timeout` (the 540-second wait expired), plus the decision (`proceed` or `halt`).
+- **Push timing:** the `startedAt` and `wallMs` from the canary's push-timing report, or `not recorded (no .lisa/push-timing report in the canary worktree)`.
+
+If the plan script refused, the Canary section reads `not designated`, followed by the plan script's message and the line `no host was touched`.
+
+Then a **Rest** section: on `proceed`, one line per host with its PR URL and merge state (or why it was skipped, per step 4); on `halt`, the line `halted by the canary — no other host was touched, Lisa's self-upgrade was skipped` followed by the hosts that were not updated. Finally, the **Lisa self-upgrade** outcome (PR URL, "no pending changes", or "skipped: canary halted").
 
 ## Fixing Upstream Bugs
 

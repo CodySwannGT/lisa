@@ -121,6 +121,28 @@ async function assertTargetBirthAuthority(
 }
 
 /**
+ * Observe concurrent group exit without borrowing a missing leader's authority.
+ * Separate leader/group probes can straddle an exit. Only confirmed group
+ * absence permits cleanup; continued membership still refuses every signal.
+ * @param pgid - Previously armed group identifier
+ * @param probes - Operating-system probes
+ */
+async function awaitGroupExitWithoutSignal(
+  pgid: number,
+  probes: TestRunProcessGroupProbes
+): Promise<void> {
+  const deadline = Date.now() + DRAIN_GRACE_MS;
+  while (probes.processGroupAlive(pgid) && Date.now() < deadline) {
+    await probes.delay(DRAIN_POLL_MS);
+  }
+  if (probes.processGroupAlive(pgid)) {
+    throw new Error(
+      "target leader is absent while its process group is live; refusing group signal"
+    );
+  }
+}
+
+/**
  * Drain only the group whose leader still has its armed process birth.
  * @param target - Armed leader and group identity
  * @param options - Optional deterministic probe overrides
@@ -136,9 +158,7 @@ export async function drainTestRunTarget(
   const groupPresent = probes.processGroupAlive(target.pgid);
   if (!targetPresent) {
     if (groupPresent) {
-      throw new Error(
-        "target leader is absent while its process group is live; refusing group signal"
-      );
+      await awaitGroupExitWithoutSignal(target.pgid, probes);
     }
     return;
   }
@@ -150,9 +170,8 @@ export async function drainTestRunTarget(
   }
   if (probes.processGroupAlive(target.pgid)) {
     if (!(await assertTargetBirthAuthority(target, probes))) {
-      throw new Error(
-        "target leader is absent while its process group is live; refusing group signal"
-      );
+      await awaitGroupExitWithoutSignal(target.pgid, probes);
+      return;
     }
     const killDeadline = Date.now() + DRAIN_GRACE_MS;
     probes.signalGroup(target.pgid, "SIGKILL");

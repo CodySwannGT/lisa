@@ -6,7 +6,7 @@ Install a genuine published Lisa release before refreshing its hook contract. Th
 lisa refresh-hooks /absolute/project --guards parity-safety-net,block-no-verify
 ```
 
-The accepted guard names are `parity-safety-net` and `block-no-verify`. Each may appear once. The first selects its shell guard, heredoc parser and shared dedupe helper. The second selects its shell guard and shared dedupe helper. The command lists no arbitrary paths, overrides or full-apply fallback.
+The accepted cohort names are `parity-safety-net` and `block-no-verify`. Each may appear once. The first now selects the retired safety-net compatibility handler and retained companions; it does not enable destructive-command screening. The second selects the active no-verify guard and shared dedupe helper. The command lists no arbitrary paths, overrides or full-apply fallback. See [native safety-net retirement](native-safety-net-retirement.md) for automatic update cleanup.
 
 All selected files are checked before writes. Host modifications, extra declared capabilities, missing or symlinked companions, hardlinked host files, unknown shipping hashes and changed preflight bytes refuse. Read-only package files may share cache inodes. The command requires native no-follow file and directory descriptors (supported on macOS and Linux); it refuses when those native facilities are unavailable.
 

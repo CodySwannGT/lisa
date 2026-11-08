@@ -9,6 +9,9 @@
 # Intended to run after `lisa-update-local.sh` has applied Lisa templates
 # to all local projects, so each project's changes get their own PR.
 #
+# Not canary-gated: every listed project gets a PR. The lisa-update-projects
+# skill is the canary-first, gated rollout path (CodySwannGT/lisa#4604).
+#
 # Usage:
 #   ./scripts/lisa-commit-and-pr-local.sh [--dry-run]
 #
@@ -84,6 +87,16 @@ fi
 # Validate JSON
 if ! jq empty "$CONFIG_FILE" 2>/dev/null; then
   log_error "Invalid JSON in $CONFIG_FILE"
+  exit 1
+fi
+
+# A value is either the legacy branch string or the canary-first object form
+# { "branch": "<target branch>", "canary": true } (CodySwannGT/lisa#4604).
+# Validated up front: the loop reads it through process substitution, whose
+# exit status `set -e` ignores, so a bad entry would otherwise be skipped.
+WORKSPACE_ENTRIES_JQ='to_entries[] | .key as $k | (.value | if type == "object" then .branch else . end) as $raw | (if ($raw | type) == "string" and ($raw | length) > 0 then $raw else error("entry \($k) has no valid branch (expected a non-empty string)") end) as $b | "\($k)\t\($b)"'
+if ! jq -r "$WORKSPACE_ENTRIES_JQ" "$CONFIG_FILE" >/dev/null; then
+  log_error "Invalid workspace entry in $CONFIG_FILE"
   exit 1
 fi
 
@@ -204,7 +217,7 @@ while IFS=$'\t' read -r project_path target_branch; do
   log_success "PR created for $project_path"
   ((success_count++)) || true
 
-done < <(jq -r 'to_entries[] | "\(.key)\t\(.value)"' "$CONFIG_FILE")
+done < <(jq -r "$WORKSPACE_ENTRIES_JQ" "$CONFIG_FILE")
 
 # Summary
 echo ""

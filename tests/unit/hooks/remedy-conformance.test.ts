@@ -35,7 +35,6 @@ import process from "node:process";
 
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
-import { boundedSpawnSync } from "../../helpers/io-latency-budget.js";
 import {
   FORBIDDEN_REMEDY_OPERATIONS,
   classifyRemedy,
@@ -63,30 +62,6 @@ const STASH_PUSH = "git stash push";
 
 /** The restore step `PRESERVE_GUIDANCE` prints, and the bite check's subject. */
 const GIT_APPLY_PATCH = 'git apply "$patch"';
-
-/**
- * Run one guard over a proposed command and return its refusal.
- * @param guard - Path to the guard script.
- * @param command - The proposed shell command.
- * @returns The guard's exit status and refusal text.
- */
-function classify(
-  guard: string,
-  command: string
-): { readonly status: number | null; readonly stderr: string } {
-  const outcome = boundedSpawnSync({
-    label: "parity-safety-net.sh",
-    command: "/bin/bash",
-    args: [guard],
-    input: JSON.stringify({
-      tool_name: "Bash",
-      tool_input: { command },
-      cwd: process.cwd(),
-    }),
-    env: process.env,
-  });
-  return { status: outcome.status, stderr: outcome.stderr ?? "" };
-}
 
 describe("remedy conformance (#3825)", () => {
   describe("permission alone is not the check", () => {
@@ -243,38 +218,24 @@ describe("remedy conformance (#3825)", () => {
     });
 
     it("widening a guard pattern over a printed remedy turns the sweep red", () => {
-      // #3825's fourth acceptance scenario, the one it calls load-bearing.
-      // `PRESERVE_GUIDANCE` restores work with `git apply "$patch"` — the route
-      // every discard guard now points at, after #3722 replaced the stash
-      // advice. Widening a pattern over `git apply` would make that route
-      // unfollowable in silence, at the moment an operator is holding the work
-      // most worth protecting.
-      //
-      // The mutant guard is EXECUTED, not simulated. Classifying with a stub
-      // that always refuses would prove the sweep reacts to a refusal and say
-      // nothing about whether a guard edit produces one.
-      const real = path.resolve("plugins/lisa/hooks/parity-safety-net.sh");
-      const mutant = path.join(scratch, "parity-safety-net.sh");
+      // Retain the conformance checker's bite after the destructive-command
+      // classifier retired (#4672). This historical preservation remedy is
+      // fixture input; the executed current no-verify guard permits it until
+      // the mutant intentionally over-blocks it. No live refusal is claimed.
+      const real = path.resolve("plugins/lisa/hooks/block-no-verify.sh");
+      const mutant = path.join(scratch, "block-no-verify.sh");
       copyFileSync(real, mutant);
-
-      const anchor = 'readonly GIT_CLEAN="${GIT_CMD}clean"';
       const source = readFileSync(mutant, "utf8");
+      const anchor = 'input="$(cat)"';
       expect(source).toContain(anchor);
       writeFileSync(
         mutant,
         source.replace(
           anchor,
-          `if matches "\${GIT_CMD}"'apply([[:space:]]|$)'; then\n  block "widened by the bite check"\nfi\n${anchor}`
+          `${anchor}\nif printf '%s' "$input" | grep -q 'git apply'; then exit 2; fi`
         )
       );
-
-      // The remedy text comes from the real guard's real refusal, so the
-      // command under test is one the guard set genuinely prints. The trigger
-      // must refuse regardless of repository state: guard 3's `--hard` refusal
-      // fires only on a dirty tree, which made an earlier draft of this pass
-      // scoped and fail in the push gate.
-      const refusal = classify(real, "git checkout -- src/index.ts").stderr;
-      expect(refusal).toContain(GIT_APPLY_PATCH);
+      const refusal = `  ${GIT_APPLY_PATCH}\n`;
 
       const probes = [{ label: "guard 4", refusal }];
       const before = sweepRemedyConformance({
