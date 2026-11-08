@@ -89,6 +89,13 @@ describe.each(ROOTS)("drive-pr-to-merge arm gate scope (%s)", root => {
     );
   });
 
+  it("scopes a substitute-based arm to its head across pushes", () => {
+    expect(section).toContain(
+      'An arm with `basis: "substitute"` is authorised for that head only.'
+    );
+    expect(section).toMatch(/disarm it \(`gh pr merge <pr> --disable-auto`/);
+  });
+
   it("treats a requested-changes proof as a blocker", () => {
     expect(section).toMatch(
       /`Changes requested` proof phrase proves the reviewer worked/

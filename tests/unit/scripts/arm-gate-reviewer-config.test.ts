@@ -101,6 +101,7 @@ interface ArmReport {
   readonly action: string;
   readonly reason: string;
   readonly engaged: { readonly reviewer: boolean; readonly vacuity: boolean };
+  readonly basis?: string;
   readonly evidence: { readonly outcome: string };
 }
 
@@ -308,6 +309,50 @@ describe("the arm gate on a Rails host with a reviewer gate (#4653)", () => {
 
     expect(report.arm).toBe(false);
     expect(report.action).toBe(ARM_ACTIONS.stop);
+  });
+
+  it("stops rather than arms when the repository is unknown and a reviewer is declared", () => {
+    const chunks: string[] = [];
+    const saved = process.env.GITHUB_REPOSITORY;
+    delete process.env.GITHUB_REPOSITORY;
+    try {
+      main([`--sha=${HEAD}`, "--arm", "--json"], {
+        gates: {},
+        requiredChecks: () => true,
+        readFile: () =>
+          JSON.stringify({
+            inspected: true,
+            vacuity: { headSha: HEAD, violations: [] },
+          }),
+        out: {
+          write: (text: string) => {
+            chunks.push(text);
+          },
+        },
+      });
+    } finally {
+      if (saved !== undefined) process.env.GITHUB_REPOSITORY = saved;
+    }
+    const report = JSON.parse(chunks.join(""));
+
+    expect(report.arm).toBe(false);
+    expect(report.action).toBe(ARM_ACTIONS.stop);
+  });
+
+  it("marks an arm resting on a substitute as head-scoped", () => {
+    const { report } = decide({
+      runs: [RATE_LIMITED_RUN],
+      comments: [WRITER_SUBSTITUTE],
+    });
+
+    expect(report.arm).toBe(true);
+    expect(report.basis).toBe("substitute");
+  });
+
+  it("marks an arm resting on a completed review as review-based", () => {
+    const { report } = decide({ runs: [run()] });
+
+    expect(report.basis).toBe("review");
   });
 
   it("stops rather than arms when the reviews cannot be read", () => {
@@ -612,18 +657,51 @@ describe("the substitute and objection readers", () => {
 
   it("lets a later approval by the same author clear their objection", () => {
     expect(
-      standingObjections(
-        [
-          { commit_id: HEAD, state: "CHANGES_REQUESTED", user: { login: "a" } },
-          { commit_id: HEAD, state: "APPROVED", user: { login: "a" } },
-          { commit_id: OTHER_HEAD, state: "CHANGES_REQUESTED" },
-        ],
-        HEAD
-      )
+      standingObjections([
+        {
+          commit_id: OTHER_HEAD,
+          state: "CHANGES_REQUESTED",
+          submitted_at: "2026-11-01T00:00:00Z",
+          user: { login: "a" },
+        },
+        {
+          commit_id: HEAD,
+          state: "APPROVED",
+          submitted_at: "2026-11-02T00:00:00Z",
+          user: { login: "a" },
+        },
+      ])
+    ).toBe(0);
+  });
+
+  it("keeps counting a change request made on an earlier commit after a push", () => {
+    expect(
+      standingObjections([
+        {
+          commit_id: OTHER_HEAD,
+          state: "CHANGES_REQUESTED",
+          submitted_at: "2026-11-01T00:00:00Z",
+          user: { login: "b" },
+        },
+        {
+          commit_id: HEAD,
+          state: "COMMENTED",
+          submitted_at: "2026-11-02T00:00:00Z",
+          user: { login: "b" },
+        },
+      ])
+    ).toBe(1);
+  });
+
+  it("never counts a dismissed change request", () => {
+    expect(
+      standingObjections([
+        { commit_id: OTHER_HEAD, state: "DISMISSED", user: { login: "c" } },
+      ])
     ).toBe(0);
   });
 
   it("reports unreadable reviews as unknown, not as none", () => {
-    expect(standingObjections(null, HEAD)).toBeNull();
+    expect(standingObjections(null)).toBeNull();
   });
 });

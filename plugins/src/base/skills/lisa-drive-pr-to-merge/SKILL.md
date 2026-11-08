@@ -379,8 +379,22 @@ here only when its marker is the comment's **first line** and its author has
 **write access** — the prover's report-only `substituted` outcome counts a
 marker anywhere, which is fine for a report and fail-open for a merge. A
 `Changes requested` proof phrase proves the reviewer worked, not that the head
-may merge, and decides `blocker`. The other actions keep the latch off and name
-the next step:
+may merge, and decides `blocker`. A change request counts until its author
+approves or it is dismissed, whichever commit it was made on — a push does not
+clear it.
+
+**An arm with `basis: "substitute"` is authorised for that head only.** A
+substitute names one commit; a push makes a new head nothing covers, and with
+the reviewer still rate limited its `neutral` check passes, so GitHub would
+merge unread code. Before pushing to a PR whose latch rests on a substitute,
+disarm it (`gh pr merge <pr> --disable-auto`, re-read until
+`autoMergeRequest` is `null`), push, post a substitute for the new head, and
+decide again. This is the one exception to keeping the latch armed across
+fix pushes below: that rule assumes required checks re-verify the new head, and
+a rate-limited reviewer's check does not. A latch with `basis: "review"` stays
+armed across pushes as usual.
+
+The other actions keep the latch off and name the next step:
 
 | `action` | what it means | do |
 | --- | --- | --- |
@@ -594,7 +608,9 @@ purpose. Everything below is the `auto_merge=true` path.)
 
 Once a fix is PUSHED the latch is safe: GitHub evaluates required checks against
 the PR's current head, so a new commit whose checks have not reported leaves the
-PR blocked. Auto-merge cannot ship a commit nothing has verified.
+PR blocked. Auto-merge cannot ship a commit nothing has verified. (The exception
+is a latch armed with `basis: "substitute"`: disarm it before the push — see
+"Classify before arming".)
 
 The only window a disarm ever protected is the gap between deciding to fix
 something and that fix landing — during which the PR is genuinely green and
