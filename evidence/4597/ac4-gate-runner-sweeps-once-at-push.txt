@@ -1,0 +1,44 @@
+# AC-4 — gate runner sweeps once at --moment=push, before the gates line
+# head: 80d5d40ec0bdc11bc35daefc65b83faa9b2f7220  captured: 2026-11-07T22:41:30Z  host: Darwin 25.2.0  node: v22.22.0
+# throwaway repo /private/tmp/c1v-demo/ac4-gates-repo with every declared gate off; TMPDIR=/private/tmp/c1v-demo/ac4-gates holds one 30 h old lisa-ac4-gates-stale (0700)
+$ cat .lisa.config.json
+{ "gates": {
+  "code-style": { "commit": "off", "push": "off", "pull-request": "off" },
+  "coverage-adequacy": { "push": "off", "pull-request": "off" },
+  "dependency-vulnerability": { "push": "off", "pull-request": "off" },
+  "test-correctness": { "push": "off", "pull-request": "off" },
+  "test-integration": { "push": "off", "pull-request": "off" },
+  "traceability": { "push": "off", "pull-request": "off" },
+  "type-correctness": { "push": "off", "pull-request": "off" },
+  "credential-leakage": { "commit": "off", "push": "off", "pull-request": "off" },
+  "format-conformance": { "commit": "off", "push": "off", "pull-request": "off" },
+  "structural-rules": { "commit": "off", "push": "off", "pull-request": "off" }
+} }
+$ ls /private/tmp/c1v-demo/ac4-gates
+lisa-ac4-gates-stale
+$ env -u LISA_CLEANUP_SWEPT TMPDIR=/private/tmp/c1v-demo/ac4-gates node /Users/codysai/workspace/lisa/.claude/worktrees/4597-cleanup-sweep/all/copy-overwrite/scripts/lisa-run-gates.mjs --moment=push
+     1	🔖 Lisa identity — surface=local · package=@codyswann/lisa@4.90.0 · registry=/Users/codysai/workspace/lisa/.claude/worktrees/4597-cleanup-sweep/all/copy-overwrite/scripts · workflow=unknown · lisa-gates.mjs=sha256:1323a4b7ebad · lisa-run-gates.mjs=sha256:f18880e3f1b0
+     2	🧹 swept 1 stale temp dir, 0 orphaned test processes (126 ms)
+     3	🚦 Gates at push:
+     4	✅ push: 0 proved, 0 failed (optional), 0 not proved, 0 killed, 0 not applicable here, of 0 gate(s) declared.
+     5	   (the gates block declares nothing at push)
+exit=0
+$ grep -c '🧹' (summary lines)
+1
+$ ls /private/tmp/c1v-demo/ac4-gates   # stale entry should be gone
+## second run inherits nothing, sweeps again (fresh process); and a run told a LIVE sweeper already swept skips:
+$ LISA_CLEANUP_SWEPT=4525:1794091290 (this shell, pid 4525, alive) TMPDIR=/private/tmp/c1v-demo/ac4-gates node .../lisa-run-gates.mjs --moment=push
+     1	🔖 Lisa identity — surface=local · package=@codyswann/lisa@4.90.0 · registry=/Users/codysai/workspace/lisa/.claude/worktrees/4597-cleanup-sweep/all/copy-overwrite/scripts · workflow=unknown · lisa-gates.mjs=sha256:1323a4b7ebad · lisa-run-gates.mjs=sha256:f18880e3f1b0
+     2	🧹 cleanup sweep already ran (pid 4525); skipping
+     3	🚦 Gates at push:
+     4	✅ push: 0 proved, 0 failed (optional), 0 not proved, 0 killed, 0 not applicable here, of 0 gate(s) declared.
+     5	   (the gates block declares nothing at push)
+exit=0
+## --moment=commit never sweeps:
+     1	🔖 Lisa identity — surface=local · package=@codyswann/lisa@4.90.0 · registry=/Users/codysai/workspace/lisa/.claude/worktrees/4597-cleanup-sweep/all/copy-overwrite/scripts · workflow=unknown · lisa-gates.mjs=sha256:1323a4b7ebad · lisa-run-gates.mjs=sha256:f18880e3f1b0
+     2	🚦 Gates at commit:
+     3	✅ commit: 0 proved, 0 failed (optional), 0 not proved, 0 killed, 0 not applicable here, of 0 gate(s) declared.
+     4	   (the gates block declares nothing at commit)
+exit=0
+$ ls /private/tmp/c1v-demo/ac4-gates   # commit moment left the stale entry
+lisa-ac4-commit-stale
