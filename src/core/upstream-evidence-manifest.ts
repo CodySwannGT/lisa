@@ -2897,7 +2897,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/test-intent-routing.sh":
       "97b9dc86cbd805df8a7fdb8c99ffab9b8c5e751ba2e84c05420b2a124f80635d",
     "scripts/two-channel-couplings.json":
-      "70d007f27f61893e6b3a50ae2474bbcb8cfdc27a43ded41cafcd48196ec1b3d2",
+      "c6a859888525d69f9fde97779d486d7aae8ce03fa20c0a83789d7b84a6905990",
     "scripts/update-node-version.ts":
       "9d37599ef73d5d624751f862cda330a867f6774392c1ab045b4fc885132582e4",
     "scripts/update-test-skill-paths.mjs":
