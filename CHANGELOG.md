@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.92.2](https://github.com/CodySwannGT/lisa/compare/v4.92.1...v4.92.2) (2026-11-08)
+
+
+### Bug Fixes
+
+* **hooks:** avoid a fork in freshness job admission ([a734ef5](https://github.com/CodySwannGT/lisa/commit/a734ef5d91d637848ebecd082acd163a1bd7cccd)), closes [CodySwannGT/lisa#4666](https://github.com/CodySwannGT/lisa/issues/4666) [CodySwannGT/lisa#4505](https://github.com/CodySwannGT/lisa/issues/4505)
+* **tests:** wait for CDK assembly marker contents ([6a6eb04](https://github.com/CodySwannGT/lisa/commit/6a6eb04b7e6a3361a41366b076625af96885a5f1)), closes [CodySwannGT/lisa#4666](https://github.com/CodySwannGT/lisa/issues/4666)
+* **verify:** honor restrictive umask in disposable inputs ([4ebc912](https://github.com/CodySwannGT/lisa/commit/4ebc9129290f7d0b41e86b60a32074cc8fbad8c3)), closes [CodySwannGT/lisa#4666](https://github.com/CodySwannGT/lisa/issues/4666) [CodySwannGT/lisa#4666](https://github.com/CodySwannGT/lisa/issues/4666)
+* **verify:** isolate packaged applies from operator configuration ([a8221d9](https://github.com/CodySwannGT/lisa/commit/a8221d9765a2d8d90db3b1114fd47968004be231)), closes [CodySwannGT/lisa#4666](https://github.com/CodySwannGT/lisa/issues/4666) [CodySwannGT/lisa#4666](https://github.com/CodySwannGT/lisa/issues/4666)
+* **verify:** keep packaged isolation current after safety-net retirement ([4e40397](https://github.com/CodySwannGT/lisa/commit/4e403971ce51c11ea9cb159014168cd045f85f2d)), closes [CodySwannGT/lisa#4666](https://github.com/CodySwannGT/lisa/issues/4666)
+* **verify:** preserve raw symlink target bytes ([ac0316d](https://github.com/CodySwannGT/lisa/commit/ac0316d90dc49c188efabd3274871497f49d34ba)), closes [CodySwannGT/lisa#4666](https://github.com/CodySwannGT/lisa/issues/4666) [CodySwannGT/lisa#4666](https://github.com/CodySwannGT/lisa/issues/4666)
+* **verify:** retain changed symlink observations after apply ([44cac18](https://github.com/CodySwannGT/lisa/commit/44cac18ab96ae148b4f28d9fa90f06c7a63ac35b)), closes [CodySwannGT/lisa#4666](https://github.com/CodySwannGT/lisa/issues/4666) [CodySwannGT/lisa#4666](https://github.com/CodySwannGT/lisa/issues/4666)
+
 ### [4.92.1](https://github.com/CodySwannGT/lisa/compare/v4.92.0...v4.92.1) (2026-11-08)
 
 
