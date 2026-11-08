@@ -36,6 +36,7 @@ import {
 } from "../helpers/io-latency-budget.js";
 import { PROCESS_TREE_RUNNER } from "../helpers/process-tree-runner-verdict.js";
 import { type GateRun, sink } from "../unit/scripts/lisa-run-gates-fixtures.js";
+import { sweepAlreadyRanEnv } from "../helpers/cleanup-sweep-skip.js";
 
 const SCRIPT = path.join(
   path.dirname(fileURLToPath(import.meta.url)),
@@ -130,6 +131,8 @@ function runFailingGate(
       label: "lisa-run-gates.mjs --moment=push",
       command: process.execPath,
       args: [SCRIPT, "--moment=push"],
+      // Never sweep the machine from inside a test (CodySwannGT/lisa#4597).
+      env: { ...process.env, ...sweepAlreadyRanEnv() },
       cwd: root,
     });
     return { ...child, boundary };

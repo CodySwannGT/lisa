@@ -1,0 +1,49 @@
+# AC-4 — lisa-test-run sweeps once before the tests, prints one line, and a sweep error never fails the run
+# head: 80d5d40ec0bdc11bc35daefc65b83faa9b2f7220  captured: 2026-11-07T22:42:13Z  host: Darwin 25.2.0  node: v22.22.0
+# dist/cli/lisa-test-run.js built from this head by 'bun run test:unit' earlier in this session
+# PATH is prefixed with node_modules/.bin, as bun run does
+## Run A: a clean sweep. TMPDIR=/private/tmp/c1v-demo/ac4-ltr holds one 30 h old lisa-ac4-ltr-stale (0700)
+$ ls /private/tmp/c1v-demo/ac4-ltr
+lisa-ac4-ltr-stale
+$ env -u LISA_CLEANUP_SWEPT -u LISA_TEST_RUN_OWNER TMPDIR=/private/tmp/c1v-demo/ac4-ltr node dist/cli/lisa-test-run.js --profile lisa --adapter vitest -- vitest run tests/unit/scripts/lisa-test-run-sweep.test.ts
+     1	🧹 swept 1 stale temp dir, 0 orphaned test processes (127 ms)
+     2	
+     3	 RUN  v4.1.12 /Users/codysai/workspace/lisa/.claude/worktrees/4597-cleanup-sweep
+     4	
+     5	lisa fleet admission: waiting for a worker slot — 6 run(s) live, this run is #6, 3 may execute at once. Starting anyway in 120s. Set LISA_FLEET_ADMISSION=off to disable this wait.
+     6	lisa fleet admission: starting OVER CAPACITY after 120s — 6 run(s) live, this run is #6, 3 may execute at once. The machine is oversubscribed; expect timeouts rather than failures.
+     7	lisa fleet admission: waiting for a worker slot — 6 run(s) live, this run is #6, 3 may execute at once. Starting anyway in 120s. Set LISA_FLEET_ADMISSION=off to disable this wait.
+     8	lisa fleet admission: starting OVER CAPACITY after 120s — 5 run(s) live, this run is #4, 3 may execute at once. The machine is oversubscribed; expect timeouts rather than failures.
+     9	
+    10	 Test Files  1 passed (1)
+    11	      Tests  6 passed (6)
+    12	   Start at  17:42:13
+    13	   Duration  240.78s (transform 183ms, setup 228ms, import 28ms, tests 24ms, environment 0ms)
+    14	
+exit=0
+$ grep -c '🧹' -> 1 summary line(s); 🧹 at line 1 , RUN at line 15
+$ ls /private/tmp/c1v-demo/ac4-ltr   # lisa-ac4-ltr-stale should be gone (lisa-scratch is the run's own, protected)
+lisa-scratch
+## Run B: a sweep that hits a real error. lisa-ac4-ltr-jammed (0700, 30 h old) holds locked/ (0500) with a file inside, so rm fails with EACCES
+$ ls -la /private/tmp/c1v-demo/ac4-ltr/lisa-ac4-ltr-jammed
+total 0
+drwx------@ 3 codysai  wheel   96 Nov  6 11:42 .
+drwx------@ 4 codysai  wheel  128 Nov  7 17:46 ..
+dr-x------@ 3 codysai  wheel   96 Nov  7 17:46 locked
+$ env -u LISA_CLEANUP_SWEPT -u LISA_TEST_RUN_OWNER TMPDIR=/private/tmp/c1v-demo/ac4-ltr node dist/cli/lisa-test-run.js --profile lisa --adapter vitest -- vitest run tests/unit/scripts/lisa-test-run-sweep.test.ts
+     1	🧹 swept 0 stale temp dirs, 0 orphaned test processes (106 ms); 1 error, first: could not remove /private/tmp/c1v-demo/ac4-ltr/lisa-ac4-ltr-jammed: EACCES: permission denied, unlink '/private/tmp/c1v-demo/ac4-ltr/lisa-ac4-ltr-jammed/locked/f'
+     2	
+     3	 RUN  v4.1.12 /Users/codysai/workspace/lisa/.claude/worktrees/4597-cleanup-sweep
+     4	
+     5	lisa fleet admission: waiting for a worker slot — 5 run(s) live, this run is #5, 3 may execute at once. Starting anyway in 120s. Set LISA_FLEET_ADMISSION=off to disable this wait.
+     6	lisa fleet admission: starting OVER CAPACITY after 120s — 5 run(s) live, this run is #5, 3 may execute at once. The machine is oversubscribed; expect timeouts rather than failures.
+     7	lisa fleet admission: waiting for a worker slot — 5 run(s) live, this run is #5, 3 may execute at once. Starting anyway in 120s. Set LISA_FLEET_ADMISSION=off to disable this wait.
+     8	lisa fleet admission: starting OVER CAPACITY after 120s — 5 run(s) live, this run is #4, 3 may execute at once. The machine is oversubscribed; expect timeouts rather than failures.
+     9	
+    10	 Test Files  1 passed (1)
+    11	      Tests  6 passed (6)
+    12	   Start at  17:46:17
+    13	   Duration  240.64s (transform 119ms, setup 148ms, import 29ms, tests 27ms, environment 0ms)
+    14	
+exit=0   # the test run's own verdict, not the sweep's
+$ grep -c '🧹' -> 1 summary line(s)

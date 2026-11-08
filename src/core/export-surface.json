@@ -1,8 +1,8 @@
 {
   "$generatedBy": "scripts/generate-export-surface.mjs",
   "$doNotEdit": "The public export surface this package ships, recorded so a removal is an OBSERVATION rather than an inference from commit-message conventions. This file's diff is what makes a removed export visible in the pull request that causes it (CodySwannGT/lisa#3718).",
-  "$modules": 260,
-  "$names": 1875,
+  "$modules": 262,
+  "$names": 1904,
   "surface": {
     "all/copy-overwrite/scripts/check-conflict-markers.mjs": [
       "UsageError",
@@ -294,6 +294,39 @@
       "killMarkNote",
       "recentKillMarks",
       "recordKillMark"
+    ],
+    "all/copy-overwrite/scripts/lib/lisa-cleanup-sweep-processes.mjs": [
+      "DEFAULT_GRACE_MS",
+      "OWNER_ENV",
+      "UNKNOWN_START",
+      "formatOwnerMarker",
+      "isAlive",
+      "listProcesses",
+      "liveSweeper",
+      "ownerMarkerFor",
+      "parseDarwinProcessTable",
+      "parseDarwinStartTimes",
+      "parseLinuxEnviron",
+      "parseLinuxStat",
+      "parseOwnerMarker",
+      "processStartTimes",
+      "selectOrphans",
+      "sweepOrphans"
+    ],
+    "all/copy-overwrite/scripts/lib/lisa-cleanup-sweep.mjs": [
+      "DEFAULT_MAX_AGE_HOURS",
+      "LISA_OWNED_TEMP_PREFIXES",
+      "LISA_PROTECTED_TEMP_NAMES",
+      "LISA_PROTECTED_TEMP_PREFIXES",
+      "SWEPT_ENV",
+      "formatAlreadySwept",
+      "formatSummary",
+      "isLisaOwnedTempName",
+      "main",
+      "parseSweepArgs",
+      "runStartOfRunSweep",
+      "sweep",
+      "sweepTemp"
     ],
     "all/copy-overwrite/scripts/lib/npm-update-allocate.mjs": [
       "allocateLeaf",
