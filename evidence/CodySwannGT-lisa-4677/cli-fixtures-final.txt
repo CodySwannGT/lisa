@@ -1,0 +1,36 @@
+== claim-after-marker
+{"route":"ci-rework","item":"CodySwannGT/lisa#1","pr":101,"sha":"3db71f89a186d5dbeb78015aa5735fa9d8efda48","headRefName":"claude/1-example-branch","failingChecks":["🔍 Quality Checks / 🧪 Run Unit Tests","🧩 Plugin artifacts match source"],"markerCount":1}
+exit=0
+== cleared-marker
+{"route":"implement","reason":"cleared","detail":"the [lisa-ci-failed] marker is cleared: a later run passed every required check"}
+exit=0
+== closed-pr
+{"route":"implement","reason":"pull-request-not-open","detail":"the marker's pull request is CLOSED"}
+exit=0
+== fork-pr
+{"route":"implement","reason":"fork-pull-request","detail":"the marker's pull request comes from a fork"}
+exit=0
+== human-authored
+{"route":"implement","reason":"untrusted-author","detail":"the [lisa-ci-failed] marker was posted by CodySwannGT, not github-actions[bot]; ignored"}
+exit=0
+== loop-bound
+{"route":"blocked","reason":"ci-loop-bound","detail":"pull request #101 has failed its required checks 3 times; stop retrying and ask a person","item":"CodySwannGT/lisa#1","pr":101,"sha":"3db71f89a186d5dbeb78015aa5735fa9d8efda48","failingChecks":["🔍 Quality Checks / 🧪 Run Unit Tests","🧩 Plugin artifacts match source"],"markerCount":3}
+exit=0
+== merged-pr
+{"route":"implement","reason":"pull-request-not-open","detail":"the marker's pull request is MERGED"}
+exit=0
+== not-newest
+{"route":"implement","reason":"not-newest","detail":"a newer Lisa marker (not a claim) was posted after the [lisa-ci-failed] marker, so it no longer describes the item"}
+exit=0
+== other-item
+{"route":"implement","reason":"other-work-item","detail":"the marker's pull request is bound to CodySwannGT/lisa#2, not CodySwannGT/lisa#1"}
+exit=0
+== reclaim-twice
+{"route":"ci-rework","item":"CodySwannGT/lisa#1","pr":101,"sha":"3db71f89a186d5dbeb78015aa5735fa9d8efda48","headRefName":"claude/1-example-branch","failingChecks":["🔍 Quality Checks / 🧪 Run Unit Tests","🧩 Plugin artifacts match source"],"markerCount":1}
+exit=0
+== trusted-marker
+{"route":"ci-rework","item":"CodySwannGT/lisa#1","pr":101,"sha":"3db71f89a186d5dbeb78015aa5735fa9d8efda48","headRefName":"claude/1-example-branch","failingChecks":["🔍 Quality Checks / 🧪 Run Unit Tests","🧩 Plugin artifacts match source"],"markerCount":1}
+exit=0
+== unbound-pr
+{"route":"implement","reason":"unbound-pull-request","detail":"No Work-Item trailer anywhere in the pull-request body"}
+exit=0
