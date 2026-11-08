@@ -1,0 +1,43 @@
+{
+  "title": "#4521 documentation at the delivered source 387f58da and in the delivered @codyswann/lisa@4.97.2 rule",
+  "notes": [
+    "Real readbacks: git show of the delivered commit, and grep of the installed delivered package."
+  ],
+  "redactions": [
+    "<delivered>",
+    "<checkout>",
+    "<home>"
+  ],
+  "captures": [
+    {
+      "label": "docs/dependency-audit-exclusions.md at 387f58da: paths described and preferred for dev-only copies",
+      "command": [
+        "/bin/sh",
+        "-c",
+        "git show 387f58dabc5175e8360f2ad51e2a45ea21d486dc:docs/dependency-audit-exclusions.md > /tmp/lisa-4521-docs.md && shasum -a 256 /tmp/lisa-4521-docs.md | cut -d' ' -f1 && grep -n 'Prefer `paths`\\|`paths`' /tmp/lisa-4521-docs.md; rc=$?; rm -f /tmp/lisa-4521-docs.md; exit $rc"
+      ],
+      "cwd": "<checkout>",
+      "env": {},
+      "stdout": "b2459cdd9850a73f2b6550af709cc82b2f24cf63f348a0152d5b7e500907bb65\n5:or a CI run. Prefer `paths` over an advisory-wide exception whenever the\n28:report. `package`, `versions`, and `paths` are optional restrictions, and all\n36:The documented fields are `id`, `cve`, `package`, `versions`, `paths`,\n81:dev-only and reviewed, add its lockfile path to `paths`. Empty `paths`, invalid\n88:A narrower entry always wins. When a `paths` or `versions` entry exists for an\n91:`paths` or `versions`, and is typically a shared managed decision. The audit\n95:An entry without `paths` keeps its existing non-path behavior. Any declared\n98:entry with neither `paths` nor `versions` as a non-blocking observation, whether\n101:and `paths`. A written reason does not make an invalid scope valid.\n",
+      "stderr": "",
+      "exit_code": 0,
+      "started_at": "2026-11-08T17:25:22.022Z",
+      "finished_at": "2026-11-08T17:25:22.057Z"
+    },
+    {
+      "label": "delivered package rule plugins/lisa/rules/eager/security-audit-handling.md points to paths and the guide",
+      "command": [
+        "/bin/sh",
+        "-c",
+        "jq -r .version package.json && grep -n 'paths' plugins/lisa/rules/eager/security-audit-handling.md"
+      ],
+      "cwd": "<delivered>/consumer/node_modules/@codyswann/lisa",
+      "env": {},
+      "stdout": "4.97.2\n13:5. **If it does not affect the project**: **add a documented exclusion yourself** to `audit.ignore.local.json` (`id`, `package`, `reason` = impact evaluation; dev-only copy: add `versions`, `paths`; see https://github.com/CodySwannGT/lisa/blob/main/docs/dependency-audit-exclusions.md), commit, retry. No human approval needed.\n",
+      "stderr": "",
+      "exit_code": 0,
+      "started_at": "2026-11-08T17:25:22.057Z",
+      "finished_at": "2026-11-08T17:25:22.067Z"
+    }
+  ]
+}

@@ -1,0 +1,2056 @@
+{
+  "title": "#4521 consumer parity on delivered @codyswann/lisa@4.97.2",
+  "notes": [
+    "CONTROLLED FIXTURE DATA: lockfiles, exclusion files and audit reports in the fixture trees were written by the verifier (generators committed as evidence/4521/verify-make-trees.mjs.txt, shipped-make-trees-pm.mjs.txt, shipped-extra-trees.mjs.txt). Shims answer only `<manager> audit`; every other call goes to the real binary. Not live advisory access.",
+    "pre-push = the delivered template hook's audit block; registry = delivered lisa-run-gates; adapter = delivered scripts/lisa-audit.mjs; helper = @codyswann/lisa/audit via exports; ci = .github/actions/dependency-audit/run.mjs at delivered source 387f58dabc5175e8360f2ad51e2a45ea21d486dc."
+  ],
+  "redactions": [
+    "<delivered>",
+    "<red-4.90.0>",
+    "<shim-pm>",
+    "<shim>",
+    "<verifier-bin>",
+    "<mise>",
+    "<checkout>",
+    "<home>",
+    "<tmpdir>",
+    "<tmpdir>"
+  ],
+  "captures": [
+    {
+      "label": "bun / control-no-exclusion / pre-push",
+      "command": [
+        "/bin/sh",
+        "<delivered>/prepush-audit-harness.sh"
+      ],
+      "cwd": "<delivered>/trees/control-no-exclusion",
+      "env": {
+        "PATH": "<shim>:<mise>/node/24.21.0/bin:/usr/bin:/bin:/usr/sbin:/sbin:/opt/homebrew/bin",
+        "LISA_VERIFY_REPORT": "<delivered>/trees/bun-audit-report.json",
+        "PACKAGE_MANAGER": "bun"
+      },
+      "stdout": "🔒 Running security audit...\nGHSA-mrhx-c7xc-m3w5: unresolved high/critical advisory for zod\n❌ High or critical vulnerabilities found in production dependencies\n   Next step: upgrade or override the named copy; if it is dev-only and reviewed, add its lockfile path to `paths` in audit.ignore.local.json — see https://github.com/CodySwannGT/lisa/blob/main/docs/dependency-audit-exclusions.md\n",
+      "stderr": "",
+      "exit_code": 1,
+      "started_at": "2026-11-08T17:23:26.255Z",
+      "finished_at": "2026-11-08T17:23:26.327Z"
+    },
+    {
+      "label": "bun / control-no-exclusion / registry",
+      "command": [
+        "<mise>/node/24.21.0/bin/node",
+        "<delivered>/consumer/node_modules/@codyswann/lisa/all/copy-overwrite/scripts/lisa-run-gates.mjs",
+        "--moment=push"
+      ],
+      "cwd": "<delivered>/trees/control-no-exclusion",
+      "env": {
+        "PATH": "<shim>:<mise>/node/24.21.0/bin:/usr/bin:/bin:/usr/sbin:/sbin:/opt/homebrew/bin",
+        "LISA_VERIFY_REPORT": "<delivered>/trees/bun-audit-report.json"
+      },
+      "stdout": "🔖 Lisa identity — surface=local · package=@codyswann/lisa@4.97.2 · registry=<delivered>/consumer/node_modules/@codyswann/lisa/all/copy-overwrite/scripts · workflow=unknown · lisa-gates.mjs=sha256:266abcb9f3ad · lisa-run-gates.mjs=sha256:8ee6487fec01\n🧹 swept 0 stale temp dirs, 0 orphaned test processes (187 ms)\n🚦 Gates at push:\n$ $npm_execpath run security:audit:lisa\n$ node scripts/lisa-audit.mjs\nGHSA-mrhx-c7xc-m3w5: unresolved high/critical advisory for zod\n❌ High or critical vulnerabilities found in production dependencies\n   Next step: upgrade or override the named copy; if it is dev-only and reviewed, add its lockfile path to `paths` in audit.ignore.local.json — see https://github.com/CodySwannGT/lisa/blob/main/docs/dependency-audit-exclusions.md\nerror: script \"security:audit:lisa\" exited with code 1\nerror: script \"security:audit\" exited with code 1\n  FAILED     required dependency-vulnerability    bun run security:audit (exit 1) — the prover printed a failure shape dependency-vulnerability declared, so it ran and found this property wanting. That is a verdict about the code, not about the machine\n      ↳ ❌ High or critical vulnerabilities found in production dependencies\n❌ required gate FAILED: dependency-vulnerability — bun run security:audit (exit 1) — the prover printed a failure shape dependency-vulnerability declared, so it ran and found this property wanting. That is a verdict about the code, not about the machine\n",
+      "stderr": "",
+      "exit_code": 1,
+      "started_at": "2026-11-08T17:23:26.327Z",
+      "finished_at": "2026-11-08T17:23:26.702Z"
+    },
+    {
+      "label": "bun / control-no-exclusion / adapter",
+      "command": [
+        "<mise>/node/24.21.0/bin/node",
+        "scripts/lisa-audit.mjs",
+        "--manager",
+        "bun"
+      ],
+      "cwd": "<delivered>/trees/control-no-exclusion",
+      "env": {
+        "PATH": "<shim>:<mise>/node/24.21.0/bin:/usr/bin:/bin:/usr/sbin:/sbin:/opt/homebrew/bin",
+        "LISA_VERIFY_REPORT": "<delivered>/trees/bun-audit-report.json"
+      },
+      "stdout": "GHSA-mrhx-c7xc-m3w5: unresolved high/critical advisory for zod\n❌ High or critical vulnerabilities found in production dependencies\n   Next step: upgrade or override the named copy; if it is dev-only and reviewed, add its lockfile path to `paths` in audit.ignore.local.json — see https://github.com/CodySwannGT/lisa/blob/main/docs/dependency-audit-exclusions.md\n",
+      "stderr": "",
+      "exit_code": 1,
+      "started_at": "2026-11-08T17:23:26.702Z",
+      "finished_at": "2026-11-08T17:23:26.769Z"
+    },
+    {
+      "label": "bun / control-no-exclusion / helper",
+      "command": [
+        "<mise>/node/24.21.0/bin/node",
+        "<verifier-bin>/helper-pm.mjs",
+        "<delivered>/trees/control-no-exclusion",
+        "<delivered>/consumer/node_modules/@codyswann/lisa",
+        "bun"
+      ],
+      "cwd": "<delivered>/trees/control-no-exclusion",
+      "env": {
+        "PATH": "<shim>:<mise>/node/24.21.0/bin:/usr/bin:/bin:/usr/sbin:/sbin:/opt/homebrew/bin",
+        "LISA_VERIFY_REPORT": "<delivered>/trees/bun-audit-report.json"
+      },
+      "stdout": "[helper] resolved @codyswann/lisa/audit -> <package>/dist/core/audit.js\nGHSA-mrhx-c7xc-m3w5: unresolved high/critical advisory for zod\n[helper] passed=false\n",
+      "stderr": "",
+      "exit_code": 1,
+      "started_at": "2026-11-08T17:23:26.769Z",
+      "finished_at": "2026-11-08T17:23:26.829Z"
+    },
+    {
+      "label": "bun / control-no-exclusion / ci",
+      "command": [
+        "<mise>/node/24.21.0/bin/node",
+        "<delivered>/source/.github/actions/dependency-audit/run.mjs"
+      ],
+      "cwd": "<delivered>/trees/control-no-exclusion",
+      "env": {
+        "PATH": "<shim>:<mise>/node/24.21.0/bin:/usr/bin:/bin:/usr/sbin:/sbin:/opt/homebrew/bin",
+        "LISA_VERIFY_REPORT": "<delivered>/trees/bun-audit-report.json",
+        "GITHUB_WORKSPACE": "<delivered>/trees/control-no-exclusion",
+        "LISA_AUDIT_ACTION_MANAGER": "bun",
+        "LISA_AUDIT_ACTION_DIRECTORY": "."
+      },
+      "stdout": "GHSA-mrhx-c7xc-m3w5: unresolved high/critical advisory for zod\n❌ High or critical vulnerabilities found in production dependencies\n   Next step: upgrade or override the named copy; if it is dev-only and reviewed, add its lockfile path to `paths` in audit.ignore.local.json — see https://github.com/CodySwannGT/lisa/blob/main/docs/dependency-audit-exclusions.md\n",
+      "stderr": "",
+      "exit_code": 1,
+      "started_at": "2026-11-08T17:23:26.829Z",
+      "finished_at": "2026-11-08T17:23:27.487Z"
+    },
+    {
+      "label": "bun / covered-only / pre-push",
+      "command": [
+        "/bin/sh",
+        "<delivered>/prepush-audit-harness.sh"
+      ],
+      "cwd": "<delivered>/trees/covered-only",
+      "env": {
+        "PATH": "<shim>:<mise>/node/24.21.0/bin:/usr/bin:/bin:/usr/sbin:/sbin:/opt/homebrew/bin",
+        "LISA_VERIFY_REPORT": "<delivered>/trees/bun-audit-report.json",
+        "PACKAGE_MANAGER": "bun"
+      },
+      "stdout": "🔒 Running security audit...\nexcluded GHSA-mrhx-c7xc-m3w5 for lint-plugin/zod (Verifier fixture: reviewed dev-only lint plugin copy)\n✅ No high or critical vulnerabilities found in production dependencies (excluding documented exceptions)\n",
+      "stderr": "",
+      "exit_code": 0,
+      "started_at": "2026-11-08T17:23:27.487Z",
+      "finished_at": "2026-11-08T17:23:27.565Z"
+    },
+    {
+      "label": "bun / covered-only / registry",
+      "command": [
+        "<mise>/node/24.21.0/bin/node",
+        "<delivered>/consumer/node_modules/@codyswann/lisa/all/copy-overwrite/scripts/lisa-run-gates.mjs",
+        "--moment=push"
+      ],
+      "cwd": "<delivered>/trees/covered-only",
+      "env": {
+        "PATH": "<shim>:<mise>/node/24.21.0/bin:/usr/bin:/bin:/usr/sbin:/sbin:/opt/homebrew/bin",
+        "LISA_VERIFY_REPORT": "<delivered>/trees/bun-audit-report.json"
+      },
+      "stdout": "🔖 Lisa identity — surface=local · package=@codyswann/lisa@4.97.2 · registry=<delivered>/consumer/node_modules/@codyswann/lisa/all/copy-overwrite/scripts · workflow=unknown · lisa-gates.mjs=sha256:266abcb9f3ad · lisa-run-gates.mjs=sha256:8ee6487fec01\n🧹 swept 0 stale temp dirs, 2 orphaned test processes (693 ms)\n🚦 Gates at push:\n$ $npm_execpath run security:audit:lisa\n$ node scripts/lisa-audit.mjs\nexcluded GHSA-mrhx-c7xc-m3w5 for lint-plugin/zod (Verifier fixture: reviewed dev-only lint plugin copy)\n✅ No high or critical vulnerabilities found in production dependencies (excluding documented exceptions)\n  PASSED     required dependency-vulnerability    bun run security:audit\n✅ push: 1 proved, 0 failed (optional), 0 not proved, 0 killed, 0 not applicable here, of 1 gate(s) declared.\n",
+      "stderr": "",
+      "exit_code": 0,
+      "started_at": "2026-11-08T17:23:27.565Z",
+      "finished_at": "2026-11-08T17:23:28.460Z"
+    },
+    {
+      "label": "bun / covered-only / adapter",
+      "command": [
+        "<mise>/node/24.21.0/bin/node",
+        "scripts/lisa-audit.mjs",
+        "--manager",
+        "bun"
+      ],
+      "cwd": "<delivered>/trees/covered-only",
+      "env": {
+        "PATH": "<shim>:<mise>/node/24.21.0/bin:/usr/bin:/bin:/usr/sbin:/sbin:/opt/homebrew/bin",
+        "LISA_VERIFY_REPORT": "<delivered>/trees/bun-audit-report.json"
+      },
+      "stdout": "excluded GHSA-mrhx-c7xc-m3w5 for lint-plugin/zod (Verifier fixture: reviewed dev-only lint plugin copy)\n✅ No high or critical vulnerabilities found in production dependencies (excluding documented exceptions)\n",
+      "stderr": "",
+      "exit_code": 0,
+      "started_at": "2026-11-08T17:23:28.460Z",
+      "finished_at": "2026-11-08T17:23:28.516Z"
+    },
+    {
+      "label": "bun / covered-only / helper",
+      "command": [
+        "<mise>/node/24.21.0/bin/node",
+        "<verifier-bin>/helper-pm.mjs",
+        "<delivered>/trees/covered-only",
+        "<delivered>/consumer/node_modules/@codyswann/lisa",
+        "bun"
+      ],
+      "cwd": "<delivered>/trees/covered-only",
+      "env": {
+        "PATH": "<shim>:<mise>/node/24.21.0/bin:/usr/bin:/bin:/usr/sbin:/sbin:/opt/homebrew/bin",
+        "LISA_VERIFY_REPORT": "<delivered>/trees/bun-audit-report.json"
+      },
+      "stdout": "[helper] resolved @codyswann/lisa/audit -> <package>/dist/core/audit.js\nexcluded GHSA-mrhx-c7xc-m3w5 for lint-plugin/zod (Verifier fixture: reviewed dev-only lint plugin copy)\n[helper] passed=true\n",
+      "stderr": "",
+      "exit_code": 0,
+      "started_at": "2026-11-08T17:23:28.516Z",
+      "finished_at": "2026-11-08T17:23:28.578Z"
+    },
+    {
+      "label": "bun / covered-only / ci",
+      "command": [
+        "<mise>/node/24.21.0/bin/node",
+        "<delivered>/source/.github/actions/dependency-audit/run.mjs"
+      ],
+      "cwd": "<delivered>/trees/covered-only",
+      "env": {
+        "PATH": "<shim>:<mise>/node/24.21.0/bin:/usr/bin:/bin:/usr/sbin:/sbin:/opt/homebrew/bin",
+        "LISA_VERIFY_REPORT": "<delivered>/trees/bun-audit-report.json",
+        "GITHUB_WORKSPACE": "<delivered>/trees/covered-only",
+        "LISA_AUDIT_ACTION_MANAGER": "bun",
+        "LISA_AUDIT_ACTION_DIRECTORY": "."
+      },
+      "stdout": "excluded GHSA-mrhx-c7xc-m3w5 for lint-plugin/zod (Verifier fixture: reviewed dev-only lint plugin copy)\n✅ No high or critical vulnerabilities found in production dependencies (excluding documented exceptions)\n",
+      "stderr": "",
+      "exit_code": 0,
+      "started_at": "2026-11-08T17:23:28.578Z",
+      "finished_at": "2026-11-08T17:23:28.661Z"
+    },
+    {
+      "label": "bun / uncovered-production / pre-push",
+      "command": [
+        "/bin/sh",
+        "<delivered>/prepush-audit-harness.sh"
+      ],
+      "cwd": "<delivered>/trees/uncovered-production",
+      "env": {
+        "PATH": "<shim>:<mise>/node/24.21.0/bin:/usr/bin:/bin:/usr/sbin:/sbin:/opt/homebrew/bin",
+        "LISA_VERIFY_REPORT": "<delivered>/trees/bun-audit-report.json",
+        "PACKAGE_MANAGER": "bun"
+      },
+      "stdout": "🔒 Running security audit...\nGHSA-mrhx-c7xc-m3w5: vulnerable paths outside exclusion: app-dep/zod (zod@3.25.76)\n❌ High or critical vulnerabilities found in production dependencies\n   Next step: upgrade or override the named copy; if it is dev-only and reviewed, add its lockfile path to `paths` in audit.ignore.local.json — see https://github.com/CodySwannGT/lisa/blob/main/docs/dependency-audit-exclusions.md\n",
+      "stderr": "",
+      "exit_code": 1,
+      "started_at": "2026-11-08T17:23:28.661Z",
+      "finished_at": "2026-11-08T17:23:28.745Z"
+    },
+    {
+      "label": "bun / uncovered-production / registry",
+      "command": [
+        "<mise>/node/24.21.0/bin/node",
+        "<delivered>/consumer/node_modules/@codyswann/lisa/all/copy-overwrite/scripts/lisa-run-gates.mjs",
+        "--moment=push"
+      ],
+      "cwd": "<delivered>/trees/uncovered-production",
+      "env": {
+        "PATH": "<shim>:<mise>/node/24.21.0/bin:/usr/bin:/bin:/usr/sbin:/sbin:/opt/homebrew/bin",
+        "LISA_VERIFY_REPORT": "<delivered>/trees/bun-audit-report.json"
+      },
+      "stdout": "🔖 Lisa identity — surface=local · package=@codyswann/lisa@4.97.2 · registry=<delivered>/consumer/node_modules/@codyswann/lisa/all/copy-overwrite/scripts · workflow=unknown · lisa-gates.mjs=sha256:266abcb9f3ad · lisa-run-gates.mjs=sha256:8ee6487fec01\n🧹 swept 0 stale temp dirs, 0 orphaned test processes (229 ms)\n🚦 Gates at push:\n$ $npm_execpath run security:audit:lisa\n$ node scripts/lisa-audit.mjs\nGHSA-mrhx-c7xc-m3w5: vulnerable paths outside exclusion: app-dep/zod (zod@3.25.76)\n❌ High or critical vulnerabilities found in production dependencies\n   Next step: upgrade or override the named copy; if it is dev-only and reviewed, add its lockfile path to `paths` in audit.ignore.local.json — see https://github.com/CodySwannGT/lisa/blob/main/docs/dependency-audit-exclusions.md\nerror: script \"security:audit:lisa\" exited with code 1\nerror: script \"security:audit\" exited with code 1\n  FAILED     required dependency-vulnerability    bun run security:audit (exit 1) — the prover printed a failure shape dependency-vulnerability declared, so it ran and found this property wanting. That is a verdict about the code, not about the machine\n      ↳ ❌ High or critical vulnerabilities found in production dependencies\n❌ required gate FAILED: dependency-vulnerability — bun run security:audit (exit 1) — the prover printed a failure shape dependency-vulnerability declared, so it ran and found this property wanting. That is a verdict about the code, not about the machine\n",
+      "stderr": "",
+      "exit_code": 1,
+      "started_at": "2026-11-08T17:23:28.745Z",
+      "finished_at": "2026-11-08T17:23:29.235Z"
+    },
+    {
+      "label": "bun / uncovered-production / adapter",
+      "command": [
+        "<mise>/node/24.21.0/bin/node",
+        "scripts/lisa-audit.mjs",
+        "--manager",
+        "bun"
+      ],
+      "cwd": "<delivered>/trees/uncovered-production",
+      "env": {
+        "PATH": "<shim>:<mise>/node/24.21.0/bin:/usr/bin:/bin:/usr/sbin:/sbin:/opt/homebrew/bin",
+        "LISA_VERIFY_REPORT": "<delivered>/trees/bun-audit-report.json"
+      },
+      "stdout": "GHSA-mrhx-c7xc-m3w5: vulnerable paths outside exclusion: app-dep/zod (zod@3.25.76)\n❌ High or critical vulnerabilities found in production dependencies\n   Next step: upgrade or override the named copy; if it is dev-only and reviewed, add its lockfile path to `paths` in audit.ignore.local.json — see https://github.com/CodySwannGT/lisa/blob/main/docs/dependency-audit-exclusions.md\n",
+      "stderr": "",
+      "exit_code": 1,
+      "started_at": "2026-11-08T17:23:29.235Z",
+      "finished_at": "2026-11-08T17:23:29.333Z"
+    },
+    {
+      "label": "bun / uncovered-production / helper",
+      "command": [
+        "<mise>/node/24.21.0/bin/node",
+        "<verifier-bin>/helper-pm.mjs",
+        "<delivered>/trees/uncovered-production",
+        "<delivered>/consumer/node_modules/@codyswann/lisa",
+        "bun"
+      ],
+      "cwd": "<delivered>/trees/uncovered-production",
+      "env": {
+        "PATH": "<shim>:<mise>/node/24.21.0/bin:/usr/bin:/bin:/usr/sbin:/sbin:/opt/homebrew/bin",
+        "LISA_VERIFY_REPORT": "<delivered>/trees/bun-audit-report.json"
+      },
+      "stdout": "[helper] resolved @codyswann/lisa/audit -> <package>/dist/core/audit.js\nGHSA-mrhx-c7xc-m3w5: vulnerable paths outside exclusion: app-dep/zod (zod@3.25.76)\n[helper] passed=false\n",
+      "stderr": "",
+      "exit_code": 1,
+      "started_at": "2026-11-08T17:23:29.333Z",
+      "finished_at": "2026-11-08T17:23:29.417Z"
+    },
+    {
+      "label": "bun / uncovered-production / ci",
+      "command": [
+        "<mise>/node/24.21.0/bin/node",
+        "<delivered>/source/.github/actions/dependency-audit/run.mjs"
+      ],
+      "cwd": "<delivered>/trees/uncovered-production",
+      "env": {
+        "PATH": "<shim>:<mise>/node/24.21.0/bin:/usr/bin:/bin:/usr/sbin:/sbin:/opt/homebrew/bin",
+        "LISA_VERIFY_REPORT": "<delivered>/trees/bun-audit-report.json",
+        "GITHUB_WORKSPACE": "<delivered>/trees/uncovered-production",
+        "LISA_AUDIT_ACTION_MANAGER": "bun",
+        "LISA_AUDIT_ACTION_DIRECTORY": "."
+      },
+      "stdout": "GHSA-mrhx-c7xc-m3w5: vulnerable paths outside exclusion: app-dep/zod (zod@3.25.76)\n❌ High or critical vulnerabilities found in production dependencies\n   Next step: upgrade or override the named copy; if it is dev-only and reviewed, add its lockfile path to `paths` in audit.ignore.local.json — see https://github.com/CodySwannGT/lisa/blob/main/docs/dependency-audit-exclusions.md\n",
+      "stderr": "",
+      "exit_code": 1,
+      "started_at": "2026-11-08T17:23:29.417Z",
+      "finished_at": "2026-11-08T17:23:29.550Z"
+    },
+    {
+      "label": "bun / version-boundary-zod-4.5.0 / pre-push",
+      "command": [
+        "/bin/sh",
+        "<delivered>/prepush-audit-harness.sh"
+      ],
+      "cwd": "<delivered>/trees/version-boundary-zod-4.5.0",
+      "env": {
+        "PATH": "<shim>:<mise>/node/24.21.0/bin:/usr/bin:/bin:/usr/sbin:/sbin:/opt/homebrew/bin",
+        "LISA_VERIFY_REPORT": "<delivered>/trees/bun-audit-report.json",
+        "PACKAGE_MANAGER": "bun"
+      },
+      "stdout": "🔒 Running security audit...\nGHSA-mrhx-c7xc-m3w5: vulnerable paths outside exclusion: app-dep/zod (zod@4.5.0)\n❌ High or critical vulnerabilities found in production dependencies\n   Next step: upgrade or override the named copy; if it is dev-only and reviewed, add its lockfile path to `paths` in audit.ignore.local.json — see https://github.com/CodySwannGT/lisa/blob/main/docs/dependency-audit-exclusions.md\n",
+      "stderr": "",
+      "exit_code": 1,
+      "started_at": "2026-11-08T17:23:29.550Z",
+      "finished_at": "2026-11-08T17:23:29.651Z"
+    },
+    {
+      "label": "bun / version-boundary-zod-4.5.0 / registry",
+      "command": [
+        "<mise>/node/24.21.0/bin/node",
+        "<delivered>/consumer/node_modules/@codyswann/lisa/all/copy-overwrite/scripts/lisa-run-gates.mjs",
+        "--moment=push"
+      ],
+      "cwd": "<delivered>/trees/version-boundary-zod-4.5.0",
+      "env": {
+        "PATH": "<shim>:<mise>/node/24.21.0/bin:/usr/bin:/bin:/usr/sbin:/sbin:/opt/homebrew/bin",
+        "LISA_VERIFY_REPORT": "<delivered>/trees/bun-audit-report.json"
+      },
+      "stdout": "🔖 Lisa identity — surface=local · package=@codyswann/lisa@4.97.2 · registry=<delivered>/consumer/node_modules/@codyswann/lisa/all/copy-overwrite/scripts · workflow=unknown · lisa-gates.mjs=sha256:266abcb9f3ad · lisa-run-gates.mjs=sha256:8ee6487fec01\n🧹 swept 0 stale temp dirs, 0 orphaned test processes (209 ms)\n🚦 Gates at push:\n$ $npm_execpath run security:audit:lisa\n$ node scripts/lisa-audit.mjs\nGHSA-mrhx-c7xc-m3w5: vulnerable paths outside exclusion: app-dep/zod (zod@4.5.0)\n❌ High or critical vulnerabilities found in production dependencies\n   Next step: upgrade or override the named copy; if it is dev-only and reviewed, add its lockfile path to `paths` in audit.ignore.local.json — see https://github.com/CodySwannGT/lisa/blob/main/docs/dependency-audit-exclusions.md\nerror: script \"security:audit:lisa\" exited with code 1\nerror: script \"security:audit\" exited with code 1\n  FAILED     required dependency-vulnerability    bun run security:audit (exit 1) — the prover printed a failure shape dependency-vulnerability declared, so it ran and found this property wanting. That is a verdict about the code, not about the machine\n      ↳ ❌ High or critical vulnerabilities found in production dependencies\n❌ required gate FAILED: dependency-vulnerability — bun run security:audit (exit 1) — the prover printed a failure shape dependency-vulnerability declared, so it ran and found this property wanting. That is a verdict about the code, not about the machine\n",
+      "stderr": "",
+      "exit_code": 1,
+      "started_at": "2026-11-08T17:23:29.651Z",
+      "finished_at": "2026-11-08T17:23:30.050Z"
+    },
+    {
+      "label": "bun / version-boundary-zod-4.5.0 / adapter",
+      "command": [
+        "<mise>/node/24.21.0/bin/node",
+        "scripts/lisa-audit.mjs",
+        "--manager",
+        "bun"
+      ],
+      "cwd": "<delivered>/trees/version-boundary-zod-4.5.0",
+      "env": {
+        "PATH": "<shim>:<mise>/node/24.21.0/bin:/usr/bin:/bin:/usr/sbin:/sbin:/opt/homebrew/bin",
+        "LISA_VERIFY_REPORT": "<delivered>/trees/bun-audit-report.json"
+      },
+      "stdout": "GHSA-mrhx-c7xc-m3w5: vulnerable paths outside exclusion: app-dep/zod (zod@4.5.0)\n❌ High or critical vulnerabilities found in production dependencies\n   Next step: upgrade or override the named copy; if it is dev-only and reviewed, add its lockfile path to `paths` in audit.ignore.local.json — see https://github.com/CodySwannGT/lisa/blob/main/docs/dependency-audit-exclusions.md\n",
+      "stderr": "",
+      "exit_code": 1,
+      "started_at": "2026-11-08T17:23:30.050Z",
+      "finished_at": "2026-11-08T17:23:30.105Z"
+    },
+    {
+      "label": "bun / version-boundary-zod-4.5.0 / helper",
+      "command": [
+        "<mise>/node/24.21.0/bin/node",
+        "<verifier-bin>/helper-pm.mjs",
+        "<delivered>/trees/version-boundary-zod-4.5.0",
+        "<delivered>/consumer/node_modules/@codyswann/lisa",
+        "bun"
+      ],
+      "cwd": "<delivered>/trees/version-boundary-zod-4.5.0",
+      "env": {
+        "PATH": "<shim>:<mise>/node/24.21.0/bin:/usr/bin:/bin:/usr/sbin:/sbin:/opt/homebrew/bin",
+        "LISA_VERIFY_REPORT": "<delivered>/trees/bun-audit-report.json"
+      },
+      "stdout": "[helper] resolved @codyswann/lisa/audit -> <package>/dist/core/audit.js\nGHSA-mrhx-c7xc-m3w5: vulnerable paths outside exclusion: app-dep/zod (zod@4.5.0)\n[helper] passed=false\n",
+      "stderr": "",
+      "exit_code": 1,
+      "started_at": "2026-11-08T17:23:30.105Z",
+      "finished_at": "2026-11-08T17:23:30.162Z"
+    },
+    {
+      "label": "bun / version-boundary-zod-4.5.0 / ci",
+      "command": [
+        "<mise>/node/24.21.0/bin/node",
+        "<delivered>/source/.github/actions/dependency-audit/run.mjs"
+      ],
+      "cwd": "<delivered>/trees/version-boundary-zod-4.5.0",
+      "env": {
+        "PATH": "<shim>:<mise>/node/24.21.0/bin:/usr/bin:/bin:/usr/sbin:/sbin:/opt/homebrew/bin",
+        "LISA_VERIFY_REPORT": "<delivered>/trees/bun-audit-report.json",
+        "GITHUB_WORKSPACE": "<delivered>/trees/version-boundary-zod-4.5.0",
+        "LISA_AUDIT_ACTION_MANAGER": "bun",
+        "LISA_AUDIT_ACTION_DIRECTORY": "."
+      },
+      "stdout": "GHSA-mrhx-c7xc-m3w5: vulnerable paths outside exclusion: app-dep/zod (zod@4.5.0)\n❌ High or critical vulnerabilities found in production dependencies\n   Next step: upgrade or override the named copy; if it is dev-only and reviewed, add its lockfile path to `paths` in audit.ignore.local.json — see https://github.com/CodySwannGT/lisa/blob/main/docs/dependency-audit-exclusions.md\n",
+      "stderr": "",
+      "exit_code": 1,
+      "started_at": "2026-11-08T17:23:30.162Z",
+      "finished_at": "2026-11-08T17:23:30.236Z"
+    },
+    {
+      "label": "bun / npm-alias / pre-push",
+      "command": [
+        "/bin/sh",
+        "<delivered>/prepush-audit-harness.sh"
+      ],
+      "cwd": "<delivered>/trees/npm-alias",
+      "env": {
+        "PATH": "<shim>:<mise>/node/24.21.0/bin:/usr/bin:/bin:/usr/sbin:/sbin:/opt/homebrew/bin",
+        "LISA_VERIFY_REPORT": "<delivered>/trees/bun-audit-report.json",
+        "PACKAGE_MANAGER": "bun"
+      },
+      "stdout": "🔒 Running security audit...\nGHSA-mrhx-c7xc-m3w5: vulnerable paths outside exclusion: schema-alias (zod@3.25.76)\n❌ High or critical vulnerabilities found in production dependencies\n   Next step: upgrade or override the named copy; if it is dev-only and reviewed, add its lockfile path to `paths` in audit.ignore.local.json — see https://github.com/CodySwannGT/lisa/blob/main/docs/dependency-audit-exclusions.md\n",
+      "stderr": "",
+      "exit_code": 1,
+      "started_at": "2026-11-08T17:23:30.236Z",
+      "finished_at": "2026-11-08T17:23:30.308Z"
+    },
+    {
+      "label": "bun / npm-alias / registry",
+      "command": [
+        "<mise>/node/24.21.0/bin/node",
+        "<delivered>/consumer/node_modules/@codyswann/lisa/all/copy-overwrite/scripts/lisa-run-gates.mjs",
+        "--moment=push"
+      ],
+      "cwd": "<delivered>/trees/npm-alias",
+      "env": {
+        "PATH": "<shim>:<mise>/node/24.21.0/bin:/usr/bin:/bin:/usr/sbin:/sbin:/opt/homebrew/bin",
+        "LISA_VERIFY_REPORT": "<delivered>/trees/bun-audit-report.json"
+      },
+      "stdout": "🔖 Lisa identity — surface=local · package=@codyswann/lisa@4.97.2 · registry=<delivered>/consumer/node_modules/@codyswann/lisa/all/copy-overwrite/scripts · workflow=unknown · lisa-gates.mjs=sha256:266abcb9f3ad · lisa-run-gates.mjs=sha256:8ee6487fec01\n🧹 swept 0 stale temp dirs, 0 orphaned test processes (152 ms)\n🚦 Gates at push:\n$ $npm_execpath run security:audit:lisa\n$ node scripts/lisa-audit.mjs\nGHSA-mrhx-c7xc-m3w5: vulnerable paths outside exclusion: schema-alias (zod@3.25.76)\n❌ High or critical vulnerabilities found in production dependencies\n   Next step: upgrade or override the named copy; if it is dev-only and reviewed, add its lockfile path to `paths` in audit.ignore.local.json — see https://github.com/CodySwannGT/lisa/blob/main/docs/dependency-audit-exclusions.md\nerror: script \"security:audit:lisa\" exited with code 1\nerror: script \"security:audit\" exited with code 1\n  FAILED     required dependency-vulnerability    bun run security:audit (exit 1) — the prover printed a failure shape dependency-vulnerability declared, so it ran and found this property wanting. That is a verdict about the code, not about the machine\n      ↳ ❌ High or critical vulnerabilities found in production dependencies\n❌ required gate FAILED: dependency-vulnerability — bun run security:audit (exit 1) — the prover printed a failure shape dependency-vulnerability declared, so it ran and found this property wanting. That is a verdict about the code, not about the machine\n",
+      "stderr": "",
+      "exit_code": 1,
+      "started_at": "2026-11-08T17:23:30.308Z",
+      "finished_at": "2026-11-08T17:23:30.641Z"
+    },
+    {
+      "label": "bun / npm-alias / adapter",
+      "command": [
+        "<mise>/node/24.21.0/bin/node",
+        "scripts/lisa-audit.mjs",
+        "--manager",
+        "bun"
+      ],
+      "cwd": "<delivered>/trees/npm-alias",
+      "env": {
+        "PATH": "<shim>:<mise>/node/24.21.0/bin:/usr/bin:/bin:/usr/sbin:/sbin:/opt/homebrew/bin",
+        "LISA_VERIFY_REPORT": "<delivered>/trees/bun-audit-report.json"
+      },
+      "stdout": "GHSA-mrhx-c7xc-m3w5: vulnerable paths outside exclusion: schema-alias (zod@3.25.76)\n❌ High or critical vulnerabilities found in production dependencies\n   Next step: upgrade or override the named copy; if it is dev-only and reviewed, add its lockfile path to `paths` in audit.ignore.local.json — see https://github.com/CodySwannGT/lisa/blob/main/docs/dependency-audit-exclusions.md\n",
+      "stderr": "",
+      "exit_code": 1,
+      "started_at": "2026-11-08T17:23:30.641Z",
+      "finished_at": "2026-11-08T17:23:30.699Z"
+    },
+    {
+      "label": "bun / npm-alias / helper",
+      "command": [
+        "<mise>/node/24.21.0/bin/node",
+        "<verifier-bin>/helper-pm.mjs",
+        "<delivered>/trees/npm-alias",
+        "<delivered>/consumer/node_modules/@codyswann/lisa",
+        "bun"
+      ],
+      "cwd": "<delivered>/trees/npm-alias",
+      "env": {
+        "PATH": "<shim>:<mise>/node/24.21.0/bin:/usr/bin:/bin:/usr/sbin:/sbin:/opt/homebrew/bin",
+        "LISA_VERIFY_REPORT": "<delivered>/trees/bun-audit-report.json"
+      },
+      "stdout": "[helper] resolved @codyswann/lisa/audit -> <package>/dist/core/audit.js\nGHSA-mrhx-c7xc-m3w5: vulnerable paths outside exclusion: schema-alias (zod@3.25.76)\n[helper] passed=false\n",
+      "stderr": "",
+      "exit_code": 1,
+      "started_at": "2026-11-08T17:23:30.699Z",
+      "finished_at": "2026-11-08T17:23:30.773Z"
+    },
+    {
+      "label": "bun / npm-alias / ci",
+      "command": [
+        "<mise>/node/24.21.0/bin/node",
+        "<delivered>/source/.github/actions/dependency-audit/run.mjs"
+      ],
+      "cwd": "<delivered>/trees/npm-alias",
+      "env": {
+        "PATH": "<shim>:<mise>/node/24.21.0/bin:/usr/bin:/bin:/usr/sbin:/sbin:/opt/homebrew/bin",
+        "LISA_VERIFY_REPORT": "<delivered>/trees/bun-audit-report.json",
+        "GITHUB_WORKSPACE": "<delivered>/trees/npm-alias",
+        "LISA_AUDIT_ACTION_MANAGER": "bun",
+        "LISA_AUDIT_ACTION_DIRECTORY": "."
+      },
+      "stdout": "GHSA-mrhx-c7xc-m3w5: vulnerable paths outside exclusion: schema-alias (zod@3.25.76)\n❌ High or critical vulnerabilities found in production dependencies\n   Next step: upgrade or override the named copy; if it is dev-only and reviewed, add its lockfile path to `paths` in audit.ignore.local.json — see https://github.com/CodySwannGT/lisa/blob/main/docs/dependency-audit-exclusions.md\n",
+      "stderr": "",
+      "exit_code": 1,
+      "started_at": "2026-11-08T17:23:30.773Z",
+      "finished_at": "2026-11-08T17:23:30.849Z"
+    },
+    {
+      "label": "bun / package-mismatch / pre-push",
+      "command": [
+        "/bin/sh",
+        "<delivered>/prepush-audit-harness.sh"
+      ],
+      "cwd": "<delivered>/trees/package-mismatch",
+      "env": {
+        "PATH": "<shim>:<mise>/node/24.21.0/bin:/usr/bin:/bin:/usr/sbin:/sbin:/opt/homebrew/bin",
+        "LISA_VERIFY_REPORT": "<delivered>/trees/bun-audit-report.json",
+        "PACKAGE_MANAGER": "bun"
+      },
+      "stdout": "🔒 Running security audit...\nGHSA-mrhx-c7xc-m3w5: package zod is outside exclusion package other-lib\n❌ High or critical vulnerabilities found in production dependencies\n   Next step: upgrade or override the named copy; if it is dev-only and reviewed, add its lockfile path to `paths` in audit.ignore.local.json — see https://github.com/CodySwannGT/lisa/blob/main/docs/dependency-audit-exclusions.md\n",
+      "stderr": "",
+      "exit_code": 1,
+      "started_at": "2026-11-08T17:23:30.849Z",
+      "finished_at": "2026-11-08T17:23:30.919Z"
+    },
+    {
+      "label": "bun / package-mismatch / registry",
+      "command": [
+        "<mise>/node/24.21.0/bin/node",
+        "<delivered>/consumer/node_modules/@codyswann/lisa/all/copy-overwrite/scripts/lisa-run-gates.mjs",
+        "--moment=push"
+      ],
+      "cwd": "<delivered>/trees/package-mismatch",
+      "env": {
+        "PATH": "<shim>:<mise>/node/24.21.0/bin:/usr/bin:/bin:/usr/sbin:/sbin:/opt/homebrew/bin",
+        "LISA_VERIFY_REPORT": "<delivered>/trees/bun-audit-report.json"
+      },
+      "stdout": "🔖 Lisa identity — surface=local · package=@codyswann/lisa@4.97.2 · registry=<delivered>/consumer/node_modules/@codyswann/lisa/all/copy-overwrite/scripts · workflow=unknown · lisa-gates.mjs=sha256:266abcb9f3ad · lisa-run-gates.mjs=sha256:8ee6487fec01\n🧹 swept 0 stale temp dirs, 0 orphaned test processes (131 ms)\n🚦 Gates at push:\n$ $npm_execpath run security:audit:lisa\n$ node scripts/lisa-audit.mjs\nGHSA-mrhx-c7xc-m3w5: package zod is outside exclusion package other-lib\n❌ High or critical vulnerabilities found in production dependencies\n   Next step: upgrade or override the named copy; if it is dev-only and reviewed, add its lockfile path to `paths` in audit.ignore.local.json — see https://github.com/CodySwannGT/lisa/blob/main/docs/dependency-audit-exclusions.md\nerror: script \"security:audit:lisa\" exited with code 1\nerror: script \"security:audit\" exited with code 1\n  FAILED     required dependency-vulnerability    bun run security:audit (exit 1) — the prover printed a failure shape dependency-vulnerability declared, so it ran and found this property wanting. That is a verdict about the code, not about the machine\n      ↳ ❌ High or critical vulnerabilities found in production dependencies\n❌ required gate FAILED: dependency-vulnerability — bun run security:audit (exit 1) — the prover printed a failure shape dependency-vulnerability declared, so it ran and found this property wanting. That is a verdict about the code, not about the machine\n",
+      "stderr": "",
+      "exit_code": 1,
+      "started_at": "2026-11-08T17:23:30.919Z",
+      "finished_at": "2026-11-08T17:23:31.221Z"
+    },
+    {
+      "label": "bun / package-mismatch / adapter",
+      "command": [
+        "<mise>/node/24.21.0/bin/node",
+        "scripts/lisa-audit.mjs",
+        "--manager",
+        "bun"
+      ],
+      "cwd": "<delivered>/trees/package-mismatch",
+      "env": {
+        "PATH": "<shim>:<mise>/node/24.21.0/bin:/usr/bin:/bin:/usr/sbin:/sbin:/opt/homebrew/bin",
+        "LISA_VERIFY_REPORT": "<delivered>/trees/bun-audit-report.json"
+      },
+      "stdout": "GHSA-mrhx-c7xc-m3w5: package zod is outside exclusion package other-lib\n❌ High or critical vulnerabilities found in production dependencies\n   Next step: upgrade or override the named copy; if it is dev-only and reviewed, add its lockfile path to `paths` in audit.ignore.local.json — see https://github.com/CodySwannGT/lisa/blob/main/docs/dependency-audit-exclusions.md\n",
+      "stderr": "",
+      "exit_code": 1,
+      "started_at": "2026-11-08T17:23:31.221Z",
+      "finished_at": "2026-11-08T17:23:31.275Z"
+    },
+    {
+      "label": "bun / package-mismatch / helper",
+      "command": [
+        "<mise>/node/24.21.0/bin/node",
+        "<verifier-bin>/helper-pm.mjs",
+        "<delivered>/trees/package-mismatch",
+        "<delivered>/consumer/node_modules/@codyswann/lisa",
+        "bun"
+      ],
+      "cwd": "<delivered>/trees/package-mismatch",
+      "env": {
+        "PATH": "<shim>:<mise>/node/24.21.0/bin:/usr/bin:/bin:/usr/sbin:/sbin:/opt/homebrew/bin",
+        "LISA_VERIFY_REPORT": "<delivered>/trees/bun-audit-report.json"
+      },
+      "stdout": "[helper] resolved @codyswann/lisa/audit -> <package>/dist/core/audit.js\nGHSA-mrhx-c7xc-m3w5: package zod is outside exclusion package other-lib\n[helper] passed=false\n",
+      "stderr": "",
+      "exit_code": 1,
+      "started_at": "2026-11-08T17:23:31.275Z",
+      "finished_at": "2026-11-08T17:23:31.337Z"
+    },
+    {
+      "label": "bun / package-mismatch / ci",
+      "command": [
+        "<mise>/node/24.21.0/bin/node",
+        "<delivered>/source/.github/actions/dependency-audit/run.mjs"
+      ],
+      "cwd": "<delivered>/trees/package-mismatch",
+      "env": {
+        "PATH": "<shim>:<mise>/node/24.21.0/bin:/usr/bin:/bin:/usr/sbin:/sbin:/opt/homebrew/bin",
+        "LISA_VERIFY_REPORT": "<delivered>/trees/bun-audit-report.json",
+        "GITHUB_WORKSPACE": "<delivered>/trees/package-mismatch",
+        "LISA_AUDIT_ACTION_MANAGER": "bun",
+        "LISA_AUDIT_ACTION_DIRECTORY": "."
+      },
+      "stdout": "GHSA-mrhx-c7xc-m3w5: package zod is outside exclusion package other-lib\n❌ High or critical vulnerabilities found in production dependencies\n   Next step: upgrade or override the named copy; if it is dev-only and reviewed, add its lockfile path to `paths` in audit.ignore.local.json — see https://github.com/CodySwannGT/lisa/blob/main/docs/dependency-audit-exclusions.md\n",
+      "stderr": "",
+      "exit_code": 1,
+      "started_at": "2026-11-08T17:23:31.337Z",
+      "finished_at": "2026-11-08T17:23:31.411Z"
+    },
+    {
+      "label": "bun / empty-paths / pre-push",
+      "command": [
+        "/bin/sh",
+        "<delivered>/prepush-audit-harness.sh"
+      ],
+      "cwd": "<delivered>/trees/empty-paths",
+      "env": {
+        "PATH": "<shim>:<mise>/node/24.21.0/bin:/usr/bin:/bin:/usr/sbin:/sbin:/opt/homebrew/bin",
+        "LISA_VERIFY_REPORT": "<delivered>/trees/bun-audit-report.json",
+        "PACKAGE_MANAGER": "bun"
+      },
+      "stdout": "🔒 Running security audit...\n",
+      "stderr": "❌ Security audit configuration invalid: audit.ignore.local.json: GHSA-mrhx-c7xc-m3w5: paths must be a non-empty array of lockfile key paths\n",
+      "exit_code": 1,
+      "started_at": "2026-11-08T17:23:31.411Z",
+      "finished_at": "2026-11-08T17:23:31.478Z"
+    },
+    {
+      "label": "bun / empty-paths / registry",
+      "command": [
+        "<mise>/node/24.21.0/bin/node",
+        "<delivered>/consumer/node_modules/@codyswann/lisa/all/copy-overwrite/scripts/lisa-run-gates.mjs",
+        "--moment=push"
+      ],
+      "cwd": "<delivered>/trees/empty-paths",
+      "env": {
+        "PATH": "<shim>:<mise>/node/24.21.0/bin:/usr/bin:/bin:/usr/sbin:/sbin:/opt/homebrew/bin",
+        "LISA_VERIFY_REPORT": "<delivered>/trees/bun-audit-report.json"
+      },
+      "stdout": "🔖 Lisa identity — surface=local · package=@codyswann/lisa@4.97.2 · registry=<delivered>/consumer/node_modules/@codyswann/lisa/all/copy-overwrite/scripts · workflow=unknown · lisa-gates.mjs=sha256:266abcb9f3ad · lisa-run-gates.mjs=sha256:8ee6487fec01\n🧹 swept 0 stale temp dirs, 0 orphaned test processes (135 ms)\n🚦 Gates at push:\n$ $npm_execpath run security:audit:lisa\n$ node scripts/lisa-audit.mjs\n❌ Security audit configuration invalid: audit.ignore.local.json: GHSA-mrhx-c7xc-m3w5: paths must be a non-empty array of lockfile key paths\nerror: script \"security:audit:lisa\" exited with code 1\nerror: script \"security:audit\" exited with code 1\n  FAILED     required dependency-vulnerability    bun run security:audit (exit 1) — the prover printed a failure shape dependency-vulnerability declared, so it ran and found this property wanting. That is a verdict about the code, not about the machine\n      ↳ ❌ Security audit configuration invalid: audit.ignore.local.json: GHSA-mrhx-c7xc-m3w5: paths must be a non-empty array of lockfile key paths\n❌ required gate FAILED: dependency-vulnerability — bun run security:audit (exit 1) — the prover printed a failure shape dependency-vulnerability declared, so it ran and found this property wanting. That is a verdict about the code, not about the machine\n",
+      "stderr": "",
+      "exit_code": 1,
+      "started_at": "2026-11-08T17:23:31.478Z",
+      "finished_at": "2026-11-08T17:23:31.778Z"
+    },
+    {
+      "label": "bun / empty-paths / adapter",
+      "command": [
+        "<mise>/node/24.21.0/bin/node",
+        "scripts/lisa-audit.mjs",
+        "--manager",
+        "bun"
+      ],
+      "cwd": "<delivered>/trees/empty-paths",
+      "env": {
+        "PATH": "<shim>:<mise>/node/24.21.0/bin:/usr/bin:/bin:/usr/sbin:/sbin:/opt/homebrew/bin",
+        "LISA_VERIFY_REPORT": "<delivered>/trees/bun-audit-report.json"
+      },
+      "stdout": "",
+      "stderr": "❌ Security audit configuration invalid: audit.ignore.local.json: GHSA-mrhx-c7xc-m3w5: paths must be a non-empty array of lockfile key paths\n",
+      "exit_code": 1,
+      "started_at": "2026-11-08T17:23:31.778Z",
+      "finished_at": "2026-11-08T17:23:31.825Z"
+    },
+    {
+      "label": "bun / empty-paths / helper",
+      "command": [
+        "<mise>/node/24.21.0/bin/node",
+        "<verifier-bin>/helper-pm.mjs",
+        "<delivered>/trees/empty-paths",
+        "<delivered>/consumer/node_modules/@codyswann/lisa",
+        "bun"
+      ],
+      "cwd": "<delivered>/trees/empty-paths",
+      "env": {
+        "PATH": "<shim>:<mise>/node/24.21.0/bin:/usr/bin:/bin:/usr/sbin:/sbin:/opt/homebrew/bin",
+        "LISA_VERIFY_REPORT": "<delivered>/trees/bun-audit-report.json"
+      },
+      "stdout": "[helper] resolved @codyswann/lisa/audit -> <package>/dist/core/audit.js\n",
+      "stderr": "[helper] failed closed: audit.ignore.local.json: GHSA-mrhx-c7xc-m3w5: paths must be a non-empty array of lockfile key paths\n",
+      "exit_code": 1,
+      "started_at": "2026-11-08T17:23:31.825Z",
+      "finished_at": "2026-11-08T17:23:31.874Z"
+    },
+    {
+      "label": "bun / empty-paths / ci",
+      "command": [
+        "<mise>/node/24.21.0/bin/node",
+        "<delivered>/source/.github/actions/dependency-audit/run.mjs"
+      ],
+      "cwd": "<delivered>/trees/empty-paths",
+      "env": {
+        "PATH": "<shim>:<mise>/node/24.21.0/bin:/usr/bin:/bin:/usr/sbin:/sbin:/opt/homebrew/bin",
+        "LISA_VERIFY_REPORT": "<delivered>/trees/bun-audit-report.json",
+        "GITHUB_WORKSPACE": "<delivered>/trees/empty-paths",
+        "LISA_AUDIT_ACTION_MANAGER": "bun",
+        "LISA_AUDIT_ACTION_DIRECTORY": "."
+      },
+      "stdout": "",
+      "stderr": "❌ Security audit configuration invalid: audit.ignore.local.json: GHSA-mrhx-c7xc-m3w5: paths must be a non-empty array of lockfile key paths\n",
+      "exit_code": 1,
+      "started_at": "2026-11-08T17:23:31.874Z",
+      "finished_at": "2026-11-08T17:23:31.939Z"
+    },
+    {
+      "label": "bun / missing-lockfile / pre-push",
+      "command": [
+        "/bin/sh",
+        "<delivered>/prepush-audit-harness.sh"
+      ],
+      "cwd": "<delivered>/trees/missing-lockfile",
+      "env": {
+        "PATH": "<shim>:<mise>/node/24.21.0/bin:/usr/bin:/bin:/usr/sbin:/sbin:/opt/homebrew/bin",
+        "LISA_VERIFY_REPORT": "<delivered>/trees/bun-audit-report.json",
+        "PACKAGE_MANAGER": "bun"
+      },
+      "stdout": "🔒 Running security audit...\n",
+      "stderr": "❌ Security audit configuration invalid: Cannot evaluate scoped audit exclusions from bun.lock: ENOENT: no such file or directory, open '<delivered>/trees/missing-lockfile/bun.lock'\n",
+      "exit_code": 1,
+      "started_at": "2026-11-08T17:23:31.939Z",
+      "finished_at": "2026-11-08T17:23:32.008Z"
+    },
+    {
+      "label": "bun / missing-lockfile / registry",
+      "command": [
+        "<mise>/node/24.21.0/bin/node",
+        "<delivered>/consumer/node_modules/@codyswann/lisa/all/copy-overwrite/scripts/lisa-run-gates.mjs",
+        "--moment=push"
+      ],
+      "cwd": "<delivered>/trees/missing-lockfile",
+      "env": {
+        "PATH": "<shim>:<mise>/node/24.21.0/bin:/usr/bin:/bin:/usr/sbin:/sbin:/opt/homebrew/bin",
+        "LISA_VERIFY_REPORT": "<delivered>/trees/bun-audit-report.json"
+      },
+      "stdout": "🔖 Lisa identity — surface=local · package=@codyswann/lisa@4.97.2 · registry=<delivered>/consumer/node_modules/@codyswann/lisa/all/copy-overwrite/scripts · workflow=unknown · lisa-gates.mjs=sha256:266abcb9f3ad · lisa-run-gates.mjs=sha256:8ee6487fec01\n🧹 swept 0 stale temp dirs, 0 orphaned test processes (140 ms)\n🚦 Gates at push:\n$ $npm_execpath run security:audit:lisa\n$ node scripts/lisa-audit.mjs\n❌ Security audit configuration invalid: No supported audit lockfile found (bun.lock, package-lock.json or yarn.lock)\nerror: script \"security:audit:lisa\" exited with code 1\nerror: script \"security:audit\" exited with code 1\n  FAILED     required dependency-vulnerability    bun run security:audit (exit 1) — the prover printed a failure shape dependency-vulnerability declared, so it ran and found this property wanting. That is a verdict about the code, not about the machine\n      ↳ ❌ Security audit configuration invalid: No supported audit lockfile found (bun.lock, package-lock.json or yarn.lock)\n❌ required gate FAILED: dependency-vulnerability — bun run security:audit (exit 1) — the prover printed a failure shape dependency-vulnerability declared, so it ran and found this property wanting. That is a verdict about the code, not about the machine\n",
+      "stderr": "",
+      "exit_code": 1,
+      "started_at": "2026-11-08T17:23:32.008Z",
+      "finished_at": "2026-11-08T17:23:32.325Z"
+    },
+    {
+      "label": "bun / missing-lockfile / adapter",
+      "command": [
+        "<mise>/node/24.21.0/bin/node",
+        "scripts/lisa-audit.mjs",
+        "--manager",
+        "bun"
+      ],
+      "cwd": "<delivered>/trees/missing-lockfile",
+      "env": {
+        "PATH": "<shim>:<mise>/node/24.21.0/bin:/usr/bin:/bin:/usr/sbin:/sbin:/opt/homebrew/bin",
+        "LISA_VERIFY_REPORT": "<delivered>/trees/bun-audit-report.json"
+      },
+      "stdout": "",
+      "stderr": "❌ Security audit configuration invalid: Cannot evaluate scoped audit exclusions from bun.lock: ENOENT: no such file or directory, open '<delivered>/trees/missing-lockfile/bun.lock'\n",
+      "exit_code": 1,
+      "started_at": "2026-11-08T17:23:32.325Z",
+      "finished_at": "2026-11-08T17:23:32.373Z"
+    },
+    {
+      "label": "bun / missing-lockfile / helper",
+      "command": [
+        "<mise>/node/24.21.0/bin/node",
+        "<verifier-bin>/helper-pm.mjs",
+        "<delivered>/trees/missing-lockfile",
+        "<delivered>/consumer/node_modules/@codyswann/lisa",
+        "bun"
+      ],
+      "cwd": "<delivered>/trees/missing-lockfile",
+      "env": {
+        "PATH": "<shim>:<mise>/node/24.21.0/bin:/usr/bin:/bin:/usr/sbin:/sbin:/opt/homebrew/bin",
+        "LISA_VERIFY_REPORT": "<delivered>/trees/bun-audit-report.json"
+      },
+      "stdout": "[helper] resolved @codyswann/lisa/audit -> <package>/dist/core/audit.js\n",
+      "stderr": "[helper] failed closed: Cannot evaluate scoped audit exclusions from bun.lock: ENOENT: no such file or directory, open '<delivered>/trees/missing-lockfile/bun.lock'\n",
+      "exit_code": 1,
+      "started_at": "2026-11-08T17:23:32.373Z",
+      "finished_at": "2026-11-08T17:23:32.422Z"
+    },
+    {
+      "label": "bun / missing-lockfile / ci",
+      "command": [
+        "<mise>/node/24.21.0/bin/node",
+        "<delivered>/source/.github/actions/dependency-audit/run.mjs"
+      ],
+      "cwd": "<delivered>/trees/missing-lockfile",
+      "env": {
+        "PATH": "<shim>:<mise>/node/24.21.0/bin:/usr/bin:/bin:/usr/sbin:/sbin:/opt/homebrew/bin",
+        "LISA_VERIFY_REPORT": "<delivered>/trees/bun-audit-report.json",
+        "GITHUB_WORKSPACE": "<delivered>/trees/missing-lockfile",
+        "LISA_AUDIT_ACTION_MANAGER": "bun",
+        "LISA_AUDIT_ACTION_DIRECTORY": "."
+      },
+      "stdout": "",
+      "stderr": "❌ Security audit configuration invalid: Cannot evaluate scoped audit exclusions from bun.lock: ENOENT: no such file or directory, open '<delivered>/trees/missing-lockfile/bun.lock'\n",
+      "exit_code": 1,
+      "started_at": "2026-11-08T17:23:32.422Z",
+      "finished_at": "2026-11-08T17:23:32.486Z"
+    },
+    {
+      "label": "bun / garbage-lockfile / pre-push",
+      "command": [
+        "/bin/sh",
+        "<delivered>/prepush-audit-harness.sh"
+      ],
+      "cwd": "<delivered>/trees/garbage-lockfile",
+      "env": {
+        "PATH": "<shim>:<mise>/node/24.21.0/bin:/usr/bin:/bin:/usr/sbin:/sbin:/opt/homebrew/bin",
+        "LISA_VERIFY_REPORT": "<delivered>/trees/bun-audit-report.json",
+        "PACKAGE_MANAGER": "bun"
+      },
+      "stdout": "🔒 Running security audit...\n",
+      "stderr": "❌ Security audit configuration invalid: Cannot evaluate scoped audit exclusions from bun.lock: Cannot parse bun.lock packages map (expected text JSONC)\n",
+      "exit_code": 1,
+      "started_at": "2026-11-08T17:23:32.486Z",
+      "finished_at": "2026-11-08T17:23:32.556Z"
+    },
+    {
+      "label": "bun / garbage-lockfile / registry",
+      "command": [
+        "<mise>/node/24.21.0/bin/node",
+        "<delivered>/consumer/node_modules/@codyswann/lisa/all/copy-overwrite/scripts/lisa-run-gates.mjs",
+        "--moment=push"
+      ],
+      "cwd": "<delivered>/trees/garbage-lockfile",
+      "env": {
+        "PATH": "<shim>:<mise>/node/24.21.0/bin:/usr/bin:/bin:/usr/sbin:/sbin:/opt/homebrew/bin",
+        "LISA_VERIFY_REPORT": "<delivered>/trees/bun-audit-report.json"
+      },
+      "stdout": "🔖 Lisa identity — surface=local · package=@codyswann/lisa@4.97.2 · registry=<delivered>/consumer/node_modules/@codyswann/lisa/all/copy-overwrite/scripts · workflow=unknown · lisa-gates.mjs=sha256:266abcb9f3ad · lisa-run-gates.mjs=sha256:8ee6487fec01\n🧹 swept 0 stale temp dirs, 0 orphaned test processes (165 ms)\n🚦 Gates at push:\n$ $npm_execpath run security:audit:lisa\n$ node scripts/lisa-audit.mjs\n❌ Security audit configuration invalid: Cannot evaluate scoped audit exclusions from bun.lock: Cannot parse bun.lock packages map (expected text JSONC)\nerror: script \"security:audit:lisa\" exited with code 1\nerror: script \"security:audit\" exited with code 1\n  FAILED     required dependency-vulnerability    bun run security:audit (exit 1) — the prover printed a failure shape dependency-vulnerability declared, so it ran and found this property wanting. That is a verdict about the code, not about the machine\n      ↳ ❌ Security audit configuration invalid: Cannot evaluate scoped audit exclusions from bun.lock: Cannot parse bun.lock packages map (expected text JSONC)\n❌ required gate FAILED: dependency-vulnerability — bun run security:audit (exit 1) — the prover printed a failure shape dependency-vulnerability declared, so it ran and found this property wanting. That is a verdict about the code, not about the machine\n",
+      "stderr": "",
+      "exit_code": 1,
+      "started_at": "2026-11-08T17:23:32.556Z",
+      "finished_at": "2026-11-08T17:23:32.900Z"
+    },
+    {
+      "label": "bun / garbage-lockfile / adapter",
+      "command": [
+        "<mise>/node/24.21.0/bin/node",
+        "scripts/lisa-audit.mjs",
+        "--manager",
+        "bun"
+      ],
+      "cwd": "<delivered>/trees/garbage-lockfile",
+      "env": {
+        "PATH": "<shim>:<mise>/node/24.21.0/bin:/usr/bin:/bin:/usr/sbin:/sbin:/opt/homebrew/bin",
+        "LISA_VERIFY_REPORT": "<delivered>/trees/bun-audit-report.json"
+      },
+      "stdout": "",
+      "stderr": "❌ Security audit configuration invalid: Cannot evaluate scoped audit exclusions from bun.lock: Cannot parse bun.lock packages map (expected text JSONC)\n",
+      "exit_code": 1,
+      "started_at": "2026-11-08T17:23:32.900Z",
+      "finished_at": "2026-11-08T17:23:32.953Z"
+    },
+    {
+      "label": "bun / garbage-lockfile / helper",
+      "command": [
+        "<mise>/node/24.21.0/bin/node",
+        "<verifier-bin>/helper-pm.mjs",
+        "<delivered>/trees/garbage-lockfile",
+        "<delivered>/consumer/node_modules/@codyswann/lisa",
+        "bun"
+      ],
+      "cwd": "<delivered>/trees/garbage-lockfile",
+      "env": {
+        "PATH": "<shim>:<mise>/node/24.21.0/bin:/usr/bin:/bin:/usr/sbin:/sbin:/opt/homebrew/bin",
+        "LISA_VERIFY_REPORT": "<delivered>/trees/bun-audit-report.json"
+      },
+      "stdout": "[helper] resolved @codyswann/lisa/audit -> <package>/dist/core/audit.js\n",
+      "stderr": "[helper] failed closed: Cannot evaluate scoped audit exclusions from bun.lock: Cannot parse bun.lock packages map (expected text JSONC)\n",
+      "exit_code": 1,
+      "started_at": "2026-11-08T17:23:32.953Z",
+      "finished_at": "2026-11-08T17:23:33.002Z"
+    },
+    {
+      "label": "bun / garbage-lockfile / ci",
+      "command": [
+        "<mise>/node/24.21.0/bin/node",
+        "<delivered>/source/.github/actions/dependency-audit/run.mjs"
+      ],
+      "cwd": "<delivered>/trees/garbage-lockfile",
+      "env": {
+        "PATH": "<shim>:<mise>/node/24.21.0/bin:/usr/bin:/bin:/usr/sbin:/sbin:/opt/homebrew/bin",
+        "LISA_VERIFY_REPORT": "<delivered>/trees/bun-audit-report.json",
+        "GITHUB_WORKSPACE": "<delivered>/trees/garbage-lockfile",
+        "LISA_AUDIT_ACTION_MANAGER": "bun",
+        "LISA_AUDIT_ACTION_DIRECTORY": "."
+      },
+      "stdout": "",
+      "stderr": "❌ Security audit configuration invalid: Cannot evaluate scoped audit exclusions from bun.lock: Cannot parse bun.lock packages map (expected text JSONC)\n",
+      "exit_code": 1,
+      "started_at": "2026-11-08T17:23:33.002Z",
+      "finished_at": "2026-11-08T17:23:33.068Z"
+    },
+    {
+      "label": "bun / legacy-id-only / pre-push",
+      "command": [
+        "/bin/sh",
+        "<delivered>/prepush-audit-harness.sh"
+      ],
+      "cwd": "<delivered>/trees/legacy-id-only",
+      "env": {
+        "PATH": "<shim>:<mise>/node/24.21.0/bin:/usr/bin:/bin:/usr/sbin:/sbin:/opt/homebrew/bin",
+        "LISA_VERIFY_REPORT": "<delivered>/trees/bun-audit-report.json",
+        "PACKAGE_MANAGER": "bun"
+      },
+      "stdout": "🔒 Running security audit...\n✅ No high or critical vulnerabilities found in production dependencies (excluding documented exceptions)\n",
+      "stderr": "",
+      "exit_code": 0,
+      "started_at": "2026-11-08T17:23:33.068Z",
+      "finished_at": "2026-11-08T17:23:33.138Z"
+    },
+    {
+      "label": "bun / legacy-id-only / registry",
+      "command": [
+        "<mise>/node/24.21.0/bin/node",
+        "<delivered>/consumer/node_modules/@codyswann/lisa/all/copy-overwrite/scripts/lisa-run-gates.mjs",
+        "--moment=push"
+      ],
+      "cwd": "<delivered>/trees/legacy-id-only",
+      "env": {
+        "PATH": "<shim>:<mise>/node/24.21.0/bin:/usr/bin:/bin:/usr/sbin:/sbin:/opt/homebrew/bin",
+        "LISA_VERIFY_REPORT": "<delivered>/trees/bun-audit-report.json"
+      },
+      "stdout": "🔖 Lisa identity — surface=local · package=@codyswann/lisa@4.97.2 · registry=<delivered>/consumer/node_modules/@codyswann/lisa/all/copy-overwrite/scripts · workflow=unknown · lisa-gates.mjs=sha256:266abcb9f3ad · lisa-run-gates.mjs=sha256:8ee6487fec01\n🧹 swept 0 stale temp dirs, 0 orphaned test processes (144 ms)\n🚦 Gates at push:\n$ $npm_execpath run security:audit:lisa\n$ node scripts/lisa-audit.mjs\n✅ No high or critical vulnerabilities found in production dependencies (excluding documented exceptions)\n  PASSED     required dependency-vulnerability    bun run security:audit\n✅ push: 1 proved, 0 failed (optional), 0 not proved, 0 killed, 0 not applicable here, of 1 gate(s) declared.\n",
+      "stderr": "",
+      "exit_code": 0,
+      "started_at": "2026-11-08T17:23:33.138Z",
+      "finished_at": "2026-11-08T17:23:33.455Z"
+    },
+    {
+      "label": "bun / legacy-id-only / adapter",
+      "command": [
+        "<mise>/node/24.21.0/bin/node",
+        "scripts/lisa-audit.mjs",
+        "--manager",
+        "bun"
+      ],
+      "cwd": "<delivered>/trees/legacy-id-only",
+      "env": {
+        "PATH": "<shim>:<mise>/node/24.21.0/bin:/usr/bin:/bin:/usr/sbin:/sbin:/opt/homebrew/bin",
+        "LISA_VERIFY_REPORT": "<delivered>/trees/bun-audit-report.json"
+      },
+      "stdout": "✅ No high or critical vulnerabilities found in production dependencies (excluding documented exceptions)\n",
+      "stderr": "",
+      "exit_code": 0,
+      "started_at": "2026-11-08T17:23:33.455Z",
+      "finished_at": "2026-11-08T17:23:33.511Z"
+    },
+    {
+      "label": "bun / legacy-id-only / helper",
+      "command": [
+        "<mise>/node/24.21.0/bin/node",
+        "<verifier-bin>/helper-pm.mjs",
+        "<delivered>/trees/legacy-id-only",
+        "<delivered>/consumer/node_modules/@codyswann/lisa",
+        "bun"
+      ],
+      "cwd": "<delivered>/trees/legacy-id-only",
+      "env": {
+        "PATH": "<shim>:<mise>/node/24.21.0/bin:/usr/bin:/bin:/usr/sbin:/sbin:/opt/homebrew/bin",
+        "LISA_VERIFY_REPORT": "<delivered>/trees/bun-audit-report.json"
+      },
+      "stdout": "[helper] resolved @codyswann/lisa/audit -> <package>/dist/core/audit.js\n[helper] passed=true\n",
+      "stderr": "",
+      "exit_code": 0,
+      "started_at": "2026-11-08T17:23:33.511Z",
+      "finished_at": "2026-11-08T17:23:33.564Z"
+    },
+    {
+      "label": "bun / legacy-id-only / ci",
+      "command": [
+        "<mise>/node/24.21.0/bin/node",
+        "<delivered>/source/.github/actions/dependency-audit/run.mjs"
+      ],
+      "cwd": "<delivered>/trees/legacy-id-only",
+      "env": {
+        "PATH": "<shim>:<mise>/node/24.21.0/bin:/usr/bin:/bin:/usr/sbin:/sbin:/opt/homebrew/bin",
+        "LISA_VERIFY_REPORT": "<delivered>/trees/bun-audit-report.json",
+        "GITHUB_WORKSPACE": "<delivered>/trees/legacy-id-only",
+        "LISA_AUDIT_ACTION_MANAGER": "bun",
+        "LISA_AUDIT_ACTION_DIRECTORY": "."
+      },
+      "stdout": "✅ No high or critical vulnerabilities found in production dependencies (excluding documented exceptions)\n",
+      "stderr": "",
+      "exit_code": 0,
+      "started_at": "2026-11-08T17:23:33.564Z",
+      "finished_at": "2026-11-08T17:23:33.637Z"
+    },
+    {
+      "label": "bun / misspelled-path-key / pre-push",
+      "command": [
+        "/bin/sh",
+        "<delivered>/prepush-audit-harness.sh"
+      ],
+      "cwd": "<delivered>/trees/misspelled-path-key",
+      "env": {
+        "PATH": "<shim>:<mise>/node/24.21.0/bin:/usr/bin:/bin:/usr/sbin:/sbin:/opt/homebrew/bin",
+        "LISA_VERIFY_REPORT": "<delivered>/trees/bun-audit-report.json",
+        "PACKAGE_MANAGER": "bun"
+      },
+      "stdout": "🔒 Running security audit...\n",
+      "stderr": "❌ Security audit configuration invalid: audit.ignore.local.json: GHSA-mrhx-c7xc-m3w5: unknown field \"path\" (did you mean \"paths\"?); a misspelled scope field would otherwise be ignored and excuse more copies than written, so the exclusion is rejected\n",
+      "exit_code": 1,
+      "started_at": "2026-11-08T17:23:33.637Z",
+      "finished_at": "2026-11-08T17:23:33.709Z"
+    },
+    {
+      "label": "bun / misspelled-path-key / registry",
+      "command": [
+        "<mise>/node/24.21.0/bin/node",
+        "<delivered>/consumer/node_modules/@codyswann/lisa/all/copy-overwrite/scripts/lisa-run-gates.mjs",
+        "--moment=push"
+      ],
+      "cwd": "<delivered>/trees/misspelled-path-key",
+      "env": {
+        "PATH": "<shim>:<mise>/node/24.21.0/bin:/usr/bin:/bin:/usr/sbin:/sbin:/opt/homebrew/bin",
+        "LISA_VERIFY_REPORT": "<delivered>/trees/bun-audit-report.json"
+      },
+      "stdout": "🔖 Lisa identity — surface=local · package=@codyswann/lisa@4.97.2 · registry=<delivered>/consumer/node_modules/@codyswann/lisa/all/copy-overwrite/scripts · workflow=unknown · lisa-gates.mjs=sha256:266abcb9f3ad · lisa-run-gates.mjs=sha256:8ee6487fec01\n🧹 swept 0 stale temp dirs, 0 orphaned test processes (145 ms)\n🚦 Gates at push:\n$ $npm_execpath run security:audit:lisa\n$ node scripts/lisa-audit.mjs\n❌ Security audit configuration invalid: audit.ignore.local.json: GHSA-mrhx-c7xc-m3w5: unknown field \"path\" (did you mean \"paths\"?); a misspelled scope field would otherwise be ignored and excuse more copies than written, so the exclusion is rejected\nerror: script \"security:audit:lisa\" exited with code 1\nerror: script \"security:audit\" exited with code 1\n  FAILED     required dependency-vulnerability    bun run security:audit (exit 1) — the prover printed a failure shape dependency-vulnerability declared, so it ran and found this property wanting. That is a verdict about the code, not about the machine\n      ↳ ❌ Security audit configuration invalid: audit.ignore.local.json: GHSA-mrhx-c7xc-m3w5: unknown field \"path\" (did you mean \"paths\"?); a misspelled scope field would otherwise be ignored and excuse more copies than written, so the exclusion is rejected\n❌ required gate FAILED: dependency-vulnerability — bun run security:audit (exit 1) — the prover printed a failure shape dependency-vulnerability declared, so it ran and found this property wanting. That is a verdict about the code, not about the machine\n",
+      "stderr": "",
+      "exit_code": 1,
+      "started_at": "2026-11-08T17:23:33.709Z",
+      "finished_at": "2026-11-08T17:23:34.021Z"
+    },
+    {
+      "label": "bun / misspelled-path-key / adapter",
+      "command": [
+        "<mise>/node/24.21.0/bin/node",
+        "scripts/lisa-audit.mjs",
+        "--manager",
+        "bun"
+      ],
+      "cwd": "<delivered>/trees/misspelled-path-key",
+      "env": {
+        "PATH": "<shim>:<mise>/node/24.21.0/bin:/usr/bin:/bin:/usr/sbin:/sbin:/opt/homebrew/bin",
+        "LISA_VERIFY_REPORT": "<delivered>/trees/bun-audit-report.json"
+      },
+      "stdout": "",
+      "stderr": "❌ Security audit configuration invalid: audit.ignore.local.json: GHSA-mrhx-c7xc-m3w5: unknown field \"path\" (did you mean \"paths\"?); a misspelled scope field would otherwise be ignored and excuse more copies than written, so the exclusion is rejected\n",
+      "exit_code": 1,
+      "started_at": "2026-11-08T17:23:34.021Z",
+      "finished_at": "2026-11-08T17:23:34.070Z"
+    },
+    {
+      "label": "bun / misspelled-path-key / helper",
+      "command": [
+        "<mise>/node/24.21.0/bin/node",
+        "<verifier-bin>/helper-pm.mjs",
+        "<delivered>/trees/misspelled-path-key",
+        "<delivered>/consumer/node_modules/@codyswann/lisa",
+        "bun"
+      ],
+      "cwd": "<delivered>/trees/misspelled-path-key",
+      "env": {
+        "PATH": "<shim>:<mise>/node/24.21.0/bin:/usr/bin:/bin:/usr/sbin:/sbin:/opt/homebrew/bin",
+        "LISA_VERIFY_REPORT": "<delivered>/trees/bun-audit-report.json"
+      },
+      "stdout": "[helper] resolved @codyswann/lisa/audit -> <package>/dist/core/audit.js\n",
+      "stderr": "[helper] failed closed: audit.ignore.local.json: GHSA-mrhx-c7xc-m3w5: unknown field \"path\" (did you mean \"paths\"?); a misspelled scope field would otherwise be ignored and excuse more copies than written, so the exclusion is rejected\n",
+      "exit_code": 1,
+      "started_at": "2026-11-08T17:23:34.070Z",
+      "finished_at": "2026-11-08T17:23:34.120Z"
+    },
+    {
+      "label": "bun / misspelled-path-key / ci",
+      "command": [
+        "<mise>/node/24.21.0/bin/node",
+        "<delivered>/source/.github/actions/dependency-audit/run.mjs"
+      ],
+      "cwd": "<delivered>/trees/misspelled-path-key",
+      "env": {
+        "PATH": "<shim>:<mise>/node/24.21.0/bin:/usr/bin:/bin:/usr/sbin:/sbin:/opt/homebrew/bin",
+        "LISA_VERIFY_REPORT": "<delivered>/trees/bun-audit-report.json",
+        "GITHUB_WORKSPACE": "<delivered>/trees/misspelled-path-key",
+        "LISA_AUDIT_ACTION_MANAGER": "bun",
+        "LISA_AUDIT_ACTION_DIRECTORY": "."
+      },
+      "stdout": "",
+      "stderr": "❌ Security audit configuration invalid: audit.ignore.local.json: GHSA-mrhx-c7xc-m3w5: unknown field \"path\" (did you mean \"paths\"?); a misspelled scope field would otherwise be ignored and excuse more copies than written, so the exclusion is rejected\n",
+      "exit_code": 1,
+      "started_at": "2026-11-08T17:23:34.120Z",
+      "finished_at": "2026-11-08T17:23:34.193Z"
+    },
+    {
+      "label": "bun / harmless-url-key / pre-push",
+      "command": [
+        "/bin/sh",
+        "<delivered>/prepush-audit-harness.sh"
+      ],
+      "cwd": "<delivered>/trees/harmless-url-key",
+      "env": {
+        "PATH": "<shim>:<mise>/node/24.21.0/bin:/usr/bin:/bin:/usr/sbin:/sbin:/opt/homebrew/bin",
+        "LISA_VERIFY_REPORT": "<delivered>/trees/bun-audit-report.json",
+        "PACKAGE_MANAGER": "bun"
+      },
+      "stdout": "🔒 Running security audit...\nexcluded GHSA-mrhx-c7xc-m3w5 for lint-plugin/zod (Verifier fixture: reviewed dev-only lint plugin copy)\n✅ No high or critical vulnerabilities found in production dependencies (excluding documented exceptions)\n",
+      "stderr": "",
+      "exit_code": 0,
+      "started_at": "2026-11-08T17:23:34.193Z",
+      "finished_at": "2026-11-08T17:23:34.265Z"
+    },
+    {
+      "label": "bun / harmless-url-key / registry",
+      "command": [
+        "<mise>/node/24.21.0/bin/node",
+        "<delivered>/consumer/node_modules/@codyswann/lisa/all/copy-overwrite/scripts/lisa-run-gates.mjs",
+        "--moment=push"
+      ],
+      "cwd": "<delivered>/trees/harmless-url-key",
+      "env": {
+        "PATH": "<shim>:<mise>/node/24.21.0/bin:/usr/bin:/bin:/usr/sbin:/sbin:/opt/homebrew/bin",
+        "LISA_VERIFY_REPORT": "<delivered>/trees/bun-audit-report.json"
+      },
+      "stdout": "🔖 Lisa identity — surface=local · package=@codyswann/lisa@4.97.2 · registry=<delivered>/consumer/node_modules/@codyswann/lisa/all/copy-overwrite/scripts · workflow=unknown · lisa-gates.mjs=sha256:266abcb9f3ad · lisa-run-gates.mjs=sha256:8ee6487fec01\n🧹 swept 0 stale temp dirs, 0 orphaned test processes (132 ms)\n🚦 Gates at push:\n$ $npm_execpath run security:audit:lisa\n$ node scripts/lisa-audit.mjs\nexcluded GHSA-mrhx-c7xc-m3w5 for lint-plugin/zod (Verifier fixture: reviewed dev-only lint plugin copy)\n✅ No high or critical vulnerabilities found in production dependencies (excluding documented exceptions)\n  PASSED     required dependency-vulnerability    bun run security:audit\n✅ push: 1 proved, 0 failed (optional), 0 not proved, 0 killed, 0 not applicable here, of 1 gate(s) declared.\n",
+      "stderr": "",
+      "exit_code": 0,
+      "started_at": "2026-11-08T17:23:34.265Z",
+      "finished_at": "2026-11-08T17:23:34.569Z"
+    },
+    {
+      "label": "bun / harmless-url-key / adapter",
+      "command": [
+        "<mise>/node/24.21.0/bin/node",
+        "scripts/lisa-audit.mjs",
+        "--manager",
+        "bun"
+      ],
+      "cwd": "<delivered>/trees/harmless-url-key",
+      "env": {
+        "PATH": "<shim>:<mise>/node/24.21.0/bin:/usr/bin:/bin:/usr/sbin:/sbin:/opt/homebrew/bin",
+        "LISA_VERIFY_REPORT": "<delivered>/trees/bun-audit-report.json"
+      },
+      "stdout": "excluded GHSA-mrhx-c7xc-m3w5 for lint-plugin/zod (Verifier fixture: reviewed dev-only lint plugin copy)\n✅ No high or critical vulnerabilities found in production dependencies (excluding documented exceptions)\n",
+      "stderr": "",
+      "exit_code": 0,
+      "started_at": "2026-11-08T17:23:34.569Z",
+      "finished_at": "2026-11-08T17:23:34.628Z"
+    },
+    {
+      "label": "bun / harmless-url-key / helper",
+      "command": [
+        "<mise>/node/24.21.0/bin/node",
+        "<verifier-bin>/helper-pm.mjs",
+        "<delivered>/trees/harmless-url-key",
+        "<delivered>/consumer/node_modules/@codyswann/lisa",
+        "bun"
+      ],
+      "cwd": "<delivered>/trees/harmless-url-key",
+      "env": {
+        "PATH": "<shim>:<mise>/node/24.21.0/bin:/usr/bin:/bin:/usr/sbin:/sbin:/opt/homebrew/bin",
+        "LISA_VERIFY_REPORT": "<delivered>/trees/bun-audit-report.json"
+      },
+      "stdout": "[helper] resolved @codyswann/lisa/audit -> <package>/dist/core/audit.js\nexcluded GHSA-mrhx-c7xc-m3w5 for lint-plugin/zod (Verifier fixture: reviewed dev-only lint plugin copy)\n[helper] passed=true\n",
+      "stderr": "",
+      "exit_code": 0,
+      "started_at": "2026-11-08T17:23:34.628Z",
+      "finished_at": "2026-11-08T17:23:34.684Z"
+    },
+    {
+      "label": "bun / harmless-url-key / ci",
+      "command": [
+        "<mise>/node/24.21.0/bin/node",
+        "<delivered>/source/.github/actions/dependency-audit/run.mjs"
+      ],
+      "cwd": "<delivered>/trees/harmless-url-key",
+      "env": {
+        "PATH": "<shim>:<mise>/node/24.21.0/bin:/usr/bin:/bin:/usr/sbin:/sbin:/opt/homebrew/bin",
+        "LISA_VERIFY_REPORT": "<delivered>/trees/bun-audit-report.json",
+        "GITHUB_WORKSPACE": "<delivered>/trees/harmless-url-key",
+        "LISA_AUDIT_ACTION_MANAGER": "bun",
+        "LISA_AUDIT_ACTION_DIRECTORY": "."
+      },
+      "stdout": "excluded GHSA-mrhx-c7xc-m3w5 for lint-plugin/zod (Verifier fixture: reviewed dev-only lint plugin copy)\n✅ No high or critical vulnerabilities found in production dependencies (excluding documented exceptions)\n",
+      "stderr": "",
+      "exit_code": 0,
+      "started_at": "2026-11-08T17:23:34.684Z",
+      "finished_at": "2026-11-08T17:23:34.759Z"
+    },
+    {
+      "label": "bun / managed-wide-plus-local-scoped / pre-push",
+      "command": [
+        "/bin/sh",
+        "<delivered>/prepush-audit-harness.sh"
+      ],
+      "cwd": "<delivered>/trees/managed-wide-plus-local-scoped",
+      "env": {
+        "PATH": "<shim>:<mise>/node/24.21.0/bin:/usr/bin:/bin:/usr/sbin:/sbin:/opt/homebrew/bin",
+        "LISA_VERIFY_REPORT": "<delivered>/trees/bun-audit-report.json",
+        "PACKAGE_MANAGER": "bun"
+      },
+      "stdout": "🔒 Running security audit...\nGHSA-mrhx-c7xc-m3w5: advisory-wide exclusion was not applied because a narrower paths/versions exclusion exists for zod\nGHSA-mrhx-c7xc-m3w5: vulnerable paths outside exclusion: app-dep/zod (zod@3.25.76)\n❌ High or critical vulnerabilities found in production dependencies\n   Next step: upgrade or override the named copy; if it is dev-only and reviewed, add its lockfile path to `paths` in audit.ignore.local.json — see https://github.com/CodySwannGT/lisa/blob/main/docs/dependency-audit-exclusions.md\n",
+      "stderr": "",
+      "exit_code": 1,
+      "started_at": "2026-11-08T17:23:34.759Z",
+      "finished_at": "2026-11-08T17:23:34.833Z"
+    },
+    {
+      "label": "bun / managed-wide-plus-local-scoped / registry",
+      "command": [
+        "<mise>/node/24.21.0/bin/node",
+        "<delivered>/consumer/node_modules/@codyswann/lisa/all/copy-overwrite/scripts/lisa-run-gates.mjs",
+        "--moment=push"
+      ],
+      "cwd": "<delivered>/trees/managed-wide-plus-local-scoped",
+      "env": {
+        "PATH": "<shim>:<mise>/node/24.21.0/bin:/usr/bin:/bin:/usr/sbin:/sbin:/opt/homebrew/bin",
+        "LISA_VERIFY_REPORT": "<delivered>/trees/bun-audit-report.json"
+      },
+      "stdout": "🔖 Lisa identity — surface=local · package=@codyswann/lisa@4.97.2 · registry=<delivered>/consumer/node_modules/@codyswann/lisa/all/copy-overwrite/scripts · workflow=unknown · lisa-gates.mjs=sha256:266abcb9f3ad · lisa-run-gates.mjs=sha256:8ee6487fec01\n🧹 swept 0 stale temp dirs, 0 orphaned test processes (133 ms)\n🚦 Gates at push:\n$ $npm_execpath run security:audit:lisa\n$ node scripts/lisa-audit.mjs\nGHSA-mrhx-c7xc-m3w5: advisory-wide exclusion was not applied because a narrower paths/versions exclusion exists for zod\nGHSA-mrhx-c7xc-m3w5: vulnerable paths outside exclusion: app-dep/zod (zod@3.25.76)\n❌ High or critical vulnerabilities found in production dependencies\n   Next step: upgrade or override the named copy; if it is dev-only and reviewed, add its lockfile path to `paths` in audit.ignore.local.json — see https://github.com/CodySwannGT/lisa/blob/main/docs/dependency-audit-exclusions.md\nerror: script \"security:audit:lisa\" exited with code 1\nerror: script \"security:audit\" exited with code 1\n  FAILED     required dependency-vulnerability    bun run security:audit (exit 1) — the prover printed a failure shape dependency-vulnerability declared, so it ran and found this property wanting. That is a verdict about the code, not about the machine\n      ↳ ❌ High or critical vulnerabilities found in production dependencies\n❌ required gate FAILED: dependency-vulnerability — bun run security:audit (exit 1) — the prover printed a failure shape dependency-vulnerability declared, so it ran and found this property wanting. That is a verdict about the code, not about the machine\n",
+      "stderr": "",
+      "exit_code": 1,
+      "started_at": "2026-11-08T17:23:34.833Z",
+      "finished_at": "2026-11-08T17:23:35.143Z"
+    },
+    {
+      "label": "bun / managed-wide-plus-local-scoped / adapter",
+      "command": [
+        "<mise>/node/24.21.0/bin/node",
+        "scripts/lisa-audit.mjs",
+        "--manager",
+        "bun"
+      ],
+      "cwd": "<delivered>/trees/managed-wide-plus-local-scoped",
+      "env": {
+        "PATH": "<shim>:<mise>/node/24.21.0/bin:/usr/bin:/bin:/usr/sbin:/sbin:/opt/homebrew/bin",
+        "LISA_VERIFY_REPORT": "<delivered>/trees/bun-audit-report.json"
+      },
+      "stdout": "GHSA-mrhx-c7xc-m3w5: advisory-wide exclusion was not applied because a narrower paths/versions exclusion exists for zod\nGHSA-mrhx-c7xc-m3w5: vulnerable paths outside exclusion: app-dep/zod (zod@3.25.76)\n❌ High or critical vulnerabilities found in production dependencies\n   Next step: upgrade or override the named copy; if it is dev-only and reviewed, add its lockfile path to `paths` in audit.ignore.local.json — see https://github.com/CodySwannGT/lisa/blob/main/docs/dependency-audit-exclusions.md\n",
+      "stderr": "",
+      "exit_code": 1,
+      "started_at": "2026-11-08T17:23:35.143Z",
+      "finished_at": "2026-11-08T17:23:35.201Z"
+    },
+    {
+      "label": "bun / managed-wide-plus-local-scoped / helper",
+      "command": [
+        "<mise>/node/24.21.0/bin/node",
+        "<verifier-bin>/helper-pm.mjs",
+        "<delivered>/trees/managed-wide-plus-local-scoped",
+        "<delivered>/consumer/node_modules/@codyswann/lisa",
+        "bun"
+      ],
+      "cwd": "<delivered>/trees/managed-wide-plus-local-scoped",
+      "env": {
+        "PATH": "<shim>:<mise>/node/24.21.0/bin:/usr/bin:/bin:/usr/sbin:/sbin:/opt/homebrew/bin",
+        "LISA_VERIFY_REPORT": "<delivered>/trees/bun-audit-report.json"
+      },
+      "stdout": "[helper] resolved @codyswann/lisa/audit -> <package>/dist/core/audit.js\nGHSA-mrhx-c7xc-m3w5: advisory-wide exclusion was not applied because a narrower paths/versions exclusion exists for zod\nGHSA-mrhx-c7xc-m3w5: vulnerable paths outside exclusion: app-dep/zod (zod@3.25.76)\n[helper] passed=false\n",
+      "stderr": "",
+      "exit_code": 1,
+      "started_at": "2026-11-08T17:23:35.201Z",
+      "finished_at": "2026-11-08T17:23:35.256Z"
+    },
+    {
+      "label": "bun / managed-wide-plus-local-scoped / ci",
+      "command": [
+        "<mise>/node/24.21.0/bin/node",
+        "<delivered>/source/.github/actions/dependency-audit/run.mjs"
+      ],
+      "cwd": "<delivered>/trees/managed-wide-plus-local-scoped",
+      "env": {
+        "PATH": "<shim>:<mise>/node/24.21.0/bin:/usr/bin:/bin:/usr/sbin:/sbin:/opt/homebrew/bin",
+        "LISA_VERIFY_REPORT": "<delivered>/trees/bun-audit-report.json",
+        "GITHUB_WORKSPACE": "<delivered>/trees/managed-wide-plus-local-scoped",
+        "LISA_AUDIT_ACTION_MANAGER": "bun",
+        "LISA_AUDIT_ACTION_DIRECTORY": "."
+      },
+      "stdout": "GHSA-mrhx-c7xc-m3w5: advisory-wide exclusion was not applied because a narrower paths/versions exclusion exists for zod\nGHSA-mrhx-c7xc-m3w5: vulnerable paths outside exclusion: app-dep/zod (zod@3.25.76)\n❌ High or critical vulnerabilities found in production dependencies\n   Next step: upgrade or override the named copy; if it is dev-only and reviewed, add its lockfile path to `paths` in audit.ignore.local.json — see https://github.com/CodySwannGT/lisa/blob/main/docs/dependency-audit-exclusions.md\n",
+      "stderr": "",
+      "exit_code": 1,
+      "started_at": "2026-11-08T17:23:35.256Z",
+      "finished_at": "2026-11-08T17:23:35.332Z"
+    },
+    {
+      "label": "npm / npm-control-no-exclusion / pre-push",
+      "command": [
+        "/bin/sh",
+        "<delivered>/prepush-audit-harness.sh"
+      ],
+      "cwd": "<delivered>/trees-pm/npm-control-no-exclusion",
+      "env": {
+        "PATH": "<shim-pm>:<shim>:<mise>/node/24.21.0/bin:/usr/bin:/bin:/usr/sbin:/sbin:/opt/homebrew/bin",
+        "LISA_VERIFY_NPM_REPORT": "<delivered>/trees-pm/npm-audit-report.json",
+        "LISA_VERIFY_YARN_REPORT": "<delivered>/trees-pm/yarn-audit-report.ndjson",
+        "PACKAGE_MANAGER": "npm"
+      },
+      "stdout": "🔒 Running security audit...\nGHSA-mrhx-c7xc-m3w5: unresolved high/critical advisory for zod\n❌ High or critical vulnerabilities found in production dependencies\n   Next step: upgrade or override the named copy; if it is dev-only and reviewed, add its lockfile path to `paths` in audit.ignore.local.json — see https://github.com/CodySwannGT/lisa/blob/main/docs/dependency-audit-exclusions.md\n",
+      "stderr": "",
+      "exit_code": 1,
+      "started_at": "2026-11-08T17:23:35.332Z",
+      "finished_at": "2026-11-08T17:23:35.396Z"
+    },
+    {
+      "label": "npm / npm-control-no-exclusion / registry",
+      "command": [
+        "<mise>/node/24.21.0/bin/node",
+        "<delivered>/consumer/node_modules/@codyswann/lisa/all/copy-overwrite/scripts/lisa-run-gates.mjs",
+        "--moment=push"
+      ],
+      "cwd": "<delivered>/trees-pm/npm-control-no-exclusion",
+      "env": {
+        "PATH": "<shim-pm>:<shim>:<mise>/node/24.21.0/bin:/usr/bin:/bin:/usr/sbin:/sbin:/opt/homebrew/bin",
+        "LISA_VERIFY_NPM_REPORT": "<delivered>/trees-pm/npm-audit-report.json",
+        "LISA_VERIFY_YARN_REPORT": "<delivered>/trees-pm/yarn-audit-report.ndjson"
+      },
+      "stdout": "🔖 Lisa identity — surface=local · package=@codyswann/lisa@4.97.2 · registry=<delivered>/consumer/node_modules/@codyswann/lisa/all/copy-overwrite/scripts · workflow=unknown · lisa-gates.mjs=sha256:266abcb9f3ad · lisa-run-gates.mjs=sha256:8ee6487fec01\n🧹 swept 0 stale temp dirs, 0 orphaned test processes (136 ms)\n🚦 Gates at push:\n$ $npm_execpath run security:audit:lisa\n$ node scripts/lisa-audit.mjs\nGHSA-mrhx-c7xc-m3w5: unresolved high/critical advisory for zod\n❌ High or critical vulnerabilities found in production dependencies\n   Next step: upgrade or override the named copy; if it is dev-only and reviewed, add its lockfile path to `paths` in audit.ignore.local.json — see https://github.com/CodySwannGT/lisa/blob/main/docs/dependency-audit-exclusions.md\nerror: script \"security:audit:lisa\" exited with code 1\nerror: script \"security:audit\" exited with code 1\n  FAILED     required dependency-vulnerability    bun run security:audit (exit 1) — the prover printed a failure shape dependency-vulnerability declared, so it ran and found this property wanting. That is a verdict about the code, not about the machine\n      ↳ ❌ High or critical vulnerabilities found in production dependencies\n❌ required gate FAILED: dependency-vulnerability — bun run security:audit (exit 1) — the prover printed a failure shape dependency-vulnerability declared, so it ran and found this property wanting. That is a verdict about the code, not about the machine\n",
+      "stderr": "",
+      "exit_code": 1,
+      "started_at": "2026-11-08T17:23:35.396Z",
+      "finished_at": "2026-11-08T17:23:35.707Z"
+    },
+    {
+      "label": "npm / npm-control-no-exclusion / adapter",
+      "command": [
+        "<mise>/node/24.21.0/bin/node",
+        "scripts/lisa-audit.mjs",
+        "--manager",
+        "npm"
+      ],
+      "cwd": "<delivered>/trees-pm/npm-control-no-exclusion",
+      "env": {
+        "PATH": "<shim-pm>:<shim>:<mise>/node/24.21.0/bin:/usr/bin:/bin:/usr/sbin:/sbin:/opt/homebrew/bin",
+        "LISA_VERIFY_NPM_REPORT": "<delivered>/trees-pm/npm-audit-report.json",
+        "LISA_VERIFY_YARN_REPORT": "<delivered>/trees-pm/yarn-audit-report.ndjson"
+      },
+      "stdout": "GHSA-mrhx-c7xc-m3w5: unresolved high/critical advisory for zod\n❌ High or critical vulnerabilities found in production dependencies\n   Next step: upgrade or override the named copy; if it is dev-only and reviewed, add its lockfile path to `paths` in audit.ignore.local.json — see https://github.com/CodySwannGT/lisa/blob/main/docs/dependency-audit-exclusions.md\n",
+      "stderr": "",
+      "exit_code": 1,
+      "started_at": "2026-11-08T17:23:35.707Z",
+      "finished_at": "2026-11-08T17:23:35.761Z"
+    },
+    {
+      "label": "npm / npm-control-no-exclusion / helper",
+      "command": [
+        "<mise>/node/24.21.0/bin/node",
+        "<verifier-bin>/helper-pm.mjs",
+        "<delivered>/trees-pm/npm-control-no-exclusion",
+        "<delivered>/consumer/node_modules/@codyswann/lisa",
+        "npm"
+      ],
+      "cwd": "<delivered>/trees-pm/npm-control-no-exclusion",
+      "env": {
+        "PATH": "<shim-pm>:<shim>:<mise>/node/24.21.0/bin:/usr/bin:/bin:/usr/sbin:/sbin:/opt/homebrew/bin",
+        "LISA_VERIFY_NPM_REPORT": "<delivered>/trees-pm/npm-audit-report.json",
+        "LISA_VERIFY_YARN_REPORT": "<delivered>/trees-pm/yarn-audit-report.ndjson"
+      },
+      "stdout": "[helper] resolved @codyswann/lisa/audit -> <package>/dist/core/audit.js\nGHSA-mrhx-c7xc-m3w5: unresolved high/critical advisory for zod\n[helper] passed=false\n",
+      "stderr": "",
+      "exit_code": 1,
+      "started_at": "2026-11-08T17:23:35.761Z",
+      "finished_at": "2026-11-08T17:23:35.817Z"
+    },
+    {
+      "label": "npm / npm-control-no-exclusion / ci",
+      "command": [
+        "<mise>/node/24.21.0/bin/node",
+        "<delivered>/source/.github/actions/dependency-audit/run.mjs"
+      ],
+      "cwd": "<delivered>/trees-pm/npm-control-no-exclusion",
+      "env": {
+        "PATH": "<shim-pm>:<shim>:<mise>/node/24.21.0/bin:/usr/bin:/bin:/usr/sbin:/sbin:/opt/homebrew/bin",
+        "LISA_VERIFY_NPM_REPORT": "<delivered>/trees-pm/npm-audit-report.json",
+        "LISA_VERIFY_YARN_REPORT": "<delivered>/trees-pm/yarn-audit-report.ndjson",
+        "GITHUB_WORKSPACE": "<delivered>/trees-pm/npm-control-no-exclusion",
+        "LISA_AUDIT_ACTION_MANAGER": "npm",
+        "LISA_AUDIT_ACTION_DIRECTORY": "."
+      },
+      "stdout": "GHSA-mrhx-c7xc-m3w5: unresolved high/critical advisory for zod\n❌ High or critical vulnerabilities found in production dependencies\n   Next step: upgrade or override the named copy; if it is dev-only and reviewed, add its lockfile path to `paths` in audit.ignore.local.json — see https://github.com/CodySwannGT/lisa/blob/main/docs/dependency-audit-exclusions.md\n",
+      "stderr": "",
+      "exit_code": 1,
+      "started_at": "2026-11-08T17:23:35.817Z",
+      "finished_at": "2026-11-08T17:23:35.888Z"
+    },
+    {
+      "label": "yarn / yarn-control-no-exclusion / pre-push",
+      "command": [
+        "/bin/sh",
+        "<delivered>/prepush-audit-harness.sh"
+      ],
+      "cwd": "<delivered>/trees-pm/yarn-control-no-exclusion",
+      "env": {
+        "PATH": "<shim-pm>:<shim>:<mise>/node/24.21.0/bin:/usr/bin:/bin:/usr/sbin:/sbin:/opt/homebrew/bin",
+        "LISA_VERIFY_NPM_REPORT": "<delivered>/trees-pm/npm-audit-report.json",
+        "LISA_VERIFY_YARN_REPORT": "<delivered>/trees-pm/yarn-audit-report.ndjson",
+        "PACKAGE_MANAGER": "yarn"
+      },
+      "stdout": "🔒 Running security audit...\nGHSA-mrhx-c7xc-m3w5: unresolved high/critical advisory for zod\n❌ High or critical vulnerabilities found in production dependencies\n   Next step: upgrade or override the named copy; if it is dev-only and reviewed, add its lockfile path to `paths` in audit.ignore.local.json — see https://github.com/CodySwannGT/lisa/blob/main/docs/dependency-audit-exclusions.md\n",
+      "stderr": "",
+      "exit_code": 1,
+      "started_at": "2026-11-08T17:23:35.888Z",
+      "finished_at": "2026-11-08T17:23:35.949Z"
+    },
+    {
+      "label": "yarn / yarn-control-no-exclusion / registry",
+      "command": [
+        "<mise>/node/24.21.0/bin/node",
+        "<delivered>/consumer/node_modules/@codyswann/lisa/all/copy-overwrite/scripts/lisa-run-gates.mjs",
+        "--moment=push"
+      ],
+      "cwd": "<delivered>/trees-pm/yarn-control-no-exclusion",
+      "env": {
+        "PATH": "<shim-pm>:<shim>:<mise>/node/24.21.0/bin:/usr/bin:/bin:/usr/sbin:/sbin:/opt/homebrew/bin",
+        "LISA_VERIFY_NPM_REPORT": "<delivered>/trees-pm/npm-audit-report.json",
+        "LISA_VERIFY_YARN_REPORT": "<delivered>/trees-pm/yarn-audit-report.ndjson"
+      },
+      "stdout": "🔖 Lisa identity — surface=local · package=@codyswann/lisa@4.97.2 · registry=<delivered>/consumer/node_modules/@codyswann/lisa/all/copy-overwrite/scripts · workflow=unknown · lisa-gates.mjs=sha256:266abcb9f3ad · lisa-run-gates.mjs=sha256:8ee6487fec01\n🧹 swept 0 stale temp dirs, 0 orphaned test processes (136 ms)\n🚦 Gates at push:\n$ $npm_execpath run security:audit:lisa\n$ node scripts/lisa-audit.mjs\nGHSA-mrhx-c7xc-m3w5: unresolved high/critical advisory for zod\n❌ High or critical vulnerabilities found in production dependencies\n   Next step: upgrade or override the named copy; if it is dev-only and reviewed, add its lockfile path to `paths` in audit.ignore.local.json — see https://github.com/CodySwannGT/lisa/blob/main/docs/dependency-audit-exclusions.md\nerror: script \"security:audit:lisa\" exited with code 1\nerror: script \"security:audit\" exited with code 1\n  FAILED     required dependency-vulnerability    bun run security:audit (exit 1) — the prover printed a failure shape dependency-vulnerability declared, so it ran and found this property wanting. That is a verdict about the code, not about the machine\n      ↳ ❌ High or critical vulnerabilities found in production dependencies\n❌ required gate FAILED: dependency-vulnerability — bun run security:audit (exit 1) — the prover printed a failure shape dependency-vulnerability declared, so it ran and found this property wanting. That is a verdict about the code, not about the machine\n",
+      "stderr": "",
+      "exit_code": 1,
+      "started_at": "2026-11-08T17:23:35.949Z",
+      "finished_at": "2026-11-08T17:23:36.257Z"
+    },
+    {
+      "label": "yarn / yarn-control-no-exclusion / adapter",
+      "command": [
+        "<mise>/node/24.21.0/bin/node",
+        "scripts/lisa-audit.mjs",
+        "--manager",
+        "yarn"
+      ],
+      "cwd": "<delivered>/trees-pm/yarn-control-no-exclusion",
+      "env": {
+        "PATH": "<shim-pm>:<shim>:<mise>/node/24.21.0/bin:/usr/bin:/bin:/usr/sbin:/sbin:/opt/homebrew/bin",
+        "LISA_VERIFY_NPM_REPORT": "<delivered>/trees-pm/npm-audit-report.json",
+        "LISA_VERIFY_YARN_REPORT": "<delivered>/trees-pm/yarn-audit-report.ndjson"
+      },
+      "stdout": "GHSA-mrhx-c7xc-m3w5: unresolved high/critical advisory for zod\n❌ High or critical vulnerabilities found in production dependencies\n   Next step: upgrade or override the named copy; if it is dev-only and reviewed, add its lockfile path to `paths` in audit.ignore.local.json — see https://github.com/CodySwannGT/lisa/blob/main/docs/dependency-audit-exclusions.md\n",
+      "stderr": "",
+      "exit_code": 1,
+      "started_at": "2026-11-08T17:23:36.257Z",
+      "finished_at": "2026-11-08T17:23:36.311Z"
+    },
+    {
+      "label": "yarn / yarn-control-no-exclusion / helper",
+      "command": [
+        "<mise>/node/24.21.0/bin/node",
+        "<verifier-bin>/helper-pm.mjs",
+        "<delivered>/trees-pm/yarn-control-no-exclusion",
+        "<delivered>/consumer/node_modules/@codyswann/lisa",
+        "yarn"
+      ],
+      "cwd": "<delivered>/trees-pm/yarn-control-no-exclusion",
+      "env": {
+        "PATH": "<shim-pm>:<shim>:<mise>/node/24.21.0/bin:/usr/bin:/bin:/usr/sbin:/sbin:/opt/homebrew/bin",
+        "LISA_VERIFY_NPM_REPORT": "<delivered>/trees-pm/npm-audit-report.json",
+        "LISA_VERIFY_YARN_REPORT": "<delivered>/trees-pm/yarn-audit-report.ndjson"
+      },
+      "stdout": "[helper] resolved @codyswann/lisa/audit -> <package>/dist/core/audit.js\nGHSA-mrhx-c7xc-m3w5: unresolved high/critical advisory for zod\n[helper] passed=false\n",
+      "stderr": "",
+      "exit_code": 1,
+      "started_at": "2026-11-08T17:23:36.311Z",
+      "finished_at": "2026-11-08T17:23:36.364Z"
+    },
+    {
+      "label": "yarn / yarn-control-no-exclusion / ci",
+      "command": [
+        "<mise>/node/24.21.0/bin/node",
+        "<delivered>/source/.github/actions/dependency-audit/run.mjs"
+      ],
+      "cwd": "<delivered>/trees-pm/yarn-control-no-exclusion",
+      "env": {
+        "PATH": "<shim-pm>:<shim>:<mise>/node/24.21.0/bin:/usr/bin:/bin:/usr/sbin:/sbin:/opt/homebrew/bin",
+        "LISA_VERIFY_NPM_REPORT": "<delivered>/trees-pm/npm-audit-report.json",
+        "LISA_VERIFY_YARN_REPORT": "<delivered>/trees-pm/yarn-audit-report.ndjson",
+        "GITHUB_WORKSPACE": "<delivered>/trees-pm/yarn-control-no-exclusion",
+        "LISA_AUDIT_ACTION_MANAGER": "yarn",
+        "LISA_AUDIT_ACTION_DIRECTORY": "."
+      },
+      "stdout": "GHSA-mrhx-c7xc-m3w5: unresolved high/critical advisory for zod\n❌ High or critical vulnerabilities found in production dependencies\n   Next step: upgrade or override the named copy; if it is dev-only and reviewed, add its lockfile path to `paths` in audit.ignore.local.json — see https://github.com/CodySwannGT/lisa/blob/main/docs/dependency-audit-exclusions.md\n",
+      "stderr": "",
+      "exit_code": 1,
+      "started_at": "2026-11-08T17:23:36.364Z",
+      "finished_at": "2026-11-08T17:23:36.439Z"
+    },
+    {
+      "label": "npm / npm-covered-only / pre-push",
+      "command": [
+        "/bin/sh",
+        "<delivered>/prepush-audit-harness.sh"
+      ],
+      "cwd": "<delivered>/trees-pm/npm-covered-only",
+      "env": {
+        "PATH": "<shim-pm>:<shim>:<mise>/node/24.21.0/bin:/usr/bin:/bin:/usr/sbin:/sbin:/opt/homebrew/bin",
+        "LISA_VERIFY_NPM_REPORT": "<delivered>/trees-pm/npm-audit-report.json",
+        "LISA_VERIFY_YARN_REPORT": "<delivered>/trees-pm/yarn-audit-report.ndjson",
+        "PACKAGE_MANAGER": "npm"
+      },
+      "stdout": "🔒 Running security audit...\nexcluded GHSA-mrhx-c7xc-m3w5 for node_modules/lint-plugin/node_modules/zod (Verifier fixture: reviewed dev-only lint plugin copy)\n✅ No high or critical vulnerabilities found in production dependencies (excluding documented exceptions)\n",
+      "stderr": "",
+      "exit_code": 0,
+      "started_at": "2026-11-08T17:23:36.439Z",
+      "finished_at": "2026-11-08T17:23:36.498Z"
+    },
+    {
+      "label": "npm / npm-covered-only / registry",
+      "command": [
+        "<mise>/node/24.21.0/bin/node",
+        "<delivered>/consumer/node_modules/@codyswann/lisa/all/copy-overwrite/scripts/lisa-run-gates.mjs",
+        "--moment=push"
+      ],
+      "cwd": "<delivered>/trees-pm/npm-covered-only",
+      "env": {
+        "PATH": "<shim-pm>:<shim>:<mise>/node/24.21.0/bin:/usr/bin:/bin:/usr/sbin:/sbin:/opt/homebrew/bin",
+        "LISA_VERIFY_NPM_REPORT": "<delivered>/trees-pm/npm-audit-report.json",
+        "LISA_VERIFY_YARN_REPORT": "<delivered>/trees-pm/yarn-audit-report.ndjson"
+      },
+      "stdout": "🔖 Lisa identity — surface=local · package=@codyswann/lisa@4.97.2 · registry=<delivered>/consumer/node_modules/@codyswann/lisa/all/copy-overwrite/scripts · workflow=unknown · lisa-gates.mjs=sha256:266abcb9f3ad · lisa-run-gates.mjs=sha256:8ee6487fec01\n🧹 swept 0 stale temp dirs, 0 orphaned test processes (134 ms)\n🚦 Gates at push:\n$ $npm_execpath run security:audit:lisa\n$ node scripts/lisa-audit.mjs\nexcluded GHSA-mrhx-c7xc-m3w5 for node_modules/lint-plugin/node_modules/zod (Verifier fixture: reviewed dev-only lint plugin copy)\n✅ No high or critical vulnerabilities found in production dependencies (excluding documented exceptions)\n  PASSED     required dependency-vulnerability    bun run security:audit\n✅ push: 1 proved, 0 failed (optional), 0 not proved, 0 killed, 0 not applicable here, of 1 gate(s) declared.\n",
+      "stderr": "",
+      "exit_code": 0,
+      "started_at": "2026-11-08T17:23:36.498Z",
+      "finished_at": "2026-11-08T17:23:36.810Z"
+    },
+    {
+      "label": "npm / npm-covered-only / adapter",
+      "command": [
+        "<mise>/node/24.21.0/bin/node",
+        "scripts/lisa-audit.mjs",
+        "--manager",
+        "npm"
+      ],
+      "cwd": "<delivered>/trees-pm/npm-covered-only",
+      "env": {
+        "PATH": "<shim-pm>:<shim>:<mise>/node/24.21.0/bin:/usr/bin:/bin:/usr/sbin:/sbin:/opt/homebrew/bin",
+        "LISA_VERIFY_NPM_REPORT": "<delivered>/trees-pm/npm-audit-report.json",
+        "LISA_VERIFY_YARN_REPORT": "<delivered>/trees-pm/yarn-audit-report.ndjson"
+      },
+      "stdout": "excluded GHSA-mrhx-c7xc-m3w5 for node_modules/lint-plugin/node_modules/zod (Verifier fixture: reviewed dev-only lint plugin copy)\n✅ No high or critical vulnerabilities found in production dependencies (excluding documented exceptions)\n",
+      "stderr": "",
+      "exit_code": 0,
+      "started_at": "2026-11-08T17:23:36.810Z",
+      "finished_at": "2026-11-08T17:23:36.866Z"
+    },
+    {
+      "label": "npm / npm-covered-only / helper",
+      "command": [
+        "<mise>/node/24.21.0/bin/node",
+        "<verifier-bin>/helper-pm.mjs",
+        "<delivered>/trees-pm/npm-covered-only",
+        "<delivered>/consumer/node_modules/@codyswann/lisa",
+        "npm"
+      ],
+      "cwd": "<delivered>/trees-pm/npm-covered-only",
+      "env": {
+        "PATH": "<shim-pm>:<shim>:<mise>/node/24.21.0/bin:/usr/bin:/bin:/usr/sbin:/sbin:/opt/homebrew/bin",
+        "LISA_VERIFY_NPM_REPORT": "<delivered>/trees-pm/npm-audit-report.json",
+        "LISA_VERIFY_YARN_REPORT": "<delivered>/trees-pm/yarn-audit-report.ndjson"
+      },
+      "stdout": "[helper] resolved @codyswann/lisa/audit -> <package>/dist/core/audit.js\nexcluded GHSA-mrhx-c7xc-m3w5 for node_modules/lint-plugin/node_modules/zod (Verifier fixture: reviewed dev-only lint plugin copy)\n[helper] passed=true\n",
+      "stderr": "",
+      "exit_code": 0,
+      "started_at": "2026-11-08T17:23:36.866Z",
+      "finished_at": "2026-11-08T17:23:36.922Z"
+    },
+    {
+      "label": "npm / npm-covered-only / ci",
+      "command": [
+        "<mise>/node/24.21.0/bin/node",
+        "<delivered>/source/.github/actions/dependency-audit/run.mjs"
+      ],
+      "cwd": "<delivered>/trees-pm/npm-covered-only",
+      "env": {
+        "PATH": "<shim-pm>:<shim>:<mise>/node/24.21.0/bin:/usr/bin:/bin:/usr/sbin:/sbin:/opt/homebrew/bin",
+        "LISA_VERIFY_NPM_REPORT": "<delivered>/trees-pm/npm-audit-report.json",
+        "LISA_VERIFY_YARN_REPORT": "<delivered>/trees-pm/yarn-audit-report.ndjson",
+        "GITHUB_WORKSPACE": "<delivered>/trees-pm/npm-covered-only",
+        "LISA_AUDIT_ACTION_MANAGER": "npm",
+        "LISA_AUDIT_ACTION_DIRECTORY": "."
+      },
+      "stdout": "excluded GHSA-mrhx-c7xc-m3w5 for node_modules/lint-plugin/node_modules/zod (Verifier fixture: reviewed dev-only lint plugin copy)\n✅ No high or critical vulnerabilities found in production dependencies (excluding documented exceptions)\n",
+      "stderr": "",
+      "exit_code": 0,
+      "started_at": "2026-11-08T17:23:36.922Z",
+      "finished_at": "2026-11-08T17:23:36.996Z"
+    },
+    {
+      "label": "yarn / yarn-covered-only / pre-push",
+      "command": [
+        "/bin/sh",
+        "<delivered>/prepush-audit-harness.sh"
+      ],
+      "cwd": "<delivered>/trees-pm/yarn-covered-only",
+      "env": {
+        "PATH": "<shim-pm>:<shim>:<mise>/node/24.21.0/bin:/usr/bin:/bin:/usr/sbin:/sbin:/opt/homebrew/bin",
+        "LISA_VERIFY_NPM_REPORT": "<delivered>/trees-pm/npm-audit-report.json",
+        "LISA_VERIFY_YARN_REPORT": "<delivered>/trees-pm/yarn-audit-report.ndjson",
+        "PACKAGE_MANAGER": "yarn"
+      },
+      "stdout": "🔒 Running security audit...\nexcluded GHSA-mrhx-c7xc-m3w5 for zod@^3.22.4 (Verifier fixture: reviewed dev-only lint plugin copy)\n✅ No high or critical vulnerabilities found in production dependencies (excluding documented exceptions)\n",
+      "stderr": "",
+      "exit_code": 0,
+      "started_at": "2026-11-08T17:23:36.996Z",
+      "finished_at": "2026-11-08T17:23:37.059Z"
+    },
+    {
+      "label": "yarn / yarn-covered-only / registry",
+      "command": [
+        "<mise>/node/24.21.0/bin/node",
+        "<delivered>/consumer/node_modules/@codyswann/lisa/all/copy-overwrite/scripts/lisa-run-gates.mjs",
+        "--moment=push"
+      ],
+      "cwd": "<delivered>/trees-pm/yarn-covered-only",
+      "env": {
+        "PATH": "<shim-pm>:<shim>:<mise>/node/24.21.0/bin:/usr/bin:/bin:/usr/sbin:/sbin:/opt/homebrew/bin",
+        "LISA_VERIFY_NPM_REPORT": "<delivered>/trees-pm/npm-audit-report.json",
+        "LISA_VERIFY_YARN_REPORT": "<delivered>/trees-pm/yarn-audit-report.ndjson"
+      },
+      "stdout": "🔖 Lisa identity — surface=local · package=@codyswann/lisa@4.97.2 · registry=<delivered>/consumer/node_modules/@codyswann/lisa/all/copy-overwrite/scripts · workflow=unknown · lisa-gates.mjs=sha256:266abcb9f3ad · lisa-run-gates.mjs=sha256:8ee6487fec01\n🧹 swept 0 stale temp dirs, 0 orphaned test processes (167 ms)\n🚦 Gates at push:\n$ $npm_execpath run security:audit:lisa\n$ node scripts/lisa-audit.mjs\nexcluded GHSA-mrhx-c7xc-m3w5 for zod@^3.22.4 (Verifier fixture: reviewed dev-only lint plugin copy)\n✅ No high or critical vulnerabilities found in production dependencies (excluding documented exceptions)\n  PASSED     required dependency-vulnerability    bun run security:audit\n✅ push: 1 proved, 0 failed (optional), 0 not proved, 0 killed, 0 not applicable here, of 1 gate(s) declared.\n",
+      "stderr": "",
+      "exit_code": 0,
+      "started_at": "2026-11-08T17:23:37.059Z",
+      "finished_at": "2026-11-08T17:23:37.419Z"
+    },
+    {
+      "label": "yarn / yarn-covered-only / adapter",
+      "command": [
+        "<mise>/node/24.21.0/bin/node",
+        "scripts/lisa-audit.mjs",
+        "--manager",
+        "yarn"
+      ],
+      "cwd": "<delivered>/trees-pm/yarn-covered-only",
+      "env": {
+        "PATH": "<shim-pm>:<shim>:<mise>/node/24.21.0/bin:/usr/bin:/bin:/usr/sbin:/sbin:/opt/homebrew/bin",
+        "LISA_VERIFY_NPM_REPORT": "<delivered>/trees-pm/npm-audit-report.json",
+        "LISA_VERIFY_YARN_REPORT": "<delivered>/trees-pm/yarn-audit-report.ndjson"
+      },
+      "stdout": "excluded GHSA-mrhx-c7xc-m3w5 for zod@^3.22.4 (Verifier fixture: reviewed dev-only lint plugin copy)\n✅ No high or critical vulnerabilities found in production dependencies (excluding documented exceptions)\n",
+      "stderr": "",
+      "exit_code": 0,
+      "started_at": "2026-11-08T17:23:37.419Z",
+      "finished_at": "2026-11-08T17:23:37.480Z"
+    },
+    {
+      "label": "yarn / yarn-covered-only / helper",
+      "command": [
+        "<mise>/node/24.21.0/bin/node",
+        "<verifier-bin>/helper-pm.mjs",
+        "<delivered>/trees-pm/yarn-covered-only",
+        "<delivered>/consumer/node_modules/@codyswann/lisa",
+        "yarn"
+      ],
+      "cwd": "<delivered>/trees-pm/yarn-covered-only",
+      "env": {
+        "PATH": "<shim-pm>:<shim>:<mise>/node/24.21.0/bin:/usr/bin:/bin:/usr/sbin:/sbin:/opt/homebrew/bin",
+        "LISA_VERIFY_NPM_REPORT": "<delivered>/trees-pm/npm-audit-report.json",
+        "LISA_VERIFY_YARN_REPORT": "<delivered>/trees-pm/yarn-audit-report.ndjson"
+      },
+      "stdout": "[helper] resolved @codyswann/lisa/audit -> <package>/dist/core/audit.js\nexcluded GHSA-mrhx-c7xc-m3w5 for zod@^3.22.4 (Verifier fixture: reviewed dev-only lint plugin copy)\n[helper] passed=true\n",
+      "stderr": "",
+      "exit_code": 0,
+      "started_at": "2026-11-08T17:23:37.480Z",
+      "finished_at": "2026-11-08T17:23:37.538Z"
+    },
+    {
+      "label": "yarn / yarn-covered-only / ci",
+      "command": [
+        "<mise>/node/24.21.0/bin/node",
+        "<delivered>/source/.github/actions/dependency-audit/run.mjs"
+      ],
+      "cwd": "<delivered>/trees-pm/yarn-covered-only",
+      "env": {
+        "PATH": "<shim-pm>:<shim>:<mise>/node/24.21.0/bin:/usr/bin:/bin:/usr/sbin:/sbin:/opt/homebrew/bin",
+        "LISA_VERIFY_NPM_REPORT": "<delivered>/trees-pm/npm-audit-report.json",
+        "LISA_VERIFY_YARN_REPORT": "<delivered>/trees-pm/yarn-audit-report.ndjson",
+        "GITHUB_WORKSPACE": "<delivered>/trees-pm/yarn-covered-only",
+        "LISA_AUDIT_ACTION_MANAGER": "yarn",
+        "LISA_AUDIT_ACTION_DIRECTORY": "."
+      },
+      "stdout": "excluded GHSA-mrhx-c7xc-m3w5 for zod@^3.22.4 (Verifier fixture: reviewed dev-only lint plugin copy)\n✅ No high or critical vulnerabilities found in production dependencies (excluding documented exceptions)\n",
+      "stderr": "",
+      "exit_code": 0,
+      "started_at": "2026-11-08T17:23:37.538Z",
+      "finished_at": "2026-11-08T17:23:37.614Z"
+    },
+    {
+      "label": "npm / npm-uncovered-production / pre-push",
+      "command": [
+        "/bin/sh",
+        "<delivered>/prepush-audit-harness.sh"
+      ],
+      "cwd": "<delivered>/trees-pm/npm-uncovered-production",
+      "env": {
+        "PATH": "<shim-pm>:<shim>:<mise>/node/24.21.0/bin:/usr/bin:/bin:/usr/sbin:/sbin:/opt/homebrew/bin",
+        "LISA_VERIFY_NPM_REPORT": "<delivered>/trees-pm/npm-audit-report.json",
+        "LISA_VERIFY_YARN_REPORT": "<delivered>/trees-pm/yarn-audit-report.ndjson",
+        "PACKAGE_MANAGER": "npm"
+      },
+      "stdout": "🔒 Running security audit...\nGHSA-mrhx-c7xc-m3w5: vulnerable paths outside exclusion: node_modules/app-dep/node_modules/zod (zod@3.25.76)\n❌ High or critical vulnerabilities found in production dependencies\n   Next step: upgrade or override the named copy; if it is dev-only and reviewed, add its lockfile path to `paths` in audit.ignore.local.json — see https://github.com/CodySwannGT/lisa/blob/main/docs/dependency-audit-exclusions.md\n",
+      "stderr": "",
+      "exit_code": 1,
+      "started_at": "2026-11-08T17:23:37.614Z",
+      "finished_at": "2026-11-08T17:23:37.677Z"
+    },
+    {
+      "label": "npm / npm-uncovered-production / registry",
+      "command": [
+        "<mise>/node/24.21.0/bin/node",
+        "<delivered>/consumer/node_modules/@codyswann/lisa/all/copy-overwrite/scripts/lisa-run-gates.mjs",
+        "--moment=push"
+      ],
+      "cwd": "<delivered>/trees-pm/npm-uncovered-production",
+      "env": {
+        "PATH": "<shim-pm>:<shim>:<mise>/node/24.21.0/bin:/usr/bin:/bin:/usr/sbin:/sbin:/opt/homebrew/bin",
+        "LISA_VERIFY_NPM_REPORT": "<delivered>/trees-pm/npm-audit-report.json",
+        "LISA_VERIFY_YARN_REPORT": "<delivered>/trees-pm/yarn-audit-report.ndjson"
+      },
+      "stdout": "🔖 Lisa identity — surface=local · package=@codyswann/lisa@4.97.2 · registry=<delivered>/consumer/node_modules/@codyswann/lisa/all/copy-overwrite/scripts · workflow=unknown · lisa-gates.mjs=sha256:266abcb9f3ad · lisa-run-gates.mjs=sha256:8ee6487fec01\n🧹 swept 0 stale temp dirs, 0 orphaned test processes (141 ms)\n🚦 Gates at push:\n$ $npm_execpath run security:audit:lisa\n$ node scripts/lisa-audit.mjs\nGHSA-mrhx-c7xc-m3w5: vulnerable paths outside exclusion: node_modules/app-dep/node_modules/zod (zod@3.25.76)\n❌ High or critical vulnerabilities found in production dependencies\n   Next step: upgrade or override the named copy; if it is dev-only and reviewed, add its lockfile path to `paths` in audit.ignore.local.json — see https://github.com/CodySwannGT/lisa/blob/main/docs/dependency-audit-exclusions.md\nerror: script \"security:audit:lisa\" exited with code 1\nerror: script \"security:audit\" exited with code 1\n  FAILED     required dependency-vulnerability    bun run security:audit (exit 1) — the prover printed a failure shape dependency-vulnerability declared, so it ran and found this property wanting. That is a verdict about the code, not about the machine\n      ↳ ❌ High or critical vulnerabilities found in production dependencies\n❌ required gate FAILED: dependency-vulnerability — bun run security:audit (exit 1) — the prover printed a failure shape dependency-vulnerability declared, so it ran and found this property wanting. That is a verdict about the code, not about the machine\n",
+      "stderr": "",
+      "exit_code": 1,
+      "started_at": "2026-11-08T17:23:37.677Z",
+      "finished_at": "2026-11-08T17:23:37.993Z"
+    },
+    {
+      "label": "npm / npm-uncovered-production / adapter",
+      "command": [
+        "<mise>/node/24.21.0/bin/node",
+        "scripts/lisa-audit.mjs",
+        "--manager",
+        "npm"
+      ],
+      "cwd": "<delivered>/trees-pm/npm-uncovered-production",
+      "env": {
+        "PATH": "<shim-pm>:<shim>:<mise>/node/24.21.0/bin:/usr/bin:/bin:/usr/sbin:/sbin:/opt/homebrew/bin",
+        "LISA_VERIFY_NPM_REPORT": "<delivered>/trees-pm/npm-audit-report.json",
+        "LISA_VERIFY_YARN_REPORT": "<delivered>/trees-pm/yarn-audit-report.ndjson"
+      },
+      "stdout": "GHSA-mrhx-c7xc-m3w5: vulnerable paths outside exclusion: node_modules/app-dep/node_modules/zod (zod@3.25.76)\n❌ High or critical vulnerabilities found in production dependencies\n   Next step: upgrade or override the named copy; if it is dev-only and reviewed, add its lockfile path to `paths` in audit.ignore.local.json — see https://github.com/CodySwannGT/lisa/blob/main/docs/dependency-audit-exclusions.md\n",
+      "stderr": "",
+      "exit_code": 1,
+      "started_at": "2026-11-08T17:23:37.993Z",
+      "finished_at": "2026-11-08T17:23:38.048Z"
+    },
+    {
+      "label": "npm / npm-uncovered-production / helper",
+      "command": [
+        "<mise>/node/24.21.0/bin/node",
+        "<verifier-bin>/helper-pm.mjs",
+        "<delivered>/trees-pm/npm-uncovered-production",
+        "<delivered>/consumer/node_modules/@codyswann/lisa",
+        "npm"
+      ],
+      "cwd": "<delivered>/trees-pm/npm-uncovered-production",
+      "env": {
+        "PATH": "<shim-pm>:<shim>:<mise>/node/24.21.0/bin:/usr/bin:/bin:/usr/sbin:/sbin:/opt/homebrew/bin",
+        "LISA_VERIFY_NPM_REPORT": "<delivered>/trees-pm/npm-audit-report.json",
+        "LISA_VERIFY_YARN_REPORT": "<delivered>/trees-pm/yarn-audit-report.ndjson"
+      },
+      "stdout": "[helper] resolved @codyswann/lisa/audit -> <package>/dist/core/audit.js\nGHSA-mrhx-c7xc-m3w5: vulnerable paths outside exclusion: node_modules/app-dep/node_modules/zod (zod@3.25.76)\n[helper] passed=false\n",
+      "stderr": "",
+      "exit_code": 1,
+      "started_at": "2026-11-08T17:23:38.048Z",
+      "finished_at": "2026-11-08T17:23:38.106Z"
+    },
+    {
+      "label": "npm / npm-uncovered-production / ci",
+      "command": [
+        "<mise>/node/24.21.0/bin/node",
+        "<delivered>/source/.github/actions/dependency-audit/run.mjs"
+      ],
+      "cwd": "<delivered>/trees-pm/npm-uncovered-production",
+      "env": {
+        "PATH": "<shim-pm>:<shim>:<mise>/node/24.21.0/bin:/usr/bin:/bin:/usr/sbin:/sbin:/opt/homebrew/bin",
+        "LISA_VERIFY_NPM_REPORT": "<delivered>/trees-pm/npm-audit-report.json",
+        "LISA_VERIFY_YARN_REPORT": "<delivered>/trees-pm/yarn-audit-report.ndjson",
+        "GITHUB_WORKSPACE": "<delivered>/trees-pm/npm-uncovered-production",
+        "LISA_AUDIT_ACTION_MANAGER": "npm",
+        "LISA_AUDIT_ACTION_DIRECTORY": "."
+      },
+      "stdout": "GHSA-mrhx-c7xc-m3w5: vulnerable paths outside exclusion: node_modules/app-dep/node_modules/zod (zod@3.25.76)\n❌ High or critical vulnerabilities found in production dependencies\n   Next step: upgrade or override the named copy; if it is dev-only and reviewed, add its lockfile path to `paths` in audit.ignore.local.json — see https://github.com/CodySwannGT/lisa/blob/main/docs/dependency-audit-exclusions.md\n",
+      "stderr": "",
+      "exit_code": 1,
+      "started_at": "2026-11-08T17:23:38.106Z",
+      "finished_at": "2026-11-08T17:23:38.184Z"
+    },
+    {
+      "label": "yarn / yarn-uncovered-production / pre-push",
+      "command": [
+        "/bin/sh",
+        "<delivered>/prepush-audit-harness.sh"
+      ],
+      "cwd": "<delivered>/trees-pm/yarn-uncovered-production",
+      "env": {
+        "PATH": "<shim-pm>:<shim>:<mise>/node/24.21.0/bin:/usr/bin:/bin:/usr/sbin:/sbin:/opt/homebrew/bin",
+        "LISA_VERIFY_NPM_REPORT": "<delivered>/trees-pm/npm-audit-report.json",
+        "LISA_VERIFY_YARN_REPORT": "<delivered>/trees-pm/yarn-audit-report.ndjson",
+        "PACKAGE_MANAGER": "yarn"
+      },
+      "stdout": "🔒 Running security audit...\nGHSA-mrhx-c7xc-m3w5: vulnerable paths outside exclusion: zod@3.25.76 (zod@3.25.76)\n❌ High or critical vulnerabilities found in production dependencies\n   Next step: upgrade or override the named copy; if it is dev-only and reviewed, add its lockfile path to `paths` in audit.ignore.local.json — see https://github.com/CodySwannGT/lisa/blob/main/docs/dependency-audit-exclusions.md\n",
+      "stderr": "",
+      "exit_code": 1,
+      "started_at": "2026-11-08T17:23:38.184Z",
+      "finished_at": "2026-11-08T17:23:38.245Z"
+    },
+    {
+      "label": "yarn / yarn-uncovered-production / registry",
+      "command": [
+        "<mise>/node/24.21.0/bin/node",
+        "<delivered>/consumer/node_modules/@codyswann/lisa/all/copy-overwrite/scripts/lisa-run-gates.mjs",
+        "--moment=push"
+      ],
+      "cwd": "<delivered>/trees-pm/yarn-uncovered-production",
+      "env": {
+        "PATH": "<shim-pm>:<shim>:<mise>/node/24.21.0/bin:/usr/bin:/bin:/usr/sbin:/sbin:/opt/homebrew/bin",
+        "LISA_VERIFY_NPM_REPORT": "<delivered>/trees-pm/npm-audit-report.json",
+        "LISA_VERIFY_YARN_REPORT": "<delivered>/trees-pm/yarn-audit-report.ndjson"
+      },
+      "stdout": "🔖 Lisa identity — surface=local · package=@codyswann/lisa@4.97.2 · registry=<delivered>/consumer/node_modules/@codyswann/lisa/all/copy-overwrite/scripts · workflow=unknown · lisa-gates.mjs=sha256:266abcb9f3ad · lisa-run-gates.mjs=sha256:8ee6487fec01\n🧹 swept 0 stale temp dirs, 0 orphaned test processes (174 ms)\n🚦 Gates at push:\n$ $npm_execpath run security:audit:lisa\n$ node scripts/lisa-audit.mjs\nGHSA-mrhx-c7xc-m3w5: vulnerable paths outside exclusion: zod@3.25.76 (zod@3.25.76)\n❌ High or critical vulnerabilities found in production dependencies\n   Next step: upgrade or override the named copy; if it is dev-only and reviewed, add its lockfile path to `paths` in audit.ignore.local.json — see https://github.com/CodySwannGT/lisa/blob/main/docs/dependency-audit-exclusions.md\nerror: script \"security:audit:lisa\" exited with code 1\nerror: script \"security:audit\" exited with code 1\n  FAILED     required dependency-vulnerability    bun run security:audit (exit 1) — the prover printed a failure shape dependency-vulnerability declared, so it ran and found this property wanting. That is a verdict about the code, not about the machine\n      ↳ ❌ High or critical vulnerabilities found in production dependencies\n❌ required gate FAILED: dependency-vulnerability — bun run security:audit (exit 1) — the prover printed a failure shape dependency-vulnerability declared, so it ran and found this property wanting. That is a verdict about the code, not about the machine\n",
+      "stderr": "",
+      "exit_code": 1,
+      "started_at": "2026-11-08T17:23:38.245Z",
+      "finished_at": "2026-11-08T17:23:38.594Z"
+    },
+    {
+      "label": "yarn / yarn-uncovered-production / adapter",
+      "command": [
+        "<mise>/node/24.21.0/bin/node",
+        "scripts/lisa-audit.mjs",
+        "--manager",
+        "yarn"
+      ],
+      "cwd": "<delivered>/trees-pm/yarn-uncovered-production",
+      "env": {
+        "PATH": "<shim-pm>:<shim>:<mise>/node/24.21.0/bin:/usr/bin:/bin:/usr/sbin:/sbin:/opt/homebrew/bin",
+        "LISA_VERIFY_NPM_REPORT": "<delivered>/trees-pm/npm-audit-report.json",
+        "LISA_VERIFY_YARN_REPORT": "<delivered>/trees-pm/yarn-audit-report.ndjson"
+      },
+      "stdout": "GHSA-mrhx-c7xc-m3w5: vulnerable paths outside exclusion: zod@3.25.76 (zod@3.25.76)\n❌ High or critical vulnerabilities found in production dependencies\n   Next step: upgrade or override the named copy; if it is dev-only and reviewed, add its lockfile path to `paths` in audit.ignore.local.json — see https://github.com/CodySwannGT/lisa/blob/main/docs/dependency-audit-exclusions.md\n",
+      "stderr": "",
+      "exit_code": 1,
+      "started_at": "2026-11-08T17:23:38.594Z",
+      "finished_at": "2026-11-08T17:23:38.654Z"
+    },
+    {
+      "label": "yarn / yarn-uncovered-production / helper",
+      "command": [
+        "<mise>/node/24.21.0/bin/node",
+        "<verifier-bin>/helper-pm.mjs",
+        "<delivered>/trees-pm/yarn-uncovered-production",
+        "<delivered>/consumer/node_modules/@codyswann/lisa",
+        "yarn"
+      ],
+      "cwd": "<delivered>/trees-pm/yarn-uncovered-production",
+      "env": {
+        "PATH": "<shim-pm>:<shim>:<mise>/node/24.21.0/bin:/usr/bin:/bin:/usr/sbin:/sbin:/opt/homebrew/bin",
+        "LISA_VERIFY_NPM_REPORT": "<delivered>/trees-pm/npm-audit-report.json",
+        "LISA_VERIFY_YARN_REPORT": "<delivered>/trees-pm/yarn-audit-report.ndjson"
+      },
+      "stdout": "[helper] resolved @codyswann/lisa/audit -> <package>/dist/core/audit.js\nGHSA-mrhx-c7xc-m3w5: vulnerable paths outside exclusion: zod@3.25.76 (zod@3.25.76)\n[helper] passed=false\n",
+      "stderr": "",
+      "exit_code": 1,
+      "started_at": "2026-11-08T17:23:38.654Z",
+      "finished_at": "2026-11-08T17:23:38.713Z"
+    },
+    {
+      "label": "yarn / yarn-uncovered-production / ci",
+      "command": [
+        "<mise>/node/24.21.0/bin/node",
+        "<delivered>/source/.github/actions/dependency-audit/run.mjs"
+      ],
+      "cwd": "<delivered>/trees-pm/yarn-uncovered-production",
+      "env": {
+        "PATH": "<shim-pm>:<shim>:<mise>/node/24.21.0/bin:/usr/bin:/bin:/usr/sbin:/sbin:/opt/homebrew/bin",
+        "LISA_VERIFY_NPM_REPORT": "<delivered>/trees-pm/npm-audit-report.json",
+        "LISA_VERIFY_YARN_REPORT": "<delivered>/trees-pm/yarn-audit-report.ndjson",
+        "GITHUB_WORKSPACE": "<delivered>/trees-pm/yarn-uncovered-production",
+        "LISA_AUDIT_ACTION_MANAGER": "yarn",
+        "LISA_AUDIT_ACTION_DIRECTORY": "."
+      },
+      "stdout": "GHSA-mrhx-c7xc-m3w5: vulnerable paths outside exclusion: zod@3.25.76 (zod@3.25.76)\n❌ High or critical vulnerabilities found in production dependencies\n   Next step: upgrade or override the named copy; if it is dev-only and reviewed, add its lockfile path to `paths` in audit.ignore.local.json — see https://github.com/CodySwannGT/lisa/blob/main/docs/dependency-audit-exclusions.md\n",
+      "stderr": "",
+      "exit_code": 1,
+      "started_at": "2026-11-08T17:23:38.713Z",
+      "finished_at": "2026-11-08T17:23:38.786Z"
+    },
+    {
+      "label": "npm / npm-npm-alias / pre-push",
+      "command": [
+        "/bin/sh",
+        "<delivered>/prepush-audit-harness.sh"
+      ],
+      "cwd": "<delivered>/trees-pm/npm-npm-alias",
+      "env": {
+        "PATH": "<shim-pm>:<shim>:<mise>/node/24.21.0/bin:/usr/bin:/bin:/usr/sbin:/sbin:/opt/homebrew/bin",
+        "LISA_VERIFY_NPM_REPORT": "<delivered>/trees-pm/npm-audit-report.json",
+        "LISA_VERIFY_YARN_REPORT": "<delivered>/trees-pm/yarn-audit-report.ndjson",
+        "PACKAGE_MANAGER": "npm"
+      },
+      "stdout": "🔒 Running security audit...\nGHSA-mrhx-c7xc-m3w5: vulnerable paths outside exclusion: node_modules/schema-alias (zod@3.25.76)\n❌ High or critical vulnerabilities found in production dependencies\n   Next step: upgrade or override the named copy; if it is dev-only and reviewed, add its lockfile path to `paths` in audit.ignore.local.json — see https://github.com/CodySwannGT/lisa/blob/main/docs/dependency-audit-exclusions.md\n",
+      "stderr": "",
+      "exit_code": 1,
+      "started_at": "2026-11-08T17:23:38.786Z",
+      "finished_at": "2026-11-08T17:23:38.847Z"
+    },
+    {
+      "label": "npm / npm-npm-alias / registry",
+      "command": [
+        "<mise>/node/24.21.0/bin/node",
+        "<delivered>/consumer/node_modules/@codyswann/lisa/all/copy-overwrite/scripts/lisa-run-gates.mjs",
+        "--moment=push"
+      ],
+      "cwd": "<delivered>/trees-pm/npm-npm-alias",
+      "env": {
+        "PATH": "<shim-pm>:<shim>:<mise>/node/24.21.0/bin:/usr/bin:/bin:/usr/sbin:/sbin:/opt/homebrew/bin",
+        "LISA_VERIFY_NPM_REPORT": "<delivered>/trees-pm/npm-audit-report.json",
+        "LISA_VERIFY_YARN_REPORT": "<delivered>/trees-pm/yarn-audit-report.ndjson"
+      },
+      "stdout": "🔖 Lisa identity — surface=local · package=@codyswann/lisa@4.97.2 · registry=<delivered>/consumer/node_modules/@codyswann/lisa/all/copy-overwrite/scripts · workflow=unknown · lisa-gates.mjs=sha256:266abcb9f3ad · lisa-run-gates.mjs=sha256:8ee6487fec01\n🧹 swept 0 stale temp dirs, 0 orphaned test processes (132 ms)\n🚦 Gates at push:\n$ $npm_execpath run security:audit:lisa\n$ node scripts/lisa-audit.mjs\nGHSA-mrhx-c7xc-m3w5: vulnerable paths outside exclusion: node_modules/schema-alias (zod@3.25.76)\n❌ High or critical vulnerabilities found in production dependencies\n   Next step: upgrade or override the named copy; if it is dev-only and reviewed, add its lockfile path to `paths` in audit.ignore.local.json — see https://github.com/CodySwannGT/lisa/blob/main/docs/dependency-audit-exclusions.md\nerror: script \"security:audit:lisa\" exited with code 1\nerror: script \"security:audit\" exited with code 1\n  FAILED     required dependency-vulnerability    bun run security:audit (exit 1) — the prover printed a failure shape dependency-vulnerability declared, so it ran and found this property wanting. That is a verdict about the code, not about the machine\n      ↳ ❌ High or critical vulnerabilities found in production dependencies\n❌ required gate FAILED: dependency-vulnerability — bun run security:audit (exit 1) — the prover printed a failure shape dependency-vulnerability declared, so it ran and found this property wanting. That is a verdict about the code, not about the machine\n",
+      "stderr": "",
+      "exit_code": 1,
+      "started_at": "2026-11-08T17:23:38.847Z",
+      "finished_at": "2026-11-08T17:23:39.160Z"
+    },
+    {
+      "label": "npm / npm-npm-alias / adapter",
+      "command": [
+        "<mise>/node/24.21.0/bin/node",
+        "scripts/lisa-audit.mjs",
+        "--manager",
+        "npm"
+      ],
+      "cwd": "<delivered>/trees-pm/npm-npm-alias",
+      "env": {
+        "PATH": "<shim-pm>:<shim>:<mise>/node/24.21.0/bin:/usr/bin:/bin:/usr/sbin:/sbin:/opt/homebrew/bin",
+        "LISA_VERIFY_NPM_REPORT": "<delivered>/trees-pm/npm-audit-report.json",
+        "LISA_VERIFY_YARN_REPORT": "<delivered>/trees-pm/yarn-audit-report.ndjson"
+      },
+      "stdout": "GHSA-mrhx-c7xc-m3w5: vulnerable paths outside exclusion: node_modules/schema-alias (zod@3.25.76)\n❌ High or critical vulnerabilities found in production dependencies\n   Next step: upgrade or override the named copy; if it is dev-only and reviewed, add its lockfile path to `paths` in audit.ignore.local.json — see https://github.com/CodySwannGT/lisa/blob/main/docs/dependency-audit-exclusions.md\n",
+      "stderr": "",
+      "exit_code": 1,
+      "started_at": "2026-11-08T17:23:39.160Z",
+      "finished_at": "2026-11-08T17:23:39.215Z"
+    },
+    {
+      "label": "npm / npm-npm-alias / helper",
+      "command": [
+        "<mise>/node/24.21.0/bin/node",
+        "<verifier-bin>/helper-pm.mjs",
+        "<delivered>/trees-pm/npm-npm-alias",
+        "<delivered>/consumer/node_modules/@codyswann/lisa",
+        "npm"
+      ],
+      "cwd": "<delivered>/trees-pm/npm-npm-alias",
+      "env": {
+        "PATH": "<shim-pm>:<shim>:<mise>/node/24.21.0/bin:/usr/bin:/bin:/usr/sbin:/sbin:/opt/homebrew/bin",
+        "LISA_VERIFY_NPM_REPORT": "<delivered>/trees-pm/npm-audit-report.json",
+        "LISA_VERIFY_YARN_REPORT": "<delivered>/trees-pm/yarn-audit-report.ndjson"
+      },
+      "stdout": "[helper] resolved @codyswann/lisa/audit -> <package>/dist/core/audit.js\nGHSA-mrhx-c7xc-m3w5: vulnerable paths outside exclusion: node_modules/schema-alias (zod@3.25.76)\n[helper] passed=false\n",
+      "stderr": "",
+      "exit_code": 1,
+      "started_at": "2026-11-08T17:23:39.215Z",
+      "finished_at": "2026-11-08T17:23:39.271Z"
+    },
+    {
+      "label": "npm / npm-npm-alias / ci",
+      "command": [
+        "<mise>/node/24.21.0/bin/node",
+        "<delivered>/source/.github/actions/dependency-audit/run.mjs"
+      ],
+      "cwd": "<delivered>/trees-pm/npm-npm-alias",
+      "env": {
+        "PATH": "<shim-pm>:<shim>:<mise>/node/24.21.0/bin:/usr/bin:/bin:/usr/sbin:/sbin:/opt/homebrew/bin",
+        "LISA_VERIFY_NPM_REPORT": "<delivered>/trees-pm/npm-audit-report.json",
+        "LISA_VERIFY_YARN_REPORT": "<delivered>/trees-pm/yarn-audit-report.ndjson",
+        "GITHUB_WORKSPACE": "<delivered>/trees-pm/npm-npm-alias",
+        "LISA_AUDIT_ACTION_MANAGER": "npm",
+        "LISA_AUDIT_ACTION_DIRECTORY": "."
+      },
+      "stdout": "GHSA-mrhx-c7xc-m3w5: vulnerable paths outside exclusion: node_modules/schema-alias (zod@3.25.76)\n❌ High or critical vulnerabilities found in production dependencies\n   Next step: upgrade or override the named copy; if it is dev-only and reviewed, add its lockfile path to `paths` in audit.ignore.local.json — see https://github.com/CodySwannGT/lisa/blob/main/docs/dependency-audit-exclusions.md\n",
+      "stderr": "",
+      "exit_code": 1,
+      "started_at": "2026-11-08T17:23:39.271Z",
+      "finished_at": "2026-11-08T17:23:39.349Z"
+    },
+    {
+      "label": "yarn / yarn-npm-alias / pre-push",
+      "command": [
+        "/bin/sh",
+        "<delivered>/prepush-audit-harness.sh"
+      ],
+      "cwd": "<delivered>/trees-pm/yarn-npm-alias",
+      "env": {
+        "PATH": "<shim-pm>:<shim>:<mise>/node/24.21.0/bin:/usr/bin:/bin:/usr/sbin:/sbin:/opt/homebrew/bin",
+        "LISA_VERIFY_NPM_REPORT": "<delivered>/trees-pm/npm-audit-report.json",
+        "LISA_VERIFY_YARN_REPORT": "<delivered>/trees-pm/yarn-audit-report.ndjson",
+        "PACKAGE_MANAGER": "yarn"
+      },
+      "stdout": "🔒 Running security audit...\nGHSA-mrhx-c7xc-m3w5: vulnerable paths outside exclusion: schema-alias@npm:zod@3.25.76 (zod@3.25.76)\n❌ High or critical vulnerabilities found in production dependencies\n   Next step: upgrade or override the named copy; if it is dev-only and reviewed, add its lockfile path to `paths` in audit.ignore.local.json — see https://github.com/CodySwannGT/lisa/blob/main/docs/dependency-audit-exclusions.md\n",
+      "stderr": "",
+      "exit_code": 1,
+      "started_at": "2026-11-08T17:23:39.349Z",
+      "finished_at": "2026-11-08T17:23:39.412Z"
+    },
+    {
+      "label": "yarn / yarn-npm-alias / registry",
+      "command": [
+        "<mise>/node/24.21.0/bin/node",
+        "<delivered>/consumer/node_modules/@codyswann/lisa/all/copy-overwrite/scripts/lisa-run-gates.mjs",
+        "--moment=push"
+      ],
+      "cwd": "<delivered>/trees-pm/yarn-npm-alias",
+      "env": {
+        "PATH": "<shim-pm>:<shim>:<mise>/node/24.21.0/bin:/usr/bin:/bin:/usr/sbin:/sbin:/opt/homebrew/bin",
+        "LISA_VERIFY_NPM_REPORT": "<delivered>/trees-pm/npm-audit-report.json",
+        "LISA_VERIFY_YARN_REPORT": "<delivered>/trees-pm/yarn-audit-report.ndjson"
+      },
+      "stdout": "🔖 Lisa identity — surface=local · package=@codyswann/lisa@4.97.2 · registry=<delivered>/consumer/node_modules/@codyswann/lisa/all/copy-overwrite/scripts · workflow=unknown · lisa-gates.mjs=sha256:266abcb9f3ad · lisa-run-gates.mjs=sha256:8ee6487fec01\n🧹 swept 0 stale temp dirs, 0 orphaned test processes (174 ms)\n🚦 Gates at push:\n$ $npm_execpath run security:audit:lisa\n$ node scripts/lisa-audit.mjs\nGHSA-mrhx-c7xc-m3w5: vulnerable paths outside exclusion: schema-alias@npm:zod@3.25.76 (zod@3.25.76)\n❌ High or critical vulnerabilities found in production dependencies\n   Next step: upgrade or override the named copy; if it is dev-only and reviewed, add its lockfile path to `paths` in audit.ignore.local.json — see https://github.com/CodySwannGT/lisa/blob/main/docs/dependency-audit-exclusions.md\nerror: script \"security:audit:lisa\" exited with code 1\nerror: script \"security:audit\" exited with code 1\n  FAILED     required dependency-vulnerability    bun run security:audit (exit 1) — the prover printed a failure shape dependency-vulnerability declared, so it ran and found this property wanting. That is a verdict about the code, not about the machine\n      ↳ ❌ High or critical vulnerabilities found in production dependencies\n❌ required gate FAILED: dependency-vulnerability — bun run security:audit (exit 1) — the prover printed a failure shape dependency-vulnerability declared, so it ran and found this property wanting. That is a verdict about the code, not about the machine\n",
+      "stderr": "",
+      "exit_code": 1,
+      "started_at": "2026-11-08T17:23:39.412Z",
+      "finished_at": "2026-11-08T17:23:39.771Z"
+    },
+    {
+      "label": "yarn / yarn-npm-alias / adapter",
+      "command": [
+        "<mise>/node/24.21.0/bin/node",
+        "scripts/lisa-audit.mjs",
+        "--manager",
+        "yarn"
+      ],
+      "cwd": "<delivered>/trees-pm/yarn-npm-alias",
+      "env": {
+        "PATH": "<shim-pm>:<shim>:<mise>/node/24.21.0/bin:/usr/bin:/bin:/usr/sbin:/sbin:/opt/homebrew/bin",
+        "LISA_VERIFY_NPM_REPORT": "<delivered>/trees-pm/npm-audit-report.json",
+        "LISA_VERIFY_YARN_REPORT": "<delivered>/trees-pm/yarn-audit-report.ndjson"
+      },
+      "stdout": "GHSA-mrhx-c7xc-m3w5: vulnerable paths outside exclusion: schema-alias@npm:zod@3.25.76 (zod@3.25.76)\n❌ High or critical vulnerabilities found in production dependencies\n   Next step: upgrade or override the named copy; if it is dev-only and reviewed, add its lockfile path to `paths` in audit.ignore.local.json — see https://github.com/CodySwannGT/lisa/blob/main/docs/dependency-audit-exclusions.md\n",
+      "stderr": "",
+      "exit_code": 1,
+      "started_at": "2026-11-08T17:23:39.771Z",
+      "finished_at": "2026-11-08T17:23:39.828Z"
+    },
+    {
+      "label": "yarn / yarn-npm-alias / helper",
+      "command": [
+        "<mise>/node/24.21.0/bin/node",
+        "<verifier-bin>/helper-pm.mjs",
+        "<delivered>/trees-pm/yarn-npm-alias",
+        "<delivered>/consumer/node_modules/@codyswann/lisa",
+        "yarn"
+      ],
+      "cwd": "<delivered>/trees-pm/yarn-npm-alias",
+      "env": {
+        "PATH": "<shim-pm>:<shim>:<mise>/node/24.21.0/bin:/usr/bin:/bin:/usr/sbin:/sbin:/opt/homebrew/bin",
+        "LISA_VERIFY_NPM_REPORT": "<delivered>/trees-pm/npm-audit-report.json",
+        "LISA_VERIFY_YARN_REPORT": "<delivered>/trees-pm/yarn-audit-report.ndjson"
+      },
+      "stdout": "[helper] resolved @codyswann/lisa/audit -> <package>/dist/core/audit.js\nGHSA-mrhx-c7xc-m3w5: vulnerable paths outside exclusion: schema-alias@npm:zod@3.25.76 (zod@3.25.76)\n[helper] passed=false\n",
+      "stderr": "",
+      "exit_code": 1,
+      "started_at": "2026-11-08T17:23:39.828Z",
+      "finished_at": "2026-11-08T17:23:39.886Z"
+    },
+    {
+      "label": "yarn / yarn-npm-alias / ci",
+      "command": [
+        "<mise>/node/24.21.0/bin/node",
+        "<delivered>/source/.github/actions/dependency-audit/run.mjs"
+      ],
+      "cwd": "<delivered>/trees-pm/yarn-npm-alias",
+      "env": {
+        "PATH": "<shim-pm>:<shim>:<mise>/node/24.21.0/bin:/usr/bin:/bin:/usr/sbin:/sbin:/opt/homebrew/bin",
+        "LISA_VERIFY_NPM_REPORT": "<delivered>/trees-pm/npm-audit-report.json",
+        "LISA_VERIFY_YARN_REPORT": "<delivered>/trees-pm/yarn-audit-report.ndjson",
+        "GITHUB_WORKSPACE": "<delivered>/trees-pm/yarn-npm-alias",
+        "LISA_AUDIT_ACTION_MANAGER": "yarn",
+        "LISA_AUDIT_ACTION_DIRECTORY": "."
+      },
+      "stdout": "GHSA-mrhx-c7xc-m3w5: vulnerable paths outside exclusion: schema-alias@npm:zod@3.25.76 (zod@3.25.76)\n❌ High or critical vulnerabilities found in production dependencies\n   Next step: upgrade or override the named copy; if it is dev-only and reviewed, add its lockfile path to `paths` in audit.ignore.local.json — see https://github.com/CodySwannGT/lisa/blob/main/docs/dependency-audit-exclusions.md\n",
+      "stderr": "",
+      "exit_code": 1,
+      "started_at": "2026-11-08T17:23:39.886Z",
+      "finished_at": "2026-11-08T17:23:39.964Z"
+    }
+  ]
+}

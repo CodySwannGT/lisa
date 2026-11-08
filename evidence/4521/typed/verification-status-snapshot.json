@@ -1,0 +1,316 @@
+{
+  "schema_version": 2,
+  "plan": "4521-path-scoped-audit-exclusions",
+  "artifact": {
+    "repository": "CodySwannGT/lisa",
+    "base_sha": "f83b8005e6bb2e363054185f631de1d3366d2e83",
+    "head_sha": "3d45307ef4e4bf8e115901c5e388aef14c570bc8",
+    "build_id": "Release and Deploy run 42490840830 -> @codyswann/lisa@4.96.3 (gitHead 4c5547de18a6a3332ea9116d85cd67a12f823430, dist.shasum 526203df9b1b2e8c75f06301ba953b0ed4cd1ba7)",
+    "environment": "production package (npm registry, tag latest) replayed in an isolated local consumer; hosted CI for the reviewed head",
+    "observed_at": "2026-11-08T15:01:24Z"
+  },
+  "claims": [
+    {
+      "claim_id": "AC-1-covered-only-passes",
+      "statement": "When every vulnerable copy sits on a listed path, the shipped consumers pass and print `excluded <id> for <paths> (reason)`. This holds for Bun, npm and Yarn path keys.",
+      "boundary": "cli",
+      "required_for_gate": true,
+      "required_evidence_kinds": [
+        "cli-output"
+      ],
+      "status": "established",
+      "evidence_refs": [
+        "EV-S1"
+      ],
+      "not_established": [
+        "Controlled fixture data, not a live advisory response"
+      ]
+    },
+    {
+      "claim_id": "AC-2-uncovered-and-alias-fail-naming-path",
+      "statement": "A vulnerable copy on an unlisted path, including an npm alias, or outside the declared versions, fails every shipped consumer and names that lockfile path. This holds for Bun, npm and Yarn.",
+      "boundary": "cli",
+      "required_for_gate": true,
+      "required_evidence_kinds": [
+        "cli-output"
+      ],
+      "status": "established",
+      "evidence_refs": [
+        "EV-S1"
+      ],
+      "not_established": [
+        "The alias entries are controlled lockfile data; no real installed alias was audited against the live service"
+      ]
+    },
+    {
+      "claim_id": "AC-3-legacy-id-only-unchanged",
+      "statement": "An ID-only entry keeps its advisory-wide meaning in the shipped consumers. The issue's legacy-control driver still accepts a documented entry and reports an undocumented one, 3 of 3 runs.",
+      "boundary": "cli",
+      "required_for_gate": true,
+      "required_evidence_kinds": [
+        "cli-output"
+      ],
+      "status": "established",
+      "evidence_refs": [
+        "EV-S1"
+      ],
+      "not_established": []
+    },
+    {
+      "claim_id": "AC-4-lockfile-fail-closed",
+      "statement": "With a scoped entry present, a missing or unparseable bun.lock makes every shipped consumer refuse, with a clear message and never an advisory-wide pass. An unreadable bun.lock (mode 000, EACCES) and bun.lock entries of unknown shape (an object instead of a tuple, or an unreadable version) make the exported helper and the shipped adapter fail closed with 'Cannot evaluate scoped audit exclusions' before any audit call. The same unreadable tree passes once it is readable again.",
+      "boundary": "cli",
+      "required_for_gate": true,
+      "required_evidence_kinds": [
+        "cli-output"
+      ],
+      "status": "established",
+      "evidence_refs": [
+        "EV-S1"
+      ],
+      "not_established": [
+        "The registry words the missing-lockfile case differently because lockfile detection fails first; the verdict is identical",
+        "The unreadable and unknown-shape lockfile cases were run through the helper and the adapter only, not through pre-push, the registry or CI"
+      ]
+    },
+    {
+      "claim_id": "SCN3-doctor-id-only-warning-shipped",
+      "statement": "The shipped 4.96.3 doctor (auditExceptionObservations) reports exactly one non-blocking observation for a documented ID-only entry, naming the file and the advisory and suggesting versions and paths. It reports none for a fully scoped entry. It reports one for a package-only entry. auditExceptionViolations is empty in all three cases.",
+      "boundary": "cli",
+      "required_for_gate": true,
+      "required_evidence_kinds": [
+        "cli-output"
+      ],
+      "status": "established",
+      "evidence_refs": [
+        "EV-S1"
+      ],
+      "not_established": [
+        "Called through the shipped module's exported functions, not through the full `lisa doctor` command output"
+      ]
+    },
+    {
+      "claim_id": "AC-5-consumer-parity",
+      "statement": "On identical trees, the shipped pre-push audit block, the registry, the adapter, the exported helper and the merge-commit CI action give the same verdict: 65 of 65 for Bun and 40 of 40 for npm and Yarn, matching the earlier local table.",
+      "boundary": "cli",
+      "required_for_gate": true,
+      "required_evidence_kinds": [
+        "cli-output"
+      ],
+      "status": "established",
+      "evidence_refs": [
+        "EV-S1"
+      ],
+      "not_established": [
+        "The CI consumer ran the merge commit's action source on this machine, not on a GitHub runner",
+        "Only the hook's audit block ran, not the whole hook"
+      ]
+    },
+    {
+      "claim_id": "AC-6-empty-paths-rejected",
+      "statement": "The shipped doctor rejects `paths: []`. The issue's preserved driver exits 0 in 3 of 3 runs against the shipped dist, where released 4.90.0 exited 1. Every shipped consumer refuses the same entry.",
+      "boundary": "cli",
+      "required_for_gate": true,
+      "required_evidence_kinds": [
+        "cli-output"
+      ],
+      "status": "established",
+      "evidence_refs": [
+        "EV-S1"
+      ],
+      "not_established": []
+    },
+    {
+      "claim_id": "AC-7-misspelled-scope-key-fails-closed",
+      "statement": "In the shipped consumers, a misspelled scope key (`path`) is refused with a did-you-mean hint, and a harmless extra key (`url`) leaves the verdict unchanged.",
+      "boundary": "cli",
+      "required_for_gate": true,
+      "required_evidence_kinds": [
+        "cli-output"
+      ],
+      "status": "established",
+      "evidence_refs": [
+        "EV-S1"
+      ],
+      "not_established": [
+        "Only `path` and `url` were exercised end to end"
+      ]
+    },
+    {
+      "claim_id": "AC-8-unscoped-cannot-override-scoped",
+      "statement": "In the shipped consumers, a managed advisory-wide entry is not applied when a local scoped entry exists for the same package, and the uncovered copy still fails with a `not applied` note.",
+      "boundary": "cli",
+      "required_for_gate": true,
+      "required_evidence_kinds": [
+        "cli-output"
+      ],
+      "status": "established",
+      "evidence_refs": [
+        "EV-S1"
+      ],
+      "not_established": [
+        "Only the layout with the managed entry in audit.ignore.config.json was exercised"
+      ]
+    },
+    {
+      "claim_id": "AC-9-zod-exception-scoped-live",
+      "statement": "In a live bun audit of the merged lockfile, the real advisory service reports GHSA-mrhx-c7xc-m3w5. The shipped helper and the shipped adapter both exclude it only for `eslint-plugin-react-compiler/zod`, and both exit 0.",
+      "boundary": "cli",
+      "required_for_gate": true,
+      "required_evidence_kinds": [
+        "cli-output"
+      ],
+      "status": "established",
+      "evidence_refs": [
+        "EV-S1"
+      ],
+      "not_established": [
+        "A single live sample at 2026-11-08T14:58Z"
+      ]
+    },
+    {
+      "claim_id": "AC-10-compensating-zod-control",
+      "statement": "tests/unit/config/zod-security-floor.test.ts ran by name in hosted CI, 9 of 9 passed.",
+      "boundary": "code-unit",
+      "required_for_gate": true,
+      "required_evidence_kinds": [
+        "test-run-log"
+      ],
+      "status": "established",
+      "evidence_refs": [
+        "EV-S2"
+      ],
+      "not_established": [
+        "Code-unit only; it says nothing about consumer behavior"
+      ]
+    },
+    {
+      "claim_id": "AC-11-documentation",
+      "statement": "At the merge commit, docs/dependency-audit-exclusions.md describes `paths` and says to prefer it over an advisory-wide exception for dev-only copies. The shipped security-audit-handling rule points to that page.",
+      "boundary": "cli",
+      "required_for_gate": true,
+      "required_evidence_kinds": [
+        "cli-output"
+      ],
+      "status": "established",
+      "evidence_refs": [
+        "EV-S1"
+      ],
+      "not_established": [
+        "Whether a non-technical reader finds the page clear was not tested"
+      ]
+    },
+    {
+      "claim_id": "VJ2-npm-yarn-parity",
+      "statement": "npm (package-lock v3) and Yarn classic give the same verdicts in all five shipped consumers.",
+      "boundary": "cli",
+      "required_for_gate": true,
+      "required_evidence_kinds": [
+        "cli-output"
+      ],
+      "status": "established",
+      "evidence_refs": [
+        "EV-S1"
+      ],
+      "not_established": [
+        "Yarn Berry lockfiles were not exercised",
+        "Controlled reports only; no live npm or Yarn advisory query was made"
+      ]
+    },
+    {
+      "claim_id": "VJ3-hosted-named-spec-execution",
+      "statement": "On the reviewed head, the hosted job 'Named Regression Specs', step 'Execute and name dependency-audit scope regression specs' (CI Quality Checks run 42488822127), ran 17 named files: 381 passed, 2 skipped, 0 failed. The step succeeded.",
+      "boundary": "cli",
+      "required_for_gate": true,
+      "required_evidence_kinds": [
+        "test-run-log"
+      ],
+      "status": "established",
+      "evidence_refs": [
+        "EV-S2"
+      ],
+      "not_established": [
+        "Captured on 1e3ade8714, the merge's second parent, not on the merge commit; it applies to the merge under the ancestry rule",
+        "The 2 skipped tests (quality-audit-fail-closed, npm and yarn registry-error-body cases) were exempted by the step and proved nothing"
+      ]
+    },
+    {
+      "claim_id": "VJ4-merge-release-deploy",
+      "statement": "PR #4693 merged as 3d45307ef4. Release and Deploy run 42490840830 (attempt 1, push to main, head 3d45307ef4) ended in success and published @codyswann/lisa@4.96.3 from release commit 4c5547de18, which descends from the merge.",
+      "boundary": "deploy-health",
+      "required_for_gate": true,
+      "required_evidence_kinds": [
+        "deploy-log"
+      ],
+      "status": "established",
+      "evidence_refs": [
+        "EV-S3"
+      ],
+      "not_established": [
+        "The job that reconciles the release against the registry was skipped in that run; the registry identity was checked independently with npm view and npm pack",
+        "Post-release health of host projects was not observed"
+      ]
+    },
+    {
+      "claim_id": "VJ5-shipped-byte-replay",
+      "statement": "The published tarball's sha1 equals dist.shasum and its sha512 equals dist.integrity (sha256 25a6620e…e515). The preserved inputs replayed against its bytes and its exported helper in an isolated consumer give the expected verdicts.",
+      "boundary": "cli",
+      "required_for_gate": true,
+      "required_evidence_kinds": [
+        "cli-output"
+      ],
+      "status": "established",
+      "evidence_refs": [
+        "EV-S1"
+      ],
+      "not_established": [
+        "The CI action is not in the npm package; its consumer used the merge commit's source"
+      ]
+    },
+    {
+      "claim_id": "INFO-current-head-review",
+      "statement": "A third-party review covered the final reviewed head 1e3ade8714.",
+      "boundary": "cli",
+      "required_for_gate": false,
+      "required_evidence_kinds": [
+        "cli-output"
+      ],
+      "status": "not-established",
+      "evidence_refs": [],
+      "not_established": [
+        "CodeRabbit was rate-limited (neutral) at 1e3ade8714 and the Review Evidence check failed there",
+        "A self-review substitute comment records an independent agent review with no blockers; it is not third-party, and the check was not re-run"
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "evidence_id": "EV-S1",
+      "kind": "cli-output",
+      "locator": "evidence/4521/shipped-byte-replay.md",
+      "sha256": "252e7bb7688b5544d60d4c04b32c2bea1400651f1a23be796e8cf5f375cf2096",
+      "captured_at": "2026-11-08T15:10:25Z",
+      "artifact_head_sha": "3d45307ef4e4bf8e115901c5e388aef14c570bc8"
+    },
+    {
+      "evidence_id": "EV-S2",
+      "kind": "test-run-log",
+      "locator": "evidence/4521/hosted-named-audit-specs.log.txt",
+      "sha256": "3fefa042afde73272b56d06b01daea7c16edbc7aa8ad221dc58ab1bf57014f3d",
+      "captured_at": "2026-11-08T14:21:01Z",
+      "artifact_head_sha": "1e3ade87145409b49ba5d483823c4eed9cf82aa7"
+    },
+    {
+      "evidence_id": "EV-S3",
+      "kind": "deploy-log",
+      "locator": "evidence/4521/release-4.96.3-deploy.log.txt",
+      "sha256": "3d9f396cef66835f3350d14feb61ebc8015eca0821ab4806f2c5faaaf5d4cf0e",
+      "captured_at": "2026-11-08T14:50:24Z",
+      "artifact_head_sha": "3d45307ef4e4bf8e115901c5e388aef14c570bc8"
+    }
+  ],
+  "not_established_reviewed": true,
+  "criteria": [],
+  "status": "pass",
+  "updated_at": "2026-11-08T15:16:00Z"
+}

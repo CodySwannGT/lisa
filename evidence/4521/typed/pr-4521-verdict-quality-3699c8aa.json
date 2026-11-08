@@ -1,0 +1,77 @@
+{
+  "schema_version": 2,
+  "plan": "4521-path-scoped-audit-exclusions",
+  "artifact": {
+    "repository": "CodySwannGT/lisa",
+    "base_sha": "f83b8005e6bb2e363054185f631de1d3366d2e83",
+    "head_sha": "1e3ade87145409b49ba5d483823c4eed9cf82aa7",
+    "build_id": "CI Quality Checks run 42488822127, job 128756523567 (Named Regression Specs)",
+    "environment": "ci",
+    "observed_at": "2026-11-08T14:21:01Z"
+  },
+  "claims": [
+    {
+      "claim_id": "AC-10-compensating-zod-control",
+      "statement": "tests/unit/config/zod-security-floor.test.ts ran by name in hosted CI on the tested head, 9 of 9 passed.",
+      "boundary": "code-unit",
+      "required_for_gate": true,
+      "required_evidence_kinds": [
+        "test-run-log"
+      ],
+      "status": "established",
+      "evidence_refs": [
+        "EV-S2"
+      ],
+      "not_established": [
+        "Code-unit only; it says nothing about consumer behavior"
+      ]
+    },
+    {
+      "claim_id": "VJ3-hosted-named-spec-execution",
+      "statement": "On the tested head, the hosted step 'Execute and name dependency-audit scope regression specs' ran 17 named files: 381 passed, 2 skipped, 0 failed.",
+      "boundary": "code-unit",
+      "required_for_gate": true,
+      "required_evidence_kinds": [
+        "test-run-log"
+      ],
+      "status": "established",
+      "evidence_refs": [
+        "EV-S2"
+      ],
+      "not_established": [
+        "Bound to code-unit, the conservative boundary for a test log; the suite also contains integration specs that drive real consumers in temp fixtures",
+        "The 2 skipped tests (quality-audit-fail-closed, npm and yarn registry-error-body cases) were exempted by the step and proved nothing",
+        "Captured on the tested PR head, not on the merge commit"
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "evidence_id": "EV-S2",
+      "kind": "test-run-log",
+      "asset_id": 724301032,
+      "bytes": 74878,
+      "sha256": "3fefa042afde73272b56d06b01daea7c16edbc7aa8ad221dc58ab1bf57014f3d",
+      "captured_at": "2026-11-08T14:21:01Z",
+      "artifact_head_sha": "1e3ade87145409b49ba5d483823c4eed9cf82aa7",
+      "locator": "evidence/4521/hosted-named-audit-specs.log.txt"
+    }
+  ],
+  "not_established_reviewed": true,
+  "criteria": [
+    {
+      "task": "Verify",
+      "criterion": "The compensating zod control runs by name and passes on the tested head",
+      "status": "pass",
+      "evidence": "EV-S2"
+    },
+    {
+      "task": "Verify",
+      "criterion": "The dependency-audit scope regression specs run by name in hosted CI with no failure and no unexempted skip",
+      "status": "pass",
+      "evidence": "EV-S2"
+    }
+  ],
+  "status": "pass",
+  "updated_at": "2026-11-08T17:18:23.733Z"
+}

@@ -1,0 +1,468 @@
+{
+  "title": "#4521 delivery: Release and Deploy run 42503663986 and the published @codyswann/lisa@4.97.2",
+  "native_run": {
+    "id": 42503663986,
+    "name": "Release and Deploy",
+    "node_id": "WFR_kwLOQ78yN88AAAAJ5Wpxcg",
+    "head_branch": "main",
+    "head_sha": "a2696da6c62c066cd4c0afe9f7ee4bfd0c6a10db",
+    "path": ".github/workflows/deploy.yml",
+    "display_title": "Merge pull request #4716 from CodySwannGT/claude/4521-evidence-and-le…",
+    "run_number": 2438,
+    "event": "push",
+    "status": "completed",
+    "conclusion": "success",
+    "workflow_id": 224606620,
+    "check_suite_id": 115134013463,
+    "check_suite_node_id": "CS_kwDOQ78yN88AAAAazoWgFw",
+    "url": "https://api.github.com/repos/CodySwannGT/lisa/actions/runs/42503663986",
+    "html_url": "https://github.com/CodySwannGT/lisa/actions/runs/42503663986",
+    "pull_requests": [],
+    "created_at": "2026-11-08T17:10:55Z",
+    "updated_at": "2026-11-08T17:21:29Z",
+    "actor": {
+      "login": "CodySwannGT",
+      "id": 292923,
+      "node_id": "MDQ6VXNlcjI5MjkyMw==",
+      "avatar_url": "https://avatars.githubusercontent.com/u/292923?v=4",
+      "gravatar_id": "",
+      "url": "https://api.github.com/users/CodySwannGT",
+      "html_url": "https://github.com/CodySwannGT",
+      "followers_url": "https://api.github.com/users/CodySwannGT/followers",
+      "following_url": "https://api.github.com/users/CodySwannGT/following{/other_user}",
+      "gists_url": "https://api.github.com/users/CodySwannGT/gists{/gist_id}",
+      "starred_url": "https://api.github.com/users/CodySwannGT/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/CodySwannGT/subscriptions",
+      "organizations_url": "https://api.github.com/users/CodySwannGT/orgs",
+      "repos_url": "https://api.github.com/users/CodySwannGT/repos",
+      "events_url": "https://api.github.com/users/CodySwannGT/events{/privacy}",
+      "received_events_url": "https://api.github.com/users/CodySwannGT/received_events",
+      "type": "User",
+      "user_view_type": "public",
+      "site_admin": false
+    },
+    "run_attempt": 1,
+    "referenced_workflows": [
+      {
+        "path": "CodySwannGT/lisa/.github/workflows/gates.yml@a2696da6c62c066cd4c0afe9f7ee4bfd0c6a10db",
+        "sha": "a2696da6c62c066cd4c0afe9f7ee4bfd0c6a10db",
+        "ref": "refs/heads/main"
+      },
+      {
+        "path": "CodySwannGT/lisa/.github/workflows/release.yml@a2696da6c62c066cd4c0afe9f7ee4bfd0c6a10db",
+        "sha": "a2696da6c62c066cd4c0afe9f7ee4bfd0c6a10db",
+        "ref": "refs/heads/main"
+      },
+      {
+        "path": "CodySwannGT/lisa/.github/workflows/quality.yml@a2696da6c62c066cd4c0afe9f7ee4bfd0c6a10db",
+        "sha": "a2696da6c62c066cd4c0afe9f7ee4bfd0c6a10db",
+        "ref": "refs/heads/main"
+      },
+      {
+        "path": "CodySwannGT/lisa/.github/workflows/history-secrets.yml@a2696da6c62c066cd4c0afe9f7ee4bfd0c6a10db",
+        "sha": "a2696da6c62c066cd4c0afe9f7ee4bfd0c6a10db",
+        "ref": "refs/heads/main"
+      },
+      {
+        "path": "CodySwannGT/lisa/.github/workflows/publish-to-npm.yml@a2696da6c62c066cd4c0afe9f7ee4bfd0c6a10db",
+        "sha": "a2696da6c62c066cd4c0afe9f7ee4bfd0c6a10db",
+        "ref": "refs/heads/main"
+      }
+    ],
+    "run_started_at": "2026-11-08T17:10:55Z",
+    "triggering_actor": {
+      "login": "CodySwannGT",
+      "id": 292923,
+      "node_id": "MDQ6VXNlcjI5MjkyMw==",
+      "avatar_url": "https://avatars.githubusercontent.com/u/292923?v=4",
+      "gravatar_id": "",
+      "url": "https://api.github.com/users/CodySwannGT",
+      "html_url": "https://github.com/CodySwannGT",
+      "followers_url": "https://api.github.com/users/CodySwannGT/followers",
+      "following_url": "https://api.github.com/users/CodySwannGT/following{/other_user}",
+      "gists_url": "https://api.github.com/users/CodySwannGT/gists{/gist_id}",
+      "starred_url": "https://api.github.com/users/CodySwannGT/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/CodySwannGT/subscriptions",
+      "organizations_url": "https://api.github.com/users/CodySwannGT/orgs",
+      "repos_url": "https://api.github.com/users/CodySwannGT/repos",
+      "events_url": "https://api.github.com/users/CodySwannGT/events{/privacy}",
+      "received_events_url": "https://api.github.com/users/CodySwannGT/received_events",
+      "type": "User",
+      "user_view_type": "public",
+      "site_admin": false
+    },
+    "jobs_url": "https://api.github.com/repos/CodySwannGT/lisa/actions/runs/42503663986/jobs",
+    "logs_url": "https://api.github.com/repos/CodySwannGT/lisa/actions/runs/42503663986/logs",
+    "check_suite_url": "https://api.github.com/repos/CodySwannGT/lisa/check-suites/115134013463",
+    "artifacts_url": "https://api.github.com/repos/CodySwannGT/lisa/actions/runs/42503663986/artifacts",
+    "cancel_url": "https://api.github.com/repos/CodySwannGT/lisa/actions/runs/42503663986/cancel",
+    "rerun_url": "https://api.github.com/repos/CodySwannGT/lisa/actions/runs/42503663986/rerun",
+    "previous_attempt_url": null,
+    "workflow_url": "https://api.github.com/repos/CodySwannGT/lisa/actions/workflows/224606620",
+    "head_commit": {
+      "id": "a2696da6c62c066cd4c0afe9f7ee4bfd0c6a10db",
+      "tree_id": "1509ad9ecdd4d79d9b460c248fb3b3c79ccbf359",
+      "message": "Merge pull request #4716 from CodySwannGT/claude/4521-evidence-and-learnings\n\ndocs(evidence): record #4521 delivery verification",
+      "timestamp": "2026-11-08T17:10:51Z",
+      "author": {
+        "name": "Cody Swann",
+        "email": "292923+CodySwannGT@users.noreply.github.com"
+      },
+      "committer": {
+        "name": "GitHub",
+        "email": "noreply@github.com"
+      }
+    },
+    "repository": {
+      "id": 1136603703,
+      "node_id": "R_kgDOQ78yNw",
+      "name": "lisa",
+      "full_name": "CodySwannGT/lisa",
+      "private": false,
+      "owner": {
+        "login": "CodySwannGT",
+        "id": 292923,
+        "node_id": "MDQ6VXNlcjI5MjkyMw==",
+        "avatar_url": "https://avatars.githubusercontent.com/u/292923?v=4",
+        "gravatar_id": "",
+        "url": "https://api.github.com/users/CodySwannGT",
+        "html_url": "https://github.com/CodySwannGT",
+        "followers_url": "https://api.github.com/users/CodySwannGT/followers",
+        "following_url": "https://api.github.com/users/CodySwannGT/following{/other_user}",
+        "gists_url": "https://api.github.com/users/CodySwannGT/gists{/gist_id}",
+        "starred_url": "https://api.github.com/users/CodySwannGT/starred{/owner}{/repo}",
+        "subscriptions_url": "https://api.github.com/users/CodySwannGT/subscriptions",
+        "organizations_url": "https://api.github.com/users/CodySwannGT/orgs",
+        "repos_url": "https://api.github.com/users/CodySwannGT/repos",
+        "events_url": "https://api.github.com/users/CodySwannGT/events{/privacy}",
+        "received_events_url": "https://api.github.com/users/CodySwannGT/received_events",
+        "type": "User",
+        "user_view_type": "public",
+        "site_admin": false
+      },
+      "html_url": "https://github.com/CodySwannGT/lisa",
+      "description": "Claude Code governance framework - guardrails, guidance, and automated enforcement for AI-assisted development",
+      "fork": false,
+      "url": "https://api.github.com/repos/CodySwannGT/lisa",
+      "forks_url": "https://api.github.com/repos/CodySwannGT/lisa/forks",
+      "keys_url": "https://api.github.com/repos/CodySwannGT/lisa/keys{/key_id}",
+      "collaborators_url": "https://api.github.com/repos/CodySwannGT/lisa/collaborators{/collaborator}",
+      "teams_url": "https://api.github.com/repos/CodySwannGT/lisa/teams",
+      "hooks_url": "https://api.github.com/repos/CodySwannGT/lisa/hooks",
+      "issue_events_url": "https://api.github.com/repos/CodySwannGT/lisa/issues/events{/number}",
+      "events_url": "https://api.github.com/repos/CodySwannGT/lisa/events",
+      "assignees_url": "https://api.github.com/repos/CodySwannGT/lisa/assignees{/user}",
+      "branches_url": "https://api.github.com/repos/CodySwannGT/lisa/branches{/branch}",
+      "tags_url": "https://api.github.com/repos/CodySwannGT/lisa/tags",
+      "blobs_url": "https://api.github.com/repos/CodySwannGT/lisa/git/blobs{/sha}",
+      "git_tags_url": "https://api.github.com/repos/CodySwannGT/lisa/git/tags{/sha}",
+      "git_refs_url": "https://api.github.com/repos/CodySwannGT/lisa/git/refs{/sha}",
+      "trees_url": "https://api.github.com/repos/CodySwannGT/lisa/git/trees{/sha}",
+      "statuses_url": "https://api.github.com/repos/CodySwannGT/lisa/statuses/{sha}",
+      "languages_url": "https://api.github.com/repos/CodySwannGT/lisa/languages",
+      "stargazers_url": "https://api.github.com/repos/CodySwannGT/lisa/stargazers",
+      "contributors_url": "https://api.github.com/repos/CodySwannGT/lisa/contributors",
+      "subscribers_url": "https://api.github.com/repos/CodySwannGT/lisa/subscribers",
+      "subscription_url": "https://api.github.com/repos/CodySwannGT/lisa/subscription",
+      "commits_url": "https://api.github.com/repos/CodySwannGT/lisa/commits{/sha}",
+      "git_commits_url": "https://api.github.com/repos/CodySwannGT/lisa/git/commits{/sha}",
+      "comments_url": "https://api.github.com/repos/CodySwannGT/lisa/comments{/number}",
+      "issue_comment_url": "https://api.github.com/repos/CodySwannGT/lisa/issues/comments{/number}",
+      "contents_url": "https://api.github.com/repos/CodySwannGT/lisa/contents/{+path}",
+      "compare_url": "https://api.github.com/repos/CodySwannGT/lisa/compare/{base}...{head}",
+      "merges_url": "https://api.github.com/repos/CodySwannGT/lisa/merges",
+      "archive_url": "https://api.github.com/repos/CodySwannGT/lisa/{archive_format}{/ref}",
+      "downloads_url": "https://api.github.com/repos/CodySwannGT/lisa/downloads",
+      "issues_url": "https://api.github.com/repos/CodySwannGT/lisa/issues{/number}",
+      "pulls_url": "https://api.github.com/repos/CodySwannGT/lisa/pulls{/number}",
+      "milestones_url": "https://api.github.com/repos/CodySwannGT/lisa/milestones{/number}",
+      "notifications_url": "https://api.github.com/repos/CodySwannGT/lisa/notifications{?since,all,participating}",
+      "labels_url": "https://api.github.com/repos/CodySwannGT/lisa/labels{/name}",
+      "releases_url": "https://api.github.com/repos/CodySwannGT/lisa/releases{/id}",
+      "deployments_url": "https://api.github.com/repos/CodySwannGT/lisa/deployments"
+    },
+    "head_repository": {
+      "id": 1136603703,
+      "node_id": "R_kgDOQ78yNw",
+      "name": "lisa",
+      "full_name": "CodySwannGT/lisa",
+      "private": false,
+      "owner": {
+        "login": "CodySwannGT",
+        "id": 292923,
+        "node_id": "MDQ6VXNlcjI5MjkyMw==",
+        "avatar_url": "https://avatars.githubusercontent.com/u/292923?v=4",
+        "gravatar_id": "",
+        "url": "https://api.github.com/users/CodySwannGT",
+        "html_url": "https://github.com/CodySwannGT",
+        "followers_url": "https://api.github.com/users/CodySwannGT/followers",
+        "following_url": "https://api.github.com/users/CodySwannGT/following{/other_user}",
+        "gists_url": "https://api.github.com/users/CodySwannGT/gists{/gist_id}",
+        "starred_url": "https://api.github.com/users/CodySwannGT/starred{/owner}{/repo}",
+        "subscriptions_url": "https://api.github.com/users/CodySwannGT/subscriptions",
+        "organizations_url": "https://api.github.com/users/CodySwannGT/orgs",
+        "repos_url": "https://api.github.com/users/CodySwannGT/repos",
+        "events_url": "https://api.github.com/users/CodySwannGT/events{/privacy}",
+        "received_events_url": "https://api.github.com/users/CodySwannGT/received_events",
+        "type": "User",
+        "user_view_type": "public",
+        "site_admin": false
+      },
+      "html_url": "https://github.com/CodySwannGT/lisa",
+      "description": "Claude Code governance framework - guardrails, guidance, and automated enforcement for AI-assisted development",
+      "fork": false,
+      "url": "https://api.github.com/repos/CodySwannGT/lisa",
+      "forks_url": "https://api.github.com/repos/CodySwannGT/lisa/forks",
+      "keys_url": "https://api.github.com/repos/CodySwannGT/lisa/keys{/key_id}",
+      "collaborators_url": "https://api.github.com/repos/CodySwannGT/lisa/collaborators{/collaborator}",
+      "teams_url": "https://api.github.com/repos/CodySwannGT/lisa/teams",
+      "hooks_url": "https://api.github.com/repos/CodySwannGT/lisa/hooks",
+      "issue_events_url": "https://api.github.com/repos/CodySwannGT/lisa/issues/events{/number}",
+      "events_url": "https://api.github.com/repos/CodySwannGT/lisa/events",
+      "assignees_url": "https://api.github.com/repos/CodySwannGT/lisa/assignees{/user}",
+      "branches_url": "https://api.github.com/repos/CodySwannGT/lisa/branches{/branch}",
+      "tags_url": "https://api.github.com/repos/CodySwannGT/lisa/tags",
+      "blobs_url": "https://api.github.com/repos/CodySwannGT/lisa/git/blobs{/sha}",
+      "git_tags_url": "https://api.github.com/repos/CodySwannGT/lisa/git/tags{/sha}",
+      "git_refs_url": "https://api.github.com/repos/CodySwannGT/lisa/git/refs{/sha}",
+      "trees_url": "https://api.github.com/repos/CodySwannGT/lisa/git/trees{/sha}",
+      "statuses_url": "https://api.github.com/repos/CodySwannGT/lisa/statuses/{sha}",
+      "languages_url": "https://api.github.com/repos/CodySwannGT/lisa/languages",
+      "stargazers_url": "https://api.github.com/repos/CodySwannGT/lisa/stargazers",
+      "contributors_url": "https://api.github.com/repos/CodySwannGT/lisa/contributors",
+      "subscribers_url": "https://api.github.com/repos/CodySwannGT/lisa/subscribers",
+      "subscription_url": "https://api.github.com/repos/CodySwannGT/lisa/subscription",
+      "commits_url": "https://api.github.com/repos/CodySwannGT/lisa/commits{/sha}",
+      "git_commits_url": "https://api.github.com/repos/CodySwannGT/lisa/git/commits{/sha}",
+      "comments_url": "https://api.github.com/repos/CodySwannGT/lisa/comments{/number}",
+      "issue_comment_url": "https://api.github.com/repos/CodySwannGT/lisa/issues/comments{/number}",
+      "contents_url": "https://api.github.com/repos/CodySwannGT/lisa/contents/{+path}",
+      "compare_url": "https://api.github.com/repos/CodySwannGT/lisa/compare/{base}...{head}",
+      "merges_url": "https://api.github.com/repos/CodySwannGT/lisa/merges",
+      "archive_url": "https://api.github.com/repos/CodySwannGT/lisa/{archive_format}{/ref}",
+      "downloads_url": "https://api.github.com/repos/CodySwannGT/lisa/downloads",
+      "issues_url": "https://api.github.com/repos/CodySwannGT/lisa/issues{/number}",
+      "pulls_url": "https://api.github.com/repos/CodySwannGT/lisa/pulls{/number}",
+      "milestones_url": "https://api.github.com/repos/CodySwannGT/lisa/milestones{/number}",
+      "notifications_url": "https://api.github.com/repos/CodySwannGT/lisa/notifications{?since,all,participating}",
+      "labels_url": "https://api.github.com/repos/CodySwannGT/lisa/labels{/name}",
+      "releases_url": "https://api.github.com/repos/CodySwannGT/lisa/releases{/id}",
+      "deployments_url": "https://api.github.com/repos/CodySwannGT/lisa/deployments"
+    }
+  },
+  "native_jobs": [
+    {
+      "completed_at": "2026-11-08T17:11:02Z",
+      "conclusion": "success",
+      "id": 128801563713,
+      "name": "Determine Environment",
+      "status": "completed"
+    },
+    {
+      "completed_at": "2026-11-08T17:11:06Z",
+      "conclusion": "success",
+      "id": 128801587814,
+      "name": "🚦 Pre-Deploy Gates / 🔖 Workflow Contract",
+      "status": "completed"
+    },
+    {
+      "completed_at": "2026-11-08T17:11:36Z",
+      "conclusion": "success",
+      "id": 128801587834,
+      "name": "🚦 Pre-Deploy Gates / 🚦 Gates",
+      "status": "completed"
+    },
+    {
+      "completed_at": "2026-11-08T17:11:41Z",
+      "conclusion": "success",
+      "id": 128801735806,
+      "name": "Release / 🚀 Initialize Release",
+      "status": "completed"
+    },
+    {
+      "completed_at": "2026-11-08T17:11:42Z",
+      "conclusion": "success",
+      "id": 128801735807,
+      "name": "Release / 🔖 Workflow Contract",
+      "status": "completed"
+    },
+    {
+      "completed_at": "2026-11-08T17:11:49Z",
+      "conclusion": "success",
+      "id": 128801735816,
+      "name": "Release / 🔍 Check Promotion",
+      "status": "completed"
+    },
+    {
+      "completed_at": "2026-11-08T17:11:47Z",
+      "conclusion": "success",
+      "id": 128801757092,
+      "name": "Release / 📅 Release Schedule Check",
+      "status": "completed"
+    },
+    {
+      "completed_at": "2026-11-08T17:11:48Z",
+      "conclusion": "skipped",
+      "id": 128801782622,
+      "name": "Release / 🚦 Release Approval",
+      "status": "completed"
+    },
+    {
+      "completed_at": "2026-11-08T17:11:48Z",
+      "conclusion": "skipped",
+      "id": 128801783167,
+      "name": "Release / 🔍 Quality Checks",
+      "status": "completed"
+    },
+    {
+      "completed_at": "2026-11-08T17:13:27Z",
+      "conclusion": "success",
+      "id": 128801790816,
+      "name": "Release / 📦 Version Management",
+      "status": "completed"
+    },
+    {
+      "completed_at": "2026-11-08T17:13:47Z",
+      "conclusion": "success",
+      "id": 128802205055,
+      "name": "Release / 🚨 Create Sentry Release",
+      "status": "completed"
+    },
+    {
+      "completed_at": "2026-11-08T17:13:35Z",
+      "conclusion": "success",
+      "id": 128802205399,
+      "name": "Release / 📜 Release Attestation",
+      "status": "completed"
+    },
+    {
+      "completed_at": "2026-11-08T17:13:27Z",
+      "conclusion": "skipped",
+      "id": 128802206016,
+      "name": "Release / 🔏 Release Signing",
+      "status": "completed"
+    },
+    {
+      "completed_at": "2026-11-08T17:13:27Z",
+      "conclusion": "skipped",
+      "id": 128802206204,
+      "name": "Release / 📋 Check Jira Setup",
+      "status": "completed"
+    },
+    {
+      "completed_at": "2026-11-08T17:13:27Z",
+      "conclusion": "skipped",
+      "id": 128802206729,
+      "name": "Release / 📋 Create Jira Release",
+      "status": "completed"
+    },
+    {
+      "completed_at": "2026-11-08T17:13:55Z",
+      "conclusion": "success",
+      "id": 128802241853,
+      "name": "Release / 🎉 Create GitHub Release",
+      "status": "completed"
+    },
+    {
+      "completed_at": "2026-11-08T17:14:03Z",
+      "conclusion": "success",
+      "id": 128802324748,
+      "name": "Release / ✅ Release Compliance",
+      "status": "completed"
+    },
+    {
+      "completed_at": "2026-11-08T17:14:10Z",
+      "conclusion": "success",
+      "id": 128802355278,
+      "name": "Release / 📋 Release Summary",
+      "status": "completed"
+    },
+    {
+      "completed_at": "2026-11-08T17:14:15Z",
+      "conclusion": "success",
+      "id": 128802386668,
+      "name": "🚨 Deploy Outcome",
+      "status": "completed"
+    },
+    {
+      "completed_at": "2026-11-08T17:21:00Z",
+      "conclusion": "success",
+      "id": 128802386738,
+      "name": "Publish to npm / Publish to npm",
+      "status": "completed"
+    },
+    {
+      "completed_at": "2026-11-08T17:14:17Z",
+      "conclusion": "success",
+      "id": 128802387335,
+      "name": "Publish to npm / 🔖 Workflow Contract",
+      "status": "completed"
+    },
+    {
+      "completed_at": "2026-11-08T17:21:28Z",
+      "conclusion": "success",
+      "id": 128804152829,
+      "name": "🚦 Post-Deploy Gates / 🚦 Gates",
+      "status": "completed"
+    },
+    {
+      "completed_at": "2026-11-08T17:21:06Z",
+      "conclusion": "success",
+      "id": 128804152857,
+      "name": "🚦 Post-Deploy Gates / 🔖 Workflow Contract",
+      "status": "completed"
+    },
+    {
+      "completed_at": "2026-11-08T17:21:00Z",
+      "conclusion": "skipped",
+      "id": 128804155275,
+      "name": "Reconcile release against the registry",
+      "status": "completed"
+    }
+  ],
+  "captures": [
+    {
+      "command": [
+        "gh",
+        "api",
+        "repos/CodySwannGT/lisa/actions/runs/42503663986"
+      ],
+      "stdout": "{\"id\":42503663986,\"name\":\"Release and Deploy\",\"node_id\":\"WFR_kwLOQ78yN88AAAAJ5Wpxcg\",\"head_branch\":\"main\",\"head_sha\":\"a2696da6c62c066cd4c0afe9f7ee4bfd0c6a10db\",\"path\":\".github/workflows/deploy.yml\",\"display_title\":\"Merge pull request #4716 from CodySwannGT/claude/4521-evidence-and-le…\",\"run_number\":2438,\"event\":\"push\",\"status\":\"completed\",\"conclusion\":\"success\",\"workflow_id\":224606620,\"check_suite_id\":115134013463,\"check_suite_node_id\":\"CS_kwDOQ78yN88AAAAazoWgFw\",\"url\":\"https://api.github.com/repos/CodySwannGT/lisa/actions/runs/42503663986\",\"html_url\":\"https://github.com/CodySwannGT/lisa/actions/runs/42503663986\",\"pull_requests\":[],\"created_at\":\"2026-11-08T17:10:55Z\",\"updated_at\":\"2026-11-08T17:21:29Z\",\"actor\":{\"login\":\"CodySwannGT\",\"id\":292923,\"node_id\":\"MDQ6VXNlcjI5MjkyMw==\",\"avatar_url\":\"https://avatars.githubusercontent.com/u/292923?v=4\",\"gravatar_id\":\"\",\"url\":\"https://api.github.com/users/CodySwannGT\",\"html_url\":\"https://github.com/CodySwannGT\",\"followers_url\":\"https://api.github.com/users/CodySwannGT/followers\",\"following_url\":\"https://api.github.com/users/CodySwannGT/following{/other_user}\",\"gists_url\":\"https://api.github.com/users/CodySwannGT/gists{/gist_id}\",\"starred_url\":\"https://api.github.com/users/CodySwannGT/starred{/owner}{/repo}\",\"subscriptions_url\":\"https://api.github.com/users/CodySwannGT/subscriptions\",\"organizations_url\":\"https://api.github.com/users/CodySwannGT/orgs\",\"repos_url\":\"https://api.github.com/users/CodySwannGT/repos\",\"events_url\":\"https://api.github.com/users/CodySwannGT/events{/privacy}\",\"received_events_url\":\"https://api.github.com/users/CodySwannGT/received_events\",\"type\":\"User\",\"user_view_type\":\"public\",\"site_admin\":false},\"run_attempt\":1,\"referenced_workflows\":[{\"path\":\"CodySwannGT/lisa/.github/workflows/gates.yml@a2696da6c62c066cd4c0afe9f7ee4bfd0c6a10db\",\"sha\":\"a2696da6c62c066cd4c0afe9f7ee4bfd0c6a10db\",\"ref\":\"refs/heads/main\"},{\"path\":\"CodySwannGT/lisa/.github/workflows/release.yml@a2696da6c62c066cd4c0afe9f7ee4bfd0c6a10db\",\"sha\":\"a2696da6c62c066cd4c0afe9f7ee4bfd0c6a10db\",\"ref\":\"refs/heads/main\"},{\"path\":\"CodySwannGT/lisa/.github/workflows/quality.yml@a2696da6c62c066cd4c0afe9f7ee4bfd0c6a10db\",\"sha\":\"a2696da6c62c066cd4c0afe9f7ee4bfd0c6a10db\",\"ref\":\"refs/heads/main\"},{\"path\":\"CodySwannGT/lisa/.github/workflows/history-secrets.yml@a2696da6c62c066cd4c0afe9f7ee4bfd0c6a10db\",\"sha\":\"a2696da6c62c066cd4c0afe9f7ee4bfd0c6a10db\",\"ref\":\"refs/heads/main\"},{\"path\":\"CodySwannGT/lisa/.github/workflows/publish-to-npm.yml@a2696da6c62c066cd4c0afe9f7ee4bfd0c6a10db\",\"sha\":\"a2696da6c62c066cd4c0afe9f7ee4bfd0c6a10db\",\"ref\":\"refs/heads/main\"}],\"run_started_at\":\"2026-11-08T17:10:55Z\",\"triggering_actor\":{\"login\":\"CodySwannGT\",\"id\":292923,\"node_id\":\"MDQ6VXNlcjI5MjkyMw==\",\"avatar_url\":\"https://avatars.githubusercontent.com/u/292923?v=4\",\"gravatar_id\":\"\",\"url\":\"https://api.github.com/users/CodySwannGT\",\"html_url\":\"https://github.com/CodySwannGT\",\"followers_url\":\"https://api.github.com/users/CodySwannGT/followers\",\"following_url\":\"https://api.github.com/users/CodySwannGT/following{/other_user}\",\"gists_url\":\"https://api.github.com/users/CodySwannGT/gists{/gist_id}\",\"starred_url\":\"https://api.github.com/users/CodySwannGT/starred{/owner}{/repo}\",\"subscriptions_url\":\"https://api.github.com/users/CodySwannGT/subscriptions\",\"organizations_url\":\"https://api.github.com/users/CodySwannGT/orgs\",\"repos_url\":\"https://api.github.com/users/CodySwannGT/repos\",\"events_url\":\"https://api.github.com/users/CodySwannGT/events{/privacy}\",\"received_events_url\":\"https://api.github.com/users/CodySwannGT/received_events\",\"type\":\"User\",\"user_view_type\":\"public\",\"site_admin\":false},\"jobs_url\":\"https://api.github.com/repos/CodySwannGT/lisa/actions/runs/42503663986/jobs\",\"logs_url\":\"https://api.github.com/repos/CodySwannGT/lisa/actions/runs/42503663986/logs\",\"check_suite_url\":\"https://api.github.com/repos/CodySwannGT/lisa/check-suites/115134013463\",\"artifacts_url\":\"https://api.github.com/repos/CodySwannGT/lisa/actions/runs/42503663986/artifacts\",\"cancel_url\":\"https://api.github.com/repos/CodySwannGT/lisa/actions/runs/42503663986/cancel\",\"rerun_url\":\"https://api.github.com/repos/CodySwannGT/lisa/actions/runs/42503663986/rerun\",\"previous_attempt_url\":null,\"workflow_url\":\"https://api.github.com/repos/CodySwannGT/lisa/actions/workflows/224606620\",\"head_commit\":{\"id\":\"a2696da6c62c066cd4c0afe9f7ee4bfd0c6a10db\",\"tree_id\":\"1509ad9ecdd4d79d9b460c248fb3b3c79ccbf359\",\"message\":\"Merge pull request #4716 from CodySwannGT/claude/4521-evidence-and-learnings\\n\\ndocs(evidence): record #4521 delivery verification\",\"timestamp\":\"2026-11-08T17:10:51Z\",\"author\":{\"name\":\"Cody Swann\",\"email\":\"292923+CodySwannGT@users.noreply.github.com\"},\"committer\":{\"name\":\"GitHub\",\"email\":\"noreply@github.com\"}},\"repository\":{\"id\":1136603703,\"node_id\":\"R_kgDOQ78yNw\",\"name\":\"lisa\",\"full_name\":\"CodySwannGT/lisa\",\"private\":false,\"owner\":{\"login\":\"CodySwannGT\",\"id\":292923,\"node_id\":\"MDQ6VXNlcjI5MjkyMw==\",\"avatar_url\":\"https://avatars.githubusercontent.com/u/292923?v=4\",\"gravatar_id\":\"\",\"url\":\"https://api.github.com/users/CodySwannGT\",\"html_url\":\"https://github.com/CodySwannGT\",\"followers_url\":\"https://api.github.com/users/CodySwannGT/followers\",\"following_url\":\"https://api.github.com/users/CodySwannGT/following{/other_user}\",\"gists_url\":\"https://api.github.com/users/CodySwannGT/gists{/gist_id}\",\"starred_url\":\"https://api.github.com/users/CodySwannGT/starred{/owner}{/repo}\",\"subscriptions_url\":\"https://api.github.com/users/CodySwannGT/subscriptions\",\"organizations_url\":\"https://api.github.com/users/CodySwannGT/orgs\",\"repos_url\":\"https://api.github.com/users/CodySwannGT/repos\",\"events_url\":\"https://api.github.com/users/CodySwannGT/events{/privacy}\",\"received_events_url\":\"https://api.github.com/users/CodySwannGT/received_events\",\"type\":\"User\",\"user_view_type\":\"public\",\"site_admin\":false},\"html_url\":\"https://github.com/CodySwannGT/lisa\",\"description\":\"Claude Code governance framework - guardrails, guidance, and automated enforcement for AI-assisted development\",\"fork\":false,\"url\":\"https://api.github.com/repos/CodySwannGT/lisa\",\"forks_url\":\"https://api.github.com/repos/CodySwannGT/lisa/forks\",\"keys_url\":\"https://api.github.com/repos/CodySwannGT/lisa/keys{/key_id}\",\"collaborators_url\":\"https://api.github.com/repos/CodySwannGT/lisa/collaborators{/collaborator}\",\"teams_url\":\"https://api.github.com/repos/CodySwannGT/lisa/teams\",\"hooks_url\":\"https://api.github.com/repos/CodySwannGT/lisa/hooks\",\"issue_events_url\":\"https://api.github.com/repos/CodySwannGT/lisa/issues/events{/number}\",\"events_url\":\"https://api.github.com/repos/CodySwannGT/lisa/events\",\"assignees_url\":\"https://api.github.com/repos/CodySwannGT/lisa/assignees{/user}\",\"branches_url\":\"https://api.github.com/repos/CodySwannGT/lisa/branches{/branch}\",\"tags_url\":\"https://api.github.com/repos/CodySwannGT/lisa/tags\",\"blobs_url\":\"https://api.github.com/repos/CodySwannGT/lisa/git/blobs{/sha}\",\"git_tags_url\":\"https://api.github.com/repos/CodySwannGT/lisa/git/tags{/sha}\",\"git_refs_url\":\"https://api.github.com/repos/CodySwannGT/lisa/git/refs{/sha}\",\"trees_url\":\"https://api.github.com/repos/CodySwannGT/lisa/git/trees{/sha}\",\"statuses_url\":\"https://api.github.com/repos/CodySwannGT/lisa/statuses/{sha}\",\"languages_url\":\"https://api.github.com/repos/CodySwannGT/lisa/languages\",\"stargazers_url\":\"https://api.github.com/repos/CodySwannGT/lisa/stargazers\",\"contributors_url\":\"https://api.github.com/repos/CodySwannGT/lisa/contributors\",\"subscribers_url\":\"https://api.github.com/repos/CodySwannGT/lisa/subscribers\",\"subscription_url\":\"https://api.github.com/repos/CodySwannGT/lisa/subscription\",\"commits_url\":\"https://api.github.com/repos/CodySwannGT/lisa/commits{/sha}\",\"git_commits_url\":\"https://api.github.com/repos/CodySwannGT/lisa/git/commits{/sha}\",\"comments_url\":\"https://api.github.com/repos/CodySwannGT/lisa/comments{/number}\",\"issue_comment_url\":\"https://api.github.com/repos/CodySwannGT/lisa/issues/comments{/number}\",\"contents_url\":\"https://api.github.com/repos/CodySwannGT/lisa/contents/{+path}\",\"compare_url\":\"https://api.github.com/repos/CodySwannGT/lisa/compare/{base}...{head}\",\"merges_url\":\"https://api.github.com/repos/CodySwannGT/lisa/merges\",\"archive_url\":\"https://api.github.com/repos/CodySwannGT/lisa/{archive_format}{/ref}\",\"downloads_url\":\"https://api.github.com/repos/CodySwannGT/lisa/downloads\",\"issues_url\":\"https://api.github.com/repos/CodySwannGT/lisa/issues{/number}\",\"pulls_url\":\"https://api.github.com/repos/CodySwannGT/lisa/pulls{/number}\",\"milestones_url\":\"https://api.github.com/repos/CodySwannGT/lisa/milestones{/number}\",\"notifications_url\":\"https://api.github.com/repos/CodySwannGT/lisa/notifications{?since,all,participating}\",\"labels_url\":\"https://api.github.com/repos/CodySwannGT/lisa/labels{/name}\",\"releases_url\":\"https://api.github.com/repos/CodySwannGT/lisa/releases{/id}\",\"deployments_url\":\"https://api.github.com/repos/CodySwannGT/lisa/deployments\"},\"head_repository\":{\"id\":1136603703,\"node_id\":\"R_kgDOQ78yNw\",\"name\":\"lisa\",\"full_name\":\"CodySwannGT/lisa\",\"private\":false,\"owner\":{\"login\":\"CodySwannGT\",\"id\":292923,\"node_id\":\"MDQ6VXNlcjI5MjkyMw==\",\"avatar_url\":\"https://avatars.githubusercontent.com/u/292923?v=4\",\"gravatar_id\":\"\",\"url\":\"https://api.github.com/users/CodySwannGT\",\"html_url\":\"https://github.com/CodySwannGT\",\"followers_url\":\"https://api.github.com/users/CodySwannGT/followers\",\"following_url\":\"https://api.github.com/users/CodySwannGT/following{/other_user}\",\"gists_url\":\"https://api.github.com/users/CodySwannGT/gists{/gist_id}\",\"starred_url\":\"https://api.github.com/users/CodySwannGT/starred{/owner}{/repo}\",\"subscriptions_url\":\"https://api.github.com/users/CodySwannGT/subscriptions\",\"organizations_url\":\"https://api.github.com/users/CodySwannGT/orgs\",\"repos_url\":\"https://api.github.com/users/CodySwannGT/repos\",\"events_url\":\"https://api.github.com/users/CodySwannGT/events{/privacy}\",\"received_events_url\":\"https://api.github.com/users/CodySwannGT/received_events\",\"type\":\"User\",\"user_view_type\":\"public\",\"site_admin\":false},\"html_url\":\"https://github.com/CodySwannGT/lisa\",\"description\":\"Claude Code governance framework - guardrails, guidance, and automated enforcement for AI-assisted development\",\"fork\":false,\"url\":\"https://api.github.com/repos/CodySwannGT/lisa\",\"forks_url\":\"https://api.github.com/repos/CodySwannGT/lisa/forks\",\"keys_url\":\"https://api.github.com/repos/CodySwannGT/lisa/keys{/key_id}\",\"collaborators_url\":\"https://api.github.com/repos/CodySwannGT/lisa/collaborators{/collaborator}\",\"teams_url\":\"https://api.github.com/repos/CodySwannGT/lisa/teams\",\"hooks_url\":\"https://api.github.com/repos/CodySwannGT/lisa/hooks\",\"issue_events_url\":\"https://api.github.com/repos/CodySwannGT/lisa/issues/events{/number}\",\"events_url\":\"https://api.github.com/repos/CodySwannGT/lisa/events\",\"assignees_url\":\"https://api.github.com/repos/CodySwannGT/lisa/assignees{/user}\",\"branches_url\":\"https://api.github.com/repos/CodySwannGT/lisa/branches{/branch}\",\"tags_url\":\"https://api.github.com/repos/CodySwannGT/lisa/tags\",\"blobs_url\":\"https://api.github.com/repos/CodySwannGT/lisa/git/blobs{/sha}\",\"git_tags_url\":\"https://api.github.com/repos/CodySwannGT/lisa/git/tags{/sha}\",\"git_refs_url\":\"https://api.github.com/repos/CodySwannGT/lisa/git/refs{/sha}\",\"trees_url\":\"https://api.github.com/repos/CodySwannGT/lisa/git/trees{/sha}\",\"statuses_url\":\"https://api.github.com/repos/CodySwannGT/lisa/statuses/{sha}\",\"languages_url\":\"https://api.github.com/repos/CodySwannGT/lisa/languages\",\"stargazers_url\":\"https://api.github.com/repos/CodySwannGT/lisa/stargazers\",\"contributors_url\":\"https://api.github.com/repos/CodySwannGT/lisa/contributors\",\"subscribers_url\":\"https://api.github.com/repos/CodySwannGT/lisa/subscribers\",\"subscription_url\":\"https://api.github.com/repos/CodySwannGT/lisa/subscription\",\"commits_url\":\"https://api.github.com/repos/CodySwannGT/lisa/commits{/sha}\",\"git_commits_url\":\"https://api.github.com/repos/CodySwannGT/lisa/git/commits{/sha}\",\"comments_url\":\"https://api.github.com/repos/CodySwannGT/lisa/comments{/number}\",\"issue_comment_url\":\"https://api.github.com/repos/CodySwannGT/lisa/issues/comments{/number}\",\"contents_url\":\"https://api.github.com/repos/CodySwannGT/lisa/contents/{+path}\",\"compare_url\":\"https://api.github.com/repos/CodySwannGT/lisa/compare/{base}...{head}\",\"merges_url\":\"https://api.github.com/repos/CodySwannGT/lisa/merges\",\"archive_url\":\"https://api.github.com/repos/CodySwannGT/lisa/{archive_format}{/ref}\",\"downloads_url\":\"https://api.github.com/repos/CodySwannGT/lisa/downloads\",\"issues_url\":\"https://api.github.com/repos/CodySwannGT/lisa/issues{/number}\",\"pulls_url\":\"https://api.github.com/repos/CodySwannGT/lisa/pulls{/number}\",\"milestones_url\":\"https://api.github.com/repos/CodySwannGT/lisa/milestones{/number}\",\"notifications_url\":\"https://api.github.com/repos/CodySwannGT/lisa/notifications{?since,all,participating}\",\"labels_url\":\"https://api.github.com/repos/CodySwannGT/lisa/labels{/name}\",\"releases_url\":\"https://api.github.com/repos/CodySwannGT/lisa/releases{/id}\",\"deployments_url\":\"https://api.github.com/repos/CodySwannGT/lisa/deployments\"}}",
+      "stderr": "",
+      "exit_code": 0,
+      "started_at": "2026-11-08T17:24:10.855Z",
+      "finished_at": "2026-11-08T17:24:11.350Z"
+    },
+    {
+      "command": [
+        "gh",
+        "api",
+        "repos/CodySwannGT/lisa/actions/runs/42503663986/jobs?per_page=100",
+        "--jq",
+        "[.jobs[] | {id, name, status, conclusion, completed_at}]"
+      ],
+      "stdout": "[{\"completed_at\":\"2026-11-08T17:11:02Z\",\"conclusion\":\"success\",\"id\":128801563713,\"name\":\"Determine Environment\",\"status\":\"completed\"},{\"completed_at\":\"2026-11-08T17:11:06Z\",\"conclusion\":\"success\",\"id\":128801587814,\"name\":\"🚦 Pre-Deploy Gates / 🔖 Workflow Contract\",\"status\":\"completed\"},{\"completed_at\":\"2026-11-08T17:11:36Z\",\"conclusion\":\"success\",\"id\":128801587834,\"name\":\"🚦 Pre-Deploy Gates / 🚦 Gates\",\"status\":\"completed\"},{\"completed_at\":\"2026-11-08T17:11:41Z\",\"conclusion\":\"success\",\"id\":128801735806,\"name\":\"Release / 🚀 Initialize Release\",\"status\":\"completed\"},{\"completed_at\":\"2026-11-08T17:11:42Z\",\"conclusion\":\"success\",\"id\":128801735807,\"name\":\"Release / 🔖 Workflow Contract\",\"status\":\"completed\"},{\"completed_at\":\"2026-11-08T17:11:49Z\",\"conclusion\":\"success\",\"id\":128801735816,\"name\":\"Release / 🔍 Check Promotion\",\"status\":\"completed\"},{\"completed_at\":\"2026-11-08T17:11:47Z\",\"conclusion\":\"success\",\"id\":128801757092,\"name\":\"Release / 📅 Release Schedule Check\",\"status\":\"completed\"},{\"completed_at\":\"2026-11-08T17:11:48Z\",\"conclusion\":\"skipped\",\"id\":128801782622,\"name\":\"Release / 🚦 Release Approval\",\"status\":\"completed\"},{\"completed_at\":\"2026-11-08T17:11:48Z\",\"conclusion\":\"skipped\",\"id\":128801783167,\"name\":\"Release / 🔍 Quality Checks\",\"status\":\"completed\"},{\"completed_at\":\"2026-11-08T17:13:27Z\",\"conclusion\":\"success\",\"id\":128801790816,\"name\":\"Release / 📦 Version Management\",\"status\":\"completed\"},{\"completed_at\":\"2026-11-08T17:13:47Z\",\"conclusion\":\"success\",\"id\":128802205055,\"name\":\"Release / 🚨 Create Sentry Release\",\"status\":\"completed\"},{\"completed_at\":\"2026-11-08T17:13:35Z\",\"conclusion\":\"success\",\"id\":128802205399,\"name\":\"Release / 📜 Release Attestation\",\"status\":\"completed\"},{\"completed_at\":\"2026-11-08T17:13:27Z\",\"conclusion\":\"skipped\",\"id\":128802206016,\"name\":\"Release / 🔏 Release Signing\",\"status\":\"completed\"},{\"completed_at\":\"2026-11-08T17:13:27Z\",\"conclusion\":\"skipped\",\"id\":128802206204,\"name\":\"Release / 📋 Check Jira Setup\",\"status\":\"completed\"},{\"completed_at\":\"2026-11-08T17:13:27Z\",\"conclusion\":\"skipped\",\"id\":128802206729,\"name\":\"Release / 📋 Create Jira Release\",\"status\":\"completed\"},{\"completed_at\":\"2026-11-08T17:13:55Z\",\"conclusion\":\"success\",\"id\":128802241853,\"name\":\"Release / 🎉 Create GitHub Release\",\"status\":\"completed\"},{\"completed_at\":\"2026-11-08T17:14:03Z\",\"conclusion\":\"success\",\"id\":128802324748,\"name\":\"Release / ✅ Release Compliance\",\"status\":\"completed\"},{\"completed_at\":\"2026-11-08T17:14:10Z\",\"conclusion\":\"success\",\"id\":128802355278,\"name\":\"Release / 📋 Release Summary\",\"status\":\"completed\"},{\"completed_at\":\"2026-11-08T17:14:15Z\",\"conclusion\":\"success\",\"id\":128802386668,\"name\":\"🚨 Deploy Outcome\",\"status\":\"completed\"},{\"completed_at\":\"2026-11-08T17:21:00Z\",\"conclusion\":\"success\",\"id\":128802386738,\"name\":\"Publish to npm / Publish to npm\",\"status\":\"completed\"},{\"completed_at\":\"2026-11-08T17:14:17Z\",\"conclusion\":\"success\",\"id\":128802387335,\"name\":\"Publish to npm / 🔖 Workflow Contract\",\"status\":\"completed\"},{\"completed_at\":\"2026-11-08T17:21:28Z\",\"conclusion\":\"success\",\"id\":128804152829,\"name\":\"🚦 Post-Deploy Gates / 🚦 Gates\",\"status\":\"completed\"},{\"completed_at\":\"2026-11-08T17:21:06Z\",\"conclusion\":\"success\",\"id\":128804152857,\"name\":\"🚦 Post-Deploy Gates / 🔖 Workflow Contract\",\"status\":\"completed\"},{\"completed_at\":\"2026-11-08T17:21:00Z\",\"conclusion\":\"skipped\",\"id\":128804155275,\"name\":\"Reconcile release against the registry\",\"status\":\"completed\"}]\n",
+      "stderr": "",
+      "exit_code": 0,
+      "started_at": "2026-11-08T17:24:11.350Z",
+      "finished_at": "2026-11-08T17:24:12.218Z"
+    },
+    {
+      "command": [
+        "npm",
+        "view",
+        "@codyswann/lisa@4.97.2",
+        "version",
+        "gitHead",
+        "dist.shasum",
+        "dist.integrity",
+        "--json"
+      ],
+      "stdout": "{\n  \"version\": \"4.97.2\",\n  \"gitHead\": \"387f58dabc5175e8360f2ad51e2a45ea21d486dc\",\n  \"dist.shasum\": \"06fe1bc81ab072d0f391790edd0c00f783ed7b45\",\n  \"dist.integrity\": \"sha512-pHE5d0rVKzNtzlXD3rOnPBDZhoJVZvl4ZLCjZO71POGR5BTqbP6IQqadSiNNSLuFfKLMwQHFFSuQw2K50XColQ==\"\n}\n",
+      "stderr": "",
+      "exit_code": 0,
+      "started_at": "2026-11-08T17:24:12.218Z",
+      "finished_at": "2026-11-08T17:24:12.722Z"
+    }
+  ]
+}

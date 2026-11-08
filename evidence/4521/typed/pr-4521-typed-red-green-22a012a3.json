@@ -1,0 +1,247 @@
+{
+  "title": "#4521 audit-scope RED/GREEN replay: preserved driver bytes against released 4.90.0 (RED) and delivered 4.97.2 (GREEN)",
+  "notes": [
+    "Drivers are the committed evidence/4521/reproduce-*.mjs.txt bytes.",
+    "RED tuples ran the pre-fix released package; GREEN tuples ran the delivered package."
+  ],
+  "redactions": [
+    "<delivered>",
+    "<red-4.90.0>",
+    "<shim-pm>",
+    "<shim>",
+    "<verifier-bin>",
+    "<mise>",
+    "<checkout>",
+    "<home>",
+    "<tmpdir>",
+    "<tmpdir>"
+  ],
+  "captures": [
+    {
+      "label": "RED released 4.90.0 (pre-fix): reproduce-empty-paths.mjs run 1",
+      "command": [
+        "<mise>/node/24.21.0/bin/node",
+        "reproduce-empty-paths.mjs"
+      ],
+      "cwd": "<red-4.90.0>/drivers",
+      "env": {
+        "PATH": "<mise>/node/24.21.0/bin:/usr/bin:/bin:/usr/sbin:/sbin:/opt/homebrew/bin"
+      },
+      "stdout": "{\"root\":\"<tmpdir>/lisa-4521-reproduction-Nfyjh1\",\"result\":[]}\n",
+      "stderr": "",
+      "exit_code": 1,
+      "started_at": "2026-11-08T17:23:25.721Z",
+      "finished_at": "2026-11-08T17:23:25.754Z"
+    },
+    {
+      "label": "RED released 4.90.0 (pre-fix): reproduce-empty-paths.mjs run 2",
+      "command": [
+        "<mise>/node/24.21.0/bin/node",
+        "reproduce-empty-paths.mjs"
+      ],
+      "cwd": "<red-4.90.0>/drivers",
+      "env": {
+        "PATH": "<mise>/node/24.21.0/bin:/usr/bin:/bin:/usr/sbin:/sbin:/opt/homebrew/bin"
+      },
+      "stdout": "{\"root\":\"<tmpdir>/lisa-4521-reproduction-8249I6\",\"result\":[]}\n",
+      "stderr": "",
+      "exit_code": 1,
+      "started_at": "2026-11-08T17:23:25.754Z",
+      "finished_at": "2026-11-08T17:23:25.784Z"
+    },
+    {
+      "label": "RED released 4.90.0 (pre-fix): reproduce-empty-paths.mjs run 3",
+      "command": [
+        "<mise>/node/24.21.0/bin/node",
+        "reproduce-empty-paths.mjs"
+      ],
+      "cwd": "<red-4.90.0>/drivers",
+      "env": {
+        "PATH": "<mise>/node/24.21.0/bin:/usr/bin:/bin:/usr/sbin:/sbin:/opt/homebrew/bin"
+      },
+      "stdout": "{\"root\":\"<tmpdir>/lisa-4521-reproduction-FRr9Z9\",\"result\":[]}\n",
+      "stderr": "",
+      "exit_code": 1,
+      "started_at": "2026-11-08T17:23:25.784Z",
+      "finished_at": "2026-11-08T17:23:25.815Z"
+    },
+    {
+      "label": "RED released 4.90.0 (pre-fix): reproduce-legacy-controls.mjs run 1",
+      "command": [
+        "<mise>/node/24.21.0/bin/node",
+        "reproduce-legacy-controls.mjs"
+      ],
+      "cwd": "<red-4.90.0>/drivers",
+      "env": {
+        "PATH": "<mise>/node/24.21.0/bin:/usr/bin:/bin:/usr/sbin:/sbin:/opt/homebrew/bin"
+      },
+      "stdout": "{\"documented\":[],\"undocumented\":[\"`audit.ignore.local.json` excludes advisory `GHSA-mrhx-c7xc-m3w5` from the dependency audit with no written decision (no reason/notes/justification field), so nobody can tell whether the exception is still true\"]}\n",
+      "stderr": "",
+      "exit_code": 0,
+      "started_at": "2026-11-08T17:23:25.815Z",
+      "finished_at": "2026-11-08T17:23:25.844Z"
+    },
+    {
+      "label": "RED released 4.90.0 (pre-fix): reproduce-legacy-controls.mjs run 2",
+      "command": [
+        "<mise>/node/24.21.0/bin/node",
+        "reproduce-legacy-controls.mjs"
+      ],
+      "cwd": "<red-4.90.0>/drivers",
+      "env": {
+        "PATH": "<mise>/node/24.21.0/bin:/usr/bin:/bin:/usr/sbin:/sbin:/opt/homebrew/bin"
+      },
+      "stdout": "{\"documented\":[],\"undocumented\":[\"`audit.ignore.local.json` excludes advisory `GHSA-mrhx-c7xc-m3w5` from the dependency audit with no written decision (no reason/notes/justification field), so nobody can tell whether the exception is still true\"]}\n",
+      "stderr": "",
+      "exit_code": 0,
+      "started_at": "2026-11-08T17:23:25.844Z",
+      "finished_at": "2026-11-08T17:23:25.871Z"
+    },
+    {
+      "label": "RED released 4.90.0 (pre-fix): reproduce-legacy-controls.mjs run 3",
+      "command": [
+        "<mise>/node/24.21.0/bin/node",
+        "reproduce-legacy-controls.mjs"
+      ],
+      "cwd": "<red-4.90.0>/drivers",
+      "env": {
+        "PATH": "<mise>/node/24.21.0/bin:/usr/bin:/bin:/usr/sbin:/sbin:/opt/homebrew/bin"
+      },
+      "stdout": "{\"documented\":[],\"undocumented\":[\"`audit.ignore.local.json` excludes advisory `GHSA-mrhx-c7xc-m3w5` from the dependency audit with no written decision (no reason/notes/justification field), so nobody can tell whether the exception is still true\"]}\n",
+      "stderr": "",
+      "exit_code": 0,
+      "started_at": "2026-11-08T17:23:25.871Z",
+      "finished_at": "2026-11-08T17:23:25.898Z"
+    },
+    {
+      "label": "RED released 4.90.0 (pre-fix): driver digests",
+      "command": [
+        "shasum",
+        "-a",
+        "256",
+        "reproduce-empty-paths.mjs",
+        "reproduce-legacy-controls.mjs"
+      ],
+      "cwd": "<red-4.90.0>/drivers",
+      "env": {},
+      "stdout": "eaa4be56990997e8ae598ed1bbdb10271d98c95593911c3782230cb1c2107697  reproduce-empty-paths.mjs\nd0afac3086aa4466a3bacface2bc779bd04ce40f7552944ce787c154b3b0165b  reproduce-legacy-controls.mjs\n",
+      "stderr": "",
+      "exit_code": 0,
+      "started_at": "2026-11-08T17:23:25.898Z",
+      "finished_at": "2026-11-08T17:23:25.907Z"
+    },
+    {
+      "label": "GREEN delivered 4.97.2: reproduce-empty-paths.mjs run 1",
+      "command": [
+        "<mise>/node/24.21.0/bin/node",
+        "reproduce-empty-paths.mjs"
+      ],
+      "cwd": "<delivered>/drivers",
+      "env": {
+        "PATH": "<mise>/node/24.21.0/bin:/usr/bin:/bin:/usr/sbin:/sbin:/opt/homebrew/bin"
+      },
+      "stdout": "{\"root\":\"<tmpdir>/lisa-4521-reproduction-tgJl11\",\"result\":[\"audit.ignore.local.json: GHSA-mrhx-c7xc-m3w5: paths must be a non-empty array of lockfile key paths\"]}\n",
+      "stderr": "",
+      "exit_code": 0,
+      "started_at": "2026-11-08T17:23:25.907Z",
+      "finished_at": "2026-11-08T17:23:25.968Z"
+    },
+    {
+      "label": "GREEN delivered 4.97.2: reproduce-empty-paths.mjs run 2",
+      "command": [
+        "<mise>/node/24.21.0/bin/node",
+        "reproduce-empty-paths.mjs"
+      ],
+      "cwd": "<delivered>/drivers",
+      "env": {
+        "PATH": "<mise>/node/24.21.0/bin:/usr/bin:/bin:/usr/sbin:/sbin:/opt/homebrew/bin"
+      },
+      "stdout": "{\"root\":\"<tmpdir>/lisa-4521-reproduction-wVNDuj\",\"result\":[\"audit.ignore.local.json: GHSA-mrhx-c7xc-m3w5: paths must be a non-empty array of lockfile key paths\"]}\n",
+      "stderr": "",
+      "exit_code": 0,
+      "started_at": "2026-11-08T17:23:25.968Z",
+      "finished_at": "2026-11-08T17:23:26.016Z"
+    },
+    {
+      "label": "GREEN delivered 4.97.2: reproduce-empty-paths.mjs run 3",
+      "command": [
+        "<mise>/node/24.21.0/bin/node",
+        "reproduce-empty-paths.mjs"
+      ],
+      "cwd": "<delivered>/drivers",
+      "env": {
+        "PATH": "<mise>/node/24.21.0/bin:/usr/bin:/bin:/usr/sbin:/sbin:/opt/homebrew/bin"
+      },
+      "stdout": "{\"root\":\"<tmpdir>/lisa-4521-reproduction-R1rfX5\",\"result\":[\"audit.ignore.local.json: GHSA-mrhx-c7xc-m3w5: paths must be a non-empty array of lockfile key paths\"]}\n",
+      "stderr": "",
+      "exit_code": 0,
+      "started_at": "2026-11-08T17:23:26.016Z",
+      "finished_at": "2026-11-08T17:23:26.065Z"
+    },
+    {
+      "label": "GREEN delivered 4.97.2: reproduce-legacy-controls.mjs run 1",
+      "command": [
+        "<mise>/node/24.21.0/bin/node",
+        "reproduce-legacy-controls.mjs"
+      ],
+      "cwd": "<delivered>/drivers",
+      "env": {
+        "PATH": "<mise>/node/24.21.0/bin:/usr/bin:/bin:/usr/sbin:/sbin:/opt/homebrew/bin"
+      },
+      "stdout": "{\"documented\":[],\"undocumented\":[\"`audit.ignore.local.json` excludes advisory `GHSA-mrhx-c7xc-m3w5` from the dependency audit with no written decision (no reason/notes/justification field), so nobody can tell whether the exception is still true\"]}\n",
+      "stderr": "",
+      "exit_code": 0,
+      "started_at": "2026-11-08T17:23:26.065Z",
+      "finished_at": "2026-11-08T17:23:26.117Z"
+    },
+    {
+      "label": "GREEN delivered 4.97.2: reproduce-legacy-controls.mjs run 2",
+      "command": [
+        "<mise>/node/24.21.0/bin/node",
+        "reproduce-legacy-controls.mjs"
+      ],
+      "cwd": "<delivered>/drivers",
+      "env": {
+        "PATH": "<mise>/node/24.21.0/bin:/usr/bin:/bin:/usr/sbin:/sbin:/opt/homebrew/bin"
+      },
+      "stdout": "{\"documented\":[],\"undocumented\":[\"`audit.ignore.local.json` excludes advisory `GHSA-mrhx-c7xc-m3w5` from the dependency audit with no written decision (no reason/notes/justification field), so nobody can tell whether the exception is still true\"]}\n",
+      "stderr": "",
+      "exit_code": 0,
+      "started_at": "2026-11-08T17:23:26.117Z",
+      "finished_at": "2026-11-08T17:23:26.167Z"
+    },
+    {
+      "label": "GREEN delivered 4.97.2: reproduce-legacy-controls.mjs run 3",
+      "command": [
+        "<mise>/node/24.21.0/bin/node",
+        "reproduce-legacy-controls.mjs"
+      ],
+      "cwd": "<delivered>/drivers",
+      "env": {
+        "PATH": "<mise>/node/24.21.0/bin:/usr/bin:/bin:/usr/sbin:/sbin:/opt/homebrew/bin"
+      },
+      "stdout": "{\"documented\":[],\"undocumented\":[\"`audit.ignore.local.json` excludes advisory `GHSA-mrhx-c7xc-m3w5` from the dependency audit with no written decision (no reason/notes/justification field), so nobody can tell whether the exception is still true\"]}\n",
+      "stderr": "",
+      "exit_code": 0,
+      "started_at": "2026-11-08T17:23:26.167Z",
+      "finished_at": "2026-11-08T17:23:26.218Z"
+    },
+    {
+      "label": "GREEN delivered 4.97.2: driver digests",
+      "command": [
+        "shasum",
+        "-a",
+        "256",
+        "reproduce-empty-paths.mjs",
+        "reproduce-legacy-controls.mjs"
+      ],
+      "cwd": "<delivered>/drivers",
+      "env": {},
+      "stdout": "eaa4be56990997e8ae598ed1bbdb10271d98c95593911c3782230cb1c2107697  reproduce-empty-paths.mjs\nd0afac3086aa4466a3bacface2bc779bd04ce40f7552944ce787c154b3b0165b  reproduce-legacy-controls.mjs\n",
+      "stderr": "",
+      "exit_code": 0,
+      "started_at": "2026-11-08T17:23:26.218Z",
+      "finished_at": "2026-11-08T17:23:26.228Z"
+    }
+  ]
+}

@@ -1,0 +1,290 @@
+{
+  "title": "#4521 shipped-byte replay of delivered @codyswann/lisa@4.97.2",
+  "notes": [
+    "Identity, install and live-audit steps are real registry/advisory access.",
+    "CONTROLLED FIXTURE DATA: lockfiles, exclusion files and audit reports in the fixture trees were written by the verifier (generators committed as evidence/4521/verify-make-trees.mjs.txt, shipped-make-trees-pm.mjs.txt, shipped-extra-trees.mjs.txt). Shims answer only `<manager> audit`; every other call goes to the real binary. Not live advisory access."
+  ],
+  "redactions": [
+    "<delivered>",
+    "<red-4.90.0>",
+    "<shim-pm>",
+    "<shim>",
+    "<verifier-bin>",
+    "<mise>",
+    "<checkout>",
+    "<home>",
+    "<tmpdir>",
+    "<tmpdir>"
+  ],
+  "captures": [
+    {
+      "label": "registry identity",
+      "command": [
+        "/bin/sh",
+        "-c",
+        "npm view @codyswann/lisa@4.97.2 version gitHead dist.shasum dist.integrity --json; npm view @codyswann/lisa dist-tags --json"
+      ],
+      "cwd": "<delivered>/pkg",
+      "env": {
+        "PATH": "<mise>/bun/1.4.4/bin:<mise>/node/24.21.0/bin:/usr/bin:/bin:/usr/sbin:/sbin:/opt/homebrew/bin"
+      },
+      "stdout": "{\n  \"version\": \"4.97.2\",\n  \"gitHead\": \"387f58dabc5175e8360f2ad51e2a45ea21d486dc\",\n  \"dist.shasum\": \"06fe1bc81ab072d0f391790edd0c00f783ed7b45\",\n  \"dist.integrity\": \"sha512-pHE5d0rVKzNtzlXD3rOnPBDZhoJVZvl4ZLCjZO71POGR5BTqbP6IQqadSiNNSLuFfKLMwQHFFSuQw2K50XColQ==\"\n}\n{\n  \"latest\": \"4.97.2\"\n}\n",
+      "stderr": "",
+      "exit_code": 0,
+      "started_at": "2026-11-08T17:23:39.992Z",
+      "finished_at": "2026-11-08T17:23:40.860Z"
+    },
+    {
+      "label": "tarball digests",
+      "command": [
+        "/bin/sh",
+        "-c",
+        "T=codyswann-lisa-4.97.2.tgz; echo \"sha1 $(shasum -a 1 $T | cut -d' ' -f1)\"; echo \"sha256 $(shasum -a 256 $T | cut -d' ' -f1)\"; echo \"sha512-$(openssl dgst -sha512 -binary $T | openssl base64 -A)\""
+      ],
+      "cwd": "<delivered>/pkg",
+      "env": {
+        "PATH": "<mise>/bun/1.4.4/bin:<mise>/node/24.21.0/bin:/usr/bin:/bin:/usr/sbin:/sbin:/opt/homebrew/bin"
+      },
+      "stdout": "sha1 06fe1bc81ab072d0f391790edd0c00f783ed7b45\nsha256 c5ebd4cdcc7f16a7d6e7113df4afb0cae5c9caf203a0a1aa9b19cc72166b892f\nsha512-pHE5d0rVKzNtzlXD3rOnPBDZhoJVZvl4ZLCjZO71POGR5BTqbP6IQqadSiNNSLuFfKLMwQHFFSuQw2K50XColQ==\n",
+      "stderr": "",
+      "exit_code": 0,
+      "started_at": "2026-11-08T17:23:40.860Z",
+      "finished_at": "2026-11-08T17:23:40.962Z"
+    },
+    {
+      "label": "installed package == tarball",
+      "command": [
+        "/bin/sh",
+        "-c",
+        "jq -r '.packages[\"node_modules/@codyswann/lisa\"] | \"installed \\(.version) \\(.integrity)\"' package-lock.json; diff -r -q node_modules/@codyswann/lisa/dist ../pkg/extracted/package/dist && echo \"dist byte-identical\""
+      ],
+      "cwd": "<delivered>/consumer",
+      "env": {
+        "PATH": "<mise>/bun/1.4.4/bin:<mise>/node/24.21.0/bin:/usr/bin:/bin:/usr/sbin:/sbin:/opt/homebrew/bin"
+      },
+      "stdout": "installed 4.97.2 sha512-pHE5d0rVKzNtzlXD3rOnPBDZhoJVZvl4ZLCjZO71POGR5BTqbP6IQqadSiNNSLuFfKLMwQHFFSuQw2K50XColQ==\ndist byte-identical\n",
+      "stderr": "",
+      "exit_code": 0,
+      "started_at": "2026-11-08T17:23:40.962Z",
+      "finished_at": "2026-11-08T17:23:41.669Z"
+    },
+    {
+      "label": "package gitHead descends from the delivered sha",
+      "command": [
+        "/bin/sh",
+        "-c",
+        "R=a2696da6c62c066cd4c0afe9f7ee4bfd0c6a10db; git merge-base --is-ancestor $R 387f58dabc5175e8360f2ad51e2a45ea21d486dc && echo \"delivery run head $R is an ancestor of package gitHead 387f58dabc5175e8360f2ad51e2a45ea21d486dc (= delivered_sha 387f58dabc5175e8360f2ad51e2a45ea21d486dc)\"; git log --format='%h %s' $R..387f58dabc5175e8360f2ad51e2a45ea21d486dc; git merge-base --is-ancestor 3d45307ef4e4bf8e115901c5e388aef14c570bc8 $R && echo \"primary merge 3d45307ef4 is an ancestor of $R\""
+      ],
+      "cwd": "<checkout>",
+      "env": {
+        "PATH": "<mise>/bun/1.4.4/bin:<mise>/node/24.21.0/bin:/usr/bin:/bin:/usr/sbin:/sbin:/opt/homebrew/bin"
+      },
+      "stdout": "delivery run head a2696da6c62c066cd4c0afe9f7ee4bfd0c6a10db is an ancestor of package gitHead 387f58dabc5175e8360f2ad51e2a45ea21d486dc (= delivered_sha 387f58dabc5175e8360f2ad51e2a45ea21d486dc)\n387f58dabc chore(release): 4.97.2 [skip ci] [skip-cd]\nprimary merge 3d45307ef4 is an ancestor of a2696da6c62c066cd4c0afe9f7ee4bfd0c6a10db\n",
+      "stderr": "",
+      "exit_code": 0,
+      "started_at": "2026-11-08T17:23:41.669Z",
+      "finished_at": "2026-11-08T17:23:41.715Z"
+    },
+    {
+      "label": "live bun audit of the delivered lockfile (real advisory service, no shim)",
+      "command": [
+        "/bin/sh",
+        "-c",
+        "command -v bun; shasum -a 256 bun.lock audit.ignore.local.json audit.ignore.config.json; bun audit --production --json > ../live-audit.json; echo \"bun audit exit=$?\"; jq -r 'to_entries[] | .key as $k | .value[] | select(.severity==\"high\" or .severity==\"critical\") | \"\\($k) \\(.severity) \\(.url) \\(.vulnerable_versions)\"' ../live-audit.json"
+      ],
+      "cwd": "<delivered>/live",
+      "env": {
+        "PATH": "<mise>/bun/1.4.4/bin:<mise>/node/24.21.0/bin:/usr/bin:/bin:/usr/sbin:/sbin:/opt/homebrew/bin"
+      },
+      "stdout": "<mise>/bun/1.4.4/bin/bun\n1911b23a32829cdadc59d51227a94359aedcb72cc042cdc52fd2bc36aa5faba7  bun.lock\na1d5caeec7ad8e8cd6c030605a4c8ed6c640721423a1ff9f8230af288c6829e2  audit.ignore.local.json\n44f4401b6b2328d0105f376846e5eb0e393c213b44798dc00f3d110e825245b3  audit.ignore.config.json\nbun audit exit=1\nzod high https://github.com/advisories/GHSA-mrhx-c7xc-m3w5 <4.6.6\n",
+      "stderr": "",
+      "exit_code": 0,
+      "started_at": "2026-11-08T17:23:41.715Z",
+      "finished_at": "2026-11-08T17:23:41.940Z"
+    },
+    {
+      "label": "live: shipped exported helper",
+      "command": [
+        "<mise>/node/24.21.0/bin/node",
+        "<verifier-bin>/helper-pm.mjs",
+        "<delivered>/live",
+        "<delivered>/consumer/node_modules/@codyswann/lisa",
+        "bun"
+      ],
+      "cwd": "<delivered>/live",
+      "env": {
+        "PATH": "<mise>/bun/1.4.4/bin:<mise>/node/24.21.0/bin:/usr/bin:/bin:/usr/sbin:/sbin:/opt/homebrew/bin"
+      },
+      "stdout": "[helper] resolved @codyswann/lisa/audit -> <package>/dist/core/audit.js\nexcluded GHSA-mrhx-c7xc-m3w5 for eslint-plugin-react-compiler/zod (Repository-specific exception for one copy: zod 3.25.76, nested under eslint-plugin-react-compiler 19.1.0-rc.2 (its latest release, which requires zod ^3.22.4). The advisory's only patched release is 4.6.6 and no 3.x fix exists. On 2026-10-24 the maintainer chose to keep the plugin, because its React Compiler rule runs in lint:slow, over forcing it onto zod 4. The plugin is lint-time tooling: it validates its own options while linting this repository's reviewed source, never untrusted or oversized input. Every other zod in the tree resolves to 4.6.7, and tests/unit/config/zod-security-floor.test.ts fails if any zod below 4.6.6 appears anywhere except that plugin's copy. The canonical audit matcher now enforces zod 3.x and the eslint-plugin-react-compiler/zod lockfile path; that test remains an independent compensating control. It does not authorize adding the exception to shared templates or suppressing any other advisory. Recheck by 2026-11-24, and remove it once the plugin accepts zod 4.6.6+.)\n[helper] passed=true\n",
+      "stderr": "",
+      "exit_code": 0,
+      "started_at": "2026-11-08T17:23:41.940Z",
+      "finished_at": "2026-11-08T17:23:42.208Z"
+    },
+    {
+      "label": "live: shipped adapter",
+      "command": [
+        "<mise>/node/24.21.0/bin/node",
+        "scripts/lisa-audit.mjs",
+        "--manager",
+        "bun"
+      ],
+      "cwd": "<delivered>/live",
+      "env": {
+        "PATH": "<mise>/bun/1.4.4/bin:<mise>/node/24.21.0/bin:/usr/bin:/bin:/usr/sbin:/sbin:/opt/homebrew/bin"
+      },
+      "stdout": "excluded GHSA-mrhx-c7xc-m3w5 for eslint-plugin-react-compiler/zod (Repository-specific exception for one copy: zod 3.25.76, nested under eslint-plugin-react-compiler 19.1.0-rc.2 (its latest release, which requires zod ^3.22.4). The advisory's only patched release is 4.6.6 and no 3.x fix exists. On 2026-10-24 the maintainer chose to keep the plugin, because its React Compiler rule runs in lint:slow, over forcing it onto zod 4. The plugin is lint-time tooling: it validates its own options while linting this repository's reviewed source, never untrusted or oversized input. Every other zod in the tree resolves to 4.6.7, and tests/unit/config/zod-security-floor.test.ts fails if any zod below 4.6.6 appears anywhere except that plugin's copy. The canonical audit matcher now enforces zod 3.x and the eslint-plugin-react-compiler/zod lockfile path; that test remains an independent compensating control. It does not authorize adding the exception to shared templates or suppressing any other advisory. Recheck by 2026-11-24, and remove it once the plugin accepts zod 4.6.6+.)\n✅ No high or critical vulnerabilities found in production dependencies (excluding documented exceptions)\n",
+      "stderr": "",
+      "exit_code": 0,
+      "started_at": "2026-11-08T17:23:42.208Z",
+      "finished_at": "2026-11-08T17:23:42.474Z"
+    },
+    {
+      "label": "doctor observations: doctor-a-id-only",
+      "command": [
+        "<mise>/node/24.21.0/bin/node",
+        "<verifier-bin>/doctor-obs.mjs",
+        "<delivered>/consumer/node_modules/@codyswann/lisa",
+        "<delivered>/trees-extra/doctor-a-id-only",
+        "doctor-a-id-only"
+      ],
+      "cwd": "<delivered>/trees-extra",
+      "env": {},
+      "stdout": "{\n \"case\": \"doctor-a-id-only\",\n \"observations\": [\n  \"`audit.ignore.local.json` hides this advisory for every copy of the affected package: the entry for `GHSA-mrhx-c7xc-m3w5` names no package, version range or lockfile path, so a later copy used in production would also be hidden. If the risky copy is only used by development tools, add `versions` and `paths` so only that copy is excused.\"\n ],\n \"violations\": []\n}\n",
+      "stderr": "",
+      "exit_code": 0,
+      "started_at": "2026-11-08T17:23:42.474Z",
+      "finished_at": "2026-11-08T17:23:42.526Z"
+    },
+    {
+      "label": "doctor observations: doctor-b-scoped",
+      "command": [
+        "<mise>/node/24.21.0/bin/node",
+        "<verifier-bin>/doctor-obs.mjs",
+        "<delivered>/consumer/node_modules/@codyswann/lisa",
+        "<delivered>/trees-extra/doctor-b-scoped",
+        "doctor-b-scoped"
+      ],
+      "cwd": "<delivered>/trees-extra",
+      "env": {},
+      "stdout": "{\n \"case\": \"doctor-b-scoped\",\n \"observations\": [],\n \"violations\": []\n}\n",
+      "stderr": "",
+      "exit_code": 0,
+      "started_at": "2026-11-08T17:23:42.526Z",
+      "finished_at": "2026-11-08T17:23:42.578Z"
+    },
+    {
+      "label": "doctor observations: doctor-c-package-only",
+      "command": [
+        "<mise>/node/24.21.0/bin/node",
+        "<verifier-bin>/doctor-obs.mjs",
+        "<delivered>/consumer/node_modules/@codyswann/lisa",
+        "<delivered>/trees-extra/doctor-c-package-only",
+        "doctor-c-package-only"
+      ],
+      "cwd": "<delivered>/trees-extra",
+      "env": {},
+      "stdout": "{\n \"case\": \"doctor-c-package-only\",\n \"observations\": [\n  \"`audit.ignore.local.json` hides this advisory for every copy of `zod`: the entry for `GHSA-mrhx-c7xc-m3w5` names no version range or lockfile path, so a later copy used in production would also be hidden. If the risky copy is only used by development tools, add `versions` and `paths` so only that copy is excused.\"\n ],\n \"violations\": []\n}\n",
+      "stderr": "",
+      "exit_code": 0,
+      "started_at": "2026-11-08T17:23:42.578Z",
+      "finished_at": "2026-11-08T17:23:42.633Z"
+    },
+    {
+      "label": "lock-unknown-shape / helper",
+      "command": [
+        "<mise>/node/24.21.0/bin/node",
+        "<verifier-bin>/helper-pm.mjs",
+        "<delivered>/trees-extra/lock-unknown-shape",
+        "<delivered>/consumer/node_modules/@codyswann/lisa",
+        "bun"
+      ],
+      "cwd": "<delivered>/trees-extra/lock-unknown-shape",
+      "env": {
+        "PATH": "<shim>:<mise>/node/24.21.0/bin:/usr/bin:/bin:/usr/sbin:/sbin:/opt/homebrew/bin",
+        "LISA_VERIFY_REPORT": "<delivered>/trees/bun-audit-report.json"
+      },
+      "stdout": "[helper] resolved @codyswann/lisa/audit -> <package>/dist/core/audit.js\n",
+      "stderr": "[helper] failed closed: Cannot evaluate scoped audit exclusions from bun.lock: Unknown bun.lock package data at odd-entry\n",
+      "exit_code": 1,
+      "started_at": "2026-11-08T17:23:42.633Z",
+      "finished_at": "2026-11-08T17:23:42.684Z"
+    },
+    {
+      "label": "lock-unknown-shape / adapter",
+      "command": [
+        "<mise>/node/24.21.0/bin/node",
+        "scripts/lisa-audit.mjs",
+        "--manager",
+        "bun"
+      ],
+      "cwd": "<delivered>/trees-extra/lock-unknown-shape",
+      "env": {
+        "PATH": "<shim>:<mise>/node/24.21.0/bin:/usr/bin:/bin:/usr/sbin:/sbin:/opt/homebrew/bin",
+        "LISA_VERIFY_REPORT": "<delivered>/trees/bun-audit-report.json"
+      },
+      "stdout": "",
+      "stderr": "❌ Security audit configuration invalid: Cannot evaluate scoped audit exclusions from bun.lock: Unknown bun.lock package data at odd-entry\n",
+      "exit_code": 1,
+      "started_at": "2026-11-08T17:23:42.684Z",
+      "finished_at": "2026-11-08T17:23:42.741Z"
+    },
+    {
+      "label": "lock-bad-version / helper",
+      "command": [
+        "<mise>/node/24.21.0/bin/node",
+        "<verifier-bin>/helper-pm.mjs",
+        "<delivered>/trees-extra/lock-bad-version",
+        "<delivered>/consumer/node_modules/@codyswann/lisa",
+        "bun"
+      ],
+      "cwd": "<delivered>/trees-extra/lock-bad-version",
+      "env": {
+        "PATH": "<shim>:<mise>/node/24.21.0/bin:/usr/bin:/bin:/usr/sbin:/sbin:/opt/homebrew/bin",
+        "LISA_VERIFY_REPORT": "<delivered>/trees/bun-audit-report.json"
+      },
+      "stdout": "[helper] resolved @codyswann/lisa/audit -> <package>/dist/core/audit.js\n",
+      "stderr": "[helper] failed closed: Cannot evaluate scoped audit exclusions from bun.lock: Unknown lockfile package data at odd-pkg: odd-pkg@not-a-version\n",
+      "exit_code": 1,
+      "started_at": "2026-11-08T17:23:42.741Z",
+      "finished_at": "2026-11-08T17:23:42.801Z"
+    },
+    {
+      "label": "lock-bad-version / adapter",
+      "command": [
+        "<mise>/node/24.21.0/bin/node",
+        "scripts/lisa-audit.mjs",
+        "--manager",
+        "bun"
+      ],
+      "cwd": "<delivered>/trees-extra/lock-bad-version",
+      "env": {
+        "PATH": "<shim>:<mise>/node/24.21.0/bin:/usr/bin:/bin:/usr/sbin:/sbin:/opt/homebrew/bin",
+        "LISA_VERIFY_REPORT": "<delivered>/trees/bun-audit-report.json"
+      },
+      "stdout": "",
+      "stderr": "❌ Security audit configuration invalid: Cannot evaluate scoped audit exclusions from bun.lock: Unknown lockfile package data at odd-pkg: odd-pkg@not-a-version\n",
+      "exit_code": 1,
+      "started_at": "2026-11-08T17:23:42.801Z",
+      "finished_at": "2026-11-08T17:23:42.857Z"
+    },
+    {
+      "label": "lock-unreadable: chmod 000, helper, adapter, restore, control",
+      "command": [
+        "/bin/sh",
+        "-c",
+        "chmod 000 bun.lock; ls -l bun.lock | cut -c1-10; node <verifier-bin>/helper-pm.mjs <delivered>/trees-extra/lock-unreadable <delivered>/consumer/node_modules/@codyswann/lisa bun; echo \"helper exit=$?\"; node scripts/lisa-audit.mjs --manager bun; echo \"adapter exit=$?\"; chmod 644 bun.lock; node scripts/lisa-audit.mjs --manager bun; echo \"control (readable again) exit=$?\""
+      ],
+      "cwd": "<delivered>/trees-extra/lock-unreadable",
+      "env": {
+        "PATH": "<shim>:<mise>/node/24.21.0/bin:/usr/bin:/bin:/usr/sbin:/sbin:/opt/homebrew/bin",
+        "LISA_VERIFY_REPORT": "<delivered>/trees/bun-audit-report.json"
+      },
+      "stdout": "----------\n[helper] resolved @codyswann/lisa/audit -> <package>/dist/core/audit.js\nhelper exit=1\nadapter exit=1\nexcluded GHSA-mrhx-c7xc-m3w5 for lint-plugin/zod (Verifier fixture: reviewed dev-only lint plugin copy)\n✅ No high or critical vulnerabilities found in production dependencies (excluding documented exceptions)\ncontrol (readable again) exit=0\n",
+      "stderr": "[helper] failed closed: Cannot evaluate scoped audit exclusions from bun.lock: EACCES: permission denied, open '<delivered>/trees-extra/lock-unreadable/bun.lock'\n❌ Security audit configuration invalid: Cannot evaluate scoped audit exclusions from bun.lock: EACCES: permission denied, open '<delivered>/trees-extra/lock-unreadable/bun.lock'\n",
+      "exit_code": 0,
+      "started_at": "2026-11-08T17:23:42.857Z",
+      "finished_at": "2026-11-08T17:23:43.040Z"
+    }
+  ]
+}

@@ -1,0 +1,376 @@
+{
+  "state": "pending",
+  "source": {
+    "pull_request": 4693,
+    "pr_head": "1e3ade87145409b49ba5d483823c4eed9cf82aa7",
+    "tested_head": "1e3ade87145409b49ba5d483823c4eed9cf82aa7",
+    "merge_sha": "3d45307ef4e4bf8e115901c5e388aef14c570bc8",
+    "declaring_commits": [
+      "014e74d5778568c9564ea85772c026137a038b2e",
+      "130968a101f397868b40d200eca064a521776cd2",
+      "1949f631b166823b0a61e75420b25979f29b5e1a",
+      "1b7b3e980dce784ad9d3481985ffde4713619997",
+      "1e3ade87145409b49ba5d483823c4eed9cf82aa7",
+      "41047d77d13d72e7564a176a880b948aa578dd3b",
+      "43bb063f8e3ba431d18af220ee8c479cd5b0b946",
+      "45629ef4c5a036cbfe1a80cde51d4739ec59a05d",
+      "45e3e017b4270eba626f960dd11017f0e3b5449d",
+      "4c7548390228d331092fc23cf1e5b567fa95223e",
+      "520d96b88ffd883f0e87b64b4a3d09980a1724f4",
+      "65a052ca8843d3f80c0264cf57c3b2153bf9af72",
+      "662adc65bbd1a518de1ce3bbb0a8d073499f2546",
+      "7169c6e78cc6eb55caad002efef70bd0b0555621",
+      "73210833ec086a437693e63fd920cbf8bfaf23ca",
+      "7352c3b04cf50234802bfb370a5bb7ca5fa10521",
+      "7aaeca4f1afee2e0800512adeb172455434d3dc6",
+      "7ccda2f653112cf935072d4b887fff37c480b814",
+      "853aaa277cc449dd544f02b31420f6a68a32192a",
+      "861cd952de7f0c467346b757d49dae8f6af01f16",
+      "8f4053f52b3a3d42215e4e014448635d06a9eec9",
+      "8fd36f7e40d1c8b296344d5ed14485c28d9ed4db",
+      "96de2c39a5c8ac1af12ff1cfca48a14cfb693f00",
+      "9a6a589083095d0cb5d4d4335ed80cf9b9c17222",
+      "9ad0bd9b1879e57cc991fec3ce804e3185402e9a",
+      "9b02e1793e30a990a77794aa9ecb95f03a59b278",
+      "a28e86d36604e714de487babdc9d10aa830d9c56",
+      "a7109edd110e7359a1487ac47bdca9c2f53d21e5",
+      "a909eb4898f008bd2e4b6d3ff663a48753a59e94",
+      "b86a2c039daa97959f05b4b33513a4449d2ee519",
+      "bd546002632efd6cfb14a239df389cb2d8365acf",
+      "c09cb15873166107fb4414fd3e25b6737f0d5a12",
+      "c361afc593d7b50bee309b841cc395ec47430209",
+      "c64a1a8c8aab81734727770bb853eadbdf7246d3",
+      "c7fc9f041964d8f86ca430400d61e98fd4b004be",
+      "cd574ab813b9ea79b594a6974747d7626c36d66a",
+      "d01b1c5dc8db2aaf8bfc58e505fa34f3db18ce84",
+      "d13738ece08cdb457e281a5af739eb8c2ca51f60",
+      "d174d3053989f75391a098068e95d92c9cde6fce",
+      "d961cc204a2697fa0e2c4a5ef5f4f9af0394d178",
+      "e3b2db03c11363f0aa081550dd61fb36f13f6b7c",
+      "eac89668537e98a070a9b6bfcaf5b44e30fba238",
+      "ff03dd78e94264ad97aec52e5debfb87eedadb21"
+    ],
+    "production_snapshot_sha": "4aef01b00d57502849d410bebeac5a967feb63af",
+    "delivered_sha": "387f58dabc5175e8360f2ad51e2a45ea21d486dc"
+  },
+  "evidence": [
+    {
+      "evidence_id": "EV-S2",
+      "kind": "test-run-log",
+      "asset_id": 724301032,
+      "bytes": 74878,
+      "sha256": "3fefa042afde73272b56d06b01daea7c16edbc7aa8ad221dc58ab1bf57014f3d",
+      "captured_at": "2026-11-08T14:21:01Z",
+      "artifact_head_sha": "1e3ade87145409b49ba5d483823c4eed9cf82aa7"
+    },
+    {
+      "evidence_id": "EV-R-red-green",
+      "kind": "cli-output",
+      "bytes": 10121,
+      "sha256": "22a012a38c1d23fb7fc726c3d86002d63131b891c19303b2938c86ee34faf17e",
+      "captured_at": "2026-11-08T17:23:26.228Z",
+      "artifact_head_sha": "387f58dabc5175e8360f2ad51e2a45ea21d486dc",
+      "asset_id": 724653006
+    },
+    {
+      "evidence_id": "EV-R-consumer-parity",
+      "kind": "cli-output",
+      "bytes": 127568,
+      "sha256": "c30db03cce086b5b6ce8715178ff388ebfbecb23d162051d15bcd9a13cf7e55d",
+      "captured_at": "2026-11-08T17:23:39.964Z",
+      "artifact_head_sha": "387f58dabc5175e8360f2ad51e2a45ea21d486dc",
+      "asset_id": 724653066
+    },
+    {
+      "evidence_id": "EV-R-shipped",
+      "kind": "cli-output",
+      "bytes": 16839,
+      "sha256": "d840bb604a05637bf517ab719c62e768c6dbe6a8060f894f1ab66a983f21dfcc",
+      "captured_at": "2026-11-08T17:23:43.040Z",
+      "artifact_head_sha": "387f58dabc5175e8360f2ad51e2a45ea21d486dc",
+      "asset_id": 724653143
+    },
+    {
+      "evidence_id": "EV-R-docs",
+      "kind": "cli-output",
+      "bytes": 2681,
+      "sha256": "68d39b1509dd01b7bc31d4f9e1e462469e8c55c7d15c28f6ad2f084a0caa966b",
+      "captured_at": "2026-11-08T17:25:22.067Z",
+      "artifact_head_sha": "387f58dabc5175e8360f2ad51e2a45ea21d486dc",
+      "asset_id": null
+    },
+    {
+      "evidence_id": "EV-R-delivery",
+      "kind": "deploy-log",
+      "bytes": 39089,
+      "sha256": "e3d9c4cb2bf228b96387fdf1f41461dba69b6cefc34f5f8db37976204bf9e883",
+      "captured_at": "2026-11-08T17:24:12.722Z",
+      "artifact_head_sha": "387f58dabc5175e8360f2ad51e2a45ea21d486dc",
+      "asset_id": null
+    }
+  ],
+  "manifest": [
+    {
+      "name": "audit-scope-red-green",
+      "kind": "cli-output",
+      "evidence_id": "EV-R-red-green"
+    },
+    {
+      "name": "audit-consumer-parity",
+      "kind": "cli-output",
+      "evidence_id": "EV-R-consumer-parity"
+    },
+    {
+      "name": "audit-current-head-gates",
+      "kind": "test-run-log",
+      "evidence_id": "EV-S2"
+    },
+    {
+      "name": "audit-release-delivery",
+      "kind": "deploy-log",
+      "evidence_id": "EV-R-delivery"
+    },
+    {
+      "name": "audit-shipped-byte-replay",
+      "kind": "cli-output",
+      "evidence_id": "EV-R-shipped"
+    }
+  ],
+  "verdicts": [
+    {
+      "asset_id": 724637080,
+      "bytes": 2717,
+      "sha256": "3699c8aa761efeb5553397f5984c2e7b8df9e1bd4700f07532e7b3b9d27ae68d",
+      "role": "quality"
+    },
+    {
+      "asset_id": null,
+      "bytes": 12495,
+      "sha256": "f82443f9ce8df7511f30aa2796b8daba8adcce09569dd7476f2652aa4c5e5dd5",
+      "role": "remote"
+    }
+  ],
+  "requirements": [
+    {
+      "requirement_id": "AC-1",
+      "operator": "all",
+      "claim_ids": [
+        "AC-1-covered-only-passes"
+      ]
+    },
+    {
+      "requirement_id": "AC-2",
+      "operator": "all",
+      "claim_ids": [
+        "AC-2-uncovered-and-alias-fail-naming-path"
+      ]
+    },
+    {
+      "requirement_id": "AC-3",
+      "operator": "all",
+      "claim_ids": [
+        "AC-3-legacy-id-only-unchanged"
+      ]
+    },
+    {
+      "requirement_id": "AC-4",
+      "operator": "all",
+      "claim_ids": [
+        "AC-4-lockfile-fail-closed"
+      ]
+    },
+    {
+      "requirement_id": "AC-5",
+      "operator": "all",
+      "claim_ids": [
+        "AC-5-consumer-parity",
+        "VJ2-npm-yarn-parity",
+        "VJ3-hosted-named-spec-execution"
+      ]
+    },
+    {
+      "requirement_id": "AC-6",
+      "operator": "all",
+      "claim_ids": [
+        "AC-11-documentation"
+      ]
+    },
+    {
+      "requirement_id": "SCN-1",
+      "operator": "all",
+      "claim_ids": [
+        "AC-1-covered-only-passes",
+        "AC-9-zod-exception-scoped-live"
+      ]
+    },
+    {
+      "requirement_id": "SCN-2",
+      "operator": "all",
+      "claim_ids": [
+        "AC-2-uncovered-and-alias-fail-naming-path",
+        "AC-8-unscoped-cannot-override-scoped"
+      ]
+    },
+    {
+      "requirement_id": "SCN-3",
+      "operator": "all",
+      "claim_ids": [
+        "AC-3-legacy-id-only-unchanged",
+        "AC-2-uncovered-and-alias-fail-naming-path",
+        "AC-5-consumer-parity",
+        "SCN3-doctor-id-only-warning-shipped"
+      ]
+    },
+    {
+      "requirement_id": "SCN-4",
+      "operator": "all",
+      "claim_ids": [
+        "AC-4-lockfile-fail-closed",
+        "AC-6-empty-paths-rejected",
+        "AC-7-misspelled-scope-key-fails-closed"
+      ]
+    },
+    {
+      "requirement_id": "SCN-5",
+      "operator": "all",
+      "claim_ids": [
+        "AC-5-consumer-parity",
+        "VJ2-npm-yarn-parity",
+        "AC-6-empty-paths-rejected"
+      ]
+    },
+    {
+      "requirement_id": "SCN-6",
+      "operator": "all",
+      "claim_ids": [
+        "AC-11-documentation",
+        "AC-9-zod-exception-scoped-live",
+        "AC-10-compensating-zod-control"
+      ]
+    },
+    {
+      "requirement_id": "VJ-1",
+      "operator": "all",
+      "claim_ids": [
+        "AC-6-empty-paths-rejected",
+        "AC-3-legacy-id-only-unchanged"
+      ]
+    },
+    {
+      "requirement_id": "VJ-2",
+      "operator": "all",
+      "claim_ids": [
+        "AC-5-consumer-parity",
+        "VJ2-npm-yarn-parity",
+        "AC-9-zod-exception-scoped-live"
+      ]
+    },
+    {
+      "requirement_id": "VJ-3",
+      "operator": "all",
+      "claim_ids": [
+        "VJ3-hosted-named-spec-execution",
+        "AC-10-compensating-zod-control"
+      ]
+    },
+    {
+      "requirement_id": "VJ-4",
+      "operator": "all",
+      "claim_ids": [
+        "VJ4-merge-release-deploy"
+      ]
+    },
+    {
+      "requirement_id": "VJ-5",
+      "operator": "all",
+      "claim_ids": [
+        "VJ5-shipped-byte-replay"
+      ]
+    }
+  ],
+  "obligations": {
+    "remote": {
+      "required": true,
+      "status": "pending",
+      "claim_ids": [
+        "AC-1-covered-only-passes",
+        "AC-2-uncovered-and-alias-fail-naming-path",
+        "AC-3-legacy-id-only-unchanged",
+        "AC-4-lockfile-fail-closed",
+        "AC-5-consumer-parity",
+        "AC-6-empty-paths-rejected",
+        "AC-7-misspelled-scope-key-fails-closed",
+        "AC-8-unscoped-cannot-override-scoped",
+        "AC-9-zod-exception-scoped-live",
+        "AC-11-documentation",
+        "SCN3-doctor-id-only-warning-shipped",
+        "VJ2-npm-yarn-parity",
+        "VJ4-merge-release-deploy",
+        "VJ5-shipped-byte-replay"
+      ]
+    },
+    "conformance": {
+      "required": true,
+      "status": "CONFORMS",
+      "requirement_ids": [
+        "AC-1",
+        "AC-2",
+        "AC-3",
+        "AC-4",
+        "AC-5",
+        "AC-6",
+        "SCN-1",
+        "SCN-2",
+        "SCN-3",
+        "SCN-4",
+        "SCN-5",
+        "SCN-6",
+        "VJ-1",
+        "VJ-2",
+        "VJ-3",
+        "VJ-4",
+        "VJ-5"
+      ],
+      "report": {
+        "asset_id": 724629106,
+        "bytes": 3061,
+        "sha256": "6098b24acae369b84d2194b1d1e57cb2288a5f10e417cf85f6ed0a169ac3a760"
+      }
+    },
+    "typed_manifest": {
+      "required": true,
+      "status": "pending"
+    },
+    "delivery": {
+      "required": true,
+      "status": "pass",
+      "mechanism": "github-actions",
+      "runs": [
+        {
+          "run_id": 42503663986,
+          "workflow_id": 224606620,
+          "workflow_path": ".github/workflows/deploy.yml",
+          "event": "push",
+          "attempt": 1,
+          "head_sha": "a2696da6c62c066cd4c0afe9f7ee4bfd0c6a10db"
+        }
+      ]
+    },
+    "usage": {
+      "required": true,
+      "status": "pass",
+      "entry_ids": [
+        "lisa-verify-4521-claude-ac4fa2cc-8ff8-4c2b-bcf1-c7e1cb631c6d",
+        "lisa-verify-4521-coordinator-context-01a19902-2080-7d00-8e8f-2e124d17e35d"
+      ]
+    },
+    "linkage": {
+      "required": true,
+      "status": "pass"
+    },
+    "acceptance": {
+      "required": true,
+      "status": "pending"
+    }
+  }
+}

@@ -1,0 +1,325 @@
+{
+  "schema_version": 2,
+  "plan": "4521-path-scoped-audit-exclusions",
+  "artifact": {
+    "repository": "CodySwannGT/lisa",
+    "base_sha": "a2696da6c62c066cd4c0afe9f7ee4bfd0c6a10db",
+    "head_sha": "387f58dabc5175e8360f2ad51e2a45ea21d486dc",
+    "build_id": "Release and Deploy run 42503663986 -> @codyswann/lisa@4.97.2 (gitHead 387f58da, dist.shasum 06fe1bc81ab072d0f391790edd0c00f783ed7b45)",
+    "environment": "production",
+    "observed_at": "2026-11-08T17:25:22.067Z"
+  },
+  "claims": [
+    {
+      "claim_id": "AC-1-covered-only-passes",
+      "statement": "In delivered 4.97.2, every consumer passes when all vulnerable copies are on listed paths and prints `excluded <id> for <paths> (reason)`, for Bun, npm and Yarn keys.",
+      "boundary": "cli",
+      "required_for_gate": true,
+      "required_evidence_kinds": [
+        "cli-output"
+      ],
+      "status": "established",
+      "evidence_refs": [
+        "EV-R-consumer-parity"
+      ],
+      "not_established": [
+        "Controlled fixture data (verifier-written lockfiles, exclusions and audit reports), not live advisory access"
+      ]
+    },
+    {
+      "claim_id": "AC-2-uncovered-and-alias-fail-naming-path",
+      "statement": "In delivered 4.97.2, an unlisted vulnerable copy, an npm alias, or a copy outside the declared versions fails every consumer and names that lockfile path (Bun, npm, Yarn).",
+      "boundary": "cli",
+      "required_for_gate": true,
+      "required_evidence_kinds": [
+        "cli-output"
+      ],
+      "status": "established",
+      "evidence_refs": [
+        "EV-R-consumer-parity"
+      ],
+      "not_established": [
+        "Controlled fixture data (verifier-written lockfiles, exclusions and audit reports), not live advisory access",
+        "No real installed alias was audited against the live service"
+      ]
+    },
+    {
+      "claim_id": "AC-3-legacy-id-only-unchanged",
+      "statement": "In delivered 4.97.2, an ID-only entry keeps its advisory-wide meaning in every consumer, and the preserved legacy-control driver still accepts a documented entry and reports an undocumented one (3/3, as on released 4.90.0).",
+      "boundary": "cli",
+      "required_for_gate": true,
+      "required_evidence_kinds": [
+        "cli-output"
+      ],
+      "status": "established",
+      "evidence_refs": [
+        "EV-R-consumer-parity",
+        "EV-R-red-green"
+      ],
+      "not_established": [
+        "Controlled fixture data (verifier-written lockfiles, exclusions and audit reports), not live advisory access"
+      ]
+    },
+    {
+      "claim_id": "AC-4-lockfile-fail-closed",
+      "statement": "In delivered 4.97.2, a scoped entry with a missing or unparseable bun.lock fails all five consumers; an unreadable bun.lock and unknown-shape entries fail the helper and adapter with 'Cannot evaluate scoped audit exclusions'; the readable control passes.",
+      "boundary": "cli",
+      "required_for_gate": true,
+      "required_evidence_kinds": [
+        "cli-output"
+      ],
+      "status": "established",
+      "evidence_refs": [
+        "EV-R-consumer-parity",
+        "EV-R-shipped"
+      ],
+      "not_established": [
+        "Controlled fixture data (verifier-written lockfiles, exclusions and audit reports), not live advisory access",
+        "Unreadable and unknown-shape cases ran through the helper and adapter only"
+      ]
+    },
+    {
+      "claim_id": "AC-5-consumer-parity",
+      "statement": "On identical trees the delivered pre-push audit block, registry, adapter, exported helper and the delivered-source CI action agree: 105/105 verdicts across 13 Bun and 8 npm/Yarn trees.",
+      "boundary": "cli",
+      "required_for_gate": true,
+      "required_evidence_kinds": [
+        "cli-output"
+      ],
+      "status": "established",
+      "evidence_refs": [
+        "EV-R-consumer-parity"
+      ],
+      "not_established": [
+        "Controlled fixture data (verifier-written lockfiles, exclusions and audit reports), not live advisory access",
+        "The CI consumer ran the delivered source's action locally, not on a GitHub runner",
+        "Only the hook's audit block ran, not the whole hook"
+      ]
+    },
+    {
+      "claim_id": "AC-6-empty-paths-rejected",
+      "statement": "The preserved empty-paths driver is RED on released 4.90.0 (result [], exit 1, 3/3) and GREEN on delivered 4.97.2 (paths must be a non-empty array, exit 0, 3/3); every consumer refuses `paths: []`.",
+      "boundary": "cli",
+      "required_for_gate": true,
+      "required_evidence_kinds": [
+        "cli-output"
+      ],
+      "status": "established",
+      "evidence_refs": [
+        "EV-R-red-green",
+        "EV-R-consumer-parity"
+      ],
+      "not_established": []
+    },
+    {
+      "claim_id": "AC-7-misspelled-scope-key-fails-closed",
+      "statement": "In delivered 4.97.2 a misspelled `path` key is refused with a did-you-mean hint, and a harmless `url` key does not change the verdict.",
+      "boundary": "cli",
+      "required_for_gate": true,
+      "required_evidence_kinds": [
+        "cli-output"
+      ],
+      "status": "established",
+      "evidence_refs": [
+        "EV-R-consumer-parity"
+      ],
+      "not_established": [
+        "Controlled fixture data (verifier-written lockfiles, exclusions and audit reports), not live advisory access",
+        "Only `path` and `url` exercised end to end"
+      ]
+    },
+    {
+      "claim_id": "AC-8-unscoped-cannot-override-scoped",
+      "statement": "In delivered 4.97.2 a managed advisory-wide entry is not applied when a local scoped entry exists for the same package; the uncovered copy still fails with a `not applied` note.",
+      "boundary": "cli",
+      "required_for_gate": true,
+      "required_evidence_kinds": [
+        "cli-output"
+      ],
+      "status": "established",
+      "evidence_refs": [
+        "EV-R-consumer-parity"
+      ],
+      "not_established": [
+        "Controlled fixture data (verifier-written lockfiles, exclusions and audit reports), not live advisory access"
+      ]
+    },
+    {
+      "claim_id": "AC-9-zod-exception-scoped-live",
+      "statement": "A live bun audit (real advisory service, no shim) of the delivered lockfile reports GHSA-mrhx-c7xc-m3w5; the delivered helper and adapter exclude it only for eslint-plugin-react-compiler/zod and exit 0.",
+      "boundary": "cli",
+      "required_for_gate": true,
+      "required_evidence_kinds": [
+        "cli-output"
+      ],
+      "status": "established",
+      "evidence_refs": [
+        "EV-R-shipped"
+      ],
+      "not_established": [
+        "One live sample"
+      ]
+    },
+    {
+      "claim_id": "AC-11-documentation",
+      "statement": "At the delivered source, docs/dependency-audit-exclusions.md describes `paths` and prefers it over advisory-wide entries for dev-only copies; the delivered package's security-audit-handling rule points to it.",
+      "boundary": "cli",
+      "required_for_gate": true,
+      "required_evidence_kinds": [
+        "cli-output"
+      ],
+      "status": "established",
+      "evidence_refs": [
+        "EV-R-docs"
+      ],
+      "not_established": [
+        "Readability for a non-technical reader was not tested"
+      ]
+    },
+    {
+      "claim_id": "SCN3-doctor-id-only-warning-shipped",
+      "statement": "The delivered doctor reports exactly one non-blocking observation for an ID-only entry, none for a fully scoped entry, one for a package-only entry; violations are empty in all three.",
+      "boundary": "cli",
+      "required_for_gate": true,
+      "required_evidence_kinds": [
+        "cli-output"
+      ],
+      "status": "established",
+      "evidence_refs": [
+        "EV-R-shipped"
+      ],
+      "not_established": [
+        "Exercised through the exported doctor module, not the full `lisa doctor` command"
+      ]
+    },
+    {
+      "claim_id": "VJ2-npm-yarn-parity",
+      "statement": "npm (package-lock v3) and Yarn classic trees give the same verdicts in all five delivered consumers (40/40).",
+      "boundary": "cli",
+      "required_for_gate": true,
+      "required_evidence_kinds": [
+        "cli-output"
+      ],
+      "status": "established",
+      "evidence_refs": [
+        "EV-R-consumer-parity"
+      ],
+      "not_established": [
+        "Controlled fixture data (verifier-written lockfiles, exclusions and audit reports), not live advisory access",
+        "Yarn Berry not exercised"
+      ]
+    },
+    {
+      "claim_id": "VJ4-merge-release-deploy",
+      "statement": "Release and Deploy run 42503663986 (push to main, head a2696da6, attempt 1) completed with success and published @codyswann/lisa@4.97.2 from release commit 387f58da, which descends from the run head and from the primary merge 3d45307ef4.",
+      "boundary": "deploy-health",
+      "required_for_gate": true,
+      "required_evidence_kinds": [
+        "deploy-log"
+      ],
+      "status": "established",
+      "evidence_refs": [
+        "EV-R-delivery"
+      ],
+      "not_established": [
+        "The registry-reconcile job was skipped in that run; registry identity was checked separately (EV-R-shipped)",
+        "Post-release health of host projects was not observed"
+      ]
+    },
+    {
+      "claim_id": "VJ5-shipped-byte-replay",
+      "statement": "The published 4.97.2 tarball's sha1 equals dist.shasum and its sha512 equals dist.integrity; installed dist is byte-identical; the preserved inputs replayed against the delivered bytes give the expected verdicts.",
+      "boundary": "cli",
+      "required_for_gate": true,
+      "required_evidence_kinds": [
+        "cli-output"
+      ],
+      "status": "established",
+      "evidence_refs": [
+        "EV-R-shipped",
+        "EV-R-red-green",
+        "EV-R-consumer-parity"
+      ],
+      "not_established": [
+        "The CI action is not in the npm package; its consumer used the delivered source"
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "evidence_id": "EV-R-red-green",
+      "kind": "cli-output",
+      "bytes": 10121,
+      "sha256": "22a012a38c1d23fb7fc726c3d86002d63131b891c19303b2938c86ee34faf17e",
+      "captured_at": "2026-11-08T17:23:26.228Z",
+      "artifact_head_sha": "387f58dabc5175e8360f2ad51e2a45ea21d486dc"
+    },
+    {
+      "evidence_id": "EV-R-consumer-parity",
+      "kind": "cli-output",
+      "bytes": 127568,
+      "sha256": "c30db03cce086b5b6ce8715178ff388ebfbecb23d162051d15bcd9a13cf7e55d",
+      "captured_at": "2026-11-08T17:23:39.964Z",
+      "artifact_head_sha": "387f58dabc5175e8360f2ad51e2a45ea21d486dc"
+    },
+    {
+      "evidence_id": "EV-R-shipped",
+      "kind": "cli-output",
+      "bytes": 16839,
+      "sha256": "d840bb604a05637bf517ab719c62e768c6dbe6a8060f894f1ab66a983f21dfcc",
+      "captured_at": "2026-11-08T17:23:43.040Z",
+      "artifact_head_sha": "387f58dabc5175e8360f2ad51e2a45ea21d486dc"
+    },
+    {
+      "evidence_id": "EV-R-docs",
+      "kind": "cli-output",
+      "bytes": 2681,
+      "sha256": "68d39b1509dd01b7bc31d4f9e1e462469e8c55c7d15c28f6ad2f084a0caa966b",
+      "captured_at": "2026-11-08T17:25:22.067Z",
+      "artifact_head_sha": "387f58dabc5175e8360f2ad51e2a45ea21d486dc"
+    },
+    {
+      "evidence_id": "EV-R-delivery",
+      "kind": "deploy-log",
+      "bytes": 39089,
+      "sha256": "e3d9c4cb2bf228b96387fdf1f41461dba69b6cefc34f5f8db37976204bf9e883",
+      "captured_at": "2026-11-08T17:24:12.722Z",
+      "artifact_head_sha": "387f58dabc5175e8360f2ad51e2a45ea21d486dc"
+    }
+  ],
+  "not_established_reviewed": true,
+  "criteria": [
+    {
+      "task": "Verify",
+      "criterion": "The delivered package rejects empty paths where the pre-fix release accepted them",
+      "status": "pass",
+      "evidence": "EV-R-red-green"
+    },
+    {
+      "task": "Verify",
+      "criterion": "Every audit consumer gives the same verdict on identical trees in the delivered package",
+      "status": "pass",
+      "evidence": "EV-R-consumer-parity"
+    },
+    {
+      "task": "Verify",
+      "criterion": "The delivered bytes match the registry identity and keep the live zod exception scoped to one copy",
+      "status": "pass",
+      "evidence": "EV-R-shipped"
+    },
+    {
+      "task": "Verify",
+      "criterion": "The configured production delivery workflow completed successfully for the delivered source",
+      "status": "pass",
+      "evidence": "EV-R-delivery"
+    },
+    {
+      "task": "Verify",
+      "criterion": "The exclusion documentation describes and recommends path scope",
+      "status": "pass",
+      "evidence": "EV-R-docs"
+    }
+  ],
+  "status": "pass",
+  "updated_at": "2026-11-08T17:26:03.492Z"
+}
