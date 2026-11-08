@@ -69,14 +69,11 @@ Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
 
  RUN  v4.1.12 /Users/codysai/workspace/lisa/.claude/worktrees/4608-bounded-ci-watch
 
-lisa fleet admission: waiting for a worker slot — 4 run(s) live, this run is #4, 3 may execute at once. Starting anyway in 120s. Set LISA_FLEET_ADMISSION=off to disable this wait.
-lisa fleet admission: starting OVER CAPACITY after 120s — 4 run(s) live, this run is #4, 3 may execute at once. The machine is oversubscribed; expect timeouts rather than failures.
-lisa fleet admission: waiting for a worker slot — 4 run(s) live, this run is #4, 3 may execute at once. Starting anyway in 120s. Set LISA_FLEET_ADMISSION=off to disable this wait.
 
  Test Files  9 passed (9)
       Tests  627 passed (627)
-   Start at  20:19:28
-   Duration  148.50s (transform 235ms, setup 581ms, import 195ms, tests 9.95s, environment 0ms)
+   Start at  20:31:57
+   Duration  5.67s (transform 243ms, setup 609ms, import 200ms, tests 5.19s, environment 0ms)
 
 exit=0
-?? evidence/CodySwannGT-lisa-4608/
+(status of plugins/ tests/ src/ above; empty = clean)

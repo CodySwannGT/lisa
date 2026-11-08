@@ -14,7 +14,7 @@ Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
  RUN  v4.1.12 /Users/codysai/workspace/lisa/.claude/worktrees/4608-bounded-ci-watch
 
 lisa scratch: no supervised lease in the environment, so this run is self-supervised. Fixture directories are still bounded to a run root this process owns and removed on exit; what is missing is the detached reaper that reclaims the root after a SIGKILL, which the next run's startup sweep recovers instead. Run through `lisa-test-run --profile <profile> --adapter vitest -- vitest ...` for a supervised run.
- ❯ |lisa| tests/unit/strategies/drive-pr-bounded-ci-watch.test.ts (133 tests | 1 failed) 21ms
+ ❯ |lisa| tests/unit/strategies/drive-pr-bounded-ci-watch.test.ts (133 tests | 1 failed) 20ms
      × reports CI PENDING, never success, as a terminal state 3ms
 
 ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
@@ -73,16 +73,31 @@ AssertionError: expected '\n## 2. The watch loop\n\nPoll the li…' to contain '
 + The re-poll of `statusCheckRollup` is the authority on which one happened.
 +
 + **No required checks reported yet.** The watch also returns at once when no
-+ required check has registered on the head. First confirm the base requires any
-+ (the `rules/branches/<base>` read in step (a), its `required_status_checks`
-+ rule); when it requires none, this wait does not apply. Otherwise the head's
-+ checks have not started: re-poll, and re-run the bounded watch once the re-poll
-+ shows required checks registered. Between those re-polls, wait with one
-+ foreground bounded command, for example
-+ `timeout 60 gh pr checks <pr> --watch --interval 10` (it blocks while any check
-+ on the head is still running) — never a sleep loop. If about ten minutes pass
-+ with no required check registered, that is a blocker, not a wait: stop and name
-+ the missing contexts (report mode: `blocked:checks`).
++ required check has registered on the head. First confirm whether the base
++ requires any, reading both places a requirement can live:
++
++ ```bash
++ gh api "repos/<owner>/<repo>/rules/branches/<base>" \
++   --jq '[.[] | select(.type == "required_status_checks")] | length'
++ gh api "repos/<owner>/<repo>/branches/<base>/protection/required_status_checks" \
++   --jq '(.contexts // []) + [(.checks // [])[].context] | length'
++ ```
++
++ The wait does not apply only when BOTH say none: the rules read returns `0`
++ AND the classic read returns 404 or `0`. Any other error from either read means
++ the requirement is unknown — treat the base as requiring checks. Otherwise the
++ head's checks have not started: re-poll, and re-run the bounded watch once the
++ re-poll shows required checks registered. Between those re-polls, wait with this
++ one foreground bounded gap — the `sleep` covers a head with no checks at all,
++ where the watch returns at once:
++
++ ```bash
++ timeout 60 gh pr checks <pr> --watch --interval 10 || sleep 30
++ ```
++
++ Never a detached or unbounded sleep loop. After 10 re-polls with no required
++ check registered on the head, that is a blocker, not a wait: stop and name the
++ missing checks (report mode: `blocked:checks`).
 +
 + **Report mode does not wait on CI.** With `on_blocker=report`, never run the
 + watch and never end in `ci-pending`: pending required checks classify through
@@ -93,9 +108,10 @@ AssertionError: expected '\n## 2. The watch loop\n\nPoll the li…' to contain '
 +
 + **Never start a detached or background watcher as the way to wait on CI** — no
 + trailing `&`, no `nohup`, no harness background task, no scheduled re-check, no
-+ sleep loop. Each of those stalls silently, dies with the session, or lets the
-+ session end while required checks are still pending, and the later result then
-+ reaches nobody. The wait is the bounded watch above, and nothing else.
++ detached or unbounded sleep loop. Each of those stalls silently, dies with the
++ session, or lets the session end while required checks are still pending, and
++ the later result then reaches nobody. The wait is the bounded watch above, and
++ nothing else.
 +
 + **Budget spent with required checks still pending.** Do not end silently and do
 + not report success. Record the state on the PR in one comment carrying the
@@ -713,29 +729,29 @@ AssertionError: expected '\n## 2. The watch loop\n\nPoll the li…' to contain '
 + merge, close, or delete anything — return `blocked:pending-auto-fix`.
 +
 
- ❯ tests/unit/strategies/drive-pr-bounded-ci-watch.test.ts:266:18
-    264|     const end = terminal();
-    265|     const line = "CI PENDING — <n> required checks still running at <s…
-    266|     expect(loop).toContain(line);
+ ❯ tests/unit/strategies/drive-pr-bounded-ci-watch.test.ts:282:18
+    280|     const end = terminal();
+    281|     const line = "CI PENDING — <n> required checks still running at <s…
+    282|     expect(loop).toContain(line);
        |                  ^
-    267|     expect(end).toContain(line);
-    268|     expect(end).toMatch(/\*\*`ci-pending`\*\*/);
+    283|     expect(end).toContain(line);
+    284|     expect(end).toMatch(/\*\*`ci-pending`\*\*/);
 
 ⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
 
 
  Test Files  1 failed (1)
       Tests  1 failed | 132 passed (133)
-   Start at  20:18:34
-   Duration  329ms (transform 76ms, setup 129ms, import 7ms, tests 21ms, environment 0ms)
+   Start at  20:30:54
+   Duration  321ms (transform 66ms, setup 115ms, import 8ms, tests 20ms, environment 0ms)
 
 vitest exit=1
-?? evidence/CodySwannGT-lisa-4608/
+(empty above = plugins/ and tests/ clean after restore)
 diff --git a/plugins/src/base/skills/lisa-drive-pr-to-merge/SKILL.md b/plugins/src/base/skills/lisa-drive-pr-to-merge/SKILL.md
-index d5dedd65be..7a1407d5f5 100644
+index 15e6ba51f2..8e6942ae67 100644
 --- a/plugins/src/base/skills/lisa-drive-pr-to-merge/SKILL.md
 +++ b/plugins/src/base/skills/lisa-drive-pr-to-merge/SKILL.md
-@@ -771,7 +771,6 @@ A check that fails later is not this run's to catch: the CI-failure re-dispatch
+@@ -787,7 +787,6 @@ A check that fails later is not this run's to catch: the CI-failure re-dispatch
  with the `ci-pending` terminal state (section 4) and this exact report line:
  
  ```text

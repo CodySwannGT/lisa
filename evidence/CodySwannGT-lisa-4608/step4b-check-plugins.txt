@@ -4,4 +4,4 @@ $ bash scripts/build-plugins.sh
 ✓ 45 generated files outside plugins/ match their sources.
 ✓ Marketplace registers every built plugin.
 exit=0
-?? evidence/CodySwannGT-lisa-4608/
+(status of plugins/ tests/ src/ above; empty = clean)

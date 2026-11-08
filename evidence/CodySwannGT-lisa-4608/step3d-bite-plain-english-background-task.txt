@@ -14,7 +14,7 @@ Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
  RUN  v4.1.12 /Users/codysai/workspace/lisa/.claude/worktrees/4608-bounded-ci-watch
 
 lisa scratch: no supervised lease in the environment, so this run is self-supervised. Fixture directories are still bounded to a run root this process owns and removed on exit; what is missing is the detached reaper that reclaims the root after a SIGKILL, which the next run's startup sweep recovers instead. Run through `lisa-test-run --profile <profile> --adapter vitest -- vitest ...` for a supervised run.
- ❯ |lisa| tests/unit/strategies/drive-pr-bounded-ci-watch.test.ts (133 tests | 1 failed) 21ms
+ ❯ |lisa| tests/unit/strategies/drive-pr-bounded-ci-watch.test.ts (133 tests | 1 failed) 23ms
      × mentions background or detached waiting only inside the prohibition 3ms
 
 ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
@@ -30,26 +30,26 @@ AssertionError: expected [ 'background task' ] to deeply equal []
 +   "background task",
 + ]
 
- ❯ tests/unit/strategies/drive-pr-bounded-ci-watch.test.ts:196:36
-    194|       ...content.matchAll(/background (task|watcher|job)|detached/gi),
-    195|     ].filter(m => m.index < pStart || m.index > pEnd);
-    196|     expect(outside.map(m => m[0])).toEqual([]);
+ ❯ tests/unit/strategies/drive-pr-bounded-ci-watch.test.ts:203:36
+    201|       ),
+    202|     ].filter(m => m.index < pStart || m.index > pEnd);
+    203|     expect(outside.map(m => m[0])).toEqual([]);
        |                                    ^
-    197|   });
-    198|
+    204|   });
+    205|
 
 ⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
 
 
  Test Files  1 failed (1)
       Tests  1 failed | 132 passed (133)
-   Start at  20:19:05
-   Duration  327ms (transform 75ms, setup 130ms, import 7ms, tests 21ms, environment 0ms)
+   Start at  20:31:21
+   Duration  490ms (transform 148ms, setup 222ms, import 14ms, tests 23ms, environment 0ms)
 
 vitest exit=1
-?? evidence/CodySwannGT-lisa-4608/
+(empty above = plugins/ and tests/ clean after restore)
 diff --git a/plugins/src/base/skills/lisa-drive-pr-to-merge/SKILL.md b/plugins/src/base/skills/lisa-drive-pr-to-merge/SKILL.md
-index d5dedd65be..a2bc6bfd03 100644
+index 15e6ba51f2..0423a5018f 100644
 --- a/plugins/src/base/skills/lisa-drive-pr-to-merge/SKILL.md
 +++ b/plugins/src/base/skills/lisa-drive-pr-to-merge/SKILL.md
 @@ -712,6 +712,8 @@ the `timeout` utility exists; otherwise the harness's own command timeout):
