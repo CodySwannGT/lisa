@@ -2697,7 +2697,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/deployed-guard-advice.mjs":
       "c7471b6972b26bb0c2a66c680feb4980ec67d3dbd92732f48fe76c72ed7790f5",
     "scripts/detect-stale-workflow-inputs.mjs":
-      "04274c1ed972c040ccf0b64aba193368d652769094db6d97706706530e93d74f",
+      "385d31979f3a5caa16575f75ea1e8f0b6eafe5d5dfb91187485888c1e4d48539",
     "scripts/downstream-name-digest.mjs":
       "7db91654f03ddd37bfdf1c34acfbfad9832a44ab762ca94c179809ad8faf4aa3",
     "scripts/fix-namespace-test-assertions.mjs":
@@ -2811,9 +2811,9 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/lib/retired-safety-net-manifest.json":
       "0538681f4b4b8a9b1498398556af0fbbebeae0f0f6eb377a19b4be07667c517f",
     "scripts/lib/reusable-workflow-contract.d.mts":
-      "791f01b55dd7a6b5d9a5f4cb9c44167caa146c2fc3c31a2ae4c2d8a350adc2f1",
+      "0e9291d404fd045240bdbc555ceb09c7cb0a0238a05185e0ca5ddda9eefa8124",
     "scripts/lib/reusable-workflow-contract.mjs":
-      "134ee2a327290f066f1eb318b5ed53c711557c3e10ed462c00ff5c97cfb20863",
+      "db8f62d4dc1de0bed2a0cc9fa243e5a1dfa4538d319d5930af8b1411b1ec9adb",
     "scripts/lib/shell-guard-refusal-coverage.mjs":
       "9bd530bae922022870c8bb1b69925778fa609c67561228cc8cfa94a0ee3f5e7c",
     "scripts/lib/shell-guard-shard-runner.mjs":
@@ -3928,6 +3928,9 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "parity/fixtures/stale-workflow-inputs/project-mixed/.github/workflows/example-auto-fix.yml": true,
     "parity/fixtures/stale-workflow-inputs/project-mixed/.github/workflows/example-unknown.yml": true,
     "parity/fixtures/stale-workflow-inputs/project-no-caller/.github/workflows/ci.yml": true,
+    "parity/fixtures/stale-workflow-inputs/project-pinned-stale/.github/workflows/example-agent.yml": true,
+    "parity/fixtures/stale-workflow-inputs/project-third-party/.github/workflows/vendor.yml": true,
+    "parity/fixtures/stale-workflow-inputs/project-unparsed/.github/workflows/example-agent.yml": true,
     "parity/fixtures/stale-workflow-inputs/project-vintage/.github/workflows/example-agent.yml": true,
     "parity/plugin-routing/.gitkeep": true,
     "parity/plugin-routing/code-review@claude-plugins-official.json": true,
@@ -12297,6 +12300,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/health/rails-hook-installation.test.ts": true,
     "tests/unit/health/ruleset-reach-inspection.test.ts": true,
     "tests/unit/health/storage.test.ts": true,
+    "tests/unit/health/workflow-input-pinned-callers.test.ts": true,
     "tests/unit/helpers/bounded-bash.test.ts": true,
     "tests/unit/helpers/bounded-exec-file-sync.test.ts": true,
     "tests/unit/helpers/bounded-spawn-sync.test.ts": true,
@@ -12606,6 +12610,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/destructive-production-guard.test.ts": true,
     "tests/unit/scripts/destructive-production-unreachable.test.ts": true,
     "tests/unit/scripts/detect-stale-workflow-inputs-helpers.ts": true,
+    "tests/unit/scripts/detect-stale-workflow-inputs-pinned.test.ts": true,
     "tests/unit/scripts/detect-stale-workflow-inputs.test.ts": true,
     "tests/unit/scripts/downstream-name-digest.test.ts": true,
     "tests/unit/scripts/e2e-coverage-comment-navigation.test.ts": true,
@@ -12854,6 +12859,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/required-check-promotions.test.ts": true,
     "tests/unit/scripts/required-check-promotions.wiring.test.ts": true,
     "tests/unit/scripts/retire-native-safety-net.test.ts": true,
+    "tests/unit/scripts/reusable-workflow-contract.test.ts": true,
     "tests/unit/scripts/review-evidence-check-name.test.ts": true,
     "tests/unit/scripts/review-evidence-wakeup.test.ts": true,
     "tests/unit/scripts/review-gate-conditions.test.ts": true,

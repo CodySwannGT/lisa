@@ -200,7 +200,7 @@ export async function workflowFinding(
     ? deterministicFinding(
         WORKFLOW_CHECK,
         "warn",
-        namedReason("Reusable workflow contracts unavailable", inputs.unknown)
+        namedReason("Workflow callers Lisa could not check", inputs.unknown)
       )
     : deterministicFinding(
         WORKFLOW_CHECK,
