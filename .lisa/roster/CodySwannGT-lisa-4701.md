@@ -1,6 +1,6 @@
 # Roster Decision — CodySwannGT/lisa#4701
 
-Plan: `fix-packed-bin-macos-scratch`. Flow: Implement / Fix (test-only, no runtime behavior change). Base: `main`.
+Plan: `fix-packed-bin-macos-scratch`. Flow: Implement / Fix. The ticket declares "test-only", but the proven fix changes `src/configs/vitest/socket-safe-temp-base.ts`, which ships in the published `lisa-test-run` CLI. That is a macOS-only runtime change to TMPDIR selection. Base: `main`.
 
 INCLUDE - lisa:bug-fixer - Fix flow: reproduce the macOS failure as the failing test and implement the minimal TDD fix.
 INCLUDE - lisa:debug-specialist - Cause is explicitly unconfirmed; must be proven by execution (bisect vs #4688, sweep vs env leak).
@@ -42,6 +42,6 @@ EXCLUDE - statusline-setup - Unrelated.
 
 Tool access preflight: gh (GitHub) passed via the live issue read and the reused claim. bun/vitest run on this macOS host, which is the repro surface. The preflight's maestro BLOCKED does not apply because there is no mobile surface. No browser or device E2E harness applies; the integration test itself is the regression coverage.
 
-Target Backend Environment: "None — no runtime behavior change: test-only", so no Branch Plan is needed. Base is `main`.
+Target Backend Environment: the ticket says "None — no runtime behavior change: test-only". In fact the change ships in the npm package, which is released from `main` (production=main), so the base is `main` either way.
 
 Completion condition: on this macOS host, `bunx vitest run tests/integration/lisa-test-run-packed-bin.test.ts` exits 0 with every case passing, and the line-250 empty-namespace assertion is no weaker. `bun run test:integration:push` reports no packed-bin failures. PR CI "Run Integration Tests" passes.
