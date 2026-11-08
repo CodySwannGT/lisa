@@ -1,8 +1,8 @@
 # CodySwannGT/lisa#4639 independent verifier CLI run
-script: /Users/codysai/.claude/jobs/8525c0c9/tmp/verify/head/post-evidence.sh
-script sha256: 6e8cf695da0f4983434c320e9f4731869c4a89a1a3aa2983f6087e34c0125ee8
-worktree HEAD: 9b8a45c254dc6d53757f976dbc18cf767fd2db90
-captured_at: 2026-11-08T22:38:16.387Z
+script: <tmp>/verify/head/post-evidence.sh
+script sha256: 7eda19fd3140f31813fb7093997aa0f51da7d286e79fca8e7b7ab34a1776afa9
+worktree HEAD: 6d7ec63c60633b64116a85d61cdd61204c51926d
+captured_at: 2026-11-08T22:53:47.859Z
 
 ## run: post-evidence.sh TEST-1 <evidence-101-101> 101  -> exit 0
 ==> Uploading to GitHub release 'pr-assets'...
@@ -60,7 +60,7 @@ captured_at: 2026-11-08T22:38:16.387Z
   ↑ pr-103-01-health-check.json
   ↑ pr-103-02-api-log.txt
   ✓ GitHub release assets uploaded
-stderr: ERROR: /var/folders/vc/t6bx6dwx0h7_3bj316vkb72r0000gn/T/verify-4639-fZNxw7/evidence-103-barelink/comment.md links releases/download/pr-assets/01-search-step-desktop.png, which is not scoped to PR #103 (expected pr-103-<file>)
+stderr: ERROR: <tmp>/evidence-103-barelink/comment.md links https://github.com/org/repo/releases/download/pr-assets/01-search-step-desktop.png, which is not scoped to PR #103 (expected pr-103-<file>)
 
 negative 1: exit=1 (expect non-zero); stderr names the bare link: true; PR description updated: false; uploads during run: 3
 
@@ -73,8 +73,31 @@ stderr: ERROR: evidence file name '03-bad name.png' is not release-safe.
 
 negative 2: exit=1 (expect non-zero); stderr names the file: true; uploads during run: 0 (expect 0)
 
-## release assets after negative runs (expect unchanged 6, no pr-103/pr-104 except as the script allows)
-  pr-101-01-health-check.json  content="rerun"
+## NEGATIVE 3: PR 101 run uploading only 01-health-check.json, while comment.md links pr-101-01-search-step-desktop.png (left in the release by an earlier run, not uploaded by this one)
+## run: post-evidence.sh TEST-1 <evidence-101-stale> 101  -> exit 1
+==> Uploading to GitHub release 'pr-assets'...
+  ↑ pr-101-01-health-check.json
+  ✓ GitHub release assets uploaded
+stderr: ERROR: <tmp>/evidence-101-stale/comment.md links https://github.com/org/repo/releases/download/pr-assets/pr-101-01-search-step-desktop.png, which this run did not upload to release 'pr-assets'
+
+negative 3: exit=1 (expect non-zero); stderr names the stale asset: true; PR description updated: false; uploads during run: 1
+
+## POSITIVE 4: PR 105, comment.md links its own scoped screenshot and also quotes `releases/download/pr-assets/foo.txt` in inlined text (not a markdown link target)
+## run: post-evidence.sh TEST-1 <evidence-105-quoted> 105  -> exit 0
+==> Uploading to GitHub release 'pr-assets'...
+  ↑ pr-105-01-search-step-desktop.png
+  ↑ pr-105-01-health-check.json
+  ↑ pr-105-02-api-log.txt
+  ✓ GitHub release assets uploaded
+  ✓ PR description updated with evidence
+  ↑ 01-search-step-desktop.png
+  ✓ JIRA attachments uploaded
+  ✓ JIRA comment posted
+
+positive 4: exit=0 (expect 0); PR description updated: true
+
+## release assets after negative/positive runs (pr-103-* and pr-101 health-check re-upload come from the refused runs, which upload before the link check)
+  pr-101-01-health-check.json  content="stale"
   pr-101-01-search-step-desktop.png  content="rerun"
   pr-101-02-api-log.txt  content="rerun"
   pr-102-01-health-check.json  content="102"
@@ -83,20 +106,27 @@ negative 2: exit=1 (expect non-zero); stderr names the file: true; uploads durin
   pr-103-01-health-check.json  content="barelink"
   pr-103-01-search-step-desktop.png  content="barelink"
   pr-103-02-api-log.txt  content="barelink"
+  pr-105-01-health-check.json  content="quoted"
+  pr-105-01-search-step-desktop.png  content="quoted"
+  pr-105-02-api-log.txt  content="quoted"
 
 ## recorded gh release upload argv (all runs, temp dir shown verbatim)
-gh release upload pr-assets /var/folders/vc/t6bx6dwx0h7_3bj316vkb72r0000gn/T/tmp.qpxicAguFR/pr-101-01-search-step-desktop.png --repo org/repo --clobber
-gh release upload pr-assets /var/folders/vc/t6bx6dwx0h7_3bj316vkb72r0000gn/T/tmp.qpxicAguFR/pr-101-01-health-check.json --repo org/repo --clobber
-gh release upload pr-assets /var/folders/vc/t6bx6dwx0h7_3bj316vkb72r0000gn/T/tmp.qpxicAguFR/pr-101-02-api-log.txt --repo org/repo --clobber
-gh release upload pr-assets /var/folders/vc/t6bx6dwx0h7_3bj316vkb72r0000gn/T/tmp.2bpZhs2Wya/pr-102-01-search-step-desktop.png --repo org/repo --clobber
-gh release upload pr-assets /var/folders/vc/t6bx6dwx0h7_3bj316vkb72r0000gn/T/tmp.2bpZhs2Wya/pr-102-01-health-check.json --repo org/repo --clobber
-gh release upload pr-assets /var/folders/vc/t6bx6dwx0h7_3bj316vkb72r0000gn/T/tmp.2bpZhs2Wya/pr-102-02-api-log.txt --repo org/repo --clobber
-gh release upload pr-assets /var/folders/vc/t6bx6dwx0h7_3bj316vkb72r0000gn/T/tmp.rl5iJFIo4W/pr-101-01-search-step-desktop.png --repo org/repo --clobber
-gh release upload pr-assets /var/folders/vc/t6bx6dwx0h7_3bj316vkb72r0000gn/T/tmp.rl5iJFIo4W/pr-101-01-health-check.json --repo org/repo --clobber
-gh release upload pr-assets /var/folders/vc/t6bx6dwx0h7_3bj316vkb72r0000gn/T/tmp.rl5iJFIo4W/pr-101-02-api-log.txt --repo org/repo --clobber
-gh release upload pr-assets /var/folders/vc/t6bx6dwx0h7_3bj316vkb72r0000gn/T/tmp.XdmoBS2tYQ/pr-103-01-search-step-desktop.png --repo org/repo --clobber
-gh release upload pr-assets /var/folders/vc/t6bx6dwx0h7_3bj316vkb72r0000gn/T/tmp.XdmoBS2tYQ/pr-103-01-health-check.json --repo org/repo --clobber
-gh release upload pr-assets /var/folders/vc/t6bx6dwx0h7_3bj316vkb72r0000gn/T/tmp.XdmoBS2tYQ/pr-103-02-api-log.txt --repo org/repo --clobber
+gh release upload pr-assets <tmp>/pr-101-01-search-step-desktop.png --repo org/repo --clobber
+gh release upload pr-assets <tmp>/pr-101-01-health-check.json --repo org/repo --clobber
+gh release upload pr-assets <tmp>/pr-101-02-api-log.txt --repo org/repo --clobber
+gh release upload pr-assets <tmp>/pr-102-01-search-step-desktop.png --repo org/repo --clobber
+gh release upload pr-assets <tmp>/pr-102-01-health-check.json --repo org/repo --clobber
+gh release upload pr-assets <tmp>/pr-102-02-api-log.txt --repo org/repo --clobber
+gh release upload pr-assets <tmp>/pr-101-01-search-step-desktop.png --repo org/repo --clobber
+gh release upload pr-assets <tmp>/pr-101-01-health-check.json --repo org/repo --clobber
+gh release upload pr-assets <tmp>/pr-101-02-api-log.txt --repo org/repo --clobber
+gh release upload pr-assets <tmp>/pr-103-01-search-step-desktop.png --repo org/repo --clobber
+gh release upload pr-assets <tmp>/pr-103-01-health-check.json --repo org/repo --clobber
+gh release upload pr-assets <tmp>/pr-103-02-api-log.txt --repo org/repo --clobber
+gh release upload pr-assets <tmp>/pr-101-01-health-check.json --repo org/repo --clobber
+gh release upload pr-assets <tmp>/pr-105-01-search-step-desktop.png --repo org/repo --clobber
+gh release upload pr-assets <tmp>/pr-105-01-health-check.json --repo org/repo --clobber
+gh release upload pr-assets <tmp>/pr-105-02-api-log.txt --repo org/repo --clobber
 
 ## PR description written (pr-body-101-101.md):
 existing body
@@ -116,19 +146,30 @@ existing body
 ## Evidence — PR #102
 ![Search](https://github.com/org/repo/releases/download/pr-assets/pr-102-01-search-step-desktop.png)
 
+## PR description written (pr-body-105-quoted.md):
+existing body
+
+## Evidence — PR #105
+![Search](https://github.com/org/repo/releases/download/pr-assets/pr-105-01-search-step-desktop.png)
+
+```
+curl -L https://github.com/org/repo/releases/download/pr-assets/foo.txt
+see releases/download/pr-assets/foo.txt
+```
+
 ## checks
 exit codes: 0 0 0
-upload lines: 12; lines with bare (unscoped) name: 0
+upload lines: 16; lines with bare (unscoped) name: 0
 bare 01-health-check.json present in release: false
 bare 01-search-step-desktop.png present in release: false
 
 ================================================================
 # BITE CONTROL: the same runner against origin/main's script (637037ed0f, before the fix)
 # CodySwannGT/lisa#4639 independent verifier CLI run
-script: /Users/codysai/.claude/jobs/8525c0c9/tmp/verify/main/post-evidence.sh
+script: <tmp>/verify/main/post-evidence.sh
 script sha256: 6e2cf31b31d16cd5131f4ccef208705c7e8a969414a17274c9722d072e5aca7d
-worktree HEAD: 9b8a45c254dc6d53757f976dbc18cf767fd2db90
-captured_at: 2026-11-08T22:38:24.167Z
+worktree HEAD: 6d7ec63c60633b64116a85d61cdd61204c51926d
+captured_at: 2026-11-08T22:53:57.366Z
 
 ## run: post-evidence.sh TEST-1 <evidence-101-101> 101  -> exit 0
 ==> Uploading to GitHub release 'pr-assets'...
@@ -203,29 +244,57 @@ negative 1: exit=0 (expect non-zero); stderr names the bare link: false; PR desc
 
 negative 2: exit=0 (expect non-zero); stderr names the file: false; uploads during run: 4 (expect 0)
 
-## release assets after negative runs (expect unchanged 6, no pr-103/pr-104 except as the script allows)
-  01-health-check.json  content="space"
-  01-search-step-desktop.png  content="space"
-  02-api-log.txt  content="space"
+## NEGATIVE 3: PR 101 run uploading only 01-health-check.json, while comment.md links pr-101-01-search-step-desktop.png (left in the release by an earlier run, not uploaded by this one)
+## run: post-evidence.sh TEST-1 <evidence-101-stale> 101  -> exit 0
+==> Uploading to GitHub release 'pr-assets'...
+  ↑ 01-health-check.json
+  ✓ GitHub release assets uploaded
+  ✓ PR description updated with evidence
+  ✓ JIRA comment posted
+
+negative 3: exit=0 (expect non-zero); stderr names the stale asset: false; PR description updated: true; uploads during run: 1
+
+## POSITIVE 4: PR 105, comment.md links its own scoped screenshot and also quotes `releases/download/pr-assets/foo.txt` in inlined text (not a markdown link target)
+## run: post-evidence.sh TEST-1 <evidence-105-quoted> 105  -> exit 0
+==> Uploading to GitHub release 'pr-assets'...
+  ↑ 01-search-step-desktop.png
+  ↑ 01-health-check.json
+  ↑ 02-api-log.txt
+  ✓ GitHub release assets uploaded
+  ✓ PR description updated with evidence
+  ↑ 01-search-step-desktop.png
+  ✓ JIRA attachments uploaded
+  ✓ JIRA comment posted
+
+positive 4: exit=0 (expect 0); PR description updated: true
+
+## release assets after negative/positive runs (pr-103-* and pr-101 health-check re-upload come from the refused runs, which upload before the link check)
+  01-health-check.json  content="quoted"
+  01-search-step-desktop.png  content="quoted"
+  02-api-log.txt  content="quoted"
   03-bad name.png  content="space"
 
 ## recorded gh release upload argv (all runs, temp dir shown verbatim)
-gh release upload pr-assets /var/folders/vc/t6bx6dwx0h7_3bj316vkb72r0000gn/T/verify-4639-yEDej7/evidence-101-101/01-search-step-desktop.png --repo org/repo --clobber
-gh release upload pr-assets /var/folders/vc/t6bx6dwx0h7_3bj316vkb72r0000gn/T/verify-4639-yEDej7/evidence-101-101/01-health-check.json --repo org/repo --clobber
-gh release upload pr-assets /var/folders/vc/t6bx6dwx0h7_3bj316vkb72r0000gn/T/verify-4639-yEDej7/evidence-101-101/02-api-log.txt --repo org/repo --clobber
-gh release upload pr-assets /var/folders/vc/t6bx6dwx0h7_3bj316vkb72r0000gn/T/verify-4639-yEDej7/evidence-102-102/01-search-step-desktop.png --repo org/repo --clobber
-gh release upload pr-assets /var/folders/vc/t6bx6dwx0h7_3bj316vkb72r0000gn/T/verify-4639-yEDej7/evidence-102-102/01-health-check.json --repo org/repo --clobber
-gh release upload pr-assets /var/folders/vc/t6bx6dwx0h7_3bj316vkb72r0000gn/T/verify-4639-yEDej7/evidence-102-102/02-api-log.txt --repo org/repo --clobber
-gh release upload pr-assets /var/folders/vc/t6bx6dwx0h7_3bj316vkb72r0000gn/T/verify-4639-yEDej7/evidence-101-rerun/01-search-step-desktop.png --repo org/repo --clobber
-gh release upload pr-assets /var/folders/vc/t6bx6dwx0h7_3bj316vkb72r0000gn/T/verify-4639-yEDej7/evidence-101-rerun/01-health-check.json --repo org/repo --clobber
-gh release upload pr-assets /var/folders/vc/t6bx6dwx0h7_3bj316vkb72r0000gn/T/verify-4639-yEDej7/evidence-101-rerun/02-api-log.txt --repo org/repo --clobber
-gh release upload pr-assets /var/folders/vc/t6bx6dwx0h7_3bj316vkb72r0000gn/T/verify-4639-yEDej7/evidence-103-barelink/01-search-step-desktop.png --repo org/repo --clobber
-gh release upload pr-assets /var/folders/vc/t6bx6dwx0h7_3bj316vkb72r0000gn/T/verify-4639-yEDej7/evidence-103-barelink/01-health-check.json --repo org/repo --clobber
-gh release upload pr-assets /var/folders/vc/t6bx6dwx0h7_3bj316vkb72r0000gn/T/verify-4639-yEDej7/evidence-103-barelink/02-api-log.txt --repo org/repo --clobber
-gh release upload pr-assets /var/folders/vc/t6bx6dwx0h7_3bj316vkb72r0000gn/T/verify-4639-yEDej7/evidence-104-space/01-search-step-desktop.png --repo org/repo --clobber
-gh release upload pr-assets /var/folders/vc/t6bx6dwx0h7_3bj316vkb72r0000gn/T/verify-4639-yEDej7/evidence-104-space/03-bad name.png --repo org/repo --clobber
-gh release upload pr-assets /var/folders/vc/t6bx6dwx0h7_3bj316vkb72r0000gn/T/verify-4639-yEDej7/evidence-104-space/01-health-check.json --repo org/repo --clobber
-gh release upload pr-assets /var/folders/vc/t6bx6dwx0h7_3bj316vkb72r0000gn/T/verify-4639-yEDej7/evidence-104-space/02-api-log.txt --repo org/repo --clobber
+gh release upload pr-assets <tmp>/evidence-101-101/01-search-step-desktop.png --repo org/repo --clobber
+gh release upload pr-assets <tmp>/evidence-101-101/01-health-check.json --repo org/repo --clobber
+gh release upload pr-assets <tmp>/evidence-101-101/02-api-log.txt --repo org/repo --clobber
+gh release upload pr-assets <tmp>/evidence-102-102/01-search-step-desktop.png --repo org/repo --clobber
+gh release upload pr-assets <tmp>/evidence-102-102/01-health-check.json --repo org/repo --clobber
+gh release upload pr-assets <tmp>/evidence-102-102/02-api-log.txt --repo org/repo --clobber
+gh release upload pr-assets <tmp>/evidence-101-rerun/01-search-step-desktop.png --repo org/repo --clobber
+gh release upload pr-assets <tmp>/evidence-101-rerun/01-health-check.json --repo org/repo --clobber
+gh release upload pr-assets <tmp>/evidence-101-rerun/02-api-log.txt --repo org/repo --clobber
+gh release upload pr-assets <tmp>/evidence-103-barelink/01-search-step-desktop.png --repo org/repo --clobber
+gh release upload pr-assets <tmp>/evidence-103-barelink/01-health-check.json --repo org/repo --clobber
+gh release upload pr-assets <tmp>/evidence-103-barelink/02-api-log.txt --repo org/repo --clobber
+gh release upload pr-assets <tmp>/evidence-104-space/01-search-step-desktop.png --repo org/repo --clobber
+gh release upload pr-assets <tmp>/evidence-104-space/03-bad name.png --repo org/repo --clobber
+gh release upload pr-assets <tmp>/evidence-104-space/01-health-check.json --repo org/repo --clobber
+gh release upload pr-assets <tmp>/evidence-104-space/02-api-log.txt --repo org/repo --clobber
+gh release upload pr-assets <tmp>/evidence-101-stale/01-health-check.json --repo org/repo --clobber
+gh release upload pr-assets <tmp>/evidence-105-quoted/01-search-step-desktop.png --repo org/repo --clobber
+gh release upload pr-assets <tmp>/evidence-105-quoted/01-health-check.json --repo org/repo --clobber
+gh release upload pr-assets <tmp>/evidence-105-quoted/02-api-log.txt --repo org/repo --clobber
 
 ## PR description written (pr-body-101-101.md):
 existing body
@@ -234,6 +303,12 @@ existing body
 ![Search](https://github.com/org/repo/releases/download/pr-assets/pr-101-01-search-step-desktop.png)
 
 ## PR description written (pr-body-101-rerun.md):
+existing body
+
+## Evidence — PR #101
+![Search](https://github.com/org/repo/releases/download/pr-assets/pr-101-01-search-step-desktop.png)
+
+## PR description written (pr-body-101-stale.md):
 existing body
 
 ## Evidence — PR #101
@@ -257,8 +332,19 @@ existing body
 ## Evidence — PR #104
 ![Search](https://github.com/org/repo/releases/download/pr-assets/pr-104-01-search-step-desktop.png)
 
+## PR description written (pr-body-105-quoted.md):
+existing body
+
+## Evidence — PR #105
+![Search](https://github.com/org/repo/releases/download/pr-assets/pr-105-01-search-step-desktop.png)
+
+```
+curl -L https://github.com/org/repo/releases/download/pr-assets/foo.txt
+see releases/download/pr-assets/foo.txt
+```
+
 ## checks
 exit codes: 0 0 0
-upload lines: 16; lines with bare (unscoped) name: 16
+upload lines: 20; lines with bare (unscoped) name: 20
 bare 01-health-check.json present in release: true
 bare 01-search-step-desktop.png present in release: true

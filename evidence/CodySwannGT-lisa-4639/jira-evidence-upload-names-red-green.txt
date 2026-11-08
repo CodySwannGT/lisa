@@ -1,9 +1,9 @@
 # CodySwannGT/lisa#4639 — evidence-name tests, red -> green
 
-## GREEN: the verifier's own re-run (assembled 2026-11-08T22:41:50.519Z)
-HEAD: 9b8a45c254dc6d53757f976dbc18cf767fd2db90 (clean working tree apart from evidence/ and the roster)
+## GREEN: the verifier's own re-run (assembled 2026-11-08T22:54:39.979Z)
+HEAD: 6d7ec63c60633b64116a85d61cdd61204c51926d (working tree clean apart from evidence/ and an unrelated learnings-ledger edit)
 command: bun run test -- tests/unit/scripts/jira-evidence-upload-names.test.ts tests/integration/jira-evidence-pr-scoped-uploads.test.ts tests/integration/jira-evidence-generator-links.test.ts tests/integration/jira-shell-auth-destinations.test.ts
-exit: 0  (Test Files 4 passed; Tests 218 passed; 0 skipped)
+exit: 0  (Test Files  4 passed (4); Tests  224 passed (224))
 
 $ bun run build
 $ bun run build:dist && bun run build:plugins
@@ -19,46 +19,46 @@ Built plugins/lisa-phaser (v4.98.3)
 Built plugins/lisa-rails (v4.98.3)
 Built plugins/lisa-wiki (v4.98.3)
 Built plugins/lisa-openclaw (v4.98.3)
-Generated Cursor variant at /Users/codysai/workspace/lisa/.claude/worktrees/4639-jira-evidence-pr-scoped-assets/plugins/lisa-cursor (v4.98.3)
-Generated Cursor variant at /Users/codysai/workspace/lisa/.claude/worktrees/4639-jira-evidence-pr-scoped-assets/plugins/lisa-typescript-cursor (v4.98.3)
-Generated Cursor variant at /Users/codysai/workspace/lisa/.claude/worktrees/4639-jira-evidence-pr-scoped-assets/plugins/lisa-expo-cursor (v4.98.3)
-Generated Cursor variant at /Users/codysai/workspace/lisa/.claude/worktrees/4639-jira-evidence-pr-scoped-assets/plugins/lisa-nestjs-cursor (v4.98.3)
-Generated Cursor variant at /Users/codysai/workspace/lisa/.claude/worktrees/4639-jira-evidence-pr-scoped-assets/plugins/lisa-cdk-cursor (v4.98.3)
-Generated Cursor variant at /Users/codysai/workspace/lisa/.claude/worktrees/4639-jira-evidence-pr-scoped-assets/plugins/lisa-harper-fabric-cursor (v4.98.3)
-Generated Cursor variant at /Users/codysai/workspace/lisa/.claude/worktrees/4639-jira-evidence-pr-scoped-assets/plugins/lisa-phaser-cursor (v4.98.3)
-Generated Cursor variant at /Users/codysai/workspace/lisa/.claude/worktrees/4639-jira-evidence-pr-scoped-assets/plugins/lisa-rails-cursor (v4.98.3)
-Generated Cursor variant at /Users/codysai/workspace/lisa/.claude/worktrees/4639-jira-evidence-pr-scoped-assets/plugins/lisa-wiki-cursor (v4.98.3)
-Generated Cursor variant at /Users/codysai/workspace/lisa/.claude/worktrees/4639-jira-evidence-pr-scoped-assets/plugins/lisa-openclaw-cursor (v4.98.3)
-Generated agy variant at /Users/codysai/workspace/lisa/.claude/worktrees/4639-jira-evidence-pr-scoped-assets/plugins/lisa-agy (v4.98.3)
-Generated agy variant at /Users/codysai/workspace/lisa/.claude/worktrees/4639-jira-evidence-pr-scoped-assets/plugins/lisa-typescript-agy (v4.98.3)
-Generated agy variant at /Users/codysai/workspace/lisa/.claude/worktrees/4639-jira-evidence-pr-scoped-assets/plugins/lisa-expo-agy (v4.98.3)
-Generated agy variant at /Users/codysai/workspace/lisa/.claude/worktrees/4639-jira-evidence-pr-scoped-assets/plugins/lisa-nestjs-agy (v4.98.3)
-Generated agy variant at /Users/codysai/workspace/lisa/.claude/worktrees/4639-jira-evidence-pr-scoped-assets/plugins/lisa-cdk-agy (v4.98.3)
-Generated agy variant at /Users/codysai/workspace/lisa/.claude/worktrees/4639-jira-evidence-pr-scoped-assets/plugins/lisa-harper-fabric-agy (v4.98.3)
-Generated agy variant at /Users/codysai/workspace/lisa/.claude/worktrees/4639-jira-evidence-pr-scoped-assets/plugins/lisa-phaser-agy (v4.98.3)
-Generated agy variant at /Users/codysai/workspace/lisa/.claude/worktrees/4639-jira-evidence-pr-scoped-assets/plugins/lisa-rails-agy (v4.98.3)
-Generated agy variant at /Users/codysai/workspace/lisa/.claude/worktrees/4639-jira-evidence-pr-scoped-assets/plugins/lisa-wiki-agy (v4.98.3)
-Generated agy variant at /Users/codysai/workspace/lisa/.claude/worktrees/4639-jira-evidence-pr-scoped-assets/plugins/lisa-openclaw-agy (v4.98.3)
-Generated Copilot variant at /Users/codysai/workspace/lisa/.claude/worktrees/4639-jira-evidence-pr-scoped-assets/plugins/lisa-copilot (v4.98.3)
-Generated Copilot variant at /Users/codysai/workspace/lisa/.claude/worktrees/4639-jira-evidence-pr-scoped-assets/plugins/lisa-typescript-copilot (v4.98.3)
-Generated Copilot variant at /Users/codysai/workspace/lisa/.claude/worktrees/4639-jira-evidence-pr-scoped-assets/plugins/lisa-expo-copilot (v4.98.3)
-Generated Copilot variant at /Users/codysai/workspace/lisa/.claude/worktrees/4639-jira-evidence-pr-scoped-assets/plugins/lisa-nestjs-copilot (v4.98.3)
-Generated Copilot variant at /Users/codysai/workspace/lisa/.claude/worktrees/4639-jira-evidence-pr-scoped-assets/plugins/lisa-cdk-copilot (v4.98.3)
-Generated Copilot variant at /Users/codysai/workspace/lisa/.claude/worktrees/4639-jira-evidence-pr-scoped-assets/plugins/lisa-harper-fabric-copilot (v4.98.3)
-Generated Copilot variant at /Users/codysai/workspace/lisa/.claude/worktrees/4639-jira-evidence-pr-scoped-assets/plugins/lisa-phaser-copilot (v4.98.3)
-Generated Copilot variant at /Users/codysai/workspace/lisa/.claude/worktrees/4639-jira-evidence-pr-scoped-assets/plugins/lisa-rails-copilot (v4.98.3)
-Generated Copilot variant at /Users/codysai/workspace/lisa/.claude/worktrees/4639-jira-evidence-pr-scoped-assets/plugins/lisa-wiki-copilot (v4.98.3)
-Generated Copilot variant at /Users/codysai/workspace/lisa/.claude/worktrees/4639-jira-evidence-pr-scoped-assets/plugins/lisa-openclaw-copilot (v4.98.3)
-Generated Devin variant at /Users/codysai/workspace/lisa/.claude/worktrees/4639-jira-evidence-pr-scoped-assets/plugins/lisa-devin (v4.98.3)
-Generated Devin variant at /Users/codysai/workspace/lisa/.claude/worktrees/4639-jira-evidence-pr-scoped-assets/plugins/lisa-typescript-devin (v4.98.3)
-Generated Devin variant at /Users/codysai/workspace/lisa/.claude/worktrees/4639-jira-evidence-pr-scoped-assets/plugins/lisa-expo-devin (v4.98.3)
-Generated Devin variant at /Users/codysai/workspace/lisa/.claude/worktrees/4639-jira-evidence-pr-scoped-assets/plugins/lisa-nestjs-devin (v4.98.3)
-Generated Devin variant at /Users/codysai/workspace/lisa/.claude/worktrees/4639-jira-evidence-pr-scoped-assets/plugins/lisa-cdk-devin (v4.98.3)
-Generated Devin variant at /Users/codysai/workspace/lisa/.claude/worktrees/4639-jira-evidence-pr-scoped-assets/plugins/lisa-harper-fabric-devin (v4.98.3)
-Generated Devin variant at /Users/codysai/workspace/lisa/.claude/worktrees/4639-jira-evidence-pr-scoped-assets/plugins/lisa-phaser-devin (v4.98.3)
-Generated Devin variant at /Users/codysai/workspace/lisa/.claude/worktrees/4639-jira-evidence-pr-scoped-assets/plugins/lisa-rails-devin (v4.98.3)
-Generated Devin variant at /Users/codysai/workspace/lisa/.claude/worktrees/4639-jira-evidence-pr-scoped-assets/plugins/lisa-wiki-devin (v4.98.3)
-Generated Devin variant at /Users/codysai/workspace/lisa/.claude/worktrees/4639-jira-evidence-pr-scoped-assets/plugins/lisa-openclaw-devin (v4.98.3)
+Generated Cursor variant at <worktree>/plugins/lisa-cursor (v4.98.3)
+Generated Cursor variant at <worktree>/plugins/lisa-typescript-cursor (v4.98.3)
+Generated Cursor variant at <worktree>/plugins/lisa-expo-cursor (v4.98.3)
+Generated Cursor variant at <worktree>/plugins/lisa-nestjs-cursor (v4.98.3)
+Generated Cursor variant at <worktree>/plugins/lisa-cdk-cursor (v4.98.3)
+Generated Cursor variant at <worktree>/plugins/lisa-harper-fabric-cursor (v4.98.3)
+Generated Cursor variant at <worktree>/plugins/lisa-phaser-cursor (v4.98.3)
+Generated Cursor variant at <worktree>/plugins/lisa-rails-cursor (v4.98.3)
+Generated Cursor variant at <worktree>/plugins/lisa-wiki-cursor (v4.98.3)
+Generated Cursor variant at <worktree>/plugins/lisa-openclaw-cursor (v4.98.3)
+Generated agy variant at <worktree>/plugins/lisa-agy (v4.98.3)
+Generated agy variant at <worktree>/plugins/lisa-typescript-agy (v4.98.3)
+Generated agy variant at <worktree>/plugins/lisa-expo-agy (v4.98.3)
+Generated agy variant at <worktree>/plugins/lisa-nestjs-agy (v4.98.3)
+Generated agy variant at <worktree>/plugins/lisa-cdk-agy (v4.98.3)
+Generated agy variant at <worktree>/plugins/lisa-harper-fabric-agy (v4.98.3)
+Generated agy variant at <worktree>/plugins/lisa-phaser-agy (v4.98.3)
+Generated agy variant at <worktree>/plugins/lisa-rails-agy (v4.98.3)
+Generated agy variant at <worktree>/plugins/lisa-wiki-agy (v4.98.3)
+Generated agy variant at <worktree>/plugins/lisa-openclaw-agy (v4.98.3)
+Generated Copilot variant at <worktree>/plugins/lisa-copilot (v4.98.3)
+Generated Copilot variant at <worktree>/plugins/lisa-typescript-copilot (v4.98.3)
+Generated Copilot variant at <worktree>/plugins/lisa-expo-copilot (v4.98.3)
+Generated Copilot variant at <worktree>/plugins/lisa-nestjs-copilot (v4.98.3)
+Generated Copilot variant at <worktree>/plugins/lisa-cdk-copilot (v4.98.3)
+Generated Copilot variant at <worktree>/plugins/lisa-harper-fabric-copilot (v4.98.3)
+Generated Copilot variant at <worktree>/plugins/lisa-phaser-copilot (v4.98.3)
+Generated Copilot variant at <worktree>/plugins/lisa-rails-copilot (v4.98.3)
+Generated Copilot variant at <worktree>/plugins/lisa-wiki-copilot (v4.98.3)
+Generated Copilot variant at <worktree>/plugins/lisa-openclaw-copilot (v4.98.3)
+Generated Devin variant at <worktree>/plugins/lisa-devin (v4.98.3)
+Generated Devin variant at <worktree>/plugins/lisa-typescript-devin (v4.98.3)
+Generated Devin variant at <worktree>/plugins/lisa-expo-devin (v4.98.3)
+Generated Devin variant at <worktree>/plugins/lisa-nestjs-devin (v4.98.3)
+Generated Devin variant at <worktree>/plugins/lisa-cdk-devin (v4.98.3)
+Generated Devin variant at <worktree>/plugins/lisa-harper-fabric-devin (v4.98.3)
+Generated Devin variant at <worktree>/plugins/lisa-phaser-devin (v4.98.3)
+Generated Devin variant at <worktree>/plugins/lisa-rails-devin (v4.98.3)
+Generated Devin variant at <worktree>/plugins/lisa-wiki-devin (v4.98.3)
+Generated Devin variant at <worktree>/plugins/lisa-openclaw-devin (v4.98.3)
 $ node scripts/lib/worktree-dependencies.mjs && $npm_execpath run lisa-test-run -- --adapter vitest -- vitest run tests/unit/scripts/jira-evidence-upload-names.test.ts tests/integration/jira-evidence-pr-scoped-uploads.test.ts tests/integration/jira-evidence-generator-links.test.ts tests/integration/jira-shell-auth-destinations.test.ts
 $ node scripts/lib/worktree-dependencies.mjs && bun run build && node dist/cli/lisa-test-run.js --profile lisa --adapter vitest -- vitest run tests/unit/scripts/jira-evidence-upload-names.test.ts tests/integration/jira-evidence-pr-scoped-uploads.test.ts tests/integration/jira-evidence-generator-links.test.ts tests/integration/jira-shell-auth-destinations.test.ts
 $ bun run build:dist && bun run build:plugins
@@ -74,47 +74,47 @@ Built plugins/lisa-phaser (v4.98.3)
 Built plugins/lisa-rails (v4.98.3)
 Built plugins/lisa-wiki (v4.98.3)
 Built plugins/lisa-openclaw (v4.98.3)
-Generated Cursor variant at /Users/codysai/workspace/lisa/.claude/worktrees/4639-jira-evidence-pr-scoped-assets/plugins/lisa-cursor (v4.98.3)
-Generated Cursor variant at /Users/codysai/workspace/lisa/.claude/worktrees/4639-jira-evidence-pr-scoped-assets/plugins/lisa-typescript-cursor (v4.98.3)
-Generated Cursor variant at /Users/codysai/workspace/lisa/.claude/worktrees/4639-jira-evidence-pr-scoped-assets/plugins/lisa-expo-cursor (v4.98.3)
-Generated Cursor variant at /Users/codysai/workspace/lisa/.claude/worktrees/4639-jira-evidence-pr-scoped-assets/plugins/lisa-nestjs-cursor (v4.98.3)
-Generated Cursor variant at /Users/codysai/workspace/lisa/.claude/worktrees/4639-jira-evidence-pr-scoped-assets/plugins/lisa-cdk-cursor (v4.98.3)
-Generated Cursor variant at /Users/codysai/workspace/lisa/.claude/worktrees/4639-jira-evidence-pr-scoped-assets/plugins/lisa-harper-fabric-cursor (v4.98.3)
-Generated Cursor variant at /Users/codysai/workspace/lisa/.claude/worktrees/4639-jira-evidence-pr-scoped-assets/plugins/lisa-phaser-cursor (v4.98.3)
-Generated Cursor variant at /Users/codysai/workspace/lisa/.claude/worktrees/4639-jira-evidence-pr-scoped-assets/plugins/lisa-rails-cursor (v4.98.3)
-Generated Cursor variant at /Users/codysai/workspace/lisa/.claude/worktrees/4639-jira-evidence-pr-scoped-assets/plugins/lisa-wiki-cursor (v4.98.3)
-Generated Cursor variant at /Users/codysai/workspace/lisa/.claude/worktrees/4639-jira-evidence-pr-scoped-assets/plugins/lisa-openclaw-cursor (v4.98.3)
-Generated agy variant at /Users/codysai/workspace/lisa/.claude/worktrees/4639-jira-evidence-pr-scoped-assets/plugins/lisa-agy (v4.98.3)
-Generated agy variant at /Users/codysai/workspace/lisa/.claude/worktrees/4639-jira-evidence-pr-scoped-assets/plugins/lisa-typescript-agy (v4.98.3)
-Generated agy variant at /Users/codysai/workspace/lisa/.claude/worktrees/4639-jira-evidence-pr-scoped-assets/plugins/lisa-expo-agy (v4.98.3)
-Generated agy variant at /Users/codysai/workspace/lisa/.claude/worktrees/4639-jira-evidence-pr-scoped-assets/plugins/lisa-nestjs-agy (v4.98.3)
-Generated agy variant at /Users/codysai/workspace/lisa/.claude/worktrees/4639-jira-evidence-pr-scoped-assets/plugins/lisa-cdk-agy (v4.98.3)
-Generated agy variant at /Users/codysai/workspace/lisa/.claude/worktrees/4639-jira-evidence-pr-scoped-assets/plugins/lisa-harper-fabric-agy (v4.98.3)
-Generated agy variant at /Users/codysai/workspace/lisa/.claude/worktrees/4639-jira-evidence-pr-scoped-assets/plugins/lisa-phaser-agy (v4.98.3)
-Generated agy variant at /Users/codysai/workspace/lisa/.claude/worktrees/4639-jira-evidence-pr-scoped-assets/plugins/lisa-rails-agy (v4.98.3)
-Generated agy variant at /Users/codysai/workspace/lisa/.claude/worktrees/4639-jira-evidence-pr-scoped-assets/plugins/lisa-wiki-agy (v4.98.3)
-Generated agy variant at /Users/codysai/workspace/lisa/.claude/worktrees/4639-jira-evidence-pr-scoped-assets/plugins/lisa-openclaw-agy (v4.98.3)
-Generated Copilot variant at /Users/codysai/workspace/lisa/.claude/worktrees/4639-jira-evidence-pr-scoped-assets/plugins/lisa-copilot (v4.98.3)
-Generated Copilot variant at /Users/codysai/workspace/lisa/.claude/worktrees/4639-jira-evidence-pr-scoped-assets/plugins/lisa-typescript-copilot (v4.98.3)
-Generated Copilot variant at /Users/codysai/workspace/lisa/.claude/worktrees/4639-jira-evidence-pr-scoped-assets/plugins/lisa-expo-copilot (v4.98.3)
-Generated Copilot variant at /Users/codysai/workspace/lisa/.claude/worktrees/4639-jira-evidence-pr-scoped-assets/plugins/lisa-nestjs-copilot (v4.98.3)
-Generated Copilot variant at /Users/codysai/workspace/lisa/.claude/worktrees/4639-jira-evidence-pr-scoped-assets/plugins/lisa-cdk-copilot (v4.98.3)
-Generated Copilot variant at /Users/codysai/workspace/lisa/.claude/worktrees/4639-jira-evidence-pr-scoped-assets/plugins/lisa-harper-fabric-copilot (v4.98.3)
-Generated Copilot variant at /Users/codysai/workspace/lisa/.claude/worktrees/4639-jira-evidence-pr-scoped-assets/plugins/lisa-phaser-copilot (v4.98.3)
-Generated Copilot variant at /Users/codysai/workspace/lisa/.claude/worktrees/4639-jira-evidence-pr-scoped-assets/plugins/lisa-rails-copilot (v4.98.3)
-Generated Copilot variant at /Users/codysai/workspace/lisa/.claude/worktrees/4639-jira-evidence-pr-scoped-assets/plugins/lisa-wiki-copilot (v4.98.3)
-Generated Copilot variant at /Users/codysai/workspace/lisa/.claude/worktrees/4639-jira-evidence-pr-scoped-assets/plugins/lisa-openclaw-copilot (v4.98.3)
-Generated Devin variant at /Users/codysai/workspace/lisa/.claude/worktrees/4639-jira-evidence-pr-scoped-assets/plugins/lisa-devin (v4.98.3)
-Generated Devin variant at /Users/codysai/workspace/lisa/.claude/worktrees/4639-jira-evidence-pr-scoped-assets/plugins/lisa-typescript-devin (v4.98.3)
-Generated Devin variant at /Users/codysai/workspace/lisa/.claude/worktrees/4639-jira-evidence-pr-scoped-assets/plugins/lisa-expo-devin (v4.98.3)
-Generated Devin variant at /Users/codysai/workspace/lisa/.claude/worktrees/4639-jira-evidence-pr-scoped-assets/plugins/lisa-nestjs-devin (v4.98.3)
-Generated Devin variant at /Users/codysai/workspace/lisa/.claude/worktrees/4639-jira-evidence-pr-scoped-assets/plugins/lisa-cdk-devin (v4.98.3)
-Generated Devin variant at /Users/codysai/workspace/lisa/.claude/worktrees/4639-jira-evidence-pr-scoped-assets/plugins/lisa-harper-fabric-devin (v4.98.3)
-Generated Devin variant at /Users/codysai/workspace/lisa/.claude/worktrees/4639-jira-evidence-pr-scoped-assets/plugins/lisa-phaser-devin (v4.98.3)
-Generated Devin variant at /Users/codysai/workspace/lisa/.claude/worktrees/4639-jira-evidence-pr-scoped-assets/plugins/lisa-rails-devin (v4.98.3)
-Generated Devin variant at /Users/codysai/workspace/lisa/.claude/worktrees/4639-jira-evidence-pr-scoped-assets/plugins/lisa-wiki-devin (v4.98.3)
-Generated Devin variant at /Users/codysai/workspace/lisa/.claude/worktrees/4639-jira-evidence-pr-scoped-assets/plugins/lisa-openclaw-devin (v4.98.3)
-lisa-test-run: TMPDIR /var/folders/vc/t6bx6dwx0h7_3bj316vkb72r0000gn/T is too long for native Unix socket fixtures; using /private/tmp.
+Generated Cursor variant at <worktree>/plugins/lisa-cursor (v4.98.3)
+Generated Cursor variant at <worktree>/plugins/lisa-typescript-cursor (v4.98.3)
+Generated Cursor variant at <worktree>/plugins/lisa-expo-cursor (v4.98.3)
+Generated Cursor variant at <worktree>/plugins/lisa-nestjs-cursor (v4.98.3)
+Generated Cursor variant at <worktree>/plugins/lisa-cdk-cursor (v4.98.3)
+Generated Cursor variant at <worktree>/plugins/lisa-harper-fabric-cursor (v4.98.3)
+Generated Cursor variant at <worktree>/plugins/lisa-phaser-cursor (v4.98.3)
+Generated Cursor variant at <worktree>/plugins/lisa-rails-cursor (v4.98.3)
+Generated Cursor variant at <worktree>/plugins/lisa-wiki-cursor (v4.98.3)
+Generated Cursor variant at <worktree>/plugins/lisa-openclaw-cursor (v4.98.3)
+Generated agy variant at <worktree>/plugins/lisa-agy (v4.98.3)
+Generated agy variant at <worktree>/plugins/lisa-typescript-agy (v4.98.3)
+Generated agy variant at <worktree>/plugins/lisa-expo-agy (v4.98.3)
+Generated agy variant at <worktree>/plugins/lisa-nestjs-agy (v4.98.3)
+Generated agy variant at <worktree>/plugins/lisa-cdk-agy (v4.98.3)
+Generated agy variant at <worktree>/plugins/lisa-harper-fabric-agy (v4.98.3)
+Generated agy variant at <worktree>/plugins/lisa-phaser-agy (v4.98.3)
+Generated agy variant at <worktree>/plugins/lisa-rails-agy (v4.98.3)
+Generated agy variant at <worktree>/plugins/lisa-wiki-agy (v4.98.3)
+Generated agy variant at <worktree>/plugins/lisa-openclaw-agy (v4.98.3)
+Generated Copilot variant at <worktree>/plugins/lisa-copilot (v4.98.3)
+Generated Copilot variant at <worktree>/plugins/lisa-typescript-copilot (v4.98.3)
+Generated Copilot variant at <worktree>/plugins/lisa-expo-copilot (v4.98.3)
+Generated Copilot variant at <worktree>/plugins/lisa-nestjs-copilot (v4.98.3)
+Generated Copilot variant at <worktree>/plugins/lisa-cdk-copilot (v4.98.3)
+Generated Copilot variant at <worktree>/plugins/lisa-harper-fabric-copilot (v4.98.3)
+Generated Copilot variant at <worktree>/plugins/lisa-phaser-copilot (v4.98.3)
+Generated Copilot variant at <worktree>/plugins/lisa-rails-copilot (v4.98.3)
+Generated Copilot variant at <worktree>/plugins/lisa-wiki-copilot (v4.98.3)
+Generated Copilot variant at <worktree>/plugins/lisa-openclaw-copilot (v4.98.3)
+Generated Devin variant at <worktree>/plugins/lisa-devin (v4.98.3)
+Generated Devin variant at <worktree>/plugins/lisa-typescript-devin (v4.98.3)
+Generated Devin variant at <worktree>/plugins/lisa-expo-devin (v4.98.3)
+Generated Devin variant at <worktree>/plugins/lisa-nestjs-devin (v4.98.3)
+Generated Devin variant at <worktree>/plugins/lisa-cdk-devin (v4.98.3)
+Generated Devin variant at <worktree>/plugins/lisa-harper-fabric-devin (v4.98.3)
+Generated Devin variant at <worktree>/plugins/lisa-phaser-devin (v4.98.3)
+Generated Devin variant at <worktree>/plugins/lisa-rails-devin (v4.98.3)
+Generated Devin variant at <worktree>/plugins/lisa-wiki-devin (v4.98.3)
+Generated Devin variant at <worktree>/plugins/lisa-openclaw-devin (v4.98.3)
+lisa-test-run: TMPDIR <tmp> is too long for native Unix socket fixtures; using <tmp>.
 🧹 swept 0 stale temp dirs, 0 orphaned test processes (118 ms); kept 2 entries not private to this user
 (!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
   - import "./vitest.config.local" without a file extension (vitest.config.ts:21:25). Add the file extension
@@ -129,20 +129,17 @@ Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
   - import "./vitest.config.local" without a file extension (vitest.config.ts:21:25). Add the file extension
 Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
 
- RUN  v4.1.11 /Users/codysai/workspace/lisa/.claude/worktrees/4639-jira-evidence-pr-scoped-assets
+ RUN  v4.1.11 <worktree>
 
-lisa fleet admission: waiting for a worker slot — 4 run(s) live, this run is #4, 3 may execute at once. Starting anyway in 120s. Set LISA_FLEET_ADMISSION=off to disable this wait.
-lisa fleet admission: starting OVER CAPACITY after 120s — 4 run(s) live, this run is #4, 3 may execute at once. The machine is oversubscribed; expect timeouts rather than failures.
-lisa fleet admission: waiting for a worker slot — 4 run(s) live, this run is #4, 3 may execute at once. Starting anyway in 120s. Set LISA_FLEET_ADMISSION=off to disable this wait.
 
  Test Files  4 passed (4)
-      Tests  218 passed (218)
-   Start at  17:38:14
-   Duration  189.20s (transform 331ms, setup 458ms, import 566ms, tests 48.91s, environment 0ms)
+      Tests  224 passed (224)
+   Start at  17:53:45
+   Duration  30.31s (transform 263ms, setup 381ms, import 704ms, tests 54.87s, environment 0ms)
 
 
 
-## RED: the implementer's run of the same tests against the pre-fix scripts (copied verbatim from /Users/codysai/.claude/jobs/8525c0c9/tmp/red.log)
+## RED: the implementer's run of the same tests against the pre-fix scripts (copied verbatim from <tmp>/red.log)
 
 (!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
   - import "./vitest.config.local" without a file extension (vitest.config.ts:21:25). Add the file extension
@@ -157,7 +154,7 @@ Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
   - import "./vitest.config.local" without a file extension (vitest.config.ts:21:25). Add the file extension
 Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
 
- RUN  v4.1.11 /Users/codysai/workspace/lisa/.claude/worktrees/4639-jira-evidence-pr-scoped-assets
+ RUN  v4.1.11 <worktree>
 
 lisa scratch: no supervised lease in the environment, so this run is self-supervised. Fixture directories are still bounded to a run root this process owns and removed on exit; what is missing is the detached reaper that reclaims the root after a SIGKILL, which the next run's startup sweep recovers instead. Run through `lisa-test-run --profile <profile> --adapter vitest -- vitest ...` for a supervised run.
 lisa scratch: no supervised lease in the environment, so this run is self-supervised. Fixture directories are still bounded to a run root this process owns and removed on exit; what is missing is the detached reaper that reclaims the root after a SIGKILL, which the next run's startup sweep recovers instead. Run through `lisa-test-run --profile <profile> --adapter vitest -- vitest ...` for a supervised run.
@@ -454,13 +451,13 @@ AssertionError: expected [ '01-health-check.json', …(1) ] to deeply equal [ 'p
 ⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/94]⎯
 
  FAIL  |lisa| tests/integration/jira-evidence-pr-scoped-uploads.test.ts > pull-request-scoped evidence uploads: plugins/src/base/skills/lisa-jira-evidence/scripts/post-evidence.sh > records only pull-request-scoped upload names
-AssertionError: expected 'release upload pr-assets /private/var…' to match /\/pr…/pr-10[12]-01-[a-z-]+\.(png|json) 
+AssertionError: expected 'release upload pr-assets <tmp>' to match /\/pr…/pr-10[12]-01-[a-z-]+\.(png|json) 
 
 - Expected:
 /\/pr-10[12]-01-[a-z-]+\.(png|json) /
 
 + Received:
-"release upload pr-assets /private/var/folders/vc/t6bx6dwx0h7_3bj316vkb72r0000gn/T/lisa-scratch/run-87181-1794175307783-c2750cf1/worker-87181-75ab7e213e80695a/lisa-jira-scoped-b4SSlF/evidence-101-/01-search-step-desktop.png --repo org/repo --clobber "
+"release upload pr-assets <tmp>/run-87181-1794175307783-c2750cf1/worker-87181-75ab7e213e80695a/lisa-jira-scoped-b4SSlF/evidence-101-/01-search-step-desktop.png --repo org/repo --clobber "
 
  ❯ tests/integration/jira-evidence-pr-scoped-uploads.test.ts:128:20
     126|     expect(uploads).toHaveLength(4);
@@ -473,7 +470,7 @@ AssertionError: expected 'release upload pr-assets /private/var…' to match /\/
 ⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/94]⎯
 
  FAIL  |lisa| tests/integration/jira-evidence-pr-scoped-uploads.test.ts > pull-request-scoped evidence uploads: plugins/src/base/skills/lisa-jira-evidence/scripts/post-evidence.sh > replaces only its own pull request's evidence on a re-run
-Error: ENOENT: no such file or directory, open '/private/var/folders/vc/t6bx6dwx0h7_3bj316vkb72r0000gn/T/lisa-scratch/run-87181-1794175307783-c2750cf1/worker-87181-75ab7e213e80695a/lisa-jira-scoped-aj1iZC/gh-state/release/pr-101-01-search-step-desktop.png'
+Error: ENOENT: no such file or directory, open '<tmp>/run-87181-1794175307783-c2750cf1/worker-87181-75ab7e213e80695a/lisa-jira-scoped-aj1iZC/gh-state/release/pr-101-01-search-step-desktop.png'
  ❯ releaseAsset tests/integration/support/recording-gh-stub.ts:67:10
      65|  */
      66| export function releaseAsset(stateDir: string, name: string): string {
@@ -526,13 +523,13 @@ AssertionError: expected +0 not to be +0 // Object.is equality
 ⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/94]⎯
 
  FAIL  |lisa| tests/integration/jira-evidence-pr-scoped-uploads.test.ts > pull-request-scoped evidence uploads: plugins/src/expo/skills/jira-evidence/scripts/post-evidence.sh > records only pull-request-scoped upload names
-AssertionError: expected 'release upload pr-assets /private/var…' to match /\/pr…/pr-10[12]-01-[a-z-]+\.(png|json) 
+AssertionError: expected 'release upload pr-assets <tmp>' to match /\/pr…/pr-10[12]-01-[a-z-]+\.(png|json) 
 
 - Expected:
 /\/pr-10[12]-01-[a-z-]+\.(png|json) /
 
 + Received:
-"release upload pr-assets /private/var/folders/vc/t6bx6dwx0h7_3bj316vkb72r0000gn/T/lisa-scratch/run-87181-1794175307783-c2750cf1/worker-87181-75ab7e213e80695a/lisa-jira-scoped-MZVrrV/evidence-101-/01-search-step-desktop.png --repo org/repo --clobber "
+"release upload pr-assets <tmp>/run-87181-1794175307783-c2750cf1/worker-87181-75ab7e213e80695a/lisa-jira-scoped-MZVrrV/evidence-101-/01-search-step-desktop.png --repo org/repo --clobber "
 
  ❯ tests/integration/jira-evidence-pr-scoped-uploads.test.ts:128:20
     126|     expect(uploads).toHaveLength(4);
@@ -545,7 +542,7 @@ AssertionError: expected 'release upload pr-assets /private/var…' to match /\/
 ⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[10/94]⎯
 
  FAIL  |lisa| tests/integration/jira-evidence-pr-scoped-uploads.test.ts > pull-request-scoped evidence uploads: plugins/src/expo/skills/jira-evidence/scripts/post-evidence.sh > replaces only its own pull request's evidence on a re-run
-Error: ENOENT: no such file or directory, open '/private/var/folders/vc/t6bx6dwx0h7_3bj316vkb72r0000gn/T/lisa-scratch/run-87181-1794175307783-c2750cf1/worker-87181-75ab7e213e80695a/lisa-jira-scoped-d9TufU/gh-state/release/pr-101-01-search-step-desktop.png'
+Error: ENOENT: no such file or directory, open '<tmp>/run-87181-1794175307783-c2750cf1/worker-87181-75ab7e213e80695a/lisa-jira-scoped-d9TufU/gh-state/release/pr-101-01-search-step-desktop.png'
  ❯ releaseAsset tests/integration/support/recording-gh-stub.ts:67:10
      65|  */
      66| export function releaseAsset(stateDir: string, name: string): string {
@@ -558,13 +555,13 @@ Error: ENOENT: no such file or directory, open '/private/var/folders/vc/t6bx6dwx
 ⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[11/94]⎯
 
  FAIL  |lisa| tests/integration/jira-evidence-pr-scoped-uploads.test.ts > pull-request-scoped evidence uploads: plugins/src/rails/skills/jira-evidence/scripts/post-evidence.sh > records only pull-request-scoped upload names
-AssertionError: expected 'release upload pr-assets /private/var…' to match /\/pr…/pr-10[12]-01-[a-z-]+\.(png|json) 
+AssertionError: expected 'release upload pr-assets <tmp>' to match /\/pr…/pr-10[12]-01-[a-z-]+\.(png|json) 
 
 - Expected:
 /\/pr-10[12]-01-[a-z-]+\.(png|json) /
 
 + Received:
-"release upload pr-assets /private/var/folders/vc/t6bx6dwx0h7_3bj316vkb72r0000gn/T/lisa-scratch/run-87181-1794175307783-c2750cf1/worker-87181-75ab7e213e80695a/lisa-jira-scoped-TV2mwP/evidence-101-/01-search-step-desktop.png --repo org/repo --clobber "
+"release upload pr-assets <tmp>/run-87181-1794175307783-c2750cf1/worker-87181-75ab7e213e80695a/lisa-jira-scoped-TV2mwP/evidence-101-/01-search-step-desktop.png --repo org/repo --clobber "
 
  ❯ tests/integration/jira-evidence-pr-scoped-uploads.test.ts:128:20
     126|     expect(uploads).toHaveLength(4);
@@ -577,7 +574,7 @@ AssertionError: expected 'release upload pr-assets /private/var…' to match /\/
 ⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[12/94]⎯
 
  FAIL  |lisa| tests/integration/jira-evidence-pr-scoped-uploads.test.ts > pull-request-scoped evidence uploads: plugins/src/rails/skills/jira-evidence/scripts/post-evidence.sh > replaces only its own pull request's evidence on a re-run
-Error: ENOENT: no such file or directory, open '/private/var/folders/vc/t6bx6dwx0h7_3bj316vkb72r0000gn/T/lisa-scratch/run-87181-1794175307783-c2750cf1/worker-87181-75ab7e213e80695a/lisa-jira-scoped-6vodfs/gh-state/release/pr-101-01-search-step-desktop.png'
+Error: ENOENT: no such file or directory, open '<tmp>/run-87181-1794175307783-c2750cf1/worker-87181-75ab7e213e80695a/lisa-jira-scoped-6vodfs/gh-state/release/pr-101-01-search-step-desktop.png'
  ❯ releaseAsset tests/integration/support/recording-gh-stub.ts:67:10
      65|  */
      66| export function releaseAsset(stateDir: string, name: string): string {
