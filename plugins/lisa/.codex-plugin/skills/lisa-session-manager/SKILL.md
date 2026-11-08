@@ -77,8 +77,8 @@ the manager.
   dispatched. Never treat an operator's item as someone else's. An entry may name its kind:
   `login:<v>` is a GitHub login and `id:<v>` an account id (GitHub numeric id, Jira accountId,
   Linear user id). Whether an assignee **is an operator**: compare a GitHub assignee's `login`
-  with each `login:` entry's value, the assignee's account id (GitHub numeric `id`, Jira
-  `accountId`, Linear `id`) with each `id:` entry's value, and the assignee as "me" is compared
+  with each `login:` entry's value, the assignee's account id (GitHub numeric `id` from the REST
+  issue's `.assignees[].id`, Jira `accountId`, Linear `id`) with each `id:` entry's value, and the assignee as "me" is compared
   (GitHub login, Jira accountId, Linear user id) with each plain entry, exactly as before. A plain
   all-digit entry is a login here but a numeric id to `item-answer`, so `validate` warns about it;
   write `login:<v>` or `id:<v>` instead. The `queue` output echoes the entries as `operators`.
@@ -471,9 +471,12 @@ Skip while `capacity` reports `paused`. Otherwise:
       (omit `--repo` on a single-repo project), invoke `lisa-tracker-claim <ref>`, then
       `cd "$ROOT" && pwd` and confirm the path. Continue only on `claimed` or `reused` with the
       assignee equal to "me" or to one of `sessionManager.operatorIds` (compared as "Operators"
-      says: a GitHub assignee's login with `login:` entries, a Jira or Linear assignee's id with
-      `id:` entries, plain entries as "me" is compared; the claim assigns only an unassigned item,
-      so an operator's item keeps the operator); anything else means skip. Then
+      says: a GitHub assignee's login with `login:` entries; the assignee's account id with `id:`
+      entries, which on GitHub is the assignee's numeric id from the REST issue's
+      `.assignees[].id` (not the `id` of a GraphQL-backed `--json assignees` read, which is a node
+      id), on Jira the accountId and on Linear the user id; plain entries as "me" is compared; the
+      claim assigns only an unassigned item, so an operator's item keeps the operator); anything
+      else means skip. Then
       re-read the item with `lisa-tracker-read`: if the re-read shows an assignee that is neither
       "me" nor an operator, or shows the state did not change to the `claimed` role, skip it
       (someone else holds it, or the claim did not land).

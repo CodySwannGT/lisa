@@ -823,10 +823,11 @@ export function classifyIdEntry(entry) {
  * @returns {string[]} Problems found.
  */
 function idEntryProblems(key, ids) {
+  const prefixOf = entry => `${ID_ENTRY_PREFIX.exec(entry)[1]}:`;
   return ids.flatMap(entry => {
     const kind = classifyIdEntry(entry);
-    const prefix = `${ID_ENTRY_PREFIX.exec(entry)?.[1]}:`;
     if (kind === "unknown-prefix") {
+      const prefix = prefixOf(entry);
       return [
         `sessionManager.${key} entry ${JSON.stringify(entry)} has an ` +
           `unknown prefix ${JSON.stringify(prefix)}. Use login:<GitHub ` +
@@ -838,7 +839,8 @@ function idEntryProblems(key, ids) {
     return kind === "empty-value"
       ? [
           `sessionManager.${key} entry ${JSON.stringify(entry)} has an ` +
-            `empty value after ${JSON.stringify(prefix)}: name the login or ` +
+            `empty value after ${JSON.stringify(prefixOf(entry))}: name the ` +
+            `login or ` +
             `id after the prefix.`,
         ]
       : [];
@@ -859,16 +861,19 @@ function idEntryProblems(key, ids) {
  */
 export function sessionManagerWarnings(block) {
   if (!isPlainObject(block) || !Array.isArray(block.operatorIds)) return [];
+  // Tested trimmed: the queue trims a plain entry before comparing it.
   return block.operatorIds
-    .filter(entry => typeof entry === "string" && ALL_DIGIT_ENTRY.test(entry))
+    .filter(entry => typeof entry === "string")
+    .map(entry => ({ entry, value: entry.trim() }))
+    .filter(({ value }) => ALL_DIGIT_ENTRY.test(value))
     .map(
-      entry =>
+      ({ entry, value }) =>
         `sessionManager.operatorIds entry ${JSON.stringify(entry)} is all ` +
         `digits, so it is read two ways: the answer matcher reads it as a ` +
         `numeric account id (only a comment whose author's numeric id is ` +
-        `${entry} counts as an answer), while the queue and the claim read ` +
-        `it as a GitHub login. Write ${JSON.stringify(`login:${entry}`)} if ` +
-        `${entry} is the GitHub login, or ${JSON.stringify(`id:${entry}`)} ` +
+        `${value} counts as an answer), while the queue and the claim read ` +
+        `it as a GitHub login. Write ${JSON.stringify(`login:${value}`)} if ` +
+        `${value} is the GitHub login, or ${JSON.stringify(`id:${value}`)} ` +
         `if it is the numeric account id.`
     );
 }

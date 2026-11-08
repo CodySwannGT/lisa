@@ -79,6 +79,15 @@ describe("a plain all-digit operator entry warns without failing", () => {
     expect(warnings[0]).toContain('"id:583231"');
   });
 
+  it("warns for an all-digit entry with surrounding spaces, as the queue trims it", () => {
+    const warnings = sessionManagerWarnings({
+      ...BLOCK,
+      operatorIds: [" 583231 "],
+    });
+    expect(warnings).toHaveLength(1);
+    expect(warnings[0]).toContain('"login:583231"');
+  });
+
   it.each([
     [{ operatorIds: ["login:583231", "id:99999", "octocat"] }],
     // A trusted author is read as an id by every reader, so digits are not ambiguous there.

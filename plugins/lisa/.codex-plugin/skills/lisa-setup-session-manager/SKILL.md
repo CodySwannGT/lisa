@@ -72,7 +72,8 @@ writes `$SM`, and pass `--project-root "$ROOT"` (the absolute project root) on e
    never logins: the GitHub numeric user id (`gh api users/<login> --jq .id`), the Jira
    `accountId`, or the Linear user id. A plain login matches no one in the queue and silently
    excludes every item; to trust a GitHub login on purpose write it as `login:<login>`, and to say
-   outright that an entry is an id write `id:<id>`.
+   outright that an entry is an id write `id:<id>`. A login GitHub frees (after a rename or a
+   deleted account) can be re-registered by someone else, so prefer `id:` for trust.
 4. Set `sessionManager.operatorIds` to a non-empty **array** holding the operator's own tracker
    user id, e.g. `"operatorIds": ["<operator-id>"]` (a bare string fails `validate`). Look up the
    OPERATOR, not the credential: `gh api user` / `viewer.id` return whoever the tracker credential

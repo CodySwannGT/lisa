@@ -1195,7 +1195,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/rules/reference/completion-authorization.md":
       "75646f8f5b1c5aedf750e37ed3b5a1f09f6fd85932037c85ac1e8930b67100b1",
     "plugins/src/base/rules/reference/config-resolution.md":
-      "a3c008582d77606c7da87637e76dd55eaf927c755d31ce8196fb46de29b14968",
+      "327aed951f05b3f8142806005d93013ec402c479468a6f4a05701d9be70f9597",
     "plugins/src/base/rules/reference/control-reachability.md":
       "0883f3480de79bcaa4a9da5685192c014d9267d0a12aed8153bba8c51161129a",
     "plugins/src/base/rules/reference/convergent-review.md":
@@ -1359,7 +1359,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/scripts/queue-status-prd-readers.mjs":
       "32b4366fc292062c869793aeaf5b006ff400df5da09ee510f862e15d59a77770",
     "plugins/src/base/scripts/ready-queue-order.mjs":
-      "3564791f7fb54431a10a48ce619aea737a2da543071f080aaf8e54b575d6331d",
+      "3b7270870134e9c59fcd6494f71d5b87176956b12c9e4f9811b11666f166dfd5",
     "plugins/src/base/scripts/remote-agent-aws-setup.sh":
       "2a5b21f4fa3df268fb579976b4bc5f480d9176dbf6e3ae64fe3a869df287ca30",
     "plugins/src/base/scripts/repo-scope-vocabulary-audit.mjs":
@@ -1683,7 +1683,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-secrets-access/scripts/tools-from-notes.mjs":
       "360f740cac081151491428043b04fec2f5db6f3ba36394f7378af312396d53ca",
     "plugins/src/base/skills/lisa-secrets-access/scripts/validate-config.mjs":
-      "eb048feeff192e48adad68564a32e2a322a0e6cb7e93e3357aa4cd9270176a85",
+      "7dd2346fe64415309459d075483c5ea3700bcf0a6e12e293be0527e34c4099b6",
     "plugins/src/base/skills/lisa-security-review/SKILL.md":
       "5a980eaf5efc4fcce66e75521ec5b1eda143a5b0d36e7157234a705dac94e3f5",
     "plugins/src/base/skills/lisa-security-zap-scan/SKILL.md":
@@ -1691,7 +1691,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-sentry-access/SKILL.md":
       "1c1881ca9a2020f6cd8f938dc5335ebf2d344ff280844bb98926198e5226e526",
     "plugins/src/base/skills/lisa-session-manager/SKILL.md":
-      "45fd2d32ad9ad5b152fb53fa98706db9f7c965215eeb71941f4ea366ce4d32f9",
+      "3e0401ee92e3212ad3cd33fb8216fc67643e01f5a749674c615e3ecb0329ed2a",
     "plugins/src/base/skills/lisa-session-manager/references/runbook-template.md":
       "98ac56ef3a40d999ffb19f5297117900120bf7574369b45d26277db48b1f0465",
     "plugins/src/base/skills/lisa-session-manager/scripts/capacity.mjs":
@@ -1815,7 +1815,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-setup-remote-env/scripts/verify-remote-env.mjs":
       "bec0b624c1031d0936afd6e5dd4a3d09adea102d5936b5b9fcf545c7f86a3a11",
     "plugins/src/base/skills/lisa-setup-session-manager/SKILL.md":
-      "f9954a03b782f81c5ebdf2fa8af03dfaef7df18e2f5a83b1c0220242664357e4",
+      "ea5a71e2509d9e2bfeef24a0aa166f8f7463e2d317bac88ccd70acec5180bb07",
     "plugins/src/base/skills/lisa-setup-sonar/SKILL.md":
       "de00597d260d5491837406a81b87a96b9307a7d87c040b35fc1d6e77ae2f5306",
     "plugins/src/base/skills/lisa-setup-workstation/SKILL.md":

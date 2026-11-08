@@ -202,7 +202,9 @@ export function normalizeGithubIssue(issue, options = {}) {
     updatedAt: text(issue.updated_at),
     labels,
     body: text(issue.body),
-    // Authors are trusted by stable id, never by login (ready-role-filing).
+    // Plain and `id:` trusted-author entries trust by stable id (ready-role-
+    // filing); a `login:` entry trusts a login the operator opted into
+    // explicitly, knowing a freed login can be re-registered (#4623).
     authorId: idOrNull(issue.user?.id),
     authorLogin: idOrNull(issue.user?.login),
     isContainer: Number(summary?.total ?? 0) > Number(summary?.completed ?? 0),
