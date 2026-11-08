@@ -29,7 +29,14 @@ import {
   completionDenial,
 } from "./lib/completion-authorization.mjs";
 import { completionContext } from "./lib/completion-proof-adapters.mjs";
-import { publishCompletionProof } from "./lib/completion-proof-publisher.mjs";
+import {
+  ensureEvidenceRelease,
+  publishCompletionProof,
+} from "./lib/completion-proof-publisher.mjs";
+import {
+  githubProofTransport,
+  resolveEvidenceRelease,
+} from "./lib/completion-proof-github.mjs";
 import {
   MAX_RECORD_BYTES,
   CompletionProofError,
@@ -5850,6 +5857,33 @@ function publishProof(args) {
 }
 
 /**
+ * Print the GitHub release tag evidence is uploaded to.
+ *
+ * One resolver for every writer: the completion-proof publisher, the evidence
+ * skills' shell scripts, and the journey templates all ask here, so a project
+ * that sets `verification.completion.evidenceRelease` (for example the
+ * rotating `pr-assets-{YYYY-MM}`) moves every upload at once. A second copy of
+ * the template rules in shell is the drift that hardcoded `pr-assets` in five
+ * places and stopped every completion when that release hit GitHub's
+ * 1000-asset cap (CodySwannGT/lisa#4692).
+ *
+ * `--ensure` also creates the release when it is absent and fails, in plain
+ * words, when it is nearly full; without it nothing touches GitHub.
+ */
+function evidenceRelease(args) {
+  const policy = readConfig().verification?.completion ?? {};
+  if (!args.includes("--ensure"))
+    return console.log(resolveEvidenceRelease(policy));
+  const repository = currentRepository();
+  if (!repository)
+    throw new TrackingError(
+      "evidence-release --ensure needs the GitHub repository; run it inside a checkout with a GitHub remote, or set GITHUB_REPOSITORY."
+    );
+  const transport = githubProofTransport(run, repository, policy);
+  console.log(ensureEvidenceRelease(run, transport, policy).tag);
+}
+
+/**
  * Report every claimed work item that already has a merged pull request.
  *
  * The drift detector. Closing at merge time is the fix; this is what catches
@@ -7113,10 +7147,11 @@ function main() {
   if (command === "validate-push-destination")
     return validatePushDestination(args);
   if (command === "publish-completion-proof") return publishProof(args);
+  if (command === "evidence-release") return evidenceRelease(args);
   if (command === "validate-pr") return validatePr(args);
   if (command === DISCHARGE_COMMAND) return dischargePrGates(args);
   throw new TrackingError(
-    "Usage: lisa-work-item.mjs link|current|attach-branch|clear|verify-level|contract-version|backlink|publish-completion-proof|complete|sweep|lane|prepare-commit-msg|validate-commit|validate-push|validate-push-destination|validate-pr|discharge-pr-gates" +
+    "Usage: lisa-work-item.mjs link|current|attach-branch|clear|verify-level|contract-version|backlink|publish-completion-proof|evidence-release [--ensure]|complete|sweep|lane|prepare-commit-msg|validate-commit|validate-push|validate-push-destination|validate-pr|discharge-pr-gates" +
       "\n(`bind` is accepted as an alias for `link`, but some agent harnesses refuse the token `bind` in a command line.)"
   );
 }

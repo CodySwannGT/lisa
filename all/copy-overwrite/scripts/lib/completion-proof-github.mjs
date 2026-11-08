@@ -11,6 +11,107 @@ import {
 } from "./completion-proof-shape.mjs";
 
 const READ_ERROR = "read-error";
+const INVALID_CONFIG = "invalid-config";
+
+/**
+ * Lisa's historical evidence release. Always accepted, so every proof published
+ * before a project rotated its release keeps validating.
+ */
+export const LEGACY_EVIDENCE_RELEASE = "pr-assets";
+/** GitHub refuses the next asset once a release holds this many. */
+export const EVIDENCE_RELEASE_ASSET_LIMIT = 1000;
+/**
+ * Publication refuses at this count, before GitHub's raw HTTP 422, so the
+ * operator reads what to change instead of an opaque upload failure (#4692).
+ */
+export const EVIDENCE_RELEASE_NEAR_FULL = 950;
+const MONTH_TOKEN = "{YYYY-MM}";
+const MONTH_PATTERN = "\\d{4}-(?:0[1-9]|1[0-2])";
+const RELEASE_TAG = /^[A-Za-z0-9][A-Za-z0-9._-]{0,99}$/;
+const RELEASE_KEY = "verification.completion.evidenceRelease";
+const ACCEPTED_KEY = "verification.completion.acceptedEvidenceReleases";
+
+/** One configured release name or `{YYYY-MM}` template, validated as a tag. */
+function releaseTemplate(value, key) {
+  const resolved =
+    typeof value === "string" ? value.split(MONTH_TOKEN).join("2000-01") : "";
+  if (!RELEASE_TAG.test(resolved))
+    throw new CompletionProofError(
+      INVALID_CONFIG,
+      `\`${key}\` in .lisa.config.json is ${JSON.stringify(value)}, which is not a usable GitHub release name. Use letters, digits, ".", "_" or "-" (start with a letter or digit, at most 100 characters); the only placeholder allowed is ${MONTH_TOKEN}, for example \`pr-assets-${MONTH_TOKEN}\`.`
+    );
+  return value;
+}
+
+/** The release new evidence is written to, as configured (still a template). */
+function configuredTemplate(policy) {
+  const value = policy?.evidenceRelease;
+  return value === undefined
+    ? LEGACY_EVIDENCE_RELEASE
+    : releaseTemplate(value, RELEASE_KEY);
+}
+
+/**
+ * Every release name or template whose assets validate as completion proof:
+ * the legacy release, the configured one, and any listed history.
+ * @param {object} [policy] - `verification.completion` from the Lisa config.
+ * @returns {string[]} Distinct accepted names and templates, legacy first.
+ */
+export function acceptedEvidenceReleases(policy = {}) {
+  const history = policy?.acceptedEvidenceReleases ?? [];
+  if (!Array.isArray(history))
+    throw new CompletionProofError(
+      INVALID_CONFIG,
+      `\`${ACCEPTED_KEY}\` in .lisa.config.json must be a list of release names.`
+    );
+  return [
+    ...new Set([
+      LEGACY_EVIDENCE_RELEASE,
+      configuredTemplate(policy),
+      ...history.map((value, index) =>
+        releaseTemplate(value, `${ACCEPTED_KEY}[${index}]`)
+      ),
+    ]),
+  ];
+}
+
+/**
+ * The exact release tag new evidence is published to.
+ * @param {object} [policy] - `verification.completion` from the Lisa config.
+ * @param {Date} [now] - Publication time; `{YYYY-MM}` is its UTC year-month.
+ * @returns {string} Concrete GitHub release tag.
+ */
+export function resolveEvidenceRelease(policy = {}, now = new Date()) {
+  return configuredTemplate(policy)
+    .split(MONTH_TOKEN)
+    .join(now.toISOString().slice(0, 7));
+}
+
+/** An anchored pattern where only `{YYYY-MM}` varies; all else is literal. */
+function templatePattern(template) {
+  const literal = template
+    .split(MONTH_TOKEN)
+    .map(part => part.replace(/[.*+?^${}()|[\]\\-]/g, "\\$&"));
+  return new RegExp(`^${literal.join(MONTH_PATTERN)}$`);
+}
+
+/**
+ * Whether a release tag holds evidence the validator accepts.
+ * @param {object} [policy] - `verification.completion` from the Lisa config.
+ * @param {string} tag - Release tag read from native asset metadata.
+ * @returns {boolean} True for the legacy, configured or listed releases.
+ */
+export function isAcceptedEvidenceRelease(policy, tag) {
+  return (
+    typeof tag === "string" &&
+    acceptedEvidenceReleases(policy).some(template =>
+      templatePattern(template).test(tag)
+    )
+  );
+}
+
+/** `/<owner>/<repo>/releases/download/<tag>/<asset>`, and nothing nested. */
+const DOWNLOAD_PATH = /^\/([^/]+\/[^/]+)\/releases\/download\/([^/]+)\/[^/]+$/;
 
 /** The transport reuses the canonical CLI's deadline and failure boundary. */
 export function githubProofTransport(run, repository, policy = {}) {
@@ -202,9 +303,17 @@ export function githubProofTransport(run, repository, policy = {}) {
         Number.isSafeInteger(metadata.size) &&
         metadata.size > 0 &&
         metadata.size <= max &&
-        url.origin === "https://github.com" &&
-        url.pathname.startsWith(`/${repository}/releases/download/pr-assets/`),
-      "The proof attachment is absent, empty, too large or outside the implementation repository's pr-assets release."
+        url.origin === "https://github.com",
+      "The proof attachment is absent, empty, too large or outside GitHub."
+    );
+    // The release is checked by name against the accepted set, not by a fixed
+    // prefix, so a project can rotate its evidence release past GitHub's
+    // 1000-asset cap without stranding proof published earlier (#4692).
+    const download = DOWNLOAD_PATH.exec(url.pathname);
+    requireProof(
+      download?.[1] === repository &&
+        isAcceptedEvidenceRelease(policy, download[2]),
+      `The proof attachment is outside the implementation repository's accepted evidence releases (${acceptedEvidenceReleases(policy).join(", ")}).`
     );
     const bytes = call(
       [

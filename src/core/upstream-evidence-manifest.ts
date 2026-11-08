@@ -45,13 +45,13 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lib/completion-proof-errors.mjs":
       "3422df7049227eff77f3ef7bf954eeb74a63e9879b06d8126c7c3a2485b6d1f3",
     "all/copy-overwrite/scripts/lib/completion-proof-github.mjs":
-      "e8a5b585625c2d663c0f92046d8ff020b2e769860235634cd0e4bea4b3a234ae",
+      "4355cbc85dbc2ee174ae8727b89a24be79813b8689589a94b717ec971f4d9a15",
     "all/copy-overwrite/scripts/lib/completion-proof-markdown.mjs":
       "00d00e2c251244d1eb0dc46464c1bb1e170f2576cd025b02518e132c0d467472",
     "all/copy-overwrite/scripts/lib/completion-proof-projection.mjs":
       "a8acdd491693126fe6f1660f4bd29c7b218855ae59c76ec2b7c0d5703d8c0d43",
     "all/copy-overwrite/scripts/lib/completion-proof-publisher.mjs":
-      "801df8b694eced082695542dad3e189ce660aa65dda26f3bf11d962120487609",
+      "101b3f7690187c7f9a7be215ca4e543084d1ef36510d1d40681717d326846039",
     "all/copy-overwrite/scripts/lib/completion-proof-reader.mjs":
       "f134b65158605510bf188429d6aa5e713ed75a4d78877efc6211b440b3a805f7",
     "all/copy-overwrite/scripts/lib/completion-proof-shape.mjs":
@@ -333,7 +333,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-test-node.mjs":
       "cd436584d756442fc393557a3244bbdacdf915bd0fb1a472ebe7afa8103d3475",
     "all/copy-overwrite/scripts/lisa-work-item.mjs":
-      "e7127de03c08a66d39612b6027b25b6d9bdf0359bb3a8eccba2feb440d0c2f14",
+      "e3e684d9917658231109c9134079c7e729d1aa4652ce6f5da62d58f71a621cbf",
     "all/copy-overwrite/scripts/lisa-worktree-guard.mjs":
       "2535ef2a60b3413dacb8491c008ab28f0a07929196277d1d1fed54a04740c025",
     "all/copy-overwrite/scripts/npm-updater-gate-runtime.json":
@@ -343,7 +343,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/npm-updater-gate.Dockerfile":
       "f5d85f8fccfd97f7800c03430a38c19d584314b0a6a63aa1de28fb62897fbcc5",
     "all/copy-overwrite/scripts/npm-updater-helper-graph.json":
-      "10f1e7d45f3787c39b35783ec9504d3521b3de1b938462901bb8d0a935a52345",
+      "45bb1e58fa069e51de109e75caf55544e4652a0f5afab4c692234073bae3a7e6",
     "all/copy-overwrite/scripts/review-evidence-event.mjs":
       "1c5d510bc66f8ba23b6f046246f41182c17946a50126fb88e371d2aec9dfd6b2",
     "all/copy-overwrite/scripts/schemas/lisa-command-envelope.v1.schema.json":
@@ -12764,6 +12764,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/cleanup-worktrees-unreadable.test.ts": true,
     "tests/unit/scripts/codex-hook-filter.test.ts": true,
     "tests/unit/scripts/command-envelope.test.ts": true,
+    "tests/unit/scripts/completion-proof-evidence-release.test.ts": true,
     "tests/unit/scripts/completion-proof-grammar.test.ts": true,
     "tests/unit/scripts/completion-proof-linear-escaped-markers.test.ts": true,
     "tests/unit/scripts/completion-proof-types.test.ts": true,
@@ -13104,6 +13105,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/work-item-multi-item-range.test.ts": true,
     "tests/unit/scripts/work-item-optional-validation.test.ts": true,
     "tests/unit/scripts/work-item-proof-denials.test.ts": true,
+    "tests/unit/scripts/work-item-proof-evidence-release.test.ts": true,
     "tests/unit/scripts/work-item-proof-freshness-review.test.ts": true,
     "tests/unit/scripts/work-item-proof-late-read.test.ts": true,
     "tests/unit/scripts/work-item-proof-scope.test.ts": true,

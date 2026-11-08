@@ -17,11 +17,104 @@ import {
   parseLocator,
   isId,
 } from "./completion-proof-shape.mjs";
-import { githubProofTransport } from "./completion-proof-github.mjs";
+import {
+  EVIDENCE_RELEASE_ASSET_LIMIT,
+  EVIDENCE_RELEASE_NEAR_FULL,
+  githubProofTransport,
+  resolveEvidenceRelease,
+} from "./completion-proof-github.mjs";
 import { completionRecordId } from "./completion-proof-reader.mjs";
 import { evaluateAcceptedRecord } from "./completion-authorization.mjs";
 
 const READ_ERROR = "read-error";
+const WRITE_ERROR = "write-error";
+
+/** The operator-readable refusal for a release GitHub will not take more files in. */
+function fullReleaseMessage(tag, repository, count) {
+  const held =
+    count === undefined
+      ? `is at GitHub's ${EVIDENCE_RELEASE_ASSET_LIMIT}-file limit`
+      : `holds ${count} of GitHub's ${EVIDENCE_RELEASE_ASSET_LIMIT}-file limit`;
+  return `The evidence release \`${tag}\` in ${repository} ${held}, so new proof can't be uploaded. Set \`verification.completion.evidenceRelease\` in .lisa.config.json to a rotating name such as \`pr-assets-{YYYY-MM}\` (older proof keeps validating), or prune old evidence (CodySwannGT/lisa#4720).`;
+}
+
+/** Read a release by tag; `null` only for GitHub's explicit 404. */
+function readRelease(run, transport, tag) {
+  const path = `${transport.root}/releases/tags/${tag}`;
+  const result = run("gh", ["api", path], { allowFailure: true });
+  if (result.status !== 0 && /HTTP 404/.test(result.stderr ?? "")) return null;
+  return transport.json(path);
+}
+
+/**
+ * Resolve the configured evidence release, create it when absent, and refuse
+ * before uploading when it is nearly full.
+ *
+ * GitHub caps a release at 1000 assets and then answers every upload with a
+ * raw HTTP 422. A single hardcoded `pr-assets` release filled in days on a busy
+ * host and stopped every completion (CodySwannGT/lisa#4692); the refusal here
+ * tells the operator what to change instead.
+ * @param {Function} run - The canonical child-process runner.
+ * @param {object} transport - The bounded GitHub proof transport.
+ * @param {object} [policy] - `verification.completion` from the Lisa config.
+ * @param {Date} [now] - Resolution time for a `{YYYY-MM}` template.
+ * @returns {{tag: string, release: object, count: number}} The usable release.
+ */
+export function ensureEvidenceRelease(
+  run,
+  transport,
+  policy,
+  now = new Date()
+) {
+  const tag = resolveEvidenceRelease(policy, now);
+  let release = readRelease(run, transport, tag);
+  if (!release) {
+    // A concurrent creator may win; the re-read below decides either way.
+    run(
+      "gh",
+      [
+        "release",
+        "create",
+        tag,
+        "--repo",
+        transport.repository,
+        "--title",
+        `Lisa evidence ${tag}`,
+        "--notes",
+        "Completion-proof and verification evidence assets (managed by Lisa).",
+        "--latest=false",
+      ],
+      { allowFailure: true }
+    );
+    release = readRelease(run, transport, tag);
+    requireProof(
+      release,
+      `The evidence release \`${tag}\` does not exist in ${transport.repository} and could not be created; check that the publisher can create releases there.`,
+      WRITE_ERROR
+    );
+  }
+  const assets = releaseAssets(transport, release);
+  if (assets.length >= EVIDENCE_RELEASE_NEAR_FULL)
+    throw new CompletionProofError(
+      WRITE_ERROR,
+      fullReleaseMessage(tag, transport.repository, assets.length)
+    );
+  return { tag, release, count: assets.length };
+}
+
+/** Every asset on a release, from the complete paginated native listing. */
+function releaseAssets(transport, release) {
+  const pages = transport.json(
+    `${transport.root}/releases/${release.id}/assets?per_page=100`,
+    true
+  );
+  requireProof(
+    pages.every(Array.isArray),
+    "The native completion-asset listing is incomplete.",
+    READ_ERROR
+  );
+  return pages.flat();
+}
 
 /** Recover the monotonic native index without treating old malformed proof as valid. */
 function previousLocator(
@@ -149,6 +242,11 @@ export function publishCompletionProof(context, input) {
   );
   const digest = sha256(bytes);
   const name = `${recordId}-r${record.revision}-${digest}.json`;
+  const evidence = ensureEvidenceRelease(
+    context.run,
+    transport,
+    context.policy
+  );
   const temporary = mkdtempSync(join(tmpdir(), "lisa-completion-proof-"));
   try {
     mkdirSync(temporary, { recursive: true });
@@ -156,25 +254,19 @@ export function publishCompletionProof(context, input) {
     writeFileSync(file, bytes);
     const uploaded = context.run(
       "gh",
-      ["release", "upload", "pr-assets", file, "--repo", context.repository],
+      ["release", "upload", evidence.tag, file, "--repo", context.repository],
       { allowFailure: true }
     );
-    requireProof(
-      uploaded.status === 0 && !uploaded.error,
-      "Immutable completion-proof upload failed; no acceptance locator was published.",
-      "write-error"
+    if (uploaded.status !== 0 || uploaded.error)
+      throw new CompletionProofError(
+        WRITE_ERROR,
+        /HTTP 422|asset[^\n]*limit/i.test(uploaded.stderr ?? "")
+          ? fullReleaseMessage(evidence.tag, context.repository)
+          : "Immutable completion-proof upload failed; no acceptance locator was published."
+      );
+    const matching = releaseAssets(transport, evidence.release).filter(
+      asset => asset.name === name
     );
-    const release = transport.json(`${transport.root}/releases/tags/pr-assets`);
-    const pages = transport.json(
-      `${transport.root}/releases/${release.id}/assets?per_page=100`,
-      true
-    );
-    requireProof(
-      pages.every(Array.isArray),
-      "The native completion-asset listing is incomplete.",
-      READ_ERROR
-    );
-    const matching = pages.flat().filter(asset => asset.name === name);
     requireProof(
       matching.length === 1,
       "The uploaded completion asset cannot be uniquely read back.",
@@ -219,7 +311,7 @@ export function publishCompletionProof(context, input) {
       readback?.body === body &&
         String((readback.user ?? readback.author)?.id) === trackerActor,
       "The native completion locator or publisher did not read back exactly.",
-      "write-error"
+      WRITE_ERROR
     );
     const deferredProducer = !publisherState.ready;
     return {
