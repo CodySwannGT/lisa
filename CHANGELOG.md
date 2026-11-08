@@ -2,6 +2,35 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [4.91.0](https://github.com/CodySwannGT/lisa/compare/v4.90.2...v4.91.0) (2026-11-08)
+
+
+### Features
+
+* **update-projects:** roll new Lisa versions to a canary host first ([53e48a9](https://github.com/CodySwannGT/lisa/commit/53e48a9c26c969333919ba02195747d7642aaade)), closes [CodySwannGT/lisa#4604](https://github.com/CodySwannGT/lisa/issues/4604) [CodySwannGT/lisa#4604](https://github.com/CodySwannGT/lisa/issues/4604)
+
+
+### Bug Fixes
+
+* **update-projects:** close late-check false pass and hold canary auto-merge ([550a683](https://github.com/CodySwannGT/lisa/commit/550a683f6af3fe7d4679e6e6fb11476fd1382761)), closes [CodySwannGT/lisa#4604](https://github.com/CodySwannGT/lisa/issues/4604) [CodySwannGT/lisa#4604](https://github.com/CodySwannGT/lisa/issues/4604)
+* **update-projects:** treat an exhausted canary wait budget as timeout ([708f01b](https://github.com/CodySwannGT/lisa/commit/708f01bdb40d90d0cbf999992cae4edec7ece326)), closes [CodySwannGT/lisa#4604](https://github.com/CodySwannGT/lisa/issues/4604) [CodySwannGT/lisa#4604](https://github.com/CodySwannGT/lisa/issues/4604)
+
+### [4.90.2](https://github.com/CodySwannGT/lisa/compare/v4.90.1...v4.90.2) (2026-11-07)
+
+
+### Bug Fixes
+
+* **completion-proof:** read Linear-escaped evidence markers ([175fd72](https://github.com/CodySwannGT/lisa/commit/175fd72c7d0834d9d3b3d2731b4d90028dec522c)), closes [#4391](https://github.com/CodySwannGT/lisa/issues/4391) [CodySwannGT/lisa#4670](https://github.com/CodySwannGT/lisa/issues/4670) [CodySwannGT/lisa#4670](https://github.com/CodySwannGT/lisa/issues/4670)
+
+### [4.90.1](https://github.com/CodySwannGT/lisa/compare/v4.90.0...v4.90.1) (2026-11-07)
+
+
+### Bug Fixes
+
+* retire native safety net on downstream updates ([04f2764](https://github.com/CodySwannGT/lisa/commit/04f276444bf56afaeafbd2f14ffe1f6a096312da)), closes [CodySwannGT/lisa#4672](https://github.com/CodySwannGT/lisa/issues/4672)
+* retire safety-net hooks in Bun isolated installs ([706bc4f](https://github.com/CodySwannGT/lisa/commit/706bc4faf85c5771f7d581936ed895d16d34b4be)), closes [CodySwannGT/lisa#4672](https://github.com/CodySwannGT/lisa/issues/4672) [CodySwannGT/lisa#4672](https://github.com/CodySwannGT/lisa/issues/4672)
+* wait for exiting test groups before scratch cleanup ([5aeba16](https://github.com/CodySwannGT/lisa/commit/5aeba16ddeb87f8f48db7dba16308baa2a0b9342)), closes [CodySwannGT/lisa#4672](https://github.com/CodySwannGT/lisa/issues/4672)
+
 ## [4.90.0](https://github.com/CodySwannGT/lisa/compare/v4.89.0...v4.90.0) (2026-11-07)
 
 

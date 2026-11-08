@@ -19,7 +19,6 @@ const RECORD_LIMIT = 4 * 1024 * 1024;
 const GUARD_LIMIT = 1024 * 1024;
 const GUARDS = new Set([
   "block-no-verify",
-  "parity-safety-net",
   "block-shell-json-parsing",
   "block-instruction-file-edits",
   "block-direct-issue-create",
@@ -141,7 +140,7 @@ if (
     marketplace?.name === "lisa" ? version(marketplace.version) : ""
   );
 
-  // Eight pairs / sixteen MiB, plus one overflow-probe byte per file. Only
+  // Seven pairs / fourteen MiB, plus one overflow-probe byte per file. Only
   // host-selected names are nonempty; plugin-selected guards are not compared.
   for (const [index, name] of names.entries()) {
     let state = "unknown";

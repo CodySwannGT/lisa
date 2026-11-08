@@ -1,0 +1,20 @@
+expr (lisa-update-local.sh): to_entries[] | .key as $k | (.value | if type == "object" then (.branch // error("entry \($k) has no branch")) else . end) as $b | "\($k)\t\($b)"
+same expression in lisa-commit-and-pr-local.sh: yes
+$ jq -r "$EXPR" one-canary.json
+fixture-host-a	staging
+fixture-canary	dev
+fixture-host-b	main
+exit=0
+$ jq -r "$EXPR" legacy-strings.json
+fixture-host-a	staging
+fixture-host-b	main
+exit=0
+$ jq -r "$EXPR" two-canaries.json
+fixture-canary	dev
+fixture-host-a	staging
+fixture-host-b	main
+exit=0
+$ jq -r "$EXPR" no-branch.json
+jq: error (at /Users/codysai/.claude/jobs/dbbe9114/tmp/no-branch.json:0): entry fixture-canary has no branch
+fixture-host-a	staging
+exit=5
