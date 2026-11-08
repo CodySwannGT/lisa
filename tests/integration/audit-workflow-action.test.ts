@@ -13,6 +13,7 @@ import {
   useIoLatencyBudget,
 } from "../helpers/io-latency-budget.js";
 import { createAuditActionCheckout } from "../helpers/audit-action-fixture.js";
+import { ensurePinnedRevision } from "../helpers/pinned-revision.js";
 import { stepsIn } from "./quality-gate-facade-fixture.js";
 
 useIoLatencyBudget();
@@ -137,6 +138,11 @@ describe("workflow-owned canonical audit on an older caller", () => {
       throw new Error(
         "Audit action is not pinned to an immutable source commit"
       );
+    // Hosted CI checks out at depth 1; fetch the pinned ancestor by SHA there.
+    expect(
+      ensurePinnedRevision(revision),
+      `Pinned commit ${revision} is not on the remote`
+    ).not.toBe("unavailable");
     const files = [
       ...fs
         .readdirSync("src/core")
