@@ -1847,7 +1847,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-ticket-triage/SKILL.md":
       "a4f2e75ee3792418aa3b6621f83c75832eea85ffe670e26e74da808611dcf34f",
     "plugins/src/base/skills/lisa-track/SKILL.md":
-      "6669ecf80468d18a78e1cf87fca17a4803e42ae03972a2293b3da113f1d8845e",
+      "0ce4a03365715a09e56c89e59593effa916d86263e709608fda0dcf317469459",
     "plugins/src/base/skills/lisa-tracker-add-journey/SKILL.md":
       "a3da2e0350bcdebcdcc05f2d7931af868382638d3a28d09d4718f2f458d4be0a",
     "plugins/src/base/skills/lisa-tracker-build-intake/SKILL.md":
@@ -3784,6 +3784,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "evidence/CodySwannGT-lisa-4608/superseded-bddf74637d/step3e-bite-unbounded-sleep-loop.txt": true,
     "evidence/CodySwannGT-lisa-4608/superseded-bddf74637d/step4a-test-unit-drive-pr.txt": true,
     "evidence/CodySwannGT-lisa-4608/superseded-bddf74637d/step4b-check-plugins.txt": true,
+    "evidence/CodySwannGT-lisa-4677/README.md": true,
+    "evidence/CodySwannGT-lisa-4677/cli-fixtures-final.txt": true,
     "evidence/CodySwannGT-lisa-4677/cli-fixtures.txt": true,
     "evidence/CodySwannGT-lisa-4677/cli-live-4677.txt": true,
     "evidence/CodySwannGT-lisa-4677/cli-live-sweep.txt": true,

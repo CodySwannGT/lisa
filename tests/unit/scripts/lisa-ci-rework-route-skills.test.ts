@@ -76,6 +76,16 @@ describe.each(skillPaths("lisa-track"))("%s", file => {
     expect(phase3).toMatch(/`route` is `blocked`[^\n]*do not claim/u);
     expect(phase3).toContain("human_needed");
   });
+
+  it("honours a human hold before the blocked route changes any label", () => {
+    const blocked =
+      /^- When `route` is `blocked`[^\n]*/mu.exec(phase3)?.[0] ?? "";
+    expect(blocked.indexOf("hold check")).toBeGreaterThan(-1);
+    expect(blocked.indexOf("hold check")).toBeLessThan(
+      blocked.indexOf("remove the configured")
+    );
+    expect(blocked).toContain("held-by-gate");
+  });
 });
 
 describe.each(skillPaths("lisa-implement"))("%s", file => {
