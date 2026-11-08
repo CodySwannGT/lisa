@@ -86,6 +86,13 @@ describe("third-party required checks (CodySwannGT/lisa#4678)", () => {
     expect(group.startsWith("lisa-ci-failure-redispatch-")).toBe(true);
   });
 
+  it("never cancels a waiting run when a newer event for the same head joins", () => {
+    // The default `queue: single` cancels an already-pending run on arrival
+    // of a newer one, which would drop a queued late failure.
+    expect(workflow.concurrency.queue).toBe("max");
+    expect(workflow.concurrency["cancel-in-progress"]).toBe(false);
+  });
+
   it("hands the manual head SHA to the script through env only", () => {
     const step = steps.find(s => typeof s.run === "string" && s.env?.HEAD_SHA);
     expect(step?.env.HEAD_SHA).toBe("${{ inputs.head_sha }}");

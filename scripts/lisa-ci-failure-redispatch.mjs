@@ -26,9 +26,10 @@
  * What triggers a decision (CodySwannGT/lisa#4678): a CI workflow run, and
  * also a third-party required check (CodeRabbit, GitGuardian) completing on
  * its own schedule — a `check_run` or a `status` event. Those are gated first:
- * an Actions-owned check run (workflow_run covers it), a pending status, and a
- * context that is not required on the default branch's rulesets end with no
- * write and no further read. A passing gate runs the same pipeline; the
+ * a pending status, a context that is not required on the default branch's
+ * rulesets, and — defensively, since GitHub does not deliver `check_run` for
+ * Actions-created suites and workflow_run covers CI jobs — an Actions-owned
+ * check run all end with no write and no further read. A passing gate runs the same pipeline; the
  * decision logic is shared. `--head-sha` re-evaluates a past head by hand.
  *
  * Writes need positive evidence. A run for a superseded head, a fork PR, a PR

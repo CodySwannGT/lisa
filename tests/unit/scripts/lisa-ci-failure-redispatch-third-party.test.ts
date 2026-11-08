@@ -37,6 +37,9 @@ const GITGUARDIAN_FAILED = "status-gitguardian-failed.json";
 const NON_REQUIRED = "check-run-non-required.json";
 const PENDING = "status-pending.json";
 const ACTIONS_OWNED = "check-run-actions-owned.json";
+const MIXED_PENDING = "status-coderabbit-passed-gitguardian-pending.json";
+const MIXED_FAILED = "status-coderabbit-passed-gitguardian-failed.json";
+const ALREADY_REPORTED = "already-reported";
 const HEAD_SHA_FLAG = "--head-sha";
 const DRY_RUN = "--dry-run";
 
@@ -147,10 +150,16 @@ describe("a late pass", () => {
   });
 });
 
-describe("repeated events act once", () => {
-  it("plans nothing when the same failure arrives again for the same head", () => {
-    const result = plan("check-run-coderabbit-failed-replayed.json");
-    expect(result.outcome).toBe("already-reported");
+describe("repeated, partial and mixed results act at most once", () => {
+  // A late pass of one context neither clears while another is pending nor
+  // posts a second comment while another fails on the same marked head.
+  it.each([
+    ["check-run-coderabbit-failed-replayed.json", ALREADY_REPORTED],
+    [MIXED_PENDING, "checks-pending"],
+    [MIXED_FAILED, ALREADY_REPORTED],
+  ])("%s plans nothing (%s)", (name, outcome) => {
+    const result = plan(name);
+    expect(result.outcome).toBe(outcome);
     expect(result.actions).toEqual([]);
   });
 });
@@ -270,7 +279,9 @@ describe("the CLI under plain node", () => {
     [CODERABBIT_FAILED, "redispatch", 2],
     [GITGUARDIAN_FAILED, "redispatch", 2],
     ["status-coderabbit-passed-clears.json", "clear-and-restore", 2],
-    ["check-run-coderabbit-failed-replayed.json", "already-reported", 0],
+    ["check-run-coderabbit-failed-replayed.json", ALREADY_REPORTED, 0],
+    [MIXED_PENDING, "checks-pending", 0],
+    [MIXED_FAILED, ALREADY_REPORTED, 0],
     [NON_REQUIRED, "not-required-context", 0],
     [PENDING, "ignored-pending-status", 0],
     [ACTIONS_OWNED, "ignored-actions-check", 0],

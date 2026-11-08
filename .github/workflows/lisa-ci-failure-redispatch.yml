@@ -19,8 +19,10 @@ name: 🔁 CI Failure Re-dispatch
 # this repository and finish on their own schedule: without `check_run` and
 # `status`, a late third-party failure was never re-dispatched and a late pass
 # never cleared the marker. GitHub delivers both events only to this file on
-# the default branch. The job drops pending statuses and Actions-owned check
-# runs (`workflow_run` covers those) before it starts; the script then acts
+# the default branch. The job drops pending statuses before it starts, and
+# defensively drops any check run GitHub Actions created (GitHub does not
+# deliver `check_run` for Actions-created suites, and `workflow_run` covers
+# CI jobs anyway); the script then acts
 # only when the context is a required one, read from the ruleset — no context
 # is hard-coded here.
 #
@@ -70,18 +72,24 @@ permissions:
 
 # Any two triggers (both CI workflows, or a CI workflow and a third-party
 # context) can complete for the same head at nearly the same moment. Serialise
-# per head so the second run sees the first run's marker, and never cancel: a
-# cancelled run is a decision nobody made.
+# per head so the second run sees the first run's marker. A cancelled run is a
+# decision nobody made, so cancel neither the running run
+# (`cancel-in-progress: false`) nor a waiting one: with the default
+# `queue: single`, GitHub cancels an already-PENDING run when a newer run joins
+# the group, so a later pending status or non-required check would silently
+# drop a queued late failure. `queue: max` keeps up to 100 pending runs in
+# FIFO order; only a 101st waiting run for one head would be cancelled.
 concurrency:
   group: lisa-ci-failure-redispatch-${{ github.event.workflow_run.head_sha || github.event.check_run.head_sha || github.event.sha || inputs.head_sha || inputs.run_id }}
   cancel-in-progress: false
+  queue: max
 
 jobs:
   redispatch:
     name: 🔁 Re-dispatch the owning agent
-    # A pending status has not finished, and a check run GitHub Actions created
-    # is a CI workflow job that `workflow_run` already covers — without this,
-    # every CI job would start this workflow once.
+    # A pending status has not finished. The check-run clause is a defensive
+    # guard: GitHub does not deliver `check_run` for Actions-created suites,
+    # and if it ever did, `workflow_run` already covers CI jobs.
     if: >-
       ${{
         github.repository == 'CodySwannGT/lisa' &&
