@@ -1,0 +1,12 @@
+# Fixture: the project's only reusable-workflow caller is third-party. The
+# detector counts it but must still say no Lisa caller was found (issue #4641).
+name: Vendor
+
+on:
+  workflow_dispatch:
+
+jobs:
+  vendor:
+    uses: vendor/other/.github/workflows/reusable.yml@v1
+    with:
+      event_name: ${{ github.event_name }}
