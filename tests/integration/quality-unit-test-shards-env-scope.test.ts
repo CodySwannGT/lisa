@@ -137,6 +137,7 @@ const AUDIT_SPECS = [
   "tests/unit/core/audit-scope-hardening.test.ts",
   "tests/unit/core/audit-lockfile-sources.test.ts",
   "tests/unit/core/audit-lockfile-formats.test.ts",
+  "tests/unit/core/audit-review-4693.test.ts",
   "tests/unit/core/audit-report-completeness.test.ts",
   "tests/unit/config/zod-security-floor.test.ts",
   "tests/unit/config/audit-ignore-package-names.test.ts",
