@@ -21,6 +21,7 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 
 import {
+  LINEAR_ACCESS_SCRIPT,
   type LadderSkill,
   runLadder,
   SOURCE,
@@ -58,6 +59,19 @@ const readSkill = (surface: string, skill: string): string =>
   readFileSync(path.resolve(surface, `skills/${skill}/SKILL.md`), "utf8");
 
 /**
+ * The file that defines a skill's `read_linear_key()`. The access skill ships
+ * its copy as an executable script beside the skill, so agents run it by path
+ * instead of pasting a key-capturing snippet into an inline command.
+ * @param surface Surface root.
+ * @param skill Skill directory name.
+ * @returns The defining file's text.
+ */
+const readLadder = (surface: string, skill: string): string =>
+  skill === ACCESS
+    ? readFileSync(path.resolve(surface, LINEAR_ACCESS_SCRIPT), "utf8")
+    : readSkill(surface, skill);
+
+/**
  * Pull the ordered resolver paths out of a skill's `read_linear_key()` body.
  *
  * Reads the paths themselves rather than the surrounding shell so the two
@@ -72,7 +86,7 @@ const ladderOf = (skill: string): readonly string[] => {
   const start = skill.indexOf("read_linear_key() {");
   const body = skill.slice(Math.max(start, 0));
   const end = body.search(
-    /\n(?:linear_graphql\(\) \{|KEY=\$\(read_linear_key)/u
+    /\n(?:_linear_post\(\) \{|linear_graphql\(\) \{|KEY=\$\(read_linear_key)/u
   );
   // Comment lines mention `resolve-secret.mjs` in prose; only executable lines
   // carry rungs, so drop the comments before reading rather than trying to
@@ -104,8 +118,8 @@ const ladderOf = (skill: string): readonly string[] => {
 
 describe("read_linear_key resolver ladder parity", () => {
   describe.each(SURFACES)("%s", surface => {
-    const accessLadder = ladderOf(readSkill(surface, ACCESS));
-    const setupLadder = ladderOf(readSkill(surface, SETUP));
+    const accessLadder = ladderOf(readLadder(surface, ACCESS));
+    const setupLadder = ladderOf(readLadder(surface, SETUP));
 
     it("offers every documented rung, in order, from lisa-linear-access", () => {
       expect(accessLadder).toStrictEqual([...REQUIRED_RUNGS]);
@@ -142,8 +156,8 @@ describe("read_linear_key resolver ladder parity", () => {
       // cannot see the absence of, which is most of the cost of this class of
       // bug. Both skills must enumerate, and neither may print a value.
       for (const skill of [
-        readSkill(surface, ACCESS),
-        readSkill(surface, SETUP),
+        readLadder(surface, ACCESS),
+        readLadder(surface, SETUP),
       ]) {
         expect(skill).toContain("Tried, in order (relative paths are from");
         expect(skill).toContain("printf '  %s\\n' \"${tried[@]}\"");
@@ -215,8 +229,8 @@ describe("read_linear_key environment-rung parity", () => {
       // variable the documented affordance resolves nothing while the system
       // keeps working on some other credential — a silent wrong-identity path,
       // not an error.
-      expect(envRungsOf(readSkill(surface, ACCESS))).toStrictEqual(
-        envRungsOf(readSkill(surface, SETUP))
+      expect(envRungsOf(readLadder(surface, ACCESS))).toStrictEqual(
+        envRungsOf(readLadder(surface, SETUP))
       );
     });
 
@@ -224,7 +238,7 @@ describe("read_linear_key environment-rung parity", () => {
       // Order is the contract: an explicitly exported `LINEAR_API_KEY` is the
       // narrowest, most deliberate override and must keep winning, exactly as
       // it does today.
-      expect(envRungsOf(readSkill(surface, ACCESS))).toStrictEqual([
+      expect(envRungsOf(readLadder(surface, ACCESS))).toStrictEqual([
         "LINEAR_API_KEY",
         "LINEAR_API_KEY_${slug}",
       ]);
@@ -239,7 +253,7 @@ describe("read_linear_key environment-rung parity", () => {
     // only the suffixed name must be able to reach a key at all.
     const analyze = readSkill(SOURCE, "lisa-analyze-claude-remote");
     expect(analyze).toContain("LINEAR_API_KEY_<ws-slug>");
-    expect(envRungsOf(readSkill(SOURCE, ACCESS))).toContain(
+    expect(envRungsOf(readLadder(SOURCE, ACCESS))).toContain(
       "LINEAR_API_KEY_${slug}"
     );
   });
@@ -253,6 +267,7 @@ describe("read_linear_key honours the documented workspace-scoped variable", () 
     invoke: 'read_linear_key "acme"',
     credential: "LINEAR_API_KEY",
     keychain: false,
+    file: LINEAR_ACCESS_SCRIPT,
   };
 
   const PLUGIN_ROOT_RESOLVER =

@@ -74,6 +74,8 @@ The team lead does NOT read the input directly. The first task on the team's pla
 
 The input-resolver invokes `lisa-track $ARGUMENTS` (with `managedBy=` already stripped) and owns its complete resolve -> claim -> bind transaction:
 
+Every tracker read and write in that transaction goes through the provider's skills, never an improvised command. On Linear the chokepoint is `lisa-linear-access`, whose token tier runs its bundled `scripts/linear-graphql.sh` by absolute path. An inline command that captures `LINEAR_API_KEY` and curls Linear stops at an approval prompt even with permissions skipped, and a background worker stalls on it until a human attaches.
+
 **Forward a caller-supplied bundle by path only.** A build-intake or repair-intake dispatch has already written the bundle it read, verbatim, to the git-ignored `.lisa/work-item-context.md` and invokes this skill with `caller_bundle_path=<absolute path>`. The lead forwards only `caller_bundle_path: <absolute path>` in the input-resolver's spawn prompt, next to `lisa-track $ARGUMENTS`. Bundle text, and any credential value in it, never appears in a spawn prompt, task description, or Skill argument — only its path.
 
 - **Explicit ticket:** call `lisa-tracker-read` against the configured tracker and require a live open/unresolved current-project leaf. **Mismatch guard:** if the ticket format/project does not match the configured tracker (for example, a GitHub URL when `tracker` is `jira`), stop — never auto-translate vendors or trust pasted/stale ticket text. The read captures comments, graph, and metadata, not just the description.

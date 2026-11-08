@@ -39,7 +39,8 @@ import {
   FLOOR_RUNG,
   ladderOf,
   type LadderSkill,
-  readSkill,
+  LINEAR_ACCESS_SCRIPT,
+  readLadderSource,
   REPO_COPY,
   REQUIRED_RUNGS,
   runLadder,
@@ -73,6 +74,7 @@ const LADDER_SKILLS: readonly LadderSkill[] = [
     invoke: "read_linear_key",
     credential: "LINEAR_API_KEY",
     keychain: false,
+    file: LINEAR_ACCESS_SCRIPT,
   },
   {
     skill: "lisa-setup-linear",
@@ -144,7 +146,10 @@ const CASES = LADDER_SKILLS.map(entry => [entry.skill, entry] as const);
 describe("credential resolver ladder", () => {
   describe.each(SURFACES)("static shape on %s", surface => {
     describe.each(CASES)("%s", (_name, entry) => {
-      const fnText = extractFunction(readSkill(surface, entry.skill), entry.fn);
+      const fnText = extractFunction(
+        readLadderSource(surface, entry),
+        entry.fn
+      );
 
       it("offers every documented rung, in order", () => {
         expect(ladderOf(fnText)).toStrictEqual([...REQUIRED_RUNGS]);

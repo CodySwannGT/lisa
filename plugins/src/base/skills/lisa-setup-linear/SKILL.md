@@ -82,6 +82,8 @@ esac
 
 **Never accept the key via this skill's chat or stdin.** After the user confirms storage, retrieve via the lookup ladder (env → workspace-suffixed env → keychain) and validate against the GraphQL API:
 
+When the key is in the environment or the project's secrets provider, validate it with `bash <lisa-linear-access dir>/scripts/linear-graphql.sh --whoami` instead (see `lisa-linear-access` — GraphQL Adapter for locating the script). It walks the same env and `lisa-secrets-access` rungs, prints the viewer and organization, and never puts the key in your command. The block below is the attended fallback for a key held only in the legacy OS keychain. Run it as a script file, not pasted inline: an inline command that captures the key and calls curl stops at an approval prompt.
+
 ```bash
 read_linear_key() {  # $1=workspace slug
   local ws="$1"

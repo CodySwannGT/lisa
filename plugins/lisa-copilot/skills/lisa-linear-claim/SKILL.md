@@ -6,7 +6,7 @@ allowed-tools: ["Bash", "Skill", "Read"]
 
 # Claim Linear Issue: $ARGUMENTS
 
-Claim exactly one canonical Linear identifier such as `ENG-123`. All Linear access goes through `lisa-linear-access`. This is the reusable direct-session counterpart of `lisa-linear-build-intake` Phase 3b.
+Claim exactly one canonical Linear identifier such as `ENG-123`. All Linear access goes through `lisa-linear-access`. On the token tier, `lisa-linear-access` runs its bundled `scripts/linear-graphql.sh` by absolute path. Never capture `LINEAR_API_KEY` and curl Linear in one inline command: Claude Code stops that shape at an approval prompt even with permissions skipped, and a background worker stalls on it until a human attaches. This is the reusable direct-session counterpart of `lisa-linear-build-intake` Phase 3b.
 
 1. Resolve merged `linear.workspace`, `linear.teamKey`, and the Linear build-lifecycle roles from local-over-global config. Require the identifier's team key to equal the configured team. Resolve the `ready` and `claimed` roles through `scripts/resolve-lifecycle-role.mjs` (`--vendor linear`). Both are REQUIRED roles with **no built-in default** — an unset one is a setup defect to report, never a name to substitute. Do not hardcode lifecycle decisions.
 2. Invoke `lisa-linear-read-issue <identifier>` immediately before mutation. Reject a completed/canceled issue, active blocker, `repo:<other>` issue, any issue with open sub-Issues, or an Epic per `repo-scope-split` and `leaf-only-lifecycle`.

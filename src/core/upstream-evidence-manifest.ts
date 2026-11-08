@@ -1461,7 +1461,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-health/SKILL.md":
       "dfdb08a863e78bff42671793dcec29cfae0654db18ebf66a4aa77aeb56ddb775",
     "plugins/src/base/skills/lisa-implement/SKILL.md":
-      "04604b84e09ec42c8ae05b6791b28573ae4078da743087d2e193c0431710b1bd",
+      "006dbdf0f1e4b0b5899477fd4aab46973b8bfd0d5b5356a151428031562f22cf",
     "plugins/src/base/skills/lisa-improve-code-complexity/SKILL.md":
       "24ab5b193b409db6ee6bee981a1c0a48d08991782d7846116ad01658c8bc1ae8",
     "plugins/src/base/skills/lisa-improve-harness/SKILL.md":
@@ -1517,13 +1517,15 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-learnings-audit/SKILL.md":
       "71ec83b59839fe684ecc06688610d1fb780738939ddec8ba7d3332ac3c7939a6",
     "plugins/src/base/skills/lisa-linear-access/SKILL.md":
-      "83cbf20e7a9f5e5289f609f16079a95897aac5964380305d4a5193438230f965",
+      "52bcc384207d7e47ec003e7f067a03d6c65f2eb371133c5c14f31d19637ecb56",
+    "plugins/src/base/skills/lisa-linear-access/scripts/linear-graphql.sh":
+      "392cee454de85aa9c6d4776c09ffcd1552e54592e8fe6214c28f1b9e67160ab5",
     "plugins/src/base/skills/lisa-linear-add-journey/SKILL.md":
       "e63ae35df1a928dac7b42535ce11e77e8c617e60838ba319f22081400e87886e",
     "plugins/src/base/skills/lisa-linear-build-intake/SKILL.md":
       "7e93d34d09e64e1c6b1bcc861c36c0a9721168e5f436d9b07e551f5c571c9c1f",
     "plugins/src/base/skills/lisa-linear-claim/SKILL.md":
-      "efde30b5eac8b2cc56499ce391bd3d43ebb017c4ce948b5d547b52acb66715bb",
+      "de4b8a26a8162dd6fd74062e046fc482e84f212fd5d127ca6181eda174ae44ea",
     "plugins/src/base/skills/lisa-linear-create/SKILL.md":
       "dd65fb1bfb1bc4790b359d2bb0494474017d2740f50a1cc97976fc3b88102cb1",
     "plugins/src/base/skills/lisa-linear-evidence/SKILL.md":
@@ -1533,7 +1535,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-linear-prd-intake/SKILL.md":
       "42d60d8695c8c7794bf6cf7cbeca9af182b4a3cb07699e7e2014a09cb14189cf",
     "plugins/src/base/skills/lisa-linear-read-issue/SKILL.md":
-      "52b9ef6a8bf601141148746d19559be7817ccae40267a9dccb009b8396fd50e1",
+      "61da4c8a946ee2c91405a08beb8962d0e0f5937e01f64de9f0402e7eece92c72",
     "plugins/src/base/skills/lisa-linear-sync/SKILL.md":
       "30ef30a6f6dbf173437b25bb2bddca6d9adf63fa3db7ec499ae24d7510fa0e90",
     "plugins/src/base/skills/lisa-linear-to-tracker/SKILL.md":
@@ -1543,7 +1545,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-linear-verify/SKILL.md":
       "17251e8d6c762b69b2ca6a77d9cfe44beba31dfc0444de4cde051747e2c99eab",
     "plugins/src/base/skills/lisa-linear-write-issue/SKILL.md":
-      "af9e5151e1cb42cbb0c324e20dc1ef8dcc60dd8232ec64b348e55ce6591a5102",
+      "3b4d276c7eeb00c4666e50adad94b852e8ecb721627b93fc8c8b1233034c81bd",
     "plugins/src/base/skills/lisa-linear-write-prd/SKILL.md":
       "ad4289b5530d65d3b61b27da54db8cd7f8e9133f97326d8961f853f364c5b457",
     "plugins/src/base/skills/lisa-monitor/SKILL.md":
@@ -1775,7 +1777,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-setup-kane/SKILL.md":
       "fe50024a4f896af01716f2435f57227b1f8de61803e80bf3e3c3247ec179b103",
     "plugins/src/base/skills/lisa-setup-linear/SKILL.md":
-      "246cae6a71a09d9de3921b8b5b4087e88855a6be8e1483f0caf123704c8ab95f",
+      "bd2bf892a269b509ebb7a35e05eaf2b7af95e61e6f0da3a93e2b9ffb330323aa",
     "plugins/src/base/skills/lisa-setup-local-env/SKILL.md":
       "4d4b8c92e3616256f5f689fbe433f09c31d39c623508bc4ec0d8c1770caddf22",
     "plugins/src/base/skills/lisa-setup-local-env/scripts/local-env.mjs":
@@ -4511,6 +4513,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-agy/skills/lisa-kane-browser/SKILL.md": true,
     "plugins/lisa-agy/skills/lisa-learnings-audit/SKILL.md": true,
     "plugins/lisa-agy/skills/lisa-linear-access/SKILL.md": true,
+    "plugins/lisa-agy/skills/lisa-linear-access/scripts/linear-graphql.sh": true,
     "plugins/lisa-agy/skills/lisa-linear-add-journey/SKILL.md": true,
     "plugins/lisa-agy/skills/lisa-linear-build-intake/SKILL.md": true,
     "plugins/lisa-agy/skills/lisa-linear-claim/SKILL.md": true,
@@ -5058,6 +5061,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-copilot/skills/lisa-kane-browser/SKILL.md": true,
     "plugins/lisa-copilot/skills/lisa-learnings-audit/SKILL.md": true,
     "plugins/lisa-copilot/skills/lisa-linear-access/SKILL.md": true,
+    "plugins/lisa-copilot/skills/lisa-linear-access/scripts/linear-graphql.sh": true,
     "plugins/lisa-copilot/skills/lisa-linear-add-journey/SKILL.md": true,
     "plugins/lisa-copilot/skills/lisa-linear-build-intake/SKILL.md": true,
     "plugins/lisa-copilot/skills/lisa-linear-claim/SKILL.md": true,
@@ -5589,6 +5593,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-cursor/skills/lisa-kane-browser/SKILL.md": true,
     "plugins/lisa-cursor/skills/lisa-learnings-audit/SKILL.md": true,
     "plugins/lisa-cursor/skills/lisa-linear-access/SKILL.md": true,
+    "plugins/lisa-cursor/skills/lisa-linear-access/scripts/linear-graphql.sh": true,
     "plugins/lisa-cursor/skills/lisa-linear-add-journey/SKILL.md": true,
     "plugins/lisa-cursor/skills/lisa-linear-build-intake/SKILL.md": true,
     "plugins/lisa-cursor/skills/lisa-linear-claim/SKILL.md": true,
@@ -6050,6 +6055,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-devin/skills/lisa-kane-browser/SKILL.md": true,
     "plugins/lisa-devin/skills/lisa-learnings-audit/SKILL.md": true,
     "plugins/lisa-devin/skills/lisa-linear-access/SKILL.md": true,
+    "plugins/lisa-devin/skills/lisa-linear-access/scripts/linear-graphql.sh": true,
     "plugins/lisa-devin/skills/lisa-linear-add-journey/SKILL.md": true,
     "plugins/lisa-devin/skills/lisa-linear-build-intake/SKILL.md": true,
     "plugins/lisa-devin/skills/lisa-linear-claim/SKILL.md": true,
@@ -8419,6 +8425,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa/.codex-plugin/skills/lisa-learnings-audit/agents/openai.yaml": true,
     "plugins/lisa/.codex-plugin/skills/lisa-linear-access/SKILL.md": true,
     "plugins/lisa/.codex-plugin/skills/lisa-linear-access/agents/openai.yaml": true,
+    "plugins/lisa/.codex-plugin/skills/lisa-linear-access/scripts/linear-graphql.sh": true,
     "plugins/lisa/.codex-plugin/skills/lisa-linear-add-journey/SKILL.md": true,
     "plugins/lisa/.codex-plugin/skills/lisa-linear-add-journey/agents/openai.yaml": true,
     "plugins/lisa/.codex-plugin/skills/lisa-linear-build-intake/SKILL.md": true,
@@ -9134,6 +9141,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa/skills/lisa-learnings-audit/agents/openai.yaml": true,
     "plugins/lisa/skills/lisa-linear-access/SKILL.md": true,
     "plugins/lisa/skills/lisa-linear-access/agents/openai.yaml": true,
+    "plugins/lisa/skills/lisa-linear-access/scripts/linear-graphql.sh": true,
     "plugins/lisa/skills/lisa-linear-add-journey/SKILL.md": true,
     "plugins/lisa/skills/lisa-linear-add-journey/agents/openai.yaml": true,
     "plugins/lisa/skills/lisa-linear-build-intake/SKILL.md": true,
@@ -9775,6 +9783,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/src/base/skills/lisa-kane-browser/SKILL.md": true,
     "plugins/src/base/skills/lisa-learnings-audit/SKILL.md": true,
     "plugins/src/base/skills/lisa-linear-access/SKILL.md": true,
+    "plugins/src/base/skills/lisa-linear-access/scripts/linear-graphql.sh": true,
     "plugins/src/base/skills/lisa-linear-add-journey/SKILL.md": true,
     "plugins/src/base/skills/lisa-linear-build-intake/SKILL.md": true,
     "plugins/src/base/skills/lisa-linear-claim/SKILL.md": true,
@@ -12529,6 +12538,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/jira-cli-config-consumption.test.ts": true,
     "tests/unit/scripts/jira-server-origin.test.ts": true,
     "tests/unit/scripts/kill-marks.test.ts": true,
+    "tests/unit/scripts/linear-graphql-script.test.ts": true,
     "tests/unit/scripts/lint-staged-preflight.test.ts": true,
     "tests/unit/scripts/lisa-assert-eas-profile.test.ts": true,
     "tests/unit/scripts/lisa-environment-prepare.test.ts": true,
