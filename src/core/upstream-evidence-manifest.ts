@@ -3877,6 +3877,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "evidence/CodySwannGT-lisa-4608/superseded-bddf74637d/step3e-bite-unbounded-sleep-loop.txt": true,
     "evidence/CodySwannGT-lisa-4608/superseded-bddf74637d/step4a-test-unit-drive-pr.txt": true,
     "evidence/CodySwannGT-lisa-4608/superseded-bddf74637d/step4b-check-plugins.txt": true,
+    "evidence/CodySwannGT-lisa-4639/jira-evidence-scoped-uploads.txt": true,
+    "evidence/CodySwannGT-lisa-4639/jira-evidence-upload-names-red-green.txt": true,
     "evidence/CodySwannGT-lisa-4677/README.md": true,
     "evidence/CodySwannGT-lisa-4677/check-plugins-f16e99.txt": true,
     "evidence/CodySwannGT-lisa-4677/check-plugins-head.txt": true,
