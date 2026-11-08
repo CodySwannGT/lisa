@@ -705,6 +705,47 @@ Handle every blocker class; after any fix, re-poll and continue. Do not stop whi
 the PR is still open and progress is possible. On each iteration, refresh the
 babysitter lease if its last stamp is older than ~30 minutes (section 0).
 
+**Waiting on CI: one bounded CI watch, in the foreground.** When the only thing
+left is required checks still running, wait with a blocking watch, run under a
+timeout no longer than the harness's single-command limit (`timeout 540` where
+the `timeout` utility exists; otherwise the harness's own command timeout):
+
+```bash
+timeout 540 gh pr checks <pr> --required --watch --interval 30 --fail-fast
+```
+
+When it returns, for any reason, re-poll the full PR state (the `gh pr view`
+line above) and handle whatever blocker it shows exactly as below — a failed
+check is step (c).
+Repeat until the PR is merged, a blocker needs action, or the run's budget is spent.
+**A non-zero exit is not a CI failure on its own**: the
+watch exits non-zero when `--fail-fast` sees a failed check, when the timeout
+fires, and — with empty stdout — when the token lacks `actions: read` (step c).
+The re-poll of `statusCheckRollup` is the authority on which one happened.
+
+**Never start a detached or background watcher as the way to wait on CI** — no
+trailing `&`, no `nohup`, no harness background task, no scheduled re-check, no
+sleep loop. Each of those stalls silently, dies with the session, or lets the
+session end while required checks are still pending, and the later result then
+reaches nobody. The wait is the bounded watch above, and nothing else.
+
+**Budget spent with required checks still pending.** Do not end silently and do
+not report success. Record the state on the PR in one comment carrying the
+PR number, the head SHA, and the names of the required checks still pending,
+deduplicated by a marker so a resumed run updates rather than repeats it:
+
+```text
+<!-- [lisa-ci-pending] sha=<head-sha> -->
+```
+
+A check that fails later is not this run's to catch: the CI-failure re-dispatch
+(its `[lisa-ci-failed]` marker on the work item) wakes the owning agent. End
+with the `ci-pending` terminal state (section 4) and this exact report line:
+
+```text
+CI PENDING — <n> required checks still running at <sha>
+```
+
 **Poll by PR number, and never discover the PR set from "what is currently open".**
 A watcher whose target list comes from `gh pr list --state open` **cannot observe a
 merge**: the moment the PR merges it leaves that list, so the branch that would
@@ -1359,8 +1400,8 @@ gh run list --branch <baseRefName> --commit "$merge_sha" \
 ```
 
 **Bounded wait:** a just-created run can take a few seconds to register — poll
-briefly (a small number of short intervals / a short ceiling, mirroring the "wait
-for that head's checks to start" bound used above) before concluding the run is
+briefly (a small number of short intervals / a short ceiling, mirroring section 2's
+bounded CI watch) before concluding the run is
 absent, so a not-yet-registered run is not mis-read as zero. When no run matches
 the merge SHA directly, also accept a descendant run whose head has `$merge_sha`
 as an ancestor (`git merge-base --is-ancestor "$merge_sha" <run_head_sha>`).
@@ -1589,6 +1630,12 @@ Loop until one of:
   bot is rate limited and cannot re-review, and I posted my own review of the
   current version. Someone with dismissal rights needs to dismiss review 456,
   or decide it should stand."* Do not wait for the bot's window to reset.
+- **`ci-pending`** — the run's budget was spent while required checks were still
+  running on an OPEN PR. The PR number, head SHA and pending check names are
+  recorded in the `[lisa-ci-pending]` comment (section 2), a later failure is
+  left to the `[lisa-ci-failed]` re-dispatch, and the run ends with
+  `CI PENDING — <n> required checks still running at <sha>`. This is never
+  reported as success: the work is not done until CI is green.
 - **`CLOSED`** → report (PR was closed without merge).
 - **Hard block needing a human**: an unresolvable conflict, a failing check that
   needs design input, or genuine unresolved human objection (not a bot gate). Stop
