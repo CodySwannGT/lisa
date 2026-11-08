@@ -245,6 +245,19 @@ describe("parseArgs", () => {
       parseArgs(["--bad", "4.90.1", "--reason", REASON, "--force"], {})
     ).toThrow(/--force/);
   });
+
+  it("accepts a --reason that starts with -- but refuses a flag as a value", () => {
+    expect(
+      parseArgs(["--bad", "4.90.1", "--reason", "--dry-run breaks apply"], {})
+        .reason
+    ).toBe("--dry-run breaks apply");
+    expect(() =>
+      parseArgs(["--bad", "4.90.1", "--reason", "--dry-run"], {})
+    ).toThrow(/--reason needs a value/);
+    expect(() => parseArgs(["--reason", "--bad", "4.90.1"], {})).toThrow(
+      /--reason needs a value/
+    );
+  });
 });
 
 describe("resolveGoodVersion", () => {

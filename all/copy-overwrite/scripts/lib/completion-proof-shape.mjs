@@ -186,9 +186,38 @@ function claimingText(body) {
     .join("\n");
 }
 
-/** Exact visible claiming markers; examples and other-item refs do not claim. */
+/**
+ * Decode one stored Markdown escape layer outside inline code spans.
+ * Linear stores `[EVIDENCE: kind: name]` as `\[EVIDENCE: kind: name\]`; the
+ * same one-pass ASCII-punctuation projection the human-gate parser uses
+ * (`normalizeProviderMarkdown`, CodySwannGT/lisa#4341) makes the stored and
+ * written forms parse identically. Fences, indented code and comments are
+ * already removed by `claimingText`; inline code spans keep their bytes so an
+ * escaped example inside one cannot become a declaration (#4670).
+ * @param {string} text - Claiming text with fences and comments removed
+ * @returns {string} Text with one escape layer decoded outside code spans
+ */
+function decodedMarkdown(text) {
+  return text
+    .split(/(`[^`\n]*`)/u)
+    .map((part, index) =>
+      index % 2
+        ? part
+        : part.replace(
+            /\\([\u0021-\u002f\u003a-\u0040\u005b-\u0060\u007b-\u007e])/gu,
+            "$1"
+          )
+    )
+    .join("");
+}
+
+/**
+ * Exact visible claiming markers; examples and other-item refs do not claim.
+ * @param {string} body - Work-item description as the provider returns it
+ * @returns {{ kind: string, name: string }[]} Declared local evidence markers
+ */
 export function localMarkers(body) {
-  const text = claimingText(body);
+  const text = decodedMarkdown(claimingText(body));
   const matches = [
     ...text.matchAll(/\[EVIDENCE:\s*([a-z-]+):\s*([a-z][a-z0-9-]*)\s*\]/g),
   ];

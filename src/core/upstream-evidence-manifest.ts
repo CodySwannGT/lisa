@@ -55,7 +55,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lib/completion-proof-reader.mjs":
       "f134b65158605510bf188429d6aa5e713ed75a4d78877efc6211b440b3a805f7",
     "all/copy-overwrite/scripts/lib/completion-proof-shape.mjs":
-      "2edf9120a019aa21a64b8ca01d69fb027b8ef6267a87db9747b3c05cf8a97840",
+      "a6faf8d3c44c4eb3192c11a76d5866f6028d476c86e7dc88aefe88060b38ee1d",
     "all/copy-overwrite/scripts/lib/completion-proof-source.mjs":
       "1028cbeb9c8bb9cf685dd3f532ea41de2a25456b989fbda23d3315d8532877c0",
     "all/copy-overwrite/scripts/lib/gate-failure-diagnosis.mjs":
@@ -333,7 +333,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/npm-updater-gate.Dockerfile":
       "f5d85f8fccfd97f7800c03430a38c19d584314b0a6a63aa1de28fb62897fbcc5",
     "all/copy-overwrite/scripts/npm-updater-helper-graph.json":
-      "b922ba883be07b5bef68c3a9e5718bbd41eec7cbf8b2b1c28a7beb8fed38d19d",
+      "b19c9073ac69315cffb122af22b82c1c5a59ab0838a464cb54150101cec3ef30",
     "all/copy-overwrite/scripts/review-evidence-event.mjs":
       "1c5d510bc66f8ba23b6f046246f41182c17946a50126fb88e371d2aec9dfd6b2",
     "all/copy-overwrite/scripts/schemas/lisa-command-envelope.v1.schema.json":
@@ -1539,7 +1539,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-linear-to-tracker/SKILL.md":
       "16859e1828212bf053b252b7c03bd1fb3b7352da4fb9273b5ef063228080e601",
     "plugins/src/base/skills/lisa-linear-validate-issue/SKILL.md":
-      "4f9d44016ff71c60ca92f969a1f2cc115d5be7d9a70d17786a486a56c72c6899",
+      "1ebe1a54be336435de52f1626a4724a57503e27805714401cd4ca7643d9cc38e",
     "plugins/src/base/skills/lisa-linear-verify/SKILL.md":
       "17251e8d6c762b69b2ca6a77d9cfe44beba31dfc0444de4cde051747e2c99eab",
     "plugins/src/base/skills/lisa-linear-write-issue/SKILL.md":
@@ -1849,7 +1849,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-tracker-create/SKILL.md":
       "fecd0c3cc930b0f87578bc0bee14009509883cb21b33e94e3e7a42792dcd888e",
     "plugins/src/base/skills/lisa-tracker-evidence/SKILL.md":
-      "d385df95e787a4717e17f3d09b6288012d9c9b50c2ed8db70ba9f979d174909a",
+      "c52803a0fd3975cb632a7c8423a522ae45e659113b75463abbf69b19e2e70674",
     "plugins/src/base/skills/lisa-tracker-evidence/references/completion-authorization.md":
       "9c3a74bc6539a86a6ff53dae511bea6100b158442100f0f460ec0b8533a5ed83",
     "plugins/src/base/skills/lisa-tracker-journey/SKILL.md":
@@ -2819,7 +2819,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/lisa-assert-eas-profile.mjs":
       "624e40d7f33ca17208fc6b7a19320a785cff19da5d2ff8062b67a432b2a34022",
     "scripts/lisa-commit-and-pr-local.sh":
-      "70749548e302bc709000b0721c39470388c58fb0d08cfd3a2679b96e2b539cc4",
+      "cc9f1be63bcd881125aa59aa35432c2ab1d41119b2a28e8de817536b0f302b01",
     "scripts/lisa-commit-msg-gates.mjs":
       "f961cb70a525e7b0a94b8ca7a76d1e2bb5b1929d5477417e159dbf58312ce0d8",
     "scripts/lisa-enforcement-census.mjs":
@@ -2845,13 +2845,15 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/lisa-remote-env/setup.sh":
       "803ceee995da51503202458a24b4f5bd80ace8c779d0c782bf1197c36e1ebe91",
     "scripts/lisa-rollback-release.mjs":
-      "430ba11a9f2ede7bb4bb24a248c85a744e4fc109706b27fb42d7e55e49476fe6",
+      "d720ff9a862852b7ed639e85567b4700caf3e8b843ec859166a1105025e4e194",
     "scripts/lisa-ruleset-payload.mjs":
       "5f0c3624de08eab1c78ef9ef7df3f10497aa795c90e64b3ed6fa508207d3187e",
     "scripts/lisa-ruleset-reach.mjs":
       "e51b12092062379e7317b368c89a789e2067ec302388e557ea84a29a35ffc238",
     "scripts/lisa-update-local.sh":
-      "eb031a6bb4735e5096ac52efc3ef027233485c86524a83cd7f258d0b6f7b985b",
+      "f346f96ba9ac7075a4256b0a55ae71dc62f840c219c146cdbd7df8b5c65e1de0",
+    "scripts/lisa-update-projects-plan.mjs":
+      "eca5fac53b579a0e81216f91aa17317347ab7a34338d8f08deda714c231be78b",
     "scripts/lisa-work-item.mjs":
       "51081847e980f314a764c2e50a7a121b1ced9ef4b980f33898057de4c7b852e6",
     "scripts/materialize-copy-overwrite.mjs":
@@ -3664,6 +3666,14 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "evidence/4555/item5-codified-real-tmux-test.txt": true,
     "evidence/4555/item5-codified-test-falsification.txt": true,
     "evidence/4555/item5-real-tmux.txt": true,
+    "evidence/4604/canary-decisions.txt": true,
+    "evidence/4604/canary-designation-refusals.txt": true,
+    "evidence/4604/falsification.txt": true,
+    "evidence/4604/plan-canary-first.txt": true,
+    "evidence/4604/shell-scripts-object-form.txt": true,
+    "evidence/4604/skill-canary-steps.txt": true,
+    "evidence/4604/update-projects-plan-tests.txt": true,
+    "evidence/4604/zero-budget-probe.txt": true,
     "evidence/CodySwannGT-lisa-4605/falsification.txt": true,
     "evidence/CodySwannGT-lisa-4605/rollback-dry-run-commands.txt": true,
     "evidence/CodySwannGT-lisa-4605/rollback-missing-credentials-refusal.txt": true,
@@ -10512,6 +10522,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "scripts/lisa-ruleset-payload.mjs": true,
     "scripts/lisa-ruleset-reach.mjs": true,
     "scripts/lisa-update-local.sh": true,
+    "scripts/lisa-update-projects-plan.mjs": true,
     "scripts/lisa-work-item.mjs": true,
     "scripts/materialize-copy-overwrite.mjs": true,
     "scripts/measure-scripts-profile-gap.mts": true,
@@ -11275,6 +11286,11 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/fixtures/stryker-json-report/two-guard-one-starved.json": true,
     "tests/fixtures/third-party-review-evidence-seed/pre-4553.yml": true,
     "tests/fixtures/third-party-review-gh.cjs": true,
+    "tests/fixtures/update-projects/legacy-strings.json": true,
+    "tests/fixtures/update-projects/malformed.json": true,
+    "tests/fixtures/update-projects/no-canary.json": true,
+    "tests/fixtures/update-projects/one-canary.json": true,
+    "tests/fixtures/update-projects/two-canaries.json": true,
     "tests/fixtures/verification/artifact_mismatch.json": true,
     "tests/fixtures/verification/evidence_digest_mismatch.json": true,
     "tests/fixtures/verification/evidence_kind_mismatch.json": true,
@@ -12147,6 +12163,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/core/two-channel-delivery.test.ts": true,
     "tests/unit/core/two-channel-staleness.test.ts": true,
     "tests/unit/core/update-skill-apply-mode.test.ts": true,
+    "tests/unit/core/update-skill-canary.test.ts": true,
     "tests/unit/core/upstream-attribution-body-hardening.test.ts": true,
     "tests/unit/core/upstream-attribution-body.test.ts": true,
     "tests/unit/core/upstream-attribution-file-safety.test.ts": true,
@@ -12473,6 +12490,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/codex-hook-filter.test.ts": true,
     "tests/unit/scripts/command-envelope.test.ts": true,
     "tests/unit/scripts/completion-proof-grammar.test.ts": true,
+    "tests/unit/scripts/completion-proof-linear-escaped-markers.test.ts": true,
     "tests/unit/scripts/completion-proof-types.test.ts": true,
     "tests/unit/scripts/completion-proof-verify-usage.test.ts": true,
     "tests/unit/scripts/conflict-prover-markers-and-index.test.ts": true,
@@ -12596,6 +12614,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/lisa-run-gates-zero-collection.test.ts": true,
     "tests/unit/scripts/lisa-run-gates.test.ts": true,
     "tests/unit/scripts/lisa-test-node.test.ts": true,
+    "tests/unit/scripts/lisa-update-projects-plan.test.ts": true,
     "tests/unit/scripts/lisa-work-item-complete.test.ts": true,
     "tests/unit/scripts/lisa-work-item-pending-update.test.ts": true,
     "tests/unit/scripts/lisa-work-item.test.ts": true,

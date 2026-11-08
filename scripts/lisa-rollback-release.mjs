@@ -124,7 +124,13 @@ export function parseArgs(argv, env) {
     const key = VALUE_FLAGS.get(flag);
     const value = argv[index + 1];
     if (key === undefined) throw new Error(`Unknown argument ${flag}`);
-    if (value === undefined || value.startsWith("--")) {
+    // Only a real flag counts as a missing value: free text such as a
+    // `--reason` that happens to begin with `--` is a legitimate operand.
+    if (
+      value === undefined ||
+      value === "--dry-run" ||
+      VALUE_FLAGS.has(value)
+    ) {
       throw new Error(`${flag} needs a value`);
     }
     values[key] = value;
