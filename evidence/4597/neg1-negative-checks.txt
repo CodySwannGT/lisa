@@ -1,0 +1,85 @@
+# NEG-1 — negative checks, each with a bite control in the same sweep that MUST act
+# head: 80d5d40ec0bdc11bc35daefc65b83faa9b2f7220  captured: 2026-11-07T22:43:09Z  host: Darwin 25.2.0  node: v22.22.0
+
+## (a) a marker only in argv is not killed (bite control: an env-marked orphan of the same dead owner IS killed)
+dead owner marker: 31546:1794091389 (pid 31546 killed; ps -p: gone)
+$ ps -ww -p 31795,31796 -o pid=,command=
+31795 node -e setTimeout(()=>{},600000) LISA_TEST_RUN_OWNER=31546:1794091389
+31796 node -e setTimeout(()=>{},600000)
+$ ps -E -ww -p 31795 -o command= | grep -o 'LISA_TEST_RUN_OWNER=[0-9:]*' | wc -l   # occurrences in args+env text for the argv-only process
+       1
+$ TMPDIR=/private/tmp/c1v-demo/neg/a node /Users/codysai/workspace/lisa/.claude/worktrees/4597-cleanup-sweep/all/copy-overwrite/scripts/lib/lisa-cleanup-sweep.mjs --json
+{"removed":[],"skippedUnsafe":0,"killed":[31796],"errors":[],"dryRun":false,"durationMs":625}
+/Users/codysai/.claude/jobs/39f36ea1/tmp/neg.sh: line 25: 31796 Terminated: 15          LISA_TEST_RUN_OWNER=$DEAD node -e "$IDLE"
+exit=0
+argv-only 31795: STILL RUNNING
+env-marked 31796 (bite control): GONE
+
+## (a2) a fake marker embedded in ANOTHER variable's value, no real marker (macOS text parse)
+$ FAKE_CARRIER='note LISA_TEST_RUN_OWNER=31546:1794091389 tail' node -e 'setTimeout(()=>{},600000)' &  -> pid 33520
+$ TMPDIR=/private/tmp/c1v-demo/neg/a2 node /Users/codysai/workspace/lisa/.claude/worktrees/4597-cleanup-sweep/all/copy-overwrite/scripts/lib/lisa-cleanup-sweep.mjs --json --dry-run
+{"removed":[],"skippedUnsafe":0,"killed":[33520],"errors":[],"dryRun":true,"durationMs":123}
+exit=0
+embedded-only 33520: STILL RUNNING (dry run: selection shown in killed[])
+
+## (b) a symlink named lisa-* to an old directory OUTSIDE the root is neither followed nor removed (bite control: a stale real 0700 dir is removed)
+$ ls -laT /private/tmp/c1v-demo/neg/b
+total 0
+drwx------@ 4 codysai  wheel  128 Nov  7 17:43:12 2026 .
+drwx------@ 6 codysai  wheel  192 Nov  7 17:43:12 2026 ..
+lrwxr-xr-x@ 1 codysai  wheel   40 Nov  6 11:43:09 2026 lisa-link-to-outside -> /private/tmp/c1v-demo/neg/outside/victim
+drwx------@ 2 codysai  wheel   64 Nov  6 11:43:09 2026 lisa-real-stale
+$ TMPDIR=/private/tmp/c1v-demo/neg/b node /Users/codysai/workspace/lisa/.claude/worktrees/4597-cleanup-sweep/all/copy-overwrite/scripts/lib/lisa-cleanup-sweep.mjs --json --no-processes
+{"removed":["/private/tmp/c1v-demo/neg/b/lisa-real-stale"],"skippedUnsafe":0,"killed":[],"errors":[],"dryRun":false,"durationMs":2}
+exit=0
+$ ls -la /private/tmp/c1v-demo/neg/b
+total 0
+drwx------@ 3 codysai  wheel   96 Nov  7 17:43 .
+drwx------@ 6 codysai  wheel  192 Nov  7 17:43 ..
+lrwxr-xr-x@ 1 codysai  wheel   40 Nov  6 11:43 lisa-link-to-outside -> /private/tmp/c1v-demo/neg/outside/victim
+$ cat /private/tmp/c1v-demo/neg/outside/victim/precious.txt
+keep-me
+
+## (c) a 0755 stale lisa dir is kept and reported as kept (bite control: a 0700 stale sibling is removed)
+$ ls -ldT /private/tmp/c1v-demo/neg/c/*
+drwxr-xr-x@ 2 codysai  wheel  64 Nov  6 11:43:09 2026 /private/tmp/c1v-demo/neg/c/lisa-open-0755
+drwx------@ 2 codysai  wheel  64 Nov  6 11:43:09 2026 /private/tmp/c1v-demo/neg/c/lisa-private-0700
+$ TMPDIR=/private/tmp/c1v-demo/neg/c node /Users/codysai/workspace/lisa/.claude/worktrees/4597-cleanup-sweep/all/copy-overwrite/scripts/lib/lisa-cleanup-sweep.mjs --no-processes
+🧹 swept 1 stale temp dir, 0 orphaned test processes (3 ms); kept 1 entry not private to this user
+exit=0
+$ ls /private/tmp/c1v-demo/neg/c
+lisa-open-0755
+
+## (d) TMPDIR=$HOME and TMPDIR=/ are refused (--dry-run: the refusal is decided before dry-run is consulted, so no real files are put at risk)
+lisa-* entries at top of $HOME right now: 0
+$ TMPDIR=$HOME node /Users/codysai/workspace/lisa/.claude/worktrees/4597-cleanup-sweep/all/copy-overwrite/scripts/lib/lisa-cleanup-sweep.mjs --json --dry-run --no-processes
+{"removed":[],"skippedUnsafe":0,"killed":[],"errors":["refusing to sweep /Users/codysai: it is or contains the home directory"],"dryRun":true,"durationMs":1}
+exit=0
+$ TMPDIR=$(dirname $HOME) node /Users/codysai/workspace/lisa/.claude/worktrees/4597-cleanup-sweep/all/copy-overwrite/scripts/lib/lisa-cleanup-sweep.mjs --json --dry-run --no-processes
+{"removed":[],"skippedUnsafe":0,"killed":[],"errors":["refusing to sweep /Users: it is or contains the home directory"],"dryRun":true,"durationMs":1}
+exit=0
+$ TMPDIR=/ node /Users/codysai/workspace/lisa/.claude/worktrees/4597-cleanup-sweep/all/copy-overwrite/scripts/lib/lisa-cleanup-sweep.mjs --json --dry-run --no-processes
+{"removed":[],"skippedUnsafe":0,"killed":[],"errors":["refusing to sweep /: it is the filesystem root"],"dryRun":true,"durationMs":0}
+exit=0
+bite control: the same command on a private root containing a stale entry selects it
+$ TMPDIR=/private/tmp/c1v-demo/neg/d node /Users/codysai/workspace/lisa/.claude/worktrees/4597-cleanup-sweep/all/copy-overwrite/scripts/lib/lisa-cleanup-sweep.mjs --json --dry-run --no-processes
+{"removed":["/private/tmp/c1v-demo/neg/d/lisa-d-stale"],"skippedUnsafe":0,"killed":[],"errors":[],"dryRun":true,"durationMs":2}
+exit=0
+
+## (e) protected names, git checkouts and the cwd-holding entry are kept even when stale and private (bite control: lisa-e-plain removed)
+$ (cd /private/tmp/c1v-demo/neg/e/lisa-e-cwd && TMPDIR=/private/tmp/c1v-demo/neg/e node /Users/codysai/workspace/lisa/.claude/worktrees/4597-cleanup-sweep/all/copy-overwrite/scripts/lib/lisa-cleanup-sweep.mjs --json --no-processes)
+{"removed":["/private/tmp/c1v-demo/neg/e/lisa-e-plain"],"skippedUnsafe":0,"killed":[],"errors":[],"dryRun":false,"durationMs":2}
+exit=0
+$ ls /private/tmp/c1v-demo/neg/e
+lisa-backup-x
+lisa-e-cwd
+lisa-e-gitchild
+lisa-e-gitdir
+lisa-kill-marks
+lisa-preserve-x
+lisa-scratch
+lisa-team-enforce
+lisa-verification-gate
+
+## cleanup
+removed /private/tmp/c1v-demo/neg

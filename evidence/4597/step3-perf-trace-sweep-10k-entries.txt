@@ -1,0 +1,39 @@
+# Validation Journey step 3 — perf trace: full CLI sweep (temp + processes) over 10,000 top-level entries
+# head: 80d5d40ec0bdc11bc35daefc65b83faa9b2f7220  captured: 2026-11-07T22:16:33Z  host: Darwin 25.2.0  node: v22.22.0
+# machine: Apple M4 Pro, 14 cpus; load avg: { 14.44 12.47 13.68 }
+# processes on machine for this user: 1137
+# methodology: seed exactly 10,000 entries in a private root (0700 dirs, as mkdtemp makes them);
+#   40% stale lisa-* dirs (30 h old, each with sub/f.txt), 5% stale lisa.* files, 15% fresh lisa-* dirs,
+#   20% stale non-Lisa dirs, 20% stale non-Lisa files. Then run the CLI with --json (processes INCLUDED),
+#   recording the module's own durationMs and wall-clock (/usr/bin/time -p, includes node start-up).
+#   Three independent trials, reseeded each time. Budget: 5000 ms.
+## trial 1
+{"root":"/private/tmp/c1v-demo/s3","total":10000,"staleLisaDirs":4000,"staleLisaFiles":1000,"freshLisaDirs":1000,"staleOtherDirs":2000,"otherFiles":2000,"expectedRemoved":5000}
+entries before: 10000
+$ TMPDIR=/private/tmp/c1v-demo/s3 /usr/bin/time -p node all/copy-overwrite/scripts/lib/lisa-cleanup-sweep.mjs --json
+exit=0
+{"removedCount":5000,"skippedUnsafe":0,"killed":[],"errors":[],"dryRun":false,"durationMs":1908,"underBudget":true}
+real 1.93
+user 0.63
+sys 3.73
+entries after: 5000  (lisa-perf-stale left: 0, lisa-perf-fresh left: 1000)
+## trial 2
+{"root":"/private/tmp/c1v-demo/s3","total":10000,"staleLisaDirs":4000,"staleLisaFiles":1000,"freshLisaDirs":1000,"staleOtherDirs":2000,"otherFiles":2000,"expectedRemoved":5000}
+entries before: 10000
+$ TMPDIR=/private/tmp/c1v-demo/s3 /usr/bin/time -p node all/copy-overwrite/scripts/lib/lisa-cleanup-sweep.mjs --json
+exit=0
+{"removedCount":5000,"skippedUnsafe":0,"killed":[],"errors":[],"dryRun":false,"durationMs":1461,"underBudget":true}
+real 1.48
+user 0.58
+sys 3.16
+entries after: 5000  (lisa-perf-stale left: 0, lisa-perf-fresh left: 1000)
+## trial 3
+{"root":"/private/tmp/c1v-demo/s3","total":10000,"staleLisaDirs":4000,"staleLisaFiles":1000,"freshLisaDirs":1000,"staleOtherDirs":2000,"otherFiles":2000,"expectedRemoved":5000}
+entries before: 10000
+$ TMPDIR=/private/tmp/c1v-demo/s3 /usr/bin/time -p node all/copy-overwrite/scripts/lib/lisa-cleanup-sweep.mjs --json
+exit=0
+{"removedCount":5000,"skippedUnsafe":0,"killed":[],"errors":[],"dryRun":false,"durationMs":2736,"underBudget":true}
+real 2.76
+user 0.60
+sys 2.62
+entries after: 5000  (lisa-perf-stale left: 0, lisa-perf-fresh left: 1000)

@@ -1,0 +1,25 @@
+# Validation Journey step 1 — stale Lisa temp folder removed, fresh and non-Lisa kept
+# head: 80d5d40ec0bdc11bc35daefc65b83faa9b2f7220  captured: 2026-11-07T22:15:40Z  host: Darwin 25.2.0  node: v22.22.0
+# TMPDIR=/private/tmp/c1v-demo/s1 (private demo root; the real /tmp is never swept)
+$ mkdir -m 700 $TMPDIR/lisa-sweep-demo-old $TMPDIR/lisa-sweep-demo-new $TMPDIR/other-sweep-demo-old
+$ touch -t 202611061615.41 $TMPDIR/lisa-sweep-demo-old $TMPDIR/other-sweep-demo-old   # 25 h ago
+$ ls -ldT $TMPDIR/*sweep-demo*
+drwx------@ 2 codysai  wheel  64 Nov  7 17:15:40 2026 /private/tmp/c1v-demo/s1/lisa-sweep-demo-new
+drwx------@ 3 codysai  wheel  96 Nov  6 16:15:41 2026 /private/tmp/c1v-demo/s1/lisa-sweep-demo-old
+drwx------@ 2 codysai  wheel  64 Nov  6 16:15:41 2026 /private/tmp/c1v-demo/s1/other-sweep-demo-old
+$ node all/copy-overwrite/scripts/lib/lisa-cleanup-sweep.mjs --dry-run
+🧹 would sweep 1 stale temp dir, 0 orphaned test processes (140 ms)
+exit=0
+$ ls -d $TMPDIR/*sweep-demo*   # dry run changed nothing
+/private/tmp/c1v-demo/s1/lisa-sweep-demo-new
+/private/tmp/c1v-demo/s1/lisa-sweep-demo-old
+/private/tmp/c1v-demo/s1/other-sweep-demo-old
+$ node all/copy-overwrite/scripts/lib/lisa-cleanup-sweep.mjs --json
+{"removed":["/private/tmp/c1v-demo/s1/lisa-sweep-demo-old"],"skippedUnsafe":0,"killed":[],"errors":[],"dryRun":false,"durationMs":138}
+exit=0
+$ ls -d $TMPDIR/*sweep-demo*
+/private/tmp/c1v-demo/s1/lisa-sweep-demo-new
+/private/tmp/c1v-demo/s1/other-sweep-demo-old
+$ node all/copy-overwrite/scripts/lib/lisa-cleanup-sweep.mjs   # second run, human summary line
+🧹 swept 0 stale temp dirs, 0 orphaned test processes (120 ms)
+exit=0

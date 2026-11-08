@@ -162,6 +162,8 @@ scripts/lib/history-secret-policy.mjs
 scripts/lib/history-secret-scanner.mjs
 scripts/lib/invoked-as-script.mjs
 scripts/lib/kill-marks.mjs
+scripts/lib/lisa-cleanup-sweep-processes.mjs
+scripts/lib/lisa-cleanup-sweep.mjs
 scripts/lib/npm-update-allocate.mjs
 scripts/lib/npm-update-authorization.mjs
 scripts/lib/npm-update-broker-client.mjs

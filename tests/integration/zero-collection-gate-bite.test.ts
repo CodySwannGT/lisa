@@ -44,6 +44,7 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 
 import { boundedSpawnSync } from "../helpers/io-latency-budget.js";
+import { sweepAlreadyRanEnv } from "../helpers/cleanup-sweep-skip.js";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 
@@ -130,6 +131,8 @@ function runConsumer(
     // which the test-budget conformance guard refuses, correctly.
     return boundedSpawnSync({
       args: [SCRIPT, "--moment=push"],
+      // Never sweep the machine from inside a test (CodySwannGT/lisa#4597).
+      env: { ...process.env, ...sweepAlreadyRanEnv() },
       command: process.execPath,
       cwd: root,
       label: "lisa-run-gates.mjs --moment=push",

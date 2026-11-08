@@ -89,6 +89,7 @@ import {
   useIoLatencyBudget,
 } from "../helpers/io-latency-budget.js";
 import { cleanGitEnv } from "../support/git-executable.js";
+import { sweepAlreadyRanEnv } from "../helpers/cleanup-sweep-skip.js";
 
 // The bounded children below are handed a base that only fits under a case
 // budget scaling with the same machine they do. Without this call the case
@@ -479,7 +480,13 @@ function runHook(
     // The hook fans out over the whole integration tree.
     baseMs: 30_000,
     cwd: root,
-    env: { ...process.env, LISA_COLLECT_LOG: log, PATH: searchPath },
+    // Never sweep the machine from inside a test (CodySwannGT/lisa#4597).
+    env: {
+      ...process.env,
+      ...sweepAlreadyRanEnv(),
+      LISA_COLLECT_LOG: log,
+      PATH: searchPath,
+    },
     // Git feeds the refs being pushed on stdin, and that is the only thing
     // that tells the traceability gate WHICH range to judge. Without it the
     // gate falls back to the pusher's local `HEAD` and says so — an answer

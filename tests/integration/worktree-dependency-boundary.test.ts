@@ -8,6 +8,7 @@ import {
   boundedSpawnSync,
   useIoLatencyBudget,
 } from "../helpers/io-latency-budget.js";
+import { sweepAlreadyRanEnv } from "../helpers/cleanup-sweep-skip.js";
 
 const root = fileURLToPath(new URL("../../", import.meta.url));
 const LIB = "all/copy-overwrite/scripts/lib";
@@ -22,6 +23,8 @@ const INSTALLED_PARENT = "installed parent";
 const PARENT_MESSAGE = "parent checkout";
 const PUSH_FLAG = "--moment=push";
 const DEPENDENCY_PATH = "node_modules/parent-only/index.js";
+/** No shell startup files, so the fixture sees only what it sets. */
+const NO_RC = { BASH_ENV: "/dev/null", ENV: "/dev/null" };
 
 /**
  * Execute only inside the owned fixture, without shell startup or Git identity inheritance.
@@ -38,12 +41,7 @@ function run(cwd: string, command: string, args: string[], input?: string) {
     args,
     cwd,
     ...(input === undefined ? {} : { input }),
-    env: {
-      PATH: process.env.PATH,
-      HOME: cwd,
-      BASH_ENV: "/dev/null",
-      ENV: "/dev/null",
-    },
+    env: sweepAlreadyRanEnv({ PATH: process.env.PATH, HOME: cwd, ...NO_RC }),
   });
 }
 

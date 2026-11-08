@@ -2,6 +2,25 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [4.94.0](https://github.com/CodySwannGT/lisa/compare/v4.93.0...v4.94.0) (2026-11-08)
+
+
+### Features
+
+* **sweep:** add a start-of-run cleanup sweep for stale temp entries and orphaned test processes ([380b1bc](https://github.com/CodySwannGT/lisa/commit/380b1bcadc34c5ce1967fbbd29a65281405b5b6b)), closes [CodySwannGT/lisa#4597](https://github.com/CodySwannGT/lisa/issues/4597) [CodySwannGT/lisa#4597](https://github.com/CodySwannGT/lisa/issues/4597)
+
+
+### Bug Fixes
+
+* **sweep:** harden the cleanup sweep after security and spec review ([29f6919](https://github.com/CodySwannGT/lisa/commit/29f6919d1e36d15d37c3d072e8a554d1cb451bfd)), closes [CodySwannGT/lisa#4597](https://github.com/CodySwannGT/lisa/issues/4597) [CodySwannGT/lisa#4597](https://github.com/CodySwannGT/lisa/issues/4597)
+* **sweep:** key the once-per-run skip on a live sweeper and keep tests off the machine ([80d5d40](https://github.com/CodySwannGT/lisa/commit/80d5d40ec0bdc11bc35daefc65b83faa9b2f7220)), closes [CodySwannGT/lisa#4597](https://github.com/CodySwannGT/lisa/issues/4597) [CodySwannGT/lisa#4597](https://github.com/CodySwannGT/lisa/issues/4597)
+* **sweep:** never SIGKILL an orphan whose start time was not recorded ([e2fce41](https://github.com/CodySwannGT/lisa/commit/e2fce415bbdfa3e07a20e90b7c15542e498b6a5e)), closes [CodySwannGT/lisa#4597](https://github.com/CodySwannGT/lisa/issues/4597) [CodySwannGT/lisa#4597](https://github.com/CodySwannGT/lisa/issues/4597)
+
+
+### Documentation
+
+* **sweep:** document the macOS ps -E value ambiguity ([ad0222b](https://github.com/CodySwannGT/lisa/commit/ad0222bfddf3b0e746f2cfe6e5faabf32f1effec)), closes [CodySwannGT/lisa#4597](https://github.com/CodySwannGT/lisa/issues/4597) [CodySwannGT/lisa#4597](https://github.com/CodySwannGT/lisa/issues/4597)
+
 ## [4.93.0](https://github.com/CodySwannGT/lisa/compare/v4.92.2...v4.93.0) (2026-11-08)
 
 
