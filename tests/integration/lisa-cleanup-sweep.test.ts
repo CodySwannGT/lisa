@@ -189,7 +189,9 @@ describe("cleanup sweep, real filesystem and processes", () => {
         "sh",
         [
           "-c",
-          '"$0" "$1" --json --dry-run --no-processes | cat',
+          // A pipeline's status is `cat`'s, so the sweep reports its own
+          // exit status on stderr, where the assertion below reads it.
+          '{ "$0" "$1" --json --dry-run --no-processes; echo "sweep-exit=$?" >&2; } | cat',
           process.execPath,
           SCRIPT,
         ],
@@ -201,6 +203,7 @@ describe("cleanup sweep, real filesystem and processes", () => {
         }
       );
       expect(child.status).toBe(0);
+      expect(String(child.stderr)).toContain("sweep-exit=0");
       const output = String(child.stdout);
       expect(Buffer.byteLength(output)).toBeGreaterThan(65_536);
       const report = JSON.parse(output.trim());
