@@ -22,10 +22,15 @@ jobs:
       node_version: '24.21.0'
       package_manager: 'bun'
       skip_jobs: ''
-      # Split the unit suite across 4 parallel legs (#4598). quality.yml merges
+      # Split the unit suite across parallel legs (#4598). quality.yml merges
       # shard coverage and checks thresholds once in the aggregate job, so the
       # required check `🔍 Quality Checks / 🧪 Run Unit Tests` keeps its name.
-      unit_test_shards: 4
+      # 7 legs, not 4: at 4 the unit path (plan start to aggregate end) took
+      # 10m11s on run 42443161832 against an 8-minute target. The slowest leg
+      # spent ~6m45s in tests and ~3.5 min of the path is fixed overhead
+      # (runner pickup, setup, aggregate merge), so 7 is the smallest count
+      # whose estimated path stays under 8 minutes.
+      unit_test_shards: 7
     secrets: inherit
   bin_smoke:
     name: Lisa CLI bin smoke
