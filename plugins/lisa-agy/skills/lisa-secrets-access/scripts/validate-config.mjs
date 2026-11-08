@@ -840,8 +840,7 @@ function idEntryProblems(key, ids) {
       ? [
           `sessionManager.${key} entry ${JSON.stringify(entry)} has an ` +
             `empty value after ${JSON.stringify(prefixOf(entry))}: name the ` +
-            `login or ` +
-            `id after the prefix.`,
+            `login or id after the prefix.`,
         ]
       : [];
   });
@@ -866,16 +865,24 @@ export function sessionManagerWarnings(block) {
     .filter(entry => typeof entry === "string")
     .map(entry => ({ entry, value: entry.trim() }))
     .filter(({ value }) => ALL_DIGIT_ENTRY.test(value))
-    .map(
-      ({ entry, value }) =>
+    .map(({ entry, value }) => {
+      // The answer matcher compares a plain entry untrimmed (#4623): padded,
+      // it equals no author field, so it never admits anyone.
+      const answerReading =
+        entry === value
+          ? `the answer matcher reads it as a numeric account id (only a ` +
+            `comment whose author's numeric id is ${value} counts as an answer)`
+          : `the answer matcher does not trim it, so it matches no comment ` +
+            `author`;
+      return (
         `sessionManager.operatorIds entry ${JSON.stringify(entry)} is all ` +
-        `digits, so it is read two ways: the answer matcher reads it as a ` +
-        `numeric account id (only a comment whose author's numeric id is ` +
-        `${value} counts as an answer), while the queue and the claim read ` +
-        `it as a GitHub login. Write ${JSON.stringify(`login:${value}`)} if ` +
-        `${value} is the GitHub login, or ${JSON.stringify(`id:${value}`)} ` +
-        `if it is the numeric account id.`
-    );
+        `digits, so it is read two ways: ${answerReading}, while the queue ` +
+        `and the claim read it as a GitHub login. Write ` +
+        `${JSON.stringify(`login:${value}`)} if ${value} is the GitHub ` +
+        `login, or ${JSON.stringify(`id:${value}`)} if it is the numeric ` +
+        `account id.`
+      );
+    });
 }
 
 /**

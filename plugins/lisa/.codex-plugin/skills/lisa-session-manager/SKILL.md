@@ -78,10 +78,11 @@ the manager.
   `login:<v>` is a GitHub login and `id:<v>` an account id (GitHub numeric id, Jira accountId,
   Linear user id). Whether an assignee **is an operator**: compare a GitHub assignee's `login`
   with each `login:` entry's value, the assignee's account id (GitHub numeric `id` from the REST
-  issue's `.assignees[].id`, Jira `accountId`, Linear `id`) with each `id:` entry's value, and the assignee as "me" is compared
-  (GitHub login, Jira accountId, Linear user id) with each plain entry, exactly as before. A plain
-  all-digit entry is a login here but a numeric id to `item-answer`, so `validate` warns about it;
-  write `login:<v>` or `id:<v>` instead. The `queue` output echoes the entries as `operators`.
+  issue's `.assignees[].id`, Jira `accountId`, Linear `id`) with each `id:` entry's value, and
+  the assignee as "me" is compared (GitHub login, Jira accountId, Linear user id) with each plain
+  entry, exactly as before. A plain all-digit entry is a login here but a numeric id to
+  `item-answer`, so `validate` warns about it; write `login:<v>` or `id:<v>` instead. The `queue`
+  output echoes the entries as `operators`.
 - **Workers** start only through `spawn`. The worker prompt is exactly
   `/lisa:implement <REF> managedBy=<manager-name>`; `lisa-implement` owns what `managedBy=` means.
   Never start a worker another way, and never reuse a worker for another item or a new attempt.

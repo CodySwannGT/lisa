@@ -86,6 +86,11 @@ describe("a plain all-digit operator entry warns without failing", () => {
     });
     expect(warnings).toHaveLength(1);
     expect(warnings[0]).toContain('"login:583231"');
+    // The answer matcher does not trim a plain entry, so it matches nobody.
+    expect(warnings[0]).toMatch(
+      /does not trim it, so it matches no comment author/
+    );
+    expect(warnings[0]).not.toMatch(/reads it as a numeric account id/);
   });
 
   it.each([
