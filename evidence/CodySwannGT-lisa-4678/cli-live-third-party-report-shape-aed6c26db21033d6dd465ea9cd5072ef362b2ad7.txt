@@ -1,0 +1,5 @@
+$ gh api repos/CodySwannGT/lisa/commits/aed6c26db21033d6dd465ea9cd5072ef362b2ad7/check-runs --paginate --slurp | jq '<CodeRabbit|GitGuardian check runs: name, app.slug, status, conclusion, pull_requests>'
+# worktree head_sha=68ca1b31795ba5f0de17b1b40488bb29bfe7e02d captured_at=2026-11-08T09:50:21Z
+[{"name":"CodeRabbit","app":"coderabbitai","status":"completed","conclusion":"success","prs":[4679]},{"name":"GitGuardian Security Checks","app":"gitguardian","status":"completed","conclusion":"success","prs":[4679]}]
+$ gh api repos/CodySwannGT/lisa/commits/aed6c26db21033d6dd465ea9cd5072ef362b2ad7/statuses --paginate --slurp | jq '<CodeRabbit|GitGuardian statuses: context, state, creator>'
+[]

@@ -1,0 +1,12 @@
+$ node scripts/lisa-ci-failure-redispatch.mjs --payload tests/fixtures/ci-failure-redispatch/check-run-non-required.json --dry-run
+# worktree head_sha=68ca1b31795ba5f0de17b1b40488bb29bfe7e02d captured_at=2026-11-08T09:49:21Z
+run 51200000002 -> PR (none) -> work item (none)
+outcome: not-required-context — 'SonarCloud Code Analysis' is not a required check on main (dry run: nothing written)
+{
+  "repository": "CodySwannGT/lisa",
+  "runId": 51200000002,
+  "outcome": "not-required-context",
+  "reason": "'SonarCloud Code Analysis' is not a required check on main",
+  "actions": []
+}
+exit=0

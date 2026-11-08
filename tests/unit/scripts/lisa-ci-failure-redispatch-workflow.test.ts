@@ -34,15 +34,70 @@ describe("trigger", () => {
     expect(names).toEqual(workflow.on.workflow_run.workflows);
   });
 
-  it("offers a manual dispatch that defaults to a dry run", () => {
+  it("offers a manual dispatch by run id or head SHA that defaults to a dry run", () => {
+    // Exactly one of the two is required; the script enforces that at run time.
     expect(workflow.on.workflow_dispatch.inputs.run_id).toMatchObject({
       type: "string",
-      required: true,
+      required: false,
+    });
+    expect(workflow.on.workflow_dispatch.inputs.head_sha).toMatchObject({
+      type: "string",
+      required: false,
     });
     expect(workflow.on.workflow_dispatch.inputs.dry_run).toMatchObject({
       type: "boolean",
       default: true,
     });
+  });
+});
+
+describe("third-party required checks (CodySwannGT/lisa#4678)", () => {
+  it("also fires when any check run completes or any commit status changes", () => {
+    expect(workflow.on.check_run).toEqual({ types: ["completed"] });
+    expect("status" in workflow.on).toBe(true);
+  });
+
+  it("drops pending statuses and Actions-owned check runs before the job starts", () => {
+    expect(job.if).toContain(
+      "!(github.event_name == 'status' && github.event.state == 'pending')"
+    );
+    expect(job.if).toContain(
+      "!(github.event_name == 'check_run' && github.event.check_run.app.slug == 'github-actions')"
+    );
+  });
+
+  it("hard-codes no required context: the script reads them from the ruleset", () => {
+    const text = readFileSync(PATH, "utf8")
+      .split("\n")
+      .filter(line => !line.trimStart().startsWith("#"))
+      .join("\n");
+    expect(text).not.toMatch(/CodeRabbit|GitGuardian/u);
+  });
+
+  it("serialises every trigger on the head SHA it concerns", () => {
+    const group: string = workflow.concurrency.group;
+    for (const source of [
+      "github.event.workflow_run.head_sha",
+      "github.event.check_run.head_sha",
+      "github.event.sha",
+      "inputs.head_sha",
+    ])
+      expect(group).toContain(source);
+    expect(group.startsWith("lisa-ci-failure-redispatch-")).toBe(true);
+  });
+
+  it("never cancels a waiting run when a newer event for the same head joins", () => {
+    // The default `queue: single` cancels an already-pending run on arrival
+    // of a newer one, which would drop a queued late failure.
+    expect(workflow.concurrency.queue).toBe("max");
+    expect(workflow.concurrency["cancel-in-progress"]).toBe(false);
+  });
+
+  it("hands the manual head SHA to the script through env only", () => {
+    const step = steps.find(s => typeof s.run === "string" && s.env?.HEAD_SHA);
+    expect(step?.env.HEAD_SHA).toBe("${{ inputs.head_sha }}");
+    expect(step?.run).toContain('--head-sha "$HEAD_SHA"');
+    expect(step?.run).toContain('--payload "$GITHUB_EVENT_PATH"');
   });
 });
 

@@ -1,0 +1,34 @@
+$ node scripts/lisa-ci-failure-redispatch.mjs --payload <derived:probe-check-run-gitguardian-failed.json> --dry-run
+# worktree head_sha=68ca1b31795ba5f0de17b1b40488bb29bfe7e02d captured_at=2026-11-08T09:51:12Z
+run 51200000001 -> PR #4673 -> work item CodySwannGT/lisa#4672
+outcome: redispatch — a required check failed (dry run: nothing written)
+planned: comment on CodySwannGT/lisa#4672: A required check failed on pull request #4673 at commit 3db71f89a186d5dbeb78015aa5735fa9d8efda48: GitGuardian Security Checks.
+planned: move CodySwannGT/lisa#4672 from status:in-progress to status:ready
+exit=0
+
+$ node scripts/lisa-ci-failure-redispatch.mjs --payload <derived:probe-check-run-coderabbit-passed-clears.json> --dry-run
+# worktree head_sha=68ca1b31795ba5f0de17b1b40488bb29bfe7e02d captured_at=2026-11-08T09:51:12Z
+run 51200000001 -> PR #4673 -> work item CodySwannGT/lisa#4672
+outcome: clear-and-restore — checks passed while the marker left the item unclaimed (dry run: nothing written)
+planned: mark comment 6700000002 cleared
+planned: move CodySwannGT/lisa#4672 from status:ready to status:in-progress
+exit=0
+
+$ node scripts/lisa-ci-failure-redispatch.mjs --payload <derived:bite-non-required-name.json> --dry-run
+# worktree head_sha=68ca1b31795ba5f0de17b1b40488bb29bfe7e02d captured_at=2026-11-08T09:51:12Z
+run 51200000001 -> PR (none) -> work item (none)
+outcome: not-required-context — 'CodeRabbit (not required)' is not a required check on main (dry run: nothing written)
+exit=0
+
+$ node scripts/lisa-ci-failure-redispatch.mjs --payload <derived:bite-actions-slug.json> --dry-run
+# worktree head_sha=68ca1b31795ba5f0de17b1b40488bb29bfe7e02d captured_at=2026-11-08T09:51:12Z
+run 51200000001 -> PR (none) -> work item (none)
+outcome: ignored-actions-check — a check run created by GitHub Actions is covered by workflow_run (dry run: nothing written)
+exit=0
+
+$ node scripts/lisa-ci-failure-redispatch.mjs --payload <derived:bite-status-pending.json> --dry-run
+# worktree head_sha=68ca1b31795ba5f0de17b1b40488bb29bfe7e02d captured_at=2026-11-08T09:51:12Z
+run 38800000001 -> PR (none) -> work item (none)
+outcome: ignored-pending-status — a pending status has not finished (dry run: nothing written)
+exit=0
+
