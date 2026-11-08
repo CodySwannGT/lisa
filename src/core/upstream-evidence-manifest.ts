@@ -2837,7 +2837,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/lisa-assert-eas-profile.mjs":
       "624e40d7f33ca17208fc6b7a19320a785cff19da5d2ff8062b67a432b2a34022",
     "scripts/lisa-ci-failure-redispatch.mjs":
-      "d4d8025089474c131566e27ee40140f87662ae949a770c0e5326b445ebc45be3",
+      "b09c743c96eb40c252a2d385eab6a0fd0c47ca9f5eb84addb36aad5aef80c700",
     "scripts/lisa-commit-and-pr-local.sh":
       "cc9f1be63bcd881125aa59aa35432c2ab1d41119b2a28e8de817536b0f302b01",
     "scripts/lisa-commit-msg-gates.mjs":
@@ -11272,8 +11272,10 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/fixtures/ci-failure-redispatch/check-run-coderabbit-failed-replayed.json": true,
     "tests/fixtures/ci-failure-redispatch/check-run-coderabbit-failed.json": true,
     "tests/fixtures/ci-failure-redispatch/check-run-coderabbit-passed-clears.json": true,
+    "tests/fixtures/ci-failure-redispatch/check-run-failed-absent-required-contexts.json": true,
     "tests/fixtures/ci-failure-redispatch/check-run-gitguardian-failed.json": true,
     "tests/fixtures/ci-failure-redispatch/check-run-non-required.json": true,
+    "tests/fixtures/ci-failure-redispatch/check-run-passed-absent-required-contexts.json": true,
     "tests/fixtures/ci-failure-redispatch/forged-marker-failure.json": true,
     "tests/fixtures/ci-failure-redispatch/forged-marker-pass.json": true,
     "tests/fixtures/ci-failure-redispatch/item-not-claimed.json": true,
@@ -12708,6 +12710,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/kill-marks.test.ts": true,
     "tests/unit/scripts/lint-staged-preflight.test.ts": true,
     "tests/unit/scripts/lisa-assert-eas-profile.test.ts": true,
+    "tests/unit/scripts/lisa-ci-failure-redispatch-absent.test.ts": true,
     "tests/unit/scripts/lisa-ci-failure-redispatch-check-runs.test.ts": true,
     "tests/unit/scripts/lisa-ci-failure-redispatch-cli.test.ts": true,
     "tests/unit/scripts/lisa-ci-failure-redispatch-edges.test.ts": true,
