@@ -1,0 +1,28 @@
+# Independent raw-gh cross-check of the live ci-rework decision for CodySwannGT/lisa#4598
+# Captured 2026-11-08 by the verifier, read-only.
+
+$ node scripts/lisa-ci-rework-route.mjs --item 4598
+{"route":"ci-rework","item":"CodySwannGT/lisa#4598","pr":4674,"sha":"50d60a8c6eca239d6a31042d13c756e89c0ccd9c","headRefName":"codex/4598-shard-unit-ci","failingChecks":["🔍 Quality Checks / 🧪 Run Integration Tests"],"markerCount":1}
+
+$ gh api repos/CodySwannGT/lisa/issues/4598/comments --paginate --jq '... [created_at, login, has-ci-failed, has-ci-cleared, has-any-lisa-marker]'
+2026-11-01T22:12:59Z	CodySwannGT	false	false	false
+2026-11-07T17:26:26Z	CodySwannGT	false	false	true
+2026-11-07T18:02:23Z	CodySwannGT	false	false	true
+2026-11-07T18:03:13Z	CodySwannGT	false	false	false
+2026-11-07T18:29:00Z	CodySwannGT	false	false	true
+2026-11-07T18:30:23Z	CodySwannGT	false	false	true
+2026-11-07T18:30:41Z	CodySwannGT	false	false	true
+2026-11-07T18:33:49Z	CodySwannGT	false	false	false
+2026-11-07T18:36:11Z	CodySwannGT	false	false	true
+2026-11-07T19:54:07Z	CodySwannGT	false	false	true
+2026-11-08T02:31:46Z	CodySwannGT	false	false	true
+2026-11-08T02:31:49Z	CodySwannGT	false	false	true
+2026-11-08T08:38:45Z	github-actions[bot]	true	false	true
+
+$ gh pr view 4674 --repo CodySwannGT/lisa --json state,isCrossRepository,headRefName,body
+{"headRefName":"codex/4598-shard-unit-ci","isCrossRepository":false,"state":"OPEN","wi":["Work-Item: CodySwannGT/lisa#4598"]}
+
+$ gh issue view 4598 --repo CodySwannGT/lisa --json state,labels
+{"labels":["status:ready","type:Sub-task","priority:high","repo:lisa","component:tests","component:ci","points:2"],"state":"OPEN"}
+
+Conclusion: newest Lisa-marker comment is bot-authored, uncleared [lisa-ci-failed] pr=4674; PR 4674 OPEN, same-repo, Work-Item binds #4598; item sits in status:ready. Helper's ci-rework decision matches raw data.

@@ -1,0 +1,31 @@
+# Falsification of the checks relied on (disposable detached checkout of 99ab5bafef at
+# /Users/codysai/workspace/lisa/.claude/worktrees/4677-verify-head; every mutation restored, script restore confirmed with cmp=0 against `git show 99ab5bafef:`)
+
+## M1: drop the trusted-author filter in judgeMarker (scripts/lisa-ci-rework-route.mjs:114)
+- .filter(c => carriesFailure(c) && trustedAuthor(c))
++ .filter(c => carriesFailure(c))
+$ node scripts/lisa-ci-rework-route.mjs --item 1 --payload tests/fixtures/ci-rework-route/human-authored.json
+{"route":"implement","reason":"not-newest",...}
+  -> route stays "implement" because isNewestLisaMarker (imported from the producer) also refuses forged
+     markers (defense in depth); the reason flips from untrusted-author to not-newest.
+$ npx vitest run tests/unit/scripts/lisa-ci-rework-route.test.ts tests/unit/scripts/lisa-ci-rework-route-cli.test.ts
+ × is not hidden by a forged marker typed after the genuine one
+ × human-authored -> route implement (untrusted-author)
+ × prints route implement for human-authored (untrusted-author)
+ Tests  3 failed | 28 passed (31)          -> BITES, names the right cases
+
+## M2: remove the helper reference from one generated copy (plugins/lisa-devin/skills/lisa-track/SKILL.md)
+s#scripts/lisa-ci-rework-route.mjs#scripts/REMOVED.mjs#g
+$ npx vitest run tests/unit/scripts/lisa-ci-rework-route-skills.test.ts
+ FAIL plugins/lisa-devin/skills/lisa-track/SKILL.md > decides the CI-rework route before the claim posts its comment
+ FAIL plugins/lisa-devin/skills/lisa-track/SKILL.md > runs the helper only on GitHub when the script exists, else continues normally
+ Tests  2 failed | 56 passed (58)          -> BITES, names the right file
+
+## Parity grep bite control
+grep -L "lisa-ci-rework-route.mjs" plugins/lisa-agy/skills/lisa-session-manager/SKILL.md plugins/lisa/skills/lisa-session-manager/SKILL.md
+-> both listed as lacking the text, so the grep can tell a file that has the text from one that does not.
+
+## Blind spot
+The skill-contract test checks that the helper is mentioned BEFORE `lisa-tracker-claim` in lisa-track's text.
+It cannot see that on the session-manager path the MANAGER runs lisa-tracker-claim before the worker
+ever reaches lisa-track (lisa-session-manager cycle step 2.3), so text order does not prove runtime order.
