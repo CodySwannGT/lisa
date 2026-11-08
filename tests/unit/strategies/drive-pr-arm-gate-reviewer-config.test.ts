@@ -82,6 +82,40 @@ describe.each(ROOTS)("drive-pr-to-merge arm gate scope (%s)", root => {
   it("arms on a substitute as well as on a completed review", () => {
     expect(section).toMatch(/`satisfied`, or\s+`substituted`/);
   });
+
+  it("counts a substitute only as a writer's first-line marker", () => {
+    expect(section).toMatch(
+      /comment's \*\*first line\*\* and its author has\s+\*\*write access\*\*/
+    );
+  });
+
+  it("treats a requested-changes proof as a blocker", () => {
+    expect(section).toMatch(
+      /`Changes requested` proof phrase proves the reviewer worked/
+    );
+  });
+});
+
+describe.each(ROOTS)("drive-pr-to-merge unreviewed routes agree (%s)", root => {
+  const text = readFileSync(
+    path.resolve(root, "lisa-drive-pr-to-merge", "SKILL.md"),
+    "utf8"
+  );
+
+  it("names the substitute arm alongside step (d), and keeps the report line", () => {
+    expect(text).toContain(
+      "This and the arm gate's substitute arm (section 1) are the *only*"
+    );
+    expect(text).toContain(
+      "Both routes write the `MERGED — NOT REVIEWED` line."
+    );
+  });
+
+  it("never arms in report mode", () => {
+    expect(text).toContain(
+      "report mode never arms, whatever the arm decision says."
+    );
+  });
 });
 
 describe.each(UPDATE_COPIES)("lisa-update-projects step 14 (%s)", copy => {
@@ -103,5 +137,17 @@ describe.each(UPDATE_COPIES)("lisa-update-projects step 14 (%s)", copy => {
 
   it("keeps the canary hold", () => {
     expect(step14).toContain("until the canary decision is `proceed`");
+  });
+
+  it("does not let step 17 re-enable auto-merge outside the gate", () => {
+    const step17 =
+      readFileSync(path.resolve(copy), "utf8")
+        .split("\n")
+        .find(line => line.startsWith("17. ")) ?? "";
+
+    expect(step17).toContain(
+      "auto-merge armed only through the drive skill's arm gate"
+    );
+    expect(step17).not.toContain("with auto-merge enabled");
   });
 });

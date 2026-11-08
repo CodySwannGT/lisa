@@ -343,14 +343,18 @@ any pull request, because GitHub had already merged it the moment CI went green.
 A guard that cannot be reached is not a guard: the merge happened on the latch,
 not on the reasoning.
 
-**So the latch may only ever be armed against a review context that did work.**
-The consequence is the whole point. An unreviewed merge then has exactly one
-route left — step (d), which verifies its five conditions against a live poll
-and is *required* to write `MERGED — NOT REVIEWED`. This does not forbid the
-unreviewed merge; the owner's ruling on #3221 is explicit that a vendor
-entitlement state must not redden every pull request. It makes the unreviewed
-merge VISIBLE, by leaving it only one path that can produce it, and that path
-reports itself.
+**So the latch may only ever be armed against a review context that did work —
+or against a head a writer has already substituted for.** The consequence is the
+whole point. An unreviewed merge then has exactly two routes left, and both
+report themselves: step (d), which verifies its five conditions against a live
+poll; and an arm on a writer's first-line substitute for the current head
+(#4653), after which the watch loop — which keeps running once the latch is on
+— still writes `MERGED — NOT REVIEWED (<context> "<observed>"), local
+adversarial review substituted and posted` when it observes the merge. This does
+not forbid the unreviewed merge; the owner's ruling on #3221 is explicit that a
+vendor entitlement state must not redden every pull request. It makes the
+unreviewed merge VISIBLE, by leaving it only paths that report themselves, and
+by never arming before something has read the diff.
 
 #### Classify before arming
 
@@ -366,21 +370,30 @@ node scripts/check-third-party-review-evidence.mjs --sha <head-sha> --repo <owne
 Read `arm` and `action`, not the exit code. Only `arm: true` (`action: arm`)
 turns auto-merge on. It requires every engaged signal to have proved work: the
 config-declared reviewer `satisfied`, or `substituted` by a writer's
-first-line substitute for this exact head (#4628); and, where the classifier
-below ran, a non-vacuous review context. The other actions keep the latch off
-and name the next step:
+first-line substitute for this exact head (#4628); where the classifier below
+ran, a non-vacuous review context at this head (or one a writer's substitute
+covers); and no standing `CHANGES_REQUESTED` at the head. A substitute counts
+here only when its marker is the comment's **first line** and its author has
+**write access** — the prover's report-only `substituted` outcome counts a
+marker anywhere, which is fine for a report and fail-open for a merge. A
+`Changes requested` proof phrase proves the reviewer worked, not that the head
+may merge, and decides `blocker`. The other actions keep the latch off and name
+the next step:
 
 | `action` | what it means | do |
 | --- | --- | --- |
-| `substitute` | nothing read this head | post the local adversarial review now (step (d), "In case 3, substitute"), then decide again |
-| `watch` | not an answer yet, or vacuous with the substitute already posted | do not arm; keep driving — step (d) merges when the vacuous context is the sole gate |
-| `blocker` | a review ran and objected | a real blocker; steps (d)/(e) |
-| `stop` | the pull requests could not be read | stop under `tool-access-gate`, as for `pull-requests-unreadable` in step (d) |
+| `substitute` | nothing read this head, and no writer's first-line substitute stands in | post the local adversarial review now (step (d), "In case 3, substitute"), from an account with write access, then decide again |
+| `watch` | not an answer yet: the reviewer is still running, the classifier report is missing, stale or untrusted | do not arm; keep driving and decide again on the next pass |
+| `blocker` | a review ran and objected, or requested changes | a real blocker; steps (d)/(e) |
+| `stop` | the pull requests, reviews or classifier inspection could not be read | stop under `tool-access-gate`, as for `pull-requests-unreadable` in step (d) |
 
 **Where the host ships the vacuity classifier, keep it — pass its report in.**
 On a TypeScript-family host, run the classifier first, save its JSON, and hand
 the path to `--vacuity-report`; a Rails or other host without it omits the flag
-and the decision rests on the config-declared reviewer alone. Vacuity is the
+and the decision rests on the config-declared reviewer alone. Re-run the
+classifier on every new head: a report for another head is refused (`watch`),
+and so is a host whose `.github/required-checks.json` declares an
+evidence-bearing check when no report is passed. Vacuity is the
 classifier's answer, not a string you match here; consult it on the merge path
 instead of re-deriving its vocabulary, which is how the two drift apart:
 
@@ -402,7 +415,8 @@ zero exit is not evidence that a review happened:
 | reading | what it means | arm? |
 | --- | --- | --- |
 | `inspected: true`, no review-related violation | the check did work | **arm** |
-| `review_evidence_unsatisfied` | a review RAN AND OBJECTED | no — a real blocker; steps (d)/(e) |
+| `review_evidence_objected`, or `review_evidence_unsatisfied` with `condition: objected` | a review RAN AND OBJECTED | no — a real blocker; steps (d)/(e) |
+| `review_evidence_unsatisfied` with any other `condition` | absent, pending, not reviewed or undetermined — read `condition` | no — pending waits; the rest are vacuous |
 | `review_evidence_waived` | a named vendor entitlement | no — vacuous |
 | `vacuous_required_check` | success carrying a no-work description | no — vacuous |
 | `unproven_required_check` | a description proving nothing either way, or no status at all | no — vacuous |
@@ -879,6 +893,8 @@ The arm gate binds in report mode too, and this is the mode where forgetting it
 does the most damage: a diagnose-only run that arms the latch has not diagnosed
 anything, it has authorised a merge. Under a vacuous review context, report mode
 neither arms nor takes step (d)'s exception — it returns `blocked:unreviewed`.
+That holds even when `--arm` answers `arm: true` on a writer's substitute:
+report mode never arms, whatever the arm decision says.
 
 ### a. Branch behind base (`mergeStateStatus == BEHIND`)
 Before proactively syncing a clean `BEHIND` PR, check whether the base branch
@@ -1225,11 +1241,13 @@ read the diff, and the report says what did.
 
 **Merging past a vacuous review context is permitted — but ONLY when that
 context is the sole gate still blocking the merge, and only after the substitute
-is posted.** This is the *only* route by
-which a PR merges unreviewed: the arm gate (section 1) holds the latch off while
-the context is vacuous precisely so that this decision, with its conditions and
-its mandatory report line, is the one that merges. If you find yourself merging
-unreviewed anywhere else, that is the defect, not a shortcut.
+is posted.** This and the arm gate's substitute arm (section 1) are the *only*
+routes by which a PR merges unreviewed: the arm gate holds the latch off while
+the context is vacuous and no writer's first-line substitute covers the head,
+precisely so that a decision with its conditions and its mandatory report line
+is the one that merges. Both routes write the `MERGED — NOT REVIEWED` line. If
+you find yourself merging unreviewed anywhere else, that is the defect, not a
+shortcut.
 
 **Every vacuity mode qualifies, not just the rate limit.** A size-limit skip, the
 public-repository policy skip, and a bare `Review skipped` are the same vacuity
@@ -1253,8 +1271,11 @@ Once the signal is explicit, merge directly with `gh pr merge <pr>
 --<merge_method>` (pass `--admin` only if branch protection lists the vacuous
 context as required and refuses the plain merge).
 **Do not arm the latch to accomplish this** — arming would hand the decision
-back to GitHub and lose the report, and under the arm gate (section 1) the
-latch is deliberately not armed in the first place. "Sole gate" means every one of these is
+back to GitHub, and under the arm gate (section 1) the latch is deliberately
+not armed in the first place. The one exception is section 1's own: when
+`--arm` answers `arm: true` for the current head on a writer's first-line
+substitute, the latch may be armed, and the watch loop still owes the
+`MERGED — NOT REVIEWED` report line when it observes the merge. "Sole gate" means every one of these is
 already true at the moment you merge — verify each against the live poll, never
 from memory:
 

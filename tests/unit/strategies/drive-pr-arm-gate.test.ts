@@ -241,10 +241,14 @@ describe.each(ROOTS)("drive-pr-to-merge arm gate (%s)", root => {
     expect(content).toMatch(
       /Every vacuity mode qualifies, not just the rate limit/i
     );
-    // ...and the exception is now the ONLY route to an unreviewed merge, which
-    // is what makes it reachable at last.
+    // ...and the exception, together with the arm gate's writer-substitute arm
+    // (#4653), are the ONLY routes to an unreviewed merge — and both report
+    // themselves, which is what keeps the unreviewed merge visible.
     expect(content).toMatch(
-      /the \*only\* route by\s+which a PR merges unreviewed/i
+      /are the \*only\*\s+routes by which a PR merges unreviewed/i
+    );
+    expect(content).toMatch(
+      /Both routes write the `MERGED — NOT REVIEWED` line/
     );
     // Merging here must not go through the latch, or the report is lost again.
     expect(content).toMatch(/Do not arm the latch to accomplish this/i);
