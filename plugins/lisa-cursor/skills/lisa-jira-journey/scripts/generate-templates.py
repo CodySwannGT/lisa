@@ -163,7 +163,10 @@ def generate_github_md(ticket_id, pr_number, branch, evidence_files, journey, gh
         if filename.endswith(".png"):
             lines.append(f"**{label}:**")
             lines.append("")
-            lines.append(f"![{label}]({release_base}/{filename})")
+            # post-evidence.sh stores the asset as pr-<number>-<file> so pull
+            # requests sharing the release never overwrite each other's
+            # evidence (CodySwannGT/lisa#4639); link exactly that name.
+            lines.append(f"![{label}]({release_base}/pr-{pr_number}-{filename})")
             lines.append("")
         else:
             content = evidence_path.read_text().strip()

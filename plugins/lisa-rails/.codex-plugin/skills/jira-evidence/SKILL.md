@@ -48,7 +48,7 @@ bash .claude/skills/jira-evidence/scripts/post-evidence.sh PROJ-123 ./evidence 4
 ## What It Does
 
 1. **Read JIRA config** — Resolves the jira-cli config (`$PROJECT_DIR/.lisa/jira-cli/.config.yml` first, then `~/.config/.jira/.config.yml`, announcing the fallback) and reads `server` and `login` from it dynamically — no hardcoded values. Exits 1 naming both paths when neither exists. The same resolved path is then passed to `jira issue move` as `--config`, so the CLI cannot end up on a different config than the one this script parsed.
-2. **Upload to GitHub `pr-assets` release** — Uploads evidence files via `gh release upload --clobber`, creating CDN URLs
+2. **Upload to GitHub `pr-assets` release** — Validates `PR_NUMBER` as a positive integer, uploads each evidence file as `pr-<PR_NUMBER>-<file>` via `gh release upload --clobber`, creating CDN URLs, then lists the release and exits 1 naming any uploaded asset that is missing. `--clobber` therefore only ever replaces this pull request's own earlier upload.
 3. **Update PR description** — Replaces or appends the `## Evidence` section in the PR body using `gh pr edit`
 4. **Upload JIRA attachments** — Uploads image evidence via REST API v3 so `!filename.png!` wiki markup renders inline
 5. **Post JIRA comment** — Posts `comment.txt` as a new comment via REST API v2 (wiki markup)
@@ -58,6 +58,7 @@ bash .claude/skills/jira-evidence/scripts/post-evidence.sh PROJ-123 ./evidence 4
 
 - Image evidence: `NN-name-viewport.png` (e.g., `01-search-step-desktop.png`)
 - Text evidence: `NN-name.txt` or `NN-name.json` (e.g., `01-health-check.json`)
+- Release assets: local files keep their `NN-` names; in the shared `pr-assets` release each one is stored as `pr-<number>-<file>` (for PR 42, `pr-42-01-health-check.json`), so two pull requests with a same-named file never overwrite each other's evidence. JIRA attachments keep the local name.
 
 ## Troubleshooting
 

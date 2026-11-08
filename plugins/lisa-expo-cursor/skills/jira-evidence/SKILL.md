@@ -46,7 +46,7 @@ bash .claude/skills/jira-evidence/scripts/post-evidence.sh PROJ-123 ./evidence 4
 ## What It Does
 
 1. **Read JIRA config** — Resolves the jira-cli config (`$PROJECT_DIR/.lisa/jira-cli/.config.yml` first, then `~/.config/.jira/.config.yml`, announcing the fallback) and reads `server` and `login` from it dynamically — no hardcoded values. Exits 1 naming both paths when neither exists. The same resolved path is then passed to `jira issue move` as `--config`, so the CLI cannot end up on a different config than the one this script parsed.
-2. **Upload to GitHub `pr-assets` release** — Uploads `NN-name-viewport.png` screenshots via `gh release upload --clobber`, creating CDN URLs that render in GitHub markdown
+2. **Upload to GitHub `pr-assets` release** — Validates `PR_NUMBER` as a positive integer, uploads each `NN-name-viewport.png` screenshot as `pr-<PR_NUMBER>-<file>` via `gh release upload --clobber`, creating CDN URLs that render in GitHub markdown, then lists the release and exits 1 naming any uploaded asset that is missing. `--clobber` therefore only ever replaces this pull request's own earlier upload.
 3. **Update PR description** — Replaces or appends the `## Evidence` section in the PR body using `gh pr edit`
 4. **Upload JIRA attachments** — Uploads screenshots via REST API v3 so `!filename.png!` wiki markup renders inline
 5. **Post JIRA comment** — Posts `comment.txt` as a new comment via REST API v2 (wiki markup with embedded images)
@@ -64,6 +64,8 @@ evidence/
   comment.txt                   used for JIRA comment
   comment.md                    used for PR description
 ```
+
+Local screenshots keep their `NN-` names. In the shared `pr-assets` release each one is stored as `pr-<number>-<file>` (for PR 42, `01-search-step-desktop.png` becomes `pr-42-01-search-step-desktop.png`), so two pull requests with a same-named screenshot never overwrite each other's evidence. `generate-templates.py` links that scoped name; JIRA attachments keep the local name.
 
 ## Troubleshooting
 

@@ -14,7 +14,8 @@
 #   - gh CLI authenticated
 #
 # What it does:
-#   1. Uploads evidence files to the 'pr-assets' GitHub release
+#   1. Uploads evidence files to the 'pr-assets' GitHub release as
+#      pr-<PR_NUMBER>-<file>, then confirms every one is listed there
 #   2. Updates the GitHub PR description with evidence/comment.md
 #   3. Uploads image evidence as JIRA attachments
 #   4. Posts/updates the JIRA comment with evidence/comment.txt
@@ -26,6 +27,14 @@ set -euo pipefail
 TICKET_ID="${1:?Usage: post-evidence.sh <TICKET_ID> <EVIDENCE_DIR> <PR_NUMBER>}"
 EVIDENCE_DIR="${2:?Usage: post-evidence.sh <TICKET_ID> <EVIDENCE_DIR> <PR_NUMBER>}"
 PR_NUMBER="${3:?Usage: post-evidence.sh <TICKET_ID> <EVIDENCE_DIR> <PR_NUMBER>}"
+
+# Every release asset is named pr-${PR_NUMBER}-<file>, so the number must be a
+# canonical positive integer before anything is uploaded: an empty, signed or
+# padded value would produce a name another pull request could also produce.
+if [[ ! "$PR_NUMBER" =~ ^[1-9][0-9]*$ ]]; then
+  echo "ERROR: PR_NUMBER must be a positive integer, got '$PR_NUMBER'" >&2
+  exit 1
+fi
 
 # ─────────────────────────────────────────────────────────────────────────────
 # CONFIG RESOLUTION
@@ -141,11 +150,37 @@ JIRA_AUTH=$(printf '%s' "$JIRA_USER:$JIRA_API_TOKEN" | base64 | tr -d '\n')
 echo ""
 echo "==> Uploading to GitHub release '$RELEASE_TAG'..."
 
+# Every pull request shares this one release, and --clobber deletes a
+# same-named asset before uploading. Bare NN- names collided across pull
+# requests, so a later upload destroyed an earlier one's evidence
+# (CodySwannGT/lisa#4639). Each asset is therefore uploaded as
+# pr-${PR_NUMBER}-<file>: --clobber can then replace only this pull request's
+# own earlier upload. Local evidence files keep their NN- names; the scoped
+# copies live in a private directory removed on exit.
+UPLOAD_DIR=$(mktemp -d)
+trap 'rm -rf "$UPLOAD_DIR"' EXIT
+UPLOADED_ASSETS=()
 for FILE in "${ALL_EVIDENCE[@]}"; do
-  FILENAME=$(basename "$FILE")
-  echo "  ↑ $FILENAME"
-  gh release upload "$RELEASE_TAG" "$FILE" --repo "$GH_REPO" --clobber
+  ASSET_NAME="pr-${PR_NUMBER}-$(basename "$FILE")"
+  cp "$FILE" "$UPLOAD_DIR/$ASSET_NAME"
+  echo "  ↑ $ASSET_NAME"
+  gh release upload "$RELEASE_TAG" "$UPLOAD_DIR/$ASSET_NAME" --repo "$GH_REPO" --clobber
+  UPLOADED_ASSETS+=("$ASSET_NAME")
 done
+
+# The description links these names, so confirm each one is really in the
+# release before pointing anything at it.
+RELEASE_ASSETS=$(gh release view "$RELEASE_TAG" --repo "$GH_REPO" --json assets --jq '.assets[].name')
+MISSING_ASSETS=0
+for ASSET_NAME in "${UPLOADED_ASSETS[@]}"; do
+  if ! grep -qxF "$ASSET_NAME" <<< "$RELEASE_ASSETS"; then
+    echo "ERROR: $ASSET_NAME is missing from release '$RELEASE_TAG' after upload" >&2
+    MISSING_ASSETS=1
+  fi
+done
+if [[ $MISSING_ASSETS -ne 0 ]]; then
+  exit 1
+fi
 
 echo "  ✓ GitHub release assets uploaded"
 
