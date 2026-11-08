@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [4.99.0](https://github.com/CodySwannGT/lisa/compare/v4.98.3...v4.99.0) (2026-11-08)
+
+
+### Features
+
+* **ci:** add a dispatch-only packed-host journey workflow ([a7e1efa](https://github.com/CodySwannGT/lisa/commit/a7e1efa0bfba3ece47bf2be40bb9620d9da70826)), closes [#4606](https://github.com/CodySwannGT/lisa/issues/4606) [CodySwannGT/lisa#4606](https://github.com/CodySwannGT/lisa/issues/4606)
+* **ci:** take the packed-host journey off the pull-request path ([6013dcc](https://github.com/CodySwannGT/lisa/commit/6013dccfebeea3f1f37e445e018660473105f53b)), closes [#4587](https://github.com/CodySwannGT/lisa/issues/4587) [#4604](https://github.com/CodySwannGT/lisa/issues/4604) [#4605](https://github.com/CodySwannGT/lisa/issues/4605) [#4606](https://github.com/CodySwannGT/lisa/issues/4606) [CodySwannGT/lisa#4606](https://github.com/CodySwannGT/lisa/issues/4606)
+
+
+### Documentation
+
+* add the packed-host journey runbook ([3aa2bb3](https://github.com/CodySwannGT/lisa/commit/3aa2bb35cf29528359230ccbebd26d11200e8110)), closes [#4604](https://github.com/CodySwannGT/lisa/issues/4604) [#4605](https://github.com/CodySwannGT/lisa/issues/4605) [#4606](https://github.com/CodySwannGT/lisa/issues/4606) [CodySwannGT/lisa#4606](https://github.com/CodySwannGT/lisa/issues/4606)
+
 ### [4.98.3](https://github.com/CodySwannGT/lisa/compare/v4.98.2...v4.98.3) (2026-11-08)
 
 
