@@ -159,6 +159,11 @@ describe.each(ROOTS)("drive-pr-to-merge bounded CI watch (%s)", root => {
   });
 
   it("contains no runnable instruction that starts a background watcher", () => {
+    // The one sleep allowed is the bounded foreground gap between re-polls for
+    // a head with no checks yet: a single `timeout N gh pr checks ... || sleep N`
+    // line. A standalone, looped or backgrounded sleep is still an offender.
+    const boundedGap =
+      /^\s*timeout \d+ gh pr checks <pr> --watch --interval \d+ \|\| sleep \d+\s*$/;
     const lines = fencedLines(content);
     expect(lines.length).toBeGreaterThan(0);
     const offenders = lines.filter(
@@ -168,7 +173,7 @@ describe.each(ROOTS)("drive-pr-to-merge bounded CI watch (%s)", root => {
         /\bsetsid\b/.test(line) ||
         /\bdisown\b/.test(line) ||
         /run_in_background/.test(line) ||
-        /\bsleep\s+\d/.test(line)
+        (/\bsleep\s+\d/.test(line) && !boundedGap.test(line))
     );
     expect(offenders).toEqual([]);
   });
@@ -191,7 +196,9 @@ describe.each(ROOTS)("drive-pr-to-merge bounded CI watch (%s)", root => {
     const pEnd = content.indexOf("\n\n", pStart);
     expect(pStart).toBeGreaterThanOrEqual(0);
     const outside = [
-      ...content.matchAll(/background (task|watcher|job)|detached/gi),
+      ...content.matchAll(
+        /background (task|watcher|job)|detached (watcher|wait|process)/gi
+      ),
     ].filter(m => m.index < pStart || m.index > pEnd);
     expect(outside.map(m => m[0])).toEqual([]);
   });
@@ -214,11 +221,20 @@ describe.each(ROOTS)("drive-pr-to-merge bounded CI watch (%s)", root => {
   it("handles a head with no required checks registered yet without spinning", () => {
     const loop = watchLoop();
     expect(loop).toMatch(/\*\*No required checks reported yet\.\*\*/);
-    expect(loop).toMatch(/when it requires none, this wait does not apply/);
     expect(loop).toMatch(
-      /re-run the bounded watch once the re-poll\s+shows required checks registered/
+      /does not apply only when BOTH say none: the rules read returns `0`\s+AND the classic read returns 404 or `0`/
     );
-    expect(loop).toMatch(/never a sleep loop/);
+    expect(loop).toContain("/protection/required_status_checks");
+    expect(loop).toMatch(
+      /re-run the bounded watch once the\s+re-poll shows required checks registered/
+    );
+    expect(loop).toContain(
+      "timeout 60 gh pr checks <pr> --watch --interval 10 || sleep 30"
+    );
+    expect(loop).toMatch(/Never a detached or unbounded sleep loop/);
+    expect(loop).toMatch(
+      /After 10 re-polls with no required\s+check registered/
+    );
   });
 
   it("points the actions: read behaviour at where it is explained", () => {

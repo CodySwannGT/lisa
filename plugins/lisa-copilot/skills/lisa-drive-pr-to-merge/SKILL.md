@@ -731,16 +731,31 @@ fires, and — with empty stdout — when the token lacks `actions: read` (secti
 The re-poll of `statusCheckRollup` is the authority on which one happened.
 
 **No required checks reported yet.** The watch also returns at once when no
-required check has registered on the head. First confirm the base requires any
-(the `rules/branches/<base>` read in step (a), its `required_status_checks`
-rule); when it requires none, this wait does not apply. Otherwise the head's
-checks have not started: re-poll, and re-run the bounded watch once the re-poll
-shows required checks registered. Between those re-polls, wait with one
-foreground bounded command, for example
-`timeout 60 gh pr checks <pr> --watch --interval 10` (it blocks while any check
-on the head is still running) — never a sleep loop. If about ten minutes pass
-with no required check registered, that is a blocker, not a wait: stop and name
-the missing contexts (report mode: `blocked:checks`).
+required check has registered on the head. First confirm whether the base
+requires any, reading both places a requirement can live:
+
+```bash
+gh api "repos/<owner>/<repo>/rules/branches/<base>" \
+  --jq '[.[] | select(.type == "required_status_checks")] | length'
+gh api "repos/<owner>/<repo>/branches/<base>/protection/required_status_checks" \
+  --jq '(.contexts // []) + [(.checks // [])[].context] | length'
+```
+
+The wait does not apply only when BOTH say none: the rules read returns `0`
+AND the classic read returns 404 or `0`. Any other error from either read means
+the requirement is unknown — treat the base as requiring checks. Otherwise the
+head's checks have not started: re-poll, and re-run the bounded watch once the
+re-poll shows required checks registered. Between those re-polls, wait with this
+one foreground bounded gap — the `sleep` covers a head with no checks at all,
+where the watch returns at once:
+
+```bash
+timeout 60 gh pr checks <pr> --watch --interval 10 || sleep 30
+```
+
+Never a detached or unbounded sleep loop. After 10 re-polls with no required
+check registered on the head, that is a blocker, not a wait: stop and name the
+missing checks (report mode: `blocked:checks`).
 
 **Report mode does not wait on CI.** With `on_blocker=report`, never run the
 watch and never end in `ci-pending`: pending required checks classify through
@@ -751,9 +766,10 @@ blocker returns its own `blocked:<reason>`.
 
 **Never start a detached or background watcher as the way to wait on CI** — no
 trailing `&`, no `nohup`, no harness background task, no scheduled re-check, no
-sleep loop. Each of those stalls silently, dies with the session, or lets the
-session end while required checks are still pending, and the later result then
-reaches nobody. The wait is the bounded watch above, and nothing else.
+detached or unbounded sleep loop. Each of those stalls silently, dies with the
+session, or lets the session end while required checks are still pending, and
+the later result then reaches nobody. The wait is the bounded watch above, and
+nothing else.
 
 **Budget spent with required checks still pending.** Do not end silently and do
 not report success. Record the state on the PR in one comment carrying the
