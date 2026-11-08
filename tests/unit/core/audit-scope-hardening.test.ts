@@ -98,6 +98,8 @@ describe("a misspelled scope field fails closed; other extra keys do not (B2)", 
     ["pathes", { pathes: [DEV_PATH] }, "paths"],
     ["Package", { Package: "zod" }, "package"],
     ["ids", { ids: [GHSA] }, "id"],
+    ["cev", { cev: "CVE-2026-1" }, "cve"],
+    ["cves", { cves: ["CVE-2026-1"] }, "cve"],
   ])(
     "rejects a misspelled %s field and names the real one",
     (_, typo, real) => {
@@ -136,8 +138,8 @@ describe("a misspelled scope field fails closed; other extra keys do not (B2)", 
   });
 
   it.each([
-    ["url", "https://example.invalid/advisory"],
-    ["title", "Prototype pollution"],
+    ["href", "https://example.invalid/advisory"],
+    ["ticket", "SEC-1"],
     ["expires", "2026-12-01"],
     ["by", "a reviewer"],
     ["pr", 123],
@@ -154,6 +156,26 @@ describe("a misspelled scope field fails closed; other extra keys do not (B2)", 
       expect(evaluateAuditReport(root, "bun", REPORT).passed).toBe(true);
     }
   );
+
+  it("accepts advisory metadata copied from a report, including cwe (one edit from cve)", () => {
+    const entry = {
+      ...SCOPED,
+      cwe: "CWE-1333",
+      ghsa: GHSA,
+      url: "https://example.invalid/advisory",
+      title: "ReDoS",
+      severity: "high",
+      cvss: 7.5,
+      advisory: 123,
+    };
+    expect(auditScopeProblems(entry)).toEqual([]);
+    expect(classifyUnknownFields(entry)).toEqual({
+      misspelledScope: [],
+      ignored: [],
+    });
+    const root = tree({ "audit.ignore.local.json": [entry] }, bunLock());
+    expect(evaluateAuditReport(root, "bun", REPORT).passed).toBe(true);
+  });
 
   it("the repository's own exclusion files contain no unknown field", () => {
     for (const file of [

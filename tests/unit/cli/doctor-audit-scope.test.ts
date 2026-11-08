@@ -69,7 +69,7 @@ describe("doctor audit scope", () => {
     );
   });
 
-  it.each(["url", "title", "expires"])(
+  it.each(["expires", "href", "ticket"])(
     "passes B5 but notes the ignored extra field %s",
     async key => {
       const root = tree({

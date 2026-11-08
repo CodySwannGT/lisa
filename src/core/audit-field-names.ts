@@ -28,6 +28,15 @@ const KNOWN_FIELDS: ReadonlySet<string> = new Set([
   "tracking",
   "review_by",
   "expiry_enforced",
+  // Advisory metadata people copy out of an audit report alongside the id.
+  // `cwe` is one edit from `cve`, so without this it read as a misspelling.
+  "cwe",
+  "ghsa",
+  "url",
+  "title",
+  "severity",
+  "cvss",
+  "advisory",
 ]);
 
 /**
