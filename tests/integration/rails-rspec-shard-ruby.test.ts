@@ -37,7 +37,13 @@ const COLLATE = path.join(
 const RECORDER_NAME = "lisa_rspec_shard_recorder.rb";
 
 const deferred = suiteDeferral(
-  () => probeSucceeds("ruby", ["-e", "exit 0"]),
+  // A Ruby older than 3.2 cannot parse the scripts under test, so it counts as
+  // absent here rather than failing every case on a syntax error.
+  () =>
+    probeSucceeds("ruby", [
+      "-e",
+      'exit(Gem::Version.new(RUBY_VERSION) >= Gem::Version.new("3.2") ? 0 : 1)',
+    ]),
   "Ruby",
   "Install any Ruby >= 3.2 on PATH."
 );
