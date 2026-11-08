@@ -1109,7 +1109,7 @@ const byPriority = (left, right) =>
  * context to protect, and arming is unchanged. A standing objection at the
  * head blocks whatever the signals say.
  * @param {object} options - Decision inputs.
- * @param {{outcome: string, readings?: ReadonlyArray<object>}} options.evidence - This prover's verdict for the head.
+ * @param {{outcome: string, sha?: string, readings?: ReadonlyArray<object>}} options.evidence - This prover's verdict for the head.
  * @param {object|null} [options.vacuity] - The vacuity classifier's JSON report, or null.
  * @param {string} [options.sha] - The head commit being decided.
  * @param {ReadonlySet<string>} [options.substitutes] - Contexts a writer posted a first-line substitute for at this head.
