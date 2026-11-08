@@ -1,0 +1,55 @@
+trace records: 350
+refusal records (status!=0): 147
+distinct originating test files: 46
+integration-test originating files: 2
+records originating from shared-runtime-packed-hosts.test.ts: 0
+manifest candidates (all shards): 665; journey among candidates: true
+journey result in results.json: {"status":"passed","assertions":["passed","passed","passed","passed","passed","passed","passed","passed","passed","passed"]}
+
+origins per file:
+  56	tests/integration/jira-shell-auth-destinations.test.ts
+  35	tests/unit/scripts/jira-cli-config-consumption.test.ts
+  30	tests/integration/edit-time-scripts-resolve-gates.test.ts
+  19	tests/unit/hooks/enforcement-gates-e2e.test.ts
+  17	tests/unit/hooks/install-rails-hooks.test.ts
+  16	tests/unit/secrets/remote-env-skill-resolution.test.ts
+  16	tests/unit/hooks/block-no-verify-directory-parity.test.ts
+  14	tests/unit/hooks/block-managed-file-edits-redirects.test.ts
+  12	tests/unit/scripts/setup-jira-cli-project-dir.test.ts
+  12	tests/unit/hooks/block-shell-json-parsing.test.ts
+  10	tests/unit/scripts/merge-generated-artifact.test.ts
+  10	tests/unit/hooks/enforce-config-extensions.test.ts
+  8	tests/unit/secrets/remote-env-session-start-hook.test.ts
+  8	tests/unit/secrets/remote-env-materialized-direct-source.test.ts
+  6	tests/unit/hooks/install-pkgs-worktree-node-modules.test.ts
+  5	tests/unit/hooks/enforcement-vintage.test.ts
+  5	tests/unit/hooks/inject-resolved-config-completeness.test.ts
+  5	tests/unit/hooks/withdrawn-rulings.test.ts
+  5	tests/unit/hooks/cleanup-stale-worktrees.test.ts
+  5	tests/unit/hooks/sonar-resolver-deadline.test.ts
+  5	tests/unit/hooks/inject-resolved-config-names-subject.test.ts
+  5	tests/unit/hooks/rails-hook-agent-delivery.test.ts
+  3	tests/unit/scripts/plugin-sync-scripts.test.ts
+  3	tests/unit/codex/codex-edit-hooks.test.ts
+  2	tests/unit/hooks/block-managed-file-edits.test.ts
+  2	tests/unit/hooks/block-direct-issue-create-file-reach.test.ts
+  2	tests/unit/hooks/host-enforcement-fallback.test.ts
+  2	tests/unit/hooks/enforcement-fallback-staleness.test.ts
+  2	tests/unit/hooks/block-direct-issue-create-cross-repo.test.ts
+  2	tests/unit/opencode/block-direct-issue-create-cross-repo-parity.test.ts
+  2	tests/unit/opencode/block-direct-issue-create-structured-parity.test.ts
+  2	tests/unit/hooks/block-managed-file-edits-apply-patch.test.ts
+  2	tests/unit/hooks/block-no-verify-directory-boundaries.test.ts
+  2	tests/unit/hooks/discharge-work-item-gates.test.ts
+  2	tests/unit/hooks/block-direct-issue-create-inert-payload.test.ts
+  2	tests/unit/codex/block-managed-file-edits-codex.test.ts
+  2	tests/unit/codex/block-suppress-directives.test.ts
+  2	tests/unit/hooks/enforcement-fallback.test.ts
+  2	tests/unit/hooks/enforcement-fallback-zero-guards.test.ts
+  2	tests/unit/opencode/block-direct-issue-create-noexec-parity.test.ts
+  2	tests/unit/hooks/block-no-verify-directory-functions.test.ts
+  2	tests/unit/strategies/remote-agent-aws-setup-wrapper.test.ts
+  1	tests/unit/config/scratch-tmpdir-trust.test.ts
+  1	tests/unit/scripts/cleanup-worktrees-unreadable.test.ts
+  1	tests/unit/scripts/lisa-github-repo-settings.test.ts
+  1	tests/unit/hooks/block-direct-issue-create-missing-interpreter.test.ts

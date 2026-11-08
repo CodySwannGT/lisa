@@ -87,7 +87,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lib/lisa-cleanup-sweep.d.mts":
       "46fbb6730747ddee90b9275797de67cacfceab26ca14436460c11da638fb604b",
     "all/copy-overwrite/scripts/lib/lisa-cleanup-sweep.mjs":
-      "6c69bcf512fbe169e0b3c51546e21e72d6203a1d3c3ee5651fb0129fb7d57f91",
+      "08450444d7f03d5a0e560f023a4e30db74821209ea45df41959b46636f6191bd",
     "all/copy-overwrite/scripts/lib/npm-update-allocate.mjs":
       "85de2576d1c5e954b57f1c9274dbc34d0d24689fbc0964d8f86ec4f91f52b7bc",
     "all/copy-overwrite/scripts/lib/npm-update-authorization.mjs":
@@ -343,7 +343,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/npm-updater-gate.Dockerfile":
       "f5d85f8fccfd97f7800c03430a38c19d584314b0a6a63aa1de28fb62897fbcc5",
     "all/copy-overwrite/scripts/npm-updater-helper-graph.json":
-      "10f1e7d45f3787c39b35783ec9504d3521b3de1b938462901bb8d0a935a52345",
+      "0a76c621e15d88133f6a7f17fcad37842246f23d88f8e4ff3c954a84c6f285b2",
     "all/copy-overwrite/scripts/review-evidence-event.mjs":
       "1c5d510bc66f8ba23b6f046246f41182c17946a50126fb88e371d2aec9dfd6b2",
     "all/copy-overwrite/scripts/schemas/lisa-command-envelope.v1.schema.json":
@@ -2665,7 +2665,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/check-self-dependency-pin.mjs":
       "f517c44a1058a87051b6bb9520e8596a37521f475ca67e0d47159163999ff692",
     "scripts/check-shell-guard-refusal-coverage.mjs":
-      "db5d8a16ec58562c20dfb067b21e1af8d79189ddbcc784913e7d3949a1aa0f03",
+      "ba778c3d234a86e52c5d15cf382e1274a36501aae4a0fdc6c38402d746a22e47",
     "scripts/check-shipped-surface-removals.mjs":
       "2ff9e161d101cc55ffe099f0a7b4fc83e023e79215ff09e53c5d0c889a9594bb",
     "scripts/check-state-classification.mjs":
@@ -3257,6 +3257,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     ".github/workflows/npm-updater-runtime-qualification.yml": true,
     ".github/workflows/npm-updater.yml": true,
     ".github/workflows/packaged-apply-isolation.yml": true,
+    ".github/workflows/packed-host-journey.yml": true,
     ".github/workflows/playwright-e2e.yml": true,
     ".github/workflows/plugins-sync.yml": true,
     ".github/workflows/publish-to-npm.yml": true,
@@ -3582,6 +3583,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "docs/nightly-e2e-gate.md": true,
     "docs/npm-advisory-dispositions.md": true,
     "docs/npm-updater.md": true,
+    "docs/packed-host-journey.md": true,
     "docs/quality-workflow-notes.md": true,
     "docs/rails-test-isolation.md": true,
     "docs/rails-tooling-migration.md": true,
@@ -3789,6 +3791,21 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "evidence/4604/skill-canary-steps.txt": true,
     "evidence/4604/update-projects-plan-tests.txt": true,
     "evidence/4604/zero-budget-probe.txt": true,
+    "evidence/4606/ac1-ac4-vitest-list-from-package-json.txt": true,
+    "evidence/4606/ac1-bite-control-no-exclude.txt": true,
+    "evidence/4606/ac1-candidate-suites-bite-control.txt": true,
+    "evidence/4606/ac1-candidate-suites.txt": true,
+    "evidence/4606/ac1-vitest-list-test-integration-push.txt": true,
+    "evidence/4606/ac1-vitest-list-test-integration.txt": true,
+    "evidence/4606/ac2-run-42505996595-shard3-origins.txt": true,
+    "evidence/4606/ac3-actionlint-bite-control.txt": true,
+    "evidence/4606/ac3-actionlint.txt": true,
+    "evidence/4606/ac3-default-branch-presence.txt": true,
+    "evidence/4606/ac3-workflow-parse.txt": true,
+    "evidence/4606/ac4-bite-control-vitest-list-node-22.txt": true,
+    "evidence/4606/ac4-vitest-list-node-24.21.0.txt": true,
+    "evidence/4606/ac5-doc-check-bite-control.txt": true,
+    "evidence/4606/ac5-doc-content-check.txt": true,
     "evidence/4610/ac1-assertion-counts.txt": true,
     "evidence/4610/ac2-ac3-test-names.txt": true,
     "evidence/4610/ac2-ac5-files-and-imports.txt": true,
@@ -3801,6 +3818,11 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "evidence/4610/gate-check-artifacts.txt": true,
     "evidence/4610/gate-eslint-primaries.txt": true,
     "evidence/4610/gate-typecheck-tests.txt": true,
+    "evidence/4694/cli-piped-json-head.txt": true,
+    "evidence/4694/cli-piped-json-prefix-control.txt": true,
+    "evidence/4694/cli-summary-no-json.txt": true,
+    "evidence/4694/test-run-log-head.txt": true,
+    "evidence/4694/test-run-log-red-control-prefix.txt": true,
     "evidence/4711/cli-absent-required-context-blocks-clear.txt": true,
     "evidence/4711/cli-complete-pass-still-clears.txt": true,
     "evidence/4711/cli-live-head-sha-dry-run-pr4710.txt": true,
@@ -12303,6 +12325,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/config/oxlint-shipped-mjs-clean.test.ts": true,
     "tests/unit/config/oxlint-typescript.test.ts": true,
     "tests/unit/config/oxlint-worktree-safe-extends.test.ts": true,
+    "tests/unit/config/packed-host-journey-wired.test.ts": true,
     "tests/unit/config/performance-budget-gate.test.ts": true,
     "tests/unit/config/phaser-template.test.ts": true,
     "tests/unit/config/plugin-sync-push-gate-wired.test.ts": true,
