@@ -36,6 +36,7 @@ useIoLatencyBudget();
 const ROOT = process.cwd();
 const GATE = "dependency-vulnerability";
 const UNREADABLE = "no recognised failure signature";
+const REPORT_FILE = "report.json";
 const BUN = PARITY_MANAGERS.bun;
 const roots: string[] = [];
 
@@ -85,7 +86,7 @@ function host(lock: string): string {
       ],
     })
   );
-  fs.writeFileSync(path.join(root, "report.json"), BUN.report);
+  fs.writeFileSync(path.join(root, REPORT_FILE), BUN.report);
   fs.writeFileSync(path.join(root, BUN.lockfile), lock);
   fs.writeFileSync(
     path.join(root, "bin/bun"),
@@ -110,7 +111,7 @@ function registryVerdict(root: string) {
       env: {
         ...process.env,
         PATH: `${path.join(root, "bin")}${path.delimiter}${process.env.PATH ?? ""}`,
-        AUDIT_FIXTURE_REPORT: path.join(root, "report.json"),
+        AUDIT_FIXTURE_REPORT: path.join(root, REPORT_FILE),
         LISA_AUDIT_RETRY_DELAY: "0",
       },
     });
@@ -141,14 +142,30 @@ describe("registry dependency-vulnerability verdicts", () => {
     expect(evidence).toContain("❌ High or critical vulnerabilities found");
   });
 
-  it("reports a fail-closed audit input as FAILED with the audit's own line", () => {
+  it("reports an invalid audit configuration as FAILED with the audit's own line", () => {
     const verdict = registryVerdict(host('{"packages": broken}'));
     expect(verdict?.state).toBe(STATE.FAILED);
     expect(verdict?.detail).not.toContain(UNREADABLE);
     expect((verdict?.evidence ?? []).join("\n")).toContain(
-      "Security audit failed closed"
+      "Security audit configuration invalid"
     );
   });
+
+  it.each([
+    ["no output", ""],
+    ["garbage", "<html>502 Bad Gateway</html>"],
+  ])(
+    "keeps a capture that audited nothing (%s) UNPROVABLE, not FAILED",
+    (_, report) => {
+      const root = host(BUN.lock("covered"));
+      fs.writeFileSync(path.join(root, REPORT_FILE), report);
+      const verdict = registryVerdict(root);
+      // Nothing was measured, so nothing may be asserted about the code: the
+      // operator must re-run, not go hunting for a vulnerable copy.
+      expect(verdict?.state).toBe(STATE.UNPROVABLE);
+      expect(verdict?.state).not.toBe(STATE.FAILED);
+    }
+  );
 
   it("still passes a tree whose only vulnerable copy is covered", () => {
     expect(registryVerdict(host(BUN.lock("covered")))?.state).toBe(

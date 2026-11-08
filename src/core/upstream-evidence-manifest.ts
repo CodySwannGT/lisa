@@ -255,7 +255,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lib/worktree-dependencies.mjs":
       "31cb1cd96e7bd692d10ed2c26aa83c6b0580e48dbe6d2393edf9652970def091",
     "all/copy-overwrite/scripts/lisa-audit.mjs":
-      "0c386b25ec8f91de3a0182014b65703a5041e59400360ece40f376937ba53d80",
+      "8ca83977e7df232bf22912df6c6044c9162363a02ef77d5d518e03d73c280543",
     "all/copy-overwrite/scripts/lisa-automation-provenance.mjs":
       "d3d2ad9769b47ac988ff2bb4514ad37901cf5de854cf536cf1acf38fab9f94a0",
     "all/copy-overwrite/scripts/lisa-clean-git-env.sh":
@@ -277,7 +277,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-floor-collisions.mjs":
       "345832c63c85df32acbed9b183b06239fc10ccb1491bd11607b5840ac1d18573",
     "all/copy-overwrite/scripts/lisa-gates.mjs":
-      "2f0f7156c1ad237551f96aec7541e9c498e80165356604cb5581fcc35e0aad23",
+      "117a106ea57cc322147ce15bb7d5296255052a59f1f383adc99c091513b4079a",
     "all/copy-overwrite/scripts/lisa-history-secrets.mjs":
       "815fd6403aed6194d30939b59dc5ce894f7122a9da598acee4cd529a1b520de3",
     "all/copy-overwrite/scripts/lisa-hooks/block-blind-automerge.sh":
@@ -335,7 +335,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/npm-updater-gate.Dockerfile":
       "f5d85f8fccfd97f7800c03430a38c19d584314b0a6a63aa1de28fb62897fbcc5",
     "all/copy-overwrite/scripts/npm-updater-helper-graph.json":
-      "bf7f41d6c90b3f0f7e3443ebe69962a9e910e2c6a8506dae8d77a46106e3592f",
+      "2598d36cbe86a4b067bdfc966904fe3c1face600d6f70be5eea21e9e7fa72117",
     "all/copy-overwrite/scripts/review-evidence-event.mjs":
       "1c5d510bc66f8ba23b6f046246f41182c17946a50126fb88e371d2aec9dfd6b2",
     "all/copy-overwrite/scripts/schemas/lisa-command-envelope.v1.schema.json":
@@ -2805,7 +2805,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/lisa-assert-eas-profile.mjs":
       "624e40d7f33ca17208fc6b7a19320a785cff19da5d2ff8062b67a432b2a34022",
     "scripts/lisa-audit.mjs":
-      "0c386b25ec8f91de3a0182014b65703a5041e59400360ece40f376937ba53d80",
+      "8ca83977e7df232bf22912df6c6044c9162363a02ef77d5d518e03d73c280543",
     "scripts/lisa-commit-and-pr-local.sh":
       "70749548e302bc709000b0721c39470388c58fb0d08cfd3a2679b96e2b539cc4",
     "scripts/lisa-commit-msg-gates.mjs":

@@ -7,7 +7,11 @@ import {
 import { readAuditCopies } from "./audit-lockfile.js";
 import { matchAuditFindings } from "./audit-matcher.js";
 import { parseAuditReport } from "./audit-report.js";
-import { captureAudit, type AuditCaptureOptions } from "./audit-capture.js";
+import {
+  AuditCaptureError,
+  captureAudit,
+  type AuditCaptureOptions,
+} from "./audit-capture.js";
 import type { AuditManager, AuditVerdict } from "./audit-types.js";
 
 export {
@@ -15,6 +19,7 @@ export {
   requiresLockfileScope,
 } from "./audit-exclusions.js";
 export { classifyUnknownFields } from "./audit-field-names.js";
+export { AuditCaptureError } from "./audit-capture.js";
 export type {
   AuditCopy,
   AuditExclusion,
@@ -57,11 +62,23 @@ export function evaluateAuditReport(
   const exclusions = readAuditExclusions(root);
   const scoped = exclusions.some(requiresLockfileScope);
   const copies = scoped ? readAuditCopies(root, manager) : [];
-  return matchAuditFindings(
-    parseAuditReport(source, manager),
-    exclusions,
-    copies
-  );
+  return matchAuditFindings(parseCaptured(source, manager), exclusions, copies);
+}
+
+/**
+ * Parse a report someone else captured; an unusable one audited nothing.
+ * @param source - Complete provider report text
+ * @param manager - Package manager whose report is parsed
+ * @returns The normalized findings
+ */
+function parseCaptured(source: string, manager: AuditManager) {
+  try {
+    return parseAuditReport(source, manager);
+  } catch (error) {
+    throw new AuditCaptureError(
+      `${(error as Error).message}; nothing was audited. This is NOT a clean result.`
+    );
+  }
 }
 
 /**

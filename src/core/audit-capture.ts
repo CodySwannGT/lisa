@@ -27,6 +27,25 @@ function decode(buffer: Buffer): string {
   }
 }
 
+/**
+ * The audit transport produced no usable report, so nothing was audited.
+ *
+ * Distinct from a configuration or lockfile-scope error on purpose: a gate
+ * runner must report this as "not measured, re-run" rather than as a verdict
+ * about the project, so CLIs key their wording on `name`, which survives
+ * bundling and module boundaries where `instanceof` may not (#4521).
+ */
+export class AuditCaptureError extends Error {
+  /**
+   * Name the error so CLIs can word it as "nothing was audited".
+   * @param message - Operator-facing explanation of what came back
+   */
+  constructor(message: string) {
+    super(message);
+    this.name = "AuditCaptureError";
+  }
+}
+
 /** Optional retry knobs passed by the CLI, separate from the matcher inputs. */
 export interface AuditCaptureOptions {
   readonly attempts?: string;
@@ -75,7 +94,7 @@ export async function captureAudit(
   const shape = output.trim()
     ? "output is neither JSON nor gzipped JSON in a recognized advisory report shape"
     : "produced no output";
-  throw new Error(
+  throw new AuditCaptureError(
     `${manager} audit ${shape}; nothing was audited. This is NOT a clean result. Tried ${attempts} attempt(s). ${diagnosis}`
   );
 }

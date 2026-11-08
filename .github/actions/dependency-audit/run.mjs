@@ -66,6 +66,13 @@ try {
   const verdict = await runDependencyAudit(root, manager, {
     attempts: process.env.LISA_AUDIT_ATTEMPTS,
     retryDelay: process.env.LISA_AUDIT_RETRY_DELAY,
+  }).catch(error => {
+    // An error from the audit itself is either a capture that audited nothing
+    // (re-run) or the project's own exclusion/lockfile input (fix the files).
+    // Everything before this point is the action's own runtime, not the
+    // project's, so only errors raised here can be a configuration verdict.
+    if (error?.name !== "AuditCaptureError") error.configuration = true;
+    throw error;
   });
   for (const message of verdict.messages) console.log(message);
   console.log(
@@ -79,7 +86,11 @@ try {
     );
   process.exitCode = verdict.passed ? 0 : 1;
 } catch (error) {
-  console.error(`❌ Security audit failed closed: ${error.message}`);
+  console.error(
+    error?.configuration === true
+      ? `❌ Security audit configuration invalid: ${error.message}`
+      : `❌ Security audit failed closed: ${error.message}`
+  );
   process.exitCode = 1;
 } finally {
   rmSync(scratch, { recursive: true, force: true });

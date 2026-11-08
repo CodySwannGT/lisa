@@ -904,11 +904,14 @@ export const REGISTRY = Object.freeze({
     // shipped classifier reads vitest and tsc, not this audit, so without them
     // a real finding was reported UNPROVABLE — "nothing here is a verdict about
     // the code" — about an audit that had named the uncovered copy (#4521).
+    // Deliberately NOT "Security audit failed closed": that is a capture that
+    // audited nothing (registry outage, garbage output), which must stay
+    // UNPROVABLE so the operator re-runs rather than hunts for a defect.
     // A project's own `failure_shape` replaces this default; like any declared
     // shape it is consulted only when nothing else classified the output.
     failureShape: [
       "❌ High or critical vulnerabilities found",
-      "Security audit failed closed",
+      "Security audit configuration invalid",
     ],
   },
   "static-security": {

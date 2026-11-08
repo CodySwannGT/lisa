@@ -43,6 +43,17 @@ try {
     );
   process.exitCode = verdict.passed ? 0 : 1;
 } catch (error) {
-  console.error(`❌ Security audit failed closed: ${error.message}`);
+  // Two different failures, worded so a gate runner can tell them apart. A
+  // capture that produced no usable report audited nothing: re-run it. Any
+  // other error is the project's own exclusion or lockfile input, which no
+  // re-run will fix, so it is reported as an invalid configuration.
+  console.error(
+    error?.name === "AuditCaptureError" ||
+      ["ERR_MODULE_NOT_FOUND", "ERR_PACKAGE_PATH_NOT_EXPORTED"].includes(
+        error?.code
+      )
+      ? `❌ Security audit failed closed: ${error.message}`
+      : `❌ Security audit configuration invalid: ${error.message}`
+  );
   process.exitCode = 1;
 }
