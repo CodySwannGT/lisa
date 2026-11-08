@@ -116,12 +116,13 @@ function withOverruledMarker(plan, ref, label) {
 /**
  * Refuse (exit 2) text that looks like it holds a credential.
  * @param {string} text - Answer text
+ * @param {string} [consequence] - What the refusal left undone
  */
-function refuseCredential(text) {
+export function refuseCredential(text, consequence = "nothing was queued") {
   const shape = findCredentialShape(text);
   if (shape) {
     throw new CliError(
-      `The answer looks like it holds a credential (${shape}); nothing was queued. Keep secrets in the secrets provider.`,
+      `The answer looks like it holds a credential (${shape}); ${consequence}. Keep secrets in the secrets provider.`,
       EXIT.SETUP
     );
   }

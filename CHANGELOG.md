@@ -2,6 +2,59 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [4.99.0](https://github.com/CodySwannGT/lisa/compare/v4.98.3...v4.99.0) (2026-11-08)
+
+
+### Features
+
+* **ci:** add a dispatch-only packed-host journey workflow ([a7e1efa](https://github.com/CodySwannGT/lisa/commit/a7e1efa0bfba3ece47bf2be40bb9620d9da70826)), closes [#4606](https://github.com/CodySwannGT/lisa/issues/4606) [CodySwannGT/lisa#4606](https://github.com/CodySwannGT/lisa/issues/4606)
+* **ci:** take the packed-host journey off the pull-request path ([6013dcc](https://github.com/CodySwannGT/lisa/commit/6013dccfebeea3f1f37e445e018660473105f53b)), closes [#4587](https://github.com/CodySwannGT/lisa/issues/4587) [#4604](https://github.com/CodySwannGT/lisa/issues/4604) [#4605](https://github.com/CodySwannGT/lisa/issues/4605) [#4606](https://github.com/CodySwannGT/lisa/issues/4606) [CodySwannGT/lisa#4606](https://github.com/CodySwannGT/lisa/issues/4606)
+
+
+### Documentation
+
+* add the packed-host journey runbook ([3aa2bb3](https://github.com/CodySwannGT/lisa/commit/3aa2bb35cf29528359230ccbebd26d11200e8110)), closes [#4604](https://github.com/CodySwannGT/lisa/issues/4604) [#4605](https://github.com/CodySwannGT/lisa/issues/4605) [#4606](https://github.com/CodySwannGT/lisa/issues/4606) [CodySwannGT/lisa#4606](https://github.com/CodySwannGT/lisa/issues/4606)
+
+### [4.98.3](https://github.com/CodySwannGT/lisa/compare/v4.98.2...v4.98.3) (2026-11-08)
+
+
+### Bug Fixes
+
+* **session-manager:** keep a replacement answer pending until it is recorded ([11d250c](https://github.com/CodySwannGT/lisa/commit/11d250c108c8c6ff4e41def5f2e54e5ac51ed6f7)), closes [#4723](https://github.com/CodySwannGT/lisa/issues/4723) [CodySwannGT/lisa#4624](https://github.com/CodySwannGT/lisa/issues/4624) [CodySwannGT/lisa#4624](https://github.com/CodySwannGT/lisa/issues/4624)
+* **session-manager:** record answers to finished or exhausted items on the item ([35cd471](https://github.com/CodySwannGT/lisa/commit/35cd471d67fee408518bff2eb6382ba70f30f044)), closes [CodySwannGT/lisa#4624](https://github.com/CodySwannGT/lisa/issues/4624) [CodySwannGT/lisa#4624](https://github.com/CodySwannGT/lisa/issues/4624)
+* **session-manager:** record decision answers with no worker, widen credential shapes ([6a4547a](https://github.com/CodySwannGT/lisa/commit/6a4547ac9b75ce3ba7b225fcefe58473cc457746)), closes [CodySwannGT/lisa#4624](https://github.com/CodySwannGT/lisa/issues/4624) [CodySwannGT/lisa#4624](https://github.com/CodySwannGT/lisa/issues/4624)
+* **session-manager:** refuse only digit-bearing credential assignments ([bcee2c7](https://github.com/CodySwannGT/lisa/commit/bcee2c7cc8fc893012e4c7f27c9f6feb8c08a238)), closes [CodySwannGT/lisa#4624](https://github.com/CodySwannGT/lisa/issues/4624) [CodySwannGT/lisa#4624](https://github.com/CodySwannGT/lisa/issues/4624)
+* **session-manager:** tighten answer recording after local review ([fa14858](https://github.com/CodySwannGT/lisa/commit/fa14858a38748ba18a781ab8e72b6209ca5bcda2)), closes [CodySwannGT/lisa#4624](https://github.com/CodySwannGT/lisa/issues/4624) [CodySwannGT/lisa#4624](https://github.com/CodySwannGT/lisa/issues/4624)
+
+### [4.98.2](https://github.com/CodySwannGT/lisa/compare/v4.98.1...v4.98.2) (2026-11-08)
+
+### [4.98.1](https://github.com/CodySwannGT/lisa/compare/v4.98.0...v4.98.1) (2026-11-08)
+
+
+### Bug Fixes
+
+* **scripts:** scope phrase-manifest parity to the fold's own deletions ([#4609](https://github.com/CodySwannGT/lisa/issues/4609)) ([d753142](https://github.com/CodySwannGT/lisa/commit/d753142027bc1c72b234da3434a99ffbb1af4c7f))
+
+## [4.98.0](https://github.com/CodySwannGT/lisa/compare/v4.97.5...v4.98.0) (2026-11-08)
+
+
+### Features
+
+* **scripts:** classify and record phrase-only test files ([#4609](https://github.com/CodySwannGT/lisa/issues/4609)) ([02b59a6](https://github.com/CodySwannGT/lisa/commit/02b59a62975e5f5e388785ebd6c7cfc5477d81c5))
+
+
+### Bug Fixes
+
+* **scripts:** make phrase-manifest parity non-vacuous and tighten fs rules ([#4609](https://github.com/CodySwannGT/lisa/issues/4609)) ([5bbebe4](https://github.com/CodySwannGT/lisa/commit/5bbebe427119d0dc7e37d99800c6d96c24eb2e60))
+* **test:** disable RubyGems in the Ruby probe ([#4609](https://github.com/CodySwannGT/lisa/issues/4609)) ([c37315e](https://github.com/CodySwannGT/lisa/commit/c37315ea4e95799895415e31410f96705908556a))
+* **test:** harden Ruby probe and repoint comments at the phrase manifest ([#4609](https://github.com/CodySwannGT/lisa/issues/4609)) ([877db40](https://github.com/CodySwannGT/lisa/commit/877db4021e31a2bc22f81c53f2e9c34f6891ec47))
+* **test:** probe the drivers' Ruby without RubyGems or inherited RUBYOPT ([#4609](https://github.com/CodySwannGT/lisa/issues/4609)) ([f7ffeb6](https://github.com/CodySwannGT/lisa/commit/f7ffeb68b5831fe49ef6c98aa12ee490e5ebea04))
+
+
+### Documentation
+
+* **rules:** point derived-branch-plan at the required-phrases manifest ([#4609](https://github.com/CodySwannGT/lisa/issues/4609)) ([29c3fe2](https://github.com/CodySwannGT/lisa/commit/29c3fe28e1b5b92a1b58098b71c5b7b20e34df71))
+
 ### [4.97.5](https://github.com/CodySwannGT/lisa/compare/v4.97.4...v4.97.5) (2026-11-08)
 
 ### [4.97.4](https://github.com/CodySwannGT/lisa/compare/v4.97.3...v4.97.4) (2026-11-08)

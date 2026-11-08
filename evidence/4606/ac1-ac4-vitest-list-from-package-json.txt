@@ -1,0 +1,13 @@
+test:integration
+  script: node scripts/lib/worktree-dependencies.mjs && $npm_execpath run lisa-test-run -- --adapter vitest -- vitest run tests/integration --exclude='**/shared-runtime-packed-hosts.test.ts'
+  vitest args: ["tests/integration","--exclude=**/shared-runtime-packed-hosts.test.ts"]
+  exit: 0  files: 241  journey-listed: 0
+test:integration:push
+  script: node scripts/lib/worktree-dependencies.mjs && $npm_execpath run lisa-test-run -- --adapter vitest -- vitest run tests/integration --exclude='**/mutation-gate-bite.test.ts' --exclude='**/mutation-gate-diff-bite.test.ts' --exclude='**/mutation-sigterm-control.test.ts' --exclude='**/mutation-performance-fixture.test.ts' --exclude='**/mutation-performance-packed-apply.test.ts' --exclude='**/mutation-source-roots.test.ts' --exclude='**/shared-runtime-packed-hosts.test.ts'
+  vitest args: ["tests/integration","--exclude=**/mutation-gate-bite.test.ts","--exclude=**/mutation-gate-diff-bite.test.ts","--exclude=**/mutation-sigterm-control.test.ts","--exclude=**/mutation-performance-fixture.test.ts","--exclude=**/mutation-performance-packed-apply.test.ts","--exclude=**/mutation-source-roots.test.ts","--exclude=**/shared-runtime-packed-hosts.test.ts"]
+  exit: 0  files: 235  journey-listed: 0
+test:integration:packed-hosts
+  script: node scripts/lib/worktree-dependencies.mjs && $npm_execpath run lisa-test-run -- --adapter vitest -- vitest run tests/integration/shared-runtime-packed-hosts.test.ts
+  vitest args: ["tests/integration/shared-runtime-packed-hosts.test.ts"]
+  exit: 0  files: 1  journey-listed: 1
+    [lisa] tests/integration/shared-runtime-packed-hosts.test.ts

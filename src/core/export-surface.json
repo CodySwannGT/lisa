@@ -1,8 +1,8 @@
 {
   "$generatedBy": "scripts/generate-export-surface.mjs",
   "$doNotEdit": "The public export surface this package ships, recorded so a removal is an OBSERVATION rather than an inference from commit-message conventions. This file's diff is what makes a removed export visible in the pull request that causes it (CodySwannGT/lisa#3718).",
-  "$modules": 264,
-  "$names": 1937,
+  "$modules": 272,
+  "$names": 1970,
   "surface": {
     "all/copy-overwrite/scripts/check-conflict-markers.mjs": [
       "UsageError",
@@ -1572,6 +1572,7 @@
       "publishedVersionsDescending"
     ],
     "scripts/check-shell-guard-refusal-coverage.mjs": [
+      "HAND_RUN_SUITES",
       "candidateSuites",
       "main"
     ],
@@ -1868,6 +1869,54 @@
       "shouldShipScript",
       "translateEventName",
       "translateMatcherForDevin"
+    ],
+    "scripts/lib/phrase-tests/ast.mjs": [
+      "PHRASE_MATCHERS",
+      "booleanLiteral",
+      "expectChains",
+      "isExpectCall",
+      "isIncludesCall",
+      "isPhraseChain",
+      "parseSource",
+      "readExpectChain",
+      "walk"
+    ],
+    "scripts/lib/phrase-tests/classify.mjs": [
+      "ALLOWED_MODULES",
+      "READ_CALLS",
+      "classifyTestSource",
+      "resolveTestImport"
+    ],
+    "scripts/lib/phrase-tests/fold.mjs": [
+      "foldPhraseTests"
+    ],
+    "scripts/lib/phrase-tests/manifest.mjs": [
+      "MANIFEST_COMMENT",
+      "MANIFEST_PATH",
+      "SOURCE_SEPARATOR",
+      "buildManifest",
+      "describePhrase",
+      "entryKey",
+      "manifestEntries",
+      "phraseFailure",
+      "sourceTestFile"
+    ],
+    "scripts/lib/phrase-tests/parity.mjs": [
+      "deletedTestFiles",
+      "parityFailures"
+    ],
+    "scripts/lib/phrase-tests/record.mjs": [
+      "recordTestFile"
+    ],
+    "scripts/lib/phrase-tests/repo.mjs": [
+      "REPO_ROOT",
+      "commitReader",
+      "testFilesAt",
+      "workingTreeReader",
+      "workingTreeTestFiles"
+    ],
+    "scripts/lib/phrase-tests/runner.mjs": [
+      "createRunner"
     ],
     "scripts/lib/plugin-cache-resolution.mjs": [
       "TOKEN_RE",

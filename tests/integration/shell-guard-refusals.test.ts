@@ -4,9 +4,10 @@
  *
  * WHAT THIS SUITE EXECUTES. The shipped scripts, unmodified, in a temporary
  * project, once onto the refusal path and once onto the allow path. Not greps:
- * `blocking-hook-exit.test.ts` asserts that certain hooks CONTAIN `exit 2`,
- * which is a fact about the text and survives the guard being rewired so the
- * line is unreachable. Only a run can answer whether it fires.
+ * `tests/phrase-manifest/required-phrases.json` (checked by
+ * `tests/unit/docs/required-phrases.test.ts`) asserts that certain hooks
+ * CONTAIN `exit 2`, which is a fact about the text and survives the guard
+ * being rewired so the line is unreachable. Only a run can answer whether it fires.
  *
  * EVERY REFUSAL CASE ASSERTS THE STATUS EXACTLY. `expect(status).not.toBe(0)`
  * would pass on a guard that crashed — which is the failure CodySwannGT/lisa#3188

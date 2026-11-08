@@ -169,6 +169,52 @@ describe("ledger questions", () => {
     expect(reset.attempts).toBe(0);
   });
 
+  it("keeps a replacement answer pending when clear expects the old one (#4624)", async () => {
+    await ask();
+    const planned = await queueAnswer(
+      root(),
+      { ref: REF, source: "cli", text: "use v1" },
+      seams
+    );
+    const plannedAt = planned.pendingQuestion?.answer?.at as string;
+    await queueAnswer(
+      root(),
+      { ref: REF, source: "cli", text: "use v2 instead" },
+      seams
+    );
+    await expect(
+      clearPendingQuestion(
+        root(),
+        { ref: REF, expectAnswerAt: plannedAt },
+        seams
+      )
+    ).rejects.toThrow(/answer changed since it was planned/);
+    const kept = (await readLedger(root())).items[REF]?.pendingQuestion;
+    expect(kept?.answer).toMatchObject({ text: "use v2 instead" });
+
+    const currentAt = kept?.answer?.at as string;
+    const cleared = await clearPendingQuestion(
+      root(),
+      { ref: REF, expectAnswerAt: currentAt },
+      seams
+    );
+    expect(cleared.pendingQuestion).toBeNull();
+  });
+
+  it("refuses an expected answer time when no answer is queued", async () => {
+    await ask();
+    await expect(
+      clearPendingQuestion(
+        root(),
+        { ref: REF, expectAnswerAt: "2026-10-12T09:00:00.000Z" },
+        seams
+      )
+    ).rejects.toThrow(/answer changed since it was planned/);
+    expect(
+      (await readLedger(root())).items[REF]?.pendingQuestion
+    ).not.toBeNull();
+  });
+
   it("lists pending questions oldest first with the answer command", async () => {
     await ask();
     await setPendingQuestion(

@@ -131,6 +131,7 @@ const LEDGER_ACTIONS = {
     clearPendingQuestion(ctx.root, {
       ref: requirePositional(ctx, "ref"),
       resetAttempts: ctx.values["reset-attempts"] === true,
+      expectAnswerAt: ctx.values["expect-answer-at"],
     }),
   async finish(ctx) {
     const status = ctx.values.status;
