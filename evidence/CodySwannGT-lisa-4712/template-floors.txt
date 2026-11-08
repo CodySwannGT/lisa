@@ -1,0 +1,6 @@
+# AC-2 | HEAD c4c2daa67710528bc1845b5868a06bfd2e8a8158 | clean tree
+$ jq '{force_overrides_systeminformation: .force.overrides.systeminformation, force_resolutions_systeminformation: .force.resolutions.systeminformation}' typescript/package-lisa/package.lisa.json
+{
+  "force_overrides_systeminformation": ">=5.33.16",
+  "force_resolutions_systeminformation": ">=5.33.16"
+}

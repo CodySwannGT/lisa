@@ -1,0 +1,183 @@
+/**
+ * The required-phrases manifest (CodySwannGT/lisa#4609): its shape, how
+ * recorded entries fold into it, how it flattens back into one check per
+ * (file, phrase), and the failure message for one check.
+ *
+ * Shared by the one-time generator, the re-runnable parity check and the
+ * data-driven test, so all three agree on what an entry is.
+ * @module scripts/lib/phrase-tests/manifest
+ */
+
+/** Repository-relative path of the manifest. */
+export const MANIFEST_PATH = "tests/phrase-manifest/required-phrases.json";
+
+/** Explains the file to whoever opens it. */
+export const MANIFEST_COMMENT = Object.freeze([
+  "Phrases that must (required) or must not (forbidden) appear in each file, checked by tests/unit/docs/required-phrases.test.ts.",
+  "Generated ONCE by scripts/generate-phrase-manifest.mjs from the phrase-only test files it replaced (CodySwannGT/lisa#4609); those files are deleted, so it cannot be regenerated.",
+  "It is now the hand-maintained source of truth: add, change or remove phrases here directly, keeping keys and arrays sorted.",
+  "Patterns are RegExp { source, flags } and use String#match semantics. `source` lists the deleted tests each file's phrases came from, as `<test file> › <describe > it title>`.",
+]);
+
+/** Separates the test file from the test title in a `source` entry. */
+export const SOURCE_SEPARATOR = " › ";
+
+/**
+ * The test file a `source` entry names.
+ * @param {string} source - `<test file> › <title>`.
+ * @returns {string} The test file.
+ */
+export function sourceTestFile(source) {
+  const at = source.indexOf(SOURCE_SEPARATOR);
+  return at === -1 ? source : source.slice(0, at);
+}
+
+/**
+ * @typedef {{ source: string, flags: string }} Pattern
+ * @typedef {{ required: string[], forbidden: string[], requiredPatterns: Pattern[], forbiddenPatterns: Pattern[], source: string[] }} FileEntry
+ * @typedef {{ $comment: readonly string[], files: Record<string, FileEntry> }} Manifest
+ * @typedef {{ file: string, polarity: "required" | "forbidden", kind: "string" | "pattern", value: string | Pattern }} PhraseCheck
+ */
+
+/**
+ * The FileEntry array a check belongs in.
+ * @param {Pick<PhraseCheck, "polarity" | "kind">} check - The check.
+ * @returns {"required" | "forbidden" | "requiredPatterns" | "forbiddenPatterns"} The key.
+ */
+function bucket({ polarity, kind }) {
+  return kind === "string" ? polarity : `${polarity}Patterns`;
+}
+
+/**
+ * A stable, unique key for a check.
+ * @param {PhraseCheck} check - The check.
+ * @returns {string} The key.
+ */
+export function entryKey({ file, polarity, kind, value }) {
+  return JSON.stringify([file, polarity, kind, value]);
+}
+
+/**
+ * Sort and dedupe values by their JSON form.
+ * @template T
+ * @param {T[]} values - Values.
+ * @returns {T[]} Sorted unique values.
+ */
+function sortedUnique(values) {
+  const byKey = new Map(values.map(value => [JSON.stringify(value), value]));
+  return [...byKey.keys()].sort().map(key => /** @type {T} */ (byKey.get(key)));
+}
+
+/**
+ * Fold recordings into a manifest: keyed by the file read, every array sorted
+ * and deduped, each file listing the tests its phrases came from.
+ * @param {readonly { entries: readonly (PhraseCheck & { source: string })[] }[]} recordings - Translated recordings.
+ * @returns {Manifest} The manifest.
+ */
+export function buildManifest(recordings) {
+  /** @type {Map<string, FileEntry>} */
+  const files = new Map();
+  for (const entry of recordings.flatMap(recording => recording.entries)) {
+    const current = files.get(entry.file) ?? {
+      required: [],
+      forbidden: [],
+      requiredPatterns: [],
+      forbiddenPatterns: [],
+      source: [],
+    };
+    /** @type {unknown[]} */ (current[bucket(entry)]).push(entry.value);
+    current.source.push(entry.source);
+    files.set(entry.file, current);
+  }
+  const sorted = [...files.keys()].sort().map(file => {
+    const entry = /** @type {FileEntry} */ (files.get(file));
+    return [
+      file,
+      {
+        required: sortedUnique(entry.required),
+        forbidden: sortedUnique(entry.forbidden),
+        requiredPatterns: sortedUnique(entry.requiredPatterns),
+        forbiddenPatterns: sortedUnique(entry.forbiddenPatterns),
+        source: sortedUnique(entry.source),
+      },
+    ];
+  });
+  return { $comment: MANIFEST_COMMENT, files: Object.fromEntries(sorted) };
+}
+
+/**
+ * Flatten a manifest into one check per (file, phrase), in manifest order.
+ * @param {Manifest} manifest - The manifest.
+ * @returns {PhraseCheck[]} The checks.
+ */
+export function manifestEntries(manifest) {
+  return /** @type {PhraseCheck[]} */ (
+    Object.entries(manifest.files).flatMap(([file, entry]) => [
+      ...entry.required.map(value => ({
+        file,
+        polarity: "required",
+        kind: "string",
+        value,
+      })),
+      ...entry.forbidden.map(value => ({
+        file,
+        polarity: "forbidden",
+        kind: "string",
+        value,
+      })),
+      ...entry.requiredPatterns.map(value => ({
+        file,
+        polarity: "required",
+        kind: "pattern",
+        value,
+      })),
+      ...entry.forbiddenPatterns.map(value => ({
+        file,
+        polarity: "forbidden",
+        kind: "pattern",
+        value,
+      })),
+    ])
+  );
+}
+
+/**
+ * How a phrase reads in a message: a JSON string, or `/source/flags`.
+ * @param {PhraseCheck} check - The check.
+ * @returns {string} Display form.
+ */
+export function describePhrase({ kind, value }) {
+  if (kind === "string") return JSON.stringify(value);
+  const pattern = /** @type {Pattern} */ (value);
+  return `/${pattern.source}/${pattern.flags}`;
+}
+
+/**
+ * Check one phrase against a file's text.
+ * @param {string | undefined} text - The file's text, or undefined when it does not exist.
+ * @param {PhraseCheck} check - The check.
+ * @returns {string | undefined} A failure message naming the file and the
+ *   phrase, or undefined when the check holds.
+ */
+export function phraseFailure(text, check) {
+  if (text === undefined) {
+    return `${check.file} does not exist, but the required-phrases manifest lists it`;
+  }
+  const phrase = describePhrase(check);
+  const found =
+    check.kind === "string"
+      ? text.includes(/** @type {string} */ (check.value))
+      : text.match(
+          new RegExp(
+            /** @type {Pattern} */ (check.value).source,
+            /** @type {Pattern} */ (check.value).flags
+          )
+        ) !== null;
+  if (check.polarity === "required" && !found) {
+    return `${check.file} is missing required ${check.kind === "string" ? "phrase" : "pattern"} ${phrase}`;
+  }
+  if (check.polarity === "forbidden" && found) {
+    return `${check.file} contains forbidden ${check.kind === "string" ? "phrase" : "pattern"} ${phrase}`;
+  }
+  return undefined;
+}

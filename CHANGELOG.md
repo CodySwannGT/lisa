@@ -2,6 +2,49 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [4.98.0](https://github.com/CodySwannGT/lisa/compare/v4.97.5...v4.98.0) (2026-11-08)
+
+
+### Features
+
+* **scripts:** classify and record phrase-only test files ([#4609](https://github.com/CodySwannGT/lisa/issues/4609)) ([02b59a6](https://github.com/CodySwannGT/lisa/commit/02b59a62975e5f5e388785ebd6c7cfc5477d81c5))
+
+
+### Bug Fixes
+
+* **scripts:** make phrase-manifest parity non-vacuous and tighten fs rules ([#4609](https://github.com/CodySwannGT/lisa/issues/4609)) ([5bbebe4](https://github.com/CodySwannGT/lisa/commit/5bbebe427119d0dc7e37d99800c6d96c24eb2e60))
+* **test:** disable RubyGems in the Ruby probe ([#4609](https://github.com/CodySwannGT/lisa/issues/4609)) ([c37315e](https://github.com/CodySwannGT/lisa/commit/c37315ea4e95799895415e31410f96705908556a))
+* **test:** harden Ruby probe and repoint comments at the phrase manifest ([#4609](https://github.com/CodySwannGT/lisa/issues/4609)) ([877db40](https://github.com/CodySwannGT/lisa/commit/877db4021e31a2bc22f81c53f2e9c34f6891ec47))
+* **test:** probe the drivers' Ruby without RubyGems or inherited RUBYOPT ([#4609](https://github.com/CodySwannGT/lisa/issues/4609)) ([f7ffeb6](https://github.com/CodySwannGT/lisa/commit/f7ffeb68b5831fe49ef6c98aa12ee490e5ebea04))
+
+
+### Documentation
+
+* **rules:** point derived-branch-plan at the required-phrases manifest ([#4609](https://github.com/CodySwannGT/lisa/issues/4609)) ([29c3fe2](https://github.com/CodySwannGT/lisa/commit/29c3fe28e1b5b92a1b58098b71c5b7b20e34df71))
+
+### [4.97.5](https://github.com/CodySwannGT/lisa/compare/v4.97.4...v4.97.5) (2026-11-08)
+
+### [4.97.4](https://github.com/CodySwannGT/lisa/compare/v4.97.3...v4.97.4) (2026-11-08)
+
+
+### Bug Fixes
+
+* **security:** raise forced systeminformation floor to >=5.33.16 (GHSA-3f7j-7jwc-fxfj) ([97fae0b](https://github.com/CodySwannGT/lisa/commit/97fae0bca13e5ed7eea6210cad2500893e643a50)), closes [CodySwannGT/lisa#4712](https://github.com/CodySwannGT/lisa/issues/4712) [CodySwannGT/lisa#4712](https://github.com/CodySwannGT/lisa/issues/4712)
+
+### [4.97.3](https://github.com/CodySwannGT/lisa/compare/v4.97.2...v4.97.3) (2026-11-08)
+
+
+### Bug Fixes
+
+* **session-manager:** address review of kind-keyed operator ids ([0164fe6](https://github.com/CodySwannGT/lisa/commit/0164fe65502c2ce6b4c735cf097d058610e63d9e)), closes [CodySwannGT/lisa#4623](https://github.com/CodySwannGT/lisa/issues/4623) [CodySwannGT/lisa#4623](https://github.com/CodySwannGT/lisa/issues/4623)
+* **session-manager:** key operator and trusted-author ids by kind ([2ab2478](https://github.com/CodySwannGT/lisa/commit/2ab2478995a41625267f1e67c9992905796266b1)), closes [CodySwannGT/lisa#4623](https://github.com/CodySwannGT/lisa/issues/4623) [CodySwannGT/lisa#4623](https://github.com/CodySwannGT/lisa/issues/4623)
+* **session-manager:** say a padded all-digit operator entry matches no answer ([20846ab](https://github.com/CodySwannGT/lisa/commit/20846abb7ddba4880ae83f615aa2e367a6f09513)), closes [CodySwannGT/lisa#4623](https://github.com/CodySwannGT/lisa/issues/4623) [CodySwannGT/lisa#4623](https://github.com/CodySwannGT/lisa/issues/4623)
+
+
+### Documentation
+
+* **session-manager:** document login: and id: operator entries ([7a187b0](https://github.com/CodySwannGT/lisa/commit/7a187b0a883c23ce619200cf911fc1e2ada59647)), closes [CodySwannGT/lisa#4623](https://github.com/CodySwannGT/lisa/issues/4623) [CodySwannGT/lisa#4623](https://github.com/CodySwannGT/lisa/issues/4623)
+
 ### [4.97.2](https://github.com/CodySwannGT/lisa/compare/v4.97.1...v4.97.2) (2026-11-08)
 
 

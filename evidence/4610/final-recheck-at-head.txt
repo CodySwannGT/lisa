@@ -1,0 +1,35 @@
+# Re-check at HEAD 964fd3b7d665afb87ad003e924c6f77a67336de9 (merge-base with origin/main 4c5547de18a6a3332ea9116d85cd67a12f823430)
+## git diff origin/main...HEAD --stat -- tests
+ .../skills-installer-internal-skill-policy.test.ts |  86 ---
+ tests/unit/codex/skills-installer.test.ts          |  78 +++
+ ...completion-proof-linear-escaped-markers.test.ts | 132 ++++-
+ .../scripts/completion-proof-verify-usage.test.ts  | 121 -----
+ .../scripts/gate-diagnosis-type-errors.test.ts     | 267 ----------
+ tests/unit/scripts/gate-failure-diagnosis.test.ts  | 253 ++++++++-
+ ...erate-cursor-plugin-artifacts.artifacts.test.ts | 217 --------
+ .../generate-cursor-plugin-artifacts.test.ts       | 205 ++++++-
+ .../scripts/lisa-reconcile-policy-units.test.ts    | 591 ---------------------
+ tests/unit/scripts/lisa-reconcile-policy.test.ts   | 580 +++++++++++++++++++-
+ .../package-lisa-integration-script-layout.test.ts | 437 ---------------
+ tests/unit/strategies/package-lisa.test.ts         | 432 ++++++++++++++-
+ .../wiki-status-report-rendering.test.ts           |  92 ++++
+ tests/unit/strategies/wiki-status-verdicts.test.ts | 112 ----
+ 14 files changed, 1767 insertions(+), 1836 deletions(-)
+## expect/assert totals: origin/main (before) vs HEAD (after)
+TOTAL expect=643 assert=0
+TOTAL expect=643 assert=0
+## vitest on the 7 primaries at HEAD vs before-1.json (14 files at ef452d2a31)
+ Test Files  7 passed (7)
+      Tests  324 passed (324)
+   Duration  1.53s (transform 500ms, setup 550ms, import 817ms, tests 603ms, environment 0ms)
+before tests=324 files=14 statuses={"passed":324}
+after  tests=324 files=7 statuses={"passed":324}
+fullName only-before=0 only-after=0
+tests/unit/codex/skills-installer-internal-skill-policy.test.ts -> tests/unit/codex/skills-installer.test.ts: tests=1 #NNNN-named=1 missing(leaf)=0 fullName-not-exact=0
+tests/unit/scripts/completion-proof-verify-usage.test.ts -> tests/unit/scripts/completion-proof-linear-escaped-markers.test.ts: tests=13 #NNNN-named=13 missing(leaf)=0 fullName-not-exact=0
+tests/unit/scripts/gate-diagnosis-type-errors.test.ts -> tests/unit/scripts/gate-failure-diagnosis.test.ts: tests=17 #NNNN-named=1 missing(leaf)=0 fullName-not-exact=0
+tests/unit/scripts/generate-cursor-plugin-artifacts.artifacts.test.ts -> tests/unit/scripts/generate-cursor-plugin-artifacts.test.ts: tests=8 #NNNN-named=8 missing(leaf)=0 fullName-not-exact=0
+tests/unit/scripts/lisa-reconcile-policy-units.test.ts -> tests/unit/scripts/lisa-reconcile-policy.test.ts: tests=34 #NNNN-named=1 missing(leaf)=0 fullName-not-exact=0
+tests/unit/strategies/package-lisa-integration-script-layout.test.ts -> tests/unit/strategies/package-lisa.test.ts: tests=34 #NNNN-named=18 missing(leaf)=0 fullName-not-exact=0
+tests/unit/strategies/wiki-status-verdicts.test.ts -> tests/unit/strategies/wiki-status-report-rendering.test.ts: tests=2 #NNNN-named=2 missing(leaf)=0 fullName-not-exact=0
+#NNNN-named tests from deleted files=44 missing-in-primary=0
