@@ -348,9 +348,11 @@ or against a head a writer has already substituted for.** The consequence is the
 whole point. An unreviewed merge then has exactly two routes left, and both
 report themselves: step (d), which verifies its five conditions against a live
 poll; and an arm on a writer's first-line substitute for the current head
-(#4653), after which the watch loop — which keeps running once the latch is on
-— still writes `MERGED — NOT REVIEWED (<context> "<observed>"), local
-adversarial review substituted and posted` when it observes the merge. This does
+(#4653). Before arming on a substitute, post one PR comment saying this head
+will merge `NOT REVIEWED (<context> "<observed>"), local adversarial review
+substituted and posted` — a session can end before GitHub merges, and the
+comment is the record that survives it; the watch loop, if it is still running,
+also writes that line when it observes the merge. This does
 not forbid the unreviewed merge; the owner's ruling on #3221 is explicit that a
 vendor entitlement state must not redden every pull request. It makes the
 unreviewed merge VISIBLE, by leaving it only paths that report themselves, and
@@ -382,8 +384,8 @@ the next step:
 
 | `action` | what it means | do |
 | --- | --- | --- |
-| `substitute` | nothing read this head, and no writer's first-line substitute stands in | post the local adversarial review now (step (d), "In case 3, substitute"), from an account with write access, then decide again |
-| `watch` | not an answer yet: the reviewer is still running, the classifier report is missing, stale or untrusted | do not arm; keep driving and decide again on the next pass |
+| `substitute` | nothing read this head, and no writer's first-line substitute stands in | post the local adversarial review now (step (d), "In case 3, substitute"), from an account with write access, then decide again. A substitute posted by a bot or app token (`*[bot]`) never counts here; if that is the only identity available, do not arm — leave the merge to step (d), or report `blocked:unreviewed` |
+| `watch` | not an answer yet: the reviewer is still running (a substitute never stands in for a review in flight), or the classifier report is missing, stale, untrusted or names a review kind this prover does not know | do not arm; keep driving and decide again on the next pass |
 | `blocker` | a review ran and objected, or requested changes | a real blocker; steps (d)/(e) |
 | `stop` | the pull requests, reviews or classifier inspection could not be read | stop under `tool-access-gate`, as for `pull-requests-unreadable` in step (d) |
 

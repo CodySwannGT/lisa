@@ -138,7 +138,7 @@
  *
  * @module scripts/check-third-party-review-evidence
  */
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 
 import { boundedExecFileSync } from "./lib/bounded-spawn.mjs";
 import { invokedAsScript } from "./lib/invoked-as-script.mjs";
@@ -943,23 +943,41 @@ function evidenceSignal(evidence, substitutes) {
   const unreviewed = readings
     .filter(reading => !reading.reviewed)
     .map(reading => reading.context);
+  if (evidence.outcome === EVIDENCE_OUTCOMES.noReviewerConfigured) {
+    return NOT_ENGAGED;
+  }
+  if (evidence.outcome === EVIDENCE_OUTCOMES.pullRequestsUnreadable) {
+    return engagedSignal(
+      ARM_ACTIONS.stop,
+      "the pull requests could not be read, so the review is unknown"
+    );
+  }
+  // Under EVERY outcome, not only `satisfied`: one reviewer's objection is
+  // not cancelled by another reviewer's substitute.
+  if (
+    readings.some(
+      reading => normalizeDescription(reading.observed) === OBJECTING_PROOF
+    )
+  ) {
+    return engagedSignal(
+      ARM_ACTIONS.blocker,
+      "a configured reviewer requested changes"
+    );
+  }
+  // A substitute never stands in for a review still in flight: armed now, the
+  // latch would merge on whatever that review concludes, objection included.
+  if (readings.some(reading => reading.reading === EVIDENCE_READINGS.pending)) {
+    return engagedSignal(
+      ARM_ACTIONS.watch,
+      "a configured reviewer is still running"
+    );
+  }
   switch (evidence.outcome) {
-    case EVIDENCE_OUTCOMES.noReviewerConfigured:
-      return NOT_ENGAGED;
-    case EVIDENCE_OUTCOMES.pullRequestsUnreadable:
-      return engagedSignal(
-        ARM_ACTIONS.stop,
-        "the pull requests could not be read, so the review is unknown"
-      );
     case EVIDENCE_OUTCOMES.satisfied:
-      return readings.some(
-        reading => normalizeDescription(reading.observed) === OBJECTING_PROOF
-      )
-        ? engagedSignal(ARM_ACTIONS.blocker, "the reviewer requested changes")
-        : engagedSignal(
-            ARM_ACTIONS.arm,
-            "every configured reviewer showed its reviewed-when evidence"
-          );
+      return engagedSignal(
+        ARM_ACTIONS.arm,
+        "every configured reviewer showed its reviewed-when evidence"
+      );
     case EVIDENCE_OUTCOMES.substituted:
     case EVIDENCE_OUTCOMES.unsatisfied:
       return allSubstituted(unreviewed, substitutes)
@@ -999,7 +1017,11 @@ function violationAction(violation, substitutes) {
   }
   const substitutable =
     SUBSTITUTABLE_KINDS.has(kind) || kind === "review_evidence_unsatisfied";
-  if (!substitutable) return null;
+  // A review kind this file does not know — a newer classifier's — is not
+  // evidence of work. Fail closed rather than read it as silence.
+  if (!substitutable) {
+    return kind.startsWith("review_evidence_") ? ARM_ACTIONS.watch : null;
+  }
   return allSubstituted(violation?.contexts ?? [], substitutes)
     ? null
     : ARM_ACTIONS.substitute;
@@ -1025,8 +1047,19 @@ function vacuitySignal(vacuity, { sha, substitutes, classifierDeclared }) {
       : NOT_ENGAGED;
   }
   const refusal = report.vacuity?.refusal?.kind ?? report.refusal?.kind ?? null;
-  if (refusal === VACUITY_NONE_DECLARED) return NOT_ENGAGED;
-  if (report.inspected !== true || report.answered === false) {
+  if (refusal === VACUITY_NONE_DECLARED) {
+    return classifierDeclared
+      ? engagedSignal(
+          ARM_ACTIONS.watch,
+          "the vacuity report says nothing is declared, but .github/required-checks.json declares an evidence-bearing check"
+        )
+      : NOT_ENGAGED;
+  }
+  if (
+    report.inspected !== true ||
+    report.answered === false ||
+    report.ok === false
+  ) {
     return engagedSignal(
       ARM_ACTIONS.watch,
       `the vacuity classifier did not answer (${refusal ?? "uninspected"}); an empty inspection is not a pass`
@@ -1082,6 +1115,7 @@ const byPriority = (left, right) =>
  * @param {ReadonlySet<string>} [options.substitutes] - Contexts a writer posted a first-line substitute for at this head.
  * @param {number|null} [options.objections] - `CHANGES_REQUESTED` reviews at this head; null when they could not be read.
  * @param {boolean} [options.classifierDeclared] - Whether `required-checks.json` declares an evidence-bearing check.
+ * @param {boolean} [options.projectRoot] - Whether the root read has a `.lisa.config.json`; false means the declarations were never seen.
  * @returns {{arm: boolean, action: string, reason: string, engaged: {reviewer: boolean, vacuity: boolean}}} The decision.
  */
 export function armDecision({
@@ -1091,7 +1125,19 @@ export function armDecision({
   substitutes = new Set(),
   objections = 0,
   classifierDeclared = false,
+  projectRoot = true,
 }) {
+  // An empty declaration read from the wrong directory looks exactly like a
+  // project that declares nothing, which is the one case that arms.
+  if (!projectRoot) {
+    return {
+      arm: false,
+      action: ARM_ACTIONS.stop,
+      reason:
+        "no .lisa.config.json at --root, so the reviewer declarations were never read; run from the project root",
+      engaged: { reviewer: false, vacuity: false },
+    };
+  }
   const reviewer = evidenceSignal(evidence, substitutes);
   const classifier = vacuitySignal(vacuity, {
     sha,
@@ -1524,10 +1570,40 @@ export function standingObjections(reviews, sha) {
  * @returns {ReadonlyArray<object>|null} The reviews.
  */
 function readReviews(repo, numbers) {
-  const lists = numbers.map(number =>
-    ghJson(`repos/${repo}/pulls/${number}/reviews?per_page=100`)
-  );
+  const lists = numbers.map(number => readAllReviews(repo, number));
   return lists.every(Array.isArray) ? lists.flat() : null;
+}
+
+/**
+ * Every review on one pull request, across all pages.
+ *
+ * The reviews at the current head are the NEWEST, so a single page of a long
+ * pull request is exactly the one that leaves them out.
+ * @param {string} repo - `owner/repo`.
+ * @param {number} number - Pull request number.
+ * @returns {ReadonlyArray<object>|null} The reviews, or null when any page failed.
+ */
+function readAllReviews(repo, number) {
+  // probe-direction: fail-closed — a failed read is null, which stops the arm decision.
+  try {
+    const pages = JSON.parse(
+      boundedExecFileSync(
+        "gh",
+        [
+          "api",
+          "--paginate",
+          "--slurp",
+          `repos/${repo}/pulls/${number}/reviews?per_page=100`,
+        ],
+        { encoding: "utf8" }
+      )
+    );
+    return Array.isArray(pages) && pages.every(Array.isArray)
+      ? pages.flat()
+      : null;
+  } catch {
+    return null;
+  }
 }
 
 /**
@@ -1627,6 +1703,9 @@ function writeArmDecision(verdict, { opts, io, out, repo, pulls }) {
       io.requiredChecks ??
       (() => declaresEvidenceBearingChecks(opts.root, readFile))
     )(),
+    // Injected gates stand for a project the caller already read.
+    projectRoot:
+      io.gates !== undefined || existsSync(`${opts.root}/.lisa.config.json`),
   });
   const report = { ...decision, evidence: verdict };
   const held = `DO NOT ARM — ${decision.action}`;

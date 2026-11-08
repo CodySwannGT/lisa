@@ -249,6 +249,67 @@ describe("the arm gate on a Rails host with a reviewer gate (#4653)", () => {
     expect(report.action).toBe(ARM_ACTIONS.blocker);
   });
 
+  it("waits for a reviewer still running even when a writer's substitute is posted", () => {
+    const { report } = decide({
+      runs: [run({ status: "in_progress", conclusion: null })],
+      comments: [WRITER_SUBSTITUTE],
+    });
+
+    expect(report.arm).toBe(false);
+    expect(report.action).toBe(ARM_ACTIONS.watch);
+  });
+
+  it("does not let a second reviewer's substitute cancel the first one's objection", () => {
+    const { report } = decide({
+      gates: {
+        ...RAILS_GATES,
+        "second-review": {
+          "pull-request": {
+            level: "required",
+            await: "Second Reviewer",
+            evidence: { reviewer: true, proof: ["Review completed"] },
+          },
+        },
+      },
+      runs: [
+        run({
+          output: { title: CHANGES_REQUESTED, summary: CHANGES_REQUESTED },
+        }),
+      ],
+      comments: [
+        comment(
+          `${substituteMarker({ context: "Second Reviewer", sha: HEAD })}\nread`
+        ),
+      ],
+    });
+
+    expect(report.arm).toBe(false);
+    expect(report.action).toBe(ARM_ACTIONS.blocker);
+  });
+
+  it("stops rather than arms when run outside a project root", () => {
+    const chunks: string[] = [];
+    main(
+      [
+        `--sha=${HEAD}`,
+        "--arm",
+        "--json",
+        "--root=/nonexistent/lisa-4653-not-a-project",
+      ],
+      {
+        out: {
+          write: (text: string) => {
+            chunks.push(text);
+          },
+        },
+      }
+    );
+    const report = JSON.parse(chunks.join(""));
+
+    expect(report.arm).toBe(false);
+    expect(report.action).toBe(ARM_ACTIONS.stop);
+  });
+
   it("stops rather than arms when the reviews cannot be read", () => {
     const { report } = decide({ runs: [run()], reviews: null });
 
@@ -404,6 +465,30 @@ describe("armDecision keeps the vacuity classifier where it exists", () => {
 
     expect(decision.arm).toBe(false);
     expect(decision.action).toBe(action);
+  });
+
+  it("does not arm on a review kind it does not know", () => {
+    const decision = armDecision({
+      evidence: satisfied,
+      vacuity: report([{ kind: "review_evidence_future_kind" }]),
+    });
+
+    expect(decision.arm).toBe(false);
+    expect(decision.action).toBe(ARM_ACTIONS.watch);
+  });
+
+  it("refuses a nothing-declared report when required-checks.json declares a check", () => {
+    const decision = armDecision({
+      evidence: unconfigured,
+      vacuity: {
+        inspected: false,
+        vacuity: { refusal: { kind: "vacuity_none_declared" } },
+      },
+      classifierDeclared: true,
+    });
+
+    expect(decision.arm).toBe(false);
+    expect(decision.action).toBe(ARM_ACTIONS.watch);
   });
 
   it("does not arm on a report the classifier did not trust", () => {
