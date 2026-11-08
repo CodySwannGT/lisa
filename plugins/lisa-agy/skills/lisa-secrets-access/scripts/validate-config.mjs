@@ -785,12 +785,101 @@ function findCredentials(value, path, segments = []) {
   );
 }
 
+/** A letters-only prefix at the start of an id entry. */
+const ID_ENTRY_PREFIX = /^([A-Za-z]+):/;
+
+/** The kinds an id entry's prefix may name. */
+const ID_ENTRY_KINDS = new Set(["login", "id"]);
+
+/** Letters-and-colon starts of real tracker ids (JSM customers' `qm:`). */
+const PLAIN_ID_STARTS = new Set(["qm"]);
+
+/** An all-digit plain entry: a login to the queue, an id to the answers. */
+const ALL_DIGIT_ENTRY = /^\d+$/;
+
+/**
+ * Classify one `operatorIds` / `trustedAuthorIds` entry (CodySwannGT/lisa#4623).
+ *
+ * A local copy of the grammar in `scripts/operator-id-kinds.mjs`, because
+ * plugin payload scripts ship standalone; `operator-id-kinds.test.ts` pins
+ * the two together. `login:<v>` is a GitHub login, `id:<v>` an account id,
+ * and an entry with no letters-only prefix is plain (a Jira accountId such as
+ * `557058:<uuid>` or `qm:<id>` included).
+ * @param {string} entry One entry.
+ * @returns {"login" | "id" | "plain" | "unknown-prefix" | "empty-value"} Kind.
+ */
+export function classifyIdEntry(entry) {
+  const prefix = ID_ENTRY_PREFIX.exec(entry)?.[1];
+  if (prefix === undefined || PLAIN_ID_STARTS.has(prefix)) return "plain";
+  if (!ID_ENTRY_KINDS.has(prefix)) return "unknown-prefix";
+  return entry.slice(prefix.length + 1).trim() === "" ? "empty-value" : prefix;
+}
+
+/**
+ * Refuse each malformed kind-keyed entry, naming it. A reader matches such an
+ * entry against nobody, so accepting it would silently drop a person.
+ * @param {string} key `operatorIds` or `trustedAuthorIds`.
+ * @param {readonly string[]} ids Entries, already known to be strings.
+ * @returns {string[]} Problems found.
+ */
+function idEntryProblems(key, ids) {
+  return ids.flatMap(entry => {
+    const kind = classifyIdEntry(entry);
+    const prefix = `${ID_ENTRY_PREFIX.exec(entry)?.[1]}:`;
+    if (kind === "unknown-prefix") {
+      return [
+        `sessionManager.${key} entry ${JSON.stringify(entry)} has an ` +
+          `unknown prefix ${JSON.stringify(prefix)}. Use login:<GitHub ` +
+          `login>, id:<numeric or tracker account id>, or a plain id; write ` +
+          `a tracker id that itself starts with letters and a colon as ` +
+          `id:<that id>.`,
+      ];
+    }
+    return kind === "empty-value"
+      ? [
+          `sessionManager.${key} entry ${JSON.stringify(entry)} has an ` +
+            `empty value after ${JSON.stringify(prefix)}: name the login or ` +
+            `id after the prefix.`,
+        ]
+      : [];
+  });
+}
+
+/**
+ * Warnings for a `sessionManager` block: things that work today but are
+ * ambiguous, never problems. They are printed, never fatal.
+ *
+ * A plain all-digit `operatorIds` entry is read two ways (CodySwannGT/lisa#4623):
+ * the answer matcher takes it as a numeric account id (an all-digit login can
+ * be registered by anyone, #4571) while the queue and the claim take it as
+ * the GitHub assignee login. A `trustedAuthorIds` entry is an id to every
+ * reader, so digits there are not ambiguous and draw no warning.
+ * @param {unknown} block The merged block, if present.
+ * @returns {string[]} Warnings.
+ */
+export function sessionManagerWarnings(block) {
+  if (!isPlainObject(block) || !Array.isArray(block.operatorIds)) return [];
+  return block.operatorIds
+    .filter(entry => typeof entry === "string" && ALL_DIGIT_ENTRY.test(entry))
+    .map(
+      entry =>
+        `sessionManager.operatorIds entry ${JSON.stringify(entry)} is all ` +
+        `digits, so it is read two ways: the answer matcher reads it as a ` +
+        `numeric account id (only a comment whose author's numeric id is ` +
+        `${entry} counts as an answer), while the queue and the claim read ` +
+        `it as a GitHub login. Write ${JSON.stringify(`login:${entry}`)} if ` +
+        `${entry} is the GitHub login, or ${JSON.stringify(`id:${entry}`)} ` +
+        `if it is the numeric account id.`
+    );
+}
+
 /**
  * Validate `sessionManager.operatorIds`: the people the manager works for,
- * whose assigned items it dispatches first. Matched against the assignee the
- * way "me" is, so the GitHub entry is a login, not the numeric id
- * `trustedAuthorIds` takes. An empty list reads as configured but names no
- * one, so it is refused like an empty `trustedAuthorIds`.
+ * whose assigned items it dispatches first. A plain entry is matched against
+ * the assignee the way "me" is, so a plain GitHub entry is a login, not the
+ * numeric id `trustedAuthorIds` takes; `login:` and `id:` entries name their
+ * kind outright. An empty list reads as configured but names no one, so it is
+ * refused like an empty `trustedAuthorIds`.
  * @param {unknown} ids The value, if present.
  * @returns {string[]} Problems found.
  */
@@ -803,7 +892,8 @@ function validateOperatorIds(ids) {
     return [
       `sessionManager.operatorIds must be an array of tracker user ids as ` +
         `strings, matched against the assignee: the GitHub login, the Jira ` +
-        `accountId or the Linear user id.`,
+        `accountId or the Linear user id (login:<v> or id:<v> to name the ` +
+        `kind).`,
     ];
   }
   return ids.length === 0
@@ -811,7 +901,7 @@ function validateOperatorIds(ids) {
         `sessionManager.operatorIds must name at least one person. Remove ` +
           `the key instead if the manager works only for its own identity.`,
       ]
-    : [];
+    : idEntryProblems("operatorIds", ids);
 }
 
 /**
@@ -862,6 +952,9 @@ export function validateSessionManager(block) {
             `tracker user ids (GitHub numeric user id, Jira accountId, ` +
             `Linear user id), not logins or display names.`,
         ]),
+    ...(trustedOk && Array.isArray(block.trustedAuthorIds)
+      ? idEntryProblems("trustedAuthorIds", block.trustedAuthorIds)
+      : []),
     // An empty list reads as "set" but filters no author at all, so on a
     // public repo it would dispatch anyone's item while looking configured.
     ...(trustedOk &&
@@ -996,6 +1089,10 @@ function main() {
     return;
   }
   const problems = validateConfig(cfg);
+  // Warnings never fail the run: the config works, it is only ambiguous.
+  for (const warning of sessionManagerWarnings(cfg.sessionManager)) {
+    console.error(`  warning: ${warning}`);
+  }
   if (!problems.length) {
     console.log(
       "config: secrets, remoteEnv, automations and sessionManager blocks are well-formed"

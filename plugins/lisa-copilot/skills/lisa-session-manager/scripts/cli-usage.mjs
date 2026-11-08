@@ -116,7 +116,9 @@ Config and routing
   repo-dir [--repo <key>] [--raw]
              stdout {repo,dir}; --raw prints the bare dir. Exit 2 for an
              unknown key or a dir without .lisa.config.json.
-  validate   stdout {valid,errors}; exit 2 when invalid or absent.
+  validate   stdout {valid,errors[,warnings]}; exit 2 when invalid or absent.
+             warnings (only when any, never fatal) names an ambiguous entry,
+             such as a plain all-digit operatorIds entry.
   init-config [--slug <slug>] [--notify none|telegram] [--write]
              stdout {written,block[,reason:"exists",layer][,path]}. --notify picks
              the notification channel (default none): none writes
@@ -159,7 +161,9 @@ Per cycle
       reason}]}. An item with a pending question in the ledger is excluded
       (pending-question) from both tiers, and every other item still comes
       back, so one item waiting on a human never stops dispatch. ordered: items assigned to sessionManager.operatorIds
-      first, then to --me, then unassigned; each group by priority, then age.
+      first (a login: entry matches a GitHub assignee login, an id: entry
+      an assignee account id, a plain entry as --me does), then to --me,
+      then unassigned; each group by priority, then age.
       Items assigned to anyone else are excluded (assigned-to-other).
       --me defaults to the ledger's control.me.
       With sessionManager.backlogPickup true, also prints backlogTotal,
@@ -204,7 +208,8 @@ Per cycle
   blocked-plan [--input <file>] [--ref <ref>]  STDIN (without --input): JSON
       {labels,body,comments,humanNeededLabel?,edges,pendingQuestion?}.
       Trusted hold releasers are sessionManager.trustedAuthorIds (none when
-      unset); trustedHumanActorIds in the input is ignored. stdout
+      unset; plain and id: entries, compared as ids; login: entries never
+      release); trustedHumanActorIds in the input is ignored. stdout
       {action:release|keep|escalate|skip-human-gate,reason,edges,gate}.
       --ref fills pendingQuestion from the ledger.
   mark-plan <ref> --kind <kind> [--cause <cause>] [--item-label <l>]...
@@ -254,8 +259,9 @@ Per cycle
       Queues the human's answer from the item's comments (source "item"):
       the first comment after the latest [lisa-session-manager-question]
       comment whose author's STABLE id (GitHub login or numeric id, Jira
-      accountId, Linear user id; never a name, displayName or email; an
-      all-digit entry is a numeric id, never matched against a login) is in
+      accountId, Linear user id; never a name, displayName or email; a
+      plain all-digit entry is a numeric id, never matched against a login;
+      login:<v> matches only a login, id:<v> only an id) is in
       sessionManager.operatorIds or trustedAuthorIds, and that is not a
       machine comment, checked first (body starting with a bracketed tag
       such as [lisa-...] or [claude-sync]; [lisa- or <!-- lisa: anywhere;

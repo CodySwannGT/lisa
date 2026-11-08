@@ -222,16 +222,23 @@ function environmentProblems(ctx, config) {
 
 /**
  * `validate`: every problem with the block, exit 2 when there is any.
+ * Warnings (a config that works but is ambiguous, #4623) are reported in
+ * `warnings`, only when there are any, and never fail the command.
  * @param {object} ctx - CLI context
- * @returns {{ json: object, exitCode: number }} `{valid,errors}`
+ * @returns {{ json: object, exitCode: number }} `{valid,errors[,warnings]}`
  */
 export function validate(ctx) {
   const project = loadProject(ctx.root);
   const errors = project.config
     ? [...project.errors, ...environmentProblems(ctx, project.config)]
     : [`No sessionManager block in ${GLOBAL_CONFIG_FILE}.`];
+  const warnings = project.warnings ?? [];
   return {
-    json: { valid: errors.length === 0, errors },
+    json: {
+      valid: errors.length === 0,
+      errors,
+      ...(warnings.length > 0 ? { warnings } : {}),
+    },
     exitCode: errors.length === 0 ? EXIT.OK : EXIT.SETUP,
   };
 }

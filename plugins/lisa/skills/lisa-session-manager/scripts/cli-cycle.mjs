@@ -11,6 +11,7 @@ import {
   AUTOMATION_RUN_OUTCOMES,
   recordAutomationRun,
 } from "../../../scripts/automation-run-record.mjs";
+import { idComparableValues } from "../../../scripts/operator-id-kinds.mjs";
 import {
   CliError,
   EXIT,
@@ -227,7 +228,9 @@ export async function route(ctx) {
  * Who may release a human hold comes from `sessionManager.trustedAuthorIds`
  * only. Any `trustedHumanActorIds` in the input is discarded: the input is
  * assembled from the item's own (untrusted) body and comments, so a list
- * carried beside them would let the item's text vouch for itself.
+ * carried beside them would let the item's text vouch for itself. The
+ * release check compares account ids only, so an `id:` entry reaches it as
+ * its bare value and a `login:` entry not at all (#4623).
  * @param {object} ctx - CLI context
  * @returns {Promise<{ json: object }>} `{action,reason,edges,gate}`
  */
@@ -240,7 +243,9 @@ export async function blockedPlan(ctx) {
     input.pendingQuestion ??
     (ref ? (await readLedger(ctx.root)).items[ref]?.pendingQuestion : null);
   const project = loadProject(ctx.root);
-  const trustedHumanActorIds = project.config?.trustedAuthorIds ?? [];
+  const trustedHumanActorIds = idComparableValues(
+    project.config?.trustedAuthorIds
+  );
   return {
     json: planBlockedRelease({
       ...input,

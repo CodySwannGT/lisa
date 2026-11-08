@@ -18,8 +18,11 @@
  * login or numeric id, a Jira accountId, a Linear user id, never a display
  * name or email, which anyone can set. An all-digit allowed entry is a
  * numeric id and matches only the `id` or `accountId` field, never a login,
- * which its owner chooses and may make all digits (#4571). The text is
- * carried as data.
+ * which its owner chooses and may make all digits (#4571). A kind-keyed
+ * entry names one identity for this matcher, the queue and the claim alike
+ * (#4623): `login:<v>` matches only a `login`, `id:<v>` only an `id` or
+ * `accountId`, and an entry with an unknown prefix or an empty value matches
+ * nobody. The text is carried as data.
  *
  * The question the answer must follow is the comment whose id the manager
  * recorded last; with no recorded id, the latest comment that STARTS with
@@ -28,6 +31,7 @@
  * answer by posting the marker after it.
  * @module session-manager/human-answer
  */
+import { parseIdEntries } from "../../../scripts/operator-id-kinds.mjs";
 import { QUESTION_MARKER } from "./human-needed.mjs";
 
 /** Body markers that make a comment a machine's, never a human's answer. */
@@ -46,6 +50,9 @@ const QUOTE_LINE = /^\s*>/;
 /** The comment fields that carry its tracker id. */
 const COMMENT_ID_KEYS = ["id", "node_id"];
 
+/** The author field a `login:` entry matches. */
+const LOGIN_KEYS = ["login"];
+
 /** The author fields that are stable ids, never settable display text. */
 const STABLE_ID_KEYS = ["login", "id", "accountId"];
 
@@ -59,6 +66,28 @@ const NUMERIC_ID_KEYS = ["id", "accountId"];
 
 /** An allowed entry that is a numeric account id, never a login. */
 const ALL_DIGITS = /^\d+$/;
+
+/**
+ * The allowed values, split by the author fields each may match. A plain
+ * entry keeps its #4571 meaning (all digits: an id only; otherwise a login
+ * or an id); a kind-keyed entry matches its own kind only.
+ * @param {readonly unknown[]} allowed - Answerer entries
+ * @returns {{ ids: Set<string>, logins: Set<string>, named: Set<string> }}
+ *   Values matched against id fields, login fields, and any stable field
+ */
+function answererSets(allowed) {
+  const entries = parseIdEntries(allowed);
+  const plain = entries.filter(entry => entry.kind === "plain");
+  const valuesOf = list => new Set(list.map(entry => entry.value));
+  return {
+    ids: valuesOf([
+      ...plain.filter(entry => ALL_DIGITS.test(entry.value)),
+      ...entries.filter(entry => entry.kind === "id"),
+    ]),
+    logins: valuesOf(entries.filter(entry => entry.kind === "login")),
+    named: valuesOf(plain.filter(entry => !ALL_DIGITS.test(entry.value))),
+  };
+}
 
 /**
  * The string or number values of `keys` on `value`, as strings.
@@ -148,11 +177,12 @@ function questionIndex(rows, managerCommentIds, authorOf) {
  * reported in `refused`, never returned: returning it made every later cycle
  * pick the same reply and fail on it again, so a corrected reply posted after
  * it was never read (CodySwannGT/lisa#4571).
- * @param {{comments: unknown, allowed: readonly string[],
+ * @param {{comments: unknown, allowed: readonly (string|number)[],
  *   managerCommentIds?: readonly (string|number)[],
  *   refuses?: (text: string) => string | null | undefined}} input - The
- *   item's comments, the answerer ids, the ids the manager posted, and why a
- *   reply's text may not be queued (null when it may)
+ *   item's comments, the answerer entries (plain, `login:` or `id:`), the
+ *   ids the manager posted, and why a reply's text may not be queued (null
+ *   when it may)
  * @returns {{answer: {text: string, author: string, at: string|null} | null,
  *   reason: string, refused?: {id: string|null, author: string, why: string}[]}}
  *   The answer, or null with why there is none, and (only when any were)
@@ -168,13 +198,12 @@ export function pickItemAnswer({
     throw new Error('stdin must be JSON {"comments":[...]}');
   }
   const rows = comments.filter(row => row && typeof row === "object");
-  const allow = allowed.map(String);
-  const numeric = new Set(allow.filter(id => ALL_DIGITS.test(id)));
-  const named = new Set(allow.filter(id => !ALL_DIGITS.test(id)));
+  const { ids, logins, named } = answererSets(allowed);
   const authorOf = row => {
     const author = row.author ?? row.user;
     return (
-      idsOf(author, NUMERIC_ID_KEYS).find(id => numeric.has(id)) ??
+      idsOf(author, NUMERIC_ID_KEYS).find(id => ids.has(id)) ??
+      idsOf(author, LOGIN_KEYS).find(login => logins.has(login)) ??
       idsOf(author, STABLE_ID_KEYS).find(id => named.has(id))
     );
   };
