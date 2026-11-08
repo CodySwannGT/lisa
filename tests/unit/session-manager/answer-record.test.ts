@@ -62,6 +62,7 @@ describe("planAnswerRecord", () => {
       ref: REF,
       record: true,
       source: "cli",
+      answerAt: AT,
       comment: `[lisa-session-manager] The operator answered the question above (by answer, ${AT}): ${ANSWER}`,
     });
   });

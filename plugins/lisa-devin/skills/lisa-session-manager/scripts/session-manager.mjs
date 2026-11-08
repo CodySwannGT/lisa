@@ -157,7 +157,10 @@ const LEDGER_SPECS = {
     options: { "marker-type": text, marker: text, "comment-id": text },
     positionals: 1,
   },
-  "clear-question": { options: { "reset-attempts": flag }, positionals: 1 },
+  "clear-question": {
+    options: { "reset-attempts": flag, "expect-answer-at": text },
+    positionals: 1,
+  },
   finish: { options: { status: text, sender: text }, positionals: 1 },
   "validation-failed": { options: { "updated-at": text }, positionals: 1 },
   "validation-cleared": { options: {}, positionals: 1 },

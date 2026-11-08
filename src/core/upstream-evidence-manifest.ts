@@ -1693,17 +1693,17 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-sentry-access/SKILL.md":
       "1c1881ca9a2020f6cd8f938dc5335ebf2d344ff280844bb98926198e5226e526",
     "plugins/src/base/skills/lisa-session-manager/SKILL.md":
-      "2dfb950e33576fac9919963823bf4b75b261808b54418dfe245f3354ab9efc3c",
+      "34081bdee87e1d1255716594d748138c32578ef97b33a83bcc53f86f2e19f340",
     "plugins/src/base/skills/lisa-session-manager/references/runbook-template.md":
       "62942a381e7dfb66d44d53e82df4121333ce88b4212acc53be9df9becaa6e100",
     "plugins/src/base/skills/lisa-session-manager/scripts/answer-record.mjs":
-      "e1af611077110e7319a1648bc8c11cb4ad51c853439004ebf9be3ce3a8ce5847",
+      "97311a94ad3131c276c6045a9281c3043ff3ed481ea8bcb17c782b5e6e2ae994",
     "plugins/src/base/skills/lisa-session-manager/scripts/capacity.mjs":
       "ad5acc6097e375868b51eaf01b1506662505e2404b7ac1b06528679718504091",
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-answer-record.mjs":
       "f223e3b03cd988c54718cc52a4c6b479cbe3041a4afe8144e9f84e9cc843fe5c",
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-cycle.mjs":
-      "02db00a5f343edc932466eea345e3d78193ff35223a7ade33e0133ab0ee29f9f",
+      "944e904ca209f788dd82575d99761dbdd140f73758d9d75b64ae57d1ae9c25dd",
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-human.mjs":
       "9c3030873d04222cf0c1defb95675957af17c216f1187fb451dc328cc69be2ce",
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-manager-token.mjs":
@@ -1721,7 +1721,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-status.mjs":
       "30bdd485e5c575a78456230712d4a51d1feddd4022a0c8e5c69e5edc3c32508a",
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-usage.mjs":
-      "ae14e057b2d94338a194e21faf7053af71978fc17330668b16ed99a7fb0ccc48",
+      "a2457538f0e0445870fecf7a204363d18deb115fef687f75980396e098ff061e",
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-workers.mjs":
       "59a00278ab701a7830437597923379bad78ccd43857d574f333f6265efc4dcc7",
     "plugins/src/base/skills/lisa-session-manager/scripts/clipboard.mjs":
@@ -1743,7 +1743,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-session-manager/scripts/launch.mjs":
       "db6d7bd4aaf5b37a2762dc1d6ce354afd731ff99f4ea1ebe22afacf018440fa1",
     "plugins/src/base/skills/lisa-session-manager/scripts/ledger-questions.mjs":
-      "d757a62d6d252ee934a95b28729c12a3a82fa6737ffc98ac1f6f9021e23f56ea",
+      "56c284355daedc3b78ca5bc32f1204dee4082b37bc81cc75618e24864f2f177c",
     "plugins/src/base/skills/lisa-session-manager/scripts/ledger.mjs":
       "6b43ff117a1a7aada67a1370309ed801085cfe9c9e04a72859f0bdff1b8324fc",
     "plugins/src/base/skills/lisa-session-manager/scripts/queue-github.mjs":
@@ -1753,7 +1753,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-session-manager/scripts/repo-detect.mjs":
       "3ce714f1934433f2bc297c0b67931a28687ccef70c01639cb8542e9bb7f0a14d",
     "plugins/src/base/skills/lisa-session-manager/scripts/session-manager.mjs":
-      "7fa90e42b067fa8a30a4a67c2c201c0f7bb463ff68683fdedcdb67b543508092",
+      "015fe366d9ce78168adde548b8e80351f4821251c9fa55ff682c553c7e4632ed",
     "plugins/src/base/skills/lisa-session-manager/scripts/setup-checks.mjs":
       "433c1afb36641eb3eb271f1803c7dfba556dd98e535627d00cfc8e3135a5d68f",
     "plugins/src/base/skills/lisa-session-manager/scripts/state-dir.mjs":
@@ -13219,6 +13219,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/session-manager/answer-record.test.ts": true,
     "tests/unit/session-manager/capacity-stats.test.ts": true,
     "tests/unit/session-manager/capacity.test.ts": true,
+    "tests/unit/session-manager/cli-answer-record-replaced.test.ts": true,
     "tests/unit/session-manager/cli-answer-record.test.ts": true,
     "tests/unit/session-manager/cli-classify.test.ts": true,
     "tests/unit/session-manager/cli-cycle-human-needed.test.ts": true,

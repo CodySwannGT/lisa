@@ -189,10 +189,13 @@ Per cycle
       answer after it, and never reads it as an answer. Exit 2 when it is
       missing or not a tracker comment id, or <ref> has no pending
       question.
-  ledger clear-question <ref> [--reset-attempts]
+  ledger clear-question <ref> [--reset-attempts] [--expect-answer-at <iso>]
       After the answer is delivered (or recorded on the item and read back,
       per answer-plan) and the marker removed. --reset-attempts
       zeroes the attempt count (an exhausted item a human has answered).
+      --expect-answer-at: the answerAt answer-plan returned; exit 2 and
+      nothing cleared when the queued answer's at differs (the operator
+      replaced it since) or no answer is queued: record the new one first.
   ledger finish <ref> --status DONE|FAILED [--sender <name>]  STDIN: reason
       --sender: exit 2 unless the ledger's worker for <ref> is exactly <name>.
   ledger validation-failed <ref> --updated-at <ts>     STDIN: failing gates
@@ -290,13 +293,14 @@ Per cycle
       or the text looks like a credential.
   answer-plan <ref>
       Plans recording the queued answer on the item before clearing; writes
-      nothing. stdout {ref,record:true,source,comment} when no worker will
-      receive the answer (the worker reported DONE or FAILED, the question
-      is exhausted, or no worker was started) and the answer came from
-      answer (source cli) or Telegram (source channel): post comment
-      ([lisa-session-manager] The operator answered the question above (by
-      answer|Telegram, <time>): <answer>) and read it back before ledger
-      clear-question. A repo-route never records (the repo stamp carries
+      nothing. stdout {ref,record:true,source,answerAt,comment} when no
+      worker will receive the answer (the worker reported DONE or FAILED,
+      the question is exhausted, or no worker was started) and the answer
+      came from answer (source cli) or Telegram (source channel): post
+      comment ([lisa-session-manager] The operator answered the question
+      above (by answer|Telegram, <time>): <answer>) and read it back, then
+      ledger clear-question --expect-answer-at <answerAt> (answerAt: the
+      queued answer's at). A repo-route never records (the repo stamp carries
       it). Otherwise {ref,record:false,reason:no-pending-question|
       no-answer-queued|answered-on-item|worker-not-finished|
       routed-by-repo-stamp}. Exit 2 when the answer it would post looks

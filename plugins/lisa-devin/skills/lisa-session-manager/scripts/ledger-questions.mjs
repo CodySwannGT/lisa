@@ -231,19 +231,32 @@ export function setPendingQuestion(
  * Clear an item's pending question, once its answer has been delivered and
  * the manager's own marker removed. `resetAttempts` zeroes the attempt count:
  * an `exhausted` item a human has answered starts again from attempt one
- * instead of being exhausted again on its first stall.
+ * instead of being exhausted again on its first stall. `expectAnswerAt` is
+ * the queued answer's `at` that `answer-plan` recorded on the item: when the
+ * pending answer's `at` differs (the operator replaced it since, or none is
+ * queued), nothing is cleared and it throws, so a replacement is never
+ * deleted unseen (CodySwannGT/lisa#4624). Without it, nothing is compared.
  * @param {string} projectRoot - Absolute project root
- * @param {{ref: string, resetAttempts?: boolean}} target - Item
+ * @param {{ref: string, resetAttempts?: boolean, expectAnswerAt?: string}}
+ *   target - Item
  * @param {import("./ledger.mjs").LedgerSeams} [seams] - Injected seams
  * @returns {Promise<import("./ledger.mjs").LedgerItem>} The updated item
  */
 export function clearPendingQuestion(
   projectRoot,
-  { ref, resetAttempts = false },
+  { ref, resetAttempts = false, expectAnswerAt },
   seams
 ) {
   return updateLedger(projectRoot, seams, (ledger, at) => {
     const previous = requireItem(ledger, ref);
+    if (
+      expectAnswerAt !== undefined &&
+      previous.pendingQuestion?.answer?.at !== expectAnswerAt
+    ) {
+      throw new Error(
+        `the answer changed since it was planned (${ref}); nothing was cleared. Record the new one first: run answer-plan again and post its comment.`
+      );
+    }
     return withItem(ledger, ref, {
       ...previous,
       pendingQuestion: null,

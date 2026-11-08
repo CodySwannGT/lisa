@@ -113,6 +113,14 @@ describe.each(ALL_ROOTS)("mark and move on (%s)", root => {
       "`[lisa-session-manager] Answer recorded on the item; removed the hold.`"
     );
     expect(clearing).not.toContain("Deliver nothing; the next attempt reads");
+    // A replacement answer queued after answer-plan must not be cleared
+    // unseen: step 3 names the answer it recorded, and a refusal re-records.
+    expect(clearing).toContain(
+      "`ledger clear-question <ref> --expect-answer-at <answerAt>`"
+    );
+    expect(clearing).toMatch(
+      /exit 2 from `ledger clear-question`[\s\S]*keep the hold[\s\S]*run "Record the answer on the item" again for the replacement/
+    );
     // A retry after a failed read-back or step 2 must not post the answer
     // twice: an identical comment already on the item is the read-back.
     const record = clearing.slice(

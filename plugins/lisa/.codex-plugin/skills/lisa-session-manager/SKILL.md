@@ -280,7 +280,15 @@ leave the ledger as it is (`markedAt` stays null), carry on with the cycle and e
    hold.` when a worker received the answer (`SendMessage` or `resume`), else
    `[lisa-session-manager] Answer recorded on the item; removed the hold.` Read it back with
    `lisa-tracker-read`.
-3. `ledger clear-question <ref>` (`--reset-attempts` for an `exhausted` item).
+3. `ledger clear-question <ref>` (`--reset-attempts` for an `exhausted` item). After "Record the
+   answer on the item" posted (or found) a comment, run it as
+   `ledger clear-question <ref> --expect-answer-at <answerAt>`, with `answerAt` from that
+   `answer-plan`: the operator may have replaced the answer since (a new `answer` or Telegram
+   reply replaces the queued one), and a plain clear would delete the replacement unseen. On
+   exit 2 from `ledger clear-question` (the answer changed since it was planned), keep the hold:
+   do not clear (the pending question keeps the item out of dispatch even once the marker is
+   removed), and run "Record the answer on the item" again for the replacement, then this step
+   with its new `answerAt`; the next cycle's "Waiting on a human" step may do it.
 
 ## Handling messages (any time, not only during a cycle)
 

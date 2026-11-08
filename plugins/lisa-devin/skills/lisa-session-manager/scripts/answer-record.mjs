@@ -69,7 +69,9 @@ function skipReason(status, worker, pending) {
  *   pending: object | null}} input - The item's ref, its ledger status and
  *   worker, and its pending question
  * @returns {{ref: string, record: false, reason: string} |
- *   {ref: string, record: true, source: string, comment: string}} Plan
+ *   {ref: string, record: true, source: string, answerAt: string | null,
+ *   comment: string}} Plan; answerAt is the queued answer's `at`, which
+ *   `ledger clear-question --expect-answer-at` checks before clearing
  */
 export function planAnswerRecord({ ref, status, worker, pending }) {
   const reason = skipReason(status, worker, pending);
@@ -86,6 +88,7 @@ export function planAnswerRecord({ ref, status, worker, pending }) {
     ref,
     record: true,
     source,
+    answerAt: at ?? null,
     comment: withAnswer(
       `${MANAGER_COMMENT_PREFIX} The operator answered the question above (by ${by}, ${at ?? "time unknown"}):`,
       text
