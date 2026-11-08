@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.99.2](https://github.com/CodySwannGT/lisa/compare/v4.99.1...v4.99.2) (2026-11-08)
+
+
+### Bug Fixes
+
+* **doctor:** harden CodeRabbit labeling check and correction ([8ccbd4c](https://github.com/CodySwannGT/lisa/commit/8ccbd4c95544f376905c9662a9f92f42d5d9c370)), closes [#4633](https://github.com/CodySwannGT/lisa/issues/4633) [CodySwannGT/lisa#4633](https://github.com/CodySwannGT/lisa/issues/4633)
+* **doctor:** stop host CodeRabbit configs auto-applying lifecycle labels ([3b5b04a](https://github.com/CodySwannGT/lisa/commit/3b5b04afc55506a64fb8bbd17788940709f80112)), closes [#4633](https://github.com/CodySwannGT/lisa/issues/4633) [CodySwannGT/lisa#4633](https://github.com/CodySwannGT/lisa/issues/4633)
+
 ### [4.99.1](https://github.com/CodySwannGT/lisa/compare/v4.99.0...v4.99.1) (2026-11-08)
 
 
