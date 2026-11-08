@@ -1,2 +1,5 @@
-{"message":"Not Found","documentation_url":"https://docs.github.com/rest/repos/contents#get-repository-content","status":"404"}gh: Not Found (HTTP 404)
+$ gh api repos/CodySwannGT/lisa/contents/.github/workflows/packed-host-journey.yml?ref=main
+{"message":"Not Found","status":"404"}
+gh: Not Found (HTTP 404)
 exit=1
+(The workflow file is not yet on main, so workflow_dispatch for AC3 can only run after merge.)
