@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.95.3](https://github.com/CodySwannGT/lisa/compare/v4.95.2...v4.95.3) (2026-11-08)
+
+
+### Bug Fixes
+
+* **health:** parse Lisa-pinned reusable-workflow callers and fail closed ([072e172](https://github.com/CodySwannGT/lisa/commit/072e1728b99fd925c19cacbf6a0f37623ec9ce6b)), closes [CodySwannGT/lisa#4641](https://github.com/CodySwannGT/lisa/issues/4641) [CodySwannGT/lisa#4641](https://github.com/CodySwannGT/lisa/issues/4641)
+* **scripts:** clarify unparsed-caller summary for operators ([21fd832](https://github.com/CodySwannGT/lisa/commit/21fd83255e0c13b7ff259eab2fa9184d18f2a7c5)), closes [CodySwannGT/lisa#4641](https://github.com/CodySwannGT/lisa/issues/4641) [CodySwannGT/lisa#4641](https://github.com/CodySwannGT/lisa/issues/4641)
+
 ### [4.95.2](https://github.com/CodySwannGT/lisa/compare/v4.95.1...v4.95.2) (2026-11-08)
 
 
