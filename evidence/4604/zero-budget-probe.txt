@@ -1,0 +1,25 @@
+$ command -v timeout gtimeout
+$ time gtimeout 0 sleep 3
+time: gtimeout: No such file or directory
+real 0.00
+user 0.00
+sys 0.00
+exit=127
+$ time gtimeout 1 sleep 3   (bite control: a real budget expires)
+time: gtimeout: No such file or directory
+real 0.00
+user 0.00
+sys 0.00
+exit=127
+$ time perl -e 'alarm shift; exec @ARGV or die' 0 sleep 3
+real 3.01
+user 0.00
+sys 0.00
+exit=0
+$ time perl -e 'alarm shift; exec @ARGV or die' 1 sleep 3   (bite control)
+time: command terminated abnormally
+real 1.01
+user 0.00
+sys 0.00
+/Users/codysai/.claude/jobs/dbbe9114/tmp/zero-budget.sh: line 10: 98176 Alarm clock: 14         /usr/bin/time -p perl -e 'alarm shift; exec @ARGV or die "exec failed: $!\n"' 1 sleep 3
+exit=142
