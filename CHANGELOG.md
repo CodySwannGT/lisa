@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.97.3](https://github.com/CodySwannGT/lisa/compare/v4.97.2...v4.97.3) (2026-11-08)
+
+
+### Bug Fixes
+
+* **session-manager:** address review of kind-keyed operator ids ([0164fe6](https://github.com/CodySwannGT/lisa/commit/0164fe65502c2ce6b4c735cf097d058610e63d9e)), closes [CodySwannGT/lisa#4623](https://github.com/CodySwannGT/lisa/issues/4623) [CodySwannGT/lisa#4623](https://github.com/CodySwannGT/lisa/issues/4623)
+* **session-manager:** key operator and trusted-author ids by kind ([2ab2478](https://github.com/CodySwannGT/lisa/commit/2ab2478995a41625267f1e67c9992905796266b1)), closes [CodySwannGT/lisa#4623](https://github.com/CodySwannGT/lisa/issues/4623) [CodySwannGT/lisa#4623](https://github.com/CodySwannGT/lisa/issues/4623)
+* **session-manager:** say a padded all-digit operator entry matches no answer ([20846ab](https://github.com/CodySwannGT/lisa/commit/20846abb7ddba4880ae83f615aa2e367a6f09513)), closes [CodySwannGT/lisa#4623](https://github.com/CodySwannGT/lisa/issues/4623) [CodySwannGT/lisa#4623](https://github.com/CodySwannGT/lisa/issues/4623)
+
+
+### Documentation
+
+* **session-manager:** document login: and id: operator entries ([7a187b0](https://github.com/CodySwannGT/lisa/commit/7a187b0a883c23ce619200cf911fc1e2ada59647)), closes [CodySwannGT/lisa#4623](https://github.com/CodySwannGT/lisa/issues/4623) [CodySwannGT/lisa#4623](https://github.com/CodySwannGT/lisa/issues/4623)
+
 ### [4.97.2](https://github.com/CodySwannGT/lisa/compare/v4.97.1...v4.97.2) (2026-11-08)
 
 
