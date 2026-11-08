@@ -1501,13 +1501,13 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-jira-create/SKILL.md":
       "2a409fe3755112f98587db66325fadf5e0d4f34b512755cdbb53b5bec107dab3",
     "plugins/src/base/skills/lisa-jira-evidence/SKILL.md":
-      "091149fefcfc51e3cec789082a0a8e21167239da1cf2b684e86224db733d974d",
+      "e6490ec14a8dabdd84090d26d68f3b2b4b2529f1fee5894c1eefeaffaba1f44c",
     "plugins/src/base/skills/lisa-jira-evidence/scripts/post-evidence.sh":
-      "6e2cf31b31d16cd5131f4ccef208705c7e8a969414a17274c9722d072e5aca7d",
+      "6776d67105b11f7421ad3f75b3bd0da9f29ac14465e45efed293e163b8c66ca2",
     "plugins/src/base/skills/lisa-jira-journey/SKILL.md":
       "8712a24e0ef39364b9ce60140bdca5800321a129eae541e320a93e2dca3e35ef",
     "plugins/src/base/skills/lisa-jira-journey/scripts/generate-templates.py":
-      "906c6d02d2191f12573a452059d939bb85de6489c86f3626e0a206dd5af7e3b7",
+      "97d376578f519de105cafdd2d9e3dad9aa6e61aa9979fdbea4627842f970afae",
     "plugins/src/base/skills/lisa-jira-journey/scripts/parse-plan.py":
       "a96fda5de44cd6d65fcc7ecf36aa365766707b77ad68b198062124d31a9238b9",
     "plugins/src/base/skills/lisa-jira-read-ticket/SKILL.md":
@@ -2079,13 +2079,13 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/expo/skills/jira-create/SKILL.md":
       "0fb4378b7399580e180beaacd22f832af3ff0ddae7c5d7761039bc81832c0c43",
     "plugins/src/expo/skills/jira-evidence/SKILL.md":
-      "2161ad652fe2871483c189934bb8fd38e1ed5469478db2f08fe1ae21092f63b3",
+      "8dad076e65c04eafb7c9c032ede9c0e70d0febe96e4bef1e2db7c69874dcc28e",
     "plugins/src/expo/skills/jira-evidence/scripts/post-evidence.sh":
-      "6e2cf31b31d16cd5131f4ccef208705c7e8a969414a17274c9722d072e5aca7d",
+      "6776d67105b11f7421ad3f75b3bd0da9f29ac14465e45efed293e163b8c66ca2",
     "plugins/src/expo/skills/jira-journey/SKILL.md":
       "f5fecd9f17263f976a7e26d0c47a0d69477da31caaf9e299f5f5eeefbef52c34",
     "plugins/src/expo/skills/jira-journey/scripts/generate-templates.py":
-      "0b86be11aa955aa99e6ac72634e475b2945510b345040cdd3ec47afba6ae3cbf",
+      "c982f0198967b275b0776171581b71180730c9c60bcee19c9247c313b29ebe6e",
     "plugins/src/expo/skills/jira-journey/scripts/parse-plan.py":
       "4c777dfa36c4c01216906b20a9ce473a764a71e4fccd29aed465403229d8de6d",
     "plugins/src/expo/skills/jira-verify/SKILL.md":
@@ -2359,9 +2359,9 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/rails/skills/jira-create/SKILL.md":
       "789b1ed68e983029e0b57c3eefa90fdce000615d0f23b1699a6d9c0099b4e1d0",
     "plugins/src/rails/skills/jira-evidence/SKILL.md":
-      "a131da5a48db3edfdbaa4d5f5a91b5e5f87ccb9a8bb995cec1e81586d76c5393",
+      "d8e45e9cf5ddd7ad8f6e65d7ec6a95c852a0b373fb7f0638bf5c8d37bb0293f9",
     "plugins/src/rails/skills/jira-evidence/scripts/post-evidence.sh":
-      "6e2cf31b31d16cd5131f4ccef208705c7e8a969414a17274c9722d072e5aca7d",
+      "6776d67105b11f7421ad3f75b3bd0da9f29ac14465e45efed293e163b8c66ca2",
     "plugins/src/rails/skills/jira-journey/SKILL.md":
       "c65cf8bcde3dbfe4995d26dcce62067cf1a08314a9ba9ca7f7c1fdd53d61feb6",
     "plugins/src/rails/skills/jira-verify/SKILL.md":
@@ -11806,6 +11806,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/host-test-scripts-survive-apply.test.ts": true,
     "tests/integration/inventory-covers-shipped-artifacts.test.ts": true,
     "tests/integration/jest-expo-haste-pruning.test.ts": true,
+    "tests/integration/jira-evidence-generator-links.test.ts": true,
+    "tests/integration/jira-evidence-pr-scoped-uploads.test.ts": true,
     "tests/integration/jira-shell-auth-destinations.test.ts": true,
     "tests/integration/job-names-name-properties.test.ts": true,
     "tests/integration/lisa-cleanup-sweep.test.ts": true,
@@ -11992,6 +11994,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/support/rails-helper-fixture.ts": true,
     "tests/integration/support/rails-learnings-budget-gate.ts": true,
     "tests/integration/support/rails-scratch-supervisor.ts": true,
+    "tests/integration/support/recording-gh-stub.ts": true,
     "tests/integration/support/reusable-workflow-scopes.ts": true,
     "tests/integration/support/shell-guard-refusal-fixture.ts": true,
     "tests/integration/third-party-evidence-seed-apply.test.ts": true,
@@ -12885,6 +12888,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/install-claude-plugins-self.test.ts": true,
     "tests/unit/scripts/invoked-as-script.test.ts": true,
     "tests/unit/scripts/jira-cli-config-consumption.test.ts": true,
+    "tests/unit/scripts/jira-evidence-upload-names.test.ts": true,
     "tests/unit/scripts/jira-server-origin.test.ts": true,
     "tests/unit/scripts/kill-marks.test.ts": true,
     "tests/unit/scripts/lint-staged-preflight.test.ts": true,

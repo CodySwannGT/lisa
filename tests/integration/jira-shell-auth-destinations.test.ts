@@ -12,6 +12,7 @@ import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 
 import { boundedSpawnSync } from "../helpers/io-latency-budget.js";
+import { writeRecordingGh } from "./support/recording-gh-stub.js";
 import {
   BASH,
   SYSTEM_PATH,
@@ -97,11 +98,9 @@ function prepareFixture(server: string, files = ["01-log.txt", "02-shot.png"]) {
     'printf "AUTH_CONSTRUCTED\\n" >> "$LISA_AUTH_TRACE"\n/usr/bin/base64\n'
   );
   writeStub(bin, "curl", CURL_STUB);
-  writeStub(
-    bin,
-    "gh",
-    'case "$1" in repo) printf "fixture/repo\\n" ;; pr) printf "body\\n" ;; esac\nexit 0\n'
-  );
+  // The script confirms its uploads are listed in the release, so `gh` must
+  // answer `release view` from what was actually uploaded.
+  writeRecordingGh(bin, path.join(root, "gh-state"));
   writeStub(bin, "jira", "exit 0\n");
   return { root, bin, evidence, trace };
 }
@@ -142,6 +141,7 @@ function runHelper(
         : { JIRA_SERVER: server, JIRA_LOGIN: "operator@jira.invalid" }),
       JIRA_API_TOKEN: "fixture-token",
       LISA_AUTH_TRACE: trace,
+      LISA_GH_STATE: path.join(root, "gh-state"),
       LISA_AUTH_MODE: options.redirect
         ? "redirect"
         : download

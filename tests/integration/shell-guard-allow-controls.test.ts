@@ -25,6 +25,7 @@ import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 
 import { boundedSpawnSync } from "../helpers/io-latency-budget.js";
+import { writeRecordingGh } from "./support/recording-gh-stub.js";
 import {
   BASH,
   PERMITTED,
@@ -90,11 +91,9 @@ describe("post-evidence.sh completes when JIRA and GitHub answer", () => {
     writeFileSync(path.join(evidenceDir, "02-shot.png"), "not-really-a-png\n");
     writeFileSync(path.join(evidenceDir, "comment.md"), "## Evidence\nbody\n");
     writeFileSync(path.join(evidenceDir, "comment.txt"), "comment body\n");
-    writeStub(
-      binDir,
-      "gh",
-      'case "$1" in\n  repo) printf "org/repo\\n" ;;\n  pr) printf "existing body\\n" ;;\n  *) : ;;\nesac\nexit 0\n'
-    );
+    // The script confirms its uploads are listed in the release
+    // (CodySwannGT/lisa#4639), so `gh` answers from what was really uploaded.
+    writeRecordingGh(binDir, path.join(root, "gh-state"));
     writeStub(binDir, "curl", 'printf "{}\\nHTTP_CODE:201"\nexit 0\n');
     writeStub(binDir, "jira", "exit 0\n");
     return { projectDir, evidenceDir, binDir };
@@ -116,6 +115,7 @@ describe("post-evidence.sh completes when JIRA and GitHub answer", () => {
         CLAUDE_PROJECT_DIR: projectDir,
         HOME: projectDir,
         JIRA_API_TOKEN: "probe-token",
+        LISA_GH_STATE: path.join(path.dirname(binDir), "gh-state"),
         PATH: `${binDir}:${SYSTEM_PATH}`,
       },
     });
