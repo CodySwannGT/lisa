@@ -16,7 +16,7 @@ EXCLUDE - Plan - architecture is fully prescribed by the ticket's Technical Appr
 EXCLUDE - lisa:architecture-specialist - design is prescribed in the ticket; no open architectural decision.
 EXCLUDE - lisa:test-specialist - builder runs TDD and the ticket enumerates the exact fixture matrix; quality-specialist reviews tests.
 EXCLUDE - lisa:bug-fixer - Build, not Fix.
-EXCLUDE - lisa:debug-specialist - no defect to root-cause.
+INCLUDE - lisa:debug-specialist - pre-push test-integration gate failed (23 tests in files the diff does not touch); root-cause whether pre-existing or caused by this branch.
 EXCLUDE - lisa:product-specialist - no user-facing UI; operator behaviour is fully specified in Gherkin.
 EXCLUDE - lisa:spec-conformance-specialist - verification-specialist checks the four scenarios directly against the ticket.
 EXCLUDE - lisa:performance-specialist - event-filter workflow; no performance surface.
