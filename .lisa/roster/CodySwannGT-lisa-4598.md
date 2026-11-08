@@ -43,3 +43,9 @@ Scope: one `with:` input added to `.github/workflows/ci.yml`. Verification is th
 
 Blocker note: #4591 (A1) is open and marked human-needed. The ticket's Technical Approach covers its absence ("Otherwise keep 4"), and `scripts/test-timing-report.mjs` is not on origin/main, so the shard count is 4.
 Regression-spec exit 1: no e2e harness applies to a CI caller-workflow input. The PR's own CI run is the observation.
+
+## Resumption — 2026-11-08 (after #4675 merged)
+
+Roster unchanged; every INCLUDE/EXCLUDE above re-affirmed for the resume run (rebase onto main, re-measure the unit path, tune `unit_test_shards`, unhold and merge #4674).
+
+- INCLUDE - lisa:verification-specialist - Re-measures the unit path on the rebased PR's CI run and refreshes the verdict.
