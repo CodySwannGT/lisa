@@ -115,6 +115,32 @@ describe("doctor audit scope", () => {
     expect(text).toContain("ignores the wider one");
   });
 
+  it("says a package-less wide entry is set aside only for the narrower entry's package", async () => {
+    const root = tree({
+      "audit.ignore.config.json": [{ id: GHSA, reason: "advisory-wide" }],
+      "audit.ignore.local.json": [SCOPED],
+    });
+    const text = (await auditExceptionObservations(root)).join("\n");
+    // The gate still lets the wide entry decide findings in other packages.
+    expect(text).toContain("only for `zod`");
+    expect(text).not.toContain(
+      `excuses advisory \`${GHSA}\` for every copy, but`
+    );
+  });
+
+  it("recognizes the same advisory when one entry names it by CVE", async () => {
+    const CVE = "CVE-2026-4521";
+    const root = tree({
+      "audit.ignore.config.json": [
+        { id: "GHSA-0000-0000-0000", cve: CVE, package: "zod", reason: "wide" },
+      ],
+      "audit.ignore.local.json": [{ ...SCOPED, id: CVE }],
+    });
+    expect((await auditExceptionObservations(root)).join("\n")).toContain(
+      "ignores the wider one"
+    );
+  });
+
   it("reads the lockfile once per run however many scoped entries exist", async () => {
     const spy = vi.spyOn(lockfile, "readAuditCopies");
     const root = tree({

@@ -82,22 +82,37 @@ function lockfileFailure(root: string): string | null {
 }
 
 /**
- * Whether a narrower entry for the same advisory and package sets a wide one aside.
+ * The identifiers a finding can match an entry by: its `id` and its `cve`.
+ * @param fields - Exclusion fields
+ * @returns The entry's advisory identifiers
+ */
+function advisoryIds(fields: Record<string, unknown>): readonly string[] {
+  return [fields.id, fields.cve]
+    .filter(value => typeof value === "string" || typeof value === "number")
+    .map(String);
+}
+
+/**
+ * Where a narrower entry sets a wide one aside, mirroring the matcher's
+ * `narrowestCandidates`: both must name the same advisory (by id or CVE), and
+ * both must apply to the finding's package.
  * @param wide - Fields of an entry without paths/versions
  * @param other - Fields of a candidate narrower entry
- * @returns True when the matcher would let `other` decide instead of `wide`
+ * @returns null when `other` never sets `wide` aside; "all" when it does for
+ *   every finding `wide` covers; otherwise the one package it does so for
  */
 function narrows(
   wide: Record<string, unknown>,
   other: Record<string, unknown>
-): boolean {
-  return (
-    String(other.id) === String(wide.id) &&
-    requiresLockfileScope(other) &&
-    (wide.package === undefined ||
-      other.package === undefined ||
-      other.package === wide.package)
+): string | null {
+  const sameAdvisory = advisoryIds(other).some(id =>
+    advisoryIds(wide).includes(id)
   );
+  if (!sameAdvisory || !requiresLockfileScope(other)) return null;
+  if (other.package === undefined || other.package === wide.package)
+    return "all";
+  // A package-less wide entry still decides findings in other packages.
+  return wide.package === undefined ? String(other.package) : null;
 }
 
 /**
@@ -116,18 +131,27 @@ function shadowObservations(
   return valid.flatMap(wide => {
     const wideFields = wide.fields ?? {};
     if (requiresLockfileScope(wideFields)) return [];
-    const narrower = valid.find(
-      other => other !== wide && narrows(wideFields, other.fields ?? {})
+    const shadows = valid.flatMap(other => {
+      const scope =
+        other === wide ? null : narrows(wideFields, other.fields ?? {});
+      return scope === null ? [] : [{ other, scope }];
+    });
+    const full = shadows.find(entry => entry.scope === "all");
+    if (full)
+      return [
+        `\`${wide.file}\` excuses advisory \`${wide.id}\` for every copy, but ` +
+          `\`${full.other.file}\` lists the specific copies that were reviewed, ` +
+          "so the audit uses only that narrower entry and ignores the wider " +
+          "one. Remove the wider entry, or widen the narrower one, if that is " +
+          "not what you meant.",
+      ];
+    return shadows.map(
+      ({ other, scope }) =>
+        `\`${wide.file}\` excuses advisory \`${wide.id}\` for every package, ` +
+        `but \`${other.file}\` lists the reviewed copies of \`${scope}\`, so ` +
+        `the audit ignores the wider entry only for \`${scope}\` and still ` +
+        "applies it to every other package."
     );
-    return narrower
-      ? [
-          `\`${wide.file}\` excuses advisory \`${wide.id}\` for every copy, but ` +
-            `\`${narrower.file}\` lists the specific copies that were reviewed, ` +
-            "so the audit uses only that narrower entry and ignores the wider " +
-            "one. Remove the wider entry, or widen the narrower one, if that is " +
-            "not what you meant.",
-        ]
-      : [];
   });
 }
 
