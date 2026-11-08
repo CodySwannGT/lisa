@@ -17,8 +17,11 @@
  * about, so it is fixed rather than preserved — and a divergence nobody wrote
  * down is indistinguishable from a regression, so it is asserted in both
  * directions here.
- * #4128 also corrects the migration refusal's approval wording; those cases
- * retain the status/command comparison and separately assert the new guidance.
+ * THE SECOND DELIBERATE DIVERGENCE is the migration built-in, which stopped
+ * refusing on 2026-11-08 (operator decision: entity drift is the risk, and a
+ * migration that cannot be expressed in an entity is legitimate). It now
+ * permits the write it used to refuse and warns instead, and permits a write
+ * it cannot inspect — asserted below in both directions like the jq branch.
  * @module tests/integration/pre-tool-refusal-equivalence
  */
 
@@ -92,19 +95,16 @@ describe("an undeclared project sees no change", () => {
           payload
         );
 
-        expect(afterRun.status).toBe(beforeRun.status);
-        if (
-          subject.gate === "migration-provenance" &&
-          payload === subject.refuses
-        ) {
-          // #4128 corrects the old refusal's unverifiable approval promise.
-          // Preserve the historical fixture and prove the new message here.
-          expect(afterRun.stderr).toContain("cannot verify human approval");
-          expect(afterRun.stderr).toContain("migration-provenance");
-          expect(afterRun.stderr).not.toMatch(
-            /Get explicit approval|command not found/u
+        if (subject.builtinWarns && payload === subject.refuses) {
+          // The divergence named above: refused before, permitted with the
+          // entity-first warning now.
+          expect(beforeRun.status).toBe(REFUSED);
+          expect(afterRun.status).toBe(PERMITTED);
+          expect(afterRun.stdout + afterRun.stderr).toContain(
+            "writing the migration directly is fine"
           );
         } else {
+          expect(afterRun.status).toBe(beforeRun.status);
           expect(afterRun.stderr).toBe(beforeRun.stderr);
         }
         expect(afterRun.trace).toEqual(beforeRun.trace);
@@ -112,14 +112,14 @@ describe("an undeclared project sees no change", () => {
     }
   );
 
-  it.each(SUBJECTS)(
+  it.each(SUBJECTS.filter(subject => !subject.builtinWarns))(
     "$script refuses a write it cannot inspect, where it used to permit it",
     async subject => {
       // Without jq the payload cannot be parsed at all — not the path, not the
       // file type, not the proposed text — so the pre-change script had no way
-      // to tell a suppression or a hand-written migration from any other write,
-      // and permitted it. #2957's equivalence criterion is about the COMMAND an
-      // undeclared project invokes, and neither version invokes one here.
+      // to tell a suppression from any other write, and permitted it. #2957's
+      // equivalence criterion is about the COMMAND an undeclared project
+      // invokes, and neither version invokes one here.
       const { before, after } = bothVersions(subject);
 
       const beforeRun = await harness.run(
@@ -138,17 +138,13 @@ describe("an undeclared project sees no change", () => {
     }
   );
 
-  it.each(SUBJECTS)(
+  it.each(SUBJECTS.filter(subject => !subject.builtinWarns))(
     "$script says jq is why, so the refusal is actionable",
     async subject => {
       // A refusal an operator cannot act on is a wall. The message has to name
-      // the missing binary, not merely decline.
-      //
-      // The STATUS is asserted here too, and it is not redundant: the
-      // pre-change NestJS copy printed "jq not available, allowing edit" and
-      // then permitted the write, so a message-only assertion passed against
-      // the exact defect this case exists to catch. Naming the binary while
-      // waving the write through is worse than saying nothing.
+      // the missing binary, not merely decline. The STATUS is asserted too: a
+      // message-only assertion passes against a script that names jq and then
+      // waves the write through.
       const { status, stderr } = await harness.run(
         await harness.installShipped(subject),
         subject.permits,
@@ -157,6 +153,24 @@ describe("an undeclared project sees no change", () => {
 
       expect(stderr).toContain("jq");
       expect(status).toBe(REFUSED);
+    }
+  );
+
+  it.each(SUBJECTS.filter(subject => subject.builtinWarns))(
+    "$script permits a write it cannot inspect, and says jq is why",
+    async subject => {
+      // The migration built-in's in-scope answer is now "permit with a
+      // warning", so an unparseable payload loses only the warning. Refusing
+      // here would block every write in the project because a warning could
+      // not be delivered.
+      const { status, stderr } = await harness.run(
+        await harness.installShipped(subject),
+        subject.refuses,
+        { path: harness.noJqDir }
+      );
+
+      expect(stderr).toContain("jq");
+      expect(status).toBe(PERMITTED);
     }
   );
 });

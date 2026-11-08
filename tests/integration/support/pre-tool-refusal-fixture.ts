@@ -64,8 +64,14 @@ export interface Subject {
   readonly before: string;
   /** The registry gate one invocation of it proves. */
   readonly gate: string;
-  /** A write the built-in must refuse. */
+  /**
+   * The write the hook exists to judge. The suppression built-in refuses it;
+   * the migration built-in permits it with a warning (operator decision,
+   * 2026-11-08) — a declared gate still refuses it when its task fails.
+   */
   readonly refuses: Payload;
+  /** Whether the undeclared built-in permits `refuses` with a warning. */
+  readonly builtinWarns: boolean;
   /** A write the built-in must let through — the inert-guard control. */
   readonly permits: Payload;
 }
@@ -80,7 +86,7 @@ const ORDINARY: Payload = {
 const SUPPRESSING: Payload = { file: "src/thing.ts", text: SUPPRESSION };
 
 /**
- * The write `block-migration-edits` exists to stop.
+ * The write `block-migration-edits` exists to warn about.
  *
  * The digits and the dash are load-bearing: the Codex copy matches
  * `*&#47;migrations/*[0-9]*-*.ts` where the Claude copy matches any `.ts` under
@@ -104,6 +110,7 @@ export const SUBJECTS: readonly Subject[] = [
     script: "plugins/src/typescript/hooks/block-suppress-directives.sh",
     before: "typescript-block-suppress-directives.sh",
     gate: "suppression-residue",
+    builtinWarns: false,
     refuses: SUPPRESSING,
     permits: ORDINARY,
   },
@@ -111,6 +118,7 @@ export const SUBJECTS: readonly Subject[] = [
     script: "plugins/src/nestjs/hooks/block-migration-edits.sh",
     before: "nestjs-block-migration-edits.sh",
     gate: "migration-provenance",
+    builtinWarns: true,
     refuses: HAND_WRITTEN_MIGRATION,
     permits: ORDINARY,
   },
@@ -118,6 +126,7 @@ export const SUBJECTS: readonly Subject[] = [
     script: "src/codex/scripts/block-suppress-directives.sh",
     before: "codex-block-suppress-directives.sh",
     gate: "suppression-residue",
+    builtinWarns: false,
     refuses: SUPPRESSING,
     permits: ORDINARY,
   },
@@ -125,6 +134,7 @@ export const SUBJECTS: readonly Subject[] = [
     script: "src/codex/scripts/block-migration-edits.sh",
     before: "codex-block-migration-edits.sh",
     gate: "migration-provenance",
+    builtinWarns: true,
     refuses: HAND_WRITTEN_MIGRATION,
     permits: ORDINARY,
   },

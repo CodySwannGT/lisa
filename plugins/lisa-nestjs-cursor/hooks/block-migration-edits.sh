@@ -2,47 +2,43 @@
 # This file is managed by Lisa.
 # Do not edit directly — changes will be overwritten on the next `lisa` run.
 
-# PreToolUse hook: block Write/Edit on TypeORM migration files by default.
-# This scopes direct edit tools; it does not verify approval or establish the
-# provenance of files written through other tools.
-# NestJS projects must use `bun run migration:generate` to create migrations
-# from entity diffs. Hand-written migrations drift from entity metadata and
-# break the schema/migration contract.
-# Reference: https://docs.claude.com/en/docs/claude-code/hooks
-# Exit code 2 blocks the tool call and surfaces stderr to Claude.
+# PreToolUse hook: WARN on Write/Edit to TypeORM migration files, then let the
+# edit through. The name is historical; renaming it would orphan every
+# installed copy and every `migration-provenance` declaration that points here.
 #
-# WHAT A REFUSAL HOOK OWES THAT AN ON-EDIT HOOK DOES NOT. The five PostToolUse
-# scripts may bail out when they cannot run: the write has already happened and
-# a skipped lint is a missed report. This one decides whether the write happens
-# at all, so a bail-out is a PERMIT — it lets through exactly the edit it exists
-# to stop, while reporting success. Every exit below is therefore one of three
-# things and never a fourth: out of scope (nothing to judge), judged by the
-# project's declared task, or judged by the built-in. "Could not judge" refuses.
+# WHY A WARNING AND NOT A REFUSAL (operator decision, 2026-11-08). The risk a
+# hand-written migration carries is drift from the entity definitions, and
+# that risk only exists when the change COULD have been expressed in an
+# entity. Plenty of migrations cannot be: view options, grants, functions,
+# policies, backfills, seed data. Refusing all of them blocked legitimate work
+# without making the entity route any more likely, so the hook now tells the
+# agent where the change belongs and trusts it to choose.
+# Reference: https://code.claude.com/docs/en/hooks#pretooluse-decision-control
+#
+# HOW THE WARNING REACHES THE MODEL. stderr on exit 0 is not shown to the
+# model, so the warning is printed as PreToolUse JSON on stdout, in
+# `hookSpecificOutput.additionalContext`. No `permissionDecision` is emitted:
+# "allow" would also skip the user's permission prompt, which is a wider
+# grant than "this edit is not refused" and not one this hook is entitled to
+# make. Without a decision the call continues through the normal permission
+# flow.
 
 JSON_INPUT=$(cat)
 
 # Project rule (host rules, .agents/rules/): never parse JSON in shell with
 # grep/sed/cut/awk — always use jq.
 #
-# FAIL CLOSED, reversed from the `exit 0` this shipped with. Without jq the
-# payload cannot be read at all, so the hook cannot tell a migration edit from
-# any other write — and it said so on stderr while permitting the edit anyway,
-# which is a guard announcing that it did not check and then waving the write
-# through. The refusal is unscoped for the same reason: with no parse there is
-# no path to scope it to.
+# Without jq the payload cannot be parsed, so this hook cannot tell a migration
+# edit from any other write, and cannot emit the JSON warning either. It used
+# to fail closed here, which was right while the in-scope answer was "refuse":
+# a bail-out would have permitted exactly the edit the hook existed to stop.
+# The in-scope answer is now "permit with a warning", so permitting here loses
+# only the warning, while refusing would block every write in the project
+# because a WARNING could not be delivered. The stderr note names jq so the
+# operator can see why the warning (and a declared gate) went unconsulted.
 if ! command -v jq >/dev/null 2>&1; then
-  cat >&2 <<'MSG'
-❌ Blocked: block-migration-edits cannot inspect this write.
-
-`jq` is not installed, so the tool payload cannot be parsed — this hook cannot
-tell whether the write targets a TypeORM migration. It refuses rather than
-permitting an edit it was unable to check.
-
-Install jq (`brew install jq`, `apt-get install jq`), or declare the
-`migration-provenance` gate at `pre-tool` in .lisa.config.json to have your own
-check decide instead.
-MSG
-  exit 2
+  echo "block-migration-edits: jq is not installed, so this write was not inspected and is permitted without the migration warning. Install jq (brew install jq / apt-get install jq) to restore it." >&2
+  exit 0
 fi
 
 FILE_PATH=$(printf '%s' "$JSON_INPUT" | jq -r '.tool_input.file_path // empty')
@@ -64,25 +60,17 @@ esac
 LISA_HOOK_DIR="$(cd "$(dirname "$0")" 2>/dev/null && pwd)"
 
 # ---------------------------------------------------------------------------
-# Gate façade. The project's declaration decides BEFORE the built-in refuses.
-# Full contract, and why an undeclared project sees no change at all, in
-# lisa-edit-gate.sh beside this file.
+# Gate façade. A project that declares `migration-provenance` at `pre-tool`
+# decides these edits itself, and its decision is a real one: the declared
+# task's non-zero exit refuses the write, a zero exit permits it. Full
+# contract in lisa-edit-gate.sh beside this file.
 #
-# THE WORKING DIRECTORY IS PART OF THE WIRING HERE, which is why this hook was
-# left out of the change that wired the five on-edit ones. Those hooks already
-# `cd "$CLAUDE_PROJECT_DIR"` to run a tool against the tree; this one acts on
-# the payload and never establishes a directory at all. The helper resolves
-# .lisa.config.json and the gate registry RELATIVE to the current directory, so
-# without the `cd` it would read whatever directory the harness happened to
-# launch in and report "nothing declared" for a project that had declared.
-#
-# The `cd` is safe for the built-in below because the built-in reads only the
-# path out of the payload — nothing it does depends on the working directory.
-# That is what keeps an undeclared project on exactly the command, and exactly
-# the exit status, it had before.
-#
-# A project may supply its own `migration-provenance` check for these edits.
-# The built-in only refuses the scoped Write/Edit calls.
+# THE WORKING DIRECTORY IS PART OF THE WIRING HERE. The helper resolves
+# .lisa.config.json and the gate registry RELATIVE to the current directory,
+# and a PreToolUse hook establishes none, so without the `cd` it would read
+# whatever directory the harness launched in and report "nothing declared" for
+# a project that had declared. The built-in below reads only the path out of
+# the payload, so the `cd` cannot change what it does.
 # ---------------------------------------------------------------------------
 if [ -n "${CLAUDE_PROJECT_DIR:-}" ] &&
   [ -f "$LISA_HOOK_DIR/lisa-edit-gate.sh" ] &&
@@ -90,36 +78,18 @@ if [ -n "${CLAUDE_PROJECT_DIR:-}" ] &&
   # shellcheck source=/dev/null
   . "$LISA_HOOK_DIR/lisa-edit-gate.sh"
   if LISA_GATE_COMMANDS="$(lisa_edit_gate_tasks pre-tool migration-provenance)"; then
-    # The declared task's own exit status decides the write: non-zero refuses,
-    # exactly as the built-in's outright refusal does. A project that declares
-    # this gate is saying its own check knows which migrations came from the
-    # model, which is the judgement the built-in makes by refusing them all.
     lisa_edit_gate_run "$FILE_PATH" "$LISA_GATE_COMMANDS"
     exit $?
   fi
 fi
 
-cat >&2 <<EOF
-❌ Blocked: This default hook refuses Write/Edit on TypeORM migration files.
+WARNING="block-migration-edits: you are writing a TypeORM migration directly (${FILE_PATH}). This is allowed, but check first:
 
-File: $FILE_PATH
+- Entity files are the source of truth for the database schema.
+- If this change can be expressed in an entity (columns, indexes, relations, constraints), edit the entity instead and run: bun run migration:generate --name=<Name>
+- If it can't (view options, grants, functions, policies, backfills, seed data), writing the migration directly is fine.
+- Either way, document the rationale in the migration's class comment."
 
-Entity files (src/database/entities/*.ts) are the single source of
-truth for the database schema in this project. Migrations are a derived
-artifact — generate them from entity diffs:
-
-  1. Edit the entity to express the desired schema.
-  2. Run: bun run migration:generate --name=<DescriptiveName>
-  3. Review the generated migration; commit entity + migration together.
-
-Out-of-band migrations (backfills, seed data, maintenance) cannot always
-come from entity diffs. A project that supports these edits can declare a
-\`migration-provenance\` check at \`pre-tool\` in .lisa.config.json. The hook
-runs that check and uses its result to permit or refuse the edit.
-
-Document the migration's rationale and verification in its class comment.
-This default hook cannot verify human approval and does not inspect Bash
-writes. Do not switch tools to evade its refusal. See the nestjs-rules skill
-for the supported project-check path.
-EOF
-exit 2
+jq -n --arg ctx "$WARNING" \
+  '{hookSpecificOutput: {hookEventName: "PreToolUse", additionalContext: $ctx}}'
+exit 0

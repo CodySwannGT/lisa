@@ -1,18 +1,23 @@
 /**
- * Lisa-managed OpenCode plugin (tool.execute.before).
+ * Lisa-managed OpenCode plugin (tool.execute.after).
  *
- * Blocks edits to TypeORM migration files. Use `bun run migration:generate`
- * to regenerate from entity diffs instead — hand-written migrations drift from
- * entity metadata and break the schema/migration contract.
+ * WARNS after an edit/write to a TypeORM migration file; it never cancels the
+ * edit. The name is historical — renaming it would orphan installed copies.
  *
- * Port of Lisa's Codex hook `block-migration-edits.sh`. OpenCode exposes only
- * `edit` / `write` filesystem tools (no `apply_patch`), so the file path comes
- * straight from `output.args.filePath`. Throwing in `tool.execute.before`
- * cancels the tool call and surfaces the message to the agent (verified-by-run
- * on opencode 1.16.2).
- * This adapter does not delegate to a project's migration-provenance check;
- * unlike the Claude and Codex adapters, it cannot permit those exceptions.
- * It neither verifies human approval nor inspects Bash writes.
+ * Why a warning (operator decision, 2026-11-08): the risk of a hand-written
+ * migration is drift from the entity definitions, and it only exists when the
+ * change could have been expressed in an entity. View options, grants,
+ * functions, policies, backfills and seed data cannot be, so refusing every
+ * migration edit blocked legitimate work.
+ *
+ * Port of Lisa's Codex hook `block-migration-edits.sh`. `tool.execute.before`
+ * can only cancel a call (by throwing) — it has no channel for a message that
+ * lets the call proceed — so the warning moves to `tool.execute.after`, which
+ * appends it to the tool's output text, the part the agent reads. Appending to
+ * `output.output` is the documented plugin API but is NOT yet verified-by-run
+ * here; when the field is not a string the plugin stays silent rather than
+ * failing a write it was only meant to annotate.
+ * This adapter does not delegate to a project's migration-provenance check.
  *
  * NOTE: This file is a template Lisa copies verbatim into a host project's
  * `.opencode/plugin/`. It is intentionally excluded from this repo's tsconfig
@@ -24,29 +29,23 @@ export /**
 const LisaBlockMigrationEdits = async () => {
   const MIGRATION_RE = /\/migrations\/[^/]*\d[^/]*-[^/]*\.ts$/;
   return {
-    "tool.execute.before": async (
-      input: { tool: string },
-      output: { args?: { filePath?: string } }
+    "tool.execute.after": async (
+      input: { tool: string; args?: { filePath?: string } },
+      output: { output?: unknown }
     ) => {
       if (input.tool !== "edit" && input.tool !== "write") return;
-      const filePath = String(output.args?.filePath ?? "");
+      const filePath = String(input.args?.filePath ?? "");
       if (!filePath || !MIGRATION_RE.test(filePath)) return;
-      throw new Error(
-        [
-          `block-migration-edits: refusing to modify ${filePath}.`,
-          "",
-          "TypeORM migrations must be regenerated from entity diffs:",
-          "  bun run migration:generate -- src/database/migrations/<descriptive-name>",
-          "",
-          "Out-of-band migrations (backfills, seed data, maintenance) cannot",
-          "always come from entity diffs. Document their rationale and verification.",
-          "",
-          "This OpenCode adapter only inspects edit/write and cannot verify",
-          "human approval. It does not yet support the project migration-provenance",
-          "exception check available in the Claude and Codex adapters, so it keeps",
-          "refusing this edit. Do not switch tools to evade the refusal.",
-        ].join("\n")
-      );
+      if (typeof output.output !== "string") return;
+      output.output = [
+        output.output,
+        "",
+        `block-migration-edits: you wrote a TypeORM migration directly (${filePath}). This is allowed, but check:`,
+        "- Entity files are the source of truth for the database schema.",
+        "- If this change can be expressed in an entity (columns, indexes, relations, constraints), edit the entity instead and run: bun run migration:generate --name=<Name>",
+        "- If it can't (view options, grants, functions, policies, backfills, seed data), writing the migration directly is fine.",
+        "- Either way, document the rationale in the migration's class comment.",
+      ].join("\n");
     },
   };
 };

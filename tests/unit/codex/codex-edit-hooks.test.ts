@@ -6,8 +6,10 @@
  * Codex (codex-cli 0.125.0) passes the apply_patch body as a STRING under
  * tool_input.command (verified by capturing real hook stdin). An earlier
  * version of block-migration-edits.sh read tool_input.command[1], which is
- * always null for a string — so apply_patch migration edits were not blocked.
- * These tests lock in the corrected behavior.
+ * always null for a string — so apply_patch migration edits were never seen.
+ * These tests lock in the corrected path resolution. Since 2026-11-08 the
+ * migration hook warns and permits instead of refusing (operator decision), so
+ * "seen" is asserted as the warning naming the migration.
  * @module tests/unit/codex/codex-edit-hooks
  */
 import path from "node:path";
@@ -21,7 +23,6 @@ const BLOCK_MIGRATION_PATH = path.join(SCRIPTS_DIR, "block-migration-edits.sh");
 const SHELL_WRITE_NUDGE_PATH = path.join(SCRIPTS_DIR, "shell-write-nudge.sh");
 const BASH_PATH = "/bin/bash";
 
-const EXIT_BLOCKED = 2;
 const EXIT_ALLOWED = 0;
 
 // Build an apply_patch tool envelope with the given patch body string.
@@ -119,47 +120,61 @@ describe("_extract-edit-paths.sh", () => {
 
 describe("block-migration-edits.sh", () => {
   const MIGRATION = "src/database/migrations/1700000000000-CreateUsers.ts";
+  const WARNING = "writing the migration directly is fine";
 
-  it("blocks an Edit to a TypeORM migration file", () => {
-    const { status } = runBlockMigration(editEnvelope(MIGRATION));
-    expect(status).toBe(EXIT_BLOCKED);
+  it("permits an Edit to a TypeORM migration file, with the warning", () => {
+    const { status, stderr } = runBlockMigration(editEnvelope(MIGRATION));
+    expect(status).toBe(EXIT_ALLOWED);
+    expect(stderr).toContain(MIGRATION);
+    expect(stderr).toContain("source of truth");
+    expect(stderr).toContain("bun run migration:generate --name=<Name>");
+    expect(stderr).toContain(WARNING);
+    expect(stderr).toContain("class comment");
   });
 
-  it("blocks an apply_patch that updates a migration file", () => {
+  it("warns on an apply_patch that updates a migration file", () => {
     // Regression: the old command[1] parse never saw the patch body (command
-    // is a string), so apply_patch migration edits slipped through.
+    // is a string), so apply_patch migration edits slipped past unseen.
     const patch = `*** Begin Patch\n*** Update File: ${MIGRATION}\n@@\n-a\n+b\n*** End Patch\n`;
     const { status, stderr } = runBlockMigration(applyPatchEnvelope(patch));
-    expect(status).toBe(EXIT_BLOCKED);
+    expect(status).toBe(EXIT_ALLOWED);
     expect(stderr).toContain("block-migration-edits");
+    expect(stderr).toContain(MIGRATION);
   });
 
-  it("blocks an apply_patch that deletes a migration file", () => {
+  it("warns on an apply_patch that deletes a migration file", () => {
     const patch = `*** Begin Patch\n*** Delete File: ${MIGRATION}\n*** End Patch\n`;
-    const { status } = runBlockMigration(applyPatchEnvelope(patch));
-    expect(status).toBe(EXIT_BLOCKED);
+    const { status, stderr } = runBlockMigration(applyPatchEnvelope(patch));
+    expect(status).toBe(EXIT_ALLOWED);
+    expect(stderr).toContain(MIGRATION);
   });
 
-  it("blocks when a migration file is one of several files in a patch", () => {
+  it("warns when a migration file is one of several files in a patch", () => {
     const patch =
       "*** Begin Patch\n" +
       "*** Add File: src/entity.ts\n+x\n" +
       `*** Update File: ${MIGRATION}\n@@\n-a\n+b\n` +
       "*** End Patch\n";
-    const { status } = runBlockMigration(applyPatchEnvelope(patch));
-    expect(status).toBe(EXIT_BLOCKED);
-  });
-
-  it("allows an Edit to a non-migration file", () => {
-    const { status } = runBlockMigration(editEnvelope("src/users.entity.ts"));
+    const { status, stderr } = runBlockMigration(applyPatchEnvelope(patch));
     expect(status).toBe(EXIT_ALLOWED);
+    expect(stderr).toContain(MIGRATION);
+    expect(stderr).not.toContain("src/entity.ts");
   });
 
-  it("allows an apply_patch that touches no migration files", () => {
+  it("stays silent on an Edit to a non-migration file", () => {
+    const { status, stderr } = runBlockMigration(
+      editEnvelope("src/users.entity.ts")
+    );
+    expect(status).toBe(EXIT_ALLOWED);
+    expect(stderr).toBe("");
+  });
+
+  it("stays silent on an apply_patch that touches no migration files", () => {
     const patch =
       "*** Begin Patch\n*** Add File: src/users.entity.ts\n+x\n*** End Patch\n";
-    const { status } = runBlockMigration(applyPatchEnvelope(patch));
+    const { status, stderr } = runBlockMigration(applyPatchEnvelope(patch));
     expect(status).toBe(EXIT_ALLOWED);
+    expect(stderr).toBe("");
   });
 });
 

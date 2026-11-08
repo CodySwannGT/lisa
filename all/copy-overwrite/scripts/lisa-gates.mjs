@@ -851,14 +851,16 @@ export const REGISTRY = Object.freeze({
     summary:
       "Schema migrations are generated from the model, not hand-written.",
     task: "check:migrations",
-    // Also a `PreToolUse` refusal: the shipped hook blocks a write to a
-    // migration file outright, because a hand-edited migration drifts from the
-    // entity metadata it is supposed to describe and the drift is not visible
-    // until a deploy applies it. Stack-flavoured but registry-resident, the
+    // Also a `PreToolUse` hook: the shipped one WARNS on a write to a
+    // migration file and lets it through (operator decision, 2026-11-08). A
+    // hand-edited migration drifts from the entity metadata when the change
+    // could have been expressed in an entity; one that could not (grants,
+    // functions, policies, backfills) is legitimate. A declared task here
+    // refuses on failure, so a project can still enforce. Stack-flavoured but registry-resident, the
     // same way `e2e-native` is — the property is "this migration came from the
     // model", which is true of any ORM that generates them.
     declareOnly:
-      "No npm stack ships a prover. One stack ships `migration:generate`, but that is the generator this gate assumes was used, not a check that it was — and what a migration must be generated FROM is ORM-specific, so there is no one script to ship. The shipped prover is an agent hook that refuses the hand-edit outright; declaring this gate at a later moment means pointing `run:` at your own check.",
+      "No npm stack ships a prover. One stack ships `migration:generate`, but that is the generator this gate assumes was used, not a check that it was — and what a migration must be generated FROM is ORM-specific, so there is no one script to ship. The shipped agent hook only warns on a hand-edit and permits it; declaring this gate at `pre-tool` makes your own check decide (non-zero refuses), and declaring it at a later moment means pointing `run:` at your own check.",
     moments: PRE_TOOL_ONWARD,
     work: "migrations checked",
   },
@@ -2315,7 +2317,10 @@ export const HARDCODED_INVOCATIONS = Object.freeze([
   // of any kind AND had no entry, so `unconfigured --moment=pre-tool` was
   // silent about two shipped enforcements rather than reporting them as
   // ungoverned. Silence and "nothing to report" are indistinguishable, which
-  // is the failure mode this table exists to remove.
+  // is the failure mode this table exists to remove. Since 2026-11-08 the
+  // migration built-in warns and permits instead of refusing; it stays here
+  // because a declared `migration-provenance` task still decides — and refuses
+  // — at this moment.
   preToolRefusalInvocation(
     "suppression-residue",
     "plugins/src/typescript/hooks/block-suppress-directives.sh",
@@ -2324,7 +2329,7 @@ export const HARDCODED_INVOCATIONS = Object.freeze([
   preToolRefusalInvocation(
     "migration-provenance",
     "plugins/src/nestjs/hooks/block-migration-edits.sh",
-    "refuse any write matching */migrations/*.ts|*/migrations/*.js"
+    "warn on (permit) any write matching */migrations/*.ts|*/migrations/*.js"
   ),
   // The Codex copies, recorded separately for the same reason the Codex
   // on-edit copies are: they DIFFER from the originals — a shared path
@@ -2338,7 +2343,7 @@ export const HARDCODED_INVOCATIONS = Object.freeze([
   preToolRefusalInvocation(
     "migration-provenance",
     `${CODEX_SCRIPTS}/block-migration-edits.sh`,
-    "refuse any write matching */migrations/*[0-9]*-*.ts"
+    "warn on (permit) any write matching */migrations/*[0-9]*-*.ts"
   ),
   // ── Class A: the pre-commit hook. Three `lisa_gate_covers` sites guarding
   // five properties, each with a written-in else branch, and no report step —

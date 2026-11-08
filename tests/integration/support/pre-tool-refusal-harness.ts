@@ -42,6 +42,8 @@ export interface RunResult {
   readonly status: number;
   /** Everything it wrote to stderr. */
   readonly stderr: string;
+  /** Everything it wrote to stdout — where a Claude hook's JSON goes. */
+  readonly stdout: string;
   /** The trace of what it invoked, one line per invocation. */
   readonly trace: string;
 }
@@ -218,6 +220,7 @@ async function runScript(
   return {
     status: result.status ?? -1,
     stderr: result.stderr ?? "",
+    stdout: result.stdout ?? "",
     trace: await fs.readFile(layout.traceFile, "utf8"),
   };
 }

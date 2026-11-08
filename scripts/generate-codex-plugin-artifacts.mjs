@@ -1015,7 +1015,7 @@ function metadataFor(pluginName, claudeManifest) {
     "lisa-nestjs": {
       displayName: "Lisa NestJS",
       description:
-        "NestJS-specific skills and migration write-protection hooks.",
+        "NestJS-specific skills and a hand-written migration warning hook.",
       shortDescription: "NestJS workflow guidance",
       longDescription:
         "Lisa skills and lifecycle checks for NestJS GraphQL, TypeORM, and migration-safe development.",
