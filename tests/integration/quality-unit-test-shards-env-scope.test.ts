@@ -3,12 +3,17 @@
  * (CodySwannGT/lisa#4479).
  *
  * `lisa-test-run` turns into a shard leg or the merge whenever it sees these
- * variables. Lisa's own suite runs further `lisa-test-run` steps after the gate
- * (the Node 24, Rails hook installation, nightly discovery, required-check registration, host-name
- * target-scope and completion authorization regression cases). A variable visible there could make those
- * steps replay shard reports and pass without running their tests. A `$GITHUB_ENV` write is visible to every later step in the job, so
- * the arm steps must hand their values over as step outputs, and only the
+ * variables. A `$GITHUB_ENV` write is visible to every later step in the job,
+ * so the arm steps must hand their values over as step outputs, and only the
  * steps listed here may bind them.
+ *
+ * Lisa's own named regression specs (Node 24, Rails hook installation, nightly
+ * discovery, required-check registration, host-name target-scope, completion
+ * authorization) also run `lisa-test-run`. They live in their own job,
+ * `🧾 Named Regression Specs`, which starts beside the shards instead of
+ * after the aggregate (CodySwannGT/lisa#4675). A shard variable visible there
+ * could make those steps replay shard reports and pass without running their
+ * tests, so that job must never mention one either.
  * Split from `quality-unit-test-shards.test.ts` for the file-length cap.
  */
 
@@ -57,6 +62,9 @@ const ARMS = {
       `shard=3/4\noutput=${temp}/lisa-unit-test-shard\n`,
   },
 } as const;
+
+/** Every named regression step, and only those, starts with this. */
+const NAMED_PREFIX = "Execute and name";
 
 const roots: string[] = [];
 
@@ -112,78 +120,10 @@ describe.each(Object.keys(ARMS) as (keyof typeof ARMS)[])(
       }
     });
 
-    it("keeps them away from Lisa's own regression specs", () => {
-      const regression = steps.filter(s =>
-        (s.name ?? "").startsWith("Execute and name")
-      );
-      if (job === "test_unit")
-        expect(regression.map(step => step.name)).toEqual([
-          "Execute and name Node 24 regression specs",
-          "Execute and name Rails hook installation regression specs",
-          "Execute and name nightly discovery regression specs",
-          "Execute and name required-check registration regression specs",
-          "Execute and name host-name target-scope regression cases",
-          "Execute and name completion authorization regression specs",
-          AUDIT_STEP,
-        ]);
-      for (const step of regression)
-        expect(JSON.stringify(step), step.name).not.toContain(
-          "LISA_TEST_SHARD"
-        );
-    });
-
-    it("names only spec files that exist, so no step can pass having run none", () => {
-      // vitest fails when NONE of the listed files is found, but runs the rest
-      // and passes when only SOME are missing. A rename would then silently
-      // drop a spec from the hosted log, so every listed path must exist.
-      const regression = steps.filter(s =>
-        (s.name ?? "").startsWith("Execute and name")
-      );
-      for (const step of regression) {
-        const specs = (step.run ?? "").match(/tests\/\S+\.test\.ts/gu) ?? [];
-        expect(specs.length, step.name).toBeGreaterThan(0);
-        for (const spec of specs)
-          expect(fs.existsSync(spec), `${step.name}: ${spec}`).toBe(true);
-      }
-    });
-
-    it("names every dependency-audit scope spec in the hosted log (#4521)", () => {
-      const step = steps.find(s => s.name === AUDIT_STEP);
-      if (job !== "test_unit") {
-        expect(step).toBeUndefined();
-        return;
-      }
-      expect(step?.run).toContain("--reporter=verbose");
-      // Pinned exactly: dropping a spec from the hosted log is a decision, not
-      // a side effect of editing the list.
-      expect(step?.run?.match(/tests\/\S+\.test\.ts/gu)).toEqual(AUDIT_SPECS);
-    });
-
-    it("fails the audit spec step on any skip except the bun-only fail-closed cases (#4521)", () => {
-      const step = steps.find(s => s.name === AUDIT_STEP);
-      if (job !== "test_unit") return;
-      // The step's own guard, run against controlled verbose transcripts.
-      const guard = /if grep[\s\S]*?\n {0,2}fi/u.exec(step?.run ?? "")?.[0];
-      const verdict = (transcript: string) => {
-        const dir = fs.mkdtempSync(path.join(os.tmpdir(), "lisa-audit-skip-"));
-        const log = path.join(dir, "specs.log");
-        roots.push(dir);
-        fs.writeFileSync(log, transcript);
-        return boundedSpawnSync({
-          label: "dependency-audit skip guard",
-          command: "bash",
-          args: ["-c", `AUDIT_SPEC_LOG="${log}"\n${guard ?? "exit 98"}`],
-        }).status;
-      };
-      const pass =
-        " ✓ |lisa| tests/integration/audit-consumer-parity.test.ts > covered\n";
-      const allowed =
-        " ↓ |lisa| tests/integration/quality-audit-fail-closed.test.ts > the npm built-in audit fails closed > fails when bun prints a registry error body as JSON\n";
-      const skipped =
-        " ↓ |lisa| tests/integration/audit-consumer-parity.test.ts > covered\n";
-      expect(guard).toBeDefined();
-      expect(verdict(pass + allowed)).toBe(0);
-      expect(verdict(pass + skipped)).toBe(1);
+    it("runs none of Lisa's named regression specs", () => {
+      expect(
+        steps.filter(s => (s.name ?? "").startsWith(NAMED_PREFIX))
+      ).toEqual([]);
     });
   }
 );
@@ -210,3 +150,127 @@ const AUDIT_SPECS = [
   "tests/integration/audit-registry-verdict.test.ts",
   "tests/integration/quality-audit-fail-closed.test.ts",
 ];
+
+/** The seven named steps, in the order the job runs them. */
+const NAMED_REGRESSION_STEPS = [
+  "Execute and name Node 24 regression specs",
+  "Execute and name Rails hook installation regression specs",
+  "Execute and name nightly discovery regression specs",
+  "Execute and name required-check registration regression specs",
+  "Execute and name host-name target-scope regression cases",
+  "Execute and name completion authorization regression specs",
+  AUDIT_STEP,
+] as const;
+
+describe("test_named_regression_specs job (#4675)", () => {
+  const job = jobIn("test_named_regression_specs") as WorkflowJob & {
+    needs?: string | string[];
+  };
+  const steps = stepsIn("test_named_regression_specs");
+  const named = steps.filter(s => (s.name ?? "").startsWith(NAMED_PREFIX));
+
+  it("is the 🧾 Named Regression Specs job, Lisa-only", () => {
+    expect(job.name).toBe("🧾 Named Regression Specs");
+    expect(job.if).toContain("github.repository == 'CodySwannGT/lisa'");
+  });
+
+  it("starts beside the shards: it needs only gate_plan", () => {
+    expect([job.needs ?? []].flat()).toEqual(["gate_plan"]);
+    expect(job.if).toContain("always() && !cancelled()");
+    expect(job.if).toContain('"test_unit":"skip"');
+    expect(job.if).not.toContain(",test:unit,");
+  });
+
+  it("runs the seven named steps in order", () => {
+    expect(named.map(step => step.name)).toEqual([...NAMED_REGRESSION_STEPS]);
+  });
+
+  it("keeps each step Lisa-only, verbose, and failing CI on a failure", () => {
+    for (const step of named) {
+      expect(step.if, step.name).toContain(
+        "github.repository == 'CodySwannGT/lisa'"
+      );
+      expect(step.run, step.name).toContain("--reporter=verbose");
+    }
+    for (const step of steps) {
+      const key = step.name ?? step.id ?? "";
+      expect(JSON.stringify(step), key).not.toContain("steps.gate_run");
+      expect(step, key).not.toHaveProperty("continue-on-error");
+      expect(JSON.stringify(step), key).not.toContain("LISA_TEST_SHARD");
+    }
+  });
+
+  it("leaves the coverage enforcement in 🧪 Run Unit Tests", () => {
+    const ids = stepsIn("test_unit").map(step => step.id);
+    expect(ids).toEqual(expect.arrayContaining(["gate_run", "test_coverage"]));
+  });
+
+  it("keeps the enforcing host-name target-scope run in 🧪 Run Unit Tests", () => {
+    const unit = stepsIn("test_unit");
+    const at = unit.findIndex(
+      step => step.name === "🔒 Enforce host-name target scope"
+    );
+    const enforce = unit[at];
+    expect(enforce?.if).toBe(
+      "github.repository == 'CodySwannGT/lisa' && steps.gate_run.outcome == 'success'"
+    );
+    expect(enforce?.run).toContain(
+      "node scripts/verify-host-name-target-scope.mjs --hooks=plugins/lisa/hooks"
+    );
+    expect(enforce?.run).not.toContain("lisa-test-run");
+    expect(enforce?.name?.startsWith(NAMED_PREFIX)).toBe(false);
+    expect(enforce).not.toHaveProperty("continue-on-error");
+    expect(at).toBeGreaterThan(
+      unit.findIndex(step => step.id === "test_coverage")
+    );
+  });
+
+  it("names only spec files that exist, so no step can pass having run none", () => {
+    // vitest fails when NONE of the listed files is found, but runs the rest
+    // and passes when only SOME are missing. A rename would then silently
+    // drop a spec from the hosted log, so every listed path must exist.
+    const regression = steps.filter(s =>
+      (s.name ?? "").startsWith("Execute and name")
+    );
+    for (const step of regression) {
+      const specs = (step.run ?? "").match(/tests\/\S+\.test\.ts/gu) ?? [];
+      expect(specs.length, step.name).toBeGreaterThan(0);
+      for (const spec of specs)
+        expect(fs.existsSync(spec), `${step.name}: ${spec}`).toBe(true);
+    }
+  });
+
+  it("names every dependency-audit scope spec in the hosted log (#4521)", () => {
+    const step = steps.find(s => s.name === AUDIT_STEP);
+    expect(step?.run).toContain("--reporter=verbose");
+    // Pinned exactly: dropping a spec from the hosted log is a decision, not
+    // a side effect of editing the list.
+    expect(step?.run?.match(/tests\/\S+\.test\.ts/gu)).toEqual(AUDIT_SPECS);
+  });
+
+  it("fails the audit spec step on any skip except the bun-only fail-closed cases (#4521)", () => {
+    const step = steps.find(s => s.name === AUDIT_STEP);
+    // The step's own guard, run against controlled verbose transcripts.
+    const guard = /if grep[\s\S]*?\n {0,2}fi/u.exec(step?.run ?? "")?.[0];
+    const verdict = (transcript: string) => {
+      const dir = fs.mkdtempSync(path.join(os.tmpdir(), "lisa-audit-skip-"));
+      const log = path.join(dir, "specs.log");
+      roots.push(dir);
+      fs.writeFileSync(log, transcript);
+      return boundedSpawnSync({
+        label: "dependency-audit skip guard",
+        command: "bash",
+        args: ["-c", `AUDIT_SPEC_LOG="${log}"\n${guard ?? "exit 98"}`],
+      }).status;
+    };
+    const pass =
+      " ✓ |lisa| tests/integration/audit-consumer-parity.test.ts > covered\n";
+    const allowed =
+      " ↓ |lisa| tests/integration/quality-audit-fail-closed.test.ts > the npm built-in audit fails closed > fails when bun prints a registry error body as JSON\n";
+    const skipped =
+      " ↓ |lisa| tests/integration/audit-consumer-parity.test.ts > covered\n";
+    expect(guard).toBeDefined();
+    expect(verdict(pass + allowed)).toBe(0);
+    expect(verdict(pass + skipped)).toBe(1);
+  });
+});

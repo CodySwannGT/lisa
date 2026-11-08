@@ -232,7 +232,7 @@ function digest(bytes) {
  * @param {string} source - Repo-relative source path
  * @returns {string[]} Hashes of every historical revision plus the checked-in copy
  */
-function historicalHashes(root, source) {
+export function historicalHashes(root, source) {
   const hashes = [];
   const current = workingCopy(root, source);
   if (current !== undefined) hashes.push(digest(current));

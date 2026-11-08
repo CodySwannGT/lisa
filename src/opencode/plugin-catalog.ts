@@ -30,6 +30,7 @@ export const PLUGIN_CATALOG: readonly PluginCatalogEntry[] = [
     forProjectTypes: ["*"],
   },
   {
+    // Harmless compatibility entry retained for persisted native registrations.
     id: "parity-safety-net",
     templateFilename: "lisa-parity-safety-net.ts",
     forProjectTypes: ["*"],

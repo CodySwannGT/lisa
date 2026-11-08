@@ -59,6 +59,19 @@ const CDK_ARMS = [
 ] as const satisfies readonly (readonly [string, CdkProcessOutcome])[];
 
 describe("AWS CDK default synth scratch lifecycle", () => {
+  it("waits for assembly contents when its marker exists before the write", async () => {
+    const base = mkdtempSync(path.join(tmpdir(), "cdk-marker-"));
+    temporaryDirectories.push(base);
+    const marker = path.join(base, "assembly-marker");
+    const assembly = path.join(base, "cdk.out-published");
+    // writeFileSync creates/truncates the marker before writing its contents.
+    // Drive that observable gap directly, without depending on scheduler luck.
+    writeFileSync(marker, "", "utf8");
+    const observed = waitForCdkAssembly(marker);
+    writeFileSync(marker, assembly, "utf8");
+    expect(await observed).toBe(assembly);
+  });
+
   it("runs its synth child outside fleet admission", () => {
     // Pins the fix for a CI failure that looked like a broken synth and was a
     // starved one. The child inherits the parent environment, so without this

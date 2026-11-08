@@ -12,16 +12,21 @@ import {
   SOURCE_FALLBACK,
 } from "./host-guard-freshness-fixtures.js";
 
+const BUILTIN_FUNCTION_START = "builtin() {";
+const BUILTIN_DELEGATE = ' command builtin "$@"';
+const NESTED_BUILTIN_DELEGATE = ` ${BUILTIN_DELEGATE}`;
+const EXPORT_BUILTIN_FUNCTION = "export -f builtin";
+
 const NODE_SHIM = [
   "#!/bin/bash",
   'case "$1" in *lisa-enforcement-freshness.mjs) ;; *) exec "$LISA_DEADLINE_REAL_NODE" "$@" ;; esac',
   'printf "%s\\n" "$$" >> "$LISA_DEADLINE_ENTRIES"',
   'case "$LISA_DEADLINE_MODE" in',
-  ' normal|delayed-qualification|missing-runner|unsafe-tmp|anchor-startup|anchor-qualification) exec "$LISA_DEADLINE_REAL_NODE" "$@" ;;',
+  ' normal|delayed-qualification|missing-runner|unsafe-tmp|anchor-startup|anchor-qualification|job-table-fork|job-table-empty|job-table-duplicate) exec "$LISA_DEADLINE_REAL_NODE" "$@" ;;',
   ' stall|post-start-ps-failure|early-parent-exit) printf "installed\\t9.9.9\\nguard0\\tmatching\\n"; trap "" TERM; /bin/sleep 30 & printf "%s\\n" "$!" >> "$LISA_DEADLINE_ENTRIES"; wait ;;',
   // Keep this child alive for two census periods before successful completion.
   ' surviving-child) /bin/sleep 30 & printf "%s\\n" "$!" >> "$LISA_DEADLINE_ENTRIES"; /bin/sleep 0.2; exec "$LISA_DEADLINE_REAL_NODE" "$@" ;;',
-  ' *) printf "installed\\t9.9.9\\n"; for i in 0 1 2 3 4 5 6 7; do printf "guard%s\\tmatching\\n" "$i"; done',
+  ' *) printf "installed\\t9.9.9\\n"; for i in 0 1 2 3 4 5 6; do printf "guard%s\\tmatching\\n" "$i"; done',
   '    case "$LISA_DEADLINE_MODE" in duplicate) printf "installed\\t9.9.9\\n" ;; malformed) printf "garbage\\n" ;; unknown) printf "extra\\tfact\\n" ;; esac',
   '    [ "$LISA_DEADLINE_MODE" = incomplete ] || printf "complete\\t1\\n"',
   '    [ "$LISA_DEADLINE_MODE" != trailing ] || printf "installed\\t9.9.9\\n"',
@@ -89,6 +94,43 @@ function deadlineStartup(mode: string): string {
  * @returns Builtin interceptor delegating every unrelated operation intact.
  */
 function deadlineAdmission(mode: string): string {
+  if (mode === "job-table-empty" || mode === "job-table-duplicate") {
+    return [
+      BUILTIN_FUNCTION_START,
+      ' if [ "$1" = jobs ]; then',
+      '  command builtin printf "%s\\n" "$LISA_DEADLINE_MODE" >> "$LISA_DEADLINE_PHASES"',
+      ...(mode === "job-table-duplicate"
+        ? [NESTED_BUILTIN_DELEGATE, NESTED_BUILTIN_DELEGATE]
+        : []),
+      "  return 0",
+      " fi",
+      BUILTIN_DELEGATE,
+      "}",
+      EXPORT_BUILTIN_FUNCTION,
+    ].join("\n");
+  }
+  if (mode === "job-table-fork") {
+    // Delay only an extra command-substitution fork in the real admission path.
+    // The parent marker proves this interceptor is armed before the job census.
+    return [
+      BUILTIN_FUNCTION_START,
+      ' if [ "$1" = set ] && [ "${2-}" = -m ]; then',
+      "  LISA_DEADLINE_JOB_PARENT_LEVEL=$BASH_SUBSHELL",
+      '  command builtin printf "job-parent\\n" >> "$LISA_DEADLINE_PHASES"',
+      " fi",
+      ' if [ "$1" = jobs ]; then',
+      '  if [ "$BASH_SUBSHELL" -gt "${LISA_DEADLINE_JOB_PARENT_LEVEL:-0}" ]; then',
+      '   command builtin printf "job-table-fork\\n" >> "$LISA_DEADLINE_PHASES"',
+      "   /bin/sleep 1.25",
+      "  else",
+      '   command builtin printf "job-table-direct\\n" >> "$LISA_DEADLINE_PHASES"',
+      "  fi",
+      " fi",
+      BUILTIN_DELEGATE,
+      "}",
+      EXPORT_BUILTIN_FUNCTION,
+    ].join("\n");
+  }
   if (
     ![
       "missing-handshake",
@@ -99,7 +141,7 @@ function deadlineAdmission(mode: string): string {
   )
     return "";
   return [
-    "builtin() {",
+    BUILTIN_FUNCTION_START,
     ' case "$1" in',
     '  set) if [ "$2" = -m ] && [ "$LISA_DEADLINE_MODE" = group-absent ]; then command builtin printf "group-absent\\n" >> "$LISA_DEADLINE_PHASES"; command builtin set +m; return; fi ;;',
     '  printf) if [ "$2" = \'anchor:%s\\nstop\\n\' ]; then case "$LISA_DEADLINE_MODE" in',
@@ -108,9 +150,9 @@ function deadlineAdmission(mode: string): string {
     "   esac; fi ;;",
     '  wait) if [ "$LISA_DEADLINE_MODE" = early-parent-exit ] && [ "${LISA_DEADLINE_EXIT_ONCE-0}" = 0 ]; then LISA_DEADLINE_EXIT_ONCE=1; command builtin printf "early-parent-exit\\n" >> "$LISA_DEADLINE_PHASES"; exit 1; fi ;;',
     " esac",
-    ' command builtin "$@"',
+    BUILTIN_DELEGATE,
     "}",
-    "export -f builtin",
+    EXPORT_BUILTIN_FUNCTION,
   ].join("\n");
 }
 

@@ -6,7 +6,7 @@
 # Run Lisa's Bash enforcement guards when the plugin that normally provides them
 # is not installed.
 #
-# Every PreToolUse guard — block-no-verify, parity-safety-net,
+# Active PreToolUse guards — block-no-verify,
 # block-shell-json-parsing, block-instruction-file-edits,
 # block-direct-issue-create, block-blind-automerge, worktree-binding-guard —
 # is declared in the Lisa plugin. A cloud session
@@ -277,7 +277,17 @@ run_optional_freshness() (
     builtin kill -KILL -- -"$group"
   ) &
   anchor=$!
-  if [ "$(builtin jobs -pr)" = "$anchor" ]; then
+  # The child's admission timer is already running. Keep the job census in this
+  # shell: an extra command-substitution fork can consume that fixed window.
+  # Accept exactly one live job with the freshly captured anchor identity.
+  builtin jobs -pr >"$scratch/jobs" || exit 1
+  live_job_count=0
+  live_job=""
+  while IFS= builtin read -r observed_job; do
+    live_job_count=$((live_job_count + 1))
+    live_job="$observed_job"
+  done <"$scratch/jobs"
+  if [ "$live_job_count" -eq 1 ] && [ "$live_job" = "$anchor" ]; then
     # Preauthorize termination only after the helper finishes. This removes
     # parent polling and external sleep startup without accepting partial facts.
     builtin printf 'anchor:%s\nstop\n' "$anchor" >&8
@@ -563,7 +573,7 @@ shadowed=""
 host_tree_used=0
 plugin_tree_used=0
 
-for guard in block-no-verify parity-safety-net block-shell-json-parsing \
+for guard in block-no-verify block-shell-json-parsing \
   block-instruction-file-edits block-direct-issue-create \
   block-managed-file-edits block-blind-automerge worktree-binding-guard; do
   if [ -f "$host_tree/$guard.sh" ]; then

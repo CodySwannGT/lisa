@@ -34,10 +34,10 @@ const invoke = (stdin: string): { decision: string; reason?: string } => {
 };
 
 describe("parity-safety-net.agy.sh", () => {
-  it("denies a destructive command with the canonical reason", () => {
+  it("allows former target inputs after retirement", () => {
     const result = invoke(payload("rm -rf /"));
-    expect(result.decision).toBe("deny");
-    expect(result.reason).toContain("recursive forced delete");
+    expect(result.decision).toBe("allow");
+    expect(result.reason).toBeUndefined();
   });
 
   it("allows an ordinary shell command", () => {
@@ -50,11 +50,11 @@ describe("parity-safety-net.agy.sh", () => {
     expect(invoke(payload(command)).decision).toBe("allow");
   });
 
-  it("fails closed for malformed supported GitHub heredocs", () => {
+  it("does not parse formerly rejected heredocs", () => {
     const command = "gh issue comment 1594 --body-file - <<'EOF'\nrm -rf /";
     const result = invoke(payload(command));
-    expect(result.decision).toBe("deny");
-    expect(result.reason).toContain("malformed or ambiguous heredoc");
+    expect(result.decision).toBe("allow");
+    expect(result.reason).toBeUndefined();
   });
 
   it("allows malformed envelopes without crashing agy", () => {

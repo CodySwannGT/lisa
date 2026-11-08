@@ -36,7 +36,6 @@ import { afterAll } from "vitest";
 import { boundedSpawnSync } from "../../../helpers/io-latency-budget.js";
 import { cleanGitEnv, resolveGit } from "../../../support/git-executable.js";
 
-const SHELL_GUARD = path.resolve("plugins/lisa/hooks/parity-safety-net.sh");
 const NODE_GUARD = path.resolve(
   "plugins/src/base/hooks/worktree-binding-guard.mjs"
 );
@@ -51,11 +50,8 @@ export const NESTED = "nested.sh";
  * reason its sibling suites assemble it: spelling it literally would make this
  * file an instance of the class it describes.
  */
-const DELETE = `${"r"}${"m"} -${"r"}${"f"}`;
 /** A directory no test creates, outside the project and outside every tmp allowance. */
-const OUTSIDE = "/Users/probe/outside-the-project/scratch";
 /** What the shell guard prints when it cannot say which file would run. */
-export const UNCLASSIFIABLE = "cannot classify the file this command executes";
 /** What the Node guard prints when an unliteral `cd` left the directory unknown. */
 export const UNKNOWN_DIRECTORY = "cannot tell which directory";
 
@@ -206,42 +202,6 @@ function plant(dirs: Dirs, plantAt: string, body: string): void {
   for (const dir of candidates(dirs)) {
     emit(path.join(dir, SCRIPT), dir === plantAt ? body : "echo inert");
   }
-}
-
-/**
- * Ask the shell guard to classify a command, with the reactive copy planted in
- * one directory.
- * @param command - The expanded command
- * @param dirs - The fixture directories
- * @param plantAt - Directory whose copy holds the destructive line
- * @returns The guard's exit status and refusal text
- */
-export function probeShell(
-  command: string,
-  dirs: Dirs,
-  plantAt: string
-): Verdict {
-  const ask = (): Verdict => {
-    const result = boundedSpawnSync({
-      label: "parity-safety-net",
-      command: "bash",
-      args: [SHELL_GUARD],
-      cwd: dirs.session,
-      env: { ...cleanGitEnv(), HOME: dirs.home },
-      input: JSON.stringify({
-        tool_name: "Bash",
-        tool_input: { command },
-      }),
-    });
-    return { status: result.status, stderr: result.stderr };
-  };
-
-  plant(dirs, plantAt, `${DELETE} ${OUTSIDE}`);
-  // The nested script's own `cd` must not leak into the outer walk, so it is
-  // planted with a directory change and nothing else.
-  emit(path.join(dirs.session, NESTED), `cd ${dirs.foreign}`);
-
-  return ask();
 }
 
 /**

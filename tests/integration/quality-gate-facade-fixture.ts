@@ -1,4 +1,5 @@
 import * as fs from "fs-extra";
+import * as path from "node:path";
 import { pathToFileURL } from "node:url";
 
 import { loadWorkflow } from "../helpers/workflow-test-utils.js";
