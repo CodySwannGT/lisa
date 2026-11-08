@@ -207,5 +207,6 @@ const AUDIT_SPECS = [
   "tests/unit/strategies/package-lisa-audit-script-governance.test.ts",
   "tests/integration/audit-consumer-parity.test.ts",
   "tests/integration/audit-workflow-action.test.ts",
+  "tests/integration/audit-registry-verdict.test.ts",
   "tests/integration/quality-audit-fail-closed.test.ts",
 ];
