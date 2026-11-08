@@ -3,5 +3,5 @@
 25:timeout 540 gh pr checks <pr> --required --watch --interval 30 --fail-fast
 28:Give the tool call that runs it a timeout above that value (for example
 42:watch exits non-zero when `--fail-fast` sees a failed check, when the timeout
-66:timeout 60 gh pr checks <pr> --watch --interval 10 || sleep 30
-103:CI PENDING — <n> required checks still running at <sha>
+71:timeout 60 gh pr checks <pr> --watch --interval 10; sleep 30
+108:CI PENDING — <n> required checks still running at <sha>

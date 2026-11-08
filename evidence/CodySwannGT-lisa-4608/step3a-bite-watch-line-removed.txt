@@ -14,7 +14,7 @@ Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
  RUN  v4.1.12 /Users/codysai/workspace/lisa/.claude/worktrees/4608-bounded-ci-watch
 
 lisa scratch: no supervised lease in the environment, so this run is self-supervised. Fixture directories are still bounded to a run root this process owns and removed on exit; what is missing is the detached reaper that reclaims the root after a SIGKILL, which the next run's startup sweep recovers instead. Run through `lisa-test-run --profile <profile> --adapter vitest -- vitest ...` for a supervised run.
- ❯ |lisa| tests/unit/strategies/drive-pr-bounded-ci-watch.test.ts (133 tests | 3 failed) 20ms
+ ❯ |lisa| tests/unit/strategies/drive-pr-bounded-ci-watch.test.ts (133 tests | 3 failed) 21ms
      × instructs a required-checks watch with an interval and fail-fast 3ms
      × runs the watch under a timeout bounded by the harness command limit 1ms
      × re-polls the full PR state after the watch returns, and repeats 0ms
@@ -82,18 +82,23 @@ gh api \"repos/<owner>/<repo>/rules/branches/<base>\" \\
   --jq '[.[] | select(.type == \"required_status_checks\")] | length'
 gh api \"repos/<owner>/<repo>/branches/<base>/protection/required_status_checks\" \\
   --jq '(.contexts // []) + [(.checks // [])[].context] | length'
+gh api \"repos/<owner>/<repo>/branches/<base>\" --jq .protected
 ```
 
 The wait does not apply only when BOTH say none: the rules read returns `0`
-AND the classic read returns 404 or `0`. Any other error from either read means
-the requirement is unknown — treat the base as requiring checks. Otherwise the
+AND the classic read returns `0`, or 404 while the branch read says `.protected`
+is `false`. GitHub also answers 404 when the token cannot read protection (it
+needs admin), so a 404 on a protected branch — or any other error from either
+read — means the requirement is unknown: treat the base as requiring checks.
+With no required checks, the loop just re-polls for the other blockers. Otherwise the
 head's checks have not started: re-poll, and re-run the bounded watch once the
 re-poll shows required checks registered. Between those re-polls, wait with this
-one foreground bounded gap — the `sleep` covers a head with no checks at all,
-where the watch returns at once:
+one foreground bounded gap — the `sleep` always runs, because the watch can
+return at once (no checks yet, or every reported check already green while a
+required one has not registered):
 
 ```bash
-timeout 60 gh pr checks <pr> --watch --interval 10 || sleep 30
+timeout 60 gh pr checks <pr> --watch --interval 10; sleep 30
 ```
 
 Never a detached or unbounded sleep loop. After 10 re-polls with no required
@@ -802,18 +807,23 @@ gh api \"repos/<owner>/<repo>/rules/branches/<base>\" \\
   --jq '[.[] | select(.type == \"required_status_checks\")] | length'
 gh api \"repos/<owner>/<repo>/branches/<base>/protection/required_status_checks\" \\
   --jq '(.contexts // []) + [(.checks // [])[].context] | length'
+gh api \"repos/<owner>/<repo>/branches/<base>\" --jq .protected
 ```
 
 The wait does not apply only when BOTH say none: the rules read returns `0`
-AND the classic read returns 404 or `0`. Any other error from either read means
-the requirement is unknown — treat the base as requiring checks. Otherwise the
+AND the classic read returns `0`, or 404 while the branch read says `.protected`
+is `false`. GitHub also answers 404 when the token cannot read protection (it
+needs admin), so a 404 on a protected branch — or any other error from either
+read — means the requirement is unknown: treat the base as requiring checks.
+With no required checks, the loop just re-polls for the other blockers. Otherwise the
 head's checks have not started: re-poll, and re-run the bounded watch once the
 re-poll shows required checks registered. Between those re-polls, wait with this
-one foreground bounded gap — the `sleep` covers a head with no checks at all,
-where the watch returns at once:
+one foreground bounded gap — the `sleep` always runs, because the watch can
+return at once (no checks yet, or every reported check already green while a
+required one has not registered):
 
 ```bash
-timeout 60 gh pr checks <pr> --watch --interval 10 || sleep 30
+timeout 60 gh pr checks <pr> --watch --interval 10; sleep 30
 ```
 
 Never a detached or unbounded sleep loop. After 10 re-polls with no required
@@ -1476,13 +1486,13 @@ AssertionError: expected -1 to be greater than or equal to 0
 
  Test Files  1 failed (1)
       Tests  3 failed | 130 passed (133)
-   Start at  20:30:38
-   Duration  454ms (transform 89ms, setup 161ms, import 7ms, tests 20ms, environment 0ms)
+   Start at  21:50:03
+   Duration  348ms (transform 80ms, setup 142ms, import 9ms, tests 21ms, environment 0ms)
 
 vitest exit=1
 (empty above = plugins/ and tests/ clean after restore)
 diff --git a/plugins/src/base/skills/lisa-drive-pr-to-merge/SKILL.md b/plugins/src/base/skills/lisa-drive-pr-to-merge/SKILL.md
-index 15e6ba51f2..a70d4f9f5c 100644
+index ed4182fe06..d949e0e46c 100644
 --- a/plugins/src/base/skills/lisa-drive-pr-to-merge/SKILL.md
 +++ b/plugins/src/base/skills/lisa-drive-pr-to-merge/SKILL.md
 @@ -709,7 +709,6 @@ timeout no longer than the harness's single-command limit (`timeout 540` where
