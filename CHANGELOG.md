@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.98.1](https://github.com/CodySwannGT/lisa/compare/v4.98.0...v4.98.1) (2026-11-08)
+
+
+### Bug Fixes
+
+* **scripts:** scope phrase-manifest parity to the fold's own deletions ([#4609](https://github.com/CodySwannGT/lisa/issues/4609)) ([d753142](https://github.com/CodySwannGT/lisa/commit/d753142027bc1c72b234da3434a99ffbb1af4c7f))
+
 ## [4.98.0](https://github.com/CodySwannGT/lisa/compare/v4.97.5...v4.98.0) (2026-11-08)
 
 
