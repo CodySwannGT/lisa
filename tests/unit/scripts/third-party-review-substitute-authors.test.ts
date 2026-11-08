@@ -252,6 +252,63 @@ describe("each author's permission is read once per run", () => {
 
     expect(asked).toEqual([STRANGER]);
   });
+
+  it("asks once in an --arm run, where the reading and the arm share one reader", () => {
+    const asked: string[] = [];
+    const chunks: string[] = [];
+    const code = main([`--sha=${HEAD}`, REPO_ARG, "--arm", "--json"], {
+      gates: ONE_REVIEWER,
+      pulls: () => [7],
+      statuses: () => [
+        { context: CONTEXT, state: "success", description: THROTTLED },
+      ],
+      comments: () => [
+        comment(`${MARKER}\nRead the diff.`, WRITER),
+        comment(`${MARKER}\nRead it again.`, WRITER),
+      ],
+      reviews: () => [],
+      requiredChecks: () => false,
+      readFile: () => "{}",
+      canWrite: login => {
+        asked.push(login);
+        return true;
+      },
+      out: {
+        write: (text: string) => {
+          chunks.push(text);
+        },
+      },
+    });
+    const report = JSON.parse(chunks.join("")) as {
+      arm: boolean;
+      evidence: { outcome: string };
+    };
+
+    expect(asked).toEqual([WRITER]);
+    expect(report.evidence.outcome).toBe(EVIDENCE_OUTCOMES.substituted);
+    expect(report.arm).toBe(true);
+    expect(code).toBe(0);
+  });
+});
+
+describe("a bot's marker is refused without asking", () => {
+  it("reports no write access and never calls the permission reader", () => {
+    const asked: string[] = [];
+    const { code, stdout } = runMain(
+      [comment(MARKER, "github-actions[bot]")],
+      true,
+      login => {
+        asked.push(login);
+        return true;
+      }
+    );
+
+    expect(code).toBe(1);
+    expect(asked).toEqual([]);
+    expect(parsed(stdout).reading?.substituteRefusals).toEqual([
+      { author: "github-actions[bot]", reason: NO_WRITE_ACCESS },
+    ]);
+  });
 });
 
 describe("substitutePosted applies the same rule", () => {

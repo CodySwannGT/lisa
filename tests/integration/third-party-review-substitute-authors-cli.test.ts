@@ -18,6 +18,7 @@ import {
   permissionRoute,
   RATE_LIMITED_RUN,
   REVIEWER,
+  ROUTES,
   routesRead,
   runThirdPartyReviewCli,
   substituteComment,
@@ -100,16 +101,29 @@ describe("everyone else's marker is refused, by name", () => {
     ]);
   });
 
-  it("asks about a bot, as the gate does, and a bot is no collaborator", () => {
+  it("refuses a bot without asking, because a bot is no collaborator", () => {
     const bot = "github-actions[bot]";
-    const result = substituteBy(bot, {
-      __refuse__: "HTTP 404: github-actions[bot] is not a user",
+    const result = run({
+      checkRuns: [RATE_LIMITED_RUN],
+      comments: [substituteComment(REVIEWER, HEAD, bot)],
+      permissions: {},
     });
 
     expect(result.status).toBe(1);
-    expect(routesRead(result)).toContain(permissionRoute(bot));
+    expect(routesRead(result)).not.toContain(permissionRoute(bot));
     expect(onlyReading(result).substituteRefusals).toEqual([
-      { author: bot, reason: PERMISSION_UNREADABLE },
+      { author: bot, reason: NO_WRITE_ACCESS },
+    ]);
+  });
+
+  it("reads every page of comments, as the arm decision does", () => {
+    const result = substituteBy(WRITER, { permission: "write" });
+    const commentsRead = result.calls.filter(
+      call => call.argv.at(-1) === ROUTES.comments
+    );
+
+    expect(commentsRead.map(call => call.argv)).toEqual([
+      ["api", "--paginate", "--slurp", ROUTES.comments],
     ]);
   });
 

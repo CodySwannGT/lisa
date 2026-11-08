@@ -289,8 +289,9 @@ export function onlyReading(run: CliRun): Record<string, unknown> {
 /**
  * The routes a run actually read, in order.
  * @param run - A completed CLI run
- * @returns The second argv element of every journaled call
+ * @returns The API path of every journaled call — its last argv element, so a
+ *   paginated `api --paginate --slurp <path>` read names its path too
  */
 export function routesRead(run: CliRun): readonly string[] {
-  return run.calls.map(call => call.argv[1] ?? "");
+  return run.calls.map(call => call.argv.at(-1) ?? "");
 }

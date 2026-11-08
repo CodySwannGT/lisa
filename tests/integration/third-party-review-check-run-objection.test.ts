@@ -107,9 +107,14 @@ describe("review work never overrides a substantive objection", () => {
     expect(result.verdict.outcome).toBe("satisfied");
     expect(routesRead(result)).not.toContain(ROUTES.reviews);
     expect(routesRead(result)).not.toContain("graphql");
+    // Every call is a plain read: `api <path>`, or the paginated comment read
+    // `api --paginate --slurp <path>` (#4628). Neither carries a method or a
+    // field, so nothing here can write.
     for (const call of result.calls) {
-      expect(call.argv).toHaveLength(2);
-      expect(call.argv[0]).toBe("api");
+      expect([
+        ["api", call.argv.at(-1)],
+        ["api", "--paginate", "--slurp", call.argv.at(-1)],
+      ]).toContainEqual(call.argv);
     }
     expect(JSON.stringify(result.verdict)).not.toMatch(/approv|decision/iu);
   });

@@ -724,11 +724,17 @@ function rememberPermissions(canWrite) {
 
 /**
  * Ask a permission reader once, failing closed.
+ *
+ * A bot login (`…[bot]`) is answered `false` without asking: a bot is never a
+ * repository collaborator, so the answer is known, and reading it would only
+ * turn a certain "no write access" into a noisy "permission unreadable". The
+ * merge-path gate refuses the same author.
  * @param {(login: string) => boolean|null} canWrite - The permission reader.
  * @param {string} login - The comment author.
  * @returns {boolean|null} The answer, or null when it could not be read.
  */
 function askPermission(canWrite, login) {
+  if (login.endsWith("[bot]")) return false;
   // probe-direction: fail-closed — a reader that throws or answers anything but a boolean is unreadable.
   try {
     const answer = canWrite(login);
@@ -798,17 +804,20 @@ export function judgeSubstitutes({
 }) {
   const marker = substituteMarker({ context, sha });
   const permission = rememberPermissions(canWrite);
-  const refused = [];
-  let counted = false;
-  for (const comment of comments ?? []) {
-    const body = String(comment?.body ?? "");
-    if (!body.includes(marker)) continue;
-    const author = String(comment?.user?.login ?? "");
-    const reason = substituteRefusal(body, marker, () => permission(author));
-    if (reason === null) counted = true;
-    else refused.push({ author, reason });
-  }
-  return { counted, refused };
+  const judged = (comments ?? [])
+    .map(comment => ({
+      body: String(comment?.body ?? ""),
+      author: String(comment?.user?.login ?? ""),
+    }))
+    .filter(({ body }) => body.includes(marker))
+    .map(({ body, author }) => ({
+      author,
+      reason: substituteRefusal(body, marker, () => permission(author)),
+    }));
+  return {
+    counted: judged.some(entry => entry.reason === null),
+    refused: judged.filter(entry => entry.reason !== null),
+  };
 }
 
 /**
@@ -1069,10 +1078,10 @@ const allSubstituted = (contexts, substitutes) =>
  * A substitute counts here only as the first line of a comment by someone with
  * write access — the classifier's rule, for the same reason: arming turns a
  * blocking verdict into a merge. The response arm's own `substituted` outcome
- * applies the same rule since #4628; the arm still reads the substitutes
- * itself, across every page of comments, rather than trusting a verdict that
- * read only the first. A `Changes requested` proof proves the reviewer
- * worked, not that the head may merge.
+ * applies the same rule, over every page of comments, since #4628; the arm
+ * still reads the substitutes itself because it answers for every context at
+ * once. A `Changes requested` proof proves the reviewer worked, not that the
+ * head may merge.
  * @param {{outcome: string, readings?: ReadonlyArray<{context: string, reviewed: boolean, observed?: string|null}>}} evidence - This prover's verdict.
  * @param {ReadonlySet<string>} substitutes - Contexts a writer substituted for at this head.
  * @returns {{engaged: boolean, action: string, reason: string, viaSubstitute?: boolean}} The signal.
@@ -1626,21 +1635,6 @@ function readHeadPulls(repo, sha) {
 }
 
 /**
- * Issue comments on the given pull requests.
- * @param {string} repo - `owner/repo`.
- * @param {number[]} numbers - Pull request numbers.
- * @returns {ReadonlyArray<object>} The comments.
- */
-function readComments(repo, numbers) {
-  return numbers.flatMap(number => {
-    const comments = ghJson(
-      `repos/${repo}/issues/${number}/comments?per_page=100`
-    );
-    return Array.isArray(comments) ? comments : [];
-  });
-}
-
-/**
  * Which check-run reader a run uses.
  *
  * A caller that injected the status reader supplies the evidence itself, so it
@@ -1702,9 +1696,9 @@ const FIRST_LINE_MARKER = new RegExp(
  * `null`, reported as "permission unreadable", and a login outside the gate's
  * pattern answers `false`; both can only leave a substitute uncounted, never
  * count one. The pattern is the merge-path gate's own,
- * `^[A-Za-z0-9-]+(\[bot\])?$`, so the two arms ask about the same logins. A
- * bot author such as `github-actions[bot]` passes the pattern but is not a
- * collaborator, so it never counts.
+ * `^[A-Za-z0-9-]+(\[bot\])?$`, so the two arms judge the same logins. A
+ * bot author such as `github-actions[bot]` is no collaborator, so the
+ * remembering reader answers it `false` before this is ever asked.
  * @param {string} repo - `owner/repo`.
  * @param {string} login - The comment author.
  * @returns {boolean|null} Whether the login may stand in for a reviewer; null when unreadable.
@@ -2042,7 +2036,7 @@ export function main(argv, io = {}) {
           ? checkRunsByContext(reviewers, opts.sha, checkRunReader(io, repo))
           : {},
         comments: evaluated
-          ? (io.comments ?? (numbers => readComments(repo, numbers)))(
+          ? (io.comments ?? (numbers => readAllComments(repo, numbers)))(
               pulls ?? []
             )
           : [],
