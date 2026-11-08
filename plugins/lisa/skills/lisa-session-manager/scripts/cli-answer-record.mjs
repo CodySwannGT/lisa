@@ -44,8 +44,8 @@ export async function channelAnswer(ctx) {
 
 /**
  * `answer-plan <ref>`: plan recording the queued answer on the item. Exit 2
- * when the ledger is corrupt or the queued answer looks like a credential
- * (nothing is printed, so nothing can be posted).
+ * when the ledger is corrupt or the answer it would post looks like a
+ * credential (nothing is printed, so nothing can be posted).
  * @param {object} ctx - CLI context
  * @returns {Promise<{ json: object }>} `{ref,record:false,reason}` or
  *   `{ref,record:true,source,comment}`
@@ -55,13 +55,10 @@ export async function answerPlan(ctx) {
   const ledger = await asSetupErrorAsync(() => readLedger(ctx.root));
   const entry = Object.hasOwn(ledger.items, ref) ? ledger.items[ref] : null;
   const pending = entry?.pendingQuestion ?? null;
-  // Deliberate defence in depth: planAnswerRecord refuses a credential too,
-  // but this check runs first, whatever the plan would decide, so a
-  // credential that reached the ledger by any route is always reported as
-  // one (exit 2, nothing printed) and never as an ordinary plan.
-  if (pending?.answer) {
-    refuseCredential(pending.answer.text, "nothing will be posted on the item");
-  }
+  // The credential refusal lives in planAnswerRecord and fires only when the
+  // plan would post the answer: an answer it would not post (one taken from
+  // the item, say) is not this command's to refuse. A refusal is a setup
+  // error: exit 2, nothing printed, so nothing can be posted.
   const plan = asSetupError(() =>
     planAnswerRecord({
       ref,

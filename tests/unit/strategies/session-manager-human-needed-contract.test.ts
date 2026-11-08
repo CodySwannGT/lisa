@@ -18,6 +18,7 @@ import { ALL_ROOTS, read, section } from "./session-manager-skill-helpers.js";
 
 const MANAGER = "lisa-session-manager";
 const HEADING = "## Mark and move on";
+const REMOVE_MARKER_STEP = "2. **Remove the manager's own marker**";
 const CONTRACT =
   "plugins/src/base/rules/reference/automation-runbook-contract.md";
 
@@ -83,7 +84,7 @@ describe.each(ALL_ROOTS)("mark and move on (%s)", root => {
     const clearing = mark.slice(mark.indexOf("**Clearing**"));
     const order = [
       "1. **Deliver the answer.**",
-      "2. **Remove the manager's own marker**",
+      REMOVE_MARKER_STEP,
       "3. `ledger clear-question <ref>` (`--reset-attempts` for an `exhausted` item).",
     ].map(step => clearing.indexOf(step));
     expect(order.every(position => position > -1)).toBe(true);
@@ -100,7 +101,7 @@ describe.each(ALL_ROOTS)("mark and move on (%s)", root => {
       "**Record the answer on the item**",
       "Run `answer-plan <ref>`.",
       "post its `comment` exactly as given through `lisa-tracker-write` and read it\n   back with `lisa-tracker-read`; only then go on to step 2.",
-      "2. **Remove the manager's own marker**",
+      REMOVE_MARKER_STEP,
       "3. `ledger clear-question <ref>`",
     ].map(step => clearing.indexOf(step));
     expect(order.every(position => position > -1)).toBe(true);
@@ -112,6 +113,18 @@ describe.each(ALL_ROOTS)("mark and move on (%s)", root => {
       "`[lisa-session-manager] Answer recorded on the item; removed the hold.`"
     );
     expect(clearing).not.toContain("Deliver nothing; the next attempt reads");
+    // A retry after a failed read-back or step 2 must not post the answer
+    // twice: an identical comment already on the item is the read-back.
+    const record = clearing.slice(
+      clearing.indexOf("**Record the answer on the item**"),
+      clearing.indexOf(REMOVE_MARKER_STEP)
+    );
+    expect(record).toMatch(
+      /Before posting, read the item's comments with `lisa-tracker-read`[\s\S]*exactly the plan's\s+`comment`[\s\S]*do not post it again/
+    );
+    expect(record.indexOf("Before posting")).toBeLessThan(
+      record.indexOf("post its `comment` exactly as given")
+    );
     expect(clearing).toContain(
       "`decision` with no worker yet: nothing to deliver. Record the answer on the item (below)"
     );

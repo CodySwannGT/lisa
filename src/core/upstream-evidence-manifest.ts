@@ -1693,15 +1693,15 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-sentry-access/SKILL.md":
       "1c1881ca9a2020f6cd8f938dc5335ebf2d344ff280844bb98926198e5226e526",
     "plugins/src/base/skills/lisa-session-manager/SKILL.md":
-      "67d80186601e95a0072459ba7dce4910e79d75f0060ddc6bb1fe2ba0266954a7",
+      "2dfb950e33576fac9919963823bf4b75b261808b54418dfe245f3354ab9efc3c",
     "plugins/src/base/skills/lisa-session-manager/references/runbook-template.md":
       "62942a381e7dfb66d44d53e82df4121333ce88b4212acc53be9df9becaa6e100",
     "plugins/src/base/skills/lisa-session-manager/scripts/answer-record.mjs":
-      "cf4ad3b06710c32c81b5d428bb41457d432251d2ade90e110657d969112c9cc2",
+      "e1af611077110e7319a1648bc8c11cb4ad51c853439004ebf9be3ce3a8ce5847",
     "plugins/src/base/skills/lisa-session-manager/scripts/capacity.mjs":
       "ad5acc6097e375868b51eaf01b1506662505e2404b7ac1b06528679718504091",
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-answer-record.mjs":
-      "c333916c9fb5dbaeb4d6fb93accbbd1980556850fb7ef1b58c1062b42c490228",
+      "f223e3b03cd988c54718cc52a4c6b479cbe3041a4afe8144e9f84e9cc843fe5c",
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-cycle.mjs":
       "02db00a5f343edc932466eea345e3d78193ff35223a7ade33e0133ab0ee29f9f",
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-human.mjs":
@@ -1721,7 +1721,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-status.mjs":
       "30bdd485e5c575a78456230712d4a51d1feddd4022a0c8e5c69e5edc3c32508a",
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-usage.mjs":
-      "d7479c1953bfac7efb0172f15a1b6d5760667207c1a1e7f02bf3fb888b0355c0",
+      "ae14e057b2d94338a194e21faf7053af71978fc17330668b16ed99a7fb0ccc48",
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-workers.mjs":
       "59a00278ab701a7830437597923379bad78ccd43857d574f333f6265efc4dcc7",
     "plugins/src/base/skills/lisa-session-manager/scripts/clipboard.mjs":
@@ -1733,7 +1733,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-session-manager/scripts/human-answer.mjs":
       "cd3a049ddefd96e067683ec8d1b4f5a3c38800fcd328af1d560c578280de2b2c",
     "plugins/src/base/skills/lisa-session-manager/scripts/human-needed.mjs":
-      "0dba0df14760305e6cc9439838d9c58a11c0c955442c0f37edc76a108382d595",
+      "2e095e6832ce71f6dcd9bc198a24d4f4fed0b6e831b58ed771d7308357cd8a01",
     "plugins/src/base/skills/lisa-session-manager/scripts/isolation.mjs":
       "c6161331dea68eec4112948d9e8841aa834632c7503de5c8fd5d9834e125dfbc",
     "plugins/src/base/skills/lisa-session-manager/scripts/json-input.mjs":

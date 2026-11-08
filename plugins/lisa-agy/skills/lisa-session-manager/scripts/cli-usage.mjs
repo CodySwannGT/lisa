@@ -255,8 +255,9 @@ Per cycle
   answer <ref>                                  STDIN: the answer
       Queues an operator's answer (source "cli") for the next cycle to
       deliver to the worker, or record on the item when the worker has
-      finished or the item is exhausted. stdout {queued:true,ref,source}. Exit 2 when <ref> has no
-      pending question, or the text looks like a credential.
+      finished or the item is exhausted. stdout {queued:true,ref,source}.
+      Exit 2 when <ref> has no pending question, or the text looks like a
+      credential.
   item-answer <ref>          STDIN: {"comments":[{user|author,body,createdAt}]}
       Queues the human's answer from the item's comments (source "item"):
       the first comment after the latest [lisa-session-manager-question]
@@ -291,15 +292,16 @@ Per cycle
       Plans recording the queued answer on the item before clearing; writes
       nothing. stdout {ref,record:true,source,comment} when no worker will
       receive the answer (the worker reported DONE or FAILED, the question
-      is exhausted, or no worker was started, except a repo-route) and the
-      answer came from answer (source cli) or Telegram (source channel):
-      post comment ([lisa-session-manager] The operator answered the
-      question above (by answer|Telegram, <time>): <answer>) and read it
-      back before ledger clear-question. Otherwise {ref,record:false,
-      reason:no-pending-question|no-answer-queued|answered-on-item|
-      worker-not-finished|routed-by-repo-stamp}. Exit 2 when the queued answer looks like a
-      credential (nothing printed, nothing to post) or the ledger is
-      corrupt.
+      is exhausted, or no worker was started) and the answer came from
+      answer (source cli) or Telegram (source channel): post comment
+      ([lisa-session-manager] The operator answered the question above (by
+      answer|Telegram, <time>): <answer>) and read it back before ledger
+      clear-question. A repo-route never records (the repo stamp carries
+      it). Otherwise {ref,record:false,reason:no-pending-question|
+      no-answer-queued|answered-on-item|worker-not-finished|
+      routed-by-repo-stamp}. Exit 2 when the answer it would post looks
+      like a credential (nothing printed, nothing to post) or the ledger
+      is corrupt.
   record-cycle --outcome <outcome> [--ref <url>]... [--run-id <id>]
       STDIN: one-line summary. Records loop session-manager with runbook
       .lisa/automations/session-manager.runbook.md. stdout {path,appended,

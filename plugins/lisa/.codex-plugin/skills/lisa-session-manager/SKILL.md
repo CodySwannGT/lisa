@@ -264,7 +264,10 @@ leave the ledger as it is (`markedAt` stays null), carry on with the cycle and e
    worker has picked up): the next attempt
    can only read an answer that is on the item, and an answer given with `answer` or on Telegram
    is only in the ledger, which step 3 empties. Run `answer-plan <ref>`. When it returns
-   `record: true`, post its `comment` exactly as given through `lisa-tracker-write` and read it
+   `record: true`: Before posting, read the item's comments with `lisa-tracker-read`; when a
+   comment whose body is exactly the plan's `comment` is already there (an earlier cycle posted
+   it and then stopped), do not post it again, and take that comment as the read-back.
+   Otherwise post its `comment` exactly as given through `lisa-tracker-write` and read it
    back with `lisa-tracker-read`; only then go on to step 2. `record: false` with `reason`
    `answered-on-item` (the answer is already on the item) needs nothing posted. If the post or the
    read-back fails, stop here: leave the marker and the question pending (do not run step 3),

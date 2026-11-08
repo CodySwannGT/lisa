@@ -126,6 +126,20 @@ describe("planAnswerRecord", () => {
     }
   );
 
+  it.each(["DONE", FAILED])(
+    "leaves a repo-route answer to the repo stamp even after the worker reported %s",
+    status => {
+      expect(
+        planAnswerRecord({
+          ref: REF,
+          status,
+          worker: "wk-a",
+          pending: pending("cli", "backend", "repo-route"),
+        })
+      ).toEqual({ ref: REF, record: false, reason: "routed-by-repo-stamp" });
+    }
+  );
+
   it("leaves a repo-route answer with no worker to the repo stamp", () => {
     expect(
       planAnswerRecord({
@@ -178,6 +192,14 @@ describe("planAnswerRecord", () => {
     ["a password assignment", `password=${["hunter", "2x9"].join("")}`],
     ["a token assignment", `Token: ${FAKE}`],
     ["a secret assignment", `SECRET = ${FAKE}`],
+    ["an env-style token", `GITHUB_TOKEN=${["abcd1234", "efgh5678"].join("")}`],
+    ["a prefixed secret", `client_secret: ${["abcd", "1234efgh"].join("")}`],
+    ["a prefixed password", `DB_PASSWORD=${["hunter2", "hunter2"].join("")}`],
+    [
+      "a long digit-free password",
+      `password=${["correct", "horse", "battery"].join("")}`,
+    ],
+    ["a URI with a password and a port", `postgres://admin:${FAKE}@db:5432/x`],
   ])("refuses %s", (_label, text) => {
     expect(findCredentialShape(text)).not.toBeNull();
   });
@@ -191,6 +213,9 @@ describe("planAnswerRecord", () => {
     "password: changeme",
     "token=abc12",
     "mailto:ops@example.com",
+    "http://localhost:3000/search?owner=a@b.com",
+    "https://host:8080/path/@user",
+    "the tokenizer: expires daily",
   ])("does not refuse ordinary prose: %s", text => {
     expect(findCredentialShape(text)).toBeNull();
   });

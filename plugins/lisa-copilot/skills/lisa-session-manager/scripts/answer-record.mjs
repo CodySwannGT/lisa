@@ -46,7 +46,7 @@ function withAnswer(head, text) {
  * Why no comment is needed, or null when one is. No worker receives the
  * answer when the worker finished, the item is `exhausted`, or no worker has
  * been started yet (a `decision`, say): then only the item can carry it. A
- * `repo-route` answer with no worker is carried by the `repo:<name>` stamp.
+ * `repo-route` answer is always carried by the `repo:<name>` stamp.
  * @param {string | undefined} status - The ledger item's status
  * @param {string | null | undefined} worker - The ledger item's worker
  * @param {{kind?: string, answer?: {source: string} | null} | null} pending
@@ -57,9 +57,9 @@ function skipReason(status, worker, pending) {
   if (!pending) return "no-pending-question";
   if (!pending.answer) return "no-answer-queued";
   if (pending.answer.source === "item") return "answered-on-item";
+  if (pending.kind === "repo-route") return "routed-by-repo-stamp";
   if (pending.kind === "exhausted" || FINISHED.has(status ?? "")) return null;
-  if (worker) return "worker-not-finished";
-  return pending.kind === "repo-route" ? "routed-by-repo-stamp" : null;
+  return worker ? "worker-not-finished" : null;
 }
 
 /**

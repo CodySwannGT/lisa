@@ -193,6 +193,29 @@ describe("answer-plan", () => {
     expect(plan.status).toBe(2);
     expect(plan.stdout).toBe("");
   });
+
+  it("does not refuse a credential-shaped answer it would not post", () => {
+    const sandbox = githubSandbox();
+    finishedWithQuestion(sandbox, "FAILED");
+    runStubOnly(sandbox, ["answer", REF], { input: ANSWER });
+    const ledgerFile = readLedgerFile(sandbox);
+    ledgerFile.items[REF].pendingQuestion.answer = {
+      ...ledgerFile.items[REF].pendingQuestion.answer,
+      source: "item",
+      text: LEAK,
+    };
+    writeJson(
+      path.join(sandbox.root, ".lisa/session-manager/ledger.json"),
+      ledgerFile
+    );
+    const plan = runStubOnly(sandbox, [ANSWER_PLAN, REF]);
+    expect(plan.status).toBe(0);
+    expect(plan.json).toEqual({
+      ref: REF,
+      record: false,
+      reason: "answered-on-item",
+    });
+  });
 });
 
 /** What the stub tracker writer was asked to do, in order. */
