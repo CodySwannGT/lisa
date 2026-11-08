@@ -58,7 +58,7 @@ describe.each(skillPaths("lisa-track"))("%s", file => {
 
   it("ignores claim comments, so the session manager's earlier claim never hides the marker", () => {
     expect(phase3).toContain(
-      "claim comments (`[lisa-tracker-claim]`, `[claude-build-intake]`) and failure markers from anyone other than `github-actions[bot]` do not count as Lisa markers"
+      "claim comments and session-manager notes (`[lisa-tracker-claim]`, `[claude-build-intake]`, `[lisa-session-manager]`) and failure markers from anyone other than `github-actions[bot]` do not count as Lisa markers"
     );
     expect(phase3).toMatch(/session-manager path[^\n]*already claimed/u);
     expect(phase3).not.toContain("Known limitation");

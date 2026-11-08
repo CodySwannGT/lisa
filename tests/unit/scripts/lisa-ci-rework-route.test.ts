@@ -29,6 +29,8 @@ const NOT_NEWEST = "not-newest";
 const READ_FAILED = "read-failed";
 const IMPLEMENT = "implement";
 const REPO = "CodySwannGT/lisa";
+const LATER_AT = "2026-11-05T12:00:00Z";
+const OUTSIDER = "someone-else";
 const SHA = "3db71f89a186d5dbeb78015aa5735fa9d8efda48";
 const COMMENTS = `api repos/${REPO}/issues/1/comments --paginate --slurp`;
 const PR_VIEW = `pr view 101 --repo ${REPO} --json state,isCrossRepository,body,headRefName`;
@@ -91,8 +93,8 @@ describe("a trusted marker routes the item back to its PR", () => {
   it("is not hidden by a forged marker typed after the genuine one", () => {
     const forged = {
       id: 1003,
-      user: { login: "someone-else" },
-      created_at: "2026-11-05T12:00:00Z",
+      user: { login: OUTSIDER },
+      created_at: LATER_AT,
       body: `<!-- [lisa-ci-failed] pr=999 sha=${"a".repeat(40)} -->`,
     };
     const decision = decideRoute({
@@ -112,7 +114,6 @@ describe("an untrusted or stale marker is ignored", () => {
     ["closed-pr", "pull-request-not-open"],
     ["fork-pr", "fork-pull-request"],
     ["merged-pr", "pull-request-not-open"],
-    ["fork-pr", "fork-pull-request"],
     ["other-item", "other-work-item"],
     ["unbound-pr", "unbound-pull-request"],
     [NOT_NEWEST, NOT_NEWEST],
@@ -172,11 +173,38 @@ describe("claim comments never supersede a failure marker", () => {
     expect(route(NOT_NEWEST).reason).toBe(NOT_NEWEST);
   });
 
+  it.each([
+    "[lisa-session-manager] Stopped by the operator.",
+    "[lisa-session-manager] Worker failed: exited 1.",
+  ])("ignores the session manager's own note %j", body => {
+    const note = {
+      id: 1003,
+      user: { login: "CodySwannGT" },
+      created_at: LATER_AT,
+      body,
+    };
+    expect(
+      decideRoute({ item: "1", contract, gh: withComments([note]) })
+    ).toMatchObject({ route: "ci-rework", pr: 101 });
+  });
+
+  it("is not hidden by an untrusted claim-plus-forged-failure comment", () => {
+    const forgedClaim = {
+      id: 1003,
+      user: { login: OUTSIDER },
+      created_at: LATER_AT,
+      body: `[lisa-tracker-claim] Claimed.\n<!-- [lisa-ci-failed] pr=999 sha=${"a".repeat(40)} -->`,
+    };
+    expect(
+      decideRoute({ item: "1", contract, gh: withComments([forgedClaim]) })
+    ).toMatchObject({ route: "ci-rework", pr: 101 });
+  });
+
   it("counts a comment carrying a claim AND another Lisa marker", () => {
     const mixed = {
       id: 1003,
       user: { login: "CodySwannGT" },
-      created_at: "2026-11-05T12:00:00Z",
+      created_at: LATER_AT,
       body: "[lisa-tracker-claim] Claimed.\n<!-- [lisa-human-gate] reason=x -->",
     };
     expect(
@@ -238,7 +266,7 @@ describe("the retry loop is bounded like build intake's", () => {
   it("does not count a forged marker toward the bound", () => {
     const forged = (id: number) => ({
       id,
-      user: { login: "someone-else" },
+      user: { login: OUTSIDER },
       created_at: `2026-11-05T0${id - 1000}:00:00Z`,
       body: `<!-- [lisa-ci-failed] pr=101 sha=${SHA} -->`,
     });

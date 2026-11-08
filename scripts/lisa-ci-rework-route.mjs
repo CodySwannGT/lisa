@@ -76,8 +76,13 @@ const FAILURE_LINE =
 const ITEM_NUMBER = /^[1-9]\d*$/u;
 const ITEM_REF = /^([A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+)#([1-9]\d*)$/u;
 const REPO = /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/u;
-/** Claim markers: the lifecycle claim and build intake's legacy claim. */
-const CLAIM_MARKERS = /\[(?:lisa-tracker-claim|claude-build-intake)\]/gu;
+/**
+ * Dispatch-bookkeeping markers: the lifecycle claim, build intake's legacy
+ * claim, and the session manager's own notes (stop, release, worker failed,
+ * answer delivered). None of them says anything about the PR's checks.
+ */
+const CLAIM_MARKERS =
+  /\[(?:lisa-tracker-claim|claude-build-intake|lisa-session-manager)\]/gu;
 
 /**
  * A decision to resolve and implement the item the normal way.
