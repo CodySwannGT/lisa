@@ -135,6 +135,10 @@ An entry full of `_Not yet decided_` is not itself an escalation; it is a
 to-do. The three items above are escalations because someone already looked and
 the answer was bad.
 
+When `dependencies.humanSignOff` is `"none"`, the agent resolves the
+escalation itself — reclassify, replace, remove, or accept — and records the decision and
+its reason in the entry.
+
 ## What each field means
 
 - **Why we keep it** — the plain-language reason, written for a non-technical

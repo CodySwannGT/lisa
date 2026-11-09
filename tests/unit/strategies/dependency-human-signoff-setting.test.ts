@@ -18,6 +18,15 @@ const CONFIG_RULE = "plugins/src/base/rules/reference/config-resolution.md";
 const SKILL = "plugins/src/base/skills/lisa-task-decomposition/SKILL.md";
 const SCAFFOLD = "all/create-only/.lisa/DEPENDENCY_DECISIONS.md";
 const GUIDE = "wiki/playbooks/dependency-ownership-operator-guide.md";
+const RECORDS_RULE =
+  "plugins/src/base/rules/reference/dependency-decision-records.md";
+
+/** Heading of the section each escalation surface lists its triggers under. */
+const ESCALATE_HEADING = "## When to escalate";
+
+/** The escalation exception every "raise it to an owner" surface carries. */
+const SELF_RESOLVE =
+  'When `dependencies.humanSignOff` is `"none"`, the agent resolves the escalation itself — reclassify, replace, remove, or accept — and records the decision and its reason in the entry.';
 
 /** The key every surface must name, as an agent would search for it. */
 const KEY = "`dependencies.humanSignOff`";
@@ -89,8 +98,26 @@ describe('"none" drops every ratification requirement (AC2)', () => {
     [SKILL, "lisa-task-decomposition skill"],
     [SCAFFOLD, "seeded decision record"],
     [GUIDE, "operator guide"],
+    [RECORDS_RULE, "dependency-decision-records rule"],
   ])("is acknowledged wherever sign-off is asked for: %s (%s)", file => {
     expect(flat(file)).toContain(KEY);
+  });
+
+  it("lets the agent resolve escalations itself in the records rule", () => {
+    const rule = flat(RECORDS_RULE);
+    const head = rule.slice(0, rule.indexOf(ESCALATE_HEADING));
+    const escalate = rule.slice(rule.indexOf(ESCALATE_HEADING));
+
+    expect(head).toContain(SELF_RESOLVE);
+    expect(escalate).toContain(SELF_RESOLVE);
+  });
+
+  it("lets the agent resolve escalations itself in the seeded record", () => {
+    const scaffold = flat(SCAFFOLD);
+
+    expect(scaffold.slice(scaffold.indexOf(ESCALATE_HEADING))).toContain(
+      SELF_RESOLVE
+    );
   });
 
   it("qualifies the decomposition skill's always-ratify sentence", () => {
