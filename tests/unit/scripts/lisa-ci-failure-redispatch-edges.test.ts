@@ -192,9 +192,11 @@ describe("the clear path", () => {
   });
 
   it("does not restore the claimed lane when a later Lisa marker shows something else moved the item", () => {
+    // Posted by the item's author: only a trusted author's marker counts (#4707).
     const data = edit(load(PASSED), COMMENTS_KEY, pages => {
       pages[1].push({
         id: 6700000003,
+        user: { login: "CodySwannGT", type: "User" },
         created_at: "2026-11-05T12:00:00Z",
         body: "Held. <!-- [lisa-build-attempt] n=1 outcome=blocked measures=work -->",
       });
@@ -249,6 +251,7 @@ describe("a replayed failure after a partial write", () => {
     data.gh[ISSUE_KEY].stdout.labels = [{ name: CLAIMED }];
     data.gh[COMMENTS_KEY].stdout[0].push({
       id: 6700000009,
+      user: { login: "CodySwannGT", type: "User" },
       created_at: "2026-11-05T13:00:00Z",
       body: "[claude-build-intake] Claimed by Claude. Starting build.",
     });

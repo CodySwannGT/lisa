@@ -164,6 +164,17 @@
           }
         ]
       ]
+    },
+    "api repos/CodySwannGT/lisa/issues/4672": {
+      "stdout": {
+        "number": 4672,
+        "state": "open",
+        "user": {
+          "login": "CodySwannGT",
+          "id": 292923,
+          "type": "User"
+        }
+      }
     }
   }
 }

@@ -33,6 +33,7 @@ const LATER_AT = "2026-11-05T12:00:00Z";
 const OUTSIDER = "someone-else";
 const SHA = "3db71f89a186d5dbeb78015aa5735fa9d8efda48";
 const COMMENTS = `api repos/${REPO}/issues/1/comments --paginate --slurp`;
+const ISSUE = `api repos/${REPO}/issues/1`;
 const PR_VIEW = `pr view 101 --repo ${REPO} --json state,isCrossRepository,body,headRefName`;
 const CHECKS = [
   "🔍 Quality Checks / 🧪 Run Unit Tests",
@@ -66,7 +67,8 @@ function route(name: string) {
 /**
  * The trusted fixture's comments with extra comments appended.
  * @param extra - Comments to append, oldest first.
- * @returns A recorded gh runner serving those comments and the open PR.
+ * @returns A recorded gh runner serving those comments, the open PR, and the
+ *   item's author (`CodySwannGT`, whose later markers count — #4707).
  */
 function withComments(extra: object[]) {
   const data = fixture(TRUSTED);
@@ -74,6 +76,7 @@ function withComments(extra: object[]) {
   return recordedGh({
     ...data.gh,
     [COMMENTS]: { stdout: [[...comments, ...extra]] },
+    [ISSUE]: fixture(NOT_NEWEST).gh[ISSUE],
   });
 }
 

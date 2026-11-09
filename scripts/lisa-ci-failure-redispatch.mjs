@@ -43,10 +43,19 @@
  *
  * Repo-only: this is the Lisa monorepo's own automation and is deliberately
  * NOT shipped to host projects (CodySwannGT/lisa#4607, Out of Scope).
+ *
+ * What supersedes a marker (CodySwannGT/lisa#4707): a later comment carrying
+ * a Lisa marker that is not a claim, posted by a trusted author — the
+ * workflow's identity, the item's author, or a configured
+ * `sessionManager.trustedAuthorIds` entry. Supersession by trusted author was
+ * chosen over explicit-only supersession (a `[lisa-ci-cleared]` edit or a
+ * newer `[lisa-ci-failed]` marker) because a trusted human-gate hold posted
+ * after the marker must still stop CI rework.
  * @module scripts/lisa-ci-failure-redispatch
  */
 import { spawnSync } from "node:child_process";
 import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import process from "node:process";
 
 import { invokedAsScript } from "../all/copy-overwrite/scripts/lib/invoked-as-script.mjs";
@@ -54,6 +63,7 @@ import {
   soleWorkItem,
   trackerContract,
 } from "../all/copy-overwrite/scripts/lisa-work-item.mjs";
+import { parseIdEntries } from "../plugins/src/base/scripts/operator-id-kinds.mjs";
 
 const SHA = /^[0-9a-f]{40}$/u;
 /**
@@ -68,6 +78,15 @@ export const FAILURE_MARKER =
 export const CLEARED_MARKER = /<!-- \[lisa-ci-cleared\] run=\d+ -->/u;
 /** Any Lisa lifecycle marker — the claim, attempt, and CI markers alike. */
 export const LISA_MARKER = /\[(?:lisa-[a-z0-9-]+|claude-build-intake)\]/u;
+/**
+ * Dispatch-bookkeeping markers: the lifecycle claim, build intake's legacy
+ * claim, and the session manager's own notes (stop, release, worker failed,
+ * answer delivered). None of them says anything about the PR's checks.
+ */
+const CLAIM_MARKERS =
+  /\[(?:lisa-tracker-claim|claude-build-intake|lisa-session-manager)\]/gu;
+/** A plain trusted-author entry that is a numeric account id. */
+const ALL_DIGITS = /^\d+$/u;
 const NO_REQUIRED = /no (?:required )?checks reported/iu;
 /** Read every page of a REST list as one array of pages. */
 const PAGINATE = Object.freeze(["--paginate", "--slurp"]);
@@ -393,6 +412,147 @@ export function trustedAuthor(comment) {
 }
 
 /**
+ * True when every Lisa marker the comment carries is a claim marker. A claim
+ * is dispatch bookkeeping: the session manager claims an item before its
+ * worker reads the markers, and a re-claim can post another claim comment,
+ * so a claim says nothing about the PR's checks and never supersedes.
+ * @param {object} comment - Item comment.
+ * @returns {boolean} Whether it is a claim-only comment.
+ */
+export function claimOnly(comment) {
+  const body = String(comment.body ?? "");
+  return (
+    LISA_MARKER.test(body) &&
+    !LISA_MARKER.test(body.replaceAll(CLAIM_MARKERS, ""))
+  );
+}
+
+/**
+ * True when a comment posted after an uncleared failure marker means the
+ * marker no longer describes the item (CodySwannGT/lisa#4707). It must carry
+ * a Lisa marker and not be claim-only; a failure marker counts only from
+ * {@link MARKER_AUTHORS}, any other marker only from a `trust`ed author.
+ * Anyone can comment on a public repository, so an outsider's `[lisa-x] hi`
+ * must not turn CI rework off.
+ * @param {object} comment - A later item comment.
+ * @param {(comment: object) => boolean} trust - Whose markers count.
+ * @returns {boolean} Whether it supersedes the marker.
+ */
+export function supersedes(comment, trust) {
+  const body = String(comment.body ?? "");
+  if (!LISA_MARKER.test(body) || claimOnly(comment)) return false;
+  return FAILURE_MARKER.test(body) ? trustedAuthor(comment) : trust(comment);
+}
+
+/**
+ * The kind a parsed trusted-author entry is matched as. Kind-keyed entries
+ * keep their own kind; a plain entry keeps the meaning the answer matcher
+ * gives it (#4571): all digits is a numeric account id only — anyone can
+ * register an all-digit login — and anything else is a login.
+ * @param {{kind: string, value?: string}} entry - Parsed entry.
+ * @returns {string} `login`, `id`, or `invalid`.
+ */
+function entryKind(entry) {
+  if (entry.kind !== "plain") return entry.kind;
+  return ALL_DIGITS.test(entry.value) ? "id" : "login";
+}
+
+/**
+ * Whether a configured `sessionManager.trustedAuthorIds` entry names a GitHub
+ * comment author.
+ * @param {{kind: string, value?: string}} entry - Parsed entry.
+ * @param {{login?: string, id?: number|string}|undefined} user - Comment author.
+ * @returns {boolean} Whether it matches.
+ */
+function entryNames(entry, user) {
+  const kind = entryKind(entry);
+  if (kind === "login")
+    return typeof user?.login === "string" && user.login === entry.value;
+  if (kind === "id") return user?.id != null && String(user.id) === entry.value;
+  return false;
+}
+
+/**
+ * True when two GitHub users are the same account: by numeric id when both
+ * carry one, else by login.
+ * @param {object|null|undefined} a - A user.
+ * @param {object|null|undefined} b - Another user.
+ * @returns {boolean} Whether they match.
+ */
+function sameUser(a, b) {
+  if (!a || !b) return false;
+  if (a.id != null && b.id != null) return String(a.id) === String(b.id);
+  return typeof a.login === "string" && a.login !== "" && a.login === b.login;
+}
+
+/**
+ * Build the trusted-author predicate for later non-failure markers: the
+ * workflow's identity ({@link MARKER_AUTHORS}), a configured
+ * `sessionManager.trustedAuthorIds` entry, or the item's author. The item's
+ * author is read lazily — only when a later marker from someone else needs
+ * judging — and at most once.
+ * @param {{trustedAuthorIds?: unknown, itemAuthor: () => object|null}} input - Configured entries and the author reader.
+ * @returns {(comment: object) => boolean} The predicate.
+ */
+export function markerTrust({ trustedAuthorIds, itemAuthor }) {
+  const entries = parseIdEntries(trustedAuthorIds);
+  const author = { read: false, user: null };
+  return comment => {
+    if (trustedAuthor(comment)) return true;
+    if (entries.some(entry => entryNames(entry, comment.user))) return true;
+    if (!author.read) Object.assign(author, { read: true, user: itemAuthor() });
+    return sameUser(comment.user, author.user);
+  };
+}
+
+/**
+ * Read the work item's author (the REST issue's `user`). Throws naming the
+ * call when the read fails, so a caller falls back the way it does for any
+ * failed read.
+ * @param {string} number - Issue number.
+ * @param {string} repo - Repository.
+ * @param {Function} gh - Runner.
+ * @returns {object|null} The author, or null when the issue names none.
+ */
+export function readItemAuthor(number, repo, gh) {
+  return readJson(gh, ["api", `repos/${repo}/issues/${number}`]).user ?? null;
+}
+
+/**
+ * The configured `sessionManager.trustedAuthorIds`, the local override's list
+ * first. Fails safe: a missing or malformed config, or a list that is not an
+ * array, trusts nobody beyond the bot and the item's author.
+ * @param {string} [root] - Project root.
+ * @returns {unknown[]} Configured entries.
+ */
+export function readTrustedAuthorIds(root = process.cwd()) {
+  const declared = [".lisa.config.local.json", ".lisa.config.json"]
+    .map(name => {
+      try {
+        const config = JSON.parse(readFileSync(join(root, name), "utf8"));
+        return config?.sessionManager?.trustedAuthorIds;
+      } catch {
+        return undefined;
+      }
+    })
+    .find(list => list !== undefined);
+  return Array.isArray(declared) ? declared : [];
+}
+
+/**
+ * The tracker contract with the configured trusted authors attached, unless
+ * the caller already supplied them. Both CLIs read through this so the two
+ * dispatch paths trust the same people.
+ * @param {object} contract - Tracker contract.
+ * @param {string} [root] - Project root.
+ * @returns {object} Contract carrying `trustedAuthorIds`.
+ */
+export function withTrustedAuthors(contract, root) {
+  if (contract.trustedAuthorIds !== undefined) return contract;
+  return { ...contract, trustedAuthorIds: readTrustedAuthorIds(root) };
+}
+
+/**
  * True when the item gained `lane` after `comment` was posted. Comments alone
  * cannot say a claim happened: a claim path that posts its claim comment once
  * per item leaves no newer comment when it re-claims, but the label event is
@@ -427,20 +587,46 @@ function readEvents(number, repo, gh) {
 }
 
 /**
- * True when `comment` is the newest comment carrying any Lisa marker — nothing
- * (a claim, an attempt, a hold) has happened to the item since it was posted.
+ * True when `comment` is the newest counted Lisa marker on the item: no later
+ * comment supersedes it (see {@link supersedes}). This is the one predicate
+ * both dispatch paths use — the producer here and the route helper
+ * `scripts/lisa-ci-rework-route.mjs` — so they cannot disagree
+ * (CodySwannGT/lisa#4707).
  * @param {object[]} comments - Item comments, oldest first.
  * @param {object} comment - The marker comment.
+ * @param {(comment: object) => boolean} [trust] - Whose non-failure markers
+ *   count; build it with {@link markerTrust}. Defaults to the bot only.
  * @returns {boolean} Whether it is the newest.
  */
-export function isNewestLisaMarker(comments, comment) {
-  // A forged failure marker counts for nothing, including as "something newer".
-  const marked = comments.filter(
-    c =>
-      LISA_MARKER.test(c.body ?? "") &&
-      (trustedAuthor(c) || !FAILURE_MARKER.test(c.body ?? ""))
+export function isNewestLisaMarker(comments, comment, trust = trustedAuthor) {
+  const index = comments.findIndex(c => c.id === comment.id);
+  return (
+    index !== -1 && !comments.slice(index + 1).some(c => supersedes(c, trust))
   );
-  return marked.at(-1)?.id === comment.id;
+}
+
+/**
+ * True when nothing has happened to the item since `marker`, so a lane write
+ * on its behalf is still safe: it is the newest counted marker (the shared
+ * predicate the route helper uses), no trusted author has claimed the item
+ * since, and the label history shows no claim since. A claim never makes the
+ * marker stale for routing, but it does mean the lane has moved, so the lane
+ * paths veto on it where the route helper does not.
+ * @param {object} ctx - Resolved context.
+ * @param {object} marker - The marker comment.
+ * @returns {boolean} Whether the item is untouched since.
+ */
+function untouchedSince(ctx, marker) {
+  const { view, lanes, trust } = ctx;
+  const index = view.comments.findIndex(c => c.id === marker.id);
+  const claimedSince = view.comments
+    .slice(index + 1)
+    .some(c => claimOnly(c) && trust(c));
+  return (
+    isNewestLisaMarker(view.comments, marker, trust) &&
+    !claimedSince &&
+    !laneGainedSince(ctx.events(), marker, lanes.claimed)
+  );
 }
 
 /**
@@ -463,8 +649,7 @@ function planFailure(ctx) {
     if (
       claimed &&
       !CLEARED_MARKER.test(existing.body) &&
-      isNewestLisaMarker(view.comments, existing) &&
-      !laneGainedSince(ctx.events(), existing, lanes.claimed)
+      untouchedSince(ctx, existing)
     )
       return {
         ...known,
@@ -534,12 +719,10 @@ function planClear(ctx) {
   }));
   const unclaimed =
     view.labels.includes(lanes.ready) && !view.labels.includes(lanes.claimed);
-  const newest = open.find(c => isNewestLisaMarker(view.comments, c));
-  if (
-    unclaimed &&
-    newest !== undefined &&
-    !laneGainedSince(ctx.events(), newest, lanes.claimed)
-  ) {
+  const newest = open.find(c =>
+    isNewestLisaMarker(view.comments, c, ctx.trust)
+  );
+  if (unclaimed && newest !== undefined && untouchedSince(ctx, newest)) {
     actions.push({
       kind: ACTION.relabel,
       item,
@@ -635,6 +818,11 @@ export function planRedispatch({ run, repository, contract, gh }) {
     lanes: contract.lifecycle,
     // Read lazily: only a lane repair or restore needs the label history.
     events: () => readEvents(view.number, contract.repository, gh),
+    // The same supersession rule the route helper applies (#4707).
+    trust: markerTrust({
+      trustedAuthorIds: contract.trustedAuthorIds,
+      itemAuthor: () => readItemAuthor(view.number, contract.repository, gh),
+    }),
   };
   if (verdict === "fail") return planFailure(ctx);
   if (verdict === "pass")
@@ -947,7 +1135,7 @@ export function main(argv, deps = {}) {
   let source;
   try {
     options = parseArgs(argv);
-    const contract = deps.contract ?? trackerContract();
+    const contract = withTrustedAuthors(deps.contract ?? trackerContract());
     source = {
       contract,
       ...loadEvent(options, contract, deps.gh ?? liveGh, env),

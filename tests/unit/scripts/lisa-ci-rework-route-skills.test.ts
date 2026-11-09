@@ -13,6 +13,13 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
 const HELPER = "scripts/lisa-ci-rework-route.mjs";
+/**
+ * The supersession rule every prose surface states the same way: claims never
+ * count, and a later non-failure marker counts only from a trusted author
+ * (CodySwannGT/lisa#4707).
+ */
+const SUPERSESSION =
+  "claim comments and session-manager notes (`[lisa-tracker-claim]`, `[claude-build-intake]`, `[lisa-session-manager]`) never count as Lisa markers for this purpose, failure markers count only from `github-actions[bot]`, and any other later Lisa marker counts only from a trusted author — `github-actions[bot]`, the item's author, or a configured `sessionManager.trustedAuthorIds` entry";
 const BASE = "plugins/src/base";
 const COPIES = [
   "plugins/lisa",
@@ -57,9 +64,7 @@ describe.each(skillPaths("lisa-track"))("%s", file => {
   });
 
   it("ignores claim comments, so the session manager's earlier claim never hides the marker", () => {
-    expect(phase3).toContain(
-      "claim comments and session-manager notes (`[lisa-tracker-claim]`, `[claude-build-intake]`, `[lisa-session-manager]`) and failure markers from anyone other than `github-actions[bot]` do not count as Lisa markers"
-    );
+    expect(phase3).toContain(SUPERSESSION);
     expect(phase3).toMatch(/session-manager path[^\n]*already claimed/u);
     expect(phase3).not.toContain("Known limitation");
   });
@@ -123,6 +128,12 @@ describe.each(skillPaths("lisa-github-build-intake"))("%s", file => {
     const claim = section(text, "#### 3b. Claim");
     expect(claim).toContain(HELPER);
   });
+
+  it("states the same trusted-author supersession rule as the helper", () => {
+    const claim = section(readFileSync(file, "utf8"), "#### 3b. Claim");
+    expect(claim).toContain(SUPERSESSION);
+    expect(claim).not.toContain("do not count as Lisa markers");
+  });
 });
 
 describe("the rejection-detection rule names both dispatch paths", () => {
@@ -140,5 +151,6 @@ describe("the rejection-detection rule names both dispatch paths", () => {
     expect(text).toContain("lisa-track");
     expect(text).toContain("lisa-implement");
     expect(text).toContain(HELPER);
+    expect(text).toContain(SUPERSESSION);
   });
 });
