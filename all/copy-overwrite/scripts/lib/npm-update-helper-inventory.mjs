@@ -15,6 +15,7 @@ const COMMON = [
   "lib/bounded-spawn.mjs",
   "lib/completion-authorization.mjs",
   "lib/completion-proof-adapters.mjs",
+  "lib/completion-proof-codepipeline.mjs",
   "lib/completion-proof-conformance.mjs",
   "lib/completion-proof-content.mjs",
   "lib/completion-proof-errors.mjs",

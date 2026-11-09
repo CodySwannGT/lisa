@@ -29,6 +29,7 @@ import {
   completionDenial,
 } from "./lib/completion-authorization.mjs";
 import { completionContext } from "./lib/completion-proof-adapters.mjs";
+import { describeCodePipelineDelivery } from "./lib/completion-proof-codepipeline.mjs";
 import {
   ensureEvidenceRelease,
   publishCompletionProof,
@@ -5280,7 +5281,7 @@ function completeGithubWorkItem(ref, contract, prUrl) {
     category: already ? ALREADY_COMPLETED : "completed",
     bases,
     merged,
-    report: `work-item ${already ? ALREADY_COMPLETED : "completed"}: ${ref} -> ${contract.lifecycle.terminalName} (merged: ${evidence}) bases: ${bases}`,
+    report: `work-item ${already ? ALREADY_COMPLETED : "completed"}: ${ref} -> ${contract.lifecycle.terminalName} (merged: ${evidence}) bases: ${bases}${describeCodePipelineDelivery(authorization.record)}`,
     terminal: contract.lifecycle.terminalName,
   };
 }
@@ -5673,6 +5674,7 @@ function completeLinearWorkItem(ref, contract, prUrl) {
       terminal: displayName,
       category: ALREADY_COMPLETED,
       applied: false,
+      delivery: describeCodePipelineDelivery(authorization.record),
     };
   }
   const update = completionNativeOperation(
@@ -5717,6 +5719,7 @@ function completeLinearWorkItem(ref, contract, prUrl) {
     terminal: displayName,
     category: "completed",
     applied: true,
+    delivery: describeCodePipelineDelivery(authorization.record),
   };
 }
 
@@ -5810,7 +5813,7 @@ function complete(args) {
     outcome.report ??
       `work-item ${outcome.category === ALREADY_COMPLETED ? ALREADY_COMPLETED : "completed"}: ${ref} -> ${outcome.terminal} (merged: ${outcome.merged
         .map(number => `#${number}`)
-        .join(", ")})`
+        .join(", ")})${outcome.delivery ?? ""}`
   );
   if (
     ["invalid-proof", COMPLETION_READ_ERROR, COMPLETION_WRITE_ERROR].includes(

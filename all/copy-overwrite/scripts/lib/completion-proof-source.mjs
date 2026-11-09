@@ -3,6 +3,10 @@
 
 /** Native source/delivery reconciliation, independent of checkout credentials. */
 import { requireProof, isOid } from "./completion-proof-shape.mjs";
+import {
+  CODEPIPELINE,
+  validateCodePipelineDelivery,
+} from "./completion-proof-codepipeline.mjs";
 
 const PENDING_PROOF = "pending-proof";
 
@@ -117,9 +121,12 @@ export function validateDelivery(record, context, transport) {
   const configured = context.policy.delivery?.[context.environment];
   requireProof(
     configured &&
-      ["github-actions", "artifact", "external-deployment"].includes(
-        configured.mechanism
-      ),
+      [
+        "github-actions",
+        CODEPIPELINE,
+        "artifact",
+        "external-deployment",
+      ].includes(configured.mechanism),
     "The actual delivery mechanism is not declared in verification.completion.delivery; configure it and run canonical Verify/evidence.",
     PENDING_PROOF
   );
@@ -127,6 +134,15 @@ export function validateDelivery(record, context, transport) {
     delivery.mechanism === configured.mechanism,
     "The accepted delivery mechanism differs from project configuration."
   );
+  if (configured.mechanism === CODEPIPELINE) {
+    validateCodePipelineDelivery(
+      delivery,
+      configured,
+      context,
+      record.source.delivered_sha
+    );
+    return;
+  }
   if (configured.mechanism !== "github-actions") {
     requireProof(
       Array.isArray(delivery.evidence_refs) &&

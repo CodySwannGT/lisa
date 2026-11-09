@@ -38,6 +38,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "7b5f81ae58eae89367ebda480a508c3c37a6924b4bd6a8b1dd64fff24c465e1e",
     "all/copy-overwrite/scripts/lib/completion-proof-adapters.mjs":
       "0743d3ccb12a2dc4822170e7c299caa24576fc5a1862402adc4f6feb1bedd163",
+    "all/copy-overwrite/scripts/lib/completion-proof-codepipeline.mjs":
+      "c06862f521db426ade2fff5fc2c8e5b4867a18c8087b0a0deb48d667447bc9a6",
     "all/copy-overwrite/scripts/lib/completion-proof-conformance.mjs":
       "51b2bfccc8ecca684dd80a4e2ae35896e76fa519389fe650f0890ffc0fef421d",
     "all/copy-overwrite/scripts/lib/completion-proof-content.mjs":
@@ -57,7 +59,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lib/completion-proof-shape.mjs":
       "a6faf8d3c44c4eb3192c11a76d5866f6028d476c86e7dc88aefe88060b38ee1d",
     "all/copy-overwrite/scripts/lib/completion-proof-source.mjs":
-      "1028cbeb9c8bb9cf685dd3f532ea41de2a25456b989fbda23d3315d8532877c0",
+      "7744870a8e514b5bb71d431301804922ae11f950e265ffbccbb267173c7b59f0",
     "all/copy-overwrite/scripts/lib/gate-failure-diagnosis.mjs":
       "31f2acced121662d6395b624aed2ae0ad642c1edb52cdb0eded1497886daad71",
     "all/copy-overwrite/scripts/lib/github-attestation-provider.mjs":
@@ -137,7 +139,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lib/npm-update-helper-graph.mjs":
       "7100aa6554d59c6a8f6fafefb983c12359b8cf727b8e4657362eba045051dd4e",
     "all/copy-overwrite/scripts/lib/npm-update-helper-inventory.mjs":
-      "0a19cdcdcfe26f12530351ae5afeb7ef5448abc06a82d5becb82ff1dc4ee41e0",
+      "1a34f7da808aa6f669d3f9e2f467552b240920ddd463556a105e7d294fb1bf66",
     "all/copy-overwrite/scripts/lib/npm-update-helper.mjs":
       "d705e0d8ae64285b539206f09784928a7fa678c2449252312a7079385e62ab90",
     "all/copy-overwrite/scripts/lib/npm-update-hook-installation.mjs":
@@ -333,7 +335,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-test-node.mjs":
       "cd436584d756442fc393557a3244bbdacdf915bd0fb1a472ebe7afa8103d3475",
     "all/copy-overwrite/scripts/lisa-work-item.mjs":
-      "c4a12e7ed3036b235cac8ef02e05695d9e01dbc2bd7b78a8644a50c476a94a02",
+      "07ee40ba96fa5a82e8ee0845a463d8a6355a81a8935543675c3f315fee93f5df",
     "all/copy-overwrite/scripts/lisa-worktree-guard.mjs":
       "2535ef2a60b3413dacb8491c008ab28f0a07929196277d1d1fed54a04740c025",
     "all/copy-overwrite/scripts/npm-updater-gate-runtime.json":
@@ -343,7 +345,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/npm-updater-gate.Dockerfile":
       "850a4ee809d49e3d9da6bdd674cb43e4f5a6dcfa0aa73116b1a43caeed42748c",
     "all/copy-overwrite/scripts/npm-updater-helper-graph.json":
-      "573c0557a906670ca1354a71f0f5db2811c68edcb8136e613759f6718030f5b7",
+      "c5e01f365193bd0410ae26d1ec0e35be94b616a25b1b5c3816c3adc6502cc144",
     "all/copy-overwrite/scripts/review-evidence-event.mjs":
       "1c5d510bc66f8ba23b6f046246f41182c17946a50126fb88e371d2aec9dfd6b2",
     "all/copy-overwrite/scripts/schemas/lisa-command-envelope.v1.schema.json":
@@ -401,7 +403,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "cdk/create-only/.github/workflows/ci.yml":
       "a487a4f77f9bb5733e2f99f112821f2b88ac15d5274b71f6951a846693234ad9",
     "cdk/create-only/.github/workflows/deploy.yml":
-      "2d4e445d2460efe936b7b6457ac4aa4302237ea13b01969eca382e70325d73bb",
+      "8aaff702f075caf0ca5c4810e3b1f0d30e1f67e2baebb410ad4d22bb54d98d81",
     "cdk/create-only/cdk.json":
       "f89030d8fe145a1dbabd59d89ddee4e16984f222d737f7fcf6b778d911e9fe40",
     "cdk/create-only/stryker.conf.json":
@@ -1419,7 +1421,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-detect-tooling/scripts/detect-tooling.mjs":
       "d9419814fc04c935bd7e320e85b1977c9bfc9275d9ea5fb557002ad438ee7925",
     "plugins/src/base/skills/lisa-doctor/SKILL.md":
-      "5c90c041d9903c0eb59c224472c863ba8519e03452a634d02a19d760253ac08f",
+      "d08b649485b61b1f40463a79ddd5decd9fd59fc269fe615df5000d8f900561e5",
     "plugins/src/base/skills/lisa-drive-pr-to-merge/SKILL.md":
       "8ae053b620ce8be2e3daa7ed247154fecc64130d2b8e3f9be06cc51f55302695",
     "plugins/src/base/skills/lisa-epic-triage/SKILL.md":
@@ -1867,7 +1869,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-tracker-evidence/SKILL.md":
       "ec8e11676607631cbf2746a05168878df80759bba14b531f4cb2b73e3fd0bf78",
     "plugins/src/base/skills/lisa-tracker-evidence/references/completion-authorization.md":
-      "c060bd2015c1dcf776286ce4588a3bfa3b6e066c1d1145988b8fb17914b22f1d",
+      "f488bc2c6d84196a3d6e223d0c6b538f1a9ce2b988f726e46c00798ae1166abf",
     "plugins/src/base/skills/lisa-tracker-journey/SKILL.md":
       "65fe727adfdbcc22141ad009e89cd7d91195600377c5357d552d50ed98ecf66b",
     "plugins/src/base/skills/lisa-tracker-read/SKILL.md":
@@ -2943,7 +2945,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/test-intent-routing.sh":
       "97b9dc86cbd805df8a7fdb8c99ffab9b8c5e751ba2e84c05420b2a124f80635d",
     "scripts/two-channel-couplings.json":
-      "01bc012ba5dc517b349dde0a9da24bdee3622404e75e5e21fed7f39b176a582a",
+      "3274c64fb6193e37cfaccbc2592a619021758321f8a6636f197124c50e3a190e",
     "scripts/update-node-version.ts":
       "9d37599ef73d5d624751f862cda330a867f6774392c1ab045b4fc885132582e4",
     "scripts/update-test-skill-paths.mjs":
@@ -3013,7 +3015,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/copy-overwrite/.nvmrc":
       "73fb1b615e2043a933be1c0895cde4358036acc28d785692509b822aa53c761f",
     "typescript/copy-overwrite/.prettierignore":
-      "47c4281773401473e4a3854049b047fc0c5df074f26f6539b791fbf13af5b423",
+      "7cd316193f6e11947a65de29d610856453a4f6bda1cce03d7f6a7be5f66413f5",
     "typescript/copy-overwrite/.prettierrc.json":
       "a20621f79a064486fba53cc0ea3000a2ece3f312ff38495c6a6606a27d2a727c",
     "typescript/copy-overwrite/.versionrc":
@@ -3311,6 +3313,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "all/copy-overwrite/scripts/lib/bounded-spawn.mjs": true,
     "all/copy-overwrite/scripts/lib/completion-authorization.mjs": true,
     "all/copy-overwrite/scripts/lib/completion-proof-adapters.mjs": true,
+    "all/copy-overwrite/scripts/lib/completion-proof-codepipeline.mjs": true,
     "all/copy-overwrite/scripts/lib/completion-proof-conformance.mjs": true,
     "all/copy-overwrite/scripts/lib/completion-proof-content.mjs": true,
     "all/copy-overwrite/scripts/lib/completion-proof-errors.mjs": true,
@@ -12063,8 +12066,10 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/support/staged-module-fixture.ts": true,
     "tests/support/work-item-cli.ts": true,
     "tests/support/work-item-coherent-related.ts": true,
+    "tests/support/work-item-fake-aws.mjs": true,
     "tests/support/work-item-linear-proof-fixture.ts": true,
     "tests/support/work-item-proof-assets.ts": true,
+    "tests/support/work-item-proof-codepipeline.ts": true,
     "tests/support/work-item-proof-compatibility.ts": true,
     "tests/support/work-item-proof-denials.ts": true,
     "tests/support/work-item-proof-fixture.ts": true,
@@ -13235,6 +13240,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/work-item-merge-only-range.test.ts": true,
     "tests/unit/scripts/work-item-multi-item-range.test.ts": true,
     "tests/unit/scripts/work-item-optional-validation.test.ts": true,
+    "tests/unit/scripts/work-item-proof-codepipeline.test.ts": true,
     "tests/unit/scripts/work-item-proof-denials.test.ts": true,
     "tests/unit/scripts/work-item-proof-evidence-release.test.ts": true,
     "tests/unit/scripts/work-item-proof-freshness-review.test.ts": true,
