@@ -47,6 +47,7 @@ interface RunOptions {
   readonly drop?: string;
   readonly files?: readonly string[];
   readonly commentMd?: string;
+  readonly release?: string;
 }
 
 afterEach(() => {
@@ -84,6 +85,7 @@ function prepareRepository() {
  * @param options.drop - Asset name the stubbed release silently loses.
  * @param options.files - Evidence file names to stage instead of the default pair.
  * @param options.commentMd - Description markdown instead of the default text.
+ * @param options.release - LISA_EVIDENCE_RELEASE for this run (#4692 rotation).
  * @returns The completed process.
  */
 function runFor(
@@ -111,6 +113,7 @@ function runFor(
       JIRA_API_TOKEN: "fixture-token",
       LISA_GH_STATE: repo.state,
       LISA_GH_DROP: options.drop ?? "",
+      ...(options.release ? { LISA_EVIDENCE_RELEASE: options.release } : {}),
     },
   });
 }
@@ -248,5 +251,25 @@ describe.each(SOURCES)("description links match the release: %s", script => {
 
     expect(result.status, result.stderr).toBe(0);
     expect(result.stdout).toContain(DESCRIPTION_UPDATED);
+  });
+
+  it("checks links against the resolved release, not a literal pr-assets", () => {
+    // #4692 lets the release rotate; the link check must follow RELEASE_TAG.
+    const rotated =
+      "https://github.com/org/repo/releases/download/pr-assets-2026-10";
+    const repo = prepareRepository();
+    const bare = runFor(repo, script, "101", {
+      release: "pr-assets-2026-10",
+      commentMd: `![Shot](${rotated}/${SHOT})\n`,
+    });
+    const scoped = runFor(repo, script, "101", {
+      tag: "scoped",
+      release: "pr-assets-2026-10",
+      commentMd: `![Shot](${rotated}/pr-101-${SHOT})\n`,
+    });
+
+    expect(bare.status).not.toBe(0);
+    expect(bare.stderr).toContain(`pr-assets-2026-10/${SHOT}`);
+    expect(scoped.status, scoped.stderr).toBe(0);
   });
 });

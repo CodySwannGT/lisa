@@ -1,4 +1,4 @@
 display_name: "Jira Evidence"
-short_description: "Upload evidence to GitHub…"
+short_description: "Upload evidence to the…"
 default_prompt:
-  - "Use $jira-evidence: Upload evidence to GitHub…."
+  - "Use $jira-evidence: Upload evidence to the…."
