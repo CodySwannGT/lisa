@@ -88,7 +88,7 @@ WARNING="block-migration-edits: you are writing a TypeORM migration directly (${
 - Entity files are the source of truth for the database schema.
 - If this change can be expressed in an entity (columns, indexes, relations, constraints), edit the entity instead and run: bun run migration:generate --name=<Name>
 - If it can't (view options, grants, functions, policies, backfills, seed data), writing the migration directly is fine.
-- Either way, document the rationale in the migration's class comment."
+- If you write it by hand, document why in the migration's class comment (a generated migration needs no such note)."
 
 jq -n --arg ctx "$WARNING" \
   '{hookSpecificOutput: {hookEventName: "PreToolUse", additionalContext: $ctx}}'

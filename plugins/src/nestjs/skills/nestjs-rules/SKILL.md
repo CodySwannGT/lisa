@@ -70,7 +70,7 @@ Some changes cannot be expressed in an entity, so they cannot come from an entit
 - **One-off cleanup** (deleting orphaned rows before a constraint is added)
 - **Database maintenance** (refreshing planner statistics with `ANALYZE`)
 
-Writing these migrations directly is fine. The rule is: if the change can be expressed in an entity, edit the entity and run `bun run migration:generate --name=<Name>`; if it can't, write the migration. Either way, document the rationale (and how it was verified) in the migration's class comment so future readers understand why it was not generated.
+Writing these migrations directly is fine. The rule is: if the change can be expressed in an entity, edit the entity and run `bun run migration:generate --name=<Name>`; if it can't, write the migration. A hand-written migration documents why it was written by hand, and how it was verified, in its class comment so future readers understand why it was not generated. A generated migration needs no such note.
 
 ### Enforcement
 

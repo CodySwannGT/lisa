@@ -2203,7 +2203,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/harper-fabric/skills/harper-testing/SKILL.md":
       "5a3c91d80ea2ac97df5b085114e2111a2c749ff0ad259a291cf16cb2f96258b8",
     "plugins/src/nestjs/hooks/block-migration-edits.sh":
-      "49e3f29d959212b0cbf25b5b4232596c3094dd149e7631a428c3dba3a6477125",
+      "98cf09e93e6d798762f1d3fdda75276af19745015fac29790ccc1acaa620620d",
     "plugins/src/nestjs/hooks/lisa-edit-gate.sh":
       "0a8d9a043f04b15b71bb500ff03cf1e67e4ac292181a5d596ddf078f301e671f",
     "plugins/src/nestjs/skills/nestjs-graphql/SKILL.md":
@@ -2219,7 +2219,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/nestjs/skills/nestjs-graphql/references/types-scalars.md":
       "28c10e5c297928438c3ef72407c20e587cb9bb15173d9aa3fd4e661822def311",
     "plugins/src/nestjs/skills/nestjs-rules/SKILL.md":
-      "c00bc36dd0b75d03a2307fb793d3669b99df99cc6ade7a3a89fddb85e242703d",
+      "a0ebd8465670d0aaa457f741b83ecc4b79ce9f73a33a5a756e8d4f9b2256d0d3",
     "plugins/src/nestjs/skills/typeorm-patterns/SKILL.md":
       "319707f8e61845e84a72d478ecb7a6e327f9e9a8b3822de7746d17a418afa34f",
     "plugins/src/nestjs/skills/typeorm-patterns/references/configuration-patterns.md":
