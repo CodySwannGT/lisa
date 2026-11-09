@@ -8,7 +8,7 @@
  * and the skip does not count as a failed install.
  *
  * Only `@lisa` keys are judged — another marketplace's keys are never skipped.
- * When the manifest cannot be read nothing is skipped, so an unreadable
+ * When the manifest cannot be read, or names no plugin, nothing is skipped, so an unreadable
  * manifest falls back to the previous install-everything behaviour rather
  * than silently dropping real plugins.
  * @module core/plugin-marketplace-filter
@@ -34,7 +34,9 @@ export function partitionByLisaMarketplace(
   plugins: readonly string[],
   catalog: MarketplaceCatalog | null
 ): PluginMarketplacePartition {
-  if (catalog === null) {
+  // A manifest that names no plugin is as untrustworthy as an unreadable one:
+  // skipping against it would drop every real Lisa plugin.
+  if (catalog === null || catalog.plugins.length === 0) {
     return { installable: plugins, skipped: [] };
   }
   const known = new Set(catalog.plugins.map(plugin => plugin.name));

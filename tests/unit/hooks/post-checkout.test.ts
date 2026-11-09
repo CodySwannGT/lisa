@@ -161,6 +161,7 @@ function runHookWithOutput(
   flag: string,
   home?: string
 ): { readonly calls: string[]; readonly stdout: string } {
+  const fixtureHome = home ?? path.join(repo.binDir, "..", "home");
   const result = boundedSpawnSync({
     label: "post-checkout hook",
     command: SH_PATH,
@@ -169,9 +170,11 @@ function runHookWithOutput(
     env: {
       ...cleanGitEnv(),
       PATH: `${repo.binDir}:${process.env.PATH ?? ""}`,
-      // Never the developer's real HOME: the hook reads the Lisa marketplace
-      // manifest from it. An unseeded fixture HOME holds no manifest.
-      HOME: home ?? path.join(repo.binDir, "..", "home"),
+      // Never the developer's real Claude config: the hook reads the Lisa
+      // marketplace manifest from `${CLAUDE_CONFIG_DIR:-$HOME/.claude}`, so
+      // both point into the fixture. An unseeded fixture holds no manifest.
+      HOME: fixtureHome,
+      CLAUDE_CONFIG_DIR: path.join(fixtureHome, ".claude"),
     },
   });
   const calls = existsSync(repo.callsFile)

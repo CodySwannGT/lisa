@@ -23,6 +23,7 @@ const INSTALL = "claude plugin install";
 const RETIRED = "typescript@lisa";
 const GHOST = "ghost@lisa";
 const PLUGIN_DIR = ".claude-plugin";
+const MANIFEST = "marketplace.json";
 
 /** Private orchestrator surface, reached without widening the public API. */
 interface InstallSurface {
@@ -82,7 +83,7 @@ describe("core/lisa skips enabled @lisa keys absent from the marketplace", () =>
     commands = [];
     await mkdir(path.join(lisaDir, PLUGIN_DIR), { recursive: true });
     await writeFile(
-      path.join(lisaDir, PLUGIN_DIR, "marketplace.json"),
+      path.join(lisaDir, PLUGIN_DIR, MANIFEST),
       JSON.stringify({
         name: "lisa",
         plugins: [{ name: "lisa" }, { name: "lisa-typescript" }],
@@ -146,11 +147,28 @@ describe("core/lisa skips enabled @lisa keys absent from the marketplace", () =>
   });
 
   it("does not skip anything when the manifest cannot be read", async () => {
-    await writeFile(
-      path.join(lisaDir, PLUGIN_DIR, "marketplace.json"),
-      "{ not json"
-    );
+    await writeFile(path.join(lisaDir, PLUGIN_DIR, MANIFEST), "{ not json");
     await surface.installPluginsAndUpdateMarketplace(run, ["lisa@lisa", GHOST]);
     expect(commands).toContain(`${INSTALL} ${GHOST} --scope project`);
   });
+
+  it.each([
+    ["an empty plugins list", { name: "lisa", plugins: [] }],
+    ["only unnamed entries", { name: "lisa", plugins: [{}, { name: " " }] }],
+  ])(
+    "does not skip anything when the manifest has %s",
+    async (_label, manifest) => {
+      await writeFile(
+        path.join(lisaDir, PLUGIN_DIR, MANIFEST),
+        JSON.stringify(manifest)
+      );
+      await surface.installPluginsAndUpdateMarketplace(run, [
+        "lisa@lisa",
+        GHOST,
+      ]);
+      expect(commands).toContain(`${INSTALL} lisa@lisa --scope project`);
+      expect(commands).toContain(`${INSTALL} ${GHOST} --scope project`);
+      expect(logger.warnings.some(w => w.startsWith("Skipping"))).toBe(false);
+    }
+  );
 });

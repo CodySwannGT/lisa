@@ -19,7 +19,13 @@
  * `@lisa` and whose absolute `projectPath` is missing on disk. Other vendors'
  * plugins, user/local scopes, and paths that exist are never touched. Any
  * failure is reported with the command to run by hand; it never fails the
- * apply.
+ * apply. "Missing" includes a checkout on a volume that is not mounted right
+ * now; its registrations are pruned, and the next apply run there registers
+ * them again.
+ *
+ * The prune runs on a budget. Once {@link PluginRegistrationPruneDeps}'s
+ * `deadlineReached` says it is spent, no further uninstall starts, and what is
+ * left is reported as deferred to the next apply — never as a failure.
  *
  * Agent parity: only Claude Code keeps per-path plugin registrations. The
  * Codex, Cursor, OpenCode, Antigravity, Copilot and Devin installers write
@@ -42,6 +48,8 @@ export type ClaudeRunner = (
 /** Collaborators for {@link pruneDeadPluginRegistrations}. */
 export interface PluginRegistrationPruneDeps {
   readonly runClaude: ClaudeRunner;
+  /** True once the prune budget is spent; omitted means unbounded. */
+  readonly deadlineReached?: () => boolean;
   readonly logger: {
     readonly info: (message: string) => void;
     readonly warn: (message: string) => void;
@@ -52,6 +60,8 @@ export interface PluginRegistrationPruneDeps {
 export interface PluginRegistrationPruneOutcome {
   readonly pruned: number;
   readonly failed: number;
+  /** Left for the next apply because the budget ran out. */
+  readonly deferred: number;
 }
 
 /** One dead path and the Lisa plugin ids registered for it. */
@@ -64,7 +74,11 @@ interface DeadPath {
 interface PathOutcome {
   readonly pruned: number;
   readonly failedCommands: readonly string[];
+  readonly deferred: number;
 }
+
+/** Result of one uninstall attempt. */
+type UninstallResult = "pruned" | "failed" | "deferred";
 
 /**
  * Whether a registry entry is a Lisa project-scope registration for a path
@@ -92,12 +106,12 @@ function asDeadLisaRegistration(
 /**
  * Group dead Lisa registrations by path, de-duplicating ids.
  * @param stdout - `claude plugin list --json` output
- * @returns Dead paths with their ids, or an empty list when unparseable
+ * @returns Dead paths with their ids, or null when unparseable
  */
-function findDeadPaths(stdout: unknown): readonly DeadPath[] {
+function findDeadPaths(stdout: unknown): readonly DeadPath[] | null {
   try {
     const parsed: unknown = JSON.parse(String(stdout ?? ""));
-    if (!Array.isArray(parsed)) return [];
+    if (!Array.isArray(parsed)) return null;
     const dead = parsed
       .map(asDeadLisaRegistration)
       .filter(registration => registration !== null);
@@ -113,7 +127,7 @@ function findDeadPaths(stdout: unknown): readonly DeadPath[] {
       ],
     }));
   } catch {
-    return [];
+    return null;
   }
 }
 
@@ -144,17 +158,22 @@ function directoriesUpTo(dir: string, top: string): readonly string[] {
  * first one that is not empty.
  * @param projectPath - The recreated dead path
  * @param firstCreated - Topmost directory `mkdirSync` created
- * @returns True when every created directory was removed
+ * @returns True when every created directory was removed; false when one was
+ *   not empty or could not be removed (never throws)
  */
 function removeCreatedDirectories(
   projectPath: string,
   firstCreated: string
 ): boolean {
-  for (const dir of directoriesUpTo(projectPath, firstCreated)) {
-    if (readdirSync(dir).length > 0) return false;
-    rmdirSync(dir);
+  try {
+    for (const dir of directoriesUpTo(projectPath, firstCreated)) {
+      if (readdirSync(dir).length > 0) return false;
+      rmdirSync(dir);
+    }
+    return true;
+  } catch {
+    return false;
   }
-  return true;
 }
 
 /**
@@ -171,10 +190,34 @@ function recreate(projectPath: string): string | null {
 }
 
 /**
+ * Uninstall one id from its dead path, unless the budget is already spent.
+ * @param dead - Dead path the uninstall runs from
+ * @param id - Plugin id
+ * @param deps - Collaborators
+ * @returns What happened to this registration
+ */
+async function uninstallOne(
+  dead: DeadPath,
+  id: string,
+  deps: PluginRegistrationPruneDeps
+): Promise<UninstallResult> {
+  if (deps.deadlineReached?.() === true) return "deferred";
+  return await deps
+    .runClaude(
+      ["plugin", "uninstall", id, "--scope", "project", "--keep-data"],
+      dead.projectPath
+    )
+    .then(
+      () => "pruned" as const,
+      () => "failed" as const
+    );
+}
+
+/**
  * Uninstall every Lisa id registered for one dead path, from that path.
  * @param dead - Dead path and its ids
  * @param deps - Collaborators
- * @returns Pruned count and the manual commands for anything left behind
+ * @returns Pruned and deferred counts, and manual commands for failures
  */
 async function pruneDeadPath(
   dead: DeadPath,
@@ -184,51 +227,57 @@ async function pruneDeadPath(
   if (firstCreated === null) {
     return {
       pruned: 0,
+      deferred: 0,
       failedCommands: dead.ids.map(id => manualCommand(dead.projectPath, id)),
     };
   }
-  const failedCommands = await dead.ids.reduce<Promise<readonly string[]>>(
-    async (previous, id) => {
-      const failed = await previous;
-      const removed = await deps
-        .runClaude(
-          ["plugin", "uninstall", id, "--scope", "project", "--keep-data"],
-          dead.projectPath
-        )
-        .then(
-          () => true,
-          () => false
-        );
-      return removed
-        ? failed
-        : [...failed, manualCommand(dead.projectPath, id)];
-    },
+  const results = await dead.ids.reduce<
+    Promise<readonly (readonly [string, UninstallResult])[]>
+  >(
+    async (previous, id) => [
+      ...(await previous),
+      [id, await uninstallOne(dead, id, deps)] as const,
+    ],
     Promise.resolve([])
   );
   if (!removeCreatedDirectories(dead.projectPath, firstCreated)) {
     deps.logger.warn(
-      `Left ${firstCreated} in place: the Claude CLI wrote into it while pruning`
+      `Left ${firstCreated} in place: it could not be removed after pruning (not empty or not removable)`
     );
   }
-  return { pruned: dead.ids.length - failedCommands.length, failedCommands };
+  const count = (kind: UninstallResult): number =>
+    results.filter(([, result]) => result === kind).length;
+  return {
+    pruned: count("pruned"),
+    deferred: count("deferred"),
+    failedCommands: results
+      .filter(([, result]) => result === "failed")
+      .map(([id]) => manualCommand(dead.projectPath, id)),
+  };
 }
 
 /**
  * Report what the prune did.
- * @param pruned - Registrations removed
+ * @param outcome - Pruned, failed and deferred counts
  * @param failedCommands - Manual commands for those left behind
  * @param deps - Collaborators
  */
 function report(
-  pruned: number,
+  outcome: PluginRegistrationPruneOutcome,
   failedCommands: readonly string[],
   deps: PluginRegistrationPruneDeps
 ): void {
   const noun = (count: number): string =>
     count === 1 ? "registration" : "registrations";
+  const { pruned, deferred } = outcome;
   if (pruned > 0) {
     deps.logger.info(
       `Pruned ${pruned} Lisa plugin ${noun(pruned)} for deleted checkouts`
+    );
+  }
+  if (deferred > 0) {
+    deps.logger.info(
+      `Deferred ${deferred} Lisa plugin ${noun(deferred)} for deleted checkouts to the next apply (prune budget spent)`
     );
   }
   if (failedCommands.length > 0) {
@@ -247,7 +296,7 @@ function report(
  * while its own uninstalls run.
  * @param cwd - Directory to run `claude plugin list --json` from
  * @param deps - CLI runner and logger
- * @returns Counts of pruned and unprunable registrations
+ * @returns Counts of pruned, unprunable and deferred registrations
  */
 export async function pruneDeadPluginRegistrations(
   cwd: string,
@@ -255,18 +304,32 @@ export async function pruneDeadPluginRegistrations(
 ): Promise<PluginRegistrationPruneOutcome> {
   const listed = await deps
     .runClaude(["plugin", "list", "--json"], cwd)
-    .catch(() => ({ stdout: "" }));
-  const outcomes = await findDeadPaths(listed.stdout).reduce<
-    Promise<readonly PathOutcome[]>
-  >(
-    async (previous, dead) => [
-      ...(await previous),
-      await pruneDeadPath(dead, deps),
-    ],
+    .then(result => findDeadPaths(result.stdout))
+    .catch(() => null);
+  if (listed === null) {
+    deps.logger.warn(
+      "Could not read the Claude plugin registry (`claude plugin list --json`); skipped pruning registrations for deleted checkouts"
+    );
+    return { pruned: 0, failed: 0, deferred: 0 };
+  }
+  const outcomes = await listed.reduce<Promise<readonly PathOutcome[]>>(
+    async (previous, dead) => {
+      const done = await previous;
+      // Stop starting new paths once the budget is spent (no mkdir either).
+      const outcome =
+        deps.deadlineReached?.() === true
+          ? { pruned: 0, failedCommands: [], deferred: dead.ids.length }
+          : await pruneDeadPath(dead, deps);
+      return [...done, outcome];
+    },
     Promise.resolve([])
   );
-  const pruned = outcomes.reduce((sum, outcome) => sum + outcome.pruned, 0);
   const failedCommands = outcomes.flatMap(outcome => outcome.failedCommands);
-  report(pruned, failedCommands, deps);
-  return { pruned, failed: failedCommands.length };
+  const result: PluginRegistrationPruneOutcome = {
+    pruned: outcomes.reduce((sum, outcome) => sum + outcome.pruned, 0),
+    failed: failedCommands.length,
+    deferred: outcomes.reduce((sum, outcome) => sum + outcome.deferred, 0),
+  };
+  report(result, failedCommands, deps);
+  return result;
 }

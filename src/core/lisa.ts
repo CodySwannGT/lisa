@@ -103,6 +103,7 @@ import {
 } from "./learnings-file-safety.js";
 import { APPLY_RECEIPT_DISPLAY_PATH } from "./apply-receipt.js";
 import {
+  PLUGIN_LIST_MAX_CAPTURE_BYTES,
   PLUGIN_PROBE_TIMEOUT_MS,
   PLUGIN_PRUNE_TIMEOUT_MS,
   PLUGIN_REGISTRATION_TIMEOUT_MS,
@@ -1008,6 +1009,9 @@ export class Lisa {
           Number(options.timeout),
           operationDeadline - Date.now()
         ),
+        ...(typeof options.maxCaptureBytes === "number"
+          ? { maxCaptureBytes: options.maxCaptureBytes }
+          : {}),
       });
 
     try {
@@ -1030,7 +1034,9 @@ export class Lisa {
             PLUGIN_PROBE_TIMEOUT_MS,
             pruneDeadline - Date.now()
           ),
+          maxCaptureBytes: PLUGIN_LIST_MAX_CAPTURE_BYTES,
         }),
+      deadlineReached: () => Date.now() >= pruneDeadline,
       logger: this.deps.logger,
     });
   }
@@ -1344,6 +1350,7 @@ export class Lisa {
       const result = (await execAsync("claude plugin list --json", {
         cwd: this.config.destDir,
         timeout: PLUGIN_PROBE_TIMEOUT_MS,
+        maxCaptureBytes: PLUGIN_LIST_MAX_CAPTURE_BYTES,
       })) as { stdout?: unknown };
       const parsed: unknown = JSON.parse(String(result.stdout ?? ""));
       if (!Array.isArray(parsed)) {
