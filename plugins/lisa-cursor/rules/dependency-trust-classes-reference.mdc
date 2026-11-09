@@ -39,6 +39,14 @@ ratification, not weaker: runtime-critical service clients always need human
 ratification to add or major-upgrade; temporary dependencies need it to live
 past their expiry date; thin wrappers need it to be kept rather than in-housed.
 
+**Unless the project turns sign-off off.** When `.lisa.config.json` sets
+`dependencies.humanSignOff` to `"none"`, no ratification requirement or
+human-review trigger in this rule applies — see
+[When `dependencies.humanSignOff` is `"none"`](#when-dependencieshumansignoff-is-none).
+The effective value is printed in the session's `lisa-resolved-config` block.
+The default (`"default"`, or the key omitted) keeps every requirement below
+exactly as written.
+
 Every class also names one **human-review trigger** — the observable event that
 takes the decision away from the agent. A class definition that cannot say what
 would trigger human review is not finished.
@@ -253,6 +261,35 @@ Not required for mature ecosystem primitives or build/development tools on
 routine adds and upgrades. Those two classes are where the crowd and the blast
 radius do the work a human would otherwise have to do.
 
+### When `dependencies.humanSignOff` is `"none"`
+
+A project whose owner has decided that no dependency should ever wait on a
+person's approval sets `"dependencies": { "humanSignOff": "none" }` in
+`.lisa.config.json`. Read the effective value from the
+`dependencies.humanSignOff` line of the session's `lisa-resolved-config` block.
+Under `"none"`:
+
+- **No ratification line in this rule applies** — not the runtime-critical
+  service client's sign-off to add or major-upgrade, the fast-moving standard
+  implementation's major-upgrade sign-off, the thin wrapper's sign-off to keep
+  it, or the temporary/experimental dependency's sign-off to extend or promote
+  it. Do not stop work, hold a work item, or ask a person to approve any of them.
+- **Human-review triggers become agent decisions.** When a class's trigger
+  fires, the agent makes the call itself — catch up, reclassify, replace, or
+  remove — and records the decision and its reason in the dependency's
+  `.lisa/DEPENDENCY_DECISIONS.md` entry.
+- **Everything else still applies.** Name exactly one trust class, meet that
+  class's capability-owner, update-cadence, detection-evidence, and
+  replacement-cost requirements, and update the record entry in the same change.
+  Turning sign-off off removes the human, not the evidence.
+- **Credential, paid-account, and license approvals are not covered.** A
+  dependency that needs a new secret, a paid vendor account, or a license
+  decision still raises that as its own human-needed reason; this setting does
+  not waive it.
+
+`"default"` — or no key at all — keeps every ratification requirement exactly as
+written above. Any other value is reported as invalid and treated as `"default"`.
+
 ## Naming a class at planning time
 
 A work item that proposes adding a new material dependency must, before it is
@@ -263,7 +300,8 @@ unit proposing a material dependency with no named class.
 
 The class is what makes the rest of the ticket reviewable: it tells the reviewer
 which evidence to demand and whether a human has to ratify before the work
-starts, rather than discovering both at the end.
+starts (never, when `dependencies.humanSignOff` is `"none"`), rather than
+discovering both at the end.
 
 Naming a class is not a formality either. If nobody can pick one, that is the
 finding — an unclassifiable dependency is usually one nobody has thought about,

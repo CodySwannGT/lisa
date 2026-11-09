@@ -1075,7 +1075,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/hooks/inject-flow-context.sh":
       "f4ab07065762d592c0fc36be2e4918e767b293aaa4094b9d85d69010576c6dbf",
     "plugins/src/base/hooks/inject-resolved-config.mjs":
-      "87dd7051ae0818c89f2d8e1b6aa0cde5e883d032974dfa24e39065570aea1afb",
+      "d2d978d3c2597eaf557fc9138429bbdcd5c4c5a976bed4c0f92881be82b3eb76",
     "plugins/src/base/hooks/inject-resolved-config.sh":
       "bc73e118afff35f455241647c24da6e23caaf30d189eb6d3a48814e9a8309613",
     "plugins/src/base/hooks/inject-rules.sh":
@@ -1197,7 +1197,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/rules/reference/completion-authorization.md":
       "75646f8f5b1c5aedf750e37ed3b5a1f09f6fd85932037c85ac1e8930b67100b1",
     "plugins/src/base/rules/reference/config-resolution.md":
-      "327aed951f05b3f8142806005d93013ec402c479468a6f4a05701d9be70f9597",
+      "22814356d61dc940742cadded15ccfaf3ef8171d336eac6f10493f3cd748aecb",
     "plugins/src/base/rules/reference/control-reachability.md":
       "0883f3480de79bcaa4a9da5685192c014d9267d0a12aed8153bba8c51161129a",
     "plugins/src/base/rules/reference/convergent-review.md":
@@ -1205,11 +1205,11 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/rules/reference/credential-substrate-precedence.md":
       "15026888dcb2dbc04165e07316beace4f27efc1972389ae06cb8f5549be656c7",
     "plugins/src/base/rules/reference/dependency-decision-records.md":
-      "67addfd328a6fb0af195537aff4a66363063d29d1af7e3939f93c895cb14716e",
+      "2e4a6a3620459413f37c70eb0317c4fa11ad2ec2812dd88a7e8a2d0339c9400c",
     "plugins/src/base/rules/reference/dependency-internalization-kit.md":
       "d3c15de04e45193c99406b18f91ce5fa0593add4bb587edcc26d0908fd3bfba6",
     "plugins/src/base/rules/reference/dependency-trust-classes.md":
-      "e36d4ed62c815f3529e90650a25639cdcc4e84710c22c8e42127335016d42734",
+      "19016305603761322eda6c7e25a53439a1fffaeeb1ecd5b8791e11cae038dbac",
     "plugins/src/base/rules/reference/deployed-state-readback.md":
       "3ef5a52ddb8658ae53a7222dd25414380a7bdf6040c6a5271e7a6e8c73d1d654",
     "plugins/src/base/rules/reference/derived-branch-plan.md":
@@ -1843,7 +1843,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-sync-down/SKILL.md":
       "cc25e8a1d7255ace5aad816bc8c67ee001521c7b59488f25de22f27690f73f6f",
     "plugins/src/base/skills/lisa-task-decomposition/SKILL.md":
-      "f9cfef3c3d5e69f096bd82f49967fb78640bfe733239c1b5102e617c38f6c67e",
+      "f756ebdb22f248e75c4e48d6a0c1e1ee38522d2a774359992a5de40ac7ebf943",
     "plugins/src/base/skills/lisa-task-triage/SKILL.md":
       "c6e11b6d195560e6bd7b51fede65c155567c35208801a700a26d95679b03484e",
     "plugins/src/base/skills/lisa-tdd-implementation/SKILL.md":
@@ -11239,6 +11239,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "src/core/plugin-command.ts": true,
     "src/core/plugin-marketplace-filter.ts": true,
     "src/core/plugin-registration-prune.ts": true,
+    "src/core/project-config-dependencies.ts": true,
     "src/core/project-config-kane.ts": true,
     "src/core/project-config-learnings.ts": true,
     "src/core/project-config-nightly-e2e.ts": true,
@@ -12502,6 +12503,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/core/learnings-supersede-security.test.ts": true,
     "tests/unit/core/learnings-unlocked-read.test.ts": true,
     "tests/unit/core/learnings-writer.test.ts": true,
+    "tests/unit/core/lisa-dependency-settings-warning.test.ts": true,
     "tests/unit/core/lisa-owned-enforcement-scripts.test.ts": true,
     "tests/unit/core/lisa-owned-provenance.test.ts": true,
     "tests/unit/core/lisa-owned-templates-classification.test.ts": true,
@@ -12520,6 +12522,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/core/plugin-registration-liveness.test.ts": true,
     "tests/unit/core/plugin-registration-prune.test.ts": true,
     "tests/unit/core/plugin-sync-marker.test.ts": true,
+    "tests/unit/core/project-config-dependencies.test.ts": true,
     "tests/unit/core/project-config-harness-migration.test.ts": true,
     "tests/unit/core/project-config-kane.test.ts": true,
     "tests/unit/core/project-config-learnings-architecture.test.ts": true,
@@ -12688,6 +12691,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/hooks/husky-package-manager-detection.test.ts": true,
     "tests/unit/hooks/husky-resolver-lookup.test.ts": true,
     "tests/unit/hooks/inject-resolved-config-completeness.test.ts": true,
+    "tests/unit/hooks/inject-resolved-config-dependencies.test.ts": true,
     "tests/unit/hooks/inject-resolved-config-names-subject.test.ts": true,
     "tests/unit/hooks/inject-resolved-config-repository-bound.test.ts": true,
     "tests/unit/hooks/inject-resolved-config-wiring.test.ts": true,
@@ -13470,6 +13474,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/strategies/credential-substrate-precedence.test.ts": true,
     "tests/unit/strategies/debrief-destination-hints.test.ts": true,
     "tests/unit/strategies/debrief-reroute-contract.test.ts": true,
+    "tests/unit/strategies/dependency-human-signoff-setting.test.ts": true,
     "tests/unit/strategies/dependency-internalization-kit-rule-pair.test.ts": true,
     "tests/unit/strategies/dependency-ownership-helpers.ts": true,
     "tests/unit/strategies/dependency-ownership-integration.test.ts": true,
