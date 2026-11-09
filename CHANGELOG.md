@@ -2,6 +2,23 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [4.101.0](https://github.com/CodySwannGT/lisa/compare/v4.100.6...v4.101.0) (2026-11-09)
+
+
+### Features
+
+* **nestjs:** warn instead of refusing hand-written migration edits ([885bd69](https://github.com/CodySwannGT/lisa/commit/885bd69d7cb7e58be7f643401b7e09bdee177329)), closes [CodySwannGT/lisa#4721](https://github.com/CodySwannGT/lisa/issues/4721)
+
+
+### Bug Fixes
+
+* **nestjs:** say a declared migration gate is skipped without jq ([f0c434a](https://github.com/CodySwannGT/lisa/commit/f0c434a208328089be0748a9f5ee5a3bce0bd332)), closes [CodySwannGT/lisa#4721](https://github.com/CodySwannGT/lisa/issues/4721)
+
+
+### Documentation
+
+* **nestjs:** ask only hand-written migrations to explain themselves ([f3e4f62](https://github.com/CodySwannGT/lisa/commit/f3e4f6205debb634fe1ec840f014a62ca3165257)), closes [CodySwannGT/lisa#4721](https://github.com/CodySwannGT/lisa/issues/4721)
+
 ### [4.100.6](https://github.com/CodySwannGT/lisa/compare/v4.100.5...v4.100.6) (2026-11-09)
 
 ### [4.100.5](https://github.com/CodySwannGT/lisa/compare/v4.100.4...v4.100.5) (2026-11-09)
