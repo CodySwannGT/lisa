@@ -56,7 +56,8 @@
           "events": ["push", "workflow_dispatch"]
         }
       },
-      "automationPublishers": []
+      "automationPublishers": [],
+      "evidenceRelease": "pr-assets-{YYYY-MM}"
     }
   },
   "quality": {

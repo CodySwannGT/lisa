@@ -35,8 +35,8 @@ uploads and exact readbacks:
    ```
 
    Linear uses its configured identifier and implementation GitHub repository.
-   Both providers use the implementation repository's existing `pr-assets`
-   release. The producer reads current native requirements/configuration,
+   Both providers use the implementation repository's configured evidence
+   release (see Delivery and publisher configuration). The producer reads current native requirements/configuration,
    validates the actual attachment bytes and source/delivery, uploads a uniquely
    hash-named JSON asset without replacement, reads it back, then posts and reads
    back an exact native-item locator. The locator alone proves nothing.
@@ -107,8 +107,8 @@ Childless Story/Spike work remains a leaf. Container rollup is a separate path;
 older blanket container wording in evidence guidance does not grant a new
 terminal-writer bypass.
 
-Attachments must be nonempty bounded actual native assets in this repository's
-`pr-assets` release, with matching byte counts and SHA256. Canonical kinds are
+Attachments must be nonempty bounded actual native assets in one of this
+repository's accepted evidence releases, with matching byte counts and SHA256. Canonical kinds are
 screenshot, recording, http-transcript, cli-output, log-snippet, db-query-output,
 perf-trace, test-run-log, deploy-log and state-dump. The reader validates actual
 captured structure/header, not an extension. HTTP HEAD/204 and empty query rows
@@ -156,6 +156,34 @@ step uploaded the asset. A bot can publish during its pinned attempt and gets
 attempt succeeds, without rewriting the asset. A failed/cancelled/timed-out
 attempt cannot be upgraded by a later successful rerun. User records do not
 gain an unnecessary producer-run requirement.
+
+`verification.completion.evidenceRelease` names the GitHub release proof and
+evidence are uploaded to. It defaults to `pr-assets`. The token `{YYYY-MM}`
+resolves to the current UTC year-month at publish time, so
+`pr-assets-{YYYY-MM}` rotates monthly and keeps each release under GitHub's
+1000-file limit. Names use letters, digits, `.`, `_` and `-`, at most 100
+characters; `{YYYY-MM}` is the only placeholder. The publisher creates a
+missing release (never marked Latest) and refuses, in plain words, when the
+release already holds 950 or more files rather than failing on GitHub's raw
+HTTP 422. `node scripts/lisa-work-item.mjs evidence-release` prints the
+resolved name; `--ensure` also creates it or refuses when it is nearly full.
+
+The validator accepts assets from the legacy `pr-assets` release, from any
+release matching the configured name or template, and from any name or
+template listed in `verification.completion.acceptedEvidenceReleases`, so
+proof published before a rename or rotation keeps validating. Only releases in
+the implementation repository are accepted.
+
+`LISA_EVIDENCE_RELEASE` pins the concrete release for one run (skill scripts
+export it once so links and uploads agree). It must be one of the accepted
+releases; `evidence-release --ensure` still creates and capacity-checks it.
+
+Creating an evidence release is a real GitHub release: it fires `release`
+webhook and workflow events and adds a git tag of the same name. Workflows
+triggered `on: release` should skip evidence releases, for example with
+`if: ${{ !startsWith(github.event.release.tag_name, 'pr-assets') }}` adapted to
+the configured name. Lisa creates them with `--latest=false` and the release
+notes "Evidence storage only — not a product release."
 
 ## Freshness and readbacks
 

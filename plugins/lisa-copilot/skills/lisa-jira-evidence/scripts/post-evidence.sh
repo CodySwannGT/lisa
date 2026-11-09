@@ -14,7 +14,8 @@
 #   - gh CLI authenticated
 #
 # What it does:
-#   1. Uploads evidence files to the 'pr-assets' GitHub release
+#   1. Uploads evidence files to the configured GitHub evidence release
+#      (default 'pr-assets'; see verification.completion.evidenceRelease)
 #   2. Updates the GitHub PR description with evidence/comment.md
 #   3. Uploads image evidence as JIRA attachments
 #   4. Posts/updates the JIRA comment with evidence/comment.txt
@@ -106,7 +107,25 @@ PY_ORIGIN
 )
 
 GH_REPO=$(gh repo view --json nameWithOwner --jq '.nameWithOwner')
-RELEASE_TAG="pr-assets"
+# The evidence release comes from the one resolver every writer shares, so a
+# project's `verification.completion.evidenceRelease` (for example the rotating
+# `pr-assets-{YYYY-MM}`) moves this upload too. GitHub caps a release at 1000
+# assets; a hardcoded `pr-assets` filled up and every upload then failed with a
+# raw HTTP 422 (CodySwannGT/lisa#4692). `--ensure` creates the release when it
+# is absent and refuses, in plain words, when it is nearly full. A host whose
+# Lisa predates the resolver keeps the legacy release.
+#
+# LISA_EVIDENCE_RELEASE, when set, pins the release for this run so the links
+# generate-templates.py wrote match these uploads. The resolver still checks
+# that name and the release's capacity; it reads the variable itself.
+RELEASE_TAG="${LISA_EVIDENCE_RELEASE:-pr-assets}"
+WORK_ITEM_CLI="${PROJECT_DIR}/scripts/lisa-work-item.mjs"
+if [[ -f "$WORK_ITEM_CLI" ]]; then
+  if ! RELEASE_TAG=$(cd "$PROJECT_DIR" && node "$WORK_ITEM_CLI" evidence-release --ensure); then
+    echo "ERROR: the GitHub evidence release is not usable (see the message above); no evidence was uploaded." >&2
+    exit 1
+  fi
+fi
 
 if [[ -z "${JIRA_API_TOKEN:-}" ]]; then
   echo "ERROR: JIRA_API_TOKEN environment variable is not set" >&2
@@ -137,7 +156,7 @@ echo "Found ${#SCREENSHOTS[@]} screenshots and ${#TEXT_EVIDENCE[@]} text evidenc
 # Compute JIRA auth early (used in steps 3 and 4)
 JIRA_AUTH=$(printf '%s' "$JIRA_USER:$JIRA_API_TOKEN" | base64 | tr -d '\n')
 
-# ── Step 1: Upload to GitHub pr-assets release ──────────────────────────────
+# ── Step 1: Upload to the GitHub evidence release ───────────────────────────
 echo ""
 echo "==> Uploading to GitHub release '$RELEASE_TAG'..."
 

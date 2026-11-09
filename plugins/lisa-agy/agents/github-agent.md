@@ -129,7 +129,7 @@ Use the `github-sync` skill to update the issue at these milestones:
 ### 7. Post Evidence at Completion
 
 Use the `github-evidence` skill to:
-- Upload verification evidence to the GitHub `pr-assets` release (in the implementation repo)
+- Upload verification evidence to the configured evidence release (`node scripts/lisa-work-item.mjs evidence-release --ensure` prints it; default `pr-assets`), in the implementation repo
 - Update the PR description's `## Evidence` section
 - Post a comment on the originating issue with the evidence summary
 
