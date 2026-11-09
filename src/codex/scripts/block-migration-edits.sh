@@ -32,7 +32,7 @@ JSON_INPUT="$(cat)"
 # warning", so permitting loses only the warning, while refusing would block
 # every write because a warning could not be delivered.
 if ! command -v jq >/dev/null 2>&1; then
-  echo "block-migration-edits: jq is not installed, so this write was not inspected and is permitted without the migration warning. Install jq (brew install jq / apt-get install jq) to restore it." >&2
+  echo "block-migration-edits: jq is not installed, so this write was not inspected and is permitted without the migration warning, and a declared migration-provenance gate was NOT consulted. Install jq (brew install jq / apt-get install jq) to restore both." >&2
   exit 0
 fi
 

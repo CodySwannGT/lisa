@@ -162,14 +162,20 @@ describe("an undeclared project sees no change", () => {
       // The migration built-in's in-scope answer is now "permit with a
       // warning", so an unparseable payload loses only the warning. Refusing
       // here would block every write in the project because a warning could
-      // not be delivered.
-      const { status, stderr } = await harness.run(
+      // not be delivered. A declared gate cannot be consulted without the
+      // path either, so the note must say that too — even when one IS declared.
+      await harness.declare(subject);
+      const { status, stderr, trace } = await harness.run(
         await harness.installShipped(subject),
         subject.refuses,
         { path: harness.noJqDir }
       );
 
       expect(stderr).toContain("jq");
+      expect(stderr).toContain(
+        "a declared migration-provenance gate was NOT consulted"
+      );
+      expect(trace).toBe("");
       expect(status).toBe(PERMITTED);
     }
   );

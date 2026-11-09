@@ -82,7 +82,7 @@ Per-agent delivery:
 - **Codex**: also inspects `apply_patch` and matches numbered TypeScript migration filenames. Codex does not honor `additionalContext` on PreToolUse, so the warning is written to stderr and is not known to reach the model.
 - **OpenCode**: `tool.execute.after` appends the warning to the edit/write tool output after the write.
 
-A project that wants to enforce its own migration policy can declare a `migration-provenance` check at `pre-tool` in `.lisa.config.json`. The Claude and Codex hooks run that check for the targeted migration instead of warning, and refuse the edit when it fails. The check must validate the project's migration policy; an unconditional success command proves nothing. OpenCode's adapter does not run the declared check.
+A project that wants to enforce its own migration policy can declare a `migration-provenance` check at `pre-tool` in `.lisa.config.json`. The Claude and Codex hooks run that check for the targeted migration instead of warning, and refuse the edit when it fails. The check must validate the project's migration policy; an unconditional success command proves nothing. The declared check needs `jq`: without it the hooks cannot read the target path, so they permit the edit without running the check and say so on stderr. OpenCode's adapter does not run the declared check.
 
 ### Why Auto-Generation
 
