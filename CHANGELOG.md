@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.99.9](https://github.com/CodySwannGT/lisa/compare/v4.99.8...v4.99.9) (2026-11-09)
+
+
+### Bug Fixes
+
+* **templates:** preserve formatter and NodeNext compatibility ([1d595c2](https://github.com/CodySwannGT/lisa/commit/1d595c238489c7e6defd2b68f26fc8dc4254f099)), closes [CodySwannGT/lisa#4662](https://github.com/CodySwannGT/lisa/issues/4662) [CodySwannGT/lisa#4742](https://github.com/CodySwannGT/lisa/issues/4742)
+
 ### [4.99.8](https://github.com/CodySwannGT/lisa/compare/v4.99.7...v4.99.8) (2026-11-09)
 
 ### [4.99.7](https://github.com/CodySwannGT/lisa/compare/v4.99.6...v4.99.7) (2026-11-09)
