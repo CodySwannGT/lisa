@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.101.2](https://github.com/CodySwannGT/lisa/compare/v4.101.1...v4.101.2) (2026-11-09)
+
+
+### Bug Fixes
+
+* **apply:** preserve declared installation consent protections ([e679232](https://github.com/CodySwannGT/lisa/commit/e6792324e97daba60481b4a6131e4034f05010c9)), closes [CodySwannGT/lisa#4759](https://github.com/CodySwannGT/lisa/issues/4759)
+* **apply:** separate template consent from git cleanliness ([a8a5186](https://github.com/CodySwannGT/lisa/commit/a8a518636139bee6ab3268022cc990da55a05d5a)), closes [CodySwannGT/lisa#4759](https://github.com/CodySwannGT/lisa/issues/4759)
+
 ### [4.101.1](https://github.com/CodySwannGT/lisa/compare/v4.101.0...v4.101.1) (2026-11-09)
 
 ## [4.101.0](https://github.com/CodySwannGT/lisa/compare/v4.100.6...v4.101.0) (2026-11-09)
