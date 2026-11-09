@@ -15,6 +15,10 @@
  *      transform needed, unlike the Codex TOML/openai.yaml path).
  *   2. Lisa commands converted to skills with a `lisa-` prefix, since the safest
  *      cross-runtime carrier for a Lisa command is a self-complete skill.
+ *   3. The plugin-level modules those skill scripts import from outside their
+ *      own folder (`../../../scripts/<m>.mjs`), copied to the path the unchanged
+ *      specifier resolves to in the emitted tree (`.opencode/skills/scripts/`)
+ *      so the tree is self-contained — see `opencode/shared-scripts-emitter`.
  *
  * Source discovery (walking the plugin tree, dedup, denylist) is shared with the
  * Codex overlay via `core/lisa-skill-sources`.
@@ -34,6 +38,8 @@ import { convertCommandToSkill } from "../codex/command-skill-transformer.js";
 import type { ProjectType } from "../core/config.js";
 import { opencodeProjectPluginFilter } from "./project-plugin-gate.js";
 import { OPENCODE_CONFIG_DIR } from "./manifest.js";
+import { deleteStaleSharedScripts } from "./shared-scripts-cleanup.js";
+import { emitSharedScripts } from "./shared-scripts-emitter.js";
 
 /** Runtime label threaded into generated command-as-skill compatibility notes */
 const OPENCODE_RUNTIME_LABEL = "OpenCode";
@@ -64,7 +70,10 @@ export interface InstalledSkill {
 export interface SkillsInstallResult {
   readonly installed: readonly InstalledSkill[];
   readonly managedFiles: readonly string[];
-  /** Skill directories deleted because Lisa stopped shipping them */
+  /**
+   * What Lisa removed because it stopped shipping it: bare skill directory
+   * names, then shared modules in manifest form (`skills/scripts/<m>.mjs`).
+   */
   readonly deleted: readonly string[];
 }
 
@@ -89,7 +98,8 @@ export async function installSkills(
   previousManagedFiles: readonly string[],
   detectedTypes: readonly ProjectType[] = []
 ): Promise<SkillsInstallResult> {
-  const skillsDir = path.join(destDir, OPENCODE_CONFIG_DIR, LISA_SKILLS_SUBDIR);
+  const opencodeDir = path.join(destDir, OPENCODE_CONFIG_DIR);
+  const skillsDir = path.join(opencodeDir, LISA_SKILLS_SUBDIR);
   await fse.ensureDir(skillsDir);
   const denylistedSkills = await loadSkillDenylist(
     lisaDir,
@@ -113,6 +123,15 @@ export async function installSkills(
     source.files.map(file =>
       path.join(LISA_SKILLS_SUBDIR, source.skillName, file)
     )
+  );
+  // Shared modules imported from outside a skill folder, derived from the
+  // emitted scripts' own import specifiers (CodySwannGT/lisa#4642).
+  const sharedRoots = { opencodeDir, skillsDir };
+  const sharedFiles = await emitSharedScripts(bundled, sharedRoots);
+  const deletedShared = await deleteStaleSharedScripts(
+    previousManagedFiles,
+    sharedFiles,
+    sharedRoots
   );
 
   // Step 2: command-as-skill conversions (skip when the bundled skill already
@@ -142,8 +161,12 @@ export async function installSkills(
 
   return {
     installed: Object.freeze(installed),
-    managedFiles: Object.freeze([...bundledFiles, ...commandFiles]),
-    deleted: Object.freeze(deleted),
+    managedFiles: Object.freeze([
+      ...bundledFiles,
+      ...sharedFiles,
+      ...commandFiles,
+    ]),
+    deleted: Object.freeze([...deleted, ...deletedShared]),
   };
 }
 
