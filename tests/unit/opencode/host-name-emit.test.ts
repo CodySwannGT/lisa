@@ -11,11 +11,13 @@ import { cleanupTempDir, createTempDir } from "../../helpers/test-utils.js";
 describe("OpenCode host-name guard distribution (#4540)", () => {
   let temporary: string;
   let project: string;
+  let lisaDir: string;
 
   beforeEach(async () => {
     temporary = await createTempDir();
     project = path.join(temporary, "project");
-    await fs.ensureDir(project);
+    lisaDir = path.join(temporary, "lisa");
+    await Promise.all([fs.ensureDir(project), fs.ensureDir(lisaDir)]);
   });
 
   afterEach(async () => {
@@ -30,12 +32,7 @@ describe("OpenCode host-name guard distribution (#4540)", () => {
   });
 
   it("reports pluginCount equal to the emitted file count", async () => {
-    const result = await installHooks(
-      process.cwd(),
-      project,
-      ["typescript"],
-      []
-    );
+    const result = await installHooks(lisaDir, project, ["typescript"], []);
     const files = await listInstalledPluginFiles(project);
     expect(result.pluginCount).toBe(files.length);
     // Six existing support files, the three Rails engine modules, and the
