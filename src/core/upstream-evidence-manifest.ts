@@ -2783,7 +2783,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/lib/bounded-spawn.mjs":
       "a37de43abd0c9840d0caab4e211a066c4dcf4fd76bbbf12a84b6a402300f99a1",
     "scripts/lib/codex-shared-scripts.mjs":
-      "963711e3d408560fc6fe86e894ebaf9e04bcf547a0e920db28944d0ebf424eba",
+      "ca3809b5b496c9184fbe162bcdf2716f7e4cc0e7369ecedf42b6925f685ee1c2",
     "scripts/lib/dependency-tree.mjs":
       "2df9048c5baffc5d660923fe933dcf6bf277d39e81512de1332ce686e705a765",
     "scripts/lib/gitattributes-merge-drivers.mjs":

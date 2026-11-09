@@ -26,7 +26,9 @@ import {
   emitCodexSharedScripts,
   emitCodexSkillVariants,
 } from "../../../scripts/generate-codex-plugin-artifacts.mjs";
+import { extractRelativeSpecifiers as extractEmitterSpecifiers } from "../../../scripts/lib/codex-shared-scripts.mjs";
 import {
+  extractRelativeSpecifiers,
   findUnresolvedImports,
   formatUnresolvedImport,
 } from "../../../src/opencode/relative-imports.js";
@@ -227,5 +229,44 @@ describe("generate-codex-plugin-artifacts shared-script emit", () => {
     expect(() => emitCodexSharedScripts(pluginDir)).toThrow(
       /outside \.codex-plugin/
     );
+  });
+
+  it("refuses an import that would write outside .codex-plugin/scripts/", () => {
+    fs.outputFileSync(path.join(pluginDir, "hooks.json"), "{}\n");
+    fs.outputFileSync(
+      path.join(pluginDir, "skills", DEMO_SKILL, "scripts", "main.mjs"),
+      'import hooks from "../../../hooks.json";\n'
+    );
+    emitCodexSkillVariants(pluginDir);
+
+    expect(() => emitCodexSharedScripts(pluginDir)).toThrow(
+      `${DEMO_IMPORTER} imports "../../../hooks.json", which resolves outside .codex-plugin/scripts/`
+    );
+  });
+});
+
+describe("emitter specifier parse", () => {
+  it("matches the TypeScript checker's parse", () => {
+    const source = [
+      'import { a } from "./a.mjs";',
+      'export * from "../b.mjs";',
+      'import "./side.mjs";',
+      'const c = await import("../../c.mjs");',
+      'const d = require("./d.cjs");',
+      '// import { gone } from "./gone.mjs";',
+      '  /* import { alsoGone } from "./also-gone.mjs"; */',
+      'import fs from "node:fs";',
+      'import { a as again } from "./a.mjs";',
+    ].join("\n");
+
+    const expected = [
+      "./a.mjs",
+      "../b.mjs",
+      "./side.mjs",
+      "../../c.mjs",
+      "./d.cjs",
+    ];
+    expect(extractRelativeSpecifiers(source)).toEqual(expected);
+    expect(extractEmitterSpecifiers(source)).toEqual(expected);
   });
 });

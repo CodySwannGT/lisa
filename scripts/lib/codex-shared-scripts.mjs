@@ -29,11 +29,12 @@ const LINE_OPENING_BLOCK_COMMENT = /^[ \t]*\/\*[\s\S]*?\*\//gm;
 const LINE_OPENING_LINE_COMMENT = /^[ \t]*\/\/.*$/gm;
 
 /**
- * Extract every static relative specifier from module source text.
+ * Extract every static relative specifier from module source text. Exported
+ * so a parity test can hold it equal to the TypeScript checker's parse.
  * @param {string} source JavaScript module source.
  * @returns {string[]} Unique relative specifiers in first-seen order.
  */
-function extractRelativeSpecifiers(source) {
+export function extractRelativeSpecifiers(source) {
   const stripped = source
     .replace(LINE_OPENING_BLOCK_COMMENT, "")
     .replace(LINE_OPENING_LINE_COMMENT, "");
@@ -73,26 +74,31 @@ function listScriptModules(dir) {
 }
 
 /**
- * Resolve the shared targets one emitted module imports.
+ * Resolve the shared targets one emitted module imports. A target outside
+ * `.codex-plugin/skills/` must lie inside `.codex-plugin/scripts/`: that is
+ * the only directory this step clears, so it is the only one it may write —
+ * it can never overwrite `hooks.json`, `plugin.json`, or anything else.
  * @param {string} codexDir Absolute `.codex-plugin/` directory.
  * @param {string} importer Absolute emitted module path.
  * @returns {{ specifier: string, target: string }[]} Imports whose absolute
- *   target lies outside `.codex-plugin/skills/`.
+ *   target lies inside `.codex-plugin/scripts/`.
  */
 function sharedTargetsOf(codexDir, importer) {
   const skillsDir = path.join(codexDir, "skills");
+  const scriptsDir = path.join(codexDir, "scripts");
   return extractRelativeSpecifiers(fs.readFileSync(importer, "utf8"))
     .map(specifier => ({
       specifier,
       target: path.resolve(path.dirname(importer), specifier),
     }))
     .filter(({ specifier, target }) => {
-      if (!isWithin(codexDir, target)) {
+      if (isWithin(skillsDir, target)) return false;
+      if (!isWithin(scriptsDir, target)) {
         throw new Error(
-          `${path.relative(codexDir, importer)} imports "${specifier}", which resolves outside ${CODEX_PLUGIN_DIR}/ and cannot be emitted`
+          `${path.relative(codexDir, importer)} imports "${specifier}", which resolves outside ${CODEX_PLUGIN_DIR}/scripts/ and cannot be emitted`
         );
       }
-      return !isWithin(skillsDir, target);
+      return true;
     });
 }
 
