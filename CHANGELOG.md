@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.100.2](https://github.com/CodySwannGT/lisa/compare/v4.100.1...v4.100.2) (2026-11-09)
+
+
+### Bug Fixes
+
+* **ci:** honor the posted_by pin when the review prover falls back to statuses ([9e10a67](https://github.com/CodySwannGT/lisa/commit/9e10a670842e1e8aea57dc8d6ed6a94845240f2b)), closes [CodySwannGT/lisa#4652](https://github.com/CodySwannGT/lisa/issues/4652) [CodySwannGT/lisa#4652](https://github.com/CodySwannGT/lisa/issues/4652)
+* **secrets:** scan id-list entries by kind in the credential check ([0a214af](https://github.com/CodySwannGT/lisa/commit/0a214afce3ec1fa6f9f370efdb143f089d15b998)), closes [CodySwannGT/lisa#4719](https://github.com/CodySwannGT/lisa/issues/4719) [#4623](https://github.com/CodySwannGT/lisa/issues/4623) [CodySwannGT/lisa#4719](https://github.com/CodySwannGT/lisa/issues/4719)
+
 ### [4.100.1](https://github.com/CodySwannGT/lisa/compare/v4.100.0...v4.100.1) (2026-11-09)
 
 
