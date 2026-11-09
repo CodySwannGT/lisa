@@ -12481,6 +12481,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/core/learnings-supersede-security.test.ts": true,
     "tests/unit/core/learnings-unlocked-read.test.ts": true,
     "tests/unit/core/learnings-writer.test.ts": true,
+    "tests/unit/core/lisa-dependency-settings-warning.test.ts": true,
     "tests/unit/core/lisa-owned-enforcement-scripts.test.ts": true,
     "tests/unit/core/lisa-owned-provenance.test.ts": true,
     "tests/unit/core/lisa-owned-templates-classification.test.ts": true,
