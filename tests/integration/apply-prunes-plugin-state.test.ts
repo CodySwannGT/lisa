@@ -222,7 +222,7 @@ function apply(
         .filter(Boolean)
         .map(line => JSON.parse(line) as StubCall)
     : [];
-  expect(result.status).toBe(0);
+  expect(result.status, `${result.stdout}\n${result.stderr}`).toBe(0);
   return { output: `${result.stdout}\n${result.stderr}`, calls };
 }
 
