@@ -102,7 +102,7 @@ Use `lisa-github-evidence` to post everything:
 # Equivalent of: bash scripts/post-evidence.sh — but invoked via the Skill tool
 ```
 
-Invoke the skill with `<ISSUE_REF> ./evidence <PR_NUMBER>`. It uploads the files to the `pr-assets` release, edits the PR's `## Evidence` section, and posts a comment on the issue. The build-intake owner performs the direct `claimed` → `done` lifecycle transition after success.
+Invoke the skill with `<ISSUE_REF> ./evidence <PR_NUMBER>`. It uploads the files to the configured evidence release (`node scripts/lisa-work-item.mjs evidence-release --ensure` prints it; default `pr-assets`), edits the PR's `## Evidence` section, and posts a comment on the issue. The build-intake owner performs the direct `claimed` → `done` lifecycle transition after success.
 
 ### Step 6: Verify
 

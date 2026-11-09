@@ -211,7 +211,7 @@ The marked comment is the single canonical evidence comment for the PRD — a re
 2. **AI disclosure** — lead with "PRD-level verification by Claude (AI agent, not a human)."
 3. **Verdict line** — `shipped → verified — PASS`.
 4. **Spec-conformance coverage matrix** — the section-by-section matrix from Phase 4 verbatim, with the `CONFORMS` verdict.
-5. **Empirical proof artifacts** — the Phase 5 artifacts per surface: screenshots (upload via `gh release upload pr-assets <files> --clobber` and reference as plain URLs, per the `tracker-evidence` UI Evidence Checklist), request/response captures, query outputs, log excerpts, and the codified regression test(s) added.
+5. **Empirical proof artifacts** — the Phase 5 artifacts per surface: screenshots (upload via `gh release upload "$RELEASE" <files> --clobber`, where `RELEASE=$(node scripts/lisa-work-item.mjs evidence-release --ensure)`, and reference as plain URLs, per the `tracker-evidence` UI Evidence Checklist), request/response captures, query outputs, log excerpts, and the codified regression test(s) added.
 6. **What was verified** — which PRD acceptance criteria each artifact covers, and the verification surface used.
 
 Then emit the PASS output block (below).
@@ -282,7 +282,7 @@ Post a **failure report** comment back on the PRD, via the same vendor surface P
 3. **Verdict line + round** — `shipped → ticketed — FAIL (re-opened for fixes)`, the cause (`CONFORMANCE_FAILED` or `EMPIRICAL_FAILED`), and `Round: N` — the count of failed verification rounds for this PRD. Read the prior in-place failure report's round and increment (start at 1). The loop **never auto-halts** on a high count, but surfacing it lets a human notice a PRD stuck across repeated fix-and-re-verify rounds.
 4. **What failed, in plain language** — for each finding, name the **specific PRD requirement / acceptance criterion** that was not met, then **what was expected vs what was observed** (the empirical evidence: what was checked, what the shipped product did instead). One bullet per finding so product can follow each independently.
 5. **Spec-conformance coverage matrix** — for a `CONFORMANCE_FAILED` cause, the section-by-section matrix from Phase 4 verbatim with the `PARTIAL`/`DIVERGES` verdict, so the missed/divergent/scope-crept rows are visible.
-6. **Proof artifacts** — any captured empirical artifacts (screenshots uploaded via `gh release upload pr-assets <files> --clobber` and referenced as plain URLs per the `tracker-evidence` UI Evidence Checklist, request/response captures, query outputs, log excerpts).
+6. **Proof artifacts** — any captured empirical artifacts (screenshots uploaded via `gh release upload "$RELEASE" <files> --clobber` to the configured evidence release and referenced as plain URLs per the `tracker-evidence` UI Evidence Checklist, request/response captures, query outputs, log excerpts).
 7. **Fix issues** — a list of the fix issues created/referenced in 7.4 (filled in after 7.4 runs, or posted as a brief follow-up edit), so the report is the single product-facing index of "what's wrong and where it's being fixed."
 
 ### 7.4 — Create linked fix issues for the missing/incorrect behavior
@@ -383,7 +383,7 @@ shipped → ticketed   (re-opened for fixes; round: N)    fix tickets (ready): <
 - `verification-lifecycle` — Phase 5 invokes it to run empirical verification of the shipped surface (classify → check tooling → plan → execute → codify → loop). It in turn invokes `codify-verification` and, for UI surfaces, `product-walkthrough`.
 - `codify-verification` — turns each passing empirical verification into a regression test so the PRD's verified behavior cannot silently regress; invoked transitively via `verification-lifecycle`.
 - `product-walkthrough` — drives the live product through a real browser to ground UI-surface verification and the evidence comment in what actually renders.
-- `tracker-evidence` — the vendor-neutral evidence poster whose UI Evidence Checklist and `pr-assets` upload mechanics Phase 6.3 (PASS evidence) and Phase 7.3 (FAIL failure report) follow when commenting on the PRD.
+- `tracker-evidence` — the vendor-neutral evidence poster whose UI Evidence Checklist and evidence-release upload mechanics Phase 6.3 (PASS evidence) and Phase 7.3 (FAIL failure report) follow when commenting on the PRD.
 - `tracker-write` — the vendor-neutral ticket writer Phase 7.4 invokes to create each linked fix issue (dispatching to `github-write-issue` / `jira-write-ticket` / `linear-write-issue` per config), so every fix issue clears the `tracker-validate` quality gate (Gherkin ACs, three-audience description, labels, relationships). This skill never hand-rolls issue creation.
 - `prd-backlink` — the regenerate-in-place-via-marker idempotency pattern Phase 6.3 / 7.3 / 8 follow: it regenerates its `## Tickets` section from the current child set on every run (never appending) and dedupes by child-ref. The evidence/failure-report sentinel comments here apply the same discipline to PRD comments.
 - `github-prd-intake` — the no-op-if-already-at-target-role guard Phase 6.2 / 7.2 / 8 mirror: its Phase 3f.1 rollup is a no-op on a PRD already carrying `$SHIPPED`, and it enforces the single-label invariant after every transition. This skill applies the same guard to the `verified` / `ticketed` hops.

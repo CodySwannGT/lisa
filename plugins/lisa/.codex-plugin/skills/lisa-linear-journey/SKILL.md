@@ -108,7 +108,7 @@ After capturing all evidence, build:
 
 Invoke `lisa-linear-evidence` with `<IDENTIFIER> ./evidence` to:
 
-1. Upload large evidence files to the GitHub `pr-assets` release (if files present in `evidence/files/`).
+1. Upload large evidence files to the configured evidence release (`node scripts/lisa-work-item.mjs evidence-release --ensure` prints it; default `pr-assets`) (if files present in `evidence/files/`).
 2. Update the GitHub PR description with an Evidence section (when a PR is open).
 3. Post the Linear comment (`comment.txt` + collapsible `code-blocks.md`).
 4. Transition labels: remove `In Progress`, add `In Review`.
