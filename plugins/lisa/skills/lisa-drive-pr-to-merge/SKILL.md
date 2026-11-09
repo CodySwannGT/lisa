@@ -1603,8 +1603,13 @@ merge, confirming that sync ran satisfies this step.
 Run this once the PR reports `MERGED` and the ancestry check has passed:
 
 ```
-node scripts/lisa-work-item.mjs complete --ref <work-item> --pr-url <merged-pr-url>
+node scripts/lisa-work-item.mjs finish --ref <work-item> --pr-url <merged-pr-url>
 ```
+
+`finish` is the spelling to use. `complete` is accepted as a permanent alias
+for the identical operation, but some agent harnesses — Claude Code's worktree
+isolation among them — refuse any command line containing the bare token
+`complete`, because it names a shell builtin that can run a string as a command.
 
 resolving the script the usual three ways (installed package, host `scripts/`,
 this repo's own tree). Always pass the canonical GitHub pull-request URL shown
