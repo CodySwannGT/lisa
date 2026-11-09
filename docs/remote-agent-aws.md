@@ -163,6 +163,12 @@ both halves even though the probe can only reach one. Grant the detail reads for
 each surface too; the probe proves the surface is reachable, not that every
 action on it is granted.
 
+For delivery pipelines that detail read is concrete: Lisa's completion gate
+proves a CodePipeline delivery by calling `codepipeline:GetPipelineExecution` on
+the pinned execution, so an observer granted only
+`codepipeline:ListPipelineExecutions` passes this probe and still cannot close a
+work item.
+
 A stage is treated as an observer when its bundle entry sets `"observer": true`,
 and otherwise when it is named `production` or `shared` — the definition this
 document already states. Dev and staging profiles are not probed, because they

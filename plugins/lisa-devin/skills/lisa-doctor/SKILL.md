@@ -138,6 +138,17 @@ this order:
    - Reuse the `deploy.order` / `deploy.branches` contract from `config-resolution` ("Env order
      (sync-down chain)") rather than re-deriving the rules here.
 
+7. **CDK delivery-proof audit** (only when `cdk.json` is present)
+   - `PASS` when the merged config declares at least one
+     `verification.completion.delivery.<env>`.
+   - `WARN` when a CDK project declares none: lifecycle completion cannot prove delivery and
+     stops at `pending-proof`. Name the setting to add — `verification.completion.delivery.<env>`
+     with `mechanism: "aws-codepipeline"`, `pipeline_name` and `region` — and the read-only
+     `codepipeline:GetPipelineExecution` grant it needs.
+   - `WARN` when an `aws-codepipeline` delivery lacks `pipeline_name` or `region`, naming each
+     missing path.
+   - `lisa doctor` reports this as the `CDK delivery proof configured?` check.
+
 Locality findings are advisory unless the merged config is unusable. Missing shared keys after the
 merge are `FAIL`; shared keys that exist only locally are `WARN`.
 
