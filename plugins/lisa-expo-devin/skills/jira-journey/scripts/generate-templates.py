@@ -86,11 +86,14 @@ def get_github_repo():
 
 
 def collect_screenshots(evidence_dir):
-    """Collect screenshot files sorted by name."""
+    """Collect screenshot files sorted by name.
+
+    Only NN-*.png: that is exactly what post-evidence.sh uploads and
+    attaches, and it refuses a description that links anything it did not
+    upload (CodySwannGT/lisa#4639). Linking a .jpg/.gif here would fail it.
+    """
     evidence_path = Path(evidence_dir)
-    screenshots = []
-    for ext in ("*.png", "*.jpg", "*.jpeg", "*.gif"):
-        screenshots.extend(evidence_path.glob(ext))
+    screenshots = list(evidence_path.glob("[0-9][0-9]-*.png"))
     return sorted(screenshots, key=lambda p: p.name)
 
 
@@ -237,7 +240,10 @@ def generate_github_md(ticket_id, pr_number, branch, screenshots, journey, gh_re
 
             lines.append(f"**{label}:**")
             lines.append("")
-            lines.append(f"![{label}]({release_base}/{filename})")
+            # post-evidence.sh stores the asset as pr-<number>-<file> so pull
+            # requests sharing the release never overwrite each other's
+            # evidence (CodySwannGT/lisa#4639); link exactly that name.
+            lines.append(f"![{label}]({release_base}/pr-{pr_number}-{filename})")
             lines.append("")
 
     # Verification Journey

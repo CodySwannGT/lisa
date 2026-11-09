@@ -54,7 +54,7 @@ export LISA_EVIDENCE_RELEASE=$(node scripts/lisa-work-item.mjs evidence-release 
 ## What It Does
 
 1. **Read JIRA config** — Resolves the jira-cli config (`$PROJECT_DIR/.lisa/jira-cli/.config.yml` first, then `~/.config/.jira/.config.yml`, announcing the fallback) and reads `server` and `login` from it dynamically — no hardcoded values. Exits 1 naming both paths when neither exists. The same resolved path is then passed to `jira issue move` as `--config`, so the CLI cannot end up on a different config than the one this script parsed.
-2. **Upload to the configured evidence release (`node scripts/lisa-work-item.mjs evidence-release --ensure` prints it; default `pr-assets`)** — Uploads evidence files via `gh release upload --clobber`, creating CDN URLs
+2. **Upload to the configured evidence release (`node scripts/lisa-work-item.mjs evidence-release --ensure` prints it; default `pr-assets`)** — Validates `PR_NUMBER` as a positive integer, uploads each evidence file as `pr-<PR_NUMBER>-<file>` via `gh release upload --clobber`, creating CDN URLs, then lists the release and exits 1 naming any uploaded asset that is missing. Before uploading it refuses an evidence name outside `NN-name.(png|txt|json)` with letters, digits, `.`, `_` and `-` only (GitHub rewrites other characters in asset names), and before editing the description it exits 1 naming any Markdown link or image target in `comment.md` (inline, titled, `<url>`-bracketed or a reference definition such as `[ref]: url`) that points into that release but is not `pr-<PR_NUMBER>-…` or was not uploaded by this run (a stale asset from an earlier run does not count; release URLs quoted as plain text in inlined evidence are ignored). `--clobber` therefore only ever replaces this pull request's own earlier upload.
 3. **Update PR description** — Replaces or appends the `## Evidence` section in the PR body using `gh pr edit`
 4. **Upload JIRA attachments** — Uploads image evidence via REST API v3 so `!filename.png!` wiki markup renders inline
 5. **Post JIRA comment** — Posts `comment.txt` as a new comment via REST API v2 (wiki markup)
@@ -64,6 +64,7 @@ export LISA_EVIDENCE_RELEASE=$(node scripts/lisa-work-item.mjs evidence-release 
 
 - Image evidence: `NN-name-viewport.png` (e.g., `01-search-step-desktop.png`)
 - Text evidence: `NN-name.txt` or `NN-name.json` (e.g., `01-health-check.json`)
+- Release assets: local files keep their `NN-` names; in the shared evidence release each one is stored as `pr-<number>-<file>` (for PR 42, `pr-42-01-health-check.json`), so two pull requests with a same-named file never overwrite each other's evidence. JIRA attachments keep the local name.
 
 ## Troubleshooting
 

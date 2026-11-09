@@ -1501,13 +1501,13 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-jira-create/SKILL.md":
       "2a409fe3755112f98587db66325fadf5e0d4f34b512755cdbb53b5bec107dab3",
     "plugins/src/base/skills/lisa-jira-evidence/SKILL.md":
-      "741a1e17c9087649f9cce30f863d8103c366c47d6f92c52c40333096a8a589de",
+      "2cb239cc7e3e5ece9f3ce2368e41bd79e2c243506423a48838daf2e6e1f6c14e",
     "plugins/src/base/skills/lisa-jira-evidence/scripts/post-evidence.sh":
-      "00d7db2cff9ff74a6d7617bfc1342867c61dca5b12ff82e2a237d3eda8045078",
+      "7657837ae23fd9a39e7f0e82cb82e0f4bb9d9f5c84b507cd0fcbce7d2055dec0",
     "plugins/src/base/skills/lisa-jira-journey/SKILL.md":
       "a304eb50fe2428b7af9cdd1feec2c07de18457d72269551b81d46ec4be4a34c8",
     "plugins/src/base/skills/lisa-jira-journey/scripts/generate-templates.py":
-      "cd9146d4186baa755b44709b3810cbc8bfd31b27a97420c3fd4b2135a2853038",
+      "9856fb5cc6d6935ce1a3e07e936139768fd001aef8f35be382e6c03a34f10837",
     "plugins/src/base/skills/lisa-jira-journey/scripts/parse-plan.py":
       "a96fda5de44cd6d65fcc7ecf36aa365766707b77ad68b198062124d31a9238b9",
     "plugins/src/base/skills/lisa-jira-read-ticket/SKILL.md":
@@ -2079,13 +2079,13 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/expo/skills/jira-create/SKILL.md":
       "0fb4378b7399580e180beaacd22f832af3ff0ddae7c5d7761039bc81832c0c43",
     "plugins/src/expo/skills/jira-evidence/SKILL.md":
-      "68b60a72f0d9b5bdc7d555cf789619624197e66b7d5d2ac894495e761712b328",
+      "ca76808b1df92bcb95e7fae6f32f140dce34939af308dabd6475dc6ed68cfd40",
     "plugins/src/expo/skills/jira-evidence/scripts/post-evidence.sh":
-      "00d7db2cff9ff74a6d7617bfc1342867c61dca5b12ff82e2a237d3eda8045078",
+      "7657837ae23fd9a39e7f0e82cb82e0f4bb9d9f5c84b507cd0fcbce7d2055dec0",
     "plugins/src/expo/skills/jira-journey/SKILL.md":
       "9d0314828c38e00829898c2e1866dd01223208fe653001b42767ba8e920c4faa",
     "plugins/src/expo/skills/jira-journey/scripts/generate-templates.py":
-      "da63c60a07ec5ca454149804cc5f995b193d11227666e931644b86212c259f1a",
+      "ccf072f9b613d56f924cdafd6ebee9799ee121e5253d26fc9b3272b805f95515",
     "plugins/src/expo/skills/jira-journey/scripts/parse-plan.py":
       "4c777dfa36c4c01216906b20a9ce473a764a71e4fccd29aed465403229d8de6d",
     "plugins/src/expo/skills/jira-verify/SKILL.md":
@@ -2359,9 +2359,9 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/rails/skills/jira-create/SKILL.md":
       "789b1ed68e983029e0b57c3eefa90fdce000615d0f23b1699a6d9c0099b4e1d0",
     "plugins/src/rails/skills/jira-evidence/SKILL.md":
-      "ec9882cdcce69aff1fdf6f3b3ab208b26efe8dc3e828d1aebae465ec2a999bca",
+      "f24880e9c00bb2ae3c02792e5a6fc787b2b4993b00244cdb388387e3d094c5d4",
     "plugins/src/rails/skills/jira-evidence/scripts/post-evidence.sh":
-      "00d7db2cff9ff74a6d7617bfc1342867c61dca5b12ff82e2a237d3eda8045078",
+      "7657837ae23fd9a39e7f0e82cb82e0f4bb9d9f5c84b507cd0fcbce7d2055dec0",
     "plugins/src/rails/skills/jira-journey/SKILL.md":
       "c65cf8bcde3dbfe4995d26dcce62067cf1a08314a9ba9ca7f7c1fdd53d61feb6",
     "plugins/src/rails/skills/jira-verify/SKILL.md":
@@ -3882,6 +3882,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "evidence/CodySwannGT-lisa-4608/superseded-bddf74637d/step3e-bite-unbounded-sleep-loop.txt": true,
     "evidence/CodySwannGT-lisa-4608/superseded-bddf74637d/step4a-test-unit-drive-pr.txt": true,
     "evidence/CodySwannGT-lisa-4608/superseded-bddf74637d/step4b-check-plugins.txt": true,
+    "evidence/CodySwannGT-lisa-4639/jira-evidence-scoped-uploads.txt": true,
+    "evidence/CodySwannGT-lisa-4639/jira-evidence-upload-names-red-green.txt": true,
     "evidence/CodySwannGT-lisa-4642/opencode-emit-imports-red-green.txt": true,
     "evidence/CodySwannGT-lisa-4642/opencode-session-manager-help.txt": true,
     "evidence/CodySwannGT-lisa-4677/README.md": true,
@@ -11823,6 +11825,9 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/host-test-scripts-survive-apply.test.ts": true,
     "tests/integration/inventory-covers-shipped-artifacts.test.ts": true,
     "tests/integration/jest-expo-haste-pruning.test.ts": true,
+    "tests/integration/jira-evidence-generator-links.test.ts": true,
+    "tests/integration/jira-evidence-link-forms.test.ts": true,
+    "tests/integration/jira-evidence-pr-scoped-uploads.test.ts": true,
     "tests/integration/jira-shell-auth-destinations.test.ts": true,
     "tests/integration/job-names-name-properties.test.ts": true,
     "tests/integration/lisa-cleanup-sweep.test.ts": true,
@@ -11993,6 +11998,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/standards-proof-typescript.test.ts": true,
     "tests/integration/support/bun-free-node-bin.ts": true,
     "tests/integration/support/cdk-ci-role-selection-harness.ts": true,
+    "tests/integration/support/jira-evidence-run.ts": true,
     "tests/integration/support/maestro-android-retry-fixtures.ts": true,
     "tests/integration/support/maestro-android-retry-harness.ts": true,
     "tests/integration/support/maestro-build-step-harness.ts": true,
@@ -12011,6 +12017,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/support/rails-helper-fixture.ts": true,
     "tests/integration/support/rails-learnings-budget-gate.ts": true,
     "tests/integration/support/rails-scratch-supervisor.ts": true,
+    "tests/integration/support/recording-gh-stub.ts": true,
     "tests/integration/support/reusable-workflow-scopes.ts": true,
     "tests/integration/support/shell-guard-refusal-fixture.ts": true,
     "tests/integration/third-party-evidence-seed-apply.test.ts": true,
@@ -12918,6 +12925,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/invoked-as-script.test.ts": true,
     "tests/unit/scripts/jira-cli-config-consumption.test.ts": true,
     "tests/unit/scripts/jira-evidence-release.test.ts": true,
+    "tests/unit/scripts/jira-evidence-upload-names.test.ts": true,
     "tests/unit/scripts/jira-server-origin.test.ts": true,
     "tests/unit/scripts/kill-marks.test.ts": true,
     "tests/unit/scripts/lint-staged-preflight.test.ts": true,

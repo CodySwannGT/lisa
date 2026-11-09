@@ -50,6 +50,13 @@ describe("post-evidence.sh uploads to the configured evidence release", () => {
       "installation: cloud\nserver: https://jira.invalid\nlogin: a@example.com\n"
     );
     await fs.outputFile(path.join(projectDir, "evidence", "01-log.txt"), "y");
+    // post-evidence.sh checks comment.md exists before uploading anything,
+    // because it verifies the description's links against the uploads
+    // (CodySwannGT/lisa#4639).
+    await fs.outputFile(
+      path.join(projectDir, "evidence", "comment.md"),
+      "## Evidence\n"
+    );
   });
 
   afterEach(async () => {
