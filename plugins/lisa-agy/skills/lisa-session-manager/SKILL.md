@@ -255,8 +255,17 @@ leave the ledger as it is (`markedAt` stays null), carry on with the cycle and e
    - `worker-question` or `decision` whose worker already reported `DONE` or `FAILED` (the
      question outlives the worker in the ledger, so its marker can still be removed): do not
      resume the finished worker. Record the answer on the item (below); the next attempt reads it
-     there. `resume` refuses a finished worker (exit 2), and `spawn` refuses a ref while its
-     question is pending, so finish this clearing first.
+     there. A worker's `FAILED` usually leaves the item in the `blocked` role (moved there on
+     `FAILED`, or held there for a `decision`), and nothing else returns a blocked item with no
+     dependency edges to Ready, so `answer-plan` returns `requeue: true` for it. First read the
+     item with `lisa-tracker-read`. Only when the read-back shows it **in the `blocked` role**,
+     also move it to the `ready` role in the step 2 update, as for `exhausted`, so the next
+     dispatch starts a fresh attempt that reads the answer on the item. When it is anywhere else
+     (a human moved it to the backlog or closed it, or `stop REF` already returned it to Ready),
+     leave it where it is: `requeue` never overrides a human's move. A `DONE` worker's item is
+     left where it is. `resume` refuses a finished
+     worker (exit 2), and `spawn` refuses a ref while its question is pending, so finish this
+     clearing first.
 
    **Record the answer on the item** (a finished worker, an `exhausted` item, or a `decision` no
    worker has picked up): the next attempt
@@ -267,7 +276,9 @@ leave the ledger as it is (`markedAt` stays null), carry on with the cycle and e
    it and then stopped), do not post it again, and take that comment as the read-back.
    Otherwise post its `comment` exactly as given through `lisa-tracker-write` and read it
    back with `lisa-tracker-read`; only then go on to step 2. `record: false` with `reason`
-   `answered-on-item` (the answer is already on the item) needs nothing posted. If the post or the
+   `answered-on-item` (the answer is already on the item) needs nothing posted. Read `requeue`
+   whatever `record` says: `requeue: true` comes with `record: false` and `answered-on-item` too,
+   when the operator answered a `FAILED` worker's question on the item. If the post or the
    read-back fails, stop here: leave the marker and the question pending (do not run step 3),
    carry on with the cycle and end it `recovery-required`; the next cycle's "Waiting on a human"
    step tries again. Exit 2 means the queued answer looks like it holds a credential: post
@@ -276,8 +287,10 @@ leave the ledger as it is (`markedAt` stays null), carry on with the cycle and e
 2. **Remove the manager's own marker** (the `marker` the ledger recorded, nothing else) through
    `lisa-tracker-write`, with a short comment: `[lisa-session-manager] Answer delivered; removed the
    hold.` when a worker received the answer (`SendMessage` or `resume`), else
-   `[lisa-session-manager] Answer recorded on the item; removed the hold.` Read it back with
-   `lisa-tracker-read`.
+   `[lisa-session-manager] Answer recorded on the item; removed the hold.` When `answer-plan`
+   returned `requeue: true` and the read-back shows the item in the `blocked` role, the same
+   update also moves it to the `ready` role; in any other role, leave the item where it is. Read
+   it back with `lisa-tracker-read`.
 3. `ledger clear-question <ref>` (`--reset-attempts` for an `exhausted` item). After "Record the
    answer on the item" posted (or found) a comment, run it as
    `ledger clear-question <ref> --expect-answer-at <answerAt>`, with `answerAt` from that
@@ -390,6 +403,10 @@ shows them.
   attention, never a silent leave: no reply can be read until the question is found, so re-post
   the question comment (`mark-plan` again, step 3), read it back, and record its id with
   `ledger marked … --comment-id <id>`; that cycle's outcome is `candidate-proposed`.
+  `reason: "not-marked"` means the pending question's mark was never read back (`markedAt` is
+  null; its text changed since it was marked, say): no reply is read, because the last recorded
+  question comment is still the old question's and a reply to it is not this question's answer.
+  Finish "Mark and move on" from step 1 for it, as for `marked: false` above.
   `reason: "no-answerers-configured"` means neither `operatorIds` nor `trustedAuthorIds` is set,
   so nothing on the item is read (the tracker identity is the one workers post as); the operator
   answers with the `answerCommand` from `status`. A reply that looks like it holds a credential is

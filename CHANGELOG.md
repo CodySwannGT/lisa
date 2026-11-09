@@ -2,6 +2,47 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.99.11](https://github.com/CodySwannGT/lisa/compare/v4.99.10...v4.99.11) (2026-11-09)
+
+
+### Bug Fixes
+
+* **plugins:** harden dead-registration prune per review ([81e092c](https://github.com/CodySwannGT/lisa/commit/81e092cb46c3b75b21a7ca1a84756abba37fd7fb)), closes [CodySwannGT/lisa#4645](https://github.com/CodySwannGT/lisa/issues/4645)
+* **plugins:** prune retired plugin keys and dead-worktree registrations ([8a1d93e](https://github.com/CodySwannGT/lisa/commit/8a1d93eaf0d946bca6ffd4d2ecda0cc9290f0226)), closes [CodySwannGT/lisa#4645](https://github.com/CodySwannGT/lisa/issues/4645)
+* **plugins:** shell-quote the manual prune recovery command ([8bfe5e5](https://github.com/CodySwannGT/lisa/commit/8bfe5e50ae35219782883e0b811b292fcc7e4a60)), closes [CodySwannGT/lisa#4645](https://github.com/CodySwannGT/lisa/issues/4645) [CodySwannGT/lisa#4645](https://github.com/CodySwannGT/lisa/issues/4645)
+
+### [4.99.10](https://github.com/CodySwannGT/lisa/compare/v4.99.9...v4.99.10) (2026-11-09)
+
+
+### Bug Fixes
+
+* **jira-evidence:** check only description links against this run's uploads ([4572b29](https://github.com/CodySwannGT/lisa/commit/4572b2976e853b63b8b8fc2f327792d2e680c44d)), closes [CodySwannGT/lisa#4639](https://github.com/CodySwannGT/lisa/issues/4639) [CodySwannGT/lisa#4639](https://github.com/CodySwannGT/lisa/issues/4639)
+* **jira-evidence:** link only uploaded evidence kinds ([4fbe1b3](https://github.com/CodySwannGT/lisa/commit/4fbe1b3a1226e8453713603b838709c1f27071f2)), closes [CodySwannGT/lisa#4639](https://github.com/CodySwannGT/lisa/issues/4639) [CodySwannGT/lisa#4639](https://github.com/CodySwannGT/lisa/issues/4639)
+* **jira-evidence:** scope pr-assets uploads to the pull request ([27132f3](https://github.com/CodySwannGT/lisa/commit/27132f32b567299468ddf9660ad3feb326dcf28b)), closes [CodySwannGT/lisa#4639](https://github.com/CodySwannGT/lisa/issues/4639) [CodySwannGT/lisa#4639](https://github.com/CodySwannGT/lisa/issues/4639)
+* **jira-evidence:** validate every Markdown link form against this run's uploads ([cd77c13](https://github.com/CodySwannGT/lisa/commit/cd77c13bc3d45c18123ae377f34e18c7e9ebb4c3)), closes [CodySwannGT/lisa#4639](https://github.com/CodySwannGT/lisa/issues/4639) [CodySwannGT/lisa#4639](https://github.com/CodySwannGT/lisa/issues/4639)
+* **jira-evidence:** verify description links against the release ([f117240](https://github.com/CodySwannGT/lisa/commit/f1172402dda0cd17d550fe45fb3a391875b83ea3)), closes [CodySwannGT/lisa#4639](https://github.com/CodySwannGT/lisa/issues/4639) [CodySwannGT/lisa#4639](https://github.com/CodySwannGT/lisa/issues/4639)
+
+### [4.99.9](https://github.com/CodySwannGT/lisa/compare/v4.99.8...v4.99.9) (2026-11-09)
+
+
+### Bug Fixes
+
+* **templates:** preserve formatter and NodeNext compatibility ([1d595c2](https://github.com/CodySwannGT/lisa/commit/1d595c238489c7e6defd2b68f26fc8dc4254f099)), closes [CodySwannGT/lisa#4662](https://github.com/CodySwannGT/lisa/issues/4662) [CodySwannGT/lisa#4742](https://github.com/CodySwannGT/lisa/issues/4742)
+
+### [4.99.8](https://github.com/CodySwannGT/lisa/compare/v4.99.7...v4.99.8) (2026-11-09)
+
+### [4.99.7](https://github.com/CodySwannGT/lisa/compare/v4.99.6...v4.99.7) (2026-11-09)
+
+
+### Bug Fixes
+
+* **review-evidence:** fence a report longer than any backtick run it quotes ([e4de38e](https://github.com/CodySwannGT/lisa/commit/e4de38e9ef01538d63bf36f38182f00a367e5344)), closes [#4630](https://github.com/CodySwannGT/lisa/issues/4630) [CodySwannGT/lisa#4630](https://github.com/CodySwannGT/lisa/issues/4630)
+* **review-evidence:** publish the third-party verdict on the PR head and read every page ([95cb320](https://github.com/CodySwannGT/lisa/commit/95cb320486beb6a90de986ec1ecc3a42ac0834b2)), closes [#4630](https://github.com/CodySwannGT/lisa/issues/4630) [CodySwannGT/lisa#4630](https://github.com/CodySwannGT/lisa/issues/4630)
+* **review-evidence:** tighten publish detection, fence the summary, share the run identity ([3ae653d](https://github.com/CodySwannGT/lisa/commit/3ae653d25af4e737d84838404af9f734874d728a)), closes [#4630](https://github.com/CodySwannGT/lisa/issues/4630) [CodySwannGT/lisa#4630](https://github.com/CodySwannGT/lisa/issues/4630)
+* **skills:** correct eleven skill, agent and script defects ([780a22b](https://github.com/CodySwannGT/lisa/commit/780a22bf86b8c5192dc0e8b2c45d9afce8f20f39)), closes [CodySwannGT/lisa#4643](https://github.com/CodySwannGT/lisa/issues/4643) [CodySwannGT/lisa#4643](https://github.com/CodySwannGT/lisa/issues/4643)
+* **skills:** mark summary-only review bodies and reword first-pass yield row ([21071c8](https://github.com/CodySwannGT/lisa/commit/21071c8063561bc370cd4c78cb8838a75191ea0b)), closes [CodySwannGT/lisa#4643](https://github.com/CodySwannGT/lisa/issues/4643) [CodySwannGT/lisa#4643](https://github.com/CodySwannGT/lisa/issues/4643)
+* **skills:** read collapsed sections before calling a review summary-only ([fadac21](https://github.com/CodySwannGT/lisa/commit/fadac2145911ab7e8140c4e3f6d9e1065d296b30)), closes [CodySwannGT/lisa#4643](https://github.com/CodySwannGT/lisa/issues/4643) [CodySwannGT/lisa#4643](https://github.com/CodySwannGT/lisa/issues/4643)
+
 ### [4.99.6](https://github.com/CodySwannGT/lisa/compare/v4.99.5...v4.99.6) (2026-11-09)
 
 ### [4.99.5](https://github.com/CodySwannGT/lisa/compare/v4.99.4...v4.99.5) (2026-11-09)

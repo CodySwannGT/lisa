@@ -86,12 +86,19 @@ vibes), or leave alone. No evidence ⇒ no candidate; the gardener never files
 a recommendation it cannot evidence.
 
 **Learned planning checks.** A ledger entry whose rule begins
-`Planning (prd|decomposition|ready-gate):` is a `planning-miss` learning: the
-check planning should have run before a dispatched worker had to stop for a
+`Planning (prd|decomposition|ready-gate|filing):` is a `planning-miss` learning:
+the check planning should have run before a dispatched worker had to stop for a
 human (CodySwannGT/lisa#4569). When Recurrence shows the same class of gap
 stopping workers on more than one item, it is a PROMOTE candidate into the
-ready gate itself — the `work-item-definition-of-ready` rule or the validators'
-S18 dry-run — rather than one more ledger entry competing for the projection.
+stage its rule names — the owner `lisa-task-decomposition` step 0 binds that
+stage to — rather than one more ledger entry competing for the projection:
+
+- `prd` → PRD intake's requirement checks (`*-to-tracker` Phase 1.45).
+- `decomposition` → the decomposition obligations in `lisa-task-decomposition`.
+- `ready-gate` → the `work-item-definition-of-ready` rule or the validators' S18 stateless-pickup dry-run.
+- `filing` → the `ready-role-filing` rule, as a check a `human_gate:` hold reason must pass.
+
+Never promote a check into a stage other than the one it names.
 A recurring miss counts once per `[lisa-planning-miss]` note on distinct items.
 
 **Auto-merged low-confidence entries are re-reviewed first.** A project

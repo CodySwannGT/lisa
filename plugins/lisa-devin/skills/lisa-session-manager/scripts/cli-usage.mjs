@@ -277,8 +277,11 @@ Per cycle
       gh api --paginate repos/<o>/<r>/issues/<n>/comments (user.login,
       user.id). stdout {queued:true,ref,source,author[,refused]} or
       {queued:false,ref,reason:no-question-comment|no-answer-yet|
-      already-queued|no-answerers-configured|credential-refused
-      [,explanation][,refused,refusedExplanation]}. no-answerers-configured
+      already-queued|not-marked|no-answerers-configured|credential-refused
+      [,explanation][,refused,refusedExplanation]}. not-marked (exit 0):
+      the question's mark was never read back (markedAt null, as after a
+      changed question), so no reply is read; record it with ledger marked
+      --comment-id <id> first. no-answerers-configured
       (exit 0): neither list is set, so nothing on the item is read, because
       the tracker identity is the one workers post as; answer with answer.
       A reply that looks like a credential is skipped, never queued, and
@@ -303,7 +306,9 @@ Per cycle
       queued answer's at). A repo-route never records (the repo stamp carries
       it). Otherwise {ref,record:false,reason:no-pending-question|
       no-answer-queued|answered-on-item|worker-not-finished|
-      routed-by-repo-stamp}. Exit 2 when the answer it would post looks
+      routed-by-repo-stamp}. Either shape adds requeue:true for a FAILED
+      worker's item (in the blocked role): move it to the ready role in the
+      same update that removes the marker. Exit 2 when the answer it would post looks
       like a credential (nothing printed, nothing to post) or the ledger
       is corrupt.
   record-cycle --outcome <outcome> [--ref <url>]... [--run-id <id>]

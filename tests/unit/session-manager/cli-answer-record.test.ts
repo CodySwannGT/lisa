@@ -148,10 +148,23 @@ describe("answer-plan", () => {
 
     const onItem = githubSandbox();
     finishedWithQuestion(onItem, "FAILED");
+    // Replies are read only once the question's mark is recorded (#4643).
+    runStubOnly(onItem, [
+      LEDGER,
+      "marked",
+      REF,
+      "--marker-type",
+      "label",
+      "--marker",
+      "custom:needs-person",
+      "--comment-id",
+      "900",
+    ]);
     const picked = runStubOnly(onItem, ["item-answer", REF], {
       input: JSON.stringify({
         comments: [
           {
+            id: 900,
             author: { login: OPERATOR },
             body: `${MARKER} ${REF} needs a human`,
           },
@@ -164,6 +177,7 @@ describe("answer-plan", () => {
       ref: REF,
       record: false,
       reason: "answered-on-item",
+      requeue: true,
     });
   });
 
@@ -214,6 +228,7 @@ describe("answer-plan", () => {
       ref: REF,
       record: false,
       reason: "answered-on-item",
+      requeue: true,
     });
   });
 });

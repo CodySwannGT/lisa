@@ -59,7 +59,7 @@ Use the branch, PR deduplication, commit, submission and confidence-routing sequ
    - **No related entry** → append via `persistLearningEntry(projectRoot, entry)`.
 
 3. **Entry mapping (eight fields).**
-   - `fingerprint` — `learningFingerprint(rule)` from `@codyswann/lisa/learnings`, computed from the final consolidated rule. Keep workflow/PR markers separate: use the `lisa-persist-learning` Phase 0 occurrence key with the stable triage-document reference as `triggering_issue`; the rule distinguishes rows sharing that reference.
+   - `fingerprint` — `learningFingerprint(rule)` from `@codyswann/lisa/learnings`, computed from the final consolidated rule. Keep workflow/PR markers separate: use the `lisa-persist-learning` Phase 1 occurrence key with the stable triage-document reference as `triggering_issue`; the rule distinguishes rows sharing that reference.
    - `id` — initially `id = fingerprint`. On an exact stamped consolidation the writer carries forward the deterministic primary target id; report the returned id in the run summary.
    - `rule` / `why` — from the row's `Summary` and the category-specific guidance in the routing table above (≤240 chars, ≤2 lines).
    - `provenance` — **the triage-doc row's evidence links**. Evidence supports a rule; it is not the rule's identity, and one event may support several distinct lessons.

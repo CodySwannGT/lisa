@@ -17,9 +17,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
   CHECK_RUN_TRIGGER_LINES,
-  CHECKS_READ_LINE,
+  CHECKS_WRITE_LINE,
   checkThirdPartyEvidenceSeed,
   CONCURRENCY_GROUP_LINE,
+  EVIDENCE_STEPS_LINES,
   PERMISSIONS_BLOCK_LINES,
   RUN_IDENTITY_LINES,
   THIRD_PARTY_EVIDENCE_SEED_CHECK_NAME,
@@ -35,8 +36,14 @@ const ROOT = path.resolve(import.meta.dirname, "../../..");
 /** How the detail names a copy with no check-run trigger. */
 const NO_TRIGGER = "no `check_run` trigger";
 
-/** How the detail names a copy whose token cannot read check runs. */
-const NO_CHECKS_READ = "does not grant `checks: read`";
+/** How the detail names a copy whose token can neither read nor write check runs. */
+const NO_CHECKS_READ = "does not grant `checks: write`";
+
+/** How the detail names a copy whose verdict never reaches the head it judged. */
+const NO_PUBLISH = "never publishes its verdict on the pull request head";
+
+/** Every line from the prover step to the end of the file: the steps the remedy replaces. */
+const PROVER_STEP_ONWARD = /^ {6}- name: 🕵️ Prove[\s\S]*$/mu;
 
 /** How the detail names a copy that never reads the run's commit and name. */
 const NO_IDENTITY = "never reads the check run's head SHA and name";
@@ -78,7 +85,13 @@ const ADD_TRIGGER = {
 /** The printed permission line, put where the remedy says. */
 const ADD_CHECKS_READ = {
   anchor: "permissions:\n  contents: read\n",
-  replacement: `permissions:\n  contents: read\n${CHECKS_READ_LINE}\n`,
+  replacement: `permissions:\n  contents: read\n${CHECKS_WRITE_LINE}\n`,
+};
+
+/** The printed steps, put where the remedy says: in place of the prover step. */
+const REPLACE_PROVER_STEP = {
+  anchor: PROVER_STEP_ONWARD,
+  replacement: `${EVIDENCE_STEPS_LINES.join("\n")}\n`,
 };
 
 describe("doctor third-party evidence seed check", () => {
@@ -119,12 +132,13 @@ describe("doctor third-party evidence seed check", () => {
       expect.arrayContaining([
         "Add under `on:`:",
         ...CHECK_RUN_TRIGGER_LINES,
-        "Add under `permissions:`:",
-        CHECKS_READ_LINE,
+        CHECKS_WRITE_LINE,
         ...RUN_IDENTITY_LINES,
         CONCURRENCY_GROUP_LINE,
+        ...EVIDENCE_STEPS_LINES,
       ])
     );
+    expect(check.detail).toContain(NO_PUBLISH);
   });
 
   it("prints values that are the shipped seed's own, byte for byte", () => {
@@ -132,15 +146,11 @@ describe("doctor third-party evidence seed check", () => {
     // a printed line fails here even though the doctor would accept it.
     const seedDocument = loadYaml(CURRENT_SEED) as {
       concurrency: { group: string };
-      jobs: {
-        evidence: { steps: Array<{ env?: Record<string, string> }> };
-      };
+      jobs: { evidence: { env: Record<string, string> } };
     };
-    const env = seedDocument.jobs.evidence.steps.find(
-      step => step.env?.EVIDENCE_SHA !== undefined
-    )?.env;
+    const env = seedDocument.jobs.evidence.env;
     const printed = Object.fromEntries(
-      [...RUN_IDENTITY_LINES, CONCURRENCY_GROUP_LINE].map(line => {
+      [...RUN_IDENTITY_LINES.slice(1), CONCURRENCY_GROUP_LINE].map(line => {
         const [key, ...value] = line.trim().split(": ");
         return [key, value.join(": ")];
       })
@@ -154,20 +164,24 @@ describe("doctor third-party evidence seed check", () => {
   it("prints lines that make the pre-fix seed read as current", async () => {
     // The remedy is checked by applying it, not by reading it: every printed
     // line goes where the check says, and the result must pass.
-    const [sha, context] = RUN_IDENTITY_LINES.map(line => line.trim());
+    // The printed `env:` goes on the job, beside `timeout-minutes:`, where
+    // the printed steps read it.
     const group = CONCURRENCY_GROUP_LINE.trim();
     const repaired = applyRewrites(
       PRE_FIX_SEED,
       [
         ADD_TRIGGER,
         ADD_CHECKS_READ,
-        { anchor: /EVIDENCE_SHA: .*$/mu, replacement: String(sha) },
-        { anchor: /EVIDENCE_CONTEXT: .*$/mu, replacement: String(context) },
         {
           anchor: /group: third-party-review-evidence-.*$/mu,
           replacement: String(group),
         },
         { anchor: /^ *ref: .*\n/mu, replacement: "" },
+        REPLACE_PROVER_STEP,
+        {
+          anchor: "    timeout-minutes: 5\n",
+          replacement: `    timeout-minutes: 5\n${RUN_IDENTITY_LINES.join("\n")}\n`,
+        },
       ],
       "the pre-fix seed, under the whole printed remedy"
     );
@@ -179,7 +193,7 @@ describe("doctor third-party evidence seed check", () => {
   it("still warns a copy that applied everything but the concurrency group", async () => {
     // Under the old key every check run resolves to one group, so any app's
     // run anywhere cancels the reviewer's verdict while it is being judged.
-    const [sha, context] = RUN_IDENTITY_LINES.map(line => line.trim());
+    const [, sha, context] = RUN_IDENTITY_LINES.map(line => line.trim());
     await seed(
       applyRewrites(
         PRE_FIX_SEED,
@@ -260,7 +274,7 @@ describe("doctor third-party evidence seed check", () => {
   });
 
   it("names only the missing permission when the trigger is already there", async () => {
-    await seed(CURRENT_SEED.replace(`${CHECKS_READ_LINE}\n`, ""));
+    await seed(CURRENT_SEED.replace(`${CHECKS_WRITE_LINE}\n`, ""));
 
     const check = await checkThirdPartyEvidenceSeed(tempDir);
 

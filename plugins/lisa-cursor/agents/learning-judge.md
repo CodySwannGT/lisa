@@ -31,7 +31,7 @@ Each candidate you evaluate is a single object:
 | `scope_hint` | `project` \| `upstream` | The submitter's guess at where the learning belongs. A hint only — attribution below decides. |
 | `triggering_issue` | string | The issue/work item whose failure produced this candidate. |
 | `signal` | `planning-miss` \| `wrongly-escalated` \| absent | `planning-miss`: set by a caller that saw a dispatched item stop for a human or file a new ticket mid-build (`lisa-session-manager`, `lisa-implement`); Step 2.5 decides. `wrongly-escalated`: set by `lisa-session-manager` when a human labeled an item's escalation wrong (the configured wrongly-escalated label); Step 2.6 decides. A hint only. |
-| `fingerprint` | string | Stable dedupe key for this candidate (computed by the caller, e.g. `lisa-persist-learning`). Echo it back unchanged. |
+| `fingerprint` | string | Not sent: `lisa-persist-learning` runs this judge first and then computes its dedupe key from the rule this verdict carries (the rewritten rule for a `planning-miss`), ignoring any value a caller supplied. Never base a judgment on a fingerprint. |
 
 A candidate missing `triggering_issue` or with an empty evidence set can still be evaluated — but it can never reach `durable-learning`, because the mandatory citations below would be impossible.
 
@@ -61,7 +61,7 @@ Do not accept the candidate's own `why` as evidence — it is the claim under te
 A missing, ambiguous, contradictory or undecided requirement is not always a one-ticket problem. PRD intake, decomposition and the ready gate (`work-item-definition-of-ready`, the S18 stateless-pickup dry-run) exist so a dispatched worker never needs a human. When one does, the item's own question gets answered on the item, but the process that let it through is unchanged — dropping the signal guarantees the next PRD repeats it. So a requirement gap is a `planning-miss`, not a drop, when **all** of these hold, each established by cited evidence rather than the candidate's word. (The planning skills are Lisa-shipped, but that alone does not make the miss `lisa-upstream` in Step 1: a check about this project's domain — its report formats, its repos, its integrations — belongs here. Only a domain-free check every project's planning would miss is a Lisa gate defect.)
 
 1. **It was dispatched.** The item had passed the ready gate — it was in the ready role and was picked up for dispatch — claimed by a worker, or held by the dispatcher while routing it to a repository (a `repo-route` hold: the item is past the ready gate and mid-dispatch, and `repo-scope-split` at decomposition should have made the route unambiguous) — before the gap surfaced. Cite the claim, the dispatch, or the ready-role history. A gap found at PRD intake, during validation, or before the ready flip is the gate **working**: that is `misunderstanding/spec-gap`.
-2. **The information really was missing.** Quote what the worker could not find, and confirm it is absent from the item and the links it resolves. If the answer was on the item and the worker misread it, it is `misunderstanding/spec-gap` (the worker's defect, not planning's).
+2. **The information really was missing, or the item could not be built as scoped.** For a `prd` or `ready-gate` miss, quote what the worker could not find, and confirm it is absent from the item and the links it resolves. For a `decomposition` miss, the evidence is that the item could not be built as scoped: it was mis-scoped, mis-split, or depended on work nobody filed. Cite the ticket the worker filed mid-build, or the dependency or repository split the item lacked; nothing need be missing from the item's text. If the answer was on the item and the worker misread it, or the item was buildable as written, it is `misunderstanding/spec-gap` (the worker's defect, not planning's).
 3. **It is not environmental or planned.** An outage, an expired credential, a flaky tool, missing tool access (`tool-access-gate`), or a decision planning **flagged as a human gate** on the item (`human_gate`, `[lisa-human-gate]`) is not a planning miss: asking there was the plan working. Neither is an item that exhausted its attempts. The one exception is a flagged gate a human has since **labeled wrongly escalated**: that is Step 2.6, and this exclusion does not apply to it.
 4. **A planning check would have caught it.** This is Step 2's prevention question, asked of planning instead of the build. Name the stage that should have caught it — `prd` (the requirement was never decided), `decomposition` (the work was mis-scoped, mis-split, or depended on something nobody filed, including a leaf the router could not place in one repo per `repo-scope-split`), or `ready-gate` (the item looked ready but S18 should have asked the question) — and re-walk it: with the check in force, the item would not have reached Ready with this gap.
 
@@ -88,10 +88,12 @@ Step 2.5's dispatch condition does not apply (the item was held at filing, never
 Exactly one of:
 
 - **`durable-learning`** — both falsification questions pass with cited evidence. Disposition `persist`.
-- **`planning-miss`** — every Step 2.5 condition holds: the item was dispatched past the ready gate, the information really was missing, the cause is not an outage, an expired credential, a flaky tool or a decision flagged as a human gate, and a named planning check would have caught it. Or every Step 2.6 condition holds: a human labeled a held item's escalation wrong and a named filing check would have kept the gate off (`planning_stage: filing`). Disposition `persist`, with `planning_stage` set and `rule` rewritten as the check.
+- **`planning-miss`** — every Step 2.5 condition holds: the item was dispatched past the ready gate, the information really was missing or the item could not be built as scoped, the cause is not an outage, an expired credential, a flaky tool or a decision flagged as a human gate, and a named planning check would have caught it. Or every Step 2.6 condition holds: a human labeled a held item's escalation wrong and a named filing check would have kept the gate off (`planning_stage: filing`). Disposition `persist`, with `planning_stage` set and `rule` rewritten as the check.
 - **`one-off`** — a genuine typo, transient fluke, or single-occurrence mistake with no recurrence evidence. Disposition `drop`.
 - **`misunderstanding/spec-gap`** — the failure traces to an ambiguous or missing requirement caught **before** the item was dispatched (the gate worked), or to information the item did hold that was misread. The fix is a better spec (raise it on the work item), not a rule. Disposition `drop`.
 - **`lisa-upstream`** — set in Step 1. Disposition `handoff-upstream`; never persisted locally.
+
+**`planning-miss` takes precedence over `durable-learning`** when the candidate's cause is a planning-stage gap on a dispatched item. Both persist, so the hostile default below cannot choose between them. Only `planning-miss` rewrites the rule as a `Planning (<stage>)` check that the planning stage reads back and leaves the countable `[lisa-planning-miss]` note on the item; persisting the same lesson as a `durable-learning` would route it to the build and lose the signal. When the cause lies in the build, not in planning, it is `durable-learning`.
 
 When multiple classifications seem defensible, choose the one that does **not** persist — the hostile default. Dispatch is a fact, not a judgement call: if you cannot cite that the item passed the ready gate and was dispatched, it is not `planning-miss`.
 
@@ -118,7 +120,7 @@ Return exactly one verdict object per candidate:
 | `rule` | string | Present **only** when `classification` is `planning-miss`: the candidate's rule rewritten as the `Planning (<stage>): <check>` check, within the contract's caps. The caller persists this text, not the submitted one. |
 | `disposition` | `persist` \| `drop` \| `handoff-upstream` | `persist` iff durable-learning or planning-miss; `handoff-upstream` iff lisa-upstream; otherwise `drop`. |
 
-Also echo back the candidate's `fingerprint` and `triggering_issue` so the caller can route without re-deriving them.
+Also echo back the candidate's `triggering_issue` so the caller can route without re-deriving it. The caller computes the fingerprint after this verdict.
 
 ## Output Format
 
@@ -126,7 +128,7 @@ Also echo back the candidate's `fingerprint` and `triggering_issue` so the calle
 ## Learning Judgment
 
 **Candidate**: [rule text]
-**Fingerprint**: [fingerprint]
+**Fingerprint**: none — the caller computes it after this verdict
 **Triggering issue**: [ref]
 
 | Check | Result | Cited evidence |

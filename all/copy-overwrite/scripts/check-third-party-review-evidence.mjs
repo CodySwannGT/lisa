@@ -127,10 +127,35 @@
  * list is a no-op that SAYS it is a no-op. A silent pass is the exact defect
  * this module exists to end, so it is not reproduced here.
  *
+ * ## Every read is complete, or it says it is not (#4630)
+ *
+ * Statuses, check runs and comments each page. Statuses and check runs are
+ * read a full page at a time, and a response that admits to more rows than it
+ * returned is reported as unreadable — the reviewer's row could be on the page
+ * that was not read. Comments are read across every page, as the merge-path
+ * gate reads them, and a page that fails reports the comments as unreadable:
+ * no substitute is counted from them, and the report says so.
+ *
+ * ## The verdict is published on the head it judged (#4630)
+ *
+ * The evidence workflow wakes on `status` and `check_run` events, which GitHub
+ * runs from the default branch, so the job's own check run lands on the
+ * default branch's latest commit — never on the pull request head it judged.
+ * `--publish` reads the verdict a `--json` run saved, and the exit code it
+ * ended with, and creates ONE check run on that head: `success` for
+ * `satisfied` and `substituted`, `failure` for `unsatisfied` and for
+ * `pull-requests-unreadable`. A run with no head to show it on, or that cannot
+ * change the answer, publishes nothing and says why. A missing or unparseable
+ * verdict, an exit code other than the verdict's own, or a refused write fails
+ * the mode, so broken machinery still shows on the job.
+ *
  * CLI:
  *   node scripts/check-third-party-review-evidence.mjs --sha <sha> [--json]
  *     [--context <context>] [--root <dir>] [--repo <owner/repo>]
  *     [--arm [--vacuity-report <path>]]
+ *   node scripts/check-third-party-review-evidence.mjs --sha <sha>
+ *     --publish <saved-verdict.json> --prover-exit <code>
+ *     [--context <context>] [--repo <owner/repo>]
  *
  * `--arm` answers the merge driver's arm gate instead (#4653): whether
  * auto-merge may be turned on for this head, and if not, what to do next.
@@ -147,7 +172,7 @@
  *
  * @module scripts/check-third-party-review-evidence
  */
-import { existsSync, readFileSync } from "node:fs";
+import { appendFileSync, existsSync, readFileSync } from "node:fs";
 
 import { boundedExecFileSync } from "./lib/bounded-spawn.mjs";
 import { invokedAsScript } from "./lib/invoked-as-script.mjs";
@@ -918,7 +943,7 @@ export function reviewStanding({ reviews, sha }) {
  *   Check runs read for each reviewer's context, keyed by that context; a null
  *   entry is a read that failed, and a missing key is a reviewer whose runs
  *   were not read.
- * @param {ReadonlyArray<{body?: string, user?: {login?: string}}>} options.comments - Issue comments on the pull request.
+ * @param {ReadonlyArray<{body?: string, user?: {login?: string}}>|null} options.comments - Issue comments on the pull request; null when they could not all be read, which counts no substitute.
  * @param {string} options.sha - The head commit.
  * @param {boolean|null} [options.isPullRequestHead] - Whether an open pull request has this commit as its head; null when the read failed.
  * @param {(login: string) => boolean|null} [options.canWrite] -
@@ -971,7 +996,7 @@ export function reviewEvidenceVerdict({
       return { ...reading, gateId: reviewer.gateId, substituted: false };
     }
     const judged = judgeSubstitutes({
-      comments,
+      comments: comments ?? [],
       context: reviewer.context,
       sha,
       canWrite: permission,
@@ -981,6 +1006,9 @@ export function reviewEvidenceVerdict({
       gateId: reviewer.gateId,
       substituted: judged.counted,
       substituteRefusals: judged.refused,
+      // Comments that could not all be read count no substitute, and the
+      // report says why rather than claiming nothing stands in.
+      ...(comments === null ? { commentsUnreadable: true } : {}),
     };
   });
   if (readings.every(reading => reading.reviewed)) {
@@ -1408,6 +1436,7 @@ export function armDecision({
  * @property {string|null} state - The state, conclusion or lifecycle seen.
  * @property {string|null} [source] - One of {@link EVIDENCE_SOURCES}.
  * @property {boolean} [substituted] - Whether a writer's substitute stands in.
+ * @property {boolean} [commentsUnreadable] - Whether the comments a substitute would be in could not all be read.
  * @property {Array<{author: string, reason: string}>} [substituteRefusals] - Markers not counted, by whom, and why.
  * @property {Array<{id: unknown, reason: string}>} [ignoredCheckRuns] - Runs set aside, and why.
  */
@@ -1460,7 +1489,9 @@ export function humanReport(verdict) {
     }
     const stood = reading.substituted
       ? "a writer's local adversarial review was posted in its place"
-      : "NOTHING stands in its place";
+      : reading.commentsUnreadable
+        ? "the pull request's comments could not be read, so no substitute was counted"
+        : "NOTHING stands in its place";
     const refused = (reading.substituteRefusals ?? []).map(
       entry =>
         `    substitute marker by @${entry.author || "(unknown author)"} not counted: ${entry.reason}`
@@ -1500,7 +1531,7 @@ function describeSeen(reading) {
 /**
  * Parse the CLI arguments.
  * @param {string[]} argv - Arguments after the script path.
- * @returns {{sha: string|null, context: string|null, root: string, repo: string|null, json: boolean, arm: boolean, "vacuity-report": string|null}} Options.
+ * @returns {{sha: string|null, context: string|null, root: string, repo: string|null, json: boolean, arm: boolean, "vacuity-report": string|null, publish: string|null, "prover-exit": string|null}} Options.
  */
 export function parseArgs(argv) {
   const opts = {
@@ -1511,6 +1542,8 @@ export function parseArgs(argv) {
     json: false,
     arm: false,
     "vacuity-report": null,
+    publish: null,
+    "prover-exit": null,
   };
   for (let index = 0; index < argv.length; index += 1) {
     const arg = argv[index];
@@ -1554,16 +1587,32 @@ function splitFlag(arg) {
  * failed check-run read leaves the reviewer's own status standing, so a host
  * whose token cannot read check runs keeps reading statuses as before.
  * @param {string} path - The API path.
+ * @param {GhRunner} [gh] - The `gh` runner.
  * @returns {unknown} The parsed body, or null.
  */
-function ghJson(path) {
+function ghJson(path, gh = runGh) {
   try {
-    return JSON.parse(
-      boundedExecFileSync("gh", ["api", path], { encoding: "utf8" })
-    );
+    return JSON.parse(gh(["api", path]));
   } catch {
+    // probe-direction: fail-closed — a failed read is null, which every caller reports as unreadable rather than as evidence.
     return null;
   }
+}
+
+/**
+ * Runs `gh` with these arguments and returns its stdout; throws when it fails.
+ * @callback GhRunner
+ * @param {string[]} args - Arguments after `gh`.
+ * @returns {string} Its stdout.
+ */
+
+/**
+ * The live `gh` runner: bounded, so a child that never answers is a failed
+ * read rather than a verdict.
+ * @type {GhRunner}
+ */
+function runGh(args) {
+  return boundedExecFileSync("gh", args, { encoding: "utf8" });
 }
 
 /**
@@ -1574,15 +1623,26 @@ function ghJson(path) {
  * `description` key at all, so hollow green is invisible through it.
  * A read that failed returns null rather than an empty list, so the reading
  * can say the statuses could not be read instead of claiming there were none.
+ *
+ * The endpoint pages `statuses` at 30 unless asked for more, and reports how
+ * many contexts there are in `total_count` (#4630). A full page of 100 is
+ * asked for, and a response that admits to more than it returned is reported
+ * as unreadable — the rule {@link readCheckRuns} keeps — because the
+ * reviewer's status could be on the page that was not read, and reading it as
+ * absent would be a claim nothing here observed.
  * @param {string} repo - `owner/repo`.
  * @param {string} sha - The commit.
- * @returns {ReadonlyArray<object>|null} The statuses, newest first, or null.
+ * @param {GhRunner} [gh] - The `gh` runner, injectable so a paged or incomplete response can be fed in.
+ * @returns {ReadonlyArray<object>|null} The statuses, newest first, or null when they could not all be read.
  */
-function readStatuses(repo, sha) {
-  const body = /** @type {{statuses?: unknown}|null} */ (
-    ghJson(`repos/${repo}/commits/${sha}/status`)
+export function readStatuses(repo, sha, gh = runGh) {
+  const body = /** @type {{total_count?: unknown, statuses?: unknown}|null} */ (
+    ghJson(`repos/${repo}/commits/${sha}/status?per_page=100`, gh)
   );
-  return Array.isArray(body?.statuses) ? body.statuses : null;
+  if (!Array.isArray(body?.statuses)) return null;
+  const total = body?.total_count;
+  if (typeof total === "number" && total > body.statuses.length) return null;
+  return body.statuses;
 }
 
 /**
@@ -1796,15 +1856,19 @@ export function standingObjections(reviews) {
  *
  * A writer's substitute for the current head is among the NEWEST comments, so
  * a single page of a long pull request is exactly the one that misses it.
+ * A failed page makes the whole read unreadable rather than shorter: no
+ * substitute is counted from it, and the report says the comments could not
+ * be read instead of claiming nothing stands in (#4630).
  * @param {string} repo - `owner/repo`.
  * @param {number[]} numbers - Pull request numbers.
- * @returns {ReadonlyArray<object>} The comments; a failed page reads as none, which only leaves a substitute uncounted.
+ * @param {GhRunner} [gh] - The `gh` runner, injectable so paged responses can be fed in.
+ * @returns {ReadonlyArray<object>|null} The comments, or null when any page failed.
  */
-function readAllComments(repo, numbers) {
-  return numbers.flatMap(
-    number =>
-      readAllPages(`repos/${repo}/issues/${number}/comments?per_page=100`) ?? []
+export function readAllComments(repo, numbers, gh = runGh) {
+  const lists = numbers.map(number =>
+    readAllPages(`repos/${repo}/issues/${number}/comments?per_page=100`, gh)
   );
+  return lists.every(Array.isArray) ? lists.flat() : null;
 }
 
 /**
@@ -1834,20 +1898,18 @@ function readAllReviews(repo, number) {
 /**
  * Every row of one paginated list endpoint.
  * @param {string} path - The API path.
+ * @param {GhRunner} [gh] - The `gh` runner.
  * @returns {ReadonlyArray<object>|null} The rows, or null when any page failed.
  */
-function readAllPages(path) {
+function readAllPages(path, gh = runGh) {
   // probe-direction: fail-closed — a failed read is null; reviews then stop the arm decision, and comments then count no substitute.
   try {
-    const pages = JSON.parse(
-      boundedExecFileSync("gh", ["api", "--paginate", "--slurp", path], {
-        encoding: "utf8",
-      })
-    );
+    const pages = JSON.parse(gh(["api", "--paginate", "--slurp", path]));
     return Array.isArray(pages) && pages.every(Array.isArray)
       ? pages.flat()
       : null;
   } catch {
+    // probe-direction: fail-closed — a failed page is null; reviews then stop the arm decision, and comments then count no substitute.
     return null;
   }
 }
@@ -1963,6 +2025,250 @@ function writeArmDecision(verdict, { opts, io, out, repo, pulls, canWrite }) {
   return decision.arm ? 0 : 1;
 }
 
+/** The check run a verdict is published as, before a waking reviewer's name. */
+export const PUBLISHED_CHECK_NAME = "🕵️ Third-party review evidence";
+
+/**
+ * The conclusion each published outcome carries on the head it judged.
+ *
+ * `success` for a head a reviewer, or a writer's substitute, vouches for — the
+ * title says which — and `failure` for every outcome the prover exits 1 on.
+ */
+const PUBLISHED_CONCLUSIONS = Object.freeze({
+  [EVIDENCE_OUTCOMES.satisfied]: "success",
+  [EVIDENCE_OUTCOMES.substituted]: "success",
+  [EVIDENCE_OUTCOMES.unsatisfied]: "failure",
+  [EVIDENCE_OUTCOMES.pullRequestsUnreadable]: "failure",
+});
+
+/**
+ * Why each unpublished outcome publishes nothing: there is no pull request
+ * head to show it on, or the run cannot change the answer.
+ */
+const UNPUBLISHED_BECAUSE = Object.freeze({
+  [EVIDENCE_OUTCOMES.noReviewerConfigured]:
+    "no third-party reviewer is configured, so there is no verdict to show",
+  [EVIDENCE_OUTCOMES.notAConfiguredReviewer]:
+    "the status or check run that woke this run belongs to no declared reviewer, so it cannot change the answer",
+  [EVIDENCE_OUTCOMES.notAPullRequestHead]:
+    "the commit is not the head of any open pull request, so there is no pull request head to show a verdict on",
+  [EVIDENCE_OUTCOMES.pending]:
+    "the reviewer has not answered yet; its answer wakes this workflow again, and that run publishes the verdict",
+});
+
+/** The longest summary GitHub accepts on a check run. */
+const SUMMARY_LIMIT = 65535;
+
+/**
+ * The backtick fence a report is shown in, so its column layout survives
+ * Markdown. It is one backtick longer than the longest backtick run in the
+ * report (three at least), so text quoted from a third-party status can
+ * never close it early.
+ * @param {string} report - The text the fence will hold.
+ * @returns {string} The fence.
+ */
+function fenceFor(report) {
+  const longest = Array.from(report.matchAll(/`+/g)).reduce(
+    (most, match) => Math.max(most, match[0].length),
+    0
+  );
+  return "`".repeat(Math.max(3, longest + 1));
+}
+
+/**
+ * A report inside a `text` fence, cut so the fenced whole fits in `limit`.
+ * @param {string} report - The human report.
+ * @param {number} [limit] - The most characters the fenced text may hold.
+ * @returns {string} The fenced report.
+ */
+export function fencedReport(report, limit = Number.POSITIVE_INFINITY) {
+  const fence = fenceFor(report);
+  const open = `${fence}text\n`;
+  const close = `\n${fence}`;
+  const room = limit - open.length - close.length;
+  return `${open}${report.slice(0, Math.max(0, room))}${close}`;
+}
+
+/**
+ * A saved `--json` verdict about this commit, or null when it is not one.
+ * @param {string} text - The saved report.
+ * @param {string} sha - The commit the run was asked about.
+ * @returns {{outcome: string, sha: string, readings: ReadonlyArray<ReportedReading>}|null} The verdict.
+ */
+function savedVerdict(text, sha) {
+  // probe-direction: fail-closed — anything that does not parse as this commit's verdict is no verdict.
+  try {
+    const verdict = JSON.parse(text);
+    return typeof verdict?.outcome === "string" &&
+      verdict.sha === sha &&
+      Array.isArray(verdict.readings)
+      ? verdict
+      : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * What to publish for one saved verdict: a check run, nothing (and why), or an
+ * error that fails the job.
+ *
+ * The exit code is checked against the verdict it came with. The prover exits
+ * 1 exactly when its conclusion is `failure`; any other pairing, and any exit
+ * but 0 or 1, is machinery that did not reach the verdict it claims.
+ * @param {object} options - Publication inputs.
+ * @param {string} options.text - The saved `--json` report.
+ * @param {string} options.proverExit - The exit code the prover ended with.
+ * @param {string} options.sha - The head the verdict judged.
+ * @param {string} options.context - The reviewer that woke the run; empty on the manual path.
+ * @returns {{error: string}|{report: string, why: string}|{report: string, body: object}} The publication.
+ */
+export function verdictPublication({ text, proverExit, sha, context }) {
+  if (proverExit !== "0" && proverExit !== "1") {
+    return {
+      error: `the prover exited ${proverExit || "without an exit code"}, so it reached no verdict to publish`,
+    };
+  }
+  const verdict = savedVerdict(text, sha);
+  if (verdict === null) {
+    return {
+      error: `the prover's saved report is not a verdict about ${sha}`,
+    };
+  }
+  const { outcome } = verdict;
+  const conclusion = PUBLISHED_CONCLUSIONS[outcome];
+  if (
+    conclusion === undefined &&
+    !Object.hasOwn(UNPUBLISHED_BECAUSE, outcome)
+  ) {
+    return {
+      error: `the prover reported an outcome nothing here knows: ${outcome}`,
+    };
+  }
+  if (proverExit !== (conclusion === "failure" ? "1" : "0")) {
+    return {
+      error: `the prover exited ${proverExit} with a verdict of ${outcome}, which it never pairs`,
+    };
+  }
+  const report = humanReport(verdict);
+  if (conclusion === undefined) {
+    return { report, why: UNPUBLISHED_BECAUSE[outcome] };
+  }
+  return {
+    report,
+    body: {
+      name: context
+        ? `${PUBLISHED_CHECK_NAME} (${context})`
+        : PUBLISHED_CHECK_NAME,
+      head_sha: sha,
+      status: "completed",
+      conclusion,
+      output: {
+        title: report.split("\n")[0],
+        summary: fencedReport(report, SUMMARY_LIMIT),
+      },
+    },
+  };
+}
+
+/**
+ * What a failed write said, on one line an annotation can carry.
+ * @param {unknown} error - What the `gh` runner threw.
+ * @returns {string} GitHub's refusal, or the error.
+ */
+function refusalOf(error) {
+  const stderr = String(
+    /** @type {{stderr?: unknown}} */ (error)?.stderr ?? ""
+  ).trim();
+  const said =
+    stderr ||
+    (error instanceof Error ? error.message : String(error ?? "unknown"));
+  return said
+    .split("\n")
+    .map(line => line.trim())
+    .filter(line => line !== "")
+    .join(" ");
+}
+
+/**
+ * Publish a saved verdict on the head it judged, and return the exit code.
+ *
+ * 0 once the check run is created, or when nothing is to be published; 1
+ * when the verdict could not be read or trusted, or GitHub refused the write.
+ * The report goes to stdout and to the step summary either way.
+ * @param {ReturnType<typeof parseArgs> & {sha: string}} opts - Parsed options.
+ * @param {object} io - Injected side effects.
+ * @param {(path: string) => string} [io.readFile] - Reader for the saved verdict.
+ * @param {(args: string[], input: string) => string} [io.gh] - Writer: `gh` with a request body on stdin.
+ * @param {(text: string) => void} [io.appendSummary] - Appends to the job's step summary.
+ * @param {{write: (text: string) => void}} out - Stdout.
+ * @param {{write: (text: string) => void}} err - Stderr.
+ * @returns {number} The exit code.
+ */
+function publishVerdict(opts, io, out, err) {
+  const readFile = io.readFile ?? (path => readFileSync(path, "utf8"));
+  const summarise =
+    io.appendSummary ??
+    (text => {
+      const file = process.env.GITHUB_STEP_SUMMARY;
+      if (file) appendFileSync(file, text);
+    });
+  let text = "";
+  // probe-direction: fail-closed — a report that cannot be read is no verdict, and fails below.
+  try {
+    text = readFile(String(opts.publish));
+  } catch {
+    text = "";
+  }
+  const plan = verdictPublication({
+    text,
+    proverExit: opts["prover-exit"] ?? "",
+    sha: opts.sha,
+    context: opts.context ?? "",
+  });
+  if ("error" in plan) {
+    err.write(
+      `::error title=Review evidence verdict not published::${plan.error}. Nothing was published on ${opts.sha}; a run that reached no verdict fails, so the broken machinery shows.\n`
+    );
+    return 1;
+  }
+  out.write(`${plan.report}\n`);
+  summarise(`### ${PUBLISHED_CHECK_NAME}\n\n${fencedReport(plan.report)}\n\n`);
+  if (!("body" in plan)) {
+    out.write(`Nothing published on ${opts.sha}: ${plan.why}.\n`);
+    summarise(`Nothing published: ${plan.why}.\n`);
+    return 0;
+  }
+  const { name, conclusion } = plan.body;
+  const repo = opts.repo ?? process.env.GITHUB_REPOSITORY ?? "";
+  const gh =
+    io.gh ??
+    ((args, input) =>
+      boundedExecFileSync("gh", args, {
+        encoding: "utf8",
+        input,
+        stdio: ["pipe", "pipe", "pipe"],
+      }));
+  // probe-direction: fail-closed — a write that was refused, or killed at its deadline, published nothing, so the job fails.
+  try {
+    if (!/^[^/\s]+\/[^/\s]+$/u.test(repo)) {
+      throw new Error(`repository must be owner/repo, not "${repo}"`);
+    }
+    gh(
+      ["api", `repos/${repo}/check-runs`, "--method", "POST", "--input", "-"],
+      JSON.stringify(plan.body)
+    );
+  } catch (error) {
+    err.write(
+      `::error title=Review evidence verdict not published::The check run "${name}" was not published on ${opts.sha}: ${refusalOf(error)}. The verdict is not on the pull request head, so this job fails.\n`
+    );
+    return 1;
+  }
+  out.write(`Published "${name}" on ${opts.sha}: ${conclusion}.\n`);
+  summarise(`Published \`${name}\` on \`${opts.sha}\`: **${conclusion}**.\n`);
+  return 0;
+}
+
 /**
  * The CLI body.
  * @param {string[]} argv - Arguments after the script path.
@@ -1975,7 +2281,7 @@ function writeArmDecision(verdict, { opts, io, out, repo, pulls, canWrite }) {
  *   reader and not the other, the other reads nothing: an injected reader
  *   means the caller supplies the evidence, and mixing a live read into it
  *   would judge a fixture against the network.
- * @param {(numbers: number[]) => ReadonlyArray<object>} [io.comments] - Comment reader.
+ * @param {(numbers: number[]) => ReadonlyArray<object>|null} [io.comments] - Comment reader; null when the comments could not all be read.
  * @param {(path: string) => string} [io.readFile] - Reader for `--vacuity-report` and `required-checks.json`.
  * @param {(numbers: number[]) => ReadonlyArray<object>|null} [io.reviews] - Review-object reader, `--arm` only.
  * @param {(login: string) => boolean|null} [io.canWrite] -
@@ -1984,6 +2290,8 @@ function writeArmDecision(verdict, { opts, io, out, repo, pulls, canWrite }) {
  *   reading and by `--arm`; absent, it reads
  *   `repos/{repo}/collaborators/{login}/permission`.
  * @param {() => boolean} [io.requiredChecks] - Whether `required-checks.json` declares an evidence-bearing check, `--arm` only.
+ * @param {(args: string[], input: string) => string} [io.gh] - Check-run writer, `--publish` only.
+ * @param {(text: string) => void} [io.appendSummary] - Step-summary writer, `--publish` only.
  * @param {{write: (text: string) => void}} [io.out] - Stdout.
  * @param {{write: (text: string) => void}} [io.err] - Stderr.
  * @returns {number} The exit code.
@@ -1995,6 +2303,9 @@ export function main(argv, io = {}) {
   if (!opts.sha) {
     err.write("error: --sha <commit> is required\n");
     return 2;
+  }
+  if (opts.publish !== null) {
+    return publishVerdict({ ...opts, sha: opts.sha }, io, out, err);
   }
   const gates = io.gates ?? readGates(opts.root).gates;
   const reviewers = configuredReviewers({ gates });

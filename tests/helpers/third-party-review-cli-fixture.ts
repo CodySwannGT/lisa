@@ -5,7 +5,8 @@
  * source location with its real import closure, reads its declaration from a
  * real `.lisa.config.json`, and reaches GitHub through a `gh` on PATH that
  * answers from frozen raw API payloads and journals every call. That shim has
- * no network and no write route: an unsupported call exits 72, and this
+ * no network, and its only write route is the verdict's check run, journaled
+ * with the body it was sent: an unsupported call exits 72, and this
  * harness throws on it, so a missing route can never be reported as a
  * behavioural result (CodySwannGT/lisa#4553).
  * @module tests/helpers/third-party-review-cli-fixture
@@ -55,6 +56,11 @@ export interface Observations {
   readonly pulls?: readonly Record<string, unknown>[];
   /** The raw PR response, including deliberate API refusal or malformed bodies. */
   readonly pullResponse?: unknown;
+  /**
+   * GitHub's answer to publishing the verdict as a check run. Defaults to a
+   * created run; `{"__refuse__": "<message>"}` is a refusal.
+   */
+  readonly publishResponse?: unknown;
   /** Extra CLI arguments, such as `--context`. */
   readonly args?: readonly string[];
 }
@@ -64,6 +70,8 @@ export interface JournaledCall {
   readonly argv: readonly string[];
   readonly allowed: boolean;
   readonly refused: boolean;
+  /** The body a write was sent, for the one write route. */
+  readonly input?: unknown;
 }
 
 /** Everything one real CLI run produced, with its source and input identity. */
@@ -106,6 +114,7 @@ function responsesFor(observations: Observations): Record<string, unknown> {
     },
     [ROUTES.comments]: observations.comments ?? [],
     [ROUTES.reviews]: observations.reviews ?? [],
+    [ROUTES.publish]: observations.publishResponse ?? { id: 1 },
     ...Object.fromEntries(
       Object.entries(
         observations.permissions ?? {

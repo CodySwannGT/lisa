@@ -1,5 +1,6 @@
 /**
- * The evidence workflow wakes on the reviewer's completed check run.
+ * The evidence workflow wakes on the reviewer's completed check run, and
+ * publishes its verdict on the head it judged.
  *
  * Both copies — this repository's own and the create-only seed Lisa ships —
  * started only on `status` events. The reviewer this repository declares now
@@ -9,13 +10,11 @@
  *
  * The cases evaluate the shipped `if:`, `env:`, checkout and concurrency
  * expressions with GitHub's own expression interpreter against each event's
- * payload, then execute the shipped step script itself against a host-shaped
- * folder, so "the run's head SHA as --sha and its name as --context" is
- * observed rather than read off the YAML.
+ * payload. The shipped steps themselves are executed in
+ * `third-party-review-evidence-workflow-executed.test.ts`.
  * @module tests/integration/third-party-review-evidence-workflow
  */
 import * as fs from "fs-extra";
-import * as os from "node:os";
 import * as path from "node:path";
 import { describe, expect, it } from "vitest";
 
@@ -28,114 +27,22 @@ import {
   githubTemplate,
 } from "../helpers/github-expression.js";
 import {
-  boundedSpawnSync,
-  useIoLatencyBudget,
-} from "../helpers/io-latency-budget.js";
-import {
   HEAD,
-  installControlledGitHub,
-  installProverAsHost,
   OTHER_HEAD,
-  RATE_LIMITED_SUMMARY,
-  rawCheckRun,
   REVIEWER,
-  type Observations,
-} from "../helpers/third-party-review-cli-fixture.js";
-import { loadWorkflow } from "../helpers/workflow-test-utils.js";
-
-useIoLatencyBudget();
+} from "../helpers/third-party-review-observations.js";
+import {
+  contexts,
+  COPIES,
+  type EvidenceWorkflow,
+  OTHER_APP_CHECK,
+  proverStep,
+  publishStep,
+  reviewerCheckRun,
+  workflowOf,
+} from "../helpers/third-party-review-workflow.js";
 
 const ROOT = path.resolve(import.meta.dirname, "../..");
-
-/** Both copies of the workflow, which must answer every case identically. */
-const COPIES = [
-  ".github/workflows/third-party-review-evidence.yml",
-  "typescript/create-only/.github/workflows/third-party-review-evidence.yml",
-] as const;
-
-/** A second app that posts check runs on the same heads. */
-const OTHER_APP_CHECK = "GitGuardian Security Checks";
-
-/** The parsed parts of the workflow these cases read. */
-interface EvidenceWorkflow {
-  readonly on: Record<string, unknown>;
-  readonly permissions: Record<string, string>;
-  readonly concurrency: { readonly group: string };
-  readonly jobs: {
-    readonly evidence: {
-      readonly if: string;
-      readonly steps: ReadonlyArray<{
-        readonly uses?: string;
-        readonly run?: string;
-        readonly with?: Record<string, string>;
-        readonly env?: Record<string, string>;
-      }>;
-    };
-  };
-}
-
-/**
- * Parse one copy of the workflow.
- * @param copy - Repository-relative workflow path
- * @returns The parsed workflow
- */
-function workflowOf(copy: string): EvidenceWorkflow {
-  return loadWorkflow(path.join(ROOT, copy)) as unknown as EvidenceWorkflow;
-}
-
-/**
- * The step that runs the prover.
- * @param workflow - A parsed copy
- * @returns Its prover step
- */
-function proverStep(workflow: EvidenceWorkflow) {
-  const step = workflow.jobs.evidence.steps.find(candidate =>
-    candidate.run?.includes("check-third-party-review-evidence.mjs")
-  );
-  if (!step?.run || !step.env) throw new Error("no prover step");
-  return { run: step.run, env: step.env };
-}
-
-/**
- * Workflow contexts for one triggering event.
- * @param eventName - The event that woke the run
- * @param event - Its payload
- * @param inputs - Manual inputs, for `workflow_dispatch`
- * @returns The contexts the expressions read
- */
-function contexts(
-  eventName: string,
-  event: Record<string, unknown>,
-  inputs: Record<string, string> = {}
-): Record<string, unknown> {
-  return {
-    github: {
-      event_name: eventName,
-      event,
-      repository: "acme/code",
-      token: "fixture-token",
-    },
-    inputs,
-    vars: {},
-  };
-}
-
-/**
- * A completed check run's event, as GitHub delivers it.
- * @param headSha - The commit the run reported on
- * @param name - The run's name, which is the reviewer's context
- * @returns The event's contexts
- */
-const reviewerCheckRun = (headSha = HEAD, name = REVIEWER) =>
-  contexts("check_run", {
-    action: "completed",
-    check_run: {
-      name,
-      head_sha: headSha,
-      status: "completed",
-      conclusion: "success",
-    },
-  });
 
 /**
  * What the workflow does for one event: whether the job runs, and the commit,
@@ -145,7 +52,7 @@ const reviewerCheckRun = (headSha = HEAD, name = REVIEWER) =>
  * @returns The resolved values
  */
 function resolve(workflow: EvidenceWorkflow, event: Record<string, unknown>) {
-  const { env } = proverStep(workflow);
+  const { env } = workflow.jobs.evidence;
   return {
     runs: githubCondition(workflow.jobs.evidence.if, event),
     sha: githubTemplate(String(env.EVIDENCE_SHA), event),
@@ -164,13 +71,39 @@ describe.each(COPIES)("%s", copy => {
     );
   });
 
-  it("grants checks: read beside the reads it already had", () => {
+  it("grants checks: write, to publish the verdict, beside the reads it already had", () => {
     expect(workflow.permissions).toEqual({
       contents: "read",
       statuses: "read",
-      checks: "read",
+      checks: "write",
       "pull-requests": "read",
     });
+  });
+
+  it("captures the prover's verdict as JSON and hands it to a publish step on the same head", () => {
+    const prover = proverStep(workflow);
+    const publish = publishStep(workflow);
+
+    expect(prover.id).toBe("prove");
+    expect(prover.run).toContain("--json");
+    // One commit and one reviewer for both steps: set on the job, so no
+    // step can drift from the other.
+    expect(Object.keys(workflow.jobs.evidence.env)).toEqual([
+      "EVIDENCE_SHA",
+      "EVIDENCE_CONTEXT",
+    ]);
+    for (const step of [prover, publish]) {
+      expect(step.env).not.toHaveProperty("EVIDENCE_SHA");
+      expect(step.env).not.toHaveProperty("EVIDENCE_CONTEXT");
+    }
+    // The verdict file travels as an output, and no expression is spliced
+    // into a script.
+    expect(publish.env).toMatchObject({
+      VERDICT: "${{ steps.prove.outputs.verdict }}",
+      PROVER_EXIT: "${{ steps.prove.outputs.exit_code }}",
+    });
+    expect(publish.run).not.toContain("RUNNER_TEMP");
+    expect(`${prover.run}${publish.run}`).not.toContain("${{");
   });
 
   it("reads as current to the check lisa doctor runs on a seeded copy", () => {
@@ -186,6 +119,8 @@ describe.each(COPIES)("%s", copy => {
       keysConcurrencyPerRun: true,
       checksOutEventHead: false,
       declaresPermissions: true,
+      writesChecks: true,
+      publishesVerdict: true,
     });
     expect(isCurrentEvidenceSeed(reading)).toBe(true);
   });
@@ -256,119 +191,5 @@ describe.each(COPIES)("%s", copy => {
       reviewer
     );
     expect(resolve(workflow, pendingStatus).group).not.toBe(reviewer);
-  });
-});
-
-/**
- * Execute one copy's real step script for one event against a host folder.
- * @param copy - Repository-relative workflow path
- * @param event - The event's contexts
- * @param observations - What GitHub shows at the head
- * @param proverAt - Where the folder holds the prover: a host's `scripts/`,
- *   or only this repository's in-repo template, as its own checkout does
- * @returns The step's exit, output, and the calls it made
- */
-function executeStep(
-  copy: string,
-  event: Record<string, unknown>,
-  observations: Observations,
-  proverAt: "host" | "in-repo-template" = "host"
-) {
-  const workflow = workflowOf(copy);
-  const { run, env } = proverStep(workflow);
-  const folder = fs.mkdtempSync(path.join(os.tmpdir(), "evidence-step-"));
-  try {
-    installProverAsHost(folder);
-    if (proverAt === "in-repo-template") {
-      fs.moveSync(
-        path.join(folder, "scripts"),
-        path.join(folder, "all/copy-overwrite/scripts")
-      );
-    }
-    const github = installControlledGitHub(folder, observations);
-    fs.writeFileSync(path.join(folder, "step.sh"), run);
-    const stepEnv = Object.fromEntries(
-      Object.entries(env).map(([key, value]) => [
-        key,
-        githubTemplate(String(value), event),
-      ])
-    );
-    const result = boundedSpawnSync({
-      label: "the shipped evidence workflow step",
-      command: "/bin/bash",
-      args: [path.join(folder, "step.sh")],
-      cwd: folder,
-      env: {
-        ...process.env,
-        ...stepEnv,
-        PATH: [github.bindir, path.dirname(process.execPath), process.env.PATH]
-          .filter(Boolean)
-          .join(path.delimiter),
-      },
-      baseMs: 30000,
-    });
-    return {
-      status: result.status,
-      stdout: String(result.stdout),
-      calls: github.calls(),
-    };
-  } finally {
-    fs.removeSync(folder);
-  }
-}
-
-describe.each(COPIES)("%s, executed", copy => {
-  it("proves the reviewer's completed review when its check run wakes the step", () => {
-    const result = executeStep(copy, reviewerCheckRun(), {
-      checkRuns: [rawCheckRun()],
-    });
-
-    expect(result.status).toBe(0);
-    expect(result.stdout).toContain(`SATISFIED at ${HEAD}`);
-  });
-
-  it("goes red on the reviewer's rate-limited check run with nothing in its place", () => {
-    const result = executeStep(copy, reviewerCheckRun(), {
-      checkRuns: [
-        rawCheckRun({
-          conclusion: "neutral",
-          output: {
-            title: "Review rate limited",
-            summary: RATE_LIMITED_SUMMARY,
-          },
-        }),
-      ],
-    });
-
-    expect(result.status).toBe(1);
-    expect(result.stdout).toContain(`UNSATISFIED at ${HEAD}`);
-    expect(result.stdout).toContain("Review rate limited");
-  });
-
-  it("stays an explicit no-op for a check run from an app nobody declared", () => {
-    const result = executeStep(copy, reviewerCheckRun(HEAD, OTHER_APP_CHECK), {
-      checkRuns: [rawCheckRun()],
-    });
-
-    expect(result.status).toBe(0);
-    expect(result.stdout).toContain("NO-OP");
-    expect(result.calls).toEqual([]);
-  });
-});
-
-describe("this repository's own copy, executed as its checkout runs it", () => {
-  it("falls back to the in-repo template when no installed prover exists", () => {
-    // This repository installs no copy under scripts/, so its own job always
-    // takes the template path; a broken fallback must fail here, not pass.
-    const result = executeStep(
-      COPIES[0],
-      reviewerCheckRun(),
-      { checkRuns: [rawCheckRun()] },
-      "in-repo-template"
-    );
-
-    expect(result.status).toBe(0);
-    expect(result.stdout).toContain("Using the in-repo template");
-    expect(result.stdout).toContain(`SATISFIED at ${HEAD}`);
   });
 });
