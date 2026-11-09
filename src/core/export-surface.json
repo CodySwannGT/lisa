@@ -1,8 +1,8 @@
 {
   "$generatedBy": "scripts/generate-export-surface.mjs",
   "$doNotEdit": "The public export surface this package ships, recorded so a removal is an OBSERVATION rather than an inference from commit-message conventions. This file's diff is what makes a removed export visible in the pull request that causes it (CodySwannGT/lisa#3718).",
-  "$modules": 272,
-  "$names": 1978,
+  "$modules": 278,
+  "$names": 2001,
   "surface": {
     "all/copy-overwrite/scripts/check-conflict-markers.mjs": [
       "UsageError",
@@ -175,7 +175,8 @@
       "evidenceReleaseOverride",
       "githubProofTransport",
       "isAcceptedEvidenceRelease",
-      "resolveEvidenceRelease"
+      "resolveEvidenceRelease",
+      "usableTag"
     ],
     "all/copy-overwrite/scripts/lib/completion-proof-markdown.mjs": [
       "markdownSection",
@@ -226,6 +227,37 @@
       "validateDelivery",
       "validateFrontier",
       "validateSource"
+    ],
+    "all/copy-overwrite/scripts/lib/evidence-prune-apply.mjs": [
+      "applyPrune",
+      "nearlyFullMessage"
+    ],
+    "all/copy-overwrite/scripts/lib/evidence-prune-config.mjs": [
+      "parseFlags",
+      "readLisaConfig",
+      "resolveReleases",
+      "resolveRepository"
+    ],
+    "all/copy-overwrite/scripts/lib/evidence-prune-gh.mjs": [
+      "ghAccess",
+      "hashBytes",
+      "pruneGitHub"
+    ],
+    "all/copy-overwrite/scripts/lib/evidence-prune-records.mjs": [
+      "evidenceSnapshot",
+      "recordRescanner"
+    ],
+    "all/copy-overwrite/scripts/lib/evidence-prune.mjs": [
+      "COMPLETION_RECORD",
+      "DEFAULT_MIN_AGE_DAYS",
+      "EvidencePruneError",
+      "archiveReleaseTag",
+      "collectPins",
+      "formatReport",
+      "isPinned",
+      "mergePins",
+      "planPrune",
+      "reportedSha256"
     ],
     "all/copy-overwrite/scripts/lib/gate-failure-diagnosis.mjs": [
       "ATTRIBUTION",
@@ -870,6 +902,9 @@
       "PREPARE_REASONS",
       "prepareEnvironment",
       "runCli"
+    ],
+    "all/copy-overwrite/scripts/lisa-evidence-prune.mjs": [
+      "main"
     ],
     "all/copy-overwrite/scripts/lisa-floor-collisions.mjs": [
       "collisions",

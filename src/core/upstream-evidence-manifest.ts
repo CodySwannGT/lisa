@@ -45,7 +45,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lib/completion-proof-errors.mjs":
       "3422df7049227eff77f3ef7bf954eeb74a63e9879b06d8126c7c3a2485b6d1f3",
     "all/copy-overwrite/scripts/lib/completion-proof-github.mjs":
-      "bcd6a03ad609375b886a45e7af31670b49f1bc4888de1e2f31eb86c44ad56204",
+      "082bf655bd0e511d2dc08bdd42c410d935377c222382e9159dbc1b1d21dd503d",
     "all/copy-overwrite/scripts/lib/completion-proof-markdown.mjs":
       "00d00e2c251244d1eb0dc46464c1bb1e170f2576cd025b02518e132c0d467472",
     "all/copy-overwrite/scripts/lib/completion-proof-projection.mjs":
@@ -58,6 +58,16 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "b0ac2109d1e17cdc83d42b842ccbd43ca10f3d34d1b2d03067c434e05b19b9e3",
     "all/copy-overwrite/scripts/lib/completion-proof-source.mjs":
       "1028cbeb9c8bb9cf685dd3f532ea41de2a25456b989fbda23d3315d8532877c0",
+    "all/copy-overwrite/scripts/lib/evidence-prune-apply.mjs":
+      "917c6f48adb64047e72774b65dee35d7df443aa01dd316d0796fa6d1d8a96117",
+    "all/copy-overwrite/scripts/lib/evidence-prune-config.mjs":
+      "7ef5d7de6f0ebe28df90851002d09bb30df0449a6f63981cc693e0157891e11f",
+    "all/copy-overwrite/scripts/lib/evidence-prune-gh.mjs":
+      "8f6a199c4ac8bab81340a3bd2dfdccc2985512dbc5a7ff9b084a7eb47255092f",
+    "all/copy-overwrite/scripts/lib/evidence-prune-records.mjs":
+      "6bdd27745c85d92dd996b1444ccf9a7394e3ed62b529801fa9bf68faaac04080",
+    "all/copy-overwrite/scripts/lib/evidence-prune.mjs":
+      "ae141d9a3e8d438365192f3c05de86002ebf36cd53ed63c639474317b9c007a4",
     "all/copy-overwrite/scripts/lib/gate-failure-diagnosis.mjs":
       "31f2acced121662d6395b624aed2ae0ad642c1edb52cdb0eded1497886daad71",
     "all/copy-overwrite/scripts/lib/github-attestation-provider.mjs":
@@ -282,6 +292,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "5f303bc2c0427fbf686bc75fe2f481da9f70708165c6d2a51d0432aedfcd205d",
     "all/copy-overwrite/scripts/lisa-environment-prepare.mjs":
       "94d1d76b5c25059d93ee888dc824d1621adc8e3dbe368904543b37a82259c4a3",
+    "all/copy-overwrite/scripts/lisa-evidence-prune.mjs":
+      "fb87d52d8c578f5057f4bff296a8f2409e2f6fc082bc6a530e7f3196d56d8917",
     "all/copy-overwrite/scripts/lisa-floor-collisions.mjs":
       "345832c63c85df32acbed9b183b06239fc10ccb1491bd11607b5840ac1d18573",
     "all/copy-overwrite/scripts/lisa-gates.mjs":
@@ -2943,7 +2955,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/test-intent-routing.sh":
       "97b9dc86cbd805df8a7fdb8c99ffab9b8c5e751ba2e84c05420b2a124f80635d",
     "scripts/two-channel-couplings.json":
-      "01bc012ba5dc517b349dde0a9da24bdee3622404e75e5e21fed7f39b176a582a",
+      "b8a69c493ee3ad2f738483365444220a641f4be740f555c74768c47bf3349d65",
     "scripts/update-node-version.ts":
       "9d37599ef73d5d624751f862cda330a867f6774392c1ab045b4fc885132582e4",
     "scripts/update-test-skill-paths.mjs":
@@ -3013,7 +3025,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/copy-overwrite/.nvmrc":
       "73fb1b615e2043a933be1c0895cde4358036acc28d785692509b822aa53c761f",
     "typescript/copy-overwrite/.prettierignore":
-      "47c4281773401473e4a3854049b047fc0c5df074f26f6539b791fbf13af5b423",
+      "1728e4f68361a36350956ec7764515fe49ff320f655f252210ecc47cec4bc330",
     "typescript/copy-overwrite/.prettierrc.json":
       "a20621f79a064486fba53cc0ea3000a2ece3f312ff38495c6a6606a27d2a727c",
     "typescript/copy-overwrite/.versionrc":
@@ -3321,6 +3333,11 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "all/copy-overwrite/scripts/lib/completion-proof-reader.mjs": true,
     "all/copy-overwrite/scripts/lib/completion-proof-shape.mjs": true,
     "all/copy-overwrite/scripts/lib/completion-proof-source.mjs": true,
+    "all/copy-overwrite/scripts/lib/evidence-prune-apply.mjs": true,
+    "all/copy-overwrite/scripts/lib/evidence-prune-config.mjs": true,
+    "all/copy-overwrite/scripts/lib/evidence-prune-gh.mjs": true,
+    "all/copy-overwrite/scripts/lib/evidence-prune-records.mjs": true,
+    "all/copy-overwrite/scripts/lib/evidence-prune.mjs": true,
     "all/copy-overwrite/scripts/lib/gate-failure-diagnosis.mjs": true,
     "all/copy-overwrite/scripts/lib/github-attestation-provider.mjs": true,
     "all/copy-overwrite/scripts/lib/github-attestation-recovery.mjs": true,
@@ -3433,6 +3450,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "all/copy-overwrite/scripts/lisa-enforcement-fallback.sh": true,
     "all/copy-overwrite/scripts/lisa-enforcement-freshness.mjs": true,
     "all/copy-overwrite/scripts/lisa-environment-prepare.mjs": true,
+    "all/copy-overwrite/scripts/lisa-evidence-prune.mjs": true,
     "all/copy-overwrite/scripts/lisa-floor-collisions.mjs": true,
     "all/copy-overwrite/scripts/lisa-gates.mjs": true,
     "all/copy-overwrite/scripts/lisa-history-secrets.mjs": true,
@@ -12060,6 +12078,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/support/codex-compatibility-proof.mjs": true,
     "tests/support/codex-compatibility-seed.mjs": true,
     "tests/support/codex-compatibility-state.mjs": true,
+    "tests/support/evidence-prune-fake-gh.ts": true,
+    "tests/support/evidence-prune-harness.ts": true,
     "tests/support/git-executable.ts": true,
     "tests/support/prune-fixtures.ts": true,
     "tests/support/qualified-host-bun.ts": true,
@@ -12915,6 +12935,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/e2e-coverage-interpolation-wildcard.test.ts": true,
     "tests/unit/scripts/e2e-coverage-run-awareness.test.ts": true,
     "tests/unit/scripts/e2e-coverage.test.ts": true,
+    "tests/unit/scripts/evidence-prune-safety.test.ts": true,
+    "tests/unit/scripts/evidence-prune.test.ts": true,
     "tests/unit/scripts/export-surface.test.ts": true,
     "tests/unit/scripts/floor-collisions.test.ts": true,
     "tests/unit/scripts/gate-declared-failure-shapes.test.ts": true,

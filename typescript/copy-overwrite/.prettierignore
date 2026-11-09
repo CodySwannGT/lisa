@@ -87,6 +87,7 @@ scripts/lisa-cross-worktree-guard.mjs
 scripts/lisa-destructive-guard.mjs
 scripts/lisa-enforcement-freshness.mjs
 scripts/lisa-environment-prepare.mjs
+scripts/lisa-evidence-prune.mjs
 scripts/lisa-floor-collisions.mjs
 scripts/lisa-gates.mjs
 scripts/lisa-history-secrets.mjs
@@ -151,6 +152,11 @@ scripts/lib/completion-proof-publisher.mjs
 scripts/lib/completion-proof-reader.mjs
 scripts/lib/completion-proof-shape.mjs
 scripts/lib/completion-proof-source.mjs
+scripts/lib/evidence-prune-apply.mjs
+scripts/lib/evidence-prune-config.mjs
+scripts/lib/evidence-prune-gh.mjs
+scripts/lib/evidence-prune-records.mjs
+scripts/lib/evidence-prune.mjs
 scripts/lib/gate-failure-diagnosis.mjs
 scripts/lib/github-attestation-provider.mjs
 scripts/lib/github-attestation-recovery.mjs

@@ -34,9 +34,12 @@ const ACCEPTED_KEY = "verification.completion.acceptedEvidenceReleases";
 /**
  * Whether a concrete name is a tag GitHub and git both accept: the character
  * set and length, and none of git's ref-name exclusions that the character set
- * still lets through (`..`, a trailing `.`, a `.lock` ending).
+ * still lets through (`..`, a trailing `.`, a `.lock` ending). Exported so the
+ * evidence prune validates its archive release by the same rule (#4720).
+ * @param {string} name - A concrete release name.
+ * @returns {boolean} True when the name is a usable tag.
  */
-function usableTag(name) {
+export function usableTag(name) {
   return (
     RELEASE_TAG.test(name) &&
     !name.includes("..") &&

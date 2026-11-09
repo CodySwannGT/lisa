@@ -538,6 +538,7 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
     "3422df7049227eff77f3ef7bf954eeb74a63e9879b06d8126c7c3a2485b6d1f3",
   ]),
   "scripts/lib/completion-proof-github.mjs": Object.freeze([
+    "082bf655bd0e511d2dc08bdd42c410d935377c222382e9159dbc1b1d21dd503d",
     "4355cbc85dbc2ee174ae8727b89a24be79813b8689589a94b717ec971f4d9a15",
     "4b7f8b01ab846a7a16a4d7f66cb7731a83d4b7208aad627834df8a851a36fc32",
     "b101b6cb5da8cb8d61cc45de8d1da0699713dfd39da0dc75ddd16e726db25228",
@@ -575,6 +576,27 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
   "scripts/lib/completion-proof-source.mjs": Object.freeze([
     "1028cbeb9c8bb9cf685dd3f532ea41de2a25456b989fbda23d3315d8532877c0",
     "a94f2da29e8f2231a649f6bf407cd7c62601948c272d9fca367dae9e17f26cde",
+  ]),
+  "scripts/lib/evidence-prune-apply.mjs": Object.freeze([
+    "3ce94e1345f6d34983fd4d01b2f50fea5729b5b60161e42cd8e8e36897909f23",
+    "917c6f48adb64047e72774b65dee35d7df443aa01dd316d0796fa6d1d8a96117",
+  ]),
+  "scripts/lib/evidence-prune-config.mjs": Object.freeze([
+    "7ef5d7de6f0ebe28df90851002d09bb30df0449a6f63981cc693e0157891e11f",
+    "bbfd25d82dda7099d43714d767bede791509860bfee5ac2ede9f872bf95a7700",
+  ]),
+  "scripts/lib/evidence-prune-gh.mjs": Object.freeze([
+    "2b58c6c5ebe13a7caa6d495d8444f9e36d03e50a0961e0bdd21f1c08dc28a1b5",
+    "4af7014ded13cbcd2447e8f709f821b2bd7cc478798613e9aa75737a8aea2037",
+    "8f6a199c4ac8bab81340a3bd2dfdccc2985512dbc5a7ff9b084a7eb47255092f",
+  ]),
+  "scripts/lib/evidence-prune-records.mjs": Object.freeze([
+    "6bdd27745c85d92dd996b1444ccf9a7394e3ed62b529801fa9bf68faaac04080",
+  ]),
+  "scripts/lib/evidence-prune.mjs": Object.freeze([
+    "7ecb61f2aad289d0dee4bd47fc2c05ea5856694e9d5ebc978e6cbe3f7fc6792d",
+    "ae141d9a3e8d438365192f3c05de86002ebf36cd53ed63c639474317b9c007a4",
+    "cc0b46ed86ac8ce96c63a028922097d0a31bdbe1011096f0776b84055bc45c0f",
   ]),
   "scripts/lib/gate-failure-diagnosis.mjs": Object.freeze([
     "041094be579c3aefdf9f7b384e24ca23cd860c984c9094ffeb55b1542829bc39",
@@ -1286,6 +1308,10 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
     "f82f3af91663988d003d30542f96189ad65210e0aa4dcc1b42e6c7c8752d5618",
     "f8c8e276fa6d68ed661f07882f20ee095d18a5e8a90136f78f1ed2b032ce33d4",
     "f936bc8a038a7901ade1ba58cc52e5f5a8b8b2a52a9f0c1516567cc80eb02ccb",
+  ]),
+  "scripts/lisa-evidence-prune.mjs": Object.freeze([
+    "2a2862f78f8b50064bbd3a44133f2c8a4b4bb5715189b7218e4e0e8c30f51cb5",
+    "fb87d52d8c578f5057f4bff296a8f2409e2f6fc082bc6a530e7f3196d56d8917",
   ]),
   "scripts/lisa-floor-collisions.mjs": Object.freeze([
     "04f9455319a501112902794874ca4889feff8c0d9c04cc07fb5720b09ed8fc92",
@@ -2907,6 +2933,7 @@ export const LISA_OWNED_HASH_HISTORY_DERIVED: Readonly<
     "3422df7049227eff77f3ef7bf954eeb74a63e9879b06d8126c7c3a2485b6d1f3",
   ]),
   "scripts/lib/completion-proof-github.mjs": Object.freeze([
+    "082bf655bd0e511d2dc08bdd42c410d935377c222382e9159dbc1b1d21dd503d",
     "4355cbc85dbc2ee174ae8727b89a24be79813b8689589a94b717ec971f4d9a15",
     "4b7f8b01ab846a7a16a4d7f66cb7731a83d4b7208aad627834df8a851a36fc32",
     "b101b6cb5da8cb8d61cc45de8d1da0699713dfd39da0dc75ddd16e726db25228",
@@ -2944,6 +2971,27 @@ export const LISA_OWNED_HASH_HISTORY_DERIVED: Readonly<
   "scripts/lib/completion-proof-source.mjs": Object.freeze([
     "1028cbeb9c8bb9cf685dd3f532ea41de2a25456b989fbda23d3315d8532877c0",
     "a94f2da29e8f2231a649f6bf407cd7c62601948c272d9fca367dae9e17f26cde",
+  ]),
+  "scripts/lib/evidence-prune-apply.mjs": Object.freeze([
+    "3ce94e1345f6d34983fd4d01b2f50fea5729b5b60161e42cd8e8e36897909f23",
+    "917c6f48adb64047e72774b65dee35d7df443aa01dd316d0796fa6d1d8a96117",
+  ]),
+  "scripts/lib/evidence-prune-config.mjs": Object.freeze([
+    "7ef5d7de6f0ebe28df90851002d09bb30df0449a6f63981cc693e0157891e11f",
+    "bbfd25d82dda7099d43714d767bede791509860bfee5ac2ede9f872bf95a7700",
+  ]),
+  "scripts/lib/evidence-prune-gh.mjs": Object.freeze([
+    "2b58c6c5ebe13a7caa6d495d8444f9e36d03e50a0961e0bdd21f1c08dc28a1b5",
+    "4af7014ded13cbcd2447e8f709f821b2bd7cc478798613e9aa75737a8aea2037",
+    "8f6a199c4ac8bab81340a3bd2dfdccc2985512dbc5a7ff9b084a7eb47255092f",
+  ]),
+  "scripts/lib/evidence-prune-records.mjs": Object.freeze([
+    "6bdd27745c85d92dd996b1444ccf9a7394e3ed62b529801fa9bf68faaac04080",
+  ]),
+  "scripts/lib/evidence-prune.mjs": Object.freeze([
+    "7ecb61f2aad289d0dee4bd47fc2c05ea5856694e9d5ebc978e6cbe3f7fc6792d",
+    "ae141d9a3e8d438365192f3c05de86002ebf36cd53ed63c639474317b9c007a4",
+    "cc0b46ed86ac8ce96c63a028922097d0a31bdbe1011096f0776b84055bc45c0f",
   ]),
   "scripts/lib/gate-failure-diagnosis.mjs": Object.freeze([
     "041094be579c3aefdf9f7b384e24ca23cd860c984c9094ffeb55b1542829bc39",
@@ -3653,6 +3701,10 @@ export const LISA_OWNED_HASH_HISTORY_DERIVED: Readonly<
     "f82f3af91663988d003d30542f96189ad65210e0aa4dcc1b42e6c7c8752d5618",
     "f8c8e276fa6d68ed661f07882f20ee095d18a5e8a90136f78f1ed2b032ce33d4",
     "f936bc8a038a7901ade1ba58cc52e5f5a8b8b2a52a9f0c1516567cc80eb02ccb",
+  ]),
+  "scripts/lisa-evidence-prune.mjs": Object.freeze([
+    "2a2862f78f8b50064bbd3a44133f2c8a4b4bb5715189b7218e4e0e8c30f51cb5",
+    "fb87d52d8c578f5057f4bff296a8f2409e2f6fc082bc6a530e7f3196d56d8917",
   ]),
   "scripts/lisa-floor-collisions.mjs": Object.freeze([
     "04f9455319a501112902794874ca4889feff8c0d9c04cc07fb5720b09ed8fc92",
