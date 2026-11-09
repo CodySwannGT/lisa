@@ -64,6 +64,8 @@ describe("planAnswerRecord", () => {
       source: "cli",
       answerAt: AT,
       comment: `[lisa-session-manager] The operator answered the question above (by answer, ${AT}): ${ANSWER}`,
+      // A FAILED worker's item sits in the blocked role (#4643).
+      requeue: true,
     });
   });
 
@@ -92,7 +94,12 @@ describe("planAnswerRecord", () => {
   it("does not re-post an answer that came from the item", () => {
     expect(
       planAnswerRecord({ ref: REF, status: FAILED, pending: pending("item") })
-    ).toEqual({ ref: REF, record: false, reason: "answered-on-item" });
+    ).toEqual({
+      ref: REF,
+      record: false,
+      reason: "answered-on-item",
+      requeue: true,
+    });
   });
 
   it.each([

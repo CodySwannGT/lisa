@@ -24,7 +24,7 @@
  * covered (the watch poll reads `reviewDecision`, step (e) handles it); the hole
  * is a run that concludes it is finished because arming looked like completion.
  *
- * Both plugin roots — including the sixth Codex root — are asserted so a missed
+ * Every plugin root — including Devin and the Codex root — is asserted so a missed
  * `bun run build:plugins` fails the suite.
  * @module tests/unit/strategies/drive-pr-armed-unmergeable
  */
@@ -39,6 +39,7 @@ const ROOTS = [
   "plugins/lisa-agy/skills",
   "plugins/lisa-copilot/skills",
   "plugins/lisa-cursor/skills",
+  "plugins/lisa-devin/skills",
   "plugins/lisa/.codex-plugin/skills",
 ] as const;
 
@@ -117,9 +118,10 @@ describe.each(ROOTS)("drive-pr-to-merge armed-unmergeable (%s)", root => {
     expect(gate).toMatch(/unambiguously \*\*did work\*\*/);
   });
 
-  it("names both ruleset settings that make the block indefinite", () => {
+  it("names both ruleset settings and says neither one clears a change request", () => {
     // Without these the reader assumes pushing a fix clears the verdict, which
-    // is the intuition that let three PRs sit parked.
+    // is the intuition that let three PRs sit parked. The block is indefinite
+    // whenever a stale change request stands, whatever either setting says.
     const gate = mergeGate();
     expect(gate).toContain("dismiss_stale_reviews_on_push");
     // The generated base ruleset sets it `true` (#4574), and the prose must

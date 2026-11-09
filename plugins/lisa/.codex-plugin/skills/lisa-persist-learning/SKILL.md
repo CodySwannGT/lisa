@@ -24,29 +24,29 @@ Accept the candidate as JSON or `key=value` fields:
 - `scope_hint` — `project` | `upstream` (a hint; the judge decides)
 - `triggering_issue` — the issue/work item whose failure produced this candidate (required)
 - `signal` — optional; `planning-miss` when a dispatched item stopped for a human or filed a new ticket mid-build (from `lisa-session-manager` or `lisa-implement`); `wrongly-escalated` when a human labeled an item's escalation wrong with the configured wrongly-escalated label (from `lisa-session-manager`'s overruled-escalation sweep, CodySwannGT/lisa#4657), carrying the hold and release as `evidence`. A hint for the judge, never a verdict
-- `fingerprint` — optional; computed below when absent
+- `fingerprint` — ignored if supplied; Phase 1 always computes the key from the verdict's rule
 
-## Phase 0 — Fingerprint (stable dedupe key)
+## Phase 0 — Judge (mandatory, never skipped)
 
-Every workflow marker and branch below keys off this occurrence fingerprint. It is separate from the ledger entry fingerprint, which all writers compute with `learningFingerprint(rule)` from `@codyswann/lisa/learnings`:
+Invoke the `learning-judge` agent (via the Agent/Task tool with `subagent_type: "learning-judge"` — the same invoke pattern the gardener uses for the `skill-evaluator` ladder router) with the full candidate. It returns a verdict: `classification`, `cited_evidence[]`, `rationale`, `confidence` (durable-learning and planning-miss only), `planning_stage` and the rewritten `rule` (planning-miss only), `disposition`.
+
+**Respect the verdict — do not override it.** Never re-run the judge hoping for a different answer, and never persist anything the judge did not classify `durable-learning` or `planning-miss`. For a `planning-miss`, persist the judge's rewritten `Planning (<stage>): <check>` rule, never the submitted text: the check is what planning reads back, and the submitted text is often just the one ticket's answer.
+
+## Phase 1 — Fingerprint (stable dedupe key, after the judge)
+
+Every marker, branch and PR search in Phases 2 and 3 uses this fingerprint, so it is computed only after the judge, from the rule the verdict carries: the judge's rewritten `Planning (<stage>): <check>` rule for a `planning-miss`, and the submitted `rule` for every other classification (a drop or an upstream handoff carries the rule it was judged on). That way two wordings the judge rewrites to the same check share one fingerprint, and so one planning-miss note and at most one learning PR. A caller-supplied `fingerprint` is ignored: one formula, applied here, keeps one occurrence on one key. It is separate from the ledger entry fingerprint, which all writers compute with `learningFingerprint(rule)` from `@codyswann/lisa/learnings`:
 
 ```text
 fingerprint = "sll4-" + first 12 hex chars of sha1(normalized_rule + "\n" + triggering_issue)
-normalized_rule = rule lowercased, all whitespace runs collapsed to single spaces, trimmed
+normalized_rule = the rule the verdict carries, lowercased, all whitespace runs collapsed to single spaces, trimmed
 ```
 
 ```bash
-NORM=$(printf '%s' "$RULE" | tr '[:upper:]' '[:lower:]' | tr -s '[:space:]' ' ' | sed 's/^ *//; s/ *$//')
+NORM=$(printf '%s' "$PERSISTED_RULE" | tr '[:upper:]' '[:lower:]' | tr -s '[:space:]' ' ' | sed 's/^ *//; s/ *$//')
 FP="sll4-$(printf '%s\n%s' "$NORM" "$TRIGGERING_ISSUE" | shasum -a 1 | cut -c1-12)"
 ```
 
-(Use `sha1sum` where `shasum` is unavailable.) The same rule for the same triggering issue always produces the same fingerprint, so re-runs dedupe instead of duplicating comments, PRs, or branches.
-
-## Phase 1 — Judge (mandatory, never skipped)
-
-Invoke the `learning-judge` agent (via the Agent/Task tool with `subagent_type: "learning-judge"` — the same invoke pattern the gardener uses for the `skill-evaluator` ladder router) with the full candidate including the fingerprint. It returns a verdict: `classification`, `cited_evidence[]`, `rationale`, `confidence` (durable-learning and planning-miss only), `planning_stage` and the rewritten `rule` (planning-miss only), `disposition`.
-
-**Respect the verdict — do not override it.** Never re-run the judge hoping for a different answer, and never persist anything the judge did not classify `durable-learning` or `planning-miss`. For a `planning-miss`, persist the judge's rewritten `Planning (<stage>): <check>` rule, never the submitted text: the check is what planning reads back, and the submitted text is often just the one ticket's answer.
+(Use `sha1sum` where `shasum` is unavailable. `PERSISTED_RULE` is the rule the verdict carries, as above.) The same persisted rule for the same triggering issue always produces the same fingerprint, so re-runs dedupe instead of duplicating comments, PRs, or branches.
 
 ## Phase 2 — Route by disposition
 

@@ -166,8 +166,11 @@ The dry-run also asks the **learned planning checks**: `planning-miss`
 learnings, the check planning should have run, persisted by `learning-judge`
 each time a dispatched worker still had to stop for a human or file a ticket
 mid-build (CodySwannGT/lisa#4569). They are read through the learnings
-contract's bounded projection (`lisa-task-decomposition` step 0), never the raw
-ledger. A worker that stops anyway is the signal this gate missed something,
+contract's bounded projection with the `lisa-task-decomposition` step 0
+command, never the raw ledger. That command projects over the planning checks
+alone, and names each planning check the projection omitted, by id; a missing
+ledger adds nothing, and a ledger it cannot read prints one warning naming the
+error. Neither fails the gate. A worker that stops anyway is the signal this gate missed something,
 and the loop turns that stop into the next item's question.
 
 ## Relationship to the lifecycle

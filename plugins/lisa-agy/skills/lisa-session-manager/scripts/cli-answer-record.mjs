@@ -48,7 +48,8 @@ export async function channelAnswer(ctx) {
  * credential (nothing is printed, so nothing can be posted).
  * @param {object} ctx - CLI context
  * @returns {Promise<{ json: object }>} `{ref,record:false,reason}` or
- *   `{ref,record:true,source,comment}`
+ *   `{ref,record:true,source,comment}`, either with `requeue: true` when a
+ *   FAILED worker's item must also move to the `ready` role
  */
 export async function answerPlan(ctx) {
   const ref = requirePositional(ctx, "ref");

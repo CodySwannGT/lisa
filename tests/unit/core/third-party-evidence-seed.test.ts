@@ -62,6 +62,8 @@ describe("readEvidenceSeed", () => {
       keysConcurrencyPerRun: false,
       checksOutEventHead: true,
       declaresPermissions: true,
+      writesChecks: false,
+      publishesVerdict: false,
     });
     expect(isCurrentEvidenceSeed(reading)).toBe(false);
   });
