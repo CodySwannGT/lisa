@@ -1268,7 +1268,8 @@ layer, and test ancestry against the remote.
   record.
 - **Ships no code** — the blocker is closed as completed, positively declares
   `## Target Backend Environment` reading `None — no runtime behavior change: <kind>`
-  with kind `doc-only`, `config-only`, or `type-only`, and has no linked PR and no merge commit →
+  with kind `doc-only`, `config-only`, `type-only`, or `test-only` (the closed set shared with
+  `NO_RUNTIME_REASONS` in `scripts/lib/completion-proof-shape.mjs`), and has no linked PR and no merge commit →
   **cleared** under the rule's carve-out. This is a positive determination, never an absence:
   "no PR found" is `no-pr` and stays blocking. A missing kind does not qualify; any linked
   open or unmerged PR stays blocking under the normal containment test.

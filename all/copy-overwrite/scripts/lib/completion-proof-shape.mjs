@@ -266,13 +266,32 @@ function environmentValue(declaration) {
   return declaration.trim();
 }
 
+/**
+ * The closed set of reasons a `## Target Backend Environment` declaration may
+ * give for `None — no runtime behavior change: <reason>`. It is the one grammar
+ * shared by the issue validators (S8), the writers, and this completion checker:
+ * a reason outside it was once accepted at validate time and then refused here
+ * as pending-proof forever (CodySwannGT/lisa#4684), so the prose surfaces are
+ * pinned to this export by a consistency test.
+ */
+export const NO_RUNTIME_REASONS = Object.freeze([
+  "doc-only",
+  "config-only",
+  "type-only",
+  "test-only",
+]);
+
+const NO_RUNTIME_DECLARATION = new RegExp(
+  `^None\\s*[—-]\\s*no runtime behavior change:\\s*(${NO_RUNTIME_REASONS.map(
+    reason => reason.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
+  ).join("|")})\\s*$`,
+  "i"
+);
+
 /** Exemptions are explicit declarations, never an absent environment. */
 export function declaredScope(body, environment) {
   const declaration = section(body, "Target Backend Environment");
-  const exemption =
-    /^None\s*[—-]\s*no runtime behavior change:\s*(doc-only|config-only|type-only)\s*$/i.exec(
-      declaration
-    );
+  const exemption = NO_RUNTIME_DECLARATION.exec(declaration);
   if (exemption) return { runtime: false, reason: exemption[1].toLowerCase() };
   const value = environmentValue(
     declaration.replace(/^(Assumption|Inferred|Confirmed):\s*/i, "")

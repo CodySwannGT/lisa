@@ -1171,9 +1171,14 @@ never says "permission". Reading a check run needs `checks: read`.
 `pull-request` moment names one third-party reviewer: `await` is the status
 context or check-run name it reports under, `posted_by` (when declared) is the
 app whose check run counts, and `evidence.proof` is the exact **reviewed-when**
-phrase. The shipped prover reads both representations and returns the whole
-verdict. Take the verdict from it, not from your own reading of the payloads
-above:
+phrase. A gate that declares `posted_by` is proven **only** by that app's check
+run: no commit status counts for it, because a status does not show which app
+posted it and anyone with commit-status write access can post one under the
+reviewer's name. The prover lists each status it refused that way, with the
+reason, beside the check runs it set aside. A gate without `posted_by` still
+reads statuses as before. The shipped prover reads both representations and
+returns the whole verdict. Take the verdict from it, not from your own reading
+of the payloads above:
 
 ```bash
 node scripts/check-third-party-review-evidence.mjs --sha <head-sha> --repo <owner>/<repo> --json

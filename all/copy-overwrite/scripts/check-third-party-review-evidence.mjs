@@ -62,12 +62,33 @@
  * one the reviewer had approved — so every pull request needed a hand-written
  * substitute review.
  *
- * Both are read now, and statuses exactly as before. A check run is the
- * reviewer's evidence only when it carries the declared context as its name,
- * was reported for this exact head, and — when the gate pins `posted_by` — was
- * posted by that app; an unpinned gate accepts any app, which is GitHub's own
- * meaning of an unpinned required check. When such a run exists it is
- * authoritative over a status of the same name, and the newest run wins.
+ * Both are read now, and for an unpinned gate statuses read exactly as before.
+ * A check run is the reviewer's evidence only when it carries the declared
+ * context as its name, was reported for this exact head, and — when the gate
+ * pins `posted_by` — was posted by that app; an unpinned gate accepts any app,
+ * which is GitHub's own meaning of an unpinned required check. When such a run
+ * exists it is authoritative over a status of the same name, and the newest
+ * run wins.
+ *
+ * ## A pinned gate is proven only by its app (#4652)
+ *
+ * `posted_by` is the GitHub App id allowed to post the reviewer's context, and
+ * Lisa writes it into the branch ruleset as that context's `integration_id`. A
+ * commit status cannot honour it: the combined-status endpoint read here
+ * carries no poster, and any collaborator with push access, or any integration
+ * or workflow token with commit-status write access, can post a
+ * `Review completed` status under the reviewer's name. So when the gate pins
+ * `posted_by` — any declared value, a malformed `null` included — NO commit
+ * status is evidence; only an eligible check run from that app is. Each status
+ * refused that way is listed in the reading's `ignoredStatuses` with its
+ * reason, as a refused run is listed in `ignoredCheckRuns`, so the report
+ * explains a `Review completed` it shows but did not count. The refusal cuts
+ * both ways: a pinned gate's failing, `Changes requested` or pending status no
+ * longer holds arming either, because the pinned app's objections arrive
+ * through its own check run. Option (b) of the
+ * issue — reading the per-status `creator` from
+ * `repos/{repo}/commits/{sha}/statuses` — was not taken, because the reviewer
+ * Lisa pins now reports only through check runs.
  *
  * Those two rules and the decoding below are the ones
  * `check-skipped-required-checks.mjs` applies (#4547). Four differences are
@@ -79,9 +100,11 @@
  *    the newest run is chosen, so another app's later run under the
  *    reviewer's name cannot shadow the reviewer's own (that prover reads no
  *    app at all);
- *  - when the check-run read fails, the reviewer's own status still counts,
- *    so a host whose token cannot read check runs keeps reading statuses
- *    exactly as before (that prover refuses the whole read);
+ *  - when the check-run read fails, an UNPINNED reviewer's own status still
+ *    counts, so a host whose token cannot read check runs keeps reading
+ *    statuses exactly as before (that prover refuses the whole read); a
+ *    pinned reviewer reads `unreadable` instead, since no status could
+ *    prove it;
  *  - a phrase is compared under this prover's existing normalisation — whole
  *    string, case-insensitive, whitespace-collapsed — as statuses always were;
  *  - the words that are denied first are Lisa's shipped no-work phrases, while
@@ -306,8 +329,9 @@ export function normalizeDescription(description) {
  * for the reason `mergeEvidence` records.
  *
  * `postedBy` is the gate's `posted_by` — the app a check run must come from to
- * speak for this reviewer — exactly as declared, and absent when the gate omits
- * it, which is unpinned. Any declared value is carried as written, so a
+ * speak for this reviewer, and under which no commit status counts (#4652) —
+ * exactly as declared, and absent when the gate omits it, which is unpinned.
+ * Any declared value is carried as written, so a
  * malformed pin such as `null` or a string id matches no app rather than
  * widening to every app; `validateGates` refuses it separately.
  * @param {object} options - Resolution inputs.
@@ -361,7 +385,7 @@ function readsAsNoWork(normalised) {
  * @typedef {object} ReviewerShape
  * @property {string} context - The status context or check-run name it reports under.
  * @property {string[]} proof - The normalised reviewed-when allowlist.
- * @property {unknown} [postedBy] - The app id a check run must come from, exactly as declared; absent for any app.
+ * @property {unknown} [postedBy] - The app id a check run must come from, exactly as declared; absent for any app. When declared, no commit status counts.
  */
 
 /**
@@ -388,6 +412,7 @@ function readsAsNoWork(normalised) {
  * @property {string|null} source - One of {@link EVIDENCE_SOURCES}, or null when nothing was found.
  * @property {unknown} [checkRunId] - The run that decided, for a check-run reading.
  * @property {Array<{id: unknown, reason: string}>} ignoredCheckRuns - Runs under the reviewer's name that could not speak for it, and why.
+ * @property {Array<{context: string, state: string|null, description: string|null, reason: string}>} ignoredStatuses - Statuses under a pinned reviewer's name, refused because a status cannot show its poster (#4652); empty for an unpinned gate.
  */
 
 /**
@@ -428,7 +453,7 @@ const UNSETTLED_RUN_STATUSES = new Set([
  * @param {ReviewerShape} options.reviewer - One declared reviewer.
  * @param {ReadonlyArray<{context?: string, state?: string, description?: string}>} options.statuses -
  *   `.statuses` from `repos/{owner}/{repo}/commits/{sha}/status`, newest first.
- * @returns {Omit<EvidenceReading, "ignoredCheckRuns">} The reading.
+ * @returns {Omit<EvidenceReading, "ignoredCheckRuns" | "ignoredStatuses">} The reading.
  */
 function readStatusEvidence({ reviewer, statuses }) {
   const found = statuses.find(status => status?.context === reviewer.context);
@@ -626,7 +651,7 @@ export function selectReviewerCheckRun({ reviewer, runs, sha }) {
  * @param {object} options - Reading inputs.
  * @param {ReviewerShape} options.reviewer - One declared reviewer.
  * @param {RawCheckRun} options.run - The run selected for it.
- * @returns {Omit<EvidenceReading, "ignoredCheckRuns">} The reading.
+ * @returns {Omit<EvidenceReading, "ignoredCheckRuns" | "ignoredStatuses">} The reading.
  */
 function readCheckRunEvidence({ reviewer, run }) {
   const status = typeof run.status === "string" ? run.status : "";
@@ -663,15 +688,72 @@ function readCheckRunEvidence({ reviewer, run }) {
 }
 
 /**
+ * The statuses under a pinned reviewer's name, each refused with its reason.
+ *
+ * A gate that pins `posted_by` is proven only by evidence from that app
+ * (#4652). A commit status cannot show that: the combined-status endpoint this
+ * prover reads carries no poster at all, and any collaborator or integration
+ * with commit-status write access can post one under the reviewer's name. So
+ * under a pin every such status is refused — never silently, so the report can
+ * say why a "Review completed" it shows did not count. An unpinned gate refuses
+ * none; absent means unpinned, and a declared pin of any value — a malformed
+ * `null` included — pins, exactly as {@link whyNotTheReviewers} reads it.
+ * @param {object} options - Refusal inputs.
+ * @param {ReviewerShape} options.reviewer - One declared reviewer.
+ * @param {ReadonlyArray<{context?: string, state?: string, description?: string}>|null|undefined} options.statuses - The statuses read; null when the read failed.
+ * @returns {Array<{context: string, state: string|null, description: string|null, reason: string}>} The refused statuses, with what each said, empty for an unpinned gate.
+ */
+function refusePinnedStatuses({ reviewer, statuses }) {
+  if (reviewer.postedBy === undefined) return [];
+  const reason =
+    `not counted: the gate is pinned to app ` +
+    `${JSON.stringify(reviewer.postedBy)}, and a commit status cannot show which app posted it`;
+  return (statuses ?? [])
+    .filter(status => status?.context === reviewer.context)
+    .map(status => ({
+      context: reviewer.context,
+      state: status.state ?? null,
+      description: status.description ?? null,
+      reason,
+    }));
+}
+
+/**
+ * A pinned reviewer's reading when no run from its app stands.
+ *
+ * Nothing stands, so it is `absent` — or `unreadable` when the check-run read,
+ * the only read that could have found its evidence, failed. A failed status
+ * read changes nothing here, because no status could have counted.
+ * @param {ReviewerShape} reviewer - One pinned reviewer.
+ * @param {ReadonlyArray<RawCheckRun>|null|undefined} checkRuns - Runs read for its name; null when the read failed.
+ * @returns {Omit<EvidenceReading, "ignoredCheckRuns" | "ignoredStatuses">} The reading.
+ */
+function pinnedWithoutRun(reviewer, checkRuns) {
+  return {
+    context: reviewer.context,
+    reviewed: false,
+    reading:
+      checkRuns === null
+        ? EVIDENCE_READINGS.unreadable
+        : EVIDENCE_READINGS.absent,
+    observed: null,
+    state: null,
+    source: null,
+  };
+}
+
+/**
  * Read one reviewer's evidence at one commit, from both representations.
  *
- * A check run that speaks for the reviewer is authoritative; otherwise its
- * status is read exactly as before. A read that failed is never reported as
- * an absence: when nothing stands and a read this answer depended on failed,
- * the reading is `unreadable`, because "nothing was there" and "nothing could
- * be seen" call for different operator actions. A failed check-run read never
- * takes away a status's credit — reviewers that still post statuses keep
- * reading exactly as they did.
+ * A check run that speaks for the reviewer is authoritative. Otherwise an
+ * unpinned reviewer's status is read exactly as before, while a pinned
+ * reviewer's statuses are all refused and listed in `ignoredStatuses` (#4652):
+ * only its app's own check run can prove a pinned gate. A read that failed is
+ * never reported as an absence: when nothing stands and a read this answer
+ * depended on failed, the reading is `unreadable`, because "nothing was there"
+ * and "nothing could be seen" call for different operator actions. For an
+ * unpinned reviewer a failed check-run read never takes away a status's
+ * credit — reviewers that still post statuses keep reading exactly as they did.
  * @param {object} options - Reading inputs.
  * @param {ReviewerShape} options.reviewer - One declared reviewer.
  * @param {ReadonlyArray<{context?: string, state?: string, description?: string}>|null} [options.statuses] -
@@ -686,11 +768,13 @@ export function readReviewerEvidence({ reviewer, statuses, checkRuns, sha }) {
     runs: checkRuns,
     sha,
   });
+  const ignoredStatuses = refusePinnedStatuses({ reviewer, statuses });
+  const setAside = { ignoredCheckRuns: ignored, ignoredStatuses };
   if (run !== null) {
-    return {
-      ...readCheckRunEvidence({ reviewer, run }),
-      ignoredCheckRuns: ignored,
-    };
+    return { ...readCheckRunEvidence({ reviewer, run }), ...setAside };
+  }
+  if (reviewer.postedBy !== undefined) {
+    return { ...pinnedWithoutRun(reviewer, checkRuns), ...setAside };
   }
   const fromStatus = readStatusEvidence({ reviewer, statuses: statuses ?? [] });
   const unreadable =
@@ -699,7 +783,7 @@ export function readReviewerEvidence({ reviewer, statuses, checkRuns, sha }) {
   return {
     ...fromStatus,
     ...(unreadable ? { reading: EVIDENCE_READINGS.unreadable } : {}),
-    ignoredCheckRuns: ignored,
+    ...setAside,
   };
 }
 
@@ -1439,6 +1523,7 @@ export function armDecision({
  * @property {boolean} [commentsUnreadable] - Whether the comments a substitute would be in could not all be read.
  * @property {Array<{author: string, reason: string}>} [substituteRefusals] - Markers not counted, by whom, and why.
  * @property {Array<{id: unknown, reason: string}>} [ignoredCheckRuns] - Runs set aside, and why.
+ * @property {Array<{context: string, state?: string|null, description?: string|null, reason: string}>} [ignoredStatuses] - Statuses refused under a pinned gate, and why.
  */
 
 /**
@@ -1479,9 +1564,7 @@ export function humanReport(verdict) {
   }
   const lines = verdict.readings.map(reading => {
     const seen = describeSeen(reading);
-    const ignored = (reading.ignoredCheckRuns ?? []).map(
-      entry => `    ignored check run ${String(entry.id)}: ${entry.reason}`
-    );
+    const ignored = setAsideLines(reading);
     if (reading.reviewed) {
       return [`  reviewed     ${reading.context}: ${seen}`, ...ignored].join(
         "\n"
@@ -1498,13 +1581,35 @@ export function humanReport(verdict) {
     );
     return [
       `  NOT REVIEWED ${reading.context} (${reading.reading}): ${seen}`,
-      `    observed: ${READING_SENTENCES[reading.reading]}`,
+      `    observed: ${observedSentence(reading)}`,
       `    ${stood}`,
       ...refused,
       ...ignored,
     ].join("\n");
   });
   return `${verdict.outcome.toUpperCase()} at ${verdict.sha}\n${lines.join("\n")}`;
+}
+
+/**
+ * One report line per run or status set aside for a reviewer, with its reason.
+ *
+ * A refused status is printed with what it said — its state and description —
+ * so an operator can see the `Review completed` (or the `Changes requested`)
+ * that did not count, not just that something was refused.
+ * @param {ReportedReading} reading - One reading.
+ * @returns {string[]} The lines, empty when nothing was set aside.
+ */
+function setAsideLines(reading) {
+  return [
+    ...(reading.ignoredCheckRuns ?? []).map(
+      entry => `    ignored check run ${String(entry.id)}: ${entry.reason}`
+    ),
+    ...(reading.ignoredStatuses ?? []).map(
+      entry =>
+        `    ignored status ${JSON.stringify(entry.context)} ` +
+        `(${entry.state ?? "?"} — ${JSON.stringify(entry.description ?? null)}): ${entry.reason}`
+    ),
+  ];
 }
 
 /**
@@ -1525,7 +1630,44 @@ function describeSeen(reading) {
   const words = `${reading.state ?? "?"} — ${JSON.stringify(reading.observed)}`;
   if (source === EVIDENCE_SOURCES.checkRun) return `check run ${words}`;
   if (source === EVIDENCE_SOURCES.status) return words;
+  if (setAsideAny(reading)) {
+    return "evidence was posted under its name, but none of it could count";
+  }
   return "no status or check run posted";
+}
+
+/**
+ * Whether anything under the reviewer's name was read and then set aside.
+ *
+ * An `absent` reading with something set aside is not "nothing was there":
+ * a status a pinned gate refused (#4652), or a run from another app or for
+ * another head, WAS there. Saying "nothing was posted" above the very lines
+ * that list it would contradict the report, so the wording changes — and only
+ * then, so a head where truly nothing was posted reads exactly as before.
+ * @param {{ignoredCheckRuns?: ReadonlyArray<unknown>, ignoredStatuses?: ReadonlyArray<unknown>}} reading - One reading.
+ * @returns {boolean} True when at least one status or run was set aside.
+ */
+function setAsideAny(reading) {
+  return (
+    (reading.ignoredCheckRuns ?? []).length > 0 ||
+    (reading.ignoredStatuses ?? []).length > 0
+  );
+}
+
+/**
+ * The `observed:` sentence for a reading that is not evidence of a review.
+ * @param {{reading: string, ignoredCheckRuns?: ReadonlyArray<unknown>, ignoredStatuses?: ReadonlyArray<unknown>}} reading - One reading.
+ * @returns {string} The sentence.
+ */
+function observedSentence(reading) {
+  if (reading.reading === EVIDENCE_READINGS.absent && setAsideAny(reading)) {
+    return (
+      "a status or check run was posted under this reviewer's name, but none " +
+      "of it could count as the reviewer's evidence — each one set aside is " +
+      "listed below with the reason"
+    );
+  }
+  return READING_SENTENCES[reading.reading];
 }
 
 /**

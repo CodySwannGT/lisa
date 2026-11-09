@@ -210,6 +210,26 @@ const CREDENTIAL_SHAPED = [
 const REDACTED = "[redacted]";
 
 /**
+ * Whether dependency decisions wait on a person (CodySwannGT/lisa#4651).
+ *
+ * The one built-in default with a CLOSED vocabulary, so it is the one whose
+ * declared value can be wrong. A wrong value resolves to `default` — Lisa's
+ * config reader degrades rather than throws for this key — and is reported as
+ * INVALID among the gap lines, because printing a quiet `default` would make
+ * "the project meant `none` and typed it wrong" indistinguishable from "the
+ * project never set it".
+ */
+const HUMAN_SIGN_OFF_PATH = "dependencies.humanSignOff";
+
+/**
+ * The `dependencies.humanSignOff` vocabulary, copied from
+ * `DEPENDENCY_HUMAN_SIGN_OFF_VALUES` in `src/core/project-config-dependencies.ts`
+ * (not importable from a plugin payload) and pinned against that export by this
+ * hook's wiring test.
+ */
+const HUMAN_SIGN_OFF_VALUES = ["default", "none"];
+
+/**
  * Keys Lisa supplies a built-in value for when a project declares none.
  *
  * Each entry names the module that OWNS the constant. This table is a copy for
@@ -242,6 +262,11 @@ export const BUILT_IN_DEFAULTS = [
     path: "learnings.file",
     value: ".lisa/PROJECT_LEARNINGS.md",
     owner: "src/core/learnings-location.ts",
+  },
+  {
+    path: HUMAN_SIGN_OFF_PATH,
+    value: "default",
+    owner: "src/core/project-config-dependencies.ts",
   },
 ];
 
@@ -279,6 +304,7 @@ const SUBTREE_ORDER = [
   "policy",
   "quality",
   "learnings",
+  "dependencies",
   "verification",
   "nightlyE2E",
   "intake",
@@ -599,6 +625,63 @@ function renderGates(gates) {
 }
 
 /**
+ * What an invalid `dependencies` declaration declares, in words.
+ *
+ * Covers both ways the key can be unusable: a `humanSignOff` outside its
+ * vocabulary, and a `dependencies` block that is not an object at all, which
+ * leaves the key unreadable rather than absent.
+ * @param {unknown} block The resolved `dependencies` value.
+ * @returns {string|null} The description, or null when absent or valid.
+ */
+function describeInvalidSignOff(block) {
+  if (!isObject(block)) {
+    return `${JSON.stringify(block)} for dependencies, which is not an object`;
+  }
+  const { humanSignOff } = block;
+  if (humanSignOff === undefined) return null;
+  if (HUMAN_SIGN_OFF_VALUES.includes(humanSignOff)) return null;
+  const accepted = HUMAN_SIGN_OFF_VALUES.map(value => `"${value}"`).join(" | ");
+  return `${JSON.stringify(humanSignOff)}, which is not one of ${accepted}`;
+}
+
+/**
+ * The INVALID line for an unusable `dependencies.humanSignOff` declaration.
+ * @param {object} config Resolved config.
+ * @param {string} fallback The value in force instead.
+ * @param {string} owner Module that owns the setting.
+ * @returns {string|null} The line, or null when the value is absent or valid.
+ */
+function invalidSignOffLine(config, fallback, owner) {
+  const declared =
+    "dependencies" in config
+      ? describeInvalidSignOff(config.dependencies)
+      : null;
+  return declared === null
+    ? null
+    : `${HUMAN_SIGN_OFF_PATH}: ${fallback}   [INVALID — this project declares ${declared}; treated as ${fallback}; owner: ${owner}]`;
+}
+
+/**
+ * Render the `dependencies` block.
+ *
+ * `humanSignOff` is printed as its own dotted line so an agent finds the same
+ * spelling the rules use. An invalid value is NOT printed here — the gap lines
+ * already state it as INVALID with the value in force, and a second line
+ * showing the rejected value would read as the effective one. Any other key a
+ * later release adds still renders through the generic subtree renderer.
+ * @param {unknown} block The resolved `dependencies` value.
+ * @param {string[]} out Lines accumulated so far (mutated).
+ */
+function renderDependencies(block, out) {
+  if (!isObject(block)) return;
+  const { humanSignOff, ...rest } = block;
+  if (HUMAN_SIGN_OFF_VALUES.includes(humanSignOff)) {
+    out.push(`${HUMAN_SIGN_OFF_PATH}: ${humanSignOff}`);
+  }
+  renderSubtree(rest, "dependencies", out);
+}
+
+/**
  * Render the declared-vs-defaulted lines.
  * @param {object} config Resolved config.
  * @returns {string[]} Rendered lines, empty when everything was declared.
@@ -606,6 +689,13 @@ function renderGates(gates) {
 function renderDefaults(config) {
   const lines = [];
   for (const { path, value, owner } of BUILT_IN_DEFAULTS) {
+    if (path === HUMAN_SIGN_OFF_PATH) {
+      const invalid = invalidSignOffLine(config, value, owner);
+      if (invalid !== null) {
+        lines.push(invalid);
+        continue;
+      }
+    }
     if (at(config, path) !== undefined) continue;
     lines.push(
       `${path}: ${value}   [Lisa built-in default — this project declares none; owner: ${owner}]`
@@ -661,6 +751,10 @@ function renderBody(config) {
       const gateLines = renderGates(gates);
       for (const gateLine of gateLines) unelidable.add(gateLine);
       lines.push(...gateLines);
+      continue;
+    }
+    if (key === "dependencies") {
+      renderDependencies(config.dependencies, lines);
       continue;
     }
     renderSubtree(config[key], key, lines);

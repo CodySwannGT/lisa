@@ -207,6 +207,30 @@ describe("linear completion grammar compatibility", () => {
     ).toThrow();
   });
 
+  it.each(["doc-only", "config-only", "type-only", "test-only", "TEST-ONLY"])(
+    "grants the no-runtime exemption for the closed reason %j",
+    reason => {
+      expect(
+        declaredScope(
+          `## Target Backend Environment\nNone — no runtime behavior change: ${reason}`,
+          "production"
+        )
+      ).toEqual({ runtime: false, reason: reason.toLowerCase() });
+    }
+  );
+
+  it.each([
+    "None — no runtime behavior change: refactor-only",
+    "None — no runtime behavior change: test-only because specs only",
+    "None — no runtime behavior change: test",
+    "None — no runtime behavior change: `test-only`",
+    "None — no runtime behavior change: test-only\n\nOnly spec files change.",
+  ])("refuses a no-runtime exemption outside the closed set: %j", line => {
+    expect(() =>
+      declaredScope(`## Target Backend Environment\n${line}`, "production")
+    ).toThrow(/does not declare target environment production/);
+  });
+
   it("normalizes only actual canonical pipe rows and retains unknown prose", () => {
     const usage = renderLisaUsageSection({
       entries: [],
