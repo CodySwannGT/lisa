@@ -2059,9 +2059,21 @@ const UNPUBLISHED_BECAUSE = Object.freeze({
 /** The longest summary GitHub accepts on a check run. */
 const SUMMARY_LIMIT = 65535;
 
-/** The fence a report is shown in, so its column layout survives Markdown. */
-const FENCE_OPEN = "```text\n";
-const FENCE_CLOSE = "\n```";
+/**
+ * The backtick fence a report is shown in, so its column layout survives
+ * Markdown. It is one backtick longer than the longest backtick run in the
+ * report (three at least), so text quoted from a third-party status can
+ * never close it early.
+ * @param {string} report - The text the fence will hold.
+ * @returns {string} The fence.
+ */
+function fenceFor(report) {
+  const longest = Array.from(report.matchAll(/`+/g)).reduce(
+    (most, match) => Math.max(most, match[0].length),
+    0
+  );
+  return "`".repeat(Math.max(3, longest + 1));
+}
 
 /**
  * A report inside a `text` fence, cut so the fenced whole fits in `limit`.
@@ -2070,8 +2082,11 @@ const FENCE_CLOSE = "\n```";
  * @returns {string} The fenced report.
  */
 export function fencedReport(report, limit = Number.POSITIVE_INFINITY) {
-  const room = limit - FENCE_OPEN.length - FENCE_CLOSE.length;
-  return `${FENCE_OPEN}${report.slice(0, Math.max(0, room))}${FENCE_CLOSE}`;
+  const fence = fenceFor(report);
+  const open = `${fence}text\n`;
+  const close = `\n${fence}`;
+  const room = limit - open.length - close.length;
+  return `${open}${report.slice(0, Math.max(0, room))}${close}`;
 }
 
 /**

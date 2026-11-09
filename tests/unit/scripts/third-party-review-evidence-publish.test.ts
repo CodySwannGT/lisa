@@ -179,6 +179,11 @@ describe("--publish", () => {
     expect(fencedReport("abcdef", 15)).toBe("```text\nabc\n```");
   });
 
+  it("fences a report that quotes a backtick fence so the quote cannot close it", () => {
+    const quoted = "observed: ```\nnot markdown\n```";
+    expect(fencedReport(quoted)).toBe(`\`\`\`\`text\n${quoted}\n\`\`\`\``);
+  });
+
   it("names the manual path's check run without a reviewer", () => {
     const run = publish({
       verdict: saved(EVIDENCE_OUTCOMES.satisfied),
