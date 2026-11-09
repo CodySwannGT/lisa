@@ -1156,14 +1156,17 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
   ]),
   "scripts/lib/usage-ledger-integrity.mjs": Object.freeze([
     "67e115051fac99e846dea54297c8811f22aecce93d2743ce53bbf0b8e3572c5e",
+    "b2b928d323817867591e23c53aede3ee91830c4bd37658082c7dd61266b0c0d9",
     "ecc234d13f7b7817fa71690c6a7ab6fd56a6018d82df4bb21cad0dbd46944214",
   ]),
   "scripts/lib/usage-ledger.d.mts": Object.freeze([
     "551d534acdd1fbd1fd86edf1feaee2f98763509af2ec17b593662c40badbb415",
     "89036761632f0992e2bca2ee7cfd70a76959fbfc3ac7869b2d7eaecede6a1c17",
+    "ea55e6bf7354f92353666b145c9d352c2a2e7d8c914f98f4e1421d0528cab657",
   ]),
   "scripts/lib/usage-ledger.mjs": Object.freeze([
     "cdeab41198a0284b6415975b1dd8cfd84114631b5673f1a6ab340996cd74f946",
+    "d93a9b6d28c00f687ea41e8ad1e6138eac6ea4f3d59225bd225d8151f40e4ac0",
     "e209f03a1228c3363cf39da1a378cdfe0c7276ed62c04ef7aa0f5957457772ef",
   ]),
   "scripts/lib/windows-process-job.cs": Object.freeze([
@@ -3541,14 +3544,17 @@ export const LISA_OWNED_HASH_HISTORY_DERIVED: Readonly<
   ]),
   "scripts/lib/usage-ledger-integrity.mjs": Object.freeze([
     "67e115051fac99e846dea54297c8811f22aecce93d2743ce53bbf0b8e3572c5e",
+    "b2b928d323817867591e23c53aede3ee91830c4bd37658082c7dd61266b0c0d9",
     "ecc234d13f7b7817fa71690c6a7ab6fd56a6018d82df4bb21cad0dbd46944214",
   ]),
   "scripts/lib/usage-ledger.d.mts": Object.freeze([
     "551d534acdd1fbd1fd86edf1feaee2f98763509af2ec17b593662c40badbb415",
     "89036761632f0992e2bca2ee7cfd70a76959fbfc3ac7869b2d7eaecede6a1c17",
+    "ea55e6bf7354f92353666b145c9d352c2a2e7d8c914f98f4e1421d0528cab657",
   ]),
   "scripts/lib/usage-ledger.mjs": Object.freeze([
     "cdeab41198a0284b6415975b1dd8cfd84114631b5673f1a6ab340996cd74f946",
+    "d93a9b6d28c00f687ea41e8ad1e6138eac6ea4f3d59225bd225d8151f40e4ac0",
     "e209f03a1228c3363cf39da1a378cdfe0c7276ed62c04ef7aa0f5957457772ef",
   ]),
   "scripts/lib/windows-process-job.cs": Object.freeze([
