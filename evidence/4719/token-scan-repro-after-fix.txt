@@ -1,0 +1,7 @@
+["557058:f58131cb-b67d-43c7-b30d-6b58d40bd077"] [] leaksToken=false
+["id:557058:f58131cb-b67d-43c7-b30d-6b58d40bd077"] [] leaksToken=false
+["<token>"] ["sessionManager.operatorIds[0] looks like a bot token. Tokens never go in config: remove it, and store the token in the project's secrets provider with session-manager.mjs store-token (/lisa:setup:session-manager runs it)."] leaksToken=false
+["id:<token>"] ["sessionManager.operatorIds[0] looks like a bot token. Tokens never go in config: remove it, and store the token in the project's secrets provider with session-manager.mjs store-token (/lisa:setup:session-manager runs it)."] leaksToken=false
+["login:<token>"] ["sessionManager.operatorIds[0] looks like a bot token. Tokens never go in config: remove it, and store the token in the project's secrets provider with session-manager.mjs store-token (/lisa:setup:session-manager runs it)."] leaksToken=false
+trusted []
+notify.chat ["sessionManager.notify.chat looks like a bot token. Tokens never go in config: remove it, and store the token in the project's secrets provider with session-manager.mjs store-token (/lisa:setup:session-manager runs it)."]

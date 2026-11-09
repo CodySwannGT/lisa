@@ -16,6 +16,10 @@ import {
 } from "../../../all/copy-overwrite/scripts/lisa-gates.mjs";
 import { DEFAULT_HARNESS } from "../../../src/core/config.js";
 import { DEFAULT_PROJECT_LEARNINGS_FILE } from "../../../src/core/learnings-location.js";
+import {
+  DEFAULT_DEPENDENCY_HUMAN_SIGN_OFF,
+  DEPENDENCY_HUMAN_SIGN_OFF_VALUES,
+} from "../../../src/core/project-config-dependencies.js";
 import { BUILT_IN_DEFAULTS } from "../../../plugins/src/base/hooks/inject-resolved-config.mjs";
 import { shouldShipScript } from "../../../scripts/lib/per-agent-hook-filter.mjs";
 
@@ -70,7 +74,10 @@ describe("inject-resolved-config: bounded output", () => {
 
     expect(context).toContain("… (line truncated)");
     expect(context).toContain("tracker: github");
-    expect(context.length).toBeLessThan(2000);
+    // Below the 3000-character value the fixture declares, so the line cannot
+    // have survived whole. The margin above the ~1.7KB fixed text (preamble +
+    // built-in-default lines) grows by one line per new built-in default.
+    expect(context.length).toBeLessThan(2500);
   });
 
   it("summarises a wide object instead of listing every child", () => {
@@ -123,7 +130,18 @@ describe("inject-resolved-config: copied vocabularies still agree with their own
       ["gates.runner", DEFAULT_RUNNER],
       ["gates.unproven", DEFAULT_UNPROVEN],
       ["learnings.file", DEFAULT_PROJECT_LEARNINGS_FILE],
+      ["dependencies.humanSignOff", DEFAULT_DEPENDENCY_HUMAN_SIGN_OFF],
     ]);
+  });
+
+  it("pins the humanSignOff vocabulary against the config owner's export", () => {
+    // The renderer decides VALID vs INVALID from its own copy, so a value added
+    // to the owner's vocabulary and not here would be announced as invalid.
+    const source = rendererSource();
+
+    expect(source).toContain(
+      `const HUMAN_SIGN_OFF_VALUES = [${DEPENDENCY_HUMAN_SIGN_OFF_VALUES.map(value => `"${value}"`).join(", ")}];`
+    );
   });
 
   it("holds both budgets at the values the gap fixes were made to respect", () => {

@@ -93,6 +93,18 @@ demand and whether a human has to sign off.
 | thin wrapper suitable for in-house ownership | Small enough that we could own the code ourselves | Required to keep it rather than internalize |
 | temporary/experimental dependency | Deliberately time-boxed, with an expiry date | **Required to extend past the expiry date** or to promote it |
 
+**Turning sign-off off.** A project whose owner has decided no dependency
+should ever wait on a person's approval sets
+`"dependencies": { "humanSignOff": "none" }` in `.lisa.config.json`. Every
+"Human sign-off?" entry in the table above then reads "Not required", and each
+class's human-review trigger becomes a decision the agent makes and records in
+the dependency's entry. The trust class and the evidence it demands are still
+required, and approvals for new credentials, paid accounts, or licenses are not
+affected. Leaving the key out (or setting `"default"`) keeps the table exactly
+as written; any other value is reported as invalid and treated as `"default"`.
+Agents see the effective value as `dependencies.humanSignOff` in their session's
+resolved-config block.
+
 Two rules worth memorizing:
 
 - **Maturity does not lower a class.** A famous, well-run package that touches
@@ -208,7 +220,7 @@ naming which line below it failed — that is the record the next reader sees, a
 it is what turns "no" into a specific thing to fix. Then move the item back out
 of the ready-for-build queue so nothing picks it up in the meantime. Whenever a
 sign-off is required (the table above says which class needs one and at which
-moment), the person who signs off is the named accountable owner in the record's
+moment; none does when `dependencies.humanSignOff` is `"none"`), the person who signs off is the named accountable owner in the record's
 *owner / review cadence* field; if the record does not name one yet, that missing
 name is itself the first thing to send back. This mirrors the escalation
 instruction the shipped record file gives every project: raise it to an owner
@@ -226,7 +238,8 @@ Accept it when all of these are true:
   person, a stated update cadence, a named check that would catch a bad update,
   and a real replacement-cost estimate.
 - If the class is **runtime-critical service client**, a human has signed off
-  before the work starts. That is the only class needing sign-off to be added.
+  before the work starts — unless the project sets `dependencies.humanSignOff`
+  to `"none"`. That is the only class needing sign-off to be added.
 - If the class is **temporary/experimental dependency**, no sign-off is needed to
   add it — moving fast is the point of the class — but it carries a written
   expiry date no more than one quarter out and a named exit (replace, in-house,
