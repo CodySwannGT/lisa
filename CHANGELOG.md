@@ -2,6 +2,30 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [4.100.0](https://github.com/CodySwannGT/lisa/compare/v4.99.11...v4.100.0) (2026-11-09)
+
+
+### Features
+
+* **config:** add optional dependencies.humanSignOff setting ([d14118a](https://github.com/CodySwannGT/lisa/commit/d14118a1a4caa44834a75e94e067d47d274b0bbc)), closes [CodySwannGT/lisa#4651](https://github.com/CodySwannGT/lisa/issues/4651) [CodySwannGT/lisa#4651](https://github.com/CodySwannGT/lisa/issues/4651)
+* **hooks:** show dependencies.humanSignOff in the resolved-config block ([bd3e93c](https://github.com/CodySwannGT/lisa/commit/bd3e93c40f7e1b0a2018ee13b6883110000dc082)), closes [CodySwannGT/lisa#4651](https://github.com/CodySwannGT/lisa/issues/4651) [CodySwannGT/lisa#4651](https://github.com/CodySwannGT/lisa/issues/4651)
+
+
+### Bug Fixes
+
+* **config:** degrade a non-object dependencies block instead of throwing ([ad6d24f](https://github.com/CodySwannGT/lisa/commit/ad6d24f9b78fa63608d9808641b289ff90a774d3)), closes [CodySwannGT/lisa#4651](https://github.com/CodySwannGT/lisa/issues/4651) [CodySwannGT/lisa#4651](https://github.com/CodySwannGT/lisa/issues/4651)
+* **rules:** let agents resolve dependency escalations under humanSignOff none ([550d151](https://github.com/CodySwannGT/lisa/commit/550d151a3a70ef94b39eceafbe3c5f015acda5d1)), closes [CodySwannGT/lisa#4651](https://github.com/CodySwannGT/lisa/issues/4651) [CodySwannGT/lisa#4651](https://github.com/CodySwannGT/lisa/issues/4651)
+
+
+### Documentation
+
+* **rules:** let dependencies.humanSignOff "none" drop trust-class sign-off ([eee2cc1](https://github.com/CodySwannGT/lisa/commit/eee2cc1ed7bb4b567004afb34ed7726e76e192b2)), closes [CodySwannGT/lisa#4651](https://github.com/CodySwannGT/lisa/issues/4651) [CodySwannGT/lisa#4651](https://github.com/CodySwannGT/lisa/issues/4651)
+
+
+### Code Refactoring
+
+* **hooks:** drop the reassigned binding in invalidSignOffLine ([77eb953](https://github.com/CodySwannGT/lisa/commit/77eb953c7d6767c79b88acebbb6d2e41149f3b31)), closes [CodySwannGT/lisa#4651](https://github.com/CodySwannGT/lisa/issues/4651) [CodySwannGT/lisa#4651](https://github.com/CodySwannGT/lisa/issues/4651)
+
 ### [4.99.11](https://github.com/CodySwannGT/lisa/compare/v4.99.10...v4.99.11) (2026-11-09)
 
 

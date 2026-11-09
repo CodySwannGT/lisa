@@ -114,8 +114,11 @@ unit proposes adding one, the work unit must, before it is buildable:
 2. **State the class's required evidence** — the detection evidence that class
    demands, and whether product/human ratification is required before the work
    starts. Runtime-critical service clients and expiry extensions on temporary
-   dependencies always require ratification; a work unit that needs it and does
-   not say so is not ready.
+   dependencies always require ratification — unless `.lisa.config.json` sets
+   `dependencies.humanSignOff` to `"none"`, in which case no class requires
+   ratification and the work unit says so instead (the class and its evidence
+   are still required). A work unit that needs ratification and does not say so
+   is not ready.
 3. **Include updating `.lisa/DEPENDENCY_DECISIONS.md`** in its acceptance
    criteria, so the record entry lands in the same change as the dependency.
 
@@ -206,7 +209,7 @@ Map each task to the skills needed to complete it. This enables delegation to sp
 - Every task must have at least one acceptance criterion that can be empirically verified
 - Do not create tasks that cannot be verified -- if you cannot define how to prove it is done, the task is not well-scoped
 - Every Task / Bug / Sub-task / Improvement is scoped to exactly one repo -- if the work spans repos, split into per-repo work units under a shared parent Story (see step 1.5)
-- Any task proposing a new material dependency names its trust class, states that class's required evidence and whether human ratification is needed, and updates `.lisa/DEPENDENCY_DECISIONS.md` in the same change (see step 4.5) -- a proposed material dependency with no named class is not ready to build
+- Any task proposing a new material dependency names its trust class, states that class's required evidence and whether human ratification is needed (never, when `dependencies.humanSignOff` is `"none"`), and updates `.lisa/DEPENDENCY_DECISIONS.md` in the same change (see step 4.5) -- a proposed material dependency with no named class is not ready to build
 - Any task removing, replacing, or internalizing a material dependency carries all seven confidence-rebuild kit criteria -- corpus, conformance, negative fixtures, coverage-as-gap-detector, provenance/license, migration/update plan, and rollback criteria (see step 4.6) -- unless it explicitly justifies why the dependency is non-material; a within-trust-class version bump does not carry the kit
 - Keep tasks ordered so that no task references work that has not been completed by a prior task
 - Flag any task that requires access, permissions, or external input not yet available
