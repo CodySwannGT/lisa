@@ -22,6 +22,12 @@ const BLOCK = {
   notify: { provider: "telegram", stateDir: "~/.claude/channels/telegram-x" },
 };
 
+/** A legacy Jira Cloud accountId: digits, a colon, a canonical UUID. */
+const LEGACY_ACCOUNT_ID = "557058:f58131cb-b67d-43c7-b30d-6b58d40bd077";
+
+/** A Telegram bot token's shape: a bot id, a colon, a 35-character secret. */
+const BOT_TOKEN = `1234567890:${"A".repeat(35)}`;
+
 describe("Scenario: Malformed entries are refused", () => {
   it.each([
     ["operatorIds", "user:583231", /unknown prefix "user:"/],
@@ -41,9 +47,11 @@ describe("kind-keyed and plain entries are accepted", () => {
   it.each([
     [["login:583231", "id:99999"]],
     [["583231", "octocat"]],
-    // A plain legacy `557058:<uuid>` accountId is token-shaped to the
-    // credential scan (a separate, older refusal); its id: form is not.
-    [["id:557058:f58131cb-b67d-43c7-b30d-6b58d40bd077"]],
+    // A legacy `557058:<uuid>` accountId is accepted plain and id:-prefixed:
+    // the credential scan exempts its UUID shape in the id lists
+    // (CodySwannGT/lisa#4719).
+    [[LEGACY_ACCOUNT_ID]],
+    [[`id:${LEGACY_ACCOUNT_ID}`]],
     [["5b10ac8d82e05b22cc7d4ef5", "qm:a713c5e1-2d4f-4b8a-9c3e-1f2a3b4c5d6e"]],
   ])("accepts %j in both lists", ids => {
     expect(
@@ -108,5 +116,56 @@ describe("a plain all-digit operator entry warns without failing", () => {
     expect(sessionManagerWarnings({ ...BLOCK, operatorIds: "583231" })).toEqual(
       []
     );
+  });
+});
+
+describe("credential scan of the id lists (CodySwannGT/lisa#4719)", () => {
+  it("accepts a legacy Jira accountId as a plain operator entry", () => {
+    expect(
+      validateSessionManager({
+        name: "m",
+        operatorIds: [LEGACY_ACCOUNT_ID],
+        trustedAuthorIds: ["x"],
+      })
+    ).toEqual([]);
+  });
+
+  it("accepts a legacy Jira accountId as a plain trusted author", () => {
+    expect(
+      validateSessionManager({
+        name: "m",
+        operatorIds: ["id:1"],
+        trustedAuthorIds: [LEGACY_ACCOUNT_ID],
+      })
+    ).toEqual([]);
+  });
+
+  it.each([
+    ["operatorIds", ""],
+    ["operatorIds", "id:"],
+    ["operatorIds", "login:"],
+    ["trustedAuthorIds", ""],
+    ["trustedAuthorIds", "id:"],
+    ["trustedAuthorIds", "login:"],
+  ])("refuses a bot token in %s with prefix %j", (list, prefix) => {
+    const errors = validateSessionManager({
+      ...BLOCK,
+      [list]: [`${prefix}${BOT_TOKEN}`],
+    });
+    expect(errors).toHaveLength(1);
+    expect(errors[0]).toContain(`sessionManager.${list}[0]`);
+    expect(errors[0]).toContain("looks like a bot token");
+    expect(errors[0]).not.toContain(BOT_TOKEN);
+  });
+
+  it("still refuses a UUID-shaped value outside the id lists", () => {
+    const errors = validateSessionManager({
+      name: "m",
+      notify: { chat: LEGACY_ACCOUNT_ID },
+    });
+    expect(errors).toHaveLength(1);
+    expect(errors[0]).toContain("sessionManager.notify.chat");
+    expect(errors[0]).toContain("looks like a bot token");
+    expect(errors[0]).not.toContain(LEGACY_ACCOUNT_ID);
   });
 });

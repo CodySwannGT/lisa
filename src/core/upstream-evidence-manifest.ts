@@ -3833,6 +3833,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "evidence/4711/cli-live-head-sha-dry-run-pr4710.txt": true,
     "evidence/4711/cli-reported-failure-still-redispatches.txt": true,
     "evidence/4711/test-run-log-redispatch.txt": true,
+    "evidence/4719/token-scan-red-before-fix.txt": true,
     "evidence/CodySwannGT-lisa-4605/falsification.txt": true,
     "evidence/CodySwannGT-lisa-4605/rollback-dry-run-commands.txt": true,
     "evidence/CodySwannGT-lisa-4605/rollback-missing-credentials-refusal.txt": true,
