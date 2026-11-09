@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.99.4](https://github.com/CodySwannGT/lisa/compare/v4.99.3...v4.99.4) (2026-11-09)
+
+
+### Bug Fixes
+
+* **updater:** require HTTPS for recipe downloads ([1b7c48e](https://github.com/CodySwannGT/lisa/commit/1b7c48ea343c890807aa4d2e6bf1d9cac5fd1b8f)), closes [CodySwannGT/lisa#4656](https://github.com/CodySwannGT/lisa/issues/4656)
+
 ### [4.99.3](https://github.com/CodySwannGT/lisa/compare/v4.99.2...v4.99.3) (2026-11-08)
 
 
