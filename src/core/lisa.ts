@@ -2333,10 +2333,11 @@ export class Lisa {
 
     const context: StrategyContext = {
       config: this.config,
-      // The prompter is the only thing that knows whether an answer is
-      // obtainable. Carrying that to the strategies is what stops a callback
-      // nobody is behind from counting as approval (#3026).
-      unattended: this.deps.prompter.unattended,
+      // Installation's internal --yes is not an operator's consent. Resolve
+      // the declared safe-install mode separately from the git waiver, then
+      // carry that and the actual prompter's availability to strategies.
+      unattended:
+        isPostinstallSafeApply(this.config) || this.deps.prompter.unattended,
       backupFile: async absolutePath => {
         await this.deps.backupService.backup(absolutePath);
         await this.deps.backupService.persistentBackup(absolutePath);

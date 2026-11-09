@@ -36,9 +36,13 @@ describe("CopyOverwriteStrategy", () => {
   /**
    * Create a strategy context for testing
    * @param overrides - Configuration overrides
+   * @param unattended - Whether the real prompter has nobody to ask
    * @returns Strategy context with test defaults
    */
-  function createContext(overrides: Partial<LisaConfig> = {}): StrategyContext {
+  function createContext(
+    overrides: Partial<LisaConfig> = {},
+    unattended = false
+  ): StrategyContext {
     const config: LisaConfig = {
       lisaDir: srcDir,
       destDir,
@@ -58,6 +62,7 @@ describe("CopyOverwriteStrategy", () => {
 
     return {
       config,
+      unattended,
       backupFile: async () => {},
       promptOverwrite: async () => true,
     };
@@ -159,7 +164,7 @@ describe("CopyOverwriteStrategy", () => {
     expect(await fs.readFile(destFile, "utf-8")).toBe(OLD_CONTENT);
   });
 
-  it("preserves host-owned config during skip-git-check applies", async () => {
+  it("preserves host-owned config during unattended skip-git-check applies", async () => {
     const srcFile = path.join(srcDir, KNIP_JSON);
     const destFile = path.join(destDir, KNIP_JSON);
     await fs.writeJson(srcFile, { ignoreDependencies: ["from-lisa"] });
@@ -169,7 +174,7 @@ describe("CopyOverwriteStrategy", () => {
       srcFile,
       destFile,
       KNIP_JSON,
-      createContext({ skipGitCheck: true })
+      createContext({ skipGitCheck: true }, true)
     );
 
     // Preserved, as before — but reported as `stale`, not `skipped`. The file
@@ -181,7 +186,7 @@ describe("CopyOverwriteStrategy", () => {
     });
   });
 
-  it("preserves any existing host file during skip-git-check applies", async () => {
+  it("preserves any existing host file during unattended skip-git-check applies", async () => {
     const srcFile = path.join(srcDir, TSCONFIG_JSON);
     const destFile = path.join(destDir, TSCONFIG_JSON);
     await fs.writeJson(srcFile, { extends: "./tsconfig.base.json" });
@@ -191,7 +196,7 @@ describe("CopyOverwriteStrategy", () => {
       srcFile,
       destFile,
       TSCONFIG_JSON,
-      createContext({ skipGitCheck: true })
+      createContext({ skipGitCheck: true }, true)
     );
 
     expect(result.action).toBe("stale");
@@ -213,7 +218,7 @@ describe("CopyOverwriteStrategy", () => {
     await fs.writeFile(changedSrc, NEW_CONTENT);
     await fs.writeFile(changedDest, OLD_CONTENT);
 
-    const context = createContext({ skipGitCheck: true });
+    const context = createContext({ skipGitCheck: true }, true);
 
     expect(
       (
@@ -250,7 +255,7 @@ describe("CopyOverwriteStrategy", () => {
       srcFile,
       destFile,
       rel,
-      createContext({ skipGitCheck: true })
+      createContext({ skipGitCheck: true }, true)
     );
 
     expect(result.action).toBe("stale");

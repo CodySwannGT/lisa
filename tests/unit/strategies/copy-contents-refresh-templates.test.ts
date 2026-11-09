@@ -37,7 +37,7 @@ describe("CopyContentsStrategy scoped template refresh", () => {
   });
 
   /**
-   * Build the dirty-worktree strategy context used by the CLI apply path.
+   * Build a truly unattended dirty-worktree context, without --yes consent.
    * @param refreshPaths - Repo-relative paths explicitly approved for refresh
    * @param backupFile - Backup observer for the case
    * @returns Strategy context for the case
@@ -50,7 +50,7 @@ describe("CopyContentsStrategy scoped template refresh", () => {
       lisaDir: path.join(tempDir, "src"),
       destDir: path.join(tempDir, "dest"),
       dryRun: false,
-      yesMode: true,
+      yesMode: false,
       validateOnly: false,
       skipGitCheck: true,
       refreshTemplates: { mode: "paths", paths: refreshPaths },
@@ -58,6 +58,7 @@ describe("CopyContentsStrategy scoped template refresh", () => {
     };
     return {
       config,
+      unattended: true,
       backupFile,
       promptOverwrite: async () => true,
     };
