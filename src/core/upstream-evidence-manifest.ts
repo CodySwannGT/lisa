@@ -75,7 +75,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lib/history-secret-policy.mjs":
       "ca75ebbc45fca4c52400612ae818d231a28289b50a70f6cdee6feb51b144896f",
     "all/copy-overwrite/scripts/lib/history-secret-scanner.mjs":
-      "470a8e534252b3c3c8c62c2b5d83a11bde2287bd2187696107752c538bc20bda",
+      "395d6d63569d07b48815c342d004ce4797d894bb621b8b773b61334cd9713ad2",
     "all/copy-overwrite/scripts/lib/invoked-as-script.mjs":
       "fbb9b88fc85a3e22f21af39e1c17acf67ff83fc6b5a6cdc8081bde333c48faa7",
     "all/copy-overwrite/scripts/lib/kill-marks.mjs":
@@ -343,7 +343,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/npm-updater-gate.Dockerfile":
       "850a4ee809d49e3d9da6bdd674cb43e4f5a6dcfa0aa73116b1a43caeed42748c",
     "all/copy-overwrite/scripts/npm-updater-helper-graph.json":
-      "573c0557a906670ca1354a71f0f5db2811c68edcb8136e613759f6718030f5b7",
+      "271caef22d688dd63de6042b875ee314558ca7aff755032157a86e3e2795ad17",
     "all/copy-overwrite/scripts/review-evidence-event.mjs":
       "1c5d510bc66f8ba23b6f046246f41182c17946a50126fb88e371d2aec9dfd6b2",
     "all/copy-overwrite/scripts/schemas/lisa-command-envelope.v1.schema.json":
@@ -12929,6 +12929,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/history-fixture-report-redaction.test.ts": true,
     "tests/unit/scripts/history-preimage-batch.test.ts": true,
     "tests/unit/scripts/history-secret-contract.test.ts": true,
+    "tests/unit/scripts/history-secret-download-routes.test.ts": true,
     "tests/unit/scripts/history-secret-new-ref-range.test.ts": true,
     "tests/unit/scripts/history-secret-private-report.test.ts": true,
     "tests/unit/scripts/history-secret-provision-errors.test.ts": true,
