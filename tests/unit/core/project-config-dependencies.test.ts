@@ -15,6 +15,8 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
   PROJECT_CONFIG_FILENAME,
   readProjectConfig,
+  validateProjectConfig,
+  type ProjectConfig,
 } from "../../../src/core/project-config.js";
 import {
   DEFAULT_DEPENDENCY_HUMAN_SIGN_OFF,
@@ -90,6 +92,16 @@ describe("dependencySettingsWarning", () => {
     expect(warning).toContain('"default" | "none"');
     expect(warning).toContain('treated as "default"');
   });
+
+  it("names a dependencies block that is not an object, and the fallback", () => {
+    const warning = dependencySettingsWarning(
+      configOf({ dependencies: "none" })
+    );
+
+    expect(warning).toContain("Invalid dependencies in .lisa.config.json");
+    expect(warning).toContain('"none" is not an object');
+    expect(warning).toContain('treated as "default"');
+  });
 });
 
 describe("validateDependenciesConfig", () => {
@@ -103,10 +115,26 @@ describe("validateDependenciesConfig", () => {
     ).toEqual({ humanSignOff: "sometimes" });
   });
 
-  it("rejects a block that is not an object, like every other config block", () => {
-    expect(() => validateDependenciesConfig("none", SOURCE)).toThrow(
-      /Invalid dependencies in \.lisa\.config\.json: expected an object/u
-    );
+  it.each([["none"], [null], [["none"]], [false], [7]])(
+    "degrades a non-object block %j instead of throwing",
+    value => {
+      expect(validateDependenciesConfig(value, SOURCE)).toEqual({
+        rejectedBlock: value,
+      });
+    }
+  );
+});
+
+describe("resolveDependencySettings with a non-object block", () => {
+  it("resolves to default and records the block as what was rejected", () => {
+    expect(
+      resolveDependencySettings(configOf({ dependencies: "none" }))
+    ).toEqual({
+      humanSignOff: "default",
+      declared: true,
+      rejected: '"none"',
+      rejectedAt: "dependencies",
+    });
   });
 });
 
@@ -139,4 +167,25 @@ describe("readProjectConfig carries the dependencies block", () => {
       rejected: '"sometimes"',
     });
   });
+
+  it("reads a non-object dependencies block without failing", async () => {
+    await fs.writeJson(path.join(tempDir, PROJECT_CONFIG_FILENAME), {
+      dependencies: ["none"],
+    });
+
+    const config = await readProjectConfig(tempDir);
+
+    expect(resolveDependencySettings(config).humanSignOff).toBe("default");
+    expect(dependencySettingsWarning(config)).toContain("is not an object");
+  });
 });
+
+/**
+ * Run a raw config shape through the real validator, as `readProjectConfig`
+ * does, so a test can hand the resolver a block of any shape.
+ * @param raw - Untrusted parsed JSON
+ * @returns The validated project config
+ */
+function configOf(raw: Record<string, unknown>): ProjectConfig {
+  return validateProjectConfig(raw, SOURCE);
+}

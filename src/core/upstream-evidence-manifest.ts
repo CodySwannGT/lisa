@@ -1075,7 +1075,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/hooks/inject-flow-context.sh":
       "f4ab07065762d592c0fc36be2e4918e767b293aaa4094b9d85d69010576c6dbf",
     "plugins/src/base/hooks/inject-resolved-config.mjs":
-      "32fa644c7e3c09a94ad45c8bcad7c5d86f2f1ced0d41b35e3ce8cc6e3ed18f42",
+      "d2d978d3c2597eaf557fc9138429bbdcd5c4c5a976bed4c0f92881be82b3eb76",
     "plugins/src/base/hooks/inject-resolved-config.sh":
       "bc73e118afff35f455241647c24da6e23caaf30d189eb6d3a48814e9a8309613",
     "plugins/src/base/hooks/inject-rules.sh":
@@ -1205,7 +1205,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/rules/reference/credential-substrate-precedence.md":
       "15026888dcb2dbc04165e07316beace4f27efc1972389ae06cb8f5549be656c7",
     "plugins/src/base/rules/reference/dependency-decision-records.md":
-      "67addfd328a6fb0af195537aff4a66363063d29d1af7e3939f93c895cb14716e",
+      "2e4a6a3620459413f37c70eb0317c4fa11ad2ec2812dd88a7e8a2d0339c9400c",
     "plugins/src/base/rules/reference/dependency-internalization-kit.md":
       "d3c15de04e45193c99406b18f91ce5fa0593add4bb587edcc26d0908fd3bfba6",
     "plugins/src/base/rules/reference/dependency-trust-classes.md":

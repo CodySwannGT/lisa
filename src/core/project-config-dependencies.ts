@@ -21,6 +21,13 @@
  * the session's resolved-config block), because a project that meant `"none"`
  * and silently got `"default"` would otherwise see no symptom at all.
  *
+ * The same holds for the block's SHAPE. A `dependencies` value that is not an
+ * object degrades to `"default"` and is reported too, rather than throwing like
+ * other config blocks do: a project that already carried any-shaped
+ * `dependencies` key before this setting existed must not find `lisa apply`
+ * broken by an upgrade, and the session hook already reports that shape as
+ * "treated as default" — the CLI must not disagree with it.
+ *
  * The resolved-config session hook keeps its own copy of the vocabulary — it
  * ships inside a plugin payload and cannot import this module — and its
  * wiring test pins that copy against {@link DEPENDENCY_HUMAN_SIGN_OFF_VALUES}.
@@ -49,6 +56,11 @@ export const DEFAULT_DEPENDENCY_HUMAN_SIGN_OFF: DependencyHumanSignOff =
 export interface DependenciesConfig {
   /** Raw declared value; resolve with {@link resolveDependencySettings}. */
   readonly humanSignOff?: unknown;
+  /**
+   * The raw `dependencies` value when it was not an object. Present only then;
+   * the resolver reports it and falls back to the default.
+   */
+  readonly rejectedBlock?: unknown;
 }
 
 /** Minimum project-config shape the resolver reads. */
@@ -64,26 +76,33 @@ export type ResolvedDependencySettings = Readonly<{
   declared: boolean;
   /** JSON spelling of a declared value that was rejected, when one was. */
   rejected?: string;
+  /**
+   * Set to `"dependencies"` when the rejected value was the whole block (not an
+   * object) rather than `humanSignOff` itself.
+   */
+  rejectedAt?: "dependencies";
 }>;
 
 /**
  * Validate the optional `dependencies` block.
  *
- * Only the block's SHAPE can fail here, matching every other config block; a
- * bad `humanSignOff` value is carried through for the resolver to report.
+ * Never throws. A bad `humanSignOff` value is carried through as declared, and
+ * a block that is not an object is carried as `rejectedBlock`; the resolver
+ * reports either and resolves it to the default (see the module preamble).
  * @param value - Raw `dependencies` value
- * @param source - Config source for errors
+ * @param _source - Config source; kept for parity with the other block
+ *   validators, unused because nothing here throws
  * @returns The block, or undefined when absent
  */
 export function validateDependenciesConfig(
   value: unknown,
-  source: string
+  _source: string
 ): DependenciesConfig | undefined {
   if (value === undefined) {
     return undefined;
   }
   if (value === null || typeof value !== "object" || Array.isArray(value)) {
-    throw new Error(`Invalid dependencies in ${source}: expected an object`);
+    return { rejectedBlock: value };
   }
   const { humanSignOff } = value as Record<string, unknown>;
   return humanSignOff === undefined ? {} : { humanSignOff };
@@ -108,7 +127,16 @@ function isHumanSignOff(value: unknown): value is DependencyHumanSignOff {
 export function resolveDependencySettings(
   config: ConfigWithDependencies
 ): ResolvedDependencySettings {
-  const declared = config.dependencies?.humanSignOff;
+  const block = config.dependencies;
+  if (block !== undefined && "rejectedBlock" in block) {
+    return Object.freeze({
+      humanSignOff: DEFAULT_DEPENDENCY_HUMAN_SIGN_OFF,
+      declared: true,
+      rejected: JSON.stringify(block.rejectedBlock),
+      rejectedAt: "dependencies",
+    });
+  }
+  const declared = block?.humanSignOff;
   if (declared === undefined) {
     return Object.freeze({
       humanSignOff: DEFAULT_DEPENDENCY_HUMAN_SIGN_OFF,
@@ -126,19 +154,24 @@ export function resolveDependencySettings(
 }
 
 /**
- * The warning to print for an invalid `dependencies.humanSignOff`.
+ * The warning to print for an invalid `dependencies.humanSignOff`, or for a
+ * `dependencies` block that is not an object.
  * @param config - Validated project config snapshot
  * @returns One warning line, or undefined when the value is absent or valid
  */
 export function dependencySettingsWarning(
   config: ConfigWithDependencies
 ): string | undefined {
-  const { rejected } = resolveDependencySettings(config);
+  const { rejected, rejectedAt } = resolveDependencySettings(config);
   if (rejected === undefined) {
     return undefined;
+  }
+  const consequence = `treated as "${DEFAULT_DEPENDENCY_HUMAN_SIGN_OFF}", so dependency sign-off stays required where the trust-class rule asks for it.`;
+  if (rejectedAt === "dependencies") {
+    return `Invalid dependencies in .lisa.config.json: ${rejected} is not an object; humanSignOff is ${consequence}`;
   }
   const accepted = DEPENDENCY_HUMAN_SIGN_OFF_VALUES.map(
     value => `"${value}"`
   ).join(" | ");
-  return `Invalid dependencies.humanSignOff in .lisa.config.json: ${rejected} is not one of ${accepted}; treated as "${DEFAULT_DEPENDENCY_HUMAN_SIGN_OFF}", so dependency sign-off stays required where the trust-class rule asks for it.`;
+  return `Invalid dependencies.humanSignOff in .lisa.config.json: ${rejected} is not one of ${accepted}; ${consequence}`;
 }
