@@ -21,6 +21,7 @@ import { cleanupTempDir, createTempDir } from "../../helpers/test-utils.js";
 const CONFIG = ".lisa.config.json";
 const LOCAL_CONFIG = ".lisa.config.local.json";
 const CODEPIPELINE = "aws-codepipeline";
+const PIPELINE = "host-delivery";
 const SETTING = "verification.completion.delivery.<env>";
 
 describe("doctor CDK delivery-proof check", () => {
@@ -84,7 +85,7 @@ describe("doctor CDK delivery-proof check", () => {
           delivery: {
             production: {
               mechanism: CODEPIPELINE,
-              pipeline_name: "host-delivery",
+              pipeline_name: PIPELINE,
               region: "us-east-1",
             },
           },
@@ -127,6 +128,85 @@ describe("doctor CDK delivery-proof check", () => {
 
     expect(check.status).toBe("warn");
     expect(check.detail).toContain(`Could not inspect ${CONFIG}`);
+  });
+
+  /**
+   * Write one config file.
+   * @param fileName - Shared or local config
+   * @param value - JSON-compatible config
+   * @returns Nothing
+   */
+  async function write(fileName: string, value: unknown): Promise<void> {
+    await fse.writeJson(path.join(tempDir, fileName), value);
+  }
+
+  /**
+   * A config holding only the production delivery declaration.
+   * @param production - The declaration
+   * @returns Config object
+   */
+  function delivery(production: unknown): unknown {
+    return { verification: { completion: { delivery: { production } } } };
+  }
+
+  it.each([
+    ["shared names the mechanism, local the pipeline", CONFIG, LOCAL_CONFIG],
+    ["local names the mechanism, shared the pipeline", LOCAL_CONFIG, CONFIG],
+  ])(
+    "merges a declaration split across both files: %s",
+    async (_, first, second) => {
+      await markCdk();
+      await write(first, delivery({ mechanism: CODEPIPELINE }));
+      await write(
+        second,
+        delivery({ pipeline_name: PIPELINE, region: "us-east-1" })
+      );
+
+      const check = await checkCdkDeliveryProof(tempDir);
+
+      expect(check.status).toBe("ok");
+      expect(check.detail).toContain("production");
+    }
+  );
+
+  it("warns about a mechanism completion does not accept", async () => {
+    await markCdk();
+    await write(CONFIG, delivery({ mechanism: "aws-code-pipeline" }));
+
+    const check = await checkCdkDeliveryProof(tempDir);
+
+    expect(check.status).toBe("warn");
+    expect(check.detail).toContain(SETTING);
+  });
+
+  it("warns about an empty delivery declaration", async () => {
+    await markCdk();
+    await write(CONFIG, delivery({}));
+
+    const check = await checkCdkDeliveryProof(tempDir);
+
+    expect(check.status).toBe("warn");
+    expect(check.detail).toContain(SETTING);
+  });
+
+  it("warns about a region the verifier would reject", async () => {
+    await markCdk();
+    await write(
+      CONFIG,
+      delivery({
+        mechanism: CODEPIPELINE,
+        pipeline_name: PIPELINE,
+        region: "US East",
+      })
+    );
+
+    const check = await checkCdkDeliveryProof(tempDir);
+
+    expect(check.status).toBe("warn");
+    expect(check.detail).toContain(
+      "verification.completion.delivery.production.region"
+    );
+    expect(check.detail).not.toContain(".pipeline_name");
   });
 
   it("is part of the doctor report", async () => {
