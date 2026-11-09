@@ -12665,6 +12665,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/hooks/husky-package-manager-detection.test.ts": true,
     "tests/unit/hooks/husky-resolver-lookup.test.ts": true,
     "tests/unit/hooks/inject-resolved-config-completeness.test.ts": true,
+    "tests/unit/hooks/inject-resolved-config-dependencies.test.ts": true,
     "tests/unit/hooks/inject-resolved-config-names-subject.test.ts": true,
     "tests/unit/hooks/inject-resolved-config-repository-bound.test.ts": true,
     "tests/unit/hooks/inject-resolved-config-wiring.test.ts": true,
