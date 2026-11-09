@@ -16,8 +16,8 @@
  * apply runs on postinstall, and a wrong silent edit to a host-owned workflow
  * is worse than a report.
  *
- * Waking is not enough to call a copy current, so five readings are taken,
- * and a copy is current only when all five hold:
+ * Waking is not enough to call a copy current, so six readings are taken,
+ * and a copy is current only when all six hold:
  *
  *  - it wakes on a completed check run;
  *  - the prover's job holds a token that may read check runs, statuses and
@@ -32,7 +32,11 @@
  *  - it does not check out the event's head, because a `check_run` run starts
  *    in this repository's context for any pull request — a fork's included —
  *    and checking out the head would run that pull request's own code with
- *    this repository's token and cache scope.
+ *    this repository's token and cache scope;
+ *  - it publishes the verdict on the head it judged, with a token that may
+ *    write check runs. A `status` or `check_run` run belongs to the default
+ *    branch's latest commit, so a verdict that is only the job's own
+ *    conclusion never reaches the pull request (CodySwannGT/lisa#4630).
  *
  * The readings are textual and say so: they look for the event fields a copy
  * must reference, not for every spelling a copy could use to reach them.
@@ -72,6 +76,12 @@ const READS = new Set(["read", "write"]);
 /** Shorthand `permissions:` values that grant every scope. */
 const GRANTS_EVERYTHING = new Set(["read-all", "write-all"]);
 
+/** Where a step's `run:` hands a saved verdict to the prover to publish. */
+const PUBLISH_FLAG = "--publish=";
+
+/** The step output the prover's exit code travels to the publish step in. */
+const EXIT_CODE_OUTPUT = "exit_code";
+
 /**
  * An event field a checkout ref could take a commit from. The repository's
  * own fields — its default branch, for one — name no pull request's code.
@@ -94,6 +104,14 @@ export interface EvidenceSeedReading {
   readonly checksOutEventHead: boolean;
   /** A `permissions:` block governs that job at all. */
   readonly declaresPermissions: boolean;
+  /** That job's token may create check runs. */
+  readonly writesChecks: boolean;
+  /**
+   * That job saves the prover's `--json` verdict and writes its exit code to
+   * `$GITHUB_OUTPUT` as `exit_code` in a step with an `id`, and a later step
+   * reads `steps.<id>.outputs.exit_code` and runs the prover's `--publish`.
+   */
+  readonly publishesVerdict: boolean;
 }
 
 /** The slice of a workflow document this module reads. */
@@ -164,6 +182,16 @@ function grantsRead(permissions: unknown, scope: string): boolean {
 }
 
 /**
+ * Whether one `permissions:` value lets the token create check runs.
+ * @param permissions - A parsed `permissions:` value
+ * @returns True when `checks` is writable under it
+ */
+function grantsChecksWrite(permissions: unknown): boolean {
+  if (typeof permissions === "string") return permissions === "write-all";
+  return isMapping(permissions) && permissions.checks === "write";
+}
+
+/**
  * The steps of a job that YAML parsed as mappings.
  * @param job - One parsed job
  * @returns Its steps
@@ -181,6 +209,55 @@ function runsProver(job: WorkflowJob): boolean {
   return stepsOf(job).some(
     step => typeof step.run === "string" && step.run.includes(PROVER)
   );
+}
+
+/**
+ * Whether one step saves the prover's JSON verdict, and its exit code, under
+ * an `id`.
+ *
+ * A step that runs the prover with `--json` but never writes the exit code to
+ * `$GITHUB_OUTPUT` is half converted: the publish step after it has no exit
+ * code to check the verdict against, and refuses every run. It does not count.
+ * @param step - One parsed step
+ * @returns The step's id, or null when it saves no verdict and exit code
+ */
+function verdictCaptureId(step: Record<string, unknown>): string | null {
+  const { id, run } = step;
+  return typeof id === "string" &&
+    typeof run === "string" &&
+    run.includes(PROVER) &&
+    run.includes("--json") &&
+    run.includes("GITHUB_OUTPUT") &&
+    run.includes(`${EXIT_CODE_OUTPUT}=`)
+    ? id
+    : null;
+}
+
+/**
+ * Whether a job saves the prover's JSON verdict and then publishes it.
+ *
+ * Textual, like every reading here: a step with an `id` runs the prover with
+ * `--json`, and a step after it reads that step's outputs and hands a saved
+ * verdict to the prover's `--publish`.
+ * @param job - One parsed job
+ * @returns True when the verdict reaches a publish step
+ */
+function publishesVerdict(job: WorkflowJob): boolean {
+  const steps = stepsOf(job);
+  return steps.some((capture, index) => {
+    const id = verdictCaptureId(capture);
+    if (id === null) return false;
+    return steps
+      .slice(index + 1)
+      .some(
+        publish =>
+          typeof publish.run === "string" &&
+          publish.run.includes(PUBLISH_FLAG) &&
+          JSON.stringify(publish).includes(
+            `steps.${id}.outputs.${EXIT_CODE_OUTPUT}`
+          )
+      );
+  });
 }
 
 /**
@@ -278,11 +355,16 @@ export function readEvidenceSeed(workflowText: string): EvidenceSeedReading {
     declaresPermissions:
       judged.length > 0 &&
       judged.every(job => permissionsOf(job) !== undefined),
+    writesChecks:
+      judged.length > 0 &&
+      judged.every(job => grantsChecksWrite(permissionsOf(job))),
+    publishesVerdict: judged.length > 0 && judged.every(publishesVerdict),
   };
 }
 
 /**
- * Whether a copy wakes on, can read, and safely judges the reviewer's run.
+ * Whether a copy wakes on, can read, and safely judges the reviewer's run, and
+ * publishes its verdict on the head it judged.
  * @param reading - What the copy does
  * @returns True when nothing needs to change
  */
@@ -293,6 +375,8 @@ export function isCurrentEvidenceSeed(reading: EvidenceSeedReading): boolean {
     reading.readsStatusesAndPullRequests &&
     reading.readsRunIdentity &&
     reading.keysConcurrencyPerRun &&
-    !reading.checksOutEventHead
+    !reading.checksOutEventHead &&
+    reading.writesChecks &&
+    reading.publishesVerdict
   );
 }
