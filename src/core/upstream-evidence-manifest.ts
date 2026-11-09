@@ -75,7 +75,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lib/history-secret-policy.mjs":
       "ca75ebbc45fca4c52400612ae818d231a28289b50a70f6cdee6feb51b144896f",
     "all/copy-overwrite/scripts/lib/history-secret-scanner.mjs":
-      "470a8e534252b3c3c8c62c2b5d83a11bde2287bd2187696107752c538bc20bda",
+      "811ec810fa44771705f918b179f01406c7dfde852917e6ec4c9792557ac2eeac",
     "all/copy-overwrite/scripts/lib/invoked-as-script.mjs":
       "fbb9b88fc85a3e22f21af39e1c17acf67ff83fc6b5a6cdc8081bde333c48faa7",
     "all/copy-overwrite/scripts/lib/kill-marks.mjs":
@@ -343,7 +343,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/npm-updater-gate.Dockerfile":
       "850a4ee809d49e3d9da6bdd674cb43e4f5a6dcfa0aa73116b1a43caeed42748c",
     "all/copy-overwrite/scripts/npm-updater-helper-graph.json":
-      "30830c5625e2245750aa3261735360000868916373e8e361f499dc9d00bd1d89",
+      "b4d6534ddcaaf0693f23ff8ca20d63ef8a3f8f537a266987cd9ac901d260c7d6",
     "all/copy-overwrite/scripts/review-evidence-event.mjs":
       "1c5d510bc66f8ba23b6f046246f41182c17946a50126fb88e371d2aec9dfd6b2",
     "all/copy-overwrite/scripts/schemas/lisa-command-envelope.v1.schema.json":
@@ -2747,7 +2747,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/generate-export-surface.mjs":
       "f9af22c8809e93e09a1b2dbbdbd23356890b3460524bd8752731ff454d5f13c0",
     "scripts/generate-lisa-owned-hash-ledger.mjs":
-      "3a26f7bcf62383b7affc729d1a068e0fe331a67318d6af97aafded5539b1da0b",
+      "59d91a2d068d5e59edc8747630fa4d6fa69fadcb288571fe16094b3167107df6",
     "scripts/generate-nightly-e2e-guard-certificate.mjs":
       "cfa441fced288d9e82d6b4a0a5e6c0d66b513f50b87751b879e8d2410a8054a3",
     "scripts/generate-npm-updater-helper-graph.mjs":
@@ -12515,6 +12515,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/core/lisa-plugin-selection.test.ts": true,
     "tests/unit/core/lisa-release-pin.test.ts": true,
     "tests/unit/core/lisa-skill-sources.test.ts": true,
+    "tests/unit/core/managed-lintstaged-adoption.test.ts": true,
     "tests/unit/core/managed-nvmrc-adoption.test.ts": true,
     "tests/unit/core/nightly-e2e-pull-request-triggers.test.ts": true,
     "tests/unit/core/no-downstream-project-names.test.ts": true,
@@ -12936,6 +12937,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/history-fixture-report-redaction.test.ts": true,
     "tests/unit/scripts/history-preimage-batch.test.ts": true,
     "tests/unit/scripts/history-secret-contract.test.ts": true,
+    "tests/unit/scripts/history-secret-download-routes.test.ts": true,
     "tests/unit/scripts/history-secret-new-ref-range.test.ts": true,
     "tests/unit/scripts/history-secret-private-report.test.ts": true,
     "tests/unit/scripts/history-secret-provision-errors.test.ts": true,
