@@ -182,7 +182,7 @@ describe("claim comments never supersede a failure marker", () => {
   ])("ignores the session manager's own note %j", body => {
     const note = {
       id: 1003,
-      user: { login: "CodySwannGT" },
+      user: { login: "CodySwannGT", id: 292923 },
       created_at: LATER_AT,
       body,
     };
@@ -206,7 +206,7 @@ describe("claim comments never supersede a failure marker", () => {
   it("counts a comment carrying a claim AND another Lisa marker", () => {
     const mixed = {
       id: 1003,
-      user: { login: "CodySwannGT" },
+      user: { login: "CodySwannGT", id: 292923 },
       created_at: LATER_AT,
       body: "[lisa-tracker-claim] Claimed.\n<!-- [lisa-human-gate] reason=x -->",
     };

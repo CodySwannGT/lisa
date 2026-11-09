@@ -462,16 +462,16 @@ function entryNames(entry, user) {
 }
 
 /**
- * True when two GitHub users are the same account: by numeric id when both
- * carry one, else by login.
+ * True when two GitHub users are the same account, by numeric id. A side with
+ * no id is never a match: a login can be freed and re-registered by someone
+ * else, so a login alone does not prove the item's author wrote a comment.
  * @param {object|null|undefined} a - A user.
  * @param {object|null|undefined} b - Another user.
  * @returns {boolean} Whether they match.
  */
 function sameUser(a, b) {
-  if (!a || !b) return false;
-  if (a.id != null && b.id != null) return String(a.id) === String(b.id);
-  return typeof a.login === "string" && a.login !== "" && a.login === b.login;
+  if (a?.id == null || b?.id == null) return false;
+  return String(a.id) === String(b.id);
 }
 
 /**
@@ -505,6 +505,25 @@ export function markerTrust({ trustedAuthorIds, itemAuthor }) {
  */
 export function readItemAuthor(number, repo, gh) {
   return readJson(gh, ["api", `repos/${repo}/issues/${number}`]).user ?? null;
+}
+
+/**
+ * The producer's item-author read: like {@link readItemAuthor}, but a failed
+ * read is no author rather than a failed run. The author only ever decides
+ * whether a later marker is trusted, so failing closed — "not trusted" —
+ * keeps the run deciding on the evidence it has. The route helper keeps the
+ * throwing read, because its failed reads route to the normal path.
+ * @param {string} number - Issue number.
+ * @param {string} repo - Repository.
+ * @param {Function} gh - Runner.
+ * @returns {object|null} The author, or null when it cannot be read.
+ */
+function readItemAuthorOrNull(number, repo, gh) {
+  try {
+    return readItemAuthor(number, repo, gh);
+  } catch {
+    return null;
+  }
 }
 
 /**
@@ -598,10 +617,12 @@ export function isNewestLisaMarker(comments, comment, trust = trustedAuthor) {
 /**
  * True when nothing has happened to the item since `marker`, so a lane write
  * on its behalf is still safe: it is the newest counted marker (the shared
- * predicate the route helper uses), no trusted author has claimed the item
- * since, and the label history shows no claim since. A claim never makes the
- * marker stale for routing, but it does mean the lane has moved, so the lane
- * paths veto on it where the route helper does not.
+ * predicate the route helper uses), no claim-only comment follows it, and
+ * the label history shows no claim since. A claim never makes the marker
+ * stale for routing, but it may mean the lane has moved, so the lane paths
+ * veto on it where the route helper does not — on ANY claim-only comment,
+ * whoever posted it: skipping a lane write is the safe direction, and routing
+ * is unaffected.
  * @param {object} ctx - Resolved context.
  * @param {object} marker - The marker comment.
  * @returns {boolean} Whether the item is untouched since.
@@ -609,9 +630,7 @@ export function isNewestLisaMarker(comments, comment, trust = trustedAuthor) {
 function untouchedSince(ctx, marker) {
   const { view, lanes, trust } = ctx;
   const index = view.comments.findIndex(c => c.id === marker.id);
-  const claimedSince = view.comments
-    .slice(index + 1)
-    .some(c => claimOnly(c) && trust(c));
+  const claimedSince = view.comments.slice(index + 1).some(claimOnly);
   return (
     isNewestLisaMarker(view.comments, marker, trust) &&
     !claimedSince &&
@@ -811,7 +830,8 @@ export function planRedispatch({ run, repository, contract, gh }) {
     // The same supersession rule the route helper applies (#4707).
     trust: markerTrust({
       trustedAuthorIds: contract.trustedAuthorIds,
-      itemAuthor: () => readItemAuthor(view.number, contract.repository, gh),
+      itemAuthor: () =>
+        readItemAuthorOrNull(view.number, contract.repository, gh),
     }),
   };
   if (verdict === "fail") return planFailure(ctx);

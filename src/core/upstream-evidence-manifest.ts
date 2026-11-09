@@ -2869,7 +2869,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/lisa-audit.mjs":
       "8ca83977e7df232bf22912df6c6044c9162363a02ef77d5d518e03d73c280543",
     "scripts/lisa-ci-failure-redispatch.mjs":
-      "23f8eab3ebf97e93e36e12e0fb2c8ca794838e280995baf720e0a215fc413a37",
+      "6ebd9a3b70d47fa8706a1e2e94865537e41efc104b6a9ec185f65ab0a7f014ee",
     "scripts/lisa-ci-rework-route.mjs":
       "0234a31160f50f89d6b229d8412b19f14649fffd90a072476fdb2ea548857590",
     "scripts/lisa-commit-and-pr-local.sh":
@@ -12954,6 +12954,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/lisa-ci-failure-redispatch-trust.test.ts": true,
     "tests/unit/scripts/lisa-ci-failure-redispatch-workflow.test.ts": true,
     "tests/unit/scripts/lisa-ci-failure-redispatch.test.ts": true,
+    "tests/unit/scripts/lisa-ci-marker-lane-veto.test.ts": true,
     "tests/unit/scripts/lisa-ci-marker-parity.test.ts": true,
     "tests/unit/scripts/lisa-ci-marker-supersession.test.ts": true,
     "tests/unit/scripts/lisa-ci-marker-trust-config.test.ts": true,

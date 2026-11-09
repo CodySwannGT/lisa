@@ -20,7 +20,6 @@ import { trackerContract } from "../../../all/copy-overwrite/scripts/lisa-work-i
 import {
   isNewestLisaMarker,
   markerTrust,
-  planFromFixture,
   readItemAuthor,
   recordedGh,
 } from "../../../scripts/lisa-ci-failure-redispatch.mjs";
@@ -36,6 +35,7 @@ const UNTRUSTED = "untrusted-later-marker";
 const NOT_NEWEST = "not-newest";
 const OUTSIDER = "drive-by-user";
 const CI_REWORK = "ci-rework";
+const HOLD = "[lisa-human-gate]";
 const DRIVE_BY = "[lisa-x] hi";
 const COMMENTS = `api repos/${REPO}/issues/1/comments --paginate --slurp`;
 const ISSUE = `api repos/${REPO}/issues/1`;
@@ -168,12 +168,13 @@ describe("the producer predicate", () => {
     user: bot,
     body: `<!-- [lisa-ci-failed] pr=1 sha=${"a".repeat(40)} -->`,
   };
+  const OWNER_ID = 4242;
   const later = (login: string, body: string): Comment => ({
     id: 3,
-    user: { login },
+    user: login === "owner" ? { login, id: OWNER_ID } : { login, id: 9 },
     body,
   });
-  const itemAuthor = () => ({ login: "owner" });
+  const itemAuthor = () => ({ login: "owner", id: OWNER_ID });
   const trust = markerTrust({ trustedAuthorIds: [], itemAuthor });
 
   it("ignores an untrusted later non-failure marker", () => {
@@ -182,7 +183,7 @@ describe("the producer predicate", () => {
   });
 
   it("counts the item author's later non-claim marker", () => {
-    const comments = [marker, later("owner", "[lisa-human-gate]")];
+    const comments = [marker, later("owner", HOLD)];
     expect(isNewestLisaMarker(comments, marker, trust)).toBe(false);
   });
 
@@ -198,8 +199,27 @@ describe("the producer predicate", () => {
     expect(isNewestLisaMarker([marker, genuine], marker, trust)).toBe(false);
   });
 
+  // Logins can be freed and re-registered, so the item author is matched by
+  // numeric id only; a side with no id is never the author (#4707 review).
+  it.each([
+    ["the comment carries no id", { login: "owner" }, itemAuthor],
+    [
+      "the author carries no id",
+      { login: "owner", id: OWNER_ID },
+      () => ({ login: "owner" }),
+    ],
+    ["the ids differ", { login: "owner", id: 1 }, itemAuthor],
+  ])(
+    "does not treat a same-login comment as the author when %s",
+    (_case, user, author) => {
+      const hold = { id: 3, user, body: HOLD };
+      const byLogin = markerTrust({ trustedAuthorIds: [], itemAuthor: author });
+      expect(isNewestLisaMarker([marker, hold], marker, byLogin)).toBe(true);
+    }
+  );
+
   it("trusts only github-actions[bot] when no trust is given", () => {
-    const comments = [marker, later("owner", "[lisa-human-gate]")];
+    const comments = [marker, later("owner", HOLD)];
     expect(isNewestLisaMarker(comments, marker)).toBe(true);
   });
 
@@ -209,32 +229,4 @@ describe("the producer predicate", () => {
       login: "CodySwannGT",
     });
   });
-
-  it.each([
-    ["a non-failure marker", DRIVE_BY],
-    ["a claim comment", "[lisa-tracker-claim] Claimed by Lisa."],
-  ])(
-    "still repairs the lane when only an outsider posted %s since",
-    (_case, body) => {
-      const data = JSON.parse(
-        readFileSync(
-          "tests/fixtures/ci-failure-redispatch/agent-pr-failed-replayed.json",
-          "utf8"
-        )
-      );
-      const key = (suffix: string) => `api repos/${REPO}/issues/4672${suffix}`;
-      data.gh[
-        `issue view 4672 --repo ${REPO} --json state,labels`
-      ].stdout.labels = [{ name: "status:in-progress" }];
-      data.gh[key("/events --paginate --slurp")].stdout = [[]];
-      data.gh[key("/comments --paginate --slurp")].stdout[0].push({
-        id: 6700000099,
-        user: { login: OUTSIDER, type: "User" },
-        created_at: "2026-11-05T12:00:00Z",
-        body,
-      });
-      data.gh[key("")] = { stdout: { user: { login: "CodySwannGT" } } };
-      expect(planFromFixture(data, contract).outcome).toBe("relabel-repair");
-    }
-  );
 });

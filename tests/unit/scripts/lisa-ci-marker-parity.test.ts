@@ -128,8 +128,9 @@ describe("the producer and the route helper agree on every route fixture", () =>
   // Fixtures where the marker's PR is open and bound, so both scripts reach
   // the supersession question. The helper routes ci-rework exactly when the
   // marker still describes the item; the producer repairs the lane exactly
-  // then too, except after a trusted claim, which moved the lane without
-  // making the marker stale (the deliberate difference, untouchedSince).
+  // then too, except after any claim-only comment, which may have moved the
+  // lane without making the marker stale (the deliberate difference,
+  // untouchedSince).
   const LANE_MOVED = new Set(["claim-after-marker", "reclaim-twice"]);
   const names = readdirSync(FIXTURES)
     .filter(file => file.endsWith(".json"))
