@@ -28,6 +28,9 @@ const LEGACY_ACCOUNT_ID = "557058:f58131cb-b67d-43c7-b30d-6b58d40bd077";
 /** A Telegram bot token's shape: a bot id, a colon, a 35-character secret. */
 const BOT_TOKEN = `1234567890:${"A".repeat(35)}`;
 
+/** The wording every credential-scan refusal carries. */
+const BOT_TOKEN_PROBLEM = "looks like a bot token";
+
 describe("Scenario: Malformed entries are refused", () => {
   it.each([
     ["operatorIds", "user:583231", /unknown prefix "user:"/],
@@ -154,7 +157,7 @@ describe("credential scan of the id lists (CodySwannGT/lisa#4719)", () => {
     });
     expect(errors).toHaveLength(1);
     expect(errors[0]).toContain(`sessionManager.${list}[0]`);
-    expect(errors[0]).toContain("looks like a bot token");
+    expect(errors[0]).toContain(BOT_TOKEN_PROBLEM);
     expect(errors[0]).not.toContain(BOT_TOKEN);
   });
 
@@ -165,7 +168,28 @@ describe("credential scan of the id lists (CodySwannGT/lisa#4719)", () => {
     });
     expect(errors).toHaveLength(1);
     expect(errors[0]).toContain("sessionManager.notify.chat");
-    expect(errors[0]).toContain("looks like a bot token");
+    expect(errors[0]).toContain(BOT_TOKEN_PROBLEM);
     expect(errors[0]).not.toContain(LEGACY_ACCOUNT_ID);
   });
+
+  // The exemption belongs to the top-level id lists only: a same-named key
+  // nested elsewhere in the block is just another field to the scan.
+  it.each([
+    ["notify", "operatorIds"],
+    ["notify", "trustedAuthorIds"],
+  ])(
+    "still refuses a UUID-shaped value in a nested %s.%s list",
+    (parent, key) => {
+      const errors = validateSessionManager({
+        name: "m",
+        operatorIds: ["id:1"],
+        trustedAuthorIds: ["x"],
+        [parent]: { [key]: [LEGACY_ACCOUNT_ID] },
+      });
+      const path = `sessionManager.${parent}.${key}[0]`;
+      expect(errors.filter(e => e.includes(path))).toHaveLength(1);
+      expect(errors.join("\n")).toContain(BOT_TOKEN_PROBLEM);
+      expect(errors.join("\n")).not.toContain(LEGACY_ACCOUNT_ID);
+    }
+  );
 });
