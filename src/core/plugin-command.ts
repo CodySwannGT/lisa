@@ -5,15 +5,29 @@ import { spawn } from "node:child_process";
 export const PLUGIN_PROBE_TIMEOUT_MS = 15_000;
 /** Registration shares the normal reconciliation wait budget across commands. */
 export const PLUGIN_REGISTRATION_TIMEOUT_MS = 120_000;
+/**
+ * Budget for pruning dead-checkout registrations in one apply. A machine with a
+ * large backlog clears it over several applies instead of stalling one.
+ */
+export const PLUGIN_PRUNE_TIMEOUT_MS = 30_000;
 /** Grace period for the owned CLI group to finish after termination. */
 const TERMINATION_GRACE_MS = 2_000;
 /** Preserve Node exec's default per-stream capture limit. */
 const MAX_CAPTURE_BYTES = 1_048_576;
+/**
+ * Capture limit for `claude plugin list --json`. The registry lists every
+ * project-scope registration on the machine, and a long-lived workstation's
+ * list passes 2 MB — over the default limit, which made each list call fail
+ * and every caller fall back silently (#4645).
+ */
+export const PLUGIN_LIST_MAX_CAPTURE_BYTES = 33_554_432;
 
 /** One command's working directory and remaining operation budget. */
 export interface PluginCommandOptions {
   readonly cwd: string;
   readonly timeoutMs: number;
+  /** Per-stream capture limit; defaults to Node exec's 1 MiB. */
+  readonly maxCaptureBytes?: number;
 }
 
 /**
@@ -53,6 +67,7 @@ export async function runPluginCommand(
   if (!Number.isFinite(options.timeoutMs) || options.timeoutMs <= 0) {
     throw new Error("Plugin registration operation deadline reached");
   }
+  const maxCaptureBytes = options.maxCaptureBytes ?? MAX_CAPTURE_BYTES;
   return await new Promise((resolve, reject) => {
     const grouped = process.platform !== "win32";
     // The vendor CLI is user-installed; argv is never evaluated by a shell.
@@ -87,9 +102,14 @@ export async function runPluginCommand(
       const size = Buffer.byteLength(chunk);
       if (stream === "stdout") stdoutBytes += size;
       else stderrBytes += size;
-      if (stdoutBytes > MAX_CAPTURE_BYTES || stderrBytes > MAX_CAPTURE_BYTES) {
-        failure ??= new Error("Plugin command output exceeded capture limit");
-        terminate();
+      if (stdoutBytes > maxCaptureBytes || stderrBytes > maxCaptureBytes) {
+        // Terminate once. Buffered chunks keep arriving after SIGTERM, and
+        // re-signalling a group whose leader has exited throws EPERM on macOS
+        // from inside this stream listener — an uncaught exception.
+        if (failure === undefined) {
+          failure = new Error("Plugin command output exceeded capture limit");
+          terminate();
+        }
       } else if (stream === "stdout" && failure === undefined) {
         stdout += chunk;
       }

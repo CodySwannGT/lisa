@@ -61,6 +61,12 @@ import { StrategyRegistry, type StrategyContext } from "../strategies/index.js";
 import type { IBackupService } from "../transaction/index.js";
 import { listFilesRecursive } from "../utils/file-operations.js";
 import { resolvePrimaryWorktreeRoot } from "../utils/linked-worktree.js";
+import { readMarketplaceCatalog } from "../utils/marketplace-manifest.js";
+import {
+  describeSkippedPluginKey,
+  partitionByLisaMarketplace,
+} from "./plugin-marketplace-filter.js";
+import { pruneDeadPluginRegistrations } from "./plugin-registration-prune.js";
 import {
   loadIgnorePatterns,
   type IgnorePatterns,
@@ -97,7 +103,9 @@ import {
 } from "./learnings-file-safety.js";
 import { APPLY_RECEIPT_DISPLAY_PATH } from "./apply-receipt.js";
 import {
+  PLUGIN_LIST_MAX_CAPTURE_BYTES,
   PLUGIN_PROBE_TIMEOUT_MS,
+  PLUGIN_PRUNE_TIMEOUT_MS,
   PLUGIN_REGISTRATION_TIMEOUT_MS,
   runPluginCommand,
 } from "./plugin-command.js";
@@ -1001,6 +1009,9 @@ export class Lisa {
           Number(options.timeout),
           operationDeadline - Date.now()
         ),
+        ...(typeof options.maxCaptureBytes === "number"
+          ? { maxCaptureBytes: options.maxCaptureBytes }
+          : {}),
       });
 
     try {
@@ -1011,6 +1022,23 @@ export class Lisa {
     }
 
     await this.installPluginsAndUpdateMarketplace(execAsync, plugins);
+
+    // After installs, on its own budget, so a long backlog of dead
+    // registrations never starves this checkout's own registration (#4645).
+    const pruneDeadline = Date.now() + PLUGIN_PRUNE_TIMEOUT_MS;
+    await pruneDeadPluginRegistrations(this.config.destDir, {
+      runClaude: async (args, cwd) =>
+        await runPluginCommand(args, {
+          cwd,
+          timeoutMs: Math.min(
+            PLUGIN_PROBE_TIMEOUT_MS,
+            pruneDeadline - Date.now()
+          ),
+          maxCaptureBytes: PLUGIN_LIST_MAX_CAPTURE_BYTES,
+        }),
+      deadlineReached: () => Date.now() >= pruneDeadline,
+      logger: this.deps.logger,
+    });
   }
 
   /**
@@ -1042,14 +1070,15 @@ export class Lisa {
    * installed, so the self-heal property (a removed plugin comes back on the
    * next install) survives at the cost of one `claude plugin list` call.
    * @param execAsync - Promisified exec function for running shell commands
-   * @param plugins - Plugin identifiers from enabledPlugins (e.g. "lisa@lisa")
+   * @param enabledPlugins - Plugin identifiers from enabledPlugins (e.g. "lisa@lisa")
    */
   private async installPluginsAndUpdateMarketplace(
     execAsync: PluginExecAsync,
-    plugins: readonly string[]
+    enabledPlugins: readonly string[]
   ): Promise<void> {
     const { logger } = this.deps;
     const validPluginName = /^[\w@./-]+$/;
+    const plugins = await this.withoutUnavailableLisaPlugins(enabledPlugins);
     const { fullSync, toInstall, version, isLinkedWorktree } =
       await this.computePluginSyncPlan(execAsync, plugins);
 
@@ -1095,6 +1124,29 @@ export class Lisa {
       fullSync,
       sync.succeeded && refreshed
     );
+  }
+
+  /**
+   * Drop enabled `<name>@lisa` keys the Lisa marketplace cannot supply, with
+   * one warning each. A skip never counts against the sync, so a retired key
+   * such as `typescript@lisa` no longer fails every apply (#4645). An
+   * unreadable manifest skips nothing.
+   * @param enabledPlugins - Plugin identifiers from enabledPlugins
+   * @returns The identifiers worth attempting, in order
+   */
+  private async withoutUnavailableLisaPlugins(
+    enabledPlugins: readonly string[]
+  ): Promise<readonly string[]> {
+    const { installable, skipped } = partitionByLisaMarketplace(
+      enabledPlugins,
+      await readMarketplaceCatalog(
+        path.join(this.config.lisaDir, ".claude-plugin", "marketplace.json")
+      )
+    );
+    for (const key of skipped) {
+      this.deps.logger.warn(describeSkippedPluginKey(key));
+    }
+    return installable;
   }
 
   /**
@@ -1298,6 +1350,7 @@ export class Lisa {
       const result = (await execAsync("claude plugin list --json", {
         cwd: this.config.destDir,
         timeout: PLUGIN_PROBE_TIMEOUT_MS,
+        maxCaptureBytes: PLUGIN_LIST_MAX_CAPTURE_BYTES,
       })) as { stdout?: unknown };
       const parsed: unknown = JSON.parse(String(result.stdout ?? ""));
       if (!Array.isArray(parsed)) {

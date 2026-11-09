@@ -8,6 +8,9 @@ appendFileSync("calls.jsonl", `${JSON.stringify(process.argv.slice(2))}\n`);
 if (mode === "success") {
   process.stdin.resume();
   process.stdin.on("end", () => process.stdout.write("input-closed\n"));
+} else if (mode === "large") {
+  // `receipt` carries the byte count for this mode.
+  process.stdout.write("x".repeat(Number(receipt)));
 } else if (mode === "failure") {
   process.exitCode = 7;
 } else if (mode === "wait") {

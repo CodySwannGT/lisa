@@ -71,12 +71,40 @@ _lisa_bootstrap_worktree_plugins() {
 
   echo "🔌 Bootstrapping Claude Code plugins for new worktree (scope: project)…"
   _lisa_claude plugin marketplace update lisa >/dev/null 2>&1 || true
+
+  # Plugin names the Lisa marketplace actually ships. A `<name>@lisa` key it
+  # does not list (e.g. the retired `typescript@lisa`) can never install, so it
+  # is skipped with one note and does not hold back the sentinel. When the
+  # manifest is unreadable this stays empty and every key is attempted, as
+  # before — never skip blindly.
+  _lisa_manifest="${CLAUDE_CONFIG_DIR:-$HOME/.claude}/plugins/marketplaces/lisa/.claude-plugin/marketplace.json"
+  _lisa_known=""
+  if [ -f "$_lisa_manifest" ]; then
+    _lisa_known="$(jq -r '.plugins[]?.name // empty' "$_lisa_manifest" 2>/dev/null || true)"
+  fi
+
   _had_failure=0
   for _p in $_plugins; do
     # Skip ids with shell-unsafe characters before interpolating into the CLI.
     case "$_p" in
       *[!A-Za-z0-9@._/-]*) continue ;;
     esac
+    if [ -n "$_lisa_known" ]; then
+      case "$_p" in
+        *@lisa)
+          if ! printf '%s\n' "$_lisa_known" | grep -qxF "${_p%@lisa}"; then
+            # Mirrors RETIRED_STACK_PLUGIN_KEYS in Lisa's core/retired-plugin-keys.
+            case "$_p" in
+              typescript@lisa | cdk@lisa | expo@lisa | nestjs@lisa | rails@lisa)
+                echo "  ⚠ $_p (not in the Lisa marketplace; retired, its successor is lisa-$_p)" ;;
+              *)
+                echo "  ⚠ $_p (not in the Lisa marketplace; skipped)" ;;
+            esac
+            continue
+          fi
+          ;;
+      esac
+    fi
     if _lisa_claude plugin install "$_p" --scope project >/dev/null 2>&1; then
       echo "  ✓ $_p"
     else
