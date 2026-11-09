@@ -42,11 +42,16 @@ export function serveProviderApi(args, env, state) {
     else send(row.json);
     return true;
   }
-  if (
-    args[0] === "release" &&
-    args[1] === "upload" &&
-    args[2] === "pr-assets"
-  ) {
+  // Any evidence release: the publisher uploads to the configured tag, which
+  // rotates (CodySwannGT/lisa#4692). The stored download URL carries that tag,
+  // exactly as GitHub's does, so the validator's release check is exercised.
+  if (args[0] === "release" && args[1] === "upload") {
+    if (env.FAKE_GH_UPLOAD_FAILURE) {
+      process.stderr.write(env.FAKE_GH_UPLOAD_FAILURE);
+      process.exitCode = 1;
+      return true;
+    }
+    const tag = args[2];
     const bytes = readFileSync(args[3]);
     const index = assets();
     const id = Math.max(100, ...index.map(asset => asset.id)) + 1;
@@ -58,7 +63,7 @@ export function serveProviderApi(args, env, state) {
       size: bytes.length,
       created_at: new Date().toISOString(),
       uploader: JSON.parse(env.FAKE_GH_PUBLISHER),
-      browser_download_url: `https://github.com/${repository}/releases/download/pr-assets/${name}`,
+      browser_download_url: `https://github.com/${repository}/releases/download/${tag}/${name}`,
     };
     writeFileSync(join(env.FAKE_GH_ASSET_DIRECTORY, `${id}.bin`), bytes);
     index.push(metadata);

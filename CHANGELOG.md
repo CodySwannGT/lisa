@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.99.6](https://github.com/CodySwannGT/lisa/compare/v4.99.5...v4.99.6) (2026-11-09)
+
+### [4.99.5](https://github.com/CodySwannGT/lisa/compare/v4.99.4...v4.99.5) (2026-11-09)
+
+
+### Bug Fixes
+
+* **opencode:** emit shared scripts that skill scripts import ([230ac43](https://github.com/CodySwannGT/lisa/commit/230ac43c21f8334b28440c65c1ab7464aa350093)), closes [CodySwannGT/lisa#4642](https://github.com/CodySwannGT/lisa/issues/4642) [CodySwannGT/lisa#4642](https://github.com/CodySwannGT/lisa/issues/4642)
+* **opencode:** normalize shared-script manifest paths and harden import parsing ([4e6d237](https://github.com/CodySwannGT/lisa/commit/4e6d237e320fa3263bb10a32ef768b2e19f46c34)), closes [CodySwannGT/lisa#4642](https://github.com/CodySwannGT/lisa/issues/4642) [CodySwannGT/lisa#4642](https://github.com/CodySwannGT/lisa/issues/4642)
+
+
+### Documentation
+
+* **evidence:** record roster and verification evidence for [#4642](https://github.com/CodySwannGT/lisa/issues/4642) ([8d886e8](https://github.com/CodySwannGT/lisa/commit/8d886e8e674183d60c6d7b7ee7483dcd0baee69a))
+
 ### [4.99.4](https://github.com/CodySwannGT/lisa/compare/v4.99.3...v4.99.4) (2026-11-09)
 
 
