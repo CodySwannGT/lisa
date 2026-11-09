@@ -7134,7 +7134,17 @@ function main() {
     return console.log("work-item binding cleared");
   }
   if (command === "backlink") return backlink(args);
-  if (command === "complete") return complete(args);
+  // `finish` and `complete` are one operation under two names, for the same
+  // reason as `link` and `bind` above (#4683). `complete` is a bash builtin
+  // that defines programmable completion from a string, and Claude Code's
+  // worktree isolation refuses any command line carrying that bare token —
+  // as argv[0], as this subcommand, or as an argument to a wrapper script. It
+  // refused `node scripts/lisa-work-item.mjs complete --ref ... --pr-url ...`
+  // on every attempt, which left a merged, verified, evidenced work item with
+  // no sanctioned path to its terminal state. `finish` is the spelling the
+  // docs teach; `complete` stays forever because host projects' checked-in
+  // automation calls it and updates on its own schedule.
+  if (command === "finish" || command === "complete") return complete(args);
   if (command === "sweep") return sweep(args);
   // One place resolves the level, and everything else asks. The CI job needs
   // it to decide whether a missing tracker credential is a problem, and a
@@ -7160,8 +7170,8 @@ function main() {
   if (command === "validate-pr") return validatePr(args);
   if (command === DISCHARGE_COMMAND) return dischargePrGates(args);
   throw new TrackingError(
-    "Usage: lisa-work-item.mjs link|current|attach-branch|clear|verify-level|contract-version|backlink|publish-completion-proof|evidence-release [--ensure]|complete|sweep|lane|prepare-commit-msg|validate-commit|validate-push|validate-push-destination|validate-pr|discharge-pr-gates" +
-      "\n(`bind` is accepted as an alias for `link`, but some agent harnesses refuse the token `bind` in a command line.)"
+    "Usage: lisa-work-item.mjs link|current|attach-branch|clear|verify-level|contract-version|backlink|publish-completion-proof|evidence-release [--ensure]|finish|sweep|lane|prepare-commit-msg|validate-commit|validate-push|validate-push-destination|validate-pr|discharge-pr-gates" +
+      "\n(`bind` is accepted as an alias for `link`, and `complete` is accepted as an alias for `finish`, but some agent harnesses refuse the tokens `bind` and `complete` in a command line.)"
   );
 }
 

@@ -2145,6 +2145,7 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
     "fc0d92739e620d8fd70f7aa4a12d3e0b3a8f790d47c4a8322040f32c30b9445a",
     "fca248edcf17db19c22584ab549fb2409e57cb82fa9f8e7568890c98cd02b290",
     "fe064a2bd11200ed256fb36e203978f858fccbcaf40708496c066383345900ef",
+    "ffd5b44e89574e2e2b455e076209eeb207ba038e206e6892273a8dc2978066d8",
   ]),
   "scripts/lisa-worktree-guard.mjs": Object.freeze([
     "2535ef2a60b3413dacb8491c008ab28f0a07929196277d1d1fed54a04740c025",
@@ -4464,6 +4465,7 @@ export const LISA_OWNED_HASH_HISTORY_DERIVED: Readonly<
     "fc0d92739e620d8fd70f7aa4a12d3e0b3a8f790d47c4a8322040f32c30b9445a",
     "fca248edcf17db19c22584ab549fb2409e57cb82fa9f8e7568890c98cd02b290",
     "fe064a2bd11200ed256fb36e203978f858fccbcaf40708496c066383345900ef",
+    "ffd5b44e89574e2e2b455e076209eeb207ba038e206e6892273a8dc2978066d8",
   ]),
   "scripts/lisa-worktree-guard.mjs": Object.freeze([
     "2535ef2a60b3413dacb8491c008ab28f0a07929196277d1d1fed54a04740c025",
