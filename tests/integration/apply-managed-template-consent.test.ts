@@ -134,9 +134,14 @@ describe("managed-template consent through Lisa.apply (#4759)", () => {
    * Claude emits only fixture-owned AGENTS.md/CLAUDE.md. No vendor is launched.
    * @param skipGitCheck Dirty-tree waiver input, independent of the real prompter.
    * @param dryRun Whether to measure without writes.
+   * @param overrides Additional declared apply-mode inputs.
    * @returns Real orchestrator result.
    */
-  async function apply(skipGitCheck: boolean, dryRun = false) {
+  async function apply(
+    skipGitCheck: boolean,
+    dryRun = false,
+    overrides: Partial<LisaConfig> = {}
+  ) {
     const logger = new SilentLogger();
     const config: LisaConfig = {
       lisaDir,
@@ -146,6 +151,7 @@ describe("managed-template consent through Lisa.apply (#4759)", () => {
       validateOnly: false,
       skipGitCheck,
       harness: "claude",
+      ...overrides,
     };
     return new Lisa(config, {
       logger,
@@ -198,4 +204,49 @@ describe("managed-template consent through Lisa.apply (#4759)", () => {
     }
     expect(await fs.pathExists(path.join(destDir, ".lisabak"))).toBe(false);
   });
+
+  it.each([false, true])(
+    "core reduced mode preserves shared blocks despite internal --yes: git waiver=%s",
+    async skipGitCheck => {
+      expect(
+        (await apply(skipGitCheck, false, { postinstall: true })).success
+      ).toBe(true);
+      for (const relative of HOOKS) {
+        expect(await fs.readFile(path.join(destDir, relative), "utf8")).toBe(
+          OLD_HOOK
+        );
+      }
+      for (const relative of CURATED) {
+        expect(await fs.readFile(path.join(destDir, relative), "utf8")).toBe(
+          HOST_CONFIG
+        );
+      }
+      for (const relative of OVERWRITES) {
+        expect(await fs.readFile(path.join(destDir, relative), "utf8")).toBe(
+          NEW
+        );
+      }
+      expect(await fs.pathExists(path.join(destDir, "AGENTS.md"))).toBe(false);
+    }
+  );
+
+  it.each([false, true])(
+    "full-apply overrides the core install declaration: git waiver=%s",
+    async skipGitCheck => {
+      expect(
+        (
+          await apply(skipGitCheck, false, {
+            postinstall: true,
+            fullApply: true,
+          })
+        ).success
+      ).toBe(true);
+      for (const relative of TARGETS) {
+        expect(await fs.readFile(path.join(destDir, relative), "utf8")).toBe(
+          currentContents(relative)
+        );
+      }
+      expect(await fs.pathExists(path.join(destDir, "AGENTS.md"))).toBe(true);
+    }
+  );
 });

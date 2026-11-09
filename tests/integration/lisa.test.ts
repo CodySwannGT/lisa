@@ -441,115 +441,125 @@ describe("Lisa Integration Tests", () => {
       expect(pkg.scripts.build).toBe(TSC_BUILD_SCRIPT);
     });
 
-    it("preserves host-owned config during postinstall-safe apply", async () => {
-      await createTypeScriptProject(destDir);
-      // The duplicated form is the pre-#2467 spelling that still sits in
-      // installed projects; apply must collapse it to the current invocation,
-      // which surfaces failures instead of discarding them.
-      const swallowingPostinstall =
-        '[ -n "$CI" ] || LISA_BOOTSTRAP=1 node node_modules/@codyswann/lisa/dist/index.js --yes --skip-git-check . 2>/dev/null || true';
-      const guardedPostinstall = LISA_INVOCATION;
-      const duplicatedPostinstall = `[ -n "$CI" ] || LISA_BOOTSTRAP=1 ${swallowingPostinstall}`;
-      const hostPackageJson = {
-        name: "host-project",
-        dependencies: { typescript: "^5.0.0" },
-        scripts: { postinstall: duplicatedPostinstall, test: "host test" },
-        devDependencies: { oxlint: "^0.1.0" },
-      };
-      const expectedPackageJson = {
-        ...hostPackageJson,
-        scripts: {
-          ...hostPackageJson.scripts,
-          postinstall: guardedPostinstall,
-        },
-      };
-      const hostKnip = { ignoreDependencies: ["shell-quote"] };
-      const hostLintStaged = { "*.ts": "host-lint" };
-      const hostSafetyNet = { rules: [] };
-      const hostGitignore = "node_modules/\n.env.local\n";
-      const hostEslintIgnore = { ignores: ["dist/**", "host-owned/**"] };
-      const hostTsconfig = {
-        compilerOptions: { strict: true },
-        include: ["src/**/*.ts", "host/**/*.ts"],
-      };
-      const hostGithubActions = "# Host GitHub Actions guidance\n";
+    it.each([false, true])(
+      "preserves host-owned config during postinstall-safe apply (git waiver=%s)",
+      async skipGitCheck => {
+        await createTypeScriptProject(destDir);
+        // The duplicated form is the pre-#2467 spelling that still sits in
+        // installed projects; apply must collapse it to the current invocation,
+        // which surfaces failures instead of discarding them.
+        const swallowingPostinstall =
+          '[ -n "$CI" ] || LISA_BOOTSTRAP=1 node node_modules/@codyswann/lisa/dist/index.js --yes --skip-git-check . 2>/dev/null || true';
+        const guardedPostinstall = LISA_INVOCATION;
+        const duplicatedPostinstall = `[ -n "$CI" ] || LISA_BOOTSTRAP=1 ${swallowingPostinstall}`;
+        const hostPackageJson = {
+          name: "host-project",
+          dependencies: { typescript: "^5.0.0" },
+          scripts: { postinstall: duplicatedPostinstall, test: "host test" },
+          devDependencies: { oxlint: "^0.1.0" },
+        };
+        const expectedPackageJson = {
+          ...hostPackageJson,
+          scripts: {
+            ...hostPackageJson.scripts,
+            postinstall: guardedPostinstall,
+          },
+        };
+        const hostKnip = { ignoreDependencies: ["shell-quote"] };
+        const hostLintStaged = { "*.ts": "host-lint" };
+        const hostSafetyNet = { rules: [] };
+        const hostGitignore = "node_modules/\n.env.local\n";
+        const hostEslintIgnore = { ignores: ["dist/**", "host-owned/**"] };
+        const hostTsconfig = {
+          compilerOptions: { strict: true },
+          include: ["src/**/*.ts", "host/**/*.ts"],
+        };
+        const hostGithubActions = "# Host GitHub Actions guidance\n";
 
-      await fs.writeJson(path.join(destDir, PACKAGE_JSON), hostPackageJson);
-      await fs.writeJson(path.join(destDir, KNIP_JSON), hostKnip);
-      await fs.writeJson(path.join(destDir, LINT_STAGED_JSON), hostLintStaged);
-      await fs.writeJson(path.join(destDir, SAFETY_NET_JSON), hostSafetyNet);
-      await fs.writeFile(path.join(destDir, GITIGNORE), hostGitignore);
-      await fs.writeJson(
-        path.join(destDir, ESLINT_IGNORE_CONFIG),
-        hostEslintIgnore
-      );
-      await fs.writeJson(path.join(destDir, TSCONFIG_JSON), hostTsconfig);
-      await fs.outputFile(
-        path.join(destDir, GITHUB_ACTIONS_MD),
-        hostGithubActions
-      );
+        await fs.writeJson(path.join(destDir, PACKAGE_JSON), hostPackageJson);
+        await fs.writeJson(path.join(destDir, KNIP_JSON), hostKnip);
+        await fs.writeJson(
+          path.join(destDir, LINT_STAGED_JSON),
+          hostLintStaged
+        );
+        await fs.writeJson(path.join(destDir, SAFETY_NET_JSON), hostSafetyNet);
+        await fs.writeFile(path.join(destDir, GITIGNORE), hostGitignore);
+        await fs.writeJson(
+          path.join(destDir, ESLINT_IGNORE_CONFIG),
+          hostEslintIgnore
+        );
+        await fs.writeJson(path.join(destDir, TSCONFIG_JSON), hostTsconfig);
+        await fs.outputFile(
+          path.join(destDir, GITHUB_ACTIONS_MD),
+          hostGithubActions
+        );
 
-      const tsCopyOverwrite = path.join(lisaDir, "typescript", COPY_OVERWRITE);
-      await fs.writeJson(path.join(tsCopyOverwrite, KNIP_JSON), {
-        ignoreDependencies: ["from-lisa"],
-      });
-      await fs.writeJson(path.join(tsCopyOverwrite, LINT_STAGED_JSON), {
-        "*.ts": "lisa-lint",
-      });
-      await fs.writeJson(path.join(tsCopyOverwrite, SAFETY_NET_JSON), {
-        rules: [{ match: "no-verify" }],
-      });
-      await fs.writeFile(path.join(tsCopyOverwrite, GITIGNORE), "dist/\n");
-      await fs.writeJson(path.join(tsCopyOverwrite, ESLINT_IGNORE_CONFIG), {
-        ignores: ["lisa-template/**"],
-      });
-      await fs.writeJson(path.join(tsCopyOverwrite, TSCONFIG_JSON), {
-        extends: "./tsconfig.base.json",
-      });
-      await fs.outputFile(
-        path.join(tsCopyOverwrite, GITHUB_ACTIONS_MD),
-        "# Lisa GitHub Actions guidance\n"
-      );
-      const packageLisaDir = path.join(lisaDir, "typescript", "package-lisa");
-      await fs.ensureDir(packageLisaDir);
-      await fs.writeJson(path.join(packageLisaDir, "package.lisa.json"), {
-        force: {
-          scripts: { test: "vitest run" },
-          devDependencies: { oxlint: "^1.0.0" },
-        },
-      });
+        const tsCopyOverwrite = path.join(
+          lisaDir,
+          "typescript",
+          COPY_OVERWRITE
+        );
+        await fs.writeJson(path.join(tsCopyOverwrite, KNIP_JSON), {
+          ignoreDependencies: ["from-lisa"],
+        });
+        await fs.writeJson(path.join(tsCopyOverwrite, LINT_STAGED_JSON), {
+          "*.ts": "lisa-lint",
+        });
+        await fs.writeJson(path.join(tsCopyOverwrite, SAFETY_NET_JSON), {
+          rules: [{ match: "no-verify" }],
+        });
+        await fs.writeFile(path.join(tsCopyOverwrite, GITIGNORE), "dist/\n");
+        await fs.writeJson(path.join(tsCopyOverwrite, ESLINT_IGNORE_CONFIG), {
+          ignores: ["lisa-template/**"],
+        });
+        await fs.writeJson(path.join(tsCopyOverwrite, TSCONFIG_JSON), {
+          extends: "./tsconfig.base.json",
+        });
+        await fs.outputFile(
+          path.join(tsCopyOverwrite, GITHUB_ACTIONS_MD),
+          "# Lisa GitHub Actions guidance\n"
+        );
+        const packageLisaDir = path.join(lisaDir, "typescript", "package-lisa");
+        await fs.ensureDir(packageLisaDir);
+        await fs.writeJson(path.join(packageLisaDir, "package.lisa.json"), {
+          force: {
+            scripts: { test: "vitest run" },
+            devDependencies: { oxlint: "^1.0.0" },
+          },
+        });
 
-      const result = await createLisa({
-        skipGitCheck: true,
-        postinstall: true,
-      }).apply();
+        const result = await createLisa({
+          skipGitCheck,
+          postinstall: true,
+        }).apply();
 
-      expect(result.success).toBe(true);
-      expect(await fs.readJson(path.join(destDir, PACKAGE_JSON))).toEqual(
-        expectedPackageJson
-      );
-      expect(await fs.readJson(path.join(destDir, KNIP_JSON))).toEqual(
-        hostKnip
-      );
-      expect(await fs.readJson(path.join(destDir, LINT_STAGED_JSON))).toEqual(
-        hostLintStaged
-      );
-      expect(await fs.readJson(path.join(destDir, SAFETY_NET_JSON))).toEqual(
-        hostSafetyNet
-      );
-      expect(await fs.readFile(path.join(destDir, GITIGNORE), "utf8")).toBe(
-        hostGitignore
-      );
-      expect(
-        await fs.readJson(path.join(destDir, ESLINT_IGNORE_CONFIG))
-      ).toEqual(hostEslintIgnore);
-      expect(await fs.readJson(path.join(destDir, TSCONFIG_JSON))).toEqual(
-        hostTsconfig
-      );
-      expect(
-        await fs.readFile(path.join(destDir, GITHUB_ACTIONS_MD), "utf8")
-      ).toBe(hostGithubActions);
-    });
+        expect(result.success).toBe(true);
+        expect(await fs.readJson(path.join(destDir, PACKAGE_JSON))).toEqual(
+          expectedPackageJson
+        );
+        expect(await fs.readJson(path.join(destDir, KNIP_JSON))).toEqual(
+          hostKnip
+        );
+        expect(await fs.readJson(path.join(destDir, LINT_STAGED_JSON))).toEqual(
+          hostLintStaged
+        );
+        expect(await fs.readJson(path.join(destDir, SAFETY_NET_JSON))).toEqual(
+          hostSafetyNet
+        );
+        expect(await fs.readFile(path.join(destDir, GITIGNORE), "utf8")).toBe(
+          hostGitignore
+        );
+        expect(
+          await fs.readJson(path.join(destDir, ESLINT_IGNORE_CONFIG))
+        ).toEqual(hostEslintIgnore);
+        expect(await fs.readJson(path.join(destDir, TSCONFIG_JSON))).toEqual(
+          hostTsconfig
+        );
+        expect(
+          await fs.readFile(path.join(destDir, GITHUB_ACTIONS_MD), "utf8")
+        ).toBe(hostGithubActions);
+      }
+    );
 
     it("does not regenerate committed agent trees during postinstall-safe apply", async () => {
       await createTypeScriptProject(destDir);
