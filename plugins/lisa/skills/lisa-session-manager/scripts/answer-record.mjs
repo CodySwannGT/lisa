@@ -63,19 +63,42 @@ function skipReason(status, worker, pending) {
 }
 
 /**
+ * `{requeue: true}` when clearing must also move the item to the `ready`
+ * role, else `{}`. A worker's `FAILED` moved the item to the `blocked` role,
+ * and the blocked pass keeps an item with no dependency edges, so without
+ * this move the "next attempt" that reads the recorded answer is never
+ * dispatched (CodySwannGT/lisa#4643). It holds whether the answer still has
+ * to be posted or is already on the item. A `DONE` worker's item and a
+ * repo-routing answer (carried by its `repo:<name>` stamp) are not moved.
+ * @param {string | undefined} status - The ledger item's status
+ * @param {{kind?: string, answer?: object | null} | null} pending - The
+ *   pending question
+ * @returns {{requeue?: true}} The flag, only when it applies
+ */
+function requeueOf(status, pending) {
+  const due =
+    status === "FAILED" &&
+    Boolean(pending?.answer) &&
+    pending?.kind !== "repo-route";
+  return due ? { requeue: true } : {};
+}
+
+/**
  * Plan recording a queued answer on the item. Throws when the answer looks
  * like it holds a credential: it would be posted on the item.
  * @param {{ref: string, status?: string, worker?: string | null,
  *   pending: object | null}} input - The item's ref, its ledger status and
  *   worker, and its pending question
- * @returns {{ref: string, record: false, reason: string} |
+ * @returns {{ref: string, record: false, reason: string, requeue?: true} |
  *   {ref: string, record: true, source: string, answerAt: string | null,
- *   comment: string}} Plan; answerAt is the queued answer's `at`, which
- *   `ledger clear-question --expect-answer-at` checks before clearing
+ *   comment: string, requeue?: true}} Plan; answerAt is the queued answer's
+ *   `at`, which `ledger clear-question --expect-answer-at` checks before
+ *   clearing; `requeue: true` means also move the item to the `ready` role
  */
 export function planAnswerRecord({ ref, status, worker, pending }) {
   const reason = skipReason(status, worker, pending);
-  if (reason) return { ref, record: false, reason };
+  const requeue = requeueOf(status, pending);
+  if (reason) return { ref, record: false, reason, ...requeue };
   const { source, text, at } = pending.answer;
   const shape = findCredentialShape(text);
   if (shape) {
@@ -93,5 +116,6 @@ export function planAnswerRecord({ ref, status, worker, pending }) {
       `${MANAGER_COMMENT_PREFIX} The operator answered the question above (by ${by}, ${at ?? "time unknown"}):`,
       text
     ),
+    ...requeue,
   };
 }

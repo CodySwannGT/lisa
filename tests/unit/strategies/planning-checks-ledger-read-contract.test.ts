@@ -1,0 +1,312 @@
+/**
+ * Contract for loading the learned planning checks
+ * (CodySwannGT/lisa#4643, item 6).
+ *
+ * `lisa-task-decomposition` step 0 — and the validators' S18 dry-run, which
+ * loads the checks the same way — used to turn every read error into "no
+ * ledger" and to project over the whole ledger before keeping only planning
+ * checks, so a planning check the budget dropped was never named. The
+ * corrected command treats only `ENOENT` as "no ledger", warns once naming any
+ * other error, projects over the planning checks alone, and names the ones it
+ * omitted. These tests pin the text in every copy and run the source command
+ * against a missing, an unreadable and a valid ledger.
+ * @module tests/unit/strategies/planning-checks-ledger-read-contract
+ */
+import {
+  chmodSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
+import { tmpdir } from "node:os";
+import path from "node:path";
+
+import { afterEach, describe, expect, it } from "vitest";
+
+import { learningFingerprint } from "../../../src/core/learning-fingerprint.js";
+import {
+  LEARNINGS_CONTRACT,
+  type LearningEntry,
+} from "../../../src/core/learnings-contract.js";
+import { renderLearningsFile } from "../../../src/core/learnings-document.js";
+import { boundedExecFileSync } from "../../helpers/io-latency-budget.js";
+
+/** Every skill root a runtime reads: the source plus each projection. */
+const SKILL_ROOTS = [
+  "plugins/src/base/skills",
+  "plugins/lisa/skills",
+  "plugins/lisa-cursor/skills",
+  "plugins/lisa-agy/skills",
+  "plugins/lisa-copilot/skills",
+  "plugins/lisa-devin/skills",
+  "plugins/lisa/.codex-plugin/skills",
+] as const;
+
+const VALIDATORS = [
+  "lisa-jira-validate-ticket",
+  "lisa-github-validate-issue",
+  "lisa-linear-validate-issue",
+] as const;
+
+/** Every checked-in copy of the definition-of-ready rule. */
+const READY_RULES = [
+  "plugins/src/base/rules/reference/work-item-definition-of-ready.md",
+  "plugins/lisa/rules/reference/work-item-definition-of-ready.md",
+  "plugins/lisa-copilot/rules/reference/work-item-definition-of-ready.md",
+  "plugins/lisa-devin/rules/reference/work-item-definition-of-ready.md",
+  "plugins/lisa-cursor/rules/work-item-definition-of-ready-reference.mdc",
+] as const;
+
+const UNREADABLE =
+  "a ledger it cannot read prints one warning naming the error";
+const OMITTED = "names each planning check the projection omitted, by id";
+
+/**
+ * Read a repo-relative file.
+ * @param relativePath - Path from the repository root
+ * @returns File contents
+ */
+const read = (relativePath: string): string =>
+  readFileSync(path.resolve(relativePath), "utf8");
+
+/**
+ * The step 0 `node -e` program from a decomposition skill copy.
+ * @param skill - The skill text
+ * @returns The JavaScript passed to `node -e`
+ */
+const stepZeroProgram = (skill: string): string =>
+  /node -e '([\s\S]*?)' \|\| true/.exec(skill)?.[1] ?? "";
+
+describe.each(SKILL_ROOTS)("learned planning checks load (%s)", root => {
+  const skill = (name: string): string => read(`${root}/${name}/SKILL.md`);
+  const decomposition = skill("lisa-task-decomposition");
+  const program = stepZeroProgram(decomposition);
+
+  it("treats only ENOENT as no ledger", () => {
+    expect(program).toContain('error.code === "ENOENT"');
+    expect(program).not.toContain(".catch(() => null)");
+  });
+
+  it("projects over the planning checks alone and names the omitted ones", () => {
+    const filter = program.indexOf(
+      ".filter(e => /^Planning \\((prd|decomposition|ready-gate|filing)\\):/.test(e.rule))"
+    );
+    expect(filter).toBeGreaterThan(-1);
+    expect(filter).toBeLessThan(program.indexOf("m.projectLearnings("));
+    expect(program).toContain("JSON.stringify({ checks, omitted })");
+    expect(program).not.toContain("omittedCount");
+  });
+
+  it("explains the three outcomes in the step 0 prose", () => {
+    expect(decomposition).toContain(
+      "No output means there is no ledger yet (`ENOENT`): carry on."
+    );
+    expect(decomposition).toContain(
+      "A ledger that exists but cannot be read, or is malformed, prints one warning naming the error and yields nothing: carry on without it."
+    );
+    expect(decomposition).toContain("`omitted` lists, by id,");
+    expect(decomposition).not.toContain(
+      "No output means there is no ledger yet: carry on."
+    );
+  });
+
+  it.each(VALIDATORS)("%s S18 uses the corrected command", validator => {
+    const s18 = skill(validator).split("S18 — Stateless-pickup dry-run")[1];
+    expect(s18).toContain(UNREADABLE);
+    expect(s18).toContain(OMITTED);
+  });
+});
+
+describe.each(READY_RULES)("definition of ready S18 (%s)", rulePath => {
+  it("points at the corrected step 0 command", () => {
+    const rule = read(rulePath).replace(/\s+/g, " ");
+    expect(rule).toContain(UNREADABLE);
+    expect(rule).toContain(OMITTED);
+  });
+});
+
+describe("the step 0 command, executed (source)", () => {
+  const source = stepZeroProgram(
+    read("plugins/src/base/skills/lisa-task-decomposition/SKILL.md")
+  );
+  /**
+   * The step 0 program bound to a given learnings module.
+   * @param modulePath - Absolute path of the module to import
+   * @returns The runnable program
+   */
+  const bindTo = (modulePath: string): string =>
+    source.replace(
+      'import("@codyswann/lisa/learnings")',
+      `import(${JSON.stringify(modulePath)})`
+    );
+  const program = bindTo(path.resolve("src/core/learnings.ts"));
+  const dirs: string[] = [];
+
+  afterEach(() => {
+    for (const dir of dirs.splice(0)) {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  /**
+   * A scratch project with an optional ledger.
+   * @param ledger - Ledger contents, or undefined for none
+   * @returns The project root
+   */
+  const project = (ledger?: string): string => {
+    const dir = mkdtempSync(path.join(tmpdir(), "planning-checks-"));
+    dirs.push(dir);
+    mkdirSync(path.join(dir, ".lisa"));
+    if (ledger !== undefined) {
+      writeFileSync(path.join(dir, ".lisa/PROJECT_LEARNINGS.md"), ledger);
+    }
+    return dir;
+  };
+
+  /**
+   * Run the program from a project root, as step 0 says to.
+   * @param cwd - Project root
+   * @param code - The program to run; defaults to the real-module binding
+   * @returns Captured stdout and stderr
+   */
+  const run = (
+    cwd: string,
+    code: string = program
+  ): { stdout: string; stderr: string } => {
+    const outFile = path.join(cwd, "out.txt");
+    const errFile = path.join(cwd, "err.txt");
+    boundedExecFileSync({
+      label: "task-decomposition step 0 ledger read",
+      command: "/bin/bash",
+      args: ["-c", 'bun --eval "$PROGRAM" > "$OUT" 2> "$ERR"'],
+      cwd,
+      env: {
+        PATH: process.env.PATH ?? "/usr/bin:/bin",
+        HOME: process.env.HOME ?? cwd,
+        PROGRAM: code,
+        OUT: outFile,
+        ERR: errFile,
+      },
+    });
+    return {
+      stdout: readFileSync(outFile, "utf8"),
+      stderr: readFileSync(errFile, "utf8"),
+    };
+  };
+
+  /**
+   * One valid ledger entry for a rule.
+   * @param rule - The learning rule
+   * @param confidence - Its confidence; defaults to low
+   * @returns The entry
+   */
+  const entry = (
+    rule: string,
+    confidence: LearningEntry["confidence"] = "low"
+  ): LearningEntry => {
+    const fingerprint = learningFingerprint(rule);
+    return {
+      id: fingerprint,
+      fingerprint,
+      rule,
+      why: "w",
+      provenance: ["owner/repo#1"],
+      first_learned: "2026-01-01",
+      last_confirmed: "2026-01-01",
+      confidence,
+    };
+  };
+
+  it("is silent when there is no ledger", () => {
+    expect(program).not.toBe("");
+    expect(run(project())).toEqual({ stdout: "", stderr: "" });
+  });
+
+  it.skipIf(process.getuid?.() === 0 || process.platform === "win32")(
+    "warns, naming the error, when the ledger exists but cannot be read",
+    () => {
+      const dir = project("unreadable");
+      chmodSync(path.join(dir, ".lisa/PROJECT_LEARNINGS.md"), 0o000);
+      const { stdout, stderr } = run(dir);
+      expect(stdout).toBe("");
+      expect(stderr).toContain("learned planning checks unavailable");
+      expect(stderr).toContain("EACCES");
+    }
+  );
+
+  it("returns only the planning checks, with an omitted list", () => {
+    const planning = entry(
+      "Planning (decomposition): name the migration owner."
+    );
+    const other = entry("Run the formatter before committing.");
+    const { stdout, stderr } = run(
+      project(renderLearningsFile([planning, other]))
+    );
+    expect(stderr).toBe("");
+    expect(JSON.parse(stdout)).toEqual({
+      checks: [{ id: planning.id, rule: planning.rule, confidence: "low" }],
+      omitted: [],
+    });
+  });
+
+  it("warns rather than reading as no ledger when the ledger is over budget", () => {
+    // The ledger's own parser enforces the projection's budget, so a ledger
+    // with more entries than maxEntries is malformed, not empty.
+    const over = Array.from(
+      { length: LEARNINGS_CONTRACT.maxEntries + 1 },
+      (_, index) => JSON.stringify(entry(`Planning (prd): check ${index}.`))
+    ).join("\n");
+    const { stdout, stderr } = run(
+      project(`# Project Learnings\n\n\`\`\`jsonl\n${over}\n\`\`\`\n`)
+    );
+    expect(stdout).toBe("");
+    expect(stderr).toContain("learned planning checks unavailable");
+  });
+
+  it("names the dropped planning checks, and other learnings never displace one", () => {
+    // A parseable ledger cannot overflow the projection today: the parser
+    // enforces the same budget. To exercise the omitted path the real module
+    // is wrapped with a reader that skips only that budget check, so the
+    // real projection and the real step 0 program decide what is dropped.
+    const extra = 5;
+    const kept = Array.from({ length: LEARNINGS_CONTRACT.maxEntries }, (_, i) =>
+      entry(`Planning (decomposition): kept check ${i}.`, "medium")
+    );
+    const dropped = Array.from({ length: extra }, (_, i) =>
+      entry(`Planning (ready-gate): dropped check ${i}.`, "low")
+    );
+    const others = Array.from({ length: extra }, (_, i) =>
+      entry(`Run the formatter before commit ${i}.`, "high")
+    );
+    const dir = project(
+      [...others, ...dropped, ...kept].map(e => JSON.stringify(e)).join("\n")
+    );
+    const wrapper = path.join(dir, "learnings-unbounded-reader.ts");
+    const real = JSON.stringify(path.resolve("src/core/learnings.ts"));
+    writeFileSync(
+      wrapper,
+      [
+        `export * from ${real};`,
+        "export const parseLearningsFile = raw =>",
+        '  raw.split("\\n").filter(line => line.startsWith("{")).map(line => JSON.parse(line));',
+      ].join("\n")
+    );
+    const { stdout, stderr } = run(dir, bindTo(wrapper));
+    expect(stderr).toBe("");
+    const result = JSON.parse(stdout) as {
+      checks: { id: string; rule: string }[];
+      omitted: string[];
+    };
+    expect(result.omitted).toHaveLength(extra);
+    expect(new Set(result.omitted)).toEqual(new Set(dropped.map(e => e.id)));
+    expect(result.checks).toHaveLength(kept.length);
+    expect(new Set(result.checks.map(c => c.id))).toEqual(
+      new Set(kept.map(e => e.id))
+    );
+    expect(result.checks.every(c => c.rule.startsWith("Planning ("))).toBe(
+      true
+    );
+  });
+});
