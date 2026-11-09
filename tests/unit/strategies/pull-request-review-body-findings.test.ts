@@ -281,6 +281,7 @@ describe.each(ROOTS)("pull-request-review reads review bodies (%s)", root => {
   it("counts review-body items separately in the Step 4 report", () => {
     const step = section(content, "Step 4");
     expect(step).toContain("review-body items: N implemented / M answered");
+    expect(step).toContain("summary-only reviews: <ids>");
   });
 
   it("says in its description and composition that it covers review bodies", () => {
@@ -320,7 +321,7 @@ describe.each(ROOTS)("drive-pr-to-merge routes review bodies (%s)", root => {
     const end = content.indexOf("\n### f. ", start);
     const step = content.slice(start, end);
     expect(step).toMatch(
-      /`no actionable items` marker[^.]*summary-only body[^.]*counts/i
+      /`no actionable items` marker[^.]*summary-only body counts, because/i
     );
   });
 });

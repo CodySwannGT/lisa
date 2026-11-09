@@ -129,7 +129,9 @@ a public PR, and a spoofed marker would hide a finding and let step (e) of
 Do not filter on the head commit. **A push does not answer a review body**, so a
 review from an earlier head stays in scope until a marker retires it. Split each
 body into its actionable items (a summary or walkthrough with nothing to change
-is not one) and triage them in Step 2. A body with no actionable items still needs its marker
+is not one) and triage them in Step 2. Expand and read every collapsed `<details>`
+section before you call a body summary-only: CodeRabbit puts its nitpick and
+outside-diff items there. A body with no actionable items still needs its marker
 (Step 2), or it is re-read on every run and step (e) of `drive-pr-to-merge` waits
 on it forever. For an older review, first decide whether each item still applies
 to the current code.
@@ -189,8 +191,8 @@ gh api graphql -f query='mutation($id:ID!){resolveReviewThread(input:{threadId:$
 
 Push any commits made (`git push`), then report a per-thread summary
 (implemented / replied-invalid / resolved), then the review-body items counted
-separately (`review-body items: N implemented / M answered`) with the reviews
-marked as having no actionable items, and whether any
+separately (`review-body items: N implemented / M answered`), then the reviews
+marked as having no actionable items (`summary-only reviews: <ids>`), and whether any
 thread or item needs human judgment. This skill resolves **threads**; it does not dismiss review-decision
 gates (`CHANGES_REQUESTED`) or merge the PR — the caller (`drive-pr-to-merge`)
 owns those.
