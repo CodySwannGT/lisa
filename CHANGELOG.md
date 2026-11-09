@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.101.4](https://github.com/CodySwannGT/lisa/compare/v4.101.3...v4.101.4) (2026-11-09)
+
+
+### Bug Fixes
+
+* **usage:** preserve ledger round-trips and integrity reports ([694e378](https://github.com/CodySwannGT/lisa/commit/694e378894adaa777916ec29cf70933c9635c323)), closes [CodySwannGT/lisa#4696](https://github.com/CodySwannGT/lisa/issues/4696)
+
 ### [4.101.3](https://github.com/CodySwannGT/lisa/compare/v4.101.2...v4.101.3) (2026-11-09)
 
 
