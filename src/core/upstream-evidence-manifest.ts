@@ -21,7 +21,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/check-third-party-action-pins.mjs":
       "4b6e1d444c50da031b848215913df7bfe87091b5eee2debfb60d5d0c42abe343",
     "all/copy-overwrite/scripts/check-third-party-review-evidence.mjs":
-      "3fbf12b8bfa36e06cc954d4b4ca953dcae43ed0ae7fb9d4c7e69af344c8ef5bd",
+      "4166ba635995685fcdd50418809f852c51c949eb90be0d280549adefacd6955a",
     "all/copy-overwrite/scripts/check-threshold-ratchet.mjs":
       "d4afc90ba8faf10925fff5fb0d6cd0ace22df2eaa0ec609ee969d0ec84092299",
     "all/copy-overwrite/scripts/check-workflow-load-failures.mjs":
@@ -1421,7 +1421,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-doctor/SKILL.md":
       "5c90c041d9903c0eb59c224472c863ba8519e03452a634d02a19d760253ac08f",
     "plugins/src/base/skills/lisa-drive-pr-to-merge/SKILL.md":
-      "8ae053b620ce8be2e3daa7ed247154fecc64130d2b8e3f9be06cc51f55302695",
+      "d6bd1f584fefd7dc6a130d23a7d691ae8440f13b5a69d1ea4e26231db2688128",
     "plugins/src/base/skills/lisa-epic-triage/SKILL.md":
       "d02760411249bddbd396f283191fe3e82bb7b95bf9393a19a7025dc5a57c3ab7",
     "plugins/src/base/skills/lisa-evaluation-suite/SKILL.md":
