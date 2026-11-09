@@ -138,9 +138,19 @@ describe("pruneDeadPluginRegistrations", () => {
     expect(outcome).toEqual({ pruned: 0, failed: 1, deferred: 0 });
     expect(lines.warn.join("\n")).toContain("1");
     expect(lines.warn.join("\n")).toContain(
-      "claude plugin uninstall lisa@lisa --scope project"
+      "claude plugin uninstall 'lisa@lisa' --scope project"
     );
     expect(existsSync(dead)).toBe(false);
+  });
+
+  it("quotes a dead path containing a single quote in the manual command", async () => {
+    const dead = path.join(root, "it's-gone");
+    const escapedDead = dead.replaceAll("'", String.raw`'\''`);
+    await pruneDeadPluginRegistrations(
+      live,
+      deps([{ id: "lisa@lisa", scope: "project", projectPath: dead }], true)
+    );
+    expect(lines.warn.join("\n")).toContain(`mkdir -p '${escapedDead}'`);
   });
 
   it("reports instead of failing when the dead path cannot be recreated", async () => {

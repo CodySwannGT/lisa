@@ -138,7 +138,22 @@ function findDeadPaths(stdout: unknown): readonly DeadPath[] | null {
  * @returns Shell command line
  */
 function manualCommand(projectPath: string, id: string): string {
-  return `mkdir -p '${projectPath}' && cd '${projectPath}' && claude plugin uninstall ${id} --scope project --keep-data`;
+  const quoted = shellQuote(projectPath);
+  return `mkdir -p ${quoted} && cd ${quoted} && claude plugin uninstall ${shellQuote(id)} --scope project --keep-data`;
+}
+
+/** A single quote as written inside a POSIX single-quoted string. */
+const ESCAPED_QUOTE = String.raw`'\''`;
+
+/**
+ * Single-quote a value for POSIX sh, so a printed recovery command stays
+ * copy-pasteable when a registry path contains a quote.
+ * @param value - Raw value
+ * @returns The value wrapped in single quotes with embedded quotes escaped
+ */
+function shellQuote(value: string): string {
+  const escaped = value.replaceAll("'", ESCAPED_QUOTE);
+  return `'${escaped}'`;
 }
 
 /**
