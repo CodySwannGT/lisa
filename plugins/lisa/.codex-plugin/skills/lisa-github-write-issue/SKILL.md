@@ -163,7 +163,8 @@ Scenario: <name>
  *underivable*, not exempt. Work that changes no runtime behavior declares the
  exemption in place of an environment: `None — no runtime behavior change:
  <reason>`, where `<reason>` is exactly one of the closed set
- `doc-only | config-only | type-only | test-only` and ends the line (the set
+ `doc-only | config-only | type-only | test-only`, as plain text, and is the
+ entire section content — nothing follows it in the section (the set
  is shared with `NO_RUNTIME_REASONS` in `scripts/lib/completion-proof-shape.mjs`;
  any other reason fails S8 and would be refused at completion). An Epic/container declares
  `None — container: state rolls up from children`. Visible prose, not an HTML

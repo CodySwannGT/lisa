@@ -223,6 +223,8 @@ describe("linear completion grammar compatibility", () => {
     "None — no runtime behavior change: refactor-only",
     "None — no runtime behavior change: test-only because specs only",
     "None — no runtime behavior change: test",
+    "None — no runtime behavior change: `test-only`",
+    "None — no runtime behavior change: test-only\n\nOnly spec files change.",
   ])("refuses a no-runtime exemption outside the closed set: %j", line => {
     expect(() =>
       declaredScope(`## Target Backend Environment\n${line}`, "production")

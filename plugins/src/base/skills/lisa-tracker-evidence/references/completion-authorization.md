@@ -103,7 +103,8 @@ Runtime leaves require remote and delivery proof. Explicit doc-only,
 config-only, type-only and test-only no-runtime declarations permit their
 corresponding N/A reasons. That reason set is closed and is exactly
 `NO_RUNTIME_REASONS` in `scripts/lib/completion-proof-shape.mjs`; any other
-reason grants no exemption; no-local-markers permits only the empty manifest exemption.
+reason grants no exemption. No-local-markers permits only the empty manifest
+exemption.
 Missing or duplicate environment declarations cannot grant an exemption.
 Childless Story/Spike work remains a leaf. Container rollup is a separate path;
 older blanket container wording in evidence guidance does not grant a new
