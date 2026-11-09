@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.99.11](https://github.com/CodySwannGT/lisa/compare/v4.99.10...v4.99.11) (2026-11-09)
+
+
+### Bug Fixes
+
+* **plugins:** harden dead-registration prune per review ([81e092c](https://github.com/CodySwannGT/lisa/commit/81e092cb46c3b75b21a7ca1a84756abba37fd7fb)), closes [CodySwannGT/lisa#4645](https://github.com/CodySwannGT/lisa/issues/4645)
+* **plugins:** prune retired plugin keys and dead-worktree registrations ([8a1d93e](https://github.com/CodySwannGT/lisa/commit/8a1d93eaf0d946bca6ffd4d2ecda0cc9290f0226)), closes [CodySwannGT/lisa#4645](https://github.com/CodySwannGT/lisa/issues/4645)
+* **plugins:** shell-quote the manual prune recovery command ([8bfe5e5](https://github.com/CodySwannGT/lisa/commit/8bfe5e50ae35219782883e0b811b292fcc7e4a60)), closes [CodySwannGT/lisa#4645](https://github.com/CodySwannGT/lisa/issues/4645) [CodySwannGT/lisa#4645](https://github.com/CodySwannGT/lisa/issues/4645)
+
 ### [4.99.10](https://github.com/CodySwannGT/lisa/compare/v4.99.9...v4.99.10) (2026-11-09)
 
 
