@@ -1,4 +1,4 @@
-import { execFileSync } from "node:child_process";
+import { boundedExecFileSync } from "../../helpers/io-latency-budget.js";
 import {
   createLisaUsageRollup,
   parseLisaUsageSection,
@@ -153,11 +153,12 @@ describe("allowed empty run IDs", () => {
         integrity: verifyLisaUsageSectionIntegrity(document)
       }));
     `;
-    const output = execFileSync(
-      process.execPath,
-      ["--input-type=module", "-e", script],
-      { encoding: "utf8", input: ledger("", "canonical") }
-    );
+    const output = boundedExecFileSync({
+      label: "standalone usage ledger readers",
+      command: process.execPath,
+      args: ["--input-type=module", "-e", script],
+      input: ledger("", "canonical"),
+    });
     expect(JSON.parse(output)).toStrictEqual({
       entries: [entry("")],
       integrity: { ok: true, issues: [] },
