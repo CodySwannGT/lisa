@@ -13441,6 +13441,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/strategies/credential-substrate-precedence.test.ts": true,
     "tests/unit/strategies/debrief-destination-hints.test.ts": true,
     "tests/unit/strategies/debrief-reroute-contract.test.ts": true,
+    "tests/unit/strategies/dependency-human-signoff-setting.test.ts": true,
     "tests/unit/strategies/dependency-internalization-kit-rule-pair.test.ts": true,
     "tests/unit/strategies/dependency-ownership-helpers.ts": true,
     "tests/unit/strategies/dependency-ownership-integration.test.ts": true,

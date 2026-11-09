@@ -64,7 +64,12 @@ and are called out as such; do not go looking for them in this repository.
   sign-off to be added and at every major upgrade; a **temporary/experimental
   dependency** needs none to be added — moving fast is the point — but must
   carry a written expiry date no more than one quarter out and a named exit, and
-  then needs sign-off to extend past that date or to promote it. The full
+  then needs sign-off to extend past that date or to promote it. A project that
+  wants no dependency to wait on a person (the `dependencies.humanSignOff`
+  setting) sets
+  `"dependencies": { "humanSignOff": "none" }` in `.lisa.config.json`; every
+  sign-off above is then dropped, while the trust class and its evidence are
+  still required. The full
   definitions, with the evidence each class demands, are at
   `node_modules/@codyswann/lisa/plugins/lisa/rules/reference/dependency-trust-classes.md`.
   Your coding agent already has these loaded, so "which trust class is this, and
