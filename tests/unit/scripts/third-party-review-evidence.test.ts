@@ -27,8 +27,10 @@ import {
   EVIDENCE_READINGS,
   humanReport,
   main,
+  readAllComments,
   READING_SENTENCES,
   readReviewerEvidence,
+  readStatuses,
   REVIEW_OBJECT_VERDICTS,
   reviewEvidenceVerdict,
   reviewsAtHead,
@@ -48,6 +50,22 @@ const UNRECOGNISED = "Everything looks fine to me";
 const HEAD = "a".repeat(40);
 const REPO_ARG = "--repo=acme/code";
 const OTHER_HEAD = "b".repeat(40);
+/** The one comment author the injected permission reader calls a writer. */
+const WRITER = "maintainer";
+
+/**
+ * The injected permission reader: only {@link WRITER} holds write access.
+ * @param login - The comment author
+ * @returns Whether the login is the writer
+ */
+const writersOnly = (login: string) => login === WRITER;
+
+/**
+ * A comment the writer posted, shaped as the GitHub API returns it.
+ * @param body - The comment body
+ * @returns The comment
+ */
+const byWriter = (body: string) => ({ body, user: { login: WRITER } });
 
 /** One gates block declaring a single third-party reviewer. */
 const ONE_REVIEWER = {
@@ -96,7 +114,7 @@ const verdictFor = ({
   gates = ONE_REVIEWER,
 }: {
   statuses?: ReadonlyArray<object>;
-  comments?: ReadonlyArray<{ body: string }>;
+  comments?: ReadonlyArray<{ body: string; user?: { login: string } }>;
   gates?: object;
 }) =>
   reviewEvidenceVerdict({
@@ -104,6 +122,7 @@ const verdictFor = ({
     statuses,
     comments,
     sha: HEAD,
+    canWrite: writersOnly,
   });
 
 describe("configuredReviewers", () => {
@@ -291,9 +310,9 @@ describe("reviewEvidenceVerdict", () => {
           },
         ],
         comments: [
-          {
-            body: `${substituteMarker({ context: CONTEXT, sha: HEAD })}\nread`,
-          },
+          byWriter(
+            `${substituteMarker({ context: CONTEXT, sha: HEAD })}\nread`
+          ),
         ],
       }).outcome
     ).toBe(EVIDENCE_OUTCOMES.substituted);
@@ -423,9 +442,10 @@ describe("substitutePosted", () => {
   it("finds a substitute posted for this reviewer at this head", () => {
     expect(
       substitutePosted({
-        comments: [{ body: substituteMarker({ context: CONTEXT, sha: HEAD }) }],
+        comments: [byWriter(substituteMarker({ context: CONTEXT, sha: HEAD }))],
         context: CONTEXT,
         sha: HEAD,
+        canWrite: writersOnly,
       })
     ).toBe(true);
   });
@@ -434,10 +454,11 @@ describe("substitutePosted", () => {
     expect(
       substitutePosted({
         comments: [
-          { body: substituteMarker({ context: CONTEXT, sha: OTHER_HEAD }) },
+          byWriter(substituteMarker({ context: CONTEXT, sha: OTHER_HEAD })),
         ],
         context: CONTEXT,
         sha: HEAD,
+        canWrite: writersOnly,
       })
     ).toBe(false);
   });
@@ -446,10 +467,11 @@ describe("substitutePosted", () => {
     expect(
       substitutePosted({
         comments: [
-          { body: substituteMarker({ context: OTHER_CONTEXT, sha: HEAD }) },
+          byWriter(substituteMarker({ context: OTHER_CONTEXT, sha: HEAD })),
         ],
         context: CONTEXT,
         sha: HEAD,
+        canWrite: writersOnly,
       })
     ).toBe(false);
   });
@@ -641,6 +663,44 @@ describe("validateGates — the reviewer marker is validated", () => {
   });
 });
 
+/**
+ * A `gh` runner that answers each API path from a map, and records the calls.
+ * A path the map does not hold is a failed read, as `gh` exiting non-zero is.
+ * @param answers - The raw body per API path
+ * @returns The runner and its call log
+ */
+function fakeGh(answers: Record<string, unknown>) {
+  const calls: string[][] = [];
+  return {
+    calls,
+    gh: (args: readonly string[]) => {
+      calls.push([...args]);
+      const route = String(args.at(-1));
+      if (!Object.hasOwn(answers, route)) {
+        throw new Error(`gh: HTTP 502 for ${route}`);
+      }
+      return JSON.stringify(answers[route]);
+    },
+  };
+}
+
+/** The status route the prover reads: one full page of it. */
+const STATUS_ROUTE = `repos/acme/code/commits/${HEAD}/status?per_page=100`;
+
+/** The comment route the prover reads for pull request 1, every page. */
+const COMMENTS_ROUTE = "repos/acme/code/issues/1/comments?per_page=100";
+
+/**
+ * Comments by a non-writer, none of which stands in for anything.
+ * @param count - How many
+ * @returns The comments
+ */
+const chatter = (count: number) =>
+  Array.from({ length: count }, (_value, index) => ({
+    body: `comment ${index}`,
+    user: { login: "visitor" },
+  }));
+
 describe("main", () => {
   /**
    * Capture what the CLI writes.
@@ -762,8 +822,9 @@ describe("main", () => {
         },
       ],
       comments: () => [
-        { body: substituteMarker({ context: CONTEXT, sha: HEAD }) },
+        byWriter(substituteMarker({ context: CONTEXT, sha: HEAD })),
       ],
+      canWrite: writersOnly,
       out: sink().stream,
     });
     expect(code).toBe(0);
@@ -782,8 +843,9 @@ describe("main", () => {
       const verdict = reviewEvidenceVerdict({
         reviewers: configuredReviewers({ gates: ONE_REVIEWER }),
         statuses: [{ context: CONTEXT, state: "success", description }],
-        comments: [{ body: substituteMarker({ context: CONTEXT, sha: HEAD }) }],
+        comments: [byWriter(substituteMarker({ context: CONTEXT, sha: HEAD }))],
         sha: HEAD,
+        canWrite: writersOnly,
       });
       expect(verdict.outcome).toBe(EVIDENCE_OUTCOMES.substituted);
       expect(verdict.readings[0]?.reading).toBe(EVIDENCE_READINGS.noWork);
@@ -792,13 +854,111 @@ describe("main", () => {
         pulls: () => [1],
         statuses: () => [{ context: CONTEXT, state: "success", description }],
         comments: () => [
-          { body: substituteMarker({ context: CONTEXT, sha: HEAD }) },
+          byWriter(substituteMarker({ context: CONTEXT, sha: HEAD })),
         ],
+        canWrite: writersOnly,
         out: sink().stream,
       });
       expect(code).toBe(0);
     }
   );
+
+  describe("every read is complete, or reported unreadable (#4630)", () => {
+    const throttled = [
+      { context: CONTEXT, state: "success", description: THROTTLED },
+    ];
+
+    it("asks for a full page of statuses and returns them when it holds them all", () => {
+      const { gh, calls } = fakeGh({
+        [STATUS_ROUTE]: { total_count: 1, statuses: throttled },
+      });
+
+      expect(readStatuses("acme/code", HEAD, gh)).toEqual(throttled);
+      expect(calls).toEqual([["api", STATUS_ROUTE]]);
+    });
+
+    it("reports statuses unreadable when the combined status admits to more than it returned", () => {
+      const { gh } = fakeGh({
+        [STATUS_ROUTE]: { total_count: 101, statuses: throttled },
+      });
+
+      expect(readStatuses("acme/code", HEAD, gh)).toBeNull();
+    });
+
+    it("reads the reviewer as unreadable, not absent, behind an incomplete status page", () => {
+      const { gh } = fakeGh({
+        [STATUS_ROUTE]: {
+          total_count: 31,
+          statuses: Array.from({ length: 30 }, (_value, index) => ({
+            context: `ci/${index}`,
+            state: "success",
+            description: "ok",
+          })),
+        },
+      });
+      const out = sink();
+
+      main([`--sha=${HEAD}`, REPO_ARG, "--json"], {
+        gates: ONE_REVIEWER,
+        pulls: () => [1],
+        statuses: (sha: string) => readStatuses("acme/code", sha, gh),
+        comments: () => [],
+        out: out.stream,
+      });
+
+      expect(JSON.parse(out.chunks.join("")).readings[0].reading).toBe(
+        EVIDENCE_READINGS.unreadable
+      );
+    });
+
+    it("counts a writer's substitute in the 101st comment, across pages", () => {
+      const { gh, calls } = fakeGh({
+        [COMMENTS_ROUTE]: [
+          chatter(100),
+          [byWriter(substituteMarker({ context: CONTEXT, sha: HEAD }))],
+        ],
+      });
+      const out = sink();
+
+      const code = main([`--sha=${HEAD}`, REPO_ARG, "--json"], {
+        gates: ONE_REVIEWER,
+        pulls: () => [1],
+        statuses: () => throttled,
+        comments: (numbers: number[]) =>
+          readAllComments("acme/code", numbers, gh),
+        canWrite: writersOnly,
+        out: out.stream,
+      });
+
+      expect(code).toBe(0);
+      expect(JSON.parse(out.chunks.join("")).outcome).toBe(
+        EVIDENCE_OUTCOMES.substituted
+      );
+      expect(calls).toEqual([["api", "--paginate", "--slurp", COMMENTS_ROUTE]]);
+    });
+
+    it("reports comments it could not read, and counts no substitute from them", () => {
+      const { gh } = fakeGh({});
+      const out = sink();
+
+      expect(readAllComments("acme/code", [1], gh)).toBeNull();
+      const code = main([`--sha=${HEAD}`, REPO_ARG], {
+        gates: ONE_REVIEWER,
+        pulls: () => [1],
+        statuses: () => throttled,
+        comments: (numbers: number[]) =>
+          readAllComments("acme/code", numbers, gh),
+        canWrite: writersOnly,
+        out: out.stream,
+      });
+
+      expect(code).toBe(1);
+      expect(out.chunks.join("")).toContain(
+        "the pull request's comments could not be read, so no substitute was counted"
+      );
+      expect(out.chunks.join("")).not.toContain("NOTHING stands in its place");
+    });
+  });
 
   it("exits 2 without a --sha rather than deciding on nothing", () => {
     const err = sink();

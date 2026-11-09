@@ -32,15 +32,17 @@ function runFixture(name: string) {
 }
 
 describe("the CLI under plain node", () => {
-  it.each(["trusted-marker", "claim-after-marker", "reclaim-twice"])(
-    "prints the ci-rework route for %s",
-    name => {
-      const { status, json } = runFixture(name);
-      expect(status).toBe(0);
-      expect(json).toMatchObject({ route: "ci-rework", pr: 101 });
-      expect(json.failingChecks.length).toBeGreaterThan(0);
-    }
-  );
+  it.each([
+    "trusted-marker",
+    "claim-after-marker",
+    "reclaim-twice",
+    "untrusted-later-marker",
+  ])("prints the ci-rework route for %s", name => {
+    const { status, json } = runFixture(name);
+    expect(status).toBe(0);
+    expect(json).toMatchObject({ route: "ci-rework", pr: 101 });
+    expect(json.failingChecks.length).toBeGreaterThan(0);
+  });
 
   it.each([
     ["human-authored", "untrusted-author"],

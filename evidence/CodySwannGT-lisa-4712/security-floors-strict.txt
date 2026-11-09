@@ -1,0 +1,19 @@
+# AC-1 | HEAD c4c2daa67710528bc1845b5868a06bfd2e8a8158 | clean tree
+$ GH_TOKEN=$(gh auth token) node scripts/check-security-floors.mjs --strict
+## Security floors
+
+No force-pinned floor permits a high or critical vulnerable release. 205 package(s) across 8 manifest(s) checked.
+EXIT_CODE=0
+
+# Bite control: both template floors temporarily set to >=5.31.7 (restored from a byte copy immediately after; tree verified clean)
+## Security floors
+
+These pins permit a release the advisory database marks vulnerable. Because they sit in governance sections, a stale floor **overwrites** a downstream project that pinned correctly.
+
+| package | pinned | permits | advisory | patched | site |
+|---|---|---|---|---|---|
+| `systeminformation` | `>=5.31.7` | < 5.33.16 | GHSA-3f7j-7jwc-fxfj (high) | **5.33.16** | typescript/package-lisa/package.lisa.json force.overrides |
+| `systeminformation` | `>=5.31.7` | < 5.33.16 | GHSA-3f7j-7jwc-fxfj (high) | **5.33.16** | typescript/package-lisa/package.lisa.json force.resolutions |
+
+Raise each floor to the advisory's `first_patched_version`, then confirm the new value actually resolves on npm — a floor nothing satisfies is its own breakage.
+EXIT_CODE=1

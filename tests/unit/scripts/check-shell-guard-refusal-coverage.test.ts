@@ -36,6 +36,10 @@ import {
   judge,
   parseTrace,
 } from "../../../scripts/lib/shell-guard-refusal-coverage.mjs";
+import {
+  candidateSuites,
+  HAND_RUN_SUITES,
+} from "../../../scripts/check-shell-guard-refusal-coverage.mjs";
 
 /** The check's CLI, by repository-relative path. */
 const CHECK = "scripts/check-shell-guard-refusal-coverage.mjs";
@@ -239,6 +243,27 @@ describe("the population", () => {
 
     expect(copies.length).toBeGreaterThan(3);
     expect(new Set(copies.map(entry => entry.sha256)).size).toBe(1);
+  });
+});
+
+describe("the candidate suites", () => {
+  /** The journey owner decision 4 of CodySwannGT/lisa#4587 took off the PR path. */
+  const PACKED_HOST_JOURNEY =
+    "tests/integration/shared-runtime-packed-hosts.test.ts";
+
+  it("leave the packed-host journey to its by-hand run (CodySwannGT/lisa#4606)", () => {
+    const suites = candidateSuites(process.cwd());
+
+    // The exclusion is explicit and named, not an accident of the filter: the
+    // journey still names `.sh` files and starts children, so without the
+    // entry it would be collected into a Plugins Sync shard on every PR.
+    expect(HAND_RUN_SUITES).toEqual([PACKED_HOST_JOURNEY]);
+    expect(suites).not.toContain(PACKED_HOST_JOURNEY);
+    // The absent case: an empty candidate list would also satisfy the line
+    // above while measuring nothing.
+    expect(suites).toContain(
+      "tests/unit/scripts/check-shell-guard-refusal-coverage.test.ts"
+    );
   });
 });
 

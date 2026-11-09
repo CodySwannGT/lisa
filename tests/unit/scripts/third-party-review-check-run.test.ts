@@ -5,8 +5,10 @@
  * is a generic "Finished"; only the first line of its summary says whether a
  * review completed (CodySwannGT/lisa#4553). These cases pin the three pieces
  * that make that readable without loosening anything: which run speaks for the
- * reviewer, what that run says, and how its reading is reported. The legacy
- * status suite beside this file is deliberately left unchanged — it is the
+ * reviewer, what that run says, and how its reading is reported. A gate that
+ * pins `posted_by` accepts no status at all (CodySwannGT/lisa#4652): the last
+ * block here pins that, and the legacy status cases — here and in the
+ * integration suite — now run against an UNPINNED gate, where they remain the
  * proof that statuses read exactly as they did.
  * @module tests/unit/scripts/third-party-review-check-run
  */
@@ -25,6 +27,7 @@ import {
   readReviewerEvidence,
   reviewEvidenceVerdict,
   selectReviewerCheckRun,
+  substituteMarker,
 } from "../../../all/copy-overwrite/scripts/check-third-party-review-evidence.mjs";
 
 const REPO_ARG = "--repo=acme/code";
@@ -35,6 +38,8 @@ const OTHER_HEAD = "d".repeat(40);
 const FINISHED = "Finished";
 const REVIEW_COMPLETED = "Review completed";
 const RATE_LIMITED = "Review rate limited";
+/** What the report says was seen when nothing at all was posted. */
+const NOTHING_POSTED = "no status or check run posted";
 
 /** One reviewer, pinned to its app, as a project declares it. */
 const PINNED = {
@@ -390,9 +395,9 @@ describe("readReviewerEvidence over both representations", () => {
     expect(reading.reviewed).toBe(false);
   });
 
-  it("reads exactly as before when called the legacy way", () => {
+  it("reads an unpinned reviewer exactly as before when called the legacy way", () => {
     const reading = readReviewerEvidence({
-      reviewer: reviewerOf(PINNED),
+      reviewer: reviewerOf(UNPINNED),
       statuses: [
         { context: CONTEXT, state: "success", description: REVIEW_COMPLETED },
       ],
@@ -400,6 +405,18 @@ describe("readReviewerEvidence over both representations", () => {
 
     expect(reading.reviewed).toBe(true);
     expect(reading.source).toBe(EVIDENCE_SOURCES.status);
+  });
+
+  it("credits a pinned reviewer nothing from a status called the legacy way (#4652)", () => {
+    const reading = readReviewerEvidence({
+      reviewer: reviewerOf(PINNED),
+      statuses: [
+        { context: CONTEXT, state: "success", description: REVIEW_COMPLETED },
+      ],
+    });
+
+    expect(reading.reviewed).toBe(false);
+    expect(reading.reading).toBe(EVIDENCE_READINGS.absent);
   });
 
   it("calls a failed check-run read unreadable when no status stands", () => {
@@ -416,7 +433,7 @@ describe("readReviewerEvidence over both representations", () => {
   it("calls a failed status read unreadable when no run stands", () => {
     expect(
       readReviewerEvidence({
-        reviewer: reviewerOf(PINNED),
+        reviewer: reviewerOf(UNPINNED),
         statuses: null,
         checkRuns: [],
         sha: HEAD,
@@ -424,10 +441,21 @@ describe("readReviewerEvidence over both representations", () => {
     ).toBe(EVIDENCE_READINGS.unreadable);
   });
 
-  it("keeps a status's credit when only the check-run read failed", () => {
+  it("calls a pinned reviewer absent, not unreadable, when only its status read failed", () => {
     expect(
       readReviewerEvidence({
         reviewer: reviewerOf(PINNED),
+        statuses: null,
+        checkRuns: [],
+        sha: HEAD,
+      }).reading
+    ).toBe(EVIDENCE_READINGS.absent);
+  });
+
+  it("keeps an unpinned status's credit when only the check-run read failed", () => {
+    expect(
+      readReviewerEvidence({
+        reviewer: reviewerOf(UNPINNED),
         statuses: [
           {
             context: CONTEXT,
@@ -511,9 +539,32 @@ describe("the verdict and its report", () => {
       })
     );
 
-    expect(report).toContain("no status or check run posted");
+    expect(report).toContain(
+      "evidence was posted under its name, but none of it could count"
+    );
+    expect(report).not.toContain(NOTHING_POSTED);
+    expect(report).not.toContain(
+      READING_SENTENCES[EVIDENCE_READINGS.absent] as string
+    );
     expect(report).toContain("ignored check run 10");
     expect(report).toContain("15368");
+  });
+
+  it("keeps the nothing-posted wording when nothing was set aside", () => {
+    const report = humanReport(
+      reviewEvidenceVerdict({
+        reviewers: [reviewerOf(PINNED)],
+        statuses: [],
+        checkRuns: { [CONTEXT]: [] },
+        comments: [],
+        sha: HEAD,
+      })
+    );
+
+    expect(report).toContain(NOTHING_POSTED);
+    expect(report).toContain(
+      READING_SENTENCES[EVIDENCE_READINGS.absent] as string
+    );
   });
 
   it("says an unreadable reviewer could not be read", () => {
@@ -627,5 +678,206 @@ describe("main reads check runs once per reviewer, and only when asked", () => {
 
     expect(code).toBe(1);
     expect(verdict.readings[0].reading).toBe(EVIDENCE_READINGS.absent);
+  });
+});
+
+describe("a substitute for a rate-limited check run counts only from a writer (#4628)", () => {
+  const RATE_LIMITED_RUN = run({
+    conclusion: "neutral",
+    output: { title: RATE_LIMITED, summary: RATE_LIMITED },
+  });
+  const MARKER = substituteMarker({ context: CONTEXT, sha: HEAD });
+
+  /**
+   * The CLI's JSON verdict over one comment, with every read injected.
+   * @param login - The comment's author
+   * @returns The exit code and the verdict
+   */
+  const decide = (login: string) => {
+    const chunks: string[] = [];
+    const code = main([`--sha=${HEAD}`, REPO_ARG, "--json"], {
+      gates: PINNED,
+      pulls: () => [1],
+      checkRuns: () => [RATE_LIMITED_RUN],
+      comments: () => [{ body: MARKER, user: { login } }],
+      canWrite: (author: string) => author === "maintainer",
+      out: {
+        write: (text: string) => {
+          chunks.push(text);
+        },
+      },
+    });
+    return { code, verdict: JSON.parse(chunks.join("")) };
+  };
+
+  it("refuses a stranger's first-line marker and names them", () => {
+    const { code, verdict } = decide("drive-by");
+
+    expect(code).toBe(1);
+    expect(verdict.outcome).toBe(EVIDENCE_OUTCOMES.unsatisfied);
+    expect(verdict.readings[0].source).toBe(EVIDENCE_SOURCES.checkRun);
+    expect(verdict.readings[0].substituteRefusals).toEqual([
+      { author: "drive-by", reason: "no write access" },
+    ]);
+  });
+
+  it("counts a writer's first-line marker", () => {
+    const { code, verdict } = decide("maintainer");
+
+    expect(code).toBe(0);
+    expect(verdict.outcome).toBe(EVIDENCE_OUTCOMES.substituted);
+  });
+});
+
+describe("a pinned gate is proven only by its own app (#4652)", () => {
+  /** A matching reviewer status, from a poster nothing here can identify. */
+  const COMPLETED_STATUS = {
+    context: CONTEXT,
+    state: "success",
+    description: REVIEW_COMPLETED,
+  };
+
+  it("refuses a matching status when no run from the pinned app stands", () => {
+    const reading = readReviewerEvidence({
+      reviewer: reviewerOf(PINNED),
+      statuses: [COMPLETED_STATUS],
+      checkRuns: [],
+      sha: HEAD,
+    });
+
+    expect(reading.reviewed).toBe(false);
+    expect(reading.reading).toBe(EVIDENCE_READINGS.absent);
+    expect(reading.ignoredStatuses).toEqual([
+      {
+        context: CONTEXT,
+        state: "success",
+        description: REVIEW_COMPLETED,
+        reason: `not counted: the gate is pinned to app ${APP}, and a commit status cannot show which app posted it`,
+      },
+    ]);
+  });
+
+  it("ignores a pinned gate's objecting status too: its objections arrive through its own check run", () => {
+    const verdict = reviewEvidenceVerdict({
+      reviewers: [reviewerOf(PINNED)],
+      statuses: [
+        {
+          context: CONTEXT,
+          state: "failure",
+          description: "Changes requested",
+        },
+      ],
+      checkRuns: { [CONTEXT]: [] },
+      comments: [],
+      sha: HEAD,
+    });
+    const [reading] = verdict.readings;
+
+    expect(reading?.reading).toBe(EVIDENCE_READINGS.absent);
+    expect(reading?.ignoredStatuses).toEqual([
+      expect.objectContaining({
+        context: CONTEXT,
+        state: "failure",
+        description: "Changes requested",
+      }),
+    ]);
+  });
+
+  it("refuses the status and lists both refusals when another app's run is the only one", () => {
+    const reading = readReviewerEvidence({
+      reviewer: reviewerOf(PINNED),
+      statuses: [COMPLETED_STATUS],
+      checkRuns: [run({ app: { id: 999999 } })],
+      sha: HEAD,
+    });
+
+    expect(reading.reviewed).toBe(false);
+    expect(reading.ignoredCheckRuns).toHaveLength(1);
+    expect(reading.ignoredStatuses).toHaveLength(1);
+  });
+
+  it("refuses a status for a declared null pin too", () => {
+    const reading = readReviewerEvidence({
+      reviewer: reviewerOf({
+        "code-review": {
+          "pull-request": {
+            ...PINNED["code-review"]["pull-request"],
+            posted_by: null,
+          },
+        },
+      }),
+      statuses: [COMPLETED_STATUS],
+      checkRuns: [],
+      sha: HEAD,
+    });
+
+    expect(reading.reviewed).toBe(false);
+    expect(reading.ignoredStatuses).toHaveLength(1);
+  });
+
+  it("calls a pinned reviewer unreadable, never credited, when its check-run read failed", () => {
+    const reading = readReviewerEvidence({
+      reviewer: reviewerOf(PINNED),
+      statuses: [COMPLETED_STATUS],
+      checkRuns: null,
+      sha: HEAD,
+    });
+
+    expect(reading.reviewed).toBe(false);
+    expect(reading.reading).toBe(EVIDENCE_READINGS.unreadable);
+    expect(reading.ignoredStatuses).toHaveLength(1);
+  });
+
+  it("still credits the pinned app's own completed run", () => {
+    const reading = readReviewerEvidence({
+      reviewer: reviewerOf(PINNED),
+      statuses: [COMPLETED_STATUS],
+      checkRuns: [run()],
+      sha: HEAD,
+    });
+
+    expect(reading.reviewed).toBe(true);
+    expect(reading.source).toBe(EVIDENCE_SOURCES.checkRun);
+  });
+
+  it("still credits a matching status on an unpinned gate, as before", () => {
+    const reading = readReviewerEvidence({
+      reviewer: reviewerOf(UNPINNED),
+      statuses: [COMPLETED_STATUS],
+      checkRuns: [],
+      sha: HEAD,
+    });
+
+    expect(reading.reviewed).toBe(true);
+    expect(reading.source).toBe(EVIDENCE_SOURCES.status);
+    expect(reading.ignoredStatuses).toEqual([]);
+  });
+
+  it("says in the report, and in its JSON, why the status was refused", () => {
+    const verdict = reviewEvidenceVerdict({
+      reviewers: [reviewerOf(PINNED)],
+      statuses: [COMPLETED_STATUS],
+      checkRuns: { [CONTEXT]: [] },
+      comments: [],
+      sha: HEAD,
+    });
+    const report = humanReport(verdict);
+
+    expect(verdict.outcome).toBe(EVIDENCE_OUTCOMES.unsatisfied);
+    expect(verdict.readings[0]?.ignoredStatuses).toHaveLength(1);
+    expect(report).toContain(
+      `ignored status ${JSON.stringify(CONTEXT)} (success — ${JSON.stringify(REVIEW_COMPLETED)}): not counted: the gate is pinned to app ${APP}`
+    );
+    expect(report).toContain("a commit status cannot show which app posted it");
+    expect(report).toContain(
+      "evidence was posted under its name, but none of it could count"
+    );
+    expect(report).toContain(
+      "none of it could count as the reviewer's evidence"
+    );
+    expect(report).not.toContain(NOTHING_POSTED);
+    expect(report).not.toContain(
+      READING_SENTENCES[EVIDENCE_READINGS.absent] as string
+    );
   });
 });

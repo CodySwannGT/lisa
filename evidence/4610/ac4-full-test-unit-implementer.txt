@@ -1,0 +1,10 @@
+# Implementer's full-suite `bun run test:unit` runs in the real worktree, with git present.
+# Before: origin/main ef452d2a31. After: with the 7 merges.
+## before
+ Test Files  1602 passed (1602)
+      Tests  29839 passed | 2 skipped (29841)
+   Duration  955.89s (transform 11.74s, setup 65.64s, import 102.89s, tests 1627.48s, environment 66ms)
+## after
+ Test Files  1595 passed (1595)
+      Tests  29839 passed | 2 skipped (29841)
+   Duration  655.85s (transform 12.66s, setup 68.78s, import 108.52s, tests 1679.07s, environment 67ms)

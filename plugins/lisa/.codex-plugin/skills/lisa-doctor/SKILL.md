@@ -78,6 +78,16 @@ as applicable to the current repo:
    Report missing executable/browser, auth failure, wrong target, zero credits, and control-plane
    failure separately. If Kane is not enabled, report an informational `OK`/not enabled rather than
    probing or installing it.
+9. **CodeRabbit kept off Lisa's lifecycle labels** — read the repository's `.coderabbit.yml` (or
+   `.coderabbit.yaml`). `FAIL` when `issue_enrichment.labeling.auto_apply_labels` is `true` and
+   `labeling_instructions` is missing, empty, or names a protected label: any `status:`, `type:` or
+   `points:` label, or the resolved human-needed label (`github.labels.build.human_needed`, default
+   `human-needed`), matched case-insensitively. Name both remedies — set `auto_apply_labels: false`,
+   or keep an allowlist that names none of those — and say when the file is the unedited copy Lisa
+   shipped (2026-02-11 to 2026-03-01), which `lisa apply` corrects to `auto_apply_labels: false`.
+   `OK` when auto-apply is off or the allowlist is clean; with no file, `OK` noting that CodeRabbit's
+   organisation settings are not visible to the check. A file that exists but cannot be read or
+   parsed is a `FAIL` that says "Could not determine", never a pass.
 
 If a check family is not applicable to the current repo, report `SKIP` with the reason.
 

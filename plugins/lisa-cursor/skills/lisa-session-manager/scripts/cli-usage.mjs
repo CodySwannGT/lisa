@@ -189,9 +189,13 @@ Per cycle
       answer after it, and never reads it as an answer. Exit 2 when it is
       missing or not a tracker comment id, or <ref> has no pending
       question.
-  ledger clear-question <ref> [--reset-attempts]
-      After the answer is delivered and the marker removed. --reset-attempts
+  ledger clear-question <ref> [--reset-attempts] [--expect-answer-at <iso>]
+      After the answer is delivered (or recorded on the item and read back,
+      per answer-plan) and the marker removed. --reset-attempts
       zeroes the attempt count (an exhausted item a human has answered).
+      --expect-answer-at: the answerAt answer-plan returned; exit 2 and
+      nothing cleared when the queued answer's at differs (the operator
+      replaced it since) or no answer is queued: record the new one first.
   ledger finish <ref> --status DONE|FAILED [--sender <name>]  STDIN: reason
       --sender: exit 2 unless the ledger's worker for <ref> is exactly <name>.
   ledger validation-failed <ref> --updated-at <ts>     STDIN: failing gates
@@ -253,8 +257,10 @@ Per cycle
       --max caps captures per cycle (default 3); the rest are deferred.
   answer <ref>                                  STDIN: the answer
       Queues an operator's answer (source "cli") for the next cycle to
-      deliver. stdout {queued:true,ref,source}. Exit 2 when <ref> has no
-      pending question, or the text looks like a credential.
+      deliver to the worker, or record on the item when the worker has
+      finished or the item is exhausted. stdout {queued:true,ref,source}.
+      Exit 2 when <ref> has no pending question, or the text looks like a
+      credential.
   item-answer <ref>          STDIN: {"comments":[{user|author,body,createdAt}]}
       Queues the human's answer from the item's comments (source "item"):
       the first comment after the latest [lisa-session-manager-question]
@@ -271,8 +277,11 @@ Per cycle
       gh api --paginate repos/<o>/<r>/issues/<n>/comments (user.login,
       user.id). stdout {queued:true,ref,source,author[,refused]} or
       {queued:false,ref,reason:no-question-comment|no-answer-yet|
-      already-queued|no-answerers-configured|credential-refused
-      [,explanation][,refused,refusedExplanation]}. no-answerers-configured
+      already-queued|not-marked|no-answerers-configured|credential-refused
+      [,explanation][,refused,refusedExplanation]}. not-marked (exit 0):
+      the question's mark was never read back (markedAt null, as after a
+      changed question), so no reply is read; record it with ledger marked
+      --comment-id <id> first. no-answerers-configured
       (exit 0): neither list is set, so nothing on the item is read, because
       the tracker identity is the one workers post as; answer with answer.
       A reply that looks like a credential is skipped, never queued, and
@@ -280,6 +289,28 @@ Per cycle
       credential-refused (exit 0) means no other reply answers yet. Exit 2
       when <ref> has no pending question, the ledger is corrupt, or STDIN is
       not valid JSON.
+  channel-answer <ref>                          STDIN: the answer
+      Manager only: queues the operator's Telegram answer (source
+      "channel"), so answer-plan can record it on the item. stdout
+      {queued:true,ref,source}. Exit 2 when <ref> has no pending question,
+      or the text looks like a credential.
+  answer-plan <ref>
+      Plans recording the queued answer on the item before clearing; writes
+      nothing. stdout {ref,record:true,source,answerAt,comment} when no
+      worker will receive the answer (the worker reported DONE or FAILED,
+      the question is exhausted, or no worker was started) and the answer
+      came from answer (source cli) or Telegram (source channel): post
+      comment ([lisa-session-manager] The operator answered the question
+      above (by answer|Telegram, <time>): <answer>) and read it back, then
+      ledger clear-question --expect-answer-at <answerAt> (answerAt: the
+      queued answer's at). A repo-route never records (the repo stamp carries
+      it). Otherwise {ref,record:false,reason:no-pending-question|
+      no-answer-queued|answered-on-item|worker-not-finished|
+      routed-by-repo-stamp}. Either shape adds requeue:true for a FAILED
+      worker's item (in the blocked role): move it to the ready role in the
+      same update that removes the marker. Exit 2 when the answer it would post looks
+      like a credential (nothing printed, nothing to post) or the ledger
+      is corrupt.
   record-cycle --outcome <outcome> [--ref <url>]... [--run-id <id>]
       STDIN: one-line summary. Records loop session-manager with runbook
       .lisa/automations/session-manager.runbook.md. stdout {path,appended,

@@ -18,6 +18,7 @@ import { ALL_ROOTS, read, section } from "./session-manager-skill-helpers.js";
 
 const MANAGER = "lisa-session-manager";
 const HEADING = "## Mark and move on";
+const REMOVE_MARKER_STEP = "2. **Remove the manager's own marker**";
 const CONTRACT =
   "plugins/src/base/rules/reference/automation-runbook-contract.md";
 
@@ -83,7 +84,7 @@ describe.each(ALL_ROOTS)("mark and move on (%s)", root => {
     const clearing = mark.slice(mark.indexOf("**Clearing**"));
     const order = [
       "1. **Deliver the answer.**",
-      "2. **Remove the manager's own marker**",
+      REMOVE_MARKER_STEP,
       "3. `ledger clear-question <ref>` (`--reset-attempts` for an `exhausted` item).",
     ].map(step => clearing.indexOf(step));
     expect(order.every(position => position > -1)).toBe(true);
@@ -91,6 +92,88 @@ describe.each(ALL_ROOTS)("mark and move on (%s)", root => {
     expect(clearing).toContain("`resume <ref>` with the answer on STDIN");
     expect(clearing).toContain(
       "stamp `repo:<name>` through `lisa-tracker-write`"
+    );
+  });
+
+  it("records an answer no worker will receive on the item, read back, before clearing (#4624)", () => {
+    const clearing = mark.slice(mark.indexOf("**Clearing**"));
+    const order = [
+      "**Record the answer on the item**",
+      "Run `answer-plan <ref>`.",
+      "post its `comment` exactly as given through `lisa-tracker-write` and read it\n   back with `lisa-tracker-read`; only then go on to step 2.",
+      REMOVE_MARKER_STEP,
+      "3. `ledger clear-question <ref>`",
+    ].map(step => clearing.indexOf(step));
+    expect(order.every(position => position > -1)).toBe(true);
+    expect([...order].sort((a, b) => a - b)).toEqual(order);
+    expect(clearing).toContain(
+      "leave the marker and the question pending (do not run step 3)"
+    );
+    expect(clearing).toContain(
+      "`[lisa-session-manager] Answer recorded on the item; removed the hold.`"
+    );
+    expect(clearing).not.toContain("Deliver nothing; the next attempt reads");
+    // A replacement answer queued after answer-plan must not be cleared
+    // unseen: step 3 names the answer it recorded, and a refusal re-records.
+    expect(clearing).toContain(
+      "`ledger clear-question <ref> --expect-answer-at <answerAt>`"
+    );
+    expect(clearing).toMatch(
+      /exit 2 from `ledger clear-question`[\s\S]*keep the hold[\s\S]*run "Record the answer on the item" again for the replacement/
+    );
+    // A retry after a failed read-back or step 2 must not post the answer
+    // twice: an identical comment already on the item is the read-back.
+    const record = clearing.slice(
+      clearing.indexOf("**Record the answer on the item**"),
+      clearing.indexOf(REMOVE_MARKER_STEP)
+    );
+    expect(record).toMatch(
+      /Before posting, read the item's comments with `lisa-tracker-read`[\s\S]*exactly the plan's\s+`comment`[\s\S]*do not post it again/
+    );
+    expect(record.indexOf("Before posting")).toBeLessThan(
+      record.indexOf("post its `comment` exactly as given")
+    );
+    expect(clearing).toContain(
+      "`decision` with no worker yet: nothing to deliver. Record the answer on the item (below)"
+    );
+    const handling = section(
+      skill,
+      "## Handling messages (any time, not only during a cycle)"
+    );
+    // Live-worker delivery is unchanged from main (Scenario 5): the route
+    // still opens with Clearing, and channel-answer runs only for an answer
+    // no worker will receive.
+    const telegramAnswer = handling.slice(
+      handling.indexOf("  - `answer`: "),
+      handling.indexOf("  - `ambiguous`: ")
+    );
+    expect(telegramAnswer).toMatch(
+      /^ {2}- `answer`: follow "Clearing" in "Mark and move on" with `message` as the answer \(`SendMessage`\n {4}to a live worker, `resume <ref>`/
+    );
+    expect(telegramAnswer).toContain("**Only when no worker will receive it**");
+    expect(telegramAnswer).toContain(
+      "first queue it in the ledger with `channel-answer <ref>`"
+    );
+    expect(telegramAnswer).toContain(
+      "A live or resumable\n    worker gets its answer exactly as before, without `channel-answer`."
+    );
+    expect(
+      telegramAnswer.indexOf("**Only when no worker will receive it**")
+    ).toBeLessThan(telegramAnswer.indexOf("`channel-answer <ref>`"));
+    expect(telegramAnswer).toContain(
+      "has two causes, told apart by its stderr"
+    );
+    expect(telegramAnswer).toContain(
+      "reply that the question was already answered or nothing is pending"
+    );
+    expect(telegramAnswer).toContain(
+      "When the answer was recorded on the item, say so in the acknowledgement: it was posted on the\n    item"
+    );
+    const recovery = section(skill, "## Run outcome")
+      .split("\n")
+      .find(line => line.endsWith("| `recovery-required` |"));
+    expect(recovery).toContain(
+      "an answer for a finished worker, an `exhausted` item or a `decision` no worker has picked up could not be posted on the item or read back"
     );
   });
 

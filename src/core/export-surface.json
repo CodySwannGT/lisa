@@ -1,8 +1,8 @@
 {
   "$generatedBy": "scripts/generate-export-surface.mjs",
   "$doNotEdit": "The public export surface this package ships, recorded so a removal is an OBSERVATION rather than an inference from commit-message conventions. This file's diff is what makes a removed export visible in the pull request that causes it (CodySwannGT/lisa#3718).",
-  "$modules": 264,
-  "$names": 1929,
+  "$modules": 272,
+  "$names": 1984,
   "surface": {
     "all/copy-overwrite/scripts/check-conflict-markers.mjs": [
       "UsageError",
@@ -74,18 +74,24 @@
       "EVIDENCE_OUTCOMES",
       "EVIDENCE_READINGS",
       "EVIDENCE_SOURCES",
+      "PUBLISHED_CHECK_NAME",
       "READING_SENTENCES",
       "REVIEW_OBJECT_VERDICTS",
       "SUBSTITUTE_MARKER",
+      "SUBSTITUTE_REFUSALS",
       "armDecision",
       "checkRunResult",
       "classifyReviewObject",
       "configuredReviewers",
+      "fencedReport",
       "humanReport",
+      "judgeSubstitutes",
       "main",
       "normalizeDescription",
       "parseArgs",
+      "readAllComments",
       "readReviewerEvidence",
+      "readStatuses",
       "reviewEvidenceVerdict",
       "reviewStanding",
       "reviewsAtHead",
@@ -93,6 +99,7 @@
       "standingObjections",
       "substituteMarker",
       "substitutePosted",
+      "verdictPublication",
       "writerSubstitutes"
     ],
     "all/copy-overwrite/scripts/check-threshold-ratchet.mjs": [
@@ -161,7 +168,14 @@
       "requireProof"
     ],
     "all/copy-overwrite/scripts/lib/completion-proof-github.mjs": [
-      "githubProofTransport"
+      "EVIDENCE_RELEASE_ASSET_LIMIT",
+      "EVIDENCE_RELEASE_NEAR_FULL",
+      "LEGACY_EVIDENCE_RELEASE",
+      "acceptedEvidenceReleases",
+      "evidenceReleaseOverride",
+      "githubProofTransport",
+      "isAcceptedEvidenceRelease",
+      "resolveEvidenceRelease"
     ],
     "all/copy-overwrite/scripts/lib/completion-proof-markdown.mjs": [
       "markdownSection",
@@ -172,6 +186,7 @@
       "usageSpecRemainder"
     ],
     "all/copy-overwrite/scripts/lib/completion-proof-publisher.mjs": [
+      "ensureEvidenceRelease",
       "publishCompletionProof"
     ],
     "all/copy-overwrite/scripts/lib/completion-proof-reader.mjs": [
@@ -188,6 +203,7 @@
       "MAX_NATIVE_JSON_BYTES",
       "MAX_RECORD_BYTES",
       "MAX_TOTAL_BYTES",
+      "NO_RUNTIME_REASONS",
       "PROOF_KIND",
       "PROOF_MARKER",
       "declaredScope",
@@ -1564,6 +1580,7 @@
       "publishedVersionsDescending"
     ],
     "scripts/check-shell-guard-refusal-coverage.mjs": [
+      "HAND_RUN_SUITES",
       "candidateSuites",
       "main"
     ],
@@ -1861,6 +1878,54 @@
       "translateEventName",
       "translateMatcherForDevin"
     ],
+    "scripts/lib/phrase-tests/ast.mjs": [
+      "PHRASE_MATCHERS",
+      "booleanLiteral",
+      "expectChains",
+      "isExpectCall",
+      "isIncludesCall",
+      "isPhraseChain",
+      "parseSource",
+      "readExpectChain",
+      "walk"
+    ],
+    "scripts/lib/phrase-tests/classify.mjs": [
+      "ALLOWED_MODULES",
+      "READ_CALLS",
+      "classifyTestSource",
+      "resolveTestImport"
+    ],
+    "scripts/lib/phrase-tests/fold.mjs": [
+      "foldPhraseTests"
+    ],
+    "scripts/lib/phrase-tests/manifest.mjs": [
+      "MANIFEST_COMMENT",
+      "MANIFEST_PATH",
+      "SOURCE_SEPARATOR",
+      "buildManifest",
+      "describePhrase",
+      "entryKey",
+      "manifestEntries",
+      "phraseFailure",
+      "sourceTestFile"
+    ],
+    "scripts/lib/phrase-tests/parity.mjs": [
+      "deletedTestFiles",
+      "parityFailures"
+    ],
+    "scripts/lib/phrase-tests/record.mjs": [
+      "recordTestFile"
+    ],
+    "scripts/lib/phrase-tests/repo.mjs": [
+      "REPO_ROOT",
+      "commitReader",
+      "testFilesAt",
+      "workingTreeReader",
+      "workingTreeTestFiles"
+    ],
+    "scripts/lib/phrase-tests/runner.mjs": [
+      "createRunner"
+    ],
     "scripts/lib/plugin-cache-resolution.mjs": [
       "TOKEN_RE",
       "compareSemver",
@@ -1963,16 +2028,22 @@
       "LISA_MARKER",
       "MARKER_AUTHORS",
       "applyPlan",
+      "claimOnly",
       "classifyRequiredChecks",
       "failureMarker",
       "isNewestLisaMarker",
       "liveGh",
       "main",
+      "markerTrust",
       "planFromFixture",
       "planRedispatch",
+      "readItemAuthor",
       "readItemComments",
+      "readTrustedAuthorIds",
       "recordedGh",
-      "trustedAuthor"
+      "supersedes",
+      "trustedAuthor",
+      "withTrustedAuthors"
     ],
     "scripts/lisa-ci-rework-route.mjs": [
       "CI_LOOP_BOUND",

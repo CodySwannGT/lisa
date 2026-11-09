@@ -24,6 +24,10 @@ import {
 } from "./config.js";
 import { PROJECT_LEARNINGS_FILENAME } from "./learnings-location.js";
 import {
+  type DependenciesConfig,
+  validateDependenciesConfig,
+} from "./project-config-dependencies.js";
+import {
   type LearningsConfig,
   validateLearningsConfig,
 } from "./project-config-learnings.js";
@@ -52,6 +56,16 @@ export {
   type LowConfidenceRouting,
   type ResolvedLearningsSettings,
 } from "./project-config-learnings.js";
+
+export {
+  DEFAULT_DEPENDENCY_HUMAN_SIGN_OFF,
+  DEPENDENCY_HUMAN_SIGN_OFF_VALUES,
+  dependencySettingsWarning,
+  resolveDependencySettings,
+  type DependenciesConfig,
+  type DependencyHumanSignOff,
+  type ResolvedDependencySettings,
+} from "./project-config-dependencies.js";
 
 export type {
   BrowserVerificationConfig,
@@ -106,6 +120,12 @@ export interface ProjectConfig {
   readonly projectRulesFile?: string;
   /** Optional overrides for the machine-managed learnings ledger. */
   readonly learnings?: LearningsConfig;
+  /**
+   * Optional dependency-governance settings: `humanSignOff` turns the
+   * trust-class ratification requirements off (`"none"`) or keeps them
+   * (`"default"`, also the value when absent or invalid).
+   */
+  readonly dependencies?: DependenciesConfig;
   /** Optional empirical verification provider configuration. */
   readonly verification?: VerificationConfig;
   /** Optional nightly-E2E automation behavior. */
@@ -308,6 +328,7 @@ export function validateProjectConfig(
       ? undefined
       : validateProjectRulesFile(obj.projectRulesFile, configPath);
   const learnings = validateLearningsConfig(obj.learnings, configPath);
+  const dependencies = validateDependenciesConfig(obj.dependencies, configPath);
   const verification = validateVerificationConfig(obj.verification, configPath);
   const nightlyE2E = validateNightlyE2EConfig(obj.nightlyE2E, configPath);
   const starter = validateStarterConfig(obj.starter);
@@ -315,6 +336,7 @@ export function validateProjectConfig(
     ...(harness === undefined ? {} : { harness }),
     ...(projectRulesFile === undefined ? {} : { projectRulesFile }),
     ...(learnings === undefined ? {} : { learnings }),
+    ...(dependencies === undefined ? {} : { dependencies }),
     ...(verification === undefined ? {} : { verification }),
     ...(nightlyE2E === undefined ? {} : { nightlyE2E }),
     ...(starter === undefined ? {} : { starter }),

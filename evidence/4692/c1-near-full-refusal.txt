@@ -1,0 +1,14 @@
+### C1: near-full refusal on the legacy pr-assets release (real GitHub, CodySwannGT/lisa)
+### date: 2026-11-08T18:58:41Z  HEAD: b590df4c25815538d0d3e9a6c084c7aaca00212c
+### pre-state pr-assets asset count:
+1000
+### temp config verification.completion (copy of .lisa.config.json, LISA_TRACKING_CONFIG_FILE points at it):
+{"delivery":{"production":{"mechanism":"github-actions","workflow_path":".github/workflows/deploy.yml","events":["push","workflow_dispatch"]}},"automationPublishers":[],"evidenceRelease":"pr-assets"}
+### $ LISA_TRACKING_CONFIG_FILE=legacy-config.json node scripts/lisa-work-item.mjs evidence-release
+pr-assets
+exit=0
+### $ LISA_TRACKING_CONFIG_FILE=legacy-config.json node scripts/lisa-work-item.mjs evidence-release --ensure
+work-item proof write-error: The evidence release `pr-assets` in CodySwannGT/lisa holds 1000 of GitHub's 1000-file limit, so new proof can't be uploaded. Set `verification.completion.evidenceRelease` in .lisa.config.json to a rotating name such as `pr-assets-{YYYY-MM}` (older proof keeps validating), or prune old evidence (CodySwannGT/lisa#4720).
+exit=1
+### post-state pr-assets asset count (must still be 1000, nothing uploaded):
+1000

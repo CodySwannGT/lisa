@@ -119,7 +119,7 @@
       "children": []
     },
     "lib/completion-proof-github.mjs": {
-      "sha256": "e8a5b585625c2d663c0f92046d8ff020b2e769860235634cd0e4bea4b3a234ae",
+      "sha256": "bcd6a03ad609375b886a45e7af31670b49f1bc4888de1e2f31eb86c44ad56204",
       "staticImports": [
         "lib/completion-proof-shape.mjs"
       ],
@@ -145,7 +145,7 @@
       "children": []
     },
     "lib/completion-proof-publisher.mjs": {
-      "sha256": "801df8b694eced082695542dad3e189ce660aa65dda26f3bf11d962120487609",
+      "sha256": "cf37b6b1e09b22eeeab8d64086409a4345489f17cf11eb8ddc3e4c31d6772009",
       "staticImports": [
         "lib/completion-authorization.mjs",
         "lib/completion-proof-github.mjs",
@@ -167,7 +167,7 @@
       "children": []
     },
     "lib/completion-proof-shape.mjs": {
-      "sha256": "a6faf8d3c44c4eb3192c11a76d5866f6028d476c86e7dc88aefe88060b38ee1d",
+      "sha256": "b0ac2109d1e17cdc83d42b842ccbd43ca10f3d34d1b2d03067c434e05b19b9e3",
       "staticImports": [
         "lib/completion-proof-errors.mjs",
         "lib/completion-proof-markdown.mjs",
@@ -266,7 +266,7 @@
       "children": []
     },
     "lib/history-secret-scanner.mjs": {
-      "sha256": "470a8e534252b3c3c8c62c2b5d83a11bde2287bd2187696107752c538bc20bda",
+      "sha256": "811ec810fa44771705f918b179f01406c7dfde852917e6ec4c9792557ac2eeac",
       "staticImports": [
         "lib/history-secret-evidence.mjs",
         "lib/history-secret-git.mjs",
@@ -310,7 +310,7 @@
       "children": []
     },
     "lib/lisa-cleanup-sweep.mjs": {
-      "sha256": "6c69bcf512fbe169e0b3c51546e21e72d6203a1d3c3ee5651fb0129fb7d57f91",
+      "sha256": "08450444d7f03d5a0e560f023a4e30db74821209ea45df41959b46636f6191bd",
       "staticImports": [
         "lib/bounded-spawn.mjs",
         "lib/invoked-as-script.mjs",
@@ -1432,10 +1432,11 @@
       "children": []
     },
     "lisa-work-item.mjs": {
-      "sha256": "e7127de03c08a66d39612b6027b25b6d9bdf0359bb3a8eccba2feb440d0c2f14",
+      "sha256": "c4a12e7ed3036b235cac8ef02e05695d9e01dbc2bd7b78a8644a50c476a94a02",
       "staticImports": [
         "lib/completion-authorization.mjs",
         "lib/completion-proof-adapters.mjs",
+        "lib/completion-proof-github.mjs",
         "lib/completion-proof-publisher.mjs",
         "lib/completion-proof-shape.mjs",
         "lib/invoked-as-script.mjs",
@@ -1461,7 +1462,7 @@
       "children": []
     },
     "npm-updater-gate.Dockerfile": {
-      "sha256": "f5d85f8fccfd97f7800c03430a38c19d584314b0a6a63aa1de28fb62897fbcc5",
+      "sha256": "850a4ee809d49e3d9da6bdd674cb43e4f5a6dcfa0aa73116b1a43caeed42748c",
       "staticImports": [],
       "dynamicImports": [],
       "children": []

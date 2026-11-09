@@ -1,3 +1,4 @@
+import { CorrectLisaCoderabbitLabelingMigration } from "./correct-lisa-coderabbit-labeling.js";
 import { EnsureAuditIgnoreLocalExclusionsMigration } from "./ensure-audit-ignore-local-exclusions.js";
 import { EnsureDeployOutcomeGuardMigration } from "./ensure-deploy-outcome-guard.js";
 import { EnsureJestRnMockAccessibilityManagerMigration } from "./ensure-jest-rn-mock-accessibility-manager.js";
@@ -19,6 +20,7 @@ import { EnsureTsconfigLocalFilesFallbackMigration } from "./ensure-tsconfig-loc
 import { EnsureWikiSourceDeclaredMigration } from "./ensure-wiki-source-declared.js";
 import { EnsureTsconfigLocalIncludesMigration } from "./ensure-tsconfig-local-includes.js";
 import { PruneRetiredClaudeDenyRulesMigration } from "./prune-retired-claude-deny-rules.js";
+import { PruneRetiredClaudeStackPluginKeysMigration } from "./prune-retired-claude-stack-plugin-keys.js";
 import { PruneRetiredEntireHooksMigration } from "./prune-retired-entire-hooks.js";
 import { PreserveVerificationOptInsMigration } from "./preserve-verification-opt-ins.js";
 import { ReconcileClaudeStackPluginsMigration } from "./reconcile-claude-stack-plugins.js";
@@ -36,6 +38,7 @@ export type {
   MigrationContext,
   MigrationResult,
 } from "./migration.interface.js";
+export { CorrectLisaCoderabbitLabelingMigration } from "./correct-lisa-coderabbit-labeling.js";
 export { EnsureAuditIgnoreLocalExclusionsMigration } from "./ensure-audit-ignore-local-exclusions.js";
 export { EnsureDeployOutcomeGuardMigration } from "./ensure-deploy-outcome-guard.js";
 export { EnsureJestRnMockAccessibilityManagerMigration } from "./ensure-jest-rn-mock-accessibility-manager.js";
@@ -57,6 +60,7 @@ export { EnsureTsconfigLocalFilesFallbackMigration } from "./ensure-tsconfig-loc
 export { EnsureWikiSourceDeclaredMigration } from "./ensure-wiki-source-declared.js";
 export { EnsureTsconfigLocalIncludesMigration } from "./ensure-tsconfig-local-includes.js";
 export { PruneRetiredClaudeDenyRulesMigration } from "./prune-retired-claude-deny-rules.js";
+export { PruneRetiredClaudeStackPluginKeysMigration } from "./prune-retired-claude-stack-plugin-keys.js";
 export { PruneRetiredEntireHooksMigration } from "./prune-retired-entire-hooks.js";
 export { PreserveVerificationOptInsMigration } from "./preserve-verification-opt-ins.js";
 export { ReconcileClaudeStackPluginsMigration } from "./reconcile-claude-stack-plugins.js";
@@ -98,8 +102,11 @@ export class MigrationRegistry {
       new PruneRetiredClaudeDenyRulesMigration(),
       new PruneRetiredEntireHooksMigration(),
       new ReconcileClaudeStackPluginsMigration(),
+      // After reconcile: a successor it adds retires its predecessor at once.
+      new PruneRetiredClaudeStackPluginKeysMigration(),
       new UntrackCodexMarketplaceMigration(),
       new RetireNativeSafetyNetMigration(),
+      new CorrectLisaCoderabbitLabelingMigration(),
       // Last: every other workflow migration has finished editing caller files,
       // so the pin this writes is the one that survives the apply.
       new EnsurePinnedReusableWorkflowRefsMigration(),

@@ -1,0 +1,141 @@
+vitest.config.ts (19:7) [33m[UNRESOLVED_IMPORT] [0mCould not resolve '@codyswann/lisa/vitest/typescript' in vitest.config.ts
+    [38;5;246m╭[0m[38;5;246m─[0m[38;5;246m[[0m vitest.config.ts:19:8 [38;5;246m][0m
+    [38;5;246m│[0m
+ [38;5;246m19 │[0m [38;5;249m}[0m[38;5;249m [0m[38;5;249mf[0m[38;5;249mr[0m[38;5;249mo[0m[38;5;249mm[0m[38;5;249m [0m"@codyswann/lisa/vitest/typescript"[38;5;249m;[0m
+ [38;5;240m   │[0m        ─────────────────┬─────────────────  
+ [38;5;240m   │[0m                         ╰─────────────────── Module not found, treating it as an external dependency
+[38;5;246m────╯[0m
+
+vitest.config.ts (19:7) [33m[UNRESOLVED_IMPORT] [0mCould not resolve '@codyswann/lisa/vitest/typescript' in vitest.config.ts
+    [38;5;246m╭[0m[38;5;246m─[0m[38;5;246m[[0m vitest.config.ts:19:8 [38;5;246m][0m
+    [38;5;246m│[0m
+ [38;5;246m19 │[0m [38;5;249m}[0m[38;5;249m [0m[38;5;249mf[0m[38;5;249mr[0m[38;5;249mo[0m[38;5;249mm[0m[38;5;249m [0m"@codyswann/lisa/vitest/typescript"[38;5;249m;[0m
+ [38;5;240m   │[0m        ─────────────────┬─────────────────  
+ [38;5;240m   │[0m                         ╰─────────────────── Module not found, treating it as an external dependency
+[38;5;246m────╯[0m
+
+vitest.config.ts (19:7) [33m[UNRESOLVED_IMPORT] [0mCould not resolve '@codyswann/lisa/vitest/typescript' in vitest.config.ts
+    [38;5;246m╭[0m[38;5;246m─[0m[38;5;246m[[0m vitest.config.ts:19:8 [38;5;246m][0m
+    [38;5;246m│[0m
+ [38;5;246m19 │[0m [38;5;249m}[0m[38;5;249m [0m[38;5;249mf[0m[38;5;249mr[0m[38;5;249mo[0m[38;5;249mm[0m[38;5;249m [0m"@codyswann/lisa/vitest/typescript"[38;5;249m;[0m
+ [38;5;240m   │[0m        ─────────────────┬─────────────────  
+ [38;5;240m   │[0m                         ╰─────────────────── Module not found, treating it as an external dependency
+[38;5;246m────╯[0m
+
+vitest.config.ts (19:7) [33m[UNRESOLVED_IMPORT] [0mCould not resolve '@codyswann/lisa/vitest/typescript' in vitest.config.ts
+    [38;5;246m╭[0m[38;5;246m─[0m[38;5;246m[[0m vitest.config.ts:19:8 [38;5;246m][0m
+    [38;5;246m│[0m
+ [38;5;246m19 │[0m [38;5;249m}[0m[38;5;249m [0m[38;5;249mf[0m[38;5;249mr[0m[38;5;249mo[0m[38;5;249mm[0m[38;5;249m [0m"@codyswann/lisa/vitest/typescript"[38;5;249m;[0m
+ [38;5;240m   │[0m        ─────────────────┬─────────────────  
+ [38;5;240m   │[0m                         ╰─────────────────── Module not found, treating it as an external dependency
+[38;5;246m────╯[0m
+
+
+ RUN  v4.1.11 /Users/codysai/workspace/lisa/.claude/worktrees/4719-jira-accountid-token-scan
+
+Sourcemap for "/Users/codysai/workspace/lisa/node_modules/.bun/@codyswann+lisa@4.69.1+dbdb9b37f1a7de56/node_modules/@codyswann/lisa/dist/configs/vitest/scratch-setup.js" points to missing source files
+lisa scratch: no supervised lease in the environment, so this run is self-supervised. Fixture directories are still bounded to a run root this process owns and removed on exit; what is missing is the detached reaper that reclaims the root after a SIGKILL, which the next run's startup sweep recovers instead. Run through `lisa-test-run --profile <profile> --adapter vitest -- vitest ...` for a supervised run.
+Sourcemap for "/Users/codysai/workspace/lisa/node_modules/.bun/@codyswann+lisa@4.69.1+dbdb9b37f1a7de56/node_modules/@codyswann/lisa/dist/configs/vitest/scratch-leak-setup.js" points to missing source files
+ ❯ |lisa| tests/unit/secrets/validate-config-operator-id-kinds.test.ts (25 tests | 7 failed) 10ms
+     × accepts ["557058:f58131cb-b67d-43c7-b30d-6b58d40bd077"] in both lists 3ms
+     × accepts a legacy Jira accountId as a plain operator entry 1ms
+     × accepts a legacy Jira accountId as a plain trusted author 0ms
+     × refuses a bot token in operatorIds with prefix "id:" 1ms
+     × refuses a bot token in operatorIds with prefix "login:" 0ms
+     × refuses a bot token in trustedAuthorIds with prefix "id:" 0ms
+     × refuses a bot token in trustedAuthorIds with prefix "login:" 0ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 7 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  |lisa| tests/unit/secrets/validate-config-operator-id-kinds.test.ts > kind-keyed and plain entries are accepted > accepts ["557058:f58131cb-b67d-43c7-b30d-6b58d40bd077"] in both lists
+AssertionError: expected [ …(2) ] to deeply equal []
+
+- Expected
++ Received
+
+- []
++ [
++   "sessionManager.operatorIds[0] looks like a bot token. Tokens never go in config: remove it, and store the token in the project's secrets provider with session-manager.mjs store-token (/lisa:setup:session-manager runs it).",
++   "sessionManager.trustedAuthorIds[0] looks like a bot token. Tokens never go in config: remove it, and store the token in the project's secrets provider with session-manager.mjs store-token (/lisa:setup:session-manager runs it).",
++ ]
+
+ ❯ tests/unit/secrets/validate-config-operator-id-kinds.test.ts:63:7
+     61|         trustedAuthorIds: ids,
+     62|       })
+     63|     ).toEqual([]);
+       |       ^
+     64|   });
+     65|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/7]⎯
+
+ FAIL  |lisa| tests/unit/secrets/validate-config-operator-id-kinds.test.ts > credential scan of the id lists (CodySwannGT/lisa#4719) > accepts a legacy Jira accountId as a plain operator entry
+AssertionError: expected [ Array(1) ] to deeply equal []
+
+- Expected
++ Received
+
+- []
++ [
++   "sessionManager.operatorIds[0] looks like a bot token. Tokens never go in config: remove it, and store the token in the project's secrets provider with session-manager.mjs store-token (/lisa:setup:session-manager runs it).",
++ ]
+
+ ❯ tests/unit/secrets/validate-config-operator-id-kinds.test.ts:130:7
+    128|         trustedAuthorIds: ["x"],
+    129|       })
+    130|     ).toEqual([]);
+       |       ^
+    131|   });
+    132|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/7]⎯
+
+ FAIL  |lisa| tests/unit/secrets/validate-config-operator-id-kinds.test.ts > credential scan of the id lists (CodySwannGT/lisa#4719) > accepts a legacy Jira accountId as a plain trusted author
+AssertionError: expected [ Array(1) ] to deeply equal []
+
+- Expected
++ Received
+
+- []
++ [
++   "sessionManager.trustedAuthorIds[0] looks like a bot token. Tokens never go in config: remove it, and store the token in the project's secrets provider with session-manager.mjs store-token (/lisa:setup:session-manager runs it).",
++ ]
+
+ ❯ tests/unit/secrets/validate-config-operator-id-kinds.test.ts:140:7
+    138|         trustedAuthorIds: [LEGACY_ACCOUNT_ID],
+    139|       })
+    140|     ).toEqual([]);
+       |       ^
+    141|   });
+    142|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/7]⎯
+
+ FAIL  |lisa| tests/unit/secrets/validate-config-operator-id-kinds.test.ts > credential scan of the id lists (CodySwannGT/lisa#4719) > refuses a bot token in operatorIds with prefix "id:"
+ FAIL  |lisa| tests/unit/secrets/validate-config-operator-id-kinds.test.ts > credential scan of the id lists (CodySwannGT/lisa#4719) > refuses a bot token in operatorIds with prefix "login:"
+ FAIL  |lisa| tests/unit/secrets/validate-config-operator-id-kinds.test.ts > credential scan of the id lists (CodySwannGT/lisa#4719) > refuses a bot token in trustedAuthorIds with prefix "id:"
+ FAIL  |lisa| tests/unit/secrets/validate-config-operator-id-kinds.test.ts > credential scan of the id lists (CodySwannGT/lisa#4719) > refuses a bot token in trustedAuthorIds with prefix "login:"
+AssertionError: expected [] to have a length of 1 but got +0
+
+- Expected
++ Received
+
+- 1
++ 0
+
+ ❯ tests/unit/secrets/validate-config-operator-id-kinds.test.ts:155:20
+    153|       [list]: [`${prefix}${BOT_TOKEN}`],
+    154|     });
+    155|     expect(errors).toHaveLength(1);
+       |                    ^
+    156|     expect(errors[0]).toContain(`sessionManager.${list}[0]`);
+    157|     expect(errors[0]).toContain("looks like a bot token");
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/7]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  7 failed | 18 passed (25)
+   Start at  00:45:39
+   Duration  245ms (transform 54ms, setup 73ms, import 29ms, tests 10ms, environment 0ms)
+

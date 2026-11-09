@@ -38,7 +38,7 @@ const method =
   option(["--method", "-X"]) ??
   (field !== undefined || option(["--input"]) !== undefined ? "POST" : "GET");
 const singleStateWrites =
-  (args[0] === "release" && args[1] === "upload") ||
+  (args[0] === "release" && ["upload", "create"].includes(args[1])) ||
   (args[0] === "issue"
     ? !["view", "list"].includes(args[1])
     : args[0] === "api" &&

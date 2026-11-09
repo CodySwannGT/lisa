@@ -1,11 +1,13 @@
 /**
  * Internal-consistency coverage for the `runtime_behavior_change` contract —
- * the falsifiable half of the decidability suite.
+ * the falsifiable half of the contract's presence checks.
  *
- * Read this together with `runtime-behavior-change-decidability.test.ts`. The
- * two files divide one contract along the axis that actually broke:
+ * Read this together with the `runtime_behavior_change` entries in
+ * `tests/phrase-manifest/required-phrases.json`, checked by
+ * `tests/unit/docs/required-phrases.test.ts`. The two divide one contract
+ * along the axis that actually broke:
  *
- * - **Decidability (sibling file)** asserts the contract wording is *present*.
+ * - **Presence (the manifest)** asserts the contract wording is *present*.
  *   That pins it against silent deletion or a lossy regeneration. Every
  *   assertion there is existential — "some copy says the right thing".
  * - **Consistency (this file)** asserts no copy says the *wrong* thing. Every
@@ -31,17 +33,26 @@
  * These are still assertions over prose. What changed is the quantifier, and
  * that is the half that binds: a universal negative over the whole corpus
  * cannot be satisfied by a correct copy elsewhere in the file. Deletion is the
- * sibling file's job; contradiction is this one's. Neither catches an agent
+ * manifest's job; contradiction is this one's. Neither catches an agent
  * that reads a correct instruction and disobeys it.
  * @module tests/unit/strategies/runtime-behavior-change-consistency
  */
+import { readFileSync } from "node:fs";
+import path from "node:path";
+
 import { describe, expect, it } from "vitest";
 
+import { NO_RUNTIME_REASONS } from "../../../all/copy-overwrite/scripts/lib/completion-proof-shape.mjs";
+import {
+  MANIFEST_PATH,
+  type Manifest,
+} from "../../../scripts/lib/phrase-tests/manifest.mjs";
 import {
   CONTRACT_SKILLS,
   RULE_ROOTS,
   SKILL_ROOTS,
   VALIDATORS,
+  WRITERS,
   readRule,
   readSkill,
 } from "./runtime-behavior-change-sources.js";
@@ -203,6 +214,81 @@ describe("no copy hands authority back to the caller", () => {
       for (const pattern of CALLER_BEATS_STORED) {
         expect(content).not.toMatch(pattern);
       }
+    });
+  });
+});
+
+describe("every copy this suite reads is pinned present by the manifest", () => {
+  // Presence lives in the required-phrases manifest, not here. A skill root
+  // added to SKILL_ROOTS without manifest coverage would be checked for
+  // contradiction only, and a deleted contract there would go unnoticed.
+  it("lists each SKILL_ROOTS x CONTRACT_SKILLS SKILL.md as a manifest key", () => {
+    const manifest = JSON.parse(
+      readFileSync(path.resolve(MANIFEST_PATH), "utf8")
+    ) as Manifest;
+    const expected = SKILL_ROOTS.flatMap(root =>
+      CONTRACT_SKILLS.map(slug => `${root}/${slug}/SKILL.md`)
+    );
+
+    expect(expected.filter(file => !(file in manifest.files))).toStrictEqual(
+      []
+    );
+  });
+});
+
+/** Matches the lenient grammar that let an unknown reason pass S8. */
+const LENIENT_GRAMMAR = /the words after it are for the human/iu;
+
+/**
+ * The validators once called the words after `None —` "for the human", so a
+ * leaf declaring `test-only` passed S8 and was then refused at completion as
+ * pending-proof forever, because `declaredScope()` accepts only a closed
+ * reason set (CodySwannGT/lisa#4684). These checks pin the prose grammar to
+ * the code export, so the set can change in one place only.
+ */
+describe("every copy names the closed no-runtime reason set the checker enforces", () => {
+  it("the checker's set is closed, frozen, and includes test-only", () => {
+    expect(Object.isFrozen(NO_RUNTIME_REASONS)).toBe(true);
+    expect([...NO_RUNTIME_REASONS]).toStrictEqual([
+      "doc-only",
+      "config-only",
+      "type-only",
+      "test-only",
+    ]);
+  });
+
+  describe.each(SKILL_ROOTS)("%s", root => {
+    it.each([...VALIDATORS, ...WRITERS])(
+      "%s names every reason and the shared export",
+      slug => {
+        const content = unwrap(readSkill(root, slug));
+
+        for (const reason of NO_RUNTIME_REASONS) {
+          expect(content).toContain(reason);
+        }
+        expect(content).toContain("NO_RUNTIME_REASONS");
+        expect(content).not.toMatch(LENIENT_GRAMMAR);
+      }
+    );
+
+    it.each(VALIDATORS)("%s fails a reason outside the closed set", slug => {
+      const content = unwrap(readSkill(root, slug));
+
+      expect(content).toContain(
+        "`doc-only | config-only | type-only | test-only`"
+      );
+      expect(content).toMatch(/any other reason[^.]*\*\*FAILs\*\* this gate/u);
+    });
+  });
+
+  describe.each(RULE_ROOTS)("%s", root => {
+    it("the reference tier names every reason and drops the lenient grammar", () => {
+      const content = unwrap(readRule(root, "reference"));
+
+      for (const reason of NO_RUNTIME_REASONS) {
+        expect(content).toContain(reason);
+      }
+      expect(content).not.toMatch(LENIENT_GRAMMAR);
     });
   });
 });

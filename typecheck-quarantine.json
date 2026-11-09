@@ -218,7 +218,6 @@
     "tests/unit/scripts/gate-diagnosis-comment-terminated.test.ts",
     "tests/unit/scripts/gate-killed-under-load.test.ts",
     "tests/unit/scripts/generate-copilot-plugin-artifacts.test.ts",
-    "tests/unit/scripts/generate-cursor-plugin-artifacts.artifacts.test.ts",
     "tests/unit/scripts/generate-cursor-plugin-artifacts.test.ts",
     "tests/unit/scripts/jira-cli-config-consumption.test.ts",
     "tests/unit/scripts/kill-marks.test.ts",
@@ -240,7 +239,6 @@
     "tests/unit/scripts/lisa-reconcile-policy-awaited-scope.test.ts",
     "tests/unit/scripts/lisa-reconcile-policy-declarative.test.ts",
     "tests/unit/scripts/lisa-reconcile-policy-fixtures.ts",
-    "tests/unit/scripts/lisa-reconcile-policy-units.test.ts",
     "tests/unit/scripts/lisa-reconcile-policy.test.ts",
     "tests/unit/scripts/lisa-ruleset-payload.test.ts",
     "tests/unit/scripts/lisa-run-gates-envelope.test.ts",
@@ -340,7 +338,6 @@
     "tests/unit/strategies/linear-key-resolver-ladder-parity.test.ts",
     "tests/unit/strategies/linear-state-write-guard.test.ts",
     "tests/unit/strategies/linear-state-write-sink.test.ts",
-    "tests/unit/strategies/package-lisa-integration-script-layout.test.ts",
     "tests/unit/strategies/package-lisa.test.ts",
     "tests/unit/strategies/prd-backlink-generated-work-section.test.ts",
     "tests/unit/strategies/queue-status-build-readers.test.ts",
@@ -350,12 +347,10 @@
     "tests/unit/strategies/scoping-label-drift.test.ts",
     "tests/unit/strategies/scoping-label-vocabulary-contract.test.ts",
     "tests/unit/strategies/wiki-status-report-rendering.test.ts",
-    "tests/unit/strategies/wiki-status-verdicts.test.ts",
     "tests/unit/sync/linear-workflow-registry.test.ts",
     "tests/unit/utils/usage-accounting-rollup.test.ts",
     "tests/unit/utils/usage-accounting.test.ts",
     "tests/unit/workstation/workstation-install.test.ts",
-    "tests/unit/workstation/workstation-plan.test.ts",
-    "vitest.config.ts"
+    "tests/unit/workstation/workstation-plan.test.ts"
   ]
 }

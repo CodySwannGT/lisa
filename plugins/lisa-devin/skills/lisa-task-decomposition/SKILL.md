@@ -14,10 +14,10 @@ Break work into ordered, well-scoped tasks that can be independently implemented
 Every time a dispatched worker had to stop for a human, or file a new ticket mid-build, because planning let a gap through, `learning-judge` may have persisted the check planning should have run as a `planning-miss` learning (CodySwannGT/lisa#4569). Those checks only help if planning reads them back. Before decomposing, load them through the learnings contract's **bounded projection** — never by reading the ledger file wholesale:
 
 ```bash
-node -e 'import("@codyswann/lisa/learnings").then(async m => { const { readFile } = await import("node:fs/promises"); const file = m.resolveProjectLearningsFile(await m.readProjectConfig(process.cwd())); const raw = await readFile(file, "utf8").catch(() => null); if (raw === null) return; const { entries, omittedCount } = m.projectLearnings(m.parseLearningsFile(raw)); const checks = entries.filter(e => /^Planning \((prd|decomposition|ready-gate|filing)\):/.test(e.rule)).map(e => ({ id: e.id, rule: e.rule, confidence: e.confidence })); console.log(JSON.stringify({ checks, omittedCount })); }).catch(error => console.error(`learned planning checks unavailable: ${error.message}`))' || true
+node -e 'import("@codyswann/lisa/learnings").then(async m => { const { readFile } = await import("node:fs/promises"); const file = m.resolveProjectLearningsFile(await m.readProjectConfig(process.cwd())); const raw = await readFile(file, "utf8").catch(error => { if (error.code === "ENOENT") return null; throw error; }); if (raw === null) return; const planning = m.parseLearningsFile(raw).filter(e => /^Planning \((prd|decomposition|ready-gate|filing)\):/.test(e.rule)); const { entries } = m.projectLearnings(planning); const kept = new Set(entries.map(e => e.id)); const checks = entries.map(e => ({ id: e.id, rule: e.rule, confidence: e.confidence })); const omitted = planning.filter(e => !kept.has(e.id)).map(e => e.id); console.log(JSON.stringify({ checks, omitted })); }).catch(error => console.error(`learned planning checks unavailable: ${error.message}`))' || true
 ```
 
-Run it from the project root. No output means there is no ledger yet: carry on. A malformed ledger prints one warning and yields nothing: carry on without it. Never let this step block planning.
+Run it from the project root. No output means there is no ledger yet (`ENOENT`): carry on. A ledger that exists but cannot be read, or is malformed, prints one warning naming the error and yields nothing: carry on without it. Say in the plan that the checks were not loaded. The projection is taken over the planning checks alone, so other learnings never crowd them out; `omitted` lists, by id, any planning check the budget still left out — name those in the plan as not applied. Never let this step block planning.
 
 Each check names the stage that owns it, and binds there:
 
@@ -114,8 +114,11 @@ unit proposes adding one, the work unit must, before it is buildable:
 2. **State the class's required evidence** — the detection evidence that class
    demands, and whether product/human ratification is required before the work
    starts. Runtime-critical service clients and expiry extensions on temporary
-   dependencies always require ratification; a work unit that needs it and does
-   not say so is not ready.
+   dependencies always require ratification — unless `.lisa.config.json` sets
+   `dependencies.humanSignOff` to `"none"`, in which case no class requires
+   ratification and the work unit says so instead (the class and its evidence
+   are still required). A work unit that needs ratification and does not say so
+   is not ready.
 3. **Include updating `.lisa/DEPENDENCY_DECISIONS.md`** in its acceptance
    criteria, so the record entry lands in the same change as the dependency.
 
@@ -206,7 +209,7 @@ Map each task to the skills needed to complete it. This enables delegation to sp
 - Every task must have at least one acceptance criterion that can be empirically verified
 - Do not create tasks that cannot be verified -- if you cannot define how to prove it is done, the task is not well-scoped
 - Every Task / Bug / Sub-task / Improvement is scoped to exactly one repo -- if the work spans repos, split into per-repo work units under a shared parent Story (see step 1.5)
-- Any task proposing a new material dependency names its trust class, states that class's required evidence and whether human ratification is needed, and updates `.lisa/DEPENDENCY_DECISIONS.md` in the same change (see step 4.5) -- a proposed material dependency with no named class is not ready to build
+- Any task proposing a new material dependency names its trust class, states that class's required evidence and whether human ratification is needed (never, when `dependencies.humanSignOff` is `"none"`), and updates `.lisa/DEPENDENCY_DECISIONS.md` in the same change (see step 4.5) -- a proposed material dependency with no named class is not ready to build
 - Any task removing, replacing, or internalizing a material dependency carries all seven confidence-rebuild kit criteria -- corpus, conformance, negative fixtures, coverage-as-gap-detector, provenance/license, migration/update plan, and rollback criteria (see step 4.6) -- unless it explicitly justifies why the dependency is non-material; a within-trust-class version bump does not carry the kit
 - Keep tasks ordered so that no task references work that has not been completed by a prior task
 - Flag any task that requires access, permissions, or external input not yet available

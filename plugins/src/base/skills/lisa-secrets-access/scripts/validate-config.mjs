@@ -516,6 +516,20 @@ const INTERVAL_UNITS = { s: 1, m: 60, h: 3600, d: 86_400 };
  */
 const TOKEN_VALUE = /^\d{5,}:[A-Za-z0-9_-]{30,}$/;
 
+/**
+ * A legacy Jira Cloud accountId (`557058:<uuid>`), which `TOKEN_VALUE` also
+ * matches (CodySwannGT/lisa#4719).
+ *
+ * Exempted only for `operatorIds` / `trustedAuthorIds` entries, where a Jira
+ * project puts exactly this id. A Telegram token's secret half is never in
+ * canonical UUID form, so the exemption lets no token through.
+ */
+const JIRA_LEGACY_ACCOUNT_ID =
+  /^\d+:[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/** The block's id lists, whose entries the credential scan reads by kind. */
+const ID_LIST_KEYS = new Set(["operatorIds", "trustedAuthorIds"]);
+
 /** Key names that only ever hold a credential. */
 const CREDENTIAL_KEY = /token|secret|password|passwd|api[-_]?key|credential/i;
 
@@ -745,6 +759,10 @@ function isNameKeyedMap(segments) {
  * (#4555; the state dir's 0600 dotenv file only when no provider is
  * configured), so a token here is both leaked and unused. The value is never
  * echoed.
+ *
+ * An `operatorIds` / `trustedAuthorIds` entry is scanned by kind instead
+ * (`idEntryCredentials`), so a token behind `id:` / `login:` is still caught
+ * and a legacy Jira accountId is not mistaken for one (CodySwannGT/lisa#4719).
  * @param {unknown} value Subtree.
  * @param {string} path Dotted path so far, for messages.
  * @param {readonly string[] | null} [segments] Object keys from the block root;
@@ -753,18 +771,14 @@ function isNameKeyedMap(segments) {
  */
 function findCredentials(value, path, segments = []) {
   if (typeof value === "string") {
-    return TOKEN_VALUE.test(value.trim())
-      ? [
-          `${path} looks like a bot token. Tokens never go in config: ` +
-            `remove it, and store the token in the project's secrets ` +
-            `provider with session-manager.mjs store-token ` +
-            `(/lisa:setup:session-manager runs it).`,
-        ]
-      : [];
+    return TOKEN_VALUE.test(value.trim()) ? botTokenProblem(path) : [];
   }
   if (Array.isArray(value)) {
+    const isIdList = segments?.length === 1 && ID_LIST_KEYS.has(segments[0]);
     return value.flatMap((item, i) =>
-      findCredentials(item, `${path}[${i}]`, null)
+      isIdList && typeof item === "string"
+        ? idEntryCredentials(item, `${path}[${i}]`)
+        : findCredentials(item, `${path}[${i}]`, null)
     );
   }
   if (!isPlainObject(value)) return [];
@@ -813,6 +827,43 @@ export function classifyIdEntry(entry) {
   if (prefix === undefined || PLAIN_ID_STARTS.has(prefix)) return "plain";
   if (!ID_ENTRY_KINDS.has(prefix)) return "unknown-prefix";
   return entry.slice(prefix.length + 1).trim() === "" ? "empty-value" : prefix;
+}
+
+/**
+ * The refusal for a token-shaped value, naming only its path.
+ * @param {string} path Where the value sits.
+ * @returns {string[]} The one problem.
+ */
+function botTokenProblem(path) {
+  return [
+    `${path} looks like a bot token. Tokens never go in config: ` +
+      `remove it, and store the token in the project's secrets ` +
+      `provider with session-manager.mjs store-token ` +
+      `(/lisa:setup:session-manager runs it).`,
+  ];
+}
+
+/**
+ * Scan one `operatorIds` / `trustedAuthorIds` entry for a bot token
+ * (CodySwannGT/lisa#4719).
+ *
+ * The value after a `login:` / `id:` prefix is what gets tested, since a
+ * token pasted behind a prefix is as leaked as a bare one. A legacy Jira
+ * accountId (`557058:<uuid>`) is token-shaped but is a real id, so it passes.
+ * @param {string} entry One entry.
+ * @param {string} path Where the entry sits.
+ * @returns {string[]} Problems found.
+ */
+function idEntryCredentials(entry, path) {
+  const trimmed = entry.trim();
+  const prefix = ID_ENTRY_PREFIX.exec(trimmed)?.[1];
+  const value =
+    prefix !== undefined && ID_ENTRY_KINDS.has(prefix)
+      ? trimmed.slice(prefix.length + 1).trim()
+      : trimmed;
+  return TOKEN_VALUE.test(value) && !JIRA_LEGACY_ACCOUNT_ID.test(value)
+    ? botTokenProblem(path)
+    : [];
 }
 
 /**

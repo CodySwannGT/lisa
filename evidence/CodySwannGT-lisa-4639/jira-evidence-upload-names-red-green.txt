@@ -1,0 +1,919 @@
+# CodySwannGT/lisa#4639 — evidence-name tests, red -> green
+
+## GREEN: the verifier's own re-run (assembled 2026-11-09T02:25:14.140Z)
+HEAD: df57a16a1917a9ce34ee320c0f654c9b7a146592 (merge of origin/main 1dbbc35a0d; working tree clean apart from evidence/)
+command: bun run test -- tests/unit/scripts/jira-evidence-upload-names.test.ts tests/integration/jira-evidence-pr-scoped-uploads.test.ts tests/integration/jira-evidence-generator-links.test.ts tests/integration/jira-shell-auth-destinations.test.ts tests/unit/scripts/jira-evidence-release.test.ts
+exit: 0  (Test Files  5 passed (5); Tests  239 passed (239))
+
+$ bun run build
+$ bun run build:dist && bun run build:plugins
+$ node scripts/lib/worktree-dependencies.mjs && node scripts/clean-dist.mjs && tsc && node scripts/copy-codex-scripts.mjs && node scripts/copy-opencode-plugin-templates.mjs
+$ bash scripts/build-plugins.sh
+Built plugins/lisa (v4.99.6)
+Built plugins/lisa-typescript (v4.99.6)
+Built plugins/lisa-expo (v4.99.6)
+Built plugins/lisa-nestjs (v4.99.6)
+Built plugins/lisa-cdk (v4.99.6)
+Built plugins/lisa-harper-fabric (v4.99.6)
+Built plugins/lisa-phaser (v4.99.6)
+Built plugins/lisa-rails (v4.99.6)
+Built plugins/lisa-wiki (v4.99.6)
+Built plugins/lisa-openclaw (v4.99.6)
+Generated Cursor variant at <worktree>/plugins/lisa-cursor (v4.99.6)
+Generated Cursor variant at <worktree>/plugins/lisa-typescript-cursor (v4.99.6)
+Generated Cursor variant at <worktree>/plugins/lisa-expo-cursor (v4.99.6)
+Generated Cursor variant at <worktree>/plugins/lisa-nestjs-cursor (v4.99.6)
+Generated Cursor variant at <worktree>/plugins/lisa-cdk-cursor (v4.99.6)
+Generated Cursor variant at <worktree>/plugins/lisa-harper-fabric-cursor (v4.99.6)
+Generated Cursor variant at <worktree>/plugins/lisa-phaser-cursor (v4.99.6)
+Generated Cursor variant at <worktree>/plugins/lisa-rails-cursor (v4.99.6)
+Generated Cursor variant at <worktree>/plugins/lisa-wiki-cursor (v4.99.6)
+Generated Cursor variant at <worktree>/plugins/lisa-openclaw-cursor (v4.99.6)
+Generated agy variant at <worktree>/plugins/lisa-agy (v4.99.6)
+Generated agy variant at <worktree>/plugins/lisa-typescript-agy (v4.99.6)
+Generated agy variant at <worktree>/plugins/lisa-expo-agy (v4.99.6)
+Generated agy variant at <worktree>/plugins/lisa-nestjs-agy (v4.99.6)
+Generated agy variant at <worktree>/plugins/lisa-cdk-agy (v4.99.6)
+Generated agy variant at <worktree>/plugins/lisa-harper-fabric-agy (v4.99.6)
+Generated agy variant at <worktree>/plugins/lisa-phaser-agy (v4.99.6)
+Generated agy variant at <worktree>/plugins/lisa-rails-agy (v4.99.6)
+Generated agy variant at <worktree>/plugins/lisa-wiki-agy (v4.99.6)
+Generated agy variant at <worktree>/plugins/lisa-openclaw-agy (v4.99.6)
+Generated Copilot variant at <worktree>/plugins/lisa-copilot (v4.99.6)
+Generated Copilot variant at <worktree>/plugins/lisa-typescript-copilot (v4.99.6)
+Generated Copilot variant at <worktree>/plugins/lisa-expo-copilot (v4.99.6)
+Generated Copilot variant at <worktree>/plugins/lisa-nestjs-copilot (v4.99.6)
+Generated Copilot variant at <worktree>/plugins/lisa-cdk-copilot (v4.99.6)
+Generated Copilot variant at <worktree>/plugins/lisa-harper-fabric-copilot (v4.99.6)
+Generated Copilot variant at <worktree>/plugins/lisa-phaser-copilot (v4.99.6)
+Generated Copilot variant at <worktree>/plugins/lisa-rails-copilot (v4.99.6)
+Generated Copilot variant at <worktree>/plugins/lisa-wiki-copilot (v4.99.6)
+Generated Copilot variant at <worktree>/plugins/lisa-openclaw-copilot (v4.99.6)
+Generated Devin variant at <worktree>/plugins/lisa-devin (v4.99.6)
+Generated Devin variant at <worktree>/plugins/lisa-typescript-devin (v4.99.6)
+Generated Devin variant at <worktree>/plugins/lisa-expo-devin (v4.99.6)
+Generated Devin variant at <worktree>/plugins/lisa-nestjs-devin (v4.99.6)
+Generated Devin variant at <worktree>/plugins/lisa-cdk-devin (v4.99.6)
+Generated Devin variant at <worktree>/plugins/lisa-harper-fabric-devin (v4.99.6)
+Generated Devin variant at <worktree>/plugins/lisa-phaser-devin (v4.99.6)
+Generated Devin variant at <worktree>/plugins/lisa-rails-devin (v4.99.6)
+Generated Devin variant at <worktree>/plugins/lisa-wiki-devin (v4.99.6)
+Generated Devin variant at <worktree>/plugins/lisa-openclaw-devin (v4.99.6)
+$ node scripts/lib/worktree-dependencies.mjs && $npm_execpath run lisa-test-run -- --adapter vitest -- vitest run tests/unit/scripts/jira-evidence-upload-names.test.ts tests/integration/jira-evidence-pr-scoped-uploads.test.ts tests/integration/jira-evidence-generator-links.test.ts tests/integration/jira-shell-auth-destinations.test.ts tests/unit/scripts/jira-evidence-release.test.ts
+$ node scripts/lib/worktree-dependencies.mjs && bun run build && node dist/cli/lisa-test-run.js --profile lisa --adapter vitest -- vitest run tests/unit/scripts/jira-evidence-upload-names.test.ts tests/integration/jira-evidence-pr-scoped-uploads.test.ts tests/integration/jira-evidence-generator-links.test.ts tests/integration/jira-shell-auth-destinations.test.ts tests/unit/scripts/jira-evidence-release.test.ts
+$ bun run build:dist && bun run build:plugins
+$ node scripts/lib/worktree-dependencies.mjs && node scripts/clean-dist.mjs && tsc && node scripts/copy-codex-scripts.mjs && node scripts/copy-opencode-plugin-templates.mjs
+$ bash scripts/build-plugins.sh
+Built plugins/lisa (v4.99.6)
+Built plugins/lisa-typescript (v4.99.6)
+Built plugins/lisa-expo (v4.99.6)
+Built plugins/lisa-nestjs (v4.99.6)
+Built plugins/lisa-cdk (v4.99.6)
+Built plugins/lisa-harper-fabric (v4.99.6)
+Built plugins/lisa-phaser (v4.99.6)
+Built plugins/lisa-rails (v4.99.6)
+Built plugins/lisa-wiki (v4.99.6)
+Built plugins/lisa-openclaw (v4.99.6)
+Generated Cursor variant at <worktree>/plugins/lisa-cursor (v4.99.6)
+Generated Cursor variant at <worktree>/plugins/lisa-typescript-cursor (v4.99.6)
+Generated Cursor variant at <worktree>/plugins/lisa-expo-cursor (v4.99.6)
+Generated Cursor variant at <worktree>/plugins/lisa-nestjs-cursor (v4.99.6)
+Generated Cursor variant at <worktree>/plugins/lisa-cdk-cursor (v4.99.6)
+Generated Cursor variant at <worktree>/plugins/lisa-harper-fabric-cursor (v4.99.6)
+Generated Cursor variant at <worktree>/plugins/lisa-phaser-cursor (v4.99.6)
+Generated Cursor variant at <worktree>/plugins/lisa-rails-cursor (v4.99.6)
+Generated Cursor variant at <worktree>/plugins/lisa-wiki-cursor (v4.99.6)
+Generated Cursor variant at <worktree>/plugins/lisa-openclaw-cursor (v4.99.6)
+Generated agy variant at <worktree>/plugins/lisa-agy (v4.99.6)
+Generated agy variant at <worktree>/plugins/lisa-typescript-agy (v4.99.6)
+Generated agy variant at <worktree>/plugins/lisa-expo-agy (v4.99.6)
+Generated agy variant at <worktree>/plugins/lisa-nestjs-agy (v4.99.6)
+Generated agy variant at <worktree>/plugins/lisa-cdk-agy (v4.99.6)
+Generated agy variant at <worktree>/plugins/lisa-harper-fabric-agy (v4.99.6)
+Generated agy variant at <worktree>/plugins/lisa-phaser-agy (v4.99.6)
+Generated agy variant at <worktree>/plugins/lisa-rails-agy (v4.99.6)
+Generated agy variant at <worktree>/plugins/lisa-wiki-agy (v4.99.6)
+Generated agy variant at <worktree>/plugins/lisa-openclaw-agy (v4.99.6)
+Generated Copilot variant at <worktree>/plugins/lisa-copilot (v4.99.6)
+Generated Copilot variant at <worktree>/plugins/lisa-typescript-copilot (v4.99.6)
+Generated Copilot variant at <worktree>/plugins/lisa-expo-copilot (v4.99.6)
+Generated Copilot variant at <worktree>/plugins/lisa-nestjs-copilot (v4.99.6)
+Generated Copilot variant at <worktree>/plugins/lisa-cdk-copilot (v4.99.6)
+Generated Copilot variant at <worktree>/plugins/lisa-harper-fabric-copilot (v4.99.6)
+Generated Copilot variant at <worktree>/plugins/lisa-phaser-copilot (v4.99.6)
+Generated Copilot variant at <worktree>/plugins/lisa-rails-copilot (v4.99.6)
+Generated Copilot variant at <worktree>/plugins/lisa-wiki-copilot (v4.99.6)
+Generated Copilot variant at <worktree>/plugins/lisa-openclaw-copilot (v4.99.6)
+Generated Devin variant at <worktree>/plugins/lisa-devin (v4.99.6)
+Generated Devin variant at <worktree>/plugins/lisa-typescript-devin (v4.99.6)
+Generated Devin variant at <worktree>/plugins/lisa-expo-devin (v4.99.6)
+Generated Devin variant at <worktree>/plugins/lisa-nestjs-devin (v4.99.6)
+Generated Devin variant at <worktree>/plugins/lisa-cdk-devin (v4.99.6)
+Generated Devin variant at <worktree>/plugins/lisa-harper-fabric-devin (v4.99.6)
+Generated Devin variant at <worktree>/plugins/lisa-phaser-devin (v4.99.6)
+Generated Devin variant at <worktree>/plugins/lisa-rails-devin (v4.99.6)
+Generated Devin variant at <worktree>/plugins/lisa-wiki-devin (v4.99.6)
+Generated Devin variant at <worktree>/plugins/lisa-openclaw-devin (v4.99.6)
+lisa-test-run: TMPDIR <tmp> is too long for native Unix socket fixtures; using <tmp>.
+🧹 swept 0 stale temp dirs, 0 orphaned test processes (156 ms); kept 5 entries not private to this user
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - import "./vitest.config.local" without a file extension (vitest.config.ts:21:25). Add the file extension
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - import "./vitest.config.local" without a file extension (vitest.config.ts:21:25). Add the file extension
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - import "./vitest.config.local" without a file extension (vitest.config.ts:21:25). Add the file extension
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - import "./vitest.config.local" without a file extension (vitest.config.ts:21:25). Add the file extension
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+
+ RUN  v4.1.11 <worktree>
+
+lisa fleet admission: waiting for a worker slot — 5 run(s) live, this run is #5, 3 may execute at once. Starting anyway in 120s. Set LISA_FLEET_ADMISSION=off to disable this wait.
+
+ Test Files  5 passed (5)
+      Tests  239 passed (239)
+   Start at  21:22:54
+   Duration  125.57s (transform 287ms, setup 421ms, import 684ms, tests 56.14s, environment 0ms)
+
+
+
+## RED: the implementer's run of the same tests against the pre-fix scripts (copied verbatim from <tmp>/red.log)
+
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - import "./vitest.config.local" without a file extension (vitest.config.ts:21:25). Add the file extension
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - import "./vitest.config.local" without a file extension (vitest.config.ts:21:25). Add the file extension
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - import "./vitest.config.local" without a file extension (vitest.config.ts:21:25). Add the file extension
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - import "./vitest.config.local" without a file extension (vitest.config.ts:21:25). Add the file extension
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+
+ RUN  v4.1.11 <worktree>
+
+lisa scratch: no supervised lease in the environment, so this run is self-supervised. Fixture directories are still bounded to a run root this process owns and removed on exit; what is missing is the detached reaper that reclaims the root after a SIGKILL, which the next run's startup sweep recovers instead. Run through `lisa-test-run --profile <profile> --adapter vitest -- vitest ...` for a supervised run.
+lisa scratch: no supervised lease in the environment, so this run is self-supervised. Fixture directories are still bounded to a run root this process owns and removed on exit; what is missing is the detached reaper that reclaims the root after a SIGKILL, which the next run's startup sweep recovers instead. Run through `lisa-test-run --profile <profile> --adapter vitest -- vitest ...` for a supervised run.
+ ❯ |lisa| tests/integration/jira-evidence-generator-links.test.ts (6 tests | 4 failed) 2770ms
+     × links the pull-request-scoped release asset 437ms
+     × links a different asset for a different pull request 462ms
+     × links the pull-request-scoped release asset 362ms
+     × links a different asset for a different pull request 348ms
+lisa scratch: no supervised lease in the environment, so this run is self-supervised. Fixture directories are still bounded to a run root this process owns and removed on exit; what is missing is the detached reaper that reclaims the root after a SIGKILL, which the next run's startup sweep recovers instead. Run through `lisa-test-run --profile <profile> --adapter vitest -- vitest ...` for a supervised run.
+ ❯ |lisa| tests/unit/scripts/jira-evidence-upload-names.test.ts (65 tests | 63 failed) 25ms
+     × plugins/lisa-agy/skills/lisa-jira-evidence/scripts/post-evidence.sh scopes every release upload by PR number 3ms
+     × plugins/lisa-copilot/skills/lisa-jira-evidence/scripts/post-evidence.sh scopes every release upload by PR number 1ms
+     × plugins/lisa-cursor/skills/lisa-jira-evidence/scripts/post-evidence.sh scopes every release upload by PR number 1ms
+     × plugins/lisa-devin/skills/lisa-jira-evidence/scripts/post-evidence.sh scopes every release upload by PR number 1ms
+     × plugins/lisa-expo-agy/skills/jira-evidence/scripts/post-evidence.sh scopes every release upload by PR number 1ms
+     × plugins/lisa-expo-copilot/skills/jira-evidence/scripts/post-evidence.sh scopes every release upload by PR number 1ms
+     × plugins/lisa-expo-cursor/skills/jira-evidence/scripts/post-evidence.sh scopes every release upload by PR number 0ms
+     × plugins/lisa-expo-devin/skills/jira-evidence/scripts/post-evidence.sh scopes every release upload by PR number 1ms
+     × plugins/lisa-expo/.codex-plugin/skills/jira-evidence/scripts/post-evidence.sh scopes every release upload by PR number 1ms
+     × plugins/lisa-expo/skills/jira-evidence/scripts/post-evidence.sh scopes every release upload by PR number 1ms
+     × plugins/lisa-rails-agy/skills/jira-evidence/scripts/post-evidence.sh scopes every release upload by PR number 0ms
+     × plugins/lisa-rails-copilot/skills/jira-evidence/scripts/post-evidence.sh scopes every release upload by PR number 0ms
+     × plugins/lisa-rails-cursor/skills/jira-evidence/scripts/post-evidence.sh scopes every release upload by PR number 0ms
+     × plugins/lisa-rails-devin/skills/jira-evidence/scripts/post-evidence.sh scopes every release upload by PR number 1ms
+     × plugins/lisa-rails/.codex-plugin/skills/jira-evidence/scripts/post-evidence.sh scopes every release upload by PR number 1ms
+     × plugins/lisa-rails/skills/jira-evidence/scripts/post-evidence.sh scopes every release upload by PR number 0ms
+     × plugins/lisa/.codex-plugin/skills/lisa-jira-evidence/scripts/post-evidence.sh scopes every release upload by PR number 0ms
+     × plugins/lisa/skills/lisa-jira-evidence/scripts/post-evidence.sh scopes every release upload by PR number 1ms
+     × plugins/src/base/skills/lisa-jira-evidence/scripts/post-evidence.sh scopes every release upload by PR number 0ms
+     × plugins/src/expo/skills/jira-evidence/scripts/post-evidence.sh scopes every release upload by PR number 0ms
+     × plugins/src/rails/skills/jira-evidence/scripts/post-evidence.sh scopes every release upload by PR number 0ms
+     × plugins/lisa-agy/skills/lisa-jira-evidence/scripts/post-evidence.sh clobbers only pull-request-scoped names 0ms
+     × plugins/lisa-copilot/skills/lisa-jira-evidence/scripts/post-evidence.sh clobbers only pull-request-scoped names 0ms
+     × plugins/lisa-cursor/skills/lisa-jira-evidence/scripts/post-evidence.sh clobbers only pull-request-scoped names 0ms
+     × plugins/lisa-devin/skills/lisa-jira-evidence/scripts/post-evidence.sh clobbers only pull-request-scoped names 0ms
+     × plugins/lisa-expo-agy/skills/jira-evidence/scripts/post-evidence.sh clobbers only pull-request-scoped names 0ms
+     × plugins/lisa-expo-copilot/skills/jira-evidence/scripts/post-evidence.sh clobbers only pull-request-scoped names 0ms
+     × plugins/lisa-expo-cursor/skills/jira-evidence/scripts/post-evidence.sh clobbers only pull-request-scoped names 0ms
+     × plugins/lisa-expo-devin/skills/jira-evidence/scripts/post-evidence.sh clobbers only pull-request-scoped names 0ms
+     × plugins/lisa-expo/.codex-plugin/skills/jira-evidence/scripts/post-evidence.sh clobbers only pull-request-scoped names 1ms
+     × plugins/lisa-expo/skills/jira-evidence/scripts/post-evidence.sh clobbers only pull-request-scoped names 1ms
+     × plugins/lisa-rails-agy/skills/jira-evidence/scripts/post-evidence.sh clobbers only pull-request-scoped names 0ms
+     × plugins/lisa-rails-copilot/skills/jira-evidence/scripts/post-evidence.sh clobbers only pull-request-scoped names 0ms
+     × plugins/lisa-rails-cursor/skills/jira-evidence/scripts/post-evidence.sh clobbers only pull-request-scoped names 0ms
+     × plugins/lisa-rails-devin/skills/jira-evidence/scripts/post-evidence.sh clobbers only pull-request-scoped names 0ms
+     × plugins/lisa-rails/.codex-plugin/skills/jira-evidence/scripts/post-evidence.sh clobbers only pull-request-scoped names 0ms
+     × plugins/lisa-rails/skills/jira-evidence/scripts/post-evidence.sh clobbers only pull-request-scoped names 0ms
+     × plugins/lisa/.codex-plugin/skills/lisa-jira-evidence/scripts/post-evidence.sh clobbers only pull-request-scoped names 0ms
+     × plugins/lisa/skills/lisa-jira-evidence/scripts/post-evidence.sh clobbers only pull-request-scoped names 0ms
+     × plugins/src/base/skills/lisa-jira-evidence/scripts/post-evidence.sh clobbers only pull-request-scoped names 0ms
+     × plugins/src/expo/skills/jira-evidence/scripts/post-evidence.sh clobbers only pull-request-scoped names 0ms
+     × plugins/src/rails/skills/jira-evidence/scripts/post-evidence.sh clobbers only pull-request-scoped names 0ms
+     × plugins/lisa-agy/skills/lisa-jira-evidence/scripts/post-evidence.sh validates PR_NUMBER before its first upload 0ms
+     × plugins/lisa-copilot/skills/lisa-jira-evidence/scripts/post-evidence.sh validates PR_NUMBER before its first upload 0ms
+     × plugins/lisa-cursor/skills/lisa-jira-evidence/scripts/post-evidence.sh validates PR_NUMBER before its first upload 0ms
+     × plugins/lisa-devin/skills/lisa-jira-evidence/scripts/post-evidence.sh validates PR_NUMBER before its first upload 0ms
+     × plugins/lisa-expo-agy/skills/jira-evidence/scripts/post-evidence.sh validates PR_NUMBER before its first upload 0ms
+     × plugins/lisa-expo-copilot/skills/jira-evidence/scripts/post-evidence.sh validates PR_NUMBER before its first upload 0ms
+     × plugins/lisa-expo-cursor/skills/jira-evidence/scripts/post-evidence.sh validates PR_NUMBER before its first upload 0ms
+     × plugins/lisa-expo-devin/skills/jira-evidence/scripts/post-evidence.sh validates PR_NUMBER before its first upload 0ms
+     × plugins/lisa-expo/.codex-plugin/skills/jira-evidence/scripts/post-evidence.sh validates PR_NUMBER before its first upload 0ms
+     × plugins/lisa-expo/skills/jira-evidence/scripts/post-evidence.sh validates PR_NUMBER before its first upload 0ms
+     × plugins/lisa-rails-agy/skills/jira-evidence/scripts/post-evidence.sh validates PR_NUMBER before its first upload 0ms
+     × plugins/lisa-rails-copilot/skills/jira-evidence/scripts/post-evidence.sh validates PR_NUMBER before its first upload 0ms
+     × plugins/lisa-rails-cursor/skills/jira-evidence/scripts/post-evidence.sh validates PR_NUMBER before its first upload 0ms
+     × plugins/lisa-rails-devin/skills/jira-evidence/scripts/post-evidence.sh validates PR_NUMBER before its first upload 0ms
+     × plugins/lisa-rails/.codex-plugin/skills/jira-evidence/scripts/post-evidence.sh validates PR_NUMBER before its first upload 0ms
+     × plugins/lisa-rails/skills/jira-evidence/scripts/post-evidence.sh validates PR_NUMBER before its first upload 0ms
+     × plugins/lisa/.codex-plugin/skills/lisa-jira-evidence/scripts/post-evidence.sh validates PR_NUMBER before its first upload 0ms
+     × plugins/lisa/skills/lisa-jira-evidence/scripts/post-evidence.sh validates PR_NUMBER before its first upload 0ms
+     × plugins/src/base/skills/lisa-jira-evidence/scripts/post-evidence.sh validates PR_NUMBER before its first upload 0ms
+     × plugins/src/expo/skills/jira-evidence/scripts/post-evidence.sh validates PR_NUMBER before its first upload 0ms
+     × plugins/src/rails/skills/jira-evidence/scripts/post-evidence.sh validates PR_NUMBER before its first upload 0ms
+ ❯ |lisa| tests/integration/jira-evidence-pr-scoped-uploads.test.ts (30 tests | 27 failed) 30099ms
+     × keeps both pull requests' same-named evidence 1349ms
+     × records only pull-request-scoped upload names 1454ms
+     × replaces only its own pull request's evidence on a re-run 1540ms
+     × refuses pull request number "0" before any upload 765ms
+     × refuses pull request number "-1" before any upload 1042ms
+     × refuses pull request number "abc" before any upload 993ms
+     × refuses pull request number "1.5" before any upload 1156ms
+     × refuses pull request number "01" before any upload 1243ms
+     × fails naming an asset missing from the release after upload 879ms
+     × keeps both pull requests' same-named evidence 1486ms
+     × records only pull-request-scoped upload names 1253ms
+     × replaces only its own pull request's evidence on a re-run 1605ms
+     × refuses pull request number "0" before any upload 1101ms
+     × refuses pull request number "-1" before any upload 1016ms
+     × refuses pull request number "abc" before any upload 1198ms
+     × refuses pull request number "1.5" before any upload 686ms
+     × refuses pull request number "01" before any upload 685ms
+     × fails naming an asset missing from the release after upload 1148ms
+     × keeps both pull requests' same-named evidence 1238ms
+     × records only pull-request-scoped upload names 891ms
+     × replaces only its own pull request's evidence on a re-run 1561ms
+     × refuses pull request number "0" before any upload 1049ms
+     × refuses pull request number "-1" before any upload 1360ms
+     × refuses pull request number "abc" before any upload 932ms
+     × refuses pull request number "1.5" before any upload 896ms
+     × refuses pull request number "01" before any upload 652ms
+     × fails naming an asset missing from the release after upload 897ms
+
+⎯⎯⎯⎯⎯⎯ Failed Tests 94 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  |lisa| tests/integration/jira-evidence-generator-links.test.ts > generated evidence links: plugins/src/base/skills/lisa-jira-journey/scripts/generate-templates.py > links the pull-request-scoped release asset
+AssertionError: expected '## Evidence — PR #101\n\n**Branch:** …' to contain '(https://github.com/org/repo/releases…'
+
+- Expected
++ Received
+
+- (https://github.com/org/repo/releases/download/pr-assets/pr-101-01-search-step-desktop.png)
++ ## Evidence — PR #101
++
++ **Branch:** `fix/test`
++ **Ticket:** [TEST-1](https://jira.invalid/browse/TEST-1)
++
++ ### Verification Results
++
++ - search works
++
++ ### Evidence
++
++ **Search Step Desktop:**
++
++ ![Search Step Desktop](https://github.com/org/repo/releases/download/pr-assets/01-search-step-desktop.png)
++
++ ### Verification Journey
++
++ 1. Search
++
+
+ ❯ tests/integration/jira-evidence-generator-links.test.ts:97:22
+     95|     const { markdown } = generate(generator, "101");
+     96|
+     97|     expect(markdown).toContain(`(${RELEASE}/pr-101-${SHOT})`);
+       |                      ^
+     98|     expect(markdown).not.toContain(`(${RELEASE}/${SHOT})`);
+     99|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/94]⎯
+
+ FAIL  |lisa| tests/integration/jira-evidence-generator-links.test.ts > generated evidence links: plugins/src/base/skills/lisa-jira-journey/scripts/generate-templates.py > links a different asset for a different pull request
+AssertionError: expected '## Evidence — PR #102\n\n**Branch:** …' to contain '(https://github.com/org/repo/releases…'
+
+- Expected
++ Received
+
+- (https://github.com/org/repo/releases/download/pr-assets/pr-102-01-search-step-desktop.png)
++ ## Evidence — PR #102
++
++ **Branch:** `fix/test`
++ **Ticket:** [TEST-1](https://jira.invalid/browse/TEST-1)
++
++ ### Verification Results
++
++ - search works
++
++ ### Evidence
++
++ **Search Step Desktop:**
++
++ ![Search Step Desktop](https://github.com/org/repo/releases/download/pr-assets/01-search-step-desktop.png)
++
++ ### Verification Journey
++
++ 1. Search
++
+
+ ❯ tests/integration/jira-evidence-generator-links.test.ts:102:49
+    100|
+    101|   it("links a different asset for a different pull request", () => {
+    102|     expect(generate(generator, "102").markdown).toContain(
+       |                                                 ^
+    103|       `(${RELEASE}/pr-102-${SHOT})`
+    104|     );
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/94]⎯
+
+ FAIL  |lisa| tests/integration/jira-evidence-generator-links.test.ts > generated evidence links: plugins/src/expo/skills/jira-journey/scripts/generate-templates.py > links the pull-request-scoped release asset
+AssertionError: expected '## Evidence — PR #101\n\n**Branch:** …' to contain '(https://github.com/org/repo/releases…'
+
+- Expected
++ Received
+
+- (https://github.com/org/repo/releases/download/pr-assets/pr-101-01-search-step-desktop.png)
++ ## Evidence — PR #101
++
++ **Branch:** `fix/test`
++ **Ticket:** [TEST-1](https://jira.invalid/browse/TEST-1)
++
++ ### Verification Results
++
++ - search works
++
++ ### Visual Evidence
++
++ #### desktop (1440x900)
++
++ **Search Step:**
++
++ ![Search Step](https://github.com/org/repo/releases/download/pr-assets/01-search-step-desktop.png)
++
++ ### Verification Journey
++
++ 1. Search
++
++ ### Key Viewports
++
++ | Viewport | Resolution |
++ |----------|-----------|
++ | desktop | 1440x900 |
++
+
+ ❯ tests/integration/jira-evidence-generator-links.test.ts:97:22
+     95|     const { markdown } = generate(generator, "101");
+     96|
+     97|     expect(markdown).toContain(`(${RELEASE}/pr-101-${SHOT})`);
+       |                      ^
+     98|     expect(markdown).not.toContain(`(${RELEASE}/${SHOT})`);
+     99|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/94]⎯
+
+ FAIL  |lisa| tests/integration/jira-evidence-generator-links.test.ts > generated evidence links: plugins/src/expo/skills/jira-journey/scripts/generate-templates.py > links a different asset for a different pull request
+AssertionError: expected '## Evidence — PR #102\n\n**Branch:** …' to contain '(https://github.com/org/repo/releases…'
+
+- Expected
++ Received
+
+- (https://github.com/org/repo/releases/download/pr-assets/pr-102-01-search-step-desktop.png)
++ ## Evidence — PR #102
++
++ **Branch:** `fix/test`
++ **Ticket:** [TEST-1](https://jira.invalid/browse/TEST-1)
++
++ ### Verification Results
++
++ - search works
++
++ ### Visual Evidence
++
++ #### desktop (1440x900)
++
++ **Search Step:**
++
++ ![Search Step](https://github.com/org/repo/releases/download/pr-assets/01-search-step-desktop.png)
++
++ ### Verification Journey
++
++ 1. Search
++
++ ### Key Viewports
++
++ | Viewport | Resolution |
++ |----------|-----------|
++ | desktop | 1440x900 |
++
+
+ ❯ tests/integration/jira-evidence-generator-links.test.ts:102:49
+    100|
+    101|   it("links a different asset for a different pull request", () => {
+    102|     expect(generate(generator, "102").markdown).toContain(
+       |                                                 ^
+    103|       `(${RELEASE}/pr-102-${SHOT})`
+    104|     );
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/94]⎯
+
+ FAIL  |lisa| tests/integration/jira-evidence-pr-scoped-uploads.test.ts > pull-request-scoped evidence uploads: plugins/src/base/skills/lisa-jira-evidence/scripts/post-evidence.sh > keeps both pull requests' same-named evidence
+ FAIL  |lisa| tests/integration/jira-evidence-pr-scoped-uploads.test.ts > pull-request-scoped evidence uploads: plugins/src/expo/skills/jira-evidence/scripts/post-evidence.sh > keeps both pull requests' same-named evidence
+ FAIL  |lisa| tests/integration/jira-evidence-pr-scoped-uploads.test.ts > pull-request-scoped evidence uploads: plugins/src/rails/skills/jira-evidence/scripts/post-evidence.sh > keeps both pull requests' same-named evidence
+AssertionError: expected [ '01-health-check.json', …(1) ] to deeply equal [ 'pr-101-01-health-check.json', …(3) ]
+
+- Expected
++ Received
+
+  [
+-   "pr-101-01-health-check.json",
+-   "pr-101-01-search-step-desktop.png",
+-   "pr-102-01-health-check.json",
+-   "pr-102-01-search-step-desktop.png",
++   "01-health-check.json",
++   "01-search-step-desktop.png",
+  ]
+
+ ❯ tests/integration/jira-evidence-pr-scoped-uploads.test.ts:110:39
+    108|     expect(runFor(repo, script, "102").status).toBe(0);
+    109|
+    110|     expect(releaseAssets(repo.state)).toEqual([
+       |                                       ^
+    111|       `pr-101-${HEALTH}`,
+    112|       `pr-101-${SHOT}`,
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/94]⎯
+
+ FAIL  |lisa| tests/integration/jira-evidence-pr-scoped-uploads.test.ts > pull-request-scoped evidence uploads: plugins/src/base/skills/lisa-jira-evidence/scripts/post-evidence.sh > records only pull-request-scoped upload names
+AssertionError: expected 'release upload pr-assets <tmp>' to match /\/pr…/pr-10[12]-01-[a-z-]+\.(png|json) 
+
+- Expected:
+/\/pr-10[12]-01-[a-z-]+\.(png|json) /
+
++ Received:
+"release upload pr-assets <tmp>/run-87181-1794175307783-c2750cf1/worker-87181-75ab7e213e80695a/lisa-jira-scoped-b4SSlF/evidence-101-/01-search-step-desktop.png --repo org/repo --clobber "
+
+ ❯ tests/integration/jira-evidence-pr-scoped-uploads.test.ts:128:20
+    126|     expect(uploads).toHaveLength(4);
+    127|     for (const line of uploads) {
+    128|       expect(line).toMatch(/\/pr-10[12]-01-[a-z-]+\.(png|json) /);
+       |                    ^
+    129|       expect(line).not.toMatch(new RegExp(`/(${SHOT}|${HEALTH}) `));
+    130|     }
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/94]⎯
+
+ FAIL  |lisa| tests/integration/jira-evidence-pr-scoped-uploads.test.ts > pull-request-scoped evidence uploads: plugins/src/base/skills/lisa-jira-evidence/scripts/post-evidence.sh > replaces only its own pull request's evidence on a re-run
+Error: ENOENT: no such file or directory, open '<tmp>/run-87181-1794175307783-c2750cf1/worker-87181-75ab7e213e80695a/lisa-jira-scoped-aj1iZC/gh-state/release/pr-101-01-search-step-desktop.png'
+ ❯ releaseAsset tests/integration/support/recording-gh-stub.ts:67:10
+     65|  */
+     66| export function releaseAsset(stateDir: string, name: string): string {
+     67|   return readFileSync(path.join(stateDir, "release", name), "utf8");
+       |          ^
+     68| }
+     69|
+ ❯ tests/integration/jira-evidence-pr-scoped-uploads.test.ts:140:12
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/94]⎯
+
+ FAIL  |lisa| tests/integration/jira-evidence-pr-scoped-uploads.test.ts > pull-request-scoped evidence uploads: plugins/src/base/skills/lisa-jira-evidence/scripts/post-evidence.sh > refuses pull request number "0" before any upload
+ FAIL  |lisa| tests/integration/jira-evidence-pr-scoped-uploads.test.ts > pull-request-scoped evidence uploads: plugins/src/base/skills/lisa-jira-evidence/scripts/post-evidence.sh > refuses pull request number "-1" before any upload
+ FAIL  |lisa| tests/integration/jira-evidence-pr-scoped-uploads.test.ts > pull-request-scoped evidence uploads: plugins/src/base/skills/lisa-jira-evidence/scripts/post-evidence.sh > refuses pull request number "abc" before any upload
+ FAIL  |lisa| tests/integration/jira-evidence-pr-scoped-uploads.test.ts > pull-request-scoped evidence uploads: plugins/src/base/skills/lisa-jira-evidence/scripts/post-evidence.sh > refuses pull request number "1.5" before any upload
+ FAIL  |lisa| tests/integration/jira-evidence-pr-scoped-uploads.test.ts > pull-request-scoped evidence uploads: plugins/src/base/skills/lisa-jira-evidence/scripts/post-evidence.sh > refuses pull request number "01" before any upload
+ FAIL  |lisa| tests/integration/jira-evidence-pr-scoped-uploads.test.ts > pull-request-scoped evidence uploads: plugins/src/expo/skills/jira-evidence/scripts/post-evidence.sh > refuses pull request number "0" before any upload
+ FAIL  |lisa| tests/integration/jira-evidence-pr-scoped-uploads.test.ts > pull-request-scoped evidence uploads: plugins/src/expo/skills/jira-evidence/scripts/post-evidence.sh > refuses pull request number "-1" before any upload
+ FAIL  |lisa| tests/integration/jira-evidence-pr-scoped-uploads.test.ts > pull-request-scoped evidence uploads: plugins/src/expo/skills/jira-evidence/scripts/post-evidence.sh > refuses pull request number "abc" before any upload
+ FAIL  |lisa| tests/integration/jira-evidence-pr-scoped-uploads.test.ts > pull-request-scoped evidence uploads: plugins/src/expo/skills/jira-evidence/scripts/post-evidence.sh > refuses pull request number "1.5" before any upload
+ FAIL  |lisa| tests/integration/jira-evidence-pr-scoped-uploads.test.ts > pull-request-scoped evidence uploads: plugins/src/expo/skills/jira-evidence/scripts/post-evidence.sh > refuses pull request number "01" before any upload
+ FAIL  |lisa| tests/integration/jira-evidence-pr-scoped-uploads.test.ts > pull-request-scoped evidence uploads: plugins/src/rails/skills/jira-evidence/scripts/post-evidence.sh > refuses pull request number "0" before any upload
+ FAIL  |lisa| tests/integration/jira-evidence-pr-scoped-uploads.test.ts > pull-request-scoped evidence uploads: plugins/src/rails/skills/jira-evidence/scripts/post-evidence.sh > refuses pull request number "-1" before any upload
+ FAIL  |lisa| tests/integration/jira-evidence-pr-scoped-uploads.test.ts > pull-request-scoped evidence uploads: plugins/src/rails/skills/jira-evidence/scripts/post-evidence.sh > refuses pull request number "abc" before any upload
+ FAIL  |lisa| tests/integration/jira-evidence-pr-scoped-uploads.test.ts > pull-request-scoped evidence uploads: plugins/src/rails/skills/jira-evidence/scripts/post-evidence.sh > refuses pull request number "1.5" before any upload
+ FAIL  |lisa| tests/integration/jira-evidence-pr-scoped-uploads.test.ts > pull-request-scoped evidence uploads: plugins/src/rails/skills/jira-evidence/scripts/post-evidence.sh > refuses pull request number "01" before any upload
+AssertionError: expected +0 not to be +0 // Object.is equality
+ ❯ tests/integration/jira-evidence-pr-scoped-uploads.test.ts:151:33
+    149|       const result = runFor(repo, script, pr);
+    150|
+    151|       expect(result.status).not.toBe(0);
+       |                                 ^
+    152|       expect(recordedUploads(repo.state)).toEqual([]);
+    153|     }
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/94]⎯
+
+ FAIL  |lisa| tests/integration/jira-evidence-pr-scoped-uploads.test.ts > pull-request-scoped evidence uploads: plugins/src/base/skills/lisa-jira-evidence/scripts/post-evidence.sh > fails naming an asset missing from the release after upload
+ FAIL  |lisa| tests/integration/jira-evidence-pr-scoped-uploads.test.ts > pull-request-scoped evidence uploads: plugins/src/expo/skills/jira-evidence/scripts/post-evidence.sh > fails naming an asset missing from the release after upload
+ FAIL  |lisa| tests/integration/jira-evidence-pr-scoped-uploads.test.ts > pull-request-scoped evidence uploads: plugins/src/rails/skills/jira-evidence/scripts/post-evidence.sh > fails naming an asset missing from the release after upload
+AssertionError: expected +0 not to be +0 // Object.is equality
+ ❯ tests/integration/jira-evidence-pr-scoped-uploads.test.ts:161:31
+    159|     const result = runFor(repo, script, "101", { drop: missing });
+    160|
+    161|     expect(result.status).not.toBe(0);
+       |                               ^
+    162|     expect(result.stderr).toContain(missing);
+    163|     expect(result.stdout).not.toContain("PR description updated");
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/94]⎯
+
+ FAIL  |lisa| tests/integration/jira-evidence-pr-scoped-uploads.test.ts > pull-request-scoped evidence uploads: plugins/src/expo/skills/jira-evidence/scripts/post-evidence.sh > records only pull-request-scoped upload names
+AssertionError: expected 'release upload pr-assets <tmp>' to match /\/pr…/pr-10[12]-01-[a-z-]+\.(png|json) 
+
+- Expected:
+/\/pr-10[12]-01-[a-z-]+\.(png|json) /
+
++ Received:
+"release upload pr-assets <tmp>/run-87181-1794175307783-c2750cf1/worker-87181-75ab7e213e80695a/lisa-jira-scoped-MZVrrV/evidence-101-/01-search-step-desktop.png --repo org/repo --clobber "
+
+ ❯ tests/integration/jira-evidence-pr-scoped-uploads.test.ts:128:20
+    126|     expect(uploads).toHaveLength(4);
+    127|     for (const line of uploads) {
+    128|       expect(line).toMatch(/\/pr-10[12]-01-[a-z-]+\.(png|json) /);
+       |                    ^
+    129|       expect(line).not.toMatch(new RegExp(`/(${SHOT}|${HEALTH}) `));
+    130|     }
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[10/94]⎯
+
+ FAIL  |lisa| tests/integration/jira-evidence-pr-scoped-uploads.test.ts > pull-request-scoped evidence uploads: plugins/src/expo/skills/jira-evidence/scripts/post-evidence.sh > replaces only its own pull request's evidence on a re-run
+Error: ENOENT: no such file or directory, open '<tmp>/run-87181-1794175307783-c2750cf1/worker-87181-75ab7e213e80695a/lisa-jira-scoped-d9TufU/gh-state/release/pr-101-01-search-step-desktop.png'
+ ❯ releaseAsset tests/integration/support/recording-gh-stub.ts:67:10
+     65|  */
+     66| export function releaseAsset(stateDir: string, name: string): string {
+     67|   return readFileSync(path.join(stateDir, "release", name), "utf8");
+       |          ^
+     68| }
+     69|
+ ❯ tests/integration/jira-evidence-pr-scoped-uploads.test.ts:140:12
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[11/94]⎯
+
+ FAIL  |lisa| tests/integration/jira-evidence-pr-scoped-uploads.test.ts > pull-request-scoped evidence uploads: plugins/src/rails/skills/jira-evidence/scripts/post-evidence.sh > records only pull-request-scoped upload names
+AssertionError: expected 'release upload pr-assets <tmp>' to match /\/pr…/pr-10[12]-01-[a-z-]+\.(png|json) 
+
+- Expected:
+/\/pr-10[12]-01-[a-z-]+\.(png|json) /
+
++ Received:
+"release upload pr-assets <tmp>/run-87181-1794175307783-c2750cf1/worker-87181-75ab7e213e80695a/lisa-jira-scoped-TV2mwP/evidence-101-/01-search-step-desktop.png --repo org/repo --clobber "
+
+ ❯ tests/integration/jira-evidence-pr-scoped-uploads.test.ts:128:20
+    126|     expect(uploads).toHaveLength(4);
+    127|     for (const line of uploads) {
+    128|       expect(line).toMatch(/\/pr-10[12]-01-[a-z-]+\.(png|json) /);
+       |                    ^
+    129|       expect(line).not.toMatch(new RegExp(`/(${SHOT}|${HEALTH}) `));
+    130|     }
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[12/94]⎯
+
+ FAIL  |lisa| tests/integration/jira-evidence-pr-scoped-uploads.test.ts > pull-request-scoped evidence uploads: plugins/src/rails/skills/jira-evidence/scripts/post-evidence.sh > replaces only its own pull request's evidence on a re-run
+Error: ENOENT: no such file or directory, open '<tmp>/run-87181-1794175307783-c2750cf1/worker-87181-75ab7e213e80695a/lisa-jira-scoped-6vodfs/gh-state/release/pr-101-01-search-step-desktop.png'
+ ❯ releaseAsset tests/integration/support/recording-gh-stub.ts:67:10
+     65|  */
+     66| export function releaseAsset(stateDir: string, name: string): string {
+     67|   return readFileSync(path.join(stateDir, "release", name), "utf8");
+       |          ^
+     68| }
+     69|
+ ❯ tests/integration/jira-evidence-pr-scoped-uploads.test.ts:140:12
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[13/94]⎯
+
+ FAIL  |lisa| tests/unit/scripts/jira-evidence-upload-names.test.ts > every post-evidence.sh uploads pull-request-scoped asset names > plugins/lisa-agy/skills/lisa-jira-evidence/scripts/post-evidence.sh scopes every release upload by PR number
+ FAIL  |lisa| tests/unit/scripts/jira-evidence-upload-names.test.ts > every post-evidence.sh uploads pull-request-scoped asset names > plugins/lisa-copilot/skills/lisa-jira-evidence/scripts/post-evidence.sh scopes every release upload by PR number
+ FAIL  |lisa| tests/unit/scripts/jira-evidence-upload-names.test.ts > every post-evidence.sh uploads pull-request-scoped asset names > plugins/lisa-cursor/skills/lisa-jira-evidence/scripts/post-evidence.sh scopes every release upload by PR number
+ FAIL  |lisa| tests/unit/scripts/jira-evidence-upload-names.test.ts > every post-evidence.sh uploads pull-request-scoped asset names > plugins/lisa-devin/skills/lisa-jira-evidence/scripts/post-evidence.sh scopes every release upload by PR number
+ FAIL  |lisa| tests/unit/scripts/jira-evidence-upload-names.test.ts > every post-evidence.sh uploads pull-request-scoped asset names > plugins/lisa-expo-agy/skills/jira-evidence/scripts/post-evidence.sh scopes every release upload by PR number
+ FAIL  |lisa| tests/unit/scripts/jira-evidence-upload-names.test.ts > every post-evidence.sh uploads pull-request-scoped asset names > plugins/lisa-expo-copilot/skills/jira-evidence/scripts/post-evidence.sh scopes every release upload by PR number
+ FAIL  |lisa| tests/unit/scripts/jira-evidence-upload-names.test.ts > every post-evidence.sh uploads pull-request-scoped asset names > plugins/lisa-expo-cursor/skills/jira-evidence/scripts/post-evidence.sh scopes every release upload by PR number
+ FAIL  |lisa| tests/unit/scripts/jira-evidence-upload-names.test.ts > every post-evidence.sh uploads pull-request-scoped asset names > plugins/lisa-expo-devin/skills/jira-evidence/scripts/post-evidence.sh scopes every release upload by PR number
+ FAIL  |lisa| tests/unit/scripts/jira-evidence-upload-names.test.ts > every post-evidence.sh uploads pull-request-scoped asset names > plugins/lisa-expo/.codex-plugin/skills/jira-evidence/scripts/post-evidence.sh scopes every release upload by PR number
+ FAIL  |lisa| tests/unit/scripts/jira-evidence-upload-names.test.ts > every post-evidence.sh uploads pull-request-scoped asset names > plugins/lisa-expo/skills/jira-evidence/scripts/post-evidence.sh scopes every release upload by PR number
+ FAIL  |lisa| tests/unit/scripts/jira-evidence-upload-names.test.ts > every post-evidence.sh uploads pull-request-scoped asset names > plugins/lisa-rails-agy/skills/jira-evidence/scripts/post-evidence.sh scopes every release upload by PR number
+ FAIL  |lisa| tests/unit/scripts/jira-evidence-upload-names.test.ts > every post-evidence.sh uploads pull-request-scoped asset names > plugins/lisa-rails-copilot/skills/jira-evidence/scripts/post-evidence.sh scopes every release upload by PR number
+ FAIL  |lisa| tests/unit/scripts/jira-evidence-upload-names.test.ts > every post-evidence.sh uploads pull-request-scoped asset names > plugins/lisa-rails-cursor/skills/jira-evidence/scripts/post-evidence.sh scopes every release upload by PR number
+ FAIL  |lisa| tests/unit/scripts/jira-evidence-upload-names.test.ts > every post-evidence.sh uploads pull-request-scoped asset names > plugins/lisa-rails-devin/skills/jira-evidence/scripts/post-evidence.sh scopes every release upload by PR number
+ FAIL  |lisa| tests/unit/scripts/jira-evidence-upload-names.test.ts > every post-evidence.sh uploads pull-request-scoped asset names > plugins/lisa-rails/.codex-plugin/skills/jira-evidence/scripts/post-evidence.sh scopes every release upload by PR number
+ FAIL  |lisa| tests/unit/scripts/jira-evidence-upload-names.test.ts > every post-evidence.sh uploads pull-request-scoped asset names > plugins/lisa-rails/skills/jira-evidence/scripts/post-evidence.sh scopes every release upload by PR number
+ FAIL  |lisa| tests/unit/scripts/jira-evidence-upload-names.test.ts > every post-evidence.sh uploads pull-request-scoped asset names > plugins/lisa/.codex-plugin/skills/lisa-jira-evidence/scripts/post-evidence.sh scopes every release upload by PR number
+ FAIL  |lisa| tests/unit/scripts/jira-evidence-upload-names.test.ts > every post-evidence.sh uploads pull-request-scoped asset names > plugins/lisa/skills/lisa-jira-evidence/scripts/post-evidence.sh scopes every release upload by PR number
+ FAIL  |lisa| tests/unit/scripts/jira-evidence-upload-names.test.ts > every post-evidence.sh uploads pull-request-scoped asset names > plugins/src/base/skills/lisa-jira-evidence/scripts/post-evidence.sh scopes every release upload by PR number
+ FAIL  |lisa| tests/unit/scripts/jira-evidence-upload-names.test.ts > every post-evidence.sh uploads pull-request-scoped asset names > plugins/src/expo/skills/jira-evidence/scripts/post-evidence.sh scopes every release upload by PR number
+ FAIL  |lisa| tests/unit/scripts/jira-evidence-upload-names.test.ts > every post-evidence.sh uploads pull-request-scoped asset names > plugins/src/rails/skills/jira-evidence/scripts/post-evidence.sh scopes every release upload by PR number
+AssertionError:   gh release upload "$RELEASE_TAG" "$FILE" --repo "$GH_REPO" --clobber: expected '"$FILE"' to contain 'pr-${PR_NUMBER}-'
+
+Expected: "pr-${PR_NUMBER}-"
+Received: ""$FILE""
+
+ ❯ tests/unit/scripts/jira-evidence-upload-names.test.ts:76:27
+     74|     expect(found.length, copy).toBeGreaterThan(0);
+     75|     for (const { line, asset } of found) {
+     76|       expect(asset, line).toContain(SCOPED_PREFIX);
+       |                           ^
+     77|     }
+     78|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[14/94]⎯
+
+ FAIL  |lisa| tests/unit/scripts/jira-evidence-upload-names.test.ts > every post-evidence.sh uploads pull-request-scoped asset names > plugins/lisa-agy/skills/lisa-jira-evidence/scripts/post-evidence.sh clobbers only pull-request-scoped names
+ FAIL  |lisa| tests/unit/scripts/jira-evidence-upload-names.test.ts > every post-evidence.sh uploads pull-request-scoped asset names > plugins/lisa-copilot/skills/lisa-jira-evidence/scripts/post-evidence.sh clobbers only pull-request-scoped names
+ FAIL  |lisa| tests/unit/scripts/jira-evidence-upload-names.test.ts > every post-evidence.sh uploads pull-request-scoped asset names > plugins/lisa-cursor/skills/lisa-jira-evidence/scripts/post-evidence.sh clobbers only pull-request-scoped names
+ FAIL  |lisa| tests/unit/scripts/jira-evidence-upload-names.test.ts > every post-evidence.sh uploads pull-request-scoped asset names > plugins/lisa-devin/skills/lisa-jira-evidence/scripts/post-evidence.sh clobbers only pull-request-scoped names
+ FAIL  |lisa| tests/unit/scripts/jira-evidence-upload-names.test.ts > every post-evidence.sh uploads pull-request-scoped asset names > plugins/lisa-expo-agy/skills/jira-evidence/scripts/post-evidence.sh clobbers only pull-request-scoped names
+ FAIL  |lisa| tests/unit/scripts/jira-evidence-upload-names.test.ts > every post-evidence.sh uploads pull-request-scoped asset names > plugins/lisa-expo-copilot/skills/jira-evidence/scripts/post-evidence.sh clobbers only pull-request-scoped names
+ FAIL  |lisa| tests/unit/scripts/jira-evidence-upload-names.test.ts > every post-evidence.sh uploads pull-request-scoped asset names > plugins/lisa-expo-cursor/skills/jira-evidence/scripts/post-evidence.sh clobbers only pull-request-scoped names
+ FAIL  |lisa| tests/unit/scripts/jira-evidence-upload-names.test.ts > every post-evidence.sh uploads pull-request-scoped asset names > plugins/lisa-expo-devin/skills/jira-evidence/scripts/post-evidence.sh clobbers only pull-request-scoped names
+ FAIL  |lisa| tests/unit/scripts/jira-evidence-upload-names.test.ts > every post-evidence.sh uploads pull-request-scoped asset names > plugins/lisa-expo/.codex-plugin/skills/jira-evidence/scripts/post-evidence.sh clobbers only pull-request-scoped names
+ FAIL  |lisa| tests/unit/scripts/jira-evidence-upload-names.test.ts > every post-evidence.sh uploads pull-request-scoped asset names > plugins/lisa-expo/skills/jira-evidence/scripts/post-evidence.sh clobbers only pull-request-scoped names
+ FAIL  |lisa| tests/unit/scripts/jira-evidence-upload-names.test.ts > every post-evidence.sh uploads pull-request-scoped asset names > plugins/lisa-rails-agy/skills/jira-evidence/scripts/post-evidence.sh clobbers only pull-request-scoped names
+ FAIL  |lisa| tests/unit/scripts/jira-evidence-upload-names.test.ts > every post-evidence.sh uploads pull-request-scoped asset names > plugins/lisa-rails-copilot/skills/jira-evidence/scripts/post-evidence.sh clobbers only pull-request-scoped names
+ FAIL  |lisa| tests/unit/scripts/jira-evidence-upload-names.test.ts > every post-evidence.sh uploads pull-request-scoped asset names > plugins/lisa-rails-cursor/skills/jira-evidence/scripts/post-evidence.sh clobbers only pull-request-scoped names
+ FAIL  |lisa| tests/unit/scripts/jira-evidence-upload-names.test.ts > every post-evidence.sh uploads pull-request-scoped asset names > plugins/lisa-rails-devin/skills/jira-evidence/scripts/post-evidence.sh clobbers only pull-request-scoped names
+ FAIL  |lisa| tests/unit/scripts/jira-evidence-upload-names.test.ts > every post-evidence.sh uploads pull-request-scoped asset names > plugins/lisa-rails/.codex-plugin/skills/jira-evidence/scripts/post-evidence.sh clobbers only pull-request-scoped names
+ FAIL  |lisa| tests/unit/scripts/jira-evidence-upload-names.test.ts > every post-evidence.sh uploads pull-request-scoped asset names > plugins/lisa-rails/skills/jira-evidence/scripts/post-evidence.sh clobbers only pull-request-scoped names
+ FAIL  |lisa| tests/unit/scripts/jira-evidence-upload-names.test.ts > every post-evidence.sh uploads pull-request-scoped asset names > plugins/lisa/.codex-plugin/skills/lisa-jira-evidence/scripts/post-evidence.sh clobbers only pull-request-scoped names
+ FAIL  |lisa| tests/unit/scripts/jira-evidence-upload-names.test.ts > every post-evidence.sh uploads pull-request-scoped asset names > plugins/lisa/skills/lisa-jira-evidence/scripts/post-evidence.sh clobbers only pull-request-scoped names
+ FAIL  |lisa| tests/unit/scripts/jira-evidence-upload-names.test.ts > every post-evidence.sh uploads pull-request-scoped asset names > plugins/src/base/skills/lisa-jira-evidence/scripts/post-evidence.sh clobbers only pull-request-scoped names
+ FAIL  |lisa| tests/unit/scripts/jira-evidence-upload-names.test.ts > every post-evidence.sh uploads pull-request-scoped asset names > plugins/src/expo/skills/jira-evidence/scripts/post-evidence.sh clobbers only pull-request-scoped names
+ FAIL  |lisa| tests/unit/scripts/jira-evidence-upload-names.test.ts > every post-evidence.sh uploads pull-request-scoped asset names > plugins/src/rails/skills/jira-evidence/scripts/post-evidence.sh clobbers only pull-request-scoped names
+AssertionError:   gh release upload "$RELEASE_TAG" "$FILE" --repo "$GH_REPO" --clobber: expected '"$FILE"' to contain 'pr-${PR_NUMBER}-'
+
+Expected: "pr-${PR_NUMBER}-"
+Received: ""$FILE""
+
+ ❯ tests/unit/scripts/jira-evidence-upload-names.test.ts:85:27
+     83|
+     84|     for (const { line, asset } of clobbering) {
+     85|       expect(asset, line).toContain(SCOPED_PREFIX);
+       |                           ^
+     86|     }
+     87|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[15/94]⎯
+
+ FAIL  |lisa| tests/unit/scripts/jira-evidence-upload-names.test.ts > every post-evidence.sh uploads pull-request-scoped asset names > plugins/lisa-agy/skills/lisa-jira-evidence/scripts/post-evidence.sh validates PR_NUMBER before its first upload
+AssertionError: plugins/lisa-agy/skills/lisa-jira-evidence/scripts/post-evidence.sh: expected -1 to be greater than -1
+ ❯ tests/unit/scripts/jira-evidence-upload-names.test.ts:93:25
+     91|     const guard = text.indexOf('"$PR_NUMBER" =~ ^[1-9][0-9]*$');
+     92|
+     93|     expect(guard, copy).toBeGreaterThan(-1);
+       |                         ^
+     94|     expect(guard, copy).toBeLessThan(text.indexOf("gh release upload")…
+     95|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[16/94]⎯
+
+ FAIL  |lisa| tests/unit/scripts/jira-evidence-upload-names.test.ts > every post-evidence.sh uploads pull-request-scoped asset names > plugins/lisa-copilot/skills/lisa-jira-evidence/scripts/post-evidence.sh validates PR_NUMBER before its first upload
+AssertionError: plugins/lisa-copilot/skills/lisa-jira-evidence/scripts/post-evidence.sh: expected -1 to be greater than -1
+ ❯ tests/unit/scripts/jira-evidence-upload-names.test.ts:93:25
+     91|     const guard = text.indexOf('"$PR_NUMBER" =~ ^[1-9][0-9]*$');
+     92|
+     93|     expect(guard, copy).toBeGreaterThan(-1);
+       |                         ^
+     94|     expect(guard, copy).toBeLessThan(text.indexOf("gh release upload")…
+     95|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[17/94]⎯
+
+ FAIL  |lisa| tests/unit/scripts/jira-evidence-upload-names.test.ts > every post-evidence.sh uploads pull-request-scoped asset names > plugins/lisa-cursor/skills/lisa-jira-evidence/scripts/post-evidence.sh validates PR_NUMBER before its first upload
+AssertionError: plugins/lisa-cursor/skills/lisa-jira-evidence/scripts/post-evidence.sh: expected -1 to be greater than -1
+ ❯ tests/unit/scripts/jira-evidence-upload-names.test.ts:93:25
+     91|     const guard = text.indexOf('"$PR_NUMBER" =~ ^[1-9][0-9]*$');
+     92|
+     93|     expect(guard, copy).toBeGreaterThan(-1);
+       |                         ^
+     94|     expect(guard, copy).toBeLessThan(text.indexOf("gh release upload")…
+     95|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[18/94]⎯
+
+ FAIL  |lisa| tests/unit/scripts/jira-evidence-upload-names.test.ts > every post-evidence.sh uploads pull-request-scoped asset names > plugins/lisa-devin/skills/lisa-jira-evidence/scripts/post-evidence.sh validates PR_NUMBER before its first upload
+AssertionError: plugins/lisa-devin/skills/lisa-jira-evidence/scripts/post-evidence.sh: expected -1 to be greater than -1
+ ❯ tests/unit/scripts/jira-evidence-upload-names.test.ts:93:25
+     91|     const guard = text.indexOf('"$PR_NUMBER" =~ ^[1-9][0-9]*$');
+     92|
+     93|     expect(guard, copy).toBeGreaterThan(-1);
+       |                         ^
+     94|     expect(guard, copy).toBeLessThan(text.indexOf("gh release upload")…
+     95|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[19/94]⎯
+
+ FAIL  |lisa| tests/unit/scripts/jira-evidence-upload-names.test.ts > every post-evidence.sh uploads pull-request-scoped asset names > plugins/lisa-expo-agy/skills/jira-evidence/scripts/post-evidence.sh validates PR_NUMBER before its first upload
+AssertionError: plugins/lisa-expo-agy/skills/jira-evidence/scripts/post-evidence.sh: expected -1 to be greater than -1
+ ❯ tests/unit/scripts/jira-evidence-upload-names.test.ts:93:25
+     91|     const guard = text.indexOf('"$PR_NUMBER" =~ ^[1-9][0-9]*$');
+     92|
+     93|     expect(guard, copy).toBeGreaterThan(-1);
+       |                         ^
+     94|     expect(guard, copy).toBeLessThan(text.indexOf("gh release upload")…
+     95|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[20/94]⎯
+
+ FAIL  |lisa| tests/unit/scripts/jira-evidence-upload-names.test.ts > every post-evidence.sh uploads pull-request-scoped asset names > plugins/lisa-expo-copilot/skills/jira-evidence/scripts/post-evidence.sh validates PR_NUMBER before its first upload
+AssertionError: plugins/lisa-expo-copilot/skills/jira-evidence/scripts/post-evidence.sh: expected -1 to be greater than -1
+ ❯ tests/unit/scripts/jira-evidence-upload-names.test.ts:93:25
+     91|     const guard = text.indexOf('"$PR_NUMBER" =~ ^[1-9][0-9]*$');
+     92|
+     93|     expect(guard, copy).toBeGreaterThan(-1);
+       |                         ^
+     94|     expect(guard, copy).toBeLessThan(text.indexOf("gh release upload")…
+     95|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[21/94]⎯
+
+ FAIL  |lisa| tests/unit/scripts/jira-evidence-upload-names.test.ts > every post-evidence.sh uploads pull-request-scoped asset names > plugins/lisa-expo-cursor/skills/jira-evidence/scripts/post-evidence.sh validates PR_NUMBER before its first upload
+AssertionError: plugins/lisa-expo-cursor/skills/jira-evidence/scripts/post-evidence.sh: expected -1 to be greater than -1
+ ❯ tests/unit/scripts/jira-evidence-upload-names.test.ts:93:25
+     91|     const guard = text.indexOf('"$PR_NUMBER" =~ ^[1-9][0-9]*$');
+     92|
+     93|     expect(guard, copy).toBeGreaterThan(-1);
+       |                         ^
+     94|     expect(guard, copy).toBeLessThan(text.indexOf("gh release upload")…
+     95|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[22/94]⎯
+
+ FAIL  |lisa| tests/unit/scripts/jira-evidence-upload-names.test.ts > every post-evidence.sh uploads pull-request-scoped asset names > plugins/lisa-expo-devin/skills/jira-evidence/scripts/post-evidence.sh validates PR_NUMBER before its first upload
+AssertionError: plugins/lisa-expo-devin/skills/jira-evidence/scripts/post-evidence.sh: expected -1 to be greater than -1
+ ❯ tests/unit/scripts/jira-evidence-upload-names.test.ts:93:25
+     91|     const guard = text.indexOf('"$PR_NUMBER" =~ ^[1-9][0-9]*$');
+     92|
+     93|     expect(guard, copy).toBeGreaterThan(-1);
+       |                         ^
+     94|     expect(guard, copy).toBeLessThan(text.indexOf("gh release upload")…
+     95|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[23/94]⎯
+
+ FAIL  |lisa| tests/unit/scripts/jira-evidence-upload-names.test.ts > every post-evidence.sh uploads pull-request-scoped asset names > plugins/lisa-expo/.codex-plugin/skills/jira-evidence/scripts/post-evidence.sh validates PR_NUMBER before its first upload
+AssertionError: plugins/lisa-expo/.codex-plugin/skills/jira-evidence/scripts/post-evidence.sh: expected -1 to be greater than -1
+ ❯ tests/unit/scripts/jira-evidence-upload-names.test.ts:93:25
+     91|     const guard = text.indexOf('"$PR_NUMBER" =~ ^[1-9][0-9]*$');
+     92|
+     93|     expect(guard, copy).toBeGreaterThan(-1);
+       |                         ^
+     94|     expect(guard, copy).toBeLessThan(text.indexOf("gh release upload")…
+     95|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[24/94]⎯
+
+ FAIL  |lisa| tests/unit/scripts/jira-evidence-upload-names.test.ts > every post-evidence.sh uploads pull-request-scoped asset names > plugins/lisa-expo/skills/jira-evidence/scripts/post-evidence.sh validates PR_NUMBER before its first upload
+AssertionError: plugins/lisa-expo/skills/jira-evidence/scripts/post-evidence.sh: expected -1 to be greater than -1
+ ❯ tests/unit/scripts/jira-evidence-upload-names.test.ts:93:25
+     91|     const guard = text.indexOf('"$PR_NUMBER" =~ ^[1-9][0-9]*$');
+     92|
+     93|     expect(guard, copy).toBeGreaterThan(-1);
+       |                         ^
+     94|     expect(guard, copy).toBeLessThan(text.indexOf("gh release upload")…
+     95|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[25/94]⎯
+
+ FAIL  |lisa| tests/unit/scripts/jira-evidence-upload-names.test.ts > every post-evidence.sh uploads pull-request-scoped asset names > plugins/lisa-rails-agy/skills/jira-evidence/scripts/post-evidence.sh validates PR_NUMBER before its first upload
+AssertionError: plugins/lisa-rails-agy/skills/jira-evidence/scripts/post-evidence.sh: expected -1 to be greater than -1
+ ❯ tests/unit/scripts/jira-evidence-upload-names.test.ts:93:25
+     91|     const guard = text.indexOf('"$PR_NUMBER" =~ ^[1-9][0-9]*$');
+     92|
+     93|     expect(guard, copy).toBeGreaterThan(-1);
+       |                         ^
+     94|     expect(guard, copy).toBeLessThan(text.indexOf("gh release upload")…
+     95|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[26/94]⎯
+
+ FAIL  |lisa| tests/unit/scripts/jira-evidence-upload-names.test.ts > every post-evidence.sh uploads pull-request-scoped asset names > plugins/lisa-rails-copilot/skills/jira-evidence/scripts/post-evidence.sh validates PR_NUMBER before its first upload
+AssertionError: plugins/lisa-rails-copilot/skills/jira-evidence/scripts/post-evidence.sh: expected -1 to be greater than -1
+ ❯ tests/unit/scripts/jira-evidence-upload-names.test.ts:93:25
+     91|     const guard = text.indexOf('"$PR_NUMBER" =~ ^[1-9][0-9]*$');
+     92|
+     93|     expect(guard, copy).toBeGreaterThan(-1);
+       |                         ^
+     94|     expect(guard, copy).toBeLessThan(text.indexOf("gh release upload")…
+     95|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[27/94]⎯
+
+ FAIL  |lisa| tests/unit/scripts/jira-evidence-upload-names.test.ts > every post-evidence.sh uploads pull-request-scoped asset names > plugins/lisa-rails-cursor/skills/jira-evidence/scripts/post-evidence.sh validates PR_NUMBER before its first upload
+AssertionError: plugins/lisa-rails-cursor/skills/jira-evidence/scripts/post-evidence.sh: expected -1 to be greater than -1
+ ❯ tests/unit/scripts/jira-evidence-upload-names.test.ts:93:25
+     91|     const guard = text.indexOf('"$PR_NUMBER" =~ ^[1-9][0-9]*$');
+     92|
+     93|     expect(guard, copy).toBeGreaterThan(-1);
+       |                         ^
+     94|     expect(guard, copy).toBeLessThan(text.indexOf("gh release upload")…
+     95|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[28/94]⎯
+
+ FAIL  |lisa| tests/unit/scripts/jira-evidence-upload-names.test.ts > every post-evidence.sh uploads pull-request-scoped asset names > plugins/lisa-rails-devin/skills/jira-evidence/scripts/post-evidence.sh validates PR_NUMBER before its first upload
+AssertionError: plugins/lisa-rails-devin/skills/jira-evidence/scripts/post-evidence.sh: expected -1 to be greater than -1
+ ❯ tests/unit/scripts/jira-evidence-upload-names.test.ts:93:25
+     91|     const guard = text.indexOf('"$PR_NUMBER" =~ ^[1-9][0-9]*$');
+     92|
+     93|     expect(guard, copy).toBeGreaterThan(-1);
+       |                         ^
+     94|     expect(guard, copy).toBeLessThan(text.indexOf("gh release upload")…
+     95|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[29/94]⎯
+
+ FAIL  |lisa| tests/unit/scripts/jira-evidence-upload-names.test.ts > every post-evidence.sh uploads pull-request-scoped asset names > plugins/lisa-rails/.codex-plugin/skills/jira-evidence/scripts/post-evidence.sh validates PR_NUMBER before its first upload
+AssertionError: plugins/lisa-rails/.codex-plugin/skills/jira-evidence/scripts/post-evidence.sh: expected -1 to be greater than -1
+ ❯ tests/unit/scripts/jira-evidence-upload-names.test.ts:93:25
+     91|     const guard = text.indexOf('"$PR_NUMBER" =~ ^[1-9][0-9]*$');
+     92|
+     93|     expect(guard, copy).toBeGreaterThan(-1);
+       |                         ^
+     94|     expect(guard, copy).toBeLessThan(text.indexOf("gh release upload")…
+     95|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[30/94]⎯
+
+ FAIL  |lisa| tests/unit/scripts/jira-evidence-upload-names.test.ts > every post-evidence.sh uploads pull-request-scoped asset names > plugins/lisa-rails/skills/jira-evidence/scripts/post-evidence.sh validates PR_NUMBER before its first upload
+AssertionError: plugins/lisa-rails/skills/jira-evidence/scripts/post-evidence.sh: expected -1 to be greater than -1
+ ❯ tests/unit/scripts/jira-evidence-upload-names.test.ts:93:25
+     91|     const guard = text.indexOf('"$PR_NUMBER" =~ ^[1-9][0-9]*$');
+     92|
+     93|     expect(guard, copy).toBeGreaterThan(-1);
+       |                         ^
+     94|     expect(guard, copy).toBeLessThan(text.indexOf("gh release upload")…
+     95|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[31/94]⎯
+
+ FAIL  |lisa| tests/unit/scripts/jira-evidence-upload-names.test.ts > every post-evidence.sh uploads pull-request-scoped asset names > plugins/lisa/.codex-plugin/skills/lisa-jira-evidence/scripts/post-evidence.sh validates PR_NUMBER before its first upload
+AssertionError: plugins/lisa/.codex-plugin/skills/lisa-jira-evidence/scripts/post-evidence.sh: expected -1 to be greater than -1
+ ❯ tests/unit/scripts/jira-evidence-upload-names.test.ts:93:25
+     91|     const guard = text.indexOf('"$PR_NUMBER" =~ ^[1-9][0-9]*$');
+     92|
+     93|     expect(guard, copy).toBeGreaterThan(-1);
+       |                         ^
+     94|     expect(guard, copy).toBeLessThan(text.indexOf("gh release upload")…
+     95|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[32/94]⎯
+
+ FAIL  |lisa| tests/unit/scripts/jira-evidence-upload-names.test.ts > every post-evidence.sh uploads pull-request-scoped asset names > plugins/lisa/skills/lisa-jira-evidence/scripts/post-evidence.sh validates PR_NUMBER before its first upload
+AssertionError: plugins/lisa/skills/lisa-jira-evidence/scripts/post-evidence.sh: expected -1 to be greater than -1
+ ❯ tests/unit/scripts/jira-evidence-upload-names.test.ts:93:25
+     91|     const guard = text.indexOf('"$PR_NUMBER" =~ ^[1-9][0-9]*$');
+     92|
+     93|     expect(guard, copy).toBeGreaterThan(-1);
+       |                         ^
+     94|     expect(guard, copy).toBeLessThan(text.indexOf("gh release upload")…
+     95|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[33/94]⎯
+
+ FAIL  |lisa| tests/unit/scripts/jira-evidence-upload-names.test.ts > every post-evidence.sh uploads pull-request-scoped asset names > plugins/src/base/skills/lisa-jira-evidence/scripts/post-evidence.sh validates PR_NUMBER before its first upload
+AssertionError: plugins/src/base/skills/lisa-jira-evidence/scripts/post-evidence.sh: expected -1 to be greater than -1
+ ❯ tests/unit/scripts/jira-evidence-upload-names.test.ts:93:25
+     91|     const guard = text.indexOf('"$PR_NUMBER" =~ ^[1-9][0-9]*$');
+     92|
+     93|     expect(guard, copy).toBeGreaterThan(-1);
+       |                         ^
+     94|     expect(guard, copy).toBeLessThan(text.indexOf("gh release upload")…
+     95|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[34/94]⎯
+
+ FAIL  |lisa| tests/unit/scripts/jira-evidence-upload-names.test.ts > every post-evidence.sh uploads pull-request-scoped asset names > plugins/src/expo/skills/jira-evidence/scripts/post-evidence.sh validates PR_NUMBER before its first upload
+AssertionError: plugins/src/expo/skills/jira-evidence/scripts/post-evidence.sh: expected -1 to be greater than -1
+ ❯ tests/unit/scripts/jira-evidence-upload-names.test.ts:93:25
+     91|     const guard = text.indexOf('"$PR_NUMBER" =~ ^[1-9][0-9]*$');
+     92|
+     93|     expect(guard, copy).toBeGreaterThan(-1);
+       |                         ^
+     94|     expect(guard, copy).toBeLessThan(text.indexOf("gh release upload")…
+     95|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[35/94]⎯
+
+ FAIL  |lisa| tests/unit/scripts/jira-evidence-upload-names.test.ts > every post-evidence.sh uploads pull-request-scoped asset names > plugins/src/rails/skills/jira-evidence/scripts/post-evidence.sh validates PR_NUMBER before its first upload
+AssertionError: plugins/src/rails/skills/jira-evidence/scripts/post-evidence.sh: expected -1 to be greater than -1
+ ❯ tests/unit/scripts/jira-evidence-upload-names.test.ts:93:25
+     91|     const guard = text.indexOf('"$PR_NUMBER" =~ ^[1-9][0-9]*$');
+     92|
+     93|     expect(guard, copy).toBeGreaterThan(-1);
+       |                         ^
+     94|     expect(guard, copy).toBeLessThan(text.indexOf("gh release upload")…
+     95|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[36/94]⎯
+
+
+ Test Files  3 failed (3)
+      Tests  94 failed | 7 passed (101)
+   Start at  17:01:47
+   Duration  30.75s (transform 376ms, setup 495ms, import 488ms, tests 32.89s, environment 0ms)
+

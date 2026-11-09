@@ -376,8 +376,9 @@ first-line substitute for this exact head (#4628); where the classifier below
 ran, a non-vacuous review context at this head (or one a writer's substitute
 covers); and no standing `CHANGES_REQUESTED` at the head. A substitute counts
 here only when its marker is the comment's **first line** and its author has
-**write access** — the prover's report-only `substituted` outcome counts a
-marker anywhere, which is fine for a report and fail-open for a merge. A
+**write access** — the prover's report-only `substituted` outcome applies the
+same rule, and names every marker it refused, with its author and the reason
+(`no write access`, `not the first line`, `permission unreadable`). A
 `Changes requested` proof phrase proves the reviewer worked, not that the head
 may merge, and decides `blocker`. A change request counts until its author
 approves or it is dismissed, whichever commit it was made on — a push does not
@@ -749,8 +750,10 @@ rather than assuming, with `gh api repos/<owner>/<repo>/rules/branches/<base>`
   standing `CHANGES_REQUESTED` is not holding a slot for a review that would
   otherwise arrive. Nothing is scheduled to clear it.
 
-Where both hold, the block is **indefinite, not slow**. Waiting is not a
-strategy; something has to act.
+So whenever a stale `CHANGES_REQUESTED` review stands, the block is
+**indefinite, not slow**, whatever `dismiss_stale_reviews_on_push` is set to.
+The approval count only decides whether anything else is also waiting. Waiting
+is not a strategy; something has to act.
 
 **Unresolved threads block independently of the verdict.** This repository sets
 `required_review_thread_resolution: true`, so a PR can have a clear
@@ -1115,9 +1118,11 @@ patching only here.
 ### d. Review comments — human and bot
 Delegate to the `pull-request-review` skill with the PR number. It owns the whole
 comment cycle: fetch every unresolved human + bot thread (with resolution state via
-GraphQL), implement valid feedback (commit + push), reply to invalid feedback, and
-resolve every thread via `resolveReviewThread` so the branch-protection
-thread-resolution gate clears.
+GraphQL) and every review-body finding not yet marked as answered (CodeRabbit's
+outside-diff and nitpick comments live only there), implement valid feedback
+(commit + push), answer invalid feedback, and resolve every thread via
+`resolveReviewThread` so the branch-protection thread-resolution gate clears.
+Its report counts unresolved threads and review-body findings separately.
 
 **A green review check is not proof a review happened.** A third-party review
 app reports on the PR head through a **check run** or a **commit status**, and
@@ -1166,9 +1171,14 @@ never says "permission". Reading a check run needs `checks: read`.
 `pull-request` moment names one third-party reviewer: `await` is the status
 context or check-run name it reports under, `posted_by` (when declared) is the
 app whose check run counts, and `evidence.proof` is the exact **reviewed-when**
-phrase. The shipped prover reads both representations and returns the whole
-verdict. Take the verdict from it, not from your own reading of the payloads
-above:
+phrase. A gate that declares `posted_by` is proven **only** by that app's check
+run: no commit status counts for it, because a status does not show which app
+posted it and anyone with commit-status write access can post one under the
+reviewer's name. The prover lists each status it refused that way, with the
+reason, beside the check runs it set aside. A gate without `posted_by` still
+reads statuses as before. The shipped prover reads both representations and
+returns the whole verdict. Take the verdict from it, not from your own reading
+of the payloads above:
 
 ```bash
 node scripts/check-third-party-review-evidence.mjs --sha <head-sha> --repo <owner>/<repo> --json
@@ -1209,7 +1219,9 @@ the local adversarial review over the PR diff and **post it on the PR**, so the
 code that merges has been read by something. The comment must:
 
 - carry the marker `<!-- lisa:review-substitute context="<context>" head="<head-sha>" -->`
-  as its first line, so CI can find it for this reviewer at this head;
+  as its first line, so CI can find it for this reviewer at this head, and be
+  posted by an account with write, maintain or admin access — both the prover
+  and the merge-path gate refuse any other marker (#4628);
 - state plainly that it is a **self-review substitute**, not a third-party
   review;
 - **record the actual words observed, verbatim** — the prover's `observed`: a
@@ -1370,8 +1382,14 @@ proxy for the other, so read them separately:
   stranded verdict. It is safe to dismiss, and leaving it is what makes a PR sit
   wedged looking abandoned.
 
-Never dismiss on `reviewDecision` alone. Dismiss the stale (often bot) review
-where repo policy permits:
+Never dismiss on `reviewDecision` alone. **Never dismiss a stale
+`CHANGES_REQUESTED` review while its body has items with no
+`[lisa-review-body] review=<id>` marker comment** — a push does not answer a
+review body, and dismissing it discards those findings. Route it through step
+(d) first; once the marker is posted, dismiss the stale (often bot) review
+where repo policy permits. The `no actionable items` marker that step (d) posts
+for a summary-only body counts, because that review has nothing left to answer.
+Dismiss with:
 ```bash
 gh api -X PUT repos/<owner>/<repo>/pulls/<pr>/reviews/<review_id>/dismissals \
   -f message="Addressed; threads resolved." -f event=DISMISS
@@ -1421,7 +1439,11 @@ the bot's verdict from an earlier head as the only blocker. In that case:
    throttle settles hollow and can take away the bot's standing review (see
    above).
 2. Post the local adversarial review substitute for the **current** head, as
-   step (d) case 3 describes, if one is not already there.
+   step (d) case 3 describes, unless the prover already counts one there — its
+   reading shows `substituted` for that reviewer at this head. A marker the
+   prover refused (its report names the author and the reason: `no write
+   access`, `not the first line`, `permission unreadable`) does not count, so
+   it never stops you posting your own.
 3. **Then stop** with `blocked:stale-bot-verdict` (section 4). Report exactly
    that blocker: the bot reviewer, the review id, the outdated head it reviewed
    and the current head, the unresolved thread count, and that the substitute

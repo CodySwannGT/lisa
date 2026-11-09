@@ -1,9 +1,12 @@
 /**
- * Legacy commit-status evidence reads exactly as it did, beside check runs.
+ * Legacy commit-status evidence reads exactly as it did, beside check runs,
+ * for a gate that does not pin `posted_by`.
  *
- * Reviewers that still post statuses must keep being credited, and every
- * refusal they used to earn must still be refused, through the real CLI
- * (CodySwannGT/lisa#4553). The second half pins which run speaks for the
+ * Unpinned reviewers that still post statuses must keep being credited, and
+ * every refusal they used to earn must still be refused, through the real CLI
+ * (CodySwannGT/lisa#4553). A gate that pins `posted_by` accepts no status at
+ * all, because a status cannot show which app posted it
+ * (CodySwannGT/lisa#4652); the pinned cases here pin that refusal. The second half pins which run speaks for the
  * reviewer when both representations, or several runs, are present: the
  * reviewer's own check run is authoritative over its status and the newest run
  * wins, the two rules the registration prover already applies (#4547), and an
@@ -37,13 +40,17 @@ useIoLatencyBudget();
 const run = (observations: Observations) =>
   runThirdPartyReviewCli(observations, process.env);
 
+/**
+ * Run the real CLI under the unpinned declaration, the one statuses still prove.
+ * @param observations - The scenario's raw GitHub observations
+ * @returns The run
+ */
+const runUnpinned = (observations: Observations) =>
+  run({ config: UNPINNED_CONFIG, ...observations });
+
 describe("legacy commit-status evidence is preserved", () => {
-  it.each([
-    ["the pinned declaration", PINNED_CONFIG],
-    ["an unpinned declaration", UNPINNED_CONFIG],
-  ])("credits a Review completed status under %s", (_name, config) => {
-    const result = run({
-      config,
+  it("credits a Review completed status under an unpinned declaration", () => {
+    const result = runUnpinned({
       statuses: [reviewerStatus("success", REVIEW_COMPLETED)],
     });
 
@@ -52,8 +59,22 @@ describe("legacy commit-status evidence is preserved", () => {
     expect(onlyReading(result).observed).toBe(REVIEW_COMPLETED);
   });
 
-  it("credits the shipped default proof phrase Review approved", () => {
+  it("refuses a Review completed status under the pinned declaration, and says why (#4652)", () => {
     const result = run({
+      config: PINNED_CONFIG,
+      statuses: [reviewerStatus("success", REVIEW_COMPLETED)],
+    });
+
+    expect(result.status).toBe(1);
+    expect(result.verdict.outcome).toBe("unsatisfied");
+    expect(onlyReading(result).reading).toBe("absent");
+    expect(JSON.stringify(onlyReading(result).ignoredStatuses)).toContain(
+      "a commit status cannot show which app posted it"
+    );
+  });
+
+  it("credits the shipped default proof phrase Review approved", () => {
+    const result = runUnpinned({
       statuses: [reviewerStatus("success", "Review approved")],
     });
 
@@ -70,14 +91,16 @@ describe("legacy commit-status evidence is preserved", () => {
     ["Everything looks fine to me", "unrecognised"],
     ["", "empty"],
   ])("still refuses a %j status", (description, expected) => {
-    const result = run({ statuses: [reviewerStatus("success", description)] });
+    const result = runUnpinned({
+      statuses: [reviewerStatus("success", description)],
+    });
 
     expect(result.status).toBe(1);
     expect(onlyReading(result).reading).toBe(expected);
   });
 
   it("still defers on a pending status", () => {
-    const result = run({
+    const result = runUnpinned({
       statuses: [reviewerStatus("pending", "Review in progress")],
     });
 
@@ -85,8 +108,8 @@ describe("legacy commit-status evidence is preserved", () => {
     expect(result.verdict.outcome).toBe("pending");
   });
 
-  it("keeps status credit when the check-run read fails", () => {
-    const result = run({
+  it("keeps an unpinned status's credit when the check-run read fails", () => {
+    const result = runUnpinned({
       statuses: [reviewerStatus("success", REVIEW_COMPLETED)],
       checkRunEnvelope: {
         __refuse__: "HTTP 403: Resource not accessible by integration",
@@ -95,6 +118,19 @@ describe("legacy commit-status evidence is preserved", () => {
 
     expect(result.status).toBe(0);
     expect(result.verdict.outcome).toBe("satisfied");
+  });
+
+  it("reads a pinned reviewer as unreadable, never credited by its status, when the check-run read fails", () => {
+    const result = run({
+      config: PINNED_CONFIG,
+      statuses: [reviewerStatus("success", REVIEW_COMPLETED)],
+      checkRunEnvelope: {
+        __refuse__: "HTTP 403: Resource not accessible by integration",
+      },
+    });
+
+    expect(result.status).toBe(1);
+    expect(onlyReading(result).reading).toBe("unreadable");
   });
 
   it("reports no status AND no run as absent", () => {
@@ -106,7 +142,7 @@ describe("legacy commit-status evidence is preserved", () => {
 
   it("says which representation each reading came from", () => {
     const fromStatus = onlyReading(
-      run({ statuses: [reviewerStatus("success", REVIEW_COMPLETED)] })
+      runUnpinned({ statuses: [reviewerStatus("success", REVIEW_COMPLETED)] })
     );
     const fromRun = onlyReading(run({ checkRuns: [rawCheckRun()] }));
 

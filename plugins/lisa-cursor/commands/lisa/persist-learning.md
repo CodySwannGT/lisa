@@ -3,4 +3,4 @@ description: "Route a candidate learning through the hostile-default learning-ju
 argument-hint: "<candidate-json-or-fields>"
 ---
 
-Use the /lisa-persist-learning skill to fingerprint, judge, and route the candidate learning. $ARGUMENTS
+Use the /lisa-persist-learning skill to judge, fingerprint, and route the candidate learning. $ARGUMENTS

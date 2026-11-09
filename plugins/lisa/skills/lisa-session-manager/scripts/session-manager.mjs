@@ -38,6 +38,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { parseArgs } from "node:util";
 
+import { answerPlan, channelAnswer } from "./cli-answer-record.mjs";
 import {
   LEDGER_ACTION_NAMES,
   blockedPlan,
@@ -128,6 +129,8 @@ const COMMANDS = {
   },
   answer: { run: answer, options: {}, positionals: 1 },
   "item-answer": { run: itemAnswer, options: {}, positionals: 1 },
+  "channel-answer": { run: channelAnswer, options: {}, positionals: 1 },
+  "answer-plan": { run: answerPlan, options: {}, positionals: 1 },
   "record-cycle": {
     run: recordCycle,
     options: {
@@ -154,7 +157,10 @@ const LEDGER_SPECS = {
     options: { "marker-type": text, marker: text, "comment-id": text },
     positionals: 1,
   },
-  "clear-question": { options: { "reset-attempts": flag }, positionals: 1 },
+  "clear-question": {
+    options: { "reset-attempts": flag, "expect-answer-at": text },
+    positionals: 1,
+  },
   finish: { options: { status: text, sender: text }, positionals: 1 },
   "validation-failed": { options: { "updated-at": text }, positionals: 1 },
   "validation-cleared": { options: {}, positionals: 1 },

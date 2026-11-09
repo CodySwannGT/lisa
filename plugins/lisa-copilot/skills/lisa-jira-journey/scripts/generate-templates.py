@@ -27,6 +27,37 @@ from pathlib import Path
 LOCAL_EVIDENCE_PATTERN = re.compile(r'\s*\[(SCREENSHOT|EVIDENCE):\s*[^\]]+\]')
 
 
+def evidence_release():
+    """The GitHub release evidence is uploaded to, matching post-evidence.sh.
+
+    LISA_EVIDENCE_RELEASE wins when set. Otherwise ask the project's
+    `scripts/lisa-work-item.mjs evidence-release`, the one resolver every
+    writer shares, so a configured rotation such as `pr-assets-{YYYY-MM}`
+    reaches these links too (CodySwannGT/lisa#4692). A host without the
+    resolver keeps the legacy `pr-assets` release.
+    """
+    configured = os.environ.get("LISA_EVIDENCE_RELEASE", "").strip()
+    if configured:
+        return configured
+    try:
+        root = subprocess.run(
+            ["git", "rev-parse", "--show-toplevel"],
+            capture_output=True, text=True, check=True,
+        ).stdout.strip()
+    except (OSError, subprocess.CalledProcessError):
+        root = os.getcwd()
+    cli = Path(root) / "scripts" / "lisa-work-item.mjs"
+    if cli.is_file():
+        result = subprocess.run(
+            ["node", str(cli), "evidence-release"],
+            capture_output=True, text=True, cwd=root,
+        )
+        if result.returncode != 0:
+            sys.exit(f"ERROR: could not resolve the evidence release: {result.stderr.strip()}")
+        return result.stdout.strip()
+    return "pr-assets"
+
+
 def get_jira_server():
     """Read JIRA server URL from jira-cli config."""
     config_path = Path.home() / ".config" / ".jira" / ".config.yml"
@@ -130,7 +161,7 @@ def generate_jira_wiki(ticket_id, pr_number, branch, evidence_files, journey, gh
 
 def generate_github_md(ticket_id, pr_number, branch, evidence_files, journey, gh_repo, jira_server):
     """Generate GitHub markdown comment with code block evidence."""
-    release_base = f"https://github.com/{gh_repo}/releases/download/pr-assets"
+    release_base = f"https://github.com/{gh_repo}/releases/download/{evidence_release()}"
 
     lines = []
     lines.append(f"## Evidence — PR #{pr_number}")
@@ -163,7 +194,10 @@ def generate_github_md(ticket_id, pr_number, branch, evidence_files, journey, gh
         if filename.endswith(".png"):
             lines.append(f"**{label}:**")
             lines.append("")
-            lines.append(f"![{label}]({release_base}/{filename})")
+            # post-evidence.sh stores the asset as pr-<number>-<file> so pull
+            # requests sharing the release never overwrite each other's
+            # evidence (CodySwannGT/lisa#4639); link exactly that name.
+            lines.append(f"![{label}]({release_base}/pr-{pr_number}-{filename})")
             lines.append("")
         else:
             content = evidence_path.read_text().strip()

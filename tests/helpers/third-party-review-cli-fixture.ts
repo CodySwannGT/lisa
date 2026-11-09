@@ -5,7 +5,8 @@
  * source location with its real import closure, reads its declaration from a
  * real `.lisa.config.json`, and reaches GitHub through a `gh` on PATH that
  * answers from frozen raw API payloads and journals every call. That shim has
- * no network and no write route: an unsupported call exits 72, and this
+ * no network, and its only write route is the verdict's check run, journaled
+ * with the body it was sent: an unsupported call exits 72, and this
  * harness throws on it, so a missing route can never be reported as a
  * behavioural result (CodySwannGT/lisa#4553).
  * @module tests/helpers/third-party-review-cli-fixture
@@ -18,11 +19,13 @@ import * as path from "node:path";
 import { boundedSpawnSync } from "./io-latency-budget.js";
 import {
   HEAD,
+  permissionRoute,
   PINNED_CONFIG,
   PROVER,
   PULL,
   REPO,
   ROUTES,
+  SUBSTITUTE_WRITER,
 } from "./third-party-review-observations.js";
 
 export * from "./third-party-review-observations.js";
@@ -41,12 +44,23 @@ export interface Observations {
   readonly checkRunEnvelope?: unknown;
   /** Issue comments on the pull request. */
   readonly comments?: readonly Record<string, unknown>[];
+  /**
+   * Each comment author's raw permission response, keyed by login. Defaults to
+   * {@link SUBSTITUTE_WRITER} holding `write`; a login with no entry is an
+   * unsupported read, so a case that names another author supplies its answer.
+   */
+  readonly permissions?: Readonly<Record<string, unknown>>;
   /** Review objects on the pull request — supplied, never expected to be read. */
   readonly reviews?: readonly Record<string, unknown>[];
   /** Open pull requests whose head is the commit. */
   readonly pulls?: readonly Record<string, unknown>[];
   /** The raw PR response, including deliberate API refusal or malformed bodies. */
   readonly pullResponse?: unknown;
+  /**
+   * GitHub's answer to publishing the verdict as a check run. Defaults to a
+   * created run; `{"__refuse__": "<message>"}` is a refusal.
+   */
+  readonly publishResponse?: unknown;
   /** Extra CLI arguments, such as `--context`. */
   readonly args?: readonly string[];
 }
@@ -56,6 +70,8 @@ export interface JournaledCall {
   readonly argv: readonly string[];
   readonly allowed: boolean;
   readonly refused: boolean;
+  /** The body a write was sent, for the one write route. */
+  readonly input?: unknown;
 }
 
 /** Everything one real CLI run produced, with its source and input identity. */
@@ -98,6 +114,14 @@ function responsesFor(observations: Observations): Record<string, unknown> {
     },
     [ROUTES.comments]: observations.comments ?? [],
     [ROUTES.reviews]: observations.reviews ?? [],
+    [ROUTES.publish]: observations.publishResponse ?? { id: 1 },
+    ...Object.fromEntries(
+      Object.entries(
+        observations.permissions ?? {
+          [SUBSTITUTE_WRITER]: { permission: "write" },
+        }
+      ).map(([login, answer]) => [permissionRoute(login), answer])
+    ),
   };
 }
 
@@ -274,8 +298,9 @@ export function onlyReading(run: CliRun): Record<string, unknown> {
 /**
  * The routes a run actually read, in order.
  * @param run - A completed CLI run
- * @returns The second argv element of every journaled call
+ * @returns The API path of every journaled call — its last argv element, so a
+ *   paginated `api --paginate --slurp <path>` read names its path too
  */
 export function routesRead(run: CliRun): readonly string[] {
-  return run.calls.map(call => call.argv[1] ?? "");
+  return run.calls.map(call => call.argv.at(-1) ?? "");
 }

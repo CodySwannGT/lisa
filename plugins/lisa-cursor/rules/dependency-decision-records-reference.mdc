@@ -39,6 +39,9 @@ can add one without rewriting the file. An honest gap is written as
 Escalate, rather than just recording, when detection evidence says "nothing
 would catch it", when `Last reviewed` predates the dependency's last major
 upgrade, or when the trust basis names no maintainer or owner.
+When `dependencies.humanSignOff` is `"none"`, the agent resolves the
+escalation itself — reclassify, replace, remove, or accept — and records the decision and
+its reason in the entry.
 
 ---
 
@@ -116,6 +119,10 @@ than to-dos. Raise them to an owner instead of leaving them recorded:
 An entry full of `_Not yet decided_` is not an escalation; it is unstarted work.
 These three are escalations precisely because someone already looked and the
 answer was bad.
+
+When `dependencies.humanSignOff` is `"none"`, the agent resolves the
+escalation itself — reclassify, replace, remove, or accept — and records the decision and
+its reason in the entry.
 
 ## What counts as material
 

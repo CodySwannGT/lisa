@@ -115,6 +115,9 @@ const ALL_RAN = [
 /** Moment whose required gates become branch-protection contexts. */
 const PULL_REQUEST = "pull-request";
 
+/** The gate that runs the integration suite at each moment. */
+const INTEGRATION_GATE = "test-integration";
+
 /** The public command the built-in Node-suite facade must execute. */
 const TEST_NODE_SUITES_COMMAND =
   "lisa-test-run --profile <stack-or-node> --adapter direct -- node <lisa>/scripts/lisa-test-node.mjs";
@@ -657,7 +660,7 @@ describe("the push moment does not run a nested mutation run inside a suite", ()
     // holding as suites are added rather than needing this line edited each
     // time. Membership is "the suite drives Stryker", read from the suites.
     const gate = gatesAt(parsedConfig(), PUSH).find(
-      entry => entry.id === "test-integration"
+      entry => entry.id === INTEGRATION_GATE
     );
     expect(gate?.task).toBe("test:integration:push");
 
@@ -713,13 +716,35 @@ describe("the push moment does not run a nested mutation run inside a suite", ()
 
   it("does not drop the bite test — it moves to the moment that owns its cost", () => {
     // The mutation gate it is the bite control for is a pull-request gate, and
-    // the pull-request integration pass still collects the whole directory.
+    // the pull-request integration pass still collects the whole directory
+    // except the packed-host journey, which owner decision 4 of
+    // CodySwannGT/lisa#4587 moved to a by-hand run (CodySwannGT/lisa#4606).
     const onPr = gatesAt(parsedConfig(), PULL_REQUEST).find(
-      entry => entry.id === "test-integration"
+      entry => entry.id === INTEGRATION_GATE
     );
     expect(onPr?.task).toBe("test:integration");
     expect(script("test:integration")).toBe(
-      "node scripts/lib/worktree-dependencies.mjs && $npm_execpath run lisa-test-run -- --adapter vitest -- vitest run tests/integration"
+      "node scripts/lib/worktree-dependencies.mjs && $npm_execpath run lisa-test-run -- --adapter vitest -- vitest run tests/integration --exclude='**/shared-runtime-packed-hosts.test.ts'"
+    );
+  });
+
+  it("keeps the packed-host journey off every gated integration pass, but runnable", () => {
+    // Owner decision 4 of CodySwannGT/lisa#4587: the ~880 s journey leaves the
+    // PR path entirely and is protected by the canary rollout and one-command
+    // rollback instead (CodySwannGT/lisa#4606). Both moments' tasks exclude
+    // it, and the by-hand script still targets exactly that file.
+    const config = parsedConfig();
+    for (const moment of [PULL_REQUEST, "push"]) {
+      const task = gatesAt(config, moment).find(
+        entry => entry.id === INTEGRATION_GATE
+      )?.task;
+      expect(task, moment).toBeTruthy();
+      expect(script(task as string), moment).toContain(
+        "--exclude='**/shared-runtime-packed-hosts.test.ts'"
+      );
+    }
+    expect(script("test:integration:packed-hosts")).toBe(
+      "node scripts/lib/worktree-dependencies.mjs && $npm_execpath run lisa-test-run -- --adapter vitest -- vitest run tests/integration/shared-runtime-packed-hosts.test.ts"
     );
   });
 });
