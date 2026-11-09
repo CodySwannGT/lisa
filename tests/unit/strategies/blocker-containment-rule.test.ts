@@ -123,7 +123,12 @@ describe("blocker-containment rule contract", () => {
       expect(end).toBeGreaterThan(start);
       const carveOut = plain(repair.slice(start, end)).split(/\s+/u).join(" ");
       expect(carveOut).toContain("None — no runtime behavior change: <kind>");
-      for (const kind of ["doc-only", "config-only", "type-only"]) {
+      for (const kind of [
+        "doc-only",
+        "config-only",
+        "type-only",
+        "test-only",
+      ]) {
         expect(carveOut).toContain(kind);
       }
       expect(carveOut).toContain("no linked PR and no merge commit");

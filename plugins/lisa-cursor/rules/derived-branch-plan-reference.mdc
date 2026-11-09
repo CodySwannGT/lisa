@@ -43,9 +43,9 @@ A missing or **ambiguous** mapping, a key that is **not unique**, or a branch ab
 
 ## Exemption
 
-Work that declares no runtime behavior change — `runtime_behavior_change = false`, i.e. doc-only, config-only, and type-only items — has nothing to derive from and **requires no branch plan**. Its **absence is correct**, not a missing section, and no gate may demand one. Containers (an Epic, or a Story/Spike still holding child work) are exempt for the same reason: they are not built directly.
+Work that declares no runtime behavior change — `runtime_behavior_change = false`, i.e. doc-only, config-only, type-only, and test-only items — has nothing to derive from and **requires no branch plan**. Its **absence is correct**, not a missing section, and no gate may demand one. Containers (an Epic, or a Story/Spike still holding child work) are exempt for the same reason: they are not built directly.
 
-But the exemption is **declared, never inferred from an absent section**. `Target Backend Environment` is rendered on every leaf, because it is where `runtime_behavior_change` is persisted: an exact configured environment key means `true`, `None — no runtime behavior change: doc-only` (or `config-only` / `type-only`) means `false`, `None — container: state rolls up from children` marks a container, and an **absent section is underivable — never `false`**. On a live item the stored declaration beats any caller assertion, and a contradicting assertion fails S8 rather than being believed. Absence used to be the only signal, which meant the flag every one of S8, S11, S14, and S19 turns on could not be checked against the item at all.
+But the exemption is **declared, never inferred from an absent section**. `Target Backend Environment` is rendered on every leaf, because it is where `runtime_behavior_change` is persisted: an exact configured environment key means `true`, `None — no runtime behavior change: <reason>` with `<reason>` from the closed set `doc-only | config-only | type-only | test-only` means `false`, `None — container: state rolls up from children` marks a container, and an **absent section is underivable — never `false`**. On a live item the stored declaration beats any caller assertion, and a contradicting assertion fails S8 rather than being believed. Absence used to be the only signal, which meant the flag every one of S8, S11, S14, and S19 turns on could not be checked against the item at all.
 
 The exemption is one-way. Exempt work that *carries* a branch plan fails validation — branches asserted for work that declared it has no runtime target are hand-authored by definition, which is the second-authority failure this rule exists to prevent.
 
@@ -126,11 +126,11 @@ So the flag is persisted, in the section it is already about. **`Target Backend 
 | Content | `runtime_behavior_change` | Meaning |
 |---|---|---|
 | An exact configured `deploy.branches` key — bare, `Confirmed:`, `Inferred:`, or `Assumption:` per the environment grammar | `true` | applicable work, targeting that environment |
-| `None — no runtime behavior change: doc-only` (or `config-only`, `type-only`) | `false` | exempt by declaration |
+| `None — no runtime behavior change: doc-only` (or `config-only`, `type-only`, `test-only`) | `false` | exempt by declaration |
 | `None — container: state rolls up from children` | `false` | an Epic/Project, or an item holding child work |
 | The section is absent | **underivable** | a legacy item written before this contract |
 
-The `None —` prefix is the machine discriminator; the words after it are for the human reading the item. It is deliberately **visible prose rather than an HTML comment**, for exactly the reason the provenance line is: JIRA's ADF has no comment node, so a marker that only exists in markdown cannot be a vendor-neutral discriminator.
+The `None —` prefix is the machine discriminator. The reason word after `no runtime behavior change:` is drawn from a **closed set** — `doc-only | config-only | type-only | test-only`, the same set as `NO_RUNTIME_REASONS` in `scripts/lib/completion-proof-shape.mjs` — and ends the line. Validators and the completion checker read one grammar: a reason outside the set fails S8 at validate time instead of being accepted there and refused as pending-proof after merge. It is deliberately **visible prose rather than an HTML comment**, for exactly the reason the provenance line is: JIRA's ADF has no comment node, so a marker that only exists in markdown cannot be a vendor-neutral discriminator.
 
 **Persisted beats asserted.** On a live item the stored declaration is authoritative. A caller asserting a `runtime_behavior_change` that contradicts it does not override it — the disagreement fails S8, naming both values, because one of the two is wrong and silently preferring either is how an unauditable gate gets built. On a *proposed* spec nothing is persisted yet, so the caller's assertion is the input and the writer's job is to render it.
 

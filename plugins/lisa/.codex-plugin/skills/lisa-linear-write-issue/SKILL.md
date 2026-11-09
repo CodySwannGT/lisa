@@ -141,7 +141,10 @@ Linear descriptions are markdown (NOT Jira wiki markup — no `h2.` headings, us
  `runtime_behavior_change` is persisted, and an absent section reads as
  *underivable*, not exempt. Work that changes no runtime behavior declares the
  exemption in place of an environment: `None — no runtime behavior change:
- doc-only` (or `config-only` / `type-only`). A Project/container declares
+ <reason>`, where `<reason>` is exactly one of the closed set
+ `doc-only | config-only | type-only | test-only` and ends the line (the set
+ is shared with `NO_RUNTIME_REASONS` in `scripts/lib/completion-proof-shape.mjs`;
+ any other reason fails S8 and would be refused at completion). A Project/container declares
  `None — container: state rolls up from children`. Visible prose, not an HTML
  comment, for the same reason the Branch Plan provenance line is: a marker that
  survives in only one representation cannot be a vendor-neutral discriminator,
@@ -152,7 +155,7 @@ Linear descriptions are markdown (NOT Jira wiki markup — no `h2.` headings, us
 ## Branch Plan
 [GENERATED, never hand-authored. Render only when the item has a Target
  Backend Environment; omit entirely when `runtime_behavior_change = false`
- (doc-only / config-only / type-only) or for a Project/container — absence is
+ (doc-only / config-only / type-only / test-only) or for a Project/container — absence is
  correct there. Derive per the `derived-branch-plan` rule: resolve the
  environment, map it forward through `.lisa.config.json` `deploy.branches`,
  and prove the branch exists on the remote. Do not accept caller-supplied
@@ -177,7 +180,7 @@ Linear descriptions are markdown (NOT Jira wiki markup — no `h2.` headings, us
 
 ## Validation Journey
 [Delegate to /linear-add-journey if the item changes runtime behavior.
- Skip only for doc-only, config-only, or type-only items. Cross-work-item
+ Skip only for doc-only, config-only, type-only, or test-only items. Cross-work-item
  evidence pointers use `[EVIDENCE-REF: <work-item-ref> | <artifact-type>: <kebab-case-name>]`;
  they never replace this item's local S14 marker.]
 ```

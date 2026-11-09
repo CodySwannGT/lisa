@@ -42,6 +42,7 @@ import path from "node:path";
 
 import { describe, expect, it } from "vitest";
 
+import { NO_RUNTIME_REASONS } from "../../../all/copy-overwrite/scripts/lib/completion-proof-shape.mjs";
 import {
   MANIFEST_PATH,
   type Manifest,
@@ -51,6 +52,7 @@ import {
   RULE_ROOTS,
   SKILL_ROOTS,
   VALIDATORS,
+  WRITERS,
   readRule,
   readSkill,
 } from "./runtime-behavior-change-sources.js";
@@ -231,5 +233,62 @@ describe("every copy this suite reads is pinned present by the manifest", () => 
     expect(expected.filter(file => !(file in manifest.files))).toStrictEqual(
       []
     );
+  });
+});
+
+/** Matches the lenient grammar that let an unknown reason pass S8. */
+const LENIENT_GRAMMAR = /the words after it are for the human/iu;
+
+/**
+ * The validators once called the words after `None —` "for the human", so a
+ * leaf declaring `test-only` passed S8 and was then refused at completion as
+ * pending-proof forever, because `declaredScope()` accepts only a closed
+ * reason set (CodySwannGT/lisa#4684). These checks pin the prose grammar to
+ * the code export, so the set can change in one place only.
+ */
+describe("every copy names the closed no-runtime reason set the checker enforces", () => {
+  it("the checker's set is closed, frozen, and includes test-only", () => {
+    expect(Object.isFrozen(NO_RUNTIME_REASONS)).toBe(true);
+    expect([...NO_RUNTIME_REASONS]).toStrictEqual([
+      "doc-only",
+      "config-only",
+      "type-only",
+      "test-only",
+    ]);
+  });
+
+  describe.each(SKILL_ROOTS)("%s", root => {
+    it.each([...VALIDATORS, ...WRITERS])(
+      "%s names every reason and the shared export",
+      slug => {
+        const content = unwrap(readSkill(root, slug));
+
+        for (const reason of NO_RUNTIME_REASONS) {
+          expect(content).toContain(reason);
+        }
+        expect(content).toContain("NO_RUNTIME_REASONS");
+        expect(content).not.toMatch(LENIENT_GRAMMAR);
+      }
+    );
+
+    it.each(VALIDATORS)("%s fails a reason outside the closed set", slug => {
+      const content = unwrap(readSkill(root, slug));
+
+      expect(content).toContain(
+        "`doc-only | config-only | type-only | test-only`"
+      );
+      expect(content).toMatch(/any other reason[^.]*\*\*FAILs\*\* this gate/u);
+    });
+  });
+
+  describe.each(RULE_ROOTS)("%s", root => {
+    it("the reference tier names every reason and drops the lenient grammar", () => {
+      const content = unwrap(readRule(root, "reference"));
+
+      for (const reason of NO_RUNTIME_REASONS) {
+        expect(content).toContain(reason);
+      }
+      expect(content).not.toMatch(LENIENT_GRAMMAR);
+    });
   });
 });
