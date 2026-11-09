@@ -5,6 +5,7 @@
 import { requireProof, isOid } from "./completion-proof-shape.mjs";
 import {
   CODEPIPELINE,
+  DELIVERY_MECHANISMS,
   validateCodePipelineDelivery,
 } from "./completion-proof-codepipeline.mjs";
 
@@ -120,13 +121,7 @@ export function validateDelivery(record, context, transport) {
   if (!delivery.required) return;
   const configured = context.policy.delivery?.[context.environment];
   requireProof(
-    configured &&
-      [
-        "github-actions",
-        CODEPIPELINE,
-        "artifact",
-        "external-deployment",
-      ].includes(configured.mechanism),
+    configured && DELIVERY_MECHANISMS.includes(configured.mechanism),
     "The actual delivery mechanism is not declared in verification.completion.delivery; configure it and run canonical Verify/evidence.",
     PENDING_PROOF
   );

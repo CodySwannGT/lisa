@@ -95,7 +95,7 @@
       "children": []
     },
     "lib/completion-proof-codepipeline.mjs": {
-      "sha256": "c06862f521db426ade2fff5fc2c8e5b4867a18c8087b0a0deb48d667447bc9a6",
+      "sha256": "844ac8b53b253ca84f877940b1e8593bf14ca2439f8226496b75162fd25f700e",
       "staticImports": [
         "lib/completion-proof-shape.mjs"
       ],
@@ -186,7 +186,7 @@
       "children": []
     },
     "lib/completion-proof-source.mjs": {
-      "sha256": "7744870a8e514b5bb71d431301804922ae11f950e265ffbccbb267173c7b59f0",
+      "sha256": "7aa9673c7de21fa64e572043e7e76774e7cb57210a54f4603a72e88be97510a3",
       "staticImports": [
         "lib/completion-proof-codepipeline.mjs",
         "lib/completion-proof-shape.mjs"

@@ -22,6 +22,7 @@ import {
   PIPELINE,
   pipelineFixture,
   REGION,
+  removeAws,
   setAws,
   setExecution,
   type PipelineFixture,
@@ -30,6 +31,8 @@ import {
 const COMPLETE = ["complete", "--ref", PROOF_REF];
 const INVALID = "[invalid-proof]";
 const COMPLETED = "work-item completed:";
+const MECHANISM = "aws-codepipeline";
+const READ_ERROR = "[read-error]";
 const PENDING = "[pending-proof]";
 
 useIoLatencyBudget();
@@ -78,10 +81,6 @@ describe("CodePipeline delivery proof through actual CLI", () => {
     expect(observed.result.stdout).toContain(EXECUTION_ID);
     expect(observed.result.stdout).toContain(fixture.merge);
     expect(observed.state.state).toBe("CLOSED");
-    expect(fixture.record.obligations.delivery).toMatchObject({
-      execution_id: EXECUTION_ID,
-      source_revision: fixture.merge,
-    });
     expect(observed.aws.unhandled).toBe("");
     expect(observed.aws.calls.length).toBeGreaterThan(0);
     expect(
@@ -131,7 +130,7 @@ describe("CodePipeline delivery proof through actual CLI", () => {
   });
 
   it("asks for the pipeline name and region when the mechanism is declared without them", () => {
-    const fixture = pipelineFixture({ mechanism: "aws-codepipeline" });
+    const fixture = pipelineFixture({ mechanism: MECHANISM });
     const observed = complete(fixture);
     expect(observed.result.stdout).toContain(PENDING);
     expect(observed.result.stdout).toContain(
@@ -144,7 +143,7 @@ describe("CodePipeline delivery proof through actual CLI", () => {
 
   it("refuses a record that pins another pipeline than the configured one, without reading AWS", () => {
     const fixture = pipelineFixture({
-      mechanism: "aws-codepipeline",
+      mechanism: MECHANISM,
       pipeline_name: "another-pipeline",
       region: REGION,
     });
@@ -177,10 +176,101 @@ describe("CodePipeline delivery proof through actual CLI", () => {
     });
     const observed = complete(fixture);
     expect(observed.result.status).toBe(1);
-    expect(observed.result.stdout).toContain("[read-error]");
+    expect(observed.result.stdout).toContain(READ_ERROR);
     expect(observed.result.stdout).toContain(
       "codepipeline:GetPipelineExecution"
     );
+    expect(observed.result.stdout).toContain(EXECUTION_ID);
+    expectUntouched(observed);
+  });
+
+  it("refuses a record whose pinned revision and execution both name an older commit", () => {
+    const fixture = pipelineFixture();
+    Object.assign(fixture.record.obligations.delivery, {
+      source_revision: fixture.before,
+    });
+    setExecution(fixture, "Succeeded", fixture.before);
+    const observed = complete(fixture);
+    expect(observed.result.status).toBe(1);
+    expect(observed.result.stdout).toContain(INVALID);
+    expect(observed.result.stdout).not.toContain(COMPLETED);
+    expectUntouched(observed);
+  });
+
+  it("refuses a record that pins no execution id", () => {
+    const fixture = pipelineFixture();
+    delete (fixture.record.obligations.delivery as { execution_id?: string })
+      .execution_id;
+    const observed = complete(fixture);
+    expect(observed.result.status).toBe(1);
+    expect(observed.result.stdout).toContain(INVALID);
+    expect(observed.aws.calls).toEqual([]);
+    expectUntouched(observed);
+  });
+
+  it("refuses a record that pins another region than the configured one, without reading AWS", () => {
+    const fixture = pipelineFixture({
+      mechanism: MECHANISM,
+      pipeline_name: PIPELINE,
+      region: "eu-west-1",
+    });
+    const observed = complete(fixture);
+    expect(observed.result.status).toBe(1);
+    expect(observed.result.stdout).toContain(INVALID);
+    expect(observed.result.stdout).toContain("eu-west-1");
+    expect(observed.aws.calls).toEqual([]);
+    expectUntouched(observed);
+  });
+
+  it.each(["Stopped", "Superseded"])(
+    "refuses a %s execution and names its status",
+    status => {
+      const fixture = pipelineFixture();
+      setExecution(fixture, status, fixture.merge);
+      const observed = complete(fixture);
+      expect(observed.result.status).toBe(1);
+      expect(observed.result.stdout).toContain(INVALID);
+      expect(observed.result.stdout).toContain(`ended ${status}`);
+      expectUntouched(observed);
+    }
+  );
+
+  it("refuses an execution that is still Stopping, saying so", () => {
+    const fixture = pipelineFixture();
+    setExecution(fixture, "Stopping", fixture.merge);
+    const observed = complete(fixture);
+    expect(observed.result.status).toBe(1);
+    expect(observed.result.stdout).toContain(INVALID);
+    expect(observed.result.stdout).toContain("is Stopping");
+    expectUntouched(observed);
+  });
+
+  it("accepts an execution whose second source revision is the delivered commit", () => {
+    const fixture = pipelineFixture();
+    setExecution(fixture, "Succeeded", [fixture.before, fixture.merge]);
+    const observed = complete(fixture);
+    expect(observed.result.stderr).toBe("");
+    expect(observed.result.status).toBe(0);
+    expect(observed.result.stdout).toContain(COMPLETED);
+    expect(observed.state.state).toBe("CLOSED");
+  });
+
+  it("reports a missing AWS CLI as a read error", () => {
+    const fixture = pipelineFixture();
+    removeAws(fixture);
+    const observed = complete(fixture);
+    expect(observed.result.status).toBe(1);
+    expect(observed.result.stdout).toContain(READ_ERROR);
+    expect(observed.result.stdout).toContain("AWS CLI is not installed");
+    expectUntouched(observed);
+  });
+
+  it("reports a reply with no pipeline execution as a read error", () => {
+    const fixture = pipelineFixture();
+    setAws(fixture, GET_EXECUTION, { json: {} });
+    const observed = complete(fixture);
+    expect(observed.result.status).toBe(1);
+    expect(observed.result.stdout).toContain(READ_ERROR);
     expect(observed.result.stdout).toContain(EXECUTION_ID);
     expectUntouched(observed);
   });

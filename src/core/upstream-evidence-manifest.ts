@@ -38,8 +38,10 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "7b5f81ae58eae89367ebda480a508c3c37a6924b4bd6a8b1dd64fff24c465e1e",
     "all/copy-overwrite/scripts/lib/completion-proof-adapters.mjs":
       "0743d3ccb12a2dc4822170e7c299caa24576fc5a1862402adc4f6feb1bedd163",
+    "all/copy-overwrite/scripts/lib/completion-proof-codepipeline.d.mts":
+      "6bbf35f532caf14a249ceeb8eb3df33593197eb13ea9439edf38e74bf8135676",
     "all/copy-overwrite/scripts/lib/completion-proof-codepipeline.mjs":
-      "c06862f521db426ade2fff5fc2c8e5b4867a18c8087b0a0deb48d667447bc9a6",
+      "844ac8b53b253ca84f877940b1e8593bf14ca2439f8226496b75162fd25f700e",
     "all/copy-overwrite/scripts/lib/completion-proof-conformance.mjs":
       "51b2bfccc8ecca684dd80a4e2ae35896e76fa519389fe650f0890ffc0fef421d",
     "all/copy-overwrite/scripts/lib/completion-proof-content.mjs":
@@ -59,7 +61,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lib/completion-proof-shape.mjs":
       "a6faf8d3c44c4eb3192c11a76d5866f6028d476c86e7dc88aefe88060b38ee1d",
     "all/copy-overwrite/scripts/lib/completion-proof-source.mjs":
-      "7744870a8e514b5bb71d431301804922ae11f950e265ffbccbb267173c7b59f0",
+      "7aa9673c7de21fa64e572043e7e76774e7cb57210a54f4603a72e88be97510a3",
     "all/copy-overwrite/scripts/lib/gate-failure-diagnosis.mjs":
       "31f2acced121662d6395b624aed2ae0ad642c1edb52cdb0eded1497886daad71",
     "all/copy-overwrite/scripts/lib/github-attestation-provider.mjs":
@@ -345,7 +347,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/npm-updater-gate.Dockerfile":
       "850a4ee809d49e3d9da6bdd674cb43e4f5a6dcfa0aa73116b1a43caeed42748c",
     "all/copy-overwrite/scripts/npm-updater-helper-graph.json":
-      "c5e01f365193bd0410ae26d1ec0e35be94b616a25b1b5c3816c3adc6502cc144",
+      "585ba8988ebc13363c86e054c80aab713f288e159d33e795305f52f851090431",
     "all/copy-overwrite/scripts/review-evidence-event.mjs":
       "1c5d510bc66f8ba23b6f046246f41182c17946a50126fb88e371d2aec9dfd6b2",
     "all/copy-overwrite/scripts/schemas/lisa-command-envelope.v1.schema.json":
@@ -1869,7 +1871,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-tracker-evidence/SKILL.md":
       "ec8e11676607631cbf2746a05168878df80759bba14b531f4cb2b73e3fd0bf78",
     "plugins/src/base/skills/lisa-tracker-evidence/references/completion-authorization.md":
-      "f488bc2c6d84196a3d6e223d0c6b538f1a9ce2b988f726e46c00798ae1166abf",
+      "46912a18b74890f1374f9a6ba6dcb16d5b4db1d5cc83a7e0061a24cc24c4af2a",
     "plugins/src/base/skills/lisa-tracker-journey/SKILL.md":
       "65fe727adfdbcc22141ad009e89cd7d91195600377c5357d552d50ed98ecf66b",
     "plugins/src/base/skills/lisa-tracker-read/SKILL.md":
@@ -2945,7 +2947,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/test-intent-routing.sh":
       "97b9dc86cbd805df8a7fdb8c99ffab9b8c5e751ba2e84c05420b2a124f80635d",
     "scripts/two-channel-couplings.json":
-      "3274c64fb6193e37cfaccbc2592a619021758321f8a6636f197124c50e3a190e",
+      "b975ee056300d4f0c689a882652f1a926d281fa66186ea5b1500fcaa1e2e1fc8",
     "scripts/update-node-version.ts":
       "9d37599ef73d5d624751f862cda330a867f6774392c1ab045b4fc885132582e4",
     "scripts/update-test-skill-paths.mjs":
@@ -3313,6 +3315,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "all/copy-overwrite/scripts/lib/bounded-spawn.mjs": true,
     "all/copy-overwrite/scripts/lib/completion-authorization.mjs": true,
     "all/copy-overwrite/scripts/lib/completion-proof-adapters.mjs": true,
+    "all/copy-overwrite/scripts/lib/completion-proof-codepipeline.d.mts": true,
     "all/copy-overwrite/scripts/lib/completion-proof-codepipeline.mjs": true,
     "all/copy-overwrite/scripts/lib/completion-proof-conformance.mjs": true,
     "all/copy-overwrite/scripts/lib/completion-proof-content.mjs": true,

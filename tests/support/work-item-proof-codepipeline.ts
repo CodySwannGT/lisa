@@ -2,7 +2,7 @@
  * A CDK host whose delivery is proven by a CodePipeline execution, served by
  * the argv-table fake `aws`. Payloads are synthetic and only test authorization.
  */
-import { readFileSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
 import { proofFixture } from "./work-item-proof-fixture.js";
@@ -18,12 +18,9 @@ export type PipelineFixture = ReturnType<typeof proofFixture>;
 export const GET_EXECUTION = [
   "codepipeline",
   "get-pipeline-execution",
-  "--pipeline-name",
-  PIPELINE,
-  "--pipeline-execution-id",
-  EXECUTION_ID,
-  "--region",
-  REGION,
+  `--pipeline-name=${PIPELINE}`,
+  `--pipeline-execution-id=${EXECUTION_ID}`,
+  `--region=${REGION}`,
   "--output",
   "json",
 ];
@@ -49,13 +46,14 @@ export function setAws(
  * Serve the pinned execution with a given status and source revision.
  * @param fixture - Owned disposable host.
  * @param status - CodePipeline execution status.
- * @param revision - The execution's source artifact revision.
+ * @param revision - The execution's source artifact revision, or several.
  */
 export function setExecution(
   fixture: PipelineFixture,
   status: string,
-  revision: string
+  revision: string | readonly string[]
 ): void {
+  const revisions = typeof revision === "string" ? [revision] : revision;
   setAws(fixture, GET_EXECUTION, {
     json: {
       pipelineExecution: {
@@ -63,13 +61,11 @@ export function setExecution(
         pipelineVersion: 3,
         pipelineExecutionId: EXECUTION_ID,
         status,
-        artifactRevisions: [
-          {
-            name: "SourceArtifact",
-            revisionId: revision,
-            revisionSummary: "Merge fixture PR7",
-          },
-        ],
+        artifactRevisions: revisions.map((revisionId, index) => ({
+          name: `SourceArtifact${index}`,
+          revisionId,
+          revisionSummary: "Merge fixture PR7",
+        })),
       },
     },
   });
@@ -117,4 +113,16 @@ export function awsCalls(fixture: PipelineFixture) {
     .map(line => JSON.parse(line) as string[]);
   const unhandled = readFileSync(fixture.env.FAKE_AWS_UNHANDLED_FILE!, "utf8");
   return { calls, unhandled };
+}
+
+/**
+ * Leave no `aws` anywhere on the fixture's PATH, so the spawn fails ENOENT.
+ * @param fixture - Owned disposable host.
+ */
+export function removeAws(fixture: PipelineFixture): void {
+  rmSync(path.join(fixture.root, "fake-bin/aws"));
+  fixture.env.PATH = (fixture.env.PATH ?? "")
+    .split(path.delimiter)
+    .filter(dir => dir && !existsSync(path.join(dir, "aws")))
+    .join(path.delimiter);
 }

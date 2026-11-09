@@ -15,16 +15,29 @@
 import {
   CompletionProofError,
   MAX_NATIVE_JSON_BYTES,
+  isObject,
   isOid,
   requireProof,
 } from "./completion-proof-shape.mjs";
 
 export const CODEPIPELINE = "aws-codepipeline";
 
+/** Every delivery mechanism completion can verify; anything else is undeclared. */
+export const DELIVERY_MECHANISMS = Object.freeze([
+  "github-actions",
+  CODEPIPELINE,
+  "artifact",
+  "external-deployment",
+]);
+
+/** A CodePipeline name as AWS accepts it. */
+export const PIPELINE_NAME_PATTERN = /^[A-Za-z0-9.@_-]{1,100}$/;
+
+/** An AWS region identifier such as `us-east-1`. */
+export const REGION_PATTERN = /^[a-z]{2}(-[a-z]+)+-\d$/;
+
 const PENDING_PROOF = "pending-proof";
 const READ_ERROR = "read-error";
-const PIPELINE_NAME = /^[A-Za-z0-9.@_-]{1,100}$/;
-const REGION = /^[a-z]{2}(-[a-z]+)+-\d$/;
 const EXECUTION_ID =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 const OBSERVER_ACCESS =
@@ -40,8 +53,8 @@ function requireConfigured(configured, environment) {
     PENDING_PROOF
   );
   requireProof(
-    PIPELINE_NAME.test(configured.pipeline_name) &&
-      REGION.test(configured.region),
+    PIPELINE_NAME_PATTERN.test(configured.pipeline_name) &&
+      REGION_PATTERN.test(configured.region),
     `${setting}.pipeline_name or ${setting}.region is not a valid CodePipeline name or AWS region.`
   );
 }
@@ -88,12 +101,9 @@ function readExecution(run, delivery) {
     [
       "codepipeline",
       "get-pipeline-execution",
-      "--pipeline-name",
-      delivery.pipeline_name,
-      "--pipeline-execution-id",
-      delivery.execution_id,
-      "--region",
-      delivery.region,
+      `--pipeline-name=${delivery.pipeline_name}`,
+      `--pipeline-execution-id=${delivery.execution_id}`,
+      `--region=${delivery.region}`,
       "--output",
       "json",
     ],
@@ -104,22 +114,25 @@ function readExecution(run, delivery) {
       READ_ERROR,
       `The ${subject} could not be read.${readFailureHint(result)} Verification needs ${OBSERVER_ACCESS}.`
     );
+  let execution;
   try {
-    return JSON.parse(result.stdout).pipelineExecution;
+    execution = JSON.parse(result.stdout)?.pipelineExecution;
   } catch {
+    execution = undefined;
+  }
+  if (!isObject(execution))
     throw new CompletionProofError(
       READ_ERROR,
-      `The ${subject} read did not return complete JSON.`
+      `The ${subject} read did not return a complete pipeline execution.`
     );
-  }
+  return execution;
 }
 
 /** Succeeded at the delivered commit is delivery; anything else is not. */
-function decideExecution(execution, delivery) {
+function decideExecution(execution, delivery, sha) {
   const id = delivery.execution_id;
-  const sha = delivery.source_revision;
   requireProof(
-    execution?.pipelineExecutionId === id &&
+    execution.pipelineExecutionId === id &&
       execution.pipelineName === delivery.pipeline_name,
     `The CodePipeline read returned another execution than ${id} of ${delivery.pipeline_name}.`
   );
@@ -135,9 +148,13 @@ function decideExecution(execution, delivery) {
     `CodePipeline execution ${id} of ${delivery.pipeline_name} is still InProgress (it may be waiting at a manual approval), so ${sha} is not delivered yet; run canonical Verify/evidence again once it succeeds.`,
     PENDING_PROOF
   );
+  const state =
+    execution.status === "Stopping"
+      ? "is Stopping"
+      : `ended ${String(execution.status)}`;
   requireProof(
     execution.status === "Succeeded",
-    `CodePipeline execution ${id} of ${delivery.pipeline_name} ended ${String(execution.status)}, so it did not deliver ${sha}; pin an execution that Succeeded at that commit.`
+    `CodePipeline execution ${id} of ${delivery.pipeline_name} ${state}, so it did not deliver ${sha}; pin an execution that Succeeded at that commit.`
   );
 }
 
@@ -156,7 +173,7 @@ export function validateCodePipelineDelivery(
 ) {
   requireConfigured(configured, context.environment);
   requireRecorded(delivery, configured, deliveredSha);
-  decideExecution(readExecution(context.run, delivery), delivery);
+  decideExecution(readExecution(context.run, delivery), delivery, deliveredSha);
 }
 
 /**
