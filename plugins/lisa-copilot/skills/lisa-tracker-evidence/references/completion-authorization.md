@@ -177,7 +177,7 @@ delivered the change:
 ```
 
 Completion reads that one execution read-only, with
-`aws codepipeline get-pipeline-execution --pipeline-name <name> --pipeline-execution-id <id> --region <region> --output json`,
+`aws codepipeline get-pipeline-execution --pipeline-name=<name> --pipeline-execution-id=<id> --region=<region> --output json`,
 and decides from it:
 
 - **Accepted**: the execution `Succeeded` and one of its `artifactRevisions` is
@@ -187,10 +187,17 @@ and decides from it:
   message names the waiting execution. The same category is returned when the
   configuration names the mechanism without `pipeline_name` and `region`.
 - **`invalid-proof`**: the execution carried another commit (the message names
-  both revisions); it ended `Failed`, `Stopped`, `Stopping`, `Superseded` or
-  `Cancelled`; the record names another pipeline or region than the
-  configuration; or its execution id is malformed.
-- **`read-error`**: the execution could not be read.
+  both revisions); it ended `Failed`, `Stopped`, `Superseded` or `Cancelled`,
+  or is `Stopping`; the record names another pipeline or region than the
+  configuration; or its execution id is missing or malformed.
+- **`read-error`**: the execution could not be read, or the reply carried no
+  pipeline execution.
+
+To find the execution id, list the pipeline's executions with
+`aws codepipeline list-pipeline-executions --pipeline-name <name> --region <region>`
+and pick the execution whose `sourceRevisions[].revisionId` is the delivered
+commit. That listing needs `codepipeline:ListPipelineExecutions`; completion
+itself needs only the `GetPipelineExecution` read.
 
 The verifier needs no write permission. Its credentials need
 `codepipeline:GetPipelineExecution` on the pipeline, on top of the list grant
