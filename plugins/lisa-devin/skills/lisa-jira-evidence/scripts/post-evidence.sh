@@ -223,17 +223,18 @@ fi
 
 echo "  ✓ GitHub release assets uploaded"
 
-# Every markdown link or image target, `](<url>)`, that points into the release
-# must name an asset THIS run uploaded, and therefore one the check above just
-# found in the release. A bare or other-PR name would show some other pull
-# request's evidence, and a pr-<n>- asset left over from an earlier run would
-# show evidence this run did not produce. Only link targets count: text
-# evidence inlined into comment.md may quote a release URL as plain text.
+# Every Markdown link or image target that points into the release must name
+# an asset THIS run uploaded, and therefore one the check above just found in
+# the release. A bare or other-PR name would show some other pull request's
+# evidence, and a pr-<n>- asset left over from an earlier run would show
+# evidence this run did not produce. Every Markdown target form counts:
+#   inline      ](url)  ](url "title")  ](<url>)  ](<url> "title")
+#   reference   [ref]: url  [ref]: <url> "title"   (up to 3 leading spaces)
+# Only link targets count: text evidence inlined into comment.md may quote a
+# release URL as plain text, and that must not fail the run.
 THIS_RUN_ASSETS=$(printf '%s\n' "${UPLOADED_ASSETS[@]}")
 BAD_LINKS=0
-while IFS= read -r TARGET; do
-  LINK="${TARGET#](}"
-  LINK="${LINK%)}"
+while IFS= read -r LINK; do
   [[ "$LINK" == *"releases/download/${RELEASE_TAG}/"* ]] || continue
   LINK_NAME="${LINK##*/}"
   if [[ "$LINK_NAME" != "pr-${PR_NUMBER}-"* ]]; then
@@ -243,7 +244,11 @@ while IFS= read -r TARGET; do
     echo "ERROR: $COMMENT_MD links $LINK, which this run did not upload to release '$RELEASE_TAG'" >&2
     BAD_LINKS=1
   fi
-done < <(grep -oE '\]\([^)[:space:]]+\)' "$COMMENT_MD" || true)
+done < <(
+  { grep -oE '\]\(<?[^)<>[:space:]]+' "$COMMENT_MD" || true; } | sed -E 's/^\]\(<?//'
+  { grep -oE '^ {0,3}\[[^]]+\]:[[:space:]]*<?[^<>[:space:]]+' "$COMMENT_MD" || true; } |
+    sed -E 's/^ {0,3}\[[^]]+\]:[[:space:]]*<?//'
+)
 if [[ $BAD_LINKS -ne 0 ]]; then
   exit 1
 fi
