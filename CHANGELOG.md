@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.99.7](https://github.com/CodySwannGT/lisa/compare/v4.99.6...v4.99.7) (2026-11-09)
+
+
+### Bug Fixes
+
+* **review-evidence:** fence a report longer than any backtick run it quotes ([e4de38e](https://github.com/CodySwannGT/lisa/commit/e4de38e9ef01538d63bf36f38182f00a367e5344)), closes [#4630](https://github.com/CodySwannGT/lisa/issues/4630) [CodySwannGT/lisa#4630](https://github.com/CodySwannGT/lisa/issues/4630)
+* **review-evidence:** publish the third-party verdict on the PR head and read every page ([95cb320](https://github.com/CodySwannGT/lisa/commit/95cb320486beb6a90de986ec1ecc3a42ac0834b2)), closes [#4630](https://github.com/CodySwannGT/lisa/issues/4630) [CodySwannGT/lisa#4630](https://github.com/CodySwannGT/lisa/issues/4630)
+* **review-evidence:** tighten publish detection, fence the summary, share the run identity ([3ae653d](https://github.com/CodySwannGT/lisa/commit/3ae653d25af4e737d84838404af9f734874d728a)), closes [#4630](https://github.com/CodySwannGT/lisa/issues/4630) [CodySwannGT/lisa#4630](https://github.com/CodySwannGT/lisa/issues/4630)
+* **skills:** correct eleven skill, agent and script defects ([780a22b](https://github.com/CodySwannGT/lisa/commit/780a22bf86b8c5192dc0e8b2c45d9afce8f20f39)), closes [CodySwannGT/lisa#4643](https://github.com/CodySwannGT/lisa/issues/4643) [CodySwannGT/lisa#4643](https://github.com/CodySwannGT/lisa/issues/4643)
+* **skills:** mark summary-only review bodies and reword first-pass yield row ([21071c8](https://github.com/CodySwannGT/lisa/commit/21071c8063561bc370cd4c78cb8838a75191ea0b)), closes [CodySwannGT/lisa#4643](https://github.com/CodySwannGT/lisa/issues/4643) [CodySwannGT/lisa#4643](https://github.com/CodySwannGT/lisa/issues/4643)
+* **skills:** read collapsed sections before calling a review summary-only ([fadac21](https://github.com/CodySwannGT/lisa/commit/fadac2145911ab7e8140c4e3f6d9e1065d296b30)), closes [CodySwannGT/lisa#4643](https://github.com/CodySwannGT/lisa/issues/4643) [CodySwannGT/lisa#4643](https://github.com/CodySwannGT/lisa/issues/4643)
+
 ### [4.99.6](https://github.com/CodySwannGT/lisa/compare/v4.99.5...v4.99.6) (2026-11-09)
 
 ### [4.99.5](https://github.com/CodySwannGT/lisa/compare/v4.99.4...v4.99.5) (2026-11-09)
