@@ -341,9 +341,9 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/npm-updater-gate-supervisor.c":
       "e7d6ed62ce27a466a097c879372b8c2ec18731371e682d04542de4d83f3daa00",
     "all/copy-overwrite/scripts/npm-updater-gate.Dockerfile":
-      "f5d85f8fccfd97f7800c03430a38c19d584314b0a6a63aa1de28fb62897fbcc5",
+      "850a4ee809d49e3d9da6bdd674cb43e4f5a6dcfa0aa73116b1a43caeed42748c",
     "all/copy-overwrite/scripts/npm-updater-helper-graph.json":
-      "0a76c621e15d88133f6a7f17fcad37842246f23d88f8e4ff3c954a84c6f285b2",
+      "651f704548f0191c9b302c773530f353762d4cf5103bdc55b2dfb6a2bb0c331d",
     "all/copy-overwrite/scripts/review-evidence-event.mjs":
       "1c5d510bc66f8ba23b6f046246f41182c17946a50126fb88e371d2aec9dfd6b2",
     "all/copy-overwrite/scripts/schemas/lisa-command-envelope.v1.schema.json":
@@ -11873,6 +11873,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/npm-update-all-host-helpers.test.ts": true,
     "tests/integration/npm-update-dual-lock.test.ts": true,
     "tests/integration/npm-update-rails-hook-scratch.test.ts": true,
+    "tests/integration/npm-updater-download-https.test.ts": true,
     "tests/integration/oxlint-worktree-resolution.test.ts": true,
     "tests/integration/package-manager-injection.test.ts": true,
     "tests/integration/pinned-revision-fetch.test.ts": true,
