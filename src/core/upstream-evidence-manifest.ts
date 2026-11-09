@@ -59,13 +59,13 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lib/completion-proof-source.mjs":
       "1028cbeb9c8bb9cf685dd3f532ea41de2a25456b989fbda23d3315d8532877c0",
     "all/copy-overwrite/scripts/lib/evidence-prune-apply.mjs":
-      "917c6f48adb64047e72774b65dee35d7df443aa01dd316d0796fa6d1d8a96117",
+      "c6e68dc6eece329530b58959ccb6ff6d31e3b5de59b71c2ccbdff801aa7c4fe9",
     "all/copy-overwrite/scripts/lib/evidence-prune-config.mjs":
       "7ef5d7de6f0ebe28df90851002d09bb30df0449a6f63981cc693e0157891e11f",
     "all/copy-overwrite/scripts/lib/evidence-prune-gh.mjs":
       "8f6a199c4ac8bab81340a3bd2dfdccc2985512dbc5a7ff9b084a7eb47255092f",
     "all/copy-overwrite/scripts/lib/evidence-prune-records.mjs":
-      "6bdd27745c85d92dd996b1444ccf9a7394e3ed62b529801fa9bf68faaac04080",
+      "a8570df62b080e433580c4182490d7e15c715a384e8a9d7feef8c642791bb3fb",
     "all/copy-overwrite/scripts/lib/evidence-prune.mjs":
       "ae141d9a3e8d438365192f3c05de86002ebf36cd53ed63c639474317b9c007a4",
     "all/copy-overwrite/scripts/lib/gate-failure-diagnosis.mjs":
@@ -293,7 +293,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-environment-prepare.mjs":
       "94d1d76b5c25059d93ee888dc824d1621adc8e3dbe368904543b37a82259c4a3",
     "all/copy-overwrite/scripts/lisa-evidence-prune.mjs":
-      "fb87d52d8c578f5057f4bff296a8f2409e2f6fc082bc6a530e7f3196d56d8917",
+      "878b2014be5a0bedc8b4899d0e961dfea5b1147ff0a694a9fac00f77121f035a",
     "all/copy-overwrite/scripts/lisa-floor-collisions.mjs":
       "345832c63c85df32acbed9b183b06239fc10ccb1491bd11607b5840ac1d18573",
     "all/copy-overwrite/scripts/lisa-gates.mjs":

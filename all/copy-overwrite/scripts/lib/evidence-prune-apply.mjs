@@ -107,6 +107,12 @@ function removeOriginal(ctx, state, candidate) {
 function archiveStep(ctx, state, candidate) {
   const { gh, held, tag, release } = ctx;
   const prior = held.get(candidate.name);
+  // An interrupted upload leaves an asset GitHub never finished; it cannot be
+  // hashed or replaced, and deleting it is the operator's call, not ours.
+  if (prior && prior.state !== "uploaded")
+    throw new EvidencePruneError(
+      `${candidate.name} in ${tag} is a half-finished upload (state ${JSON.stringify(prior.state)}); delete it from ${tag} and re-run.`
+    );
   if (!prior && state.count >= EVIDENCE_RELEASE_NEAR_FULL)
     throw new EvidencePruneError(nearlyFullMessage(tag));
   const bytes = gh.download(candidate);

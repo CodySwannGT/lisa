@@ -24,6 +24,10 @@
  */
 import { boundedSpawnSync } from "./lib/bounded-spawn.mjs";
 import {
+  acceptedEvidenceReleases,
+  evidenceReleaseOverride,
+} from "./lib/completion-proof-github.mjs";
+import {
   archiveReleaseTag,
   collectPins,
   EvidencePruneError,
@@ -98,6 +102,13 @@ function requireAccess(flags, deps, config) {
 function prune(flags, deps) {
   const config = readLisaConfig(deps.cwd);
   const policy = config.verification?.completion ?? {};
+  // Validate the whole evidence-release policy, history included, before any
+  // provider call: a malformed list must not surface halfway through a run.
+  acceptedEvidenceReleases(policy);
+  const pinned = deps.env.LISA_EVIDENCE_RELEASE?.trim();
+  const pinnedRelease = pinned
+    ? evidenceReleaseOverride(policy, pinned)
+    : undefined;
   const { release, archiveRelease } = resolveReleases(
     flags,
     config,
@@ -135,7 +146,9 @@ function prune(flags, deps) {
       release,
       pins: collectPins(snapshot.records),
       known: new Set(snapshot.recordAssets.map(asset => asset.id)),
-      rescan: recordRescanner(gh, policy, snapshot.accepted),
+      rescan: recordRescanner(gh, policy, snapshot.accepted, {
+        pinned: pinnedRelease,
+      }),
     }),
   };
 }

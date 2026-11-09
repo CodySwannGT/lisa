@@ -65,29 +65,31 @@ export function evidenceSnapshot(gh, policy, tag) {
  * A re-read of records published since the snapshot, for the check made
  * before each delete.
  *
- * It re-lists the snapshot's accepted releases plus the release the publisher
- * resolves to now, so a rotation across a month boundary during a long run is
- * still seen. It does not re-list the repository's releases on every delete:
- * on a repository with thousands of releases that alone is twenty-odd calls per
- * file, and the publisher only ever creates the release it resolves to.
+ * It re-lists the snapshot's accepted releases plus every release the
+ * publisher can write a new record into: the one it resolves to now, so a
+ * rotation across a month boundary during a long run is still seen, and the
+ * one `LISA_EVIDENCE_RELEASE` pins, which the publisher uses instead when set
+ * and creates when absent. It does not re-list the repository's releases on
+ * every delete: on a repository with thousands of releases that alone is
+ * twenty-odd calls per file, and those two are the only releases the
+ * publisher creates.
  * @param {object} gh - The prune's GitHub operations.
  * @param {object} policy - `verification.completion` from the Lisa config.
  * @param {object[]} accepted - The snapshot's accepted releases.
- * @param {() => Date} [clock] - The time the publisher resolves its release at.
+ * @param {object} [options] - Where the publisher may write.
+ * @param {() => Date} [options.clock] - The time the publisher resolves at.
+ * @param {string} [options.pinned] - The validated `LISA_EVIDENCE_RELEASE`.
  * @returns {(known: Set<number>) => {ids: number[], records: unknown[]}} The
  *   re-reader: given the record ids already read, the ones that are new.
  */
-export function recordRescanner(
-  gh,
-  policy,
-  accepted,
-  clock = () => new Date()
-) {
+export function recordRescanner(gh, policy, accepted, options = {}) {
+  const clock = options.clock ?? (() => new Date());
   return known => {
-    const current = resolveEvidenceRelease(policy, clock());
-    const extra = accepted.some(release => release.tag_name === current)
-      ? []
-      : [gh.release(current)].filter(Boolean);
+    const targets = [resolveEvidenceRelease(policy, clock()), options.pinned];
+    const extra = [...new Set(targets.filter(Boolean))]
+      .filter(tag => !accepted.some(release => release.tag_name === tag))
+      .map(tag => gh.release(tag))
+      .filter(Boolean);
     const fresh = [...accepted, ...extra]
       .flatMap(release => gh.assets(release))
       .filter(asset => isRecord(asset) && !known.has(asset.id));

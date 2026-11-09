@@ -97,19 +97,21 @@ export function seed(gh: FakeGitHub, tag = RELEASE) {
  * @param gh - The fake GitHub.
  * @param args - CLI arguments.
  * @param cwd - The project directory.
+ * @param env - Process environment the CLI sees.
  * @returns Exit code and captured output.
  */
 export async function prune(
   gh: FakeGitHub,
   args: string[] = [],
-  cwd = project()
+  cwd = project(),
+  env: Record<string, string> = {}
 ) {
   const lines: string[] = [];
   const code = await main(args, {
     run: gh.run,
     now: NOW,
     cwd,
-    env: {},
+    env,
     out: (line: string) => lines.push(line),
   });
   return { code, output: lines.join("\n") };

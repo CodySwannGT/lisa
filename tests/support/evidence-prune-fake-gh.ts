@@ -48,6 +48,8 @@ export interface FakeAsset {
   created_at: string;
   digest?: string | null;
   bytes: Buffer;
+  /** GitHub's upload state; a half-finished upload is not `uploaded`. */
+  state?: string;
 }
 
 /** One stored release. */
@@ -171,7 +173,7 @@ function metadata(state: FakeState, asset: FakeAsset, release: FakeRelease) {
     id: asset.id,
     name: asset.name,
     size: asset.size,
-    state: "uploaded",
+    state: asset.state ?? "uploaded",
     created_at: asset.created_at,
     browser_download_url: `https://github.com/${REPOSITORY}/releases/download/${release.tag}/${asset.name}`,
     ...(state.options.noDigests ? {} : { digest: asset.digest ?? null }),

@@ -219,3 +219,49 @@ describe("reporting and access", () => {
     expect(gh.names(MONTHLY)).not.toContain(STALE);
   });
 });
+
+describe("review follow-ups", () => {
+  it("re-reads the release LISA_EVIDENCE_RELEASE pins, even one created mid-run", async () => {
+    const pinned = "pr-assets-2026-12";
+    const gh = fakeGitHub({
+      onUpload: () =>
+        gh.addAsset(pinned, LATE_RECORD, RECORD_AT, recordBody([stale.id])),
+    });
+    const { stale } = seed(gh);
+    const { code, output } = await prune(
+      gh,
+      [APPLY, "--release", RELEASE],
+      project(ROTATED),
+      { LISA_EVIDENCE_RELEASE: pinned }
+    );
+    expect(code).toBe(0);
+    expect(gh.names(RELEASE)).toContain(STALE);
+    expect(count(gh, "DELETE")).toBe(0);
+    expect(output).toMatch(/stale\.txt.*now depends on it/);
+  });
+
+  it("stops on a half-finished upload in the archive, naming it", async () => {
+    const gh = fakeGitHub();
+    seed(gh);
+    const stray = gh.addAsset(ARCHIVE, STALE, OLD, "partial");
+    stray.state = "starter";
+    const { code, output } = await prune(gh, [APPLY]);
+    expect(code).not.toBe(0);
+    expect(output).toContain(
+      `${STALE} in ${ARCHIVE} is a half-finished upload (state "starter"); delete it from ${ARCHIVE} and re-run.`
+    );
+    expect(count(gh, "DELETE")).toBe(0);
+    expect(count(gh, "uploads.github.com")).toBe(0);
+  });
+
+  it("refuses a malformed accepted-release history before any gh call", async () => {
+    const gh = fakeGitHub();
+    const cwd = project({
+      verification: { completion: { acceptedEvidenceReleases: "pr-old" } },
+    });
+    const { code, output } = await prune(gh, [], cwd);
+    expect(code).not.toBe(0);
+    expect(output).toContain("acceptedEvidenceReleases");
+    expect(gh.calls).toEqual([]);
+  });
+});
