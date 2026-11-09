@@ -27,7 +27,10 @@ import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 
 import { learningFingerprint } from "../../../src/core/learning-fingerprint.js";
-import type { LearningEntry } from "../../../src/core/learnings-contract.js";
+import {
+  LEARNINGS_CONTRACT,
+  type LearningEntry,
+} from "../../../src/core/learnings-contract.js";
 import { renderLearningsFile } from "../../../src/core/learnings-document.js";
 
 /** Every skill root a runtime reads: the source plus each projection. */
@@ -125,12 +128,20 @@ describe.each(READY_RULES)("definition of ready S18 (%s)", rulePath => {
 });
 
 describe("the step 0 command, executed (source)", () => {
-  const program = stepZeroProgram(
+  const source = stepZeroProgram(
     read("plugins/src/base/skills/lisa-task-decomposition/SKILL.md")
-  ).replace(
-    'import("@codyswann/lisa/learnings")',
-    `import(${JSON.stringify(path.resolve("src/core/learnings.ts"))})`
   );
+  /**
+   * The step 0 program bound to a given learnings module.
+   * @param modulePath - Absolute path of the module to import
+   * @returns The runnable program
+   */
+  const bindTo = (modulePath: string): string =>
+    source.replace(
+      'import("@codyswann/lisa/learnings")',
+      `import(${JSON.stringify(modulePath)})`
+    );
+  const program = bindTo(path.resolve("src/core/learnings.ts"));
   const dirs: string[] = [];
 
   afterEach(() => {
@@ -157,9 +168,13 @@ describe("the step 0 command, executed (source)", () => {
   /**
    * Run the program from a project root, as step 0 says to.
    * @param cwd - Project root
+   * @param code - The program to run; defaults to the real-module binding
    * @returns Captured stdout and stderr
    */
-  const run = (cwd: string): { stdout: string; stderr: string } => {
+  const run = (
+    cwd: string,
+    code: string = program
+  ): { stdout: string; stderr: string } => {
     const outFile = path.join(cwd, "out.txt");
     const errFile = path.join(cwd, "err.txt");
     execFileSync(
@@ -170,7 +185,7 @@ describe("the step 0 command, executed (source)", () => {
         env: {
           PATH: process.env.PATH ?? "/usr/bin:/bin",
           HOME: process.env.HOME ?? cwd,
-          PROGRAM: program,
+          PROGRAM: code,
           OUT: outFile,
           ERR: errFile,
         },
@@ -185,9 +200,13 @@ describe("the step 0 command, executed (source)", () => {
   /**
    * One valid ledger entry for a rule.
    * @param rule - The learning rule
+   * @param confidence - Its confidence; defaults to low
    * @returns The entry
    */
-  const entry = (rule: string): LearningEntry => {
+  const entry = (
+    rule: string,
+    confidence: LearningEntry["confidence"] = "low"
+  ): LearningEntry => {
     const fingerprint = learningFingerprint(rule);
     return {
       id: fingerprint,
@@ -197,7 +216,7 @@ describe("the step 0 command, executed (source)", () => {
       provenance: ["owner/repo#1"],
       first_learned: "2026-01-01",
       last_confirmed: "2026-01-01",
-      confidence: "low",
+      confidence,
     };
   };
 
@@ -231,5 +250,64 @@ describe("the step 0 command, executed (source)", () => {
       checks: [{ id: planning.id, rule: planning.rule, confidence: "low" }],
       omitted: [],
     });
+  });
+
+  it("warns rather than reading as no ledger when the ledger is over budget", () => {
+    // The ledger's own parser enforces the projection's budget, so a ledger
+    // with more entries than maxEntries is malformed, not empty.
+    const over = Array.from(
+      { length: LEARNINGS_CONTRACT.maxEntries + 1 },
+      (_, index) => JSON.stringify(entry(`Planning (prd): check ${index}.`))
+    ).join("\n");
+    const { stdout, stderr } = run(
+      project(`# Project Learnings\n\n\`\`\`jsonl\n${over}\n\`\`\`\n`)
+    );
+    expect(stdout).toBe("");
+    expect(stderr).toContain("learned planning checks unavailable");
+  });
+
+  it("names the dropped planning checks, and other learnings never displace one", () => {
+    // A parseable ledger cannot overflow the projection today: the parser
+    // enforces the same budget. To exercise the omitted path the real module
+    // is wrapped with a reader that skips only that budget check, so the
+    // real projection and the real step 0 program decide what is dropped.
+    const extra = 5;
+    const kept = Array.from({ length: LEARNINGS_CONTRACT.maxEntries }, (_, i) =>
+      entry(`Planning (decomposition): kept check ${i}.`, "medium")
+    );
+    const dropped = Array.from({ length: extra }, (_, i) =>
+      entry(`Planning (ready-gate): dropped check ${i}.`, "low")
+    );
+    const others = Array.from({ length: extra }, (_, i) =>
+      entry(`Run the formatter before commit ${i}.`, "high")
+    );
+    const dir = project(
+      [...others, ...dropped, ...kept].map(e => JSON.stringify(e)).join("\n")
+    );
+    const wrapper = path.join(dir, "learnings-unbounded-reader.ts");
+    const real = JSON.stringify(path.resolve("src/core/learnings.ts"));
+    writeFileSync(
+      wrapper,
+      [
+        `export * from ${real};`,
+        "export const parseLearningsFile = raw =>",
+        '  raw.split("\\n").filter(line => line.startsWith("{")).map(line => JSON.parse(line));',
+      ].join("\n")
+    );
+    const { stdout, stderr } = run(dir, bindTo(wrapper));
+    expect(stderr).toBe("");
+    const result = JSON.parse(stdout) as {
+      checks: { id: string; rule: string }[];
+      omitted: string[];
+    };
+    expect(result.omitted).toHaveLength(extra);
+    expect(new Set(result.omitted)).toEqual(new Set(dropped.map(e => e.id)));
+    expect(result.checks).toHaveLength(kept.length);
+    expect(new Set(result.checks.map(c => c.id))).toEqual(
+      new Set(kept.map(e => e.id))
+    );
+    expect(result.checks.every(c => c.rule.startsWith("Planning ("))).toBe(
+      true
+    );
   });
 });

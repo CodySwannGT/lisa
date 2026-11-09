@@ -1382,7 +1382,9 @@ Never dismiss on `reviewDecision` alone. **Never dismiss a stale
 `[lisa-review-body] review=<id>` marker comment** — a push does not answer a
 review body, and dismissing it discards those findings. Route it through step
 (d) first; once the marker is posted, dismiss the stale (often bot) review
-where repo policy permits:
+where repo policy permits. The `no actionable items` marker that step (d) posts
+for a summary-only body counts, because that review has nothing left to answer.
+Dismiss with:
 ```bash
 gh api -X PUT repos/<owner>/<repo>/pulls/<pr>/reviews/<review_id>/dismissals \
   -f message="Addressed; threads resolved." -f event=DISMISS

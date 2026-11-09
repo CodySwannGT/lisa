@@ -58,6 +58,17 @@ describe.each(SKILL_ROOTS)("skill text in %s", root => {
   it("item 2: first-pass yield claims only what its definition shows", () => {
     const text = skill("lisa-delivery-effectiveness");
     expect(text).not.toContain("every other failure shows up in it");
+    expect(text).not.toContain(
+      "The one number that moves only when the whole line works"
+    );
+    const row =
+      text
+        .split("\n")
+        .find(line => line.startsWith("| **First-pass yield**")) ?? "";
+    expect(row).toContain("Items that finished without rework");
+    expect(row).toContain(
+      "blind to planning misses resolved by a human, pre-completion gate rejections and escapes fixed in new items"
+    );
     expect(text).toContain(
       "First-pass yield moves on rework and on items that never finish."
     );

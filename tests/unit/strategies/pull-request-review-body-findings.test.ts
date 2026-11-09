@@ -258,6 +258,26 @@ describe.each(ROOTS)("pull-request-review reads review bodies (%s)", root => {
     expect(step).toMatch(/no thread to resolve/i);
   });
 
+  it("marks a summary-only review so it is not re-read and step (e) can dismiss it", () => {
+    // A body with no actionable items used to get no marker, so it was re-read
+    // every run and drive-pr-to-merge step (e) waited on it forever.
+    const step1c = section(content, "Step 1c");
+    expect(step1c).toMatch(/no actionable items still needs its marker/i);
+    const step = section(content, "Step 2");
+    const template =
+      /gh pr comment <pr> --body "(Review <id>: no actionable items[^"]*)"/.exec(
+        step
+      )?.[1];
+    expect(template).toBeDefined();
+    expect(template).toContain("<!-- [lisa-review-body] review=<id> -->");
+    const body = (template ?? "").replaceAll("<id>", "2");
+    const handled = handledIds([
+      [{ author_association: "OWNER", user: { type: "User" }, body }],
+    ]);
+    expect(handled).toEqual([2]);
+    expect(selectReviews(handled, REVIEWS)).toEqual([1, 5]);
+  });
+
   it("counts review-body items separately in the Step 4 report", () => {
     const step = section(content, "Step 4");
     expect(step).toContain("review-body items: N implemented / M answered");
@@ -293,5 +313,14 @@ describe.each(ROOTS)("drive-pr-to-merge routes review bodies (%s)", root => {
       /never dismiss a stale\s+`CHANGES_REQUESTED` review while its\s+body has items with no\s+`\[lisa-review-body\] review=<id>` marker/i
     );
     expect(step).toMatch(/through step\s+\(d\) first/);
+  });
+
+  it("counts the no-actionable-items marker as the marker that permits dismissal", () => {
+    const start = content.indexOf("\n### e. ");
+    const end = content.indexOf("\n### f. ", start);
+    const step = content.slice(start, end);
+    expect(step).toMatch(
+      /`no actionable items` marker[^.]*summary-only body[^.]*counts/i
+    );
   });
 });
