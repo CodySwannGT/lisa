@@ -19,6 +19,7 @@ import {
   existsSync,
   mkdirSync,
   readFileSync,
+  rmSync,
   writeFileSync,
 } from "node:fs";
 import * as path from "node:path";
@@ -297,6 +298,16 @@ describe("lisa apply prunes retired plugin keys and dead registrations (#4645)",
       registry.some(e => e.id === OTHER && e.projectPath === fixture.deadOther)
     ).toBe(true);
 
+    // The first apply wrote reusable-workflow callers. A second apply over
+    // them must pin them to this Lisa's release commit, and CI's shallow
+    // checkout carries no tag for the version under test, so that apply would
+    // abort before reaching plugins (`ensure-pinned-reusable-workflow-refs`).
+    // Pinning is not what this case measures; drop the callers so the second
+    // apply exercises only the plugin path again.
+    rmSync(path.join(fixture.host, ".github", "workflows"), {
+      recursive: true,
+      force: true,
+    });
     const second = apply(fixture, 2);
     expect(uninstalls(second.calls)).toEqual([]);
     expect(second.output).not.toContain("Removed retired plugin key");
