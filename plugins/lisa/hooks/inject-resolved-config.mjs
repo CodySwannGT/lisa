@@ -625,29 +625,40 @@ function renderGates(gates) {
 }
 
 /**
- * The INVALID line for a `dependencies.humanSignOff` that is declared but not
- * in its vocabulary — or a `dependencies` block that is not an object at all,
- * which leaves the key unreadable rather than absent.
+ * What an invalid `dependencies` declaration declares, in words.
+ *
+ * Covers both ways the key can be unusable: a `humanSignOff` outside its
+ * vocabulary, and a `dependencies` block that is not an object at all, which
+ * leaves the key unreadable rather than absent.
+ * @param {unknown} block The resolved `dependencies` value.
+ * @returns {string|null} The description, or null when absent or valid.
+ */
+function describeInvalidSignOff(block) {
+  if (!isObject(block)) {
+    return `${JSON.stringify(block)} for dependencies, which is not an object`;
+  }
+  const { humanSignOff } = block;
+  if (humanSignOff === undefined) return null;
+  if (HUMAN_SIGN_OFF_VALUES.includes(humanSignOff)) return null;
+  const accepted = HUMAN_SIGN_OFF_VALUES.map(value => `"${value}"`).join(" | ");
+  return `${JSON.stringify(humanSignOff)}, which is not one of ${accepted}`;
+}
+
+/**
+ * The INVALID line for an unusable `dependencies.humanSignOff` declaration.
  * @param {object} config Resolved config.
  * @param {string} fallback The value in force instead.
  * @param {string} owner Module that owns the setting.
  * @returns {string|null} The line, or null when the value is absent or valid.
  */
 function invalidSignOffLine(config, fallback, owner) {
-  if (!("dependencies" in config)) return null;
-  const block = config.dependencies;
-  const notOneOf = `which is not one of ${HUMAN_SIGN_OFF_VALUES.map(value => `"${value}"`).join(" | ")}`;
-  let declared;
-  if (!isObject(block)) {
-    declared = `${JSON.stringify(block)} for dependencies, which is not an object`;
-  } else if (block.humanSignOff === undefined) {
-    return null;
-  } else if (HUMAN_SIGN_OFF_VALUES.includes(block.humanSignOff)) {
-    return null;
-  } else {
-    declared = `${JSON.stringify(block.humanSignOff)}, ${notOneOf}`;
-  }
-  return `${HUMAN_SIGN_OFF_PATH}: ${fallback}   [INVALID — this project declares ${declared}; treated as ${fallback}; owner: ${owner}]`;
+  const declared =
+    "dependencies" in config
+      ? describeInvalidSignOff(config.dependencies)
+      : null;
+  return declared === null
+    ? null
+    : `${HUMAN_SIGN_OFF_PATH}: ${fallback}   [INVALID — this project declares ${declared}; treated as ${fallback}; owner: ${owner}]`;
 }
 
 /**
