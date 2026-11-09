@@ -11,11 +11,12 @@
  * consolidation check stays as it was.
  * @module tests/unit/strategies/persist-learning-post-judge-fingerprint-contract
  */
-import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import path from "node:path";
 
 import { describe, expect, it } from "vitest";
+
+import { boundedExecFileSync } from "../../helpers/io-latency-budget.js";
 
 /** Every skill root a runtime reads: the source plus each projection. */
 const SKILL_ROOTS = [
@@ -123,9 +124,11 @@ describe("the Phase 1 fingerprint command (source)", () => {
    * @returns The `FP` value
    */
   const fingerprintOf = (fields: Record<string, string>): string =>
-    execFileSync("/bin/bash", ["-c", `${command}\nprintf '%s' "$FP"`], {
+    boundedExecFileSync({
+      label: "persist-learning fingerprint command",
+      command: "/bin/bash",
+      args: ["-c", `${command}\nprintf '%s' "$FP"`],
       env: { PATH: process.env.PATH ?? "/usr/bin:/bin", ...fields },
-      encoding: "utf8",
     });
 
   it("gives two wordings of one rewritten check one key", () => {

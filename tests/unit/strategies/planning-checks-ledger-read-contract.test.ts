@@ -12,7 +12,6 @@
  * against a missing, an unreadable and a valid ledger.
  * @module tests/unit/strategies/planning-checks-ledger-read-contract
  */
-import { execFileSync } from "node:child_process";
 import {
   chmodSync,
   mkdirSync,
@@ -32,6 +31,7 @@ import {
   type LearningEntry,
 } from "../../../src/core/learnings-contract.js";
 import { renderLearningsFile } from "../../../src/core/learnings-document.js";
+import { boundedExecFileSync } from "../../helpers/io-latency-budget.js";
 
 /** Every skill root a runtime reads: the source plus each projection. */
 const SKILL_ROOTS = [
@@ -177,20 +177,19 @@ describe("the step 0 command, executed (source)", () => {
   ): { stdout: string; stderr: string } => {
     const outFile = path.join(cwd, "out.txt");
     const errFile = path.join(cwd, "err.txt");
-    execFileSync(
-      "/bin/bash",
-      ["-c", 'bun --eval "$PROGRAM" > "$OUT" 2> "$ERR"'],
-      {
-        cwd,
-        env: {
-          PATH: process.env.PATH ?? "/usr/bin:/bin",
-          HOME: process.env.HOME ?? cwd,
-          PROGRAM: code,
-          OUT: outFile,
-          ERR: errFile,
-        },
-      }
-    );
+    boundedExecFileSync({
+      label: "task-decomposition step 0 ledger read",
+      command: "/bin/bash",
+      args: ["-c", 'bun --eval "$PROGRAM" > "$OUT" 2> "$ERR"'],
+      cwd,
+      env: {
+        PATH: process.env.PATH ?? "/usr/bin:/bin",
+        HOME: process.env.HOME ?? cwd,
+        PROGRAM: code,
+        OUT: outFile,
+        ERR: errFile,
+      },
+    });
     return {
       stdout: readFileSync(outFile, "utf8"),
       stderr: readFileSync(errFile, "utf8"),
