@@ -12044,6 +12044,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/threshold-ratchet-gate-fail-closed.test.ts": true,
     "tests/integration/tracked-source-nul-bytes.test.ts": true,
     "tests/integration/usage-effectiveness-formatting.test.ts": true,
+    "tests/integration/usage-effectiveness-public-api.test.ts": true,
     "tests/integration/vitest-nodenext-local-config.test.ts": true,
     "tests/integration/vitest-unsupervised-direct-run.test.ts": true,
     "tests/integration/work-item-contract-handshake.test.ts": true,
