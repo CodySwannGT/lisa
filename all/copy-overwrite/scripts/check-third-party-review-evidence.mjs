@@ -2059,6 +2059,21 @@ const UNPUBLISHED_BECAUSE = Object.freeze({
 /** The longest summary GitHub accepts on a check run. */
 const SUMMARY_LIMIT = 65535;
 
+/** The fence a report is shown in, so its column layout survives Markdown. */
+const FENCE_OPEN = "```text\n";
+const FENCE_CLOSE = "\n```";
+
+/**
+ * A report inside a `text` fence, cut so the fenced whole fits in `limit`.
+ * @param {string} report - The human report.
+ * @param {number} [limit] - The most characters the fenced text may hold.
+ * @returns {string} The fenced report.
+ */
+export function fencedReport(report, limit = Number.POSITIVE_INFINITY) {
+  const room = limit - FENCE_OPEN.length - FENCE_CLOSE.length;
+  return `${FENCE_OPEN}${report.slice(0, Math.max(0, room))}${FENCE_CLOSE}`;
+}
+
 /**
  * A saved `--json` verdict about this commit, or null when it is not one.
  * @param {string} text - The saved report.
@@ -2135,7 +2150,7 @@ export function verdictPublication({ text, proverExit, sha, context }) {
       conclusion,
       output: {
         title: report.split("\n")[0],
-        summary: report.slice(0, SUMMARY_LIMIT),
+        summary: fencedReport(report, SUMMARY_LIMIT),
       },
     },
   };
@@ -2203,9 +2218,7 @@ function publishVerdict(opts, io, out, err) {
     return 1;
   }
   out.write(`${plan.report}\n`);
-  summarise(
-    `### ${PUBLISHED_CHECK_NAME}\n\n\`\`\`text\n${plan.report}\n\`\`\`\n\n`
-  );
+  summarise(`### ${PUBLISHED_CHECK_NAME}\n\n${fencedReport(plan.report)}\n\n`);
   if (!("body" in plan)) {
     out.write(`Nothing published on ${opts.sha}: ${plan.why}.\n`);
     summarise(`Nothing published: ${plan.why}.\n`);

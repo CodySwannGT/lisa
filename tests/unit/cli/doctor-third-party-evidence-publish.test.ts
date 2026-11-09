@@ -109,7 +109,7 @@ describe("doctor third-party evidence seed check: the published verdict", () => 
   it("reports a copy without the publish step, and the lines to add", async () => {
     // A copy seeded before the verdict was published on the head: the prover
     // step ends the job on its own exit code, and nothing reaches the head.
-    const [sha, context] = RUN_IDENTITY_LINES.map(line => line.trim());
+    const [, sha, context] = RUN_IDENTITY_LINES.map(line => line.trim());
     const preFixSteps = PRE_FIX_SEED.slice(
       PRE_FIX_SEED.indexOf(PROVER_STEP_NAME)
     )
@@ -132,4 +132,31 @@ describe("doctor third-party evidence seed check: the published verdict", () => 
       expect.arrayContaining([...EVIDENCE_STEPS_LINES])
     );
   });
+
+  it.each([
+    [
+      "a prove step that never writes its exit code",
+      '          echo "exit_code=$status" >>"$GITHUB_OUTPUT"\n',
+      "",
+    ],
+    [
+      "a publish step that never reads the exit code",
+      "          PROVER_EXIT: ${{ steps.prove.outputs.exit_code }}\n",
+      "",
+    ],
+  ])(
+    "reports a half-converted copy with %s",
+    async (_name, line, replacement) => {
+      expect(CURRENT_SEED).toContain(line);
+      await seed(CURRENT_SEED.replace(line, replacement));
+
+      const check = await checkThirdPartyEvidenceSeed(tempDir);
+
+      expect(check.status).toBe("warn");
+      expect(check.detail).toContain(NO_PUBLISH);
+      expect(check.detail.split("\n")).toEqual(
+        expect.arrayContaining([...EVIDENCE_STEPS_LINES])
+      );
+    }
+  );
 });

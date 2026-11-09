@@ -79,6 +79,9 @@ const GRANTS_EVERYTHING = new Set(["read-all", "write-all"]);
 /** Where a step's `run:` hands a saved verdict to the prover to publish. */
 const PUBLISH_FLAG = "--publish=";
 
+/** The step output the prover's exit code travels to the publish step in. */
+const EXIT_CODE_OUTPUT = "exit_code";
+
 /**
  * An event field a checkout ref could take a commit from. The repository's
  * own fields — its default branch, for one — name no pull request's code.
@@ -104,8 +107,9 @@ export interface EvidenceSeedReading {
   /** That job's token may create check runs. */
   readonly writesChecks: boolean;
   /**
-   * That job saves the prover's `--json` verdict in a step with an `id`, and a
-   * later step reads that step's outputs and runs the prover's `--publish`.
+   * That job saves the prover's `--json` verdict and writes its exit code to
+   * `$GITHUB_OUTPUT` as `exit_code` in a step with an `id`, and a later step
+   * reads `steps.<id>.outputs.exit_code` and runs the prover's `--publish`.
    */
   readonly publishesVerdict: boolean;
 }
@@ -208,16 +212,23 @@ function runsProver(job: WorkflowJob): boolean {
 }
 
 /**
- * Whether one step saves the prover's JSON verdict under an `id`.
+ * Whether one step saves the prover's JSON verdict, and its exit code, under
+ * an `id`.
+ *
+ * A step that runs the prover with `--json` but never writes the exit code to
+ * `$GITHUB_OUTPUT` is half converted: the publish step after it has no exit
+ * code to check the verdict against, and refuses every run. It does not count.
  * @param step - One parsed step
- * @returns The step's id, or null when it saves no verdict
+ * @returns The step's id, or null when it saves no verdict and exit code
  */
 function verdictCaptureId(step: Record<string, unknown>): string | null {
   const { id, run } = step;
   return typeof id === "string" &&
     typeof run === "string" &&
     run.includes(PROVER) &&
-    run.includes("--json")
+    run.includes("--json") &&
+    run.includes("GITHUB_OUTPUT") &&
+    run.includes(`${EXIT_CODE_OUTPUT}=`)
     ? id
     : null;
 }
@@ -242,7 +253,9 @@ function publishesVerdict(job: WorkflowJob): boolean {
         publish =>
           typeof publish.run === "string" &&
           publish.run.includes(PUBLISH_FLAG) &&
-          JSON.stringify(publish).includes(`steps.${id}.outputs.`)
+          JSON.stringify(publish).includes(
+            `steps.${id}.outputs.${EXIT_CODE_OUTPUT}`
+          )
       );
   });
 }

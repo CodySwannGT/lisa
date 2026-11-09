@@ -123,6 +123,15 @@ jobs:
     if: github.event_name != 'status' || github.event.state != 'pending'
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    # Job-level, so the step that proves the verdict and the step that
+    # publishes it read one commit and one reviewer.
+    env:
+      # The commit and the reviewer come from whichever event woke the
+      # run: a check run's head and name, or a status's commit and context.
+      EVIDENCE_SHA: ${{ github.event.check_run.head_sha || github.event.sha || inputs.sha }}
+      # Empty on the manual path, where nothing woke the run and every
+      # declared reviewer is evaluated.
+      EVIDENCE_CONTEXT: ${{ github.event.check_run.name || github.event.context }}
 
     steps:
       # No `ref:`. This checks out the default branch on `status` and
@@ -145,12 +154,6 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           GITHUB_REPOSITORY: ${{ github.repository }}
-          # The commit and the reviewer come from whichever event woke the
-          # run: a check run's head and name, or a status's commit and context.
-          EVIDENCE_SHA: ${{ github.event.check_run.head_sha || github.event.sha || inputs.sha }}
-          # Empty on the manual path, where nothing woke the run and every
-          # declared reviewer is evaluated.
-          EVIDENCE_CONTEXT: ${{ github.event.check_run.name || github.event.context }}
         run: |
           set -eu
           script=scripts/check-third-party-review-evidence.mjs
@@ -166,6 +169,7 @@ jobs:
             node "$script" --sha="$EVIDENCE_SHA" --json >"$verdict" || status=$?
           fi
           echo "prover=$script" >>"$GITHUB_OUTPUT"
+          echo "verdict=$verdict" >>"$GITHUB_OUTPUT"
           echo "exit_code=$status" >>"$GITHUB_OUTPUT"
 
       # Publishes the saved verdict as a check run on EVIDENCE_SHA, or nothing
@@ -177,10 +181,9 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           GITHUB_REPOSITORY: ${{ github.repository }}
-          EVIDENCE_SHA: ${{ github.event.check_run.head_sha || github.event.sha || inputs.sha }}
-          EVIDENCE_CONTEXT: ${{ github.event.check_run.name || github.event.context }}
           PROVER: ${{ steps.prove.outputs.prover }}
+          VERDICT: ${{ steps.prove.outputs.verdict }}
           PROVER_EXIT: ${{ steps.prove.outputs.exit_code }}
         run: |
           set -eu
-          node "$PROVER" --publish="$RUNNER_TEMP/third-party-review-verdict.json" --prover-exit="$PROVER_EXIT" --sha="$EVIDENCE_SHA" --context="${EVIDENCE_CONTEXT:-}"
+          node "$PROVER" --publish="$VERDICT" --prover-exit="$PROVER_EXIT" --sha="$EVIDENCE_SHA" --context="${EVIDENCE_CONTEXT:-}"

@@ -146,15 +146,11 @@ describe("doctor third-party evidence seed check", () => {
     // a printed line fails here even though the doctor would accept it.
     const seedDocument = loadYaml(CURRENT_SEED) as {
       concurrency: { group: string };
-      jobs: {
-        evidence: { steps: Array<{ env?: Record<string, string> }> };
-      };
+      jobs: { evidence: { env: Record<string, string> } };
     };
-    const env = seedDocument.jobs.evidence.steps.find(
-      step => step.env?.EVIDENCE_SHA !== undefined
-    )?.env;
+    const env = seedDocument.jobs.evidence.env;
     const printed = Object.fromEntries(
-      [...RUN_IDENTITY_LINES, CONCURRENCY_GROUP_LINE].map(line => {
+      [...RUN_IDENTITY_LINES.slice(1), CONCURRENCY_GROUP_LINE].map(line => {
         const [key, ...value] = line.trim().split(": ");
         return [key, value.join(": ")];
       })
@@ -168,8 +164,8 @@ describe("doctor third-party evidence seed check", () => {
   it("prints lines that make the pre-fix seed read as current", async () => {
     // The remedy is checked by applying it, not by reading it: every printed
     // line goes where the check says, and the result must pass.
-    // The printed steps carry the run's identity, so they stand in for the
-    // printed `env:` values here.
+    // The printed `env:` goes on the job, beside `timeout-minutes:`, where
+    // the printed steps read it.
     const group = CONCURRENCY_GROUP_LINE.trim();
     const repaired = applyRewrites(
       PRE_FIX_SEED,
@@ -182,6 +178,10 @@ describe("doctor third-party evidence seed check", () => {
         },
         { anchor: /^ *ref: .*\n/mu, replacement: "" },
         REPLACE_PROVER_STEP,
+        {
+          anchor: "    timeout-minutes: 5\n",
+          replacement: `    timeout-minutes: 5\n${RUN_IDENTITY_LINES.join("\n")}\n`,
+        },
       ],
       "the pre-fix seed, under the whole printed remedy"
     );
@@ -193,7 +193,7 @@ describe("doctor third-party evidence seed check", () => {
   it("still warns a copy that applied everything but the concurrency group", async () => {
     // Under the old key every check run resolves to one group, so any app's
     // run anywhere cancels the reviewer's verdict while it is being judged.
-    const [sha, context] = RUN_IDENTITY_LINES.map(line => line.trim());
+    const [, sha, context] = RUN_IDENTITY_LINES.map(line => line.trim());
     await seed(
       applyRewrites(
         PRE_FIX_SEED,

@@ -15,6 +15,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   EVIDENCE_OUTCOMES,
+  fencedReport,
   main,
 } from "../../../all/copy-overwrite/scripts/check-third-party-review-evidence.mjs";
 
@@ -135,16 +136,47 @@ describe("--publish", () => {
     }
   );
 
-  it("titles the check run with the report's first line and summarises it with the report", () => {
+  it("titles the check run with the report's first line and summarises it with the fenced report", () => {
     const run = publish({ verdict: saved(EVIDENCE_OUTCOMES.substituted) });
+    const fenced = `\`\`\`text\nSUBSTITUTED at ${HEAD}\n\n\`\`\``;
 
     expect(run.posted[0]?.body).toMatchObject({
-      output: {
-        title: `SUBSTITUTED at ${HEAD}`,
-        summary: `SUBSTITUTED at ${HEAD}\n`,
-      },
+      output: { title: `SUBSTITUTED at ${HEAD}`, summary: fenced },
     });
-    expect(run.summary).toContain(`SUBSTITUTED at ${HEAD}`);
+    expect(run.summary).toContain(fenced);
+  });
+
+  it("keeps a long report's fence closed inside GitHub's summary limit", () => {
+    const verdict = JSON.stringify({
+      outcome: EVIDENCE_OUTCOMES.unsatisfied,
+      sha: HEAD,
+      readings: [
+        {
+          context: CONTEXT,
+          reviewed: false,
+          reading: "unrecognised",
+          observed: "x".repeat(70_000),
+          state: "success",
+        },
+      ],
+    });
+
+    const summary = String(
+      (
+        publish({ verdict, proverExit: "1" }).posted[0]?.body as {
+          output: { summary: string };
+        }
+      ).output.summary
+    );
+
+    expect(summary.length).toBeLessThanOrEqual(65_535);
+    expect(summary.startsWith(`\`\`\`text\nUNSATISFIED at ${HEAD}`)).toBe(true);
+    expect(summary.endsWith("\n```")).toBe(true);
+  });
+
+  it("fences a report whole when no limit applies, and cuts only the report under one", () => {
+    expect(fencedReport("a\nb")).toBe("```text\na\nb\n```");
+    expect(fencedReport("abcdef", 15)).toBe("```text\nabc\n```");
   });
 
   it("names the manual path's check run without a reviewer", () => {

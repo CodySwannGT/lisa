@@ -32,10 +32,21 @@ const CURRENT_SEED = fs.readFileSync(
 const STATUS_ONLY = "on:\n  status:";
 const CHECKS_READ = "permissions:\n  contents: read\n  checks: read";
 
-/** A job that saves the prover's verdict under the id `prove`. */
+/** A step that saves the prover's verdict, and its exit code, under the id `prove`. */
 const CAPTURE = `      - id: prove
-        run: node scripts/check-third-party-review-evidence.mjs --json
+        run: |
+          node scripts/check-third-party-review-evidence.mjs --json >"$V" || status=$?
+          echo "exit_code=$status" >>"$GITHUB_OUTPUT"
 `;
+
+/** The same step half converted: it saves the verdict and drops the exit code. */
+const CAPTURE_WITHOUT_EXIT = `      - id: prove
+        run: node scripts/check-third-party-review-evidence.mjs --json >"$V"
+`;
+
+/** The env a publish step reads the saved exit code from. */
+const READS_EXIT =
+  "      - env:\n          PROVER_EXIT: ${{ steps.prove.outputs.exit_code }}\n";
 
 /** A step that publishes a saved verdict. */
 const PUBLISH = `        run: node "$PROVER" --publish="$VERDICT"
@@ -70,8 +81,18 @@ describe("readEvidenceSeed — the published verdict", () => {
   it.each([
     [
       "a captured verdict and a step that publishes it",
-      `${CAPTURE}      - env:\n          PROVER_EXIT: \${{ steps.prove.outputs.exit_code }}\n${PUBLISH}`,
+      `${CAPTURE}${READS_EXIT}${PUBLISH}`,
       true,
+    ],
+    [
+      "a captured verdict whose exit code never reaches $GITHUB_OUTPUT",
+      `${CAPTURE_WITHOUT_EXIT}${READS_EXIT}${PUBLISH}`,
+      false,
+    ],
+    [
+      "a publish step that reads the step's outputs but not its exit code",
+      `${CAPTURE}      - env:\n          VERDICT: \${{ steps.prove.outputs.verdict }}\n${PUBLISH}`,
+      false,
     ],
     [
       "the prover alone, whose exit code is the verdict",

@@ -95,8 +95,9 @@ export { EVIDENCE_STEPS_LINES };
 
 /** The values that carry the run's commit and reviewer to the prover. */
 export const RUN_IDENTITY_LINES = [
-  `  EVIDENCE_SHA: ${SHA_EXPRESSION}`,
-  `  EVIDENCE_CONTEXT: ${CONTEXT_EXPRESSION}`,
+  "    env:",
+  `      EVIDENCE_SHA: ${SHA_EXPRESSION}`,
+  `      EVIDENCE_CONTEXT: ${CONTEXT_EXPRESSION}`,
 ] as const;
 
 /** The concurrency key that keeps one run from cancelling another's verdict. */
@@ -226,10 +227,12 @@ function remedyOf(reading: EvidenceSeedReading): string[] {
       ? []
       : ["Add under `on:`:", ...CHECK_RUN_TRIGGER_LINES]),
     ...permissionRemedyOf(reading),
-    ...(reading.readsRunIdentity
+    // The shipped steps read the run's identity from the job, so a copy
+    // taking them needs these values there even if its old step had them.
+    ...(reading.readsRunIdentity && reading.publishesVerdict
       ? []
       : [
-          "Set these values in the prover step's `env:`:",
+          "Set these values in the evidence job's own `env:` (beside `runs-on:`), where both the prover and publish steps read them, and remove them from any step's `env:`:",
           ...RUN_IDENTITY_LINES,
         ]),
     ...(reading.keysConcurrencyPerRun

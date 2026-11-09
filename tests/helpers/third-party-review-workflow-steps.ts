@@ -85,6 +85,8 @@ interface JobPlace {
   readonly bindir: string;
   /** The suite's own environment, which every step inherits. */
   readonly env: NodeJS.ProcessEnv;
+  /** The job's own `env:`, which every step reads and a step's own overrides. */
+  readonly jobEnv: Readonly<Record<string, string>>;
 }
 
 /**
@@ -138,7 +140,7 @@ function runStep(
   const script = path.join(place.folder, `step-${step.id ?? "unnamed"}.sh`);
   const output = path.join(place.folder, OUTPUT);
   const stepEnv = Object.fromEntries(
-    Object.entries(step.env).map(([key, value]) => [
+    Object.entries({ ...place.jobEnv, ...step.env }).map(([key, value]) => [
       key,
       githubTemplate(String(value), event),
     ])
@@ -192,7 +194,12 @@ export function executeSteps(
   try {
     prepareFolder(folder, proverAt);
     const github = installControlledGitHub(folder, observations);
-    const place = { folder, bindir: github.bindir, env };
+    const place = {
+      folder,
+      bindir: github.bindir,
+      env,
+      jobEnv: workflow.jobs.evidence.env,
+    };
     const prover = proverStep(workflow);
     const proved = runStep(place, prover, event);
     const steps = { [String(prover.id)]: { outputs: proved.outputs } };

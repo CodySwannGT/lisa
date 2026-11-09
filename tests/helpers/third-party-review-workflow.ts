@@ -41,6 +41,7 @@ export interface EvidenceWorkflow {
   readonly jobs: {
     readonly evidence: {
       readonly if: string;
+      readonly env: Record<string, string>;
       readonly steps: readonly WorkflowStep[];
     };
   };

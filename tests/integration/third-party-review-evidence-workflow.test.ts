@@ -52,7 +52,7 @@ const ROOT = path.resolve(import.meta.dirname, "../..");
  * @returns The resolved values
  */
 function resolve(workflow: EvidenceWorkflow, event: Record<string, unknown>) {
-  const { env } = proverStep(workflow);
+  const { env } = workflow.jobs.evidence;
   return {
     runs: githubCondition(workflow.jobs.evidence.if, event),
     sha: githubTemplate(String(env.EVIDENCE_SHA), event),
@@ -86,11 +86,24 @@ describe.each(COPIES)("%s", copy => {
 
     expect(prover.id).toBe("prove");
     expect(prover.run).toContain("--json");
-    expect(publish.env.EVIDENCE_SHA).toBe(prover.env.EVIDENCE_SHA);
-    expect(publish.env.EVIDENCE_CONTEXT).toBe(prover.env.EVIDENCE_CONTEXT);
-    expect(publish.env.PROVER_EXIT).toBe(
-      "${{ steps.prove.outputs.exit_code }}"
-    );
+    // One commit and one reviewer for both steps: set on the job, so no
+    // step can drift from the other.
+    expect(Object.keys(workflow.jobs.evidence.env)).toEqual([
+      "EVIDENCE_SHA",
+      "EVIDENCE_CONTEXT",
+    ]);
+    for (const step of [prover, publish]) {
+      expect(step.env).not.toHaveProperty("EVIDENCE_SHA");
+      expect(step.env).not.toHaveProperty("EVIDENCE_CONTEXT");
+    }
+    // The verdict file travels as an output, and no expression is spliced
+    // into a script.
+    expect(publish.env).toMatchObject({
+      VERDICT: "${{ steps.prove.outputs.verdict }}",
+      PROVER_EXIT: "${{ steps.prove.outputs.exit_code }}",
+    });
+    expect(publish.run).not.toContain("RUNNER_TEMP");
+    expect(`${prover.run}${publish.run}`).not.toContain("${{");
   });
 
   it("reads as current to the check lisa doctor runs on a seeded copy", () => {
