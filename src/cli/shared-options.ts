@@ -11,6 +11,13 @@ import { StrategyRegistry } from "../strategies/index.js";
 import { BackupService, DryRunBackupService } from "../transaction/index.js";
 import { createPrompter } from "./prompts.js";
 
+/** Bootstrap guidance for both the root and apply-flow command help. */
+export const APPLY_BOOTSTRAP_HELP =
+  "\nFor an intentional non-interactive apply in CI or a shell without a TTY, " +
+  "set LISA_BOOTSTRAP=1 (for example: LISA_BOOTSTRAP=1 lisa apply --yes .). " +
+  "During installation, template writes still require --full-apply. " +
+  "--skip-git-check waives only the clean-tree check, not these protections.";
+
 /**
  * CLI options parsed from command line arguments. Shared by the `apply`
  * subcommand and the backwards-compatible positional default.
@@ -120,13 +127,7 @@ export function addSharedOptions(command: Command): Command {
       `Target harness for emitted artifacts: ${ACCEPTED_HARNESS_INPUTS.join(" | ")} (default: claude, or value from .lisa.config.json)`,
       parseHarnessArg
     )
-    .addHelpText(
-      "after",
-      "\nFor an intentional non-interactive apply in CI or a shell without a TTY, " +
-        "set LISA_BOOTSTRAP=1 (for example: LISA_BOOTSTRAP=1 lisa apply --yes .). " +
-        "During installation, template writes still require --full-apply. " +
-        "--skip-git-check waives only the clean-tree check, not these protections."
-    );
+    .addHelpText("after", APPLY_BOOTSTRAP_HELP);
 }
 
 /**
