@@ -202,12 +202,12 @@ export class CopyContentsStrategy implements ICopyStrategy {
       };
     }
 
-    // Same reasoning as copy-overwrite: a non-interactive apply leaves the file
-    // alone, but must say so. `stale`, never `skipped`. A scoped
-    // `--refresh-templates` is the operator's explicit consent to update this
-    // path, including when a dirty checkout requires `--skip-git-check`.
+    // Consent comes from the prompter, not the dirty-tree waiver (#4759).
+    // A truly unattended apply leaves a changed block stale unless explicitly
+    // approved by scope. With --yes, merge the managed block and preserve host
+    // content outside it regardless of whether the git check was waived.
     if (
-      context.config.skipGitCheck &&
+      context.unattended === true &&
       !mayRefreshTemplate(realRelativePath, context.config.refreshTemplates)
     ) {
       return {

@@ -119,6 +119,13 @@ export function addSharedOptions(command: Command): Command {
       "--harness <harness>",
       `Target harness for emitted artifacts: ${ACCEPTED_HARNESS_INPUTS.join(" | ")} (default: claude, or value from .lisa.config.json)`,
       parseHarnessArg
+    )
+    .addHelpText(
+      "after",
+      "\nFor an intentional non-interactive apply in CI or a shell without a TTY, " +
+        "set LISA_BOOTSTRAP=1 (for example: LISA_BOOTSTRAP=1 lisa apply --yes .). " +
+        "During installation, template writes still require --full-apply. " +
+        "--skip-git-check waives only the clean-tree check, not these protections."
     );
 }
 

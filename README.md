@@ -281,10 +281,21 @@ A successful apply writes `.lisa/apply-receipt.json`. Doctor reports a missing
 or older receipt and incomplete reconciliation from an earlier postinstall-safe
 apply. Dependency installation alone does not mark templates current.
 
-An unattended apply never replaces a managed file your
-project may have customised — that is the point of the mode — so a release that
-changes `eslint.config.ts` leaves yours where it is and names it in the apply
-output. Apply records
+For an intentional apply in CI or a shell without a terminal, use
+`LISA_BOOTSTRAP=1 lisa apply --yes .`. Add `--skip-git-check` when the working tree
+is dirty: that flag waives only the clean-tree check and does not change consent
+or installation protections. Root and `apply` help document the bootstrap opt-in.
+
+Templates whose packaged header says `IS replaced on each` receive updates even
+without a terminal. Provably older Lisa-owned artifacts also refresh; the existing
+protection for unknown or newer host copies remains. With `--yes`, copy-contents
+files such as hooks receive the current managed block while retaining host bytes
+outside it. Without `--yes`, truly unattended runs leave changed copy-contents
+files stale unless a scoped refresh approves them.
+
+Shared configuration your project may have customised, such as `knip.json` and
+`audit.ignore.config.json`, stays intact during unattended and `--yes` applies
+unless explicitly approved for refresh. Apply records
 every such path in the receipt, and doctor names them back with the remedy:
 `lisa apply . --refresh-templates=<path>`, **one path at a time**. Do not reach
 for the bare `--refresh-templates` — it is repo-wide and reverts every
