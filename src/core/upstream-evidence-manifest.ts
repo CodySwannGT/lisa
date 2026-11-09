@@ -1685,7 +1685,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-secrets-access/scripts/tools-from-notes.mjs":
       "360f740cac081151491428043b04fec2f5db6f3ba36394f7378af312396d53ca",
     "plugins/src/base/skills/lisa-secrets-access/scripts/validate-config.mjs":
-      "6def1de3de52d43244e3bfd04f505e6411f9ca3c307e43be0131f3590863ffd4",
+      "3885cb09282d5c9e4c2e4d2157fd0be5272f4471a327e9d9cbc78ea51d3864cc",
     "plugins/src/base/skills/lisa-security-review/SKILL.md":
       "5a980eaf5efc4fcce66e75521ec5b1eda143a5b0d36e7157234a705dac94e3f5",
     "plugins/src/base/skills/lisa-security-zap-scan/SKILL.md":
@@ -3833,7 +3833,9 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "evidence/4711/cli-live-head-sha-dry-run-pr4710.txt": true,
     "evidence/4711/cli-reported-failure-still-redispatches.txt": true,
     "evidence/4711/test-run-log-redispatch.txt": true,
+    "evidence/4719/token-scan-green-after-fix.txt": true,
     "evidence/4719/token-scan-red-before-fix.txt": true,
+    "evidence/4719/token-scan-repro-after-fix.txt": true,
     "evidence/CodySwannGT-lisa-4605/falsification.txt": true,
     "evidence/CodySwannGT-lisa-4605/rollback-dry-run-commands.txt": true,
     "evidence/CodySwannGT-lisa-4605/rollback-missing-credentials-refusal.txt": true,

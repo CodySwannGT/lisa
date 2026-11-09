@@ -1,0 +1,10 @@
+
+ RUN  v4.1.11 /Users/codysai/workspace/lisa/.claude/worktrees/4719-jira-accountid-token-scan
+
+lisa scratch: no supervised lease in the environment, so this run is self-supervised. Fixture directories are still bounded to a run root this process owns and removed on exit; what is missing is the detached reaper that reclaims the root after a SIGKILL, which the next run's startup sweep recovers instead. Run through `lisa-test-run --profile <profile> --adapter vitest -- vitest ...` for a supervised run.
+
+ Test Files  1 passed (1)
+      Tests  25 passed (25)
+   Start at  00:47:59
+   Duration  357ms (transform 95ms, setup 142ms, import 36ms, tests 7ms, environment 0ms)
+
