@@ -1,6 +1,7 @@
 /**
  * The two `PreToolUse` refusal scripts must resolve their gate before they
- * refuse anything.
+ * refuse anything. (The migration built-in now warns instead of refusing; a
+ * declared `migration-provenance` task still refuses when it fails.)
  *
  * #2957 wired the façade into the five `PostToolUse` on-edit scripts and left
  * these two out on purpose: they have no `cd "$CLAUDE_PROJECT_DIR"` — they act
@@ -115,7 +116,7 @@ describe("the pre-tool refusal scripts resolve their gate before refusing", () =
   });
 
   describe("an undeclared project is still guarded by the built-in", () => {
-    it.each(SUBJECTS)(
+    it.each(SUBJECTS.filter(subject => !subject.builtinWarns))(
       "$script refuses the write it exists to stop",
       async subject => {
         // NEGATIVE CONTROL, the other direction. A façade that stood down
@@ -130,6 +131,30 @@ describe("the pre-tool refusal scripts resolve their gate before refusing", () =
 
         expect(trace).toBe("");
         expect(status).toBe(REFUSED);
+      }
+    );
+
+    it.each(SUBJECTS.filter(subject => subject.builtinWarns))(
+      "$script permits the write it judges, with the entity-first warning",
+      async subject => {
+        // Operator decision 2026-11-08: a hand-written migration is allowed,
+        // with a warning that points at the entity when the change fits one.
+        // The empty trace is still the control that the built-in, not a
+        // declared task, made this call.
+        await harness.undeclare();
+
+        const { status, trace, stdout, stderr } = await harness.run(
+          await harness.installShipped(subject),
+          subject.refuses
+        );
+
+        expect(trace).toBe("");
+        expect(status).toBe(PERMITTED);
+        const warning = stdout + stderr;
+        expect(warning).toContain("source of truth");
+        expect(warning).toContain("bun run migration:generate --name=<Name>");
+        expect(warning).toContain("writing the migration directly is fine");
+        expect(warning).toContain("class comment");
       }
     );
 

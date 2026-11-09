@@ -237,7 +237,7 @@ genuine behavior is required. Verified-by-run on opencode 1.16.2 (free model,
 | `inject-rules` | Not needed — rules ship via the canonical `AGENTS.md`, which OpenCode reads natively. |
 | `install-pkgs`, `setup-jira-cli` | `.opencode/plugin/lisa-session-bootstrap.ts` (universal) — the plugin factory runs once at session start, the SessionStart equivalent. Fully fail-open. |
 | `block-suppress-directives` (ts) | `.opencode/plugin/lisa-block-suppress-directives.ts` — `tool.execute.before` throws to block the edit/write. |
-| `block-migration-edits` (nestjs) | `.opencode/plugin/lisa-block-migration-edits.ts` — `tool.execute.before` throws. |
+| `block-migration-edits` (nestjs) | `.opencode/plugin/lisa-block-migration-edits.ts` — `tool.execute.after` appends an entity-first warning to the tool output; never refuses (2026-11-08 operator decision; the output mutation is not yet verified-by-run). |
 | `lint-on-edit` (ts) | `.opencode/plugin/lisa-lint-on-edit.ts` — `tool.execute.after` runs ESLint `--fix`, throws on remaining problems. |
 | `sg-scan-on-edit` (ts/rails) | `.opencode/plugin/lisa-sg-scan-on-edit.ts` — `tool.execute.after` runs `ast-grep scan`. |
 | `rubocop-on-edit` (rails) | `.opencode/plugin/lisa-rubocop-on-edit.ts` — `tool.execute.after` runs RuboCop `-a`. |

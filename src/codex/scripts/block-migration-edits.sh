@@ -1,80 +1,63 @@
 #!/usr/bin/env bash
 # Lisa-managed Codex hook script (PreToolUse Edit|Write|apply_patch).
-# This scopes direct edit tools; it does not verify approval or establish the
-# provenance of files written through other tools.
-# Blocks edits to TypeORM migration files. Use `bun run migration:generate`
-# to regenerate from entity diffs instead — hand-written migrations drift
-# from entity metadata and break the schema/migration contract.
+# WARNS on edits to TypeORM migration files and lets them through. The name is
+# historical; renaming it would orphan installed copies and declarations.
 #
-# Codex blocks the tool call when the script exits non-zero with a deny message
-# on stderr (exit 2). The shared extractor resolves every target path from the
-# tool envelope — including multi-file apply_patch patches — so an edit can't
-# slip a migration change past this guard.
+# WHY A WARNING AND NOT A REFUSAL (operator decision, 2026-11-08). The risk a
+# hand-written migration carries is drift from the entity definitions, and it
+# only exists when the change COULD have been expressed in an entity. View
+# options, grants, functions, policies, backfills and seed data cannot be, and
+# refusing them blocked legitimate work. Same decision as the Claude copy.
 #
-# WHAT A REFUSAL HOOK OWES THAT AN ON-EDIT HOOK DOES NOT. The PostToolUse
-# scripts on this surface may bail out when they cannot run: the write has
-# already happened and a skipped lint is a missed report. This one decides
-# whether the write happens at all, so a bail-out is a PERMIT. Every exit below
-# is out of scope, judged by the declared task, or judged by the built-in.
-# "Could not judge" refuses.
+# THE WARNING IS NOT KNOWN TO REACH THE MODEL ON THIS SURFACE. Codex honours
+# `hookSpecificOutput.additionalContext` on SessionStart, UserPromptSubmit and
+# PostToolUse, but it was measured NOT to on PreToolUse, and stderr on exit 0
+# is not documented as model-visible either. So the warning goes to stderr,
+# where it is at least in the hook transcript, and the gap is recorded in the
+# nestjs-rules skill rather than papered over with an output shape Codex was
+# never seen to read.
+#
+# The shared extractor resolves every target path from the tool envelope —
+# including multi-file apply_patch patches — so each migration touched is
+# named, and a declared gate judges each one.
 set -uo pipefail
 
 JSON_INPUT="$(cat)"
 
 # Project rule: never parse JSON with grep/sed/cut/awk — use jq.
 #
-# FAIL CLOSED, reversed from the `exit 0` this shipped with. Without jq the
-# extractor returns an EMPTY path list, the loop below runs zero times, and the
-# script exits 0 — a guard that inspected nothing and reported success. Unscoped
-# for the same reason: with no parse there is no path to scope the refusal to.
+# Without jq the extractor cannot resolve any path. This used to fail closed,
+# which was right while the in-scope answer was "refuse": a bail-out permitted
+# exactly the edit the hook existed to stop. The answer is now "permit with a
+# warning", so permitting loses only the warning, while refusing would block
+# every write because a warning could not be delivered.
 if ! command -v jq >/dev/null 2>&1; then
-  cat >&2 <<'MSG'
-⚠ block-migration-edits: refusing this write — it cannot be inspected.
-
-`jq` is not installed, so the tool payload cannot be parsed and this hook cannot
-tell whether the write targets a TypeORM migration. It refuses rather than
-permitting an edit it was unable to check.
-
-Install jq (`brew install jq`, `apt-get install jq`), or declare the
-`migration-provenance` gate at `pre-tool` in .lisa.config.json to have your own
-check decide instead.
-MSG
-  exit 2
+  echo "block-migration-edits: jq is not installed, so this write was not inspected and is permitted without the migration warning, and a declared migration-provenance gate was NOT consulted. Install jq (brew install jq / apt-get install jq) to restore both." >&2
+  exit 0
 fi
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=/dev/null
 . "${SCRIPT_DIR}/_extract-edit-paths.sh"
 
-# FAIL CLOSED on a missing extractor, for the same reason as jq and with the
-# same consequence: an absent `lisa_extract_edit_paths` makes every loop below
-# iterate over nothing, so the hook waves the write through having examined no
-# path at all. A sourced file that is not there fails quietly under
-# `set -uo pipefail` — there is no `-e` — so nothing else would notice.
+# A missing extractor means no path can be resolved: permit, for the same
+# reason as a missing jq, and say so — a sourced file that is absent fails
+# quietly under `set -uo pipefail` (there is no `-e`), so nothing else would.
 if ! declare -F lisa_extract_edit_paths >/dev/null 2>&1; then
-  cat >&2 <<'MSG'
-⚠ block-migration-edits: refusing this write — it cannot be inspected.
-
-`_extract-edit-paths.sh` is missing beside this hook, so the paths this tool
-call touches cannot be resolved. It refuses rather than permitting an edit it
-was unable to check. Re-run `lisa apply` to reinstall the hook helpers.
-MSG
-  exit 2
+  echo "block-migration-edits: _extract-edit-paths.sh is missing beside this hook, so this write was not inspected. Re-run \`lisa apply\` to reinstall the hook helpers." >&2
+  exit 0
 fi
 
 # ---------------------------------------------------------------------------
-# Gate façade. The project's declaration decides BEFORE the built-in refuses.
-# Full contract, and why an undeclared project sees no change at all, in
-# lisa-edit-gate.sh beside this file.
+# Gate façade. A project that declares `migration-provenance` at `pre-tool`
+# decides these edits itself: the declared task's non-zero exit refuses the
+# write. Full contract in lisa-edit-gate.sh beside this file.
 #
 # Scoped to the migration paths this hook acts on, the same way the Claude copy
 # is: outside them the hook does nothing, so there is nothing for a declaration
 # to take over. Codex hooks run with the project as the working directory, so
 # there is no `cd` here — the Claude copy needs one because a PreToolUse hook
 # there establishes none.
-#
-# A project may supply its own `migration-provenance` check for these edits.
-# The built-in only refuses the scoped Edit/Write/apply_patch calls.
 # ---------------------------------------------------------------------------
 # shellcheck source=/dev/null
 . "${SCRIPT_DIR}/lisa-edit-gate.sh"
@@ -94,27 +77,19 @@ LISA_GATE_PATHS
   exit "$LISA_GATE_STATUS"
 fi
 
-# Walk every candidate path; deny on the first migration match.
+# Walk every candidate path; warn for each migration touched, never refuse.
 while IFS= read -r FILE_PATH; do
   [ -n "${FILE_PATH}" ] || continue
   case "${FILE_PATH}" in
     */migrations/*[0-9]*-*.ts)
       cat <<EOF >&2
-⚠ block-migration-edits: refusing to modify ${FILE_PATH}.
+block-migration-edits: you are writing a TypeORM migration directly (${FILE_PATH}). This is allowed, but check first:
 
-TypeORM migrations must be regenerated from entity diffs:
-  bun run migration:generate -- src/database/migrations/<descriptive-name>
-
-Out-of-band migrations (backfills, seed data, maintenance) cannot always
-come from entity diffs. A project that supports these edits can declare a
-\`migration-provenance\` check at \`pre-tool\` in .lisa.config.json. The hook
-runs that check and uses its result to permit or refuse the edit.
-
-Document the migration's rationale and verification in its class comment.
-This default hook cannot verify human approval. It inspects Edit, Write and
-apply_patch, not Bash writes. Do not switch tools to evade its refusal.
+- Entity files are the source of truth for the database schema.
+- If this change can be expressed in an entity (columns, indexes, relations, constraints), edit the entity instead and run: bun run migration:generate --name=<Name>
+- If it can't (view options, grants, functions, policies, backfills, seed data), writing the migration directly is fine.
+- If you write it by hand, document why in the migration's class comment (a generated migration needs no such note).
 EOF
-      exit 2
       ;;
   esac
 done <<EOF

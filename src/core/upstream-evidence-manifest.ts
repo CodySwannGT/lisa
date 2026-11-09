@@ -285,7 +285,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-floor-collisions.mjs":
       "345832c63c85df32acbed9b183b06239fc10ccb1491bd11607b5840ac1d18573",
     "all/copy-overwrite/scripts/lisa-gates.mjs":
-      "266abcb9f3add26efe0cee541503fb2bab652ebba65b9dccae2ff7826eee459b",
+      "cc745e8389911fddf04c983a33a728bdb338625a5c24d78a24a3e0285d36a4a8",
     "all/copy-overwrite/scripts/lisa-history-secrets.mjs":
       "815fd6403aed6194d30939b59dc5ce894f7122a9da598acee4cd529a1b520de3",
     "all/copy-overwrite/scripts/lisa-hooks/block-blind-automerge.sh":
@@ -343,7 +343,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/npm-updater-gate.Dockerfile":
       "850a4ee809d49e3d9da6bdd674cb43e4f5a6dcfa0aa73116b1a43caeed42748c",
     "all/copy-overwrite/scripts/npm-updater-helper-graph.json":
-      "b4d6534ddcaaf0693f23ff8ca20d63ef8a3f8f537a266987cd9ac901d260c7d6",
+      "e6aa56958b9f2f0c1e52019cc7e22822df59f126953c1c7f395246e3c66f3c82",
     "all/copy-overwrite/scripts/review-evidence-event.mjs":
       "1c5d510bc66f8ba23b6f046246f41182c17946a50126fb88e371d2aec9dfd6b2",
     "all/copy-overwrite/scripts/schemas/lisa-command-envelope.v1.schema.json":
@@ -2203,7 +2203,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/harper-fabric/skills/harper-testing/SKILL.md":
       "5a3c91d80ea2ac97df5b085114e2111a2c749ff0ad259a291cf16cb2f96258b8",
     "plugins/src/nestjs/hooks/block-migration-edits.sh":
-      "24c6b704ad821576234c4e1cfa7b9a5fee40dca360035d7561ba150444e37c01",
+      "98cf09e93e6d798762f1d3fdda75276af19745015fac29790ccc1acaa620620d",
     "plugins/src/nestjs/hooks/lisa-edit-gate.sh":
       "0a8d9a043f04b15b71bb500ff03cf1e67e4ac292181a5d596ddf078f301e671f",
     "plugins/src/nestjs/skills/nestjs-graphql/SKILL.md":
@@ -2219,7 +2219,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/nestjs/skills/nestjs-graphql/references/types-scalars.md":
       "28c10e5c297928438c3ef72407c20e587cb9bb15173d9aa3fd4e661822def311",
     "plugins/src/nestjs/skills/nestjs-rules/SKILL.md":
-      "0539c464cc0ce04340bb8a5b716a3b3919cc5adaa22ad3776d1e8400d8a63313",
+      "a0ebd8465670d0aaa457f741b83ecc4b79ce9f73a33a5a756e8d4f9b2256d0d3",
     "plugins/src/nestjs/skills/typeorm-patterns/SKILL.md":
       "319707f8e61845e84a72d478ecb7a6e327f9e9a8b3822de7746d17a418afa34f",
     "plugins/src/nestjs/skills/typeorm-patterns/references/configuration-patterns.md":
@@ -2737,7 +2737,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/generate-agy-plugin-artifacts.mjs":
       "19bee3087ff1fedc79550f75cb021dc59b5b4466daa6261adb788ef13bb8c2b6",
     "scripts/generate-codex-plugin-artifacts.mjs":
-      "3216e23962884cf2610e65ae95a6b6b28cc23b7bd93d0254aebbcc0f6c7ee827",
+      "339dc57d6c947ffb91c6d9c08bb9ea28c3f9b44687a330a035cb4ea2d69de574",
     "scripts/generate-copilot-plugin-artifacts.mjs":
       "8589c8b6e7adff3aefd20463d78cb3caa4d23489fffc07fbb9d185cdc63871fa",
     "scripts/generate-cursor-plugin-artifacts.mjs":
@@ -3133,7 +3133,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "ui/README.md":
       "7a67d7bdd49ff214ca204cc4e54ba70c37aa05fd6cc1e314fd9441a53eafc752",
     "ui/index.html":
-      "c10fc924b9dcdaa6fd786776f901f9cab09c208a26fa38c62bb2be14ad53cd9d",
+      "4b3ec970987ad1abdd50bfac21c00c3525557618cabcfe6d461d81a80010f345",
   });
 
 /** Exact paths tracked by the public Lisa repository at generation time. */
@@ -12638,6 +12638,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/hooks/block-managed-file-edits-file-reach.test.ts": true,
     "tests/unit/hooks/block-managed-file-edits-redirects.test.ts": true,
     "tests/unit/hooks/block-managed-file-edits.test.ts": true,
+    "tests/unit/hooks/block-migration-edits.test.ts": true,
     "tests/unit/hooks/block-no-verify-command-config.test.ts": true,
     "tests/unit/hooks/block-no-verify-directory-boundaries.test.ts": true,
     "tests/unit/hooks/block-no-verify-directory-flow.test.ts": true,
@@ -12799,6 +12800,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/opencode/block-direct-issue-create-noexec-parity.test.ts": true,
     "tests/unit/opencode/block-direct-issue-create-structured-parity.test.ts": true,
     "tests/unit/opencode/block-managed-file-edits-plugin.test.ts": true,
+    "tests/unit/opencode/block-migration-edits-plugin.test.ts": true,
     "tests/unit/opencode/block-no-verify-emit.test.ts": true,
     "tests/unit/opencode/block-no-verify-plugin.test.ts": true,
     "tests/unit/opencode/command-installer.test.ts": true,
@@ -12984,6 +12986,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/lisa-gates-fixtures.ts": true,
     "tests/unit/scripts/lisa-gates-hardcoded-invocations.test.ts": true,
     "tests/unit/scripts/lisa-gates-identity.test.ts": true,
+    "tests/unit/scripts/lisa-gates-migration-provenance.test.ts": true,
     "tests/unit/scripts/lisa-gates-moment-executors.test.ts": true,
     "tests/unit/scripts/lisa-gates-moment-legs.test.ts": true,
     "tests/unit/scripts/lisa-gates-moment-validation.test.ts": true,

@@ -45,7 +45,7 @@ The `--no-spec` flag is used because this project follows TDD (Test-Driven Devel
 
 ### Entity Files Are the Source of Truth
 
-In this project, **entity files (`src/database/entities/*.ts`) are the single source of truth for the database schema**. Migrations are a derived artifact — TypeORM diffs the entity metadata against the current database and emits the migration for you. The workflow is always:
+In this project, **entity files (`src/database/entities/*.ts`) are the single source of truth for the database schema**. Migrations are a derived artifact — TypeORM diffs the entity metadata against the current database and emits the migration for you. For any change an entity can express, the workflow is:
 
 1. Edit the entity file to express the desired schema.
 2. Run `bun run migration:generate --name=<DescriptiveName>` to produce the migration from the diff.
@@ -59,23 +59,30 @@ Use `migration:generate` from `package.json` for changes represented by entity m
 bun run migration:generate --name=<DescriptiveName>
 ```
 
-### Out-of-Band Migrations (Seed Data, Backfills)
+### Hand-Written Migrations
 
-Some changes genuinely cannot be derived from entity diffs:
+Some changes cannot be expressed in an entity, so they cannot come from an entity diff:
 
+- **Database objects TypeORM does not model** (view options, grants, functions, row-level security policies)
 - **Seed data** (reference rows, lookup tables, initial admin user)
 - **Data backfills** (populating a new column from existing rows)
 - **Data transformations** (splitting a column, normalizing values)
 - **One-off cleanup** (deleting orphaned rows before a constraint is added)
 - **Database maintenance** (refreshing planner statistics with `ANALYZE`)
 
-Use the project's established migration process for these cases. Document the rationale and verification in the migration's class comment so future readers understand why it was not generated. Apply the authorization already given for the work; the default edit hook does not record or verify human approval.
-
-A project that supports direct migration edits can declare its own `migration-provenance` check at `pre-tool` in `.lisa.config.json`. The Claude and Codex hooks run that check for the targeted migration and permit the edit only when it passes. The check must validate the project's migration policy; an unconditional success command proves nothing. Without a declared check, the built-in still refuses the edit. OpenCode's migration adapter currently does not support this exception path and continues to refuse it.
+Writing these migrations directly is fine. The rule is: if the change can be expressed in an entity, edit the entity and run `bun run migration:generate --name=<Name>`; if it can't, write the migration. A hand-written migration documents why it was written by hand, and how it was verified, in its class comment so future readers understand why it was not generated. A generated migration needs no such note.
 
 ### Enforcement
 
-The `lisa-nestjs` plugin's default `PreToolUse` hook (`block-migration-edits.sh`) refuses `Write`/`Edit` on paths matching `**/migrations/*.ts` or `**/migrations/*.js`. Codex also inspects `apply_patch`; its migration matcher and OpenCode's matcher cover numbered TypeScript migration filenames. These are direct-edit checks, not an audit of migration authorship: they do not inspect Bash writes. Do not switch tools to evade a refusal. Use the supported project check where available.
+The `lisa-nestjs` plugin's default `PreToolUse` hook (`block-migration-edits.sh`) **warns but does not refuse** `Write`/`Edit` on paths matching `**/migrations/*.ts` or `**/migrations/*.js`. On Claude Code the warning reaches the agent as `additionalContext` and the edit continues through the normal permission flow. The hook keeps its historical name. The point of the warning is drift: a hand-written migration for a change an entity could express will drift from the entity definitions.
+
+Per-agent delivery:
+
+- **Claude Code** (and the Cursor, Copilot and Devin variants built from the same script): warning as PreToolUse JSON `additionalContext`. Without `jq` the hook cannot parse the payload, so it permits the edit with a note on stderr instead of the warning.
+- **Codex**: also inspects `apply_patch` and matches numbered TypeScript migration filenames. Codex does not honor `additionalContext` on PreToolUse, so the warning is written to stderr and is not known to reach the model.
+- **OpenCode**: `tool.execute.after` appends the warning to the edit/write tool output after the write.
+
+A project that wants to enforce its own migration policy can declare a `migration-provenance` check at `pre-tool` in `.lisa.config.json`. The Claude and Codex hooks run that check for the targeted migration instead of warning, and refuse the edit when it fails. The check must validate the project's migration policy; an unconditional success command proves nothing. The declared check needs `jq`: without it the hooks cannot read the target path, so they permit the edit without running the check and say so on stderr. OpenCode's adapter does not run the declared check.
 
 ### Why Auto-Generation
 
