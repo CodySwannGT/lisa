@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.100.3](https://github.com/CodySwannGT/lisa/compare/v4.100.2...v4.100.3) (2026-11-09)
+
+
+### Bug Fixes
+
+* **ci:** count later Lisa markers only from trusted authors ([1dfa00f](https://github.com/CodySwannGT/lisa/commit/1dfa00fcdc212494947dbe2e6dc8a8c183d5bf56)), closes [#4707](https://github.com/CodySwannGT/lisa/issues/4707) [CodySwannGT/lisa#4707](https://github.com/CodySwannGT/lisa/issues/4707)
+* **ci:** trust only committed config ids and cross-check both paths ([251f717](https://github.com/CodySwannGT/lisa/commit/251f71789a6fbf5a72e8222698b96ce66b339aff)), closes [#4623](https://github.com/CodySwannGT/lisa/issues/4623) [#4707](https://github.com/CodySwannGT/lisa/issues/4707) [CodySwannGT/lisa#4707](https://github.com/CodySwannGT/lisa/issues/4707)
+* **ci:** veto lane writes on any claim and fail closed on author reads ([a9428a4](https://github.com/CodySwannGT/lisa/commit/a9428a4799f4cf57136955c2a101c88d9aa455a0)), closes [#4707](https://github.com/CodySwannGT/lisa/issues/4707) [CodySwannGT/lisa#4707](https://github.com/CodySwannGT/lisa/issues/4707)
+
 ### [4.100.2](https://github.com/CodySwannGT/lisa/compare/v4.100.1...v4.100.2) (2026-11-09)
 
 
