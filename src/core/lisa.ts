@@ -120,6 +120,7 @@ import {
 } from "./workflow-deletion-ownership.js";
 import type { IGitService } from "./git-service.js";
 import {
+  dependencySettingsWarning,
   readProjectConfig,
   resolveLegacyProjectLearningsFile,
   resolveProjectLearningsFile,
@@ -450,6 +451,19 @@ export class Lisa {
       legacyRelative !== relativeFile &&
       (await fse.pathExists(path.join(this.config.destDir, legacyRelative))) &&
       !(await fse.pathExists(target));
+  }
+
+  /**
+   * Warn when `dependencies.humanSignOff` holds a value outside its closed
+   * vocabulary. The value is treated as `"default"` rather than failing the
+   * apply (see `project-config-dependencies`), so this warning is the only
+   * place the CLI says the project did not get the setting it typed.
+   */
+  private async reportInvalidDependencySettings(): Promise<void> {
+    const warning = dependencySettingsWarning(
+      await readProjectConfig(this.config.destDir)
+    );
+    if (warning !== undefined) this.deps.logger.warn(warning);
   }
 
   /**
@@ -1441,6 +1455,7 @@ export class Lisa {
       await this.detectTypes();
       await this.detectSelfApply();
       await this.loadProjectLearningsFile();
+      await this.reportInvalidDependencySettings();
       await this.processLearningsRelocation();
       await this.loadPendingDeletions();
       await this.loadCreateOnlyOwnership();

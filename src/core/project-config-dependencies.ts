@@ -1,0 +1,144 @@
+/**
+ * The `.lisa.config.json` `dependencies` block: whether dependency decisions
+ * ever wait on a person (CodySwannGT/lisa#4651).
+ *
+ * `dependency-trust-classes` requires human ratification for some classes —
+ * a runtime-critical service client to be added or major-upgraded, a thin
+ * wrapper to be kept, a temporary dependency to be extended. A project whose
+ * owner has decided no dependency should ever need a person's approval had no
+ * way to say so, and an autonomous build loop stopped for sign-off at every new
+ * vendor SDK. `humanSignOff: "none"` is that switch; omitting it keeps today's
+ * behavior, so no existing project changes.
+ *
+ * ## Why an invalid value degrades instead of throwing
+ *
+ * Every other closed config value in Lisa is rejected outright. This one is
+ * not, because it changes only what governed prose asks an agent to do —
+ * nothing Lisa writes depends on it — so a typo must not stop `lisa apply`.
+ * Degrading to `"default"` is the safe direction: the project keeps asking for
+ * sign-off it may not have wanted, rather than skipping sign-off it did. It is
+ * still REPORTED ({@link dependencySettingsWarning}, and an `INVALID` note in
+ * the session's resolved-config block), because a project that meant `"none"`
+ * and silently got `"default"` would otherwise see no symptom at all.
+ *
+ * The resolved-config session hook keeps its own copy of the vocabulary — it
+ * ships inside a plugin payload and cannot import this module — and its
+ * wiring test pins that copy against {@link DEPENDENCY_HUMAN_SIGN_OFF_VALUES}.
+ * @module core/project-config-dependencies
+ */
+
+/** The closed vocabulary of `dependencies.humanSignOff`. */
+export const DEPENDENCY_HUMAN_SIGN_OFF_VALUES = ["default", "none"] as const;
+
+/** One accepted value of `dependencies.humanSignOff`. */
+export type DependencyHumanSignOff =
+  (typeof DEPENDENCY_HUMAN_SIGN_OFF_VALUES)[number];
+
+/** Value in force when the key is absent or invalid: today's behavior. */
+export const DEFAULT_DEPENDENCY_HUMAN_SIGN_OFF: DependencyHumanSignOff =
+  "default";
+
+/**
+ * The optional `dependencies` block, as declared.
+ *
+ * `humanSignOff` is kept exactly as the file spelled it — possibly invalid —
+ * so the resolver, not the reader, decides validity and can report the
+ * rejected value. Unknown sibling keys are ignored rather than rejected, for
+ * the same reason an invalid value is not fatal.
+ */
+export interface DependenciesConfig {
+  /** Raw declared value; resolve with {@link resolveDependencySettings}. */
+  readonly humanSignOff?: unknown;
+}
+
+/** Minimum project-config shape the resolver reads. */
+interface ConfigWithDependencies {
+  readonly dependencies?: DependenciesConfig;
+}
+
+/** Effective dependency settings derived from one config snapshot. */
+export type ResolvedDependencySettings = Readonly<{
+  /** The value in force. */
+  humanSignOff: DependencyHumanSignOff;
+  /** Whether the project declared the key at all, valid or not. */
+  declared: boolean;
+  /** JSON spelling of a declared value that was rejected, when one was. */
+  rejected?: string;
+}>;
+
+/**
+ * Validate the optional `dependencies` block.
+ *
+ * Only the block's SHAPE can fail here, matching every other config block; a
+ * bad `humanSignOff` value is carried through for the resolver to report.
+ * @param value - Raw `dependencies` value
+ * @param source - Config source for errors
+ * @returns The block, or undefined when absent
+ */
+export function validateDependenciesConfig(
+  value: unknown,
+  source: string
+): DependenciesConfig | undefined {
+  if (value === undefined) {
+    return undefined;
+  }
+  if (value === null || typeof value !== "object" || Array.isArray(value)) {
+    throw new Error(`Invalid dependencies in ${source}: expected an object`);
+  }
+  const { humanSignOff } = value as Record<string, unknown>;
+  return humanSignOff === undefined ? {} : { humanSignOff };
+}
+
+/**
+ * Whether a raw value is one of the accepted sign-off values.
+ * @param value - Raw declared value
+ * @returns True for a member of {@link DEPENDENCY_HUMAN_SIGN_OFF_VALUES}
+ */
+function isHumanSignOff(value: unknown): value is DependencyHumanSignOff {
+  return (DEPENDENCY_HUMAN_SIGN_OFF_VALUES as readonly unknown[]).includes(
+    value
+  );
+}
+
+/**
+ * Resolve the effective `dependencies.humanSignOff`.
+ * @param config - Validated project config snapshot
+ * @returns The value in force, whether it was declared, and any rejected value
+ */
+export function resolveDependencySettings(
+  config: ConfigWithDependencies
+): ResolvedDependencySettings {
+  const declared = config.dependencies?.humanSignOff;
+  if (declared === undefined) {
+    return Object.freeze({
+      humanSignOff: DEFAULT_DEPENDENCY_HUMAN_SIGN_OFF,
+      declared: false,
+    });
+  }
+  if (isHumanSignOff(declared)) {
+    return Object.freeze({ humanSignOff: declared, declared: true });
+  }
+  return Object.freeze({
+    humanSignOff: DEFAULT_DEPENDENCY_HUMAN_SIGN_OFF,
+    declared: true,
+    rejected: JSON.stringify(declared),
+  });
+}
+
+/**
+ * The warning to print for an invalid `dependencies.humanSignOff`.
+ * @param config - Validated project config snapshot
+ * @returns One warning line, or undefined when the value is absent or valid
+ */
+export function dependencySettingsWarning(
+  config: ConfigWithDependencies
+): string | undefined {
+  const { rejected } = resolveDependencySettings(config);
+  if (rejected === undefined) {
+    return undefined;
+  }
+  const accepted = DEPENDENCY_HUMAN_SIGN_OFF_VALUES.map(
+    value => `"${value}"`
+  ).join(" | ");
+  return `Invalid dependencies.humanSignOff in .lisa.config.json: ${rejected} is not one of ${accepted}; treated as "${DEFAULT_DEPENDENCY_HUMAN_SIGN_OFF}", so dependency sign-off stays required where the trust-class rule asks for it.`;
+}
