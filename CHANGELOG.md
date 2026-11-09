@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.101.3](https://github.com/CodySwannGT/lisa/compare/v4.101.2...v4.101.3) (2026-11-09)
+
+
+### Bug Fixes
+
+* **cli:** document bootstrap in genuine root help ([8b5c082](https://github.com/CodySwannGT/lisa/commit/8b5c0828c255d93942697c70bf1c1a2b5c1166ef)), closes [CodySwannGT/lisa#4759](https://github.com/CodySwannGT/lisa/issues/4759)
+
 ### [4.101.2](https://github.com/CodySwannGT/lisa/compare/v4.101.1...v4.101.2) (2026-11-09)
 
 
