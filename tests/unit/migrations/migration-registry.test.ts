@@ -70,6 +70,7 @@ describe("MigrationRegistry", () => {
     expect(names).toContain("ensure-learnings-gitattributes");
     expect(names).toContain("ensure-learnings-merge-driver");
     expect(names).toContain("untrack-codex-marketplace");
+    expect(names).toContain("correct-lisa-coderabbit-labeling");
   });
 
   it("runs only applicable migrations", async () => {

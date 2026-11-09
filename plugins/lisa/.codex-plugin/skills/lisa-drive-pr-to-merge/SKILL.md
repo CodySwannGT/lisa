@@ -378,8 +378,9 @@ first-line substitute for this exact head (#4628); where the classifier below
 ran, a non-vacuous review context at this head (or one a writer's substitute
 covers); and no standing `CHANGES_REQUESTED` at the head. A substitute counts
 here only when its marker is the comment's **first line** and its author has
-**write access** — the prover's report-only `substituted` outcome counts a
-marker anywhere, which is fine for a report and fail-open for a merge. A
+**write access** — the prover's report-only `substituted` outcome applies the
+same rule, and names every marker it refused, with its author and the reason
+(`no write access`, `not the first line`, `permission unreadable`). A
 `Changes requested` proof phrase proves the reviewer worked, not that the head
 may merge, and decides `blocker`. A change request counts until its author
 approves or it is dismissed, whichever commit it was made on — a push does not
@@ -1211,7 +1212,9 @@ the local adversarial review over the PR diff and **post it on the PR**, so the
 code that merges has been read by something. The comment must:
 
 - carry the marker `<!-- lisa:review-substitute context="<context>" head="<head-sha>" -->`
-  as its first line, so CI can find it for this reviewer at this head;
+  as its first line, so CI can find it for this reviewer at this head, and be
+  posted by an account with write, maintain or admin access — both the prover
+  and the merge-path gate refuse any other marker (#4628);
 - state plainly that it is a **self-review substitute**, not a third-party
   review;
 - **record the actual words observed, verbatim** — the prover's `observed`: a
@@ -1423,7 +1426,11 @@ the bot's verdict from an earlier head as the only blocker. In that case:
    throttle settles hollow and can take away the bot's standing review (see
    above).
 2. Post the local adversarial review substitute for the **current** head, as
-   step (d) case 3 describes, if one is not already there.
+   step (d) case 3 describes, unless the prover already counts one there — its
+   reading shows `substituted` for that reviewer at this head. A marker the
+   prover refused (its report names the author and the reason: `no write
+   access`, `not the first line`, `permission unreadable`) does not count, so
+   it never stops you posting your own.
 3. **Then stop** with `blocked:stale-bot-verdict` (section 4). Report exactly
    that blocker: the bot reviewer, the review id, the outdated head it reviewed
    and the current head, the unresolved thread count, and that the substitute

@@ -25,6 +25,7 @@ import {
   readReviewerEvidence,
   reviewEvidenceVerdict,
   selectReviewerCheckRun,
+  substituteMarker,
 } from "../../../all/copy-overwrite/scripts/check-third-party-review-evidence.mjs";
 
 const REPO_ARG = "--repo=acme/code";
@@ -627,5 +628,53 @@ describe("main reads check runs once per reviewer, and only when asked", () => {
 
     expect(code).toBe(1);
     expect(verdict.readings[0].reading).toBe(EVIDENCE_READINGS.absent);
+  });
+});
+
+describe("a substitute for a rate-limited check run counts only from a writer (#4628)", () => {
+  const RATE_LIMITED_RUN = run({
+    conclusion: "neutral",
+    output: { title: RATE_LIMITED, summary: RATE_LIMITED },
+  });
+  const MARKER = substituteMarker({ context: CONTEXT, sha: HEAD });
+
+  /**
+   * The CLI's JSON verdict over one comment, with every read injected.
+   * @param login - The comment's author
+   * @returns The exit code and the verdict
+   */
+  const decide = (login: string) => {
+    const chunks: string[] = [];
+    const code = main([`--sha=${HEAD}`, REPO_ARG, "--json"], {
+      gates: PINNED,
+      pulls: () => [1],
+      checkRuns: () => [RATE_LIMITED_RUN],
+      comments: () => [{ body: MARKER, user: { login } }],
+      canWrite: (author: string) => author === "maintainer",
+      out: {
+        write: (text: string) => {
+          chunks.push(text);
+        },
+      },
+    });
+    return { code, verdict: JSON.parse(chunks.join("")) };
+  };
+
+  it("refuses a stranger's first-line marker and names them", () => {
+    const { code, verdict } = decide("drive-by");
+
+    expect(code).toBe(1);
+    expect(verdict.outcome).toBe(EVIDENCE_OUTCOMES.unsatisfied);
+    expect(verdict.readings[0].source).toBe(EVIDENCE_SOURCES.checkRun);
+    expect(verdict.readings[0].substituteRefusals).toEqual([
+      { author: "drive-by", reason: "no write access" },
+    ]);
+  });
+
+  it("counts a writer's first-line marker", () => {
+    const { code, verdict } = decide("maintainer");
+
+    expect(code).toBe(0);
+    expect(verdict.outcome).toBe(EVIDENCE_OUTCOMES.substituted);
   });
 });

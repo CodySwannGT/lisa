@@ -1,14 +1,14 @@
 /**
- * The five checks that ask what Lisa SEEDED into this repository, and whether
+ * The six checks that ask what Lisa SEEDED into this repository, and whether
  * what it seeded still says what it meant.
  *
- * They are grouped because they are one operator question asked five ways, and
+ * They are grouped because they are one operator question asked six ways, and
  * because each of them exists for the same structural reason: the write path
  * that could have prevented the defect is reached exactly once, before the file
  * exists. A repository that received the template earlier therefore has no
  * signal of any kind — the seeding postinstall is skipped under CI, the file is
  * untracked, and the tool the file disables reports only that it found nothing.
- * A fix on the write path reaches the NEXT adoption; these five are how an
+ * A fix on the write path reaches the NEXT adoption; these six are how an
  * existing one finds itself.
  *
  * `doctor-lisa-owned-artifacts` is the inverse and deliberately stays where it
@@ -20,6 +20,7 @@
  * @module cli/doctor-seeded-artifacts
  */
 import { checkCdkPresetAdoption } from "./doctor-cdk-preset-adoption.js";
+import { checkCoderabbitLabeling } from "./doctor-coderabbit-labeling.js";
 import { checkConfigShadowing } from "./doctor-config-shadowing.js";
 import { checkRailsDeployIntent } from "./doctor-rails-deploy-intent.js";
 import { checkStaleManagedBanner } from "./doctor-stale-managed-banner.js";
@@ -52,6 +53,11 @@ export async function checkSeededArtifacts(
     // stopped running; the seed fix reaches new adoptions only
     // (CodySwannGT/lisa#4553).
     await checkThirdPartyEvidenceSeed(targetPath),
+    // Whether a CodeRabbit config Lisa KEEPS (deletions.json) lets the bot
+    // write Lisa's lifecycle labels. Lisa shipped one that did, and the bot
+    // re-labelled claimed issues `status:ready` in a downstream host
+    // (CodySwannGT/lisa#4633).
+    await checkCoderabbitLabeling(targetPath),
     // Whether a whole stack preset was delivered to a repository that never
     // qualified for it. The detection fix reaches the next decision only, and
     // the dead-code gate it skewed reports SUCCESS (CodySwannGT/lisa#3711).
