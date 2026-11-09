@@ -241,7 +241,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lib/reusable-workflow-load-scan.mjs":
       "32e9968d27b7edead16c232bb93bebb8118dd24d175a837f61c2e1ff324dc223",
     "all/copy-overwrite/scripts/lib/usage-effectiveness.d.mts":
-      "58c774c89cbfe5a73960efbd469ff023fc95ac78596c4ca065ee91fdb5afa4b1",
+      "55929b47ce26b7abfe0ac9c369f974b5fd3c2a8edd6e79f4d474ba7ac26792e9",
     "all/copy-overwrite/scripts/lib/usage-effectiveness.mjs":
       "b4fb652293bf2c15f9a07b3f9f15cee75ddbfc17a5aa7fee30290629b77ba705",
     "all/copy-overwrite/scripts/lib/usage-ledger-integrity.d.mts":
@@ -397,7 +397,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "cdk/copy-overwrite/vitest.cdk.ts":
       "030158b11bec4f10b39585feb98f498981f307faa1fa314c7522e6def5d73c94",
     "cdk/copy-overwrite/vitest.config.ts":
-      "c7f309d4f43d9188b9c067cb4900b2bdbacfbd28d135a6a2e6313cb0a37b030f",
+      "53db37edb58e49a273d8480bffadb60acf7fa012b635adbc2f58843e57e71bed",
     "cdk/create-only/.github/workflows/ci.yml":
       "a487a4f77f9bb5733e2f99f112821f2b88ac15d5274b71f6951a846693234ad9",
     "cdk/create-only/.github/workflows/deploy.yml":
@@ -647,7 +647,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "harper-fabric/copy-overwrite/tsconfig.json":
       "64b9f2e919160568712e2641b125aa21bec486532249a7b17e4fb2f4bb3988cc",
     "harper-fabric/copy-overwrite/vitest.config.ts":
-      "94ee60be0e9a4b735cf1b053143751c9968465ff04fb59fbdfc252e7413ff337",
+      "9cb4da48af09db6017015254ae2365e5eb803577b0c83a815f9726e476bdc29d",
     "harper-fabric/create-only/.github/workflows/deploy.yml":
       "924f78d7a7a78f7f6fe1e9f8a69e5609e813060ff983a3bbd80fb3ecb4b15f69",
     "harper-fabric/create-only/.github/workflows/zap-baseline.yml":
@@ -683,7 +683,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "nestjs/copy-overwrite/tsconfig.spec.json":
       "c94b97ece66d5e19231244eb3e32bff3a40c13188474a1e0d17db08c37fc10b7",
     "nestjs/copy-overwrite/vitest.config.ts":
-      "e4d4095c4a6452a3bbc1f4a64677c60bc1dde58b2653d1aa364aac6bd44a35e8",
+      "c02f41cfb1680a6001528191b36f7fced9d06538bd4cf7ea91fd63d666a39a8e",
     "nestjs/copy-overwrite/vitest.nestjs.ts":
       "18aef942beb656da8566c41419c005055c1816cc42482f796e4870f3e4891ab4",
     "nestjs/create-only/.github/k6/BROWSER_TESTING_NOTE.md":
@@ -799,7 +799,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "phaser/copy-overwrite/tsconfig.json":
       "8d9ce60a68b5e29213c4251ae35e68bc22c7128e49659d5a8967de6a16d620e5",
     "phaser/copy-overwrite/vitest.config.ts":
-      "dc925a5b7f268f7c284abdf9b7c5d4384980ad66252fbb5e9186ae7203fb9388",
+      "4983a661edc1e1b0e9f9df007ec06ceb77bb2270547fb32b56c1fda76332b42d",
     "phaser/create-only/tsconfig.local.json":
       "aec26141fe80709ab19fbfb5dda945e59f8f9d718d5cfcb023ad48f0eead88f5",
     "phaser/create-only/wiki/lisa-wiki.config.json":
@@ -2661,7 +2661,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/check-rules-pairing.sh":
       "0fc26c4bb3e9283dbc775e794ee8abad98d59f401dfcc55deead0160c5c6bb71",
     "scripts/check-security-floors.mjs":
-      "9cdb39f3d995b2f5539e0f2dc9de4b06d8539886efaa821f7964687e9a41609a",
+      "a1abe6d2cbbef9243b9687c73d5c4497c069bc8d714e34be7375805fadbc4721",
     "scripts/check-self-dependency-pin.mjs":
       "f517c44a1058a87051b6bb9520e8596a37521f475ca67e0d47159163999ff692",
     "scripts/check-shell-guard-refusal-coverage.mjs":
@@ -3009,7 +3009,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/copy-overwrite/.github/GITHUB_ACTIONS.md":
       "360ddca69f976115cad890cc096e79dec00ca630dd954b9cd18a6dbeb1012347",
     "typescript/copy-overwrite/.lintstagedrc.json":
-      "058f6bb7ce5b734ba3e62774b1f769c94053c574f2b4db3e59515c325e49c0ef",
+      "773a3e0a2bc20b69a16fc247e74c76eeb20ced8fae654702190bdfade964e364",
     "typescript/copy-overwrite/.nvmrc":
       "73fb1b615e2043a933be1c0895cde4358036acc28d785692509b822aa53c761f",
     "typescript/copy-overwrite/.prettierignore":
@@ -3089,7 +3089,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/copy-overwrite/tsconfig.json":
       "8f4257fcd2cfd4b23e83e0fdd4908d41ee8f1ae75bb95d632e653a0ac13d58e4",
     "typescript/copy-overwrite/vitest.config.ts":
-      "dc140e617db43da38f456bcc909ae621a62996fe25e7b0babd5e81941308365c",
+      "8bb367786323bb758324a0bcf232b58ebef7d2d2f5732152c0b2e246f2a01ecf",
     "typescript/create-only/.github/required-checks.json":
       "d4a1db50edb7a072b02792cd39cd12076e1be01c2931a62aede1fda4e710d7e0",
     "typescript/create-only/.github/workflows/ci.yml":
@@ -11972,6 +11972,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/shell-guard-refusals.test.ts": true,
     "tests/integration/skipped-required-checks-gate-fail-closed.test.ts": true,
     "tests/integration/skipped-required-checks-outcome-wiring.test.ts": true,
+    "tests/integration/staged-module-formatting.test.ts": true,
     "tests/integration/standards-proof-fixture.ts": true,
     "tests/integration/standards-proof-rails.test.ts": true,
     "tests/integration/standards-proof-tamper.test.ts": true,
@@ -12010,6 +12011,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/third-party-review-substitute-authors-cli.test.ts": true,
     "tests/integration/threshold-ratchet-gate-fail-closed.test.ts": true,
     "tests/integration/tracked-source-nul-bytes.test.ts": true,
+    "tests/integration/usage-effectiveness-formatting.test.ts": true,
+    "tests/integration/vitest-nodenext-local-config.test.ts": true,
     "tests/integration/vitest-unsupervised-direct-run.test.ts": true,
     "tests/integration/work-item-contract-handshake.test.ts": true,
     "tests/integration/workflow-deletion-ownership.test.ts": true,
@@ -12030,6 +12033,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/support/prune-fixtures.ts": true,
     "tests/support/qualified-host-bun.ts": true,
     "tests/support/qualified-updater-node.ts": true,
+    "tests/support/staged-module-fixture.ts": true,
     "tests/support/work-item-cli.ts": true,
     "tests/support/work-item-coherent-related.ts": true,
     "tests/support/work-item-linear-proof-fixture.ts": true,
@@ -13130,6 +13134,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/run-artifact-checks.test.ts": true,
     "tests/unit/scripts/schema-validate-keyword-forms.test.ts": true,
     "tests/unit/scripts/schema-validate-prototype-keywords.test.ts": true,
+    "tests/unit/scripts/security-floor-aliases.test.ts": true,
     "tests/unit/scripts/security-floors.test.ts": true,
     "tests/unit/scripts/setup-jira-cli-config.test.ts": true,
     "tests/unit/scripts/setup-jira-cli-project-dir.test.ts": true,

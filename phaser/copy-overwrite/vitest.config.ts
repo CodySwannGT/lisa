@@ -19,7 +19,7 @@ import {
   mergeVitestConfigs,
 } from "@codyswann/lisa/vitest/phaser";
 
-import localConfig from "./vitest.config.local";
+import localConfig from "./vitest.config.local.js";
 import thresholdsOverrides from "./vitest.thresholds.json" with { type: "json" };
 
 export default mergeVitestConfigs(

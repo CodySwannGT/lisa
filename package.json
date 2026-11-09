@@ -327,6 +327,7 @@
     "@yarnpkg/lockfile": "^1.1.0"
   },
   "devDependencies": {
+    "prettier-compat-3-9": "npm:prettier@3.9.10",
     "@actions/expressions": "0.3.61",
     "@codyswann/lisa": "^4.69.1",
     "@playwright/test": "^1.61.1",
