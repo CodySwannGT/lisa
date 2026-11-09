@@ -247,11 +247,11 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lib/usage-ledger-integrity.d.mts":
       "75c8204833c1f390d585e9e12a0bbbae423c6982ef296dc4318e875b21c96e99",
     "all/copy-overwrite/scripts/lib/usage-ledger-integrity.mjs":
-      "67e115051fac99e846dea54297c8811f22aecce93d2743ce53bbf0b8e3572c5e",
+      "b2b928d323817867591e23c53aede3ee91830c4bd37658082c7dd61266b0c0d9",
     "all/copy-overwrite/scripts/lib/usage-ledger.d.mts":
-      "551d534acdd1fbd1fd86edf1feaee2f98763509af2ec17b593662c40badbb415",
+      "ea55e6bf7354f92353666b145c9d352c2a2e7d8c914f98f4e1421d0528cab657",
     "all/copy-overwrite/scripts/lib/usage-ledger.mjs":
-      "cdeab41198a0284b6415975b1dd8cfd84114631b5673f1a6ab340996cd74f946",
+      "d93a9b6d28c00f687ea41e8ad1e6138eac6ea4f3d59225bd225d8151f40e4ac0",
     "all/copy-overwrite/scripts/lib/windows-process-job.cs":
       "7bbe3b13bfc35ca2a0b85fbee9a8f0a6549bf8b05997f6ce4b361bd09d924218",
     "all/copy-overwrite/scripts/lib/windows-process-job.mjs":
@@ -343,7 +343,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/npm-updater-gate.Dockerfile":
       "850a4ee809d49e3d9da6bdd674cb43e4f5a6dcfa0aa73116b1a43caeed42748c",
     "all/copy-overwrite/scripts/npm-updater-helper-graph.json":
-      "e6aa56958b9f2f0c1e52019cc7e22822df59f126953c1c7f395246e3c66f3c82",
+      "fd4fbcb59454b11e22c6ba067854570f644cadfa2e943fcb1a068c3be8ec74ab",
     "all/copy-overwrite/scripts/review-evidence-event.mjs":
       "1c5d510bc66f8ba23b6f046246f41182c17946a50126fb88e371d2aec9dfd6b2",
     "all/copy-overwrite/scripts/schemas/lisa-command-envelope.v1.schema.json":
@@ -13732,6 +13732,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/utils/usage-accounting-table-normalization.test.ts": true,
     "tests/unit/utils/usage-accounting-token-serialization.test.ts": true,
     "tests/unit/utils/usage-accounting.test.ts": true,
+    "tests/unit/utils/usage-empty-run-id.test.ts": true,
     "tests/unit/utils/yaml-interop.test.ts": true,
     "tests/unit/workstation/fixtures.ts": true,
     "tests/unit/workstation/link-into-bin-dir.test.ts": true,

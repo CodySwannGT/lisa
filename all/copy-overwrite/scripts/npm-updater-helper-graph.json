@@ -1243,7 +1243,7 @@
       "children": []
     },
     "lib/usage-ledger-integrity.mjs": {
-      "sha256": "67e115051fac99e846dea54297c8811f22aecce93d2743ce53bbf0b8e3572c5e",
+      "sha256": "b2b928d323817867591e23c53aede3ee91830c4bd37658082c7dd61266b0c0d9",
       "staticImports": [
         "lib/usage-ledger.mjs"
       ],
@@ -1251,7 +1251,7 @@
       "children": []
     },
     "lib/usage-ledger.mjs": {
-      "sha256": "cdeab41198a0284b6415975b1dd8cfd84114631b5673f1a6ab340996cd74f946",
+      "sha256": "d93a9b6d28c00f687ea41e8ad1e6138eac6ea4f3d59225bd225d8151f40e4ac0",
       "staticImports": [
         "lib/usage-effectiveness.mjs"
       ],
