@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.100.1](https://github.com/CodySwannGT/lisa/compare/v4.100.0...v4.100.1) (2026-11-09)
+
+
+### Bug Fixes
+
+* **completion:** accept test-only no-runtime scope and close the reason grammar ([47a7dde](https://github.com/CodySwannGT/lisa/commit/47a7dde1facbb914a91f714573eb33fab6486f86)), closes [CodySwannGT/lisa#4684](https://github.com/CodySwannGT/lisa/issues/4684) [CodySwannGT/lisa#4684](https://github.com/CodySwannGT/lisa/issues/4684)
+* **completion:** state the no-runtime declaration as the whole section ([0d45f14](https://github.com/CodySwannGT/lisa/commit/0d45f14fd7b220852d3fd895e89c9d593fdf3fc6)), closes [CodySwannGT/lisa#4684](https://github.com/CodySwannGT/lisa/issues/4684) [CodySwannGT/lisa#4684](https://github.com/CodySwannGT/lisa/issues/4684)
+
 ## [4.100.0](https://github.com/CodySwannGT/lisa/compare/v4.99.11...v4.100.0) (2026-11-09)
 
 
