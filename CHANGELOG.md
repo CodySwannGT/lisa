@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.101.5](https://github.com/CodySwannGT/lisa/compare/v4.101.4...v4.101.5) (2026-11-09)
+
+
+### Bug Fixes
+
+* **hooks:** inspect literal one-level shell launcher writes ([f692b3a](https://github.com/CodySwannGT/lisa/commit/f692b3a23e1e277b07017e4f15d46b96b0222076)), closes [CodySwannGT/lisa#4540](https://github.com/CodySwannGT/lisa/issues/4540)
+
 ### [4.101.4](https://github.com/CodySwannGT/lisa/compare/v4.101.3...v4.101.4) (2026-11-09)
 
 
