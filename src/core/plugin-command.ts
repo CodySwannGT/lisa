@@ -5,6 +5,11 @@ import { spawn } from "node:child_process";
 export const PLUGIN_PROBE_TIMEOUT_MS = 15_000;
 /** Registration shares the normal reconciliation wait budget across commands. */
 export const PLUGIN_REGISTRATION_TIMEOUT_MS = 120_000;
+/**
+ * Budget for pruning dead-checkout registrations in one apply. A machine with a
+ * large backlog clears it over several applies instead of stalling one.
+ */
+export const PLUGIN_PRUNE_TIMEOUT_MS = 30_000;
 /** Grace period for the owned CLI group to finish after termination. */
 const TERMINATION_GRACE_MS = 2_000;
 /** Preserve Node exec's default per-stream capture limit. */

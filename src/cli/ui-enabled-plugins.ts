@@ -9,6 +9,7 @@ import { readFile } from "node:fs/promises";
 import { homedir as defaultHomedir } from "node:os";
 import * as path from "node:path";
 import type { JsonValue } from "../sync/json-path.js";
+import { readMarketplaceCatalog } from "../utils/marketplace-manifest.js";
 import type { ProbeResult, StatusProbe } from "./ui-status.js";
 
 /** One plugin entry from a marketplace.json catalog. */
@@ -69,38 +70,14 @@ async function readMarketplaceEntries(
   marketplacePath: string,
   fallbackName: string
 ): Promise<readonly (readonly [string, string])[]> {
-  try {
-    const parsed = await readJsonFile(marketplacePath);
-    if (typeof parsed !== "object" || parsed === null) {
-      return [];
-    }
-    const nameRaw = Reflect.get(parsed, "name");
-    const marketplaceName =
-      typeof nameRaw === "string" && nameRaw.trim().length > 0
-        ? nameRaw.trim()
-        : fallbackName;
-    const plugins = Reflect.get(parsed, "plugins");
-    if (!Array.isArray(plugins)) {
-      return [];
-    }
-    return plugins.flatMap(entry => {
-      if (typeof entry !== "object" || entry === null) {
-        return [];
-      }
-      const pluginName = Reflect.get(entry, "name");
-      if (typeof pluginName !== "string" || pluginName.trim().length === 0) {
-        return [];
-      }
-      const descriptionRaw = Reflect.get(entry, "description");
-      const description =
-        typeof descriptionRaw === "string" ? descriptionRaw : "";
-      return [
-        [`${pluginName.trim()}@${marketplaceName}`, description],
-      ] as const;
-    });
-  } catch {
+  const catalog = await readMarketplaceCatalog(marketplacePath);
+  if (catalog === null) {
     return [];
   }
+  const marketplaceName = catalog.name ?? fallbackName;
+  return catalog.plugins.map(
+    plugin => [`${plugin.name}@${marketplaceName}`, plugin.description] as const
+  );
 }
 
 /**
