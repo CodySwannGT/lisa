@@ -2737,7 +2737,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/generate-agy-plugin-artifacts.mjs":
       "19bee3087ff1fedc79550f75cb021dc59b5b4466daa6261adb788ef13bb8c2b6",
     "scripts/generate-codex-plugin-artifacts.mjs":
-      "339dc57d6c947ffb91c6d9c08bb9ea28c3f9b44687a330a035cb4ea2d69de574",
+      "6834c7cfc1a199a394384a9dd24682af1cae07d491633f354e91d9771c71cca8",
     "scripts/generate-copilot-plugin-artifacts.mjs":
       "8589c8b6e7adff3aefd20463d78cb3caa4d23489fffc07fbb9d185cdc63871fa",
     "scripts/generate-cursor-plugin-artifacts.mjs":
@@ -2782,6 +2782,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "d7191650d8a12727549b67df61dbfa61e16cfb9cc31e461cd98d253ceab1612a",
     "scripts/lib/bounded-spawn.mjs":
       "a37de43abd0c9840d0caab4e211a066c4dcf4fd76bbbf12a84b6a402300f99a1",
+    "scripts/lib/codex-shared-scripts.mjs":
+      "963711e3d408560fc6fe86e894ebaf9e04bcf547a0e920db28944d0ebf424eba",
     "scripts/lib/dependency-tree.mjs":
       "2df9048c5baffc5d660923fe933dcf6bf277d39e81512de1332ce686e705a765",
     "scripts/lib/gitattributes-merge-drivers.mjs":
@@ -8541,6 +8543,14 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-wiki/templates/wrapper-gitignore.txt": true,
     "plugins/lisa/.codex-plugin/hooks.json": true,
     "plugins/lisa/.codex-plugin/plugin.json": true,
+    "plugins/lisa/.codex-plugin/scripts/automation-run-record.mjs": true,
+    "plugins/lisa/.codex-plugin/scripts/blocker-edge-resolution.mjs": true,
+    "plugins/lisa/.codex-plugin/scripts/intake-blocker-reprobe.mjs": true,
+    "plugins/lisa/.codex-plugin/scripts/intake-prework-denominator.mjs": true,
+    "plugins/lisa/.codex-plugin/scripts/operator-id-kinds.mjs": true,
+    "plugins/lisa/.codex-plugin/scripts/qa-signal-lifecycle.mjs": true,
+    "plugins/lisa/.codex-plugin/scripts/ready-queue-order.mjs": true,
+    "plugins/lisa/.codex-plugin/scripts/resolve-lifecycle-role.mjs": true,
     "plugins/lisa/.codex-plugin/skills/lisa-acceptance-criteria/SKILL.md": true,
     "plugins/lisa/.codex-plugin/skills/lisa-acceptance-criteria/agents/openai.yaml": true,
     "plugins/lisa/.codex-plugin/skills/lisa-agent-design-best-practices/SKILL.md": true,
@@ -10751,6 +10761,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "scripts/internal-cursor-skill-policy.json": true,
     "scripts/internal-opencode-skill-policy.json": true,
     "scripts/lib/bounded-spawn.mjs": true,
+    "scripts/lib/codex-shared-scripts.mjs": true,
     "scripts/lib/dependency-tree.mjs": true,
     "scripts/lib/gitattributes-merge-drivers.mjs": true,
     "scripts/lib/hook-registration-audit.mjs": true,
@@ -12290,6 +12301,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/codex/codex-edit-hooks.test.ts": true,
     "tests/unit/codex/codex-hooks-json-tracked.test.ts": true,
     "tests/unit/codex/codex-overlay-artifact-classification.test.ts": true,
+    "tests/unit/codex/codex-skill-imports-resolve.test.ts": true,
     "tests/unit/codex/command-plugin-artifacts.test.ts": true,
     "tests/unit/codex/committed-openai-yaml-in-sync.test.ts": true,
     "tests/unit/codex/convert-command-to-skill.test.ts": true,
