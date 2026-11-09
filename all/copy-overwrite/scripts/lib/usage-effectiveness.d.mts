@@ -9,9 +9,10 @@ export interface EffectivenessObservation {
   readonly workerWallMs: number | null;
   readonly feedbackMs: readonly number[] | null;
   readonly workerSource: string | null;
-  readonly attention:
-    | readonly { readonly id: string; readonly source: string }[]
-    | null;
+  readonly attention: ReadonlyArray<{
+    readonly id: string;
+    readonly source: string;
+  }> | null;
   readonly readyAt: string | null;
   readonly acceptedAt: string | null;
   readonly lifecycleSources: readonly string[] | null;

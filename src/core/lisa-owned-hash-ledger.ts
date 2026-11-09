@@ -1127,6 +1127,7 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
   ]),
   "scripts/lib/usage-effectiveness.d.mts": Object.freeze([
     "51d815eab4b51837e17b4b1ee292fc73c617d53f3ddc7be57b3a757238d7a68c",
+    "55929b47ce26b7abfe0ac9c369f974b5fd3c2a8edd6e79f4d474ba7ac26792e9",
     "58c774c89cbfe5a73960efbd469ff023fc95ac78596c4ca065ee91fdb5afa4b1",
   ]),
   "scripts/lib/usage-effectiveness.mjs": Object.freeze([
@@ -3489,6 +3490,7 @@ export const LISA_OWNED_HASH_HISTORY_DERIVED: Readonly<
   ]),
   "scripts/lib/usage-effectiveness.d.mts": Object.freeze([
     "51d815eab4b51837e17b4b1ee292fc73c617d53f3ddc7be57b3a757238d7a68c",
+    "55929b47ce26b7abfe0ac9c369f974b5fd3c2a8edd6e79f4d474ba7ac26792e9",
     "58c774c89cbfe5a73960efbd469ff023fc95ac78596c4ca065ee91fdb5afa4b1",
   ]),
   "scripts/lib/usage-effectiveness.mjs": Object.freeze([

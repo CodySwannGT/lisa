@@ -213,7 +213,7 @@ function trackedManifests() {
 /**
  * Every version constraint declared across the template manifests.
  * @returns {{found: Map<string, Array<{file: string, path: string, spec: string,
- *   lowest: number[]}>>,
+ *   lowest: number[], declaredName?: string}>>,
  *   unresolved: Array<{file: string, path: string, name: string, spec: string}>,
  *   unparseable: Array<{file: string, path: string, name: string, spec: string,
  *   reason: string}>, scanned: string[], unscanned: string[]|null}}
@@ -257,13 +257,29 @@ export function collectFloors() {
    * @param {string} spec The version constraint to resolve.
    */
   const record = (name, file, path, spec) => {
-    const { version, reason } = resolveLowerBound(spec);
+    // npm aliases install the target package under a different local name.
+    // Ask for the TARGET's advisories, while retaining the original spec and
+    // local name for reports. An unreadable target/range still goes through
+    // the ordinary gap path; never treat an alias as an audit exemption.
+    const alias =
+      /^npm:((?:@[a-z0-9~][a-z0-9._~-]*\/)?[a-z0-9~][a-z0-9._~-]*)@(.+)$/.exec(
+        spec
+      );
+    const packageName = alias === null ? name : alias[1];
+    const constraint = alias === null ? spec : alias[2];
+    const { version, reason } = resolveLowerBound(constraint);
     if (version === null) {
       unparseable.push({ file, path, name, spec, reason });
       return;
     }
-    if (!found.has(name)) found.set(name, []);
-    found.get(name).push({ file, path, spec, lowest: version });
+    if (!found.has(packageName)) found.set(packageName, []);
+    found.get(packageName).push({
+      file,
+      path,
+      spec,
+      lowest: version,
+      ...(alias === null ? {} : { declaredName: name }),
+    });
   };
 
   for (const file of files) {
@@ -302,7 +318,7 @@ export function collectFloors() {
               });
               continue;
             }
-            if (!/\d/.test(target)) continue;
+            if (!/\d/.test(target) && !target.startsWith("npm:")) continue;
             record(name, file, `${group}.${section}`, target);
             continue;
           }
@@ -310,7 +326,9 @@ export function collectFloors() {
           // floor and there is nothing to compare. Kept ahead of `record` so
           // these stay a deliberate non-floor rather than becoming a gap
           // report: they are not failed attempts to state a floor.
-          if (!/\d/.test(spec)) continue;
+          // An alias with no numeric version is still inspected: digits in
+          // a package name or tag cannot manufacture a readable version floor.
+          if (!/\d/.test(spec) && !spec.startsWith("npm:")) continue;
           record(name, file, `${group}.${section}`, spec);
         }
       }
