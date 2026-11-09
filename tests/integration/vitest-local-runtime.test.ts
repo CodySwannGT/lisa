@@ -3,6 +3,7 @@ import * as fs from "node:fs";
 import { createRequire } from "node:module";
 import * as path from "node:path";
 import { describe, expect, it } from "vitest";
+import { SCRATCH_SUPERVISION_LEASE_ENV } from "../../src/configs/vitest/scratch-supervision.js";
 import { useIoLatencyBudget } from "../helpers/io-latency-budget.js";
 import { cleanupTempDir } from "../helpers/test-utils.js";
 import {
@@ -145,8 +146,16 @@ describe.each([
         fixture.directory,
         stack
       );
-      // Child fixtures alone clear the observable application value. No guard setting changes.
-      const env = { ...fixture.env };
+      // Keep the caller's supervisor lease and its owned temp root together.
+      // Each real Vitest worker validates that inherited scratch authority.
+      const env: NodeJS.ProcessEnv = {
+        ...fixture.env,
+        TMPDIR: process.env["TMPDIR"],
+        TMP: process.env["TMP"],
+        TEMP: process.env["TEMP"],
+      };
+      expect(Boolean(env[SCRATCH_SUPERVISION_LEASE_ENV])).toBe(true);
+      expect(env.TMPDIR).toBeTruthy();
       delete env["LISA_FIXTURE_LOCAL_PROOF"];
       for (const negative of [false, true]) {
         const candidate = negative
@@ -156,13 +165,6 @@ describe.each([
         fs.writeFileSync(file(CONFIG), candidate);
         const output = file(negative ? "negative.json" : "positive.json");
         const result = runStagedTool({ ...fixture, env }, process.execPath, [
-          path.join(ROOT, "dist/cli/lisa-test-run.js"),
-          "--profile",
-          "lisa",
-          "--adapter",
-          "vitest",
-          "--",
-          process.execPath,
           VITEST,
           "run",
           "--config",
