@@ -109,9 +109,13 @@ describe("every post-evidence.sh uploads pull-request-scoped asset names", () =>
   it.each(COPIES)("%s validates PR_NUMBER before its first upload", copy => {
     const text = readFileSync(path.join(repoRoot, copy), "utf8");
     const guard = text.indexOf('"$PR_NUMBER" =~ ^[1-9][0-9]*$');
+    // Anchored to a command line, so a comment or echoed text that mentions
+    // the command cannot stand in for the first real upload.
+    const firstUpload = text.search(/^\s*gh release upload\b/m);
 
     expect(guard, copy).toBeGreaterThan(-1);
-    expect(guard, copy).toBeLessThan(text.indexOf("gh release upload"));
+    expect(firstUpload, copy).toBeGreaterThan(-1);
+    expect(guard, copy).toBeLessThan(firstUpload);
   });
 });
 

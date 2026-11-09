@@ -2085,7 +2085,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/expo/skills/jira-journey/SKILL.md":
       "f5fecd9f17263f976a7e26d0c47a0d69477da31caaf9e299f5f5eeefbef52c34",
     "plugins/src/expo/skills/jira-journey/scripts/generate-templates.py":
-      "c982f0198967b275b0776171581b71180730c9c60bcee19c9247c313b29ebe6e",
+      "a8b1afb25b8edfe6ebf0f12f3d503a0c28cf0cf7b4e2f82a89c9cbe1e8020406",
     "plugins/src/expo/skills/jira-journey/scripts/parse-plan.py":
       "4c777dfa36c4c01216906b20a9ce473a764a71e4fccd29aed465403229d8de6d",
     "plugins/src/expo/skills/jira-verify/SKILL.md":

@@ -50,10 +50,11 @@ afterEach(() => {
  * Run one generator for one pull request over a single screenshot.
  * @param generator - Generator path relative to the checkout.
  * @param pr - Pull request number argument.
+ * @param extra - Additional evidence file names to stage beside the screenshot.
  * @returns The generated GitHub markdown and Jira wiki markup.
  */
-function generate(generator: string, pr: string) {
-  const { root, evidence, bin } = stageInputs();
+function generate(generator: string, pr: string, extra: string[] = []) {
+  const { root, evidence, bin } = stageInputs(extra);
   const result = boundedSpawnSync({
     label: `${generator} for PR ${pr}`,
     command: "python3",
@@ -78,9 +79,10 @@ function generate(generator: string, pr: string) {
 
 /**
  * Stage one screenshot, a journey, a jira-cli config and a `gh` stub.
+ * @param extra - Additional evidence file names to stage.
  * @returns The scratch root, evidence directory and stub PATH entry.
  */
-function stageInputs() {
+function stageInputs(extra: string[]) {
   const root = mkdtempSync(path.join(tmpdir(), "lisa-jira-links-"));
   const evidence = path.join(root, "evidence");
   const bin = path.join(root, "bin");
@@ -93,7 +95,8 @@ function stageInputs() {
     path.join(root, ".config", ".jira", ".config.yml"),
     "server: https://jira.invalid\n"
   );
-  writeFileSync(path.join(evidence, SHOT), "png");
+  for (const name of [SHOT, ...extra])
+    writeFileSync(path.join(evidence, name), "image");
   writeFileSync(path.join(root, "journey.json"), JSON.stringify(JOURNEY));
   writeStub(bin, "gh", "printf 'org/repo\\n'\n");
   return { root, evidence, bin };
@@ -115,5 +118,16 @@ describe.each(GENERATORS)("generated evidence links: %s", generator => {
 
   it("keeps the Jira attachment reference bare", () => {
     expect(generate(generator, "101").wiki).toContain(`!${SHOT}|`);
+  });
+
+  it("links only the evidence kinds post-evidence.sh uploads", () => {
+    // post-evidence.sh uploads only NN-*.png images and refuses a description
+    // linking anything it did not upload, so a .jpg link would fail the run.
+    const jpg = "02-confirm-step-desktop.jpg";
+    const { markdown, wiki } = generate(generator, "101", [jpg]);
+
+    expect(markdown).toContain(`(${RELEASE}/pr-101-${SHOT})`);
+    expect(markdown).not.toContain(jpg);
+    expect(wiki).not.toContain(jpg);
   });
 });
