@@ -165,6 +165,8 @@ const requestArchive = async (url, signal, headers) => {
   try {
     return await fetch(url, { signal, headers });
   } catch {
+    // probe-direction: fail-closed — no response proves scanner identity;
+    // the remaining official route may retry, but exhausted routes refuse.
     return null;
   }
 };

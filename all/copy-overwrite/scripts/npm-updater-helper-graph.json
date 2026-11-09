@@ -266,7 +266,7 @@
       "children": []
     },
     "lib/history-secret-scanner.mjs": {
-      "sha256": "395d6d63569d07b48815c342d004ce4797d894bb621b8b773b61334cd9713ad2",
+      "sha256": "811ec810fa44771705f918b179f01406c7dfde852917e6ec4c9792557ac2eeac",
       "staticImports": [
         "lib/history-secret-evidence.mjs",
         "lib/history-secret-git.mjs",
