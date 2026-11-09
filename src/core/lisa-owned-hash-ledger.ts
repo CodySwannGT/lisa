@@ -12,6 +12,15 @@
 export const LISA_OWNED_HASH_LEDGER: Readonly<
   Record<string, readonly string[]>
 > = Object.freeze({
+  ".lintstagedrc.json": Object.freeze([
+    "058f6bb7ce5b734ba3e62774b1f769c94053c574f2b4db3e59515c325e49c0ef",
+    "5a2f5f9ad454e7b9e1e065cb3b1768f6a9897e453b0afee508b98c96bfa67138",
+    "60bf2d5e86bf9d72f04b8b14368591f104674ff80046fe8bd82e4174ca1523fd",
+    "666922bbd816cd263e716983473e105178ef652600edaa9d499b16c0b2c58673",
+    "773a3e0a2bc20b69a16fc247e74c76eeb20ced8fae654702190bdfade964e364",
+    "815667143181d9c3fe81e9ec24875c84d0454db5b3a2387bc25648002f77b98a",
+    "becdeff2ac3bedf933d7658025f7e798c15325de9a18ff41adc79f2c1b61dab2",
+  ]),
   ".nvmrc": Object.freeze([
     "0775c6feb7638122e8b68d611cd709bf270f7b5adb5d0d2baa9afab8a6c0fc42",
     "5f8c52a9e86a47799ed18c8f9d1e34580cbd81a1a3c9664ebd2443fa50dd198b",
@@ -2397,6 +2406,15 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
 export const LISA_OWNED_HASH_HISTORY_DERIVED: Readonly<
   Record<string, readonly string[]>
 > = Object.freeze({
+  ".lintstagedrc.json": Object.freeze([
+    "058f6bb7ce5b734ba3e62774b1f769c94053c574f2b4db3e59515c325e49c0ef",
+    "5a2f5f9ad454e7b9e1e065cb3b1768f6a9897e453b0afee508b98c96bfa67138",
+    "60bf2d5e86bf9d72f04b8b14368591f104674ff80046fe8bd82e4174ca1523fd",
+    "666922bbd816cd263e716983473e105178ef652600edaa9d499b16c0b2c58673",
+    "773a3e0a2bc20b69a16fc247e74c76eeb20ced8fae654702190bdfade964e364",
+    "815667143181d9c3fe81e9ec24875c84d0454db5b3a2387bc25648002f77b98a",
+    "becdeff2ac3bedf933d7658025f7e798c15325de9a18ff41adc79f2c1b61dab2",
+  ]),
   ".nvmrc": Object.freeze([
     "0775c6feb7638122e8b68d611cd709bf270f7b5adb5d0d2baa9afab8a6c0fc42",
     "5f8c52a9e86a47799ed18c8f9d1e34580cbd81a1a3c9664ebd2443fa50dd198b",
