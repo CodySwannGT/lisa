@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.100.4](https://github.com/CodySwannGT/lisa/compare/v4.100.3...v4.100.4) (2026-11-09)
+
+
+### Bug Fixes
+
+* recover pinned scanner downloads through the official API ([9aecc15](https://github.com/CodySwannGT/lisa/commit/9aecc158e13a72f045ca21abe74d7980d9d53889)), closes [CodySwannGT/lisa#4751](https://github.com/CodySwannGT/lisa/issues/4751)
+* refresh released lint-staged defaults during updates ([dbb9960](https://github.com/CodySwannGT/lisa/commit/dbb99603940ab6cf463fd4e60f513a7b9a07df99)), closes [CodySwannGT/lisa#4662](https://github.com/CodySwannGT/lisa/issues/4662)
+
 ### [4.100.3](https://github.com/CodySwannGT/lisa/compare/v4.100.2...v4.100.3) (2026-11-09)
 
 
