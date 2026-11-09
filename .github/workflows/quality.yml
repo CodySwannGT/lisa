@@ -3057,6 +3057,12 @@ jobs:
           set -euo pipefail
           bun run lisa-test-run -- --adapter vitest -- vitest run \
             tests/unit/hooks/block-host-name-leak.test.ts \
+            tests/unit/hooks/block-host-name-launchers.test.ts \
+            tests/unit/opencode/block-host-name-leak-plugin.test.ts \
+            tests/unit/opencode/hooks-installer.test.ts \
+            tests/unit/opencode/host-name-emit.test.ts \
+            tests/unit/opencode/plugin-support-file-staging.test.ts \
+            tests/unit/opencode/support-file-parity.test.ts \
             tests/unit/hooks/shipped-hook-companions.test.ts \
             tests/unit/scripts/generate-agy-plugin-artifacts.test.ts \
             --reporter=verbose

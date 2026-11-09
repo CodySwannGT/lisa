@@ -41,6 +41,11 @@ export const PLUGIN_CATALOG: readonly PluginCatalogEntry[] = [
     forProjectTypes: ["*"],
   },
   {
+    id: "block-host-name-leak",
+    templateFilename: "lisa-block-host-name-leak.ts",
+    forProjectTypes: ["*"],
+  },
+  {
     id: "session-bootstrap",
     templateFilename: "lisa-session-bootstrap.ts",
     forProjectTypes: ["*"],
