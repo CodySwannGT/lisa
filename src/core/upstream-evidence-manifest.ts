@@ -1029,7 +1029,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/hooks/block-host-name-leak.agy.sh":
       "9522a2db621178d9cee5bf70ff3948251c5043868f372924bfee19126dbd1c41",
     "plugins/src/base/hooks/block-host-name-leak.mjs":
-      "af54edf21348b807514fd63a1d98c7cdb458e438f3720ce7161dc52eb3ac7781",
+      "c7f282007e4c5fe22be30343408949e0d2cec59d42b1c0be6b0f241b809452a8",
     "plugins/src/base/hooks/block-host-name-leak.sh":
       "e0b43b99104e0879d1f855f2f974c9534a7e66a70821647f8b6d65811d0e3133",
     "plugins/src/base/hooks/block-instruction-file-edits.agy.sh":
@@ -1071,7 +1071,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/hooks/guard-dedupe.bash":
       "aa82809f78906811c1ca56054848e21f22a21e1d7cf70803be40a00ed25ba480",
     "plugins/src/base/hooks/host-name-command-context.mjs":
-      "48252b2ff8b97bd5a673f6dc1d963b373432ef2ca2e4f92f025fa9738e8f4484",
+      "24a233afb2fdae8daa5115f36a5704551817a73e09249d3e1e8805df449afb9b",
     "plugins/src/base/hooks/inject-flow-context.sh":
       "f4ab07065762d592c0fc36be2e4918e767b293aaa4094b9d85d69010576c6dbf",
     "plugins/src/base/hooks/inject-resolved-config.mjs":
@@ -2705,7 +2705,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/copy-codex-scripts.mjs":
       "2d7082d5033088c85f66995aee9e3ee1e7751435e65bfde8e1cb002e6689d476",
     "scripts/copy-opencode-plugin-templates.mjs":
-      "a16291d2499a4c8e406574b7926f6eca99b078720a187bcc057772d778994ec0",
+      "dad159c11136858215b6f9eac35205c943dcabf70fdac74bfee6093fd839b6e9",
     "scripts/deployed-guard-advice.mjs":
       "c7471b6972b26bb0c2a66c680feb4980ec67d3dbd92732f48fe76c72ed7790f5",
     "scripts/detect-stale-workflow-inputs.mjs":
@@ -2792,6 +2792,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "de84b26b002560de209c81290373522c636a53a4e657a138441e76fe6752a57d",
     "scripts/lib/host-name-field-occurrence-cases.mjs":
       "1ae5faec18340dc1a310493148b98431eae91167aefa88878432ac40206e37bc",
+    "scripts/lib/host-name-launcher-cases.mjs":
+      "af4a8c8486aa666f2bc20c965844a9fca1baf8470439944ea82fa6e8f39be256",
     "scripts/lib/host-name-review-cases.mjs":
       "3ec645cbaae017007abdc471f8ce6758ad9dfe43f4efd0dbc1b65b163076bd0d",
     "scripts/lib/host-name-target-cases.mjs":
@@ -2957,7 +2959,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/verify-health-deterministic-built.mjs":
       "9016663d16c93d0d0d74b41a957d200cd3aa8ef5b12e0879d24ba5ea041ab307",
     "scripts/verify-host-name-target-scope.mjs":
-      "8f92d0984b202e6fab0bdf0163ca1069409e4d84ffec75bd40ac9595f10fff31",
+      "58e148c4f33b2ef923335e7cc8e625b3c8a0f200e0494f12bda9d2a1f4c9e022",
     "scripts/verify-learner-frontmatter-built.mjs":
       "b8ac0240726721a047811e98d42f661426abc3e427a0c86f3b20082eb498809d",
     "scripts/verify-native-safety-net-retirement.mjs":
@@ -10754,6 +10756,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "scripts/lib/hook-registration-audit.mjs": true,
     "scripts/lib/host-name-expanded-command-cases.mjs": true,
     "scripts/lib/host-name-field-occurrence-cases.mjs": true,
+    "scripts/lib/host-name-launcher-cases.mjs": true,
     "scripts/lib/host-name-review-cases.mjs": true,
     "scripts/lib/host-name-target-cases.mjs": true,
     "scripts/lib/invoked-as-script.mjs": true,
@@ -11349,6 +11352,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "src/opencode/mcp-installer.ts": true,
     "src/opencode/plugin-catalog.ts": true,
     "src/opencode/plugin-templates/lisa-block-direct-issue-create.ts": true,
+    "src/opencode/plugin-templates/lisa-block-host-name-leak.ts": true,
     "src/opencode/plugin-templates/lisa-block-instruction-file-edits.ts": true,
     "src/opencode/plugin-templates/lisa-block-managed-file-edits.ts": true,
     "src/opencode/plugin-templates/lisa-block-migration-edits.ts": true,
@@ -11577,6 +11581,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/fixtures/npm-update-rails-mysql-native.mjs": true,
     "tests/fixtures/npm-update-rails-mysql-native.sh": true,
     "tests/fixtures/npm-update-rails-mysql-observation.mjs": true,
+    "tests/fixtures/opencode/host-name-guard-callback.mjs": true,
     "tests/fixtures/packaged-apply/reference-package.mjs": true,
     "tests/fixtures/packaged-apply/run.mjs": true,
     "tests/fixtures/packaged-apply/symlink-control.mjs": true,
@@ -12065,6 +12070,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/support/codex-compatibility-seed.mjs": true,
     "tests/support/codex-compatibility-state.mjs": true,
     "tests/support/git-executable.ts": true,
+    "tests/support/host-name-guard-fixture.ts": true,
     "tests/support/prune-fixtures.ts": true,
     "tests/support/qualified-host-bun.ts": true,
     "tests/support/qualified-updater-node.ts": true,
@@ -12634,6 +12640,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/hooks/block-direct-issue-create-state-declaration.test.ts": true,
     "tests/unit/hooks/block-direct-issue-create.test.ts": true,
     "tests/unit/hooks/block-generated-artifact-edits.test.ts": true,
+    "tests/unit/hooks/block-host-name-launchers.test.ts": true,
     "tests/unit/hooks/block-host-name-leak.test.ts": true,
     "tests/unit/hooks/block-instruction-file-edits.test.ts": true,
     "tests/unit/hooks/block-managed-file-edits-apply-patch.test.ts": true,
@@ -12801,6 +12808,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/opencode/block-direct-issue-create-cross-repo-parity.test.ts": true,
     "tests/unit/opencode/block-direct-issue-create-noexec-parity.test.ts": true,
     "tests/unit/opencode/block-direct-issue-create-structured-parity.test.ts": true,
+    "tests/unit/opencode/block-host-name-leak-plugin.test.ts": true,
     "tests/unit/opencode/block-managed-file-edits-plugin.test.ts": true,
     "tests/unit/opencode/block-migration-edits-plugin.test.ts": true,
     "tests/unit/opencode/block-no-verify-emit.test.ts": true,
@@ -12809,6 +12817,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/opencode/command-transformer.test.ts": true,
     "tests/unit/opencode/discharge-work-item-gates-plugin.test.ts": true,
     "tests/unit/opencode/hooks-installer.test.ts": true,
+    "tests/unit/opencode/host-name-emit.test.ts": true,
     "tests/unit/opencode/kane-skill-parity.test.ts": true,
     "tests/unit/opencode/manifest.test.ts": true,
     "tests/unit/opencode/mcp-installer.test.ts": true,
