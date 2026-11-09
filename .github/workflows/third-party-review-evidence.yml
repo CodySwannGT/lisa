@@ -34,9 +34,21 @@
 # scope. The prover reads the head's evidence through the API by SHA, so it
 # never needs the head's files: the commit to judge arrives as --sha.
 #
-# NOTHING IN THE JOB POSTS A STATUS OR A CHECK RUN. The verdict is the job's
-# own conclusion. The job's own check run belongs to a suite GitHub Actions
-# created, which by the rule above never starts this workflow again.
+# THE VERDICT IS PUBLISHED ON THE HEAD IT JUDGED (#4630). A `status` or
+# `check_run` run belongs to the default branch's latest commit, so the job's
+# own check run lands there — never on the pull request head it judged, where
+# nobody reading the pull request would see it. The prover's verdict is saved
+# as JSON instead of ending the job, and the publish step creates ONE check
+# run on `EVIDENCE_SHA`: `🕵️ Third-party review evidence (<reviewer>)`, or
+# without the reviewer on the manual path, concluding `success` for SATISFIED
+# and SUBSTITUTED (the title says which) and `failure` for UNSATISFIED and for
+# a pull-request read that failed. The job itself concludes `success` once the
+# verdict is published, so default-branch commits stop collecting other pull
+# requests' verdicts. It FAILS when the prover crashed or gave no verdict, or
+# when GitHub refused the check run, so broken machinery still shows.
+# Events caused by the Actions token start no workflow run, so the published
+# check run never wakes this workflow again; neither does the job's own,
+# which belongs to a suite GitHub Actions created.
 #
 # WHAT MAKES IT RED. Neither real third-party review evidence at the head, nor a
 # posted adversarial-review substitute for that same head. A merge path that
@@ -44,8 +56,8 @@
 #
 # THREE NO-OPS THAT SAY SO. No reviewer configured, a commit that is nobody's
 # pull request head, and a status or check run from an app nobody declared are
-# all no-ops — and each PRINTS that it is one. A silent pass is the defect this
-# exists to end, so it is not reproduced here.
+# all no-ops — and each PRINTS that it is one, and why it publishes nothing.
+# A silent pass is the defect this exists to end, so it is not reproduced here.
 # A failed or non-list pull-request read is UNREADABLE, not a no-op: the prover
 # reports pull-requests-unreadable and exits 1 without reading more evidence.
 #
@@ -54,7 +66,8 @@
 # the verdict, up to seven statuses on one head. Judging the first would report
 # a finding on 100% of pull requests, and a guard that fires every time gets
 # deleted rather than read. The settled status fires its own event; a check
-# run wakes this only once it has `completed`.
+# run wakes this only once it has `completed`. A deferred run publishes
+# nothing: the answer's own event wakes the run that publishes it.
 #
 # THE TWO ARMS COVER DIFFERENT HALVES. This one wakes on the reviewer's answer
 # and catches a reviewer that ANSWERED HOLLOW. `review-evidence.yml` runs on the
@@ -72,11 +85,13 @@
 # resolution `review-evidence.yml` already does. When neither path resolves the
 # step FAILS and names what is missing.
 #
-# NOT A REQUIRED CONTEXT. This job is absent from `.github/required-checks.json`,
-# so a red run here is visible and does not yet block a merge. Promoting it is
-# gated by `scripts/check-required-check-promotions.mjs` and needs the live
-# ruleset edited in an admin console — a human action, and deliberately not part
-# of #3591, which is a detection change only.
+# NOT A REQUIRED CONTEXT. The check run the publish step creates on each pull
+# request head — `🕵️ Third-party review evidence (<reviewer>)` — is absent from
+# `.github/required-checks.json`, so a failure there is visible on the pull
+# request and does not yet block a merge. Promoting it is gated by
+# `scripts/check-required-check-promotions.mjs` and needs the live ruleset
+# edited in an admin console — a human action, and deliberately not part of
+# #3591 or #4630, which change detection and where its answer is shown only.
 
 name: 🕵️ Third-Party Review Evidence
 
@@ -93,12 +108,13 @@ on:
 
 # A reviewer's words arrive by two routes: a status's description needs
 # `statuses: read` (the status rollup drops it entirely), and a check run's
-# summary needs `checks: read`. `pull-requests: read` finds the head pull
-# request and its comments.
+# summary needs `checks` — `write`, which includes reading, because the
+# verdict is published as a check run on the head it judged.
+# `pull-requests: read` finds the head pull request and its comments.
 permissions:
   contents: read
   statuses: read
-  checks: read
+  checks: write
   pull-requests: read
 
 # One run per event, head and reviewer. The reviewer and the event are part of
@@ -134,7 +150,10 @@ jobs:
           package-manager-cache: false
           node-version: ${{ vars.NODE_VERSION || '24.21.0' }}
 
+      # The verdict is saved, with the prover's exit code, rather than ending
+      # the job: the next step publishes it on the head it judged.
       - name: 🕵️ Prove review evidence, or a posted substitute, at this head
+        id: prove
         env:
           GH_TOKEN: ${{ github.token }}
           GITHUB_REPOSITORY: ${{ github.repository }}
@@ -156,8 +175,29 @@ jobs:
             echo "::error title=Review-evidence prover missing::$script does not exist, so no review evidence was read for this commit. An absent prover is a FAILURE, never a skip — a job that passes because it found nothing to run with is the same false green this guard exists to refuse."
             exit 1
           fi
+          verdict="$RUNNER_TEMP/third-party-review-verdict.json"
+          status=0
           if [ -n "${EVIDENCE_CONTEXT:-}" ]; then
-            node "$script" --sha="$EVIDENCE_SHA" --context="$EVIDENCE_CONTEXT"
+            node "$script" --sha="$EVIDENCE_SHA" --context="$EVIDENCE_CONTEXT" --json >"$verdict" || status=$?
           else
-            node "$script" --sha="$EVIDENCE_SHA"
+            node "$script" --sha="$EVIDENCE_SHA" --json >"$verdict" || status=$?
           fi
+          echo "prover=$script" >>"$GITHUB_OUTPUT"
+          echo "exit_code=$status" >>"$GITHUB_OUTPUT"
+
+      # Publishes the saved verdict as a check run on EVIDENCE_SHA, or nothing
+      # — saying why — when there is no pull request head to show it on or the
+      # run cannot change the answer. Not `continue-on-error`: a refused or
+      # impossible publish fails the job and prints GitHub's refusal, and so
+      # does a prover that crashed or saved no verdict.
+      - name: 🕵️ Publish the verdict on the head it judged
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          EVIDENCE_SHA: ${{ github.event.check_run.head_sha || github.event.sha || inputs.sha }}
+          EVIDENCE_CONTEXT: ${{ github.event.check_run.name || github.event.context }}
+          PROVER: ${{ steps.prove.outputs.prover }}
+          PROVER_EXIT: ${{ steps.prove.outputs.exit_code }}
+        run: |
+          set -eu
+          node "$PROVER" --publish="$RUNNER_TEMP/third-party-review-verdict.json" --prover-exit="$PROVER_EXIT" --sha="$EVIDENCE_SHA" --context="${EVIDENCE_CONTEXT:-}"

@@ -204,8 +204,9 @@ export const CHECK_RUNS_ROUTE = `repos/${REPO}/commits/${HEAD}/check-runs?check_
 /** The routes every evaluating run reads, keyed for the shim. */
 export const ROUTES = Object.freeze({
   pulls: `repos/${REPO}/commits/${HEAD}/pulls`,
-  status: `repos/${REPO}/commits/${HEAD}/status`,
+  status: `repos/${REPO}/commits/${HEAD}/status?per_page=100`,
   checkRuns: CHECK_RUNS_ROUTE,
   comments: `repos/${REPO}/issues/${PULL}/comments?per_page=100`,
   reviews: `repos/${REPO}/pulls/${PULL}/reviews`,
+  publish: `POST repos/${REPO}/check-runs`,
 });

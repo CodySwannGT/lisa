@@ -15,8 +15,15 @@
  * postinstall, and a repair that edits a host-owned workflow there and gets it
  * wrong is silent. `retireUnmodified` can only delete, and nothing upgrades a
  * create-only file in place. The prover the workflow runs is copy-overwrite, so
- * it is already current; only the workflow's own trigger, token, wiring and
- * checkout are stale.
+ * it is already current; only the workflow's own trigger, token, wiring,
+ * checkout and steps are stale.
+ *
+ * A copy can also run and judge correctly and still show nobody its verdict:
+ * one seeded before CodySwannGT/lisa#4630 ends its job on the prover's exit
+ * code, and GitHub attaches that job's check run to the default branch's
+ * latest commit rather than to the pull request head it judged. Such a copy is
+ * reported with the two steps that save the verdict and publish it on the
+ * head, and the `checks: write` grant that lets them.
  *
  * Every filesystem answer is three-valued — present, absent, or
  * undeterminable — and the last one fails rather than passing quietly: a
@@ -35,6 +42,7 @@ import {
   type EvidenceSeedReading,
 } from "../core/third-party-evidence-seed.js";
 import type { DoctorCheck } from "./doctor.js";
+import { EVIDENCE_STEPS_LINES } from "./doctor-third-party-evidence-steps.js";
 
 /** Name of the check as doctor reports it. */
 export const THIRD_PARTY_EVIDENCE_SEED_CHECK_NAME =
@@ -68,17 +76,22 @@ export const CHECK_RUN_TRIGGER_LINES = [
   "    types: [completed]",
 ] as const;
 
-/** The permission line to add under an existing `permissions:` block. */
-export const CHECKS_READ_LINE = "  checks: read";
+/**
+ * The permission line to set under an existing `permissions:` block. `write`
+ * includes reading, so it replaces a `checks: read` line rather than joining it.
+ */
+export const CHECKS_WRITE_LINE = "  checks: write";
 
 /** The whole block, for a copy missing any scope the prover reads with. */
 export const PERMISSIONS_BLOCK_LINES = [
   "permissions:",
   "  contents: read",
   "  statuses: read",
-  CHECKS_READ_LINE,
+  CHECKS_WRITE_LINE,
   "  pull-requests: read",
 ] as const;
+
+export { EVIDENCE_STEPS_LINES };
 
 /** The values that carry the run's commit and reviewer to the prover. */
 export const RUN_IDENTITY_LINES = [
@@ -126,11 +139,7 @@ function gapsOf(reading: EvidenceSeedReading): string[] {
       : [
           "it has no `check_run` trigger, so it never starts when the reviewer reports through a check run",
         ]),
-    ...(reading.readsChecks
-      ? []
-      : [
-          "it does not grant `checks: read`, so its prover cannot read the reviewer's check run",
-        ]),
+    ...checksGapOf(reading),
     ...(reading.readsStatusesAndPullRequests
       ? []
       : [
@@ -151,23 +160,52 @@ function gapsOf(reading: EvidenceSeedReading): string[] {
           "it checks out the head of the event that woke it, so a pull request's own code — a fork's included — runs with this repository's token and cache scope",
         ]
       : []),
+    ...(reading.publishesVerdict
+      ? []
+      : [
+          "it never publishes its verdict on the pull request head it judged, so the verdict lands only on the default branch's latest commit, where no pull request shows it",
+        ]),
   ];
+}
+
+/**
+ * The gap in what the token may do with check runs, if any.
+ * @param reading - What the copy does
+ * @returns One clause, or none
+ */
+function checksGapOf(reading: EvidenceSeedReading): string[] {
+  if (!reading.readsChecks) {
+    return [
+      "it does not grant `checks: write`, so its prover cannot read the reviewer's check run, and its verdict cannot be published on the pull request head",
+    ];
+  }
+  return reading.writesChecks
+    ? []
+    : [
+        "it grants `checks: read` but not `checks: write`, so its verdict cannot be published on the pull request head it judged",
+      ];
 }
 
 /**
  * The exact lines that grant what the prover reads with.
  *
  * Only a copy whose block already reads statuses and pull requests gets the one
- * `checks: read` line. Every other copy gets the whole block: a block holding
- * only `checks: read` sets every other scope to none, and the prover could then
- * no longer find the pull request it is judging.
+ * `checks: write` line, in place of any `checks: read`. Every other copy gets
+ * the whole block: a block holding only `checks: write` sets every other scope
+ * to none, and the prover could then no longer find the pull request it is
+ * judging.
  * @param reading - What the copy does
  * @returns The permission remedy, or nothing when the grants are there
  */
 function permissionRemedyOf(reading: EvidenceSeedReading): string[] {
-  if (reading.readsChecks && reading.readsStatusesAndPullRequests) return [];
+  if (reading.writesChecks && reading.readsStatusesAndPullRequests) return [];
   if (reading.declaresPermissions && reading.readsStatusesAndPullRequests) {
-    return ["Add under `permissions:`:", CHECKS_READ_LINE];
+    return [
+      reading.readsChecks
+        ? "Add under `permissions:`, in place of `checks: read`:"
+        : "Add under `permissions:`:",
+      CHECKS_WRITE_LINE,
+    ];
   }
   return [
     reading.declaresPermissions
@@ -202,6 +240,12 @@ function remedyOf(reading: EvidenceSeedReading): string[] {
           "Delete the `ref:` line under the `actions/checkout` step. The default branch is then checked out, and the commit to judge still arrives as --sha.",
         ]
       : []),
+    ...(reading.publishesVerdict
+      ? []
+      : [
+          "Replace the prover step with these two steps: the first saves the verdict, the second publishes it on the head it judged.",
+          ...EVIDENCE_STEPS_LINES,
+        ]),
   ];
 }
 
@@ -212,7 +256,7 @@ function remedyOf(reading: EvidenceSeedReading): string[] {
  */
 export function describeStaleSeed(reading: EvidenceSeedReading): string {
   return [
-    `${THIRD_PARTY_EVIDENCE_WORKFLOW} is not ready for a reviewer that reports through a check run: ${gapsOf(reading).join("; and ")}. ` +
+    `${THIRD_PARTY_EVIDENCE_WORKFLOW} is not ready for a reviewer that reports through a check run, or for its verdict to reach the pull request: ${gapsOf(reading).join("; and ")}. ` +
       "Lisa seeded this file once and will not rewrite it; the prover it runs is already current.",
     ...remedyOf(reading),
     `The current seed, ${SHIPPED_SEED} in the @codyswann/lisa package, is the full reference.`,
@@ -244,7 +288,7 @@ export async function checkThirdPartyEvidenceSeed(
     const reading = readEvidenceSeed(workflowText);
     if (isCurrentEvidenceSeed(reading)) {
       return ok(
-        `${THIRD_PARTY_EVIDENCE_WORKFLOW} wakes on a completed check run, can read it, and judges it from the default branch`
+        `${THIRD_PARTY_EVIDENCE_WORKFLOW} wakes on a completed check run, can read it, judges it from the default branch, and publishes its verdict on the head it judged`
       );
     }
     return {

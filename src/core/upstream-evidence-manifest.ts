@@ -21,7 +21,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/check-third-party-action-pins.mjs":
       "4b6e1d444c50da031b848215913df7bfe87091b5eee2debfb60d5d0c42abe343",
     "all/copy-overwrite/scripts/check-third-party-review-evidence.mjs":
-      "f74f4fd1e6d44511a358b9aada80600bb6be62228eb65f67dfb20284ec9b35bd",
+      "7cb1ff685a7b92624f4e91035d6ae12aea818b8e2ce28f0e26d67bcddb3a2d1b",
     "all/copy-overwrite/scripts/check-threshold-ratchet.mjs":
       "d4afc90ba8faf10925fff5fb0d6cd0ace22df2eaa0ec609ee969d0ec84092299",
     "all/copy-overwrite/scripts/check-workflow-load-failures.mjs":
@@ -3097,7 +3097,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/create-only/.github/workflows/review-evidence.yml":
       "f8e7aa7aade0797fd07831d35ce6626bc4acbd13905f6cfac68ef404721c774e",
     "typescript/create-only/.github/workflows/third-party-review-evidence.yml":
-      "55f56560e76bd71264064a608e6b260c98055503256e5254340589c0a4ed45f9",
+      "6e3a09d81d970106d50917273599d721490a7773c01bb5d3fb8c7fd859cd8dc3",
     "typescript/create-only/.gitleaksignore":
       "6927d376648675331801c798a4390b652a22a3e5d350cd26f36d42c10af02d67",
     "typescript/create-only/audit.ignore.local.json":
@@ -10935,6 +10935,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "src/cli/doctor-stale-banner-scan.ts": true,
     "src/cli/doctor-stale-managed-banner.ts": true,
     "src/cli/doctor-third-party-evidence-seed.ts": true,
+    "src/cli/doctor-third-party-evidence-steps.ts": true,
     "src/cli/doctor-traceability-gate.ts": true,
     "src/cli/doctor-two-channel-drift.ts": true,
     "src/cli/doctor-wiki.ts": true,
@@ -11729,6 +11730,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/helpers/test-utils.ts": true,
     "tests/helpers/third-party-review-cli-fixture.ts": true,
     "tests/helpers/third-party-review-observations.ts": true,
+    "tests/helpers/third-party-review-workflow-steps.ts": true,
+    "tests/helpers/third-party-review-workflow.ts": true,
     "tests/helpers/tmpdir-growth-cap-boundary.ts": true,
     "tests/helpers/tmpdir-growth-command-harness.ts": true,
     "tests/helpers/tmpdir-growth-darwin-performance.ts": true,
@@ -12005,6 +12008,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/third-party-review-check-run-objection.test.ts": true,
     "tests/integration/third-party-review-check-run-parity.test.ts": true,
     "tests/integration/third-party-review-check-run-refusals.test.ts": true,
+    "tests/integration/third-party-review-evidence-workflow-executed.test.ts": true,
     "tests/integration/third-party-review-evidence-workflow.test.ts": true,
     "tests/integration/third-party-review-pull-read-cli.test.ts": true,
     "tests/integration/third-party-review-substitute-authors-cli.test.ts": true,
@@ -12138,6 +12142,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/cli/doctor-stale-banner-scan.test.ts": true,
     "tests/unit/cli/doctor-stale-managed-banner.test.ts": true,
     "tests/unit/cli/doctor-starter-health.test.ts": true,
+    "tests/unit/cli/doctor-third-party-evidence-publish.test.ts": true,
     "tests/unit/cli/doctor-third-party-evidence-seed-errno.test.ts": true,
     "tests/unit/cli/doctor-third-party-evidence-seed.test.ts": true,
     "tests/unit/cli/doctor-traceability-gate.test.ts": true,
@@ -12511,6 +12516,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/core/stack-plugin-rules-split.test.ts": true,
     "tests/unit/core/stale-managed-banner.test.ts": true,
     "tests/unit/core/third-party-action-pins.test.ts": true,
+    "tests/unit/core/third-party-evidence-seed-publish.test.ts": true,
     "tests/unit/core/third-party-evidence-seed.test.ts": true,
     "tests/unit/core/two-channel-delivery-scan.test.ts": true,
     "tests/unit/core/two-channel-delivery.test.ts": true,
@@ -13145,6 +13151,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/terminal-transition-outcomes.test.ts": true,
     "tests/unit/scripts/third-party-action-pins-warn-mode.test.ts": true,
     "tests/unit/scripts/third-party-review-check-run.test.ts": true,
+    "tests/unit/scripts/third-party-review-evidence-publish.test.ts": true,
     "tests/unit/scripts/third-party-review-evidence.test.ts": true,
     "tests/unit/scripts/third-party-review-substitute-authors.test.ts": true,
     "tests/unit/scripts/threshold-ratchet-baseline.test.ts": true,
