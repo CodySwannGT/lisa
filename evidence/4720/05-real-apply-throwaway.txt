@@ -1,0 +1,59 @@
+## captured_at 2026-11-09T08:19:18Z  worktree HEAD f3dfe2aacb582e9f5ce8d1d08ef6e04c14f25c62
+## cwd /Users/codysai/.claude/jobs/efd4625e/tmp/scratch-apply2  (scratch dir; its .lisa.config.json:)
+{
+  "github": { "org": "CodySwannGT", "repo": "lisa" },
+  "verification": {
+    "completion": {
+      "evidenceRelease": "lisa-prune-verify-1794212317",
+      "acceptedEvidenceReleases": ["lisa-prune-verify-1794212317"]
+    }
+  }
+}
+## source release before
+{"assets":[{"created_at":"2026-11-09T08:19:02Z","digest":"sha256:4de21a6e55b992a5e72bfe2bbe229f5670c126fdcc50401edad25659a5595249","id":726728597,"name":"completion-cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc-r1-dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd.json","size":257},{"created_at":"2026-11-09T08:18:53Z","digest":"sha256:3984df8d8dbcf3ce61f89e9dbb586eb4d3d7f896fceef4e57abe896675b43e30","id":726728123,"name":"dummy-a.txt","size":26},{"created_at":"2026-11-09T08:18:53Z","digest":"sha256:4d21e139fa12649937930328fc7d9bc637d6c243509674e63c5defc17cd7445b","id":726728129,"name":"dummy-b.txt","size":28}],"draft":false,"id":438876066,"tag_name":"lisa-prune-verify-1794212317"}
+## archive release before (expect 404)
+{"message":"Not Found","documentation_url":"https://docs.github.com/rest/releases/releases#get-a-release-by-tag-name","status":"404"}gh: Not Found (HTTP 404)
+## $ node lisa-evidence-prune.mjs --release lisa-prune-verify-1794212317 --min-age-days 0   (dry run)
+Evidence release: lisa-prune-verify-1794212317 (CodySwannGT/lisa)
+Total files: 3
+Pinned: 2 (completion records and files they depend on)
+Kept as recent or not yet superseded: 0
+Prune candidates: 1
+Archive release (would use): lisa-prune-verify-1794212317-archive-2026-11
+  dummy-b.txt  28 bytes  uploaded 2026-11-09T08:18:53Z
+Dry run: nothing was changed. Re-run with --apply to archive these files and then remove them.
+exit=0
+## archive release after dry run (expect 404 still)
+{"message":"Not Found","documentation_url":"https://docs.github.com/rest/releases/releases#get-a-release-by-tag-name","status":"404"}gh: Not Found (HTTP 404)
+## $ node lisa-evidence-prune.mjs --release lisa-prune-verify-1794212317 --min-age-days 0 --apply
+Evidence release: lisa-prune-verify-1794212317 (CodySwannGT/lisa)
+Total files: 3
+Pinned: 2 (completion records and files they depend on)
+Kept as recent or not yet superseded: 0
+Prune candidates: 1
+Archive release: lisa-prune-verify-1794212317-archive-2026-11
+  dummy-b.txt  28 bytes  uploaded 2026-11-09T08:18:53Z
+Archived to lisa-prune-verify-1794212317-archive-2026-11 and removed: 1
+exit=0
+## source release after apply
+{"assets":[{"created_at":"2026-11-09T08:19:02Z","digest":"sha256:4de21a6e55b992a5e72bfe2bbe229f5670c126fdcc50401edad25659a5595249","id":726728597,"name":"completion-cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc-r1-dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd.json","size":257},{"created_at":"2026-11-09T08:18:53Z","digest":"sha256:3984df8d8dbcf3ce61f89e9dbb586eb4d3d7f896fceef4e57abe896675b43e30","id":726728123,"name":"dummy-a.txt","size":26}],"id":438876066,"tag_name":"lisa-prune-verify-1794212317"}
+## archive release after apply
+{"assets":[{"created_at":"2026-11-09T08:20:29Z","digest":"sha256:4d21e139fa12649937930328fc7d9bc637d6c243509674e63c5defc17cd7445b","id":726733066,"name":"dummy-b.txt","size":28,"state":"uploaded"}],"body":"Archived Lisa evidence","draft":false,"id":438877340,"name":"lisa-prune-verify-1794212317-archive-2026-11","prerelease":false,"tag_name":"lisa-prune-verify-1794212317-archive-2026-11","target_commitish":"main"}
+## latest release (must not be the throwaway or its archive)
+v4.100.2
+## independent byte check: download archive copy, hash, compare with original local file
+4d21e139fa12649937930328fc7d9bc637d6c243509674e63c5defc17cd7445b  /Users/codysai/.claude/jobs/efd4625e/tmp/scratch-apply2/readback/dummy-b.txt
+4d21e139fa12649937930328fc7d9bc637d6c243509674e63c5defc17cd7445b  /Users/codysai/.claude/jobs/efd4625e/tmp/scratch-apply2/files/dummy-b.txt
+cmp: identical
+## $ node lisa-evidence-prune.mjs --release lisa-prune-verify-1794212317 --min-age-days 0 --apply   (second run: idempotence)
+Evidence release: lisa-prune-verify-1794212317 (CodySwannGT/lisa)
+Total files: 2
+Pinned: 2 (completion records and files they depend on)
+Kept as recent or not yet superseded: 0
+Prune candidates: 0
+Archive release: lisa-prune-verify-1794212317-archive-2026-11
+Archived to lisa-prune-verify-1794212317-archive-2026-11 and removed: 0
+exit=0
+## source + archive after second apply
+["completion-cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc-r1-dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd.json","dummy-a.txt"]
+["dummy-b.txt"]

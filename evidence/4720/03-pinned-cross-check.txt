@@ -1,0 +1,61 @@
+## captured_at 2026-11-09T08:17:27Z
+## accepted evidence releases (tag matches ^pr-assets(-YYYY-MM)?$):
+438440969	pr-assets-2026-11
+330823729	pr-assets
+## records downloaded with: gh release download <tag> --repo CodySwannGT/lisa --pattern 'completion-*.json' --dir <fresh dir>
+pr-assets: 37   pr-assets-2026-11: 18
+## jq program
+# Input: --slurpfile recs <records...> ; stdin: prune --json report.
+# Collect every number and every 64-hex token anywhere in any record, then
+# report each candidate whose id or sha256 appears among them.
+def nums: [ $recs[] | .. | (numbers, (strings | select(test("^[0-9]{1,16}$")) | tonumber)) ] | unique;
+def hexes: [ $recs[] | .. | strings | ascii_downcase | [ scan("[0-9a-f]{64}") ] | .[] ] | unique;
+(nums) as $n | (hexes) as $h |
+{
+  records: ($recs | length),
+  record_numbers: ($n | length),
+  record_hex_digests: ($h | length),
+  candidates: (.candidates | length),
+  candidates_missing_sha256: ([ .candidates[] | select((.sha256 // "") | test("^[0-9a-f]{64}$") | not) ] | length),
+  id_hits: [ .candidates[] | select(.id as $i | $n | index($i)) | .name ],
+  sha_hits: [ .candidates[] | select(.sha256 as $s | $h | index($s)) | .name ]
+}
+## $ jq --slurpfile recs <all 55 records> -f crosscheck.jq <prune --release pr-assets --json>
+{
+  "records": 55,
+  "record_numbers": 1245,
+  "record_hex_digests": 682,
+  "candidates": 288,
+  "candidates_missing_sha256": 0,
+  "id_hits": [],
+  "sha_hits": []
+}
+## completion-*.json among candidates (expect 0)
+0
+## candidates violating age rules (created_at >= newest record or >= now-14d; expect 0)
+0
+## report summary
+{
+  "total": 1000,
+  "pinned": 446,
+  "kept": 266,
+  "candidates": 288,
+  "applied": false,
+  "archiveRelease": "pr-assets-archive-2026-11",
+  "newestRecordAt": "2026-11-09T07:37:14.000Z",
+  "minAgeDays": 14
+}
+## BITE CONTROL: inject asset_id 726269766 and sha256 14eb1711...d069 taken from a pr-assets-2026-11 record (cross-release pins)
+{
+  "records": 55,
+  "record_numbers": 1245,
+  "record_hex_digests": 682,
+  "candidates": 290,
+  "candidates_missing_sha256": 0,
+  "id_hits": [
+    "BITE-id-only"
+  ],
+  "sha_hits": [
+    "BITE-sha-only"
+  ]
+}
