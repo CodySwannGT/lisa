@@ -1462,7 +1462,7 @@
       "children": []
     },
     "npm-updater-gate.Dockerfile": {
-      "sha256": "f5d85f8fccfd97f7800c03430a38c19d584314b0a6a63aa1de28fb62897fbcc5",
+      "sha256": "850a4ee809d49e3d9da6bdd674cb43e4f5a6dcfa0aa73116b1a43caeed42748c",
       "staticImports": [],
       "dynamicImports": [],
       "children": []

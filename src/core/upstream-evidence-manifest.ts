@@ -21,7 +21,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/check-third-party-action-pins.mjs":
       "4b6e1d444c50da031b848215913df7bfe87091b5eee2debfb60d5d0c42abe343",
     "all/copy-overwrite/scripts/check-third-party-review-evidence.mjs":
-      "7654d9f809815ca178d1a81f2757ba1cda06fbc2f15a89ea538625c5a38b65c9",
+      "f74f4fd1e6d44511a358b9aada80600bb6be62228eb65f67dfb20284ec9b35bd",
     "all/copy-overwrite/scripts/check-threshold-ratchet.mjs":
       "d4afc90ba8faf10925fff5fb0d6cd0ace22df2eaa0ec609ee969d0ec84092299",
     "all/copy-overwrite/scripts/check-workflow-load-failures.mjs":
@@ -341,9 +341,9 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/npm-updater-gate-supervisor.c":
       "e7d6ed62ce27a466a097c879372b8c2ec18731371e682d04542de4d83f3daa00",
     "all/copy-overwrite/scripts/npm-updater-gate.Dockerfile":
-      "f5d85f8fccfd97f7800c03430a38c19d584314b0a6a63aa1de28fb62897fbcc5",
+      "850a4ee809d49e3d9da6bdd674cb43e4f5a6dcfa0aa73116b1a43caeed42748c",
     "all/copy-overwrite/scripts/npm-updater-helper-graph.json":
-      "fe29a7b692576d3a3fbfacaf0f6e92d13958daf7c11bbcdbfe3256559f5e11f4",
+      "573c0557a906670ca1354a71f0f5db2811c68edcb8136e613759f6718030f5b7",
     "all/copy-overwrite/scripts/review-evidence-event.mjs":
       "1c5d510bc66f8ba23b6f046246f41182c17946a50126fb88e371d2aec9dfd6b2",
     "all/copy-overwrite/scripts/schemas/lisa-command-envelope.v1.schema.json":
@@ -1419,9 +1419,9 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-detect-tooling/scripts/detect-tooling.mjs":
       "d9419814fc04c935bd7e320e85b1977c9bfc9275d9ea5fb557002ad438ee7925",
     "plugins/src/base/skills/lisa-doctor/SKILL.md":
-      "ab7bb855fd3ebe321e41b0143815f202b70f6ba38f6678791d6d9e933e0c3fd8",
+      "5c90c041d9903c0eb59c224472c863ba8519e03452a634d02a19d760253ac08f",
     "plugins/src/base/skills/lisa-drive-pr-to-merge/SKILL.md":
-      "0edb3ea3e3a3526104c8f9bc1f488faa5036f80543873991bd07220408377309",
+      "9fe422e3ac1f567b19572d738db3f9a07615a3351f07fa3298748e106a2e2b8b",
     "plugins/src/base/skills/lisa-epic-triage/SKILL.md":
       "d02760411249bddbd396f283191fe3e82bb7b95bf9393a19a7025dc5a57c3ab7",
     "plugins/src/base/skills/lisa-evaluation-suite/SKILL.md":
@@ -10853,6 +10853,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "src/cli/doctor-apply-failure.ts": true,
     "src/cli/doctor-apply-freshness.ts": true,
     "src/cli/doctor-cdk-preset-adoption.ts": true,
+    "src/cli/doctor-coderabbit-labeling.ts": true,
     "src/cli/doctor-coderabbit.ts": true,
     "src/cli/doctor-config-shadowing.ts": true,
     "src/cli/doctor-declared-contexts.ts": true,
@@ -11164,6 +11165,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "src/core/audit.ts": true,
     "src/core/bootstrap-environment.ts": true,
     "src/core/cdk-preset-adoption.ts": true,
+    "src/core/coderabbit-labeling.ts": true,
     "src/core/config-shadowing.ts": true,
     "src/core/config.ts": true,
     "src/core/configured-learnings-path.ts": true,
@@ -11293,6 +11295,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "src/logging/index.ts": true,
     "src/logging/logger.interface.ts": true,
     "src/logging/silent-logger.ts": true,
+    "src/migrations/correct-lisa-coderabbit-labeling.ts": true,
     "src/migrations/deploy-outcome-guard-edit.ts": true,
     "src/migrations/deploy-outcome-guard-yaml.ts": true,
     "src/migrations/ensure-audit-ignore-local-exclusions.ts": true,
@@ -11459,6 +11462,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/fixtures/ci-rework-route/reclaim-twice.json": true,
     "tests/fixtures/ci-rework-route/trusted-marker.json": true,
     "tests/fixtures/ci-rework-route/unbound-pr.json": true,
+    "tests/fixtures/coderabbit-labeling/shipped-41e69a0261.coderabbit.yml.txt": true,
     "tests/fixtures/dependency-internalization-kit/dependency-internalization-ticket.md": true,
     "tests/fixtures/dependency-internalization-kit/version-bump-ticket.md": true,
     "tests/fixtures/dependency-ownership/addition/.github/workflows/deploy.yml": true,
@@ -11874,6 +11878,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/npm-update-all-host-helpers.test.ts": true,
     "tests/integration/npm-update-dual-lock.test.ts": true,
     "tests/integration/npm-update-rails-hook-scratch.test.ts": true,
+    "tests/integration/npm-updater-download-https.test.ts": true,
     "tests/integration/oxlint-worktree-resolution.test.ts": true,
     "tests/integration/package-manager-injection.test.ts": true,
     "tests/integration/pinned-revision-fetch.test.ts": true,
@@ -12007,6 +12012,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/third-party-review-check-run-refusals.test.ts": true,
     "tests/integration/third-party-review-evidence-workflow.test.ts": true,
     "tests/integration/third-party-review-pull-read-cli.test.ts": true,
+    "tests/integration/third-party-review-substitute-authors-cli.test.ts": true,
     "tests/integration/threshold-ratchet-gate-fail-closed.test.ts": true,
     "tests/integration/tracked-source-nul-bytes.test.ts": true,
     "tests/integration/vitest-unsupervised-direct-run.test.ts": true,
@@ -12061,6 +12067,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/cli/doctor-apply-stale-templates.test.ts": true,
     "tests/unit/cli/doctor-audit-scope.test.ts": true,
     "tests/unit/cli/doctor-cdk-preset-adoption.test.ts": true,
+    "tests/unit/cli/doctor-coderabbit-labeling.test.ts": true,
     "tests/unit/cli/doctor-coderabbit.test.ts": true,
     "tests/unit/cli/doctor-config-shadowing.test.ts": true,
     "tests/unit/cli/doctor-declared-contexts.test.ts": true,
@@ -12711,6 +12718,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/hooks/worktree-binding-runtime-assumption.test.ts": true,
     "tests/unit/hooks/worktree-create-failure.test.ts": true,
     "tests/unit/hooks/worktree-create.test.ts": true,
+    "tests/unit/migrations/correct-lisa-coderabbit-labeling.test.ts": true,
     "tests/unit/migrations/deploy-outcome-guard-render.test.ts": true,
     "tests/unit/migrations/ensure-audit-ignore-local-exclusions-esbuild.test.ts": true,
     "tests/unit/migrations/ensure-audit-ignore-local-exclusions.test.ts": true,
@@ -13125,6 +13133,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/review-gate-terminal-skipped.test.ts": true,
     "tests/unit/scripts/review-gate-waiver-vs-objection.test.ts": true,
     "tests/unit/scripts/review-objection-at-head.test.ts": true,
+    "tests/unit/scripts/review-substitute-parity.test.ts": true,
     "tests/unit/scripts/run-artifact-checks.test.ts": true,
     "tests/unit/scripts/schema-validate-keyword-forms.test.ts": true,
     "tests/unit/scripts/schema-validate-prototype-keywords.test.ts": true,
@@ -13144,6 +13153,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/third-party-action-pins-warn-mode.test.ts": true,
     "tests/unit/scripts/third-party-review-check-run.test.ts": true,
     "tests/unit/scripts/third-party-review-evidence.test.ts": true,
+    "tests/unit/scripts/third-party-review-substitute-authors.test.ts": true,
     "tests/unit/scripts/threshold-ratchet-baseline.test.ts": true,
     "tests/unit/scripts/threshold-ratchet-exemption-expiry.test.ts": true,
     "tests/unit/scripts/threshold-ratchet-gates.test.ts": true,

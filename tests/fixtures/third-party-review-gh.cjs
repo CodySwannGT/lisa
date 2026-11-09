@@ -16,7 +16,15 @@ const args = process.argv.slice(3);
 const responses = JSON.parse(
   fs.readFileSync(path.join(folder, "responses.json"), "utf8")
 );
-const route = args.length === 2 && args[0] === "api" ? args[1] : null;
+// `gh api <path>`, or the paginated `gh api --paginate --slurp <path>`, whose
+// answer is the list of pages — one page here, the route's own answer.
+const slurped =
+  args.length === 4 &&
+  args[0] === "api" &&
+  args[1] === "--paginate" &&
+  args[2] === "--slurp";
+const plain = args.length === 2 && args[0] === "api";
+const route = plain ? args[1] : slurped ? args[3] : null;
 const allowed = route !== null && Object.hasOwn(responses, route);
 const answer = allowed ? responses[route] : undefined;
 const refused =
@@ -38,4 +46,4 @@ if (refused) {
   process.stderr.write(`${String(answer.__refuse__)}\n`);
   process.exit(1);
 }
-process.stdout.write(`${JSON.stringify(answer)}\n`);
+process.stdout.write(`${JSON.stringify(slurped ? [answer] : answer)}\n`);

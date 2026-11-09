@@ -30,11 +30,14 @@ import path from "node:path";
 import { parse } from "yaml";
 import { describe, expect, it } from "vitest";
 
-const LIFECYCLE_PREFIX = "status:";
-/** Roles a bot must never decide, beyond the lifecycle family itself. */
-const HUMAN_ONLY_LABELS = ["human-needed"];
-/** Families Lisa's issue writer sets itself; a bot's guess only conflicts. */
-const WRITER_OWNED_PREFIXES = ["type:", "points:"];
+// The protected families live in one module, shared with the `lisa doctor`
+// check that reads a HOST's config, so the two cannot drift (#4633).
+import {
+  DEFAULT_HUMAN_ONLY_LABELS as HUMAN_ONLY_LABELS,
+  evaluateCoderabbitLabeling,
+  LIFECYCLE_LABEL_PREFIX as LIFECYCLE_PREFIX,
+  WRITER_OWNED_LABEL_PREFIXES as WRITER_OWNED_PREFIXES,
+} from "../../../src/core/coderabbit-labeling.js";
 
 const config = parse(readFileSync(path.resolve(".coderabbit.yml"), "utf8")) as {
   issue_enrichment?: {
@@ -99,6 +102,13 @@ describe("CodeRabbit issue labeling", () => {
         prefix
       ).toBe(true);
     }
+  });
+
+  it("passes the same evaluation lisa doctor runs on a host's config", () => {
+    expect(evaluateCoderabbitLabeling(config)).toEqual({
+      safe: true,
+      reason: "allowlisted",
+    });
   });
 
   it("gives every allowlisted label an instruction", () => {

@@ -189,7 +189,8 @@ describe("the arm gate on a Rails host with a reviewer gate (#4653)", () => {
       ],
     });
 
-    expect(report.evidence.outcome).toBe(EVIDENCE_OUTCOMES.substituted);
+    // The reading refuses it too since #4628: the two never disagree on it.
+    expect(report.evidence.outcome).toBe(EVIDENCE_OUTCOMES.unsatisfied);
     expect(report.arm).toBe(false);
     expect(report.action).toBe(ARM_ACTIONS.substitute);
   });

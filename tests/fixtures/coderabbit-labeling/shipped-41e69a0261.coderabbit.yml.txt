@@ -1,0 +1,59 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+early_access: true
+inheritance: true
+reviews:
+  request_changes_workflow: true
+  collapse_walkthrough: false
+  sequence_diagrams: false
+  estimate_code_review_effort: false
+  in_progress_fortune: false
+  poem: false
+  auto_review:
+    drafts: true
+  pre_merge_checks:
+    docstrings:
+      mode: error
+    title:
+      mode: error
+    description:
+      mode: error
+  tools:
+    markdownlint:
+      enabled: false
+    swiftlint:
+      enabled: false
+    phpstan:
+      enabled: false
+    phpmd:
+      enabled: false
+    phpcs:
+      enabled: false
+    golangci-lint:
+      enabled: false
+    detekt:
+      enabled: false
+    fortitudeLint:
+      enabled: false
+    buf:
+      enabled: false
+    regal:
+      enabled: false
+    pmd:
+      enabled: false
+    clang:
+      enabled: false
+    cppcheck:
+      enabled: false
+    circleci:
+      enabled: false
+    checkmake:
+      enabled: false
+knowledge_base:
+  code_guidelines:
+    filePatterns:
+      - '**/.claude/**/*'
+issue_enrichment:
+  auto_enrich:
+    enabled: true
+  labeling:
+    auto_apply_labels: true

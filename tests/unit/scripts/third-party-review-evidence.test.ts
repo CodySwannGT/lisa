@@ -48,6 +48,22 @@ const UNRECOGNISED = "Everything looks fine to me";
 const HEAD = "a".repeat(40);
 const REPO_ARG = "--repo=acme/code";
 const OTHER_HEAD = "b".repeat(40);
+/** The one comment author the injected permission reader calls a writer. */
+const WRITER = "maintainer";
+
+/**
+ * The injected permission reader: only {@link WRITER} holds write access.
+ * @param login - The comment author
+ * @returns Whether the login is the writer
+ */
+const writersOnly = (login: string) => login === WRITER;
+
+/**
+ * A comment the writer posted, shaped as the GitHub API returns it.
+ * @param body - The comment body
+ * @returns The comment
+ */
+const byWriter = (body: string) => ({ body, user: { login: WRITER } });
 
 /** One gates block declaring a single third-party reviewer. */
 const ONE_REVIEWER = {
@@ -96,7 +112,7 @@ const verdictFor = ({
   gates = ONE_REVIEWER,
 }: {
   statuses?: ReadonlyArray<object>;
-  comments?: ReadonlyArray<{ body: string }>;
+  comments?: ReadonlyArray<{ body: string; user?: { login: string } }>;
   gates?: object;
 }) =>
   reviewEvidenceVerdict({
@@ -104,6 +120,7 @@ const verdictFor = ({
     statuses,
     comments,
     sha: HEAD,
+    canWrite: writersOnly,
   });
 
 describe("configuredReviewers", () => {
@@ -291,9 +308,9 @@ describe("reviewEvidenceVerdict", () => {
           },
         ],
         comments: [
-          {
-            body: `${substituteMarker({ context: CONTEXT, sha: HEAD })}\nread`,
-          },
+          byWriter(
+            `${substituteMarker({ context: CONTEXT, sha: HEAD })}\nread`
+          ),
         ],
       }).outcome
     ).toBe(EVIDENCE_OUTCOMES.substituted);
@@ -423,9 +440,10 @@ describe("substitutePosted", () => {
   it("finds a substitute posted for this reviewer at this head", () => {
     expect(
       substitutePosted({
-        comments: [{ body: substituteMarker({ context: CONTEXT, sha: HEAD }) }],
+        comments: [byWriter(substituteMarker({ context: CONTEXT, sha: HEAD }))],
         context: CONTEXT,
         sha: HEAD,
+        canWrite: writersOnly,
       })
     ).toBe(true);
   });
@@ -434,10 +452,11 @@ describe("substitutePosted", () => {
     expect(
       substitutePosted({
         comments: [
-          { body: substituteMarker({ context: CONTEXT, sha: OTHER_HEAD }) },
+          byWriter(substituteMarker({ context: CONTEXT, sha: OTHER_HEAD })),
         ],
         context: CONTEXT,
         sha: HEAD,
+        canWrite: writersOnly,
       })
     ).toBe(false);
   });
@@ -446,10 +465,11 @@ describe("substitutePosted", () => {
     expect(
       substitutePosted({
         comments: [
-          { body: substituteMarker({ context: OTHER_CONTEXT, sha: HEAD }) },
+          byWriter(substituteMarker({ context: OTHER_CONTEXT, sha: HEAD })),
         ],
         context: CONTEXT,
         sha: HEAD,
+        canWrite: writersOnly,
       })
     ).toBe(false);
   });
@@ -762,8 +782,9 @@ describe("main", () => {
         },
       ],
       comments: () => [
-        { body: substituteMarker({ context: CONTEXT, sha: HEAD }) },
+        byWriter(substituteMarker({ context: CONTEXT, sha: HEAD })),
       ],
+      canWrite: writersOnly,
       out: sink().stream,
     });
     expect(code).toBe(0);
@@ -782,8 +803,9 @@ describe("main", () => {
       const verdict = reviewEvidenceVerdict({
         reviewers: configuredReviewers({ gates: ONE_REVIEWER }),
         statuses: [{ context: CONTEXT, state: "success", description }],
-        comments: [{ body: substituteMarker({ context: CONTEXT, sha: HEAD }) }],
+        comments: [byWriter(substituteMarker({ context: CONTEXT, sha: HEAD }))],
         sha: HEAD,
+        canWrite: writersOnly,
       });
       expect(verdict.outcome).toBe(EVIDENCE_OUTCOMES.substituted);
       expect(verdict.readings[0]?.reading).toBe(EVIDENCE_READINGS.noWork);
@@ -792,8 +814,9 @@ describe("main", () => {
         pulls: () => [1],
         statuses: () => [{ context: CONTEXT, state: "success", description }],
         comments: () => [
-          { body: substituteMarker({ context: CONTEXT, sha: HEAD }) },
+          byWriter(substituteMarker({ context: CONTEXT, sha: HEAD })),
         ],
+        canWrite: writersOnly,
         out: sink().stream,
       });
       expect(code).toBe(0);
