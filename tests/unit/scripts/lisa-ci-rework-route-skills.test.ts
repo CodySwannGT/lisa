@@ -19,7 +19,7 @@ const HELPER = "scripts/lisa-ci-rework-route.mjs";
  * (CodySwannGT/lisa#4707).
  */
 const SUPERSESSION =
-  "claim comments and session-manager notes (`[lisa-tracker-claim]`, `[claude-build-intake]`, `[lisa-session-manager]`) never count as Lisa markers for this purpose, failure markers count only from `github-actions[bot]`, and any other later Lisa marker counts only from a trusted author — `github-actions[bot]`, the item's author, or a configured `sessionManager.trustedAuthorIds` entry";
+  "claim comments and session-manager notes (`[lisa-tracker-claim]`, `[claude-build-intake]`, `[lisa-session-manager]`) never count as Lisa markers for this purpose, failure markers count only from `github-actions[bot]`, and any other later Lisa marker counts only from a trusted author — `github-actions[bot]`, the item's author, or a configured `sessionManager.trustedAuthorIds` entry; only entries committed in `.lisa.config.json` count, never `.lisa.config.local.json`, because the producer runs in CI on a fresh checkout, and the account Lisa posts as counts as trusted only when it is the item's author or is listed in `sessionManager.trustedAuthorIds`";
 const BASE = "plugins/src/base";
 const COPIES = [
   "plugins/lisa",

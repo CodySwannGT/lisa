@@ -1265,7 +1265,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/rules/reference/ready-role-filing.md":
       "ab6ef509ee3560b55cf0a7cb03edb0c63d97c71334ee3baafd54bdeb06451f81",
     "plugins/src/base/rules/reference/rejection-detection.md":
-      "dd8ce515d8aae35a543ef82c5b01d9075bf7163de85fd78120c270c2edda466b",
+      "0f15d2ac15d1d03d69a73240db3a92842245acb2cd7a0c3fc11d3e6b32967195",
     "plugins/src/base/rules/reference/repo-scope-split.md":
       "20b1aa6999a9376d7b9990c0022f40a4d48d5d09af9c709bf1b6ead3f1443b16",
     "plugins/src/base/rules/reference/report-actionability.md":
@@ -1441,7 +1441,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-github-add-journey/SKILL.md":
       "4ceda3474a9b32abae835c2676e8cb2b7e888c6ba04b95843dbe7254293bbf32",
     "plugins/src/base/skills/lisa-github-build-intake/SKILL.md":
-      "33eee77d14ed20540ca3091939e83d9a895f58ffcf4816e3e9302a6c7abffc1e",
+      "43ebc8794dd7491043c3b85c3e7658bd380d7c435ea822ef329cc531c59674c5",
     "plugins/src/base/skills/lisa-github-claim/SKILL.md":
       "71301c6d45d7eb5523e74aa7f070bb2becf57ca68fb8bde9e02ee937b78815f7",
     "plugins/src/base/skills/lisa-github-create/SKILL.md":
@@ -1855,7 +1855,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-ticket-triage/SKILL.md":
       "a4f2e75ee3792418aa3b6621f83c75832eea85ffe670e26e74da808611dcf34f",
     "plugins/src/base/skills/lisa-track/SKILL.md":
-      "7b5702ada0356c762767f599ea152b55b6a94bea40f48dd69c9bf44e6ebfe76b",
+      "fb25fda164eab5c79ca081b853f678b3487711f113cab3dc98a6a4c9a4fe5d37",
     "plugins/src/base/skills/lisa-tracker-add-journey/SKILL.md":
       "a3da2e0350bcdebcdcc05f2d7931af868382638d3a28d09d4718f2f458d4be0a",
     "plugins/src/base/skills/lisa-tracker-build-intake/SKILL.md":
@@ -2869,7 +2869,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/lisa-audit.mjs":
       "8ca83977e7df232bf22912df6c6044c9162363a02ef77d5d518e03d73c280543",
     "scripts/lisa-ci-failure-redispatch.mjs":
-      "3c1a0514c662b922981c09645d6287669469dabad229b8ebdaf149661c01d58a",
+      "23f8eab3ebf97e93e36e12e0fb2c8ca794838e280995baf720e0a215fc413a37",
     "scripts/lisa-ci-rework-route.mjs":
       "0234a31160f50f89d6b229d8412b19f14649fffd90a072476fdb2ea548857590",
     "scripts/lisa-commit-and-pr-local.sh":
@@ -12950,6 +12950,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/lisa-ci-failure-redispatch-trust.test.ts": true,
     "tests/unit/scripts/lisa-ci-failure-redispatch-workflow.test.ts": true,
     "tests/unit/scripts/lisa-ci-failure-redispatch.test.ts": true,
+    "tests/unit/scripts/lisa-ci-marker-parity.test.ts": true,
     "tests/unit/scripts/lisa-ci-marker-supersession.test.ts": true,
     "tests/unit/scripts/lisa-ci-marker-trust-config.test.ts": true,
     "tests/unit/scripts/lisa-ci-rework-route-cli.test.ts": true,

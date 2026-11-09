@@ -85,8 +85,6 @@ export const LISA_MARKER = /\[(?:lisa-[a-z0-9-]+|claude-build-intake)\]/u;
  */
 const CLAIM_MARKERS =
   /\[(?:lisa-tracker-claim|claude-build-intake|lisa-session-manager)\]/gu;
-/** A plain trusted-author entry that is a numeric account id. */
-const ALL_DIGITS = /^\d+$/u;
 const NO_REQUIRED = /no (?:required )?checks reported/iu;
 /** Read every page of a REST list as one array of pages. */
 const PAGINATE = Object.freeze(["--paginate", "--slurp"]);
@@ -445,27 +443,18 @@ export function supersedes(comment, trust) {
 }
 
 /**
- * The kind a parsed trusted-author entry is matched as. Kind-keyed entries
- * keep their own kind; a plain entry keeps the meaning the answer matcher
- * gives it (#4571): all digits is a numeric account id only — anyone can
- * register an all-digit login — and anything else is a login.
- * @param {{kind: string, value?: string}} entry - Parsed entry.
- * @returns {string} `login`, `id`, or `invalid`.
- */
-function entryKind(entry) {
-  if (entry.kind !== "plain") return entry.kind;
-  return ALL_DIGITS.test(entry.value) ? "id" : "login";
-}
-
-/**
  * Whether a configured `sessionManager.trustedAuthorIds` entry names a GitHub
- * comment author.
+ * comment author. Only a `login:` entry matches a login; a plain entry, like
+ * an `id:` entry, matches the numeric account id only — the same reading
+ * `isTrustedAuthor` in ready-queue-order gives it — because a freed login can
+ * be re-registered by someone else, and nobody picks their own numeric id
+ * (#4571, #4623).
  * @param {{kind: string, value?: string}} entry - Parsed entry.
  * @param {{login?: string, id?: number|string}|undefined} user - Comment author.
  * @returns {boolean} Whether it matches.
  */
 function entryNames(entry, user) {
-  const kind = entryKind(entry);
+  const kind = entry.kind === "plain" ? "id" : entry.kind;
   if (kind === "login")
     return typeof user?.login === "string" && user.login === entry.value;
   if (kind === "id") return user?.id != null && String(user.id) === entry.value;
@@ -519,24 +508,25 @@ export function readItemAuthor(number, repo, gh) {
 }
 
 /**
- * The configured `sessionManager.trustedAuthorIds`, the local override's list
- * first. Fails safe: a missing or malformed config, or a list that is not an
- * array, trusts nobody beyond the bot and the item's author.
+ * The `sessionManager.trustedAuthorIds` committed in `.lisa.config.json`.
+ * `.lisa.config.local.json` is deliberately NOT read: the producer runs in
+ * CI on a fresh checkout, where no local override exists, so a helper that
+ * read one would trust people the producer does not and the two dispatch
+ * paths would disagree. Fails safe: a missing or malformed config, or a list
+ * that is not an array, trusts nobody beyond the bot and the item's author.
  * @param {string} [root] - Project root.
  * @returns {unknown[]} Configured entries.
  */
 export function readTrustedAuthorIds(root = process.cwd()) {
-  const declared = [".lisa.config.local.json", ".lisa.config.json"]
-    .map(name => {
-      try {
-        const config = JSON.parse(readFileSync(join(root, name), "utf8"));
-        return config?.sessionManager?.trustedAuthorIds;
-      } catch {
-        return undefined;
-      }
-    })
-    .find(list => list !== undefined);
-  return Array.isArray(declared) ? declared : [];
+  try {
+    const config = JSON.parse(
+      readFileSync(join(root, ".lisa.config.json"), "utf8")
+    );
+    const declared = config?.sessionManager?.trustedAuthorIds;
+    return Array.isArray(declared) ? declared : [];
+  } catch {
+    return [];
+  }
 }
 
 /**

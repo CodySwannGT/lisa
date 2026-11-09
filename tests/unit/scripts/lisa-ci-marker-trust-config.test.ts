@@ -41,7 +41,10 @@ describe("readTrustedAuthorIds", () => {
     ).toEqual(["login:a", "id:1"]);
   });
 
-  it("lets the local override replace the list", () => {
+  // The producer runs in CI on a fresh checkout, where no local override
+  // exists, so the helper must not read one either or the two paths would
+  // trust different people (#4707 review).
+  it("ignores .lisa.config.local.json so the producer and helper trust the same list", () => {
     const shared = { sessionManager: { trustedAuthorIds: ["login:a"] } };
     const local = { sessionManager: { trustedAuthorIds: ["login:b"] } };
     expect(
@@ -51,7 +54,12 @@ describe("readTrustedAuthorIds", () => {
           ".lisa.config.local.json": JSON.stringify(local),
         })
       )
-    ).toEqual(["login:b"]);
+    ).toEqual(["login:a"]);
+    expect(
+      readTrustedAuthorIds(
+        root({ ".lisa.config.local.json": JSON.stringify(local) })
+      )
+    ).toEqual([]);
   });
 
   it.each([

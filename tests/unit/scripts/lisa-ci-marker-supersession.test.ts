@@ -8,23 +8,21 @@
  * rebuilt the work in a second PR. A later non-failure marker now counts only
  * when its author is trusted — `github-actions[bot]`, the item's author, or a
  * configured `sessionManager.trustedAuthorIds` entry — and claim comments
- * never count. The producer and the route helper share one predicate, so the
- * parity case below replays every route fixture through both.
+ * never count. The producer and the route helper share one predicate;
+ * `lisa-ci-marker-parity.test.ts` replays the route fixtures through both.
  * @module tests/unit/scripts/lisa-ci-marker-supersession
  */
-import { readdirSync, readFileSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
 import { trackerContract } from "../../../all/copy-overwrite/scripts/lisa-work-item.mjs";
 import {
-  FAILURE_MARKER,
   isNewestLisaMarker,
   markerTrust,
   planFromFixture,
   readItemAuthor,
   recordedGh,
-  trustedAuthor,
 } from "../../../scripts/lisa-ci-failure-redispatch.mjs";
 import {
   decideRoute,
@@ -33,6 +31,7 @@ import {
 
 const FIXTURES = "tests/fixtures/ci-rework-route";
 const REPO = "CodySwannGT/lisa";
+const TRUSTED = "trusted-marker";
 const UNTRUSTED = "untrusted-later-marker";
 const NOT_NEWEST = "not-newest";
 const OUTSIDER = "drive-by-user";
@@ -111,7 +110,6 @@ describe("a later trusted non-claim Lisa marker still supersedes (AC3)", () => {
 
   it.each<[string | number, string]>([
     [`login:${OUTSIDER}`, "a login: entry"],
-    [OUTSIDER, "a plain non-numeric entry (a login)"],
     ["id:777", "an id: entry"],
     ["777", "a plain all-digit entry (an account id)"],
     [777, "a hand-written numeric entry"],
@@ -131,6 +129,9 @@ describe("a later trusted non-claim Lisa marker still supersedes (AC3)", () => {
     ["login:777", "a login: entry never matches an account id"],
     ["id:drive-by-user", "an id: entry never matches a login"],
     ["unknown:drive-by-user", "an unknown prefix matches nobody"],
+    // A plain entry is an account id only, as in ready-queue-order: a freed
+    // login can be re-registered by someone else (#4623).
+    [OUTSIDER, "a plain login string is not trusted"],
   ])("does not count %j (%s)", entry => {
     const data = fixture(UNTRUSTED);
     data.gh[COMMENTS].stdout[0].at(-1).user.id = 777;
@@ -152,7 +153,7 @@ describe("a later trusted non-claim Lisa marker still supersedes (AC3)", () => {
   });
 
   it("does not read the item author when no later marker needs it", () => {
-    const data = fixture("trusted-marker");
+    const data = fixture(TRUSTED);
     expect(Object.hasOwn(data.gh, ISSUE)).toBe(false);
     expect(
       decideRoute({ item: "1", contract, gh: recordedGh(data.gh) })
@@ -236,30 +237,4 @@ describe("the producer predicate", () => {
       expect(planFromFixture(data, contract).outcome).toBe("relabel-repair");
     }
   );
-});
-
-describe("the producer and the route helper agree on every route fixture", () => {
-  const names = readdirSync(FIXTURES)
-    .filter(file => file.endsWith(".json"))
-    .map(file => file.replace(/\.json$/u, ""));
-
-  it.each(names)("%s", name => {
-    const data = fixture(name);
-    const gh = recordedGh(data.gh);
-    const comments: Comment[] = data.gh[COMMENTS].stdout.flat();
-    const marker = comments
-      .filter(c => FAILURE_MARKER.test(c.body ?? "") && trustedAuthor(c))
-      .at(-1);
-    const decision = routeWith(name);
-    if (marker === undefined) {
-      expect(decision.reason).toMatch(/no-marker|untrusted-author/u);
-      return;
-    }
-    const trust = markerTrust({
-      trustedAuthorIds: [],
-      itemAuthor: () => readItemAuthor("1", REPO, gh),
-    });
-    const newest = isNewestLisaMarker(comments, marker, trust);
-    expect(decision.reason === NOT_NEWEST).toBe(!newest);
-  });
 });
