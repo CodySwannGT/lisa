@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.99.10](https://github.com/CodySwannGT/lisa/compare/v4.99.9...v4.99.10) (2026-11-09)
+
+
+### Bug Fixes
+
+* **jira-evidence:** check only description links against this run's uploads ([4572b29](https://github.com/CodySwannGT/lisa/commit/4572b2976e853b63b8b8fc2f327792d2e680c44d)), closes [CodySwannGT/lisa#4639](https://github.com/CodySwannGT/lisa/issues/4639) [CodySwannGT/lisa#4639](https://github.com/CodySwannGT/lisa/issues/4639)
+* **jira-evidence:** link only uploaded evidence kinds ([4fbe1b3](https://github.com/CodySwannGT/lisa/commit/4fbe1b3a1226e8453713603b838709c1f27071f2)), closes [CodySwannGT/lisa#4639](https://github.com/CodySwannGT/lisa/issues/4639) [CodySwannGT/lisa#4639](https://github.com/CodySwannGT/lisa/issues/4639)
+* **jira-evidence:** scope pr-assets uploads to the pull request ([27132f3](https://github.com/CodySwannGT/lisa/commit/27132f32b567299468ddf9660ad3feb326dcf28b)), closes [CodySwannGT/lisa#4639](https://github.com/CodySwannGT/lisa/issues/4639) [CodySwannGT/lisa#4639](https://github.com/CodySwannGT/lisa/issues/4639)
+* **jira-evidence:** validate every Markdown link form against this run's uploads ([cd77c13](https://github.com/CodySwannGT/lisa/commit/cd77c13bc3d45c18123ae377f34e18c7e9ebb4c3)), closes [CodySwannGT/lisa#4639](https://github.com/CodySwannGT/lisa/issues/4639) [CodySwannGT/lisa#4639](https://github.com/CodySwannGT/lisa/issues/4639)
+* **jira-evidence:** verify description links against the release ([f117240](https://github.com/CodySwannGT/lisa/commit/f1172402dda0cd17d550fe45fb3a391875b83ea3)), closes [CodySwannGT/lisa#4639](https://github.com/CodySwannGT/lisa/issues/4639) [CodySwannGT/lisa#4639](https://github.com/CodySwannGT/lisa/issues/4639)
+
 ### [4.99.9](https://github.com/CodySwannGT/lisa/compare/v4.99.8...v4.99.9) (2026-11-09)
 
 
