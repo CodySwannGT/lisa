@@ -184,7 +184,12 @@ export function listPendingQuestions(ledger, answerCommand) {
  * would let the next cycle run `item-answer` against the old question comment
  * and queue a reply to the old question as the answer to the new one
  * (CodySwannGT/lisa#4570). A queued answer survives only a re-ping of the same
- * text for the same reason: it answered that text.
+ * text for the same reason: it answered that text. `managerCommentIds` is
+ * kept even when the text changes: those ids also keep the manager's own
+ * comments (the old question, its notes) out of the answer candidates, so
+ * clearing them would let a manager comment pass for an answer. Instead
+ * `item-answer` refuses (`not-marked`) while `markedAt` is null, so the stale
+ * last id is never used as the anchor (CodySwannGT/lisa#4643).
  * `kind` defaults to the previous kind, then `worker-question`.
  * @param {string} projectRoot - Absolute project root
  * @param {{ref: string, text: string, telegramMessageId: number|null,

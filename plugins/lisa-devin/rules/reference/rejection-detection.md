@@ -151,7 +151,7 @@ When detection returns `rejection-reclaim`, the build-intake claim phase reflect
    | `evidence_links` | The comment / review-thread / failure-output URLs. |
    | `scope_hint` | Where the learning applies (repo / stack / global). |
    | `triggering_issue` | The re-claimed item's ref. |
-   | `fingerprint` | `sll4-` + `sha1(<normalized-rule> + "\n" + <triggering_issue>)` truncated to 12 chars (the learning-persistence flow's formula). |
+   | `fingerprint` | Omit it. `lisa-persist-learning` ignores a supplied value and computes the `sll4-` key itself, after its judge. |
 
 3. **Route the candidate into the judgment gate** via the `lisa-persist-learning` skill (the learning-persistence flow — cite it by name; it ships with that flow, so do not assume its file is present in this branch). Pass the candidate with the rejection as provenance.
 

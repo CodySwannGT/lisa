@@ -107,3 +107,34 @@ export function ask(sandbox: Sandbox, kind = WORKER_QUESTION): RunResult {
     input: QUESTION,
   });
 }
+
+/** The question comment id {@link askMarked} records by default. */
+export const QUESTION_COMMENT_ID = 900;
+
+/**
+ * Record a pending question on REF and its read-back mark, as "Mark and move
+ * on" does before any cycle reads replies: `item-answer` refuses an unmarked
+ * question (CodySwannGT/lisa#4643).
+ * @param sandbox - Project sandbox
+ * @param kind - Question kind
+ * @param commentId - The question comment's id
+ * @returns CLI result of `ledger marked`
+ */
+export function askMarked(
+  sandbox: Sandbox,
+  kind = WORKER_QUESTION,
+  commentId: number = QUESTION_COMMENT_ID
+): RunResult {
+  ask(sandbox, kind);
+  return runStubOnly(sandbox, [
+    "ledger",
+    "marked",
+    REF,
+    "--marker-type",
+    "label",
+    "--marker",
+    CUSTOM_LABEL,
+    "--comment-id",
+    String(commentId),
+  ]);
+}

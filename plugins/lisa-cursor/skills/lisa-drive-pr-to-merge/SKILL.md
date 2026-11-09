@@ -750,8 +750,10 @@ rather than assuming, with `gh api repos/<owner>/<repo>/rules/branches/<base>`
   standing `CHANGES_REQUESTED` is not holding a slot for a review that would
   otherwise arrive. Nothing is scheduled to clear it.
 
-Where both hold, the block is **indefinite, not slow**. Waiting is not a
-strategy; something has to act.
+So whenever a stale `CHANGES_REQUESTED` review stands, the block is
+**indefinite, not slow**, whatever `dismiss_stale_reviews_on_push` is set to.
+The approval count only decides whether anything else is also waiting. Waiting
+is not a strategy; something has to act.
 
 **Unresolved threads block independently of the verdict.** This repository sets
 `required_review_thread_resolution: true`, so a PR can have a clear
@@ -1116,9 +1118,11 @@ patching only here.
 ### d. Review comments — human and bot
 Delegate to the `pull-request-review` skill with the PR number. It owns the whole
 comment cycle: fetch every unresolved human + bot thread (with resolution state via
-GraphQL), implement valid feedback (commit + push), reply to invalid feedback, and
-resolve every thread via `resolveReviewThread` so the branch-protection
-thread-resolution gate clears.
+GraphQL) and every review-body finding not yet marked as answered (CodeRabbit's
+outside-diff and nitpick comments live only there), implement valid feedback
+(commit + push), answer invalid feedback, and resolve every thread via
+`resolveReviewThread` so the branch-protection thread-resolution gate clears.
+Its report counts unresolved threads and review-body findings separately.
 
 **A green review check is not proof a review happened.** A third-party review
 app reports on the PR head through a **check run** or a **commit status**, and
@@ -1373,7 +1377,11 @@ proxy for the other, so read them separately:
   stranded verdict. It is safe to dismiss, and leaving it is what makes a PR sit
   wedged looking abandoned.
 
-Never dismiss on `reviewDecision` alone. Dismiss the stale (often bot) review
+Never dismiss on `reviewDecision` alone. **Never dismiss a stale
+`CHANGES_REQUESTED` review while its body has items with no
+`[lisa-review-body] review=<id>` marker comment** — a push does not answer a
+review body, and dismissing it discards those findings. Route it through step
+(d) first; once the marker is posted, dismiss the stale (often bot) review
 where repo policy permits:
 ```bash
 gh api -X PUT repos/<owner>/<repo>/pulls/<pr>/reviews/<review_id>/dismissals \

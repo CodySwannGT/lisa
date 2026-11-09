@@ -24,10 +24,12 @@ import { stubOnlyPath } from "./support/provider-sandbox.js";
 import { readLedgerFile } from "./support/cli-fixtures.js";
 import {
   ask,
+  askMarked,
   BLOCK,
   githubSandbox,
   MARKER,
   OPERATOR,
+  QUESTION_COMMENT_ID,
   REF,
   runStubOnly,
   TRUSTED,
@@ -103,10 +105,12 @@ describe("status answerCommand", () => {
 });
 
 describe("item-answer", () => {
-  // With no recorded comment id, the question is only a comment that starts
-  // with the marker AND is by an allowed answerer (#4561): here the manager
-  // posts as the operator's own identity, the single-user setup.
+  // Replies are read only for a marked question (#4643), and `ledger marked`
+  // records the question comment's id, which anchors the answer search
+  // (#4561). Here the manager posts as the operator's own identity, the
+  // single-user setup.
   const question = {
+    id: QUESTION_COMMENT_ID,
     author: { login: OPERATOR },
     body: `${MARKER} ${REF} needs a human`,
   };
@@ -124,7 +128,7 @@ describe("item-answer", () => {
 
   it("queues the first allowed reply after the question", () => {
     const sandbox = githubSandbox();
-    ask(sandbox);
+    askMarked(sandbox);
     const result = pick(sandbox, [
       { author: { login: OPERATOR }, body: "earlier, before the question" },
       question,
@@ -155,7 +159,7 @@ describe("item-answer", () => {
 
   it("queues a quote reply that quotes the question", () => {
     const sandbox = githubSandbox();
-    ask(sandbox);
+    askMarked(sandbox);
     const result = pick(sandbox, [
       question,
       {
@@ -176,7 +180,7 @@ describe("item-answer", () => {
 
   it("queues nothing from earlier, marker or unauthorized comments", () => {
     const sandbox = githubSandbox();
-    ask(sandbox);
+    askMarked(sandbox);
     const result = pick(sandbox, [
       { author: { login: OPERATOR }, body: "earlier" },
       question,
@@ -198,7 +202,7 @@ describe("item-answer", () => {
 
   it("queues nothing from a stranger whose display name copies an operator id", () => {
     const sandbox = githubSandbox();
-    ask(sandbox);
+    askMarked(sandbox);
     const result = pick(sandbox, [
       question,
       {
@@ -224,7 +228,7 @@ describe("item-answer", () => {
       ...BLOCK,
       trustedAuthorIds: [TRUSTED, "4242"],
     });
-    ask(sandbox);
+    askMarked(sandbox);
     const result = pick(sandbox, [question, { ...who, body: "CSV" }]);
     expect(result.json).toMatchObject({ queued: true, ref: REF });
   });
@@ -239,7 +243,7 @@ describe("item-answer", () => {
     ["a plain attribution line", "Done.\nGenerated with Claude Code"],
   ])("queues nothing from the operator's own %s", (_label, body) => {
     const sandbox = githubSandbox();
-    ask(sandbox);
+    askMarked(sandbox);
     const result = pick(sandbox, [
       question,
       { author: { login: OPERATOR }, body },
@@ -254,7 +258,7 @@ describe("item-answer", () => {
   it("queues nothing when no answerers are configured, even from the tracker identity", () => {
     const { operatorIds: _o, trustedAuthorIds: _t, ...bare } = BLOCK;
     const sandbox = githubSandbox(bare);
-    ask(sandbox);
+    askMarked(sandbox);
     runStubOnly(sandbox, ["ledger", "control", "--me", "me-login"]);
     const result = pick(sandbox, [
       question,
@@ -279,7 +283,7 @@ describe("item-answer", () => {
 
   it("exits 2 (setup), not 1, when the ledger is not valid JSON (#4571)", () => {
     const sandbox = githubSandbox();
-    ask(sandbox);
+    askMarked(sandbox);
     writeFileSync(
       path.join(sandbox.root, ".lisa/session-manager/ledger.json"),
       "{ not json"
@@ -294,7 +298,7 @@ describe("item-answer", () => {
 
     it("skips it and queues the corrected reply posted after it", () => {
       const sandbox = githubSandbox();
-      ask(sandbox);
+      askMarked(sandbox);
       const result = pick(sandbox, [
         question,
         { id: 11, author: { login: OPERATOR }, body: leak },
@@ -315,7 +319,7 @@ describe("item-answer", () => {
 
     it("queues nothing, exit 0, while the credential reply is the only one", () => {
       const sandbox = githubSandbox();
-      ask(sandbox);
+      askMarked(sandbox);
       const result = pick(sandbox, [
         question,
         { id: 11, author: { login: OPERATOR }, body: leak },
