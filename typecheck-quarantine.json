@@ -300,7 +300,6 @@
     "tests/unit/secrets/detect-tooling-discovery.test.ts",
     "tests/unit/secrets/detect-tooling.test.ts",
     "tests/unit/secrets/doctor-secrets.test.ts",
-    "tests/unit/secrets/legacy-profile-resolution.test.ts",
     "tests/unit/secrets/note-enforcement-parity.test.ts",
     "tests/unit/secrets/note-format.test.ts",
     "tests/unit/secrets/preflight-hardening.test.ts",

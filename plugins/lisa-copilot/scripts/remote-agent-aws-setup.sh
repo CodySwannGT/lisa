@@ -251,6 +251,39 @@ legacy_profile_sections() {
   ' "$file"
 }
 
+# Sections an earlier run of THIS script wrote under the doubled spelling.
+#
+# Before stage keys were normalized, a bundle key `agent-dev` became
+# `<namespace>-agent-agent-dev`. Those sections assume from this project's own
+# bootstrap profile, so they are provably this project's output — not another
+# tenant's (a different source profile) and not an operator's (who would not
+# name this project's bootstrap profile). Names this run is about to write are
+# excluded, so a bundle that genuinely names a stage `agent-x` keeps it.
+doubled_profile_sections() {
+  local file
+  file="$1"
+  [ -f "$file" ] || return 0
+
+  awk -v prefix="profile ${PROFILE_NAMESPACE}-agent-agent-" \
+    -v bootstrap="$BOOTSTRAP_PROFILE" \
+    -v keep="$canonical_sections" '
+    BEGIN { n = split(keep, wanted, "|"); for (i = 1; i <= n; i++) skip[wanted[i]] = 1 }
+    /^\[[^]]*\][[:space:]]*$/ {
+      current = $0
+      sub(/^\[[[:space:]]*/, "", current)
+      sub(/[[:space:]]*\][[:space:]]*$/, "", current)
+      section = current
+      next
+    }
+    $0 ~ "^[[:space:]]*source_profile[[:space:]]*=" {
+      value = $0
+      sub(/^[^=]*=[[:space:]]*/, "", value)
+      sub(/[[:space:]]*$/, "", value)
+      if (value == bootstrap && index(section, prefix) == 1 && !(section in skip)) print section
+    }
+  ' "$file"
+}
+
 sanitize_session_name() {
   local candidate
   candidate="$(printf '%s' "${LISA_REMOTE_AGENT:-remote-agent}" \
@@ -524,6 +557,21 @@ profiles_json="$(printf '%s' "$bootstrap_json" | jq -c '
   end
 ')"
 
+# One canonical name per stage: `<namespace>-agent-<stage>`, where `<stage>` is
+# the bundle key with at most ONE leading `agent-` removed. Infra kits publish
+# keys that already say `agent-` (`agent-dev`), so prefixing without normalizing
+# produced `acme-agent-agent-dev`. This is the same rule as `stageOf` in
+# lisa-secrets-access/scripts/aws-bootstrap.mjs — the other Lisa writer of these
+# files — so one tenant gets one set of names whichever writer ran. Normalized
+# once, here, so every later use of a stage (names, the default, the observer
+# check) sees the same value.
+printf '%s' "$profiles_json" | jq -e '
+  (type != "object") or
+  ([keys[] | ltrimstr("agent-")] | (length == (unique | length)) and all(length > 0))
+' >/dev/null || fail \
+  "bootstrap profile keys must name distinct stages: \"dev\" and \"agent-dev\" are the same stage, and \"agent-\" alone names none"
+profiles_json="$(printf '%s' "$profiles_json" | jq -c 'if type == "object" then with_entries(.key |= ltrimstr("agent-")) else . end')"
+
 namespace_resolution="$(resolve_namespace)"
 PROFILE_NAMESPACE="${namespace_resolution%%$'\t'*}"
 namespace_source="${namespace_resolution#*$'\t'}"
@@ -556,6 +604,7 @@ done < <(printf '%s' "$profiles_json" | jq -r '
 ')
 
 default_stage="${LISA_AWS_DEFAULT_PROFILE:-dev}"
+default_stage="${default_stage#agent-}"
 if ! printf '%s' "$profiles_json" | jq -e --arg stage "$default_stage" 'has($stage)' >/dev/null; then
   default_stage="$(printf '%s' "$profiles_json" | jq -r 'keys[0]')"
 fi
@@ -578,6 +627,20 @@ chmod 700 "$HOME/.aws"
 
 profile_names="$(printf '%s' "$profiles_json" \
   | jq -r --arg namespace "$PROFILE_NAMESPACE" 'keys | map($namespace + "-agent-" + .) | join(", ")')"
+canonical_sections="$(printf '%s' "$profiles_json" \
+  | jq -r --arg namespace "$PROFILE_NAMESPACE" 'keys | map("profile " + $namespace + "-agent-" + .) | join("|")')"
+
+# Retire this project's own doubled names unconditionally. Unlike the
+# unnamespaced legacy below, they cannot belong to anyone else, and leaving them
+# keeps a second, wrong spelling of this tenant's profiles in circulation.
+doubled_sections="$(doubled_profile_sections "$config_file")"
+if [ -n "$doubled_sections" ]; then
+  printf '%s\n' "$doubled_sections" | while IFS= read -r section; do
+    [ -n "$section" ] || continue
+    remove_profile_section "$config_file" "$section"
+  done
+  echo "remote-agent-aws-setup: removed doubled profile names left by an earlier bootstrap: $(printf '%s\n' "$doubled_sections" | sed 's/^profile //' | paste -sd ',' - | sed 's/,/, /g')" >&2
+fi
 
 # Migration: the previous convention's profiles are still on this workstation.
 #

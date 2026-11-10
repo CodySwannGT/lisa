@@ -1333,7 +1333,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/scripts/human-gate-lift.mjs":
       "b14b119374de45d2876ff2688a043be0d13e9b387ce8508e964c8a9f177b1015",
     "plugins/src/base/scripts/install-remote-agent-aws.mjs":
-      "a3b530e0053774f62aa768377e672388b586b1456fa59f33bc3553babf1a576d",
+      "c66d11a0a0cef6910146b9a28f4929b429e6ab56578fabb7a9f313389bd70341",
     "plugins/src/base/scripts/intake-blocker-reprobe.mjs":
       "5685dbb6bc5f559c0c7bc5881827b0b40c7a5cf90bc7f5d8360c526399c30a29",
     "plugins/src/base/scripts/intake-prework-denominator.mjs":
@@ -1363,7 +1363,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/scripts/ready-queue-order.mjs":
       "3b7270870134e9c59fcd6494f71d5b87176956b12c9e4f9811b11666f166dfd5",
     "plugins/src/base/scripts/remote-agent-aws-setup.sh":
-      "2a5b21f4fa3df268fb579976b4bc5f480d9176dbf6e3ae64fe3a869df287ca30",
+      "f73d392f651112f1393c811af9b5c992fff6c27806da32c58473672b28bd3309",
     "plugins/src/base/scripts/repo-scope-vocabulary-audit.mjs":
       "bed0f0b8a43146dbe222c657d6b58494c3962d1bb627bf0591d4b37102de972f",
     "plugins/src/base/scripts/resolve-lifecycle-role.mjs":
@@ -1643,9 +1643,9 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-root-cause-analysis/SKILL.md":
       "3fa14217ca36b238ebb8203d18f10eaaf98a3647f949cdada6cb9f56ddf9ed50",
     "plugins/src/base/skills/lisa-secrets-access/SKILL.md":
-      "d6eb1c0c2ee829bce40b2a3cdf73ce6fdca26e6db3f09422a3ccdc83e560030e",
+      "c6cfb6075c3d871031be1c4095293c32515972f00f32755c6114714e45e254cc",
     "plugins/src/base/skills/lisa-secrets-access/scripts/aws-bootstrap.mjs":
-      "7f6acaa7ac13f31ebbd12e41000b5796536f1fe708684e59f79ab23b85ee08f0",
+      "d8bcedae60bdba6580cabfd5cef70b010006f00606a13d6432ff6f379387edf9",
     "plugins/src/base/skills/lisa-secrets-access/scripts/bootstrap-store.mjs":
       "35169ea70810f7b7291d75c93ec326e0ac04407bf335949b0742e74e69850ec4",
     "plugins/src/base/skills/lisa-secrets-access/scripts/doctor-secrets.mjs":
@@ -1655,7 +1655,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-secrets-access/scripts/inspect-vault.mjs":
       "d2841042eda0f0c50f995ccc34e09e25aced0abbf3a96bce52a9f604e4009520",
     "plugins/src/base/skills/lisa-secrets-access/scripts/materialize-secrets.mjs":
-      "67b736cd867cd5572a46b8477059acf7c4b48738dc0d4c539afdb5b6ddd52c73",
+      "0c13d2172264cf1ae769898237b2210243ef6fe9f6cf91629707363b49c5fe90",
     "plugins/src/base/skills/lisa-secrets-access/scripts/note-format.mjs":
       "09bd6904bc84a5a93a32499ac94db5ec7728db68908a661698445ef5e6974f3e",
     "plugins/src/base/skills/lisa-secrets-access/scripts/owner.mjs":
@@ -1799,7 +1799,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-setup-notion/SKILL.md":
       "667d3767dfb06056145d1ad3f64a6ebfa012b61c19cb2c5f82cf1f6534499c38",
     "plugins/src/base/skills/lisa-setup-remote-aws/SKILL.md":
-      "6fd39df8e442e834c81d0e45e61bd9289540646c51ce332df7ef274dd9b1fc35",
+      "4518491aeb9801a2b7de0e0ebdaca405d6162ea7fbceb97ee0a63b7294e073d8",
     "plugins/src/base/skills/lisa-setup-remote-env/SKILL.md":
       "d9b4260b434cb390544f75fa25f3c138a825adc0bc3b45262f114e592ad62bd0",
     "plugins/src/base/skills/lisa-setup-remote-env/assets/materialized-env-authority.mjs":
@@ -13310,7 +13310,6 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/secrets/emit-tenant-provider.test.ts": true,
     "tests/unit/secrets/environment-command.test.ts": true,
     "tests/unit/secrets/install-method-conformance.test.ts": true,
-    "tests/unit/secrets/legacy-profile-resolution.test.ts": true,
     "tests/unit/secrets/local-aws-profiles.test.ts": true,
     "tests/unit/secrets/local-env-command.test.ts": true,
     "tests/unit/secrets/managed-marker-orphans.test.ts": true,
@@ -13358,6 +13357,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/secrets/setup-field-notes-tools.test.ts": true,
     "tests/unit/secrets/setup-field-path.test.ts": true,
     "tests/unit/secrets/setup-secrets-nonfatal.test.ts": true,
+    "tests/unit/secrets/tenant-profile-names.test.ts": true,
     "tests/unit/secrets/tool-executable-preflight.test.ts": true,
     "tests/unit/secrets/tool-floor.test.ts": true,
     "tests/unit/secrets/toolchain-platforms.test.ts": true,
@@ -13640,6 +13640,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/strategies/readiness-report-merge-exposure.test.ts": true,
     "tests/unit/strategies/readiness-rubric-contract.test.ts": true,
     "tests/unit/strategies/ready-role-filing-contract.test.ts": true,
+    "tests/unit/strategies/remote-agent-aws-canonical-names.test.ts": true,
     "tests/unit/strategies/remote-agent-aws-default-refusal.test.ts": true,
     "tests/unit/strategies/remote-agent-aws-observer-reads.test.ts": true,
     "tests/unit/strategies/remote-agent-aws-profiles.test.ts": true,

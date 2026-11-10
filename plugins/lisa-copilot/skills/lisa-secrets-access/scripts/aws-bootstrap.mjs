@@ -42,92 +42,67 @@ const PROFILE = "AWS_PROFILE";
 export const BOOTSTRAP_KEY = "LISA_AWS_BOOTSTRAP_JSON";
 
 /**
- * EMIT vs RESOLVE — read this before touching either name below.
+ * THE canonical AWS profile naming scheme — one tenant, one set of names.
  *
- * These are two different guarantees, they expire on two different conditions,
- * and conflating them is how a temporary shim becomes permanent by accident.
+ *     profile:        <namespace>-agent-<stage>
+ *     source profile: <namespace>-agent-bootstrap
  *
- * **EMIT** is what this writer produces as its canonical output. Exactly one
- * shape is ever emitted as canonical: `<owner>-<stage>`, assuming from
- * `<owner>-lisa-bootstrap`. That is the fix for the cross-project collision and
- * it has no expiry.
+ * Two Lisa writers put profiles into the shared, untenanted `~/.aws` files:
+ * this module (via `materialize-secrets.mjs`) and the remote-agent setup script
+ * (`scripts/remote-agent-aws-setup.sh`). They must emit the SAME names for the
+ * same bundle and namespace, or a tenant's profile names depend on which
+ * writer ran last. The shell script cannot import this module, so it carries a
+ * byte-for-byte equivalent of `stageOf` and the two are pinned together by a
+ * test that runs both writers against one bundle.
  *
- * **RESOLVE** is the wider set of names that must keep working for READERS
- * during a migration. It currently includes the bare `<stage>` family, which
- * this writer emits only as a deprecated alias beside the canonical output —
- * never as canonical output itself.
+ * `<stage>` is the bundle key with at most ONE leading `agent-` removed. Infra
+ * kits publish keys that already say `agent-` (`agent-dev`), and others publish
+ * bare stages (`dev`); both must land on `<namespace>-agent-dev`. Prefixing
+ * without normalizing is what produced `acme-agent-agent-production`.
  *
- * A reader who mistakes the second for the first will conclude that Lisa still
- * emits bare names and that the rename never happened. It did: every canonical
- * name is owned, and `emitSourceProfileFor` is the only thing that names a
- * source profile in canonical output.
+ * There are no bare aliases. An earlier version also wrote the bundle's keys
+ * unprefixed (`agent-dev`, assuming from a bare `lisa-bootstrap`) as a
+ * deprecation window. A bare name is one slot per machine, so the first tenant
+ * claimed it and every other tenant's `--profile agent-dev` silently reached
+ * the first tenant's accounts (CodySwannGT/lisa#4768). That window is closed:
+ * nothing here emits a name that is not owned.
  */
+const STAGE_PREFIX = "agent-";
+
+/** The tail of the emitted source profile, after `<namespace>-`. */
+const SOURCE_PROFILE_SUFFIX = "agent-bootstrap";
 
 /**
- * The tail of the EMITTED profile that holds the key pair and is assumed FROM.
- *
- * Named rather than `default` so it can never be picked up by accident: this
- * identity can assume roles and do nothing else, so a call that silently ran as
- * it would fail with a permissions error far from its cause.
- *
- * A SUFFIX rather than the whole name, because one fixed name is one shared
- * slot. Two tenants on a workstation both wrote `[lisa-bootstrap]`, so the
- * second run's key pair replaced the first's and the first tenant's profiles
- * then assumed their roles from the second tenant's identity — which either
- * fails confusingly or, where a trust policy is permissive, succeeds.
+ * The stage a bundle key names, with one leading `agent-` removed.
+ * @param {string} key A bundle profile key such as `agent-dev` or `dev`.
+ * @returns {string} The stage, e.g. `dev`.
  */
-export const EMITTED_SOURCE_PROFILE_SUFFIX = "lisa-bootstrap";
+export function stageOf(key) {
+  return key.startsWith(STAGE_PREFIX) ? key.slice(STAGE_PREFIX.length) : key;
+}
 
 /**
- * A name kept RESOLVING for unmigrated readers. Never emitted as canonical.
- * **DEPRECATED — this constant exists only to be deleted.**
- *
- * Generators outside this repository emit the bare `<stage>` profile family and
- * this bare source profile independently, and scripts and documentation in
- * caller repositories name them directly. Nothing co-ordinates a rename across
- * those repositories, so switching this writer to the owned names alone would
- * leave writer and reader disagreeing: a bare `[profile <stage>]` whose
- * `source_profile = lisa-bootstrap` would point at a section that no longer
- * exists, and every call through it would fail to resolve.
- *
- * So the owned names are EMITTED as canonical and these bare names are kept
- * RESOLVING beside them, both generated from one bundle in one pass. This
- * constant is never used to decide what canonical output looks like, and it is
- * not used to attribute a block either — ownership is read from the `owner=`
- * marker tag, and a pre-ownership block is attributed by the accounts in its
- * role ARNs. Its only job is the resolve path.
- *
- * **The window is not a fix, and this comment must not read like one.** The
- * bare family is a single shared slot on a machine that may serve several
- * projects — which is precisely the collision the owned names remove. During
- * the window that collision is unfixed ON THE RESOLVE PATH ONLY: these names
- * are claimed when unclaimed or already ours, and refused by name when another
- * project holds them, so the failure is loud rather than silent, but two
- * projects still cannot both have them. The emitted names are always correct;
- * these are correct for at most one project per machine.
- *
- * **Removal condition — stated against the RESOLVE path, because that is the
- * only thing that expires.** Delete this constant and every use of it once no
- * caller repository *resolves* the bare family: that is, once nothing outside
- * this repository names `<stage>` or `lisa-bootstrap` when selecting a profile.
- * A caller proves it no longer resolves them by selecting only
- * `<namespace>-<stage>`; `LISA_SECRETS_NO_LEGACY_PROFILES=1` lets one opt out
- * ahead of the removal and take the isolation immediately. Nothing about the
- * emit path changes when this is deleted, because the emit path never used it.
+ * The profile name a bundle key is emitted under for one namespace.
+ * @param {string} namespace Validated owner / namespace.
+ * @param {string} key The bundle profile key.
+ * @returns {string} `<namespace>-agent-<stage>`.
  */
-export const RESOLVE_ONLY_LEGACY_SOURCE_PROFILE = EMITTED_SOURCE_PROFILE_SUFFIX;
+export function canonicalProfileName(namespace, key) {
+  return `${namespace}-${STAGE_PREFIX}${stageOf(key)}`;
+}
 
 /**
- * The source profile this writer EMITS for one owner, as canonical output.
+ * The source profile this writer emits for one owner — the only name that
+ * holds the key pair and is assumed FROM.
  *
- * The only function that names a source profile in canonical output. If a
- * canonical section ever assumes from something this did not return, the emit
- * path has regressed.
+ * Owned rather than one fixed name, because one fixed name is one shared slot:
+ * two tenants both writing `[lisa-bootstrap]` meant the second key pair replaced
+ * the first.
  * @param {string} owner Validated owner.
- * @returns {string} The owner's emitted source-profile name.
+ * @returns {string} `<owner>-agent-bootstrap`.
  */
 export function emitSourceProfileFor(owner) {
-  return `${owner}-${EMITTED_SOURCE_PROFILE_SUFFIX}`;
+  return `${owner}-${SOURCE_PROFILE_SUFFIX}`;
 }
 
 /**
@@ -169,24 +144,17 @@ export function readProfiles(bundle) {
  * ignores whichever profile it selects — the profiles would exist and never be
  * used.
  *
- * Every name is prefixed with the OWNER. The bundle's keys name a stage and
- * nothing else, and the kit deliberately keeps role names identical across
- * accounts so profiles differ only by account id — correct within one tenant,
- * and the removal of the only distinguishing feature across two. Prefixing
- * makes the wrong resolution impossible rather than merely detectable, which is
- * the same fix #3440 applied to the sibling remote-agent writer; a workstation
- * carrying both now sees one convention instead of two.
- *
- * The `resolveOnly` half is rendered SEPARATELY, and returned rather than merged,
- * so
- * the installer can drop it as a unit after looking at the filesystem — which
- * this function deliberately cannot see. See `RESOLVE_ONLY_LEGACY_SOURCE_PROFILE` for why
- * that half exists at all and when it goes away.
+ * Every name is owned, per the canonical scheme above. The bundle's keys name a
+ * stage and nothing else, and the kit deliberately keeps role names identical
+ * across accounts so profiles differ only by account id — correct within one
+ * tenant, and the removal of the only distinguishing feature across two.
+ * Prefixing makes the wrong resolution impossible rather than merely
+ * detectable, and it is the same scheme the remote-agent writer emits.
  * @param {object} bundle Parsed bootstrap bundle.
  * @param {string} owner Tenant these profiles belong to.
- * @returns {{credentials: string, config: string, profiles: string[], resolveOnly: {credentials: string, config: string, profiles: string[], sourceProfile: string}}|null}
- *   Rendered file contents, the profile names, and the deprecated
- *   bare-named half; or null when the bundle is unusable.
+ * @returns {{credentials: string, config: string, profiles: string[], sourceProfile: string}|null}
+ *   Rendered file contents, the profile names and the source profile; or null
+ *   when the bundle is unusable.
  */
 export function renderAwsProfiles(bundle, owner) {
   if (!bundle) return null;
@@ -212,21 +180,42 @@ export function renderAwsProfiles(bundle, owner) {
 
   const sections = [];
   const names = [];
-  const resolveOnlySections = [];
-  const resolveOnlyNames = [];
-  for (const [stage, entry] of Object.entries(profiles)) {
+  const keyFor = new Map();
+  for (const [key, entry] of Object.entries(profiles)) {
     const roleArn = entry?.roleArn ?? entry?.role_arn;
     if (!roleArn) continue;
+    // `agent-` alone names no stage; writing `<owner>-agent-` would be a
+    // profile nobody can mean.
+    if (stageOf(key) === "") continue;
+    // `<owner>-agent-bootstrap` is the source profile; a stage of that name
+    // would overwrite the key pair's section name with a role profile.
+    if (stageOf(key) === "bootstrap") {
+      throw new Error(
+        `bootstrap key "${key}" names the stage "bootstrap", which is ` +
+          `reserved for the source profile. Rename it; nothing was changed.`
+      );
+    }
 
-    assertDeclaredAccount(stage, entry, roleArn);
+    assertDeclaredAccount(key, entry, roleArn);
 
-    const name = `${scope}-${stage}`;
+    const name = canonicalProfileName(scope, key);
     // A name is only usable if it can be written as an ini section header and
     // read back as the same string. Anything with a bracket or newline would
     // either truncate or inject extra lines into ~/.aws/config, and a config
     // file this corrupts is worse than one it never wrote. Checked on the FULL
     // name, since that is the string that becomes the header.
     if (!/^[\w.@-]+$/.test(name)) continue;
+
+    // `dev` and `agent-dev` are one stage. Writing both would be a duplicate
+    // section, and AWS resolves only one of a duplicated name — silently.
+    const clash = keyFor.get(name);
+    if (clash !== undefined) {
+      throw new Error(
+        `bootstrap keys "${clash}" and "${key}" both name the profile ` +
+          `"${name}". Remove one from the bundle; nothing was changed.`
+      );
+    }
+    keyFor.set(name, key);
 
     sections.push(
       `${profileSection(name, roleArn, sourceProfile, bundle, entry)}\n`
@@ -235,42 +224,18 @@ export function renderAwsProfiles(bundle, owner) {
     // re-parsing the rendered text made the header format load-bearing: a
     // change to it would silently corrupt every returned name.
     names.push(name);
-
-    // The deprecated twin, generated from the SAME bundle in the same pass.
-    // Regenerating both from one source is what makes them incapable of
-    // drifting apart; a hand-maintained second copy would be a new defect.
-    if (!/^[\w.@-]+$/.test(stage)) continue;
-    resolveOnlySections.push(
-      `${profileSection(stage, roleArn, RESOLVE_ONLY_LEGACY_SOURCE_PROFILE, bundle, entry)}\n`
-    );
-    resolveOnlyNames.push(stage);
   }
 
   return {
     credentials,
     config: sections.join("\n"),
     profiles: names,
-    resolveOnly: {
-      credentials: [
-        `[${RESOLVE_ONLY_LEGACY_SOURCE_PROFILE}]`,
-        `aws_access_key_id = ${accessKeyId}`,
-        `aws_secret_access_key = ${secretAccessKey}`,
-        "",
-      ].join("\n"),
-      config: resolveOnlySections.join("\n"),
-      profiles: resolveOnlyNames,
-      sourceProfile: RESOLVE_ONLY_LEGACY_SOURCE_PROFILE,
-    },
+    sourceProfile,
   };
 }
 
 /**
  * One `[profile …]` section.
- *
- * Shared by the canonical and the deprecated renderer so the two cannot differ
- * in anything but their names — the resolve-only profile must reach the same
- * role, with the same external id and region, or it is not a shim but a
- * second, subtly different credential.
  * @param {string} name Section name.
  * @param {string} roleArn The role to assume.
  * @param {string} sourceProfile The profile holding the key pair.
@@ -375,7 +340,7 @@ export function deriveAwsEnvironment(selected, owner) {
   // The pair now lives in ~/.aws/credentials as the source profile, and the
   // session selects an environment instead. The ambient pair is unset by the
   // shell profile rather than overridden — removing the poison beats out-
-  // shouting it, and it is what makes `--profile agent-staging` behave exactly
+  // shouting it, and it is what makes `--profile <owner>-agent-staging` behave exactly
   // as it does on a developer's machine.
   // Only profiles that actually get WRITTEN are candidates. Selecting a name
   // that ~/.aws/config never contains — an entry with no roleArn, or a name too

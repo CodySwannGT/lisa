@@ -200,8 +200,8 @@ describe("two projects materializing on one machine", () => {
     const keys = readFileSync(path.join(home, KEYS), "utf8");
     expect(keys).toContain("AKIA_ALPHA");
     expect(keys).toContain("AKIA_BETA");
-    expect(keys).toContain(`[${ALPHA}-lisa-bootstrap]`);
-    expect(keys).toContain(`[${BETA}-lisa-bootstrap]`);
+    expect(keys).toContain(`[${ALPHA}-agent-bootstrap]`);
+    expect(keys).toContain(`[${BETA}-agent-bootstrap]`);
   });
 
   it("points each tenant's profiles at its own source profile", () => {
@@ -210,7 +210,7 @@ describe("two projects materializing on one machine", () => {
     installAwsProfiles(ALPHA_BUNDLE, { home, owner: ALPHA });
 
     expect(readFileSync(path.join(home, CONFIG), "utf8")).toContain(
-      `source_profile = ${ALPHA}-lisa-bootstrap`
+      `source_profile = ${ALPHA}-agent-bootstrap`
     );
   });
 
@@ -253,7 +253,7 @@ describe("two projects materializing on one machine", () => {
 
 describe("a profile owned by another project", () => {
   /** Owner and stage that render the same section as `alpha` + `co-agent-dev`. */
-  const SPLIT_OWNER = "alpha-co";
+  const SPLIT_OWNER = "alpha-agent-co";
 
   /** A bundle whose stage name completes the other owner's prefix. */
   const OVERLAPPING = {
@@ -269,8 +269,8 @@ describe("a profile owned by another project", () => {
   it("is refused by name rather than silently consumed", () => {
     // Prefixing makes the ordinary collision impossible; this is the backstop
     // for the case it cannot prevent, where two owners and their stage names
-    // reduce to one final section — "alpha-co" + "agent-dev" and "alpha" +
-    // "co-agent-dev" are both `alpha-co-agent-dev`.
+    // reduce to one final section — "alpha-agent-co" + "agent-dev" and
+    // "alpha" + "co-agent-dev" are both `alpha-agent-co-agent-dev`.
     const home = scratchHome();
 
     installAwsProfiles(bundleFor("111111111111", "AKIA_SPLIT"), {
