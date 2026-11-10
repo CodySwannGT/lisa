@@ -47,6 +47,9 @@ const ACME_DEV_SECTION = `profile ${ACME_DEV}`;
 /** Acme's canonical source profile. */
 const ACME_SOURCE = "acme-agent-bootstrap";
 
+/** The line that marks a section as assuming from acme's source. */
+const ACME_SOURCE_LINE = `source_profile = ${ACME_SOURCE}`;
+
 /** A role line in acme's account. */
 const ACME_ROLE = "role_arn = arn:aws:iam::111111111111:role/RemoteAgent";
 
@@ -309,12 +312,12 @@ describe("sections the remote-agent writer left for the same owner", () => {
   const REMOTE_CONFIG = [
     "[profile acme-agent-dev]",
     ACME_ROLE,
-    "source_profile = acme-agent-bootstrap",
+    ACME_SOURCE_LINE,
     "role_session_name = codex",
     "",
     "[profile acme-agent-agent-production]",
     ACME_ROLE,
-    "source_profile = acme-agent-bootstrap",
+    ACME_SOURCE_LINE,
     "",
     "[profile globex-agent-dev]",
     GLOBEX_ROLE,
@@ -322,6 +325,10 @@ describe("sections the remote-agent writer left for the same owner", () => {
     "",
     "[profile mine-sso]",
     "sso_session = mine",
+    "",
+    "[profile acme-agent-staging]",
+    ACME_ROLE,
+    ACME_SOURCE_LINE,
     "",
   ].join("\n");
 
@@ -350,6 +357,9 @@ describe("sections the remote-agent writer left for the same owner", () => {
     expect(config).not.toContain("profile acme-agent-agent-production");
     expect(config).toContain("profile globex-agent-dev");
     expect(config).toContain("profile mine-sso");
+    // A stage this bundle does not carry is not adopted — deleting it would
+    // leave nothing to rewrite it.
+    expect(config).toContain("profile acme-agent-staging");
     const keys = sections(home, KEYS);
     expect(keys.filter(name => name === ACME_SOURCE)).toHaveLength(1);
     expect(keys).toContain("globex-agent-bootstrap");

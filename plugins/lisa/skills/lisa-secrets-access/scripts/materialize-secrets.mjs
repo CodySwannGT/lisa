@@ -633,7 +633,10 @@ export function installAwsProfiles(bundle, options = {}) {
       return [
         file,
         exists(file)
-          ? adoptRemoteAgentSections(String(read(file, "utf8")), name, scope)
+          ? adoptRemoteAgentSections(String(read(file, "utf8")), name, {
+              owner: scope,
+              names: rendered.profiles,
+            })
           : null,
       ];
     })
@@ -738,26 +741,38 @@ export function installAwsProfiles(bundle, options = {}) {
  * `aws configure set`, which produces plain, unmarked sections. A section is
  * taken only when it provably belongs to THIS owner's Lisa bootstrap:
  *
- *   - config: `[profile <owner>-agent-…]` whose `source_profile` is exactly
- *     `<owner>-agent-bootstrap` (this also catches the retired doubled
- *     `<owner>-agent-agent-<stage>` spelling);
+ *   - config: `[profile <name>]` whose `source_profile` is exactly
+ *     `<owner>-agent-bootstrap`, where `<name>` is a profile THIS run writes or
+ *     the retired doubled spelling of one (`<owner>-agent-agent-<stage>`);
  *   - credentials: `[<owner>-agent-bootstrap]`.
  *
+ * Scoped to this run's names, so a stage the remote writer wrote that this
+ * bundle does not carry is left alone rather than deleted and never rewritten.
  * Another owner's sections assume from a different source and never match, and
  * an operator's own sections do not name this owner's bootstrap profile, so
  * neither is ever touched. `[default]` is never adopted — it is one shared slot.
  * @param {string} text File contents.
  * @param {"config"|"credentials"} kind Which file this is.
- * @param {string} owner Validated owner.
+ * @param {{owner: string, names: string[]}} scope Validated owner and the
+ *   profile names this run writes.
  * @returns {string} The contents with the adopted sections removed.
  */
-function adoptRemoteAgentSections(text, kind, owner) {
+function adoptRemoteAgentSections(text, kind, { owner, names }) {
   const source = emitSourceProfileFor(owner);
-  const adopt = (header, body) =>
-    kind === "credentials"
-      ? header === source
-      : header.startsWith(`profile ${owner}-agent-`) &&
-        settingIn(body, "source_profile") === source;
+  const doubled = `${owner}-agent-agent-`;
+  const undouble = name =>
+    name.startsWith(doubled)
+      ? `${owner}-agent-${name.slice(doubled.length)}`
+      : name;
+  const adopt = (header, body) => {
+    if (kind === "credentials") return header === source;
+    const found = /^profile\s+(\S+)$/.exec(header);
+    return (
+      found !== null &&
+      names.includes(undouble(found[1])) &&
+      settingIn(body, "source_profile") === source
+    );
+  };
 
   // Managed blocks are kept verbatim; only the text between them is filtered.
   const blocks = familyBlocks(text, MANAGED_FAMILY);

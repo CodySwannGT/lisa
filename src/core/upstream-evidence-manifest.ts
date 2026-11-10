@@ -1363,7 +1363,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/scripts/ready-queue-order.mjs":
       "3b7270870134e9c59fcd6494f71d5b87176956b12c9e4f9811b11666f166dfd5",
     "plugins/src/base/scripts/remote-agent-aws-setup.sh":
-      "f73d392f651112f1393c811af9b5c992fff6c27806da32c58473672b28bd3309",
+      "58fa072aa852c375e1f7581149b5b1c5b9f6d039ad798bea65243e047d2e4ae5",
     "plugins/src/base/scripts/repo-scope-vocabulary-audit.mjs":
       "bed0f0b8a43146dbe222c657d6b58494c3962d1bb627bf0591d4b37102de972f",
     "plugins/src/base/scripts/resolve-lifecycle-role.mjs":
@@ -1643,7 +1643,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-root-cause-analysis/SKILL.md":
       "3fa14217ca36b238ebb8203d18f10eaaf98a3647f949cdada6cb9f56ddf9ed50",
     "plugins/src/base/skills/lisa-secrets-access/SKILL.md":
-      "c6cfb6075c3d871031be1c4095293c32515972f00f32755c6114714e45e254cc",
+      "075c97f800e0854e2d46f3e05d7908290450aa4525c9878d03014c7eb1119459",
     "plugins/src/base/skills/lisa-secrets-access/scripts/aws-bootstrap.mjs":
       "d8bcedae60bdba6580cabfd5cef70b010006f00606a13d6432ff6f379387edf9",
     "plugins/src/base/skills/lisa-secrets-access/scripts/bootstrap-store.mjs":
@@ -1655,7 +1655,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-secrets-access/scripts/inspect-vault.mjs":
       "d2841042eda0f0c50f995ccc34e09e25aced0abbf3a96bce52a9f604e4009520",
     "plugins/src/base/skills/lisa-secrets-access/scripts/materialize-secrets.mjs":
-      "0c13d2172264cf1ae769898237b2210243ef6fe9f6cf91629707363b49c5fe90",
+      "0050e04d82b7cc017323a6f02e056412d7115e89a9e43e00a302c87c4e5288d5",
     "plugins/src/base/skills/lisa-secrets-access/scripts/note-format.mjs":
       "09bd6904bc84a5a93a32499ac94db5ec7728db68908a661698445ef5e6974f3e",
     "plugins/src/base/skills/lisa-secrets-access/scripts/owner.mjs":

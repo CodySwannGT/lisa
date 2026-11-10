@@ -160,6 +160,12 @@ describe("the remote-agent writer", () => {
       "[profile acme-agent-agent-mine]",
       "sso_session = mine",
       "",
+      "# >>> managed by lisa-secrets-access v3 owner=acme >>>",
+      "[profile acme-agent-agent-kept]",
+      "role_arn = arn:aws:iam::111111111111:role/RemoteAgent",
+      "source_profile = acme-agent-bootstrap",
+      "# <<< managed by lisa-secrets-access v3 owner=acme <<<",
+      "",
     ].join("\n");
 
     const { home, result } = remote(AGENT_KEYS, seed);
@@ -172,6 +178,8 @@ describe("the remote-agent writer", () => {
     // does not assume from acme's bootstrap profile is not Lisa's at all.
     expect(config).toContain("profile globex-agent-agent-staging");
     expect(config).toContain("profile acme-agent-agent-mine");
+    // Inside a lisa-secrets-access managed block: that writer's to regenerate.
+    expect(config).toContain("profile acme-agent-agent-kept");
     expect(result.stderr).toContain(
       "removed doubled profile names left by an earlier bootstrap: acme-agent-agent-dev"
     );
