@@ -769,7 +769,9 @@ function adoptRemoteAgentSections(text, kind, { owner, names }) {
     const found = /^profile\s+(\S+)$/.exec(header);
     return (
       found !== null &&
-      names.includes(undouble(found[1])) &&
+      // The name itself first: a bundle key `agent-agent-x` canonically
+      // renders `<owner>-agent-agent-x`, which is not a retired doubling.
+      (names.includes(found[1]) || names.includes(undouble(found[1]))) &&
       settingIn(body, "source_profile") === source
     );
   };

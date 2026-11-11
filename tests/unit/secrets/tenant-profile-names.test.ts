@@ -364,4 +364,25 @@ describe("sections the remote-agent writer left for the same owner", () => {
     expect(keys.filter(name => name === ACME_SOURCE)).toHaveLength(1);
     expect(keys).toContain("globex-agent-bootstrap");
   });
+
+  it("adopts a canonical name that merely looks doubled (key agent-agent-x)", () => {
+    // Stage `agent-x` canonically renders `acme-agent-agent-x`; the remote
+    // writer keeps it, so this writer must adopt it rather than refuse it.
+    const home = scratchHome();
+    writeFileSync(
+      path.join(home, CONFIG),
+      ["[profile acme-agent-agent-x]", ACME_ROLE, ACME_SOURCE_LINE, ""].join(
+        "\n"
+      )
+    );
+
+    expect(() =>
+      installAwsProfiles(bundleWith(["agent-agent-x"]), { home, owner: ACME })
+    ).not.toThrow();
+    expect(
+      sections(home, CONFIG).filter(
+        name => name === "profile acme-agent-agent-x"
+      )
+    ).toHaveLength(1);
+  });
 });
