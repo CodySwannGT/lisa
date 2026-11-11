@@ -54,6 +54,14 @@ two bundles declaring the same stages overwrite each other in the shared
 `~/.aws/config` — silently, because nothing about the surviving profile is
 malformed. The name is the only place the owner can be recorded.
 
+`<stage>` is the bundle key with at most one leading `agent-` removed: keys
+`agent-dev` and `dev` both yield `<project>-agent-dev`, never
+`<project>-agent-agent-dev`. Keys naming the same stage twice are refused. An
+earlier run's doubled names (`<project>-agent-agent-<stage>` assuming from this
+project's `<project>-agent-bootstrap`) are removed automatically. This is the
+same scheme `lisa-secrets-access` writes, so one tenant has one set of names
+whichever writer ran.
+
 `default` cannot be namespaced. The script claims it only when nothing else
 owns it. Otherwise it still writes every named profile and verifies them as a
 normal run would (the default stage, or every stage under
