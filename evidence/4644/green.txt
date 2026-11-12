@@ -1,9 +1,3 @@
-# GREEN: tests/unit/core/update-skill-references.test.ts at branch HEAD f33bd37a9699243a6d508f6c95c41c2bac661dbb
-# Independent re-run by verification-specialist (did not implement the change).
-# command: bunx vitest run tests/unit/core/update-skill-references.test.ts --reporter=verbose
-# captured_at: 2026-11-12T15:37:03Z
-# result: 15 passed (15), exit=0
-
 
  RUN  v4.1.11 /Users/codysai/workspace/lisa/.claude/worktrees/4644-update-projects-skill
 
@@ -17,6 +11,8 @@ lisa scratch: no supervised lease in the environment, so this run is self-superv
  ✓ |lisa| tests/unit/core/update-skill-references.test.ts > lisa-update-projects skill: references and parity > .claude-pr/.claude/skills/lisa-update-projects/SKILL.md still cites every host-path exclusion, so none is stale 0ms
  ✓ |lisa| tests/unit/core/update-skill-references.test.ts > lisa-update-projects skill: references and parity > .agents/skills/lisa-update-projects/SKILL.md has the same numbered steps and headings as the .claude copy 0ms
  ✓ |lisa| tests/unit/core/update-skill-references.test.ts > lisa-update-projects skill: references and parity > .claude-pr/.claude/skills/lisa-update-projects/SKILL.md has the same numbered steps and headings as the .claude copy 0ms
+ ✓ |lisa| tests/unit/core/update-skill-references.test.ts > lisa-update-projects skill: references and parity > .agents/skills/lisa-update-projects/SKILL.md carries the same step bodies as the .claude copy, not only the same headings 0ms
+ ✓ |lisa| tests/unit/core/update-skill-references.test.ts > lisa-update-projects skill: references and parity > .claude-pr/.claude/skills/lisa-update-projects/SKILL.md carries the same step bodies as the .claude copy, not only the same headings 0ms
  ✓ |lisa| tests/unit/core/update-skill-references.test.ts > lisa-update-projects skill: references and parity > .claude/skills/lisa-update-projects/SKILL.md step 8 recognises pinned callers 0ms
  ✓ |lisa| tests/unit/core/update-skill-references.test.ts > lisa-update-projects skill: references and parity > .agents/skills/lisa-update-projects/SKILL.md step 8 recognises pinned callers 0ms
  ✓ |lisa| tests/unit/core/update-skill-references.test.ts > lisa-update-projects skill: references and parity > .claude-pr/.claude/skills/lisa-update-projects/SKILL.md step 8 recognises pinned callers 0ms
@@ -25,8 +21,7 @@ lisa scratch: no supervised lease in the environment, so this run is self-superv
  ✓ |lisa| tests/unit/core/update-skill-references.test.ts > lisa-update-projects skill: references and parity > .claude-pr/.claude/skills/lisa-update-projects/SKILL.md step 8 never accepts a zero-caller detector run as clean 0ms
 
  Test Files  1 passed (1)
-      Tests  15 passed (15)
-   Start at  10:37:03
-   Duration  278ms (transform 60ms, setup 110ms, import 4ms, tests 8ms, environment 0ms)
+      Tests  17 passed (17)
+   Start at  10:41:34
+   Duration  410ms (transform 182ms, setup 237ms, import 7ms, tests 9ms, environment 0ms)
 
-exit=0

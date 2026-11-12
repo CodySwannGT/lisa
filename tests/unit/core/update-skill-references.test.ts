@@ -196,6 +196,15 @@ describe("lisa-update-projects skill: references and parity", () => {
     }
   );
 
+  it.each(SKILL_COPIES.slice(1))(
+    "%s carries the same step bodies as the .claude copy, not only the same headings",
+    copy => {
+      const body = (text: string): string =>
+        text.replaceAll("$lisa-", "/lisa-");
+      expect(body(read(copy))).toBe(body(read(SKILL_COPIES[0])));
+    }
+  );
+
   it.each(SKILL_COPIES)("%s step 8 recognises pinned callers", copy => {
     const text = step8(read(copy));
     expect(text).toContain("@<40-char sha> # v<version>");
