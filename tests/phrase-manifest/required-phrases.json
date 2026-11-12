@@ -1186,14 +1186,26 @@
     },
     "plugins/lisa-agy/skills/lisa-jira-evidence/SKILL.md": {
       "required": [
-        "REVIEW=\"\""
+        "LISA_EVIDENCE_RELEASE=$(node scripts/lisa-work-item.mjs evidence-release --ensure) || { echo \"Evidence release not usable; stop.\"; false; }",
+        "LISA_EVIDENCE_RELEASE=<name>",
+        "REVIEW=\"\"",
+        "unset LISA_EVIDENCE_RELEASE; LISA_EVIDENCE_RELEASE=$("
       ],
       "forbidden": [
-        "REVIEW=\"Code Review\""
+        "REVIEW=\"Code Review\"",
+        "export LISA_EVIDENCE_RELEASE=$("
       ],
       "requiredPatterns": [
         {
+          "source": "^export LISA_EVIDENCE_RELEASE(?:\\s|$)",
+          "flags": "m"
+        },
+        {
           "source": "claimed",
+          "flags": ""
+        },
+        {
+          "source": "new shell for every command",
           "flags": ""
         },
         {
@@ -1209,8 +1221,18 @@
           "flags": "i"
         }
       ],
-      "forbiddenPatterns": [],
+      "forbiddenPatterns": [
+        {
+          "source": "^bash \\.claude/skills/jira-evidence/scripts/post-evidence\\.sh",
+          "flags": "m"
+        },
+        {
+          "source": "^python3 \\.claude/skills/jira-journey/scripts/generate-templates\\.py",
+          "flags": "m"
+        }
+      ],
       "source": [
+        "tests/unit/strategies/evidence-release-stop-guard.test.ts › evidence release-selection lines (#4740) > plugins/src/base/skills/lisa-jira-evidence/SKILL.md > exits non-zero, says to stop, and exports nothing when the release cannot be used",
         "tests/unit/strategies/jira-evidence-config-bound-status.test.ts › jira-evidence SKILL.md documents the optional, skip-when-absent review hop > plugins/lisa-agy/skills/lisa-jira-evidence/SKILL.md > forbids transitioning to a status not named in config.jira.workflow",
         "tests/unit/strategies/jira-evidence-config-bound-status.test.ts › jira-evidence SKILL.md documents the optional, skip-when-absent review hop > plugins/lisa-agy/skills/lisa-jira-evidence/SKILL.md > initializes REVIEW empty in the resolution snippet",
         "tests/unit/strategies/jira-evidence-config-bound-status.test.ts › jira-evidence SKILL.md documents the optional, skip-when-absent review hop > plugins/lisa-agy/skills/lisa-jira-evidence/SKILL.md > states the transition is skipped when review is unset"
@@ -1246,6 +1268,39 @@
         "tests/unit/strategies/jira-evidence-config-bound-status.test.ts › post-evidence.sh Step 5 is config-bound (skip-when-unconfigured) > plugins/lisa-agy/skills/lisa-jira-evidence/scripts/post-evidence.sh > never invents a hard-coded transition target in the move command",
         "tests/unit/strategies/jira-evidence-config-bound-status.test.ts › post-evidence.sh Step 5 is config-bound (skip-when-unconfigured) > plugins/lisa-agy/skills/lisa-jira-evidence/scripts/post-evidence.sh > only moves the ticket when a review status is configured",
         "tests/unit/strategies/jira-evidence-config-bound-status.test.ts › post-evidence.sh Step 5 is config-bound (skip-when-unconfigured) > plugins/lisa-agy/skills/lisa-jira-evidence/scripts/post-evidence.sh > resolves the review status from jira.workflow (global + local)"
+      ]
+    },
+    "plugins/lisa-agy/skills/lisa-jira-journey/SKILL.md": {
+      "required": [
+        "LISA_EVIDENCE_RELEASE=$(node scripts/lisa-work-item.mjs evidence-release --ensure) || { echo \"Evidence release not usable; stop.\"; false; }",
+        "LISA_EVIDENCE_RELEASE=<name>",
+        "unset LISA_EVIDENCE_RELEASE; LISA_EVIDENCE_RELEASE=$("
+      ],
+      "forbidden": [
+        "export LISA_EVIDENCE_RELEASE=$("
+      ],
+      "requiredPatterns": [
+        {
+          "source": "^export LISA_EVIDENCE_RELEASE(?:\\s|$)",
+          "flags": "m"
+        },
+        {
+          "source": "new shell for every command",
+          "flags": ""
+        }
+      ],
+      "forbiddenPatterns": [
+        {
+          "source": "^bash \\.claude/skills/jira-evidence/scripts/post-evidence\\.sh",
+          "flags": "m"
+        },
+        {
+          "source": "^python3 \\.claude/skills/jira-journey/scripts/generate-templates\\.py",
+          "flags": "m"
+        }
+      ],
+      "source": [
+        "tests/unit/strategies/evidence-release-stop-guard.test.ts › evidence release-selection lines (#4740) > plugins/src/base/skills/lisa-jira-journey/SKILL.md > exits non-zero, says to stop, and exports nothing when the release cannot be used"
       ]
     },
     "plugins/lisa-agy/skills/lisa-jira-sync/SKILL.md": {
@@ -3013,14 +3068,26 @@
     },
     "plugins/lisa-copilot/skills/lisa-jira-evidence/SKILL.md": {
       "required": [
-        "REVIEW=\"\""
+        "LISA_EVIDENCE_RELEASE=$(node scripts/lisa-work-item.mjs evidence-release --ensure) || { echo \"Evidence release not usable; stop.\"; false; }",
+        "LISA_EVIDENCE_RELEASE=<name>",
+        "REVIEW=\"\"",
+        "unset LISA_EVIDENCE_RELEASE; LISA_EVIDENCE_RELEASE=$("
       ],
       "forbidden": [
-        "REVIEW=\"Code Review\""
+        "REVIEW=\"Code Review\"",
+        "export LISA_EVIDENCE_RELEASE=$("
       ],
       "requiredPatterns": [
         {
+          "source": "^export LISA_EVIDENCE_RELEASE(?:\\s|$)",
+          "flags": "m"
+        },
+        {
           "source": "claimed",
+          "flags": ""
+        },
+        {
+          "source": "new shell for every command",
           "flags": ""
         },
         {
@@ -3036,8 +3103,18 @@
           "flags": "i"
         }
       ],
-      "forbiddenPatterns": [],
+      "forbiddenPatterns": [
+        {
+          "source": "^bash \\.claude/skills/jira-evidence/scripts/post-evidence\\.sh",
+          "flags": "m"
+        },
+        {
+          "source": "^python3 \\.claude/skills/jira-journey/scripts/generate-templates\\.py",
+          "flags": "m"
+        }
+      ],
       "source": [
+        "tests/unit/strategies/evidence-release-stop-guard.test.ts › evidence release-selection lines (#4740) > plugins/src/base/skills/lisa-jira-evidence/SKILL.md > exits non-zero, says to stop, and exports nothing when the release cannot be used",
         "tests/unit/strategies/jira-evidence-config-bound-status.test.ts › jira-evidence SKILL.md documents the optional, skip-when-absent review hop > plugins/lisa-copilot/skills/lisa-jira-evidence/SKILL.md > forbids transitioning to a status not named in config.jira.workflow",
         "tests/unit/strategies/jira-evidence-config-bound-status.test.ts › jira-evidence SKILL.md documents the optional, skip-when-absent review hop > plugins/lisa-copilot/skills/lisa-jira-evidence/SKILL.md > initializes REVIEW empty in the resolution snippet",
         "tests/unit/strategies/jira-evidence-config-bound-status.test.ts › jira-evidence SKILL.md documents the optional, skip-when-absent review hop > plugins/lisa-copilot/skills/lisa-jira-evidence/SKILL.md > states the transition is skipped when review is unset"
@@ -3073,6 +3150,39 @@
         "tests/unit/strategies/jira-evidence-config-bound-status.test.ts › post-evidence.sh Step 5 is config-bound (skip-when-unconfigured) > plugins/lisa-copilot/skills/lisa-jira-evidence/scripts/post-evidence.sh > never invents a hard-coded transition target in the move command",
         "tests/unit/strategies/jira-evidence-config-bound-status.test.ts › post-evidence.sh Step 5 is config-bound (skip-when-unconfigured) > plugins/lisa-copilot/skills/lisa-jira-evidence/scripts/post-evidence.sh > only moves the ticket when a review status is configured",
         "tests/unit/strategies/jira-evidence-config-bound-status.test.ts › post-evidence.sh Step 5 is config-bound (skip-when-unconfigured) > plugins/lisa-copilot/skills/lisa-jira-evidence/scripts/post-evidence.sh > resolves the review status from jira.workflow (global + local)"
+      ]
+    },
+    "plugins/lisa-copilot/skills/lisa-jira-journey/SKILL.md": {
+      "required": [
+        "LISA_EVIDENCE_RELEASE=$(node scripts/lisa-work-item.mjs evidence-release --ensure) || { echo \"Evidence release not usable; stop.\"; false; }",
+        "LISA_EVIDENCE_RELEASE=<name>",
+        "unset LISA_EVIDENCE_RELEASE; LISA_EVIDENCE_RELEASE=$("
+      ],
+      "forbidden": [
+        "export LISA_EVIDENCE_RELEASE=$("
+      ],
+      "requiredPatterns": [
+        {
+          "source": "^export LISA_EVIDENCE_RELEASE(?:\\s|$)",
+          "flags": "m"
+        },
+        {
+          "source": "new shell for every command",
+          "flags": ""
+        }
+      ],
+      "forbiddenPatterns": [
+        {
+          "source": "^bash \\.claude/skills/jira-evidence/scripts/post-evidence\\.sh",
+          "flags": "m"
+        },
+        {
+          "source": "^python3 \\.claude/skills/jira-journey/scripts/generate-templates\\.py",
+          "flags": "m"
+        }
+      ],
+      "source": [
+        "tests/unit/strategies/evidence-release-stop-guard.test.ts › evidence release-selection lines (#4740) > plugins/src/base/skills/lisa-jira-journey/SKILL.md > exits non-zero, says to stop, and exports nothing when the release cannot be used"
       ]
     },
     "plugins/lisa-copilot/skills/lisa-jira-sync/SKILL.md": {
@@ -4866,14 +4976,26 @@
     },
     "plugins/lisa-cursor/skills/lisa-jira-evidence/SKILL.md": {
       "required": [
-        "REVIEW=\"\""
+        "LISA_EVIDENCE_RELEASE=$(node scripts/lisa-work-item.mjs evidence-release --ensure) || { echo \"Evidence release not usable; stop.\"; false; }",
+        "LISA_EVIDENCE_RELEASE=<name>",
+        "REVIEW=\"\"",
+        "unset LISA_EVIDENCE_RELEASE; LISA_EVIDENCE_RELEASE=$("
       ],
       "forbidden": [
-        "REVIEW=\"Code Review\""
+        "REVIEW=\"Code Review\"",
+        "export LISA_EVIDENCE_RELEASE=$("
       ],
       "requiredPatterns": [
         {
+          "source": "^export LISA_EVIDENCE_RELEASE(?:\\s|$)",
+          "flags": "m"
+        },
+        {
           "source": "claimed",
+          "flags": ""
+        },
+        {
+          "source": "new shell for every command",
           "flags": ""
         },
         {
@@ -4889,8 +5011,18 @@
           "flags": "i"
         }
       ],
-      "forbiddenPatterns": [],
+      "forbiddenPatterns": [
+        {
+          "source": "^bash \\.claude/skills/jira-evidence/scripts/post-evidence\\.sh",
+          "flags": "m"
+        },
+        {
+          "source": "^python3 \\.claude/skills/jira-journey/scripts/generate-templates\\.py",
+          "flags": "m"
+        }
+      ],
       "source": [
+        "tests/unit/strategies/evidence-release-stop-guard.test.ts › evidence release-selection lines (#4740) > plugins/src/base/skills/lisa-jira-evidence/SKILL.md > exits non-zero, says to stop, and exports nothing when the release cannot be used",
         "tests/unit/strategies/jira-evidence-config-bound-status.test.ts › jira-evidence SKILL.md documents the optional, skip-when-absent review hop > plugins/lisa-cursor/skills/lisa-jira-evidence/SKILL.md > forbids transitioning to a status not named in config.jira.workflow",
         "tests/unit/strategies/jira-evidence-config-bound-status.test.ts › jira-evidence SKILL.md documents the optional, skip-when-absent review hop > plugins/lisa-cursor/skills/lisa-jira-evidence/SKILL.md > initializes REVIEW empty in the resolution snippet",
         "tests/unit/strategies/jira-evidence-config-bound-status.test.ts › jira-evidence SKILL.md documents the optional, skip-when-absent review hop > plugins/lisa-cursor/skills/lisa-jira-evidence/SKILL.md > states the transition is skipped when review is unset"
@@ -4926,6 +5058,39 @@
         "tests/unit/strategies/jira-evidence-config-bound-status.test.ts › post-evidence.sh Step 5 is config-bound (skip-when-unconfigured) > plugins/lisa-cursor/skills/lisa-jira-evidence/scripts/post-evidence.sh > never invents a hard-coded transition target in the move command",
         "tests/unit/strategies/jira-evidence-config-bound-status.test.ts › post-evidence.sh Step 5 is config-bound (skip-when-unconfigured) > plugins/lisa-cursor/skills/lisa-jira-evidence/scripts/post-evidence.sh > only moves the ticket when a review status is configured",
         "tests/unit/strategies/jira-evidence-config-bound-status.test.ts › post-evidence.sh Step 5 is config-bound (skip-when-unconfigured) > plugins/lisa-cursor/skills/lisa-jira-evidence/scripts/post-evidence.sh > resolves the review status from jira.workflow (global + local)"
+      ]
+    },
+    "plugins/lisa-cursor/skills/lisa-jira-journey/SKILL.md": {
+      "required": [
+        "LISA_EVIDENCE_RELEASE=$(node scripts/lisa-work-item.mjs evidence-release --ensure) || { echo \"Evidence release not usable; stop.\"; false; }",
+        "LISA_EVIDENCE_RELEASE=<name>",
+        "unset LISA_EVIDENCE_RELEASE; LISA_EVIDENCE_RELEASE=$("
+      ],
+      "forbidden": [
+        "export LISA_EVIDENCE_RELEASE=$("
+      ],
+      "requiredPatterns": [
+        {
+          "source": "^export LISA_EVIDENCE_RELEASE(?:\\s|$)",
+          "flags": "m"
+        },
+        {
+          "source": "new shell for every command",
+          "flags": ""
+        }
+      ],
+      "forbiddenPatterns": [
+        {
+          "source": "^bash \\.claude/skills/jira-evidence/scripts/post-evidence\\.sh",
+          "flags": "m"
+        },
+        {
+          "source": "^python3 \\.claude/skills/jira-journey/scripts/generate-templates\\.py",
+          "flags": "m"
+        }
+      ],
+      "source": [
+        "tests/unit/strategies/evidence-release-stop-guard.test.ts › evidence release-selection lines (#4740) > plugins/src/base/skills/lisa-jira-journey/SKILL.md > exits non-zero, says to stop, and exports nothing when the release cannot be used"
       ]
     },
     "plugins/lisa-cursor/skills/lisa-jira-sync/SKILL.md": {
@@ -5530,16 +5695,94 @@
         "tests/unit/strategies/browser-verification-controller-contract.test.ts › browser verification controller contract > plugins/lisa-cursor > captures UI evidence through the selected interactive controller"
       ]
     },
-    "plugins/lisa-expo-agy/skills/jira-evidence/SKILL.md": {
+    "plugins/lisa-devin/skills/lisa-jira-evidence/SKILL.md": {
       "required": [
-        "jira.workflow.review"
+        "LISA_EVIDENCE_RELEASE=$(node scripts/lisa-work-item.mjs evidence-release --ensure) || { echo \"Evidence release not usable; stop.\"; false; }",
+        "LISA_EVIDENCE_RELEASE=<name>",
+        "unset LISA_EVIDENCE_RELEASE; LISA_EVIDENCE_RELEASE=$("
       ],
       "forbidden": [
-        "Move ticket to Code Review"
+        "export LISA_EVIDENCE_RELEASE=$("
       ],
       "requiredPatterns": [
         {
+          "source": "^export LISA_EVIDENCE_RELEASE(?:\\s|$)",
+          "flags": "m"
+        },
+        {
+          "source": "new shell for every command",
+          "flags": ""
+        }
+      ],
+      "forbiddenPatterns": [
+        {
+          "source": "^bash \\.claude/skills/jira-evidence/scripts/post-evidence\\.sh",
+          "flags": "m"
+        },
+        {
+          "source": "^python3 \\.claude/skills/jira-journey/scripts/generate-templates\\.py",
+          "flags": "m"
+        }
+      ],
+      "source": [
+        "tests/unit/strategies/evidence-release-stop-guard.test.ts › evidence release-selection lines (#4740) > plugins/src/base/skills/lisa-jira-evidence/SKILL.md > exits non-zero, says to stop, and exports nothing when the release cannot be used"
+      ]
+    },
+    "plugins/lisa-devin/skills/lisa-jira-journey/SKILL.md": {
+      "required": [
+        "LISA_EVIDENCE_RELEASE=$(node scripts/lisa-work-item.mjs evidence-release --ensure) || { echo \"Evidence release not usable; stop.\"; false; }",
+        "LISA_EVIDENCE_RELEASE=<name>",
+        "unset LISA_EVIDENCE_RELEASE; LISA_EVIDENCE_RELEASE=$("
+      ],
+      "forbidden": [
+        "export LISA_EVIDENCE_RELEASE=$("
+      ],
+      "requiredPatterns": [
+        {
+          "source": "^export LISA_EVIDENCE_RELEASE(?:\\s|$)",
+          "flags": "m"
+        },
+        {
+          "source": "new shell for every command",
+          "flags": ""
+        }
+      ],
+      "forbiddenPatterns": [
+        {
+          "source": "^bash \\.claude/skills/jira-evidence/scripts/post-evidence\\.sh",
+          "flags": "m"
+        },
+        {
+          "source": "^python3 \\.claude/skills/jira-journey/scripts/generate-templates\\.py",
+          "flags": "m"
+        }
+      ],
+      "source": [
+        "tests/unit/strategies/evidence-release-stop-guard.test.ts › evidence release-selection lines (#4740) > plugins/src/base/skills/lisa-jira-journey/SKILL.md > exits non-zero, says to stop, and exports nothing when the release cannot be used"
+      ]
+    },
+    "plugins/lisa-expo-agy/skills/jira-evidence/SKILL.md": {
+      "required": [
+        "LISA_EVIDENCE_RELEASE=$(node scripts/lisa-work-item.mjs evidence-release --ensure) || { echo \"Evidence release not usable; stop.\"; false; }",
+        "LISA_EVIDENCE_RELEASE=<name>",
+        "jira.workflow.review",
+        "unset LISA_EVIDENCE_RELEASE; LISA_EVIDENCE_RELEASE=$("
+      ],
+      "forbidden": [
+        "Move ticket to Code Review",
+        "export LISA_EVIDENCE_RELEASE=$("
+      ],
+      "requiredPatterns": [
+        {
+          "source": "^export LISA_EVIDENCE_RELEASE(?:\\s|$)",
+          "flags": "m"
+        },
+        {
           "source": "claimed",
+          "flags": ""
+        },
+        {
+          "source": "new shell for every command",
           "flags": ""
         },
         {
@@ -5551,8 +5794,18 @@
           "flags": "i"
         }
       ],
-      "forbiddenPatterns": [],
+      "forbiddenPatterns": [
+        {
+          "source": "^bash \\.claude/skills/jira-evidence/scripts/post-evidence\\.sh",
+          "flags": "m"
+        },
+        {
+          "source": "^python3 \\.claude/skills/jira-journey/scripts/generate-templates\\.py",
+          "flags": "m"
+        }
+      ],
       "source": [
+        "tests/unit/strategies/evidence-release-stop-guard.test.ts › evidence release-selection lines (#4740) > plugins/src/expo/skills/jira-evidence/SKILL.md > exits non-zero, says to stop, and exports nothing when the release cannot be used",
         "tests/unit/strategies/jira-evidence-config-bound-status.test.ts › stack jira-evidence SKILL.md (expo/rails) drops the hard-coded review status > plugins/lisa-expo-agy/skills/jira-evidence/SKILL.md > describes resolving the review status from jira.workflow",
         "tests/unit/strategies/jira-evidence-config-bound-status.test.ts › stack jira-evidence SKILL.md (expo/rails) drops the hard-coded review status > plugins/lisa-expo-agy/skills/jira-evidence/SKILL.md > no longer names a hard-coded 'Move ticket to Code Review' step",
         "tests/unit/strategies/jira-evidence-config-bound-status.test.ts › stack jira-evidence SKILL.md (expo/rails) drops the hard-coded review status > plugins/lisa-expo-agy/skills/jira-evidence/SKILL.md > states the step is optional and skipped when review is unset"
@@ -5590,16 +5843,61 @@
         "tests/unit/strategies/jira-evidence-config-bound-status.test.ts › post-evidence.sh Step 5 is config-bound (skip-when-unconfigured) > plugins/lisa-expo-agy/skills/jira-evidence/scripts/post-evidence.sh > resolves the review status from jira.workflow (global + local)"
       ]
     },
-    "plugins/lisa-expo-copilot/skills/jira-evidence/SKILL.md": {
+    "plugins/lisa-expo-agy/skills/jira-journey/SKILL.md": {
       "required": [
-        "jira.workflow.review"
+        "LISA_EVIDENCE_RELEASE=$(node scripts/lisa-work-item.mjs evidence-release --ensure) || { echo \"Evidence release not usable; stop.\"; false; }",
+        "LISA_EVIDENCE_RELEASE=<name>",
+        "unset LISA_EVIDENCE_RELEASE; LISA_EVIDENCE_RELEASE=$("
       ],
       "forbidden": [
-        "Move ticket to Code Review"
+        "export LISA_EVIDENCE_RELEASE=$("
       ],
       "requiredPatterns": [
         {
+          "source": "^export LISA_EVIDENCE_RELEASE(?:\\s|$)",
+          "flags": "m"
+        },
+        {
+          "source": "new shell for every command",
+          "flags": ""
+        }
+      ],
+      "forbiddenPatterns": [
+        {
+          "source": "^bash \\.claude/skills/jira-evidence/scripts/post-evidence\\.sh",
+          "flags": "m"
+        },
+        {
+          "source": "^python3 \\.claude/skills/jira-journey/scripts/generate-templates\\.py",
+          "flags": "m"
+        }
+      ],
+      "source": [
+        "tests/unit/strategies/evidence-release-stop-guard.test.ts › evidence release-selection lines (#4740) > plugins/src/expo/skills/jira-journey/SKILL.md > exits non-zero, says to stop, and exports nothing when the release cannot be used"
+      ]
+    },
+    "plugins/lisa-expo-copilot/skills/jira-evidence/SKILL.md": {
+      "required": [
+        "LISA_EVIDENCE_RELEASE=$(node scripts/lisa-work-item.mjs evidence-release --ensure) || { echo \"Evidence release not usable; stop.\"; false; }",
+        "LISA_EVIDENCE_RELEASE=<name>",
+        "jira.workflow.review",
+        "unset LISA_EVIDENCE_RELEASE; LISA_EVIDENCE_RELEASE=$("
+      ],
+      "forbidden": [
+        "Move ticket to Code Review",
+        "export LISA_EVIDENCE_RELEASE=$("
+      ],
+      "requiredPatterns": [
+        {
+          "source": "^export LISA_EVIDENCE_RELEASE(?:\\s|$)",
+          "flags": "m"
+        },
+        {
           "source": "claimed",
+          "flags": ""
+        },
+        {
+          "source": "new shell for every command",
           "flags": ""
         },
         {
@@ -5611,8 +5909,18 @@
           "flags": "i"
         }
       ],
-      "forbiddenPatterns": [],
+      "forbiddenPatterns": [
+        {
+          "source": "^bash \\.claude/skills/jira-evidence/scripts/post-evidence\\.sh",
+          "flags": "m"
+        },
+        {
+          "source": "^python3 \\.claude/skills/jira-journey/scripts/generate-templates\\.py",
+          "flags": "m"
+        }
+      ],
       "source": [
+        "tests/unit/strategies/evidence-release-stop-guard.test.ts › evidence release-selection lines (#4740) > plugins/src/expo/skills/jira-evidence/SKILL.md > exits non-zero, says to stop, and exports nothing when the release cannot be used",
         "tests/unit/strategies/jira-evidence-config-bound-status.test.ts › stack jira-evidence SKILL.md (expo/rails) drops the hard-coded review status > plugins/lisa-expo-copilot/skills/jira-evidence/SKILL.md > describes resolving the review status from jira.workflow",
         "tests/unit/strategies/jira-evidence-config-bound-status.test.ts › stack jira-evidence SKILL.md (expo/rails) drops the hard-coded review status > plugins/lisa-expo-copilot/skills/jira-evidence/SKILL.md > no longer names a hard-coded 'Move ticket to Code Review' step",
         "tests/unit/strategies/jira-evidence-config-bound-status.test.ts › stack jira-evidence SKILL.md (expo/rails) drops the hard-coded review status > plugins/lisa-expo-copilot/skills/jira-evidence/SKILL.md > states the step is optional and skipped when review is unset"
@@ -5650,16 +5958,61 @@
         "tests/unit/strategies/jira-evidence-config-bound-status.test.ts › post-evidence.sh Step 5 is config-bound (skip-when-unconfigured) > plugins/lisa-expo-copilot/skills/jira-evidence/scripts/post-evidence.sh > resolves the review status from jira.workflow (global + local)"
       ]
     },
-    "plugins/lisa-expo-cursor/skills/jira-evidence/SKILL.md": {
+    "plugins/lisa-expo-copilot/skills/jira-journey/SKILL.md": {
       "required": [
-        "jira.workflow.review"
+        "LISA_EVIDENCE_RELEASE=$(node scripts/lisa-work-item.mjs evidence-release --ensure) || { echo \"Evidence release not usable; stop.\"; false; }",
+        "LISA_EVIDENCE_RELEASE=<name>",
+        "unset LISA_EVIDENCE_RELEASE; LISA_EVIDENCE_RELEASE=$("
       ],
       "forbidden": [
-        "Move ticket to Code Review"
+        "export LISA_EVIDENCE_RELEASE=$("
       ],
       "requiredPatterns": [
         {
+          "source": "^export LISA_EVIDENCE_RELEASE(?:\\s|$)",
+          "flags": "m"
+        },
+        {
+          "source": "new shell for every command",
+          "flags": ""
+        }
+      ],
+      "forbiddenPatterns": [
+        {
+          "source": "^bash \\.claude/skills/jira-evidence/scripts/post-evidence\\.sh",
+          "flags": "m"
+        },
+        {
+          "source": "^python3 \\.claude/skills/jira-journey/scripts/generate-templates\\.py",
+          "flags": "m"
+        }
+      ],
+      "source": [
+        "tests/unit/strategies/evidence-release-stop-guard.test.ts › evidence release-selection lines (#4740) > plugins/src/expo/skills/jira-journey/SKILL.md > exits non-zero, says to stop, and exports nothing when the release cannot be used"
+      ]
+    },
+    "plugins/lisa-expo-cursor/skills/jira-evidence/SKILL.md": {
+      "required": [
+        "LISA_EVIDENCE_RELEASE=$(node scripts/lisa-work-item.mjs evidence-release --ensure) || { echo \"Evidence release not usable; stop.\"; false; }",
+        "LISA_EVIDENCE_RELEASE=<name>",
+        "jira.workflow.review",
+        "unset LISA_EVIDENCE_RELEASE; LISA_EVIDENCE_RELEASE=$("
+      ],
+      "forbidden": [
+        "Move ticket to Code Review",
+        "export LISA_EVIDENCE_RELEASE=$("
+      ],
+      "requiredPatterns": [
+        {
+          "source": "^export LISA_EVIDENCE_RELEASE(?:\\s|$)",
+          "flags": "m"
+        },
+        {
           "source": "claimed",
+          "flags": ""
+        },
+        {
+          "source": "new shell for every command",
           "flags": ""
         },
         {
@@ -5671,8 +6024,18 @@
           "flags": "i"
         }
       ],
-      "forbiddenPatterns": [],
+      "forbiddenPatterns": [
+        {
+          "source": "^bash \\.claude/skills/jira-evidence/scripts/post-evidence\\.sh",
+          "flags": "m"
+        },
+        {
+          "source": "^python3 \\.claude/skills/jira-journey/scripts/generate-templates\\.py",
+          "flags": "m"
+        }
+      ],
       "source": [
+        "tests/unit/strategies/evidence-release-stop-guard.test.ts › evidence release-selection lines (#4740) > plugins/src/expo/skills/jira-evidence/SKILL.md > exits non-zero, says to stop, and exports nothing when the release cannot be used",
         "tests/unit/strategies/jira-evidence-config-bound-status.test.ts › stack jira-evidence SKILL.md (expo/rails) drops the hard-coded review status > plugins/lisa-expo-cursor/skills/jira-evidence/SKILL.md > describes resolving the review status from jira.workflow",
         "tests/unit/strategies/jira-evidence-config-bound-status.test.ts › stack jira-evidence SKILL.md (expo/rails) drops the hard-coded review status > plugins/lisa-expo-cursor/skills/jira-evidence/SKILL.md > no longer names a hard-coded 'Move ticket to Code Review' step",
         "tests/unit/strategies/jira-evidence-config-bound-status.test.ts › stack jira-evidence SKILL.md (expo/rails) drops the hard-coded review status > plugins/lisa-expo-cursor/skills/jira-evidence/SKILL.md > states the step is optional and skipped when review is unset"
@@ -5710,16 +6073,193 @@
         "tests/unit/strategies/jira-evidence-config-bound-status.test.ts › post-evidence.sh Step 5 is config-bound (skip-when-unconfigured) > plugins/lisa-expo-cursor/skills/jira-evidence/scripts/post-evidence.sh > resolves the review status from jira.workflow (global + local)"
       ]
     },
-    "plugins/lisa-expo/skills/jira-evidence/SKILL.md": {
+    "plugins/lisa-expo-cursor/skills/jira-journey/SKILL.md": {
       "required": [
-        "jira.workflow.review"
+        "LISA_EVIDENCE_RELEASE=$(node scripts/lisa-work-item.mjs evidence-release --ensure) || { echo \"Evidence release not usable; stop.\"; false; }",
+        "LISA_EVIDENCE_RELEASE=<name>",
+        "unset LISA_EVIDENCE_RELEASE; LISA_EVIDENCE_RELEASE=$("
       ],
       "forbidden": [
-        "Move ticket to Code Review"
+        "export LISA_EVIDENCE_RELEASE=$("
       ],
       "requiredPatterns": [
         {
+          "source": "^export LISA_EVIDENCE_RELEASE(?:\\s|$)",
+          "flags": "m"
+        },
+        {
+          "source": "new shell for every command",
+          "flags": ""
+        }
+      ],
+      "forbiddenPatterns": [
+        {
+          "source": "^bash \\.claude/skills/jira-evidence/scripts/post-evidence\\.sh",
+          "flags": "m"
+        },
+        {
+          "source": "^python3 \\.claude/skills/jira-journey/scripts/generate-templates\\.py",
+          "flags": "m"
+        }
+      ],
+      "source": [
+        "tests/unit/strategies/evidence-release-stop-guard.test.ts › evidence release-selection lines (#4740) > plugins/src/expo/skills/jira-journey/SKILL.md > exits non-zero, says to stop, and exports nothing when the release cannot be used"
+      ]
+    },
+    "plugins/lisa-expo-devin/skills/jira-evidence/SKILL.md": {
+      "required": [
+        "LISA_EVIDENCE_RELEASE=$(node scripts/lisa-work-item.mjs evidence-release --ensure) || { echo \"Evidence release not usable; stop.\"; false; }",
+        "LISA_EVIDENCE_RELEASE=<name>",
+        "unset LISA_EVIDENCE_RELEASE; LISA_EVIDENCE_RELEASE=$("
+      ],
+      "forbidden": [
+        "export LISA_EVIDENCE_RELEASE=$("
+      ],
+      "requiredPatterns": [
+        {
+          "source": "^export LISA_EVIDENCE_RELEASE(?:\\s|$)",
+          "flags": "m"
+        },
+        {
+          "source": "new shell for every command",
+          "flags": ""
+        }
+      ],
+      "forbiddenPatterns": [
+        {
+          "source": "^bash \\.claude/skills/jira-evidence/scripts/post-evidence\\.sh",
+          "flags": "m"
+        },
+        {
+          "source": "^python3 \\.claude/skills/jira-journey/scripts/generate-templates\\.py",
+          "flags": "m"
+        }
+      ],
+      "source": [
+        "tests/unit/strategies/evidence-release-stop-guard.test.ts › evidence release-selection lines (#4740) > plugins/src/expo/skills/jira-evidence/SKILL.md > exits non-zero, says to stop, and exports nothing when the release cannot be used"
+      ]
+    },
+    "plugins/lisa-expo-devin/skills/jira-journey/SKILL.md": {
+      "required": [
+        "LISA_EVIDENCE_RELEASE=$(node scripts/lisa-work-item.mjs evidence-release --ensure) || { echo \"Evidence release not usable; stop.\"; false; }",
+        "LISA_EVIDENCE_RELEASE=<name>",
+        "unset LISA_EVIDENCE_RELEASE; LISA_EVIDENCE_RELEASE=$("
+      ],
+      "forbidden": [
+        "export LISA_EVIDENCE_RELEASE=$("
+      ],
+      "requiredPatterns": [
+        {
+          "source": "^export LISA_EVIDENCE_RELEASE(?:\\s|$)",
+          "flags": "m"
+        },
+        {
+          "source": "new shell for every command",
+          "flags": ""
+        }
+      ],
+      "forbiddenPatterns": [
+        {
+          "source": "^bash \\.claude/skills/jira-evidence/scripts/post-evidence\\.sh",
+          "flags": "m"
+        },
+        {
+          "source": "^python3 \\.claude/skills/jira-journey/scripts/generate-templates\\.py",
+          "flags": "m"
+        }
+      ],
+      "source": [
+        "tests/unit/strategies/evidence-release-stop-guard.test.ts › evidence release-selection lines (#4740) > plugins/src/expo/skills/jira-journey/SKILL.md > exits non-zero, says to stop, and exports nothing when the release cannot be used"
+      ]
+    },
+    "plugins/lisa-expo/.codex-plugin/skills/jira-evidence/SKILL.md": {
+      "required": [
+        "LISA_EVIDENCE_RELEASE=$(node scripts/lisa-work-item.mjs evidence-release --ensure) || { echo \"Evidence release not usable; stop.\"; false; }",
+        "LISA_EVIDENCE_RELEASE=<name>",
+        "unset LISA_EVIDENCE_RELEASE; LISA_EVIDENCE_RELEASE=$("
+      ],
+      "forbidden": [
+        "export LISA_EVIDENCE_RELEASE=$("
+      ],
+      "requiredPatterns": [
+        {
+          "source": "^export LISA_EVIDENCE_RELEASE(?:\\s|$)",
+          "flags": "m"
+        },
+        {
+          "source": "new shell for every command",
+          "flags": ""
+        }
+      ],
+      "forbiddenPatterns": [
+        {
+          "source": "^bash \\.claude/skills/jira-evidence/scripts/post-evidence\\.sh",
+          "flags": "m"
+        },
+        {
+          "source": "^python3 \\.claude/skills/jira-journey/scripts/generate-templates\\.py",
+          "flags": "m"
+        }
+      ],
+      "source": [
+        "tests/unit/strategies/evidence-release-stop-guard.test.ts › evidence release-selection lines (#4740) > plugins/src/expo/skills/jira-evidence/SKILL.md > exits non-zero, says to stop, and exports nothing when the release cannot be used"
+      ]
+    },
+    "plugins/lisa-expo/.codex-plugin/skills/jira-journey/SKILL.md": {
+      "required": [
+        "LISA_EVIDENCE_RELEASE=$(node scripts/lisa-work-item.mjs evidence-release --ensure) || { echo \"Evidence release not usable; stop.\"; false; }",
+        "LISA_EVIDENCE_RELEASE=<name>",
+        "unset LISA_EVIDENCE_RELEASE; LISA_EVIDENCE_RELEASE=$("
+      ],
+      "forbidden": [
+        "export LISA_EVIDENCE_RELEASE=$("
+      ],
+      "requiredPatterns": [
+        {
+          "source": "^export LISA_EVIDENCE_RELEASE(?:\\s|$)",
+          "flags": "m"
+        },
+        {
+          "source": "new shell for every command",
+          "flags": ""
+        }
+      ],
+      "forbiddenPatterns": [
+        {
+          "source": "^bash \\.claude/skills/jira-evidence/scripts/post-evidence\\.sh",
+          "flags": "m"
+        },
+        {
+          "source": "^python3 \\.claude/skills/jira-journey/scripts/generate-templates\\.py",
+          "flags": "m"
+        }
+      ],
+      "source": [
+        "tests/unit/strategies/evidence-release-stop-guard.test.ts › evidence release-selection lines (#4740) > plugins/src/expo/skills/jira-journey/SKILL.md > exits non-zero, says to stop, and exports nothing when the release cannot be used"
+      ]
+    },
+    "plugins/lisa-expo/skills/jira-evidence/SKILL.md": {
+      "required": [
+        "LISA_EVIDENCE_RELEASE=$(node scripts/lisa-work-item.mjs evidence-release --ensure) || { echo \"Evidence release not usable; stop.\"; false; }",
+        "LISA_EVIDENCE_RELEASE=<name>",
+        "jira.workflow.review",
+        "unset LISA_EVIDENCE_RELEASE; LISA_EVIDENCE_RELEASE=$("
+      ],
+      "forbidden": [
+        "Move ticket to Code Review",
+        "export LISA_EVIDENCE_RELEASE=$("
+      ],
+      "requiredPatterns": [
+        {
+          "source": "^export LISA_EVIDENCE_RELEASE(?:\\s|$)",
+          "flags": "m"
+        },
+        {
           "source": "claimed",
+          "flags": ""
+        },
+        {
+          "source": "new shell for every command",
           "flags": ""
         },
         {
@@ -5731,8 +6271,18 @@
           "flags": "i"
         }
       ],
-      "forbiddenPatterns": [],
+      "forbiddenPatterns": [
+        {
+          "source": "^bash \\.claude/skills/jira-evidence/scripts/post-evidence\\.sh",
+          "flags": "m"
+        },
+        {
+          "source": "^python3 \\.claude/skills/jira-journey/scripts/generate-templates\\.py",
+          "flags": "m"
+        }
+      ],
       "source": [
+        "tests/unit/strategies/evidence-release-stop-guard.test.ts › evidence release-selection lines (#4740) > plugins/src/expo/skills/jira-evidence/SKILL.md > exits non-zero, says to stop, and exports nothing when the release cannot be used",
         "tests/unit/strategies/jira-evidence-config-bound-status.test.ts › stack jira-evidence SKILL.md (expo/rails) drops the hard-coded review status > plugins/lisa-expo/skills/jira-evidence/SKILL.md > describes resolving the review status from jira.workflow",
         "tests/unit/strategies/jira-evidence-config-bound-status.test.ts › stack jira-evidence SKILL.md (expo/rails) drops the hard-coded review status > plugins/lisa-expo/skills/jira-evidence/SKILL.md > no longer names a hard-coded 'Move ticket to Code Review' step",
         "tests/unit/strategies/jira-evidence-config-bound-status.test.ts › stack jira-evidence SKILL.md (expo/rails) drops the hard-coded review status > plugins/lisa-expo/skills/jira-evidence/SKILL.md > states the step is optional and skipped when review is unset"
@@ -5770,16 +6320,61 @@
         "tests/unit/strategies/jira-evidence-config-bound-status.test.ts › post-evidence.sh Step 5 is config-bound (skip-when-unconfigured) > plugins/lisa-expo/skills/jira-evidence/scripts/post-evidence.sh > resolves the review status from jira.workflow (global + local)"
       ]
     },
-    "plugins/lisa-rails-agy/skills/jira-evidence/SKILL.md": {
+    "plugins/lisa-expo/skills/jira-journey/SKILL.md": {
       "required": [
-        "jira.workflow.review"
+        "LISA_EVIDENCE_RELEASE=$(node scripts/lisa-work-item.mjs evidence-release --ensure) || { echo \"Evidence release not usable; stop.\"; false; }",
+        "LISA_EVIDENCE_RELEASE=<name>",
+        "unset LISA_EVIDENCE_RELEASE; LISA_EVIDENCE_RELEASE=$("
       ],
       "forbidden": [
-        "Move ticket to Code Review"
+        "export LISA_EVIDENCE_RELEASE=$("
       ],
       "requiredPatterns": [
         {
+          "source": "^export LISA_EVIDENCE_RELEASE(?:\\s|$)",
+          "flags": "m"
+        },
+        {
+          "source": "new shell for every command",
+          "flags": ""
+        }
+      ],
+      "forbiddenPatterns": [
+        {
+          "source": "^bash \\.claude/skills/jira-evidence/scripts/post-evidence\\.sh",
+          "flags": "m"
+        },
+        {
+          "source": "^python3 \\.claude/skills/jira-journey/scripts/generate-templates\\.py",
+          "flags": "m"
+        }
+      ],
+      "source": [
+        "tests/unit/strategies/evidence-release-stop-guard.test.ts › evidence release-selection lines (#4740) > plugins/src/expo/skills/jira-journey/SKILL.md > exits non-zero, says to stop, and exports nothing when the release cannot be used"
+      ]
+    },
+    "plugins/lisa-rails-agy/skills/jira-evidence/SKILL.md": {
+      "required": [
+        "LISA_EVIDENCE_RELEASE=$(node scripts/lisa-work-item.mjs evidence-release --ensure) || { echo \"Evidence release not usable; stop.\"; false; }",
+        "LISA_EVIDENCE_RELEASE=<name>",
+        "jira.workflow.review",
+        "unset LISA_EVIDENCE_RELEASE; LISA_EVIDENCE_RELEASE=$("
+      ],
+      "forbidden": [
+        "Move ticket to Code Review",
+        "export LISA_EVIDENCE_RELEASE=$("
+      ],
+      "requiredPatterns": [
+        {
+          "source": "^export LISA_EVIDENCE_RELEASE(?:\\s|$)",
+          "flags": "m"
+        },
+        {
           "source": "claimed",
+          "flags": ""
+        },
+        {
+          "source": "new shell for every command",
           "flags": ""
         },
         {
@@ -5791,8 +6386,18 @@
           "flags": "i"
         }
       ],
-      "forbiddenPatterns": [],
+      "forbiddenPatterns": [
+        {
+          "source": "^bash \\.claude/skills/jira-evidence/scripts/post-evidence\\.sh",
+          "flags": "m"
+        },
+        {
+          "source": "^python3 \\.claude/skills/jira-journey/scripts/generate-templates\\.py",
+          "flags": "m"
+        }
+      ],
       "source": [
+        "tests/unit/strategies/evidence-release-stop-guard.test.ts › evidence release-selection lines (#4740) > plugins/src/rails/skills/jira-evidence/SKILL.md > exits non-zero, says to stop, and exports nothing when the release cannot be used",
         "tests/unit/strategies/jira-evidence-config-bound-status.test.ts › stack jira-evidence SKILL.md (expo/rails) drops the hard-coded review status > plugins/lisa-rails-agy/skills/jira-evidence/SKILL.md > describes resolving the review status from jira.workflow",
         "tests/unit/strategies/jira-evidence-config-bound-status.test.ts › stack jira-evidence SKILL.md (expo/rails) drops the hard-coded review status > plugins/lisa-rails-agy/skills/jira-evidence/SKILL.md > no longer names a hard-coded 'Move ticket to Code Review' step",
         "tests/unit/strategies/jira-evidence-config-bound-status.test.ts › stack jira-evidence SKILL.md (expo/rails) drops the hard-coded review status > plugins/lisa-rails-agy/skills/jira-evidence/SKILL.md > states the step is optional and skipped when review is unset"
@@ -5832,14 +6437,26 @@
     },
     "plugins/lisa-rails-copilot/skills/jira-evidence/SKILL.md": {
       "required": [
-        "jira.workflow.review"
+        "LISA_EVIDENCE_RELEASE=$(node scripts/lisa-work-item.mjs evidence-release --ensure) || { echo \"Evidence release not usable; stop.\"; false; }",
+        "LISA_EVIDENCE_RELEASE=<name>",
+        "jira.workflow.review",
+        "unset LISA_EVIDENCE_RELEASE; LISA_EVIDENCE_RELEASE=$("
       ],
       "forbidden": [
-        "Move ticket to Code Review"
+        "Move ticket to Code Review",
+        "export LISA_EVIDENCE_RELEASE=$("
       ],
       "requiredPatterns": [
         {
+          "source": "^export LISA_EVIDENCE_RELEASE(?:\\s|$)",
+          "flags": "m"
+        },
+        {
           "source": "claimed",
+          "flags": ""
+        },
+        {
+          "source": "new shell for every command",
           "flags": ""
         },
         {
@@ -5851,8 +6468,18 @@
           "flags": "i"
         }
       ],
-      "forbiddenPatterns": [],
+      "forbiddenPatterns": [
+        {
+          "source": "^bash \\.claude/skills/jira-evidence/scripts/post-evidence\\.sh",
+          "flags": "m"
+        },
+        {
+          "source": "^python3 \\.claude/skills/jira-journey/scripts/generate-templates\\.py",
+          "flags": "m"
+        }
+      ],
       "source": [
+        "tests/unit/strategies/evidence-release-stop-guard.test.ts › evidence release-selection lines (#4740) > plugins/src/rails/skills/jira-evidence/SKILL.md > exits non-zero, says to stop, and exports nothing when the release cannot be used",
         "tests/unit/strategies/jira-evidence-config-bound-status.test.ts › stack jira-evidence SKILL.md (expo/rails) drops the hard-coded review status > plugins/lisa-rails-copilot/skills/jira-evidence/SKILL.md > describes resolving the review status from jira.workflow",
         "tests/unit/strategies/jira-evidence-config-bound-status.test.ts › stack jira-evidence SKILL.md (expo/rails) drops the hard-coded review status > plugins/lisa-rails-copilot/skills/jira-evidence/SKILL.md > no longer names a hard-coded 'Move ticket to Code Review' step",
         "tests/unit/strategies/jira-evidence-config-bound-status.test.ts › stack jira-evidence SKILL.md (expo/rails) drops the hard-coded review status > plugins/lisa-rails-copilot/skills/jira-evidence/SKILL.md > states the step is optional and skipped when review is unset"
@@ -5892,14 +6519,26 @@
     },
     "plugins/lisa-rails-cursor/skills/jira-evidence/SKILL.md": {
       "required": [
-        "jira.workflow.review"
+        "LISA_EVIDENCE_RELEASE=$(node scripts/lisa-work-item.mjs evidence-release --ensure) || { echo \"Evidence release not usable; stop.\"; false; }",
+        "LISA_EVIDENCE_RELEASE=<name>",
+        "jira.workflow.review",
+        "unset LISA_EVIDENCE_RELEASE; LISA_EVIDENCE_RELEASE=$("
       ],
       "forbidden": [
-        "Move ticket to Code Review"
+        "Move ticket to Code Review",
+        "export LISA_EVIDENCE_RELEASE=$("
       ],
       "requiredPatterns": [
         {
+          "source": "^export LISA_EVIDENCE_RELEASE(?:\\s|$)",
+          "flags": "m"
+        },
+        {
           "source": "claimed",
+          "flags": ""
+        },
+        {
+          "source": "new shell for every command",
           "flags": ""
         },
         {
@@ -5911,8 +6550,18 @@
           "flags": "i"
         }
       ],
-      "forbiddenPatterns": [],
+      "forbiddenPatterns": [
+        {
+          "source": "^bash \\.claude/skills/jira-evidence/scripts/post-evidence\\.sh",
+          "flags": "m"
+        },
+        {
+          "source": "^python3 \\.claude/skills/jira-journey/scripts/generate-templates\\.py",
+          "flags": "m"
+        }
+      ],
       "source": [
+        "tests/unit/strategies/evidence-release-stop-guard.test.ts › evidence release-selection lines (#4740) > plugins/src/rails/skills/jira-evidence/SKILL.md > exits non-zero, says to stop, and exports nothing when the release cannot be used",
         "tests/unit/strategies/jira-evidence-config-bound-status.test.ts › stack jira-evidence SKILL.md (expo/rails) drops the hard-coded review status > plugins/lisa-rails-cursor/skills/jira-evidence/SKILL.md > describes resolving the review status from jira.workflow",
         "tests/unit/strategies/jira-evidence-config-bound-status.test.ts › stack jira-evidence SKILL.md (expo/rails) drops the hard-coded review status > plugins/lisa-rails-cursor/skills/jira-evidence/SKILL.md > no longer names a hard-coded 'Move ticket to Code Review' step",
         "tests/unit/strategies/jira-evidence-config-bound-status.test.ts › stack jira-evidence SKILL.md (expo/rails) drops the hard-coded review status > plugins/lisa-rails-cursor/skills/jira-evidence/SKILL.md > states the step is optional and skipped when review is unset"
@@ -5950,16 +6599,94 @@
         "tests/unit/strategies/jira-evidence-config-bound-status.test.ts › post-evidence.sh Step 5 is config-bound (skip-when-unconfigured) > plugins/lisa-rails-cursor/skills/jira-evidence/scripts/post-evidence.sh > resolves the review status from jira.workflow (global + local)"
       ]
     },
-    "plugins/lisa-rails/skills/jira-evidence/SKILL.md": {
+    "plugins/lisa-rails-devin/skills/jira-evidence/SKILL.md": {
       "required": [
-        "jira.workflow.review"
+        "LISA_EVIDENCE_RELEASE=$(node scripts/lisa-work-item.mjs evidence-release --ensure) || { echo \"Evidence release not usable; stop.\"; false; }",
+        "LISA_EVIDENCE_RELEASE=<name>",
+        "unset LISA_EVIDENCE_RELEASE; LISA_EVIDENCE_RELEASE=$("
       ],
       "forbidden": [
-        "Move ticket to Code Review"
+        "export LISA_EVIDENCE_RELEASE=$("
       ],
       "requiredPatterns": [
         {
+          "source": "^export LISA_EVIDENCE_RELEASE(?:\\s|$)",
+          "flags": "m"
+        },
+        {
+          "source": "new shell for every command",
+          "flags": ""
+        }
+      ],
+      "forbiddenPatterns": [
+        {
+          "source": "^bash \\.claude/skills/jira-evidence/scripts/post-evidence\\.sh",
+          "flags": "m"
+        },
+        {
+          "source": "^python3 \\.claude/skills/jira-journey/scripts/generate-templates\\.py",
+          "flags": "m"
+        }
+      ],
+      "source": [
+        "tests/unit/strategies/evidence-release-stop-guard.test.ts › evidence release-selection lines (#4740) > plugins/src/rails/skills/jira-evidence/SKILL.md > exits non-zero, says to stop, and exports nothing when the release cannot be used"
+      ]
+    },
+    "plugins/lisa-rails/.codex-plugin/skills/jira-evidence/SKILL.md": {
+      "required": [
+        "LISA_EVIDENCE_RELEASE=$(node scripts/lisa-work-item.mjs evidence-release --ensure) || { echo \"Evidence release not usable; stop.\"; false; }",
+        "LISA_EVIDENCE_RELEASE=<name>",
+        "unset LISA_EVIDENCE_RELEASE; LISA_EVIDENCE_RELEASE=$("
+      ],
+      "forbidden": [
+        "export LISA_EVIDENCE_RELEASE=$("
+      ],
+      "requiredPatterns": [
+        {
+          "source": "^export LISA_EVIDENCE_RELEASE(?:\\s|$)",
+          "flags": "m"
+        },
+        {
+          "source": "new shell for every command",
+          "flags": ""
+        }
+      ],
+      "forbiddenPatterns": [
+        {
+          "source": "^bash \\.claude/skills/jira-evidence/scripts/post-evidence\\.sh",
+          "flags": "m"
+        },
+        {
+          "source": "^python3 \\.claude/skills/jira-journey/scripts/generate-templates\\.py",
+          "flags": "m"
+        }
+      ],
+      "source": [
+        "tests/unit/strategies/evidence-release-stop-guard.test.ts › evidence release-selection lines (#4740) > plugins/src/rails/skills/jira-evidence/SKILL.md > exits non-zero, says to stop, and exports nothing when the release cannot be used"
+      ]
+    },
+    "plugins/lisa-rails/skills/jira-evidence/SKILL.md": {
+      "required": [
+        "LISA_EVIDENCE_RELEASE=$(node scripts/lisa-work-item.mjs evidence-release --ensure) || { echo \"Evidence release not usable; stop.\"; false; }",
+        "LISA_EVIDENCE_RELEASE=<name>",
+        "jira.workflow.review",
+        "unset LISA_EVIDENCE_RELEASE; LISA_EVIDENCE_RELEASE=$("
+      ],
+      "forbidden": [
+        "Move ticket to Code Review",
+        "export LISA_EVIDENCE_RELEASE=$("
+      ],
+      "requiredPatterns": [
+        {
+          "source": "^export LISA_EVIDENCE_RELEASE(?:\\s|$)",
+          "flags": "m"
+        },
+        {
           "source": "claimed",
+          "flags": ""
+        },
+        {
+          "source": "new shell for every command",
           "flags": ""
         },
         {
@@ -5971,8 +6698,18 @@
           "flags": "i"
         }
       ],
-      "forbiddenPatterns": [],
+      "forbiddenPatterns": [
+        {
+          "source": "^bash \\.claude/skills/jira-evidence/scripts/post-evidence\\.sh",
+          "flags": "m"
+        },
+        {
+          "source": "^python3 \\.claude/skills/jira-journey/scripts/generate-templates\\.py",
+          "flags": "m"
+        }
+      ],
       "source": [
+        "tests/unit/strategies/evidence-release-stop-guard.test.ts › evidence release-selection lines (#4740) > plugins/src/rails/skills/jira-evidence/SKILL.md > exits non-zero, says to stop, and exports nothing when the release cannot be used",
         "tests/unit/strategies/jira-evidence-config-bound-status.test.ts › stack jira-evidence SKILL.md (expo/rails) drops the hard-coded review status > plugins/lisa-rails/skills/jira-evidence/SKILL.md > describes resolving the review status from jira.workflow",
         "tests/unit/strategies/jira-evidence-config-bound-status.test.ts › stack jira-evidence SKILL.md (expo/rails) drops the hard-coded review status > plugins/lisa-rails/skills/jira-evidence/SKILL.md > no longer names a hard-coded 'Move ticket to Code Review' step",
         "tests/unit/strategies/jira-evidence-config-bound-status.test.ts › stack jira-evidence SKILL.md (expo/rails) drops the hard-coded review status > plugins/lisa-rails/skills/jira-evidence/SKILL.md > states the step is optional and skipped when review is unset"
@@ -6685,6 +7422,72 @@
       "forbiddenPatterns": [],
       "source": [
         "tests/unit/strategies/evidence-ref-contract.test.ts › EVIDENCE-REF non-binding cross-reference contract (#1595) > plugins/lisa/.codex-plugin/skills journey writers > lisa-jira-add-journey > requires EVIDENCE-REF for sibling artifact citations"
+      ]
+    },
+    "plugins/lisa/.codex-plugin/skills/lisa-jira-evidence/SKILL.md": {
+      "required": [
+        "LISA_EVIDENCE_RELEASE=$(node scripts/lisa-work-item.mjs evidence-release --ensure) || { echo \"Evidence release not usable; stop.\"; false; }",
+        "LISA_EVIDENCE_RELEASE=<name>",
+        "unset LISA_EVIDENCE_RELEASE; LISA_EVIDENCE_RELEASE=$("
+      ],
+      "forbidden": [
+        "export LISA_EVIDENCE_RELEASE=$("
+      ],
+      "requiredPatterns": [
+        {
+          "source": "^export LISA_EVIDENCE_RELEASE(?:\\s|$)",
+          "flags": "m"
+        },
+        {
+          "source": "new shell for every command",
+          "flags": ""
+        }
+      ],
+      "forbiddenPatterns": [
+        {
+          "source": "^bash \\.claude/skills/jira-evidence/scripts/post-evidence\\.sh",
+          "flags": "m"
+        },
+        {
+          "source": "^python3 \\.claude/skills/jira-journey/scripts/generate-templates\\.py",
+          "flags": "m"
+        }
+      ],
+      "source": [
+        "tests/unit/strategies/evidence-release-stop-guard.test.ts › evidence release-selection lines (#4740) > plugins/src/base/skills/lisa-jira-evidence/SKILL.md > exits non-zero, says to stop, and exports nothing when the release cannot be used"
+      ]
+    },
+    "plugins/lisa/.codex-plugin/skills/lisa-jira-journey/SKILL.md": {
+      "required": [
+        "LISA_EVIDENCE_RELEASE=$(node scripts/lisa-work-item.mjs evidence-release --ensure) || { echo \"Evidence release not usable; stop.\"; false; }",
+        "LISA_EVIDENCE_RELEASE=<name>",
+        "unset LISA_EVIDENCE_RELEASE; LISA_EVIDENCE_RELEASE=$("
+      ],
+      "forbidden": [
+        "export LISA_EVIDENCE_RELEASE=$("
+      ],
+      "requiredPatterns": [
+        {
+          "source": "^export LISA_EVIDENCE_RELEASE(?:\\s|$)",
+          "flags": "m"
+        },
+        {
+          "source": "new shell for every command",
+          "flags": ""
+        }
+      ],
+      "forbiddenPatterns": [
+        {
+          "source": "^bash \\.claude/skills/jira-evidence/scripts/post-evidence\\.sh",
+          "flags": "m"
+        },
+        {
+          "source": "^python3 \\.claude/skills/jira-journey/scripts/generate-templates\\.py",
+          "flags": "m"
+        }
+      ],
+      "source": [
+        "tests/unit/strategies/evidence-release-stop-guard.test.ts › evidence release-selection lines (#4740) > plugins/src/base/skills/lisa-jira-journey/SKILL.md > exits non-zero, says to stop, and exports nothing when the release cannot be used"
       ]
     },
     "plugins/lisa/.codex-plugin/skills/lisa-jira-sync/SKILL.md": {
@@ -11453,16 +12256,28 @@
     "plugins/lisa/skills/lisa-jira-evidence/SKILL.md": {
       "required": [
         "## Artifact identity",
+        "LISA_EVIDENCE_RELEASE=$(node scripts/lisa-work-item.mjs evidence-release --ensure) || { echo \"Evidence release not usable; stop.\"; false; }",
+        "LISA_EVIDENCE_RELEASE=<name>",
         "Not established",
         "REVIEW=\"\"",
-        "head_sha"
+        "head_sha",
+        "unset LISA_EVIDENCE_RELEASE; LISA_EVIDENCE_RELEASE=$("
       ],
       "forbidden": [
-        "REVIEW=\"Code Review\""
+        "REVIEW=\"Code Review\"",
+        "export LISA_EVIDENCE_RELEASE=$("
       ],
       "requiredPatterns": [
         {
+          "source": "^export LISA_EVIDENCE_RELEASE(?:\\s|$)",
+          "flags": "m"
+        },
+        {
           "source": "claimed",
+          "flags": ""
+        },
+        {
+          "source": "new shell for every command",
           "flags": ""
         },
         {
@@ -11482,9 +12297,19 @@
           "flags": "i"
         }
       ],
-      "forbiddenPatterns": [],
+      "forbiddenPatterns": [
+        {
+          "source": "^bash \\.claude/skills/jira-evidence/scripts/post-evidence\\.sh",
+          "flags": "m"
+        },
+        {
+          "source": "^python3 \\.claude/skills/jira-journey/scripts/generate-templates\\.py",
+          "flags": "m"
+        }
+      ],
       "source": [
         "tests/unit/strategies/artifact-identity-contract.test.ts › Artifact identity contract (BCE-4) > plugins/lisa > the vendor evidence skills > skills/lisa-jira-evidence/SKILL.md requires the Artifact identity section before posting",
+        "tests/unit/strategies/evidence-release-stop-guard.test.ts › evidence release-selection lines (#4740) > plugins/src/base/skills/lisa-jira-evidence/SKILL.md > exits non-zero, says to stop, and exports nothing when the release cannot be used",
         "tests/unit/strategies/jira-evidence-config-bound-status.test.ts › jira-evidence SKILL.md documents the optional, skip-when-absent review hop > plugins/lisa/skills/lisa-jira-evidence/SKILL.md > forbids transitioning to a status not named in config.jira.workflow",
         "tests/unit/strategies/jira-evidence-config-bound-status.test.ts › jira-evidence SKILL.md documents the optional, skip-when-absent review hop > plugins/lisa/skills/lisa-jira-evidence/SKILL.md > initializes REVIEW empty in the resolution snippet",
         "tests/unit/strategies/jira-evidence-config-bound-status.test.ts › jira-evidence SKILL.md documents the optional, skip-when-absent review hop > plugins/lisa/skills/lisa-jira-evidence/SKILL.md > states the transition is skipped when review is unset",
@@ -11521,6 +12346,39 @@
         "tests/unit/strategies/jira-evidence-config-bound-status.test.ts › post-evidence.sh Step 5 is config-bound (skip-when-unconfigured) > plugins/lisa/skills/lisa-jira-evidence/scripts/post-evidence.sh > never invents a hard-coded transition target in the move command",
         "tests/unit/strategies/jira-evidence-config-bound-status.test.ts › post-evidence.sh Step 5 is config-bound (skip-when-unconfigured) > plugins/lisa/skills/lisa-jira-evidence/scripts/post-evidence.sh > only moves the ticket when a review status is configured",
         "tests/unit/strategies/jira-evidence-config-bound-status.test.ts › post-evidence.sh Step 5 is config-bound (skip-when-unconfigured) > plugins/lisa/skills/lisa-jira-evidence/scripts/post-evidence.sh > resolves the review status from jira.workflow (global + local)"
+      ]
+    },
+    "plugins/lisa/skills/lisa-jira-journey/SKILL.md": {
+      "required": [
+        "LISA_EVIDENCE_RELEASE=$(node scripts/lisa-work-item.mjs evidence-release --ensure) || { echo \"Evidence release not usable; stop.\"; false; }",
+        "LISA_EVIDENCE_RELEASE=<name>",
+        "unset LISA_EVIDENCE_RELEASE; LISA_EVIDENCE_RELEASE=$("
+      ],
+      "forbidden": [
+        "export LISA_EVIDENCE_RELEASE=$("
+      ],
+      "requiredPatterns": [
+        {
+          "source": "^export LISA_EVIDENCE_RELEASE(?:\\s|$)",
+          "flags": "m"
+        },
+        {
+          "source": "new shell for every command",
+          "flags": ""
+        }
+      ],
+      "forbiddenPatterns": [
+        {
+          "source": "^bash \\.claude/skills/jira-evidence/scripts/post-evidence\\.sh",
+          "flags": "m"
+        },
+        {
+          "source": "^python3 \\.claude/skills/jira-journey/scripts/generate-templates\\.py",
+          "flags": "m"
+        }
+      ],
+      "source": [
+        "tests/unit/strategies/evidence-release-stop-guard.test.ts › evidence release-selection lines (#4740) > plugins/src/base/skills/lisa-jira-journey/SKILL.md > exits non-zero, says to stop, and exports nothing when the release cannot be used"
       ]
     },
     "plugins/lisa/skills/lisa-jira-sync/SKILL.md": {
@@ -18096,16 +18954,28 @@
     "plugins/src/base/skills/lisa-jira-evidence/SKILL.md": {
       "required": [
         "## Artifact identity",
+        "LISA_EVIDENCE_RELEASE=$(node scripts/lisa-work-item.mjs evidence-release --ensure) || { echo \"Evidence release not usable; stop.\"; false; }",
+        "LISA_EVIDENCE_RELEASE=<name>",
         "Not established",
         "REVIEW=\"\"",
-        "head_sha"
+        "head_sha",
+        "unset LISA_EVIDENCE_RELEASE; LISA_EVIDENCE_RELEASE=$("
       ],
       "forbidden": [
-        "REVIEW=\"Code Review\""
+        "REVIEW=\"Code Review\"",
+        "export LISA_EVIDENCE_RELEASE=$("
       ],
       "requiredPatterns": [
         {
+          "source": "^export LISA_EVIDENCE_RELEASE(?:\\s|$)",
+          "flags": "m"
+        },
+        {
           "source": "claimed",
+          "flags": ""
+        },
+        {
+          "source": "new shell for every command",
           "flags": ""
         },
         {
@@ -18125,9 +18995,19 @@
           "flags": "i"
         }
       ],
-      "forbiddenPatterns": [],
+      "forbiddenPatterns": [
+        {
+          "source": "^bash \\.claude/skills/jira-evidence/scripts/post-evidence\\.sh",
+          "flags": "m"
+        },
+        {
+          "source": "^python3 \\.claude/skills/jira-journey/scripts/generate-templates\\.py",
+          "flags": "m"
+        }
+      ],
       "source": [
         "tests/unit/strategies/artifact-identity-contract.test.ts › Artifact identity contract (BCE-4) > plugins/src/base > the vendor evidence skills > skills/lisa-jira-evidence/SKILL.md requires the Artifact identity section before posting",
+        "tests/unit/strategies/evidence-release-stop-guard.test.ts › evidence release-selection lines (#4740) > plugins/src/base/skills/lisa-jira-evidence/SKILL.md > exits non-zero, says to stop, and exports nothing when the release cannot be used",
         "tests/unit/strategies/jira-evidence-config-bound-status.test.ts › jira-evidence SKILL.md documents the optional, skip-when-absent review hop > plugins/src/base/skills/lisa-jira-evidence/SKILL.md > forbids transitioning to a status not named in config.jira.workflow",
         "tests/unit/strategies/jira-evidence-config-bound-status.test.ts › jira-evidence SKILL.md documents the optional, skip-when-absent review hop > plugins/src/base/skills/lisa-jira-evidence/SKILL.md > initializes REVIEW empty in the resolution snippet",
         "tests/unit/strategies/jira-evidence-config-bound-status.test.ts › jira-evidence SKILL.md documents the optional, skip-when-absent review hop > plugins/src/base/skills/lisa-jira-evidence/SKILL.md > states the transition is skipped when review is unset",
@@ -18164,6 +19044,39 @@
         "tests/unit/strategies/jira-evidence-config-bound-status.test.ts › post-evidence.sh Step 5 is config-bound (skip-when-unconfigured) > plugins/src/base/skills/lisa-jira-evidence/scripts/post-evidence.sh > never invents a hard-coded transition target in the move command",
         "tests/unit/strategies/jira-evidence-config-bound-status.test.ts › post-evidence.sh Step 5 is config-bound (skip-when-unconfigured) > plugins/src/base/skills/lisa-jira-evidence/scripts/post-evidence.sh > only moves the ticket when a review status is configured",
         "tests/unit/strategies/jira-evidence-config-bound-status.test.ts › post-evidence.sh Step 5 is config-bound (skip-when-unconfigured) > plugins/src/base/skills/lisa-jira-evidence/scripts/post-evidence.sh > resolves the review status from jira.workflow (global + local)"
+      ]
+    },
+    "plugins/src/base/skills/lisa-jira-journey/SKILL.md": {
+      "required": [
+        "LISA_EVIDENCE_RELEASE=$(node scripts/lisa-work-item.mjs evidence-release --ensure) || { echo \"Evidence release not usable; stop.\"; false; }",
+        "LISA_EVIDENCE_RELEASE=<name>",
+        "unset LISA_EVIDENCE_RELEASE; LISA_EVIDENCE_RELEASE=$("
+      ],
+      "forbidden": [
+        "export LISA_EVIDENCE_RELEASE=$("
+      ],
+      "requiredPatterns": [
+        {
+          "source": "^export LISA_EVIDENCE_RELEASE(?:\\s|$)",
+          "flags": "m"
+        },
+        {
+          "source": "new shell for every command",
+          "flags": ""
+        }
+      ],
+      "forbiddenPatterns": [
+        {
+          "source": "^bash \\.claude/skills/jira-evidence/scripts/post-evidence\\.sh",
+          "flags": "m"
+        },
+        {
+          "source": "^python3 \\.claude/skills/jira-journey/scripts/generate-templates\\.py",
+          "flags": "m"
+        }
+      ],
+      "source": [
+        "tests/unit/strategies/evidence-release-stop-guard.test.ts › evidence release-selection lines (#4740) > plugins/src/base/skills/lisa-jira-journey/SKILL.md > exits non-zero, says to stop, and exports nothing when the release cannot be used"
       ]
     },
     "plugins/src/base/skills/lisa-jira-sync/SKILL.md": {
@@ -20357,14 +21270,26 @@
     },
     "plugins/src/expo/skills/jira-evidence/SKILL.md": {
       "required": [
-        "jira.workflow.review"
+        "LISA_EVIDENCE_RELEASE=$(node scripts/lisa-work-item.mjs evidence-release --ensure) || { echo \"Evidence release not usable; stop.\"; false; }",
+        "LISA_EVIDENCE_RELEASE=<name>",
+        "jira.workflow.review",
+        "unset LISA_EVIDENCE_RELEASE; LISA_EVIDENCE_RELEASE=$("
       ],
       "forbidden": [
-        "Move ticket to Code Review"
+        "Move ticket to Code Review",
+        "export LISA_EVIDENCE_RELEASE=$("
       ],
       "requiredPatterns": [
         {
+          "source": "^export LISA_EVIDENCE_RELEASE(?:\\s|$)",
+          "flags": "m"
+        },
+        {
           "source": "claimed",
+          "flags": ""
+        },
+        {
+          "source": "new shell for every command",
           "flags": ""
         },
         {
@@ -20376,8 +21301,18 @@
           "flags": "i"
         }
       ],
-      "forbiddenPatterns": [],
+      "forbiddenPatterns": [
+        {
+          "source": "^bash \\.claude/skills/jira-evidence/scripts/post-evidence\\.sh",
+          "flags": "m"
+        },
+        {
+          "source": "^python3 \\.claude/skills/jira-journey/scripts/generate-templates\\.py",
+          "flags": "m"
+        }
+      ],
       "source": [
+        "tests/unit/strategies/evidence-release-stop-guard.test.ts › evidence release-selection lines (#4740) > plugins/src/expo/skills/jira-evidence/SKILL.md > exits non-zero, says to stop, and exports nothing when the release cannot be used",
         "tests/unit/strategies/jira-evidence-config-bound-status.test.ts › stack jira-evidence SKILL.md (expo/rails) drops the hard-coded review status > plugins/src/expo/skills/jira-evidence/SKILL.md > describes resolving the review status from jira.workflow",
         "tests/unit/strategies/jira-evidence-config-bound-status.test.ts › stack jira-evidence SKILL.md (expo/rails) drops the hard-coded review status > plugins/src/expo/skills/jira-evidence/SKILL.md > no longer names a hard-coded 'Move ticket to Code Review' step",
         "tests/unit/strategies/jira-evidence-config-bound-status.test.ts › stack jira-evidence SKILL.md (expo/rails) drops the hard-coded review status > plugins/src/expo/skills/jira-evidence/SKILL.md > states the step is optional and skipped when review is unset"
@@ -20413,6 +21348,39 @@
         "tests/unit/strategies/jira-evidence-config-bound-status.test.ts › post-evidence.sh Step 5 is config-bound (skip-when-unconfigured) > plugins/src/expo/skills/jira-evidence/scripts/post-evidence.sh > never invents a hard-coded transition target in the move command",
         "tests/unit/strategies/jira-evidence-config-bound-status.test.ts › post-evidence.sh Step 5 is config-bound (skip-when-unconfigured) > plugins/src/expo/skills/jira-evidence/scripts/post-evidence.sh > only moves the ticket when a review status is configured",
         "tests/unit/strategies/jira-evidence-config-bound-status.test.ts › post-evidence.sh Step 5 is config-bound (skip-when-unconfigured) > plugins/src/expo/skills/jira-evidence/scripts/post-evidence.sh > resolves the review status from jira.workflow (global + local)"
+      ]
+    },
+    "plugins/src/expo/skills/jira-journey/SKILL.md": {
+      "required": [
+        "LISA_EVIDENCE_RELEASE=$(node scripts/lisa-work-item.mjs evidence-release --ensure) || { echo \"Evidence release not usable; stop.\"; false; }",
+        "LISA_EVIDENCE_RELEASE=<name>",
+        "unset LISA_EVIDENCE_RELEASE; LISA_EVIDENCE_RELEASE=$("
+      ],
+      "forbidden": [
+        "export LISA_EVIDENCE_RELEASE=$("
+      ],
+      "requiredPatterns": [
+        {
+          "source": "^export LISA_EVIDENCE_RELEASE(?:\\s|$)",
+          "flags": "m"
+        },
+        {
+          "source": "new shell for every command",
+          "flags": ""
+        }
+      ],
+      "forbiddenPatterns": [
+        {
+          "source": "^bash \\.claude/skills/jira-evidence/scripts/post-evidence\\.sh",
+          "flags": "m"
+        },
+        {
+          "source": "^python3 \\.claude/skills/jira-journey/scripts/generate-templates\\.py",
+          "flags": "m"
+        }
+      ],
+      "source": [
+        "tests/unit/strategies/evidence-release-stop-guard.test.ts › evidence release-selection lines (#4740) > plugins/src/expo/skills/jira-journey/SKILL.md > exits non-zero, says to stop, and exports nothing when the release cannot be used"
       ]
     },
     "plugins/src/rails/hooks/rubocop-on-edit.sh": {
@@ -20455,14 +21423,26 @@
     },
     "plugins/src/rails/skills/jira-evidence/SKILL.md": {
       "required": [
-        "jira.workflow.review"
+        "LISA_EVIDENCE_RELEASE=$(node scripts/lisa-work-item.mjs evidence-release --ensure) || { echo \"Evidence release not usable; stop.\"; false; }",
+        "LISA_EVIDENCE_RELEASE=<name>",
+        "jira.workflow.review",
+        "unset LISA_EVIDENCE_RELEASE; LISA_EVIDENCE_RELEASE=$("
       ],
       "forbidden": [
-        "Move ticket to Code Review"
+        "Move ticket to Code Review",
+        "export LISA_EVIDENCE_RELEASE=$("
       ],
       "requiredPatterns": [
         {
+          "source": "^export LISA_EVIDENCE_RELEASE(?:\\s|$)",
+          "flags": "m"
+        },
+        {
           "source": "claimed",
+          "flags": ""
+        },
+        {
+          "source": "new shell for every command",
           "flags": ""
         },
         {
@@ -20474,8 +21454,18 @@
           "flags": "i"
         }
       ],
-      "forbiddenPatterns": [],
+      "forbiddenPatterns": [
+        {
+          "source": "^bash \\.claude/skills/jira-evidence/scripts/post-evidence\\.sh",
+          "flags": "m"
+        },
+        {
+          "source": "^python3 \\.claude/skills/jira-journey/scripts/generate-templates\\.py",
+          "flags": "m"
+        }
+      ],
       "source": [
+        "tests/unit/strategies/evidence-release-stop-guard.test.ts › evidence release-selection lines (#4740) > plugins/src/rails/skills/jira-evidence/SKILL.md > exits non-zero, says to stop, and exports nothing when the release cannot be used",
         "tests/unit/strategies/jira-evidence-config-bound-status.test.ts › stack jira-evidence SKILL.md (expo/rails) drops the hard-coded review status > plugins/src/rails/skills/jira-evidence/SKILL.md > describes resolving the review status from jira.workflow",
         "tests/unit/strategies/jira-evidence-config-bound-status.test.ts › stack jira-evidence SKILL.md (expo/rails) drops the hard-coded review status > plugins/src/rails/skills/jira-evidence/SKILL.md > no longer names a hard-coded 'Move ticket to Code Review' step",
         "tests/unit/strategies/jira-evidence-config-bound-status.test.ts › stack jira-evidence SKILL.md (expo/rails) drops the hard-coded review status > plugins/src/rails/skills/jira-evidence/SKILL.md > states the step is optional and skipped when review is unset"
