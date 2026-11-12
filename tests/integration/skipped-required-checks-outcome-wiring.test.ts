@@ -158,9 +158,28 @@ describe("🔒 Skipped Required Checks sees every outcome it judges", () => {
     }
   });
 
-  it("passes results, names and moment through env, never into run", () => {
+  it("names every needed job that runs only on pull requests — and only those (#4620)", () => {
+    // A manual, push or scheduled run skips these jobs by their own `if:`, and
+    // the prover excuses exactly the jobs listed here on those events. A job
+    // that gains the condition without being listed reddens every manual run;
+    // a job listed without the condition would have its skip excused while it
+    // could have run. Derived from the conditions, so both directions fail.
+    const byName = (left: string, right: string): number =>
+      left.localeCompare(right);
+    const listed = JSON.parse(
+      String(guardStep?.env?.LISA_PULL_REQUEST_ONLY_JOBS ?? "")
+    ) as string[];
+    const derived = needsOf(guard).filter(id =>
+      String(jobs[id]?.if ?? "").includes("github.event_name == 'pull_request'")
+    );
+    expect(derived.length).toBeGreaterThan(0);
+    expect([...listed].sort(byName)).toEqual([...derived].sort(byName));
+  });
+
+  it("passes results, names, moment and event through env, never into run", () => {
     expect(guardStep?.env?.LISA_JOB_RESULTS).toBe("${{ toJSON(needs) }}");
     expect(guardStep?.env?.LISA_GATE_MOMENT).toBe("${{ inputs.moment }}");
+    expect(guardStep?.env?.LISA_EVENT_NAME).toBe("${{ github.event_name }}");
     expect(guardStep?.run).toContain("--outcomes");
     expect(guardStep?.run).not.toContain("${{");
   });
