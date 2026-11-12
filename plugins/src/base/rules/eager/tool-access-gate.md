@@ -10,7 +10,10 @@ moment a new requirement surfaces mid-flow — enumerate every external tool the
 work item needs (implementation, proof command, remote verification: AWS CLI,
 Figma, Jam, Sentry, SonarCloud, PostHog, device/browser harnesses, databases,
 deploy targets, …) and **prove access with a cheap read-only probe**, routing
-through the matching `*-access` skill where one exists. Resolve credentials through the documented access path before probing;
+through the matching `*-access` skill where one exists. Resolve credentials through the documented access path before probing,
+including the configured secret provider via `lisa-secrets-access` and any
+recovery step it documents (for AWS, the `LISA_AWS_BOOTSTRAP_JSON` setup —
+allowed, not a forbidden write);
 presence on PATH is not access. If that path or the probe cannot provide the
 required access, report the gap and stop.
 
