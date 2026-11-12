@@ -12,6 +12,9 @@
 #   - "always suggest updating pull request branches" enabled
 #   - GitHub wiki tab disabled (Lisa projects use in-repo wiki/)
 #   - secret scanning + push protection enabled where the plan supports it
+#   - the `lisa-managed` repository topic added (existing topics kept), so
+#     every Lisa repository is findable with
+#     `gh search repos topic:lisa-managed --owner <owner>`
 #
 #   - default branch set to the lowest-tier environment branch that exists
 #     on the repository (dev > staging > main); repos with none of the
@@ -53,8 +56,12 @@ log_error() { echo -e "${RED}✗${NC} $1" >&2; }
 log_verbose() { [[ "$VERBOSE" == "true" ]] && echo -e "  $1" || true; }
 
 show_help() {
-  sed -n '2,32p' "$0" | sed 's/^# \{0,1\}//'
+  sed -n '2,38p' "$0" | sed 's/^# \{0,1\}//'
 }
+
+# The topic that marks a repository as Lisa-managed. Fleet-wide changes find
+# their targets with `gh search repos topic:lisa-managed`.
+LISA_FLEET_TOPIC="lisa-managed"
 
 baseline_settings() {
   jq -n '{
@@ -149,6 +156,7 @@ main() {
     log_info "[DRY RUN] Would apply settings:"
     echo "$settings" | jq .
     log_info "[DRY RUN] Would enable secret scanning + push protection (best effort)"
+    log_info "[DRY RUN] Would add the $LISA_FLEET_TOPIC repository topic (existing topics kept)"
     return 0
   fi
 
@@ -173,6 +181,13 @@ main() {
     log_success "Enabled secret scanning + push protection"
   else
     log_warning "Secret scanning not available on this repository's plan — skipped"
+  fi
+
+  # Additive: --add-topic keeps whatever topics the repository already has.
+  if gh repo edit "$repo" --add-topic "$LISA_FLEET_TOPIC" > /dev/null 2>&1; then
+    log_success "Tagged repository with the $LISA_FLEET_TOPIC topic"
+  else
+    log_warning "Could not add the $LISA_FLEET_TOPIC topic — tag it by hand: gh repo edit $repo --add-topic $LISA_FLEET_TOPIC"
   fi
 }
 
