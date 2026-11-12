@@ -4528,6 +4528,15 @@ jobs:
         env:
           LISA_GATE_MOMENT: ${{ inputs.moment }}
           LISA_JOB_RESULTS: ${{ toJSON(needs) }}
+          # The event that started the run, and the jobs in `needs:` whose `if:`
+          # requires `github.event_name == 'pull_request'`. On
+          # workflow_dispatch, push or schedule — events that gate no merge —
+          # the prover reports those jobs' skips as not judged rather than
+          # refusing them (#4620). Every other event, and a missing or
+          # unreadable value, is judged as before. The wiring test derives this
+          # list from the jobs' conditions and fails on drift in either direction.
+          LISA_EVENT_NAME: ${{ github.event_name }}
+          LISA_PULL_REQUEST_ONLY_JOBS: '["verification_coverage", "work_item_traceability"]'
           # Job id -> display name for every job in `needs:` whose name is not a
           # runtime expression. `needs` carries results but no names, and a
           # required context is keyed by name. The wiring test derives this from
@@ -4793,7 +4802,9 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     # Only meaningful on pull_request: the range and the PR number both come
-    # from the event payload. Other events report success.
+    # from the event payload. On any other event the job is SKIPPED, which
+    # is why it is listed in `LISA_PULL_REQUEST_ONLY_JOBS` on the
+    # `🔒 Skipped Required Checks` step (#4620).
     needs: [gate_plan]
     if: ${{ always() && !cancelled() && github.event_name == 'pull_request' && !contains(format(',{0},', inputs.skip_jobs), ',work_item_traceability,') && (needs.gate_plan.result != 'success' || !contains(needs.gate_plan.outputs.plan, '"work_item_traceability":"skip"')) }}
     # Rationale: docs/quality-workflow-notes.md#note-18

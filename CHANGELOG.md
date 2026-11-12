@@ -2,6 +2,77 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.103.6](https://github.com/CodySwannGT/lisa/compare/v4.103.5...v4.103.6) (2026-11-12)
+
+
+### Documentation
+
+* **gates:** add the gate interface review worksheet ([1b4ac81](https://github.com/CodySwannGT/lisa/commit/1b4ac81011e69e5ded087f9a6199d2fced8f2334)), closes [CodySwannGT/lisa#4797](https://github.com/CodySwannGT/lisa/issues/4797)
+
+### [4.103.5](https://github.com/CodySwannGT/lisa/compare/v4.103.4...v4.103.5) (2026-11-12)
+
+
+### Bug Fixes
+
+* **skills:** address local review on lisa-update-projects ([#4644](https://github.com/CodySwannGT/lisa/issues/4644)) ([fa51474](https://github.com/CodySwannGT/lisa/commit/fa51474be74ba913c9c49c7522438aace133c374))
+* **skills:** align lisa-update-projects with current Lisa ([#4644](https://github.com/CodySwannGT/lisa/issues/4644)) ([f33bd37](https://github.com/CodySwannGT/lisa/commit/f33bd37a9699243a6d508f6c95c41c2bac661dbb)), closes [#2615](https://github.com/CodySwannGT/lisa/issues/2615)
+
+### [4.103.4](https://github.com/CodySwannGT/lisa/compare/v4.103.3...v4.103.4) (2026-11-12)
+
+
+### Code Refactoring
+
+* **gates:** slim the evidence envelope, remove the reuse checker ([b452663](https://github.com/CodySwannGT/lisa/commit/b452663a62ed892b3ef2c14ad40b44cf956dffa7)), closes [CodySwannGT/lisa#4794](https://github.com/CodySwannGT/lisa/issues/4794)
+
+### [4.103.3](https://github.com/CodySwannGT/lisa/compare/v4.103.2...v4.103.3) (2026-11-12)
+
+
+### Bug Fixes
+
+* **cdk:** warn when npm is older than 11.6.0 ([2d01969](https://github.com/CodySwannGT/lisa/commit/2d019699adba9bf5f94a09bd0f61459cc7795428)), closes [CodySwannGT/lisa#4793](https://github.com/CodySwannGT/lisa/issues/4793)
+
+### [4.103.2](https://github.com/CodySwannGT/lisa/compare/v4.103.1...v4.103.2) (2026-11-12)
+
+
+### Bug Fixes
+
+* **doctor:** stop reading ENAMETOOLONG as a missing file ([253ef10](https://github.com/CodySwannGT/lisa/commit/253ef101f6f93a7b97366b745aec957e7fcc68b3)), closes [CodySwannGT/lisa#4629](https://github.com/CodySwannGT/lisa/issues/4629) [CodySwannGT/lisa#4629](https://github.com/CodySwannGT/lisa/issues/4629)
+* **test:** stop Jest-shard fixtures depending on Watchman ([59fba95](https://github.com/CodySwannGT/lisa/commit/59fba95dcff3f88a341185bb4e690c8ef29b9ab4)), closes [CodySwannGT/lisa#4790](https://github.com/CodySwannGT/lisa/issues/4790)
+
+### [4.103.1](https://github.com/CodySwannGT/lisa/compare/v4.103.0...v4.103.1) (2026-11-12)
+
+## [4.103.0](https://github.com/CodySwannGT/lisa/compare/v4.102.2...v4.103.0) (2026-11-12)
+
+
+### Features
+
+* **setup:** tag repositories with the lisa-managed topic ([f1f0277](https://github.com/CodySwannGT/lisa/commit/f1f0277ed9a4769be9c287757da5b9d9e16eff49)), closes [CodySwannGT/lisa#4782](https://github.com/CodySwannGT/lisa/issues/4782)
+
+
+### Bug Fixes
+
+* **test-run:** stop CDK hosts failing scratch checks on passing suites ([643a877](https://github.com/CodySwannGT/lisa/commit/643a877e59877cc07a414684da6c06ab9523a374)), closes [CodySwannGT/lisa#4786](https://github.com/CodySwannGT/lisa/issues/4786)
+
+### [4.102.2](https://github.com/CodySwannGT/lisa/compare/v4.102.1...v4.102.2) (2026-11-12)
+
+
+### Bug Fixes
+
+* **tests:** harden stderr-sync retry and cleanup test coverage ([40d9c21](https://github.com/CodySwannGT/lisa/commit/40d9c218ccd0738d7f81d8a59c414aff6f915f2a)), closes [#4621](https://github.com/CodySwannGT/lisa/issues/4621) [CodySwannGT/lisa#4621](https://github.com/CodySwannGT/lisa/issues/4621) [CodySwannGT/lisa#4621](https://github.com/CodySwannGT/lisa/issues/4621)
+* **tests:** stop the scanner child before removing folders at exit ([c3dd934](https://github.com/CodySwannGT/lisa/commit/c3dd934860669719e9373db8a95fae4811160c20)), closes [#4621](https://github.com/CodySwannGT/lisa/issues/4621) [CodySwannGT/lisa#4621](https://github.com/CodySwannGT/lisa/issues/4621) [CodySwannGT/lisa#4621](https://github.com/CodySwannGT/lisa/issues/4621)
+
+
+### Documentation
+
+* **tests:** scope stderr-sync pipe claim to what was measured ([38084da](https://github.com/CodySwannGT/lisa/commit/38084da50fe522c3db77f0aea803ae4b325265af)), closes [CodySwannGT/lisa#4621](https://github.com/CodySwannGT/lisa/issues/4621)
+
+### [4.102.1](https://github.com/CodySwannGT/lisa/compare/v4.102.0...v4.102.1) (2026-11-12)
+
+
+### Bug Fixes
+
+* **ci:** stop manual CI runs failing on pull-request-only required checks ([f5c00d4](https://github.com/CodySwannGT/lisa/commit/f5c00d40d2f520877d78d9cfd79e41388ddb0e5e)), closes [#4620](https://github.com/CodySwannGT/lisa/issues/4620) [#4620](https://github.com/CodySwannGT/lisa/issues/4620) [CodySwannGT/lisa#4620](https://github.com/CodySwannGT/lisa/issues/4620)
+
 ## [4.102.0](https://github.com/CodySwannGT/lisa/compare/v4.101.11...v4.102.0) (2026-11-12)
 
 

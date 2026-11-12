@@ -1,4 +1,4 @@
-/** Release quality opt-out preserves scheduling and reports skipped honestly. */
+/** Release quality is opt-in, preserves scheduling, and reports skipped honestly. */
 import { githubCondition } from "../helpers/github-expression.js";
 import { describe, expect, it } from "vitest";
 
@@ -62,13 +62,13 @@ describe("release quality opt-out", () => {
     ).toBe(true);
   });
 
-  it("preserves quality execution unless the caller opts out", () => {
+  it("skips the redundant quality rerun unless the caller opts in", () => {
     expect(
       workflow.on?.workflow_call?.inputs?.run_quality_checks
     ).toMatchObject({
       type: "boolean",
       required: false,
-      default: true,
+      default: false,
     });
     expect(jobOf(workflow, "quality").if).toBe("inputs.run_quality_checks");
     expect(canVersion(true, "success")).toBe(true);

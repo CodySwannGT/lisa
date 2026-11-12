@@ -9,7 +9,9 @@ import {
 } from "../../../src/configs/vitest/scratch.js";
 import { getCdkVitestConfig } from "../../../src/configs/vitest/cdk.js";
 import {
+  registeredScratchPrefixes,
   resolveScratchRouteProfile,
+  SCRATCH_PREFIXES_ENV,
   type ScratchRouteProfileName,
 } from "../../../src/configs/vitest/scratch-route-profile.js";
 import {
@@ -18,6 +20,9 @@ import {
 } from "../../../src/configs/vitest/scratch-global-setup.js";
 import { SCRATCH_OWNER_FILE } from "../../../src/configs/vitest/scratch-owner.js";
 import { withProcessPlatformTempRoot } from "../../helpers/template-toolchain.js";
+
+/** Node's compile cache, registered for every route (CodySwannGT/lisa#4786). */
+const COMPILE_CACHE = "node-compile-cache";
 
 /**
  * Report every recorded process as alive.
@@ -194,12 +199,44 @@ describe("lisa-test-run scratch route profiles", () => {
     expect(profile).toEqual({
       name: "cdk",
       suiteLabel: "cdk",
-      registeredPrefixes: ["cdk.out"],
+      registeredPrefixes: ["cdk.out", COMPILE_CACHE],
     });
     expect(
       profile.registeredPrefixes.some(prefix => "cdk-rogue".startsWith(prefix))
     ).toBe(false);
     expect(getCdkVitestConfig().test?.env).toBeUndefined();
+  });
+
+  it("registers Node's compile cache for every route and for unwrapped runs", () => {
+    const routes: readonly ScratchRouteProfileName[] = [
+      "lisa",
+      "typescript",
+      "npm-package",
+      "node",
+      "expo",
+      "nestjs",
+      "cdk",
+      "harper-fabric",
+      "phaser",
+    ];
+    expect(
+      routes.filter(
+        route =>
+          !resolveScratchRouteProfile(route, {}).registeredPrefixes.includes(
+            COMPILE_CACHE
+          )
+      )
+    ).toEqual([]);
+    const previous = process.env[SCRATCH_PREFIXES_ENV];
+    try {
+      delete process.env[SCRATCH_PREFIXES_ENV];
+      expect(registeredScratchPrefixes()).toEqual([COMPILE_CACHE]);
+      process.env[SCRATCH_PREFIXES_ENV] = '["cdk.out"]';
+      expect(registeredScratchPrefixes()).toEqual(["cdk.out", COMPILE_CACHE]);
+    } finally {
+      if (previous === undefined) delete process.env[SCRATCH_PREFIXES_ENV];
+      else process.env[SCRATCH_PREFIXES_ENV] = previous;
+    }
   });
 
   it("binds the Lisa route to its committed fixture registry", () => {
@@ -212,6 +249,7 @@ describe("lisa-test-run scratch route profiles", () => {
       "lisa-",
       "maestro-",
       "node-",
+      COMPILE_CACHE,
       "review-",
       "skipreq-",
       "state-",
@@ -224,7 +262,11 @@ describe("lisa-test-run scratch route profiles", () => {
     const profile = resolveScratchRouteProfile("cdk", {
       LISA_TEST_SCRATCH_PREFIXES: '["operator-cdk-","operator-cdk-"]',
     });
-    expect(profile.registeredPrefixes).toEqual(["cdk.out", "operator-cdk-"]);
+    expect(profile.registeredPrefixes).toEqual([
+      "cdk.out",
+      COMPILE_CACHE,
+      "operator-cdk-",
+    ]);
     expect(() =>
       (profile.registeredPrefixes as string[]).push("replacement")
     ).toThrow();

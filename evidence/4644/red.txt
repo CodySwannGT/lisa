@@ -1,0 +1,179 @@
+# RED: tests/unit/core/update-skill-references.test.ts (copied from f33bd37a96) run against origin/main 883931760bb1f2054c69c7636b6ff0bca6b850d8
+# Independent re-run by verification-specialist (did not implement the change).
+# command: bunx vitest run tests/unit/core/update-skill-references.test.ts
+# cwd: throwaway worktree of origin/main at /Users/codysai/.claude/jobs/210f256b/tmp/main-check (node_modules symlinked from the branch worktree); removed afterwards
+# captured_at: 2026-11-12T15:36:23Z
+# note: on origin/main the three skill copies are already byte-identical (cmp silent), so the
+#       parity cases pass there; the parity check's ability to fail is shown in parity-red.txt
+# result: 9 failed | 6 passed (15), exit=1
+
+vitest.config.ts (19:7) [UNRESOLVED_IMPORT] Could not resolve '@codyswann/lisa/vitest/typescript' in vitest.config.ts
+    ╭─[ vitest.config.ts:19:8 ]
+    │
+ 19 │ } from "@codyswann/lisa/vitest/typescript";
+    │        ─────────────────┬─────────────────  
+    │                         ╰─────────────────── Module not found, treating it as an external dependency
+────╯
+
+vitest.config.ts (19:7) [UNRESOLVED_IMPORT] Could not resolve '@codyswann/lisa/vitest/typescript' in vitest.config.ts
+    ╭─[ vitest.config.ts:19:8 ]
+    │
+ 19 │ } from "@codyswann/lisa/vitest/typescript";
+    │        ─────────────────┬─────────────────  
+    │                         ╰─────────────────── Module not found, treating it as an external dependency
+────╯
+
+vitest.config.ts (19:7) [UNRESOLVED_IMPORT] Could not resolve '@codyswann/lisa/vitest/typescript' in vitest.config.ts
+    ╭─[ vitest.config.ts:19:8 ]
+    │
+ 19 │ } from "@codyswann/lisa/vitest/typescript";
+    │        ─────────────────┬─────────────────  
+    │                         ╰─────────────────── Module not found, treating it as an external dependency
+────╯
+
+vitest.config.ts (19:7) [UNRESOLVED_IMPORT] Could not resolve '@codyswann/lisa/vitest/typescript' in vitest.config.ts
+    ╭─[ vitest.config.ts:19:8 ]
+    │
+ 19 │ } from "@codyswann/lisa/vitest/typescript";
+    │        ─────────────────┬─────────────────  
+    │                         ╰─────────────────── Module not found, treating it as an external dependency
+────╯
+
+
+ RUN  v4.1.11 /Users/codysai/.claude/jobs/210f256b/tmp/main-check
+
+Sourcemap for "/Users/codysai/workspace/lisa/.claude/worktrees/4644-update-projects-skill/node_modules/.bun/@codyswann+lisa@4.69.1+dbdb9b37f1a7de56/node_modules/@codyswann/lisa/dist/configs/vitest/scratch-setup.js" points to missing source files
+lisa scratch: no supervised lease in the environment, so this run is self-supervised. Fixture directories are still bounded to a run root this process owns and removed on exit; what is missing is the detached reaper that reclaims the root after a SIGKILL, which the next run's startup sweep recovers instead. Run through `lisa-test-run --profile <profile> --adapter vitest -- vitest ...` for a supervised run.
+Sourcemap for "/Users/codysai/workspace/lisa/.claude/worktrees/4644-update-projects-skill/node_modules/.bun/@codyswann+lisa@4.69.1+dbdb9b37f1a7de56/node_modules/@codyswann/lisa/dist/configs/vitest/scratch-leak-setup.js" points to missing source files
+ ❯ |lisa| tests/unit/core/update-skill-references.test.ts (15 tests | 9 failed) 21ms
+     × .claude/skills/lisa-update-projects/SKILL.md cites only Lisa paths that exist 5ms
+     × .agents/skills/lisa-update-projects/SKILL.md cites only Lisa paths that exist 1ms
+     × .claude-pr/.claude/skills/lisa-update-projects/SKILL.md cites only Lisa paths that exist 1ms
+     × .claude/skills/lisa-update-projects/SKILL.md step 8 recognises pinned callers 4ms
+     × .agents/skills/lisa-update-projects/SKILL.md step 8 recognises pinned callers 2ms
+     × .claude-pr/.claude/skills/lisa-update-projects/SKILL.md step 8 recognises pinned callers 1ms
+     × .claude/skills/lisa-update-projects/SKILL.md step 8 never accepts a zero-caller detector run as clean 1ms
+     × .agents/skills/lisa-update-projects/SKILL.md step 8 never accepts a zero-caller detector run as clean 1ms
+     × .claude-pr/.claude/skills/lisa-update-projects/SKILL.md step 8 never accepts a zero-caller detector run as clean 1ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 9 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  |lisa| tests/unit/core/update-skill-references.test.ts > lisa-update-projects skill: references and parity > .claude/skills/lisa-update-projects/SKILL.md cites only Lisa paths that exist
+ FAIL  |lisa| tests/unit/core/update-skill-references.test.ts > lisa-update-projects skill: references and parity > .agents/skills/lisa-update-projects/SKILL.md cites only Lisa paths that exist
+ FAIL  |lisa| tests/unit/core/update-skill-references.test.ts > lisa-update-projects skill: references and parity > .claude-pr/.claude/skills/lisa-update-projects/SKILL.md cites only Lisa paths that exist
+AssertionError: expected [ …(4) ] to deeply equal []
+
+- Expected
++ Received
+
+- []
++ [
++   ".github/workflows/reusable-claude.yml",
++   ".github/workflows/reusable-claude-ci-auto-fix.yml",
++   ".github/workflows/reusable-claude-sync-down-branches.yml",
++   "scripts/migrate-deploy-order.sh",
++ ]
+
+ ❯ tests/unit/core/update-skill-references.test.ts:179:51
+    177|     const cited = citedLisaPaths(read(copy));
+    178|     expect(cited.length).toBeGreaterThan(0);
+    179|     expect(cited.filter(entry => !exists(entry))).toEqual([]);
+       |                                                   ^
+    180|   });
+    181|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/9]⎯
+
+ FAIL  |lisa| tests/unit/core/update-skill-references.test.ts > lisa-update-projects skill: references and parity > .claude/skills/lisa-update-projects/SKILL.md step 8 recognises pinned callers
+ FAIL  |lisa| tests/unit/core/update-skill-references.test.ts > lisa-update-projects skill: references and parity > .agents/skills/lisa-update-projects/SKILL.md step 8 recognises pinned callers
+ FAIL  |lisa| tests/unit/core/update-skill-references.test.ts > lisa-update-projects skill: references and parity > .claude-pr/.claude/skills/lisa-update-projects/SKILL.md step 8 recognises pinned callers
+AssertionError: expected '\n8. Check for legacy inline Claude w…' to contain '@<40-char sha> # v<version>'
+
+- Expected
++ Received
+
+- @<40-char sha> # v<version>
++
++ 8. Check for legacy inline Claude workflows that need migration. For each file in `.github/workflows/` matching `claude*.yml`, `claude*.yaml`, `ci.yml`, `ci.yaml`, `deploy.yml`, and `deploy.yaml`:
++    - If the workflow has inline `steps:` blocks instead of calling `uses: CodySwannGT/lisa/.github/workflows/reusable-*.yml@main`, it is legacy.
++    - Detect project capabilities independently (Rails: has `bin/rails` or `config/application.rb`; TypeScript: has `tsconfig.json` or `package.json` with TypeScript signals). A repo may be both.
++    - Apply per-file mapping rules — not a single repo-wide template selection — so dual-stack repos get the correct template for each workflow file:
++      - `ci.yml`/`ci.yaml` in a Rails project → `rails/create-only/.github/workflows/ci.yml` (calls `quality-rails.yml@main`)
++      - `deploy.yml`/`deploy.yaml` in a Rails project → `rails/create-only/.github/workflows/deploy.yml` (calls `release-rails.yml@main`)
++      - `ci.yml`/`ci.yaml` in a TypeScript-only project → `typescript/create-only/.github/workflows/ci.yml` (calls `quality.yml@main`)
++      - `claude*.yml`/`claude*.yaml` → `typescript/create-only/.github/workflows/` (e.g., `claude.yml` → `reusable-claude.yml@main`, `claude-ci-auto-fix.yml` → `reusable-claude-ci-auto-fix.yml@main`)
++      - `auto-update-pr-branches.yml`/`auto-update-pr-branches-dispatch.yml` → **no template; do not migrate.** The auto-update-PR-branches subsystem was removed (CodySwannGT/lisa#3590) and both paths are listed in `typescript/deletions.json`, so the apply deletes them. If one survives an apply, that is a bug — report it rather than re-creating the workflow by hand.
++    - The create-only templates are the source of truth for the correct caller format.
++    - **Secrets-propagation migration**: if `claude-ci-auto-fix.yml` or `claude-deploy-auto-fix.yml` has a `secrets:` block that is `secrets: inherit`, a mapping missing the tracker tokens (e.g. only `CLAUDE_CODE_OAUTH_TOKEN`), or **no `secrets:` block at all** (which forwards none of the credentials), replace/insert the entire block with the least-privilege mapping from the current create-only templates:
++
++      ```yaml
++      secrets:
++        CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
++        PAT: ${{ secrets.PAT }}
++        JIRA_API_TOKEN: ${{ secrets.JIRA_API_TOKEN }}
++        LINEAR_API_KEY: ${{ secrets.LINEAR_API_KEY }}
++      ```
++
++      The reusable workflows forward these to the failure-issue dispatcher, which needs `JIRA_API_TOKEN` / `LINEAR_API_KEY` to reach the tracker declared in `.lisa.config.json`; a CLAUDE-only mapping strands failure tickets in GitHub Issues (how <a caller repo in the portfolio> got GitHub issues despite full Jira config). Do NOT migrate to `secrets: inherit`: it hands the chain every repo secret and SonarCloud's new-code security gate blocks it as a vulnerability (seen on <a caller repo>#<pr>). Unset secrets pass as empty, so the full mapping is safe on repos that don't use a given tracker. Like the stale-input migration above, this is a contract migration, not a customization edit — do not otherwise touch the file.
++    - A caller that already correctly uses `uses: CodySwannGT/lisa/.github/workflows/reusable-*.yml@main` is NOT automatically clean — its `with:` block can still carry an input the reusable workflow's current contract no longer declares (e.g. an early-generation `claude.yml` still passing `package_manager`, which `reusable-claude.yml` has never declared — issue #1423). GitHub hard-fails such a run at startup, and because `claude.yml` is create-only the repo can never self-heal on its own. Run `node scripts/detect-stale-workflow-inputs.mjs --project <project> --json` (from the Lisa repo checkout) against the project to catch this: it diffs each caller's `with:` keys against the corresponding `reusable-*.yml`'s declared `workflow_call.inputs` in this repo's `.github/workflows/`. For every row reported `"status": "stale"`, remove just the listed `staleInputs` key(s) from the caller's `with:` block (this is a contract-breaking-input migration, not a customization edit, so it's in scope even though the file is otherwise create-only) — do not otherwise touch the file. A `"status": "unknown-contract"` row means the caller references a reusable workflow this repo doesn't have a file for; leave it and flag for human review rather than guessing.
+
+ ❯ tests/unit/core/update-skill-references.test.ts:201:18
+    199|   it.each(SKILL_COPIES)("%s step 8 recognises pinned callers", copy =>…
+    200|     const text = step8(read(copy));
+    201|     expect(text).toContain("@<40-char sha> # v<version>");
+       |                  ^
+    202|     expect(text).toContain("legacy `@main`");
+    203|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/9]⎯
+
+ FAIL  |lisa| tests/unit/core/update-skill-references.test.ts > lisa-update-projects skill: references and parity > .claude/skills/lisa-update-projects/SKILL.md step 8 never accepts a zero-caller detector run as clean
+ FAIL  |lisa| tests/unit/core/update-skill-references.test.ts > lisa-update-projects skill: references and parity > .agents/skills/lisa-update-projects/SKILL.md step 8 never accepts a zero-caller detector run as clean
+ FAIL  |lisa| tests/unit/core/update-skill-references.test.ts > lisa-update-projects skill: references and parity > .claude-pr/.claude/skills/lisa-update-projects/SKILL.md step 8 never accepts a zero-caller detector run as clean
+AssertionError: expected '\n8. Check for legacy inline Claude w…' to contain '`summary.scanned` is `0`'
+
+- Expected
++ Received
+
+- `summary.scanned` is `0`
++
++ 8. Check for legacy inline Claude workflows that need migration. For each file in `.github/workflows/` matching `claude*.yml`, `claude*.yaml`, `ci.yml`, `ci.yaml`, `deploy.yml`, and `deploy.yaml`:
++    - If the workflow has inline `steps:` blocks instead of calling `uses: CodySwannGT/lisa/.github/workflows/reusable-*.yml@main`, it is legacy.
++    - Detect project capabilities independently (Rails: has `bin/rails` or `config/application.rb`; TypeScript: has `tsconfig.json` or `package.json` with TypeScript signals). A repo may be both.
++    - Apply per-file mapping rules — not a single repo-wide template selection — so dual-stack repos get the correct template for each workflow file:
++      - `ci.yml`/`ci.yaml` in a Rails project → `rails/create-only/.github/workflows/ci.yml` (calls `quality-rails.yml@main`)
++      - `deploy.yml`/`deploy.yaml` in a Rails project → `rails/create-only/.github/workflows/deploy.yml` (calls `release-rails.yml@main`)
++      - `ci.yml`/`ci.yaml` in a TypeScript-only project → `typescript/create-only/.github/workflows/ci.yml` (calls `quality.yml@main`)
++      - `claude*.yml`/`claude*.yaml` → `typescript/create-only/.github/workflows/` (e.g., `claude.yml` → `reusable-claude.yml@main`, `claude-ci-auto-fix.yml` → `reusable-claude-ci-auto-fix.yml@main`)
++      - `auto-update-pr-branches.yml`/`auto-update-pr-branches-dispatch.yml` → **no template; do not migrate.** The auto-update-PR-branches subsystem was removed (CodySwannGT/lisa#3590) and both paths are listed in `typescript/deletions.json`, so the apply deletes them. If one survives an apply, that is a bug — report it rather than re-creating the workflow by hand.
++    - The create-only templates are the source of truth for the correct caller format.
++    - **Secrets-propagation migration**: if `claude-ci-auto-fix.yml` or `claude-deploy-auto-fix.yml` has a `secrets:` block that is `secrets: inherit`, a mapping missing the tracker tokens (e.g. only `CLAUDE_CODE_OAUTH_TOKEN`), or **no `secrets:` block at all** (which forwards none of the credentials), replace/insert the entire block with the least-privilege mapping from the current create-only templates:
++
++      ```yaml
++      secrets:
++        CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
++        PAT: ${{ secrets.PAT }}
++        JIRA_API_TOKEN: ${{ secrets.JIRA_API_TOKEN }}
++        LINEAR_API_KEY: ${{ secrets.LINEAR_API_KEY }}
++      ```
++
++      The reusable workflows forward these to the failure-issue dispatcher, which needs `JIRA_API_TOKEN` / `LINEAR_API_KEY` to reach the tracker declared in `.lisa.config.json`; a CLAUDE-only mapping strands failure tickets in GitHub Issues (how <a caller repo in the portfolio> got GitHub issues despite full Jira config). Do NOT migrate to `secrets: inherit`: it hands the chain every repo secret and SonarCloud's new-code security gate blocks it as a vulnerability (seen on <a caller repo>#<pr>). Unset secrets pass as empty, so the full mapping is safe on repos that don't use a given tracker. Like the stale-input migration above, this is a contract migration, not a customization edit — do not otherwise touch the file.
++    - A caller that already correctly uses `uses: CodySwannGT/lisa/.github/workflows/reusable-*.yml@main` is NOT automatically clean — its `with:` block can still carry an input the reusable workflow's current contract no longer declares (e.g. an early-generation `claude.yml` still passing `package_manager`, which `reusable-claude.yml` has never declared — issue #1423). GitHub hard-fails such a run at startup, and because `claude.yml` is create-only the repo can never self-heal on its own. Run `node scripts/detect-stale-workflow-inputs.mjs --project <project> --json` (from the Lisa repo checkout) against the project to catch this: it diffs each caller's `with:` keys against the corresponding `reusable-*.yml`'s declared `workflow_call.inputs` in this repo's `.github/workflows/`. For every row reported `"status": "stale"`, remove just the listed `staleInputs` key(s) from the caller's `with:` block (this is a contract-breaking-input migration, not a customization edit, so it's in scope even though the file is otherwise create-only) — do not otherwise touch the file. A `"status": "unknown-contract"` row means the caller references a reusable workflow this repo doesn't have a file for; leave it and flag for human review rather than guessing.
+
+ ❯ tests/unit/core/update-skill-references.test.ts:209:20
+    207|     copy => {
+    208|       const text = step8(read(copy));
+    209|       expect(text).toContain("`summary.scanned` is `0`");
+       |                    ^
+    210|       expect(text).toContain("**unverified**, never clean");
+    211|       expect(text).toContain('`"status": "unparsed"`');
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/9]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  9 failed | 6 passed (15)
+   Start at  10:36:23
+   Duration  262ms (transform 44ms, setup 93ms, import 4ms, tests 21ms, environment 0ms)
+
+exit=1

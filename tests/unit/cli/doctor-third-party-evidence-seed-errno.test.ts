@@ -23,6 +23,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { checkThirdPartyEvidenceSeed } from "../../../src/cli/doctor-third-party-evidence-seed.js";
 import { THIRD_PARTY_EVIDENCE_WORKFLOW } from "../../../src/core/third-party-evidence-seed.js";
+import { ABSENT_CODES, UNDETERMINABLE_CODES } from "../../helpers/fs-errno.js";
 import { cleanupTempDir, createTempDir } from "../../helpers/test-utils.js";
 
 vi.mock("node:fs/promises", async importOriginal => {
@@ -66,7 +67,7 @@ describe("doctor third-party evidence seed check — read failures", () => {
     await cleanupTempDir(tempDir);
   });
 
-  it.each(["EACCES", "EPERM", "EIO", "ELOOP", "ENAMETOOLONG"])(
+  it.each(UNDETERMINABLE_CODES)(
     "fails, naming %s, when the check cannot read the workflow",
     async code => {
       vi.mocked(readFile).mockRejectedValueOnce(readFailure(code));
@@ -80,7 +81,7 @@ describe("doctor third-party evidence seed check — read failures", () => {
     }
   );
 
-  it.each(["ENOENT", "ENOTDIR"])(
+  it.each(ABSENT_CODES)(
     "reads %s as a project that was never seeded the workflow",
     async code => {
       vi.mocked(readFile).mockRejectedValueOnce(readFailure(code));

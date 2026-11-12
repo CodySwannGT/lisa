@@ -28,6 +28,7 @@
 import { readFile, stat } from "node:fs/promises";
 import * as path from "node:path";
 import { classifyProductionDeployIntent } from "../core/rails-deploy-production-intent.js";
+import { errnoCode, isDefinitiveAbsence } from "../utils/fs-absence.js";
 import type { DoctorCheck } from "./doctor.js";
 
 /** Name of the deploy-intent check as doctor reports it. */
@@ -45,27 +46,6 @@ const DEPLOY_WORKFLOW = ".github/workflows/deploy.yml";
 const RAILS_MARKERS = ["bin/rails", "config/application.rb"] as const;
 
 /**
- * Errno codes that ANSWER the question rather than refusing it: the path is
- * genuinely not there. Anything else — a permission denial, an I/O error, a
- * symlink loop — means the probe could not look, which is a different answer
- * and must not be spelled the same way.
- */
-const ABSENT_CODES = new Set(["ENOENT", "ENOTDIR", "ENAMETOOLONG"]);
-
-/**
- * The errno code of a rejected filesystem call, when it carries one.
- * @param error - Value thrown by a filesystem call
- * @returns The errno code, or undefined when the value carries none
- */
-function errnoCode(error: unknown): string | undefined {
-  const code: unknown =
-    typeof error === "object" && error !== null
-      ? (error as { code?: unknown }).code
-      : undefined;
-  return typeof code === "string" ? code : undefined;
-}
-
-/**
  * Re-throw a filesystem rejection unless it is a definitive absence.
  *
  * `fs-extra`'s `pathExists` resolves false for every failure, including a
@@ -76,8 +56,8 @@ function errnoCode(error: unknown): string | undefined {
  * @throws {Error} When the filesystem declined to answer
  */
 function rethrowUnlessAbsent(error: unknown, relativePath: string): void {
+  if (isDefinitiveAbsence(error)) return;
   const code = errnoCode(error);
-  if (code !== undefined && ABSENT_CODES.has(code)) return;
   throw new Error(`could not read ${relativePath}: ${code ?? String(error)}`, {
     cause: error,
   });
