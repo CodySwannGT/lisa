@@ -369,7 +369,9 @@ and its own `/loop` is the manager's loop: never report it as a second manager, 
 `CronDelete` or stopping it. When `manager.self` is true and `status` `manager.otherCyclers` is not
 empty, another session ran a cycle in this project within twice the interval, so two managers can
 hand out the same item: warn the operator (over Telegram too when `notify` is `telegram`), name each
-entry's `by` and `at`, and recommend stopping **that** session's loop, never this one. When
+entry's `by` and `at`, and recommend stopping **that** session's loop, never this one. A `pid:` entry
+names the process that ran that one cycle, so a single other session can leave several `pid:`
+entries; report them as one or more other sessions, never as an exact count. When
 `manager.self` is true and `manager.otherCyclers` is empty, raise no duplicate-manager warning. When
 `manager.self` is `null`, recommend stopping nothing, whatever `manager.otherCyclers` says; report
 that self-identification failed. When `manager.running` is true, `manager.self` is false, and this
