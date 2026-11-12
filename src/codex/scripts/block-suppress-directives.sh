@@ -9,9 +9,17 @@
 # Codex blocks the tool call when the script exits 2 with a deny message on
 # stderr. apply_patch carries the whole diff as a STRING under
 # tool_input.command (verified against codex-cli 0.125.0), so we walk the patch
-# and inspect added (`+`) lines under JS/TS file headers. Edit/Write inspect the
-# new text directly. Only comment-syntax matches count, so prose/strings that
-# merely mention these tokens are not flagged.
+# per JS/TS file header.
+#
+# Refuses directive GROWTH, not presence: a directive in the after text that the
+# before text lacks (new, another copy, or reworded) refuses. Write judges the
+# whole file (disk vs content). Edit/MultiEdit judge each replaced fragment on
+# its own (old_string vs new_string), and apply_patch each file (`-` vs `+`
+# lines). So a widening done purely by deleting text from an existing directive,
+# or a directive assembled across separate edits, is NOT detected — a
+# pre-existing limit, shared with the presence check this replaced.
+# Only comment-syntax matches count, so prose/strings that merely mention these
+# tokens are not flagged.
 #
 # WHAT A REFUSAL HOOK OWES THAT AN ON-EDIT HOOK DOES NOT. The PostToolUse
 # scripts on this surface may bail out when they cannot run: the write has
@@ -117,49 +125,135 @@ LISA_GATE_PATHS
   exit "$LISA_GATE_STATUS"
 fi
 
+# The directives in $1, one per line and sorted, so the lists are multisets
+# `comm` can subtract. Each runs from its comment opener to the end of its line
+# (so indentation is never part of one); trailing whitespace and a CR are not.
+directives_in() {
+  printf '%s\n' "$1" | grep -Eo "${DIRECTIVE_RE}.*" |
+    sed 's/[[:space:]]*$//' | LC_ALL=C sort
+}
+
+# True when $2 (after) carries a directive $1 (before) does not. `comm -13`
+# pairs repeated lines one-for-one, so a further copy of an existing directive
+# is left over, and counts.
+grows() {
+  [ -n "$(LC_ALL=C comm -13 <(directives_in "$1") <(directives_in "$2"))" ]
+}
+
 TOOL_NAME="$(printf '%s' "$JSON_INPUT" | jq -r '.tool_name // .tool // empty')"
+
+# apply_patch: growth per file. Before = that file's `-` lines, after = its `+`
+# lines (context lines are unchanged either way). An Add File has no `-` lines,
+# so every directive in it is new; a Delete File removes and adds nothing.
+judge_patch_file() {
+  [ -n "$current_file" ] && is_js_ts "$current_file" || return 0
+  if grows "$removed" "$added"; then deny "$current_file"; fi
+}
 
 if [ "$TOOL_NAME" = "apply_patch" ]; then
   PATCH_TEXT="$(printf '%s' "$JSON_INPUT" | jq -r '.tool_input.command // empty')"
   [ -n "$PATCH_TEXT" ] || exit 0
-  current_file=""
+  current_file="" removed="" added=""
   while IFS= read -r line; do
     case "$line" in
-      "*** Add File: "* | "*** Update File: "*)
-        current_file="${line#*File: }"
+      "*** Add File: "* | "*** Update File: "* | "*** Delete File: "* | \
+        "*** Begin Patch"* | "*** End Patch"*)
+        judge_patch_file
+        removed="" added="" current_file=""
+        case "$line" in
+          "*** Add File: "* | "*** Update File: "*) current_file="${line#*File: }" ;;
+        esac
         ;;
-      "*** Delete File: "* | "*** Begin Patch"* | "*** End Patch"*)
-        current_file=""
-        ;;
-      "+"*)
-        [ -n "$current_file" ] || continue
-        is_js_ts "$current_file" || continue
-        # Strip the single leading '+' that marks an added line.
-        added="${line#+}"
-        if printf '%s' "$added" | grep -Eq "$DIRECTIVE_RE"; then
-          deny "$current_file"
-        fi
-        ;;
+      "+"*) added="${added}${line#+}"$'\n' ;;
+      "-"*) removed="${removed}${line#-}"$'\n' ;;
     esac
   done <<EOF
 $PATCH_TEXT
 EOF
+  judge_patch_file
   exit 0
 fi
 
-# Edit / Write
+# ---------------------------------------------------------------------------
+# Edit / Write / MultiEdit: refuse directive GROWTH, never mere presence
+# (CodySwannGT/lisa#4492). Same semantics as the Claude TypeScript-stack hook:
+#   Write     -> before = the file on disk (nothing when it does not exist),
+#                after  = tool_input.content
+#   Edit      -> before = tool_input.old_string, after = tool_input.new_string
+#   MultiEdit -> each edits[] pair judged the same way, on its own
+# Each directive is taken from its comment opener to the end of its line, so a
+# directive that is added, copied again, or reworded (a `-next-line` disable
+# turned file-wide, a longer rule list) is new text, and is growth.
+# ---------------------------------------------------------------------------
 FILE_PATH="$(printf '%s' "$JSON_INPUT" | jq -r '.tool_input.file_path // empty')"
 [ -n "$FILE_PATH" ] || exit 0
 is_js_ts "$FILE_PATH" || exit 0
 
-NEW_TEXT="$(printf '%s' "$JSON_INPUT" | jq -r '
-  .tool_input as $i
-  | if   ($i.content    // null) != null then $i.content
-    elif ($i.edits      // null) != null then ([$i.edits[].new_string] | join("\n"))
-    elif ($i.new_string // null) != null then $i.new_string
-    else "" end')"
+# The file a Write replaces, on stdout. Codex runs hooks in the project, so a
+# relative path resolves against CLAUDE_PROJECT_DIR when set, else the cwd.
+# Nothing there is a new file (empty before). Something there that is not a
+# readable regular file cannot be judged, so this fails and the caller refuses.
+read_before() {
+  local target="$FILE_PATH"
+  case "$target" in
+    /*) ;;
+    *) target="${CLAUDE_PROJECT_DIR:-.}/$target" ;;
+  esac
+  [ -e "$target" ] || [ -L "$target" ] || return 0
+  [ -f "$target" ] && [ -r "$target" ] || return 1
+  cat -- "$target"
+}
 
-if printf '%s' "$NEW_TEXT" | grep -Eq "$DIRECTIVE_RE"; then
+# The edit object $1: tool_input itself for Edit, edits[$1] for MultiEdit.
+EDIT_AT='.tool_input | (if (.edits // null) != null then .edits[$i] else . end)'
+
+# One string field ($2) of edit $1, empty when absent.
+edit_field() {
+  printf '%s' "$JSON_INPUT" |
+    jq -r --argjson i "$1" --arg f "$2" "$EDIT_AT | .[\$f] // empty"
+}
+
+# True when edit $1 grows the directives. One that brings a directive with no
+# old_string to compare against cannot be judged, and counts as growth.
+edit_grows() {
+  local new
+  new="$(edit_field "$1" new_string)"
+  [ -n "$(directives_in "$new")" ] || return 1
+  printf '%s' "$JSON_INPUT" |
+    jq -e --argjson i "$1" "$EDIT_AT | (.old_string | type) == \"string\"" \
+      >/dev/null || return 0
+  grows "$(edit_field "$1" old_string)" "$new"
+}
+
+# True when any edit grows. An edit count that is not a number is unjudgeable.
+any_edit_grows() {
+  local count i=0
+  count="$(printf '%s' "$JSON_INPUT" |
+    jq '.tool_input | if (.edits // null) != null then (.edits | length) else 1 end')"
+  case "$count" in '' | *[!0-9]*) return 0 ;; esac
+  while [ "$i" -lt "$count" ]; do
+    edit_grows "$i" && return 0
+    i=$((i + 1))
+  done
+  return 1
+}
+
+# True when the write grows the directives; Write when content is present.
+write_grows() {
+  local before after
+  if printf '%s' "$JSON_INPUT" |
+    jq -e '(.tool_input.content // null) != null' >/dev/null; then
+    after="$(printf '%s' "$JSON_INPUT" | jq -r '.tool_input.content')"
+    # Nothing in the new text means nothing can have grown; no read needed.
+    [ -n "$(directives_in "$after")" ] || return 1
+    before="$(read_before)" || return 0
+    grows "$before" "$after"
+    return
+  fi
+  any_edit_grows
+}
+
+if write_grows; then
   deny "$FILE_PATH"
 fi
 

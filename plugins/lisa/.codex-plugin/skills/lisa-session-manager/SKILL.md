@@ -362,6 +362,19 @@ Do these steps in order. Start each cycle by resolving `$SM`, then confirm the s
 and check again; never run a cycle from a child repo. Handle any messages that arrived since the last
 cycle first (above).
 
+**Duplicate-manager check.** Decide **who** the manager is only from `status` `manager.self`; check
+this session's own loops with `CronList`. When `manager.self` is true, this session **is** the
+manager and its own `/loop` is the manager's loop: never report it as a second manager, and never
+recommend `CronDelete` or stopping it. When `manager.self` is `null`, recommend stopping nothing;
+report that self-identification failed. When `manager.running` is true, `manager.self` is false, and
+this session runs its own `/lisa:session-manager cycle` loop, two managers can hand out the same
+item: warn the operator and recommend stopping **this** session's loop, never the tmux manager. The
+tmux manager cannot see another session's loop, so that warning comes from the other session's own
+cycle and the manager must not invent one (detecting it from inside the manager is follow-up work).
+`manager.self` means running inside the manager's tmux session, so another Claude started in a
+second window of that same tmux session also reads true. Never infer a second manager from the tmux
+session existing plus a loop being present.
+
 ### 1. Reconcile
 
 **Unsent questions** (only when `notify` is `telegram`). `ledger get` shows every pending question.

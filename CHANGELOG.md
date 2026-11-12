@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.103.12](https://github.com/CodySwannGT/lisa/compare/v4.103.11...v4.103.12) (2026-11-12)
+
+
+### Bug Fixes
+
+* **hooks:** judge codex apply_patch by directive growth per file ([bcd03c1](https://github.com/CodySwannGT/lisa/commit/bcd03c1848c9ec79a64d2c683cb9c63751e2aeaf)), closes [CodySwannGT/lisa#4492](https://github.com/CodySwannGT/lisa/issues/4492) [CodySwannGT/lisa#4492](https://github.com/CodySwannGT/lisa/issues/4492)
+* **hooks:** refuse suppression-directive growth, not presence ([6c6cdcc](https://github.com/CodySwannGT/lisa/commit/6c6cdcccf6aad2a937aa239319fe3f5f4ea40019)), closes [CodySwannGT/lisa#4492](https://github.com/CodySwannGT/lisa/issues/4492) [CodySwannGT/lisa#4492](https://github.com/CodySwannGT/lisa/issues/4492)
+
+### [4.103.11](https://github.com/CodySwannGT/lisa/compare/v4.103.10...v4.103.11) (2026-11-12)
+
+
+### Bug Fixes
+
+* **rules:** bring the eager rule tier back under its 80,000-byte budget ([1896734](https://github.com/CodySwannGT/lisa/commit/1896734beb8ef3b41034950748b467491977e5bb)), closes [#4800](https://github.com/CodySwannGT/lisa/issues/4800) [#4802](https://github.com/CodySwannGT/lisa/issues/4802) [CodySwannGT/lisa#4807](https://github.com/CodySwannGT/lisa/issues/4807) [CodySwannGT/lisa#4807](https://github.com/CodySwannGT/lisa/issues/4807)
+
 ### [4.103.10](https://github.com/CodySwannGT/lisa/compare/v4.103.9...v4.103.10) (2026-11-12)
 
 ### [4.103.9](https://github.com/CodySwannGT/lisa/compare/v4.103.8...v4.103.9) (2026-11-12)
