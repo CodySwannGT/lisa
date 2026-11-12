@@ -29,10 +29,19 @@
  * `EnterWorktree` to fail is met one tool call later, by the guard, not by the
  * tool.
  *
- * WHY BLOCKING AND NOT A WARNING. The failure mode is that nothing feels wrong.
- * There is no symptom to notice, so an advisory line scrolls past exactly when
- * it matters. A refusal is the only form of this check the agent cannot read
- * past.
+ * WHY BLOCKING AND NOT A WARNING — FOR WRITES. The failure mode is that nothing
+ * feels wrong. There is no symptom to notice, so an advisory line scrolls past
+ * exactly when it matters. A refusal is the only form of this check the agent
+ * cannot read past.
+ *
+ * WHY ONLY A WARNING FOR PROVABLE READS (CodySwannGT/lisa#4816). Only a write
+ * can damage another session's work, and refusing `git status` or `rg` in a
+ * mismatched tree cost a manual acknowledge-and-retry for nothing. So while the
+ * trees disagree, a Bash command this guard can PROVE read-only — every
+ * statement an allowlisted read shape, see {@link isReadOnlyCommand} — is
+ * allowed with a non-blocking warning naming both trees. Everything else,
+ * including every command the guard cannot classify, is refused exactly as
+ * before. The allowlist fails closed: an unknown program is a write.
  *
  * WHY AN EXPLICIT ACKNOWLEDGEMENT AND NOT "BLOCK ONCE". A guard that blocks the
  * first attempt and lets the retry through is defeated by a blind retry, which
@@ -541,6 +550,698 @@ function reachesOut(script, foreign, bound) {
     acceptanceLine(foreign),
     "Then move to the acknowledged tree before further guarded calls.",
   ]);
+}
+
+// ---------------------------------------------------------------------------
+// Read-only classification for a MISMATCHED session (CodySwannGT/lisa#4816)
+//
+// Used only once the guard has already decided the session's expected and
+// actual worktrees disagree. It answers one question — "is this Bash command
+// provably unable to change anything?" — and its only effect is to turn a
+// refusal into an allow-with-warning. So every doubt answers "no": an
+// unparseable command, an expansion the guard cannot see through, a program
+// nobody listed, a listed program given an option that writes or executes.
+//
+// It is an ALLOWLIST of read shapes, not a denylist of writes. A denylist
+// fails open on the write nobody enumerated; this fails closed on the read
+// nobody enumerated, which costs one acknowledgement — the pre-#4816
+// behaviour — and nothing else.
+//
+// Tests and builds are deliberately absent even though they mostly read: a
+// `bun run test` or `npm run build` executes whatever the package's scripts
+// say, writes coverage and build output into the tree it runs in, and is
+// exactly the "executing a script that reaches that tree" write class.
+// Inspection is enumerated; execution is not.
+
+/** Programs that only read and print, whatever operands they are given. */
+const PURE_READERS = new Set([
+  "basename",
+  "cat",
+  "cksum",
+  "cmp",
+  "column",
+  "comm",
+  "cut",
+  "df",
+  "diff",
+  "dirname",
+  "du",
+  "echo",
+  "egrep",
+  "false",
+  "fgrep",
+  "fold",
+  "grep",
+  "head",
+  "id",
+  "jq",
+  "ls",
+  "md5",
+  "md5sum",
+  "nl",
+  "od",
+  "printenv",
+  "printf",
+  "pwd",
+  "readlink",
+  "realpath",
+  "rev",
+  "sha1sum",
+  "sha256sum",
+  "sha512sum",
+  "shasum",
+  "sleep",
+  "stat",
+  "strings",
+  "tac",
+  "tail",
+  "test",
+  "tr",
+  "true",
+  "type",
+  "uname",
+  "wc",
+  "which",
+  "whoami",
+]);
+
+/** A command word this guard will look up: a bare name, never a path. */
+const COMMAND_WORD = /^[A-Za-z0-9_][A-Za-z0-9_.+-]*$/u;
+
+/** Whether a short-option cluster (`-abc`) contains `letter`. */
+function shortCluster(arg, letter) {
+  return /^-[^-]/u.test(arg) && arg.includes(letter);
+}
+
+/** `find` primaries that execute, delete, or write a file. */
+const FIND_WRITES = new Set([
+  "-delete",
+  "-exec",
+  "-execdir",
+  "-fls",
+  "-fprint",
+  "-fprint0",
+  "-fprintf",
+  "-ok",
+  "-okdir",
+]);
+
+/** Git subcommands that only read the repository. */
+const GIT_READS = new Set([
+  "annotate",
+  "blame",
+  "cat-file",
+  "check-attr",
+  "check-ignore",
+  "cherry",
+  "count-objects",
+  "describe",
+  "diff",
+  "diff-files",
+  "diff-index",
+  "diff-tree",
+  "for-each-ref",
+  "grep",
+  "help",
+  "log",
+  "ls-files",
+  "ls-remote",
+  "ls-tree",
+  "merge-base",
+  "name-rev",
+  "range-diff",
+  "rev-list",
+  "rev-parse",
+  "shortlog",
+  "show",
+  "show-branch",
+  "show-ref",
+  "status",
+  "var",
+  "version",
+  "whatchanged",
+]);
+
+/** Git options, before the subcommand, that change nothing. */
+const GIT_SAFE_GLOBALS = new Set([
+  "--bare",
+  "--literal-pathspecs",
+  "--no-optional-locks",
+  "--no-pager",
+  "--no-replace-objects",
+  "-P",
+]);
+
+/** Options that put `git branch` / `git tag` in list mode. */
+const GIT_LIST_MODE = new Set([
+  "--contains",
+  "--list",
+  "--merged",
+  "--no-contains",
+  "--no-merged",
+  "--points-at",
+  "-l",
+]);
+
+/** Options `git branch` / `git tag` accept without creating or deleting. */
+const GIT_LIST_OPTIONS = new Set([
+  ...GIT_LIST_MODE,
+  "--all",
+  "--color",
+  "--column",
+  "--ignore-case",
+  "--no-color",
+  "--no-column",
+  "--remotes",
+  "--show-current",
+  "--verbose",
+  "-a",
+  "-i",
+  "-r",
+  "-v",
+  "-vv",
+]);
+
+/** `--opt=value` filters that, like their bare forms, imply list mode. */
+const GIT_LIST_FILTER_PREFIXES = [
+  "--contains=",
+  "--merged=",
+  "--no-contains=",
+  "--no-merged=",
+  "--points-at=",
+];
+
+/** Prefixes of `--opt=value` spellings that only shape a listing. */
+const GIT_LIST_VALUE_PREFIXES = [
+  ...GIT_LIST_FILTER_PREFIXES,
+  "--color=",
+  "--format=",
+  "--sort=",
+];
+
+/** `git config` options that read a value. */
+const GIT_CONFIG_READS = new Set([
+  "--get",
+  "--get-all",
+  "--get-color",
+  "--get-colorbool",
+  "--get-regexp",
+  "--get-urlmatch",
+  "--list",
+  "-l",
+]);
+
+/** `git config` options that write, whatever else is present. */
+const GIT_CONFIG_WRITES = new Set([
+  "--add",
+  "--edit",
+  "--remove-section",
+  "--rename-section",
+  "--replace-all",
+  "--unset",
+  "--unset-all",
+  "-e",
+]);
+
+/** `git branch` / `git tag` in list mode, with no creating option. */
+function gitListing(args) {
+  const known = args.every(
+    arg =>
+      !arg.startsWith("-") ||
+      GIT_LIST_OPTIONS.has(arg) ||
+      /^-n\d*$/u.test(arg) ||
+      GIT_LIST_VALUE_PREFIXES.some(prefix => arg.startsWith(prefix))
+  );
+  const listing =
+    !args.some(arg => !arg.startsWith("-")) ||
+    args.some(
+      arg =>
+        GIT_LIST_MODE.has(arg) ||
+        GIT_LIST_FILTER_PREFIXES.some(prefix => arg.startsWith(prefix))
+    );
+  return known && listing;
+}
+
+/** The first argument that is not an option, or undefined. */
+function firstOperand(args) {
+  return args.find(arg => !arg.startsWith("-"));
+}
+
+/** Git subcommands that read only in some forms, each with its reading test. */
+const GIT_CONDITIONAL_READS = new Map([
+  ["branch", gitListing],
+  ["tag", gitListing],
+  [
+    "remote",
+    args => {
+      const operand = firstOperand(args);
+      return operand === undefined
+        ? args.every(arg => arg === "-v" || arg === "--verbose")
+        : operand === "get-url" || operand === "show";
+    },
+  ],
+  ["stash", args => args[0] === "list" || args[0] === "show"],
+  ["worktree", args => args[0] === "list"],
+  ["reflog", args => [undefined, "show"].includes(firstOperand(args))],
+  [
+    "config",
+    args =>
+      args[0] === "get" ||
+      args[0] === "list" ||
+      (args.some(arg => GIT_CONFIG_READS.has(arg)) &&
+        !args.some(arg => GIT_CONFIG_WRITES.has(arg))),
+  ],
+]);
+
+/**
+ * A git invocation that only reads.
+ *
+ * `-c` is refused rather than skipped: `-c core.fsmonitor=<cmd>` and friends
+ * execute programs, and a guard that read past it would be read past.
+ */
+function gitReadOnly(args) {
+  let index = 0;
+  while (index < args.length && args[index].startsWith("-")) {
+    const arg = args[index];
+    if (arg === "-C") index += 2;
+    else if (
+      GIT_SAFE_GLOBALS.has(arg) ||
+      arg.startsWith("--git-dir=") ||
+      arg.startsWith("--work-tree=")
+    )
+      index += 1;
+    else return false;
+  }
+  const [subcommand, ...rest] = args.slice(index);
+  if (subcommand === undefined) return false;
+  // `--output=<file>` writes for diff/log/show; `-O` runs a pager program.
+  if (rest.some(arg => arg.startsWith("--output") || arg.startsWith("-O")))
+    return false;
+  if (GIT_READS.has(subcommand)) return true;
+  return GIT_CONDITIONAL_READS.get(subcommand)?.(rest) ?? false;
+}
+
+/** `gh` verbs that only fetch and print. `gh api` can POST, so it is out. */
+const GH_READ_VERBS = new Set([
+  "checks",
+  "diff",
+  "list",
+  "status",
+  "view",
+  "watch",
+]);
+
+/** A `gh <noun> <verb>` invocation whose verb only reads. */
+function ghReadOnly(args) {
+  const [noun, verb] = args.filter(arg => !arg.startsWith("-"));
+  return noun !== "api" && GH_READ_VERBS.has(verb);
+}
+
+/**
+ * One sed command that only prints: an optional address or range, an optional
+ * `!`, then `p d l q Q = n N`, or an `s///` whose flags write nothing. The
+ * `w` and `e` flags and commands — the ones that write a file or execute one —
+ * are absent from the grammar rather than denied by it.
+ */
+const SED_ADDRESS = String.raw`(?:\d+(?:~\d+)?|\$|/(?:\\.|[^/\\\n])*/I?)`;
+const SED_READ_SCRIPT = new RegExp(
+  String.raw`^\s*(?:${SED_ADDRESS}(?:\s*,\s*(?:${SED_ADDRESS}|[+~]\d+))?)?\s*!?\s*` +
+    String.raw`(?:[pdlqQ=nN]|s([^\s\\])(?:\\.|(?!\1)[^\\\n])*\1(?:\\.|(?!\1)[^\\\n])*\1[gpiImM\d]*)\s*$`,
+  "u"
+);
+
+/** sed short options that neither edit in place nor read a script file. */
+const SED_SAFE_FLAGS = /^[nErsuz]*$/u;
+
+/** sed long options that neither edit in place nor read a script file. */
+const SED_SAFE_LONG = new Set([
+  "--debug",
+  "--null-data",
+  "--posix",
+  "--quiet",
+  "--regexp-extended",
+  "--sandbox",
+  "--separate",
+  "--silent",
+  "--unbuffered",
+]);
+
+/**
+ * A sed invocation that only prints. Every script must be literal text in
+ * {@link SED_READ_SCRIPT}'s grammar; `-i` and `-f` are refused outright.
+ */
+function sedReadOnly(words) {
+  const scripts = [];
+  const operands = [];
+  for (let index = 0; index < words.length; index += 1) {
+    const { text } = words[index];
+    if (text === "--expression" || text === "-e") {
+      scripts.push(words[(index += 1)]);
+    } else if (text.startsWith("--expression=")) {
+      scripts.push({ ...words[index], text: text.slice(13) });
+    } else if (text.startsWith("--")) {
+      if (!SED_SAFE_LONG.has(text)) return false;
+    } else if (text.startsWith("-") && text.length > 1) {
+      const letters = text.slice(1);
+      const scriptAt = letters.indexOf("e");
+      const flags = scriptAt === -1 ? letters : letters.slice(0, scriptAt);
+      if (!SED_SAFE_FLAGS.test(flags)) return false;
+      if (scriptAt !== -1) {
+        const attached = text.slice(scriptAt + 2);
+        scripts.push(
+          attached ? { ...words[index], text: attached } : words[(index += 1)]
+        );
+      }
+    } else operands.push(words[index]);
+  }
+  if (scripts.length === 0 && operands.length > 0) scripts.push(operands[0]);
+  return (
+    scripts.length > 0 &&
+    scripts.every(
+      script => script?.exact === true && SED_READ_SCRIPT.test(script.text)
+    )
+  );
+}
+
+/**
+ * An awk invocation that only prints. Its program must be literal and free of
+ * the three ways awk reaches outside itself: `>` (write a file), `|` (pipe to
+ * or from a command), and `system`/`getline`.
+ */
+function awkReadOnly(words) {
+  let index = 0;
+  while (index < words.length && words[index].text.startsWith("-")) {
+    const { text } = words[index];
+    if (text === "--") {
+      index += 1;
+      break;
+    }
+    if (text === "-F" || text === "-v") index += 2;
+    else if (text.startsWith("-F") || text.startsWith("-v")) index += 1;
+    else return false;
+  }
+  const program = words[index];
+  return program?.exact === true && !/[>|]|system|getline/u.test(program.text);
+}
+
+/** xargs flags that take no value. */
+const XARGS_FLAGS = new Set([
+  "--exit",
+  "--no-run-if-empty",
+  "--null",
+  "--verbose",
+  "-0",
+  "-r",
+  "-t",
+  "-x",
+]);
+
+/** xargs options whose value is the next word or attached (`-n1`). */
+const XARGS_VALUE_OPTIONS = new Set([
+  "-E",
+  "-I",
+  "-J",
+  "-L",
+  "-P",
+  "-R",
+  "-S",
+  "-d",
+  "-n",
+  "-s",
+]);
+
+/**
+ * xargs running a pure reader. The items arrive on stdin and could be any
+ * option, so only a program no option can turn into a writer qualifies.
+ */
+function xargsReadOnly(words) {
+  let index = 0;
+  while (index < words.length && words[index].text.startsWith("-")) {
+    const { text } = words[index];
+    if (XARGS_FLAGS.has(text)) index += 1;
+    else if (XARGS_VALUE_OPTIONS.has(text)) index += 2;
+    else if (XARGS_VALUE_OPTIONS.has(text.slice(0, 2))) index += 1;
+    else return false;
+  }
+  const inner = words[index];
+  return inner?.exact === true && PURE_READERS.has(inner.text);
+}
+
+/**
+ * Programs that read unless given a particular option, each with the test that
+ * its arguments contain none. Each test sees only the argument texts; a word
+ * whose leading text is an expansion never reaches it (see {@link optionVisible}).
+ */
+const CHECKED_READERS = new Map([
+  ["awk", awkReadOnly],
+  [
+    "date",
+    words =>
+      !words.some(
+        ({ text }) => text.startsWith("--set") || shortCluster(text, "s")
+      ),
+  ],
+  [
+    "file",
+    words =>
+      !words.some(
+        ({ text }) => text === "--compile" || shortCluster(text, "C")
+      ),
+  ],
+  ["find", words => !words.some(({ text }) => FIND_WRITES.has(text))],
+  ["gh", words => ghReadOnly(words.map(({ text }) => text))],
+  ["git", words => gitReadOnly(words.map(({ text }) => text))],
+  [
+    "rg",
+    words =>
+      !words.some(
+        ({ text }) =>
+          text.startsWith("--pre") || text.startsWith("--hostname-bin")
+      ),
+  ],
+  ["sed", sedReadOnly],
+  [
+    "sort",
+    words =>
+      !words.some(
+        ({ text }) =>
+          text.startsWith("--output") ||
+          text.startsWith("--compress-program") ||
+          shortCluster(text, "o")
+      ),
+  ],
+  ["tree", words => !words.some(({ text }) => shortCluster(text, "o"))],
+  ["xargs", xargsReadOnly],
+]);
+
+/**
+ * Whether the guard can see if this word is an option.
+ *
+ * An exact word is what the program receives. A word that STARTS with literal
+ * text other than `-` cannot become an option however its tail expands. A
+ * word that starts with an expansion — `"$X"`, `*` — could become `--pre=…` or
+ * `-i`, so a program with a writing option cannot be cleared past it.
+ */
+function optionVisible(word) {
+  return word.exact || (word.leading && !word.text.startsWith("-"));
+}
+
+/** One statement: a literal command word, then a listed read shape. */
+function isReadOnlyStatement(words) {
+  const [head, ...args] = words;
+  if (!head.exact || !COMMAND_WORD.test(head.text)) return false;
+  if (head.text === "cd" || PURE_READERS.has(head.text)) return true;
+  const check = CHECKED_READERS.get(head.text);
+  return check !== undefined && args.every(optionVisible) && check(args);
+}
+
+/**
+ * Consume one redirection operator starting at `index` (a `<`, `>`, or the
+ * `&` of `&>`), returning the index after its target, or -1 when the
+ * redirection may write or cannot be read. Input redirections read; output
+ * is allowed only as an fd duplication (`2>&1`, `>&2`, `1>&-`) or into
+ * `/dev/null`.
+ */
+function skipRedirect(text, index) {
+  const output = text[index] !== "<";
+  let at = index + (text[index] === "&" ? 2 : 1);
+  if (!output && "<>(".includes(text[at] ?? "")) return -1;
+  if (output && (text[at] === ">" || text[at] === "|")) at += 1;
+  if (text[at] === "(") return -1;
+  if (text[at] === "&") {
+    const dup = /^(?:\d+|-)/u.exec(text.slice(at + 1));
+    return dup ? at + 1 + dup[0].length : -1;
+  }
+  while (text[at] === " " || text[at] === "\t") at += 1;
+  const target = /^[^\s;|&<>()]+/u.exec(text.slice(at));
+  if (!target) return -1;
+  // Reading any file changes nothing; writing is cleared only into /dev/null.
+  if (output && target[0].replace(/^(["'])(.*)\1$/u, "$2") !== "/dev/null")
+    return -1;
+  return at + target[0].length;
+}
+
+/**
+ * Split a Bash command into statements of words, or null when the command
+ * uses anything this lexer will not reason about: command or process
+ * substitution, subshells, here-documents, an unterminated quote, or a
+ * redirection that may write.
+ *
+ * Each word records whether it is EXACT (no expansion or glob can change it)
+ * and whether its LEADING character is literal text, which together decide
+ * whether an option could hide inside it.
+ */
+function lexStatements(command) {
+  const statements = [[]];
+  let word = null;
+  let quote = null;
+  const begin = () => {
+    word ??= { text: "", exact: true, leading: null };
+  };
+  const add = (char, literal) => {
+    begin();
+    if (word.leading === null) word.leading = literal;
+    if (!literal) word.exact = false;
+    word.text += char;
+  };
+  const finish = () => {
+    if (word)
+      statements.at(-1).push({ ...word, leading: word.leading ?? true });
+    word = null;
+  };
+  const split = () => {
+    finish();
+    statements.push([]);
+  };
+  for (let index = 0; index < command.length; index += 1) {
+    const char = command[index];
+    const next = command[index + 1];
+    if (quote === "'") {
+      if (char === "'") quote = null;
+      else add(char, true);
+    } else if (quote === '"') {
+      if (char === '"') quote = null;
+      else if (char === "`" || (char === "$" && next === "(")) return null;
+      else if (
+        char === "\\" &&
+        next !== undefined &&
+        '"\\$`\n'.includes(next)
+      ) {
+        index += 1;
+        if (next !== "\n") add(next, true);
+      } else add(char, char !== "$");
+    } else if (char === "\\") {
+      if (next === undefined) return null;
+      index += 1;
+      if (next !== "\n") add(next, true);
+    } else if (char === "'" || char === '"') {
+      begin();
+      quote = char;
+    } else if (char === " " || char === "\t") finish();
+    else if (char === "\n" || char === ";") split();
+    else if (char === "|") {
+      if (next === "|" || next === "&") index += 1;
+      split();
+    } else if (char === "&" && next !== ">") {
+      if (next === "&") index += 1;
+      split();
+    } else if (char === ">" || char === "<" || char === "&") {
+      // A word of bare digits touching the operator is its fd, not an operand.
+      if (word && word.exact && /^\d+$/u.test(word.text)) word = null;
+      else finish();
+      const after = skipRedirect(command, index);
+      if (after === -1) return null;
+      index = after - 1;
+    } else if ("`()".includes(char) || (char === "$" && next === "(")) {
+      return null;
+    } else if (char === "#" && word === null) {
+      while (index + 1 < command.length && command[index + 1] !== "\n")
+        index += 1;
+    } else add(char, !"$*?[{".includes(char));
+  }
+  if (quote !== null) return null;
+  finish();
+  return statements.filter(statement => statement.length > 0);
+}
+
+/**
+ * Whether this Bash command provably changes nothing: every statement in it
+ * is a listed read shape. Unparseable means no.
+ * @param {string} command - The Bash command, as the hook received it
+ * @returns {boolean} True only for a command proven read-only
+ */
+function isReadOnlyCommand(command) {
+  const statements = lexStatements(command);
+  return (
+    statements !== null &&
+    statements.length > 0 &&
+    statements.every(isReadOnlyStatement)
+  );
+}
+
+/**
+ * Whether a guarded call is a provable read. Write/Edit/MultiEdit are writes by
+ * definition; only a Bash command can be cleared, and only by proof.
+ */
+function isReadOnlyCall(payload) {
+  const command = payload.tool_input?.command;
+  return (
+    payload.tool_name === "Bash" &&
+    typeof command === "string" &&
+    isReadOnlyCommand(command)
+  );
+}
+
+/**
+ * Allow a provable read in a mismatched worktree, and say so to the agent.
+ *
+ * ## The channel, per agent — and where it stops
+ *
+ * stderr on exit 0 reaches a transcript, not the model, so on Claude Code the
+ * warning is ALSO printed as PreToolUse JSON in
+ * `hookSpecificOutput.additionalContext` — the channel
+ * `operational-hazards.mjs` and `block-migration-edits.sh` use. No
+ * `permissionDecision` is emitted: "allow" would also skip the user's
+ * permission prompt, a wider grant than "this guard does not refuse".
+ *
+ * The JSON is printed ONLY where `CLAUDECODE` is set, the one runtime measured
+ * to read that shape on PreToolUse. Codex was measured NOT to honour
+ * PreToolUse `additionalContext` (see `src/codex/scripts/block-migration-edits.sh`),
+ * and Cursor and Copilot were never measured reading it. On those the read is
+ * allowed with the warning on stderr only, which is NOT known to reach the
+ * model. That is a documented gap in the warning, never in the block: a write
+ * is refused identically on every agent this guard runs on. Devin sends no
+ * `cwd`, so this guard does not run there at all; OpenCode and Antigravity do
+ * not ship it (see the wrapper's parity note).
+ * @param {string} expected - The worktree the session believes it is in
+ * @param {string} observed - The worktree this call actually runs in
+ * @param {boolean} claimed - Whether `expected` came from EnterWorktree
+ * @returns {number} Always 0: the read is allowed
+ */
+function warnRead(expected, observed, claimed) {
+  const notice = [
+    "worktree-binding-guard: allowed a READ-ONLY command in a worktree this session is not bound to.",
+    claimed
+      ? `  EnterWorktree claimed: ${expected}`
+      : `  bound to:  ${expected}`,
+    `  acting in: ${observed}`,
+    "Another session may own that worktree and its uncommitted work. This call was",
+    "allowed only because it is provably read-only; any write there — file edits,",
+    "redirects, git commit/checkout/reset/stash, package installs, running a",
+    "script — is still refused. Use absolute paths under the tree you mean.",
+  ].join("\n");
+  process.stderr.write(`${notice}\n`);
+  if (process.env.CLAUDECODE) {
+    process.stdout.write(
+      `${JSON.stringify({
+        hookSpecificOutput: {
+          hookEventName: "PreToolUse",
+          additionalContext: notice,
+        },
+      })}\n`
+    );
+  }
+  return 0;
 }
 
 function stateFile(bindingKey) {
@@ -1320,7 +2021,12 @@ function evaluate(payload) {
     !isLinkedWorktree(state.boundRoot, observed)
   )
     return 0;
+  // A mismatch. From here a provable read is allowed with a warning and
+  // everything else — every write and every command the guard cannot classify
+  // — is refused exactly as before (CodySwannGT/lisa#4816).
   if (state.claimedRoot && state.claimedRoot !== observed) {
+    if (isReadOnlyCall(payload))
+      return warnRead(state.claimedRoot, observed, true);
     return unconfirmedSwitch(state.claimedRoot, observed);
   }
   if (state.claimedRoot === observed) {
@@ -1337,7 +2043,11 @@ function evaluate(payload) {
     if (written === BINDING_WRITE_CONFLICT) return bindingWriteConflict();
     return 0;
   }
-  if (state.boundRoot !== observed) return displaced(state.boundRoot, observed);
+  if (state.boundRoot !== observed) {
+    if (isReadOnlyCall(payload))
+      return warnRead(state.boundRoot, observed, false);
+    return displaced(state.boundRoot, observed);
+  }
   // Last, and only once the session is provably where it should be: a script
   // that moves somewhere else after this check has already run.
   const reach = scriptReachingForeignTree(payload, observed);

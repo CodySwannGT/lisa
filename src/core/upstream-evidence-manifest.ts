@@ -321,9 +321,9 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-hooks/sonar-secrets.sh":
       "e0b0073fe44f6e78b74f05cb232d30a3121acc3600bdbd5bc4299c1c710d56a2",
     "all/copy-overwrite/scripts/lisa-hooks/worktree-binding-guard.mjs":
-      "3f403d03dc16135c17b94e43c1c572f272202bd102fa46aa5f1e9b1a5c27ee85",
+      "809f553e2fb02c4039aec668b1c8e74dbbd0de33f0e7277e8d348f76586045d7",
     "all/copy-overwrite/scripts/lisa-hooks/worktree-binding-guard.sh":
-      "9b0d2d4690850a550ccc79a8c3bb1c0de1cca1f2d8a3550e2bed6daa7afcf7c4",
+      "2fe0a765030bd2b47122021ba3505fbbea1f60002c4e1ed9f0fc4f5b2f786253",
     "all/copy-overwrite/scripts/lisa-lint-staged-preflight.mjs":
       "2379d4fc5174ae4727997a0d88d43a0212941d91bdebaf790caadd20a8c59810",
     "all/copy-overwrite/scripts/lisa-npm-updater.mjs":
@@ -1123,9 +1123,9 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/hooks/withdrawn-rulings.sh":
       "5dbf429b6ec73c3c29fb96008efa1015feaa4812c1b4bb26aaa5d0b904a0ff9c",
     "plugins/src/base/hooks/worktree-binding-guard.mjs":
-      "21f8a783209221401470c3a6b0e46888f2e34343d4db8df28abe7d2345903ecf",
+      "9cf1f124706102c7c45abdc30f448084c582bbee21da6d8c870f367857e78567",
     "plugins/src/base/hooks/worktree-binding-guard.sh":
-      "92511fa2fe3de504a78d0d79a2cacffac545baa1d0264cab0ca999a487adb98f",
+      "9ff49d44190075b773670e6bd038cb7cac1048a5680d37570b0e7397ed20253c",
     "plugins/src/base/rules/eager/00-rule-index.md":
       "5c51e8ce25094c05ad969f61ea12d8b86c558cc668933bef1a0084c22b27c48b",
     "plugins/src/base/rules/eager/base-rules.md":
@@ -12755,6 +12755,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/hooks/worktree-binding-live-identity.test.ts": true,
     "tests/unit/hooks/worktree-binding-owner-boundaries.test.ts": true,
     "tests/unit/hooks/worktree-binding-parallel-agents.test.ts": true,
+    "tests/unit/hooks/worktree-binding-read-warning-parity.test.ts": true,
+    "tests/unit/hooks/worktree-binding-read-warning.test.ts": true,
     "tests/unit/hooks/worktree-binding-repository-recovery.test.ts": true,
     "tests/unit/hooks/worktree-binding-runtime-assumption.test.ts": true,
     "tests/unit/hooks/worktree-create-failure.test.ts": true,
