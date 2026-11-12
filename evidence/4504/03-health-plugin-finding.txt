@@ -1,0 +1,29 @@
+### mode=sibling (fake claude plugin list reports @lisa plugins for a SIBLING projectPath only)
+$ cd <scratch proj> && node dist/index.js health .
+exit=0
+63:      "check": "plugins.current",
+66:      "reason": "Plugin drift: lisa@lisa. Run `lisa apply .` in this project to register Lisa's Claude Code plugins for this folder."
+fake claude calls:
+claude plugin list --json (cwd=/Users/codysai/.claude/jobs/c4baefa1/tmp/verify-4504/health/proj)
+### mode=here (fake claude plugin list reports @lisa plugins for THIS projectPath)
+$ cd <scratch proj> && node dist/index.js health .
+exit=0
+63:      "check": "plugins.current",
+66:      "reason": "Lisa plugins are enabled, installed, and version-current."
+fake claude calls:
+claude plugin list --json (cwd=/Users/codysai/.claude/jobs/c4baefa1/tmp/verify-4504/health/proj)
+--- finding block (sibling)
+    {
+      "check": "plugins.current",
+      "layer": "deterministic",
+      "status": "fail",
+      "reason": "Plugin drift: lisa@lisa. Run `lisa apply .` in this project to register Lisa's Claude Code plugins for this folder."
+    },
+--- finding block (here)
+    {
+      "check": "plugins.current",
+      "layer": "deterministic",
+      "status": "pass",
+      "reason": "Lisa plugins are enabled, installed, and version-current."
+    },
+note: project types=[] (no stack detected) so expected plugin set is lisa@lisa only
