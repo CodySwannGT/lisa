@@ -62,7 +62,8 @@ function flat(source: string): string {
 }
 
 describe.each(SKILL_ROOTS)("%s root-cause-analysis", root => {
-  const skill = flat(read(root, "lisa-root-cause-analysis"));
+  const raw = read(root, "lisa-root-cause-analysis");
+  const skill = flat(raw);
 
   it("names a cited location as a hypothesis with its own section", () => {
     expect(skill).toContain("## A cited line is a hypothesis, not a location");
@@ -92,6 +93,23 @@ describe.each(SKILL_ROOTS)("%s root-cause-analysis", root => {
     );
   });
 
+  it("tags the reachability throw so the existing cleanup grep finds it", () => {
+    // A bare `throw` left in the cited block is invisible to the skill's
+    // mechanical cleanup, which only searches for the `[DEBUG:` tag.
+    expect(skill).toContain(
+      'a temporary `throw new Error("[DEBUG:<issue>] reached")` (or a `[DEBUG:<issue>]` log line) in the cited block'
+    );
+    expect(skill).toContain('git grep -n "\\[DEBUG:"');
+  });
+
+  it("separates the Reachability line from the evidence-trail table", () => {
+    // Without a blank line, markdown renders the line as a broken table row.
+    // Matched on raw text: whitespace is the claim here.
+    expect(raw).toMatch(
+      /\| what this establishes \|\n\nReachability: <entry point>/u
+    );
+  });
+
   it("records reachability in the evidence-trail output", () => {
     expect(skill).toContain(
       "Reachability: <entry point> → … → <cited symbol> (static | throw | scoped coverage)"
@@ -112,6 +130,12 @@ describe.each(SKILL_ROOTS)("%s reproduce-bug", root => {
   it("requires the entry point to reach the code the fix will change", () => {
     expect(skill).toContain(
       "- **That the entry point reaches the code the fix will change.** A reproduction that mounts or calls the cited component or function directly, not through the entry point, is replacement scaffolding."
+    );
+  });
+
+  it("tags the reachability throw for cleanup", () => {
+    expect(skill).toContain(
+      "Show the path (importer trace, a temporary `[DEBUG:<issue>]`-tagged `throw`, or route-scoped coverage) before treating the cited code as the fix target."
     );
   });
 

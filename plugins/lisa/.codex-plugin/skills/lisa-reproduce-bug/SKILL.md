@@ -27,7 +27,7 @@ So the reproduction states, explicitly:
 - **That the entry point reaches the code the fix will change.** A reproduction
   that mounts or calls the cited component or function directly, not through
   the entry point, is replacement scaffolding. Show the path (importer trace, a
-  temporary `throw`, or route-scoped coverage) before treating the cited code
+  temporary `[DEBUG:<issue>]`-tagged `throw`, or route-scoped coverage) before treating the cited code
   as the fix target.
 
 If the real path is unreachable — no credentials, no environment, no data — that is a blocked reproduction. Report the missing access instead of substituting scaffolding and calling the bug reproduced.

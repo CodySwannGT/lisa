@@ -21,8 +21,9 @@ Check that before editing anything.
   up to a route, screen, endpoint or command the user actually hits. Zero
   production importers kills the hypothesis: the code is dead or superseded,
   and fixing it changes nothing the user sees.
-- When the trace is ambiguous, prove it by execution: a temporary `throw` (or a
-  `[DEBUG:<issue>]` line) in the cited block while driving the real entry point,
+- When the trace is ambiguous, prove it by execution: a temporary
+  `throw new Error("[DEBUG:<issue>] reached")` (or a `[DEBUG:<issue>]` log line)
+  in the cited block while driving the real entry point,
   or coverage scoped to that route. If it never fires, the line is not on the path.
 - A test that renders or calls the cited symbol directly does not establish
   reachability. It goes red-to-green on dead code too.
@@ -139,6 +140,7 @@ Stopping is a legitimate outcome and not a silent one. Record the verdict as **u
 | Step | Location | Observed | Proves |
 |---|---|---|---|
 | 1 | file:line | log output, value, exit code | what this establishes |
+
 Reachability: <entry point> → … → <cited symbol> (static | throw | scoped coverage)
 
 ### Cause — confirmed verdicts only
