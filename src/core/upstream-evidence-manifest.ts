@@ -61,7 +61,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lib/evidence-prune-apply.mjs":
       "c6e68dc6eece329530b58959ccb6ff6d31e3b5de59b71c2ccbdff801aa7c4fe9",
     "all/copy-overwrite/scripts/lib/evidence-prune-config.mjs":
-      "7ef5d7de6f0ebe28df90851002d09bb30df0449a6f63981cc693e0157891e11f",
+      "c15cb6d0bc081149907dd1ce3d73d34fc3d8d17da6dbdb45e32b9016f5ba6410",
     "all/copy-overwrite/scripts/lib/evidence-prune-gh.mjs":
       "8f6a199c4ac8bab81340a3bd2dfdccc2985512dbc5a7ff9b084a7eb47255092f",
     "all/copy-overwrite/scripts/lib/evidence-prune-records.mjs":
@@ -355,7 +355,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/npm-updater-gate.Dockerfile":
       "850a4ee809d49e3d9da6bdd674cb43e4f5a6dcfa0aa73116b1a43caeed42748c",
     "all/copy-overwrite/scripts/npm-updater-helper-graph.json":
-      "30830c5625e2245750aa3261735360000868916373e8e361f499dc9d00bd1d89",
+      "0a2a33fb0308c470049a7dfef2049d942ed86e721fd0b860fe039e0101dc4146",
     "all/copy-overwrite/scripts/review-evidence-event.mjs":
       "1c5d510bc66f8ba23b6f046246f41182c17946a50126fb88e371d2aec9dfd6b2",
     "all/copy-overwrite/scripts/schemas/lisa-command-envelope.v1.schema.json":

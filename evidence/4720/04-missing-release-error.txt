@@ -1,8 +1,8 @@
-## captured_at 2026-11-09T08:17:46Z
+## captured_at 2026-11-09T09:03:01Z
 ## pr-assets count before
 1000
 ## release count before
-2071
+2073
 ## $ node all/copy-overwrite/scripts/lisa-evidence-prune.mjs --release does-not-exist
 --release is "does-not-exist", which is not one of this project's evidence releases (pr-assets, pr-assets-{YYYY-MM}). Unset it, or set it to the name `node scripts/lisa-work-item.mjs evidence-release` prints.
 exit=1
@@ -12,11 +12,11 @@ exit=1
 }
 exit=1
 ## does-not-exist release lookup (expect 404)
-{"message":"Not Found","documentation_url":"https://docs.github.com/rest/releases/releases#get-a-release-by-tag-name","status":"404"}gh: Not Found (HTTP 404)
+{"message":"Not Found","documentation_url":"(docs link elided)","status":"404"}gh: Not Found (HTTP 404)
 ## pr-assets count after
 1000
 ## release count after
-2071
+2073
 ## $ node all/copy-overwrite/scripts/lisa-evidence-prune.mjs --release pr-assets-2020-01   (accepted name pattern, release absent)
 The evidence release pr-assets-2020-01 was not found in CodySwannGT/lisa. Nothing was changed; check the name, or pass --release <name>.
 exit=1

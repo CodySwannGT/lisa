@@ -1,19 +1,19 @@
-## captured_at 2026-11-09T08:21:24Z
-## $ gh release delete lisa-prune-verify-1794212317-archive-2026-11 --repo CodySwannGT/lisa --yes --cleanup-tag  => rc=0
-## $ gh release delete lisa-prune-verify-1794212317 --repo CodySwannGT/lisa --yes --cleanup-tag  => rc=0
-## release lisa-prune-verify-1794212317
-{"message":"Not Found","documentation_url":"https://docs.github.com/rest/releases/releases#get-a-release-by-tag-name","status":"404"}gh: Not Found (HTTP 404)
-## tag ref lisa-prune-verify-1794212317
-{"message":"Not Found","documentation_url":"https://docs.github.com/rest/git/refs#get-all-references-in-a-namespace","status":"404"}gh: Not Found (HTTP 404)
-## release lisa-prune-verify-1794212317-archive-2026-11
-{"message":"Not Found","documentation_url":"https://docs.github.com/rest/releases/releases#get-a-release-by-tag-name","status":"404"}gh: Not Found (HTTP 404)
-## tag ref lisa-prune-verify-1794212317-archive-2026-11
-{"message":"Not Found","documentation_url":"https://docs.github.com/rest/git/refs#get-all-references-in-a-namespace","status":"404"}gh: Not Found (HTTP 404)
+## captured_at 2026-11-09T09:06:24Z
+## $ gh release delete lisa-prune-verify-1794215023-archive-2026-11 --repo CodySwannGT/lisa --yes --cleanup-tag  => rc=0
+## $ gh release delete lisa-prune-verify-1794215023 --repo CodySwannGT/lisa --yes --cleanup-tag  => rc=0
+## release lisa-prune-verify-1794215023
+{"message":"Not Found","documentation_url":"(docs link elided)","status":"404"}gh: Not Found (HTTP 404)
+## tag ref lisa-prune-verify-1794215023
+{"message":"Not Found","documentation_url":"(docs link elided)","status":"404"}gh: Not Found (HTTP 404)
+## release lisa-prune-verify-1794215023-archive-2026-11
+{"message":"Not Found","documentation_url":"(docs link elided)","status":"404"}gh: Not Found (HTTP 404)
+## tag ref lisa-prune-verify-1794215023-archive-2026-11
+{"message":"Not Found","documentation_url":"(docs link elided)","status":"404"}gh: Not Found (HTTP 404)
 ## any release whose tag starts lisa-prune-verify (expect 0)
 0
 ## any tag ref starting lisa-prune-verify (expect empty array)
 0
 ## latest release
-v4.100.2
+v4.100.4
 ## pr-assets count (unchanged)
 1000

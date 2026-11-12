@@ -146,6 +146,7 @@ export function resolveRepository(flags, config, run) {
         ? JSON.parse(result.stdout).nameWithOwner
         : undefined;
     } catch {
+      // probe-direction: fail-closed — an unreadable `gh repo view` leaves no repository, and the caller refuses to run rather than guessing one.
       return undefined;
     }
   };

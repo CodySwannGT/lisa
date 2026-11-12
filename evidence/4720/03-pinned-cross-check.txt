@@ -1,4 +1,4 @@
-## captured_at 2026-11-09T08:17:27Z
+## captured_at 2026-11-09T09:02:43Z
 ## accepted evidence releases (tag matches ^pr-assets(-YYYY-MM)?$):
 438440969	pr-assets-2026-11
 330823729	pr-assets
