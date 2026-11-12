@@ -23,6 +23,7 @@ Apply the fleet-standard GitHub repository configuration to this project's repo.
    - Default branch set to the lowest-tier environment branch that exists (dev → staging → main); override with `github.settings.default_branch`
    - GitHub wiki tab off (Lisa projects use in-repo `wiki/`)
    - Secret scanning + push protection enabled where the plan supports it
+   - The `lisa-managed` repository topic added (existing topics kept), so fleet-wide changes can find every Lisa repository with `gh search repos topic:lisa-managed --owner <owner>`. A refused topic edit warns and does not fail the baseline
 2. **Rulesets** (`scripts/lisa-github-rulesets.sh`) — one generated from config, the rest from Lisa's `<type>/github-rulesets/` templates matched by project type:
    - `base` — **generated from `.lisa.config.json`**, not shipped as a template. Deletion/force-push protection from `policy.protect`, the branch list from `policy.ruleset.include_refs`, bypass actors from `policy.ruleset.bypass_actors`, approvals from `policy.review`, merge methods from `policy.merge`, and required checks from whatever gates the project `await`s. A project that declares nothing gets exactly the ruleset the retired `all/github-rulesets/base.json` described, minus its two vendor checks — those are now `await` declarations a project can choose not to make
    - `quality checks` — the stack's CI checks (TypeScript emoji names or Rails names)
@@ -114,6 +115,7 @@ Skip this step (and say why) if the project's deploy.yml doesn't call Lisa's `re
 gh api "repos/$(gh repo view --json nameWithOwner -q .nameWithOwner)" \
   --jq '{allow_squash_merge, allow_auto_merge, delete_branch_on_merge, allow_update_branch}'
 gh api "repos/$(gh repo view --json nameWithOwner -q .nameWithOwner)/rulesets" --jq '[.[].name]'
+gh api "repos/$(gh repo view --json nameWithOwner -q .nameWithOwner)/topics" --jq '.names | index("lisa-managed") != null'
 ```
 
 When environments were configured, also confirm each one carries its protection rules and branch policy:
