@@ -36,9 +36,10 @@
  * ## What is freed before the cases run (CodySwannGT/lisa#4636)
  *
  * The candidate's checkout held 17,053 entries and nothing reads it once the
- * tarball is packed and the installed tool proven byte-identical to it, so
- * packing frees it ({@link freeCheckout}) instead of leaving it to the
- * teardown. And when the last installer frees the cache it first records the
+ * tarball is packed and its oracle extracted, so packing frees it there
+ * ({@link freeCheckout}) instead of leaving it to the teardown. The tool is
+ * installed afterwards and proven byte-identical to the oracle, not to the
+ * checkout. And when the last installer frees the cache it first records the
  * cache's entry count, so the cache's size is a measurement rather than an
  * estimate.
  * @module tests/fixtures/shared-runtime-hosts/teardown

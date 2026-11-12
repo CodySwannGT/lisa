@@ -20,6 +20,7 @@
  */
 import {
   fsyncSync,
+  mkdtempSync,
   readdirSync,
   readFileSync,
   rmSync,
@@ -181,6 +182,9 @@ describe("the probe's files hold real blocks (CodySwannGT/lisa#4636)", () => {
     expect(sizes).toEqual(Array.from({ length: 20 }, () => 4096));
   });
 
+  // The default sync is the real `fsyncSync`: the 4 KiB case above runs it.
+  // Whether a synced block is what makes removal pay its discard is a fact
+  // about the hosted device, so the hosted diagnostic is the real check of it.
   it("syncs every entry before handing the directory to the timed removal", () => {
     const synced: number[] = [];
 
@@ -192,6 +196,24 @@ describe("the probe's files hold real blocks (CodySwannGT/lisa#4636)", () => {
 
     expect(synced).toHaveLength(FS_PROBE_ENTRIES);
     expect(readdirSync(directory)).toHaveLength(FS_PROBE_ENTRIES);
+  });
+});
+
+describe("a probe fill that fails", () => {
+  it("removes its directory before rethrowing", () => {
+    const root = mkdtempSync(path.join(tmpdir(), "lisa-fs-probe-root-"));
+    temporaryDirectories.push(root);
+
+    expect(() =>
+      fillProbeDirectory(
+        FS_PROBE_ENTRIES,
+        () => {
+          throw new Error("EIO: i/o error, fsync");
+        },
+        root
+      )
+    ).toThrow(/EIO/);
+    expect(readdirSync(root)).toEqual([]);
   });
 });
 

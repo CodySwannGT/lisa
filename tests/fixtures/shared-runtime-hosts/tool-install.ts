@@ -5,15 +5,17 @@
  * The tool used to install from `file:<tarball>` with Bun's default registry
  * while every host installed through the loopback registry. Bun keys its cache
  * entries by the registry a package came from, so Lisa's dependency tree was
- * stored twice in the shared install cache, and the last installer freed both
- * copies inside its case budget. Installing the tool through the same registry
- * and cache stores each package once. The bytes the tool installs are still
+ * expected to be stored twice in the shared install cache, with the last
+ * installer freeing both copies inside its case budget; see
+ * CodySwannGT/lisa#4636 for the measured counts. Installing the tool through
+ * the same registry and cache is expected to store each package once. The bytes the tool installs are still
  * compared, member by member, with the packed tarball.
  * @module tests/fixtures/shared-runtime-hosts/tool-install
  */
 import * as path from "node:path";
 
 import { assertInstalledBytes, type Candidate } from "./artifact.js";
+import { toolInstallArgs } from "./install-args.js";
 import { write } from "./host.js";
 import { run } from "./process.js";
 
@@ -32,29 +34,6 @@ export function toolManifest(version: string) {
     private: true,
     dependencies: { [LISA]: version },
   } as const;
-}
-
-/**
- * The tool's Bun install arguments: the hosts' registry, concurrency and
- * cache, with lifecycle scripts kept off as the tool always installed.
- * @param registry - The loopback registry URL
- * @param cache - The shared install cache
- * @returns Arguments for `bun`
- */
-export function toolInstallArgs(
-  registry: string,
-  cache: string
-): readonly string[] {
-  return [
-    "install",
-    "--ignore-scripts",
-    "--registry",
-    registry,
-    "--network-concurrency",
-    "8",
-    "--cache-dir",
-    cache,
-  ];
 }
 
 /**

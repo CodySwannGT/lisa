@@ -2,22 +2,21 @@
  * Measurement pieces for the hosted fs-probe diagnostic (CodySwannGT/lisa#4636).
  *
  * `fs-latency-budget.ts` widens deletion budgets by a factor its 20-entry probe
- * derives, and on every sampled hosted run that factor read exactly 1.00 while
- * real removal there cost 39-129us per freed inode. Its own note records the
- * unmeasured reading: the runners mount `/` ext4 `discard`, and twenty freshly
- * written one-byte files may never be given a block, so freeing them sends the
- * device nothing to discard. This module holds what it takes to measure that
- * instead of guessing it: the mount and the block device behind the probe's
+ * derives. On every sampled hosted run that factor read exactly 1.00 while
+ * real removal there cost 39-129us per freed inode, because the probe then
+ * timed one-byte files that were freed before they were given a block, so they
+ * sent the `discard`-mounted device nothing to discard. This module holds what
+ * it takes to measure that: the mount and the block device behind the probe's
  * directory, the device's discard counters around each removal, and three
- * sample kinds taken in the same instant — the probe as it runs today, a
- * variant whose files are allocated (4 KiB and `fsync`ed), and a real
- * 5,000-file allocated corpus.
+ * sample kinds taken in the same instant — the probe, an allocated variant
+ * (4 KiB, `fsync`ed files) and a real 5,000-file allocated corpus.
  *
- * Hosted run 43251544381 answered it: the allocated variant read 0.94-1.12 of
- * the real removal and the one-byte probe 0.25-0.28, so the probe now writes
- * allocated files itself ({@link fillProbeDirectory}, which the variant and
- * the corpus here share). Since then the first two kinds time the same kind of
- * file, and the diagnostic re-checks the probe it replaced.
+ * Hosted run 43251544381 answered it (the allocated variant read 0.94-1.12 of
+ * the real removal, the one-byte probe 0.25-0.28), and the probe now writes
+ * allocated files itself ({@link fillProbeDirectory}). So the probe and variant
+ * kinds now time the same allocated files, taken twice back to back; the
+ * one-byte probe survives only in the table recorded in `fs-latency-budget.ts`
+ * from that run.
  *
  * The mount-table and device-counter readers follow the design of the
  * diagnostics PR #4626 used and later removed. They return nothing off Linux,
@@ -28,6 +27,7 @@ import { existsSync, readFileSync, realpathSync, rmSync } from "node:fs";
 
 import {
   fillProbeDirectory,
+  FS_PROBE_ENTRIES,
   measureUnlinkLatencyUs,
 } from "./fs-latency-budget.js";
 
@@ -63,9 +63,6 @@ export interface MountRecord {
   /** Per-mount options, then the superblock's, separated by `;`. */
   readonly options: string;
 }
-
-/** Entries in the probe, and in the allocated variant that mirrors it. */
-const PROBE_ENTRIES = 20;
 
 /** Cycles the probe takes its median over, and the variant with it. */
 const PROBE_CYCLES = 5;
@@ -201,18 +198,6 @@ export function timeRemovalUs(directory: string, entries: number): number {
   return ((performance.now() - startedAt) / entries) * 1000;
 }
 
-/**
- * The allocated variant, read the way the probe reads itself: the median of
- * several create-then-remove cycles.
- * @returns Median per-entry removal cost, in microseconds
- */
-function measureAllocatedUnlinkLatencyUs(): number {
-  const timings = Array.from({ length: PROBE_CYCLES }, () =>
-    timeRemovalUs(fillProbeDirectory(PROBE_ENTRIES), PROBE_ENTRIES)
-  ).sort((left, right) => left - right);
-  return timings[Math.floor(timings.length / 2)] ?? 0;
-}
-
 /** Discard deltas read straight after a removal and once more after a wait. */
 export interface RemovalDiscards {
   readonly immediate: DeviceCounters | null;
@@ -295,8 +280,8 @@ const ratio = (value: number): number => Math.round(value * 1000) / 1000;
  * Take one paired sample: the current probe, the allocated variant and a real
  * allocated corpus, each with its discard deltas.
  *
- * The probe and the variant create their files inside the counted window, as
- * the probe always has; creating files frees nothing, so it discards nothing.
+ * The probe and the variant now take the same measurement, back to back. Both
+ * create their files inside the counted window, as the probe always has; creating files frees nothing, so it discards nothing.
  * The corpus is written before its window opens.
  * @param options - Mount, settle and corpus size
  * @returns The sample, with the variant and probe each as a ratio of the real
@@ -309,10 +294,8 @@ export async function pairedSample(
   const probe = await observeRemoval(mount, settleMs, () =>
     measureUnlinkLatencyUs(PROBE_CYCLES)
   );
-  const variant = await observeRemoval(
-    mount,
-    settleMs,
-    measureAllocatedUnlinkLatencyUs
+  const variant = await observeRemoval(mount, settleMs, () =>
+    measureUnlinkLatencyUs(PROBE_CYCLES)
   );
   const corpus = fillProbeDirectory(corpusEntries);
   const real = await observeRemoval(mount, settleMs, () =>
@@ -325,8 +308,8 @@ export async function pairedSample(
     variantToReal: ratio(variant.perEntryUs / real.perEntryUs),
     probeToReal: ratio(probe.perEntryUs / real.perEntryUs),
     entries: {
-      probe: PROBE_ENTRIES * PROBE_CYCLES,
-      variant: PROBE_ENTRIES * PROBE_CYCLES,
+      probe: FS_PROBE_ENTRIES * PROBE_CYCLES,
+      variant: FS_PROBE_ENTRIES * PROBE_CYCLES,
       real: corpusEntries,
     },
     discards: {

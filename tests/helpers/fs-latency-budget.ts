@@ -120,7 +120,9 @@ import path from "node:path";
  * So the probe now writes each entry as a 4 KiB block and `fsync`s it before
  * the timed removal ({@link fillProbeDirectory}). The allocated twenty stayed
  * inside the 0.56-1.15 band this module asks of the probe in all eight
- * samples. {@link FS_PROBE_ENTRIES} is unchanged.
+ * samples. {@link FS_PROBE_ENTRIES} is unchanged. On hosted ubuntu-24.04 the
+ * allocated probe reads about 63-75us per entry, so the factor there moves
+ * from 1.00 to about 2.1-2.5, widening those deletion budgets as intended.
  *
  * One figure was not re-measured: {@link QUIET_UNLINK_LATENCY_US} was taken
  * with the old one-byte probe on APFS. Its basis is recorded below as it was
@@ -187,22 +189,16 @@ export const QUIET_UNLINK_LATENCY_US = 30;
 export const MAX_FS_SLOWDOWN = 8;
 
 /**
- * Build the probe's throwaway directory of allocated, synced files.
- *
- * Separated from the timing so that only the unlink half is measured. Timing
- * the creation too would measure a cost the teardown hooks do not pay. Each
- * entry is a full block, synced before the directory is returned, because a
- * file freed before it was given a block frees nothing to discard and so
- * times a cheaper operation than the one the budgets guard.
+ * Write the probe's entries into a directory: each a full block, synced.
+ * @param directory - The probe's directory
  * @param entries - Files to write
- * @param sync - Flushes one open file; the regression observes it
- * @returns Path to a directory holding `entries` 4 KiB files
+ * @param sync - Flushes one open file
  */
-export function fillProbeDirectory(
-  entries: number = FS_PROBE_ENTRIES,
-  sync: (fd: number) => void = fsyncSync
-): string {
-  const directory = mkdtempSync(path.join(tmpdir(), "lisa-fs-probe-"));
+function writeProbeEntries(
+  directory: string,
+  entries: number,
+  sync: (fd: number) => void
+): void {
   const block = Buffer.alloc(PROBE_FILE_BYTES, "x");
   Array.from({ length: entries }, (_unused, index) => {
     const fd = openSync(path.join(directory, `entry-${index}`), "w");
@@ -214,6 +210,35 @@ export function fillProbeDirectory(
     }
     return index;
   });
+}
+
+/**
+ * Build the probe's throwaway directory of allocated, synced files.
+ *
+ * Separated from the timing so that only the unlink half is measured. Timing
+ * the creation too would measure a cost the teardown hooks do not pay. Each
+ * entry is a full block, synced before the directory is returned, because a
+ * file freed before it was given a block frees nothing to discard and so
+ * times a cheaper operation than the one the budgets guard. A fill that fails
+ * removes its directory before rethrowing, so a failed probe leaves nothing
+ * behind.
+ * @param entries - Files to write
+ * @param sync - Flushes one open file; the regression observes it
+ * @param root - Directory to create it under; the regression isolates it
+ * @returns Path to a directory holding `entries` 4 KiB files
+ */
+export function fillProbeDirectory(
+  entries: number = FS_PROBE_ENTRIES,
+  sync: (fd: number) => void = fsyncSync,
+  root: string = tmpdir()
+): string {
+  const directory = mkdtempSync(path.join(root, "lisa-fs-probe-"));
+  try {
+    writeProbeEntries(directory, entries, sync);
+  } catch (error) {
+    rmSync(directory, { force: true, recursive: true });
+    throw error;
+  }
   return directory;
 }
 

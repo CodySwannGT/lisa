@@ -11674,6 +11674,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/fixtures/shared-runtime-hosts/inherited-assertions.ts": true,
     "tests/fixtures/shared-runtime-hosts/inherited-journey.ts": true,
     "tests/fixtures/shared-runtime-hosts/inherited-seeds.ts": true,
+    "tests/fixtures/shared-runtime-hosts/install-args.ts": true,
     "tests/fixtures/shared-runtime-hosts/journey.ts": true,
     "tests/fixtures/shared-runtime-hosts/ownership.ts": true,
     "tests/fixtures/shared-runtime-hosts/process.ts": true,

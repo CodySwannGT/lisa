@@ -3,20 +3,21 @@
  * (CodySwannGT/lisa#4636).
  *
  * `fsLatencyBudgetMs` read a factor of exactly 1.00 on every sampled hosted
- * run while real removal there cost 39-129us per freed inode. The unmeasured
- * reading in `fs-latency-budget.ts` is that the runners mount `/` ext4
- * `discard`, and the probe's freshly written one-byte files are freed before
- * they are given a block, so they send the device nothing to discard. This
- * file measures it instead of repeating it.
+ * run while real removal there cost 39-129us per freed inode. Run 43251544381
+ * measured why: the probe's one-byte files were freed before they were given
+ * a block, so they sent the `discard`-mounted device nothing to discard. The
+ * probe now writes 4 KiB `fsync`ed files, and the one-byte probe survives only
+ * in the table `fs-latency-budget.ts` records from that run.
  *
- * Eight paired samples, each taking, in this order: the current probe's
- * per-entry cost; a variant whose 20 files are 4 KiB and `fsync`ed before the
- * timed removal; and the per-entry cost of removing a freshly written,
- * `fsync`ed 5,000-file corpus of 4 KiB files. Each sample prints one
- * `FS_PROBE_DIAGNOSTIC {json}` line to stderr with the three figures, the
- * variant's and the probe's ratio to the real removal, and the device's discard
- * counter deltas around each removal. The mount the probe writes to and the
- * root mount are printed once, with their options and devices.
+ * Eight paired samples, each taking, in this order: the probe's per-entry
+ * cost; the allocated variant (20 files of 4 KiB, `fsync`ed before the timed
+ * removal), which is now the same measurement taken again; and the per-entry
+ * cost of removing a freshly written, `fsync`ed 5,000-file corpus of 4 KiB
+ * files. Each sample prints one `FS_PROBE_DIAGNOSTIC {json}` line to stderr
+ * with the three figures, the variant's and the probe's ratio to the real
+ * removal, and the device's discard counter deltas around each removal. The
+ * mount the probe writes to and the root mount are printed once, with their
+ * options and devices.
  *
  * ## This asserts almost nothing, deliberately
  *

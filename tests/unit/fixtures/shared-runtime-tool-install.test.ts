@@ -2,43 +2,41 @@
  * The packed tool installs Lisa the way every host does (CodySwannGT/lisa#4636).
  *
  * It used to install from `file:<tarball>` through Bun's default registry while
- * every host installed through the loopback registry, so Lisa's dependency
- * tree was resolved twice, from two registries, into one shared cache. These
- * cases pin the tool's install to the hosts' route: the candidate version by
- * name, the same `--registry`, and the same shared cache.
+ * every host installed through the loopback registry. These cases pin the
+ * tool's install to the hosts' route: the candidate version by name, and the
+ * hosts' own arguments — the same `--registry` and shared cache — from the one
+ * function both are derived from, plus the `--ignore-scripts` only the tool
+ * passes.
  * @module tests/unit/fixtures/shared-runtime-tool-install
  */
 import { describe, expect, it } from "vitest";
 
 import {
+  hostInstallArgs,
   toolInstallArgs,
-  toolManifest,
-} from "../../fixtures/shared-runtime-hosts/tool-install.js";
+} from "../../fixtures/shared-runtime-hosts/install-args.js";
+import { toolManifest } from "../../fixtures/shared-runtime-hosts/tool-install.js";
 
 const REGISTRY = "http://127.0.0.1:43210";
 const CACHE = "/owned/artifact-bun-cache";
 
 describe("the packed tool's install", () => {
-  it("installs through the loopback registry into the shared cache", () => {
-    const args = toolInstallArgs(REGISTRY, CACHE);
+  it("passes the hosts' registry and cache arguments, and skips lifecycle scripts", () => {
+    const hosts = hostInstallArgs(REGISTRY, CACHE);
 
-    expect(args[0]).toBe("install");
-    expect(args[args.indexOf("--registry") + 1]).toBe(REGISTRY);
-    expect(args[args.indexOf("--cache-dir") + 1]).toBe(CACHE);
-    expect(args).toContain("--ignore-scripts");
-  });
-
-  it("passes the same registry and cache arguments the hosts pass", () => {
-    // journey.ts and inherited-journey.ts install with exactly these.
-    expect(toolInstallArgs(REGISTRY, CACHE)).toEqual([
+    expect(hosts).toEqual([
       "install",
-      "--ignore-scripts",
       "--registry",
       REGISTRY,
       "--network-concurrency",
       "8",
       "--cache-dir",
       CACHE,
+    ]);
+    // The hosts do not pass --ignore-scripts; the tool always has.
+    expect(toolInstallArgs(REGISTRY, CACHE)).toEqual([
+      ...hosts,
+      "--ignore-scripts",
     ]);
   });
 
