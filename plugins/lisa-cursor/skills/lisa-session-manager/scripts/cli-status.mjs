@@ -10,7 +10,7 @@ import path from "node:path";
 
 import { listAgents, requireConfig, run } from "./cli-runtime.mjs";
 import { notifyProvider } from "./config.mjs";
-import { buildHasSession } from "./launch.mjs";
+import { buildCurrentSessionName, buildHasSession } from "./launch.mjs";
 import { listPendingQuestions } from "./ledger-questions.mjs";
 import { readLedger } from "./ledger.mjs";
 import { shellQuote } from "./token.mjs";
@@ -30,11 +30,43 @@ function answerCommandFor(ctx, ref) {
 }
 
 /**
+ * Whether the caller of `status` IS the manager: it runs inside tmux and
+ * tmux names the caller's own session as the manager's (#4496). Without this
+ * a cycle running in the manager's session saw "the tmux manager is running"
+ * plus its own `/loop` and reported itself as a second manager.
+ *
+ * "Self" means running inside the manager's tmux session, so a second Claude
+ * started in another window of that same session also reads true.
+ *
+ * Fail-safe, not fail-false: `false` only when there is no `$TMUX` or tmux
+ * names a different session. Inside tmux, `null` (unknown) when
+ * `$TMUX_PANE` is not a pane id (tmux is then not asked: untargeted, it
+ * answers for its most recently active client, which can be another
+ * session), or when the probe fails or names no session, because `false`
+ * there would tell the manager to stop its own loop. Nothing here throws.
+ * @param {{ env: Record<string, string | undefined> }} ctx - CLI context
+ * @param {string} name - Manager session name
+ * @returns {boolean | null} True for the manager's own session, false for
+ *   another session or none, null when tmux cannot say which it is
+ */
+function isManagerSelf(ctx, name) {
+  if (!ctx.env.TMUX) return false;
+  const argv = buildCurrentSessionName(ctx.env.TMUX_PANE);
+  if (argv === null) return null;
+  const probe = run("tmux", argv, { env: ctx.env });
+  const current = probe.status === 0 ? probe.stdout.trim() : "";
+  if (current === "") return null;
+  return current === name;
+}
+
+/**
  * `status`: is the manager's tmux session up, and what does the ledger say
  * about each worker it dispatched.
  * @param {object} ctx - CLI context
  * `notify` is the configured notification provider (`telegram` or `none`),
- * so the manager knows each cycle whether a channel exists.
+ * so the manager knows each cycle whether a channel exists. `manager.self`
+ * (`true|false|null`) says whether the caller runs inside that tmux session
+ * (see {@link isManagerSelf}).
  * @returns {Promise<{ json: object }>}
  *   `{manager,notify,control,workers,untracked,pendingQuestions}`
  */
@@ -49,7 +81,11 @@ export async function status(ctx) {
   const tracked = new Set(Object.values(ledger.items).map(i => i.worker));
   return {
     json: {
-      manager: { name: config.name, running: tmux.status === 0 },
+      manager: {
+        name: config.name,
+        running: tmux.status === 0,
+        self: isManagerSelf(ctx, config.name),
+      },
       notify: notifyProvider(config),
       control: ledger.control,
       workers: Object.entries(ledger.items).map(([ref, item]) => ({

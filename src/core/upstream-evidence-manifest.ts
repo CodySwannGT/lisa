@@ -1691,7 +1691,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-sentry-access/SKILL.md":
       "1c1881ca9a2020f6cd8f938dc5335ebf2d344ff280844bb98926198e5226e526",
     "plugins/src/base/skills/lisa-session-manager/SKILL.md":
-      "a20ffeb1755894edc81b0a22aca0874c4b0761c8d1ecd8b5cb8b0b19ae1e2b6d",
+      "f176775fe89d7edfe1b7b2aefecd41dd58d2093ecfcbd6f9ce16b0a4f61cb2e0",
     "plugins/src/base/skills/lisa-session-manager/references/runbook-template.md":
       "62942a381e7dfb66d44d53e82df4121333ce88b4212acc53be9df9becaa6e100",
     "plugins/src/base/skills/lisa-session-manager/scripts/answer-record.mjs":
@@ -1717,9 +1717,9 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-setup.mjs":
       "4b125971939f6e99863930a109315038520c1bc8e0543d1e34476c9987d30605",
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-status.mjs":
-      "30bdd485e5c575a78456230712d4a51d1feddd4022a0c8e5c69e5edc3c32508a",
+      "9e4ff0dbbe302b55615240b2a1e71f4b7e988ae482a029efe8eef59032284b83",
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-usage.mjs":
-      "0624661cfd01b0ca0e90a11cb4971934f43d7424a7e6b2850d87e8010a87cddb",
+      "48c62d7eb94a3072b6bd2ee0d77e21afc5fca6fed4fdbe7cde3d3566cac5e3ff",
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-workers.mjs":
       "59a00278ab701a7830437597923379bad78ccd43857d574f333f6265efc4dcc7",
     "plugins/src/base/skills/lisa-session-manager/scripts/clipboard.mjs":
@@ -1739,7 +1739,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-session-manager/scripts/launch-shell.mjs":
       "59a91712fc529dc2e63cd00f2b680fc6b24200bc83bee41b2a5266e020c92aeb",
     "plugins/src/base/skills/lisa-session-manager/scripts/launch.mjs":
-      "db6d7bd4aaf5b37a2762dc1d6ce354afd731ff99f4ea1ebe22afacf018440fa1",
+      "5bdea8147595c5d663cf334226c74311efc1a1af456ec40b2474581c28edd12f",
     "plugins/src/base/skills/lisa-session-manager/scripts/ledger-questions.mjs":
       "eb7f845b2c0ebe3ebbd233957329833cc77d3dfce5f3e5df505e336704fb7eae",
     "plugins/src/base/skills/lisa-session-manager/scripts/ledger.mjs":
@@ -3853,6 +3853,16 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "evidence/4740/no-old-pattern.txt": true,
     "evidence/4740/plugin-artifacts-in-sync.txt": true,
     "evidence/4740/stop-guard-before-after.txt": true,
+    "evidence/CodySwannGT-lisa-4496/01-outside-no-session.txt": true,
+    "evidence/CodySwannGT-lisa-4496/02-inside-manager-session.txt": true,
+    "evidence/CodySwannGT-lisa-4496/03-outside-while-running.txt": true,
+    "evidence/CodySwannGT-lisa-4496/04-inside-other-session.txt": true,
+    "evidence/CodySwannGT-lisa-4496/05-bite-control-head-inside-manager.txt": true,
+    "evidence/CodySwannGT-lisa-4496/07-skill-rule-grep.txt": true,
+    "evidence/CodySwannGT-lisa-4496/08-null-on-bogus-socket.txt": true,
+    "evidence/CodySwannGT-lisa-4496/09-inside-manager-no-pane.txt": true,
+    "evidence/CodySwannGT-lisa-4496/10-inside-manager-pane-foo.txt": true,
+    "evidence/CodySwannGT-lisa-4496/11-bite-control-prev-revision-no-pane.txt": true,
     "evidence/CodySwannGT-lisa-4605/falsification.txt": true,
     "evidence/CodySwannGT-lisa-4605/rollback-dry-run-commands.txt": true,
     "evidence/CodySwannGT-lisa-4605/rollback-missing-credentials-refusal.txt": true,
@@ -13391,6 +13401,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/session-manager/cli-setup.test.ts": true,
     "tests/unit/session-manager/cli-spawn-trust.test.ts": true,
     "tests/unit/session-manager/cli-start-survival.test.ts": true,
+    "tests/unit/session-manager/cli-status-self.test.ts": true,
     "tests/unit/session-manager/cli-token-provider.test.ts": true,
     "tests/unit/session-manager/cli-trust.test.ts": true,
     "tests/unit/session-manager/cli.test.ts": true,
@@ -13661,6 +13672,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/strategies/security-audit-handling-scope.test.ts": true,
     "tests/unit/strategies/sentry-plugin-preference.test.ts": true,
     "tests/unit/strategies/session-manager-dispatch-contract.test.ts": true,
+    "tests/unit/strategies/session-manager-duplicate-manager-contract.test.ts": true,
     "tests/unit/strategies/session-manager-failed-requeue-contract.test.ts": true,
     "tests/unit/strategies/session-manager-gitignore.test.ts": true,
     "tests/unit/strategies/session-manager-human-needed-contract.test.ts": true,
