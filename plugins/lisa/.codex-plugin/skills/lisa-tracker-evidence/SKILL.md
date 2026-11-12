@@ -35,6 +35,12 @@ omit the plugin rules tree; do not assume a runtime-specific rules directory.
 ## Rules
 
 - The configured GitHub evidence release (`node scripts/lisa-work-item.mjs evidence-release --ensure` prints it; default `pr-assets`) lives on the implementation repo (the one with the PR), regardless of which tracker hosts the ticket/issue. All vendor skills upload there.
+- **Ignored evidence directory.** Before dispatching, run `git check-ignore -q "$EVIDENCE_DIR"`. If it exits 0, the repository ignores that directory, so the evidence will never reach the PR, and the tracker comment becomes the record of truth. In that case, require the following before posting:
+  - Upload **every** manifest artifact to the configured evidence release, including `verdict.json`, `state.json`, transcripts, and logs. Screenshots and the optional `evidence/files/` are not enough on their own.
+  - Point each `## Artifact identity` digest at the uploaded copy's URL.
+  - Make the comment say plainly that the evidence was uploaded, not committed, and that this comment is the durable record.
+
+  Never describe ignored evidence as "committed". A digest of a file that was never committed or uploaded is a session-local anchor, not something a reviewer can re-check.
 - Never post evidence to a different ticket than the one named — `$ARGUMENTS` is the source of truth.
 - Never invent a verify-specific usage footer. Evidence artifact usage must flow through `lisa-usage-accounting`, preserve the canonical `## Lisa Usage` section, and surface `source: unavailable` explicitly when the runtime cannot provide trustworthy numbers.
 - **Evidence-manifest gate (leaf work units).** Before dispatching to a vendor skill that transitions the ticket, confirm `EVIDENCE_DIR` contains a non-empty artifact **of the declared type** for every typed `[EVIDENCE: <artifact-type>: <name>]` marker declared in the ticket's Validation Journey — a `screenshot` marker needs an actual image, an `http-transcript` marker needs the request + response text, a `perf-trace` marker needs measured numbers; a prose claim satisfies nothing. If any declared marker has no captured artifact, an empty one, or one whose content/extension does not match its declared type, stop and report the offending markers by name instead of posting — a leaf work unit (Bug / Task / Sub-task / Improvement) may not advance to its review/Done state with an unsatisfied manifest (see the "Per-Work-Unit Evidence Contract" in the `verification` rule). Epics / Stories / Spikes, and leaf units without a Validation Journey, are exempt.
