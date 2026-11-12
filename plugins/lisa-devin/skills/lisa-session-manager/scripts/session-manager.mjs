@@ -163,7 +163,10 @@ const LEDGER_SPECS = {
     options: { "reset-attempts": flag, "expect-answer-at": text },
     positionals: 1,
   },
-  finish: { options: { status: text, sender: text }, positionals: 1 },
+  finish: {
+    options: { status: text, sender: text, "setup-gap": flag },
+    positionals: 1,
+  },
   "validation-failed": { options: { "updated-at": text }, positionals: 1 },
   "validation-cleared": { options: {}, positionals: 1 },
   control: {

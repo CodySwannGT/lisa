@@ -1,0 +1,7 @@
+{"type":"custom-title","customTitle":"wk-DEMO-12-1023-1421","sessionId":"00000000-0000-4000-8000-0000000000a3"}
+{"type":"agent-name","agentName":"wk-DEMO-12-1023-1421","sessionId":"00000000-0000-4000-8000-0000000000a3"}
+{"type":"mode","mode":"normal","sessionId":"00000000-0000-4000-8000-0000000000a3"}
+{"type":"attachment","sessionId":"00000000-0000-4000-8000-0000000000a3"}
+{"parentUuid":null,"isSidechain":false,"type":"user","message":{"role":"user","content":"<command-name>/lisa:implement</command-name>\n<command-args>DEMO-12 managedBy=demo-manager</command-args>"},"isMeta":false,"timestamp":"2026-10-23T14:21:03.000Z","uuid":"00000000-0000-4000-8000-0000000000c5","cwd":"/work/demo","sessionId":"00000000-0000-4000-8000-0000000000a3","version":"2.1.319"}
+{"parentUuid":"00000000-0000-4000-8000-0000000000c5","isSidechain":false,"type":"assistant","message":{"role":"assistant","type":"message","content":[{"type":"text","text":"Reading DEMO-12 before planning the fix."}]},"timestamp":"2026-10-23T14:21:09.000Z","uuid":"00000000-0000-4000-8000-0000000000c6","cwd":"/work/demo","sessionId":"00000000-0000-4000-8000-0000000000a3","version":"2.1.319"}
+{"type":"last-prompt","leafUuid":"00000000-0000-4000-8000-0000000000c6","sessionId":"00000000-0000-4000-8000-0000000000a3"}

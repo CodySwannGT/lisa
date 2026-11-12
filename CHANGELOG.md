@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.106.2](https://github.com/CodySwannGT/lisa/compare/v4.106.1...v4.106.2) (2026-11-12)
+
+
+### Bug Fixes
+
+* **ci:** key shard refusal re-wrap on a shared recovery prefix ([92d6f02](https://github.com/CodySwannGT/lisa/commit/92d6f02626abb54239d0cf1a89586a2c8e1fede0)), closes [CodySwannGT/lisa#4634](https://github.com/CodySwannGT/lisa/issues/4634) [CodySwannGT/lisa#4634](https://github.com/CodySwannGT/lisa/issues/4634)
+* **ci:** let a failed-jobs re-run recover a failed shell-guard trace shard ([429fb86](https://github.com/CodySwannGT/lisa/commit/429fb86c07752a451d35675abbc16042c946ee85)), closes [CodySwannGT/lisa#4634](https://github.com/CodySwannGT/lisa/issues/4634) [CodySwannGT/lisa#4634](https://github.com/CodySwannGT/lisa/issues/4634)
+* **session-manager:** harden setup-gap handling from review ([8ab1482](https://github.com/CodySwannGT/lisa/commit/8ab14820d5477f2bbf1475abd36c26f7076fc8fd)), closes [CodySwannGT/lisa#4503](https://github.com/CodySwannGT/lisa/issues/4503) [CodySwannGT/lisa#4503](https://github.com/CodySwannGT/lisa/issues/4503)
+* **session-manager:** treat a worker's failed first prompt as a setup gap ([a62aadc](https://github.com/CodySwannGT/lisa/commit/a62aadc74e21d28b2b386627c871640ca500bcb4)), closes [CodySwannGT/lisa#4503](https://github.com/CodySwannGT/lisa/issues/4503) [CodySwannGT/lisa#4503](https://github.com/CodySwannGT/lisa/issues/4503)
+
 ### [4.106.1](https://github.com/CodySwannGT/lisa/compare/v4.106.0...v4.106.1) (2026-11-12)
 
 

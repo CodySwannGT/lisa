@@ -33,7 +33,14 @@ Workers and capacity
         claude --bg -n wk-<token>-<MMDD-HHMM> --dangerously-skip-permissions
           --settings {"crossSessionInbound":"accept"}
           "/lisa:implement <ref> managedBy=<sessionManager.name>"
-      Records the ledger and sessions.jsonl. stdout {ref,name,sessionId,repo,cwd}.
+      Then reads the worker's transcript for up to 30s
+      (LISA_SESSION_MANAGER_FIRST_PROMPT_MS overrides it): when the first
+      prompt never ran (the command is unknown in that repo, or a
+      UserPromptSubmit hook rejected it), stops the worker, records nothing
+      and exits 2 (setup gap; no attempt counted).
+      Records the ledger and sessions.jsonl. stdout {ref,name,sessionId,repo,
+      cwd,firstPrompt}, firstPrompt "alive" or "unconfirmed" (the transcript
+      did not resolve in time).
   resume <ref>                         STDIN: the message for the worker
       claude --bg --resume <full session id> -- "<stdin>" in the worker's repo
       dir, TELEGRAM_* removed; the full id comes from claude agents --json --all
@@ -42,10 +49,13 @@ Workers and capacity
       stdout {ref,worker,sessionId,resumed:true}.
   classify [<ref>]
       Classifies one ledger item (or all) from claude agents --json --all and
-      a hash of claude logs <worker>; records the hash as progress. stdout
+      a hash of claude logs <worker>, plus the worker's transcript; records
+      the hash as progress. stdout
       [{ref,worker,sessionId,repo,classification,attempts,agentStatus,
-        pendingQuestion}], classification one of finished|waiting|requestion|
-      working|stalled|dead|exhausted.
+        pendingQuestion,setupGap}], classification one of finished|waiting|
+      requestion|setup-gap|working|stalled|dead|exhausted. setup-gap: the
+      worker's first prompt never ran; setupGap is {kind:"unknown-command"|
+      "prompt-blocked",detail}, else null.
   cycle
       Records that this session ran a cycle now: cyclers[<by>] = <at> in
       the ledger, by tmux:<session> when tmux names the caller's session,
@@ -209,8 +219,11 @@ Per cycle
       --expect-answer-at: the answerAt answer-plan returned; exit 2 and
       nothing cleared when the queued answer's at differs (the operator
       replaced it since) or no answer is queued: record the new one first.
-  ledger finish <ref> --status DONE|FAILED [--sender <name>]  STDIN: reason
+  ledger finish <ref> --status DONE|FAILED [--sender <name>] [--setup-gap]
+                                                              STDIN: reason
       --sender: exit 2 unless the ledger's worker for <ref> is exactly <name>.
+      --setup-gap (FAILED only): the worker's first prompt never ran
+      (classify said setup-gap), so its spawn is not counted as an attempt.
   ledger validation-failed <ref> --updated-at <ts>     STDIN: failing gates
       Caches a backlog item's failed validation; queue skips it until the
       item's updatedAt changes.

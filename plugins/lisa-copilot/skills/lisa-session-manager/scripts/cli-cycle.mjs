@@ -140,10 +140,15 @@ const LEDGER_ACTIONS = {
     }
     const ref = requirePositional(ctx, "ref");
     await assertSender(ctx, ref);
+    const setupGap = ctx.values["setup-gap"] === true;
+    if (setupGap && status !== "FAILED") {
+      throw new CliError("--setup-gap needs --status FAILED.", 2);
+    }
     return recordFinish(ctx.root, {
       ref,
       status,
       reason: stdinText(ctx, "reason", { required: false }),
+      setupGap,
     });
   },
   "validation-failed": ctx =>
