@@ -39,9 +39,15 @@
  *                  collect one complete native Actions shard without judging
  *                  its individual trace. All canonical candidates are supplied.
  *   --merge-traces DIRECTORY --trace-out FILE
- *                  validate all three current run/attempt shard receipts, then
- *                  apply the original judge once to their combined trace.
- *                  A new Actions attempt must reproduce all three shards.
+ *                  validate one complete receipt per shard from the current
+ *                  run, then apply the original judge once to their combined
+ *                  trace. DIRECTORY holds every attempt of the run; for each
+ *                  shard the newest attempt wins, so "Re-run failed jobs"
+ *                  recovers a failed shard (#4634). That newest bundle must be
+ *                  complete — an older attempt is never used in its place —
+ *                  and must match the current run, source, PR head, workflow,
+ *                  runtime and roster. Each refusal names the shard, the
+ *                  attempt and the re-run that recovers it.
  *
  * Exit codes (mirroring the sibling check-* scripts):
  *   0 — the judgment passed, or --collect-only retained a complete eligible

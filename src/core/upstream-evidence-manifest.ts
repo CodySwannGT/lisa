@@ -2667,7 +2667,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/check-self-dependency-pin.mjs":
       "f517c44a1058a87051b6bb9520e8596a37521f475ca67e0d47159163999ff692",
     "scripts/check-shell-guard-refusal-coverage.mjs":
-      "ba778c3d234a86e52c5d15cf382e1274a36501aae4a0fdc6c38402d746a22e47",
+      "297a531935824c5861d73c1ce1af78ba70b0147e616250113e246c1de1b3de54",
     "scripts/check-shipped-surface-removals.mjs":
       "2ff9e161d101cc55ffe099f0a7b4fc83e023e79215ff09e53c5d0c889a9594bb",
     "scripts/check-state-classification.mjs":
@@ -2833,9 +2833,9 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/lib/shell-guard-refusal-coverage.mjs":
       "47991f4473bd3bc13f9e1e9fb0f801580088492f9857c340965a7107dd5f8be7",
     "scripts/lib/shell-guard-shard-runner.mjs":
-      "976e297e5b9ebeff787274ac4cffb5a898d8274253798a719ccedac932f60d7b",
+      "f1253f6e6cdc4a5cb5129411c16f0ab67c909b1c7e70fe690cc9f988b8712c81",
     "scripts/lib/shell-guard-shards.mjs":
-      "a5724f75bea3469aae76c9eb8ff13e0ba446c73a0466c43d9a670b3b7628dce1",
+      "1022fa8e447d272da6ae4421f8c9798224a5239734ef977340baa861e64332d3",
     "scripts/lib/shell-guard-terminal-reporter.mjs":
       "5af1615782b5c0608c5218fd88149def957a6856000c699662356bba1f2cab93",
     "scripts/lib/shell-guard-trace.mjs":
@@ -3824,6 +3824,9 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "evidence/4629/absent-codes-source-search.txt": true,
     "evidence/4629/deep-root-doctor-checks-before.txt": true,
     "evidence/4629/deep-root-doctor-checks.txt": true,
+    "evidence/4634/shard-rerun-merge-green.txt": true,
+    "evidence/4634/shard-rerun-merge-red.txt": true,
+    "evidence/4634/single-shard-rerun-merge.txt": true,
     "evidence/4636/fs-probe-paired-samples.txt": true,
     "evidence/4636/hosted-run-43251544381-at-bff0162039.txt": true,
     "evidence/4636/hosted-run-43260674356-at-0712585024.txt": true,
