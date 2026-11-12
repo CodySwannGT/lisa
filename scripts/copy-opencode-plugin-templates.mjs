@@ -29,7 +29,6 @@ const canonicalSupportFiles = [
   "discharge-work-item-gates.sh",
   "block-managed-file-edits.sh",
   "block-no-verify.sh",
-  "parity-safety-net.sh",
   "parity-safety-net-heredoc.py",
   "guard-dedupe.bash",
   ...RAILS_HOOK_ENGINE_FILES,

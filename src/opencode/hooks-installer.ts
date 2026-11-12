@@ -121,11 +121,23 @@ const PLUGIN_SUPPORT_FILES = [
   "discharge-work-item-gates.sh",
   "block-managed-file-edits.sh",
   "block-no-verify.sh",
-  "parity-safety-net.sh",
   "parity-safety-net-heredoc.py",
   "guard-dedupe.bash",
   ...RAILS_HOOK_ENGINE_FILES,
 ] as const;
+
+/**
+ * Support files Lisa once copied into `.opencode/plugin/` and no longer ships.
+ *
+ * Stale cleanup is otherwise scoped to the `lisa-` prefix so host-authored
+ * plugins are never touched, and support files carry no prefix. A name listed
+ * here is removed only when the previous ownership manifest records Lisa as
+ * having written it, so a host file that merely shares the name is kept.
+ * `parity-safety-net.sh` was the retired safety-net stub (CodySwannGT/lisa#4803).
+ */
+const RETIRED_PLUGIN_SUPPORT_FILES: ReadonlySet<string> = new Set([
+  "parity-safety-net.sh",
+]);
 
 /** Result of the OpenCode hooks install pass */
 export interface OpencodeHooksInstallResult {
@@ -250,8 +262,9 @@ function resolveTemplate(filename: string): string {
 /**
  * Delete Lisa plugin modules that were managed last run but aren't shipped this
  * run (e.g. a project type stopped being detected, or a template was renamed).
- * Only files under `.opencode/plugin/` with the `lisa-` prefix are eligible, so
- * host-authored plugins are never touched.
+ * Only files under `.opencode/plugin/` with the `lisa-` prefix, or a retired
+ * support file Lisa recorded writing, are eligible, so host-authored plugins
+ * are never touched.
  * @param previousManagedFiles - Files Lisa managed last run (relative to
  *   `.opencode/`).
  * @param currentFilenames - Plugin filenames Lisa is shipping this run.
@@ -269,7 +282,8 @@ async function deleteStalePlugins(
     .map(file => file.slice(prefix.length))
     .filter(
       name =>
-        name.startsWith(LISA_PLUGIN_PREFIX) &&
+        (name.startsWith(LISA_PLUGIN_PREFIX) ||
+          RETIRED_PLUGIN_SUPPORT_FILES.has(name)) &&
         !name.includes(path.sep) &&
         !currentFilenames.has(name)
     );

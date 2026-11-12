@@ -9,8 +9,6 @@ import path from "node:path";
 
 import { describe, expect, it } from "vitest";
 
-import { boundedSpawnSync } from "../../helpers/io-latency-budget.js";
-
 const read = (relativePath: string): string =>
   readFileSync(path.resolve(relativePath), "utf8");
 
@@ -119,27 +117,5 @@ describe("Antigravity rule-surface gap", () => {
     expect(generator).toMatch(/Rules remain out of agy artifacts/);
     expect(generator).toMatch(/NO .*rules\//);
     expect(existsSync(path.resolve("plugins/lisa-agy/rules"))).toBe(false);
-  });
-});
-
-describe("safety-net support for the documented command", () => {
-  it("allows an explicit SHA-bound lease", () => {
-    const approvedSha = "0123456789abcdef0123456789abcdef01234567";
-    const command =
-      `git push --force-with-lease=refs/heads/main:${approvedSha} ` +
-      "origin HEAD:refs/heads/main";
-    const input = JSON.stringify({
-      tool_name: "Bash",
-      tool_input: { command },
-    });
-    const result = boundedSpawnSync({
-      label: "parity-safety-net.sh",
-      command: "/bin/bash",
-      args: [path.resolve("plugins/lisa/hooks/parity-safety-net.sh")],
-      input,
-      env: process.env,
-    });
-
-    expect(result.status).toBe(0);
   });
 });

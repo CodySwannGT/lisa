@@ -327,8 +327,8 @@ function errnoCodeOf(error: Error): string | undefined {
  * **The child ran and exited first** (CodySwannGT/lisa#2949,
  * CodySwannGT/lisa#3122). It consumed no stdin on some exit path, and the
  * parent's write is racing that exit — so whether it surfaces is decided by the
- * box, and it is intermittent by construction. Measured: the shipped
- * `parity-safety-net.sh` run under `/bin/sh`, which on Linux is `dash`, dies on
+ * box, and it is intermittent by construction. Measured: a since-retired
+ * shipped guard run under `/bin/sh`, which on Linux is `dash`, dies on
  * `set -o pipefail` at line 84 — nine lines before its `input="$(cat)"` — so it
  * exits 2 having read nothing. One core, a 72-byte payload, 300 spawns per arm:
  * **0 EPIPE at rest, 3 under 4 CPU hogs, 31 under 16.** Same code, same

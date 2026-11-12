@@ -14,8 +14,8 @@ const SETTINGS_REL_PATH = path.join(".claude", "settings.json");
  * - `impeccable@impeccable` — an unpinned design plugin the Expo and Rails
  *   templates enabled from `pbakaus/impeccable` (#311).
  * - `cc-safety-net@cc-marketplace` — the upstream safety-net plugin's real
- *   name. Lisa's `parity-safety-net.sh` hook already screens every Bash
- *   command, so it double-screened them (#1960).
+ *   name. It double-screened every Bash command alongside a Lisa-native hook
+ *   that absorbed its guards (#1960).
  * - `safety-net@cc-marketplace` — the name #1960 pinned to `false`, which
  *   matches no plugin, which is why the real one stayed on (#4799).
  * - `code-review@claude-plugins-official` — superseded by Claude Code's

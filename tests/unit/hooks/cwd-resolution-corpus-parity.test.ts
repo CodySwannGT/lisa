@@ -1,5 +1,4 @@
-/** Worktree binding retains every applicable shared cwd-resolution row.
- * The former shell classifier retired in #4672; it no longer resolves files. */
+/** Worktree binding resolves every row of the shared cwd-resolution corpus. */
 import { readFileSync } from "node:fs";
 import path from "node:path";
 
@@ -63,12 +62,11 @@ function decoys(row: Row): readonly string[] {
   return candidates(dirs).filter(dir => dir !== target);
 }
 
-describe("the shared cwd-resolution corpus binds both guards", () => {
+describe("the shared cwd-resolution corpus binds worktree-binding-guard", () => {
   it("has rows", () => {
     expect(corpus.rows.length).toBeGreaterThan(0);
   });
 
-  // The shell classifier retired in #4672. Keep every surviving Node-guard row.
   for (const row of corpus.rows.filter(item => item.applies.includes("node"))) {
     describe(`${row.id} — ${row.why}`, () => {
       if (row.applies.includes("node")) {

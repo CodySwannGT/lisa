@@ -35,8 +35,8 @@ describe("OpenCode host-name guard distribution (#4540)", () => {
     const result = await installHooks(lisaDir, project, ["typescript"], []);
     const files = await listInstalledPluginFiles(project);
     expect(result.pluginCount).toBe(files.length);
-    // Six existing support files, the three Rails engine modules, and the
+    // Five existing support files, the three Rails engine modules, and the
     // host-name wrapper/classifier/context helper are managed alongside plugins.
-    expect(result.managedFiles).toHaveLength(files.length + 12);
+    expect(result.managedFiles).toHaveLength(files.length + 11);
   });
 });

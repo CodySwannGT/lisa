@@ -7,9 +7,8 @@
  * `grep -n foo bar.sh` reads; `bash bar.sh` runs. Only the second may have its
  * contents attributed to the command.
  *
- * That rule is not invented here. `parity-safety-net.sh` already states it —
- * "Only a COMMAND POSITION can execute something. A path anywhere else is an
- * argument, and an argument is data (#3604)" — and names the opposite fix as
+ * The rule: "Only a COMMAND POSITION can execute something. A path anywhere
+ * else is an argument, and an argument is data (#3604)" — the opposite fix is
  * known-wrong. A sibling guard nonetheless opens any readable file named by any
  * token, which is the over-blocking half of the same classify step.
  *

@@ -368,12 +368,9 @@ jobs:
       # not be, and exits 2 at zero probed.
       - name: Check no guard reports OK on an empty subject
         run: bun run check:empty-subject-guards
-      # #3952: two guards answer "which file will this command actually execute?"
-      # in two languages — POSIX shell in parity-safety-net.sh, Node in
-      # worktree-binding-guard.mjs — and they cannot share an implementation,
-      # because no call reaches from Node into a shell function's file-scope
-      # state. They share a corpus of rows instead, and that only binds them
-      # while the rows stay adversarial. Rows decay in one direction: a `holds`
+      # #3952: worktree-binding-guard.mjs answers "which file will this command
+      # actually execute?", and a corpus of rows is the written contract that
+      # answer is held to. That only binds it while the rows stay adversarial. Rows decay in one direction: a `holds`
       # row is easy to write and always passes, so a corpus left alone drifts
       # towards proving the resolver RAN rather than that it BITES. This refuses
       # a corpus missing either rejection direction, and refuses any contract
