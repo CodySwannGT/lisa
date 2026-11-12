@@ -1,8 +1,8 @@
 {
   "$generatedBy": "scripts/generate-export-surface.mjs",
   "$doNotEdit": "The public export surface this package ships, recorded so a removal is an OBSERVATION rather than an inference from commit-message conventions. This file's diff is what makes a removed export visible in the pull request that causes it (CodySwannGT/lisa#3718).",
-  "$modules": 276,
-  "$names": 1979,
+  "$modules": 277,
+  "$names": 1986,
   "surface": {
     "all/copy-overwrite/scripts/check-conflict-markers.mjs": [
       "UsageError",
@@ -152,6 +152,15 @@
     ],
     "all/copy-overwrite/scripts/lib/completion-proof-adapters.mjs": [
       "completionContext"
+    ],
+    "all/copy-overwrite/scripts/lib/completion-proof-codepipeline.mjs": [
+      "ACCOUNT_ID_PATTERN",
+      "CODEPIPELINE",
+      "DELIVERY_MECHANISMS",
+      "PIPELINE_NAME_PATTERN",
+      "REGION_PATTERN",
+      "describeCodePipelineDelivery",
+      "validateCodePipelineDelivery"
     ],
     "all/copy-overwrite/scripts/lib/completion-proof-conformance.mjs": [
       "validateConformance"

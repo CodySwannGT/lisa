@@ -142,6 +142,7 @@ scripts/lib/automation-provenance-local.mjs
 scripts/lib/bounded-spawn.mjs
 scripts/lib/completion-authorization.mjs
 scripts/lib/completion-proof-adapters.mjs
+scripts/lib/completion-proof-codepipeline.mjs
 scripts/lib/completion-proof-conformance.mjs
 scripts/lib/completion-proof-content.mjs
 scripts/lib/completion-proof-errors.mjs
