@@ -188,34 +188,24 @@ async function buildTarball(
 }
 
 /**
- * Pack the Git index and install the genuine isolated candidate tool.
+ * Pack the Git index into the exact candidate. The packed tool is installed
+ * afterwards by `installTool`, through the loopback registry this candidate
+ * starts (CodySwannGT/lisa#4636), so the candidate names where it will be.
  * @param repo - Source checkout whose index is the candidate
  * @param root - Isolated fixture root
- * @returns Exact candidate identity and installed packed CLI paths
+ * @returns Exact candidate identity and the packed CLI's install path
  */
 export async function packCandidate(
   repo: string,
   root: string
 ): Promise<Candidate> {
-  const { env, logs, version, cache, tarball, integrity, head, tree } =
+  const { env, logs, version, tarball, integrity, head, tree } =
     await buildTarball(await prepareCandidate(repo, root));
-  const tool = path.join(root, "tool");
-  write(tool, MANIFEST, {
-    name: "packed-runtime-tool",
-    version: "1.0.0",
-    private: true,
-    dependencies: { "@codyswann/lisa": `file:${tarball}` },
-  });
-  await run(
-    "bun",
-    ["install", "--ignore-scripts", "--cache-dir", cache],
-    tool,
-    env,
-    logs,
-    "install-tool",
-    180_000
-  );
-  const candidate = {
+  // Nothing reads the checkout once the tarball is built and validated: the
+  // tool is proven against the extracted oracle, so its entries leave the
+  // teardown here.
+  await freeCheckout(path.join(root, "checkout"));
+  return {
     root,
     tarball,
     sourceHead: head,
@@ -226,7 +216,8 @@ export async function packCandidate(
     memberCount: files(path.join(root, "oracle", "package")).length,
     oracle: path.join(root, "oracle", "package"),
     entry: path.join(
-      tool,
+      root,
+      "tool",
       "node_modules",
       "@codyswann",
       "lisa",
@@ -238,15 +229,6 @@ export async function packCandidate(
     env,
     logs,
   };
-  assertInstalledBytes(
-    candidate,
-    path.join(tool, "node_modules", "@codyswann", "lisa")
-  );
-  // Nothing reads the checkout once the tarball is built and the installed
-  // tool proven byte-identical to it, so its entries leave the teardown here
-  // (CodySwannGT/lisa#4636).
-  await freeCheckout(path.join(root, "checkout"));
-  return candidate;
 }
 
 /**

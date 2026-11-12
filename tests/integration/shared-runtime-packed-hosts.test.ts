@@ -15,6 +15,7 @@ import {
   type Candidate,
 } from "../fixtures/shared-runtime-hosts/artifact.js";
 import { verifyHost } from "../fixtures/shared-runtime-hosts/journey.js";
+import { installTool } from "../fixtures/shared-runtime-hosts/tool-install.js";
 import { verifyRuntimeOwnership } from "../fixtures/shared-runtime-hosts/ownership.js";
 import { verifyInheritedHost } from "../fixtures/shared-runtime-hosts/inherited-journey.js";
 import { assertPackedRuntimePolicy } from "../fixtures/shared-runtime-hosts/assertions.js";
@@ -229,8 +230,11 @@ beforeAll(async () => {
     path.resolve(import.meta.dirname, "../.."),
     root
   );
-  assertPackedRuntimePolicy(candidate);
+  // The registry starts before the tool installs, so the tool installs Lisa
+  // through it exactly as the hosts do (CodySwannGT/lisa#4636).
   registry = await startRegistry(candidate);
+  await installTool(candidate, registry.url);
+  assertPackedRuntimePolicy(candidate);
   const cache = candidate.env["BUN_INSTALL_CACHE_DIR"];
   expect(cache, "the candidate's shared install cache").toBeDefined();
   sharedCache = sharedInstallCache(cache!, INSTALLERS);
