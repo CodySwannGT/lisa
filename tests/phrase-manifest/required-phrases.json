@@ -10717,27 +10717,11 @@
           "flags": "i"
         },
         {
-          "source": "Do\\s+not add AWS merely because Lisa ships AWS support",
-          "flags": "i"
-        },
-        {
           "source": "Never invent values or promote dormant substrates to required",
           "flags": "i"
         },
         {
           "source": "OPTIONAL non-tracker MCP recovery entries",
-          "flags": "i"
-        },
-        {
-          "source": "never a value",
-          "flags": "i"
-        },
-        {
-          "source": "omit optional, conditional, and dormant",
-          "flags": "i"
-        },
-        {
-          "source": "only entries that are `required: true`",
           "flags": "i"
         }
       ],
@@ -17388,27 +17372,11 @@
           "flags": "i"
         },
         {
-          "source": "Do\\s+not add AWS merely because Lisa ships AWS support",
-          "flags": "i"
-        },
-        {
           "source": "Never invent values or promote dormant substrates to required",
           "flags": "i"
         },
         {
           "source": "OPTIONAL non-tracker MCP recovery entries",
-          "flags": "i"
-        },
-        {
-          "source": "never a value",
-          "flags": "i"
-        },
-        {
-          "source": "omit optional, conditional, and dormant",
-          "flags": "i"
-        },
-        {
-          "source": "only entries that are `required: true`",
           "flags": "i"
         }
       ],

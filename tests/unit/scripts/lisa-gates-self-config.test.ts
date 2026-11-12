@@ -157,9 +157,8 @@ const REQUIRED_PR_CONTEXTS = [
   "🔍 Quality Checks / 🧪 Run Integration Tests",
   "🔍 Quality Checks / 🧪 Run Unit Tests",
   "🔍 Quality Checks / 🧹 Lint",
-  // Bootstrapped and promoted together on #1547: declaring the first root BDD
-  // contract without making this context required would leave it advisory.
-  "🔍 Quality Checks / 🧾 BDD Behavior Contract",
+  // "🧾 BDD Behavior Contract" left this list in #4804: Lisa's root BDD
+  // contract covered only the removed console, so the gate is declared off.
   // Last, not first: contextsFor sorts with localeCompare, which orders every
   // emoji-prefixed derived context ahead of a plain vendor name.
   ...AWAITED_VENDOR_CONTEXTS,

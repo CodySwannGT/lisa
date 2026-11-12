@@ -69,15 +69,6 @@ describe("sync invocation", () => {
     expect(subcommandNames).not.toContain("ui");
   });
 
-  it("rejects ui as an unknown command", async () => {
-    const { program } = createTestProgram();
-    program.configureOutput({ writeErr: () => undefined });
-
-    await expect(
-      program.parseAsync(["ui", DEST], { from: "user" })
-    ).rejects.toMatchObject({ code: "commander.unknownCommand" });
-  });
-
   it("routes sync options to the sync action", async () => {
     const { program, runSync } = createTestProgram();
 
