@@ -3,9 +3,10 @@
  * edits introducing error-suppression directives (@ts-ignore, @ts-nocheck,
  * eslint-disable, biome-ignore, prettier-ignore) into JS/TS source.
  *
- * The hook inspects only the NEW text a tool introduces (Edit/Write/MultiEdit
- * new content, or the added `+` lines of an apply_patch diff), scoped to JS/TS
- * files, and matches the directive only in comment syntax so prose, strings,
+ * For Edit/Write/MultiEdit the hook refuses only directive GROWTH
+ * (CodySwannGT/lisa#4492): it compares the directives before the write (the
+ * file on disk, or each edit's old text) with those after it. For apply_patch
+ * it inspects the added `+` lines. It is scoped to JS/TS files, and matches the directive only in comment syntax so prose, strings,
  * and identifiers that merely mention the tokens are not flagged. @ts-expect-
  * error is intentionally allowed as the safer alternative.
  *
@@ -14,10 +15,18 @@
  * caught by the very hook under test when this file is later edited).
  * @module tests/unit/codex/block-suppress-directives
  */
+import { mkdtempSync, rmSync } from "node:fs";
+import os from "node:os";
 import path from "node:path";
-import { describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { boundedSpawnSync } from "../../helpers/io-latency-budget.js";
+import {
+  GROWTH_CASES,
+  hookEnvelope,
+  prepareDisk,
+  RUNS_AS_ROOT,
+} from "../../helpers/suppress-directive-growth-cases.js";
 
 const SCRIPT_PATH = path.resolve(
   "src/codex/scripts/block-suppress-directives.sh"
@@ -176,6 +185,25 @@ describe("block-suppress-directives.sh", () => {
         "*** End Patch\n";
       const { status } = run(applyPatchEnvelope(patch));
       expect(status).toBe(EXIT_BLOCKED);
+    });
+  });
+
+  describe("growth semantics (CodySwannGT/lisa#4492)", () => {
+    let dir: string;
+
+    beforeEach(() => {
+      dir = mkdtempSync(path.join(os.tmpdir(), "lisa-codex-suppress-growth-"));
+    });
+
+    afterEach(() => {
+      rmSync(dir, { recursive: true, force: true });
+    });
+
+    it.each(GROWTH_CASES)("$name", growthCase => {
+      if (growthCase.disk.kind === "unreadable" && RUNS_AS_ROOT) return;
+      const target = prepareDisk(dir, growthCase.disk);
+      const { status } = run(hookEnvelope(target, growthCase.call));
+      expect(status).toBe(growthCase.refused ? EXIT_BLOCKED : EXIT_ALLOWED);
     });
   });
 

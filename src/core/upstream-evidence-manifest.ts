@@ -2381,7 +2381,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/rails/skills/ops-verify-telemetry/SKILL.md":
       "ef62ffd2115a67b29ccc2356e555a5e590f7045503400eec5c7289c9c76bb7d4",
     "plugins/src/typescript/hooks/block-suppress-directives.sh":
-      "89c8b356b2edd59d48524bcc74a59eba273a7375574cbde23951babcf971566e",
+      "86de04d24aa1208fc2ef3ea9021b0036f755da849fae44dff7166cf05b49d636",
     "plugins/src/typescript/hooks/format-on-edit.sh":
       "c9b91f4470a9f96c556124b902a6d86c32c1efe643988b6dcb28dc9b2c127d06",
     "plugins/src/typescript/hooks/lint-on-edit.sh":
@@ -11778,6 +11778,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/helpers/staged-dependency-scan.ts": true,
     "tests/helpers/stderr-sync.ts": true,
     "tests/helpers/supervised-unix-fixture.ts": true,
+    "tests/helpers/suppress-directive-growth-cases.ts": true,
     "tests/helpers/template-toolchain.ts": true,
     "tests/helpers/test-run-child-process-analysis.ts": true,
     "tests/helpers/test-run-child-process-binding-plan.ts": true,
@@ -12865,6 +12866,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/opencode/block-migration-edits-plugin.test.ts": true,
     "tests/unit/opencode/block-no-verify-emit.test.ts": true,
     "tests/unit/opencode/block-no-verify-plugin.test.ts": true,
+    "tests/unit/opencode/block-suppress-directives-plugin.test.ts": true,
     "tests/unit/opencode/command-installer.test.ts": true,
     "tests/unit/opencode/command-transformer.test.ts": true,
     "tests/unit/opencode/discharge-work-item-gates-plugin.test.ts": true,
@@ -12884,6 +12886,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/opencode/skills-installer.test.ts": true,
     "tests/unit/opencode/support-file-parity.test.ts": true,
     "tests/unit/opencode/support/filing-parity.ts": true,
+    "tests/unit/plugins/block-suppress-directives.test.ts": true,
     "tests/unit/plugins/container-view-pattern-parity.test.ts": true,
     "tests/unit/plugins/hook-registration-agreement.test.ts": true,
     "tests/unit/plugins/hook-registration.test.ts": true,
