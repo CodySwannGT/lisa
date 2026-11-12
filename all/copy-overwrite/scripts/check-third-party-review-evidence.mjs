@@ -165,12 +165,25 @@
  * runs from the default branch, so the job's own check run lands on the
  * default branch's latest commit — never on the pull request head it judged.
  * `--publish` reads the verdict a `--json` run saved, and the exit code it
- * ended with, and creates ONE check run on that head: `success` for
+ * ended with, and creates a check run on that head: `success` for
  * `satisfied` and `substituted`, `failure` for `unsatisfied` and for
  * `pull-requests-unreadable`. A run with no head to show it on, or that cannot
  * change the answer, publishes nothing and says why. A missing or unparseable
  * verdict, an exit code other than the verdict's own, or a refused write fails
  * the mode, so broken machinery still shows on the job.
+ *
+ * ## The verdict is published under every declared reviewer's name (#4738)
+ *
+ * The check run is named `🕵️ Third-party review evidence (<context>)`. The
+ * verdict covers every declared reviewer, so one is created for `--context`
+ * AND for each reviewer the checkout's config or the saved readings declare,
+ * each name once. Otherwise a red `(A)` stays red after B's later review makes
+ * the head acceptable, because B's run would update only `(B)`. An empty
+ * `--context` — a manual run that names no reviewer — adds the bare name; a
+ * manual run that names one overwrites that reviewer's stale check run, which
+ * is how a red check is cleared after a writer's substitute, since a comment
+ * wakes no run. Each refused write is reported and fails the mode; the other
+ * names are still written.
  *
  * CLI:
  *   node scripts/check-third-party-review-evidence.mjs --sha <sha> [--json]
@@ -178,7 +191,7 @@
  *     [--arm [--vacuity-report <path>]]
  *   node scripts/check-third-party-review-evidence.mjs --sha <sha>
  *     --publish <saved-verdict.json> --prover-exit <code>
- *     [--context <context>] [--repo <owner/repo>]
+ *     [--context <context>] [--root <dir>] [--repo <owner/repo>]
  *
  * `--arm` answers the merge driver's arm gate instead (#4653): whether
  * auto-merge may be turned on for this head, and if not, what to do next.
@@ -2171,6 +2184,60 @@ function writeArmDecision(verdict, { opts, io, out, repo, pulls, canWrite }) {
 export const PUBLISHED_CHECK_NAME = "🕵️ Third-party review evidence";
 
 /**
+ * The check run name a verdict is published under for one reviewer context.
+ * @param {string} context - A reviewer context; empty for the bare name.
+ * @returns {string} The check run name.
+ */
+const publishedCheckName = context =>
+  context ? `${PUBLISHED_CHECK_NAME} (${context})` : PUBLISHED_CHECK_NAME;
+
+/**
+ * Every reviewer context one publishing run publishes its verdict under
+ * (#4738), the supplied one first and each once.
+ *
+ * The verdict covers every declared reviewer, so it is published under each
+ * one's name: otherwise a red `(A)` stays red after B's later review makes the
+ * head acceptable, because B's run updated only `(B)`. The declared reviewers
+ * are the config's, joined by every context the saved readings name, so a
+ * verdict saved with no readings — an unreadable pull-request list — still
+ * reaches them. The supplied context is kept even when nothing declares it,
+ * and an empty one (the manual path) is the bare name.
+ * @param {object} options - The run.
+ * @param {string} options.context - The context that woke the run; empty on the manual path.
+ * @param {object} options.gates - The `gates` block of `.lisa.config.json`.
+ * @param {ReadonlyArray<{context?: unknown}>} options.readings - The saved verdict's readings.
+ * @returns {string[]} The contexts, deduplicated; "" stands for the bare name.
+ */
+function publishedContexts({ context, gates, readings }) {
+  const declared = [
+    ...configuredReviewers({ gates }).map(reviewer => reviewer.context),
+    ...readings
+      .map(reading => reading?.context)
+      .filter(named => typeof named === "string" && named !== ""),
+  ];
+  return [...new Set([context, ...declared])];
+}
+
+/**
+ * The `gates` block the publish step's checkout declares.
+ *
+ * It is only consulted to widen which names a verdict is published under, so
+ * a config that cannot be read narrows the publication to the supplied name
+ * and the saved readings' — today's behaviour — rather than failing a run
+ * that already reached a verdict.
+ * @param {string} root - The checkout's root.
+ * @returns {object} The gates block, or none.
+ */
+function publishingGates(root) {
+  // probe-direction: neutral — no gate reads this; it only chooses which names an already-reached verdict is shown under.
+  try {
+    return readGates(root).gates;
+  } catch {
+    return {};
+  }
+}
+
+/**
  * The conclusion each published outcome carries on the head it judged.
  *
  * `success` for a head a reviewer, or a writer's substitute, vouches for — the
@@ -2263,7 +2330,7 @@ function savedVerdict(text, sha) {
  * @param {string} options.proverExit - The exit code the prover ended with.
  * @param {string} options.sha - The head the verdict judged.
  * @param {string} options.context - The reviewer that woke the run; empty on the manual path.
- * @returns {{error: string}|{report: string, why: string}|{report: string, body: object}} The publication.
+ * @returns {{error: string}|{report: string, why: string}|{report: string, body: object, readings: ReadonlyArray<ReportedReading>}} The publication: `body` is named for `context`.
  */
 export function verdictPublication({ text, proverExit, sha, context }) {
   if (proverExit !== "0" && proverExit !== "1") {
@@ -2298,10 +2365,9 @@ export function verdictPublication({ text, proverExit, sha, context }) {
   }
   return {
     report,
+    readings: verdict.readings,
     body: {
-      name: context
-        ? `${PUBLISHED_CHECK_NAME} (${context})`
-        : PUBLISHED_CHECK_NAME,
+      name: publishedCheckName(context),
       head_sha: sha,
       status: "completed",
       conclusion,
@@ -2335,11 +2401,14 @@ function refusalOf(error) {
 /**
  * Publish a saved verdict on the head it judged, and return the exit code.
  *
- * 0 once the check run is created, or when nothing is to be published; 1
- * when the verdict could not be read or trusted, or GitHub refused the write.
- * The report goes to stdout and to the step summary either way.
+ * The verdict is published under every name `publishedContexts` returns
+ * (#4738). 0 once every check run is created, or when nothing is to be
+ * published; 1 when the verdict could not be read or trusted, or GitHub
+ * refused any one write — each refusal is reported, and the other names are
+ * still attempted. The report goes to stdout and to the step summary either way.
  * @param {ReturnType<typeof parseArgs> & {sha: string}} opts - Parsed options.
  * @param {object} io - Injected side effects.
+ * @param {object} [io.gates] - The gates block naming the declared reviewers, read from `--root` when absent.
  * @param {(path: string) => string} [io.readFile] - Reader for the saved verdict.
  * @param {(args: string[], input: string) => string} [io.gh] - Writer: `gh` with a request body on stdin.
  * @param {(text: string) => void} [io.appendSummary] - Appends to the job's step summary.
@@ -2381,7 +2450,31 @@ function publishVerdict(opts, io, out, err) {
     summarise(`Nothing published: ${plan.why}.\n`);
     return 0;
   }
-  const { name, conclusion } = plan.body;
+  const contexts = publishedContexts({
+    context: opts.context ?? "",
+    gates: io.gates ?? publishingGates(opts.root),
+    readings: plan.readings,
+  });
+  const write = checkRunWriter(opts, io, { out, err, summarise });
+  // Every name is attempted, so one refusal leaves no other name stale; any
+  // refusal still fails the job.
+  const published = contexts.map(context =>
+    write({ ...plan.body, name: publishedCheckName(context) })
+  );
+  return published.every(Boolean) ? 0 : 1;
+}
+
+/**
+ * A writer that creates one check run on the judged head and reports it.
+ * @param {ReturnType<typeof parseArgs> & {sha: string}} opts - Parsed options.
+ * @param {{gh?: (args: string[], input: string) => string}} io - Injected side effects.
+ * @param {object} sinks - Where the outcome is reported.
+ * @param {{write: (text: string) => void}} sinks.out - Stdout.
+ * @param {{write: (text: string) => void}} sinks.err - Stderr.
+ * @param {(text: string) => void} sinks.summarise - Step-summary writer.
+ * @returns {(body: {name: string, conclusion: string}) => boolean} Creates one check run; true once GitHub accepted it.
+ */
+function checkRunWriter(opts, io, { out, err, summarise }) {
   const repo = opts.repo ?? process.env.GITHUB_REPOSITORY ?? "";
   const gh =
     io.gh ??
@@ -2391,31 +2484,34 @@ function publishVerdict(opts, io, out, err) {
         input,
         stdio: ["pipe", "pipe", "pipe"],
       }));
-  // probe-direction: fail-closed — a write that was refused, or killed at its deadline, published nothing, so the job fails.
-  try {
-    if (!/^[^/\s]+\/[^/\s]+$/u.test(repo)) {
-      throw new Error(`repository must be owner/repo, not "${repo}"`);
+  return body => {
+    const { name, conclusion } = body;
+    // probe-direction: fail-closed — a write that was refused, or killed at its deadline, published nothing, so the job fails.
+    try {
+      if (!/^[^/\s]+\/[^/\s]+$/u.test(repo)) {
+        throw new Error(`repository must be owner/repo, not "${repo}"`);
+      }
+      gh(
+        ["api", `repos/${repo}/check-runs`, "--method", "POST", "--input", "-"],
+        JSON.stringify(body)
+      );
+    } catch (error) {
+      err.write(
+        `::error title=Review evidence verdict not published::The check run "${name}" was not published on ${opts.sha}: ${refusalOf(error)}. The verdict is not on the pull request head, so this job fails.\n`
+      );
+      return false;
     }
-    gh(
-      ["api", `repos/${repo}/check-runs`, "--method", "POST", "--input", "-"],
-      JSON.stringify(plan.body)
-    );
-  } catch (error) {
-    err.write(
-      `::error title=Review evidence verdict not published::The check run "${name}" was not published on ${opts.sha}: ${refusalOf(error)}. The verdict is not on the pull request head, so this job fails.\n`
-    );
-    return 1;
-  }
-  out.write(`Published "${name}" on ${opts.sha}: ${conclusion}.\n`);
-  summarise(`Published \`${name}\` on \`${opts.sha}\`: **${conclusion}**.\n`);
-  return 0;
+    out.write(`Published "${name}" on ${opts.sha}: ${conclusion}.\n`);
+    summarise(`Published \`${name}\` on \`${opts.sha}\`: **${conclusion}**.\n`);
+    return true;
+  };
 }
 
 /**
  * The CLI body.
  * @param {string[]} argv - Arguments after the script path.
  * @param {object} [io] - Injected side effects, for tests.
- * @param {object} [io.gates] - The gates block, read from disk when absent.
+ * @param {object} [io.gates] - The gates block, read from disk when absent; `--publish` reads it for the declared reviewers' names.
  * @param {(sha: string) => number[]|null} [io.pulls] - Head-pull-request reader; null when the read failed.
  * @param {(sha: string) => ReadonlyArray<object>|null} [io.statuses] - Status reader.
  * @param {(sha: string, context: string) => ReadonlyArray<RawCheckRun>|null} [io.checkRuns] -

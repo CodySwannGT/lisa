@@ -2,6 +2,51 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [4.102.0](https://github.com/CodySwannGT/lisa/compare/v4.101.11...v4.102.0) (2026-11-12)
+
+
+### Features
+
+* **evidence:** add a dry-run-first prune for full evidence releases ([f3dfe2a](https://github.com/CodySwannGT/lisa/commit/f3dfe2aacb582e9f5ce8d1d08ef6e04c14f25c62)), closes [#4729](https://github.com/CodySwannGT/lisa/issues/4729) [CodySwannGT/lisa#4720](https://github.com/CodySwannGT/lisa/issues/4720) [CodySwannGT/lisa#4720](https://github.com/CodySwannGT/lisa/issues/4720)
+
+
+### Bug Fixes
+
+* **evidence:** refuse empty prune operands and hash the archive read-back ([1a1eb5a](https://github.com/CodySwannGT/lisa/commit/1a1eb5a18517e9f9de4d0e331478821f7f73425d)), closes [CodySwannGT/lisa#4720](https://github.com/CodySwannGT/lisa/issues/4720) [CodySwannGT/lisa#4720](https://github.com/CodySwannGT/lisa/issues/4720)
+* **evidence:** rescan the pinned evidence release and refuse stray uploads ([d70d773](https://github.com/CodySwannGT/lisa/commit/d70d773fd324501082cc63c362a96cf648844d63)), closes [CodySwannGT/lisa#4720](https://github.com/CodySwannGT/lisa/issues/4720) [CodySwannGT/lisa#4720](https://github.com/CodySwannGT/lisa/issues/4720)
+* **evidence:** satisfy repository sweeps for the evidence prune ([91fea3f](https://github.com/CodySwannGT/lisa/commit/91fea3f6dc1a2e3de5105078152430a2b48e9f45)), closes [CodySwannGT/lisa#4720](https://github.com/CodySwannGT/lisa/issues/4720) [CodySwannGT/lisa#4720](https://github.com/CodySwannGT/lisa/issues/4720)
+
+### [4.101.11](https://github.com/CodySwannGT/lisa/compare/v4.101.10...v4.101.11) (2026-11-12)
+
+
+### Bug Fixes
+
+* **third-party-evidence:** clear a stale reviewer check without a re-review ([f1fb948](https://github.com/CodySwannGT/lisa/commit/f1fb9481dfef399c9522383be9eb6ed054d48b41)), closes [#4738](https://github.com/CodySwannGT/lisa/issues/4738) [CodySwannGT/lisa#4738](https://github.com/CodySwannGT/lisa/issues/4738)
+* **third-party-evidence:** state the real gap a missing context input leaves ([20a8ac9](https://github.com/CodySwannGT/lisa/commit/20a8ac97e2832e7d424cebad75a53b0719a736d4)), closes [#4738](https://github.com/CodySwannGT/lisa/issues/4738) [CodySwannGT/lisa#4738](https://github.com/CodySwannGT/lisa/issues/4738)
+
+### [4.101.10](https://github.com/CodySwannGT/lisa/compare/v4.101.9...v4.101.10) (2026-11-12)
+
+
+### Bug Fixes
+
+* **lifecycle:** cap a dispatched terminal-transition replay range ([2282c11](https://github.com/CodySwannGT/lisa/commit/2282c1101b5a21b38eabaec5b172bf8f85dce504)), closes [CodySwannGT/lisa#4773](https://github.com/CodySwannGT/lisa/issues/4773) [CodySwannGT/lisa#4773](https://github.com/CodySwannGT/lisa/issues/4773)
+* **lifecycle:** read ANSI evidence on gh >= 2.97 and name failed proof reads ([18408d6](https://github.com/CodySwannGT/lisa/commit/18408d6fa8387503716ed2141320591c24fafcea)), closes [CodySwannGT/lisa#4730](https://github.com/CodySwannGT/lisa/issues/4730) [CodySwannGT/lisa#4773](https://github.com/CodySwannGT/lisa/issues/4773) [CodySwannGT/lisa#4773](https://github.com/CodySwannGT/lisa/issues/4773)
+* **lifecycle:** redact colour-wrapped tokens in proof read errors ([a112b5c](https://github.com/CodySwannGT/lisa/commit/a112b5cdb10de528113029ae64341fb760b5cf69)), closes [CodySwannGT/lisa#4773](https://github.com/CodySwannGT/lisa/issues/4773) [CodySwannGT/lisa#4773](https://github.com/CodySwannGT/lisa/issues/4773)
+
+### [4.101.9](https://github.com/CodySwannGT/lisa/compare/v4.101.8...v4.101.9) (2026-11-12)
+
+
+### Bug Fixes
+
+* **work-item:** accept finish as the collision-free spelling of complete ([1611268](https://github.com/CodySwannGT/lisa/commit/16112683139e63621124a2e184620c0444ef13bb)), closes [#2469](https://github.com/CodySwannGT/lisa/issues/2469) [CodySwannGT/lisa#4683](https://github.com/CodySwannGT/lisa/issues/4683) [CodySwannGT/lisa#4683](https://github.com/CodySwannGT/lisa/issues/4683)
+* **work-item:** make finish equal complete on every path and name it in refusals ([d60a500](https://github.com/CodySwannGT/lisa/commit/d60a500ecc3c222ea6e3355ca1b83aff854cc8df)), closes [#4771](https://github.com/CodySwannGT/lisa/issues/4771) [CodySwannGT/lisa#4683](https://github.com/CodySwannGT/lisa/issues/4683) [CodySwannGT/lisa#4683](https://github.com/CodySwannGT/lisa/issues/4683)
+* **work-item:** refresh the updater helper graph pin for lisa-work-item ([6f1d4cb](https://github.com/CodySwannGT/lisa/commit/6f1d4cbe827f12be9fc248a0ae225c1e07762d9e)), closes [CodySwannGT/lisa#4683](https://github.com/CodySwannGT/lisa/issues/4683) [CodySwannGT/lisa#4683](https://github.com/CodySwannGT/lisa/issues/4683)
+
+
+### Documentation
+
+* **skills:** document lisa-work-item finish for terminal completion ([3d8ec8f](https://github.com/CodySwannGT/lisa/commit/3d8ec8f9de3803cec5bbaaa5b65bb3799755ad99)), closes [CodySwannGT/lisa#4683](https://github.com/CodySwannGT/lisa/issues/4683) [CodySwannGT/lisa#4683](https://github.com/CodySwannGT/lisa/issues/4683)
+
 ### [4.101.8](https://github.com/CodySwannGT/lisa/compare/v4.101.7...v4.101.8) (2026-11-12)
 
 
