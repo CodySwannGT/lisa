@@ -1,0 +1,307 @@
+$ node scripts/lib/worktree-dependencies.mjs && bun run build && node dist/cli/lisa-test-run.js --profile lisa --adapter vitest -- vitest run tests/unit/helpers/stderr-sync.test.ts
+$ bun run build:dist && bun run build:plugins
+$ node scripts/lib/worktree-dependencies.mjs && node scripts/clean-dist.mjs && tsc && node scripts/copy-codex-scripts.mjs && node scripts/copy-opencode-plugin-templates.mjs
+$ bash scripts/build-plugins.sh
+Built plugins/lisa (v4.101.10)
+Built plugins/lisa-typescript (v4.101.10)
+Built plugins/lisa-expo (v4.101.10)
+Built plugins/lisa-nestjs (v4.101.10)
+Built plugins/lisa-cdk (v4.101.10)
+Built plugins/lisa-harper-fabric (v4.101.10)
+Built plugins/lisa-phaser (v4.101.10)
+Built plugins/lisa-rails (v4.101.10)
+Built plugins/lisa-wiki (v4.101.10)
+Built plugins/lisa-openclaw (v4.101.10)
+Generated Cursor variant at /Users/codysai/workspace/lisa/.claude/worktrees/4621-history-scanner-cleanup/plugins/lisa-cursor (v4.101.10)
+Generated Cursor variant at /Users/codysai/workspace/lisa/.claude/worktrees/4621-history-scanner-cleanup/plugins/lisa-typescript-cursor (v4.101.10)
+Generated Cursor variant at /Users/codysai/workspace/lisa/.claude/worktrees/4621-history-scanner-cleanup/plugins/lisa-expo-cursor (v4.101.10)
+Generated Cursor variant at /Users/codysai/workspace/lisa/.claude/worktrees/4621-history-scanner-cleanup/plugins/lisa-nestjs-cursor (v4.101.10)
+Generated Cursor variant at /Users/codysai/workspace/lisa/.claude/worktrees/4621-history-scanner-cleanup/plugins/lisa-cdk-cursor (v4.101.10)
+Generated Cursor variant at /Users/codysai/workspace/lisa/.claude/worktrees/4621-history-scanner-cleanup/plugins/lisa-harper-fabric-cursor (v4.101.10)
+Generated Cursor variant at /Users/codysai/workspace/lisa/.claude/worktrees/4621-history-scanner-cleanup/plugins/lisa-phaser-cursor (v4.101.10)
+Generated Cursor variant at /Users/codysai/workspace/lisa/.claude/worktrees/4621-history-scanner-cleanup/plugins/lisa-rails-cursor (v4.101.10)
+Generated Cursor variant at /Users/codysai/workspace/lisa/.claude/worktrees/4621-history-scanner-cleanup/plugins/lisa-wiki-cursor (v4.101.10)
+Generated Cursor variant at /Users/codysai/workspace/lisa/.claude/worktrees/4621-history-scanner-cleanup/plugins/lisa-openclaw-cursor (v4.101.10)
+Generated agy variant at /Users/codysai/workspace/lisa/.claude/worktrees/4621-history-scanner-cleanup/plugins/lisa-agy (v4.101.10)
+Generated agy variant at /Users/codysai/workspace/lisa/.claude/worktrees/4621-history-scanner-cleanup/plugins/lisa-typescript-agy (v4.101.10)
+Generated agy variant at /Users/codysai/workspace/lisa/.claude/worktrees/4621-history-scanner-cleanup/plugins/lisa-expo-agy (v4.101.10)
+Generated agy variant at /Users/codysai/workspace/lisa/.claude/worktrees/4621-history-scanner-cleanup/plugins/lisa-nestjs-agy (v4.101.10)
+Generated agy variant at /Users/codysai/workspace/lisa/.claude/worktrees/4621-history-scanner-cleanup/plugins/lisa-cdk-agy (v4.101.10)
+Generated agy variant at /Users/codysai/workspace/lisa/.claude/worktrees/4621-history-scanner-cleanup/plugins/lisa-harper-fabric-agy (v4.101.10)
+Generated agy variant at /Users/codysai/workspace/lisa/.claude/worktrees/4621-history-scanner-cleanup/plugins/lisa-phaser-agy (v4.101.10)
+Generated agy variant at /Users/codysai/workspace/lisa/.claude/worktrees/4621-history-scanner-cleanup/plugins/lisa-rails-agy (v4.101.10)
+Generated agy variant at /Users/codysai/workspace/lisa/.claude/worktrees/4621-history-scanner-cleanup/plugins/lisa-wiki-agy (v4.101.10)
+Generated agy variant at /Users/codysai/workspace/lisa/.claude/worktrees/4621-history-scanner-cleanup/plugins/lisa-openclaw-agy (v4.101.10)
+Generated Copilot variant at /Users/codysai/workspace/lisa/.claude/worktrees/4621-history-scanner-cleanup/plugins/lisa-copilot (v4.101.10)
+Generated Copilot variant at /Users/codysai/workspace/lisa/.claude/worktrees/4621-history-scanner-cleanup/plugins/lisa-typescript-copilot (v4.101.10)
+Generated Copilot variant at /Users/codysai/workspace/lisa/.claude/worktrees/4621-history-scanner-cleanup/plugins/lisa-expo-copilot (v4.101.10)
+Generated Copilot variant at /Users/codysai/workspace/lisa/.claude/worktrees/4621-history-scanner-cleanup/plugins/lisa-nestjs-copilot (v4.101.10)
+Generated Copilot variant at /Users/codysai/workspace/lisa/.claude/worktrees/4621-history-scanner-cleanup/plugins/lisa-cdk-copilot (v4.101.10)
+Generated Copilot variant at /Users/codysai/workspace/lisa/.claude/worktrees/4621-history-scanner-cleanup/plugins/lisa-harper-fabric-copilot (v4.101.10)
+Generated Copilot variant at /Users/codysai/workspace/lisa/.claude/worktrees/4621-history-scanner-cleanup/plugins/lisa-phaser-copilot (v4.101.10)
+Generated Copilot variant at /Users/codysai/workspace/lisa/.claude/worktrees/4621-history-scanner-cleanup/plugins/lisa-rails-copilot (v4.101.10)
+Generated Copilot variant at /Users/codysai/workspace/lisa/.claude/worktrees/4621-history-scanner-cleanup/plugins/lisa-wiki-copilot (v4.101.10)
+Generated Copilot variant at /Users/codysai/workspace/lisa/.claude/worktrees/4621-history-scanner-cleanup/plugins/lisa-openclaw-copilot (v4.101.10)
+Generated Devin variant at /Users/codysai/workspace/lisa/.claude/worktrees/4621-history-scanner-cleanup/plugins/lisa-devin (v4.101.10)
+Generated Devin variant at /Users/codysai/workspace/lisa/.claude/worktrees/4621-history-scanner-cleanup/plugins/lisa-typescript-devin (v4.101.10)
+Generated Devin variant at /Users/codysai/workspace/lisa/.claude/worktrees/4621-history-scanner-cleanup/plugins/lisa-expo-devin (v4.101.10)
+Generated Devin variant at /Users/codysai/workspace/lisa/.claude/worktrees/4621-history-scanner-cleanup/plugins/lisa-nestjs-devin (v4.101.10)
+Generated Devin variant at /Users/codysai/workspace/lisa/.claude/worktrees/4621-history-scanner-cleanup/plugins/lisa-cdk-devin (v4.101.10)
+Generated Devin variant at /Users/codysai/workspace/lisa/.claude/worktrees/4621-history-scanner-cleanup/plugins/lisa-harper-fabric-devin (v4.101.10)
+Generated Devin variant at /Users/codysai/workspace/lisa/.claude/worktrees/4621-history-scanner-cleanup/plugins/lisa-phaser-devin (v4.101.10)
+Generated Devin variant at /Users/codysai/workspace/lisa/.claude/worktrees/4621-history-scanner-cleanup/plugins/lisa-rails-devin (v4.101.10)
+Generated Devin variant at /Users/codysai/workspace/lisa/.claude/worktrees/4621-history-scanner-cleanup/plugins/lisa-wiki-devin (v4.101.10)
+Generated Devin variant at /Users/codysai/workspace/lisa/.claude/worktrees/4621-history-scanner-cleanup/plugins/lisa-openclaw-devin (v4.101.10)
+lisa-test-run: TMPDIR /var/folders/vc/t6bx6dwx0h7_3bj316vkb72r0000gn/T is too long for native Unix socket fixtures; using /private/tmp.
+🧹 swept 0 stale temp dirs, 0 orphaned test processes (72 ms); kept 19 entries not private to this user
+
+ RUN  v4.1.11 /Users/codysai/workspace/lisa/.claude/worktrees/4621-history-scanner-cleanup
+
+ ❯ |lisa| tests/unit/helpers/stderr-sync.test.ts (4 tests | 2 failed) 155ms
+     × writes the message once, in one call, when the pipe takes it all 3ms
+     × finishes a message the pipe accepted only part of, writing it exactly once 1ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  |lisa| tests/unit/helpers/stderr-sync.test.ts > writeStderrSync > writes the message once, in one call, when the pipe takes it all
+AssertionError: expected 'history-scanner stderr probe\nhistory…' to be 'history-scanner stderr probe\n' // Object.is equality
+
+- Expected
++ Received
+
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
+  history-scanner stderr probe
+
+
+ ❯ tests/unit/helpers/stderr-sync.test.ts:53:34
+     51|     writeStderrSync(message);
+     52|
+     53|     expect(pipe.writes.join("")).toBe(message);
+       |                                  ^
+     54|     expect(pipe.attempts).toBe(1);
+     55|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  |lisa| tests/unit/helpers/stderr-sync.test.ts > writeStderrSync > finishes a message the pipe accepted only part of, writing it exactly once
+AssertionError: expected 'history-scannehistory-scanner stderr …' to be 'history-scanner stderr probe\n' // Object.is equality
+
+- Expected
++ Received
+
++ history-scannehistory-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
++ history-scanner stderr probe
+  history-scanner stderr probe
+
+
+ ❯ tests/unit/helpers/stderr-sync.test.ts:62:34
+     60|     writeStderrSync(message);
+     61|
+     62|     expect(pipe.writes.join("")).toBe(message);
+       |                                  ^
+     63|     expect(pipe.attempts).toBe(2);
+     64|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  2 failed | 2 passed (4)
+   Start at  09:10:53
+   Duration  427ms (transform 70ms, setup 102ms, import 9ms, tests 155ms, environment 0ms)
+
+error: script "lisa-test-run" exited with code 1
