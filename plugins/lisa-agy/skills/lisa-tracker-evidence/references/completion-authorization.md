@@ -156,7 +156,8 @@ CodePipeline does. Declare the pipeline that delivers each environment:
         "production": {
           "mechanism": "aws-codepipeline",
           "pipeline_name": "<pipeline name>",
-          "region": "<aws-region>"
+          "region": "<aws-region>",
+          "account_id": "<12-digit AWS account id>"
         }
       }
     }
@@ -174,6 +175,7 @@ delivered the change:
   "mechanism": "aws-codepipeline",
   "pipeline_name": "<pipeline name>",
   "region": "<aws-region>",
+  "account_id": "<the configured account_id, when one is set>",
   "execution_id": "<pipeline execution id>",
   "source_revision": "<the record's source.delivered_sha>"
 }
@@ -202,10 +204,20 @@ and pick the execution whose `sourceRevisions[].revisionId` is the delivered
 commit. That listing needs `codepipeline:ListPipelineExecutions`; completion
 itself needs only the `GetPipelineExecution` read.
 
+`account_id` binds the delivery to one AWS account. Stage accounts often run
+pipelines with the same name, so without it, credentials for a dev account can
+read a dev execution as production delivery. When `account_id` is set, the
+record must carry the same value, and completion first runs
+`aws sts get-caller-identity --output=json`: credentials for another account
+are refused (`invalid-proof`, naming both accounts) before any execution is
+read. `sts:GetCallerIdentity` needs no IAM grant; every valid credential may
+call it.
+
 The verifier needs no write permission. Its credentials need
 `codepipeline:GetPipelineExecution` on the pipeline, on top of the list grant
 the observer role already carries (Lisa's remote-agent AWS setup). `lisa doctor`
-warns about a CDK project that declares no `verification.completion.delivery`.
+warns about a CDK project whose `production` delivery is undeclared, and about
+an `aws-codepipeline` delivery without a valid `account_id`.
 
 Until a host configures this mechanism, it may declare
 `mechanism: "external-deployment"` instead. Its record must then attach, as
