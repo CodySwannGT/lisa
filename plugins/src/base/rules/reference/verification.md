@@ -164,13 +164,15 @@ The committed verdict carries the machine-readable half:
 evidence/<ticket>/verdict.json
   not_established: []            # what was NOT proved; may be empty
   not_established_reviewed: true # attests the list was reviewed; may NEVER be omitted
+  evidence_committed: true       # false when git ignores any of evidence/<ticket>/ — see
+                                 # "When the repository ignores evidence" below
   drift: none                    # live-environment baseline-vs-now drift classification:
                                  # none | progress | regression | unrelated_churn
   artifact: { repository, base_sha, head_sha, build_id, environment, observed_at }
   evidence: [ { evidence_id, kind, locator,
                 artifact_head_sha,   # the head_sha in force when THIS artifact was captured
                 sha256,              # content digest of the committed evidence file, or of the
-                                     # uploaded pr-assets copy when evidence/ is gitignored
+                                     # uploaded evidence-release copy when git ignores the evidence
                 captured_at } ]
 ```
 
@@ -258,29 +260,35 @@ evidence/<ticket>/
 
 `evidence/**` is ignored by lint/format/knip/coverage — it is proof, not source.
 
-**When the repository ignores `evidence/`.** Some repositories gitignore
-`evidence/` on purpose, because screenshots and recordings bloat history. Then
-`git add` skips the directory without any error, and the PR carries no proof. So
-before treating `evidence/<ticket>/` as the committed record, run
-`git check-ignore -q evidence/<ticket>/`. Exit 0 means the path is ignored, and
-then:
+**When the repository ignores evidence.** Some repositories gitignore
+`evidence/` on purpose, because screenshots and recordings bloat history. Others
+ignore file patterns such as `*.png` or `*.mp4` that the evidence uses. Either way,
+`git add` skips those files without any error, and the PR carries no proof of
+them. So before treating `evidence/<ticket>/` as the committed record, run:
 
-- The directory is **not** the durable record. The durable record is the tracker
-  evidence comment plus the evidence release (`pr-assets`) uploads that
-  `lisa-tracker-evidence` makes. Every manifest artifact must be uploaded there,
-  `verdict.json` and `state.json` included, not only the screenshots.
-- `verdict.json` records `"evidenceCommitted": false`. Each `evidence[].locator`
-  is the uploaded asset's URL, not a repository path. So each `sha256` is a digest
-  of bytes that anyone can fetch and re-check.
-- A digest of a file that exists only in one session's working tree is a
-  **session-local integrity anchor**. Never present it as something a third party
-  can re-verify.
-- Reports, PR text, and tracker comments must never say the evidence was
-  "committed". They say it was uploaded, and they name the tracker comment as the
-  record of truth.
+```bash
+git ls-files --others --ignored --exclude-standard -- evidence/<ticket>/
+```
 
-When the path is tracked (`git check-ignore` exits non-zero), commit it as above
-and record `"evidenceCommitted": true`.
+- **It prints one or more files.** Git ignores that evidence, and then:
+  - The directory is **not** the durable record. The durable record is the tracker
+    evidence comment plus the configured evidence release uploads that
+    `lisa-tracker-evidence` makes. Every manifest artifact must be uploaded there,
+    including `verdict.json` and `state.json`, not only the screenshots.
+  - `verdict.json` records `"evidence_committed": false`. Each `evidence[].locator`
+    is the uploaded asset's URL, not a repository path. So each `sha256` is a digest
+    of bytes that anyone with read access to the repository can fetch and re-check.
+  - A digest of a file that exists only in one session's working tree is a
+    **session-local integrity anchor**. Never present it as something a third party
+    can re-verify.
+  - Reports, PR text, and tracker comments never say the evidence was "committed".
+    They say it was uploaded, and they name the tracker comment as the record of
+    truth.
+- **It prints nothing and exits 0.** Nothing is ignored. Commit the directory as
+  described above and record `"evidence_committed": true`.
+- **It exits non-zero.** The check itself failed, for example because the path is
+  outside the repository or there is no repository. Stop and report the failure.
+  Never treat it as tracked.
 
 **3. Per-change verification is enforced.** Every `feat`/`fix` adds or extends a
 verification (e2e) spec mapped to its acceptance criteria. CI's

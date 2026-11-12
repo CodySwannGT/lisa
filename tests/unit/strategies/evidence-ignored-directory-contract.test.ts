@@ -1,23 +1,33 @@
 /**
  * Regression contract for CodySwannGT/lisa#4490: the verification rules and
  * the tracker-evidence wrapper must not assume `evidence/` is tracked. A host
- * that gitignores it gets no committed proof, so the guidance must branch on
- * `git check-ignore` and name the tracker comment + evidence-release uploads
- * as the durable record — in the source and in every generated agent copy.
- *
+ * that gitignores the directory, or a file pattern its artifacts use, gets no
+ * committed proof, so the guidance must branch on `git ls-files --ignored`,
+ * fail closed when that check errors, and name the tracker comment plus
+ * evidence-release uploads as the durable record — in the source and in every
+ * generated agent copy.
  * @module tests/unit/strategies/evidence-ignored-directory-contract
  */
-import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
+import {
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { readFileSync } from "node:fs";
 
-import { afterAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { boundedSpawnSync } from "../../helpers/io-latency-budget.js";
 
 const read = (relativePath: string): string =>
   readFileSync(path.resolve(relativePath), "utf8");
+
+const TICKET_DIR = "evidence/T-1/";
+const VERDICT_PATH = `${TICKET_DIR}verdict.json`;
+const SCREENSHOT_PATH = `${TICKET_DIR}01-step.png`;
 
 const EAGER_RULES = [
   "plugins/src/base/rules/eager/verification.md",
@@ -35,6 +45,14 @@ const REFERENCE_RULES = [
   "plugins/lisa-cursor/rules/verification-reference.mdc",
 ] as const;
 
+const CLAIM_EVIDENCE_RULES = [
+  "plugins/src/base/rules/reference/claim-evidence-mapping.md",
+  "plugins/lisa/rules/reference/claim-evidence-mapping.md",
+  "plugins/lisa-copilot/rules/reference/claim-evidence-mapping.md",
+  "plugins/lisa-devin/rules/reference/claim-evidence-mapping.md",
+  "plugins/lisa-cursor/rules/claim-evidence-mapping-reference.mdc",
+] as const;
+
 const EVIDENCE_SKILLS = [
   "plugins/src/base/skills/lisa-tracker-evidence/SKILL.md",
   "plugins/lisa/skills/lisa-tracker-evidence/SKILL.md",
@@ -45,18 +63,21 @@ const EVIDENCE_SKILLS = [
   "plugins/lisa-devin/skills/lisa-tracker-evidence/SKILL.md",
 ] as const;
 
-describe("ignored evidence directory contract (#4490)", () => {
+describe("ignored evidence contract (#4490)", () => {
   describe.each(EAGER_RULES)("eager verification rule %s", file => {
     const text = read(file);
 
-    it("checks whether evidence/<ticket>/ is ignored before calling it committed", () => {
-      expect(text).toContain("git check-ignore -q evidence/<ticket>/");
+    it("checks for ignored evidence before calling it committed", () => {
+      expect(text).toContain(
+        "git ls-files --others --ignored --exclude-standard -- evidence/<ticket>/"
+      );
       expect(text).toMatch(/Never call the evidence "committed"/);
+      expect(text).toMatch(/never treat that as tracked/);
     });
 
     it("names the tracker comment and evidence-release uploads as the durable record", () => {
       expect(text).toMatch(
-        /tracker evidence comment plus every artifact uploaded to the evidence release/
+        /tracker evidence comment plus every artifact uploaded to the configured evidence release/
       );
     });
   });
@@ -64,76 +85,142 @@ describe("ignored evidence directory contract (#4490)", () => {
   describe.each(REFERENCE_RULES)("reference verification rule %s", file => {
     const text = read(file);
 
-    it("documents the ignored-directory branch and its verdict shape", () => {
-      expect(text).toContain("**When the repository ignores `evidence/`.**");
-      expect(text).toContain('"evidenceCommitted": false');
-      expect(text).toContain('"evidenceCommitted": true');
+    it("documents all three outcomes of the check and the verdict field", () => {
+      expect(text).toContain("**When the repository ignores evidence.**");
+      expect(text).toContain('"evidence_committed": false');
+      expect(text).toContain('"evidence_committed": true');
+      expect(text).toContain("evidence_committed: true");
+      expect(text).toMatch(
+        /\*\*It exits non-zero\.\*\* The check itself failed/
+      );
     });
 
     it("downgrades uncommitted digests to session-local anchors", () => {
       expect(text).toContain("**session-local integrity anchor**");
       expect(text).toMatch(
-        /uploaded pr-assets copy when evidence\/ is gitignored/
+        /uploaded evidence-release copy when git ignores the evidence/
       );
     });
   });
 
+  describe.each(CLAIM_EVIDENCE_RULES)(
+    "claim-evidence-mapping rule %s",
+    file => {
+      const text = read(file);
+
+      it("defines sha256 for uploaded copies and recomputes against fetched bytes", () => {
+        expect(text).toMatch(
+          /or of its uploaded evidence-release copy when git ignores the evidence/
+        );
+        expect(text).toMatch(/of the bytes fetched from that URL/);
+      });
+    }
+  );
+
   describe.each(EVIDENCE_SKILLS)("tracker-evidence skill %s", file => {
     const text = read(file);
 
-    it("runs check-ignore before dispatch and requires full-manifest upload", () => {
-      expect(text).toContain('git check-ignore -q "$EVIDENCE_DIR"');
-      expect(text).toMatch(/Upload \*\*every\*\* manifest artifact/);
+    it("runs the ignored-evidence check before dispatch and fails closed on error", () => {
+      expect(text).toContain(
+        'git ls-files --others --ignored --exclude-standard -- "$EVIDENCE_DIR"'
+      );
+      expect(text).toMatch(/never read it as "tracked"/);
+    });
+
+    it("uploads every manifest artifact under a ticket-scoped name to the resolved release", () => {
+      expect(text).toMatch(
+        /Upload every manifest artifact the vendor skill will not upload/
+      );
+      expect(text).toContain("pr-<PR_NUMBER>-<ticket>-<file>");
+      expect(text).toContain("<IDENTIFIER>-<file>");
+      expect(text).toMatch(/Never hard-code `pr-assets`/);
       expect(text).toMatch(/Never describe ignored evidence as "committed"/);
     });
   });
 
   describe("the branch condition the rules rely on", () => {
-    const scratch = mkdtempSync(path.join(tmpdir(), "lisa-4490-"));
-    afterAll(() => rmSync(scratch, { recursive: true, force: true }));
-
-    const GIT = boundedSpawnSync({
-      label: "resolve git",
-      command: "/usr/bin/env",
-      args: ["sh", "-c", "command -v git"],
-    }).stdout.trim();
     // Drop inherited GIT_* so a hook-run suite cannot redirect the scratch repo.
     const env = Object.fromEntries(
       Object.entries(process.env).filter(([key]) => !key.startsWith("GIT_"))
     );
+    const state = { scratch: "", git: "" };
+
+    beforeAll(() => {
+      state.scratch = mkdtempSync(path.join(tmpdir(), "lisa-4490-"));
+      state.git = boundedSpawnSync({
+        label: "resolve git",
+        command: "/usr/bin/env",
+        args: ["sh", "-c", "command -v git"],
+      }).stdout.trim();
+    });
+    afterAll(() => rmSync(state.scratch, { recursive: true, force: true }));
+
     const git = (cwd: string, ...args: string[]) =>
       boundedSpawnSync({
         label: `git ${args[0]}`,
-        command: GIT,
+        command: state.git,
         args,
         cwd,
         env,
       });
-
+    const ignoredEvidence = (dir: string, target = TICKET_DIR) =>
+      git(
+        dir,
+        "ls-files",
+        "--others",
+        "--ignored",
+        "--exclude-standard",
+        "--",
+        target
+      );
+    const staged = (dir: string): string => {
+      expect(git(dir, "add", "-A").status).toBe(0);
+      return git(dir, "diff", "--cached", "--name-only").stdout;
+    };
     const repoWith = (name: string, gitignore: string | null): string => {
-      const dir = path.join(scratch, name);
+      const dir = path.join(state.scratch, name);
       mkdirSync(path.join(dir, "evidence", "T-1"), { recursive: true });
       writeFileSync(path.join(dir, "evidence", "T-1", "verdict.json"), "{}\n");
-      if (gitignore !== null)
+      writeFileSync(path.join(dir, "evidence", "T-1", "01-step.png"), "png\n");
+      if (gitignore !== null) {
         writeFileSync(path.join(dir, ".gitignore"), gitignore);
+      }
       git(dir, "init", "-q");
       return dir;
     };
 
-    it("exits 0 and git add skips the evidence when evidence/ is gitignored", () => {
-      const dir = repoWith("ignored", "evidence/\n");
-      expect(git(dir, "check-ignore", "-q", "evidence/T-1/").status).toBe(0);
-      git(dir, "add", "-A");
-      const staged = git(dir, "diff", "--cached", "--name-only").stdout;
-      expect(staged).not.toContain("evidence/T-1/verdict.json");
+    it("lists the evidence and git add skips it when evidence/ is gitignored", () => {
+      const dir = repoWith("ignored-dir", "evidence/\n");
+      const result = ignoredEvidence(dir);
+      expect(result.status).toBe(0);
+      expect(result.stdout).toContain(VERDICT_PATH);
+      expect(staged(dir)).not.toContain(TICKET_DIR);
     });
 
-    it("exits non-zero and git add stages the evidence when evidence/ is tracked", () => {
+    it("catches a per-file ignore that a directory-level check-ignore misses", () => {
+      const dir = repoWith("ignored-png", "*.png\n");
+      expect(git(dir, "check-ignore", "-q", TICKET_DIR).status).toBe(1);
+      const result = ignoredEvidence(dir);
+      expect(result.status).toBe(0);
+      expect(result.stdout.trim()).toBe(SCREENSHOT_PATH);
+      const files = staged(dir);
+      expect(files).toContain(VERDICT_PATH);
+      expect(files).not.toContain(SCREENSHOT_PATH);
+    });
+
+    it("prints nothing and git add stages everything when nothing is ignored", () => {
       const dir = repoWith("tracked", null);
-      expect(git(dir, "check-ignore", "-q", "evidence/T-1/").status).toBe(1);
-      git(dir, "add", "-A");
-      const staged = git(dir, "diff", "--cached", "--name-only").stdout;
-      expect(staged).toContain("evidence/T-1/verdict.json");
+      const result = ignoredEvidence(dir);
+      expect(result.status).toBe(0);
+      expect(result.stdout).toBe("");
+      const files = staged(dir);
+      expect(files).toContain(VERDICT_PATH);
+      expect(files).toContain(SCREENSHOT_PATH);
+    });
+
+    it("exits non-zero when the path is outside the repository", () => {
+      const dir = repoWith("outside", null);
+      expect(ignoredEvidence(dir, state.scratch).status).not.toBe(0);
     });
   });
 });

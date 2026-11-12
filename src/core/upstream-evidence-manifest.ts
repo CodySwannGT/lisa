@@ -1185,7 +1185,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/rules/eager/upstream-to-lisa.md":
       "dcb3075bc48de76f3bae1ad066d0a1e14f82bd244c1015a48f9e2916cabaf03c",
     "plugins/src/base/rules/eager/verification.md":
-      "20ee75887302ee973cce683b6d044181fded4ea2c3db320ee0f857482d0e7a22",
+      "b6531d910e9c53e023e9c18f3e063c9e215364347b9ad7d92d939e85f50fdab2",
     "plugins/src/base/rules/eager/wiki-knowledge-source.md":
       "b3ae63fca40461fef19779d8f0c971553963ed8fe9c22fc504da3d8e757b3a36",
     "plugins/src/base/rules/eager/withdrawn-rulings.md":
@@ -1201,7 +1201,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/rules/reference/claim-archaeology.md":
       "354204d02a2d0616747c9f46da34cf303fe9dce6b56cc10251f867fdefd62436",
     "plugins/src/base/rules/reference/claim-evidence-mapping.md":
-      "d517dd46224bfd97e2b988a317837dcf099977ae35caa98bb3458ffac606081d",
+      "5771d3785d72c296854d596227aca42ea9809e15f04ca1b744d95978524bc503",
     "plugins/src/base/rules/reference/claim-time-guards.md":
       "a50664632190c94a68df74cf8e1893552e1507f0162e3dc497615a8360b40007",
     "plugins/src/base/rules/reference/coding-philosophy.md":
@@ -1301,7 +1301,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/rules/reference/usage-accounting.md":
       "64ee616bdad7c16d5cc4b9eb44384de261b0616ec3343d4c05a88ddede3d89ea",
     "plugins/src/base/rules/reference/verification.md":
-      "224c310323bfbca954c9e24985b3050cd3a5021879c85c5419507182c52f5882",
+      "8120c84b774596dc9613736291b004d6b59d51283d28ff477f342a5ff5089f47",
     "plugins/src/base/rules/reference/wiki-knowledge-source.md":
       "725a7415a0606f85164722bd4b4975bce1f496cc43c97e45b224810b1a685189",
     "plugins/src/base/rules/reference/withdrawn-rulings.md":
@@ -1877,7 +1877,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-tracker-create/SKILL.md":
       "fecd0c3cc930b0f87578bc0bee14009509883cb21b33e94e3e7a42792dcd888e",
     "plugins/src/base/skills/lisa-tracker-evidence/SKILL.md":
-      "5c09f8813d8cea64bd41dd964ccf3977c3883e850c7b477869df907794707278",
+      "8af95cffb2f89a17432a0e3e7974e369ed8acd8515374723e4f4cc788d7de647",
     "plugins/src/base/skills/lisa-tracker-evidence/references/completion-authorization.md":
       "6bf7f6015d0a0d53adaa40d1539b3a1ca030d1df979073ed7b2b68fbb5ec02df",
     "plugins/src/base/skills/lisa-tracker-journey/SKILL.md":
