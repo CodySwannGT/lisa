@@ -63,11 +63,11 @@ vi.mock("node:fs", async importOriginal => {
     fsControl.stderrAttempts += 1;
     if (fsControl.stderrFailure !== undefined) throw fsControl.stderrFailure;
     const [data, offset] = rest;
-    const text = Buffer.isBuffer(data)
-      ? data.subarray(typeof offset === "number" ? offset : 0).toString("utf8")
-      : String(data);
-    fsControl.stderrWrites.push(text);
-    return Buffer.byteLength(text);
+    const pending = Buffer.isBuffer(data)
+      ? data.subarray(typeof offset === "number" ? offset : 0)
+      : Buffer.from(String(data), "utf8");
+    fsControl.stderrWrites.push(pending.toString("utf8"));
+    return pending.length;
   });
   const rmSync = vi.fn((path: fs.PathLike, options?: fs.RmOptions) => {
     if (
@@ -144,10 +144,10 @@ async function startHangingPreparation(
     .listeners("exit")
     .filter(listener => !before.includes(listener)) as (() => void)[];
   safetyNets.push(() => {
-    for (const run of [
-      () => process.kill(reported.pid, "SIGKILL"),
-      ...listeners,
-    ]) {
+    const killIfAlive = (): void => {
+      if (alive(reported.pid)) process.kill(reported.pid, "SIGKILL");
+    };
+    for (const run of [killIfAlive, ...listeners]) {
       try {
         run();
       } catch {
@@ -191,6 +191,7 @@ afterEach(() => {
   fsControl.stderrFailure = undefined;
   fsControl.stderrAttempts = 0;
   vi.unstubAllEnvs();
+  vi.restoreAllMocks();
 });
 
 afterAll(() => {
@@ -241,29 +242,18 @@ describe("a failed release of the parent folder", () => {
       "its scratch scope could not be released (injected release failure)"
     );
     expect(write).not.toHaveBeenCalled();
-    write.mockRestore();
   });
 
-  it("gives up after a bounded number of EAGAIN retries without throwing", () => {
-    fsControl.stderrFailure = Object.assign(new Error("EAGAIN"), {
-      code: "EAGAIN",
-    });
+  it.each([
+    ["gives up after a bounded number of EAGAIN retries", "EAGAIN", 100],
+    ["stops at once when stderr refuses the write outright", "EBADF", 1],
+  ])("%s, without throwing", (_name, code, attempts) => {
+    fsControl.stderrFailure = Object.assign(new Error(code), { code });
     const parent = failingParent();
 
     expect(() => parent.release()).not.toThrow();
 
-    expect(fsControl.stderrAttempts).toBe(100);
-  });
-
-  it("does not throw when stderr refuses the write outright", () => {
-    fsControl.stderrFailure = Object.assign(new Error("EBADF"), {
-      code: "EBADF",
-    });
-    const parent = failingParent();
-
-    expect(() => parent.release()).not.toThrow();
-
-    expect(fsControl.stderrAttempts).toBe(1);
+    expect(fsControl.stderrAttempts).toBe(attempts);
   });
 });
 
@@ -309,18 +299,19 @@ describe("a failed removal of the preparation scope", () => {
 
 describe("where the scope lives", () => {
   /**
-   * Prepare once with a stub child in a parent, and report the scope it used.
+   * Prepare once with a stub child, and check the scope sits directly inside.
    * @param parent - The scope's parent
-   * @returns The scope's path
    */
-  async function scopeIn(parent: string): Promise<string> {
+  async function expectScopeDirectlyIn(parent: string): Promise<void> {
     const { preparation, dispose } = await prepareHistoryScanner({
       argv: stubArgv(FAILS_AT_ONCE),
       deadlineMs: STUB_DEADLINE_MS,
       parent,
     });
+    const scope = dirname(String(preparation.evidence?.argv.at(-1)));
     dispose();
-    return dirname(String(preparation.evidence?.argv.at(-1)));
+    expect(dirname(scope)).toBe(parent);
+    expect(basename(scope).startsWith(SCOPE_PREFIX)).toBe(true);
   }
 
   it("is a supervised worker scope inside the leased suite root when a lease is held", async () => {
@@ -335,18 +326,27 @@ describe("where the scope lives", () => {
         })
       )
     );
+    const workerIn = (path: string): void => {
+      expect(dirname(path)).toBe(suiteRoot.path);
+      expect(basename(path).startsWith(`worker-${String(process.pid)}-`)).toBe(
+        true
+      );
+    };
     try {
       const directory = reclaimableDirectory();
-
-      expect(dirname(directory.path)).toBe(suiteRoot.path);
-      expect(basename(directory.path)).toMatch(
-        new RegExp(`^worker-${String(process.pid)}-`, "u")
-      );
-      const scope = await scopeIn(directory.path);
-      expect(dirname(scope)).toBe(directory.path);
-      expect(basename(scope).startsWith(SCOPE_PREFIX)).toBe(true);
+      workerIn(directory.path);
+      await expectScopeDirectlyIn(directory.path);
       directory.remove();
       expect(fs.existsSync(directory.path)).toBe(false);
+
+      const { preparation, dispose } = await prepareInOwnedParent({
+        argv: stubArgv(FAILS_AT_ONCE),
+      });
+      const setupScope = dirname(String(preparation.evidence?.argv.at(-1)));
+      expect(basename(setupScope).startsWith(SCOPE_PREFIX)).toBe(true);
+      workerIn(dirname(setupScope));
+      dispose();
+      expect(fs.existsSync(dirname(setupScope))).toBe(false);
     } finally {
       removeOwnedScratchRunRoot(suiteRoot);
     }
@@ -363,9 +363,7 @@ describe("where the scope lives", () => {
         pid: process.pid,
         root: { canonicalPath: directory.path },
       });
-      const scope = await scopeIn(directory.path);
-      expect(dirname(scope)).toBe(directory.path);
-      expect(basename(scope).startsWith(SCOPE_PREFIX)).toBe(true);
+      await expectScopeDirectlyIn(directory.path);
     } finally {
       directory.remove();
     }

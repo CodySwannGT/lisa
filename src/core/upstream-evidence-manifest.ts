@@ -12644,6 +12644,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/helpers/io-latency-budget.test.ts": true,
     "tests/unit/helpers/mutation-kill-counts.test.ts": true,
     "tests/unit/helpers/staged-dependency-conformance.test.ts": true,
+    "tests/unit/helpers/stderr-sync.test.ts": true,
     "tests/unit/helpers/supervised-unix-fixture.test.ts": true,
     "tests/unit/helpers/temp-dir-removal-race.test.ts": true,
     "tests/unit/helpers/test-budget-conformance.test.ts": true,

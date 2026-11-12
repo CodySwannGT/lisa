@@ -28,9 +28,21 @@ function writeRest(bytes: Buffer, offset: number, attemptsLeft: number): void {
     const written = writeSync(process.stderr.fd, bytes, offset);
     writeRest(bytes, offset + written, attemptsLeft - 1);
   } catch (error) {
-    if ((error as NodeJS.ErrnoException).code === "EAGAIN")
-      writeRest(bytes, offset, attemptsLeft - 1);
+    if ((error as NodeJS.ErrnoException).code !== "EAGAIN") return;
+    if (attemptsLeft > 1) pauseBriefly();
+    writeRest(bytes, offset, attemptsLeft - 1);
   }
+}
+
+/**
+ * Block for about a millisecond so a full pipe can drain.
+ *
+ * Synchronous on purpose: this runs inside `exit` listeners, where nothing
+ * queued would ever run. With {@link STDERR_WRITE_ATTEMPTS} attempts the
+ * total wait stays near 100ms rather than spinning the CPU.
+ */
+function pauseBriefly(): void {
+  Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 1);
 }
 
 /**
