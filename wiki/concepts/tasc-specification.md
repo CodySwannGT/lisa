@@ -88,11 +88,10 @@ Three deliberately decoupled layers: (1) the TASC spec — open, vendor-neutral;
 stack against it; (3) Lisa — open source, one conforming reference
 implementation and the fastest path to green. No layer requires another; see
 the [three-layer trust play decision](../decisions/2026-07-25-three-layer-trust-play.md).
-The Lisa console's readiness questionnaire is the working self-assessment
-instrument referenced by the spec's Annex B — 122 questions across 16 groups.
-Conversational operator questions are the default view; the formal criterion,
-requirement, and expected evidence expand from the same canonical question model,
-so there is no second questionnaire to drift.
+The spec's Annex B self-assessment instrument lived in the Lisa console as a
+122-question readiness questionnaire. It was removed with the console on
+2026-11-12 (CodySwannGT/lisa#4804), so Lisa currently ships no Annex B
+instrument; the questions remain in this repository's git history.
 
 ## Revision 0.7.0 — operator copy and outcome proof
 

@@ -13776,7 +13776,6 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "wiki/architecture/.gitkeep": true,
     "wiki/architecture/coding-agent-parity.md": true,
     "wiki/architecture/lisa-architecture.md": true,
-    "wiki/architecture/lisa-console-ui.md": true,
     "wiki/architecture/lisa-hook-per-agent-ship-list.md": true,
     "wiki/architecture/pattern-b-fan-out-spec.md": true,
     "wiki/architecture/template-governance.md": true,
