@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.106.1](https://github.com/CodySwannGT/lisa/compare/v4.106.0...v4.106.1) (2026-11-12)
+
+
+### Bug Fixes
+
+* **sonar:** make shim repoint rollback-safe and stricter about what it rewrites ([bdc2982](https://github.com/CodySwannGT/lisa/commit/bdc2982bd4eea28376d60c2350e8b86af849727f)), closes [CodySwannGT/lisa#4502](https://github.com/CodySwannGT/lisa/issues/4502) [CodySwannGT/lisa#4502](https://github.com/CodySwannGT/lisa/issues/4502)
+* **sonar:** repoint stale sonar-integrate shims at the Lisa wrapper on apply ([b6b3327](https://github.com/CodySwannGT/lisa/commit/b6b3327d6b1978aae7c6bbdf81e75666f6facc1a)), closes [#2324](https://github.com/CodySwannGT/lisa/issues/2324) [CodySwannGT/lisa#4502](https://github.com/CodySwannGT/lisa/issues/4502) [CodySwannGT/lisa#4502](https://github.com/CodySwannGT/lisa/issues/4502)
+
 ## [4.106.0](https://github.com/CodySwannGT/lisa/compare/v4.105.0...v4.106.0) (2026-11-12)
 
 
