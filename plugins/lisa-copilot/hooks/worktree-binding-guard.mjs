@@ -626,7 +626,7 @@ const PURE_READERS = new Set([
 ]);
 
 /** A command word this guard will look up: a bare name, never a path. */
-const COMMAND_WORD = /^[A-Za-z0-9_][A-Za-z0-9_.+-]*$/u;
+const COMMAND_WORD = /^\w[\w.+-]*$/u;
 
 /** Whether a short-option cluster (`-abc`) contains `letter`. */
 function shortCluster(arg, letter) {
@@ -893,10 +893,12 @@ const SED_SAFE_LONG = new Set([
 function sedReadOnly(words) {
   const scripts = [];
   const operands = [];
-  for (let index = 0; index < words.length; index += 1) {
+  let index = 0;
+  while (index < words.length) {
     const { text } = words[index];
     if (text === "--expression" || text === "-e") {
-      scripts.push(words[(index += 1)]);
+      index += 1;
+      scripts.push(words[index]);
     } else if (text.startsWith("--expression=")) {
       scripts.push({ ...words[index], text: text.slice(13) });
     } else if (text.startsWith("--")) {
@@ -908,11 +910,14 @@ function sedReadOnly(words) {
       if (!SED_SAFE_FLAGS.test(flags)) return false;
       if (scriptAt !== -1) {
         const attached = text.slice(scriptAt + 2);
-        scripts.push(
-          attached ? { ...words[index], text: attached } : words[(index += 1)]
-        );
+        if (attached) scripts.push({ ...words[index], text: attached });
+        else {
+          index += 1;
+          scripts.push(words[index]);
+        }
       }
     } else operands.push(words[index]);
+    index += 1;
   }
   if (scripts.length === 0 && operands.length > 0) scripts.push(operands[0]);
   return (
@@ -1113,7 +1118,8 @@ function lexStatements(command) {
     finish();
     statements.push([]);
   };
-  for (let index = 0; index < command.length; index += 1) {
+  let index = 0;
+  while (index < command.length) {
     const char = command[index];
     const next = command[index + 1];
     if (quote === "'") {
@@ -1158,6 +1164,7 @@ function lexStatements(command) {
       while (index + 1 < command.length && command[index + 1] !== "\n")
         index += 1;
     } else add(char, !"$*?[{".includes(char));
+    index += 1;
   }
   if (quote !== null) return null;
   finish();
