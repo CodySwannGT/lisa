@@ -3107,7 +3107,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/package-lisa/package.lisa.json":
       "f04017ecfcbb7ab4956d59fed9e429ef2ec885047e98a691606bff84c9e7b5dc",
     "ui/README.md":
-      "7a67d7bdd49ff214ca204cc4e54ba70c37aa05fd6cc1e314fd9441a53eafc752",
+      "1c0a78d15418cfb6a7232db7d90273ecc6b04c66e6e85d5a2052700e52d94ad7",
     "ui/index.html":
       "1e2b169e592c73dde07e18c490867deb04f7bcbc8dc53f4a8471593a236466d9",
   });

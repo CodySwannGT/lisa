@@ -51,14 +51,9 @@ Every renderer-bearing catalog value must declare exactly one provenance:
 - `demoOnly: true` for intentional direct-file sample data; or
 - `staticCopy` with a narrow reason for fixed Lisa documentation or semantics.
 
-The browser and repository guard invoke the same renderer-aware catalog audit.
-It discovers the current sections and values rather than relying on a hardcoded
-count, fails on unclassified or multiply classified values, and fails if it
-inspects nothing. Run it after adding or changing console data:
-
-```bash
-bun run check:ui-demo-data
-```
+The repository guard for this boundary (`check:ui-demo-data`) and its browser
+suite were removed with the console (CodySwannGT/lisa#4804); this page goes with
+the rest of `ui/` in the same change.
 
 `acme/acme-app` is not a forbidden string: a live project can legitimately use
 that name. The boundary is provenance, not a sentinel grep.
