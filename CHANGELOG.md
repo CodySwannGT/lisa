@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.101.8](https://github.com/CodySwannGT/lisa/compare/v4.101.7...v4.101.8) (2026-11-12)
+
+
+### Bug Fixes
+
+* **secrets:** never echo id-entry values; strip stacked id prefixes ([0a89f3a](https://github.com/CodySwannGT/lisa/commit/0a89f3a3fe4d1f0b821d89aa52e90e5bf6d7a7f3)), closes [CodySwannGT/lisa#4754](https://github.com/CodySwannGT/lisa/issues/4754) [CodySwannGT/lisa#4754](https://github.com/CodySwannGT/lisa/issues/4754)
+
 ### [4.101.7](https://github.com/CodySwannGT/lisa/compare/v4.101.6...v4.101.7) (2026-11-12)
 
 
