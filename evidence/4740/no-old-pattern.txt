@@ -1,0 +1,51 @@
+# CodySwannGT/lisa#4740 no-old-pattern (2026-11-12T09:35:55Z); HEAD 6fbd3a09f39cee1bf7346e33fcfea1f065d7a692; tracked tree clean: 0 modified
+$ grep -rn 'export LISA_EVIDENCE_RELEASE=\$(' plugins/
+grep exit=1 (1 = no matches)
+
+# bite control: the same detector on origin/main (c8b9c2c341f94b26513f1e0609a95da50e19187b) must find the known instances
+$ git grep -n 'export LISA_EVIDENCE_RELEASE=\$(' origin/main -- plugins/src/
+origin/main:plugins/src/base/skills/lisa-jira-evidence/SKILL.md:76:export LISA_EVIDENCE_RELEASE=$(node scripts/lisa-work-item.mjs evidence-release --ensure)
+origin/main:plugins/src/base/skills/lisa-jira-journey/SKILL.md:138:export LISA_EVIDENCE_RELEASE=$(node scripts/lisa-work-item.mjs evidence-release --ensure)
+origin/main:plugins/src/expo/skills/jira-evidence/SKILL.md:49:export LISA_EVIDENCE_RELEASE=$(node scripts/lisa-work-item.mjs evidence-release --ensure)
+origin/main:plugins/src/expo/skills/jira-journey/SKILL.md:136:export LISA_EVIDENCE_RELEASE=$(node scripts/lisa-work-item.mjs evidence-release --ensure)
+origin/main:plugins/src/rails/skills/jira-evidence/SKILL.md:49:export LISA_EVIDENCE_RELEASE=$(node scripts/lisa-work-item.mjs evidence-release --ensure)
+$ git grep -l ... origin/main -- plugins/ | wc -l   (source + generated copies)
+      35
+
+# AC3: inline-name instruction and command examples in the five sources
+== plugins/src/base/skills/lisa-jira-evidence/SKILL.md
+72:Some agent runtimes start a new shell for every command, and a new shell forgets an exported value. So put the printed release name in front of every later command that reads it, as `LISA_EVIDENCE_RELEASE=<name>`; the commands below show where.
+65:If you came here from jira-journey, `generate-templates.py` already wrote the links: skip the block below and reuse the release name jira-journey printed in its Step 4, because resolving again can pick a different month's release.
+75:LISA_EVIDENCE_RELEASE=<name> bash .claude/skills/jira-evidence/scripts/post-evidence.sh <TICKET_ID> <EVIDENCE_DIR> <PR_NUMBER>
+81:LISA_EVIDENCE_RELEASE=pr-assets bash .claude/skills/jira-evidence/scripts/post-evidence.sh PROJ-123 ./evidence 42
+== plugins/src/base/skills/lisa-jira-journey/SKILL.md
+130:Some agent runtimes start a new shell for every command, and a new shell forgets an exported value. So put the printed release name in front of every later command that reads it, as `LISA_EVIDENCE_RELEASE=<name>`; the commands below show where.
+135:LISA_EVIDENCE_RELEASE=<name> python3 .claude/skills/jira-journey/scripts/generate-templates.py \
+151:LISA_EVIDENCE_RELEASE=<name> bash .claude/skills/jira-evidence/scripts/post-evidence.sh <TICKET_ID> ./evidence <PR_NUMBER>
+== plugins/src/expo/skills/jira-evidence/SKILL.md
+45:Some agent runtimes start a new shell for every command, and a new shell forgets an exported value. So put the printed release name in front of every later command that reads it, as `LISA_EVIDENCE_RELEASE=<name>`; the commands below show where.
+38:If you came here from jira-journey, `generate-templates.py` already wrote the links: skip the block below and reuse the release name jira-journey printed in its Step 4, because resolving again can pick a different month's release.
+48:LISA_EVIDENCE_RELEASE=<name> bash .claude/skills/jira-evidence/scripts/post-evidence.sh <TICKET_ID> <EVIDENCE_DIR> <PR_NUMBER>
+54:LISA_EVIDENCE_RELEASE=pr-assets bash .claude/skills/jira-evidence/scripts/post-evidence.sh PROJ-123 ./evidence 42
+== plugins/src/expo/skills/jira-journey/SKILL.md
+123:Some agent runtimes start a new shell for every command, and a new shell forgets an exported value. So put the printed release name in front of every later command that reads it, as `LISA_EVIDENCE_RELEASE=<name>`; the commands below show where.
+128:LISA_EVIDENCE_RELEASE=<name> python3 .claude/skills/jira-journey/scripts/generate-templates.py \
+149:LISA_EVIDENCE_RELEASE=<name> bash .claude/skills/jira-evidence/scripts/post-evidence.sh <TICKET_ID> ./evidence <PR_NUMBER>
+== plugins/src/rails/skills/jira-evidence/SKILL.md
+45:Some agent runtimes start a new shell for every command, and a new shell forgets an exported value. So put the printed release name in front of every later command that reads it, as `LISA_EVIDENCE_RELEASE=<name>`; the commands below show where.
+38:If you came here from jira-journey, `generate-templates.py` already wrote the links: skip the block below and reuse the release name jira-journey printed in its Step 4, because resolving again can pick a different month's release.
+48:LISA_EVIDENCE_RELEASE=<name> bash .claude/skills/jira-evidence/scripts/post-evidence.sh <TICKET_ID> <EVIDENCE_DIR> <PR_NUMBER>
+54:LISA_EVIDENCE_RELEASE=pr-assets bash .claude/skills/jira-evidence/scripts/post-evidence.sh PROJ-123 ./evidence 42
+
+# scope check: every plugins/src file mentioning LISA_EVIDENCE_RELEASE
+plugins/src/base/skills/lisa-jira-evidence/SKILL.md
+plugins/src/base/skills/lisa-jira-evidence/scripts/post-evidence.sh
+plugins/src/base/skills/lisa-jira-journey/SKILL.md
+plugins/src/base/skills/lisa-jira-journey/scripts/generate-templates.py
+plugins/src/base/skills/lisa-tracker-evidence/references/completion-authorization.md
+plugins/src/expo/skills/jira-evidence/SKILL.md
+plugins/src/expo/skills/jira-evidence/scripts/post-evidence.sh
+plugins/src/expo/skills/jira-journey/SKILL.md
+plugins/src/expo/skills/jira-journey/scripts/generate-templates.py
+plugins/src/rails/skills/jira-evidence/SKILL.md
+plugins/src/rails/skills/jira-evidence/scripts/post-evidence.sh

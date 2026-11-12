@@ -177,9 +177,13 @@ template listed in `verification.completion.acceptedEvidenceReleases`, so
 proof published before a rename or rotation keeps validating. Only releases in
 the implementation repository are accepted.
 
-`LISA_EVIDENCE_RELEASE` pins the concrete release for one run (skill scripts
-export it once so links and uploads agree). It must be one of the accepted
-releases; `evidence-release --ensure` still creates and capacity-checks it.
+`LISA_EVIDENCE_RELEASE` pins the concrete release for one run. Skills resolve
+it once with `evidence-release --ensure`, stop when that refuses, and pass the
+printed name inline (`LISA_EVIDENCE_RELEASE=<name>`) on every later command,
+because some agent runtimes start a new shell for each command and lose an
+exported value; that keeps links and uploads on the same release. It must be
+one of the accepted releases; `evidence-release --ensure` still creates and
+capacity-checks it.
 
 Creating an evidence release is a real GitHub release: it fires `release`
 webhook and workflow events and adds a git tag of the same name. Workflows

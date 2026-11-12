@@ -1,0 +1,166 @@
+# CodySwannGT/lisa#4740 stop-guard before/after (2026-11-12T09:35:39Z); HEAD 6fbd3a09f39cee1bf7346e33fcfea1f065d7a692; GNU bash, version 3.2.57(1)-release (arm64-apple-darwin25)
+
+=== BEFORE (old form, issue reproduce step) ===
+$ export LISA_EVIDENCE_RELEASE=$(false); echo "exit=$?"; echo "value=[$LISA_EVIDENCE_RELEASE]"
+exit=0
+value=[]
+
+--- old form with failing node shim (exit 1):
+evidence release is nearly full
+exit=0
+child=[]
+
+=== ISSUE'S LITERAL TWO-LINE SNIPPET, run as one block ===
+LISA_EVIDENCE_RELEASE=$(node scripts/lisa-work-item.mjs evidence-release --ensure) || { echo "Evidence release not usable; stop."; false; }
+export LISA_EVIDENCE_RELEASE
+--- issue literal, failing shim
+$ PATH=<shim:fail>:/usr/bin:/bin bash -c '<block>; status=$?; bash -c "echo child=[${LISA_EVIDENCE_RELEASE-unset}]"; exit $status'
+evidence release is nearly full
+Evidence release not usable; stop.
+child=[]
+exit=0
+
+=== ISSUE VALIDATION JOURNEY STEP 1 literal ===
+$ LISA_EVIDENCE_RELEASE=$(false) || { echo "Evidence release not usable; stop."; false; }; echo "exit=$?"
+Evidence release not usable; stop.
+exit=1
+
+=== CONTROL: committed block WITHOUT its leading 'unset LISA_EVIDENCE_RELEASE;' (shows what the unset buys) ===
+LISA_EVIDENCE_RELEASE=$(node scripts/lisa-work-item.mjs evidence-release --ensure) || { echo "Evidence release not usable; stop."; false; } &&
+export LISA_EVIDENCE_RELEASE && echo "Evidence release: $LISA_EVIDENCE_RELEASE"
+--- failing shim, stale value pre-exported
+$ LISA_EVIDENCE_RELEASE=lisa-evidence-2026-10 (already exported) PATH=<shim:fail>:/usr/bin:/bin bash -c '<block>; status=$?; bash -c "echo child=[${LISA_EVIDENCE_RELEASE-unset}]"; exit $status'
+evidence release is nearly full
+Evidence release not usable; stop.
+child=[]
+exit=1
+
+=== AFTER: block extracted verbatim from plugins/src/rails/skills/jira-evidence/SKILL.md (2 lines) ===
+unset LISA_EVIDENCE_RELEASE; LISA_EVIDENCE_RELEASE=$(node scripts/lisa-work-item.mjs evidence-release --ensure) || { echo "Evidence release not usable; stop."; false; } &&
+export LISA_EVIDENCE_RELEASE && echo "Evidence release: $LISA_EVIDENCE_RELEASE"
+--- failing shim (exit 1)
+$ PATH=<shim:fail>:/usr/bin:/bin bash -c '<block>; status=$?; bash -c "echo child=[${LISA_EVIDENCE_RELEASE-unset}]"; exit $status'
+evidence release is nearly full
+Evidence release not usable; stop.
+child=[unset]
+exit=1
+--- failing shim, stale value pre-exported
+$ LISA_EVIDENCE_RELEASE=lisa-evidence-2026-10 (already exported) PATH=<shim:fail>:/usr/bin:/bin bash -c '<block>; status=$?; bash -c "echo child=[${LISA_EVIDENCE_RELEASE-unset}]"; exit $status'
+evidence release is nearly full
+Evidence release not usable; stop.
+child=[unset]
+exit=1
+--- usable shim (prints lisa-evidence-2026-11)
+$ PATH=<shim:ok>:/usr/bin:/bin bash -c '<block>; status=$?; bash -c "echo child=[${LISA_EVIDENCE_RELEASE-unset}]"; exit $status'
+Evidence release: lisa-evidence-2026-11
+child=[lisa-evidence-2026-11]
+exit=0
+--- usable shim, stale value pre-exported
+$ LISA_EVIDENCE_RELEASE=lisa-evidence-2026-10 (already exported) PATH=<shim:ok>:/usr/bin:/bin bash -c '<block>; status=$?; bash -c "echo child=[${LISA_EVIDENCE_RELEASE-unset}]"; exit $status'
+Evidence release: lisa-evidence-2026-11
+child=[lisa-evidence-2026-11]
+exit=0
+
+=== AFTER: block extracted verbatim from plugins/src/expo/skills/jira-journey/SKILL.md (2 lines) ===
+unset LISA_EVIDENCE_RELEASE; LISA_EVIDENCE_RELEASE=$(node scripts/lisa-work-item.mjs evidence-release --ensure) || { echo "Evidence release not usable; stop."; false; } &&
+export LISA_EVIDENCE_RELEASE && echo "Evidence release: $LISA_EVIDENCE_RELEASE"
+--- failing shim (exit 1)
+$ PATH=<shim:fail>:/usr/bin:/bin bash -c '<block>; status=$?; bash -c "echo child=[${LISA_EVIDENCE_RELEASE-unset}]"; exit $status'
+evidence release is nearly full
+Evidence release not usable; stop.
+child=[unset]
+exit=1
+--- failing shim, stale value pre-exported
+$ LISA_EVIDENCE_RELEASE=lisa-evidence-2026-10 (already exported) PATH=<shim:fail>:/usr/bin:/bin bash -c '<block>; status=$?; bash -c "echo child=[${LISA_EVIDENCE_RELEASE-unset}]"; exit $status'
+evidence release is nearly full
+Evidence release not usable; stop.
+child=[unset]
+exit=1
+--- usable shim (prints lisa-evidence-2026-11)
+$ PATH=<shim:ok>:/usr/bin:/bin bash -c '<block>; status=$?; bash -c "echo child=[${LISA_EVIDENCE_RELEASE-unset}]"; exit $status'
+Evidence release: lisa-evidence-2026-11
+child=[lisa-evidence-2026-11]
+exit=0
+--- usable shim, stale value pre-exported
+$ LISA_EVIDENCE_RELEASE=lisa-evidence-2026-10 (already exported) PATH=<shim:ok>:/usr/bin:/bin bash -c '<block>; status=$?; bash -c "echo child=[${LISA_EVIDENCE_RELEASE-unset}]"; exit $status'
+Evidence release: lisa-evidence-2026-11
+child=[lisa-evidence-2026-11]
+exit=0
+
+=== AFTER: block extracted verbatim from plugins/src/base/skills/lisa-jira-evidence/SKILL.md (2 lines) ===
+unset LISA_EVIDENCE_RELEASE; LISA_EVIDENCE_RELEASE=$(node scripts/lisa-work-item.mjs evidence-release --ensure) || { echo "Evidence release not usable; stop."; false; } &&
+export LISA_EVIDENCE_RELEASE && echo "Evidence release: $LISA_EVIDENCE_RELEASE"
+--- failing shim (exit 1)
+$ PATH=<shim:fail>:/usr/bin:/bin bash -c '<block>; status=$?; bash -c "echo child=[${LISA_EVIDENCE_RELEASE-unset}]"; exit $status'
+evidence release is nearly full
+Evidence release not usable; stop.
+child=[unset]
+exit=1
+--- failing shim, stale value pre-exported
+$ LISA_EVIDENCE_RELEASE=lisa-evidence-2026-10 (already exported) PATH=<shim:fail>:/usr/bin:/bin bash -c '<block>; status=$?; bash -c "echo child=[${LISA_EVIDENCE_RELEASE-unset}]"; exit $status'
+evidence release is nearly full
+Evidence release not usable; stop.
+child=[unset]
+exit=1
+--- usable shim (prints lisa-evidence-2026-11)
+$ PATH=<shim:ok>:/usr/bin:/bin bash -c '<block>; status=$?; bash -c "echo child=[${LISA_EVIDENCE_RELEASE-unset}]"; exit $status'
+Evidence release: lisa-evidence-2026-11
+child=[lisa-evidence-2026-11]
+exit=0
+--- usable shim, stale value pre-exported
+$ LISA_EVIDENCE_RELEASE=lisa-evidence-2026-10 (already exported) PATH=<shim:ok>:/usr/bin:/bin bash -c '<block>; status=$?; bash -c "echo child=[${LISA_EVIDENCE_RELEASE-unset}]"; exit $status'
+Evidence release: lisa-evidence-2026-11
+child=[lisa-evidence-2026-11]
+exit=0
+
+=== AFTER: block extracted verbatim from plugins/src/base/skills/lisa-jira-journey/SKILL.md (2 lines) ===
+unset LISA_EVIDENCE_RELEASE; LISA_EVIDENCE_RELEASE=$(node scripts/lisa-work-item.mjs evidence-release --ensure) || { echo "Evidence release not usable; stop."; false; } &&
+export LISA_EVIDENCE_RELEASE && echo "Evidence release: $LISA_EVIDENCE_RELEASE"
+--- failing shim (exit 1)
+$ PATH=<shim:fail>:/usr/bin:/bin bash -c '<block>; status=$?; bash -c "echo child=[${LISA_EVIDENCE_RELEASE-unset}]"; exit $status'
+evidence release is nearly full
+Evidence release not usable; stop.
+child=[unset]
+exit=1
+--- failing shim, stale value pre-exported
+$ LISA_EVIDENCE_RELEASE=lisa-evidence-2026-10 (already exported) PATH=<shim:fail>:/usr/bin:/bin bash -c '<block>; status=$?; bash -c "echo child=[${LISA_EVIDENCE_RELEASE-unset}]"; exit $status'
+evidence release is nearly full
+Evidence release not usable; stop.
+child=[unset]
+exit=1
+--- usable shim (prints lisa-evidence-2026-11)
+$ PATH=<shim:ok>:/usr/bin:/bin bash -c '<block>; status=$?; bash -c "echo child=[${LISA_EVIDENCE_RELEASE-unset}]"; exit $status'
+Evidence release: lisa-evidence-2026-11
+child=[lisa-evidence-2026-11]
+exit=0
+--- usable shim, stale value pre-exported
+$ LISA_EVIDENCE_RELEASE=lisa-evidence-2026-10 (already exported) PATH=<shim:ok>:/usr/bin:/bin bash -c '<block>; status=$?; bash -c "echo child=[${LISA_EVIDENCE_RELEASE-unset}]"; exit $status'
+Evidence release: lisa-evidence-2026-11
+child=[lisa-evidence-2026-11]
+exit=0
+
+=== AFTER: block extracted verbatim from plugins/src/expo/skills/jira-evidence/SKILL.md (2 lines) ===
+unset LISA_EVIDENCE_RELEASE; LISA_EVIDENCE_RELEASE=$(node scripts/lisa-work-item.mjs evidence-release --ensure) || { echo "Evidence release not usable; stop."; false; } &&
+export LISA_EVIDENCE_RELEASE && echo "Evidence release: $LISA_EVIDENCE_RELEASE"
+--- failing shim (exit 1)
+$ PATH=<shim:fail>:/usr/bin:/bin bash -c '<block>; status=$?; bash -c "echo child=[${LISA_EVIDENCE_RELEASE-unset}]"; exit $status'
+evidence release is nearly full
+Evidence release not usable; stop.
+child=[unset]
+exit=1
+--- failing shim, stale value pre-exported
+$ LISA_EVIDENCE_RELEASE=lisa-evidence-2026-10 (already exported) PATH=<shim:fail>:/usr/bin:/bin bash -c '<block>; status=$?; bash -c "echo child=[${LISA_EVIDENCE_RELEASE-unset}]"; exit $status'
+evidence release is nearly full
+Evidence release not usable; stop.
+child=[unset]
+exit=1
+--- usable shim (prints lisa-evidence-2026-11)
+$ PATH=<shim:ok>:/usr/bin:/bin bash -c '<block>; status=$?; bash -c "echo child=[${LISA_EVIDENCE_RELEASE-unset}]"; exit $status'
+Evidence release: lisa-evidence-2026-11
+child=[lisa-evidence-2026-11]
+exit=0
+--- usable shim, stale value pre-exported
+$ LISA_EVIDENCE_RELEASE=lisa-evidence-2026-10 (already exported) PATH=<shim:ok>:/usr/bin:/bin bash -c '<block>; status=$?; bash -c "echo child=[${LISA_EVIDENCE_RELEASE-unset}]"; exit $status'
+Evidence release: lisa-evidence-2026-11
+child=[lisa-evidence-2026-11]
+exit=0
