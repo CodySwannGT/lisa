@@ -664,9 +664,9 @@ export function runMergeGeneratedArtifact(
   );
   // The remedy is spelled with `git show` into a redirect, NOT `git checkout
   // --theirs --`, and that is load-bearing rather than stylistic
-  // (CodySwannGT/lisa#3692). `parity-safety-net` refuses every `git checkout`
-  // that discards worktree state, so the shape this driver used to print was
-  // one its own sibling guard blocked: an operator following the refusal
+  // (CodySwannGT/lisa#3692). A sibling guard of the time refused every
+  // `git checkout` that discards worktree state, so the shape this driver used
+  // to print was one Lisa itself blocked: an operator following the refusal
   // faithfully was stopped by a second control, mid-conflict, with the
   // guard's own suggestion at the time being `git stash` — repo-global, shared
   // by every worktree, and a race against concurrent agents' work.

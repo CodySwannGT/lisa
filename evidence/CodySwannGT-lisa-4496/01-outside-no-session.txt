@@ -1,0 +1,8 @@
+# captured_at: 2026-11-12T19:25:13Z
+# verified_head: 5fe2c763adbb3108bcb0b69bd591e98e6c678c8d
+# mode: strip-tmux
+# real tmux session of this process (before env change): <not in tmux>
+# TMUX=<unset> TMUX_PANE=<unset>
+# command: node /Users/codysai/workspace/lisa/.claude/worktrees/4496-session-manager-self-dup/plugins/src/base/skills/lisa-session-manager/scripts/session-manager.mjs status --project-root /var/folders/vc/t6bx6dwx0h7_3bj316vkb72r0000gn/T/sm-verify-4496-proj
+{"manager":{"name":"sm-verify-4496","running":false,"self":false},"notify":"none","control":{"paused":false,"maxWorkers":null,"me":null},"workers":[],"untracked":["wk-lisa-4492-1112-1337","wk-lisa-4496-1112-1343","wk-lisa-4502-1112-1416","wk-lisa-4634-1112-0926","wk-lisa-4636-1112-1001","wk-lisa-4646-1109-0126"],"pendingQuestions":[]}
+# exit=0

@@ -44,9 +44,9 @@
 # over stdin from the same pipeline), and the contents of any file the command
 # names. The last of those is what CodySwannGT/lisa#3484 was: the guard
 # inspected argv and nothing else, so `bash /path/create.sh` showed it two
-# tokens and the creation was one file away. Lisa's own `parity-safety-net.sh`
-# tells agents to write payloads to a file and execute the file, so complying
-# with Lisa's guidance produced the bypass.
+# tokens and the creation was one file away. Lisa's own guidance told agents to
+# write payloads to a file and execute the file, so complying with Lisa's
+# guidance produced the bypass.
 #
 # That is exactly the machine-checkable content of `ready-role-filing`, and it
 # lets `lisa-github-write-issue` / `lisa-jira-write-ticket` /
@@ -854,10 +854,10 @@ GRAPHQL_CREATE = re.compile(r"createIssue|issueCreate")
 # classifier two tokens, neither of which is a tracker CLI.
 #
 # It is not an oversight that an operator had to be clever to find. Lisa's OWN
-# guards instruct agents into this shape: `parity-safety-net.sh` refuses
-# heredocs and says "write the payload to a file with the Write tool, then
-# execute that file directly", and `block-shell-json-parsing.sh` pushes JSON
-# construction into `jq` scripts. An agent complying perfectly with Lisa's
+# guards instruct agents into this shape: a guard that refuses heredocs says
+# "write the payload to a file with the Write tool, then execute that file
+# directly", and `block-shell-json-parsing.sh` pushes JSON construction into
+# `jq` scripts. An agent complying perfectly with Lisa's
 # guidance lands in the uninspected path BY DEFAULT. The guards were
 # individually reasonable and jointly self-defeating.
 #
@@ -2138,12 +2138,11 @@ def executed_operand(argv):
     `wc -l`, a `git grep` PATHSPEC and a test run — every one of them read-only,
     and one of them blocked running the tests that would have proved a fix.
 
-    `parity-safety-net.sh` already states the rule this restores, and names the
-    opposite as the known-wrong fix (`origin/main`, lines 337-346 and 704-705):
-    "Only a COMMAND POSITION can execute something. A path anywhere else is an
-    argument, and an argument is data." `block-no-verify.sh:495-513`
-    (`strip_command_prefix`) implements the same split with a fail-closed third
-    state. Both live in this directory; this guard was the one that declined.
+    The rule this restores: "Only a COMMAND POSITION can execute something. A
+    path anywhere else is an argument, and an argument is data." Following
+    data is the known-wrong fix. `block-no-verify.sh` (`strip_command_prefix`)
+    implements the same split with a fail-closed third state, in this same
+    directory; this guard was the one that declined.
 
     NOT narrowed to shells, and NOT narrowed to an enumerated interpreter list.
     `file_creation` recognises a creation in any language, so `node wrapper.mjs`

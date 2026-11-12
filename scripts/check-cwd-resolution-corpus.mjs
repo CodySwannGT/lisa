@@ -2,10 +2,9 @@
 /**
  * Refuse a cwd-resolution corpus that cannot bite.
  *
- * Two guards answer "which file will this command actually execute?" in two
- * languages — POSIX shell in `parity-safety-net.sh`, Node in
- * `worktree-binding-guard.mjs` — and one corpus of rows is what keeps their
- * answers the same (CodySwannGT/lisa#3952). That arrangement is only worth
+ * `worktree-binding-guard.mjs` answers "which file will this command actually
+ * execute?", and a corpus of rows is the written contract that answer is held
+ * to (CodySwannGT/lisa#3952). That arrangement is only worth
  * anything while the rows are adversarial, and rows decay in one direction: a
  * `holds` row is easy to write and always passes, so a corpus left alone drifts
  * towards proving the resolver RAN rather than that it BITES.
@@ -30,7 +29,7 @@ import path from "node:path";
 const CORPUS = path.resolve(
   "tests/unit/hooks/support/cwd-resolution-corpus.json"
 );
-const GUARDS = ["shell", "node"];
+const GUARDS = ["node"];
 const CONTROLS = ["bites", "wall", "holds"];
 /** The classes that fail under a wrong implementation. `holds` does not. */
 const ADVERSARIAL = ["bites", "wall"];

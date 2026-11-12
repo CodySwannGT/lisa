@@ -953,9 +953,9 @@ describe("install-claude-plugins self postinstall path", () => {
     expect(log).toContain(
       "claude plugin uninstall sentry@claude-plugins-official --scope project"
     );
-    // The Lisa-native parity-safety-net.sh hook absorbed the upstream
-    // safety-net plugin's material guards, so the upstream plugin is retired
-    // on sync instead of installed (issue #1960).
+    // A Lisa-native hook absorbed the upstream safety-net plugin's material
+    // guards, so the upstream plugin is retired on sync instead of installed
+    // (issue #1960).
     expect(log).not.toContain(
       "claude plugin install safety-net@cc-marketplace"
     );
