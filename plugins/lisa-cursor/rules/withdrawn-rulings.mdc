@@ -37,15 +37,7 @@ The result is one-directional propagation. **New guidance travels; corrections d
     --derived "<an artifact you left standing on it>"
   ```
 
-  If the audit found no surviving derived artifact, use this alternative:
-
-  ```sh
-  node "$CLAUDE_PLUGIN_ROOT/hooks/withdrawn-rulings.mjs" --withdraw "<id>" \
-    --claim "<the withdrawn claim, verbatim>" \
-    --because "<what disproved it>" \
-    --derived none
-  ```
-
+  If the audit found no surviving derived artifact, pass `--derived none` instead.
   Repeat `--derived "<artifact>"` for additional artifacts. Either form may also
   include `--superseded-by "<id>"` and repeated `--reached "<channel>"` arguments.
 
@@ -67,16 +59,15 @@ The result is one-directional propagation. **New guidance travels; corrections d
   updated the fact, and **two hours later still relayed to its human that a work item was blocked**
   for a reason resting on the retracted claim. Three facts sat in one context and were never joined.
 
-  It binds here because nowhere else can carry it. Outside the learnings ledger's `provenance` refs,
+  It binds here because nowhere else can carry it: outside the learnings ledger's `provenance` refs,
   **no artifact Lisa writes records the premise it rests on** — a blocked label, a relayed sentence,
-  a peer message carry no back-pointer. Nothing can go looking afterwards for what rested on a
-  retracted claim. You are the only party still holding that, at the only moment it is being
-  written down.
+  a peer message carry no back-pointer, so nothing can later find what rested on a retracted claim.
+  You are the only party still holding that, at the only moment it is being written down.
 
 - **The ledger is the retraction path, precisely because it is cheap.** Writing a finding feels
-  productive; writing a retraction is a chore produced mid-task, after being corrected, when
-  attention has moved on. A rule saying "always record retractions durably" is a discipline, and
-  disciplines do not reach that moment. One command does.
+  productive; writing a retraction is a chore mid-task, after being corrected, when attention has
+  moved on. A discipline ("always record retractions durably") does not reach that moment. One
+  command does.
 
 - **Check it at the escalation boundary**, alongside the instruction-file re-read
   `settled-decisions` already requires: `node "$CLAUDE_PLUGIN_ROOT/hooks/withdrawn-rulings.mjs"

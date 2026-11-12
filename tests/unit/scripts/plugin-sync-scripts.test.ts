@@ -53,18 +53,10 @@ const SCRIPT_NAMES = [
   "generate-copilot-plugin-artifacts.mjs",
   "generate-cursor-plugin-artifacts.mjs",
   "generate-devin-plugin-artifacts.mjs",
-  "generate-retired-safety-net-manifest.mjs",
   "generate-lisa-owned-hash-ledger.mjs",
   // Materialization is part of the real build. Include its actual writer so
   // this fixture exercises generated copies outside plugins/ as well (#3064).
   "materialize-copy-overwrite.mjs",
-] as const;
-
-/** Real source inputs required by the build's retired-handler ownership catalog. */
-const RETIREMENT_SOURCES = [
-  "plugins/src/base/hooks/parity-safety-net.sh",
-  "plugins/src/base/hooks/parity-safety-net.agy.sh",
-  "src/opencode/plugin-templates/lisa-parity-safety-net.ts",
 ] as const;
 
 /** Manifest of every destination the build materialized, written by the build. */
@@ -174,12 +166,9 @@ describe("plugin sync shell scripts (#1398)", () => {
 
     expect(manifest).toContain(GENERATED_COPY);
     expect(manifest.filter(entry => entry.startsWith("plugins/"))).toEqual(
-      [
-        ...RAILS_HOOK_ENGINE_FILES.map(
-          filename => `plugins/lisa/hooks/${filename}`
-        ),
-        "plugins/lisa/hooks/parity-safety-net.sh",
-      ].sort((left, right) => left.localeCompare(right))
+      RAILS_HOOK_ENGINE_FILES.map(
+        filename => `plugins/lisa/hooks/${filename}`
+      ).sort((left, right) => left.localeCompare(right))
     );
   });
 
@@ -281,8 +270,6 @@ describe("plugin sync shell scripts (#1398)", () => {
       path.join(REPO_ROOT, "scripts", "lib"),
       path.join(dir, "scripts", "lib")
     );
-    for (const source of RETIREMENT_SOURCES)
-      await fs.copy(path.join(REPO_ROOT, source), path.join(dir, source));
     await fs.writeJson(path.join(dir, "package.json"), {
       name: "plugin-sync-script-fixture",
       version: "9.9.9",

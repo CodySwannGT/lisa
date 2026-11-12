@@ -234,18 +234,6 @@ const AGY_PLUGIN_HOOKS = [
     supportScripts: [],
   },
   {
-    sourceScript: "parity-safety-net.sh",
-    hookName: "lisa-parity-safety-net",
-    event: "PreToolUse",
-    matcher: "run_command",
-    agyScript: "parity-safety-net.agy.sh",
-    supportScripts: [
-      "parity-safety-net.sh",
-      "parity-safety-net-heredoc.py",
-      GUARD_DEDUPE_LIB,
-    ],
-  },
-  {
     sourceScript: "block-shell-json-parsing.sh",
     hookName: "lisa-block-shell-json-parsing",
     event: "PreToolUse",
@@ -262,7 +250,14 @@ const AGY_PLUGIN_HOOKS = [
     event: "PreToolUse",
     matcher: "run_command",
     agyScript: "block-instruction-file-edits.agy.sh",
-    supportScripts: ["block-instruction-file-edits.sh", GUARD_DEDUPE_LIB],
+    // The canonical guard hands literal printf/echo commands to the heredoc
+    // classifier it resolves as a sibling of itself; without it the display
+    // projection is skipped and a quoted filename reads as a write target.
+    supportScripts: [
+      "block-instruction-file-edits.sh",
+      "parity-safety-net-heredoc.py",
+      GUARD_DEDUPE_LIB,
+    ],
   },
   {
     // Bash arm only, on the same terms as the instruction-file entry above:

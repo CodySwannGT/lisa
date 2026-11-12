@@ -18,9 +18,9 @@
  *
  * The obvious mechanism is "run the remedy through the guard chain, assert
  * permitted". **That mechanism would have passed the instance that motivated
- * the ticket.** Measured on this repository: `git stash push` is PERMITTED by
- * `parity-safety-net.sh` — guard 7 refuses only `stash drop`/`clear`. So when a
- * guard advised "use git stash to preserve work first", a permission check
+ * the ticket.** Measured on this repository: `git stash push` was PERMITTED by
+ * the guard chain, which refused only `stash drop`/`clear`. So when a guard
+ * advised "use git stash to preserve work first", a permission check
  * would have gone green while the advice pointed every reader at one stash
  * stack shared by every worktree of the clone, racing concurrent agents.
  *
@@ -68,17 +68,16 @@ export const REMEDY_SWEEP_VERDICTS = Object.freeze([
  *
  * Each entry is a ruling this repository has already made and written down
  * somewhere other than a command pattern. `git stash` is the founding member:
- * `PRESERVE_GUIDANCE` in `parity-safety-net.sh` says "Do NOT reach for `git
- * stash`. One stash stack is shared by every worktree of a clone, so a
- * concurrently running agent can consume the entry you just pushed" — and yet
- * the guard permits the command, because refusing it outright would break the
- * legitimate single-worktree uses.
+ * one stash stack is shared by every worktree of a clone, so a concurrently
+ * running agent can consume the entry you just pushed — and yet no guard
+ * refuses the command, because refusing it outright would break the legitimate
+ * single-worktree uses.
  *
- * `advisory` is what separates a recommendation from a prohibition. Guard 7's
- * own message must keep containing the word "stash" while REFUSING it; only
- * text that offers the operation as the way forward is a finding. Keying on the
- * bare token would fail the one message doing the right thing — the mistake
- * `parity-safety-net-no-stash-advice.test.ts` records making.
+ * `advisory` is what separates a recommendation from a prohibition. A guard
+ * message that REFUSES a stash operation must keep containing the word
+ * "stash"; only text that offers the operation as the way forward is a
+ * finding. Keying on the bare token would fail the one message doing the right
+ * thing.
  */
 export const FORBIDDEN_REMEDY_OPERATIONS = Object.freeze([
   Object.freeze({

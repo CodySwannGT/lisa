@@ -4,8 +4,6 @@
 
 import { invokedAsScript } from "./lib/invoked-as-script.mjs";
 import { join } from "node:path";
-import { existsSync } from "node:fs";
-import { execFileSync } from "node:child_process";
 
 // Preserve the names older consumers could import from this shipped script.
 export const APPLY_FAILURE_MARKER = join(
@@ -15,24 +13,15 @@ export const APPLY_FAILURE_MARKER = join(
 );
 
 // Keep the entry point used by existing host package.json hooks. Installation
-// retires the safety net; an explicit lisa apply updates unrelated templates.
+// updates the dependency; only an explicit lisa apply updates project templates.
 // Do not create an apply receipt or clear an earlier failure: no apply ran.
 /**
  * Print the next step without applying templates or changing prior evidence.
- * @param {string} [cwd] Project root
- * @param {NodeJS.ProcessEnv} [env] Lifecycle environment
+ * @param {string} [_cwd] Legacy project-root argument, no longer used.
+ * @param {NodeJS.ProcessEnv} [_env] Legacy environment argument, no longer used.
  * @returns {void}
  */
-export function runPostinstall(cwd = process.cwd(), env = process.env) {
-  const retirement = join(
-    cwd,
-    "node_modules/@codyswann/lisa/scripts/retire-native-safety-net.mjs"
-  );
-  if (existsSync(retirement))
-    execFileSync(process.execPath, [retirement, cwd], {
-      env,
-      stdio: "inherit",
-    });
+export function runPostinstall(_cwd = process.cwd(), _env = process.env) {
   console.log(
     "lisa: installation leaves unrelated project templates unchanged. Run `lisa apply .` " +
       "to apply updates, or `lisa doctor` to check freshness."
