@@ -222,6 +222,9 @@ export function runCli(
       STUB_AGENTS_FILE: agentsFile,
       TELEGRAM_STATE_DIR: sandbox.stateDir,
       TELEGRAM_BOT_TOKEN: "planted-value-never-forwarded",
+      // spawn reads the worker's transcript once instead of polling for up to
+      // 30s (lisa#4503); a test that exercises the wait overrides it.
+      LISA_SESSION_MANAGER_FIRST_PROMPT_MS: "0",
       ...options.env,
     },
   });

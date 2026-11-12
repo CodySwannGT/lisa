@@ -8,7 +8,12 @@
  * worker may already hold the ref (4). Only then does it run
  * `claude --bg`, with the cwd set to the routed repo and every `TELEGRAM_*`
  * variable removed from the worker's environment. A repo whose workspace
- * trust was never accepted is exit 2 too (see worker-launch.mjs).
+ * trust was never accepted is exit 2 too (see worker-launch.mjs). So is a
+ * worker whose first prompt never ran — `/lisa:implement` unknown in that
+ * repo, or refused by a `UserPromptSubmit` hook: `spawn` reads the new
+ * session's transcript briefly, stops that worker and records nothing
+ * (lisa#4503). `classify` reads the same transcript every cycle and reports
+ * such a worker as `setup-gap` instead of `working` until the stall timer.
  * @module session-manager/cli-workers
  */
 import { createHash } from "node:crypto";
@@ -47,7 +52,12 @@ import {
   findLiveWorker,
   parseSessionId,
 } from "./workers.mjs";
-import { resolveFullSessionId, runWorkerSession } from "./worker-launch.mjs";
+import { claudeConfigDir, readFirstPrompt } from "./first-prompt.mjs";
+import {
+  confirmFirstPrompt,
+  resolveFullSessionId,
+  runWorkerSession,
+} from "./worker-launch.mjs";
 
 /**
  * Compute the capacity report for this machine and these agents.
@@ -165,6 +175,13 @@ export async function spawn(ctx) {
       `claude --bg printed no session id; find ${name} in claude agents --json.`
     );
   }
+  // Before anything is recorded: a first prompt that never ran is a setup
+  // gap (exit 2), not an attempt.
+  const firstPrompt = await confirmFirstPrompt(ctx, {
+    name,
+    sessionId,
+    repoDir,
+  });
   const repo = key ?? ".";
   await recordSpawn(ctx.root, { ref, worker: name, sessionId, repo });
   await appendSessionEvent(ctx.root, {
@@ -175,7 +192,7 @@ export async function spawn(ctx) {
     repo,
     cwd: repoDir,
   });
-  return { json: { ref, name, sessionId, repo, cwd: repoDir } };
+  return { json: { ref, name, sessionId, repo, cwd: repoDir, firstPrompt } };
 }
 
 /**
@@ -271,6 +288,47 @@ function logsHash(ctx, name) {
 }
 
 /**
+ * The repo dir a ledger item's worker started in, or null when it cannot be
+ * resolved (no config for a child repo key, or a key the config lost).
+ * @param {object} ctx - CLI context
+ * @param {object | null} config - Resolved `sessionManager` block, if any
+ * @param {{repo?: string|null}} entry - Ledger item
+ * @returns {string | null} Absolute dir
+ */
+function workerDir(ctx, config, entry) {
+  if (!entry.repo || entry.repo === ".") return ctx.root;
+  try {
+    return config ? resolveRepoDir(config, entry.repo, ctx.root) : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * The first-prompt failure the item's worker transcript records, if any.
+ *
+ * probe-direction: fail-open — an unreadable or missing transcript yields
+ * null, which leaves classification exactly as it was before this check.
+ * @param {object} ctx - CLI context
+ * @param {object | null} config - Resolved `sessionManager` block, if any
+ * @param {{worker?: string|null, sessionId?: string|null, repo?: string|null}}
+ *   entry - Ledger item
+ * @returns {{kind: string, detail: string} | null} Failure
+ */
+function transcriptFailure(ctx, config, entry) {
+  const cwd =
+    entry.worker && entry.sessionId ? workerDir(ctx, config, entry) : null;
+  if (cwd === null) return null;
+  return (
+    readFirstPrompt({
+      configDir: claudeConfigDir(ctx.env, ctx.homedir),
+      cwd,
+      sessionId: entry.sessionId,
+    })?.failure ?? null
+  );
+}
+
+/**
  * `classify [<ref>]`: classify one ledger item, or every one, for this cycle,
  * and record each logs hash as progress.
  * @param {object} ctx - CLI context
@@ -293,12 +351,14 @@ export async function classify(ctx) {
       : [];
     const agent = named.find(row => row.active) ?? named[0] ?? null;
     const hash = agent ? logsHash(ctx, entry.worker) : null;
+    const setupGap = transcriptFailure(ctx, config, entry);
     const classification = classifyWorker({
       agent,
       entry,
       logsHash: hash,
       now: ctx.now(),
       stall,
+      firstPromptFailure: setupGap,
     });
     if (hash !== null) await recordProgress(ctx.root, { ref, logsHash: hash });
     rows.push({
@@ -310,6 +370,7 @@ export async function classify(ctx) {
       attempts: entry.attempts ?? 0,
       agentStatus: agent?.status ?? agent?.state ?? null,
       pendingQuestion: entry.pendingQuestion ?? null,
+      setupGap: classification === "setup-gap" ? setupGap : null,
     });
   }
   return { json: rows };

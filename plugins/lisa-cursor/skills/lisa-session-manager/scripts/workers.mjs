@@ -355,11 +355,14 @@ function toMillis(value) {
  *
  * Order matters: a recorded DONE/FAILED wins; a pending question means the
  * worker ended its turn on purpose, so it is `waiting` even when its row
- * reads `done`; only then is liveness judged. `stalled` and `dead` become
- * `exhausted` at `maxAttempts`, which is the manager's cue to move the item to
- * Blocked instead of retrying it again.
- * @param {{agent: ReturnType<typeof normalizeAgents>[number] | null, entry: {status?: string, startedAt?: string|number, lastProgressAt?: string|number|null, logsHash?: string|null, pendingQuestion?: {askedAt?: string|number, lastPingAt?: string|number|null} | null, attempts?: number}, logsHash?: string | null | undefined, now: Date | number, stall?: {noOutputMinutes: number, requestionHours: number, maxAttempts: number}}} input - Classification inputs
- * @returns {"finished"|"waiting"|"requestion"|"working"|"stalled"|"dead"|"exhausted"} Classification
+ * reads `done`; then a first prompt that never ran (`firstPromptFailure`,
+ * read from the worker's transcript) is a `setup-gap` — a machine problem no
+ * retry can fix, so it is never `working` until the stall timer and never
+ * `exhausted` (lisa#4503); only then is liveness judged. `stalled` and `dead`
+ * become `exhausted` at `maxAttempts`, which is the manager's cue to move the
+ * item to Blocked instead of retrying it again.
+ * @param {{agent: ReturnType<typeof normalizeAgents>[number] | null, entry: {status?: string, startedAt?: string|number, lastProgressAt?: string|number|null, logsHash?: string|null, pendingQuestion?: {askedAt?: string|number, lastPingAt?: string|number|null} | null, attempts?: number}, logsHash?: string | null | undefined, now: Date | number, stall?: {noOutputMinutes: number, requestionHours: number, maxAttempts: number}, firstPromptFailure?: {kind: string, detail: string} | null}} input - Classification inputs
+ * @returns {"finished"|"waiting"|"requestion"|"setup-gap"|"working"|"stalled"|"dead"|"exhausted"} Classification
  */
 export function classifyWorker({
   agent,
@@ -367,6 +370,7 @@ export function classifyWorker({
   logsHash,
   now,
   stall = DEFAULT_STALL,
+  firstPromptFailure = null,
 }) {
   if (FINISHED_STATUSES.has(entry.status ?? "")) return "finished";
   const nowMs = toMillis(now) ?? 0;
@@ -378,6 +382,7 @@ export function classifyWorker({
       ? "requestion"
       : "waiting";
   }
+  if (firstPromptFailure) return "setup-gap";
   const outcome = agent?.active
     ? judgeActive(entry, logsHash, nowMs, stall)
     : "dead";
