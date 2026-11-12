@@ -60,6 +60,22 @@ describe("tool-access-gate credential recovery routing (#4469)", () => {
       expect(tableRow(reference, "AWS CLI")).toMatch(/expected account/i);
     });
 
+    it("still reports and stops when the bundle is unresolvable or the account mismatches", () => {
+      const row = tableRow(reference, "AWS CLI");
+
+      expect(row).toMatch(
+        /unresolvable bundle or an account mismatch is the failure to report/i
+      );
+      expect(row).toMatch(/different AWS access method keeps that method/i);
+    });
+
+    it("lets a recovery run without human permission, for every vendor", () => {
+      expect(reference).toMatch(/needs no human permission/i);
+      expect(reference).toMatch(
+        /every vendor whose access skill documents a\s+recovery step/i
+      );
+    });
+
     it("lists lisa-secrets-access among the access skills a probe must route through", () => {
       const list = paragraph(reference, "- Vendors with an access layer");
 
