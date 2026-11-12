@@ -43,6 +43,17 @@ on:
     branches:
       - main
   workflow_dispatch:
+    inputs:
+      since:
+        # A push re-run replays the scripts at that push's commit, so an item
+        # refused by a since-fixed reader defect can never complete by
+        # re-running it (CodySwannGT/lisa#4773). This lets an operator replay
+        # the SAME bounded range on current code. It is a bound, never an
+        # unbounded sweep: it must resolve to a commit in the branch's
+        # ancestry, which the sweep itself enforces.
+        description: 'Bound: the push "before" SHA whose range to re-complete (leave empty to do nothing)'
+        required: false
+        type: string
 
 permissions:
   contents: read
@@ -74,12 +85,12 @@ jobs:
         id: transition
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          PUSH_BEFORE: ${{ github.event.before }}
+          PUSH_BEFORE: ${{ github.event.before || inputs.since }}
           PUSH_BRANCH: ${{ github.ref_name }}
         run: |
           set -o pipefail
           # A branch-creation push carries the all-zero SHA, and a
-          # `workflow_dispatch` carries no `before` at all. Neither names a
+          # `workflow_dispatch` without a `since` input carries no `before` at all. Neither names a
           # range, and this job refuses to invent one: an UNBOUNDED --apply
           # here would complete the whole backlog on a single fire. Said out
           # loud rather than skipped silently, and the daily sweep still
