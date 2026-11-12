@@ -121,7 +121,6 @@ const PLUGIN_SUPPORT_FILES = [
   "discharge-work-item-gates.sh",
   "block-managed-file-edits.sh",
   "block-no-verify.sh",
-  "parity-safety-net-heredoc.py",
   "guard-dedupe.bash",
   ...RAILS_HOOK_ENGINE_FILES,
 ] as const;
@@ -134,9 +133,13 @@ const PLUGIN_SUPPORT_FILES = [
  * here is removed only when the previous ownership manifest records Lisa as
  * having written it, so a host file that merely shares the name is kept.
  * `parity-safety-net.sh` was the retired safety-net stub (CodySwannGT/lisa#4803).
+ * `parity-safety-net-heredoc.py` is still shipped to other agents for
+ * `block-instruction-file-edits.sh`, but OpenCode never ships that guard, so
+ * nothing in `.opencode/plugin/` read it (CodySwannGT/lisa#4810).
  */
 const RETIRED_PLUGIN_SUPPORT_FILES: ReadonlySet<string> = new Set([
   "parity-safety-net.sh",
+  "parity-safety-net-heredoc.py",
 ]);
 
 /** Result of the OpenCode hooks install pass */
