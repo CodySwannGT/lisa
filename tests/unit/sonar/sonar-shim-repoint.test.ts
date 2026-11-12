@@ -33,7 +33,10 @@ import {
   SONAR_SHIM_PATHS,
   SONAR_WRAPPER_PATH,
 } from "../../../src/sonar/sonar-shim-repoint.js";
-import { boundedSpawnSync } from "../../helpers/io-latency-budget.js";
+import {
+  boundedSpawnSync,
+  useIoLatencyBudget,
+} from "../../helpers/io-latency-budget.js";
 import {
   BASH,
   HOOK_RUN_BUDGET_MS,
@@ -42,6 +45,8 @@ import {
   SHIPPED,
   stubSonar,
 } from "../hooks/support/sonar-secrets-fixtures.js";
+
+useIoLatencyBudget();
 
 const CLAUDE_PROMPT =
   ".claude/hooks/sonar-secrets/build-scripts/prompt-secrets.sh";

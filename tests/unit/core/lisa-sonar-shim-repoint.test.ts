@@ -26,7 +26,10 @@ import { SONAR_WRAPPER_PATH } from "../../../src/sonar/sonar-shim-repoint.js";
 import { StrategyRegistry } from "../../../src/strategies/index.js";
 import { BackupService } from "../../../src/transaction/index.js";
 import { SHIPPED } from "../hooks/support/sonar-secrets-fixtures.js";
+import { useIoLatencyBudget } from "../../helpers/io-latency-budget.js";
 import { cleanupTempDir, createTempDir } from "../../helpers/test-utils.js";
+
+useIoLatencyBudget();
 
 /** Sentinel that halts apply right after the step under test. */
 const HALT = "halted after the sonar shim repoint step";
