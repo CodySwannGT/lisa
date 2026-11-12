@@ -9,6 +9,7 @@ import path from "node:path";
 
 import { afterAll, afterEach, describe, expect, it } from "vitest";
 
+import { PENDING_PROOF_IS_SUCCESS_FOR } from "../../../all/copy-overwrite/scripts/lisa-work-item.mjs";
 import {
   cleanupFixtures,
   cleanupTemplates,
@@ -112,10 +113,18 @@ describe("in-process CLI: binding lifecycle", () => {
     const viaFinish = cli(offlineFixture(), ["finish"]);
     const viaAlias = cli(offlineFixture(), ["complete"]);
     expect(viaFinish.exitCode).toBe(1);
-    expect(viaFinish.stderr).toContain("requires --ref <work-item>");
+    // The refusal must name the spelling an isolated harness can run, or an
+    // agent rebuilding the command from it is refused all over again.
+    expect(viaFinish.stderr).toContain("finish requires --ref <work-item>");
     expect(viaFinish.stderr).not.toContain("Usage:");
     expect(viaAlias.exitCode).toBe(viaFinish.exitCode);
     expect(viaAlias.stderr).toBe(viaFinish.stderr);
+  });
+
+  it("treats a pending proof as nonterminal success under both spellings", () => {
+    expect(PENDING_PROOF_IS_SUCCESS_FOR).toEqual(
+      expect.arrayContaining(["finish", "complete", "sweep"])
+    );
   });
 
   it("refuses `finish` against another branch's binding, as `complete` does", () => {

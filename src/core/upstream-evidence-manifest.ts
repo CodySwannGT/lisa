@@ -333,7 +333,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-test-node.mjs":
       "cd436584d756442fc393557a3244bbdacdf915bd0fb1a472ebe7afa8103d3475",
     "all/copy-overwrite/scripts/lisa-work-item.mjs":
-      "ffd5b44e89574e2e2b455e076209eeb207ba038e206e6892273a8dc2978066d8",
+      "fe413e0ec7dad9d1fc5c512253de7510415bff3b82d3f06bf3f52cd2c68ef4b5",
     "all/copy-overwrite/scripts/lisa-worktree-guard.mjs":
       "2535ef2a60b3413dacb8491c008ab28f0a07929196277d1d1fed54a04740c025",
     "all/copy-overwrite/scripts/npm-updater-gate-runtime.json":
@@ -343,7 +343,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/npm-updater-gate.Dockerfile":
       "850a4ee809d49e3d9da6bdd674cb43e4f5a6dcfa0aa73116b1a43caeed42748c",
     "all/copy-overwrite/scripts/npm-updater-helper-graph.json":
-      "275b142e1f94022ad0bbab5a53b9a070a3f160b5b4169c42c1f537ed1f7a6998",
+      "4417f9e3a238be0200602d923f4b562226d231cc664b9505d6fd76285cfe5b9d",
     "all/copy-overwrite/scripts/review-evidence-event.mjs":
       "1c5d510bc66f8ba23b6f046246f41182c17946a50126fb88e371d2aec9dfd6b2",
     "all/copy-overwrite/scripts/schemas/lisa-command-envelope.v1.schema.json":
@@ -1421,7 +1421,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-doctor/SKILL.md":
       "5c90c041d9903c0eb59c224472c863ba8519e03452a634d02a19d760253ac08f",
     "plugins/src/base/skills/lisa-drive-pr-to-merge/SKILL.md":
-      "99d9d3795ba4fb44dcfe19b9d8bf9f8d5e949f7d73d13599d86f9dd26189a3cc",
+      "d1d3c18c12c837d8dcd79fd5dc9a75b570a4714aad7293c892af3eedea14ac03",
     "plugins/src/base/skills/lisa-epic-triage/SKILL.md":
       "d02760411249bddbd396f283191fe3e82bb7b95bf9393a19a7025dc5a57c3ab7",
     "plugins/src/base/skills/lisa-evaluation-suite/SKILL.md":

@@ -222,6 +222,18 @@ function isIssueNumber(text) {
 export const LANE_TRAILER = "Lane-Id";
 
 /**
+ * Subcommands for which a `pending-proof` outcome is a normal, nonterminal
+ * result (exit 0) rather than a failure. `finish` and `complete` are one
+ * operation under two names (#4683), so both must be listed — a list naming
+ * only one would make the same outcome exit differently by spelling.
+ */
+export const PENDING_PROOF_IS_SUCCESS_FOR = Object.freeze([
+  "finish",
+  "complete",
+  "sweep",
+]);
+
+/**
  * Environment variables consulted, in order, for the caller's owner id.
  *
  * Every one is supplied by the surrounding agent runtime. Lisa invents none of
@@ -5797,7 +5809,7 @@ function complete(args) {
   const bound = supplied ? null : boundRef();
   if (!supplied && !bound) {
     throw new TrackingError(
-      "complete requires --ref <work-item>, or a worktree binding from `lisa-work-item.mjs link`"
+      "finish requires --ref <work-item>, or a worktree binding from `lisa-work-item.mjs link`"
     );
   }
   const ref = canonicalizeRef(supplied ?? bound, contract);
@@ -7194,7 +7206,7 @@ export function runCli() {
       console.error(`work-item proof ${error.category}: ${detail}`);
       const pendingLifecycle =
         error.category === "pending-proof" &&
-        ["complete", "sweep"].includes(process.argv[2]);
+        PENDING_PROOF_IS_SUCCESS_FOR.includes(process.argv[2]);
       process.exitCode = pendingLifecycle ? 0 : 1;
       return;
     }
