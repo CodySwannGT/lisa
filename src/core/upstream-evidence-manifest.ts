@@ -12642,6 +12642,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/devin/plugin-installer.test.ts": true,
     "tests/unit/docs/onboarding-walkthrough.test.ts": true,
     "tests/unit/docs/required-phrases.test.ts": true,
+    "tests/unit/fixtures/shared-runtime-checkout.test.ts": true,
     "tests/unit/fixtures/shared-runtime-native-deadline.test.ts": true,
     "tests/unit/fixtures/shared-runtime-patched-floors.test.ts": true,
     "tests/unit/fixtures/shared-runtime-teardown.test.ts": true,

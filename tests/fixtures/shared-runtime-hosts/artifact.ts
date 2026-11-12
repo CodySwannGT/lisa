@@ -9,6 +9,7 @@ import { boundedSpawnSync } from "../../helpers/io-latency-budget.js";
 import { resolveGit } from "../../support/git-executable.js";
 import { files, write } from "./host.js";
 import { run } from "./process.js";
+import { freeCheckout } from "./teardown.js";
 
 const MANIFEST = "package.json";
 
@@ -241,6 +242,10 @@ export async function packCandidate(
     candidate,
     path.join(tool, "node_modules", "@codyswann", "lisa")
   );
+  // Nothing reads the checkout once the tarball is built and the installed
+  // tool proven byte-identical to it, so its entries leave the teardown here
+  // (CodySwannGT/lisa#4636).
+  await freeCheckout(path.join(root, "checkout"));
   return candidate;
 }
 

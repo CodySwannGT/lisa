@@ -30,16 +30,20 @@
  * the last installing case, and the journey already frees each host inside
  * that host's own case budget for this same reason. So the cache is freed
  * there too, by whichever installing case finishes last, and the teardown
- * frees only the candidate's own fixtures — its checkout, oracle and
- * installed tool — and the evidence.
+ * frees only the candidate's own fixtures — its oracle and installed tool —
+ * and the evidence.
  *
- * ## The cache's recorded size (CodySwannGT/lisa#4636)
+ * ## What is freed before the cases run (CodySwannGT/lisa#4636)
  *
- * When the last installer frees the cache it first records the cache's entry
- * count, so the cache's size is a measurement rather than an estimate.
+ * The candidate's checkout held 17,053 entries and nothing reads it once the
+ * tarball is packed and the installed tool proven byte-identical to it, so
+ * packing frees it ({@link freeCheckout}) instead of leaving it to the
+ * teardown. And when the last installer frees the cache it first records the
+ * cache's entry count, so the cache's size is a measurement rather than an
+ * estimate.
  * @module tests/fixtures/shared-runtime-hosts/teardown
  */
-import { readdirSync } from "node:fs";
+import { lstatSync, readdirSync, unlinkSync } from "node:fs";
 import * as path from "node:path";
 
 import { cleanupTempDir } from "../../helpers/test-utils.js";
@@ -80,6 +84,30 @@ function countForRecord(count: Count, directory: string): number | undefined {
   } catch {
     return undefined;
   }
+}
+
+/**
+ * Free the candidate's checkout once the tarball is packed and proven.
+ *
+ * The checkout's `node_modules` is a symbolic link to the repository's own, so
+ * the link is unlinked first and the removal can never reach through it.
+ * @param checkout - The candidate's checkout directory
+ * @param remove - Removal; injected only by the regression
+ */
+export async function freeCheckout(
+  checkout: string,
+  remove: Remove = cleanupTempDir
+): Promise<void> {
+  const link = path.join(checkout, "node_modules");
+  const linked = ((): boolean => {
+    try {
+      return lstatSync(link).isSymbolicLink();
+    } catch {
+      return false;
+    }
+  })();
+  if (linked) unlinkSync(link);
+  await remove(checkout);
 }
 
 /** The shared install cache's lifetime across the journey's cases. */
