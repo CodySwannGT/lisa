@@ -106,8 +106,8 @@ bounded repair, rerun, independent-verification, and escalation loop.
 
 The presentation contract also changed. Each canonical item carries a plain-language
 question plus its formal criteria, requirement, expected evidence, outcome choices,
-and implementing mechanism. The console leads with the question and keeps control
-detail expandable. Annex B explicitly rejects separately maintained formal and
+and implementing mechanism. The console (removed in CodySwannGT/lisa#4804) led with
+the question and kept control detail expandable. Annex B explicitly rejects separately maintained formal and
 informal questionnaires because their mappings can drift.
 
 Normatively, 0.7.0 strengthens AC5.2 at repository boundaries, AC7.1–AC7.2 for

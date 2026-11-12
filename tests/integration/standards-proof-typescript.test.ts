@@ -43,7 +43,7 @@ afterEach(async () => {
 });
 
 describe("real TypeScript standards-proof journey", () => {
-  it("captures, invalidates, preserves, and refreshes exact proof", async () => {
+  it("captures, reads read-only, invalidates, preserves, and refreshes exact proof", async () => {
     root = await createTypescriptRepository();
     const output = vi
       .spyOn(process.stdout, "write")
@@ -75,6 +75,7 @@ describe("real TypeScript standards-proof journey", () => {
       stored.proof.registryDigest,
       stored.proof.configDigest
     );
+    await verifyReadOnlyFreshness(root);
 
     const beforeFailure = await snapshotProof(root);
     await writeFile(path.join(root, "lint-target.txt"), "VIOLATION\n");
@@ -209,4 +210,39 @@ async function verifyHarnessParity(
       )
     ).toEqual(["latest.json"]);
   }
+}
+
+/**
+ * Prove repeated freshness reads do not execute scripts or mutate proof/Git.
+ * @param projectRoot - Fixture repository root
+ */
+async function verifyReadOnlyFreshness(projectRoot: string): Promise<void> {
+  const commandSentinel = path.join(
+    projectRoot,
+    ".lisa/project-command-executed"
+  );
+  const beforeProof = await snapshotProof(projectRoot);
+  const beforeGit = await readStandardsGitState(projectRoot);
+  const beforeScript = await readFile(
+    path.join(projectRoot, GATE_SCRIPT),
+    "utf8"
+  );
+  const beforeMtime = (await stat(path.join(projectRoot, GATE_SCRIPT))).mtimeMs;
+  vi.stubEnv("LISA_STANDARDS_EXECUTION_SENTINEL", commandSentinel);
+  for (let index = 0; index < 2; index += 1) {
+    expect(await standardsProofFinding(projectRoot)).toMatchObject({
+      check: "setup.standards",
+      status: "pass",
+    });
+  }
+  await expect(stat(commandSentinel)).rejects.toMatchObject({ code: "ENOENT" });
+  expect(await snapshotProof(projectRoot)).toEqual(beforeProof);
+  expect(await readStandardsGitState(projectRoot)).toEqual(beforeGit);
+  expect(await readFile(path.join(projectRoot, GATE_SCRIPT), "utf8")).toBe(
+    beforeScript
+  );
+  expect((await stat(path.join(projectRoot, GATE_SCRIPT))).mtimeMs).toBe(
+    beforeMtime
+  );
+  vi.unstubAllEnvs();
 }

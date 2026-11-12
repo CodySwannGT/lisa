@@ -2623,7 +2623,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/check-delivery-deletion-conflicts.mjs":
       "77eed58c9ff076c4438a5fe01c343f25c1a1c8f29a8f5861d1e1081b1739d300",
     "scripts/check-derived-artifacts.mjs":
-      "b30c86b6a8f0fabb5e5849e470f80429c97dcaa2619b0ed3d2f9807b89234a06",
+      "a87488146a658df4c835fc2af79fc13beb6cdd645dd671255c6564c947388944",
     "scripts/check-duplicate-versions.mjs":
       "26b26351dd2735dfd8d9a2436b89e876ce2ed93871d0b264f611215dd03d70ae",
     "scripts/check-eager-rule-budget.mjs":
@@ -2739,7 +2739,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/generate-two-channel-couplings.ts":
       "5fae0ab51a48e45748f5ffd1f5d5641b33e4bf0ebf014f61fdbfb6b66acae04f",
     "scripts/generate-upstream-evidence-manifest.mjs":
-      "8f18972834d6be9771501c35da30de95539a7e7b3fb3d7605e0bc31477812a5f",
+      "8d75b7a6d8c4efe0e44d7d40e1143794c0d61c4f0c7c984bb270946618659e5b",
     "scripts/github-status-check.sh":
       "c6a4a13ff5cf689fcbd7a6aca718f9e7d46d54ccb6687f662b055c1ca20e792f",
     "scripts/install-claude-plugins.sh":
@@ -10959,6 +10959,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "src/cli/prune-report.ts": true,
     "src/cli/refresh-hooks-cmd.ts": true,
     "src/cli/remote-env-cmd.ts": true,
+    "src/cli/removed-ui-cmd.ts": true,
     "src/cli/session-manager-config-merge.ts": true,
     "src/cli/setup-project.ts": true,
     "src/cli/setup-wiki.ts": true,
@@ -12098,6 +12099,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/cli/gate-report-fixtures.ts": true,
     "tests/unit/cli/gate-report-ruleset.test.ts": true,
     "tests/unit/cli/gate-report-shipped-as.test.ts": true,
+    "tests/unit/cli/gate-report-skip-jobs.test.ts": true,
     "tests/unit/cli/gate-report-states.test.ts": true,
     "tests/unit/cli/gate-report-workflows.ts": true,
     "tests/unit/cli/gate-report.test.ts": true,

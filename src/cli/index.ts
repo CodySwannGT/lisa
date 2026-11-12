@@ -33,6 +33,7 @@ import {
   addStandardsProofCommand,
   runStandardsProofCli,
 } from "./standards-proof-cmd.js";
+import { addRemovedUiCommand } from "./removed-ui-cmd.js";
 import { runSync, type SyncCmdOptions } from "./sync-cmd.js";
 import { runUpdate } from "./update-cmd.js";
 import { runUpdateCheck } from "./update-check.js";
@@ -270,6 +271,7 @@ function addMaintenanceCommands(
       }
     });
 
+  addRemovedUiCommand(program);
   addGateCommands(program, deps);
   addKaneCommands(program, deps);
   addPruneCommands(program);
