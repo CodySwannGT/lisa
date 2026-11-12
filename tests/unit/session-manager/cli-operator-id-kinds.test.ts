@@ -59,12 +59,16 @@ describe("validate with a plain all-digit operator entry", () => {
     expect(result.json.warnings[0]).toContain('"login:583231"');
   });
 
-  it("fails naming a malformed entry", () => {
+  it("fails naming a malformed entry's location and prefix, never its value", () => {
     const sandbox = makeSandbox();
     setBlock(sandbox, { operatorIds: ["user:583231"] });
     const result = runCli(sandbox, ["validate"]);
     expect(result.status).toBe(2);
-    expect(JSON.stringify(result.json.errors)).toContain("user:583231");
+    const errors = JSON.stringify(result.json.errors);
+    expect(errors).toContain("sessionManager.operatorIds[0]");
+    expect(errors).toContain('unknown prefix \\"user:\\"');
+    // A refusal never repeats the entry's value (CodySwannGT/lisa#4754).
+    expect(errors).not.toContain("583231");
   });
 
   it("prints the warning from the doctor's validator without failing", () => {
