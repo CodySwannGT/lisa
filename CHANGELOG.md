@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.101.10](https://github.com/CodySwannGT/lisa/compare/v4.101.9...v4.101.10) (2026-11-12)
+
+
+### Bug Fixes
+
+* **lifecycle:** cap a dispatched terminal-transition replay range ([2282c11](https://github.com/CodySwannGT/lisa/commit/2282c1101b5a21b38eabaec5b172bf8f85dce504)), closes [CodySwannGT/lisa#4773](https://github.com/CodySwannGT/lisa/issues/4773) [CodySwannGT/lisa#4773](https://github.com/CodySwannGT/lisa/issues/4773)
+* **lifecycle:** read ANSI evidence on gh >= 2.97 and name failed proof reads ([18408d6](https://github.com/CodySwannGT/lisa/commit/18408d6fa8387503716ed2141320591c24fafcea)), closes [CodySwannGT/lisa#4730](https://github.com/CodySwannGT/lisa/issues/4730) [CodySwannGT/lisa#4773](https://github.com/CodySwannGT/lisa/issues/4773) [CodySwannGT/lisa#4773](https://github.com/CodySwannGT/lisa/issues/4773)
+* **lifecycle:** redact colour-wrapped tokens in proof read errors ([a112b5c](https://github.com/CodySwannGT/lisa/commit/a112b5cdb10de528113029ae64341fb760b5cf69)), closes [CodySwannGT/lisa#4773](https://github.com/CodySwannGT/lisa/issues/4773) [CodySwannGT/lisa#4773](https://github.com/CodySwannGT/lisa/issues/4773)
+
 ### [4.101.9](https://github.com/CodySwannGT/lisa/compare/v4.101.8...v4.101.9) (2026-11-12)
 
 
