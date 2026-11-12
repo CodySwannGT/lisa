@@ -39,9 +39,9 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lib/completion-proof-adapters.mjs":
       "0743d3ccb12a2dc4822170e7c299caa24576fc5a1862402adc4f6feb1bedd163",
     "all/copy-overwrite/scripts/lib/completion-proof-codepipeline.d.mts":
-      "6bbf35f532caf14a249ceeb8eb3df33593197eb13ea9439edf38e74bf8135676",
+      "9d951f9a095264b33f527dd65eb41c8d6617b3b1c572d13c22332773ac99dca5",
     "all/copy-overwrite/scripts/lib/completion-proof-codepipeline.mjs":
-      "844ac8b53b253ca84f877940b1e8593bf14ca2439f8226496b75162fd25f700e",
+      "3ea69c6f03aeba8acbab13a026fc470c075540a3bfa2921a27407cecf424a45d",
     "all/copy-overwrite/scripts/lib/completion-proof-conformance.mjs":
       "51b2bfccc8ecca684dd80a4e2ae35896e76fa519389fe650f0890ffc0fef421d",
     "all/copy-overwrite/scripts/lib/completion-proof-content.mjs":
@@ -359,7 +359,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/npm-updater-gate.Dockerfile":
       "850a4ee809d49e3d9da6bdd674cb43e4f5a6dcfa0aa73116b1a43caeed42748c",
     "all/copy-overwrite/scripts/npm-updater-helper-graph.json":
-      "915b11dac8844381d91e780dece28a192f39237408653f293751c48c6ef83707",
+      "748e40364b55387fefcf61c5689fafd9f7bd09d452527c02f6214b06ba93530c",
     "all/copy-overwrite/scripts/review-evidence-event.mjs":
       "1c5d510bc66f8ba23b6f046246f41182c17946a50126fb88e371d2aec9dfd6b2",
     "all/copy-overwrite/scripts/schemas/lisa-command-envelope.v1.schema.json":
@@ -1435,7 +1435,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-detect-tooling/scripts/detect-tooling.mjs":
       "d9419814fc04c935bd7e320e85b1977c9bfc9275d9ea5fb557002ad438ee7925",
     "plugins/src/base/skills/lisa-doctor/SKILL.md":
-      "d08b649485b61b1f40463a79ddd5decd9fd59fc269fe615df5000d8f900561e5",
+      "4ac68ad78a10542ea2a39d7b75644dc2b4a2dc344f7e87e85af3c4cd321afd94",
     "plugins/src/base/skills/lisa-drive-pr-to-merge/SKILL.md":
       "d1d3c18c12c837d8dcd79fd5dc9a75b570a4714aad7293c892af3eedea14ac03",
     "plugins/src/base/skills/lisa-epic-triage/SKILL.md":
@@ -1883,7 +1883,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-tracker-evidence/SKILL.md":
       "8aa6aa27c322f79b9e5adc20fd796124765a016fb5293dc41c16a95f12a8c08f",
     "plugins/src/base/skills/lisa-tracker-evidence/references/completion-authorization.md":
-      "c165cf9c860c56c30a5f52b51d19f3284be80a5f08276aba13d0fd5b0f79baa5",
+      "fc1720bbf2dbba095ca8adb3305ab501d71f0c6fe2d9b90581d97becaf159216",
     "plugins/src/base/skills/lisa-tracker-journey/SKILL.md":
       "65fe727adfdbcc22141ad009e89cd7d91195600377c5357d552d50ed98ecf66b",
     "plugins/src/base/skills/lisa-tracker-read/SKILL.md":

@@ -18,6 +18,7 @@ import {
 import {
   awsCalls,
   EXECUTION_ID,
+  GET_CALLER_IDENTITY,
   GET_EXECUTION,
   PIPELINE,
   pipelineFixture,
@@ -273,5 +274,80 @@ describe("CodePipeline delivery proof through actual CLI", () => {
     expect(observed.result.stdout).toContain(READ_ERROR);
     expect(observed.result.stdout).toContain(EXECUTION_ID);
     expectUntouched(observed);
+  });
+
+  describe("bound to an AWS account", () => {
+    const ACCOUNT = "111111111111";
+    const OTHER_ACCOUNT = "222222222222";
+
+    /**
+     * A host whose delivery and record both name the production account.
+     * @param accountId - The configured account id.
+     * @returns Fixture with a matching account pinned in the record.
+     */
+    function accountFixture(accountId: string = ACCOUNT) {
+      const fixture = pipelineFixture({
+        mechanism: MECHANISM,
+        pipeline_name: PIPELINE,
+        region: REGION,
+        account_id: accountId,
+      });
+      Object.assign(fixture.record.obligations.delivery, {
+        account_id: accountId,
+      });
+      return fixture;
+    }
+
+    it("accepts the execution when the credentials belong to the configured account", () => {
+      const fixture = accountFixture();
+      setAws(fixture, GET_CALLER_IDENTITY, { json: { Account: ACCOUNT } });
+      setExecution(fixture, "Succeeded", fixture.merge);
+      const observed = complete(fixture);
+      expect(observed.result.stderr).toBe("");
+      expect(observed.result.status).toBe(0);
+      expect(observed.result.stdout).toContain(COMPLETED);
+      expect(observed.aws.calls.map(call => call.join(" "))).toContain(
+        GET_CALLER_IDENTITY.join(" ")
+      );
+      expect(observed.aws.unhandled).toBe("");
+    });
+
+    it("refuses credentials from another account without reading the execution", () => {
+      const fixture = accountFixture();
+      setAws(fixture, GET_CALLER_IDENTITY, {
+        json: { Account: OTHER_ACCOUNT },
+      });
+      setExecution(fixture, "Succeeded", fixture.merge);
+      const observed = complete(fixture);
+      expect(observed.result.status).toBe(1);
+      expect(observed.result.stdout).toContain(INVALID);
+      expect(observed.result.stdout).toContain(ACCOUNT);
+      expect(observed.result.stdout).toContain(OTHER_ACCOUNT);
+      expect(
+        observed.aws.calls.some(call => call.join() === GET_EXECUTION.join())
+      ).toBe(false);
+      expectUntouched(observed);
+    });
+
+    it("refuses a malformed configured account before any AWS call", () => {
+      const fixture = accountFixture("12345");
+      const observed = complete(fixture);
+      expect(observed.result.status).toBe(1);
+      expect(observed.result.stdout).toContain(INVALID);
+      expect(observed.result.stdout).toContain("account_id");
+      expect(observed.aws.calls).toEqual([]);
+      expectUntouched(observed);
+    });
+
+    it("refuses a record that does not pin the configured account, before any AWS call", () => {
+      const fixture = accountFixture();
+      delete (fixture.record.obligations.delivery as { account_id?: string })
+        .account_id;
+      const observed = complete(fixture);
+      expect(observed.result.status).toBe(1);
+      expect(observed.result.stdout).toContain(INVALID);
+      expect(observed.aws.calls).toEqual([]);
+      expectUntouched(observed);
+    });
   });
 });

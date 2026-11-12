@@ -32,6 +32,13 @@ export const GET_EXECUTION = [
   "json",
 ];
 
+/** The identity read made before the execution when an account is configured. */
+export const GET_CALLER_IDENTITY = [
+  "sts",
+  "get-caller-identity",
+  "--output=json",
+];
+
 /**
  * Register one exact `aws` argument vector and its answer.
  * @param fixture - Owned disposable host with the fake `aws` installed.

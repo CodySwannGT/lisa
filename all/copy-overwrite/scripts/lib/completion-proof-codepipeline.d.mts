@@ -13,6 +13,9 @@ export const PIPELINE_NAME_PATTERN: RegExp;
 /** An AWS region identifier such as `us-east-1`. */
 export const REGION_PATTERN: RegExp;
 
+/** An AWS account id: exactly twelve digits. */
+export const ACCOUNT_ID_PATTERN: RegExp;
+
 /** Prove a CodePipeline delivery from the pipeline's own execution record. */
 export function validateCodePipelineDelivery(
   delivery: object,

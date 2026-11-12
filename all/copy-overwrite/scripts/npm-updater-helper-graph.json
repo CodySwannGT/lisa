@@ -95,7 +95,7 @@
       "children": []
     },
     "lib/completion-proof-codepipeline.mjs": {
-      "sha256": "844ac8b53b253ca84f877940b1e8593bf14ca2439f8226496b75162fd25f700e",
+      "sha256": "3ea69c6f03aeba8acbab13a026fc470c075540a3bfa2921a27407cecf424a45d",
       "staticImports": [
         "lib/completion-proof-shape.mjs"
       ],
