@@ -38,7 +38,10 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { emitCodexSharedScripts } from "./lib/codex-shared-scripts.mjs";
 import { invokedAsScript } from "./lib/invoked-as-script.mjs";
+
+export { emitCodexSharedScripts };
 
 // Literals named once — each was repeated enough times that a typo in one
 // copy would diverge silently.
@@ -787,6 +790,9 @@ function main() {
   emitCodexHooks(pluginDir, claudeManifest);
   emitCodexSkillVariants(pluginDir);
   emitCommandSkills(pluginDir);
+  // After every skill is in `.codex-plugin/skills/`: their `../../../scripts/`
+  // imports land on `.codex-plugin/scripts/`, which only this step writes.
+  emitCodexSharedScripts(pluginDir);
   writeCodexManifest(pluginDir, claudeManifest, pluginName, versionArg);
   writeSkillAgents(pluginDir);
 }
