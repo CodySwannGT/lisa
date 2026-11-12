@@ -238,16 +238,18 @@ const PANE_ID_PATTERN = /^%\d+$/;
 /**
  * tmux argv that prints the name of the session the CALLER runs in, so
  * `status` can tell the manager asking about itself from another session
- * asking about the manager (#4496). The caller's own `$TMUX_PANE` is the
- * target when it is a real pane id; anything else is left out rather than
- * passed as a target, and tmux then answers for the current client.
+ * asking about the manager (#4496). The target is always the caller's own
+ * `$TMUX_PANE`. Without `-t`, tmux answers for its "best" client (the most
+ * recently active one), which can be a different session, so there is no
+ * untargeted form: with no real pane id this returns null and the caller
+ * must treat the answer as unknown.
  * @param {string | undefined} pane - The caller's `$TMUX_PANE`, if any
- * @returns {string[]} argv for `spawnSync("tmux", argv)`
+ * @returns {string[] | null} argv for `spawnSync("tmux", argv)`, or null
+ *   when `pane` is not a pane id
  */
 export function buildCurrentSessionName(pane) {
-  const target =
-    typeof pane === "string" && PANE_ID_PATTERN.test(pane) ? ["-t", pane] : [];
-  return ["display-message", "-p", ...target, "#{session_name}"];
+  if (typeof pane !== "string" || !PANE_ID_PATTERN.test(pane)) return null;
+  return ["display-message", "-p", "-t", pane, "#{session_name}"];
 }
 
 /**

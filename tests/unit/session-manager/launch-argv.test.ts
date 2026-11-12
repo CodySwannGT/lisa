@@ -216,10 +216,10 @@ describe("buildCurrentSessionName", () => {
     ]);
   });
 
-  it("omits -t when there is no pane id, or the id is not a pane id", () => {
-    const bare = ["display-message", "-p", "#{session_name}"];
-    expect(buildCurrentSessionName(undefined)).toEqual(bare);
-    expect(buildCurrentSessionName("")).toEqual(bare);
-    expect(buildCurrentSessionName("=other-manager:")).toEqual(bare);
+  it("returns null, never an untargeted probe, without a real pane id", () => {
+    expect(buildCurrentSessionName(undefined)).toBeNull();
+    expect(buildCurrentSessionName("")).toBeNull();
+    expect(buildCurrentSessionName("foo")).toBeNull();
+    expect(buildCurrentSessionName("=other-manager:")).toBeNull();
   });
 });

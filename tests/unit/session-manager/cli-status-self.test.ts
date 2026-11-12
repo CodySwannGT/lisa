@@ -75,19 +75,24 @@ describe("status manager.self", () => {
     expect(result.json.manager).toMatchObject({ running: true, self: false });
   });
 
-  it("asks for the current client's session when there is no TMUX_PANE", () => {
+  // Without `-t`, tmux answers for its "best" client: the most recently
+  // active one, which can be another session. Inside tmux with no usable
+  // pane id the answer is unknown, so status never asks.
+  it.each([
+    ["missing", undefined],
+    ["malformed", "foo"],
+  ])("is null without asking tmux when TMUX_PANE is %s", (_label, pane) => {
     const result = runCli(makeSandbox(), ["status"], {
       env: {
         STUB_TMUX_HAS_SESSION: "1",
         TMUX: TMUX_ENV,
         STUB_TMUX_CURRENT_SESSION: MANAGER,
+        ...(pane === undefined ? {} : { TMUX_PANE: pane }),
       },
     });
     expect(result.status).toBe(0);
-    expect(result.json.manager).toMatchObject({ running: true, self: true });
-    expect(
-      callsOf(result.calls, "tmux", DISPLAY).map(call => call.argv)
-    ).toEqual([[DISPLAY, "-p", "#{session_name}"]]);
+    expect(result.json.manager).toMatchObject({ running: true, self: null });
+    expect(callsOf(result.calls, "tmux", DISPLAY)).toEqual([]);
   });
 
   // Fail safe: inside tmux, a failed probe is "unknown", never "not the

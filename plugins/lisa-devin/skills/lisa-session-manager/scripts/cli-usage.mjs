@@ -53,10 +53,10 @@ Workers and capacity
       answerQueued,answerCommand}]}. manager.self is true when the caller
       runs inside the manager's tmux session (any window of it), false
       outside tmux or in another session, null when tmux cannot say which
-      session the caller is in. notify is the configured channel:
-      "telegram" or "none". pendingQuestions lists every item waiting on a
-      human, oldest first; answerCommand is the answer line to run at this
-      machine.
+      session the caller is in or $TMUX_PANE is not a pane id. notify is
+      the configured channel: "telegram" or "none". pendingQuestions lists
+      every item waiting on a human, oldest first; answerCommand is the
+      answer line to run at this machine.
 
 Manager
   start [--settle-ms <n>]

@@ -39,9 +39,11 @@ function answerCommandFor(ctx, ref) {
  * started in another window of that same session also reads true.
  *
  * Fail-safe, not fail-false: `false` only when there is no `$TMUX` or tmux
- * names a different session. Inside tmux, a probe that fails or names no
- * session is `null` (unknown), because `false` there would tell the manager
- * to stop its own loop. Nothing here throws.
+ * names a different session. Inside tmux, `null` (unknown) when
+ * `$TMUX_PANE` is not a pane id (tmux is then not asked: untargeted, it
+ * answers for its most recently active client, which can be another
+ * session), or when the probe fails or names no session, because `false`
+ * there would tell the manager to stop its own loop. Nothing here throws.
  * @param {{ env: Record<string, string | undefined> }} ctx - CLI context
  * @param {string} name - Manager session name
  * @returns {boolean | null} True for the manager's own session, false for
@@ -49,9 +51,9 @@ function answerCommandFor(ctx, ref) {
  */
 function isManagerSelf(ctx, name) {
   if (!ctx.env.TMUX) return false;
-  const probe = run("tmux", buildCurrentSessionName(ctx.env.TMUX_PANE), {
-    env: ctx.env,
-  });
+  const argv = buildCurrentSessionName(ctx.env.TMUX_PANE);
+  if (argv === null) return null;
+  const probe = run("tmux", argv, { env: ctx.env });
   const current = probe.status === 0 ? probe.stdout.trim() : "";
   if (current === "") return null;
   return current === name;

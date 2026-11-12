@@ -101,5 +101,6 @@ describe("status usage text", () => {
     expect(usage).toContain("manager:{name,running,self}");
     expect(usage).toContain("manager.self is true when the caller runs inside");
     expect(usage).toContain("null when tmux cannot say");
+    expect(usage).toContain("or $TMUX_PANE is not a pane id");
   });
 });
