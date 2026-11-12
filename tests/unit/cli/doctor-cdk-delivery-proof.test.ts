@@ -22,6 +22,7 @@ const CONFIG = ".lisa.config.json";
 const LOCAL_CONFIG = ".lisa.config.local.json";
 const CODEPIPELINE = "aws-codepipeline";
 const PIPELINE = "host-delivery";
+const ACCOUNT = "111111111111";
 const SETTING = "verification.completion.delivery.<env>";
 
 describe("doctor CDK delivery-proof check", () => {
@@ -87,6 +88,7 @@ describe("doctor CDK delivery-proof check", () => {
               mechanism: CODEPIPELINE,
               pipeline_name: PIPELINE,
               region: "us-east-1",
+              account_id: ACCOUNT,
             },
           },
         },
@@ -159,7 +161,11 @@ describe("doctor CDK delivery-proof check", () => {
       await write(first, delivery({ mechanism: CODEPIPELINE }));
       await write(
         second,
-        delivery({ pipeline_name: PIPELINE, region: "us-east-1" })
+        delivery({
+          pipeline_name: PIPELINE,
+          region: "us-east-1",
+          account_id: ACCOUNT,
+        })
       );
 
       const check = await checkCdkDeliveryProof(tempDir);
@@ -207,6 +213,69 @@ describe("doctor CDK delivery-proof check", () => {
       "verification.completion.delivery.production.region"
     );
     expect(check.detail).not.toContain(".pipeline_name");
+  });
+
+  it("warns about a CodePipeline delivery with no account, naming the cross-account risk", async () => {
+    await markCdk();
+    await write(
+      CONFIG,
+      delivery({
+        mechanism: CODEPIPELINE,
+        pipeline_name: PIPELINE,
+        region: "us-east-1",
+      })
+    );
+
+    const check = await checkCdkDeliveryProof(tempDir);
+
+    expect(check.status).toBe("warn");
+    expect(check.detail).toContain(
+      "verification.completion.delivery.production.account_id"
+    );
+    expect(check.detail).toContain("another stage's AWS account");
+  });
+
+  it("warns about a malformed account id", async () => {
+    await markCdk();
+    await write(
+      CONFIG,
+      delivery({
+        mechanism: CODEPIPELINE,
+        pipeline_name: PIPELINE,
+        region: "us-east-1",
+        account_id: "12345",
+      })
+    );
+
+    const check = await checkCdkDeliveryProof(tempDir);
+
+    expect(check.status).toBe("warn");
+    expect(check.detail).toContain("is not a 12-digit AWS account id");
+  });
+
+  it("warns when only a non-production environment is declared", async () => {
+    await markCdk();
+    await write(CONFIG, {
+      verification: {
+        completion: {
+          delivery: {
+            staging: {
+              mechanism: CODEPIPELINE,
+              pipeline_name: PIPELINE,
+              region: "us-east-1",
+              account_id: ACCOUNT,
+            },
+          },
+        },
+      },
+    });
+
+    const check = await checkCdkDeliveryProof(tempDir);
+
+    expect(check.status).toBe("warn");
+    expect(check.detail).toContain(
+      "verification.completion.delivery.production declares no accepted mechanism"
+    );
   });
 
   it("is part of the doctor report", async () => {

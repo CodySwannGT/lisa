@@ -20,6 +20,7 @@ import { existsSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import * as path from "node:path";
 import {
+  ACCOUNT_ID_PATTERN,
   CODEPIPELINE,
   DELIVERY_MECHANISMS,
   PIPELINE_NAME_PATTERN,
@@ -33,6 +34,12 @@ export const CDK_DELIVERY_PROOF_CHECK_NAME = "CDK delivery proof configured?";
 
 const CONFIG_FILES = [".lisa.config.json", ".lisa.config.local.json"] as const;
 const SETTING = "verification.completion.delivery";
+
+/**
+ * The environment lifecycle completion proves delivery for. The completion
+ * CLI always resolves it to this literal, whatever `deploy.branches` maps.
+ */
+const PRODUCTION = "production";
 
 /** Operator-facing remedy for a CDK host with no usable delivery declaration. */
 const MISSING_DETAIL =
@@ -138,6 +145,29 @@ function incompletePipelines(environments: Record<string, unknown>): string[] {
 }
 
 /**
+ * Account findings for every CodePipeline declaration: a missing account lets
+ * credentials for another stage's account read a same-named pipeline there as
+ * this environment's delivery; a malformed one is refused by completion.
+ * @param environments - Effective delivery declarations
+ * @returns One finding per declaration with a missing or malformed account_id
+ */
+function accountFindings(environments: Record<string, unknown>): string[] {
+  return Object.entries(environments).flatMap(([environment, value]) => {
+    const declared = asRecord(value);
+    if (declared?.["mechanism"] !== CODEPIPELINE) return [];
+    const account = declared["account_id"];
+    const setting = `${SETTING}.${environment}.account_id`;
+    if (account === undefined)
+      return [
+        `${setting} is not set, so credentials for another stage's AWS account could read a same-named pipeline there as ${environment} delivery; set it to the 12-digit account that runs this pipeline`,
+      ];
+    return typeof account === "string" && ACCOUNT_ID_PATTERN.test(account)
+      ? []
+      : [`${setting} is not a 12-digit AWS account id`];
+  });
+}
+
+/**
  * Report whether a CDK host declares how its delivery is proven.
  * @param targetPath - Project path to inspect
  * @returns Doctor check result
@@ -170,13 +200,22 @@ export async function checkCdkDeliveryProof(
   );
   if (declared.length === 0) return row("warn", MISSING_DETAIL);
   const missing = incompletePipelines(environments);
-  if (missing.length > 0) {
-    return row(
-      "warn",
-      `The ${CODEPIPELINE} delivery needs a valid ${missing.join(", ")} naming the pipeline that delivers it`
-    );
-  }
-  return row("ok", `${SETTING} declares ${declared.join(", ")}`);
+  const findings = [
+    ...(declared.includes(PRODUCTION)
+      ? []
+      : [
+          `Lifecycle completion proves delivery for ${PRODUCTION}, but ${SETTING}.${PRODUCTION} declares no accepted mechanism (declared: ${declared.join(", ")}), so completion stops at pending-proof`,
+        ]),
+    ...(missing.length > 0
+      ? [
+          `The ${CODEPIPELINE} delivery needs a valid ${missing.join(", ")} naming the pipeline that delivers it`,
+        ]
+      : []),
+    ...accountFindings(environments),
+  ];
+  return findings.length > 0
+    ? row("warn", findings.join("; "))
+    : row("ok", `${SETTING} declares ${declared.join(", ")}`);
 }
 
 /**
