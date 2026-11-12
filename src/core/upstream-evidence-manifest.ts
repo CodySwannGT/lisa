@@ -11765,6 +11765,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/helpers/sentry-release-harness.ts": true,
     "tests/helpers/shipped-mjs-roster.ts": true,
     "tests/helpers/staged-dependency-scan.ts": true,
+    "tests/helpers/stderr-sync.ts": true,
     "tests/helpers/supervised-unix-fixture.ts": true,
     "tests/helpers/template-toolchain.ts": true,
     "tests/helpers/test-run-child-process-analysis.ts": true,

@@ -71,6 +71,7 @@ import {
   type HistoryScannerPreparation,
   type PreparedScope,
 } from "./history-scanner-preparation.js";
+import { errorMessage, writeStderrSync } from "./stderr-sync.js";
 
 /** A reclaimable directory for the scope, and how to remove it. */
 interface ReclaimableDirectory {
@@ -149,7 +150,14 @@ export function reclaimableDirectory(): ReclaimableDirectory {
  *
  * The release never throws: a failure is reported on stderr instead, because
  * an exception thrown from an exit listener would crash the process. The
- * scratch reaper still reclaims whatever a failed release leaves behind.
+ * report is written synchronously, since an asynchronous write to a piped
+ * stderr is abandoned at exit (`tests/helpers/stderr-sync.ts`). The scratch
+ * reaper still reclaims whatever a failed release leaves behind.
+ *
+ * The scope's own exit listener is prepended
+ * (`tests/helpers/history-scanner-preparation.ts`), so at exit it stops the
+ * provision child and removes the scope before this release runs, in the same
+ * order as the normal teardown.
  * @param directory - The parent to own. Only a unit test passes one, to make
  *   its removal fail; the setup takes the default.
  * @returns The parent and its idempotent, exit-armed release
@@ -162,8 +170,8 @@ export function ownedParent(
     try {
       directory.remove();
     } catch (error) {
-      process.stderr.write(
-        `history-scanner preparation: its scratch scope could not be released (${error instanceof Error ? error.message : String(error)}); the scratch reaper reclaims it.\n`
+      writeStderrSync(
+        `history-scanner preparation: its scratch scope could not be released (${errorMessage(error)}); the scratch reaper reclaims it.\n`
       );
     }
   };
@@ -211,7 +219,7 @@ export async function setup(project: TestProject): Promise<() => void> {
   const { preparation, dispose } = await prepareInOwnedParent().catch(
     (error: unknown) =>
       refused(
-        `The cold scanner preparation failed unexpectedly: ${error instanceof Error ? error.message : String(error)}`
+        `The cold scanner preparation failed unexpectedly: ${errorMessage(error)}`
       )
   );
   process.stderr.write(evidenceLine(preparation));
