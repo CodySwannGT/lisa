@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.103.5](https://github.com/CodySwannGT/lisa/compare/v4.103.4...v4.103.5) (2026-11-12)
+
+
+### Bug Fixes
+
+* **skills:** address local review on lisa-update-projects ([#4644](https://github.com/CodySwannGT/lisa/issues/4644)) ([fa51474](https://github.com/CodySwannGT/lisa/commit/fa51474be74ba913c9c49c7522438aace133c374))
+* **skills:** align lisa-update-projects with current Lisa ([#4644](https://github.com/CodySwannGT/lisa/issues/4644)) ([f33bd37](https://github.com/CodySwannGT/lisa/commit/f33bd37a9699243a6d508f6c95c41c2bac661dbb)), closes [#2615](https://github.com/CodySwannGT/lisa/issues/2615)
+
 ### [4.103.4](https://github.com/CodySwannGT/lisa/compare/v4.103.3...v4.103.4) (2026-11-12)
 
 
