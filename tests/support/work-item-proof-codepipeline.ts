@@ -117,12 +117,17 @@ export function awsCalls(fixture: PipelineFixture) {
 
 /**
  * Leave no `aws` anywhere on the fixture's PATH, so the spawn fails ENOENT.
+ * The directory holding the running `node` is appended afterwards: it can be
+ * the same directory as a real `aws` (Homebrew), and the fake `gh` runs
+ * through `#!/usr/bin/env node`, so dropping it would fail the gh read first.
  * @param fixture - Owned disposable host.
  */
 export function removeAws(fixture: PipelineFixture): void {
   rmSync(path.join(fixture.root, "fake-bin/aws"));
-  fixture.env.PATH = (fixture.env.PATH ?? "")
-    .split(path.delimiter)
-    .filter(dir => dir && !existsSync(path.join(dir, "aws")))
-    .join(path.delimiter);
+  fixture.env.PATH = [
+    ...(fixture.env.PATH ?? "")
+      .split(path.delimiter)
+      .filter(dir => dir && !existsSync(path.join(dir, "aws"))),
+    path.dirname(process.execPath),
+  ].join(path.delimiter);
 }
