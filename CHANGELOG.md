@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [4.102.0](https://github.com/CodySwannGT/lisa/compare/v4.101.11...v4.102.0) (2026-11-12)
+
+
+### Features
+
+* **evidence:** add a dry-run-first prune for full evidence releases ([f3dfe2a](https://github.com/CodySwannGT/lisa/commit/f3dfe2aacb582e9f5ce8d1d08ef6e04c14f25c62)), closes [#4729](https://github.com/CodySwannGT/lisa/issues/4729) [CodySwannGT/lisa#4720](https://github.com/CodySwannGT/lisa/issues/4720) [CodySwannGT/lisa#4720](https://github.com/CodySwannGT/lisa/issues/4720)
+
+
+### Bug Fixes
+
+* **evidence:** refuse empty prune operands and hash the archive read-back ([1a1eb5a](https://github.com/CodySwannGT/lisa/commit/1a1eb5a18517e9f9de4d0e331478821f7f73425d)), closes [CodySwannGT/lisa#4720](https://github.com/CodySwannGT/lisa/issues/4720) [CodySwannGT/lisa#4720](https://github.com/CodySwannGT/lisa/issues/4720)
+* **evidence:** rescan the pinned evidence release and refuse stray uploads ([d70d773](https://github.com/CodySwannGT/lisa/commit/d70d773fd324501082cc63c362a96cf648844d63)), closes [CodySwannGT/lisa#4720](https://github.com/CodySwannGT/lisa/issues/4720) [CodySwannGT/lisa#4720](https://github.com/CodySwannGT/lisa/issues/4720)
+* **evidence:** satisfy repository sweeps for the evidence prune ([91fea3f](https://github.com/CodySwannGT/lisa/commit/91fea3f6dc1a2e3de5105078152430a2b48e9f45)), closes [CodySwannGT/lisa#4720](https://github.com/CodySwannGT/lisa/issues/4720) [CodySwannGT/lisa#4720](https://github.com/CodySwannGT/lisa/issues/4720)
+
 ### [4.101.11](https://github.com/CodySwannGT/lisa/compare/v4.101.10...v4.101.11) (2026-11-12)
 
 
