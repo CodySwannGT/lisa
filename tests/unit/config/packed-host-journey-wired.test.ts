@@ -35,6 +35,7 @@ const SCRIPT = "test:integration:packed-hosts";
 
 /** One workflow step, as far as this file reads it. */
 interface Step {
+  readonly if?: string;
   readonly uses?: string;
   readonly run?: string;
   readonly env?: Readonly<Record<string, string>>;
@@ -149,6 +150,53 @@ describe("the packed-host journey workflow", () => {
     };
     expect(manifest.scripts[SCRIPT]).toContain(`vitest run ${JOURNEY}`);
     expect(manifest.scripts[SCRIPT]).not.toContain("--exclude");
+  });
+});
+
+/** The gated fs-probe diagnostic the workflow can run first (#4636). */
+const DIAGNOSTIC = "tests/integration/fs-probe-diagnostic.test.ts";
+
+describe("the fs-probe diagnostic route (CodySwannGT/lisa#4636)", () => {
+  const dispatch = workflow.on["workflow_dispatch"] as {
+    inputs: Record<string, { default: unknown; type: string }>;
+  };
+  const diagnostic = steps.findIndex(step => step.run?.includes(DIAGNOSTIC));
+  const journey = steps.findIndex(step => step.run?.includes(SCRIPT));
+
+  it("is a boolean dispatch input that is off unless asked for", () => {
+    expect(dispatch.inputs["probe_diagnostic"]).toMatchObject({
+      type: "boolean",
+      default: false,
+    });
+  });
+
+  it("runs the diagnostic with its flag set, only when asked, before the journey", () => {
+    const step = steps[diagnostic];
+    expect(diagnostic).toBeGreaterThanOrEqual(0);
+    expect(diagnostic).toBeLessThan(journey);
+    expect(step?.if).toBe("${{ inputs.probe_diagnostic }}");
+    expect(step?.env?.["LISA_FS_PROBE_DIAGNOSTIC"]).toBe("1");
+    expect(step?.run).toContain(`bun run test ${DIAGNOSTIC}`);
+  });
+
+  it("proves the gated cases executed rather than skipped", () => {
+    const proof = steps.find(step =>
+      step.run?.includes("scripts/check-test-case-executed.mjs")
+    );
+    expect(proof?.if).toBe("${{ inputs.probe_diagnostic }}");
+    expect(proof?.run).toContain(
+      '--name "fs probe diagnostic paired sample 8 of 8"'
+    );
+    const source = read(DIAGNOSTIC);
+    expect(source).toContain('"paired sample %i of 8"');
+    expect(source).toContain('process.env["LISA_FS_PROBE_DIAGNOSTIC"] === "1"');
+  });
+
+  it("records the runner and its root mount options on every dispatch", () => {
+    const record = steps.find(step => step.run?.includes("findmnt"));
+    expect(record?.if).toBeUndefined();
+    expect(record?.run).toContain("findmnt -no OPTIONS /");
+    expect(steps.indexOf(record!)).toBeLessThan(journey);
   });
 });
 

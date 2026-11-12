@@ -17,6 +17,18 @@ name: 📦 Packed-host journey
 #
 #   gh workflow run packed-host-journey.yml -f ref=main
 #
+# ## The fs-probe diagnostic (CodySwannGT/lisa#4636)
+#
+# `-f probe_diagnostic=true` also runs tests/integration/fs-probe-diagnostic.test.ts
+# before the journey: eight paired samples of the filesystem budget probe, an
+# allocated-file variant and a real 5,000-file removal, with the device's
+# discard counters, on the same hosted image whose teardown the probe budgets.
+# It is off by default and costs about five minutes when on. A dispatch with
+# `--ref <branch>` runs that branch's copy of this file, so a branch that
+# changes the diagnostic can measure itself before it merges:
+#
+#   gh workflow run packed-host-journey.yml --ref <branch> -f ref=<branch> -f probe_diagnostic=true
+#
 # ## Provisioning
 #
 # Copied from the shell-guard trace shards in plugins-sync.yml, which provision
@@ -37,6 +49,11 @@ on:
         required: false
         default: main
         type: string
+      probe_diagnostic:
+        description: Also run the fs-probe discard diagnostic (CodySwannGT/lisa#4636) before the journey
+        required: false
+        default: false
+        type: boolean
 
 concurrency:
   group: packed-host-journey-${{ inputs.ref }}
@@ -90,6 +107,49 @@ jobs:
         run: gem install activerecord --version 8.1.4 --no-document
       - name: Install dependencies
         run: bun install --frozen-lockfile
+      # Every figure either run produces is a figure about this machine, and
+      # this machine is gone when the job ends; the mount options are the
+      # discard question the diagnostic exists for.
+      - name: 🧾 Record the runner
+        run: |
+          uname -a
+          nproc
+          free -m
+          df -h /
+          findmnt -no OPTIONS /
+      # `bun run test` rather than a bare vitest call, as the tmpdir-growth
+      # benchmark does: the wrapper supervises the scratch root these samples
+      # write into. Both reporters: the default one prints the
+      # FS_PROBE_DIAGNOSTIC lines, the JSON one feeds the proof below.
+      - name: 🔬 Run the fs-probe diagnostic
+        if: ${{ inputs.probe_diagnostic }}
+        timeout-minutes: 15
+        env:
+          LISA_FS_PROBE_DIAGNOSTIC: '1'
+          LISA_FS_PROBE_DIAGNOSTIC_OUT: ${{ runner.temp }}/fs-probe-diagnostic/samples.jsonl
+        run: |
+          mkdir -p "$RUNNER_TEMP/fs-probe-diagnostic"
+          bun run test tests/integration/fs-probe-diagnostic.test.ts \
+            --reporter=default --reporter=json \
+            --outputFile.json="$RUNNER_TEMP/fs-probe-diagnostic/report.json"
+      # A green suite is compatible with every case having been skipped (the
+      # diagnostic is gated on Linux and its flag); this is not.
+      - name: ✅ Prove the diagnostic actually executed
+        if: ${{ inputs.probe_diagnostic }}
+        run: >-
+          node scripts/check-test-case-executed.mjs
+          --report "$RUNNER_TEMP/fs-probe-diagnostic/report.json"
+          --name "fs probe diagnostic records the mounts the probe writes to"
+          --name "fs probe diagnostic paired sample 1 of 8"
+          --name "fs probe diagnostic paired sample 8 of 8"
+      - name: 📤 Upload the diagnostic samples
+        if: ${{ always() && inputs.probe_diagnostic }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: fs-probe-diagnostic-${{ github.run_id }}-attempt-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/fs-probe-diagnostic/
+          if-no-files-found: warn
+          retention-days: 30
       # The named script builds once and supplies genuine Bun lifecycle context,
       # and it targets exactly the one journey file.
       - name: 📦 Run the packed-host journey
