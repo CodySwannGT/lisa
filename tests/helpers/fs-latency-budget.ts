@@ -8,7 +8,14 @@
  * applies here unchanged and is not restated.
  * @module tests/helpers/fs-latency-budget
  */
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import {
+  closeSync,
+  fsyncSync,
+  mkdtempSync,
+  openSync,
+  rmSync,
+  writeSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
@@ -85,20 +92,53 @@ import path from "node:path";
  * clamps at 1 from below, exactly as the spawn path does) — not that it is
  * never tighter than some other proxy's reading.
  *
- * ## What the probe does not see on a hosted runner
+ * ## What the probe could not see on a hosted runner, measured
  *
- * CodySwannGT/lisa#4548. The hosted runners mount their root filesystem ext4
- * `discard,data=writeback`, where freeing a file's data discards it on the
- * device synchronously in the unlinking thread. The packed-host teardown
- * freed about 341,000 inodes at 22,000-34,000 a second from four unlinkers up
- * (one unlinking thread was two to three times slower), and this probe
- * derived a factor of exactly 1.00 in every sampled run all the same. Why is not established; one unmeasured
- * reading is that its twenty freshly written one-byte files are freed before
- * delayed allocation gives them a block, so they free nothing to discard.
- * Either way the budget never widened for the runs that needed it. The repair
- * there did not scale it: that teardown stopped freeing a corpus whose last
- * user had finished long before.
+ * CodySwannGT/lisa#4548 found this probe deriving a factor of exactly 1.00 on
+ * every sampled hosted run while the packed-host teardown there freed about
+ * 341,000 inodes at 22,000-34,000 a second. CodySwannGT/lisa#4636 measured
+ * why, on hosted run 43251544381 (ubuntu-24.04, device 8:1, `/` mounted ext4
+ * `rw,relatime;rw,discard,journal_async_commit,nobarrier,errors=remount-ro,
+ * commit=30,data=writeback`), with eight paired samples each taking the probe
+ * as it then was, the same twenty entries as 4 KiB `fsync`ed files, and a real
+ * 5,000-file removal of 4 KiB `fsync`ed files:
+ *
+ * | measurement                            | per entry       | ratio to real |
+ * | -------------------------------------- | --------------- | ------------- |
+ * | old probe, 20 one-byte files           | 16.7 - 18.0us   | 0.250 - 0.277 |
+ * | 20 allocated (4 KiB, synced) files     | 62.7 - 75.1us   | 0.937 - 1.115 |
+ * | real removal, 5,000 allocated files    | 63.6 - 67.4us   | —             |
+ *
+ * The device's discard counter says why. Removing the old probe's 100 files
+ * per sample sent no discards (one, after a 6 s settle); removing 100
+ * allocated files sent 109-143, and the real 5,000-file removal sent 5,000,
+ * all before the removal returned. The old probe's files were freed before
+ * delayed allocation gave them a block, so they freed nothing to discard and
+ * the probe timed a different operation from the one it budgets: it read a
+ * quarter of the real cost and its factor sat at the floor.
+ *
+ * So the probe now writes each entry as a 4 KiB block and `fsync`s it before
+ * the timed removal ({@link fillProbeDirectory}). The allocated twenty stayed
+ * inside the 0.56-1.15 band this module asks of the probe in all eight
+ * samples. {@link FS_PROBE_ENTRIES} is unchanged. On hosted ubuntu-24.04 the
+ * allocated probe reads about 63-75us per entry, so the factor there moves
+ * from 1.00 to about 2.1-2.5, widening those deletion budgets as intended.
+ *
+ * One figure was not re-measured: {@link QUIET_UNLINK_LATENCY_US} was taken
+ * with the old one-byte probe on APFS. Its basis is recorded below as it was
+ * measured. On an 18-core arm64 APFS box on 2026-11-12 (one vitest process,
+ * 1-minute load average 2.9-4.2), five paired samples read the old probe at
+ * 30.3-43.0us and the allocated one at 45.7-53.5us (one outlier at 263us), so
+ * there the allocated probe reads about 1.5-1.8x the constant. That widens
+ * budgets on such a box rather than tightening them; re-deriving the constant
+ * for the allocated probe is left open rather than guessed.
  */
+
+/**
+ * Bytes written to each probe entry: one filesystem block, so every entry
+ * holds a real block by the time it is removed (CodySwannGT/lisa#4636).
+ */
+export const PROBE_FILE_BYTES = 4096;
 
 /**
  * Directory entries created per filesystem probe cycle.
@@ -108,7 +148,7 @@ import path from "node:path";
  * figure a 100,000-entry teardown pays. Twenty amortises the fixed ends while
  * keeping the probe at roughly 1/250 the cost of the smallest real corpus.
  */
-const FS_PROBE_ENTRIES = 20;
+export const FS_PROBE_ENTRIES = 20;
 
 /** Number of probe cycles timed to characterise this worker's filesystem. */
 const FS_PROBE_SAMPLES = 5;
@@ -149,18 +189,56 @@ export const QUIET_UNLINK_LATENCY_US = 30;
 export const MAX_FS_SLOWDOWN = 8;
 
 /**
- * Build the probe's throwaway directory.
- *
- * Separated from the timing so that only the unlink half is measured. Timing
- * the creation too would measure a cost the teardown hooks do not pay.
- * @returns Path to a directory holding {@link FS_PROBE_ENTRIES} small files
+ * Write the probe's entries into a directory: each a full block, synced.
+ * @param directory - The probe's directory
+ * @param entries - Files to write
+ * @param sync - Flushes one open file
  */
-function fillProbeDirectory(): string {
-  const directory = mkdtempSync(path.join(tmpdir(), "lisa-fs-probe-"));
-  Array.from({ length: FS_PROBE_ENTRIES }, (_unused, index) => {
-    writeFileSync(path.join(directory, `entry-${index}`), "x");
+function writeProbeEntries(
+  directory: string,
+  entries: number,
+  sync: (fd: number) => void
+): void {
+  const block = Buffer.alloc(PROBE_FILE_BYTES, "x");
+  Array.from({ length: entries }, (_unused, index) => {
+    const fd = openSync(path.join(directory, `entry-${index}`), "w");
+    try {
+      writeSync(fd, block);
+      sync(fd);
+    } finally {
+      closeSync(fd);
+    }
     return index;
   });
+}
+
+/**
+ * Build the probe's throwaway directory of allocated, synced files.
+ *
+ * Separated from the timing so that only the unlink half is measured. Timing
+ * the creation too would measure a cost the teardown hooks do not pay. Each
+ * entry is a full block, synced before the directory is returned, because a
+ * file freed before it was given a block frees nothing to discard and so
+ * times a cheaper operation than the one the budgets guard. A fill that fails
+ * removes its directory before rethrowing, so a failed probe leaves nothing
+ * behind.
+ * @param entries - Files to write
+ * @param sync - Flushes one open file; the regression observes it
+ * @param root - Directory to create it under; the regression isolates it
+ * @returns Path to a directory holding `entries` 4 KiB files
+ */
+export function fillProbeDirectory(
+  entries: number = FS_PROBE_ENTRIES,
+  sync: (fd: number) => void = fsyncSync,
+  root: string = tmpdir()
+): string {
+  const directory = mkdtempSync(path.join(root, "lisa-fs-probe-"));
+  try {
+    writeProbeEntries(directory, entries, sync);
+  } catch (error) {
+    rmSync(directory, { force: true, recursive: true });
+    throw error;
+  }
   return directory;
 }
 

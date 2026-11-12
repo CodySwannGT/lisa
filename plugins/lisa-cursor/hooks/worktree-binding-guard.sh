@@ -4,7 +4,10 @@
 
 # PreToolUse guard for Bash/Write/Edit/MultiEdit, and PostToolUse recorder for
 # EnterWorktree: refuse to act while the worktree the session was told it is in
-# disagrees with the one it is measurably in (CodySwannGT/lisa#3864).
+# disagrees with the one it is measurably in (CodySwannGT/lisa#3864). Since
+# CodySwannGT/lisa#4816 a provably read-only Bash command is allowed there with
+# a warning instead; writes and anything unclassifiable are still refused. The
+# warning's PreToolUse JSON goes to stdout, which this wrapper passes through.
 #
 # The reconciliation lives in worktree-binding-guard.mjs beside this file. It
 # needs per-session state, path resolution and git plumbing, and a bash

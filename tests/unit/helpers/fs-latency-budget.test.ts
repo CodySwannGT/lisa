@@ -19,11 +19,13 @@
  * @module tests/unit/helpers/fs-latency-budget
  */
 import {
+  fsyncSync,
   mkdtempSync,
+  readdirSync,
   readFileSync,
   rmSync,
   statfsSync,
-  writeFileSync,
+  statSync,
 } from "node:fs";
 import { cpus, loadavg, release, tmpdir } from "node:os";
 import path from "node:path";
@@ -31,11 +33,14 @@ import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 
 import {
+  fillProbeDirectory,
+  FS_PROBE_ENTRIES,
   fsBudgetDerivation,
   fsLatencyBudgetMs,
   fsSlowdownFactorFrom,
   MAX_FS_SLOWDOWN,
   measureUnlinkLatencyUs,
+  PROBE_FILE_BYTES,
   QUIET_UNLINK_LATENCY_US,
   workerFsSlowdown,
 } from "../../helpers/fs-latency-budget.js";
@@ -55,11 +60,14 @@ const REPO_ROOT = path.resolve(__dirname, "..", "..", "..");
 /**
  * The corpus the empirical case deletes, in entries.
  *
- * 2,000 rather than the 5,000 the recorded figures were taken against: it is
- * 100x the probe, which is enough for the fixed `mkdtemp`/`rmdir` ends to stop
- * mattering, and it keeps the case near a second on a contended box.
+ * 1,000 rather than the 5,000 the recorded figures were taken against: it is
+ * 50x the probe, which is enough for the fixed `mkdtemp`/`rmdir` ends to stop
+ * mattering. Every entry is now written and `fsync`ed the way the probe writes
+ * its own (CodySwannGT/lisa#4636), and a synced write costs far more than the
+ * one-byte write it replaced on a hosted runner, so the corpus is half the old
+ * 2,000 to keep the case near a second there.
  */
-const REAL_CORPUS_ENTRIES = 2_000;
+const REAL_CORPUS_ENTRIES = 1_000;
 
 /**
  * How far the probe may sit from the operation it stands for.
@@ -82,17 +90,15 @@ afterEach(() => {
 });
 
 /**
- * Build a directory of small files, registered for teardown.
+ * Build a corpus written exactly as the probe writes its files, registered
+ * for teardown. A corpus of a different kind of file would compare the probe
+ * with an operation it does not claim to stand for.
  * @param entries - Number of files to create.
  * @returns The directory path.
  */
 const buildCorpus = (entries: number): string => {
-  const directory = mkdtempSync(path.join(tmpdir(), "lisa-fs-corpus-"));
+  const directory = fillProbeDirectory(entries);
   temporaryDirectories.push(directory);
-  Array.from({ length: entries }, (_unused, index) => {
-    writeFileSync(path.join(directory, `entry-${index}`), "x");
-    return index;
-  });
   return directory;
 };
 
@@ -156,6 +162,58 @@ describe("fsLatencyBudgetMs", () => {
 
   it("remembers the measurement rather than re-probing on every call", () => {
     expect(workerFsSlowdown()).toBe(workerFsSlowdown());
+  });
+});
+
+describe("the probe's files hold real blocks (CodySwannGT/lisa#4636)", () => {
+  /**
+   * Measured on hosted run 43251544381: one-byte files freed before they were
+   * synced sent the device no discards at all, and the probe read 0.25-0.28 of
+   * a real removal. Allocated, synced files read 0.94-1.12 of it.
+   */
+  it("writes each entry as a full 4 KiB block", () => {
+    const directory = buildCorpus(FS_PROBE_ENTRIES);
+
+    const sizes = readdirSync(directory).map(
+      name => statSync(path.join(directory, name)).size
+    );
+
+    expect(PROBE_FILE_BYTES).toBe(4096);
+    expect(sizes).toEqual(Array.from({ length: 20 }, () => 4096));
+  });
+
+  // The default sync is the real `fsyncSync`: the 4 KiB case above runs it.
+  // Whether a synced block is what makes removal pay its discard is a fact
+  // about the hosted device, so the hosted diagnostic is the real check of it.
+  it("syncs every entry before handing the directory to the timed removal", () => {
+    const synced: number[] = [];
+
+    const directory = fillProbeDirectory(FS_PROBE_ENTRIES, fd => {
+      fsyncSync(fd);
+      synced.push(fd);
+    });
+    temporaryDirectories.push(directory);
+
+    expect(synced).toHaveLength(FS_PROBE_ENTRIES);
+    expect(readdirSync(directory)).toHaveLength(FS_PROBE_ENTRIES);
+  });
+});
+
+describe("a probe fill that fails", () => {
+  it("removes its directory before rethrowing", () => {
+    const root = mkdtempSync(path.join(tmpdir(), "lisa-fs-probe-root-"));
+    temporaryDirectories.push(root);
+
+    expect(() =>
+      fillProbeDirectory(
+        FS_PROBE_ENTRIES,
+        () => {
+          throw new Error("EIO: i/o error, fsync");
+        },
+        root
+      )
+    ).toThrow(/EIO/);
+    expect(readdirSync(root)).toEqual([]);
   });
 });
 
