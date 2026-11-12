@@ -333,7 +333,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-npm-updater.mjs":
       "3ee8529f74396b06b1189db9dd37bc002d1e17d9abd9fbd9da6c20c212db7898",
     "all/copy-overwrite/scripts/lisa-plugin-registration-notice.mjs":
-      "2322978ad056096585e1c420e5c5742422fb6427910b152188515f14c7b2bbe9",
+      "04e15850f785be3557bd8e93e29cd060088969eae5deaab2462cebc24e4d2dc5",
     "all/copy-overwrite/scripts/lisa-postinstall.mjs":
       "1b949b5687b2352eb5e712c055ab2fd4648380e7ab4da0c9457eac9b2be17a71",
     "all/copy-overwrite/scripts/lisa-rails-prepush.mjs":

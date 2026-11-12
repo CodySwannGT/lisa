@@ -365,13 +365,6 @@ export async function runDoctor(
     // this check sees a consumer who later edits it back out.
     await checkNightlyE2eBypassArming(resolvedTarget),
     await checkApplyFailure(resolvedTarget),
-    // Dependency install never registers Claude Code plugins, and its notice
-    // sends the operator here — so say whether this folder's @lisa plugins are
-    // registered, with health's own finding and remedy (CodySwannGT/lisa#4504).
-    await checkPluginRegistration(
-      resolvedTarget,
-      deps.readInstalledClaudePlugins
-    ),
     // Beside the recorded-failure check because they are the same operator
     // question asked either way round: that one reports an apply that did not
     // run, this one an apply that ran and took files with it. Both exist
@@ -386,6 +379,14 @@ export async function runDoctor(
     // downwards is refused, and until now nothing said so in advance
     // (CodySwannGT/lisa#2754).
     await checkOverrideFloorConflicts(resolvedTarget),
+    // Dependency install never registers Claude Code plugins, and its notice
+    // sends the operator here — so say whether this folder's @lisa plugins are
+    // registered, with health's own finding and remedy (CodySwannGT/lisa#4504).
+    // After the apply-failure group so that group's adjacency comments hold.
+    await checkPluginRegistration(
+      resolvedTarget,
+      deps.readInstalledClaudePlugins
+    ),
     ...(await checkProjectTypeAndHooks(resolvedTarget)),
     await checkInstructionFiles(resolvedTarget),
     // Runs AFTER the instruction-files check because that check performs the

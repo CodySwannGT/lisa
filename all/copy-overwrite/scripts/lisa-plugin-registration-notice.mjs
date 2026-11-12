@@ -3,7 +3,8 @@
 // Do not edit directly — durable changes belong upstream in Lisa.
 
 /**
- * SessionStart pointer for a checkout whose Lisa plugins are not registered
+ * Session-startup pointer (SessionStart, `startup` matcher only — not resume,
+ * clear or compact) for a checkout whose Lisa plugins are not registered
  * (CodySwannGT/lisa#4504).
  *
  * Dependency install deliberately registers nothing (#4135), so a fresh clone
@@ -13,9 +14,10 @@
  * writes it into the host's `.claude/settings.json`, which travels with the
  * clone whether or not any plugin ever installs.
  *
- * It is advisory and cheap by contract: it reads two local JSON files, never
- * runs the Claude CLI, never touches the network, never writes, and always
- * exits 0. Anything it cannot read confidently makes it stay silent — a false
+ * It is advisory and cheap by contract: it reads local files only (the
+ * project settings, the plugin registry, and a linked worktree's `.git`
+ * pointer), never runs the Claude CLI, never touches the network, never
+ * writes, and always exits 0. Anything it cannot read confidently makes it stay silent — a false
  * alarm at every session start would teach operators to ignore it.
  *
  * Agent parity: Claude Code is the only agent with a per-folder plugin
