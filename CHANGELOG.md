@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.101.6](https://github.com/CodySwannGT/lisa/compare/v4.101.5...v4.101.6) (2026-11-12)
+
+
+### Bug Fixes
+
+* **codex:** confine shared-script writes to .codex-plugin/scripts/ ([c3cee06](https://github.com/CodySwannGT/lisa/commit/c3cee060644c02a7860f5b7f74aa85b4b8129259)), closes [CodySwannGT/lisa#4730](https://github.com/CodySwannGT/lisa/issues/4730) [CodySwannGT/lisa#4730](https://github.com/CodySwannGT/lisa/issues/4730)
+* **codex:** emit the shared scripts Codex skill scripts import ([2b7aa68](https://github.com/CodySwannGT/lisa/commit/2b7aa6851d0516af46b56816fd0d8b7a42f91367)), closes [CodySwannGT/lisa#4730](https://github.com/CodySwannGT/lisa/issues/4730) [CodySwannGT/lisa#4730](https://github.com/CodySwannGT/lisa/issues/4730)
+
 ### [4.101.5](https://github.com/CodySwannGT/lisa/compare/v4.101.4...v4.101.5) (2026-11-09)
 
 
