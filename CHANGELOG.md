@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.103.13](https://github.com/CodySwannGT/lisa/compare/v4.103.12...v4.103.13) (2026-11-12)
+
+
+### Bug Fixes
+
+* **session-manager:** never probe tmux untargeted for manager.self ([f5dcc0d](https://github.com/CodySwannGT/lisa/commit/f5dcc0dd48c23172df43a20a24a7ca815d051c49)), closes [#4496](https://github.com/CodySwannGT/lisa/issues/4496) [CodySwannGT/lisa#4496](https://github.com/CodySwannGT/lisa/issues/4496) [CodySwannGT/lisa#4496](https://github.com/CodySwannGT/lisa/issues/4496)
+* **session-manager:** stop the manager flagging its own loop as a duplicate ([#4496](https://github.com/CodySwannGT/lisa/issues/4496)) ([69a71d9](https://github.com/CodySwannGT/lisa/commit/69a71d96fcd8feaf9f4f35d64d12ee01b2a4c658))
+
 ### [4.103.12](https://github.com/CodySwannGT/lisa/compare/v4.103.11...v4.103.12) (2026-11-12)
 
 
