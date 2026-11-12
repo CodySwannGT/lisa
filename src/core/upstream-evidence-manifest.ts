@@ -12052,6 +12052,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/support/maestro-retry-types.ts": true,
     "tests/integration/support/maestro-retry-workflow.ts": true,
     "tests/integration/support/maestro-runner-arguments.ts": true,
+    "tests/integration/support/native-path-bun.ts": true,
     "tests/integration/support/npm-update-native-prepare.ts": true,
     "tests/integration/support/pre-tool-refusal-fixture.ts": true,
     "tests/integration/support/pre-tool-refusal-harness.ts": true,
