@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [4.106.0](https://github.com/CodySwannGT/lisa/compare/v4.105.0...v4.106.0) (2026-11-12)
+
+
+### Features
+
+* **skills:** require proving a cited line is reachable before fixing it ([02e12ea](https://github.com/CodySwannGT/lisa/commit/02e12ea5a4451fb49056a49f8c1cfb56c38f771b)), closes [CodySwannGT/lisa#4491](https://github.com/CodySwannGT/lisa/issues/4491) [CodySwannGT/lisa#4491](https://github.com/CodySwannGT/lisa/issues/4491)
+
+
+### Bug Fixes
+
+* **skills:** do not reject a directly launched entry module as dead code ([d1dbb96](https://github.com/CodySwannGT/lisa/commit/d1dbb968a3994886ff00f27bbb7bd34925149eff)), closes [#4805](https://github.com/CodySwannGT/lisa/issues/4805) [CodySwannGT/lisa#4491](https://github.com/CodySwannGT/lisa/issues/4491) [CodySwannGT/lisa#4491](https://github.com/CodySwannGT/lisa/issues/4491)
+* **skills:** tag reachability throw for cleanup and separate Reachability line ([d59a74f](https://github.com/CodySwannGT/lisa/commit/d59a74f1019bf93f8392cd1540d58aa2e2f33354)), closes [CodySwannGT/lisa#4491](https://github.com/CodySwannGT/lisa/issues/4491) [CodySwannGT/lisa#4491](https://github.com/CodySwannGT/lisa/issues/4491)
+
 ## [4.105.0](https://github.com/CodySwannGT/lisa/compare/v4.104.1...v4.105.0) (2026-11-12)
 
 
