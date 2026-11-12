@@ -3067,7 +3067,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/copy-overwrite/scripts/check-nightly-e2e-health.mjs":
       "d1b26caeaf65950e3b60ff41964d234c032c50470072e7643310b1f6722e34e6",
     "typescript/copy-overwrite/scripts/check-skipped-required-checks.mjs":
-      "193c8e061ad4897a6c8e70a3f8679218505924a41936212187e7cb46d367cbe6",
+      "b7b1f3e42e3050f4142d18ccaab73337e5e018cd912495bd501c1dbc2ee9125b",
     "typescript/copy-overwrite/scripts/check-threshold-ratchet.mjs":
       "d4afc90ba8faf10925fff5fb0d6cd0ace22df2eaa0ec609ee969d0ec84092299",
     "typescript/copy-overwrite/scripts/check-verification-coverage.mjs":
@@ -12079,6 +12079,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/support/maestro-retry-types.ts": true,
     "tests/integration/support/maestro-retry-workflow.ts": true,
     "tests/integration/support/maestro-runner-arguments.ts": true,
+    "tests/integration/support/native-path-bun.ts": true,
     "tests/integration/support/npm-update-native-prepare.ts": true,
     "tests/integration/support/pre-tool-refusal-fixture.ts": true,
     "tests/integration/support/pre-tool-refusal-harness.ts": true,
