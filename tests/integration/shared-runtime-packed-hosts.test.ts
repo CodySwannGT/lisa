@@ -189,7 +189,9 @@ function topLevelNames(): readonly string[] | "unreadable" {
 
 /**
  * Read the owned root's state at the teardown boundary, cheaply: the names it
- * still holds and the shared cache's state, never a corpus walk.
+ * still holds and the shared cache's state, never a corpus walk. The cache's
+ * entry count was taken by its last installer, before it freed the cache
+ * (CodySwannGT/lisa#4636); null when no installer freed it.
  * @returns Owned-resource state for the phase record
  */
 function ownedRootState(): Record<string, unknown> {
@@ -198,6 +200,7 @@ function ownedRootState(): Record<string, unknown> {
     fullRun: fullRun(),
     installersFinished: sharedCache?.allFinished() ?? false,
     sharedCacheFreed: sharedCache?.freed() ?? false,
+    sharedCacheEntries: sharedCache?.entriesAtFree() ?? null,
   };
 }
 
