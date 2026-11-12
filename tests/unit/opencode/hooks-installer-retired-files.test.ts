@@ -21,6 +21,8 @@ import { cleanupTempDir, createTempDir } from "../../helpers/test-utils.js";
 
 const RETIRED_PLUGIN = "lisa-parity-safety-net.ts";
 const RETIRED_SUPPORT = "parity-safety-net.sh";
+const RETIRED_PARSER = "parity-safety-net-heredoc.py";
+const HOST_AUTHORED = "# host-authored\n";
 
 describe("opencode/hooks-installer retired safety-net files", () => {
   let tempDir: string;
@@ -63,6 +65,46 @@ describe("opencode/hooks-installer retired safety-net files", () => {
     expect(result.managedFiles.join("\n")).not.toContain(RETIRED_SUPPORT);
   });
 
+  it("prunes the recorded heredoc parser copy, which OpenCode never used", async () => {
+    // CodySwannGT/lisa#4810: only block-instruction-file-edits.sh calls the
+    // parser, and OpenCode does not ship that guard.
+    const pluginDir = path.join(
+      destDir,
+      OPENCODE_CONFIG_DIR,
+      OPENCODE_PLUGIN_SUBDIR
+    );
+    await fs.ensureDir(pluginDir);
+    await fs.writeFile(path.join(pluginDir, RETIRED_PARSER), "# old copy\n");
+
+    const result = await installHooks(
+      lisaDir,
+      destDir,
+      ["typescript"],
+      [path.join(OPENCODE_PLUGIN_SUBDIR, RETIRED_PARSER)]
+    );
+
+    expect(result.deleted).toEqual([RETIRED_PARSER]);
+    expect(await fs.pathExists(path.join(pluginDir, RETIRED_PARSER))).toBe(
+      false
+    );
+    expect(result.managedFiles.join("\n")).not.toContain(RETIRED_PARSER);
+  });
+
+  it("keeps a host's own heredoc parser file Lisa never recorded writing", async () => {
+    const pluginDir = path.join(
+      destDir,
+      OPENCODE_CONFIG_DIR,
+      OPENCODE_PLUGIN_SUBDIR
+    );
+    await fs.ensureDir(pluginDir);
+    const hostCopy = path.join(pluginDir, RETIRED_PARSER);
+    await fs.writeFile(hostCopy, HOST_AUTHORED);
+
+    await installHooks(lisaDir, destDir, ["typescript"], []);
+
+    expect(await fs.readFile(hostCopy, "utf8")).toBe(HOST_AUTHORED);
+  });
+
   it("keeps a same-named support file Lisa never recorded writing", async () => {
     const pluginDir = path.join(
       destDir,
@@ -71,10 +113,10 @@ describe("opencode/hooks-installer retired safety-net files", () => {
     );
     await fs.ensureDir(pluginDir);
     const hostCopy = path.join(pluginDir, RETIRED_SUPPORT);
-    await fs.writeFile(hostCopy, "# host-authored\n");
+    await fs.writeFile(hostCopy, HOST_AUTHORED);
 
     await installHooks(lisaDir, destDir, ["typescript"], []);
 
-    expect(await fs.readFile(hostCopy, "utf8")).toBe("# host-authored\n");
+    expect(await fs.readFile(hostCopy, "utf8")).toBe(HOST_AUTHORED);
   });
 });

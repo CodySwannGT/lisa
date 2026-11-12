@@ -1,6 +1,6 @@
 # Security Audit Handling (load-bearing)
 
-If `git push` fails because the pre-push hook reports security vulnerabilities, work the decision ladder below **autonomously**. Do not stop to ask the user except at the one rung that explicitly requires it. **Never use `--no-verify`**, `HUSKY=0`, `core.hooksPath`, or any other hook bypass to skip the security audit.
+If `git push` fails because the pre-push hook reports security vulnerabilities, work the decision ladder below **autonomously**, stopping to ask the user only at the one rung that requires it. **Never use `--no-verify`**, `HUSKY=0`, `core.hooksPath`, or any other hook bypass to skip the security audit.
 
 ## Decision ladder (do not skip rungs)
 
@@ -11,8 +11,6 @@ For each high/critical advisory the gate reports, take the **first** action that
 3. **If an override isn't possible either** (would break a dependent, or no fixed version exists anywhere): **evaluate whether the advisory actually affects this project** — is the vulnerable code path reachable, does it process untrusted input, is it runtime vs. dev/build-only?
 4. **If it does affect the project** and neither (1) nor (2) was possible: **ask a human** what to do. This is the only rung that pauses for a person.
 5. **If it does not affect the project**: **add a documented exclusion yourself** to `audit.ignore.local.json` (`id`, `package`, `reason` = impact evaluation; dev-only copy: add `versions`, `paths`; see https://github.com/CodySwannGT/lisa/blob/main/docs/dependency-audit-exclusions.md), commit, retry. No human approval needed.
-
-Steps 1, 2, 3, and 5 are autonomous. Only step 4 escalates.
 
 ## Core override rule
 
