@@ -67,18 +67,14 @@ describe("ignored evidence contract (#4490)", () => {
   describe.each(EAGER_RULES)("eager verification rule %s", file => {
     const text = read(file);
 
-    it("checks for ignored evidence before calling it committed", () => {
-      expect(text).toContain(
-        "git ls-files --others --ignored --exclude-standard -- evidence/<ticket>/"
-      );
-      expect(text).toMatch(/Never call the evidence "committed"/);
-      expect(text).toMatch(/never treat that as tracked/);
-    });
-
-    it("names the tracker comment and evidence-release uploads as the durable record", () => {
+    // The eager tier is byte-budgeted, so it carries only the pointer; the
+    // full branch lives in the reference rule asserted below.
+    it("points at the ignored-evidence check before calling evidence committed", () => {
+      expect(text).toMatch(/Git may ignore evidence/);
       expect(text).toMatch(
-        /tracker evidence comment plus every artifact uploaded to the configured evidence release/
+        /run the reference rule's ignored-evidence check first/
       );
+      expect(text).toMatch(/never call ignored evidence committed/);
     });
   });
 
@@ -129,7 +125,9 @@ describe("ignored evidence contract (#4490)", () => {
     });
 
     it("uploads every manifest artifact under a ticket-scoped name to the resolved release", () => {
-      expect(text).toMatch(/Upload every manifest artifact, including/);
+      expect(text).toMatch(
+        /Upload every manifest artifact except `verdict.json`/
+      );
       expect(text).toMatch(/`<ticket>` is a `\[a-z0-9-\]` slug/);
       expect(text).toContain('gh release upload "$RELEASE" <copies> --clobber');
       expect(text).toMatch(/If any upload fails, stop before dispatching/);
