@@ -21,6 +21,7 @@ import {
   EvidencePruneError,
   isPinned,
   mergePins,
+  reportedSha256,
 } from "./evidence-prune.mjs";
 import { hashBytes } from "./evidence-prune-gh.mjs";
 
@@ -54,14 +55,29 @@ function requireSame(name, expected, actual, where) {
     );
 }
 
-/** Read the archive copy back and require the original's exact bytes. */
+/**
+ * Read the archive copy back and require the original's exact bytes.
+ *
+ * The copy is downloaded and hashed rather than trusted by its reported
+ * `digest`: the digest is GitHub's claim about the bytes, and the only copy of
+ * a file is about to be deleted on the strength of this check. When a digest
+ * is reported it must agree as well.
+ */
 function confirmCopy(gh, candidate, copy, sha) {
   const readBack = gh.asset(copy.id);
   if (readBack?.name !== candidate.name || readBack.state !== "uploaded")
     throw new EvidencePruneError(
       `The archive copy of ${candidate.name} cannot be read back as an uploaded file; the original was not deleted.`
     );
-  requireSame(candidate.name, sha, gh.sha256(readBack), "The archive copy");
+  requireSame(
+    candidate.name,
+    sha,
+    hashBytes(gh.download(readBack)),
+    "The archive copy"
+  );
+  const reported = reportedSha256(readBack);
+  if (reported)
+    requireSame(candidate.name, sha, reported, "The archive copy's digest");
 }
 
 /** The state after leaving one candidate where it is, with the reason. */

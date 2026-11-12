@@ -74,12 +74,21 @@ describe("pins come from every accepted evidence release", () => {
   });
 
   it("stops when the repository's release listing is incomplete", async () => {
+    // 122 releases: the release holding the pinning record lands on page two,
+    // which the cut-off pagination drops, leaving one exactly-full page.
     const gh = fakeGitHub({ truncateReleases: true });
+    gh.addRelease(RELEASE);
+    Array.from({ length: 120 }, (_, index) => gh.addRelease(`filler-${index}`));
     rotated(gh);
     const { code, output } = await prune(gh, PRUNE_LEGACY, project(ROTATED));
     expect(code).not.toBe(0);
     expect(output).toMatch(/incomplete/i);
     expect(gh.writes()).toEqual([]);
+    expect(
+      gh.calls.some(call =>
+        call.args.some(arg => arg.endsWith("releases?per_page=100&page=2"))
+      )
+    ).toBe(true);
   });
 
   it("stops when a record in another accepted release cannot be parsed", async () => {
@@ -252,6 +261,33 @@ describe("review follow-ups", () => {
     );
     expect(count(gh, "DELETE")).toBe(0);
     expect(count(gh, "uploads.github.com")).toBe(0);
+  });
+
+  it.each([
+    ["--release", ""],
+    ["--min-age-days", ""],
+    ["--archive-release", ""],
+    ["--repo", "  "],
+  ])("refuses an empty %s operand before any gh call", async (flag, value) => {
+    const gh = fakeGitHub();
+    seed(gh);
+    const { code, output } = await prune(gh, [flag, value]);
+    expect(code).not.toBe(0);
+    expect(output).toContain(`${flag} needs a value`);
+    expect(gh.calls).toEqual([]);
+  });
+
+  it("downloads the archive copy instead of trusting its reported digest", async () => {
+    const gh = fakeGitHub({ forgeDigest: true });
+    const { stale } = seed(gh);
+    const { code, output } = await prune(gh, [APPLY]);
+    expect(code).not.toBe(0);
+    expect(output).toContain(STALE);
+    expect(output).toContain(
+      sha256(Buffer.concat([stale.bytes, Buffer.from("!")]))
+    );
+    expect(gh.names(RELEASE)).toContain(STALE);
+    expect(count(gh, "DELETE")).toBe(0);
   });
 
   it("refuses a malformed accepted-release history before any gh call", async () => {

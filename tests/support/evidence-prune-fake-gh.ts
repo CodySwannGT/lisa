@@ -71,6 +71,11 @@ export interface FakeOptions {
   noDigests?: boolean;
   /** Drop the last page of the repository's release listing. */
   truncateReleases?: boolean;
+  /**
+   * Store different bytes than were uploaded while reporting the uploaded
+   * bytes' digest, so only a read-back that downloads catches it.
+   */
+  forgeDigest?: boolean;
   /** `gh` is not installed: the child never starts. */
   ghMissing?: boolean;
   /** Every asset delete fails. */
@@ -213,9 +218,8 @@ function upload(state: FakeState, url: string, input: Buffer): FakeResult {
     row => row.id === Number(match?.[1])
   );
   if (!match || !release) return NOT_FOUND;
-  const stored = state.options.corruptUploads
-    ? Buffer.concat([input, Buffer.from("!")])
-    : input;
+  const corrupt = state.options.corruptUploads || state.options.forgeDigest;
+  const stored = corrupt ? Buffer.concat([input, Buffer.from("!")]) : input;
   const asset = addAsset(
     state,
     release.tag,
@@ -223,6 +227,7 @@ function upload(state: FakeState, url: string, input: Buffer): FakeResult {
     "2026-11-09T00:00:00Z",
     stored
   );
+  if (state.options.forgeDigest) asset.digest = `sha256:${sha256(input)}`;
   state.options.onUpload?.();
   return json(metadata(state, asset, release));
 }
@@ -244,7 +249,7 @@ function releaseListing(state: FakeState, page?: number): FakeResult {
     { length: Math.max(1, Math.ceil(rows.length / PAGE)) },
     (_, index) => rows.slice(index * PAGE, index * PAGE + PAGE)
   );
-  return json(state.options.truncateReleases ? [] : pages);
+  return json(state.options.truncateReleases ? pages.slice(0, -1) : pages);
 }
 
 /**
@@ -391,6 +396,7 @@ export function fakeGitHub(options: FakeOptions = {}) {
       gh(state, command, args, opts.input),
     calls: state.calls,
     releases: state.releases,
+    addRelease: (tag: string) => addRelease(state, tag),
     addAsset: (
       tag: string,
       name: string,

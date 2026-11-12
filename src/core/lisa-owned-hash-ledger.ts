@@ -588,11 +588,13 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
   ]),
   "scripts/lib/evidence-prune-apply.mjs": Object.freeze([
     "3ce94e1345f6d34983fd4d01b2f50fea5729b5b60161e42cd8e8e36897909f23",
+    "6d0c63b446fa8ee27b56bd7ae9bd6cd8f066ae2e45bf66db829bf8822c839b7f",
     "917c6f48adb64047e72774b65dee35d7df443aa01dd316d0796fa6d1d8a96117",
     "c6e68dc6eece329530b58959ccb6ff6d31e3b5de59b71c2ccbdff801aa7c4fe9",
   ]),
   "scripts/lib/evidence-prune-config.mjs": Object.freeze([
     "7ef5d7de6f0ebe28df90851002d09bb30df0449a6f63981cc693e0157891e11f",
+    "a4257b7e7336fbae7b802f6c652f867d14056d60ecd29867de2c6c4952859a32",
     "bbfd25d82dda7099d43714d767bede791509860bfee5ac2ede9f872bf95a7700",
     "c15cb6d0bc081149907dd1ce3d73d34fc3d8d17da6dbdb45e32b9016f5ba6410",
   ]),
@@ -3010,11 +3012,13 @@ export const LISA_OWNED_HASH_HISTORY_DERIVED: Readonly<
   ]),
   "scripts/lib/evidence-prune-apply.mjs": Object.freeze([
     "3ce94e1345f6d34983fd4d01b2f50fea5729b5b60161e42cd8e8e36897909f23",
+    "6d0c63b446fa8ee27b56bd7ae9bd6cd8f066ae2e45bf66db829bf8822c839b7f",
     "917c6f48adb64047e72774b65dee35d7df443aa01dd316d0796fa6d1d8a96117",
     "c6e68dc6eece329530b58959ccb6ff6d31e3b5de59b71c2ccbdff801aa7c4fe9",
   ]),
   "scripts/lib/evidence-prune-config.mjs": Object.freeze([
     "7ef5d7de6f0ebe28df90851002d09bb30df0449a6f63981cc693e0157891e11f",
+    "a4257b7e7336fbae7b802f6c652f867d14056d60ecd29867de2c6c4952859a32",
     "bbfd25d82dda7099d43714d767bede791509860bfee5ac2ede9f872bf95a7700",
     "c15cb6d0bc081149907dd1ce3d73d34fc3d8d17da6dbdb45e32b9016f5ba6410",
   ]),

@@ -50,6 +50,12 @@ export function parseFlags(args) {
       throw new EvidencePruneError(
         `Unrecognised argument ${JSON.stringify(arg)}. Run with --help for the options.`
       );
+    // An empty operand must not fall through to a default: `--release ""`
+    // would silently prune the configured release, and Number("") is 0.
+    if (value.trim() === "")
+      throw new EvidencePruneError(
+        `${arg} needs a value; it was given an empty one. Run with --help for the options.`
+      );
     return parse(index + 2, { ...flags, [VALUE_FLAGS.get(arg)]: value });
   };
   const flags = parse(0, {});
