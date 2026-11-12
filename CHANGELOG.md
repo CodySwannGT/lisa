@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.101.7](https://github.com/CodySwannGT/lisa/compare/v4.101.6...v4.101.7) (2026-11-12)
+
+
+### Bug Fixes
+
+* **skills:** stop on evidence-release refusal and pass the release name per command ([6fbd3a0](https://github.com/CodySwannGT/lisa/commit/6fbd3a09f39cee1bf7346e33fcfea1f065d7a692)), closes [CodySwannGT/lisa#4740](https://github.com/CodySwannGT/lisa/issues/4740) [CodySwannGT/lisa#4740](https://github.com/CodySwannGT/lisa/issues/4740)
+
+
+### Documentation
+
+* **evidence:** record roster and verification evidence for [#4740](https://github.com/CodySwannGT/lisa/issues/4740) ([67a2ba3](https://github.com/CodySwannGT/lisa/commit/67a2ba3cd80f401a29e9303a84820714b2fc5194))
+
 ### [4.101.6](https://github.com/CodySwannGT/lisa/compare/v4.101.5...v4.101.6) (2026-11-12)
 
 
