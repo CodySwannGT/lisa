@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [4.104.0](https://github.com/CodySwannGT/lisa/compare/v4.103.13...v4.104.0) (2026-11-12)
+
+
+### Features
+
+* **hooks:** warn on reads, refuse writes in a mismatched worktree ([3f04888](https://github.com/CodySwannGT/lisa/commit/3f0488848333e9f5a5ad96fa1e80bd5d04ace101)), closes [CodySwannGT/lisa#4816](https://github.com/CodySwannGT/lisa/issues/4816)
+
+
+### Bug Fixes
+
+* **hooks:** satisfy the shipped ruleset in the worktree guard ([a2933a9](https://github.com/CodySwannGT/lisa/commit/a2933a999e4012f079dad0355dff62c10d254703)), closes [CodySwannGT/lisa#4816](https://github.com/CodySwannGT/lisa/issues/4816)
+
 ### [4.103.13](https://github.com/CodySwannGT/lisa/compare/v4.103.12...v4.103.13) (2026-11-12)
 
 
