@@ -223,6 +223,18 @@ function isIssueNumber(text) {
 export const LANE_TRAILER = "Lane-Id";
 
 /**
+ * Subcommands for which a `pending-proof` outcome is a normal, nonterminal
+ * result (exit 0) rather than a failure. `finish` and `complete` are one
+ * operation under two names (#4683), so both must be listed — a list naming
+ * only one would make the same outcome exit differently by spelling.
+ */
+export const PENDING_PROOF_IS_SUCCESS_FOR = Object.freeze([
+  "finish",
+  "complete",
+  "sweep",
+]);
+
+/**
  * Environment variables consulted, in order, for the caller's owner id.
  *
  * Every one is supplied by the surrounding agent runtime. Lisa invents none of
@@ -5800,7 +5812,7 @@ function complete(args) {
   const bound = supplied ? null : boundRef();
   if (!supplied && !bound) {
     throw new TrackingError(
-      "complete requires --ref <work-item>, or a worktree binding from `lisa-work-item.mjs link`"
+      "finish requires --ref <work-item>, or a worktree binding from `lisa-work-item.mjs link`"
     );
   }
   const ref = canonicalizeRef(supplied ?? bound, contract);
@@ -7137,7 +7149,17 @@ function main() {
     return console.log("work-item binding cleared");
   }
   if (command === "backlink") return backlink(args);
-  if (command === "complete") return complete(args);
+  // `finish` and `complete` are one operation under two names, for the same
+  // reason as `link` and `bind` above (#4683). `complete` is a bash builtin
+  // that defines programmable completion from a string, and Claude Code's
+  // worktree isolation refuses any command line carrying that bare token —
+  // as argv[0], as this subcommand, or as an argument to a wrapper script. It
+  // refused `node scripts/lisa-work-item.mjs complete --ref ... --pr-url ...`
+  // on every attempt, which left a merged, verified, evidenced work item with
+  // no sanctioned path to its terminal state. `finish` is the spelling the
+  // docs teach; `complete` stays forever because host projects' checked-in
+  // automation calls it and updates on its own schedule.
+  if (command === "finish" || command === "complete") return complete(args);
   if (command === "sweep") return sweep(args);
   // One place resolves the level, and everything else asks. The CI job needs
   // it to decide whether a missing tracker credential is a problem, and a
@@ -7163,8 +7185,8 @@ function main() {
   if (command === "validate-pr") return validatePr(args);
   if (command === DISCHARGE_COMMAND) return dischargePrGates(args);
   throw new TrackingError(
-    "Usage: lisa-work-item.mjs link|current|attach-branch|clear|verify-level|contract-version|backlink|publish-completion-proof|evidence-release [--ensure]|complete|sweep|lane|prepare-commit-msg|validate-commit|validate-push|validate-push-destination|validate-pr|discharge-pr-gates" +
-      "\n(`bind` is accepted as an alias for `link`, but some agent harnesses refuse the token `bind` in a command line.)"
+    "Usage: lisa-work-item.mjs link|current|attach-branch|clear|verify-level|contract-version|backlink|publish-completion-proof|evidence-release [--ensure]|finish|sweep|lane|prepare-commit-msg|validate-commit|validate-push|validate-push-destination|validate-pr|discharge-pr-gates" +
+      "\n(`bind` is accepted as an alias for `link`, and `complete` is accepted as an alias for `finish`, but some agent harnesses refuse the tokens `bind` and `complete` in a command line.)"
   );
 }
 
@@ -7187,7 +7209,7 @@ export function runCli() {
       console.error(`work-item proof ${error.category}: ${detail}`);
       const pendingLifecycle =
         error.category === "pending-proof" &&
-        ["complete", "sweep"].includes(process.argv[2]);
+        PENDING_PROOF_IS_SUCCESS_FOR.includes(process.argv[2]);
       process.exitCode = pendingLifecycle ? 0 : 1;
       return;
     }

@@ -9,6 +9,7 @@ import path from "node:path";
 
 import { afterAll, afterEach, describe, expect, it } from "vitest";
 
+import { PENDING_PROOF_IS_SUCCESS_FOR } from "../../../all/copy-overwrite/scripts/lisa-work-item.mjs";
 import {
   cleanupFixtures,
   cleanupTemplates,
@@ -105,13 +106,56 @@ describe("in-process CLI: binding lifecycle", () => {
     );
   });
 
+  // #4683: Claude Code's worktree isolation refuses any command line carrying
+  // the bare token `complete`, exactly as it did `bind` (#2463). `finish` is
+  // the collision-free spelling; `complete` must stay a working alias.
+  it("dispatches `finish` to the same completion operation as `complete`", () => {
+    const viaFinish = cli(offlineFixture(), ["finish"]);
+    const viaAlias = cli(offlineFixture(), ["complete"]);
+    expect(viaFinish.exitCode).toBe(1);
+    // The refusal must name the spelling an isolated harness can run, or an
+    // agent rebuilding the command from it is refused all over again.
+    expect(viaFinish.stderr).toContain("finish requires --ref <work-item>");
+    expect(viaFinish.stderr).not.toContain("Usage:");
+    expect(viaAlias.exitCode).toBe(viaFinish.exitCode);
+    expect(viaAlias.stderr).toBe(viaFinish.stderr);
+  });
+
+  it("treats a pending proof as nonterminal success under both spellings", () => {
+    expect(PENDING_PROOF_IS_SUCCESS_FOR).toEqual(
+      expect.arrayContaining(["finish", "complete", "sweep"])
+    );
+  });
+
+  it("refuses `finish` against another branch's binding, as `complete` does", () => {
+    const fromOtherBranch = (spelling: string) => {
+      const fixture = offlineFixture();
+      bindTo(fixture, REF);
+      git(fixture.root, ["switch", "-q", "-c", "feature/other"], fixture.env);
+      return cli(fixture, [spelling, "--pr-url", PR_URL]);
+    };
+    const viaFinish = fromOtherBranch("finish");
+    const viaAlias = fromOtherBranch("complete");
+    expect(viaFinish.exitCode).toBe(1);
+    expect(viaFinish.stderr).toContain(
+      `belongs to branch '${BRANCH}', not 'feature/other'`
+    );
+    expect(viaAlias.exitCode).toBe(viaFinish.exitCode);
+    expect(viaAlias.stderr).toBe(viaFinish.stderr);
+  });
+
   it("names both spellings and every subcommand in the usage refusal", () => {
     const fixture = offlineFixture();
     const result = cli(fixture, ["nonsense"]);
     expect(result.exitCode).toBe(1);
     expect(result.stderr).toContain("Usage: lisa-work-item.mjs link|current");
+    expect(result.stderr).toContain("|finish|");
+    expect(result.stderr).not.toContain("|complete|");
     expect(result.stderr).toContain("validate-pr");
     expect(result.stderr).toContain("`bind` is accepted as an alias");
+    expect(result.stderr).toContain(
+      "`complete` is accepted as an alias for `finish`"
+    );
   });
 
   it("refuses a reference outside the configured repository", () => {

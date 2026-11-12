@@ -6,6 +6,12 @@ measured failure they exist to prevent.
 
 Tracking issue: CodySwannGT/lisa#2579.
 
+An open review of every gate interface (one row per registry gate, with a
+decision column) lives in
+[`gate-interface-review.xlsx`](gate-interface-review.xlsx). It was built from
+the registry on 2026-11-12, so check it against `REGISTRY` in
+`all/copy-overwrite/scripts/lisa-gates.mjs` before relying on it.
+
 ## The organising defect
 
 Every decision below is downstream of one failure mode: **a check reporting
@@ -580,47 +586,29 @@ document.
 ## The interface is the evidence shape
 
 A task name is not an interface. If Lisa standardises only *how to invoke*, the
-register records "test:cov passed" and cites nothing — as true of a scrupulous
-project as a careless one. Standardising what comes **back** is what lets jest
-and vitest both satisfy `coverage-adequacy`, and what lets an attestation quote
-a number instead of a verdict.
+register records "test:cov passed" and cites nothing. Standardising what comes
+**back** is what would let jest and vitest both satisfy `coverage-adequacy`, and
+let an attestation quote a number instead of a verdict.
 
-Every implementation emits the same envelope, whatever tool produced it:
-
-```json
-{
-  "gate": "coverage-adequacy",
-  "status": "pass | fail | unknown",
-  "work": 412,
-  "measures": { "statements": 87.4, "branches": 71.2, "threshold": 80 },
-  "prover": { "tool": "vitest", "version": "4.1.9" },
-  "observed_at": "2026-08-15T18:02:11Z",
-  "max_age_minutes": 1440
-}
-```
-
-- **`status`** is three-valued. `unknown` is not a synonym for `fail`.
-- **`work`** is the count that proves it *ran*. `null` forces `unknown` — the
-  `passWithNoTests` hole closed structurally rather than by vigilance.
-- **`measures`** is what an attestation actually cites.
-- **`prover`** records which implementation produced it. Vendor-neutrality means
-  Lisa does not *mandate* a tool, not that it declines to *record* one; an
-  auditor asking "what measured this?" deserves an answer.
-
-Per-gate measures are small and mostly obvious: coverage reports its metrics and
-threshold, mutation its mutants and score, load its percentiles and error rate,
-scanners their findings by severity. Generative testing is the one with a
-distinctive shape, because SI9 asks for a *declared inventory* rather than a
-verdict:
+**What actually ships is smaller, on purpose.** The runner records each gate as:
 
 ```json
-{ "invariants": 12, "dimensions": ["unicode", "depth", "size"],
-  "cases_generated": 120000, "counterexamples": 0, "seed": "0x4f2a…" }
+{ "gate": "coverage-adequacy", "status": "pass | fail | unknown", "level": "required", "label": "✅ Verification Coverage" }
 ```
 
-`seed` matters disproportionately: a property run that found nothing is only
-meaningful if someone can re-run *that* exploration. Without it the evidence is
-unreproducible, which is a strange thing for evidence to be.
+inside a run record carrying the `subject` (tree and commit), the `contract`
+(`moment` and `gates_digest`), the run `verdict`, and `observed_at`.
+
+- **`status`** is three-valued. `unknown` is not a synonym for `fail`: only a
+  gate that ran and passed is `pass`, and anything not measured is `unknown`.
+
+An earlier version also carried `work`, `measures`, `prover` and freshness
+fields for a release-reuse checker. No tool parser ever filled them, so they
+were always null or restated the exit code, and nothing read them. They were
+removed with that checker (CodySwannGT/lisa#4794). Recording a work count, real
+measures or a prover version is still the right direction for attestation.
+Add each one when a parser exists to fill it and a reader exists to use it,
+not before.
 
 ## What Lisa owes, and what the project owes
 

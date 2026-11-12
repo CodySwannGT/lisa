@@ -1,8 +1,8 @@
 {
   "$generatedBy": "scripts/generate-export-surface.mjs",
   "$doNotEdit": "The public export surface this package ships, recorded so a removal is an OBSERVATION rather than an inference from commit-message conventions. This file's diff is what makes a removed export visible in the pull request that causes it (CodySwannGT/lisa#3718).",
-  "$modules": 275,
-  "$names": 1996,
+  "$modules": 281,
+  "$names": 2010,
   "surface": {
     "all/copy-overwrite/scripts/check-conflict-markers.mjs": [
       "UsageError",
@@ -183,7 +183,8 @@
       "evidenceReleaseOverride",
       "githubProofTransport",
       "isAcceptedEvidenceRelease",
-      "resolveEvidenceRelease"
+      "resolveEvidenceRelease",
+      "usableTag"
     ],
     "all/copy-overwrite/scripts/lib/completion-proof-markdown.mjs": [
       "markdownSection",
@@ -234,6 +235,37 @@
       "validateDelivery",
       "validateFrontier",
       "validateSource"
+    ],
+    "all/copy-overwrite/scripts/lib/evidence-prune-apply.mjs": [
+      "applyPrune",
+      "nearlyFullMessage"
+    ],
+    "all/copy-overwrite/scripts/lib/evidence-prune-config.mjs": [
+      "parseFlags",
+      "readLisaConfig",
+      "resolveReleases",
+      "resolveRepository"
+    ],
+    "all/copy-overwrite/scripts/lib/evidence-prune-gh.mjs": [
+      "ghAccess",
+      "hashBytes",
+      "pruneGitHub"
+    ],
+    "all/copy-overwrite/scripts/lib/evidence-prune-records.mjs": [
+      "evidenceSnapshot",
+      "recordRescanner"
+    ],
+    "all/copy-overwrite/scripts/lib/evidence-prune.mjs": [
+      "COMPLETION_RECORD",
+      "DEFAULT_MIN_AGE_DAYS",
+      "EvidencePruneError",
+      "archiveReleaseTag",
+      "collectPins",
+      "formatReport",
+      "isPinned",
+      "mergePins",
+      "planPrune",
+      "reportedSha256"
     ],
     "all/copy-overwrite/scripts/lib/gate-failure-diagnosis.mjs": [
       "ATTRIBUTION",
@@ -879,6 +911,9 @@
       "prepareEnvironment",
       "runCli"
     ],
+    "all/copy-overwrite/scripts/lisa-evidence-prune.mjs": [
+      "main"
+    ],
     "all/copy-overwrite/scripts/lisa-floor-collisions.mjs": [
       "collisions",
       "directDependencies",
@@ -899,16 +934,11 @@
       "DRIFT_RESPONSES",
       "DUAL_ADOPTION_CONTROLS",
       "ENFORCEMENTS",
-      "EVIDENCE_BYTE_BUDGET",
       "EVIDENCE_DEFAULTS",
-      "EVIDENCE_FIELDS",
-      "EVIDENCE_SCHEMA_TOKEN",
-      "EVIDENCE_STATUS",
       "EXECUTOR_VERDICTS",
       "FACADE_CLASSES",
       "FAILURE_SHAPE_FIELD",
       "GATE_FIELDS",
-      "GATE_REUSE_CLASS",
       "HARDCODED_INVOCATIONS",
       "HOLLOW_RESPONSES",
       "IDENTITY_UNKNOWN",
@@ -931,9 +961,6 @@
       "REGISTRY",
       "RETIRED_CONFIG_KEYS",
       "RETIRED_SKIP_JOB_TOKENS",
-      "REUSE_CLASS",
-      "REUSE_CLASSES",
-      "REUSE_REASON",
       "SECONDARY_PROVER_JOBS",
       "SKIP_JOB_STATUS",
       "SKIP_JOB_TOKENS",
@@ -969,15 +996,11 @@
       "postedCallerChains",
       "projectScripts",
       "qualityJobPlan",
-      "readEvidence",
-      "readEvidenceFile",
       "readGates",
       "readScripts",
       "registryVersion",
       "resolveMoment",
       "retiredContexts",
-      "reusePlan",
-      "reusePolicyFor",
       "seedGates",
       "skipJobMigration",
       "unconfiguredAt",
@@ -1070,6 +1093,7 @@
     "all/copy-overwrite/scripts/lisa-work-item.mjs": [
       "LANE_ID_VARIABLES",
       "LANE_TRAILER",
+      "PENDING_PROOF_IS_SUCCESS_FOR",
       "TrackerUnreachableError",
       "WORK_ITEM_CONTRACT_VERSION",
       "ancestryUnreachable",
@@ -2328,6 +2352,7 @@
       "ENTITLEMENT_WAIVERS",
       "MERGE_GATE_MOMENT",
       "NEVER_BLOCKING",
+      "NON_MERGE_EVENTS",
       "OUTCOMES_FLAG",
       "OUTCOME_ENV",
       "OUTCOME_REFUSALS",
@@ -2378,6 +2403,7 @@
       "noWorkClaimIsCertain",
       "owningPrefix",
       "producesContext",
+      "pullRequestOnlyExemption",
       "readCarriedReview",
       "readFlagValue",
       "readObjectionAtHead",

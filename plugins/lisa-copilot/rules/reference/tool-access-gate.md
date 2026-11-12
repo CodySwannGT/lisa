@@ -51,8 +51,9 @@ authenticated surface** — tool presence on PATH is not access.
   (see the `integration-access-layer` rule): `lisa-atlassian-access`,
   `lisa-notion-access`, `lisa-linear-access`, `lisa-jam-access`,
   `lisa-sonarcloud-access`, `lisa-sentry-access`, `lisa-posthog-access`,
-  `lisa-expo:play-store-access`. A loud access-skill failure naming a missing
-  env var IS a failed probe.
+  `lisa-secrets-access` (credentials held in the configured secret provider,
+  including AWS), `lisa-expo:play-store-access`. A loud access-skill failure
+  naming a missing env var IS a failed probe.
 - Vendors without an access layer are probed with the cheapest authenticated
   read the runtime offers (an MCP tool call, a CLI read, a REST GET).
 
@@ -60,7 +61,7 @@ Example probes:
 
 | Tool | Probe |
 |---|---|
-| AWS CLI | `aws sts get-caller-identity`, plus the service-level read the task needs (e.g. `aws logs describe-log-groups --max-items 1`) |
+| AWS CLI | In order, when default credentials are missing or expired: (1) resolve `LISA_AWS_BOOTSTRAP_JSON` through `lisa-secrets-access`; (2) if it resolves, run `remote-agent-aws-setup.sh` with account verification, per that skill's "Recovering AWS access during a task" (never `aws sso login`); (3) `aws sts get-caller-identity`, asserting the caller account equals the project's expected account; (4) the service-level read the task needs (e.g. `aws logs describe-log-groups --max-items 1`). With working credentials, start at (3). An unresolvable bundle or an account mismatch is the failure to report. A project explicitly configured for a different AWS access method keeps that method; do not invent a bootstrap bundle for it. |
 | GitHub | a repository-scoped read against the target repo (e.g. `gh api repos/<owner>/<repo> --jq .full_name`, or the exact read the work item needs) — `gh auth status` alone only proves host auth, not access to the repository |
 | Figma | a read call against the linked file via the available Figma MCP/API surface |
 | Sentry / Jam / SonarCloud / PostHog / Atlassian / Linear / Notion | the matching `*-access` skill's resolve/auth check |
@@ -69,10 +70,19 @@ Example probes:
 | Device/browser harness | the harness's own doctor/smoke entry (e.g. `playwright --version` plus a trivial headless launch) |
 
 Resolve credentials through the documented sources before probing: project
-e2e config/fixtures, `.lisa.config.local.json` and environment variables, then
-documented work-item credentials (e.g. `Sign-in Required`). If the documented
-access path or probe cannot provide the required access, report the gap and
-stop. Do not continue exploring substitute sources after confirming the gap.
+e2e config/fixtures, `.lisa.config.local.json` and environment variables, the
+configured secret provider through `lisa-secrets-access`, then documented
+work-item credentials (e.g. `Sign-in Required`). If the documented access path
+or probe cannot provide the required access, report the gap and stop. Do not
+continue exploring substitute sources after confirming the gap — the gap is
+confirmed only once the secret provider and any recovery step its access skill
+documents have been tried.
+
+Running a documented recovery step — an access skill's own procedure that
+materializes credentials, such as `remote-agent-aws-setup.sh` writing the AWS
+profile — is part of resolving credentials, and is not a forbidden write. It
+needs no human permission. The probe that follows stays read-only. This holds
+for every vendor whose access skill documents a recovery step, not only AWS.
 
 Record successful probes in the flow's plan/tracker artifact
 (and task `metadata.required_access` where the flow's task contract carries

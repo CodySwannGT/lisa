@@ -1,19 +1,12 @@
 /**
  * The gate runner RECORDS what it proved, and never records what it did not.
  *
- * `lisa-gates.mjs` has shipped `EVIDENCE_FIELDS` and `readEvidence` since the
- * continuous moment was added — a reader that demotes stale or work-less
- * evidence to `unknown`. Both were exported with ZERO production callers: the
- * reader existed and nothing wrote. So a `pre-deploy:production` gate that
- * required a recent `continuous:staging` result would resolve against nothing,
- * and "nothing" is the one answer that must never read as satisfied
- * (CodySwannGT/lisa#3022).
+ * The envelope is a slim run record (CodySwannGT/lisa#4794). These are the
+ * properties that make it worth trusting:
  *
- * These are the properties that make a recorded envelope worth trusting:
- *
- * - it BINDS to a subject and a contract — which tree, under which rules,
- *   produced by which workflow — so evidence of one thing cannot be mistaken
- *   for evidence of another;
+ * - it BINDS to a subject and a contract — which tree, under which declared
+ *   rule set — so evidence of one thing cannot be mistaken for evidence of
+ *   another;
  * - a gate this run did not observe is recorded `unknown`, never omitted into
  *   ambiguity and never `pass`;
  * - a moment that declared nothing records an EMPTY gate list, so the change
@@ -29,26 +22,13 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 
-import { readEvidence } from "../../../all/copy-overwrite/scripts/lisa-gates.mjs";
 import { boundedSpawnSync } from "../../helpers/io-latency-budget.js";
 import { SCRIPT } from "./lisa-run-gates-fixtures.js";
 
-/**
- * One recorded gate observation: `EVIDENCE_FIELDS` verbatim, plus two.
- *
- * Spelled out here rather than imported because the module under test is a
- * `.mjs` with no declaration file. The seven `EVIDENCE_FIELDS` names must
- * match exactly or `readEvidence` needs an adapter — and an adapter is how one
- * schema quietly becomes two.
- */
+/** One recorded gate observation. */
 type GateEvidence = {
   gate: string;
   status: string;
-  work: number | null;
-  measures: Record<string, unknown>;
-  prover: { tool: string | null; version: string | null };
-  observed_at: string;
-  max_age_minutes: number | null;
   /** Without a per-row level a required gate can be "covered" by evidence that
    * was optional when it ran. */
   level: string;
@@ -69,22 +49,7 @@ type Envelope = {
   };
   contract: {
     moment: string;
-    runner: string | null;
     gates_digest: string | null;
-    registry_version: string | null;
-    workflow_ref: string | null;
-    workflow_sha: string | null;
-    inputs_digest: string | null;
-  };
-  producer: {
-    run_id: string | null;
-    run_attempt: string | null;
-    run_url: string | null;
-    workflow: string | null;
-    event: string | null;
-    actor: string | null;
-    caller_chain: string[] | null;
-    reused_gates: string[];
   };
   gates: GateEvidence[];
 };
@@ -95,7 +60,7 @@ const CONTINUOUS = "continuous:staging";
 /** The deploy moment a continuous result is meant to gate promotion into. */
 const PRE_DEPLOY = "pre-deploy:production";
 
-/** The one schema token, shared with the release verifier in #3013. */
+/** The one schema token the workflow verify step checks. */
 const SCHEMA = "lisa.gate-evidence/v1";
 
 /** Shape every digest field must have, so a placeholder cannot pass for one. */
@@ -167,12 +132,10 @@ describe("the runner records an evidence envelope", () => {
     expect(envelope?.gates.map(gate => gate.gate)).toEqual(["accessibility"]);
   });
 
-  it("keeps every EVIDENCE_FIELDS key, so no reader needs an adapter", () => {
-    // The seven names are `lisa-gates.mjs`'s and `readEvidence` reads a row
-    // directly. Renaming one would force an adapter somewhere, and an adapter
-    // is how one schema quietly becomes two. `task` and `command` are
-    // deliberately absent: they live in `contract.gates_digest`, and a second
-    // copy on the row is a second place to drift.
+  it("records each gate as exactly gate, status, level and label", () => {
+    // `task` and `command` are deliberately absent: they live in
+    // `contract.gates_digest`, and a second copy on the row is a second place
+    // to drift.
     const { envelope } = record({
       config: DECLARED_AT_CONTINUOUS,
       moment: CONTINUOUS,
@@ -183,18 +146,9 @@ describe("the runner records an evidence envelope", () => {
       "gate",
       "label",
       "level",
-      "max_age_minutes",
-      "measures",
-      "observed_at",
-      "prover",
       "status",
-      "work",
     ]);
     expect(gate?.level).toBe("required");
-    // Null, never the string "unknown": a verifier treats a null-version row
-    // as uncoverable and reruns, and a placeholder that looked like a version
-    // would defeat exactly that.
-    expect(gate?.prover.version).toBeNull();
   });
 
   it("binds the evidence to the tree and the run it observed", () => {
@@ -217,75 +171,13 @@ describe("the runner records an evidence envelope", () => {
     );
     expect(envelope?.subject.ref).toBe("refs/heads/main");
     expect(envelope?.contract.moment).toBe(CONTINUOUS);
-    expect(envelope?.producer.run_id).toBe("42");
-    expect(envelope?.producer.run_attempt).toBe("2");
-    expect(envelope?.producer.run_url).toBe(
-      "https://github.com/owner/repo/actions/runs/42"
-    );
-  });
-
-  it("records the workflow identity a tree hash cannot carry", () => {
-    // Consumers call the reusable workflow at `@main`, so its contents can
-    // change with NO change to the caller's tree. Tree identity alone would
-    // let an older, weaker workflow's evidence satisfy a stricter one — and
-    // the same workflow at the same sha proves different things when handed
-    // different inputs.
-    const { envelope } = record({
-      config: DECLARED_AT_CONTINUOUS,
-      moment: CONTINUOUS,
-      env: {
-        GITHUB_WORKFLOW_REF: "o/r/.github/workflows/gates.yml@refs/heads/main",
-        GITHUB_WORKFLOW_SHA: "89abcdef89abcdef89abcdef89abcdef89abcdef",
-        LISA_GATE_EVIDENCE_INPUTS: '{"moment":"continuous:staging"}',
-      },
-    });
-
-    expect(envelope?.contract.workflow_ref).toBe(
-      "o/r/.github/workflows/gates.yml@refs/heads/main"
-    );
-    expect(envelope?.contract.workflow_sha).toBe(
-      "89abcdef89abcdef89abcdef89abcdef89abcdef"
-    );
-    expect(envelope?.contract.inputs_digest).toMatch(DIGEST);
-  });
-
-  it("preserves the verdict when the caller states malformed inputs", () => {
-    const baseline = record({
-      config: DECLARED_AT_CONTINUOUS,
-      moment: CONTINUOUS,
-    });
-    const malformed = record({
-      config: DECLARED_AT_CONTINUOUS,
-      moment: CONTINUOUS,
-      env: { LISA_GATE_EVIDENCE_INPUTS: "not json" },
-    });
-
-    expect(malformed.child.status).toBe(baseline.child.status);
-    expect(malformed.envelope).not.toBeNull();
-    expect(malformed.envelope?.contract.inputs_digest).toBeNull();
-  });
-
-  it("declares no reuse, so a proof cannot rest on a proof of nothing", () => {
-    // Emitted empty from day one even though nothing reuses yet. An absent
-    // field and an empty one must not be the same to a reader, or every
-    // envelope written before the field existed reads as having reused
-    // everything.
-    const { envelope } = record({
-      config: DECLARED_AT_CONTINUOUS,
-      moment: CONTINUOUS,
-    });
-
-    expect(envelope?.producer.reused_gates).toEqual([]);
-    // Never a guessed literal. Depth is a property of how a consumer wired its
-    // workflows, and the only truthful derivation needs API scope this runner
-    // does not have — so unstated records null and a verifier reruns.
-    expect(envelope?.producer.caller_chain).toBeNull();
+    expect(envelope).not.toHaveProperty("producer");
   });
 
   it("records a gate it could not prove as unknown, never as a pass", () => {
     // `accessibility` is the one deploy-only gate no stack ships a prover for.
     // It resolves to no command, so the runner calls it UNPROVABLE — and the
-    // envelope must say `unknown`, which `readEvidence` refuses to credit.
+    // envelope must say `unknown`, never `pass`.
     const { envelope } = record({
       config: DECLARED_AT_CONTINUOUS,
       moment: CONTINUOUS,
@@ -293,7 +185,6 @@ describe("the runner records an evidence envelope", () => {
     const [gate] = envelope?.gates ?? [];
 
     expect(gate?.status).toBe("unknown");
-    expect(readEvidence(gate, {}, Date.now()).status).toBe("unknown");
   });
 });
 
@@ -394,10 +285,10 @@ describe("the envelope never manufactures evidence", () => {
     expect(envelope).not.toBeNull();
     expect(envelope?.gates).toEqual([]);
     expect(envelope?.contract.moment).toBe(PRE_DEPLOY);
-    // And the reader gets `unknown` for the gate nobody proved here, rather
-    // than a pass inherited from the moment where it IS declared.
-    const looked = envelope?.gates.find(gate => gate.gate === "code-style");
-    expect(readEvidence(looked, {}, Date.now()).status).toBe("unknown");
+    // No row is inherited from the moment where the gate IS declared.
+    expect(
+      envelope?.gates.find(gate => gate.gate === "code-style")
+    ).toBeUndefined();
   });
 
   it("records that the registry governs nothing when there is no gates block", () => {

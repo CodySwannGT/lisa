@@ -1,0 +1,7 @@
+Control probe (bite control for the runtime refusal), Claude Code 2.1.319 worktree-isolated session.
+The runtime refused before execution, so no process output exists; this is the verbatim refusal text returned by the Bash tool.
+
+$ node -e "console.log(1)" complete
+This session is isolated in the worktree <repo>/.claude/worktrees/<branch>, but this command runs a string through complete, which can't be verified to stay inside the worktree. Refusing to run it — a worktree-isolated session's git operations must target its own worktree. Run git directly with literal arguments from <repo>/.claude/worktrees/<branch>.
+
+(Note: `console.log(1)` never printed — the command did not run.)

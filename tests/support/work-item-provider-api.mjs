@@ -2,6 +2,8 @@
 import { readFileSync, writeFileSync } from "node:fs";
 import { basename, join } from "node:path";
 
+const ESCAPE_FLAG = "--allow-escape-sequences";
+
 /**
  * Serve only declared fixture resources; unsupported calls remain observable.
  * @param args - Exact native CLI argument vector.
@@ -27,6 +29,21 @@ export function serveProviderApi(args, env, state) {
     const index = selected.reads ?? 0;
     selected.reads = index + 1;
     writeFileSync(env.FAKE_GH_API_FILE, JSON.stringify(table));
+  }
+  // `FAKE_GH_ESCAPE_MODE` models the two gh behaviours around raw bodies
+  // (CodySwannGT/lisa#4773): "unknown-flag" is gh < 2.97, which rejects
+  // `--allow-escape-sequences`; "refuse-escapes" is gh >= 2.97, which refuses
+  // a raw body without it. The latter refuses every raw download, not only
+  // ESC-bearing ones — stricter than gh, so the flag is proven always sent.
+  if (
+    env.FAKE_GH_ESCAPE_MODE === "unknown-flag" &&
+    args.includes(ESCAPE_FLAG)
+  ) {
+    process.stderr.write(
+      `unknown flag: ${ESCAPE_FLAG}\n\nUsage:  gh api <endpoint> [flags]\n`
+    );
+    process.exitCode = 1;
+    return true;
   }
   if (row) {
     if (row.concurrentState) {
@@ -79,7 +96,16 @@ export function serveProviderApi(args, env, state) {
   if (args[0] === "api" && asset) {
     const metadata = assets().find(value => value.id === asset);
     if (!metadata) return false;
-    if (args.includes("Accept: application/octet-stream"))
+    if (
+      args.includes("Accept: application/octet-stream") &&
+      env.FAKE_GH_ESCAPE_MODE === "refuse-escapes" &&
+      !args.includes(ESCAPE_FLAG)
+    ) {
+      process.stderr.write(
+        `the response contains terminal escape sequences; pass ${ESCAPE_FLAG} to output it anyway\n`
+      );
+      process.exitCode = 1;
+    } else if (args.includes("Accept: application/octet-stream"))
       process.stdout.write(
         readFileSync(join(env.FAKE_GH_ASSET_DIRECTORY, `${metadata.id}.bin`))
       );

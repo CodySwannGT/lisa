@@ -7,6 +7,7 @@ import { useIoLatencyBudget } from "../helpers/io-latency-budget.js";
 import { cleanupTempDir } from "../helpers/test-utils.js";
 import { bunFreeNodeBin } from "./support/bun-free-node-bin.js";
 import { prepareNativeUpdate as prepareUpdate } from "./support/npm-update-native-prepare.js";
+import { requireNativeBun } from "./support/native-path-bun.js";
 import {
   qualifiedBun,
   verifyBunLock,
@@ -93,6 +94,7 @@ async function baseline(
 
 describe("native optional Bun lock preparation", () => {
   it("preserves genuine root and transitive registry aliases and refuses corrupted identities", async () => {
+    requireNativeBun();
     let fixtureRoot = "";
     const observed = await withPrivateRoot(async (root, env) => {
       fixtureRoot = root;
@@ -231,6 +233,7 @@ describe("native optional Bun lock preparation", () => {
   });
 
   it("preserves a coherent three-file proposal for both genuine frozen installers", async () => {
+    requireNativeBun();
     let fixtureRoot = "";
     const observed = await withPrivateRoot(async (root, env) => {
       fixtureRoot = root;

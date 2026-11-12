@@ -25,6 +25,13 @@
  * reported with the two steps that save the verdict and publish it on the
  * head, and the `checks: write` grant that lets them.
  *
+ * The copy-overwrite prover republishes a verdict under every declared
+ * reviewer's name, so even a copy seeded before CodySwannGT/lisa#4738 clears a
+ * stale reviewer check with a `sha`-only manual run. What such a copy lacks is
+ * the `context` input: its manual run cannot target one reviewer's check and
+ * always adds a bare-name check. It is reported with the input to add and the
+ * `EVIDENCE_CONTEXT` and concurrency lines that read it.
+ *
  * Every filesystem answer is three-valued — present, absent, or
  * undeterminable — and the last one fails rather than passing quietly: a
  * workflow this check could not read is not a workflow with nothing missing.
@@ -36,11 +43,13 @@ import * as path from "node:path";
 import {
   CHECK_RUN_HEAD,
   CHECK_RUN_NAME,
+  DISPATCH_CONTEXT,
   isCurrentEvidenceSeed,
   readEvidenceSeed,
   THIRD_PARTY_EVIDENCE_WORKFLOW,
   type EvidenceSeedReading,
 } from "../core/third-party-evidence-seed.js";
+import { errnoCode, isDefinitiveAbsence } from "../utils/fs-absence.js";
 import type { DoctorCheck } from "./doctor.js";
 import { EVIDENCE_STEPS_LINES } from "./doctor-third-party-evidence-steps.js";
 
@@ -52,23 +61,22 @@ export const THIRD_PARTY_EVIDENCE_SEED_CHECK_NAME =
 const SHIPPED_SEED =
   "typescript/create-only/.github/workflows/third-party-review-evidence.yml";
 
-/**
- * Errno codes that ANSWER the question rather than refusing it: the file is
- * genuinely not there. Anything else — a permission denial, an I/O error, a
- * symlink loop — means the probe could not look.
- *
- * `ENAMETOOLONG` is deliberately NOT here, although sibling doctor checks list
- * it. It describes the path this check built, not the file: a project nested
- * past the platform's path limit can still hold the workflow, and calling that
- * "never seeded" would pass a copy nobody read.
- */
-const ABSENT_CODES = new Set(["ENOENT", "ENOTDIR"]);
-
 /** The commit to judge, from whichever event woke the run. */
 const SHA_EXPRESSION = `\${{ ${CHECK_RUN_HEAD} || github.event.sha || inputs.sha }}`;
 
-/** The reviewer to judge, from whichever event woke the run. */
-const CONTEXT_EXPRESSION = `\${{ ${CHECK_RUN_NAME} || github.event.context }}`;
+/** The reviewer to judge, from whichever event woke the run or a manual run's input. */
+const CONTEXT_EXPRESSION = `\${{ ${CHECK_RUN_NAME} || github.event.context || ${DISPATCH_CONTEXT} }}`;
+
+/**
+ * The `workflow_dispatch` input that lets a manual run name the reviewer whose
+ * stale check run it brings up to date, beside the existing `sha:` input.
+ */
+export const DISPATCH_CONTEXT_INPUT_LINES = [
+  "      context:",
+  "        description: 'Optional. One reviewer context (its status or check-run name, matched exactly against a declared reviewer; anything else publishes nothing) whose check run to bring up to date. Empty republishes every declared reviewer and the bare name'",
+  "        required: false",
+  "        type: string",
+] as const;
 
 /** The trigger lines to add under `on:`. */
 export const CHECK_RUN_TRIGGER_LINES = [
@@ -103,6 +111,13 @@ export const RUN_IDENTITY_LINES = [
 /** The concurrency key that keeps one run from cancelling another's verdict. */
 export const CONCURRENCY_GROUP_LINE = `  group: third-party-review-evidence-\${{ github.event_name }}-${SHA_EXPRESSION}-${CONTEXT_EXPRESSION}`;
 
+/** The whole top-level `concurrency:` block, as the seed ships it. */
+export const CONCURRENCY_BLOCK_LINES = [
+  "concurrency:",
+  CONCURRENCY_GROUP_LINE,
+  "  cancel-in-progress: true",
+] as const;
+
 /**
  * Read the workflow, REJECTING when the filesystem declines to say.
  * @param projectRoot - Absolute project root
@@ -116,11 +131,8 @@ async function readWorkflow(projectRoot: string): Promise<string | null> {
       "utf8"
     );
   } catch (error) {
-    const code =
-      typeof error === "object" && error !== null && "code" in error
-        ? String((error as { code?: unknown }).code)
-        : undefined;
-    if (code !== undefined && ABSENT_CODES.has(code)) return null;
+    if (isDefinitiveAbsence(error)) return null;
+    const code = errnoCode(error);
     throw new Error(
       `could not read ${THIRD_PARTY_EVIDENCE_WORKFLOW}: ${code ?? String(error)}`,
       { cause: error }
@@ -166,6 +178,44 @@ function gapsOf(reading: EvidenceSeedReading): string[] {
       : [
           "it never publishes its verdict on the pull request head it judged, so the verdict lands only on the default branch's latest commit, where no pull request shows it",
         ]),
+    ...(reading.acceptsDispatchContext
+      ? []
+      : [
+          "its manual run takes no `context` input, so a manual run cannot target one reviewer's check run: it republishes every declared reviewer's check and always adds a bare-name check beside them",
+        ]),
+  ];
+}
+
+/**
+ * The exact lines that let a manual run name its reviewer.
+ *
+ * The `EVIDENCE_CONTEXT` and concurrency lines are printed here only when no
+ * other remedy already prints them, so each line appears once.
+ * @param reading - What the copy does
+ * @returns The remedy, or nothing when a manual run can name its reviewer
+ */
+function dispatchContextRemedyOf(reading: EvidenceSeedReading): string[] {
+  if (reading.acceptsDispatchContext) return [];
+  const identityPrinted = !(
+    reading.readsRunIdentity && reading.publishesVerdict
+  );
+  return [
+    "Add under `workflow_dispatch:` `inputs:`, beside `sha:`:",
+    ...DISPATCH_CONTEXT_INPUT_LINES,
+    ...(identityPrinted
+      ? []
+      : [
+          "Set `EVIDENCE_CONTEXT` in the evidence job's `env:` to:",
+          RUN_IDENTITY_LINES[2],
+        ]),
+    // A copy with no `concurrency:` block also reads as keyed per run, so the
+    // whole block is printed: a bare `group:` line has nowhere to go there.
+    ...(reading.keysConcurrencyPerRun
+      ? [
+          "Make the top-level `concurrency:` block read (add it if the file has none):",
+          ...CONCURRENCY_BLOCK_LINES,
+        ]
+      : []),
   ];
 }
 
@@ -249,6 +299,7 @@ function remedyOf(reading: EvidenceSeedReading): string[] {
           "Replace the prover step with these two steps: the first saves the verdict, the second publishes it on the head it judged.",
           ...EVIDENCE_STEPS_LINES,
         ]),
+    ...dispatchContextRemedyOf(reading),
   ];
 }
 
@@ -291,7 +342,7 @@ export async function checkThirdPartyEvidenceSeed(
     const reading = readEvidenceSeed(workflowText);
     if (isCurrentEvidenceSeed(reading)) {
       return ok(
-        `${THIRD_PARTY_EVIDENCE_WORKFLOW} wakes on a completed check run, can read it, judges it from the default branch, and publishes its verdict on the head it judged`
+        `${THIRD_PARTY_EVIDENCE_WORKFLOW} wakes on a completed check run, can read it, judges it from the default branch, publishes its verdict on the head it judged, and lets a manual run that names the reviewer bring that reviewer's check run up to date`
       );
     }
     return {

@@ -79,6 +79,7 @@ const BINARY_EXTENSIONS = new Set([
   ".webp",
   ".woff",
   ".woff2",
+  ".xlsx",
   ".zip",
 ]);
 

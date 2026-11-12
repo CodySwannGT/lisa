@@ -34,9 +34,12 @@ const ACCEPTED_KEY = "verification.completion.acceptedEvidenceReleases";
 /**
  * Whether a concrete name is a tag GitHub and git both accept: the character
  * set and length, and none of git's ref-name exclusions that the character set
- * still lets through (`..`, a trailing `.`, a `.lock` ending).
+ * still lets through (`..`, a trailing `.`, a `.lock` ending). Exported so the
+ * evidence prune validates its archive release by the same rule (#4720).
+ * @param {string} name - A concrete release name.
+ * @returns {boolean} True when the name is a usable tag.
  */
-function usableTag(name) {
+export function usableTag(name) {
   return (
     RELEASE_TAG.test(name) &&
     !name.includes("..") &&
@@ -153,6 +156,157 @@ export function isAcceptedEvidenceRelease(policy, tag) {
   );
 }
 
+/** Lets gh >= 2.97 print a raw body holding terminal escape sequences. */
+const ESCAPE_FLAG = "--allow-escape-sequences";
+/** How gh < 2.97, which has no escape check, rejects that flag. */
+const UNKNOWN_ESCAPE_FLAG = /unknown flag:? --allow-escape-sequences/;
+const OCTET_STREAM = "Accept: application/octet-stream";
+/** The longest stderr excerpt a read failure quotes. */
+const STDERR_EXCERPT = 200;
+const ESC = 0x1b;
+/** Repository-relative read paths and the read each one is. */
+const READ_KINDS = [
+  [/^releases\/assets\/\d+$/, "asset-metadata"],
+  [/^releases\/tags\//, "release"],
+  [/^releases\/\d+\/assets/, "release-assets"],
+  [/^collaborators\/[^/]+\/permission$/, "collaborator-permission"],
+  [/^compare\//, "compare"],
+  [/^pulls\//, "pull"],
+  [/^commits\//, "commit"],
+  [/^actions\/runs\//, "actions-run"],
+  [/^branches\//, "branch"],
+  [/^issues\/\d+\/comments/, "comments"],
+  [/^user$/, "user"],
+];
+
+/**
+ * The endpoint a `gh api` argument vector reads: the first operand after
+ * `api` that is neither a flag nor a flag's value.
+ * @param {string[]} args - Exact `gh` argument vector.
+ * @returns {string} The endpoint, or "" when there is none.
+ */
+function readPath(args) {
+  return (
+    args.find(
+      (value, index) =>
+        index > 0 &&
+        !value.startsWith("-") &&
+        !["--header", "-H"].includes(args[index - 1])
+    ) ?? ""
+  );
+}
+
+/**
+ * Text with terminal control removed: CSI escape sequences whole, every other
+ * C0/C1 control character except the newline. Scanned, not matched, so no
+ * control character has to appear in a pattern.
+ * @param {string} text - Untrusted diagnostics.
+ * @returns {string} The printable text and its newlines.
+ */
+function stripControl(text) {
+  const kept = [];
+  // "text" | "escape" (just read ESC) | "csi" (inside ESC [ ... final).
+  // `[` is itself in the final-byte range, so the introducer must be consumed
+  // on its own or `ESC [31m` would leave `31m` glued to the next word.
+  let state = "text";
+  for (const character of text) {
+    const code = character.codePointAt(0);
+    if (state === "escape") {
+      state = code === 0x5b ? "csi" : "text";
+      continue;
+    }
+    if (state === "csi") {
+      if (code >= 0x40 && code <= 0x7e) state = "text";
+      continue;
+    }
+    if (code === ESC) state = "escape";
+    else if (code === 0x0a || (code >= 0x20 && (code < 0x7f || code > 0x9f)))
+      kept.push(character);
+  }
+  return kept.join("");
+}
+
+/**
+ * Stderr made safe to quote: control stripped, credentials redacted, first
+ * non-empty line only, bounded.
+ * @param {string} [stderr] - Raw `gh` diagnostics.
+ * @returns {string} One quotable line, possibly empty.
+ */
+function quotableStderr(stderr) {
+  const line =
+    stripControl(String(stderr ?? ""))
+      // No word boundary: a token glued to preceding text must still redact.
+      .replace(/(?:gh[pousr]_|github_pat_)\w+/g, "[redacted]")
+      .split("\n")
+      .map(row => row.trim())
+      .find(Boolean) ?? "";
+  return line.length > STDERR_EXCERPT
+    ? `${line.slice(0, STDERR_EXCERPT)}…`
+    : line;
+}
+
+/**
+ * How a bounded `gh` run failed, or null when it completed in full.
+ * @param {object} result - The canonical runner's spawn result.
+ * @param {number} maxBuffer - The byte ceiling the read ran under.
+ * @returns {string|null} Exit, timeout, overflow or ceiling detail.
+ */
+function readFailure(result, maxBuffer) {
+  const code = result.error?.code;
+  if (code === "ETIMEDOUT") return "timed out";
+  if (code === "ENOBUFS")
+    return `output exceeded the ${maxBuffer}-byte ceiling (ENOBUFS)`;
+  if (result.error) return `gh could not run (${code ?? result.error.message})`;
+  if (result.status !== 0)
+    return result.signal
+      ? `killed by ${result.signal}`
+      : `exit ${result.status}`;
+  if (Buffer.byteLength(result.stdout ?? "") > maxBuffer)
+    return `response exceeded the ${maxBuffer}-byte ceiling`;
+  return null;
+}
+
+/**
+ * Which read an endpoint is, for the operator.
+ * @param {string} target - Repository-relative endpoint ("" for the repository).
+ * @param {boolean} raw - Whether the read downloads raw asset bytes.
+ * @returns {string} A stable read kind.
+ */
+function readKind(target, raw) {
+  if (raw) return "asset-download";
+  if (target === "") return "repository";
+  return READ_KINDS.find(([pattern]) => pattern.test(target))?.[1] ?? "api";
+}
+
+/**
+ * Name a failed read: what it was, where, and how it ended (#4773). Repository
+ * paths keep their ids, so the exact asset, PR or commit is identifiable.
+ * @param {object} read - The read that failed.
+ * @param {string} [read.kind] - Explicit kind, when the endpoint is ambiguous.
+ * @param {string[]} read.args - Exact `gh` argument vector.
+ * @param {string} read.root - `repos/<owner>/<repo>` of the transport.
+ * @param {string} read.failure - Exit, timeout, overflow or ceiling detail.
+ * @param {string} [read.stderr] - Raw `gh` diagnostics.
+ * @returns {string} One bounded, credential-free description.
+ */
+function describeRead({ kind, args, root, failure, stderr }) {
+  const path = readPath(args);
+  const target = path.startsWith(`${root}/`)
+    ? path.slice(root.length + 1)
+    : path === root
+      ? ""
+      : path;
+  const http = /HTTP (\d{3})/.exec(stderr ?? "")?.[1];
+  const said = quotableStderr(stderr);
+  return [
+    `${kind ?? readKind(target, args.includes(OCTET_STREAM))} ${target || root}: ${failure}`,
+    http ? `HTTP ${http}` : "",
+    said ? `gh said: ${said}` : "",
+  ]
+    .filter(Boolean)
+    .join("; ");
+}
+
 /** `/<owner>/<repo>/releases/download/<tag>/<asset>`, and nothing nested. */
 const DOWNLOAD_PATH = /^\/([^/]+\/[^/]+)\/releases\/download\/([^/]+)\/[^/]+$/;
 
@@ -163,23 +317,80 @@ export function githubProofTransport(run, repository, policy = {}) {
     "The implementation repository is not canonical."
   );
   const root = `repos/${repository}`;
-  function call(args, options = {}) {
-    const maxBuffer = options.maxBuffer ?? MAX_NATIVE_JSON_BYTES;
+  /**
+   * Run one bounded `gh` read and report, rather than throw, how it ended.
+   * @param {string[]} args - Exact `gh` argument vector.
+   * @param {object} [options] - Runner options plus an optional `kind`.
+   * @returns {{result: object, failure: string|null}} The run and, when it
+   *   failed, a description naming the read.
+   */
+  function attempt(args, options = {}) {
+    const { kind, ...runOptions } = options;
+    const maxBuffer = runOptions.maxBuffer ?? MAX_NATIVE_JSON_BYTES;
     const result = run("gh", args, {
       allowFailure: true,
+      ...runOptions,
       maxBuffer,
-      ...options,
     });
-    if (
-      result.status !== 0 ||
-      result.error ||
-      Buffer.byteLength(result.stdout ?? "") > maxBuffer
-    )
+    const failure = readFailure(result, maxBuffer);
+    return {
+      result,
+      failure:
+        failure &&
+        describeRead({ kind, args, root, failure, stderr: result.stderr }),
+    };
+  }
+  /** The bytes of a completed read; a failed one names itself (#4773). */
+  function settle({ result, failure }) {
+    if (failure)
       throw new CompletionProofError(
         READ_ERROR,
-        "A required GitHub completion-proof read did not complete; restore repository access and retry canonical Verify/evidence."
+        `A required GitHub completion-proof read did not complete (${failure}); restore repository access and retry canonical Verify/evidence.`
       );
     return result.stdout;
+  }
+  /**
+   * One bounded `gh` read.
+   * @param {string[]} args - Exact `gh` argument vector.
+   * @param {object} [options] - Runner options; `kind` names the read when
+   *   its endpoint alone does not.
+   * @returns {string|Buffer} The complete response.
+   */
+  function call(args, options = {}) {
+    return settle(attempt(args, options));
+  }
+  // gh >= 2.97 needs the flag and gh < 2.97 rejects it. Assumed supported
+  // until gh rejects it once; remembered for this transport's later downloads.
+  let escapeFlagSupported = true;
+  /**
+   * Download a release asset's raw bytes on either side of gh's
+   * escape-sequence check (GHSA-3m3g-3wcr-px46, gh v2.97.0). Since then
+   * `gh api` refuses to print a raw body holding terminal escape sequences
+   * without `--allow-escape-sequences`, so an ANSI-coloured test log failed
+   * every terminal transition on CI's gh while an older local gh, which
+   * rejects the flag, read it fine (CodySwannGT/lisa#4773). The bytes go to a
+   * Buffer and are hashed, never to a terminal, so allowing them is safe.
+   * @param {number} id - Native asset identifier.
+   * @param {number} max - Byte ceiling for this attachment.
+   * @returns {Buffer} The raw asset bytes.
+   */
+  function downloadAsset(id, max) {
+    const args = [
+      "api",
+      `${root}/releases/assets/${id}`,
+      "--header",
+      OCTET_STREAM,
+    ];
+    const options = { binary: true, maxBuffer: max };
+    if (escapeFlagSupported) {
+      const flagged = attempt([...args, ESCAPE_FLAG], options);
+      const rejected =
+        flagged.result.status !== 0 &&
+        UNKNOWN_ESCAPE_FLAG.test(flagged.result.stderr ?? "");
+      if (!rejected) return settle(flagged);
+      escapeFlagSupported = false;
+    }
+    return call(args, options);
   }
   function json(path, paginated = false) {
     requireProof(
@@ -202,7 +413,7 @@ export function githubProofTransport(run, repository, policy = {}) {
       if (error instanceof CompletionProofError) throw error;
       throw new CompletionProofError(
         READ_ERROR,
-        "A required GitHub proof response is not complete JSON."
+        `A required GitHub proof response is not complete JSON (${describeRead({ args: ["api", path], root, failure: "unparseable response" })}).`
       );
     }
   }
@@ -296,19 +507,17 @@ export function githubProofTransport(run, repository, policy = {}) {
           row.type === "Bot" &&
           row.repository_id === repositoryId
       );
-    const result = run(
-      "gh",
-      [
-        "api",
-        `${root}/collaborators/${encodeURIComponent(user.login)}/permission`,
-      ],
-      { allowFailure: true, maxBuffer: MAX_NATIVE_JSON_BYTES }
-    );
-    if (result.status !== 0) {
-      if (/HTTP 404/.test(result.stderr ?? "")) return false;
+    const read = attempt([
+      "api",
+      `${root}/collaborators/${encodeURIComponent(user.login)}/permission`,
+    ]);
+    const { result } = read;
+    if (read.failure) {
+      if (result.status !== 0 && /HTTP 404/.test(result.stderr ?? ""))
+        return false;
       throw new CompletionProofError(
         READ_ERROR,
-        "The native proof publisher's repository authority could not be read."
+        `The native proof publisher's repository authority could not be read (${read.failure}).`
       );
     }
     let permission;
@@ -358,15 +567,7 @@ export function githubProofTransport(run, repository, policy = {}) {
         isAcceptedEvidenceRelease(policy, download[2]),
       `The proof attachment is outside the implementation repository's accepted evidence releases (${acceptedEvidenceReleases(policy).join(", ")}).`
     );
-    const bytes = call(
-      [
-        "api",
-        `${root}/releases/assets/${id}`,
-        "--header",
-        "Accept: application/octet-stream",
-      ],
-      { binary: true, maxBuffer: max }
-    );
+    const bytes = downloadAsset(id, max);
     requireProof(
       Buffer.isBuffer(bytes) && bytes.length === metadata.size,
       "The proof attachment download is incomplete."
