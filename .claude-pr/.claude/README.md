@@ -49,9 +49,6 @@ The `enabledPlugins` section in `settings.json` references Claude Code plugins. 
 | Plugin | Source | Purpose |
 |--------|--------|---------|
 | `typescript-lsp` | `claude-plugins-official` | TypeScript language server integration |
-| `safety-net` | `cc-marketplace` | Backup and safety features |
-| `code-simplifier` | `claude-plugins-official` | Code complexity reduction suggestions |
-| `code-review` | `claude-plugins-official` | Automated code review capabilities |
 | `playwright` | `claude-plugins-official` | Playwright test integration |
 
 ### Installing Plugins
@@ -158,7 +155,6 @@ Skills use colon-namespaced directories (e.g., `plan:create/`) and are invoked v
 |-------|---------|
 | `tasks:load` | Load tasks from project directory into session |
 | `tasks:sync` | Export session tasks to project directory |
-| `skill-creator` | Guide for creating new skills |
 | `agent-design-best-practices` | Best practices for designing agent files |
 | `jsdoc-best-practices` | JSDoc documentation standards |
 

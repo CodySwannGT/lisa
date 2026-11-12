@@ -1690,22 +1690,6 @@
         "tests/unit/strategies/runtime-behavior-change-decidability.test.ts › writers persist the flag on every leaf > plugins/lisa-agy/skills > lisa-linear-write-issue renders a declaration for exempt work"
       ]
     },
-    "plugins/lisa-agy/skills/lisa-parity-skill-creator/SKILL.md": {
-      "required": [
-        "ladder router"
-      ],
-      "forbidden": [],
-      "requiredPatterns": [
-        {
-          "source": "rung",
-          "flags": ""
-        }
-      ],
-      "forbiddenPatterns": [],
-      "source": [
-        "tests/unit/strategies/ladder-router-contract.test.ts › lisa-parity-skill-creator reflects the router's new contract (plugins/lisa-agy/skills/lisa-parity-skill-creator/SKILL.md) > frames skill-evaluator as the ladder router, SKILL being one rung"
-      ]
-    },
     "plugins/lisa-agy/skills/lisa-persist-learning/SKILL.md": {
       "required": [
         "PROJECT_LEARNINGS.overflow.md",
@@ -3570,22 +3554,6 @@
         "tests/unit/strategies/runtime-behavior-change-decidability.test.ts › writers persist the flag on every leaf > plugins/lisa-copilot/skills > lisa-linear-write-issue always renders the section",
         "tests/unit/strategies/runtime-behavior-change-decidability.test.ts › writers persist the flag on every leaf > plugins/lisa-copilot/skills > lisa-linear-write-issue no longer skips the section for doc-only",
         "tests/unit/strategies/runtime-behavior-change-decidability.test.ts › writers persist the flag on every leaf > plugins/lisa-copilot/skills > lisa-linear-write-issue renders a declaration for exempt work"
-      ]
-    },
-    "plugins/lisa-copilot/skills/lisa-parity-skill-creator/SKILL.md": {
-      "required": [
-        "ladder router"
-      ],
-      "forbidden": [],
-      "requiredPatterns": [
-        {
-          "source": "rung",
-          "flags": ""
-        }
-      ],
-      "forbiddenPatterns": [],
-      "source": [
-        "tests/unit/strategies/ladder-router-contract.test.ts › lisa-parity-skill-creator reflects the router's new contract (plugins/lisa-copilot/skills/lisa-parity-skill-creator/SKILL.md) > frames skill-evaluator as the ladder router, SKILL being one rung"
       ]
     },
     "plugins/lisa-copilot/skills/lisa-persist-learning/SKILL.md": {
@@ -5478,22 +5446,6 @@
         "tests/unit/strategies/runtime-behavior-change-decidability.test.ts › writers persist the flag on every leaf > plugins/lisa-cursor/skills > lisa-linear-write-issue always renders the section",
         "tests/unit/strategies/runtime-behavior-change-decidability.test.ts › writers persist the flag on every leaf > plugins/lisa-cursor/skills > lisa-linear-write-issue no longer skips the section for doc-only",
         "tests/unit/strategies/runtime-behavior-change-decidability.test.ts › writers persist the flag on every leaf > plugins/lisa-cursor/skills > lisa-linear-write-issue renders a declaration for exempt work"
-      ]
-    },
-    "plugins/lisa-cursor/skills/lisa-parity-skill-creator/SKILL.md": {
-      "required": [
-        "ladder router"
-      ],
-      "forbidden": [],
-      "requiredPatterns": [
-        {
-          "source": "rung",
-          "flags": ""
-        }
-      ],
-      "forbiddenPatterns": [],
-      "source": [
-        "tests/unit/strategies/ladder-router-contract.test.ts › lisa-parity-skill-creator reflects the router's new contract (plugins/lisa-cursor/skills/lisa-parity-skill-creator/SKILL.md) > frames skill-evaluator as the ladder router, SKILL being one rung"
       ]
     },
     "plugins/lisa-cursor/skills/lisa-persist-learning/SKILL.md": {
@@ -7845,22 +7797,6 @@
         "tests/unit/strategies/runtime-behavior-change-decidability.test.ts › writers persist the flag on every leaf > plugins/lisa/.codex-plugin/skills > lisa-linear-write-issue always renders the section",
         "tests/unit/strategies/runtime-behavior-change-decidability.test.ts › writers persist the flag on every leaf > plugins/lisa/.codex-plugin/skills > lisa-linear-write-issue no longer skips the section for doc-only",
         "tests/unit/strategies/runtime-behavior-change-decidability.test.ts › writers persist the flag on every leaf > plugins/lisa/.codex-plugin/skills > lisa-linear-write-issue renders a declaration for exempt work"
-      ]
-    },
-    "plugins/lisa/.codex-plugin/skills/lisa-parity-skill-creator/SKILL.md": {
-      "required": [
-        "ladder router"
-      ],
-      "forbidden": [],
-      "requiredPatterns": [
-        {
-          "source": "rung",
-          "flags": ""
-        }
-      ],
-      "forbiddenPatterns": [],
-      "source": [
-        "tests/unit/strategies/ladder-router-contract.test.ts › lisa-parity-skill-creator reflects the router's new contract (plugins/lisa/.codex-plugin/skills/lisa-parity-skill-creator/SKILL.md) > frames skill-evaluator as the ladder router, SKILL being one rung"
       ]
     },
     "plugins/lisa/.codex-plugin/skills/lisa-persist-learning/SKILL.md": {
@@ -13215,22 +13151,6 @@
         "tests/unit/strategies/prd-source-write.test.ts › per-vendor PRD writers > lisa-notion-write-prd > plugins/lisa/skills > resolves the FULL PRD lifecycle vocabulary, not just draft/ready",
         "tests/unit/strategies/prd-source-write.test.ts › per-vendor PRD writers > lisa-notion-write-prd > plugins/lisa/skills > returns a structured created|reused result",
         "tests/unit/strategies/prd-source-write.test.ts › per-vendor PRD writers > notion-write-prd specifics (plugins/lisa/skills) > goes through notion-access create-page and sets the Status role"
-      ]
-    },
-    "plugins/lisa/skills/lisa-parity-skill-creator/SKILL.md": {
-      "required": [
-        "ladder router"
-      ],
-      "forbidden": [],
-      "requiredPatterns": [
-        {
-          "source": "rung",
-          "flags": ""
-        }
-      ],
-      "forbiddenPatterns": [],
-      "source": [
-        "tests/unit/strategies/ladder-router-contract.test.ts › lisa-parity-skill-creator reflects the router's new contract (plugins/lisa/skills/lisa-parity-skill-creator/SKILL.md) > frames skill-evaluator as the ladder router, SKILL being one rung"
       ]
     },
     "plugins/lisa/skills/lisa-persist-learning/SKILL.md": {
@@ -19913,22 +19833,6 @@
         "tests/unit/strategies/prd-source-write.test.ts › per-vendor PRD writers > lisa-notion-write-prd > plugins/src/base/skills > resolves the FULL PRD lifecycle vocabulary, not just draft/ready",
         "tests/unit/strategies/prd-source-write.test.ts › per-vendor PRD writers > lisa-notion-write-prd > plugins/src/base/skills > returns a structured created|reused result",
         "tests/unit/strategies/prd-source-write.test.ts › per-vendor PRD writers > notion-write-prd specifics (plugins/src/base/skills) > goes through notion-access create-page and sets the Status role"
-      ]
-    },
-    "plugins/src/base/skills/lisa-parity-skill-creator/SKILL.md": {
-      "required": [
-        "ladder router"
-      ],
-      "forbidden": [],
-      "requiredPatterns": [
-        {
-          "source": "rung",
-          "flags": ""
-        }
-      ],
-      "forbiddenPatterns": [],
-      "source": [
-        "tests/unit/strategies/ladder-router-contract.test.ts › lisa-parity-skill-creator reflects the router's new contract (plugins/src/base/skills/lisa-parity-skill-creator/SKILL.md) > frames skill-evaluator as the ladder router, SKILL being one rung"
       ]
     },
     "plugins/src/base/skills/lisa-persist-learning/SKILL.md": {
