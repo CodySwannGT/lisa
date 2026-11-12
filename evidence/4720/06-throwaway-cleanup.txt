@@ -1,19 +1,19 @@
-## captured_at 2026-11-09T09:06:24Z
-## $ gh release delete lisa-prune-verify-1794215023-archive-2026-11 --repo CodySwannGT/lisa --yes --cleanup-tag  => rc=0
-## $ gh release delete lisa-prune-verify-1794215023 --repo CodySwannGT/lisa --yes --cleanup-tag  => rc=0
-## release lisa-prune-verify-1794215023
+## captured_at 2026-11-12T11:13:14Z
+## $ gh release delete lisa-prune-verify-1794481831-archive-2026-11 --repo CodySwannGT/lisa --yes --cleanup-tag  => rc=0
+## $ gh release delete lisa-prune-verify-1794481831 --repo CodySwannGT/lisa --yes --cleanup-tag  => rc=0
+## release lisa-prune-verify-1794481831
 {"message":"Not Found","documentation_url":"(docs link elided)","status":"404"}gh: Not Found (HTTP 404)
-## tag ref lisa-prune-verify-1794215023
+## tag ref lisa-prune-verify-1794481831
 {"message":"Not Found","documentation_url":"(docs link elided)","status":"404"}gh: Not Found (HTTP 404)
-## release lisa-prune-verify-1794215023-archive-2026-11
+## release lisa-prune-verify-1794481831-archive-2026-11
 {"message":"Not Found","documentation_url":"(docs link elided)","status":"404"}gh: Not Found (HTTP 404)
-## tag ref lisa-prune-verify-1794215023-archive-2026-11
+## tag ref lisa-prune-verify-1794481831-archive-2026-11
 {"message":"Not Found","documentation_url":"(docs link elided)","status":"404"}gh: Not Found (HTTP 404)
 ## any release whose tag starts lisa-prune-verify (expect 0)
 0
 ## any tag ref starting lisa-prune-verify (expect empty array)
 0
 ## latest release
-v4.100.4
+v4.101.6
 ## pr-assets count (unchanged)
 1000

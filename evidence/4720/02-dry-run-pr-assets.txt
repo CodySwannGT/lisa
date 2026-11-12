@@ -1,4 +1,4 @@
-## captured_at 2026-11-09T09:00:46Z
+## captured_at 2026-11-12T11:06:42Z
 ## count before
 1000
 ## completion records by name
@@ -6,9 +6,9 @@
 ## $ node all/copy-overwrite/scripts/lisa-evidence-prune.mjs --release pr-assets
 Evidence release: pr-assets (CodySwannGT/lisa)
 Total files: 1000
-Pinned: 446 (completion records and files they depend on)
-Kept as recent or not yet superseded: 266
-Prune candidates: 288
+Pinned: 465 (completion records and files they depend on)
+Kept as recent or not yet superseded: 182
+Prune candidates: 353
 Archive release (would use): pr-assets-archive-2026-11
   01-cli-build-output.txt  417 bytes  uploaded 2026-05-28T12:20:51Z
   02-cli-version-output.txt  24 bytes  uploaded 2026-05-28T12:20:52Z
@@ -298,9 +298,74 @@ Archive release (would use): pr-assets-archive-2026-11
   pr-4454-07-visible-cli-proof.txt  5127 bytes  uploaded 2026-10-13T04:47:32Z
   pr-4454-03-schema2-verdict.json  36713 bytes  uploaded 2026-10-13T04:48:29Z
   pr-4454-03-schema2-verdict-73553738.json  36713 bytes  uploaded 2026-10-13T04:49:43Z
+  pr-4535-0e0f335d64-01-pinned-install-exit-100-before-fix-8d9c3e91f4ed.txt  19480 bytes  uploaded 2026-10-26T16:05:21Z
+  pr-4535-0e0f335d64-02-pinned-install-exit-0-after-fix-61a486d6a61b.txt  57761 bytes  uploaded 2026-10-26T16:06:28Z
+  pr-4535-0e0f335d64-03-rails-tools-pin-unit-tests-0b99fba533d0.txt  11872 bytes  uploaded 2026-10-26T16:06:30Z
+  pr-4535-0e0f335d64-04-source-identity-attestation-5dba44611e91.json  3658 bytes  uploaded 2026-10-26T16:06:34Z
+  pr-4535-0e0f335d64-05-hosted-qualification-run-green-4c6df2b6c817.txt  27457 bytes  uploaded 2026-10-26T16:06:36Z
+  pr-4535-0e0f335d64-06-hosted-summary-c96d8d1c662d.json  12257 bytes  uploaded 2026-10-26T16:06:38Z
+  pr-4535-0e0f335d64-07-hosted-identity-attestation-80ded7f2a595.json  13751 bytes  uploaded 2026-10-26T16:06:41Z
+  pr-4535-v4.84.4-62b34bba0179-01-release-hosted-qualification-50ef9556b559.txt  30047 bytes  uploaded 2026-10-26T17:03:40Z
+  pr-4535-v4.84.4-62b34bba0179-02-release-hosted-summary-32b8b8664895.json  12257 bytes  uploaded 2026-10-26T17:03:42Z
+  pr-4535-v4.84.4-62b34bba0179-03-release-hosted-identity-860e2828b3e5.json  16581 bytes  uploaded 2026-10-26T17:03:45Z
+  pr-4535-v4.84.4-62b34bba0179-04-published-package-cli-native-f541649ba239.txt  52253 bytes  uploaded 2026-10-26T17:03:48Z
+  pr-4535-v4.84.4-62b34bba0179-05-published-package-result-6493cb786ef8.json  2059 bytes  uploaded 2026-10-26T17:03:51Z
+  pr-4535-v4.84.4-62b34bba0179-06-delivery-identity-40f39c1a5fca.json  53841 bytes  uploaded 2026-10-26T17:03:54Z
+  pr-4535-v4.84.4-62b34bba0179-07-historical-pinned-install-exit-100-before-fix-8d9c3e91f4ed.txt  19480 bytes  uploaded 2026-10-26T17:03:56Z
+  pr-4535-v4.84.4-62b34bba0179-08-historical-rails-tools-pin-unit-tests-0b99fba533d0.txt  11872 bytes  uploaded 2026-10-26T17:03:58Z
+  pr-4535-v4.84.4-62b34bba0179-09-npm10-installation-limitations-129ebf0578ec.txt  4023 bytes  uploaded 2026-10-26T17:04:01Z
+  pr-4535-v4.84.4-62b34bba0179-10-verification-verdict-1ca5220b6a7a.json  7985 bytes  uploaded 2026-10-26T17:05:50Z
+  pr-4535-v4.84.4-62b34bba0179-11-evidence-manifest-b3a5125f0e82.json  10312 bytes  uploaded 2026-10-26T17:05:52Z
+  pr-4537-v4.84.5-eeaaa00f2096-02-required-registration-expiry-and-missing-name-refusal-711b421b1a5a.txt  136994 bytes  uploaded 2026-10-26T19:38:56Z
+  pr-4537-v4.84.5-eeaaa00f2096-05-current-head-hosted-review-evidence-77a7143d079e.txt  79281 bytes  uploaded 2026-10-26T19:38:56Z
+  pr-4537-v4.84.5-eeaaa00f2096-04-required-registration-regression-cases-fa071e4430b9.txt  55331 bytes  uploaded 2026-10-26T19:38:56Z
+  pr-4537-v4.84.5-eeaaa00f2096-01-required-registration-delay-and-branch-selection-ccfa1487bbc6.txt  143236 bytes  uploaded 2026-10-26T19:38:56Z
+  pr-4537-v4.84.5-eeaaa00f2096-03-workflow-preflight-and-verdict-summary-b332e271c900.txt  137080 bytes  uploaded 2026-10-26T19:38:56Z
+  pr-4537-v4.84.5-eeaaa00f2096-06-delivery-identity-d25e3fc49f6d.json  170911 bytes  uploaded 2026-10-26T19:38:57Z
+  pr-4537-v4.84.5-eeaaa00f2096-09-verification-bundle-92c88eb1ba9c.tar.gz  97761 bytes  uploaded 2026-10-26T19:38:57Z
+  pr-4537-v4.84.5-eeaaa00f2096-07-consumer-cli-smoke-da40a60bacf0.txt  11526 bytes  uploaded 2026-10-26T19:38:57Z
+  pr-4537-v4.84.5-eeaaa00f2096-08-spec-conformance-8ea36fed5bda.json  6308 bytes  uploaded 2026-10-26T19:38:57Z
+  pr-4537-v4.84.5-eeaaa00f2096-12-evidence-manifest-f3b7b1002018.json  8458 bytes  uploaded 2026-10-26T19:45:43Z
+  pr-4537-v4.84.5-eeaaa00f2096-10-public-readback-1e6512c19eb3.json  7298 bytes  uploaded 2026-10-26T19:45:43Z
+  pr-4537-v4.84.5-eeaaa00f2096-11-verification-verdict-72629370d61c.json  25805 bytes  uploaded 2026-10-26T19:45:43Z
+  pr-4463-v4.84.6-26506db550db-published-identity-993abf113a73.json  21157 bytes  uploaded 2026-10-27T01:27:13Z
+  pr-4463-v4.84.6-26506db550db-consumer-health-c326a3379014.txt  18903 bytes  uploaded 2026-10-27T01:27:13Z
+  pr-4463-v4.84.6-26506db550db-target-scope-test-run-c19d58f3afc6.txt  113691 bytes  uploaded 2026-10-27T01:27:13Z
+  pr-4463-v4.84.6-26506db550db-spec-conformance-e54b70f98bf8.json  3142 bytes  uploaded 2026-10-27T01:27:13Z
+  pr-4463-v4.84.6-26506db550db-host-vs-lisa-cli-3a0b715404d2.txt  170554 bytes  uploaded 2026-10-27T01:27:13Z
+  pr-4463-v4.84.6-26506db550db-audit-bundle-5c987c55ce5d.tar.gz  93920 bytes  uploaded 2026-10-27T01:27:14Z
+  pr-4463-v4.84.6-26506db550db-verification-report-cbf44ca81aca.md  4608 bytes  uploaded 2026-10-27T01:27:14Z
+  pr-4463-v4.84.6-26506db550db-public-audit-4b1e38ebb323.json  19660 bytes  uploaded 2026-10-27T01:36:13Z
+  pr-4463-v4.84.6-26506db550db-final-report-20daf4ab2f17.md  7317 bytes  uploaded 2026-10-27T01:36:13Z
+  pr-4463-v4.84.6-26506db550db-final-verdict-34d0b17a108e.json  17802 bytes  uploaded 2026-10-27T01:36:13Z
+  pr-4463-v4.84.6-26506db550db-final-conformance-2711a8efb093.json  3395 bytes  uploaded 2026-10-27T01:36:13Z
+  pr-4463-v4.84.6-26506db550db-evidence-manifest-e2b1564fc5be.json  11381 bytes  uploaded 2026-10-27T01:36:49Z
+  pr-4463-v4.84.6-26506db550db-audit-bundle-metadata-v2-f98416009c09.tar.gz  90625 bytes  uploaded 2026-10-27T01:52:49Z
+  pr-4463-v4.84.6-26506db550db-target-scope-metadata-v2-ca37b3ec259c.txt  112894 bytes  uploaded 2026-10-27T01:52:49Z
+  pr-4463-v4.84.6-26506db550db-spec-conformance-metadata-v2-ceb30962e469.json  3911 bytes  uploaded 2026-10-27T01:52:50Z
+  pr-4463-v4.84.6-26506db550db-accounted-report-metadata-v2-60207e7f9b89.md  4885 bytes  uploaded 2026-10-27T01:52:50Z
+  pr-4463-v4.84.6-26506db550db-public-audit-corrected-v2-18529f5fe40c.json  68981 bytes  uploaded 2026-10-27T01:59:07Z
+  pr-4463-v4.84.6-26506db550db-final-conformance-corrected-v2-97335e37f5f1.json  4244 bytes  uploaded 2026-10-27T01:59:07Z
+  pr-4463-v4.84.6-26506db550db-final-verdict-corrected-v2-2b07c3cb07de.json  19221 bytes  uploaded 2026-10-27T01:59:07Z
+  pr-4463-v4.84.6-26506db550db-final-report-corrected-v2-939c7be884a1.md  8584 bytes  uploaded 2026-10-27T01:59:07Z
+  pr-4463-v4.84.6-26506db550db-current-evidence-manifest-v2-63800723e182.json  13252 bytes  uploaded 2026-10-27T02:00:06Z
+  pr-4541-v4.84.7-c4b4854246e1-core-v1-03-expanded-command-hosted-regressions-7d9f64baafd0.json  201638 bytes  uploaded 2026-10-27T12:18:12Z
+  pr-4541-v4.84.7-c4b4854246e1-core-v1-05-delivery-identity-c6dba5b660a7.json  31914 bytes  uploaded 2026-10-27T12:18:12Z
+  pr-4541-v4.84.7-c4b4854246e1-core-v1-02-expanded-command-controls-6cc1564d902b.json  376483 bytes  uploaded 2026-10-27T12:18:13Z
+  pr-4541-v4.84.7-c4b4854246e1-core-v1-01-expanded-command-red-green-deecf301998d.json  1405811 bytes  uploaded 2026-10-27T12:18:13Z
+  pr-4541-v4.84.7-c4b4854246e1-core-v1-04-expanded-command-published-parity-003447a996d4.json  443404 bytes  uploaded 2026-10-27T12:18:13Z
+  pr-4541-v4.84.7-c4b4854246e1-core-v1-06-technical-conformance-d306e951f9a8.json  7626 bytes  uploaded 2026-10-27T12:18:13Z
+  pr-4541-v4.84.7-c4b4854246e1-core-v1-07-technical-report-6f009027e109.md  10244 bytes  uploaded 2026-10-27T12:18:13Z
+  pr-4541-v4.84.7-c4b4854246e1-core-v1-08-proof-bundle-fefd903adf56.tar.gz  233143 bytes  uploaded 2026-10-27T12:18:13Z
+  pr-4541-v4.84.7-c4b4854246e1-09-independent-core-readback-v1-590bf2f3ebbb.json  8582 bytes  uploaded 2026-10-27T12:20:51Z
+  pr-4541-v4.84.7-c4b4854246e1-11-verification-report-v2-dadbb87004ca.md  14480 bytes  uploaded 2026-10-27T12:25:17Z
+  pr-4541-v4.84.7-c4b4854246e1-10-verification-verdict-v2-3d5cea9326c6.json  25180 bytes  uploaded 2026-10-27T12:25:17Z
+  pr-4541-v4.84.7-c4b4854246e1-12-current-evidence-manifest-v1-736f441a9901.json  7445 bytes  uploaded 2026-10-27T12:26:25Z
+  pr-4545-delivered-direct-repeat-29a0139b1ceb856b5743275651302d9157367c9883bfb840d51bd407dc391f7f.json  2353 bytes  uploaded 2026-10-29T10:05:26Z
+  pr-4545-final-remote-verdict-3e89f5eb3562b2715b88e3294438525e9b4c06fb75eb204bd30aa980b445e14c.json  13467 bytes  uploaded 2026-10-29T10:06:29Z
 Dry run: nothing was changed. Re-run with --apply to archive these files and then remove them.
 exit=0
 ## $ node all/copy-overwrite/scripts/lisa-evidence-prune.mjs --release pr-assets --json
-json exit=0 bytes=   69222
+json exit=0 bytes=   87129
 ## count after
 1000

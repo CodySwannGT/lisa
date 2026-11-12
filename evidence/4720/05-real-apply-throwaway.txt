@@ -1,59 +1,59 @@
-## captured_at 2026-11-09T09:04:18Z  worktree HEAD d70d773fd324501082cc63c362a96cf648844d63
-## cwd /Users/codysai/.claude/jobs/efd4625e/tmp/scratch-apply3  (scratch dir; its .lisa.config.json:)
+## captured_at 2026-11-12T11:10:56Z  worktree HEAD 1a1eb5a18517e9f9de4d0e331478821f7f73425d
+## cwd /Users/codysai/.claude/jobs/efd4625e/tmp/scratch-apply4  (scratch dir; its .lisa.config.json:)
 {
   "github": { "org": "CodySwannGT", "repo": "lisa" },
   "verification": {
     "completion": {
-      "evidenceRelease": "lisa-prune-verify-1794215023",
-      "acceptedEvidenceReleases": ["lisa-prune-verify-1794215023"]
+      "evidenceRelease": "lisa-prune-verify-1794481831",
+      "acceptedEvidenceReleases": ["lisa-prune-verify-1794481831"]
     }
   }
 }
 ## source release before
-{"assets":[{"created_at":"2026-11-09T09:04:09Z","digest":"sha256:c0d6ed2c1b0881e6cace7d8bc8a7ff048f045b62380562946616b31acd66b6a0","id":726848787,"name":"completion-eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-r1-ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff.json","size":257},{"created_at":"2026-11-09T09:04:01Z","digest":"sha256:f3477707de9e6b6d1b54ff55d15717610644667a1aeaecb6c09d7364d1d65169","id":726848324,"name":"dummy-a.txt","size":26},{"created_at":"2026-11-09T09:04:01Z","digest":"sha256:6bcbb4cab7a720d5dca75be4a8294fe65267e53bf193948cc52f04868ac28c66","id":726848319,"name":"dummy-b.txt","size":28}],"draft":false,"id":438914189,"tag_name":"lisa-prune-verify-1794215023"}
+{"assets":[{"created_at":"2026-11-12T11:10:49Z","digest":"sha256:8cfc5c442d6613a1e726c2581adc8c0a26e25ba63ada292153bd1e09576e83f0","id":739173419,"name":"completion-1111111111111111111111111111111111111111111111111111111111111111-r1-2222222222222222222222222222222222222222222222222222222222222222.json","size":257},{"created_at":"2026-11-12T11:10:42Z","digest":"sha256:704d0b019e2dd3a93b03a91fbc7093693799c71a77a60a9c5c7c8983d0d411c2","id":739173148,"name":"dummy-a.txt","size":26},{"created_at":"2026-11-12T11:10:42Z","digest":"sha256:90bfad2706dbd2477c07f7c4d5cddb8876fcf4024b5fd37d2c98e102d5766f8c","id":739173146,"name":"dummy-b.txt","size":28}],"draft":false,"id":442834542,"tag_name":"lisa-prune-verify-1794481831"}
 ## archive release before (expect 404)
 {"message":"Not Found","documentation_url":"(docs link elided)","status":"404"}gh: Not Found (HTTP 404)
-## $ node lisa-evidence-prune.mjs --release lisa-prune-verify-1794215023 --min-age-days 0   (dry run)
-Evidence release: lisa-prune-verify-1794215023 (CodySwannGT/lisa)
+## $ node lisa-evidence-prune.mjs --release lisa-prune-verify-1794481831 --min-age-days 0   (dry run)
+Evidence release: lisa-prune-verify-1794481831 (CodySwannGT/lisa)
 Total files: 3
 Pinned: 2 (completion records and files they depend on)
 Kept as recent or not yet superseded: 0
 Prune candidates: 1
-Archive release (would use): lisa-prune-verify-1794215023-archive-2026-11
-  dummy-b.txt  28 bytes  uploaded 2026-11-09T09:04:01Z
+Archive release (would use): lisa-prune-verify-1794481831-archive-2026-11
+  dummy-b.txt  28 bytes  uploaded 2026-11-12T11:10:42Z
 Dry run: nothing was changed. Re-run with --apply to archive these files and then remove them.
 exit=0
 ## archive release after dry run (expect 404 still)
 {"message":"Not Found","documentation_url":"(docs link elided)","status":"404"}gh: Not Found (HTTP 404)
-## $ node lisa-evidence-prune.mjs --release lisa-prune-verify-1794215023 --min-age-days 0 --apply
-Evidence release: lisa-prune-verify-1794215023 (CodySwannGT/lisa)
+## $ node lisa-evidence-prune.mjs --release lisa-prune-verify-1794481831 --min-age-days 0 --apply
+Evidence release: lisa-prune-verify-1794481831 (CodySwannGT/lisa)
 Total files: 3
 Pinned: 2 (completion records and files they depend on)
 Kept as recent or not yet superseded: 0
 Prune candidates: 1
-Archive release: lisa-prune-verify-1794215023-archive-2026-11
-  dummy-b.txt  28 bytes  uploaded 2026-11-09T09:04:01Z
-Archived to lisa-prune-verify-1794215023-archive-2026-11 and removed: 1
+Archive release: lisa-prune-verify-1794481831-archive-2026-11
+  dummy-b.txt  28 bytes  uploaded 2026-11-12T11:10:42Z
+Archived to lisa-prune-verify-1794481831-archive-2026-11 and removed: 1
 exit=0
 ## source release after apply
-{"assets":[{"created_at":"2026-11-09T09:04:09Z","digest":"sha256:c0d6ed2c1b0881e6cace7d8bc8a7ff048f045b62380562946616b31acd66b6a0","id":726848787,"name":"completion-eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-r1-ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff.json","size":257},{"created_at":"2026-11-09T09:04:01Z","digest":"sha256:f3477707de9e6b6d1b54ff55d15717610644667a1aeaecb6c09d7364d1d65169","id":726848324,"name":"dummy-a.txt","size":26}],"id":438914189,"tag_name":"lisa-prune-verify-1794215023"}
+{"assets":[{"created_at":"2026-11-12T11:10:49Z","digest":"sha256:8cfc5c442d6613a1e726c2581adc8c0a26e25ba63ada292153bd1e09576e83f0","id":739173419,"name":"completion-1111111111111111111111111111111111111111111111111111111111111111-r1-2222222222222222222222222222222222222222222222222222222222222222.json","size":257},{"created_at":"2026-11-12T11:10:42Z","digest":"sha256:704d0b019e2dd3a93b03a91fbc7093693799c71a77a60a9c5c7c8983d0d411c2","id":739173148,"name":"dummy-a.txt","size":26}],"id":442834542,"tag_name":"lisa-prune-verify-1794481831"}
 ## archive release after apply
-{"assets":[{"created_at":"2026-11-09T09:05:24Z","digest":"sha256:6bcbb4cab7a720d5dca75be4a8294fe65267e53bf193948cc52f04868ac28c66","id":726852320,"name":"dummy-b.txt","size":28,"state":"uploaded"}],"body":"Archived Lisa evidence","draft":false,"id":438915589,"name":"lisa-prune-verify-1794215023-archive-2026-11","prerelease":false,"tag_name":"lisa-prune-verify-1794215023-archive-2026-11","target_commitish":"main"}
+{"assets":[{"created_at":"2026-11-12T11:12:15Z","digest":"sha256:90bfad2706dbd2477c07f7c4d5cddb8876fcf4024b5fd37d2c98e102d5766f8c","id":739177448,"name":"dummy-b.txt","size":28,"state":"uploaded"}],"body":"Archived Lisa evidence","draft":false,"id":442836065,"name":"lisa-prune-verify-1794481831-archive-2026-11","prerelease":false,"tag_name":"lisa-prune-verify-1794481831-archive-2026-11","target_commitish":"main"}
 ## latest release (must not be the throwaway or its archive)
-v4.100.4
+v4.101.6
 ## independent byte check: download archive copy, hash, compare with original local file
-6bcbb4cab7a720d5dca75be4a8294fe65267e53bf193948cc52f04868ac28c66  /Users/codysai/.claude/jobs/efd4625e/tmp/scratch-apply3/readback/dummy-b.txt
-6bcbb4cab7a720d5dca75be4a8294fe65267e53bf193948cc52f04868ac28c66  /Users/codysai/.claude/jobs/efd4625e/tmp/scratch-apply3/files/dummy-b.txt
+90bfad2706dbd2477c07f7c4d5cddb8876fcf4024b5fd37d2c98e102d5766f8c  /Users/codysai/.claude/jobs/efd4625e/tmp/scratch-apply4/readback/dummy-b.txt
+90bfad2706dbd2477c07f7c4d5cddb8876fcf4024b5fd37d2c98e102d5766f8c  /Users/codysai/.claude/jobs/efd4625e/tmp/scratch-apply4/files/dummy-b.txt
 cmp: identical
-## $ node lisa-evidence-prune.mjs --release lisa-prune-verify-1794215023 --min-age-days 0 --apply   (second run: idempotence)
-Evidence release: lisa-prune-verify-1794215023 (CodySwannGT/lisa)
+## $ node lisa-evidence-prune.mjs --release lisa-prune-verify-1794481831 --min-age-days 0 --apply   (second run: idempotence)
+Evidence release: lisa-prune-verify-1794481831 (CodySwannGT/lisa)
 Total files: 2
 Pinned: 2 (completion records and files they depend on)
 Kept as recent or not yet superseded: 0
 Prune candidates: 0
-Archive release: lisa-prune-verify-1794215023-archive-2026-11
-Archived to lisa-prune-verify-1794215023-archive-2026-11 and removed: 0
+Archive release: lisa-prune-verify-1794481831-archive-2026-11
+Archived to lisa-prune-verify-1794481831-archive-2026-11 and removed: 0
 exit=0
 ## source + archive after second apply
-["completion-eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-r1-ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff.json","dummy-a.txt"]
+["completion-1111111111111111111111111111111111111111111111111111111111111111-r1-2222222222222222222222222222222222222222222222222222222222222222.json","dummy-a.txt"]
 ["dummy-b.txt"]

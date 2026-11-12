@@ -1,10 +1,10 @@
-## captured_at 2026-11-09T09:07:30Z  HEAD d70d773fd324501082cc63c362a96cf648844d63
+## captured_at 2026-11-12T11:14:32Z  HEAD 1a1eb5a18517e9f9de4d0e331478821f7f73425d
 ## .lisa.config.json verification.completion.evidenceRelease = "pr-assets-{YYYY-MM}"
 ## $ node all/copy-overwrite/scripts/lisa-evidence-prune.mjs   (no --release)
 Evidence release: pr-assets-2026-11 (CodySwannGT/lisa)
-Total files: 276
-Pinned: 186 (completion records and files they depend on)
-Kept as recent or not yet superseded: 90
+Total files: 441
+Pinned: 305 (completion records and files they depend on)
+Kept as recent or not yet superseded: 136
 Prune candidates: 0
 Archive release (would use): pr-assets-2026-11-archive-2026-11
 Dry run: nothing was changed, and there is nothing to prune.

@@ -1,4 +1,4 @@
-## captured_at 2026-11-09T09:00:41Z  HEAD d70d773fd324501082cc63c362a96cf648844d63
+## captured_at 2026-11-12T11:06:37Z  HEAD 1a1eb5a18517e9f9de4d0e331478821f7f73425d
 ## $ bunx vitest run tests/unit/scripts/evidence-prune.test.ts tests/unit/scripts/evidence-prune-safety.test.ts
 
  RUN  v4.1.11 /Users/codysai/workspace/lisa/.claude/worktrees/4720-evidence-prune
@@ -7,8 +7,8 @@ lisa scratch: no supervised lease in the environment, so this run is self-superv
 lisa scratch: no supervised lease in the environment, so this run is self-supervised. Fixture directories are still bounded to a run root this process owns and removed on exit; what is missing is the detached reaper that reclaims the root after a SIGKILL, which the next run's startup sweep recovers instead. Run through `lisa-test-run --profile <profile> --adapter vitest -- vitest ...` for a supervised run.
 
  Test Files  2 passed (2)
-      Tests  33 passed (33)
-   Start at  04:00:40
-   Duration  505ms (transform 355ms, setup 336ms, import 183ms, tests 46ms, environment 0ms)
+      Tests  38 passed (38)
+   Start at  06:06:37
+   Duration  448ms (transform 268ms, setup 336ms, import 141ms, tests 50ms, environment 0ms)
 
 exit=0
