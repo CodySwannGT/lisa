@@ -88,7 +88,6 @@ const TWO_CHANNEL_TASK = "check:two-channel-couplings";
 const DELETION_BASIS_TASK = "check:deletion-basis";
 const EXPORT_SURFACE_TASK = "check:export-surface";
 const MERGE_COVERAGE_TASK = "check:merge-coverage";
-const RETIRED_SAFETY_NET_TASK = "check:retired-safety-net-manifest";
 
 /** The runner the aggregate hands those names to. */
 const ARTIFACTS_RUNNER = "node scripts/run-artifact-checks.mjs";
@@ -109,7 +108,6 @@ const ALL_RAN = [
   DELETION_BASIS_TASK,
   EXPORT_SURFACE_TASK,
   MERGE_COVERAGE_TASK,
-  RETIRED_SAFETY_NET_TASK,
 ];
 
 /** Moment whose required gates become branch-protection contexts. */
@@ -375,8 +373,9 @@ describe("check:artifacts states its verdict last", () => {
     // Both landed on the same line from opposite branches, so the union of
     // the two is what the script now runs. Hardcoded per the Test Isolation
     // house rule: deriving it from the script would make the assertion agree
-    // with whatever the script happens to say.
-    expect(line).toContain("all 8 generated-artifact checks passed");
+    // with whatever the script happens to say. (An eighth, the retired
+    // safety-net manifest check, left with CodySwannGT/lisa#4803.)
+    expect(line).toContain("all 7 generated-artifact checks passed");
   });
 
   it("names the failing check last, where a reader is already looking", () => {

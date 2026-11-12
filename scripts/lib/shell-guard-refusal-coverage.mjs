@@ -16,9 +16,9 @@
  * green allows-only suite reads as covered.
  *
  * CodySwannGT/lisa#3054 is why the class is not hypothetical: every verdict
- * site in `parity-safety-net.sh` reached its answer through `printf … | grep -q
- * …`, and a `grep` exiting 2 made the shipped hook ALLOW catastrophic deletes,
- * silently. An allows-only suite cannot detect that by construction.
+ * site in a since-retired destructive-command guard reached its answer through
+ * `printf … | grep -q …`, and a `grep` exiting 2 made the shipped hook ALLOW
+ * catastrophic deletes, silently. An allows-only suite cannot detect that by construction.
  *
  * ## Why this reports on observations rather than on assertions
  *

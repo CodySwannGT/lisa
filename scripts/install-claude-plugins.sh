@@ -1,13 +1,9 @@
 #!/usr/bin/env bash
-# Explicit setup helper. Installation reconciles only the retired safety net.
+# Explicit setup helper.
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
 PACKAGE_ROOT="$(cd "$SCRIPT_DIR/.." && pwd -P)"
-
-# Target-only retirement also runs for legacy direct setup callers. It never
-# invokes full apply or changes unrelated templates, checks or plugin choices.
-node "$SCRIPT_DIR/retire-native-safety-net.mjs" --install
 
 # Inspect the lifecycle before sanitizing the package manager's environment.
 # Older host postinstall commands are also handled by the CLI bootstrap guard.
@@ -298,8 +294,8 @@ fi
 # unattended/scheduled run there is no human to intervene.
 #
 # 1.0.1 runs fine on its built-in rules with no config file, and Lisa's own
-# block-no-verify.sh + parity-safety-net.sh hooks already enforce --no-verify and
-# destructive-command guards across every agent, so the file is now dead weight.
+# block-no-verify.sh hook already enforces --no-verify across every agent, so the
+# file is now dead weight.
 # Lisa no longer ships it (removed from all/copy-overwrite/), but copy-overwrite
 # never deletes, so already-provisioned projects keep a stale copy. Remove it
 # here — but ONLY the Lisa-shipped file (identified by its marker rule name), so a
@@ -583,10 +579,10 @@ done
 # bundles the Sentry MCP server (plugins/src/base/.mcp.json) for every agent
 # runtime. The official Claude plugin remains disabled by default to avoid
 # duplicate registration (#1955), but an explicit host choice enables its own
-# maintained skills and must survive sync (#4318). Likewise, the Lisa-native
-# parity-safety-net.sh hook screens every Bash command, so the upstream
-# safety-net plugin double-screened each command; its material guards were
-# absorbed into the Lisa hook (issue #1960). Remove unchosen retired installs.
+# maintained skills and must survive sync (#4318). Likewise, the upstream
+# safety-net plugin double-screened every Bash command alongside a Lisa-native
+# hook that absorbed its material guards (issue #1960); that hook was itself
+# retired in #4672 and removed in #4803. Remove unchosen retired installs.
 #
 # The upstream plugin's real name is `cc-safety-net`. #1960 retired
 # `safety-net@cc-marketplace`, which names no plugin, so the real one stayed

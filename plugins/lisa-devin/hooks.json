@@ -76,10 +76,6 @@
           },
           {
             "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/devin-tool-name-shim.sh ${CLAUDE_PLUGIN_ROOT}/hooks/parity-safety-net.sh"
-          },
-          {
-            "type": "command",
             "command": "${CLAUDE_PLUGIN_ROOT}/hooks/devin-tool-name-shim.sh ${CLAUDE_PLUGIN_ROOT}/hooks/block-shell-json-parsing.sh"
           },
           {

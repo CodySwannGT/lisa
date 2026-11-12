@@ -1,8 +1,8 @@
 {
   "$generatedBy": "scripts/generate-export-surface.mjs",
   "$doNotEdit": "The public export surface this package ships, recorded so a removal is an OBSERVATION rather than an inference from commit-message conventions. This file's diff is what makes a removed export visible in the pull request that causes it (CodySwannGT/lisa#3718).",
-  "$modules": 279,
-  "$names": 2002,
+  "$modules": 275,
+  "$names": 1973,
   "surface": {
     "all/copy-overwrite/scripts/check-conflict-markers.mjs": [
       "UsageError",
@@ -1700,23 +1700,6 @@
       "releaseContains",
       "splitIntoSteps"
     ],
-    "scripts/deployed-guard-advice.mjs": [
-      "ADVICE_SWEEP_VERDICTS",
-      "FORBIDDEN_ADVISORY_PATTERNS",
-      "SOURCE_GUARD_ROOTS",
-      "cacheChannels",
-      "deployedGuardAdviceExitCode",
-      "formatDeployedGuardAdviceReport",
-      "invokedAsScript",
-      "marketplaceChannel",
-      "matchAdvisory",
-      "pluginManifestChannel",
-      "repositoryChannel",
-      "resolveGuardChannels",
-      "resolveSourceChannels",
-      "scanDeployedGuardAdvice",
-      "sessionChannel"
-    ],
     "scripts/detect-stale-workflow-inputs.mjs": [
       "UsageError",
       "buildReport",
@@ -1731,19 +1714,6 @@
     "scripts/downstream-name-digest.mjs": [
       "entryFor",
       "normalize"
-    ],
-    "scripts/fixtures/native-safety-net-retirement/probes.mjs": [
-      "CONTROL",
-      "ORDINARY",
-      "TARGET",
-      "commands",
-      "load",
-      "ok",
-      "openCodeProbe",
-      "pluginProbe",
-      "repositoryProbe",
-      "run",
-      "sha"
     ],
     "scripts/generate-agy-plugin-artifacts.mjs": [
       "generateAgyVariant"
@@ -1815,9 +1785,6 @@
     "scripts/generate-npm-updater-helper-graph.mjs": [
       "auditedHelperEdges",
       "generatedHelperGraph"
-    ],
-    "scripts/generate-scratch-supervisor-profile.mjs": [
-      "renderScratchProfile"
     ],
     "scripts/generate-upstream-evidence-manifest.mjs": [
       "UPSTREAM_EVIDENCE_MANIFEST",
@@ -2225,10 +2192,6 @@
       "invokedAsScript",
       "remedyConformanceExitCode",
       "sweepRemedyConformance"
-    ],
-    "scripts/retire-native-safety-net.mjs": [
-      "installedPluginRoots",
-      "retireNativeSafetyNet"
     ],
     "scripts/run-artifact-checks.mjs": [
       "CHECK_BUDGET_MS",

@@ -28,7 +28,7 @@
  *
  * Policy stays single-sourced in `block-no-verify.sh`, the canonical guard
  * Claude, Codex, Cursor and Copilot already run, copied beside this module by
- * the installer exactly as `parity-safety-net.sh` is. A second implementation
+ * the installer like every other canonical support file. A second implementation
  * of git's option grammar in TypeScript would be a second thing to harden, and
  * the two would diverge at the first vector closed in only one of them. This
  * adapter converts OpenCode's `bash` tool input into Lisa's canonical Claude
