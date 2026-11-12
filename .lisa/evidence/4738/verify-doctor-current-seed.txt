@@ -1,0 +1,16 @@
+=== lisa doctor, host: current — unmodified 20a8ac97e2 seed ===
+source under test: git archive 20a8ac97e2 -> /Users/codysai/.claude/jobs/4e2f4c7c/tmp/4738-head (node_modules symlinked)
+$ grep -n 'workflow_dispatch|inputs|sha:|context:|EVIDENCE_CONTEXT:|group:' host workflow
+106:  workflow_dispatch:
+107:    inputs:
+108:      sha:
+112:      context:
+133:  group: third-party-review-evidence-${{ github.event_name }}-${{ github.event.check_run.head_sha || github.event.sha || inputs.sha }}-${{ github.event.check_run.name || github.event.context || inputs.context }}
+156:      EVIDENCE_CONTEXT: ${{ github.event.check_run.name || github.event.context || inputs.context }}
+188:          if [ -n "${EVIDENCE_CONTEXT:-}" ]; then
+211:          node "$PROVER" --publish="$VERDICT" --prover-exit="$PROVER_EXIT" --sha="$EVIDENCE_SHA" --context="${EVIDENCE_CONTEXT:-}"
+sha256(host workflow) = a7b9c227949546e75939767679e97ec7855c75891de7fa8981ba17b5704ba421
+$ (cd /Users/codysai/.claude/jobs/4e2f4c7c/tmp/4738-head && bun run src/index.ts doctor /Users/codysai/.claude/jobs/4e2f4c7c/tmp/4738-doctor/current --offline)
+doctor exit=0
+--- 'Third-party review evidence wakes on check runs?' check (verbatim, through the next check line) ---
+OK Third-party review evidence wakes on check runs?: .github/workflows/third-party-review-evidence.yml wakes on a completed check run, can read it, judges it from the default branch, publishes its verdict on the head it judged, and lets a manual run that names the reviewer bring that reviewer's check run up to date

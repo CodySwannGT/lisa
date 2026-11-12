@@ -1,0 +1,15 @@
+=== BITE-CONTROL-prefix-fc7fc5892a-context-A-declared-AB ===
+$ cd /Users/codysai/.claude/jobs/4e2f4c7c/tmp/4738/hostAB && cat .lisa.config.json
+{"gates":{"review-a":{"pull-request":{"level":"required","await":"ReviewerA","evidence":{"reviewer":true}}},"review-b":{"pull-request":{"level":"required","await":"ReviewerB","evidence":{"reviewer":true}}}}}
+
+$ cat /Users/codysai/.claude/jobs/4e2f4c7c/tmp/4738/verdict-A.json
+{"outcome":"satisfied","sha":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","readings":[{"context":"ReviewerA","reviewed":true,"reading":"reviewed"}]}
+$ (cd /Users/codysai/.claude/jobs/4e2f4c7c/tmp/4738/hostAB && PATH=<shim>:$PATH node /Users/codysai/.claude/jobs/4e2f4c7c/tmp/4738-head/all/copy-overwrite/scripts/check-third-party-review-evidence.mjs --publish=/Users/codysai/.claude/jobs/4e2f4c7c/tmp/4738/verdict-A.json --prover-exit=0 --sha=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa --context=ReviewerA --repo=CodySwannGT/lisa)
+SATISFIED at aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+  reviewed     ReviewerA: ? — undefined
+Published "🕵️ Third-party review evidence (ReviewerA)" on aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa: success.
+exit=0
+--- gh shim log (every POST the prover made) ---
+gh-shim args=[api repos/CodySwannGT/lisa/check-runs --method POST --input -] body={"name":"🕵️ Third-party review evidence (ReviewerA)","conclusion":"success","head_sha":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}
+check-run POST count: 1
+NOTE: PROVER overridden to the pre-fix copy (fc7fc5892a:all/copy-overwrite/scripts/check-third-party-review-evidence.mjs); the echoed command line names the default path. Only (ReviewerA) is published and (ReviewerB) is missing, so the harness detects the defect.
