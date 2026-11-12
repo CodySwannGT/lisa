@@ -80,10 +80,13 @@ describe("the cold scanner acquisition's containing deadline", () => {
       join(root, "all/copy-overwrite/scripts/lib/history-secret-scanner.mjs"),
       "utf8"
     );
-    const provisioning = source.slice(
-      source.indexOf("export const provisionScanner"),
-      source.indexOf("export const qualifyScanner")
-    );
+    // The shared download timer lives in the helper before provisionScanner;
+    // extraction and executable qualification retain their own phase limits.
+    const start = source.indexOf("const downloadArchive");
+    const end = source.indexOf("export const qualifyScanner");
+    expect(start).toBeGreaterThanOrEqual(0);
+    expect(end).toBeGreaterThan(start);
+    const provisioning = source.slice(start, end);
     const declared = [
       ...provisioning.matchAll(/(?:AbortSignal\.timeout\(|timeout: )(\d+)/gu),
     ].map(match => Number(match[1]));

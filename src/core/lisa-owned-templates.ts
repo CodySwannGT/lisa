@@ -14,7 +14,7 @@
  * path would recreate them.
  *
  * Ownership is recognised by the reserved namespace, enforcement tree and the
- * exact root runtime-policy destination described below.
+ * exact root runtime and staged-file policy destinations described below.
  *
  * The original marker is the `lisa-` namespace in the path. Lisa names much of
  * what it owns outright that way — `lisa-hooks/`, `lisa-enforcement-fallback.sh`,
@@ -64,6 +64,11 @@
  * similarly named host files are not. Its historical/current hashes enrol in
  * the same ledger, so unknown custom bytes remain protected. Explicit engines
  * and create-only workflow inputs retain their existing ownership semantics.
+ *
+ * `.lintstagedrc.json` is another exact root destination: known Lisa defaults
+ * must receive new file-extension coverage during ordinary updates. JSON cannot
+ * carry the replacement header. Its released/current hashes enrol together, so
+ * a host's added commands or custom globs remain protected as unknown bytes.
  * @module core/lisa-owned-templates
  */
 
@@ -76,6 +81,9 @@ const ENFORCEMENT_TREE = "scripts/";
 /** Managed runtime baseline; explicit host opt-out remains .lisaignore. */
 const MANAGED_NODE_VERSION = ".nvmrc";
 
+/** Managed pre-commit task groups; custom host content remains hash-protected. */
+const MANAGED_STAGED_CONFIG = ".lintstagedrc.json";
+
 /**
  * Whether a managed file is Lisa's own artifact rather than shared host content.
  * @param relativePath - Repo-relative destination path of the managed file
@@ -85,6 +93,7 @@ export function isLisaOwnedTemplate(relativePath: string): boolean {
   const normalised = relativePath.replaceAll("\\", "/");
   return (
     normalised === MANAGED_NODE_VERSION ||
+    normalised === MANAGED_STAGED_CONFIG ||
     normalised.startsWith(ENFORCEMENT_TREE) ||
     normalised
       .split("/")

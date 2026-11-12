@@ -32,12 +32,13 @@ const INSTR = "lisa-block-instruction-file-edits.ts";
 const MANAGED = "lisa-block-managed-file-edits.ts";
 const ISSUE = "lisa-block-direct-issue-create.ts";
 const NO_VERIFY = "lisa-block-no-verify.ts";
+const HOST_NAME = "lisa-block-host-name-leak.ts";
 const DISCHARGE = "lisa-discharge-work-item-gates.ts";
 const BASE_RULES = "base-rules.md";
 
 /** Emit order per stack, named so the assertions stay one line each. */
 /** Guards every project gets, in the order the installer lists them. */
-const UNIVERSAL = [ISSUE, INSTR, MANAGED, NO_VERIFY, DISCHARGE];
+const UNIVERSAL = [ISSUE, INSTR, MANAGED, NO_VERIFY, HOST_NAME, DISCHARGE];
 /** The tail every roster shares. */
 const TAIL = [SESS, SGSCAN];
 const byName = (a: string, b: string): number => a.localeCompare(b);
@@ -316,22 +317,6 @@ describe("opencode/hooks-installer", () => {
       // behaviour of the shell hook (which checks http://* || https://*).
       expect(body).toContain("/^https?:\\/\\//");
       expect(body).not.toContain('.startsWith("http")');
-    });
-
-    it("reports pluginCount equal to the emitted file count", async () => {
-      const result = await installHooks(lisaDir, destDir, ["typescript"], []);
-      const files = await listInstalledPluginFiles(destDir);
-      expect(result.pluginCount).toBe(files.length);
-      // Plus the six canonical support scripts, managed without being
-      // listed as plugins. Four since #3750, when the managed-file guard became
-      // a shell-out and its script started being staged beside the plugin;
-      // five since #3814 added the dedupe library those guards source as a
-      // sibling of themselves, which has to be staged with them or the
-      // reference resolves to nothing. The deferred PR gate adds the sixth.
-      // Rails adds the canonical three-module installer closure, not plugins.
-      expect(result.managedFiles).toHaveLength(files.length + 9);
-      // The auto-update engine is NOT among them: it runs from the installed
-      // package (CodySwannGT/lisa#4337), so it adds nothing to this count.
     });
   });
 

@@ -13,6 +13,11 @@
  *     merely contains one's text is a question only a tokenizer can answer, so
  *     the semantic guard is the plugin and the globs are what survives if the
  *     plugin fails to load.
+ *   - block-host-name-leak → a universal `tool.execute.before` adapter running
+ *     the canonical Bash wrapper and its two MJS companions. The policy is
+ *     target-scoped: host trackers retain their own names, while Lisa and
+ *     unresolved tracker targets retain inspection. Inactive warnings remain
+ *     visible; the adapter does not reimplement the parser or denylist.
  *   - format-on-edit → OpenCode's BUILT-IN prettier formatter already formats on
  *     edit, so Lisa emits no formatter config (overriding it would be worse than
  *     the default). This is why there is no format plugin below.
@@ -110,6 +115,9 @@ const NO_VERIFY_DENY_PATTERNS: Readonly<Record<string, "deny">> = {
  * in a source checkout and is missing from every installed copy.
  */
 const PLUGIN_SUPPORT_FILES = [
+  "block-host-name-leak.sh",
+  "block-host-name-leak.mjs",
+  "host-name-command-context.mjs",
   "discharge-work-item-gates.sh",
   "block-managed-file-edits.sh",
   "block-no-verify.sh",

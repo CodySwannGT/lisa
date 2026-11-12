@@ -5,9 +5,9 @@ import { parseEffectivenessTokens } from "./usage-effectiveness.mjs";
 export const LISA_USAGE_HEADING = "## Lisa Usage";
 const ENTRY_TOKEN_PATTERN = /<!-- lisa:usage-entry [^\r\n]*? -->/g;
 const LEGACY_ENTRY_PATTERN =
-  /^<!-- lisa:usage-entry entry_id=(\S+) flow=(\S+) run_id=(\S+) provider=(\S+) model=(\S+) source=(\S+) input_tokens=(\S+) cached_input_tokens=(\S+) output_tokens=(\S+) reasoning_tokens=(\S+) total_tokens=(\S+) cost=(\S+) currency=(\S+) pricing_status=(\S+) pricing_source=(\S+) artifact_ref=(\S+) parent_artifact_ref=(\S*) -->$/;
+  /^<!-- lisa:usage-entry entry_id=(\S+) flow=(\S+) run_id=(\S*) provider=(\S+) model=(\S+) source=(\S+) input_tokens=(\S+) cached_input_tokens=(\S+) output_tokens=(\S+) reasoning_tokens=(\S+) total_tokens=(\S+) cost=(\S+) currency=(\S+) pricing_status=(\S+) pricing_source=(\S+) artifact_ref=(\S+) parent_artifact_ref=(\S*) -->$/;
 const RELEASED_MIDDLE_FIELD_ENTRY_PATTERN =
-  /^<!-- lisa:usage-entry entry_id=(\S+) flow=(\S+) run_id=(\S+) provider=(\S+) model=(\S+) source=(\S+) input_tokens=(\S+) cached_input_tokens=(\S+) output_tokens=(\S+) reasoning_tokens=(\S+) total_tokens=(\S+) measured_subset_tokens=(\S+) cost=(\S+) currency=(\S+) pricing_status=(\S+) pricing_source=(\S+) artifact_ref=(\S+) parent_artifact_ref=(\S*) -->$/;
+  /^<!-- lisa:usage-entry entry_id=(\S+) flow=(\S+) run_id=(\S*) provider=(\S+) model=(\S+) source=(\S+) input_tokens=(\S+) cached_input_tokens=(\S+) output_tokens=(\S+) reasoning_tokens=(\S+) total_tokens=(\S+) measured_subset_tokens=(\S+) cost=(\S+) currency=(\S+) pricing_status=(\S+) pricing_source=(\S+) artifact_ref=(\S+) parent_artifact_ref=(\S*) -->$/;
 const MEASURED_SUBSET_PATTERN =
   /<!-- lisa:usage-entry-measured-subset entry_id=(\S+) measured_subset_tokens=(\S+) -->/g;
 const ROLLUP_PATTERN =

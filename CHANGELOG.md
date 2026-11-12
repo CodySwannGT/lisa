@@ -2,6 +2,83 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.101.5](https://github.com/CodySwannGT/lisa/compare/v4.101.4...v4.101.5) (2026-11-09)
+
+
+### Bug Fixes
+
+* **hooks:** inspect literal one-level shell launcher writes ([f692b3a](https://github.com/CodySwannGT/lisa/commit/f692b3a23e1e277b07017e4f15d46b96b0222076)), closes [CodySwannGT/lisa#4540](https://github.com/CodySwannGT/lisa/issues/4540)
+
+### [4.101.4](https://github.com/CodySwannGT/lisa/compare/v4.101.3...v4.101.4) (2026-11-09)
+
+
+### Bug Fixes
+
+* **usage:** preserve ledger round-trips and integrity reports ([694e378](https://github.com/CodySwannGT/lisa/commit/694e378894adaa777916ec29cf70933c9635c323)), closes [CodySwannGT/lisa#4696](https://github.com/CodySwannGT/lisa/issues/4696)
+
+### [4.101.3](https://github.com/CodySwannGT/lisa/compare/v4.101.2...v4.101.3) (2026-11-09)
+
+
+### Bug Fixes
+
+* **cli:** document bootstrap in genuine root help ([8b5c082](https://github.com/CodySwannGT/lisa/commit/8b5c0828c255d93942697c70bf1c1a2b5c1166ef)), closes [CodySwannGT/lisa#4759](https://github.com/CodySwannGT/lisa/issues/4759)
+
+### [4.101.2](https://github.com/CodySwannGT/lisa/compare/v4.101.1...v4.101.2) (2026-11-09)
+
+
+### Bug Fixes
+
+* **apply:** preserve declared installation consent protections ([e679232](https://github.com/CodySwannGT/lisa/commit/e6792324e97daba60481b4a6131e4034f05010c9)), closes [CodySwannGT/lisa#4759](https://github.com/CodySwannGT/lisa/issues/4759)
+* **apply:** separate template consent from git cleanliness ([a8a5186](https://github.com/CodySwannGT/lisa/commit/a8a518636139bee6ab3268022cc990da55a05d5a)), closes [CodySwannGT/lisa#4759](https://github.com/CodySwannGT/lisa/issues/4759)
+
+### [4.101.1](https://github.com/CodySwannGT/lisa/compare/v4.101.0...v4.101.1) (2026-11-09)
+
+## [4.101.0](https://github.com/CodySwannGT/lisa/compare/v4.100.6...v4.101.0) (2026-11-09)
+
+
+### Features
+
+* **nestjs:** warn instead of refusing hand-written migration edits ([885bd69](https://github.com/CodySwannGT/lisa/commit/885bd69d7cb7e58be7f643401b7e09bdee177329)), closes [CodySwannGT/lisa#4721](https://github.com/CodySwannGT/lisa/issues/4721)
+
+
+### Bug Fixes
+
+* **nestjs:** say a declared migration gate is skipped without jq ([f0c434a](https://github.com/CodySwannGT/lisa/commit/f0c434a208328089be0748a9f5ee5a3bce0bd332)), closes [CodySwannGT/lisa#4721](https://github.com/CodySwannGT/lisa/issues/4721)
+
+
+### Documentation
+
+* **nestjs:** ask only hand-written migrations to explain themselves ([f3e4f62](https://github.com/CodySwannGT/lisa/commit/f3e4f6205debb634fe1ec840f014a62ca3165257)), closes [CodySwannGT/lisa#4721](https://github.com/CodySwannGT/lisa/issues/4721)
+
+### [4.100.6](https://github.com/CodySwannGT/lisa/compare/v4.100.5...v4.100.6) (2026-11-09)
+
+### [4.100.5](https://github.com/CodySwannGT/lisa/compare/v4.100.4...v4.100.5) (2026-11-09)
+
+### [4.100.4](https://github.com/CodySwannGT/lisa/compare/v4.100.3...v4.100.4) (2026-11-09)
+
+
+### Bug Fixes
+
+* recover pinned scanner downloads through the official API ([9aecc15](https://github.com/CodySwannGT/lisa/commit/9aecc158e13a72f045ca21abe74d7980d9d53889)), closes [CodySwannGT/lisa#4751](https://github.com/CodySwannGT/lisa/issues/4751)
+* refresh released lint-staged defaults during updates ([dbb9960](https://github.com/CodySwannGT/lisa/commit/dbb99603940ab6cf463fd4e60f513a7b9a07df99)), closes [CodySwannGT/lisa#4662](https://github.com/CodySwannGT/lisa/issues/4662)
+
+### [4.100.3](https://github.com/CodySwannGT/lisa/compare/v4.100.2...v4.100.3) (2026-11-09)
+
+
+### Bug Fixes
+
+* **ci:** count later Lisa markers only from trusted authors ([1dfa00f](https://github.com/CodySwannGT/lisa/commit/1dfa00fcdc212494947dbe2e6dc8a8c183d5bf56)), closes [#4707](https://github.com/CodySwannGT/lisa/issues/4707) [CodySwannGT/lisa#4707](https://github.com/CodySwannGT/lisa/issues/4707)
+* **ci:** trust only committed config ids and cross-check both paths ([251f717](https://github.com/CodySwannGT/lisa/commit/251f71789a6fbf5a72e8222698b96ce66b339aff)), closes [#4623](https://github.com/CodySwannGT/lisa/issues/4623) [#4707](https://github.com/CodySwannGT/lisa/issues/4707) [CodySwannGT/lisa#4707](https://github.com/CodySwannGT/lisa/issues/4707)
+* **ci:** veto lane writes on any claim and fail closed on author reads ([a9428a4](https://github.com/CodySwannGT/lisa/commit/a9428a4799f4cf57136955c2a101c88d9aa455a0)), closes [#4707](https://github.com/CodySwannGT/lisa/issues/4707) [CodySwannGT/lisa#4707](https://github.com/CodySwannGT/lisa/issues/4707)
+
+### [4.100.2](https://github.com/CodySwannGT/lisa/compare/v4.100.1...v4.100.2) (2026-11-09)
+
+
+### Bug Fixes
+
+* **ci:** honor the posted_by pin when the review prover falls back to statuses ([9e10a67](https://github.com/CodySwannGT/lisa/commit/9e10a670842e1e8aea57dc8d6ed6a94845240f2b)), closes [CodySwannGT/lisa#4652](https://github.com/CodySwannGT/lisa/issues/4652) [CodySwannGT/lisa#4652](https://github.com/CodySwannGT/lisa/issues/4652)
+* **secrets:** scan id-list entries by kind in the credential check ([0a214af](https://github.com/CodySwannGT/lisa/commit/0a214afce3ec1fa6f9f370efdb143f089d15b998)), closes [CodySwannGT/lisa#4719](https://github.com/CodySwannGT/lisa/issues/4719) [#4623](https://github.com/CodySwannGT/lisa/issues/4623) [CodySwannGT/lisa#4719](https://github.com/CodySwannGT/lisa/issues/4719)
+
 ### [4.100.1](https://github.com/CodySwannGT/lisa/compare/v4.100.0...v4.100.1) (2026-11-09)
 
 

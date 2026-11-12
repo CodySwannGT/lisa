@@ -43,8 +43,11 @@ export interface StrategyContext {
    * customised has to know that, because "the callback said yes" is not
    * approval when nobody was asked (#3026).
    *
-   * Production wires this from the prompter at the single place a context is
-   * built, in `Lisa.processStrategy`. Omitted means attended, which is what
+   * Production combines the declared safe-install mode with the prompter at
+   * the single place a context is built, in `Lisa.processDirectory`: an
+   * installation's internal --yes is not an operator decision. The explicit
+   * full-apply override still uses the prompter's actual consent mode.
+   * Omitted means attended, which is what
    * every strategy that never prompts wants and what a test that does not care
    * gets.
    */

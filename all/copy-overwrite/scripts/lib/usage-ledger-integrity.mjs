@@ -112,8 +112,25 @@ function findRollupCoverageGaps(rollup, parsedEntryIds) {
  * @returns Whether the stored ledger is enumerable, plus every issue found.
  */
 export function verifyLisaUsageSectionIntegrity(storedDocument, expected) {
-  const parsed = parseLisaUsageSection(storedDocument);
   const expectedEntryIds = expected?.entryIds ?? [];
+  let parsed;
+  try {
+    parsed = parseLisaUsageSection(storedDocument);
+  } catch {
+    // Keep the parser strict; this reporting boundary must fail closed without
+    // echoing remote-controlled accounting tokens from the parser's error.
+    return {
+      ok: false,
+      issues: [
+        {
+          code: "malformed-usage-section",
+          entryIds: sortedIds(expectedEntryIds),
+          message:
+            "Stored Lisa Usage section cannot be parsed. Repair its managed accounting tokens before relying on the ledger.",
+        },
+      ],
+    };
+  }
   if (parsed.range === null) {
     const missing = sortedIds(expectedEntryIds);
     const issues = reportIssue(

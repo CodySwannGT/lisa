@@ -138,6 +138,15 @@ function splitDocumentAroundRange(
 }
 
 /**
+ * Preserve an existing suffix ending instead of adding one on every rewrite.
+ * @param text Unmanaged content following the accounting section.
+ * @returns The unchanged suffix, adding a final newline only when missing.
+ */
+function withTrailingNewline(text: string): string {
+  return text.endsWith("\n") ? text : `${text}\n`;
+}
+
+/**
  * Render a token-count value for the human-readable table.
  *
  * @param value Token count to format.
@@ -492,14 +501,16 @@ export function upsertLisaUsageSection(
   const { before, after } = splitDocumentAroundRange(document, parsed.range);
 
   if (!before) {
-    return after ? `${usageSection}\n\n${after}\n` : `${usageSection}\n`;
+    return after
+      ? `${usageSection}\n\n${withTrailingNewline(after)}`
+      : `${usageSection}\n`;
   }
 
   if (!after) {
     return `${before}\n\n${usageSection}\n`;
   }
 
-  return `${before}\n\n${usageSection}\n\n${after}\n`;
+  return `${before}\n\n${usageSection}\n\n${withTrailingNewline(after)}`;
 }
 
 /* eslint-enable max-lines -- End usage accounting public utility surface. */

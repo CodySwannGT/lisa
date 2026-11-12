@@ -22,7 +22,11 @@ import {
   runSetupProject,
 } from "./setup-project.js";
 import { runSetupWiki } from "./setup-wiki.js";
-import { addSharedOptions, type CLIOptions } from "./shared-options.js";
+import {
+  addSharedOptions,
+  APPLY_BOOTSTRAP_HELP,
+  type CLIOptions,
+} from "./shared-options.js";
 import { SETUP_TYPES } from "./starters.js";
 import { addStarterCommand } from "./starter-cmd.js";
 import {
@@ -321,7 +325,8 @@ export function createProgram(
       "Claude Code / Codex CLI governance framework - apply guardrails and guidance to projects"
     )
     .version(getPackageVersion())
-    .option("--no-update-check", "Skip the npm latest-version check");
+    .option("--no-update-check", "Skip the npm latest-version check")
+    .addHelpText("after", APPLY_BOOTSTRAP_HELP);
 
   addUpdateCheckHook(program, deps);
 

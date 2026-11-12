@@ -102,7 +102,7 @@ describe("preserve-verification-opt-ins", () => {
             lisaDir: ctx.lisaDir,
             destDir: projectDir,
             dryRun: false,
-            yesMode: true,
+            yesMode: !postinstallSafe,
             validateOnly: false,
             skipGitCheck: postinstallSafe,
             postinstall: postinstallSafe,
@@ -111,13 +111,19 @@ describe("preserve-verification-opt-ins", () => {
           hashLedger: {
             [CI]: [createHash("sha256").update(previous).digest("hex")],
           },
+          unattended: postinstallSafe,
           backupFile: async () => {},
           promptOverwrite: async () => true,
         }
       );
-      expect(copied.action).toBe(postinstallSafe ? "stale" : "overwritten");
+      // This invokes the strategy directly, including the legacy unattended
+      // route. The packaged CI header declares replacement on every run, so
+      // both routes deliver it (#4759). Installation's no-write guard belongs
+      // to the orchestrator/bootstrap; the migration must preserve the prior
+      // opt-in even when this legacy caller replaces the workflow first.
+      expect(copied.action).toBe("overwritten");
       expect(await fs.readFile(path.join(projectDir, CI), "utf8")).toBe(
-        postinstallSafe ? previous : template
+        template
       );
       await registry.runAll(ctx);
       expect((await config()).gates["coverage-adequacy"]).toEqual({

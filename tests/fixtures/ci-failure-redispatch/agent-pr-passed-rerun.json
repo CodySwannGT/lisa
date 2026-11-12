@@ -111,7 +111,8 @@
             "id": 6700000001,
             "user": {
               "login": "CodySwannGT",
-              "type": "User"
+              "type": "User",
+              "id": 292923
             },
             "created_at": "2026-11-05T10:00:00Z",
             "body": "[claude-build-intake] Claimed by Claude. Starting build."
@@ -122,7 +123,8 @@
             "id": 6700000002,
             "user": {
               "login": "github-actions[bot]",
-              "type": "Bot"
+              "type": "Bot",
+              "id": 41898282
             },
             "created_at": "2026-11-05T11:00:00Z",
             "body": "A required check failed on pull request #4673 at commit 3db71f89a186d5dbeb78015aa5735fa9d8efda48: 🔍 Quality Checks / 🧪 Run Unit Tests.\n\nLisa moved this item from `status:in-progress` back to `status:ready` so build intake sends the owning agent back to fix the existing pull request. The work is not complete until every required check passes.\n\n<!-- [lisa-ci-failed] pr=4673 sha=3db71f89a186d5dbeb78015aa5735fa9d8efda48 -->"
@@ -169,7 +171,8 @@
             },
             "created_at": "2026-11-04T09:00:00Z",
             "actor": {
-              "login": "CodySwannGT"
+              "login": "CodySwannGT",
+              "id": 292923
             }
           },
           {
@@ -179,7 +182,8 @@
             },
             "created_at": "2026-11-05T10:00:00Z",
             "actor": {
-              "login": "CodySwannGT"
+              "login": "CodySwannGT",
+              "id": 292923
             }
           },
           {
@@ -189,7 +193,8 @@
             },
             "created_at": "2026-11-05T10:00:00Z",
             "actor": {
-              "login": "CodySwannGT"
+              "login": "CodySwannGT",
+              "id": 292923
             }
           },
           {
@@ -199,7 +204,8 @@
             },
             "created_at": "2026-11-05T11:00:01Z",
             "actor": {
-              "login": "CodySwannGT"
+              "login": "CodySwannGT",
+              "id": 292923
             }
           },
           {
@@ -209,11 +215,23 @@
             },
             "created_at": "2026-11-05T11:00:01Z",
             "actor": {
-              "login": "CodySwannGT"
+              "login": "CodySwannGT",
+              "id": 292923
             }
           }
         ]
       ]
+    },
+    "api repos/CodySwannGT/lisa/issues/4672": {
+      "stdout": {
+        "number": 4672,
+        "state": "open",
+        "user": {
+          "login": "CodySwannGT",
+          "id": 292923,
+          "type": "User"
+        }
+      }
     }
   }
 }

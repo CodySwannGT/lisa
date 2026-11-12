@@ -15,9 +15,12 @@
  * answer. It reads the item's comments — which the caller must do BEFORE it
  * posts its own claim comment, a newer Lisa marker that would hide the signal —
  * and, when the newest counted marker is an uncleared failure marker, verifies
- * the PR it names. The marker patterns, the trusted-author predicate, the
- * newest-marker predicate and the comment reader are imported from the
- * producer script so the two cannot drift.
+ * the PR it names. The marker patterns, the trusted-author predicates, the
+ * newest-marker predicate (claim comments never count; any other later Lisa
+ * marker counts only from `github-actions[bot]`, the item's author, or a
+ * configured `sessionManager.trustedAuthorIds` entry — #4707) and the
+ * comment and author readers are imported from the producer script so the
+ * two cannot drift.
  *
  * Read-only: it never writes to the tracker. Every failed read routes to the
  * normal path, because building again is recoverable and a wrong route is not.
@@ -39,12 +42,14 @@ import {
   CLEARED_MARKER,
   FAILURE_MARKER,
   MARKER_AUTHORS,
-  LISA_MARKER,
   isNewestLisaMarker,
   liveGh,
+  markerTrust,
+  readItemAuthor,
   readItemComments,
   recordedGh,
   trustedAuthor,
+  withTrustedAuthors,
 } from "./lisa-ci-failure-redispatch.mjs";
 
 /**
@@ -77,14 +82,6 @@ const ITEM_NUMBER = /^[1-9]\d*$/u;
 const ITEM_REF = /^([A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+)#([1-9]\d*)$/u;
 const REPO = /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/u;
 /**
- * Dispatch-bookkeeping markers: the lifecycle claim, build intake's legacy
- * claim, and the session manager's own notes (stop, release, worker failed,
- * answer delivered). None of them says anything about the PR's checks.
- */
-const CLAIM_MARKERS =
-  /\[(?:lisa-tracker-claim|claude-build-intake|lisa-session-manager)\]/gu;
-
-/**
  * A decision to resolve and implement the item the normal way.
  * @param {string} reason - Short reason code.
  * @param {string} detail - Plain-language reason.
@@ -114,42 +111,16 @@ function carriesFailure(comment) {
 }
 
 /**
- * True when every Lisa marker the comment carries is a claim marker.
- * @param {object} comment - Item comment.
- * @returns {boolean} Whether it is a claim-only comment.
- */
-function claimOnly(comment) {
-  const body = String(comment.body ?? "");
-  return (
-    LISA_MARKER.test(body) &&
-    !LISA_MARKER.test(body.replaceAll(CLAIM_MARKERS, ""))
-  );
-}
-
-/**
- * The producer's newest-marker test with claim comments left out. The
- * session manager claims an item before its worker runs this helper, and a
- * re-claim can post another claim comment, so a claim posted after the
- * failure marker must not hide it: an uncleared marker on an open, bound PR
- * still means the PR is red, whoever claimed the item since. Forged failure
- * markers are already left out by the producer's predicate.
+ * Pick the failure marker that could count, or say why none does. Whether a
+ * later comment supersedes it is the producer's one predicate
+ * (`isNewestLisaMarker` with `markerTrust`): claim comments never count, and
+ * any other later Lisa marker counts only from a trusted author
+ * (CodySwannGT/lisa#4707).
  * @param {object[]} comments - Item comments, oldest first.
- * @param {object} marker - The failure marker comment.
- * @returns {boolean} Whether it is the newest counted marker.
- */
-function isNewestCountedMarker(comments, marker) {
-  return isNewestLisaMarker(
-    comments.filter(c => c === marker || !claimOnly(c)),
-    marker
-  );
-}
-
-/**
- * Pick the failure marker that could count, or say why none does.
- * @param {object[]} comments - Item comments, oldest first.
+ * @param {(comment: object) => boolean} trust - Whose later markers count.
  * @returns {{marker?: object, decision?: object}} The marker or a decision.
  */
-function judgeMarker(comments) {
+function judgeMarker(comments, trust) {
   const marker = comments
     .filter(c => carriesFailure(c) && trustedAuthor(c))
     .at(-1);
@@ -169,11 +140,11 @@ function judgeMarker(comments) {
       ),
     };
   }
-  if (!isNewestCountedMarker(comments, marker))
+  if (!isNewestLisaMarker(comments, marker, trust))
     return {
       decision: implement(
         "not-newest",
-        "a newer Lisa marker (not a claim) was posted after the [lisa-ci-failed] marker, so it no longer describes the item"
+        "a trusted author posted a newer Lisa marker (not a claim) after the [lisa-ci-failed] marker, so it no longer describes the item"
       ),
     };
   if (CLEARED_MARKER.test(marker.body))
@@ -297,7 +268,11 @@ export function decideRoute({ item, contract, gh, repository }) {
   const ref = `${repo}#${item}`;
   try {
     const comments = readItemComments(String(item), repo, gh);
-    const { marker, decision } = judgeMarker(comments);
+    const trust = markerTrust({
+      trustedAuthorIds: contract.trustedAuthorIds,
+      itemAuthor: () => readItemAuthor(String(item), repo, gh),
+    });
+    const { marker, decision } = judgeMarker(comments, trust);
     if (decision) return decision;
     return routeMarker({
       marker,
@@ -364,7 +339,7 @@ export function main(argv, deps = {}) {
   const write = deps.write ?? (line => process.stdout.write(`${line}\n`));
   try {
     const options = parseArgs(argv);
-    const contract = deps.contract ?? trackerContract();
+    const contract = withTrustedAuthors(deps.contract ?? trackerContract());
     const gh = options.payload
       ? recordedGh(JSON.parse(readFileSync(options.payload, "utf8")).gh)
       : (deps.gh ?? liveGh);

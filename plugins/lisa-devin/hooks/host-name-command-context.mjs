@@ -1,4 +1,9 @@
-/** Bounded literal command/target resolution for the host-name guard; never a shell. */
+/**
+ * Bounded command/target resolution; submitted scripts are never executed.
+ * One literal sh/bash -c script operand is parsed once. Dynamic scripts,
+ * deeper launchers, other interpreters and other launcher options are outside
+ * this recognition contract, not proof that an unrecognized command is safe.
+ */
 import { execFileSync } from "node:child_process";
 import { statSync } from "node:fs";
 import path from "node:path";
@@ -204,11 +209,30 @@ export function repositoryFromSpec(spec) {
  * @returns {object[]} Active gh calls with their bounded command contexts.
  */
 export function ghCommands(command, initialCwd, env = process.env) {
+  return commandContexts(command, initialCwd, env, true, false);
+}
+
+/**
+ * Parse a command list, permitting at most one literal executable script slot.
+ * @param {string} command Command text, never evaluated.
+ * @param {string|undefined} initialCwd Inherited literal directory, if known.
+ * @param {object} env Inherited environment.
+ * @param {boolean} launcherAllowed Whether one launcher remains in scope.
+ * @param {boolean} initialUncertain Whether the parent context is unresolved.
+ * @returns {object[]} Active gh calls and their isolated command contexts.
+ */
+function commandContexts(
+  command,
+  initialCwd,
+  env,
+  launcherAllowed,
+  initialUncertain
+) {
   const calls = [];
   const inherited = { ...env };
   let cwd = initialCwd,
     segment = [],
-    uncertain = false;
+    uncertain = initialUncertain;
   const consume = () => {
     if (segment.length === 0) return;
     const local = { ...inherited };
@@ -263,6 +287,25 @@ export function ghCommands(command, initialCwd, env = process.env) {
         env: local,
         certainContext: !uncertain,
       });
+    } else if (
+      launcherAllowed &&
+      segment[index]?.literal &&
+      ["sh", "bash"].includes(path.basename(executable ?? "")) &&
+      segment[index + 1]?.literal &&
+      segment[index + 1].value === "-c" &&
+      segment[index + 2]?.literal
+    ) {
+      // Only this operand is executable text. Later argv words are $0/$1/etc,
+      // not scripts. Child cd/export changes cannot mutate the outer shell.
+      calls.push(
+        ...commandContexts(
+          segment[index + 2].value,
+          cwd,
+          local,
+          false,
+          uncertain
+        )
+      );
     } else {
       // A function/source/pushd or unsupported launcher may change the shell
       // context. Do not grant later writes an exemption based on the old cwd.
