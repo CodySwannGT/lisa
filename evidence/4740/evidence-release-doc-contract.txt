@@ -1,0 +1,42 @@
+# CodySwannGT/lisa#4740 evidence-release doc contract (2026-11-12T09:37:02Z); HEAD 6fbd3a09f39cee1bf7346e33fcfea1f065d7a692
+
+=== 1. GREEN at committed head (captured before the mutations) ===
+$ bun x vitest run tests/unit/docs/required-phrases.test.ts tests/unit/strategies/evidence-release-stop-guard.test.ts
+ Test Files  2 passed (2)
+      Tests  5484 passed (5484)
+
+=== 2a. BITE: old line restored in plugins/src/expo/skills/jira-journey/SKILL.md ===
+mutation: replaced the 2-line block with
+  export LISA_EVIDENCE_RELEASE=$(node scripts/lisa-work-item.mjs evidence-release --ensure)
+$ bun x vitest run (same two files)  -> exit 1
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 6 ⎯⎯⎯⎯⎯⎯⎯
+ FAIL  |lisa| tests/unit/docs/required-phrases.test.ts > the required-phrases manifest > plugins/src/expo/skills/jira-journey/SKILL.md > required "LISA_EVIDENCE_RELEASE=$(node scripts/lisa-work-item.mjs evidence-release --ensure) || { echo \"Evidence release not usable; stop.\"; false; }"
+ FAIL  |lisa| tests/unit/docs/required-phrases.test.ts > the required-phrases manifest > plugins/src/expo/skills/jira-journey/SKILL.md > required "unset LISA_EVIDENCE_RELEASE; LISA_EVIDENCE_RELEASE=$("
+ FAIL  |lisa| tests/unit/docs/required-phrases.test.ts > the required-phrases manifest > plugins/src/expo/skills/jira-journey/SKILL.md > forbidden "export LISA_EVIDENCE_RELEASE=$("
+ FAIL  |lisa| tests/unit/docs/required-phrases.test.ts > the required-phrases manifest > plugins/src/expo/skills/jira-journey/SKILL.md > required /^export LISA_EVIDENCE_RELEASE(?:\s|$)/m
+ FAIL  |lisa| tests/unit/strategies/evidence-release-stop-guard.test.ts > evidence release-selection lines (#4740) > plugins/src/expo/skills/jira-journey/SKILL.md > exits non-zero, says to stop, and exports nothing when the release cannot be used
+ FAIL  |lisa| tests/unit/strategies/evidence-release-stop-guard.test.ts > evidence release-selection lines (#4740) > plugins/src/expo/skills/jira-journey/SKILL.md > clears a release exported earlier in the same shell when the release cannot be used
+ Test Files  2 failed (2)
+      Tests  6 failed | 5478 passed (5484)
+
+=== 2b. BITE: only the leading 'unset LISA_EVIDENCE_RELEASE; ' removed in plugins/src/expo/skills/jira-journey/SKILL.md ===
+$ bun x vitest run (same two files)  -> exit 1
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+ FAIL  |lisa| tests/unit/docs/required-phrases.test.ts > the required-phrases manifest > plugins/src/expo/skills/jira-journey/SKILL.md > required "unset LISA_EVIDENCE_RELEASE; LISA_EVIDENCE_RELEASE=$("
+ FAIL  |lisa| tests/unit/strategies/evidence-release-stop-guard.test.ts > evidence release-selection lines (#4740) > plugins/src/expo/skills/jira-journey/SKILL.md > clears a release exported earlier in the same shell when the release cannot be used
+ Test Files  2 failed (2)
+      Tests  2 failed | 5482 passed (5484)
+
+=== 3. RESTORE ===
+pre-mutation sha256: e5f78238b7ce901741f4d93af8c81c6fd563aca96a28c78af1e6c113210a03c5
+restored sha256:     e5f78238b7ce901741f4d93af8c81c6fd563aca96a28c78af1e6c113210a03c5
+cmp: byte-identical
+committed blob sha256: e5f78238b7ce901741f4d93af8c81c6fd563aca96a28c78af1e6c113210a03c5
+$ git diff --stat -- plugins/src/expo/skills/jira-journey/SKILL.md
+git diff exit=0 ; tracked changes in tree: 0
+
+=== 4. GREEN again after restore ===
+$ bun x vitest run tests/unit/docs/required-phrases.test.ts tests/unit/strategies/evidence-release-stop-guard.test.ts
+ Test Files  2 passed (2)
+      Tests  5484 passed (5484)
+vitest exit=0

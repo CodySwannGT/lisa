@@ -6,6 +6,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { installHooks } from "../../../src/opencode/hooks-installer.js";
 import { resolveSupportFile } from "../../../src/opencode/support-file-resolver.js";
+import { withoutOwnershipHeader } from "../../../scripts/materialize-copy-overwrite.mjs";
 import { boundedSpawnSync } from "../../helpers/io-latency-budget.js";
 import { cleanupTempDir, createTempDir } from "../../helpers/test-utils.js";
 
@@ -21,6 +22,11 @@ const SUPPORT_FILES = [
   "parity-safety-net.sh",
   "parity-safety-net-heredoc.py",
   "guard-dedupe.bash",
+];
+const HOST_NAME_FILES = [
+  "block-host-name-leak.sh",
+  "block-host-name-leak.mjs",
+  "host-name-command-context.mjs",
 ];
 
 describe("OpenCode installed support-file parity", () => {
@@ -45,6 +51,17 @@ describe("OpenCode installed support-file parity", () => {
     }
   });
 
+  it("installs the target-scoped host-name policy companions through the real installer", async () => {
+    await installHooks(REPO_ROOT, temporary, [], []);
+    for (const filename of HOST_NAME_FILES)
+      expect(
+        await fs.readFile(path.join(temporary, ".opencode/plugin", filename)),
+        filename
+      ).toEqual(
+        await fs.readFile(path.join(REPO_ROOT, GENERATED_HOOKS, filename))
+      );
+  });
+
   it("stages fresh raw guards with banners even when generated plugins are stale", async () => {
     for (const script of [
       STAGING_SCRIPT,
@@ -54,11 +71,14 @@ describe("OpenCode installed support-file parity", () => {
       await fs.copy(path.join(REPO_ROOT, script), path.join(temporary, script));
     }
     await fs.ensureDir(path.join(temporary, "src/opencode/plugin-templates"));
-    for (const filename of SUPPORT_FILES) {
+    for (const filename of [...SUPPORT_FILES, ...HOST_NAME_FILES]) {
       const raw = await fs.readFile(path.join(REPO_ROOT, RAW_HOOKS, filename));
+      const fresh = filename.endsWith(".mjs")
+        ? "// fresh source"
+        : "# fresh source";
       await fs.outputFile(
         path.join(temporary, RAW_HOOKS, filename),
-        `${raw.toString()}\n# fresh source\n`
+        `${raw.toString()}\n${fresh}\n`
       );
       await fs.outputFile(
         path.join(temporary, GENERATED_HOOKS, filename),
@@ -86,6 +106,17 @@ describe("OpenCode installed support-file parity", () => {
         "utf8"
       );
       expect(bundled, filename).toBe(`${host}\n# fresh source\n`);
+    }
+    for (const filename of HOST_NAME_FILES) {
+      const bundledPath = resolveSupportFile(moduleUrl, filename);
+      const bundled = await fs.readFile(bundledPath, "utf8");
+      const authored = await fs.readFile(
+        path.join(temporary, RAW_HOOKS, filename),
+        "utf8"
+      );
+      expect(withoutOwnershipHeader(bundled, filename), filename).toBe(
+        authored
+      );
     }
   });
 });

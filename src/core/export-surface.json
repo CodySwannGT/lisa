@@ -1,8 +1,8 @@
 {
   "$generatedBy": "scripts/generate-export-surface.mjs",
   "$doNotEdit": "The public export surface this package ships, recorded so a removal is an OBSERVATION rather than an inference from commit-message conventions. This file's diff is what makes a removed export visible in the pull request that causes it (CodySwannGT/lisa#3718).",
-  "$modules": 273,
-  "$names": 1990,
+  "$modules": 275,
+  "$names": 1996,
   "surface": {
     "all/copy-overwrite/scripts/check-conflict-markers.mjs": [
       "UsageError",
@@ -1743,6 +1743,7 @@
       "convertCommandToCodexSkill",
       "deriveSkillInterface",
       "emitCodexHooks",
+      "emitCodexSharedScripts",
       "emitCodexSkillVariants",
       "emitCommandSkills",
       "filterCodexHooks",
@@ -1823,6 +1824,10 @@
       "isChildTimeout",
       "rethrowIfChildTimeout"
     ],
+    "scripts/lib/codex-shared-scripts.mjs": [
+      "emitCodexSharedScripts",
+      "extractRelativeSpecifiers"
+    ],
     "scripts/lib/dependency-tree.mjs": [
       "CANNOT_MEASURE",
       "INSTALL_COMMAND",
@@ -1850,6 +1855,11 @@
     ],
     "scripts/lib/host-name-field-occurrence-cases.mjs": [
       "hostNameFieldOccurrenceCases"
+    ],
+    "scripts/lib/host-name-launcher-cases.mjs": [
+      "hostNameLauncherBoundaryCases",
+      "hostNameLauncherCases",
+      "verifyLauncherScriptSlot"
     ],
     "scripts/lib/host-name-review-cases.mjs": [
       "hostNameReviewCases"
