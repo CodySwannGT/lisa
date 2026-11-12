@@ -91,7 +91,12 @@ function servingFolders(projectDir) {
   const folders = new Set([canonical(projectDir)]);
   try {
     const pointer = readFileSync(path.join(projectDir, ".git"), "utf8");
-    const gitdir = /^gitdir:\s*(.+)$/m.exec(pointer)?.[1]?.trim();
+    // Line-split + prefix check instead of a regex: no backtracking surface.
+    const gitdir = pointer
+      .split("\n")
+      .find(line => line.startsWith("gitdir:"))
+      ?.slice("gitdir:".length)
+      .trim();
     const marker = `${path.sep}.git${path.sep}worktrees${path.sep}`;
     const at = gitdir?.lastIndexOf(marker) ?? -1;
     if (gitdir && at > 0) folders.add(canonical(gitdir.slice(0, at)));
