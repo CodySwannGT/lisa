@@ -128,7 +128,7 @@ for (const [name, harness, failed] of [
     assert.equal(native.apply_receipt.apply_mode, "full");
     assert.equal(native.passed, true);
     assert.equal(native.guard_cases.length, 14);
-    assert.equal(native.retired_safety_net.status, 0);
+    assert.equal(native.retired_safety_net.present, false);
     for (const row of native.guard_cases)
       assert.equal(row.status, row.expected);
     if (harness === "fleet")

@@ -1,10 +1,8 @@
 /**
  * `lisa worktree prune` — the vetted verb for retiring agent worktrees.
  *
- * The guard in `parity-safety-net.sh` blocks `git worktree remove --force`
- * because it discards a dirty tree, and that block is correct and stays. This
- * command does not relax it, is not an override for it, and never passes
- * `--force` to git: it performs the safety checks itself and then uses the
+ * `git worktree remove --force` discards a dirty tree, so this command never
+ * passes `--force` to git: it performs the safety checks itself and then uses the
  * plain `git worktree remove`, whose own refusal of a dirty tree remains in
  * place underneath as a last line of defence.
  *

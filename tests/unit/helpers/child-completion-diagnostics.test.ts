@@ -162,7 +162,7 @@ describe("assertChildCompleted", () => {
 /**
  * The outcome a deliberately-broken control returns when it loses the race.
  *
- * Recorded from the shipped `parity-safety-net.sh` run under `/bin/sh` on
+ * Recorded from a since-retired shipped guard run under `/bin/sh` on
  * Linux, where `sh` is `dash`: it dies on `set -o pipefail` at line 84, nine
  * lines before its own `input="$(cat)"`, so it exits 2 having read nothing and
  * the parent's write lands on a closed read end. Status 2 IS the verdict the
@@ -189,7 +189,7 @@ describe("a declared early exit still reports its verdict", () => {
     expect(() =>
       assertChildCompleted(
         refusedThenExitedEpipeOutcome(),
-        "parity-safety-net.sh under /bin/sh",
+        "retired guard under /bin/sh",
         MAY_EXIT_EARLY
       )
     ).not.toThrow();

@@ -78,8 +78,8 @@
  *     rotted, which is exactly what happened to the reference that named
  *     `src/cli/doctor-learnings-merge-driver.ts` before it was renamed;
  *   - an entry whose `signature` does not match its own recorded `sample` — a
- *     regex typo silently disables an entry, the same way a malformed ERE
- *     silently disabled a project safety rule in `parity-safety-net.sh`;
+ *     regex typo silently disables an entry, the same way a malformed ERE can
+ *     silently disable a shell guard's project rule;
  *   - an index that resolves ZERO entries — an empty routing table is a broken
  *     one, never a clean one;
  *   - an entry whose `excludes` has no `counterSample` proving it excludes
