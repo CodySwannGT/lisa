@@ -1,4 +1,5 @@
 import { CorrectLisaCoderabbitLabelingMigration } from "./correct-lisa-coderabbit-labeling.js";
+import { DelegateLegacyTestScriptsMigration } from "./delegate-legacy-test-scripts.js";
 import { EnsureAuditIgnoreLocalExclusionsMigration } from "./ensure-audit-ignore-local-exclusions.js";
 import { EnsureDeployOutcomeGuardMigration } from "./ensure-deploy-outcome-guard.js";
 import { EnsureJestRnMockAccessibilityManagerMigration } from "./ensure-jest-rn-mock-accessibility-manager.js";
@@ -39,6 +40,7 @@ export type {
   MigrationResult,
 } from "./migration.interface.js";
 export { CorrectLisaCoderabbitLabelingMigration } from "./correct-lisa-coderabbit-labeling.js";
+export { DelegateLegacyTestScriptsMigration } from "./delegate-legacy-test-scripts.js";
 export { EnsureAuditIgnoreLocalExclusionsMigration } from "./ensure-audit-ignore-local-exclusions.js";
 export { EnsureDeployOutcomeGuardMigration } from "./ensure-deploy-outcome-guard.js";
 export { EnsureJestRnMockAccessibilityManagerMigration } from "./ensure-jest-rn-mock-accessibility-manager.js";
@@ -89,6 +91,7 @@ export class MigrationRegistry {
       new EnsureLighthouseCollectOptionsMigration(),
       new EnsureNightlyE2EWorkflowPinsMigration(),
       new EnsureLisaPostinstallMigration(),
+      new DelegateLegacyTestScriptsMigration(),
       new EnsureOxlintBaseConfigsMigration(),
       new EnsurePlaywrightDedicatedCallerMigration(),
       new EnsurePushDefaultSafeMigration(),
