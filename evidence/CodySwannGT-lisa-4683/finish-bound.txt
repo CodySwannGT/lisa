@@ -1,0 +1,10 @@
+
+❌ Work-item tracking blocked this operation: refusing to complete CodySwannGT/lisa#4683: no merged pull request in CodySwannGT/lisa references it.
+Completion is evidence-based on purpose. A command that closes whatever it is pointed at
+is a way to make unfinished work disappear, and the closure would be indistinguishable
+from a real one afterwards. If the work shipped some other way, say so on the item and close it deliberately.
+
+Mention the ticket this work relates to, or ask Lisa to create one:
+  Work-Item: <configured-project-ticket>
+
+exit=1
