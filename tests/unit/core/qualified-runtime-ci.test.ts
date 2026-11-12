@@ -163,8 +163,19 @@ describe("qualified runtimes in required CI execution paths", () => {
       items.find(step => step.uses?.startsWith("actions/download-artifact@"))
         ?.with?.["pattern"]
     ).toBe(
-      "lisa-shell-guard-${{ github.run_id }}-${{ github.run_attempt }}-shard-*"
+      // #4634: every attempt of THIS run, so a failed-jobs re-run can reuse
+      // the earlier attempt's complete shards; the merge picks the newest.
+      "lisa-shell-guard-${{ github.run_id }}-*-shard-*"
     );
+    expect(
+      items.find(step => step.uses?.startsWith("actions/download-artifact@"))
+        ?.with?.["merge-multiple"]
+    ).toBe(false);
+    expect(
+      items.find(step =>
+        step.run?.includes('process.env.TRACE_SHARDS_RESULT !== "success"')
+      )?.run
+    ).toContain("Re-run failed jobs");
     const merge = items.find(step => step.run?.includes("--merge-traces"))!;
     expect(merge.run).toContain(
       "node dist/cli/lisa-test-run.js --profile lisa --adapter direct"
