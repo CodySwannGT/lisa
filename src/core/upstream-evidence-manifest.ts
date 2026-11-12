@@ -1795,7 +1795,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-setup-confluence/SKILL.md":
       "e92d762dbdaeae671c3e52dfe8e10d40a10b606b5e050589181a3898649faedc",
     "plugins/src/base/skills/lisa-setup-github-repo/SKILL.md":
-      "bc9232d0609a27c66a1267221f6da33b50850145532da760f5501d37addd2cb0",
+      "a0cb2c9d6ba7513bb537c5c4beb717f3d4eb934c4c214de9dbe070524dcb2b60",
     "plugins/src/base/skills/lisa-setup-github/SKILL.md":
       "75435e81130abd21c678d302b7a220da95a19868d122ca93168278628b200666",
     "plugins/src/base/skills/lisa-setup-jira/SKILL.md":
@@ -2901,7 +2901,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/lisa-github-environments.sh":
       "0a76e92f108519abaf3e29991299ec3b0db20ea533e69e6d2a53d802dba9c370",
     "scripts/lisa-github-repo-settings.sh":
-      "4afbccdfb08c62ba13afee42ec8561a28facf87c61f6f4b80000115328364d54",
+      "f32a058244c0035861577db2f4c1700f1b5f616e5bd78ecf808e41fa4292b9b4",
     "scripts/lisa-github-repo-setup.sh":
       "4717873e339b3e615d0bf22b4cb290b3575df5aba8c3639dc0d3bebc23abf651",
     "scripts/lisa-github-rulesets.sh":
@@ -3854,6 +3854,9 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "evidence/4621/verify-learnings-budget.txt": true,
     "evidence/4621/verify-red-base.txt": true,
     "evidence/4621/verify-typecheck.txt": true,
+    "evidence/4629/absent-codes-source-search.txt": true,
+    "evidence/4629/deep-root-doctor-checks-before.txt": true,
+    "evidence/4629/deep-root-doctor-checks.txt": true,
     "evidence/4644/green.txt": true,
     "evidence/4644/parity-red.txt": true,
     "evidence/4644/paths-and-parity.txt": true,
@@ -11380,6 +11383,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "src/logging/logger.interface.ts": true,
     "src/logging/silent-logger.ts": true,
     "src/migrations/correct-lisa-coderabbit-labeling.ts": true,
+    "src/migrations/delegate-legacy-test-scripts.ts": true,
     "src/migrations/deploy-outcome-guard-edit.ts": true,
     "src/migrations/deploy-outcome-guard-yaml.ts": true,
     "src/migrations/ensure-audit-ignore-local-exclusions.ts": true,
@@ -11480,6 +11484,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "src/utils/effectiveness.ts": true,
     "src/utils/fibonacci.ts": true,
     "src/utils/file-operations.ts": true,
+    "src/utils/fs-absence.ts": true,
     "src/utils/ignore-patterns.ts": true,
     "src/utils/index.ts": true,
     "src/utils/json-utils.ts": true,
@@ -11757,6 +11762,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/helpers/freshness-deadline-fixture.ts": true,
     "tests/helpers/freshness-deadline-inputs.ts": true,
     "tests/helpers/freshness-owned-processes.ts": true,
+    "tests/helpers/fs-errno.ts": true,
     "tests/helpers/fs-latency-budget.ts": true,
     "tests/helpers/gate-capture.ts": true,
     "tests/helpers/gate-coverage-harness.ts": true,
@@ -12179,9 +12185,11 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/cli/doctor-apply-freshness.test.ts": true,
     "tests/unit/cli/doctor-apply-stale-templates.test.ts": true,
     "tests/unit/cli/doctor-audit-scope.test.ts": true,
+    "tests/unit/cli/doctor-cdk-preset-adoption-errno.test.ts": true,
     "tests/unit/cli/doctor-cdk-preset-adoption.test.ts": true,
     "tests/unit/cli/doctor-coderabbit-labeling.test.ts": true,
     "tests/unit/cli/doctor-coderabbit.test.ts": true,
+    "tests/unit/cli/doctor-config-shadowing-errno.test.ts": true,
     "tests/unit/cli/doctor-config-shadowing.test.ts": true,
     "tests/unit/cli/doctor-declared-contexts.test.ts": true,
     "tests/unit/cli/doctor-enforcement-coverage.test.ts": true,
@@ -12202,6 +12210,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/cli/doctor-override-floor-conflicts.test.ts": true,
     "tests/unit/cli/doctor-ownership-banner-drift.test.ts": true,
     "tests/unit/cli/doctor-project-type.test.ts": true,
+    "tests/unit/cli/doctor-rails-deploy-intent-errno.test.ts": true,
     "tests/unit/cli/doctor-rails-deploy-intent.test.ts": true,
     "tests/unit/cli/doctor-readiness-blockers.test.ts": true,
     "tests/unit/cli/doctor-readiness-capabilities.test.ts": true,
@@ -12254,6 +12263,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/cli/doctor-skip-jobs-moment-callers.test.ts": true,
     "tests/unit/cli/doctor-sonar.test.ts": true,
     "tests/unit/cli/doctor-stale-banner-scan.test.ts": true,
+    "tests/unit/cli/doctor-stale-managed-banner-errno.test.ts": true,
     "tests/unit/cli/doctor-stale-managed-banner.test.ts": true,
     "tests/unit/cli/doctor-starter-health.test.ts": true,
     "tests/unit/cli/doctor-third-party-evidence-dispatch-context.test.ts": true,
@@ -12849,6 +12859,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/hooks/worktree-create-failure.test.ts": true,
     "tests/unit/hooks/worktree-create.test.ts": true,
     "tests/unit/migrations/correct-lisa-coderabbit-labeling.test.ts": true,
+    "tests/unit/migrations/delegate-legacy-test-scripts.test.ts": true,
     "tests/unit/migrations/deploy-outcome-guard-render.test.ts": true,
     "tests/unit/migrations/ensure-audit-ignore-local-exclusions-esbuild.test.ts": true,
     "tests/unit/migrations/ensure-audit-ignore-local-exclusions.test.ts": true,
@@ -13813,6 +13824,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/utils/effectiveness.test.ts": true,
     "tests/unit/utils/fibonacci.test.ts": true,
     "tests/unit/utils/file-operations.test.ts": true,
+    "tests/unit/utils/fs-absence.test.ts": true,
     "tests/unit/utils/ignore-patterns-bootstrap.test.ts": true,
     "tests/unit/utils/ignore-patterns.test.ts": true,
     "tests/unit/utils/json-merge.property.test.ts": true,

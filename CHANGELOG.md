@@ -2,6 +2,28 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.103.2](https://github.com/CodySwannGT/lisa/compare/v4.103.1...v4.103.2) (2026-11-12)
+
+
+### Bug Fixes
+
+* **doctor:** stop reading ENAMETOOLONG as a missing file ([253ef10](https://github.com/CodySwannGT/lisa/commit/253ef101f6f93a7b97366b745aec957e7fcc68b3)), closes [CodySwannGT/lisa#4629](https://github.com/CodySwannGT/lisa/issues/4629) [CodySwannGT/lisa#4629](https://github.com/CodySwannGT/lisa/issues/4629)
+* **test:** stop Jest-shard fixtures depending on Watchman ([59fba95](https://github.com/CodySwannGT/lisa/commit/59fba95dcff3f88a341185bb4e690c8ef29b9ab4)), closes [CodySwannGT/lisa#4790](https://github.com/CodySwannGT/lisa/issues/4790)
+
+### [4.103.1](https://github.com/CodySwannGT/lisa/compare/v4.103.0...v4.103.1) (2026-11-12)
+
+## [4.103.0](https://github.com/CodySwannGT/lisa/compare/v4.102.2...v4.103.0) (2026-11-12)
+
+
+### Features
+
+* **setup:** tag repositories with the lisa-managed topic ([f1f0277](https://github.com/CodySwannGT/lisa/commit/f1f0277ed9a4769be9c287757da5b9d9e16eff49)), closes [CodySwannGT/lisa#4782](https://github.com/CodySwannGT/lisa/issues/4782)
+
+
+### Bug Fixes
+
+* **test-run:** stop CDK hosts failing scratch checks on passing suites ([643a877](https://github.com/CodySwannGT/lisa/commit/643a877e59877cc07a414684da6c06ab9523a374)), closes [CodySwannGT/lisa#4786](https://github.com/CodySwannGT/lisa/issues/4786)
+
 ### [4.102.2](https://github.com/CodySwannGT/lisa/compare/v4.102.1...v4.102.2) (2026-11-12)
 
 
