@@ -1,0 +1,605 @@
+$ bun run build
+$ bun run build:dist && bun run build:plugins
+$ node scripts/lib/worktree-dependencies.mjs && node scripts/clean-dist.mjs && tsc && node scripts/copy-codex-scripts.mjs && node scripts/copy-opencode-plugin-templates.mjs
+$ bash scripts/build-plugins.sh
+Built plugins/lisa (v4.101.7)
+Built plugins/lisa-typescript (v4.101.7)
+Built plugins/lisa-expo (v4.101.7)
+Built plugins/lisa-nestjs (v4.101.7)
+Built plugins/lisa-cdk (v4.101.7)
+Built plugins/lisa-harper-fabric (v4.101.7)
+Built plugins/lisa-phaser (v4.101.7)
+Built plugins/lisa-rails (v4.101.7)
+Built plugins/lisa-wiki (v4.101.7)
+Built plugins/lisa-openclaw (v4.101.7)
+Generated Cursor variant at /Users/codysai/workspace/lisa/.claude/worktrees/4738-stale-evidence-context/plugins/lisa-cursor (v4.101.7)
+Generated Cursor variant at /Users/codysai/workspace/lisa/.claude/worktrees/4738-stale-evidence-context/plugins/lisa-typescript-cursor (v4.101.7)
+Generated Cursor variant at /Users/codysai/workspace/lisa/.claude/worktrees/4738-stale-evidence-context/plugins/lisa-expo-cursor (v4.101.7)
+Generated Cursor variant at /Users/codysai/workspace/lisa/.claude/worktrees/4738-stale-evidence-context/plugins/lisa-nestjs-cursor (v4.101.7)
+Generated Cursor variant at /Users/codysai/workspace/lisa/.claude/worktrees/4738-stale-evidence-context/plugins/lisa-cdk-cursor (v4.101.7)
+Generated Cursor variant at /Users/codysai/workspace/lisa/.claude/worktrees/4738-stale-evidence-context/plugins/lisa-harper-fabric-cursor (v4.101.7)
+Generated Cursor variant at /Users/codysai/workspace/lisa/.claude/worktrees/4738-stale-evidence-context/plugins/lisa-phaser-cursor (v4.101.7)
+Generated Cursor variant at /Users/codysai/workspace/lisa/.claude/worktrees/4738-stale-evidence-context/plugins/lisa-rails-cursor (v4.101.7)
+Generated Cursor variant at /Users/codysai/workspace/lisa/.claude/worktrees/4738-stale-evidence-context/plugins/lisa-wiki-cursor (v4.101.7)
+Generated Cursor variant at /Users/codysai/workspace/lisa/.claude/worktrees/4738-stale-evidence-context/plugins/lisa-openclaw-cursor (v4.101.7)
+Generated agy variant at /Users/codysai/workspace/lisa/.claude/worktrees/4738-stale-evidence-context/plugins/lisa-agy (v4.101.7)
+Generated agy variant at /Users/codysai/workspace/lisa/.claude/worktrees/4738-stale-evidence-context/plugins/lisa-typescript-agy (v4.101.7)
+Generated agy variant at /Users/codysai/workspace/lisa/.claude/worktrees/4738-stale-evidence-context/plugins/lisa-expo-agy (v4.101.7)
+Generated agy variant at /Users/codysai/workspace/lisa/.claude/worktrees/4738-stale-evidence-context/plugins/lisa-nestjs-agy (v4.101.7)
+Generated agy variant at /Users/codysai/workspace/lisa/.claude/worktrees/4738-stale-evidence-context/plugins/lisa-cdk-agy (v4.101.7)
+Generated agy variant at /Users/codysai/workspace/lisa/.claude/worktrees/4738-stale-evidence-context/plugins/lisa-harper-fabric-agy (v4.101.7)
+Generated agy variant at /Users/codysai/workspace/lisa/.claude/worktrees/4738-stale-evidence-context/plugins/lisa-phaser-agy (v4.101.7)
+Generated agy variant at /Users/codysai/workspace/lisa/.claude/worktrees/4738-stale-evidence-context/plugins/lisa-rails-agy (v4.101.7)
+Generated agy variant at /Users/codysai/workspace/lisa/.claude/worktrees/4738-stale-evidence-context/plugins/lisa-wiki-agy (v4.101.7)
+Generated agy variant at /Users/codysai/workspace/lisa/.claude/worktrees/4738-stale-evidence-context/plugins/lisa-openclaw-agy (v4.101.7)
+Generated Copilot variant at /Users/codysai/workspace/lisa/.claude/worktrees/4738-stale-evidence-context/plugins/lisa-copilot (v4.101.7)
+Generated Copilot variant at /Users/codysai/workspace/lisa/.claude/worktrees/4738-stale-evidence-context/plugins/lisa-typescript-copilot (v4.101.7)
+Generated Copilot variant at /Users/codysai/workspace/lisa/.claude/worktrees/4738-stale-evidence-context/plugins/lisa-expo-copilot (v4.101.7)
+Generated Copilot variant at /Users/codysai/workspace/lisa/.claude/worktrees/4738-stale-evidence-context/plugins/lisa-nestjs-copilot (v4.101.7)
+Generated Copilot variant at /Users/codysai/workspace/lisa/.claude/worktrees/4738-stale-evidence-context/plugins/lisa-cdk-copilot (v4.101.7)
+Generated Copilot variant at /Users/codysai/workspace/lisa/.claude/worktrees/4738-stale-evidence-context/plugins/lisa-harper-fabric-copilot (v4.101.7)
+Generated Copilot variant at /Users/codysai/workspace/lisa/.claude/worktrees/4738-stale-evidence-context/plugins/lisa-phaser-copilot (v4.101.7)
+Generated Copilot variant at /Users/codysai/workspace/lisa/.claude/worktrees/4738-stale-evidence-context/plugins/lisa-rails-copilot (v4.101.7)
+Generated Copilot variant at /Users/codysai/workspace/lisa/.claude/worktrees/4738-stale-evidence-context/plugins/lisa-wiki-copilot (v4.101.7)
+Generated Copilot variant at /Users/codysai/workspace/lisa/.claude/worktrees/4738-stale-evidence-context/plugins/lisa-openclaw-copilot (v4.101.7)
+Generated Devin variant at /Users/codysai/workspace/lisa/.claude/worktrees/4738-stale-evidence-context/plugins/lisa-devin (v4.101.7)
+Generated Devin variant at /Users/codysai/workspace/lisa/.claude/worktrees/4738-stale-evidence-context/plugins/lisa-typescript-devin (v4.101.7)
+Generated Devin variant at /Users/codysai/workspace/lisa/.claude/worktrees/4738-stale-evidence-context/plugins/lisa-expo-devin (v4.101.7)
+Generated Devin variant at /Users/codysai/workspace/lisa/.claude/worktrees/4738-stale-evidence-context/plugins/lisa-nestjs-devin (v4.101.7)
+Generated Devin variant at /Users/codysai/workspace/lisa/.claude/worktrees/4738-stale-evidence-context/plugins/lisa-cdk-devin (v4.101.7)
+Generated Devin variant at /Users/codysai/workspace/lisa/.claude/worktrees/4738-stale-evidence-context/plugins/lisa-harper-fabric-devin (v4.101.7)
+Generated Devin variant at /Users/codysai/workspace/lisa/.claude/worktrees/4738-stale-evidence-context/plugins/lisa-phaser-devin (v4.101.7)
+Generated Devin variant at /Users/codysai/workspace/lisa/.claude/worktrees/4738-stale-evidence-context/plugins/lisa-rails-devin (v4.101.7)
+Generated Devin variant at /Users/codysai/workspace/lisa/.claude/worktrees/4738-stale-evidence-context/plugins/lisa-wiki-devin (v4.101.7)
+Generated Devin variant at /Users/codysai/workspace/lisa/.claude/worktrees/4738-stale-evidence-context/plugins/lisa-openclaw-devin (v4.101.7)
+$ node scripts/lib/worktree-dependencies.mjs && $npm_execpath run lisa-test-run -- --adapter vitest -- vitest run tests/unit/core/third-party-evidence-seed-dispatch-context.test.ts tests/unit/core/third-party-evidence-seed.test.ts tests/unit/core/third-party-evidence-seed-publish.test.ts tests/unit/scripts/third-party-review-evidence-publish.test.ts tests/unit/scripts/third-party-review-evidence-publish-contexts.test.ts tests/unit/cli/doctor-third-party-evidence-seed.test.ts tests/unit/cli/doctor-third-party-evidence-publish.test.ts tests/unit/cli/doctor-third-party-evidence-dispatch-context.test.ts tests/integration/third-party-review-evidence-workflow.test.ts tests/integration/third-party-review-evidence-workflow-executed.test.ts
+$ node scripts/lib/worktree-dependencies.mjs && bun run build && node dist/cli/lisa-test-run.js --profile lisa --adapter vitest -- vitest run tests/unit/core/third-party-evidence-seed-dispatch-context.test.ts tests/unit/core/third-party-evidence-seed.test.ts tests/unit/core/third-party-evidence-seed-publish.test.ts tests/unit/scripts/third-party-review-evidence-publish.test.ts tests/unit/scripts/third-party-review-evidence-publish-contexts.test.ts tests/unit/cli/doctor-third-party-evidence-seed.test.ts tests/unit/cli/doctor-third-party-evidence-publish.test.ts tests/unit/cli/doctor-third-party-evidence-dispatch-context.test.ts tests/integration/third-party-review-evidence-workflow.test.ts tests/integration/third-party-review-evidence-workflow-executed.test.ts
+$ bun run build:dist && bun run build:plugins
+$ node scripts/lib/worktree-dependencies.mjs && node scripts/clean-dist.mjs && tsc && node scripts/copy-codex-scripts.mjs && node scripts/copy-opencode-plugin-templates.mjs
+$ bash scripts/build-plugins.sh
+Built plugins/lisa (v4.101.7)
+Built plugins/lisa-typescript (v4.101.7)
+Built plugins/lisa-expo (v4.101.7)
+Built plugins/lisa-nestjs (v4.101.7)
+Built plugins/lisa-cdk (v4.101.7)
+Built plugins/lisa-harper-fabric (v4.101.7)
+Built plugins/lisa-phaser (v4.101.7)
+Built plugins/lisa-rails (v4.101.7)
+Built plugins/lisa-wiki (v4.101.7)
+Built plugins/lisa-openclaw (v4.101.7)
+Generated Cursor variant at /Users/codysai/workspace/lisa/.claude/worktrees/4738-stale-evidence-context/plugins/lisa-cursor (v4.101.7)
+Generated Cursor variant at /Users/codysai/workspace/lisa/.claude/worktrees/4738-stale-evidence-context/plugins/lisa-typescript-cursor (v4.101.7)
+Generated Cursor variant at /Users/codysai/workspace/lisa/.claude/worktrees/4738-stale-evidence-context/plugins/lisa-expo-cursor (v4.101.7)
+Generated Cursor variant at /Users/codysai/workspace/lisa/.claude/worktrees/4738-stale-evidence-context/plugins/lisa-nestjs-cursor (v4.101.7)
+Generated Cursor variant at /Users/codysai/workspace/lisa/.claude/worktrees/4738-stale-evidence-context/plugins/lisa-cdk-cursor (v4.101.7)
+Generated Cursor variant at /Users/codysai/workspace/lisa/.claude/worktrees/4738-stale-evidence-context/plugins/lisa-harper-fabric-cursor (v4.101.7)
+Generated Cursor variant at /Users/codysai/workspace/lisa/.claude/worktrees/4738-stale-evidence-context/plugins/lisa-phaser-cursor (v4.101.7)
+Generated Cursor variant at /Users/codysai/workspace/lisa/.claude/worktrees/4738-stale-evidence-context/plugins/lisa-rails-cursor (v4.101.7)
+Generated Cursor variant at /Users/codysai/workspace/lisa/.claude/worktrees/4738-stale-evidence-context/plugins/lisa-wiki-cursor (v4.101.7)
+Generated Cursor variant at /Users/codysai/workspace/lisa/.claude/worktrees/4738-stale-evidence-context/plugins/lisa-openclaw-cursor (v4.101.7)
+Generated agy variant at /Users/codysai/workspace/lisa/.claude/worktrees/4738-stale-evidence-context/plugins/lisa-agy (v4.101.7)
+Generated agy variant at /Users/codysai/workspace/lisa/.claude/worktrees/4738-stale-evidence-context/plugins/lisa-typescript-agy (v4.101.7)
+Generated agy variant at /Users/codysai/workspace/lisa/.claude/worktrees/4738-stale-evidence-context/plugins/lisa-expo-agy (v4.101.7)
+Generated agy variant at /Users/codysai/workspace/lisa/.claude/worktrees/4738-stale-evidence-context/plugins/lisa-nestjs-agy (v4.101.7)
+Generated agy variant at /Users/codysai/workspace/lisa/.claude/worktrees/4738-stale-evidence-context/plugins/lisa-cdk-agy (v4.101.7)
+Generated agy variant at /Users/codysai/workspace/lisa/.claude/worktrees/4738-stale-evidence-context/plugins/lisa-harper-fabric-agy (v4.101.7)
+Generated agy variant at /Users/codysai/workspace/lisa/.claude/worktrees/4738-stale-evidence-context/plugins/lisa-phaser-agy (v4.101.7)
+Generated agy variant at /Users/codysai/workspace/lisa/.claude/worktrees/4738-stale-evidence-context/plugins/lisa-rails-agy (v4.101.7)
+Generated agy variant at /Users/codysai/workspace/lisa/.claude/worktrees/4738-stale-evidence-context/plugins/lisa-wiki-agy (v4.101.7)
+Generated agy variant at /Users/codysai/workspace/lisa/.claude/worktrees/4738-stale-evidence-context/plugins/lisa-openclaw-agy (v4.101.7)
+Generated Copilot variant at /Users/codysai/workspace/lisa/.claude/worktrees/4738-stale-evidence-context/plugins/lisa-copilot (v4.101.7)
+Generated Copilot variant at /Users/codysai/workspace/lisa/.claude/worktrees/4738-stale-evidence-context/plugins/lisa-typescript-copilot (v4.101.7)
+Generated Copilot variant at /Users/codysai/workspace/lisa/.claude/worktrees/4738-stale-evidence-context/plugins/lisa-expo-copilot (v4.101.7)
+Generated Copilot variant at /Users/codysai/workspace/lisa/.claude/worktrees/4738-stale-evidence-context/plugins/lisa-nestjs-copilot (v4.101.7)
+Generated Copilot variant at /Users/codysai/workspace/lisa/.claude/worktrees/4738-stale-evidence-context/plugins/lisa-cdk-copilot (v4.101.7)
+Generated Copilot variant at /Users/codysai/workspace/lisa/.claude/worktrees/4738-stale-evidence-context/plugins/lisa-harper-fabric-copilot (v4.101.7)
+Generated Copilot variant at /Users/codysai/workspace/lisa/.claude/worktrees/4738-stale-evidence-context/plugins/lisa-phaser-copilot (v4.101.7)
+Generated Copilot variant at /Users/codysai/workspace/lisa/.claude/worktrees/4738-stale-evidence-context/plugins/lisa-rails-copilot (v4.101.7)
+Generated Copilot variant at /Users/codysai/workspace/lisa/.claude/worktrees/4738-stale-evidence-context/plugins/lisa-wiki-copilot (v4.101.7)
+Generated Copilot variant at /Users/codysai/workspace/lisa/.claude/worktrees/4738-stale-evidence-context/plugins/lisa-openclaw-copilot (v4.101.7)
+Generated Devin variant at /Users/codysai/workspace/lisa/.claude/worktrees/4738-stale-evidence-context/plugins/lisa-devin (v4.101.7)
+Generated Devin variant at /Users/codysai/workspace/lisa/.claude/worktrees/4738-stale-evidence-context/plugins/lisa-typescript-devin (v4.101.7)
+Generated Devin variant at /Users/codysai/workspace/lisa/.claude/worktrees/4738-stale-evidence-context/plugins/lisa-expo-devin (v4.101.7)
+Generated Devin variant at /Users/codysai/workspace/lisa/.claude/worktrees/4738-stale-evidence-context/plugins/lisa-nestjs-devin (v4.101.7)
+Generated Devin variant at /Users/codysai/workspace/lisa/.claude/worktrees/4738-stale-evidence-context/plugins/lisa-cdk-devin (v4.101.7)
+Generated Devin variant at /Users/codysai/workspace/lisa/.claude/worktrees/4738-stale-evidence-context/plugins/lisa-harper-fabric-devin (v4.101.7)
+Generated Devin variant at /Users/codysai/workspace/lisa/.claude/worktrees/4738-stale-evidence-context/plugins/lisa-phaser-devin (v4.101.7)
+Generated Devin variant at /Users/codysai/workspace/lisa/.claude/worktrees/4738-stale-evidence-context/plugins/lisa-rails-devin (v4.101.7)
+Generated Devin variant at /Users/codysai/workspace/lisa/.claude/worktrees/4738-stale-evidence-context/plugins/lisa-wiki-devin (v4.101.7)
+Generated Devin variant at /Users/codysai/workspace/lisa/.claude/worktrees/4738-stale-evidence-context/plugins/lisa-openclaw-devin (v4.101.7)
+lisa-test-run: TMPDIR /var/folders/vc/t6bx6dwx0h7_3bj316vkb72r0000gn/T is too long for native Unix socket fixtures; using /private/tmp.
+🧹 swept 0 stale temp dirs, 0 orphaned test processes (119 ms); kept 19 entries not private to this user
+
+ RUN  v4.1.11 /Users/codysai/workspace/lisa/.claude/worktrees/4738-stale-evidence-context
+
+lisa fleet admission: waiting for a worker slot — 5 run(s) live, this run is #5, 3 may execute at once. Starting anyway in 120s. Set LISA_FLEET_ADMISSION=off to disable this wait.
+ ❯ |lisa| tests/unit/core/third-party-evidence-seed.test.ts (37 tests | 1 failed) 13ms
+     × finds every gap in the seed Lisa shipped before the fix 6ms
+ ❯ |lisa| tests/unit/scripts/third-party-review-evidence-publish-contexts.test.ts (10 tests | 7 failed) 11ms
+     × updates every declared reviewer's check run, so a later verdict clears a stale one 4ms
+     × publishes the bare name and every declared reviewer's on a manual run with no context 1ms
+     × takes declared reviewers from the saved verdict's readings when the config names none 0ms
+     × takes the union of the config's reviewers and the readings', each once 0ms
+     × still updates every declared reviewer when the verdict carries no readings 0ms
+     × reads the declared reviewers from the checkout's own config 1ms
+     × fails, naming the refused check run, when GitHub refuses one of several 0ms
+ ❯ |lisa| tests/unit/cli/doctor-third-party-evidence-seed.test.ts (17 tests | 2 failed) 128ms
+     × reports the pre-fix seed and prints the exact lines to add 7ms
+     × prints lines that make the pre-fix seed read as current 1ms
+ ❯ |lisa| tests/integration/third-party-review-evidence-workflow.test.ts (22 tests | 6 failed) 16ms
+     × reads as current to the check lisa doctor runs on a seeded copy 4ms
+     × takes an optional reviewer on the manual path, beside the commit 1ms
+     × hands a manual run's reviewer to the prover and keys its concurrency on it 1ms
+     × reads as current to the check lisa doctor runs on a seeded copy 1ms
+     × takes an optional reviewer on the manual path, beside the commit 0ms
+     × hands a manual run's reviewer to the prover and keys its concurrency on it 1ms
+ ❯ |lisa| tests/unit/cli/doctor-third-party-evidence-dispatch-context.test.ts (0 test)
+ ❯ |lisa| tests/unit/core/third-party-evidence-seed-dispatch-context.test.ts (8 tests | 8 failed) 10ms
+     × judges a copy with a context input the reviewer value reads 4ms
+     × judges a copy with a context input nothing reads 0ms
+     × judges a copy with no context input at all 0ms
+     × judges a copy with a reviewer value reading an input never declared 0ms
+     × judges a copy with no manual trigger at all 0ms
+     × reads the seed Lisa ships as taking a manual run's reviewer 1ms
+     × finds the gap in the seed Lisa shipped before the fix 0ms
+     × holds a copy current in every other way, but without the input, to be stale 1ms
+ ❯ |lisa| tests/integration/third-party-review-evidence-workflow-executed.test.ts (19 tests | 4 failed) 8556ms
+     × names the manual path's check run without a reviewer, and updates every declared reviewer's 607ms
+     × overwrites a stale reviewer check with a writer's substitute when dispatched with that reviewer 388ms
+     × names the manual path's check run without a reviewer, and updates every declared reviewer's 612ms
+     × overwrites a stale reviewer check with a writer's substitute when dispatched with that reviewer 365ms
+
+⎯⎯⎯⎯⎯⎯ Failed Suites 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  |lisa| tests/unit/cli/doctor-third-party-evidence-dispatch-context.test.ts [ tests/unit/cli/doctor-third-party-evidence-dispatch-context.test.ts ]
+TypeError: Cannot read properties of undefined (reading 'join')
+ ❯ tests/unit/cli/doctor-third-party-evidence-dispatch-context.test.ts:45:53
+     43|
+     44| /** The input block, as the seed ships it. */
+     45| const INPUT_BLOCK = `${DISPATCH_CONTEXT_INPUT_LINES.join("\n")}\n`;
+       |                                                     ^
+     46|
+     47| /** The seed as Lisa shipped it after #4630 and before #4738. */
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/29]⎯
+
+
+⎯⎯⎯⎯⎯⎯ Failed Tests 28 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  |lisa| tests/integration/third-party-review-evidence-workflow-executed.test.ts > .github/workflows/third-party-review-evidence.yml, executed > names the manual path's check run without a reviewer, and updates every declared reviewer's
+ FAIL  |lisa| tests/integration/third-party-review-evidence-workflow-executed.test.ts > typescript/create-only/.github/workflows/third-party-review-evidence.yml, executed > names the manual path's check run without a reviewer, and updates every declared reviewer's
+AssertionError: expected [ '🕵️ Third-party review evidence' ] to deeply equal [ …(2) ]
+
+- Expected
++ Received
+
+  [
+    "🕵️ Third-party review evidence",
+-   "🕵️ Third-party review evidence (CodeRabbit)",
+  ]
+
+ ❯ tests/integration/third-party-review-evidence-workflow-executed.test.ts:133:56
+    131|
+    132|     expect(result.status).toBe(0);
+    133|     expect(publishedRuns(result).map(run => run.name)).toEqual([
+       |                                                        ^
+    134|       "🕵️ Third-party review evidence",
+    135|       PUBLISHED_NAME,
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/29]⎯
+
+ FAIL  |lisa| tests/integration/third-party-review-evidence-workflow-executed.test.ts > .github/workflows/third-party-review-evidence.yml, executed > overwrites a stale reviewer check with a writer's substitute when dispatched with that reviewer
+ FAIL  |lisa| tests/integration/third-party-review-evidence-workflow-executed.test.ts > typescript/create-only/.github/workflows/third-party-review-evidence.yml, executed > overwrites a stale reviewer check with a writer's substitute when dispatched with that reviewer
+AssertionError: expected [ { …(5) } ] to deeply equal [ ObjectContaining{…} ]
+
+- Expected
++ Received
+
+  [
+    {
+      "conclusion": "success",
+      "head_sha": "6528e1aea8aa9a0faa2191e5beb9f18f0ea4e3fd",
+-     "name": "🕵️ Third-party review evidence (CodeRabbit)",
++     "name": "🕵️ Third-party review evidence",
++     "output": {
++       "summary": "```text
++ SUBSTITUTED at 6528e1aea8aa9a0faa2191e5beb9f18f0ea4e3fd
++   NOT REVIEWED CodeRabbit (no-work): check run neutral — \"Review rate limited\"
++     observed: the reviewer said in its own words that it did no work
++     a writer's local adversarial review was posted in its place
++ ```",
++       "title": "SUBSTITUTED at 6528e1aea8aa9a0faa2191e5beb9f18f0ea4e3fd",
++     },
++     "status": "completed",
+    },
+  ]
+
+ ❯ tests/integration/third-party-review-evidence-workflow-executed.test.ts:154:35
+    152|
+    153|     expect(result.status).toBe(0);
+    154|     expect(publishedRuns(result)).toEqual([
+       |                                   ^
+    155|       expect.objectContaining({
+    156|         name: PUBLISHED_NAME,
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/29]⎯
+
+ FAIL  |lisa| tests/integration/third-party-review-evidence-workflow.test.ts > .github/workflows/third-party-review-evidence.yml > reads as current to the check lisa doctor runs on a seeded copy
+ FAIL  |lisa| tests/integration/third-party-review-evidence-workflow.test.ts > typescript/create-only/.github/workflows/third-party-review-evidence.yml > reads as current to the check lisa doctor runs on a seeded copy
+AssertionError: expected { wakesOnCheckRun: true, …(8) } to deeply equal { wakesOnCheckRun: true, …(9) }
+
+- Expected
++ Received
+
+@@ -1,7 +1,6 @@
+  {
+-   "acceptsDispatchContext": true,
+    "checksOutEventHead": false,
+    "declaresPermissions": true,
+    "keysConcurrencyPerRun": true,
+    "publishesVerdict": true,
+    "readsChecks": true,
+
+ ❯ tests/integration/third-party-review-evidence-workflow.test.ts:114:21
+    112|     );
+    113|
+    114|     expect(reading).toEqual({
+       |                     ^
+    115|       wakesOnCheckRun: true,
+    116|       readsChecks: true,
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/29]⎯
+
+ FAIL  |lisa| tests/integration/third-party-review-evidence-workflow.test.ts > .github/workflows/third-party-review-evidence.yml > takes an optional reviewer on the manual path, beside the commit
+ FAIL  |lisa| tests/integration/third-party-review-evidence-workflow.test.ts > typescript/create-only/.github/workflows/third-party-review-evidence.yml > takes an optional reviewer on the manual path, beside the commit
+AssertionError: expected undefined to deeply equal { description: Any<String>, …(2) }
+
+- Expected:
+{
+  "description": Any<String>,
+  "required": false,
+  "type": "string",
+}
+
++ Received:
+undefined
+
+ ❯ tests/integration/third-party-review-evidence-workflow.test.ts:188:37
+    186|
+    187|     expect(dispatch.inputs.sha).toMatchObject({ required: true });
+    188|     expect(dispatch.inputs.context).toEqual({
+       |                                     ^
+    189|       description: expect.any(String),
+    190|       required: false,
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/29]⎯
+
+ FAIL  |lisa| tests/integration/third-party-review-evidence-workflow.test.ts > .github/workflows/third-party-review-evidence.yml > hands a manual run's reviewer to the prover and keys its concurrency on it
+ FAIL  |lisa| tests/integration/third-party-review-evidence-workflow.test.ts > typescript/create-only/.github/workflows/third-party-review-evidence.yml > hands a manual run's reviewer to the prover and keys its concurrency on it
+AssertionError: expected { runs: true, …(3) } to deeply equal { runs: true, …(3) }
+
+- Expected
++ Received
+
+  {
+-   "context": "CodeRabbit",
+-   "group": "third-party-review-evidence-workflow_dispatch-6528e1aea8aa9a0faa2191e5beb9f18f0ea4e3fd-CodeRabbit",
++   "context": "",
++   "group": "third-party-review-evidence-workflow_dispatch-6528e1aea8aa9a0faa2191e5beb9f18f0ea4e3fd-",
+    "runs": true,
+    "sha": "6528e1aea8aa9a0faa2191e5beb9f18f0ea4e3fd",
+  }
+
+ ❯ tests/integration/third-party-review-evidence-workflow.test.ts:207:38
+    205|     );
+    206|
+    207|     expect(resolve(workflow, named)).toEqual({
+       |                                      ^
+    208|       runs: true,
+    209|       sha: HEAD,
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/29]⎯
+
+ FAIL  |lisa| tests/unit/cli/doctor-third-party-evidence-seed.test.ts > doctor third-party evidence seed check > reports the pre-fix seed and prints the exact lines to add
+TypeError: DISPATCH_CONTEXT_INPUT_LINES is not iterable
+ ❯ tests/unit/cli/doctor-third-party-evidence-seed.test.ts:140:12
+    138|         CONCURRENCY_GROUP_LINE,
+    139|         ...EVIDENCE_STEPS_LINES,
+    140|         ...DISPATCH_CONTEXT_INPUT_LINES,
+       |            ^
+    141|       ])
+    142|     );
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/29]⎯
+
+ FAIL  |lisa| tests/unit/cli/doctor-third-party-evidence-seed.test.ts > doctor third-party evidence seed check > prints lines that make the pre-fix seed read as current
+TypeError: Cannot read properties of undefined (reading 'join')
+ ❯ tests/unit/cli/doctor-third-party-evidence-seed.test.ts:185:78
+    183|         {
+    184|           anchor: "        type: string\n",
+    185|           replacement: `        type: string\n${DISPATCH_CONTEXT_INPUT…
+       |                                                                              ^
+    186|         },
+    187|         {
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/29]⎯
+
+ FAIL  |lisa| tests/unit/core/third-party-evidence-seed-dispatch-context.test.ts > readEvidenceSeed — a manual run's reviewer > judges a copy with a context input the reviewer value reads
+AssertionError: expected undefined to be true // Object.is equality
+
+- Expected:
+true
+
++ Received:
+undefined
+
+ ❯ tests/unit/core/third-party-evidence-seed-dispatch-context.test.ts:98:9
+     96|       expect(
+     97|         readEvidenceSeed(workflow(on, context)).acceptsDispatchContext
+     98|       ).toBe(expected);
+       |         ^
+     99|     }
+    100|   );
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/29]⎯
+
+ FAIL  |lisa| tests/unit/core/third-party-evidence-seed-dispatch-context.test.ts > readEvidenceSeed — a manual run's reviewer > judges a copy with a context input nothing reads
+ FAIL  |lisa| tests/unit/core/third-party-evidence-seed-dispatch-context.test.ts > readEvidenceSeed — a manual run's reviewer > judges a copy with no context input at all
+ FAIL  |lisa| tests/unit/core/third-party-evidence-seed-dispatch-context.test.ts > readEvidenceSeed — a manual run's reviewer > judges a copy with a reviewer value reading an input never declared
+ FAIL  |lisa| tests/unit/core/third-party-evidence-seed-dispatch-context.test.ts > readEvidenceSeed — a manual run's reviewer > judges a copy with no manual trigger at all
+AssertionError: expected undefined to be false // Object.is equality
+
+- Expected:
+false
+
++ Received:
+undefined
+
+ ❯ tests/unit/core/third-party-evidence-seed-dispatch-context.test.ts:98:9
+     96|       expect(
+     97|         readEvidenceSeed(workflow(on, context)).acceptsDispatchContext
+     98|       ).toBe(expected);
+       |         ^
+     99|     }
+    100|   );
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[10/29]⎯
+
+ FAIL  |lisa| tests/unit/core/third-party-evidence-seed-dispatch-context.test.ts > readEvidenceSeed — a manual run's reviewer > reads the seed Lisa ships as taking a manual run's reviewer
+AssertionError: expected undefined to be true // Object.is equality
+
+- Expected:
+true
+
++ Received:
+undefined
+
+ ❯ tests/unit/core/third-party-evidence-seed-dispatch-context.test.ts:105:44
+    103|     const reading = readEvidenceSeed(CURRENT_SEED);
+    104|
+    105|     expect(reading.acceptsDispatchContext).toBe(true);
+       |                                            ^
+    106|     expect(isCurrentEvidenceSeed(reading)).toBe(true);
+    107|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[11/29]⎯
+
+ FAIL  |lisa| tests/unit/core/third-party-evidence-seed-dispatch-context.test.ts > readEvidenceSeed — a manual run's reviewer > finds the gap in the seed Lisa shipped before the fix
+AssertionError: expected undefined to be false // Object.is equality
+
+- Expected:
+false
+
++ Received:
+undefined
+
+ ❯ tests/unit/core/third-party-evidence-seed-dispatch-context.test.ts:110:67
+    108|
+    109|   it("finds the gap in the seed Lisa shipped before the fix", () => {
+    110|     expect(readEvidenceSeed(PRE_FIX_SEED).acceptsDispatchContext).toBe…
+       |                                                                   ^
+    111|   });
+    112|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[12/29]⎯
+
+ FAIL  |lisa| tests/unit/core/third-party-evidence-seed-dispatch-context.test.ts > readEvidenceSeed — a manual run's reviewer > holds a copy current in every other way, but without the input, to be stale
+AssertionError: expected undefined to be false // Object.is equality
+
+- Expected:
+false
+
++ Received:
+undefined
+
+ ❯ tests/unit/core/third-party-evidence-seed-dispatch-context.test.ts:118:44
+    116|     );
+    117|
+    118|     expect(reading.acceptsDispatchContext).toBe(false);
+       |                                            ^
+    119|     expect(reading.publishesVerdict).toBe(true);
+    120|     expect(reading.readsRunIdentity).toBe(true);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[13/29]⎯
+
+ FAIL  |lisa| tests/unit/core/third-party-evidence-seed.test.ts > readEvidenceSeed > finds every gap in the seed Lisa shipped before the fix
+AssertionError: expected { wakesOnCheckRun: false, …(8) } to deeply equal { wakesOnCheckRun: false, …(9) }
+
+- Expected
++ Received
+
+@@ -1,7 +1,6 @@
+  {
+-   "acceptsDispatchContext": false,
+    "checksOutEventHead": true,
+    "declaresPermissions": true,
+    "keysConcurrencyPerRun": false,
+    "publishesVerdict": false,
+    "readsChecks": false,
+
+ ❯ tests/unit/core/third-party-evidence-seed.test.ts:57:21
+     55|     const reading = readEvidenceSeed(PRE_FIX_SEED);
+     56|
+     57|     expect(reading).toEqual({
+       |                     ^
+     58|       wakesOnCheckRun: false,
+     59|       readsChecks: false,
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[14/29]⎯
+
+ FAIL  |lisa| tests/unit/scripts/third-party-review-evidence-publish-contexts.test.ts > --publish under every declared reviewer > updates every declared reviewer's check run, so a later verdict clears a stale one
+AssertionError: expected [ Array(1) ] to deeply equal [ …(2) ]
+
+- Expected
++ Received
+
+  [
+    "🕵️ Third-party review evidence (B)",
+-   "🕵️ Third-party review evidence (A)",
+  ]
+
+ ❯ tests/unit/scripts/third-party-review-evidence-publish-contexts.test.ts:165:23
+    163|
+    164|     expect(run.code).toBe(0);
+    165|     expect(run.names).toEqual([`${BARE} (B)`, `${BARE} (A)`]);
+       |                       ^
+    166|     expect(run.conclusions).toEqual(["success", "success"]);
+    167|     expect(run.out).toContain(`Published "${BARE} (A)"`);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[15/29]⎯
+
+ FAIL  |lisa| tests/unit/scripts/third-party-review-evidence-publish-contexts.test.ts > --publish under every declared reviewer > publishes the bare name and every declared reviewer's on a manual run with no context
+AssertionError: expected [ '🕵️ Third-party review evidence' ] to deeply equal [ …(3) ]
+
+- Expected
++ Received
+
+  [
+    "🕵️ Third-party review evidence",
+-   "🕵️ Third-party review evidence (A)",
+-   "🕵️ Third-party review evidence (B)",
+  ]
+
+ ❯ tests/unit/scripts/third-party-review-evidence-publish-contexts.test.ts:179:23
+    177|
+    178|     expect(run.code).toBe(0);
+    179|     expect(run.names).toEqual([BARE, `${BARE} (A)`, `${BARE} (B)`]);
+       |                       ^
+    180|   });
+    181|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[16/29]⎯
+
+ FAIL  |lisa| tests/unit/scripts/third-party-review-evidence-publish-contexts.test.ts > --publish under every declared reviewer > takes declared reviewers from the saved verdict's readings when the config names none
+AssertionError: expected [ '🕵️ Third-party review evidence' ] to deeply equal [ …(3) ]
+
+- Expected
++ Received
+
+  [
+    "🕵️ Third-party review evidence",
+-   "🕵️ Third-party review evidence (A)",
+-   "🕵️ Third-party review evidence (B)",
+  ]
+
+ ❯ tests/unit/scripts/third-party-review-evidence-publish-contexts.test.ts:202:23
+    200|     });
+    201|
+    202|     expect(run.names).toEqual([BARE, `${BARE} (A)`, `${BARE} (B)`]);
+       |                       ^
+    203|   });
+    204|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[17/29]⎯
+
+ FAIL  |lisa| tests/unit/scripts/third-party-review-evidence-publish-contexts.test.ts > --publish under every declared reviewer > takes the union of the config's reviewers and the readings', each once
+AssertionError: expected [ Array(1) ] to deeply equal [ …(3) ]
+
+- Expected
++ Received
+
+  [
+    "🕵️ Third-party review evidence (A)",
+-   "🕵️ Third-party review evidence (B)",
+-   "🕵️ Third-party review evidence (C)",
+  ]
+
+ ❯ tests/unit/scripts/third-party-review-evidence-publish-contexts.test.ts:212:23
+    210|     });
+    211|
+    212|     expect(run.names).toEqual([`${BARE} (A)`, `${BARE} (B)`, `${BARE} …
+       |                       ^
+    213|   });
+    214|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[18/29]⎯
+
+ FAIL  |lisa| tests/unit/scripts/third-party-review-evidence-publish-contexts.test.ts > --publish under every declared reviewer > still updates every declared reviewer when the verdict carries no readings
+AssertionError: expected [ '🕵️ Third-party review evidence' ] to deeply equal [ …(2) ]
+
+- Expected
++ Received
+
+  [
+    "🕵️ Third-party review evidence",
+-   "🕵️ Third-party review evidence (A)",
+  ]
+
+ ❯ tests/unit/scripts/third-party-review-evidence-publish-contexts.test.ts:225:23
+    223|     });
+    224|
+    225|     expect(run.names).toEqual([BARE, `${BARE} (A)`]);
+       |                       ^
+    226|     expect(run.conclusions).toEqual(["failure", "failure"]);
+    227|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[19/29]⎯
+
+ FAIL  |lisa| tests/unit/scripts/third-party-review-evidence-publish-contexts.test.ts > --publish under every declared reviewer > reads the declared reviewers from the checkout's own config
+AssertionError: expected [ Array(1) ] to deeply equal [ …(2) ]
+
+- Expected
++ Received
+
+  [
+    "🕵️ Third-party review evidence (B)",
+-   "🕵️ Third-party review evidence (A)",
+  ]
+
+ ❯ tests/unit/scripts/third-party-review-evidence-publish-contexts.test.ts:243:23
+    241|     });
+    242|
+    243|     expect(run.names).toEqual([`${BARE} (B)`, `${BARE} (A)`]);
+       |                       ^
+    244|   });
+    245|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[20/29]⎯
+
+ FAIL  |lisa| tests/unit/scripts/third-party-review-evidence-publish-contexts.test.ts > --publish under every declared reviewer > fails, naming the refused check run, when GitHub refuses one of several
+AssertionError: expected +0 to be 1 // Object.is equality
+
+- Expected
++ Received
+
+- 1
++ 0
+
+ ❯ tests/unit/scripts/third-party-review-evidence-publish-contexts.test.ts:266:22
+    264|     });
+    265|
+    266|     expect(run.code).toBe(1);
+       |                      ^
+    267|     // Every name is still attempted, so one refusal leaves no other s…
+    268|     expect(run.names).toEqual([`${BARE} (B)`, `${BARE} (A)`]);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[21/29]⎯
+
+
+ Test Files  7 failed | 3 passed (10)
+      Tests  28 failed | 126 passed (154)
+   Start at  06:56:43
+   Duration  53.73s (transform 1.07s, setup 681ms, import 1.33s, tests 8.77s, environment 0ms)
+
+error: script "lisa-test-run" exited with code 1
+error: script "test" exited with code 1
