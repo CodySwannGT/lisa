@@ -1,5 +1,5 @@
-# captured_at: 2026-11-12T19:15:58Z
-# verified_head: 69a71d96fcd8feaf9f4f35d64d12ee01b2a4c658
+# captured_at: 2026-11-12T19:26:16Z
+# verified_head: 5fe2c763adbb3108bcb0b69bd591e98e6c678c8d
 == plugins/src/base/skills/lisa-session-manager/SKILL.md  paragraph sha256=5cb40565862ececd
   FOUND   Duplicate-manager check
   FOUND   only from `status` `manager.self`
@@ -77,7 +77,7 @@
   FOUND   that warning comes from the other session's own cycle
   FOUND   a second window of that same tmux session also reads true
   FOUND   Never infer a second manager from the tmux session existing plus a loop being present
-== bite control: HEAD~1 plugins/lisa SKILL.md
+== bite control: f6c72ae5 (pre-fix) plugins/lisa SKILL.md
   MISSING Duplicate-manager check
   MISSING only from `status` `manager.self`
   MISSING check this session's own loops with `CronList`

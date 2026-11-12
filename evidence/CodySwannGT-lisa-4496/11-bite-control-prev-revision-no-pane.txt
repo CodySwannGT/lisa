@@ -1,0 +1,12 @@
+# captured_at: 2026-11-12T19:25:49Z
+# verified_head (worktree): 5fe2c763adbb3108bcb0b69bd591e98e6c678c8d
+# real tmux session: sm-verify-4496
+# BITE CONTROL 11: cli-status.mjs + launch.mjs from 69a71d96 (untargeted probe), rest of tree from HEAD
+## case: TMUX kept, TMUX_PANE unset
+# TMUX=/private/tmp/tmux-501/default,70321,12 TMUX_PANE=<unset>
+{"manager":{"name":"sm-verify-4496","running":true,"self":true},"notify":"none","control":{"paused":false,"maxWorkers":null,"me":null},"workers":[],"untracked":["wk-lisa-4492-1112-1337","wk-lisa-4496-1112-1343","wk-lisa-4502-1112-1416","wk-lisa-4634-1112-0926","wk-lisa-4636-1112-1001","wk-lisa-4646-1109-0126"],"pendingQuestions":[]}
+# exit=0
+## case: TMUX kept, TMUX_PANE=foo
+# TMUX=/private/tmp/tmux-501/default,70321,12 TMUX_PANE=foo
+{"manager":{"name":"sm-verify-4496","running":true,"self":true},"notify":"none","control":{"paused":false,"maxWorkers":null,"me":null},"workers":[],"untracked":["wk-lisa-4492-1112-1337","wk-lisa-4496-1112-1343","wk-lisa-4502-1112-1416","wk-lisa-4634-1112-0926","wk-lisa-4636-1112-1001","wk-lisa-4646-1109-0126"],"pendingQuestions":[]}
+# exit=0
