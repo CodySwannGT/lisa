@@ -251,6 +251,24 @@ describe("--publish under every declared reviewer", () => {
     expect(run.names).toEqual([`${BARE} (B)`, `${BARE} (A)`]);
   });
 
+  it("falls back to the supplied name and the readings' names when the checkout's config cannot be read", () => {
+    // The verdict was already reached; a config that will not parse only
+    // narrows which names it is shown under, and never fails the run.
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), "publish-contexts-"));
+    temps.push(root);
+    fs.writeFileSync(path.join(root, ".lisa.config.json"), "{ not json");
+
+    const run = publish({
+      verdict: saved(EVIDENCE_OUTCOMES.satisfied, "A"),
+      context: "B",
+      root,
+    });
+
+    expect(run.code).toBe(0);
+    expect(run.err).toBe("");
+    expect(run.names).toEqual([`${BARE} (B)`, `${BARE} (A)`]);
+  });
+
   it("publishes nothing, under any name, for an outcome that publishes nothing", () => {
     const run = publish({
       verdict: saved(EVIDENCE_OUTCOMES.notAConfiguredReviewer),

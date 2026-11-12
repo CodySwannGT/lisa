@@ -3,11 +3,12 @@
  * workflow could name the reviewer whose check run it brings up to date.
  *
  * The verdict is published as `🕵️ Third-party review evidence (<context>)`.
- * A copy seeded earlier takes only a `sha` on `workflow_dispatch`, so a manual
- * run publishes under the bare name and a stale red `(<context>)` can only be
- * cleared by that reviewer reporting again (CodySwannGT/lisa#4738). The seed is
- * `create-only`, so such a copy is never refreshed; these tests pin the check
- * that reports it, the lines it prints, and that applying them is enough.
+ * A copy seeded earlier takes only a `sha` on `workflow_dispatch`. Its
+ * copy-overwrite prover still republishes every declared reviewer's check on a
+ * manual run, but that run cannot target one reviewer's check and always adds a
+ * bare-name check (CodySwannGT/lisa#4738). The seed is `create-only`, so such a
+ * copy is never refreshed; these tests pin the check that reports it, the
+ * lines it prints, and that applying them is enough.
  * @module tests/unit/cli/doctor-third-party-evidence-dispatch-context
  */
 import * as fse from "fs-extra";
@@ -16,6 +17,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import {
   checkThirdPartyEvidenceSeed,
+  CONCURRENCY_BLOCK_LINES,
   CONCURRENCY_GROUP_LINE,
   DISPATCH_CONTEXT_INPUT_LINES,
   RUN_IDENTITY_LINES,
@@ -84,14 +86,59 @@ describe("doctor third-party evidence seed check: a manual run's reviewer", () =
 
     expect(check.status).toBe("warn");
     expect(check.detail).toContain(NO_DISPATCH_CONTEXT);
+    // The copy-overwrite prover already republishes every declared reviewer,
+    // so the gap is targeting one reviewer, not clearing a check at all.
+    expect(check.detail).toContain("cannot target one reviewer's check run");
+    expect(check.detail).not.toContain("reporting again");
     expect(check.detail.split("\n")).toEqual(
       expect.arrayContaining([
         ADD_INPUT,
         ...DISPATCH_CONTEXT_INPUT_LINES,
         String(RUN_IDENTITY_LINES[2]),
-        CONCURRENCY_GROUP_LINE,
+        ...CONCURRENCY_BLOCK_LINES,
       ])
     );
+  });
+
+  it("prints the whole concurrency block for a copy that declares none", async () => {
+    // Without a block the copy reads as keyed per run, and a bare `group:`
+    // line would have nowhere to go.
+    const unblocked = PRE_FIX_COPY.replace(
+      /^concurrency:\n(?: {2}.*\n)+/mu,
+      ""
+    );
+    expect(unblocked).not.toContain("concurrency:");
+    await seed(unblocked);
+
+    const check = await checkThirdPartyEvidenceSeed(tempDir);
+    const lines = check.detail.split("\n");
+
+    expect(check.status).toBe("warn");
+    expect(lines).toEqual(expect.arrayContaining([...CONCURRENCY_BLOCK_LINES]));
+    expect(lines.indexOf(String(CONCURRENCY_BLOCK_LINES[0]))).toBe(
+      lines.indexOf(CONCURRENCY_GROUP_LINE) - 1
+    );
+
+    const [, , context] = RUN_IDENTITY_LINES.map(line => line.trim());
+    await seed(
+      applyRewrites(
+        unblocked,
+        [
+          {
+            anchor: /^ {8}type: string\n/mu,
+            replacement: `        type: string\n${INPUT_BLOCK}`,
+          },
+          { anchor: /EVIDENCE_CONTEXT: .*$/mu, replacement: String(context) },
+          {
+            anchor: /^jobs:\n/mu,
+            replacement: `${CONCURRENCY_BLOCK_LINES.join("\n")}\n\njobs:\n`,
+          },
+        ],
+        "the pre-#4738 copy with no concurrency block, under the printed remedy"
+      )
+    );
+
+    expect((await checkThirdPartyEvidenceSeed(tempDir)).status).toBe("ok");
   });
 
   it("prints lines that make the copy read as current once applied", async () => {

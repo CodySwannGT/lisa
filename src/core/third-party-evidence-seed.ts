@@ -38,10 +38,10 @@
  *    branch's latest commit, so a verdict that is only the job's own
  *    conclusion never reaches the pull request (CodySwannGT/lisa#4630);
  *  - a manual run can name the reviewer it publishes for: `workflow_dispatch`
- *    takes a `context` input and the job's reviewer value reads it. The verdict
- *    is published under the waking reviewer's name, so without the input a
- *    stale red check run can only be cleared by that reviewer reporting again
- *    (CodySwannGT/lisa#4738).
+ *    takes a `context` input and the job's reviewer value reads it. The
+ *    copy-overwrite prover republishes every declared reviewer's check on any
+ *    publishing run, but without the input a manual run cannot target one
+ *    reviewer's check and always adds a bare-name check (CodySwannGT/lisa#4738).
  *
  * The readings are textual and say so: they look for the event fields a copy
  * must reference, not for every spelling a copy could use to reach them.

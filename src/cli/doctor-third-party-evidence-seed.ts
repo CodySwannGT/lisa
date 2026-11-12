@@ -25,11 +25,12 @@
  * reported with the two steps that save the verdict and publish it on the
  * head, and the `checks: write` grant that lets them.
  *
- * A verdict is published under the name of the reviewer that woke the run, so
- * a copy seeded before CodySwannGT/lisa#4738, whose manual run takes only a
- * `sha`, cannot overwrite a stale red reviewer check run by hand. Such a copy
- * is reported with the `context` input to add and the `EVIDENCE_CONTEXT` and
- * concurrency lines that read it.
+ * The copy-overwrite prover republishes a verdict under every declared
+ * reviewer's name, so even a copy seeded before CodySwannGT/lisa#4738 clears a
+ * stale reviewer check with a `sha`-only manual run. What such a copy lacks is
+ * the `context` input: its manual run cannot target one reviewer's check and
+ * always adds a bare-name check. It is reported with the input to add and the
+ * `EVIDENCE_CONTEXT` and concurrency lines that read it.
  *
  * Every filesystem answer is three-valued — present, absent, or
  * undeterminable — and the last one fails rather than passing quietly: a
@@ -83,7 +84,7 @@ const CONTEXT_EXPRESSION = `\${{ ${CHECK_RUN_NAME} || github.event.context || ${
  */
 export const DISPATCH_CONTEXT_INPUT_LINES = [
   "      context:",
-  "        description: 'Reviewer context whose check run to bring up to date; empty publishes under the bare name'",
+  "        description: 'Optional. One reviewer context (its status or check-run name, matched exactly against a declared reviewer; anything else publishes nothing) whose check run to bring up to date. Empty republishes every declared reviewer and the bare name'",
   "        required: false",
   "        type: string",
 ] as const;
@@ -120,6 +121,13 @@ export const RUN_IDENTITY_LINES = [
 
 /** The concurrency key that keeps one run from cancelling another's verdict. */
 export const CONCURRENCY_GROUP_LINE = `  group: third-party-review-evidence-\${{ github.event_name }}-${SHA_EXPRESSION}-${CONTEXT_EXPRESSION}`;
+
+/** The whole top-level `concurrency:` block, as the seed ships it. */
+export const CONCURRENCY_BLOCK_LINES = [
+  "concurrency:",
+  CONCURRENCY_GROUP_LINE,
+  "  cancel-in-progress: true",
+] as const;
 
 /**
  * Read the workflow, REJECTING when the filesystem declines to say.
@@ -187,7 +195,7 @@ function gapsOf(reading: EvidenceSeedReading): string[] {
     ...(reading.acceptsDispatchContext
       ? []
       : [
-          "its manual run takes no `context` input, so a red reviewer check run on a pull request head can be cleared only by that reviewer reporting again, even after a writer's substitute or another reviewer has made the head acceptable",
+          "its manual run takes no `context` input, so a manual run cannot target one reviewer's check run: it republishes every declared reviewer's check and always adds a bare-name check beside them",
         ]),
   ];
 }
@@ -214,8 +222,13 @@ function dispatchContextRemedyOf(reading: EvidenceSeedReading): string[] {
           "Set `EVIDENCE_CONTEXT` in the evidence job's `env:` to:",
           RUN_IDENTITY_LINES[2],
         ]),
+    // A copy with no `concurrency:` block also reads as keyed per run, so the
+    // whole block is printed: a bare `group:` line has nowhere to go there.
     ...(reading.keysConcurrencyPerRun
-      ? ["Set the `concurrency:` group to:", CONCURRENCY_GROUP_LINE]
+      ? [
+          "Make the top-level `concurrency:` block read (add it if the file has none):",
+          ...CONCURRENCY_BLOCK_LINES,
+        ]
       : []),
   ];
 }

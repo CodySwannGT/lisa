@@ -3101,7 +3101,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/create-only/.github/workflows/review-evidence.yml":
       "f8e7aa7aade0797fd07831d35ce6626bc4acbd13905f6cfac68ef404721c774e",
     "typescript/create-only/.github/workflows/third-party-review-evidence.yml":
-      "5433749440d837c54e68ae613f5da637ea03d82591c407f90fe7c5832671967c",
+      "a7b9c227949546e75939767679e97ec7855c75891de7fa8981ba17b5704ba421",
     "typescript/create-only/.gitleaksignore":
       "6927d376648675331801c798a4390b652a22a3e5d350cd26f36d42c10af02d67",
     "typescript/create-only/audit.ignore.local.json":

@@ -54,9 +54,17 @@
 #
 # CLEARING A STALE CHECK BY HAND (#4738). A writer's substitute posted after a
 # red verdict wakes nothing here: an `issue_comment` trigger would start a run
-# on every comment, so there is none. Dispatch this workflow with `sha` and
-# `context` set to the reviewer's context, and the verdict is published under
-# that reviewer's name, overwriting the stale check run.
+# on every comment, so there is none. Dispatch this workflow with `sha` alone
+# and the verdict is republished under every declared reviewer's name and the
+# bare name. Add `context` — exactly a declared reviewer's status or check-run
+# name; anything else publishes nothing — to target that one reviewer's check
+# without adding a bare-name check. A run that names a context never publishes
+# the bare name, so a stale bare-name check is cleared by a `sha`-only run.
+#
+# TWO REVIEWERS CAN RACE. Every publishing run now writes every declared
+# reviewer's name, so two reviewers' runs on the same head each write both,
+# and whichever finishes last wins, even if it judged an earlier state. A later
+# `sha`-only manual run judges the head afresh and settles every name.
 #
 # WHAT MAKES IT RED. Neither real third-party review evidence at the head, nor a
 # posted adversarial-review substitute for that same head. A merge path that
@@ -114,7 +122,7 @@ on:
         required: true
         type: string
       context:
-        description: 'Reviewer context whose check run to bring up to date; empty publishes under the bare name'
+        description: 'Optional. One reviewer context (its status or check-run name, matched exactly against a declared reviewer; anything else publishes nothing) whose check run to bring up to date. Empty republishes every declared reviewer and the bare name'
         required: false
         type: string
 
