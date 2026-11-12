@@ -104,4 +104,55 @@ describe("terminal workflow manual replay bound (CodySwannGT/lisa#4773)", () => 
       rmSync(root, { recursive: true, force: true });
     }
   });
+
+  it("refuses a dispatched bound wider than the replay cap", () => {
+    const root = mkdtempSync(path.join(os.tmpdir(), "lisa-wi-dispatch-cap-"));
+    const git = (...args: string[]) =>
+      boundedSpawnSync({
+        label: `git ${args[0]}`,
+        command: "git",
+        args: [
+          "-c",
+          "user.email=t@example.com",
+          "-c",
+          "user.name=t",
+          "-c",
+          "commit.gpgsign=false",
+          ...args,
+        ],
+        cwd: root,
+      });
+    const commit = (message: string) =>
+      git("commit", "-q", "--allow-empty", "--no-verify", "-m", message);
+    try {
+      git("init", "-q");
+      commit("one");
+      const first = git("rev-parse", "HEAD").stdout.trim();
+      commit("two");
+      commit("three");
+      const result = boundedSpawnSync({
+        label: "terminal transition over the replay cap",
+        command: "bash",
+        args: ["-e", "-c", transition.run],
+        cwd: root,
+        env: {
+          ...process.env,
+          PUSH_BEFORE: first,
+          PUSH_BRANCH: "main",
+          EVENT_NAME: "workflow_dispatch",
+          MAX_DISPATCH_RANGE: "1",
+        },
+      });
+      expect(result.status).toBe(0);
+      expect(result.stdout).toContain("work-item NOT completed");
+      expect(result.stdout).toContain("replay cap");
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("caps dispatched ranges at 50 commits", () => {
+    expect(transition.env.MAX_DISPATCH_RANGE).toBe("50");
+    expect(transition.env.EVENT_NAME).toBe("${{ github.event_name }}");
+  });
 });
