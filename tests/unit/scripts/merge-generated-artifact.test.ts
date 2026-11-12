@@ -434,8 +434,9 @@ describe("lisa-generated-artifact merge driver", () => {
    * ## The defect
    *
    * The driver refused a conflict and instructed `git checkout --theirs --
-   * <path>`. `parity-safety-net` blocks every `git checkout` that discards
-   * worktree state, so the driver's own documented resolution was unrunnable —
+   * <path>`. A Lisa guard of the time blocked every `git checkout` that
+   * discarded worktree state, so the driver's own documented resolution was
+   * unrunnable —
    * two controls issuing contradictory instructions on the most-travelled
    * recovery route in the repository, at the moment the operator is already
    * mid-conflict. At the time, the guard's suggested alternative was `git
@@ -479,7 +480,7 @@ describe("lisa-generated-artifact merge driver", () => {
      */
     function classify(command: string): number | null {
       return boundedSpawnSync({
-        label: "parity-safety-net.sh",
+        label: "block-no-verify.sh",
         command: "/bin/bash",
         args: [HOOK],
         input: JSON.stringify({

@@ -81,13 +81,6 @@ export const DISPOSITION = Object.freeze({
  */
 export const GENERATED_ARTIFACTS = Object.freeze([
   Object.freeze({
-    path: "scripts/lib/retired-safety-net-manifest.json",
-    check: "check:retired-safety-net-manifest",
-    disposition: DISPOSITION.UNSUPPORTED,
-    reason:
-      "nested: each entry contains source, hashes and current shim bytes; the flat merge parser cannot preserve that ownership contract",
-  }),
-  Object.freeze({
     path: "src/core/upstream-evidence-manifest.ts",
     check: "check:upstream-evidence-manifest",
     disposition: DISPOSITION.DRIVER,

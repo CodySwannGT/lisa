@@ -201,29 +201,11 @@ try {
   );
   proof.apply_receipt = receipt;
   assert.equal(receipt.apply_mode, "full");
-  // #4672 retired the safety net. Exercise a surviving emitted guard while
-  // keeping every proposed command inert, including the retired-target control.
+  // The safety-net hook was removed (CodySwannGT/lisa#4803); a full apply must
+  // not ship it. Exercise a surviving emitted guard, keeping every command inert.
   const retired = path.join(root, "scripts/lisa-hooks/parity-safety-net.sh");
-  const retiredResult = spawnSync("/bin/bash", [retired], {
-    cwd: root,
-    encoding: "utf8",
-    timeout: 60_000,
-    env: { ...process.env, CLAUDE_PROJECT_DIR: root },
-    input: JSON.stringify({
-      tool_name: "Bash",
-      tool_input: { command: "rm -rf /outside-project" },
-    }),
-  });
-  proof.retired_safety_net = {
-    sha256: createHash("sha256").update(readFileSync(retired)).digest("hex"),
-    status: retiredResult.status,
-    signal: retiredResult.signal,
-    stdout: retiredResult.stdout,
-    stderr: retiredResult.stderr,
-  };
-  assert.equal(retiredResult.error, undefined);
-  assert.equal(retiredResult.signal, null);
-  assert.equal(retiredResult.status, 0);
+  proof.retired_safety_net = { present: existsSync(retired) };
+  assert.equal(proof.retired_safety_net.present, false);
   const guard = path.join(root, "scripts/lisa-hooks/block-no-verify.sh");
   const guardBytes = readFileSync(guard);
   proof.guard_sha256 = createHash("sha256").update(guardBytes).digest("hex");

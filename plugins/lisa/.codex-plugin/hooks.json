@@ -86,10 +86,6 @@
           },
           {
             "type": "command",
-            "command": "${PLUGIN_ROOT}/hooks/parity-safety-net.sh"
-          },
-          {
-            "type": "command",
             "command": "${PLUGIN_ROOT}/hooks/block-shell-json-parsing.sh"
           },
           {

@@ -42,10 +42,6 @@
         "matcher": "Bash"
       },
       {
-        "command": "${CURSOR_PLUGIN_ROOT}/hooks/parity-safety-net.sh",
-        "matcher": "Bash"
-      },
-      {
         "command": "${CURSOR_PLUGIN_ROOT}/hooks/block-shell-json-parsing.sh",
         "matcher": "Bash"
       },

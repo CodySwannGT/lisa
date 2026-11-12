@@ -703,11 +703,10 @@ def nested_shell_payload(tokens, index):
 # file away ALLOW — on bash, sh, zsh, `source`, `.`, an absolute interpreter
 # path, and behind every wrapper.
 #
-# THE RULE IS TAKEN FROM parity-safety-net.sh RATHER THAN INVENTED HERE: a path
-# is followed ONLY when the command EXECUTES it. `grep -n x nv.sh`,
-# `git commit -F msg.txt` and `gh pr create --body-file body.md` name a file as
-# DATA, and following those is the known-wrong fix that guard names by number —
-# it refuses ordinary reads and attributes a file's capability to a command that
+# THE RULE: a path is followed ONLY when the command EXECUTES it.
+# `grep -n x nv.sh`, `git commit -F msg.txt` and `gh pr create --body-file
+# body.md` name a file as DATA, and following those is a known-wrong fix — it
+# refuses ordinary reads and attributes a file's capability to a command that
 # merely mentions it. So COMMAND POSITION decides, never the presence of a path.
 #
 # Non-shell interpreters (`python3 x.py`, `node x.mjs`) are deliberately NOT

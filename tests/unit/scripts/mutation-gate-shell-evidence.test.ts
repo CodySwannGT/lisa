@@ -47,8 +47,8 @@ import {
   readShellGuardEvidence,
 } from "../../../typescript/copy-overwrite/scripts/lisa-mutation.mjs";
 
-/** The guard under discussion, as the #3863 diff spelled it. */
-const GUARD = "all/copy-overwrite/scripts/lisa-hooks/parity-safety-net.sh";
+/** The guard under discussion: a shipped host copy of a live shell guard. */
+const GUARD = "all/copy-overwrite/scripts/lisa-hooks/block-no-verify.sh";
 
 /** A second guard, so a trace can be about one file and not another. */
 const OTHER = "scripts/unrelated-guard.sh";
@@ -129,7 +129,7 @@ describe("a shell guard WITHOUT one is still named as unevidenced", () => {
   });
 
   it("refuses a guard driven only onto its allow path", () => {
-    // CodySwannGT/lisa#3054: every verdict site in `parity-safety-net.sh`
+    // CodySwannGT/lisa#3054: every verdict site in a since-retired guard
     // reached its answer through `grep -q`, and a grep exiting 2 made the
     // shipped hook ALLOW catastrophic deletes. An allows-only suite cannot
     // detect that by construction, so it is not evidence.

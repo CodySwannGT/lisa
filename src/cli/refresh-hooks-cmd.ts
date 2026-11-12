@@ -20,11 +20,6 @@ import {
 } from "./hook-refresh-files.js";
 
 const COHORTS: Readonly<Record<string, readonly string[]>> = {
-  "parity-safety-net": [
-    "parity-safety-net.sh",
-    "parity-safety-net-heredoc.py",
-    "guard-dedupe.bash",
-  ],
   "block-no-verify": ["block-no-verify.sh", "guard-dedupe.bash"],
 };
 const PREFIX = "scripts/lisa-hooks";
@@ -44,10 +39,7 @@ export function addHookRefreshCommand(
       "Refresh only explicitly selected released guards and companions"
     )
     .argument("<destination>", "Host project root")
-    .requiredOption(
-      "--guards <names>",
-      "Closed guard cohort: parity-safety-net,block-no-verify"
-    )
+    .requiredOption("--guards <names>", "Closed guard cohort: block-no-verify")
     .action(async (destination: string, options: { guards: string }) => {
       await execute(destination, {}, options.guards);
     });
@@ -70,9 +62,7 @@ export function hookCohort(selection: string): readonly string[] {
     new Set(names).size !== names.length ||
     names.some(name => !Object.hasOwn(COHORTS, name))
   )
-    throw new Error(
-      "Select unique closed guards: parity-safety-net,block-no-verify"
-    );
+    throw new Error("Select unique closed guards: block-no-verify");
   return [...new Set(names.flatMap(name => COHORTS[name] ?? []))].sort(
     (left, right) => left.localeCompare(right)
   );
@@ -202,7 +192,7 @@ async function beforeWrite(
 export async function refreshHooks(
   destination: string,
   dependencies: HookRefreshDependencies = {},
-  selection = "parity-safety-net"
+  selection = "block-no-verify"
 ): Promise<void> {
   if (!constants.O_NOFOLLOW || !constants.O_DIRECTORY)
     throw new Error(

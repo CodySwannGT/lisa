@@ -126,9 +126,6 @@ build_per_agent_variant() {
 }
 
 # Base plugin
-if [ -f "$ROOT_DIR/scripts/generate-scratch-supervisor-profile.mjs" ]; then
-  node "$ROOT_DIR/scripts/generate-scratch-supervisor-profile.mjs"
-fi
 build_plugin base lisa
 
 # Startup and the CLI share one Node-builtins-only Rails hook engine. Stage
@@ -180,7 +177,7 @@ HOST_GUARD_DIR="$ROOT_DIR/all/copy-overwrite/scripts/lisa-hooks"
 if [ -d "$SRC_DIR/base/hooks" ]; then
   mkdir -p "$HOST_GUARD_DIR"
 fi
-for guard in block-no-verify parity-safety-net block-shell-json-parsing \
+for guard in block-no-verify block-shell-json-parsing \
   block-instruction-file-edits block-direct-issue-create \
   block-managed-file-edits block-blind-automerge worktree-binding-guard; do
   if [ -f "$SRC_DIR/base/hooks/$guard.sh" ]; then
@@ -202,15 +199,15 @@ fi
 # Companions: files a guard resolves as a SIBLING OF ITSELF at run time.
 #
 # The loop above appends `.sh` to every roster entry, so it can only ever
-# deliver a guard's shell half. `parity-safety-net.sh` resolves its heredoc
-# classifier at `$(dirname "${BASH_SOURCE[0]}")/parity-safety-net-heredoc.py`,
-# and that literal `.sh` was an extension filter no roster entry could get past:
-# the plugin trees all carry the classifier, the host tree carried seven `.sh`
-# files and nothing else, and the sibling lookup in an applied host checkout
-# therefore failed on every machine. The guard fails closed, correctly, so the
-# consequence was that EVERY heredoc was blocked in every host project that had
-# taken these hooks — permanently, and not fixable by installing anything
-# (issue #3483).
+# deliver a guard's shell half. A guard that resolves a sibling helper — the
+# heredoc classifier `parity-safety-net-heredoc.py` that
+# `block-instruction-file-edits.sh` hands display commands to, for one — needs
+# that file beside it, and the literal `.sh` was an extension filter no roster
+# entry could get past: the plugin trees all carried the classifier, the host
+# tree carried `.sh` files and nothing else, and the sibling lookup in an
+# applied host checkout therefore failed on every machine. A guard that fails
+# closed on a missing helper then blocks every command needing it, permanently,
+# and not fixably by installing anything (issue #3483).
 #
 # Enumerated rather than globbed, for the reason the roster itself is: a file
 # appearing in `plugins/src/base/hooks/` is not by itself a decision to ship it
@@ -353,5 +350,3 @@ for agent in "${PER_AGENT_VARIANTS[@]}"; do
   done
 done
 
-# Historical ownership plus the newly emitted compatibility handlers must agree.
-node "$ROOT_DIR/scripts/generate-retired-safety-net-manifest.mjs"
