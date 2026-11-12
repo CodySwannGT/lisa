@@ -37,6 +37,10 @@ const CLEAN = "No high or critical";
 const VERSION_MISMATCH = "version-mismatch";
 const MISSING_LOCK = "missing-lock";
 const MALFORMED_LOCK = "malformed-lock";
+/** #4509: a package+versions scope with no `paths`, on the zod 3.x copy. */
+const VERSIONS_ONLY = "versions-only";
+/** #4509: the same versions-only scope, but that copy is zod 4.5.0. */
+const ZOD4_VERSIONS_ONLY = "zod4-versions-only";
 const roots: string[] = [];
 
 const SCRIPT = "node scripts/lisa-audit.mjs";
@@ -96,6 +100,10 @@ function fixtureEntry(kind: string, devPath: string) {
     return { id: GHSA, reason: "Controlled legacy decision" };
   if (kind === "empty-paths") return { ...scoped, paths: [] };
   if (kind === VERSION_MISMATCH) return { ...scoped, versions: "4.x" };
+  if (kind === VERSIONS_ONLY || kind === ZOD4_VERSIONS_ONLY) {
+    const { paths: _paths, ...versionsOnly } = scoped;
+    return versionsOnly;
+  }
   if (kind === PACKAGE_MISMATCH_KIND)
     return { ...scoped, package: OTHER_PACKAGE };
   return scoped;
@@ -288,6 +296,9 @@ describe("audit-consumer parity on the identical tree", () => {
     [VERSION_MISMATCH, 1, bun.devPath],
     // Same advisory, same listed path, but zod 4.5.0 is outside the 3.x scope.
     ["zod4-on-listed-path", 1, `${bun.devPath} (zod@4.5.0)`],
+    // #4509: package+versions with no paths accepts zod 3.x, rejects zod 4.5.0.
+    [VERSIONS_ONLY, 0, `excluded ${GHSA} for ${bun.devPath}`],
+    [ZOD4_VERSIONS_ONLY, 1, `${bun.devPath} (zod@4.5.0)`],
   ] as const)(
     "%s: hook, registry and CI agree and name the measured result",
     (kind, status, message, registryMessage?: string) => {
@@ -310,6 +321,8 @@ describe.each(["npm", "yarn"] as const)(
       [MISSING_LOCK, 1, unreadable, "No supported audit lockfile found"],
       [MALFORMED_LOCK, 1, unreadable],
       [VERSION_MISMATCH, 1, shape.devPath],
+      [VERSIONS_ONLY, 0, `excluded ${GHSA} for ${shape.devPath}`],
+      [ZOD4_VERSIONS_ONLY, 1, `${shape.devPath} (zod@4.5.0)`],
     ] as const)(
       "%s: hook, registry and CI agree and name the measured result",
       (kind, status, message, registryMessage?: string) => {
