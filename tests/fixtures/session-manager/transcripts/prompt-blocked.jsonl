@@ -1,0 +1,8 @@
+{"type":"last-prompt","sessionId":"00000000-0000-4000-8000-0000000000a2"}
+{"type":"custom-title","customTitle":"wk-DEMO-12-1023-1419","sessionId":"00000000-0000-4000-8000-0000000000a2"}
+{"type":"agent-name","agentName":"wk-DEMO-12-1023-1419","sessionId":"00000000-0000-4000-8000-0000000000a2"}
+{"type":"mode","mode":"normal","sessionId":"00000000-0000-4000-8000-0000000000a2"}
+{"type":"permission-mode","permissionMode":"bypassPermissions","sessionId":"00000000-0000-4000-8000-0000000000a2"}
+{"type":"file-history-snapshot","messageId":"00000000-0000-4000-8000-0000000000b2","snapshot":{"messageId":"00000000-0000-4000-8000-0000000000b2","trackedFileBackups":{},"timestamp":"2026-10-23T14:19:02.000Z"},"isSnapshotUpdate":false}
+{"parentUuid":null,"isSidechain":false,"type":"system","subtype":"informational","content":"UserPromptSubmit operation blocked by hook:\n[demo-secret-scan-shim]: Secret scanning is inactive: not authenticated.\n\n\nOriginal prompt: /lisa:implement DEMO-12 managedBy=demo-manager","isMeta":false,"timestamp":"2026-10-23T14:19:03.000Z","uuid":"00000000-0000-4000-8000-0000000000c4","level":"warning","preventContinuation":true,"promptSubmitEnding":{"ending":{"kind":"blocked_by_hook","reason":"Secret scanning is inactive: not authenticated."},"promptKept":false},"sessionKind":"bg","userType":"external","entrypoint":"cli","cwd":"/work/demo","sessionId":"00000000-0000-4000-8000-0000000000a2","version":"2.1.319","gitBranch":"main"}
+{"type":"last-prompt","sessionId":"00000000-0000-4000-8000-0000000000a2"}
