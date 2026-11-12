@@ -1439,7 +1439,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-fix-linter-error/SKILL.md":
       "3a8f01f014ac7f7ac37024c67df1ba07202331542d269d27da3356a7fa0a5599",
     "plugins/src/base/skills/lisa-generate-claude-remote-build-script/SKILL.md":
-      "214ed34793b9758a65930ef2a79eea8e44ee1f6c85a35b92fbc621cb539e0c69",
+      "f04077d506415100f1838e032e077900c2dd6c4fa7316ec0d766b588a4532829",
     "plugins/src/base/skills/lisa-git-commit/SKILL.md":
       "0e6ccd385ecdb9a579f3c25a22f770c3a30286e6f8f601316783ecb9d1ad2617",
     "plugins/src/base/skills/lisa-git-prune/SKILL.md":
@@ -1781,7 +1781,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-setup-atlassian/SKILL.md":
       "d1945a471afa5454ef4f6dffa52decf7df0ec3f411dadaf5d4bc95aeeb8ca6e2",
     "plugins/src/base/skills/lisa-setup-automations/SKILL.md":
-      "51a97283db31422c9d1d2a03fd7e39ed70d42991fe8ea1be121e9f9d46388337",
+      "71d0bece6f976100eaef792f4dac8a481e0baa1b5deafa1cbcd92cca0abb4a9a",
     "plugins/src/base/skills/lisa-setup-automations/scripts/generate-workflow.mjs":
       "c13e287c8beb6f847b03c93298b8a3fb211e65ce897e63692933377f8c4303f1",
     "plugins/src/base/skills/lisa-setup-confluence/SKILL.md":

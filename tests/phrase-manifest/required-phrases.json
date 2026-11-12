@@ -10703,7 +10703,6 @@
     },
     "plugins/lisa/skills/lisa-generate-claude-remote-build-script/SKILL.md": {
       "required": [
-        ".lisa/remote-environment.json",
         "JAM_PAT",
         "SONARQUBE_CLI_TOKEN",
         "curl -fsSL https://native.jam.dev/install | bash",
@@ -17375,7 +17374,6 @@
     },
     "plugins/src/base/skills/lisa-generate-claude-remote-build-script/SKILL.md": {
       "required": [
-        ".lisa/remote-environment.json",
         "JAM_PAT",
         "SONARQUBE_CLI_TOKEN",
         "curl -fsSL https://native.jam.dev/install | bash",

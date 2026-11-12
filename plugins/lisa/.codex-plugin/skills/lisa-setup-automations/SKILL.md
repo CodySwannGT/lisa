@@ -225,7 +225,7 @@ its configured landing strategy; an open PR is not an applied update.
 When false or absent, remove any exact `lisa-auto-<project>-starter-sync`
 registration using that same native scheduler, leaving all other schedules
 alone. Read the scheduler back after either operation and report the observed
-name, target, cadence, or verified absence. Saving the console toggle only saves
+name, target, cadence, or verified absence. Editing `starter.sync.auto` only changes
 config: run this reconciliation to change the registration. If scheduler access
 is unavailable, report registration/removal as **unverified**, not successful;
 do not write its backing files or install another scheduler. This representation
