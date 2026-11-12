@@ -2381,7 +2381,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/rails/skills/ops-verify-telemetry/SKILL.md":
       "ef62ffd2115a67b29ccc2356e555a5e590f7045503400eec5c7289c9c76bb7d4",
     "plugins/src/typescript/hooks/block-suppress-directives.sh":
-      "86de04d24aa1208fc2ef3ea9021b0036f755da849fae44dff7166cf05b49d636",
+      "5ea9756f33064747b1fc5375733de76a61f09685836568d7cb12ff7dc5cdff43",
     "plugins/src/typescript/hooks/format-on-edit.sh":
       "c9b91f4470a9f96c556124b902a6d86c32c1efe643988b6dcb28dc9b2c127d06",
     "plugins/src/typescript/hooks/lint-on-edit.sh":

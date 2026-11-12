@@ -7,12 +7,14 @@
  * underlying error. @ts-expect-error is intentionally NOT matched (it is the
  * safer alternative).
  *
- * Refuses only directive GROWTH, never mere presence (CodySwannGT/lisa#4492):
- * the directives before the call (the file on disk for `write`, `oldString`
- * for `edit`) are compared with those after it, and the call is refused when
- * the after text carries one the before text does not — a new directive,
- * another copy of one, or a reworded (widened) one. Each directive is taken
- * from its comment opener to the end of its line. A `write` over something
+ * Refuses directive GROWTH, not presence (CodySwannGT/lisa#4492): a directive
+ * in the after text that the before text lacks (new, another copy, or reworded)
+ * refuses. `write` judges the whole file (disk vs content); `edit` judges only
+ * the replaced fragment (oldString vs newString), so a widening done purely by
+ * deleting text from an existing directive, or a directive assembled across
+ * separate edits, is NOT detected — a pre-existing limit, shared with the
+ * presence check this replaced. Each directive is taken from its comment
+ * opener to the end of its line. A `write` over something
  * that exists but cannot be read, or an `edit` that brings a directive with no
  * `oldString`, cannot be judged and is refused.
  *

@@ -8,11 +8,13 @@
 # base "ASK FIRST" governance rule). The agent should stop and get the user's
 # approval rather than slip a suppression past silently.
 #
-# Refuses only directive GROWTH, never mere presence: it compares the
-# directives before the write (the file on disk for Write, old_string for each
-# Edit/MultiEdit pair) with those after it, and refuses when the after text
-# carries one the before text does not — a new directive, another copy of one,
-# or a reworded (widened) one. Keeping or removing directives is allowed.
+# Refuses directive GROWTH, not presence: a directive in the after text that the
+# before text lacks (new, another copy, or reworded) refuses; keeping or
+# removing one is allowed. Write judges the whole file (disk vs content).
+# Edit/MultiEdit judge each replaced fragment on its own (old_string vs
+# new_string), so a widening done purely by deleting text from an existing
+# directive, or a directive assembled across separate edits, is NOT detected —
+# a pre-existing limit, shared with the presence check this replaced.
 # Scoped to JS/TS files, and matches the directive only in comment syntax
 # (// or /*) so prose, strings, and identifiers that merely mention these
 # tokens are not flagged.

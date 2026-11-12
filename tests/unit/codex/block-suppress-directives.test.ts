@@ -6,7 +6,8 @@
  * For Edit/Write/MultiEdit the hook refuses only directive GROWTH
  * (CodySwannGT/lisa#4492): it compares the directives before the write (the
  * file on disk, or each edit's old text) with those after it. For apply_patch
- * it inspects the added `+` lines. It is scoped to JS/TS files, and matches the directive only in comment syntax so prose, strings,
+ * it compares each file's `-` lines with its `+` lines. It is scoped to JS/TS
+ * files, and matches the directive only in comment syntax so prose, strings,
  * and identifiers that merely mention the tokens are not flagged. @ts-expect-
  * error is intentionally allowed as the safer alternative.
  *
@@ -22,10 +23,13 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { boundedSpawnSync } from "../../helpers/io-latency-budget.js";
 import {
+  FILE_WIDE_DISABLE,
   GROWTH_CASES,
   hookEnvelope,
+  NEXT_LINE_DISABLE,
   prepareDisk,
   RUNS_AS_ROOT,
+  TS_IGNORE as GROWTH_TS_IGNORE,
 } from "../../helpers/suppress-directive-growth-cases.js";
 
 const SCRIPT_PATH = path.resolve(
@@ -185,6 +189,68 @@ describe("block-suppress-directives.sh", () => {
         "*** End Patch\n";
       const { status } = run(applyPatchEnvelope(patch));
       expect(status).toBe(EXIT_BLOCKED);
+    });
+
+    describe("growth semantics (CodySwannGT/lisa#4492)", () => {
+      const update = (file: string, body: string): string =>
+        `*** Begin Patch\n*** Update File: ${file}\n@@\n${body}*** End Patch\n`;
+
+      it("allows re-indenting a block that keeps its existing directive", () => {
+        const patch = update(
+          "src/a.ts",
+          `-${NEXT_LINE_DISABLE}\n-console.log(1);\n` +
+            `+  ${NEXT_LINE_DISABLE}\n+  console.log(1);\n`
+        );
+        expect(run(applyPatchEnvelope(patch)).status).toBe(EXIT_ALLOWED);
+      });
+
+      it("allows removing a directive", () => {
+        const patch = update(
+          "src/a.ts",
+          `-${GROWTH_TS_IGNORE}\n-badCall();\n+goodCall();\n`
+        );
+        expect(run(applyPatchEnvelope(patch)).status).toBe(EXIT_ALLOWED);
+      });
+
+      it("refuses a hunk that adds a new directive beside the old line", () => {
+        const patch = update(
+          "src/a.ts",
+          "-const a = 1;\n" + `+const a = 1; ${GROWTH_TS_IGNORE}\n`
+        );
+        expect(run(applyPatchEnvelope(patch)).status).toBe(EXIT_BLOCKED);
+      });
+
+      it("refuses widening a next-line disable into a file-wide one", () => {
+        const patch = update(
+          "src/a.ts",
+          `-${NEXT_LINE_DISABLE}\n+${FILE_WIDE_DISABLE}\n`
+        );
+        expect(run(applyPatchEnvelope(patch)).status).toBe(EXIT_BLOCKED);
+      });
+
+      it("refuses an Add File that carries a directive", () => {
+        const patch =
+          "*** Begin Patch\n*** Add File: src/new.ts\n" +
+          `+${NEXT_LINE_DISABLE}\n+console.log(1);\n*** End Patch\n`;
+        expect(run(applyPatchEnvelope(patch)).status).toBe(EXIT_BLOCKED);
+      });
+
+      it("allows deleting a file that carried a directive", () => {
+        const patch =
+          "*** Begin Patch\n*** Delete File: src/old.ts\n*** End Patch\n";
+        expect(run(applyPatchEnvelope(patch)).status).toBe(EXIT_ALLOWED);
+      });
+
+      it("refuses moving a directive from one file into another", () => {
+        // Growth is judged per file: removing it from a.ts does not license
+        // adding it to b.ts.
+        const patch =
+          "*** Begin Patch\n" +
+          `*** Update File: src/a.ts\n@@\n-${GROWTH_TS_IGNORE}\n+ok();\n` +
+          `*** Update File: src/b.ts\n@@\n-ok();\n+${GROWTH_TS_IGNORE}\n` +
+          "*** End Patch\n";
+        expect(run(applyPatchEnvelope(patch)).status).toBe(EXIT_BLOCKED);
+      });
     });
   });
 
