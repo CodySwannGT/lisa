@@ -95,15 +95,14 @@ function handedNames(): Record<string, string> {
 const PULL_REQUEST_ONLY_CONJUNCT = "github.event_name == 'pull_request'";
 
 /**
- * The top-level `&&` conjuncts of a job condition, `${{ }}` stripped.
- *
- * Splits only at parenthesis depth zero, so an `||` nested inside a
- * parenthesised conjunct stays inside that conjunct.
+ * A job condition split at one operator at parenthesis depth zero, `${{ }}`
+ * stripped. An operator nested inside a parenthesised operand stays inside it.
  *
  * @param condition - A job's `if:`
- * @returns Each conjunct, trimmed
+ * @param operator - `&&` or `||`
+ * @returns Each top-level operand, trimmed
  */
-function topLevelConjuncts(condition: string): string[] {
+function splitTopLevel(condition: string, operator: "&&" | "||"): string[] {
   const body = condition
     .trim()
     .replace(/^\$\{\{/u, "")
@@ -116,9 +115,9 @@ function topLevelConjuncts(condition: string): string[] {
     const char = body[index];
     if (char === "(") depth += 1;
     if (char === ")") depth -= 1;
-    if (depth === 0 && body.startsWith("&&", index)) {
+    if (depth === 0 && body.startsWith(operator, index)) {
       parts.push(body.slice(start, index).trim());
-      start = index + 2;
+      start = index + operator.length;
     }
   }
   parts.push(body.slice(start).trim());
@@ -135,9 +134,11 @@ const PULL_REQUEST_ONLY = "pull-request-only";
  * How a job's condition treats the event, decided strictly.
  *
  * `pull-request-only` only when the condition REQUIRES `pull_request`: the
- * comparison is a top-level `&&` conjunct (no `||` can bypass it) and it is
- * the condition's only mention of `github.event_name`. Any other mention is
- * `undecided`, so the test asks for a deliberate decision instead of guessing.
+ * condition has no top-level `||` (which binds looser than `&&`, so
+ * `A && B || C` could run without A), the comparison is a top-level `&&`
+ * conjunct, and it is the condition's only mention of `github.event_name`.
+ * Any other mention is `undecided`, so the test asks for a deliberate
+ * decision instead of guessing.
  *
  * @param condition - A job's `if:`, or empty
  * @returns The classification
@@ -147,9 +148,9 @@ function eventShape(
 ): "none" | typeof PULL_REQUEST_ONLY | typeof UNDECIDED {
   const mentions = condition.split("github.event_name").length - 1;
   if (mentions === 0) return "none";
-  const required = topLevelConjuncts(condition).includes(
-    PULL_REQUEST_ONLY_CONJUNCT
-  );
+  const required =
+    splitTopLevel(condition, "||").length === 1 &&
+    splitTopLevel(condition, "&&").includes(PULL_REQUEST_ONLY_CONJUNCT);
   return mentions === 1 && required ? PULL_REQUEST_ONLY : UNDECIDED;
 }
 
@@ -256,6 +257,11 @@ describe("🔒 Skipped Required Checks sees every outcome it judges", () => {
     ).toBe(PULL_REQUEST_ONLY);
     expect(
       eventShape("${{ github.event_name == 'pull_request' || inputs.force }}")
+    ).toBe(UNDECIDED);
+    expect(
+      eventShape(
+        "${{ github.event_name == 'pull_request' && x || inputs.force }}"
+      )
     ).toBe(UNDECIDED);
     expect(
       eventShape(
