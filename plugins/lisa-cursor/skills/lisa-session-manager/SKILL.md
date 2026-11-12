@@ -442,7 +442,7 @@ shows them.
 | `working`, `waiting`, `finished` | Nothing. |
 | `requestion` | With Telegram: re-send the pending question once, then re-record it with `ledger set-question` (same text, new message id); that restarts the re-ping clock. With no channel: nothing to re-send; leave it pending. |
 | `stalled`, `dead` | Read the item. If it left the `claimed` role, a human moved it: do not retry or move it; `ledger finish <ref> --status FAILED` with reason "left the claimed role outside the manager". Otherwise check for a merged PR first (`gh pr list --state merged --search <ref>` in the item's repo dir). If merged, leave the state change to Lisa's lifecycle and `ledger finish <ref> --status DONE` with reason "PR merged". Otherwise `claude stop <worker>` if it is still listed, then `spawn` a **fresh** attempt when capacity allows (the CLI counts attempts). |
-| `setup-gap` | The worker's first prompt never ran: `setupGap.kind` is `unknown-command` (Lisa's plugin is not visible in that repo, so `/lisa:implement` is unknown there) or `prompt-blocked` (a `UserPromptSubmit` hook rejected the prompt; `setupGap.detail` is what the hook said). Retrying cannot fix it. `claude stop <worker>` if it is still listed, `ledger finish <ref> --status FAILED --setup-gap` with reason "setup gap: <kind>: <detail>" (the spawn is not counted as an attempt), move the item back to the `ready` role, post one plain-language line naming the repo and the fix to Telegram, do not respawn it, do not dispatch to that repo again until the operator fixes it, and end the cycle `recovery-required` with that line as the summary. |
+| `setup-gap` | The worker's first prompt never ran: `setupGap.kind` is `unknown-command` (Lisa's plugin is not visible in that repo, so `/lisa:implement` is unknown there) or `prompt-blocked` (a `UserPromptSubmit` hook rejected the prompt; `setupGap.detail` is what the hook said). Retrying cannot fix it. `claude stop <worker>` if it is still listed, `ledger finish <ref> --status FAILED --setup-gap` with reason "setup gap: <kind>: <detail>" (the spawn is not counted as an attempt). Then read the item: If it left the `claimed` role, a human moved it: respect that and do not move it back to the `ready` role. Otherwise move the item back to the `ready` role. Either way post one plain-language line naming the repo and the fix to Telegram, do not respawn it, do not dispatch to that repo again until the operator fixes it, and end the cycle `recovery-required` with that line as the summary. |
 | `exhausted` | Attempts reached `stall.maxAttempts`. Stop the worker if listed, `ledger finish <ref> --status FAILED`, then follow "Mark and move on" with `--kind exhausted` and, as the reason, how many attempts failed and how each ended: it moves the item to the `blocked` role and marks it for a human. |
 
 **Blocked.** List the items in the `blocked` role (paged to completion, same access paths as the
@@ -556,8 +556,10 @@ Skip while `capacity` reports `paused`. Otherwise:
       - exit 2 (setup gap, e.g. workspace trust not accepted in the repo dir), including a worker
         whose first prompt never ran (`/lisa:implement` unknown in that repo, or a
         `UserPromptSubmit` hook rejected it; the CLI already stopped that worker and recorded
-        nothing): move the item back to
-        the `ready` role, post the CLI's one-line message to Telegram, and end the cycle
+        nothing). If the ledger already has an item for the ref and it is still
+        running, run `ledger finish <ref> --status FAILED --setup-gap` with the CLI's message as
+        the reason, so that stale row from an earlier worker is never later read as a human
+        moving the item. Then move the item back to the `ready` role, post the CLI's one-line message to Telegram, and end the cycle
         `recovery-required` with that message as the summary. It is not a failed attempt; do not
         dispatch to that repo again until the operator fixes it.
       - any other exit: move the item back to the `ready` role, notify Telegram, continue.

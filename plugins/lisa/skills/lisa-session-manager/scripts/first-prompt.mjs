@@ -87,10 +87,13 @@ function entryFailure(entry) {
  *   Verdict
  */
 export function firstPromptVerdict(entries) {
-  if (entries.some(entry => entry.type === "assistant")) {
-    return { alive: true, failure: null };
+  // One pass that stops at the first assistant turn: a long, healthy
+  // transcript is read only up to the worker's first reply.
+  let failure = null;
+  for (const entry of entries) {
+    if (entry.type === "assistant") return { alive: true, failure: null };
+    failure ??= entryFailure(entry);
   }
-  const failure = entries.map(entryFailure).find(Boolean) ?? null;
   return { alive: false, failure };
 }
 

@@ -36,6 +36,8 @@ const REF = "DEMO-12";
 const SPAWN = ["spawn", REF, ...MEM];
 const WORKER = "wk-DEMO-12-1023-1417";
 const UNKNOWN = "unknown-command";
+const FINISH_FAILED = ["ledger", "finish", REF, "--status", "FAILED"];
+const SETUP_GAP = "--setup-gap";
 /** The stub's `claude --bg` prints short id 1a2b3c4d; this is its full id. */
 const FULL_ID = "1a2b3c4d-0000-4000-8000-000000000001";
 const FIXTURES = path.resolve(
@@ -121,6 +123,26 @@ describe("spawn proof of life", () => {
     expect(result.json).toMatchObject({ ref: REF, firstPrompt: "alive" });
     expect(readLedgerFile(sandbox).items[REF].attempts).toBe(1);
     expect(callsOf(result.calls, "claude", "stop")).toEqual([]);
+  });
+
+  it("leaves a re-dispatched item's earlier attempts and worker untouched when its first prompt fails", () => {
+    const sandbox = makeSandbox();
+    seedRunning(sandbox, WORKER, 1);
+    runCli(sandbox, FINISH_FAILED, {
+      input: "first attempt failed",
+    });
+    plant(sandbox, UNKNOWN);
+    const result = runCli(sandbox, SPAWN);
+    expect(result.status).toBe(2);
+    const item = readLedgerFile(sandbox).items[REF];
+    expect(item).toMatchObject({
+      status: "FAILED",
+      attempts: 1,
+      worker: WORKER,
+    });
+    expect(
+      item.history.filter((h: { event: string }) => h.event === "spawn")
+    ).toEqual([]);
   });
 
   it("exits 0 as before when no transcript appears within the window", () => {
@@ -213,11 +235,9 @@ describe("ledger finish --setup-gap", () => {
   it("does not count the spawn that hit a setup gap as an attempt", () => {
     const sandbox = makeSandbox();
     seedRunning(sandbox, WORKER, 2);
-    const result = runCli(
-      sandbox,
-      ["ledger", "finish", REF, "--status", "FAILED", "--setup-gap"],
-      { input: "setup gap: /lisa:implement unknown in the repo" }
-    );
+    const result = runCli(sandbox, [...FINISH_FAILED, SETUP_GAP], {
+      input: "setup gap: /lisa:implement unknown in the repo",
+    });
     expect(result.stderr).toBe("");
     expect(result.status).toBe(0);
     const item = readLedgerFile(sandbox).items[REF];
@@ -234,10 +254,49 @@ describe("ledger finish --setup-gap", () => {
     seedRunning(sandbox, WORKER, 2);
     const result = runCli(
       sandbox,
-      ["ledger", "finish", REF, "--status", "DONE", "--setup-gap"],
+      ["ledger", "finish", REF, "--status", "DONE", SETUP_GAP],
       { input: "x" }
     );
     expect(result.status).toBe(2);
     expect(readLedgerFile(sandbox).items[REF].attempts).toBe(2);
+  });
+
+  it("refunds only a running item's attempt, so repeating it changes nothing", () => {
+    const sandbox = makeSandbox();
+    seedRunning(sandbox, WORKER, 2);
+    const gap = [...FINISH_FAILED, SETUP_GAP];
+    expect(runCli(sandbox, gap, { input: "gap" }).status).toBe(0);
+    expect(runCli(sandbox, gap, { input: "gap again" }).status).toBe(0);
+    expect(readLedgerFile(sandbox).items[REF].attempts).toBe(1);
+  });
+
+  it("does not refund an item that already finished", () => {
+    const sandbox = makeSandbox();
+    seedRunning(sandbox, WORKER, 2);
+    expect(runCli(sandbox, FINISH_FAILED, { input: "stalled" }).status).toBe(0);
+    const late = runCli(sandbox, [...FINISH_FAILED, SETUP_GAP], {
+      input: "gap",
+    });
+    expect(late.status).toBe(0);
+    expect(readLedgerFile(sandbox).items[REF].attempts).toBe(2);
+  });
+});
+
+describe("spawn without a session id", () => {
+  it("skips the first-prompt wait and reports unconfirmed at once", () => {
+    const sandbox = makeSandbox();
+    const started = Date.now();
+    const result = runCli(sandbox, SPAWN, {
+      env: {
+        STUB_BG_OUTPUT: "Started a background session\n",
+        LISA_SESSION_MANAGER_FIRST_PROMPT_MS: "20000",
+      },
+    });
+    expect(Date.now() - started).toBeLessThan(10_000);
+    expect(result.status).toBe(0);
+    expect(result.json).toMatchObject({
+      sessionId: null,
+      firstPrompt: "unconfirmed",
+    });
   });
 });

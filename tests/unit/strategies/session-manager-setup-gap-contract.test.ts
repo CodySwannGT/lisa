@@ -35,4 +35,18 @@ describe.each(ALL_ROOTS)("session-manager setup-gap contract (%s)", root => {
     expect(row).toContain("do not dispatch to that repo again");
     expect(row).toContain("`recovery-required`");
   });
+
+  it("respects a human who already moved a setup-gap item out of the claimed role", () => {
+    const row = cycle
+      .split("\n")
+      .find(line => line.startsWith("| `setup-gap` |"));
+    expect(row).toContain("If it left the `claimed` role, a human moved it");
+    expect(row).toContain("do not move it back to the `ready` role");
+  });
+
+  it("finishes a still-running earlier ledger row on spawn exit 2", () => {
+    expect(cycle).toContain(
+      "If the ledger already has an item for the ref and it is still\n        running, run `ledger finish <ref> --status FAILED --setup-gap`"
+    );
+  });
 });

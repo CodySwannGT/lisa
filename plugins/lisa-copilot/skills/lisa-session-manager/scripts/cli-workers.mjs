@@ -176,12 +176,12 @@ export async function spawn(ctx) {
     );
   }
   // Before anything is recorded: a first prompt that never ran is a setup
-  // gap (exit 2), not an attempt.
-  const firstPrompt = await confirmFirstPrompt(ctx, {
-    name,
-    sessionId,
-    repoDir,
-  });
+  // gap (exit 2), not an attempt. With no session id there is no transcript
+  // to find, so waiting would only delay the spawn.
+  const firstPrompt =
+    sessionId === null
+      ? "unconfirmed"
+      : await confirmFirstPrompt(ctx, { name, sessionId, repoDir });
   const repo = key ?? ".";
   await recordSpawn(ctx.root, { ref, worker: name, sessionId, repo });
   await appendSessionEvent(ctx.root, {
@@ -309,13 +309,16 @@ function workerDir(ctx, config, entry) {
  *
  * probe-direction: fail-open — an unreadable or missing transcript yields
  * null, which leaves classification exactly as it was before this check.
+ * A finished item (DONE or FAILED) classifies `finished` whatever its
+ * transcript says, so its transcript is never read.
  * @param {object} ctx - CLI context
  * @param {object | null} config - Resolved `sessionManager` block, if any
- * @param {{worker?: string|null, sessionId?: string|null, repo?: string|null}}
- *   entry - Ledger item
+ * @param {{worker?: string|null, sessionId?: string|null, repo?: string|null,
+ *   status?: string}} entry - Ledger item
  * @returns {{kind: string, detail: string} | null} Failure
  */
 function transcriptFailure(ctx, config, entry) {
+  if (entry.status === "DONE" || entry.status === "FAILED") return null;
   const cwd =
     entry.worker && entry.sessionId ? workerDir(ctx, config, entry) : null;
   if (cwd === null) return null;
