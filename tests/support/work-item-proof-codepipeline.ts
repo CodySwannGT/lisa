@@ -2,7 +2,14 @@
  * A CDK host whose delivery is proven by a CodePipeline execution, served by
  * the argv-table fake `aws`. Payloads are synthetic and only test authorization.
  */
-import { existsSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  rmSync,
+  symlinkSync,
+  writeFileSync,
+} from "node:fs";
 import path from "node:path";
 
 import { proofFixture } from "./work-item-proof-fixture.js";
@@ -117,17 +124,23 @@ export function awsCalls(fixture: PipelineFixture) {
 
 /**
  * Leave no `aws` anywhere on the fixture's PATH, so the spawn fails ENOENT.
- * The directory holding the running `node` is appended afterwards: it can be
- * the same directory as a real `aws` (Homebrew), and the fake `gh` runs
- * through `#!/usr/bin/env node`, so dropping it would fail the gh read first.
+ * The fake `gh` runs through `#!/usr/bin/env node`, and `node` can share a
+ * directory with a real `aws` (Homebrew), so node is reached through a
+ * private directory holding only a `node` symlink. Appending node's real
+ * directory would put that real `aws` — and its credentials — back on PATH.
  * @param fixture - Owned disposable host.
  */
 export function removeAws(fixture: PipelineFixture): void {
+  const nodeOnly = path.join(fixture.root, "node-only-bin");
+  // Removed before PATH is filtered, so fake-bin (which holds the fake gh)
+  // no longer holds an aws and stays on PATH.
   rmSync(path.join(fixture.root, "fake-bin/aws"));
+  mkdirSync(nodeOnly);
+  symlinkSync(process.execPath, path.join(nodeOnly, "node"));
   fixture.env.PATH = [
     ...(fixture.env.PATH ?? "")
       .split(path.delimiter)
       .filter(dir => dir && !existsSync(path.join(dir, "aws"))),
-    path.dirname(process.execPath),
+    nodeOnly,
   ].join(path.delimiter);
 }
