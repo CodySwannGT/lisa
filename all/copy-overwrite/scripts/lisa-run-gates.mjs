@@ -68,7 +68,6 @@ import {
   compareCodeUnits,
   configurationProblems,
   declarationsAt,
-  digest,
   formatIdentityLine,
   lisaIdentity,
   momentsExecutedBy,
@@ -1318,13 +1317,6 @@ export function spawnExec(command) {
  * to have a `gates` array, which is how evidence of one thing becomes evidence
  * of another. This token is also what a caller greps for to find out whether
  * the runner it resolved is old enough to ignore `--evidence` entirely.
- *
- * Shared verbatim with the release verifier in CodySwannGT/lisa#3013. Two
- * producers — this one at the deploy moments, that one at `pull-request` — and
- * ONE schema, because two evidence formats for one property is this
- * repository's recurring defect. The verifier keys on `contract.moment` and
- * refuses to satisfy a `pre-deploy:*` gate with a `pull-request` envelope
- * regardless of tree match, so the two producers never compete.
  */
 export const EVIDENCE_SCHEMA = "lisa.gate-evidence/v1";
 
@@ -1399,13 +1391,10 @@ function gitRev(spec) {
 }
 
 /**
- * WHAT this evidence is about: the tree, and nothing that varies with it.
+ * WHAT this evidence is about.
  *
- * `tree` is the identity; `commit` is evidentiary only. Both are recorded
- * deliberately, because two commits legitimately share a tree after a rebase
- * and that is exactly the case where reusing the evidence is sound — a reader
- * keyed on the commit would rerun everything a rebase touched for no reason,
- * and one keyed on nothing at all would credit a tree that never shipped.
+ * `tree` is the identity and `commit` is evidentiary: two commits share a tree
+ * after a rebase, and the tree is what the gates actually examined.
  * @returns {object} The subject binding.
  */
 function evidenceSubject() {
@@ -1418,179 +1407,20 @@ function evidenceSubject() {
 }
 
 /**
- * Digest the inputs the caller stated, or refuse to claim unreadable input.
- * @returns {string|null} The stable digest, or null when none was established.
- */
-function inputsDigest() {
-  const inputs = process.env.LISA_GATE_EVIDENCE_INPUTS ?? null;
-  if (!inputs) return null;
-  try {
-    return digest(JSON.parse(inputs));
-  } catch {
-    // A caller that stated unreadable inputs established nothing about them.
-    // Null makes a verifier rerun; throwing here would replace the gate's real
-    // verdict with an uncaught exit and prevent the evidence write entirely.
-    return null;
-  }
-}
-
-/**
- * UNDER WHICH CONTRACT it was proved — the half a tree hash cannot carry.
+ * One gate's outcome, as small as a reader needs.
  *
- * `workflow_ref` and `workflow_sha` are not redundant with `subject.tree`, and
- * this is the load-bearing argument for keeping them: consumers call the
- * reusable workflow at `@main`, so its contents can change with NO change to
- * the caller's tree. Tree identity alone would let evidence produced by an
- * older, weaker workflow satisfy a stricter one.
- *
- * `inputs_digest` covers the same hole one level down — the same workflow at
- * the same sha proves different things when handed a different
- * `working_directory` or `install_dependencies`. The caller states its own
- * normalised inputs, because only the caller knows them; unstated means null,
- * which a verifier reads as "not established" rather than "no inputs".
- * @param {object} options Inputs.
- * @param {string} options.moment The moment that was run.
- * @param {object|null} options.gates The gates block that was executed.
- * @param {string} [options.runner] The task-runner prefix.
- * @param {Record<string,string>|null} [options.scripts] Project scripts.
- * @param {object} options.identity Lisa artifact identity captured at run start.
- * @returns {object} The contract binding.
- */
-function evidenceContract({ moment, gates, runner, scripts = null, identity }) {
-  return {
-    moment,
-    runner: runner ?? null,
-    gates_digest: planDigest({ gates, moment, runner, scripts }),
-    // SPREAD, not three hand-copied fields. The printed header and this
-    // document have to be the same claim: a reader comparing a pasted gate
-    // line against a stored envelope and finding them disagree learns nothing
-    // except that Lisa has two answers. `surface` and `artifacts` ride along,
-    // and they are the half that says WHICH COPY of the enforcement script
-    // produced the verdict — a fact a workflow ref cannot carry, because the
-    // wrapper's identity and the enforcement's identity are independent when
-    // the enforcement is a file living in the consuming repository.
-    ...identity,
-    inputs_digest: inputsDigest(),
-  };
-}
-
-/**
- * A caller chain the CALLER derived, or null. Never a literal written here.
- *
- * Depth is a property of how a consumer wired its workflows, not of the gates
- * block: a pull-request path posts one level and a release path posts two, and
- * a consumer's release job is not even named uniformly across the fleet. The
- * only truthful derivation is `postedCallerChains` over a completed run's
- * check-run names, which needs API scope this runner does not have — so a
- * caller that CAN read them states the answer here, and everything else
- * records null. A verifier treats a null chain as ineligible and reruns, which
- * is the safe direction; a guessed literal would not be.
- * @returns {string[]|null} The chain, shallowest element first.
- */
-function callerChain() {
-  const stated = process.env.LISA_GATE_EVIDENCE_CALLER_CHAIN ?? null;
-  if (!stated) return null;
-  try {
-    const parsed = JSON.parse(stated);
-    return Array.isArray(parsed) && parsed.every(el => typeof el === "string")
-      ? parsed
-      : null;
-  } catch {
-    return null;
-  }
-}
-
-/**
- * WHO produced it, so an auditor can go and read the run.
- *
- * `reused_gates` is emitted from day one, empty, even though nothing reuses
- * yet. An absent field and an empty one must not be the same thing to a
- * reader: adding it later would leave every envelope written before the
- * addition indistinguishable from one that reused everything. It exists to
- * close circular reuse — a run that reuses evidence and then emits its own
- * envelope could otherwise be reused in turn, and the chain of proof bottoms
- * out on nothing. A verifier refuses any envelope with a non-empty
- * `reused_gates` as a source. Primary proof only.
- * @returns {object} The originating run, with nulls off CI.
- */
-function evidenceProducer() {
-  const id = process.env.GITHUB_RUN_ID ?? null;
-  const server = process.env.GITHUB_SERVER_URL ?? null;
-  const repository = process.env.GITHUB_REPOSITORY ?? null;
-  return {
-    run_id: id,
-    run_attempt: process.env.GITHUB_RUN_ATTEMPT ?? null,
-    run_url:
-      id && server && repository
-        ? `${server}/${repository}/actions/runs/${id}`
-        : null,
-    workflow: process.env.GITHUB_WORKFLOW ?? null,
-    event: process.env.GITHUB_EVENT_NAME ?? null,
-    actor: process.env.GITHUB_ACTOR ?? null,
-    caller_chain: callerChain(),
-    // This runner never reuses. It executes every gate it records, so the list
-    // is empty by construction rather than by omission.
-    reused_gates: [],
-  };
-}
-
-/**
- * One gate's outcome: `EVIDENCE_FIELDS` verbatim, plus exactly two additions.
- *
- * All seven `EVIDENCE_FIELDS` keys are spelled exactly as that module declares
- * them, so `readEvidence` reads a row with no adapter. The two additions are
- * the release verifier's requirements and this producer's too:
- *
- * - `level` — without a per-row level, a required gate can be "covered" by
- *   evidence that was OPTIONAL when it ran, which is a silent downgrade. Here
- *   it is also the only thing that tells a reader whether a failing gate was
- *   allowed to fail.
- * - `label` — the registry label, which ties the row to the branch-protection
- *   context `contextsFor` derives, so an audit can name the context and not
- *   only the gate id.
- *
- * Nothing else. `task` and `command` deliberately do NOT get their own row
- * keys: they are inside `contract.gates_digest`, and a second copy on the row
- * is a second place to drift. The command still appears once, as
- * `prover.tool`, which is an `EVIDENCE_FIELDS` key.
- *
- * `prover.version` is null rather than `"unknown"` when unresolvable. A string
- * that looks like a version and is a placeholder is worse than an absent
- * field, because a placeholder defeats the check that reads it.
- *
- * NARROWED for #3013, and the narrowing matters. This comment used to say
- * flatly that the verifier treats a null-version row as uncoverable. Read
- * literally that makes NOTHING reusable, because the pull-request producer
- * cannot resolve a version for every hand-written job. The rule is right for
- * the case it was written about and too broad for the rest, so `reusePlan` in
- * lisa-gates.mjs applies it by reuse class: for a TIME-SENSITIVE gate the
- * prover is an external scanner whose version decides what it can find, and a
- * null version is disqualifying; for a DETERMINISTIC gate the binding that
- * matters is `subject.tree` + `contract.gates_digest` + `contract.workflow_sha`,
- * all non-null by construction, and a null `prover.version` weakens nothing.
- *
- * `work` is null and stays null until a prover-output parser exists. That is
- * not a shortcut: `readEvidence` demotes a `pass` with no work count to
- * `unknown` for any gate whose registry entry names one, so the conservative
- * value fails SAFE. A fabricated count would fail the other way.
+ * The envelope used to carry `work`, `measures`, `prover` and freshness fields
+ * for a release-reuse checker that nothing called; every one of them was null
+ * or restated the exit code, so they were removed with the checker
+ * (CodySwannGT/lisa#4794). `status` stays three-valued: only PASSED becomes
+ * `pass`, FAILED becomes `fail`, and everything else is `unknown`.
  * @param {GateOutcome} outcome One resolved gate and its verdict.
- * @param {string} observedAt When the run that produced it began.
- * @returns {object} The gate's evidence record.
+ * @returns {{gate: string, status: string, level: string, label: string}} The gate's record.
  */
-function gateEvidence(outcome, observedAt) {
+function gateEvidence(outcome) {
   return {
     gate: outcome.id,
     status: EVIDENCE_STATUS_FOR[outcome.state] ?? "unknown",
-    work: null,
-    measures: {
-      exit_code: outcome.code ?? null,
-      state: outcome.state,
-      detail: outcome.detail ?? null,
-      diagnosis: outcome.diagnosis ?? null,
-    },
-    prover: { tool: outcome.command ?? null, version: null },
-    observed_at: observedAt,
-    max_age_minutes: null,
     level: outcome.level,
     label: outcome.label ?? outcome.id,
   };
@@ -1599,15 +1429,10 @@ function gateEvidence(outcome, observedAt) {
 /**
  * The whole document one run of one moment records.
  *
- * `observed_at` is the run's START, not its end, and that is the conservative
- * direction on purpose: a freshness bound computed against it can only ever
- * judge the evidence OLDER than it truly is, so a bound errs toward `unknown`
- * rather than toward crediting a stale observation.
- * `verdict` is this producer's one addition to the shared header, and it is
- * what makes the zero-gate case legible ON DISK rather than only as an exit
- * code. An envelope recording nothing and an envelope recording a clean run
- * must not be byte-similar: `"no-gates"` beside an empty `gates` array says
- * which one this is, where a bare empty array would read as either.
+ * `observed_at` is the run's START. `verdict` makes the zero-gate case legible
+ * on disk: `"no-gates"` beside an empty `gates` array says which of "ran and
+ * declared nothing" or "recorded nothing" this is. `contract.gates_digest`
+ * names the declared rule set the run was held to.
  * @param {object} options Inputs.
  * @param {string} options.moment The moment that was run.
  * @param {object|null} [options.gates] The gates block that was executed.
@@ -1616,7 +1441,6 @@ function gateEvidence(outcome, observedAt) {
  * @param {string} [options.runner] The task-runner prefix.
  * @param {Record<string,string>|null} [options.scripts] Project scripts.
  * @param {string} options.observedAt When the run began, ISO-8601.
- * @param {object} [options.identity] Lisa identity captured for this run.
  * @returns {object} The evidence envelope.
  */
 export function evidenceDocument({
@@ -1627,19 +1451,17 @@ export function evidenceDocument({
   runner = undefined,
   scripts = null,
   observedAt,
-  identity = lisaIdentity(),
 }) {
-  const observations = (result?.results ?? []).map(outcome =>
-    gateEvidence(outcome, observedAt)
-  );
   return {
     schema: EVIDENCE_SCHEMA,
     verdict,
     subject: evidenceSubject(),
-    contract: evidenceContract({ gates, moment, runner, scripts, identity }),
-    producer: evidenceProducer(),
+    contract: {
+      moment,
+      gates_digest: planDigest({ gates, moment, runner, scripts }),
+    },
     observed_at: observedAt,
-    gates: observations,
+    gates: (result?.results ?? []).map(gateEvidence),
   };
 }
 
@@ -1812,7 +1634,6 @@ export function main(argv = process.argv.slice(2)) {
         runner: parts.runner,
         scripts: parts.scripts ?? null,
         verdict,
-        identity,
       })
     );
     if (written) return code;
