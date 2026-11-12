@@ -1179,7 +1179,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/rules/eager/stale-state-claims.md":
       "faf5057f5910237b8d5048dbcccb73e0cd03762a8eefbeae43b5d0153104a85a",
     "plugins/src/base/rules/eager/tool-access-gate.md":
-      "7ee915580ffd5f11ac14677038a3aba54907e7c89c93f4715ec683037bc48e6b",
+      "d953c634b9c22c63892a73411a5b5d8c8bf2fc51761a0a98a934809a52560476",
     "plugins/src/base/rules/eager/tracked-work.md":
       "e6ac1bcb50e04120d9e4c9a2be1d022cd873071a8b74d34f53f282a03676733e",
     "plugins/src/base/rules/eager/upstream-to-lisa.md":
