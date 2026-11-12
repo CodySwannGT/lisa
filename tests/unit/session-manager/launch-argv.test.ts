@@ -15,6 +15,7 @@ import {
   LaunchError,
   TELEGRAM_PLUGIN_ID,
   buildForegroundCommand,
+  buildCurrentSessionName,
   buildHasSession,
   buildManagerLaunch,
   buildManagerSettings,
@@ -201,5 +202,24 @@ describe("buildHasSession", () => {
   // running `demo-manager` and report another project's manager as ours.
   it("asks tmux whether exactly the named session exists", () => {
     expect(buildHasSession(NAME)).toEqual(["has-session", "-t", `=${NAME}`]);
+  });
+});
+
+describe("buildCurrentSessionName", () => {
+  it("asks tmux for the session name of the caller's own pane", () => {
+    expect(buildCurrentSessionName("%3")).toEqual([
+      "display-message",
+      "-p",
+      "-t",
+      "%3",
+      "#{session_name}",
+    ]);
+  });
+
+  it("omits -t when there is no pane id, or the id is not a pane id", () => {
+    const bare = ["display-message", "-p", "#{session_name}"];
+    expect(buildCurrentSessionName(undefined)).toEqual(bare);
+    expect(buildCurrentSessionName("")).toEqual(bare);
+    expect(buildCurrentSessionName("=other-manager:")).toEqual(bare);
   });
 });

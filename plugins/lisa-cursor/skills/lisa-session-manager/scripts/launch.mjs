@@ -232,6 +232,24 @@ export function buildSessionPath(name) {
   ];
 }
 
+/** A tmux pane id as tmux sets `$TMUX_PANE`: `%` then digits. */
+const PANE_ID_PATTERN = /^%\d+$/;
+
+/**
+ * tmux argv that prints the name of the session the CALLER runs in, so
+ * `status` can tell the manager asking about itself from another session
+ * asking about the manager (#4496). The caller's own `$TMUX_PANE` is the
+ * target when it is a real pane id; anything else is left out rather than
+ * passed as a target, and tmux then answers for the current client.
+ * @param {string | undefined} pane - The caller's `$TMUX_PANE`, if any
+ * @returns {string[]} argv for `spawnSync("tmux", argv)`
+ */
+export function buildCurrentSessionName(pane) {
+  const target =
+    typeof pane === "string" && PANE_ID_PATTERN.test(pane) ? ["-t", pane] : [];
+  return ["display-message", "-p", ...target, "#{session_name}"];
+}
+
 /**
  * tmux argv that stops the manager session and nothing else (exact name, see
  * {@link buildHasSession}). Workers are separate background sessions and keep
