@@ -501,7 +501,7 @@ describe("in-process CLI: complete", () => {
   it("refuses complete with neither a --ref nor a binding", () => {
     const result = cli(offlineFixture(), ["complete"]);
     expect(result.exitCode).toBe(1);
-    expect(result.stderr).toContain("complete requires --ref <work-item>");
+    expect(result.stderr).toContain("finish requires --ref <work-item>");
   });
 });
 

@@ -1,7 +1,7 @@
 # Accepted completion proof
 
 Merging a pull request makes work available for delivery. It does not authorize
-closing the work item. The canonical `scripts/lisa-work-item.mjs complete` and
+closing the work item. The canonical `scripts/lisa-work-item.mjs finish` (alias `complete`) and
 GitHub applying sweep require the same accepted-for-completion record before
 adding a terminal label, removing competing lifecycle labels, closing an issue,
 or changing a Linear item to its terminal state. Jira completion remains
@@ -125,7 +125,7 @@ with at most 100 pages or 10,000 comments can still exceed its byte ceiling and
 must fail closed without a lifecycle write. Visible local evidence markers
 claim attachments; fenced or indented examples and HTML comments do not.
 
-An ordinary pending result from `complete` or the applying sweep exits zero
+An ordinary pending result from `finish` or the applying sweep exits zero
 because it preserves the nonterminal state. A refused `publish-completion-proof`
 exits nonzero when no locator was published. A successful bot publication with
 category `published/pending-producer` remains a successful publication; only
@@ -177,9 +177,13 @@ template listed in `verification.completion.acceptedEvidenceReleases`, so
 proof published before a rename or rotation keeps validating. Only releases in
 the implementation repository are accepted.
 
-`LISA_EVIDENCE_RELEASE` pins the concrete release for one run (skill scripts
-export it once so links and uploads agree). It must be one of the accepted
-releases; `evidence-release --ensure` still creates and capacity-checks it.
+`LISA_EVIDENCE_RELEASE` pins the concrete release for one run. Skills resolve
+it once with `evidence-release --ensure`, stop when that refuses, and pass the
+printed name inline (`LISA_EVIDENCE_RELEASE=<name>`) on every later command,
+because some agent runtimes start a new shell for each command and lose an
+exported value; that keeps links and uploads on the same release. It must be
+one of the accepted releases; `evidence-release --ensure` still creates and
+capacity-checks it.
 
 Creating an evidence release is a real GitHub release: it fires `release`
 webhook and workflow events and adds a git tag of the same name. Workflows

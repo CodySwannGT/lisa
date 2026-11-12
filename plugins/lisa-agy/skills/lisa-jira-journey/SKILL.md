@@ -120,10 +120,19 @@ evidence/
 
 ### Step 4: Generate Evidence Templates
 
-After capturing all evidence, run the template generator:
+The GitHub links point at the evidence release. Resolve it once, before generating templates, so the links and the uploads in Step 5 name the same release even across a month boundary. `--ensure` creates the release when it is missing. If the release cannot be used (for example, it is nearly full), the step prints `Evidence release not usable; stop.` and fails: stop there and report it instead of continuing.
 
 ```bash
-python3 .claude/skills/jira-journey/scripts/generate-templates.py \
+unset LISA_EVIDENCE_RELEASE; LISA_EVIDENCE_RELEASE=$(node scripts/lisa-work-item.mjs evidence-release --ensure) || { echo "Evidence release not usable; stop."; false; } &&
+export LISA_EVIDENCE_RELEASE && echo "Evidence release: $LISA_EVIDENCE_RELEASE"
+```
+
+Some agent runtimes start a new shell for every command, and a new shell forgets an exported value. So put the printed release name in front of every later command that reads it, as `LISA_EVIDENCE_RELEASE=<name>`; the commands below show where.
+
+After capturing all evidence, run the template generator with that release name:
+
+```bash
+LISA_EVIDENCE_RELEASE=<name> python3 .claude/skills/jira-journey/scripts/generate-templates.py \
   <TICKET_ID> \
   <PR_NUMBER> \
   <BRANCH_NAME> \
@@ -132,20 +141,14 @@ python3 .claude/skills/jira-journey/scripts/generate-templates.py \
 
 This generates `evidence/comment.txt` (JIRA wiki markup) and `evidence/comment.md` (GitHub markdown) with evidence formatted as code blocks.
 
-The GitHub links point at the evidence release. Resolve it once, before generating templates, and keep it exported for Step 5 so the links and the uploads name the same release even across a month boundary:
-
-```bash
-export LISA_EVIDENCE_RELEASE=$(node scripts/lisa-work-item.mjs evidence-release --ensure)
-```
-
-`--ensure` creates the release when it is missing and stops, in plain words, when it is nearly full. Both `generate-templates.py` and `post-evidence.sh` read `LISA_EVIDENCE_RELEASE`; `post-evidence.sh` still validates and capacity-checks it. Without it they resolve the configured release themselves (default `pr-assets`).
+Both `generate-templates.py` and `post-evidence.sh` read `LISA_EVIDENCE_RELEASE`; `post-evidence.sh` still validates and capacity-checks it. Without it they resolve the configured release themselves (default `pr-assets`).
 
 ### Step 5: Post Evidence
 
-Use the jira-evidence skill to post everything:
+Use the jira-evidence skill to post everything, with the same release name as Step 4:
 
 ```bash
-bash .claude/skills/jira-evidence/scripts/post-evidence.sh <TICKET_ID> ./evidence <PR_NUMBER>
+LISA_EVIDENCE_RELEASE=<name> bash .claude/skills/jira-evidence/scripts/post-evidence.sh <TICKET_ID> ./evidence <PR_NUMBER>
 ```
 
 ### Step 6: Verify

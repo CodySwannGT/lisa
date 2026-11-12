@@ -844,43 +844,57 @@ function botTokenProblem(path) {
 }
 
 /**
+ * Strip every leading `login:` / `id:` prefix from an entry, so a value
+ * stacked behind several (`login:id:<v>`) is reached (CodySwannGT/lisa#4754).
+ * @param {string} entry One entry, already trimmed.
+ * @returns {string} The value after the last known prefix, trimmed.
+ */
+function stripIdEntryPrefixes(entry) {
+  const prefix = ID_ENTRY_PREFIX.exec(entry)?.[1];
+  return prefix !== undefined && ID_ENTRY_KINDS.has(prefix)
+    ? stripIdEntryPrefixes(entry.slice(prefix.length + 1).trim())
+    : entry;
+}
+
+/**
  * Scan one `operatorIds` / `trustedAuthorIds` entry for a bot token
  * (CodySwannGT/lisa#4719).
  *
- * The value after a `login:` / `id:` prefix is what gets tested, since a
- * token pasted behind a prefix is as leaked as a bare one. A legacy Jira
- * accountId (`557058:<uuid>`) is token-shaped but is a real id, so it passes.
+ * The value after one or more `login:` / `id:` prefixes is what gets tested,
+ * since a token pasted behind a prefix (or a stack of them, such as
+ * `login:id:<token>`; CodySwannGT/lisa#4754) is as leaked as a bare one. A
+ * legacy Jira accountId (`557058:<uuid>`) is token-shaped but is a real id,
+ * so it passes.
  * @param {string} entry One entry.
  * @param {string} path Where the entry sits.
  * @returns {string[]} Problems found.
  */
 function idEntryCredentials(entry, path) {
-  const trimmed = entry.trim();
-  const prefix = ID_ENTRY_PREFIX.exec(trimmed)?.[1];
-  const value =
-    prefix !== undefined && ID_ENTRY_KINDS.has(prefix)
-      ? trimmed.slice(prefix.length + 1).trim()
-      : trimmed;
+  const value = stripIdEntryPrefixes(entry.trim());
   return TOKEN_VALUE.test(value) && !JIRA_LEGACY_ACCOUNT_ID.test(value)
     ? botTokenProblem(path)
     : [];
 }
 
 /**
- * Refuse each malformed kind-keyed entry, naming it. A reader matches such an
- * entry against nobody, so accepting it would silently drop a person.
+ * Refuse each malformed kind-keyed entry, naming its location and prefix. A
+ * reader matches such an entry against nobody, so accepting it would silently
+ * drop a person. The refusal never repeats the entry's value: a token pasted
+ * behind an unknown prefix (`ID:<token>`) would otherwise land in terminals,
+ * CI logs and transcripts (CodySwannGT/lisa#4754).
  * @param {string} key `operatorIds` or `trustedAuthorIds`.
  * @param {readonly string[]} ids Entries, already known to be strings.
  * @returns {string[]} Problems found.
  */
 function idEntryProblems(key, ids) {
   const prefixOf = entry => `${ID_ENTRY_PREFIX.exec(entry)[1]}:`;
-  return ids.flatMap(entry => {
+  return ids.flatMap((entry, i) => {
     const kind = classifyIdEntry(entry);
+    const path = `sessionManager.${key}[${i}]`;
     if (kind === "unknown-prefix") {
       const prefix = prefixOf(entry);
       return [
-        `sessionManager.${key} entry ${JSON.stringify(entry)} has an ` +
+        `${path} has an ` +
           `unknown prefix ${JSON.stringify(prefix)}. Use login:<GitHub ` +
           `login>, id:<numeric or tracker account id>, or a plain id; write ` +
           `a tracker id that itself starts with letters and a colon as ` +
@@ -889,8 +903,7 @@ function idEntryProblems(key, ids) {
     }
     return kind === "empty-value"
       ? [
-          `sessionManager.${key} entry ${JSON.stringify(entry)} has an ` +
-            `empty value after ${JSON.stringify(prefixOf(entry))}: name the ` +
+          `${path} has an empty value after ${JSON.stringify(prefixOf(entry))}: name the ` +
             `login or id after the prefix.`,
         ]
       : [];

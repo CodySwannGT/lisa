@@ -2,6 +2,39 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.101.9](https://github.com/CodySwannGT/lisa/compare/v4.101.8...v4.101.9) (2026-11-12)
+
+
+### Bug Fixes
+
+* **work-item:** accept finish as the collision-free spelling of complete ([1611268](https://github.com/CodySwannGT/lisa/commit/16112683139e63621124a2e184620c0444ef13bb)), closes [#2469](https://github.com/CodySwannGT/lisa/issues/2469) [CodySwannGT/lisa#4683](https://github.com/CodySwannGT/lisa/issues/4683) [CodySwannGT/lisa#4683](https://github.com/CodySwannGT/lisa/issues/4683)
+* **work-item:** make finish equal complete on every path and name it in refusals ([d60a500](https://github.com/CodySwannGT/lisa/commit/d60a500ecc3c222ea6e3355ca1b83aff854cc8df)), closes [#4771](https://github.com/CodySwannGT/lisa/issues/4771) [CodySwannGT/lisa#4683](https://github.com/CodySwannGT/lisa/issues/4683) [CodySwannGT/lisa#4683](https://github.com/CodySwannGT/lisa/issues/4683)
+* **work-item:** refresh the updater helper graph pin for lisa-work-item ([6f1d4cb](https://github.com/CodySwannGT/lisa/commit/6f1d4cbe827f12be9fc248a0ae225c1e07762d9e)), closes [CodySwannGT/lisa#4683](https://github.com/CodySwannGT/lisa/issues/4683) [CodySwannGT/lisa#4683](https://github.com/CodySwannGT/lisa/issues/4683)
+
+
+### Documentation
+
+* **skills:** document lisa-work-item finish for terminal completion ([3d8ec8f](https://github.com/CodySwannGT/lisa/commit/3d8ec8f9de3803cec5bbaaa5b65bb3799755ad99)), closes [CodySwannGT/lisa#4683](https://github.com/CodySwannGT/lisa/issues/4683) [CodySwannGT/lisa#4683](https://github.com/CodySwannGT/lisa/issues/4683)
+
+### [4.101.8](https://github.com/CodySwannGT/lisa/compare/v4.101.7...v4.101.8) (2026-11-12)
+
+
+### Bug Fixes
+
+* **secrets:** never echo id-entry values; strip stacked id prefixes ([0a89f3a](https://github.com/CodySwannGT/lisa/commit/0a89f3a3fe4d1f0b821d89aa52e90e5bf6d7a7f3)), closes [CodySwannGT/lisa#4754](https://github.com/CodySwannGT/lisa/issues/4754) [CodySwannGT/lisa#4754](https://github.com/CodySwannGT/lisa/issues/4754)
+
+### [4.101.7](https://github.com/CodySwannGT/lisa/compare/v4.101.6...v4.101.7) (2026-11-12)
+
+
+### Bug Fixes
+
+* **skills:** stop on evidence-release refusal and pass the release name per command ([6fbd3a0](https://github.com/CodySwannGT/lisa/commit/6fbd3a09f39cee1bf7346e33fcfea1f065d7a692)), closes [CodySwannGT/lisa#4740](https://github.com/CodySwannGT/lisa/issues/4740) [CodySwannGT/lisa#4740](https://github.com/CodySwannGT/lisa/issues/4740)
+
+
+### Documentation
+
+* **evidence:** record roster and verification evidence for [#4740](https://github.com/CodySwannGT/lisa/issues/4740) ([67a2ba3](https://github.com/CodySwannGT/lisa/commit/67a2ba3cd80f401a29e9303a84820714b2fc5194))
+
 ### [4.101.6](https://github.com/CodySwannGT/lisa/compare/v4.101.5...v4.101.6) (2026-11-12)
 
 
