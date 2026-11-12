@@ -52,6 +52,21 @@ workflow**, and type the branch.
 A green run means the journey passed. A red run means a packaged install broke;
 open the run's log to see which host failed.
 
+#### Measuring the filesystem probe on the same runner
+
+The same workflow can first measure how well Lisa's filesystem timing probe
+(`tests/helpers/fs-latency-budget.ts`) predicts the cost of real file deletion
+on a GitHub runner (CodySwannGT/lisa#4636). Add `-f probe_diagnostic=true`:
+
+```bash
+gh workflow run packed-host-journey.yml --ref my-feature-branch -f ref=my-feature-branch -f probe_diagnostic=true
+```
+
+This adds about five minutes. The run log then has one `FS_PROBE_DIAGNOSTIC`
+line per sample, and the samples are also kept as a downloadable run artifact.
+Use `--ref` as well as `-f ref=` when the branch itself changes this workflow,
+so GitHub runs the branch's copy of it.
+
 ### On your own machine
 
 The journey only runs under the exact Node version CI uses (24.21.0). Under any

@@ -30,14 +30,86 @@
  * the last installing case, and the journey already frees each host inside
  * that host's own case budget for this same reason. So the cache is freed
  * there too, by whichever installing case finishes last, and the teardown
- * frees only the candidate's own fixtures — its checkout, oracle and
- * installed tool — and the evidence.
+ * frees only the candidate's own fixtures — its oracle and installed tool —
+ * and the evidence.
+ *
+ * ## What is freed before the cases run (CodySwannGT/lisa#4636)
+ *
+ * The candidate's checkout held 17,053 entries and nothing reads it once the
+ * tarball is packed and its oracle extracted, so packing frees it there
+ * ({@link freeCheckout}) instead of leaving it to the teardown. The tool is
+ * installed afterwards and proven byte-identical to the oracle, not to the
+ * checkout. And when the last installer frees the cache it first records the
+ * cache's entry count, so the cache's size is a measurement rather than an
+ * estimate.
  * @module tests/fixtures/shared-runtime-hosts/teardown
  */
+import { lstatSync, readdirSync, unlinkSync } from "node:fs";
+import * as path from "node:path";
+
 import { cleanupTempDir } from "../../helpers/test-utils.js";
 
 /** Removes a directory the journey owns. */
 type Remove = (directory: string) => Promise<void>;
+
+/** Counts the entries under a directory. */
+type Count = (directory: string) => number | undefined;
+
+/**
+ * Count every entry under a directory — files, directories and links — without
+ * following a symbolic link and without counting the directory itself.
+ * @param directory - Directory to count
+ * @returns The entry count
+ */
+export function countTreeEntries(directory: string): number {
+  return readdirSync(directory, { withFileTypes: true }).reduce(
+    (total, entry) =>
+      total +
+      1 +
+      (entry.isDirectory()
+        ? countTreeEntries(path.join(directory, entry.name))
+        : 0),
+    0
+  );
+}
+
+/**
+ * Count a directory for a record, never letting the count fail the caller.
+ * @param count - The counter
+ * @param directory - Directory to count
+ * @returns The count, or undefined when it could not be taken
+ */
+function countForRecord(count: Count, directory: string): number | undefined {
+  try {
+    return count(directory);
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * Free the candidate's checkout once the tarball is packed and proven.
+ *
+ * The checkout's `node_modules` is a symbolic link to the repository's own, so
+ * the link is unlinked first and the removal can never reach through it.
+ * @param checkout - The candidate's checkout directory
+ * @param remove - Removal; injected only by the regression
+ */
+export async function freeCheckout(
+  checkout: string,
+  remove: Remove = cleanupTempDir
+): Promise<void> {
+  const link = path.join(checkout, "node_modules");
+  const linked = ((): boolean => {
+    try {
+      return lstatSync(link).isSymbolicLink();
+    } catch {
+      return false;
+    }
+  })();
+  if (linked) unlinkSync(link);
+  await remove(checkout);
+}
 
 /** The shared install cache's lifetime across the journey's cases. */
 export interface SharedInstallCache {
@@ -61,6 +133,12 @@ export interface SharedInstallCache {
    * @returns True once a removal of the cache has resolved
    */
   readonly freed: () => boolean;
+  /**
+   * The cache's entry count, taken just before the latest removal that freed
+   * it and could count it.
+   * @returns The count, or undefined before a free or when it was unreadable
+   */
+  readonly entriesAtFree: () => number | undefined;
 }
 
 /**
@@ -77,25 +155,30 @@ export interface SharedInstallCache {
  * @param cache - The shared cache directory, inside the owned root
  * @param installers - Every case that installs through the cache
  * @param remove - Removal; injected only by the regression
+ * @param count - Entry counter, run before each removal; injected only by the
+ *   regression. A count that fails is recorded as unknown, never as a failure.
  * @returns The cache's lifetime
  */
 export function sharedInstallCache(
   cache: string,
   installers: readonly string[],
-  remove: Remove = cleanupTempDir
+  remove: Remove = cleanupTempDir,
+  count: Count = countTreeEntries
 ): SharedInstallCache {
   const state: {
     current: {
       readonly finished: ReadonlySet<string>;
       readonly freed: boolean;
+      readonly entries: number | undefined;
     };
-  } = { current: { finished: new Set(), freed: false } };
+  } = { current: { finished: new Set(), freed: false, entries: undefined } };
   const allFinished = (): boolean =>
     installers.every(name => state.current.finished.has(name));
   return {
     directory: cache,
     allFinished,
     freed: () => state.current.freed,
+    entriesAtFree: () => state.current.entries,
     finish: async installer => {
       if (!installers.includes(installer))
         throw new Error(
@@ -106,7 +189,14 @@ export function sharedInstallCache(
         finished: new Set([...state.current.finished, installer]),
       };
       if (!allFinished()) return false;
+      const entries = countForRecord(count, cache);
       await remove(cache);
+      // A finish that finds the cache already gone counts nothing; it must
+      // not erase the count the real free recorded.
+      state.current = {
+        ...state.current,
+        entries: entries ?? state.current.entries,
+      };
       state.current = { ...state.current, freed: true };
       return true;
     },
