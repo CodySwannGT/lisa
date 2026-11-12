@@ -3586,6 +3586,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "docs/design/e2e-environment-reset-plan.md": true,
     "docs/design/e2e-wiring-contract.md": true,
     "docs/design/environment-facade-contract.md": true,
+    "docs/design/gate-interface-review.xlsx": true,
     "docs/design/gates-and-policy.md": true,
     "docs/design/release-evidence-reuse.md": true,
     "docs/design/reset-production-absence.md": true,

@@ -6,6 +6,12 @@ measured failure they exist to prevent.
 
 Tracking issue: CodySwannGT/lisa#2579.
 
+An open review of every gate interface (one row per registry gate, with a
+decision column) lives in
+[`gate-interface-review.xlsx`](gate-interface-review.xlsx). It was built from
+the registry on 2026-11-12, so check it against `REGISTRY` in
+`all/copy-overwrite/scripts/lisa-gates.mjs` before relying on it.
+
 ## The organising defect
 
 Every decision below is downstream of one failure mode: **a check reporting
