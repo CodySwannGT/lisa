@@ -153,7 +153,6 @@ Skills use colon-namespaced directories (e.g., `plan:create/`) and are invoked v
 |-------|---------|
 | `tasks:load` | Load tasks from project directory into session |
 | `tasks:sync` | Export session tasks to project directory |
-| `skill-creator` | Guide for creating new skills |
 | `agent-design-best-practices` | Best practices for designing agent files |
 | `jsdoc-best-practices` | JSDoc documentation standards |
 

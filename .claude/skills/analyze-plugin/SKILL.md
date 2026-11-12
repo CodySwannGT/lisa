@@ -10,7 +10,7 @@ Lisa curates a small set of third-party Claude plugins in `enabledPlugins`
 (`.claude/settings.json` at the repo root and `all/merge/.claude/settings.json`):
 
 ```
-lisa@lisa, coderabbit@claude-plugins-official, skill-creator@claude-plugins-official
+lisa@lisa, coderabbit@claude-plugins-official
 ```
 
 (`sentry@claude-plugins-official` was curated until issue #1955: the base lisa

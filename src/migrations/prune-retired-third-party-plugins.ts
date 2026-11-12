@@ -22,6 +22,8 @@ const SETTINGS_REL_PATH = path.join(".claude", "settings.json");
  *   built-in `/code-review`; other agents use Lisa's `lisa-parity-code-review`.
  * - `code-simplifier@claude-plugins-official` — replaced by a simplification
  *   instruction in Lisa's coding-philosophy rule, which every agent loads.
+ * - `skill-creator@claude-plugins-official` — retired by the owner, along
+ *   with Lisa's `lisa-parity-skill-creator` reimplementation.
  */
 export const RETIRED_THIRD_PARTY_PLUGIN_KEYS: readonly string[] = [
   "impeccable@impeccable",
@@ -29,6 +31,7 @@ export const RETIRED_THIRD_PARTY_PLUGIN_KEYS: readonly string[] = [
   "safety-net@cc-marketplace",
   "code-review@claude-plugins-official",
   "code-simplifier@claude-plugins-official",
+  "skill-creator@claude-plugins-official",
 ];
 
 /** The marketplaces registered only to serve those plugins. */
@@ -96,7 +99,7 @@ function without(
 export class PruneRetiredThirdPartyPluginsMigration implements Migration {
   readonly name = "prune-retired-third-party-plugins";
   readonly description =
-    "Remove retired third-party plugins (impeccable, cc-safety-net, code-review, code-simplifier) and their marketplaces from .claude/settings.json";
+    "Remove retired third-party plugins (impeccable, cc-safety-net, code-review, code-simplifier, skill-creator) and their marketplaces from .claude/settings.json";
 
   /**
    * Whether the host still carries any retired entry.

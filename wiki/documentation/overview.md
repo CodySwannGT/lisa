@@ -240,7 +240,6 @@ and the pointer block names it during the transition.
 | Skill | Purpose |
 |-------|---------|
 | `jsdoc-best-practices` | Documentation standards ("why" over "what"), JSDoc ESLint rules |
-| `skill-creator` | Guide for creating effective new skills |
 
 **Workflow skills (31 total, organized by category):**
 
@@ -261,9 +260,6 @@ and the pointer block names it during the transition.
 ```
 .claude/skills/
 ├── jsdoc-best-practices/       # Foundational (auto-applied)
-│   ├── SKILL.md
-│   └── references/
-├── skill-creator/              # Foundational (auto-applied)
 │   ├── SKILL.md
 │   └── references/
 ├── plan-add-test-coverage/     # Workflow (invoked by /plan:add-test-coverage)
@@ -800,10 +796,9 @@ Lisa enables several official and marketplace plugins:
 |--------|---------|
 | **typescript-lsp** | TypeScript language server integration |
 | **coderabbit** | CodeRabbit AI code review |
-| **skill-creator** | Author and evaluate Agent Skills |
 | **playwright** | Browser automation for E2E testing |
 
-Lisa no longer enables `code-review` (Claude Code's built-in `/code-review` replaces it), `code-simplifier` (replaced by the "Simplify before you finish" instruction in the coding-philosophy rule), the upstream safety-net plugin (Lisa's own hook covers it) or `impeccable` (CodySwannGT/lisa#4799).
+Lisa no longer enables `code-review` (Claude Code's built-in `/code-review` replaces it), `code-simplifier` (replaced by the "Simplify before you finish" instruction in the coding-philosophy rule), `skill-creator`, the upstream safety-net plugin (Lisa's own hook covers it) or `impeccable` (CodySwannGT/lisa#4799).
 
 ### Push Notifications (ntfy.sh) — retired
 

@@ -575,7 +575,6 @@ done
 for plugin in \
   "typescript-lsp@claude-plugins-official" \
   "coderabbit@claude-plugins-official" \
-  "skill-creator@claude-plugins-official" \
   "atlassian@claude-plugins-official"; do
   install_plugin_if_missing "$plugin"
 done
@@ -597,7 +596,7 @@ done
 # third-party design plugin) is retired by the same issue, and so are
 # `code-review` (superseded by Claude Code's built-in /code-review) and
 # `code-simplifier` (replaced by an instruction in Lisa's coding-philosophy
-# rule).
+# rule) and `skill-creator` (retired by the owner).
 #
 # Version-gated like the other one-time heals so same-version runs don't spawn
 # the CLI.
@@ -608,7 +607,8 @@ if [ "$FORCE_PLUGIN_SYNC" = "true" ]; then
     "safety-net@cc-marketplace" \
     "impeccable@impeccable" \
     "code-review@claude-plugins-official" \
-    "code-simplifier@claude-plugins-official"; do
+    "code-simplifier@claude-plugins-official" \
+    "skill-creator@claude-plugins-official"; do
     if [ "$retired_plugin" = "sentry@claude-plugins-official" ] &&
        node -e 'try { const s = JSON.parse(require("node:fs").readFileSync(process.argv[1], "utf8")); process.exit(s.enabledPlugins?.["sentry@claude-plugins-official"] === true ? 0 : 1); } catch { process.exit(1); }' "$SETTINGS_FILE"; then
       continue

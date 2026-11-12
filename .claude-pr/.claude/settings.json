@@ -23,7 +23,6 @@
     "sentry@claude-plugins-official": false,
     "lisa-typescript@lisa": true,
     "lisa@lisa": true,
-    "skill-creator@claude-plugins-official": true,
     "atlassian@claude-plugins-official": true,
     "hookify@claude-plugins-official": true
   },

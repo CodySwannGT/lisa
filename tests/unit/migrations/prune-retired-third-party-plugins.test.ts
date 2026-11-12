@@ -26,6 +26,7 @@ const LEGACY_SETTINGS = {
     "impeccable@impeccable": true,
     "code-review@claude-plugins-official": true,
     "code-simplifier@claude-plugins-official": true,
+    "skill-creator@claude-plugins-official": true,
     "coderabbit@claude-plugins-official": true,
     "atlassian@claude-plugins-official": true,
   },

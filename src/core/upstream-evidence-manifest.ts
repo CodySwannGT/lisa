@@ -389,7 +389,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/github-rulesets/protect-tags.json":
       "387f824e3ea58a803223e42e08326504a39e6a7a0c650a0bbfdfb4653854b722",
     "all/merge/.claude/settings.json":
-      "d1c0cad259979e6ec513143cca06d3868b9018623d1c146c05726495bcce34a5",
+      "604f4a825a21c571f62b89a950f42566a0385306ea57ed6245117496a0e5acbc",
     "cdk/copy-overwrite/.github/workflows/.keep":
       "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
     "cdk/copy-overwrite/eslint.cdk.ts":
@@ -950,8 +950,6 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "14192c856e4c7dff90108d2aaa307d7365ed7a2bb9f478ee8847b8ab6371cc3f",
     "plugins/src/base/commands/parity-sentry-seer.md":
       "39f3a8da6f17079c91d6588a284dd7353219847aa0896238b94de90e47bb20c6",
-    "plugins/src/base/commands/parity-skill-creator.md":
-      "927a70dc4b4c7c6623032c2d184a38ce40aa3ae2944d0c5f84ed488b97ddd62c",
     "plugins/src/base/commands/persist-learning.md":
       "86cda307f446af1bdb40f57abee443ada9171e53e9e305472c60fd05e52f4ab6",
     "plugins/src/base/commands/plan.md":
@@ -1592,8 +1590,6 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "d0f128c944e90548ea08ef100216b8ecb304d87c4c0dc78c7a9e66f3deb3347f",
     "plugins/src/base/skills/lisa-parity-sentry-seer/SKILL.md":
       "322a7ae4a11cc4e2a35f5fd31ef5dd7e8525970a558e9bb19b2ca25431b2558a",
-    "plugins/src/base/skills/lisa-parity-skill-creator/SKILL.md":
-      "616e0493f75fe92c18137548d7c86a91a9b04d9844ca76fa3f14156e3e7814e5",
     "plugins/src/base/skills/lisa-performance-review/SKILL.md":
       "351542c256e54940e6d672a70606b8414425c6435ae6f026841bcc02f9fce9c4",
     "plugins/src/base/skills/lisa-persist-learning/SKILL.md":
@@ -2773,7 +2769,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/github-status-check.sh":
       "c6a4a13ff5cf689fcbd7a6aca718f9e7d46d54ccb6687f662b055c1ca20e792f",
     "scripts/install-claude-plugins.sh":
-      "f038ae310965e3b26e1f83b4bbe5adbbd0a889201263469653338f4e2d5640b7",
+      "29c9b8fd3a234f3a5d7a3513d0aaf0e27bd1f87aae126ed78e36cb5bf723ee94",
     "scripts/install-generated-artifact-merge-driver.mjs":
       "61e2b4fc532e8b356cb751b1ff42eb712376728eec76f8edf2c3dec19acf1bd4",
     "scripts/internal-agy-skill-policy.json":
@@ -3145,7 +3141,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "ui/README.md":
       "7a67d7bdd49ff214ca204cc4e54ba70c37aa05fd6cc1e314fd9441a53eafc752",
     "ui/index.html":
-      "e4e758778058b03e909d260765737e1395e16ec5e80aa6e6a149c4c99337c734",
+      "1e2b169e592c73dde07e18c490867deb04f7bcbc8dc53f4a8471593a236466d9",
   });
 
 /** Exact paths tracked by the public Lisa repository at generation time. */
@@ -4162,8 +4158,6 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "parity/plugin-routing/coderabbit@claude-plugins-official.md": true,
     "parity/plugin-routing/sentry@claude-plugins-official.json": true,
     "parity/plugin-routing/sentry@claude-plugins-official.md": true,
-    "parity/plugin-routing/skill-creator@claude-plugins-official.json": true,
-    "parity/plugin-routing/skill-creator@claude-plugins-official.md": true,
     "parity/plugin-routing/typescript-lsp@claude-plugins-official.json": true,
     "parity/plugin-routing/typescript-lsp@claude-plugins-official.md": true,
     "phaser/copy-contents/.prettierignore": true,
@@ -4649,7 +4643,6 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-agy/commands/lisa/parity-coderabbit.md": true,
     "plugins/lisa-agy/commands/lisa/parity-sentry-sdk-setup.md": true,
     "plugins/lisa-agy/commands/lisa/parity-sentry-seer.md": true,
-    "plugins/lisa-agy/commands/lisa/parity-skill-creator.md": true,
     "plugins/lisa-agy/commands/lisa/persist-learning.md": true,
     "plugins/lisa-agy/commands/lisa/plan.md": true,
     "plugins/lisa-agy/commands/lisa/plugin-sync-explain.md": true,
@@ -4849,7 +4842,6 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-agy/skills/lisa-parity-coderabbit/SKILL.md": true,
     "plugins/lisa-agy/skills/lisa-parity-sentry-sdk-setup/SKILL.md": true,
     "plugins/lisa-agy/skills/lisa-parity-sentry-seer/SKILL.md": true,
-    "plugins/lisa-agy/skills/lisa-parity-skill-creator/SKILL.md": true,
     "plugins/lisa-agy/skills/lisa-performance-review/SKILL.md": true,
     "plugins/lisa-agy/skills/lisa-persist-learning/SKILL.md": true,
     "plugins/lisa-agy/skills/lisa-plan/SKILL.md": true,
@@ -5086,7 +5078,6 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-copilot/commands/lisa/parity-coderabbit.md": true,
     "plugins/lisa-copilot/commands/lisa/parity-sentry-sdk-setup.md": true,
     "plugins/lisa-copilot/commands/lisa/parity-sentry-seer.md": true,
-    "plugins/lisa-copilot/commands/lisa/parity-skill-creator.md": true,
     "plugins/lisa-copilot/commands/lisa/persist-learning.md": true,
     "plugins/lisa-copilot/commands/lisa/plan.md": true,
     "plugins/lisa-copilot/commands/lisa/plugin-sync-explain.md": true,
@@ -5397,7 +5388,6 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-copilot/skills/lisa-parity-coderabbit/SKILL.md": true,
     "plugins/lisa-copilot/skills/lisa-parity-sentry-sdk-setup/SKILL.md": true,
     "plugins/lisa-copilot/skills/lisa-parity-sentry-seer/SKILL.md": true,
-    "plugins/lisa-copilot/skills/lisa-parity-skill-creator/SKILL.md": true,
     "plugins/lisa-copilot/skills/lisa-performance-review/SKILL.md": true,
     "plugins/lisa-copilot/skills/lisa-persist-learning/SKILL.md": true,
     "plugins/lisa-copilot/skills/lisa-plan/SKILL.md": true,
@@ -5617,7 +5607,6 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-cursor/commands/lisa/parity-coderabbit.md": true,
     "plugins/lisa-cursor/commands/lisa/parity-sentry-sdk-setup.md": true,
     "plugins/lisa-cursor/commands/lisa/parity-sentry-seer.md": true,
-    "plugins/lisa-cursor/commands/lisa/parity-skill-creator.md": true,
     "plugins/lisa-cursor/commands/lisa/persist-learning.md": true,
     "plugins/lisa-cursor/commands/lisa/plan.md": true,
     "plugins/lisa-cursor/commands/lisa/plugin-sync-explain.md": true,
@@ -5929,7 +5918,6 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-cursor/skills/lisa-parity-coderabbit/SKILL.md": true,
     "plugins/lisa-cursor/skills/lisa-parity-sentry-sdk-setup/SKILL.md": true,
     "plugins/lisa-cursor/skills/lisa-parity-sentry-seer/SKILL.md": true,
-    "plugins/lisa-cursor/skills/lisa-parity-skill-creator/SKILL.md": true,
     "plugins/lisa-cursor/skills/lisa-performance-review/SKILL.md": true,
     "plugins/lisa-cursor/skills/lisa-persist-learning/SKILL.md": true,
     "plugins/lisa-cursor/skills/lisa-plan/SKILL.md": true,
@@ -6392,7 +6380,6 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-devin/skills/lisa-parity-coderabbit/SKILL.md": true,
     "plugins/lisa-devin/skills/lisa-parity-sentry-sdk-setup/SKILL.md": true,
     "plugins/lisa-devin/skills/lisa-parity-sentry-seer/SKILL.md": true,
-    "plugins/lisa-devin/skills/lisa-parity-skill-creator/SKILL.md": true,
     "plugins/lisa-devin/skills/lisa-performance-review/SKILL.md": true,
     "plugins/lisa-devin/skills/lisa-persist-learning/SKILL.md": true,
     "plugins/lisa-devin/skills/lisa-plan/SKILL.md": true,
@@ -8796,8 +8783,6 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa/.codex-plugin/skills/lisa-parity-sentry-sdk-setup/agents/openai.yaml": true,
     "plugins/lisa/.codex-plugin/skills/lisa-parity-sentry-seer/SKILL.md": true,
     "plugins/lisa/.codex-plugin/skills/lisa-parity-sentry-seer/agents/openai.yaml": true,
-    "plugins/lisa/.codex-plugin/skills/lisa-parity-skill-creator/SKILL.md": true,
-    "plugins/lisa/.codex-plugin/skills/lisa-parity-skill-creator/agents/openai.yaml": true,
     "plugins/lisa/.codex-plugin/skills/lisa-performance-review/SKILL.md": true,
     "plugins/lisa/.codex-plugin/skills/lisa-performance-review/agents/openai.yaml": true,
     "plugins/lisa/.codex-plugin/skills/lisa-persist-learning/SKILL.md": true,
@@ -9089,7 +9074,6 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa/commands/parity-coderabbit.md": true,
     "plugins/lisa/commands/parity-sentry-sdk-setup.md": true,
     "plugins/lisa/commands/parity-sentry-seer.md": true,
-    "plugins/lisa/commands/parity-skill-creator.md": true,
     "plugins/lisa/commands/persist-learning.md": true,
     "plugins/lisa/commands/plan.md": true,
     "plugins/lisa/commands/plugin-sync-explain.md": true,
@@ -9511,8 +9495,6 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa/skills/lisa-parity-sentry-sdk-setup/agents/openai.yaml": true,
     "plugins/lisa/skills/lisa-parity-sentry-seer/SKILL.md": true,
     "plugins/lisa/skills/lisa-parity-sentry-seer/agents/openai.yaml": true,
-    "plugins/lisa/skills/lisa-parity-skill-creator/SKILL.md": true,
-    "plugins/lisa/skills/lisa-parity-skill-creator/agents/openai.yaml": true,
     "plugins/lisa/skills/lisa-performance-review/SKILL.md": true,
     "plugins/lisa/skills/lisa-performance-review/agents/openai.yaml": true,
     "plugins/lisa/skills/lisa-persist-learning/SKILL.md": true,
@@ -9805,7 +9787,6 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/src/base/commands/parity-coderabbit.md": true,
     "plugins/src/base/commands/parity-sentry-sdk-setup.md": true,
     "plugins/src/base/commands/parity-sentry-seer.md": true,
-    "plugins/src/base/commands/parity-skill-creator.md": true,
     "plugins/src/base/commands/persist-learning.md": true,
     "plugins/src/base/commands/plan.md": true,
     "plugins/src/base/commands/plugin-sync-explain.md": true,
@@ -10126,7 +10107,6 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/src/base/skills/lisa-parity-coderabbit/SKILL.md": true,
     "plugins/src/base/skills/lisa-parity-sentry-sdk-setup/SKILL.md": true,
     "plugins/src/base/skills/lisa-parity-sentry-seer/SKILL.md": true,
-    "plugins/src/base/skills/lisa-parity-skill-creator/SKILL.md": true,
     "plugins/src/base/skills/lisa-performance-review/SKILL.md": true,
     "plugins/src/base/skills/lisa-persist-learning/SKILL.md": true,
     "plugins/src/base/skills/lisa-plan/SKILL.md": true,
