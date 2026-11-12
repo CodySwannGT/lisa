@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.103.4](https://github.com/CodySwannGT/lisa/compare/v4.103.3...v4.103.4) (2026-11-12)
+
+
+### Code Refactoring
+
+* **gates:** slim the evidence envelope, remove the reuse checker ([b452663](https://github.com/CodySwannGT/lisa/commit/b452663a62ed892b3ef2c14ad40b44cf956dffa7)), closes [CodySwannGT/lisa#4794](https://github.com/CodySwannGT/lisa/issues/4794)
+
 ### [4.103.3](https://github.com/CodySwannGT/lisa/compare/v4.103.2...v4.103.3) (2026-11-12)
 
 
