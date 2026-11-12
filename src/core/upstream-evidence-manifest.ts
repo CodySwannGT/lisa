@@ -1643,7 +1643,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-repair-intake/SKILL.md":
       "eb5ed341caccf01b3ae7da403bd2877ab2f77501bb0a64e4e275c36317297871",
     "plugins/src/base/skills/lisa-reproduce-bug/SKILL.md":
-      "49dee0ea4d444a6df050d85fd57566497df288490f64b467d0505b1863fc1039",
+      "d7ecff84c1bad6ced1bb528fe8534315cf4f9e701b4788a08496cc0e1cb0fe0f",
     "plugins/src/base/skills/lisa-research/SKILL.md":
       "d2850e4fe0f4bbfb820faad2523f8b339725280fa9c6bd5627705aef2bc8684a",
     "plugins/src/base/skills/lisa-review-implementation/SKILL.md":
@@ -1653,7 +1653,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-rework-triage/SKILL.md":
       "a70ccc7c79a6cc3a695d173b7b8bfbe8334af2cdace368fe1520d0b86254fb6f",
     "plugins/src/base/skills/lisa-root-cause-analysis/SKILL.md":
-      "3fa14217ca36b238ebb8203d18f10eaaf98a3647f949cdada6cb9f56ddf9ed50",
+      "bec22f630bb3702772014744b5559ec9785808d2d01273f47a73937633ad334b",
     "plugins/src/base/skills/lisa-secrets-access/SKILL.md":
       "d6eb1c0c2ee829bce40b2a3cdf73ce6fdca26e6db3f09422a3ccdc83e560030e",
     "plugins/src/base/skills/lisa-secrets-access/scripts/aws-bootstrap.mjs":
@@ -13570,6 +13570,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/strategies/blocker-edge-resolution.test.ts": true,
     "tests/unit/strategies/build-ready-control.test.ts": true,
     "tests/unit/strategies/build-verification-credential-blocking.test.ts": true,
+    "tests/unit/strategies/cited-line-reachability-contract.test.ts": true,
     "tests/unit/strategies/claim-archaeology-rule.test.ts": true,
     "tests/unit/strategies/claim-evidence-mapping-contract.test.ts": true,
     "tests/unit/strategies/control-reachability-contract.test.ts": true,
