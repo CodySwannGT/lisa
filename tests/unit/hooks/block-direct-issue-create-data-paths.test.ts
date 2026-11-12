@@ -23,12 +23,11 @@
  * observed refusals are illustrations of a defect read from current source,
  * never the specification for it.
  *
- * The rule restored here is already written down in the same directory, and
- * this guard was the one that declined to apply it — `parity-safety-net.sh`
- * (lines 337-346 and 704-705 at the time of writing): "Only a COMMAND POSITION
- * can execute something. A path anywhere else is an argument, and an argument
- * is data." `block-no-verify.sh`'s `strip_command_prefix` implements the same
- * split with a fail-closed third state.
+ * The rule restored here: "Only a COMMAND POSITION can execute something. A
+ * path anywhere else is an argument, and an argument is data." This guard was
+ * the one that declined to apply it; `block-no-verify.sh`'s
+ * `strip_command_prefix` implements the same split with a fail-closed third
+ * state.
  *
  * Every acceptance case below is paired with a rejection control, and the
  * controls are this suite's own rather than borrowed: the reach that #3484

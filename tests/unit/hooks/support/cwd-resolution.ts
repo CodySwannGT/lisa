@@ -1,17 +1,15 @@
 /**
- * The harness that drives BOTH cwd-resolving guards over one shared corpus.
+ * The harness that drives the cwd-resolving guard over the shared corpus.
  *
- * `parity-safety-net.sh` and `worktree-binding-guard.mjs` answer the same
- * question — "which file will this command actually execute?" — in two
- * languages, and CodySwannGT/lisa#3952 binds them to one written contract
- * rather than to one implementation, because there is no call that reaches from
- * Node into a shell function's file-scope state.
+ * `worktree-binding-guard.mjs` answers "which file will this command actually
+ * execute?", and CodySwannGT/lisa#3952 binds that answer to one written
+ * contract and a corpus of adversarial rows.
  *
- * Nothing here resolves anything. It plants files, runs each guard, and reports
+ * Nothing here resolves anything. It plants files, runs the guard, and reports
  * what the guard did. A harness that computed the expected path itself would be
- * the third implementation the ticket exists to avoid.
+ * a second implementation, which is what a contract is meant to avoid.
  *
- * ## How a resolved path is observed, given neither guard returns one
+ * ## How a resolved path is observed, given the guard does not return one
  *
  * By PLANTING. Every candidate directory gets a copy of the same relative
  * script name; exactly one copy gets the body the guard reacts to, and the rest

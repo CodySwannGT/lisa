@@ -85,6 +85,11 @@
       "issue": "CodySwannGT/lisa#4794",
       "note": "Removed with the gate evidence envelope's release-reuse checker (CodySwannGT/lisa#4794). The reader demoted envelope rows that lacked a work count or were past a freshness bound, but nothing produced those fields (they were always null) and no workflow called the reuse checker. Envelope rows are now `{ gate, status, level, label }`. A host importing it should read `status` from the row directly: it is already three-valued, and anything not PASSED or FAILED is `unknown`.",
       "path": "all/copy-overwrite/scripts/lisa-gates.mjs"
+    },
+    {
+      "path": "all/copy-overwrite/scripts/lisa-hooks/parity-safety-net.sh",
+      "issue": "CodySwannGT/lisa#4803",
+      "note": "Removed with the parity-safety-net hook, which had been a no-op that read its input and exited 0 since CodySwannGT/lisa#4672. No agent registers it any more and nothing Lisa ships calls it. all/deletions.json retires a host's copy only while it is byte-identical to a version Lisa shipped and no package.json script or workflow names it; an edited or still-wired copy is kept, with a notice in the apply output. A host that wired it into its own hooks or automation should delete that wiring and the script; it enforced nothing."
     }
   ]
 }

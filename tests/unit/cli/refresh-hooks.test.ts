@@ -16,15 +16,15 @@ import { createProgram } from "../../../src/cli/index.js";
 import {
   fixture,
   cleanupFixtures,
-  BOTH_GUARDS,
+  SELECTION,
   DIRTY_TEXT,
-  PARITY,
+  GUARD,
+  GUARD_NAME,
   HOOK_DIRECTORY,
   COPY_DIRECTORY,
   DEDUPE,
   DEDUPE_NAME,
-  OLD_PARITY,
-  OLD_DEDUPE,
+  OLD_GUARD,
   CONFIG_TEXT,
   hookNames,
 } from "./refresh-hooks-fixture.js";
@@ -99,18 +99,18 @@ describe("supported scoped hook refresh", () => {
       "refresh-hooks"
     );
     await program.parseAsync(
-      ["refresh-hooks", "/literal-host", "--guards", BOTH_GUARDS],
+      ["refresh-hooks", "/literal-host", "--guards", SELECTION],
       { from: "user" }
     );
-    expect(calls).toEqual([["/literal-host", BOTH_GUARDS]]);
+    expect(calls).toEqual([["/literal-host", SELECTION]]);
   });
 
   it("updates only the guard and companions and repeats without drift", async () => {
     const { refreshHooks } =
       await import("../../../src/cli/refresh-hooks-cmd.js");
     const input = await fixture();
-    await refreshHooks(input.host, input, BOTH_GUARDS);
-    await refreshHooks(input.host, input, BOTH_GUARDS);
+    await refreshHooks(input.host, input, SELECTION);
+    await refreshHooks(input.host, input, SELECTION);
     for (const name of hookNames)
       expect(
         await readFile(path.join(input.host, HOOK_DIRECTORY, name), "utf8")
@@ -129,9 +129,11 @@ describe("supported scoped hook refresh", () => {
     for (const value of [
       "",
       "all",
-      "../parity-safety-net",
-      "parity-safety-net,parity-safety-net",
-      "parity-safety-net, block-no-verify",
+      "../block-no-verify",
+      "block-no-verify,block-no-verify",
+      "block-no-verify, block-no-verify",
+      // Removed with the hook itself (CodySwannGT/lisa#4803).
+      "parity-safety-net",
     ]) {
       expect(() => hookCohort(value)).toThrow("closed guards");
     }
@@ -147,8 +149,8 @@ describe("supported scoped hook refresh", () => {
     const input = await fixture();
     await writeFile(path.join(input.host, DEDUPE), "host custom authority\n");
     await expect(refreshHooks(input.host, input)).rejects.toThrow("preserved");
-    expect(await readFile(path.join(input.host, PARITY), "utf8")).toBe(
-      OLD_PARITY
+    expect(await readFile(path.join(input.host, GUARD), "utf8")).toBe(
+      OLD_GUARD
     );
   });
 
@@ -173,13 +175,10 @@ describe("supported scoped hook refresh", () => {
     const { refreshHooks } =
       await import("../../../src/cli/refresh-hooks-cmd.js");
     const input = await fixture();
-    await chmod(
-      path.join(input.host, "scripts/lisa-hooks/parity-safety-net-heredoc.py"),
-      0o444
-    );
+    await chmod(path.join(input.host, DEDUPE), 0o444);
     await expect(refreshHooks(input.host, input)).rejects.toThrow();
-    expect(await readFile(path.join(input.host, DEDUPE), "utf8")).toBe(
-      OLD_DEDUPE
+    expect(await readFile(path.join(input.host, GUARD), "utf8")).toBe(
+      OLD_GUARD
     );
     expect(await readFile(path.join(input.host, "dirty.txt"), "utf8")).toBe(
       DIRTY_TEXT
@@ -193,13 +192,13 @@ describe("supported scoped hook refresh", () => {
     const bytes = Buffer.from(
       "# lisa-guard-capabilities: host-only-protection\n"
     );
-    input.ledger[PARITY] = [
-      ...(input.ledger[PARITY] ?? []),
+    input.ledger[GUARD] = [
+      ...(input.ledger[GUARD] ?? []),
       createHash("sha256").update(bytes).digest("hex"),
     ];
-    await writeFile(path.join(input.host, PARITY), bytes);
+    await writeFile(path.join(input.host, GUARD), bytes);
     await expect(refreshHooks(input.host, input)).rejects.toThrow("host-ahead");
-    expect(await readFile(path.join(input.host, PARITY))).toEqual(bytes);
+    expect(await readFile(path.join(input.host, GUARD))).toEqual(bytes);
   });
 
   it("refuses unrecorded package bytes before any host write", async () => {
@@ -207,14 +206,14 @@ describe("supported scoped hook refresh", () => {
       await import("../../../src/cli/refresh-hooks-cmd.js");
     const input = await fixture();
     await writeFile(
-      path.join(input.packageDir, COPY_DIRECTORY, PARITY),
+      path.join(input.packageDir, COPY_DIRECTORY, GUARD),
       "unrecorded package hook\n"
     );
     await expect(refreshHooks(input.host, input)).rejects.toThrow(
       "not recorded shipping source"
     );
-    expect(await readFile(path.join(input.host, PARITY), "utf8")).toBe(
-      OLD_PARITY
+    expect(await readFile(path.join(input.host, GUARD), "utf8")).toBe(
+      OLD_GUARD
     );
   });
 
@@ -222,13 +221,13 @@ describe("supported scoped hook refresh", () => {
     const { refreshHooks } =
       await import("../../../src/cli/refresh-hooks-cmd.js");
     const input = await fixture();
-    const target = path.join(input.host, PARITY);
+    const target = path.join(input.host, GUARD);
     const foreign = path.join(path.dirname(input.host), "foreign-hook");
     await link(target, foreign);
     await expect(refreshHooks(input.host, input)).rejects.toThrow(
       "single-link"
     );
-    expect(await readFile(foreign, "utf8")).toBe(OLD_PARITY);
+    expect(await readFile(foreign, "utf8")).toBe(OLD_GUARD);
     expect(observation.handles.length).toBeGreaterThan(0);
     expect(observation.handles.every(handle => handle.fd === -1)).toBe(true);
   });
@@ -242,8 +241,8 @@ describe("supported scoped hook refresh", () => {
       const hooks = path.join(input.host, HOOK_DIRECTORY);
       const foreign = path.join(path.dirname(input.host), "foreign");
       const saved = `${hooks}-original`;
-      const target = path.join(input.host, PARITY);
-      const source = path.join(input.packageDir, COPY_DIRECTORY, PARITY);
+      const target = path.join(input.host, GUARD);
+      const source = path.join(input.packageDir, COPY_DIRECTORY, GUARD);
       let fired = false;
       let foreignWritten = false;
       await mkdir(foreign);
@@ -252,13 +251,13 @@ describe("supported scoped hook refresh", () => {
       if (kind === "source")
         await writeFile(
           path.join(foreign, "source"),
-          "# current parity-safety-net.sh\n"
+          `# current ${GUARD_NAME}\n`
         );
       observation.before = async filename => {
         if (kind !== "leaf" || filename !== target || fired) return;
         fired = true;
         await rm(target);
-        await symlink(path.join(foreign, "parity-safety-net.sh"), target);
+        await symlink(path.join(foreign, GUARD_NAME), target);
       };
       observation.checked = async filename => {
         if (kind !== "source" || filename !== source || fired) return;
@@ -268,20 +267,19 @@ describe("supported scoped hook refresh", () => {
       };
       observation.after = async filename => {
         if (
-          (await readFile(
-            path.join(foreign, "parity-safety-net.sh"),
-            "utf8"
-          )) !== OLD_PARITY
+          (await readFile(path.join(foreign, GUARD_NAME), "utf8")) !== OLD_GUARD
         )
           foreignWritten = true;
-        if (filename !== path.join(hooks, DEDUPE_NAME) || fired) return;
+        // The cohort is written in name order, so the guard is written first
+        // and the dedupe helper is still pending when these mutations land.
+        if (filename !== target || fired) return;
         if (kind === "ancestor") {
           fired = true;
           await rename(hooks, saved);
           await symlink(foreign, hooks);
         } else if (kind === "mode") {
           fired = true;
-          await chmod(path.join(hooks, "parity-safety-net-heredoc.py"), 0o444);
+          await chmod(path.join(hooks, DEDUPE_NAME), 0o444);
         } else if (kind === "custom") {
           fired = true;
           await writeFile(filename, "concurrent custom work\n");
@@ -296,14 +294,12 @@ describe("supported scoped hook refresh", () => {
       if (kind === "ancestor" || kind === "mode")
         expect(
           await readFile(
-            path.join(kind === "ancestor" ? saved : hooks, DEDUPE_NAME),
+            path.join(kind === "ancestor" ? saved : hooks, GUARD_NAME),
             "utf8"
           )
-        ).toBe(OLD_DEDUPE);
+        ).toBe(OLD_GUARD);
       if (kind === "custom")
-        expect(await readFile(path.join(hooks, DEDUPE_NAME), "utf8")).toBe(
-          "concurrent custom work\n"
-        );
+        expect(await readFile(target, "utf8")).toBe("concurrent custom work\n");
       expect(observation.handles.every(handle => handle.fd === -1)).toBe(true);
     }
   );

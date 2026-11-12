@@ -51,7 +51,7 @@ equivalent, so it is reimplemented — see §3.)
 
 **Correction for `safety-net` (2026-08-11 re-review).** "Not emitted by Lisa" does not
 hold for the `safety-net` row the way it was previously worded: the reimplemented
-`parity-safety-net.sh` hook and `lisa-parity-safety-net-rules` skill (see §3) ship into
+Lisa safety-net hook and `lisa-parity-safety-net-rules` skill (see §3) shipped into
 the generated Copilot plugin artifact via the same universal base-plugin fan-out every
 other agent gets — `generate-copilot-plugin-artifacts.mjs` has no safety-net-specific
 exclusion for them. What Lisa does not do is enable the *vendor's own* `cc-safety-net`
@@ -85,11 +85,10 @@ carries the reasoning. `synced-from` is a single scalar and cannot express that
 distinction, so the prose is the only place it exists — see the sentry skills, which
 decline upstream 1.4.0's unnarrated onboarding progress-reporting protocol.
 
-The `safety-net` Bash-guard **hook is now authored** as
-`plugins/src/base/hooks/parity-safety-net.sh` and registered in
-`plugins/src/base/.claude-plugin/plugin.json` as a `PreToolUse` matcher on `Bash`. The
-companion `parity-safety-net-rules` skill views/sets/verifies the project-local custom
-guard rules the hook enforces.
+The `safety-net` Bash-guard hook was authored in `plugins/src/base/hooks/` and
+registered in `plugins/src/base/.claude-plugin/plugin.json` as a `PreToolUse` matcher
+on `Bash`. It was retired to a no-op in #4672 and removed from every agent in #4803;
+the shared heredoc classifier it used stays, because live guards still call it.
 
 ---
 
@@ -114,7 +113,7 @@ guard rules the hook enforces.
 The 2026-08-11 re-pin to `safety-net@cc-marketplace@2.0.1` refreshed the pin and the
 routing artifact but **did not absorb** the two guard families upstream introduced in
 2.0.0. Both gaps were measured, not assumed — the probe table (upstream `explain`
-verdicts beside live `parity-safety-net.sh` exit codes) is in
+verdicts beside the then-live Lisa hook's exit codes) is in
 `parity/plugin-routing/safety-net@cc-marketplace.md`.
 
 | upstream family | what it blocks | Lisa hook today |
@@ -127,7 +126,7 @@ refresh was sequenced: the pin bump landed first and the guard absorption follow
 its own tracked work (#1960) with a research audit and a fixture matrix. Two specifics
 make `secret.*` more than a pin-refresh change:
 
-- **It needs a new matcher surface.** `parity-safety-net.sh` is registered as a
+- **It needs a new matcher surface.** The Lisa hook was registered as a
   `PreToolUse` matcher on `Bash` only. Upstream 2.0 screens file tools as well, so the
   file-tool half of its coverage is unreachable from Lisa's hook without a registration
   change that ships to **every** downstream project.
@@ -138,7 +137,8 @@ make `secret.*` more than a pin-refresh change:
 
 `rm.git-metadata` is small and low-risk by comparison and is the natural first slice.
 
-**Not yet decided:** whether to absorb these into `parity-safety-net.sh` or to reverse
+**Superseded:** the Lisa hook was retired (#4672) and removed (#4803). The open
+question was whether to absorb these into the Lisa hook or to reverse
 #1960 and adopt upstream's native per-CLI integrations (2.0 ships an installer for
 twelve agent CLIs, including Codex, Antigravity, Cursor, and Copilot CLI). The second
 option would retire Lisa's own hook and is an owner-level standards call — see the

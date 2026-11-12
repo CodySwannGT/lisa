@@ -75,15 +75,6 @@ jobs:
           node dist/index.js --version
           node dist/index.js --help | grep -q "setup-project"
           node dist/index.js --help | grep -q "setup-wiki"
-      - name: Verify real released-package safety-net retirement
-        run: node scripts/verify-native-safety-net-retirement.mjs --out "${{ runner.temp }}/lisa-safety-net-retirement"
-      - name: Retain safety-net upgrade evidence
-        if: always()
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
-        with:
-          name: lisa-safety-net-retirement
-          path: ${{ runner.temp }}/lisa-safety-net-retirement
-          if-no-files-found: error
   windows_preflight:
     name: Windows lint-staged preflight
     runs-on: windows-latest
