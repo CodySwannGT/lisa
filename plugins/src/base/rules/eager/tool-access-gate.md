@@ -7,11 +7,12 @@ missing in your next message and stop.
 
 Only take on work you can finish. Before implementation starts — and again the
 moment a new requirement surfaces mid-flow — enumerate every external tool the
-work item needs (implementation, proof command, remote verification: AWS CLI,
-Figma, Jam, Sentry, SonarCloud, PostHog, device/browser harnesses, databases,
-deploy targets, …) and **prove access with a cheap read-only probe**, routing
-through the matching `*-access` skill where one exists. Resolve credentials through the documented access path before probing;
-presence on PATH is not access. If that path or the probe cannot provide the
+work item needs (implementation, proof command, remote verification: AWS,
+Figma, Sentry, browsers, databases, deploy targets, …) and **prove access with
+a cheap read-only probe**, routing through the matching `*-access` skill where
+one exists. Resolve credentials first, including `lisa-secrets-access` and the
+recovery it documents (allowed, not a forbidden write); presence on PATH is not
+access. If that path or the probe cannot provide the
 required access, report the gap and stop.
 
 The message must name the missing resource, the operation it blocks, and any
