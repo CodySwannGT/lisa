@@ -1185,7 +1185,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/rules/eager/upstream-to-lisa.md":
       "dcb3075bc48de76f3bae1ad066d0a1e14f82bd244c1015a48f9e2916cabaf03c",
     "plugins/src/base/rules/eager/verification.md":
-      "a6cc1d50c5b91080171490edce4d375f136a14790dcbb247ca8b736ad8f55cfd",
+      "14f6fd493e0d96b6a5df0474b2cfc5d32b603c56ff32b0d0cc06964032133419",
     "plugins/src/base/rules/eager/wiki-knowledge-source.md":
       "b3ae63fca40461fef19779d8f0c971553963ed8fe9c22fc504da3d8e757b3a36",
     "plugins/src/base/rules/eager/withdrawn-rulings.md":
@@ -1201,7 +1201,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/rules/reference/claim-archaeology.md":
       "354204d02a2d0616747c9f46da34cf303fe9dce6b56cc10251f867fdefd62436",
     "plugins/src/base/rules/reference/claim-evidence-mapping.md":
-      "d517dd46224bfd97e2b988a317837dcf099977ae35caa98bb3458ffac606081d",
+      "5771d3785d72c296854d596227aca42ea9809e15f04ca1b744d95978524bc503",
     "plugins/src/base/rules/reference/claim-time-guards.md":
       "a50664632190c94a68df74cf8e1893552e1507f0162e3dc497615a8360b40007",
     "plugins/src/base/rules/reference/coding-philosophy.md":
@@ -1301,7 +1301,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/rules/reference/usage-accounting.md":
       "64ee616bdad7c16d5cc4b9eb44384de261b0616ec3343d4c05a88ddede3d89ea",
     "plugins/src/base/rules/reference/verification.md":
-      "9ae8db87b37c7700687fabd1b8632b3cddd0f1f1e4b04384c604f88f160056ed",
+      "8a57ab38f2d86e9879cdcf265ebba2a6d63a6f821ffd7a2cb4749e59861c518f",
     "plugins/src/base/rules/reference/wiki-knowledge-source.md":
       "725a7415a0606f85164722bd4b4975bce1f496cc43c97e45b224810b1a685189",
     "plugins/src/base/rules/reference/withdrawn-rulings.md":
@@ -1877,7 +1877,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-tracker-create/SKILL.md":
       "fecd0c3cc930b0f87578bc0bee14009509883cb21b33e94e3e7a42792dcd888e",
     "plugins/src/base/skills/lisa-tracker-evidence/SKILL.md":
-      "8aa6aa27c322f79b9e5adc20fd796124765a016fb5293dc41c16a95f12a8c08f",
+      "23b8a45e9f5307563e68b05f7c4cff677431ea013402e47a89f622b44155602d",
     "plugins/src/base/skills/lisa-tracker-evidence/references/completion-authorization.md":
       "6bf7f6015d0a0d53adaa40d1539b3a1ca030d1df979073ed7b2b68fbb5ec02df",
     "plugins/src/base/skills/lisa-tracker-journey/SKILL.md":
@@ -13632,6 +13632,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/strategies/easignore-worktree-exclusion.test.ts": true,
     "tests/unit/strategies/effectiveness-parity.test.ts": true,
     "tests/unit/strategies/env-promotion-completeness.test.ts": true,
+    "tests/unit/strategies/evidence-ignored-directory-contract.test.ts": true,
     "tests/unit/strategies/evidence-reference-contract.test.ts": true,
     "tests/unit/strategies/evidence-release-stop-guard.test.ts": true,
     "tests/unit/strategies/falsifiable-checks-rule.test.ts": true,
