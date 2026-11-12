@@ -28,6 +28,7 @@ import { installCopilotPlugin } from "../copilot/plugin-installer.js";
 import { detectDevin, installDevinPlugin } from "../devin/plugin-installer.js";
 import { installDevinEnforcementFallback } from "../devin/enforcement-fallback-installer.js";
 import { installSonarIntegrations } from "../sonar/sonar-installer.js";
+import { repointSonarShims } from "../sonar/sonar-shim-repoint.js";
 import { installCopilotInstructions } from "../copilot/copilot-instructions-installer.js";
 import {
   readManagedManifest as readOpencodeManifest,
@@ -1537,6 +1538,10 @@ export class Lisa {
       await this.processOpencodeEmit();
       await this.processDevinEmit();
       await this.processSonarIntegration();
+      // Must follow processSonarIntegration: re-running `sonar integrate`
+      // restores the vendor shim, which calls `sonar hook` directly and blocks
+      // every prompt when the CLI is unauthenticated (#4502).
+      await this.processSonarShimRepoint();
       await this.processInstructionFilesMigration();
       await this.registerPlugins();
       await this.finalize();
@@ -2185,6 +2190,53 @@ export class Lisa {
     if (result.changed) {
       this.deps.logger.info(
         pc.cyan(`Instruction files: ${result.actions.join("; ")}`)
+      );
+    }
+  }
+
+  /**
+   * Repoint `sonar integrate`-generated hook shims at Lisa's Sonar wrapper.
+   *
+   * CodySwannGT/lisa#4502. The vendor shim calls `sonar hook <event>` directly,
+   * so an unauthenticated CLI blocks every prompt; the wrapper Lisa ships
+   * resolves `SONARQUBE_CLI_TOKEN` and degrades that case to a warning. Only
+   * shims at documented locations whose body is recognisably the vendor's are
+   * rewritten, and only when the wrapper is present; comment-only edits to such
+   * a shim are not preserved. Deliberately NOT gated on
+   * `verification.sonar.enabled` or the CLI being on PATH: a shim committed
+   * earlier still runs whenever a developer has the CLI installed.
+   *
+   * Skipped in dry-run mode, and for postinstall-safe and self-apply runs —
+   * consistent with `processSonarIntegration`, which those runs also skip, so
+   * agent surfaces are only touched by a full apply; the next full apply
+   * repoints. A shim that cannot be rewritten, or that calls `sonar hook` in a
+   * shape Lisa does not recognise, is reported as a warning and the apply
+   * continues.
+   */
+  private async processSonarShimRepoint(): Promise<void> {
+    if (this.config.dryRun) {
+      return;
+    }
+    if (this.shouldSkipAgentEmitDuringPostinstall()) {
+      return;
+    }
+    const result = await repointSonarShims(this.config.destDir);
+    const { logger } = this.deps;
+    if (result.repointed.length > 0) {
+      logger.info(
+        pc.cyan(
+          `Sonar shims: repointed ${result.repointed.length} at the Lisa wrapper (${result.repointed.join(", ")})`
+        )
+      );
+    }
+    for (const failed of result.failed) {
+      logger.warn(
+        `Sonar shim ${failed} could not be repointed at the Lisa wrapper (not readable or writable); patch it by hand per lisa-setup-sonar §4a.`
+      );
+    }
+    for (const stray of result.unrecognized) {
+      logger.warn(
+        `Sonar shim ${stray} calls \`sonar hook\` in a form Lisa does not recognise, so it was left untouched; patch it by hand per lisa-setup-sonar §4a.`
       );
     }
   }
