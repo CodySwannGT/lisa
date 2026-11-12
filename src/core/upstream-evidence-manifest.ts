@@ -1501,11 +1501,11 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-jira-create/SKILL.md":
       "2a409fe3755112f98587db66325fadf5e0d4f34b512755cdbb53b5bec107dab3",
     "plugins/src/base/skills/lisa-jira-evidence/SKILL.md":
-      "2cb239cc7e3e5ece9f3ce2368e41bd79e2c243506423a48838daf2e6e1f6c14e",
+      "82770d8bb33ed75c6eab319cc7a7ca614fd39599b7343b693053315e469949bd",
     "plugins/src/base/skills/lisa-jira-evidence/scripts/post-evidence.sh":
       "7657837ae23fd9a39e7f0e82cb82e0f4bb9d9f5c84b507cd0fcbce7d2055dec0",
     "plugins/src/base/skills/lisa-jira-journey/SKILL.md":
-      "a304eb50fe2428b7af9cdd1feec2c07de18457d72269551b81d46ec4be4a34c8",
+      "655715c8a15bdfe9bc2d3651160cb310db671b0447701d44e0ba10dd8315d4a6",
     "plugins/src/base/skills/lisa-jira-journey/scripts/generate-templates.py":
       "9856fb5cc6d6935ce1a3e07e936139768fd001aef8f35be382e6c03a34f10837",
     "plugins/src/base/skills/lisa-jira-journey/scripts/parse-plan.py":
@@ -1867,7 +1867,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-tracker-evidence/SKILL.md":
       "8aa6aa27c322f79b9e5adc20fd796124765a016fb5293dc41c16a95f12a8c08f",
     "plugins/src/base/skills/lisa-tracker-evidence/references/completion-authorization.md":
-      "e738f7bcd1862631ae3a5ac8e5c47825f85875f77471001f7317fd09818e5290",
+      "6bf7f6015d0a0d53adaa40d1539b3a1ca030d1df979073ed7b2b68fbb5ec02df",
     "plugins/src/base/skills/lisa-tracker-journey/SKILL.md":
       "65fe727adfdbcc22141ad009e89cd7d91195600377c5357d552d50ed98ecf66b",
     "plugins/src/base/skills/lisa-tracker-read/SKILL.md":
@@ -2079,11 +2079,11 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/expo/skills/jira-create/SKILL.md":
       "0fb4378b7399580e180beaacd22f832af3ff0ddae7c5d7761039bc81832c0c43",
     "plugins/src/expo/skills/jira-evidence/SKILL.md":
-      "ca76808b1df92bcb95e7fae6f32f140dce34939af308dabd6475dc6ed68cfd40",
+      "be08e5fdb90d1cdb493e8a4b51045d0410f20024b9578a69a9389ba81b1ab74f",
     "plugins/src/expo/skills/jira-evidence/scripts/post-evidence.sh":
       "7657837ae23fd9a39e7f0e82cb82e0f4bb9d9f5c84b507cd0fcbce7d2055dec0",
     "plugins/src/expo/skills/jira-journey/SKILL.md":
-      "9d0314828c38e00829898c2e1866dd01223208fe653001b42767ba8e920c4faa",
+      "e5f78238b7ce901741f4d93af8c81c6fd563aca96a28c78af1e6c113210a03c5",
     "plugins/src/expo/skills/jira-journey/scripts/generate-templates.py":
       "ccf072f9b613d56f924cdafd6ebee9799ee121e5253d26fc9b3272b805f95515",
     "plugins/src/expo/skills/jira-journey/scripts/parse-plan.py":
@@ -2359,7 +2359,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/rails/skills/jira-create/SKILL.md":
       "789b1ed68e983029e0b57c3eefa90fdce000615d0f23b1699a6d9c0099b4e1d0",
     "plugins/src/rails/skills/jira-evidence/SKILL.md":
-      "f24880e9c00bb2ae3c02792e5a6fc787b2b4993b00244cdb388387e3d094c5d4",
+      "5f942285d9389df283414750e3b22384066ed122f18096782efac7124e83c593",
     "plugins/src/rails/skills/jira-evidence/scripts/post-evidence.sh":
       "7657837ae23fd9a39e7f0e82cb82e0f4bb9d9f5c84b507cd0fcbce7d2055dec0",
     "plugins/src/rails/skills/jira-journey/SKILL.md":
@@ -2737,7 +2737,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/generate-agy-plugin-artifacts.mjs":
       "19bee3087ff1fedc79550f75cb021dc59b5b4466daa6261adb788ef13bb8c2b6",
     "scripts/generate-codex-plugin-artifacts.mjs":
-      "339dc57d6c947ffb91c6d9c08bb9ea28c3f9b44687a330a035cb4ea2d69de574",
+      "6834c7cfc1a199a394384a9dd24682af1cae07d491633f354e91d9771c71cca8",
     "scripts/generate-copilot-plugin-artifacts.mjs":
       "8589c8b6e7adff3aefd20463d78cb3caa4d23489fffc07fbb9d185cdc63871fa",
     "scripts/generate-cursor-plugin-artifacts.mjs":
@@ -2782,6 +2782,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "d7191650d8a12727549b67df61dbfa61e16cfb9cc31e461cd98d253ceab1612a",
     "scripts/lib/bounded-spawn.mjs":
       "a37de43abd0c9840d0caab4e211a066c4dcf4fd76bbbf12a84b6a402300f99a1",
+    "scripts/lib/codex-shared-scripts.mjs":
+      "ca3809b5b496c9184fbe162bcdf2716f7e4cc0e7369ecedf42b6925f685ee1c2",
     "scripts/lib/dependency-tree.mjs":
       "2df9048c5baffc5d660923fe933dcf6bf277d39e81512de1332ce686e705a765",
     "scripts/lib/gitattributes-merge-drivers.mjs":
@@ -3838,6 +3840,10 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "evidence/4719/token-scan-green-after-fix.txt": true,
     "evidence/4719/token-scan-red-before-fix.txt": true,
     "evidence/4719/token-scan-repro-after-fix.txt": true,
+    "evidence/4740/evidence-release-doc-contract.txt": true,
+    "evidence/4740/no-old-pattern.txt": true,
+    "evidence/4740/plugin-artifacts-in-sync.txt": true,
+    "evidence/4740/stop-guard-before-after.txt": true,
     "evidence/CodySwannGT-lisa-4605/falsification.txt": true,
     "evidence/CodySwannGT-lisa-4605/rollback-dry-run-commands.txt": true,
     "evidence/CodySwannGT-lisa-4605/rollback-missing-credentials-refusal.txt": true,
@@ -8550,6 +8556,14 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-wiki/templates/wrapper-gitignore.txt": true,
     "plugins/lisa/.codex-plugin/hooks.json": true,
     "plugins/lisa/.codex-plugin/plugin.json": true,
+    "plugins/lisa/.codex-plugin/scripts/automation-run-record.mjs": true,
+    "plugins/lisa/.codex-plugin/scripts/blocker-edge-resolution.mjs": true,
+    "plugins/lisa/.codex-plugin/scripts/intake-blocker-reprobe.mjs": true,
+    "plugins/lisa/.codex-plugin/scripts/intake-prework-denominator.mjs": true,
+    "plugins/lisa/.codex-plugin/scripts/operator-id-kinds.mjs": true,
+    "plugins/lisa/.codex-plugin/scripts/qa-signal-lifecycle.mjs": true,
+    "plugins/lisa/.codex-plugin/scripts/ready-queue-order.mjs": true,
+    "plugins/lisa/.codex-plugin/scripts/resolve-lifecycle-role.mjs": true,
     "plugins/lisa/.codex-plugin/skills/lisa-acceptance-criteria/SKILL.md": true,
     "plugins/lisa/.codex-plugin/skills/lisa-acceptance-criteria/agents/openai.yaml": true,
     "plugins/lisa/.codex-plugin/skills/lisa-agent-design-best-practices/SKILL.md": true,
@@ -10760,6 +10774,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "scripts/internal-cursor-skill-policy.json": true,
     "scripts/internal-opencode-skill-policy.json": true,
     "scripts/lib/bounded-spawn.mjs": true,
+    "scripts/lib/codex-shared-scripts.mjs": true,
     "scripts/lib/dependency-tree.mjs": true,
     "scripts/lib/gitattributes-merge-drivers.mjs": true,
     "scripts/lib/hook-registration-audit.mjs": true,
@@ -12299,6 +12314,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/codex/codex-edit-hooks.test.ts": true,
     "tests/unit/codex/codex-hooks-json-tracked.test.ts": true,
     "tests/unit/codex/codex-overlay-artifact-classification.test.ts": true,
+    "tests/unit/codex/codex-skill-imports-resolve.test.ts": true,
     "tests/unit/codex/command-plugin-artifacts.test.ts": true,
     "tests/unit/codex/committed-openai-yaml-in-sync.test.ts": true,
     "tests/unit/codex/convert-command-to-skill.test.ts": true,
@@ -13548,6 +13564,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/strategies/effectiveness-parity.test.ts": true,
     "tests/unit/strategies/env-promotion-completeness.test.ts": true,
     "tests/unit/strategies/evidence-reference-contract.test.ts": true,
+    "tests/unit/strategies/evidence-release-stop-guard.test.ts": true,
     "tests/unit/strategies/falsifiable-checks-rule.test.ts": true,
     "tests/unit/strategies/gardener-fingerprint-hash.test.ts": true,
     "tests/unit/strategies/git-discipline-force-lease-contract.test.ts": true,

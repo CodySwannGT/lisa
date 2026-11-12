@@ -191,7 +191,9 @@ describe("the manager CLI travels and runs", () => {
     for (const file of paths) expect(modes.get(file), file).toBe("100755");
   });
 
-  it.each([SOURCE_ROOT, ...VERBATIM_ROOTS])(
+  // The Codex copy runs too: its `../../../scripts/` imports land on the
+  // shared modules the generator emits into `.codex-plugin/scripts/` (#4730).
+  it.each([SOURCE_ROOT, ...VERBATIM_ROOTS, CODEX_ROOT])(
     "loads from %s and prints the same usage as the source",
     root => {
       const usage = helpFrom(root);
@@ -200,7 +202,7 @@ describe("the manager CLI travels and runs", () => {
     }
   );
 
-  it.each([SOURCE_ROOT, ...VERBATIM_ROOTS])(
+  it.each([SOURCE_ROOT, ...VERBATIM_ROOTS, CODEX_ROOT])(
     "reaches the role resolver the skill cites from %s",
     root => {
       const resolver = path.resolve(
@@ -211,7 +213,7 @@ describe("the manager CLI travels and runs", () => {
     }
   );
 
-  it("never resolves the Codex copy, whose plugin-level imports do not exist", () => {
+  it("keeps the SKILL.md resolution ladder on the installed Claude tree, not the Codex copy", () => {
     for (const skill of SKILLS) {
       const ladder = read(`${SOURCE_ROOT}/${skill}/SKILL.md`)
         .split("\n")
@@ -221,7 +223,6 @@ describe("the manager CLI travels and runs", () => {
         "node_modules/@codyswann/lisa/plugins/lisa/skills/lisa-session-manager/scripts"
       );
     }
-    expect(existsSync(path.resolve(CODEX_ROOT, "../scripts"))).toBe(false);
   });
 });
 

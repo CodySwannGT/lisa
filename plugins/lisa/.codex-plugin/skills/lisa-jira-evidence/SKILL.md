@@ -62,20 +62,25 @@ If either is missing, **refuse to post**: stop and report the missing Not-establ
 
 ## Usage
 
+Resolve the evidence release once, before posting. When `generate-templates.py` wrote the evidence links, use the same release it used so the links match the uploads. If the release cannot be used (for example, it is nearly full), the step prints `Evidence release not usable; stop.` and fails: stop there and report it instead of posting.
+
+If you came here from jira-journey, `generate-templates.py` already wrote the links: skip the block below and reuse the release name jira-journey printed in its Step 4, because resolving again can pick a different month's release.
+
 ```bash
-bash .claude/skills/jira-evidence/scripts/post-evidence.sh <TICKET_ID> <EVIDENCE_DIR> <PR_NUMBER>
+unset LISA_EVIDENCE_RELEASE; LISA_EVIDENCE_RELEASE=$(node scripts/lisa-work-item.mjs evidence-release --ensure) || { echo "Evidence release not usable; stop."; false; } &&
+export LISA_EVIDENCE_RELEASE && echo "Evidence release: $LISA_EVIDENCE_RELEASE"
+```
+
+Some agent runtimes start a new shell for every command, and a new shell forgets an exported value. So put the printed release name in front of every later command that reads it, as `LISA_EVIDENCE_RELEASE=<name>`; the commands below show where.
+
+```bash
+LISA_EVIDENCE_RELEASE=<name> bash .claude/skills/jira-evidence/scripts/post-evidence.sh <TICKET_ID> <EVIDENCE_DIR> <PR_NUMBER>
 ```
 
 ### Example
 
 ```bash
-bash .claude/skills/jira-evidence/scripts/post-evidence.sh PROJ-123 ./evidence 42
-```
-
-When `generate-templates.py` wrote the evidence links, run both with the same exported release so the links match the uploads:
-
-```bash
-export LISA_EVIDENCE_RELEASE=$(node scripts/lisa-work-item.mjs evidence-release --ensure)
+LISA_EVIDENCE_RELEASE=pr-assets bash .claude/skills/jira-evidence/scripts/post-evidence.sh PROJ-123 ./evidence 42
 ```
 
 `post-evidence.sh` uses `LISA_EVIDENCE_RELEASE` when it is set, after the resolver confirms it is one of the project's evidence releases and is not nearly full.
