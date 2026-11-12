@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.103.6](https://github.com/CodySwannGT/lisa/compare/v4.103.5...v4.103.6) (2026-11-12)
+
+
+### Documentation
+
+* **gates:** add the gate interface review worksheet ([1b4ac81](https://github.com/CodySwannGT/lisa/commit/1b4ac81011e69e5ded087f9a6199d2fced8f2334)), closes [CodySwannGT/lisa#4797](https://github.com/CodySwannGT/lisa/issues/4797)
+
 ### [4.103.5](https://github.com/CodySwannGT/lisa/compare/v4.103.4...v4.103.5) (2026-11-12)
 
 
