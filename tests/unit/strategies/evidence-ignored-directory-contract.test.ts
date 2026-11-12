@@ -93,6 +93,7 @@ describe("ignored evidence contract (#4490)", () => {
       expect(text).toMatch(
         /\*\*It exits non-zero\.\*\* The check itself failed/
       );
+      expect(text).toMatch(/An empty result for a missing or mistyped/);
     });
 
     it("downgrades uncommitted digests to session-local anchors", () => {
@@ -128,9 +129,10 @@ describe("ignored evidence contract (#4490)", () => {
     });
 
     it("uploads every manifest artifact under a ticket-scoped name to the resolved release", () => {
-      expect(text).toMatch(
-        /Upload every manifest artifact the vendor skill will not upload/
-      );
+      expect(text).toMatch(/Upload every manifest artifact, including/);
+      expect(text).toMatch(/`<ticket>` is a `\[a-z0-9-\]` slug/);
+      expect(text).toContain('gh release upload "$RELEASE" <copies> --clobber');
+      expect(text).toMatch(/If any upload fails, stop before dispatching/);
       expect(text).toContain("pr-<PR_NUMBER>-<ticket>-<file>");
       expect(text).toContain("<IDENTIFIER>-<file>");
       expect(text).toMatch(/Never hard-code `pr-assets`/);

@@ -1301,7 +1301,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/rules/reference/usage-accounting.md":
       "64ee616bdad7c16d5cc4b9eb44384de261b0616ec3343d4c05a88ddede3d89ea",
     "plugins/src/base/rules/reference/verification.md":
-      "8120c84b774596dc9613736291b004d6b59d51283d28ff477f342a5ff5089f47",
+      "8a57ab38f2d86e9879cdcf265ebba2a6d63a6f821ffd7a2cb4749e59861c518f",
     "plugins/src/base/rules/reference/wiki-knowledge-source.md":
       "725a7415a0606f85164722bd4b4975bce1f496cc43c97e45b224810b1a685189",
     "plugins/src/base/rules/reference/withdrawn-rulings.md":
@@ -1877,7 +1877,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-tracker-create/SKILL.md":
       "fecd0c3cc930b0f87578bc0bee14009509883cb21b33e94e3e7a42792dcd888e",
     "plugins/src/base/skills/lisa-tracker-evidence/SKILL.md":
-      "8af95cffb2f89a17432a0e3e7974e369ed8acd8515374723e4f4cc788d7de647",
+      "a4a47c74eaa34e1ae7d97c1f944edb22b82713d0b52477c52353d339edd9ab1f",
     "plugins/src/base/skills/lisa-tracker-evidence/references/completion-authorization.md":
       "6bf7f6015d0a0d53adaa40d1539b3a1ca030d1df979073ed7b2b68fbb5ec02df",
     "plugins/src/base/skills/lisa-tracker-journey/SKILL.md":

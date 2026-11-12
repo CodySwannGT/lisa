@@ -284,8 +284,10 @@ git ls-files --others --ignored --exclude-standard -- evidence/<ticket>/
   - Reports, PR text, and tracker comments never say the evidence was "committed".
     They say it was uploaded, and they name the tracker comment as the record of
     truth.
-- **It prints nothing and exits 0.** Nothing is ignored. Commit the directory as
-  described above and record `"evidence_committed": true`.
+- **It prints nothing, exits 0, and the directory holds the manifest files.**
+  Nothing is ignored. Commit the directory as described above and record
+  `"evidence_committed": true`. An empty result for a missing or mistyped
+  directory proves nothing: check that the files exist first.
 - **It exits non-zero.** The check itself failed, for example because the path is
   outside the repository or there is no repository. Stop and report the failure.
   Never treat it as tracked.
