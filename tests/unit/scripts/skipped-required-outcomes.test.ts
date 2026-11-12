@@ -711,6 +711,13 @@ describe("check-skipped-required-checks, the outcome arm", () => {
           LISA_PULL_REQUEST_ONLY_JOBS: '{"work_item_traceability":true}',
         },
       ],
+      [
+        "a pull-request-only list mixing a job id with a non-string",
+        {
+          ...eventEnv(TRACE_SKIPPED, "workflow_dispatch"),
+          LISA_PULL_REQUEST_ONLY_JOBS: '["work_item_traceability", 1]',
+        },
+      ],
     ])(
       "judges a skipped pull-request-only job as before under %s",
       (_label, env) => {
