@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.103.3](https://github.com/CodySwannGT/lisa/compare/v4.103.2...v4.103.3) (2026-11-12)
+
+
+### Bug Fixes
+
+* **cdk:** warn when npm is older than 11.6.0 ([2d01969](https://github.com/CodySwannGT/lisa/commit/2d019699adba9bf5f94a09bd0f61459cc7795428)), closes [CodySwannGT/lisa#4793](https://github.com/CodySwannGT/lisa/issues/4793)
+
 ### [4.103.2](https://github.com/CodySwannGT/lisa/compare/v4.103.1...v4.103.2) (2026-11-12)
 
 
