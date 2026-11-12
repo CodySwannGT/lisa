@@ -1,6 +1,6 @@
 # Base Rules (load-bearing)
 
-These are mandatory disciplines that apply to every session. Full prose, JIRA dev-status query, ADF templates, etc. live in [reference/base-rules.md](../reference/base-rules.md).
+Mandatory in every session. Full prose, JIRA dev-status query, ADF templates, etc. live in [reference/base-rules.md](../reference/base-rules.md).
 
 ## Factory Operating Mode
 
@@ -23,7 +23,7 @@ Treat every request as potentially underspecified. Before starting any work:
 3. Define how you will empirically verify the work is complete by USING the resulting software, not just running tests. If you cannot define this, stop and ask.
 4. If a request contradicts existing code/architecture/conventions, raise the contradiction and confirm intent before proceeding.
 
-Do not begin work if there are blockers, ambiguities, access requirements, or unanswered questions. Identify these before starting, not during implementation.
+Do not begin with blockers, ambiguities, access requirements, or unanswered questions outstanding — identify them before starting, not during implementation.
 
 ## Code Quality
 

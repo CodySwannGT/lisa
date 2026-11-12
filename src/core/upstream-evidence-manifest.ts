@@ -1129,17 +1129,17 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/rules/eager/00-rule-index.md":
       "5c51e8ce25094c05ad969f61ea12d8b86c558cc668933bef1a0084c22b27c48b",
     "plugins/src/base/rules/eager/base-rules.md":
-      "3de39af7d5ad74b0b91fb939ec67a76b806d05a4b5c071c3941af6cd4108083c",
+      "7fdf8417c99482f442a512a50d2dfe59e39897bc14e7c00a0ffe5d46c0eefdb3",
     "plugins/src/base/rules/eager/coding-philosophy.md":
       "3f70fb5223129e1a26bc8190134cd7fa6bbf39738c5e409c6b2e1c7208faa81e",
     "plugins/src/base/rules/eager/config-resolution.md":
-      "f064147ecc33144ef1512fc1abeda253fcb420038eef498a5b986db0ea631639",
+      "5f666160bafe66474fd00620ff926ac5817b9a7fa775b8fefd137e3c61993d2c",
     "plugins/src/base/rules/eager/do-it-now.md":
       "d7b7635686cb803353b433d43801d3f6960e9804394c587c473337976640d44b",
     "plugins/src/base/rules/eager/empirical-inquiry.md":
       "67aa64ba3ecc4f3cd761111d2562662e0a2acf7892703b14ec83f7f7b073e670",
     "plugins/src/base/rules/eager/falsifiable-checks.md":
-      "8bf1a2b02cd1c44674ba3a131fa42f115ba693d66402264a3a365fdfaf656d1f",
+      "4b27d3afafeea5646324f2d8ec044e1b743207bec0ad1f379c291d9bcd6bd65c",
     "plugins/src/base/rules/eager/history-audit.md":
       "e2365e3fb28230c643e943d26688a93906afa68e3e1355d3e86d4b22ab3db559",
     "plugins/src/base/rules/eager/integration-access-layer.md":
@@ -1159,15 +1159,15 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/rules/eager/operational-hazards.md":
       "9acb3b13a6b3f7d993c7fc37cf70fa94947119c4d59e6295217cafe9f13c6c58",
     "plugins/src/base/rules/eager/report-actionability.md":
-      "b817c042d834fb046ead75db19cf827322b1abfbb0886fd4545213dd68a80554",
+      "07e1775a3c8433521afc5d8a7c6db2de2dda229805c8438b9803db474c42b80d",
     "plugins/src/base/rules/eager/security-audit-handling.md":
-      "3f0e239a4ae962c4470423132b76d5c74b28f7d8eb89da485e26140a7cd2e3ee",
+      "5472bbbc71816812c1844458826a2365f3bee951745f538c83f3ed380d914ff6",
     "plugins/src/base/rules/eager/session-status-updates.md":
       "d2d657eda85ce00c3c0699e1c32bc0080df1140b940f9271800f233953f91b4c",
     "plugins/src/base/rules/eager/settled-decisions.md":
-      "ae1e8d1292db266038af41d9313708a3fba437c036de043ec6b0311418b56017",
+      "688c5dd4aeded25b64441f9cb35f9cc3c7c20585cd60d401b495b0a86ee3fdb4",
     "plugins/src/base/rules/eager/stale-state-claims.md":
-      "faf5057f5910237b8d5048dbcccb73e0cd03762a8eefbeae43b5d0153104a85a",
+      "20f64f6b29635d7f727b65d8465552a3340f394c5a4a8c226a5e329057d86518",
     "plugins/src/base/rules/eager/tool-access-gate.md":
       "d953c634b9c22c63892a73411a5b5d8c8bf2fc51761a0a98a934809a52560476",
     "plugins/src/base/rules/eager/tracked-work.md":
@@ -1175,11 +1175,11 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/rules/eager/upstream-to-lisa.md":
       "dcb3075bc48de76f3bae1ad066d0a1e14f82bd244c1015a48f9e2916cabaf03c",
     "plugins/src/base/rules/eager/verification.md":
-      "14f6fd493e0d96b6a5df0474b2cfc5d32b603c56ff32b0d0cc06964032133419",
+      "1cd5227253ab721c2edce8d95ea200a8d0cb313d698203c49ed43b636f82997f",
     "plugins/src/base/rules/eager/wiki-knowledge-source.md":
       "b3ae63fca40461fef19779d8f0c971553963ed8fe9c22fc504da3d8e757b3a36",
     "plugins/src/base/rules/eager/withdrawn-rulings.md":
-      "46bdcbaa845ab906bd7f83e86d18860a1a54162520b8fb7101f6b23c5e1e816f",
+      "3c94d3b54365070ff9aa82587fdb57dea61d48489c378ba07a08c5970c15b356",
     "plugins/src/base/rules/reference/automation-runbook-contract.md":
       "41fc8c044bc216b5b0337e7da6c2dee59eb94df3a66e1921b8f37d824f08a489",
     "plugins/src/base/rules/reference/base-rules.md":
