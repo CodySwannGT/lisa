@@ -25,6 +25,12 @@
  * reported with the two steps that save the verdict and publish it on the
  * head, and the `checks: write` grant that lets them.
  *
+ * A verdict is published under the name of the reviewer that woke the run, so
+ * a copy seeded before CodySwannGT/lisa#4738, whose manual run takes only a
+ * `sha`, cannot overwrite a stale red reviewer check run by hand. Such a copy
+ * is reported with the `context` input to add and the `EVIDENCE_CONTEXT` and
+ * concurrency lines that read it.
+ *
  * Every filesystem answer is three-valued — present, absent, or
  * undeterminable — and the last one fails rather than passing quietly: a
  * workflow this check could not read is not a workflow with nothing missing.
@@ -36,6 +42,7 @@ import * as path from "node:path";
 import {
   CHECK_RUN_HEAD,
   CHECK_RUN_NAME,
+  DISPATCH_CONTEXT,
   isCurrentEvidenceSeed,
   readEvidenceSeed,
   THIRD_PARTY_EVIDENCE_WORKFLOW,
@@ -67,8 +74,19 @@ const ABSENT_CODES = new Set(["ENOENT", "ENOTDIR"]);
 /** The commit to judge, from whichever event woke the run. */
 const SHA_EXPRESSION = `\${{ ${CHECK_RUN_HEAD} || github.event.sha || inputs.sha }}`;
 
-/** The reviewer to judge, from whichever event woke the run. */
-const CONTEXT_EXPRESSION = `\${{ ${CHECK_RUN_NAME} || github.event.context }}`;
+/** The reviewer to judge, from whichever event woke the run or a manual run's input. */
+const CONTEXT_EXPRESSION = `\${{ ${CHECK_RUN_NAME} || github.event.context || ${DISPATCH_CONTEXT} }}`;
+
+/**
+ * The `workflow_dispatch` input that lets a manual run name the reviewer whose
+ * stale check run it brings up to date, beside the existing `sha:` input.
+ */
+export const DISPATCH_CONTEXT_INPUT_LINES = [
+  "      context:",
+  "        description: 'Reviewer context whose check run to bring up to date; empty publishes under the bare name'",
+  "        required: false",
+  "        type: string",
+] as const;
 
 /** The trigger lines to add under `on:`. */
 export const CHECK_RUN_TRIGGER_LINES = [
@@ -166,6 +184,39 @@ function gapsOf(reading: EvidenceSeedReading): string[] {
       : [
           "it never publishes its verdict on the pull request head it judged, so the verdict lands only on the default branch's latest commit, where no pull request shows it",
         ]),
+    ...(reading.acceptsDispatchContext
+      ? []
+      : [
+          "its manual run takes no `context` input, so a red reviewer check run on a pull request head can be cleared only by that reviewer reporting again, even after a writer's substitute or another reviewer has made the head acceptable",
+        ]),
+  ];
+}
+
+/**
+ * The exact lines that let a manual run name its reviewer.
+ *
+ * The `EVIDENCE_CONTEXT` and concurrency lines are printed here only when no
+ * other remedy already prints them, so each line appears once.
+ * @param reading - What the copy does
+ * @returns The remedy, or nothing when a manual run can name its reviewer
+ */
+function dispatchContextRemedyOf(reading: EvidenceSeedReading): string[] {
+  if (reading.acceptsDispatchContext) return [];
+  const identityPrinted = !(
+    reading.readsRunIdentity && reading.publishesVerdict
+  );
+  return [
+    "Add under `workflow_dispatch:` `inputs:`, beside `sha:`:",
+    ...DISPATCH_CONTEXT_INPUT_LINES,
+    ...(identityPrinted
+      ? []
+      : [
+          "Set `EVIDENCE_CONTEXT` in the evidence job's `env:` to:",
+          RUN_IDENTITY_LINES[2],
+        ]),
+    ...(reading.keysConcurrencyPerRun
+      ? ["Set the `concurrency:` group to:", CONCURRENCY_GROUP_LINE]
+      : []),
   ];
 }
 
@@ -249,6 +300,7 @@ function remedyOf(reading: EvidenceSeedReading): string[] {
           "Replace the prover step with these two steps: the first saves the verdict, the second publishes it on the head it judged.",
           ...EVIDENCE_STEPS_LINES,
         ]),
+    ...dispatchContextRemedyOf(reading),
   ];
 }
 
@@ -291,7 +343,7 @@ export async function checkThirdPartyEvidenceSeed(
     const reading = readEvidenceSeed(workflowText);
     if (isCurrentEvidenceSeed(reading)) {
       return ok(
-        `${THIRD_PARTY_EVIDENCE_WORKFLOW} wakes on a completed check run, can read it, judges it from the default branch, and publishes its verdict on the head it judged`
+        `${THIRD_PARTY_EVIDENCE_WORKFLOW} wakes on a completed check run, can read it, judges it from the default branch, publishes its verdict on the head it judged, and lets a manual run that names the reviewer bring that reviewer's check run up to date`
       );
     }
     return {

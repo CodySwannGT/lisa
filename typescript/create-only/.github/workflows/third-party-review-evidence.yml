@@ -40,17 +40,25 @@
 # `check_run` run belongs to the default branch's latest commit, so the job's
 # own check run lands there — never on the pull request head it judged, where
 # nobody reading the pull request would see it. The prover's verdict is saved
-# as JSON instead of ending the job, and the publish step creates ONE check
-# run on `EVIDENCE_SHA`: `🕵️ Third-party review evidence (<reviewer>)`, or
-# without the reviewer on the manual path, concluding `success` for SATISFIED
-# and SUBSTITUTED (the title says which) and `failure` for UNSATISFIED and for
-# a pull-request read that failed. The job itself concludes `success` once the
-# verdict is published, so default-branch commits stop collecting other pull
-# requests' verdicts. It FAILS when the prover crashed or gave no verdict, or
-# when GitHub refused the check run, so broken machinery still shows.
+# as JSON instead of ending the job, and the publish step creates check runs
+# on `EVIDENCE_SHA` named `🕵️ Third-party review evidence (<reviewer>)`: one
+# for the reviewer that woke the run and one for every other declared
+# reviewer, because the verdict covers them all (#4738), plus the bare name
+# on the manual path. Each concludes `success` for SATISFIED and SUBSTITUTED
+# (the title says which) and `failure` for UNSATISFIED and for a pull-request
+# read that failed. The job itself concludes `success` once the verdict is
+# published, so default-branch commits stop collecting other pull requests'
+# verdicts. It FAILS when the prover crashed or gave no verdict, or when
+# GitHub refused a check run, so broken machinery still shows.
 # Events caused by the Actions token start no workflow run, so the published
 # check run never wakes this workflow again; neither does the job's own,
 # which belongs to a suite GitHub Actions created.
+#
+# CLEARING A STALE CHECK BY HAND (#4738). A writer's substitute posted after a
+# red verdict wakes nothing here: an `issue_comment` trigger would start a run
+# on every comment, so there is none. Dispatch this workflow with `sha` and
+# `context` set to the reviewer's context, and the verdict is published under
+# that reviewer's name, overwriting the stale check run.
 #
 # WHAT MAKES IT RED. Neither real third-party review evidence at the head, nor a
 # posted adversarial-review substitute for that same head. A merge path that
@@ -93,6 +101,10 @@ on:
         description: 'Commit SHA to inspect'
         required: true
         type: string
+      context:
+        description: 'Reviewer context whose check run to bring up to date; empty publishes under the bare name'
+        required: false
+        type: string
 
 # A reviewer's words arrive by two routes: a status's description needs
 # `statuses: read` (the status rollup drops it entirely), and a check run's
@@ -110,7 +122,7 @@ permissions:
 # pending status settling on the same head can cancel the run that is judging
 # the reviewer's answer.
 concurrency:
-  group: third-party-review-evidence-${{ github.event_name }}-${{ github.event.check_run.head_sha || github.event.sha || inputs.sha }}-${{ github.event.check_run.name || github.event.context }}
+  group: third-party-review-evidence-${{ github.event_name }}-${{ github.event.check_run.head_sha || github.event.sha || inputs.sha }}-${{ github.event.check_run.name || github.event.context || inputs.context }}
   cancel-in-progress: true
 
 jobs:
@@ -129,9 +141,11 @@ jobs:
       # The commit and the reviewer come from whichever event woke the
       # run: a check run's head and name, or a status's commit and context.
       EVIDENCE_SHA: ${{ github.event.check_run.head_sha || github.event.sha || inputs.sha }}
-      # Empty on the manual path, where nothing woke the run and every
-      # declared reviewer is evaluated.
-      EVIDENCE_CONTEXT: ${{ github.event.check_run.name || github.event.context }}
+      # On the manual path it is the optional `context` input: empty
+      # publishes under the bare name, and a reviewer's context publishes
+      # under that reviewer's name too, overwriting a stale check run there
+      # (#4738). Every declared reviewer is evaluated either way.
+      EVIDENCE_CONTEXT: ${{ github.event.check_run.name || github.event.context || inputs.context }}
 
     steps:
       # No `ref:`. This checks out the default branch on `status` and
