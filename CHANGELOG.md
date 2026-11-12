@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.103.11](https://github.com/CodySwannGT/lisa/compare/v4.103.10...v4.103.11) (2026-11-12)
+
+
+### Bug Fixes
+
+* **rules:** bring the eager rule tier back under its 80,000-byte budget ([1896734](https://github.com/CodySwannGT/lisa/commit/1896734beb8ef3b41034950748b467491977e5bb)), closes [#4800](https://github.com/CodySwannGT/lisa/issues/4800) [#4802](https://github.com/CodySwannGT/lisa/issues/4802) [CodySwannGT/lisa#4807](https://github.com/CodySwannGT/lisa/issues/4807) [CodySwannGT/lisa#4807](https://github.com/CodySwannGT/lisa/issues/4807)
+
 ### [4.103.10](https://github.com/CodySwannGT/lisa/compare/v4.103.9...v4.103.10) (2026-11-12)
 
 ### [4.103.9](https://github.com/CodySwannGT/lisa/compare/v4.103.8...v4.103.9) (2026-11-12)
