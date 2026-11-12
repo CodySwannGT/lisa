@@ -2,6 +2,59 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [4.105.0](https://github.com/CodySwannGT/lisa/compare/v4.104.1...v4.105.0) (2026-11-12)
+
+
+### Features
+
+* **doctor:** report a CDK host that cannot prove delivery ([2b3f2a6](https://github.com/CodySwannGT/lisa/commit/2b3f2a6e8b397254f9310af1207f6b6e567e67fc)), closes [CodySwannGT/lisa#4646](https://github.com/CodySwannGT/lisa/issues/4646) [CodySwannGT/lisa#4646](https://github.com/CodySwannGT/lisa/issues/4646)
+
+
+### Bug Fixes
+
+* **completion:** bind CodePipeline delivery to the configured AWS account ([f5325dc](https://github.com/CodySwannGT/lisa/commit/f5325dcd62dc72116d09613172eb09dd3fc1f6fa)), closes [CodySwannGT/lisa#4646](https://github.com/CodySwannGT/lisa/issues/4646) [CodySwannGT/lisa#4646](https://github.com/CodySwannGT/lisa/issues/4646)
+* **completion:** prove CodePipeline delivery from the pinned execution ([c740d42](https://github.com/CodySwannGT/lisa/commit/c740d4291635139fa0a4d268747c5dbe8d72ca22)), closes [CodySwannGT/lisa#4646](https://github.com/CodySwannGT/lisa/issues/4646) [CodySwannGT/lisa#4646](https://github.com/CodySwannGT/lisa/issues/4646)
+* **completion:** tighten the CodePipeline delivery read ([81bb74a](https://github.com/CodySwannGT/lisa/commit/81bb74a30ca9e4442d16def4256e12d7dad98e07)), closes [CodySwannGT/lisa#4646](https://github.com/CodySwannGT/lisa/issues/4646) [CodySwannGT/lisa#4646](https://github.com/CodySwannGT/lisa/issues/4646)
+* **doctor:** judge CDK delivery proof on the effective merged config ([f819d93](https://github.com/CodySwannGT/lisa/commit/f819d93d9a8948cd51c0a7a18d6b2e924d83dd65)), closes [CodySwannGT/lisa#4646](https://github.com/CodySwannGT/lisa/issues/4646) [CodySwannGT/lisa#4646](https://github.com/CodySwannGT/lisa/issues/4646)
+* **doctor:** warn on undeclared production delivery and unbound accounts ([70c684f](https://github.com/CodySwannGT/lisa/commit/70c684fc8b68039b2260f711b9283c7827ac2c69)), closes [CodySwannGT/lisa#4646](https://github.com/CodySwannGT/lisa/issues/4646) [CodySwannGT/lisa#4646](https://github.com/CodySwannGT/lisa/issues/4646)
+
+
+### Documentation
+
+* document CodePipeline account binding and the doctor rules ([5347ce7](https://github.com/CodySwannGT/lisa/commit/5347ce754b08d4210639f9bd9629e9ae5976c421)), closes [CodySwannGT/lisa#4646](https://github.com/CodySwannGT/lisa/issues/4646) [CodySwannGT/lisa#4646](https://github.com/CodySwannGT/lisa/issues/4646)
+* document CodePipeline delivery proof for CDK hosts ([2327f7e](https://github.com/CodySwannGT/lisa/commit/2327f7e92018e3e68a8c311a9b108dd81e2f85e4)), closes [CodySwannGT/lisa#4646](https://github.com/CodySwannGT/lisa/issues/4646) [CodySwannGT/lisa#4646](https://github.com/CodySwannGT/lisa/issues/4646)
+* explain how to find the CodePipeline execution to pin ([3d91288](https://github.com/CodySwannGT/lisa/commit/3d91288d71cb183c17733cc137fb478151dd7671)), closes [CodySwannGT/lisa#4646](https://github.com/CodySwannGT/lisa/issues/4646) [CodySwannGT/lisa#4646](https://github.com/CodySwannGT/lisa/issues/4646)
+
+### [4.104.1](https://github.com/CodySwannGT/lisa/compare/v4.104.0...v4.104.1) (2026-11-12)
+
+## [4.104.0](https://github.com/CodySwannGT/lisa/compare/v4.103.13...v4.104.0) (2026-11-12)
+
+
+### Features
+
+* **hooks:** warn on reads, refuse writes in a mismatched worktree ([3f04888](https://github.com/CodySwannGT/lisa/commit/3f0488848333e9f5a5ad96fa1e80bd5d04ace101)), closes [CodySwannGT/lisa#4816](https://github.com/CodySwannGT/lisa/issues/4816)
+
+
+### Bug Fixes
+
+* **hooks:** satisfy the shipped ruleset in the worktree guard ([a2933a9](https://github.com/CodySwannGT/lisa/commit/a2933a999e4012f079dad0355dff62c10d254703)), closes [CodySwannGT/lisa#4816](https://github.com/CodySwannGT/lisa/issues/4816)
+
+### [4.103.13](https://github.com/CodySwannGT/lisa/compare/v4.103.12...v4.103.13) (2026-11-12)
+
+
+### Bug Fixes
+
+* **session-manager:** never probe tmux untargeted for manager.self ([f5dcc0d](https://github.com/CodySwannGT/lisa/commit/f5dcc0dd48c23172df43a20a24a7ca815d051c49)), closes [#4496](https://github.com/CodySwannGT/lisa/issues/4496) [CodySwannGT/lisa#4496](https://github.com/CodySwannGT/lisa/issues/4496) [CodySwannGT/lisa#4496](https://github.com/CodySwannGT/lisa/issues/4496)
+* **session-manager:** stop the manager flagging its own loop as a duplicate ([#4496](https://github.com/CodySwannGT/lisa/issues/4496)) ([69a71d9](https://github.com/CodySwannGT/lisa/commit/69a71d96fcd8feaf9f4f35d64d12ee01b2a4c658))
+
+### [4.103.12](https://github.com/CodySwannGT/lisa/compare/v4.103.11...v4.103.12) (2026-11-12)
+
+
+### Bug Fixes
+
+* **hooks:** judge codex apply_patch by directive growth per file ([bcd03c1](https://github.com/CodySwannGT/lisa/commit/bcd03c1848c9ec79a64d2c683cb9c63751e2aeaf)), closes [CodySwannGT/lisa#4492](https://github.com/CodySwannGT/lisa/issues/4492) [CodySwannGT/lisa#4492](https://github.com/CodySwannGT/lisa/issues/4492)
+* **hooks:** refuse suppression-directive growth, not presence ([6c6cdcc](https://github.com/CodySwannGT/lisa/commit/6c6cdcccf6aad2a937aa239319fe3f5f4ea40019)), closes [CodySwannGT/lisa#4492](https://github.com/CodySwannGT/lisa/issues/4492) [CodySwannGT/lisa#4492](https://github.com/CodySwannGT/lisa/issues/4492)
+
 ### [4.103.11](https://github.com/CodySwannGT/lisa/compare/v4.103.10...v4.103.11) (2026-11-12)
 
 

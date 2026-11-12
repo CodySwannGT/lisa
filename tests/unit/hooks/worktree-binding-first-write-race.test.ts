@@ -13,6 +13,7 @@ import {
   buildFixture,
   runGuard,
   stateKey,
+  WRITE_COMMAND,
 } from "./support/worktree-binding.js";
 
 const GUARD = path.resolve("plugins/src/base/hooks/worktree-binding-guard.mjs");
@@ -35,7 +36,7 @@ describe("concurrent first binding writes", () => {
         command:
           mode === "acknowledgement"
             ? `echo 'lisa-worktree-binding: accept ${realpathSync(fixture.b)}'`
-            : "echo hello",
+            : WRITE_COMMAND,
       },
       cwd: fixture.b,
       ...(mode === "SessionStart" ? { hook_event_name: mode } : {}),
@@ -59,7 +60,7 @@ function compete(file) {
     competed = true;
     const winner = spawnSync(process.execPath, [${JSON.stringify(GUARD)}], {
       cwd: ${JSON.stringify(fixture.a)}, env: process.env,
-      input: ${JSON.stringify(JSON.stringify({ session_id: session, cwd: fixture.a, tool_name: "Bash", tool_input: { command: "echo hello" } }))},
+      input: ${JSON.stringify(JSON.stringify({ session_id: session, cwd: fixture.a, tool_name: "Bash", tool_input: { command: WRITE_COMMAND } }))},
       encoding: 'utf8', timeout: 10000,
     });
     if (winner.error || winner.status !== 0) throw new Error('native winner failed');

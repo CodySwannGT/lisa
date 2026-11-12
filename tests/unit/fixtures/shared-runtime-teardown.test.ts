@@ -345,3 +345,77 @@ describe("the packed-host journey's shared install cache", () => {
     expect(lifetime.freed()).toBe(false);
   });
 });
+
+describe("the shared install cache's recorded size (CodySwannGT/lisa#4636)", () => {
+  it("records the cache's entries when its last installer frees it", async () => {
+    // The measurement the duplicate-entry estimate never had: every package
+    // directory and cached file, without the cache directory itself.
+    const journey = seedJourney();
+    const lifetime = sharedInstallCache(journey.cache, INSTALLERS);
+
+    for (const installer of INSTALLERS)
+      await runInstaller(journey, installer, lifetime);
+
+    expect(lifetime.entriesAtFree()).toBe(CACHE_INODES - 1);
+    expect(fs.existsSync(journey.cache)).toBe(false);
+  });
+
+  it("counts the cache before it removes it", async () => {
+    const journey = seedJourney();
+    const events: string[] = [];
+    const lifetime = sharedInstallCache(
+      journey.cache,
+      INSTALLERS,
+      async () => {
+        events.push("remove");
+      },
+      () => {
+        events.push("count");
+        return 7;
+      }
+    );
+
+    for (const installer of INSTALLERS) await lifetime.finish(installer);
+
+    expect(events).toEqual(["count", "remove"]);
+    expect(lifetime.entriesAtFree()).toBe(7);
+  });
+
+  it("records nothing while an installer is still to run", async () => {
+    const journey = seedJourney();
+    const lifetime = sharedInstallCache(journey.cache, INSTALLERS);
+
+    await lifetime.finish("inherited");
+
+    expect(lifetime.entriesAtFree()).toBeUndefined();
+  });
+
+  it("keeps the recorded count when a later finish finds the cache gone", async () => {
+    const journey = seedJourney();
+    const lifetime = sharedInstallCache(journey.cache, INSTALLERS);
+
+    for (const installer of INSTALLERS) await lifetime.finish(installer);
+    await lifetime.finish("cdk");
+
+    expect(lifetime.entriesAtFree()).toBe(CACHE_INODES - 1);
+  });
+
+  it("frees the cache even when it cannot be counted", async () => {
+    // A measurement must never stand between the case and the free.
+    const journey = seedJourney();
+    const lifetime = sharedInstallCache(
+      journey.cache,
+      INSTALLERS,
+      cleanupTempDir,
+      () => {
+        throw new Error("EACCES: permission denied, scandir");
+      }
+    );
+
+    for (const installer of INSTALLERS) await lifetime.finish(installer);
+
+    expect(lifetime.freed()).toBe(true);
+    expect(lifetime.entriesAtFree()).toBeUndefined();
+    expect(fs.existsSync(journey.cache)).toBe(false);
+  });
+});
