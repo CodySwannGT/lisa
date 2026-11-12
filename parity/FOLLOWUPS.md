@@ -74,13 +74,10 @@ maps to an upstream plugin publishing semver still carries its `synced-from` pin
 
 | Skill (`plugins/src/base/skills/…`) | Pin status                                    |
 | ----------------------------------- | --------------------------------------------- |
-| `parity-code-simplifier`            | `code-simplifier@claude-plugins-official@1.0.0`     |
 | `parity-coderabbit`                 | `coderabbit@claude-plugins-official@1.1.1`          |
-| `parity-safety-net-rules`           | `safety-net@cc-marketplace@2.0.4`                   |
 | `parity-sentry-seer`                | `sentry@claude-plugins-official@1.4.0` (reviewed, diverged) |
 | `parity-sentry-sdk-setup`           | `sentry@claude-plugins-official@1.4.0` (reviewed, diverged) |
-| `parity-code-review`                | `code-review@claude-plugins-official@1.0.1` (reviewed, diverged; unpinned until upstream published semver — #4556) |
-| `parity-skill-creator`              | **no pin** — upstream has no semver → not drift-trackable (track manually) |
+| `parity-code-review`                | **no pin** — Lisa-owned since #4799 retired the upstream plugin |
 
 A pin marked **(reviewed, diverged)** means the skill was reviewed against that
 upstream version and deliberately does not reimplement part of it; the skill body

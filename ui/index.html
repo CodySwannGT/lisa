@@ -10332,22 +10332,14 @@
               "lisa-cdk@lisa": "AWS CDK plugin",
             },
             thirdPartyCatalog: {
-              "code-review@claude-plugins-official":
-                "Pre-ship diff defect hunt",
-              "code-simplifier@claude-plugins-official":
-                "Behavior-preserving cleanup",
               "coderabbit@claude-plugins-official":
                 "AI PR review (also a required check)",
               "sentry@claude-plugins-official":
                 "Issue debugging, Seer, instrumentation",
-              "safety-net@cc-marketplace": "Guardrail rulebooks",
               "typescript-lsp@claude-plugins-official":
                 "TypeScript language server",
               "playwright@claude-plugins-official": "Browser automation MCP",
               "posthog@claude-plugins-official": "Product analytics",
-              "impeccable@impeccable": "UI design polish",
-              "skill-creator@claude-plugins-official":
-                "Author and optimize skills",
               "ruby-lsp@claude-plugins-official":
                 "Ruby language server (rails stacks)",
               "atlassian@claude-plugins-official": "Jira / Confluence access",
@@ -10385,7 +10377,7 @@
           {
             type: "callout",
             staticCopy: "shipped Lisa plugin parity catalog",
-            text: "<b>Parity reimplementations.</b> For non-Claude agents, curated plugin behavior is reimplemented as version-pinned Lisa skills: code-review, code-simplifier, coderabbit, safety-net rules, sentry SDK setup, sentry Seer, skill-creator. A drift detector fails CI when an upstream plugin moves ahead of its pin.",
+            text: "<b>Parity reimplementations.</b> For non-Claude agents, curated plugin behavior is reimplemented as Lisa skills: code review (Lisa-owned), coderabbit, sentry SDK setup and sentry Seer. A drift detector fails CI when a pinned upstream plugin moves ahead of its pin.",
           },
         ],
       };
