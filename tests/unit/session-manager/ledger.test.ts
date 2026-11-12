@@ -99,6 +99,7 @@ describe("ledger", () => {
       items: {},
       control: { paused: false, maxWorkers: null, me: null },
       validationFailures: {},
+      cyclers: {},
     });
   });
 

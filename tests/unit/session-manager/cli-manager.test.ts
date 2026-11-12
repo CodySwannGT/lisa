@@ -144,6 +144,7 @@ describe("status", () => {
       name: MANAGER,
       running: true,
       self: false,
+      otherCyclers: [],
     });
     expect(result.json.workers).toEqual([
       expect.objectContaining({

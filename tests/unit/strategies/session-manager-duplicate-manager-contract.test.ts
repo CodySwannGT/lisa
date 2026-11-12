@@ -9,6 +9,11 @@
  * "The cycle" decides by `status` `manager.self`: a manager never reports
  * itself or stops its own loop, only a session outside the tmux manager is a
  * duplicate, and only that session's loop is the one to stop.
+ *
+ * The manager-side half (CodySwannGT/lisa#4809): each cycle records itself
+ * with the `cycle` subcommand, and when `status` `manager.otherCyclers` names
+ * another recent cycler the manager warns and recommends stopping THAT
+ * session's loop, never its own; with unknown identity it stops nothing.
  * @module tests/unit/strategies/session-manager-duplicate-manager-contract
  */
 import { describe, expect, it } from "vitest";
@@ -81,11 +86,42 @@ describe.each(ALL_ROOTS)("duplicate-manager check (%s)", root => {
     expect(check).toContain("report that self-identification failed");
   });
 
-  it("leaves the warning to the non-tmux session; the manager invents none", () => {
+  it("records this cycle with the cycle subcommand before deciding", () => {
+    expect(check).toContain('node "$SM/session-manager.mjs" cycle');
+    expect(check.indexOf('session-manager.mjs" cycle')).toBeLessThan(
+      check.indexOf("Decide **who** the manager is")
+    );
+  });
+
+  // #4809: the manager-side half of #4496's AC-2.
+  it("has the manager warn about another recent cycler and stop that loop, not its own", () => {
+    expect(check).toContain(
+      "When `manager.self` is true and `status` `manager.otherCyclers` is not empty"
+    );
+    expect(check).toContain(
+      "recommend stopping **that** session's loop, never this one"
+    );
+  });
+
+  it("raises no warning on the manager when no other session cycled", () => {
+    expect(check).toContain(
+      "When `manager.self` is true and `manager.otherCyclers` is empty, raise no duplicate-manager warning"
+    );
+  });
+
+  it("stops no loop on unknown identity, whatever otherCyclers says", () => {
+    expect(check).toContain(
+      "When `manager.self` is `null`, recommend stopping nothing, whatever `manager.otherCyclers` says"
+    );
+  });
+
+  it("lets the manager learn of another loop only from otherCyclers", () => {
     expect(check).toContain(
       "The tmux manager cannot see another session's loop"
     );
-    expect(check).toContain("the manager must not invent one");
+    expect(check).toContain(
+      "it learns of one only from `manager.otherCyclers` and must not invent one from anything else"
+    );
   });
 
   it("says self covers any session inside the manager's tmux session", () => {
@@ -98,9 +134,21 @@ describe.each(ALL_ROOTS)("duplicate-manager check (%s)", root => {
 describe("status usage text", () => {
   it("documents manager.self as true, false or null", () => {
     const usage = flat(USAGE);
-    expect(usage).toContain("manager:{name,running,self}");
+    expect(usage).toContain(
+      "manager:{name,running,self,otherCyclers:[{by,at}]}"
+    );
     expect(usage).toContain("manager.self is true when the caller runs inside");
     expect(usage).toContain("null when tmux cannot say");
     expect(usage).toContain("or $TMUX_PANE is not a pane id");
+  });
+
+  it("documents the cycle subcommand and manager.otherCyclers", () => {
+    const usage = flat(USAGE);
+    expect(usage).toContain("cycle Records that this session ran a cycle now");
+    expect(usage).toContain("else pid:<parent pid>");
+    expect(usage).toContain("Prunes entries older than twice the interval");
+    expect(usage).toContain(
+      "manager.otherCyclers lists, newest first, every cycle recorded within twice the interval by a session other than tmux:<manager name>"
+    );
   });
 });

@@ -102,6 +102,9 @@ const FINISH_STATUSES = new Set(["DONE", "FAILED"]);
  * @property {Record<string, ValidationFailure>} validationFailures - Backlog
  *   items that failed validation, keyed by ref, so an unchanged item is not
  *   re-validated every cycle
+ * @property {Record<string, string>} cyclers - Who ran a cycle and when
+ *   (identity to ISO time), pruned to twice the interval (#4809; see
+ *   cyclers.mjs)
  */
 
 /**
@@ -149,6 +152,7 @@ function emptyLedger() {
     items: {},
     control: { paused: false, maxWorkers: null, me: null },
     validationFailures: {},
+    cyclers: {},
   };
 }
 
@@ -190,6 +194,7 @@ export async function readLedger(projectRoot, seams) {
     items: parsed.items ?? {},
     control: { ...empty.control, ...parsed.control },
     validationFailures: parsed.validationFailures ?? {},
+    cyclers: parsed.cyclers ?? {},
   };
 }
 

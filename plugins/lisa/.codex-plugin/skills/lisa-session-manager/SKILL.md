@@ -362,18 +362,25 @@ Do these steps in order. Start each cycle by resolving `$SM`, then confirm the s
 and check again; never run a cycle from a child repo. Handle any messages that arrived since the last
 cycle first (above).
 
-**Duplicate-manager check.** Decide **who** the manager is only from `status` `manager.self`; check
-this session's own loops with `CronList`. When `manager.self` is true, this session **is** the
-manager and its own `/loop` is the manager's loop: never report it as a second manager, and never
-recommend `CronDelete` or stopping it. When `manager.self` is `null`, recommend stopping nothing;
-report that self-identification failed. When `manager.running` is true, `manager.self` is false, and
-this session runs its own `/lisa:session-manager cycle` loop, two managers can hand out the same
-item: warn the operator and recommend stopping **this** session's loop, never the tmux manager. The
-tmux manager cannot see another session's loop, so that warning comes from the other session's own
-cycle and the manager must not invent one (detecting it from inside the manager is follow-up work).
-`manager.self` means running inside the manager's tmux session, so another Claude started in a
-second window of that same tmux session also reads true. Never infer a second manager from the tmux
-session existing plus a loop being present.
+**Duplicate-manager check.** First record this cycle:
+`node "$SM/session-manager.mjs" cycle --project-root "$ROOT"` (it records who ran it, as a tmux
+session name or a process id, never a credential; a failure is one transcript line and never stops
+the cycle). Decide **who** the manager is only from `status` `manager.self`; check this
+session's own loops with `CronList`. When `manager.self` is true, this session **is** the manager
+and its own `/loop` is the manager's loop: never report it as a second manager, and never recommend
+`CronDelete` or stopping it. When `manager.self` is true and `status` `manager.otherCyclers` is not
+empty, another session ran a cycle in this project within twice the interval, so two managers can
+hand out the same item: warn the operator (over Telegram too when `notify` is `telegram`), name each
+entry's `by` and `at`, and recommend stopping **that** session's loop, never this one. When
+`manager.self` is true and `manager.otherCyclers` is empty, raise no duplicate-manager warning. When
+`manager.self` is `null`, recommend stopping nothing, whatever `manager.otherCyclers` says; report
+that self-identification failed. When `manager.running` is true, `manager.self` is false, and this
+session runs its own `/lisa:session-manager cycle` loop, two managers can hand out the same item:
+warn the operator and recommend stopping **this** session's loop, never the tmux manager. The tmux
+manager cannot see another session's loop, so it learns of one only from `manager.otherCyclers` and
+must not invent one from anything else. `manager.self` means running inside the manager's tmux
+session, so another Claude started in a second window of that same tmux session also reads true.
+Never infer a second manager from the tmux session existing plus a loop being present.
 
 ### 1. Reconcile
 

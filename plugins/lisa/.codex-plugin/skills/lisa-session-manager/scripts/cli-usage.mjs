@@ -46,17 +46,26 @@ Workers and capacity
       [{ref,worker,sessionId,repo,classification,attempts,agentStatus,
         pendingQuestion}], classification one of finished|waiting|requestion|
       working|stalled|dead|exhausted.
+  cycle
+      Records that this session ran a cycle now: cyclers[<by>] = <at> in
+      the ledger, by tmux:<session> when tmux names the caller's session,
+      else pid:<parent pid>. Prunes entries older than twice the interval.
+      Run at the start of every cycle. stdout {by,at}.
   status
-      stdout {manager:{name,running,self},notify,control,workers:[{ref,
-      worker,sessionId,repo,status,attempts,pendingQuestion,live}],untracked:
-      [wk-names],pendingQuestions:[{ref,kind,text,askedAt,marked,
-      answerQueued,answerCommand}]}. manager.self is true when the caller
-      runs inside the manager's tmux session (any window of it), false
-      outside tmux or in another session, null when tmux cannot say which
-      session the caller is in or $TMUX_PANE is not a pane id. notify is
-      the configured channel: "telegram" or "none". pendingQuestions lists
-      every item waiting on a human, oldest first; answerCommand is the
-      answer line to run at this machine.
+      stdout {manager:{name,running,self,otherCyclers:[{by,at}]},notify,
+      control,workers:[{ref,worker,sessionId,repo,status,attempts,
+      pendingQuestion,live}],untracked:[wk-names],pendingQuestions:[{ref,
+      kind,text,askedAt,marked,answerQueued,answerCommand}]}. manager.self
+      is true when the caller runs inside the manager's tmux session (any
+      window of it), false outside tmux or in another session, null when
+      tmux cannot say which session the caller is in or $TMUX_PANE is not
+      a pane id.
+      manager.otherCyclers lists, newest first, every cycle recorded within
+      twice the interval by a session other than tmux:<manager name>;
+      empty when only the manager cycles. notify is the configured
+      channel: "telegram" or "none". pendingQuestions lists every item
+      waiting on a human, oldest first; answerCommand is the answer line to
+      run at this machine.
 
 Manager
   start [--settle-ms <n>]
