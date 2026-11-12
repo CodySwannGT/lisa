@@ -148,6 +148,25 @@ describe("a failed read names itself", () => {
     expect(error.message).not.toContain("second line");
   });
 
+  it("redacts a colour-wrapped token and strips the colour parameters", () => {
+    const esc = String.fromCodePoint(0x1b);
+    const run = () => ({
+      status: 1,
+      stdout: "",
+      stderr: `gh: ${esc}[31m${FAKE_TOKEN}${esc}[0m denied (HTTP 401)\n`,
+    });
+    const error = refusal(() =>
+      githubProofTransport(run, REPOSITORY).json(`${ROOT}/branches/main`)
+    );
+    expect(error.message).not.toContain(FAKE_TOKEN);
+    expect(error.message).not.toContain("ghs_");
+    expect(error.message).not.toContain("31m");
+    expect(error.message).not.toContain("0m denied");
+    expect(error.message).toContain(
+      "gh said: gh: [redacted] denied (HTTP 401)"
+    );
+  });
+
   it("names a failed asset download by kind and asset id", () => {
     const run = (_command: string, args: string[]) =>
       args.includes(OCTET)

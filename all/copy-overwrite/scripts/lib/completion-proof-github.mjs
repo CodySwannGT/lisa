@@ -202,14 +202,21 @@ function readPath(args) {
  */
 function stripControl(text) {
   const kept = [];
-  let csi = false;
+  // "text" | "escape" (just read ESC) | "csi" (inside ESC [ ... final).
+  // `[` is itself in the final-byte range, so the introducer must be consumed
+  // on its own or `ESC [31m` would leave `31m` glued to the next word.
+  let state = "text";
   for (const character of text) {
     const code = character.codePointAt(0);
-    if (csi) {
-      csi = !(code >= 0x40 && code <= 0x7e);
+    if (state === "escape") {
+      state = code === 0x5b ? "csi" : "text";
       continue;
     }
-    if (code === ESC) csi = true;
+    if (state === "csi") {
+      if (code >= 0x40 && code <= 0x7e) state = "text";
+      continue;
+    }
+    if (code === ESC) state = "escape";
     else if (code === 0x0a || (code >= 0x20 && (code < 0x7f || code > 0x9f)))
       kept.push(character);
   }
@@ -225,7 +232,8 @@ function stripControl(text) {
 function quotableStderr(stderr) {
   const line =
     stripControl(String(stderr ?? ""))
-      .replace(/\b(?:gh[pousr]_\w+|github_pat_\w+)/g, "[redacted]")
+      // No word boundary: a token glued to preceding text must still redact.
+      .replace(/(?:gh[pousr]_|github_pat_)\w+/g, "[redacted]")
       .split("\n")
       .map(row => row.trim())
       .find(Boolean) ?? "";
