@@ -1,8 +1,8 @@
 # Settled Decisions (load-bearing)
 
 **Never ask the operator a question that a standing preference or your own gathered evidence has
-already answered.** Re-asking a settled decision is not caution — it hands back a choice the
-operator already made and makes them make it twice.
+already answered.** Re-asking a settled decision is not caution — it makes the operator make the
+same choice twice.
 
 ## The test
 
@@ -29,13 +29,13 @@ Ask when the answer would change the work *and* you genuinely cannot derive it:
 - The answer is a human judgement the artifacts do not contain — a product decision, a design
   vocabulary that does not exist yet, a risk the operator owns.
 
-That kind of question is load-bearing and should be asked plainly, once, with a recommendation.
+Ask that kind of question plainly, once, with a recommendation.
 
 ## The failure mode this rule exists to stop
 
-Asking feels collaborative, so it gets over-applied — especially at the end of a report, where a
-trailing question reads as deference. It is not deference when the answer was already given; it is
-work handed back. Two specific tells:
+Asking feels collaborative, so it gets over-applied — especially as a trailing question at the
+end of a report. When the answer was already given, that is work handed back, not deference. Two
+tells:
 
 - **Half-applying an instruction.** Doing the first half of a standing preference automatically and
   asking permission for the second half of the same preference.
@@ -57,19 +57,17 @@ chance to correct it without requiring them to answer first.
 ## Before you escalate, re-read the instruction file from disk
 
 **This rule is delivered at session start; the re-read it demands happens at the escalation
-boundary.** Re-reading at session start would re-read the same moment your context was built from
-and buys nothing.
+boundary.** Re-reading at session start re-reads the moment your context was built from.
 
 So before you form an escalation, hand a decision back, or re-open a question that may already be
 settled: **open `AGENTS.md` (or `CLAUDE.md`) from disk and read its `## Standing rulings` section.**
 If the file has no such heading, re-read the file.
 
-The instruction is to open the file — not to "check whether your context looks complete", because
-**context completeness is not observable from inside.** An instruction file is injected at session
-start and can arrive shortened, and the cut can land on a clean section boundary, where a truncated
-document is indistinguishable from one that never had that section: your copy ends tidily, so you
-conclude you read all of it. Rulings are also written *after* sessions begin — your copy is a
+Open the file — do not "check whether your context looks complete", because **context
+completeness is not observable from inside.** An injected instruction file can arrive shortened,
+and a cut on a clean section boundary is indistinguishable from a file that never had that
+section: your copy ends tidily, so you conclude you read all of it. Rulings are also written *after* sessions begin — your copy is a
 snapshot of the moment you started, and nothing tells you when it stops being current.
 
-This is a **pointer, not a copy**. It stays correct as rulings accumulate, and it survives a
-shortened copy of the file it points at precisely because it does not travel inside that file.
+This is a **pointer, not a copy**: it stays correct as rulings accumulate, and survives a
+shortened copy of the file because it does not travel inside it.

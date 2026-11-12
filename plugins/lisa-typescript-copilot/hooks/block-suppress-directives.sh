@@ -8,9 +8,16 @@
 # base "ASK FIRST" governance rule). The agent should stop and get the user's
 # approval rather than slip a suppression past silently.
 #
-# Inspects only the NEW text the tool introduces, scoped to JS/TS files, and
-# matches the directive only in comment syntax (// or /*) so prose, strings,
-# and identifiers that merely mention these tokens are not flagged.
+# Refuses directive GROWTH, not presence: a directive in the after text that the
+# before text lacks (new, another copy, or reworded) refuses; keeping or
+# removing one is allowed. Write judges the whole file (disk vs content).
+# Edit/MultiEdit judge each replaced fragment on its own (old_string vs
+# new_string), so a widening done purely by deleting text from an existing
+# directive, or a directive assembled across separate edits, is NOT detected —
+# a pre-existing limit, shared with the presence check this replaced.
+# Scoped to JS/TS files, and matches the directive only in comment syntax
+# (// or /*) so prose, strings, and identifiers that merely mention these
+# tokens are not flagged.
 # Exit code 2 blocks the tool call and surfaces stderr to Claude.
 # Reference: https://docs.claude.com/en/docs/claude-code/hooks
 #
@@ -99,23 +106,106 @@ if [ -n "${CLAUDE_PROJECT_DIR:-}" ] &&
   fi
 fi
 
-# Resolve the new text per tool shape:
-#   Write     -> tool_input.content
-#   MultiEdit -> tool_input.edits[].new_string
-#   Edit      -> tool_input.new_string
-NEW_TEXT=$(printf '%s' "$JSON_INPUT" | jq -r '
-  .tool_input as $i
-  | if   ($i.content     // null) != null then $i.content
-    elif ($i.edits       // null) != null then ([$i.edits[].new_string] | join("\n"))
-    elif ($i.new_string  // null) != null then $i.new_string
-    else "" end')
+# ---------------------------------------------------------------------------
+# Built-in: refuse directive GROWTH, never mere presence (CodySwannGT/lisa#4492).
+#
+# Rewriting a file that already carried an approved, scoped disable used to be
+# refused as if the agent had added it, which taught agents to dodge the hook
+# rather than heed it. The judgement is BEFORE versus AFTER:
+#   Write     -> before = the file on disk (nothing when it does not exist),
+#                after  = tool_input.content
+#   Edit      -> before = tool_input.old_string, after = tool_input.new_string
+#   MultiEdit -> each edits[] pair judged the same way, on its own
+# Each directive is taken from its comment opener to the end of its line, so a
+# directive that is added, copied again, or reworded (a `-next-line` disable
+# turned file-wide, a longer rule list) is new text, and is growth.
+# ---------------------------------------------------------------------------
 
 # Comment-syntax-only match: a // or /* opener, optional whitespace, then the
 # suppression directive. @ts-expect-error is intentionally NOT matched — it is
 # the safer alternative this hook steers toward.
 DIRECTIVE_RE='(//|/\*)[[:space:]]*(@ts-(ignore|nocheck)|eslint-disable|biome-ignore|prettier-ignore)'
 
-if printf '%s' "$NEW_TEXT" | grep -Eq "$DIRECTIVE_RE"; then
+# The directives in $1, one per line and sorted, so the lists are multisets
+# `comm` can subtract. Trailing whitespace (and a CR) is not part of one.
+directives_in() {
+  printf '%s\n' "$1" | grep -Eo "${DIRECTIVE_RE}.*" |
+    sed 's/[[:space:]]*$//' | LC_ALL=C sort
+}
+
+# True when $2 (after) carries a directive $1 (before) does not. `comm -13`
+# pairs repeated lines one-for-one, so a further copy of an existing directive
+# is left over, and counts.
+grows() {
+  [ -n "$(LC_ALL=C comm -13 <(directives_in "$1") <(directives_in "$2"))" ]
+}
+
+# The file a Write replaces, on stdout. A relative path is the project's, so it
+# resolves against CLAUDE_PROJECT_DIR whichever directory this runs in. Nothing
+# there is a new file (empty before). Something there that is not a readable
+# regular file — a directory, a dangling link, no read permission — cannot be
+# judged, so this fails and the caller refuses.
+read_before() {
+  local target="$FILE_PATH"
+  case "$target" in
+    /*) ;;
+    *) target="${CLAUDE_PROJECT_DIR:-.}/$target" ;;
+  esac
+  [ -e "$target" ] || [ -L "$target" ] || return 0
+  [ -f "$target" ] && [ -r "$target" ] || return 1
+  cat -- "$target"
+}
+
+# The edit object $1: tool_input itself for Edit, edits[$1] for MultiEdit.
+EDIT_AT='.tool_input | (if (.edits // null) != null then .edits[$i] else . end)'
+
+# One string field ($2) of edit $1, empty when absent.
+edit_field() {
+  printf '%s' "$JSON_INPUT" |
+    jq -r --argjson i "$1" --arg f "$2" "$EDIT_AT | .[\$f] // empty"
+}
+
+# True when edit $1 grows the directives. One that brings a directive with no
+# old_string to compare against cannot be judged, and counts as growth.
+edit_grows() {
+  local new
+  new="$(edit_field "$1" new_string)"
+  [ -n "$(directives_in "$new")" ] || return 1
+  printf '%s' "$JSON_INPUT" |
+    jq -e --argjson i "$1" "$EDIT_AT | (.old_string | type) == \"string\"" \
+      >/dev/null || return 0
+  grows "$(edit_field "$1" old_string)" "$new"
+}
+
+# True when any edit grows. An edit count that is not a number is unjudgeable.
+any_edit_grows() {
+  local count i=0
+  count="$(printf '%s' "$JSON_INPUT" |
+    jq '.tool_input | if (.edits // null) != null then (.edits | length) else 1 end')"
+  case "$count" in '' | *[!0-9]*) return 0 ;; esac
+  while [ "$i" -lt "$count" ]; do
+    edit_grows "$i" && return 0
+    i=$((i + 1))
+  done
+  return 1
+}
+
+# True when the write grows the directives; Write when content is present.
+write_grows() {
+  local before after
+  if printf '%s' "$JSON_INPUT" |
+    jq -e '(.tool_input.content // null) != null' >/dev/null; then
+    after="$(printf '%s' "$JSON_INPUT" | jq -r '.tool_input.content')"
+    # Nothing in the new text means nothing can have grown; no read needed.
+    [ -n "$(directives_in "$after")" ] || return 1
+    before="$(read_before)" || return 0
+    grows "$before" "$after"
+    return
+  fi
+  any_edit_grows
+}
+
+if write_grows; then
   cat >&2 <<MSG
 ❌ Blocked: error-suppression directive in $FILE_PATH
 

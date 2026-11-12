@@ -20,6 +20,9 @@
  * - `display-message` prints STUB_TMUX_SESSION_PATH, else the created
  *   session's dir, else an empty line, and exits 0 either way, which is what
  *   tmux 3.6 does even for a session that does not exist.
+ * - `display-message … #{session_name}` (the caller's own session, #4496)
+ *   prints STUB_TMUX_CURRENT_SESSION, or exits 1 with "no current client"
+ *   when it is unset, the way tmux answers outside any session.
  * - Every other command exits 0. Every call is recorded through
  *   ../support/stub-record.mjs.
  */
@@ -104,7 +107,15 @@ if (command === "has-session" || command === "kill-session") {
 if (command === "kill-session" && created) {
   rmSync(sessionFile, { force: true });
 }
-if (command === "display-message") {
+if (command === "display-message" && argv.at(-1) === "#{session_name}") {
+  const current = process.env.STUB_TMUX_CURRENT_SESSION;
+  if (current === undefined) {
+    process.stderr.write("no current client\n");
+    process.exitCode = 1;
+  } else {
+    process.stdout.write(`${current}\n`);
+  }
+} else if (command === "display-message") {
   const where =
     process.env.STUB_TMUX_SESSION_PATH ??
     (created ? readFileSync(sessionFile, "utf8") : "");

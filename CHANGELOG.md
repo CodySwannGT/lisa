@@ -2,6 +2,42 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.103.12](https://github.com/CodySwannGT/lisa/compare/v4.103.11...v4.103.12) (2026-11-12)
+
+
+### Bug Fixes
+
+* **hooks:** judge codex apply_patch by directive growth per file ([bcd03c1](https://github.com/CodySwannGT/lisa/commit/bcd03c1848c9ec79a64d2c683cb9c63751e2aeaf)), closes [CodySwannGT/lisa#4492](https://github.com/CodySwannGT/lisa/issues/4492) [CodySwannGT/lisa#4492](https://github.com/CodySwannGT/lisa/issues/4492)
+* **hooks:** refuse suppression-directive growth, not presence ([6c6cdcc](https://github.com/CodySwannGT/lisa/commit/6c6cdcccf6aad2a937aa239319fe3f5f4ea40019)), closes [CodySwannGT/lisa#4492](https://github.com/CodySwannGT/lisa/issues/4492) [CodySwannGT/lisa#4492](https://github.com/CodySwannGT/lisa/issues/4492)
+
+### [4.103.11](https://github.com/CodySwannGT/lisa/compare/v4.103.10...v4.103.11) (2026-11-12)
+
+
+### Bug Fixes
+
+* **rules:** bring the eager rule tier back under its 80,000-byte budget ([1896734](https://github.com/CodySwannGT/lisa/commit/1896734beb8ef3b41034950748b467491977e5bb)), closes [#4800](https://github.com/CodySwannGT/lisa/issues/4800) [#4802](https://github.com/CodySwannGT/lisa/issues/4802) [CodySwannGT/lisa#4807](https://github.com/CodySwannGT/lisa/issues/4807) [CodySwannGT/lisa#4807](https://github.com/CodySwannGT/lisa/issues/4807)
+
+### [4.103.10](https://github.com/CodySwannGT/lisa/compare/v4.103.9...v4.103.10) (2026-11-12)
+
+### [4.103.9](https://github.com/CodySwannGT/lisa/compare/v4.103.8...v4.103.9) (2026-11-12)
+
+### [4.103.8](https://github.com/CodySwannGT/lisa/compare/v4.103.7...v4.103.8) (2026-11-12)
+
+### [4.103.7](https://github.com/CodySwannGT/lisa/compare/v4.103.6...v4.103.7) (2026-11-12)
+
+
+### Bug Fixes
+
+* **plugins:** retire impeccable, safety-net, code-review, code-simplifier ([bee9bcd](https://github.com/CodySwannGT/lisa/commit/bee9bcd176910fdf5a1830306b4b3c4e37e6d749)), closes [#1960](https://github.com/CodySwannGT/lisa/issues/1960) [CodySwannGT/lisa#4799](https://github.com/CodySwannGT/lisa/issues/4799)
+* **plugins:** retire skill-creator and its Lisa reimplementation ([91ea2d9](https://github.com/CodySwannGT/lisa/commit/91ea2d9eaab9de1da61427545365dd4070648601)), closes [CodySwannGT/lisa#4799](https://github.com/CodySwannGT/lisa/issues/4799)
+* **rules:** keep configured AWS access methods and pin the failure path ([a1b30f6](https://github.com/CodySwannGT/lisa/commit/a1b30f6c63db75e1206d01ecdec3e48be8fa0089)), closes [#4469](https://github.com/CodySwannGT/lisa/issues/4469) [CodySwannGT/lisa#4469](https://github.com/CodySwannGT/lisa/issues/4469) [CodySwannGT/lisa#4469](https://github.com/CodySwannGT/lisa/issues/4469)
+* **rules:** keep tool-access-gate eager summary within budget ([8df6ebc](https://github.com/CodySwannGT/lisa/commit/8df6ebce97626863a7a0d00ae3b400744fb01bbf)), closes [#4469](https://github.com/CodySwannGT/lisa/issues/4469) [CodySwannGT/lisa#4469](https://github.com/CodySwannGT/lisa/issues/4469) [CodySwannGT/lisa#4469](https://github.com/CodySwannGT/lisa/issues/4469)
+* **rules:** route tool-access-gate AWS probe through the bootstrap recovery ([c876806](https://github.com/CodySwannGT/lisa/commit/c876806c6933081268829959130f9dcc5737d738)), closes [CodySwannGT/lisa#4469](https://github.com/CodySwannGT/lisa/issues/4469) [CodySwannGT/lisa#4469](https://github.com/CodySwannGT/lisa/issues/4469)
+* **verification:** branch on an ignored evidence/ directory instead of calling it committed ([75035d6](https://github.com/CodySwannGT/lisa/commit/75035d6bd1a0ca5a2defa5eb9ca864141848ef6a)), closes [CodySwannGT/lisa#4490](https://github.com/CodySwannGT/lisa/issues/4490) [CodySwannGT/lisa#4490](https://github.com/CodySwannGT/lisa/issues/4490)
+* **verification:** detect per-file ignores, fail closed, and own the uploads ([1beadb6](https://github.com/CodySwannGT/lisa/commit/1beadb6031d593a7f15af1e2a3b8dd273108e316)), closes [CodySwannGT/lisa#4490](https://github.com/CodySwannGT/lisa/issues/4490) [CodySwannGT/lisa#4490](https://github.com/CodySwannGT/lisa/issues/4490)
+* **verification:** fit the eager rule budget and tighten upload order ([d089683](https://github.com/CodySwannGT/lisa/commit/d08968394d3ce93c401c0c44b2021fe988fe3cec)), closes [CodySwannGT/lisa#4490](https://github.com/CodySwannGT/lisa/issues/4490) [CodySwannGT/lisa#4490](https://github.com/CodySwannGT/lisa/issues/4490)
+* **verification:** slug asset names and upload the full manifest ([3000edf](https://github.com/CodySwannGT/lisa/commit/3000edfd22386329708144f0399c09d10989235e)), closes [CodySwannGT/lisa#4490](https://github.com/CodySwannGT/lisa/issues/4490) [CodySwannGT/lisa#4490](https://github.com/CodySwannGT/lisa/issues/4490)
+
 ### [4.103.6](https://github.com/CodySwannGT/lisa/compare/v4.103.5...v4.103.6) (2026-11-12)
 
 

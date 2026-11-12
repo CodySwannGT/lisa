@@ -2,16 +2,13 @@
 name: lisa-parity-code-review
 description: "Lisa-native code review of the current git diff. Walks every changed hunk and reports correctness bugs, security issues, and obvious defects as severity-ranked findings with file:line references. Vendor-neutral — the cross-agent equivalent of the upstream code-review command, runnable on Codex, agy, Copilot, Cursor, and Claude."
 allowed-tools: ["Read", "Bash", "Grep", "Glob"]
-synced-from: code-review@claude-plugins-official@1.0.1
 ---
 
 # Parity Code Review
 
-Review the code that is *about to ship* — the current uncommitted/branch diff — for defects a reviewer would block on. This is a focused **defect hunt**: correctness, security, and obvious mistakes. It is not a style audit and not a refactor pass (use `parity-code-simplifier` for quality-only cleanup).
+Review the code that is *about to ship* — the current uncommitted/branch diff — for defects a reviewer would block on. This is a focused **defect hunt**: correctness, security, and obvious mistakes. It is not a style audit and not a refactor pass; simplification is covered by the coding-philosophy rule.
 
-> **Drift tracking.** Pinned to `code-review@claude-plugins-official@1.0.1`. Upstream published no semver until 1.0.1, so this skill used to carry no pin and was reviewed by hand; it is now tracked by the Lisa repository's `scripts/plugin-parity-drift.mjs` (a Lisa-repository maintainer check that host projects do not ship, so it does not run in a host checkout), which flags the pin as stale when the plugin cache holds a newer upstream version. This is a Lisa-native reimplementation, **not** a port of upstream code.
->
-> **Reviewed against 1.0.1, partly diverged.** Adopted from upstream 1.0.1: findings print to the terminal only; every candidate finding is validated before it is reported (Step 4); and a high-signal bar governs what is blocking (relaxed to admit an input-dependent defect once its triggering input is shown to be reachable; see Step 4). Deliberately not reimplemented: upstream's `--comment` mode, which posts inline PR comments through `mcp__github_inline_comment__create_inline_comment` (use `lisa-pull-request-review` to act on a pull request), and its four-reviewer subagent pipeline. This skill is one reviewer over the local diff, because the agents it serves (Codex, agy, Copilot, Cursor, Devin) have no common subagent or inline-comment surface. The `synced-from` scalar cannot record that split, so this note does.
+> **Lisa-owned.** This began as a reimplementation of the upstream `code-review@claude-plugins-official` command and was last reviewed against its 1.0.1. Lisa stopped enabling that plugin (CodySwannGT/lisa#4799) because Claude Code now ships a built-in `/code-review`, so this skill is no longer pinned to or drift-tracked against upstream. It stays as the vendor-neutral review for agents without a built-in equivalent. It is one reviewer over the local diff, because the agents it serves (Codex, agy, Copilot, Cursor, Devin) have no common subagent or inline-comment surface; use `lisa-pull-request-review` to act on a pull request.
 
 ## Step 1: Establish the diff
 
@@ -106,4 +103,4 @@ Example:
 - **Ground every finding in the diff.** No speculative findings, no generic best-practice lectures unrelated to the change.
 - **Be honest about coverage.** If you deprioritized files or couldn't fully trace a path, say so.
 - **If the diff is clean, say so clearly** — "No blocking issues found across N changed files" — do not manufacture problems.
-- This is review-only: report findings, do **not** edit files. Apply fixes via the normal implementation flow or `parity-code-simplifier` (quality) after triage.
+- This is review-only: report findings, do **not** edit files. Apply fixes via the normal implementation flow after triage.

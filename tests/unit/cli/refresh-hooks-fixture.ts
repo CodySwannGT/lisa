@@ -11,23 +11,18 @@ import {
 import os from "node:os";
 import path from "node:path";
 
-export const BOTH_GUARDS = "parity-safety-net,block-no-verify";
+export const SELECTION = "block-no-verify";
 export const DIRTY_TEXT = "uncommitted application work\n";
 export const HOOK_DIRECTORY = "scripts/lisa-hooks";
 export const COPY_DIRECTORY = "all/copy-overwrite";
-export const PARITY_NAME = "parity-safety-net.sh";
-export const PARITY = `${HOOK_DIRECTORY}/${PARITY_NAME}`;
+export const GUARD_NAME = "block-no-verify.sh";
+export const GUARD = `${HOOK_DIRECTORY}/${GUARD_NAME}`;
 export const DEDUPE_NAME = "guard-dedupe.bash";
 export const DEDUPE = `${HOOK_DIRECTORY}/${DEDUPE_NAME}`;
-export const OLD_PARITY = "# old parity-safety-net.sh\n";
+export const OLD_GUARD = "# old block-no-verify.sh\n";
 export const OLD_DEDUPE = "# old guard-dedupe.bash\n";
 export const CONFIG_TEXT = '{"harness":"codex"}\n';
-export const hookNames = [
-  PARITY_NAME,
-  "parity-safety-net-heredoc.py",
-  "guard-dedupe.bash",
-  "block-no-verify.sh",
-];
+export const hookNames = [GUARD_NAME, "guard-dedupe.bash"];
 
 /** Keep cleanup authority limited to roots created by this fixture instance. */
 class Fixtures {
