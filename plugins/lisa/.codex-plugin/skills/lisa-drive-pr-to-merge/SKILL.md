@@ -1605,16 +1605,24 @@ merge, confirming that sync ran satisfies this step.
 Run this once the PR reports `MERGED` and the ancestry check has passed:
 
 ```
-node scripts/lisa-work-item.mjs complete --ref <work-item> --pr-url <merged-pr-url>
+node scripts/lisa-work-item.mjs finish --ref <work-item> --pr-url <merged-pr-url>
 ```
 
-resolving the script the usual three ways (installed package, host `scripts/`,
+Resolve the script the usual three ways (installed package, host `scripts/`,
 this repo's own tree). Always pass the canonical GitHub pull-request URL shown
 by the merge read. The Linear writer requires that exact evidence, verifies the
 pull request is merged in the current repository, confirms the managed tracker
 backlink, writes the team's resolved completed-type state, and immediately
 rereads the issue before reporting success. The GitHub writer accepts the same
 invocation, so this command does not need a tracker-specific branch.
+
+`finish` is the spelling to use. `complete` is accepted as a permanent alias
+for the identical operation, but some agent harnesses — Claude Code's worktree
+isolation among them — refuse any command line containing the bare token
+`complete`, because it names a shell builtin that can run a string as a command.
+A `Usage:` refusal that does not list `finish` means the host's copied script
+predates it: run `lisa apply` to refresh it, or use `complete` where the
+harness allows that token. Neither is a reason to close by hand.
 
 **This step exists because the previous arrangement did not work, measured.**
 The instruction to move a work item to its terminal role lived in
