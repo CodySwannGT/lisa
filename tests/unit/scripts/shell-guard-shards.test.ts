@@ -7,6 +7,9 @@ import {
   mergeShardDirectories,
   nativeArgv,
   parseShard,
+  RECOVERY_PREFIX,
+  RERUN_ALL,
+  RERUN_FAILED,
   sha256,
   strictTrace,
 } from "../../../scripts/lib/shell-guard-shards.mjs";
@@ -666,6 +669,42 @@ describe("shard bundles across Actions attempts (#4634)", () => {
         entry(2, atAttempt(bundles[2]!, 2)),
       ])
     ).toThrow(/shard 1 attempt 1[\s\S]*Re-run all jobs/u);
+  });
+
+  it("compares attempts numerically, so attempt 10 beats attempt 9", () => {
+    const { snapshot, bundles } = currentAt(10);
+    const result = mergeShardDirectories(snapshot, [
+      entry(1, atAttempt(bundles[0]!, 1)),
+      entry(1, atAttempt(bundles[1]!, 1)),
+      failedEntry(9, 3),
+      entry(10, atAttempt(bundles[2]!, 10)),
+    ]);
+    expect(result.selected.find(row => row.index === 3)?.attempt).toBe(10);
+  });
+
+  it("builds every recovery hint from the one prefix recoverable() keys on", () => {
+    expect(RERUN_FAILED.startsWith(RECOVERY_PREFIX)).toBe(true);
+    expect(RERUN_ALL.startsWith(RECOVERY_PREFIX)).toBe(true);
+  });
+
+  it("does not double-wrap a refusal that already carries a recovery hint", () => {
+    const { snapshot, bundles } = currentAt(2);
+    let message = "";
+    try {
+      mergeShardDirectories(snapshot, [
+        entry(1, atAttempt(bundles[0]!, 1)),
+        entry(1, atAttempt(bundles[1]!, 1)),
+        {
+          name: dirName(2, 3),
+          read: () => {
+            throw new Error(`already explained. ${RERUN_FAILED}`);
+          },
+        },
+      ]);
+    } catch (error) {
+      message = (error as Error).message;
+    }
+    expect(message).toBe(`already explained. ${RERUN_FAILED}`);
   });
 
   it("names the shard and attempt when a chosen bundle's files cannot be read", () => {

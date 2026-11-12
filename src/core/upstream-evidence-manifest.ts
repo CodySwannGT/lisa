@@ -2865,7 +2865,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/lib/shell-guard-shard-runner.mjs":
       "f1253f6e6cdc4a5cb5129411c16f0ab67c909b1c7e70fe690cc9f988b8712c81",
     "scripts/lib/shell-guard-shards.mjs":
-      "528cfa41a391b883d8618462e22b94826ed2d6a230e1c93d71dc3f3db393ad8a",
+      "1022fa8e447d272da6ae4421f8c9798224a5239734ef977340baa861e64332d3",
     "scripts/lib/shell-guard-terminal-reporter.mjs":
       "5af1615782b5c0608c5218fd88149def957a6856000c699662356bba1f2cab93",
     "scripts/lib/shell-guard-trace.mjs":

@@ -236,10 +236,10 @@ export function nativeArgv(root, artifactRoot, shard, candidates) {
  * re-run that recovers it, because the operator reading a red check has no
  * other way to know a failed-jobs re-run would be wasted.
  */
-export const RERUN_FAILED =
-  'Recovery: "Re-run failed jobs" rebuilds only that shard and is enough.';
-export const RERUN_ALL =
-  'Recovery: "Re-run all jobs" is needed; re-running only failed jobs cannot fix this.';
+/** Every recovery hint starts with this; recoverable() keys on it alone. */
+export const RECOVERY_PREFIX = "Recovery: ";
+export const RERUN_FAILED = `${RECOVERY_PREFIX}"Re-run failed jobs" rebuilds only that shard and is enough.`;
+export const RERUN_ALL = `${RECOVERY_PREFIX}"Re-run all jobs" is needed; re-running only failed jobs cannot fix this.`;
 const BUNDLE_NAME = /^lisa-shell-guard-(\d+)-([1-9]\d*)-shard-([1-9]\d*)$/u;
 const RUN_IDENTITY = ["runId", "sourceSha", "prHead", "workflowRef"];
 const shardName = index => `shard ${index}`;
@@ -450,7 +450,7 @@ function recoverable(where, validate) {
   try {
     return validate();
   } catch (error) {
-    if (/Recovery: "Re-run/u.test(error?.message ?? "")) throw error;
+    if (String(error?.message ?? "").includes(RECOVERY_PREFIX)) throw error;
     throw new Error(
       `${where}: ${error?.message ?? String(error)}. ${RERUN_ALL}`,
       { cause: error }
@@ -501,7 +501,7 @@ function newestPerShard(entries, provider) {
   const missing = [1, 2, 3].filter(index => !newest.has(index));
   assert(
     missing.length === 0,
-    `missing shard bundle for ${missing.map(shardName).join(", ")}: no attempt 1-${provider.attempt} of run ${provider.runId} uploaded one. Recovery: "Re-run failed jobs" if that shard's job failed or was cancelled; "Re-run all jobs" if it succeeded without uploading.`
+    `missing shard bundle for ${missing.map(shardName).join(", ")}: no attempt 1-${provider.attempt} of run ${provider.runId} uploaded one. ${RECOVERY_PREFIX}"Re-run failed jobs" if that shard's job failed or was cancelled; "Re-run all jobs" if it succeeded without uploading.`
   );
   return [...newest.values()].sort((a, b) => a.index - b.index);
 }
