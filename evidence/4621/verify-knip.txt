@@ -1,0 +1,31 @@
+# cwd: clean detached worktree /Users/codysai/.claude/jobs/17b068aa/tmp/head-wt
+# HEAD: 1851ff3e61f8f7f44e3795ebbd6ad10e011d15cf
+# tracked changes: 0
+# command: bun run knip:check
+# started: 2026-11-12T14:23:48Z
+$ node scripts/lib/worktree-dependencies.mjs && knip
+Configuration hints (23)
+[src/**/*.ts, …]             knip.json  Remove, or move unused top-level entry to one of "workspaces"  
+[src/**/*.ts, …]             knip.json  Remove, or move unused top-level project to one of "workspaces"
+@ast-grep/cli                knip.json  Remove from ignoreDependencies                                 
+@commitlint/cli              knip.json  Remove from ignoreDependencies                                 
+eslint-config-prettier       knip.json  Remove from ignoreDependencies                                 
+eslint-plugin-react-hooks    knip.json  Remove from ignoreDependencies                                 
+husky                        knip.json  Remove from ignoreDependencies                                 
+jiti                         knip.json  Remove from ignoreDependencies                                 
+jscodeshift                  knip.json  Remove from ignoreDependencies                                 
+lint-staged                  knip.json  Remove from ignoreDependencies                                 
+prettier                     knip.json  Remove from ignoreDependencies                                 
+tsx                          knip.json  Remove from ignoreDependencies                                 
+ast-grep                     knip.json  Remove from ignoreBinaries                                     
+eslint                       knip.json  Remove from ignoreBinaries                                     
+husky                        knip.json  Remove from ignoreBinaries                                     
+knip                         knip.json  Remove from ignoreBinaries                                     
+oxlint                       knip.json  Remove from ignoreBinaries                                     
+playwright                   knip.json  Remove from ignoreBinaries                                     
+prettier                     knip.json  Remove from ignoreBinaries                                     
+standard-version             knip.json  Remove from ignoreBinaries                                     
+tsc                          knip.json  Remove from ignoreBinaries                                     
+tsx                          knip.json  Remove from ignoreBinaries                                     
+...1 more similar hints                                                                                
+EXIT=0

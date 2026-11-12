@@ -40,11 +40,22 @@ const BDD = "🔍 Quality Checks / 🧾 BDD Behavior Contract";
 /** A required context no job in the run posts — an external app. */
 const REVIEW = "CodeRabbit";
 
+/** A required context whose job runs only on `pull_request` events. */
+const TRACE = "🔍 Quality Checks / 🔗 Work-Item Traceability";
+
+/** The other context whose job runs only on `pull_request` events. */
+const VERIFY = "🔍 Quality Checks / ✅ Verification Coverage";
+
+/** The job ids `quality.yml` declares pull-request-only, as the step hands them. */
+const PULL_REQUEST_ONLY = ["verification_coverage", "work_item_traceability"];
+
 /** Job id → display name, as the workflow hands it to the prover. */
 const NAMES: Readonly<Record<string, string>> = {
   lint: "🧹 Lint",
   lint_slow: "🐢 Slow Lint Rules",
   bdd_coverage: "🧾 BDD Behavior Contract",
+  verification_coverage: "✅ Verification Coverage",
+  work_item_traceability: "🔗 Work-Item Traceability",
 };
 
 const OUTCOMES = "--outcomes";
@@ -64,12 +75,18 @@ interface Examined {
   readonly result: string;
 }
 
+/** One required context excused because its job cannot run on this event. */
+interface NotJudged extends Examined {
+  readonly reason: string;
+}
+
 /** What the outcome arm returns. */
 interface Inspection {
   readonly moment: string;
   readonly applicable: boolean;
   readonly examined: readonly Examined[];
   readonly notExamined: readonly string[];
+  readonly notJudged?: readonly NotJudged[];
   readonly violations: readonly Violation[];
   readonly refusal: { kind: string; reason: string } | null;
 }
@@ -138,6 +155,24 @@ interface RepoOptions {
   readonly enforcement?: string;
   readonly stamped?: boolean;
   readonly skipJobs?: string;
+}
+
+/**
+ * The environment of a run started by `event`, as the workflow step sets it.
+ *
+ * @param results - Job id → result
+ * @param event - `github.event_name`
+ * @returns Environment variables for the prover, the pull-request-only list included
+ */
+function eventEnv(
+  results: Record<string, string>,
+  event: string
+): Record<string, string> {
+  return {
+    ...outcomeEnv(results),
+    LISA_EVENT_NAME: event,
+    LISA_PULL_REQUEST_ONLY_JOBS: JSON.stringify(PULL_REQUEST_ONLY),
+  };
 }
 
 /**
@@ -363,6 +398,8 @@ describe("check-skipped-required-checks, the outcome arm", () => {
         results: "LISA_JOB_RESULTS",
         names: "LISA_JOB_NAMES",
         moment: "LISA_GATE_MOMENT",
+        event: "LISA_EVENT_NAME",
+        pullRequestOnly: "LISA_PULL_REQUEST_ONLY_JOBS",
       });
       expect(mod.OUTCOMES_FLAG).toBe(OUTCOMES);
     });
@@ -518,6 +555,183 @@ describe("check-skipped-required-checks, the outcome arm", () => {
       expect(output).toContain("Outcome arm not applicable");
       expect(output).not.toContain("✅");
     });
+  });
+
+  describe("a run no pull request can merge on (#4620)", () => {
+    /** Every job ran green except the two that run only on `pull_request`. */
+    const MANUAL_RESULTS = {
+      lint: "success",
+      lint_slow: "success",
+      bdd_coverage: "success",
+      verification_coverage: "skipped",
+      work_item_traceability: "skipped",
+    };
+
+    /** A skipped traceability job and nothing else. */
+    const TRACE_SKIPPED = { work_item_traceability: "skipped" };
+
+    it.each(["workflow_dispatch", "push", "schedule"])(
+      "excuses a pull-request-only job's skip on %s, and says why",
+      event => {
+        const inspection = mod.inspectOutcomes(
+          [OUTCOMES],
+          { required_contexts: [LINT, TRACE, VERIFY] },
+          { env: eventEnv(MANUAL_RESULTS, event), trust: TRUSTED }
+        );
+        expect(inspection?.violations).toEqual([]);
+        expect(inspection?.refusal).toBeNull();
+        expect(inspection?.examined).toEqual([
+          { context: LINT, job: "lint", result: "success" },
+        ]);
+        expect(inspection?.notJudged?.map(entry => entry.context)).toEqual([
+          TRACE,
+          VERIFY,
+        ]);
+        for (const entry of inspection?.notJudged ?? []) {
+          expect(entry.reason).toContain(`\`${event}\``);
+          expect(entry.reason).toContain("only on pull requests");
+        }
+      }
+    );
+
+    it("goes GREEN on a manual run, listing the traceability check as not judged", () => {
+      const { status, output } = runCli(
+        repoRequiring([LINT, TRACE]),
+        [OUTCOMES],
+        eventEnv(MANUAL_RESULTS, "workflow_dispatch")
+      );
+      expect(status).toBe(0);
+      expect(output).not.toContain("required_context_skipped");
+      expect(output).toContain("Not judged");
+      expect(output).toContain(`\`${TRACE}\` ← job \`work_item_traceability\``);
+      expect(output).toContain("`workflow_dispatch`");
+      expect(output).not.toContain("::error");
+    });
+
+    it("does not refuse as examined-nothing when every owned context was excused", () => {
+      // The contexts matched and were owned, so the snapshot is not the defect
+      // the refusal exists for: they were excused, not unseen.
+      const inspection = mod.inspectOutcomes(
+        [OUTCOMES],
+        { required_contexts: [TRACE] },
+        { env: eventEnv(MANUAL_RESULTS, "workflow_dispatch"), trust: TRUSTED }
+      );
+      expect(inspection?.examined).toEqual([]);
+      expect(inspection?.notJudged?.map(entry => entry.context)).toEqual([
+        TRACE,
+      ]);
+      expect(inspection?.refusal).toBeNull();
+      expect(inspection?.violations).toEqual([]);
+    });
+
+    it("still REFUSES a skipped traceability check on a pull_request run", () => {
+      const { status, output } = runCli(
+        repoRequiring([LINT, TRACE]),
+        [OUTCOMES],
+        eventEnv(
+          { lint: "success", work_item_traceability: "skipped" },
+          "pull_request"
+        )
+      );
+      expect(status).toBe(1);
+      expect(output).toContain("required_context_skipped");
+      expect(output).toContain(TRACE);
+      expect(output).not.toContain("Not judged");
+    });
+
+    it("still REFUSES any other skipped required check on a manual run", () => {
+      const inspection = mod.inspectOutcomes(
+        [OUTCOMES],
+        { required_contexts: [LINT, TRACE] },
+        {
+          env: eventEnv(
+            { lint: "skipped", work_item_traceability: "skipped" },
+            "workflow_dispatch"
+          ),
+          trust: TRUSTED,
+        }
+      );
+      expect(
+        inspection?.violations.map(violation => [
+          violation.kind,
+          violation.token,
+        ])
+      ).toEqual([[mod.VIOLATIONS.requiredSkipped, LINT]]);
+    });
+
+    it.each([
+      ["failure", false],
+      ["cancelled", false],
+      ["", true],
+    ])(
+      "excuses only `skipped`: a pull-request-only job that concluded %j is judged as ever",
+      (result, notRun) => {
+        const inspection = mod.inspectOutcomes(
+          [OUTCOMES],
+          { required_contexts: [TRACE] },
+          {
+            env: eventEnv(
+              { work_item_traceability: result },
+              "workflow_dispatch"
+            ),
+            trust: TRUSTED,
+          }
+        );
+        expect(inspection?.examined).toEqual([
+          { context: TRACE, job: "work_item_traceability", result },
+        ]);
+        expect(inspection?.violations.map(violation => violation.kind)).toEqual(
+          notRun ? [mod.VIOLATIONS.requiredNotRun] : []
+        );
+        expect(inspection?.notJudged ?? []).toEqual([]);
+      }
+    );
+
+    it.each([
+      ["merge_group", eventEnv(TRACE_SKIPPED, "merge_group")],
+      ["pull_request_target", eventEnv(TRACE_SKIPPED, "pull_request_target")],
+      ["an unknown event", eventEnv(TRACE_SKIPPED, "release")],
+      ["an empty event", eventEnv(TRACE_SKIPPED, "")],
+      ["a missing event", outcomeEnv(TRACE_SKIPPED)],
+      [
+        "a missing pull-request-only list",
+        { ...outcomeEnv(TRACE_SKIPPED), LISA_EVENT_NAME: "workflow_dispatch" },
+      ],
+      [
+        "an unreadable pull-request-only list",
+        {
+          ...eventEnv(TRACE_SKIPPED, "workflow_dispatch"),
+          LISA_PULL_REQUEST_ONLY_JOBS: "not json",
+        },
+      ],
+      [
+        "a pull-request-only list that is not an array of job ids",
+        {
+          ...eventEnv(TRACE_SKIPPED, "workflow_dispatch"),
+          LISA_PULL_REQUEST_ONLY_JOBS: '{"work_item_traceability":true}',
+        },
+      ],
+      [
+        "a pull-request-only list mixing a job id with a non-string",
+        {
+          ...eventEnv(TRACE_SKIPPED, "workflow_dispatch"),
+          LISA_PULL_REQUEST_ONLY_JOBS: '["work_item_traceability", 1]',
+        },
+      ],
+    ])(
+      "judges a skipped pull-request-only job as before under %s",
+      (_label, env) => {
+        const inspection = mod.inspectOutcomes(
+          [OUTCOMES],
+          { required_contexts: [TRACE] },
+          { env, trust: TRUSTED }
+        );
+        expect(inspection?.violations.map(violation => violation.kind)).toEqual(
+          [mod.VIOLATIONS.requiredSkipped]
+        );
+        expect(inspection?.notJudged ?? []).toEqual([]);
+      }
+    );
   });
 
   describe("the declaration arm is vestigial", () => {

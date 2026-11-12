@@ -2,6 +2,26 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.102.2](https://github.com/CodySwannGT/lisa/compare/v4.102.1...v4.102.2) (2026-11-12)
+
+
+### Bug Fixes
+
+* **tests:** harden stderr-sync retry and cleanup test coverage ([40d9c21](https://github.com/CodySwannGT/lisa/commit/40d9c218ccd0738d7f81d8a59c414aff6f915f2a)), closes [#4621](https://github.com/CodySwannGT/lisa/issues/4621) [CodySwannGT/lisa#4621](https://github.com/CodySwannGT/lisa/issues/4621) [CodySwannGT/lisa#4621](https://github.com/CodySwannGT/lisa/issues/4621)
+* **tests:** stop the scanner child before removing folders at exit ([c3dd934](https://github.com/CodySwannGT/lisa/commit/c3dd934860669719e9373db8a95fae4811160c20)), closes [#4621](https://github.com/CodySwannGT/lisa/issues/4621) [CodySwannGT/lisa#4621](https://github.com/CodySwannGT/lisa/issues/4621) [CodySwannGT/lisa#4621](https://github.com/CodySwannGT/lisa/issues/4621)
+
+
+### Documentation
+
+* **tests:** scope stderr-sync pipe claim to what was measured ([38084da](https://github.com/CodySwannGT/lisa/commit/38084da50fe522c3db77f0aea803ae4b325265af)), closes [CodySwannGT/lisa#4621](https://github.com/CodySwannGT/lisa/issues/4621)
+
+### [4.102.1](https://github.com/CodySwannGT/lisa/compare/v4.102.0...v4.102.1) (2026-11-12)
+
+
+### Bug Fixes
+
+* **ci:** stop manual CI runs failing on pull-request-only required checks ([f5c00d4](https://github.com/CodySwannGT/lisa/commit/f5c00d40d2f520877d78d9cfd79e41388ddb0e5e)), closes [#4620](https://github.com/CodySwannGT/lisa/issues/4620) [#4620](https://github.com/CodySwannGT/lisa/issues/4620) [CodySwannGT/lisa#4620](https://github.com/CodySwannGT/lisa/issues/4620)
+
 ## [4.102.0](https://github.com/CodySwannGT/lisa/compare/v4.101.11...v4.102.0) (2026-11-12)
 
 
