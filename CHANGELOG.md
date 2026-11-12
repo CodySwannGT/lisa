@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.101.11](https://github.com/CodySwannGT/lisa/compare/v4.101.10...v4.101.11) (2026-11-12)
+
+
+### Bug Fixes
+
+* **third-party-evidence:** clear a stale reviewer check without a re-review ([f1fb948](https://github.com/CodySwannGT/lisa/commit/f1fb9481dfef399c9522383be9eb6ed054d48b41)), closes [#4738](https://github.com/CodySwannGT/lisa/issues/4738) [CodySwannGT/lisa#4738](https://github.com/CodySwannGT/lisa/issues/4738)
+* **third-party-evidence:** state the real gap a missing context input leaves ([20a8ac9](https://github.com/CodySwannGT/lisa/commit/20a8ac97e2832e7d424cebad75a53b0719a736d4)), closes [#4738](https://github.com/CodySwannGT/lisa/issues/4738) [CodySwannGT/lisa#4738](https://github.com/CodySwannGT/lisa/issues/4738)
+
 ### [4.101.10](https://github.com/CodySwannGT/lisa/compare/v4.101.9...v4.101.10) (2026-11-12)
 
 
