@@ -12,20 +12,18 @@
  * @module tests/unit/helpers/fs-probe-diagnostic
  */
 import * as fs from "node:fs";
-import { tmpdir } from "node:os";
-import * as path from "node:path";
 
-import { afterEach, describe, expect, it } from "vitest";
+import { describe, expect, it } from "vitest";
 
 import {
   DEVICE_FIELDS,
   discardDelta,
-  fillAllocatedDirectory,
   pairedSample,
   parseDeviceStat,
   parseMountInfo,
   timeRemovalUs,
 } from "../../helpers/fs-probe-diagnostic.js";
+import { fillProbeDirectory } from "../../helpers/fs-latency-budget.js";
 
 /** A mountinfo table shaped like a hosted Ubuntu runner's. */
 const MOUNTINFO = [
@@ -40,13 +38,6 @@ const MOUNTINFO = [
 /** A full 17-field `/sys/dev/block/<maj:min>/stat` line. */
 const FULL_STAT =
   "  123  4  5000  60  700  8  9000  100  0  220  320  31  2  4096  7  15  9";
-
-const scratch: string[] = [];
-
-afterEach(() => {
-  for (const directory of scratch.splice(0))
-    fs.rmSync(directory, { force: true, recursive: true });
-});
 
 describe("parseMountInfo", () => {
   it("picks the longest mount point holding the target", () => {
@@ -128,21 +119,9 @@ describe("discardDelta", () => {
   });
 });
 
-describe("the allocated sample kinds", () => {
-  it("writes the requested number of 4 KiB files", () => {
-    const directory = fillAllocatedDirectory(3);
-    scratch.push(directory);
-
-    const names = fs.readdirSync(directory);
-    expect(names).toHaveLength(3);
-    names.forEach(name =>
-      expect(fs.statSync(path.join(directory, name)).size).toBe(4096)
-    );
-    expect(path.dirname(directory)).toBe(tmpdir());
-  });
-
+describe("the sample kinds", () => {
   it("times a removal per entry and leaves nothing behind", () => {
-    const directory = fillAllocatedDirectory(5);
+    const directory = fillProbeDirectory(5);
 
     const perEntryUs = timeRemovalUs(directory, 5);
 

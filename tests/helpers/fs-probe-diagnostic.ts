@@ -13,26 +13,23 @@
  * variant whose files are allocated (4 KiB and `fsync`ed), and a real
  * 5,000-file allocated corpus.
  *
+ * Hosted run 43251544381 answered it: the allocated variant read 0.94-1.12 of
+ * the real removal and the one-byte probe 0.25-0.28, so the probe now writes
+ * allocated files itself ({@link fillProbeDirectory}, which the variant and
+ * the corpus here share). Since then the first two kinds time the same kind of
+ * file, and the diagnostic re-checks the probe it replaced.
+ *
  * The mount-table and device-counter readers follow the design of the
  * diagnostics PR #4626 used and later removed. They return nothing off Linux,
  * so every sample still carries its timings there.
  * @module tests/helpers/fs-probe-diagnostic
  */
-import {
-  closeSync,
-  existsSync,
-  fsyncSync,
-  mkdtempSync,
-  openSync,
-  readFileSync,
-  realpathSync,
-  rmSync,
-  writeSync,
-} from "node:fs";
-import { tmpdir } from "node:os";
-import path from "node:path";
+import { existsSync, readFileSync, realpathSync, rmSync } from "node:fs";
 
-import { measureUnlinkLatencyUs } from "./fs-latency-budget.js";
+import {
+  fillProbeDirectory,
+  measureUnlinkLatencyUs,
+} from "./fs-latency-budget.js";
 
 /** Linux block-device counters, in the kernel's `stat` field order. */
 export const DEVICE_FIELDS = [
@@ -66,9 +63,6 @@ export interface MountRecord {
   /** Per-mount options, then the superblock's, separated by `;`. */
   readonly options: string;
 }
-
-/** Bytes per allocated file: one filesystem block on the hosted runners. */
-const ALLOCATED_BYTES = 4096;
 
 /** Entries in the probe, and in the allocated variant that mirrors it. */
 const PROBE_ENTRIES = 20;
@@ -196,25 +190,6 @@ export function discardDelta(
 }
 
 /**
- * Write a directory of allocated files: each 4 KiB and `fsync`ed, so it holds
- * a real block by the time anything removes it.
- * @param entries - Files to write
- * @returns The directory, under the same temp root the probe uses
- */
-export function fillAllocatedDirectory(entries: number): string {
-  const directory = mkdtempSync(path.join(tmpdir(), "lisa-fs-probe-alloc-"));
-  const block = Buffer.alloc(ALLOCATED_BYTES, "x");
-  Array.from({ length: entries }, (_unused, index) => {
-    const fd = openSync(path.join(directory, `entry-${index}`), "w");
-    writeSync(fd, block);
-    fsyncSync(fd);
-    closeSync(fd);
-    return index;
-  });
-  return directory;
-}
-
-/**
  * Remove a directory recursively, timing only the removal.
  * @param directory - Directory to remove
  * @param entries - Files it holds, for the per-entry figure
@@ -233,7 +208,7 @@ export function timeRemovalUs(directory: string, entries: number): number {
  */
 function measureAllocatedUnlinkLatencyUs(): number {
   const timings = Array.from({ length: PROBE_CYCLES }, () =>
-    timeRemovalUs(fillAllocatedDirectory(PROBE_ENTRIES), PROBE_ENTRIES)
+    timeRemovalUs(fillProbeDirectory(PROBE_ENTRIES), PROBE_ENTRIES)
   ).sort((left, right) => left - right);
   return timings[Math.floor(timings.length / 2)] ?? 0;
 }
@@ -339,7 +314,7 @@ export async function pairedSample(
     settleMs,
     measureAllocatedUnlinkLatencyUs
   );
-  const corpus = fillAllocatedDirectory(corpusEntries);
+  const corpus = fillProbeDirectory(corpusEntries);
   const real = await observeRemoval(mount, settleMs, () =>
     timeRemovalUs(corpus, corpusEntries)
   );
