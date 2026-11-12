@@ -131,7 +131,6 @@ Plugin agents use colon-separated naming format: `namespace:agent-name`
 
 Examples:
 - `coderabbit:code-reviewer` (not `coderabbit`)
-- `code-simplifier:code-simplifier` (not `code-simplifier`)
 
 This is a platform convention for spawning plugin agents via the Agent Team API.
 

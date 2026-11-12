@@ -47,9 +47,6 @@ The `enabledPlugins` section in `settings.json` references Claude Code plugins. 
 | Plugin | Source | Purpose |
 |--------|--------|---------|
 | `typescript-lsp` | `claude-plugins-official` | TypeScript language server integration |
-| `safety-net` | `cc-marketplace` | Backup and safety features |
-| `code-simplifier` | `claude-plugins-official` | Code complexity reduction suggestions |
-| `code-review` | `claude-plugins-official` | Automated code review capabilities |
 | `playwright` | `claude-plugins-official` | Playwright test integration |
 
 ### Installing Plugins

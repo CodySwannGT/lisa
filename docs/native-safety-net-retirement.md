@@ -32,8 +32,11 @@ reports recognized custom target files; it does not claim to retire arbitrary
 operator wrappers, external plugins, custom plugin locations, or remote plugin
 stores. Package managers must run the dependency lifecycle for automatic cleanup.
 Current local-folder plugin links to the dependency receive its harmless handler
-directly. The external `safety-net@cc-marketplace` plugin remains disabled by the
-existing template policy.
+directly. The external upstream plugin is no longer enabled or registered by any
+template. Its real name is `cc-safety-net@cc-marketplace`; the earlier
+`safety-net@cc-marketplace: false` pin matched no plugin, so it never disabled it.
+The `prune-retired-third-party-plugins` migration removes it, and its
+marketplace, from existing projects (CodySwannGT/lisa#4799).
 
 To preview the narrow reconciliation against a project without changing files:
 

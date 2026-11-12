@@ -798,11 +798,12 @@ Lisa enables several official and marketplace plugins:
 
 | Plugin | Purpose |
 |--------|---------|
-| **safety-net** | Block dangerous git commands |
 | **typescript-lsp** | TypeScript language server integration |
-| **code-simplifier** | Automated code refactoring and simplification |
-| **code-review** | AI-powered code review |
+| **coderabbit** | CodeRabbit AI code review |
+| **skill-creator** | Author and evaluate Agent Skills |
 | **playwright** | Browser automation for E2E testing |
+
+Lisa no longer enables `code-review` (Claude Code's built-in `/code-review` replaces it), `code-simplifier` (replaced by the "Simplify before you finish" instruction in the coding-philosophy rule), the upstream safety-net plugin (Lisa's own hook covers it) or `impeccable` (CodySwannGT/lisa#4799).
 
 ### Push Notifications (ntfy.sh) — retired
 

@@ -85,5 +85,5 @@ Call out what's done well. A credible review is balanced, not only critical.
 - **Malformed blockers do not block.** If you cannot name a concrete failure scenario and evidence, report it as non-blocking context or omit it.
 - **Concrete fixes only.** "Consider improving error handling" is not a finding; "wrap the `fetch` in try/catch and return a 502 on network error at `api/proxy.ts:31`" is.
 - **No external review service.** Use only local git/tooling and the model — this is an independent review, not a CodeRabbit proxy.
-- **Review-only.** Report findings; do not edit files. Route fixes through the implementation flow, `parity-code-simplifier` (quality), or a follow-up.
+- **Review-only.** Report findings; do not edit files. Route fixes through the implementation flow or a follow-up.
 - **If the diff is clean, approve it plainly** and say why — do not invent problems to look thorough.

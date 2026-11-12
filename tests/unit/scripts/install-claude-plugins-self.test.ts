@@ -962,6 +962,25 @@ describe("install-claude-plugins self postinstall path", () => {
     expect(log).toContain(
       "claude plugin uninstall safety-net@cc-marketplace --scope project"
     );
+    // #1960 pinned a name no plugin has; the real upstream plugin is
+    // `cc-safety-net`, and #4799 retires it together with impeccable and the
+    // code-review / code-simplifier plugins Claude Code now covers natively.
+    for (const retired of [
+      "cc-safety-net@cc-marketplace",
+      "impeccable@impeccable",
+      "code-review@claude-plugins-official",
+      "code-simplifier@claude-plugins-official",
+    ]) {
+      expect(log).toContain(
+        `claude plugin uninstall ${retired} --scope project`
+      );
+    }
+    expect(log).not.toContain(
+      "claude plugin install code-review@claude-plugins-official"
+    );
+    expect(log).not.toContain(
+      "claude plugin install code-simplifier@claude-plugins-official"
+    );
     const marker = await readFile(
       path.join(projectRoot, CLAUDE_DIR, PLUGIN_SYNC_MARKER_FILE),
       "utf8"

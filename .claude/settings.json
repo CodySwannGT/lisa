@@ -51,8 +51,6 @@
   },
   "enabledPlugins": {
     "typescript-lsp@claude-plugins-official": true,
-    "code-simplifier@claude-plugins-official": true,
-    "code-review@claude-plugins-official": true,
     "playwright@claude-plugins-official": true,
     "coderabbit@claude-plugins-official": true,
     "lisa-typescript@lisa": true,
@@ -66,12 +64,6 @@
       "source": {
         "source": "github",
         "repo": "CodySwannGT/lisa"
-      }
-    },
-    "kenryu42/cc-marketplace": {
-      "source": {
-        "source": "github",
-        "repo": "kenryu42/cc-marketplace"
       }
     }
   },
