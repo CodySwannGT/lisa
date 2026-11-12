@@ -1,12 +1,18 @@
 /**
  * Parse the project's calling `ci.yml` quality workflow inputs.
- * @module cli/ui-ci-quality-jobs-parse
+ * @module cli/ci-workflow-inputs
  */
 import { readFile } from "node:fs/promises";
 import * as path from "node:path";
 import { isJsonObject } from "../sync/json-path.js";
 import { loadYaml } from "../utils/yaml.js";
-import type { CiWorkflowInputs } from "./ui-ci-quality-jobs-compute.js";
+
+/** Inputs the project's `ci.yml` forwards into Lisa's quality workflow. */
+export interface CiWorkflowInputs {
+  readonly skipJobs: readonly string[];
+  readonly complianceFramework: string;
+  readonly requireApproval: boolean;
+}
 
 /**
  * Read `ci.yml` from the project workflows directory.

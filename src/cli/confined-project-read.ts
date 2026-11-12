@@ -1,4 +1,4 @@
-/** Bounded, no-follow local project reads shared by localhost UI probes. */
+/** Bounded, no-follow local project reads for setup and doctor checks. */
 import { realpath } from "node:fs/promises";
 import { readProjectText } from "../health/read-only-fs.js";
 import { isJsonObject, type JsonObject } from "../sync/json-path.js";

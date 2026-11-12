@@ -1,9 +1,9 @@
-/** Red-leg coverage for bounded localhost project reads. */
+/** Red-leg coverage for bounded project reads. */
 import { mkdtemp, rm, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import { readConfinedMergedConfig } from "../../../src/cli/ui-confined-project-read.js";
+import { readConfinedMergedConfig } from "../../../src/cli/confined-project-read.js";
 import { boundedExecFileSync } from "../../helpers/io-latency-budget.js";
 
 const roots: string[] = [];
@@ -28,8 +28,8 @@ afterEach(async () => {
 
 describe("confined UI project reads", () => {
   it("rejects an external config symlink instead of importing its values", async () => {
-    const project = await temporaryRoot("lisa-ui-confined-project-");
-    const outside = await temporaryRoot("lisa-ui-confined-outside-");
+    const project = await temporaryRoot("lisa-confined-project-");
+    const outside = await temporaryRoot("lisa-confined-outside-");
     const target = path.join(outside, "config.json");
     await writeFile(target, '{"tracker":"github"}\n');
     await symlink(target, path.join(project, CONFIG_RELATIVE));
@@ -38,7 +38,7 @@ describe("confined UI project reads", () => {
   });
 
   it("rejects a FIFO without opening or blocking on it", async () => {
-    const project = await temporaryRoot("lisa-ui-confined-fifo-");
+    const project = await temporaryRoot("lisa-confined-fifo-");
     boundedExecFileSync({
       label: "mkfifo",
       command: "/usr/bin/mkfifo",
@@ -49,7 +49,7 @@ describe("confined UI project reads", () => {
   });
 
   it("rejects oversized config before JSON parsing", async () => {
-    const project = await temporaryRoot("lisa-ui-confined-oversize-");
+    const project = await temporaryRoot("lisa-confined-oversize-");
     await writeFile(
       path.join(project, CONFIG_RELATIVE),
       "x".repeat(512 * 1024 + 1)

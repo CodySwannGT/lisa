@@ -61,11 +61,21 @@ describe("maintenance command invocation", () => {
   });
 });
 
-describe("sync and ui invocation", () => {
-  it("registers sync and ui subcommands", () => {
+describe("sync invocation", () => {
+  it("registers sync and no longer registers the removed ui console", () => {
     const { program } = createTestProgram();
     const subcommandNames = program.commands.map(command => command.name());
-    expect(subcommandNames).toEqual(expect.arrayContaining(["sync", "ui"]));
+    expect(subcommandNames).toContain("sync");
+    expect(subcommandNames).not.toContain("ui");
+  });
+
+  it("rejects ui as an unknown command", async () => {
+    const { program } = createTestProgram();
+    program.configureOutput({ writeErr: () => undefined });
+
+    await expect(
+      program.parseAsync(["ui", DEST], { from: "user" })
+    ).rejects.toMatchObject({ code: "commander.unknownCommand" });
   });
 
   it("routes sync options to the sync action", async () => {
@@ -81,38 +91,7 @@ describe("sync and ui invocation", () => {
     );
   });
 
-  it("routes ui options to the ui action, including --no-sync", async () => {
-    const { program, runUi } = createTestProgram();
-
-    await program.parseAsync(
-      [
-        "ui",
-        DEST,
-        "--port",
-        "5001",
-        "--no-sync",
-        "--work-item",
-        "CodySwannGT/lisa#1534",
-        "--co-author",
-        "Codex <codex@openai.com>",
-      ],
-      {
-        from: "user",
-      }
-    );
-
-    expect(runUi).toHaveBeenCalledWith(
-      DEST,
-      expect.objectContaining({
-        port: "5001",
-        sync: false,
-        workItem: "CodySwannGT/lisa#1534",
-        coAuthor: "Codex <codex@openai.com>",
-      })
-    );
-  });
-
-  it("does not run the update check for sync or ui", async () => {
+  it("does not run the update check for sync", async () => {
     const { program, runUpdateCheck } = createTestProgram();
 
     await program.parseAsync(["sync", DEST], { from: "user" });

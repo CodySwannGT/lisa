@@ -1,9 +1,8 @@
 /** Read-only setup.standards proof validation and freshness recomputation. */
 import { getPackageVersion } from "../cli/version.js";
-import { readConfinedDetectedStacks } from "../cli/ui-detected-stacks.js";
-import { readConfinedMergedConfig } from "../cli/ui-confined-project-read.js";
-import type { SetupReadinessFinding } from "../cli/ui-setup-readiness-contract.js";
-import { setupFinding } from "../cli/ui-setup-readiness-contract.js";
+import { readConfinedDetectedStacks } from "../cli/detected-stacks.js";
+import { readConfinedMergedConfig } from "../cli/confined-project-read.js";
+import type { HealthFinding, HealthStatus } from "../health/contract.js";
 import type { StandardsProof } from "./contract.js";
 import { readStandardsGitState, type StandardsGitState } from "./git-state.js";
 import {
@@ -13,6 +12,12 @@ import {
 import { readStandardsProof } from "./storage.js";
 
 const STANDARDS_FINDING_ID = "setup.standards";
+
+/** The standards-proof finding: the closed Health finding shape for one check. */
+export type StandardsProofFinding = HealthFinding & {
+  readonly check: typeof STANDARDS_FINDING_ID;
+  readonly layer: "deterministic";
+};
 const PROOF_COMMAND_HINT = "Run lisa standards-proof.";
 const OBSERVATION_REASONS = Object.freeze({
   git: "Git repository identity and state could not be observed",
@@ -21,6 +26,21 @@ const OBSERVATION_REASONS = Object.freeze({
   plan: "required standards check plan is incomplete or unavailable",
   generic: "current standards proof inputs could not be observed",
 });
+
+/**
+ * Create one operator-readable deterministic standards-proof finding.
+ * @param check - The standards-proof check identifier
+ * @param status - Deterministic proof status
+ * @param reason - Operator-readable evidence or remediation summary
+ * @returns Deterministic standards-proof finding
+ */
+function setupFinding(
+  check: typeof STANDARDS_FINDING_ID,
+  status: HealthStatus,
+  reason: string
+): StandardsProofFinding {
+  return { check, layer: "deterministic", status, reason };
+}
 
 /**
  * Validate the stored proof against current Git, stack, config, registry, and
@@ -32,7 +52,7 @@ const OBSERVATION_REASONS = Object.freeze({
  */
 export async function standardsProofFinding(
   projectRoot: string
-): Promise<SetupReadinessFinding> {
+): Promise<StandardsProofFinding> {
   const stored = await readStandardsProof(projectRoot);
   if (stored.status === "missing") {
     return setupFinding(
@@ -113,7 +133,7 @@ async function observeCurrentPlanInputs(
 function evaluateProofFreshness(
   proof: StandardsProof,
   current: CurrentPlanInputs
-): SetupReadinessFinding {
+): StandardsProofFinding {
   try {
     const cause = planStaleCause(proof, current);
     if (cause !== undefined) return stale(cause);
@@ -193,7 +213,7 @@ function hasIncompleteResults(
  * @param cause - Operator-readable stale cause
  * @returns Stale standards finding
  */
-function stale(cause: string): SetupReadinessFinding {
+function stale(cause: string): StandardsProofFinding {
   return setupFinding(
     STANDARDS_FINDING_ID,
     "warn",
@@ -206,7 +226,7 @@ function stale(cause: string): SetupReadinessFinding {
  * @param reason - Sanitized observation failure reason
  * @returns Fail-closed standards finding
  */
-function observationFailed(reason: string): SetupReadinessFinding {
+function observationFailed(reason: string): StandardsProofFinding {
   return setupFinding(
     STANDARDS_FINDING_ID,
     "warn",
@@ -217,7 +237,7 @@ function observationFailed(reason: string): SetupReadinessFinding {
 /** Result of one fail-closed current-input observation. */
 type CurrentInputObservation<T> =
   | { readonly status: "available"; readonly value: T }
-  | { readonly status: "unavailable"; readonly finding: SetupReadinessFinding };
+  | { readonly status: "unavailable"; readonly finding: StandardsProofFinding };
 
 /**
  * Convert one throwing observation into a fail-closed result.

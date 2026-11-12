@@ -4,7 +4,7 @@ import { env as processEnvironment } from "node:process";
 import { promisify } from "node:util";
 import { importGateRegistry } from "./gate-registry-source.js";
 import type { GateRegistryModule } from "./gate-report-registry.js";
-import { readConfinedMergedConfig } from "./ui-confined-project-read.js";
+import { readConfinedMergedConfig } from "./confined-project-read.js";
 import { isJsonObject, type JsonObject } from "../sync/json-path.js";
 import type { DoctorCheck } from "./doctor.js";
 

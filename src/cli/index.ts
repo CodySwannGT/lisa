@@ -34,7 +34,6 @@ import {
   runStandardsProofCli,
 } from "./standards-proof-cmd.js";
 import { runSync, type SyncCmdOptions } from "./sync-cmd.js";
-import { runUi, addUiCommand } from "./ui-cmd.js";
 import { runUpdate } from "./update-cmd.js";
 import { runUpdateCheck } from "./update-check.js";
 import { addUpdateCheckHook } from "./update-check-hook.js";
@@ -70,8 +69,6 @@ export interface ProgramDependencies {
   runCrossPollinate: typeof runCrossPollinate;
   /** Populates and syncs `.lisa.config.json` with its mirrored artifacts. */
   runSync: typeof runSync;
-  /** Serves the Lisa settings console (after a config sync). */
-  runUi: typeof runUi;
   /** Checks the project learnings file against its hard budget. */
   runCheckLearningsBudget: typeof runCheckLearningsBudget;
   /** Projects a public upstream filing body from allowlisted fields. */
@@ -102,7 +99,6 @@ const DEFAULT_DEPENDENCIES: ProgramDependencies = {
   runDoctor,
   runCrossPollinate,
   runSync,
-  runUi,
   runCheckLearningsBudget,
   runFileUpstream,
   runHealthCli,
@@ -273,8 +269,6 @@ function addMaintenanceCommands(
         process.exitCode = code;
       }
     });
-
-  addUiCommand(program, deps.runUi);
 
   addGateCommands(program, deps);
   addKaneCommands(program, deps);

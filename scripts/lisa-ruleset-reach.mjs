@@ -13,9 +13,6 @@
  *   the live ruleset by string equality. Template says `refs/heads/dev`, live
  *   says `refs/heads/dev`, so it is not drifted. It is a template-conformance
  *   check and cannot be a governance-reach check.
- * - `cli/ui-github-repo-map`'s `mapRulesetRow` parses includes, but as a
- *   literal match on `~DEFAULT_BRANCH`, and its consumer ORs across rows. One
- *   governing row makes the whole answer green and masks every other row.
  *
  * Measured on this repository: a live ruleset included `refs/heads/dev` and
  * `refs/heads/staging` while `git ls-remote --heads` listed 82 heads and not

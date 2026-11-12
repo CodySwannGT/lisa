@@ -3,8 +3,8 @@ import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import type { ProjectType } from "../core/config.js";
 import { getPackageVersion } from "../cli/version.js";
-import { readConfinedDetectedStacks } from "../cli/ui-detected-stacks.js";
-import { readConfinedMergedConfig } from "../cli/ui-confined-project-read.js";
+import { readConfinedDetectedStacks } from "../cli/detected-stacks.js";
+import { readConfinedMergedConfig } from "../cli/confined-project-read.js";
 import {
   STANDARDS_PROOF_ARTIFACT,
   type StandardsProof,
