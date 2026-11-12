@@ -59,11 +59,6 @@ interface BoundaryEvidence {
   readonly gates: readonly [
     {
       readonly status: string;
-      readonly measures: {
-        readonly diagnosis: string | null;
-        readonly exit_code: number | null;
-        readonly state: string;
-      };
     },
   ];
 }
@@ -133,7 +128,7 @@ describe.skipIf(process.platform === "win32")(
       expect(result.blocked).toBe(true);
     });
 
-    it("persists unknown status and null exit for the killed run", () => {
+    it("persists unknown status for the killed run", () => {
       const { boundary, result, lines } = throughGateBoundary(
         selfSignalCommand("SIGINT")
       );
@@ -142,9 +137,6 @@ describe.skipIf(process.platform === "win32")(
       expect(boundary.signal).toBe("SIGINT");
       expect(lines.some(line => line.includes("KILLED by SIGINT"))).toBe(true);
       expect(row.status).toBe("unknown");
-      expect(row.measures.exit_code).toBeNull();
-      expect(row.measures.state).toBe(STATE.KILLED);
-      expect(row.measures.diagnosis).toBe(DIAGNOSIS.KILLED);
     });
   }
 );
@@ -159,7 +151,7 @@ describe("an ordinary exit 128 keeps an ordinary verdict shape", () => {
     expect(outcome.state).toBe(STATE.FAILED);
     expect(outcome.diagnosis).toBe(DIAGNOSIS.UNCAPTURED);
     expect(result.killed).toEqual([]);
-    expect(evidenceFor(result).gates[0].measures.exit_code).toBe(128);
+    expect(evidenceFor(result).gates[0].status).toBe("fail");
   });
 });
 
@@ -223,7 +215,7 @@ describe("malformed executor transport fails closed", () => {
     expect(result.results[0]?.state).toBe(STATE.KILLED);
     expect(lines.join("\n")).not.toContain("untrusted-metadata");
     expect(lines.join("\n")).not.toContain("KILLED by SIGTERM");
-    expect(evidenceFor(result).gates[0].measures.exit_code).toBeNull();
+    expect(evidenceFor(result).gates[0].status).toBe("unknown");
   });
 
   it("never lets optional signal metadata replace a numeric OS exit", () => {
@@ -238,7 +230,7 @@ describe("malformed executor transport fails closed", () => {
     expect(result.blocked).toBe(true);
     expect(result.killed).toEqual([]);
     expect(result.results[0]?.code).toBe(128);
-    expect(evidenceFor(result).gates[0].measures.exit_code).toBe(128);
+    expect(evidenceFor(result).gates[0].status).toBe("fail");
   });
 
   it("cannot turn a string status into a passing gate", () => {

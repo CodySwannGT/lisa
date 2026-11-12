@@ -67,6 +67,24 @@
       "path": "all/copy-overwrite/scripts/lisa-self-update.mjs",
       "issue": "CodySwannGT/lisa#4337",
       "note": "Removed after 4.68.x with the scheduled Lisa Update workflow that ran it, which needed a PAT secret in every repository. Lisa now updates a project locally when an agent session starts (`autoUpdate` in .lisa.config.json, on by default). Nothing calls this script any more. From CodySwannGT/lisa#4393, all/deletions.json retires a host's copy only while it is byte-identical to a version Lisa shipped and no package.json script or workflow names it; an edited or still-wired copy is kept, with a notice in the apply output. A host that wired it into its own automation should delete that wiring and the script."
+    },
+    {
+      "export": "EVIDENCE_FIELDS",
+      "issue": "CodySwannGT/lisa#4794",
+      "note": "Removed with the gate evidence envelope's release-reuse checker (CodySwannGT/lisa#4794). The reader demoted envelope rows that lacked a work count or were past a freshness bound, but nothing produced those fields (they were always null) and no workflow called the reuse checker. Envelope rows are now `{ gate, status, level, label }`. A host importing it should read `status` from the row directly: it is already three-valued, and anything not PASSED or FAILED is `unknown`.",
+      "path": "all/copy-overwrite/scripts/lisa-gates.mjs"
+    },
+    {
+      "export": "EVIDENCE_STATUS",
+      "issue": "CodySwannGT/lisa#4794",
+      "note": "Removed with the gate evidence envelope's release-reuse checker (CodySwannGT/lisa#4794). The reader demoted envelope rows that lacked a work count or were past a freshness bound, but nothing produced those fields (they were always null) and no workflow called the reuse checker. Envelope rows are now `{ gate, status, level, label }`. A host importing it should read `status` from the row directly: it is already three-valued, and anything not PASSED or FAILED is `unknown`.",
+      "path": "all/copy-overwrite/scripts/lisa-gates.mjs"
+    },
+    {
+      "export": "readEvidence",
+      "issue": "CodySwannGT/lisa#4794",
+      "note": "Removed with the gate evidence envelope's release-reuse checker (CodySwannGT/lisa#4794). The reader demoted envelope rows that lacked a work count or were past a freshness bound, but nothing produced those fields (they were always null) and no workflow called the reuse checker. Envelope rows are now `{ gate, status, level, label }`. A host importing it should read `status` from the row directly: it is already three-valued, and anything not PASSED or FAILED is `unknown`.",
+      "path": "all/copy-overwrite/scripts/lisa-gates.mjs"
     }
   ]
 }

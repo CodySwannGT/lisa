@@ -297,7 +297,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-floor-collisions.mjs":
       "345832c63c85df32acbed9b183b06239fc10ccb1491bd11607b5840ac1d18573",
     "all/copy-overwrite/scripts/lisa-gates.mjs":
-      "cc745e8389911fddf04c983a33a728bdb338625a5c24d78a24a3e0285d36a4a8",
+      "94640dede038608239edea5cffbf0227a86d77b3e4b9b9c6e3762369fa2de259",
     "all/copy-overwrite/scripts/lisa-history-secrets.mjs":
       "815fd6403aed6194d30939b59dc5ce894f7122a9da598acee4cd529a1b520de3",
     "all/copy-overwrite/scripts/lisa-hooks/block-blind-automerge.sh":
@@ -337,7 +337,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-reconcile-policy.mjs":
       "263860fba7fadae3c1096973eaf4f25dca1683ef2ce64279dea6845ac90faf6a",
     "all/copy-overwrite/scripts/lisa-run-gates.mjs":
-      "8ee6487fec0177d780101a3a9e4f4ce0bd75f94074baee17966cdb9927c3de41",
+      "62f3b3b78419a53ca3d9c0ed2e2ce2d8952a54674ab11bfe77cdf02b61115e74",
     "all/copy-overwrite/scripts/lisa-schema-validate.mjs":
       "f70ecd3712dd2ca77a8851c7505ce79f948a57e5a2e28f56c5d0ccd047712688",
     "all/copy-overwrite/scripts/lisa-scratch-run.sh":
@@ -355,7 +355,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/npm-updater-gate.Dockerfile":
       "850a4ee809d49e3d9da6bdd674cb43e4f5a6dcfa0aa73116b1a43caeed42748c",
     "all/copy-overwrite/scripts/npm-updater-helper-graph.json":
-      "f712a862fcfbb77c73d90cb0e64f855649fd0accff9951739c2a4161b4d02433",
+      "62b1fb5b90fdf9f0f6f53270641cf35b60dd47395303635cd1c03cfc3fc7efbf",
     "all/copy-overwrite/scripts/review-evidence-event.mjs":
       "1c5d510bc66f8ba23b6f046246f41182c17946a50126fb88e371d2aec9dfd6b2",
     "all/copy-overwrite/scripts/schemas/lisa-command-envelope.v1.schema.json":
@@ -13093,10 +13093,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/lisa-gates-on-edit-moment.test.ts": true,
     "tests/unit/scripts/lisa-gates-order.test.ts": true,
     "tests/unit/scripts/lisa-gates-resolution.test.ts": true,
-    "tests/unit/scripts/lisa-gates-reuse-declaration.test.ts": true,
-    "tests/unit/scripts/lisa-gates-reuse-envelope.test.ts": true,
-    "tests/unit/scripts/lisa-gates-reuse-fixtures.ts": true,
-    "tests/unit/scripts/lisa-gates-reuse-rows.test.ts": true,
+    "tests/unit/scripts/lisa-gates-reuse-retired.test.ts": true,
     "tests/unit/scripts/lisa-gates-runner-owned.test.ts": true,
     "tests/unit/scripts/lisa-gates-self-config.test.ts": true,
     "tests/unit/scripts/lisa-gates-shipped-as.test.ts": true,

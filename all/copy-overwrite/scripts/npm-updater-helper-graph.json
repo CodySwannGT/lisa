@@ -1325,7 +1325,7 @@
       "children": []
     },
     "lisa-gates.mjs": {
-      "sha256": "cc745e8389911fddf04c983a33a728bdb338625a5c24d78a24a3e0285d36a4a8",
+      "sha256": "94640dede038608239edea5cffbf0227a86d77b3e4b9b9c6e3762369fa2de259",
       "staticImports": [
         "lib/invoked-as-script.mjs",
         "node:crypto",
@@ -1394,7 +1394,7 @@
       ]
     },
     "lisa-run-gates.mjs": {
-      "sha256": "8ee6487fec0177d780101a3a9e4f4ce0bd75f94074baee17966cdb9927c3de41",
+      "sha256": "62f3b3b78419a53ca3d9c0ed2e2ce2d8952a54674ab11bfe77cdf02b61115e74",
       "staticImports": [
         "lib/bounded-spawn.mjs",
         "lib/gate-failure-diagnosis.mjs",

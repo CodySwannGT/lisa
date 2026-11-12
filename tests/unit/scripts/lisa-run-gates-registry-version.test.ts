@@ -1,5 +1,9 @@
 /**
- * The evidence runner names the Lisa registry version in every shipped layout.
+ * The gate runner names the Lisa registry version in every shipped layout.
+ *
+ * Read from the identity line the runner prints before any gate runs. The
+ * evidence envelope used to repeat it in `contract.registry_version`; that copy
+ * was removed when the envelope was slimmed (CodySwannGT/lisa#4794).
  *
  * The source template lives inside Lisa, while the managed copy runs from a
  * host project's `scripts/` directory. A location-relative manifest lookup can
@@ -38,19 +42,16 @@ afterEach(() => {
   }
 });
 
-/** Run one layout and return the registry version it recorded. */
+/** Run one layout and return the registry version its identity line names. */
 function recordedVersion(script: string, root: string): string | null {
-  const evidence = path.join(root, "evidence.json");
-  boundedSpawnSync({
+  const child = boundedSpawnSync({
     label: "lisa-run-gates registry version",
     command: process.execPath,
-    args: [script, "--moment=commit", `--evidence=${evidence}`],
+    args: [script, "--moment=commit"],
     cwd: root,
   });
-  const envelope = JSON.parse(readFileSync(evidence, "utf8")) as {
-    contract: { registry_version: string | null };
-  };
-  return envelope.contract.registry_version;
+  const match = /package=@codyswann\/lisa@(\S+)/u.exec(String(child.stdout));
+  return match?.[1] ?? null;
 }
 
 /** A throwaway caller project with a deliberately misleading host version. */
