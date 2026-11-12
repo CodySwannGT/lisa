@@ -67,9 +67,17 @@ import {
   PREPARATION_KEY,
   PROVISION_CLI,
   prepareHistoryScanner,
+  type ColdProvisionOptions,
   type HistoryScannerPreparation,
   type PreparedScope,
 } from "./history-scanner-preparation.js";
+import { errorMessage, writeStderrSync } from "./stderr-sync.js";
+
+/** A reclaimable directory for the scope, and how to remove it. */
+interface ReclaimableDirectory {
+  readonly path: string;
+  readonly remove: () => void;
+}
 
 /** A reclaimable directory for the scope, and its exit-armed release. */
 interface OwnedParent {
@@ -117,12 +125,12 @@ function refused(reason: string): PreparedScope {
 
 /**
  * Create the reclaimable parent directory for the scope.
+ *
+ * Exported so a unit test pins where the scope lives
+ * (`tests/unit/helpers/history-scanner-global-setup.test.ts`).
  * @returns Its path and a remover for it
  */
-function reclaimableDirectory(): {
-  readonly path: string;
-  readonly remove: () => void;
-} {
+export function reclaimableDirectory(): ReclaimableDirectory {
   const lease = env[SCRATCH_SUPERVISION_LEASE_ENV];
   if (lease !== undefined && lease !== "") {
     const scope = createSupervisedWorkerScope(
@@ -142,18 +150,28 @@ function reclaimableDirectory(): {
  *
  * The release never throws: a failure is reported on stderr instead, because
  * an exception thrown from an exit listener would crash the process. The
- * scratch reaper still reclaims whatever a failed release leaves behind.
+ * report is written synchronously, since an asynchronous write to a piped
+ * stderr is abandoned at exit (`tests/helpers/stderr-sync.ts`). The scratch
+ * reaper still reclaims whatever a failed release leaves behind.
+ *
+ * The scope's own exit listener is prepended
+ * (`tests/helpers/history-scanner-preparation.ts`), so at exit it stops the
+ * provision child and removes the scope before this release runs, in the same
+ * order as the normal teardown.
+ * @param directory - The parent to own. Only a unit test passes one, to make
+ *   its removal fail; the setup takes the default.
  * @returns The parent and its idempotent, exit-armed release
  */
-function ownedParent(): OwnedParent {
-  const directory = reclaimableDirectory();
+export function ownedParent(
+  directory: ReclaimableDirectory = reclaimableDirectory()
+): OwnedParent {
   const release = (): void => {
     process.off("exit", release);
     try {
       directory.remove();
     } catch (error) {
-      process.stderr.write(
-        `history-scanner preparation: its scratch scope could not be released (${error instanceof Error ? error.message : String(error)}); the scratch reaper reclaims it.\n`
+      writeStderrSync(
+        `history-scanner preparation: its scratch scope could not be released (${errorMessage(error)}); the scratch reaper reclaims it.\n`
       );
     }
   };
@@ -163,21 +181,26 @@ function ownedParent(): OwnedParent {
 
 /**
  * Check the temporary root, then run the one cold acquisition in an owned parent.
+ * @param options - Test-only seam: a stub provision child's argv. The setup
+ *   passes nothing, so the genuine acquisition still takes no options.
  * @returns The preparation and the dispose that releases everything it made
  */
-async function prepareInOwnedParent(): Promise<PreparedScope> {
+export async function prepareInOwnedParent(
+  options: Pick<ColdProvisionOptions, "argv"> = {}
+): Promise<PreparedScope> {
   const untrusted = describeTmpdirTrustFailure();
   if (untrusted !== undefined)
     return refused(
       `The temporary root is not trusted, so no scanner was acquired. ${untrusted}`
     );
   const parent = ownedParent();
-  const prepared = await prepareHistoryScanner({ parent: parent.path }).catch(
-    (error: unknown) => {
-      parent.release();
-      throw error;
-    }
-  );
+  const prepared = await prepareHistoryScanner({
+    ...options,
+    parent: parent.path,
+  }).catch((error: unknown) => {
+    parent.release();
+    throw error;
+  });
   return {
     preparation: prepared.preparation,
     dispose: () => {
@@ -196,7 +219,7 @@ export async function setup(project: TestProject): Promise<() => void> {
   const { preparation, dispose } = await prepareInOwnedParent().catch(
     (error: unknown) =>
       refused(
-        `The cold scanner preparation failed unexpectedly: ${error instanceof Error ? error.message : String(error)}`
+        `The cold scanner preparation failed unexpectedly: ${errorMessage(error)}`
       )
   );
   process.stderr.write(evidenceLine(preparation));

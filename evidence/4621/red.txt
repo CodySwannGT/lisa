@@ -1,0 +1,211 @@
+$ node scripts/lib/worktree-dependencies.mjs && bun run build && node dist/cli/lisa-test-run.js --profile lisa --adapter vitest -- vitest run tests/unit/helpers/history-scanner-global-setup.test.ts
+$ bun run build:dist && bun run build:plugins
+$ node scripts/lib/worktree-dependencies.mjs && node scripts/clean-dist.mjs && tsc && node scripts/copy-codex-scripts.mjs && node scripts/copy-opencode-plugin-templates.mjs
+$ bash scripts/build-plugins.sh
+Built plugins/lisa (v4.101.10)
+Built plugins/lisa-typescript (v4.101.10)
+Built plugins/lisa-expo (v4.101.10)
+Built plugins/lisa-nestjs (v4.101.10)
+Built plugins/lisa-cdk (v4.101.10)
+Built plugins/lisa-harper-fabric (v4.101.10)
+Built plugins/lisa-phaser (v4.101.10)
+Built plugins/lisa-rails (v4.101.10)
+Built plugins/lisa-wiki (v4.101.10)
+Built plugins/lisa-openclaw (v4.101.10)
+Generated Cursor variant at /Users/codysai/workspace/lisa/.claude/worktrees/4621-history-scanner-cleanup/plugins/lisa-cursor (v4.101.10)
+Generated Cursor variant at /Users/codysai/workspace/lisa/.claude/worktrees/4621-history-scanner-cleanup/plugins/lisa-typescript-cursor (v4.101.10)
+Generated Cursor variant at /Users/codysai/workspace/lisa/.claude/worktrees/4621-history-scanner-cleanup/plugins/lisa-expo-cursor (v4.101.10)
+Generated Cursor variant at /Users/codysai/workspace/lisa/.claude/worktrees/4621-history-scanner-cleanup/plugins/lisa-nestjs-cursor (v4.101.10)
+Generated Cursor variant at /Users/codysai/workspace/lisa/.claude/worktrees/4621-history-scanner-cleanup/plugins/lisa-cdk-cursor (v4.101.10)
+Generated Cursor variant at /Users/codysai/workspace/lisa/.claude/worktrees/4621-history-scanner-cleanup/plugins/lisa-harper-fabric-cursor (v4.101.10)
+Generated Cursor variant at /Users/codysai/workspace/lisa/.claude/worktrees/4621-history-scanner-cleanup/plugins/lisa-phaser-cursor (v4.101.10)
+Generated Cursor variant at /Users/codysai/workspace/lisa/.claude/worktrees/4621-history-scanner-cleanup/plugins/lisa-rails-cursor (v4.101.10)
+Generated Cursor variant at /Users/codysai/workspace/lisa/.claude/worktrees/4621-history-scanner-cleanup/plugins/lisa-wiki-cursor (v4.101.10)
+Generated Cursor variant at /Users/codysai/workspace/lisa/.claude/worktrees/4621-history-scanner-cleanup/plugins/lisa-openclaw-cursor (v4.101.10)
+Generated agy variant at /Users/codysai/workspace/lisa/.claude/worktrees/4621-history-scanner-cleanup/plugins/lisa-agy (v4.101.10)
+Generated agy variant at /Users/codysai/workspace/lisa/.claude/worktrees/4621-history-scanner-cleanup/plugins/lisa-typescript-agy (v4.101.10)
+Generated agy variant at /Users/codysai/workspace/lisa/.claude/worktrees/4621-history-scanner-cleanup/plugins/lisa-expo-agy (v4.101.10)
+Generated agy variant at /Users/codysai/workspace/lisa/.claude/worktrees/4621-history-scanner-cleanup/plugins/lisa-nestjs-agy (v4.101.10)
+Generated agy variant at /Users/codysai/workspace/lisa/.claude/worktrees/4621-history-scanner-cleanup/plugins/lisa-cdk-agy (v4.101.10)
+Generated agy variant at /Users/codysai/workspace/lisa/.claude/worktrees/4621-history-scanner-cleanup/plugins/lisa-harper-fabric-agy (v4.101.10)
+Generated agy variant at /Users/codysai/workspace/lisa/.claude/worktrees/4621-history-scanner-cleanup/plugins/lisa-phaser-agy (v4.101.10)
+Generated agy variant at /Users/codysai/workspace/lisa/.claude/worktrees/4621-history-scanner-cleanup/plugins/lisa-rails-agy (v4.101.10)
+Generated agy variant at /Users/codysai/workspace/lisa/.claude/worktrees/4621-history-scanner-cleanup/plugins/lisa-wiki-agy (v4.101.10)
+Generated agy variant at /Users/codysai/workspace/lisa/.claude/worktrees/4621-history-scanner-cleanup/plugins/lisa-openclaw-agy (v4.101.10)
+Generated Copilot variant at /Users/codysai/workspace/lisa/.claude/worktrees/4621-history-scanner-cleanup/plugins/lisa-copilot (v4.101.10)
+Generated Copilot variant at /Users/codysai/workspace/lisa/.claude/worktrees/4621-history-scanner-cleanup/plugins/lisa-typescript-copilot (v4.101.10)
+Generated Copilot variant at /Users/codysai/workspace/lisa/.claude/worktrees/4621-history-scanner-cleanup/plugins/lisa-expo-copilot (v4.101.10)
+Generated Copilot variant at /Users/codysai/workspace/lisa/.claude/worktrees/4621-history-scanner-cleanup/plugins/lisa-nestjs-copilot (v4.101.10)
+Generated Copilot variant at /Users/codysai/workspace/lisa/.claude/worktrees/4621-history-scanner-cleanup/plugins/lisa-cdk-copilot (v4.101.10)
+Generated Copilot variant at /Users/codysai/workspace/lisa/.claude/worktrees/4621-history-scanner-cleanup/plugins/lisa-harper-fabric-copilot (v4.101.10)
+Generated Copilot variant at /Users/codysai/workspace/lisa/.claude/worktrees/4621-history-scanner-cleanup/plugins/lisa-phaser-copilot (v4.101.10)
+Generated Copilot variant at /Users/codysai/workspace/lisa/.claude/worktrees/4621-history-scanner-cleanup/plugins/lisa-rails-copilot (v4.101.10)
+Generated Copilot variant at /Users/codysai/workspace/lisa/.claude/worktrees/4621-history-scanner-cleanup/plugins/lisa-wiki-copilot (v4.101.10)
+Generated Copilot variant at /Users/codysai/workspace/lisa/.claude/worktrees/4621-history-scanner-cleanup/plugins/lisa-openclaw-copilot (v4.101.10)
+Generated Devin variant at /Users/codysai/workspace/lisa/.claude/worktrees/4621-history-scanner-cleanup/plugins/lisa-devin (v4.101.10)
+Generated Devin variant at /Users/codysai/workspace/lisa/.claude/worktrees/4621-history-scanner-cleanup/plugins/lisa-typescript-devin (v4.101.10)
+Generated Devin variant at /Users/codysai/workspace/lisa/.claude/worktrees/4621-history-scanner-cleanup/plugins/lisa-expo-devin (v4.101.10)
+Generated Devin variant at /Users/codysai/workspace/lisa/.claude/worktrees/4621-history-scanner-cleanup/plugins/lisa-nestjs-devin (v4.101.10)
+Generated Devin variant at /Users/codysai/workspace/lisa/.claude/worktrees/4621-history-scanner-cleanup/plugins/lisa-cdk-devin (v4.101.10)
+Generated Devin variant at /Users/codysai/workspace/lisa/.claude/worktrees/4621-history-scanner-cleanup/plugins/lisa-harper-fabric-devin (v4.101.10)
+Generated Devin variant at /Users/codysai/workspace/lisa/.claude/worktrees/4621-history-scanner-cleanup/plugins/lisa-phaser-devin (v4.101.10)
+Generated Devin variant at /Users/codysai/workspace/lisa/.claude/worktrees/4621-history-scanner-cleanup/plugins/lisa-rails-devin (v4.101.10)
+Generated Devin variant at /Users/codysai/workspace/lisa/.claude/worktrees/4621-history-scanner-cleanup/plugins/lisa-wiki-devin (v4.101.10)
+Generated Devin variant at /Users/codysai/workspace/lisa/.claude/worktrees/4621-history-scanner-cleanup/plugins/lisa-openclaw-devin (v4.101.10)
+lisa-test-run: TMPDIR /var/folders/vc/t6bx6dwx0h7_3bj316vkb72r0000gn/T is too long for native Unix socket fixtures; using /private/tmp.
+🧹 swept 0 stale temp dirs, 0 orphaned test processes (79 ms); kept 19 entries not private to this user
+
+ RUN  v4.1.11 /Users/codysai/workspace/lisa/.claude/worktrees/4621-history-scanner-cleanup
+
+history-scanner preparation: its scratch scope could not be released (injected release failure); the scratch reaper reclaims it.
+history-scanner preparation: its scratch scope could not be released (injected release failure); the scratch reaper reclaims it.
+history-scanner preparation: its scratch scope could not be released (injected release failure); the scratch reaper reclaims it.
+ ❯ |lisa| tests/unit/helpers/history-scanner-global-setup.test.ts (8 tests | 6 failed) 303ms
+     × stops the provision child before removing any folder 61ms
+     × is written to stderr synchronously, before the release returns 1ms
+     × gives up after a bounded number of EAGAIN retries without throwing 1ms
+     × does not throw when stderr refuses the write outright 0ms
+     × neither throws from its exit listener nor skips the parent's release 53ms
+     × keeps the failure path's own reason and still releases the parent at teardown 49ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 6 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  |lisa| tests/unit/helpers/history-scanner-global-setup.test.ts > an interrupted preparation > stops the provision child before removing any folder
+AssertionError: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ tests/unit/helpers/history-scanner-global-setup.test.ts:205:43
+    203|
+    204|     first?.();
+    205|     expect(fs.existsSync(running.parent)).toBe(true);
+       |                                           ^
+    206|     await vi.waitFor(() => expect(alive(running.pid)).toBe(false), {
+    207|       timeout: STUB_DEADLINE_MS,
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/6]⎯
+
+ FAIL  |lisa| tests/unit/helpers/history-scanner-global-setup.test.ts > a failed release of the parent folder > is written to stderr synchronously, before the release returns
+AssertionError: expected '' to contain 'its scratch scope could not be releas…'
+
+- Expected
++ Received
+
+- its scratch scope could not be released (injected release failure)
+
+ ❯ tests/unit/helpers/history-scanner-global-setup.test.ts:237:26
+    235|     expect(() => parent.release()).not.toThrow();
+    236|
+    237|     expect(stderrText()).toContain(
+       |                          ^
+    238|       "its scratch scope could not be released (injected release failu…
+    239|     );
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/6]⎯
+
+ FAIL  |lisa| tests/unit/helpers/history-scanner-global-setup.test.ts > a failed release of the parent folder > gives up after a bounded number of EAGAIN retries without throwing
+AssertionError: expected +0 to be 100 // Object.is equality
+
+- Expected
++ Received
+
+- 100
++ 0
+
+ ❯ tests/unit/helpers/history-scanner-global-setup.test.ts:252:38
+    250|     expect(() => parent.release()).not.toThrow();
+    251|
+    252|     expect(fsControl.stderrAttempts).toBe(100);
+       |                                      ^
+    253|   });
+    254|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/6]⎯
+
+ FAIL  |lisa| tests/unit/helpers/history-scanner-global-setup.test.ts > a failed release of the parent folder > does not throw when stderr refuses the write outright
+AssertionError: expected +0 to be 1 // Object.is equality
+
+- Expected
++ Received
+
+- 1
++ 0
+
+ ❯ tests/unit/helpers/history-scanner-global-setup.test.ts:263:38
+    261|     expect(() => parent.release()).not.toThrow();
+    262|
+    263|     expect(fsControl.stderrAttempts).toBe(1);
+       |                                      ^
+    264|   });
+    265| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/6]⎯
+
+ FAIL  |lisa| tests/unit/helpers/history-scanner-global-setup.test.ts > a failed removal of the preparation scope > neither throws from its exit listener nor skips the parent's release
+AssertionError: expected [Function] to not throw an error but 'Error: injected EBUSY removing the sc…' was thrown
+
+- Expected:
+undefined
+
++ Received:
+"Error: injected EBUSY removing the scope"
+
+ ❯ tests/unit/helpers/history-scanner-global-setup.test.ts:273:36
+    271|
+    272|     for (const listener of running.listeners)
+    273|       expect(() => listener()).not.toThrow();
+       |                                    ^
+    274|
+    275|     expect(stderrText()).toContain(
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/6]⎯
+
+ FAIL  |lisa| tests/unit/helpers/history-scanner-global-setup.test.ts > a failed removal of the preparation scope > keeps the failure path's own reason and still releases the parent at teardown
+Error: injected EBUSY removing the scope
+ ❯ tests/unit/helpers/history-scanner-global-setup.test.ts:77:27
+     75|       basename(String(path)).startsWith(SCOPE_PREFIX)
+     76|     ) {
+     77|       throw Object.assign(new Error("injected EBUSY removing the scope…
+       |                           ^
+     78|         code: "EBUSY",
+     79|       });
+ ❯ dispose tests/helpers/history-scanner-preparation.ts:383:5
+ ❯ prepareHistoryScanner tests/helpers/history-scanner-preparation.ts:435:5
+ ❯ Module.prepareInOwnedParent tests/helpers/history-scanner-global-setup.ts:189:20
+ ❯ tests/unit/helpers/history-scanner-global-setup.test.ts:287:38
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/6]⎯
+
+⎯⎯⎯⎯⎯⎯ Unhandled Errors ⎯⎯⎯⎯⎯⎯
+
+Vitest caught 1 unhandled error during the test run.
+This might cause false positive tests. Resolve unhandled errors to make sure your tests are not affected.
+
+⎯⎯⎯⎯ Unhandled Rejection ⎯⎯⎯⎯⎯
+Error: injected EBUSY removing the scope
+ ❯ tests/unit/helpers/history-scanner-global-setup.test.ts:77:27
+ ❯ Mock node_modules/.bun/@vitest+spy@4.1.11/node_modules/@vitest/spy/dist/index.js:332:34
+ ❯ dispose tests/helpers/history-scanner-preparation.ts:383:5
+ ❯ prepareHistoryScanner tests/helpers/history-scanner-preparation.ts:435:5
+ ❯ Module.prepareInOwnedParent tests/helpers/history-scanner-global-setup.ts:189:20
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯
+Serialized Error: { code: 'EBUSY' }
+This error originated in "tests/unit/helpers/history-scanner-global-setup.test.ts" test file. It doesn't mean the error was thrown inside the file itself, but while it was running.
+The latest test that might've caused the error is "keeps the failure path's own reason and still releases the parent at teardown". It might mean one of the following:
+- The error was thrown, while Vitest was running this test.
+- If the error occurred after the test had been completed, this was the last documented test before it was thrown.
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯
+
+
+ Test Files  1 failed (1)
+      Tests  6 failed | 2 passed (8)
+     Errors  1 error
+   Start at  08:57:35
+   Duration  761ms (transform 106ms, setup 106ms, import 150ms, tests 303ms, environment 0ms)
+
+error: script "lisa-test-run" exited with code 1

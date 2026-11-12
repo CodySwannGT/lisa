@@ -1,0 +1,66 @@
+$ node scripts/lib/worktree-dependencies.mjs && bun run build && node dist/cli/lisa-test-run.js --profile lisa --adapter vitest -- vitest run tests/integration/history-secret-evidence.test.ts tests/integration/history-secret-private-report.test.ts tests/integration/history-secret-scanner-path.test.ts tests/integration/history-secret-scanner-preparation.test.ts
+$ bun run build:dist && bun run build:plugins
+$ node scripts/lib/worktree-dependencies.mjs && node scripts/clean-dist.mjs && tsc && node scripts/copy-codex-scripts.mjs && node scripts/copy-opencode-plugin-templates.mjs
+$ bash scripts/build-plugins.sh
+Built plugins/lisa (v4.101.10)
+Built plugins/lisa-typescript (v4.101.10)
+Built plugins/lisa-expo (v4.101.10)
+Built plugins/lisa-nestjs (v4.101.10)
+Built plugins/lisa-cdk (v4.101.10)
+Built plugins/lisa-harper-fabric (v4.101.10)
+Built plugins/lisa-phaser (v4.101.10)
+Built plugins/lisa-rails (v4.101.10)
+Built plugins/lisa-wiki (v4.101.10)
+Built plugins/lisa-openclaw (v4.101.10)
+Generated Cursor variant at /Users/codysai/workspace/lisa/.claude/worktrees/4621-history-scanner-cleanup/plugins/lisa-cursor (v4.101.10)
+Generated Cursor variant at /Users/codysai/workspace/lisa/.claude/worktrees/4621-history-scanner-cleanup/plugins/lisa-typescript-cursor (v4.101.10)
+Generated Cursor variant at /Users/codysai/workspace/lisa/.claude/worktrees/4621-history-scanner-cleanup/plugins/lisa-expo-cursor (v4.101.10)
+Generated Cursor variant at /Users/codysai/workspace/lisa/.claude/worktrees/4621-history-scanner-cleanup/plugins/lisa-nestjs-cursor (v4.101.10)
+Generated Cursor variant at /Users/codysai/workspace/lisa/.claude/worktrees/4621-history-scanner-cleanup/plugins/lisa-cdk-cursor (v4.101.10)
+Generated Cursor variant at /Users/codysai/workspace/lisa/.claude/worktrees/4621-history-scanner-cleanup/plugins/lisa-harper-fabric-cursor (v4.101.10)
+Generated Cursor variant at /Users/codysai/workspace/lisa/.claude/worktrees/4621-history-scanner-cleanup/plugins/lisa-phaser-cursor (v4.101.10)
+Generated Cursor variant at /Users/codysai/workspace/lisa/.claude/worktrees/4621-history-scanner-cleanup/plugins/lisa-rails-cursor (v4.101.10)
+Generated Cursor variant at /Users/codysai/workspace/lisa/.claude/worktrees/4621-history-scanner-cleanup/plugins/lisa-wiki-cursor (v4.101.10)
+Generated Cursor variant at /Users/codysai/workspace/lisa/.claude/worktrees/4621-history-scanner-cleanup/plugins/lisa-openclaw-cursor (v4.101.10)
+Generated agy variant at /Users/codysai/workspace/lisa/.claude/worktrees/4621-history-scanner-cleanup/plugins/lisa-agy (v4.101.10)
+Generated agy variant at /Users/codysai/workspace/lisa/.claude/worktrees/4621-history-scanner-cleanup/plugins/lisa-typescript-agy (v4.101.10)
+Generated agy variant at /Users/codysai/workspace/lisa/.claude/worktrees/4621-history-scanner-cleanup/plugins/lisa-expo-agy (v4.101.10)
+Generated agy variant at /Users/codysai/workspace/lisa/.claude/worktrees/4621-history-scanner-cleanup/plugins/lisa-nestjs-agy (v4.101.10)
+Generated agy variant at /Users/codysai/workspace/lisa/.claude/worktrees/4621-history-scanner-cleanup/plugins/lisa-cdk-agy (v4.101.10)
+Generated agy variant at /Users/codysai/workspace/lisa/.claude/worktrees/4621-history-scanner-cleanup/plugins/lisa-harper-fabric-agy (v4.101.10)
+Generated agy variant at /Users/codysai/workspace/lisa/.claude/worktrees/4621-history-scanner-cleanup/plugins/lisa-phaser-agy (v4.101.10)
+Generated agy variant at /Users/codysai/workspace/lisa/.claude/worktrees/4621-history-scanner-cleanup/plugins/lisa-rails-agy (v4.101.10)
+Generated agy variant at /Users/codysai/workspace/lisa/.claude/worktrees/4621-history-scanner-cleanup/plugins/lisa-wiki-agy (v4.101.10)
+Generated agy variant at /Users/codysai/workspace/lisa/.claude/worktrees/4621-history-scanner-cleanup/plugins/lisa-openclaw-agy (v4.101.10)
+Generated Copilot variant at /Users/codysai/workspace/lisa/.claude/worktrees/4621-history-scanner-cleanup/plugins/lisa-copilot (v4.101.10)
+Generated Copilot variant at /Users/codysai/workspace/lisa/.claude/worktrees/4621-history-scanner-cleanup/plugins/lisa-typescript-copilot (v4.101.10)
+Generated Copilot variant at /Users/codysai/workspace/lisa/.claude/worktrees/4621-history-scanner-cleanup/plugins/lisa-expo-copilot (v4.101.10)
+Generated Copilot variant at /Users/codysai/workspace/lisa/.claude/worktrees/4621-history-scanner-cleanup/plugins/lisa-nestjs-copilot (v4.101.10)
+Generated Copilot variant at /Users/codysai/workspace/lisa/.claude/worktrees/4621-history-scanner-cleanup/plugins/lisa-cdk-copilot (v4.101.10)
+Generated Copilot variant at /Users/codysai/workspace/lisa/.claude/worktrees/4621-history-scanner-cleanup/plugins/lisa-harper-fabric-copilot (v4.101.10)
+Generated Copilot variant at /Users/codysai/workspace/lisa/.claude/worktrees/4621-history-scanner-cleanup/plugins/lisa-phaser-copilot (v4.101.10)
+Generated Copilot variant at /Users/codysai/workspace/lisa/.claude/worktrees/4621-history-scanner-cleanup/plugins/lisa-rails-copilot (v4.101.10)
+Generated Copilot variant at /Users/codysai/workspace/lisa/.claude/worktrees/4621-history-scanner-cleanup/plugins/lisa-wiki-copilot (v4.101.10)
+Generated Copilot variant at /Users/codysai/workspace/lisa/.claude/worktrees/4621-history-scanner-cleanup/plugins/lisa-openclaw-copilot (v4.101.10)
+Generated Devin variant at /Users/codysai/workspace/lisa/.claude/worktrees/4621-history-scanner-cleanup/plugins/lisa-devin (v4.101.10)
+Generated Devin variant at /Users/codysai/workspace/lisa/.claude/worktrees/4621-history-scanner-cleanup/plugins/lisa-typescript-devin (v4.101.10)
+Generated Devin variant at /Users/codysai/workspace/lisa/.claude/worktrees/4621-history-scanner-cleanup/plugins/lisa-expo-devin (v4.101.10)
+Generated Devin variant at /Users/codysai/workspace/lisa/.claude/worktrees/4621-history-scanner-cleanup/plugins/lisa-nestjs-devin (v4.101.10)
+Generated Devin variant at /Users/codysai/workspace/lisa/.claude/worktrees/4621-history-scanner-cleanup/plugins/lisa-cdk-devin (v4.101.10)
+Generated Devin variant at /Users/codysai/workspace/lisa/.claude/worktrees/4621-history-scanner-cleanup/plugins/lisa-harper-fabric-devin (v4.101.10)
+Generated Devin variant at /Users/codysai/workspace/lisa/.claude/worktrees/4621-history-scanner-cleanup/plugins/lisa-phaser-devin (v4.101.10)
+Generated Devin variant at /Users/codysai/workspace/lisa/.claude/worktrees/4621-history-scanner-cleanup/plugins/lisa-rails-devin (v4.101.10)
+Generated Devin variant at /Users/codysai/workspace/lisa/.claude/worktrees/4621-history-scanner-cleanup/plugins/lisa-wiki-devin (v4.101.10)
+Generated Devin variant at /Users/codysai/workspace/lisa/.claude/worktrees/4621-history-scanner-cleanup/plugins/lisa-openclaw-devin (v4.101.10)
+lisa-test-run: TMPDIR /var/folders/vc/t6bx6dwx0h7_3bj316vkb72r0000gn/T is too long for native Unix socket fixtures; using /private/tmp.
+🧹 swept 0 stale temp dirs, 0 orphaned test processes (74 ms); kept 19 entries not private to this user
+
+ RUN  v4.1.11 /Users/codysai/workspace/lisa/.claude/worktrees/4621-history-scanner-cleanup
+
+HISTORY_SCANNER_COLD_PREPARATION {"ok":true,"argv":["node","all/copy-overwrite/scripts/lisa-history-secrets.mjs","provision","<owned-scope>/gitleaks"],"status":0,"signal":null,"errorCode":null,"stdout":"Provisioned checksum/version-pinned Gitleaks 8.30.1.\n","stderr":"","elapsedMs":1562,"deadlineMs":250000,"platform":"darwin_arm64","archivePinSha256":"b40ab0ae55c505963e365f271a8d3846efbc170aa17f2607f13df610a9aeb6a5","executableSha256":"ba52fb1bfabbcde42f032afad3d6e0b19dff8ed105229a16e7caa338bbc0e84f","version":"8.30.1"}
+
+ Test Files  4 passed (4)
+      Tests  60 passed (60)
+   Start at  09:00:44
+   Duration  161.52s (transform 365ms, setup 401ms, import 617ms, tests 271.48s, environment 0ms)
+

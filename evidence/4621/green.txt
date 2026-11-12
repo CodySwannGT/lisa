@@ -1,0 +1,81 @@
+$ node scripts/lib/worktree-dependencies.mjs && bun run build && node dist/cli/lisa-test-run.js --profile lisa --adapter vitest -- vitest run "--reporter=verbose" tests/unit/helpers/history-scanner-global-setup.test.ts tests/unit/helpers/history-scanner-preparation.test.ts
+$ bun run build:dist && bun run build:plugins
+$ node scripts/lib/worktree-dependencies.mjs && node scripts/clean-dist.mjs && tsc && node scripts/copy-codex-scripts.mjs && node scripts/copy-opencode-plugin-templates.mjs
+$ bash scripts/build-plugins.sh
+Built plugins/lisa (v4.101.10)
+Built plugins/lisa-typescript (v4.101.10)
+Built plugins/lisa-expo (v4.101.10)
+Built plugins/lisa-nestjs (v4.101.10)
+Built plugins/lisa-cdk (v4.101.10)
+Built plugins/lisa-harper-fabric (v4.101.10)
+Built plugins/lisa-phaser (v4.101.10)
+Built plugins/lisa-rails (v4.101.10)
+Built plugins/lisa-wiki (v4.101.10)
+Built plugins/lisa-openclaw (v4.101.10)
+Generated Cursor variant at /Users/codysai/workspace/lisa/.claude/worktrees/4621-history-scanner-cleanup/plugins/lisa-cursor (v4.101.10)
+Generated Cursor variant at /Users/codysai/workspace/lisa/.claude/worktrees/4621-history-scanner-cleanup/plugins/lisa-typescript-cursor (v4.101.10)
+Generated Cursor variant at /Users/codysai/workspace/lisa/.claude/worktrees/4621-history-scanner-cleanup/plugins/lisa-expo-cursor (v4.101.10)
+Generated Cursor variant at /Users/codysai/workspace/lisa/.claude/worktrees/4621-history-scanner-cleanup/plugins/lisa-nestjs-cursor (v4.101.10)
+Generated Cursor variant at /Users/codysai/workspace/lisa/.claude/worktrees/4621-history-scanner-cleanup/plugins/lisa-cdk-cursor (v4.101.10)
+Generated Cursor variant at /Users/codysai/workspace/lisa/.claude/worktrees/4621-history-scanner-cleanup/plugins/lisa-harper-fabric-cursor (v4.101.10)
+Generated Cursor variant at /Users/codysai/workspace/lisa/.claude/worktrees/4621-history-scanner-cleanup/plugins/lisa-phaser-cursor (v4.101.10)
+Generated Cursor variant at /Users/codysai/workspace/lisa/.claude/worktrees/4621-history-scanner-cleanup/plugins/lisa-rails-cursor (v4.101.10)
+Generated Cursor variant at /Users/codysai/workspace/lisa/.claude/worktrees/4621-history-scanner-cleanup/plugins/lisa-wiki-cursor (v4.101.10)
+Generated Cursor variant at /Users/codysai/workspace/lisa/.claude/worktrees/4621-history-scanner-cleanup/plugins/lisa-openclaw-cursor (v4.101.10)
+Generated agy variant at /Users/codysai/workspace/lisa/.claude/worktrees/4621-history-scanner-cleanup/plugins/lisa-agy (v4.101.10)
+Generated agy variant at /Users/codysai/workspace/lisa/.claude/worktrees/4621-history-scanner-cleanup/plugins/lisa-typescript-agy (v4.101.10)
+Generated agy variant at /Users/codysai/workspace/lisa/.claude/worktrees/4621-history-scanner-cleanup/plugins/lisa-expo-agy (v4.101.10)
+Generated agy variant at /Users/codysai/workspace/lisa/.claude/worktrees/4621-history-scanner-cleanup/plugins/lisa-nestjs-agy (v4.101.10)
+Generated agy variant at /Users/codysai/workspace/lisa/.claude/worktrees/4621-history-scanner-cleanup/plugins/lisa-cdk-agy (v4.101.10)
+Generated agy variant at /Users/codysai/workspace/lisa/.claude/worktrees/4621-history-scanner-cleanup/plugins/lisa-harper-fabric-agy (v4.101.10)
+Generated agy variant at /Users/codysai/workspace/lisa/.claude/worktrees/4621-history-scanner-cleanup/plugins/lisa-phaser-agy (v4.101.10)
+Generated agy variant at /Users/codysai/workspace/lisa/.claude/worktrees/4621-history-scanner-cleanup/plugins/lisa-rails-agy (v4.101.10)
+Generated agy variant at /Users/codysai/workspace/lisa/.claude/worktrees/4621-history-scanner-cleanup/plugins/lisa-wiki-agy (v4.101.10)
+Generated agy variant at /Users/codysai/workspace/lisa/.claude/worktrees/4621-history-scanner-cleanup/plugins/lisa-openclaw-agy (v4.101.10)
+Generated Copilot variant at /Users/codysai/workspace/lisa/.claude/worktrees/4621-history-scanner-cleanup/plugins/lisa-copilot (v4.101.10)
+Generated Copilot variant at /Users/codysai/workspace/lisa/.claude/worktrees/4621-history-scanner-cleanup/plugins/lisa-typescript-copilot (v4.101.10)
+Generated Copilot variant at /Users/codysai/workspace/lisa/.claude/worktrees/4621-history-scanner-cleanup/plugins/lisa-expo-copilot (v4.101.10)
+Generated Copilot variant at /Users/codysai/workspace/lisa/.claude/worktrees/4621-history-scanner-cleanup/plugins/lisa-nestjs-copilot (v4.101.10)
+Generated Copilot variant at /Users/codysai/workspace/lisa/.claude/worktrees/4621-history-scanner-cleanup/plugins/lisa-cdk-copilot (v4.101.10)
+Generated Copilot variant at /Users/codysai/workspace/lisa/.claude/worktrees/4621-history-scanner-cleanup/plugins/lisa-harper-fabric-copilot (v4.101.10)
+Generated Copilot variant at /Users/codysai/workspace/lisa/.claude/worktrees/4621-history-scanner-cleanup/plugins/lisa-phaser-copilot (v4.101.10)
+Generated Copilot variant at /Users/codysai/workspace/lisa/.claude/worktrees/4621-history-scanner-cleanup/plugins/lisa-rails-copilot (v4.101.10)
+Generated Copilot variant at /Users/codysai/workspace/lisa/.claude/worktrees/4621-history-scanner-cleanup/plugins/lisa-wiki-copilot (v4.101.10)
+Generated Copilot variant at /Users/codysai/workspace/lisa/.claude/worktrees/4621-history-scanner-cleanup/plugins/lisa-openclaw-copilot (v4.101.10)
+Generated Devin variant at /Users/codysai/workspace/lisa/.claude/worktrees/4621-history-scanner-cleanup/plugins/lisa-devin (v4.101.10)
+Generated Devin variant at /Users/codysai/workspace/lisa/.claude/worktrees/4621-history-scanner-cleanup/plugins/lisa-typescript-devin (v4.101.10)
+Generated Devin variant at /Users/codysai/workspace/lisa/.claude/worktrees/4621-history-scanner-cleanup/plugins/lisa-expo-devin (v4.101.10)
+Generated Devin variant at /Users/codysai/workspace/lisa/.claude/worktrees/4621-history-scanner-cleanup/plugins/lisa-nestjs-devin (v4.101.10)
+Generated Devin variant at /Users/codysai/workspace/lisa/.claude/worktrees/4621-history-scanner-cleanup/plugins/lisa-cdk-devin (v4.101.10)
+Generated Devin variant at /Users/codysai/workspace/lisa/.claude/worktrees/4621-history-scanner-cleanup/plugins/lisa-harper-fabric-devin (v4.101.10)
+Generated Devin variant at /Users/codysai/workspace/lisa/.claude/worktrees/4621-history-scanner-cleanup/plugins/lisa-phaser-devin (v4.101.10)
+Generated Devin variant at /Users/codysai/workspace/lisa/.claude/worktrees/4621-history-scanner-cleanup/plugins/lisa-rails-devin (v4.101.10)
+Generated Devin variant at /Users/codysai/workspace/lisa/.claude/worktrees/4621-history-scanner-cleanup/plugins/lisa-wiki-devin (v4.101.10)
+Generated Devin variant at /Users/codysai/workspace/lisa/.claude/worktrees/4621-history-scanner-cleanup/plugins/lisa-openclaw-devin (v4.101.10)
+lisa-test-run: TMPDIR /var/folders/vc/t6bx6dwx0h7_3bj316vkb72r0000gn/T is too long for native Unix socket fixtures; using /private/tmp.
+🧹 swept 0 stale temp dirs, 0 orphaned test processes (79 ms); kept 19 entries not private to this user
+
+ RUN  v4.1.11 /Users/codysai/workspace/lisa/.claude/worktrees/4621-history-scanner-cleanup
+
+ ✓ |lisa| tests/unit/helpers/history-scanner-preparation.test.ts > the cold scanner acquisition's containing deadline > is exactly the sum of the shipped provisioner's own phase limits 1ms
+ ✓ |lisa| tests/unit/helpers/history-scanner-global-setup.test.ts > an interrupted preparation > stops the provision child before removing any folder 111ms
+ ✓ |lisa| tests/unit/helpers/history-scanner-global-setup.test.ts > a failed release of the parent folder > is written to stderr synchronously, before the release returns 1ms
+ ✓ |lisa| tests/unit/helpers/history-scanner-global-setup.test.ts > a failed release of the parent folder > gives up after a bounded number of EAGAIN retries without throwing 0ms
+ ✓ |lisa| tests/unit/helpers/history-scanner-global-setup.test.ts > a failed release of the parent folder > does not throw when stderr refuses the write outright 0ms
+ ✓ |lisa| tests/unit/helpers/history-scanner-global-setup.test.ts > a failed removal of the preparation scope > neither throws from its exit listener nor skips the parent's release 53ms
+ ✓ |lisa| tests/unit/helpers/history-scanner-global-setup.test.ts > a failed removal of the preparation scope > keeps the failure path's own reason and still releases the parent at teardown 47ms
+ ✓ |lisa| tests/unit/helpers/history-scanner-global-setup.test.ts > where the scope lives > is a supervised worker scope inside the leased suite root when a lease is held 78ms
+ ✓ |lisa| tests/unit/helpers/history-scanner-global-setup.test.ts > where the scope lives > is an owned scratch run root of this process without a lease 47ms
+ ✓ |lisa| tests/unit/helpers/history-scanner-preparation.test.ts > cold acquisition failures stay bounded, truthful and owned > kills a cold provision at its containing deadline and reports the timeout 507ms
+ ✓ |lisa| tests/unit/helpers/history-scanner-preparation.test.ts > cold acquisition failures stay bounded, truthful and owned > gives the provision child a private TMPDIR inside its owned scope 21ms
+ ✓ |lisa| tests/unit/helpers/history-scanner-preparation.test.ts > cold acquisition failures stay bounded, truthful and owned > refuses a cold provision that is killed by a signal, and removes its owned scope 17ms
+ ✓ |lisa| tests/unit/helpers/history-scanner-preparation.test.ts > cold acquisition failures stay bounded, truthful and owned > refuses a cold provision that exits nonzero, and removes its owned scope 20ms
+ ✓ |lisa| tests/unit/helpers/history-scanner-preparation.test.ts > cold acquisition failures stay bounded, truthful and owned > refuses a cold provision that omits the success line, and removes its owned scope 19ms
+ ✓ |lisa| tests/unit/helpers/history-scanner-preparation.test.ts > cold acquisition failures stay bounded, truthful and owned > refuses a cold provision that reports success but writes nothing, and removes its owned scope 22ms
+ ✓ |lisa| tests/unit/helpers/history-scanner-preparation.test.ts > cold acquisition failures stay bounded, truthful and owned > refuses a cold provision that reports success over unpinned bytes, and removes its owned scope 22ms
+
+ Test Files  2 passed (2)
+      Tests  16 passed (16)
+   Start at  09:00:22
+   Duration  1.11s (transform 221ms, setup 222ms, import 318ms, tests 993ms, environment 0ms)
+

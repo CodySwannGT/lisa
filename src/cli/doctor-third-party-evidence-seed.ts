@@ -49,6 +49,7 @@ import {
   THIRD_PARTY_EVIDENCE_WORKFLOW,
   type EvidenceSeedReading,
 } from "../core/third-party-evidence-seed.js";
+import { errnoCode, isDefinitiveAbsence } from "../utils/fs-absence.js";
 import type { DoctorCheck } from "./doctor.js";
 import { EVIDENCE_STEPS_LINES } from "./doctor-third-party-evidence-steps.js";
 
@@ -59,18 +60,6 @@ export const THIRD_PARTY_EVIDENCE_SEED_CHECK_NAME =
 /** Where the current seed ships inside the package, for a full comparison. */
 const SHIPPED_SEED =
   "typescript/create-only/.github/workflows/third-party-review-evidence.yml";
-
-/**
- * Errno codes that ANSWER the question rather than refusing it: the file is
- * genuinely not there. Anything else — a permission denial, an I/O error, a
- * symlink loop — means the probe could not look.
- *
- * `ENAMETOOLONG` is deliberately NOT here, although sibling doctor checks list
- * it. It describes the path this check built, not the file: a project nested
- * past the platform's path limit can still hold the workflow, and calling that
- * "never seeded" would pass a copy nobody read.
- */
-const ABSENT_CODES = new Set(["ENOENT", "ENOTDIR"]);
 
 /** The commit to judge, from whichever event woke the run. */
 const SHA_EXPRESSION = `\${{ ${CHECK_RUN_HEAD} || github.event.sha || inputs.sha }}`;
@@ -142,11 +131,8 @@ async function readWorkflow(projectRoot: string): Promise<string | null> {
       "utf8"
     );
   } catch (error) {
-    const code =
-      typeof error === "object" && error !== null && "code" in error
-        ? String((error as { code?: unknown }).code)
-        : undefined;
-    if (code !== undefined && ABSENT_CODES.has(code)) return null;
+    if (isDefinitiveAbsence(error)) return null;
+    const code = errnoCode(error);
     throw new Error(
       `could not read ${THIRD_PARTY_EVIDENCE_WORKFLOW}: ${code ?? String(error)}`,
       { cause: error }

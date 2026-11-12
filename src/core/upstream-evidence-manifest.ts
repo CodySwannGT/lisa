@@ -297,7 +297,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-floor-collisions.mjs":
       "345832c63c85df32acbed9b183b06239fc10ccb1491bd11607b5840ac1d18573",
     "all/copy-overwrite/scripts/lisa-gates.mjs":
-      "cc745e8389911fddf04c983a33a728bdb338625a5c24d78a24a3e0285d36a4a8",
+      "94640dede038608239edea5cffbf0227a86d77b3e4b9b9c6e3762369fa2de259",
     "all/copy-overwrite/scripts/lisa-history-secrets.mjs":
       "815fd6403aed6194d30939b59dc5ce894f7122a9da598acee4cd529a1b520de3",
     "all/copy-overwrite/scripts/lisa-hooks/block-blind-automerge.sh":
@@ -337,7 +337,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-reconcile-policy.mjs":
       "263860fba7fadae3c1096973eaf4f25dca1683ef2ce64279dea6845ac90faf6a",
     "all/copy-overwrite/scripts/lisa-run-gates.mjs":
-      "8ee6487fec0177d780101a3a9e4f4ce0bd75f94074baee17966cdb9927c3de41",
+      "62f3b3b78419a53ca3d9c0ed2e2ce2d8952a54674ab11bfe77cdf02b61115e74",
     "all/copy-overwrite/scripts/lisa-schema-validate.mjs":
       "f70ecd3712dd2ca77a8851c7505ce79f948a57e5a2e28f56c5d0ccd047712688",
     "all/copy-overwrite/scripts/lisa-scratch-run.sh":
@@ -355,7 +355,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/npm-updater-gate.Dockerfile":
       "850a4ee809d49e3d9da6bdd674cb43e4f5a6dcfa0aa73116b1a43caeed42748c",
     "all/copy-overwrite/scripts/npm-updater-helper-graph.json":
-      "f712a862fcfbb77c73d90cb0e64f855649fd0accff9951739c2a4161b4d02433",
+      "62b1fb5b90fdf9f0f6f53270641cf35b60dd47395303635cd1c03cfc3fc7efbf",
     "all/copy-overwrite/scripts/review-evidence-event.mjs":
       "1c5d510bc66f8ba23b6f046246f41182c17946a50126fb88e371d2aec9dfd6b2",
     "all/copy-overwrite/scripts/schemas/lisa-command-envelope.v1.schema.json":
@@ -389,7 +389,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/github-rulesets/protect-tags.json":
       "387f824e3ea58a803223e42e08326504a39e6a7a0c650a0bbfdfb4653854b722",
     "all/merge/.claude/settings.json":
-      "e12fcb7fc55e9116d7c1ace7d272c8ebc32c97cb720b77920b2f9d9216c4cfd9",
+      "604f4a825a21c571f62b89a950f42566a0385306ea57ed6245117496a0e5acbc",
     "cdk/copy-overwrite/.github/workflows/.keep":
       "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
     "cdk/copy-overwrite/eslint.cdk.ts":
@@ -427,11 +427,11 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "cdk/deletions.json":
       "3469a25e885836f301e8d24599dd13f5195ef86ffdea1f03f3fbb86d6b1f1674",
     "cdk/merge/.claude/settings.json":
-      "bc5eecf114d94f4894f8781e15248930d4a8009dce6431ec44e54cc5ee947300",
+      "3b02fb72bb16d67c6e8b50f56ed3cbec42693e723cc5c552491251fa2a04fac5",
     "cdk/merge/.oxlintrc.json":
       "f7d248cf8a89561374d7e68e24aa780f4a6a523938475ad685f034ce0194d75c",
     "cdk/package-lisa/package.lisa.json":
-      "f0530a29e2bdd2ac6e59f57816792dffbc06ba7beac038eb688843564338eb0b",
+      "b19ec995cee8b74966c0cadaa790967bc7da8862f6a4a071a9e805736abe4758",
     "eslint-plugin-code-organization/README.md":
       "e70c9e262ce3a97e1f9fe1897ffa71e3d1b124f10486b90ead5d4a5252977826",
     "eslint-plugin-code-organization/__tests__/enforce-statement-order.test.js":
@@ -631,7 +631,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "expo/github-rulesets/nightly-e2e-health.json":
       "af9556f52bbb04d303f557eb178d876d82348d15a991729b8a96fb1f06d5b03a",
     "expo/merge/.claude/settings.json":
-      "88dead1b9146e016fb2b2e63b7234d6adf94a3b3e5e30b98214e5660a219f737",
+      "ee9699dd45253b3468fefe3cd8bc549d0b56bf0564cf2401663ce0e2c5a78825",
     "expo/merge/.oxlintrc.json":
       "95b3069256c0040be0ef1a5adae46d14687ad56fb18f473a653ba2de45d106bb",
     "expo/package-lisa/package.lisa.json":
@@ -671,7 +671,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "harper-fabric/deletions.json":
       "699c6e445c053bc95cdf4b7ef6a852e243d1073d21087ed7c08db69d1d29ac9c",
     "harper-fabric/merge/.claude/settings.json":
-      "3368043731215c6e2f107f1599eff1c90abc70d09a1d798f4ed79a280c4f3ffb",
+      "c05d819211b3bea004e2536f387247ac8edc26614389f7ace668b2c38c3b5d88",
     "harper-fabric/merge/.oxlintrc.json":
       "b41ea588eed47e0f1532aab5f6226b82586269b84edd1947bdde603e0a8513fa",
     "harper-fabric/package-lisa/package.lisa.json":
@@ -759,7 +759,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "nestjs/deletions.json":
       "25a66a505f9ef5c71169e2293c9f1b263f0a1e42b69851825c3cd3cc6e3f0b00",
     "nestjs/merge/.claude/settings.json":
-      "28b1221fa0d18657af1b89392a1854c77777889f27c82162a9c37b79c81be5f8",
+      "21c25d665dfd355e24a01e5390f4db6a429c178d6eed50ba391cce820d923bf9",
     "nestjs/merge/.oxlintrc.json":
       "1de29d135744df0258e8659ee0b684acf84e687bbefade51db0576813e6ff097",
     "nestjs/package-lisa/package.lisa.json":
@@ -819,7 +819,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "phaser/deletions.json":
       "699c6e445c053bc95cdf4b7ef6a852e243d1073d21087ed7c08db69d1d29ac9c",
     "phaser/merge/.claude/settings.json":
-      "67214a76e1902a8a04a58eb938dba9eb8de39b55fda9f748eb9e7c4bbd31da99",
+      "e6eec5c079b87d4881072bd19211d1cc3f547d8de7b04be27aa633254b5efd39",
     "phaser/merge/.oxlintrc.json":
       "02c0d70e6e07bc0e981f94a1e2ccd01a2c295c4c66e8b8ea9b2f363d44fa5c06",
     "phaser/package-lisa/package.lisa.json":
@@ -944,16 +944,12 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "a0fa40280405d0766c8eee6440b79900d7044629ccfb59f61f6428293e73a34b",
     "plugins/src/base/commands/parity-code-review.md":
       "79e571521a7a4f7287ebe91fffb5faad02b9a40feb3154c0b0af7408835f9a80",
-    "plugins/src/base/commands/parity-code-simplifier.md":
-      "b7a5de6cec8f95baa19e95b4fe5eb58bbced792273d5e0c2b6d62e8ac2fb94ca",
     "plugins/src/base/commands/parity-coderabbit.md":
       "27675b45bda2ed3d00bcbd2dd2148bbf7be60a4b5b1f7cda2e113e48cfcf2640",
     "plugins/src/base/commands/parity-sentry-sdk-setup.md":
       "14192c856e4c7dff90108d2aaa307d7365ed7a2bb9f478ee8847b8ab6371cc3f",
     "plugins/src/base/commands/parity-sentry-seer.md":
       "39f3a8da6f17079c91d6588a284dd7353219847aa0896238b94de90e47bb20c6",
-    "plugins/src/base/commands/parity-skill-creator.md":
-      "927a70dc4b4c7c6623032c2d184a38ce40aa3ae2944d0c5f84ed488b97ddd62c",
     "plugins/src/base/commands/persist-learning.md":
       "86cda307f446af1bdb40f57abee443ada9171e53e9e305472c60fd05e52f4ab6",
     "plugins/src/base/commands/plan.md":
@@ -1141,7 +1137,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/rules/eager/base-rules.md":
       "3de39af7d5ad74b0b91fb939ec67a76b806d05a4b5c071c3941af6cd4108083c",
     "plugins/src/base/rules/eager/coding-philosophy.md":
-      "cf2c52032e0368d81f17f002fed5c957ab350d01fc4a43f66b5f366516bac54a",
+      "3f70fb5223129e1a26bc8190134cd7fa6bbf39738c5e409c6b2e1c7208faa81e",
     "plugins/src/base/rules/eager/config-resolution.md":
       "f064147ecc33144ef1512fc1abeda253fcb420038eef498a5b986db0ea631639",
     "plugins/src/base/rules/eager/do-it-now.md":
@@ -1179,13 +1175,13 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/rules/eager/stale-state-claims.md":
       "faf5057f5910237b8d5048dbcccb73e0cd03762a8eefbeae43b5d0153104a85a",
     "plugins/src/base/rules/eager/tool-access-gate.md":
-      "854eb5b16a8e0f51fe7caa0517c10d1ec5ded5ca7324c8304beddc7b81befcf2",
+      "d953c634b9c22c63892a73411a5b5d8c8bf2fc51761a0a98a934809a52560476",
     "plugins/src/base/rules/eager/tracked-work.md":
       "e6ac1bcb50e04120d9e4c9a2be1d022cd873071a8b74d34f53f282a03676733e",
     "plugins/src/base/rules/eager/upstream-to-lisa.md":
       "dcb3075bc48de76f3bae1ad066d0a1e14f82bd244c1015a48f9e2916cabaf03c",
     "plugins/src/base/rules/eager/verification.md":
-      "a6cc1d50c5b91080171490edce4d375f136a14790dcbb247ca8b736ad8f55cfd",
+      "14f6fd493e0d96b6a5df0474b2cfc5d32b603c56ff32b0d0cc06964032133419",
     "plugins/src/base/rules/eager/wiki-knowledge-source.md":
       "b3ae63fca40461fef19779d8f0c971553963ed8fe9c22fc504da3d8e757b3a36",
     "plugins/src/base/rules/eager/withdrawn-rulings.md":
@@ -1201,7 +1197,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/rules/reference/claim-archaeology.md":
       "354204d02a2d0616747c9f46da34cf303fe9dce6b56cc10251f867fdefd62436",
     "plugins/src/base/rules/reference/claim-evidence-mapping.md":
-      "d517dd46224bfd97e2b988a317837dcf099977ae35caa98bb3458ffac606081d",
+      "5771d3785d72c296854d596227aca42ea9809e15f04ca1b744d95978524bc503",
     "plugins/src/base/rules/reference/claim-time-guards.md":
       "a50664632190c94a68df74cf8e1893552e1507f0162e3dc497615a8360b40007",
     "plugins/src/base/rules/reference/coding-philosophy.md":
@@ -1293,7 +1289,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/rules/reference/stale-state-claims.md":
       "6329e1a7629f9a12f10454c767842aecee4964df8b7bb4aebda9dde3c0959c2a",
     "plugins/src/base/rules/reference/tool-access-gate.md":
-      "29579f403648d3b550b8b7e5fba01986fba8d3f0f285b5b5bf6bb0a839f7f10e",
+      "f478226decac8e7c554dca9452aeb059cf4e9d5bb8da9c45e9726d3b818cad4f",
     "plugins/src/base/rules/reference/tracked-work.md":
       "f16ae779aa398fdb3d96ce03d9fcf1206b088979833b47882e75c20f340503c1",
     "plugins/src/base/rules/reference/upstream-to-lisa.md":
@@ -1301,7 +1297,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/rules/reference/usage-accounting.md":
       "64ee616bdad7c16d5cc4b9eb44384de261b0616ec3343d4c05a88ddede3d89ea",
     "plugins/src/base/rules/reference/verification.md":
-      "9ae8db87b37c7700687fabd1b8632b3cddd0f1f1e4b04384c604f88f160056ed",
+      "8a57ab38f2d86e9879cdcf265ebba2a6d63a6f821ffd7a2cb4749e59861c518f",
     "plugins/src/base/rules/reference/wiki-knowledge-source.md":
       "725a7415a0606f85164722bd4b4975bce1f496cc43c97e45b224810b1a685189",
     "plugins/src/base/rules/reference/withdrawn-rulings.md":
@@ -1587,17 +1583,13 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-notion-write-prd/SKILL.md":
       "d470ed077aa58e53f770c171c8409fa65a3411e15212333fd196237cdfdbf73e",
     "plugins/src/base/skills/lisa-parity-code-review/SKILL.md":
-      "51597a7ec2e58c25ca8298e15a0dc98097d5ca8c6916c5de19a4f73695159581",
-    "plugins/src/base/skills/lisa-parity-code-simplifier/SKILL.md":
-      "716a766f8b56c869df1076ccd47acef053d025d736eb65ae8af130b5cdf4469b",
+      "d5c5910c3feeb4145212e61ea4aa4190dbeec87918ac383a92f8efbd10d01e9e",
     "plugins/src/base/skills/lisa-parity-coderabbit/SKILL.md":
-      "64d270e2e0263c0e27276fb6c908a40bd6fb9a9d7a71f034b1173780da452b93",
+      "7f19c3835f6da594797ccb19ebbfa08180b6582e9c3f2616ed7fc1f7fb143cd0",
     "plugins/src/base/skills/lisa-parity-sentry-sdk-setup/SKILL.md":
       "d0f128c944e90548ea08ef100216b8ecb304d87c4c0dc78c7a9e66f3deb3347f",
     "plugins/src/base/skills/lisa-parity-sentry-seer/SKILL.md":
       "322a7ae4a11cc4e2a35f5fd31ef5dd7e8525970a558e9bb19b2ca25431b2558a",
-    "plugins/src/base/skills/lisa-parity-skill-creator/SKILL.md":
-      "616e0493f75fe92c18137548d7c86a91a9b04d9844ca76fa3f14156e3e7814e5",
     "plugins/src/base/skills/lisa-performance-review/SKILL.md":
       "351542c256e54940e6d672a70606b8414425c6435ae6f026841bcc02f9fce9c4",
     "plugins/src/base/skills/lisa-persist-learning/SKILL.md":
@@ -1795,7 +1787,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-setup-confluence/SKILL.md":
       "e92d762dbdaeae671c3e52dfe8e10d40a10b606b5e050589181a3898649faedc",
     "plugins/src/base/skills/lisa-setup-github-repo/SKILL.md":
-      "bc9232d0609a27c66a1267221f6da33b50850145532da760f5501d37addd2cb0",
+      "a0cb2c9d6ba7513bb537c5c4beb717f3d4eb934c4c214de9dbe070524dcb2b60",
     "plugins/src/base/skills/lisa-setup-github/SKILL.md":
       "75435e81130abd21c678d302b7a220da95a19868d122ca93168278628b200666",
     "plugins/src/base/skills/lisa-setup-jira/SKILL.md":
@@ -1877,7 +1869,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-tracker-create/SKILL.md":
       "fecd0c3cc930b0f87578bc0bee14009509883cb21b33e94e3e7a42792dcd888e",
     "plugins/src/base/skills/lisa-tracker-evidence/SKILL.md":
-      "8aa6aa27c322f79b9e5adc20fd796124765a016fb5293dc41c16a95f12a8c08f",
+      "23b8a45e9f5307563e68b05f7c4cff677431ea013402e47a89f622b44155602d",
     "plugins/src/base/skills/lisa-tracker-evidence/references/completion-authorization.md":
       "6bf7f6015d0a0d53adaa40d1539b3a1ca030d1df979073ed7b2b68fbb5ec02df",
     "plugins/src/base/skills/lisa-tracker-journey/SKILL.md":
@@ -2627,7 +2619,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "rails/github-rulesets/quality-checks.json":
       "0ec1c366589edbaa6b8f45f940cef3ada5ed7b1a956d98d3fa6034b0f78fbc7c",
     "rails/merge/.claude/settings.json":
-      "01174bd607fe8166e3b588a5679940e598a7b81affae7cd318d4efe47375c156",
+      "c4d52cf656f80ba166fdf327119251b239b9d74c010a8d74a060ebc3e031188a",
     "scripts/build-plugins.sh":
       "572af32f56ea64c57703586c85d599e00be6fce5ce90f5ec5d164111e925f4df",
     "scripts/check-cwd-resolution-corpus.mjs":
@@ -2777,7 +2769,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/github-status-check.sh":
       "c6a4a13ff5cf689fcbd7a6aca718f9e7d46d54ccb6687f662b055c1ca20e792f",
     "scripts/install-claude-plugins.sh":
-      "a6d3a4ee2291e512560d2e28f72354e1ca7c924013e37da733ab19faf339b865",
+      "29c9b8fd3a234f3a5d7a3513d0aaf0e27bd1f87aae126ed78e36cb5bf723ee94",
     "scripts/install-generated-artifact-merge-driver.mjs":
       "61e2b4fc532e8b356cb751b1ff42eb712376728eec76f8edf2c3dec19acf1bd4",
     "scripts/internal-agy-skill-policy.json":
@@ -2901,7 +2893,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/lisa-github-environments.sh":
       "0a76e92f108519abaf3e29991299ec3b0db20ea533e69e6d2a53d802dba9c370",
     "scripts/lisa-github-repo-settings.sh":
-      "4afbccdfb08c62ba13afee42ec8561a28facf87c61f6f4b80000115328364d54",
+      "f32a058244c0035861577db2f4c1700f1b5f616e5bd78ecf808e41fa4292b9b4",
     "scripts/lisa-github-repo-setup.sh":
       "4717873e339b3e615d0bf22b4cb290b3575df5aba8c3639dc0d3bebc23abf651",
     "scripts/lisa-github-rulesets.sh":
@@ -3141,7 +3133,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/github-rulesets/quality-checks.json":
       "3aa1c6dbc703ad2ecd87c6f7fdff1aae118696dba95c9795c2c954c6b8a444d9",
     "typescript/merge/.claude/settings.json":
-      "a455fb55d5bf99f7f71136a3a4f8f21b283b9627556c3b22d039b01d093eb2a9",
+      "a303e80206bc8051934633bd15181198e83f37ee82d01e0fc56eb084891999ac",
     "typescript/merge/.oxlintrc.json":
       "9504c20db80470c242c4ffe8cccad6951ed8141dfb5bf6503053e0b2712ab276",
     "typescript/package-lisa/package.lisa.json":
@@ -3149,7 +3141,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "ui/README.md":
       "7a67d7bdd49ff214ca204cc4e54ba70c37aa05fd6cc1e314fd9441a53eafc752",
     "ui/index.html":
-      "4b3ec970987ad1abdd50bfac21c00c3525557618cabcfe6d461d81a80010f345",
+      "1e2b169e592c73dde07e18c490867deb04f7bcbc8dc53f4a8471593a236466d9",
   });
 
 /** Exact paths tracked by the public Lisa repository at generation time. */
@@ -3586,6 +3578,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "docs/design/e2e-environment-reset-plan.md": true,
     "docs/design/e2e-wiring-contract.md": true,
     "docs/design/environment-facade-contract.md": true,
+    "docs/design/gate-interface-review.xlsx": true,
     "docs/design/gates-and-policy.md": true,
     "docs/design/release-evidence-reuse.md": true,
     "docs/design/reset-production-absence.md": true,
@@ -3840,11 +3833,32 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "evidence/4610/gate-check-artifacts.txt": true,
     "evidence/4610/gate-eslint-primaries.txt": true,
     "evidence/4610/gate-typecheck-tests.txt": true,
+    "evidence/4621/green.txt": true,
+    "evidence/4621/integration.txt": true,
+    "evidence/4621/red.txt": true,
+    "evidence/4621/review-green.txt": true,
+    "evidence/4621/review-integration.txt": true,
+    "evidence/4621/review-mutant.txt": true,
+    "evidence/4621/verify-check-artifacts.txt": true,
+    "evidence/4621/verify-falsification.txt": true,
+    "evidence/4621/verify-green-unit.txt": true,
+    "evidence/4621/verify-integration-suites.txt": true,
+    "evidence/4621/verify-knip.txt": true,
+    "evidence/4621/verify-learnings-budget.txt": true,
+    "evidence/4621/verify-red-base.txt": true,
+    "evidence/4621/verify-typecheck.txt": true,
+    "evidence/4629/absent-codes-source-search.txt": true,
+    "evidence/4629/deep-root-doctor-checks-before.txt": true,
+    "evidence/4629/deep-root-doctor-checks.txt": true,
     "evidence/4636/fs-probe-paired-samples.txt": true,
     "evidence/4636/hosted-run-43251544381-at-bff0162039.txt": true,
     "evidence/4636/hosted-run-43260674356-at-0712585024.txt": true,
     "evidence/4636/packed-host-teardown-after-trim.txt": true,
     "evidence/4636/probe-and-teardown-units.txt": true,
+    "evidence/4644/green.txt": true,
+    "evidence/4644/parity-red.txt": true,
+    "evidence/4644/paths-and-parity.txt": true,
+    "evidence/4644/red.txt": true,
     "evidence/4692/c1-near-full-refusal.txt": true,
     "evidence/4692/c2-rotation.txt": true,
     "evidence/4692/c3-legacy-validates.txt": true,
@@ -4150,16 +4164,10 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "parity/fixtures/stale-workflow-inputs/project-unparsed/.github/workflows/example-agent.yml": true,
     "parity/fixtures/stale-workflow-inputs/project-vintage/.github/workflows/example-agent.yml": true,
     "parity/plugin-routing/.gitkeep": true,
-    "parity/plugin-routing/code-review@claude-plugins-official.json": true,
-    "parity/plugin-routing/code-review@claude-plugins-official.md": true,
-    "parity/plugin-routing/code-simplifier@claude-plugins-official.json": true,
-    "parity/plugin-routing/code-simplifier@claude-plugins-official.md": true,
     "parity/plugin-routing/coderabbit@claude-plugins-official.json": true,
     "parity/plugin-routing/coderabbit@claude-plugins-official.md": true,
     "parity/plugin-routing/sentry@claude-plugins-official.json": true,
     "parity/plugin-routing/sentry@claude-plugins-official.md": true,
-    "parity/plugin-routing/skill-creator@claude-plugins-official.json": true,
-    "parity/plugin-routing/skill-creator@claude-plugins-official.md": true,
     "parity/plugin-routing/typescript-lsp@claude-plugins-official.json": true,
     "parity/plugin-routing/typescript-lsp@claude-plugins-official.md": true,
     "phaser/copy-contents/.prettierignore": true,
@@ -4642,11 +4650,9 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-agy/commands/lisa/learnings/audit.md": true,
     "plugins/lisa-agy/commands/lisa/monitor.md": true,
     "plugins/lisa-agy/commands/lisa/parity-code-review.md": true,
-    "plugins/lisa-agy/commands/lisa/parity-code-simplifier.md": true,
     "plugins/lisa-agy/commands/lisa/parity-coderabbit.md": true,
     "plugins/lisa-agy/commands/lisa/parity-sentry-sdk-setup.md": true,
     "plugins/lisa-agy/commands/lisa/parity-sentry-seer.md": true,
-    "plugins/lisa-agy/commands/lisa/parity-skill-creator.md": true,
     "plugins/lisa-agy/commands/lisa/persist-learning.md": true,
     "plugins/lisa-agy/commands/lisa/plan.md": true,
     "plugins/lisa-agy/commands/lisa/plugin-sync-explain.md": true,
@@ -4843,11 +4849,9 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-agy/skills/lisa-notion-to-tracker/SKILL.md": true,
     "plugins/lisa-agy/skills/lisa-notion-write-prd/SKILL.md": true,
     "plugins/lisa-agy/skills/lisa-parity-code-review/SKILL.md": true,
-    "plugins/lisa-agy/skills/lisa-parity-code-simplifier/SKILL.md": true,
     "plugins/lisa-agy/skills/lisa-parity-coderabbit/SKILL.md": true,
     "plugins/lisa-agy/skills/lisa-parity-sentry-sdk-setup/SKILL.md": true,
     "plugins/lisa-agy/skills/lisa-parity-sentry-seer/SKILL.md": true,
-    "plugins/lisa-agy/skills/lisa-parity-skill-creator/SKILL.md": true,
     "plugins/lisa-agy/skills/lisa-performance-review/SKILL.md": true,
     "plugins/lisa-agy/skills/lisa-persist-learning/SKILL.md": true,
     "plugins/lisa-agy/skills/lisa-plan/SKILL.md": true,
@@ -5081,11 +5085,9 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-copilot/commands/lisa/learnings/audit.md": true,
     "plugins/lisa-copilot/commands/lisa/monitor.md": true,
     "plugins/lisa-copilot/commands/lisa/parity-code-review.md": true,
-    "plugins/lisa-copilot/commands/lisa/parity-code-simplifier.md": true,
     "plugins/lisa-copilot/commands/lisa/parity-coderabbit.md": true,
     "plugins/lisa-copilot/commands/lisa/parity-sentry-sdk-setup.md": true,
     "plugins/lisa-copilot/commands/lisa/parity-sentry-seer.md": true,
-    "plugins/lisa-copilot/commands/lisa/parity-skill-creator.md": true,
     "plugins/lisa-copilot/commands/lisa/persist-learning.md": true,
     "plugins/lisa-copilot/commands/lisa/plan.md": true,
     "plugins/lisa-copilot/commands/lisa/plugin-sync-explain.md": true,
@@ -5393,11 +5395,9 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-copilot/skills/lisa-notion-to-tracker/SKILL.md": true,
     "plugins/lisa-copilot/skills/lisa-notion-write-prd/SKILL.md": true,
     "plugins/lisa-copilot/skills/lisa-parity-code-review/SKILL.md": true,
-    "plugins/lisa-copilot/skills/lisa-parity-code-simplifier/SKILL.md": true,
     "plugins/lisa-copilot/skills/lisa-parity-coderabbit/SKILL.md": true,
     "plugins/lisa-copilot/skills/lisa-parity-sentry-sdk-setup/SKILL.md": true,
     "plugins/lisa-copilot/skills/lisa-parity-sentry-seer/SKILL.md": true,
-    "plugins/lisa-copilot/skills/lisa-parity-skill-creator/SKILL.md": true,
     "plugins/lisa-copilot/skills/lisa-performance-review/SKILL.md": true,
     "plugins/lisa-copilot/skills/lisa-persist-learning/SKILL.md": true,
     "plugins/lisa-copilot/skills/lisa-plan/SKILL.md": true,
@@ -5614,11 +5614,9 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-cursor/commands/lisa/learnings/audit.md": true,
     "plugins/lisa-cursor/commands/lisa/monitor.md": true,
     "plugins/lisa-cursor/commands/lisa/parity-code-review.md": true,
-    "plugins/lisa-cursor/commands/lisa/parity-code-simplifier.md": true,
     "plugins/lisa-cursor/commands/lisa/parity-coderabbit.md": true,
     "plugins/lisa-cursor/commands/lisa/parity-sentry-sdk-setup.md": true,
     "plugins/lisa-cursor/commands/lisa/parity-sentry-seer.md": true,
-    "plugins/lisa-cursor/commands/lisa/parity-skill-creator.md": true,
     "plugins/lisa-cursor/commands/lisa/persist-learning.md": true,
     "plugins/lisa-cursor/commands/lisa/plan.md": true,
     "plugins/lisa-cursor/commands/lisa/plugin-sync-explain.md": true,
@@ -5927,11 +5925,9 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-cursor/skills/lisa-notion-to-tracker/SKILL.md": true,
     "plugins/lisa-cursor/skills/lisa-notion-write-prd/SKILL.md": true,
     "plugins/lisa-cursor/skills/lisa-parity-code-review/SKILL.md": true,
-    "plugins/lisa-cursor/skills/lisa-parity-code-simplifier/SKILL.md": true,
     "plugins/lisa-cursor/skills/lisa-parity-coderabbit/SKILL.md": true,
     "plugins/lisa-cursor/skills/lisa-parity-sentry-sdk-setup/SKILL.md": true,
     "plugins/lisa-cursor/skills/lisa-parity-sentry-seer/SKILL.md": true,
-    "plugins/lisa-cursor/skills/lisa-parity-skill-creator/SKILL.md": true,
     "plugins/lisa-cursor/skills/lisa-performance-review/SKILL.md": true,
     "plugins/lisa-cursor/skills/lisa-persist-learning/SKILL.md": true,
     "plugins/lisa-cursor/skills/lisa-plan/SKILL.md": true,
@@ -6391,11 +6387,9 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-devin/skills/lisa-notion-to-tracker/SKILL.md": true,
     "plugins/lisa-devin/skills/lisa-notion-write-prd/SKILL.md": true,
     "plugins/lisa-devin/skills/lisa-parity-code-review/SKILL.md": true,
-    "plugins/lisa-devin/skills/lisa-parity-code-simplifier/SKILL.md": true,
     "plugins/lisa-devin/skills/lisa-parity-coderabbit/SKILL.md": true,
     "plugins/lisa-devin/skills/lisa-parity-sentry-sdk-setup/SKILL.md": true,
     "plugins/lisa-devin/skills/lisa-parity-sentry-seer/SKILL.md": true,
-    "plugins/lisa-devin/skills/lisa-parity-skill-creator/SKILL.md": true,
     "plugins/lisa-devin/skills/lisa-performance-review/SKILL.md": true,
     "plugins/lisa-devin/skills/lisa-persist-learning/SKILL.md": true,
     "plugins/lisa-devin/skills/lisa-plan/SKILL.md": true,
@@ -8793,16 +8787,12 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa/.codex-plugin/skills/lisa-notion-write-prd/agents/openai.yaml": true,
     "plugins/lisa/.codex-plugin/skills/lisa-parity-code-review/SKILL.md": true,
     "plugins/lisa/.codex-plugin/skills/lisa-parity-code-review/agents/openai.yaml": true,
-    "plugins/lisa/.codex-plugin/skills/lisa-parity-code-simplifier/SKILL.md": true,
-    "plugins/lisa/.codex-plugin/skills/lisa-parity-code-simplifier/agents/openai.yaml": true,
     "plugins/lisa/.codex-plugin/skills/lisa-parity-coderabbit/SKILL.md": true,
     "plugins/lisa/.codex-plugin/skills/lisa-parity-coderabbit/agents/openai.yaml": true,
     "plugins/lisa/.codex-plugin/skills/lisa-parity-sentry-sdk-setup/SKILL.md": true,
     "plugins/lisa/.codex-plugin/skills/lisa-parity-sentry-sdk-setup/agents/openai.yaml": true,
     "plugins/lisa/.codex-plugin/skills/lisa-parity-sentry-seer/SKILL.md": true,
     "plugins/lisa/.codex-plugin/skills/lisa-parity-sentry-seer/agents/openai.yaml": true,
-    "plugins/lisa/.codex-plugin/skills/lisa-parity-skill-creator/SKILL.md": true,
-    "plugins/lisa/.codex-plugin/skills/lisa-parity-skill-creator/agents/openai.yaml": true,
     "plugins/lisa/.codex-plugin/skills/lisa-performance-review/SKILL.md": true,
     "plugins/lisa/.codex-plugin/skills/lisa-performance-review/agents/openai.yaml": true,
     "plugins/lisa/.codex-plugin/skills/lisa-persist-learning/SKILL.md": true,
@@ -9091,11 +9081,9 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa/commands/learnings/audit.md": true,
     "plugins/lisa/commands/monitor.md": true,
     "plugins/lisa/commands/parity-code-review.md": true,
-    "plugins/lisa/commands/parity-code-simplifier.md": true,
     "plugins/lisa/commands/parity-coderabbit.md": true,
     "plugins/lisa/commands/parity-sentry-sdk-setup.md": true,
     "plugins/lisa/commands/parity-sentry-seer.md": true,
-    "plugins/lisa/commands/parity-skill-creator.md": true,
     "plugins/lisa/commands/persist-learning.md": true,
     "plugins/lisa/commands/plan.md": true,
     "plugins/lisa/commands/plugin-sync-explain.md": true,
@@ -9511,16 +9499,12 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa/skills/lisa-notion-write-prd/agents/openai.yaml": true,
     "plugins/lisa/skills/lisa-parity-code-review/SKILL.md": true,
     "plugins/lisa/skills/lisa-parity-code-review/agents/openai.yaml": true,
-    "plugins/lisa/skills/lisa-parity-code-simplifier/SKILL.md": true,
-    "plugins/lisa/skills/lisa-parity-code-simplifier/agents/openai.yaml": true,
     "plugins/lisa/skills/lisa-parity-coderabbit/SKILL.md": true,
     "plugins/lisa/skills/lisa-parity-coderabbit/agents/openai.yaml": true,
     "plugins/lisa/skills/lisa-parity-sentry-sdk-setup/SKILL.md": true,
     "plugins/lisa/skills/lisa-parity-sentry-sdk-setup/agents/openai.yaml": true,
     "plugins/lisa/skills/lisa-parity-sentry-seer/SKILL.md": true,
     "plugins/lisa/skills/lisa-parity-sentry-seer/agents/openai.yaml": true,
-    "plugins/lisa/skills/lisa-parity-skill-creator/SKILL.md": true,
-    "plugins/lisa/skills/lisa-parity-skill-creator/agents/openai.yaml": true,
     "plugins/lisa/skills/lisa-performance-review/SKILL.md": true,
     "plugins/lisa/skills/lisa-performance-review/agents/openai.yaml": true,
     "plugins/lisa/skills/lisa-persist-learning/SKILL.md": true,
@@ -9810,11 +9794,9 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/src/base/commands/learnings/audit.md": true,
     "plugins/src/base/commands/monitor.md": true,
     "plugins/src/base/commands/parity-code-review.md": true,
-    "plugins/src/base/commands/parity-code-simplifier.md": true,
     "plugins/src/base/commands/parity-coderabbit.md": true,
     "plugins/src/base/commands/parity-sentry-sdk-setup.md": true,
     "plugins/src/base/commands/parity-sentry-seer.md": true,
-    "plugins/src/base/commands/parity-skill-creator.md": true,
     "plugins/src/base/commands/persist-learning.md": true,
     "plugins/src/base/commands/plan.md": true,
     "plugins/src/base/commands/plugin-sync-explain.md": true,
@@ -10132,11 +10114,9 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/src/base/skills/lisa-notion-to-tracker/SKILL.md": true,
     "plugins/src/base/skills/lisa-notion-write-prd/SKILL.md": true,
     "plugins/src/base/skills/lisa-parity-code-review/SKILL.md": true,
-    "plugins/src/base/skills/lisa-parity-code-simplifier/SKILL.md": true,
     "plugins/src/base/skills/lisa-parity-coderabbit/SKILL.md": true,
     "plugins/src/base/skills/lisa-parity-sentry-sdk-setup/SKILL.md": true,
     "plugins/src/base/skills/lisa-parity-sentry-seer/SKILL.md": true,
-    "plugins/src/base/skills/lisa-parity-skill-creator/SKILL.md": true,
     "plugins/src/base/skills/lisa-performance-review/SKILL.md": true,
     "plugins/src/base/skills/lisa-persist-learning/SKILL.md": true,
     "plugins/src/base/skills/lisa-plan/SKILL.md": true,
@@ -11367,6 +11347,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "src/logging/logger.interface.ts": true,
     "src/logging/silent-logger.ts": true,
     "src/migrations/correct-lisa-coderabbit-labeling.ts": true,
+    "src/migrations/delegate-legacy-test-scripts.ts": true,
     "src/migrations/deploy-outcome-guard-edit.ts": true,
     "src/migrations/deploy-outcome-guard-yaml.ts": true,
     "src/migrations/ensure-audit-ignore-local-exclusions.ts": true,
@@ -11396,6 +11377,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "src/migrations/prune-retired-claude-deny-rules.ts": true,
     "src/migrations/prune-retired-claude-stack-plugin-keys.ts": true,
     "src/migrations/prune-retired-entire-hooks.ts": true,
+    "src/migrations/prune-retired-third-party-plugins.ts": true,
     "src/migrations/reconcile-claude-stack-plugins.ts": true,
     "src/migrations/retire-native-safety-net.ts": true,
     "src/migrations/untrack-codex-marketplace.ts": true,
@@ -11467,6 +11449,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "src/utils/effectiveness.ts": true,
     "src/utils/fibonacci.ts": true,
     "src/utils/file-operations.ts": true,
+    "src/utils/fs-absence.ts": true,
     "src/utils/ignore-patterns.ts": true,
     "src/utils/index.ts": true,
     "src/utils/json-utils.ts": true,
@@ -11746,6 +11729,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/helpers/freshness-deadline-fixture.ts": true,
     "tests/helpers/freshness-deadline-inputs.ts": true,
     "tests/helpers/freshness-owned-processes.ts": true,
+    "tests/helpers/fs-errno.ts": true,
     "tests/helpers/fs-latency-budget.ts": true,
     "tests/helpers/fs-probe-diagnostic.ts": true,
     "tests/helpers/gate-capture.ts": true,
@@ -11800,6 +11784,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/helpers/sentry-release-harness.ts": true,
     "tests/helpers/shipped-mjs-roster.ts": true,
     "tests/helpers/staged-dependency-scan.ts": true,
+    "tests/helpers/stderr-sync.ts": true,
     "tests/helpers/supervised-unix-fixture.ts": true,
     "tests/helpers/template-toolchain.ts": true,
     "tests/helpers/test-run-child-process-analysis.ts": true,
@@ -12169,9 +12154,11 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/cli/doctor-apply-freshness.test.ts": true,
     "tests/unit/cli/doctor-apply-stale-templates.test.ts": true,
     "tests/unit/cli/doctor-audit-scope.test.ts": true,
+    "tests/unit/cli/doctor-cdk-preset-adoption-errno.test.ts": true,
     "tests/unit/cli/doctor-cdk-preset-adoption.test.ts": true,
     "tests/unit/cli/doctor-coderabbit-labeling.test.ts": true,
     "tests/unit/cli/doctor-coderabbit.test.ts": true,
+    "tests/unit/cli/doctor-config-shadowing-errno.test.ts": true,
     "tests/unit/cli/doctor-config-shadowing.test.ts": true,
     "tests/unit/cli/doctor-declared-contexts.test.ts": true,
     "tests/unit/cli/doctor-enforcement-coverage.test.ts": true,
@@ -12192,6 +12179,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/cli/doctor-override-floor-conflicts.test.ts": true,
     "tests/unit/cli/doctor-ownership-banner-drift.test.ts": true,
     "tests/unit/cli/doctor-project-type.test.ts": true,
+    "tests/unit/cli/doctor-rails-deploy-intent-errno.test.ts": true,
     "tests/unit/cli/doctor-rails-deploy-intent.test.ts": true,
     "tests/unit/cli/doctor-readiness-blockers.test.ts": true,
     "tests/unit/cli/doctor-readiness-capabilities.test.ts": true,
@@ -12244,6 +12232,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/cli/doctor-skip-jobs-moment-callers.test.ts": true,
     "tests/unit/cli/doctor-sonar.test.ts": true,
     "tests/unit/cli/doctor-stale-banner-scan.test.ts": true,
+    "tests/unit/cli/doctor-stale-managed-banner-errno.test.ts": true,
     "tests/unit/cli/doctor-stale-managed-banner.test.ts": true,
     "tests/unit/cli/doctor-starter-health.test.ts": true,
     "tests/unit/cli/doctor-third-party-evidence-dispatch-context.test.ts": true,
@@ -12387,6 +12376,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/config/audit-ignore-package-names.test.ts": true,
     "tests/unit/config/bite-exclusion-vs-env-gate.test.ts": true,
     "tests/unit/config/brace-expansion-security-floor.test.ts": true,
+    "tests/unit/config/cdk-npm-floor.test.ts": true,
     "tests/unit/config/cdk-scratch-lifecycle.test.ts": true,
     "tests/unit/config/coderabbit-labeling-scope.test.ts": true,
     "tests/unit/config/conflict-prover-consumer-layouts.test.ts": true,
@@ -12635,6 +12625,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/core/two-channel-staleness.test.ts": true,
     "tests/unit/core/update-skill-apply-mode.test.ts": true,
     "tests/unit/core/update-skill-canary.test.ts": true,
+    "tests/unit/core/update-skill-references.test.ts": true,
     "tests/unit/core/upstream-attribution-body-hardening.test.ts": true,
     "tests/unit/core/upstream-attribution-body.test.ts": true,
     "tests/unit/core/upstream-attribution-file-safety.test.ts": true,
@@ -12680,10 +12671,12 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/helpers/fs-latency-budget.test.ts": true,
     "tests/unit/helpers/fs-probe-diagnostic.test.ts": true,
     "tests/unit/helpers/gate-capture.test.ts": true,
+    "tests/unit/helpers/history-scanner-global-setup.test.ts": true,
     "tests/unit/helpers/history-scanner-preparation.test.ts": true,
     "tests/unit/helpers/io-latency-budget.test.ts": true,
     "tests/unit/helpers/mutation-kill-counts.test.ts": true,
     "tests/unit/helpers/staged-dependency-conformance.test.ts": true,
+    "tests/unit/helpers/stderr-sync.test.ts": true,
     "tests/unit/helpers/supervised-unix-fixture.test.ts": true,
     "tests/unit/helpers/temp-dir-removal-race.test.ts": true,
     "tests/unit/helpers/test-budget-conformance.test.ts": true,
@@ -12839,6 +12832,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/hooks/worktree-create-failure.test.ts": true,
     "tests/unit/hooks/worktree-create.test.ts": true,
     "tests/unit/migrations/correct-lisa-coderabbit-labeling.test.ts": true,
+    "tests/unit/migrations/delegate-legacy-test-scripts.test.ts": true,
     "tests/unit/migrations/deploy-outcome-guard-render.test.ts": true,
     "tests/unit/migrations/ensure-audit-ignore-local-exclusions-esbuild.test.ts": true,
     "tests/unit/migrations/ensure-audit-ignore-local-exclusions.test.ts": true,
@@ -12869,6 +12863,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/migrations/prune-retired-claude-deny-rules.test.ts": true,
     "tests/unit/migrations/prune-retired-claude-stack-plugin-keys.test.ts": true,
     "tests/unit/migrations/prune-retired-entire-hooks.test.ts": true,
+    "tests/unit/migrations/prune-retired-third-party-plugins.test.ts": true,
     "tests/unit/migrations/reconcile-claude-stack-plugins.test.ts": true,
     "tests/unit/migrations/seeded-gates-install-restraint.test.ts": true,
     "tests/unit/migrations/untrack-codex-marketplace.test.ts": true,
@@ -13076,10 +13071,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/lisa-gates-on-edit-moment.test.ts": true,
     "tests/unit/scripts/lisa-gates-order.test.ts": true,
     "tests/unit/scripts/lisa-gates-resolution.test.ts": true,
-    "tests/unit/scripts/lisa-gates-reuse-declaration.test.ts": true,
-    "tests/unit/scripts/lisa-gates-reuse-envelope.test.ts": true,
-    "tests/unit/scripts/lisa-gates-reuse-fixtures.ts": true,
-    "tests/unit/scripts/lisa-gates-reuse-rows.test.ts": true,
+    "tests/unit/scripts/lisa-gates-reuse-retired.test.ts": true,
     "tests/unit/scripts/lisa-gates-runner-owned.test.ts": true,
     "tests/unit/scripts/lisa-gates-self-config.test.ts": true,
     "tests/unit/scripts/lisa-gates-shipped-as.test.ts": true,
@@ -13612,6 +13604,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/strategies/easignore-worktree-exclusion.test.ts": true,
     "tests/unit/strategies/effectiveness-parity.test.ts": true,
     "tests/unit/strategies/env-promotion-completeness.test.ts": true,
+    "tests/unit/strategies/evidence-ignored-directory-contract.test.ts": true,
     "tests/unit/strategies/evidence-reference-contract.test.ts": true,
     "tests/unit/strategies/evidence-release-stop-guard.test.ts": true,
     "tests/unit/strategies/falsifiable-checks-rule.test.ts": true,
@@ -13760,6 +13753,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/strategies/support/rollup-blocker-fixtures.ts": true,
     "tests/unit/strategies/tagged-merge.test.ts": true,
     "tests/unit/strategies/template-consent-routing.test.ts": true,
+    "tests/unit/strategies/tool-access-gate-aws-recovery.test.ts": true,
     "tests/unit/strategies/tracked-work-contract.test.ts": true,
     "tests/unit/strategies/upstream-attribution-filing-contract.test.ts": true,
     "tests/unit/strategies/usage-accounting-contract.test.ts": true,
@@ -13803,6 +13797,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/utils/effectiveness.test.ts": true,
     "tests/unit/utils/fibonacci.test.ts": true,
     "tests/unit/utils/file-operations.test.ts": true,
+    "tests/unit/utils/fs-absence.test.ts": true,
     "tests/unit/utils/ignore-patterns-bootstrap.test.ts": true,
     "tests/unit/utils/ignore-patterns.test.ts": true,
     "tests/unit/utils/json-merge.property.test.ts": true,

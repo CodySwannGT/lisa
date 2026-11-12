@@ -15,14 +15,7 @@ import * as path from "node:path";
 
 import { COPY_STRATEGIES, PROJECT_TYPE_ORDER } from "../core/config.js";
 import type { ShippedTemplateStrategy } from "../core/stale-managed-banner.js";
-
-/**
- * Errno codes that answer the question rather than refusing it: the path is
- * genuinely not there. Anything else — a permission denial, an I/O error, a
- * symlink loop — means the probe could not look, which is a different answer
- * and must not be spelled the same way.
- */
-const ABSENT_CODES = new Set(["ENOENT", "ENOTDIR", "ENAMETOOLONG"]);
+import { errnoCode, isDefinitiveAbsence } from "../utils/fs-absence.js";
 
 /**
  * How many leading bytes of a host file are read to recover its header.
@@ -60,19 +53,6 @@ export interface BannerScanDeps {
 }
 
 /**
- * The errno code of a rejected filesystem call, when it carries one.
- * @param error - Value thrown by a filesystem call
- * @returns The errno code, or undefined when the value carries none
- */
-function errnoCode(error: unknown): string | undefined {
-  const code: unknown =
-    typeof error === "object" && error !== null
-      ? (error as { code?: unknown }).code
-      : undefined;
-  return typeof code === "string" ? code : undefined;
-}
-
-/**
  * List a directory, distinguishing "not there" from "could not look".
  * @param absolute - Absolute directory path
  * @returns Its entries, or an empty list when it is provably absent
@@ -88,8 +68,8 @@ export async function listDirectory(
       name: entry.name,
     }));
   } catch (error) {
+    if (isDefinitiveAbsence(error)) return [];
     const code = errnoCode(error);
-    if (code !== undefined && ABSENT_CODES.has(code)) return [];
     throw new Error(`could not read ${absolute}: ${code ?? String(error)}`, {
       cause: error,
     });
@@ -120,8 +100,8 @@ export async function readHeaderPrefix(
       await handle.close();
     }
   } catch (error) {
+    if (isDefinitiveAbsence(error)) return undefined;
     const code = errnoCode(error);
-    if (code !== undefined && ABSENT_CODES.has(code)) return undefined;
     throw new Error(`could not read ${absolute}: ${code ?? String(error)}`, {
       cause: error,
     });

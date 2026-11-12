@@ -47,6 +47,13 @@
       "vite": "$vite",
       "qs": "^6.16.0",
       "deepmerge-ts": "^8.0.1"
+    },
+    "devEngines": {
+      "packageManager": {
+        "name": "npm",
+        "version": ">=11.6.0",
+        "onFail": "warn"
+      }
     }
   },
   "defaults": {
@@ -54,7 +61,7 @@
       "aws-cdk-lib": "2.272.0"
     },
     "engines": {
-      "npm": ">= 10.9.4",
+      "npm": ">= 11.6.0",
       "yarn": "please-use-npm",
       "pnpm": "please-use-npm",
       "bun": "please-use-npm",

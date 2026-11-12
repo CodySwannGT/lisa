@@ -50,6 +50,7 @@ import {
   VERSION,
   qualifyScanner,
 } from "../../all/copy-overwrite/scripts/lib/history-secret-scanner.mjs";
+import { errorMessage, writeStderrSync } from "./stderr-sync.js";
 
 /** Repository root, resolved from this module. */
 const REPO_ROOT = resolve(import.meta.dirname, "..", "..");
@@ -360,6 +361,21 @@ function artifactJudgement(
 }
 
 /**
+ * Run one cleanup step, reporting a failure on stderr instead of throwing.
+ * @param what - What failed, for the report
+ * @param step - The cleanup step
+ */
+function reportFailure(what: string, step: () => unknown): void {
+  try {
+    step();
+  } catch (error) {
+    writeStderrSync(
+      `history-scanner preparation: ${what} (${errorMessage(error)}); the scratch reaper reclaims what is left.\n`
+    );
+  }
+}
+
+/**
  * Create a private scope, released on process exit if nothing releases it first.
  *
  * Vitest answers SIGINT and SIGTERM by calling `process.exit`, so the exit
@@ -367,6 +383,17 @@ function artifactJudgement(
  * provision child is still downloading: dispose kills that child too. The
  * scope holds a private `tmp` directory that the child uses as its TMPDIR, so
  * the provisioner's own archive scratch is removed with the scope.
+ *
+ * The exit listener is prepended, so it runs ahead of any listener armed
+ * earlier, such as the global setup's release of this scope's parent: at exit
+ * the child is stopped and the scope removed before the parent goes, as in the
+ * normal teardown (CodySwannGT/lisa#4621).
+ *
+ * Dispose never throws, whoever calls it: the exit listener, the failure path
+ * or a teardown. A throw from an exit listener crashes the process and skips
+ * every later listener, and a throw from a teardown skips the parent's
+ * release. A failure is reported on stderr synchronously instead, and the
+ * scratch reaper reclaims what is left.
  * @param parent - Directory to create the scope in
  * @returns The scope, the slot for its live child, and its idempotent dispose
  */
@@ -379,12 +406,16 @@ function ownedScope(parent: string): {
   const live: { child?: ChildProcess | undefined } = {};
   const dispose = (): void => {
     process.off("exit", dispose);
-    live.child?.kill("SIGKILL");
-    rmSync(scope, { recursive: true, force: true });
+    reportFailure("its provision child could not be stopped", () =>
+      live.child?.kill("SIGKILL")
+    );
+    reportFailure("its preparation scope could not be removed", () => {
+      rmSync(scope, { recursive: true, force: true });
+    });
   };
   chmodSync(scope, 0o700);
   mkdirSync(join(scope, "tmp"), { mode: 0o700 });
-  process.once("exit", dispose);
+  process.prependOnceListener("exit", dispose);
   return { scope, live, dispose };
 }
 

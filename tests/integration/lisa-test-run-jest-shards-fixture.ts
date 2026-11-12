@@ -79,6 +79,11 @@ export function project(
   fs.writeFileSync(
     path.join(root, "jest.config.js"),
     `module.exports = ${JSON.stringify({
+      // A throwaway temp project has nothing for Watchman to speed up, and a
+      // Watchman that cannot observe the temp directory stalls Jest 20s per
+      // run, past the fixture's budget (CodySwannGT/lisa#4790). A config key,
+      // not a flag, so the argv stays exactly what lisa-test-run hands a shard.
+      watchman: false,
       ...(collectCoverage ? { collectCoverage } : {}),
       collectCoverageFrom: ["src/**/*.js"],
       coverageReporters: reporters,

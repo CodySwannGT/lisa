@@ -1,4 +1,5 @@
 import { CorrectLisaCoderabbitLabelingMigration } from "./correct-lisa-coderabbit-labeling.js";
+import { DelegateLegacyTestScriptsMigration } from "./delegate-legacy-test-scripts.js";
 import { EnsureAuditIgnoreLocalExclusionsMigration } from "./ensure-audit-ignore-local-exclusions.js";
 import { EnsureDeployOutcomeGuardMigration } from "./ensure-deploy-outcome-guard.js";
 import { EnsureJestRnMockAccessibilityManagerMigration } from "./ensure-jest-rn-mock-accessibility-manager.js";
@@ -21,6 +22,7 @@ import { EnsureWikiSourceDeclaredMigration } from "./ensure-wiki-source-declared
 import { EnsureTsconfigLocalIncludesMigration } from "./ensure-tsconfig-local-includes.js";
 import { PruneRetiredClaudeDenyRulesMigration } from "./prune-retired-claude-deny-rules.js";
 import { PruneRetiredClaudeStackPluginKeysMigration } from "./prune-retired-claude-stack-plugin-keys.js";
+import { PruneRetiredThirdPartyPluginsMigration } from "./prune-retired-third-party-plugins.js";
 import { PruneRetiredEntireHooksMigration } from "./prune-retired-entire-hooks.js";
 import { PreserveVerificationOptInsMigration } from "./preserve-verification-opt-ins.js";
 import { ReconcileClaudeStackPluginsMigration } from "./reconcile-claude-stack-plugins.js";
@@ -39,6 +41,7 @@ export type {
   MigrationResult,
 } from "./migration.interface.js";
 export { CorrectLisaCoderabbitLabelingMigration } from "./correct-lisa-coderabbit-labeling.js";
+export { DelegateLegacyTestScriptsMigration } from "./delegate-legacy-test-scripts.js";
 export { EnsureAuditIgnoreLocalExclusionsMigration } from "./ensure-audit-ignore-local-exclusions.js";
 export { EnsureDeployOutcomeGuardMigration } from "./ensure-deploy-outcome-guard.js";
 export { EnsureJestRnMockAccessibilityManagerMigration } from "./ensure-jest-rn-mock-accessibility-manager.js";
@@ -61,6 +64,7 @@ export { EnsureWikiSourceDeclaredMigration } from "./ensure-wiki-source-declared
 export { EnsureTsconfigLocalIncludesMigration } from "./ensure-tsconfig-local-includes.js";
 export { PruneRetiredClaudeDenyRulesMigration } from "./prune-retired-claude-deny-rules.js";
 export { PruneRetiredClaudeStackPluginKeysMigration } from "./prune-retired-claude-stack-plugin-keys.js";
+export { PruneRetiredThirdPartyPluginsMigration } from "./prune-retired-third-party-plugins.js";
 export { PruneRetiredEntireHooksMigration } from "./prune-retired-entire-hooks.js";
 export { PreserveVerificationOptInsMigration } from "./preserve-verification-opt-ins.js";
 export { ReconcileClaudeStackPluginsMigration } from "./reconcile-claude-stack-plugins.js";
@@ -89,6 +93,7 @@ export class MigrationRegistry {
       new EnsureLighthouseCollectOptionsMigration(),
       new EnsureNightlyE2EWorkflowPinsMigration(),
       new EnsureLisaPostinstallMigration(),
+      new DelegateLegacyTestScriptsMigration(),
       new EnsureOxlintBaseConfigsMigration(),
       new EnsurePlaywrightDedicatedCallerMigration(),
       new EnsurePushDefaultSafeMigration(),
@@ -104,6 +109,7 @@ export class MigrationRegistry {
       new ReconcileClaudeStackPluginsMigration(),
       // After reconcile: a successor it adds retires its predecessor at once.
       new PruneRetiredClaudeStackPluginKeysMigration(),
+      new PruneRetiredThirdPartyPluginsMigration(),
       new UntrackCodexMarketplaceMigration(),
       new RetireNativeSafetyNetMigration(),
       new CorrectLisaCoderabbitLabelingMigration(),

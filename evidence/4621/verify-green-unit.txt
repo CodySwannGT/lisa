@@ -1,0 +1,91 @@
+# cwd: clean detached worktree /Users/codysai/.claude/jobs/17b068aa/tmp/head-wt
+# HEAD: 1851ff3e61f8f7f44e3795ebbd6ad10e011d15cf
+# tracked changes: 0
+# command: bun run lisa-test-run -- --adapter vitest -- vitest run tests/unit/helpers/history-scanner-global-setup.test.ts tests/unit/helpers/history-scanner-preparation.test.ts tests/unit/helpers/stderr-sync.test.ts --reporter=verbose
+# started: 2026-11-12T14:21:11Z
+$ node scripts/lib/worktree-dependencies.mjs && bun run build && node dist/cli/lisa-test-run.js --profile lisa --adapter vitest -- vitest run tests/unit/helpers/history-scanner-global-setup.test.ts tests/unit/helpers/history-scanner-preparation.test.ts tests/unit/helpers/stderr-sync.test.ts "--reporter=verbose"
+$ bun run build:dist && bun run build:plugins
+$ node scripts/lib/worktree-dependencies.mjs && node scripts/clean-dist.mjs && tsc && node scripts/copy-codex-scripts.mjs && node scripts/copy-opencode-plugin-templates.mjs
+$ bash scripts/build-plugins.sh
+Built plugins/lisa (v4.101.10)
+Built plugins/lisa-typescript (v4.101.10)
+Built plugins/lisa-expo (v4.101.10)
+Built plugins/lisa-nestjs (v4.101.10)
+Built plugins/lisa-cdk (v4.101.10)
+Built plugins/lisa-harper-fabric (v4.101.10)
+Built plugins/lisa-phaser (v4.101.10)
+Built plugins/lisa-rails (v4.101.10)
+Built plugins/lisa-wiki (v4.101.10)
+Built plugins/lisa-openclaw (v4.101.10)
+Generated Cursor variant at /Users/codysai/.claude/jobs/17b068aa/tmp/head-wt/plugins/lisa-cursor (v4.101.10)
+Generated Cursor variant at /Users/codysai/.claude/jobs/17b068aa/tmp/head-wt/plugins/lisa-typescript-cursor (v4.101.10)
+Generated Cursor variant at /Users/codysai/.claude/jobs/17b068aa/tmp/head-wt/plugins/lisa-expo-cursor (v4.101.10)
+Generated Cursor variant at /Users/codysai/.claude/jobs/17b068aa/tmp/head-wt/plugins/lisa-nestjs-cursor (v4.101.10)
+Generated Cursor variant at /Users/codysai/.claude/jobs/17b068aa/tmp/head-wt/plugins/lisa-cdk-cursor (v4.101.10)
+Generated Cursor variant at /Users/codysai/.claude/jobs/17b068aa/tmp/head-wt/plugins/lisa-harper-fabric-cursor (v4.101.10)
+Generated Cursor variant at /Users/codysai/.claude/jobs/17b068aa/tmp/head-wt/plugins/lisa-phaser-cursor (v4.101.10)
+Generated Cursor variant at /Users/codysai/.claude/jobs/17b068aa/tmp/head-wt/plugins/lisa-rails-cursor (v4.101.10)
+Generated Cursor variant at /Users/codysai/.claude/jobs/17b068aa/tmp/head-wt/plugins/lisa-wiki-cursor (v4.101.10)
+Generated Cursor variant at /Users/codysai/.claude/jobs/17b068aa/tmp/head-wt/plugins/lisa-openclaw-cursor (v4.101.10)
+Generated agy variant at /Users/codysai/.claude/jobs/17b068aa/tmp/head-wt/plugins/lisa-agy (v4.101.10)
+Generated agy variant at /Users/codysai/.claude/jobs/17b068aa/tmp/head-wt/plugins/lisa-typescript-agy (v4.101.10)
+Generated agy variant at /Users/codysai/.claude/jobs/17b068aa/tmp/head-wt/plugins/lisa-expo-agy (v4.101.10)
+Generated agy variant at /Users/codysai/.claude/jobs/17b068aa/tmp/head-wt/plugins/lisa-nestjs-agy (v4.101.10)
+Generated agy variant at /Users/codysai/.claude/jobs/17b068aa/tmp/head-wt/plugins/lisa-cdk-agy (v4.101.10)
+Generated agy variant at /Users/codysai/.claude/jobs/17b068aa/tmp/head-wt/plugins/lisa-harper-fabric-agy (v4.101.10)
+Generated agy variant at /Users/codysai/.claude/jobs/17b068aa/tmp/head-wt/plugins/lisa-phaser-agy (v4.101.10)
+Generated agy variant at /Users/codysai/.claude/jobs/17b068aa/tmp/head-wt/plugins/lisa-rails-agy (v4.101.10)
+Generated agy variant at /Users/codysai/.claude/jobs/17b068aa/tmp/head-wt/plugins/lisa-wiki-agy (v4.101.10)
+Generated agy variant at /Users/codysai/.claude/jobs/17b068aa/tmp/head-wt/plugins/lisa-openclaw-agy (v4.101.10)
+Generated Copilot variant at /Users/codysai/.claude/jobs/17b068aa/tmp/head-wt/plugins/lisa-copilot (v4.101.10)
+Generated Copilot variant at /Users/codysai/.claude/jobs/17b068aa/tmp/head-wt/plugins/lisa-typescript-copilot (v4.101.10)
+Generated Copilot variant at /Users/codysai/.claude/jobs/17b068aa/tmp/head-wt/plugins/lisa-expo-copilot (v4.101.10)
+Generated Copilot variant at /Users/codysai/.claude/jobs/17b068aa/tmp/head-wt/plugins/lisa-nestjs-copilot (v4.101.10)
+Generated Copilot variant at /Users/codysai/.claude/jobs/17b068aa/tmp/head-wt/plugins/lisa-cdk-copilot (v4.101.10)
+Generated Copilot variant at /Users/codysai/.claude/jobs/17b068aa/tmp/head-wt/plugins/lisa-harper-fabric-copilot (v4.101.10)
+Generated Copilot variant at /Users/codysai/.claude/jobs/17b068aa/tmp/head-wt/plugins/lisa-phaser-copilot (v4.101.10)
+Generated Copilot variant at /Users/codysai/.claude/jobs/17b068aa/tmp/head-wt/plugins/lisa-rails-copilot (v4.101.10)
+Generated Copilot variant at /Users/codysai/.claude/jobs/17b068aa/tmp/head-wt/plugins/lisa-wiki-copilot (v4.101.10)
+Generated Copilot variant at /Users/codysai/.claude/jobs/17b068aa/tmp/head-wt/plugins/lisa-openclaw-copilot (v4.101.10)
+Generated Devin variant at /Users/codysai/.claude/jobs/17b068aa/tmp/head-wt/plugins/lisa-devin (v4.101.10)
+Generated Devin variant at /Users/codysai/.claude/jobs/17b068aa/tmp/head-wt/plugins/lisa-typescript-devin (v4.101.10)
+Generated Devin variant at /Users/codysai/.claude/jobs/17b068aa/tmp/head-wt/plugins/lisa-expo-devin (v4.101.10)
+Generated Devin variant at /Users/codysai/.claude/jobs/17b068aa/tmp/head-wt/plugins/lisa-nestjs-devin (v4.101.10)
+Generated Devin variant at /Users/codysai/.claude/jobs/17b068aa/tmp/head-wt/plugins/lisa-cdk-devin (v4.101.10)
+Generated Devin variant at /Users/codysai/.claude/jobs/17b068aa/tmp/head-wt/plugins/lisa-harper-fabric-devin (v4.101.10)
+Generated Devin variant at /Users/codysai/.claude/jobs/17b068aa/tmp/head-wt/plugins/lisa-phaser-devin (v4.101.10)
+Generated Devin variant at /Users/codysai/.claude/jobs/17b068aa/tmp/head-wt/plugins/lisa-rails-devin (v4.101.10)
+Generated Devin variant at /Users/codysai/.claude/jobs/17b068aa/tmp/head-wt/plugins/lisa-wiki-devin (v4.101.10)
+Generated Devin variant at /Users/codysai/.claude/jobs/17b068aa/tmp/head-wt/plugins/lisa-openclaw-devin (v4.101.10)
+lisa-test-run: TMPDIR /var/folders/vc/t6bx6dwx0h7_3bj316vkb72r0000gn/T is too long for native Unix socket fixtures; using /private/tmp.
+🧹 swept 0 stale temp dirs, 0 orphaned test processes (93 ms); kept 19 entries not private to this user
+
+ RUN  v4.1.11 /Users/codysai/.claude/jobs/17b068aa/tmp/head-wt
+
+ ✓ |lisa| tests/unit/helpers/stderr-sync.test.ts > writeStderrSync > writes the message once, in one call, when the pipe takes it all 1ms
+ ✓ |lisa| tests/unit/helpers/stderr-sync.test.ts > writeStderrSync > finishes a message the pipe accepted only part of, writing it exactly once 0ms
+ ✓ |lisa| tests/unit/helpers/stderr-sync.test.ts > writeStderrSync > gives up after a bounded number of EAGAIN retries, without throwing 146ms
+ ✓ |lisa| tests/unit/helpers/stderr-sync.test.ts > writeStderrSync > stops at once when stderr refuses the write outright, without throwing 0ms
+ ✓ |lisa| tests/unit/helpers/history-scanner-preparation.test.ts > the cold scanner acquisition's containing deadline > is exactly the sum of the shipped provisioner's own phase limits 1ms
+ ✓ |lisa| tests/unit/helpers/history-scanner-global-setup.test.ts > an interrupted preparation > stops the provision child before removing any folder 110ms
+ ✓ |lisa| tests/unit/helpers/history-scanner-global-setup.test.ts > a failed release of the parent folder > is written to stderr synchronously, before the release returns 1ms
+ ✓ |lisa| tests/unit/helpers/history-scanner-global-setup.test.ts > a failed release of the parent folder > gives up after a bounded number of EAGAIN retries, without throwing 147ms
+ ✓ |lisa| tests/unit/helpers/history-scanner-global-setup.test.ts > a failed release of the parent folder > stops at once when stderr refuses the write outright, without throwing 0ms
+ ✓ |lisa| tests/unit/helpers/history-scanner-global-setup.test.ts > a failed removal of the preparation scope > neither throws from its exit listener nor skips the parent's release 53ms
+ ✓ |lisa| tests/unit/helpers/history-scanner-global-setup.test.ts > a failed removal of the preparation scope > keeps the failure path's own reason and still releases the parent at teardown 45ms
+ ✓ |lisa| tests/unit/helpers/history-scanner-preparation.test.ts > cold acquisition failures stay bounded, truthful and owned > kills a cold provision at its containing deadline and reports the timeout 504ms
+ ✓ |lisa| tests/unit/helpers/history-scanner-global-setup.test.ts > where the scope lives > is a supervised worker scope inside the leased suite root when a lease is held 116ms
+ ✓ |lisa| tests/unit/helpers/history-scanner-global-setup.test.ts > where the scope lives > is an owned scratch run root of this process without a lease 43ms
+ ✓ |lisa| tests/unit/helpers/history-scanner-preparation.test.ts > cold acquisition failures stay bounded, truthful and owned > gives the provision child a private TMPDIR inside its owned scope 20ms
+ ✓ |lisa| tests/unit/helpers/history-scanner-preparation.test.ts > cold acquisition failures stay bounded, truthful and owned > refuses a cold provision that is killed by a signal, and removes its owned scope 18ms
+ ✓ |lisa| tests/unit/helpers/history-scanner-preparation.test.ts > cold acquisition failures stay bounded, truthful and owned > refuses a cold provision that exits nonzero, and removes its owned scope 19ms
+ ✓ |lisa| tests/unit/helpers/history-scanner-preparation.test.ts > cold acquisition failures stay bounded, truthful and owned > refuses a cold provision that omits the success line, and removes its owned scope 18ms
+ ✓ |lisa| tests/unit/helpers/history-scanner-preparation.test.ts > cold acquisition failures stay bounded, truthful and owned > refuses a cold provision that reports success but writes nothing, and removes its owned scope 19ms
+ ✓ |lisa| tests/unit/helpers/history-scanner-preparation.test.ts > cold acquisition failures stay bounded, truthful and owned > refuses a cold provision that reports success over unpinned bytes, and removes its owned scope 21ms
+
+ Test Files  3 passed (3)
+      Tests  20 passed (20)
+   Start at  09:21:23
+   Duration  1.07s (transform 262ms, setup 303ms, import 308ms, tests 1.31s, environment 0ms)
+
+EXIT=0

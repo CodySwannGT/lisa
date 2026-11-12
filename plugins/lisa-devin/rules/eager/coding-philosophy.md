@@ -18,6 +18,7 @@ When writing or modifying code, follow these principles. Examples, hook structur
 - **Function structure order**: (1) variables & derived state, (2) side effects, (3) return. Never interleave.
 - **Functional transformations.** Prefer `map`/`filter`/`reduce` over imperative loops with mutation.
 - **Clean deletion.** When replacing code, delete the old version completely. No `V2`/`Old`/`New` suffixes, no `@deprecated` comments, no migration shims unless explicitly requested. Trust git history.
+- **Simplify before you finish.** Before calling a change done, re-read your own diff and simplify it without changing behaviour: reuse existing helpers instead of new ones, remove duplication, dead code and needless indirection, and prefer clearer names and flatter control flow. Re-run the tests afterwards.
 
 ## What NOT to write
 

@@ -221,7 +221,7 @@ Identity is carried in two places, and they must agree:
 | | `environment` | where it ran (local, preview, staging, production) |
 | | `observed_at` | when the run observed it (ISO-8601 UTC) |
 | `evidence[]` (per artifact) | `artifact_head_sha` | the `head_sha` in force **when that artifact was captured** |
-| | `sha256` | content digest of the committed evidence file |
+| | `sha256` | content digest of the committed evidence file, or of its uploaded evidence-release copy when git ignores the evidence (`evidence_committed: false`; see the `verification` rule) |
 | | `captured_at` | when that artifact was captured (ISO-8601 UTC) |
 
 `head_sha` pins the *build*; `sha256` pins the *bytes*. Together they answer both identity questions:
@@ -235,7 +235,8 @@ is cited as prior art here, not reinvented.
   `artifact.head_sha`. The evidence describes a different build than the one the verdict claims. The
   identity check fails **loudly, naming both SHAs** (the evidence's and the verdict's) so an operator
   can see which build each half is talking about.
-- **`evidence_digest_mismatch`** — on read, recompute the `sha256` of each committed evidence file. If
+- **`evidence_digest_mismatch`** — on read, recompute the `sha256` of each committed evidence file (or,
+  when its locator is an uploaded URL, of the bytes fetched from that URL). If
   the bytes no longer match the recorded digest, the artifact has changed since it was recorded: the
   check fails, it names the evidence id, and blocks completion. A digest that cannot be recomputed
   (file absent) is the same failure.

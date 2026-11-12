@@ -7,6 +7,19 @@ export const SCRATCH_PREFIXES_ENV = "LISA_TEST_SCRATCH_PREFIXES";
 /** Environment assertion for the immutable route suite label. */
 export const SCRATCH_SUITE_ENV = "LISA_TEST_SCRATCH_SUITE";
 
+/**
+ * Prefixes registered for every route, wrapped or not.
+ *
+ * `node-compile-cache` is Node's on-disk module compile cache. npm turns it on,
+ * so any suite whose code shells out to npm (CDK bundling Lambda code does)
+ * writes it into the run's temp root. It is a Node-owned cache, never a
+ * fixture a test forgot to remove, and reporting it failed suites whose every
+ * test passed (CodySwannGT/lisa#4786).
+ */
+export const ALWAYS_REGISTERED_PREFIXES: readonly string[] = Object.freeze([
+  "node-compile-cache",
+]);
+
 /** Maximum number of registered prefixes accepted from configuration. */
 const MAX_REGISTERED_PREFIXES = 64;
 
@@ -116,7 +129,7 @@ function parsePrefixRegistry(raw: string): unknown {
  */
 export function registeredScratchPrefixes(): readonly string[] {
   const raw = env[SCRATCH_PREFIXES_ENV];
-  if (raw === undefined || raw === "") return [];
+  if (raw === undefined || raw === "") return [...ALWAYS_REGISTERED_PREFIXES];
   const parsed = parsePrefixRegistry(raw);
   if (!Array.isArray(parsed) || parsed.length > MAX_REGISTERED_PREFIXES) {
     throw new Error(
@@ -137,8 +150,8 @@ export function registeredScratchPrefixes(): readonly string[] {
     }
     return value;
   });
-  return [...new Set(prefixes)].sort((left, right) =>
-    left.localeCompare(right)
+  return [...new Set([...ALWAYS_REGISTERED_PREFIXES, ...prefixes])].sort(
+    (left, right) => left.localeCompare(right)
   );
 }
 
@@ -237,7 +250,11 @@ export function resolveScratchRouteProfile(
     );
   }
   const prefixes = [
-    ...new Set([...base.registeredPrefixes, ...operatorPrefixes(environment)]),
+    ...new Set([
+      ...ALWAYS_REGISTERED_PREFIXES,
+      ...base.registeredPrefixes,
+      ...operatorPrefixes(environment),
+    ]),
   ].sort((left, right) => (left === right ? 0 : left < right ? -1 : 1));
   if (prefixes.length > MAX_REGISTERED_PREFIXES) {
     throw new Error(
