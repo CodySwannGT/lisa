@@ -2211,7 +2211,8 @@ export class Lisa {
    * agent surfaces are only touched by a full apply; the next full apply
    * repoints. A shim that cannot be rewritten, or that calls `sonar hook` in a
    * shape Lisa does not recognise, is reported as a warning and the apply
-   * continues.
+   * continues. Each shim is backed up before it is replaced, so a failure in
+   * a later apply step restores it along with everything else.
    */
   private async processSonarShimRepoint(): Promise<void> {
     if (this.config.dryRun) {
@@ -2220,8 +2221,12 @@ export class Lisa {
     if (this.shouldSkipAgentEmitDuringPostinstall()) {
       return;
     }
-    const result = await repointSonarShims(this.config.destDir);
-    const { logger } = this.deps;
+    const { backupService, logger } = this.deps;
+    // Back each shim up before it is replaced, so a later apply step failing
+    // rolls it back together with the wrapper it now points at.
+    const result = await repointSonarShims(this.config.destDir, {
+      beforeWrite: absolute => backupService.backup(absolute),
+    });
     if (result.repointed.length > 0) {
       logger.info(
         pc.cyan(
@@ -2231,7 +2236,7 @@ export class Lisa {
     }
     for (const failed of result.failed) {
       logger.warn(
-        `Sonar shim ${failed} could not be repointed at the Lisa wrapper (not readable or writable); patch it by hand per lisa-setup-sonar §4a.`
+        `Sonar shim ${failed} could not be repointed at the Lisa wrapper (not readable or writable, or reached through a symlinked folder outside the project); patch it by hand per lisa-setup-sonar §4a.`
       );
     }
     for (const stray of result.unrecognized) {

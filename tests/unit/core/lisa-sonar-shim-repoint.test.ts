@@ -10,7 +10,7 @@
  * the assertion is about the order apply actually uses.
  * @module tests/unit/core/lisa-sonar-shim-repoint
  */
-import { copyFile, mkdir, readFile, writeFile } from "node:fs/promises";
+import { chmod, copyFile, mkdir, readFile, writeFile } from "node:fs/promises";
 import * as path from "node:path";
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -101,6 +101,25 @@ class RecordingLogger implements ILogger {
 describe("Lisa.apply repoints Sonar shims after sonar integrate", () => {
   let destDir: string;
   let logger: RecordingLogger;
+  /** The shim's bytes at the moment apply reached the step after the repoint. */
+  let atNextStep: string | undefined;
+
+  /**
+   * Make the stubbed integrate step leave this shim behind, as the real CLI
+   * restores its own shim on every apply.
+   * @param body - Shim body integrate leaves
+   * @param mode - Permission bits it leaves
+   */
+  function integrateLeaves(body: string, mode = 0o755): void {
+    vi.spyOn(
+      Lisa.prototype as unknown as Steps,
+      "processSonarIntegration"
+    ).mockImplementation(async () => {
+      const shim = path.join(destDir, SHIM);
+      await writeFile(shim, body);
+      await chmod(shim, mode);
+    });
+  }
 
   beforeEach(async () => {
     destDir = await createTempDir();
@@ -112,14 +131,18 @@ describe("Lisa.apply repoints Sonar shims after sonar integrate", () => {
     for (const step of STUBBED_STEPS) {
       vi.spyOn(steps, step).mockResolvedValue(undefined);
     }
-    // What the real CLI does on every apply: restore the vendor shim.
-    vi.spyOn(steps, "processSonarIntegration").mockImplementation(async () => {
-      const shim = path.join(destDir, SHIM);
-      await mkdir(path.dirname(shim), { recursive: true });
-      await writeFile(shim, VENDOR_SHIM, { mode: 0o755 });
-    });
-    vi.spyOn(steps, "processInstructionFilesMigration").mockRejectedValue(
-      new Error(HALT)
+    // A host checkout that committed the vendor shim before #2324.
+    const shim = path.join(destDir, SHIM);
+    await mkdir(path.dirname(shim), { recursive: true });
+    await writeFile(shim, VENDOR_SHIM, { mode: 0o755 });
+    atNextStep = undefined;
+    integrateLeaves(VENDOR_SHIM);
+    // The step after the repoint fails, so apply rolls back.
+    vi.spyOn(steps, "processInstructionFilesMigration").mockImplementation(
+      async () => {
+        atNextStep = await readFile(shim, "utf8");
+        throw new Error(HALT);
+      }
     );
   });
 
@@ -163,11 +186,17 @@ describe("Lisa.apply repoints Sonar shims after sonar integrate", () => {
   it("rewrites the shim sonar integrate just restored", async () => {
     await apply();
 
-    const body = await readFile(path.join(destDir, SHIM), "utf8");
-    expect(body).toContain(
+    expect(atNextStep).toContain(
       'exec bash "${here}/../../../../scripts/lisa-hooks/sonar-secrets.sh" claude-prompt-submit'
     );
     expect(logger.infos.some(line => line.includes(SHIM))).toBe(true);
+  });
+
+  it("restores the vendor shim when a later apply step fails", async () => {
+    await apply();
+
+    expect(atNextStep).not.toBe(VENDOR_SHIM);
+    expect(await readFile(path.join(destDir, SHIM), "utf8")).toBe(VENDOR_SHIM);
   });
 
   it("leaves the shim alone in dry-run mode", async () => {
@@ -185,37 +214,22 @@ describe("Lisa.apply repoints Sonar shims after sonar integrate", () => {
   it.skipIf(process.getuid?.() === 0)(
     "warns about an unwritable shim and lets apply continue",
     async () => {
-      vi.spyOn(
-        Lisa.prototype as unknown as Steps,
-        "processSonarIntegration"
-      ).mockImplementation(async () => {
-        const shim = path.join(destDir, SHIM);
-        await mkdir(path.dirname(shim), { recursive: true });
-        await writeFile(shim, VENDOR_SHIM, { mode: 0o555 });
-      });
+      integrateLeaves(VENDOR_SHIM, 0o555);
+
       await apply();
 
-      expect(await readFile(path.join(destDir, SHIM), "utf8")).toBe(
-        VENDOR_SHIM
-      );
+      expect(atNextStep).toBe(VENDOR_SHIM);
       expect(logger.warnings.some(line => line.includes(SHIM))).toBe(true);
     }
   );
 
   it("warns about an unrecognised shim and names the setup skill", async () => {
     const custom = `${VENDOR_SHIM}echo done\n`;
-    vi.spyOn(
-      Lisa.prototype as unknown as Steps,
-      "processSonarIntegration"
-    ).mockImplementation(async () => {
-      const shim = path.join(destDir, SHIM);
-      await mkdir(path.dirname(shim), { recursive: true });
-      await writeFile(shim, custom, { mode: 0o755 });
-    });
+    integrateLeaves(custom);
 
     await apply();
 
-    expect(await readFile(path.join(destDir, SHIM), "utf8")).toBe(custom);
+    expect(atNextStep).toBe(custom);
     const warning = logger.warnings.find(line => line.includes(SHIM));
     expect(warning).toContain("lisa-setup-sonar §4a");
   });

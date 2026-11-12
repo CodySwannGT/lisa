@@ -13,25 +13,20 @@
  */
 import {
   chmod,
-  copyFile,
   mkdir,
-  mkdtemp,
   readFile,
-  rm,
   stat,
   symlink,
   writeFile,
 } from "node:fs/promises";
-import * as os from "node:os";
 import * as path from "node:path";
 
-import { afterEach, describe, expect, it } from "vitest";
+import { describe, expect, it } from "vitest";
 
 import {
   parseVendorShimEvent,
   repointSonarShims,
   SONAR_SHIM_PATHS,
-  SONAR_WRAPPER_PATH,
 } from "../../../src/sonar/sonar-shim-repoint.js";
 import {
   boundedSpawnSync,
@@ -42,79 +37,21 @@ import {
   HOOK_RUN_BUDGET_MS,
   INACTIVE,
   REPO_ROOT,
-  SHIPPED,
   stubSonar,
 } from "../hooks/support/sonar-secrets-fixtures.js";
+import {
+  ANTIGRAVITY,
+  CLAUDE_PROMPT,
+  CLAUDE_PROMPT_EXEC,
+  checkout,
+  GUARD_IF,
+  PROMPT_EVENT,
+  SHEBANG,
+  vendorShim,
+  writeShim,
+} from "./support/sonar-shim-fixtures.js";
 
 useIoLatencyBudget();
-
-const CLAUDE_PROMPT =
-  ".claude/hooks/sonar-secrets/build-scripts/prompt-secrets.sh";
-const ANTIGRAVITY = ".agents/sonar/hooks/pretool-secrets.sh";
-const SHEBANG = "#!/bin/bash";
-const PROMPT_EVENT = "claude-prompt-submit";
-
-/**
- * The shim `sonar integrate` writes, verbatim from the vendor's
- * `buildUnixHookScript`.
- * @param event - Vendor hook event name
- * @returns Shim body
- */
-function vendorShim(event: string): string {
-  return [
-    SHEBANG,
-    "if ! command -v sonar &> /dev/null; then",
-    "  exit 0",
-    "fi",
-    `sonar hook ${event}`,
-    "",
-  ].join("\n");
-}
-
-const tempDirectories: string[] = [];
-
-afterEach(async () => {
-  await Promise.all(
-    tempDirectories
-      .splice(0)
-      .map(directory => rm(directory, { force: true, recursive: true }))
-  );
-});
-
-/**
- * Create a checkout fixture, optionally carrying the real shipped wrapper.
- * @param withWrapper - Whether to copy the wrapper into the checkout
- * @returns Absolute checkout root
- */
-async function checkout(withWrapper = true): Promise<string> {
-  const root = await mkdtemp(path.join(os.tmpdir(), "lisa-sonar-shim-"));
-  tempDirectories.push(root);
-  if (withWrapper) {
-    const wrapper = path.join(root, SONAR_WRAPPER_PATH);
-    await mkdir(path.dirname(wrapper), { recursive: true });
-    await copyFile(SHIPPED, wrapper);
-  }
-  return root;
-}
-
-/**
- * Write an executable shim into the checkout.
- * @param root - Checkout root
- * @param relative - Shim path relative to the root
- * @param body - Shim body
- * @returns Absolute shim path
- */
-async function writeShim(
-  root: string,
-  relative: string,
-  body: string
-): Promise<string> {
-  const absolute = path.join(root, relative);
-  await mkdir(path.dirname(absolute), { recursive: true });
-  await writeFile(absolute, body);
-  await chmod(absolute, 0o755);
-  return absolute;
-}
 
 /**
  * Run a shim the way an agent harness does: payload on stdin, stub CLI first
@@ -178,9 +115,7 @@ describe("repointSonarShims", () => {
     });
     const body = await readFile(shim, "utf8");
     expect(body.startsWith(`${SHEBANG}\n`)).toBe(true);
-    expect(body).toContain(
-      'exec bash "${here}/../../../../scripts/lisa-hooks/sonar-secrets.sh" claude-prompt-submit'
-    );
+    expect(body).toContain(CLAUDE_PROMPT_EXEC);
     expect(body).not.toMatch(/^sonar hook/m);
     expect((await stat(shim)).mode & 0o7777).toBe(0o755);
   });
@@ -202,11 +137,11 @@ describe("repointSonarShims", () => {
     const patched = [
       SHEBANG,
       "# Delegates to Lisa's wrapper (hand-patched per lisa-setup-sonar §4a).",
-      "if ! command -v sonar &> /dev/null; then",
+      GUARD_IF,
       "  exit 0",
       "fi",
       'here="$(cd -- "$(dirname -- "$0")" && pwd)"',
-      'exec bash "${here}/../../../../scripts/lisa-hooks/sonar-secrets.sh" claude-prompt-submit',
+      CLAUDE_PROMPT_EXEC,
       "",
     ].join("\n");
     const shim = await writeShim(root, CLAUDE_PROMPT, patched);

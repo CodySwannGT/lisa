@@ -12,15 +12,22 @@
  * re-runs `sonar integrate` on each apply, which restores the vendor shim.
  *
  * This module closes the loop at apply time. It is deliberately conservative:
- * it rewrites only a shim at a documented location whose body is recognisably
- * the vendor's (comments, the `command -v sonar` guard, and exactly one
- * `sonar hook <event>` line). A shim already naming the wrapper is left alone,
- * which makes the rewrite idempotent, and any other body is treated as
- * operator-customised and never touched.
+ * it rewrites only a shim at a documented location whose body is exactly the
+ * vendor's (comments aside, the `command -v sonar` guard followed by one
+ * `sonar hook <event>` line, in that order). A shim that already executes the
+ * wrapper is left alone, which makes the rewrite idempotent, and any other body
+ * is treated as operator-customised and never touched. Write safety (symlinked
+ * ancestors, atomic replacement, read-only shims) lives in `sonar-shim-fs.ts`.
  * @module sonar/sonar-shim-repoint
  */
-import { chmod, lstat, readFile, writeFile } from "node:fs/promises";
+import { readFile } from "node:fs/promises";
 import * as path from "node:path";
+
+import {
+  parentInsideProject,
+  regularFileMode,
+  replaceFileAtomically,
+} from "./sonar-shim-fs.js";
 
 /**
  * Shim locations `lisa-setup-sonar` §4a documents, relative to the project root.
@@ -42,11 +49,20 @@ export const SONAR_SHIM_PATHS: readonly string[] = [
 /** Lisa's Sonar hook wrapper, relative to the project root. */
 export const SONAR_WRAPPER_PATH = "scripts/lisa-hooks/sonar-secrets.sh";
 
-/** Marker proving a shim already delegates to the wrapper. */
-const WRAPPER_MARKER = path.posix.basename(SONAR_WRAPPER_PATH);
+/**
+ * An executable line delegating to the wrapper. Only a real invocation counts
+ * as "already repointed": a comment that merely names the wrapper must not
+ * hide a live `sonar hook` call.
+ */
+const WRAPPER_INVOCATION =
+  /^exec\s+bash\s+"?[^"\s]*scripts\/lisa-hooks\/sonar-secrets\.sh"?\s+[a-z][a-z0-9-]*$/;
 
-/** Structural lines the vendor shim may carry besides its hook call. */
-const VENDOR_GUARD_LINES: readonly RegExp[] = [
+/**
+ * The vendor shim's guard, in the only order it is written: anything else (an
+ * early `exit 0` that disables the hook, say) is a customisation, and
+ * rewriting it would silently re-enable or change what it does.
+ */
+const VENDOR_GUARD_SEQUENCE: readonly RegExp[] = [
   /^if\s+!\s+command\s+-v\s+sonar\b[^;]*;\s*then$/,
   /^exit\s+0$/,
   /^fi$/,
@@ -73,7 +89,10 @@ export interface SonarShimRepointResult {
   readonly wrapperPresent: boolean;
   /** Shim paths (relative to the project root) rewritten by this pass. */
   readonly repointed: readonly string[];
-  /** Shim paths that could not be read or rewritten (e.g. not writable). */
+  /**
+   * Shim paths that could not be read or rewritten safely: not readable, not
+   * writable, or reached through a symlinked folder outside the project.
+   */
   readonly failed: readonly string[];
   /**
    * Shim paths that call `sonar hook` but are neither the vendor form nor
@@ -83,26 +102,40 @@ export interface SonarShimRepointResult {
 }
 
 /**
- * Extract the vendor event from an unmodified vendor shim body.
+ * The executable lines of a shim: trimmed, without blanks or comments.
  * @param body - Shim file contents
- * @returns The event name, or undefined when the body is already repointed,
- *   customised, or otherwise not recognisably the vendor's
+ * @returns Non-blank, non-comment lines in file order
  */
-export function parseVendorShimEvent(body: string): string | undefined {
-  if (body.includes(WRAPPER_MARKER)) return undefined;
-  const lines = body
+function executableLines(body: string): readonly string[] {
+  return body
     .split("\n")
     .map(line => line.trim())
     .filter(line => line !== "" && !line.startsWith("#"));
-  const hookEvents = lines
-    .map(line => VENDOR_HOOK_LINE.exec(line)?.[1])
-    .filter((event): event is string => event !== undefined);
-  const allRecognised = lines.every(
-    line =>
-      VENDOR_HOOK_LINE.test(line) ||
-      VENDOR_GUARD_LINES.some(pattern => pattern.test(line))
+}
+
+/**
+ * Whether a shim already executes the wrapper.
+ * @param body - Shim file contents
+ * @returns True when an executable line invokes the wrapper
+ */
+export function invokesWrapper(body: string): boolean {
+  return executableLines(body).some(line => WRAPPER_INVOCATION.test(line));
+}
+
+/**
+ * Extract the vendor event from an unmodified vendor shim body.
+ * @param body - Shim file contents
+ * @returns The event name, or undefined when the body is already repointed,
+ *   customised, or otherwise not exactly the vendor's guard-then-hook sequence
+ */
+export function parseVendorShimEvent(body: string): string | undefined {
+  const lines = executableLines(body);
+  if (lines.length !== VENDOR_GUARD_SEQUENCE.length + 1) return undefined;
+  const guarded = VENDOR_GUARD_SEQUENCE.every((pattern, index) =>
+    pattern.test(lines[index] ?? "")
   );
-  return allRecognised && hookEvents.length === 1 ? hookEvents[0] : undefined;
+  const hookLine = lines[VENDOR_GUARD_SEQUENCE.length] ?? "";
+  return guarded ? VENDOR_HOOK_LINE.exec(hookLine)?.[1] : undefined;
 }
 
 /**
@@ -132,14 +165,28 @@ export function renderRepointedShim(
 }
 
 /**
- * Whether a path is a regular, non-symlinked file, and its permission bits.
- * @param absolute - Absolute path to inspect
- * @returns The permission bits, or undefined when missing or not a regular file
+ * Called with each shim's absolute path just before it is replaced, so the
+ * caller can back it up (apply registers it for rollback).
  */
-async function regularFileMode(absolute: string): Promise<number | undefined> {
-  const stats = await lstat(absolute).catch(() => undefined);
-  if (stats === undefined || !stats.isFile()) return undefined;
-  return stats.mode & 0o7777;
+export type BeforeShimWrite = (absolute: string) => Promise<void>;
+
+/** Options for {@link repointSonarShims}. */
+export interface RepointSonarShimsOptions {
+  /** Invoked before each replacement; a rejection marks the shim `failed`. */
+  readonly beforeWrite?: BeforeShimWrite;
+}
+
+/**
+ * Classify a body that is not a vendor shim.
+ * @param body - Shim file contents
+ * @returns `unrecognized` when it still calls `sonar hook` directly
+ */
+function classifyNonVendor(body: string): ShimOutcome {
+  if (invokesWrapper(body)) return "skipped";
+  const callsHook = executableLines(body).some(line =>
+    SONAR_HOOK_CALL.test(line)
+  );
+  return callsHook ? "unrecognized" : "skipped";
 }
 
 /**
@@ -147,48 +194,56 @@ async function regularFileMode(absolute: string): Promise<number | undefined> {
  * @param absolute - Absolute shim path
  * @param relative - Shim path relative to the project root
  * @param mode - Permission bits to restore after the write
+ * @param beforeWrite - Hook run just before the replacement
  * @returns The outcome for this shim
  */
 async function rewriteIfVendor(
   absolute: string,
   relative: string,
-  mode: number
+  mode: number,
+  beforeWrite: BeforeShimWrite | undefined
 ): Promise<ShimOutcome> {
   const body = await readFile(absolute, "utf8");
-  const event = parseVendorShimEvent(body);
-  if (event === undefined) {
-    const stray = !body.includes(WRAPPER_MARKER) && SONAR_HOOK_CALL.test(body);
-    return stray ? "unrecognized" : "skipped";
-  }
+  const event = invokesWrapper(body) ? undefined : parseVendorShimEvent(body);
+  if (event === undefined) return classifyNonVendor(body);
   const firstLine = body.split("\n", 1)[0];
   const shebang = firstLine?.startsWith("#!") ? firstLine : undefined;
   const relWrapper = path.posix.relative(
     path.posix.dirname(relative),
     SONAR_WRAPPER_PATH
   );
-  await writeFile(absolute, renderRepointedShim(shebang, relWrapper, event));
-  await chmod(absolute, mode);
+  await beforeWrite?.(absolute);
+  await replaceFileAtomically(
+    absolute,
+    renderRepointedShim(shebang, relWrapper, event),
+    mode
+  );
   return "repointed";
 }
 
 /**
  * Repoint one shim when it is an unmodified vendor shim.
  *
- * Never throws: an unreadable or unwritable shim is reported as `failed`, so
- * one bad file cannot abort (and roll back) the whole apply.
+ * Never throws: an unreadable or unwritable shim, or one whose parent folder
+ * resolves outside the project through a symlink, is reported as `failed`, so
+ * one bad file cannot abort (and roll back) the whole apply and the operator
+ * is told about it.
  * @param projectRoot - Absolute project root
  * @param relative - Shim path relative to the project root
+ * @param beforeWrite - Hook run just before the replacement
  * @returns The outcome for this shim
  */
 async function repointShim(
   projectRoot: string,
-  relative: string
+  relative: string,
+  beforeWrite: BeforeShimWrite | undefined
 ): Promise<ShimOutcome> {
   const absolute = path.join(projectRoot, relative);
   const mode = await regularFileMode(absolute);
   if (mode === undefined) return "skipped";
   try {
-    return await rewriteIfVendor(absolute, relative, mode);
+    if (!(await parentInsideProject(projectRoot, absolute))) return "failed";
+    return await rewriteIfVendor(absolute, relative, mode, beforeWrite);
   } catch {
     return "failed";
   }
@@ -215,10 +270,12 @@ function pathsWith(
  * A no-op when the wrapper is absent: a shim pointed at a missing wrapper would
  * fail every hook, which is worse than the vendor behaviour it replaces.
  * @param projectRoot - Absolute project root
+ * @param options - Optional pre-write hook (used by apply for rollback backup)
  * @returns Whether the wrapper exists, and each shim's outcome by category
  */
 export async function repointSonarShims(
-  projectRoot: string
+  projectRoot: string,
+  options: RepointSonarShimsOptions = {}
 ): Promise<SonarShimRepointResult> {
   const wrapperMode = await regularFileMode(
     path.join(projectRoot, SONAR_WRAPPER_PATH)
@@ -234,7 +291,10 @@ export async function repointSonarShims(
   const outcomes = await Promise.all(
     SONAR_SHIM_PATHS.map(
       async relative =>
-        [relative, await repointShim(projectRoot, relative)] as const
+        [
+          relative,
+          await repointShim(projectRoot, relative, options.beforeWrite),
+        ] as const
     )
   );
   return {
