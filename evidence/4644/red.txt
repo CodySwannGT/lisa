@@ -1,31 +1,60 @@
+# RED: tests/unit/core/update-skill-references.test.ts (copied from f33bd37a96) run against origin/main 883931760bb1f2054c69c7636b6ff0bca6b850d8
+# Independent re-run by verification-specialist (did not implement the change).
+# command: bunx vitest run tests/unit/core/update-skill-references.test.ts
+# cwd: throwaway worktree of origin/main at /Users/codysai/.claude/jobs/210f256b/tmp/main-check (node_modules symlinked from the branch worktree); removed afterwards
+# captured_at: 2026-11-12T15:36:23Z
+# note: on origin/main the three skill copies are already byte-identical (cmp silent), so the
+#       parity cases pass there; the parity check's ability to fail is shown in parity-red.txt
+# result: 9 failed | 6 passed (15), exit=1
 
- RUN  v4.1.11 /Users/codysai/workspace/lisa/.claude/worktrees/4644-update-projects-skill
+vitest.config.ts (19:7) [UNRESOLVED_IMPORT] Could not resolve '@codyswann/lisa/vitest/typescript' in vitest.config.ts
+    ╭─[ vitest.config.ts:19:8 ]
+    │
+ 19 │ } from "@codyswann/lisa/vitest/typescript";
+    │        ─────────────────┬─────────────────  
+    │                         ╰─────────────────── Module not found, treating it as an external dependency
+────╯
 
+vitest.config.ts (19:7) [UNRESOLVED_IMPORT] Could not resolve '@codyswann/lisa/vitest/typescript' in vitest.config.ts
+    ╭─[ vitest.config.ts:19:8 ]
+    │
+ 19 │ } from "@codyswann/lisa/vitest/typescript";
+    │        ─────────────────┬─────────────────  
+    │                         ╰─────────────────── Module not found, treating it as an external dependency
+────╯
+
+vitest.config.ts (19:7) [UNRESOLVED_IMPORT] Could not resolve '@codyswann/lisa/vitest/typescript' in vitest.config.ts
+    ╭─[ vitest.config.ts:19:8 ]
+    │
+ 19 │ } from "@codyswann/lisa/vitest/typescript";
+    │        ─────────────────┬─────────────────  
+    │                         ╰─────────────────── Module not found, treating it as an external dependency
+────╯
+
+vitest.config.ts (19:7) [UNRESOLVED_IMPORT] Could not resolve '@codyswann/lisa/vitest/typescript' in vitest.config.ts
+    ╭─[ vitest.config.ts:19:8 ]
+    │
+ 19 │ } from "@codyswann/lisa/vitest/typescript";
+    │        ─────────────────┬─────────────────  
+    │                         ╰─────────────────── Module not found, treating it as an external dependency
+────╯
+
+
+ RUN  v4.1.11 /Users/codysai/.claude/jobs/210f256b/tmp/main-check
+
+Sourcemap for "/Users/codysai/workspace/lisa/.claude/worktrees/4644-update-projects-skill/node_modules/.bun/@codyswann+lisa@4.69.1+dbdb9b37f1a7de56/node_modules/@codyswann/lisa/dist/configs/vitest/scratch-setup.js" points to missing source files
 lisa scratch: no supervised lease in the environment, so this run is self-supervised. Fixture directories are still bounded to a run root this process owns and removed on exit; what is missing is the detached reaper that reclaims the root after a SIGKILL, which the next run's startup sweep recovers instead. Run through `lisa-test-run --profile <profile> --adapter vitest -- vitest ...` for a supervised run.
- ✓ |lisa| tests/unit/core/update-skill-references.test.ts > lisa-update-projects skill: references and parity > has every copy present, so a renamed path cannot empty this file 1ms
- × |lisa| tests/unit/core/update-skill-references.test.ts > lisa-update-projects skill: references and parity > .claude/skills/lisa-update-projects/SKILL.md cites only Lisa paths that exist 5ms
-   → expected [ …(4) ] to deeply equal []
- × |lisa| tests/unit/core/update-skill-references.test.ts > lisa-update-projects skill: references and parity > .agents/skills/lisa-update-projects/SKILL.md cites only Lisa paths that exist 1ms
-   → expected [ …(4) ] to deeply equal []
- × |lisa| tests/unit/core/update-skill-references.test.ts > lisa-update-projects skill: references and parity > .claude-pr/.claude/skills/lisa-update-projects/SKILL.md cites only Lisa paths that exist 1ms
-   → expected [ …(4) ] to deeply equal []
- ✓ |lisa| tests/unit/core/update-skill-references.test.ts > lisa-update-projects skill: references and parity > .claude/skills/lisa-update-projects/SKILL.md still cites every host-path exclusion, so none is stale 0ms
- ✓ |lisa| tests/unit/core/update-skill-references.test.ts > lisa-update-projects skill: references and parity > .agents/skills/lisa-update-projects/SKILL.md still cites every host-path exclusion, so none is stale 0ms
- ✓ |lisa| tests/unit/core/update-skill-references.test.ts > lisa-update-projects skill: references and parity > .claude-pr/.claude/skills/lisa-update-projects/SKILL.md still cites every host-path exclusion, so none is stale 0ms
- ✓ |lisa| tests/unit/core/update-skill-references.test.ts > lisa-update-projects skill: references and parity > .agents/skills/lisa-update-projects/SKILL.md has the same numbered steps and headings as the .claude copy 0ms
- ✓ |lisa| tests/unit/core/update-skill-references.test.ts > lisa-update-projects skill: references and parity > .claude-pr/.claude/skills/lisa-update-projects/SKILL.md has the same numbered steps and headings as the .claude copy 1ms
- × |lisa| tests/unit/core/update-skill-references.test.ts > lisa-update-projects skill: references and parity > .claude/skills/lisa-update-projects/SKILL.md step 8 recognises pinned callers 4ms
-   → expected '\n8. Check for legacy inline Claude w…' to contain '@<40-char sha> # v<version>'
- × |lisa| tests/unit/core/update-skill-references.test.ts > lisa-update-projects skill: references and parity > .agents/skills/lisa-update-projects/SKILL.md step 8 recognises pinned callers 1ms
-   → expected '\n8. Check for legacy inline Claude w…' to contain '@<40-char sha> # v<version>'
- × |lisa| tests/unit/core/update-skill-references.test.ts > lisa-update-projects skill: references and parity > .claude-pr/.claude/skills/lisa-update-projects/SKILL.md step 8 recognises pinned callers 1ms
-   → expected '\n8. Check for legacy inline Claude w…' to contain '@<40-char sha> # v<version>'
- × |lisa| tests/unit/core/update-skill-references.test.ts > lisa-update-projects skill: references and parity > .claude/skills/lisa-update-projects/SKILL.md step 8 never accepts a zero-caller detector run as clean 1ms
-   → expected '\n8. Check for legacy inline Claude w…' to contain '`summary.scanned` is `0`'
- × |lisa| tests/unit/core/update-skill-references.test.ts > lisa-update-projects skill: references and parity > .agents/skills/lisa-update-projects/SKILL.md step 8 never accepts a zero-caller detector run as clean 1ms
-   → expected '\n8. Check for legacy inline Claude w…' to contain '`summary.scanned` is `0`'
- × |lisa| tests/unit/core/update-skill-references.test.ts > lisa-update-projects skill: references and parity > .claude-pr/.claude/skills/lisa-update-projects/SKILL.md step 8 never accepts a zero-caller detector run as clean 1ms
-   → expected '\n8. Check for legacy inline Claude w…' to contain '`summary.scanned` is `0`'
+Sourcemap for "/Users/codysai/workspace/lisa/.claude/worktrees/4644-update-projects-skill/node_modules/.bun/@codyswann+lisa@4.69.1+dbdb9b37f1a7de56/node_modules/@codyswann/lisa/dist/configs/vitest/scratch-leak-setup.js" points to missing source files
+ ❯ |lisa| tests/unit/core/update-skill-references.test.ts (15 tests | 9 failed) 21ms
+     × .claude/skills/lisa-update-projects/SKILL.md cites only Lisa paths that exist 5ms
+     × .agents/skills/lisa-update-projects/SKILL.md cites only Lisa paths that exist 1ms
+     × .claude-pr/.claude/skills/lisa-update-projects/SKILL.md cites only Lisa paths that exist 1ms
+     × .claude/skills/lisa-update-projects/SKILL.md step 8 recognises pinned callers 4ms
+     × .agents/skills/lisa-update-projects/SKILL.md step 8 recognises pinned callers 2ms
+     × .claude-pr/.claude/skills/lisa-update-projects/SKILL.md step 8 recognises pinned callers 1ms
+     × .claude/skills/lisa-update-projects/SKILL.md step 8 never accepts a zero-caller detector run as clean 1ms
+     × .agents/skills/lisa-update-projects/SKILL.md step 8 never accepts a zero-caller detector run as clean 1ms
+     × .claude-pr/.claude/skills/lisa-update-projects/SKILL.md step 8 never accepts a zero-caller detector run as clean 1ms
 
 ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 9 ⎯⎯⎯⎯⎯⎯⎯
 
@@ -144,6 +173,7 @@ AssertionError: expected '\n8. Check for legacy inline Claude w…' to contain '
 
  Test Files  1 failed (1)
       Tests  9 failed | 6 passed (15)
-   Start at  10:32:26
-   Duration  316ms (transform 74ms, setup 124ms, import 7ms, tests 21ms, environment 0ms)
+   Start at  10:36:23
+   Duration  262ms (transform 44ms, setup 93ms, import 4ms, tests 21ms, environment 0ms)
 
+exit=1

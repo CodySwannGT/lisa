@@ -3855,6 +3855,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "evidence/4621/verify-red-base.txt": true,
     "evidence/4621/verify-typecheck.txt": true,
     "evidence/4644/green.txt": true,
+    "evidence/4644/parity-red.txt": true,
+    "evidence/4644/paths-and-parity.txt": true,
     "evidence/4644/red.txt": true,
     "evidence/4692/c1-near-full-refusal.txt": true,
     "evidence/4692/c2-rotation.txt": true,

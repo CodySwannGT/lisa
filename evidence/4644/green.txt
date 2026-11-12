@@ -1,28 +1,13 @@
+# GREEN: tests/unit/core/update-skill-references.test.ts at branch HEAD f33bd37a9699243a6d508f6c95c41c2bac661dbb
+# Independent re-run by verification-specialist (did not implement the change).
+# command: bunx vitest run tests/unit/core/update-skill-references.test.ts --reporter=verbose
+# captured_at: 2026-11-12T15:37:03Z
+# result: 15 passed (15), exit=0
+
 
  RUN  v4.1.11 /Users/codysai/workspace/lisa/.claude/worktrees/4644-update-projects-skill
 
 lisa scratch: no supervised lease in the environment, so this run is self-supervised. Fixture directories are still bounded to a run root this process owns and removed on exit; what is missing is the detached reaper that reclaims the root after a SIGKILL, which the next run's startup sweep recovers instead. Run through `lisa-test-run --profile <profile> --adapter vitest -- vitest ...` for a supervised run.
-lisa scratch: no supervised lease in the environment, so this run is self-supervised. Fixture directories are still bounded to a run root this process owns and removed on exit; what is missing is the detached reaper that reclaims the root after a SIGKILL, which the next run's startup sweep recovers instead. Run through `lisa-test-run --profile <profile> --adapter vitest -- vitest ...` for a supervised run.
- ✓ |lisa| tests/unit/core/update-skill-canary.test.ts > lisa-update-projects skill: canary-first rollout > has every copy present, so a renamed path cannot empty this file 1ms
- ✓ |lisa| tests/unit/core/update-skill-canary.test.ts > lisa-update-projects skill: canary-first rollout > .claude/skills/lisa-update-projects/SKILL.md contains node scripts/lisa-update-projects-plan.mjs 0ms
- ✓ |lisa| tests/unit/core/update-skill-canary.test.ts > lisa-update-projects skill: canary-first rollout > .claude/skills/lisa-update-projects/SKILL.md contains node scripts/lisa-update-projects-plan.mjs decide --canary-result 0ms
- ✓ |lisa| tests/unit/core/update-skill-canary.test.ts > lisa-update-projects skill: canary-first rollout > .claude/skills/lisa-update-projects/SKILL.md contains --required --watch 0ms
- ✓ |lisa| tests/unit/core/update-skill-canary.test.ts > lisa-update-projects skill: canary-first rollout > .claude/skills/lisa-update-projects/SKILL.md contains exec @ARGV or die 0ms
- ✓ |lisa| tests/unit/core/update-skill-canary.test.ts > lisa-update-projects skill: canary-first rollout > .claude/skills/lisa-update-projects/SKILL.md contains **skip step 17** (Lisa's self-upgrade) 0ms
- ✓ |lisa| tests/unit/core/update-skill-canary.test.ts > lisa-update-projects skill: canary-first rollout > .claude/skills/lisa-update-projects/SKILL.md contains The report always opens with a **Canary** section 0ms
- ✓ |lisa| tests/unit/core/update-skill-canary.test.ts > lisa-update-projects skill: canary-first rollout > .agents/skills/lisa-update-projects/SKILL.md contains node scripts/lisa-update-projects-plan.mjs 0ms
- ✓ |lisa| tests/unit/core/update-skill-canary.test.ts > lisa-update-projects skill: canary-first rollout > .agents/skills/lisa-update-projects/SKILL.md contains node scripts/lisa-update-projects-plan.mjs decide --canary-result 0ms
- ✓ |lisa| tests/unit/core/update-skill-canary.test.ts > lisa-update-projects skill: canary-first rollout > .agents/skills/lisa-update-projects/SKILL.md contains --required --watch 0ms
- ✓ |lisa| tests/unit/core/update-skill-canary.test.ts > lisa-update-projects skill: canary-first rollout > .agents/skills/lisa-update-projects/SKILL.md contains exec @ARGV or die 0ms
- ✓ |lisa| tests/unit/core/update-skill-canary.test.ts > lisa-update-projects skill: canary-first rollout > .agents/skills/lisa-update-projects/SKILL.md contains **skip step 17** (Lisa's self-upgrade) 0ms
- ✓ |lisa| tests/unit/core/update-skill-canary.test.ts > lisa-update-projects skill: canary-first rollout > .agents/skills/lisa-update-projects/SKILL.md contains The report always opens with a **Canary** section 0ms
- ✓ |lisa| tests/unit/core/update-skill-canary.test.ts > lisa-update-projects skill: canary-first rollout > .claude-pr/.claude/skills/lisa-update-projects/SKILL.md contains node scripts/lisa-update-projects-plan.mjs 0ms
- ✓ |lisa| tests/unit/core/update-skill-canary.test.ts > lisa-update-projects skill: canary-first rollout > .claude-pr/.claude/skills/lisa-update-projects/SKILL.md contains node scripts/lisa-update-projects-plan.mjs decide --canary-result 0ms
- ✓ |lisa| tests/unit/core/update-skill-canary.test.ts > lisa-update-projects skill: canary-first rollout > .claude-pr/.claude/skills/lisa-update-projects/SKILL.md contains --required --watch 0ms
- ✓ |lisa| tests/unit/core/update-skill-canary.test.ts > lisa-update-projects skill: canary-first rollout > .claude-pr/.claude/skills/lisa-update-projects/SKILL.md contains exec @ARGV or die 0ms
- ✓ |lisa| tests/unit/core/update-skill-canary.test.ts > lisa-update-projects skill: canary-first rollout > .claude-pr/.claude/skills/lisa-update-projects/SKILL.md contains **skip step 17** (Lisa's self-upgrade) 0ms
- ✓ |lisa| tests/unit/core/update-skill-canary.test.ts > lisa-update-projects skill: canary-first rollout > .claude-pr/.claude/skills/lisa-update-projects/SKILL.md contains The report always opens with a **Canary** section 0ms
- ✓ |lisa| tests/unit/core/update-skill-canary.test.ts > lisa-update-projects skill: canary-first rollout > never documents the perl fallback without or die 0ms
  ✓ |lisa| tests/unit/core/update-skill-references.test.ts > lisa-update-projects skill: references and parity > has every copy present, so a renamed path cannot empty this file 1ms
  ✓ |lisa| tests/unit/core/update-skill-references.test.ts > lisa-update-projects skill: references and parity > .claude/skills/lisa-update-projects/SKILL.md cites only Lisa paths that exist 2ms
  ✓ |lisa| tests/unit/core/update-skill-references.test.ts > lisa-update-projects skill: references and parity > .agents/skills/lisa-update-projects/SKILL.md cites only Lisa paths that exist 1ms
@@ -38,13 +23,10 @@ lisa scratch: no supervised lease in the environment, so this run is self-superv
  ✓ |lisa| tests/unit/core/update-skill-references.test.ts > lisa-update-projects skill: references and parity > .claude/skills/lisa-update-projects/SKILL.md step 8 never accepts a zero-caller detector run as clean 0ms
  ✓ |lisa| tests/unit/core/update-skill-references.test.ts > lisa-update-projects skill: references and parity > .agents/skills/lisa-update-projects/SKILL.md step 8 never accepts a zero-caller detector run as clean 0ms
  ✓ |lisa| tests/unit/core/update-skill-references.test.ts > lisa-update-projects skill: references and parity > .claude-pr/.claude/skills/lisa-update-projects/SKILL.md step 8 never accepts a zero-caller detector run as clean 0ms
-lisa scratch: no supervised lease in the environment, so this run is self-supervised. Fixture directories are still bounded to a run root this process owns and removed on exit; what is missing is the detached reaper that reclaims the root after a SIGKILL, which the next run's startup sweep recovers instead. Run through `lisa-test-run --profile <profile> --adapter vitest -- vitest ...` for a supervised run.
- ✓ |lisa| tests/unit/core/update-skill-apply-mode.test.ts > lisa-update-projects skill > has every copy present, so a renamed path cannot empty this file 1ms
- ✓ |lisa| tests/unit/core/update-skill-apply-mode.test.ts > lisa-update-projects skill > never instructs an apply that passes --skip-git-check 0ms
- ✓ |lisa| tests/unit/core/update-skill-apply-mode.test.ts > lisa-update-projects skill > tells the operator to verify the receipt records a full apply 0ms
 
- Test Files  3 passed (3)
-      Tests  38 passed (38)
-   Start at  10:32:29
-   Duration  437ms (transform 153ms, setup 338ms, import 15ms, tests 17ms, environment 0ms)
+ Test Files  1 passed (1)
+      Tests  15 passed (15)
+   Start at  10:37:03
+   Duration  278ms (transform 60ms, setup 110ms, import 4ms, tests 8ms, environment 0ms)
 
+exit=0
