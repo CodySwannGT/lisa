@@ -127,7 +127,7 @@ export async function qualifySymlinkChange(input) {
     assert.equal(native.apply.status, 0);
     assert.equal(native.apply_receipt.apply_mode, "full");
     assert.equal(native.guard_cases.length, 14);
-    assert.equal(native.retired_safety_net.status, 0);
+    assert.equal(native.retired_safety_net.present, false);
     assert.equal(report.preserved, false);
     assert.deepEqual(report.changed, [link, other]);
     assert.equal(report.after[link].kind, "symlink");

@@ -5,7 +5,7 @@ import { describe, expect, it } from "vitest";
 
 import { boundedSpawnSync } from "../../helpers/io-latency-budget.js";
 
-const hooks = ["parity-safety-net", "block-instruction-file-edits"] as const;
+const hooks = ["block-instruction-file-edits"] as const;
 
 /**
  * Ask the actual hook to classify text, without executing the proposed command.
@@ -43,19 +43,6 @@ describe.each(hooks)("%s literal display content", hook => {
 });
 
 describe("display content cannot hide execution", () => {
-  it.each([
-    "printf \"$FORMAT\" 'rm -rf /opt/important'",
-    "printf '%s' 'rm -rf /opt/important' | bash",
-    "printf '%s' notes; rm -rf /opt/important",
-    'printf "%s" "$(rm -rf /opt/important)"',
-    'printf "%s" "`rm -rf /opt/important`"',
-    "printf '%s' notes > >(rm -rf /opt/important)",
-    "printf '%s' 'rm -rf /opt/important' > /tmp/script.sh; bash /tmp/script.sh",
-    "eval \"printf '%s' notes; rm -rf /opt/important\"",
-  ])("keeps retired safety-net input inert: %s", command => {
-    expect(classify("parity-safety-net", command)).toBe(0);
-  });
-
   it.each([
     "printf '%s' notes > AGENTS.md",
     "printf '%s' notes >> 'CLAUDE.md'",

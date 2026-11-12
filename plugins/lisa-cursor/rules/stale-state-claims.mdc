@@ -9,11 +9,11 @@ A comment, docstring, config annotation, or work-item note that records a **temp
 
 It then misdirects with full authority: work gets skipped as blocked when nothing blocks it, re-planned as undone when it already shipped, or escalated to a person who made that exact decision weeks ago.
 
-This is the sibling of `falsifiable-checks`. That rule is about **instruments that cannot fail**; this one is about **assertions of state that have expired**. Both read as authoritative and neither announces its own decay.
+The sibling of `falsifiable-checks` (**instruments that cannot fail**), this rule covers **assertions of state that have expired**. Both read as authoritative and neither announces its own decay.
 
 ## The four ways a recorded state outlives its truth
 
-Each has been observed; each was believed long after it went false:
+Each has been observed and believed long after it went false:
 
 1. **Expired blocker note** — prose asserting a not-yet condition that has since cleared. An endpoint left unset under a comment saying its routing was "not yet promoted" had been serving live for days; an agent planned work to enable what was already enabled.
 2. **Stale gate marker** — a "pending human approval / not provisioned yet" annotation whose precondition is satisfied. One held for twelve days after the thing it waited on existed, and the decision was escalated to a person surprised to be asked.

@@ -379,8 +379,8 @@ function foreignTreeIn(text, bound, cwd) {
 /**
  * A `cd` target this guard cannot turn into a literal directory.
  *
- * Mirrors `parity-safety-net.sh`'s `follow_cd` test exactly, and the mirror is
- * the point: two spellings of one rule are how the guards drift.
+ * Contract point 3 of `tests/unit/hooks/support/cwd-resolution-corpus.json`
+ * spells out the same rule; keep the two in step.
  */
 const UNLITERAL_CD_TARGET = /[$`*?[{]/u;
 
@@ -471,33 +471,21 @@ function applyCd(current, target) {
  * copy of every script at the same relative path, and they differ by whatever
  * each lane is doing.
  *
- * ## One contract, two implementations, and why that is the honest answer
+ * ## A written contract, driven by a corpus
  *
- * `parity-safety-net.sh` answers this same question — "which file will this
- * command actually execute?" — in POSIX shell, where `follow_cd` mutates
- * file-scope state that `follow_locate` reads. This guard is Node. **There is
- * no call that reaches from here into a shell function's file-scope state**, so
- * the duplication is not a factoring somebody skipped; it is one idea that
- * cannot cross a language boundary as a function call.
+ * The resolution rule is a written contract with a corpus of adversarial rows
+ * this guard is driven over in CI, so a change to the resolver fails a test on
+ * the commit that causes it rather than surfacing later as a wrong verdict.
+ * Contract and corpus live in `tests/unit/hooks/support/cwd-resolution-corpus.json`
+ * (CodySwannGT/lisa#3952). **A behaviour with no row in the corpus is
+ * unpinned — add a row when you add a branch.**
  *
- * What binds the two is a written contract and a corpus of rows that BOTH
- * guards are driven over in CI, so a divergence fails a test on the commit that
- * causes it rather than surfacing later as a wrong verdict. Contract and corpus
- * live in `tests/unit/hooks/support/cwd-resolution-corpus.json`.
+ * ## The corpus pins the RESOLUTION, not the verdict
  *
- * This is explicitly NOT unification, and CodySwannGT/lisa#3952 records it as
- * such: two implementations remain. **A behaviour with no row in the corpus is
- * free to diverge — add a row when you add a branch.**
- *
- * ## The two guards agree on the RESOLUTION, not on the verdict
- *
- * When the effective directory cannot be known, both guards decline to resolve
- * the token. What they then do differs, and that difference is deliberate:
- * `parity-safety-net.sh` refuses, because a destructive command it cannot see
- * is the thing it exists to stop. This guard fails open, which is the doctrine
- * every other undecidable case in this file follows. The corpus asserts the
- * resolved path, not the exit code, precisely so that one contract can bind two
- * guards whose fail directions are correctly different.
+ * When the effective directory cannot be known, this guard declines to resolve
+ * the token and fails open, which is the doctrine every other undecidable case
+ * in this file follows. The corpus asserts the resolved path rather than the
+ * exit code, so the contract stays about resolution.
  *
  * Fails OPEN and says so, like every other undecidable case in this file.
  */
@@ -516,10 +504,8 @@ function scriptReachingForeignTree(payload, bound) {
     if (!isAbsolute(named) && cwd === null) {
       // Contract point 3: the effective directory is unknown, so WHICH copy of
       // a same-named script would run is unknown too. Declining to resolve is
-      // the half shared with parity-safety-net.sh; failing open rather than
-      // refusing is this guard's own doctrine, and the corpus binds the two
-      // guards on the resolution precisely so it does not have to bind them
-      // on a verdict one of them would be wrong to reach.
+      // the contract; failing open rather than refusing is this guard's own
+      // doctrine, and the corpus pins the resolution rather than the verdict.
       say(
         `cannot tell which directory ${named} would run from; NOT enforcing on it`
       );

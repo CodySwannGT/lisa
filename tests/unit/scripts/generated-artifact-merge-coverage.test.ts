@@ -89,13 +89,14 @@ describe("the declaration matches this repository", () => {
     expect(inspectGeneratedArtifacts(REPO_ROOT).violations).toEqual([]);
   });
 
-  it("declares six artifacts", () => {
+  it("declares five artifacts", () => {
     // Four when this guard landed; a fifth once CodySwannGT/lisa#3718 added
-    // `src/core/export-surface.json`, and a sixth for retired-handler ownership.
+    // `src/core/export-surface.json`. A sixth, for retired-handler ownership,
+    // left with the safety-net hook in CodySwannGT/lisa#4803.
     // Hardcoded per the Test Isolation house
     // rule, so a silently dropped declaration fails here rather than
     // agreeing with whatever the declaration happens to hold.
-    expect(GENERATED_ARTIFACTS.length).toBe(6);
+    expect(GENERATED_ARTIFACTS.length).toBe(5);
   });
 
   it("covers exactly the two the driver can structure", () => {

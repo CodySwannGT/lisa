@@ -8,8 +8,8 @@
  * creation verb in the same inspected command — so moving either half into a
  * file meant the conjunction never formed.
  *
- * That was not an exotic evasion. Lisa's own `parity-safety-net.sh` refuses
- * heredocs and instructs agents to "write the payload to a file with the Write
+ * That was not an exotic evasion. A Lisa guard of the time refused heredocs
+ * and instructed agents to "write the payload to a file with the Write
  * tool, then execute that file directly", and `block-shell-json-parsing.sh`
  * pushes JSON construction into `jq` scripts — so an agent following Lisa's
  * guidance landed in the uninspected path by default. Two individually
