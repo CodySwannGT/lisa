@@ -20,9 +20,14 @@ hypothesis zero. Its kill condition is: **no production entry point reaches it.*
 Check that before editing anything.
 
 - Trace importers of the module, including barrel re-exports and default exports,
-  up to a route, screen, endpoint or command the user actually hits. Zero
-  production importers kills the hypothesis: the code is dead or superseded,
-  and fixing it changes nothing the user sees.
+  up to a route, screen, endpoint or command the user actually hits.
+- A module with no importers can still be an entry point itself: a script or
+  command launched directly, a `bin`/`main` in the package manifest, a
+  file-based route, or a handler, job or plugin registered through
+  configuration. Check that before reading zero importers as dead code.
+  Zero production importers kills the hypothesis only when the module is not
+  itself an entry point: then the code is dead or superseded, and fixing it
+  changes nothing the user sees.
 - When the trace is ambiguous, prove it by execution: a temporary
   `throw new Error("[DEBUG:<issue>] reached")` (or a `[DEBUG:<issue>]` log line)
   in the cited block while driving the real entry point,

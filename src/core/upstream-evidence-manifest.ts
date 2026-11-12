@@ -1639,7 +1639,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-rework-triage/SKILL.md":
       "a70ccc7c79a6cc3a695d173b7b8bfbe8334af2cdace368fe1520d0b86254fb6f",
     "plugins/src/base/skills/lisa-root-cause-analysis/SKILL.md":
-      "e7b00d06ba7a7ad637a0669a868bb4ed6a8eb1a51575e6267607b2d01a0e5c62",
+      "72e13a433912f4743896cdfb8af220b44a1c9d61ede2ee981bdd1acefae5f5dc",
     "plugins/src/base/skills/lisa-secrets-access/SKILL.md":
       "d6eb1c0c2ee829bce40b2a3cdf73ce6fdca26e6db3f09422a3ccdc83e560030e",
     "plugins/src/base/skills/lisa-secrets-access/scripts/aws-bootstrap.mjs":

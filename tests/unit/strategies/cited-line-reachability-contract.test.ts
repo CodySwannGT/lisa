@@ -87,6 +87,19 @@ describe.each(SKILL_ROOTS)("%s root-cause-analysis", root => {
     expect(skill).toContain("**no production entry point reaches it.**");
   });
 
+  it("does not reject a directly launched entry module for having no importers", () => {
+    // A CLI script, manifest `bin`, file-based route or config-registered
+    // handler has zero importers and still runs; rejecting it as dead code
+    // would discard a valid fix target.
+    expect(skill).toContain(
+      "A module with no importers can still be an entry point itself"
+    );
+    expect(skill).toContain("registered through configuration");
+    expect(skill).toContain(
+      "Zero production importers kills the hypothesis only when the module is not itself an entry point"
+    );
+  });
+
   it("says a direct render or call does not establish reachability", () => {
     expect(skill).toMatch(
       /A test that renders or calls the cited symbol directly does not establish reachability\. It goes red-to-green on dead code too\./u
