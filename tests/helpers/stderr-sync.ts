@@ -2,7 +2,8 @@
  * A stderr write that is safe from inside an `exit` listener.
  *
  * Node runs `exit` listeners synchronously and abandons any work they queue,
- * and on Linux and macOS a write to a piped stderr is asynchronous. Under CI
+ * and where a piped stderr is asynchronous (measured on macOS; Node documents
+ * pipe writes as platform-dependent) the write can still be queued. Under CI
  * log capture or the `lisa-test-run` supervisor stderr is a pipe, so a
  * diagnostic written there with `process.stderr.write` can be lost at exit
  * (CodySwannGT/lisa#4621). This writes to the descriptor with `writeSync`,
