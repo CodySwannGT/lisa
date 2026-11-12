@@ -2703,7 +2703,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/copy-codex-scripts.mjs":
       "2d7082d5033088c85f66995aee9e3ee1e7751435e65bfde8e1cb002e6689d476",
     "scripts/copy-opencode-plugin-templates.mjs":
-      "e6d0f7ad68cd1855c6c37d3780c425f8aa92cca841c61aa4d289144a5657ca81",
+      "dc7bcd1a5081dc84bc75f8c5103de000227fca497f1869ea1fe48e60a58b9640",
     "scripts/detect-stale-workflow-inputs.mjs":
       "672e64375a914750c5a50c16d414bea12df7cdddfa921ccc3f944b857aaaba4d",
     "scripts/downstream-name-digest.mjs":
