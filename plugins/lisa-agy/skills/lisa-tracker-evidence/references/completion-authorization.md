@@ -143,6 +143,89 @@ auxiliary green workflow cannot replace it. Artifact or external-deployment
 projects declare their applicable mechanism and empirical attached
 `evidence_refs`; npm, browser, cloud and device checks are not universal.
 
+### CodePipeline (CDK hosts)
+
+A CDK host's GitHub Actions workflow releases but does not deploy; its AWS
+CodePipeline does. Declare the pipeline that delivers each environment:
+
+```json
+{
+  "verification": {
+    "completion": {
+      "delivery": {
+        "production": {
+          "mechanism": "aws-codepipeline",
+          "pipeline_name": "<pipeline name>",
+          "region": "<aws-region>",
+          "account_id": "<12-digit AWS account id>"
+        }
+      }
+    }
+  }
+}
+```
+
+The accepted record's `obligations.delivery` pins the one execution that
+delivered the change:
+
+```json
+{
+  "required": true,
+  "status": "pass",
+  "mechanism": "aws-codepipeline",
+  "pipeline_name": "<pipeline name>",
+  "region": "<aws-region>",
+  "account_id": "<the configured account_id, when one is set>",
+  "execution_id": "<pipeline execution id>",
+  "source_revision": "<the record's source.delivered_sha>"
+}
+```
+
+Completion reads that one execution read-only, with
+`aws codepipeline get-pipeline-execution --pipeline-name=<name> --pipeline-execution-id=<id> --region=<region> --output json`,
+and decides from it:
+
+- **Accepted**: the execution `Succeeded` and one of its `artifactRevisions` is
+  the delivered commit. The completion report names the pinned execution.
+- **`pending-proof`**: the execution is still `InProgress`, including one
+  waiting at a manual approval. It is never reported as delivered, and the
+  message names the waiting execution. The same category is returned when the
+  configuration names the mechanism without `pipeline_name` and `region`.
+- **`invalid-proof`**: the execution carried another commit (the message names
+  both revisions); it ended `Failed`, `Stopped`, `Superseded` or `Cancelled`,
+  or is `Stopping`; the record names another pipeline or region than the
+  configuration; or its execution id is missing or malformed.
+- **`read-error`**: the execution could not be read, or the reply carried no
+  pipeline execution.
+
+To find the execution id, list the pipeline's executions with
+`aws codepipeline list-pipeline-executions --pipeline-name <name> --region <region>`
+and pick the execution whose `sourceRevisions[].revisionId` is the delivered
+commit. That listing needs `codepipeline:ListPipelineExecutions`; completion
+itself needs only the `GetPipelineExecution` read.
+
+`account_id` binds the delivery to one AWS account. Stage accounts often run
+pipelines with the same name, so without it, credentials for a dev account can
+read a dev execution as production delivery. When `account_id` is set, the
+record must carry the same value, and completion first runs
+`aws sts get-caller-identity --output=json`: credentials for another account
+are refused (`invalid-proof`, naming both accounts) before any execution is
+read. `sts:GetCallerIdentity` needs no IAM grant; every valid credential may
+call it.
+
+The verifier needs no write permission. Its credentials need
+`codepipeline:GetPipelineExecution` on the pipeline, on top of the list grant
+the observer role already carries (Lisa's remote-agent AWS setup). `lisa doctor`
+warns about a CDK project whose `production` delivery is undeclared, and about
+an `aws-codepipeline` delivery without a valid `account_id`.
+
+Until a host configures this mechanism, it may declare
+`mechanism: "external-deployment"` instead. Its record must then attach, as
+empirically verified `evidence_refs`, the CodePipeline execution id, that
+execution's source revision and its final status, captured read-only with the
+same `aws codepipeline get-pipeline-execution` call. Lisa cannot check that
+evidence against the pipeline, which is why the native mechanism is preferred.
+
 User publishers require fresh native repository write/maintain/admin permission
 and matching stable native asset-uploader identity. Association labels, display
 names and issue edit access are insufficient. `automationPublishers` defaults
