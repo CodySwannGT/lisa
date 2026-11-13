@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.110.2](https://github.com/CodySwannGT/lisa/compare/v4.110.1...v4.110.2) (2026-11-13)
+
+
+### Bug Fixes
+
+* **completion-proof:** avoid backtracking regex in heading normalisation ([642ddf3](https://github.com/CodySwannGT/lisa/commit/642ddf3b21952f0718ced3ffaf3c3c5778f41a9e)), closes [#4700](https://github.com/CodySwannGT/lisa/issues/4700) [CodySwannGT/lisa#4700](https://github.com/CodySwannGT/lisa/issues/4700) [CodySwannGT/lisa#4700](https://github.com/CodySwannGT/lisa/issues/4700)
+* **completion-proof:** claim list-continuation evidence markers and catch recased AC headings ([40831b6](https://github.com/CodySwannGT/lisa/commit/40831b6810009a901834db2c2d778de2f9749528)), closes [CodySwannGT/lisa#4700](https://github.com/CodySwannGT/lisa/issues/4700) [CodySwannGT/lisa#4700](https://github.com/CodySwannGT/lisa/issues/4700)
+* **completion-proof:** close list items on interrupting blocks and refuse setext AC headings ([55234f4](https://github.com/CodySwannGT/lisa/commit/55234f4634579985dad0f9e213bee402014bb8cc)), closes [CodySwannGT/lisa#4700](https://github.com/CodySwannGT/lisa/issues/4700) [CodySwannGT/lisa#4700](https://github.com/CodySwannGT/lisa/issues/4700)
+* **completion-proof:** open a fence that starts on a list item's marker line ([2c48dbb](https://github.com/CodySwannGT/lisa/commit/2c48dbb561d54139d767c06aa1f7354caaccb5d7)), closes [CodySwannGT/lisa#4700](https://github.com/CodySwannGT/lisa/issues/4700) [CodySwannGT/lisa#4700](https://github.com/CodySwannGT/lisa/issues/4700)
+
+### [4.110.1](https://github.com/CodySwannGT/lisa/compare/v4.110.0...v4.110.1) (2026-11-13)
+
 ## [4.110.0](https://github.com/CodySwannGT/lisa/compare/v4.109.2...v4.110.0) (2026-11-13)
 
 
