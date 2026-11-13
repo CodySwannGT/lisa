@@ -58,7 +58,6 @@ const ENTRIES = [
 ];
 const NEWLY_COMMON = [
   "lisa-clean-git-env.sh",
-  "lisa-scratch-run.sh",
   "check-threshold-ratchet.mjs",
   "threshold-ratchet-families.mjs",
   "threshold-ratchet-compare.mjs",
@@ -165,7 +164,7 @@ describe("all-only npm host controller materialization", () => {
       expect(graph).toHaveProperty(
         join(cwd, "scripts/lib/npm-update-checkpoint-codec.mjs")
       );
-      expect(managedTemplateMembers().size).toBe(132);
+      expect(managedTemplateMembers().size).toBe(131);
     },
     ioLatencyBudgetMs(30_000)
   );
@@ -173,7 +172,7 @@ describe("all-only npm host controller materialization", () => {
   it.each(["absent", "mutated", "symlink"] as const)(
     "refuses a newly universal member that is %s before returning controller authority",
     async mode => {
-      const target = join(cwd, "scripts/lisa-scratch-run.sh");
+      const target = join(cwd, "scripts/lisa-clean-git-env.sh");
       const bytes = readFileSync(target);
       if (mode === "mutated")
         writeFileSync(
@@ -186,7 +185,7 @@ describe("all-only npm host controller materialization", () => {
           symlinkSync(
             join(
               owner.root,
-              managedTemplateMembers().get("lisa-scratch-run.sh")!
+              managedTemplateMembers().get("lisa-clean-git-env.sh")!
             ),
             target
           );

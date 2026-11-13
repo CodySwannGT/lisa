@@ -100,7 +100,7 @@ describe.each(DATABASES)(
     it("runs the suite itself only at test_shards 1", () => {
       for (const name of [
         "🗄️ Prepare database",
-        "🧹 Assert the scratch supervisor is installed",
+        "🧹 Sweep stale Lisa temp entries",
         "🧪 Run tests",
       ]) {
         const condition = step(aggregate, name).if;
@@ -108,7 +108,7 @@ describe.each(DATABASES)(
         expect(holds(condition, { "inputs.test_shards": 4 })).toBe(false);
       }
       expect(step(aggregate, "🧪 Run tests").run).toBe(
-        `bash scripts/lisa-scratch-run.sh --suite rspec-${db} -- bundle exec rspec`
+        'export LISA_TEST_RUN_OWNER="$$:0"\nbundle exec rspec\n'
       );
     });
 
@@ -151,10 +151,10 @@ describe.each(DATABASES)(
       }
     );
 
-    it("gives each leg the same database preparation and supervisor check as the unsharded run", () => {
+    it("gives each leg the same database preparation and cleanup sweep as the unsharded run", () => {
       for (const name of [
         "🗄️ Prepare database",
-        "🧹 Assert the scratch supervisor is installed",
+        "🧹 Sweep stale Lisa temp entries",
       ])
         expect(step(shard, name).run).toBe(step(aggregate, name).run);
     });
