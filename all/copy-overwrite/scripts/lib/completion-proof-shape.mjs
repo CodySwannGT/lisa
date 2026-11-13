@@ -186,29 +186,61 @@ function claimingText(body) {
     .join("\n");
 }
 
+/** Decode one Markdown escape layer of ASCII punctuation (#4341). */
+function unescapedProse(text) {
+  return text.replace(
+    /\\([\u0021-\u002f\u003a-\u0040\u005b-\u0060\u007b-\u007e])/gu,
+    "$1"
+  );
+}
+
 /**
- * Decode one stored Markdown escape layer outside inline code spans.
+ * Split one line into prose and inline code spans, CommonMark style: an
+ * opening run of N backticks closes at the next run of exactly N, a
+ * backslash-escaped backtick never opens a span, and an unclosed run is
+ * literal text. Spans never cross a line break, so a stray backtick cannot
+ * swallow a marker on a later line.
+ * @param {string} line - One claiming line
+ * @returns {string[]} Alternating prose (even index) and span (odd index)
+ */
+function inlineCodeParts(line) {
+  const parts = [];
+  const token = /\\[\s\S]|`+/gu;
+  let prose = 0;
+  for (let open = token.exec(line); open; open = token.exec(line)) {
+    if (open[0].startsWith("\\")) continue;
+    const close = new RegExp(`(?<!\`)${open[0]}(?!\`)`, "gu");
+    close.lastIndex = token.lastIndex;
+    if (!close.exec(line)) continue;
+    parts.push(line.slice(prose, open.index), "");
+    prose = close.lastIndex;
+    token.lastIndex = prose;
+  }
+  return [...parts, line.slice(prose)];
+}
+
+/**
+ * Decode one stored Markdown escape layer and mask inline code spans.
  * Linear stores `[EVIDENCE: kind: name]` as `\[EVIDENCE: kind: name\]`; the
  * same one-pass ASCII-punctuation projection the human-gate parser uses
  * (`normalizeProviderMarkdown`, CodySwannGT/lisa#4341) makes the stored and
- * written forms parse identically. Fences, indented code and comments are
- * already removed by `claimingText`; inline code spans keep their bytes so an
- * escaped example inside one cannot become a declaration (#4670).
+ * written forms parse identically (#4670). Fences, indented code and comments
+ * are already removed by `claimingText`. An inline code span of any
+ * backtick-run length is an example too, so it is neither a declaration nor a
+ * malformed one (#4689). Each span becomes a lone backtick, which no marker
+ * grammar accepts, so the prose on either side cannot splice into a marker.
  * @param {string} text - Claiming text with fences and comments removed
- * @returns {string} Text with one escape layer decoded outside code spans
+ * @returns {string} Prose with one escape layer decoded and code spans masked
  */
 function decodedMarkdown(text) {
   return text
-    .split(/(`[^`\n]*`)/u)
-    .map((part, index) =>
-      index % 2
-        ? part
-        : part.replace(
-            /\\([\u0021-\u002f\u003a-\u0040\u005b-\u0060\u007b-\u007e])/gu,
-            "$1"
-          )
+    .split("\n")
+    .map(line =>
+      inlineCodeParts(line)
+        .map((part, index) => (index % 2 ? "`" : unescapedProse(part)))
+        .join("")
     )
-    .join("");
+    .join("\n");
 }
 
 /**

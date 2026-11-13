@@ -59,7 +59,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lib/completion-proof-reader.mjs":
       "f134b65158605510bf188429d6aa5e713ed75a4d78877efc6211b440b3a805f7",
     "all/copy-overwrite/scripts/lib/completion-proof-shape.mjs":
-      "b0ac2109d1e17cdc83d42b842ccbd43ca10f3d34d1b2d03067c434e05b19b9e3",
+      "72acaa6ae5b3206b717c4a893ff107134620d4a8fecb9f5fdb2d48f66067c483",
     "all/copy-overwrite/scripts/lib/completion-proof-source.mjs":
       "7aa9673c7de21fa64e572043e7e76774e7cb57210a54f4603a72e88be97510a3",
     "all/copy-overwrite/scripts/lib/evidence-prune-apply.mjs":
@@ -359,7 +359,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/npm-updater-gate.Dockerfile":
       "850a4ee809d49e3d9da6bdd674cb43e4f5a6dcfa0aa73116b1a43caeed42748c",
     "all/copy-overwrite/scripts/npm-updater-helper-graph.json":
-      "748e40364b55387fefcf61c5689fafd9f7bd09d452527c02f6214b06ba93530c",
+      "ecb3d980f2f2fecc7306224d1c1d32218d5c7769fd3a4c651e3328a1e698cb01",
     "all/copy-overwrite/scripts/review-evidence-event.mjs":
       "1c5d510bc66f8ba23b6f046246f41182c17946a50126fb88e371d2aec9dfd6b2",
     "all/copy-overwrite/scripts/schemas/lisa-command-envelope.v1.schema.json":
@@ -1559,7 +1559,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-linear-to-tracker/SKILL.md":
       "16859e1828212bf053b252b7c03bd1fb3b7352da4fb9273b5ef063228080e601",
     "plugins/src/base/skills/lisa-linear-validate-issue/SKILL.md":
-      "a0291ad42da4dc76d13314d4f312caef8345941ab2e28a957fa8bd80f6d6450a",
+      "2a0f44faad3a9714ea486c469c165f41e9d26cbac016546753fb3e825a3ba0ce",
     "plugins/src/base/skills/lisa-linear-verify/SKILL.md":
       "17251e8d6c762b69b2ca6a77d9cfe44beba31dfc0444de4cde051747e2c99eab",
     "plugins/src/base/skills/lisa-linear-write-issue/SKILL.md":
@@ -1881,7 +1881,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-tracker-create/SKILL.md":
       "fecd0c3cc930b0f87578bc0bee14009509883cb21b33e94e3e7a42792dcd888e",
     "plugins/src/base/skills/lisa-tracker-evidence/SKILL.md":
-      "23b8a45e9f5307563e68b05f7c4cff677431ea013402e47a89f622b44155602d",
+      "5d50890e51da61f991f6216da20a603f80820874a4b70afb4c6df1ae848a165e",
     "plugins/src/base/skills/lisa-tracker-evidence/references/completion-authorization.md":
       "fc1720bbf2dbba095ca8adb3305ab501d71f0c6fe2d9b90581d97becaf159216",
     "plugins/src/base/skills/lisa-tracker-journey/SKILL.md":
