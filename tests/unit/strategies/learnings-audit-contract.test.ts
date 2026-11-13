@@ -185,8 +185,12 @@ describe.each(SKILL_PATHS)("gardener skill runbook (%s)", skillPath => {
       ["## Proof", "## The audit cycle"],
       ["**`drafted_artifact`** verbatim", "For **EXECUTABLE-CONTROL**"],
     ] as const) {
-      const slice = skill.slice(skill.indexOf(from), skill.indexOf(to));
-      expect(slice).toContain("destination-validation");
+      const fromAt = skill.indexOf(from);
+      const toAt = skill.indexOf(to);
+      // A renamed anchor must fail, not slice an empty or wrong range.
+      expect(fromAt).toBeGreaterThanOrEqual(0);
+      expect(toAt).toBeGreaterThan(fromAt);
+      expect(skill.slice(fromAt, toAt)).toContain("destination-validation");
     }
   });
 

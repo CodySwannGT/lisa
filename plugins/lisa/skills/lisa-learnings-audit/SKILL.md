@@ -276,8 +276,11 @@ and resolve its head `<sha>` once per run:
   `git show origin/<default>:<path>` for each file.
 - **Upstream** (`upstream` scope) — the paths live in `<upstreamRepo>`, not
   this checkout: `gh api repos/<upstreamRepo>/commits/<default> --jq .sha`
-  for the SHA and `gh api repos/<upstreamRepo>/contents/<path>?ref=<default>`
-  for each file.
+  for the SHA, then for each file
+  `gh api -H "Accept: application/vnd.github.raw" repos/<upstreamRepo>/contents/<path>?ref=<sha>`,
+  which returns the raw text so headings are searchable (the default JSON
+  response is base64-encoded). A response that lists entries means the path
+  is a directory, not a file.
 
 1. **Destinations** — fetch every file the ticket names as above; for every
    heading or section, search that file for it. A destination that exists is
@@ -525,8 +528,10 @@ exact so nothing regresses:
   **`approval-requested`** when the run finished and is waiting on a human gate
   rather than being broken.
   A run that filed nothing because destination-validation (Ticket emission)
-  refused every PROMOTE/DEMOTE draft records **`approval-requested`**, with
-  the mismatch in `--summary` — never `nothing-needed`.
+  refused every PROMOTE/DEMOTE draft records **`approval-requested`** —
+  never `nothing-needed`. Its `--summary` states each mismatch as a question
+  for a person ("evidence says 17, draft says 12 — which is right?") and
+  says that every run will refuse that draft again until someone answers.
 
 The gardener also newly reaches **`policy-obsolete`** — the Retirement
 condition below tripped and it filed its own teardown proposal. It never
