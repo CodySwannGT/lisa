@@ -121,8 +121,20 @@ describe("project-config learnings", () => {
   );
 
   it.each([
+    ["Auto-Merge", AUTO_MERGE],
+    [" HUMAN-TRIAGE ", HUMAN_TRIAGE],
+  ] as const)(
+    "reads learnings.lowConfidence %j case- and whitespace-insensitively as %s",
+    async (lowConfidence, expected) => {
+      await writeConfig({ learnings: { lowConfidence } });
+      const config = await readProjectConfig(tempDir);
+      expect(resolveLearningsSettings(config).lowConfidence).toBe(expected);
+    }
+  );
+
+  it.each([
     ["auto_merge", '"auto_merge"'],
-    ["Auto-Merge", '"Auto-Merge"'],
+    ["Auto Merge", '"Auto Merge"'],
     ["", '""'],
     [true, "true"],
     [null, "null"],

@@ -5,8 +5,8 @@
  * stalling items, and the operator should never have to comment to release
  * one (CodySwannGT/lisa#4658, item 5). The intake and repair sweeps call
  * {@link planHumanGateLift} on every open item carrying a `[lisa-human-gate]`
- * hold. A hold whose reason names no act an agent cannot perform (see
- * `human-gate-act.mjs`) is lifted: the sweep posts a visible
+ * hold. A hold that is not valid under the project's `humanGate.mode` and
+ * `humanGate.humanOnly` (see `human-gate-act.mjs`) is lifted: the sweep posts a visible
  * `[lisa-human-gate-lifted] reason=<slug>` comment saying why, removes the
  * human-needed marker, and moves the item to the build-ready role.
  *

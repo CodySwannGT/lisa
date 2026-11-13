@@ -90,12 +90,16 @@ describe('"none" drops every ratification requirement (AC2)', () => {
     );
   });
 
-  it("reports an invalid value and falls back to the mode's default", () => {
+  it('reports an invalid value and fails safe to "default"', () => {
     expect(rule).toContain(
-      "Any other value is reported as invalid and treated as the mode's default"
+      'Any other value is reported as invalid and treated as `"default"`, the stricter option, in either mode'
     );
+    expect(rule).toContain("Only an absent key gets the mode's default.");
     expect(flat(CONFIG_RULE)).toContain(
-      "is reported as invalid (in `lisa apply` output and the session's `lisa-resolved-config` block) and treated as the mode's default."
+      'is reported as invalid (in `lisa apply` output and the session\'s `lisa-resolved-config` block) and treated as `"default"`, the stricter option.'
+    );
+    expect(flat(GUIDE)).toContain(
+      'Any other value is reported as invalid and treated as `"default"`, so a mistyped setting fails safe to sign-off on'
     );
   });
 

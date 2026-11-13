@@ -26,7 +26,10 @@
  * @module session-manager/human-needed
  */
 
-/** The four reasons an item can need a human. */
+/**
+ * The four kinds of mark. Whether one is warranted follows `humanGate.mode`:
+ * under `access-only` only missing access or an operator hold needs a person.
+ */
 export const HUMAN_NEEDED_KINDS = Object.freeze([
   "worker-question",
   "repo-route",

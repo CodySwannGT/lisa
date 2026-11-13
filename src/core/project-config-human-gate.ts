@@ -19,12 +19,11 @@
  * Same contract as `project-config-dependencies`: the block changes what
  * governed prose and the shipped classifier ask an agent to do, nothing
  * `lisa apply` writes depends on it, so a typo must not stop the apply. An
- * invalid value resolves to the default and is REPORTED
- * ({@link humanGateSettingsWarnings}, printed by `lisa apply`), because a
- * project that meant `"strict"` and silently got `"access-only"` would see no
- * other symptom. That fallback is not the safe direction for such a project;
- * it is the only value that can be proven, which is why it is reported. The
- * mode is compared trimmed and lower-cased first, so `"Strict"` is strict.
+ * invalid value fails safe, to `"strict"` — a typo must never quietly loosen
+ * the gate — and is REPORTED ({@link humanGateSettingsWarnings}, printed by
+ * `lisa apply`) so the project can fix it. Only an absent mode means
+ * `"access-only"`. The mode is compared trimmed and lower-cased first, so
+ * `"Strict"` is strict.
  *
  * The shipped classifier (`plugins/src/base/scripts/human-gate-act.mjs`) and
  * the resolved-config session hook keep their own copies of the vocabulary —
@@ -42,8 +41,14 @@ export const HUMAN_GATE_MODES = ["access-only", "strict"] as const;
 /** One accepted value of `humanGate.mode`. */
 export type HumanGateMode = (typeof HUMAN_GATE_MODES)[number];
 
-/** Mode in force when the key is absent or invalid. */
+/** Mode in force when the key is absent. A present but invalid value is strict. */
 export const DEFAULT_HUMAN_GATE_MODE: HumanGateMode = "access-only";
+
+/**
+ * Mode in force when a value is declared but unusable: the stricter one, so a
+ * typo fails safe rather than open.
+ */
+const STRICT_FALLBACK: HumanGateMode = "strict";
 
 /**
  * The optional `humanGate` block, as declared.
@@ -164,7 +169,7 @@ export function resolveHumanGateSettings(
   }
   if ("rejectedBlock" in block) {
     return Object.freeze({
-      mode: DEFAULT_HUMAN_GATE_MODE,
+      mode: STRICT_FALLBACK,
       humanOnly: [],
       declared: true,
       rejected: [
@@ -194,7 +199,11 @@ export function resolveHumanGateSettings(
       : []),
   ];
   return Object.freeze({
-    mode: isHumanGateMode(mode) ? mode : DEFAULT_HUMAN_GATE_MODE,
+    mode: isHumanGateMode(mode)
+      ? mode
+      : mode === undefined
+        ? DEFAULT_HUMAN_GATE_MODE
+        : STRICT_FALLBACK,
     humanOnly,
     declared: true,
     rejected,
@@ -221,7 +230,7 @@ export function humanGateSettingsWarnings(
   config: ConfigWithHumanGate
 ): readonly string[] {
   const accepted = HUMAN_GATE_MODES.map(value => `"${value}"`).join(" | ");
-  const fallback = `treated as "${DEFAULT_HUMAN_GATE_MODE}", so only acts an agent lacks access to are held for a person.`;
+  const fallback = `treated as "${STRICT_FALLBACK}", the safe direction, so the wider pre-#4687 human gate applies until it is fixed.`;
   return resolveHumanGateSettings(config).rejected.map(({ key, value }) => {
     if (key === "humanGate") {
       return `Invalid humanGate in .lisa.config.json: ${value} is not an object; humanGate.mode is ${fallback}`;

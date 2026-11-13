@@ -109,7 +109,7 @@ describe("the operator's own hold must say hold", () => {
   it.each([
     "the customer explicitly asked for dark mode",
     "the operator explicitly asked for a CSV export",
-    "requested by the operator: rename the field",
+    "the operator requested a dark mode toggle; pick the name",
   ])("refuses %j, which names no hold", reason => {
     const verdict = classifyHumanGateReason(reason);
     expect(verdict.valid).toBe(false);
@@ -122,8 +122,38 @@ describe("the operator's own hold must say hold", () => {
     "the operator explicitly asked for this exploratory pass to be held for review",
     "operator hold",
     "paused by the operator until the launch",
+    // Legacy phrasings that were valid before #4687 (history review, A):
+    // the operator as the REQUESTER of the hold.
+    "requested-by-operator",
+    "explicitly asked for by operator",
+    "operator-requested-wait",
+    "requested by the operator",
+    "asked by the operator",
   ])("holds %j as the operator's hold", reason => {
     heldInBothModes(reason, OPERATOR_HOLD);
+  });
+});
+
+// History review C: a bare protected-deployment or protected-environment
+// approval was a valid gate before #4687 and must stay one; a slug or prose
+// about setting such an environment up is still a topic.
+describe("protected deployment approvals", () => {
+  it.each([
+    "protected deployment",
+    "protected environment",
+    "protected-environment-approval",
+    "protected deployment approval for production",
+  ])("holds %j as a person-only account act", reason => {
+    heldInBothModes(reason, PERSON_ONLY);
+  });
+
+  it.each([
+    "protected-environment-cdk-setup",
+    "add a protected deployment environment to the CDK stack",
+  ])("refuses the topic %j in both modes", reason => {
+    for (const options of MODES) {
+      expect(classifyHumanGateReason(reason, options).valid).toBe(false);
+    }
   });
 });
 

@@ -26,7 +26,10 @@
  */
 
 import { resolveBlockerEdges } from "../../../scripts/blocker-edge-resolution.mjs";
-import { humanGateVerdict } from "../../../scripts/intake-blocker-reprobe.mjs";
+import {
+  humanGateVerdict,
+  isStrictHumanGateMode,
+} from "../../../scripts/intake-blocker-reprobe.mjs";
 
 /** Every action the plan may return. */
 export const BLOCKED_RELEASE_ACTIONS = Object.freeze([
@@ -59,10 +62,7 @@ function planEscalation(resolution, total, input) {
         .toLowerCase() === NOT_PLANNED
   ).length;
   const unknown = escalated.length - cancelled;
-  const strict =
-    String(input.humanGateMode ?? "")
-      .trim()
-      .toLowerCase() === "strict";
+  const strict = isStrictHumanGateMode(input.humanGateMode);
   if (strict) {
     return {
       action: "escalate",

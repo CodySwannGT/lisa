@@ -99,11 +99,15 @@ describe("classifyHumanGateReason under each humanGate.mode", () => {
     );
   });
 
-  it("reads an unknown mode as the default, never as strict", () => {
-    expect(classifyHumanGateReason(HIPAA, { mode: "strcit" }).valid).toBe(
+  // History review B: a mode that is present but invalid fails safe, to
+  // strict. Only an absent mode means access-only.
+  it("reads a present but unknown mode as strict, the safe direction", () => {
+    expect(classifyHumanGateReason(HIPAA, { mode: "strcit" }).valid).toBe(true);
+    expect(classifyHumanGateReason(NAME_OWNER, { mode: 1 }).valid).toBe(true);
+    expect(classifyHumanGateReason(NAME_OWNER, {}).valid).toBe(false);
+    expect(classifyHumanGateReason(NAME_OWNER, { mode: null }).valid).toBe(
       false
     );
-    expect(classifyHumanGateReason(NAME_OWNER, { mode: 1 }).valid).toBe(false);
   });
 
   it("lets humanOnly widen the gate in both modes", () => {
@@ -175,10 +179,10 @@ describe("the writer-side CLI under each humanGate.mode", () => {
     expect(JSON.parse(result.out).mode).toBe(ACCESS_ONLY);
   });
 
-  it("degrades an invalid mode to the default and reports it", () => {
+  it("fails an invalid mode safe, to strict, and reports it", () => {
     const result = check(NAME_OWNER, badConfig);
-    expect(result.code).toBe(1);
-    expect(JSON.parse(result.out).mode).toBe(DEFAULT_HUMAN_GATE_MODE);
+    expect(result.code).toBe(0);
+    expect(JSON.parse(result.out).mode).toBe(STRICT_MODE);
     expect(result.err).toContain('"lenient"');
     expect(result.err).toContain("humanGate.mode");
   });
@@ -217,6 +221,13 @@ describe("the writer-side CLI under each humanGate.mode", () => {
     ).toEqual({ mode: STRICT_MODE });
     expect(
       resolveHumanGateMode(undefined, { humanGate: { mode: "strcit" } })
+    ).toEqual({ mode: STRICT_MODE, rejected: '"strcit"' });
+    // A valid local value still wins over an invalid global one.
+    expect(
+      resolveHumanGateMode(
+        { humanGate: { mode: ACCESS_ONLY } },
+        { humanGate: { mode: "strcit" } }
+      )
     ).toEqual({ mode: ACCESS_ONLY, rejected: '"strcit"' });
     // An invalid local value must not hide a valid global strict.
     expect(

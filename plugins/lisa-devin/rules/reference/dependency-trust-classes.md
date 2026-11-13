@@ -291,8 +291,9 @@ Under `"none"`:
 
 `"default"` — set explicitly, or reached by leaving the key out under
 `humanGate.mode: "strict"` — keeps every ratification requirement exactly as
-written above. Any other value is reported as invalid and treated as the mode's default
-(`"none"` under `"access-only"`, `"default"` under `"strict"`).
+written above. Any other value is reported as invalid and treated as `"default"`,
+the stricter option, in either mode: a setting someone tried and mistyped fails
+safe. Only an absent key gets the mode's default.
 
 ## Naming a class at planning time
 

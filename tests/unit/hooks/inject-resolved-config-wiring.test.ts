@@ -27,6 +27,7 @@ import {
 } from "../../../src/core/project-config-human-gate.js";
 import {
   DEFAULT_LOW_CONFIDENCE_ROUTING,
+  LOW_CONFIDENCE_ROUTINGS,
   STRICT_LOW_CONFIDENCE_ROUTING,
 } from "../../../src/core/project-config-learnings.js";
 import { BUILT_IN_DEFAULTS } from "../../../plugins/src/base/hooks/inject-resolved-config.mjs";
@@ -155,6 +156,12 @@ describe("inject-resolved-config: copied vocabularies still agree with their own
         STRICT_DEPENDENCY_HUMAN_SIGN_OFF,
       ],
     ]);
+  });
+
+  it("pins the lowConfidence vocabulary against the config owner's export", () => {
+    expect(rendererSource()).toContain(
+      `const LOW_CONFIDENCE_VALUES = [${LOW_CONFIDENCE_ROUTINGS.map(value => `"${value}"`).join(", ")}];`
+    );
   });
 
   it("pins the humanGate.mode vocabulary against the config owner's export", () => {

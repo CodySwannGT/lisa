@@ -6,8 +6,8 @@
  * default) gates only acts an agent genuinely lacks access to, and `"strict"`
  * restores the pre-#4687 gates and the stricter defaults of
  * `dependencies.humanSignOff` and `learnings.lowConfidence`. An invalid value
- * must never stop `lisa apply`, but it must be reported, because a project
- * that meant `"strict"` and silently got `"access-only"` would see no symptom.
+ * must never stop `lisa apply`; it fails safe, to `"strict"`, and is reported,
+ * because a typo must never quietly loosen the gate.
  * @module tests/unit/core/project-config-human-gate
  */
 import * as fs from "fs-extra";
@@ -98,12 +98,12 @@ describe("resolveHumanGateSettings", () => {
   });
 
   it.each([["strcit"], ["lenient"], [""], [true], [0], [null], [[STRICT]]])(
-    "treats the invalid mode %j as access-only and reports it",
+    "fails the invalid mode %j safe, to strict, and reports it",
     mode => {
       const settings = resolveHumanGateSettings(
         validateProjectConfig({ humanGate: { mode } }, SOURCE)
       );
-      expect(settings.mode).toBe(ACCESS_ONLY);
+      expect(settings.mode).toBe(STRICT);
       expect(settings.rejected).toEqual([
         { key: "humanGate.mode", value: JSON.stringify(mode) },
       ]);
@@ -142,7 +142,7 @@ describe("resolveHumanGateSettings", () => {
       const settings = resolveHumanGateSettings(
         validateProjectConfig({ humanGate: value }, SOURCE)
       );
-      expect(settings.mode).toBe(ACCESS_ONLY);
+      expect(settings.mode).toBe(STRICT);
       expect(settings.rejected).toEqual([
         { key: "humanGate", value: JSON.stringify(value) },
       ]);
@@ -170,7 +170,7 @@ describe("humanGateSettingsWarnings", () => {
     expect(warning).toContain("humanGate.mode");
     expect(warning).toContain('"lenient"');
     expect(warning).toContain('"access-only" | "strict"');
-    expect(warning).toContain('treated as "access-only"');
+    expect(warning).toContain('treated as "strict"');
   });
 
   it("names a non-object block", () => {
@@ -223,10 +223,18 @@ describe("mode-aware defaults", () => {
     expect(resolveLearningsSettings(strict).lowConfidence).toBe(AUTO_MERGE);
   });
 
-  it("reads an invalid mode as access-only for the defaults too", () => {
+  it("reads an invalid mode as strict for the defaults too", () => {
     const config = validateProjectConfig({ humanGate: { mode: "x" } }, SOURCE);
-    expect(resolveDependencySettings(config).humanSignOff).toBe("none");
-    expect(resolveLearningsSettings(config).lowConfidence).toBe(AUTO_MERGE);
+    expect(resolveDependencySettings(config).humanSignOff).toBe("default");
+    expect(resolveLearningsSettings(config).lowConfidence).toBe(HUMAN_TRIAGE);
+  });
+
+  it("routes an unvalidated invalid lowConfidence to human-triage", () => {
+    expect(
+      resolveLearningsSettings({
+        learnings: { lowConfidence: "sometimes" as never },
+      }).lowConfidence
+    ).toBe(HUMAN_TRIAGE);
   });
 });
 
@@ -254,7 +262,7 @@ describe("readProjectConfig carries the humanGate block", () => {
       humanGate: { mode: "sometimes" },
     });
     const invalid = await readProjectConfig(tempDir);
-    expect(resolveHumanGateSettings(invalid).mode).toBe(ACCESS_ONLY);
+    expect(resolveHumanGateSettings(invalid).mode).toBe(STRICT);
     expect(humanGateSettingsWarnings(invalid)).toHaveLength(1);
   });
 });

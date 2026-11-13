@@ -34,8 +34,10 @@
  * we needed is cancelled" into "we are unblocked", which is the same wrong-write
  * family as CodySwannGT/lisa#3479, where a reason-blind repair would have
  * stamped a production terminal on abandoned work. So an abandoned blocker
- * ESCALATES to a human rather than dissolving or silently holding forever:
- * somebody has to decide whether the dependent still makes sense.
+ * ESCALATES rather than dissolving or silently holding forever: someone has
+ * to decide whether the dependent still makes sense, and who decides follows
+ * `humanGate.mode` — the agent under `access-only`, a person under `strict`
+ * (see the session manager's `reconcile.mjs`).
  *
  * ## What this module does not decide
  *
@@ -77,8 +79,9 @@ export function resolveBlockerEdge(input = {}) {
 
   // Checked BEFORE containment, because an abandoned blocker whose branch
   // happens to contain some earlier commit of its own is still abandoned. The
-  // question a human has to answer is whether the dependent still makes sense,
-  // and a containment true would silently answer it for them.
+  // open question is whether the dependent still makes sense — answered by the
+  // agent or a person as `humanGate.mode` says — and a containment true would
+  // silently answer it for them.
   if (state === "closed" && reason === NOT_PLANNED) {
     return {
       action: "escalate",

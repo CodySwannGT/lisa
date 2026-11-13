@@ -246,7 +246,17 @@ const HUMAN_GATE_MODE_PATH = "humanGate.mode";
  */
 const HUMAN_GATE_MODE_VALUES = ["access-only", "strict"];
 
-/** The mode in force when `humanGate.mode` is absent or invalid. */
+/** `learnings.lowConfidence`, whose default follows the mode. */
+const LOW_CONFIDENCE_PATH = "learnings.lowConfidence";
+
+/**
+ * The `learnings.lowConfidence` vocabulary, copied from
+ * `LOW_CONFIDENCE_ROUTINGS` in `src/core/project-config-learnings.ts` and
+ * pinned against that export by this hook's wiring test.
+ */
+const LOW_CONFIDENCE_VALUES = ["human-triage", "auto-merge"];
+
+/** The mode in force when `humanGate.mode` is absent. */
 const DEFAULT_MODE = HUMAN_GATE_MODE_VALUES[0];
 
 /**
@@ -294,7 +304,7 @@ export const BUILT_IN_DEFAULTS = [
     owner: "src/core/project-config-human-gate.ts",
   },
   {
-    path: "learnings.lowConfidence",
+    path: LOW_CONFIDENCE_PATH,
     value: "auto-merge",
     strict: "human-triage",
     owner: "src/core/project-config-learnings.ts",
@@ -677,7 +687,7 @@ function describeInvalidSignOff(block) {
   }
   const { humanSignOff } = block;
   if (humanSignOff === undefined) return null;
-  if (HUMAN_SIGN_OFF_VALUES.includes(humanSignOff)) return null;
+  if (HUMAN_SIGN_OFF_VALUES.includes(normalizeMode(humanSignOff))) return null;
   const accepted = HUMAN_SIGN_OFF_VALUES.map(value => `"${value}"`).join(" | ");
   return `${JSON.stringify(humanSignOff)}, which is not one of ${accepted}`;
 }
@@ -706,8 +716,9 @@ function invalidSignOffLine(config, fallback, owner) {
 const MODE_RESOLUTION = "_humanGateMode";
 
 /**
- * The comparable form of a declared mode: trimmed and lower-cased, as the
- * classifier and the TypeScript reader compare it.
+ * The comparable form of a declared closed-vocabulary value (`humanGate.mode`,
+ * `dependencies.humanSignOff`): trimmed and lower-cased, as the classifier and
+ * the TypeScript readers compare it.
  * @param {unknown} value A raw `humanGate.mode`.
  * @returns {unknown} The normalized value.
  */
@@ -720,9 +731,10 @@ function normalizeMode(value) {
  *
  * Deep-merging first would let an invalid local value overwrite a valid
  * global `strict`, and the session would be told access-only for a project
- * that committed strict. So a valid local value wins, an invalid one falls
- * back to a valid global one, and only then to the default — the same order
- * as `human-gate-act.mjs` — and every rejected declaration is reported.
+ * that committed strict. So a valid local value wins and an invalid one falls
+ * back to a valid global one — the same order as `human-gate-act.mjs`. With
+ * no valid value anywhere, a declared one fails safe, to `strict`; only an
+ * absent mode means the default. Every rejected declaration is reported.
  * @param {unknown} mainConfig Parsed `.lisa.config.json`, or undefined.
  * @param {unknown} localConfig Parsed `.lisa.config.local.json`, or undefined.
  * @returns {{mode: string, declared: boolean, rejected: string[]}} Resolution.
@@ -732,6 +744,7 @@ function resolveModeDeclaration(mainConfig, localConfig) {
     " | "
   );
   const rejected = [];
+  let found = null;
   const sources = [
     [localConfig, ` in ${LOCAL_CONFIG}`],
     [mainConfig, ""],
@@ -748,13 +761,21 @@ function resolveModeDeclaration(mainConfig, localConfig) {
     if (block.mode === undefined) continue;
     const mode = normalizeMode(block.mode);
     if (HUMAN_GATE_MODE_VALUES.includes(mode)) {
-      return { mode, declared: true, rejected };
+      // The first valid value wins; keep judging so a typo in the other file
+      // is still reported.
+      found ??= mode;
+      continue;
     }
     rejected.push(
       `${JSON.stringify(block.mode)}${where}, which is not one of ${accepted}`
     );
   }
-  return { mode: DEFAULT_MODE, declared: false, rejected };
+  if (found !== null) return { mode: found, declared: true, rejected };
+  return {
+    mode: rejected.length > 0 ? "strict" : DEFAULT_MODE,
+    declared: false,
+    rejected,
+  };
 }
 
 /**
@@ -799,6 +820,34 @@ function renderHumanGate(config, out) {
 }
 
 /**
+ * Whether a declared `learnings.lowConfidence` is outside its vocabulary.
+ * @param {unknown} block The resolved `learnings` value.
+ * @returns {boolean} True when a value is present and unusable.
+ */
+function lowConfidenceInvalid(block) {
+  if (!isObject(block) || block.lowConfidence === undefined) return false;
+  return !LOW_CONFIDENCE_VALUES.includes(normalizeMode(block.lowConfidence));
+}
+
+/**
+ * The INVALID line for an unusable `learnings.lowConfidence`. The TypeScript
+ * reader rejects such a config outright; a session still has to be told what
+ * it can rely on, which is the safe routing.
+ * @param {object} config Resolved config.
+ * @param {string} fallback The value in force instead.
+ * @param {string} owner Module that owns the setting.
+ * @returns {string|null} The line, or null when the value is absent or valid.
+ */
+function invalidLowConfidenceLine(config, fallback, owner) {
+  if (!lowConfidenceInvalid(config.learnings)) return null;
+  const accepted = [...LOW_CONFIDENCE_VALUES]
+    .sort()
+    .map(value => `"${value}"`)
+    .join(" | ");
+  return `${LOW_CONFIDENCE_PATH}: ${fallback}   [INVALID — this project declares ${JSON.stringify(config.learnings.lowConfidence)}, which is not one of ${accepted}; treated as ${fallback}; owner: ${owner}]`;
+}
+
+/**
  * Render the `dependencies` block.
  *
  * `humanSignOff` is printed as its own dotted line so an agent finds the same
@@ -812,8 +861,9 @@ function renderHumanGate(config, out) {
 function renderDependencies(block, out) {
   if (!isObject(block)) return;
   const { humanSignOff, ...rest } = block;
-  if (HUMAN_SIGN_OFF_VALUES.includes(humanSignOff)) {
-    out.push(`${HUMAN_SIGN_OFF_PATH}: ${humanSignOff}`);
+  const value = normalizeMode(humanSignOff);
+  if (HUMAN_SIGN_OFF_VALUES.includes(value)) {
+    out.push(`${HUMAN_SIGN_OFF_PATH}: ${value}`);
   }
   renderSubtree(rest, "dependencies", out);
 }
@@ -829,12 +879,16 @@ function renderDefaults(config) {
   const { mode } = resolution;
   for (const { path, value: base, strict, owner } of BUILT_IN_DEFAULTS) {
     const value = strict !== undefined && mode === "strict" ? strict : base;
+    // A present but invalid value fails safe, to the strict value, whatever
+    // the mode; only an absent one gets the mode-aware default.
     const invalid =
       path === HUMAN_SIGN_OFF_PATH
-        ? invalidSignOffLine(config, value, owner)
+        ? invalidSignOffLine(config, strict ?? value, owner)
         : path === HUMAN_GATE_MODE_PATH
           ? invalidModeLine(config, owner)
-          : null;
+          : path === LOW_CONFIDENCE_PATH
+            ? invalidLowConfidenceLine(config, strict ?? value, owner)
+            : null;
     if (invalid !== null) {
       lines.push(invalid);
       continue;
@@ -912,6 +966,12 @@ function renderBody(config) {
     }
     if (key === "humanGate") {
       renderHumanGate(config, lines);
+      continue;
+    }
+    if (key === "learnings" && lowConfidenceInvalid(config.learnings)) {
+      // Stated once, by the INVALID gap line; never as if it were in force.
+      const { lowConfidence: _invalid, ...rest } = config.learnings;
+      renderSubtree(rest, key, lines);
       continue;
     }
     renderSubtree(config[key], key, lines);

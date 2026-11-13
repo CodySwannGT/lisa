@@ -108,8 +108,9 @@ account, a license signature) are not affected.
 `"dependencies": { "humanSignOff": "default" }` or
 `"humanGate": { "mode": "strict" }` in `.lisa.config.json`; the table then
 applies exactly as written. A value the project sets explicitly always wins over
-the mode. Any other value is reported as invalid and treated as the mode's
-default. Agents see the effective value as `dependencies.humanSignOff` in their
+the mode. Any other value is reported as invalid and treated as `"default"`, so
+a mistyped setting fails safe to sign-off on; only leaving the key out gives the
+mode's default. Agents see the effective value as `dependencies.humanSignOff` in their
 session's resolved-config block.
 
 Two rules worth memorizing:

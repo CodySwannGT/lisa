@@ -317,13 +317,18 @@ export function normalizeHumanGateMode(mode) {
 }
 
 /**
- * Whether a mode value selects the strict gate, after normalization. An
- * unknown value is not strict; readers report it rather than guess.
+ * Whether a mode value selects the strict gate, after normalization.
+ *
+ * Fails safe: only an ABSENT mode (undefined or null) or one that normalizes
+ * to `"access-only"` is the default. A mode that is present but invalid — a
+ * typo such as `"strcit"` — reads as strict, because a typo must never quietly
+ * loosen the gate; the readers report it so the project can fix it.
  * @param {unknown} mode - A `humanGate.mode` value
- * @returns {boolean} True only for a value that normalizes to `"strict"`
+ * @returns {boolean} True unless the mode is absent or `"access-only"`
  */
-function isStrictMode(mode) {
-  return normalizeHumanGateMode(mode) === "strict";
+export function isStrictHumanGateMode(mode) {
+  if (mode === undefined || mode === null) return false;
+  return normalizeHumanGateMode(mode) !== "access-only";
 }
 
 /**
@@ -398,6 +403,16 @@ export const HUMAN_GATE_ACTS = Object.freeze([
       /\b((approv\w*|sign\w* off on|act as) (the |a |this )?([a-z]+ ){0,3}(deploy|deployment|release|environment)s?|(deploy|deployment|release|production) approvals?|required reviewers? (must |to |should |has to )?(approv\w*|sign\w* off)|ruleset approvals?|accounts? only (a|the) (person|human|founder|owner|operator) (holds|has)|person only accounts?)\b/u,
   }),
   Object.freeze({
+    act: "person-only-account",
+    label: "act from an account only a person holds",
+    // A bare protected deployment or environment, valid before #4687: its
+    // approval comes from a required reviewer, a person. As often a topic
+    // ("protected-environment-cdk-setup"), so a topic word with no act verb
+    // refuses it, in prose as well as in a slug (history review C).
+    proseVeto: true,
+    pattern: /\bprotected (deploy|deployment|environment)s?\b/u,
+  }),
+  Object.freeze({
     act: "unreachable-system",
     label: "act in a system the agent cannot reach",
     pattern:
@@ -410,7 +425,16 @@ export const HUMAN_GATE_ACTS = Object.freeze([
     // It must name a HOLD: "the customer explicitly asked for dark mode" is
     // a request to build something, not a request to stop (review finding).
     pattern:
-      /\b(operator( [a-z]+){0,10} (hold|held|paused?|parked?)|(hold|held|paused?|parked?)( [a-z]+){0,4} (by|for) (the )?operator|(hold|held)( [a-z]+){0,4} (the )?operator (explicitly )?(asked|requested)|explicitly (held|paused|parked))\b/u,
+      /\b(operator( [a-z]+){0,10} (hold|held|paused?|parked?)|(hold|held|paused?|parked?)( [a-z]+){0,4} (by|for) (the )?operator|(hold|held)( [a-z]+){0,4} (the )?operator (explicitly )?(asked|requested)|explicitly (held|paused|parked)|(asked|requested) by (the )?operator|explicitly (asked|requested) for by (the )?operator)\b/u,
+  }),
+  Object.freeze({
+    act: "operator-hold",
+    label: "release a hold the operator explicitly asked for",
+    // The legacy slug form (`operator-requested-wait`), valid before #4687.
+    // Slug only: in prose "the operator requested a dark mode toggle" names
+    // a feature to build, not a hold (history review).
+    slugOnly: true,
+    pattern: /\boperator requested\b/u,
   }),
   Object.freeze({
     act: "human-authored-surface",
@@ -473,7 +497,7 @@ const KEYWORD_ACTS = new Set([
 
 /** Words that mark a reason as being about a topic, not an act. */
 const TOPIC_WORDS =
-  /\b(triage|dispatch|naming|rename|choice|choose|design|copy|colou?r|layout|wording|migration|refactor|classification|classify|cleanup|dashboard|page|button|ui|ux|docs?|documentation|schema|decision|selection|split|labels?|error message|policy|strategy|approach|format|field|template|structure|flag|adoption|list|pagination|conversion|settings|framework|pick|banner|placement|table|flow|storage|rotation|scope|folder|report|logging|tests?)\b/u;
+  /\b(triage|dispatch|naming|rename|choice|choose|design|copy|colou?r|layout|wording|migration|refactor|classification|classify|cleanup|dashboard|page|button|ui|ux|docs?|documentation|schema|decision|selection|split|labels?|error message|policy|strategy|approach|format|field|template|structure|flag|adoption|list|pagination|conversion|settings|framework|pick|banner|placement|table|flow|storage|rotation|scope|folder|report|logging|tests?|setup|stack|config|configuration|infra|infrastructure)\b/u;
 
 /** Verbs that say what a person must actually do. */
 const ACT_VERBS =
@@ -530,9 +554,10 @@ export function classifyHumanGateReason(reason, options = {}) {
     // hold rather than lifting one.
     const slug = !/\s/u.test(String(reason ?? "").trim());
     const topicOnly = slug && TOPIC_WORDS.test(text) && !ACT_VERBS.test(text);
-    const strict = isStrictMode(options.mode);
+    const strict = isStrictHumanGateMode(options.mode);
     for (const entry of HUMAN_GATE_ACTS) {
       if (entry.strictOnly && !strict) continue;
+      if (entry.slugOnly && !slug) continue;
       const match = entry.pattern.exec(text);
       // A secret is never a topic: the secret entry always wins. A login
       // word is a topic unless an act verb says otherwise, in prose too.
@@ -604,7 +629,7 @@ const HOLD_TEXT_CAP = 2000;
  * deliberately broader than the act patterns.
  */
 const HOLD_SAFETY_TOKENS =
-  /\b(project rules|agents md|agents rules|claude rules|human authored|credentials?|passwords?|passphrases?|passcodes?|mfa|2fa|otp|one time codes?|api keys?|keys?|tokens?|secrets?|oauth|sign|signs|signed|signing|signatures?|signoff|sign off|baa|contracts?|agreements?|admin|administrator|access|accounts?|spend\w*|budgets?|payments?|pay|paid|money|purchase|buy|billing|invoice|legal|lawyer|counsel|compliance|regulatory|hipaa|gdpr|soc ?2|physical|hardware|device)\b/u;
+  /\b(operator|project rules|agents md|agents rules|claude rules|human authored|credentials?|passwords?|passphrases?|passcodes?|mfa|2fa|otp|one time codes?|api keys?|keys?|tokens?|secrets?|oauth|sign|signs|signed|signing|signatures?|signoff|sign off|baa|contracts?|agreements?|admin|administrator|access|accounts?|spend\w*|budgets?|payments?|pay|paid|money|purchase|buy|billing|invoice|legal|lawyer|counsel|compliance|regulatory|hipaa|gdpr|soc ?2|physical|hardware|device)\b/u;
 
 /**
  * A human-authored destination named anywhere in an item's body, spelled as a

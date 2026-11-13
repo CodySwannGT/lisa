@@ -23,13 +23,15 @@
  * Every other closed config value in Lisa is rejected outright. This one is
  * not, because it changes only what governed prose asks an agent to do —
  * nothing Lisa writes depends on it — so a typo must not stop `lisa apply`.
- * It degrades to the mode's default, the same value an undeclared key gets, so
- * a typo behaves exactly like not having typed anything. It is still REPORTED ({@link dependencySettingsWarning}, and an `INVALID` note in
+ * Degrading to `"default"` is the safe direction, whatever the mode: the
+ * project keeps asking for sign-off it may not have wanted, rather than
+ * skipping sign-off it did. Only an ABSENT key gets the mode's default. It is
+ * still REPORTED ({@link dependencySettingsWarning}, and an `INVALID` note in
  * the session's resolved-config block), because a project that meant `"none"`
  * and silently got the other value would otherwise see no symptom at all.
  *
  * The same holds for the block's SHAPE. A `dependencies` value that is not an
- * object degrades to the mode's default and is reported too, rather than throwing like
+ * object degrades to `"default"` and is reported too, rather than throwing like
  * other config blocks do: a project that already carried any-shaped
  * `dependencies` key before this setting existed must not find `lisa apply`
  * broken by an upgrade, and the session hook already reports that shape as
@@ -140,6 +142,17 @@ export function validateDependenciesConfig(
 }
 
 /**
+ * The comparable form of a declared value: trimmed and lower-cased, the same
+ * way `humanGate.mode` is read, so `"Default"` is `"default"` rather than a
+ * silent fallback to the mode's default (CodySwannGT/lisa#4687 review).
+ * @param value - Raw declared value
+ * @returns The normalized value; a non-string is returned unchanged
+ */
+function normalizeSignOff(value: unknown): unknown {
+  return typeof value === "string" ? value.trim().toLowerCase() : value;
+}
+
+/**
  * Whether a raw value is one of the accepted sign-off values.
  * @param value - Raw declared value
  * @returns True for a member of {@link DEPENDENCY_HUMAN_SIGN_OFF_VALUES}
@@ -162,13 +175,14 @@ export function resolveDependencySettings(
   const block = config.dependencies;
   if (block !== undefined && "rejectedBlock" in block) {
     return Object.freeze({
-      humanSignOff: fallback,
+      humanSignOff: STRICT_DEPENDENCY_HUMAN_SIGN_OFF,
       declared: true,
       rejected: JSON.stringify(block.rejectedBlock),
       rejectedAt: "dependencies",
     });
   }
-  const declared = block?.humanSignOff;
+  const raw = block?.humanSignOff;
+  const declared = normalizeSignOff(raw);
   if (declared === undefined) {
     return Object.freeze({
       humanSignOff: fallback,
@@ -179,9 +193,9 @@ export function resolveDependencySettings(
     return Object.freeze({ humanSignOff: declared, declared: true });
   }
   return Object.freeze({
-    humanSignOff: fallback,
+    humanSignOff: STRICT_DEPENDENCY_HUMAN_SIGN_OFF,
     declared: true,
-    rejected: JSON.stringify(declared),
+    rejected: JSON.stringify(raw),
   });
 }
 
@@ -203,7 +217,7 @@ export function dependencySettingsWarning(
     humanSignOff === "none"
       ? "so the agent ratifies dependency decisions and records its reasoning."
       : "so dependency sign-off stays required where the trust-class rule asks for it.";
-  const consequence = `treated as "${humanSignOff}" (the humanGate.mode default), ${effect}`;
+  const consequence = `treated as "${humanSignOff}", the safe direction, ${effect}`;
   if (rejectedAt === "dependencies") {
     return `Invalid dependencies in .lisa.config.json: ${rejected} is not an object; humanSignOff is ${consequence}`;
   }

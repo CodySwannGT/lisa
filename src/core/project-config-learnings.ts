@@ -151,14 +151,28 @@ export function resolveLearningsSettings(
   return Object.freeze({
     learningsFile: resolveProjectLearningsFile(config),
     mergeDriverEnabled: config.learnings?.mergeDriver !== false,
-    // Membership, not `??`: a typed caller that skipped validation must not
-    // smuggle an unknown routing through.
-    lowConfidence: (LOW_CONFIDENCE_ROUTINGS as readonly unknown[]).includes(
-      config.learnings?.lowConfidence
-    )
-      ? (config.learnings?.lowConfidence as LowConfidenceRouting)
-      : defaultLowConfidenceRouting(resolveHumanGateMode(config)),
+    lowConfidence: resolveLowConfidence(config),
   });
+}
+
+/**
+ * The routing in force. A declared value wins; an ABSENT one follows the
+ * `humanGate.mode` default. A value that is present but not a routing — only
+ * reachable by a typed caller that skipped validation, since the reader
+ * rejects it — fails safe, to `human-triage`.
+ * @param config - Project config snapshot
+ * @returns The routing in force
+ */
+function resolveLowConfidence(
+  config: ConfigWithLearnings
+): LowConfidenceRouting {
+  const declared = config.learnings?.lowConfidence;
+  if (declared === undefined) {
+    return defaultLowConfidenceRouting(resolveHumanGateMode(config));
+  }
+  return (LOW_CONFIDENCE_ROUTINGS as readonly unknown[]).includes(declared)
+    ? declared
+    : STRICT_LOW_CONFIDENCE_ROUTING;
 }
 
 /**
@@ -208,8 +222,12 @@ function validateLowConfidence(
   if (value === undefined) {
     return undefined;
   }
-  if ((LOW_CONFIDENCE_ROUTINGS as readonly unknown[]).includes(value)) {
-    return value as LowConfidenceRouting;
+  // Trimmed and lower-cased first, like `humanGate.mode`, so "Auto-Merge" is
+  // the routing the project meant rather than a rejected config.
+  const normalized =
+    typeof value === "string" ? value.trim().toLowerCase() : value;
+  if ((LOW_CONFIDENCE_ROUTINGS as readonly unknown[]).includes(normalized)) {
+    return normalized as LowConfidenceRouting;
   }
   throw new Error(
     `Invalid learnings.lowConfidence in ${source}: expected "${AUTO_MERGE}" or "${HUMAN_TRIAGE}", received ${JSON.stringify(

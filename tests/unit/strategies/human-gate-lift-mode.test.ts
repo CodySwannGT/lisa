@@ -129,6 +129,20 @@ describe("legacy holds under humanGate.mode", () => {
     ]);
   });
 
+  // History review A: any hold whose text mentions the operator is the
+  // operator's to release, so the sweep never lifts it, whatever the slug.
+  it("never lifts a hold whose text mentions the operator", () => {
+    const body = heldBody(
+      "naming-triage",
+      "Held for a human product call: naming triage, which the operator wants to see first."
+    );
+    for (const humanGateMode of [undefined, "strict"]) {
+      expect(
+        planHumanGateLift({ body, labels: [NEEDED], humanGateMode }).lift
+      ).toBe(false);
+    }
+  });
+
   it("never lifts a credential hold in either mode", () => {
     const credential = heldBody(
       "vendor-api-key",

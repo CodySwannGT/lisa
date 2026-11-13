@@ -32,6 +32,7 @@ import {
 import { cleanupTempDir, createTempDir } from "../../helpers/test-utils.js";
 
 const SOURCE = ".lisa.config.json";
+const TREATED_AS_DEFAULT = 'treated as "default"';
 
 describe("dependencies.humanSignOff vocabulary", () => {
   it("is the closed pair default | none, defaulting by humanGate.mode", () => {
@@ -73,13 +74,29 @@ describe("resolveDependencySettings", () => {
     }
   );
 
-  it.each([["sometimes"], ["NONE"], [""], [false], [0], [null], [["none"]]])(
-    "treats the invalid value %j as the mode default and reports what it rejected",
+  it.each([
+    ["Default", "default"],
+    [" NONE ", "none"],
+    ["none\n", "none"],
+  ] as const)(
+    "reads the declared %j case- and whitespace-insensitively as %s",
+    (humanSignOff, expected) => {
+      expect(
+        resolveDependencySettings({ dependencies: { humanSignOff } })
+      ).toEqual({ humanSignOff: expected, declared: true });
+      expect(
+        dependencySettingsWarning({ dependencies: { humanSignOff } })
+      ).toBeUndefined();
+    }
+  );
+
+  it.each([["sometimes"], ["no ne"], [""], [false], [0], [null], [["none"]]])(
+    "fails the invalid value %j safe, to default, and reports what it rejected",
     value => {
       expect(
         resolveDependencySettings({ dependencies: { humanSignOff: value } })
       ).toEqual({
-        humanSignOff: "none",
+        humanSignOff: "default",
         declared: true,
         rejected: JSON.stringify(value),
       });
@@ -103,7 +120,15 @@ describe("dependencySettingsWarning", () => {
     expect(warning).toContain("dependencies.humanSignOff");
     expect(warning).toContain('"sometimes"');
     expect(warning).toContain('"default" | "none"');
-    expect(warning).toContain('treated as "none"');
+    expect(warning).toContain(TREATED_AS_DEFAULT);
+  });
+
+  it("still warns about a rejected value under the default access-only mode", () => {
+    const config = configOf({ dependencies: { humanSignOff: "Nope" } });
+    expect(resolveDependencySettings(config).humanSignOff).toBe("default");
+    const warning = dependencySettingsWarning(config);
+    expect(warning).toContain('"Nope"');
+    expect(warning).toContain(TREATED_AS_DEFAULT);
   });
 
   it("names the strict fallback under humanGate.mode strict", () => {
@@ -125,7 +150,7 @@ describe("dependencySettingsWarning", () => {
 
     expect(warning).toContain("Invalid dependencies in .lisa.config.json");
     expect(warning).toContain('"none" is not an object');
-    expect(warning).toContain('treated as "none"');
+    expect(warning).toContain(TREATED_AS_DEFAULT);
   });
 });
 
@@ -151,11 +176,11 @@ describe("validateDependenciesConfig", () => {
 });
 
 describe("resolveDependencySettings with a non-object block", () => {
-  it("resolves to the mode default and records the block as what was rejected", () => {
+  it("fails safe to default and records the block as what was rejected", () => {
     expect(
       resolveDependencySettings(configOf({ dependencies: "none" }))
     ).toEqual({
-      humanSignOff: "none",
+      humanSignOff: "default",
       declared: true,
       rejected: '"none"',
       rejectedAt: "dependencies",
@@ -187,7 +212,7 @@ describe("readProjectConfig carries the dependencies block", () => {
     });
     const config = await readProjectConfig(tempDir);
     expect(resolveDependencySettings(config)).toEqual({
-      humanSignOff: "none",
+      humanSignOff: "default",
       declared: true,
       rejected: '"sometimes"',
     });
@@ -200,7 +225,7 @@ describe("readProjectConfig carries the dependencies block", () => {
 
     const config = await readProjectConfig(tempDir);
 
-    expect(resolveDependencySettings(config).humanSignOff).toBe("none");
+    expect(resolveDependencySettings(config).humanSignOff).toBe("default");
     expect(dependencySettingsWarning(config)).toContain("is not an object");
   });
 });

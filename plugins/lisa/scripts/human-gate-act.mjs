@@ -45,11 +45,10 @@
  * `policy` prints the resolved `{ mode, humanOnly }` a sweep passes to
  * `planHumanGateLift` as `humanGateMode` and `humanOnly`; it exits 0.
  * `humanGate.mode` is read case- and whitespace-insensitively. A value that is
- * still not a mode is reported on stderr, never fatal, and resolves to the
- * global file's valid mode when only the local one is wrong, else to
- * `access-only`. That fallback is not "safe" for a project that meant
- * `strict` — it is the least-surprising value that can be proven, which is
- * why it is always reported.
+ * still not a mode is reported on stderr, never fatal. It resolves to the
+ * global file's valid mode when only the local one is wrong; with no valid
+ * value anywhere it fails safe, to `strict`: a typo must never quietly loosen
+ * the gate. Only an absent mode means `access-only`.
  * @module human-gate-act
  */
 import { readFileSync, realpathSync } from "node:fs";
@@ -133,9 +132,11 @@ export function resolveHumanOnly(local, global) {
  * The effective `humanGate.mode`: a valid local declaration replaces the
  * global one, the same way {@link resolveHumanOnly} does. Values are compared
  * trimmed and lower-cased. An invalid local value falls back to a valid
- * global one before the default, so a typo in a personal override cannot
- * silently hide a committed `strict`. The first rejected value is returned as
- * `rejected` (its JSON spelling) so the caller can report it.
+ * global one, so a typo in a personal override cannot silently hide a
+ * committed `strict`. When a value is present but none is valid, the mode
+ * fails safe, to `"strict"`; only when no value is declared at all does
+ * {@link DEFAULT_HUMAN_GATE_MODE} apply. The first rejected value is returned
+ * as `rejected` (its JSON spelling) so the caller can report it.
  * @param {unknown} local - Parsed local config
  * @param {unknown} global - Parsed global config
  * @returns {{ mode: string, rejected?: string }} The mode in force
@@ -143,18 +144,22 @@ export function resolveHumanOnly(local, global) {
 export function resolveHumanGateMode(local, global) {
   const pick = config =>
     config && typeof config === "object" ? config.humanGate?.mode : undefined;
-  let rejected;
-  for (const declared of [pick(local), pick(global)]) {
-    if (declared === undefined) continue;
-    const mode = normalizeHumanGateMode(declared);
-    if (HUMAN_GATE_MODES.includes(mode)) {
-      return rejected === undefined ? { mode } : { mode, rejected };
-    }
-    rejected ??= JSON.stringify(declared);
-  }
-  return rejected === undefined
-    ? { mode: DEFAULT_HUMAN_GATE_MODE }
-    : { mode: DEFAULT_HUMAN_GATE_MODE, rejected };
+  // Every declaration is judged, so a typo in the committed file is reported
+  // even while a valid local value is in force.
+  const declared = [pick(local), pick(global)].filter(
+    value => value !== undefined
+  );
+  const valid = declared
+    .map(normalizeHumanGateMode)
+    .find(mode => HUMAN_GATE_MODES.includes(mode));
+  const invalid = declared.find(
+    value => !HUMAN_GATE_MODES.includes(normalizeHumanGateMode(value))
+  );
+  const mode =
+    valid ?? (invalid === undefined ? DEFAULT_HUMAN_GATE_MODE : "strict");
+  return invalid === undefined
+    ? { mode }
+    : { mode, rejected: JSON.stringify(invalid) };
 }
 
 /**

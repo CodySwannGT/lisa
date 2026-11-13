@@ -119,9 +119,9 @@ describe("Lisa.apply reports an invalid dependencies.humanSignOff", () => {
     );
     expect(matching).toHaveLength(1);
     expect(matching[0]).toContain('"sometimes"');
-    // CodySwannGT/lisa#4687: the fallback is the humanGate.mode default,
-    // "none" under the default access-only mode.
-    expect(matching[0]).toContain('treated as "none"');
+    // CodySwannGT/lisa#4687: a present but invalid value fails safe, to
+    // "default", whatever the mode.
+    expect(matching[0]).toContain('treated as "default"');
   });
 
   it('warns with the rejected value for humanGate.mode "lenient"', async () => {
@@ -132,7 +132,7 @@ describe("Lisa.apply reports an invalid dependencies.humanSignOff", () => {
     );
     expect(matching).toHaveLength(1);
     expect(matching[0]).toContain('"lenient"');
-    expect(matching[0]).toContain('treated as "access-only"');
+    expect(matching[0]).toContain('treated as "strict"');
   });
 
   it("says nothing about humanGate when it is valid", async () => {

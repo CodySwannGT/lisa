@@ -85,6 +85,19 @@ describe("inject-resolved-config: dependencies.humanSignOff", () => {
     expect(context).not.toContain("INVALID");
   });
 
+  it("reads a declared value case- and whitespace-insensitively", () => {
+    const root = project();
+    writeJson(root, MAIN_CONFIG, {
+      tracker: "github",
+      dependencies: { humanSignOff: " Default " },
+    });
+
+    const context = contextFor(root);
+
+    expect(lineFor(context)).toBe(`${SIGN_OFF_KEY}: default`);
+    expect(context).not.toContain("INVALID");
+  });
+
   it("lets the local override win", () => {
     const root = project();
     writeJson(root, MAIN_CONFIG, {
@@ -106,7 +119,7 @@ describe("inject-resolved-config: dependencies.humanSignOff", () => {
     const context = contextFor(root);
 
     expect(lineFor(context)).toBe(
-      `dependencies.humanSignOff: none   [INVALID — this project declares "sometimes", which is not one of "default" | "none"; treated as none; ${DEPS_OWNER}]`
+      `dependencies.humanSignOff: default   [INVALID — this project declares "sometimes", which is not one of "default" | "none"; treated as default; ${DEPS_OWNER}]`
     );
     // Exactly one line for the key: the declared-but-invalid value must not
     // ALSO render as if it were the effective value.
@@ -122,7 +135,7 @@ describe("inject-resolved-config: dependencies.humanSignOff", () => {
     const context = contextFor(root);
 
     expect(lineFor(context)).toContain(
-      'dependencies.humanSignOff: none   [INVALID — this project declares "none" for dependencies'
+      'dependencies.humanSignOff: default   [INVALID — this project declares "none" for dependencies'
     );
     expect(context).not.toContain(
       "other declared keys (not summarised here): dependencies"
@@ -208,7 +221,7 @@ describe("inject-resolved-config: humanGate.mode and its mode-aware defaults", (
     expect(lineFor(context)).toContain(`${SIGN_OFF_KEY}: default`);
   });
 
-  it("reports an invalid mode as invalid and resolves everything as access-only", () => {
+  it("reports an invalid mode as invalid and fails safe to strict", () => {
     const root = project();
     writeJson(root, MAIN_CONFIG, {
       tracker: "github",
@@ -218,13 +231,16 @@ describe("inject-resolved-config: humanGate.mode and its mode-aware defaults", (
     const context = contextFor(root);
 
     expect(keyLine(context, MODE_KEY)).toBe(
-      `humanGate.mode: access-only   [INVALID — this project declares "lenient", which is not one of "access-only" | "strict"; treated as access-only; ${GATE_OWNER}]`
+      `humanGate.mode: strict   [INVALID — this project declares "lenient", which is not one of "access-only" | "strict"; treated as strict; ${GATE_OWNER}]`
     );
     expect(
       context.split("\n").filter(line => line.startsWith("humanGate.mode:"))
         .length
     ).toBe(1);
-    expect(lineFor(context)).toContain(`${SIGN_OFF_KEY}: none`);
+    expect(lineFor(context)).toContain(`${SIGN_OFF_KEY}: default`);
+    expect(keyLine(context, LOW_KEY)).toContain(
+      "learnings.lowConfidence: human-triage"
+    );
   });
 
   it("normalizes the mode's case and whitespace", () => {
@@ -257,6 +273,37 @@ describe("inject-resolved-config: humanGate.mode and its mode-aware defaults", (
     expect(lineFor(context)).toContain(`${SIGN_OFF_KEY}: default`);
   });
 
+  it("keeps a valid local mode but still reports an invalid global one", () => {
+    const root = project();
+    writeJson(root, MAIN_CONFIG, {
+      tracker: "github",
+      humanGate: { mode: "strcit" },
+    });
+    writeJson(root, LOCAL_CONFIG, { humanGate: { mode: "access-only" } });
+
+    const context = contextFor(root);
+
+    expect(keyLine(context, MODE_KEY)).toContain(
+      'humanGate.mode: access-only   [INVALID — this project declares "strcit"'
+    );
+    expect(lineFor(context)).toContain(`${SIGN_OFF_KEY}: none`);
+  });
+
+  it("reports an invalid lowConfidence and fails safe to human-triage", () => {
+    const root = project();
+    writeJson(root, MAIN_CONFIG, {
+      tracker: "github",
+      learnings: { lowConfidence: "yolo" },
+    });
+
+    const context = contextFor(root);
+
+    expect(keyLine(context, LOW_KEY)).toBe(
+      `learnings.lowConfidence: human-triage   [INVALID — this project declares "yolo", which is not one of "auto-merge" | "human-triage"; treated as human-triage; ${LEARNINGS_OWNER}]`
+    );
+    expect(context).not.toContain("lowConfidence=yolo");
+  });
+
   it("reports a humanGate block that is not an object as invalid", () => {
     const root = project();
     writeJson(root, MAIN_CONFIG, { tracker: "github", humanGate: "strict" });
@@ -264,7 +311,7 @@ describe("inject-resolved-config: humanGate.mode and its mode-aware defaults", (
     const context = contextFor(root);
 
     expect(keyLine(context, MODE_KEY)).toContain(
-      'humanGate.mode: access-only   [INVALID — this project declares "strict" for humanGate, which is not an object'
+      'humanGate.mode: strict   [INVALID — this project declares "strict" for humanGate, which is not an object'
     );
     expect(context).not.toContain(
       "other declared keys (not summarised here): humanGate"
