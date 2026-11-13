@@ -321,7 +321,7 @@
   "devDependencies": {
     "prettier-compat-3-9": "npm:prettier@3.9.10",
     "@actions/expressions": "0.3.61",
-    "@codyswann/lisa": "^4.69.1",
+    "@codyswann/lisa": "^5.0.1",
     "@playwright/test": "^1.61.1",
     "@stryker-mutator/api": "^9.0.0",
     "@stryker-mutator/core": "^9.0.0",
