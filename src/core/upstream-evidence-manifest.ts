@@ -11582,6 +11582,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/helpers/rails-hook-install-fixture.ts": true,
     "tests/helpers/readiness-workflow-fixtures.ts": true,
     "tests/helpers/release-rails-job.ts": true,
+    "tests/helpers/release-rails-remote-faults.ts": true,
     "tests/helpers/remote-env-materialized-artifact.ts": true,
     "tests/helpers/remote-env-materialized-fixture.ts": true,
     "tests/helpers/repo-file-walk.ts": true,

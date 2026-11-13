@@ -36,12 +36,15 @@ import {
   type ReleaseFixture,
   type ReleaseRun,
 } from "../helpers/release-rails-job.js";
+import {
+  dropPushReplies,
+  refuseAllPushes,
+  restoreVanished,
+  vanishOnPush,
+} from "../helpers/release-rails-remote-faults.js";
 
 const BRANCH = "main";
 const scratchRoots: string[] = [];
-
-/** The bare remote's pre-receive hook, relative to the remote. */
-const PRE_RECEIVE = path.join("hooks", "pre-receive");
 
 /**
  * A fresh remote at VERSION 0.0.1, removed after the case.
@@ -107,66 +110,31 @@ function promoteForeignRelease(
 }
 
 /**
- * Makes the remote refuse every push without the branch moving: a revoked
- * deploy key, a ruleset, or a network failure, rather than a race.
- * @param fixture - The fixture whose remote refuses.
- */
-function refuseAllPushes(fixture: ReleaseFixture): void {
-  const hook = path.join(fixture.remote, PRE_RECEIVE);
-
-  fs.writeFileSync(
-    hook,
-    "#!/bin/sh\necho 'push refused by policy' >&2\nexit 1\n"
-  );
-  fs.chmodSync(hook, 0o700);
-}
-
-/**
- * Makes the remote reject the next push and then disappear, so the run's
- * follow-up fetch fails too and it cannot tell a race from a refusal.
- * @param fixture - The fixture whose remote vanishes.
- */
-function vanishOnPush(fixture: ReleaseFixture): void {
-  const hook = path.join(fixture.remote, PRE_RECEIVE);
-
-  fs.writeFileSync(
-    hook,
-    `#!/bin/sh\nmv '${fixture.remote}' '${fixture.remote}.gone'\nexit 1\n`
-  );
-  fs.chmodSync(hook, 0o700);
-}
-
-/**
- * Puts back a remote that `vanishOnPush` moved away, minus its hook.
- * @param fixture - The fixture whose remote vanished.
- */
-function restoreVanished(fixture: ReleaseFixture): void {
-  fs.renameSync(`${fixture.remote}.gone`, fixture.remote);
-  fs.removeSync(path.join(fixture.remote, PRE_RECEIVE));
-}
-
-/**
  * Asserts a run refused to release because its branch moved past the gated
  * trigger commit, and that it published nothing.
  * @param run - The run.
  * @param fixture - The fixture it ran against.
  * @param tip - The branch tip the racing merge left, which must be untouched.
+ * @param tagsBefore - The remote's tags before the run; none may be added.
  */
 function expectSuperseded(
   run: ReleaseRun,
   fixture: ReleaseFixture,
-  tip: string
+  tip: string,
+  tagsBefore: readonly string[] = []
 ): void {
   expect(run.status, run.output).not.toBe(0);
   expect(run.output).toContain("::error title=Release superseded::");
   expect(run.output).toContain(tip);
+  expect(run.outputs["version"]?.["deferred"]).not.toBe("true");
   // The newer commit's run may be one the skip step skips (a promotion
-  // merge or a release commit), so the message must say how to recover.
+  // merge or a release commit). Dispatching by hand would be skipped the
+  // same way, so the remedy is the next ordinary merge.
   expect(run.output).toContain(
-    `start this workflow by hand (workflow_dispatch) on ${fixture.branch}`
+    `merge any ordinary change to ${fixture.branch} to release it`
   );
-  expect(run.output).not.toContain("no action is needed");
-  expect(tags(fixture.remote)).toEqual([]);
+  expect(run.output).not.toContain("workflow_dispatch");
+  expect(tags(fixture.remote)).toEqual(tagsBefore);
   expect(git(fixture.remote, "rev-parse", fixture.branch)).toBe(tip);
   expect(run.createsGithubRelease).toBe(false);
 }
@@ -324,6 +292,68 @@ describe("release-rails.yml racing merges (#4748)", () => {
     expect(run.output).toContain("refused by the remote");
     expect(run.output).not.toContain("kept moving");
     expect(tags(fixture.remote)).toEqual([]);
+  });
+
+  it("refuses to defer a rerun once an ungated merge sits on top of its release", () => {
+    const fixture = freshFixture();
+    const runA = cloneRemote(fixture, "a");
+    const other = cloneRemote(fixture, "z");
+    const trigger = landMerge(fixture, runA, "a.txt");
+
+    expect(runReleaseJob(fixture, runA).status).toBe(0);
+    // Ordinary merge Z lands; its own gates have not passed.
+    const mergeZ = landMerge(fixture, other, "z.txt");
+
+    // The operator re-runs A's failed jobs. Deferring would let the deploy
+    // after this job check out — and ship — the ungated tip Z.
+    const rerun = cloneRemote(fixture, "rerun");
+
+    git(rerun, "reset", "--quiet", "--hard", trigger);
+    const run = runReleaseJob(fixture, rerun);
+
+    expectSuperseded(run, fixture, mergeZ, ["v0.0.2"]);
+    expect(run.npxCalls).toEqual([]);
+  });
+
+  it("defers a rerun when a later release already covers it", () => {
+    const fixture = freshFixture();
+    const runA = cloneRemote(fixture, "a");
+    const runZ = cloneRemote(fixture, "z");
+    const trigger = landMerge(fixture, runA, "a.txt");
+
+    expect(runReleaseJob(fixture, runA).status).toBe(0);
+    landMerge(fixture, runZ, "z.txt");
+    // Z's own run releases Z, so the tip is a gated release again.
+    expect(runReleaseJob(fixture, runZ).status).toBe(0);
+
+    const rerun = cloneRemote(fixture, "rerun");
+
+    git(rerun, "reset", "--quiet", "--hard", trigger);
+    const run = runReleaseJob(fixture, rerun);
+
+    expect(run.status, run.output).toBe(0);
+    expect(run.outputs["version"]?.["deferred"]).toBe("true");
+    // The oldest release containing the trigger is reported.
+    expect(run.outputs["version"]?.["tag"]).toBe("v0.0.2");
+    expect(tags(fixture.remote)).toEqual(["v0.0.2", "v0.0.3"]);
+  });
+
+  it("treats an accepted push whose reply was lost as released", () => {
+    const fixture = freshFixture();
+    const runA = cloneRemote(fixture, "a");
+
+    landMerge(fixture, runA, "a.txt");
+    dropPushReplies(fixture);
+    const run = runReleaseJob(fixture, runA);
+
+    expect(run.status, run.output).toBe(0);
+    expect(run.output).toContain("::notice title=Release push confirmed::");
+    expect(run.output).not.toContain("Release superseded");
+    expect(run.outputs["version"]?.["tag"]).toBe("v0.0.2");
+    expect(run.outputs["version"]?.["version"]).toBe("0.0.2");
+    expect(isAncestor(fixture.remote, "v0.0.2", BRANCH)).toBe(true);
+    expect(git(fixture.remote, "show", `${BRANCH}:VERSION`)).toBe("0.0.2");
+    expect(run.createsGithubRelease).toBe(true);
   });
 
   it("defers a rerun to its own release and still publishes that tag", () => {

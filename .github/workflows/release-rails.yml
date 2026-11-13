@@ -233,12 +233,23 @@ jobs:
           covering_release() {
             local commit tag
             for commit in $(git rev-list --first-parent --ancestry-path --reverse --grep='^chore(release):' "$TRIGGER_SHA..origin/$BRANCH"); do
-              for tag in $(git tag --points-at "$commit" --list 'v*'); do
-                if [[ "$tag" =~ $TAG_RE ]]; then
-                  echo "$commit $tag"
-                  return 0
-                fi
-              done
+              tag=$(own_release_tag "$commit")
+              if [ -n "$tag" ]; then
+                echo "$commit $tag"
+                return 0
+              fi
+            done
+          }
+
+          # The tag in this branch's namespace that points at commit $1, or
+          # nothing when $1 is not one of this branch's releases.
+          own_release_tag() {
+            local tag
+            for tag in $(git tag --points-at "$1" --list 'v*'); do
+              if [[ "$tag" =~ $TAG_RE ]]; then
+                echo "$tag"
+                return 0
+              fi
             done
           }
 
@@ -281,26 +292,36 @@ jobs:
           }
 
           # BRANCH moved past the gated commit: stand down, publishing nothing.
+          # A workflow_dispatch would not help — it checks out the same tip,
+          # and the skip step skips it again — so the remedy is a merge.
           superseded() {
-            echo "::error title=Release superseded::$BRANCH moved on to $1 while this run was releasing $TRIGGER_SHA. This run's checks only covered $TRIGGER_SHA, so releasing the newer commits would ship changes nothing checked. Nothing was published: no release commit and no tag, so later releases are not blocked. The run started for the newer commit ($1) checks it and releases this one with it. But if that run is skipped, because $1 is a promotion merge or a release commit, nothing will release it until the next ordinary merge: in that case, start this workflow by hand (workflow_dispatch) on $BRANCH to release it."
+            echo "::error title=Release superseded::$BRANCH has moved on to $1, past $TRIGGER_SHA, the only commit this run's checks covered. Releasing from $1 would let the deploy after this job ship changes those checks never looked at, so this run published nothing: no release commit and no tag, and later releases are not blocked. The run for $1 checks it and releases everything up to it. If that run is skipped, because $1 is a promotion merge or a release commit, these changes are released by the next ordinary merge to $BRANCH: merge any ordinary change to $BRANCH to release it."
             exit 1
           }
 
           git fetch --quiet --force --tags origin "$REMOTE_BRANCH"
+          TIP=$(git rev-parse "origin/$BRANCH")
 
           # A concurrent run already released this commit: a release of this
           # branch, on its own line, contains it. Defer to it instead of
           # cutting a second release. Its tag is still reported, so a rerun
           # after a partial failure can finish the GitHub release.
+          #
+          # Only while the tip is itself one of this branch's releases (that
+          # one or a later, gated one): the deploy after this job checks out
+          # the tip, so deferring under an ordinary merge that has not been
+          # released would ship that merge ungated.
           COVERING=$(covering_release)
           if [ -n "$COVERING" ]; then
+            if [ -z "$(own_release_tag "$TIP")" ]; then
+              superseded "$TIP"
+            fi
             echo "Commit $TRIGGER_SHA was already released by ${COVERING% *} (${COVERING#* }); nothing to release."
             echo "deferred=true" >> $GITHUB_OUTPUT
             echo "tag=${COVERING#* }" >> $GITHUB_OUTPUT
             exit 0
           fi
 
-          TIP=$(git rev-parse "origin/$BRANCH")
           if ! git merge-base --is-ancestor "$TRIGGER_SHA" "$TIP"; then
             echo "::error::Commit $TRIGGER_SHA is no longer on $BRANCH (the branch was rewritten), so this run has nothing safe to release."
             exit 1
@@ -314,19 +335,29 @@ jobs:
           git tag -a "$TAG" -m "chore(release): $TAG"
 
           if ! git push --atomic origin "HEAD:refs/heads/$BRANCH" "refs/tags/$TAG"; then
-            # Neither ref landed; the local tag goes too. There is no retry:
-            # a retry could only rebuild on a tip no gate checked.
-            git tag -d "$TAG" >/dev/null
+            # There is no retry: a retry could only rebuild on a tip no gate
+            # checked. Re-read BRANCH to say what happened.
             if ! git fetch --quiet origin "$REMOTE_BRANCH"; then
-              echo "::error title=Release push failed::The push of release $TAG to $BRANCH was rejected, and re-reading $BRANCH failed too, so this run could not tell whether another merge moved $BRANCH or the remote refused the push. See the git errors above. Nothing was published: no release commit and no tag. Re-run this job once GitHub is reachable."
+              git tag -d "$TAG" >/dev/null
+              echo "::error title=Release push failed::The push of release $TAG to $BRANCH reported a failure, and re-reading $BRANCH failed too, so this run could not tell whether the release landed, another merge moved $BRANCH, or the remote refused the push. See the git errors above. Re-running this job is safe: it reuses the release if it landed and releases this commit if it did not."
               exit 1
             fi
             TIP=$(git rev-parse "origin/$BRANCH")
-            if [ "$TIP" != "$TRIGGER_SHA" ]; then
-              superseded "$TIP"
+            # The server took the push but its reply was lost: BRANCH now IS
+            # this release commit, and (atomic) the tag came with it.
+            if [ "$TIP" = "$(git rev-parse HEAD)" ] \
+              && git fetch --quiet --force origin "+refs/tags/$TAG:refs/tags/$TAG" \
+              && [ "$(git rev-parse "$TAG^{commit}")" = "$TIP" ]; then
+              echo "::notice title=Release push confirmed::git reported the push of $TAG as failed, but $BRANCH and $TAG on the remote both point at this release commit ($TIP), so the release landed."
+            else
+              # Neither ref landed; the local tag goes too.
+              git tag -d "$TAG" >/dev/null
+              if [ "$TIP" != "$TRIGGER_SHA" ]; then
+                superseded "$TIP"
+              fi
+              echo "::error title=Release push refused::The push of release $TAG to $BRANCH was refused by the remote, and $BRANCH has not moved, so this is not a race with another merge. Check the git error above: the deploy key, a branch ruleset or pre-receive hook, or the network. Nothing was published: no release commit and no tag."
+              exit 1
             fi
-            echo "::error title=Release push refused::The push of release $TAG to $BRANCH was refused by the remote, and $BRANCH has not moved, so this is not a race with another merge. Check the git error above: the deploy key, a branch ruleset or pre-receive hook, or the network. Nothing was published: no release commit and no tag."
-            exit 1
           fi
 
           echo "deferred=false" >> $GITHUB_OUTPUT
