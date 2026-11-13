@@ -57,6 +57,7 @@ const FRONTMATTER_KEYS =
 const COMMAND_TRANSFORMER = "src/codex/command-skill-transformer.ts";
 const AGENT_TRANSFORMER = "src/opencode/agent-transformer.ts";
 const WORK_ITEM_CLI = "all/copy-overwrite/scripts/lisa-work-item.mjs";
+const DESIGN_SOURCE_GATE = "plugins/src/base/scripts/design-source-gate.mjs";
 
 /** @type {readonly TokenClass[]} */
 export const TOKEN_CLASSES = Object.freeze([
@@ -177,6 +178,22 @@ export const TOKEN_CLASSES = Object.freeze([
       "all/copy-overwrite/scripts/check-third-party-review-evidence.mjs",
     ],
     needle: '"lisa:review-substitute"',
+  },
+  {
+    id: "design-source-none",
+    cls: MACHINE_TOKEN,
+    pattern:
+      /^(?:<!-- )?DESIGN-SOURCE: none — not in Figma(?: — [^\n]+?)?(?: -->)?$/u,
+    parser: [DESIGN_SOURCE_GATE],
+    needle: 'DESIGN_SOURCE_NONE_MARKER = "DESIGN-SOURCE: none — not in Figma"',
+  },
+  {
+    id: "design-source-figma",
+    cls: MACHINE_TOKEN,
+    pattern:
+      /^(?:<!-- )?DESIGN-SOURCE:(?: (?:<figma-url>|https:\/\/(?:[\w-]+\.)*figma\.com\/\S+))?(?: -->)?$/u,
+    parser: [DESIGN_SOURCE_GATE],
+    needle: "const ANNOTATION = /DESIGN-SOURCE:",
   },
   {
     id: "local-evidence-claim",

@@ -23,9 +23,10 @@
  *    undeclared — there is no frontmatter equivalent of an agent's `skills:` —
  *    so a renamed or deleted skill leaves a dangling invocation.
  *
- * Plus one honesty check: `tools:` is enforced only on Claude, and the doctrine
- * has to keep saying so, because a field that looks like a sandbox and is not
- * one is worse than no field at all.
+ * Plus one source-text check: the Codex agent transformer keeps emitting the
+ * note that `tools:` is enforced only on Claude, because a field that looks
+ * like a sandbox and is not one is worse than no field at all. (The doctrine
+ * skill's own wording of that point is reviewed, not pinned.)
  *
  * There is no exemption list, because no agent needs one. The single
  * intentional duplication in the tree — the `Security (proven)` /
@@ -278,26 +279,6 @@ describe("agent/skill layer contract", () => {
   });
 
   describe("`tools:` is documented as advisory rather than enforced", () => {
-    const doctrine = readFileSync(
-      path.join(SRC, "base/skills/lisa-agent-design-best-practices/SKILL.md"),
-      "utf8"
-    );
-
-    it("says only Claude enforces the field", () => {
-      expect(doctrine).toMatch(/only claude enforces `tools:`/iu);
-    });
-
-    it("forbids treating it as a containment control", () => {
-      expect(doctrine).toMatch(/not a security boundary/iu);
-      expect(doctrine).toMatch(/compromised or prompt-injected/iu);
-    });
-
-    it("names where the real controls live", () => {
-      for (const control of [/sandbox/iu, /egress/iu, /credential scope/iu]) {
-        expect(doctrine).toMatch(control);
-      }
-    });
-
     it("keeps the Codex transformer emitting the compatibility note", () => {
       const transformer = readFileSync(
         path.resolve("src/codex/agent-transformer.ts"),

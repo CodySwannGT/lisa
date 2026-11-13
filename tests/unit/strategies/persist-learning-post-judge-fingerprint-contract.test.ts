@@ -1,6 +1,6 @@
 /**
- * Prose contract: `lisa-persist-learning` keys every occurrence marker,
- * branch and PR search on the rule it will actually persist
+ * Behaviour contract: `lisa-persist-learning`'s documented Phase 1 command
+ * keys every occurrence on the rule it will actually persist
  * (CodySwannGT/lisa#4643, item 5).
  *
  * The judge rewrites a planning miss into `Planning (<stage>): <check>` and
@@ -9,6 +9,10 @@
  * two learning PRs. So the fingerprint is computed after the judge, from the
  * rule the verdict carries, while the ledger's `learningFingerprint`
  * consolidation check stays as it was.
+ *
+ * The test extracts the bash block from the source skill's Phase 1 section
+ * and runs it, so a broken command fails here. The prose around it is
+ * guidance and is reviewed, not pinned (#4867).
  * @module tests/unit/strategies/persist-learning-post-judge-fingerprint-contract
  */
 import { readFileSync } from "node:fs";
@@ -18,94 +22,8 @@ import { describe, expect, it } from "vitest";
 
 import { boundedExecFileSync } from "../../helpers/io-latency-budget.js";
 
-/** Every skill root a runtime reads: the source plus each projection. */
-const SKILL_ROOTS = [
-  "plugins/src/base/skills",
-  "plugins/lisa/skills",
-  "plugins/lisa-cursor/skills",
-  "plugins/lisa-agy/skills",
-  "plugins/lisa-copilot/skills",
-  "plugins/lisa-devin/skills",
-  "plugins/lisa/.codex-plugin/skills",
-] as const;
-
-const JUDGE_HEADING = "## Phase 0 — Judge (mandatory, never skipped)";
 const FINGERPRINT_HEADING =
   "## Phase 1 — Fingerprint (stable dedupe key, after the judge)";
-
-describe.each(SKILL_ROOTS)("post-judge occurrence fingerprint (%s)", root => {
-  const persist = readFileSync(
-    path.resolve(root, "lisa-persist-learning/SKILL.md"),
-    "utf8"
-  );
-  const fingerprintPhase = persist.slice(
-    persist.indexOf(FINGERPRINT_HEADING),
-    persist.indexOf("## Phase 2 — Route by disposition")
-  );
-
-  it("runs the judge before it computes the fingerprint", () => {
-    expect(persist).toContain(JUDGE_HEADING);
-    expect(persist).toContain(FINGERPRINT_HEADING);
-    expect(persist.indexOf(JUDGE_HEADING)).toBeLessThan(
-      persist.indexOf(FINGERPRINT_HEADING)
-    );
-    expect(persist).not.toContain("## Phase 0 — Fingerprint");
-  });
-
-  it("fingerprints the rule the verdict carries, for every disposition", () => {
-    expect(fingerprintPhase).toContain("the rule the verdict carries");
-    expect(fingerprintPhase).toContain(
-      "the judge's rewritten `Planning (<stage>): <check>` rule for a `planning-miss`"
-    );
-    expect(fingerprintPhase).toContain(
-      "the submitted `rule` for every other classification"
-    );
-    expect(fingerprintPhase).toContain(
-      "two wordings the judge rewrites to the same check share one fingerprint"
-    );
-    expect(fingerprintPhase).toContain(
-      "NORM=$(printf '%s' \"$PERSISTED_RULE\""
-    );
-    expect(fingerprintPhase).not.toContain("printf '%s' \"$RULE\"");
-  });
-
-  it("keeps every marker, branch and PR search on that one fingerprint", () => {
-    for (const keyed of [
-      "<!-- [lisa-learning-drop] key=<fingerprint> -->",
-      "<!-- [lisa-learning-upstream-handoff] key=<fingerprint> -->",
-      "<!-- [lisa-learning-upstream-handoff] key=<fingerprint>-inconclusive -->",
-      "<!-- [lisa-upstream-filed] key=<fingerprint> -->",
-      "<!-- [lisa-learning-upstream-handoff] key=<fingerprint>-filing-failed -->",
-      "[lisa-planning-miss] key=<fingerprint>",
-      "`[lisa-learning-pr] key=<fingerprint>`",
-      "branch `learning/<fingerprint>`",
-      "<!-- [lisa-learning-pr] key=<fingerprint> -->",
-    ]) {
-      expect(persist, keyed).toContain(keyed);
-    }
-    expect(fingerprintPhase).toContain(
-      "Every marker, branch and PR search in Phases 2 and 3 uses this fingerprint"
-    );
-  });
-
-  it("ignores a caller-supplied fingerprint", () => {
-    expect(persist).toContain(
-      "- `fingerprint` — ignored if supplied; Phase 1 always computes the key from the verdict's rule"
-    );
-    expect(fingerprintPhase).toContain(
-      "A caller-supplied `fingerprint` is ignored"
-    );
-    expect(persist).not.toContain(
-      "used only when the judge does not rewrite the rule"
-    );
-  });
-
-  it("leaves the ledger consolidation check on learningFingerprint", () => {
-    expect(persist).toContain(
-      "First compare `learningFingerprint(existing.rule)` with `learningFingerprint(candidate.rule)`"
-    );
-  });
-});
 
 describe("the Phase 1 fingerprint command (source)", () => {
   const persist = readFileSync(

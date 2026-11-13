@@ -16,8 +16,17 @@ import {
   classifyPhrase,
   literalOf,
 } from "../../../scripts/lib/phrase-tests/token-classes.mjs";
+import {
+  classifyDesignSource,
+  DESIGN_SOURCE_NONE_MARKER,
+} from "../../../plugins/src/base/scripts/design-source-gate.mjs";
 
 const WORK_ITEM_CLI = "all/copy-overwrite/scripts/lisa-work-item.mjs";
+const MACHINE_TOKEN = "MACHINE-TOKEN";
+const NONE_RULE = "design-source-none";
+const FIGMA_RULE = "design-source-figma";
+const FIGMA_URL = "https://www.figma.com/design/abc/x?node-id=1";
+const DESIGN_SOURCE_GATE = "plugins/src/base/scripts/design-source-gate.mjs";
 
 describe("TOKEN_CLASSES", () => {
   it.each(TOKEN_CLASSES.flatMap(row => row.parser.map(file => [row.id, file])))(
@@ -56,11 +65,11 @@ describe("literalOf", () => {
 describe("classifyPhrase", () => {
   it("names the parser for a bare machine token", () => {
     expect(classifyPhrase("[lisa-pr-link]")).toEqual({
-      cls: "MACHINE-TOKEN",
+      cls: MACHINE_TOKEN,
       rule: "lisa-pr-link",
       parser: [WORK_ITEM_CLI],
     });
-    expect(classifyPhrase("## Lisa Usage").cls).toBe("MACHINE-TOKEN");
+    expect(classifyPhrase("## Lisa Usage").cls).toBe(MACHINE_TOKEN);
     expect(classifyPhrase("Work-Item:").rule).toBe("work-item-trailer");
     expect(
       classifyPhrase("[EVIDENCE: cli-output: marker-count-one]").rule
@@ -68,6 +77,39 @@ describe("classifyPhrase", () => {
     expect(
       classifyPhrase("<!-- [lisa-human-gate] reason=needs-a-person -->").rule
     ).toBe("lisa-human-gate");
+  });
+
+  it("classifies the DESIGN-SOURCE annotations the gate parses", () => {
+    for (const [phrase, rule] of [
+      [DESIGN_SOURCE_NONE_MARKER, NONE_RULE],
+      [`${DESIGN_SOURCE_NONE_MARKER} — legacy screen`, NONE_RULE],
+      [`<!-- ${DESIGN_SOURCE_NONE_MARKER} -->`, NONE_RULE],
+      ["DESIGN-SOURCE: <figma-url>", FIGMA_RULE],
+      [`DESIGN-SOURCE: ${FIGMA_URL}`, FIGMA_RULE],
+      ["DESIGN-SOURCE:", FIGMA_RULE],
+    ] as const) {
+      expect(classifyPhrase(phrase), phrase).toEqual({
+        cls: MACHINE_TOKEN,
+        rule,
+        parser: [DESIGN_SOURCE_GATE],
+      });
+    }
+    for (const sentence of [
+      "Annotate DESIGN-SOURCE: none when not in Figma",
+      `Annotate the file with ${DESIGN_SOURCE_NONE_MARKER}`,
+      `Point at DESIGN-SOURCE: ${FIGMA_URL}`,
+      "DESIGN-SOURCE: <figma-url> on every screen",
+    ]) {
+      expect(classifyPhrase(sentence).cls, sentence).toBe("WORDING");
+    }
+  });
+
+  it("matches DESIGN-SOURCE spellings the gate itself accepts", () => {
+    const status = (line: string): string =>
+      classifyDesignSource({ path: "src/App.tsx", content: `// ${line}\n` })
+        .status;
+    expect(status(DESIGN_SOURCE_NONE_MARKER)).toBe("marked-exception");
+    expect(status(`DESIGN-SOURCE: ${FIGMA_URL}`)).toBe("figma-source");
   });
 
   it("treats a sentence that merely mentions a token as WORDING", () => {
