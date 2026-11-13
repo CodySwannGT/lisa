@@ -21,6 +21,7 @@ Rules every entry must meet, all checked before any npm work:
 - A subdirectory is npm-only. It must be a committed real directory holding regular committed `package.json` and `package-lock.json` files and no `bun.lock` of its own, committed or not. A root `bun.lock` belongs to the root project; a subdirectory proposal neither reads nor changes it.
 - A subdirectory entry uses `lisaOwner: "absent"` and has no `runtime` profile. Lisa ownership and the Rails runtime stay root-only.
 - `tracker` stays `github` and `target` stays `main` for every entry.
+- The root must still commit a `package-lock.json`, even when only a subdirectory is selected: the hosted gate installs the root with `npm ci` before running the ordinary hooks. A root that uses only Bun (a `bun.lock` with no `package-lock.json`) is not supported yet; see CodySwannGT/lisa#4862.
 
 Each run updates exactly one directory, chosen by the reusable workflow's `directory` input (default `"."`). A subdirectory proposal changes exactly `<directory>/package.json` and `<directory>/package-lock.json`. Its leaf is titled `Update selected npm dependencies in <directory>`, and its signed descriptor carries the directory. A root-only policy keeps byte-identical proposal keys, policy digest and leaf text, so existing root leaves and checkpoints remain valid. Updating several directories means several runs, for example one matrix job per directory:
 
