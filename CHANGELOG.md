@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.107.10](https://github.com/CodySwannGT/lisa/compare/v4.107.9...v4.107.10) (2026-11-13)
+
+
+### Bug Fixes
+
+* **session-manager:** reclaim pre-boot ledger locks and never let release mask a write ([b60b671](https://github.com/CodySwannGT/lisa/commit/b60b671517425d41d7dd327ab6603aba730ef43c)), closes [#4828](https://github.com/CodySwannGT/lisa/issues/4828) [CodySwannGT/lisa#4828](https://github.com/CodySwannGT/lisa/issues/4828)
+* **session-manager:** serialize the ledger read-modify-write with a cross-process lock ([82df255](https://github.com/CodySwannGT/lisa/commit/82df255ca81f15a088446281fd6ab5124e687981)), closes [#4828](https://github.com/CodySwannGT/lisa/issues/4828) [CodySwannGT/lisa#4828](https://github.com/CodySwannGT/lisa/issues/4828)
+
 ### [4.107.9](https://github.com/CodySwannGT/lisa/compare/v4.107.8...v4.107.9) (2026-11-13)
 
 
