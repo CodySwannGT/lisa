@@ -17,7 +17,6 @@
  */
 import {
   CompletionProofError,
-  MAX_NATIVE_JSON_BYTES,
   requireProof,
 } from "./completion-proof-shape.mjs";
 import {
@@ -85,28 +84,13 @@ export function excerpt(stderr) {
 }
 
 /**
- * Read a release by tag in one call; `null` only for GitHub's explicit 404.
- * Any other failure goes through the bounded transport, which reports it as a
- * read error instead of guessing the release is absent and creating it.
+ * Read a release by tag; `null` only for GitHub's explicit 404. Any other
+ * failure is retried when transient and then reported as a read error naming
+ * the release endpoint, instead of guessing the release is absent and
+ * creating it (CodySwannGT/lisa#4733).
  */
-function readRelease(run, transport, tag) {
-  const path = `${transport.root}/releases/tags/${tag}`;
-  const result = run("gh", ["api", path], {
-    allowFailure: true,
-    maxBuffer: MAX_NATIVE_JSON_BYTES,
-  });
-  if (result.status === 0 && !result.error) {
-    try {
-      return JSON.parse(result.stdout);
-    } catch {
-      throw new CompletionProofError(
-        READ_ERROR,
-        "The evidence release metadata is not complete JSON."
-      );
-    }
-  }
-  if (/HTTP 404/.test(result.stderr ?? "")) return null;
-  return transport.json(path);
+function readRelease(transport, tag) {
+  return transport.optionalJson(`${transport.root}/releases/tags/${tag}`);
 }
 
 /**
@@ -147,7 +131,7 @@ export function uploadHitLimit(stderr, transport, release) {
 
 /** A release by tag, created when absent; a concurrent creator may win. */
 function openRelease(run, transport, tag) {
-  let release = readRelease(run, transport, tag);
+  let release = readRelease(transport, tag);
   if (!release) {
     const created = run(
       "gh",
@@ -165,7 +149,7 @@ function openRelease(run, transport, tag) {
       ],
       { allowFailure: true }
     );
-    release = readRelease(run, transport, tag);
+    release = readRelease(transport, tag);
     const reason = excerpt(created.stderr);
     requireProof(
       release,
@@ -173,7 +157,8 @@ function openRelease(run, transport, tag) {
       WRITE_ERROR
     );
   }
-  return { tag, release, count: releaseAssets(transport, release).length };
+  const assets = releaseAssets(transport, release);
+  return { tag, release, count: assets.length, assets };
 }
 
 /**
@@ -189,8 +174,11 @@ function openRelease(run, transport, tag) {
  *   when full instead of rolling over.
  * @param {number} [options.from] - The overflow position to start at; 1 (the
  *   tag itself) by default, higher after an upload found a release full.
- * @returns {{tag: string, release: object, count: number, index: number}} The
- *   usable release and its overflow position.
+ * @returns {{tag: string, release: object, count: number, assets: object[],
+ *   index: number, passed: object[]}} The usable release, the assets it held
+ *   when checked, its overflow position, and every full release opened and
+ *   passed over on the way to it, so a publisher can look there for a record
+ *   it already uploaded (CodySwannGT/lisa#4733).
  */
 export function ensureEvidenceRelease(run, transport, policy, options = {}) {
   const base =
@@ -204,9 +192,10 @@ export function ensureEvidenceRelease(run, transport, policy, options = {}) {
           pinned: true,
         })
       );
-    return { ...pinned, index: 1 };
+    return { ...pinned, index: 1, passed: [] };
   }
   let last = { tag: base, count: undefined };
+  const passed = [];
   for (
     let index = options.from ?? 1;
     index <= EVIDENCE_RELEASE_MAX_OVERFLOW;
@@ -219,7 +208,9 @@ export function ensureEvidenceRelease(run, transport, policy, options = {}) {
         `${fullReleaseMessage(last.tag, transport.repository, last.count, { policy })} Lisa could not roll over to \`${tag}\`: the release name is too long for an overflow suffix (GitHub allows 100 characters), so shorten \`verification.completion.evidenceRelease\`.`
       );
     last = openRelease(run, transport, tag);
-    if (last.count < EVIDENCE_RELEASE_NEAR_FULL) return { ...last, index };
+    if (last.count < EVIDENCE_RELEASE_NEAR_FULL)
+      return { ...last, index, passed: [...passed] };
+    passed.push(last);
   }
   throw new CompletionProofError(
     WRITE_ERROR,

@@ -1,0 +1,8 @@
+# Jira sandbox G: DEMO-70 already lifted, no human-needed label, no role; only write left would be re-laning
+$ node plugins/lisa/skills/lisa-session-manager/scripts/session-manager.mjs orphan-plan --input fixture-nothing-to-write-jira.json --project-root /Users/codysai/.claude/jobs/313c93db/tmp/verify-4722/G
+{"doneReady":[],"return":[],"redispatch":[],"parked":[],"lookup":[],"skipped":[{"ref":"DEMO-70","reason":"nothing-to-write"}],"holds":{"lift":[],"keep":[],"digest":{"fingerprint":null,"text":"","changed":false}},"deferred":[]}
+exit=0
+# Control, GitHub sandbox J: same shape (#71) is re-laned to ready
+$ node plugins/lisa/skills/lisa-session-manager/scripts/session-manager.mjs orphan-plan --input fixture-nothing-to-write-github.json --project-root /Users/codysai/.claude/jobs/313c93db/tmp/verify-4722/J
+{"doneReady":[],"return":[],"redispatch":[],"parked":[],"lookup":[],"skipped":[],"holds":{"lift":[{"ref":"example-org/demo-repo#71","reason":"the hold names only a decision an agent may make ()","comments":[],"actions":{"removeHumanNeededLabel":false,"addReadyLabel":"status:ready"},"decision":null}],"keep":[],"digest":{"fingerprint":null,"text":"","changed":false}},"deferred":[]}
+exit=0

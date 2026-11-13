@@ -1,0 +1,78 @@
+{
+  "complete": true,
+  "items": [
+    {
+      "ref": "example-org/demo-repo#20",
+      "role": "review",
+      "labels": [
+        "status:in-review"
+      ],
+      "body": "Do it.",
+      "comments": [],
+      "assignees": [],
+      "updatedAt": "2026-11-01T00:00:00Z",
+      "pr": {
+        "state": "OPEN",
+        "url": "https://github.com/example-org/demo-repo/pull/120"
+      }
+    },
+    {
+      "ref": "example-org/demo-repo#21",
+      "role": "claimed",
+      "labels": [
+        "status:in-progress"
+      ],
+      "body": "Do it.",
+      "comments": [],
+      "assignees": [],
+      "updatedAt": "2026-11-01T00:00:00Z",
+      "pr": {
+        "state": "OPEN",
+        "url": "https://github.com/example-org/demo-repo/pull/121"
+      }
+    },
+    {
+      "ref": "example-org/demo-repo#22",
+      "role": "claimed",
+      "labels": [
+        "status:in-progress"
+      ],
+      "body": "Do it.",
+      "comments": [
+        {
+          "body": "[lisa-session-manager] Cannot complete: the deploy run for the merge commit failed."
+        }
+      ],
+      "assignees": [],
+      "updatedAt": "2026-11-01T00:00:00Z",
+      "pr": {
+        "state": "MERGED",
+        "url": "https://github.com/example-org/demo-repo/pull/122"
+      }
+    }
+  ],
+  "holds": [
+    {
+      "assignees": [],
+      "updatedAt": "2026-11-01T00:00:00Z",
+      "ref": "example-org/demo-repo#11",
+      "labels": [
+        "status:ready",
+        "human-needed"
+      ],
+      "body": "Needs a key.\n<!-- [lisa-human-gate] reason=stripe-api-key -->",
+      "comments": []
+    },
+    {
+      "assignees": [],
+      "updatedAt": "2026-11-01T00:00:00Z",
+      "ref": "example-org/demo-repo#30",
+      "labels": [
+        "status:ready",
+        "human-needed"
+      ],
+      "body": "Two holds.\n<!-- [lisa-human-gate] reason=naming-triage -->\n<!-- [lisa-human-gate] reason=stripe-api-key -->",
+      "comments": []
+    }
+  ]
+}

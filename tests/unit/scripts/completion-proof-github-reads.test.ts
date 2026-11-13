@@ -20,6 +20,8 @@ const ROOT = `repos/${REPOSITORY}`;
 const OCTET = "Accept: application/octet-stream";
 const ESCAPE_FLAG = "--allow-escape-sequences";
 const READ_ERROR = "read-error";
+/** Retried reads skip the backoff wait (#4733). */
+const NO_WAIT = { sleep: () => undefined };
 /** A raw test log as a coloured reporter writes it: ESC bytes included. */
 const ANSI_LOG = Buffer.from(
   "\u001b[32m✓\u001b[39m suite > case\nTests 1 passed\n"
@@ -133,7 +135,9 @@ describe("a failed read names itself", () => {
       stderr: `gh: Resource not accessible by integration (HTTP 403) token=${FAKE_TOKEN}\nsecond line\n`,
     });
     const error = refusal(() =>
-      githubProofTransport(run, REPOSITORY).json(`${ROOT}/branches/main`)
+      githubProofTransport(run, REPOSITORY, {}, NO_WAIT).json(
+        `${ROOT}/branches/main`
+      )
     );
     expect(error.category).toBe(READ_ERROR);
     expect(error.message).toContain(
@@ -156,7 +160,9 @@ describe("a failed read names itself", () => {
       stderr: `gh: ${esc}[31m${FAKE_TOKEN}${esc}[0m denied (HTTP 401)\n`,
     });
     const error = refusal(() =>
-      githubProofTransport(run, REPOSITORY).json(`${ROOT}/branches/main`)
+      githubProofTransport(run, REPOSITORY, {}, NO_WAIT).json(
+        `${ROOT}/branches/main`
+      )
     );
     expect(error.message).not.toContain(FAKE_TOKEN);
     expect(error.message).not.toContain("ghs_");
@@ -181,7 +187,7 @@ describe("a failed read names itself", () => {
             stderr: "",
           };
     const error = refusal(() =>
-      githubProofTransport(run, REPOSITORY).asset(739021859)
+      githubProofTransport(run, REPOSITORY, {}, NO_WAIT).asset(739021859)
     );
     expect(error.category).toBe(READ_ERROR);
     expect(error.message).toContain("asset-download");
@@ -216,7 +222,9 @@ describe("a failed read names itself", () => {
     ],
   ])("names %s", (_label, result, expected) => {
     const error = refusal(() =>
-      githubProofTransport(() => result, REPOSITORY).json(`${ROOT}/pulls/7`)
+      githubProofTransport(() => result, REPOSITORY, {}, NO_WAIT).json(
+        `${ROOT}/pulls/7`
+      )
     );
     expect(error.category).toBe(READ_ERROR);
     expect(error.message).toContain("pull");
@@ -231,7 +239,9 @@ describe("a failed read names itself", () => {
       stderr: "\u001b[31mgh: boom (HTTP 502)\u001b[0m\n",
     });
     const error = refusal(() =>
-      githubProofTransport(run, REPOSITORY).json(`${ROOT}/commits/abc`)
+      githubProofTransport(run, REPOSITORY, {}, NO_WAIT).json(
+        `${ROOT}/commits/abc`
+      )
     );
     expect(error.message).not.toContain("\u001b");
     expect(error.message).toContain("commit");
@@ -241,7 +251,9 @@ describe("a failed read names itself", () => {
   it("names the read whose response is not JSON", () => {
     const run = () => ({ status: 0, stdout: "{", stderr: "" });
     const error = refusal(() =>
-      githubProofTransport(run, REPOSITORY).json(`${ROOT}/actions/runs/31`)
+      githubProofTransport(run, REPOSITORY, {}, NO_WAIT).json(
+        `${ROOT}/actions/runs/31`
+      )
     );
     expect(error.category).toBe(READ_ERROR);
     expect(error.message).toContain("actions-run");

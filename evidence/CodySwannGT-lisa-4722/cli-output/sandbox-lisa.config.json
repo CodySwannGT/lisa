@@ -1,0 +1,21 @@
+{
+  "tracker": "github",
+  "github": {
+    "org": "example-org",
+    "repo": "demo-repo",
+    "labels": {
+      "build": {
+        "ready": "status:ready",
+        "claimed": "status:in-progress",
+        "blocked": "status:blocked",
+        "human_needed": "human-needed",
+        "done": { "production": "status:done" }
+      }
+    }
+  },
+  "sessionManager": {
+    "name": "verify-manager",
+    "interval": "5m",
+    "notify": { "provider": "none" }
+  }
+}

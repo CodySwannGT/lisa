@@ -1,0 +1,7 @@
+{
+  "complete": true,
+  "items": [],
+  "holds": [
+    {"ref":"example-org/demo-repo#71","labels":[],"body":"Held.\n<!-- [lisa-human-gate] reason=tenancy-audit-triage -->","comments":[{"body":"[lisa-human-gate-lifted] reason=tenancy-audit-triage\nHold lifted earlier."}],"assignees":[],"updatedAt":"2026-11-01T00:00:00Z"}
+  ]
+}

@@ -1,0 +1,3 @@
+$ node plugins/lisa/skills/lisa-session-manager/scripts/session-manager.mjs ledger control --hold-digest 4f7ec32d28790fd47ce9e6d12483b2f6ea2929f245467f41665d1397a42e6726 --project-root /Users/codysai/.claude/jobs/313c93db/tmp/verify-4722/A
+{"paused":false,"maxWorkers":null,"me":null,"setupGaps":{},"holdDigest":"4f7ec32d28790fd47ce9e6d12483b2f6ea2929f245467f41665d1397a42e6726"}
+exit=0

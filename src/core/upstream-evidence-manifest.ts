@@ -49,13 +49,13 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lib/completion-proof-errors.mjs":
       "3422df7049227eff77f3ef7bf954eeb74a63e9879b06d8126c7c3a2485b6d1f3",
     "all/copy-overwrite/scripts/lib/completion-proof-github.mjs":
-      "b2f42db4858a96cff75b17419cb98a6c9998430bc1dc22070b322a62dd77bab2",
+      "ff40541dce08ead9caa0da538da851a1dafa523521ff136389ce2ee9efaec9d9",
     "all/copy-overwrite/scripts/lib/completion-proof-markdown.mjs":
       "8ff9efc772463c3fccf5d6e5a42c73df324babd2e02e66228f2d9a0b1896cbf4",
     "all/copy-overwrite/scripts/lib/completion-proof-projection.mjs":
       "5745309b07bd12dda8f72a2f29681441c2ac4a404b87acb03ee29c1a7a724d05",
     "all/copy-overwrite/scripts/lib/completion-proof-publisher.mjs":
-      "6f3c25bd35b2309c26b39ec90a7e6eab7487921cad9d9e285366b5bc2d3efc25",
+      "9554fff85ed510f75058614c9ad8535806d52293e1de012900bae7e14db61eb1",
     "all/copy-overwrite/scripts/lib/completion-proof-reader.mjs":
       "f134b65158605510bf188429d6aa5e713ed75a4d78877efc6211b440b3a805f7",
     "all/copy-overwrite/scripts/lib/completion-proof-shape.mjs":
@@ -73,7 +73,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lib/evidence-prune.mjs":
       "ae141d9a3e8d438365192f3c05de86002ebf36cd53ed63c639474317b9c007a4",
     "all/copy-overwrite/scripts/lib/evidence-release-capacity.mjs":
-      "7e1fffe6cb74e345410dff76497d656b261e8da47b5b7a90c0af53626ab5e51e",
+      "3426aeee6aed4ab7673c69a2812a4761f3bc5b5cf142af9050da77f182a93c76",
     "all/copy-overwrite/scripts/lib/gate-failure-diagnosis.mjs":
       "31f2acced121662d6395b624aed2ae0ad642c1edb52cdb0eded1497886daad71",
     "all/copy-overwrite/scripts/lib/github-attestation-provider.mjs":
@@ -1703,9 +1703,9 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-sentry-access/SKILL.md":
       "1c1881ca9a2020f6cd8f938dc5335ebf2d344ff280844bb98926198e5226e526",
     "plugins/src/base/skills/lisa-session-manager/SKILL.md":
-      "b69cd3b4d1fdb46f3270b87b75268810bebf2b74bd18c185b8b84de615804949",
+      "d30a17590f7283f46220f310bb47c77a01a83a0518c6925c7563186f71b93859",
     "plugins/src/base/skills/lisa-session-manager/references/runbook-template.md":
-      "144caff13b05f294924613f8c1b5fac5cf6c731af44bd3bdc7734e45613767a2",
+      "4bc9fa8b4a93580faa2c578decffef30076740dd568ead210092096c731d4cf4",
     "plugins/src/base/skills/lisa-session-manager/scripts/answer-record.mjs":
       "88982207f9134f63c0949ebed21d05a2bcffe1f5c774739935237d78786b1813",
     "plugins/src/base/skills/lisa-session-manager/scripts/capacity.mjs":
@@ -1713,13 +1713,15 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-answer-record.mjs":
       "cd195249f028231358071f541a0f64599b545f2c87d30118c92aebd44c0a8498",
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-cycle.mjs":
-      "98079a1b10e7695567220ee534a8a9ad48257aa51d2608beaee3fd55e63607fb",
+      "55ded5558a0b36279efa321bc6791e317405315dd2f3feddefb1da6c25f5b166",
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-human.mjs":
       "de444688db2579750d2c312f854389d4019ec40a6ce59684026fa8fed7ff1aff",
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-manager-token.mjs":
       "7478baf8cdb72029aa04d31f0951f262d086004e1dfc5ad3e422b3a2eea326c6",
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-manager.mjs":
       "eef29221c8343f978c7189365e2e8941e98980e7c3a2e13dcc5703710f7bd090",
+    "plugins/src/base/skills/lisa-session-manager/scripts/cli-orphans.mjs":
+      "3b5328ab61dffea82816a9033cc2c24e16376968861e72751f8cd7982dcbd6db",
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-overruled.mjs":
       "cab60f2dfee7f33a8a5f16ec94cb1b2ab17cf384886ee5eb738fb015535d6567",
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-queue.mjs":
@@ -1731,7 +1733,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-status.mjs":
       "e7f643b66a5af453ee445640a4d9b27b570f364222b349f82ff27714eefb09fa",
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-usage.mjs":
-      "dc31c539ce61dcc9b01877da50606ad2b63979b55ca0308e0474327b1e5d02d5",
+      "25a47c19fcde7ad09e701bad63774e262b948654dd6a693e824e90312e19db46",
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-workers.mjs":
       "65beec4da7ea3917765b96ed920e630627955f6a053e9305de28056b8c6b2886",
     "plugins/src/base/skills/lisa-session-manager/scripts/clipboard.mjs":
@@ -1767,7 +1769,13 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-session-manager/scripts/ledger-setup-gaps.mjs":
       "bfed7726a6129fb5681433a8287f180d513c1439f7f8ff84f6eac600117bea9e",
     "plugins/src/base/skills/lisa-session-manager/scripts/ledger.mjs":
-      "7f3a29b5381cf72b1085c40f695c009942ae9e62b4dd112a3c5ec0e15ff87db6",
+      "a28a816e749bd62d7188cc7c7cb53b9784d0c8b112201228f67b87a81ebe1ff9",
+    "plugins/src/base/skills/lisa-session-manager/scripts/orphan-buckets.mjs":
+      "6c0bed75fc4244e97c583cf92da18b6531a86a25435d12fbd05a6f9252ac04c1",
+    "plugins/src/base/skills/lisa-session-manager/scripts/orphan-holds.mjs":
+      "c13b75e56464c87e7f394061b2b1a8d55385c1a7f8ce2d7d8a79c4b9f28eca4e",
+    "plugins/src/base/skills/lisa-session-manager/scripts/orphan-sweep.mjs":
+      "d62da2d7d194ad8a555e82821fcb6d9820fe3b0e141073dc865e41c5bf14bca9",
     "plugins/src/base/skills/lisa-session-manager/scripts/queue-github.mjs":
       "9af014661873a2971fbc29946739088fc3e089deb8d94e78af651647450f2999",
     "plugins/src/base/skills/lisa-session-manager/scripts/reconcile.mjs":
@@ -1775,7 +1783,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-session-manager/scripts/repo-detect.mjs":
       "3ce714f1934433f2bc297c0b67931a28687ccef70c01639cb8542e9bb7f0a14d",
     "plugins/src/base/skills/lisa-session-manager/scripts/session-manager.mjs":
-      "040300d0caefeb513bbce7af7cf85fc684b5bc484b4200a0757cd02512462a38",
+      "c4ec59cef5bf40baded089b9589a7a04806210900900cbea00de11903d13c937",
     "plugins/src/base/skills/lisa-session-manager/scripts/setup-checks.mjs":
       "433c1afb36641eb3eb271f1803c7dfba556dd98e535627d00cfc8e3135a5d68f",
     "plugins/src/base/skills/lisa-session-manager/scripts/state-dir.mjs":
@@ -4037,6 +4045,33 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "evidence/CodySwannGT-lisa-4712/security-floors-strict.txt": true,
     "evidence/CodySwannGT-lisa-4712/security-pin-floors.txt": true,
     "evidence/CodySwannGT-lisa-4712/template-floors.txt": true,
+    "evidence/CodySwannGT-lisa-4722/cli-output/00-record-spawn.txt": true,
+    "evidence/CodySwannGT-lisa-4722/cli-output/01-orphan-plan.txt": true,
+    "evidence/CodySwannGT-lisa-4722/cli-output/02-hold-digest-record.txt": true,
+    "evidence/CodySwannGT-lisa-4722/cli-output/03-orphan-plan-rerun.txt": true,
+    "evidence/CodySwannGT-lisa-4722/cli-output/04-orphan-plan-max1.txt": true,
+    "evidence/CodySwannGT-lisa-4722/cli-output/05-bite-no-ledger-live.txt": true,
+    "evidence/CodySwannGT-lisa-4722/cli-output/06-incomplete-envelope.txt": true,
+    "evidence/CodySwannGT-lisa-4722/cli-output/07-hold-with-live-worker.txt": true,
+    "evidence/CodySwannGT-lisa-4722/cli-output/08-review-live-hold-partial-lift.txt": true,
+    "evidence/CodySwannGT-lisa-4722/cli-output/09-partial-lift.txt": true,
+    "evidence/CodySwannGT-lisa-4722/cli-output/10-refusal-retry-window.txt": true,
+    "evidence/CodySwannGT-lisa-4722/cli-output/11-jira-fail-closed-lanes.txt": true,
+    "evidence/CodySwannGT-lisa-4722/cli-output/12-hold-guards.txt": true,
+    "evidence/CodySwannGT-lisa-4722/cli-output/13-jira-nothing-to-write.txt": true,
+    "evidence/CodySwannGT-lisa-4722/cli-output/fixture-hold-guards.json": true,
+    "evidence/CodySwannGT-lisa-4722/cli-output/fixture-lanes-github.json": true,
+    "evidence/CodySwannGT-lisa-4722/cli-output/fixture-lanes.json": true,
+    "evidence/CodySwannGT-lisa-4722/cli-output/fixture-nothing-to-write-github.json": true,
+    "evidence/CodySwannGT-lisa-4722/cli-output/fixture-nothing-to-write-jira.json": true,
+    "evidence/CodySwannGT-lisa-4722/cli-output/fixture-partial.json": true,
+    "evidence/CodySwannGT-lisa-4722/cli-output/fixture-refusal.json": true,
+    "evidence/CodySwannGT-lisa-4722/cli-output/fixture-review.json": true,
+    "evidence/CodySwannGT-lisa-4722/cli-output/fixture.json": true,
+    "evidence/CodySwannGT-lisa-4722/cli-output/incomplete.json": true,
+    "evidence/CodySwannGT-lisa-4722/cli-output/sandbox-E-lisa.config.json": true,
+    "evidence/CodySwannGT-lisa-4722/cli-output/sandbox-G-jira-lisa.config.json": true,
+    "evidence/CodySwannGT-lisa-4722/cli-output/sandbox-lisa.config.json": true,
     "evidence/copilot-hook-mcp-probe-1056.md": true,
     "evidence/cursor-rule-probe-1055.md": true,
     "expo/copy-overwrite/.easignore.extra": true,
@@ -4957,6 +4992,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-agy/skills/lisa-session-manager/scripts/cli-human.mjs": true,
     "plugins/lisa-agy/skills/lisa-session-manager/scripts/cli-manager-token.mjs": true,
     "plugins/lisa-agy/skills/lisa-session-manager/scripts/cli-manager.mjs": true,
+    "plugins/lisa-agy/skills/lisa-session-manager/scripts/cli-orphans.mjs": true,
     "plugins/lisa-agy/skills/lisa-session-manager/scripts/cli-overruled.mjs": true,
     "plugins/lisa-agy/skills/lisa-session-manager/scripts/cli-queue.mjs": true,
     "plugins/lisa-agy/skills/lisa-session-manager/scripts/cli-runtime.mjs": true,
@@ -4981,6 +5017,9 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-agy/skills/lisa-session-manager/scripts/ledger-questions.mjs": true,
     "plugins/lisa-agy/skills/lisa-session-manager/scripts/ledger-setup-gaps.mjs": true,
     "plugins/lisa-agy/skills/lisa-session-manager/scripts/ledger.mjs": true,
+    "plugins/lisa-agy/skills/lisa-session-manager/scripts/orphan-buckets.mjs": true,
+    "plugins/lisa-agy/skills/lisa-session-manager/scripts/orphan-holds.mjs": true,
+    "plugins/lisa-agy/skills/lisa-session-manager/scripts/orphan-sweep.mjs": true,
     "plugins/lisa-agy/skills/lisa-session-manager/scripts/queue-github.mjs": true,
     "plugins/lisa-agy/skills/lisa-session-manager/scripts/reconcile.mjs": true,
     "plugins/lisa-agy/skills/lisa-session-manager/scripts/repo-detect.mjs": true,
@@ -5508,6 +5547,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-copilot/skills/lisa-session-manager/scripts/cli-human.mjs": true,
     "plugins/lisa-copilot/skills/lisa-session-manager/scripts/cli-manager-token.mjs": true,
     "plugins/lisa-copilot/skills/lisa-session-manager/scripts/cli-manager.mjs": true,
+    "plugins/lisa-copilot/skills/lisa-session-manager/scripts/cli-orphans.mjs": true,
     "plugins/lisa-copilot/skills/lisa-session-manager/scripts/cli-overruled.mjs": true,
     "plugins/lisa-copilot/skills/lisa-session-manager/scripts/cli-queue.mjs": true,
     "plugins/lisa-copilot/skills/lisa-session-manager/scripts/cli-runtime.mjs": true,
@@ -5532,6 +5572,9 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-copilot/skills/lisa-session-manager/scripts/ledger-questions.mjs": true,
     "plugins/lisa-copilot/skills/lisa-session-manager/scripts/ledger-setup-gaps.mjs": true,
     "plugins/lisa-copilot/skills/lisa-session-manager/scripts/ledger.mjs": true,
+    "plugins/lisa-copilot/skills/lisa-session-manager/scripts/orphan-buckets.mjs": true,
+    "plugins/lisa-copilot/skills/lisa-session-manager/scripts/orphan-holds.mjs": true,
+    "plugins/lisa-copilot/skills/lisa-session-manager/scripts/orphan-sweep.mjs": true,
     "plugins/lisa-copilot/skills/lisa-session-manager/scripts/queue-github.mjs": true,
     "plugins/lisa-copilot/skills/lisa-session-manager/scripts/reconcile.mjs": true,
     "plugins/lisa-copilot/skills/lisa-session-manager/scripts/repo-detect.mjs": true,
@@ -6043,6 +6086,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-cursor/skills/lisa-session-manager/scripts/cli-human.mjs": true,
     "plugins/lisa-cursor/skills/lisa-session-manager/scripts/cli-manager-token.mjs": true,
     "plugins/lisa-cursor/skills/lisa-session-manager/scripts/cli-manager.mjs": true,
+    "plugins/lisa-cursor/skills/lisa-session-manager/scripts/cli-orphans.mjs": true,
     "plugins/lisa-cursor/skills/lisa-session-manager/scripts/cli-overruled.mjs": true,
     "plugins/lisa-cursor/skills/lisa-session-manager/scripts/cli-queue.mjs": true,
     "plugins/lisa-cursor/skills/lisa-session-manager/scripts/cli-runtime.mjs": true,
@@ -6067,6 +6111,9 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-cursor/skills/lisa-session-manager/scripts/ledger-questions.mjs": true,
     "plugins/lisa-cursor/skills/lisa-session-manager/scripts/ledger-setup-gaps.mjs": true,
     "plugins/lisa-cursor/skills/lisa-session-manager/scripts/ledger.mjs": true,
+    "plugins/lisa-cursor/skills/lisa-session-manager/scripts/orphan-buckets.mjs": true,
+    "plugins/lisa-cursor/skills/lisa-session-manager/scripts/orphan-holds.mjs": true,
+    "plugins/lisa-cursor/skills/lisa-session-manager/scripts/orphan-sweep.mjs": true,
     "plugins/lisa-cursor/skills/lisa-session-manager/scripts/queue-github.mjs": true,
     "plugins/lisa-cursor/skills/lisa-session-manager/scripts/reconcile.mjs": true,
     "plugins/lisa-cursor/skills/lisa-session-manager/scripts/repo-detect.mjs": true,
@@ -6510,6 +6557,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-devin/skills/lisa-session-manager/scripts/cli-human.mjs": true,
     "plugins/lisa-devin/skills/lisa-session-manager/scripts/cli-manager-token.mjs": true,
     "plugins/lisa-devin/skills/lisa-session-manager/scripts/cli-manager.mjs": true,
+    "plugins/lisa-devin/skills/lisa-session-manager/scripts/cli-orphans.mjs": true,
     "plugins/lisa-devin/skills/lisa-session-manager/scripts/cli-overruled.mjs": true,
     "plugins/lisa-devin/skills/lisa-session-manager/scripts/cli-queue.mjs": true,
     "plugins/lisa-devin/skills/lisa-session-manager/scripts/cli-runtime.mjs": true,
@@ -6534,6 +6582,9 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-devin/skills/lisa-session-manager/scripts/ledger-questions.mjs": true,
     "plugins/lisa-devin/skills/lisa-session-manager/scripts/ledger-setup-gaps.mjs": true,
     "plugins/lisa-devin/skills/lisa-session-manager/scripts/ledger.mjs": true,
+    "plugins/lisa-devin/skills/lisa-session-manager/scripts/orphan-buckets.mjs": true,
+    "plugins/lisa-devin/skills/lisa-session-manager/scripts/orphan-holds.mjs": true,
+    "plugins/lisa-devin/skills/lisa-session-manager/scripts/orphan-sweep.mjs": true,
     "plugins/lisa-devin/skills/lisa-session-manager/scripts/queue-github.mjs": true,
     "plugins/lisa-devin/skills/lisa-session-manager/scripts/reconcile.mjs": true,
     "plugins/lisa-devin/skills/lisa-session-manager/scripts/repo-detect.mjs": true,
@@ -8650,6 +8701,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa/.codex-plugin/scripts/automation-run-record.mjs": true,
     "plugins/lisa/.codex-plugin/scripts/blocker-edge-resolution.mjs": true,
     "plugins/lisa/.codex-plugin/scripts/human-gate-act.mjs": true,
+    "plugins/lisa/.codex-plugin/scripts/human-gate-lift.mjs": true,
     "plugins/lisa/.codex-plugin/scripts/intake-blocker-reprobe.mjs": true,
     "plugins/lisa/.codex-plugin/scripts/intake-prework-denominator.mjs": true,
     "plugins/lisa/.codex-plugin/scripts/operator-id-kinds.mjs": true,
@@ -8946,6 +8998,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa/.codex-plugin/skills/lisa-session-manager/scripts/cli-human.mjs": true,
     "plugins/lisa/.codex-plugin/skills/lisa-session-manager/scripts/cli-manager-token.mjs": true,
     "plugins/lisa/.codex-plugin/skills/lisa-session-manager/scripts/cli-manager.mjs": true,
+    "plugins/lisa/.codex-plugin/skills/lisa-session-manager/scripts/cli-orphans.mjs": true,
     "plugins/lisa/.codex-plugin/skills/lisa-session-manager/scripts/cli-overruled.mjs": true,
     "plugins/lisa/.codex-plugin/skills/lisa-session-manager/scripts/cli-queue.mjs": true,
     "plugins/lisa/.codex-plugin/skills/lisa-session-manager/scripts/cli-runtime.mjs": true,
@@ -8970,6 +9023,9 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa/.codex-plugin/skills/lisa-session-manager/scripts/ledger-questions.mjs": true,
     "plugins/lisa/.codex-plugin/skills/lisa-session-manager/scripts/ledger-setup-gaps.mjs": true,
     "plugins/lisa/.codex-plugin/skills/lisa-session-manager/scripts/ledger.mjs": true,
+    "plugins/lisa/.codex-plugin/skills/lisa-session-manager/scripts/orphan-buckets.mjs": true,
+    "plugins/lisa/.codex-plugin/skills/lisa-session-manager/scripts/orphan-holds.mjs": true,
+    "plugins/lisa/.codex-plugin/skills/lisa-session-manager/scripts/orphan-sweep.mjs": true,
     "plugins/lisa/.codex-plugin/skills/lisa-session-manager/scripts/queue-github.mjs": true,
     "plugins/lisa/.codex-plugin/skills/lisa-session-manager/scripts/reconcile.mjs": true,
     "plugins/lisa/.codex-plugin/skills/lisa-session-manager/scripts/repo-detect.mjs": true,
@@ -9662,6 +9718,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa/skills/lisa-session-manager/scripts/cli-human.mjs": true,
     "plugins/lisa/skills/lisa-session-manager/scripts/cli-manager-token.mjs": true,
     "plugins/lisa/skills/lisa-session-manager/scripts/cli-manager.mjs": true,
+    "plugins/lisa/skills/lisa-session-manager/scripts/cli-orphans.mjs": true,
     "plugins/lisa/skills/lisa-session-manager/scripts/cli-overruled.mjs": true,
     "plugins/lisa/skills/lisa-session-manager/scripts/cli-queue.mjs": true,
     "plugins/lisa/skills/lisa-session-manager/scripts/cli-runtime.mjs": true,
@@ -9686,6 +9743,9 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa/skills/lisa-session-manager/scripts/ledger-questions.mjs": true,
     "plugins/lisa/skills/lisa-session-manager/scripts/ledger-setup-gaps.mjs": true,
     "plugins/lisa/skills/lisa-session-manager/scripts/ledger.mjs": true,
+    "plugins/lisa/skills/lisa-session-manager/scripts/orphan-buckets.mjs": true,
+    "plugins/lisa/skills/lisa-session-manager/scripts/orphan-holds.mjs": true,
+    "plugins/lisa/skills/lisa-session-manager/scripts/orphan-sweep.mjs": true,
     "plugins/lisa/skills/lisa-session-manager/scripts/queue-github.mjs": true,
     "plugins/lisa/skills/lisa-session-manager/scripts/reconcile.mjs": true,
     "plugins/lisa/skills/lisa-session-manager/scripts/repo-detect.mjs": true,
@@ -10253,6 +10313,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-human.mjs": true,
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-manager-token.mjs": true,
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-manager.mjs": true,
+    "plugins/src/base/skills/lisa-session-manager/scripts/cli-orphans.mjs": true,
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-overruled.mjs": true,
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-queue.mjs": true,
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-runtime.mjs": true,
@@ -10277,6 +10338,9 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/src/base/skills/lisa-session-manager/scripts/ledger-questions.mjs": true,
     "plugins/src/base/skills/lisa-session-manager/scripts/ledger-setup-gaps.mjs": true,
     "plugins/src/base/skills/lisa-session-manager/scripts/ledger.mjs": true,
+    "plugins/src/base/skills/lisa-session-manager/scripts/orphan-buckets.mjs": true,
+    "plugins/src/base/skills/lisa-session-manager/scripts/orphan-holds.mjs": true,
+    "plugins/src/base/skills/lisa-session-manager/scripts/orphan-sweep.mjs": true,
     "plugins/src/base/skills/lisa-session-manager/scripts/queue-github.mjs": true,
     "plugins/src/base/skills/lisa-session-manager/scripts/reconcile.mjs": true,
     "plugins/src/base/skills/lisa-session-manager/scripts/repo-detect.mjs": true,
@@ -12990,6 +13054,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/completion-proof-indented-markers-and-ac-heading.test.ts": true,
     "tests/unit/scripts/completion-proof-linear-escaped-markers.test.ts": true,
     "tests/unit/scripts/completion-proof-linear-usage-normalization.test.ts": true,
+    "tests/unit/scripts/completion-proof-read-retry.test.ts": true,
     "tests/unit/scripts/completion-proof-types.test.ts": true,
     "tests/unit/scripts/conflict-prover-markers-and-index.test.ts": true,
     "tests/unit/scripts/cross-pollinate.test.ts": true,
@@ -13354,6 +13419,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/work-item-proof-freshness-review.test.ts": true,
     "tests/unit/scripts/work-item-proof-gh-versions.test.ts": true,
     "tests/unit/scripts/work-item-proof-late-read.test.ts": true,
+    "tests/unit/scripts/work-item-proof-publish-retry.test.ts": true,
     "tests/unit/scripts/work-item-proof-scope.test.ts": true,
     "tests/unit/scripts/work-item-proof-trust.test.ts": true,
     "tests/unit/scripts/work-item-proof-write-errors.test.ts": true,
@@ -13479,6 +13545,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/session-manager/cli-messages.test.ts": true,
     "tests/unit/session-manager/cli-notify-none.test.ts": true,
     "tests/unit/session-manager/cli-operator-id-kinds.test.ts": true,
+    "tests/unit/session-manager/cli-orphans.test.ts": true,
     "tests/unit/session-manager/cli-overruled.test.ts": true,
     "tests/unit/session-manager/cli-queue-backlog.test.ts": true,
     "tests/unit/session-manager/cli-queue-operators.test.ts": true,
@@ -13510,6 +13577,12 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/session-manager/ledger-questions.test.ts": true,
     "tests/unit/session-manager/ledger-validation.test.ts": true,
     "tests/unit/session-manager/ledger.test.ts": true,
+    "tests/unit/session-manager/orphan-holds-guards.test.ts": true,
+    "tests/unit/session-manager/orphan-holds-lanes.test.ts": true,
+    "tests/unit/session-manager/orphan-holds.test.ts": true,
+    "tests/unit/session-manager/orphan-sweep-cap.test.ts": true,
+    "tests/unit/session-manager/orphan-sweep-review.test.ts": true,
+    "tests/unit/session-manager/orphan-sweep.test.ts": true,
     "tests/unit/session-manager/reconcile.test.ts": true,
     "tests/unit/session-manager/repo-detect.test.ts": true,
     "tests/unit/session-manager/setup-checks.test.ts": true,
@@ -13518,6 +13591,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/session-manager/support/cli-harness.ts": true,
     "tests/unit/session-manager/support/fake-secrets.ts": true,
     "tests/unit/session-manager/support/human-sandbox.ts": true,
+    "tests/unit/session-manager/support/orphan-fixtures.ts": true,
     "tests/unit/session-manager/support/provider-sandbox.ts": true,
     "tests/unit/session-manager/support/setup-gap-queue.ts": true,
     "tests/unit/session-manager/telegram-route-short-forms.test.ts": true,

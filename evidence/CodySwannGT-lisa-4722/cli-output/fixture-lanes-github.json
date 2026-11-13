@@ -1,0 +1,16 @@
+{
+  "complete": true,
+  "items": [],
+  "holds": [
+    {
+      "assignees": [],
+      "updatedAt": "2026-11-01T00:00:00Z",
+      "ref": "example-org/demo-repo#44",
+      "labels": [
+        "human-needed"
+      ],
+      "body": "Held.\n<!-- [lisa-human-gate] reason=tenancy-audit-triage -->",
+      "comments": []
+    }
+  ]
+}
