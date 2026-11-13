@@ -190,8 +190,23 @@ authority — if any of these hold:
 
 **On any of those: file a proposed-intervention ticket via `lisa-tracker-write` and STOP.** The
 ticket carries the job contract, the earliest failed handoff, the gap classification with
-evidence, and the proposed change with its expected mechanism; labels `type:harness`,
-`status:blocked` plus an explicit `human_gate: "a human approves the proposed harness intervention"` per `ready-role-filing` (human-flipped to `status:ready` when approved). Post the result record with
+evidence, and the proposed change with its expected mechanism; label `type:harness`. How it is
+filed follows `humanGate.mode`:
+
+- **`access-only` (default):** file it build-ready (`build_ready: true`, `status:ready`), with a
+  `Decision:` line saying why this intervention is the right one, so the normal factory implements
+  it as an ordinary work item under its own review gates. The one exception is an intervention that
+  needs access the agent lacks (condition 3: a new credential, paid tool, or account only a person
+  holds): file it `status:blocked` with `human_gate: "<the access a person must provide>"`, naming
+  that access, per `ready-role-filing`. The other exception is an intervention whose change lands
+  on a **human-authored surface** (`.agents/rules/`, `PROJECT_RULES.md`, `AGENTS.md`, or any
+  surface the project declares human-authored): no agent writes those, so it passes
+  `human_gate: "a person edits <surface>, which is declared human-authored, so no agent may write
+  it"`. That is an authorship rule, not an access gate, and it holds in both modes.
+- **`strict`:** `status:blocked` plus an explicit `human_gate: "a human approves the proposed
+  harness intervention"` per `ready-role-filing` (human-flipped to `status:ready` when approved).
+
+Either way, this run stops here. Post the result record with
 `Verdict: bounded-authority-stop`, `Decision: n/a (proposed-intervention, <url>)`, and
 terminate. Implementing it anyway is the failure mode this phase exists to prevent.
 
@@ -401,16 +416,18 @@ In headless mode:
 
 - **No mutation of the working tree, any managed surface, or the default branch.** Phase 5 does
   not edit, branch, or commit; it *drafts* the smallest owning change and files it as a
-  proposed-intervention ticket via `lisa-tracker-write` (`type:harness`, `status:blocked`), with
-  the drafted diff sketch, the expected mechanism, and the verification plan.
+  proposed-intervention ticket via `lisa-tracker-write` (`type:harness`, filed per
+  `humanGate.mode` exactly as in Phase 5's out-of-authority path), with the drafted diff sketch,
+  the expected mechanism, and the verification plan.
 - Phases 6 and 7 do not run (there is nothing applied to verify); the result record carries
   `Verdict: headless-proposal-only`, `Decision: n/a (proposed-intervention, <url>)`, and a
   `Known limits` line saying no rerun evidence exists. This verdict is deliberately distinct
   from `bounded-authority-stop`, so an operator can tell "the fix was too big to make" from
   "the automation never touches anything".
-- **The only writes are the result record and the proposed-intervention ticket(s).** Anything
-  further requires a human flipping that ticket to `status:ready`, after which the normal
-  factory (or an interactive invocation) implements it.
+- **The only writes are the result record and the proposed-intervention ticket(s).** Under
+  `access-only` the ticket is already build-ready, so the normal factory implements it; under
+  `strict` (or for a ticket held on named missing access) it waits for a human to flip it to
+  `status:ready`, after which the normal factory (or an interactive invocation) implements it.
 - Never a prompt, never a question, never a blocked wait — anywhere in this skill, in either
   mode.
 

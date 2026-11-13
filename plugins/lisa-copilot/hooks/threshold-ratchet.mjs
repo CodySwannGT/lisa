@@ -18,8 +18,10 @@
  * documented entries autonomously, and doctor readiness (B5) audits that
  * every entry carries a written decision.
  *
- * Human override: `.lisa.config.json` → `thresholdRatchet.allow` entries
- * ({ file, key, reason, until }). Honored ONLY from the baseline side (HEAD /
+ * Documented exception: `.lisa.config.json` → `thresholdRatchet.allow`
+ * entries ({ file, key, reason, until }). An agent records one, with its
+ * reason, only when the regression is justified; a person can reverse it by
+ * removing the entry. Honored ONLY from the baseline side (HEAD /
  * merge-base), never from the change under review — an agent cannot grant
  * itself an exception in the same change that weakens a gate. `key: "*"`
  * allows every key in the file, and reports as file-wide so it is not mistaken

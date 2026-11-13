@@ -84,7 +84,7 @@ Required fields (stop and ask if missing — do not invent values):
 
 | Field | Required For | Notes |
 |-------|--------------|-------|
-| Project key | CREATE | Resolve from `.lisa.config.json` (`jira.project`); ask the human if not configured |
+| Project key | CREATE | Resolve from `.lisa.config.json` (`jira.project`); if not configured, pick it from the evidence (the projects `lisa-atlassian-access` can reach, the keys this repo's history and linked tickets use) and record the choice. Stop only when Jira is unreachable, naming the missing access |
 | Issue type | CREATE | Story, Task, Bug, Epic, Spike, Sub-task, Improvement |
 | Summary | CREATE, UPDATE | One line, imperative voice, under 100 chars |
 | Description | CREATE, UPDATE | Multi-section — see Phase 3 |
@@ -220,7 +220,7 @@ If the ticket is not a Bug and not an Epic, it MUST have an epic parent:
    project = <PROJECT> AND issuetype = Epic AND statusCategory != Done
    ```
    via `lisa-atlassian-access` `operation: search-issues jql: "<query>"`. Match on keywords from the summary and description.
-3. If no epic matches, stop and ask the human to create or pick one. Do NOT orphan the ticket.
+3. If no epic matches exactly, pick or create it yourself from the evidence: use the active epic the summary, description and linked work fit best, or, when none fits, create a new epic (this skill, `issue_type: Epic`) scoped to the work. Record the choice and why in the ticket description so a person can re-parent it later. Do NOT orphan the ticket.
 
 ### 4b. Related Tickets
 
@@ -317,7 +317,7 @@ Before create/update, verify each field is populated where applicable:
 
 **A filing with neither is an incomplete handoff.** A leaf that is not build-ready must carry an explicit `human_gate: "<the act a person must perform>"`; nothing in the ready status means nothing ever claims it. When `human_gate` is supplied, stamp the hold on the ticket so it is auditable — after the check below.
 
-**Validate the gate before stamping it.** A `human_gate` is for an act an agent cannot perform — a credential only a person holds, spend, an external account, a legal or compliance sign-off, naming an accountable person, acting in a system the agent cannot reach, or a decision class the project declared human-only (`humanGate.humanOnly`). A choice with a reasonable default is a decision, not a gate (`ready-role-filing`, "What a human gate is"). Run the check on the reason:
+**Validate the gate before stamping it.** A `human_gate` is for an act an agent cannot perform — an access act: `credential` (complete a login or supply a credential only a person holds), `spend`, `external-account`, `legal-signoff` (sign a legal agreement on the company's behalf), `person-only-account` (a protected deployment, a required reviewer, an account only a person holds), `unreachable-system`, or `operator-hold` (a hold the operator explicitly asked for); `human-authored-surface` (an edit to a surface declared human-authored, which no agent writes: an authorship rule, valid in both modes); or a decision class the project declared human-only (`humanGate.humanOnly`). Under `humanGate.mode: "strict"` the strict-only acts `compliance-signoff`, `accountable-person` and `lisa-policy` also count. A choice with a reasonable default is a decision, not a gate (`ready-role-filing`, "What a human gate is"). Run the check on the reason:
 
 ```bash
 node "${CLAUDE_PLUGIN_ROOT:-node_modules/@codyswann/lisa/plugins/lisa}/scripts/human-gate-act.mjs" check --reason "<the human_gate reason>"
@@ -362,7 +362,7 @@ The validator is the **single source of truth** for what makes a valid ticket. T
 
 If the validator reports `FAIL`:
 - Surface the failure list and the per-gate remediation to the user.
-- Do NOT proceed to Phase 6. Fix the spec (or stop and ask the human) and re-run validation.
+- Do NOT proceed to Phase 6. Fix the spec yourself from the evidence and re-run validation; stop only when a fix needs access you lack, and name that access.
 - Never invoke `lisa-atlassian-access` with `operation: write-ticket` while the validator's verdict is FAIL.
 
 If the validator reports `PASS`, continue to Phase 6.

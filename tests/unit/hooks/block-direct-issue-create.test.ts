@@ -110,6 +110,30 @@ describe("block-direct-issue-create.sh", () => {
       expect(stderr).toContain("human_gate:");
     });
 
+    // CodySwannGT/lisa#4687: a human gate is only for an act the agent lacks
+    // access to. A compliance judgement or naming an accountable person is a
+    // decision the agent makes, so the refusal must not offer it as a gate.
+    it("lists only the access acts as reasons for a human gate", () => {
+      const stderr = runHook(bash(UNDECLARED_CREATE)).stderr.replace(
+        /\s+/gu,
+        " "
+      );
+
+      for (const act of [
+        "interactive login",
+        "credential only they hold",
+        "approve spend",
+        "sign a legal agreement",
+        "account only a person holds",
+        "hold the operator explicitly asked for",
+        "file the project says only people write",
+        "unless humanGate.mode is",
+      ]) {
+        expect(stderr).toContain(act);
+      }
+      expect(stderr).not.toMatch(/compliance sign-off|accountable person/iu);
+    });
+
     it("names the ready role the project actually configured", () => {
       const cwd = projectWithTracker({
         tracker: "github",

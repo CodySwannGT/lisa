@@ -122,7 +122,8 @@ nothing announces it. `lisa-automation-status` must treat a stopped clock as a f
 - `learnings-audit` (default **true**) — create the weekly
   `lisa-auto-<project>-learnings-audit` automation running `/lisa:learnings:audit` (the gardener —
   see "The gardener" below). On by default because learnings captured but never pruned or promoted
-  silt up the ledger; pass `false` to leave it out.
+  silt up the ledger. Its tickets file build-ready under the default `humanGate.mode:
+  "access-only"` and human-gated under `"strict"`; pass `false` to leave it out.
 
 The defaults are autonomous by design — the factory model wants inputs flowing through the gates
 without a human between the loops and the pipeline. Pass `false` explicitly to opt a project into
@@ -197,8 +198,10 @@ For a Codex `rrule`: every 60 min → `FREQ=HOURLY;INTERVAL=1`; every 10 min →
 
 **The gardener.** Unless the operator passes `learnings-audit=false`, also create `lisa-auto-<project>-learnings-audit`
 running `/lisa:learnings:audit` once a **week**. It audits the project's
-knowledge surfaces (learnings ledger, rules trees, skills, wiki) and files promote/demote/confirm/retire tickets — build-ready, except promotions into the
-always-loaded rules, which wait for a human — per the
+knowledge surfaces (learnings ledger, rules trees, skills, wiki) and files
+promote/demote/confirm/retire tickets — build-ready under the default
+`humanGate.mode: "access-only"` (except promotions into the always-loaded rules,
+which wait for a human), human-gated under `"strict"` — per the
 `lisa-learnings-audit` skill. Register at most ONE learnings-audit automation
 per project — the gardener's marker dedupe assumes a single scheduled runner
 and guarantees convergence (a transient duplicate from a concurrent run is
@@ -363,7 +366,7 @@ One line each; expand them into the operator's voice, keep the meaning.
 | **monitor** | Keeps production honest: observability regressions become tracked work instead of silent decay. | The connected observability providers, each through its access layer, plus this project's `monitor.gapTiers` config. | The regressions and coverage gaps this cycle surfaced, capped per run. | Only this project's own services and dashboards; it files findings, it never changes production. | Propose teardown when ALL THREE hold: a date-filtered tracker search finds nothing this loop filed within the trailing 30-day window (a small multiple of its daily cadence), AND this run found nothing, AND the project has no connected observability surfaces left — nothing to monitor. The third is a domain conjunct that only tightens the contract's two-part test: a quiet month on a healthy project is good news, not a reason to stop watching it. | `lisa-monitor/SKILL.md` |
 | **exploratory-prds** | Keeps the idea pipeline fed: the product's own gaps become PRDs when the PRD queue has room. | The PRD queue's pressure roles (the same ones `/lisa:queue-status` reports) and the project's own product surfaces. | One ideated PRD per run, and only when the pressure gate says the queue has capacity. | Never more than one PRD per run, and nothing at all while unresolved PRD pressure exists. | Propose teardown when ALL THREE hold: a date-filtered tracker search finds no PRD this loop ideated within the trailing 30-day window (a small multiple of its daily cadence), AND this run proposed nothing, AND no unresolved PRD pressure exists while the project has shipped no new surface to ideate against. The third is a domain conjunct that only tightens the contract's two-part test: a quiet month because the queue was full is the loop working, not the loop being obsolete. | `lisa-project-ideation/SKILL.md` |
 | **exploratory-bugs** | Keeps quality visible: bugs and usability problems get found by using the product, before a customer does. | The running application through its exploratory-qa surface, plus this project's existing bug queue for dedupe. | The findings of one exploratory session, capped per run and deduped against already-filed items. | Only this project's own app; it files tickets, it never changes product code. | Propose teardown when ALL THREE hold: a date-filtered tracker search finds no finding this loop filed within the trailing 30-day window (a small multiple of its daily cadence), AND this run found nothing, AND the project no longer ships an exploratory-qa command surface to explore. The third is a domain conjunct that only tightens the contract's two-part test: a quiet month on a product nobody broke is quality holding, not a reason to stop looking. | `lisa-exploratory-qa/SKILL.md` (the stack's own copy) |
-| **learnings-audit** | Keeps the project's knowledge true: stale, duplicated, or contradicted knowledge gets proposed for promotion, demotion, or retirement. | The learnings ledger, the rules trees, the skills, and the wiki — the project's knowledge surfaces. | The knowledge entries this audit judged stale, duplicated, or contradicted, capped per run. | It only proposes; every promote/demote/retire decision is a human-gated tracker ticket. | Propose teardown when BOTH hold: a date-filtered tracker search finds no `[lisa-gardener]` ticket created within the trailing six-week window (six runs at the weekly cadence), AND this run proposed nothing. | `lisa-learnings-audit/SKILL.md` |
+| **learnings-audit** | Keeps the project's knowledge true: stale, duplicated, or contradicted knowledge gets proposed for promotion, demotion, or retirement. | The learnings ledger, the rules trees, the skills, and the wiki — the project's knowledge surfaces. | The knowledge entries this audit judged stale, duplicated, or contradicted, capped per run. | It only proposes: every promote/demote/retire decision is a tracker ticket, filed build-ready under the default `humanGate.mode: "access-only"` (human-gated under `"strict"`, or when the change lands on a human-authored surface). | Propose teardown when BOTH hold: a date-filtered tracker search finds no `[lisa-gardener]` ticket created within the trailing six-week window (six runs at the weekly cadence), AND this run proposed nothing. | `lisa-learnings-audit/SKILL.md` |
 
 **Retirement condition is mandatory and non-empty.** Every seeded runbook states one, and a loop
 that is structurally permanent says exactly that instead of leaving the section blank — an operator

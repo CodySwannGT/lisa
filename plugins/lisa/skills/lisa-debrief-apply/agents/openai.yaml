@@ -1,4 +1,4 @@
 display_name: "Debrief Apply"
-short_description: "Apply the dispositions (accept, reject, defer) marked on a Debrief triage document, sending accepted items where they belong"
+short_description: "Apply the dispositions (accept, reject, defer) marked on a Debrief triage document — by a human, or by the agent itself under…"
 default_prompt:
-  - "Use $lisa-debrief-apply: Apply the dispositions (accept, reject, defer) marked on a Debrief triage document, sending accepted items where they belong."
+  - "Use $lisa-debrief-apply: Apply the dispositions (accept, reject, defer) marked on a Debrief triage document — by a human, or by the agent itself under…."

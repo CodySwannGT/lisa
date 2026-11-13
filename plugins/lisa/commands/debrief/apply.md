@@ -1,6 +1,5 @@
 ---
-disable-model-invocation: true
-description: "Apply human-marked dispositions from a Debrief triage document — route accepted learnings to their persistence destinations (Edge Case Brainstorm checklist, project rules, memory, tracker tickets). Reads the triage doc produced by /lisa:debrief; deterministic and idempotent."
+description: "Apply the dispositions (accept, reject, defer) marked on a Debrief triage document — by a human, or by the agent under humanGate.mode access-only — routing accepted learnings where they belong. Idempotent."
 argument-hint: "<path to triage doc | URL>"
 ---
 

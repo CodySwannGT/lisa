@@ -43,7 +43,11 @@ child_refs:
 Required arguments:
 
 - `operation`: one of `record`, `rollup`, or `record_and_rollup`.
-- `artifact_ref`: canonical artifact identifier for the target being updated.
+- `artifact_ref`: canonical artifact identifier for the target being updated, in the per-provider
+  grammar from the `usage-accounting` rule: `github:<owner>/<repo>#<N>`,
+  `linear:<workspace>/<KEY-N>` (workspace from `linear.workspace` in `.lisa.config.json`), or a bare
+  Jira `<KEY-N>`. The writer refuses a short `linear:<KEY-N>`: the completion proof would never
+  recognise it.
 - `artifact_kind`: the writable host surface (`github-issue`, `github-pr-comment`, `jira-ticket`,
   `linear-issue`, `notion-page`, `confluence-page`, `markdown-file`, or another caller-defined
   host string with a matching read/write adapter).

@@ -1,5 +1,12 @@
 # Lisa Wiki Log
 
+## 2026-11-13 - Dependency sign-off off by default
+
+- Updated `wiki/playbooks/dependency-ownership-operator-guide.md` for `CodySwannGT/lisa#4687`: agents now perform every act they have access to, so `dependencies.humanSignOff` resolves to `"none"` by default and the agent ratifies dependencies, recording its reasoning in the entry.
+- Documented how to turn sign-off back on (`humanSignOff: "default"` or `humanGate.mode: "strict"`), and that an invalid value falls back to the mode's default.
+- The same default change makes `learnings.lowConfidence` resolve to `"auto-merge"`, so low-confidence learning PRs merge on their own unless the project sets `"human-triage"` or `humanGate.mode: "strict"` (see the `config-resolution` rule).
+- `wiki/index.md` is unchanged: the page's description still fits.
+
 ## 2026-11-12 - Lisa Console removed
 
 - Deleted `wiki/architecture/lisa-console-ui.md` and its `wiki/index.md` entry: the `lisa ui` command, `ui/index.html`, and their tests were removed (`CodySwannGT/lisa#4804`).

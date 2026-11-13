@@ -17,7 +17,7 @@ Read **Worth doing** in the `lisa-track` skill for the shared value decision and
 
 Once scope and value are established, do the permitted work now: fix the defect, update documentation made wrong by the change, remove temporary scaffolding, and verify the result. Do not leave an accepted action as a vague follow-up. If worthwhile work must be deferred because it exceeds scope or depends on another change, track the smallest coherent outcome and give the reason.
 
-Protected deployments, held PRDs, and unresolved product decisions still wait outside the factory. Prepare the authorized portion and explain what remains. Routine decisions to decline low-value incidental work belong to the agent; do not send every nit to a human.
+Acts you lack access to (by default the only human gate, such as a protected deployment that needs a person's account), operator holds, held PRDs, and product questions with no reasonable default still wait outside the factory; `humanGate.mode: "strict"` widens that gate. Prepare the authorized portion and explain what remains. Routine decisions to decline low-value incidental work belong to the agent; do not send every nit to a human.
 
 ## Existing backlog
 

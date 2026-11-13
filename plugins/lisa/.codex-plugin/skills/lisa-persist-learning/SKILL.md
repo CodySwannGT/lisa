@@ -237,13 +237,13 @@ No learning content is ever committed without a PR — there is no other write p
    Stage: <planning_stage>. The worker could not find: "<quoted>". Planning skills read this rule back through the bounded projection (`lisa-task-decomposition` step 0).
    ```
 
-   For a **low-confidence** PR (other than a `wrongly-escalated` one, which no human merges — step 6), the body must additionally end with one fixed line chosen by the step-6 routing mode. Under `human-triage` (the default) it is this decision-framing line, so the human at the gate knows exactly what merging means:
+   For a **low-confidence** PR (other than a `wrongly-escalated` one, which no human merges — step 6), the body must additionally end with one fixed line chosen by the step-6 routing mode. Under `human-triage` (the default only under `humanGate.mode: "strict"`) it is this decision-framing line, so the human at the gate knows exactly what merging means:
 
    ```markdown
    **Merge** to adopt this rule into every future session for all six coding agents; **close** to discard it.
    ```
 
-   Under `auto-merge` nobody stands at that gate, so the line instead says why the PR merges unattended and who re-checks it (resolve the mode with the step-6 command before writing the body):
+   Under `auto-merge` (the default under `humanGate.mode: "access-only"`) nobody stands at that gate, so the line instead says why the PR merges unattended and who re-checks it (resolve the mode with the step-6 command before writing the body):
 
    ```markdown
    Low-confidence learning: merges through the normal gates under `learnings.lowConfidence: "auto-merge"`; the gardener (`lisa-learnings-audit`) re-reviews it first.
@@ -255,10 +255,10 @@ No learning content is ever committed without a PR — there is no other write p
    LOW_CONFIDENCE=$(node -e 'import("@codyswann/lisa/learnings").then(async m => { const c = await m.readProjectConfig(process.cwd()); console.log(m.resolveLearningsSettings(c).lowConfidence); })')
    ```
 
-   It prints `human-triage` when the key is absent — the default, unchanged — or `auto-merge` when the project opted in.
+   When the key is absent the default follows `humanGate.mode`: it prints `auto-merge` under the default `"access-only"` mode and `human-triage` under `"strict"`. A value the project sets explicitly always wins over the mode.
 
    - **`high`** → submit through `lisa-git-submit-pr` with its defaults: auto-merge ON, merging through the project's normal gates.
-   - **`low` + `auto-merge`** → submit through `lisa-git-submit-pr` with its defaults, exactly like `high`: auto-merge ON, merging through the project's normal gates — the gates are not skipped, only the human wait is. This is for operators who involve humans only when an agent is genuinely stuck; the human gate's purpose is still covered, because the ledger is a cold, bounded projection, a planning-miss rule only adds a planning check, and the gardener can retire or demote a wrong entry. Keep the entry findable without blocking the merge: the ledger entry already carries `confidence: low` (step 3), and the PR gets the `learning:low-confidence` label (never `learning:needs-triage`, which means a human still has to act), created idempotently first:
+   - **`low` + `auto-merge`** → submit through `lisa-git-submit-pr` with its defaults, exactly like `high`: auto-merge ON, merging through the project's normal gates — the gates are not skipped, only the human wait is. This is the default under `humanGate.mode: "access-only"`, for operators who involve humans only when an agent is genuinely stuck; the human gate's purpose is still covered, because the ledger is a cold, bounded projection, a planning-miss rule only adds a planning check, and the gardener can retire or demote a wrong entry. Keep the entry findable without blocking the merge: the ledger entry already carries `confidence: low` (step 3), and the PR gets the `learning:low-confidence` label (never `learning:needs-triage`, which means a human still has to act), created idempotently first:
 
      ```bash
      gh label create "learning:low-confidence" \
@@ -270,7 +270,7 @@ No learning content is ever committed without a PR — there is no other write p
      ```
 
      Labeling never blocks: if it fails, report it in the run summary and leave the PR armed. The run summary names the routing mode used.
-   - **`low` + `human-triage`** (the default) → submit through `lisa-git-submit-pr` with `auto_merge=false` (drives the PR to green-and-open `awaiting-human`, never merging — even on repos that disallow auto-merge). Then apply the human-triage label, creating it idempotently first (the `lisa-drive-pr-to-merge` label pattern — `|| true` tolerates only already-exists, so verify):
+   - **`low` + `human-triage`** (the default under `humanGate.mode: "strict"`, or set explicitly) → submit through `lisa-git-submit-pr` with `auto_merge=false` (drives the PR to green-and-open `awaiting-human`, never merging — even on repos that disallow auto-merge). Then apply the human-triage label, creating it idempotently first (the `lisa-drive-pr-to-merge` label pattern — `|| true` tolerates only already-exists, so verify):
 
      ```bash
      gh label create "learning:needs-triage" \
