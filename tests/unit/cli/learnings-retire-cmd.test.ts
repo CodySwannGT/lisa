@@ -20,6 +20,8 @@ import { runLearningsRetire } from "../../../src/cli/learnings-retire-cmd.js";
 import { persistLearningEntry } from "../../../src/core/learnings-writer.js";
 import { cleanupTempDir, createTempDir } from "../../helpers/test-utils.js";
 
+const TARGET_FINGERPRINT = "learner-fingerprint-1";
+
 /**
  * Build a compact valid entry with a stable numeric suffix.
  * @param index - Stable numeric suffix
@@ -75,15 +77,15 @@ describe("lisa learnings-retire", () => {
   }
 
   it("retires the stamped entry and prints the proof as JSON", async () => {
-    expect(await run("learner-fingerprint-1")).toBe(0);
+    expect(await run(TARGET_FINGERPRINT)).toBe(0);
     const payload = JSON.parse(out.join("\n"));
     expect(payload).toMatchObject({
       status: "retired",
       id: "learner-1",
+      expectedFingerprint: TARGET_FINGERPRINT,
       reason: "promoted to a lint rule",
-      withinBudget: true,
     });
-    expect(payload.bytesAfter).toBeLessThan(payload.bytesBefore);
+    expect(payload.retired.id).toBe("learner-1");
     expect(await readFile(ledger, "utf8")).not.toContain('learner-1"');
     expect(err).toEqual([]);
   });
@@ -101,10 +103,27 @@ describe("lisa learnings-retire", () => {
     expect(err.join("\n")).toMatch(/^learnings-retire: .*not found/);
   });
 
-  it("exits non-zero with the diagnostic on an invalid stamp", async () => {
+  it("exits non-zero with the diagnostic on an invalid fingerprint", async () => {
     expect(await run("NOT A TOKEN")).toBe(1);
-    expect(err.join("\n")).toMatch(/^learnings-retire: Invalid retire stamp/);
+    expect(err.join("\n")).toMatch(
+      /^learnings-retire: Invalid expectedFingerprint/
+    );
     expect(out).toEqual([]);
+  });
+
+  it("refuses an empty reason before touching the ledger", async () => {
+    const before = await readFile(ledger, "utf8");
+    const code = await runLearningsRetire(
+      { id: "learner-1", fingerprint: TARGET_FINGERPRINT, reason: "  " },
+      {
+        cwd: tempDir,
+        log: message => out.push(message),
+        error: message => err.push(message),
+      }
+    );
+    expect(code).toBe(1);
+    expect(err.join("\n")).toMatch(/^learnings-retire: Invalid --reason/);
+    expect(await readFile(ledger, "utf8")).toBe(before);
   });
 
   it("is registered as a gate command", async () => {

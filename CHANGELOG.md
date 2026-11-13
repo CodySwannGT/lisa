@@ -2,6 +2,43 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.107.12](https://github.com/CodySwannGT/lisa/compare/v4.107.11...v4.107.12) (2026-11-13)
+
+
+### Bug Fixes
+
+* **learnings:** add fingerprint-guarded retireLearningEntry ([f72e9e4](https://github.com/CodySwannGT/lisa/commit/f72e9e4b7aff12aea14b95508748a88b8e7a170d)), closes [CodySwannGT/lisa#4530](https://github.com/CodySwannGT/lisa/issues/4530) [CodySwannGT/lisa#4530](https://github.com/CodySwannGT/lisa/issues/4530)
+
+
+### Documentation
+
+* **gardener:** cover not-found and concurrent-write RETIRE outcomes ([1397339](https://github.com/CodySwannGT/lisa/commit/13973398cde687c26e6f273cf1a26ec000340cea)), closes [CodySwannGT/lisa#4530](https://github.com/CodySwannGT/lisa/issues/4530) [CodySwannGT/lisa#4530](https://github.com/CodySwannGT/lisa/issues/4530)
+* **gardener:** require full expectedFingerprint and mutation-proven owners for RETIRE ([7a826d9](https://github.com/CodySwannGT/lisa/commit/7a826d9a56c579e17cac3a03249da54239095bcc)), closes [CodySwannGT/lisa#4530](https://github.com/CodySwannGT/lisa/issues/4530) [CodySwannGT/lisa#4530](https://github.com/CodySwannGT/lisa/issues/4530)
+
+### [4.107.11](https://github.com/CodySwannGT/lisa/compare/v4.107.10...v4.107.11) (2026-11-13)
+
+
+### Bug Fixes
+
+* **ci:** fail load-test.yml closed when k6 could not run (CodySwannGT/lisa[#4526](https://github.com/CodySwannGT/lisa/issues/4526)) ([b5ee3b1](https://github.com/CodySwannGT/lisa/commit/b5ee3b1116371ef69c72727107ba08b3da0769b5))
+* **ci:** pass k6 Cloud stack/project IDs and script env to cloud runs ([916f972](https://github.com/CodySwannGT/lisa/commit/916f9727eedf496b24e113725acf54968ff9183c)), closes [CodySwannGT/lisa#4526](https://github.com/CodySwannGT/lisa/issues/4526) [CodySwannGT/lisa#4526](https://github.com/CodySwannGT/lisa/issues/4526)
+
+### [4.107.10](https://github.com/CodySwannGT/lisa/compare/v4.107.9...v4.107.10) (2026-11-13)
+
+
+### Bug Fixes
+
+* **session-manager:** reclaim pre-boot ledger locks and never let release mask a write ([b60b671](https://github.com/CodySwannGT/lisa/commit/b60b671517425d41d7dd327ab6603aba730ef43c)), closes [#4828](https://github.com/CodySwannGT/lisa/issues/4828) [CodySwannGT/lisa#4828](https://github.com/CodySwannGT/lisa/issues/4828)
+* **session-manager:** serialize the ledger read-modify-write with a cross-process lock ([82df255](https://github.com/CodySwannGT/lisa/commit/82df255ca81f15a088446281fd6ab5124e687981)), closes [#4828](https://github.com/CodySwannGT/lisa/issues/4828) [CodySwannGT/lisa#4828](https://github.com/CodySwannGT/lisa/issues/4828)
+
+### [4.107.9](https://github.com/CodySwannGT/lisa/compare/v4.107.8...v4.107.9) (2026-11-13)
+
+
+### Bug Fixes
+
+* **session-manager:** find first-prompt transcripts in truncated long project dirs ([d3d805c](https://github.com/CodySwannGT/lisa/commit/d3d805c6b3fb1b44b18aa650762d0b67a26414a2)), closes [#4821](https://github.com/CodySwannGT/lisa/issues/4821) [CodySwannGT/lisa#4821](https://github.com/CodySwannGT/lisa/issues/4821)
+* **session-manager:** keep the exact name in the long-path transcript lookup ([2cc912b](https://github.com/CodySwannGT/lisa/commit/2cc912b4662c83f1139ead6fd45c3ba4451388ec)), closes [#4821](https://github.com/CodySwannGT/lisa/issues/4821) [#4821](https://github.com/CodySwannGT/lisa/issues/4821) [CodySwannGT/lisa#4821](https://github.com/CodySwannGT/lisa/issues/4821)
+
 ### [4.107.8](https://github.com/CodySwannGT/lisa/compare/v4.107.7...v4.107.8) (2026-11-13)
 
 

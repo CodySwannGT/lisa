@@ -707,7 +707,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "nestjs/create-only/.github/k6/INTEGRATION_GUIDE.md":
       "a7da14fd26ed279f61cb476cefef436a6623a0878a64f0c724d01016d32a4dab",
     "nestjs/create-only/.github/k6/README.md":
-      "199cde3d0ac7282f3cd72fdb9167f9b11e134dd00cc0bbf3dbd71ea4266005eb",
+      "c538b69b1f35e5ad9e97bf585fba0fb994b0734ca403560d52c2dcf27b322915",
     "nestjs/create-only/.github/k6/SCENARIO_SELECTION_GUIDE.md":
       "64c2e83e2871fc187e227252a17522c4ba70d75685f67a0be6980c64803bfd35",
     "nestjs/create-only/.github/k6/examples/customer-deploy-integration.yml":
@@ -719,7 +719,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "nestjs/create-only/.github/k6/scenarios/load.json":
       "1970bee0b48024cd1c38515522c78dd8aeacad09606880b227d49721afa44d37",
     "nestjs/create-only/.github/k6/scenarios/smoke.js":
-      "4a09443e2eb6b35eae33eb93f6fc6518f60a9a8b6d6fdaf9609a35125fe804f7",
+      "c21d605fb0bd9ce1e99db15d4ff368c3096d8cffbcbb8be088eaa4091d031dd6",
     "nestjs/create-only/.github/k6/scenarios/smoke.json":
       "eb6d80b580cadc7ea137fad5acae93b06096cd2162404f7054889e1af9208886",
     "nestjs/create-only/.github/k6/scenarios/soak.js":
@@ -1265,7 +1265,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/rules/reference/pre-flight-autofill.md":
       "3cb2a0e402ae468640d9021a7086e00323fa3cd34d9f061910f6caaff51f9e5f",
     "plugins/src/base/rules/reference/project-learnings.md":
-      "e51677d91c6dfeaa33e91e1f9f16f6a39b2ea007b852822cf7970e607c05c0ec",
+      "b54fd7f549d8a2b81504f49114feccb097caf6ee77823312a03a53ae40deb830",
     "plugins/src/base/rules/reference/promotion-contract.md":
       "fe07cbdbd15393471d08903cce53b80b8899b2ff3bc0b0041b46c1c7003b7e6c",
     "plugins/src/base/rules/reference/readiness-rubric.md":
@@ -1535,7 +1535,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-kane-browser/SKILL.md":
       "e082517cb42f437eeb22b3935aa0fef09299874736e55184e88d2b64f7860a7d",
     "plugins/src/base/skills/lisa-learnings-audit/SKILL.md":
-      "d730312fdf2fefb8d976cd8f58a9782b7bcf1e2363b4a1731a7ddb95b486e9ec",
+      "fb8539fb70c9b16c0a79d1072b42bcda451f3e98b80a8f8a7b0f0cfe272dc2f9",
     "plugins/src/base/skills/lisa-linear-access/SKILL.md":
       "83cbf20e7a9f5e5289f609f16079a95897aac5964380305d4a5193438230f965",
     "plugins/src/base/skills/lisa-linear-add-journey/SKILL.md":
@@ -1750,12 +1750,18 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "59a91712fc529dc2e63cd00f2b680fc6b24200bc83bee41b2a5266e020c92aeb",
     "plugins/src/base/skills/lisa-session-manager/scripts/launch.mjs":
       "5bdea8147595c5d663cf334226c74311efc1a1af456ec40b2474581c28edd12f",
+    "plugins/src/base/skills/lisa-session-manager/scripts/ledger-lock-fs.mjs":
+      "0e80de773c25d547c9980ba47c718dd9d3213434681e69754ad0254cf8b0a85a",
+    "plugins/src/base/skills/lisa-session-manager/scripts/ledger-lock-reclaim.mjs":
+      "1090e11253f9128bdce20f648362cf156a768a0e9b2ab0c65464313a10e15d9b",
+    "plugins/src/base/skills/lisa-session-manager/scripts/ledger-lock.mjs":
+      "816d1e459896c9636c71f6c32c9f1aaf1ee4b3e8cc42de65547e42cd256a4e1e",
     "plugins/src/base/skills/lisa-session-manager/scripts/ledger-questions.mjs":
       "eb7f845b2c0ebe3ebbd233957329833cc77d3dfce5f3e5df505e336704fb7eae",
     "plugins/src/base/skills/lisa-session-manager/scripts/ledger-setup-gaps.mjs":
       "bfed7726a6129fb5681433a8287f180d513c1439f7f8ff84f6eac600117bea9e",
     "plugins/src/base/skills/lisa-session-manager/scripts/ledger.mjs":
-      "fb80101c8244269ace70d6562bb14c1253c7a0583ec1b5914a0fca522d48b0e7",
+      "7f3a29b5381cf72b1085c40f695c009942ae9e62b4dd112a3c5ec0e15ff87db6",
     "plugins/src/base/skills/lisa-session-manager/scripts/queue-github.mjs":
       "9af014661873a2971fbc29946739088fc3e089deb8d94e78af651647450f2999",
     "plugins/src/base/skills/lisa-session-manager/scripts/reconcile.mjs":
@@ -2995,7 +3001,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/copy-overwrite/.claude/hooks/worktree-create.sh":
       "888cfd16bd1ac04f9f8a835eae62f8bd2c956de654bce12ce9a6a52947b121ca",
     "typescript/copy-overwrite/.github/GITHUB_ACTIONS.md":
-      "f4753f66ec63a147b3c835963f35c068e91fcf6981947ab44c490268dd306330",
+      "f653b89707214adf29b21ff885a990addde002d794aba973926dc4def7854996",
     "typescript/copy-overwrite/.lintstagedrc.json":
       "773a3e0a2bc20b69a16fc247e74c76eeb20ced8fae654702190bdfade964e364",
     "typescript/copy-overwrite/.nvmrc":
@@ -4920,6 +4926,9 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-agy/skills/lisa-session-manager/scripts/json-input.mjs": true,
     "plugins/lisa-agy/skills/lisa-session-manager/scripts/launch-shell.mjs": true,
     "plugins/lisa-agy/skills/lisa-session-manager/scripts/launch.mjs": true,
+    "plugins/lisa-agy/skills/lisa-session-manager/scripts/ledger-lock-fs.mjs": true,
+    "plugins/lisa-agy/skills/lisa-session-manager/scripts/ledger-lock-reclaim.mjs": true,
+    "plugins/lisa-agy/skills/lisa-session-manager/scripts/ledger-lock.mjs": true,
     "plugins/lisa-agy/skills/lisa-session-manager/scripts/ledger-questions.mjs": true,
     "plugins/lisa-agy/skills/lisa-session-manager/scripts/ledger-setup-gaps.mjs": true,
     "plugins/lisa-agy/skills/lisa-session-manager/scripts/ledger.mjs": true,
@@ -5468,6 +5477,9 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-copilot/skills/lisa-session-manager/scripts/json-input.mjs": true,
     "plugins/lisa-copilot/skills/lisa-session-manager/scripts/launch-shell.mjs": true,
     "plugins/lisa-copilot/skills/lisa-session-manager/scripts/launch.mjs": true,
+    "plugins/lisa-copilot/skills/lisa-session-manager/scripts/ledger-lock-fs.mjs": true,
+    "plugins/lisa-copilot/skills/lisa-session-manager/scripts/ledger-lock-reclaim.mjs": true,
+    "plugins/lisa-copilot/skills/lisa-session-manager/scripts/ledger-lock.mjs": true,
     "plugins/lisa-copilot/skills/lisa-session-manager/scripts/ledger-questions.mjs": true,
     "plugins/lisa-copilot/skills/lisa-session-manager/scripts/ledger-setup-gaps.mjs": true,
     "plugins/lisa-copilot/skills/lisa-session-manager/scripts/ledger.mjs": true,
@@ -6000,6 +6012,9 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-cursor/skills/lisa-session-manager/scripts/json-input.mjs": true,
     "plugins/lisa-cursor/skills/lisa-session-manager/scripts/launch-shell.mjs": true,
     "plugins/lisa-cursor/skills/lisa-session-manager/scripts/launch.mjs": true,
+    "plugins/lisa-cursor/skills/lisa-session-manager/scripts/ledger-lock-fs.mjs": true,
+    "plugins/lisa-cursor/skills/lisa-session-manager/scripts/ledger-lock-reclaim.mjs": true,
+    "plugins/lisa-cursor/skills/lisa-session-manager/scripts/ledger-lock.mjs": true,
     "plugins/lisa-cursor/skills/lisa-session-manager/scripts/ledger-questions.mjs": true,
     "plugins/lisa-cursor/skills/lisa-session-manager/scripts/ledger-setup-gaps.mjs": true,
     "plugins/lisa-cursor/skills/lisa-session-manager/scripts/ledger.mjs": true,
@@ -6464,6 +6479,9 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-devin/skills/lisa-session-manager/scripts/json-input.mjs": true,
     "plugins/lisa-devin/skills/lisa-session-manager/scripts/launch-shell.mjs": true,
     "plugins/lisa-devin/skills/lisa-session-manager/scripts/launch.mjs": true,
+    "plugins/lisa-devin/skills/lisa-session-manager/scripts/ledger-lock-fs.mjs": true,
+    "plugins/lisa-devin/skills/lisa-session-manager/scripts/ledger-lock-reclaim.mjs": true,
+    "plugins/lisa-devin/skills/lisa-session-manager/scripts/ledger-lock.mjs": true,
     "plugins/lisa-devin/skills/lisa-session-manager/scripts/ledger-questions.mjs": true,
     "plugins/lisa-devin/skills/lisa-session-manager/scripts/ledger-setup-gaps.mjs": true,
     "plugins/lisa-devin/skills/lisa-session-manager/scripts/ledger.mjs": true,
@@ -8896,6 +8914,9 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa/.codex-plugin/skills/lisa-session-manager/scripts/json-input.mjs": true,
     "plugins/lisa/.codex-plugin/skills/lisa-session-manager/scripts/launch-shell.mjs": true,
     "plugins/lisa/.codex-plugin/skills/lisa-session-manager/scripts/launch.mjs": true,
+    "plugins/lisa/.codex-plugin/skills/lisa-session-manager/scripts/ledger-lock-fs.mjs": true,
+    "plugins/lisa/.codex-plugin/skills/lisa-session-manager/scripts/ledger-lock-reclaim.mjs": true,
+    "plugins/lisa/.codex-plugin/skills/lisa-session-manager/scripts/ledger-lock.mjs": true,
     "plugins/lisa/.codex-plugin/skills/lisa-session-manager/scripts/ledger-questions.mjs": true,
     "plugins/lisa/.codex-plugin/skills/lisa-session-manager/scripts/ledger-setup-gaps.mjs": true,
     "plugins/lisa/.codex-plugin/skills/lisa-session-manager/scripts/ledger.mjs": true,
@@ -9609,6 +9630,9 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa/skills/lisa-session-manager/scripts/json-input.mjs": true,
     "plugins/lisa/skills/lisa-session-manager/scripts/launch-shell.mjs": true,
     "plugins/lisa/skills/lisa-session-manager/scripts/launch.mjs": true,
+    "plugins/lisa/skills/lisa-session-manager/scripts/ledger-lock-fs.mjs": true,
+    "plugins/lisa/skills/lisa-session-manager/scripts/ledger-lock-reclaim.mjs": true,
+    "plugins/lisa/skills/lisa-session-manager/scripts/ledger-lock.mjs": true,
     "plugins/lisa/skills/lisa-session-manager/scripts/ledger-questions.mjs": true,
     "plugins/lisa/skills/lisa-session-manager/scripts/ledger-setup-gaps.mjs": true,
     "plugins/lisa/skills/lisa-session-manager/scripts/ledger.mjs": true,
@@ -10197,6 +10221,9 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/src/base/skills/lisa-session-manager/scripts/json-input.mjs": true,
     "plugins/src/base/skills/lisa-session-manager/scripts/launch-shell.mjs": true,
     "plugins/src/base/skills/lisa-session-manager/scripts/launch.mjs": true,
+    "plugins/src/base/skills/lisa-session-manager/scripts/ledger-lock-fs.mjs": true,
+    "plugins/src/base/skills/lisa-session-manager/scripts/ledger-lock-reclaim.mjs": true,
+    "plugins/src/base/skills/lisa-session-manager/scripts/ledger-lock.mjs": true,
     "plugins/src/base/skills/lisa-session-manager/scripts/ledger-questions.mjs": true,
     "plugins/src/base/skills/lisa-session-manager/scripts/ledger-setup-gaps.mjs": true,
     "plugins/src/base/skills/lisa-session-manager/scripts/ledger.mjs": true,
@@ -11838,6 +11865,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/lisa-test-run-packed-bin.test.ts": true,
     "tests/integration/lisa-test-run-shard-cli.test.ts": true,
     "tests/integration/lisa.test.ts": true,
+    "tests/integration/load-test-workflow-runner.test.ts": true,
+    "tests/integration/load-test-workflow.test.ts": true,
     "tests/integration/maestro-build-reuse.test.ts": true,
     "tests/integration/maestro-caller-template.test.ts": true,
     "tests/integration/maestro-checkout-credentials.test.ts": true,
@@ -11998,7 +12027,9 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/standards-proof-typescript.test.ts": true,
     "tests/integration/support/bun-free-node-bin.ts": true,
     "tests/integration/support/cdk-ci-role-selection-harness.ts": true,
+    "tests/integration/support/fixtures/load-test-pre-fix.yml": true,
     "tests/integration/support/jira-evidence-run.ts": true,
+    "tests/integration/support/load-test-workflow-harness.ts": true,
     "tests/integration/support/maestro-android-retry-fixtures.ts": true,
     "tests/integration/support/maestro-android-retry-harness.ts": true,
     "tests/integration/support/maestro-build-step-harness.ts": true,
@@ -12476,10 +12507,12 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/core/learnings-merge.test.ts": true,
     "tests/unit/core/learnings-migration.test.ts": true,
     "tests/unit/core/learnings-overcap-supersede.test.ts": true,
+    "tests/unit/core/learnings-overcap.test.ts": true,
     "tests/unit/core/learnings-overflow-budget-check.test.ts": true,
     "tests/unit/core/learnings-overflow-identity.test.ts": true,
     "tests/unit/core/learnings-overflow.test.ts": true,
     "tests/unit/core/learnings-projection.test.ts": true,
+    "tests/unit/core/learnings-retire-race.test.ts": true,
     "tests/unit/core/learnings-retire.test.ts": true,
     "tests/unit/core/learnings-stable-ids.test.ts": true,
     "tests/unit/core/learnings-stray-ledger.test.ts": true,
@@ -13407,6 +13440,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/session-manager/launch-argv.test.ts": true,
     "tests/unit/session-manager/launch-real-tmux.test.ts": true,
     "tests/unit/session-manager/launch.test.ts": true,
+    "tests/unit/session-manager/ledger-lock-recovery.test.ts": true,
+    "tests/unit/session-manager/ledger-lock.test.ts": true,
     "tests/unit/session-manager/ledger-questions.test.ts": true,
     "tests/unit/session-manager/ledger-validation.test.ts": true,
     "tests/unit/session-manager/ledger.test.ts": true,

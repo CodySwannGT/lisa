@@ -12,14 +12,21 @@
  * is refused, not replaced, because replacing it would silently reset every
  * attempt count.
  *
+ * Several processes write the ledger, so `updateLedger` holds a cross-process
+ * lock (`ledger-lock.mjs`, #4828) across its whole read, change and write; an
+ * unlocked overlap let the later writer silently discard the earlier one.
+ *
  * File I/O and the clock are injected (`{fs, now}`) so tests can observe the
- * rename and pin timestamps. Nothing here reads `process.env` or a tracker.
+ * rename and pin timestamps; the lock's budget, sleep and pid probe are
+ * injectable too. Nothing here reads `process.env` or a tracker.
  * @module ledger
  */
 
 import { randomUUID } from "node:crypto";
 import * as nodeFs from "node:fs/promises";
 import { dirname, join } from "node:path";
+
+import { withLedgerLock } from "./ledger-lock.mjs";
 
 // The question writers live in ledger-questions.mjs (#4555), re-exported so
 // callers keep one import. They are called, never evaluated, at load time, so
@@ -42,6 +49,10 @@ const FINISH_STATUSES = new Set(["DONE", "FAILED"]);
  * @typedef {object} LedgerSeams
  * @property {Pick<typeof nodeFs, "readFile"|"writeFile"|"rename"|"mkdir"|"appendFile">} [fs] - File system
  * @property {() => Date} [now] - Clock
+ * @property {number} [lockTimeoutMs] - Ledger lock budget (default 5000)
+ * @property {(ms: number) => Promise<void>} [sleep] - Lock retry delay
+ * @property {(pid: number) => boolean} [isProcessLive] - Lock holder probe
+ * @property {() => number} [bootTimeMs] - Host boot time for the lock (epoch ms)
  */
 
 /**
@@ -220,7 +231,9 @@ export async function writeLedger(projectRoot, ledger, seams) {
 }
 
 /**
- * Read, transform and write the ledger in one step.
+ * Read, transform and write the ledger in one step, holding the ledger lock
+ * across all three so a concurrent writer cannot interleave (#4828). A lock
+ * that stays held past its budget throws and nothing is written.
  * @template T
  * @param {string} projectRoot - Absolute project root
  * @param {LedgerSeams | undefined} seams - Injected seams
@@ -228,11 +241,15 @@ export async function writeLedger(projectRoot, ledger, seams) {
  * @returns {Promise<T>} The transform's result
  */
 export async function updateLedger(projectRoot, seams, transform) {
-  const { now } = resolveSeams(seams);
-  const current = await readLedger(projectRoot, seams);
-  const { ledger, result } = transform(current, now().toISOString());
-  await writeLedger(projectRoot, ledger, seams);
-  return result;
+  const { fs, now } = resolveSeams(seams);
+  const file = ledgerPath(projectRoot);
+  await fs.mkdir(dirname(file), { recursive: true });
+  return withLedgerLock(file, seams, async () => {
+    const current = await readLedger(projectRoot, seams);
+    const { ledger, result } = transform(current, now().toISOString());
+    await writeLedger(projectRoot, ledger, seams);
+    return result;
+  });
 }
 
 /**

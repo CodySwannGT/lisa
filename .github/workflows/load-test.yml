@@ -42,20 +42,34 @@ on:
         required: false
         type: string
       virtual_users:
-        description: 'Override number of virtual users'
+        description: >-
+          Override number of virtual users. Leave it out (or pass 0) to keep the
+          script's own `vus`. GitHub renders an omitted `number` input as 0, and
+          k6 refuses K6_VUS=0 with a configuration error, so only a whole number
+          above 0 is ever exported (CodySwannGT/lisa#4526).
         required: false
         type: number
+        default: 0
       thresholds_config:
         description: 'Path to custom thresholds configuration'
         required: false
         type: string
       test_script:
-        description: 'Path to custom k6 test script'
+        description: >-
+          Path to custom k6 test script. Left at its default, the run uses
+          ./scripts/k6-run.sh when the repository provides one (it must be
+          executable, and must exit with k6's own status), else `k6 run` on
+          .github/k6/scenarios/<test_scenario>.js, and fails when neither
+          exists. A path that does not exist fails the run.
         required: false
         type: string
         default: '.github/k6/scripts/default-test.js'
       fail_on_threshold:
-        description: 'Fail workflow if thresholds are not met'
+        description: >-
+          Fail workflow if thresholds are not met (k6 exit 99). It suppresses
+          ONLY a threshold breach: a missing runner or script, a script error,
+          a configuration error or any other nonzero exit always fails the job,
+          because no threshold was evaluated (CodySwannGT/lisa#4526).
         required: false
         type: boolean
         default: true
@@ -65,7 +79,11 @@ on:
         type: boolean
         default: true
       cloud_run:
-        description: 'Run tests on k6 Cloud (requires K6_CLOUD_TOKEN secret)'
+        description: >-
+          Run tests on k6 Cloud (requires the K6_CLOUD_TOKEN secret, plus
+          K6_CLOUD_STACK_ID and K6_CLOUD_PROJECT_ID unless the script sets
+          options.cloud). Uses `k6 cloud run <script>`, which needs a k6 that
+          has the `cloud run` subcommand: the default `k6_version: latest` does.
         required: false
         type: boolean
         default: false
@@ -73,6 +91,11 @@ on:
       test_passed:
         description: 'Whether the test passed all thresholds'
         value: ${{ jobs.k6_test.outputs.passed }}
+      exit_code:
+        description: >-
+          Exit status of the test run: 0 passed, 99 thresholds breached, any
+          other value means the test could not run or k6 errored.
+        value: ${{ jobs.k6_test.outputs.exit_code }}
       results_url:
         description: 'URL to test results (if uploaded)'
         value: ${{ jobs.k6_test.outputs.results_url }}
@@ -83,6 +106,17 @@ on:
       K6_CLOUD_TOKEN:
         required: false
         description: 'k6 Cloud API token for cloud runs'
+      K6_CLOUD_STACK_ID:
+        required: false
+        description: >-
+          Grafana Cloud stack ID for cloud runs. `k6 cloud run` refuses to start
+          without one ("stack ID not configured") unless the script sets
+          options.cloud.stackID.
+      K6_CLOUD_PROJECT_ID:
+        required: false
+        description: >-
+          k6 Cloud project ID for cloud runs, needed with a stack ID unless the
+          script sets options.cloud.projectID.
       CUSTOM_HEADERS:
         required: false
         description: 'Custom headers for authenticated endpoints (JSON format)'
@@ -163,6 +197,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       passed: ${{ steps.run_test.outputs.passed }}
+      exit_code: ${{ steps.run_test.outputs.exit_code }}
       results_url: ${{ steps.upload_results.outputs.artifact-url }}
       summary: ${{ steps.generate_summary.outputs.summary }}
 
@@ -192,149 +227,247 @@ jobs:
 
       - name: Prepare test environment
         id: prepare_test
+        # Inputs reach the script through `env:`, never as `${{ }}` source text,
+        # so a value carrying shell syntax stays a value.
+        env:
+          BASE_URL: ${{ inputs.base_url }}
+          TEST_SCENARIO: ${{ inputs.test_scenario }}
+          TARGET_ENVIRONMENT: ${{ inputs.environment }}
+          TEST_DURATION: ${{ inputs.test_duration }}
+          VIRTUAL_USERS: ${{ inputs.virtual_users }}
+          CUSTOM_HEADERS: ${{ secrets.CUSTOM_HEADERS }}
+          CLOUD_RUN: ${{ inputs.cloud_run }}
+          CLOUD_TOKEN: ${{ secrets.K6_CLOUD_TOKEN }}
+          CLOUD_STACK_ID: ${{ secrets.K6_CLOUD_STACK_ID }}
+          CLOUD_PROJECT_ID: ${{ secrets.K6_CLOUD_PROJECT_ID }}
         run: |
           # Create results directory
           mkdir -p k6-results
 
           # Export environment variables for k6
           {
-            echo "K6_BASE_URL=${{ inputs.base_url }}"
-            echo "K6_SCENARIO=${{ inputs.test_scenario }}"
-            echo "K6_ENVIRONMENT=${{ inputs.environment }}"
+            echo "K6_BASE_URL=${BASE_URL}"
+            echo "K6_SCENARIO=${TEST_SCENARIO}"
+            echo "K6_ENVIRONMENT=${TARGET_ENVIRONMENT}"
           } >> "$GITHUB_ENV"
 
           # Set custom duration if provided
-          if [ -n "${{ inputs.test_duration }}" ]; then
-            echo "K6_DURATION=${{ inputs.test_duration }}" >> "$GITHUB_ENV"
+          if [ -n "${TEST_DURATION}" ]; then
+            echo "K6_DURATION=${TEST_DURATION}" >> "$GITHUB_ENV"
           fi
 
-          # Set custom VUs if provided
-          if [ -n "${{ inputs.virtual_users }}" ]; then
-            echo "K6_VUS=${{ inputs.virtual_users }}" >> "$GITHUB_ENV"
-          fi
+          # Set custom VUs only for a whole number above 0. An omitted
+          # `virtual_users` renders as 0, and exporting K6_VUS=0 overrides the
+          # script's own `vus` with a value k6 refuses (exit 104) before
+          # running anything (CodySwannGT/lisa#4526). The Run step reads K6_VUS
+          # back from here, so this is the one place the rule lives.
+          # 0 and empty mean "not overridden" and stay silent; anything else
+          # that is not a whole number above 0 is named, so a typo is not
+          # quietly ignored.
+          case "${VIRTUAL_USERS}" in
+            '') ;;
+            *[!0-9]*)
+              echo "::warning title=virtual_users ignored::virtual_users '${VIRTUAL_USERS}' is not a whole number above 0, so it was ignored and the script's own vus applies."
+              ;;
+            *)
+              if [ "${VIRTUAL_USERS}" -gt 0 ]; then
+                echo "K6_VUS=${VIRTUAL_USERS}" >> "$GITHUB_ENV"
+              fi
+              ;;
+          esac
 
           # Set custom headers if provided
-          if [ -n "${{ secrets.CUSTOM_HEADERS }}" ]; then
-            echo "K6_CUSTOM_HEADERS=${{ secrets.CUSTOM_HEADERS }}" >> "$GITHUB_ENV"
+          if [ -n "${CUSTOM_HEADERS}" ]; then
+            echo "K6_CUSTOM_HEADERS=${CUSTOM_HEADERS}" >> "$GITHUB_ENV"
           fi
 
-          # Set cloud token if cloud run is enabled
-          if [ "${{ inputs.cloud_run }}" = "true" ] && [ -n "${{ secrets.K6_CLOUD_TOKEN }}" ]; then
-            echo "K6_CLOUD_TOKEN=${{ secrets.K6_CLOUD_TOKEN }}" >> "$GITHUB_ENV"
+          # Set cloud auth if cloud run is enabled. `k6 cloud run` needs a stack
+          # ID and a project ID as well as the token, or it refuses before
+          # uploading anything (verified on k6 v2.4.0).
+          if [ "${CLOUD_RUN}" = "true" ]; then
+            if [ -n "${CLOUD_TOKEN}" ]; then
+              echo "K6_CLOUD_TOKEN=${CLOUD_TOKEN}" >> "$GITHUB_ENV"
+            fi
+            if [ -n "${CLOUD_STACK_ID}" ]; then
+              echo "K6_CLOUD_STACK_ID=${CLOUD_STACK_ID}" >> "$GITHUB_ENV"
+            fi
+            if [ -n "${CLOUD_PROJECT_ID}" ]; then
+              echo "K6_CLOUD_PROJECT_ID=${CLOUD_PROJECT_ID}" >> "$GITHUB_ENV"
+            fi
           fi
 
       - name: Run k6 test
         id: run_test
+        env:
+          BASE_URL: ${{ inputs.base_url }}
+          TEST_SCENARIO: ${{ inputs.test_scenario }}
+          TEST_SCRIPT: ${{ inputs.test_script }}
+          THRESHOLDS_CONFIG: ${{ inputs.thresholds_config }}
+          FAIL_ON_THRESHOLD: ${{ inputs.fail_on_threshold }}
+          CLOUD_RUN: ${{ inputs.cloud_run }}
         run: |
-          set +e  # Don't exit immediately on error
+          # The status is captured and classified below rather than left to
+          # `bash -e`. Only a threshold breach (k6 exit 99) may be suppressed by
+          # fail_on_threshold: false. Every other nonzero status — a missing
+          # runner or script (127/126), a script error (107), a configuration
+          # error (104), an abort — means no threshold was evaluated, so the
+          # step fails whatever fail_on_threshold says. Before
+          # CodySwannGT/lisa#4526 all of them were reported green as "failed
+          # thresholds".
+          set +e
 
-          # Use the shared runner script if a scenario is specified, otherwise use custom script
-          if [ "${{ inputs.test_script }}" = ".github/k6/scripts/default-test.js" ]; then
-            # Use shared runner for standard scenarios
-            RUNNER_ARGS="--scenario ${{ inputs.test_scenario }} --url ${{ inputs.base_url }} --json --csv"
+          DEFAULT_TEST_SCRIPT=".github/k6/scripts/default-test.js"
+          RUNNER="./scripts/k6-run.sh"
 
-            # Add cloud option if enabled
-            if [ "${{ inputs.cloud_run }}" = "true" ]; then
-              RUNNER_ARGS="$RUNNER_ARGS --cloud"
+          # Fail a run that never started. It ignores fail_on_threshold:
+          # nothing was measured, so there is no threshold result to suppress.
+          could_not_run() {
+            echo "::error title=k6 test did not run::$2"
+            {
+              echo "exit_code=$1"
+              echo "passed=false"
+              echo "outcome=error"
+            } >> "$GITHUB_OUTPUT"
+            echo "❌ k6 test did not run (exit code $1): $2" >> "$GITHUB_STEP_SUMMARY"
+            exit "$1"
+          }
+
+          if [ -n "${THRESHOLDS_CONFIG}" ] && [ ! -f "${THRESHOLDS_CONFIG}" ]; then
+            could_not_run 1 "thresholds_config '${THRESHOLDS_CONFIG}' not found: fix the thresholds_config path or add the file"
+          fi
+
+          SCRIPT=""
+          USED_RUNNER=false
+          if [ "${TEST_SCRIPT}" = "${DEFAULT_TEST_SCRIPT}" ] && [ -e "${RUNNER}" ]; then
+            # A runner that is present but cannot execute is a mistake in the
+            # repository, not a reason to quietly run something else instead.
+            if [ ! -f "${RUNNER}" ] || [ ! -x "${RUNNER}" ]; then
+              could_not_run 126 "k6 runner ${RUNNER} exists but is not an executable file: run 'chmod +x ${RUNNER}' and commit it, or pass test_script"
             fi
-
-            # Add duration override if provided
-            if [ -n "${{ inputs.test_duration }}" ]; then
-              RUNNER_ARGS="$RUNNER_ARGS --duration ${{ inputs.test_duration }}"
+            # The repository provides its own runner: use it for standard
+            # scenarios. No --no-thresholds: fail_on_threshold is applied to
+            # exit 99 below, so a breach is still REPORTED when it may not fail.
+            USED_RUNNER=true
+            CMD=("${RUNNER}" --scenario "${TEST_SCENARIO}" --url "${BASE_URL}" --json --csv)
+            if [ "${CLOUD_RUN}" = "true" ]; then CMD+=(--cloud); fi
+            if [ -n "${K6_DURATION:-}" ]; then CMD+=(--duration "${K6_DURATION}"); fi
+            if [ -n "${K6_VUS:-}" ]; then CMD+=(--vus "${K6_VUS}"); fi
+            if [ -n "${THRESHOLDS_CONFIG}" ]; then
+              echo "::warning title=thresholds_config not applied::${RUNNER} is not passed thresholds_config '${THRESHOLDS_CONFIG}'; a custom runner must load it itself, or pass test_script to run k6 directly."
             fi
-
-            # Add VUs override if provided
-            if [ -n "${{ inputs.virtual_users }}" ]; then
-              RUNNER_ARGS="$RUNNER_ARGS --vus ${{ inputs.virtual_users }}"
-            fi
-
-            # Add no-thresholds flag if needed
-            if [ "${{ inputs.fail_on_threshold }}" != "true" ]; then
-              RUNNER_ARGS="$RUNNER_ARGS --no-thresholds"
-            fi
-
-            echo "Running shared k6 runner: ./scripts/k6-run.sh $RUNNER_ARGS"
-            ./scripts/k6-run.sh $RUNNER_ARGS
-            TEST_EXIT_CODE=$?
           else
-            # Use custom script directly with k6
-            TEST_SCRIPT="${{ inputs.test_script }}"
-
-            # Build k6 command
-            K6_CMD="k6 run"
-
-            # Add cloud option if enabled
-            if [ "${{ inputs.cloud_run }}" = "true" ]; then
-              K6_CMD="$K6_CMD --cloud"
+            if [ "${TEST_SCRIPT}" = "${DEFAULT_TEST_SCRIPT}" ]; then
+              # Lisa does not ship the runner, so a repository without one runs
+              # the scenario file for test_scenario directly.
+              case "${TEST_SCENARIO}" in
+                '' | *[!A-Za-z0-9_-]*)
+                  could_not_run 1 "test_scenario '${TEST_SCENARIO}' is not a plain scenario name (letters, digits, '-' and '_' only)"
+                  ;;
+              esac
+              SCRIPT=".github/k6/scenarios/${TEST_SCENARIO}.js"
+              if [ ! -f "${SCRIPT}" ]; then
+                could_not_run 1 "k6 runner ${RUNNER} not found, and there is no scenario file ${SCRIPT} to run instead: provide ${RUNNER}, add ${SCRIPT}, or pass test_script"
+              fi
+            else
+              SCRIPT="${TEST_SCRIPT}"
+              if [ ! -f "${SCRIPT}" ]; then
+                could_not_run 1 "k6 test script '${SCRIPT}' not found: fix the test_script path or add the file"
+              fi
             fi
 
-            # Add output options for local runs
-            if [ "${{ inputs.cloud_run }}" != "true" ]; then
-              K6_CMD="$K6_CMD --out json=k6-results/results.json --out csv=k6-results/results.csv"
+            # A cloud run is `k6 cloud run <script>`; `k6 run` has no --cloud
+            # flag and refuses it as unknown. Results stay in k6 Cloud, so the
+            # local --out files are only written for a local run. `k6 cloud run`
+            # does not hand the runner's environment to the script's __ENV, so
+            # the script-facing values are forwarded explicitly. Only these
+            # non-secret ones: --env values are stored in the uploaded archive,
+            # so K6_CUSTOM_HEADERS (from a secret) is deliberately left out.
+            if [ "${CLOUD_RUN}" = "true" ]; then
+              CMD=(k6 cloud run --env "K6_BASE_URL=${BASE_URL}" --env "K6_SCENARIO=${TEST_SCENARIO}" --env "K6_ENVIRONMENT=${K6_ENVIRONMENT:-}")
+            else
+              CMD=(k6 run --out json=k6-results/results.json --out csv=k6-results/results.csv)
             fi
-
-            # Add thresholds config if provided
-            if [ -n "${{ inputs.thresholds_config }}" ]; then
-              K6_CMD="$K6_CMD --config ${{ inputs.thresholds_config }}"
-            fi
-
-            # Add test script
-            K6_CMD="$K6_CMD $TEST_SCRIPT"
-
-            echo "Running k6 command: $K6_CMD"
-            $K6_CMD
-            TEST_EXIT_CODE=$?
+            if [ -n "${THRESHOLDS_CONFIG}" ]; then CMD+=(--config "${THRESHOLDS_CONFIG}"); fi
+            CMD+=("${SCRIPT}")
           fi
 
-          echo "exit_code=$TEST_EXIT_CODE" >> "$GITHUB_OUTPUT"
+          # K6_DURATION and K6_VUS override the script's own options, so say
+          # what this run will actually do before doing it.
+          echo "Effective k6 run:"
+          echo "  command:  ${CMD[*]}"
+          echo "  script:   ${SCRIPT:-chosen by ${RUNNER} for scenario ${TEST_SCENARIO}}"
+          echo "  VUs:      ${K6_VUS:-script default}"
+          echo "  duration: ${K6_DURATION:-script default}"
 
-          # Determine if test passed
-          if [ $TEST_EXIT_CODE -eq 0 ]; then
-            echo "passed=true" >> "$GITHUB_OUTPUT"
-            echo "✅ Test passed all thresholds" >> "$GITHUB_STEP_SUMMARY"
-          else
-            echo "passed=false" >> "$GITHUB_OUTPUT"
-            echo "❌ Test failed thresholds" >> "$GITHUB_STEP_SUMMARY"
-          fi
+          "${CMD[@]}"
+          TEST_EXIT_CODE=$?
 
-          # Exit with appropriate code based on fail_on_threshold setting
-          if [ "${{ inputs.fail_on_threshold }}" = "true" ] && [ $TEST_EXIT_CODE -ne 0 ]; then
-            exit $TEST_EXIT_CODE
-          fi
+          echo "exit_code=${TEST_EXIT_CODE}" >> "$GITHUB_OUTPUT"
+
+          case "${TEST_EXIT_CODE}" in
+            0)
+              echo "passed=true" >> "$GITHUB_OUTPUT"
+              echo "outcome=passed" >> "$GITHUB_OUTPUT"
+              echo "✅ Test passed all thresholds" >> "$GITHUB_STEP_SUMMARY"
+              ;;
+            99)
+              echo "passed=false" >> "$GITHUB_OUTPUT"
+              echo "outcome=thresholds_failed" >> "$GITHUB_OUTPUT"
+              echo "❌ Test failed thresholds (k6 exit code 99)" >> "$GITHUB_STEP_SUMMARY"
+              if [ "${FAIL_ON_THRESHOLD}" = "true" ]; then
+                echo "::error title=k6 thresholds failed::The test ran and breached its thresholds (k6 exit code 99)."
+                exit 99
+              fi
+              echo "::warning title=k6 thresholds failed::The test ran and breached its thresholds (k6 exit code 99); fail_on_threshold is false, so the job continues."
+              ;;
+            *)
+              echo "passed=false" >> "$GITHUB_OUTPUT"
+              echo "outcome=error" >> "$GITHUB_OUTPUT"
+              echo "❌ k6 could not run the test or errored (exit code ${TEST_EXIT_CODE}): no threshold was evaluated, so fail_on_threshold does not apply" >> "$GITHUB_STEP_SUMMARY"
+              echo "::error title=k6 test did not complete::k6 exited ${TEST_EXIT_CODE}, which is not a threshold result (that is 99). The test could not run or errored; see the log above."
+              if [ "${USED_RUNNER}" = "true" ]; then
+                RUNNER_NOTE="${RUNNER} exited ${TEST_EXIT_CODE}. A custom runner must exit with k6's own status (99 for a threshold breach) for fail_on_threshold to apply."
+                echo "::error title=k6 runner exit status::${RUNNER_NOTE}"
+                echo "${RUNNER_NOTE}" >> "$GITHUB_STEP_SUMMARY"
+              fi
+              exit "${TEST_EXIT_CODE}"
+              ;;
+          esac
 
       - name: Generate test summary
         id: generate_summary
         if: always()
+        env:
+          TARGET_ENVIRONMENT: ${{ inputs.environment }}
+          TEST_SCENARIO: ${{ inputs.test_scenario }}
+          BASE_URL: ${{ inputs.base_url }}
+          RUN_OUTCOME: ${{ steps.run_test.outputs.outcome }}
+          RUN_EXIT_CODE: ${{ steps.run_test.outputs.exit_code }}
         run: |
-          # Create summary content
-          SUMMARY="# K6 Load Test Results\n\n"
-          SUMMARY+="**Environment:** ${{ inputs.environment }}\n"
-          SUMMARY+="**Test Scenario:** ${{ inputs.test_scenario }}\n"
-          SUMMARY+="**Base URL:** ${{ inputs.base_url }}\n"
-          SUMMARY+="**Test Status:** "
+          # The status names the real cause: a threshold breach and a test that
+          # never ran are different failures (CodySwannGT/lisa#4526).
+          case "${RUN_OUTCOME}" in
+            passed) STATUS="✅ PASSED" ;;
+            thresholds_failed) STATUS="❌ FAILED — thresholds breached (k6 exit code 99)" ;;
+            error) STATUS="❌ ERROR — the test did not run to completion (exit code ${RUN_EXIT_CODE}); no threshold was evaluated" ;;
+            *) STATUS="❌ NOT RUN — the k6 step produced no result" ;;
+          esac
 
-          if [ "${{ steps.run_test.outputs.passed }}" = "true" ]; then
-            SUMMARY+="✅ PASSED\n"
-          else
-            SUMMARY+="❌ FAILED\n"
-          fi
+          SUMMARY=$(printf '# K6 Load Test Results\n\n**Environment:** %s\n**Test Scenario:** %s\n**Base URL:** %s\n**Test Status:** %s\n' \
+            "${TARGET_ENVIRONMENT}" "${TEST_SCENARIO}" "${BASE_URL}" "${STATUS}")
 
           # Add summary to GitHub Step Summary
-          echo -e "$SUMMARY" >> "$GITHUB_STEP_SUMMARY"
+          printf '%s\n' "${SUMMARY}" >> "$GITHUB_STEP_SUMMARY"
 
-          # Extract key metrics from results if available
+          # Point at detailed metrics if a local run wrote them
           if [ -f "k6-results/results.json" ]; then
-            echo -e "\n## Key Metrics\n" >> "$GITHUB_STEP_SUMMARY"
-
-            # Parse JSON results for key metrics (simplified example)
-            # In a real implementation, you'd use jq or similar to extract detailed metrics
-            echo "📊 Detailed metrics available in artifacts" >> "$GITHUB_STEP_SUMMARY"
+            printf '\n## Key Metrics\n\n📊 Detailed metrics available in artifacts\n' >> "$GITHUB_STEP_SUMMARY"
           fi
 
           # Output summary for workflow output
           {
             echo "summary<<EOF"
-            echo -e "$SUMMARY"
+            printf '%s\n' "${SUMMARY}"
             echo "EOF"
           } >> "$GITHUB_OUTPUT"
 

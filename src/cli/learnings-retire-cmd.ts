@@ -1,6 +1,7 @@
 /**
  * `lisa learnings-retire` — remove one fingerprint-stamped entry from the
- * project learnings ledger (CodySwannGT/lisa#4536).
+ * project learnings ledger (CodySwannGT/lisa#4536), through the
+ * fingerprint-guarded `retireLearningEntry` API (CodySwannGT/lisa#4530).
  *
  * This is the gardener's RETIRE handle. The audit skill is forbidden from
  * hand-parsing or hand-editing any learnings surface, so a RETIRE verdict needs
@@ -23,9 +24,9 @@ import {
 export interface LearningsRetireOptions {
   /** Stable id of the entry to retire. */
   readonly id: string;
-  /** Fingerprint the caller observed at that id. */
+  /** FULL fingerprint the caller observed at that id (never the marker hash). */
   readonly fingerprint: string;
-  /** Human-readable reason, echoed into the JSON proof record. */
+  /** Human-readable proof, echoed into the JSON output only. */
   readonly reason: string;
 }
 
@@ -54,12 +55,17 @@ export async function runLearningsRetire(
   const error =
     dependencies.error ?? ((message: string) => console.error(message));
   try {
+    if (typeof options.reason !== "string" || options.reason.trim() === "") {
+      throw new Error("Invalid --reason: expected a non-empty proof string");
+    }
     const result = await retireLearningEntry(
       cwd,
-      { id: options.id, fingerprint: options.fingerprint },
-      options.reason
+      options.id,
+      options.fingerprint
     );
-    log(JSON.stringify(result, null, 2));
+    // The reason is the caller's proof record, not ledger content: it is
+    // echoed for the deleting PR to cite and never written anywhere.
+    log(JSON.stringify({ ...result, reason: options.reason }, null, 2));
     const refusal = describeRefusal(result);
     if (refusal === undefined) {
       return 0;
