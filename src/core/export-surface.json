@@ -1,8 +1,8 @@
 {
   "$generatedBy": "scripts/generate-export-surface.mjs",
   "$doNotEdit": "The public export surface this package ships, recorded so a removal is an OBSERVATION rather than an inference from commit-message conventions. This file's diff is what makes a removed export visible in the pull request that causes it (CodySwannGT/lisa#3718).",
-  "$modules": 279,
-  "$names": 1999,
+  "$modules": 281,
+  "$names": 2009,
   "surface": {
     "all/copy-overwrite/scripts/check-conflict-markers.mjs": [
       "UsageError",
@@ -2026,6 +2026,13 @@
       "removalKey",
       "resolveRelative"
     ],
+    "scripts/lib/test-timings-reporter.mjs": [
+      "TEST_TIMINGS_DIRECTORY",
+      "TEST_TIMINGS_SCOPES",
+      "testTimingsReporter",
+      "testTimingsScope",
+      "withTestTimingsReporter"
+    ],
     "scripts/lib/upstream-manifest-staleness.mjs": [
       "describeStaleManifest",
       "diagnoseStaleManifest",
@@ -2235,6 +2242,13 @@
       "renderReport",
       "runArtifactChecks",
       "runCheck"
+    ],
+    "scripts/test-timing-report.mjs": [
+      "collectTimings",
+      "formatReport",
+      "main",
+      "parseArgs",
+      "summarize"
     ],
     "typescript/copy-overwrite/scripts/check-nightly-e2e-health.mjs": [
       "ABSOLUTE_MAX_API_ATTEMPTS",

@@ -203,6 +203,7 @@ describe("test_unit_shard", () => {
       "🧩 Arm this unit-test shard",
       "🧾 Prove this shard ran only its slice",
       "📤 Upload this shard's results",
+      "⏱️ Upload this shard's per-file test timings",
     ];
     const copied = stepsIn("test_unit_shard").filter(
       s => !own.includes(s.name ?? "")
