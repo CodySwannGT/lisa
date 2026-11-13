@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { createTestProgram } from "./index-test-program.js";
 
 const DEST = "./sample-proj";
@@ -61,11 +61,42 @@ describe("maintenance command invocation", () => {
   });
 });
 
-describe("sync and ui invocation", () => {
-  it("registers sync and ui subcommands", () => {
+describe("sync invocation", () => {
+  it("registers sync", () => {
     const { program } = createTestProgram();
     const subcommandNames = program.commands.map(command => command.name());
-    expect(subcommandNames).toEqual(expect.arrayContaining(["sync", "ui"]));
+    expect(subcommandNames).toContain("sync");
+  });
+
+  it("refuses the removed ui console instead of applying into ui/", async () => {
+    const { program, runApply, runSync } = createTestProgram();
+    const stderr = vi
+      .spyOn(process.stderr, "write")
+      .mockImplementation(() => true);
+    const priorExitCode = process.exitCode;
+
+    try {
+      await program.parseAsync(["ui", DEST, "--port", "5001"], {
+        from: "user",
+      });
+
+      expect(process.exitCode).toBe(1);
+      expect(runApply).not.toHaveBeenCalled();
+      expect(runSync).not.toHaveBeenCalled();
+      expect(String(stderr.mock.calls[0]?.[0])).toContain(
+        "lisa ui was removed"
+      );
+    } finally {
+      process.exitCode = priorExitCode;
+      stderr.mockRestore();
+    }
+  });
+
+  it("keeps the removed ui command out of help", () => {
+    const { program } = createTestProgram();
+
+    const lines = program.helpInformation().split("\n");
+    expect(lines.some(line => line.trim().startsWith("ui "))).toBe(false);
   });
 
   it("routes sync options to the sync action", async () => {
@@ -81,38 +112,7 @@ describe("sync and ui invocation", () => {
     );
   });
 
-  it("routes ui options to the ui action, including --no-sync", async () => {
-    const { program, runUi } = createTestProgram();
-
-    await program.parseAsync(
-      [
-        "ui",
-        DEST,
-        "--port",
-        "5001",
-        "--no-sync",
-        "--work-item",
-        "CodySwannGT/lisa#1534",
-        "--co-author",
-        "Codex <codex@openai.com>",
-      ],
-      {
-        from: "user",
-      }
-    );
-
-    expect(runUi).toHaveBeenCalledWith(
-      DEST,
-      expect.objectContaining({
-        port: "5001",
-        sync: false,
-        workItem: "CodySwannGT/lisa#1534",
-        coAuthor: "Codex <codex@openai.com>",
-      })
-    );
-  });
-
-  it("does not run the update check for sync or ui", async () => {
+  it("does not run the update check for sync", async () => {
     const { program, runUpdateCheck } = createTestProgram();
 
     await program.parseAsync(["sync", DEST], { from: "user" });

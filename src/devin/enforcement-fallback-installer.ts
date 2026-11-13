@@ -103,35 +103,6 @@ function isLisaHandler(handler: DevinHookHandler): boolean {
 }
 
 /**
- * Whether a `.devin/hooks.v1.json` body carries the current Lisa fallback
- * handler under PreToolUse. Used by readiness checks, so a file that merely
- * exists (or is `{}`) is not mistaken for an installed fallback.
- * @param raw - File contents, or undefined when absent
- * @returns True when the exact Lisa handler is registered
- */
-export function hasDevinFallback(raw: string | undefined): boolean {
-  if (raw === undefined) return false;
-  try {
-    const parsed: unknown = JSON.parse(raw);
-    if (parsed === null || typeof parsed !== "object") return false;
-    const groups = (parsed as Record<string, unknown>).PreToolUse;
-    if (!Array.isArray(groups)) return false;
-    return (groups as readonly DevinMatcherGroup[]).some(
-      group =>
-        group?.matcher === DEVIN_FALLBACK_MATCHER &&
-        Array.isArray(group.hooks) &&
-        group.hooks.some(
-          handler =>
-            handler?.type === "command" &&
-            handler.command === DEVIN_FALLBACK_COMMAND
-        )
-    );
-  } catch {
-    return false;
-  }
-}
-
-/**
  * Remove every Lisa-owned handler from one event's groups, dropping groups
  * left with no handlers. Host handlers and fields are kept verbatim.
  * @param groups - The event's matcher groups as read from disk

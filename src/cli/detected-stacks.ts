@@ -1,24 +1,17 @@
 /**
- * Live-status probe for the console Stacks section.
+ * Bounded, no-follow stack detection for standards proof.
  *
- * Mirrors doctor's detection chain exactly so the console and `lisa doctor`
- * can never disagree. An empty match is the honest empty value (`[]`), never
- * unknown; the runner maps a thrown detector error to unknown.
- * @module cli/ui-detected-stacks
+ * Mirrors the detector registry's signals without invoking its unbounded
+ * readers, so a project root cannot steer reads outside itself.
+ * @module cli/detected-stacks
  */
 import { realpath } from "node:fs/promises";
-import {
-  createDetectorRegistry,
-  type DetectorRegistry,
-} from "../detection/index.js";
+import { createDetectorRegistry } from "../detection/index.js";
 import { CDK_APP_MARKER } from "../core/cdk-preset-adoption.js";
 import type { ProjectType } from "../core/config.js";
 import { projectPathKind, readProjectText } from "../health/read-only-fs.js";
 import { isJsonObject } from "../sync/json-path.js";
-import type { StatusProbe } from "./ui-status.js";
 
-/** Probe id for the detected-stacks live-status entry. */
-export const DETECTED_STACKS_PROBE_ID = "detected-stacks";
 const PACKAGE_JSON_RELATIVE = "package.json";
 const HARPER_CONFIG_RELATIVE = "harper-app/config.yaml";
 const MARKER_NAMES = [
@@ -33,7 +26,7 @@ const MARKER_NAMES = [
   "config/application.rb",
 ] as const;
 
-/** Bounded filesystem evidence consumed by setup stack classification. */
+/** Bounded filesystem evidence consumed by stack classification. */
 type ConfinedDetectionSignals = {
   readonly packageJson: unknown;
   readonly dependencies: readonly string[];
@@ -125,9 +118,9 @@ function classifyDetectedTypes(
 }
 
 /**
- * Detect setup-automation stacks using only bounded, no-follow project reads.
+ * Detect project stacks using only bounded, no-follow project reads.
  * This mirrors the authoritative detector signals without invoking their
- * legacy unbounded readers on the setup-readiness request path.
+ * legacy unbounded readers.
  * @param destDir - Project root
  * @returns Expanded types in canonical detector-registry order
  */
@@ -156,26 +149,4 @@ export async function readConfinedDetectedStacks(
     harperConfig,
   });
   return createDetectorRegistry().expandAndOrderTypes([...detected]);
-}
-
-/**
- * Create the probe that reports the project's detected stacks.
- * @param destDir - Project root scanned by the detector registry
- * @param registry - Injectable detector registry used by focused tests
- * @returns Probe emitting the expanded, ordered project types
- */
-export function createDetectedStacksProbe(
-  destDir: string,
-  registry: DetectorRegistry = createDetectorRegistry()
-): StatusProbe<string[]> {
-  return {
-    id: DETECTED_STACKS_PROBE_ID,
-    timeoutMs: 5_000,
-    run: async () => {
-      const types = registry.expandAndOrderTypes(
-        await registry.detectAll(destDir)
-      );
-      return { state: "value", value: [...types] };
-    },
-  };
 }

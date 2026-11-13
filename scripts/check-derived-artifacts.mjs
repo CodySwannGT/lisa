@@ -83,7 +83,6 @@ export const PACKAGED_EVIDENCE_PREFIXES = Object.freeze([
   "scripts/",
   "tsconfig/",
   "typescript/",
-  "ui/",
 ]);
 
 /** Marker separating a template's source location from its installed path. */
