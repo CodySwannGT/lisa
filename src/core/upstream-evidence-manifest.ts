@@ -1297,7 +1297,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/rules/reference/usage-accounting.md":
       "64ee616bdad7c16d5cc4b9eb44384de261b0616ec3343d4c05a88ddede3d89ea",
     "plugins/src/base/rules/reference/verification.md":
-      "8a57ab38f2d86e9879cdcf265ebba2a6d63a6f821ffd7a2cb4749e59861c518f",
+      "fd1dfe40b098b8c772785cec3d3e89a2e32d086bd13e44489536241a8c393ee9",
     "plugins/src/base/rules/reference/wiki-knowledge-source.md":
       "725a7415a0606f85164722bd4b4975bce1f496cc43c97e45b224810b1a685189",
     "plugins/src/base/rules/reference/withdrawn-rulings.md":
@@ -1457,7 +1457,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-github-evidence/SKILL.md":
       "dc67f738587e8b287f9e2e221caffb343050f0d3af6765745e37e8d27ebeb8e7",
     "plugins/src/base/skills/lisa-github-journey/SKILL.md":
-      "dba6ee9739be9505d4476d29f7595548adb5bb2e67640577977286c68b9dc1c9",
+      "fa9c4dab004a47062bae75c74aed1844fdfe76be119e2a8b9d07b3c5db68892e",
     "plugins/src/base/skills/lisa-github-prd-intake/SKILL.md":
       "34d2eaaf63213e7c52fea2e7cc579a459e95ac49c26d405ec3c44605bf16cc54",
     "plugins/src/base/skills/lisa-github-project-v2/SKILL.md":
@@ -1513,7 +1513,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-jira-evidence/scripts/post-evidence.sh":
       "7657837ae23fd9a39e7f0e82cb82e0f4bb9d9f5c84b507cd0fcbce7d2055dec0",
     "plugins/src/base/skills/lisa-jira-journey/SKILL.md":
-      "655715c8a15bdfe9bc2d3651160cb310db671b0447701d44e0ba10dd8315d4a6",
+      "3ea658b764f7132e6fa8c27635d66493a5dca616b328e2c8515edfb9ee1a14ad",
     "plugins/src/base/skills/lisa-jira-journey/scripts/generate-templates.py":
       "9856fb5cc6d6935ce1a3e07e936139768fd001aef8f35be382e6c03a34f10837",
     "plugins/src/base/skills/lisa-jira-journey/scripts/parse-plan.py":
@@ -1549,7 +1549,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-linear-evidence/SKILL.md":
       "0b243c1b8c7c50d5dbdfc1559651033cfaaf94856c02ac2a12be01eaada6e318",
     "plugins/src/base/skills/lisa-linear-journey/SKILL.md":
-      "7efeabe56b8b004c9205f944f6420be83eac25f861de19cb361a4a124bf06d85",
+      "241d9a2970b721c5a7d487cbffc469ac644623e77be16f5ac14ae138b06f80b5",
     "plugins/src/base/skills/lisa-linear-prd-intake/SKILL.md":
       "42d60d8695c8c7794bf6cf7cbeca9af182b4a3cb07699e7e2014a09cb14189cf",
     "plugins/src/base/skills/lisa-linear-read-issue/SKILL.md":
@@ -1881,9 +1881,9 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-tracker-create/SKILL.md":
       "fecd0c3cc930b0f87578bc0bee14009509883cb21b33e94e3e7a42792dcd888e",
     "plugins/src/base/skills/lisa-tracker-evidence/SKILL.md":
-      "65f4b7cd7c18a4b381333139fde88968a602f30f9b2fa80ac7fbc24237672b5d",
+      "fc40f923fd5075d91647d92c2a4adac6d62cc23b0d53b122ad4997afe67b6c6c",
     "plugins/src/base/skills/lisa-tracker-evidence/references/completion-authorization.md":
-      "fc1720bbf2dbba095ca8adb3305ab501d71f0c6fe2d9b90581d97becaf159216",
+      "8623ea4a854d2cd64b979c4e8ae87f184f5dc17b8948a7367c25400224234218",
     "plugins/src/base/skills/lisa-tracker-journey/SKILL.md":
       "65fe727adfdbcc22141ad009e89cd7d91195600377c5357d552d50ed98ecf66b",
     "plugins/src/base/skills/lisa-tracker-read/SKILL.md":
@@ -1907,7 +1907,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-validate-tracker-mapping/SKILL.md":
       "747531d1342d77d6fabd8e85778497bf22bffb4bcc329416a3e21374e769006f",
     "plugins/src/base/skills/lisa-verification-lifecycle/SKILL.md":
-      "369cbdab522005c28c0fd08814c3e4287c574e8c22f10cba00aa0d792159042d",
+      "1f05aebddd583a44ca35658bb1c1a3e0166e26f15e664c8b1ae6bfe4ec51acb8",
     "plugins/src/base/skills/lisa-verify-prd/SKILL.md":
       "8a9e63985bded11a0c0f61cb71c68e3e1dcc375bd150a3fdd200b0e6c290e68b",
     "plugins/src/base/skills/lisa-verify-workflow-change/SKILL.md":
@@ -12946,6 +12946,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/cleanup-worktrees-unreadable.test.ts": true,
     "tests/unit/scripts/codex-hook-filter.test.ts": true,
     "tests/unit/scripts/command-envelope.test.ts": true,
+    "tests/unit/scripts/completion-proof-contract-examples.test.ts": true,
     "tests/unit/scripts/completion-proof-evidence-release.test.ts": true,
     "tests/unit/scripts/completion-proof-github-reads.test.ts": true,
     "tests/unit/scripts/completion-proof-grammar.test.ts": true,
