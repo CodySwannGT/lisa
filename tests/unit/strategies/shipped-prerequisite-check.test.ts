@@ -9,16 +9,21 @@
  * verify every prerequisite a leaf calls shipped against `origin/<default>`
  * and require an `is blocked by` link to the owning item for each one absent.
  *
- * These tests pin the text in every generated copy and execute the exact
- * command block step 4 prescribes against a scratch remote, then feed its
- * verdicts through a ready-gate classification of a fixture leaf.
+ * Two kinds of test live here. The text pins assert every generated copy
+ * carries the check. The executed cases run step 4's own command block,
+ * extracted from the source skill, against a scratch remote and assert its
+ * tri-state exit status: 0 present, 1 absent, anything else a failed check.
+ * The ready-gate cases are a test-local model of S13's rule applied to those
+ * real exit statuses; they prove the command's statuses are sufficient to
+ * decide the gate, not that an agent applies the prose — that remains
+ * agent-executed text, pinned only by the text tests.
  * @module tests/unit/strategies/shipped-prerequisite-check
  */
 import { spawnSync } from "node:child_process";
 import {
+  chmodSync,
   mkdirSync,
   mkdtempSync,
-  readFileSync,
   rmSync,
   writeFileSync,
 } from "node:fs";
@@ -29,98 +34,52 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { GIT_BIN } from "../../support/git-executable.js";
 
-/** Every skill root a runtime reads: the source plus each projection. */
-const SKILL_ROOTS = [
-  "plugins/src/base/skills",
-  "plugins/lisa/skills",
-  "plugins/lisa-cursor/skills",
-  "plugins/lisa-agy/skills",
-  "plugins/lisa-copilot/skills",
-  "plugins/lisa-devin/skills",
-  "plugins/lisa/.codex-plugin/skills",
-] as const;
-
-const VALIDATORS = [
-  "lisa-jira-validate-ticket",
-  "lisa-github-validate-issue",
-  "lisa-linear-validate-issue",
-] as const;
-
-/** Every checked-in copy of the definition-of-ready rule. */
-const READY_RULES = [
-  "plugins/src/base/rules/reference/work-item-definition-of-ready.md",
-  "plugins/lisa/rules/reference/work-item-definition-of-ready.md",
-  "plugins/lisa-copilot/rules/reference/work-item-definition-of-ready.md",
-  "plugins/lisa-devin/rules/reference/work-item-definition-of-ready.md",
-  "plugins/lisa-cursor/rules/work-item-definition-of-ready-reference.mdc",
-] as const;
-
-const CHECK_NAME = "shipped-prerequisite check";
-const BLOCK_MARKER = "# shipped-prerequisite check";
-/** A file the fixture remote ships on its default branch. */
-const PRESENT_FILE = "src/resolvers.ts";
-
-/**
- * Read a repo-relative file.
- * @param relativePath - Path from the repository root
- * @returns File contents
- */
-const read = (relativePath: string): string =>
-  readFileSync(path.resolve(relativePath), "utf8");
-
-/**
- * The step 4 command block from a decomposition skill copy.
- * @param skill - The skill text
- * @returns The block's lines, or an empty list when absent
- */
-const commandBlock = (skill: string): readonly string[] =>
-  (
-    new RegExp(
-      `\`\`\`bash\\n[ ]*(${BLOCK_MARKER}[\\s\\S]*?)\\n[ ]*\`\`\``
-    ).exec(skill)?.[1] ?? ""
-  )
-    .split("\n")
-    .map(line => line.trim())
-    .filter(line => line !== "");
-
-/**
- * Text of step 4 "Map Dependencies" in a decomposition skill copy.
- * @param skill - The skill text
- * @returns Step 4 up to step 4.5
- */
-const stepFour = (skill: string): string =>
-  skill.split("### 4. Map Dependencies")[1]?.split("### 4.5.")[0] ?? "";
-
-/**
- * Text of the S13 gate definition in a validator copy.
- * @param skill - The validator text
- * @returns S13 up to S14
- */
-const gateS13 = (skill: string): string =>
-  skill.split("#### S13 — Relationship Search")[1]?.split("#### S14")[0] ?? "";
+import {
+  CHECK_NAME,
+  commandBlock,
+  DEFAULT_BRANCH,
+  gateS13,
+  PRESENT_FILE,
+  read,
+  READY_RULES,
+  SKILL_ROOTS,
+  stepFour,
+  TRI_STATE,
+  VALIDATORS,
+} from "./shipped-prerequisite-check-helpers.js";
 
 describe.each(SKILL_ROOTS)("shipped-prerequisite check text (%s)", root => {
   const skill = (name: string): string => read(`${root}/${name}/SKILL.md`);
 
   it("step 4 verifies shipped claims on the default branch and links blockers", () => {
     const step = stepFour(skill("lisa-task-decomposition"));
+    const flat = step.replace(/\s+/g, " ");
     expect(step.toLowerCase()).toContain(CHECK_NAME);
     expect(step).toContain("is blocked by");
-    expect(step).toContain("git symbolic-ref --short refs/remotes/origin/HEAD");
-    expect(step).toContain("git grep -n -w");
-    expect(step).toContain("git cat-file -e");
+    expect(step).toContain("git grep -F -n -w");
+    expect(step).toContain("git rev-parse --verify -q");
+    expect(step).toContain("+refs/heads/$default:refs/remotes/origin/$default");
+    expect(step).toContain("gh repo view --json defaultBranchRef");
+    expect(flat).toContain(TRI_STATE);
+    expect(flat).toContain("handler symbol or file");
+    expect(flat).not.toContain("endpoint");
     expect(step).toContain("stale-state-claims");
     expect(step).toContain("empirical-inquiry");
-    expect(commandBlock(skill("lisa-task-decomposition")).length).toBe(5);
   });
 
   it.each(VALIDATORS)(
-    "%s S13 fails an absent prerequisite without a blocker",
+    "%s S13 points at step 4 and states the tri-state",
     validator => {
       const s13 = gateS13(skill(validator));
+      const flat = s13.replace(/\s+/g, " ");
       expect(s13.toLowerCase()).toContain(CHECK_NAME);
       expect(s13).toContain("origin/<default>");
+      expect(s13).toContain("`lisa-task-decomposition` step 4");
+      expect(flat).toContain(TRI_STATE);
       expect(s13).toContain("FAIL");
+      // The commands live once, in step 4; the validators only point at them.
+      expect(s13).not.toContain("git grep");
+      expect(s13).not.toContain("git cat-file");
     }
   );
 });
@@ -149,17 +108,22 @@ interface Leaf {
   readonly blockedBy: readonly string[];
 }
 
+/** S13's verdict for a leaf. */
+interface GateVerdict {
+  readonly verdict: "PASS" | "FAIL" | "ERROR";
+  readonly unlinked: readonly string[];
+  readonly errored: readonly string[];
+}
+
 describe("the step 4 command block, executed (source)", () => {
   const block = commandBlock(
     read("plugins/src/base/skills/lisa-task-decomposition/SKILL.md")
-  );
-  const prelude = block.filter(
-    line => line.startsWith("default=") || line.startsWith("git fetch")
   );
   const symbolLine = block.find(line => line.startsWith("git grep")) ?? "";
   const fileLine = block.find(line => line.startsWith("git cat-file")) ?? "";
   let root = "";
   let clone = "";
+  let fakeBin = "";
 
   /**
    * Run git in a directory, failing the test on error.
@@ -193,84 +157,136 @@ describe("the step 4 command block, executed (source)", () => {
     );
   };
 
+  /**
+   * Write a file, creating its directory.
+   * @param file - Absolute path
+   * @param body - Contents
+   */
+  const put = (file: string, body: string): void => {
+    mkdirSync(path.dirname(file), { recursive: true });
+    writeFileSync(file, body);
+  };
+
+  /**
+   * Clone the fixture remote.
+   * @param name - Directory name under the scratch root
+   * @param extra - Extra clone arguments
+   * @returns The clone path
+   */
+  const cloneRemote = (name: string, ...extra: string[]): string => {
+    const dir = path.join(root, name);
+    git(root, "clone", "--quiet", ...extra, path.join(root, "remote.git"), dir);
+    return dir;
+  };
+
   beforeAll(() => {
     root = mkdtempSync(path.join(tmpdir(), "shipped-prereq-"));
     const remote = path.join(root, "remote.git");
     const seed = path.join(root, "seed");
-    clone = path.join(root, "clone");
-    git(root, "init", "--quiet", "--bare", "-b", "trunk", remote);
+    git(root, "init", "--quiet", "--bare", "-b", DEFAULT_BRANCH, remote);
     mkdirSync(seed);
-    git(seed, "init", "--quiet", "-b", "trunk");
-    mkdirSync(path.join(seed, "src"));
-    writeFileSync(
+    git(seed, "init", "--quiet", "-b", DEFAULT_BRANCH);
+    put(
       path.join(seed, PRESENT_FILE),
-      "export const presentResolver = () => 1;\n"
+      "export const presentResolver = () => 1;\n" +
+        "export const QueryXcreateUser = 1;\n" +
+        "Mutation.updateUser = () => 2;\n"
+    );
+    put(
+      path.join(seed, "wiki/plan.md"),
+      "We will add `wikiOnlyResolver` soon.\n"
+    );
+    put(
+      path.join(seed, "tests/resolvers.test.ts"),
+      "it('testOnlyResolver', () => {});\n"
     );
     commitAll(seed, "seed");
-    git(seed, "push", "--quiet", remote, "trunk");
-    git(root, "clone", "--quiet", remote, clone);
+    git(seed, "push", "--quiet", remote, DEFAULT_BRANCH);
+    clone = cloneRemote("clone");
     // A local, unpushed commit: the check must read the remote default
     // branch, not the working tree, so this must still count as absent.
-    writeFileSync(
+    put(
       path.join(clone, "src/mutations.ts"),
       "export const absentMutationRoot = {};\n"
     );
     commitAll(clone, "local only");
+    // A `gh` stand-in: prints FAKE_GH_DEFAULT, or fails when it is empty.
+    fakeBin = path.join(root, "bin");
+    put(
+      path.join(fakeBin, "gh"),
+      '#!/bin/sh\n[ -n "$FAKE_GH_DEFAULT" ] || exit 1\necho "$FAKE_GH_DEFAULT"\n'
+    );
+    chmodSync(path.join(fakeBin, "gh"), 0o755);
   });
 
   afterAll(() => {
     rmSync(root, { recursive: true, force: true });
   });
 
+  /** Where and how to run one check. */
+  interface CheckOptions {
+    readonly cwd?: string;
+    readonly ghDefault?: string;
+  }
+
   /**
-   * Run the prescribed check for one claim from the clone.
+   * Run step 4's whole block for one claim, minus the line for the other kind.
    * @param claim - The shipped claim
-   * @returns The command's exit status
+   * @param options - Clone to run in, and what the `gh` stand-in reports
+   * @returns The block's exit status
    */
-  const check = (claim: ShippedClaim): number | null => {
+  const check = (
+    claim: ShippedClaim,
+    options: CheckOptions = {}
+  ): number | null => {
     if (symbolLine === "" || fileLine === "") {
       throw new Error("step 4 carries no shipped-prerequisite command block");
     }
-    return spawnSync(
-      "/bin/bash",
-      [
-        "-c",
-        [...prelude, claim.kind === "symbol" ? symbolLine : fileLine].join(
-          "\n"
-        ),
-      ],
-      {
-        cwd: clone,
-        encoding: "utf8",
-        timeout: 30_000,
-        env: {
-          PATH: process.env.PATH ?? "/usr/bin:/bin",
-          HOME: root,
-          GIT_CONFIG_NOSYSTEM: "1",
-          SYMBOL: claim.name,
-          FILE: claim.name,
-        },
-      }
-    ).status;
+    const skip = claim.kind === "symbol" ? fileLine : symbolLine;
+    const script = block.filter(line => line !== skip).join("\n");
+    return spawnSync("/bin/bash", ["-c", script], {
+      cwd: options.cwd ?? clone,
+      encoding: "utf8",
+      timeout: 30_000,
+      env: {
+        PATH: `${fakeBin}:${process.env.PATH ?? "/usr/bin:/bin"}`,
+        HOME: root,
+        GIT_CONFIG_NOSYSTEM: "1",
+        FAKE_GH_DEFAULT: options.ghDefault ?? "",
+        SYMBOL: claim.name,
+        FILE: claim.name,
+      },
+    }).status;
   };
 
   /**
-   * The ready-gate verdict for a leaf: every claim absent from the default
-   * branch must carry an `is blocked by` link to its owning item.
+   * A test-local model of S13 over real exit statuses: an absent claim needs
+   * an `is blocked by` link to its owner; a failed check is never absent.
    * @param leaf - The fixture leaf
-   * @returns PASS, or FAIL with the unlinked absent claims
+   * @param options - How to run each check
+   * @returns ERROR when any check failed, else FAIL with unlinked claims, else PASS
    */
-  const classify = (
-    leaf: Leaf
-  ): { verdict: "PASS" | "FAIL"; unlinked: readonly string[] } => {
-    const unlinked = leaf.claims
-      .filter(claim => check(claim) !== 0)
+  const classify = (leaf: Leaf, options: CheckOptions = {}): GateVerdict => {
+    const results = leaf.claims.map(claim => ({
+      claim,
+      status: check(claim, options),
+    }));
+    const errored = results
+      .filter(r => r.status !== 0 && r.status !== 1)
+      .map(r => r.claim.name);
+    const unlinked = results
+      .filter(r => r.status === 1)
       .filter(
-        claim =>
-          claim.owner === undefined || !leaf.blockedBy.includes(claim.owner)
+        r =>
+          r.claim.owner === undefined || !leaf.blockedBy.includes(r.claim.owner)
       )
-      .map(claim => claim.name);
-    return { verdict: unlinked.length === 0 ? "PASS" : "FAIL", unlinked };
+      .map(r => r.claim.name);
+    if (errored.length > 0) return { verdict: "ERROR", unlinked, errored };
+    return {
+      verdict: unlinked.length === 0 ? "PASS" : "FAIL",
+      unlinked,
+      errored,
+    };
   };
 
   const claims: readonly ShippedClaim[] = [
@@ -279,30 +295,70 @@ describe("the step 4 command block, executed (source)", () => {
     { kind: "file", name: PRESENT_FILE },
   ];
 
-  it("carries the prelude, symbol and file commands", () => {
-    expect(prelude).toHaveLength(2);
-    expect(symbolLine).toContain('"$SYMBOL"');
-    expect(fileLine).toContain("$FILE");
-  });
-
   it("exits 0 for a symbol and a file on the default branch", () => {
     expect(check({ kind: "symbol", name: "presentResolver" })).toBe(0);
     expect(check({ kind: "file", name: PRESENT_FILE })).toBe(0);
   });
 
-  it("exits non-zero for a symbol only committed locally, and a missing file", () => {
-    expect(check({ kind: "symbol", name: "absentMutationRoot" })).not.toBe(0);
-    expect(check({ kind: "file", name: "src/mutations.ts" })).not.toBe(0);
+  it("exits 1 for a symbol only committed locally, and a missing file", () => {
+    expect(check({ kind: "symbol", name: "absentMutationRoot" })).toBe(1);
+    expect(check({ kind: "file", name: "src/mutations.ts" })).toBe(1);
   });
 
   it("matches whole words only", () => {
-    expect(check({ kind: "symbol", name: "presentResolve" })).not.toBe(0);
+    expect(check({ kind: "symbol", name: "presentResolve" })).toBe(1);
+  });
+
+  it("matches a dotted name literally", () => {
+    expect(check({ kind: "symbol", name: "Mutation.updateUser" })).toBe(0);
+    expect(check({ kind: "symbol", name: "Query.createUser" })).toBe(1);
+  });
+
+  it("does not count a hit only in wiki or tests as shipped", () => {
+    expect(check({ kind: "symbol", name: "wikiOnlyResolver" })).toBe(1);
+    expect(check({ kind: "symbol", name: "testOnlyResolver" })).toBe(1);
+  });
+
+  it("falls back to gh when origin/HEAD is unset", () => {
+    const dir = cloneRemote("no-head");
+    git(dir, "remote", "set-head", "origin", "-d");
+    expect(
+      check(
+        { kind: "symbol", name: "presentResolver" },
+        { cwd: dir, ghDefault: DEFAULT_BRANCH }
+      )
+    ).toBe(0);
+  });
+
+  it("recreates a missing remote-tracking ref with the explicit refspec", () => {
+    const dir = cloneRemote("no-tracking", "--single-branch");
+    git(dir, "remote", "set-head", "origin", "-d");
+    git(dir, "update-ref", "-d", `refs/remotes/origin/${DEFAULT_BRANCH}`);
+    expect(
+      check(
+        { kind: "file", name: PRESENT_FILE },
+        { cwd: dir, ghDefault: DEFAULT_BRANCH }
+      )
+    ).toBe(0);
+  });
+
+  it("exits outside {0,1} when the default branch cannot be resolved", () => {
+    const dir = cloneRemote("unresolvable");
+    git(dir, "remote", "set-head", "origin", "-d");
+    const symbol = check(
+      { kind: "symbol", name: "presentResolver" },
+      { cwd: dir }
+    );
+    const file = check({ kind: "file", name: PRESENT_FILE }, { cwd: dir });
+    expect([0, 1]).not.toContain(symbol);
+    expect([0, 1]).not.toContain(file);
   });
 
   it("fails the ready gate for an absent prerequisite with no blocker link", () => {
     expect(classify({ claims, blockedBy: [] })).toEqual({
       verdict: "FAIL",
       unlinked: ["absentMutationRoot"],
+      errored: [],
     });
   });
 
@@ -310,6 +366,17 @@ describe("the step 4 command block, executed (source)", () => {
     expect(classify({ claims, blockedBy: ["ITEM-2"] })).toEqual({
       verdict: "PASS",
       unlinked: [],
+      errored: [],
+    });
+  });
+
+  it("reports a failed check as ERROR, never as absent", () => {
+    const dir = cloneRemote("gate-error");
+    git(dir, "remote", "set-head", "origin", "-d");
+    expect(classify({ claims, blockedBy: [] }, { cwd: dir })).toEqual({
+      verdict: "ERROR",
+      unlinked: [],
+      errored: ["presentResolver", "absentMutationRoot", PRESENT_FILE],
     });
   });
 });

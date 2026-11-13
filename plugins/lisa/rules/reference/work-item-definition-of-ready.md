@@ -12,7 +12,7 @@
 
 Three-audience description · Gherkin acceptance criteria (except Spike) · Out of Scope · single-repo scope · relationship search · typed evidence manifest on runtime changes · Source Requirement traceability when PRD-sourced · provable read access to every named external surface · declared reachability for any **existing** test the item pins as a red-before-green control (`control-reachability`, gate S20 — `N/A` when the item introduces a new test instead).
 
-**Shipped-prerequisite check (S13).** Relationship search includes verifying every prerequisite a leaf calls already shipped (a symbol, file, endpoint, migration…) on `origin/<default>` — ticket text written ahead of delivery is a claim, not a fact. An absent prerequisite needs an `is blocked by` link to the item that owns delivering it before the leaf is ready; the commands live in `lisa-task-decomposition` step 4. It mirrors `stale-state-claims`: a premature *done* claim instead of a stale *not-yet* one.
+**Shipped-prerequisite check (S13).** Relationship search includes verifying every prerequisite a leaf calls already shipped (a symbol, file, migration…; for a route, its handler symbol or file) on `origin/<default>` — ticket text written ahead of delivery is a claim, not a fact. An absent prerequisite needs an `is blocked by` link to the item that owns delivering it before the leaf is ready; the commands live in `lisa-task-decomposition` step 4. It mirrors `stale-state-claims`: a premature *done* claim instead of a stale *not-yet* one.
 
 ## Per-type additions
 

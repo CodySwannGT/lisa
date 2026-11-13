@@ -98,17 +98,19 @@ Each task must have a verification method. Choose the most appropriate:
 - Order tasks so that each builds on a stable foundation
 - Prefer independent tasks that can run in parallel where possible
 - Flag external dependencies (other teams, services, permissions, data) that may block progress
-- Run the **shipped-prerequisite check** on every leaf. Ticket text is often written ahead of delivery, so a prerequisite it calls already shipped, existing, or delivered (a symbol, resolver, mutation, file, endpoint, migration…) is a claim, not a fact (`empirical-inquiry`). Verify each one on the remote default branch, never the working tree:
+- Run the **shipped-prerequisite check** on every leaf. Ticket text is often written ahead of delivery, so a prerequisite it calls already shipped, existing, or delivered (a symbol, resolver, mutation, file, migration…; for a route, check its handler symbol or file) is a claim, not a fact (`empirical-inquiry`). Verify each one on the remote default branch, never the working tree. Run the block as one script (`bash -c`) with `SYMBOL` or `FILE` set, keeping only the matching last line:
 
   ```bash
-  # shipped-prerequisite check: exit 0 = present on the default branch, non-zero = absent
-  default=$(git symbolic-ref --short refs/remotes/origin/HEAD | sed 's|^origin/||')
-  git fetch --quiet origin "$default"
-  git grep -n -w "$SYMBOL" "origin/$default" --
-  git cat-file -e "origin/$default:$FILE"
+  # shipped-prerequisite check: exit 0 = present, 1 = absent, anything else = the check failed
+  default=$(git symbolic-ref --short -q refs/remotes/origin/HEAD | sed 's|^origin/||')
+  default=${default:-$(gh repo view --json defaultBranchRef --jq .defaultBranchRef.name)}
+  git fetch --quiet origin "+refs/heads/$default:refs/remotes/origin/$default" || exit 2
+  git rev-parse --verify -q "origin/$default" >/dev/null || exit 2
+  git grep -F -n -w "$SYMBOL" "origin/$default" -- ':!docs' ':!wiki' ':!plans' ':!tests' ':!**/*.test.*' ':!**/*.spec.*'
+  git cat-file -e "origin/$default:$FILE" 2>/dev/null || exit 1
   ```
 
-  Use the `git grep` line for a symbol and the `git cat-file` line for a file. When `origin/HEAD` is unset, take the default from `gh repo view --json defaultBranchRef --jq .defaultBranchRef.name`. For each absent prerequisite, find the item that owns delivering it and link this leaf `is blocked by` that item before the leaf is marked ready. If no item owns it, file one (build-ready) and link it; otherwise the leaf fails the ready gate (S13). This is the mirror of `stale-state-claims`: that rule distrusts a stale *not-yet* note, this check distrusts a premature *done* one.
+  Exit 0 means present and 1 means absent; anything else means the check failed (default branch unresolved, fetch refused, bad ref) — stop and report it, never read it as absent. `-F` matches the name literally, so a dotted name such as `Query.createUser` cannot match `QueryXcreateUser`. A hit only in docs, wiki, plans, or tests is not shipped: the pathspec excludes them, and when this repository keeps shipped source under a path those patterns would hide, judge by the `-n` output paths instead. For each absent prerequisite, find the item that owns delivering it and link this leaf `is blocked by` that item before the leaf is marked ready. If no item owns it, file one (build-ready) and link it; otherwise the leaf fails the ready gate (S13). This is the mirror of `stale-state-claims`: that rule distrusts a stale *not-yet* note, this check distrusts a premature *done* one.
 
 ### 4.5. Classify Any New Material Dependency
 

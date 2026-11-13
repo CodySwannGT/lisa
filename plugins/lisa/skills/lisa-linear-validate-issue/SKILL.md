@@ -247,7 +247,7 @@ The item must EITHER have at least one entry in `relations`, OR the description 
 
 An item with zero relations and no documented search: FAIL.
 
-**Shipped-prerequisite check.** For every prerequisite the description calls already shipped, existing, or delivered (a symbol, resolver, mutation, file, endpoint, migration…), verify it is present on `origin/<default>` with the command block in `lisa-task-decomposition` step 4 (`git grep -n -w <symbol> origin/<default> --`, `git cat-file -e origin/<default>:<path>`; non-zero exit = absent). An absent prerequisite with no `blocked by` relation to the issue that owns delivering it: FAIL. Remediation: add a `blocked by` relation to the owning issue, or file one build-ready and relate it, or correct the description so it no longer claims the prerequisite shipped.
+**Shipped-prerequisite check.** For every prerequisite the description calls already shipped, existing, or delivered (a symbol, resolver, mutation, file, migration…; for a route, its handler symbol or file), verify it is present on `origin/<default>` by running the command block in `lisa-task-decomposition` step 4. Exit 0 means present and 1 means absent; anything else means the check failed — S13 cannot pass, so report FAIL naming the error (fix the default-branch lookup or access and re-run), never read it as absent. An absent prerequisite with no `blocked by` relation to the issue that owns delivering it: FAIL. Remediation: add a `blocked by` relation to the owning issue, or file one build-ready and relate it, or correct the description so it no longer claims the prerequisite shipped.
 
 #### S14 — Evidence manifest binding (leaf work units)
 

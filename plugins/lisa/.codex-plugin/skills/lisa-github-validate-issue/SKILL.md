@@ -260,7 +260,7 @@ The issue must EITHER have at least one entry in `links`, OR the body must conta
 
 An issue with zero links and no documented search: FAIL.
 
-**Shipped-prerequisite check.** For every prerequisite the body calls already shipped, existing, or delivered (a symbol, resolver, mutation, file, endpoint, migration…), verify it is present on `origin/<default>` with the command block in `lisa-task-decomposition` step 4 (`git grep -n -w <symbol> origin/<default> --`, `git cat-file -e origin/<default>:<path>`; non-zero exit = absent). An absent prerequisite with no `is blocked by` link (a `links` entry, or a `Blocked by #<n>` body line) to the issue that owns delivering it: FAIL. Remediation: add `Blocked by #<n>` for the owning issue, or file one build-ready and link it, or correct the body so it no longer claims the prerequisite shipped.
+**Shipped-prerequisite check.** For every prerequisite the body calls already shipped, existing, or delivered (a symbol, resolver, mutation, file, migration…; for a route, its handler symbol or file), verify it is present on `origin/<default>` by running the command block in `lisa-task-decomposition` step 4. Exit 0 means present and 1 means absent; anything else means the check failed — S13 cannot pass, so report FAIL naming the error (fix the default-branch lookup or access and re-run), never read it as absent. An absent prerequisite with no `is blocked by` link (a `links` entry, or a `Blocked by #<n>` body line) to the issue that owns delivering it: FAIL. Remediation: add `Blocked by #<n>` for the owning issue, or file one build-ready and link it, or correct the body so it no longer claims the prerequisite shipped.
 
 #### S14 — Evidence manifest binding (leaf work units)
 
