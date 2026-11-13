@@ -5,7 +5,6 @@
  * the command it was given and fails when a test named `failing` is in it.
  * @module tests/integration/affected-tests-fixture
  */
-import { execFileSync } from "node:child_process";
 import {
   copyFileSync,
   mkdirSync,
@@ -19,7 +18,10 @@ import * as path from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { sweepAlreadyRanEnv } from "../helpers/cleanup-sweep-skip.js";
-import { boundedSpawnSync } from "../helpers/io-latency-budget.js";
+import {
+  boundedExecFileSync,
+  boundedSpawnSync,
+} from "../helpers/io-latency-budget.js";
 import { cleanGitEnv, GIT_BIN } from "../support/git-executable.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -108,9 +110,11 @@ export function removeFixtures(): void {
  * @returns Trimmed stdout
  */
 export function git(cwd: string, ...args: string[]): string {
-  return execFileSync(GIT_BIN, args, {
+  return boundedExecFileSync({
+    label: `git ${args[0] ?? ""} (affected-tests fixture)`,
+    command: GIT_BIN,
+    args,
     cwd,
-    encoding: "utf8",
     env: cleanGitEnv(),
   }).trim();
 }

@@ -5,7 +5,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-contents/.gitattributes":
       "e5e115d084d4c7ff855ab9b39285c725f39700af54f73ef2e90845f1b8d72c36",
     "all/copy-contents/gitignore":
-      "ffda946da09fc6216cd964c3f1dcaf2ce9bd3cb93185652840dbb04bfa57d60d",
+      "284d3bd86b0d673cfb1b87dc66244896b19ff7a5b251a9796ccf4057dccd1e48",
     "all/copy-contents/scripts/lisa-mutation.sh":
       "dfe6e7a208fe72d02355548d9aba8484748b7d95eca0bf989043008311af29c4",
     "all/copy-overwrite/scripts/check-conflict-markers.mjs":
@@ -291,7 +291,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lib/worktree-dependencies.mjs":
       "31cb1cd96e7bd692d10ed2c26aa83c6b0580e48dbe6d2393edf9652970def091",
     "all/copy-overwrite/scripts/lisa-affected-tests.mjs":
-      "9608138da83ff97a35687e25d2e998647cfef9f31abd9caef9758268c40d200e",
+      "97c8ec60870ca7c31cb19404c2d3da2cc1cdde35d03798005b1048e46df7ee30",
     "all/copy-overwrite/scripts/lisa-audit.mjs":
       "2c014491c6a0c3f6e681885c9360c523ec0ff11330518fe6f86bc84c151ff09a",
     "all/copy-overwrite/scripts/lisa-automation-provenance.mjs":

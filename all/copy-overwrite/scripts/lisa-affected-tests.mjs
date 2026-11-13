@@ -55,6 +55,9 @@ import { invokedAsScript } from "./lib/invoked-as-script.mjs";
 /** Where the map lives, relative to the repository root (gitignored). */
 export const MAP_DIR = ".lisa/test-access-map";
 
+/** The coverage mode that holds each changed file to the floor. */
+const CHANGED_FILES = "changed-files";
+
 /** How long a failed download is remembered before it is tried again. */
 const MISS_TTL_MS = 15 * 60_000;
 
@@ -288,7 +291,7 @@ export function plan({ root, command, fetch, config, mode, env, out, now }) {
       'coverage-adequacy is checked at push and needs every test, because pushGate.affectedCoverage is "full"'
     );
   }
-  if (declared && mode === "changed-files" && !thresholdsOf(root)) {
+  if (declared && mode === CHANGED_FILES && !thresholdsOf(root)) {
     return fullRun(
       "there is no vitest.thresholds.json to hold the changed files to"
     );
@@ -326,7 +329,7 @@ export function plan({ root, command, fetch, config, mode, env, out, now }) {
   }
   if (!declared) return { selection, coverage: "none" };
   if (
-    mode === "changed-files" &&
+    mode === CHANGED_FILES &&
     selection.tests.length === 0 &&
     selection.related.length > 0
   ) {
@@ -341,7 +344,7 @@ export function plan({ root, command, fetch, config, mode, env, out, now }) {
 const COVERAGE_NOTE = Object.freeze({
   measured: "measured over the full suite, as before",
   none: "not measured at push (coverage-adequacy is not checked at push)",
-  "changed-files":
+  [CHANGED_FILES]:
     "each changed source file must meet vitest.thresholds.json on its own",
   skip: `not measured; coverage-adequacy reports SKIPPED (${PARTIAL_COVERAGE_SKIP_REASON})`,
 });
@@ -424,7 +427,7 @@ export function main(argv, deps = {}) {
   }
 
   const coverageDir =
-    coverage === "changed-files"
+    coverage === CHANGED_FILES
       ? mkdtempSync(join(tmpdir(), "lisa-affected-coverage-"))
       : undefined;
   try {
@@ -432,12 +435,12 @@ export function main(argv, deps = {}) {
       partialArgv({
         argv: command,
         selection,
-        coverage: coverage === "changed-files" ? "on" : "off",
+        coverage: coverage === CHANGED_FILES ? "on" : "off",
         coverageDir,
       }),
       cwd
     );
-    if (code !== 0 || coverage !== "changed-files") return code;
+    if (code !== 0 || coverage !== CHANGED_FILES) return code;
     return checkChangedFiles({ root, coverageDir, selection, out });
   } finally {
     if (coverageDir) rmSync(coverageDir, { recursive: true, force: true });
@@ -474,11 +477,11 @@ function checkChangedFiles({ root, coverageDir, selection, out }) {
     for (const line of verdict.shortfalls) out(`   ${line}`);
     return 1;
   }
+  const outside = verdict.unmeasured.length
+    ? `; ${verdict.unmeasured.length} are outside coverage`
+    : "";
   out(
-    `✅ affected tests: ${verdict.measured.length} changed source file(s) meet the coverage floor` +
-      (verdict.unmeasured.length
-        ? `; ${verdict.unmeasured.length} are outside coverage`
-        : "")
+    `✅ affected tests: ${verdict.measured.length} changed source file(s) meet the coverage floor${outside}`
   );
   return 0;
 }
