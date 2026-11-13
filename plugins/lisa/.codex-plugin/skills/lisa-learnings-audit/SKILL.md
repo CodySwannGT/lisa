@@ -270,30 +270,41 @@ The router's draft says *where* the builder should make the change and *how
 much* evidence backs it. Neither is trusted until checked, because a ticket
 pointing at a section that does not exist, or quoting a figure its own
 evidence contradicts, sends the builder to re-derive everything by hand.
-Check each draft against the default branch's current head (resolve
-`<sha>` once per run with `git rev-parse origin/<default>`):
+Validate against the default branch of the repository the ticket targets,
+and resolve its head `<sha>` once per run:
 
-1. **Destinations** — for every file the ticket names, run
-   `git show origin/<default>:<path>`; for every heading or section, search
-   that file for it. A destination that exists is cited as existing. A
-   section the builder must *create* is labelled **new** in the ticket,
-   never cited as existing. A file that does not exist is either relabelled
-   as a **new file** the builder creates, or, if the draft depends on it
-   already existing, the ticket is **refused**.
+- **This repository** (`project` scope) — run `git fetch origin <default>`
+  first, then `git rev-parse origin/<default>` for the SHA and
+  `git show origin/<default>:<path>` for each file.
+- **Upstream** (`upstream` scope) — the paths live in `<upstreamRepo>`, not
+  this checkout: `gh api repos/<upstreamRepo>/commits/<default> --jq .sha`
+  for the SHA and `gh api repos/<upstreamRepo>/contents/<path>?ref=<default>`
+  for each file.
+
+1. **Destinations** — fetch every file the ticket names as above; for every
+   heading or section, search that file for it. A destination that exists is
+   cited as existing. A section the builder must *create* is labelled **new**
+   in the ticket, never cited as existing. A file that does not exist is
+   always listed in `destinations_missing`; it is then either relabelled as a
+   **new file** the builder creates (and also listed in `destinations_new`),
+   or, if the draft depends on it already existing, the ticket is **refused**.
 2. **Line pointers** — drop them, or recompute each one against `<sha>` and
    write that SHA beside it ("line 42 at `<sha>`") so anyone can re-check it
    later. Never copy a pointer from the draft unchecked.
-3. **Counts** — every number quoted in the ticket ("12 of 12", "17
-   entries") is recounted from the evidence it cites. On any mismatch the
-   ticket is **refused**: it is not filed, and neither side is quietly
-   corrected. The mismatch (both figures and where each came from) goes in
-   the run report so a person can see what disagreed.
+3. **Counts** — every count the ticket attributes to its cited evidence
+   ("12 of 12 entries", "17 occurrences") is recounted from that evidence.
+   Template wording such as "all four legs" and pinned line numbers are not
+   counts. On any mismatch the ticket is **refused**: it is not filed, and
+   neither side is quietly corrected. The mismatch (both figures and where
+   each came from) goes in the run report (Proof) so a person can see what
+   disagreed.
 
 A refused ticket is not a run failure: the run continues with the other
-candidates and reports the refusal under Proof. Record per ticket, in Proof:
-`destinations_checked`, `destinations_missing`, `destinations_new`,
-`pointers` (`pinned` with `pointer_sha`, or `dropped`), and
-`counts_reconciled: yes`, or `refused: <reason>`.
+candidates and reports the refusal in the run report (Proof). Record per
+ticket in the run report (Proof): `destinations_checked`,
+`destinations_missing`, `destinations_new`, `pointers` (`pinned` with
+`pointer_sha`, or `dropped`), and `counts_reconciled: yes`, or
+`refused: <reason>`.
 <!-- destination-validation:end -->
 
 **Per-item tickets — PROMOTE / DEMOTE** (`issue_type: Task`; GitHub trackers
@@ -307,7 +318,10 @@ carry the `type:Task` label) — one ticket per recommendation, capped by
   owner).
 - The router's **`drafted_artifact`** verbatim (the lint/hook sketch +
   diagnostic text, proposed rule text, skill outline, page outline, or
-  redundancy proof).
+  redundancy proof), embedded only after the destination-validation edits
+  above are applied to it: a section that does not exist is relabelled
+  **new**, each line pointer is dropped or pinned to `<sha>`, and a draft
+  whose counts disagree with its evidence is refused rather than embedded.
 - For **EXECUTABLE-CONTROL** promotions, embed the promotion-contract AC
   template below **verbatim** (markers included — do not paraphrase, reorder,
   or partially quote it; it is the single source of truth from the
@@ -512,6 +526,9 @@ exact so nothing regresses:
   escalated per Escalation with the operator-readable reason; **or**
   **`approval-requested`** when the run finished and is waiting on a human gate
   rather than being broken.
+  A run that filed nothing because destination-validation (Ticket emission)
+  refused every PROMOTE/DEMOTE draft records **`approval-requested`**, with
+  the mismatch in `--summary` — never `nothing-needed`.
 
 The gardener also newly reaches **`policy-obsolete`** — the Retirement
 condition below tripped and it filed its own teardown proposal. It never

@@ -160,8 +160,6 @@ describe.each(SKILL_PATHS)("gardener skill runbook (%s)", skillPath => {
     const emission = skill.indexOf("## Ticket emission");
     const perItem = skill.indexOf("**Per-item tickets — PROMOTE / DEMOTE**");
     const nextSection = skill.indexOf("\n## ", emission + 1);
-    const cycleClassify = skill.indexOf("3. **Classify**");
-    const cycleEmit = skill.indexOf("4. **Emit**");
 
     expect(start).toBeGreaterThan(emission);
     expect(end).toBeGreaterThan(start);
@@ -180,14 +178,16 @@ describe.each(SKILL_PATHS)("gardener skill runbook (%s)", skillPath => {
       expect(block).toContain(token);
     }
 
-    const cycleStep = skill.slice(cycleClassify, cycleEmit);
-    expect(cycleStep).toContain("destination-validation");
-
-    const proof = skill.slice(
-      skill.indexOf("## Proof"),
-      skill.indexOf("## The audit cycle")
-    );
-    expect(proof).toContain("destination-validation");
+    // The audit cycle, Proof, and the drafted_artifact bullet (embedded only
+    // after validation edits it) all point at the check.
+    for (const [from, to] of [
+      ["3. **Classify**", "4. **Emit**"],
+      ["## Proof", "## The audit cycle"],
+      ["**`drafted_artifact`** verbatim", "For **EXECUTABLE-CONTROL**"],
+    ] as const) {
+      const slice = skill.slice(skill.indexOf(from), skill.indexOf(to));
+      expect(slice).toContain("destination-validation");
+    }
   });
 
   it("batches CONFIRM and provably-redundant RETIRE into one ticket per run", () => {
