@@ -207,7 +207,14 @@ describe("host-facing test scripts are governed pairs, not forced values", () =>
           /^node scripts\/lib\/worktree-dependencies\.mjs && /u,
           ""
         );
-        return !recognised.includes(historical);
+        // Likewise, the historical values registered scratch prefixes for the
+        // per-test policing retired in CodySwannGT/lisa#4603; the command
+        // they ran is unchanged, so the registry is ignored when comparing.
+        return !recognised.some(
+          value =>
+            value.replace(/^LISA_TEST_SCRATCH_PREFIXES='[^']*' /u, "") ===
+            historical
+        );
       });
 
       // Without this, a host whose script still holds Lisa's own old value is
