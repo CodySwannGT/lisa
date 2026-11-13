@@ -8,13 +8,16 @@
  * tree moves to 4.6.7. The one zod 3 left is the copy
  * `eslint-plugin-react-compiler` requires: on 2026-10-24 the maintainer chose
  * to keep that plugin, whose React Compiler rule runs in Expo's lint:slow, and
- * accept the advisory for that lint-time copy alone. The pre-push audit filters
- * by advisory id only, so this suite is what keeps the exception scoped. It
- * fails if any other zod drops below 4.6.6, if a second package starts to need
- * zod 3, or if the exception spreads into a template Lisa ships.
+ * accept the advisory for that lint-time copy alone. The canonical audit
+ * matcher (src/core/audit-matcher.ts, #4693) enforces the entry's zod 3.x
+ * `versions` and lockfile `paths`; this suite is an independent compensating
+ * control. It fails if any other zod drops below 4.6.6, if a second package
+ * starts to need zod 3, if the entry loses its zod 3.x scope (#4509), or if
+ * the exception spreads into a template Lisa ships.
  */
 import * as fs from "node:fs";
 import * as path from "node:path";
+import { satisfies, validRange } from "semver";
 import { describe, expect, it } from "vitest";
 
 import {
@@ -82,6 +85,8 @@ interface AuditIgnore {
     readonly package?: string;
     readonly tracking?: string;
     readonly reason?: string;
+    readonly versions?: string;
+    readonly paths?: readonly string[];
   }[];
 }
 
@@ -142,6 +147,19 @@ describe(`zod security floor (${ADVISORY})`, () => {
     expect(entry?.package).toBe("zod");
     expect(entry?.tracking).toBe("CodySwannGT/lisa#4507");
     expect(entry?.reason).toContain("eslint-plugin-react-compiler");
+  });
+
+  it("keeps the exception scoped to zod 3.x and to listed lockfile paths (#4509)", () => {
+    const local = JSON.parse(read("audit.ignore.local.json")) as AuditIgnore;
+    const entry = local.exclusions.find(({ id }) => id === ADVISORY);
+    const versions = entry?.versions ?? "";
+    expect(validRange(versions), `versions ${versions}`).not.toBeNull();
+    expect(satisfies("3.25.76", versions)).toBe(true);
+    expect(satisfies("4.5.0", versions)).toBe(false);
+    expect(satisfies("4.0.0", versions)).toBe(false);
+    expect(satisfies("2.99.99", versions)).toBe(false);
+    expect(entry?.paths?.length ?? 0).toBeGreaterThan(0);
+    expect(entry?.paths).toContain(ACCEPTED_PATH);
   });
 
   it.each(["audit.ignore.config.json", SHIPPED_IGNORE])(
