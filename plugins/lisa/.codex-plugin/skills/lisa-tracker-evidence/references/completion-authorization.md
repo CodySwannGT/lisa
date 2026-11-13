@@ -125,7 +125,16 @@ complete slurped output of a paginated listing. The immutable proof record
 remains limited to 2 MiB. Page and row limits are additional bounds: a listing
 with at most 100 pages or 10,000 comments can still exceed its byte ceiling and
 must fail closed without a lifecycle write. Visible local evidence markers
-claim attachments; fenced or indented examples and HTML comments do not.
+claim attachments; fenced or indented examples and HTML comments do not. A
+marker on a list item's continuation line is visible: indentation is measured
+from the content column of the list item that holds it, so only a line four or
+more columns past that, outside a paragraph, is an indented example. The
+conformance check reads `## Acceptance Criteria` in any case, with any internal
+spacing and optional closing `#`s. When no such heading exists but a visible
+line names the criteria some other way (`### Acceptance Criteria`, a bold
+`**Acceptance Criteria**`, `## Acceptance Criteria:`, or the name underlined
+with `---` or `===`), the check refuses and
+asks for the heading to be renamed rather than reading zero scenarios.
 
 An ordinary pending result from `finish` or the applying sweep exits zero
 because it preserves the nonterminal state. A refused `publish-completion-proof`
