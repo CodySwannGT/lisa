@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [5.1.1](https://github.com/CodySwannGT/lisa/compare/v5.1.0...v5.1.1) (2026-11-13)
+
+
+### Bug Fixes
+
+* **skills:** exclude non-shipped paths at any depth in the shipped-prerequisite check ([ca173fd](https://github.com/CodySwannGT/lisa/commit/ca173fd18f14b05fc79857421995f40ffab8ad06)), closes [#4761](https://github.com/CodySwannGT/lisa/issues/4761) [CodySwannGT/lisa#4761](https://github.com/CodySwannGT/lisa/issues/4761) [CodySwannGT/lisa#4761](https://github.com/CodySwannGT/lisa/issues/4761)
+* **skills:** make the shipped-prerequisite block select its own check ([e3015b6](https://github.com/CodySwannGT/lisa/commit/e3015b64a839f67a27f94d6a1c77927d487673cb)), closes [CodySwannGT/lisa#4761](https://github.com/CodySwannGT/lisa/issues/4761) [CodySwannGT/lisa#4761](https://github.com/CodySwannGT/lisa/issues/4761)
+* **skills:** make the shipped-prerequisite check tri-state and literal ([3a78c15](https://github.com/CodySwannGT/lisa/commit/3a78c154573b9aaca1ca06fca5554eb97d8e0cb2)), closes [CodySwannGT/lisa#4761](https://github.com/CodySwannGT/lisa/issues/4761) [CodySwannGT/lisa#4761](https://github.com/CodySwannGT/lisa/issues/4761)
+* **skills:** verify prerequisites a leaf calls shipped exist on the default branch ([84f7d4c](https://github.com/CodySwannGT/lisa/commit/84f7d4c2d53598376c01689065d1a777cf50bf96)), closes [CodySwannGT/lisa#4761](https://github.com/CodySwannGT/lisa/issues/4761) [CodySwannGT/lisa#4761](https://github.com/CodySwannGT/lisa/issues/4761)
+
 ## [5.1.0](https://github.com/CodySwannGT/lisa/compare/v5.0.2...v5.1.0) (2026-11-13)
 
 
