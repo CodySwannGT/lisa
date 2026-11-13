@@ -15,5 +15,7 @@ PASS | C3 HTML comment non-claiming | "Body\n<!-- [EVIDENCE: x] [EVIDENCE: cli-o
 PASS | C4 unclosed backtick stays prose | "Body ` stray\n[EVIDENCE: cli-output: x]" -> [{"kind":"cli-output","name":"x"}]
 PASS | A1 autolinks with backticks outrank code span | "<https://x/`> [EVIDENCE: cli-output: x] <https://y/`>" -> [{"kind":"cli-output","name":"x"}]
 PASS | A2 HTML tag attribute backticks outrank code span | "<a title=\"`\"> [EVIDENCE: cli-output: x] <a title=\"`\">" -> [{"kind":"cli-output","name":"x"}]
-SUMMARY: 8/14 match expected
+FAIL | P1 prose comparison around inline code, plain | "a < b `[EVIDENCE: cli-output: x]` c > d" -> [{"kind":"cli-output","name":"x"}]
+FAIL | P2 prose comparison around inline code, escaped | "a < b `\\[EVIDENCE: cli-output: x\\]` c > d" -> REFUSED A local evidence declaration is malformed; repair its type and name.
+SUMMARY: 8/16 match expected
 exit=1

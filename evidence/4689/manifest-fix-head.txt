@@ -1,4 +1,4 @@
-# FIX HEAD 85154ab05c validateManifest
+# FIX HEAD a0728f640b validateManifest
 # node v22.22.0
 $ node manifest.mjs <worktree>/all/copy-overwrite/scripts/lib
 PASS | empty manifest, inline-code-only body | want ACCEPT | got ACCEPT

@@ -3,7 +3,7 @@
 
 lisa scratch: no supervised lease in the environment, so this run is self-supervised. Fixture directories are still bounded to a run root this process owns and removed on exit; what is missing is the detached reaper that reclaims the root after a SIGKILL, which the next run's startup sweep recovers instead. Run through `lisa-test-run --profile <profile> --adapter vitest -- vitest ...` for a supervised run.
 lisa scratch: no supervised lease in the environment, so this run is self-supervised. Fixture directories are still bounded to a run root this process owns and removed on exit; what is missing is the detached reaper that reclaims the root after a SIGKILL, which the next run's startup sweep recovers instead. Run through `lisa-test-run --profile <profile> --adapter vitest -- vitest ...` for a supervised run.
- ❯ |lisa| tests/unit/scripts/completion-proof-linear-escaped-markers.test.ts (59 tests | 2 failed) 13ms
+ ❯ |lisa| tests/unit/scripts/completion-proof-linear-escaped-markers.test.ts (61 tests | 2 failed) 15ms
      × lets autolinks outrank code spans so a real marker is never dropped 4ms
      × lets raw HTML tags outrank code spans so a real marker is never dropped 1ms
 
@@ -36,8 +36,8 @@ AssertionError: expected [] to deeply equal [ { kind: 'cli-output', name: 'x' } 
 
 
  Test Files  1 failed | 1 passed (2)
-      Tests  2 failed | 113 passed (115)
-   Start at  01:46:42
-   Duration  733ms (transform 451ms, setup 390ms, import 402ms, tests 37ms, environment 0ms)
+      Tests  2 failed | 115 passed (117)
+   Start at  01:53:16
+   Duration  813ms (transform 465ms, setup 323ms, import 467ms, tests 39ms, environment 0ms)
 
 exit=1

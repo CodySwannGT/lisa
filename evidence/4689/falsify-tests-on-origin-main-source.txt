@@ -3,7 +3,7 @@
 
 lisa scratch: no supervised lease in the environment, so this run is self-supervised. Fixture directories are still bounded to a run root this process owns and removed on exit; what is missing is the detached reaper that reclaims the root after a SIGKILL, which the next run's startup sweep recovers instead. Run through `lisa-test-run --profile <profile> --adapter vitest -- vitest ...` for a supervised run.
 lisa scratch: no supervised lease in the environment, so this run is self-supervised. Fixture directories are still bounded to a run root this process owns and removed on exit; what is missing is the detached reaper that reclaims the root after a SIGKILL, which the next run's startup sweep recovers instead. Run through `lisa-test-run --profile <profile> --adapter vitest -- vitest ...` for a supervised run.
- ❯ |lisa| tests/unit/scripts/completion-proof-linear-escaped-markers.test.ts (59 tests | 17 failed) 17ms
+ ❯ |lisa| tests/unit/scripts/completion-proof-linear-escaped-markers.test.ts (61 tests | 19 failed) 19ms
      × never decodes an escaped example in inline code into a claim (#4689) 3ms
      × returns [] for a marker only in inline code (single backticks, escaped) 0ms
      × returns [] for a marker only in inline code (single backticks, plain) 2ms
@@ -21,8 +21,10 @@ lisa scratch: no supervised lease in the environment, so this run is self-superv
      × treats an unclosed backtick run as literal text, not a span 0ms
      × closes a span only on a run of exactly the opening length 0ms
      × closes a single-backtick span on a lone backtick, not inside a longer run 0ms
+     × does not read prose angle brackets as a tag around a plain code-span example 0ms
+     × does not read prose angle brackets as a tag around a escaped code-span example 0ms
 
-⎯⎯⎯⎯⎯⎯ Failed Tests 17 ⎯⎯⎯⎯⎯⎯⎯
+⎯⎯⎯⎯⎯⎯ Failed Tests 19 ⎯⎯⎯⎯⎯⎯⎯
 
  FAIL  |lisa| tests/unit/scripts/completion-proof-linear-escaped-markers.test.ts > completion proof reads Linear-escaped evidence markers (#4670) > never decodes an escaped example in inline code into a claim (#4689)
 CompletionProofError: A local evidence declaration is malformed; repair its type and name.
@@ -36,7 +38,7 @@ CompletionProofError: A local evidence declaration is malformed; repair its type
  ❯ localMarkers all/copy-overwrite/scripts/lib/completion-proof-shape.mjs:225:3
  ❯ tests/unit/scripts/completion-proof-linear-escaped-markers.test.ts:160:12
 
-⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/17]⎯
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/19]⎯
 
  FAIL  |lisa| tests/unit/scripts/completion-proof-linear-escaped-markers.test.ts > inline code spans never claim evidence (#4689) > returns [] for a marker only in inline code (single backticks, escaped)
  FAIL  |lisa| tests/unit/scripts/completion-proof-linear-escaped-markers.test.ts > inline code spans never claim evidence (#4689) > returns [] for a marker only in inline code (placeholder, escaped)
@@ -52,7 +54,7 @@ CompletionProofError: A local evidence declaration is malformed; repair its type
  ❯ localMarkers all/copy-overwrite/scripts/lib/completion-proof-shape.mjs:225:3
  ❯ tests/unit/scripts/completion-proof-linear-escaped-markers.test.ts:319:12
 
-⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/17]⎯
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/19]⎯
 
  FAIL  |lisa| tests/unit/scripts/completion-proof-linear-escaped-markers.test.ts > inline code spans never claim evidence (#4689) > returns [] for a marker only in inline code (single backticks, plain)
  FAIL  |lisa| tests/unit/scripts/completion-proof-linear-escaped-markers.test.ts > inline code spans never claim evidence (#4689) > returns [] for a marker only in inline code (double backticks, escaped)
@@ -80,7 +82,7 @@ AssertionError: expected [ { kind: 'cli-output', name: 'x' } ] to deeply equal [
     320|   });
     321|
 
-⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/17]⎯
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/19]⎯
 
  FAIL  |lisa| tests/unit/scripts/completion-proof-linear-escaped-markers.test.ts > inline code spans never claim evidence (#4689) > returns [] for a marker only in inline code (legacy screenshot, plain)
 AssertionError: expected [ Array(1) ] to deeply equal []
@@ -104,7 +106,7 @@ AssertionError: expected [ Array(1) ] to deeply equal []
     320|   });
     321|
 
-⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/17]⎯
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/19]⎯
 
  FAIL  |lisa| tests/unit/scripts/completion-proof-linear-escaped-markers.test.ts > inline code spans never claim evidence (#4689) > returns [] for a marker only in inline code (unsupported type)
 CompletionProofError: A local evidence declaration has an unsupported type.
@@ -118,7 +120,7 @@ CompletionProofError: A local evidence declaration has an unsupported type.
  ❯ localMarkers all/copy-overwrite/scripts/lib/completion-proof-shape.mjs:233:3
  ❯ tests/unit/scripts/completion-proof-linear-escaped-markers.test.ts:319:12
 
-⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/17]⎯
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/19]⎯
 
  FAIL  |lisa| tests/unit/scripts/completion-proof-linear-escaped-markers.test.ts > inline code spans never claim evidence (#4689) > keeps exactly the top-level marker beside a quoted one (escaped)
 CompletionProofError: A local evidence declaration is malformed; repair its type and name.
@@ -132,7 +134,7 @@ CompletionProofError: A local evidence declaration is malformed; repair its type
  ❯ localMarkers all/copy-overwrite/scripts/lib/completion-proof-shape.mjs:225:3
  ❯ tests/unit/scripts/completion-proof-linear-escaped-markers.test.ts:329:9
 
-⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/17]⎯
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/19]⎯
 
  FAIL  |lisa| tests/unit/scripts/completion-proof-linear-escaped-markers.test.ts > inline code spans never claim evidence (#4689) > keeps exactly the top-level marker beside a quoted one (plain)
 AssertionError: expected [ { kind: 'cli-output', …(1) }, …(1) ] to deeply equal [ { kind: 'cli-output', name: 'top' } ]
@@ -159,7 +161,7 @@ AssertionError: expected [ { kind: 'cli-output', …(1) }, …(1) ] to deeply eq
     331|       expect(
     332|         localMarkers(`Same line ${code(quoted, 2)} then ${top}\n`)
 
-⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/17]⎯
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/19]⎯
 
  FAIL  |lisa| tests/unit/scripts/completion-proof-linear-escaped-markers.test.ts > inline code spans never claim evidence (#4689) > does not let a quoted duplicate name collide with the real marker
 CompletionProofError: Local evidence declarations must have unique names.
@@ -173,7 +175,7 @@ CompletionProofError: Local evidence declarations must have unique names.
  ❯ localMarkers all/copy-overwrite/scripts/lib/completion-proof-shape.mjs:237:3
  ❯ tests/unit/scripts/completion-proof-linear-escaped-markers.test.ts:339:7
 
-⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/17]⎯
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/19]⎯
 
  FAIL  |lisa| tests/unit/scripts/completion-proof-linear-escaped-markers.test.ts > inline code spans never claim evidence (#4689) > treats an unclosed backtick run as literal text, not a span
 AssertionError: expected [ { kind: 'cli-output', name: 'x' } ] to deeply equal []
@@ -197,7 +199,7 @@ AssertionError: expected [ { kind: 'cli-output', name: 'x' } ] to deeply equal [
     348|     expect(() => localMarkers("Stray ` then [EVIDENCE: bad]\n")).toThr…
     349|       MALFORMED
 
-⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/17]⎯
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/19]⎯
 
  FAIL  |lisa| tests/unit/scripts/completion-proof-linear-escaped-markers.test.ts > inline code spans never claim evidence (#4689) > closes a span only on a run of exactly the opening length
 AssertionError: expected [ { kind: 'cli-output', name: 'x' } ] to deeply equal []
@@ -221,7 +223,7 @@ AssertionError: expected [ { kind: 'cli-output', name: 'x' } ] to deeply equal [
     355|     expect(localMarkers(`\`a\`\` ${PLAIN}\n`)).toEqual(X);
     356|   });
 
-⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[10/17]⎯
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[10/19]⎯
 
  FAIL  |lisa| tests/unit/scripts/completion-proof-linear-escaped-markers.test.ts > inline code spans never claim evidence (#4689) > closes a single-backtick span on a lone backtick, not inside a longer run
 AssertionError: expected [ { kind: 'cli-output', name: 'x' } ] to deeply equal []
@@ -245,12 +247,50 @@ AssertionError: expected [ { kind: 'cli-output', name: 'x' } ] to deeply equal [
     375|   });
     376|
 
-⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[11/17]⎯
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[11/19]⎯
+
+ FAIL  |lisa| tests/unit/scripts/completion-proof-linear-escaped-markers.test.ts > inline code spans never claim evidence (#4689) > does not read prose angle brackets as a tag around a plain code-span example
+AssertionError: expected [ { kind: 'cli-output', name: 'x' } ] to deeply equal []
+
+- Expected
++ Received
+
+- []
++ [
++   {
++     "kind": "cli-output",
++     "name": "x",
++   },
++ ]
+
+ ❯ tests/unit/scripts/completion-proof-linear-escaped-markers.test.ts:401:34
+    399|     "does not read prose angle brackets as a tag around a %s code-span…
+    400|     (_label, line) => {
+    401|       expect(localMarkers(line)).toEqual([]);
+       |                                  ^
+    402|     }
+    403|   );
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[12/19]⎯
+
+ FAIL  |lisa| tests/unit/scripts/completion-proof-linear-escaped-markers.test.ts > inline code spans never claim evidence (#4689) > does not read prose angle brackets as a tag around a escaped code-span example
+CompletionProofError: A local evidence declaration is malformed; repair its type and name.
+ ❯ requireProof all/copy-overwrite/scripts/lib/completion-proof-errors.mjs:15:25
+     13| /** Refuse unusable data with the exact obligation an operator can rep…
+     14| export function requireProof(condition, message, category = "invalid-p…
+     15|   if (!condition) throw new CompletionProofError(category, message);
+       |                         ^
+     16| }
+     17|
+ ❯ localMarkers all/copy-overwrite/scripts/lib/completion-proof-shape.mjs:225:3
+ ❯ tests/unit/scripts/completion-proof-linear-escaped-markers.test.ts:401:14
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[13/19]⎯
 
 
  Test Files  1 failed | 1 passed (2)
-      Tests  17 failed | 98 passed (115)
-   Start at  01:46:48
-   Duration  614ms (transform 295ms, setup 257ms, import 333ms, tests 39ms, environment 0ms)
+      Tests  19 failed | 98 passed (117)
+   Start at  01:53:20
+   Duration  930ms (transform 543ms, setup 316ms, import 587ms, tests 45ms, environment 0ms)
 
 exit=1
