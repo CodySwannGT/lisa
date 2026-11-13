@@ -13277,6 +13277,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/npm-update-rails-runtime-descriptor.test.ts": true,
     "tests/unit/scripts/npm-update-rails-tool-downloads.test.ts": true,
     "tests/unit/scripts/npm-update-rails-tools.test.ts": true,
+    "tests/unit/scripts/npm-update-root-identity.test.ts": true,
     "tests/unit/scripts/npm-update-runtime-preservation.test.ts": true,
     "tests/unit/scripts/npm-update-runtime-qualification.test.ts": true,
     "tests/unit/scripts/npm-update-socket-witness.test.ts": true,
