@@ -143,14 +143,16 @@ Example transformation (the failure mode this grammar exists to prevent):
 |---|---|
 | `screenshot` | an image of the observed UI/state (Playwright, simulator, device) |
 | `recording` | a video of the playthrough |
-| `http-transcript` | the exact request (curl command or client call) plus the full response — status, headers of interest, body |
-| `cli-output` | the command plus its stdout/stderr and exit code |
+| `http-transcript` | a JSON file with `request.method`, `request.url`, a whole-number `response.status` (100–599) and `response.body` (omittable only for a 204 or a HEAD request); plain curl text is refused |
+| `cli-output` | a JSON file with `command`, `stdout`, `stderr` and a whole-number exit code (`exit_code`, `exitCode`, `exit` or `status`) |
 | `log-snippet` | correlated log lines captured from the running system |
-| `db-query-output` | the query plus the returned rows |
-| `perf-trace` | benchmark / frame-timing / profiler output, with the methodology (device profile, dataset size) noted |
+| `db-query-output` | a JSON file with the `query` text and a `rows` list (an empty list is valid); plain query output is refused |
+| `perf-trace` | a JSON file with `methodology` (device profile, dataset size) and a non-empty `measurements` list of `{metric, value, unit}` |
 | `test-run-log` | reporter output naming the spec and showing it ran and passed |
-| `deploy-log` | deployment output or a health-check response from the target environment |
-| `state-dump` | machine-readable observed state (e.g. the `state.json` asserted against) |
+| `deploy-log` | a JSON finished pipeline run (`status: "completed"`, `conclusion`, whole-number `id` or `workflow_path`), or a `cli-output` JSON whose `stdout` mentions the deploy, release or health check |
+| `state-dump` | a JSON file with one of `state`/`data`/`response`/`records` (what was observed) plus one of `id`/`source`/`command`/`captured_at` (where or when it was read) |
+
+The JSON kinds above are checked for structure, so a plain-text capture of them is refused. Required fields and a minimal example for every kind are in `skills/lisa-tracker-evidence/references/completion-authorization.md` ("Typed capture shapes"), relative to the Lisa plugin root.
 
 Do not invent types inline; if none fits, propose extending this table. The legacy `[SCREENSHOT: name]` marker is equivalent to `[EVIDENCE: screenshot: name]`.
 
