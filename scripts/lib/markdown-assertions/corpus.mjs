@@ -12,7 +12,7 @@
  * @module scripts/lib/markdown-assertions/corpus
  */
 import { execFileSync } from "node:child_process";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 
 import ts from "typescript";
@@ -184,19 +184,20 @@ export function buildCorpus(root) {
     .sort();
   /** @type {Map<string, string>} */
   const declarations = new Map();
-  const entries = tracked.flatMap(file => {
-    try {
+  // A tracked file already deleted in the working tree is no longer code, so
+  // it is skipped; any other unreadable file throws rather than silently
+  // dropping its tokens (which would push phrases toward WORDING).
+  const entries = tracked
+    .filter(file => existsSync(path.join(root, file)))
+    .map(file => {
       const text = readFileSync(path.join(root, file), "utf8");
       if (SCRIPT_EXTENSIONS.has(path.posix.extname(file))) {
         for (const name of declaredNames(file, text)) {
           if (!declarations.has(name)) declarations.set(name, file);
         }
       }
-      return [{ file, text: searchableText(file, text) }];
-    } catch {
-      return [];
-    }
-  });
+      return { file, text: searchableText(file, text) };
+    });
   /** @type {Map<string, string[]>} */
   const hits = new Map();
   /**

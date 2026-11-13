@@ -2759,7 +2759,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/lib/markdown-assertions/context.mjs":
       "b5a69dc926a1bf2a4bfd267ca0c40039be4c8ff581798568b6505fa4deadfbb6",
     "scripts/lib/markdown-assertions/corpus.mjs":
-      "c8e29611188f9bfccc3644c2d30affd9944100724cacf5bd1216f763a217e278",
+      "fb4ff33f84407e727189bc515658326a39a8db76fe8db138b22b96736a17b9e5",
     "scripts/lib/markdown-assertions/manifest-cull.mjs":
       "9610443a08f4e3084736bf87171e902974995da0c387b65418a69f5a25a78559",
     "scripts/lib/markdown-assertions/record-setup.mjs":
