@@ -19,9 +19,12 @@
  * setup gaps, not as a worker that is still working. The transcript lives at
  * `<config dir>/projects/<cwd, every non-alphanumeric character as "-">/
  * <full session id>.jsonl`; Claude Code files a symlinked cwd under its real
- * path. Only `system` entries count as the failure, so text a user or the
- * model typed can never trip it, and any assistant turn proves the worker is
- * alive. A missing transcript gives no verdict — never a failure.
+ * path. When that encoded name is longer than 200 characters, Claude Code
+ * keeps its first 200 and appends a hash (lisa#4821), so a deep checkout is
+ * found by that prefix instead (see {@link projectDirsFor}). Only `system`
+ * entries count as the failure, so text a user or the model typed can never
+ * trip it, and any assistant turn proves the worker is alive. A missing or
+ * ambiguous transcript gives no verdict — never a failure.
  * @module session-manager/first-prompt
  */
 import { readFileSync, readdirSync, realpathSync } from "node:fs";
@@ -128,6 +131,43 @@ export function encodeProjectDir(cwd) {
 }
 
 /**
+ * Longest `projects/` directory name Claude Code keeps whole.
+ *
+ * Rule read from the Claude Code 2.1.319 binary and confirmed with a real
+ * `claude -p` run in a 240-character cwd (lisa#4821): with `s` the encoded
+ * cwd, the name is `s` when `s.length <= 200`, else
+ * `${s.slice(0, 200)}-${Math.abs(h).toString(36)}`, where `h` is the 32-bit
+ * Java string hash of the raw cwd.
+ */
+const PROJECT_DIR_LIMIT = 200;
+
+/**
+ * The `projects/` directories that may hold a cwd's transcripts: the exact
+ * encoded name for a short cwd; for a long one, every directory whose name
+ * starts with the truncated prefix and a dash. The prefix is matched rather
+ * than the hash recomputed, so the hash is never relied on; the caller's
+ * exactly-one-match rule turns two directories that both (or neither) hold
+ * the session into no verdict.
+ * @param {string} projectsDir - `<config dir>/projects`
+ * @param {string} cwd - Session cwd
+ * @returns {string[]} Directory paths
+ */
+function projectDirsFor(projectsDir, cwd) {
+  const encoded = encodeProjectDir(cwd);
+  if (encoded.length <= PROJECT_DIR_LIMIT) {
+    return [path.join(projectsDir, encoded)];
+  }
+  const prefix = `${encoded.slice(0, PROJECT_DIR_LIMIT)}-`;
+  try {
+    return readdirSync(projectsDir)
+      .filter(name => name.startsWith(prefix))
+      .map(name => path.join(projectsDir, name));
+  } catch {
+    return [];
+  }
+}
+
+/**
  * The cwd and, when different, its real path.
  * @param {string} cwd - Session cwd
  * @returns {string[]} Candidates
@@ -172,9 +212,10 @@ function matchesIn(dir, id) {
 export function findTranscript({ configDir, cwd, sessionId }) {
   const id = String(sessionId ?? "").toLowerCase();
   if (!/^[0-9a-f]{8}(?:-[0-9a-f-]{27})?$/.test(id)) return null;
-  const found = cwdCandidates(cwd).flatMap(candidate =>
-    matchesIn(path.join(configDir, "projects", encodeProjectDir(candidate)), id)
-  );
+  const projectsDir = path.join(configDir, "projects");
+  const found = cwdCandidates(cwd)
+    .flatMap(candidate => projectDirsFor(projectsDir, candidate))
+    .flatMap(dir => matchesIn(dir, id));
   const unique = [...new Set(found)];
   return unique.length === 1 ? unique[0] : null;
 }
