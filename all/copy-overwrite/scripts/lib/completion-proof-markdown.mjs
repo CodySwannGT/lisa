@@ -62,12 +62,27 @@ export function topLevelLines(body) {
  * @returns {string} Comparable heading key
  */
 function headingKey(text) {
-  return text
-    .replace(/^##[ \t]+/, "")
-    .replace(/(?:^|[ \t]+)#+$/, "")
+  return withoutClosingHashes(text.replace(/^##[ \t]+/, ""))
     .trim()
     .replace(/\s+/g, " ")
     .toLowerCase();
+}
+
+/**
+ * Drop an ATX closing `#` run with one backward scan. A regex such as
+ * `(?:^|[ \t]+)#+$` backtracks super-linearly on long space runs.
+ * The run only closes the heading when a space or tab precedes it, or when
+ * it is the whole text, so `C#` keeps its hash.
+ * @param {string} text - Heading text after the opening `## `
+ * @returns {string} Text without its closing sequence
+ */
+function withoutClosingHashes(text) {
+  let start = text.length;
+  while (start > 0 && text[start - 1] === "#") start -= 1;
+  if (start === text.length) return text;
+  if (start === 0 || text[start - 1] === " " || text[start - 1] === "\t")
+    return text.slice(0, start);
+  return text;
 }
 
 /**

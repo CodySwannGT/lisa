@@ -136,7 +136,7 @@
       "children": []
     },
     "lib/completion-proof-markdown.mjs": {
-      "sha256": "e8b9d57be84b73b5e66253ae0bce33e9426548d8c495dd162019257ae0093bc8",
+      "sha256": "8ff9efc772463c3fccf5d6e5a42c73df324babd2e02e66228f2d9a0b1896cbf4",
       "staticImports": [
         "lib/completion-proof-errors.mjs"
       ],

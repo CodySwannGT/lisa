@@ -51,7 +51,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lib/completion-proof-github.mjs":
       "82ef0da12fc5c31fc48237808f94cbfd73f0d2128ae1da18ceedcea90284d467",
     "all/copy-overwrite/scripts/lib/completion-proof-markdown.mjs":
-      "e8b9d57be84b73b5e66253ae0bce33e9426548d8c495dd162019257ae0093bc8",
+      "8ff9efc772463c3fccf5d6e5a42c73df324babd2e02e66228f2d9a0b1896cbf4",
     "all/copy-overwrite/scripts/lib/completion-proof-projection.mjs":
       "51f7246943b20e970a185d3e2d9a9255929f510b25261502154e909d3b109436",
     "all/copy-overwrite/scripts/lib/completion-proof-publisher.mjs":
@@ -359,7 +359,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/npm-updater-gate.Dockerfile":
       "850a4ee809d49e3d9da6bdd674cb43e4f5a6dcfa0aa73116b1a43caeed42748c",
     "all/copy-overwrite/scripts/npm-updater-helper-graph.json":
-      "25abffb933c806b7da90731d226d39d34e3a3c25cc15c96d03c70b1e63dc4198",
+      "50360ad5cdaeedf4d4966343301cf6f02671928cf4b19fb1f322e827a737256a",
     "all/copy-overwrite/scripts/review-evidence-event.mjs":
       "1c5d510bc66f8ba23b6f046246f41182c17946a50126fb88e371d2aec9dfd6b2",
     "all/copy-overwrite/scripts/schemas/lisa-command-envelope.v1.schema.json":
