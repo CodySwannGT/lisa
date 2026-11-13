@@ -124,7 +124,8 @@ async function recoveryPreview({
       original.number,
       allocation.origin.payload,
       allocation.origin.digest,
-      () => authorizeAllocation(api, proposal, original, policy, config)
+      () => authorizeAllocation(api, proposal, original, policy, config),
+      config
     );
   }
   const commit = predictedCommit(
@@ -162,7 +163,8 @@ async function originPreview({
     original.number,
     { version: 1, proposal, allocation: original, preview: null, bundle: "" },
     proposal.key,
-    () => authorizeAllocation(api, proposal, original, policy, config)
+    () => authorizeAllocation(api, proposal, original, policy, config),
+    config
   );
   const preview = await descriptorFor({
     cwd,

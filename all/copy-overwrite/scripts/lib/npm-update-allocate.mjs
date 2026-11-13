@@ -76,7 +76,10 @@ export async function filingEvidence(api, proposal, config, cwd) {
 
 /** Same selected versions are discovered before deriving a new parent-bound key. */
 export async function discoverPrior(api, proposal, context) {
-  const tracker = trackerOf(api, proposal.repository);
+  // With a committed config, the adapter must be the configured one; never GitHub by default.
+  const tracker = context
+    ? trackerFor(api, proposal, context.config)
+    : trackerOf(api, proposal.repository);
   const found = await tracker.searchPrior(proposal);
   required(
     found.incomplete_results === false &&
@@ -166,6 +169,7 @@ async function restoredAllocation({
 async function ensureLabels({
   api,
   policy,
+  config,
   roles,
   currentEvidence,
   prior,
@@ -178,7 +182,7 @@ async function ensureLabels({
     roles.claimed,
   ]) {
     if (!currentEvidence.labels.includes(name)) {
-      await trackerOf(api, policy.repository).ensureRole(name);
+      await trackerFor(api, policy, config).ensureRole(name);
       currentEvidence.labels.push(name);
       if (!prior.issue) evidence.labels = currentEvidence.labels;
     }

@@ -18,6 +18,7 @@ import {
   unfence,
   lifecycleName,
   vocabularyRefusal,
+  vendorLabels,
 } from "./npm-update-tracker-wire.mjs";
 
 const VIEWER = "query LisaNpmViewer { viewer { id } }";
@@ -161,7 +162,10 @@ export class LinearTracker {
         lifecycleName(this.lifecycle, node.state?.name),
         "type:Task",
         ...(node.priority === MEDIUM ? ["priority:medium"] : []),
-        ...(node.labels?.nodes ?? []).map(label => label.name),
+        ...vendorLabels(
+          this.lifecycle,
+          (node.labels?.nodes ?? []).map(label => label.name)
+        ),
       ].map(name => ({ name })),
       assignees: node.assignee
         ? [{ login: node.assignee.id, type: "User" }]

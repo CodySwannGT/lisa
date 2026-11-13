@@ -345,7 +345,7 @@
       "children": []
     },
     "lib/npm-update-allocate.mjs": {
-      "sha256": "8b467ad473794c5b9b979a2045bf0b41ba2e6b7f3ce0ed2001317ad3e01e569d",
+      "sha256": "e6f0c6bb2f92c63865ea9e8dabd61c2a55d2c68aa07c55783e9c39e60e302fe9",
       "staticImports": [
         "lib/automation-provenance-contract.mjs",
         "lib/github-attestation-verifier.mjs",
@@ -363,7 +363,7 @@
       "children": []
     },
     "lib/npm-update-authorization.mjs": {
-      "sha256": "7f11baf96575f7bee95e10cf6233208552f48fe47075502d36eeb82aa12b15f1",
+      "sha256": "1050687b6f313415ac3bc96cf241d5713ed871e93bd8d030e5e6ee8071420911",
       "staticImports": [
         "lib/github-attestation-provider.mjs",
         "lib/github-attestation-recovery.mjs",
@@ -471,7 +471,7 @@
       "children": []
     },
     "lib/npm-update-checkpoint.mjs": {
-      "sha256": "80dc033bbebe881a86a3cecb50ac92ab8b838f73bac6b62cf885d36fa2c9cf76",
+      "sha256": "c31d32c5318273db84938549a22b58ea53ebe0d032506fea3af3bc0ad2594f40",
       "staticImports": [
         "lib/github-attestation-verifier.mjs",
         "lib/npm-update-checkpoint-codec.mjs",
@@ -552,7 +552,7 @@
       "children": []
     },
     "lib/npm-update-execution-adapter.mjs": {
-      "sha256": "8362b9fbef64ba8c3cc9668bcbf13d0a37073b63fbff990acab84254b91c1b11",
+      "sha256": "37f2a21b00f1a5b9f05c1ecc6809ddb12a260db0bfb7bbb24d2a2c9f0c7c0889",
       "staticImports": [
         "lib/npm-update-contract.mjs",
         "lib/npm-update-gh-dispatch.mjs",
@@ -786,7 +786,7 @@
       "children": []
     },
     "lib/npm-update-hosted-hook.mjs": {
-      "sha256": "801b41f0f3f455c08b4e86a64f076190a5f245492959a154d70b897dd0d60a31",
+      "sha256": "7cb0fa070365aa81bb6511dc8ec5aaa5121e85c343928f5ce0753f4892be93d6",
       "staticImports": [
         "lib/npm-update-contract.mjs",
         "lib/npm-update-invariants.mjs",
@@ -1118,7 +1118,7 @@
       "children": []
     },
     "lib/npm-update-recovery.mjs": {
-      "sha256": "f5d1c68651579b0ba74cd3c643bfe5bfc9d14d94a097074130d522450d44327d",
+      "sha256": "7699922ae10e5f07f9afb7cbe2762641702f42f0eced953d7a9a934fd1b3f715",
       "staticImports": [
         "lib/github-attestation-recovery.mjs",
         "lib/github-attestation-verifier.mjs",
@@ -1215,7 +1215,7 @@
       ]
     },
     "lib/npm-update-tracker-jira.mjs": {
-      "sha256": "20ee8431cd8b3210cb954514053a6041fe3ce9b85405dece25d3f2f0eedf2d7f",
+      "sha256": "6d4e03019a8c98bc027971c95e03a7892e080b309301ad603ed9aa398beefacd",
       "staticImports": [
         "lib/github-attestation-verifier.mjs",
         "lib/npm-update-invariants.mjs",
@@ -1226,7 +1226,7 @@
       "children": []
     },
     "lib/npm-update-tracker-linear.mjs": {
-      "sha256": "d685ee2358c222853f443ba2fb03e2b0f0a10942d47c2413cce1e26414dfbc61",
+      "sha256": "b9a516d2a96c1e6ae8c9fc58e983226becffb300f559860e51d3187d563b392a",
       "staticImports": [
         "lib/github-attestation-verifier.mjs",
         "lib/npm-update-invariants.mjs",
@@ -1237,7 +1237,7 @@
       "children": []
     },
     "lib/npm-update-tracker-wire.mjs": {
-      "sha256": "ff46fff73c12c5553b91b5468216a5567af95e0b782cb658d21105d5ad56977c",
+      "sha256": "631669d70a897f5a5e7ef02b9c5cddbe1b4f5189f37111a287c1b436aa9dc890",
       "staticImports": [
         "lib/npm-update-invariants.mjs",
         "lisa-work-item.mjs"
@@ -1246,7 +1246,7 @@
       "children": []
     },
     "lib/npm-update-tracker.mjs": {
-      "sha256": "d334a9e71ff0c4e51853974e08a1210369cb86bbefb9c71c9e5fd48fec403e1f",
+      "sha256": "aec4d2308751f928af924cb0be376b169c9542f781c6a466f2195458e04e8e30",
       "staticImports": [
         "lib/github-attestation-provider.mjs",
         "lib/npm-update-invariants.mjs",

@@ -9,7 +9,7 @@
 import { canonicalJson } from "../lisa-automation-provenance.mjs";
 import { keys, required } from "./npm-update-contract.mjs";
 import { sha256 } from "./github-attestation-verifier.mjs";
-import { trackerOf } from "./npm-update-tracker.mjs";
+import { trackerOf, trackerFor } from "./npm-update-tracker.mjs";
 import {
   checkpointPayloadBytes,
   encodeCheckpointBytes,
@@ -217,10 +217,12 @@ export async function persistCheckpoint(
   number,
   payload,
   digest,
-  authorize
+  authorize,
+  config
 ) {
   // GitHub keeps its original endpoint, scope check and readback inside the adapter.
-  const tracker = trackerOf(api);
+  // A caller holding the committed config proves the adapter is the configured one.
+  const tracker = config ? trackerFor(api, api.policy, config) : trackerOf(api);
   await authorize();
   let existing = await tracker.comments(number);
   const bodies = writeBodies(payload, digest, existing);

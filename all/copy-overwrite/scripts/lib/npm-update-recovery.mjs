@@ -22,7 +22,7 @@ import {
 import { persistCheckpoint } from "./npm-update-checkpoint.mjs";
 import { required, validateProposal } from "./npm-update-contract.mjs";
 import {
-  trackerOf,
+  trackerFor,
   refuseUnlessGithub,
   verifySignedWorkItem,
   proveTrackerProvider,
@@ -187,7 +187,7 @@ export async function finalizeAuthorization({
       verifyCurrentProvider(api.policy, preview.descriptor);
     else {
       verifySignedWorkItem(config, allocation, preview);
-      await proveTrackerProvider(api, preview.descriptor);
+      await proveTrackerProvider(api, preview.descriptor, config);
     }
     await persistCheckpoint(
       api,
@@ -200,11 +200,12 @@ export async function finalizeAuthorization({
         bundle: readBytes(paths.bundle, 1_048_576).toString("utf8"),
       },
       digest,
-      () => authorizeAllocation(api, proposal, allocation, policy, config)
+      () => authorizeAllocation(api, proposal, allocation, policy, config),
+      config
     );
   }
   const checkpoint = locateCheckpoint(
-    (await trackerOf(api).issue(allocation.number)).comments,
+    (await trackerFor(api, policy, config).issue(allocation.number)).comments,
     proposal,
     policy
   );

@@ -19,6 +19,8 @@ import {
   lifecycleName,
   vocabularyRefusal,
   withinJiraLimit,
+  strandedRefusal,
+  vendorLabels,
 } from "./npm-update-tracker-wire.mjs";
 
 const API = "/rest/api/3";
@@ -105,7 +107,7 @@ export class JiraTracker {
       labels: [
         lifecycleName(this.lifecycle, fields.status?.name),
         ...typeLabels(fields),
-        ...(fields.labels ?? []),
+        ...vendorLabels(this.lifecycle, fields.labels),
       ].map(name => ({ name })),
       assignees: fields.assignee
         ? [
@@ -162,7 +164,7 @@ export class JiraTracker {
     );
   }
   async relationships() {
-    const query = `project = "${this.key}" AND text ~ "npm"`;
+    const query = `project = "${this.key}" AND (summary ~ "npm" OR description ~ "npm")`;
     return { ...(await this.search(query)), query };
   }
   async vocabulary() {
@@ -201,7 +203,11 @@ export class JiraTracker {
     };
     const created = await this.call("/issue", "issue", "POST", { fields });
     const number = this.numberOf(created?.key);
-    await this.moveTo(number, this.lifecycle.ready);
+    try {
+      await this.moveTo(number, this.lifecycle.ready);
+    } catch {
+      throw strandedRefusal(this.ref(number), this.lifecycle.ready);
+    }
     return { number };
   }
   /** Exactly one workflow transition must reach the named status; none is ever guessed. */
@@ -268,8 +274,9 @@ export class JiraTracker {
       "checkpoint immediate readback differs"
     );
   }
+  /** The credential's own account, whether a person or an app/service account. */
   async isManagedActor(user) {
-    return user?.type === "User" && user.id === (await this.myself());
+    return typeof user?.id === "string" && user.id === (await this.myself());
   }
   async proveClaim(descriptor) {
     const number = this.numberOf(descriptor.workItem);

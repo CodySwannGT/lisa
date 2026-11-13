@@ -172,7 +172,8 @@ export function verifySignedWorkItem(config, allocation, preview) {
 }
 
 /** Checkpoint authority for Jira/Linear: the live GitHub run plus the claim proved on the tracker. */
-export async function proveTrackerProvider(api, descriptor) {
+export async function proveTrackerProvider(api, descriptor, config) {
+  const tracker = trackerFor(api, api.policy, config);
   verifyCurrentRun(api.policy, descriptor);
-  await trackerOf(api).proveClaim(descriptor);
+  await tracker.proveClaim(descriptor);
 }

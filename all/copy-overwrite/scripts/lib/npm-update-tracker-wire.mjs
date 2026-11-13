@@ -26,14 +26,17 @@ function missing(name, what) {
   );
 }
 
-/** Jira login, token and base URL: the same names and fallbacks lisa-work-item.mjs reads. */
+/**
+ * Jira login, token and base URL. The site comes only from committed config
+ * (never JIRA_SERVER), because that origin receives the token.
+ */
 function jiraCredentials(config, env) {
   const token = env.JIRA_API_TOKEN || env.ATLASSIAN_API_TOKEN;
   if (!token) throw missing("JIRA_API_TOKEN", "create Jira work items");
   const login = env.JIRA_LOGIN || String(config.atlassian?.email ?? "").trim();
   if (!login) throw missing("JIRA_LOGIN", "create Jira work items");
   const cloudId = String(config.atlassian?.cloudId ?? "").trim();
-  const server = String(config.atlassian?.site ?? env.JIRA_SERVER ?? "");
+  const server = String(config.atlassian?.site ?? "");
   if (!cloudId && !server)
     throw operatorRefusal(
       "tracker site is absent",
@@ -67,6 +70,30 @@ export function trackerCredentials(config, env) {
     : linearCredentials(config, env);
 }
 
+/** Bytes past the bound are never buffered: a declared length refuses unread, a stream stops mid-read. */
+async function boundedText(response) {
+  const declared = Number(response.headers.get("content-length") ?? 0);
+  if (declared > RESPONSE_BOUND) {
+    await response.body?.cancel();
+    required(false, "provider response exceeds bound");
+  }
+  const reader = response.body?.getReader();
+  const chunks = [];
+  let size = 0;
+  for (let next = await reader?.read(); next && !next.done; ) {
+    size += next.value.byteLength;
+    if (size > RESPONSE_BOUND) {
+      await reader.cancel();
+      required(false, "provider response exceeds bound");
+    }
+    chunks.push(next.value);
+    next = await reader.read();
+  }
+  return new TextDecoder("utf-8", { fatal: true }).decode(
+    Buffer.concat(chunks)
+  );
+}
+
 /** One bounded JSON request; a refused status is opaque, never echoed. */
 export async function jsonCall(transport, url, request, purpose) {
   const method = request.method ?? "GET";
@@ -85,11 +112,7 @@ export async function jsonCall(transport, url, request, purpose) {
       redirect: "error",
       signal: AbortSignal.timeout(30_000),
     });
-    const text = await response.text();
-    required(
-      Buffer.byteLength(text) <= RESPONSE_BOUND,
-      "provider response exceeds bound"
-    );
+    const text = await boundedText(response);
     required(response.ok, "tracker provider refused request");
     return text ? JSON.parse(text) : null;
   });
@@ -166,11 +189,38 @@ export function vocabularyRefusal(vendor) {
   );
 }
 
-/** Jira's documented 32,767-character rich-text field limit, refused before any write. */
+/** Jira's documented 32,767-character rich-text field limit, refused before that write. */
 export function withinJiraLimit(text) {
-  required(
-    typeof text === "string" && text.length <= 32_767,
-    "managed text exceeds the Jira field limit"
-  );
+  if (typeof text !== "string" || text.length > 32_767)
+    throw operatorRefusal(
+      "managed text exceeds the Jira field limit",
+      "A description or comment the npm updater must write is longer than Jira's 32,767-character limit, so it stopped before writing it."
+    );
   return text;
+}
+
+/** A ticket that exists but never reached Ready is named, so the operator can finish or remove it. */
+export function strandedRefusal(ref, ready) {
+  return operatorRefusal(
+    "created work item is not build-ready",
+    `${ref} was created but could not be moved to ${ready}. Move it to ${ready} by hand or fix the workflow transition, then rerun.`
+  );
+}
+
+/**
+ * Typed labels are free text anyone can add, so a label spelled like a
+ * lifecycle status, a `type:` or a `priority:` is dropped before it can stand
+ * in for the value derived from the tracker's own fields. Other labels, such
+ * as the human-hold marker, pass through.
+ */
+export function vendorLabels(lifecycle, names) {
+  const reserved = new Set(lifecycle.roles.map(role => role.toLowerCase()));
+  return (names ?? []).filter(name => {
+    const value = String(name).toLowerCase();
+    return (
+      !reserved.has(value) &&
+      !value.startsWith("type:") &&
+      !value.startsWith("priority:")
+    );
+  });
 }

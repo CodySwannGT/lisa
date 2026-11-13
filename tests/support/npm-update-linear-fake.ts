@@ -6,7 +6,8 @@
  * transport, so no live workspace, credential or network is involved. Every
  * request is recorded in `log` — that log is the evidence that a re-run creates
  * nothing. Descriptions and comment bodies keep the exact Markdown the adapter
- * sent, the way Linear stores them.
+ * sent, the way Linear stores them. Searches and comment lists page 100
+ * nodes at a time behind an opaque cursor, as Linear's connections do.
  * @module tests/support/npm-update-linear-fake
  */
 import type {
@@ -30,6 +31,7 @@ interface LinearIssue {
   priority: number;
   stateId: string;
   assigneeId: string | null;
+  labels: string[];
   comments: LinearComment[];
 }
 
@@ -45,12 +47,16 @@ interface IssueFilter {
   or?: Array<{ title?: TextTest; description?: TextTest }>;
 }
 
+/** Issue fields a create or seed supplies. */
+type IssueInput = Record<string, string | number | undefined>;
+
 /** The GraphQL variables the adapter sends. */
 interface Variables {
   id?: string;
   key?: string;
   filter?: IssueFilter;
-  input?: Record<string, string | number | undefined>;
+  after?: string | null;
+  input?: IssueInput;
 }
 
 /** The fake workspace: team key, API-key viewer, members and issues. */
@@ -72,6 +78,7 @@ export interface LinearFakeOptions {
 }
 
 const TEAM_ID = "team-1";
+const PAGE = 100;
 const LINEAR_URL = "https://api.linear.app/graphql";
 const STATES = [
   { id: "state-backlog", name: "Backlog", type: "backlog" },
@@ -174,10 +181,75 @@ function issueNode(store: LinearStore, issue: LinearIssue) {
     archivedAt: null,
     state: { name: state.name, type: state.type },
     assignee: issue.assigneeId ? { id: issue.assigneeId } : null,
-    labels: { nodes: [] },
+    labels: { nodes: issue.labels.map(name => ({ name })) },
     children: { nodes: [] },
     inverseRelations: { nodes: [] },
   };
+}
+
+/**
+ * One connection page of 100 nodes after an opaque index cursor.
+ * @param nodes - Every matching node, in order.
+ * @param after - The previous page's end cursor, if any.
+ * @returns The page and its pageInfo.
+ */
+function page<T>(nodes: T[], after: string | null | undefined) {
+  const start = after ? Number(after) : 0;
+  const end = start + PAGE;
+  return {
+    nodes: nodes.slice(start, end),
+    pageInfo: {
+      hasNextPage: end < nodes.length,
+      endCursor: end < nodes.length ? String(end) : null,
+    },
+  };
+}
+
+/**
+ * Store an issue directly, as a person or another tool would have filed it.
+ * @param store - Fake workspace.
+ * @param input - Title, description, priority, state id and assignee id.
+ * @returns The stored issue.
+ */
+function addIssue(store: LinearStore, input: IssueInput) {
+  const number = store.issues.length + 1;
+  const issue = {
+    id: `issue-${number}`,
+    number,
+    title: String(input.title ?? "Seeded issue"),
+    description: String(input.description ?? ""),
+    priority: Number(input.priority ?? 0),
+    stateId: String(input.stateId ?? "state-backlog"),
+    assigneeId:
+      input.assigneeId === undefined ? null : String(input.assigneeId),
+    labels: [],
+    comments: [],
+  };
+  store.issues.push(issue);
+  return issue;
+}
+
+/**
+ * Store one comment; a null user models an integration (bot) author.
+ * @param store - Fake workspace.
+ * @param issue - Its issue.
+ * @param body - Markdown body.
+ * @param userId - Author user id; defaults to the API-key viewer.
+ * @returns The stored comment.
+ */
+function addComment(
+  store: LinearStore,
+  issue: LinearIssue,
+  body: string,
+  userId: string | null = store.viewerId
+) {
+  const comment = {
+    id: `comment-${issue.comments.length + 1}-${issue.number}`,
+    body,
+    userId,
+  };
+  issue.comments.push(comment);
+  return comment;
 }
 
 /**
@@ -206,16 +278,16 @@ function reads(store: LinearStore): Record<string, Handler> {
         : null,
     }),
     LisaNpmIssues: v => ({
-      issues: {
-        nodes: store.issues
+      issues: page(
+        store.issues
           .filter(issue => matches(issue, v.filter))
           .map(issue => ({
             number: issue.number,
             archivedAt: null,
             state: { type: stateOf(issue.stateId).type },
           })),
-        pageInfo: { hasNextPage: false },
-      },
+        v.after
+      ),
     }),
     LisaNpmIssue: v => {
       const issue = findIssue(store, v.id);
@@ -224,14 +296,7 @@ function reads(store: LinearStore): Record<string, Handler> {
     LisaNpmComments: v => {
       const issue = findIssue(store, v.id)!;
       const nodes = issue.comments.map(item => commentNode(store, item, issue));
-      return {
-        issue: {
-          comments: {
-            nodes,
-            pageInfo: { hasNextPage: false, endCursor: null },
-          },
-        },
-      };
+      return { issue: { comments: page(nodes, v.after) } };
     },
     LisaNpmComment: v => {
       const issue = store.issues.find(item =>
@@ -253,19 +318,7 @@ function reads(store: LinearStore): Record<string, Handler> {
 function writes(store: LinearStore): Record<string, Handler> {
   return {
     LisaNpmIssueCreate: v => {
-      const input = v.input ?? {};
-      const number = store.issues.length + 1;
-      store.issues.push({
-        id: `issue-${number}`,
-        number,
-        title: String(input.title),
-        description: String(input.description),
-        priority: Number(input.priority),
-        stateId: String(input.stateId),
-        assigneeId:
-          input.assigneeId === undefined ? null : String(input.assigneeId),
-        comments: [],
-      });
+      const { number } = addIssue(store, v.input ?? {});
       const identifier = `${store.teamKey}-${number}`;
       return { issueCreate: { success: true, issue: { number, identifier } } };
     },
@@ -279,12 +332,7 @@ function writes(store: LinearStore): Record<string, Handler> {
     },
     LisaNpmCommentCreate: v => {
       const issue = findIssue(store, String(v.input?.issueId))!;
-      const comment = {
-        id: `comment-${issue.comments.length + 1}-${issue.number}`,
-        body: String(v.input?.body),
-        userId: store.viewerId,
-      };
-      issue.comments.push(comment);
+      const comment = addComment(store, issue, String(v.input?.body));
       const node = commentNode(store, comment, issue);
       return { commentCreate: { success: true, comment: node } };
     },
@@ -294,7 +342,7 @@ function writes(store: LinearStore): Record<string, Handler> {
 /**
  * A Linear workspace with one team, its workflow states and an API-key viewer.
  * @param options - Team key, viewer id and assignable members.
- * @returns The transport, its request log, the stored issues and a create count.
+ * @returns The transport, its request log, the stored issues, seeding helpers and a create count.
  */
 export function fakeLinear(options: LinearFakeOptions = {}) {
   const store: LinearStore = {
@@ -323,6 +371,11 @@ export function fakeLinear(options: LinearFakeOptions = {}) {
     transport,
     log,
     issues: store.issues,
+    // Store an issue directly, as a person or another tool would have filed it.
+    seed: (input: IssueInput) => addIssue(store, input),
+    // Store a comment on issue `number`; a null `userId` models a bot author.
+    comment: (number: number, body: string, userId?: string | null) =>
+      addComment(store, store.issues[number - 1]!, body, userId),
     creates: () =>
       log.filter(entry => entry.operation === "LisaNpmIssueCreate").length,
   };
