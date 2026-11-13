@@ -390,6 +390,10 @@ function exclusionReason(item, context) {
       comments: item.comments,
       trustedHumanActorIds: item.trustedHumanActorIds,
       humanNeededLabel: context.humanNeededLabel,
+      // The project's policy decides whether a lifted hold is valid again
+      // (CodySwannGT/lisa#4687): omitted, strict holds read as access-only.
+      humanOnly: context.humanOnly,
+      humanGateMode: context.humanGateMode,
     })
   ) {
     return "human-gated";
@@ -428,7 +432,7 @@ function compareWithinGroup(left, right) {
  * `login:` entry matches only a GitHub assignee login, an `id:` entry only
  * the assignee's account id (#4623).
  * @param {readonly Record<string, any>[]} items - Normalized items
- * @param {{ me?: string | null, operators?: readonly unknown[], trustedAuthorIds?: readonly unknown[], humanNeededLabel?: string }} [options]
+ * @param {{ me?: string | null, operators?: readonly unknown[], trustedAuthorIds?: readonly unknown[], humanNeededLabel?: string, humanOnly?: unknown, humanGateMode?: unknown }} [options]
  * @returns {{ ordered: Record<string, any>[], excluded: { ref: string, reason: string }[] }}
  */
 export function orderReadyQueue(items, options = {}) {
@@ -447,7 +451,7 @@ export function orderReadyQueue(items, options = {}) {
  * again, so it waits until someone edits it. Grouping and ordering match
  * {@link orderReadyQueue}.
  * @param {readonly Record<string, any>[]} items - Normalized items
- * @param {{ me?: string | null, operators?: readonly unknown[], trustedAuthorIds?: readonly unknown[], humanNeededLabel?: string, validationFailures?: Readonly<Record<string, { updatedAt?: string }>> }} [options]
+ * @param {{ me?: string | null, operators?: readonly unknown[], trustedAuthorIds?: readonly unknown[], humanNeededLabel?: string, humanOnly?: unknown, humanGateMode?: unknown, validationFailures?: Readonly<Record<string, { updatedAt?: string }>> }} [options]
  * @returns {{ ordered: Record<string, any>[], excluded: { ref: string, reason: string }[] }}
  */
 export function orderBacklogQueue(items, options = {}) {
@@ -489,7 +493,7 @@ function configuredEntries(entries) {
 
 /**
  * The identities and policy every ordering judges against.
- * @param {{ me?: string | null, operators?: readonly unknown[], trustedAuthorIds?: readonly unknown[], humanNeededLabel?: string }} options
+ * @param {{ me?: string | null, operators?: readonly unknown[], trustedAuthorIds?: readonly unknown[], humanNeededLabel?: string, humanOnly?: unknown, humanGateMode?: unknown }} options
  */
 function orderingContext(options) {
   return {
@@ -497,6 +501,8 @@ function orderingContext(options) {
     operators: configuredEntries(options.operators),
     trusted: configuredEntries(options.trustedAuthorIds),
     humanNeededLabel: options.humanNeededLabel ?? DEFAULT_HUMAN_NEEDED_LABEL,
+    humanOnly: options.humanOnly,
+    humanGateMode: options.humanGateMode,
   };
 }
 

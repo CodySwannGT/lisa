@@ -277,14 +277,27 @@ describe("exploratory-qa is the named human-gate exception", () => {
   describe.each(ROOTS)("%s", root => {
     const content = skill(root, "lisa-exploratory-qa");
 
-    it("keeps ready=false as its default", () => {
+    it("keeps ready=false as its default under strict, build-ready under access-only", () => {
       expect(content).toContain("ready=true|false");
-      expect(content).toMatch(/default/i);
+      expect(content).toMatch(
+        /`ready=false` \(\*\*default\*\* under `humanGate\.mode: "strict"`/
+      );
+      expect(content).toMatch(
+        /`ready=true` \(\*\*default\*\* under `humanGate\.mode: "access-only"`\)/
+      );
     });
 
-    it("declares itself the named human-gate exception, not an inconsistency", () => {
-      expect(content).toMatch(/named human-gate exception/i);
+    it("declares itself the named human-gate exception under strict, not an inconsistency", () => {
+      expect(content).toMatch(
+        /Under `humanGate\.mode: "strict"`, this skill is the named human-gate exception/
+      );
       expect(content).toContain(RULE_SLUG);
+    });
+
+    it("treats an operator's ready=false under access-only as an explicit operator hold", () => {
+      expect(content).toContain(
+        'human_gate: "the operator explicitly asked for this exploratory pass to be held for review"'
+      );
     });
 
     it("supplies an explicit human_gate marker rather than a bare omission", () => {

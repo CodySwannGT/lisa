@@ -28,6 +28,10 @@ import {
   validateDependenciesConfig,
 } from "./project-config-dependencies.js";
 import {
+  type HumanGateConfig,
+  validateHumanGateConfig,
+} from "./project-config-human-gate.js";
+import {
   type LearningsConfig,
   validateLearningsConfig,
 } from "./project-config-learnings.js";
@@ -50,6 +54,8 @@ export {
 export {
   DEFAULT_LOW_CONFIDENCE_ROUTING,
   LOW_CONFIDENCE_ROUTINGS,
+  STRICT_LOW_CONFIDENCE_ROUTING,
+  defaultLowConfidenceRouting,
   resolveLearningsSettings,
   resolveProjectLearningsFile,
   type LearningsConfig,
@@ -60,12 +66,25 @@ export {
 export {
   DEFAULT_DEPENDENCY_HUMAN_SIGN_OFF,
   DEPENDENCY_HUMAN_SIGN_OFF_VALUES,
+  STRICT_DEPENDENCY_HUMAN_SIGN_OFF,
+  defaultDependencyHumanSignOff,
   dependencySettingsWarning,
   resolveDependencySettings,
   type DependenciesConfig,
   type DependencyHumanSignOff,
   type ResolvedDependencySettings,
 } from "./project-config-dependencies.js";
+
+export {
+  DEFAULT_HUMAN_GATE_MODE,
+  HUMAN_GATE_MODES,
+  humanGateSettingsWarnings,
+  resolveHumanGateMode,
+  resolveHumanGateSettings,
+  type HumanGateConfig,
+  type HumanGateMode,
+  type ResolvedHumanGateSettings,
+} from "./project-config-human-gate.js";
 
 export type {
   BrowserVerificationConfig,
@@ -123,9 +142,17 @@ export interface ProjectConfig {
   /**
    * Optional dependency-governance settings: `humanSignOff` turns the
    * trust-class ratification requirements off (`"none"`) or keeps them
-   * (`"default"`, also the value when absent or invalid).
+   * (`"default"`). When absent or invalid it follows `humanGate.mode`:
+   * `"none"` under `"access-only"`, `"default"` under `"strict"`.
    */
   readonly dependencies?: DependenciesConfig;
+  /**
+   * Optional human-gate width (CodySwannGT/lisa#4687): `mode` is
+   * `"access-only"` (default: only acts an agent lacks access to wait on a
+   * person) or `"strict"` (the older, wider gate); `humanOnly` lists decision
+   * classes the project reserves for a person in either mode.
+   */
+  readonly humanGate?: HumanGateConfig;
   /** Optional empirical verification provider configuration. */
   readonly verification?: VerificationConfig;
   /** Optional nightly-E2E automation behavior. */
@@ -329,6 +356,7 @@ export function validateProjectConfig(
       : validateProjectRulesFile(obj.projectRulesFile, configPath);
   const learnings = validateLearningsConfig(obj.learnings, configPath);
   const dependencies = validateDependenciesConfig(obj.dependencies, configPath);
+  const humanGate = validateHumanGateConfig(obj.humanGate, configPath);
   const verification = validateVerificationConfig(obj.verification, configPath);
   const nightlyE2E = validateNightlyE2EConfig(obj.nightlyE2E, configPath);
   const starter = validateStarterConfig(obj.starter);
@@ -337,6 +365,7 @@ export function validateProjectConfig(
     ...(projectRulesFile === undefined ? {} : { projectRulesFile }),
     ...(learnings === undefined ? {} : { learnings }),
     ...(dependencies === undefined ? {} : { dependencies }),
+    ...(humanGate === undefined ? {} : { humanGate }),
     ...(verification === undefined ? {} : { verification }),
     ...(nightlyE2E === undefined ? {} : { nightlyE2E }),
     ...(starter === undefined ? {} : { starter }),

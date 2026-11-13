@@ -5,15 +5,18 @@
  * stalling items, and the operator should never have to comment to release
  * one (CodySwannGT/lisa#4658, item 5). The intake and repair sweeps call
  * {@link planHumanGateLift} on every open item carrying a `[lisa-human-gate]`
- * hold. A hold whose reason names no act an agent cannot perform (see
- * `human-gate-act.mjs`) is lifted: the sweep posts a visible
+ * hold. A hold that is not valid under the project's `humanGate.mode` and
+ * `humanGate.humanOnly` (see `human-gate-act.mjs`) is lifted: the sweep posts a visible
  * `[lisa-human-gate-lifted] reason=<slug>` comment saying why, removes the
  * human-needed marker, and moves the item to the build-ready role.
  *
  * This is not a forged human release. A release records a person's answer; a
  * lift records that there was no question a person had to answer. A valid
- * hold — a credential, spend, a sign-off — is never lifted and still waits for
- * its act. A label-only hold (access blocked, a blocked verdict) has no
+ * hold — a credential, spend, a legal signature — is never lifted and still
+ * waits for its act. Pass `humanGateMode` (`humanGate.mode`) alongside
+ * `humanOnly`: under `"strict"` a pre-#4687 gate such as naming an accountable
+ * person is valid and kept; omitted, the default `access-only` mode lifts it
+ * (CodySwannGT/lisa#4687). A label-only hold (access blocked, a blocked verdict) has no
  * declared reason to judge and is never lifted either.
  * @module human-gate-lift
  */
@@ -42,8 +45,9 @@ export function formatHumanGateLift(lift = {}) {
   return [
     declaration,
     `Hold lifted: ${named} is a decision an agent can make, not an act only a ` +
-      "person can perform (a credential, spend, an external account, a legal " +
-      "sign-off, or a system the agent cannot reach), so this item is back in " +
+      "person can perform (a login or credential, spend, an external account, " +
+      "a legal signature, an account only a person holds, or a system the " +
+      "agent cannot reach), so this item is back in " +
       "the build queue and whoever builds it decides and records the call; " +
       "the description is unchanged.",
   ].join("\n");
@@ -64,6 +68,7 @@ export function formatHumanGateLift(lift = {}) {
  *   trustedHumanActorIds?: unknown
  *   humanNeededLabel?: unknown
  *   humanOnly?: unknown
+ *   humanGateMode?: unknown
  *   readyLabel?: unknown
  *   lifecycleLabels?: unknown
  * }} input - Candidate surfaces plus lane vocabulary and project policy
@@ -75,7 +80,9 @@ export function planHumanGateLift(input = {}) {
     addReadyLabel: null,
   });
   const verdict = humanGateVerdict(input);
-  const liftable = new Set(invalidHumanGateHolds(input.body, input.humanOnly));
+  const liftable = new Set(
+    invalidHumanGateHolds(input.body, input.humanOnly, input.humanGateMode)
+  );
   const toLift = verdict.outstanding.filter(reason => liftable.has(reason));
   const kept = verdict.outstanding.filter(reason => !toLift.includes(reason));
   const comments = toLift.map(reason => formatHumanGateLift({ reason }));

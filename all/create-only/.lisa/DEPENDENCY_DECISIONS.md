@@ -60,16 +60,17 @@ and are called out as such; do not go looking for them in this repository.
   ecosystem primitive, fast-moving standard implementation, build/development
   tool, runtime-critical service client, thin wrapper suitable for in-house
   ownership, and temporary/experimental dependency. Sign-off rules differ by
-  class and by moment: a **runtime-critical service client** needs a human
-  sign-off to be added and at every major upgrade; a **temporary/experimental
+  class and by moment: a **runtime-critical service client** needs sign-off to
+  be added and at every major upgrade; a **temporary/experimental
   dependency** needs none to be added — moving fast is the point — but must
   carry a written expiry date no more than one quarter out and a named exit, and
-  then needs sign-off to extend past that date or to promote it. A project that
-  wants no dependency to wait on a person (the `dependencies.humanSignOff`
-  setting) sets
-  `"dependencies": { "humanSignOff": "none" }` in `.lisa.config.json`; every
-  sign-off above is then dropped, while the trust class and its evidence are
-  still required. The full
+  then needs sign-off to extend past that date or to promote it. **By default
+  your coding agent gives that sign-off itself**: it ratifies the dependency,
+  writes its reasoning into the entry, and a person can reverse it by editing
+  the entry. A person signs off instead only when `.lisa.config.json` sets
+  `"humanGate": { "mode": "strict" }` or
+  `"dependencies": { "humanSignOff": "default" }`. In every setting the trust
+  class and its evidence are still required. The full
   definitions, with the evidence each class demands, are at
   `node_modules/@codyswann/lisa/plugins/lisa/rules/reference/dependency-trust-classes.md`.
   Your coding agent already has these loaded, so "which trust class is this, and
@@ -119,9 +120,9 @@ and it is exactly why the escalations below matter.
 
 ## When to escalate
 
-Reading an entry should end in a decision. Raise these to an owner rather than
-letting them sit — each one means the project is carrying a risk nobody has
-accepted on purpose:
+Reading an entry should end in a decision. Resolve these rather than letting
+them sit — each one means the project is carrying a risk nobody has accepted on
+purpose:
 
 - **Nothing would catch a bad update.** The detection-evidence field says
   "nothing would catch it". We are trusting the dependency blind.
@@ -137,7 +138,9 @@ the answer was bad.
 
 When `dependencies.humanSignOff` is `"none"`, the agent resolves the
 escalation itself — reclassify, replace, remove, or accept — and records the decision and
-its reason in the entry.
+its reason in the entry. That is the default; a person can reverse the decision
+by editing the entry. Under `humanGate.mode: "strict"` or `humanSignOff: "default"`,
+the escalation goes to the accountable owner instead.
 
 ## What each field means
 

@@ -665,7 +665,8 @@ with:
 
 **Note**: quality.yml's `approval_gate` job only records an audit artifact; it
 does not pause the run. Do not pass `require_approval` or `approval_environment`
-to this quality.yml example. For an enforced human gate, pass those inputs to
+to this quality.yml example. For an approval that must come from a person's
+account (a protected-environment required reviewer), pass those inputs to
 release.yml and create the environment in **Settings** > **Environments** first
 (or declare it under `github.environments` in `.lisa.config.json` and run
 `/lisa:setup:github-repo`).

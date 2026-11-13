@@ -38,6 +38,7 @@ import {
   loadProject,
   validOrAbsent,
 } from "./cli-runtime.mjs";
+import { resolveHumanGatePolicy } from "../../../scripts/human-gate-act.mjs";
 import { readJsonFile } from "./json-input.mjs";
 import { readLedger } from "./ledger.mjs";
 import { blockingGapRepo, listSetupGaps } from "./ledger-setup-gaps.mjs";
@@ -185,11 +186,16 @@ export async function queue(ctx) {
   const ledger = await readLedger(ctx.root);
   const me = ctx.values.me ?? ledger.control.me ?? null;
   const operators = config?.operatorIds ?? [];
+  // Resolved local-then-global like `human-gate-act.mjs policy`, so a hold
+  // the project's mode keeps is never dispatched as Ready work (#4687).
+  const gatePolicy = resolveHumanGatePolicy(project.local, project.global);
   const policy = {
     me,
     operators,
     trustedAuthorIds: config?.trustedAuthorIds ?? undefined,
     humanNeededLabel: humanNeededLabel(project, tracker),
+    humanOnly: gatePolicy.humanOnly,
+    humanGateMode: gatePolicy.mode,
   };
   const waiting = pendingRefs(ledger);
   const gaps = ledger.control.setupGaps;

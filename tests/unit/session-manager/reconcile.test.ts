@@ -129,8 +129,42 @@ describe("planBlockedRelease", () => {
     }
   });
 
-  it("escalates a NOT_PLANNED blocker even when its code is contained", () => {
+  // CodySwannGT/lisa#4687: whether the item still makes sense without a
+  // cancelled blocker is a decision, and under the default access-only mode
+  // the agent makes it. Only strict relays it to a person.
+  it("asks the agent to decide a NOT_PLANNED blocker under access-only", () => {
     const plan = planBlockedRelease({ ...base, edges: [SHIPPED, CANCELLED] });
+    expect(plan.action).toBe("decide");
+    expect(plan.reason).toMatch(/re-scope/u);
+    expect(plan.reason).toMatch(/drop the edge/u);
+    expect(plan.reason).toMatch(/close the item/u);
+    expect(plan.reason).toMatch(/Decision:/u);
+    expect(plan.reason).not.toMatch(/human decision/u);
+    expect(plan.edges.map(one => one.action)).toEqual(["dissolve", "escalate"]);
+  });
+
+  it("relays a NOT_PLANNED blocker to a person under strict", () => {
+    const plan = planBlockedRelease({
+      ...base,
+      edges: [SHIPPED, CANCELLED],
+      humanGateMode: "strict",
+    });
+    expect(plan.action).toBe("escalate");
+    expect(plan.reason).toMatch(/need a human decision/u);
+  });
+
+  it("never asks the agent to decide an unknown containment", () => {
+    const plan = planBlockedRelease({ ...base, edges: [CANCELLED, UNKNOWN] });
+    expect(plan.action).toBe("escalate");
+    expect(plan.reason).toMatch(/containment could not be computed/u);
+  });
+
+  it("escalates a NOT_PLANNED blocker even when its code is contained (strict)", () => {
+    const plan = planBlockedRelease({
+      ...base,
+      edges: [SHIPPED, CANCELLED],
+      humanGateMode: "strict",
+    });
     expect(plan.action).toBe("escalate");
     expect(plan.edges.map(one => one.action)).toEqual(["dissolve", "escalate"]);
     expect(plan.edges[1]?.reason).toMatch(/NOT PLANNED/u);

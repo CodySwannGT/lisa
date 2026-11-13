@@ -11,6 +11,7 @@ import {
   AUTOMATION_RUN_OUTCOMES,
   recordAutomationRun,
 } from "../../../scripts/automation-run-record.mjs";
+import { resolveHumanGatePolicy } from "../../../scripts/human-gate-act.mjs";
 import { idComparableValues } from "../../../scripts/operator-id-kinds.mjs";
 import {
   CliError,
@@ -240,6 +241,11 @@ export async function route(ctx) {
  * carried beside them would let the item's text vouch for itself. The
  * release check compares account ids only, so an `id:` entry reaches it as
  * its bare value and a `login:` entry not at all (#4623).
+ *
+ * The human-gate policy (`humanGate.mode`, `humanGate.humanOnly`) comes from
+ * config the same way, resolved local-then-global like
+ * `human-gate-act.mjs policy`, and any copy in the input is overwritten: the
+ * item must not be able to declare its own hold invalid (#4687).
  * @param {object} ctx - CLI context
  * @returns {Promise<{ json: object }>} `{action,reason,edges,gate}`
  */
@@ -255,9 +261,12 @@ export async function blockedPlan(ctx) {
   const trustedHumanActorIds = idComparableValues(
     project.config?.trustedAuthorIds
   );
+  const policy = resolveHumanGatePolicy(project.local, project.global);
   return {
     json: planBlockedRelease({
       ...input,
+      humanOnly: policy.humanOnly,
+      humanGateMode: policy.mode,
       // The configured label, so a Jira `Human Needed` hold is still a hold.
       humanNeededLabel:
         input.humanNeededLabel ?? humanNeededLabel(project, undefined),

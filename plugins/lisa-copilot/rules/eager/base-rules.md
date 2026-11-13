@@ -37,7 +37,7 @@ Do not begin with blockers, ambiguities, access requirements, or unanswered ques
 ## Git Discipline
 
 - **Never use `--no-verify`** or bypass any git hook.
-- When a hook or quality gate fails, fix the root cause first. If no fix is genuinely possible, ask the user to make the risk-acceptance decision and add a specific documented ignore; never use a blanket bypass.
+- When a hook or quality gate fails, fix the root cause first. If no fix is possible, accept the risk yourself, record why (strict mode: ask the user), and add a specific documented ignore; never a blanket bypass.
 - **Never bypass branch protection** — no `--admin`, `--force`, no merging a PR with failing CI. "Green in CI" is the definition of done.
 - Never commit directly to environment branches (`dev`, `staging`, `main`).
 - **Never use plain `git push --force`.** When a history rewrite is explicitly approved, use `--force-with-lease`; prefer the SHA-bound form `--force-with-lease=<ref>:<sha>`, where `<sha>` is the exact remote tip the approval covered.

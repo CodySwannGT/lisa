@@ -2,6 +2,22 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [4.110.0](https://github.com/CodySwannGT/lisa/compare/v4.109.2...v4.110.0) (2026-11-13)
+
+
+### Features
+
+* **human-gate:** agents perform every act they have access to ([766be23](https://github.com/CodySwannGT/lisa/commit/766be23187389a5e3f4ebeda631bbf61bd7a70a0)), closes [CodySwannGT/lisa#4687](https://github.com/CodySwannGT/lisa/issues/4687) [CodySwannGT/lisa#4687](https://github.com/CodySwannGT/lisa/issues/4687)
+
+
+### Bug Fixes
+
+* **human-gate:** address local review — operator holds, fail-safe config ([29db091](https://github.com/CodySwannGT/lisa/commit/29db09169d703cca43d8d776f8eaef07da6737aa)), closes [CodySwannGT/lisa#4687](https://github.com/CodySwannGT/lisa/issues/4687) [CodySwannGT/lisa#4687](https://github.com/CodySwannGT/lisa/issues/4687)
+* **human-gate:** declare the queue orderer's policy options in its JSDoc ([21a5d25](https://github.com/CodySwannGT/lisa/commit/21a5d250afa004d8320061d6c28e7a51c42a53be)), closes [CodySwannGT/lisa#4687](https://github.com/CodySwannGT/lisa/issues/4687) [CodySwannGT/lisa#4687](https://github.com/CodySwannGT/lisa/issues/4687)
+* **human-gate:** let agents make the remaining reserved decisions ([95e8b19](https://github.com/CodySwannGT/lisa/commit/95e8b19c7b8da210274374067fdd6bf080c42199)), closes [CodySwannGT/lisa#4687](https://github.com/CodySwannGT/lisa/issues/4687) [CodySwannGT/lisa#4687](https://github.com/CodySwannGT/lisa/issues/4687)
+* **usage:** match the reader's exact Linear ref grammar ([443796d](https://github.com/CodySwannGT/lisa/commit/443796d4e3ebc648b6471feea8935ca397253d16)), closes [CodySwannGT/lisa#4699](https://github.com/CodySwannGT/lisa/issues/4699) [CodySwannGT/lisa#4699](https://github.com/CodySwannGT/lisa/issues/4699)
+* **usage:** refuse short linear:<KEY> artifact_ref at write time ([5b291ca](https://github.com/CodySwannGT/lisa/commit/5b291ca470e303d52bb99af005c0391552d6805a)), closes [CodySwannGT/lisa#4699](https://github.com/CodySwannGT/lisa/issues/4699) [CodySwannGT/lisa#4699](https://github.com/CodySwannGT/lisa/issues/4699)
+
 ### [4.109.2](https://github.com/CodySwannGT/lisa/compare/v4.109.1...v4.109.2) (2026-11-13)
 
 
