@@ -5,7 +5,10 @@
 import { posix } from "node:path";
 import { requireProof } from "./github-attestation-verifier.mjs";
 
-const FILES = ["package-lock.json", "package.json"];
+const MANIFEST = "package.json";
+const NPM_LOCK = "package-lock.json";
+const BUN_LOCK = "bun.lock";
+const FILES = [NPM_LOCK, MANIFEST];
 const DESCRIPTOR_KEYS = [
   "author",
   "claimCommentId",
@@ -133,7 +136,7 @@ export function signedProposalFields(value) {
 function cohortNames(value) {
   optionalDirectoryFields(value);
   return [
-    ...(optionalLockFields(value).length ? ["bun.lock"] : []),
+    ...(optionalLockFields(value).length ? [BUN_LOCK] : []),
     ...FILES.map(file => npmPath(value, file)),
   ];
 }
@@ -153,16 +156,16 @@ export function installInputs(value) {
 /** Committed history paths in their historical order; the root command string never changes. */
 export function historyPaths(value) {
   return [
-    npmPath(value, "package.json"),
-    npmPath(value, "package-lock.json"),
-    ...(optionalLockFields(value).length ? ["bun.lock"] : []),
+    npmPath(value, MANIFEST),
+    npmPath(value, NPM_LOCK),
+    ...(optionalLockFields(value).length ? [BUN_LOCK] : []),
   ];
 }
 
 /** A subdirectory is npm-only: its own Bun lock must be absent, and the root one is outside its scope. */
 export function directoryBunAbsent(value, git, absent) {
   if (directoryOf(value) === ".") return false;
-  const lock = npmPath(value, "bun.lock");
+  const lock = npmPath(value, BUN_LOCK);
   requireProof(
     git(["ls-tree", "HEAD", "--", lock]) === "" && absent(lock),
     "subdirectory Bun lock is unsupported"
@@ -172,14 +175,12 @@ export function directoryBunAbsent(value, git, absent) {
 
 /** The closed cohort a recorded hash map must have: root two/three files or one directory's two. */
 export function hashCohort(hashes) {
-  const lock = Object.keys(hashes ?? {}).find(name =>
-    name.endsWith("package-lock.json")
-  );
+  const lock = Object.keys(hashes ?? {}).find(name => name.endsWith(NPM_LOCK));
   const directory =
-    lock === undefined || lock === "package-lock.json"
+    lock === undefined || lock === NPM_LOCK
       ? "."
-      : lock.slice(0, -"/package-lock.json".length);
-  const bun = Object.hasOwn(hashes ?? {}, "bun.lock");
+      : lock.slice(0, -(NPM_LOCK.length + 1));
+  const bun = Object.hasOwn(hashes ?? {}, BUN_LOCK);
   return proposalFileNames({
     directory,
     files: hashes,
@@ -272,12 +273,10 @@ export function trustedConfiguration(git) {
 
 /** Updates must be exactly the declared direct npm version changes. */
 export function npmProposal(descriptor, git) {
-  const manifest = npmPath(descriptor, "package.json");
+  const manifest = npmPath(descriptor, MANIFEST);
   const before = JSON.parse(git(["show", `HEAD:${manifest}`]));
   const after = JSON.parse(git(["show", `:${manifest}`]));
-  const lock = JSON.parse(
-    git(["show", `:${npmPath(descriptor, "package-lock.json")}`])
-  );
+  const lock = JSON.parse(git(["show", `:${npmPath(descriptor, NPM_LOCK)}`]));
   requireProof(
     [2, 3].includes(lock.lockfileVersion) && lock.packages?.[""],
     "unsupported npm lock"

@@ -33,7 +33,7 @@
       "children": []
     },
     "lib/automation-provenance-contract.mjs": {
-      "sha256": "02014b710abfb8d6a3cb3e58708c98b7d60dd6cfe1c59d4ec8f117e3d012ef73",
+      "sha256": "7c24a2eabd4c56d46ad6d2b5c14b4a4d033d58fee08b87dfbd5d054818b7ab35",
       "staticImports": [
         "lib/github-attestation-verifier.mjs",
         "node:path"

@@ -7,7 +7,6 @@
  * npm-only: it names its own two files, signs its directory, and never reads
  * or binds the root Bun lock.
  */
-import { execFileSync } from "node:child_process";
 import {
   mkdirSync,
   readFileSync,
@@ -19,7 +18,11 @@ import {
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { parse } from "yaml";
-import { useIoLatencyBudget } from "../../helpers/io-latency-budget.js";
+import {
+  boundedExecFileSync,
+  useIoLatencyBudget,
+} from "../../helpers/io-latency-budget.js";
+import { resolveGit } from "../../support/git-executable.js";
 import {
   proposalFrom,
   selectPolicy,
@@ -54,6 +57,7 @@ import {
 
 useIoLatencyBudget();
 const EXTERNALS = "externals";
+const GIT = resolveGit();
 const GIT_NAME = "user.name=Fixture";
 const GIT_EMAIL = "user.email=fixture@example.test";
 const MANIFEST_FILE = "package.json";
@@ -634,7 +638,13 @@ describe("hook-side subdirectory staged cohort", () => {
       const valid = await stagedReadback(cwd, env, preview);
       expect(valid.code, valid.stderr.toString()).toBe(0);
       const show = (args: string[]) =>
-        execFileSync("git", args, { cwd, env }).toString();
+        boundedExecFileSync({
+          label: "read the staged externals proposal",
+          command: GIT,
+          args,
+          cwd,
+          env,
+        });
       expect(() => npmProposal(preview.descriptor, show)).not.toThrow();
       const checkpoint = {
         digest: sha256(`${canonicalJson(preview.descriptor)}\n`),
