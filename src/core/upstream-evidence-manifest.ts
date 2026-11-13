@@ -3588,6 +3588,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "docs/rails-tooling-migration.md": true,
     "docs/release-runbook.md": true,
     "docs/remote-agent-aws.md": true,
+    "docs/test-audit-2026-11.data.json": true,
+    "docs/test-audit-2026-11.md": true,
     "docs/wiki-inbox/.gitkeep": true,
     "docs/wiki-inbox/2026-08-12-lisa-improvement-notes.md": true,
     "eager-rules.thresholds.json": true,
