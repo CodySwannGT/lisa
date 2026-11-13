@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [5.1.3](https://github.com/CodySwannGT/lisa/compare/v5.1.2...v5.1.3) (2026-11-13)
+
+
+### Bug Fixes
+
+* **implement:** cap each deploy watch at the remaining ceiling time ([9df69f3](https://github.com/CodySwannGT/lisa/commit/9df69f3f45a1463b2e479380a062cc7a28edcf85)), closes [#4866](https://github.com/CodySwannGT/lisa/issues/4866) [CodySwannGT/lisa#4762](https://github.com/CodySwannGT/lisa/issues/4762) [CodySwannGT/lisa#4762](https://github.com/CodySwannGT/lisa/issues/4762)
+* **implement:** judge a concluded deploy run before the ceiling check ([41b96e1](https://github.com/CodySwannGT/lisa/commit/41b96e1392d2d1c1edafbce3db736a97549ea14b)), closes [#4866](https://github.com/CodySwannGT/lisa/issues/4866) [CodySwannGT/lisa#4762](https://github.com/CodySwannGT/lisa/issues/4762) [CodySwannGT/lisa#4762](https://github.com/CodySwannGT/lisa/issues/4762)
+* **implement:** never route a missing deploy run to a fix PR ([a16ef40](https://github.com/CodySwannGT/lisa/commit/a16ef40b857bb3248945d939480643e2b925d0c3)), closes [#4866](https://github.com/CodySwannGT/lisa/issues/4866) [CodySwannGT/lisa#4762](https://github.com/CodySwannGT/lisa/issues/4762) [CodySwannGT/lisa#4762](https://github.com/CodySwannGT/lisa/issues/4762)
+* **implement:** route every deploy outcome in step 10 explicitly ([909f1ef](https://github.com/CodySwannGT/lisa/commit/909f1efc55d90cb8355f1cea6eccd3e2dbedea69)), closes [#4866](https://github.com/CodySwannGT/lisa/issues/4866) [CodySwannGT/lisa#4762](https://github.com/CodySwannGT/lisa/issues/4762) [CodySwannGT/lisa#4762](https://github.com/CodySwannGT/lisa/issues/4762)
+* **implement:** wait on the deploy in the foreground, never a background watcher ([a8c8492](https://github.com/CodySwannGT/lisa/commit/a8c8492d0065157d7f5396ca7f70ce3efdff3772)), closes [CodySwannGT/lisa#4762](https://github.com/CodySwannGT/lisa/issues/4762) [CodySwannGT/lisa#4762](https://github.com/CodySwannGT/lisa/issues/4762)
+* **implement:** watch step 8's confirmed deploy run with a portable bound ([dac06a2](https://github.com/CodySwannGT/lisa/commit/dac06a26c81a131f7e56106a9dd06763b692ad9f)), closes [CodySwannGT/lisa#4762](https://github.com/CodySwannGT/lisa/issues/4762) [CodySwannGT/lisa#4762](https://github.com/CodySwannGT/lisa/issues/4762)
+
 ### [5.1.2](https://github.com/CodySwannGT/lisa/compare/v5.1.1...v5.1.2) (2026-11-13)
 
 
