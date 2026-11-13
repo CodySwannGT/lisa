@@ -165,7 +165,7 @@ describe("all-only npm host controller materialization", () => {
       expect(graph).toHaveProperty(
         join(cwd, "scripts/lib/npm-update-checkpoint-codec.mjs")
       );
-      expect(managedTemplateMembers().size).toBe(125);
+      expect(managedTemplateMembers().size).toBe(126);
     },
     ioLatencyBudgetMs(30_000)
   );
