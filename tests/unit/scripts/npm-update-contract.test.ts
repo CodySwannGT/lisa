@@ -1018,7 +1018,7 @@ describe("complete authenticated helper closure", () => {
     const bytes = new Map<string, Buffer>();
     for (const member of members)
       bytes.set(member, await helperAuditSource(member));
-    expect(members.length).toBe(128);
+    expect(members.length).toBe(129);
     const completionMembers = [
       "lib/completion-authorization.mjs",
       "lib/completion-proof-adapters.mjs",
@@ -1033,6 +1033,7 @@ describe("complete authenticated helper closure", () => {
       "lib/completion-proof-reader.mjs",
       "lib/completion-proof-shape.mjs",
       "lib/completion-proof-source.mjs",
+      "lib/evidence-release-capacity.mjs",
       "lib/usage-artifact-ref.mjs",
       "lib/usage-effectiveness.mjs",
       "lib/usage-ledger-integrity.mjs",

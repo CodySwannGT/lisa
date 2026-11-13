@@ -2,6 +2,39 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.109.2](https://github.com/CodySwannGT/lisa/compare/v4.109.1...v4.109.2) (2026-11-13)
+
+
+### Bug Fixes
+
+* **evidence:** honor LISA_EVIDENCE_RELEASE on publish and roll a full release over ([bca5f5e](https://github.com/CodySwannGT/lisa/commit/bca5f5eb10c7307559844778b648fae94a987010)), closes [#4838](https://github.com/CodySwannGT/lisa/issues/4838) [#4838](https://github.com/CodySwannGT/lisa/issues/4838) [CodySwannGT/lisa#4838](https://github.com/CodySwannGT/lisa/issues/4838)
+* **evidence:** keep journey links on the overflow release and name over-long releases ([c27b9e4](https://github.com/CodySwannGT/lisa/commit/c27b9e4621d6b41e5ab53ab46a4b82dac704b427)), closes [#4838](https://github.com/CodySwannGT/lisa/issues/4838) [CodySwannGT/lisa#4838](https://github.com/CodySwannGT/lisa/issues/4838)
+* **evidence:** refuse links into another release and tailor full-release advice ([4c90cb0](https://github.com/CodySwannGT/lisa/commit/4c90cb0803de414b9587849f6a0f5e716c0ecdf8)), closes [#4838](https://github.com/CodySwannGT/lisa/issues/4838) [CodySwannGT/lisa#4838](https://github.com/CodySwannGT/lisa/issues/4838)
+* **evidence:** register the release capacity helper and satisfy repo scans ([b525d8d](https://github.com/CodySwannGT/lisa/commit/b525d8dcb7adb5d99ac0eb21060ae1b3db8993b3)), closes [#4838](https://github.com/CodySwannGT/lisa/issues/4838) [CodySwannGT/lisa#4838](https://github.com/CodySwannGT/lisa/issues/4838)
+* **evidence:** walk past gaps when the prune re-reads overflow releases ([f4339e8](https://github.com/CodySwannGT/lisa/commit/f4339e809f824002cd619025313a5bac3d7d9a6f)), closes [#4838](https://github.com/CodySwannGT/lisa/issues/4838) [CodySwannGT/lisa#4838](https://github.com/CodySwannGT/lisa/issues/4838)
+
+### [4.109.1](https://github.com/CodySwannGT/lisa/compare/v4.109.0...v4.109.1) (2026-11-13)
+
+## [4.109.0](https://github.com/CodySwannGT/lisa/compare/v4.108.3...v4.109.0) (2026-11-13)
+
+
+### Features
+
+* **cli:** add learnings-retire gate command ([e440b8f](https://github.com/CodySwannGT/lisa/commit/e440b8f2194f289a59ef733d7561ff7ee237cd33)), closes [CodySwannGT/lisa#4536](https://github.com/CodySwannGT/lisa/issues/4536) [CodySwannGT/lisa#4536](https://github.com/CodySwannGT/lisa/issues/4536)
+
+
+### Bug Fixes
+
+* **learnings:** let shrink-only writers open an over-cap ledger and add retireLearningEntry ([0603e32](https://github.com/CodySwannGT/lisa/commit/0603e32fb1db43dc3d5d9a871f10b669dbbafd49))
+* **learnings:** refuse an over-cap supersede that would exceed the read ceiling ([e7db932](https://github.com/CodySwannGT/lisa/commit/e7db93250ff172abeaad55d69a8678b070c9a133)), closes [CodySwannGT/lisa#4536](https://github.com/CodySwannGT/lisa/issues/4536) [CodySwannGT/lisa#4536](https://github.com/CodySwannGT/lisa/issues/4536)
+* **learnings:** require a removal for over-cap supersede, report stale before render ([1f18f4f](https://github.com/CodySwannGT/lisa/commit/1f18f4fbe8d4581e7b9c0dac06be0a9ab2bba0de)), closes [CodySwannGT/lisa#4536](https://github.com/CodySwannGT/lisa/issues/4536) [CodySwannGT/lisa#4536](https://github.com/CodySwannGT/lisa/issues/4536)
+* **learnings:** share one over-budget definition between retire and supersede ([4ae8151](https://github.com/CodySwannGT/lisa/commit/4ae81514a6773775988ed3109c4c121c50c94a9a)), closes [CodySwannGT/lisa#4536](https://github.com/CodySwannGT/lisa/issues/4536) [CodySwannGT/lisa#4536](https://github.com/CodySwannGT/lisa/issues/4536)
+
+
+### Documentation
+
+* **learnings-audit:** name the retire tool in the RETIRE batch contract ([1a400a7](https://github.com/CodySwannGT/lisa/commit/1a400a71a562776140dc277c59e8be05bb64ca8c)), closes [CodySwannGT/lisa#4536](https://github.com/CodySwannGT/lisa/issues/4536) [CodySwannGT/lisa#4536](https://github.com/CodySwannGT/lisa/issues/4536)
+
 ### [4.108.3](https://github.com/CodySwannGT/lisa/compare/v4.108.2...v4.108.3) (2026-11-13)
 
 
