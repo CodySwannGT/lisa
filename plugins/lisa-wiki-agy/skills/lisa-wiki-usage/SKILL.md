@@ -30,11 +30,9 @@ On **Claude** these are slash commands; on **Codex** invoke the same skills from
 
 - **Find or answer something:** `/query "<your question>"` (Codex: `$lisa-wiki-query`) — read-only by
   default; returns a cited answer drawn from the wiki. Or browse `wiki/index.md` manually.
-- **Get oriented as a new user:** `/onboard-me` (Codex: `$lisa-wiki-onboard-me`) — a guided tour plus
-  sample questions tuned to your role.
 - **Add knowledge:** `/ingest <url|file|prompt>` (Codex: `$lisa-wiki-ingest`) for a single source, or
   `/ingest` with no argument for a full ingest across all enabled **non-external-write** sources
-  (external-write sources like Slack OAuth require explicit intent). Do not hand-edit synthesis pages
+  (external-write sources require explicit intent). Do not hand-edit synthesis pages
   to add facts — route them through `/ingest` so provenance, the index, and the log stay consistent.
 - **Check the wiki's health:** `/lint` (Codex: `$lisa-wiki-lint`) — orphans, contradictions, stale
   claims, broken links.
@@ -47,4 +45,4 @@ trusting it. Weak or unverified material belongs in `wiki/open-questions/`, not 
 
 ## Related skills
 
-`lisa-wiki-ingest`, `lisa-wiki-query`, `lisa-wiki-lint`, `lisa-wiki-onboard-me`, `lisa-wiki-setup`.
+`lisa-wiki-ingest`, `lisa-wiki-query`, `lisa-wiki-lint`, `lisa-wiki-setup`.

@@ -1,4 +1,4 @@
 display_name: "Track"
-short_description: "Resolves exactly one live…"
+short_description: "Find or create exactly one live…"
 default_prompt:
-  - "Use $lisa-track: Resolves exactly one live…."
+  - "Use $lisa-track: Find or create exactly one live…."

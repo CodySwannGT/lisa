@@ -1,4 +1,4 @@
 display_name: "Improve Harness"
-short_description: "Investigate ONE failed or expensive factory trajectory and prove whether a fix helped"
+short_description: "Investigate one failed or expensive factory trajectory, find where it first went wrong, make the smallest fix at the right owner, and rerun…"
 default_prompt:
-  - "Use $lisa-improve-harness: Investigate ONE failed or expensive factory trajectory and prove whether a fix helped."
+  - "Use $lisa-improve-harness: Investigate one failed or expensive factory trajectory, find where it first went wrong, make the smallest fix at the right owner, and rerun…."

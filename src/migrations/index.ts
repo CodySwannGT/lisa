@@ -18,7 +18,7 @@ import { EnsureRequiredHistorySecretGateMigration } from "./ensure-required-hist
 import { EnsureSonarExcludesLisaHarnessMigration } from "./ensure-sonar-excludes-lisa-harness.js";
 import { EnsureThirdPartyActionPinsMigration } from "./ensure-third-party-action-pins.js";
 import { EnsureTsconfigLocalFilesFallbackMigration } from "./ensure-tsconfig-local-files-fallback.js";
-import { EnsureWikiSourceDeclaredMigration } from "./ensure-wiki-source-declared.js";
+import { EnsureKnowledgeRoleMigration } from "./ensure-knowledge-role.js";
 import { EnsureTsconfigLocalIncludesMigration } from "./ensure-tsconfig-local-includes.js";
 import { PruneRetiredClaudeDenyRulesMigration } from "./prune-retired-claude-deny-rules.js";
 import { PruneRetiredClaudeStackPluginKeysMigration } from "./prune-retired-claude-stack-plugin-keys.js";
@@ -59,7 +59,7 @@ export { EnsureRequiredHistorySecretGateMigration } from "./ensure-required-hist
 export { EnsureSonarExcludesLisaHarnessMigration } from "./ensure-sonar-excludes-lisa-harness.js";
 export { EnsureThirdPartyActionPinsMigration } from "./ensure-third-party-action-pins.js";
 export { EnsureTsconfigLocalFilesFallbackMigration } from "./ensure-tsconfig-local-files-fallback.js";
-export { EnsureWikiSourceDeclaredMigration } from "./ensure-wiki-source-declared.js";
+export { EnsureKnowledgeRoleMigration } from "./ensure-knowledge-role.js";
 export { EnsureTsconfigLocalIncludesMigration } from "./ensure-tsconfig-local-includes.js";
 export { PruneRetiredClaudeDenyRulesMigration } from "./prune-retired-claude-deny-rules.js";
 export { PruneRetiredClaudeStackPluginKeysMigration } from "./prune-retired-claude-stack-plugin-keys.js";
@@ -101,7 +101,7 @@ export class MigrationRegistry {
       new PreserveVerificationOptInsMigration(),
       new EnsureSonarExcludesLisaHarnessMigration(),
       new EnsureThirdPartyActionPinsMigration(),
-      new EnsureWikiSourceDeclaredMigration(),
+      new EnsureKnowledgeRoleMigration(),
       new PruneRetiredClaudeDenyRulesMigration(),
       new PruneRetiredEntireHooksMigration(),
       new ReconcileClaudeStackPluginsMigration(),

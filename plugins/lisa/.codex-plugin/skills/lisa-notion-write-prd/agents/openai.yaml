@@ -1,4 +1,4 @@
 display_name: "Notion Write PRD"
-short_description: "Creates or idempotently updates…"
+short_description: "Create or update a PRD page in…"
 default_prompt:
-  - "Use $lisa-notion-write-prd: Creates or idempotently updates…."
+  - "Use $lisa-notion-write-prd: Create or update a PRD page in…."

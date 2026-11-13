@@ -1,6 +1,6 @@
 ---
 name: lisa-tracker-validate
-description: "Vendor-neutral wrapper for the pre-write quality gate. Reads the required `tracker` from .lisa.config.json and dispatches to lisa-jira-validate-ticket, lisa-github-validate-issue, or lisa-linear-validate-issue. Read-only — never writes to any tracker. Used by tracker-write Phase 5.5 (pre-write gate), tracker-verify (post-write checks), and the *-to-tracker dry-run paths. Output is structured PASS/FAIL per gate so callers can parse it."
+description: "Check a proposed or existing ticket against the organization's quality gates in whichever tracker the project uses, and return PASS/FAIL per gate. Read-only. Used before writes and in dry runs."
 allowed-tools: ["Skill", "Bash", "Read"]
 ---
 

@@ -1,8 +1,8 @@
 ---
 name: harper-realtime
-description: "adding or troubleshooting…"
+description: "Add or troubleshoot Harper…"
 ---
-This skill should be used when adding or troubleshooting Harper (HarperDB/Fabric) real-time behavior: MQTT topics, WebSocket resource subscriptions, resource publish/subscribe handlers, SSE-style streaming routes, and local subscriber verification. Pairs with harper-resources, harper-config-yaml, harper-schema-graphql, and harper-build-and-deploy.
+Add or troubleshoot Harper (HarperDB/Fabric) real-time behavior: MQTT topics, WebSocket subscriptions, publish/subscribe handlers, streaming routes, and subscriber checks.
 
 
 # Harper Realtime

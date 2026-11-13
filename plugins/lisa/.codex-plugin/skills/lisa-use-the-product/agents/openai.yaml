@@ -1,4 +1,4 @@
 display_name: "Use The Product"
-short_description: "Shared methodology for actually…"
+short_description: "How to use a project's product…"
 default_prompt:
-  - "Use $lisa-use-the-product: Shared methodology for actually…."
+  - "Use $lisa-use-the-product: How to use a project's product…."

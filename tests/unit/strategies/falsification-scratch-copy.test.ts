@@ -62,10 +62,6 @@ const SURFACES: readonly Surface[] = [
     ],
   },
   {
-    rel: "rules/eager/verification.md",
-    shippedAs: ["/rules/eager/verification.md", "/rules/verification.mdc"],
-  },
-  {
     rel: "skills/lisa-codify-verification/SKILL.md",
     shippedAs: ["/skills/lisa-codify-verification/SKILL.md"],
   },

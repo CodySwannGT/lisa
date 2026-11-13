@@ -1,6 +1,6 @@
 ---
 name: lisa-spec-conformance
-description: "Verifies that shipped work matches its spec section-by-section — acceptance criteria, Out of Scope, Technical Approach, Validation Journey assertions, and any explicit deliverables. Builds a coverage matrix mapping each requirement to evidence, flags scope creep separately from misses, and produces a verdict (CONFORMS / PARTIAL / DIVERGES). Runs during the verification phase alongside empirical system verification."
+description: "Check that shipped work matches its spec section by section — acceptance criteria, Out of Scope, technical approach, journey, deliverables — with a coverage matrix and a CONFORMS / PARTIAL / DIVERGES verdict."
 allowed-tools: ["Read", "Glob", "Grep", "Bash", "Skill"]
 ---
 
@@ -135,6 +135,8 @@ Separately from the matrix, scan the diff for work NOT traceable to any requirem
 - Classify as `UNTRACEABLE_CHANGE` (not necessarily wrong — refactors often land here — but MUST be surfaced)
 
 Untraceable changes are not automatic failures. They become findings the human reviews.
+
+**Ownership fixes are not scope creep.** A change that fixes a real defect in code this work touches or depends on, and is listed in the PR description as such, is expected under the bounded ownership rule: classify it `OWNERSHIP_FIX` in the untraceable list, never `SCOPE_CREEP_VIOLATION`, and never count it against the verdict. Two exceptions still count: the fix lands in something the spec's Out of Scope names explicitly, or the PR does not list it (an unlisted fix is an ordinary `UNTRACEABLE_CHANGE`). Work on code the change neither touches nor depends on belongs in a ticket, not this PR.
 
 ## Phase 5 — Verdict
 

@@ -97,10 +97,10 @@ describe("usage-accounting skill contract", () => {
 
     expect(content).toContain('display_name: "Usage Accounting"');
     expect(content).toContain(
-      'short_description: "Shared usage-ledger utility for Lisa lifecycle flows and artifact writers"'
+      "short_description: \"Record token usage and refresh the canonical '## Lisa Usage' section"
     );
     expect(content).toContain(
-      '"Use $lisa-usage-accounting: Shared usage-ledger utility for Lisa lifecycle flows and artifact writers."'
+      "\"Use $lisa-usage-accounting: Record token usage and refresh the canonical '## Lisa Usage' section"
     );
   });
 });

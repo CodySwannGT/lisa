@@ -1,4 +1,4 @@
 display_name: "Jira Read Ticket"
-short_description: "Fetches the full scope of a JIRA ticket — metadata, description, acceptance criteria, all comments, remote links (PRs, Confluence…"
+short_description: "Fetch a JIRA ticket with everything related — comments, remote and issue links, epic, siblings, subtasks — so work is never done on a…"
 default_prompt:
-  - "Use $lisa-jira-read-ticket: Fetches the full scope of a JIRA ticket — metadata, description, acceptance criteria, all comments, remote links (PRs, Confluence…."
+  - "Use $lisa-jira-read-ticket: Fetch a JIRA ticket with everything related — comments, remote and issue links, epic, siblings, subtasks — so work is never done on a…."

@@ -1,4 +1,4 @@
 display_name: "Agent Design Best Practices"
-short_description: "Best practices for designing Claude Code agent files (.claude/agents/*.md)"
+short_description: "How to design Claude Code agent files (.claude/agents/*.md): focused domains, the right tools, reusable definitions, and capabilities kept…"
 default_prompt:
-  - "Use $lisa-agent-design-best-practices: Best practices for designing Claude Code agent files (.claude/agents/*.md)."
+  - "Use $lisa-agent-design-best-practices: How to design Claude Code agent files (.claude/agents/*.md): focused domains, the right tools, reusable definitions, and capabilities kept…."

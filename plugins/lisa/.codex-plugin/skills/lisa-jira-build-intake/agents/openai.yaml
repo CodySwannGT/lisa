@@ -1,4 +1,4 @@
 display_name: "Jira Build Intake"
-short_description: "Symmetric counterpart to…"
+short_description: "Run one cycle of the JIRA build…"
 default_prompt:
-  - "Use $lisa-jira-build-intake: Symmetric counterpart to…."
+  - "Use $lisa-jira-build-intake: Run one cycle of the JIRA build…."

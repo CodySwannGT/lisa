@@ -1,4 +1,4 @@
 display_name: "Debrief Apply"
-short_description: "Apply the dispositions marked…"
+short_description: "Apply the dispositions (accept…"
 default_prompt:
-  - "Use $lisa-debrief-apply: Apply the dispositions marked…."
+  - "Use $lisa-debrief-apply: Apply the dispositions (accept…."

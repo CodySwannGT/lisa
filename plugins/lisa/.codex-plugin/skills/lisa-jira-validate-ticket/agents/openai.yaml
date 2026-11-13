@@ -1,4 +1,4 @@
 display_name: "Jira Validate Ticket"
-short_description: "Validates a proposed JIRA…"
+short_description: "Check a proposed or existing…"
 default_prompt:
-  - "Use $lisa-jira-validate-ticket: Validates a proposed JIRA…."
+  - "Use $lisa-jira-validate-ticket: Check a proposed or existing…."

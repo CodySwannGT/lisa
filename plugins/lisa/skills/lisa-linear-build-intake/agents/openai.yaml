@@ -1,4 +1,4 @@
 display_name: "Linear Build Intake"
-short_description: "Symmetric counterpart to lisa-jira-build-intake on the Linear side"
+short_description: "Run one cycle of the Linear build queue: claim the first ready leaf issue, build it with lisa-implement, and mark it done"
 default_prompt:
-  - "Use $lisa-linear-build-intake: Symmetric counterpart to lisa-jira-build-intake on the Linear side."
+  - "Use $lisa-linear-build-intake: Run one cycle of the Linear build queue: claim the first ready leaf issue, build it with lisa-implement, and mark it done."

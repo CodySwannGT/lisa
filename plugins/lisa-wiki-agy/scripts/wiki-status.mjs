@@ -235,7 +235,7 @@ export function parseWikiSourceFreshness({
   staleAfterDays = DEFAULT_STALE_AFTER_DAYS,
 } = {}) {
   const { config, configPath: resolvedConfigPath } = loadConfig(configPath);
-  const resolvedWikiRoot = path.resolve(wikiRoot ?? config?.wikiRoot ?? "wiki");
+  const resolvedWikiRoot = path.resolve(wikiRoot ?? "wiki");
   const logPath = path.join(resolvedWikiRoot, "log.md");
   const logText = readTextSafe(logPath);
   const connectors = enabledConnectors(config);

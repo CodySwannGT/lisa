@@ -27,9 +27,9 @@ prose learning, rule section, or ledger entry into an **executable control**
 the implementing PR is governed by this contract. The gardener
 (`lisa-learnings-audit`) files the tickets build-ready by default, with its
 evidence and reasoning on each so a person can reverse it (a human gates them by
-flipping `status:ready` only under `humanGate.mode: "strict"`, or when the
-change lands on a human-authored surface); the factory implements them like any
-other work item. This rule
+flipping `status:ready` only for a promotion into the eager tier, when the change
+lands on a human-authored surface, or under `humanGate.mode: "strict"`); the
+factory implements them like any other work item. This rule
 is what makes the resulting PR reviewable **by rule, not by reviewer taste**.
 
 ## The atomic promote-and-delete contract

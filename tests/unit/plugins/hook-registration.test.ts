@@ -52,7 +52,7 @@ const NEW_HOOK = "block-nothing-at-all.sh";
 const AGY_ADAPTER = "block-no-verify.agy.sh";
 const HOST_NAME_ADAPTER = "block-host-name-leak.agy.sh";
 const ISSUE_GUARD = "block-direct-issue-create.sh";
-const CLAUDE_ONLY_HOOK = "enforce-team-first.sh";
+const CODEX_UNSHIPPED_HOOK = "ticket-sync-reminder.sh";
 const TRIVIAL_HOOK_BODY = "#!/usr/bin/env bash\nexit 0\n";
 
 /** Per-test temp roots, removed after each test. */
@@ -256,11 +256,11 @@ describe("hook registration audit", () => {
       const root = materializeFixture(tempRoots);
       addPreToolUseRegistration(
         path.join(root, CODEX_MANIFEST),
-        CLAUDE_ONLY_HOOK
+        CODEX_UNSHIPPED_HOOK
       );
       const result = auditHookRegistration(root);
-      const found = violationsFor(result, CLAUDE_ONLY_HOOK);
-      expect(kindsFor(result, CLAUDE_ONLY_HOOK)).toContain(
+      const found = violationsFor(result, CODEX_UNSHIPPED_HOOK);
+      expect(kindsFor(result, CODEX_UNSHIPPED_HOOK)).toContain(
         "ship-list-contradiction"
       );
       expect(found[0]?.detail).toContain("unshipped for codex");

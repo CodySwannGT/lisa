@@ -1,8 +1,8 @@
 ---
 name: directory-structure
-description: "This skill enforces the…"
+description: "Where new files go in this…"
 ---
-This skill enforces the project's directory structure standards when creating or moving files. Use this skill when creating new components, screens, features, hooks, utilities, or any other code files to ensure they are placed in the correct location with proper naming conventions. Also use when reviewing file placement or restructuring code.
+Where new files go in this project and how they're named. Use when creating components, screens, features, hooks, or utilities, or when reviewing file placement or restructuring code.
 
 
 # Directory Structure Enforcement

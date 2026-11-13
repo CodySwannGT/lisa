@@ -1,5 +1,5 @@
 ---
-description: "Run one gardener cycle over this project's knowledge surfaces (the learnings ladder, PRD #1729): inventory ledger/rules/skills/wiki/mechanical controls, gather evidence, classify via the ladder router, and file tracker tickets — per-item PROMOTE/DEMOTE tickets, one CONFIRM/RETIRE batch ticket per run, upstream Lisa issues for upstream-scoped patterns. The run only files marker-deduped tickets: build-ready under the default humanGate.mode access-only (a change to a human-authored surface stays human-gated), human-gated under strict. Terminal states: nothing-needed | candidates-proposed | blocked."
+description: "Run one learnings-gardener cycle: audit the ledger, rules, skills, wiki, and checks, and file tickets for promotions, demotions, confirmations, and retirements. Build-ready by default; human-gated for eager-rule promotions, human-authored files, or strict humanGate.mode."
 argument-hint: "[max_candidates=10] [surface=ledger|rules|skills|wiki|all] [dry_run=true]"
 ---
 

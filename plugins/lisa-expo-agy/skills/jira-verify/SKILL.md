@@ -1,6 +1,6 @@
 ---
 name: jira-verify
-description: This skill should be used when verifying that a JIRA ticket meets organizational standards for epic relationships, description quality, and (for UI tickets) Validation Journey presence. It fetches the live ticket and delegates the gate checks to jira-validate-ticket so the bar matches what jira-write-ticket enforces pre-write.
+description: "Check that a JIRA ticket meets the organization's standards — epic links, description quality, and a Validation Journey for UI work — by fetching it live and running jira-validate-ticket's gates. Read-only."
 allowed-tools: ["Skill", "mcp__atlassian__getJiraIssue", "mcp__atlassian__getAccessibleAtlassianResources"]
 ---
 

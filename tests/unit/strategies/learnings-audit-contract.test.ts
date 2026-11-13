@@ -7,8 +7,9 @@
  * communicates exclusively through the tracker — per-item tickets for
  * PROMOTE/DEMOTE, one batch ticket per run for CONFIRM/RETIRE, upstream
  * issues for upstream-scoped recommendations. The skill only files tickets:
- * build-ready under the default `humanGate.mode: "access-only"` (except a
- * change to a human-authored surface), human-gated under `"strict"` (#4687). Recommendations are fingerprint-marked
+ * build-ready under the default `humanGate.mode: "access-only"` (except an
+ * eager-tier promotion or a change to a human-authored surface), human-gated
+ * under `"strict"` (#4687). Recommendations are fingerprint-marked
  * and deduped against open AND closed issues, and the gardener's own output
  * is never a candidate (no learning loops about learning).
  *
@@ -77,8 +78,12 @@ describe.each(SKILL_PATHS)("gardener skill runbook (%s)", skillPath => {
     expect(skill).toContain("`policy-obsolete`");
   });
 
-  it("only files tickets — never edits knowledge surfaces itself", () => {
+  it("only files tickets: build-ready, except eager-tier promotions held for a human", () => {
     expect(skill).toMatch(/only files tickets/i);
+    expect(skill).toContain("build_ready: true");
+    expect(skill).toContain(
+      'human_gate: "a human decides whether this learning is promoted\ninto the always-loaded rules"'
+    );
     expect(skill).toMatch(/status:ready/);
     expect(skill).toMatch(/never (edits?|writes?|deletes?|modif)/i);
   });

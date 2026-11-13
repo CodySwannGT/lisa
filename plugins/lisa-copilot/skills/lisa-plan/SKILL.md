@@ -1,6 +1,6 @@
 ---
 name: lisa-plan
-description: "Decompose a single PRD or specification into ordered work items in the configured tracker. Vendor-agnostic — the source can be a Notion PRD URL, a Confluence PRD URL, a Linear project URL, a GitHub Issue URL, an existing JIRA epic key, a markdown file, or a free-form description; the destination tracker is whatever the project is configured to use via `.lisa.config.json` `tracker` (JIRA, GitHub Issues, or Linear). Single-PRD mode only — for batch scanning of all Ready PRDs in a queue, use the lisa-intake skill."
+description: "Break one PRD or spec into ordered work items in the project's tracker. Accepts a PRD URL, epic key, markdown file, or description. For scanning every ready PRD in a queue, use lisa-intake."
 allowed-tools: ["Skill", "Bash", "Read", "Glob", "Grep"]
 ---
 
@@ -8,30 +8,12 @@ allowed-tools: ["Skill", "Bash", "Read", "Glob", "Grep"]
 
 Decompose the PRD/spec at `$ARGUMENTS` into ordered work items with acceptance criteria, dependencies, and recommended skills/agents.
 
-## Orchestration: agent team
+## How to work
 
-You are "inside an agent team" only if you are yourself a spawned teammate or subagent — you were spawned into a team context, or your context names a team lead you report to. A lead/root session that has previously spawned subagents is still the lead: prior `Agent` calls in the session (e.g., an Intake cycle's bounded scan helpers) do NOT make this a nested flow, and the lead retains full authority to create this flow's team.
+Do the work yourself, in this session. Delegate to a subagent only when a piece of work is sizeable and genuinely independent, such as a wide codebase investigation — and give it the exact result you need back. Do not delegate work you can finish in a handful of tool calls.
 
-If you are NOT inside an agent team by that definition, the very first thing you do is establish team orchestration.
+`lisa-intake` invokes this skill in its own session; treat that exactly like a direct invocation.
 
-Use the team tool for the current runtime:
-
-- Claude Code >= 2.1.178: there is no `TeamCreate` tool; the team forms automatically when you spawn the first teammate with `Agent`. That first spawn should be the bounded specialist needed to start this flow. On older Claude Code that still exposes `TeamCreate`, the explicit team-create path is also acceptable.
-- Codex: do not call `TeamCreate`; Codex does not expose that Claude tool. Use `tool_search` with a query like `multi-agent tools` to load `multi_agent_v1`, then use `multi_agent_v1.spawn_agent` for teammate delegation. Treat the first successful `spawn_agent` call as establishing team orchestration.
-- Other runtimes: use the current runtime's tool-discovery mechanism to discover and call the appropriate multi-agent/team tool.
-
-If no team creation or subagent delegation tool is available, explicitly state that team orchestration is unavailable in this runtime, continue as the lead agent, and preserve the workflow's review, verification, and task-tracking obligations locally.
-
-Until the team is established, the first Codex teammate has been spawned, or the no-team fallback has been declared, do NOT call any of: `TaskCreate`, `Skill`, MCP tools (Atlassian / Linear / GitHub / Notion), `Read`, `Write`, `Edit`, `Bash`, `Grep`, `Glob`. The initial Claude `Agent` spawn described above is the only pre-team exception because it establishes the team. Reading the PRD, exploring the code, fetching context — all of those are tasks for the team you are about to create, not for the lead session before orchestration exists.
-
-Note that `lisa-intake` dispatching this skill is NOT the nested case: Intake is a thin dispatcher that creates no team of its own and invokes this skill via the Skill tool in the lead session precisely so this preamble fires — treat an Intake dispatch exactly like a direct invocation and run the full team-first flow above.
-
-If you ARE already inside an agent team by the definition above (you are a teammate that was handed this skill via the Skill tool from within another flow's team), do NOT create a second team — many harnesses reject double-creates — and do NOT collapse the nested flow into a single inline worker. A nested team-first flow must still bring in the specialists it requires by adding them to the existing team, not by doing the work itself:
-
-- **Claude:** teams are flat and only the lead can add named teammates, so do NOT call `Agent` with a `name` from a teammate (the harness rejects it: *"Teammates cannot spawn other teammates — the team roster is flat"*). Send the team lead a message naming the specialist teammate(s) this flow needs, their task assignments, and completion criteria, then coordinate through the shared task list until they finish. An anonymous subagent (`Agent` with `name` omitted) is permitted only for bounded one-shot work whose result returns directly to you — it is not a substitute for the required lifecycle specialists.
-- **Codex:** do NOT call `TeamCreate`. If the lead/root agent is addressable (you were given its id/handle), send it a request to `multi_agent_v1.spawn_agent` the specialist agent(s), including each agent's prompt, ownership, and expected result. If no lead handle exists but `spawn_agent` is available to you, spawn only the bounded specialist agent(s) this flow needs, `wait_agent` for their results, and relay those results upward to the parent/lead.
-
-Treat the first successful lead-spawn request (or, on the Codex fallback, the first specialist spawn) as preserving team orchestration. Never satisfy a team-first lifecycle flow by doing all the work inline.
 
 ## Source dispatch
 
@@ -57,9 +39,13 @@ If no PRD or specification exists, suggest running the `lisa-research` skill fir
 
 ## Flow
 
-Execute the **Plan** flow as defined in the `intent-routing` rule (loaded via the lisa plugin). The rule contains the canonical step sequence (gates, sub-flows, output structure). This skill does NOT restate flow steps — change them in the rule, propagate everywhere.
+Execute the **Plan** flow as defined in the `intent-routing` reference rule (read on demand). The rule contains the canonical step sequence (gates, sub-flows, output structure). This skill does NOT restate flow steps — change them in the rule, propagate everywhere.
 
 **Learned planning checks.** Whichever source skill runs the decomposition, it runs `lisa-task-decomposition` step 0 first: the `Planning (prd|decomposition|ready-gate)` checks that `learning-judge` persisted each time a dispatched worker still had to stop for a human or file a ticket mid-build, loaded through the learnings contract's bounded projection. For a file or plain-text spec, run that step yourself before decomposing. Planning that ignores them repeats the gap that stopped the last worker.
+
+## Capture learnings
+
+Before returning, list what this run learned the hard way that a later run in this project would otherwise relearn — a misleading source, a tool or access that was missing, a step that failed and why. Route each through `lisa-persist-learning` with `rule`, `why`, `provenance`, and `triggering_issue` set to the source PRD or spec. Its judge drops most candidates; that is expected, and zero candidates is a valid result. Never write the ledger or any rule file directly.
 
 ## Output
 

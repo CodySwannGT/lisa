@@ -1,9 +1,9 @@
 ---
 name: lisa-codify-verification
-description: "Convert empirical verification…"
+description: "Turn a passing manual…"
 allowed-tools: ["Bash", "Read", "Edit", "Write", "Glob", "Grep", "Skill"]
 ---
-Convert empirical verification into a regression test so it never has to be re-proven manually. Runs after a verification passes — picks the appropriate test framework for the verification type (Playwright for UI/browser, integration test for API/DB/auth, benchmark for performance, etc.), generates the test, wires it into the project's test runner, and confirms it executes. Mandatory step in the verification lifecycle and in the Build/Fix/Improve flows.
+Turn a passing manual verification into an automated regression test with the right framework, wire it into the test runner, and confirm it runs. Required after verification in build, fix, and improve flows.
 
 
 # Codify Verification: $ARGUMENTS

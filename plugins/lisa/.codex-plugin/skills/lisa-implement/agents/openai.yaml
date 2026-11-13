@@ -1,4 +1,4 @@
 display_name: "Implement"
-short_description: "any non-trivial request —…"
+short_description: "Implement one piece of work end…"
 default_prompt:
-  - "Use $lisa-implement: any non-trivial request —…."
+  - "Use $lisa-implement: Implement one piece of work end…."

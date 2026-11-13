@@ -1,4 +1,4 @@
 display_name: "Cross Platform Compatibility"
-short_description: "This skill enforces…"
+short_description: "Keep Expo features working on…"
 default_prompt:
-  - "Use $cross-platform-compatibility: This skill enforces…."
+  - "Use $cross-platform-compatibility: Keep Expo features working on…."

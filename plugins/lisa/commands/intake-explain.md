@@ -1,4 +1,5 @@
 ---
+disable-model-invocation: true
 description: "Inspect one PRD or build item, explain how Lisa classifies it right now, and report the exact intake or repair gate affecting it. Read-only by default."
 argument-hint: "<item-ref>"
 ---

@@ -1,6 +1,6 @@
 ---
 name: harper-testing
-description: This skill should be used when adding, repairing, or designing tests for a Harper (HarperDB/Fabric) component app — Vitest unit tests for pure functions and Resource methods, local Harper integration tests that boot/symlink/seed/assert real endpoints, Playwright e2e tests against REST/GraphQL routes, and schema/verify-script coupling. Use it when a Harper app needs its first test suite, endpoint coverage, seed isolation, or a local smoke/verify path. Pairs with harper-build-and-deploy, harper-schema-graphql, and e2e-coverage-gaps.
+description: "Add, repair, or design tests for a Harper (HarperDB/Fabric) app: Vitest units, local Harper integration tests, Playwright e2e against REST/GraphQL routes, and verify scripts. Use when a Harper app needs tests or a smoke path."
 ---
 
 # Harper Testing

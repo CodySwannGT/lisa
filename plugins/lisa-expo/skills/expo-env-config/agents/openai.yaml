@@ -1,4 +1,4 @@
 display_name: "Expo Env Config"
-short_description: "creating, modifying, or accessing environment variables in this Expo/React Native codebase"
+short_description: "Type-safe, Zod-validated environment variables in this Expo/React Native codebase"
 default_prompt:
-  - "Use $expo-env-config: creating, modifying, or accessing environment variables in this Expo/React Native codebase."
+  - "Use $expo-env-config: Type-safe, Zod-validated environment variables in this Expo/React Native codebase."

@@ -31,7 +31,7 @@ import { describe, expect, it } from "vitest";
 
 const CONTEXT_FILE = ".lisa/work-item-context.md";
 const PATH_ONLY_RULE =
-  "Bundle text, and any credential value in it, never appears in a spawn prompt, task description, or Skill argument — only its path.";
+  "Bundle text, and any credential value in it, never appears in a subagent prompt, task description, or Skill argument — only its path.";
 
 const SKILL_ROOTS = [
   "plugins/src/base/skills",
@@ -127,18 +127,18 @@ describe.each(skillPaths("lisa-implement"))(
         /"work_item_context": "<absolute path[^"]*\.lisa\/work-item-context\.md>"/
       );
       expect(skill).toMatch(/Do NOT omit[^\n]*`work_item_context`/);
-      expect(skill).toMatch(/every teammate prompt[^\n]*work-item-context/i);
+      expect(skill).toMatch(/every subagent prompt[^\n]*work-item-context/i);
       expect(skill).toMatch(
-        /every teammate prompt[^\n]*pastes the resolver's per-comment inventory/i
+        /every subagent prompt[^\n]*pastes the per-comment inventory/i
       );
     });
 
-    it("has the lead forward a caller bundle to the resolver by path only", () => {
+    it("forwards a caller bundle to lisa-track by path only", () => {
       // The resolver can persist only what it receives, but pasting the bundle
       // into a spawn prompt would copy any credential it quotes into the prompt
       // (CWE-200). The handoff is the git-ignored file; only its path travels.
       expect(skill).toContain(
-        "The lead forwards only `caller_bundle_path: <absolute path>` in the input-resolver's spawn prompt"
+        "Pass only `caller_bundle_path: <absolute path>` to `lisa-track`"
       );
       expect(skill).toContain(PATH_ONLY_RULE);
       expect(skill).not.toMatch(/pastes that bundle verbatim/);
@@ -163,14 +163,14 @@ describe.each(skillPaths("lisa-implement"))(
       );
       expect(skill).toMatch(/never the secret value or identifier/);
       expect(skill).toMatch(
-        /never copy it into task descriptions, teammate prompts, plan or roster files, tracker comments, or PR text/
+        /never copy it into task descriptions, subagent prompts, plan files, tracker comments, or PR text/
       );
       expect(skill).toMatch(/`lisa-track` leaves an existing file untouched/);
     });
 
-    it("returns the absolute path", () => {
+    it("keeps the absolute path", () => {
       expect(skill).toContain(
-        "Return `work_item_context: <absolute path of the file>`"
+        "Keep `work_item_context: <absolute path of the file>`"
       );
     });
   }
@@ -267,7 +267,7 @@ describe.each(
 
   it("fails closed for a work-item task, and lets a non-work-item task use its own source", () => {
     expect(body).toMatch(
-      /If a work item is named or bound and its context file is missing or unreadable, report that to the team lead and stop — never proceed from memory/
+      /If a work item is named or bound and its context file is missing or unreadable, report that and stop — never proceed from memory/
     );
     expect(body).toMatch(
       /Only a task whose source is a plan file, a PRD, a raw error, or a log, with no work item bound to the worktree, proceeds from the source the task supplies/
@@ -279,7 +279,7 @@ describe.each(
       /secret quoted in a credential-flagged comment never leaves that file/
     );
     expect(body).toMatch(
-      /keep the value or identifier out of code, commits, task notes, prompts, plan or roster files, tracker comments, and PR text/
+      /keep the value or identifier out of code, commits, task notes, prompts, plan files, tracker comments, and PR text/
     );
   });
 });

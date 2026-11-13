@@ -1,4 +1,4 @@
 display_name: "Linear Access"
-short_description: "Vendor-neutral access layer for…"
+short_description: "The one way Lisa skills reach…"
 default_prompt:
-  - "Use $lisa-linear-access: Vendor-neutral access layer for…."
+  - "Use $lisa-linear-access: The one way Lisa skills reach…."

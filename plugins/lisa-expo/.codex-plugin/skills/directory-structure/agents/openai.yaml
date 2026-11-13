@@ -1,4 +1,4 @@
 display_name: "Directory Structure"
-short_description: "This skill enforces the…"
+short_description: "Where new files go in this…"
 default_prompt:
-  - "Use $directory-structure: This skill enforces the…."
+  - "Use $directory-structure: Where new files go in this…."

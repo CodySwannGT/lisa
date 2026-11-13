@@ -26,8 +26,8 @@
  *     required, not a bare `./`) — NOT inline in the manifest. `inject-rules.sh`
  *     is dropped because rules now ship as native
  *     `.mdc` (the single delivery path; injecting would double-deliver);
- *     `enforce-team-first.sh` (Claude-team-specific) and the
- *     `entire hooks claude-code *` analytics calls (Claude-only) are dropped too.
+ *     the `entire hooks claude-code *` analytics calls (Claude-only) are
+ *     dropped too.
  *   - MCP: renamed from `.mcp.json` to `mcp.json` — Cursor auto-discovers the
  *     un-dotted filename.
  *
@@ -49,7 +49,10 @@ import {
   buildCursorHooksJson,
   filterScriptsForAgent,
 } from "./lib/per-agent-hook-filter.mjs";
-import { nestCommandsUnderLisa } from "./lib/nest-plugin-commands.mjs";
+import {
+  nestCommandsUnderLisa,
+  stripClaudeOnlyCommandKeys,
+} from "./lib/nest-plugin-commands.mjs";
 import { invokedAsScript } from "./lib/invoked-as-script.mjs";
 import { rewritePluginRuleCitations } from "./lib/plugin-rule-citations.mjs";
 
@@ -170,6 +173,37 @@ function yamlQuote(value) {
  * @returns {string}
  */
 function rewriteRuleLinks(body) {
+  return rewriteBareReferencePaths(rewriteLinkUrls(body));
+}
+
+/**
+ * Turn plain-text `reference/<slug>.md` path tokens (not Markdown link URLs,
+ * which `rewriteLinkUrls` handles) into links that keep the readable path as
+ * the label and point at the flat `<slug>-reference.mdc` file.
+ *
+ * The eager rule index lists reference contracts as plain paths rather than
+ * links to stay inside the eager byte budget; without this pass those paths
+ * would name files that do not exist in Cursor's flat layout. A token preceded
+ * by `[` is a link label and is left readable.
+ *
+ * @param {string} body Rule markdown content.
+ * @returns {string}
+ */
+function rewriteBareReferencePaths(body) {
+  return body.replace(
+    /(^|[\s,(`])(?:\.\.\/)?reference\/([A-Za-z0-9._-]+)\.md\b/gm,
+    (_match, lead, slug) =>
+      `${lead}[reference/${slug}.md](${slug}-reference.mdc)`
+  );
+}
+
+/**
+ * Rewrite Markdown link URLs; see `rewriteRuleLinks`.
+ *
+ * @param {string} body Rule markdown content.
+ * @returns {string}
+ */
+function rewriteLinkUrls(body) {
   return body.replace(/\]\(([^)]+)\)/g, (match, url) => {
     const tiered =
       /^(?:\.\.\/)?(eager|reference)\/([A-Za-z0-9._-]+)\.md(#[^)]*)?$/.exec(
@@ -329,6 +363,7 @@ export function generateCursorVariant(srcDir, outDir, version) {
   // commands with the plugin name, so the directory manufactures the /lisa:*
   // namespace that Claude gets from the plugin name alone.
   nestCommandsUnderLisa(outDir);
+  stripClaudeOnlyCommandKeys(outDir);
 
   // 2. Read the manifest, stamp the version, and strip the inline hook block.
   // Cursor reads hooks from hooks/hooks.json (emitted in 2a), never inline.

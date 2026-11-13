@@ -1,4 +1,4 @@
 display_name: "Agent Ready"
-short_description: "Make a brownfield project agent-ready: build the initial knowledge wiki from read-only, redacted ingestion of every inventoried source…"
+short_description: "Make an existing project agent-ready: build its knowledge wiki from everything reachable, then list in wiki/gaps.md the questions only a…"
 default_prompt:
-  - "Use $lisa-agent-ready: Make a brownfield project agent-ready: build the initial knowledge wiki from read-only, redacted ingestion of every inventoried source…."
+  - "Use $lisa-agent-ready: Make an existing project agent-ready: build its knowledge wiki from everything reachable, then list in wiki/gaps.md the questions only a…."

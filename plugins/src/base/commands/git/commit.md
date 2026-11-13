@@ -1,4 +1,5 @@
 ---
+disable-model-invocation: true
 description: "Create conventional commits for current changes"
 allowed-tools: ["Skill"]
 argument-hint: "[commit-message-hint]"

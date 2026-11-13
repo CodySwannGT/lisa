@@ -1,0 +1,10 @@
+# Communication (load-bearing)
+
+Ticket comments, PR descriptions, blocked reasons, and reports are read later by someone who did not watch you work and may not be technical.
+
+- Put the outcome and anything the reader must do first. Make each message stand on its own.
+- Use plain words and full sentences. Do not use terms you made up during the work or Lisa's internal vocabulary.
+- State the total, then a status for every item, for example "6 findings: 3 fixed, 2 open, 1 needs a decision".
+- Present a decision with your recommendation and what each option leads to.
+
+Detail: [reference/communication.md](../reference/communication.md).

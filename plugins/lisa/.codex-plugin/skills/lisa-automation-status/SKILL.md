@@ -1,9 +1,9 @@
 ---
 name: lisa-automation-status
-description: "Read-only operator surface for…"
+description: "Read-only view of this…"
 allowed-tools: ["Skill", "Bash", "Read"]
 ---
-Read-only operator surface for the current project's Lisa automation fleet. Resolves the expected recurring jobs from the same setup-automations contract Lisa uses to create them, inspects the active runtime scheduler (Codex automations or Claude /schedule), compares live command/cadence/queue arguments against the expected contract, and reports grouped fleet health such as healthy, missing, unsupported, drifted, stale, or failing with remediation guidance.
+Read-only view of this project's Lisa automations: compare what is scheduled against what should be, and report each job as healthy, missing, drifted, stale, or failing with how to fix it.
 
 
 # Automation Status: $ARGUMENTS
@@ -21,7 +21,7 @@ Do **not** ask for confirmation once invoked. This skill inspects scheduler stat
 Inspect only the Lisa automation fleet for the current project. Derive that fleet from
 `scripts/automation-status-expected-fleet.mjs` (`resolveExpectedAutomationFleet`), which resolves
 exactly what `setup-automations` registers for this repo — including the stack-guarded
-`exploratory-bugs` and the opt-in `learnings-audit` gardener. **Membership is registration, not a
+`exploratory-bugs` and the `learnings-audit` gardener (on by default). **Membership is registration, not a
 roster** (`automation-runbook-contract`): carry no fixed list of loop names here, so a loop added to
 or removed from the registration set flows through without editing this skill.
 

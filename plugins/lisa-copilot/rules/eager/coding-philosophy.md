@@ -1,28 +1,10 @@
 # Coding Philosophy (load-bearing)
 
-When writing or modifying code, follow these principles. Examples, hook structure templates, and anti-pattern catalogs live in [reference/coding-philosophy.md](../reference/coding-philosophy.md).
+- **KISS settles ties. YAGNI:** build what today's problem needs, with no speculative abstraction or options. Extract shared code only when it repeats three or more times and the abstraction is simpler than the duplication.
+- **Hill-climbability.** Make localized changes with clear contracts and low coupling, and leave a working baseline. A later agent should be able to find what to change, change it, verify the effect, and keep or revert it on its own.
+- **Immutability.** Create new values instead of mutating, and prefer `map`/`filter`/`reduce`. On a hot path where a stack rule forbids allocation, such as a game's `update()`, the stack rule wins.
+- **TDD for behavior changes.** Write the failing test first, make it pass, then refactor. Learn real behavior by running code before you write expectations.
+- **Delete replaced code completely**, with no `V2` copies or compatibility shims. Framework migrations, such as Rails migrations, are ordinary code. Simplify your diff before you finish.
+- **Comments preserve intent.** Explain why, not what: the requirement behind a non-obvious choice, the rejected alternative, the invariant a change must respect, and what breaks if someone simplifies it. Keep comments true when code changes, and do not invent a rationale. If you do not know why code exists, find out (`history-audit`). This overrides any default to match the surrounding comment density, because future agents keep no memory of today.
 
-## Principle priority
-
-**KISS is the tiebreaker.** When principles conflict, choose the simpler solution.
-
-1. **YAGNI** — Don't build features, abstractions, or flexibility you don't need right now. Solve today's problem.
-2. **KISS** — Choose the simpler option.
-3. **DRY** — Extract only when (a) the same logic appears 3+ times, (b) the abstraction is simpler than the duplication, and (c) the extracted code has a clear single purpose.
-4. **SOLID** — Apply pragmatically. Split a function only when it does 2+ unrelated things AND splitting reduces complexity. Use composition over inheritance.
-
-## Mandatory practices
-
-- **Immutability first.** Never mutate. Spread/clone to create new references.
-- **TDD is mandatory.** Write the failing test BEFORE the implementation. Red → Green → Refactor.
-- **Function structure order**: (1) variables & derived state, (2) side effects, (3) return. Never interleave.
-- **Functional transformations.** Prefer `map`/`filter`/`reduce` over imperative loops with mutation.
-- **Clean deletion.** When replacing code, delete the old version completely. No `V2`/`Old`/`New` suffixes, no `@deprecated` comments, no migration shims unless explicitly requested. Trust git history.
-- **Simplify before you finish.** Before calling a change done, re-read your own diff and simplify it without changing behaviour: reuse existing helpers instead of new ones, remove duplication, dead code and needless indirection, and prefer clearer names and flatter control flow. Re-run the tests afterwards.
-
-## What NOT to write
-
-- Comments that explain WHAT the code does (well-named identifiers do that).
-- Error handling, fallbacks, or validation for scenarios that can't happen.
-- Backwards-compatibility shims, feature flags, or unused `_var` renames when you can just change the code.
-- Half-finished implementations, placeholders, or TODOs.
+Examples, documentation guidelines, and anti-patterns: [reference/coding-philosophy.md](../reference/coding-philosophy.md).

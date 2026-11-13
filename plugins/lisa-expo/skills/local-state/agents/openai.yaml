@@ -1,4 +1,4 @@
 display_name: "Local State"
-short_description: "implementing local state management in this React Native/Expo codebase"
+short_description: "Local state in this React Native/Expo codebase: Apollo reactive variables for in-memory state and AsyncStorage for persistence"
 default_prompt:
-  - "Use $local-state: implementing local state management in this React Native/Expo codebase."
+  - "Use $local-state: Local state in this React Native/Expo codebase: Apollo reactive variables for in-memory state and AsyncStorage for persistence."

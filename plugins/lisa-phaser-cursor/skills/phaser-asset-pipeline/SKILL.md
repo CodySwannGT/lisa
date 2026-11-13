@@ -1,6 +1,6 @@
 ---
 name: phaser-asset-pipeline
-description: This skill should be used when setting up or changing the build-time asset pipeline of a Phaser 4 game — packing raw art in assets/src into public/assets (free-tex-packer-core texture atlases, audiosprite audio sprites, BMFont bitmap fonts) and the codegen step that emits typed keys to src/assets.ts so a missing or renamed key is a compile error. Use it when adding source art, wiring packing into the build, regenerating typed keys, or eliminating raw string asset keys. Assumes the raw art already exists — get it first via phaser-asset-sourcing (CC0 sourcing + license gate). Pairs with phaser-asset-sourcing, the official loading-assets skill, phaser-build-deploy, and phaser-services.
+description: "Set up the build-time asset pipeline of a Phaser 4 game: texture atlases, audio sprites, bitmap fonts, and generated typed asset keys. Use when adding source art or wiring packing into the build. Assumes the art already exists."
 ---
 
 # Phaser 4 Asset Pipeline

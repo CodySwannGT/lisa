@@ -1,6 +1,6 @@
 ---
 name: setup-aws-accounts
-description: "Provision the multi-account AWS environment a Lisa CDK project deploys into, using the @codyswann/aws-soc2-setup CLI (AWS Organizations, Control Tower, IAM Identity Center, SOC 2 controls). Use when a CDK project still has PLACEHOLDER account IDs in config/environments.ts, when asked to create the dev/staging/production/shared AWS accounts, or when CDK deploys fail because accounts, SSO profiles, or bootstrap are missing. Drives the CLI for the org + OU + security foundation and Account Factory account vending, writes the AWS SSO profiles the project's scripts expect, runs cdk bootstrap with cross-account pipeline trust, replaces PLACEHOLDER account IDs, sets the AWS_ACCOUNT_ID_* GitHub secrets when CI uses them, and records the account map in .lisa.config.json. Idempotent — safe to re-run. Console-only prerequisites (root MFA, enabling Identity Center, creating the Control Tower landing zone) are surfaced as an explicit human checklist, never automated."
+description: "Provision the multi-account AWS environment a Lisa CDK project deploys into (Organizations, Control Tower, Identity Center, SOC 2 controls), bootstrap CDK, and fill in account IDs. Use when accounts, SSO profiles, or bootstrap are missing. Idempotent."
 allowed-tools: ["Bash", "Read", "Edit", "Write", "AskUserQuestion"]
 ---
 

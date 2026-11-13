@@ -117,7 +117,7 @@ describe("the CI-rework route is executable", () => {
     expect(dispatch).not.toMatch(
       /lisa-drive-pr-to-merge[^\n]*reads the bundle/u
     );
-    expect(dispatch).toMatch(/for the agent and its teammates to read/u);
+    expect(dispatch).toMatch(/for the agent to read before fixing/u);
   });
 });
 

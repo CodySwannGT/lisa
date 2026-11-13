@@ -33,7 +33,7 @@ import path from "node:path";
 
 import { describe, expect, it } from "vitest";
 
-/** Roots that ship the paired rule as `rules/{eager,reference}/<slug>.md`. */
+/** Roots that ship the rule as `rules/reference/<slug>.md`. */
 const ROOTS = [
   "plugins/src/base",
   "plugins/lisa",
@@ -55,32 +55,41 @@ const UNIFYING_PROPERTY = "looks exactly like an answer";
 /**
  * Read one shipped half of the rule.
  * @param root Plugin root.
- * @param half Either `eager` or `reference`.
+ * @param half Which tier to read.
  * @returns File contents.
  */
 const read = (root: string, half: "eager" | "reference"): string =>
   readFileSync(path.resolve(root, "rules", half, `${SLUG}.md`), "utf8");
 
+/**
+ * The always-loaded head that points at this rule. The full contract left the
+ * eager tier in the 2026-11 trim; `empirical-inquiry` carries the one-line
+ * trigger and names the slug so the reference is found when it applies.
+ * @param root Plugin root.
+ * @returns File contents.
+ */
+const pointer = (root: string): string =>
+  readFileSync(
+    path.resolve(root, "rules", "eager", "empirical-inquiry.md"),
+    "utf8"
+  );
+
 describe("measurement-integrity rule contract (#3739)", () => {
   describe.each(ROOTS)("%s", root => {
-    const eager = read(root, "eager");
     const reference = read(root, "reference");
 
-    it("ships as a paired rule with a non-trivial body on both sides", () => {
-      expect(eager.length).toBeGreaterThan(500);
+    it("ships a non-trivial reference body", () => {
       expect(reference.length).toBeGreaterThan(3000);
     });
 
-    it("eager head breadcrumbs to the reference body", () => {
-      expect(eager).toContain(
-        "[reference/measurement-integrity.md](../reference/measurement-integrity.md)"
-      );
+    it("is named from the always-loaded empirical-inquiry head", () => {
+      expect(pointer(root)).toContain("`measurement-integrity`");
+      expect(pointer(root)).toMatch(/Before you report a count/);
     });
 
     it("states the unifying property that makes the class invisible", () => {
       // Without this, a reader treats the modes as unrelated bugs rather than
       // one shape, and applies the checks selectively.
-      expect(eager.toLowerCase()).toContain(UNIFYING_PROPERTY);
       expect(reference.toLowerCase()).toContain(UNIFYING_PROPERTY);
     });
 
@@ -130,10 +139,10 @@ describe("measurement-integrity rule contract (#3739)", () => {
 
   it("is discoverable from the eager channel in every shipped copy", () => {
     // The rule is worthless if it is only reachable by someone who already
-    // knows to look for it; the eager half is what puts it in front of the
+    // knows to look for it; the eager pointer is what puts it in front of the
     // moment it applies.
     const missing = ROOTS.filter(
-      root => !read(root, "eager").includes("Measurement Integrity")
+      root => !pointer(root).includes("`measurement-integrity`")
     );
 
     expect(missing).toEqual([]);
@@ -145,7 +154,9 @@ describe("measurement-integrity rule contract (#3739)", () => {
     // nothing. Asserted separately rather than folded in, because the path
     // shape differs and a generic loop would have to guess it.
     const cursor = readFileSync(
-      path.resolve("plugins/lisa-cursor/rules/measurement-integrity.mdc"),
+      path.resolve(
+        "plugins/lisa-cursor/rules/measurement-integrity-reference.mdc"
+      ),
       "utf8"
     );
 

@@ -10,7 +10,7 @@
  *
  * Usage: node render-contract.mjs [path-to-config] [--out <path>]
  *   default config: wiki/lisa-wiki.config.json (relative to cwd)
- *   default out:    <wikiRoot>/schema/llm-wiki-contract.md
+ *   default out:    wiki/schema/llm-wiki-contract.md
  * Exit code 0 = rendered, 1 = error.
  */
 import fs from "node:fs";
@@ -67,8 +67,6 @@ const subs = {
   org: config.org ?? "",
   displayName: config.displayName ?? config.org ?? "LLM Wiki",
   purpose: config.purpose ?? "(purpose not set — run /setup to define it)",
-  mode: config.mode ?? "",
-  wikiRoot: config.wikiRoot ?? "wiki",
   kernelVersion,
   schemaVersion: config.schemaVersion ?? "",
   categories: (config.categories ?? []).join(", "),
@@ -98,7 +96,7 @@ if (leftover.length) {
 }
 
 const outPath = path.resolve(
-  outOverride ?? path.join(subs.wikiRoot, "schema", "llm-wiki-contract.md")
+  outOverride ?? path.join("wiki", "schema", "llm-wiki-contract.md")
 );
 fs.mkdirSync(path.dirname(outPath), { recursive: true });
 fs.writeFileSync(outPath, rendered);

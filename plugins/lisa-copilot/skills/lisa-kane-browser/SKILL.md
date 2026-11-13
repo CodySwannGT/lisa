@@ -1,6 +1,6 @@
 ---
 name: lisa-kane-browser
-description: "Optional Lisa-owned adapter for TestMu Kane CLI empirical browser runs. Enforces project opt-in, cloud-upload approval, non-production environment allow-lists, full-mutation rollout policy, pinned-version readiness, normalized outcomes, and durable Lisa evidence handling. Never replaces project-native Playwright, Cypress, or Maestro regression tests."
+description: "Optional adapter for TestMu Kane CLI browser runs, enforcing opt-in, upload approval, non-production environments, version pin, and evidence handling. Never replaces the project's own browser tests."
 allowed-tools: ["Bash", "Read", "Glob", "Grep", "Skill"]
 ---
 
