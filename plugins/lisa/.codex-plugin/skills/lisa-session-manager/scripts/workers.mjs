@@ -33,10 +33,17 @@ export const WORKER_PERMISSION_ARGS = Object.freeze([
 ]);
 
 /**
- * How Claude Code reports a parent session waiting on its own subagent in
- * `waitingFor` ("subagent", "sub-agent: <name>"). That is ordinary work.
+ * A `waitingFor` that names the session's own subagent as what it waits on,
+ * which is ordinary work. Anchored, so a prompt that merely mentions a
+ * subagent ("permission prompt (subagent x)") still blocks.
+ *
+ * Observed in Claude Code 2.1.319: `waitingFor` is set only while the session
+ * awaits a person ("permission prompt", "dialog open", "input needed",
+ * "sandbox request", "goal proposal"); an idle session reports none, and
+ * subagent work is reported as a separate work kind, not as `waitingFor`.
+ * This exclusion is defensive, for a future string of that shape.
  */
-const SUBAGENT_WAIT_PATTERN = /sub-?agent/i;
+const SUBAGENT_WAIT_PATTERN = /^\s*sub-?agent\b/i;
 
 /**
  * Stall policy used when the caller passes none. Mirrors the
@@ -384,7 +391,7 @@ function toMillis(value) {
  *
  * Workers run unattended, so any non-empty `waitingFor` (Claude Code reports
  * e.g. "permission prompt") blocks them for good, except a parent waiting on
- * its own subagent (`/sub-?agent/i`), which is ordinary work in progress.
+ * its own subagent (`SUBAGENT_WAIT_PATTERN`), which is ordinary work.
  * @param {unknown} waitingFor - The row's `waitingFor`
  * @returns {boolean} True when the worker can never proceed on its own
  */
