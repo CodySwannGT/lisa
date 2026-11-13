@@ -32,6 +32,7 @@ const SKILL_PATHS = [
   "plugins/lisa-cursor/skills/lisa-learnings-audit/SKILL.md",
   "plugins/lisa-agy/skills/lisa-learnings-audit/SKILL.md",
   "plugins/lisa-copilot/skills/lisa-learnings-audit/SKILL.md",
+  "plugins/lisa-devin/skills/lisa-learnings-audit/SKILL.md",
 ] as const;
 
 const COMMAND_PATHS = [
@@ -143,6 +144,12 @@ describe.each(SKILL_PATHS)("gardener skill runbook (%s)", skillPath => {
     expect(template).toMatch(/never by parse → filter → render/);
     expect(template).toMatch(
       /returns `stale`[\s\S]*skip the row, do\s+not delete it/
+    );
+    expect(template).toMatch(
+      /returns `not-found` means the entry is already gone: note it\s+in the PR and skip the row/
+    );
+    expect(template).toMatch(
+      /concurrent-write error, retry the call\s+once; never fall back to a manual edit/
     );
 
     const canonical = extractBatchTemplate(

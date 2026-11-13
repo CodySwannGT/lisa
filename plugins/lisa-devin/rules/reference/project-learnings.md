@@ -133,8 +133,9 @@ blocks the build.
 
 ## Fingerprint-guarded retirement
 
-An entry is deleted only through `retireLearningEntry(projectRoot, id,
-expectedFingerprint, { onStale })` from `@codyswann/lisa/learnings`. It is a
+A gardener RETIRE row's entry is deleted only through
+`retireLearningEntry(projectRoot, id, expectedFingerprint, { onStale })` from
+`@codyswann/lisa/learnings`. It is a
 compare-and-swap delete: inside the same ledger lock the writers use, it
 re-reads the live entry and removes it only when its fingerprint still equals
 `expectedFingerprint` — the full entry fingerprint observed at audit time, never
@@ -143,8 +144,10 @@ consolidation rewrote the entry behind the same id, the fingerprint differs: the
 call writes nothing, reports the drift through `onStale`, and returns `stale`
 with the live fingerprint, so the row is skipped and re-audited instead of
 discarding lessons the audit never saw. On a match it removes exactly that
-entry, keeps every other entry byte-identical, re-checks the budgets, and writes
-atomically. A missing file or unknown id returns `not-found` without writing.
+entry, re-checks the budgets, and writes atomically. On a v2 ledger every other
+entry stays byte-identical; a v1 ledger is migrated to v2 by the same write,
+exactly as `confirmLearningEntry` migrates it. A missing file or unknown id
+returns `not-found` without writing.
 
 Only entries accepted by the executable contract may influence the session. A
 missing file is expected and silent. Malformed Markdown, invalid JSONL, unsafe

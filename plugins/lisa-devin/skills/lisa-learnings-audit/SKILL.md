@@ -298,6 +298,9 @@ implementing run receives its instructions inside the work item:
 - A RETIRE that returns `stale` means the entry's fingerprint drifted since
   the audit (a later learner run changed or merged into it): skip the row, do
   not delete it, and leave it for the next audit to re-evaluate.
+- A RETIRE that returns `not-found` means the entry is already gone: note it
+  in the PR and skip the row. On a concurrent-write error, retry the call
+  once; never fall back to a manual edit.
 - Struck/deleted rows are human rejections — skip them; they are not re-filed
   without new postdating evidence.
 <!-- gardener-batch-ticket-template:end -->
