@@ -1473,7 +1473,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-health/SKILL.md":
       "dfdb08a863e78bff42671793dcec29cfae0654db18ebf66a4aa77aeb56ddb775",
     "plugins/src/base/skills/lisa-implement/SKILL.md":
-      "6cd4412bab44fc18af855d9df5ec09a48a9cfd3390d18dc8da8595187727ea22",
+      "c1f9f2c00d8826391d5df207e10b2ff04dc57a5dc380633cf6a7f1ca79283d04",
     "plugins/src/base/skills/lisa-improve-code-complexity/SKILL.md":
       "24ab5b193b409db6ee6bee981a1c0a48d08991782d7846116ad01658c8bc1ae8",
     "plugins/src/base/skills/lisa-improve-harness/SKILL.md":
@@ -13503,6 +13503,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/strategies/human-gate-release-inverse.test.ts": true,
     "tests/unit/strategies/human-gate-release-plan.test.ts": true,
     "tests/unit/strategies/human-gate-release-reach.test.ts": true,
+    "tests/unit/strategies/implement-deploy-wait-foreground.test.ts": true,
     "tests/unit/strategies/implement-env-base-branch.test.ts": true,
     "tests/unit/strategies/implement-managed-by-contract.test.ts": true,
     "tests/unit/strategies/improve-harness-skill.test.ts": true,
