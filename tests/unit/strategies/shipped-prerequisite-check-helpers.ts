@@ -69,6 +69,10 @@ export const NESTED_NOT_SHIPPED: readonly (readonly [string, string])[] = [
 ];
 /** Nested shipped source: a hit here is present. */
 export const NESTED_SHIPPED = ["pkg/api/src/x.ts", "nestedShipped"] as const;
+/** A second remote branch, for a clone that never tracked the default. */
+export const SIDE_BRANCH = "side";
+/** A file committed in the clone but never pushed. */
+export const LOCAL_ONLY_FILE = "src/mutations.ts";
 /** A non-`main` default branch, so the lookup is really exercised. */
 export const DEFAULT_BRANCH = "trunk";
 

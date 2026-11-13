@@ -34,66 +34,16 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { boundedSpawnSync } from "../../helpers/io-latency-budget.js";
 
 import {
-  CHECK_NAME,
   commandBlock,
   DEFAULT_BRANCH,
-  gateS13,
   git,
+  LOCAL_ONLY_FILE,
   NESTED_NOT_SHIPPED,
   NESTED_SHIPPED,
   PRESENT_FILE,
   read,
-  READY_RULES,
-  SKILL_ROOTS,
-  stepFour,
-  TRI_STATE,
-  VALIDATORS,
+  SIDE_BRANCH,
 } from "./shipped-prerequisite-check-helpers.js";
-
-describe.each(SKILL_ROOTS)("shipped-prerequisite check text (%s)", root => {
-  const skill = (name: string): string => read(`${root}/${name}/SKILL.md`);
-
-  it("step 4 verifies shipped claims on the default branch and links blockers", () => {
-    const step = stepFour(skill("lisa-task-decomposition"));
-    const flat = step.replace(/\s+/g, " ");
-    expect(step.toLowerCase()).toContain(CHECK_NAME);
-    expect(step).toContain("is blocked by");
-    expect(step).toContain("git grep -F -n -w");
-    expect(step).toContain("git rev-parse --verify -q");
-    expect(step).toContain("':(exclude,glob)**/tests/**'");
-    expect(step).toContain("+refs/heads/$default:refs/remotes/origin/$default");
-    expect(step).toContain("gh repo view --json defaultBranchRef");
-    expect(flat).toContain(TRI_STATE);
-    expect(flat).toContain("handler symbol or file");
-    expect(flat).not.toContain("endpoint");
-    expect(step).toContain("stale-state-claims");
-    expect(step).toContain("empirical-inquiry");
-  });
-
-  it.each(VALIDATORS)(
-    "%s S13 points at step 4 and states the tri-state",
-    validator => {
-      const s13 = gateS13(skill(validator));
-      const flat = s13.replace(/\s+/g, " ");
-      expect(s13.toLowerCase()).toContain(CHECK_NAME);
-      expect(s13).toContain("origin/<default>");
-      expect(s13).toContain("`lisa-task-decomposition` step 4");
-      expect(flat).toContain(TRI_STATE);
-      expect(s13).toContain("FAIL");
-      // The commands live once, in step 4; the validators only point at them.
-      expect(s13).not.toContain("git grep");
-      expect(s13).not.toContain("git cat-file");
-    }
-  );
-});
-
-describe.each(READY_RULES)("definition of ready (%s)", rulePath => {
-  it("names the shipped-prerequisite check under S13", () => {
-    const rule = read(rulePath).replace(/\s+/g, " ");
-    expect(rule.toLowerCase()).toContain(CHECK_NAME);
-    expect(rule).toContain("S13");
-  });
-});
 
 /** A prerequisite a leaf's text calls already shipped. */
 interface ShippedClaim {
@@ -122,8 +72,6 @@ describe("the step 4 command block, executed (source)", () => {
   const block = commandBlock(
     read("plugins/src/base/skills/lisa-task-decomposition/SKILL.md")
   );
-  const symbolLine = block.find(line => line.startsWith("git grep")) ?? "";
-  const fileLine = block.find(line => line.startsWith("git cat-file")) ?? "";
   let root = "";
   let clone = "";
   let fakeBin = "";
@@ -196,11 +144,12 @@ describe("the step 4 command block, executed (source)", () => {
     }
     commitAll(seed, "seed");
     git(seed, "push", "--quiet", remote, DEFAULT_BRANCH);
+    git(seed, "push", "--quiet", remote, `${DEFAULT_BRANCH}:${SIDE_BRANCH}`);
     clone = cloneRemote("clone");
     // A local, unpushed commit: the check must read the remote default
     // branch, not the working tree, so this must still count as absent.
     put(
-      path.join(clone, "src/mutations.ts"),
+      path.join(clone, LOCAL_ONLY_FILE),
       "export const absentMutationRoot = {};\n"
     );
     commitAll(clone, "local only");
@@ -221,10 +170,40 @@ describe("the step 4 command block, executed (source)", () => {
   interface CheckOptions {
     readonly cwd?: string;
     readonly ghDefault?: string;
+    /** A replacement for the block, for negative controls only. */
+    readonly script?: string;
   }
 
   /**
-   * Run step 4's whole block for one claim, minus the line for the other kind.
+   * Run step 4's whole block, unmodified, with the given variables set.
+   * @param vars - `SYMBOL` and/or `FILE`, or neither
+   * @param options - Clone to run in, and what the `gh` stand-in reports
+   * @returns The block's exit status
+   */
+  const runBlock = (
+    vars: Readonly<Record<string, string>>,
+    options: CheckOptions = {}
+  ): number | null => {
+    if (block.length === 0) {
+      throw new Error("step 4 carries no shipped-prerequisite command block");
+    }
+    return boundedSpawnSync({
+      label: "shipped-prerequisite check block",
+      command: "/bin/bash",
+      args: ["-c", options.script ?? block.join("\n")],
+      cwd: options.cwd ?? clone,
+      env: {
+        PATH: `${fakeBin}:${process.env.PATH ?? "/usr/bin:/bin"}`,
+        HOME: root,
+        GIT_CONFIG_NOSYSTEM: "1",
+        FAKE_GH_DEFAULT: options.ghDefault ?? "",
+        ...vars,
+      },
+    }).status;
+  };
+
+  /**
+   * Run the block for one claim, setting only the variable its kind uses.
    * @param claim - The shipped claim
    * @param options - Clone to run in, and what the `gh` stand-in reports
    * @returns The block's exit status
@@ -232,27 +211,11 @@ describe("the step 4 command block, executed (source)", () => {
   const check = (
     claim: ShippedClaim,
     options: CheckOptions = {}
-  ): number | null => {
-    if (symbolLine === "" || fileLine === "") {
-      throw new Error("step 4 carries no shipped-prerequisite command block");
-    }
-    const skip = claim.kind === "symbol" ? fileLine : symbolLine;
-    const script = block.filter(line => line !== skip).join("\n");
-    return boundedSpawnSync({
-      label: "shipped-prerequisite check block",
-      command: "/bin/bash",
-      args: ["-c", script],
-      cwd: options.cwd ?? clone,
-      env: {
-        PATH: `${fakeBin}:${process.env.PATH ?? "/usr/bin:/bin"}`,
-        HOME: root,
-        GIT_CONFIG_NOSYSTEM: "1",
-        FAKE_GH_DEFAULT: options.ghDefault ?? "",
-        SYMBOL: claim.name,
-        FILE: claim.name,
-      },
-    }).status;
-  };
+  ): number | null =>
+    runBlock(
+      claim.kind === "symbol" ? { SYMBOL: claim.name } : { FILE: claim.name },
+      options
+    );
 
   /**
    * A test-local model of S13 over real exit statuses: an absent claim needs
@@ -297,7 +260,7 @@ describe("the step 4 command block, executed (source)", () => {
 
   it("exits 1 for a symbol only committed locally, and a missing file", () => {
     expect(check({ kind: "symbol", name: "absentMutationRoot" })).toBe(1);
-    expect(check({ kind: "file", name: "src/mutations.ts" })).toBe(1);
+    expect(check({ kind: "file", name: LOCAL_ONLY_FILE })).toBe(1);
   });
 
   it("matches whole words only", () => {
@@ -336,16 +299,56 @@ describe("the step 4 command block, executed (source)", () => {
     ).toBe(0);
   });
 
-  it("recreates a missing remote-tracking ref with the explicit refspec", () => {
-    const dir = cloneRemote("no-tracking", "--single-branch");
-    git(dir, "remote", "set-head", "origin", "-d");
-    git(dir, "update-ref", "-d", `refs/remotes/origin/${DEFAULT_BRANCH}`);
-    expect(
-      check(
-        { kind: "file", name: PRESENT_FILE },
-        { cwd: dir, ghDefault: DEFAULT_BRANCH }
+  it("creates a never-tracked default ref with the explicit refspec", () => {
+    // A single-branch clone of another branch: origin/<default> never
+    // existed, and the configured refspec does not cover it.
+    const dir = cloneRemote(
+      "no-tracking",
+      "--single-branch",
+      "-b",
+      SIDE_BRANCH
+    );
+    git(dir, "update-ref", "-d", "refs/remotes/origin/HEAD");
+    const opts = { cwd: dir, ghDefault: DEFAULT_BRANCH };
+    const file = { kind: "file", name: PRESENT_FILE } as const;
+    // Negative control: a plain `git fetch origin <default>` leaves no
+    // origin/<default>, so the rev-parse guard stops the block.
+    const plainFetch = block
+      .map(line =>
+        line.startsWith("git fetch")
+          ? 'git fetch --quiet origin "$default" || exit 2'
+          : line
       )
+      .join("\n");
+    expect(
+      runBlock({ FILE: PRESENT_FILE }, { ...opts, script: plainFetch })
+    ).toBe(2);
+    expect(check(file, opts)).toBe(0);
+  });
+
+  it("runs the whole block with only SYMBOL set", () => {
+    expect(runBlock({ SYMBOL: "absentMutationRoot" })).toBe(1);
+    expect(runBlock({ SYMBOL: "presentResolver" })).toBe(0);
+  });
+
+  it("runs the whole block with only FILE set", () => {
+    expect(runBlock({ FILE: LOCAL_ONLY_FILE })).toBe(1);
+    expect(runBlock({ FILE: PRESENT_FILE })).toBe(0);
+  });
+
+  it("exits 2 when neither SYMBOL nor FILE is set", () => {
+    expect(runBlock({})).toBe(2);
+  });
+
+  it("searches the whole repository when run from a subdirectory", () => {
+    const sub = path.join(clone, "pkg/api/src");
+    expect(
+      check({ kind: "symbol", name: "presentResolver" }, { cwd: sub })
     ).toBe(0);
+    expect(
+      check({ kind: "symbol", name: "wikiOnlyResolver" }, { cwd: sub })
+    ).toBe(1);
+    expect(check({ kind: "file", name: PRESENT_FILE }, { cwd: sub })).toBe(0);
   });
 
   it("exits outside {0,1} when the default branch cannot be resolved", () => {
