@@ -172,23 +172,48 @@ function leadingColumns(line, start = 0) {
 }
 
 /**
- * The content column of a list item whose marker starts at `indent`, or null
- * when the line opens no list item. Following CommonMark, one to four spaces
- * after the marker set the content column; five or more mean the content is
- * indented code one space past the marker; an empty item behaves as one space.
+ * The list item a line opens when its marker starts at `indent`, or null when
+ * it opens none. Following CommonMark, one to four spaces after the marker set
+ * the content column; five or more mean the content is indented code one
+ * space past the marker; an empty item behaves as one space.
  * @param {number} indent - Column of the first non-whitespace character
  * @param {string} rest - Line text from that character
- * @returns {number | null} Column the item's continuation lines align to
+ * @returns {{ column: number, text: string | null } | null} The column the
+ *   item's continuation lines align to, and the marker line's own content
+ *   when it begins at that column (null when the item is empty or that
+ *   content is indented code)
  */
-function listContentColumn(indent, rest) {
+function listItem(indent, rest) {
   const opener = /^(?:[-+*]|\d{1,9}[.)])/.exec(rest);
   if (!opener) return null;
   const markerEnd = indent + opener[0].length;
   const gap = leadingColumns(rest.slice(opener[0].length), markerEnd);
   const width = gap.columns - markerEnd;
-  if (!gap.rest) return markerEnd + 1;
+  if (!gap.rest) return { column: markerEnd + 1, text: null };
   if (width === 0) return null;
-  return width > 4 ? markerEnd + 1 : gap.columns;
+  return width > 4
+    ? { column: markerEnd + 1, text: null }
+    : { column: gap.columns, text: gap.rest };
+}
+
+/**
+ * Open a list item, then read the marker line's own content as the item's
+ * first block: `- ```` opens a fence inside the item, based at its content
+ * column, and `- - x` opens a nested item (#4700 review 3). That content
+ * starts a new block, so no paragraph is open before it.
+ * @param {{ column: number, text: string | null }} item - The opened item
+ * @param {{ fence: object | null, items: number[], paragraph: boolean }} state
+ *   - Mutable block state carried between lines
+ * @returns {boolean} True when the marker line is visible claiming text
+ */
+function openListItem(item, state) {
+  state.items.push(item.column);
+  state.paragraph = false;
+  if (!item.text) {
+    state.paragraph = true;
+    return true;
+  }
+  return claimingShallowBlock(item.column, item.text, 0, state);
 }
 
 /** A fence may only open where indented code would not, relative to its container. */
@@ -237,7 +262,7 @@ function closeItemsBefore(state, columns) {
  * A thematic break (`---`, `***`, `___`, `* * *`), or a setext underline
  * after an open paragraph, ends the paragraph and opens no list item, so a
  * line indented after it is code again. A break outranks a list item, which
- * is why `* * *` and `- - -` are read here before `listContentColumn`.
+ * is why `* * *` and `- - -` are read here before `listItem`.
  * @param {string} rest - Line text from its first non-whitespace character
  * @param {boolean} paragraph - Whether a paragraph is open before the line
  * @returns {boolean} True when the line is a break or a setext underline
@@ -273,9 +298,9 @@ function claimingShallowBlock(columns, rest, relative, state) {
     breaksParagraph(rest, state.paragraph) ||
     /^(?:#{1,6}(?:[ \t]|$)|<!--)/.test(rest)
   );
-  const content = blockStart ? null : listContentColumn(columns, rest);
-  if (blockStart || content !== null) closeItemsBefore(state, columns);
-  if (content !== null) state.items.push(content);
+  const item = blockStart ? null : listItem(columns, rest);
+  if (blockStart || item) closeItemsBefore(state, columns);
+  if (item) return openListItem(item, state);
   if (fence) state.fence = { ...fence, base: state.items.at(-1) ?? 0 };
   state.paragraph = !blockStart;
   return !fence;

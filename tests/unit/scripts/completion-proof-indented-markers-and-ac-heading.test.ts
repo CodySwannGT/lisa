@@ -229,6 +229,36 @@ describe("a block that interrupts a list item's paragraph closes the item (#4700
   );
 });
 
+describe("a fence can open on a list item's marker line (#4700 review 3)", () => {
+  const EXAMPLE = "[EVIDENCE: cli-output: example]";
+
+  it.each([
+    {
+      name: "a backtick fence on a bullet marker line",
+      body: ["- ```", "    example", "    ```", `  ${LOGIN_MARKER}`],
+    },
+    {
+      name: "a tilde fence on an ordered marker line holding an example",
+      body: ["1. ~~~", `   ${EXAMPLE}`, "   ~~~", `   ${LOGIN_MARKER}`],
+    },
+    {
+      name: "a fence on a nested marker line holding an example",
+      body: ["- - ```", `    ${EXAMPLE}`, "    ```", `  ${LOGIN_MARKER}`],
+    },
+    {
+      name: "a marker-line fence its item's end closes",
+      body: ["- ```", `  ${EXAMPLE}`, LOGIN_MARKER],
+    },
+  ])("claims only the visible marker after $name", ({ body }) => {
+    const text = [...body, ""].join("\n");
+    expect(localMarkers(text)).toEqual(LOGIN);
+  });
+
+  it("still claims a marker written on the marker line itself", () => {
+    expect(localMarkers(`- ${LOGIN_MARKER}\n`)).toEqual(LOGIN);
+  });
+});
+
 /** Run the real conformance reader against a full work-item body. */
 function conforms(body: string, scenarioNames: string[]): void {
   const requirements = [
