@@ -148,6 +148,18 @@ describe.each(ROOTS)(
       );
     });
 
+    it("routes every run outcome explicitly", () => {
+      expect(block).toMatch(
+        /concluded successfully proceeds to step 12.{0,40}concluded unsuccessfully.{0,60}step 11/is
+      );
+    });
+
+    it("ends the flow on a blocked deploy instead of verifying a deploy that never happened", () => {
+      expect(block).toMatch(
+        /record the blocked verdict.{0,20}end the flow there: skip steps 11–14, still post evidence \(step 15\), and keep the binding \(step 16\)/is
+      );
+    });
+
     it("diagnoses a blocked deploy before choosing the step 2a blocker kind", () => {
       expect(block).toMatch(/blocked-deploy rule: diagnose/i);
       expect(block).toMatch(
