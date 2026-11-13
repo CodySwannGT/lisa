@@ -45,6 +45,17 @@ function onCi(env) {
  */
 export function testTimingsScope(env) {
   if (!onCi(env) || env["VITEST_WORKER_ID"] !== undefined) return undefined;
+  return declaredTestScope(env);
+}
+
+/**
+ * The scope a run declares, whether or not anything records it:
+ * `LISA_TEST_TIMINGS_SCOPE` when set, else `unit` for the unit coverage
+ * scope. The test access map (#4593) keys its files on the same scope.
+ * @param {Readonly<Record<string, string | undefined>>} env - Process environment
+ * @returns {string | undefined} `unit`, `integration`, or undefined
+ */
+export function declaredTestScope(env) {
   const declared = env["LISA_TEST_TIMINGS_SCOPE"];
   if (declared !== undefined && declared !== "")
     return TEST_TIMINGS_SCOPES.includes(declared) ? declared : undefined;

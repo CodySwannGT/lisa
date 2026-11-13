@@ -14,6 +14,10 @@ import * as path from "node:path";
 // missing build would silently leave this repo's own suite uncapped.
 import { resolveMaxWorkers } from "./src/configs/vitest/base.js";
 import { withTestTimingsReporter } from "./scripts/lib/test-timings-reporter.mjs";
+import {
+  testAccessMapPlugin,
+  testAccessMapSetupFiles,
+} from "./scripts/lib/test-access-map.mjs";
 
 /** Wrapper-authoritative registry, with Lisa's legacy fixture default. */
 const scratchPrefixes =
@@ -50,6 +54,10 @@ const config: ViteUserConfig = {
         ];
       },
     },
+    // Test-to-file access map (#4593), only with LISA_ACCESS_MAP=1: arms the
+    // tracer every worker and Node child inherits, and merges what they
+    // recorded into tmp/test-access-map/<scope>.json.
+    testAccessMapPlugin(),
     {
       name: "lisa:dedicated-suite-groups",
       configureVitest({ vitest, project }) {
@@ -143,6 +151,7 @@ const config: ViteUserConfig = {
         import.meta.dirname,
         "src/configs/vitest/scratch-leak-setup.ts"
       ),
+      ...testAccessMapSetupFiles(process.env),
     ],
     sequence: { setupFiles: "list", hooks: "stack" },
     // Lisa's own legacy suite predates per-stack prefix registration. Declare

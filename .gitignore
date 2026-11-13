@@ -281,6 +281,10 @@ expo-env.d.ts
 # `node scripts/lisa-push-timing-report.mjs`.
 .lisa/push-timing/
 
+# Test-to-file access map downloaded from CI by
+# `node scripts/fetch-test-access-map.mjs` (CodySwannGT/lisa#4593).
+.lisa/test-access-map/
+
 # Built Claude Code plugins are committed so the GitHub marketplace works.
 # Regenerate with: bun run build:plugins
 
