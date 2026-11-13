@@ -15,6 +15,7 @@ import {
 import { createHash } from "node:crypto";
 import { join, dirname, isAbsolute, parse } from "node:path";
 import { required } from "./npm-update-contract.mjs";
+import { npmPath } from "./automation-provenance-contract.mjs";
 import { readBytes, runProcess } from "./npm-update-process-core.mjs";
 import { sha256 } from "./github-attestation-verifier.mjs";
 
@@ -94,7 +95,9 @@ export async function registryVersion(update, proposal) {
     ignoreBOM: true,
   }).decode(Buffer.concat(chunks));
   const value = JSON.parse(text);
-  const lock = JSON.parse(proposal.files["package-lock.json"]);
+  const lock = JSON.parse(
+    proposal.files[npmPath(proposal, "package-lock.json")]
+  );
   const item = lock.packages?.[`node_modules/${update.name}`];
   required(
     value.name === update.name &&

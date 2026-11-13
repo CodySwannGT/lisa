@@ -4,6 +4,7 @@
 /** Fixed npm policy validation shares the optional signed runtime contract without cycles. */
 import { keys, required } from "./npm-update-invariants.mjs";
 import { railsRuntime } from "./npm-update-rails-runtime-contract.mjs";
+import { validDirectory } from "./automation-provenance-contract.mjs";
 
 export const NAME = /^(?:@[a-z0-9][a-z0-9_.-]*\/)?[a-z0-9][a-z0-9_.-]*$/;
 export const VERSION =
@@ -23,8 +24,15 @@ export function validatePolicy(value, config) {
   ]);
   railsRuntime(value);
   required(
-    value.version === 1 && value.directory === "." && value.target === "main",
-    "only root npm on main is supported"
+    value.version === 1 &&
+      validDirectory(value.directory) &&
+      value.target === "main",
+    "only a committed npm directory on main is supported"
+  );
+  required(
+    value.directory === "." ||
+      (value.lisaOwner === "absent" && !Object.hasOwn(value, "runtime")),
+    "a subdirectory npm project has no Lisa owner or runtime profile"
   );
   required(
     config.tracker === "github" &&
@@ -70,4 +78,29 @@ export function validatePolicy(value, config) {
     names.add(selection.name);
   }
   return structuredClone(value);
+}
+
+/**
+ * One run updates one committed directory. The legacy single object is a
+ * one-entry list, so a root-only policy keeps its exact digest; every entry is
+ * validated even when another directory is selected, and directories are unique.
+ */
+export function selectPolicy(config, directory) {
+  const raw = config.npmUpdater;
+  const list = Array.isArray(raw) ? raw : [raw];
+  required(
+    list.length >= 1 && list.length <= 8 && !list.some(Array.isArray),
+    "invalid npm updater directory list"
+  );
+  const policies = list.map(entry => validatePolicy(entry, config));
+  required(
+    new Set(policies.map(policy => policy.directory)).size === policies.length,
+    "duplicate npm updater directory"
+  );
+  const matches = policies.filter(policy => policy.directory === directory);
+  required(
+    matches.length === 1,
+    "directory is not a committed npm updater selection"
+  );
+  return matches[0];
 }

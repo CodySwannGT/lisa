@@ -5,7 +5,7 @@ alwaysApply: true
 
 # Falsifiable Checks (load-bearing)
 
-A check that cannot fail is not evidence. Before you report a clean result from a check you wrote or changed, break the guarded property and confirm the check fails at the right location. Then restore it, and say what you broke. If you did not falsify a check, report it as unvalidated.
+A check that cannot fail is not evidence. Before you report a clean result from a check you wrote or changed, break the guarded property and confirm the check fails at the right location. Do the break on a scratch copy, never in a worktree another agent is editing. Then restore it, and say what you broke. If you did not falsify a check, report it as unvalidated.
 
 - Read the command's own exit status. `gate | tail` reports the status of `tail`, so use `gate >log 2>&1 || status=$?`.
 - To mutation-prove a guard, disable it in production code, run the whole suite, and read which tests fail. Zero failures means the guard is inert.

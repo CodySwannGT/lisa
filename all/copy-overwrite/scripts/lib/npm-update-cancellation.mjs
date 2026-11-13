@@ -6,6 +6,7 @@ import { join } from "node:path";
 import { writeFileSync } from "node:fs";
 import { canonicalJson } from "../lisa-automation-provenance.mjs";
 import { required, keys } from "./npm-update-contract.mjs";
+import { proposalPolicy } from "./automation-provenance-contract.mjs";
 import { readBytes, readJson, writeJson } from "./npm-update-process.mjs";
 import { assertHostedGate } from "./npm-update-hosted-gate.mjs";
 import { sha256 } from "./github-attestation-verifier.mjs";
@@ -47,7 +48,8 @@ export function assertDispatchCancellation(event, run, request, authority) {
 
 /** The actual run and repository permission are read through the existing pinned default-token transport. */
 async function manualAuthority(api, proposal, config, request) {
-  assertHostedGate({ policy: config.npmUpdater, proposal, config });
+  const policy = proposalPolicy(config, proposal);
+  assertHostedGate({ policy, proposal, config });
   const invocation = {
     runId: process.env.GITHUB_RUN_ID,
     runAttempt: process.env.GITHUB_RUN_ATTEMPT,
@@ -63,13 +65,13 @@ async function manualAuthority(api, proposal, config, request) {
     `repos/${proposal.repository}/actions/runs/${invocation.runId}/attempts/${invocation.runAttempt}`
   );
   const permission = await api.request(
-    `repos/${proposal.repository}/collaborators/${config.npmUpdater.maintainer}/permission`
+    `repos/${proposal.repository}/collaborators/${policy.maintainer}/permission`
   );
   const operatorId = assertManualCancellation(
     run,
     permission,
     api.policy,
-    config.npmUpdater.maintainer,
+    policy.maintainer,
     proposal,
     request,
     invocation

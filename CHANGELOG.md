@@ -2,6 +2,58 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [5.1.3](https://github.com/CodySwannGT/lisa/compare/v5.1.2...v5.1.3) (2026-11-13)
+
+
+### Bug Fixes
+
+* **implement:** cap each deploy watch at the remaining ceiling time ([9df69f3](https://github.com/CodySwannGT/lisa/commit/9df69f3f45a1463b2e479380a062cc7a28edcf85)), closes [#4866](https://github.com/CodySwannGT/lisa/issues/4866) [CodySwannGT/lisa#4762](https://github.com/CodySwannGT/lisa/issues/4762) [CodySwannGT/lisa#4762](https://github.com/CodySwannGT/lisa/issues/4762)
+* **implement:** judge a concluded deploy run before the ceiling check ([41b96e1](https://github.com/CodySwannGT/lisa/commit/41b96e1392d2d1c1edafbce3db736a97549ea14b)), closes [#4866](https://github.com/CodySwannGT/lisa/issues/4866) [CodySwannGT/lisa#4762](https://github.com/CodySwannGT/lisa/issues/4762) [CodySwannGT/lisa#4762](https://github.com/CodySwannGT/lisa/issues/4762)
+* **implement:** never route a missing deploy run to a fix PR ([a16ef40](https://github.com/CodySwannGT/lisa/commit/a16ef40b857bb3248945d939480643e2b925d0c3)), closes [#4866](https://github.com/CodySwannGT/lisa/issues/4866) [CodySwannGT/lisa#4762](https://github.com/CodySwannGT/lisa/issues/4762) [CodySwannGT/lisa#4762](https://github.com/CodySwannGT/lisa/issues/4762)
+* **implement:** route every deploy outcome in step 10 explicitly ([909f1ef](https://github.com/CodySwannGT/lisa/commit/909f1efc55d90cb8355f1cea6eccd3e2dbedea69)), closes [#4866](https://github.com/CodySwannGT/lisa/issues/4866) [CodySwannGT/lisa#4762](https://github.com/CodySwannGT/lisa/issues/4762) [CodySwannGT/lisa#4762](https://github.com/CodySwannGT/lisa/issues/4762)
+* **implement:** wait on the deploy in the foreground, never a background watcher ([a8c8492](https://github.com/CodySwannGT/lisa/commit/a8c8492d0065157d7f5396ca7f70ce3efdff3772)), closes [CodySwannGT/lisa#4762](https://github.com/CodySwannGT/lisa/issues/4762) [CodySwannGT/lisa#4762](https://github.com/CodySwannGT/lisa/issues/4762)
+* **implement:** watch step 8's confirmed deploy run with a portable bound ([dac06a2](https://github.com/CodySwannGT/lisa/commit/dac06a26c81a131f7e56106a9dd06763b692ad9f)), closes [CodySwannGT/lisa#4762](https://github.com/CodySwannGT/lisa/issues/4762) [CodySwannGT/lisa#4762](https://github.com/CodySwannGT/lisa/issues/4762)
+
+### [5.1.2](https://github.com/CodySwannGT/lisa/compare/v5.1.1...v5.1.2) (2026-11-13)
+
+
+### Bug Fixes
+
+* **agents:** make the scratch-copy falsification recipe runnable ([3db6cee](https://github.com/CodySwannGT/lisa/commit/3db6ceecd53ede8e087dff6a9cc99697c48391fc)), closes [CodySwannGT/lisa#4760](https://github.com/CodySwannGT/lisa/issues/4760) [CodySwannGT/lisa#4760](https://github.com/CodySwannGT/lisa/issues/4760)
+* **agents:** run falsification breaks on a scratch copy, never in a shared worktree ([7aa81f2](https://github.com/CodySwannGT/lisa/commit/7aa81f2852ae42a924640aa202d4305a1706252b)), closes [CodySwannGT/lisa#4760](https://github.com/CodySwannGT/lisa/issues/4760) [CodySwannGT/lisa#4760](https://github.com/CodySwannGT/lisa/issues/4760)
+* **rules:** install deps in the scratch copy for workspace monorepos ([6f90eed](https://github.com/CodySwannGT/lisa/commit/6f90eed1c0b91f3ef83c056efd20b83c3de42378)), closes [#4760](https://github.com/CodySwannGT/lisa/issues/4760) [CodySwannGT/lisa#4760](https://github.com/CodySwannGT/lisa/issues/4760) [CodySwannGT/lisa#4760](https://github.com/CodySwannGT/lisa/issues/4760)
+* **rules:** make scratch copies with git worktree add, never a cwd-switching tool ([d900be2](https://github.com/CodySwannGT/lisa/commit/d900be224e53f77c2784fb903e8782868b1a8ab4)), closes [CodySwannGT/lisa#4760](https://github.com/CodySwannGT/lisa/issues/4760) [CodySwannGT/lisa#4760](https://github.com/CodySwannGT/lisa/issues/4760)
+* **rules:** scope the break/restore steps main moved into reference rules ([3b2a6da](https://github.com/CodySwannGT/lisa/commit/3b2a6da8db5bc8a53d6d3479e2738647bb504445)), closes [CodySwannGT/lisa#4760](https://github.com/CodySwannGT/lisa/issues/4760) [CodySwannGT/lisa#4760](https://github.com/CodySwannGT/lisa/issues/4760)
+
+### [5.1.1](https://github.com/CodySwannGT/lisa/compare/v5.1.0...v5.1.1) (2026-11-13)
+
+
+### Bug Fixes
+
+* **skills:** exclude non-shipped paths at any depth in the shipped-prerequisite check ([ca173fd](https://github.com/CodySwannGT/lisa/commit/ca173fd18f14b05fc79857421995f40ffab8ad06)), closes [#4761](https://github.com/CodySwannGT/lisa/issues/4761) [CodySwannGT/lisa#4761](https://github.com/CodySwannGT/lisa/issues/4761) [CodySwannGT/lisa#4761](https://github.com/CodySwannGT/lisa/issues/4761)
+* **skills:** make the shipped-prerequisite block select its own check ([e3015b6](https://github.com/CodySwannGT/lisa/commit/e3015b64a839f67a27f94d6a1c77927d487673cb)), closes [CodySwannGT/lisa#4761](https://github.com/CodySwannGT/lisa/issues/4761) [CodySwannGT/lisa#4761](https://github.com/CodySwannGT/lisa/issues/4761)
+* **skills:** make the shipped-prerequisite check tri-state and literal ([3a78c15](https://github.com/CodySwannGT/lisa/commit/3a78c154573b9aaca1ca06fca5554eb97d8e0cb2)), closes [CodySwannGT/lisa#4761](https://github.com/CodySwannGT/lisa/issues/4761) [CodySwannGT/lisa#4761](https://github.com/CodySwannGT/lisa/issues/4761)
+* **skills:** verify prerequisites a leaf calls shipped exist on the default branch ([84f7d4c](https://github.com/CodySwannGT/lisa/commit/84f7d4c2d53598376c01689065d1a777cf50bf96)), closes [CodySwannGT/lisa#4761](https://github.com/CodySwannGT/lisa/issues/4761) [CodySwannGT/lisa#4761](https://github.com/CodySwannGT/lisa/issues/4761)
+
+## [5.1.0](https://github.com/CodySwannGT/lisa/compare/v5.0.2...v5.1.0) (2026-11-13)
+
+
+### Features
+
+* **npm-updater:** update one committed npm project directory per run ([37730b3](https://github.com/CodySwannGT/lisa/commit/37730b3c8a4d742b2faa1786970102d5b77e3860)), closes [#4741](https://github.com/CodySwannGT/lisa/issues/4741) [CodySwannGT/lisa#4741](https://github.com/CodySwannGT/lisa/issues/4741)
+
+
+### Bug Fixes
+
+* **npm-updater:** address multi-directory review findings ([e1fbb9d](https://github.com/CodySwannGT/lisa/commit/e1fbb9dd9efe29c77147eeb29345b0affc7f1180)), closes [#4741](https://github.com/CodySwannGT/lisa/issues/4741) [CodySwannGT/lisa#4741](https://github.com/CodySwannGT/lisa/issues/4741)
+* **npm-updater:** satisfy shipped-mjs lint and bounded-spawn conformance ([1cd739f](https://github.com/CodySwannGT/lisa/commit/1cd739fd29cb9a7aaa461d03768bccd08d193ebd)), closes [#4741](https://github.com/CodySwannGT/lisa/issues/4741) [CodySwannGT/lisa#4741](https://github.com/CodySwannGT/lisa/issues/4741)
+
+
+### Documentation
+
+* **npm-updater:** document multi-directory npm projects ([7d99169](https://github.com/CodySwannGT/lisa/commit/7d99169b3ecdb2258cd567f16bad2a742b054407)), closes [#4741](https://github.com/CodySwannGT/lisa/issues/4741) [CodySwannGT/lisa#4741](https://github.com/CodySwannGT/lisa/issues/4741)
+* **npm-updater:** state the root package-lock.json requirement ([2a1777d](https://github.com/CodySwannGT/lisa/commit/2a1777df939df9183d0dbfdc1d9e801badaa309f)), closes [CodySwannGT/lisa#4862](https://github.com/CodySwannGT/lisa/issues/4862) [#4741](https://github.com/CodySwannGT/lisa/issues/4741) [CodySwannGT/lisa#4741](https://github.com/CodySwannGT/lisa/issues/4741)
+
 ### [5.0.2](https://github.com/CodySwannGT/lisa/compare/v5.0.1...v5.0.2) (2026-11-13)
 
 
