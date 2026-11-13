@@ -12,6 +12,26 @@ import {
 } from "node:fs";
 import path from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
+import {
+  describeControllerFailure,
+  readOptionalJson,
+} from "./controller-failure.mjs";
+
+const CAPTURE_LIMIT = 256 * 1024;
+
+/**
+ * Keep a bounded tail of a child stream for failure diagnostics.
+ * @param {import("node:stream").Readable} stream - Child output stream.
+ * @returns {{text: string}} Live holder of the captured tail.
+ */
+function captureTail(stream) {
+  const holder = { text: "" };
+  stream.setEncoding("utf8");
+  stream.on("data", chunk => {
+    holder.text = (holder.text + chunk).slice(-CAPTURE_LIMIT);
+  });
+  return holder;
+}
 
 /**
  * Stage only new sentinels owned by this test, never real operator settings.
@@ -75,8 +95,8 @@ export async function qualifySymlinkChange(input) {
     });
     child.once("close", (status, signal) => resolve({ status, signal }));
   });
-  child.stdout.resume();
-  child.stderr.resume();
+  const stdout = captureTail(child.stdout);
+  const stderr = captureTail(child.stderr);
   try {
     // A completed preflight proves both that before-images are finished and
     // that any cleanup target below belongs to this exact controller run.
@@ -117,6 +137,21 @@ export async function qualifySymlinkChange(input) {
     state.finished = true;
     assert.equal(result.error, undefined);
     assert.equal(result.signal, null);
+    // Exit 1 is this control's expected outcome (owned outside changes), so it
+    // cannot reveal a container failure; the native proof's verdict does.
+    const nativePassed =
+      readOptionalJson(path.join(directory, "native-proof.json"))?.passed ===
+      true;
+    if (result.status !== 1 || !nativePassed)
+      console.error(
+        describeControllerFailure({
+          name: "owned-post-run-symlink",
+          directory,
+          status: result.status,
+          stdout: stdout.text,
+          stderr: stderr.text,
+        })
+      );
     assert.equal(result.status, 1);
     const report = JSON.parse(
       readFileSync(path.join(directory, "preservation.json"), "utf8")

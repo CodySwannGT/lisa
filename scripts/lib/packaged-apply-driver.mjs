@@ -256,6 +256,8 @@ try {
   proof.passed = false;
   proof.failure = {
     message: error.message,
+    // A bare `true !== false` is undiagnosable without the failing line.
+    stack: error.stack ?? null,
     stdout: error.stdout ?? null,
     stderr: error.stderr ?? null,
   };

@@ -2,9 +2,10 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { parseArgs } from "node:util";
+import { describeControllerFailure } from "./controller-failure.mjs";
 import { qualifySymlinkChange } from "./symlink-control.mjs";
 
 const { values } = parseArgs({
@@ -108,6 +109,24 @@ for (const [name, harness, failed] of [
   });
   assert.equal(child.error, undefined);
   assert.equal(child.signal, null);
+  // The controller's own stderr only names `docker start --attach`; print the
+  // container's recorded cause before any later read or assertion can mask it.
+  // Applies to the failure control too: a missing proof file would otherwise
+  // surface only as a bare ENOENT from the read below.
+  const unexpected =
+    (!failed && child.status !== 0) ||
+    !existsSync(path.join(directory, "preservation.json")) ||
+    !existsSync(path.join(directory, "native-proof.json"));
+  const diagnostic = unexpected
+    ? describeControllerFailure({
+        name,
+        directory,
+        status: child.status,
+        stdout: child.stdout,
+        stderr: child.stderr,
+      })
+    : null;
+  if (diagnostic) console.error(diagnostic);
   const preservation = read(path.join(directory, "preservation.json"));
   const native = read(path.join(directory, "native-proof.json"));
   assert.equal(preservation.preserved, true);
@@ -123,7 +142,11 @@ for (const [name, harness, failed] of [
     assert.equal(native.failure_control.kind, "agy-config-is-directory");
     assert.match(native.apply.stdout + native.apply.stderr, /EISDIR/u);
   } else {
-    assert.equal(child.status, 0, child.stderr);
+    assert.equal(
+      child.status,
+      0,
+      `${name}: controller exited ${child.status}; cause printed above`
+    );
     assert.equal(native.apply.status, 0);
     assert.equal(native.apply_receipt.apply_mode, "full");
     assert.equal(native.passed, true);
