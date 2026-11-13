@@ -1,3 +1,3 @@
 $ node plugins/lisa/skills/lisa-session-manager/scripts/session-manager.mjs ledger record-spawn example-org/demo-repo#4 --worker w-live-4 --project-root /Users/codysai/.claude/jobs/313c93db/tmp/verify-4722/A
-{"repo":".","worker":"w-live-4","sessionId":null,"status":"running","startedAt":"2026-11-13T12:33:08.460Z","lastProgressAt":"2026-11-13T12:33:08.460Z","logsHash":null,"pendingQuestion":null,"attempts":1,"history":[{"event":"spawn","at":"2026-11-13T12:33:08.460Z","worker":"w-live-4","sessionId":null,"attempt":1}],"reason":null,"finishedAt":null}
+{"repo":".","worker":"w-live-4","sessionId":null,"status":"running","startedAt":"2026-11-13T13:23:30.392Z","lastProgressAt":"2026-11-13T13:23:30.392Z","logsHash":null,"pendingQuestion":null,"attempts":1,"history":[{"event":"spawn","at":"2026-11-13T13:23:30.392Z","worker":"w-live-4","sessionId":null,"attempt":1}],"reason":null,"finishedAt":null}
 exit=0

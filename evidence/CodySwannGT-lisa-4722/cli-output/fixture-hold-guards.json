@@ -1,0 +1,10 @@
+{
+  "complete": true,
+  "items": [],
+  "holds": [
+    {"ref":"example-org/demo-repo#60","labels":["status:ready","human-needed"],"body":"Held.\n<!-- [lisa-human-gate] reason=tenancy-audit-triage -->","comments":[],"assignees":[{"login":"someone-else"}],"updatedAt":"2026-11-01T00:00:00Z"},
+    {"ref":"example-org/demo-repo#61","labels":["status:ready","human-needed"],"body":"Held.\n<!-- [lisa-human-gate] reason=tenancy-audit-triage -->","comments":[],"assignees":[],"updatedAt":"2026-11-13T12:23:38Z"},
+    {"ref":"example-org/demo-repo#62","labels":["status:ready","human-needed"],"body":"Held.\n<!-- [lisa-human-gate] reason=tenancy-audit-triage -->","comments":[],"assignees":[]},
+    {"ref":"example-org/demo-repo#63","labels":["status:ready","human-needed"],"body":"Held.\n<!-- [lisa-human-gate] reason=tenancy-audit-triage -->","comments":[],"assignees":[],"updatedAt":"2026-11-01T00:00:00Z"}
+  ]
+}
