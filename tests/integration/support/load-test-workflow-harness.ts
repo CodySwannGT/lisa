@@ -70,6 +70,8 @@ export interface LoadTestCase {
   readonly files?: readonly string[];
   /** Workflow to execute instead of the shipped one (rejection controls). */
   readonly workflowFile?: string;
+  /** Secrets the caller passes; omitted secrets render as empty. */
+  readonly secrets?: Readonly<Record<string, string>>;
 }
 
 /** Everything the three steps left behind, read before the sandbox goes. */
@@ -283,7 +285,7 @@ export function runLoadTest(testCase: LoadTestCase): LoadTestOutcome {
       K6_STUB_EXIT: String(testCase.k6Exit ?? 0),
       RUNNER_STUB_EXIT: String(testCase.runnerExit ?? 0),
     };
-    const context = { inputs, secrets: {}, github: {} };
+    const context = { inputs, secrets: testCase.secrets ?? {}, github: {} };
 
     const prepare = execStep(
       dir,

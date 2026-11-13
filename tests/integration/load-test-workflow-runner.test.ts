@@ -92,6 +92,47 @@ describe("load-test.yml cloud runs (#4526)", () => {
     expect(result.k6Argv).not.toContain("--cloud");
   });
 
+  it("forwards only the non-secret script variables to the cloud script with --env", () => {
+    const result = runLoadTest({
+      inputs: { ...SUPPRESSED, test_script: CUSTOM_SCRIPT, cloud_run: true },
+      secrets: { CUSTOM_HEADERS: '{"X-Test":"secret-value"}' },
+      files: [CUSTOM_SCRIPT],
+    });
+
+    expect(result.runStatus).toBe(0);
+    expect(result.k6Argv).toContain("K6_BASE_URL=https://staging.example.test");
+    expect(result.k6Argv).toContain("K6_SCENARIO=smoke");
+    expect(result.k6Argv).toContain("K6_ENVIRONMENT=staging");
+    expect(result.k6Argv?.join(" ")).not.toContain("secret-value");
+  });
+
+  it("exports the k6 Cloud token, stack ID and project ID for a cloud run", () => {
+    const result = runLoadTest({
+      inputs: { ...SUPPRESSED, test_script: CUSTOM_SCRIPT, cloud_run: true },
+      secrets: {
+        K6_CLOUD_TOKEN: "tok",
+        K6_CLOUD_STACK_ID: "123",
+        K6_CLOUD_PROJECT_ID: "456",
+      },
+      files: [CUSTOM_SCRIPT],
+    });
+
+    expect(result.preparedEnv["K6_CLOUD_TOKEN"]).toBe("tok");
+    expect(result.preparedEnv["K6_CLOUD_STACK_ID"]).toBe("123");
+    expect(result.preparedEnv["K6_CLOUD_PROJECT_ID"]).toBe("456");
+  });
+
+  it("exports no k6 Cloud settings for a local run", () => {
+    const result = runLoadTest({
+      inputs: { ...SUPPRESSED, test_script: CUSTOM_SCRIPT },
+      secrets: { K6_CLOUD_TOKEN: "tok", K6_CLOUD_STACK_ID: "123" },
+      files: [CUSTOM_SCRIPT],
+    });
+
+    expect(result.preparedEnv["K6_CLOUD_TOKEN"]).toBeUndefined();
+    expect(result.preparedEnv["K6_CLOUD_STACK_ID"]).toBeUndefined();
+  });
+
   it("keeps the local --out files on a local run", () => {
     const result = runLoadTest({
       inputs: { ...SUPPRESSED, test_script: CUSTOM_SCRIPT },

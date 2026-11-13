@@ -80,9 +80,10 @@ on:
         default: true
       cloud_run:
         description: >-
-          Run tests on k6 Cloud (requires K6_CLOUD_TOKEN secret). Uses
-          `k6 cloud run <script>`, which needs a k6 that has the `cloud run`
-          subcommand: the default `k6_version: latest` does.
+          Run tests on k6 Cloud (requires the K6_CLOUD_TOKEN secret, plus
+          K6_CLOUD_STACK_ID and K6_CLOUD_PROJECT_ID unless the script sets
+          options.cloud). Uses `k6 cloud run <script>`, which needs a k6 that
+          has the `cloud run` subcommand: the default `k6_version: latest` does.
         required: false
         type: boolean
         default: false
@@ -105,6 +106,17 @@ on:
       K6_CLOUD_TOKEN:
         required: false
         description: 'k6 Cloud API token for cloud runs'
+      K6_CLOUD_STACK_ID:
+        required: false
+        description: >-
+          Grafana Cloud stack ID for cloud runs. `k6 cloud run` refuses to start
+          without one ("stack ID not configured") unless the script sets
+          options.cloud.stackID.
+      K6_CLOUD_PROJECT_ID:
+        required: false
+        description: >-
+          k6 Cloud project ID for cloud runs, needed with a stack ID unless the
+          script sets options.cloud.projectID.
       CUSTOM_HEADERS:
         required: false
         description: 'Custom headers for authenticated endpoints (JSON format)'
@@ -226,6 +238,8 @@ jobs:
           CUSTOM_HEADERS: ${{ secrets.CUSTOM_HEADERS }}
           CLOUD_RUN: ${{ inputs.cloud_run }}
           CLOUD_TOKEN: ${{ secrets.K6_CLOUD_TOKEN }}
+          CLOUD_STACK_ID: ${{ secrets.K6_CLOUD_STACK_ID }}
+          CLOUD_PROJECT_ID: ${{ secrets.K6_CLOUD_PROJECT_ID }}
         run: |
           # Create results directory
           mkdir -p k6-results
@@ -267,9 +281,19 @@ jobs:
             echo "K6_CUSTOM_HEADERS=${CUSTOM_HEADERS}" >> "$GITHUB_ENV"
           fi
 
-          # Set cloud token if cloud run is enabled
-          if [ "${CLOUD_RUN}" = "true" ] && [ -n "${CLOUD_TOKEN}" ]; then
-            echo "K6_CLOUD_TOKEN=${CLOUD_TOKEN}" >> "$GITHUB_ENV"
+          # Set cloud auth if cloud run is enabled. `k6 cloud run` needs a stack
+          # ID and a project ID as well as the token, or it refuses before
+          # uploading anything (verified on k6 v2.4.0).
+          if [ "${CLOUD_RUN}" = "true" ]; then
+            if [ -n "${CLOUD_TOKEN}" ]; then
+              echo "K6_CLOUD_TOKEN=${CLOUD_TOKEN}" >> "$GITHUB_ENV"
+            fi
+            if [ -n "${CLOUD_STACK_ID}" ]; then
+              echo "K6_CLOUD_STACK_ID=${CLOUD_STACK_ID}" >> "$GITHUB_ENV"
+            fi
+            if [ -n "${CLOUD_PROJECT_ID}" ]; then
+              echo "K6_CLOUD_PROJECT_ID=${CLOUD_PROJECT_ID}" >> "$GITHUB_ENV"
+            fi
           fi
 
       - name: Run k6 test
@@ -353,9 +377,13 @@ jobs:
 
             # A cloud run is `k6 cloud run <script>`; `k6 run` has no --cloud
             # flag and refuses it as unknown. Results stay in k6 Cloud, so the
-            # local --out files are only written for a local run.
+            # local --out files are only written for a local run. `k6 cloud run`
+            # does not hand the runner's environment to the script's __ENV, so
+            # the script-facing values are forwarded explicitly. Only these
+            # non-secret ones: --env values are stored in the uploaded archive,
+            # so K6_CUSTOM_HEADERS (from a secret) is deliberately left out.
             if [ "${CLOUD_RUN}" = "true" ]; then
-              CMD=(k6 cloud run)
+              CMD=(k6 cloud run --env "K6_BASE_URL=${BASE_URL}" --env "K6_SCENARIO=${TEST_SCENARIO}" --env "K6_ENVIRONMENT=${K6_ENVIRONMENT:-}")
             else
               CMD=(k6 run --out json=k6-results/results.json --out csv=k6-results/results.csv)
             fi
