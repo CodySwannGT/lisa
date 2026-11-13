@@ -283,6 +283,43 @@ over a subprocess is a measurement of the machine, not of the code**, and a
 suite that spawns a second copy of itself is the case where the machine is
 guaranteed to be busy.
 
+## A push pass is remembered by content
+
+A retry, or a re-push of a tree that already passed (a rebase that changes no
+content, a second branch, a push after a network failure), used to pay every
+push gate again. `lib/gate-pass-cache.mjs` remembers a push gate's pass under a
+sha256 key over everything its verdict can depend on: the pushed commit's tree,
+the gate id and exact command, every lockfile present, the node and bun
+versions, the `gates` blocks of `.lisa.config.json` and
+`.lisa.config.local.json`, and an environment allowlist (`NODE_OPTIONS`,
+`NODE_ENV`, `TZ`, and every `LISA_*` variable except the volatile
+`LISA_GATE_CACHE`, `LISA_PUSHED_REFS_FILE` and `LISA_CLEANUP_SWEPT`). A hit
+prints `CACHED PASS (<first 12 hex of key>)`, counts as PASSED, and does not run.
+Entries live machine-wide under `${XDG_CACHE_HOME:-~/.cache}/lisa/gate-passes/`
+and are pruned after 30 days.
+
+Every rule fails toward running the gate:
+
+- The cache is read or filled only when the working tree is exactly the tree
+  being pushed — `git status --porcelain` empty and `HEAD^{tree}` equal to the
+  tree of every non-deletion pushed ref — and passes are written only after the
+  run, once the tree is re-read unchanged. A green must describe the pushed tree
+  (CodySwannGT/lisa#3874).
+- Only a full pass is remembered: never FAILED, KILLED, UNPROVABLE or NOT_RUN,
+  and never a pass read off a shared prover that did not itself pass.
+- A moment entry declares `"cache": false` beside `level` and `run` when its
+  verdict depends on anything outside the key. Lisa marks `traceability` (reads
+  the tracker), `threshold-monotonicity` (compares against `HEAD^`),
+  `x-orphan-fixture-processes` (live processes), and `x-operational-hazards` and
+  `x-withdrawn-rulings` (each also reads a machine ledger under `~/.lisa`). It
+  sits on the moment entry, like `failure_shape`, because an older Lisa refuses
+  an unknown gate-level key together with the whole gates block.
+- CI (`CI` or `GITHUB_ACTIONS` set) never reads or writes it; CI always runs the
+  full suite. `LISA_GATE_CACHE=off` switches it off for one run.
+- It is off unless `.lisa.config.json` sets `pushGate.cache: true`, and while
+  off it is silent and touches nothing. Lisa turns it on for itself; hosts get it
+  when their stack template does (CodySwannGT/lisa#4611, #4613).
+
 ## Hollow results
 
 Two forms, one response model.

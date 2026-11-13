@@ -157,6 +157,32 @@ describe("timingReport", () => {
     expect(gates[2]).toMatchObject({ state: "UNPROVABLE", provedBy: SLOW });
     expect(gates[3]).toMatchObject({ state: "NOT_RUN", exitCode: null });
   });
+
+  it("reports a remembered pass as CACHED, not as a zero-time PASSED", () => {
+    const doc = timingReport({
+      moment: "push",
+      startedAtMs: STARTED_MS,
+      finishedAtMs: FINISHED_MS,
+      cores: 18,
+      start: { loadavg: [1, 1, 1], freeMem: 1 },
+      end: { loadavg: [1, 1, 1], freeMem: 1 },
+      versions: { node: "22.0.0", bun: "1.2.0" },
+      head: "abc123",
+      tree: "def456",
+      result: {
+        ...RESULT,
+        results: [
+          {
+            ...RESULT.results[0],
+            state: "passed",
+            cached: true,
+            durationMs: 0,
+          },
+        ],
+      },
+    });
+    expect(doc.gates[0]).toMatchObject({ state: "CACHED", durationMs: 0 });
+  });
 });
 
 describe("reportFileName", () => {

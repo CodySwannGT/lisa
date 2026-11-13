@@ -76,6 +76,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "3426aeee6aed4ab7673c69a2812a4761f3bc5b5cf142af9050da77f182a93c76",
     "all/copy-overwrite/scripts/lib/gate-failure-diagnosis.mjs":
       "31f2acced121662d6395b624aed2ae0ad642c1edb52cdb0eded1497886daad71",
+    "all/copy-overwrite/scripts/lib/gate-pass-cache.mjs":
+      "347a15705e8c2931c33b6df7c13d6ad5db28d1da4e5006d0b57d64329cbd1cdf",
     "all/copy-overwrite/scripts/lib/github-attestation-provider.mjs":
       "98dbe0326546a1d10e148ed9036d5696159dee38068beddff321f1b2d47fcdc7",
     "all/copy-overwrite/scripts/lib/github-attestation-recovery.mjs":
@@ -245,7 +247,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lib/process-tree-runner.mjs":
       "7034adad8d8348eeb669ead52cb7eaffa11b592c1f1b06bcd8474b6348360eae",
     "all/copy-overwrite/scripts/lib/push-timing.mjs":
-      "b2ff671d4b46de3b94518771850ff4f4b54c38f196e2f40cbf7b34ab02e40f19",
+      "31de9d9357839e7e63292a4c18ede6c7b66e2cc2d562ede80036cc90f24d0d9f",
     "all/copy-overwrite/scripts/lib/reusable-workflow-load-adapter.d.mts":
       "da1eebc33c5215bc81ab4202c649a5af6b39e3d42f71f94cb2424e3535849154",
     "all/copy-overwrite/scripts/lib/reusable-workflow-load-adapter.mjs":
@@ -309,7 +311,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-floor-collisions.mjs":
       "345832c63c85df32acbed9b183b06239fc10ccb1491bd11607b5840ac1d18573",
     "all/copy-overwrite/scripts/lisa-gates.mjs":
-      "94640dede038608239edea5cffbf0227a86d77b3e4b9b9c6e3762369fa2de259",
+      "ffb2e8d96c4a30bcf0312ca6ca89bd4b04962e33b85faa7e48bb08520851a7c4",
     "all/copy-overwrite/scripts/lisa-history-secrets.mjs":
       "815fd6403aed6194d30939b59dc5ce894f7122a9da598acee4cd529a1b520de3",
     "all/copy-overwrite/scripts/lisa-hooks/block-blind-automerge.sh":
@@ -351,7 +353,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-reconcile-policy.mjs":
       "263860fba7fadae3c1096973eaf4f25dca1683ef2ce64279dea6845ac90faf6a",
     "all/copy-overwrite/scripts/lisa-run-gates.mjs":
-      "c6efd75fd15c17b9d7cc94d5b894b5d0a6ca087e213de7bcaa2c689cebaaeb51",
+      "774b3f9f830ff1ec70089913b652074ff544369a888813df50ef03833f90f156",
     "all/copy-overwrite/scripts/lisa-schema-validate.mjs":
       "f70ecd3712dd2ca77a8851c7505ce79f948a57e5a2e28f56c5d0ccd047712688",
     "all/copy-overwrite/scripts/lisa-scratch-run.sh":
@@ -2901,7 +2903,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/test-timing-report.mjs":
       "ac98aac3ecf547da67f2a40f44c008e6fdc7b7682b38080ac46e12d41b6309b6",
     "scripts/two-channel-couplings.json":
-      "7e835e0b349645b802c1d2893c1f852cf790c452571f613ff896c3fb84a3102d",
+      "3aa6c00cc48a9c47fec08a84533a94d75d75d60ee52878fff2f3645b5e34419b",
     "scripts/update-node-version.ts":
       "b4d96816bc86c9172e8cb48f3efbba82bf35fce8eef3c6de7a58ae68de11a518",
     "scripts/update-test-skill-paths.mjs":
@@ -3282,6 +3284,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "all/copy-overwrite/scripts/lib/evidence-prune.mjs": true,
     "all/copy-overwrite/scripts/lib/evidence-release-capacity.mjs": true,
     "all/copy-overwrite/scripts/lib/gate-failure-diagnosis.mjs": true,
+    "all/copy-overwrite/scripts/lib/gate-pass-cache.mjs": true,
     "all/copy-overwrite/scripts/lib/github-attestation-provider.mjs": true,
     "all/copy-overwrite/scripts/lib/github-attestation-recovery.mjs": true,
     "all/copy-overwrite/scripts/lib/github-attestation-verifier.mjs": true,
@@ -11700,6 +11703,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/gate-failure-vocabulary-bite.test.ts": true,
     "tests/integration/gate-labels-name-properties.test.ts": true,
     "tests/integration/gate-output-names-its-lisa.test.ts": true,
+    "tests/integration/gate-pass-cache-push.test.ts": true,
     "tests/integration/gate-shipped-as-operator-surfaces.test.ts": true,
     "tests/integration/hardcoded-invocation-fixture.ts": true,
     "tests/integration/hardcoded-invocation-inventory.test.ts": true,
@@ -12835,6 +12839,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/gate-failure-diagnosis.test.ts": true,
     "tests/unit/scripts/gate-hollow-success.test.ts": true,
     "tests/unit/scripts/gate-killed-under-load.test.ts": true,
+    "tests/unit/scripts/gate-pass-cache.test.ts": true,
     "tests/unit/scripts/gate-resource-refused.test.ts": true,
     "tests/unit/scripts/generate-agy-plugin-artifacts.test.ts": true,
     "tests/unit/scripts/generate-copilot-plugin-artifacts.test.ts": true,
@@ -12944,6 +12949,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/lisa-run-gates-invalid-config.test.ts": true,
     "tests/unit/scripts/lisa-run-gates-kill-context.test.ts": true,
     "tests/unit/scripts/lisa-run-gates-killed.test.ts": true,
+    "tests/unit/scripts/lisa-run-gates-pass-cache.test.ts": true,
     "tests/unit/scripts/lisa-run-gates-registry-version.test.ts": true,
     "tests/unit/scripts/lisa-run-gates-shared-prover.test.ts": true,
     "tests/unit/scripts/lisa-run-gates-shipped-as.test.ts": true,

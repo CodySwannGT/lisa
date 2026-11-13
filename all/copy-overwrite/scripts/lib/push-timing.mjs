@@ -41,7 +41,7 @@ const REPORT_NAME = /^\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}Z(?:-\d+)?\.json$/u;
  * @property {string} id Gate id.
  * @property {string|null} level Declared level.
  * @property {string|null} command Command that proved it.
- * @property {string} state PASSED, FAILED, UNPROVABLE, KILLED, SKIPPED or NOT_RUN.
+ * @property {string} state PASSED, CACHED, FAILED, UNPROVABLE, KILLED, SKIPPED or NOT_RUN.
  * @property {number|null} exitCode Exit code, when one exists.
  * @property {string|null} startedAt ISO-8601 start, null when never reached.
  * @property {number} durationMs Time spent; 0 when proved by a sibling's run.
@@ -109,9 +109,14 @@ function gateRecord(entry) {
     id: entry.id,
     level: entry.level ?? null,
     command: entry.command ?? null,
-    state: String(entry.state ?? "unknown")
-      .toUpperCase()
-      .replaceAll("-", "_"),
+    // A remembered pass (#4594) did not run, so it is reported as CACHED
+    // rather than as a PASSED gate that happened to take no time.
+    state:
+      entry.cached === true
+        ? "CACHED"
+        : String(entry.state ?? "unknown")
+            .toUpperCase()
+            .replaceAll("-", "_"),
     exitCode: typeof entry.code === "number" ? entry.code : null,
     startedAt: entry.startedAt ?? null,
     durationMs: typeof entry.durationMs === "number" ? entry.durationMs : 0,
