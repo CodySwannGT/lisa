@@ -472,7 +472,8 @@ just as long. Sweep both every cycle, after `classify` and before Dispatch:
    `gh`, with `--limit 10000`; Jira / Linear: `lisa-atlassian-access` or `lisa-linear-access`).
    Write `{"complete":true,"items":[{ref,role,labels,body,comments,assignees,updatedAt}],"holds":[{ref,role,labels,body,comments}]}`
    to `.lisa/session-manager/orphan-input.json`: refs canonical as dispatch uses them, comments
-   with their author ids, assignees as `{login,id}` objects on GitHub (the REST
+   as `{id,author,body,createdAt}` with the author's stable id and the comment's own posting
+   time (a refusal comment with no `createdAt` never ages out of its 24-hour park), assignees as `{login,id}` objects on GitHub (the REST
    `.assignees[].id`) and as the account or user id on Jira and Linear, and each hold's `role` as
    the lifecycle role it is in (`ready`, `claimed`, `review`, `blocked`, `done`), so a lift never
    moves an item that is in a lane back to the `ready` role. On Jira and Linear a hold with no

@@ -329,7 +329,7 @@ Per cycle
       default 6) and undated items, and holds on live refs. A review-role
       item with an open pull request, and a merged item whose comments hold
       a line starting "[lisa-session-manager] Cannot complete:" posted
-      within 24 hours (or undated), are parked with reasonOnItem true; only the claimed role is re-dispatched. A
+      within 24 hours (or undated: send each comment's createdAt), are parked with reasonOnItem true; only the claimed role is re-dispatched. A
       partial lift also appears in holds.keep with the reasons still left
       for a person. stdout {doneReady:[{ref,prUrl,reason}],
       return:[{ref,reason,comment}],redispatch:[{ref,prUrl,reason}],
