@@ -18,6 +18,7 @@ import {
 } from "./controller-failure.mjs";
 
 const CAPTURE_LIMIT = 256 * 1024;
+const SCENARIO = "owned-post-run-symlink";
 
 /**
  * Keep a bounded tail of a child stream for failure diagnostics.
@@ -145,7 +146,7 @@ export async function qualifySymlinkChange(input) {
     if (result.status !== 1 || !nativePassed)
       console.error(
         describeControllerFailure({
-          name: "owned-post-run-symlink",
+          name: SCENARIO,
           directory,
           status: result.status,
           stdout: stdout.text,
@@ -180,7 +181,7 @@ export async function qualifySymlinkChange(input) {
       assert.deepEqual(report.after[file], report.before[file]);
     }
     return {
-      name: "owned-post-run-symlink",
+      name: SCENARIO,
       passed: true,
       controller_status: result.status,
       apply_status: native.apply.status,
@@ -195,7 +196,18 @@ export async function qualifySymlinkChange(input) {
   } finally {
     if (!state.finished) {
       child.kill("SIGTERM");
-      await closed.catch(() => {});
+      const early = await closed.catch(() => ({ status: null }));
+      // A controller that stopped before (or during) preflight never reaches
+      // the diagnostic above; print what it said once it has closed.
+      console.error(
+        describeControllerFailure({
+          name: SCENARIO,
+          directory,
+          status: early.status,
+          stdout: stdout.text,
+          stderr: stderr.text,
+        })
+      );
       if (state.containerId)
         execFileSync(
           // eslint-disable-next-line sonarjs/no-os-command-from-path -- fixed user-installed Docker executable, qualified by the controller

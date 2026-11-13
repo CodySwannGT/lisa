@@ -5,7 +5,10 @@ import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { parseArgs } from "node:util";
-import { describeControllerFailure } from "./controller-failure.mjs";
+import {
+  describeControllerFailure,
+  readOptionalJson,
+} from "./controller-failure.mjs";
 import { qualifySymlinkChange } from "./symlink-control.mjs";
 
 const { values } = parseArgs({
@@ -112,11 +115,12 @@ for (const [name, harness, failed] of [
   // The controller's own stderr only names `docker start --attach`; print the
   // container's recorded cause before any later read or assertion can mask it.
   // Applies to the failure control too: a missing proof file would otherwise
-  // surface only as a bare ENOENT from the read below.
+  // surface only as a bare ENOENT from the read below, and a proof written
+  // before the driver recorded its apply would fail on `native.apply`.
   const unexpected =
     (!failed && child.status !== 0) ||
     !existsSync(path.join(directory, "preservation.json")) ||
-    !existsSync(path.join(directory, "native-proof.json"));
+    !readOptionalJson(path.join(directory, "native-proof.json"))?.apply;
   const diagnostic = unexpected
     ? describeControllerFailure({
         name,
