@@ -35,14 +35,28 @@ const workflow = yaml.load(fs.readFileSync(QUALITY_YML, "utf8")) as {
 const BASE = "${{ github.event.pull_request.base.sha }}";
 const PREFIX = `test-access-map-${BASE}-\${{ github.run_id }}-`;
 
+/** The per-leg suffix `test_integration` and its shard legs share (#4599). */
+const LEG_SUFFIX =
+  "${{ strategy.job-total > 1 && format('-shard-{0}', strategy.job-index) || '' }}";
+
+/** Job, artifact name, rendered suffix, and what LEG_SUFFIX renders to there. */
 const cases = [
-  ["test_unit", `${PREFIX}unit`, "unit"],
+  ["test_unit", `${PREFIX}unit`, "unit", ""],
   [
     "test_unit_shard",
     `${PREFIX}unit-shard-\${{ matrix.shard }}`,
     "unit-shard-3",
+    "",
   ],
-  ["test_integration", `${PREFIX}integration`, "integration"],
+  // One step list: the suffix is empty outside a matrix and
+  // `-shard-<index>` in a leg.
+  ["test_integration", `${PREFIX}integration${LEG_SUFFIX}`, "integration", ""],
+  [
+    "test_integration_shard",
+    `${PREFIX}integration${LEG_SUFFIX}`,
+    "integration-shard-0",
+    "-shard-0",
+  ],
 ] as const;
 
 /**
@@ -86,12 +100,13 @@ describe("quality.yml test access map", () => {
 
   it.each(cases)(
     "%s's artifact name is one the fetch script can parse",
-    (_job, name, job) => {
+    (_job, name, job, leg) => {
       const sha = "a".repeat(40);
       const rendered = name
         .replace(BASE, sha)
         .replace("${{ github.run_id }}", "123")
-        .replace("${{ matrix.shard }}", "3");
+        .replace("${{ matrix.shard }}", "3")
+        .replace(LEG_SUFFIX, leg);
       expect(rendered).toBe(`test-access-map-${sha}-123-${job}`);
       expect(
         parseArtifacts(JSON.stringify({ name: rendered, runId: 123 }))

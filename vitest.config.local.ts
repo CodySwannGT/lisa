@@ -13,6 +13,7 @@ import * as path from "node:path";
 // the pre-push gate and `test:cov:unit` do not build first, so a stale or
 // missing build would silently leave this repo's own suite uncapped.
 import { resolveMaxWorkers } from "./src/configs/vitest/base.js";
+import { HISTORY_SCANNER_SUITES } from "./scripts/lib/history-scanner-suites.mjs";
 import { withTestTimingsReporter } from "./scripts/lib/test-timings-reporter.mjs";
 import {
   testAccessMapPlugin,
@@ -55,12 +56,9 @@ const config: ViteUserConfig = {
         // mutation config's unit-only list, keeps them out. The bulk project
         // excludes only the admitted ones, so a suite this matcher missed
         // stays in bulk and fails loudly at its handoff instead of vanishing.
-        const scannerSuites = [
-          "tests/integration/history-secret-evidence.test.ts",
-          "tests/integration/history-secret-private-report.test.ts",
-          "tests/integration/history-secret-scanner-path.test.ts",
-          "tests/integration/history-secret-scanner-preparation.test.ts",
-        ];
+        // The list is shared with the integration shard planner, which keeps
+        // these suites in one leg so a sharded run downloads the scanner once.
+        const scannerSuites = [...HISTORY_SCANNER_SUITES];
         const deadlineProject = project.name === "freshness-deadline";
         const scannerProject = project.name === "history-scanner";
         const bulkProject = project.name === "lisa";
