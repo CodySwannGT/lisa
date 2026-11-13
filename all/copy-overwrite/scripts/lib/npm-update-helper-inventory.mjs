@@ -40,6 +40,7 @@ const COMMON = [
   "lib/worktree-dependencies.mjs",
   "lib/lisa-cleanup-sweep.mjs",
   "lib/lisa-cleanup-sweep-processes.mjs",
+  "lib/build-marker.mjs",
   "lib/history-secret-git.mjs",
   "lib/history-secret-scanner.mjs",
   "lib/history-secret-evidence.mjs",

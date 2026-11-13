@@ -3,7 +3,7 @@
     "build": "bun run build:dist && bun run build:plugins",
     "build:dist": "node scripts/lib/worktree-dependencies.mjs && node scripts/clean-dist.mjs && tsc && node scripts/copy-codex-scripts.mjs && node scripts/copy-opencode-plugin-templates.mjs",
     "build:dist:in-place": "node scripts/lib/worktree-dependencies.mjs && tsc && node scripts/copy-codex-scripts.mjs && node scripts/copy-opencode-plugin-templates.mjs",
-    "lisa-test-run": "node scripts/lib/worktree-dependencies.mjs && bun run build && node dist/cli/lisa-test-run.js --profile lisa",
+    "lisa-test-run": "node scripts/lib/worktree-dependencies.mjs && node scripts/build-unless-marked.mjs && node dist/cli/lisa-test-run.js --profile lisa",
     "test:integration": "node scripts/lib/worktree-dependencies.mjs && $npm_execpath run lisa-test-run -- --adapter vitest -- vitest run tests/integration --exclude='**/shared-runtime-packed-hosts.test.ts'",
     "test:integration:push": "node scripts/lib/worktree-dependencies.mjs && $npm_execpath run lisa-test-run -- --adapter vitest -- vitest run tests/integration --exclude='**/mutation-gate-bite.test.ts' --exclude='**/mutation-gate-diff-bite.test.ts' --exclude='**/mutation-sigterm-control.test.ts' --exclude='**/mutation-performance-fixture.test.ts' --exclude='**/mutation-performance-packed-apply.test.ts' --exclude='**/mutation-source-roots.test.ts' --exclude='**/shared-runtime-packed-hosts.test.ts'",
     "test:integration:packed-hosts": "node scripts/lib/worktree-dependencies.mjs && $npm_execpath run lisa-test-run -- --adapter vitest -- vitest run tests/integration/shared-runtime-packed-hosts.test.ts",

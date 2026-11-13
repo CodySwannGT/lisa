@@ -468,5 +468,8 @@
       "skill": "lisa-github-build-intake",
       "enabled": false
     }
+  },
+  "pushGate": {
+    "buildOnce": true
   }
 }
