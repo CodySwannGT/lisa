@@ -1,4 +1,5 @@
 ---
+disable-model-invocation: true
 description: "Run Lisa Health through the current coding-agent harness and emit the final persisted Health v1 JSON result."
 argument-hint: "[project-path]"
 ---

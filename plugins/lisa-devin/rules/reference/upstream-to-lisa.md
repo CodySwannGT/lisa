@@ -1,5 +1,7 @@
 # Upstream To Lisa
 
+> Detail behind the eager `ownership` rule.
+
 A root cause in a Lisa-distributed artifact determines the destination of a worthwhile repair. First apply `do-it-now`'s **Worth doing** guidance. Ownership, a missing guard, or a reproducible edge case alone does not justify another issue.
 
 ## Accepted repairs

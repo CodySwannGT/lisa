@@ -1,4 +1,4 @@
 display_name: "Linear To Tracker"
-short_description: "Break down a Linear PRD (a…"
+short_description: "Turn a Linear PRD (a Linear…"
 default_prompt:
-  - "Use $lisa-linear-to-tracker: Break down a Linear PRD (a…."
+  - "Use $lisa-linear-to-tracker: Turn a Linear PRD (a Linear…."

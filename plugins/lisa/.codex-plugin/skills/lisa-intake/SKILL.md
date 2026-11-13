@@ -1,9 +1,9 @@
 ---
 name: lisa-intake
-description: "Vendor-agnostic scanner for…"
+description: "Run one intake cycle over a…"
 allowed-tools: ["Skill", "Bash"]
 ---
-Vendor-agnostic scanner for Ready queues. Notion PRD database URL → first Ready PRD → lisa-plan. Confluence space or parent page URL → first prd-ready PRD → lisa-plan. Linear workspace URL or team key → first prd-ready project → lisa-plan. GitHub repo URL or `org/repo` token → first prd-ready issue → lisa-plan, or first `status:ready` issue → lisa-implement when `tracker = github`. JIRA project key or JQL filter → first Ready ticket → lisa-implement. On the PRD side it also closes the loop: each cycle rolls a ticketed PRD up to shipped and dispatches lisa-verify-prd for one shipped PRD (shipped → verified on pass; on fail, re-opened shipped → ticketed with build-ready fix tickets that auto-build and re-verify — never blocked). Designed as the cron target for /schedule — one eligible item per invocation, exits cleanly on empty. Symmetric counterpart to the single-item lisa-plan and lisa-implement skills.
+Run one intake cycle over a ready queue (Notion, Confluence, Linear, GitHub, or JIRA): plan the first ready PRD, build the first ready ticket, roll ticketed PRDs up to shipped, and verify one shipped PRD. The scheduled entry point; exits cleanly when empty.
 
 
 # Intake: $ARGUMENTS
@@ -45,22 +45,12 @@ The only legitimate reasons to stop early:
 - The queue itself is misconfigured (Status property missing expected values, JIRA workflow can't reach required transitions). Surface and exit.
 - Empty `Ready` set. Exit cleanly with the idle-case message.
 
-## Orchestration: thin dispatcher (no team of its own)
+## How a cycle runs
 
-Intake creates NO agent team and spawns NO named teammates. It is a bounded scanner/dispatcher: resolve the queue, find the first eligible Ready item, claim it, and hand it to the single-item lifecycle skill — all in the current session.
+Intake is a bounded scanner/dispatcher: resolve the queue, find the first eligible Ready item, claim it, and hand it to the single-item lifecycle skill (`lisa-plan` for PRDs, `lisa-implement` for build tickets) by invoking it in this session.
 
-This is deliberate. The per-item lifecycle skills (`lisa-plan` for PRDs, `lisa-implement` for build tickets) are team-first flows: each contains its own orchestration preamble that creates the agent team, records the roster, and fans out specialists. That preamble only has authority when the skill runs in the lead session — a teammate cannot add named teammates (Claude teams are flat: *"Teammates cannot spawn other teammates — the team roster is flat"*), so pushing the lifecycle skill down into a spawned subagent strands it without its team and collapses the flow into the single inline worker every team-first skill forbids. Therefore:
-
-- **Scanning and claiming run inline in this session** (Bash / MCP / vendor skills via the Skill tool). This is cheap, bounded work — it does not need a team.
-- **Per-item dispatch is a Skill-tool invocation in this same session — never an `Agent` spawn.** The chain Intake → vendor batch skill → lifecycle skill stays in the lead session end-to-end, so when `lisa-plan` / `lisa-implement` starts, its team-first preamble fires exactly as if the user had invoked it directly: it creates the per-item agent team, records the Roster Decision, and fans out its specialists.
-- **Fresh context per item comes from the scheduler, not from subagent isolation.** Intake processes ONE eligible item per invocation and exits; each scheduled invocation is a fresh session. Never claim or process a second item after the first item's lifecycle flow has run in this session — exit and let the next cycle take it with clean context.
-- The only permissible `Agent` use inside an Intake cycle is a bounded **anonymous** helper (`Agent` with `name` omitted) for scan-side legwork whose result returns directly to this session — e.g., paging a large queue. Never spawn the lifecycle flow, a vendor lifecycle agent (`jira-agent` / `github-agent` / `linear-agent`), or any implementation worker as a subagent from Intake.
-
-Codex: the same contract applies — run the scan inline in the root session and invoke the lifecycle skill there so it can `multi_agent_v1.spawn_agent` its own team; do not `spawn_agent` the lifecycle flow itself. Other runtimes: apply the same rule through their equivalent delegation surface. If the runtime has no team/subagent tooling at all, the lifecycle skill's own no-team fallback handles it — Intake's job is unchanged.
-
-If a teammate inside an existing team somehow invokes Intake (this should not happen — Intake is a session entry point, not a nested flow), do not scan or claim from there: return a structured `delegation-request` to the team lead asking it to run the Intake cycle in the lead session, and surface the misrouting.
-
-One item per cycle. One team per item, created and owned by the lifecycle skill. A fresh session per cycle, provided by the scheduler.
+- **One item per cycle.** Fresh context per item comes from the scheduler: each scheduled invocation is a fresh session. Never claim or process a second item after the first item's lifecycle flow has run in this session — exit and let the next cycle take it.
+- Scanning and claiming are cheap, bounded work; do them directly. A subagent is fine for scan-side legwork whose result comes straight back, such as paging a large queue.
 
 ## Source dispatch
 

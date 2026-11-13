@@ -1,4 +1,4 @@
 display_name: "Setup Remote Env"
-short_description: "Provision and verify a remote execution environment for a host project — Codex Cloud today, other remote surfaces as they are added"
+short_description: "Provision and verify a remote execution environment (Codex Cloud today) for a project: a setup script that installs the toolchain and…"
 default_prompt:
-  - "Use $lisa-setup-remote-env: Provision and verify a remote execution environment for a host project — Codex Cloud today, other remote surfaces as they are added."
+  - "Use $lisa-setup-remote-env: Provision and verify a remote execution environment (Codex Cloud today) for a project: a setup script that installs the toolchain and…."

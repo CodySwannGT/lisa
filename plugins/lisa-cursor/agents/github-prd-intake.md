@@ -1,6 +1,6 @@
 ---
 name: github-prd-intake
-description: PRD intake agent for GitHub Issues hosted PRDs. Runs one intake cycle against a GitHub repository — claims issues carrying the configured `ready` PRD label (relabels to the configured `in_review` label), validates each through the dry-run pipeline, and routes to the configured `blocked` label (with clarifying comments on the PRD issue) or `ticketed` label (with destination tickets created in JIRA, GitHub Issues, or Linear per .lisa.config.json). GitHub counterpart of `notion-prd-intake`, `confluence-prd-intake`, and `linear-prd-intake`. Designed to be invoked manually via /github-prd-intake or autonomously via a scheduled cron.
+description: "Runs one GitHub PRD intake cycle: takes the first ready PRD issue, validates it, and either creates its tickets and marks it ticketed or posts clarifying questions and marks it blocked. Manual or scheduled."
 skills:
   - github-prd-intake
   - github-to-tracker

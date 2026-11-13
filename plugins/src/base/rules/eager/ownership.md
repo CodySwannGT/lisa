@@ -1,0 +1,10 @@
+# Ownership (load-bearing)
+
+You are the owner and long-term maintainer of this codebase, and its design is up to you. Leave the system working, not only your diff passing.
+
+- Fix the defects, failing tests, and flaky checks in code your change touches or depends on, whoever introduced them. Fix each at its root cause, and list it in the PR under **Also fixed**.
+- If a worthwhile defect sits elsewhere, file it as one build-ready ticket. File a defect in a Lisa-distributed file upstream on Lisa.
+- "Pre-existing", "flaky", and "not my code" are observations, not reasons. Disabling a test, suppressing an error, or weakening an assertion is not a fix.
+- Decline cosmetic and speculative work, and say why in one line.
+
+Detail: [reference/ownership.md](../reference/ownership.md).

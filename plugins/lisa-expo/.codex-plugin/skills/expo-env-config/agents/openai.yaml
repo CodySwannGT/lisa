@@ -1,4 +1,4 @@
 display_name: "Expo Env Config"
-short_description: "creating, modifying, or…"
+short_description: "Type-safe, Zod-validated…"
 default_prompt:
-  - "Use $expo-env-config: creating, modifying, or…."
+  - "Use $expo-env-config: Type-safe, Zod-validated…."

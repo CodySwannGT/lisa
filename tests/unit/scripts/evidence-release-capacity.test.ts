@@ -47,6 +47,11 @@ function github(counts: Record<string, number>) {
   const transport = {
     root: ROOT,
     repository: "acme/code",
+    // A release lookup by tag: null is GitHub's explicit 404 (#4733).
+    optionalJson: (path: string) => {
+      const release = releases.get(path.slice(`${ROOT}/releases/tags/`.length));
+      return release ? { id: release.id } : null;
+    },
     json: (path: string) => {
       const id = Number(/releases\/(\d+)\/assets/.exec(path)![1]);
       const found = [...releases.values()].find(row => row.id === id)!;

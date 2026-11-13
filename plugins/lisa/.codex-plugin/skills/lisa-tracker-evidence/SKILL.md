@@ -1,9 +1,9 @@
 ---
 name: lisa-tracker-evidence
-description: "Vendor-neutral wrapper for…"
+description: "Post verification evidence for…"
 allowed-tools: ["Skill", "Bash", "Read"]
 ---
-Vendor-neutral wrapper for posting verification evidence. Reads the required `tracker` from .lisa.config.json and dispatches to lisa-jira-evidence, lisa-github-evidence, or lisa-linear-evidence. Uploads evidence to the configured GitHub evidence release (default `pr-assets`), updates the PR description, posts a comment on the originating ticket/issue, and leaves workflow transitions to the tracker-specific lifecycle owner.
+Post verification evidence for a ticket in whichever tracker the project uses: upload it to the GitHub evidence release, update the PR description, and comment on the ticket. Status changes are left to the lifecycle owner.
 
 
 # Tracker Evidence: $ARGUMENTS

@@ -1,4 +1,4 @@
 display_name: "Harper Testing"
-short_description: "adding, repairing, or designing…"
+short_description: "Add, repair, or design tests…"
 default_prompt:
-  - "Use $harper-testing: adding, repairing, or designing…."
+  - "Use $harper-testing: Add, repair, or design tests…."

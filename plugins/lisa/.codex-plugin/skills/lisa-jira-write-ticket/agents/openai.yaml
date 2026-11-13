@@ -1,4 +1,4 @@
 display_name: "Jira Write Ticket"
-short_description: "Creates or updates a JIRA…"
+short_description: "Create or update a JIRA ticket…"
 default_prompt:
-  - "Use $lisa-jira-write-ticket: Creates or updates a JIRA…."
+  - "Use $lisa-jira-write-ticket: Create or update a JIRA ticket…."

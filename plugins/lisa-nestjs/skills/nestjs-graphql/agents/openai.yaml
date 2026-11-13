@@ -1,4 +1,4 @@
 display_name: "Nestjs Graphql"
-short_description: "Comprehensive guide for NestJS GraphQL development using Apollo and code-first approach"
+short_description: "NestJS GraphQL with Apollo, code-first: resolvers, queries, mutations, types, subscriptions, field middleware, complexity limits, scalars…"
 default_prompt:
-  - "Use $nestjs-graphql: Comprehensive guide for NestJS GraphQL development using Apollo and code-first approach."
+  - "Use $nestjs-graphql: NestJS GraphQL with Apollo, code-first: resolvers, queries, mutations, types, subscriptions, field middleware, complexity limits, scalars…."

@@ -1,4 +1,4 @@
 display_name: "Playwright Selectors"
-short_description: "Best practices for writing…"
+short_description: "Write reliable Playwright E2E…"
 default_prompt:
-  - "Use $playwright-selectors: Best practices for writing…."
+  - "Use $playwright-selectors: Write reliable Playwright E2E…."

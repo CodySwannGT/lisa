@@ -1,4 +1,5 @@
 ---
+disable-model-invocation: true
 description: "Inspect the current project's PRD and build queues, summarize lifecycle counts, and surface actionable queue-health signals without mutating work."
 ---
 

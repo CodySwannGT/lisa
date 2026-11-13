@@ -1,4 +1,4 @@
 display_name: "Typeorm Patterns"
-short_description: "Enforces TypeORM implementation…"
+short_description: "TypeORM patterns for this…"
 default_prompt:
-  - "Use $typeorm-patterns: Enforces TypeORM implementation…."
+  - "Use $typeorm-patterns: TypeORM patterns for this…."

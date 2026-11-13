@@ -1,4 +1,4 @@
 display_name: "Debrief"
-short_description: "Run the Debrief flow over a shipped initiative"
+short_description: "Run a Debrief over a shipped initiative (PRD, epic, or issue) and produce a learnings document of edge cases, gotchas, friction, tooling…"
 default_prompt:
-  - "Use $lisa-debrief: Run the Debrief flow over a shipped initiative."
+  - "Use $lisa-debrief: Run a Debrief over a shipped initiative (PRD, epic, or issue) and produce a learnings document of edge cases, gotchas, friction, tooling…."

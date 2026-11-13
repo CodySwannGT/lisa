@@ -1,9 +1,9 @@
 ---
 name: lisa-usage-accounting
-description: "Shared usage-ledger utility for…"
+description: "Record token usage and refresh…"
 allowed-tools: ["Skill", "Read", "Bash"]
 ---
-Shared usage-ledger utility for Lisa lifecycle flows and artifact writers. Delegates all direct-entry recording and rollup refreshes through one vendor-neutral contract so PRDs, tickets, evidence comments, PRs, and markdown artifacts preserve the canonical `## Lisa Usage` section instead of inventing per-flow formats.
+Record token usage and refresh the canonical '## Lisa Usage' section on PRDs, tickets, evidence comments, PRs, and documents through one shared contract. Use from any flow that writes those artifacts.
 
 
 # Usage Accounting: $ARGUMENTS

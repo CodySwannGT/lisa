@@ -1,5 +1,5 @@
 ---
-description: "Audit whether this repository can run as a Claude Code remote routine (cloud session) and inventory everything Lisa AND the host project must install or configure in the cloud environment — CLIs/binaries, environment variables/secrets, startup hooks, MCP scope/auth, and the user-scoped config and auto-memory gaps that don't replicate remotely. Read-only; emits grouped findings plus a machine-readable inventory."
+description: "Check whether this repo can run as a Claude Code remote routine and list everything to install or configure there: CLIs, environment variables and secrets, hooks, MCP servers, and config that doesn't carry over. Read-only."
 argument-hint: "[--section=<name>] [--json]"
 ---
 

@@ -1,4 +1,4 @@
 display_name: "Tracker Journey"
-short_description: "Vendor-neutral wrapper for…"
+short_description: "Run a ticket's Validation…"
 default_prompt:
-  - "Use $lisa-tracker-journey: Vendor-neutral wrapper for…."
+  - "Use $lisa-tracker-journey: Run a ticket's Validation…."

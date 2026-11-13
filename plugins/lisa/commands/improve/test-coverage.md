@@ -1,4 +1,5 @@
 ---
+disable-model-invocation: true
 description: "Increase test coverage to a specified threshold percentage"
 allowed-tools: ["Skill"]
 argument-hint: "<threshold-percentage>"

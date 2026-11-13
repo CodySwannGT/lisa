@@ -1,6 +1,6 @@
 # Report Actionability — Reference
 
-Long-form body for [eager/report-actionability.md](../eager/report-actionability.md).
+Detail behind the eager [communication](../eager/communication.md) rule.
 
 ## The originating incident
 

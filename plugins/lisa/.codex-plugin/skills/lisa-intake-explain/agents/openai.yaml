@@ -1,4 +1,4 @@
 display_name: "Intake Explain"
-short_description: "Read-only operator surface for…"
+short_description: "Read-only diagnosis of one PRD…"
 default_prompt:
-  - "Use $lisa-intake-explain: Read-only operator surface for…."
+  - "Use $lisa-intake-explain: Read-only diagnosis of one PRD…."

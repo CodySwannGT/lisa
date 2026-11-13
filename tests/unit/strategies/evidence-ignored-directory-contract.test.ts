@@ -29,14 +29,6 @@ const TICKET_DIR = "evidence/T-1/";
 const VERDICT_PATH = `${TICKET_DIR}verdict.json`;
 const SCREENSHOT_PATH = `${TICKET_DIR}01-step.png`;
 
-const EAGER_RULES = [
-  "plugins/src/base/rules/eager/verification.md",
-  "plugins/lisa/rules/eager/verification.md",
-  "plugins/lisa-copilot/rules/eager/verification.md",
-  "plugins/lisa-devin/rules/eager/verification.md",
-  "plugins/lisa-cursor/rules/verification.mdc",
-] as const;
-
 const REFERENCE_RULES = [
   "plugins/src/base/rules/reference/verification.md",
   "plugins/lisa/rules/reference/verification.md",
@@ -64,20 +56,6 @@ const EVIDENCE_SKILLS = [
 ] as const;
 
 describe("ignored evidence contract (#4490)", () => {
-  describe.each(EAGER_RULES)("eager verification rule %s", file => {
-    const text = read(file);
-
-    // The eager tier is byte-budgeted, so it carries only the pointer; the
-    // full branch lives in the reference rule asserted below.
-    it("points at the ignored-evidence check before calling evidence committed", () => {
-      expect(text).toMatch(/Git may ignore evidence/);
-      expect(text).toMatch(
-        /run the reference rule's ignored-evidence check first/
-      );
-      expect(text).toMatch(/never call ignored evidence committed/);
-    });
-  });
-
   describe.each(REFERENCE_RULES)("reference verification rule %s", file => {
     const text = read(file);
 

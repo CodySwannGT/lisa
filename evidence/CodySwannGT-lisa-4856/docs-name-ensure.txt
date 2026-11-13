@@ -1,0 +1,10 @@
+# docs-name-ensure @ a91cecdbcdb4f60ed7dfe84f1c2c6bd39bf0418e
+$ grep -n "evidence-release --ensure" all/copy-overwrite/scripts/lib/completion-proof-github.mjs
+141:      `${source} is ${JSON.stringify(value)}, which is not one of this project's evidence releases (${acceptedEvidenceReleases(policy).join(", ")}). Unset it, or set it to the name \`node scripts/lisa-work-item.mjs evidence-release --ensure\` prints.`
+162: * always the one `evidence-release --ensure` prints in the same environment
+exit=0
+$ grep -n "evidence-release --ensure" plugins/src/base/skills/lisa-tracker-evidence/references/completion-authorization.md
+397:it once with `evidence-release --ensure`, stop when that refuses, and pass the
+402:`evidence-release --ensure` creates and capacity-checks it, and
+405:release the publisher uploads to is always the one `evidence-release --ensure`
+exit=0

@@ -1,5 +1,7 @@
 # Settled Decisions
 
+> Detail behind the eager `when-to-stop` rule.
+
 Do not ask the operator to decide something that is already settled by standing preference, evidence you just gathered, or a conventional default. A question is appropriate only when the answer materially changes the work and the answer cannot be derived from available artifacts.
 
 ## Decision Sources

@@ -1,14 +1,14 @@
 ---
 name: lisa-monitor
-description: "Monitor application health AND…"
+description: "Check app health and how well…"
 allowed-tools: ["Skill", "Bash", "Read", "Grep", "Glob"]
 ---
-Monitor application health AND audit observability completeness for the current repo, then file build-ready tickets for what it finds. Checks health endpoints, recent logs (CloudWatch / Sentry / browser console), error-rate spikes, performance hotspots, pending migrations, and Playwright smoke flows via the stack-specific ops-specialist (Expo, Rails) or stack-agnostic base probing (any stack, incl. NestJS / CDK). Audits the repo against an observability-completeness rubric scoped to its type (frontend / backend / infra) and flags instrumentation gaps (e.g. no distributed tracing, no DB/query analytics). For each high-signal anomaly and each in-scope missing dimension it files a single-repo, build-ready leaf ticket via tracker-write (idempotent, capped, repo-scoped) so the intake cron implements it — monitor files only, it never fixes. Manual (no cron); files by default, `--dry-run` previews. Conservative by default. Also invoked as the post-deploy step of lisa-verify, where it runs report-only (never files).
+Check app health and how well the repo is instrumented, then file build-ready tickets for real anomalies and missing instrumentation. Files tickets but never fixes; --dry-run previews. Also runs report-only after deploys.
 
 
 # Monitor: $ARGUMENTS
 
-Spot-check application health, **audit observability completeness**, and **file build-ready tickets** for the problems and instrumentation gaps it finds — all scoped to the current repo. Useful reactively (after a deploy, after a Sentry alert, before pushing a hot change), as a periodic manual observability sweep, and as the post-deploy verification step inside `lisa-verify`.
+Spot-check application health, **audit observability completeness**, and **file build-ready tickets** for the problems and instrumentation gaps it finds — all scoped to the current repo. Useful reactively (after a deploy, after an error alert, before pushing a hot change), as a periodic manual observability sweep, and as the post-deploy verification step inside `lisa-verify`.
 
 **Arguments:** `<environment>` (`dev` / `staging` / `prod`) `[--dry-run] [--report-only] [--all-gaps] [max_candidates=<n>]`.
 
@@ -85,32 +85,14 @@ source. Report only a validated numeric resolved value and one fixed source enum
 `local-current`, `committed-current`, `local-legacy`, `committed-legacy`, or
 `default`.
 
-## Orchestration: agent team
+## How to work
 
-You are "inside an agent team" only if you are yourself a spawned teammate or subagent — you were spawned into a team context, or your context names a team lead you report to. A lead/root session that has previously spawned subagents is still the lead and retains full authority to create this flow's team.
+Do the work yourself, in this session. Delegate to a subagent only when a piece of work is sizeable and genuinely independent, such as probing several independent signals in parallel — and give it the exact result you need back. Do not delegate work you can finish in a handful of tool calls.
 
-If you are NOT inside an agent team by that definition, the very first thing you do is establish team orchestration.
-
-Use the team tool for the current runtime:
-
-- Claude Code >= 2.1.178: there is no `TeamCreate` tool; the team forms automatically when you spawn the first teammate with `Agent`. That first spawn should be the bounded specialist needed to start this flow. On older Claude Code that still exposes `TeamCreate`, the explicit team-create path is also acceptable.
-- Codex: do not call `TeamCreate`; Codex does not expose that Claude tool. Use `tool_search` with a query like `multi-agent tools` to load `multi_agent_v1`, then use `multi_agent_v1.spawn_agent` for teammate delegation. Treat the first successful `spawn_agent` call as establishing team orchestration.
-- Other runtimes: use the current runtime's tool-discovery mechanism to discover and call the appropriate multi-agent/team tool.
-
-If no team creation or subagent delegation tool is available, explicitly state that team orchestration is unavailable in this runtime, continue as the lead agent, and preserve the workflow's review, verification, and task-tracking obligations locally.
-
-Until the team is established, the first Codex teammate has been spawned, or the no-team fallback has been declared, do NOT call any of: `TaskCreate`, `Skill`, MCP tools (Atlassian / Linear / GitHub / Notion / Sentry), `Read`, `Write`, `Edit`, `Bash`, `Grep`, `Glob`. The initial Claude `Agent` spawn described above is the only pre-team exception because it establishes the team. Hitting health endpoints, pulling logs, querying Sentry — all of those are tasks for the team you are about to create, not for the lead session before orchestration exists.
-
-If you ARE already inside an agent team (e.g., a teammate invoked this skill via the Skill tool), do NOT create a second team — many harnesses reject double-creates — and do NOT collapse the nested flow into a single inline worker. A nested team-first flow must still bring in the specialists it requires by adding them to the existing team, not by doing the work itself:
-
-- **Claude:** teams are flat and only the lead can add named teammates, so do NOT call `Agent` with a `name` from a teammate (the harness rejects it: *"Teammates cannot spawn other teammates — the team roster is flat"*). Send the team lead a message naming the specialist teammate(s) this flow needs, their task assignments, and completion criteria, then coordinate through the shared task list until they finish. An anonymous subagent (`Agent` with `name` omitted) is permitted only for bounded one-shot work whose result returns directly to you — it is not a substitute for the required lifecycle specialists.
-- **Codex:** do NOT call `TeamCreate`. If the lead/root agent is addressable (you were given its id/handle), send it a request to `multi_agent_v1.spawn_agent` the specialist agent(s), including each agent's prompt, ownership, and expected result. If no lead handle exists but `spawn_agent` is available to you, spawn only the bounded specialist agent(s) this flow needs, `wait_agent` for their results, and relay those results upward to the parent/lead.
-
-Treat the first successful lead-spawn request (or, on the Codex fallback, the first specialist spawn) as preserving team orchestration. Never satisfy a team-first lifecycle flow by doing all the work inline.
 
 ## Flow
 
-Execute the **Monitor** sub-flow as defined in the `intent-routing` rule (loaded via the lisa plugin): **discover → collect live signals → audit completeness → report → file (standalone only)**. The `observability-audit` rule owns the profile detection, the completeness rubric, the conservative anomaly thresholds, the gate-passing ticket templates, the fingerprint/idempotency contract, the cap, and the Verify report-only guard — follow it; do not restate it here.
+Execute the **Monitor** sub-flow as defined in the `intent-routing` reference rule (read on demand): **discover → collect live signals → audit completeness → report → file (standalone only)**. The `observability-audit` rule owns the profile detection, the completeness rubric, the conservative anomaly thresholds, the gate-passing ticket templates, the fingerprint/idempotency contract, the cap, and the Verify report-only guard — follow it; do not restate it here.
 
 **Live-signal collection** delegates to a stack-specific `ops-specialist` agent when the stack overlay ships one. The **Expo** ops-specialist composes the full set below:
 
@@ -122,7 +104,7 @@ Execute the **Monitor** sub-flow as defined in the `intent-routing` rule (loaded
 - `ops-db-ops` — pending migrations, replication lag
 - `ops-deploy` — deploy status / rollback readiness
 
-The **Rails** ops-specialist composes a different subset (`ops-run-local`, `ops-deploy`, `ops-check-logs`, `ops-verify-jobs`, `ops-verify-telemetry` — X-Ray/CloudWatch traces and metrics via `ops-verify-telemetry`). When no `ops-specialist` overlay is present (e.g. NestJS, CDK, or a generic TypeScript repo), fall back to **stack-agnostic base probing** — read manifests/config to discover what's wired, then probe live sources directly (Sentry CLI/REST, `aws logs` / `aws cloudwatch` / `aws xray`, the Playwright MCP for client-side console/network), exactly as the `observability-audit` "read-then-probe" detection prescribes. The agent decides which subset to run based on the env, the repo profile, and any extra context.
+The **Rails** ops-specialist composes a different subset (`ops-run-local`, `ops-deploy`, `ops-check-logs`, `ops-verify-jobs`, `ops-verify-telemetry` — X-Ray/CloudWatch traces and metrics via `ops-verify-telemetry`). When no `ops-specialist` overlay is present (e.g. NestJS, CDK, or a generic TypeScript repo), fall back to **stack-agnostic base probing** — read manifests/config to discover what's wired, then probe each live destination the instrumentation actually sends to (for example a Sentry CLI/REST call, `aws logs` / `aws cloudwatch` / `aws xray`, the Playwright MCP for client-side console/network — whatever the project wires, not a fixed vendor list), exactly as the `observability-audit` "read-then-probe" detection prescribes. The agent decides which subset to run based on the env, the repo profile, and any extra context.
 
 For a configured non-production DOM environment with mutation policy `full`, `ops-browser-uat` or the stack-agnostic fallback may invoke `lisa-kane-browser` after `lisa kane probe` succeeds. Use the normalized outcome and local evidence pack; a Kane tool/auth/upload/schema failure is `PRESENT (unverified)` or a tooling warning, never an application anomaly. Under `--report-only`, Kane remains report-only too and cannot file tickets directly.
 

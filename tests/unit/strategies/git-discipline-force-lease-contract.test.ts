@@ -21,16 +21,23 @@ const CURSOR_REFERENCE = "plugins/lisa-cursor/rules/base-rules-reference.mdc";
 const COPILOT_EAGER = "plugins/lisa-copilot/rules/eager/base-rules.md";
 const COPILOT_REFERENCE = "plugins/lisa-copilot/rules/reference/base-rules.md";
 
+// The full contract lives in the reference body. Since the 2026-11 eager-tier
+// cut the always-loaded head carries only the SHA-bound lease and the void rule
+// (asserted separately below), so the detailed wording is pinned on reference
+// surfaces only.
 const RULE_SURFACES = [
-  SOURCE_EAGER,
   SOURCE_REFERENCE,
   // Shared Claude artifact; Codex and OpenCode install these same rule files.
-  SHARED_EAGER,
   SHARED_REFERENCE,
-  CURSOR_EAGER,
   CURSOR_REFERENCE,
-  COPILOT_EAGER,
   COPILOT_REFERENCE,
+] as const;
+
+const EAGER_SURFACES = [
+  SOURCE_EAGER,
+  SHARED_EAGER,
+  CURSOR_EAGER,
+  COPILOT_EAGER,
 ] as const;
 
 const REFERENCE_SURFACES = [
@@ -67,6 +74,17 @@ describe.each(RULE_SURFACES)(
       expect(rule).toMatch(
         /never re-derive consent from the earlier approval/i
       );
+    });
+  }
+);
+
+describe.each(EAGER_SURFACES)(
+  "always-loaded force-lease head (%s)",
+  rulePath => {
+    it("requires the SHA-bound lease and voids a stale approval", () => {
+      const rule = read(rulePath);
+      expect(rule).toContain("`--force-with-lease=<ref>:<sha>`");
+      expect(rule).toMatch(/approval is void/);
     });
   }
 );

@@ -1,0 +1,28 @@
+# HEAD: ad95e8e32844e4ee0c193529f1d3ddc58426995b
+$ grep -n "usage-artifact-ref" src/utils/usage-accounting.ts all/copy-overwrite/scripts/lib/usage-ledger-integrity.mjs
+src/utils/usage-accounting.ts:32:import { assertCanonicalArtifactRef } from "../../all/copy-overwrite/scripts/lib/usage-artifact-ref.mjs";
+all/copy-overwrite/scripts/lib/usage-ledger-integrity.mjs:7:} from "./usage-artifact-ref.mjs";
+exit=0
+
+$ ls -la src/utils/usage-artifact-ref.ts
+ls: src/utils/usage-artifact-ref.ts: No such file or directory
+exit=1
+
+$ git ls-files src | grep usage-artifact-ref   (expect nothing)
+exit=1
+
+$ grep -rn "usage-artifact-ref" src   (only ledger/manifest entries and the shared .mjs import should appear)
+src/core/lisa-owned-hash-ledger.ts:1209:  "scripts/lib/usage-artifact-ref.d.mts": Object.freeze([
+src/core/lisa-owned-hash-ledger.ts:1212:  "scripts/lib/usage-artifact-ref.mjs": Object.freeze([
+src/core/lisa-owned-hash-ledger.ts:3741:  "scripts/lib/usage-artifact-ref.d.mts": Object.freeze([
+src/core/lisa-owned-hash-ledger.ts:3744:  "scripts/lib/usage-artifact-ref.mjs": Object.freeze([
+src/core/export-surface.json:869:    "all/copy-overwrite/scripts/lib/usage-artifact-ref.mjs": [
+src/core/upstream-evidence-manifest.ts:259:    "all/copy-overwrite/scripts/lib/usage-artifact-ref.d.mts":
+src/core/upstream-evidence-manifest.ts:261:    "all/copy-overwrite/scripts/lib/usage-artifact-ref.mjs":
+src/core/upstream-evidence-manifest.ts:3419:    "all/copy-overwrite/scripts/lib/usage-artifact-ref.d.mts": true,
+src/core/upstream-evidence-manifest.ts:3420:    "all/copy-overwrite/scripts/lib/usage-artifact-ref.mjs": true,
+src/utils/usage-accounting.ts:32:import { assertCanonicalArtifactRef } from "../../all/copy-overwrite/scripts/lib/usage-artifact-ref.mjs";
+
+$ ls all/copy-overwrite/scripts/lib/usage-artifact-ref.*
+all/copy-overwrite/scripts/lib/usage-artifact-ref.d.mts
+all/copy-overwrite/scripts/lib/usage-artifact-ref.mjs

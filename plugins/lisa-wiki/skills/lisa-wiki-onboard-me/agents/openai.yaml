@@ -1,4 +1,0 @@
-display_name: "Wiki Onboard Me"
-short_description: "Onboard a user to the project via its LLM Wiki"
-default_prompt:
-  - "Use $lisa-wiki-onboard-me: Onboard a user to the project via its LLM Wiki."

@@ -3,8 +3,6 @@
   "org": "Lisa",
   "displayName": "Lisa LLM Wiki",
   "purpose": "The durable knowledge base for the Lisa monorepo — governance, templates, agents, flows, decisions, and canonical documentation.",
-  "mode": "embedded",
-  "wikiRoot": "wiki",
   "frontmatter": true,
   "categories": [
     "concepts",
@@ -24,7 +22,6 @@
   "documentation": { "absorb": true },
   "connectors": {
     "git": { "enabled": true, "sideEffects": "read-only-ingest" },
-    "memory": { "enabled": true, "sideEffects": "read-only-ingest" },
-    "roles": { "enabled": true, "sideEffects": "read-only-ingest" }
+    "memory": { "enabled": true, "sideEffects": "read-only-ingest" }
   }
 }

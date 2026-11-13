@@ -1,4 +1,4 @@
 display_name: "Linear PRD Intake"
-short_description: "Scans a Linear workspace (or a specific team) for projects carrying the configured `ready` PRD label and runs the first eligible one…"
+short_description: "Run one cycle of Linear PRD intake: take the first ready PRD project, validate it, and either create its tickets and mark it ticketed or…"
 default_prompt:
-  - "Use $lisa-linear-prd-intake: Scans a Linear workspace (or a specific team) for projects carrying the configured `ready` PRD label and runs the first eligible one…."
+  - "Use $lisa-linear-prd-intake: Run one cycle of Linear PRD intake: take the first ready PRD project, validate it, and either create its tickets and mark it ticketed or…."

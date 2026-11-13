@@ -1,6 +1,6 @@
 ---
 name: lisa-tracker-claim
-description: "Vendor-neutral dispatcher for idempotently claiming one already live-validated leaf work item. Reads the required tracker from .lisa.config.json and delegates to lisa-jira-claim, lisa-github-claim, or lisa-linear-claim. The vendor skill owns the post-read leaf/open guard, ready-to-claimed mutation, attributable assignment, and post-write verification."
+description: "Claim one already-validated leaf ticket, safely and repeatably, in whichever tracker the project uses: move it from ready to claimed, assign it, and confirm the change stuck."
 allowed-tools: ["Skill", "Bash", "Read"]
 ---
 

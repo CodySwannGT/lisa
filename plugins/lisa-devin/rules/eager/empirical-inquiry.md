@@ -1,24 +1,9 @@
-# Empirical Inquiry — Test, Don't Guess (load-bearing)
+# Empirical Inquiry (load-bearing)
 
-When a decision depends on a fact you are not certain of — how a tool, API, harness, runtime, or dependency actually behaves — **find out empirically before you act.** Run the smallest experiment that settles the question, observe the real result, and proceed from what you observed.
+When a decision depends on a fact you are not sure of, run the smallest probe that settles it and act on what you observe. Report raw results separately from inference.
 
-Do not reason your way to a confident-sounding answer from documentation, prior assumption, or training knowledge when the real system is right there and a quick probe would tell you the truth.
-
-## How to apply
-
-1. **State the uncertain fact** explicitly, so you know what the experiment must resolve.
-2. **Run the cheapest probe** that produces real evidence — a single command, a one-shot subagent, a tiny script, a direct API call against a scratch input.
-3. **Report the raw result** (verbatim output or error), then your conclusion. Distinguish observation from inference.
-4. **Encode the verified fact**, and when non-obvious or contradicting docs, record WHY so the next agent inherits the finding.
-
-## Forbidden
-
-- Presenting a guess, recollection, or doc summary as established fact when it was cheap to verify and you did not.
-- "Should work" / "probably" / "the docs say" as the basis for a load-bearing decision an experiment could have settled.
-- Skipping the probe because the answer "seems obvious" — those are exactly the ones that quietly drift from reality.
-- Interpreting a diff, or reporting scope, before establishing where your checkout sits: run `git rev-list --count HEAD..origin/<default>` first. A worktree 30 commits behind makes everyone else's changes read as yours, and the diff was reported as massive scope creep in reverse.
-- Treating a recorded "not yet" / "pending" / "blocked" / "human-gated" note as current state. It is a claim about the day it was written; probe the live state before planning around it, escalating it, or reporting it as a blocker (`stale-state-claims`).
-
-This is the inquiry counterpart to the `verification` rule (which proves completed work behaves correctly). Both reject "it looks correct" as evidence.
+- A "pending", "blocked", or "not yet" note was true when someone wrote it. Probe the live state before you act on it, and delete the note when you clear the condition (`stale-state-claims`).
+- Before you report a count, bound the population, prove the enumeration complete, and test the detector on known examples (`measurement-integrity`).
+- Before you read a diff, run `git rev-list --count HEAD..origin/<default>` to see how far behind you are.
 
 Full prose: [reference/empirical-inquiry.md](../reference/empirical-inquiry.md).

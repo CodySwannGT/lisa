@@ -1,6 +1,6 @@
 ---
 name: lisa-setup-session-manager
-description: "Set up the local session manager for this project: writes the non-secret `sessionManager` block to `.lisa.config.json` (detecting a multi-repo layout: repos under `projects/`, or directly under the project root), optionally sets up a Telegram notification channel (the project's own bot token stored in its secrets provider, or outside the repo when none is configured, with a leftover plaintext token file migrated into the provider, the Telegram plugin installed but not enabled at user scope, pairing; skipped entirely with no channel, the default), keeps the manager's state out of git, seeds the checked-in runbook, starts the manager in tmux, and finishes with doctor's session-manager check. Idempotent."
+description: "Set up this project's local session manager: write its config, optionally connect a Telegram channel, keep its state out of git, start it in tmux, and run doctor's check. Idempotent."
 allowed-tools: ["Bash", "Read", "Write", "Skill", "AskUserQuestion"]
 ---
 

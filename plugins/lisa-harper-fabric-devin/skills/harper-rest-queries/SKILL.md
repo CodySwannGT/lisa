@@ -1,6 +1,6 @@
 ---
 name: harper-rest-queries
-description: This skill should be used when building or debugging Harper (HarperDB/Fabric) REST collection queries and Resource search methods - filters, FIQL comparison operators, OR/grouping, select, sort, limit/offset pagination, relationship traversal, request context, and transaction boundaries. Use it when adding list endpoints, admin filters, query builders, or multi-write resource methods. Pairs with harper-resources and harper-schema-graphql.
+description: "Build or debug Harper (HarperDB/Fabric) REST collection queries and Resource search methods: filters, operators, select, sort, pagination, relationships, and transactions. Use for list endpoints, filters, or multi-write methods."
 ---
 
 # Harper REST Queries

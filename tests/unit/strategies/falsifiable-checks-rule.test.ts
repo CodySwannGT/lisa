@@ -53,21 +53,26 @@ describe("falsifiable-checks rule contract", () => {
       expect(reference.length).toBeGreaterThan(2000);
     });
 
-    it("eager head breadcrumbs to the reference body verbatim", () => {
+    it("eager head breadcrumbs to the reference body", () => {
+      // The cursor generator rewrites this link; the rest of the contract is
+      // asserted on the reference body, which carries the full prose since the
+      // 2026-11 eager-tier cut.
       expect(eager).toContain(
-        "Full prose, worked examples, and the reporting template: [reference/falsifiable-checks.md](../reference/falsifiable-checks.md)."
+        "[reference/falsifiable-checks.md](../reference/falsifiable-checks.md)"
       );
+      expect(eager).toMatch(/cannot fail is not evidence/i);
+      expect(eager).toMatch(/unvalidated/i);
     });
 
     it("states the core rule: a check that cannot fail is not evidence", () => {
-      expect(eager).toMatch(/cannot fail is not evidence/i);
+      expect(reference).toMatch(/cannot fail is not evidence/i);
       // The load-bearing instruction, not just the observation.
-      expect(eager).toMatch(/prove it fails on known-bad input/i);
+      expect(reference).toMatch(/prove it fails on known-bad input/i);
     });
 
     it("enumerates all four failure modes in the eager head", () => {
       for (const mode of FAILURE_MODES) {
-        expect(eager).toContain(mode);
+        expect(reference).toContain(mode);
       }
     });
 
@@ -84,17 +89,17 @@ describe("falsifiable-checks rule contract", () => {
       for (const doc of [eager, reference]) {
         expect(doc).toMatch(/unvalidated/i);
       }
-      expect(eager).toMatch(/not.{0,20}as passing/i);
+      expect(reference).toMatch(/not.{0,20}as passing/i);
     });
 
     it("rejects mental reversion as satisfaction", () => {
-      expect(eager).toMatch(/[Mm]entally reverting.{0,40}does not count/);
+      expect(reference).toMatch(/[Mm]entally reverting.{0,40}does not count/);
     });
 
     it("requires the failure to localize", () => {
       // A failure that does not name the location is weak evidence the check
       // measures the intended thing.
-      expect(eager).toMatch(/names? the (right )?location/i);
+      expect(reference).toMatch(/names? the (right )?location/i);
       expect(reference).toMatch(/names? the right file\/line/i);
     });
 
@@ -106,9 +111,9 @@ describe("falsifiable-checks rule contract", () => {
       // reading: neutering a test instead of production code proves only that
       // the file loads; a single-file run under-counts; a bare count cannot
       // separate one regression's failures from collateral.
-      expect(eager).toContain("in production code");
-      expect(eager).toContain("whole suite");
-      expect(eager).toContain("read their names");
+      expect(reference).toContain("in production code");
+      expect(reference).toContain("whole suite");
+      expect(reference).toContain("read their names");
       expect(reference).toContain("Neuter the protection in production code");
       expect(reference).toContain("Run the whole suite");
       expect(reference).toContain("Count the failures and read their names");
@@ -116,7 +121,7 @@ describe("falsifiable-checks rule contract", () => {
       // have to be re-measured on a quiet box. Load turns green into red and
       // never the reverse, so a zero survives a busy machine while a positive
       // count is inflated by flakes and must not be read as "over-broad".
-      expect(eager).toContain("zero is robust to contention");
+      expect(reference).toContain("zero is robust to contention");
       expect(reference).toContain(
         "Load can only add failures, never remove them"
       );
@@ -127,16 +132,18 @@ describe("falsifiable-checks rule contract", () => {
       // removing the two-token `--config-env` check failed 3 tests and pinning
       // an index failed 5, every name describing the removed behaviour. Both
       // guards were correctly scoped.
-      expect(eager).toContain("Zero");
-      expect(eager).toContain("Many, unrelated");
-      expect(eager).toContain("Exactly one, or several all named for the same");
+      expect(reference).toContain("Zero");
+      expect(reference).toContain("Many, unrelated");
+      expect(reference).toContain(
+        "Exactly one, or several all named for the same"
+      );
       expect(reference).toContain(
         "Exactly one failure, or several all named for the same regression"
       );
       // Asserted as an absence, not a presence: a presence check for the
       // corrected wording passes trivially once the file says it twice, while
       // the superseded wording has nowhere to hide.
-      expect(eager).not.toContain("many means it is over-broad");
+      expect(reference).not.toContain("many means it is over-broad");
       expect(reference).not.toContain("**More than one failure**");
     });
 
@@ -146,8 +153,8 @@ describe("falsifiable-checks rule contract", () => {
       // end-of-options security fix whose tests had moved to a sibling file at
       // the 300-effective-line lint ceiling. A whole-suite re-measure showed 4
       // failures, each named for the protection.
-      expect(eager).toContain("Never scope the probe by filename");
-      expect(eager).toContain("never infer absent coverage from a grep");
+      expect(reference).toContain("Never scope the probe by filename");
+      expect(reference).toContain("never infer absent coverage from a grep");
       expect(reference).toContain("Follow the protection, not the path");
       expect(reference).toMatch(/re-measured/);
     });
@@ -159,7 +166,7 @@ describe("falsifiable-checks rule contract", () => {
       // the same mutation from 0 to 18 failures — same code, same corpus, only
       // the quantifier changed. This is the second innocent cause of a zero,
       // distinct from a filename-scoped probe.
-      expect(eager).toContain(
+      expect(reference).toContain(
         "Assert that no copy is wrong, not that some copy is right"
       );
       expect(reference).toContain("Universal negative");
@@ -172,14 +179,14 @@ describe("falsifiable-checks rule contract", () => {
       // A universal negative against one hard-coded wrong spelling still only
       // sees that spelling; asserting every marker uses an em-dash also catches
       // the en-dash and the missing dash.
-      expect(eager).toContain("Enumerate the property");
+      expect(reference).toContain("Enumerate the property");
       expect(reference).toContain(
         "Enumerate the property, not the known-bad instance"
       );
     });
 
     it("scopes negative results to what the check can perceive", () => {
-      expect(eager).toMatch(/blind spot|scoped to what the check can see/i);
+      expect(reference).toMatch(/blind spot|scoped to what the check can see/i);
       // The three scoping axes that produced real misses.
       expect(reference).toMatch(/[Pp]resence vs\. value/);
       expect(reference).toMatch(/[Rr]eachability/);
@@ -187,7 +194,7 @@ describe("falsifiable-checks rule contract", () => {
     });
 
     it("prefers structural checks over text matching", () => {
-      expect(eager).toMatch(/structural|AST/i);
+      expect(reference).toMatch(/structural|AST/i);
     });
   });
 
@@ -228,7 +235,7 @@ describe("falsifiable-checks rule contract", () => {
 
   describe.each(ROOTS)("%s verification rule cross-reference", root => {
     it("the verification eager rule points at falsifiable-checks", () => {
-      const verification = read(root, "rules/eager/verification.md");
+      const verification = read(root, "rules/reference/verification.md");
       expect(verification).toMatch(/falsifiable-checks/);
       expect(verification).toMatch(/cannot fail is not evidence/i);
     });

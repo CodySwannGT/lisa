@@ -1,4 +1,4 @@
 display_name: "Codify Verification"
-short_description: "Convert empirical verification…"
+short_description: "Turn a passing manual…"
 default_prompt:
-  - "Use $lisa-codify-verification: Convert empirical verification…."
+  - "Use $lisa-codify-verification: Turn a passing manual…."

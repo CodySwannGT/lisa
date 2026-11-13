@@ -36,6 +36,73 @@ const WRITE_ERROR = "write-error";
 
 export { ensureEvidenceRelease };
 
+/** The exact bytes a record is published as; one serializer, everywhere. */
+function recordBytes(record) {
+  return Buffer.from(`${JSON.stringify(record, null, 2)}\n`);
+}
+
+/**
+ * This record, stamped with a stored asset's `captured_at`, when that makes
+ * it byte-identical to the stored bytes and a well-formed record; else null.
+ * @param {object} record - The record this publish built.
+ * @param {Buffer} stored - A candidate asset's bytes.
+ * @returns {{record: object, bytes: Buffer}|null} The adoptable record.
+ */
+function identicalRecord(record, stored) {
+  let adopted;
+  try {
+    adopted = { ...record, captured_at: JSON.parse(stored).captured_at };
+    // A missing or malformed captured_at is not a record this publisher
+    // could have written; never adopt it.
+    validateRecordShape(adopted);
+  } catch {
+    return null;
+  }
+  const bytes = recordBytes(adopted);
+  return bytes.equals(stored) ? { record: adopted, bytes } : null;
+}
+
+/**
+ * The record this publish would upload, if an earlier run already uploaded it.
+ *
+ * A run that dies after `gh release upload` but before posting its locator
+ * leaves the record in the release with nothing pointing at it. The re-run
+ * computes the same revision, but its fresh `captured_at` gives it a different
+ * digest and so a different asset name, and it used to upload a second copy
+ * (CodySwannGT/lisa#4733). Each same-revision asset this publisher uploaded is
+ * read back; if this record, stamped with that asset's `captured_at`, has the
+ * exact same bytes, that asset is adopted.
+ *
+ * Every release the capacity check opened is searched, not only the one the
+ * upload would go to: the stranded upload may itself have filled a release
+ * and pushed this run on to its overflow release (CodySwannGT/lisa#4838). A
+ * candidate read that fails (after the transport's retries) refuses, rather
+ * than uploading a duplicate. The caller's readback and trust checks still
+ * run on the adopted asset, in the release that holds it.
+ * @param {object} transport - The bounded GitHub proof transport.
+ * @param {object[]} releases - Opened releases, each with its `assets`.
+ * @param {object} record - The record this publish built.
+ * @param {number} publisher - The native publisher identity.
+ * @returns {{record: object, bytes: Buffer, evidence: object}|null} The
+ *   adopted record and the release holding it, or null.
+ */
+function strandedRecord(transport, releases, record, publisher) {
+  const prefix = `${record.record_id}-r${record.revision}-`;
+  for (const evidence of releases) {
+    for (const candidate of evidence.assets ?? []) {
+      if (
+        !candidate.name?.startsWith(prefix) ||
+        candidate.uploader?.id !== publisher
+      )
+        continue;
+      const stored = transport.asset(candidate.id, MAX_RECORD_BYTES).bytes;
+      const adopted = identicalRecord(record, stored);
+      if (adopted) return { ...adopted, evidence };
+    }
+  }
+  return null;
+}
+
 /** Upload one file to a release; the failure's diagnostics, or null on success. */
 function attemptUpload(context, transport, evidence, file) {
   const uploaded = context.run(
@@ -51,24 +118,24 @@ function attemptUpload(context, transport, evidence, file) {
 }
 
 /**
- * Upload the record to the target release, rolling over once to the next
+ * Upload the record to the checked release, rolling over once to the next
  * overflow release when GitHub reports the release full mid-upload (another
  * publisher filled it after the capacity check). A pinned release is refused
  * instead, as it is before the upload (CodySwannGT/lisa#4838).
+ * @param {object} context - The canonical publish context.
+ * @param {object} transport - The bounded GitHub proof transport.
+ * @param {{tag: string, pinned: boolean}} target - The resolved release.
+ * @param {object} checked - The release the capacity check chose.
+ * @param {string} file - The record file to upload.
  * @returns {object} The release the record now lives in.
  */
-function uploadProof(context, transport, target, file) {
-  const options = { tag: target.tag, pinned: target.pinned };
-  let evidence = ensureEvidenceRelease(
-    context.run,
-    transport,
-    context.policy,
-    options
-  );
+function uploadProof(context, transport, target, checked, file) {
+  let evidence = checked;
   let failure = attemptUpload(context, transport, evidence, file);
   if (failure && failure.full !== false && !target.pinned) {
     evidence = ensureEvidenceRelease(context.run, transport, context.policy, {
-      ...options,
+      tag: target.tag,
+      pinned: target.pinned,
       from: evidence.index + 1,
     });
     failure = attemptUpload(context, transport, evidence, file);
@@ -86,6 +153,23 @@ function uploadProof(context, transport, target, file) {
           { pinned: target.pinned, policy: context.policy }
         )
   );
+}
+
+/**
+ * Write the record's bytes to a temporary file named for its asset and upload
+ * it; the temporary file is always removed.
+ * @returns {object} The release the record now lives in.
+ */
+function uploadRecord(context, transport, target, checked, name, bytes) {
+  const temporary = mkdtempSync(join(tmpdir(), "lisa-completion-proof-"));
+  try {
+    mkdirSync(temporary, { recursive: true });
+    const file = join(temporary, name);
+    writeFileSync(file, bytes);
+    return uploadProof(context, transport, target, checked, file);
+  } finally {
+    rmSync(temporary, { recursive: true, force: true });
+  }
 }
 
 /** Recover the monotonic native index without treating old malformed proof as valid. */
@@ -211,80 +295,109 @@ export function publishCompletionProof(context, input) {
   validateRecordShape(record);
   if (record.state === "accepted-for-completion")
     evaluateAcceptedRecord({ record }, context, subject, transport);
-  const bytes = Buffer.from(`${JSON.stringify(record, null, 2)}\n`);
+  // Refuse an oversized record before any write, such as creating a release.
   requireProof(
-    bytes.length <= MAX_RECORD_BYTES,
+    recordBytes(record).length <= MAX_RECORD_BYTES,
     "The completion record exceeds its bounded publication size."
   );
-  const digest = sha256(bytes);
+  const checked = ensureEvidenceRelease(
+    context.run,
+    transport,
+    context.policy,
+    { tag: target.tag, pinned: target.pinned }
+  );
+  const adopted = strandedRecord(
+    transport,
+    [checked, ...(checked.passed ?? [])],
+    record,
+    publisher
+  );
+  const published = adopted ?? { record, bytes: recordBytes(record) };
+  const digest = sha256(published.bytes);
   const name = `${recordId}-r${record.revision}-${digest}.json`;
-  const temporary = mkdtempSync(join(tmpdir(), "lisa-completion-proof-"));
-  try {
-    mkdirSync(temporary, { recursive: true });
-    const file = join(temporary, name);
-    writeFileSync(file, bytes);
-    const evidence = uploadProof(context, transport, target, file);
-    const matching = releaseAssets(transport, evidence.release).filter(
-      asset => asset.name === name
-    );
-    requireProof(
-      matching.length === 1,
-      "The uploaded completion asset cannot be uniquely read back.",
-      READ_ERROR
-    );
-    const stored = transport.asset(matching[0].id, MAX_RECORD_BYTES);
-    requireProof(
-      stored.bytes.equals(bytes) &&
-        sha256(stored.bytes) === digest &&
-        stored.metadata.uploader?.id === publisher,
-      "The native uploaded acceptance bytes or publisher differ from the producer's record."
-    );
-    const publisherState = transport.trustedPublisher(stored.metadata, record, {
-      publishing: true,
-    });
-    // Recheck native scope after upload; do not publish acceptance for changed requirements.
-    const fresh = {
-      ...context.readSubject(),
-      comments: context.readComments(),
-    };
-    requireProof(
-      sha256(primarySpecProjection(fresh.body)) === record.spec_sha256,
-      "Requirements changed during proof publication; no locator was written.",
-      "pending-proof"
-    );
-    if (record.state === "accepted-for-completion")
-      evaluateAcceptedRecord({ record }, context, fresh, transport);
-    const locator = {
-      schema_version: 1,
-      record_id: recordId,
-      revision: record.revision,
-      repository: context.repository,
-      asset_id: stored.metadata.id,
-      sha256: digest,
-    };
-    const body = `${PROOF_MARKER}\n${JSON.stringify(locator)}`;
-    const comment = context.postLocator(body, subject.native_id);
-    const readback = context
-      .readComments()
-      .find(row => String(row.id) === String(comment.id));
-    requireProof(
-      readback?.body === body &&
-        String((readback.user ?? readback.author)?.id) === trackerActor,
-      "The native completion locator or publisher did not read back exactly.",
-      WRITE_ERROR
-    );
-    const deferredProducer = !publisherState.ready;
-    return {
-      category: deferredProducer ? "published/pending-producer" : "published",
-      record_id: recordId,
-      revision: record.revision,
-      asset_id: stored.metadata.id,
-      sha256: digest,
-      comment_id: comment.id,
-      ref: context.ref,
-      terminal_mutation: false,
-    };
-  } finally {
-    rmSync(temporary, { recursive: true, force: true });
-  }
+  const evidence =
+    adopted?.evidence ??
+    uploadRecord(context, transport, target, checked, name, published.bytes);
+  return locateRecord(context, transport, {
+    record: published.record,
+    bytes: published.bytes,
+    evidence,
+    name,
+    digest,
+    publisher,
+    trackerActor,
+    nativeId: subject.native_id,
+  });
+}
+
+/**
+ * Read the uploaded (or adopted) record back exactly, re-run every trust and
+ * acceptance check against it, and only then post and read back its locator.
+ * @param {object} context - The canonical publish context.
+ * @param {object} transport - The bounded GitHub proof transport.
+ * @param {object} published - The record, its bytes, asset name and digest,
+ *   the release, the publisher and tracker identities, and the subject id.
+ * @returns {object} The publication result.
+ */
+function locateRecord(context, transport, published) {
+  const { record, bytes, evidence, name, digest, publisher } = published;
+  const matching = releaseAssets(transport, evidence.release).filter(
+    asset => asset.name === name
+  );
+  requireProof(
+    matching.length === 1,
+    "The uploaded completion asset cannot be uniquely read back.",
+    READ_ERROR
+  );
+  const stored = transport.asset(matching[0].id, MAX_RECORD_BYTES);
+  requireProof(
+    stored.bytes.equals(bytes) &&
+      sha256(stored.bytes) === digest &&
+      stored.metadata.uploader?.id === publisher,
+    "The native uploaded acceptance bytes or publisher differ from the producer's record."
+  );
+  const publisherState = transport.trustedPublisher(stored.metadata, record, {
+    publishing: true,
+  });
+  // Recheck native scope after upload; do not publish acceptance for changed requirements.
+  const fresh = {
+    ...context.readSubject(),
+    comments: context.readComments(),
+  };
+  requireProof(
+    sha256(primarySpecProjection(fresh.body)) === record.spec_sha256,
+    "Requirements changed during proof publication; no locator was written.",
+    "pending-proof"
+  );
+  if (record.state === "accepted-for-completion")
+    evaluateAcceptedRecord({ record }, context, fresh, transport);
+  const locator = {
+    schema_version: 1,
+    record_id: record.record_id,
+    revision: record.revision,
+    repository: context.repository,
+    asset_id: stored.metadata.id,
+    sha256: digest,
+  };
+  const body = `${PROOF_MARKER}\n${JSON.stringify(locator)}`;
+  const comment = context.postLocator(body, published.nativeId);
+  const readback = context
+    .readComments()
+    .find(row => String(row.id) === String(comment.id));
+  requireProof(
+    readback?.body === body &&
+      String((readback.user ?? readback.author)?.id) === published.trackerActor,
+    "The native completion locator or publisher did not read back exactly.",
+    WRITE_ERROR
+  );
+  return {
+    category: publisherState.ready ? "published" : "published/pending-producer",
+    record_id: record.record_id,
+    revision: record.revision,
+    asset_id: stored.metadata.id,
+    sha256: digest,
+    comment_id: comment.id,
+    ref: context.ref,
+    terminal_mutation: false,
+  };
 }

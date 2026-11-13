@@ -1,4 +1,4 @@
 display_name: "Plan"
-short_description: "Decompose a single PRD or…"
+short_description: "Break one PRD or spec into…"
 default_prompt:
-  - "Use $lisa-plan: Decompose a single PRD or…."
+  - "Use $lisa-plan: Break one PRD or spec into…."

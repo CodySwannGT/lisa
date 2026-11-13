@@ -1,9 +1,9 @@
 ---
 name: lisa-debrief-apply
-description: "Apply the dispositions marked…"
+description: "Apply the dispositions (accept…"
 allowed-tools: ["Skill", "Bash", "Read", "Edit", "Write", "Glob", "Grep"]
 ---
-Apply the dispositions marked in a Debrief triage document (by a human, or by the agent itself when none are marked under humanGate.mode access-only). Reads the triage doc produced by lisa-debrief, parses each row's disposition (Accept / Reject / Defer), and routes Accepted items to their persistence destination. Deterministic and idempotent — safe to re-run if dispositions are added incrementally.
+Apply the dispositions (accept, reject, defer) marked on a Debrief triage document — by a human, or by the agent itself under humanGate.mode access-only — sending accepted items where they belong. Idempotent.
 
 
 # Debrief Apply: $ARGUMENTS

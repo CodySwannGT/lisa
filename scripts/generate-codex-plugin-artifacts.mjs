@@ -10,7 +10,6 @@
  * from the Claude manifest by applying the Wave 1 per-agent ship-list audit
  * (wiki/architecture/lisa-hook-per-agent-ship-list.md):
  *   - Drop every `entire hooks claude-code *` command (Claude-only analytics).
- *   - Drop every reference to `enforce-team-first.sh` (Claude-team-specific).
  *   - Drop `inject-flow-context.sh` ONLY when targeting an agent without
  *     SubagentStart (Codex 0.125.0 has SubagentStart, so we ship it).
  *   - Rewrite ${CLAUDE_PLUGIN_ROOT}/hooks/<n>.sh to ${PLUGIN_ROOT}/hooks/<n>.sh
@@ -907,7 +906,6 @@ export function componentPointers(pluginDir) {
  * Per the Wave 1 hook audit, derive Codex-shaped hooks.json from the
  * Claude plugin.json hooks block:
  *   - Drop every `entire hooks claude-code *` command (Claude-only).
- *   - Drop every reference to `enforce-team-first.sh` (Claude-team-specific).
  *   - Rewrite ${CLAUDE_PLUGIN_ROOT}/hooks/<script>.sh to
  *     ${PLUGIN_ROOT}/hooks/<script>.sh (Codex exposes the installed plugin
  *     root to hook commands as ${PLUGIN_ROOT}).
@@ -921,7 +919,6 @@ export function componentPointers(pluginDir) {
  */
 export function filterCodexHooks(hooksBlock) {
   if (!hooksBlock || typeof hooksBlock !== "object") return null;
-  const codexStrip = new Set(["enforce-team-first.sh"]);
   const isEntire = cmd =>
     typeof cmd === "string" &&
     /command -v entire >\/dev\/null 2>&1 && entire hooks claude-code /.test(
@@ -944,7 +941,6 @@ export function filterCodexHooks(hooksBlock) {
         if (isEntire(h.command)) return [];
         const script = scriptName(h.command);
         if (script !== null) {
-          if (codexStrip.has(script)) return [];
           return [
             {
               ...h,
@@ -1080,7 +1076,7 @@ function metadataFor(pluginName, claudeManifest) {
         "Distributable LLM Wiki kernel — ingest, query, lint, and maintain a git-native markdown knowledge base across Claude and Codex.",
       shortDescription: "LLM Wiki knowledge base",
       longDescription:
-        "A config-driven, git-native LLM Wiki: ingest sources (git, PRs, project-scoped memory, Jira, Slack, docs, …) into durable markdown, query with citations, lint integrity, onboard users, absorb existing documentation, and scaffold domain-expert role subagents. Distributed for both Claude Code and Codex.",
+        "The default backend for the required knowledge role: a git-native LLM Wiki that each repository owns at wiki/. Ingest sources (git, PRs, project-scoped memory, Jira, Confluence, Notion, docs, the web) into durable markdown, query with citations, lint integrity, and absorb existing documentation. Distributed for both Claude Code and Codex.",
       category: "Productivity",
       capabilities: ["Interactive", "Write"],
       keywords: [
@@ -1091,25 +1087,8 @@ function metadataFor(pluginName, claudeManifest) {
         "llm-wiki",
       ],
       defaultPrompt: [
-        "Onboard me to this project",
         "Ingest the latest sources into the wiki",
         "Query the wiki",
-      ],
-    },
-    "lisa-openclaw": {
-      displayName: "Lisa OpenClaw",
-      description:
-        "Connect staff roles to Telegram or Slack via OpenClaw — facilitator/specialist hub-and-spoke routing and repo-coding topics, across Claude and Codex.",
-      shortDescription: "Staff on Telegram/Slack via OpenClaw",
-      longDescription:
-        "Wire staff roles to human chat surfaces through OpenClaw: set up the gateway prerequisites, connect a facilitator (chief of staff) and its specialists on Telegram or Slack with hub-and-spoke routing, and bind Telegram forum topics to dispatcher+worker pairs for repo-coding work. Distributed for both Claude Code and Codex.",
-      category: "Productivity",
-      capabilities: ["Interactive", "Write"],
-      keywords: ["openclaw", "telegram", "slack", "agents", "chat-ops"],
-      defaultPrompt: [
-        "Set up OpenClaw for this project",
-        "Connect my chief of staff to Telegram",
-        "Connect staff to Slack via OpenClaw",
       ],
     },
   };
