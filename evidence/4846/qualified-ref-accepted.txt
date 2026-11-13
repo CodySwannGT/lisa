@@ -1,0 +1,41 @@
+# HEAD: ad95e8e32844e4ee0c193529f1d3ddc58426995b
+# Command:
+ENTRIES='verify-11=linear%3Aacme%2FENG-11' IDS='verify-11 none' bun -e '<script below>'
+# Script:
+  import { verifyLisaUsageSectionIntegrity } from "./all/copy-overwrite/scripts/lib/usage-ledger-integrity.mjs";
+  const entries = process.env.ENTRIES.split(",").map(pair => pair.split("="));
+  const token = ([id, ref]) =>
+    `<!-- lisa:usage-entry entry_id=${id} flow=lisa-verify run_id=run-${id} provider=fixture model=synthetic-fixture source=unavailable input_tokens=null cached_input_tokens=null output_tokens=null reasoning_tokens=null total_tokens=null cost=null currency=null pricing_status=unavailable pricing_source=null artifact_ref=${ref} parent_artifact_ref= --> <!-- lisa:usage-entry-measured-subset entry_id=${id} measured_subset_tokens=null -->`;
+  const section = [
+    "# Spec", "", "## Lisa Usage", "",
+    "_This section is managed by Lisa. Rewrites update matching usage entries in place and preserve older rows._", "",
+    "| Flow | Source | Model | Tokens | Cost |",
+    "| --- | --- | --- | ---: | ---: |",
+    ...entries.map(() => "| lisa-verify | unavailable | fixture/synthetic-fixture | null | null |"), "",
+    ...entries.flatMap(entry => [token(entry), ""]),
+    `<!-- lisa:usage-rollup direct_entry_ids=${entries.map(([id]) => id).sort().join(",")} child_entry_ids= child_refs= direct_tokens=null child_tokens=null total_tokens=null direct_cost=null child_cost=null total_cost=null currency=null child_currency=null -->`, ""
+  ].join("\n");
+  console.log("entry tokens: " + entries.map(([id, ref]) => `${id} artifact_ref=${ref}`).join("; "));
+  for (const spec of process.env.IDS.split(" ")) {
+    const call = spec === "none"
+      ? ["verifyLisaUsageSectionIntegrity(section)", verifyLisaUsageSectionIntegrity(section)]
+      : [`verifyLisaUsageSectionIntegrity(section, { entryIds: ${JSON.stringify(spec.split(","))} })`,
+         verifyLisaUsageSectionIntegrity(section, { entryIds: spec.split(",") })];
+    console.log(`\n>>> ${call[0]}`);
+    console.log(JSON.stringify(call[1], null, 2));
+  }
+# Output:
+entry tokens: verify-11 artifact_ref=linear%3Aacme%2FENG-11
+
+>>> verifyLisaUsageSectionIntegrity(section, { entryIds: ["verify-11"] })
+{
+  "ok": true,
+  "issues": []
+}
+
+>>> verifyLisaUsageSectionIntegrity(section)
+{
+  "ok": true,
+  "issues": []
+}
+# exit=0

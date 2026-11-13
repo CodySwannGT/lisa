@@ -81,6 +81,7 @@ describe("portable canonical usage reader", () => {
     for (const file of [
       "usage-ledger.mjs",
       "usage-ledger-integrity.mjs",
+      "usage-artifact-ref.mjs",
       "usage-effectiveness.mjs",
     ])
       copyFileSync(

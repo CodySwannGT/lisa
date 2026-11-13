@@ -2,6 +2,22 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.111.2](https://github.com/CodySwannGT/lisa/compare/v4.111.1...v4.111.2) (2026-11-13)
+
+
+### Bug Fixes
+
+* **usage:** scope read-back grammar check to the entries just written ([ad95e8e](https://github.com/CodySwannGT/lisa/commit/ad95e8e32844e4ee0c193529f1d3ddc58426995b)), closes [CodySwannGT/lisa#4846](https://github.com/CodySwannGT/lisa/issues/4846) [CodySwannGT/lisa#4846](https://github.com/CodySwannGT/lisa/issues/4846)
+* **usage:** validate artifact_ref grammar in the read-back integrity check ([0a16738](https://github.com/CodySwannGT/lisa/commit/0a167389f9c12fb74673690d4979a1eb3ce286c5)), closes [CodySwannGT/lisa#4846](https://github.com/CodySwannGT/lisa/issues/4846) [CodySwannGT/lisa#4846](https://github.com/CodySwannGT/lisa/issues/4846)
+
+### [4.111.1](https://github.com/CodySwannGT/lisa/compare/v4.111.0...v4.111.1) (2026-11-13)
+
+
+### Bug Fixes
+
+* **lifecycle:** never retry a writing proof call and harden stranded-record adoption ([4b4a4c0](https://github.com/CodySwannGT/lisa/commit/4b4a4c0f785bb1da78a11ebdd492eaea454266ff)), closes [CodySwannGT/lisa#4733](https://github.com/CodySwannGT/lisa/issues/4733)
+* **lifecycle:** retry transient completion-proof reads and adopt a stranded record ([594576a](https://github.com/CodySwannGT/lisa/commit/594576ab69d7b1574a1f28f4afb9fb9b3c7040f5)), closes [CodySwannGT/lisa#4733](https://github.com/CodySwannGT/lisa/issues/4733)
+
 ## [4.111.0](https://github.com/CodySwannGT/lisa/compare/v4.110.2...v4.111.0) (2026-11-13)
 
 
