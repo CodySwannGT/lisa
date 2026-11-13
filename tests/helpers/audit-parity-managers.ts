@@ -9,6 +9,17 @@ import type { AuditManager } from "../../src/core/audit.js";
 export const PARITY_GHSA = "GHSA-aaaa-bbbb-cccc";
 export const PARITY_VULNERABLE = "3.25.76";
 
+/** zod 4.5.0 is still below the 4.6.6 fix, but outside a zod 3.x scope. */
+export const PARITY_ZOD4 = "4.5.0";
+
+/**
+ * The version the reviewed dev-only copy resolves to for a scenario.
+ * @param kind - Scope boundary scenario name; `zod4-*` puts zod 4.5.0 there
+ * @returns The dev copy's resolved version
+ */
+const devVersion = (kind: string): string =>
+  kind.startsWith("zod4-") ? PARITY_ZOD4 : PARITY_VULNERABLE;
+
 const ADVISORY = {
   severity: "high",
   id: 123,
@@ -26,12 +37,7 @@ export const PARITY_MANAGERS = {
       JSON.stringify({
         packages: {
           zod: ["zod@4.6.7"],
-          // zod 4.5.0 is still below the 4.6.6 fix, but outside a 3.x scope.
-          "lint-plugin/zod": [
-            kind === "zod4-on-listed-path"
-              ? "zod@4.5.0"
-              : `zod@${PARITY_VULNERABLE}`,
-          ],
+          "lint-plugin/zod": [`zod@${devVersion(kind)}`],
           ...(kind === "alias"
             ? { "legacy-zod": [`zod@${PARITY_VULNERABLE}`] }
             : {}),
@@ -53,7 +59,7 @@ export const PARITY_MANAGERS = {
           "": {},
           "node_modules/zod": { version: "4.6.7" },
           "node_modules/lint-plugin/node_modules/zod": {
-            version: PARITY_VULNERABLE,
+            version: devVersion(kind),
           },
           ...(kind === "alias"
             ? {
@@ -79,7 +85,7 @@ export const PARITY_MANAGERS = {
     devPath: "zod@^3.22.4",
     aliasPath: "legacy-zod@npm:zod@^3",
     lock: (kind: string) =>
-      `# yarn lockfile v1\n\nzod@^4.6.7:\n  version "4.6.7"\n\nzod@^3.22.4:\n  version "${PARITY_VULNERABLE}"\n${
+      `# yarn lockfile v1\n\nzod@^4.6.7:\n  version "4.6.7"\n\nzod@^3.22.4:\n  version "${devVersion(kind)}"\n${
         kind === "alias"
           ? `\n"legacy-zod@npm:zod@^3":\n  version "${PARITY_VULNERABLE}"\n`
           : ""

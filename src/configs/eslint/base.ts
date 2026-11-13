@@ -322,6 +322,14 @@ export const getSharedRules = (thresholds: typeof defaultThresholds) => ({
   "jsdoc/require-param-type": "off",
   "jsdoc/require-returns-type": "off",
   "jsdoc/require-property-type": "off",
+  // Keep these at the "warn" JSDoc's recommended-typescript-flavor gives them.
+  // From eslint-plugin-oxlint 1.65.0 its `flat/jsdoc` preset turns both OFF,
+  // because oxlint implements them — but in its pedantic category, and Lisa's
+  // oxlint config enables only correctness, so nothing would check them. Shared
+  // rules are spread after getBaseConfigs() in every stack, so this wins over
+  // the preset and lets the forced oxlint range reach below 1.86.0 (#4508).
+  "jsdoc/require-throws-type": "warn",
+  "jsdoc/require-yields-type": "warn",
 });
 
 /**
