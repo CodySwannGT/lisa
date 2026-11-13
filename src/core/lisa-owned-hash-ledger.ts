@@ -717,6 +717,7 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
   "scripts/lib/gate-pass-cache.mjs": Object.freeze([
     "347a15705e8c2931c33b6df7c13d6ad5db28d1da4e5006d0b57d64329cbd1cdf",
     "4f2e8facee2058c30b519f4431dbe96aea18b4694c62e751306b0cec82ca7f28",
+    "5a30dba4837e8e693a2a529ce334c481e498e32fa6742d2b5517b16e0d98fdf1",
     "b853877bd6e39eaac4d6e469ccec7e10b6f34ba1e4e5ef70376cc3971b908092",
     "e1db0421f446d88e5b9b0fd5f215dbb644de244b9cf953c4a9cfe45b200f329e",
   ]),
@@ -2020,6 +2021,9 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
   ]),
   "scripts/lisa-push-timing-report.mjs": Object.freeze([
     "96aed02d22f93cc15ea83182c6fcf05a994ee45c7e38807dc34cf31d38ebbb70",
+  ]),
+  "scripts/lisa-rails-gates.mjs": Object.freeze([
+    "6b2f0bf7d3689a8081ae1287b7a73115e46d0c305b7a648861edfb11a8bf0cb9",
   ]),
   "scripts/lisa-rails-prepush.mjs": Object.freeze([
     "31a61d5c53db977fb1d6ff8f125ec785db98e79290a4ea5225e4322d9915038d",
@@ -3361,6 +3365,7 @@ export const LISA_OWNED_HASH_HISTORY_DERIVED: Readonly<
   "scripts/lib/gate-pass-cache.mjs": Object.freeze([
     "347a15705e8c2931c33b6df7c13d6ad5db28d1da4e5006d0b57d64329cbd1cdf",
     "4f2e8facee2058c30b519f4431dbe96aea18b4694c62e751306b0cec82ca7f28",
+    "5a30dba4837e8e693a2a529ce334c481e498e32fa6742d2b5517b16e0d98fdf1",
     "b853877bd6e39eaac4d6e469ccec7e10b6f34ba1e4e5ef70376cc3971b908092",
     "e1db0421f446d88e5b9b0fd5f215dbb644de244b9cf953c4a9cfe45b200f329e",
   ]),
@@ -4608,6 +4613,9 @@ export const LISA_OWNED_HASH_HISTORY_DERIVED: Readonly<
   ]),
   "scripts/lisa-push-timing-report.mjs": Object.freeze([
     "96aed02d22f93cc15ea83182c6fcf05a994ee45c7e38807dc34cf31d38ebbb70",
+  ]),
+  "scripts/lisa-rails-gates.mjs": Object.freeze([
+    "6b2f0bf7d3689a8081ae1287b7a73115e46d0c305b7a648861edfb11a8bf0cb9",
   ]),
   "scripts/lisa-rails-prepush.mjs": Object.freeze([
     "31a61d5c53db977fb1d6ff8f125ec785db98e79290a4ea5225e4322d9915038d",

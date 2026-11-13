@@ -81,7 +81,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lib/gate-failure-diagnosis.mjs":
       "31f2acced121662d6395b624aed2ae0ad642c1edb52cdb0eded1497886daad71",
     "all/copy-overwrite/scripts/lib/gate-pass-cache.mjs":
-      "4f2e8facee2058c30b519f4431dbe96aea18b4694c62e751306b0cec82ca7f28",
+      "5a30dba4837e8e693a2a529ce334c481e498e32fa6742d2b5517b16e0d98fdf1",
     "all/copy-overwrite/scripts/lib/github-attestation-provider.mjs":
       "98dbe0326546a1d10e148ed9036d5696159dee38068beddff321f1b2d47fcdc7",
     "all/copy-overwrite/scripts/lib/github-attestation-recovery.mjs":
@@ -2519,7 +2519,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "rails/copy-overwrite/.versionrc":
       "b6c4c0258819fa186a91d96cdeac7a017f36cfe1d2c59ccb69cff75c1a8598e0",
     "rails/copy-overwrite/Gemfile.lisa":
-      "50c6fb6bf7ebf76e1f3e65e8100ac5e33177185013c94c4f19967015a3328f75",
+      "f55329e8cb8a635e2d5ca923d00722685322a2d2a8f2ee1c2bdf8d712fa7f3b6",
     "rails/copy-overwrite/ast-grep/rule-tests/.gitkeep":
       "fd9b902271d9cbaca0ead2a1e659776db904c10b06ceed7e5bc43fa57b89aba1",
     "rails/copy-overwrite/ast-grep/rules/no-day-truncating-file-age-predicate.yml":
@@ -2541,9 +2541,11 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "rails/copy-overwrite/config/initializers/version.rb":
       "9304268500aada31d8bd158dca4274888d10db4e30f8dadd9bf23a01d67f2480",
     "rails/copy-overwrite/lefthook.yml":
-      "01b57d0178853fb0415a9ba543a0819161331b716035ae54638b3e87c1221c64",
+      "460d237bdeec407b4cd719f1987e99246ebcae61017bde688df452d16f3e8bd5",
     "rails/copy-overwrite/scripts/check-threshold-ratchet.mjs":
       "3dcfd3a63d067337d0b287e4df13c0f97106f293db7a460e183654065ca57246",
+    "rails/copy-overwrite/scripts/lisa-rails-gates.mjs":
+      "6b2f0bf7d3689a8081ae1287b7a73115e46d0c305b7a648861edfb11a8bf0cb9",
     "rails/copy-overwrite/scripts/lisa-rspec-shards.mjs":
       "00d504a0fee1f2a75d7328dc848cacabe6fd9360beacc5bf9632d0741388ade2",
     "rails/copy-overwrite/scripts/lisa_rspec_shard_recorder.rb":
@@ -2951,7 +2953,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/test-timing-report.mjs":
       "ac98aac3ecf547da67f2a40f44c008e6fdc7b7682b38080ac46e12d41b6309b6",
     "scripts/two-channel-couplings.json":
-      "c5272ad50c148c5e951b0aecf11106c7984660a1e73ce82ff4b521ab86c4f5b4",
+      "2bf2b4dbd41d54426b33cc3191609c07b950e984a3d3a9e83d6e6e687cb55758",
     "scripts/update-node-version.ts":
       "b4d96816bc86c9172e8cb48f3efbba82bf35fce8eef3c6de7a58ae68de11a518",
     "scripts/update-test-skill-paths.mjs":
@@ -10617,6 +10619,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "rails/copy-overwrite/config/initializers/version.rb": true,
     "rails/copy-overwrite/lefthook.yml": true,
     "rails/copy-overwrite/scripts/check-threshold-ratchet.mjs": true,
+    "rails/copy-overwrite/scripts/lisa-rails-gates.mjs": true,
     "rails/copy-overwrite/scripts/lisa-rspec-shards.mjs": true,
     "rails/copy-overwrite/scripts/lisa_rspec_shard_recorder.rb": true,
     "rails/copy-overwrite/scripts/lisa_simplecov_collate.rb": true,
@@ -11896,6 +11899,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/rails-hook-apply.test.ts": true,
     "tests/integration/rails-learnings-budget-gate.test.ts": true,
     "tests/integration/rails-prepush-hook.test.ts": true,
+    "tests/integration/rails-push-gate-cache.test.ts": true,
     "tests/integration/rails-rspec-shard-ruby.test.ts": true,
     "tests/integration/rails-version-initializer.test.ts": true,
     "tests/integration/registration-deferred-cli.test.ts": true,
@@ -12033,6 +12037,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/agy/mcp-installer.test.ts": true,
     "tests/unit/claude/claude-md-installer.test.ts": true,
     "tests/unit/cli/apply.test.ts": true,
+    "tests/unit/cli/check-cmd-rails.test.ts": true,
     "tests/unit/cli/check-cmd.test.ts": true,
     "tests/unit/cli/check-learnings-budget-cmd.test.ts": true,
     "tests/unit/cli/ci-workflow-inputs.test.ts": true,
@@ -12960,6 +12965,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/lisa-plugin-registration-notice.test.ts": true,
     "tests/unit/scripts/lisa-postinstall.test.ts": true,
     "tests/unit/scripts/lisa-push-timing-report.test.ts": true,
+    "tests/unit/scripts/lisa-rails-gates.test.ts": true,
     "tests/unit/scripts/lisa-reconcile-policy-awaited-scope.test.ts": true,
     "tests/unit/scripts/lisa-reconcile-policy-declarative.test.ts": true,
     "tests/unit/scripts/lisa-reconcile-policy-fixtures.ts": true,

@@ -113,14 +113,21 @@ describe("pre-push Git environment isolation", () => {
     expect(source.indexOf("validate-push {1}")).toBeLessThan(
       source.indexOf(`${wrapper} ${swept}`)
     );
-    for (const command of [
-      "bundle exec bundler-audit check --update",
-      "bundle exec brakeman --no-pager --quiet",
-      "bundle exec reek app/ lib/",
-      "bundle exec flog --all --group app/ lib/",
-      "bundle exec flay app/ lib/",
-    ]) {
-      expect(source).toContain(`${wrapper} ${command}`);
+    expect(source).toContain(
+      `${wrapper} bundle exec bundler-audit check --update`
+    );
+    // The static analysers run through the Rails gate script (pass cache,
+    // CodySwannGT/lisa#4613) INSIDE the wrapper, and fall back to the bare
+    // command, still inside it, when node or the script is absent.
+    const gated = (id: string, command: string): string =>
+      `${wrapper} sh -c 'if command -v node >/dev/null 2>&1 && [ -f scripts/lisa-rails-gates.mjs ]; then exec node scripts/lisa-rails-gates.mjs ${id}; fi; exec ${command}'`;
+    for (const [id, command] of [
+      ["brakeman", "bundle exec brakeman --no-pager --quiet"],
+      ["reek", "bundle exec reek app/ lib/"],
+      ["flog", "bundle exec flog --all --group app/ lib/"],
+      ["flay", "bundle exec flay app/ lib/"],
+    ] as const) {
+      expect(source).toContain(gated(id, command));
     }
     for (const payload of [
       "bundle exec rspec",
@@ -128,7 +135,8 @@ describe("pre-push Git environment isolation", () => {
     ]) {
       expect(source).toContain(`exec ${payload}'`);
     }
-    expect(source.split(`${wrapper} ${swept}`)).toHaveLength(3);
+    // rspec and mutation (sweep first) plus the four static analysers.
+    expect(source.split(`${wrapper} ${swept}`)).toHaveLength(7);
     expect(source).not.toContain("lisa-scratch-run.sh");
   });
 

@@ -43,17 +43,25 @@ pre-push:
       # (CodySwannGT/lisa#4603). It never fails the push. The payload then runs
       # as itself, exported as LISA_TEST_RUN_OWNER so a later sweep recognises
       # any child it orphans.
-      run: sh scripts/lisa-clean-git-env.sh sh -c 'if command -v node >/dev/null 2>&1 && [ -f scripts/lib/lisa-cleanup-sweep.mjs ]; then node scripts/lib/lisa-cleanup-sweep.mjs; else echo "🧹 cleanup sweep skipped (node or scripts/lib/lisa-cleanup-sweep.mjs unavailable)"; fi; export LISA_TEST_RUN_OWNER="$$:0"; exec bundle exec rspec'
+      #
+      # The gate itself runs through scripts/lisa-rails-gates.mjs
+      # (CodySwannGT/lisa#4613): the push-gate pass cache (a re-push of a tree
+      # that already passed prints CACHED PASS), headroom admission, and a
+      # parallel full run when config/database.yml allows it. Without node or
+      # the script, the command runs as it always did.
+      run: sh scripts/lisa-clean-git-env.sh sh -c 'if command -v node >/dev/null 2>&1 && [ -f scripts/lib/lisa-cleanup-sweep.mjs ]; then node scripts/lib/lisa-cleanup-sweep.mjs; else echo "🧹 cleanup sweep skipped (node or scripts/lib/lisa-cleanup-sweep.mjs unavailable)"; fi; export LISA_TEST_RUN_OWNER="$$:0"; if command -v node >/dev/null 2>&1 && [ -f scripts/lisa-rails-gates.mjs ]; then exec node scripts/lisa-rails-gates.mjs rspec; fi; exec bundle exec rspec'
     brakeman:
-      run: sh scripts/lisa-clean-git-env.sh bundle exec brakeman --no-pager --quiet
+      # Cached by scripts/lisa-rails-gates.mjs; runs as before without it.
+      run: sh scripts/lisa-clean-git-env.sh sh -c 'if command -v node >/dev/null 2>&1 && [ -f scripts/lisa-rails-gates.mjs ]; then exec node scripts/lisa-rails-gates.mjs brakeman; fi; exec bundle exec brakeman --no-pager --quiet'
     reek:
-      run: sh scripts/lisa-clean-git-env.sh bundle exec reek app/ lib/
+      run: sh scripts/lisa-clean-git-env.sh sh -c 'if command -v node >/dev/null 2>&1 && [ -f scripts/lisa-rails-gates.mjs ]; then exec node scripts/lisa-rails-gates.mjs reek; fi; exec bundle exec reek app/ lib/'
     flog:
-      run: sh scripts/lisa-clean-git-env.sh bundle exec flog --all --group app/ lib/
+      run: sh scripts/lisa-clean-git-env.sh sh -c 'if command -v node >/dev/null 2>&1 && [ -f scripts/lisa-rails-gates.mjs ]; then exec node scripts/lisa-rails-gates.mjs flog; fi; exec bundle exec flog --all --group app/ lib/'
     flay:
-      run: sh scripts/lisa-clean-git-env.sh bundle exec flay app/ lib/
+      run: sh scripts/lisa-clean-git-env.sh sh -c 'if command -v node >/dev/null 2>&1 && [ -f scripts/lisa-rails-gates.mjs ]; then exec node scripts/lisa-rails-gates.mjs flay; fi; exec bundle exec flay app/ lib/'
     mutation:
       # Opt-in, diff-only mutation gate. Self-skips instantly when disabled
       # (mutation.gate.yml: enabled: false), so it adds no cost until opted in.
       # The same start-of-run sweep as rspec runs before the gate script.
-      run: sh scripts/lisa-clean-git-env.sh sh -c 'if command -v node >/dev/null 2>&1 && [ -f scripts/lib/lisa-cleanup-sweep.mjs ]; then node scripts/lib/lisa-cleanup-sweep.mjs; else echo "🧹 cleanup sweep skipped (node or scripts/lib/lisa-cleanup-sweep.mjs unavailable)"; fi; export LISA_TEST_RUN_OWNER="$$:0"; exec bash scripts/lisa-mutation.sh'
+      # When enabled it waits for machine headroom (never cached).
+      run: sh scripts/lisa-clean-git-env.sh sh -c 'if command -v node >/dev/null 2>&1 && [ -f scripts/lib/lisa-cleanup-sweep.mjs ]; then node scripts/lib/lisa-cleanup-sweep.mjs; else echo "🧹 cleanup sweep skipped (node or scripts/lib/lisa-cleanup-sweep.mjs unavailable)"; fi; export LISA_TEST_RUN_OWNER="$$:0"; if command -v node >/dev/null 2>&1 && [ -f scripts/lisa-rails-gates.mjs ]; then exec node scripts/lisa-rails-gates.mjs mutation; fi; exec bash scripts/lisa-mutation.sh'

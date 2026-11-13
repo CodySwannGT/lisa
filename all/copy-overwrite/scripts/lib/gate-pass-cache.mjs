@@ -90,6 +90,9 @@ export const VOLATILE_LISA_ENV = Object.freeze([
   CACHE_ENV,
   "LISA_PUSHED_REFS_FILE",
   "LISA_CLEANUP_SWEPT",
+  // The test-run owner marker (`<pid>:0`) a Rails pre-push command exports
+  // before its payload (CodySwannGT/lisa#4603, #4613): a new pid every run.
+  "LISA_TEST_RUN_OWNER",
   // Headroom admission (CodySwannGT/lisa#4596): a grant and a holder pid
   // describe the machine at that moment, not the content being proved.
   "LISA_ADMITTED_WORKERS",
@@ -250,10 +253,14 @@ function gatesBlockOf(path) {
  * @param {string} cwd Repository directory.
  * @param {Record<string, string|undefined>} env Process environment.
  * @param {() => (string|null)} bunVersion Reads the bun version.
+ * @param {Record<string, string|null>} [extraTools] Further toolchain
+ *   versions a caller's gates depend on — a Rails host adds `ruby -v` and
+ *   `bundle -v` (CodySwannGT/lisa#4613). Empty for the gate runner, so its
+ *   keys are unchanged.
  * @returns {{lockfiles: Record<string, string>, tools: {node: string, bun: string|null}, gatesConfig: {project: unknown, local: unknown}, environment: Record<string, string>}}
  *   Lockfile digests, tool versions, config and environment.
  */
-export function sharedInputs(cwd, env, bunVersion) {
+export function sharedInputs(cwd, env, bunVersion, extraTools = {}) {
   const lockfiles = Object.fromEntries(
     LOCKFILES.filter(name => existsSync(join(cwd, name))).map(name => [
       name,
@@ -264,7 +271,7 @@ export function sharedInputs(cwd, env, bunVersion) {
   );
   return {
     lockfiles,
-    tools: { node: process.versions.node, bun: bunVersion() },
+    tools: { node: process.versions.node, bun: bunVersion(), ...extraTools },
     gatesConfig: {
       project: gatesBlockOf(join(cwd, ".lisa.config.json")),
       local: gatesBlockOf(join(cwd, ".lisa.config.local.json")),
@@ -336,6 +343,8 @@ function prune(dir, now) {
  * @param {() => number} [options.now] Clock.
  * @param {(args: string[], cwd: string) => (string|null)} [options.git] Git runner.
  * @param {() => (string|null)} [options.bunVersion] Bun version reader.
+ * @param {Record<string, string|null>} [options.extraTools] Further toolchain
+ *   versions that enter every key (see `sharedInputs`).
  * @returns {{lookup: Function, remember: Function, commit: Function}|null} The cache.
  */
 export function openGatePassCache({
@@ -348,6 +357,7 @@ export function openGatePassCache({
   now = Date.now,
   git = defaultGit,
   bunVersion = defaultBunVersion,
+  extraTools = {},
 }) {
   const refused = refusal(config, env);
   if (refused) {
@@ -362,7 +372,7 @@ export function openGatePassCache({
   }
   let shared;
   try {
-    shared = sharedInputs(cwd, env, bunVersion);
+    shared = sharedInputs(cwd, env, bunVersion, extraTools);
   } catch (err) {
     out(`🗃️  Gate pass cache skipped: ${err.message}. Every gate runs.`);
     return null;
