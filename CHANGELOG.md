@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.109.2](https://github.com/CodySwannGT/lisa/compare/v4.109.1...v4.109.2) (2026-11-13)
+
+
+### Bug Fixes
+
+* **evidence:** honor LISA_EVIDENCE_RELEASE on publish and roll a full release over ([bca5f5e](https://github.com/CodySwannGT/lisa/commit/bca5f5eb10c7307559844778b648fae94a987010)), closes [#4838](https://github.com/CodySwannGT/lisa/issues/4838) [#4838](https://github.com/CodySwannGT/lisa/issues/4838) [CodySwannGT/lisa#4838](https://github.com/CodySwannGT/lisa/issues/4838)
+* **evidence:** keep journey links on the overflow release and name over-long releases ([c27b9e4](https://github.com/CodySwannGT/lisa/commit/c27b9e4621d6b41e5ab53ab46a4b82dac704b427)), closes [#4838](https://github.com/CodySwannGT/lisa/issues/4838) [CodySwannGT/lisa#4838](https://github.com/CodySwannGT/lisa/issues/4838)
+* **evidence:** refuse links into another release and tailor full-release advice ([4c90cb0](https://github.com/CodySwannGT/lisa/commit/4c90cb0803de414b9587849f6a0f5e716c0ecdf8)), closes [#4838](https://github.com/CodySwannGT/lisa/issues/4838) [CodySwannGT/lisa#4838](https://github.com/CodySwannGT/lisa/issues/4838)
+* **evidence:** register the release capacity helper and satisfy repo scans ([b525d8d](https://github.com/CodySwannGT/lisa/commit/b525d8dcb7adb5d99ac0eb21060ae1b3db8993b3)), closes [#4838](https://github.com/CodySwannGT/lisa/issues/4838) [CodySwannGT/lisa#4838](https://github.com/CodySwannGT/lisa/issues/4838)
+* **evidence:** walk past gaps when the prune re-reads overflow releases ([f4339e8](https://github.com/CodySwannGT/lisa/commit/f4339e809f824002cd619025313a5bac3d7d9a6f)), closes [#4838](https://github.com/CodySwannGT/lisa/issues/4838) [CodySwannGT/lisa#4838](https://github.com/CodySwannGT/lisa/issues/4838)
+
 ### [4.109.1](https://github.com/CodySwannGT/lisa/compare/v4.109.0...v4.109.1) (2026-11-13)
 
 ## [4.109.0](https://github.com/CodySwannGT/lisa/compare/v4.108.3...v4.109.0) (2026-11-13)
