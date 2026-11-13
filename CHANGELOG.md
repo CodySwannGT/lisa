@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.107.9](https://github.com/CodySwannGT/lisa/compare/v4.107.8...v4.107.9) (2026-11-13)
+
+
+### Bug Fixes
+
+* **session-manager:** find first-prompt transcripts in truncated long project dirs ([d3d805c](https://github.com/CodySwannGT/lisa/commit/d3d805c6b3fb1b44b18aa650762d0b67a26414a2)), closes [#4821](https://github.com/CodySwannGT/lisa/issues/4821) [CodySwannGT/lisa#4821](https://github.com/CodySwannGT/lisa/issues/4821)
+* **session-manager:** keep the exact name in the long-path transcript lookup ([2cc912b](https://github.com/CodySwannGT/lisa/commit/2cc912b4662c83f1139ead6fd45c3ba4451388ec)), closes [#4821](https://github.com/CodySwannGT/lisa/issues/4821) [#4821](https://github.com/CodySwannGT/lisa/issues/4821) [CodySwannGT/lisa#4821](https://github.com/CodySwannGT/lisa/issues/4821)
+
 ### [4.107.8](https://github.com/CodySwannGT/lisa/compare/v4.107.7...v4.107.8) (2026-11-13)
 
 
