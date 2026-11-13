@@ -28,6 +28,9 @@ const TARGET: TestRunTargetIntent = {
 
 /**
  * Create a minimal evented companion for deterministic IPC controls.
+ * A terminal companion is modelled with its IPC channel already closed, the
+ * state Node reaches by `'close'`; an exited-but-connected companion may still
+ * deliver a queued acknowledgement (see lisa-test-run-ipc.test.ts).
  * @param exitCode - Initial terminal exit state
  * @param sendError - Optional callback-settled IPC failure
  * @returns Child-process-shaped event emitter
@@ -37,7 +40,7 @@ function protocolCompanion(
   sendError: Error | null = null
 ): ChildProcess {
   return Object.assign(new EventEmitter(), {
-    connected: true,
+    connected: exitCode === null,
     exitCode,
     signalCode: null,
     send: (
@@ -83,12 +86,16 @@ describe("test-run companion terminal state", () => {
     const originalOnce = child.once.bind(child);
     child.once = ((event: string, listener: (...args: unknown[]) => void) => {
       const result = originalOnce(event, listener);
-      if (event === "exit") child.exitCode = 1;
+      if (event === "close") {
+        child.exitCode = 1;
+        (child as { connected: boolean }).connected = false;
+      }
       return result;
     }) as typeof child.once;
     const waiting = waitForMessage(child, "NEVER");
     const observed = await immediateSettlement(waiting);
     child.emit("exit", 1, null);
+    child.emit("close", 1, null);
     await waiting.catch(() => undefined);
 
     expect(observed).toBe("rejected");
