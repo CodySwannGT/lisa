@@ -2,6 +2,37 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.106.2](https://github.com/CodySwannGT/lisa/compare/v4.106.1...v4.106.2) (2026-11-12)
+
+
+### Bug Fixes
+
+* **ci:** key shard refusal re-wrap on a shared recovery prefix ([92d6f02](https://github.com/CodySwannGT/lisa/commit/92d6f02626abb54239d0cf1a89586a2c8e1fede0)), closes [CodySwannGT/lisa#4634](https://github.com/CodySwannGT/lisa/issues/4634) [CodySwannGT/lisa#4634](https://github.com/CodySwannGT/lisa/issues/4634)
+* **ci:** let a failed-jobs re-run recover a failed shell-guard trace shard ([429fb86](https://github.com/CodySwannGT/lisa/commit/429fb86c07752a451d35675abbc16042c946ee85)), closes [CodySwannGT/lisa#4634](https://github.com/CodySwannGT/lisa/issues/4634) [CodySwannGT/lisa#4634](https://github.com/CodySwannGT/lisa/issues/4634)
+* **session-manager:** harden setup-gap handling from review ([8ab1482](https://github.com/CodySwannGT/lisa/commit/8ab14820d5477f2bbf1475abd36c26f7076fc8fd)), closes [CodySwannGT/lisa#4503](https://github.com/CodySwannGT/lisa/issues/4503) [CodySwannGT/lisa#4503](https://github.com/CodySwannGT/lisa/issues/4503)
+* **session-manager:** treat a worker's failed first prompt as a setup gap ([a62aadc](https://github.com/CodySwannGT/lisa/commit/a62aadc74e21d28b2b386627c871640ca500bcb4)), closes [CodySwannGT/lisa#4503](https://github.com/CodySwannGT/lisa/issues/4503) [CodySwannGT/lisa#4503](https://github.com/CodySwannGT/lisa/issues/4503)
+
+### [4.106.1](https://github.com/CodySwannGT/lisa/compare/v4.106.0...v4.106.1) (2026-11-12)
+
+
+### Bug Fixes
+
+* **sonar:** make shim repoint rollback-safe and stricter about what it rewrites ([bdc2982](https://github.com/CodySwannGT/lisa/commit/bdc2982bd4eea28376d60c2350e8b86af849727f)), closes [CodySwannGT/lisa#4502](https://github.com/CodySwannGT/lisa/issues/4502) [CodySwannGT/lisa#4502](https://github.com/CodySwannGT/lisa/issues/4502)
+* **sonar:** repoint stale sonar-integrate shims at the Lisa wrapper on apply ([b6b3327](https://github.com/CodySwannGT/lisa/commit/b6b3327d6b1978aae7c6bbdf81e75666f6facc1a)), closes [#2324](https://github.com/CodySwannGT/lisa/issues/2324) [CodySwannGT/lisa#4502](https://github.com/CodySwannGT/lisa/issues/4502) [CodySwannGT/lisa#4502](https://github.com/CodySwannGT/lisa/issues/4502)
+
+## [4.106.0](https://github.com/CodySwannGT/lisa/compare/v4.105.0...v4.106.0) (2026-11-12)
+
+
+### Features
+
+* **skills:** require proving a cited line is reachable before fixing it ([02e12ea](https://github.com/CodySwannGT/lisa/commit/02e12ea5a4451fb49056a49f8c1cfb56c38f771b)), closes [CodySwannGT/lisa#4491](https://github.com/CodySwannGT/lisa/issues/4491) [CodySwannGT/lisa#4491](https://github.com/CodySwannGT/lisa/issues/4491)
+
+
+### Bug Fixes
+
+* **skills:** do not reject a directly launched entry module as dead code ([d1dbb96](https://github.com/CodySwannGT/lisa/commit/d1dbb968a3994886ff00f27bbb7bd34925149eff)), closes [#4805](https://github.com/CodySwannGT/lisa/issues/4805) [CodySwannGT/lisa#4491](https://github.com/CodySwannGT/lisa/issues/4491) [CodySwannGT/lisa#4491](https://github.com/CodySwannGT/lisa/issues/4491)
+* **skills:** tag reachability throw for cleanup and separate Reachability line ([d59a74f](https://github.com/CodySwannGT/lisa/commit/d59a74f1019bf93f8392cd1540d58aa2e2f33354)), closes [CodySwannGT/lisa#4491](https://github.com/CodySwannGT/lisa/issues/4491) [CodySwannGT/lisa#4491](https://github.com/CodySwannGT/lisa/issues/4491)
+
 ## [4.105.0](https://github.com/CodySwannGT/lisa/compare/v4.104.1...v4.105.0) (2026-11-12)
 
 

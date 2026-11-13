@@ -229,6 +229,56 @@ export function nativeArgv(root, artifactRoot, shard, candidates) {
   ];
 }
 
+/*
+ * #4634: a failed-jobs re-run is a new Actions attempt that rebuilds only the
+ * failed shard, so a valid merge may combine bundles from different attempts
+ * of ONE run. Every refusal names the shard and attempt it judged and the
+ * re-run that recovers it, because the operator reading a red check has no
+ * other way to know a failed-jobs re-run would be wasted.
+ */
+/** Every recovery hint starts with this; recoverable() keys on it alone. */
+export const RECOVERY_PREFIX = "Recovery: ";
+export const RERUN_FAILED = `${RECOVERY_PREFIX}"Re-run failed jobs" rebuilds only that shard and is enough.`;
+export const RERUN_ALL = `${RECOVERY_PREFIX}"Re-run all jobs" is needed; re-running only failed jobs cannot fix this.`;
+const BUNDLE_NAME = /^lisa-shell-guard-(\d+)-([1-9]\d*)-shard-([1-9]\d*)$/u;
+const RUN_IDENTITY = ["runId", "sourceSha", "prHead", "workflowRef"];
+const shardName = index => `shard ${index}`;
+const label = (index, attempt) => `${shardName(index)} attempt ${attempt}`;
+const bundleLabel = manifest =>
+  label(manifest?.shard?.index, manifest?.snapshot?.provider?.attempt);
+/** The snapshot minus the one field a failed-jobs re-run legitimately changes. */
+const withoutAttempt = value => {
+  const { attempt: _attempt, ...provider } = value?.provider ?? {};
+  return { ...value, provider };
+};
+
+/**
+ * Bind a bundle to the current run. The attempt may be older than the merge
+ * job's own (a re-run keeps earlier attempts' complete shards), never newer;
+ * everything else — run, source, PR head, workflow, runtime, roster — must be
+ * identical, because a re-run of the same run cannot change any of it.
+ */
+function assertCurrentRun(snapshot, manifest) {
+  const where = bundleLabel(manifest);
+  const recorded = manifest?.snapshot?.provider ?? {};
+  for (const field of RUN_IDENTITY) {
+    assert(
+      recorded[field] === snapshot.provider[field],
+      `${where} records ${field} ${JSON.stringify(recorded[field])}, but the current run has ${JSON.stringify(snapshot.provider[field])}; a foreign or stale bundle cannot be merged. ${RERUN_ALL}`
+    );
+  }
+  assert(
+    /^\d+$/u.test(recorded.attempt ?? "") &&
+      Number(recorded.attempt) <= Number(snapshot.provider.attempt),
+    `${where} is not an attempt at or before the merge job's attempt ${snapshot.provider.attempt}. ${RERUN_ALL}`
+  );
+  assert.deepEqual(
+    withoutAttempt(manifest.snapshot),
+    withoutAttempt(snapshot),
+    `${where} was built from a different source/runtime/roster identity than the current merge job. ${RERUN_ALL}`
+  );
+}
+
 export function validateBundle({
   snapshot,
   manifest,
@@ -241,18 +291,17 @@ export function validateBundle({
   stderrRaw,
 }) {
   validateSnapshot(snapshot);
-  assert(manifest && manifest.schema === 1 && manifest.complete === true);
-  assert.deepEqual(
-    manifest.snapshot,
-    snapshot,
-    "stale source/run/attempt/runtime/roster identity"
+  assert(
+    manifest && manifest.schema === 1 && manifest.complete === true,
+    `${bundleLabel(manifest)} has an incomplete manifest. ${RERUN_FAILED}`
   );
+  assertCurrentRun(snapshot, manifest);
   parseShard(`${manifest.shard.index}/${manifest.shard.total}`);
   assert(
     manifest.child.status === 0 &&
       manifest.child.signal === null &&
       manifest.child.error === null,
-    "child failed/killed/not started"
+    `${bundleLabel(manifest)} child failed/killed/not started. ${RERUN_FAILED}`
   );
   assert(manifest.producerJob === "guard-trace", "wrong native producer job");
   assert(
@@ -353,17 +402,26 @@ export function mergeBundles(snapshot, bundles) {
   validateSnapshot(snapshot);
   assert(
     Array.isArray(bundles) && bundles.length === 3,
-    "all three complete shards required"
+    `all three complete shards required. ${RERUN_FAILED}`
   );
   const seen = new Set(),
     files = new Set(),
     validated = [];
   for (const bundle of bundles) {
-    const value = validateBundle({ ...bundle, snapshot });
-    assert(!seen.has(value.shard.index), "duplicate shard identity");
+    const value = recoverable(bundleLabel(bundle.manifest), () =>
+      validateBundle({ ...bundle, snapshot })
+    );
+    const where = bundleLabel(bundle.manifest);
+    assert(
+      !seen.has(value.shard.index),
+      `duplicate shard identity: ${where}. ${RERUN_ALL}`
+    );
     seen.add(value.shard.index);
     for (const file of value.files) {
-      assert(!files.has(file), "duplicate reported file across shards");
+      assert(
+        !files.has(file),
+        `duplicate reported file across shards: ${where} reports ${file} again. ${RERUN_ALL}`
+      );
       files.add(file);
     }
     validated.push(value);
@@ -372,7 +430,7 @@ export function mergeBundles(snapshot, bundles) {
   assert.deepEqual(
     [...files].sort((a, b) => a.localeCompare(b)),
     snapshot.candidates.map(row => row.path),
-    "missing/extra candidate files"
+    `missing/extra candidate files across ${bundles.map(bundle => bundleLabel(bundle.manifest)).join(", ")}. ${RERUN_ALL}`
   );
   // ONE existing judge receives this trace. Empty individual traces are valid.
   return `${validated
@@ -380,4 +438,111 @@ export function mergeBundles(snapshot, bundles) {
     .map(value => value.trace.trimEnd())
     .filter(Boolean)
     .join("\n")}\n`;
+}
+
+/**
+ * A receipt-integrity refusal deep inside validateBundle (digest, argv,
+ * roster) or a missing artifact file does not know which bundle it judged.
+ * Name it, and say a full re-run is needed: the bundle's own job succeeded,
+ * so a failed-jobs re-run would not rebuild it.
+ */
+function recoverable(where, validate) {
+  try {
+    return validate();
+  } catch (error) {
+    if (String(error?.message ?? "").includes(RECOVERY_PREFIX)) throw error;
+    throw new Error(
+      `${where}: ${error?.message ?? String(error)}. ${RERUN_ALL}`,
+      { cause: error }
+    );
+  }
+}
+
+/** Parse `lisa-shell-guard-<run>-<attempt>-shard-<index>` against this run. */
+function parseBundleName(name, provider) {
+  const match = BUNDLE_NAME.exec(name);
+  assert(
+    match,
+    `download directory ${JSON.stringify(name)} is not a shell-guard shard bundle of run ${provider.runId}. ${RERUN_ALL}`
+  );
+  const [, runId, attemptText, indexText] = match;
+  const attempt = Number(attemptText),
+    index = Number(indexText);
+  const where = label(index, attempt);
+  assert(
+    runId === provider.runId,
+    `${where} (${name}) belongs to run ${runId}, not the current run ${provider.runId}. ${RERUN_ALL}`
+  );
+  assert(
+    index <= 3,
+    `${where} (${name}) is not one of shards 1-3. ${RERUN_ALL}`
+  );
+  assert(
+    attempt <= Number(provider.attempt),
+    `${where} (${name}) is newer than the merge job's attempt ${provider.attempt}. ${RERUN_ALL}`
+  );
+  return { index, attempt, where };
+}
+
+/** Keep the highest attempt per shard; two directories may not claim one slot. */
+function newestPerShard(entries, provider) {
+  const newest = new Map(),
+    seen = new Set();
+  for (const entry of entries) {
+    const { index, attempt, where } = parseBundleName(entry.name, provider);
+    assert(
+      !seen.has(where),
+      `duplicate download directories claim ${where}. ${RERUN_ALL}`
+    );
+    seen.add(where);
+    if ((newest.get(index)?.attempt ?? 0) < attempt)
+      newest.set(index, { index, attempt, where, entry });
+  }
+  const missing = [1, 2, 3].filter(index => !newest.has(index));
+  assert(
+    missing.length === 0,
+    `missing shard bundle for ${missing.map(shardName).join(", ")}: no attempt 1-${provider.attempt} of run ${provider.runId} uploaded one. ${RECOVERY_PREFIX}"Re-run failed jobs" if that shard's job failed or was cancelled; "Re-run all jobs" if it succeeded without uploading.`
+  );
+  return [...newest.values()].sort((a, b) => a.index - b.index);
+}
+
+/**
+ * Merge downloaded shard directories from EVERY attempt of the current run
+ * (#4634). For each shard the newest attempt wins; its bundle must be
+ * complete, because falling back to an older attempt would silently judge a
+ * shard the operator just re-ran. `entries` are `{ name, read }`, where
+ * `read()` returns the bundle or null when the directory holds no
+ * manifest.json (a failed shard uploads diagnostics only). Only the chosen
+ * directories are read.
+ */
+export function mergeShardDirectories(snapshot, entries) {
+  validateSnapshot(snapshot);
+  assert(Array.isArray(entries), "shard directory entries required");
+  const selected = newestPerShard(entries, snapshot.provider).map(choice => {
+    const bundle = recoverable(choice.where, () => choice.entry.read());
+    assert(
+      bundle,
+      `${choice.where} did not complete: its bundle has no manifest.json, and an older attempt is never used in its place. ${RERUN_FAILED}`
+    );
+    const recordedShard = bundle.manifest?.shard?.index,
+      recordedAttempt = bundle.manifest?.snapshot?.provider?.attempt;
+    assert(
+      recordedShard === choice.index &&
+        recordedAttempt === String(choice.attempt),
+      `${choice.where} (${choice.entry.name}) records shard ${recordedShard}, records attempt ${recordedAttempt} in its manifest. ${RERUN_ALL}`
+    );
+    return {
+      index: choice.index,
+      attempt: choice.attempt,
+      name: choice.entry.name,
+      bundle,
+    };
+  });
+  return {
+    trace: mergeBundles(
+      snapshot,
+      selected.map(choice => choice.bundle)
+    ),
+    selected,
+  };
 }
