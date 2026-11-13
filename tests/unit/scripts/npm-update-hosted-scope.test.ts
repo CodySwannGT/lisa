@@ -11,7 +11,6 @@ import { runProcess } from "../../../all/copy-overwrite/scripts/lib/npm-update-p
 import { binaryDigest } from "../../../all/copy-overwrite/scripts/lib/npm-update-isolation.mjs";
 import { sha256 } from "../../../all/copy-overwrite/scripts/lib/github-attestation-verifier.mjs";
 import { createSupervisedUnixFixture } from "../../helpers/supervised-unix-fixture.js";
-import { SCRATCH_SUPERVISION_LEASE_ENV } from "../../../src/configs/vitest/scratch-supervision.js";
 
 const injected = vi.hoisted(() => ({ closeFailure: false }));
 const SOCKET_NAME = "hook-reader.sock";
@@ -43,10 +42,7 @@ vi.mock(
 );
 
 async function fixture(operation: (state: any) => Promise<void>) {
-  const scratch = createSupervisedUnixFixture(
-    SOCKET_NAME,
-    process.env[SCRATCH_SUPERVISION_LEASE_ENV]
-  );
+  const scratch = createSupervisedUnixFixture(SOCKET_NAME);
   const root = scratch.root;
   const env = { PATH: "/usr/bin:/bin", HOME: root };
   const step = (

@@ -43,9 +43,8 @@
  *   cleaning a directory two runs share is precisely what deletes the other
  *   run's files.
  *
- * The naming scheme is the one the scratch namespace already proved for the
- * same class of collision — `run-<pid>-<startedAt>-<suffix>`, reused here via
- * {@link runRootName} rather than re-spelled, so the two cannot drift apart.
+ * Each directory is named `run-<pid>-<startedAt>-<suffix>` by
+ * {@link runRootName}, so a dead owner can be recognised and reclaimed.
  *
  * ## What this does not change
  *
@@ -63,11 +62,55 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 import { env, pid } from "node:process";
 
-import {
-  parseRunRootName,
-  runRootName,
-} from "./scratch-namespace-authority.js";
-import { isProcessAlive } from "./scratch-sweep.js";
+/** Prefix of every run directory name, `run-<pid>-<startedAt>-<suffix>`. */
+const RUN_DIRECTORY_PREFIX = "run-";
+
+/**
+ * Name one run directory from the identity of the run that owns it.
+ * @param owner - Process id owning the run
+ * @param startedAt - Epoch milliseconds the directory was named
+ * @param suffix - Opaque random suffix, free of `-`
+ * @returns The directory basename
+ */
+export function runRootName(
+  owner: number,
+  startedAt: number,
+  suffix: string
+): string {
+  return `${RUN_DIRECTORY_PREFIX}${String(owner)}-${String(startedAt)}-${suffix}`;
+}
+
+/**
+ * Parse the owner fields encoded in a run directory basename.
+ * @param name - Directory basename
+ * @returns Parsed owner, or undefined for an unrelated name
+ */
+export function parseRunRootName(
+  name: string
+): { readonly pid: number; readonly startedAt: number } | undefined {
+  const match = /^run-(\d+)-(\d+)-[^-]+$/.exec(name);
+  if (match === null) return undefined;
+  const owner = Number(match[1]);
+  const startedAt = Number(match[2]);
+  return Number.isSafeInteger(owner) && Number.isSafeInteger(startedAt)
+    ? { pid: owner, startedAt }
+    : undefined;
+}
+
+/**
+ * Whether a pid names a live process. `EPERM` means it exists and belongs to
+ * somebody else, which counts as alive.
+ * @param owner - Process id to probe
+ * @returns Whether it is alive
+ */
+export const isProcessAlive = (owner: number): boolean => {
+  try {
+    process.kill(owner, 0);
+    return true;
+  } catch (error) {
+    return (error as NodeJS.ErrnoException).code === "EPERM";
+  }
+};
 
 /**
  * Directory under `coverage/` holding one run's isolated output.
@@ -230,11 +273,9 @@ export function removeOwnCoverageRunDirectory(
  * always probes alive. The lock this module refuses has the opposite asymmetry
  * — there, a wrong answer releases a lock somebody is holding.
  *
- * It introduces no second authority. {@link parseRunRootName} and
- * {@link isProcessAlive} are the scratch namespace's existing parser and
- * liveness probe, and these directories are named by {@link runRootName}, so
- * that parser reads them unchanged. Anything it does not recognise is left
- * alone.
+ * {@link parseRunRootName} reads the names {@link runRootName} writes, and
+ * {@link isProcessAlive} probes their owner. Anything it does not recognise
+ * is left alone.
  * @param runsRoot - Directory holding the run directories
  * @param alive - Liveness probe; defaults to the shared one
  * @returns Basenames of the directories removed

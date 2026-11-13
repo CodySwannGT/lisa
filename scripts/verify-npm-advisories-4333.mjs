@@ -3,23 +3,14 @@
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import { createRequire } from "node:module";
+import os from "node:os";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
-import {
-  SCRATCH_SUPERVISION_LEASE_ENV,
-  createSupervisedWorkerScope,
-  parseScratchSupervisionLease,
-  removeSupervisedWorkerScope,
-} from "../dist/configs/vitest/scratch-supervision.js";
 
 const root = path.resolve(process.env.LISA_NPM_PROOF_ROOT ?? ".");
 const packageFile = "package.json";
 const require = createRequire(path.join(root, packageFile));
-const serializedLease = process.env[SCRATCH_SUPERVISION_LEASE_ENV];
-assert.ok(serializedLease, "Run through lisa-test-run with its owned lease");
-const lease = parseScratchSupervisionLease(serializedLease);
-const scope = createSupervisedWorkerScope(lease);
-const temporary = scope.path;
+const temporary = fs.mkdtempSync(path.join(os.tmpdir(), "lisa-npm-proof-"));
 const checks = [];
 
 try {
@@ -162,5 +153,5 @@ try {
   );
   console.log(JSON.stringify({ success: true, checks }, null, 2));
 } finally {
-  removeSupervisedWorkerScope(scope, lease);
+  fs.rmSync(temporary, { recursive: true, force: true });
 }

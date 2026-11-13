@@ -16,17 +16,6 @@ import { basename, dirname, join } from "node:path";
 import { afterAll, afterEach, describe, expect, it, vi } from "vitest";
 
 import {
-  materializeOwnedScratchRunRoot,
-  prepareOwnedScratchRunRoot,
-  removeOwnedScratchRunRoot,
-} from "../../../src/configs/vitest/scratch-run-root-intent.js";
-import { createScratchNamespaceAuthority } from "../../../src/configs/vitest/scratch-namespace-authority.js";
-import { readScratchOwnerRecord } from "../../../src/configs/vitest/scratch-owner.js";
-import {
-  SCRATCH_SUPERVISION_LEASE_ENV,
-  createScratchSupervisionLease,
-} from "../../../src/configs/vitest/scratch-supervision.js";
-import {
   ownedParent,
   prepareInOwnedParent,
   reclaimableDirectory,
@@ -239,7 +228,7 @@ describe("a failed release of the parent folder", () => {
     expect(() => parent.release()).not.toThrow();
 
     expect(stderrText()).toContain(
-      "its scratch scope could not be released (injected release failure)"
+      "its temp directory could not be released (injected release failure)"
     );
     expect(write).not.toHaveBeenCalled();
   });
@@ -314,56 +303,23 @@ describe("where the scope lives", () => {
     expect(basename(scope).startsWith(SCOPE_PREFIX)).toBe(true);
   }
 
-  it("is a supervised worker scope inside the leased suite root when a lease is held", async () => {
-    const intent = prepareOwnedScratchRunRoot();
-    const suiteRoot = materializeOwnedScratchRunRoot(intent);
-    vi.stubEnv(
-      SCRATCH_SUPERVISION_LEASE_ENV,
-      JSON.stringify(
-        createScratchSupervisionLease(intent, {
-          suiteLabel: "unit",
-          registeredPrefixes: [],
-        })
-      )
-    );
-    const workerIn = (path: string): void => {
-      expect(dirname(path)).toBe(suiteRoot.path);
-      expect(basename(path).startsWith(`worker-${String(process.pid)}-`)).toBe(
+  it("is a private temp directory of the run, removed by its remover", async () => {
+    const directory = reclaimableDirectory();
+    try {
+      expect(dirname(directory.path)).toBe(tmpdir());
+      expect(basename(directory.path).startsWith("lisa-history-scanner-")).toBe(
         true
       );
-    };
-    try {
-      const directory = reclaimableDirectory();
-      workerIn(directory.path);
       await expectScopeDirectlyIn(directory.path);
-      directory.remove();
-      expect(fs.existsSync(directory.path)).toBe(false);
 
       const { preparation, dispose } = await prepareInOwnedParent({
         argv: stubArgv(FAILS_AT_ONCE),
       });
       const setupScope = dirname(String(preparation.evidence?.argv.at(-1)));
       expect(basename(setupScope).startsWith(SCOPE_PREFIX)).toBe(true);
-      workerIn(dirname(setupScope));
+      expect(dirname(dirname(setupScope))).toBe(tmpdir());
       dispose();
       expect(fs.existsSync(dirname(setupScope))).toBe(false);
-    } finally {
-      removeOwnedScratchRunRoot(suiteRoot);
-    }
-  });
-
-  it("is an owned scratch run root of this process without a lease", async () => {
-    vi.stubEnv(SCRATCH_SUPERVISION_LEASE_ENV, "");
-    const directory = reclaimableDirectory();
-    try {
-      expect(dirname(directory.path)).toBe(
-        createScratchNamespaceAuthority().namespace.canonicalPath
-      );
-      expect(readScratchOwnerRecord(directory.path)).toMatchObject({
-        pid: process.pid,
-        root: { canonicalPath: directory.path },
-      });
-      await expectScopeDirectlyIn(directory.path);
     } finally {
       directory.remove();
     }

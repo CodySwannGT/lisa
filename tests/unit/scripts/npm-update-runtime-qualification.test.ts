@@ -10,7 +10,6 @@ import {
 } from "node:fs";
 import { join } from "node:path";
 import { createSupervisedUnixFixture } from "../../helpers/supervised-unix-fixture.js";
-import { SCRATCH_SUPERVISION_LEASE_ENV } from "../../../src/configs/vitest/scratch-supervision.js";
 import { useIoLatencyBudget } from "../../helpers/io-latency-budget.js";
 import {
   privateResult,
@@ -39,10 +38,7 @@ const SHELL = "/bin/sh";
 const NATIVE_PATH = "/usr/bin:/bin";
 
 function fixture(operation: (root: string) => Promise<void> | void) {
-  const owned = createSupervisedUnixFixture(
-    "hook-reader.sock",
-    process.env[SCRATCH_SUPERVISION_LEASE_ENV]
-  );
+  const owned = createSupervisedUnixFixture("hook-reader.sock");
   return Promise.resolve()
     .then(() => operation(owned.root))
     .finally(() => owned.close());

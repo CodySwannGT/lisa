@@ -44,8 +44,8 @@ import {
   publishCoverageRunDirectory,
   reclaimAbandonedCoverageRunDirectories,
   removeOwnCoverageRunDirectory,
+  runRootName,
 } from "../../../src/configs/vitest/coverage-reports-directory.js";
-import { runRootName } from "../../../src/configs/vitest/scratch-namespace-authority.js";
 import { boundedSpawnSync } from "../../helpers/io-latency-budget.js";
 
 /** A pid the injected probes below report as dead. NOT dead to the real one. */

@@ -3,7 +3,6 @@ import * as fs from "node:fs";
 import { createRequire } from "node:module";
 import * as path from "node:path";
 import { describe, expect, it } from "vitest";
-import { SCRATCH_SUPERVISION_LEASE_ENV } from "../../src/configs/vitest/scratch-supervision.js";
 import { useIoLatencyBudget } from "../helpers/io-latency-budget.js";
 import { cleanupTempDir } from "../helpers/test-utils.js";
 import {
@@ -146,15 +145,13 @@ describe.each([
         fixture.directory,
         stack
       );
-      // Keep the caller's supervisor lease and its owned temp root together.
-      // Each real Vitest worker validates that inherited scratch authority.
+      // Run the fixture under the caller's own temp root.
       const env: NodeJS.ProcessEnv = {
         ...fixture.env,
         TMPDIR: process.env["TMPDIR"],
         TMP: process.env["TMP"],
         TEMP: process.env["TEMP"],
       };
-      expect(Boolean(env[SCRATCH_SUPERVISION_LEASE_ENV])).toBe(true);
       expect(env.TMPDIR).toBeTruthy();
       delete env["LISA_FIXTURE_LOCAL_PROOF"];
       for (const negative of [false, true]) {

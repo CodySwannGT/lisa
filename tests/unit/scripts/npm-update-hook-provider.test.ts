@@ -22,13 +22,9 @@ import {
 } from "../../../all/copy-overwrite/scripts/lib/npm-update-process.mjs";
 import { hostedHookContext } from "../../../all/copy-overwrite/scripts/lib/npm-update-hosted-hook.mjs";
 import { createSupervisedUnixFixture } from "../../helpers/supervised-unix-fixture.js";
-import { SCRATCH_SUPERVISION_LEASE_ENV } from "../../../src/configs/vitest/scratch-supervision.js";
 
 async function fixture(operation: (state: any) => Promise<void>) {
-  const scratch = createSupervisedUnixFixture(
-    "hook-reader.sock",
-    process.env[SCRATCH_SUPERVISION_LEASE_ENV]
-  );
+  const scratch = createSupervisedUnixFixture("hook-reader.sock");
   const root = scratch.root;
   const gh = join(root, "native-gh-fixture");
   writeFileSync(
