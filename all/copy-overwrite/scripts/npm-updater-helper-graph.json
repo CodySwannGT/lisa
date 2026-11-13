@@ -103,8 +103,9 @@
       "children": []
     },
     "lib/completion-proof-conformance.mjs": {
-      "sha256": "51b2bfccc8ecca684dd80a4e2ae35896e76fa519389fe650f0890ffc0fef421d",
+      "sha256": "0b323e9c53b6909eca61fa84bf2c85683a686e380760e2fe2fb52b09c6611026",
       "staticImports": [
+        "lib/completion-proof-markdown.mjs",
         "lib/completion-proof-shape.mjs"
       ],
       "dynamicImports": [],
@@ -135,7 +136,7 @@
       "children": []
     },
     "lib/completion-proof-markdown.mjs": {
-      "sha256": "00d00e2c251244d1eb0dc46464c1bb1e170f2576cd025b02518e132c0d467472",
+      "sha256": "3f560959b0d4b07069ea82b43acdaf4eb88f1e7fa2b25f15799a6c553244b186",
       "staticImports": [
         "lib/completion-proof-errors.mjs"
       ],
@@ -175,7 +176,7 @@
       "children": []
     },
     "lib/completion-proof-shape.mjs": {
-      "sha256": "4626a90f8e7258dc90d51c6abbec967dcf16d8d8ed12d5af34838617bc01b06c",
+      "sha256": "1eecc25fa223736f327f201177d6f54638470ce90f731c745b40b9ea8cee8ef6",
       "staticImports": [
         "lib/completion-proof-errors.mjs",
         "lib/completion-proof-markdown.mjs",

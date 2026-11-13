@@ -152,32 +152,172 @@ function withoutClaimingComments(line, state) {
   return visible;
 }
 
+/**
+ * Measure leading whitespace in columns, a tab advancing to the next multiple
+ * of four as CommonMark specifies.
+ * @param {string} line - Text to measure
+ * @param {number} [start] - Column the text begins at
+ * @returns {{ columns: number, rest: string }} Column after the whitespace,
+ *   and the text from the first non-whitespace character
+ */
+function leadingColumns(line, start = 0) {
+  let columns = start;
+  let offset = 0;
+  for (; offset < line.length; offset += 1) {
+    if (line[offset] === " ") columns += 1;
+    else if (line[offset] === "\t") columns += 4 - (columns % 4);
+    else break;
+  }
+  return { columns, rest: line.slice(offset) };
+}
+
+/**
+ * The content column of a list item whose marker starts at `indent`, or null
+ * when the line opens no list item. Following CommonMark, one to four spaces
+ * after the marker set the content column; five or more mean the content is
+ * indented code one space past the marker; an empty item behaves as one space.
+ * @param {number} indent - Column of the first non-whitespace character
+ * @param {string} rest - Line text from that character
+ * @returns {number | null} Column the item's continuation lines align to
+ */
+function listContentColumn(indent, rest) {
+  const opener = /^(?:[-+*]|\d{1,9}[.)])/.exec(rest);
+  if (!opener) return null;
+  const markerEnd = indent + opener[0].length;
+  const gap = leadingColumns(rest.slice(opener[0].length), markerEnd);
+  const width = gap.columns - markerEnd;
+  if (!gap.rest) return markerEnd + 1;
+  if (width === 0) return null;
+  return width > 4 ? markerEnd + 1 : gap.columns;
+}
+
+/** A fence may only open where indented code would not, relative to its container. */
+function openingFence(relative, rest) {
+  const marker = claimingFence(" ".repeat(relative) + rest);
+  return marker && !(marker.character === "`" && marker.suffix.includes("`"))
+    ? marker
+    : null;
+}
+
+/**
+ * Track list-item containers so indentation is judged against the item that
+ * holds a line, not the page margin (CodySwannGT/lisa#4700). A line is
+ * indented code only when it sits four or more columns past its container's
+ * content column and no paragraph is open; a paragraph continuation (lazy or
+ * not) stays prose however deeply it is indented. A blank line closes the
+ * paragraph but not the list item, and a less-indented line closes every item
+ * whose content column it falls short of.
+ * @param {string} line - One line with no comment open at its start
+ * @param {{ fence: object | null, items: number[], paragraph: boolean }} state
+ *   - Mutable block state carried between lines
+ * @returns {boolean} True when the line is visible claiming text
+ */
+function claimingBlock(line, state) {
+  const { columns, rest } = leadingColumns(line);
+  if (!rest) {
+    state.paragraph = false;
+    return true;
+  }
+  if (!state.paragraph) closeItemsBefore(state, columns);
+  const relative = Math.max(0, columns - (state.items.at(-1) ?? 0));
+  if (relative >= 4) return state.paragraph;
+  return claimingShallowBlock(columns, rest, relative, state);
+}
+
+/** Close every list item whose content column a line falls short of. */
+function closeItemsBefore(state, columns) {
+  while (state.items.length && state.items.at(-1) > columns) state.items.pop();
+}
+
+/**
+ * A thematic break (`---`, `***`, `___`, `* * *`), or a setext underline
+ * after an open paragraph, ends the paragraph and opens no list item, so a
+ * line indented after it is code again. A break outranks a list item, which
+ * is why `* * *` and `- - -` are read here before `listContentColumn`.
+ * @param {string} rest - Line text from its first non-whitespace character
+ * @param {boolean} paragraph - Whether a paragraph is open before the line
+ * @returns {boolean} True when the line is a break or a setext underline
+ */
+function breaksParagraph(rest, paragraph) {
+  if (/^(?:(?:\*[ \t]*){3,}|(?:-[ \t]*){3,}|(?:_[ \t]*){3,})$/.test(rest))
+    return true;
+  return paragraph && /^(?:=+|-+)[ \t]*$/.test(rest);
+}
+
+/**
+ * Read a line that starts less than four columns past its container: it may
+ * open a fence, end the paragraph, or open a list item at `columns`.
+ * @param {number} columns - Column of the line's first non-whitespace character
+ * @param {string} rest - Line text from that character
+ * @param {number} relative - Columns past the container's content column
+ * @param {{ fence: object | null, items: number[], paragraph: boolean }} state
+ *   - Mutable block state carried between lines
+ * @returns {boolean} True when the line is visible claiming text
+ */
+function claimingShallowBlock(columns, rest, relative, state) {
+  const fence = openingFence(relative, rest);
+  if (fence) {
+    state.fence = { ...fence, base: state.items.at(-1) ?? 0 };
+    state.paragraph = false;
+    return false;
+  }
+  if (breaksParagraph(rest, state.paragraph)) {
+    state.paragraph = false;
+    return true;
+  }
+  const content = listContentColumn(columns, rest);
+  if (content !== null) {
+    closeItemsBefore(state, columns);
+    state.items.push(content);
+  }
+  // A heading or an HTML comment block is not a paragraph, so an indented
+  // line after one is code again.
+  state.paragraph = !/^(?:#{1,6}(?:[ \t]|$)|<!--)/.test(rest);
+  return true;
+}
+
+/** A fence closes on a bare marker no deeper than its container allows. */
+function closesFence(line, fence) {
+  const { columns, rest } = leadingColumns(line);
+  const relative = columns - Math.min(columns, fence.base);
+  if (relative >= 4) return false;
+  const marker = claimingFence(" ".repeat(relative) + rest);
+  return Boolean(
+    marker &&
+    marker.character === fence.character &&
+    marker.length >= fence.length &&
+    !marker.suffix.trim()
+  );
+}
+
+/**
+ * A fenced block cannot outlive the list item that holds it: a non-blank line
+ * indented less than the item's content column ends the item and the fence
+ * with it, so that line is read as ordinary Markdown. Lazy continuation never
+ * applies inside a fence.
+ */
+function endsFenceContainer(line, fence) {
+  const { columns, rest } = leadingColumns(line);
+  return Boolean(rest) && columns < fence.base;
+}
+
 /** Fence and comment contents cannot change the other construct's state. */
 function claimingLine(line, state) {
-  const marker = claimingFence(line);
+  if (state.fence && endsFenceContainer(line, state.fence)) {
+    state.fence = null;
+    state.paragraph = false;
+  }
   if (state.fence) {
-    if (
-      marker &&
-      marker.character === state.fence.character &&
-      marker.length >= state.fence.length &&
-      !marker.suffix.trim()
-    )
-      state.fence = null;
+    if (closesFence(line, state.fence)) state.fence = null;
     return "";
   }
-  if (!state.comment) {
-    if (/^ {4}|^\t/.test(line)) return "";
-    if (marker && !(marker.character === "`" && marker.suffix.includes("`"))) {
-      state.fence = marker;
-      return "";
-    }
-  }
+  if (!state.comment && !claimingBlock(line, state)) return "";
   return withoutClaimingComments(line, state);
 }
 
 /** Claim discovery keeps closing-line suffixes; full-spec projection is separate. */
 function claimingText(body) {
-  const state = { comment: false, fence: null };
+  const state = { comment: false, fence: null, items: [], paragraph: false };
   return body
     .split("\n")
     .map(raw =>
@@ -279,9 +419,9 @@ export function localMarkers(body) {
   return markers;
 }
 
-/** Read an exact markdown section without discarding unknown source sections. */
-export function section(body, heading) {
-  return markdownSection(body, heading);
+/** Read a markdown section without discarding unknown source sections. */
+export function section(body, heading, options) {
+  return markdownSection(body, heading, options);
 }
 
 /** Preserve the first whitespace-delimited environment suffix in linear work. */

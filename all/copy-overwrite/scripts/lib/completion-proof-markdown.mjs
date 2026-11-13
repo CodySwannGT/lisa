@@ -55,10 +55,67 @@ export function topLevelLines(body) {
   return rows;
 }
 
-/** Only actual top-level H2 sections participate in native declarations. */
-export function markdownSection(body, heading) {
+/**
+ * Fold an H2 line to the heading text a reader sees: case, runs of internal
+ * whitespace and an optional closing `#` sequence do not change it.
+ * @param {string} text - Trimmed top-level heading line
+ * @returns {string} Comparable heading key
+ */
+function headingKey(text) {
+  return text
+    .replace(/^##[ \t]+/, "")
+    .replace(/(?:^|[ \t]+)#+$/, "")
+    .trim()
+    .replace(/\s+/g, " ")
+    .toLowerCase();
+}
+
+/**
+ * Find a visible line that names a section but is not its readable H2
+ * heading: another heading level, a bold line, or the name with extra text
+ * such as `## Acceptance Criteria:`. A caller that would otherwise read a
+ * missing section as empty refuses on it instead of passing trivially
+ * (CodySwannGT/lisa#4700). Fenced, indented and commented examples are not
+ * visible lines, so they never match.
+ * @param {string} body - Markdown document
+ * @param {string} heading - Heading text without the `## ` prefix
+ * @returns {string | null} The first near-miss line, or null when none exists
+ */
+export function nearMissHeading(body, heading) {
+  const words = heading
+    .trim()
+    .split(/\s+/)
+    .map(word => word.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"))
+    .join("\\s+");
+  const named = new RegExp(`^(?:#{1,6}[ \\t]*|\\*\\*|__)${words}\\b`, "i");
+  const wanted = headingKey(`## ${heading}`);
+  const row = topLevelLines(body).find(
+    line =>
+      named.test(line.text) &&
+      !(line.heading && headingKey(line.text) === wanted)
+  );
+  return row ? row.text : null;
+}
+
+/**
+ * Only actual top-level H2 sections participate in native declarations.
+ * Machine-owned sections (`## Lisa Usage`, `## Target Backend Environment`)
+ * keep an exact match so a recased stray heading never stands in for them.
+ * A human-authored section such as `## Acceptance Criteria` passes
+ * `{ anyCase: true }`, because a missing heading silently yields an empty
+ * section and an empty section can make a check pass trivially
+ * (CodySwannGT/lisa#4700). Duplicates are judged by the same comparison.
+ * @param {string} body - Markdown document
+ * @param {string} heading - Heading text without the `## ` prefix
+ * @param {{ anyCase?: boolean }} [options] - Normalised heading comparison
+ * @returns {string} Trimmed section body, or "" when the heading is absent
+ */
+export function markdownSection(body, heading, { anyCase = false } = {}) {
   const headings = topLevelLines(body).filter(row => row.heading);
-  const matches = headings.filter(row => row.text === `## ${heading}`);
+  const wanted = anyCase ? headingKey(`## ${heading}`) : `## ${heading}`;
+  const matches = headings.filter(
+    row => (anyCase ? headingKey(row.text) : row.text) === wanted
+  );
   requireProof(
     matches.length <= 1,
     `Duplicate ${heading} sections make completion requirements ambiguous.`
