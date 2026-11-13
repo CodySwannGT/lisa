@@ -12,6 +12,7 @@ import {
   type LearningEntry,
 } from "./learnings-contract.js";
 import {
+  LEARNINGS_OVER_BUDGET_READ_CEILING,
   LearningsBudgetError,
   assertDocumentBudget,
   isLedgerOverBudget,
@@ -372,7 +373,10 @@ interface SupersedeBaseline {
  * Fewer bytes alone is not enough: a non-canonical (padded) ledger re-renders
  * smaller even when an entry is merely appended, so the removal is required —
  * otherwise a stale supersede could push the entry count past `maxEntries`
- * while appearing to shrink.
+ * while appearing to shrink. A count-shrinking write may still add bytes, so
+ * it is also refused past {@link LEARNINGS_OVER_BUDGET_READ_CEILING}: a ledger
+ * beyond the tolerant read ceiling could not be opened by any shrink-only
+ * writer again, re-creating the lockout.
  * @param entries - Existing entries retained by the plan
  * @param entry - Planned entry carrying its final stable id
  * @param baseline - What the locked read observed
@@ -420,10 +424,13 @@ function permitsOverBudgetShrink(
   if (!isLedgerOverBudget(existingBytes, existingCount)) {
     return false;
   }
+  const renderedBytes = estimateLearningTokens(rendered);
+  if (renderedBytes > LEARNINGS_OVER_BUDGET_READ_CEILING) {
+    return false;
+  }
   const countBreach = existingCount > LEARNINGS_CONTRACT.maxEntries;
   return (
-    estimateLearningTokens(rendered) < existingBytes ||
-    (countBreach && nextCount < existingCount)
+    renderedBytes < existingBytes || (countBreach && nextCount < existingCount)
   );
 }
 
