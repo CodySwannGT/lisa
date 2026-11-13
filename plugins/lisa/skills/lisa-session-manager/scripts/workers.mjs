@@ -413,7 +413,8 @@ export function isBlockingWait(waitingFor) {
  * retry can fix, so it is never `working` until the stall timer and never
  * `exhausted` (lisa#4503); then an active worker whose row reports a
  * blocking `waitingFor` (see `isBlockingWait`) is `blocked-on-prompt`, never
- * `working` however its logs change (lisa#4522); only then is liveness
+ * `working` however its logs change (lisa#4522) — a pending question still
+ * wins, because a managed worker ends its turn after asking; only then is liveness
  * judged. `blocked-on-prompt`, `stalled` and `dead` become `exhausted` at
  * `maxAttempts`, which is the manager's cue to move the item to Blocked
  * instead of retrying it again.

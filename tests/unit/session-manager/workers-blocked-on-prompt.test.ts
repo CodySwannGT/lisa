@@ -105,6 +105,7 @@ describe("isBlockingWait", () => {
     ["", false],
     ["   ", false],
     [null, false],
+    [{ agents: [] }, false],
     [undefined, false],
   ])("%j -> %s", (value, expected) => {
     expect(isBlockingWait(value)).toBe(expected);
