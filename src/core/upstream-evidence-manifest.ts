@@ -1697,9 +1697,9 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-sentry-access/SKILL.md":
       "1c1881ca9a2020f6cd8f938dc5335ebf2d344ff280844bb98926198e5226e526",
     "plugins/src/base/skills/lisa-session-manager/SKILL.md":
-      "f6e2f97f27e43b52888d4c1cc3f1f2a94bab4a8d958c900feb020a57284d63f3",
+      "dde0d90c53b96edfa7acd70281e059d999cd0801717d75e69e21b3ab15683fec",
     "plugins/src/base/skills/lisa-session-manager/references/runbook-template.md":
-      "62942a381e7dfb66d44d53e82df4121333ce88b4212acc53be9df9becaa6e100",
+      "6b4dfd58f86e5f02676a9fca9f903456eb63213ac0294795b604f5430a89f1a5",
     "plugins/src/base/skills/lisa-session-manager/scripts/answer-record.mjs":
       "88982207f9134f63c0949ebed21d05a2bcffe1f5c774739935237d78786b1813",
     "plugins/src/base/skills/lisa-session-manager/scripts/capacity.mjs":
@@ -1707,7 +1707,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-answer-record.mjs":
       "cd195249f028231358071f541a0f64599b545f2c87d30118c92aebd44c0a8498",
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-cycle.mjs":
-      "e81c25515f1be117d6702bee2598bed12d7160738c42285b931424bcc0ee3127",
+      "ba34837cdf9b3dbfd51355f661558af86087eff476ecf183728fd9acac4b121a",
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-human.mjs":
       "de444688db2579750d2c312f854389d4019ec40a6ce59684026fa8fed7ff1aff",
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-manager-token.mjs":
@@ -1725,7 +1725,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-status.mjs":
       "e7f643b66a5af453ee445640a4d9b27b570f364222b349f82ff27714eefb09fa",
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-usage.mjs":
-      "a81b4b1526301604a5c1d02c973c5eedfcb796fc2945c8901ddc6dc40e7963c8",
+      "70172d7894e028f58572c683b869c77ea322889b5f8753b89af0cd2dc8013e49",
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-workers.mjs":
       "65beec4da7ea3917765b96ed920e630627955f6a053e9305de28056b8c6b2886",
     "plugins/src/base/skills/lisa-session-manager/scripts/clipboard.mjs":
@@ -1761,7 +1761,13 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-session-manager/scripts/ledger-setup-gaps.mjs":
       "bfed7726a6129fb5681433a8287f180d513c1439f7f8ff84f6eac600117bea9e",
     "plugins/src/base/skills/lisa-session-manager/scripts/ledger.mjs":
-      "7f3a29b5381cf72b1085c40f695c009942ae9e62b4dd112a3c5ec0e15ff87db6",
+      "a28a816e749bd62d7188cc7c7cb53b9784d0c8b112201228f67b87a81ebe1ff9",
+    "plugins/src/base/skills/lisa-session-manager/scripts/orphan-buckets.mjs":
+      "b8491bf158056459a00a0d911f1eb5daa935ba8ca5bba5b283cdad951826012b",
+    "plugins/src/base/skills/lisa-session-manager/scripts/orphan-holds.mjs":
+      "a68547cfa9ee443f99fb246fb797b00514277a65292407d4226d861e9cc62aeb",
+    "plugins/src/base/skills/lisa-session-manager/scripts/orphan-sweep.mjs":
+      "f2050ac21d32edcbd2ee783b218e3becdfc6dd2e060ed120bab8385f11c2bb81",
     "plugins/src/base/skills/lisa-session-manager/scripts/queue-github.mjs":
       "9af014661873a2971fbc29946739088fc3e089deb8d94e78af651647450f2999",
     "plugins/src/base/skills/lisa-session-manager/scripts/reconcile.mjs":
@@ -1769,7 +1775,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-session-manager/scripts/repo-detect.mjs":
       "3ce714f1934433f2bc297c0b67931a28687ccef70c01639cb8542e9bb7f0a14d",
     "plugins/src/base/skills/lisa-session-manager/scripts/session-manager.mjs":
-      "040300d0caefeb513bbce7af7cf85fc684b5bc484b4200a0757cd02512462a38",
+      "c4ec59cef5bf40baded089b9589a7a04806210900900cbea00de11903d13c937",
     "plugins/src/base/skills/lisa-session-manager/scripts/setup-checks.mjs":
       "433c1afb36641eb3eb271f1803c7dfba556dd98e535627d00cfc8e3135a5d68f",
     "plugins/src/base/skills/lisa-session-manager/scripts/state-dir.mjs":
@@ -4960,6 +4966,9 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-agy/skills/lisa-session-manager/scripts/ledger-questions.mjs": true,
     "plugins/lisa-agy/skills/lisa-session-manager/scripts/ledger-setup-gaps.mjs": true,
     "plugins/lisa-agy/skills/lisa-session-manager/scripts/ledger.mjs": true,
+    "plugins/lisa-agy/skills/lisa-session-manager/scripts/orphan-buckets.mjs": true,
+    "plugins/lisa-agy/skills/lisa-session-manager/scripts/orphan-holds.mjs": true,
+    "plugins/lisa-agy/skills/lisa-session-manager/scripts/orphan-sweep.mjs": true,
     "plugins/lisa-agy/skills/lisa-session-manager/scripts/queue-github.mjs": true,
     "plugins/lisa-agy/skills/lisa-session-manager/scripts/reconcile.mjs": true,
     "plugins/lisa-agy/skills/lisa-session-manager/scripts/repo-detect.mjs": true,
@@ -5511,6 +5520,9 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-copilot/skills/lisa-session-manager/scripts/ledger-questions.mjs": true,
     "plugins/lisa-copilot/skills/lisa-session-manager/scripts/ledger-setup-gaps.mjs": true,
     "plugins/lisa-copilot/skills/lisa-session-manager/scripts/ledger.mjs": true,
+    "plugins/lisa-copilot/skills/lisa-session-manager/scripts/orphan-buckets.mjs": true,
+    "plugins/lisa-copilot/skills/lisa-session-manager/scripts/orphan-holds.mjs": true,
+    "plugins/lisa-copilot/skills/lisa-session-manager/scripts/orphan-sweep.mjs": true,
     "plugins/lisa-copilot/skills/lisa-session-manager/scripts/queue-github.mjs": true,
     "plugins/lisa-copilot/skills/lisa-session-manager/scripts/reconcile.mjs": true,
     "plugins/lisa-copilot/skills/lisa-session-manager/scripts/repo-detect.mjs": true,
@@ -6046,6 +6058,9 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-cursor/skills/lisa-session-manager/scripts/ledger-questions.mjs": true,
     "plugins/lisa-cursor/skills/lisa-session-manager/scripts/ledger-setup-gaps.mjs": true,
     "plugins/lisa-cursor/skills/lisa-session-manager/scripts/ledger.mjs": true,
+    "plugins/lisa-cursor/skills/lisa-session-manager/scripts/orphan-buckets.mjs": true,
+    "plugins/lisa-cursor/skills/lisa-session-manager/scripts/orphan-holds.mjs": true,
+    "plugins/lisa-cursor/skills/lisa-session-manager/scripts/orphan-sweep.mjs": true,
     "plugins/lisa-cursor/skills/lisa-session-manager/scripts/queue-github.mjs": true,
     "plugins/lisa-cursor/skills/lisa-session-manager/scripts/reconcile.mjs": true,
     "plugins/lisa-cursor/skills/lisa-session-manager/scripts/repo-detect.mjs": true,
@@ -6513,6 +6528,9 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-devin/skills/lisa-session-manager/scripts/ledger-questions.mjs": true,
     "plugins/lisa-devin/skills/lisa-session-manager/scripts/ledger-setup-gaps.mjs": true,
     "plugins/lisa-devin/skills/lisa-session-manager/scripts/ledger.mjs": true,
+    "plugins/lisa-devin/skills/lisa-session-manager/scripts/orphan-buckets.mjs": true,
+    "plugins/lisa-devin/skills/lisa-session-manager/scripts/orphan-holds.mjs": true,
+    "plugins/lisa-devin/skills/lisa-session-manager/scripts/orphan-sweep.mjs": true,
     "plugins/lisa-devin/skills/lisa-session-manager/scripts/queue-github.mjs": true,
     "plugins/lisa-devin/skills/lisa-session-manager/scripts/reconcile.mjs": true,
     "plugins/lisa-devin/skills/lisa-session-manager/scripts/repo-detect.mjs": true,
@@ -8628,6 +8646,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa/.codex-plugin/plugin.json": true,
     "plugins/lisa/.codex-plugin/scripts/automation-run-record.mjs": true,
     "plugins/lisa/.codex-plugin/scripts/blocker-edge-resolution.mjs": true,
+    "plugins/lisa/.codex-plugin/scripts/human-gate-lift.mjs": true,
     "plugins/lisa/.codex-plugin/scripts/intake-blocker-reprobe.mjs": true,
     "plugins/lisa/.codex-plugin/scripts/intake-prework-denominator.mjs": true,
     "plugins/lisa/.codex-plugin/scripts/operator-id-kinds.mjs": true,
@@ -8948,6 +8967,9 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa/.codex-plugin/skills/lisa-session-manager/scripts/ledger-questions.mjs": true,
     "plugins/lisa/.codex-plugin/skills/lisa-session-manager/scripts/ledger-setup-gaps.mjs": true,
     "plugins/lisa/.codex-plugin/skills/lisa-session-manager/scripts/ledger.mjs": true,
+    "plugins/lisa/.codex-plugin/skills/lisa-session-manager/scripts/orphan-buckets.mjs": true,
+    "plugins/lisa/.codex-plugin/skills/lisa-session-manager/scripts/orphan-holds.mjs": true,
+    "plugins/lisa/.codex-plugin/skills/lisa-session-manager/scripts/orphan-sweep.mjs": true,
     "plugins/lisa/.codex-plugin/skills/lisa-session-manager/scripts/queue-github.mjs": true,
     "plugins/lisa/.codex-plugin/skills/lisa-session-manager/scripts/reconcile.mjs": true,
     "plugins/lisa/.codex-plugin/skills/lisa-session-manager/scripts/repo-detect.mjs": true,
@@ -9664,6 +9686,9 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa/skills/lisa-session-manager/scripts/ledger-questions.mjs": true,
     "plugins/lisa/skills/lisa-session-manager/scripts/ledger-setup-gaps.mjs": true,
     "plugins/lisa/skills/lisa-session-manager/scripts/ledger.mjs": true,
+    "plugins/lisa/skills/lisa-session-manager/scripts/orphan-buckets.mjs": true,
+    "plugins/lisa/skills/lisa-session-manager/scripts/orphan-holds.mjs": true,
+    "plugins/lisa/skills/lisa-session-manager/scripts/orphan-sweep.mjs": true,
     "plugins/lisa/skills/lisa-session-manager/scripts/queue-github.mjs": true,
     "plugins/lisa/skills/lisa-session-manager/scripts/reconcile.mjs": true,
     "plugins/lisa/skills/lisa-session-manager/scripts/repo-detect.mjs": true,
@@ -10255,6 +10280,9 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/src/base/skills/lisa-session-manager/scripts/ledger-questions.mjs": true,
     "plugins/src/base/skills/lisa-session-manager/scripts/ledger-setup-gaps.mjs": true,
     "plugins/src/base/skills/lisa-session-manager/scripts/ledger.mjs": true,
+    "plugins/src/base/skills/lisa-session-manager/scripts/orphan-buckets.mjs": true,
+    "plugins/src/base/skills/lisa-session-manager/scripts/orphan-holds.mjs": true,
+    "plugins/src/base/skills/lisa-session-manager/scripts/orphan-sweep.mjs": true,
     "plugins/src/base/skills/lisa-session-manager/scripts/queue-github.mjs": true,
     "plugins/src/base/skills/lisa-session-manager/scripts/reconcile.mjs": true,
     "plugins/src/base/skills/lisa-session-manager/scripts/repo-detect.mjs": true,
@@ -13477,6 +13505,9 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/session-manager/ledger-questions.test.ts": true,
     "tests/unit/session-manager/ledger-validation.test.ts": true,
     "tests/unit/session-manager/ledger.test.ts": true,
+    "tests/unit/session-manager/orphan-holds.test.ts": true,
+    "tests/unit/session-manager/orphan-sweep-cap.test.ts": true,
+    "tests/unit/session-manager/orphan-sweep.test.ts": true,
     "tests/unit/session-manager/reconcile.test.ts": true,
     "tests/unit/session-manager/repo-detect.test.ts": true,
     "tests/unit/session-manager/setup-checks.test.ts": true,
@@ -13485,6 +13516,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/session-manager/support/cli-harness.ts": true,
     "tests/unit/session-manager/support/fake-secrets.ts": true,
     "tests/unit/session-manager/support/human-sandbox.ts": true,
+    "tests/unit/session-manager/support/orphan-fixtures.ts": true,
     "tests/unit/session-manager/support/provider-sandbox.ts": true,
     "tests/unit/session-manager/support/setup-gap-queue.ts": true,
     "tests/unit/session-manager/telegram-route-short-forms.test.ts": true,
