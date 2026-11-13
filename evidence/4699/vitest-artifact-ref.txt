@@ -1,5 +1,5 @@
 
- RUN  v4.1.11 /Users/codysai/workspace/lisa/.claude/worktrees/4699-linear-short-ref
+ RUN  v4.1.11 <worktree>
 
 lisa scratch: no supervised lease in the environment, so this run is self-supervised. Fixture directories are still bounded to a run root this process owns and removed on exit; what is missing is the detached reaper that reclaims the root after a SIGKILL, which the next run's startup sweep recovers instead. Run through `lisa-test-run --profile <profile> --adapter vitest -- vitest ...` for a supervised run.
  ✓ |lisa| tests/unit/utils/usage-accounting-artifact-ref.test.ts > assertCanonicalArtifactRef (#4699) > refuses the short linear:<KEY-N> form with an operator-readable message 1ms
