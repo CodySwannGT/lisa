@@ -204,9 +204,14 @@ watching it. Evaluate all three. When all three hold, record `policy-obsolete` a
   **Completed** means the prior approved action happened, so a later recurrence may be re-filed.
   When an existing proposal suppresses filing, **the run still records `policy-obsolete` and files
   nothing** — the outcome describes this run, while the ticket is filed exactly once.
-- **Labels** `status:blocked` + `human-needed`, carrying the contract's decision-ready packet. The
-  `human-needed` label marks the proposal human-owned: `lisa-repair-intake` recognizes it and never
-  re-dispatches it as stalled work.
+- **Labels** follow `humanGate.mode`. Under the default `access-only` the loop makes the call
+  itself: it picks one response from the evidence below (tear down, or re-cadence to a named longer
+  cadence), states it with its reasoning, and files the proposal build-ready (`status:ready`), so the
+  factory run that claims it performs that response with the matching command. If that run cannot
+  reach the scheduler, it holds the item naming that access. Under `strict`: `status:blocked` +
+  `human-needed`, carrying the contract's decision-ready packet. The `human-needed` label marks the
+  proposal human-owned: `lisa-repair-intake` recognizes it and never re-dispatches it as stalled
+  work.
 - **Evidence** the date-filtered search result, this run's summary, **the loop's current cadence**
   (the baseline an operator needs to choose a longer one), and a one-line summary of recent runs
   read from `.lisa/automations/runs/monitor.jsonl`. Fill the rest of the packet the same way every
@@ -220,5 +225,6 @@ watching it. Evaluate all three. When all three hold, record `policy-obsolete` a
 - **Operator footer**, verbatim, as on every loop-filed proposal (`rejection-detection`):
   > To stop this from being raised again, close it as **Not planned**. Close it as **Completed** if it was fixed — a later recurrence may be re-filed as a regression.
 
-The loop **keeps running at its normal cadence** until a human acts, and never deletes its own
+The loop **keeps running at its normal cadence** until the proposal is acted on (by the factory run
+that claims it under `access-only`, by a human under `strict`), and never deletes its own
 registration.

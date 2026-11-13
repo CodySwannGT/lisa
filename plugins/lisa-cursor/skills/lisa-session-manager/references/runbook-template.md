@@ -50,13 +50,17 @@ once it was posted on the item and read back there.
 ## Autonomous-vs-approval boundary
 
 Alone: claim, start workers, retry a stalled item with a fresh session, release a blocked item whose
-dependencies are all contained in its base branch. Requires the operator: any question a worker
-asks, any item whose repo is unclear, and any item that failed `stall.maxAttempts` times.
+dependencies are all contained in its base branch, and decide a design, product or repo-route
+question itself when the evidence supports a call, recording the choice and its reasoning on the
+item. Requires the operator: an access gap the agent cannot close, a hold the operator explicitly
+asked for, and any item that failed `stall.maxAttempts` times. Under `humanGate.mode: "strict"` every worker question, unclear repo and design or product
+decision also requires the operator.
 
 ## Escalation
 
-When an item needs a human (a worker's question, an unclear repo, an item that failed
-`stall.maxAttempts` times, or a design or product decision), the manager marks it with the
+When an item needs a human (a worker's question that needs access the agent lacks or an operator
+hold, an item that failed `stall.maxAttempts` times, or — under `strict` only — any worker
+question, unclear repo, or design or product decision), the manager marks it with the
 configured human-needed marker, posts the question on the item with how to answer it, records it
 pending in the ledger, and keeps dispatching other items: one item waiting on a person never stops
 the queue. An item that failed `stall.maxAttempts` times also moves to the `blocked` role. With

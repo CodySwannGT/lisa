@@ -2,7 +2,7 @@
 name: lisa-exploratory-qa
 description: "First-time-user exploratory QA…"
 ---
-First-time-user exploratory QA pass for ANY product type (DOM web app, HTTP/API backend, canvas game, CLI/library, IaC/CDK) that FEEDS THE LIFECYCLE. Use when asked to experience a product the way a brand-new end user would — driving its real consumer-facing interface via the `use-the-product` core (which detects the product type, resolves the per-environment mutation policy from .lisa.config.json so production data is never mutated by accident, and explores through the project's personas when it defines them) to find anything confusing, broken, or hard to use. Static route scans, HTTP fetches, screenshots alone, or console/network checks alone are not sufficient evidence. Instead of writing a report file, it files worthwhile findings as tracked work items via lisa-tracker-write. A `ready` parameter controls whether those tickets are created build-ready (auto-picked-up by lisa-intake) or left in the backlog for human triage (default). For gaps in the automated test suite, use e2e-coverage-gaps instead.
+First-time-user exploratory QA pass for ANY product type (DOM web app, HTTP/API backend, canvas game, CLI/library, IaC/CDK) that FEEDS THE LIFECYCLE. Use when asked to experience a product the way a brand-new end user would — driving its real consumer-facing interface via the `use-the-product` core (which detects the product type, resolves the per-environment mutation policy from .lisa.config.json so production data is never mutated by accident, and explores through the project's personas when it defines them) to find anything confusing, broken, or hard to use. Static route scans, HTTP fetches, screenshots alone, or console/network checks alone are not sufficient evidence. Instead of writing a report file, it files worthwhile findings as tracked work items via lisa-tracker-write. A `ready` parameter picks build-ready (picked up by lisa-intake) or backlog; it defaults to build-ready, or backlog under humanGate.mode strict. For gaps in the automated test suite, use e2e-coverage-gaps instead.
 
 
 # Exploratory QA
@@ -18,9 +18,12 @@ Experience the product the way a **brand-new end user** would: drive its real co
 ## Parameters
 
 - **`target-url | env`** (first positional) — what to explore (passed through to `use-the-product`).
-- **`ready=true|false`** — the build-ready state for the tickets this pass creates.
-  - `ready=true` → created build-ready, so `lisa-intake` / the build-intake scanner auto-picks them up.
-  - `ready=false` (**default**) → created in the backlog for a human to review and promote.
+- **`ready=true|false`** — the build-ready state for the tickets this pass creates. The default
+  follows `humanGate.mode`:
+  - `ready=true` (**default** under `humanGate.mode: "access-only"`) → created build-ready, so
+    `lisa-intake` / the build-intake scanner auto-picks them up.
+  - `ready=false` (**default** under `humanGate.mode: "strict"`, or passed explicitly by the
+    operator) → created in the backlog for a human to review and promote.
 
 ## 1. Set up
 
@@ -71,12 +74,14 @@ Kane never files the work item itself. Even when it marks a failure as a confirm
 
 | Finding | `issue_type` | `build_ready` |
 |---|---|---|
-| User-visible **bug** (broken behavior) | `Bug` | the `ready` flag (default `false`) |
-| **Usability / UX / clarity issue** | `Improvement` | the `ready` flag (default `false`) |
+| User-visible **bug** (broken behavior) | `Bug` | the `ready` flag (default per `humanGate.mode`) |
+| **Usability / UX / clarity issue** | `Improvement` | the `ready` flag (default per `humanGate.mode`) |
 
 Each finding is a flat leaf, so `build_ready` applies directly — pass it explicitly on every create.
 
-**This skill is the named human-gate exception under `ready-role-filing`.** For accepted worthwhile work elsewhere in Lisa, a complete defect found during other work is filed with explicit `build_ready: true` so build-intake claims it next cycle. Exploratory QA is deliberately different, and that difference is ratified rather than drift: its findings are *candidate* defects and usability observations whose **product significance is a human call**, so auto-readying them would push judgment work into the build queue — precisely the failure the gate model exists to prevent. Its default `ready=false` is therefore an **explicit human-gate marker, never a bare omission**: every not-ready create passes `human_gate: "exploratory finding — product significance is a human product call"` alongside `build_ready: false`, and the writer stamps the auditable `[lisa-human-gate]` marker. An operator who wants a pass to feed the queue directly opts in with `ready=true`.
+**Under the default `humanGate.mode: "access-only"`, you judge each finding's product significance yourself.** File only the findings you judge worthwhile, build-ready (`build_ready: true`), with a `Decision:` line in the description saying why the finding matters and to whom, so a person can reverse the call later. A finding you judge not worthwhile is not filed; name it and the reason in the pass summary. When the operator passes `ready=false`, that is an explicit operator hold: every create passes `human_gate: "the operator explicitly asked for this exploratory pass to be held for review"` alongside `build_ready: false`.
+
+**Under `humanGate.mode: "strict"`, this skill is the named human-gate exception under `ready-role-filing`.** Exploratory findings are then treated as *candidate* defects and usability observations whose **product significance is a human call**. The default `ready=false` is an **explicit human-gate marker, never a bare omission**: every not-ready create passes `human_gate: "exploratory finding — product significance is a human product call"` alongside `build_ready: false`, and the writer stamps the auditable `[lisa-human-gate]` marker. An operator who wants a strict-mode pass to feed the queue directly opts in with `ready=true`.
 
 (The sibling `e2e-coverage-gaps` skills are the contrast: a missing automated test is not a product question, so they file `build_ready: true` by default.)
 
@@ -158,9 +163,14 @@ teardown proposal through `lisa-tracker-write` (per `tracked-work` + `integratio
   **Completed** means the prior approved action happened, so a later recurrence may be re-filed.
   When an existing proposal suppresses filing, **the run still records `policy-obsolete` and files
   nothing** — the outcome describes this run, while the ticket is filed exactly once.
-- **Labels** `status:blocked` + `human-needed`, carrying the contract's decision-ready packet. The
-  `human-needed` label marks the proposal human-owned: `lisa-repair-intake` recognizes it and never
-  re-dispatches it as stalled work.
+- **Labels** follow `humanGate.mode`. Under the default `access-only` the loop makes the call
+  itself: it picks one response from the evidence below (tear down, or re-cadence to a named longer
+  cadence), states it with its reasoning, and files the proposal build-ready (`status:ready`), so the
+  factory run that claims it performs that response with the matching command. If that run cannot
+  reach the scheduler, it holds the item naming that access. Under `strict`: `status:blocked` +
+  `human-needed`, carrying the contract's decision-ready packet. The `human-needed` label marks the
+  proposal human-owned: `lisa-repair-intake` recognizes it and never re-dispatches it as stalled
+  work.
 - **Evidence** the date-filtered search result, this run's summary, **the loop's current cadence**
   (the baseline an operator needs to choose a longer one), and a one-line summary of recent runs
   read from `.lisa/automations/runs/exploratory-bugs.jsonl`. Fill the rest of the packet the same
@@ -175,7 +185,8 @@ teardown proposal through `lisa-tracker-write` (per `tracked-work` + `integratio
 - **Operator footer**, verbatim, as on every loop-filed proposal (`rejection-detection`):
   > To stop this from being raised again, close it as **Not planned**. Close it as **Completed** if it was fixed — a later recurrence may be re-filed as a regression.
 
-The loop **keeps running at its normal cadence** until a human acts, and never deletes its own
+The loop **keeps running at its normal cadence** until the proposal is acted on (by the factory run
+that claims it under `access-only`, by a human under `strict`), and never deletes its own
 registration.
 
 ## Quality bar
@@ -183,5 +194,5 @@ registration.
 - Explore as a true first-time user — judge clarity, not whether you (who can read the code) can figure it out.
 - Every ticket must stand alone for an implementer who was not in the session.
 - Do not claim cleanup succeeded unless verified.
-- File per the `ready` flag (default: backlog for human triage).
+- File per the `ready` flag (default: build-ready under `access-only`, backlog for human triage under `strict`).
 - Route automated-coverage gaps to `e2e-coverage-gaps`; preserve unrelated repo changes.

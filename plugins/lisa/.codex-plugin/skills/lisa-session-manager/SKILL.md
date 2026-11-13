@@ -167,6 +167,15 @@ the others: `queue` already leaves an item with a pending question out (`pending
 rest of the queue is dispatched as usual. Never wait for the answer, never ask in this terminal
 (never `AskUserQuestion`), and never end a turn on the question.
 
+**Decide before you mark.** A decision or a repo route is not, by itself, a reason to stop. When
+the evidence supports a call — the item, its parent, the PRD, the code, the repo's history — the
+manager (or the worker) makes it, posts the choice and its reasoning on the item so a person can
+reverse it, and carries on. Mark the item only when the call genuinely needs a person: an access
+gap the agent cannot close (an interactive login, a credential or secret store it cannot reach,
+spending money, a legal signature, an account only a person holds), or a hold the operator
+explicitly asked for. Under `humanGate.mode: "strict"` a design or product decision and an
+ambiguous repo route are relayed to the operator as before.
+
 The four cases, each with its `--kind`:
 
 | Case | `--kind` | Question or reason (on STDIN) |
@@ -177,8 +186,11 @@ The four cases, each with its `--kind`:
 | A design or product decision | `decision` | the decision, the options, and what each one changes |
 
 A `decision` is raised when a worker's question or `FAILED` reason, or the item itself, says the
-work cannot go on until someone decides how it should behave; a worker's plain question stays
-`worker-question`.
+work cannot go on until someone decides how it should behave **and** `humanGate.mode` is
+`strict`; under access-only the manager decides it and records why. A worker's plain question
+stays `worker-question`, and is raised only when answering it needs access the agent lacks or an
+operator hold applies. A `repo-route` is raised only under `strict`; under access-only route to the
+best-supported repo and record why.
 
 **Every hold except `exhausted` is also a planning miss** unless something outside planning caused
 it. PRD intake, decomposition and the ready gate exist so a dispatched worker never needs a human;
@@ -536,6 +548,11 @@ queue below). For each:
    - `release`: dissolve the edges and move the item to the `ready` role in one `lisa-tracker-write`
      update, with a comment `[lisa-session-manager] Released: <reason>`; read it back with `lisa-tracker-read` and confirm the
      role changed before you claim it did. Notify Telegram.
+   - `decide` (access-only; a blocker was closed NOT PLANNED): relay nothing to the operator. Make
+     the call from the item's and blocker's evidence: re-scope the item to build without the
+     dependency (dissolve the edge and move it to the `ready` role), drop an edge that no longer applies, or
+     close the item. Post `[lisa-session-manager] Decision: <which> — <why>` in the same
+     `lisa-tracker-write` update, and read it back before you claim it landed. Notify Telegram.
    - `keep` with a manager question pending: "Waiting on a human" above handles it.
    - `keep`, `escalate`, `skip-human-gate`: leave it. Gate self-blocks and clarification blocks
      belong to `lisa-repair-intake` and humans.

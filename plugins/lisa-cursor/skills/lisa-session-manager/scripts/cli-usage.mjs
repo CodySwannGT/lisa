@@ -270,7 +270,7 @@ Per cycle
       Trusted hold releasers are sessionManager.trustedAuthorIds (none when
       unset; plain and id: entries, compared as ids; login: entries never
       release); trustedHumanActorIds in the input is ignored. stdout
-      {action:release|keep|escalate|skip-human-gate,reason,edges,gate}.
+      {action:release|keep|decide|escalate|skip-human-gate,reason,edges,gate}.
       --ref fills pendingQuestion from the ledger.
   mark-plan <ref> --kind <kind> [--cause <cause>] [--item-label <l>]...
                                                 STDIN: question or reason

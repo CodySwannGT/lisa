@@ -212,14 +212,27 @@ describe("loops conform to the policy-obsolete teardown-proposal flow (#1801)", 
         );
       });
 
-      it("carries the decision-ready packet and its labels", () => {
-        expect(content).toContain("status:blocked");
-        expect(content).toContain("human-needed");
-        expect(content).toMatch(/decision-ready packet/i);
+      it("files build-ready with the loop's own call under access-only (#4687)", () => {
+        expect(content).toMatch(
+          /\*\*Labels\*\* follow `humanGate\.mode`\. Under the default `access-only` the loop makes the call\s+itself/
+        );
+        expect(content).toMatch(
+          /files the proposal build-ready \(`status:ready`\), so the\s+factory run that claims it performs that response/
+        );
+        // Scheduler access is the only thing that holds it.
+        expect(content).toMatch(
+          /cannot\s+reach the scheduler, it holds the item naming that access/
+        );
       });
 
-      it("marks the proposal human-owned so repair-intake leaves it alone", () => {
-        expect(content).toMatch(/marks the proposal\s+human-owned/);
+      it("carries the decision-ready packet and its labels under strict", () => {
+        expect(content).toMatch(
+          /Under `strict`: `status:blocked` \+\s+`human-needed`, carrying the contract's decision-ready packet/
+        );
+      });
+
+      it("marks the strict-mode proposal human-owned so repair-intake leaves it alone", () => {
+        expect(content).toMatch(/marks the\s+proposal\s+human-owned/);
         expect(content).toContain("lisa-repair-intake");
         expect(content).toMatch(/never\s+re-dispatches it/);
       });

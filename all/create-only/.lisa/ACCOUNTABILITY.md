@@ -20,9 +20,12 @@ Because the alternative resolves to nobody. "The team owns it" is a sentence tha
 sounds like an answer and produces silence at 3am. A name in a file, reviewed
 when people change roles, is the smallest thing that works.
 
-An agent must not fill this file in. Assigning accountability is a decision a
-person makes about people, and a record an agent wrote about who is answerable is
-not a record of anything.
+An agent may draft and fill this file in from the evidence it can reach —
+`CODEOWNERS`, the repository's commit history, and the operators the project
+configures (`sessionManager.operatorIds` in `.lisa.config.json`) — and notes
+beside each name where it came from. A person can override any entry by editing
+it, and a person's edit always wins. A project that wants only people to assign
+accountability sets `"humanGate": { "mode": "strict" }` in `.lisa.config.json`.
 
 ## Accountable parties
 
@@ -42,13 +45,16 @@ gap until it is reassigned, not a formality to catch up on later.
 
 Some decisions dispose of an obligation rather than satisfying it: accepting a
 vulnerability with no fix, loosening a quality threshold, declaring a requirement
-inapplicable, dismissing a class of finding. Those need a person with the
-authority to make them — and the record has to say who, what, why, and until
-when.
+inapplicable, dismissing a class of finding. Those need someone with standing
+to make them — and the record has to say who, what, why, and until when.
 
-An agent may neither accept a risk nor author the record accepting it. An
-acceptance an agent can write for itself is not a control; it is a bypass with
-better paperwork.
+By default the agent working the item has that standing. It may accept a risk
+and record the acceptance itself, as long as the log row says what was accepted,
+the agent's reasoning, and an expiry. That record is what keeps it a decision
+rather than a bypass: anyone can read why, and a person can reverse it at any
+time by editing the row or setting its Status to `revoked`. Under
+`"humanGate": { "mode": "strict" }`, only a person listed below may accept a
+risk.
 
 | Who | May accept | Scope limit | Reviewed |
 | --- | --- | --- | --- |
