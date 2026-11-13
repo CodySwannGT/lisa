@@ -14,13 +14,31 @@ const normalizedRow = line =>
     .map(part => part.trim())
     .join("|");
 
+const CANONICAL_ALIGNMENT = "|---|---|---|---:|---:|";
+const ALIGNMENT_ROW = /^\|(?::?-+:?\|){5}$/;
+const LEADING_STAR_ITALIC = /^(\|?)\*([^*\r\n]+)\*(?=\||\s*$)/;
+
+/**
+ * Fold Linear's storage normalization back to the canonical writer's form
+ * (CodySwannGT/lisa#4690): Linear re-serializes `_…_` as `*…*` and any table
+ * alignment row as `| -- | … |`. Only the comparison key changes, so a folded
+ * line is dropped solely when it then equals a known canonical row; any other
+ * prose or row still reaches the spec digest.
+ */
+function comparisonKey(line) {
+  const row = normalizedRow(line);
+  return ALIGNMENT_ROW.test(row)
+    ? CANONICAL_ALIGNMENT
+    : row.replace(LEADING_STAR_ITALIC, "$1_$2_");
+}
+
 /** Match the canonical writer's visible table rows to the already parsed data. */
 function accountingRows(entries) {
   const known = new Set([
     "## Lisa Usage",
     "_This section is managed by Lisa. Rewrites update matching usage entries in place and preserve older rows._",
     "|Flow|Source|Model|Tokens|Cost|",
-    "|---|---|---|---:|---:|",
+    CANONICAL_ALIGNMENT,
     "|_No direct entries recorded_|||||",
   ]);
   for (const entry of entries) {
@@ -96,7 +114,7 @@ export function usageSpecRemainder(document) {
         /<!-- lisa:usage-(?:entry(?:-measured-subset)?|rollup(?:-token-status)?|effectiveness) [^\r\n]*? -->/g,
         token => (canonicalToken(token, parsed) ? "" : token)
       );
-      return !line.trim() || known.has(normalizedRow(line)) ? "" : line;
+      return !line.trim() || known.has(comparisonKey(line)) ? "" : line;
     })
     .join("");
 }
