@@ -291,6 +291,41 @@ function transientRun(result) {
   return result.status !== 0 && TRANSIENT_STDERR.test(result.stderr ?? "");
 }
 
+/** `gh api` flags that send a request body, which makes the call a write. */
+const BODY_FLAGS = new Set(["-f", "-F", "--field", "--raw-field", "--input"]);
+/** `gh api` flags that pick the HTTP method. */
+const METHOD_FLAGS = new Set(["-X", "--method"]);
+
+/**
+ * The HTTP method one `gh api` argument names, or null when it names none:
+ * `-X POST`, `--method POST`, `--method=POST` and `-XPOST` all count.
+ * @param {string[]} args - Exact `gh` argument vector.
+ * @param {number} index - Position of the argument to read.
+ * @returns {string|null} The upper-cased method, or null.
+ */
+function methodAt(args, index) {
+  const value = args[index];
+  if (METHOD_FLAGS.has(value)) return String(args[index + 1]).toUpperCase();
+  const joined = /^(?:--method=|-X)(.+)$/.exec(value);
+  return joined ? joined[1].toUpperCase() : null;
+}
+
+/**
+ * Whether a `gh` call can change GitHub state. Such a call is never repeated:
+ * a write that timed out may still have landed, and a retry would apply it
+ * twice (CodySwannGT/lisa#4733).
+ * @param {string[]} args - Exact `gh` argument vector.
+ * @returns {boolean} True for any body flag or a non-GET method.
+ */
+function writes(args) {
+  return args.some((value, index) => {
+    if (BODY_FLAGS.has(value) || /^--(?:raw-)?field=|^--input=/.test(value))
+      return true;
+    const method = methodAt(args, index);
+    return method !== null && method !== "GET";
+  });
+}
+
 /**
  * Block the thread for a retry backoff. The transport is synchronous end to
  * end (its runner is spawnSync-based), so the wait is too.
@@ -475,6 +510,7 @@ export function githubProofTransport(
    * @returns {string|Buffer} The complete response.
    */
   function call(args, options = {}) {
+    if (writes(args)) return settle({ ...attempt(args, options), attempts: 1 });
     return settle(retried(() => attempt(args, options)));
   }
   // gh >= 2.97 needs the flag and gh < 2.97 rejects it. Assumed supported

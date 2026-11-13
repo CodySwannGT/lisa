@@ -183,29 +183,112 @@ describe("publish-completion-proof after a stranded upload", () => {
   it("uploads normally when the record already there differs", () => {
     const fixture = proofFixture();
     const stranded = strandedRecord(fixture);
-    const file = path.join(
-      fixture.env.FAKE_GH_ASSET_DIRECTORY!,
-      `${stranded.id}.bin`
-    );
-    const other = Buffer.from(
-      `${JSON.stringify({ ...JSON.parse(readFileSync(file, "utf8")), branch: "elsewhere" }, null, 2)}\n`
-    );
-    writeFileSync(file, other);
+    rewriteStranded(fixture, stranded, stored => ({
+      ...stored,
+      branch: "elsewhere",
+    }));
+    expectFreshUpload(fixture, stranded);
+  });
+
+  it("does not adopt an identical record another account uploaded", () => {
+    const fixture = proofFixture();
+    const stranded = strandedRecord(fixture);
     writeFileSync(
       fixture.env.FAKE_GH_ASSET_INDEX!,
       JSON.stringify(
         assets(fixture).map(asset =>
-          asset.id === stranded.id ? { ...asset, size: other.length } : asset
+          asset.id === stranded.id
+            ? { ...asset, uploader: { id: 999_999, type: "User" } }
+            : asset
         )
       )
     );
+    expectFreshUpload(fixture, stranded);
+  });
+
+  it.each([
+    ["missing", undefined],
+    ["malformed", "not-a-time"],
+  ])(
+    "does not adopt a record whose captured_at is %s",
+    (_label, capturedAt) => {
+      const fixture = proofFixture();
+      const stranded = strandedRecord(fixture);
+      rewriteStranded(fixture, stranded, stored => ({
+        ...stored,
+        captured_at: capturedAt,
+      }));
+      expectFreshUpload(fixture, stranded);
+    }
+  );
+
+  it("refuses, naming the asset, when the candidate never downloads", () => {
+    const fixture = proofFixture();
+    const stranded = strandedRecord(fixture);
+    setApi(
+      fixture,
+      [
+        "api",
+        `repos/acme/code/releases/assets/${stranded.id}`,
+        "--header",
+        "Accept: application/octet-stream",
+        "--allow-escape-sequences",
+      ],
+      { failure: "gh: Service Unavailable (HTTP 503)\n" }
+    );
     const result = publish(fixture);
-    expect(result.stderr).toBe("");
-    expect(result.status).toBe(0);
-    const publication = JSON.parse(result.stdout);
-    expect(publication.revision).toBe(1);
-    expect(publication.asset_id).not.toBe(stranded.id);
-    expect(uploads(fixture)).toHaveLength(2);
-    expect(locators(fixture)[0].asset_id).toBe(publication.asset_id);
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain("read-error");
+    expect(result.stderr).toContain(`releases/assets/${stranded.id}`);
+    expect(result.stderr).toContain("after 4 attempts");
+    expect(uploads(fixture)).toHaveLength(1);
+    expect(locators(fixture)).toHaveLength(0);
   });
 });
+
+/**
+ * Replace a stranded asset's stored record, keeping its name and fixing its
+ * declared size, so only its content differs.
+ * @param fixture - Owned disposable repository and controlled provider.
+ * @param stranded - The stranded record asset.
+ * @param change - Builds the replacement record from the stored one.
+ */
+function rewriteStranded(
+  fixture: ProofFixture,
+  stranded: Asset,
+  change: (stored: Record<string, unknown>) => Record<string, unknown>
+) {
+  const file = path.join(
+    fixture.env.FAKE_GH_ASSET_DIRECTORY!,
+    `${stranded.id}.bin`
+  );
+  const replaced = Buffer.from(
+    `${JSON.stringify(change(JSON.parse(readFileSync(file, "utf8"))), null, 2)}\n`
+  );
+  writeFileSync(file, replaced);
+  writeFileSync(
+    fixture.env.FAKE_GH_ASSET_INDEX!,
+    JSON.stringify(
+      assets(fixture).map(asset =>
+        asset.id === stranded.id ? { ...asset, size: replaced.length } : asset
+      )
+    )
+  );
+}
+
+/**
+ * Re-publish and expect the stranded asset to be passed over: a second
+ * upload, revision 1, and the locator on the new asset.
+ * @param fixture - Owned disposable repository and controlled provider.
+ * @param stranded - The stranded record asset that must not be adopted.
+ */
+function expectFreshUpload(fixture: ProofFixture, stranded: Asset) {
+  const result = publish(fixture);
+  expect(result.stderr).toBe("");
+  expect(result.status).toBe(0);
+  const publication = JSON.parse(result.stdout);
+  expect(publication.revision).toBe(1);
+  expect(publication.asset_id).not.toBe(stranded.id);
+  expect(uploads(fixture)).toHaveLength(2);
+  expect(locators(fixture)[0].asset_id).toBe(publication.asset_id);
+}

@@ -162,6 +162,13 @@ function strandedRecord(transport, assets, record, publisher) {
       continue;
     }
     const adopted = { ...record, captured_at: capturedAt };
+    // A stored record whose captured_at is missing or not a time is not a
+    // record this publisher could have written; never adopt it.
+    try {
+      validateRecordShape(adopted);
+    } catch {
+      continue;
+    }
     const bytes = recordBytes(adopted);
     if (bytes.equals(stored)) return { record: adopted, bytes };
   }

@@ -20,6 +20,7 @@ const READ_ERROR = "read-error";
 const BODY = Buffer.from('{"recorded":true}\n');
 const FOUR_ATTEMPTS = "after 4 attempts";
 const NOT_FOUND = "gh: Not Found (HTTP 404)\n";
+const BAD_GATEWAY = "gh: Bad Gateway (HTTP 502)\n";
 
 interface Result {
   status: number | null;
@@ -113,7 +114,7 @@ describe("transient reads are retried", () => {
       failed("Post https://api.github.com/graphql: unexpected EOF\n"),
     ],
     ["an i/o timeout", failed("read tcp 10.0.0.1:443: i/o timeout\n")],
-    ["HTTP 502", failed("gh: Bad Gateway (HTTP 502)\n")],
+    ["HTTP 502", failed(BAD_GATEWAY)],
     ["a spawn timeout", spawnError("ETIMEDOUT")],
   ])("recovers from %s", (_label, first) => {
     const { run, calls } = scripted([first, ok('{"id":7}')]);
@@ -137,6 +138,12 @@ describe("transient reads are retried", () => {
     expect(String(instant(run).transport.call(["api", "user"]))).toBe(
       '{"id":1}'
     );
+    expect(calls).toHaveLength(2);
+  });
+
+  it("retries a call that names GET explicitly", () => {
+    const { run, calls } = scripted([failed(BAD_GATEWAY), ok("{}")]);
+    instant(run).transport.call(["api", "--method", "GET", `${ROOT}/pulls/7`]);
     expect(calls).toHaveLength(2);
   });
 
@@ -186,6 +193,27 @@ describe("refusals GitHub meant are not retried", () => {
     expect(error.category).toBe(READ_ERROR);
     expect(error.message).toContain("pulls/7");
     expect(error.message).not.toContain("attempts");
+    expect(calls).toHaveLength(1);
+    expect(waited).toEqual([]);
+  });
+
+  it.each([
+    ["-X POST", ["api", "-X", "POST", `${ROOT}/issues/1/comments`]],
+    ["--method=PATCH", ["api", "--method=PATCH", `${ROOT}/issues/1`]],
+    ["-f", ["api", `${ROOT}/issues/1/comments`, "-f", "body=x"]],
+    ["-F", ["api", `${ROOT}/issues/1/comments`, "-F", "body=x"]],
+    ["--field", ["api", `${ROOT}/issues/1/comments`, "--field", "body=x"]],
+    [
+      "--raw-field",
+      ["api", `${ROOT}/issues/1/comments`, "--raw-field", "body=x"],
+    ],
+    ["--input", ["api", `${ROOT}/issues/1/comments`, "--input", "-"]],
+  ])("runs a writing call (%s) exactly once, even on a 502", (_label, args) => {
+    const { run, calls } = scripted([failed(BAD_GATEWAY), ok("{}")]);
+    const { transport, waited } = instant(run);
+    const error = refusal(() => transport.call(args));
+    expect(error.category).toBe(READ_ERROR);
+    expect(error.message).toContain("HTTP 502");
     expect(calls).toHaveLength(1);
     expect(waited).toEqual([]);
   });
