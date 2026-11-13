@@ -39,6 +39,8 @@ const JOURNEY = {
   steps: [{ number: 1, text: "Search [SCREENSHOT: search-step]" }],
   viewports: [{ name: "desktop", width: 1440, height: 900 }],
 };
+const FULL_MONTH = "pr-assets-2026-11";
+const OVERFLOW = `${FULL_MONTH}-2`;
 const roots: string[] = [];
 
 afterEach(() => {
@@ -51,10 +53,16 @@ afterEach(() => {
  * @param generator - Generator path relative to the checkout.
  * @param pr - Pull request number argument.
  * @param extra - Additional evidence file names to stage beside the screenshot.
+ * @param resolver - Stage a project resolver whose stub `node` answers.
  * @returns The generated GitHub markdown and Jira wiki markup.
  */
-function generate(generator: string, pr: string, extra: string[] = []) {
-  const { root, evidence, bin } = stageInputs(extra);
+function generate(
+  generator: string,
+  pr: string,
+  extra: string[] = [],
+  resolver = false
+) {
+  const { root, evidence, bin } = stageInputs(extra, resolver);
   const result = boundedSpawnSync({
     label: `${generator} for PR ${pr}`,
     command: "python3",
@@ -80,9 +88,12 @@ function generate(generator: string, pr: string, extra: string[] = []) {
 /**
  * Stage one screenshot, a journey, a jira-cli config and a `gh` stub.
  * @param extra - Additional evidence file names to stage.
+ * @param resolver - Also stage `scripts/lisa-work-item.mjs` and a `node` stub
+ *   that models a full current release: plain `evidence-release` prints the
+ *   period's first release, `--ensure` the overflow release with room.
  * @returns The scratch root, evidence directory and stub PATH entry.
  */
-function stageInputs(extra: string[]) {
+function stageInputs(extra: string[], resolver: boolean) {
   const root = mkdtempSync(path.join(tmpdir(), "lisa-jira-links-"));
   const evidence = path.join(root, "evidence");
   const bin = path.join(root, "bin");
@@ -99,6 +110,15 @@ function stageInputs(extra: string[]) {
     writeFileSync(path.join(evidence, name), "image");
   writeFileSync(path.join(root, "journey.json"), JSON.stringify(JOURNEY));
   writeStub(bin, "gh", "printf 'org/repo\\n'\n");
+  if (resolver) {
+    mkdirSync(path.join(root, "scripts"));
+    writeFileSync(path.join(root, "scripts", "lisa-work-item.mjs"), "");
+    writeStub(
+      bin,
+      "node",
+      `case "$*" in *--ensure*) printf '${OVERFLOW}\\n' ;; *) printf '${FULL_MONTH}\\n' ;; esac\n`
+    );
+  }
   return { root, evidence, bin };
 }
 
@@ -114,6 +134,16 @@ describe.each(GENERATORS)("generated evidence links: %s", generator => {
     expect(generate(generator, "102").markdown).toContain(
       `(${RELEASE}/pr-102-${SHOT})`
     );
+  });
+
+  it("links the release post-evidence.sh uploads to when the current one is full (#4838)", () => {
+    // Without a pin both scripts must ask `evidence-release --ensure`: plain
+    // `evidence-release` names the full release, while the upload rolls over.
+    const { markdown } = generate(generator, "101", [], true);
+    const overflow = `https://github.com/org/repo/releases/download/${OVERFLOW}`;
+
+    expect(markdown).toContain(`(${overflow}/pr-101-${SHOT})`);
+    expect(markdown).not.toContain(`/${FULL_MONTH}/`);
   });
 
   it("keeps the Jira attachment reference bare", () => {

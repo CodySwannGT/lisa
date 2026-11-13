@@ -66,6 +66,28 @@ describe("publish-completion-proof with LISA_EVIDENCE_RELEASE", () => {
     expect(readFileSync(fixture.env.FAKE_GH_UNHANDLED_FILE!, "utf8")).toBe("");
   });
 
+  it.each([PINNED, `${PINNED}-2`])(
+    "finish accepts proof published earlier to %s once the pin is gone",
+    earlier => {
+      // The release is staged absent, not full: a release staged at a count
+      // serves a fixed listing, so an upload to it could not be read back.
+      const fixture = proofFixture();
+      configure(fixture, { evidenceRelease: ROTATING });
+      fixture.env[OVERRIDE] = earlier;
+      absentRelease(fixture, earlier);
+      const published = publish(fixture);
+      expect(published.stderr).toBe("");
+      expect(uploadedTags(fixture)).toEqual([earlier]);
+      delete fixture.env[OVERRIDE];
+      expect(proofCli(fixture, ["evidence-release"]).stdout.trim()).not.toBe(
+        earlier
+      );
+      const finished = proofCli(fixture, ["finish", "--ref", PROOF_REF]);
+      expect(finished.stderr).toBe("");
+      expect(finished.stdout).toContain("work-item completed:");
+    }
+  );
+
   it("refuses a pin that is not one of this project's releases, before any write", () => {
     const fixture = proofFixture();
     fixture.env[OVERRIDE] = "v1.0.0";

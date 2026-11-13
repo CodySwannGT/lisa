@@ -121,8 +121,12 @@ GH_REPO=$(gh repo view --json nameWithOwner --jq '.nameWithOwner')
 # `pr-assets-{YYYY-MM}`) moves this upload too. GitHub caps a release at 1000
 # assets; a hardcoded `pr-assets` filled up and every upload then failed with a
 # raw HTTP 422 (CodySwannGT/lisa#4692). `--ensure` creates the release when it
-# is absent and refuses, in plain words, when it is nearly full. A host whose
-# Lisa predates the resolver keeps the legacy release.
+# is absent and, when it is nearly full, rolls over to the next overflow
+# release (`<release>-2`, `-3`, …) and prints that one (CodySwannGT/lisa#4838).
+# It refuses, in plain words, only when a pinned release or every overflow
+# release is full. generate-templates.py asks the same `--ensure`, so its links
+# name the release uploaded here. A host whose Lisa predates the resolver keeps
+# the legacy release.
 #
 # LISA_EVIDENCE_RELEASE, when set, pins the release for this run so the links
 # generate-templates.py wrote match these uploads. The resolver still checks

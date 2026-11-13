@@ -633,6 +633,7 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
   ]),
   "scripts/lib/evidence-release-capacity.mjs": Object.freeze([
     "45ccba8cf5390bcafd47f038edc1141dddb45d3bd87f03ffeb704a361c523b99",
+    "e47c9b62f6a1d27fb2d5038dda016c15b41b54f906bc3256415a00f23f1d341a",
   ]),
   "scripts/lib/gate-failure-diagnosis.mjs": Object.freeze([
     "041094be579c3aefdf9f7b384e24ca23cd860c984c9094ffeb55b1542829bc39",
@@ -3121,6 +3122,7 @@ export const LISA_OWNED_HASH_HISTORY_DERIVED: Readonly<
   ]),
   "scripts/lib/evidence-release-capacity.mjs": Object.freeze([
     "45ccba8cf5390bcafd47f038edc1141dddb45d3bd87f03ffeb704a361c523b99",
+    "e47c9b62f6a1d27fb2d5038dda016c15b41b54f906bc3256415a00f23f1d341a",
   ]),
   "scripts/lib/gate-failure-diagnosis.mjs": Object.freeze([
     "041094be579c3aefdf9f7b384e24ca23cd860c984c9094ffeb55b1542829bc39",

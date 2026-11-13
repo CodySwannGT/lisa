@@ -191,15 +191,20 @@ export function ensureEvidenceRelease(run, transport, policy, options = {}) {
       );
     return { ...pinned, index: 1 };
   }
+  let last = { tag: base, count: undefined };
   for (
     let index = options.from ?? 1;
     index <= EVIDENCE_RELEASE_MAX_OVERFLOW;
     index += 1
   ) {
     const tag = overflowReleaseTag(base, index);
-    if (!usableTag(tag)) break;
-    const opened = openRelease(run, transport, tag);
-    if (opened.count < EVIDENCE_RELEASE_NEAR_FULL) return { ...opened, index };
+    if (!usableTag(tag))
+      throw new CompletionProofError(
+        WRITE_ERROR,
+        `${fullReleaseMessage(last.tag, transport.repository, last.count)} Lisa could not roll over to \`${tag}\`: the release name is too long for an overflow suffix (GitHub allows 100 characters), so shorten \`verification.completion.evidenceRelease\`.`
+      );
+    last = openRelease(run, transport, tag);
+    if (last.count < EVIDENCE_RELEASE_NEAR_FULL) return { ...last, index };
   }
   throw new CompletionProofError(
     WRITE_ERROR,

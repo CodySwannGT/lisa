@@ -73,6 +73,7 @@ function ensure(counts: Record<string, number>, options: object = {}) {
 }
 
 const FULL = EVIDENCE_RELEASE_NEAR_FULL;
+const WRITE_ERROR = "write-error";
 
 describe("ensureEvidenceRelease roll-over", () => {
   it("uses the resolved release while it has room", () => {
@@ -104,8 +105,20 @@ describe("ensureEvidenceRelease roll-over", () => {
       ])
     );
     const outcome = ensure(counts);
-    expect(outcome.error?.category).toBe("write-error");
+    expect(outcome.error?.category).toBe(WRITE_ERROR);
     expect(outcome.error?.message).toContain(`\`${BASE}-99\``);
+    expect(outcome.created).toEqual([]);
+  });
+
+  it("names the full release, not a range, when its name is too long for an overflow suffix", () => {
+    // 99 characters: `-2` would pass GitHub's 100-character tag limit.
+    const long = `r${"x".repeat(98)}`;
+    const outcome = ensure({ [long]: FULL + 3 }, { tag: long });
+    expect(outcome.error?.category).toBe(WRITE_ERROR);
+    expect(outcome.error?.message).toContain(`\`${long}\``);
+    expect(outcome.error?.message).toContain(`holds ${FULL + 3} of`);
+    expect(outcome.error?.message).toContain("too long");
+    expect(outcome.error?.message).not.toContain(`${long}-99`);
     expect(outcome.created).toEqual([]);
   });
 
@@ -114,7 +127,7 @@ describe("ensureEvidenceRelease roll-over", () => {
       { "pr-assets-2026-10": FULL },
       { tag: "pr-assets-2026-10", pinned: true }
     );
-    expect(outcome.error?.category).toBe("write-error");
+    expect(outcome.error?.category).toBe(WRITE_ERROR);
     expect(outcome.error?.message).toContain("LISA_EVIDENCE_RELEASE");
     expect(outcome.created).toEqual([]);
   });

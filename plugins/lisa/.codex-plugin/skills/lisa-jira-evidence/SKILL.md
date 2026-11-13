@@ -83,7 +83,7 @@ LISA_EVIDENCE_RELEASE=<name> bash .claude/skills/jira-evidence/scripts/post-evid
 LISA_EVIDENCE_RELEASE=pr-assets bash .claude/skills/jira-evidence/scripts/post-evidence.sh PROJ-123 ./evidence 42
 ```
 
-`post-evidence.sh` uses `LISA_EVIDENCE_RELEASE` when it is set, after the resolver confirms it is one of the project's evidence releases and is not nearly full.
+`post-evidence.sh` uses `LISA_EVIDENCE_RELEASE` when it is set, after the resolver confirms it is one of the project's evidence releases and is not nearly full. A pinned release is an exact choice and never rolls over; without a pin, a nearly full release rolls over to its next overflow release (`<release>-2`, `-3`, …).
 
 ## What It Does
 
@@ -112,16 +112,17 @@ Local evidence files keep their `NN-` names. In the shared evidence release each
 
 ### Evidence not appearing in GitHub PR
 
-Evidence files must be in the configured evidence release (`node scripts/lisa-work-item.mjs evidence-release --ensure` prints it; default `pr-assets`). Create it when it is missing, and
-check it is not at GitHub's 1000-file limit, with:
+Evidence files must be in the configured evidence release (`node scripts/lisa-work-item.mjs evidence-release --ensure` prints it; default `pr-assets`). It creates the release when it is missing and, when it is nearly full, rolls over to the next overflow release (`<release>-2`, `-3`, …) and prints that one:
 
 ```bash
 node scripts/lisa-work-item.mjs evidence-release --ensure
 ```
 
-If it reports the release is nearly full, set
+It refuses only when a pinned `LISA_EVIDENCE_RELEASE` is full (unset it, or pin
+a release with room) or every overflow release of the period is full (set
 `verification.completion.evidenceRelease` in `.lisa.config.json` to a rotating
-name such as `pr-assets-{YYYY-MM}`; older evidence keeps validating.
+name such as `pr-assets-{YYYY-MM}`, or prune old evidence); older evidence keeps
+validating.
 
 ### JIRA API returns 403
 
