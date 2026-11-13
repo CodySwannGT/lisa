@@ -95,6 +95,7 @@ scripts/lisa-lint-staged-preflight.mjs
 scripts/lisa-mutation.mjs
 scripts/lisa-automation-provenance.mjs
 scripts/lisa-npm-updater.mjs
+scripts/lisa-plugin-registration-notice.mjs
 scripts/lisa-postinstall.mjs
 scripts/lisa-rails-prepush.mjs
 scripts/lisa-reconcile-policy.mjs

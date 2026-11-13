@@ -332,8 +332,10 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "2379d4fc5174ae4727997a0d88d43a0212941d91bdebaf790caadd20a8c59810",
     "all/copy-overwrite/scripts/lisa-npm-updater.mjs":
       "3ee8529f74396b06b1189db9dd37bc002d1e17d9abd9fbd9da6c20c212db7898",
+    "all/copy-overwrite/scripts/lisa-plugin-registration-notice.mjs":
+      "7d88002ba9ecc501612f3fa6de0931fe65f4c8a961f51f767be0c8f2f42eec54",
     "all/copy-overwrite/scripts/lisa-postinstall.mjs":
-      "9f9521a40022a2cd9acf8bbde86617b10daba7fa1f46650fa6160669f317afc5",
+      "1b949b5687b2352eb5e712c055ab2fd4648380e7ab4da0c9457eac9b2be17a71",
     "all/copy-overwrite/scripts/lisa-rails-prepush.mjs":
       "31a61d5c53db977fb1d6ff8f125ec785db98e79290a4ea5225e4322d9915038d",
     "all/copy-overwrite/scripts/lisa-reconcile-policy.mjs":
@@ -391,7 +393,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/github-rulesets/protect-tags.json":
       "387f824e3ea58a803223e42e08326504a39e6a7a0c650a0bbfdfb4653854b722",
     "all/merge/.claude/settings.json":
-      "604f4a825a21c571f62b89a950f42566a0385306ea57ed6245117496a0e5acbc",
+      "86ea228bd5d410afd95cfedcbec16c973f86a6dd5cdb2f04c4b344f125cd50d1",
     "cdk/copy-overwrite/.github/workflows/.keep":
       "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
     "cdk/copy-overwrite/eslint.cdk.ts":
@@ -2751,7 +2753,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/github-status-check.sh":
       "c6a4a13ff5cf689fcbd7a6aca718f9e7d46d54ccb6687f662b055c1ca20e792f",
     "scripts/install-claude-plugins.sh":
-      "0b1439121df6939c736a08130a7183040611f0ff427e48106a3d1d649d62ffbd",
+      "5afedce024e4619af0f87af8ccf954064d5e93865d4e543a5c3e72e158a9563a",
     "scripts/install-generated-artifact-merge-driver.mjs":
       "61e2b4fc532e8b356cb751b1ff42eb712376728eec76f8edf2c3dec19acf1bd4",
     "scripts/internal-agy-skill-policy.json":
@@ -2929,7 +2931,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/test-intent-routing.sh":
       "97b9dc86cbd805df8a7fdb8c99ffab9b8c5e751ba2e84c05420b2a124f80635d",
     "scripts/two-channel-couplings.json":
-      "75570dbb8bc99e541e70b3aed716bbdf4669ccad1f47978f7797d6e1f689648e",
+      "58ed0446bc34af4e5d955f922b9c943f63b31b1ad400a57970da496ee5544962",
     "scripts/update-node-version.ts":
       "9d37599ef73d5d624751f862cda330a867f6774392c1ab045b4fc885132582e4",
     "scripts/update-test-skill-paths.mjs":
@@ -2997,7 +2999,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/copy-overwrite/.nvmrc":
       "73fb1b615e2043a933be1c0895cde4358036acc28d785692509b822aa53c761f",
     "typescript/copy-overwrite/.prettierignore":
-      "f254b0c684f5acb495718cc38d3445554b4ca7796143f824da48b1b7b3bf908f",
+      "3f874b33730e86f19e38c35fd53399104ef79dbafdc16ada279a148817b62c02",
     "typescript/copy-overwrite/.prettierrc.json":
       "a20621f79a064486fba53cc0ea3000a2ece3f312ff38495c6a6606a27d2a727c",
     "typescript/copy-overwrite/.versionrc":
@@ -3438,6 +3440,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "all/copy-overwrite/scripts/lisa-hooks/worktree-binding-guard.sh": true,
     "all/copy-overwrite/scripts/lisa-lint-staged-preflight.mjs": true,
     "all/copy-overwrite/scripts/lisa-npm-updater.mjs": true,
+    "all/copy-overwrite/scripts/lisa-plugin-registration-notice.mjs": true,
     "all/copy-overwrite/scripts/lisa-postinstall.mjs": true,
     "all/copy-overwrite/scripts/lisa-rails-prepush.mjs": true,
     "all/copy-overwrite/scripts/lisa-reconcile-policy.mjs": true,
@@ -3693,6 +3696,15 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "evidence/4326/verdict.json": true,
     "evidence/4405/native-reader-green.json": true,
     "evidence/4405/reader-repair.md": true,
+    "evidence/4504/01-install-notice.txt": true,
+    "evidence/4504/02-session-notice.txt": true,
+    "evidence/4504/03-health-plugin-finding.txt": true,
+    "evidence/4504/04-apply-register-plugins.txt": true,
+    "evidence/4504/05-bite-controls.txt": true,
+    "evidence/4504/06-vitest.txt": true,
+    "evidence/4504/07-doctor.txt": true,
+    "evidence/4504/08-doctor-plugin-registration.txt": true,
+    "evidence/4504/09-large-plugin-list-health.txt": true,
     "evidence/4521/conformance-report.json": true,
     "evidence/4521/consumer-parity-local.md": true,
     "evidence/4521/evidence-comment.md": true,
@@ -10880,6 +10892,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "src/cli/doctor-gate-recommendation.ts": true,
     "src/cli/doctor-git-hooks.ts": true,
     "src/cli/doctor-hook-copy-parity.ts": true,
+    "src/cli/doctor-instruction-files.ts": true,
     "src/cli/doctor-kane.ts": true,
     "src/cli/doctor-learnings-driver-command.ts": true,
     "src/cli/doctor-learnings-ledger.ts": true,
@@ -10906,6 +10919,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "src/cli/doctor-nightly-e2e-guard.ts": true,
     "src/cli/doctor-override-floor-conflicts.ts": true,
     "src/cli/doctor-ownership-banner-drift.ts": true,
+    "src/cli/doctor-plugin-registration.ts": true,
     "src/cli/doctor-project-type.ts": true,
     "src/cli/doctor-rails-deploy-intent.ts": true,
     "src/cli/doctor-readiness-action-pins.ts": true,
@@ -12093,6 +12107,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/cli/doctor-nightly-e2e-guard.test.ts": true,
     "tests/unit/cli/doctor-override-floor-conflicts.test.ts": true,
     "tests/unit/cli/doctor-ownership-banner-drift.test.ts": true,
+    "tests/unit/cli/doctor-plugin-registration.test.ts": true,
     "tests/unit/cli/doctor-project-type.test.ts": true,
     "tests/unit/cli/doctor-rails-deploy-intent-errno.test.ts": true,
     "tests/unit/cli/doctor-rails-deploy-intent.test.ts": true,
@@ -12475,6 +12490,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/core/plugin-registration-liveness.test.ts": true,
     "tests/unit/core/plugin-registration-prune.test.ts": true,
     "tests/unit/core/plugin-sync-marker.test.ts": true,
+    "tests/unit/core/plugin-sync-sibling-path.test.ts": true,
     "tests/unit/core/project-config-dependencies.test.ts": true,
     "tests/unit/core/project-config-harness-migration.test.ts": true,
     "tests/unit/core/project-config-kane.test.ts": true,
@@ -12542,6 +12558,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/health/expo-splash-tag-migration.test.ts": true,
     "tests/unit/health/gitignore.test.ts": true,
     "tests/unit/health/package-surfaces.test.ts": true,
+    "tests/unit/health/plugin-finding-remediation.test.ts": true,
     "tests/unit/health/rails-hook-installation.test.ts": true,
     "tests/unit/health/ruleset-reach-inspection.test.ts": true,
     "tests/unit/health/storage.test.ts": true,
@@ -12976,6 +12993,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/lisa-mutation-timeout-accounting.test.ts": true,
     "tests/unit/scripts/lisa-owned-hash-ledger-provenance.test.ts": true,
     "tests/unit/scripts/lisa-owned-hash-ledger.test.ts": true,
+    "tests/unit/scripts/lisa-plugin-registration-notice.test.ts": true,
     "tests/unit/scripts/lisa-postinstall.test.ts": true,
     "tests/unit/scripts/lisa-reconcile-policy-awaited-scope.test.ts": true,
     "tests/unit/scripts/lisa-reconcile-policy-declarative.test.ts": true,

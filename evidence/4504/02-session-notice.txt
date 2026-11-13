@@ -1,0 +1,24 @@
+registry (sibling-only): {"version":2,"plugins":{"lisa@lisa":[{"scope":"project","projectPath":"/Users/codysai/.claude/jobs/c4baefa1/tmp/verify-4504/sibling","installPath":"/x","version":"4.71.1"}],"lisa-typescript@lisa":[{"scope":"project","projectPath":"/Users/codysai/.claude/jobs/c4baefa1/tmp/verify-4504/sibling","instal...
+### A: @lisa plugins registered for a SIBLING projectPath only -> expect notice naming 4 plugins
+$ CLAUDE_PROJECT_DIR=<scratch consumer> CLAUDE_CONFIG_DIR=<scratch config> node all/copy-overwrite/scripts/lisa-plugin-registration-notice.mjs
+stdout: {"systemMessage":"Lisa: this project turns on 4 Claude Code plugin(s) that are not set up for this folder yet (lisa-expo@lisa, lisa-typescript@lisa, lisa-wiki@lisa, lisa@lisa), so Lisa commands such as /lisa:implement are unavailable in this session. Installing dependencies does not set them up. Run `lisa apply .` in this project, then restart Claude Code.","hookSpecificOutput":{"hookEventName":"SessionStart","additionalContext":"Lisa: this project turns on 4 Claude Code plugin(s) that are not set up for this folder yet (lisa-expo@lisa, lisa-typescript@lisa, lisa-wiki@lisa, lisa@lisa), so Lisa commands such as /lisa:implement are unavailable in this session. Installing dependencies does not set them up. Run `lisa apply .` in this project, then restart Claude Code."}}
+exit=0 bytes=777
+parsed: systemMessage mentions lisa apply . = true ; additionalContext equal = true ; hookEventName = SessionStart
+### B: entries added for this exact path -> expect silent exit 0
+$ CLAUDE_PROJECT_DIR=<scratch consumer> CLAUDE_CONFIG_DIR=<scratch config> node all/copy-overwrite/scripts/lisa-plugin-registration-notice.mjs
+stdout: <empty>
+exit=0 bytes=0
+### C (extra): only lisa@lisa registered here -> expect notice naming the other 3
+$ CLAUDE_PROJECT_DIR=<scratch consumer> CLAUDE_CONFIG_DIR=<scratch config> node all/copy-overwrite/scripts/lisa-plugin-registration-notice.mjs
+stdout: {"systemMessage":"Lisa: this project turns on 3 Claude Code plugin(s) that are not set up for this folder yet (lisa-expo@lisa, lisa-typescript@lisa, lisa-wiki@lisa), so Lisa commands such as /lisa:implement are unavailable in this session. Installing dependencies does not set them up. Run `lisa apply .` in this project, then restart Claude Code.","hookSpecificOutput":{"hookEventName":"SessionStart","additionalContext":"Lisa: this project turns on 3 Claude Code plugin(s) that are not set up for this folder yet (lisa-expo@lisa, lisa-typescript@lisa, lisa-wiki@lisa), so Lisa commands such as /lisa:implement are unavailable in this session. Installing dependencies does not set them up. Run `lisa apply .` in this project, then restart Claude Code."}}
+exit=0 bytes=755
+parsed: systemMessage mentions lisa apply . = true ; additionalContext equal = true ; hookEventName = SessionStart
+### D: malformed registry -> expect silent exit 0
+$ CLAUDE_PROJECT_DIR=<scratch consumer> CLAUDE_CONFIG_DIR=<scratch config> node all/copy-overwrite/scripts/lisa-plugin-registration-notice.mjs
+stdout: <empty>
+exit=0 bytes=0
+### E (extra): registry absent -> notice (nothing registered anywhere)
+$ CLAUDE_PROJECT_DIR=<scratch consumer> CLAUDE_CONFIG_DIR=<scratch config> node all/copy-overwrite/scripts/lisa-plugin-registration-notice.mjs
+stdout: {"systemMessage":"Lisa: this project turns on 4 Claude Code plugin(s) that are not set up for this folder yet (lisa-expo@lisa, lisa-typescript@lisa, lisa-wiki@lisa, lisa@lisa), so Lisa commands such as /lisa:implement are unavailable in this session. Installing dependencies does not set them up. Run `lisa apply .` in this project, then restart Claude Code.","hookSpecificOutput":{"hookEventName":"SessionStart","additionalContext":"Lisa: this project turns on 4 Claude Code plugin(s) that are not set up for this folder yet (lisa-expo@lisa, lisa-typescript@lisa, lisa-wiki@lisa, lisa@lisa), so Lisa commands such as /lisa:implement are unavailable in this session. Installing dependencies does not set them up. Run `lisa apply .` in this project, then restart Claude Code."}}
+exit=0 bytes=777
+parsed: systemMessage mentions lisa apply . = true ; additionalContext equal = true ; hookEventName = SessionStart

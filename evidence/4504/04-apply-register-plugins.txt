@@ -1,0 +1,36 @@
+### scratch consumer: marker .claude/.lisa-plugins-synced=4.105.0 (== installed Lisa 4.105.0); fake 'claude plugin list --json' reports every @lisa plugin for a SIBLING projectPath + user scope only
+$ cd <scratch proj> && LISA_BOOTSTRAP=1 node dist/index.js apply --yes --skip-git-check --harness claude .
+exit=0
+apply output lines mentioning plugin:
+[OK] Copied: scripts/lisa-plugin-registration-notice.mjs
+[OK] Copied: plugins/withAndroidSplashNoClientExit.js
+[INFO] Registering plugins with Claude Code (project scope)...
+[OK] Registered plugin: lisa@lisa
+[OK] Registered plugin: lisa-typescript@lisa
+[OK] Registered plugin: lisa-expo@lisa
+[OK] Registered plugin: lisa-wiki@lisa
+[OK] Registered plugin: other@x
+[OK] Registered plugin: coderabbit@claude-plugins-official
+[OK] Registered plugin: typescript-lsp@claude-plugins-official
+[OK] Registered plugin: playwright@claude-plugins-official
+[OK] Registered plugin: posthog@claude-plugins-official
+enabled @lisa plugins after apply: lisa@lisa,lisa-typescript@lisa,lisa-expo@lisa,lisa-wiki@lisa
+--- fake claude call log:
+claude --version
+claude plugin list --json
+claude plugin install lisa@lisa --scope project
+claude plugin install lisa-typescript@lisa --scope project
+claude plugin install lisa-expo@lisa --scope project
+claude plugin install lisa-wiki@lisa --scope project
+claude plugin install other@x --scope project
+claude plugin install coderabbit@claude-plugins-official --scope project
+claude plugin install typescript-lsp@claude-plugins-official --scope project
+claude plugin install playwright@claude-plugins-official --scope project
+claude plugin install posthog@claude-plugins-official --scope project
+claude plugin marketplace update lisa
+claude plugin list --json
+### wired hook after apply: SessionStart entries in the applied .claude/settings.json
+matcher=startup command=node "$CLAUDE_PROJECT_DIR"/scripts/lisa-plugin-registration-notice.mjs 2>/dev/null || true
+$ (sibling-only registry) bash -c '<settings hook command>' with CLAUDE_PROJECT_DIR=<scratch proj>
+{"systemMessage":"Lisa: this project turns on 4 Claude Code plugin(s) that are not set up for this folder yet (lisa-expo@lisa, lisa-typescript@lisa, lisa-wiki@lisa, lisa@lisa), so Lisa commands such as /lisa:implement are unavailable in this session. Installing dependencies does not set them up. Run `lisa apply .` in this project, then restart Claude Code.","hookSpecificOutput":{"hookEventName":"SessionStart","additionalContext":"Lisa: this project turns on 4 Claude Code plugin(s) that are not set up for this folder yet (lisa-expo@lisa, lisa-typescript@lisa, lisa-wiki@lisa, lisa@lisa), so Lisa commands such as /lisa:implement are unavailable in this session. Installing dependencies does not set them up. Run `lisa apply .` in this project, then restart Claude Code."}}
+exit=0

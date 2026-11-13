@@ -1,8 +1,8 @@
 {
   "$generatedBy": "scripts/generate-export-surface.mjs",
   "$doNotEdit": "The public export surface this package ships, recorded so a removal is an OBSERVATION rather than an inference from commit-message conventions. This file's diff is what makes a removed export visible in the pull request that causes it (CodySwannGT/lisa#3718).",
-  "$modules": 276,
-  "$names": 1984,
+  "$modules": 277,
+  "$names": 1985,
   "surface": {
     "all/copy-overwrite/scripts/check-conflict-markers.mjs": [
       "UsageError",
@@ -1025,6 +1025,9 @@
     "all/copy-overwrite/scripts/lisa-npm-updater.mjs": [
       "cancellationRequest",
       "main"
+    ],
+    "all/copy-overwrite/scripts/lisa-plugin-registration-notice.mjs": [
+      "pluginRegistrationNotice"
     ],
     "all/copy-overwrite/scripts/lisa-postinstall.mjs": [
       "APPLY_FAILURE_MARKER",

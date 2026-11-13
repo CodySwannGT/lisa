@@ -27,6 +27,20 @@ describe("getBootstrapApplySkipNotice", () => {
     ).toContain("lisa apply");
   });
 
+  it("tells the operator that installing did not register Claude Code plugins (#4504)", () => {
+    const notice = getBootstrapApplySkipNotice({
+      validateOnly: false,
+      postinstall: true,
+      environment: interactive,
+    });
+    expect(notice).toContain(
+      "Claude Code plugins are not registered by dependency install"
+    );
+    expect(notice).toContain(
+      "Run `lisa apply .` in this project to register them"
+    );
+  });
+
   it("skips an explicitly declared install unless full apply is requested", () => {
     const options = {
       validateOnly: false,
