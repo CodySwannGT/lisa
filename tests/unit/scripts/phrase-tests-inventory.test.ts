@@ -14,8 +14,13 @@ import {
   classifyCheck,
   classifyManifest,
   countBySource,
+  phraseParts,
   pruneManifest,
 } from "../../../scripts/lib/phrase-tests/inventory.mjs";
+import {
+  expectChains,
+  parseSource,
+} from "../../../scripts/lib/phrase-tests/ast.mjs";
 
 const SKILL = "plugins/src/base/skills/x/SKILL.md";
 const HOOK = "plugins/src/base/hooks/x.sh";
@@ -117,6 +122,42 @@ describe("pruneManifest", () => {
     });
     expect(classifyManifest(sourceGuards).counts.WORDING).toBe(0);
   });
+
+  it("is a no-op when run again on its own output", () => {
+    const again = pruneManifest(pruned, sourceGuards);
+    expect(again.manifest).toEqual(pruned);
+    expect(again.sourceGuards).toEqual(sourceGuards);
+    expect(Object.keys(again.sourceGuards.files)).toEqual([HOOK]);
+  });
+
+  it("merges newly found guards into the existing file instead of replacing it", () => {
+    const other = "plugins/src/base/hooks/other.sh";
+    const { sourceGuards: merged } = pruneManifest(
+      {
+        $comment: [],
+        files: {
+          [HOOK]: {
+            required: ["exit 2", "set -e"],
+            forbidden: [],
+            requiredPatterns: [],
+            forbiddenPatterns: [],
+            source: [],
+          },
+          [other]: {
+            required: ["trap"],
+            forbidden: [],
+            requiredPatterns: [],
+            forbiddenPatterns: [],
+            source: [],
+          },
+        },
+      },
+      sourceGuards
+    );
+    expect(Object.keys(merged.files)).toEqual([other, HOOK]);
+    expect(merged.files[HOOK]?.required).toEqual(["exit 2", "set -e"]);
+    expect(merged.files[HOOK]?.source).toEqual(["tests/old.test.ts › e > f"]);
+  });
 });
 
 const HEADER = [
@@ -203,6 +244,34 @@ describe("classifyAssertions", () => {
       ].join("\n")
     );
     expect(found.map(site => site.cls)).toEqual([MACHINE_TOKEN, "UNRESOLVED"]);
+  });
+
+  it("refuses to resolve a constant name declared more than once", () => {
+    const found = sites(
+      [
+        `const doc = readFileSync("${SKILL}", "utf8");`,
+        'describe("a", () => { const MARKER = "## Lisa Usage"; it("x", () => expect(doc).toContain(MARKER)); });',
+        'describe("b", () => { const MARKER = "Never guess"; it("y", () => expect(doc).toContain(MARKER)); });',
+      ].join("\n")
+    );
+    expect(found.map(site => site.cls)).toEqual(["UNRESOLVED", "UNRESOLVED"]);
+  });
+
+  it("leaves an includes() check UNRESOLVED when toBe gets no boolean literal", () => {
+    const source = parseSource(
+      TEST_FILE,
+      'const expected = true;\nexpect(doc.includes("x")).toBe(expected);'
+    );
+    const [chain] = expectChains(source);
+    expect(chain).toBeDefined();
+    expect(phraseParts(chain!).argument).toBeUndefined();
+    const literal = expectChains(
+      parseSource(TEST_FILE, 'expect(doc.includes("x")).toBe(false);')
+    )[0];
+    expect(phraseParts(literal!)).toMatchObject({
+      negated: true,
+      matcher: "includes",
+    });
   });
 
   it("follows a reader helper and an assertion helper to the document", () => {

@@ -29,16 +29,12 @@ const read = (relativePath: string): string =>
   readFileSync(path.resolve(relativePath), "utf8");
 
 describe.each(SKILL_ROOTS)("upstream filing contract (%s)", skillRoot => {
+  // The whole skill, not a heading-bounded slice: the tokens are what the
+  // body builder reads, so renaming a section heading must not fail this.
   const skill = read(`${skillRoot}/lisa-persist-learning/SKILL.md`);
-  const handoff = skill.slice(
-    skill.indexOf("### `handoff-upstream`"),
-    skill.indexOf("### `persist`")
-  );
 
   it("files with the attribution marker the body builder parses", () => {
-    expect(handoff).toContain(
-      "[lisa-upstream-attribution] key=<root-cause-key>"
-    );
+    expect(skill).toContain("[lisa-upstream-attribution] key=<root-cause-key>");
   });
 
   it("names every failure class the body builder accepts", () => {
@@ -61,7 +57,7 @@ describe.each(SKILL_ROOTS)("upstream filing contract (%s)", skillRoot => {
       "validation-gap",
       "workflow-contract-violation",
     ]) {
-      expect(handoff).toContain(`\`${failureClass}\``);
+      expect(skill).toContain(`\`${failureClass}\``);
     }
   });
 });

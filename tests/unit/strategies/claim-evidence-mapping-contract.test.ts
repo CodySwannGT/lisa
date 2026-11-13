@@ -1,8 +1,10 @@
 /**
  * Contract coverage for the vendor-neutral claim-evidence-mapping rule.
  *
- * The rule's guidance prose is not pinned (#4867). What stays: both halves
- * ship with a non-trivial body, the reference is reachable from the eager rule
+ * The rule's guidance prose is not pinned (#4867). The rule ships as a
+ * reference body only; its eager side is the link in `00-rule-index.md`, and
+ * that link is the only way the eager side is checked. What stays: the
+ * reference ships with a non-trivial body, it is reachable from the eager rule
  * index, and the reference names the claim fields that shipped code parses
  * (`claim_id`, `boundary`, `required_evidence_kinds`, read by
  * `enforce-verification-gate.sh` and the doctor readiness checks). Both plugin
@@ -27,11 +29,9 @@ const read = (root: string, rel: string): string =>
 
 describe("claim-evidence-mapping rule contract", () => {
   describe.each(ROOTS)("%s", root => {
-    const eager = read(root, "rules/reference/claim-evidence-mapping.md");
     const reference = read(root, "rules/reference/claim-evidence-mapping.md");
 
-    it("ships as a paired rule with a non-trivial body on both sides", () => {
-      expect(eager.length).toBeGreaterThan(500);
+    it("ships a non-trivial reference body", () => {
       expect(reference.length).toBeGreaterThan(2000);
     });
 

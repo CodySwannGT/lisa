@@ -2653,7 +2653,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/check-workflow-package-paths.mjs":
       "07ebf3f8a4504f6231c5ae492ecda7f95a80a0fa5f0424b9d3368544b1b612dd",
     "scripts/classify-phrase-tests.mjs":
-      "cb335528cb7690238c1815a0ddc0267bf4d96891a658468f8c455232722dfbcd",
+      "5656f30ff0ba5f35642c8709ca36d54cf6f7e6ed04a4c731b4c5af89565967f2",
     "scripts/claude-remote-setup.sh":
       "5947c48ee78f2efdf321f6a516e0aad427ac77345ce26d4e29d0eecc5cd5d307",
     "scripts/clean-dist.mjs":
@@ -2769,7 +2769,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/lib/phrase-tests/fold.mjs":
       "36e1a914cfc384bc310ba84ce0df7e407a741dbca8352bdf762e67c0d0bee623",
     "scripts/lib/phrase-tests/inventory.mjs":
-      "ffaf33cf6a8a6d52edb6efceed24fe8fbf83edbd8b389838c89d50a1f56a4fa8",
+      "ce2b232847875a7937c925574a40af983decbc7a6e7b42b53b65da3962afed62",
     "scripts/lib/phrase-tests/manifest.mjs":
       "6d69f012f3c2a7f014d0ed5ae67b3a7becc8d5470456c7a91d0d9ea7bde712c3",
     "scripts/lib/phrase-tests/parity.mjs":
@@ -2781,7 +2781,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/lib/phrase-tests/runner.mjs":
       "7d75f0b65c11e7c52f6fbabe064e5f4fc0cc192ae4228de7cdc9713d5ce0145c",
     "scripts/lib/phrase-tests/token-classes.mjs":
-      "a354fe7df527d1a46e6b7be5cba2563618e098036ec345787bc56cdf39e1f9dc",
+      "d7e97090bb006c4ed829ea297be8cb51ec392053e9d8cdbcc4e7a41803bb7580",
     "scripts/lib/plugin-cache-resolution.mjs":
       "47a564e2f9d46c0a955defe8eb924f86d7a273098e6ccb118e10f9eeecf3950c",
     "scripts/lib/plugin-rule-citations.mjs":
@@ -3869,6 +3869,12 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "evidence/4867/classification-manifest-after.json": true,
     "evidence/4867/classification-manifest-before.json": true,
     "evidence/4867/classification-summary.md": true,
+    "evidence/4867/verification/breakage-a.txt": true,
+    "evidence/4867/verification/breakage-b.txt": true,
+    "evidence/4867/verification/breakage-c.txt": true,
+    "evidence/4867/verification/classifier.txt": true,
+    "evidence/4867/verification/reword-probe.txt": true,
+    "evidence/4867/verification/timings.txt": true,
     "evidence/CodySwannGT-lisa-4496/01-outside-no-session.txt": true,
     "evidence/CodySwannGT-lisa-4496/02-inside-manager-session.txt": true,
     "evidence/CodySwannGT-lisa-4496/03-outside-while-running.txt": true,
@@ -13437,7 +13443,6 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/strategies/doctor-report-rendering.test.ts": true,
     "tests/unit/strategies/doctor-repository-readiness.test.ts": true,
     "tests/unit/strategies/doctor-scaffold.test.ts": true,
-    "tests/unit/strategies/drive-pr-bounded-ci-watch.test.ts": true,
     "tests/unit/strategies/drive-pr-review-state-query.test.ts": true,
     "tests/unit/strategies/easignore-worktree-exclusion.test.ts": true,
     "tests/unit/strategies/effectiveness-parity.test.ts": true,

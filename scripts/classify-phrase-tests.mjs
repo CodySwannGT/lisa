@@ -19,7 +19,7 @@
  * those on other text (script output) and on text it could not trace.
  * @module scripts/classify-phrase-tests
  */
-import { readFileSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
 import { classifyTestSource } from "./lib/phrase-tests/classify.mjs";
@@ -121,12 +121,16 @@ function reportPhraseOnlyFiles() {
 if (args.has("--classify-manifest")) {
   printJson(classifyManifest(readManifest()));
 } else if (args.has("--prune-manifest")) {
-  const { manifest, sourceGuards } = pruneManifest(readManifest());
-  writeFileSync(manifestFile, `${JSON.stringify(manifest, null, 2)}\n`);
-  writeFileSync(
-    path.join(REPO_ROOT, SOURCE_GUARDS_PATH),
-    `${JSON.stringify(sourceGuards, null, 2)}\n`
+  const guardsFile = path.join(REPO_ROOT, SOURCE_GUARDS_PATH);
+  const existingGuards = existsSync(guardsFile)
+    ? JSON.parse(readFileSync(guardsFile, "utf8"))
+    : undefined;
+  const { manifest, sourceGuards } = pruneManifest(
+    readManifest(),
+    existingGuards
   );
+  writeFileSync(manifestFile, `${JSON.stringify(manifest, null, 2)}\n`);
+  writeFileSync(guardsFile, `${JSON.stringify(sourceGuards, null, 2)}\n`);
 } else if (args.has("--classify-assertions")) {
   reportAssertions();
 } else {

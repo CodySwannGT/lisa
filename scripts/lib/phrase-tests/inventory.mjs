@@ -7,7 +7,13 @@
  */
 import ts from "typescript";
 
-import { expectChains, isPhraseChain, parseSource, walk } from "./ast.mjs";
+import {
+  booleanLiteral,
+  expectChains,
+  isPhraseChain,
+  parseSource,
+  walk,
+} from "./ast.mjs";
 import {
   MANIFEST_COMMENT,
   manifestEntries,
@@ -159,22 +165,77 @@ export function selectEntries(manifest, keep, comment) {
  * Split a manifest: its MACHINE-TOKEN and STRUCTURAL entries stay as the
  * required-phrases manifest, its NOT-MARKDOWN entries move to the
  * source-text guards, and its WORDING entries are dropped.
+ *
+ * The guards already on disk are merged, never replaced: after the first
+ * run the manifest holds no NOT-MARKDOWN entries, so a second run would
+ * otherwise write an empty guards file. Running it again is a no-op.
  * @param {import("./manifest.mjs").Manifest} manifest - The manifest.
+ * @param {import("./manifest.mjs").Manifest} [existingGuards] - The
+ *   source-text guards file as it stands, if there is one.
  * @returns {{ manifest: import("./manifest.mjs").Manifest, sourceGuards: import("./manifest.mjs").Manifest }} The two files.
  */
-export function pruneManifest(manifest) {
+export function pruneManifest(manifest, existingGuards) {
+  const found = selectEntries(
+    manifest,
+    cls => cls === NOT_MARKDOWN,
+    SOURCE_GUARDS_COMMENT
+  );
   return {
     manifest: selectEntries(
       manifest,
       cls => LOAD_BEARING.includes(cls),
       MANIFEST_COMMENT
     ),
-    sourceGuards: selectEntries(
-      manifest,
-      cls => cls === NOT_MARKDOWN,
-      SOURCE_GUARDS_COMMENT
-    ),
+    sourceGuards: existingGuards
+      ? mergeManifests(existingGuards, found, SOURCE_GUARDS_COMMENT)
+      : found,
   };
+}
+
+/** The arrays of a manifest file entry. */
+const ENTRY_KEYS = /** @type {const} */ ([
+  "required",
+  "forbidden",
+  "requiredPatterns",
+  "forbiddenPatterns",
+  "source",
+]);
+
+/**
+ * Append the values of `more` that `base` lacks, keeping `base` in order.
+ * @param {readonly unknown[]} base - Existing values.
+ * @param {readonly unknown[]} more - Values to add.
+ * @returns {unknown[]} The union.
+ */
+function union(base, more) {
+  const seen = new Set(base.map(value => JSON.stringify(value)));
+  return [...base, ...more.filter(value => !seen.has(JSON.stringify(value)))];
+}
+
+/**
+ * Merge two manifests. Every value in `base` stays where it is and new
+ * values are appended, so merging nothing new returns `base` unchanged.
+ * @param {import("./manifest.mjs").Manifest} base - The manifest kept.
+ * @param {import("./manifest.mjs").Manifest} more - Entries to add.
+ * @param {readonly string[]} comment - The `$comment` of the result.
+ * @returns {import("./manifest.mjs").Manifest} The merged manifest.
+ */
+export function mergeManifests(base, more, comment) {
+  const files = { ...base.files };
+  for (const [file, entry] of Object.entries(more.files)) {
+    const current = files[file];
+    files[file] = current
+      ? /** @type {import("./manifest.mjs").FileEntry} */ (
+          Object.fromEntries(
+            ENTRY_KEYS.map(key => [key, union(current[key], entry[key])])
+          )
+        )
+      : entry;
+  }
+  const sorted = Object.keys(files)
+    .sort()
+    .map(file => [file, files[file]]);
+  return { $comment: comment, files: Object.fromEntries(sorted) };
 }
 
 /** Calls that read a file's text. */
@@ -199,6 +260,8 @@ export function readsMarkdown(sourceFile) {
 function constantLiterals(sourceFile) {
   /** @type {Map<string, ts.Expression>} */
   const constants = new Map();
+  /** @type {Set<string>} */
+  const shadowed = new Set();
   walk(sourceFile, node => {
     if (
       ts.isVariableDeclaration(node) &&
@@ -206,7 +269,13 @@ function constantLiterals(sourceFile) {
       node.initializer &&
       ts.isVarConst(node)
     ) {
-      constants.set(node.name.text, node.initializer);
+      const name = node.name.text;
+      if (constants.has(name) || shadowed.has(name)) {
+        constants.delete(name);
+        shadowed.add(name);
+      } else {
+        constants.set(name, node.initializer);
+      }
     }
   });
   return constants;
@@ -244,7 +313,7 @@ export function literalPhrase(node, constants) {
  * @param {ReturnType<typeof import("./ast.mjs").readExpectChain>} chain - A phrase chain.
  * @returns {{ argument: ts.Expression | undefined, negated: boolean, matcher: string }} The parts.
  */
-function phraseParts(chain) {
+export function phraseParts(chain) {
   if (chain.matcher !== "toBe") {
     return {
       argument: chain.args[0],
@@ -253,9 +322,11 @@ function phraseParts(chain) {
     };
   }
   const includes = /** @type {ts.CallExpression} */ (chain.subject);
-  const expected = chain.args[0]?.kind === ts.SyntaxKind.TrueKeyword;
+  const expected = booleanLiteral(chain.args[0]);
   return {
-    argument: includes.arguments[0],
+    // Not a boolean literal: the polarity is unknown, so leave the
+    // argument unset and let the site report UNRESOLVED.
+    argument: expected === undefined ? undefined : includes.arguments[0],
     negated: expected === chain.negated,
     matcher: "includes",
   };

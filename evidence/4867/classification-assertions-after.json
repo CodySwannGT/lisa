@@ -1,16 +1,16 @@
 {
-  "testFiles": 148,
-  "sites": 1512,
-  "markdownSites": 216,
+  "testFiles": 147,
+  "sites": 1513,
+  "markdownSites": 217,
   "counts": {
-    "MACHINE-TOKEN": 17,
+    "MACHINE-TOKEN": 16,
     "STRUCTURAL": 36,
-    "WORDING": 123,
-    "UNRESOLVED": 40,
+    "WORDING": 120,
+    "UNRESOLVED": 45,
     "NOT-MARKDOWN": 0
   },
   "bySource": {
-    "markdown": 216,
+    "markdown": 217,
     "other": 1273,
     "unknown": 23
   },
@@ -373,8 +373,8 @@
       "counts": {
         "MACHINE-TOKEN": 0,
         "STRUCTURAL": 0,
-        "WORDING": 4,
-        "UNRESOLVED": 0,
+        "WORDING": 0,
+        "UNRESOLVED": 4,
         "NOT-MARKDOWN": 0
       },
       "bySource": {
@@ -1457,16 +1457,16 @@
     },
     {
       "file": "tests/unit/strategies/automations-skills.test.ts",
-      "sites": 2,
+      "sites": 4,
       "counts": {
         "MACHINE-TOKEN": 0,
         "STRUCTURAL": 0,
-        "WORDING": 2,
-        "UNRESOLVED": 0,
+        "WORDING": 3,
+        "UNRESOLVED": 1,
         "NOT-MARKDOWN": 0
       },
       "bySource": {
-        "markdown": 2,
+        "markdown": 4,
         "other": 0,
         "unknown": 0
       }
@@ -1708,22 +1708,6 @@
       "bySource": {
         "markdown": 10,
         "other": 6,
-        "unknown": 0
-      }
-    },
-    {
-      "file": "tests/unit/strategies/drive-pr-bounded-ci-watch.test.ts",
-      "sites": 1,
-      "counts": {
-        "MACHINE-TOKEN": 1,
-        "STRUCTURAL": 0,
-        "WORDING": 0,
-        "UNRESOLVED": 0,
-        "NOT-MARKDOWN": 0
-      },
-      "bySource": {
-        "markdown": 1,
-        "other": 0,
         "unknown": 0
       }
     },
@@ -6543,10 +6527,10 @@
       "matcher": "toContain",
       "subject": "derived",
       "source": "markdown",
-      "kind": "string",
-      "value": "# Starter sync\n\nFollow the declared workflow.\n",
-      "cls": "WORDING",
-      "rule": "prose",
+      "kind": "expression",
+      "value": "body",
+      "cls": "UNRESOLVED",
+      "rule": "argument-not-literal",
       "parser": []
     },
     {
@@ -6555,10 +6539,10 @@
       "matcher": "not.toContain",
       "subject": "metadata",
       "source": "markdown",
-      "kind": "string",
-      "value": "Run anUnbrokenRoutingWordThatExceedsTheRemainingBudget for this workflow.",
-      "cls": "WORDING",
-      "rule": "prose",
+      "kind": "expression",
+      "value": "description",
+      "cls": "UNRESOLVED",
+      "rule": "argument-not-literal",
       "parser": []
     },
     {
@@ -6567,10 +6551,10 @@
       "matcher": "toContain",
       "subject": "generated.split(\"---\").slice(2).join(\"---\")",
       "source": "markdown",
-      "kind": "string",
-      "value": "Run anUnbrokenRoutingWordThatExceedsTheRemainingBudget for this workflow.",
-      "cls": "WORDING",
-      "rule": "prose",
+      "kind": "expression",
+      "value": "description",
+      "cls": "UNRESOLVED",
+      "rule": "argument-not-literal",
       "parser": []
     },
     {
@@ -6579,10 +6563,10 @@
       "matcher": "toContain",
       "subject": "generated",
       "source": "markdown",
-      "kind": "string",
-      "value": "# Starter sync\n\nFollow the declared workflow.\n",
-      "cls": "WORDING",
-      "rule": "prose",
+      "kind": "expression",
+      "value": "body",
+      "cls": "UNRESOLVED",
+      "rule": "argument-not-literal",
       "parser": []
     },
     {
@@ -6627,10 +6611,10 @@
       "matcher": "toContain",
       "subject": "generated.split(\"---\").slice(2).join(\"---\")",
       "source": "other",
-      "kind": "string",
-      "value": "Run anUnbrokenRoutingWordThatExceedsTheRemainingBudget for this workflow.",
-      "cls": "WORDING",
-      "rule": "prose",
+      "kind": "expression",
+      "value": "description",
+      "cls": "UNRESOLVED",
+      "rule": "argument-not-literal",
       "parser": []
     },
     {
@@ -7218,10 +7202,9 @@
       "kind": "string",
       "value": "name: lisa-project-ideation",
       "cls": "STRUCTURAL",
-      "rule": "frontmatter-key",
+      "rule": "frontmatter-agent-key",
       "parser": [
-        "src/codex/command-skill-transformer.ts",
-        "src/opencode/agent-transformer.ts"
+        "src/codex/agent-transformer.ts"
       ]
     },
     {
@@ -16287,7 +16270,7 @@
     },
     {
       "file": "tests/unit/scripts/phrase-tests-inventory.test.ts",
-      "line": 109,
+      "line": 114,
       "matcher": "toContain",
       "subject": "sourceGuards.$comment.join(\" \")",
       "source": "other",
@@ -16299,7 +16282,7 @@
     },
     {
       "file": "tests/unit/scripts/phrase-tests-inventory.test.ts",
-      "line": 113,
+      "line": 118,
       "matcher": "toContain",
       "subject": "pruned.$comment.join(\" \")",
       "source": "other",
@@ -16957,7 +16940,7 @@
       "rule": "frontmatter-delimiter",
       "parser": [
         "src/codex/command-skill-transformer.ts",
-        "src/opencode/agent-transformer.ts"
+        "src/codex/agent-transformer.ts"
       ]
     },
     {
@@ -16974,8 +16957,7 @@
       "cls": "STRUCTURAL",
       "rule": "frontmatter-key",
       "parser": [
-        "src/codex/command-skill-transformer.ts",
-        "src/opencode/agent-transformer.ts"
+        "src/codex/command-skill-transformer.ts"
       ]
     },
     {
@@ -17005,7 +16987,7 @@
       "rule": "frontmatter-delimiter",
       "parser": [
         "src/codex/command-skill-transformer.ts",
-        "src/opencode/agent-transformer.ts"
+        "src/codex/agent-transformer.ts"
       ]
     },
     {
@@ -17037,8 +17019,7 @@
       "cls": "STRUCTURAL",
       "rule": "frontmatter-key",
       "parser": [
-        "src/codex/command-skill-transformer.ts",
-        "src/opencode/agent-transformer.ts"
+        "src/codex/command-skill-transformer.ts"
       ]
     },
     {
@@ -17109,7 +17090,7 @@
     },
     {
       "file": "tests/unit/strategies/automations-skills.test.ts",
-      "line": 27,
+      "line": 67,
       "matcher": "toMatch",
       "subject": "content",
       "source": "markdown",
@@ -17124,7 +17105,7 @@
     },
     {
       "file": "tests/unit/strategies/automations-skills.test.ts",
-      "line": 28,
+      "line": 68,
       "matcher": "toMatch",
       "subject": "content",
       "source": "markdown",
@@ -17135,6 +17116,30 @@
       },
       "cls": "WORDING",
       "rule": "regex-prose",
+      "parser": []
+    },
+    {
+      "file": "tests/unit/strategies/automations-skills.test.ts",
+      "line": 79,
+      "matcher": "toContain",
+      "subject": "content",
+      "source": "markdown",
+      "kind": "string",
+      "value": "scripts/automation-run-record.mjs",
+      "cls": "WORDING",
+      "rule": "prose",
+      "parser": []
+    },
+    {
+      "file": "tests/unit/strategies/automations-skills.test.ts",
+      "line": 81,
+      "matcher": "toContain",
+      "subject": "content",
+      "source": "markdown",
+      "kind": "expression",
+      "value": "flag",
+      "cls": "UNRESOLVED",
+      "rule": "argument-not-literal",
       "parser": []
     },
     {
@@ -17721,8 +17726,7 @@
       "cls": "STRUCTURAL",
       "rule": "frontmatter-key",
       "parser": [
-        "src/codex/command-skill-transformer.ts",
-        "src/opencode/agent-transformer.ts"
+        "src/codex/command-skill-transformer.ts"
       ]
     },
     {
@@ -17736,8 +17740,7 @@
       "cls": "STRUCTURAL",
       "rule": "frontmatter-key",
       "parser": [
-        "src/codex/command-skill-transformer.ts",
-        "src/opencode/agent-transformer.ts"
+        "src/codex/command-skill-transformer.ts"
       ]
     },
     {
@@ -18027,7 +18030,7 @@
       "rule": "frontmatter-delimiter",
       "parser": [
         "src/codex/command-skill-transformer.ts",
-        "src/opencode/agent-transformer.ts"
+        "src/codex/agent-transformer.ts"
       ]
     },
     {
@@ -18044,8 +18047,7 @@
       "cls": "STRUCTURAL",
       "rule": "frontmatter-key",
       "parser": [
-        "src/codex/command-skill-transformer.ts",
-        "src/opencode/agent-transformer.ts"
+        "src/codex/command-skill-transformer.ts"
       ]
     },
     {
@@ -18075,7 +18077,7 @@
       "rule": "frontmatter-delimiter",
       "parser": [
         "src/codex/command-skill-transformer.ts",
-        "src/opencode/agent-transformer.ts"
+        "src/codex/agent-transformer.ts"
       ]
     },
     {
@@ -18107,8 +18109,7 @@
       "cls": "STRUCTURAL",
       "rule": "frontmatter-key",
       "parser": [
-        "src/codex/command-skill-transformer.ts",
-        "src/opencode/agent-transformer.ts"
+        "src/codex/command-skill-transformer.ts"
       ]
     },
     {
@@ -18125,8 +18126,7 @@
       "cls": "STRUCTURAL",
       "rule": "frontmatter-key",
       "parser": [
-        "src/codex/command-skill-transformer.ts",
-        "src/opencode/agent-transformer.ts"
+        "src/codex/command-skill-transformer.ts"
       ]
     },
     {
@@ -18242,20 +18242,6 @@
       "cls": "WORDING",
       "rule": "prose",
       "parser": []
-    },
-    {
-      "file": "tests/unit/strategies/drive-pr-bounded-ci-watch.test.ts",
-      "line": 66,
-      "matcher": "toContain",
-      "subject": "watchLoop()",
-      "source": "markdown",
-      "kind": "string",
-      "value": "[lisa-ci-failed]",
-      "cls": "MACHINE-TOKEN",
-      "rule": "lisa-ci-failed",
-      "parser": [
-        "scripts/lisa-ci-rework-route.mjs"
-      ]
     },
     {
       "file": "tests/unit/strategies/drive-pr-review-state-query.test.ts",
@@ -18535,8 +18521,7 @@
       "cls": "STRUCTURAL",
       "rule": "frontmatter-key",
       "parser": [
-        "src/codex/command-skill-transformer.ts",
-        "src/opencode/agent-transformer.ts"
+        "src/codex/command-skill-transformer.ts"
       ]
     },
     {
@@ -18554,7 +18539,7 @@
       "rule": "frontmatter-delimiter",
       "parser": [
         "src/codex/command-skill-transformer.ts",
-        "src/opencode/agent-transformer.ts"
+        "src/codex/agent-transformer.ts"
       ]
     },
     {
@@ -18586,8 +18571,7 @@
       "cls": "STRUCTURAL",
       "rule": "frontmatter-key",
       "parser": [
-        "src/codex/command-skill-transformer.ts",
-        "src/opencode/agent-transformer.ts"
+        "src/codex/command-skill-transformer.ts"
       ]
     },
     {
@@ -18605,7 +18589,7 @@
       "rule": "frontmatter-delimiter",
       "parser": [
         "src/codex/command-skill-transformer.ts",
-        "src/opencode/agent-transformer.ts"
+        "src/codex/agent-transformer.ts"
       ]
     },
     {
@@ -18622,8 +18606,7 @@
       "cls": "STRUCTURAL",
       "rule": "frontmatter-key",
       "parser": [
-        "src/codex/command-skill-transformer.ts",
-        "src/opencode/agent-transformer.ts"
+        "src/codex/command-skill-transformer.ts"
       ]
     },
     {
@@ -18653,7 +18636,7 @@
       "rule": "frontmatter-delimiter",
       "parser": [
         "src/codex/command-skill-transformer.ts",
-        "src/opencode/agent-transformer.ts"
+        "src/codex/agent-transformer.ts"
       ]
     },
     {
@@ -18685,8 +18668,7 @@
       "cls": "STRUCTURAL",
       "rule": "frontmatter-key",
       "parser": [
-        "src/codex/command-skill-transformer.ts",
-        "src/opencode/agent-transformer.ts"
+        "src/codex/command-skill-transformer.ts"
       ]
     },
     {
@@ -18727,8 +18709,7 @@
       "cls": "STRUCTURAL",
       "rule": "frontmatter-key",
       "parser": [
-        "src/codex/command-skill-transformer.ts",
-        "src/opencode/agent-transformer.ts"
+        "src/codex/command-skill-transformer.ts"
       ]
     },
     {
@@ -18745,8 +18726,7 @@
       "cls": "STRUCTURAL",
       "rule": "frontmatter-key",
       "parser": [
-        "src/codex/command-skill-transformer.ts",
-        "src/opencode/agent-transformer.ts"
+        "src/codex/command-skill-transformer.ts"
       ]
     },
     {
@@ -19022,7 +19002,7 @@
       "rule": "frontmatter-delimiter",
       "parser": [
         "src/codex/command-skill-transformer.ts",
-        "src/opencode/agent-transformer.ts"
+        "src/codex/agent-transformer.ts"
       ]
     },
     {
@@ -19039,8 +19019,7 @@
       "cls": "STRUCTURAL",
       "rule": "frontmatter-key",
       "parser": [
-        "src/codex/command-skill-transformer.ts",
-        "src/opencode/agent-transformer.ts"
+        "src/codex/command-skill-transformer.ts"
       ]
     },
     {
@@ -19070,7 +19049,7 @@
       "rule": "frontmatter-delimiter",
       "parser": [
         "src/codex/command-skill-transformer.ts",
-        "src/opencode/agent-transformer.ts"
+        "src/codex/agent-transformer.ts"
       ]
     },
     {
@@ -19102,8 +19081,7 @@
       "cls": "STRUCTURAL",
       "rule": "frontmatter-key",
       "parser": [
-        "src/codex/command-skill-transformer.ts",
-        "src/opencode/agent-transformer.ts"
+        "src/codex/command-skill-transformer.ts"
       ]
     },
     {
@@ -19644,7 +19622,7 @@
       "rule": "frontmatter-delimiter",
       "parser": [
         "src/codex/command-skill-transformer.ts",
-        "src/opencode/agent-transformer.ts"
+        "src/codex/agent-transformer.ts"
       ]
     },
     {
@@ -19909,9 +19887,9 @@
     },
     {
       "file": "tests/unit/strategies/upstream-attribution-filing-contract.test.ts",
-      "line": 39,
+      "line": 37,
       "matcher": "toContain",
-      "subject": "handoff",
+      "subject": "skill",
       "source": "markdown",
       "kind": "string",
       "value": "[lisa-upstream-attribution] key=<root-cause-key>",
@@ -19923,9 +19901,9 @@
     },
     {
       "file": "tests/unit/strategies/upstream-attribution-filing-contract.test.ts",
-      "line": 64,
+      "line": 60,
       "matcher": "toContain",
-      "subject": "handoff",
+      "subject": "skill",
       "source": "markdown",
       "kind": "expression",
       "value": "`\\`${failureClass}\\``",
@@ -20082,7 +20060,7 @@
       "rule": "frontmatter-delimiter",
       "parser": [
         "src/codex/command-skill-transformer.ts",
-        "src/opencode/agent-transformer.ts"
+        "src/codex/agent-transformer.ts"
       ]
     },
     {
@@ -20099,8 +20077,7 @@
       "cls": "STRUCTURAL",
       "rule": "frontmatter-key",
       "parser": [
-        "src/codex/command-skill-transformer.ts",
-        "src/opencode/agent-transformer.ts"
+        "src/codex/command-skill-transformer.ts"
       ]
     },
     {
@@ -20130,7 +20107,7 @@
       "rule": "frontmatter-delimiter",
       "parser": [
         "src/codex/command-skill-transformer.ts",
-        "src/opencode/agent-transformer.ts"
+        "src/codex/agent-transformer.ts"
       ]
     },
     {
@@ -20162,8 +20139,7 @@
       "cls": "STRUCTURAL",
       "rule": "frontmatter-key",
       "parser": [
-        "src/codex/command-skill-transformer.ts",
-        "src/opencode/agent-transformer.ts"
+        "src/codex/command-skill-transformer.ts"
       ]
     },
     {
@@ -20180,8 +20156,7 @@
       "cls": "STRUCTURAL",
       "rule": "frontmatter-key",
       "parser": [
-        "src/codex/command-skill-transformer.ts",
-        "src/opencode/agent-transformer.ts"
+        "src/codex/command-skill-transformer.ts"
       ]
     },
     {
@@ -20235,7 +20210,7 @@
       "rule": "frontmatter-delimiter",
       "parser": [
         "src/codex/command-skill-transformer.ts",
-        "src/opencode/agent-transformer.ts"
+        "src/codex/agent-transformer.ts"
       ]
     },
     {
@@ -20832,7 +20807,7 @@
       "rule": "frontmatter-delimiter",
       "parser": [
         "src/codex/command-skill-transformer.ts",
-        "src/opencode/agent-transformer.ts"
+        "src/codex/agent-transformer.ts"
       ]
     },
     {
@@ -20849,8 +20824,7 @@
       "cls": "STRUCTURAL",
       "rule": "frontmatter-key",
       "parser": [
-        "src/codex/command-skill-transformer.ts",
-        "src/opencode/agent-transformer.ts"
+        "src/codex/command-skill-transformer.ts"
       ]
     },
     {
@@ -20880,7 +20854,7 @@
       "rule": "frontmatter-delimiter",
       "parser": [
         "src/codex/command-skill-transformer.ts",
-        "src/opencode/agent-transformer.ts"
+        "src/codex/agent-transformer.ts"
       ]
     },
     {
@@ -20912,8 +20886,7 @@
       "cls": "STRUCTURAL",
       "rule": "frontmatter-key",
       "parser": [
-        "src/codex/command-skill-transformer.ts",
-        "src/opencode/agent-transformer.ts"
+        "src/codex/command-skill-transformer.ts"
       ]
     },
     {

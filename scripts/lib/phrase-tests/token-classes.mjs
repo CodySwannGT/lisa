@@ -6,10 +6,17 @@
  *  - MACHINE-TOKEN — a marker whose exact spelling shipped code reads. The
  *    document carries it so an agent following the document writes it, and a
  *    script or hook then parses it. Rewording it breaks the parser, so a test
- *    must protect it. Every entry names the parser and a `needle`, the literal
- *    that parser contains; `phrase-tests-token-classes.test.ts` fails if a
- *    parser file stops containing its needle, so a row cannot outlive the code
- *    that justified it.
+ *    must protect it. Every entry names the parser and its `needle`s, the
+ *    literals that parser contains; `phrase-tests-token-classes.test.ts`
+ *    fails if a parser file stops containing a needle, so a row cannot
+ *    outlive the code that justified it.
+ *
+ *    Matching a row makes a phrase a token CANDIDATE, nothing more. A
+ *    MACHINE-TOKEN pin belongs only in a document that must WRITE the token —
+ *    one an agent follows to emit the marker the parser then reads. A
+ *    document that merely names the token (a rule explaining it, an index
+ *    listing it) does not need the pin: nothing breaks if it stops spelling
+ *    it there.
  *  - STRUCTURAL — document shape that code reads: the frontmatter delimiter
  *    and a frontmatter key whose value is an identifier, not prose.
  *  - WORDING — everything else. Guidance prose needs review, not a test, and a
@@ -44,18 +51,48 @@
  *   the regex cannot be reduced to a literal.
  * @property {readonly string[]} parser - Repository paths of the code that
  *   reads the token.
- * @property {string} needle - A literal every parser file contains.
+ * @property {string | readonly string[]} needle - The literal(s) every
+ *   parser file contains. A needle must be specific enough that losing it
+ *   means the parser changed: a bare `---` or `description` proves nothing.
  */
 
 const MACHINE_TOKEN = "MACHINE-TOKEN";
 const STRUCTURAL = "STRUCTURAL";
 
-/** Frontmatter keys the Codex and OpenCode transformers read. */
-const FRONTMATTER_KEYS =
-  "name|description|argument-hint|allowed-tools|skills|model|tools";
+/** Frontmatter keys the Codex command-to-skill transformer reads. */
+const COMMAND_KEYS = "description|argument-hint|allowed-tools";
+
+/** Frontmatter keys the Codex agent transformer reads. */
+const AGENT_KEYS = "name|description|skills|model|tools";
 
 const COMMAND_TRANSFORMER = "src/codex/command-skill-transformer.ts";
-const AGENT_TRANSFORMER = "src/opencode/agent-transformer.ts";
+const AGENT_TRANSFORMER = "src/codex/agent-transformer.ts";
+
+/** The frontmatter split both transformers apply, as it is spelled there. */
+const FRONTMATTER_SPLIT = String.raw`/^---\r?\n([\s\S]*?)\r?\n---\r?\n?([\s\S]*)$/`;
+
+/**
+ * A STRUCTURAL row for frontmatter keys: the key, optionally followed by an
+ * identifier value (never prose), as a literal or as a regex source.
+ * @param {string} id - Row id.
+ * @param {string} keys - Alternation of key names.
+ * @param {string} parser - The transformer that reads them.
+ * @param {readonly string[]} needle - How that transformer reads them.
+ * @returns {TokenClass} The row.
+ */
+function frontmatterKeyRow(id, keys, parser, needle) {
+  return {
+    id,
+    cls: STRUCTURAL,
+    pattern: new RegExp(`^(?:${keys}):(?: [\\w@./:-]*)?$`, "u"),
+    sourcePattern: new RegExp(
+      String.raw`^\^(?:${keys}):(?:\\s[*+]| )?(?:\\S\+|\.\+|\.\*)?\$?$`,
+      "u"
+    ),
+    parser: [parser],
+    needle,
+  };
+}
 const WORK_ITEM_CLI = "all/copy-overwrite/scripts/lisa-work-item.mjs";
 const DESIGN_SOURCE_GATE = "plugins/src/base/scripts/design-source-gate.mjs";
 
@@ -139,7 +176,7 @@ export const TOKEN_CLASSES = Object.freeze([
     cls: MACHINE_TOKEN,
     pattern: /^(?:<!-- )?\[lisa-npm-(?:filing|proposal)\]$/u,
     parser: ["all/copy-overwrite/scripts/lib/npm-update-leaf-contract.mjs"],
-    needle: "[lisa-npm-filing]",
+    needle: ["<!-- [lisa-npm-filing] ", "<!-- [lisa-npm-proposal] "],
   },
   {
     id: "work-item-trailer",
@@ -208,20 +245,30 @@ export const TOKEN_CLASSES = Object.freeze([
     pattern: /^---\n?$/u,
     sourcePattern: /^\^---(?:\\n|\$|\\r\?\\n)?$/u,
     parser: [COMMAND_TRANSFORMER, AGENT_TRANSFORMER],
-    needle: "---",
+    needle: FRONTMATTER_SPLIT,
   },
-  {
-    id: "frontmatter-key",
-    cls: STRUCTURAL,
-    pattern: new RegExp(`^(?:${FRONTMATTER_KEYS}):(?: [\\w@./:-]*)?$`, "u"),
-    sourcePattern: new RegExp(
-      String.raw`^\^(?:${FRONTMATTER_KEYS}):(?:\\s[*+]| )?(?:\\S\+|\.\+|\.\*)?\$?$`,
-      "u"
-    ),
-    parser: [COMMAND_TRANSFORMER, AGENT_TRANSFORMER],
-    needle: "description",
-  },
+  frontmatterKeyRow("frontmatter-key", COMMAND_KEYS, COMMAND_TRANSFORMER, [
+    "obj.description",
+    'obj["argument-hint"]',
+    'obj["allowed-tools"]',
+  ]),
+  frontmatterKeyRow("frontmatter-agent-key", AGENT_KEYS, AGENT_TRANSFORMER, [
+    "frontmatter.name",
+    "frontmatter.description",
+    "frontmatter.skills",
+    "frontmatter.model",
+    "frontmatter.tools",
+  ]),
 ]);
+
+/**
+ * The needles of a row as a list.
+ * @param {TokenClass} row - A row.
+ * @returns {readonly string[]} Its needles.
+ */
+export function needlesOf(row) {
+  return typeof row.needle === "string" ? [row.needle] : row.needle;
+}
 
 /** Regex metacharacters that make a source more than a literal. */
 const METACHARACTERS = new Set("[](){}*+?|^$.");

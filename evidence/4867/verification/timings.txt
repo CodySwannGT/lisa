@@ -1,0 +1,40 @@
+# Unit-suite size and wall time, before vs after - CodySwannGT/lisa#4867 (Validation Journey step 5)
+All runs: 'time bun run test:unit' on this machine. Other worktrees' vitest suites ran concurrently, so wall time is noisy;
+file and test counts are the stable signal.
+
+## BEFORE: pre-cull commit (log: test-unit-before.log, complete)
+ Test Files  1661 passed (1661)
+      Tests  36416 passed | 2 skipped (36418)
+   Duration  1182.80s (transform 12.94s, setup 70.88s, import 119.99s, tests 1925.20s, environment 69ms)
+bun run test:unit  989.39s user 519.07s system 126% cpu 19:55.26 total
+
+## AFTER (pre-fix tree, earlier lead run; log: test-unit-after.log) - 5 files failed, since fixed by the staged changes
+ Test Files  5 failed | 1607 passed (1612)
+      Tests  6 failed | 25113 passed | 2 skipped (25121)
+   Duration  1105.18s (transform 13.47s, setup 68.74s, import 120.62s, tests 1888.58s, environment 66ms)
+bun run test:unit  980.34s user 505.47s system 133% cpu 18:35.84 total
+ FAIL  |lisa| tests/unit/core/git-shim-resolution.test.ts > git is resolved to a binary, not to a dispatcher (#2898) > no tracked file that spawns a process pre
+ FAIL  |lisa| tests/unit/helpers/staged-dependency-conformance.test.ts > no fixture stages a shipped script's dependencies by name > finds none in the tracked t
+ FAIL  |lisa| tests/unit/helpers/staged-dependency-conformance.test.ts > no fixture stages a shipped script's dependencies by name > scans fixtures that are act
+ FAIL  |lisa| tests/unit/helpers/test-budget-conformance.test.ts > no test suite hands vitest an uncalibrated budget > finds none in the tree the pre-push gates
+ FAIL  |lisa| tests/unit/helpers/unbounded-spawn-conformance.test.ts > every synchronous child start in the test tree carries a deadline > finds none in the tra
+ FAIL  |lisa| tests/unit/scripts/upstream-evidence-manifest.test.ts > upstream evidence manifest > is deterministically synchronized with tracked public sources
+
+## AFTER (final staged tree + reword probe, verifier run 1, before regenerating upstream-evidence-manifest)
+ Test Files  3 failed | 1608 passed (1611)
+      Tests  3 failed | 25166 passed | 2 skipped (25171)
+   Duration  1377.50s (transform 13.09s, setup 70.11s, import 128.91s, tests 1963.10s, environment 67ms)
+bun run test:unit  987.68s user 531.84s system 109% cpu 23:09.37 total
+
+## AFTER (final staged tree + reword probe, verifier run 2, manifest regenerated) - the clean after-cull figure
+ Test Files  1611 passed (1611)
+      Tests  25169 passed | 2 skipped (25171)
+   Duration  1030.80s (transform 12.03s, setup 67.70s, import 118.67s, tests 1765.09s, environment 67ms)
+bun run test:unit  967.46s user 495.58s system 140% cpu 17:22.14 total
+
+## Summary
+| | Test files | Tests | vitest Duration | wall (time) |
+|---|---:|---:|---:|---:|
+| before (pre-cull) | 1,661 | 36,418 (36,416 passed, 2 skipped) | 1182.80s | 19:55 |
+| after (verifier run 2) | 1,611 | 25,171 (25,169 passed, 2 skipped) | 1030.80s | 17:22 |
+| delta | -50 | -11,247 (-30.9%) | -152.0s (-12.9%) | -2:33 |

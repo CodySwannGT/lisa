@@ -15,6 +15,7 @@ import {
   TOKEN_CLASSES,
   classifyPhrase,
   literalOf,
+  needlesOf,
 } from "../../../scripts/lib/phrase-tests/token-classes.mjs";
 import {
   classifyDesignSource,
@@ -29,18 +30,38 @@ const FIGMA_URL = "https://www.figma.com/design/abc/x?node-id=1";
 const DESIGN_SOURCE_GATE = "plugins/src/base/scripts/design-source-gate.mjs";
 
 describe("TOKEN_CLASSES", () => {
-  it.each(TOKEN_CLASSES.flatMap(row => row.parser.map(file => [row.id, file])))(
-    "%s: parser %s exists and still spells the token",
-    (id, file) => {
-      const row = TOKEN_CLASSES.find(candidate => candidate.id === id);
-      const absolute = path.resolve(file);
-      expect(existsSync(absolute), `${file} is gone`).toBe(true);
-      expect(
-        readFileSync(absolute, "utf8").includes(row?.needle ?? "\u0000"),
-        `${file} no longer contains ${JSON.stringify(row?.needle)}; the ${id} row has lost its parser`
-      ).toBe(true);
-    }
-  );
+  it.each(
+    TOKEN_CLASSES.flatMap(row =>
+      row.parser.flatMap(file =>
+        needlesOf(row).map(needle => [row.id, file, needle] as const)
+      )
+    )
+  )("%s: parser %s still spells %j", (id, file, needle) => {
+    const absolute = path.resolve(file);
+    expect(existsSync(absolute), `${file} is gone`).toBe(true);
+    expect(
+      readFileSync(absolute, "utf8").includes(needle),
+      `${file} no longer contains ${JSON.stringify(needle)}; the ${id} row has lost its parser`
+    ).toBe(true);
+  });
+
+  it("uses needles specific enough that losing one means the parser changed", () => {
+    const vague = TOKEN_CLASSES.flatMap(row =>
+      needlesOf(row)
+        .filter(needle => needle.length < 8)
+        .map(needle => `${row.id}: ${JSON.stringify(needle)}`)
+    );
+    expect(vague).toEqual([]);
+  });
+
+  it("ties the npm filing row to both markers it accepts", () => {
+    const row = TOKEN_CLASSES.find(
+      candidate => candidate.id === "lisa-npm-filing"
+    );
+    const needles = row ? needlesOf(row).join(" ") : "";
+    expect(needles).toContain("[lisa-npm-filing]");
+    expect(needles).toContain("[lisa-npm-proposal]");
+  });
 
   it("has unique ids", () => {
     const ids = TOKEN_CLASSES.map(row => row.id);

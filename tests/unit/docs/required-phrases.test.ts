@@ -113,6 +113,10 @@ describe("the required-phrases manifest", () => {
 });
 
 describe("the source-text guards", () => {
+  it("pins phrases", () => {
+    expect(manifestEntries(sourceGuards).length).toBeGreaterThan(0);
+  });
+
   it("guards only files that are not Markdown documents", () => {
     expect(
       misplaced(sourceGuards, ["NOT-MARKDOWN"]),
