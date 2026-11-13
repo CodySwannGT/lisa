@@ -180,7 +180,6 @@ function identify(cwd: string): void {
 
 /**
  * Builds a bare remote whose `branch` holds one commit with a VERSION file.
- * @param baseVersion - Content of the seeded VERSION file.
  * The caller owns `base` and removes it after the case.
  * @param baseVersion - Content of the seeded VERSION file.
  * @param branch - Branch the release runs on.

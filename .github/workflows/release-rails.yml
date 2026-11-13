@@ -193,15 +193,45 @@ jobs:
           # branch, so standard-version's next-version computation — which
           # reads VERSION — is never fed a prerelease string. `/` is legal in
           # a git ref but not in a semver label, so the branch is flattened.
+          #
+          # TAG_RE matches exactly this branch's namespace, so a release tag
+          # cut on another branch is never mistaken for one of ours.
+          LABEL=$(printf '%s' "$BRANCH" | tr -c 'A-Za-z0-9.-' '-')
+          case "$BRANCH" in
+            main | master | prod | production)
+              TAG_RE='^v[0-9]+\.[0-9]+\.[0-9]+$'
+              ;;
+            *)
+              TAG_RE="^v[0-9]+\.[0-9]+\.[0-9]+-${LABEL//./\\.}\.[0-9]+\$"
+              ;;
+          esac
           tag_for() {
             case "$BRANCH" in
               main | master | prod | production)
                 echo "v$1"
                 ;;
               *)
-                echo "v$1-$(printf '%s' "$BRANCH" | tr -c 'A-Za-z0-9.-' '-').$(date +%s)"
+                echo "v$1-${LABEL}.$(date +%s)"
                 ;;
             esac
+          }
+
+          # The oldest release of THIS branch that already contains the
+          # trigger commit, as "<commit> <tag>", or nothing. Only the
+          # first-parent line counts — this job's release commits are pushed
+          # straight onto BRANCH, so they always sit on it — and only a tag in
+          # this branch's namespace counts, so a staging release promoted into
+          # main (merged or fast-forwarded) is never taken for main's own.
+          covering_release() {
+            local commit tag
+            for commit in $(git rev-list --first-parent --ancestry-path --reverse --grep='^chore(release):' "$TRIGGER_SHA..origin/$BRANCH"); do
+              for tag in $(git tag --points-at "$commit" --list 'v*'); do
+                if [[ "$tag" =~ $TAG_RE ]]; then
+                  echo "$commit $tag"
+                  return 0
+                fi
+              done
+            done
           }
 
           # The first patch version at or after $1 whose `v` tag is unused.
@@ -246,16 +276,15 @@ jobs:
           while :; do
             git fetch --quiet --force --tags origin "+refs/heads/$BRANCH:refs/remotes/origin/$BRANCH"
 
-            # A concurrent run already released this commit: one of its
-            # release commits on BRANCH descends from the trigger. Defer to it
-            # instead of cutting a second release. Its tag is still reported,
-            # so a rerun after a partial failure can finish the GitHub release.
-            COVERING=$(git rev-list --ancestry-path --grep='^chore(release):' "$TRIGGER_SHA..origin/$BRANCH" | tail -n 1)
+            # A concurrent run (or an earlier attempt of this one) already
+            # released this commit. Defer to it instead of cutting a second
+            # release. Its tag is still reported, so a rerun after a partial
+            # failure can finish the GitHub release.
+            COVERING=$(covering_release)
             if [ -n "$COVERING" ]; then
-              COVERING_TAG=$(git describe --exact-match --tags --match 'v*' "$COVERING" 2>/dev/null || true)
-              echo "Commit $TRIGGER_SHA was already released by $COVERING (${COVERING_TAG:-untagged}); nothing to release."
+              echo "Commit $TRIGGER_SHA was already released by ${COVERING% *} (${COVERING#* }); nothing to release."
               echo "deferred=true" >> $GITHUB_OUTPUT
-              echo "tag=$COVERING_TAG" >> $GITHUB_OUTPUT
+              echo "tag=${COVERING#* }" >> $GITHUB_OUTPUT
               exit 0
             fi
 
@@ -266,7 +295,8 @@ jobs:
 
             # Release from the current tip: it holds the trigger commit and
             # every merge that landed after it.
-            git reset --quiet --hard "origin/$BRANCH"
+            BUILT_ON=$(git rev-parse "origin/$BRANCH")
+            git reset --quiet --hard "$BUILT_ON"
             bump
             git tag -a "$TAG" -m "chore(release): $TAG"
 
@@ -274,8 +304,17 @@ jobs:
               break
             fi
 
-            # Neither ref landed. Drop the local tag so the retry can re-cut it.
+            # Neither ref landed. Drop the local tag so a retry can re-cut it.
             git tag -d "$TAG" >/dev/null
+
+            # Only a branch that moved is a race worth retrying. A push refused
+            # while BRANCH stayed put (deploy key, ruleset, hook, network)
+            # fails the same way every time, so say that instead.
+            git fetch --quiet origin "+refs/heads/$BRANCH:refs/remotes/origin/$BRANCH" || true
+            if [ "$(git rev-parse "origin/$BRANCH")" = "$BUILT_ON" ]; then
+              echo "::error::The push of release $TAG to $BRANCH was refused by the remote, and $BRANCH has not moved, so this is not a race with another merge. Check the git error above: the deploy key, a branch ruleset or pre-receive hook, or the network. Nothing was published (no commit, no tag)."
+              exit 1
+            fi
             if [ "$attempt" -ge "$MAX_ATTEMPTS" ]; then
               echo "::error::Could not push release $TAG to $BRANCH after $MAX_ATTEMPTS attempts: the branch kept moving underneath this run. Nothing was published (no commit, no tag), so re-running this job is safe."
               exit 1
