@@ -322,6 +322,8 @@ interface StepResult {
 interface StepContext {
   readonly fixture: ReleaseFixture;
   readonly clone: string;
+  /** This invocation's own scratch directory: npx log and step outputs. */
+  readonly runDir: string;
   readonly npxLog: string;
   readonly race: RaceSpec | undefined;
 }
@@ -338,8 +340,9 @@ function runStep(
   index: number,
   ctx: StepContext
 ): StepResult {
-  const { fixture, clone, npxLog, race } = ctx;
-  const outputPath = path.join(fixture.base, `step-${index}-output.txt`);
+  const { fixture, clone, runDir, npxLog, race } = ctx;
+  // Per invocation, so a rerun never reads the outputs of the run before it.
+  const outputPath = path.join(runDir, `step-${index}-output.txt`);
   const stepEnv = Object.fromEntries(
     Object.entries(step.env ?? {}).map(([k, v]) => [
       k,
@@ -387,13 +390,11 @@ export function runReleaseJob(
   clone: string,
   race?: RaceSpec
 ): ReleaseRun {
-  const npxLog = path.join(
-    fs.mkdtempSync(path.join(fixture.base, "npx-")),
-    "log"
-  );
+  const runDir = fs.mkdtempSync(path.join(fixture.base, "run-"));
+  const npxLog = path.join(runDir, "npx.log");
   const steps = releaseSteps();
   const releaseStep = steps.find(s => s.name === RELEASE_STEP);
-  const ctx: StepContext = { fixture, clone, npxLog, race };
+  const ctx: StepContext = { fixture, clone, runDir, npxLog, race };
   const results = steps.reduce<readonly StepResult[]>(
     (done, step, index) =>
       done.some(r => r.status !== 0) ||

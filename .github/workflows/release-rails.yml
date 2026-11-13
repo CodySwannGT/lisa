@@ -172,15 +172,23 @@ jobs:
         run: |
           # Two merges can land on BRANCH seconds apart, and each one starts a
           # run of this job (CodySwannGT/lisa#4748). A caller's `concurrency`
-          # group serializes the runs, but it does not stop each run releasing
-          # from its own push-event SHA. So every release here is cut from the
-          # freshly fetched tip of BRANCH, and the release commit and its tag
-          # go up in ONE atomic push: both refs land or neither does. A plain
-          # `git push --follow-tags` updates each ref on its own, so a branch
-          # rejected as non-fast-forward still let its tag through. That
-          # orphaned the tag off the branch and wedged every later release.
+          # group serializes or cancels the runs, but a run that does go ahead
+          # can still find BRANCH has moved past its push-event SHA.
+          #
+          # The release is built ONLY on that trigger commit, because it is
+          # the commit the caller's pre-deploy gates checked, and the deploy
+          # after this job ships whatever the release covers. Releasing a tip
+          # that moved would publish commits no gate looked at. When BRANCH
+          # has moved, this run stands down and the run for the newer commit
+          # — whose own gates check it — releases instead.
+          #
+          # The release commit and its tag go up in ONE atomic push: both refs
+          # land or neither does. A plain `git push --follow-tags` updates
+          # each ref on its own, so a branch rejected as non-fast-forward
+          # still let its tag through. That orphaned the tag off the branch
+          # and wedged every later release.
           TRIGGER_SHA=$(git rev-parse HEAD)
-          MAX_ATTEMPTS=3
+          REMOTE_BRANCH="+refs/heads/$BRANCH:refs/remotes/origin/$BRANCH"
 
           # Production cuts a clean `vX.Y.Z`. Every other environment cuts a
           # PRE-RELEASE tag `vX.Y.Z-<branch>.<epoch>`. Tags are repo-global
@@ -272,64 +280,64 @@ jobs:
             TAG=$(tag_for "$VERSION")
           }
 
-          attempt=1
-          while :; do
-            git fetch --quiet --force --tags origin "+refs/heads/$BRANCH:refs/remotes/origin/$BRANCH"
+          # BRANCH moved past the gated commit: stand down, publishing nothing.
+          superseded() {
+            echo "::error title=Release superseded::$BRANCH moved on to $1 while this run was releasing $TRIGGER_SHA. This run's checks only covered $TRIGGER_SHA, so releasing the newer commits would ship changes nothing checked. Nothing was published: no release commit and no tag, so later releases are not blocked. The run started for the newer commit checks it and releases it; no action is needed unless that run fails."
+            exit 1
+          }
 
-            # A concurrent run (or an earlier attempt of this one) already
-            # released this commit. Defer to it instead of cutting a second
-            # release. Its tag is still reported, so a rerun after a partial
-            # failure can finish the GitHub release.
-            COVERING=$(covering_release)
-            if [ -n "$COVERING" ]; then
-              echo "Commit $TRIGGER_SHA was already released by ${COVERING% *} (${COVERING#* }); nothing to release."
-              echo "deferred=true" >> $GITHUB_OUTPUT
-              echo "tag=${COVERING#* }" >> $GITHUB_OUTPUT
-              exit 0
-            fi
+          git fetch --quiet --force --tags origin "$REMOTE_BRANCH"
 
-            if ! git merge-base --is-ancestor "$TRIGGER_SHA" "origin/$BRANCH"; then
-              echo "::error::Commit $TRIGGER_SHA is no longer on $BRANCH (the branch was rewritten), so this run has nothing safe to release."
-              exit 1
-            fi
+          # A concurrent run already released this commit: a release of this
+          # branch, on its own line, contains it. Defer to it instead of
+          # cutting a second release. Its tag is still reported, so a rerun
+          # after a partial failure can finish the GitHub release.
+          COVERING=$(covering_release)
+          if [ -n "$COVERING" ]; then
+            echo "Commit $TRIGGER_SHA was already released by ${COVERING% *} (${COVERING#* }); nothing to release."
+            echo "deferred=true" >> $GITHUB_OUTPUT
+            echo "tag=${COVERING#* }" >> $GITHUB_OUTPUT
+            exit 0
+          fi
 
-            # Release from the current tip: it holds the trigger commit and
-            # every merge that landed after it.
-            BUILT_ON=$(git rev-parse "origin/$BRANCH")
-            git reset --quiet --hard "$BUILT_ON"
-            bump
-            git tag -a "$TAG" -m "chore(release): $TAG"
+          TIP=$(git rev-parse "origin/$BRANCH")
+          if ! git merge-base --is-ancestor "$TRIGGER_SHA" "$TIP"; then
+            echo "::error::Commit $TRIGGER_SHA is no longer on $BRANCH (the branch was rewritten), so this run has nothing safe to release."
+            exit 1
+          fi
+          if [ "$TIP" != "$TRIGGER_SHA" ]; then
+            superseded "$TIP"
+          fi
 
-            if git push --atomic origin "HEAD:refs/heads/$BRANCH" "refs/tags/$TAG"; then
-              break
-            fi
+          git reset --quiet --hard "$TRIGGER_SHA"
+          bump
+          git tag -a "$TAG" -m "chore(release): $TAG"
 
-            # Neither ref landed. Drop the local tag so a retry can re-cut it.
+          if ! git push --atomic origin "HEAD:refs/heads/$BRANCH" "refs/tags/$TAG"; then
+            # Neither ref landed; the local tag goes too. There is no retry:
+            # a retry could only rebuild on a tip no gate checked.
             git tag -d "$TAG" >/dev/null
-
-            # Only a branch that moved is a race worth retrying. A push refused
-            # while BRANCH stayed put (deploy key, ruleset, hook, network)
-            # fails the same way every time, so say that instead.
-            git fetch --quiet origin "+refs/heads/$BRANCH:refs/remotes/origin/$BRANCH" || true
-            if [ "$(git rev-parse "origin/$BRANCH")" = "$BUILT_ON" ]; then
-              echo "::error::The push of release $TAG to $BRANCH was refused by the remote, and $BRANCH has not moved, so this is not a race with another merge. Check the git error above: the deploy key, a branch ruleset or pre-receive hook, or the network. Nothing was published (no commit, no tag)."
+            if ! git fetch --quiet origin "$REMOTE_BRANCH"; then
+              echo "::error title=Release push failed::The push of release $TAG to $BRANCH was rejected, and re-reading $BRANCH failed too, so this run could not tell whether another merge moved $BRANCH or the remote refused the push. See the git errors above. Nothing was published: no release commit and no tag. Re-run this job once GitHub is reachable."
               exit 1
             fi
-            if [ "$attempt" -ge "$MAX_ATTEMPTS" ]; then
-              echo "::error::Could not push release $TAG to $BRANCH after $MAX_ATTEMPTS attempts: the branch kept moving underneath this run. Nothing was published (no commit, no tag), so re-running this job is safe."
-              exit 1
+            TIP=$(git rev-parse "origin/$BRANCH")
+            if [ "$TIP" != "$TRIGGER_SHA" ]; then
+              superseded "$TIP"
             fi
-            echo "::warning::Push of $TAG was rejected on attempt $attempt (the branch moved); releasing again on the new tip."
-            attempt=$((attempt + 1))
-          done
+            echo "::error title=Release push refused::The push of release $TAG to $BRANCH was refused by the remote, and $BRANCH has not moved, so this is not a race with another merge. Check the git error above: the deploy key, a branch ruleset or pre-receive hook, or the network. Nothing was published: no release commit and no tag."
+            exit 1
+          fi
 
           echo "deferred=false" >> $GITHUB_OUTPUT
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "tag=$TAG" >> $GITHUB_OUTPUT
 
       - name: Create GitHub Release
-        # `tag` is empty when the version step deferred to a release that
-        # carries no tag; there is then nothing to publish.
+        # Every path that lets the version step succeed sets `tag`: a new
+        # release, or a deferral to a release already tagged in this branch's
+        # namespace. The check only keeps a step that someday forgets from
+        # calling `gh release` with an empty name.
         if: steps.skip.outputs.skip != 'true' && steps.version.outputs.tag != '' && github.ref_name == 'main'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
