@@ -2736,6 +2736,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "e4340bb41d7cfab9a667c35877fdce357707b1937c16d7ba4e0e9810e64b67d0",
     "scripts/install-generated-artifact-merge-driver.mjs":
       "61e2b4fc532e8b356cb751b1ff42eb712376728eec76f8edf2c3dec19acf1bd4",
+    "scripts/integration-shard-build.mjs":
+      "bbb98b735d7b46943ac27e32abd223af4b0a3386743efaec46f2a141dc577685",
     "scripts/internal-agy-skill-policy.json":
       "c2ce87d2eeebfdc9f24d6486425c010cf9289376f8a459f4767ca22d2bf8670d",
     "scripts/internal-codex-skill-policy.json":
@@ -2756,6 +2758,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "2df9048c5baffc5d660923fe933dcf6bf277d39e81512de1332ce686e705a765",
     "scripts/lib/gitattributes-merge-drivers.mjs":
       "bf43913f423f5774a69b60f2541f7a49c173aabd4855e2c30cbe2984806a182b",
+    "scripts/lib/history-scanner-suites.mjs":
+      "1a900566362e10553b9fb350576022c3ec5e1fcdbe30f841c9ec67cf11435efe",
     "scripts/lib/hook-registration-audit.mjs":
       "2f148ce2179bfca2805c85675fdb4733bf12ca5c1aa651f660c7478c7ee289cb",
     "scripts/lib/host-name-expanded-command-cases.mjs":
@@ -2924,6 +2928,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "50fb88594319f604760a12f70fa204019762ebf71c0b22b75054245c4e0796fc",
     "scripts/mutation-performance.schema.json":
       "b99a447bb5b3ff73b22d2a1539a0effedadaa5fc08e546f988f5c4e9e5682499",
+    "scripts/plan-integration-shards.mjs":
+      "bdbb5eb75b07274dfb08713f4e852f7ad4739d3a4399b76aa65589563b6bfa7d",
     "scripts/plugin-parity-drift.mjs":
       "50e8911a25502d1173ac26a368c8f8495e6e5280c5676092c6de27a6b254bd84",
     "scripts/plugin-routing-validate.mjs":
@@ -2947,7 +2953,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/test-timing-report.mjs":
       "ac98aac3ecf547da67f2a40f44c008e6fdc7b7682b38080ac46e12d41b6309b6",
     "scripts/two-channel-couplings.json":
-      "cbcdca307a32258971488e696d78f00073d6e03907fad1658d28f933b2c5fbe3",
+      "b2aca124918ac363566b81f055ac8a4bc4385efe56f103d79760eb82570695fc",
     "scripts/update-node-version.ts":
       "b4d96816bc86c9172e8cb48f3efbba82bf35fce8eef3c6de7a58ae68de11a518",
     "scripts/update-test-skill-paths.mjs":
@@ -10710,6 +10716,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "scripts/github-status-check.sh": true,
     "scripts/install-claude-plugins.sh": true,
     "scripts/install-generated-artifact-merge-driver.mjs": true,
+    "scripts/integration-shard-build.mjs": true,
     "scripts/internal-agy-skill-policy.json": true,
     "scripts/internal-codex-skill-policy.json": true,
     "scripts/internal-copilot-runtime-probe.json": true,
@@ -10720,6 +10727,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "scripts/lib/codex-shared-scripts.mjs": true,
     "scripts/lib/dependency-tree.mjs": true,
     "scripts/lib/gitattributes-merge-drivers.mjs": true,
+    "scripts/lib/history-scanner-suites.mjs": true,
     "scripts/lib/hook-registration-audit.mjs": true,
     "scripts/lib/host-name-expanded-command-cases.mjs": true,
     "scripts/lib/host-name-field-occurrence-cases.mjs": true,
@@ -10804,6 +10812,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "scripts/merge-generated-artifact.mjs": true,
     "scripts/mutation-performance-measure.mjs": true,
     "scripts/mutation-performance.schema.json": true,
+    "scripts/plan-integration-shards.mjs": true,
     "scripts/plugin-parity-drift.mjs": true,
     "scripts/plugin-routing-validate.mjs": true,
     "scripts/probes/wave3-verification.sh": true,
@@ -10986,6 +10995,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "src/cli/lisa-test-run-process-group.ts": true,
     "src/cli/lisa-test-run-reaper.ts": true,
     "src/cli/lisa-test-run-runtime.ts": true,
+    "src/cli/lisa-test-run-shard-files.ts": true,
     "src/cli/lisa-test-run-shard.ts": true,
     "src/cli/lisa-test-run-supervisor.ts": true,
     "src/cli/lisa-test-run-sweep.ts": true,
@@ -11809,6 +11819,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/lisa-test-run-jest-shards.test.ts": true,
     "tests/integration/lisa-test-run-packed-bin.test.ts": true,
     "tests/integration/lisa-test-run-shard-cli.test.ts": true,
+    "tests/integration/lisa-test-run-shard-files-cli.test.ts": true,
     "tests/integration/lisa.test.ts": true,
     "tests/integration/load-test-workflow-runner.test.ts": true,
     "tests/integration/load-test-workflow.test.ts": true,
@@ -11905,6 +11916,9 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/quality-gate-runner-validation.test.ts": true,
     "tests/integration/quality-gate-skip-jobs-mapping.test.ts": true,
     "tests/integration/quality-generic-gate-runner.test.ts": true,
+    "tests/integration/quality-integration-test-shards-fixture.ts": true,
+    "tests/integration/quality-integration-test-shards-verdict.test.ts": true,
+    "tests/integration/quality-integration-test-shards.test.ts": true,
     "tests/integration/quality-node-supervision.test.ts": true,
     "tests/integration/quality-non-declarable-jobs.test.ts": true,
     "tests/integration/quality-rails-database-image.test.ts": true,
@@ -12198,6 +12212,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/cli/lisa-test-run-ipc.test.ts": true,
     "tests/unit/cli/lisa-test-run-process-group.test.ts": true,
     "tests/unit/cli/lisa-test-run-protocol-state.test.ts": true,
+    "tests/unit/cli/lisa-test-run-shard-files.test.ts": true,
     "tests/unit/cli/lisa-test-run-shard.test.ts": true,
     "tests/unit/cli/merge-learnings-cmd.test.ts": true,
     "tests/unit/cli/override-load-diagnostic.test.ts": true,
@@ -12950,6 +12965,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/history-secret-private-report.test.ts": true,
     "tests/unit/scripts/history-secret-provision-errors.test.ts": true,
     "tests/unit/scripts/install-claude-plugins-self.test.ts": true,
+    "tests/unit/scripts/integration-shard-build.test.ts": true,
     "tests/unit/scripts/invoked-as-script.test.ts": true,
     "tests/unit/scripts/jira-cli-config-consumption.test.ts": true,
     "tests/unit/scripts/jira-evidence-release.test.ts": true,
@@ -13163,6 +13179,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/phrase-tests-record.test.ts": true,
     "tests/unit/scripts/pipeline-status-continuations.test.ts": true,
     "tests/unit/scripts/placeholder-expiry.test.ts": true,
+    "tests/unit/scripts/plan-integration-shards.test.ts": true,
     "tests/unit/scripts/plugin-parity-drift-helpers.ts": true,
     "tests/unit/scripts/plugin-parity-drift.test.ts": true,
     "tests/unit/scripts/plugin-parity-orphaned-versions.test.ts": true,

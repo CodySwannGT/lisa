@@ -81,6 +81,11 @@ on:
         required: false
         default: 1
         type: number
+      integration_test_shards:
+        description: 'Run the integration suite as this many parallel shards (1-20); 🧪 Run Integration Tests stays one check and fails unless every shard passed. Needs an integration gate task that runs jest or vitest through lisa-test-run. The default, 1, runs one unsharded job.'
+        required: false
+        default: 1
+        type: number
       moment:
         # Which set of gates applies. Every job below resolves its gate from
         # `.lisa.config.json` AT THIS MOMENT, so one input decides whether this
@@ -3933,27 +3938,69 @@ jobs:
     # workflow consumers call, and that step never runs for them, so callers
     # stay on ubuntu-latest like their other jobs. Move Lisa to ubuntu-26.04 once
     # setup-ruby ships the pinned Ruby for that image (CodySwannGT/lisa#4513).
-    runs-on: ${{ github.repository == 'CodySwannGT/lisa' && 'ubuntu-24.04' || 'ubuntu-latest' }}
+    runs-on: &integration_runner ${{ github.repository == 'CodySwannGT/lisa' && 'ubuntu-24.04' || 'ubuntu-latest' }}
     # Baseline19.9–26.5min (mean22.9, sd2.8) outgrew30min. The60min
     # resource limit preserves quality assertions; the regression is tracked.
     timeout-minutes: 60
-    needs: [gate_plan]
+    # With integration_test_shards > 1 this job is the aggregate and keeps its
+    # id and static name, which the ruleset context and every downstream
+    # `needs.test_integration` reader key on (#4599).
+    needs:
+      [
+        gate_plan,
+        test_integration_shard_plan,
+        test_integration_shard_build,
+        test_integration_shard,
+      ]
     if: ${{ always() && !cancelled() && !contains(format(',{0},', inputs.skip_jobs), ',test:integration,') && (needs.gate_plan.result != 'success' || !contains(needs.gate_plan.outputs.plan, '"test_integration":"skip"')) }}
     # Lisa-only test-to-file access map (#4593): vitest.config.local.ts arms
     # a tracer when LISA_ACCESS_MAP=1, keyed on the PR's base commit.
-    env:
+    env: &integration_env
       LISA_ACCESS_MAP: ${{ github.repository == 'CodySwannGT/lisa' && github.event.pull_request.base.sha != '' && '1' || '' }}
       LISA_ACCESS_MAP_BASE_SHA: ${{ github.event.pull_request.base.sha }}
       LISA_ACCESS_MAP_HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
 
-    steps:
+    steps: &integration_steps
+      # With shards this job runs only these two steps and no test: it is the
+      # one `🧪 Run Integration Tests` context, so a leg that failed, was
+      # cancelled or never ran is named and fails it (#4599). The legs run the
+      # steps below, which this job shares with them through the anchor.
+      - name: 📥 Download the integration-test shard results
+        if: always() && inputs.integration_test_shards != 1 && strategy.job-total == 1 && needs.test_integration_shard_plan.result == 'success'
+        uses: actions/download-artifact@v8
+        with:
+          pattern: integration-test-shard-${{ needs.test_integration_shard_plan.outputs.nonce }}-*
+          path: ${{ runner.temp }}/lisa-integration-test-shards
+
+      - name: 🚨 Fail if the integration-test shards did not pass
+        if: always() && inputs.integration_test_shards != 1 && strategy.job-total == 1
+        env:
+          PLAN: ${{ needs.test_integration_shard_plan.result }}
+          BUILD: ${{ needs.test_integration_shard_build.result }}
+          TOTAL: ${{ inputs.integration_test_shards }}
+          RESULTS: ${{ runner.temp }}/lisa-integration-test-shards/integration-test-shard-${{ needs.test_integration_shard_plan.outputs.nonce }}
+        run: |
+          set -u
+          if [ "$PLAN" != success ]; then echo "::error title=Integration-test shards did not run::🧮 Plan Integration-Test Shards ended '$PLAN', so no shard ran."; exit 1; fi
+          case "$BUILD" in failure|cancelled) echo "::error title=Shared build did not pass::🏗️ Build Once for Integration-Test Shards ended '$BUILD', so no shard ran."; exit 1 ;; esac
+          BAD=0
+          for I in $(seq 0 $((TOTAL - 1))); do
+            N=$((I + 1))
+            OUT="$(cat "$RESULTS-$I/outcome" 2>/dev/null || echo 'no result: cancelled, timed out or never ran')"
+            if [ "$OUT" = success ]; then echo "Shard $N/$TOTAL passed."; continue; fi
+            echo "::error title=Integration-test shard $N/$TOTAL did not pass::Shard $N/$TOTAL: $OUT. Open the job 🧪 Integration Tests shard $N/$TOTAL."
+            BAD=1
+          done
+          exit "$BAD"
+
       - name: 📥 Checkout repository
+        if: (inputs.integration_test_shards == 1 || strategy.job-total > 1)
         uses: actions/checkout@v6
         with:
           persist-credentials: false
 
       - name: Provision separately qualified Lisa updater test runtime
-        if: github.repository == 'CodySwannGT/lisa'
+        if: (inputs.integration_test_shards == 1 || strategy.job-total > 1) && (github.repository == 'CodySwannGT/lisa')
         uses: actions/setup-node@v6
         with:
           package-manager-cache: false
@@ -3961,18 +4008,19 @@ jobs:
           node-version: '22.23.3' # lisa-preserve-node-version: independently qualified updater (#4367)
 
       - name: Preserve actual updater test executable before selecting shared Node
-        if: github.repository == 'CodySwannGT/lisa'
+        if: (inputs.integration_test_shards == 1 || strategy.job-total > 1) && (github.repository == 'CodySwannGT/lisa')
         run: |
           node -e 'if (process.versions.node !== "22.23.3") throw Error("Wrong updater test runtime"); require("node:fs").appendFileSync(process.env.GITHUB_ENV, `LISA_TEST_UPDATER_NODE=${require("node:fs").realpathSync(process.execPath)}\n`);'
 
       - name: 🔧 Setup Node.js
+        if: (inputs.integration_test_shards == 1 || strategy.job-total > 1)
         uses: actions/setup-node@v6
         with:
           package-manager-cache: false
           node-version: ${{ inputs.node_version }}
 
       - name: 🍞 Setup Bun
-        if: inputs.package_manager == 'bun'
+        if: (inputs.integration_test_shards == 1 || strategy.job-total > 1) && (inputs.package_manager == 'bun')
         uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
           bun-version: '1.4.4'
@@ -3986,15 +4034,16 @@ jobs:
           ruby-version: '4.0.1'
 
       - name: 💎 Install Rails configuration resolver for Lisa regression
-        if: github.repository == 'CodySwannGT/lisa'
+        if: (inputs.integration_test_shards == 1 || strategy.job-total > 1) && (github.repository == 'CodySwannGT/lisa')
         run: gem install activerecord --version 8.1.4 --no-document
 
       - name: 💾 Restore package downloads
-        if: inputs.cache_dependencies
+        if: inputs.cache_dependencies && ((inputs.integration_test_shards == 1 || strategy.job-total > 1))
         uses: actions/cache/restore@v5
         with: *package_download_cache
 
       - name: 📦 Install dependencies
+        if: (inputs.integration_test_shards == 1 || strategy.job-total > 1)
         run: |
           case "$PACKAGE_MANAGER" in
             npm) npm ci ;;
@@ -4008,8 +4057,40 @@ jobs:
           esac
         working-directory: ${{ inputs.working_directory || '.' }}
 
+      - name: 📥 Download the shared build
+        if: strategy.job-total > 1 && needs.test_integration_shard_build.result == 'success'
+        uses: actions/download-artifact@v8
+        with:
+          name: integration-test-build-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/lisa-integration-build
+
+      # After the install, whose postinstall also compiles into dist/.
+      - name: 🏗️ Use the shared build
+        id: shared_build
+        if: strategy.job-total > 1 && needs.test_integration_shard_build.result == 'success'
+        run: node scripts/integration-shard-build.mjs use "$RUNNER_TEMP/lisa-integration-build/build.tgz" --github-output "$GITHUB_OUTPUT"
+        working-directory: ${{ inputs.working_directory || '.' }}
+
+      # Step outputs: only the two test commands and the proof bind them.
+      - name: 🧩 Arm this integration-test shard
+        id: shard_arm
+        if: strategy.job-total > 1
+        env:
+          INDEX: ${{ strategy.job-index }}
+          TOTAL: ${{ inputs.integration_test_shards }}
+          PLAN: ${{ needs.test_integration_shard_plan.outputs.plan }}
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/lisa-integration-test-shard"
+          printf 'shard=%s\noutput=%s\n' "$((INDEX + 1))/$TOTAL" "$RUNNER_TEMP/lisa-integration-test-shard" >> "$GITHUB_OUTPUT"
+          if [ -n "$PLAN" ]; then
+            printf '%s\n' "$PLAN" > "$RUNNER_TEMP/lisa-integration-shard-plan.json"
+            echo "plan=$RUNNER_TEMP/lisa-integration-shard-plan.json" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: 🔍 Check for test:integration script
         id: check_script
+        if: (inputs.integration_test_shards == 1 || strategy.job-total > 1)
         run: |
           if [ -f "package.json" ]; then
             if grep -q '"test:integration"' package.json; then
@@ -4024,6 +4105,7 @@ jobs:
 
       - name: 🎛️ Resolve the test-integration gate
         id: gate
+        if: (inputs.integration_test_shards == 1 || strategy.job-total > 1)
         env:
           GATE_ID: test-integration
           FALLBACK_RUNNER: ${{ inputs.package_manager }} run
@@ -4101,6 +4183,10 @@ jobs:
           NODE_OPTIONS: --max-old-space-size=6144
           GATE_RUNNER: ${{ steps.gate.outputs.runner }}
           GATE_TASK: ${{ steps.gate.outputs.task }}
+          LISA_TEST_SHARD: ${{ steps.shard_arm.outputs.shard }}
+          LISA_TEST_SHARD_OUTPUT: ${{ steps.shard_arm.outputs.output }}
+          LISA_TEST_SHARD_PLAN: ${{ steps.shard_arm.outputs.plan }}
+          LISA_BUILD_MARKER: ${{ steps.shared_build.outputs.marker }}
         run: |
           if [ "$GITHUB_REPOSITORY" = 'CodySwannGT/lisa' ]; then
             $GATE_RUNNER $GATE_TASK --reporter=verbose
@@ -4126,6 +4212,7 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: 🧪 Run integration tests
+        id: test_integration
         if: steps.check_script.outputs.exists == 'true' && steps.gate.outputs.configured == 'false'
         run: |
           if [ "$PACKAGE_MANAGER" = "npm" ]; then
@@ -4137,12 +4224,26 @@ jobs:
           fi
         env:
           NODE_OPTIONS: --max-old-space-size=6144
+          LISA_TEST_SHARD: ${{ steps.shard_arm.outputs.shard }}
+          LISA_TEST_SHARD_OUTPUT: ${{ steps.shard_arm.outputs.output }}
+          LISA_TEST_SHARD_PLAN: ${{ steps.shard_arm.outputs.plan }}
+          LISA_BUILD_MARKER: ${{ steps.shared_build.outputs.marker }}
         working-directory: ${{ inputs.working_directory || '.' }}
+
+      # `lisa-test-run` writes the receipt before the runner starts; without
+      # it the leg ran the WHOLE suite instead of its slice.
+      - name: 🧾 Prove this shard ran only its slice
+        if: always() && strategy.job-total > 1 && (steps.gate_run.outcome == 'success' || steps.gate_run.outcome == 'failure' || steps.test_integration.outcome == 'success' || steps.test_integration.outcome == 'failure')
+        run: |
+          cat "$RUNNER_TEMP/lisa-integration-test-shard/lisa-shard-receipt.json" || {
+            echo "::error title=Integration-test shard was not applied::No shard receipt, so this leg ran the whole suite. integration_test_shards needs a @codyswann/lisa that shards through lisa-test-run, and an integration gate task that runs jest or vitest through it."
+            exit 1
+          }
 
       # The physical deadline benchmark uses its qualified Docker init reaper
       # and native syscall traces. Consumers do not carry this Lisa-only fixture.
       - name: ⏱️ Verify native freshness diagnostic deadlines
-        if: github.repository == 'CodySwannGT/lisa'
+        if: (inputs.integration_test_shards == 1 || (strategy.job-total > 1 && strategy.job-index == 0)) && (github.repository == 'CodySwannGT/lisa')
         run: |
           mkdir -p tmp
           bun run lisa-test-run -- --adapter direct -- python3 tests/fixtures/freshness-native-timing/run.py \
@@ -4150,7 +4251,7 @@ jobs:
         working-directory: ${{ inputs.working_directory || '.' }}
 
       - name: 📎 Retain native freshness timing evidence
-        if: always() && github.repository == 'CodySwannGT/lisa'
+        if: (inputs.integration_test_shards == 1 || (strategy.job-total > 1 && strategy.job-index == 0)) && (always() && github.repository == 'CodySwannGT/lisa')
         uses: actions/upload-artifact@v7
         with:
           name: freshness-native-timing-${{ github.run_id }}-${{ github.run_attempt }}
@@ -4161,7 +4262,7 @@ jobs:
         if: always() && github.repository == 'CodySwannGT/lisa'
         uses: actions/upload-artifact@v7
         with:
-          name: test-timings-${{ github.run_id }}-${{ github.run_attempt }}-integration
+          name: test-timings-${{ github.run_id }}-${{ github.run_attempt }}-integration${{ strategy.job-total > 1 && format('-shard-{0}', strategy.job-index) || '' }}
           path: ${{ inputs.working_directory || '.' }}/tmp/test-timings
           if-no-files-found: ignore
           retention-days: 30
@@ -4170,7 +4271,7 @@ jobs:
         if: always() && github.repository == 'CodySwannGT/lisa' && github.event.pull_request.base.sha != ''
         uses: actions/upload-artifact@v7
         with:
-          name: test-access-map-${{ github.event.pull_request.base.sha }}-${{ github.run_id }}-integration
+          name: test-access-map-${{ github.event.pull_request.base.sha }}-${{ github.run_id }}-integration${{ strategy.job-total > 1 && format('-shard-{0}', strategy.job-index) || '' }}
           path: ${{ inputs.working_directory || '.' }}/tmp/test-access-map/*.json
           if-no-files-found: ignore
           overwrite: true
@@ -4222,6 +4323,143 @@ jobs:
               ;;
           esac
         working-directory: ${{ inputs.working_directory || '.' }}
+
+      # Last: the status the leg reached, which the aggregate reads.
+      - name: 🧾 Record this shard's result
+        if: always() && strategy.job-total > 1
+        env:
+          STATUS: ${{ job.status }}
+        run: mkdir -p "$RUNNER_TEMP/result" && echo "$STATUS" > "$RUNNER_TEMP/result/outcome"
+
+      - name: 📤 Upload this shard's result
+        if: always() && strategy.job-total > 1
+        uses: actions/upload-artifact@v7
+        with:
+          name: integration-test-shard-${{ needs.test_integration_shard_plan.outputs.nonce }}-${{ strategy.job-index }}
+          path: ${{ runner.temp }}/result
+          if-no-files-found: error
+          overwrite: true
+          retention-days: 1
+
+  # integration_test_shards > 1 only (#4599), mirroring test_unit_shard_plan
+  # (no skip_jobs token; no name containing the aggregate's). In Lisa it also
+  # assigns files to legs from recorded timings; a caller's legs run the
+  # runner's own `--shard=<i>/<n>`.
+  test_integration_shard_plan:
+    permissions:
+      contents: read
+    name: 🧮 Plan Integration-Test Shards
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    needs: [gate_plan]
+    if: ${{ always() && !cancelled() && inputs.integration_test_shards != 1 && (needs.gate_plan.result != 'success' || !contains(needs.gate_plan.outputs.plan, '"test_integration":"skip"')) }}
+    outputs:
+      shards: ${{ steps.plan.outputs.shards }}
+      nonce: ${{ steps.plan.outputs.nonce }}
+      plan: ${{ steps.timings.outputs.plan }}
+    steps:
+      - name: 🧮 Compute the integration-test shard matrix
+        id: plan
+        env:
+          SHARDS: ${{ inputs.integration_test_shards }}
+          SKIP_JOBS: ${{ inputs.skip_jobs }}
+        run: |
+          set -euo pipefail
+          case ",${SKIP_JOBS:-}," in
+            *,test:integration,*)
+              echo "::error title=integration_test_shards contradicts skip_jobs::integration_test_shards is $SHARDS but skip_jobs names test:integration. Drop one of them."
+              exit 1
+              ;;
+          esac
+          if ! [[ "$SHARDS" =~ ^[0-9]+$ ]] || [ "$SHARDS" -lt 2 ] || [ "$SHARDS" -gt 20 ]; then
+            echo "::error title=integration_test_shards is invalid::integration_test_shards is \"$SHARDS\"; it must be a whole number from 1 to 20."
+            exit 1
+          fi
+          echo "shards=$(node -p 'JSON.stringify(Array.from({ length: Number(process.argv[1]) }, (_, i) => i + 1))' "$SHARDS")" >> "$GITHUB_OUTPUT"
+          echo "nonce=$(node -p 'crypto.randomUUID()')" >> "$GITHUB_OUTPUT"
+
+      - name: 📥 Checkout repository
+        if: github.repository == 'CodySwannGT/lisa'
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      # contents:read only: declaring a scope the caller lacks startup-fails
+      # its run. A refused listing still yields a plan that keeps the
+      # history-scanner suites in one leg.
+      - name: ⏱️ Assign files to shards from recorded timings
+        id: timings
+        if: github.repository == 'CodySwannGT/lisa'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SHARDS: ${{ inputs.integration_test_shards }}
+        run: node scripts/plan-integration-shards.mjs --shards "$SHARDS" --repo "$GITHUB_REPOSITORY" --github-output "$GITHUB_OUTPUT"
+
+  # Lisa only: one build every leg reuses through the build marker (#4599).
+  test_integration_shard_build:
+    permissions:
+      contents: read
+    name: 🏗️ Build Once for Integration-Test Shards
+    runs-on: *integration_runner
+    timeout-minutes: 20
+    needs: [gate_plan]
+    if: ${{ always() && !cancelled() && inputs.integration_test_shards != 1 && github.repository == 'CodySwannGT/lisa' && (needs.gate_plan.result != 'success' || !contains(needs.gate_plan.outputs.plan, '"test_integration":"skip"')) }}
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: 🔧 Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          package-manager-cache: false
+          node-version: ${{ inputs.node_version }}
+
+      - name: 🍞 Setup Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version: '1.4.4'
+
+      - name: 💾 Restore package downloads
+        if: inputs.cache_dependencies
+        uses: actions/cache/restore@v5
+        with: *package_download_cache
+
+      - name: 📦 Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: 🏗️ Build once and record the build marker
+        run: node scripts/integration-shard-build.mjs build "$RUNNER_TEMP/build.tgz"
+
+      - name: 📤 Upload the shared build
+        uses: actions/upload-artifact@v7
+        with:
+          name: integration-test-build-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/build.tgz
+          if-no-files-found: error
+          overwrite: true
+          retention-days: 1
+
+  # One leg per shard, running test_integration's own step list (the anchor),
+  # so a leg resolves the same gate and runs the same command; only the arm
+  # step's environment differs. Lisa's Ruby setup runs in every leg, because a
+  # timing plan can put a Ruby-dependent suite in any of them.
+  test_integration_shard:
+    permissions:
+      contents: read
+    name: 🧪 Integration Tests shard ${{ matrix.shard }}/${{ inputs.integration_test_shards }}
+    runs-on: *integration_runner
+    timeout-minutes: 60
+    needs:
+      [gate_plan, test_integration_shard_plan, test_integration_shard_build]
+    if: ${{ always() && !cancelled() && needs.test_integration_shard_plan.result == 'success' && needs.test_integration_shard_build.result != 'failure' && needs.test_integration_shard_build.result != 'cancelled' }}
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: ${{ fromJSON(needs.test_integration_shard_plan.outputs.shards || '[1]') }}
+    env: *integration_env
+    steps: *integration_steps
 
   maestro_e2e:
     permissions:
@@ -4541,6 +4779,9 @@ jobs:
         test_mutation,
         test_mutation_measured,
         test_integration,
+        test_integration_shard_plan,
+        test_integration_shard_build,
+        test_integration_shard,
         maestro_e2e,
         gate_config_validity,
         threshold_ratchet,
@@ -4635,6 +4876,8 @@ jobs:
               "test_mutation": "🧬 Mutation Testing Gate",
               "test_mutation_measured": "🧬 Did the mutation gate measure anything?",
               "test_integration": "🧪 Run Integration Tests",
+              "test_integration_shard_plan": "🧮 Plan Integration-Test Shards",
+              "test_integration_shard_build": "🏗️ Build Once for Integration-Test Shards",
               "maestro_e2e": "📱 Native Device Journeys",
               "gate_config_validity": "🧭 Gate Config Validity",
               "threshold_ratchet": "📐 Threshold Ratchet",

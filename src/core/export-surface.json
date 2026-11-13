@@ -1,8 +1,8 @@
 {
   "$generatedBy": "scripts/generate-export-surface.mjs",
   "$doNotEdit": "The public export surface this package ships, recorded so a removal is an OBSERVATION rather than an inference from commit-message conventions. This file's diff is what makes a removed export visible in the pull request that causes it (CodySwannGT/lisa#3718).",
-  "$modules": 299,
-  "$names": 2128,
+  "$modules": 302,
+  "$names": 2136,
   "surface": {
     "all/copy-overwrite/scripts/check-conflict-markers.mjs": [
       "UsageError",
@@ -1925,6 +1925,9 @@
       "GENERATED_ARTIFACT_DRIVER",
       "installGeneratedArtifactMergeDriver"
     ],
+    "scripts/integration-shard-build.mjs": [
+      "main"
+    ],
     "scripts/lib/bounded-spawn.mjs": [
       "DEFAULT_CHILD_BUDGET_MS",
       "boundedExecFileSync",
@@ -1945,6 +1948,9 @@
     ],
     "scripts/lib/gitattributes-merge-drivers.mjs": [
       "mergeDriversIn"
+    ],
+    "scripts/lib/history-scanner-suites.mjs": [
+      "HISTORY_SCANNER_SUITES"
     ],
     "scripts/lib/hook-registration-audit.mjs": [
       "REPO_ROOT",
@@ -2347,6 +2353,14 @@
       "sha256File",
       "validateMeasurement",
       "verifyPreparedManifest"
+    ],
+    "scripts/plan-integration-shards.mjs": [
+      "SHARD_PLAN_SCHEMA",
+      "findTimingsRun",
+      "formatPlan",
+      "main",
+      "parseArgs",
+      "planShards"
     ],
     "scripts/plugin-parity-drift.mjs": [
       "UsageError",

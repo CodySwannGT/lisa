@@ -53,9 +53,14 @@ export const GATES_SCRIPT = path.join(
  * reports only through `test_unit`, which is the aggregate. Inventories skip
  * the legs named here; `quality-unit-test-shards.test.ts` pins that each leg's
  * steps are its parent's, which is what makes skipping it safe.
+ *
+ * `test_integration_shard` (#4599) goes further: it runs `test_integration`'s
+ * own step list through a YAML anchor, so its steps are its parent's by
+ * construction, which `quality-integration-test-shards.test.ts` pins.
  */
 export const SHARD_LEGS: Readonly<Record<string, string>> = Object.freeze({
   test_unit_shard: "test_unit",
+  test_integration_shard: "test_integration",
 });
 
 /**

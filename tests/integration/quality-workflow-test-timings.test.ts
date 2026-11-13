@@ -27,10 +27,18 @@ const workflow = yaml.load(fs.readFileSync(QUALITY_YML, "utf8")) as {
 
 const PREFIX = "test-timings-${{ github.run_id }}-${{ github.run_attempt }}-";
 
+/**
+ * `test_integration` and its shard legs run one step list (#4599). Outside a
+ * matrix `strategy.job-total` is 1 and the suffix is empty, so the unsharded
+ * job keeps its `...-integration` name; each leg appends `-shard-<index>`.
+ */
+const LEG_SUFFIX =
+  "${{ strategy.job-total > 1 && format('-shard-{0}', strategy.job-index) || '' }}";
+
 const cases = [
   ["test_unit", `${PREFIX}unit`],
   ["test_unit_shard", `${PREFIX}unit-shard-\${{ matrix.shard }}`],
-  ["test_integration", `${PREFIX}integration`],
+  ["test_integration", `${PREFIX}integration${LEG_SUFFIX}`],
 ] as const;
 
 /**
@@ -61,6 +69,12 @@ describe("quality.yml test timing artifacts", () => {
   it.each(cases)("%s uploads on pass or fail, and only in Lisa itself", job => {
     expect(timingSteps(job)[0]?.if).toBe(
       "always() && github.repository == 'CodySwannGT/lisa'"
+    );
+  });
+
+  it("uploads each integration shard leg's timings through the same step", () => {
+    expect(timingSteps("test_integration_shard")).toEqual(
+      timingSteps("test_integration")
     );
   });
 

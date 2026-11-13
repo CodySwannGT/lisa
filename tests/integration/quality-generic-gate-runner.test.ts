@@ -92,14 +92,21 @@ describe("the matrix leg carries a branch-protection context", () => {
     expect(JOBS["declared_gates"]?.name).toBe("${{ matrix.label }}");
   });
 
-  it("shares matrix status only with the unit-test shard legs, which name themselves too", () => {
+  it("shares matrix status only with the test shard legs, which name themselves too", () => {
     const matrixJobs = Object.entries(JOBS)
       .filter(([, job]) => job.strategy?.matrix !== undefined)
       .map(([id]) => id);
-    expect(matrixJobs).toEqual(["declared_gates", "test_unit_shard"]);
-    // #4479: a matrix expression in the name means GitHub appends no suffix,
-    // and the name deliberately never contains `🧪 Run Unit Tests`.
+    expect(matrixJobs).toEqual([
+      "declared_gates",
+      "test_unit_shard",
+      "test_integration_shard",
+    ]);
+    // #4479, #4599: a matrix expression in the name means GitHub appends no
+    // suffix, and neither name contains its aggregate's context.
     expect(JOBS["test_unit_shard"]?.name).toContain("${{ matrix.shard }}");
+    expect(JOBS["test_integration_shard"]?.name).toContain(
+      "${{ matrix.shard }}"
+    );
   });
 
   it("does not let one failing gate cancel the verdicts of the others", () => {

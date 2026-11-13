@@ -15,6 +15,7 @@ import {
 import { socketSafeTempBase } from "../configs/vitest/socket-safe-temp-base.js";
 import { admitTestRun } from "./lisa-test-run-admission.js";
 import { mergeJestShards } from "./lisa-test-run-jest-merge.js";
+import { planFilesShard } from "./lisa-test-run-shard-files.js";
 import {
   gatherVitestBlobs,
   readShardReceipts,
@@ -100,8 +101,24 @@ function applyShardPlan(
   if (plan.kind === "none") return argv;
   const runner = shardRunnerOf(argv);
   if (plan.kind === "shard") {
-    writeShardReceipt(plan, runner, argv);
-    return shardArgv(argv, runner, plan);
+    const { filePlan } = plan;
+    if (filePlan === undefined || runner !== "vitest") {
+      if (filePlan !== undefined)
+        process.stderr.write(
+          `lisa-test-run: shard ${plan.index}/${plan.total} runs ${runner}'s own --shard slice; file-list plans apply to vitest only.\n`
+        );
+      writeShardReceipt(plan, runner, argv);
+      return shardArgv(argv, runner, plan);
+    }
+    const leg = planFilesShard(argv, { ...plan, filePlan }, env);
+    process.stderr.write(
+      `lisa-test-run: shard ${plan.index}/${plan.total} runs ${leg.mine} of ${leg.selected} selected files by the timing plan (planned ${leg.plannedSeconds.toFixed(1)} s).\n`
+    );
+    writeShardReceipt(plan, runner, argv, {
+      mode: "files",
+      files: { mine: leg.mine, selected: leg.selected },
+    });
+    return leg.argv;
   }
   const receipts = readShardReceipts(plan.directory, plan.total);
   if (receipts[0]?.runner !== runner) {
