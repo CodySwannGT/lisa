@@ -26,7 +26,11 @@ import { pluginFinding } from "../../../src/health/governance-probes.js";
 import { readInstalledClaudePlugins } from "../../../src/health/plugin-inspection.js";
 
 const REMEDY = "Run `lisa apply .` in this project";
-const SETTINGS = '{"enabledPlugins":{"lisa@lisa":true}}\n';
+// Every project declares the knowledge role (default llm-wiki), so the wiki
+// plugin is enabled beside the base plugin.
+const SETTINGS =
+  '{"enabledPlugins":{"lisa@lisa":true,"lisa-wiki@lisa":true}}\n';
+const ALL_ENABLED = ["lisa@lisa", "lisa-wiki@lisa"];
 const roots: string[] = [];
 
 /**
@@ -101,7 +105,7 @@ describe("plugins.current remediation", () => {
 
   it("passes without a remedy when every plugin is registered", async () => {
     const root = await project(SETTINGS, `${getPackageVersion()}\n`);
-    const result = await finding(root, ["lisa@lisa"]);
+    const result = await finding(root, ALL_ENABLED);
     expect(result.status).toBe("pass");
     expect(result.reason).not.toContain("lisa apply");
   });
