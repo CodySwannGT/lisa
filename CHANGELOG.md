@@ -2,6 +2,25 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.107.2](https://github.com/CodySwannGT/lisa/compare/v4.107.1...v4.107.2) (2026-11-13)
+
+
+### Bug Fixes
+
+* **cli:** refuse `lisa ui` and restore the coverage the removal dropped ([2e75c53](https://github.com/CodySwannGT/lisa/commit/2e75c536b3ab72ff50821c69c653419e722d1bb8)), closes [CodySwannGT/lisa#4804](https://github.com/CodySwannGT/lisa/issues/4804)
+* **skills:** stop writing the console-only remote-environment contract ([32bfb2e](https://github.com/CodySwannGT/lisa/commit/32bfb2e8d7e1a1ec7bc333a1298257f269c188a5)), closes [CodySwannGT/lisa#4804](https://github.com/CodySwannGT/lisa/issues/4804)
+* **tests:** align the suite with the console removal ([0c1d7df](https://github.com/CodySwannGT/lisa/commit/0c1d7dfa61e6327e8c48db6f03ce1827ca4c2315)), closes [CodySwannGT/lisa#4804](https://github.com/CodySwannGT/lisa/issues/4804)
+
+
+### Code Refactoring
+
+* **cli:** remove the Lisa Console and keep its shared code under task names ([2ebb034](https://github.com/CodySwannGT/lisa/commit/2ebb03478a12aa1835c78519caecc105c3d42c8c)), closes [CodySwannGT/lisa#4804](https://github.com/CodySwannGT/lisa/issues/4804)
+
+
+### Documentation
+
+* **wiki:** remove the Lisa Console architecture page ([bd4daca](https://github.com/CodySwannGT/lisa/commit/bd4daca84922303434bce1fa61f6a71dc8096e03)), closes [CodySwannGT/lisa#4804](https://github.com/CodySwannGT/lisa/issues/4804)
+
 ### [4.107.1](https://github.com/CodySwannGT/lisa/compare/v4.107.0...v4.107.1) (2026-11-13)
 
 
