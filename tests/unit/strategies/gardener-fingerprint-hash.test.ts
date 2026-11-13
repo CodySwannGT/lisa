@@ -31,12 +31,8 @@ const VECTORS = [
 
 describe("gardener deterministic invariant-hash procedure", () => {
   it("documents the normalization + hash pipeline in the skill", () => {
-    expect(SKILL).toMatch(/trim/i);
-    expect(SKILL).toMatch(/collapse/i);
-    expect(SKILL).toMatch(/lowercase/i);
     expect(SKILL).toContain("lisa effectiveness fingerprint --input <file>");
     expect(SKILL).toContain("first 12 SHA-256 hex characters");
-    expect(SKILL).toMatch(/never estimated by the model/i);
   });
 
   describe.each(VECTORS)("known vector: $label", vector => {

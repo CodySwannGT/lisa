@@ -64,7 +64,6 @@ describe.each(ROOTS)("%s drive-pr conflict proof", root => {
   });
 
   it("names merge-tree as the local authority", () => {
-    expect(skill).toContain("git merge-tree --write-tree");
     // The trial's outcomes, by name. This case originally pinned the comment
     // `exit 0 = merges clean; exit 1 = real conflict`, which reads the exit
     // code alone — and that is wrong in the same direction as the cached
@@ -72,27 +71,10 @@ describe.each(ROOTS)("%s drive-pr conflict proof", root => {
     // here is the one that survives: the skill names the outcomes rather than
     // leaving the reader to infer them.
     expect(skill).toContain("CLEAN");
-    expect(skill).toContain("CONFLICTED");
     expect(skill).toContain("NOT DETERMINED");
   });
 
-  it("calls the cached field a hint rather than proof", () => {
-    // Flattened: the sentence wraps, and where its line happens to break is
-    // not part of the claim.
-    expect(flat(skill)).toMatch(/is a HINT, never proof of a conflict/u);
-  });
-
-  it("keeps the genuine-conflict path intact", () => {
-    // The precision control. A change that stopped resolving conflicts
-    // entirely would satisfy every case above and be strictly worse.
-    expect(flat(skill)).toMatch(/trial says CONFLICTED[^.]*fetch the base/u);
-  });
-
   it("distrusts computed fields without distrusting stored ones", () => {
-    // Wording-independent: the rule must be scoped to the computed fields and
-    // must say so about `autoMergeRequest` by name.
-    expect(flat(skill)).toMatch(/narrower than "distrust the API"/iu);
-    expect(flat(skill)).toMatch(/Distrust the \*\*computed\*\* fields/u);
     expect(flat(skill)).toMatch(/`autoMergeRequest` is a \*stored\* setting/u);
   });
 });
@@ -106,21 +88,9 @@ describe.each(ROOTS)("%s repair-intake conflict proof", root => {
     );
   });
 
-  it("requires merge-tree before filing a blocker", () => {
-    expect(skill).toContain("git merge-tree --write-tree");
-    expect(skill).toMatch(/[Vv]erify before filing, never after/);
-  });
-
   it("says why the same field is worse here than in drive-pr", () => {
     // The direction-of-failure distinction is what sets the priority, and a
     // later editor who does not know it will relax this back.
     expect(skill).toMatch(/files a\s+BLOCKER against a pull request/);
-    expect(skill).toMatch(/durable tracker state/);
-  });
-
-  it("keeps update-branch's own conflict report as sufficient", () => {
-    // That one is not a cached field — it is the server attempting the merge —
-    // so it must stay authoritative.
-    expect(skill).toMatch(/update-branch.*reported a conflict/);
   });
 });

@@ -11973,6 +11973,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/worktree-dependency-boundary.test.ts": true,
     "tests/integration/zero-collection-gate-bite.test.ts": true,
     "tests/phrase-manifest/classification/manifest.json": true,
+    "tests/phrase-manifest/classification/test-assertions.json": true,
     "tests/phrase-manifest/required-phrases.json": true,
     "tests/platform/lint-staged-preflight.test.mjs": true,
     "tests/platform/process-tree-runner.test.mjs": true,

@@ -30,7 +30,6 @@ const REPAIR_INTAKE = "skills/lisa-repair-intake/SKILL.md";
 const SCRIPT = "scripts/lifecycle-label-trust.mjs";
 /** An existing base script; any mirror shipping it must ship ours too. */
 const PEER_SCRIPT = "scripts/queue-health-classification.mjs";
-const FLAP = "label-flap loop";
 
 /**
  * Every directory that carries the build-intake skill — the source of truth
@@ -86,12 +85,7 @@ describe("lifecycle-label trust contract (#2539)", () => {
 
     it("makes build-intake resolve label trust before believing a label", () => {
       const skill = read(root, BUILD_INTAKE);
-
-      expect(skill).toContain("Lifecycle-label trust resolution");
       expect(skill).toContain(SCRIPT);
-      expect(skill).toContain(
-        "Use `trusted` wherever this skill would otherwise read the raw label set"
-      );
     });
 
     it("refuses to claim on a bot-applied ready label", () => {
@@ -99,25 +93,6 @@ describe("lifecycle-label trust contract (#2539)", () => {
 
       expect(skill).toContain("`$READY` is **untrusted** is **not claimable**");
       expect(skill).toContain("`$CLAIMED` is **untrusted** is **not claimed**");
-    });
-
-    it("forbids reverting the bot's label in both skills", () => {
-      const intake = read(root, BUILD_INTAKE);
-      const repair = read(root, REPAIR_INTAKE);
-
-      expect(intake).toContain("Never unlabel to correct this");
-      expect(intake).toContain(FLAP);
-      expect(repair).toContain("do not unlabel and do not relabel");
-      expect(repair).toContain(FLAP);
-    });
-
-    it("keeps the bot-label repair class read-only", () => {
-      const repair = read(root, REPAIR_INTAKE);
-
-      expect(repair).toContain(
-        "Bot-authored lifecycle label → distrust, never revert"
-      );
-      expect(repair).toContain("deliberately **read-only**");
     });
 
     it("walks both lifecycle drift directions in one repair pass", () => {
@@ -129,8 +104,6 @@ describe("lifecycle-label trust contract (#2539)", () => {
 
       expect(section).toContain("terminal-label-open-state");
       expect(section).toContain("open-label-closed-state");
-      expect(section).toContain("previously unowned direction");
-      expect(section).toContain("TUN-556 and TUN-503");
     });
 
     it("forbids advancing a not-planned closure to the terminal role", () => {
@@ -142,34 +115,12 @@ describe("lifecycle-label trust contract (#2539)", () => {
       );
 
       expect(section).toContain("open-label-abandoned-state");
-      expect(section).toContain(
-        "non-terminal role and add nothing: declined work has not shipped"
-      );
-    });
-
-    it("names Linear's native state as authoritative over a stale label", () => {
-      expect(read(root, REPAIR_INTAKE)).toContain(
-        "never move the state to match a label"
-      );
-    });
-
-    it("forbids a pinned status member set in both skills", () => {
-      for (const relative of [BUILD_INTAKE, REPAIR_INTAKE]) {
-        const skill = read(root, relative);
-
-        expect(skill).toContain("pinned member list");
-        expect(skill).toContain("drifted 7 → 6 members");
-      }
     });
 
     it("builds trust input per invocation, never from cross-skill temp state", () => {
       for (const relative of [BUILD_INTAKE, REPAIR_INTAKE]) {
         const skill = read(root, relative);
-
-        // Each skill mints its own temp dir and cleans it up.
-        expect(skill).toContain("TRUST_DIR=$(mktemp -d)");
         expect(skill).toContain(`trap 'rm -rf "$TRUST_DIR"' EXIT`);
-        expect(skill).toContain('"$TRUST_DIR/input.json"');
         // No fixed shared path any concurrent run could collide on. Assembled
         // from parts so this guard does not itself hardcode a world-writable
         // path literal (sonarjs/publicly-writable-directories).
@@ -192,12 +143,6 @@ describe("lifecycle-label trust contract (#2539)", () => {
         expect(skill).toContain(".lisa.config.local.json");
         expect(skill).toContain("2>/dev/null || echo '{}'");
       }
-    });
-
-    it("excludes untrusted labels from the writing drift direction", () => {
-      expect(read(root, REPAIR_INTAKE)).toContain(
-        "never act on a label the classifier refused to believe"
-      );
     });
   });
 });

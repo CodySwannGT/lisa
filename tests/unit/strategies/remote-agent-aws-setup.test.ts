@@ -193,18 +193,4 @@ describe("remote AWS runtime parity", () => {
       )
     ).toBe(true);
   });
-
-  it("documents every supported or explicitly bounded remote-agent surface", () => {
-    const guide = readFileSync(REMOTE_AWS_GUIDE_PATH, "utf8");
-    for (const platform of [
-      "Claude",
-      "Codex",
-      "Cursor",
-      "Copilot",
-      "Antigravity",
-      "OpenCode",
-    ]) {
-      expect(guide).toContain(platform);
-    }
-  });
 });

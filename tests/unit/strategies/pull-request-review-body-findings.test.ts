@@ -286,7 +286,6 @@ describe.each(ROOTS)("pull-request-review reads review bodies (%s)", root => {
 
   it("says in its description and composition that it covers review bodies", () => {
     expect(summary(root, content)).toMatch(/review bod(y|ies)/i);
-    expect(content).not.toContain("Keep this skill focused on threads");
     expect(section(content, "Composition")).toMatch(/review bod(y|ies)/i);
   });
 });

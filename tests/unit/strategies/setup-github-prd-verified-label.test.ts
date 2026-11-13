@@ -33,11 +33,6 @@ describe("setup-github scaffolds prd-verified idempotently (#593)", () => {
   describe.each(PLUGIN_ROOTS)("%s", root => {
     const content = read(root, "skills/lisa-setup-github/SKILL.md");
 
-    it("scaffolds prd-verified via the read_role default ladder", () => {
-      // Mirrors the rest of the prd-* block: `read_role prd <role> <default>`.
-      expect(content).toMatch(/read_role prd verified\s+prd-verified\)/);
-    });
-
     it("creates prd-verified through the idempotent ensure_label helper", () => {
       // The line must run through ensure_label (find-or-create), not gh label
       // create directly — that is what makes reruns non-duplicating.
@@ -45,13 +40,6 @@ describe("setup-github scaffolds prd-verified idempotently (#593)", () => {
         .split("\n")
         .find(line => line.includes("read_role prd verified"));
       expect(verifiedLine).toBeDefined();
-      expect(verifiedLine).toMatch(/^ensure_label\b/);
-    });
-
-    it("gives prd-verified a distinct color and a product-owned description", () => {
-      expect(content).toMatch(
-        /ensure_label "\$\(read_role prd verified\s+prd-verified\)"\s+0E8A16\s+"[^"]*verified against the PRD[^"]*product owns[^"]*"/
-      );
     });
 
     it("orders prd-verified after prd-shipped (terminal lifecycle state)", () => {
@@ -59,11 +47,6 @@ describe("setup-github scaffolds prd-verified idempotently (#593)", () => {
       const verifiedIdx = content.indexOf("read_role prd verified");
       expect(shippedIdx).toBeGreaterThanOrEqual(0);
       expect(verifiedIdx).toBeGreaterThan(shippedIdx);
-    });
-
-    it("documents ensure_label as find-or-create so reruns do not duplicate", () => {
-      // The idempotency guarantee the prd-verified line relies on.
-      expect(content).toMatch(/ensure_label` is find-or-create/);
     });
   });
 });

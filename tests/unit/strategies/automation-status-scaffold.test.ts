@@ -58,27 +58,6 @@ describe("automation-status scaffold (#797)", () => {
       expect(skill).toMatch(/^---/);
       expect(skill).toMatch(/name:\s*lisa-automation-status/);
       expect(skill).toMatch(/allowed-tools:/);
-      expect(skill).toContain("Skill");
-      expect(skill).toContain("Bash");
-      expect(skill).toContain("Read");
-      expect(skill).toMatch(/read-only/i);
-      expect(skill).toMatch(/current repo|current project/i);
-      expect(skill).toMatch(
-        /do \*\*not\*\* ask for confirmation|do not ask for confirmation/i
-      );
-    });
-
-    it("reuses setup-automations contract semantics instead of inventing new ones", () => {
-      const skill = read(root, SKILL_REL);
-
-      expect(skill).toMatch(/setup-automations/);
-      expect(skill).toMatch(/tear-down-automations/);
-      expect(skill).toMatch(/same contract/i);
-      expect(skill).toMatch(
-        /do \*\*not\*\* invent a second source of truth|do not invent a second source of truth/i
-      );
-      expect(skill).toMatch(/queue arguments/i);
-      expect(skill).toMatch(/stack-support/i);
     });
 
     it("derives the fleet from the resolver, not a hardcoded roster (#1796)", () => {
@@ -87,24 +66,12 @@ describe("automation-status scaffold (#797)", () => {
       expect(skill).toContain("resolveExpectedAutomationFleet");
       expect(skill).toContain("scripts/automation-status-expected-fleet.mjs");
       expect(skill).toContain("automation-runbook-contract");
-      expect(skill).toMatch(/membership is registration, not a\s+roster/i);
-      expect(skill).toMatch(/carry no fixed list of loop names/i);
       // The pre-#1796 roster bullet list must be gone.
       expect(skill).not.toMatch(/^- `intake-repair`$/m);
     });
 
     it("names the expected runtime branches and fleet outcomes", () => {
       const skill = read(root, SKILL_REL);
-
-      expect(skill).toContain("Codex");
-      expect(skill).toContain("Claude");
-      expect(skill).toMatch(/unsupported in this runtime/i);
-      expect(skill).toMatch(/healthy/i);
-      expect(skill).toMatch(/missing/i);
-      expect(skill).toMatch(/unsupported/i);
-      expect(skill).toMatch(/drift/i);
-      expect(skill).toMatch(/stale/i);
-      expect(skill).toMatch(/failing/i);
       expect(skill).toMatch(/HEALTHY/);
       expect(skill).toMatch(/ATTENTION_NEEDED/);
       expect(skill).toMatch(/PARTIAL_SUPPORT/);
@@ -115,11 +82,6 @@ describe("automation-status scaffold (#797)", () => {
 
       expect(skill).toContain("scripts/automation-status-report.mjs");
       expect(skill).toMatch(/Overall verdict: <VERDICT>/);
-      expect(skill).toMatch(/Counts:/);
-      expect(skill).toMatch(/Runtime inspected:/);
-      expect(skill).toMatch(/Expected:/);
-      expect(skill).toMatch(/Observed:/);
-      expect(skill).toMatch(/Remediation:/);
     });
 
     it("ships report helper exports for later runtime adapters", () => {

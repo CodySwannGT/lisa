@@ -31,13 +31,6 @@ const RULE_PAIR_ROOTS = [
   "plugins/lisa-copilot",
 ] as const;
 
-// #3992 demoted this rule, so Cursor no longer gets an always-on
-// `promotion-contract.mdc`; the content lives in the reference projection and
-// the always-on `00-rule-index.mdc` points at it.
-const CURSOR_RULE_PATHS = [
-  "plugins/lisa-cursor/rules/promotion-contract-reference.mdc",
-] as const;
-
 const REWORK_TRIAGE_PATHS = [
   "plugins/src/base/skills/lisa-rework-triage/SKILL.md",
   "plugins/lisa/skills/lisa-rework-triage/SKILL.md",
@@ -60,7 +53,6 @@ const read = (relativePath: string): string =>
   readFileSync(path.resolve(relativePath), "utf8");
 
 describe.each(RULE_PAIR_ROOTS)("promotion-contract rule pair (%s)", root => {
-  const eager = read(path.join(root, "rules/reference/promotion-contract.md"));
   const reference = read(
     path.join(root, "rules/reference/promotion-contract.md")
   );
@@ -69,54 +61,6 @@ describe.each(RULE_PAIR_ROOTS)("promotion-contract rule pair (%s)", root => {
     expect(read(path.join(root, "rules/eager/00-rule-index.md"))).toContain(
       "reference/promotion-contract.md"
     );
-  });
-
-  it("eager head states the atomic four-part contract and rejection-by-rule", () => {
-    expect(eager).toMatch(/atomic/i);
-    expect(eager).toMatch(/enables? the control/i);
-    expect(eager).toMatch(/existing violation population/i);
-    expect(eager).toMatch(/remediation-teaching diagnostic/i);
-    expect(eager).toMatch(/deletes? the superseded prose/i);
-    expect(eager).toMatch(/one PR/i);
-    expect(eager).toMatch(/rejected by rule/i);
-  });
-
-  it("reference enumerates all four legs of the promote-and-delete contract", () => {
-    expect(reference).toMatch(/enable the control/i);
-    expect(reference).toMatch(/fix the existing violation population/i);
-    expect(reference).toMatch(/remediation-teaching diagnostic/i);
-    expect(reference).toMatch(/delete the superseded prose/i);
-    expect(reference).toMatch(/one atomic PR|all in one PR|one PR/i);
-    expect(reference).toMatch(/missing any of the four is rejected by rule/i);
-  });
-
-  it("reference explains why each omission fails (double-pay / stranding)", () => {
-    expect(reference).toMatch(/double-pays? forever/i);
-    expect(reference).toMatch(/strands? agents/i);
-  });
-
-  it("reference states the diagnostic-quality bar: invariant + why + concrete fix", () => {
-    expect(reference).toMatch(/violated invariant/i);
-    expect(reference).toMatch(/why the invariant holds/i);
-    expect(reference).toMatch(/concrete fix/i);
-    expect(reference).toMatch(/teach(es)? the repair/i);
-  });
-
-  it("reference states the demotion-biased eager-tier admission policy", () => {
-    expect(reference).toMatch(/demotion-biased/i);
-    expect(reference).toMatch(/repeated-miss/i);
-    expect(reference).toMatch(/every run/i);
-    expect(reference).toMatch(/Lisa'?s own shipped eager rules/i);
-  });
-
-  it("reference carries the delimited AC template for EXECUTABLE-CONTROL promotion tickets", () => {
-    const template = extractAcTemplate(reference);
-
-    expect(template).toMatch(/Enables the control/);
-    expect(template).toMatch(/Fixes the existing violation population/);
-    expect(template).toMatch(/Ships a remediation-teaching diagnostic/);
-    expect(template).toMatch(/Deletes the superseded prose/);
-    expect(template).toMatch(/rejected by rule/);
   });
 
   it("AC template is identical across the canonical source and this fan-out", () => {
@@ -128,15 +72,6 @@ describe.each(RULE_PAIR_ROOTS)("promotion-contract rule pair (%s)", root => {
   });
 });
 
-describe.each(CURSOR_RULE_PATHS)("cursor rule projection (%s)", rulePath => {
-  it("carries the promotion-contract content", () => {
-    const body = read(rulePath);
-
-    expect(body).toMatch(/remediation-teaching diagnostic/i);
-    expect(body).toMatch(/rejected by rule/i);
-  });
-});
-
 describe.each(REWORK_TRIAGE_PATHS)(
   "rework-triage upstream lanes (%s)",
   triagePath => {
@@ -144,16 +79,6 @@ describe.each(REWORK_TRIAGE_PATHS)(
 
     it("documents both upstream lanes with distinct labels", () => {
       expect(triage).toContain("self-hardening");
-      expect(triage).toContain("template-candidate");
-    });
-
-    it("keeps the dedupe-marker + evidence-chain discipline for the second lane", () => {
-      expect(triage).toMatch(/dedupe first/i);
-      expect(triage).toMatch(/evidence chain/i);
-    });
-
-    it("requires the proposed-template-change section on template-candidate filings", () => {
-      expect(triage).toMatch(/proposed template change/i);
     });
   }
 );

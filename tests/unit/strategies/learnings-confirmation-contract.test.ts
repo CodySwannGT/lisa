@@ -58,19 +58,8 @@ describe.each(PLUGIN_ROOTS)("claim-time confirmation contract (%s)", root => {
       expect(section).toContain("confirmLearningEntry");
       expect(section).toContain("@codyswann/lisa/learnings");
       expect(section).toContain("resolveProjectLearningsFile");
-      expect(section).toMatch(/Presence in context is NOT application/);
-      // #1802: the rationale is the contract's bounded projection, never the
-      // retired "loaded eagerly into every session" premise.
-      expect(section).not.toMatch(/loaded eagerly/);
-      expect(section).toMatch(/bounded projection/);
-      expect(section).toMatch(/explicitly cited or observably followed/);
       expect(section).toMatch(/advances ONLY `last_confirmed`/);
-      expect(section).toMatch(/idempotent within a claim/);
-      expect(section).toMatch(/bumped once, not once per application/);
-      expect(section).toMatch(/failure-safe by construction/);
       expect(section).toMatch(/\|\| true/);
-      expect(section).toMatch(/never abort the lifecycle/);
-      expect(section).toMatch(/Never block on it/);
     }
   );
 });
@@ -83,9 +72,6 @@ describe.each(REFERENCE_RULE_PATHS)(
 
       expect(rule).toContain("## Claim-time confirmation (`last_confirmed`)");
       expect(rule).toContain("confirmLearningEntry");
-      expect(rule).toMatch(/demonstrably applied/);
-      expect(rule).toMatch(/NOT application/);
-      expect(rule).toMatch(/never\s+blocks the build/);
     });
   }
 );

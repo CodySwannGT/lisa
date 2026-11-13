@@ -43,16 +43,7 @@ const plannedChecksPassage = (root: string): string => {
 describe.each(SKILL_ROOTS)("gardener stage-routed promotion (%s)", root => {
   const passage = plannedChecksPassage(root);
 
-  it("recognises all four planning stages, filing included", () => {
-    expect(passage).toContain(
-      "`Planning (prd|decomposition|ready-gate|filing):`"
-    );
-  });
-
   it("promotes each recurring check into the owner its stage names", () => {
-    expect(passage).toContain(
-      "- `prd` → PRD intake's requirement checks (`*-to-tracker` Phase 1.45)"
-    );
     expect(passage).toContain(
       "- `decomposition` → the decomposition obligations in `lisa-task-decomposition`"
     );
@@ -60,14 +51,5 @@ describe.each(SKILL_ROOTS)("gardener stage-routed promotion (%s)", root => {
       "- `ready-gate` → the `work-item-definition-of-ready` rule or the validators' S18"
     );
     expect(passage).toContain("- `filing` → the `ready-role-filing` rule");
-    expect(passage).toContain(
-      "Never promote a check into a stage other than the one it names."
-    );
-  });
-
-  it("no longer sends every recurring check to the ready gate", () => {
-    expect(passage).not.toMatch(
-      /PROMOTE candidate into the\s+ready gate itself/
-    );
   });
 });

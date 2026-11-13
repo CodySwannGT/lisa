@@ -53,26 +53,13 @@ describe("lisa-health source contract", () => {
       '--agentic-evaluation < "<private-temp>/evaluation.json"'
     );
     expect(skill).toMatch(
-      /do not read, search,\s+list, or execute anything in the project/
-    );
-    expect(skill).toMatch(
       /exact\s+three-field prepare envelope `\{protocolVersion, requestDigest, request\}`/
     );
     expect(skill).toContain(
       "containing only the copied `protocolVersion` and `requestDigest`"
     );
-    expect(skill).toContain('{"status":"unavailable"}');
-    expect(skill).toContain("never retry with the deterministic command");
-    expect(skill).toContain(
-      "Never reconstruct, merge, summarize, or persist findings"
-    );
-    expect(skill).toContain("umask 077");
     expect(skill).toContain('mktemp -d "${TMPDIR:-/tmp}/lisa-health.XXXXXX"');
     expect(skill).toContain('unlink -- "<private-temp>/prepare.json"');
-    expect(skill).toContain('rmdir -- "<private-temp>"');
-    expect(skill).not.toContain("rm -rf");
-    expect(skill).toContain("Fallback does not skip cleanup");
-    expect(skill).toContain("Mere drift, comments, factory");
     expect(skill).toContain(
       "Empty strings, empty lists, missing/null YAML values"
     );
@@ -87,7 +74,6 @@ describe("lisa-health source contract", () => {
       expect(skill).toContain(check);
     }
     expect(skill.replace(/\s+/gu, " ")).toContain("never invent another ID");
-    expect(skill).toContain("do not paraphrase them");
     expect(skill).toMatch(
       /Do not invoke `claude`, `codex`, `cursor-agent`, `opencode`, `agy`,/
     );

@@ -139,11 +139,6 @@ describe("leaf-only-lifecycle `done` shape claim (#3774)", () => {
         declaredDoneShape(REPO_CONFIG)
       );
     });
-
-    it("attributes the collapse to resolution through deploy.branches", () => {
-      expect(paragraph).toMatch(/resolution/iu);
-      expect(paragraph).toMatch(/deploy\.branches/u);
-    });
   });
 });
 

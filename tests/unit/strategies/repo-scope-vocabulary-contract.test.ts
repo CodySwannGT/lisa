@@ -85,18 +85,10 @@ describe("the skill and the module agree", () => {
 
   it("documents the canonical separator the module treats as correct", () => {
     expect(CANONICAL_SEPARATOR).toBe(":");
-    expect(skill).toContain("`repo:<name>` (canonical)");
   });
 
   it("names a malformed separator the module actually reports", () => {
     expect(MALFORMED_SEPARATORS).toContain("-");
-    expect(skill).toContain("`repo-frontend`");
-  });
-
-  it("records that the vocabulary is derived, never declared in config", () => {
-    // The rejected alternative, kept rejected: a config key nothing reads would
-    // look like an assertion and assert nothing.
-    expect(skill).toContain("Never introduce a config key declaring it");
   });
 
   it("records that an empty vocabulary is UNRESOLVABLE rather than VALID", () => {

@@ -61,9 +61,6 @@ describe("learnings.lowConfidence routing contract", () => {
       expect(step).toMatch(
         /prints `auto-merge` under the default `"access-only"` mode and `human-triage` under `"strict"`/u
       );
-      expect(step).toContain(
-        "A value the project sets explicitly always wins over the mode."
-      );
       const marker =
         '**`low` + `human-triage`** (the default under `humanGate.mode: "strict"`, or set explicitly)';
       expect(step).toContain(marker);
@@ -83,7 +80,6 @@ describe("learnings.lowConfidence routing contract", () => {
         step.indexOf("**`low` + `auto-merge`**"),
         step.indexOf("**`low` + `human-triage`**")
       );
-      expect(auto).toContain("with its defaults, exactly like `high`");
       expect(auto).toContain(
         'This is the default under `humanGate.mode: "access-only"`'
       );
@@ -92,18 +88,6 @@ describe("learnings.lowConfidence routing contract", () => {
         'gh pr edit <pr> --add-label "learning:low-confidence"'
       );
       expect(auto).not.toContain('--add-label "learning:needs-triage"');
-    }
-  );
-
-  it.each(SKILL_SURFACES)(
-    "the gardener in %s re-reviews auto-merged low-confidence entries first",
-    surface => {
-      const body = skillBody(surface, "lisa-learnings-audit");
-      expect(body).toContain(
-        "**Auto-merged low-confidence entries are re-reviewed first.**"
-      );
-      expect(body).toContain('confidence: "low"');
-      expect(body).toContain("low-confidence re-reviewed: <ids>");
     }
   );
 
@@ -117,6 +101,5 @@ describe("learnings.lowConfidence routing contract", () => {
       judge.indexOf("### ", judge.indexOf("### Step 4: Confidence") + 5)
     );
     expect(step4).toContain('learnings.lowConfidence: "auto-merge"');
-    expect(step4).toContain("Grade confidence on the evidence alone.");
   });
 });

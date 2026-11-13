@@ -34,24 +34,9 @@ const TRUST_BASIS_FIELD = '"Why we believe it\'s safe (trust basis)"';
 
 describe("dependency-trust-classes eager/reference rule pair", () => {
   it("ships the canonical eager and reference pair from plugin source", () => {
-    const eager = readFileSync(EAGER, "utf8");
-    const reference = readFileSync(REFERENCE, "utf8");
-
-    expect(eager).toContain("# Dependency Trust Classes (load-bearing)");
     expect(readFileSync(INDEX, "utf8")).toContain(
       "reference/dependency-trust-classes.md"
     );
-    expect(reference).toContain("# Dependency Trust Classes");
-  });
-
-  it("names all six trust classes on both halves of the pair", () => {
-    const eager = readFileSync(EAGER, "utf8").toLowerCase();
-    const reference = readFileSync(REFERENCE, "utf8").toLowerCase();
-
-    for (const trustClass of TRUST_CLASSES) {
-      expect(eager).toContain(trustClass);
-      expect(reference).toContain(trustClass);
-    }
   });
 
   it("cross-references the decision record so a trust basis resolves to a class", () => {
@@ -62,17 +47,6 @@ describe("dependency-trust-classes eager/reference rule pair", () => {
     expect(eager).toContain(TRUST_BASIS_FIELD);
     expect(reference).toContain(RECORD_PATH);
     expect(reference).toContain(TRUST_BASIS_FIELD);
-  });
-
-  it("states all five review inputs for the taxonomy", () => {
-    const reference = readFileSync(REFERENCE, "utf8");
-
-    expect(reference).toContain("## The five review inputs");
-    expect(reference).toContain("**Capability owner**");
-    expect(reference).toContain("**Update cadence**");
-    expect(reference).toContain("**Detection evidence**");
-    expect(reference).toContain("**Replacement-cost threshold**");
-    expect(reference).toContain("**Product/human ratification**");
   });
 
   it("gives every class its own five review inputs, not just the taxonomy", () => {
@@ -103,100 +77,20 @@ describe("dependency-trust-classes eager/reference rule pair", () => {
       reference.split("**Human review is triggered when:**").length - 1
     ).toBe(TRUST_CLASSES.length);
   });
-
-  it("requires human ratification on the lower-trust and higher-exposure classes", () => {
-    const eager = readFileSync(EAGER, "utf8");
-    const reference = readFileSync(REFERENCE, "utf8");
-
-    expect(eager).toContain(
-      "runtime-critical service clients always need human\nratification"
-    );
-    expect(reference).toContain("## Ratification, summarized");
-    expect(reference).toContain(
-      "**product/human ratification is required** before adding the\n  dependency and before any major upgrade"
-    );
-    expect(reference).toContain(
-      "**required to extend past the expiry date** or to promote it"
-    );
-    expect(reference).toContain(
-      "Not required for mature ecosystem primitives or build/development tools"
-    );
-  });
-
-  it("forbids blind detection evidence on the runtime-critical class", () => {
-    const reference = readFileSync(REFERENCE, "utf8");
-
-    expect(reference).toContain(
-      '"Nothing would catch it" is not an acceptable answer in this class'
-    );
-  });
-
-  it("requires reclassification instead of quiet re-trust when exposure changes", () => {
-    const eager = readFileSync(EAGER, "utf8");
-    const reference = readFileSync(REFERENCE, "utf8");
-
-    expect(eager).toContain("Reclassify — do not quietly re-trust —");
-    expect(reference).toContain("## Reclassification");
-  });
-
-  it("documents the uniform six-agent enforcement gap", () => {
-    const reference = readFileSync(REFERENCE, "utf8");
-
-    expect(reference).toContain("## Agent parity");
-    expect(reference).toContain(
-      "no agent runtime enforces\nthat a dependency carries a correct class"
-    );
-  });
 });
 
 describe("dependency trust classes wired into planning guidance", () => {
-  it("makes the decomposition skill demand a trust class for a new material dependency", () => {
-    const skill = readFileSync(DECOMPOSITION, "utf8");
-    const lowered = skill.toLowerCase();
-
-    expect(skill).toContain("### 4.5. Classify Any New Material Dependency");
-    expect(skill).toContain("**Name its trust class**");
-    for (const trustClass of TRUST_CLASSES) {
-      expect(lowered).toContain(trustClass);
-    }
-  });
-
   it("makes the decomposition skill demand the record update and the ratification call", () => {
     const skill = readFileSync(DECOMPOSITION, "utf8");
 
     expect(skill).toContain(`\`${RECORD_PATH}\``);
-    expect(skill).toContain("**State the class's required evidence**");
-    expect(skill).toContain(
-      "a proposed material dependency with no named class is not ready to build"
-    );
   });
 });
 
 describe("dependency-addition ticket fixture", () => {
-  it("names the dependency's trust class", () => {
-    const ticket = readFileSync(TICKET_FIXTURE, "utf8");
-
-    expect(ticket).toContain(
-      "**Trust class:** runtime-critical service client"
-    );
-    expect(ticket).toContain("**Why that class:**");
-  });
-
-  it("states the required review evidence for that class", () => {
-    const ticket = readFileSync(TICKET_FIXTURE, "utf8");
-
-    expect(ticket).toContain("### Required evidence for this trust class");
-    expect(ticket).toContain("**Capability owner:**");
-    expect(ticket).toContain("**Update cadence:**");
-    expect(ticket).toContain("**Detection evidence:**");
-    expect(ticket).toContain("**Replacement cost:**");
-    expect(ticket).toContain("**Product/human ratification:** **required**");
-  });
-
   it("commits to updating the decision record in the same change", () => {
     const ticket = readFileSync(TICKET_FIXTURE, "utf8");
 
     expect(ticket).toContain(RECORD_PATH);
-    expect(ticket).toContain("naming its trust class");
   });
 });

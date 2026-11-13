@@ -33,13 +33,6 @@ const RULE_SURFACES = [
   COPILOT_REFERENCE,
 ] as const;
 
-const EAGER_SURFACES = [
-  SOURCE_EAGER,
-  SHARED_EAGER,
-  CURSOR_EAGER,
-  COPILOT_EAGER,
-] as const;
-
 const REFERENCE_SURFACES = [
   SOURCE_REFERENCE,
   SHARED_REFERENCE,
@@ -59,32 +52,6 @@ describe.each(RULE_SURFACES)(
 
     it("forbids plain force and prefers an explicit SHA-bound lease", () => {
       expect(rule).toContain("Never use plain `git push --force`");
-      expect(rule).toContain("use `--force-with-lease`");
-      expect(rule).toContain("`--force-with-lease=<ref>:<sha>`");
-      expect(rule).toMatch(/exact remote tip the approval covered/);
-    });
-
-    it("voids stale approval instead of re-deriving consent", () => {
-      expect(rule).toMatch(
-        /History-rewrite approval is SHA-scoped, not durable/
-      );
-      expect(rule).toMatch(/remote ref moves or the lease rejects/);
-      expect(rule).toMatch(/approval is void/);
-      expect(rule).toMatch(/stop and obtain fresh confirmation/i);
-      expect(rule).toMatch(
-        /never re-derive consent from the earlier approval/i
-      );
-    });
-  }
-);
-
-describe.each(EAGER_SURFACES)(
-  "always-loaded force-lease head (%s)",
-  rulePath => {
-    it("requires the SHA-bound lease and voids a stale approval", () => {
-      const rule = read(rulePath);
-      expect(rule).toContain("`--force-with-lease=<ref>:<sha>`");
-      expect(rule).toMatch(/approval is void/);
     });
   }
 );
@@ -98,8 +65,6 @@ describe.each(REFERENCE_SURFACES)(
       expect(rule).toContain(
         "git push --force-with-lease=refs/heads/<branch>:<approved-sha> origin HEAD:refs/heads/<branch>"
       );
-      expect(rule).toMatch(/fresh fetch as renewing authorization/);
-      expect(rule).toMatch(/do not retry with an updated implicit lease/);
       expect(rule).toMatch(/or plain `--force`/);
     });
   }

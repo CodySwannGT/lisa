@@ -78,25 +78,12 @@ Then it works
       const content = readSkill(root, "lisa-atlassian-access");
 
       expect(content).toContain("markdown-to-adf.mjs");
-      expect(content).toContain("normalize_jira_description_payload");
-      expect(content).toMatch(/description.*ADF/i);
-      expect(content).toMatch(/acli.*does not convert Markdown/i);
-    });
-
-    it("requires validators to inspect rendered ADF heading nodes", () => {
-      const content = readSkill(root, "lisa-jira-validate-ticket");
-
-      expect(content).toContain("ADF heading");
-      expect(content).toContain("extract section headings from ADF");
-      expect(content).toContain("literal Markdown");
     });
 
     it("documents that post-write verify catches descriptions dropped to literal text", () => {
       const content = readSkill(root, "lisa-jira-write-ticket");
 
       expect(content).toContain("markdown-to-adf.mjs");
-      expect(content).toMatch(/literal .*paragraph/i);
-      expect(content).toContain("heading nodes");
     });
   });
 });

@@ -109,9 +109,6 @@ describe.each(SKILL_ROOTS)(
     const content = readDoctorSkill(root);
 
     it("defines one shared doctor repository-readiness section citing the rubric", () => {
-      expect(content).toContain("### Minimum repository-readiness checks");
-      expect(content).toMatch(/Repository readiness/);
-      expect(content).toMatch(/readiness-rubric/);
       expect(content).toMatch(/--readiness/);
     });
 
@@ -119,8 +116,6 @@ describe.each(SKILL_ROOTS)(
       for (const id of EXPECTED_DIMENSION_IDS) {
         expect(content).toContain(id);
       }
-      expect(content).toMatch(/eight/i);
-      expect(content).toMatch(/never (fewer|omit)/i);
     });
 
     it("documents the persisted .lisa/readiness.json artifact", () => {

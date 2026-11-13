@@ -79,26 +79,12 @@ describe("linear project comments", () => {
 
       it("cites the introspected input fields rather than documentation", () => {
         expect(skill).toContain("CommentCreateInput");
-        expect(skill).toContain("Project.comments");
-      });
-
-      it("requires exactly one anchor and forbids fabricating a holder", () => {
-        // Both-or-neither is refused, and the layer never invents an Issue to
-        // carry a Project's comment — that invention is the defect being fixed.
-        expect(skill).toMatch(/never both and never neither/i);
-        expect(squash(skill)).toContain(
-          "never creates an Issue to hold the comment"
-        );
-        expect(skill).toMatch(/do \*\*not\*\* silently degrade/i);
       });
 
       it("scopes the project form to the GraphQL substrate", () => {
         // The Linear MCP comments on Issues only, so the project form resolves
         // solely through tier 1 — the same restriction `history` carries.
         const substrate = squash(skill);
-        expect(substrate).toContain(
-          "Linear MCP exposes comments on Issues only"
-        );
         expect(substrate).toContain(
           "`project_id` form resolves solely through the tier-1 `LINEAR_API_KEY` + GraphQL substrate"
         );
@@ -112,21 +98,6 @@ describe("linear project comments", () => {
         expect(skill).toContain(
           `save-comment ${PROJECT_ID_ARG}:<id> body:<template>`
         );
-        expect(skill).toMatch(
-          /batched into one comment on the \*\*project itself\*\*/
-        );
-      });
-
-      it("no longer find-or-creates a feedback issue", () => {
-        // The find-or-create step and its "Ensure the project has a sentinel
-        // feedback issue" preamble are both gone.
-        expect(skill).not.toMatch(/Ensure the project has a sentinel/i);
-        expect(skill).not.toMatch(/find-or-creates\b/i);
-        expect(skill).toMatch(/no longer creates a sentinel/i);
-      });
-
-      it("forbids creating an issue merely to hold a comment", () => {
-        expect(skill).toMatch(/Never create a Linear issue to hold a comment/i);
       });
 
       it("excludes legacy sentinels from the rollup denominator", () => {
@@ -135,19 +106,6 @@ describe("linear project comments", () => {
         expect(skill).toContain(
           `Exclude any Issue carrying the \`$${SENTINEL_ROLE}\` label from the child set entirely`
         );
-        expect(skill).toMatch(/excluded regardless of its state/i);
-        expect(skill).toMatch(
-          /absent from both the numerator and the denominator/i
-        );
-      });
-
-      it("keeps the sentinel role as a read-only recognizer", () => {
-        // Out of scope here: deleting the existing issues. Their comment
-        // history is a real audit trail with nowhere else to live yet.
-        expect(skill).toMatch(/read-only recognizer/i);
-        expect(skill).toMatch(
-          /Do not close, archive, delete, or repurpose an existing sentinel/i
-        );
       });
     });
 
@@ -155,17 +113,9 @@ describe("linear project comments", () => {
       const agent = intakeAgent(root);
 
       it("retracts the claim that Linear cannot take project comments", () => {
-        expect(agent).not.toMatch(
-          /because Linear's MCP doesn't expose project-level comments/i
-        );
-        expect(agent).toMatch(/That premise was wrong about the substrate/i);
         expect(agent).toContain(
           `commentCreate(input: { ${PROJECT_ID_FIELD}, body })`
         );
-      });
-
-      it("forbids fabricating an issue to hold a comment", () => {
-        expect(agent).toMatch(/Never fabricate an issue to hold a comment/i);
       });
     });
   });

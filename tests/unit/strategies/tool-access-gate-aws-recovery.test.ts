@@ -56,26 +56,6 @@ describe("tool-access-gate credential recovery routing (#4469)", () => {
       expect(identity).toBeGreaterThan(setup);
     });
 
-    it("requires the caller account to match the project's expected account", () => {
-      expect(tableRow(reference, "AWS CLI")).toMatch(/expected account/i);
-    });
-
-    it("still reports and stops when the bundle is unresolvable or the account mismatches", () => {
-      const row = tableRow(reference, "AWS CLI");
-
-      expect(row).toMatch(
-        /unresolvable bundle or an account mismatch is the failure to report/i
-      );
-      expect(row).toMatch(/different AWS access method keeps that method/i);
-    });
-
-    it("lets a recovery run without human permission, for every vendor", () => {
-      expect(reference).toMatch(/needs no human permission/i);
-      expect(reference).toMatch(
-        /every vendor whose access skill documents a\s+recovery step/i
-      );
-    });
-
     it("lists lisa-secrets-access among the access skills a probe must route through", () => {
       const list = paragraph(reference, "- Vendors with an access layer");
 
@@ -92,12 +72,6 @@ describe("tool-access-gate credential recovery routing (#4469)", () => {
 
       expect(provider).toBeGreaterThanOrEqual(0);
       expect(stop).toBeGreaterThan(provider);
-    });
-
-    it("states that a documented recovery step is not a forbidden write", () => {
-      expect(reference).toMatch(
-        /documented recovery[^\n]*(?:\n[^\n]+)*?not a forbidden write/i
-      );
     });
 
     it("points the eager summary at lisa-secrets-access", () => {

@@ -179,8 +179,6 @@ describe("scenario 1 — a dependency is ADDED (DEP-1 + DEP-2 + DEP-3 + DEP-4)",
     expect(entries).toHaveLength(1);
     expect(entry?.heading).toBe("stripe");
     expect(entry?.body).toContain("`stripe` (Node SDK) `18.5.0`");
-    // The ticket's second acceptance criterion is what this entry discharges.
-    expect(ticket).toContain("naming its trust class");
   });
 
   it("names a trust class the taxonomy actually defines", () => {
@@ -189,7 +187,6 @@ describe("scenario 1 — a dependency is ADDED (DEP-1 + DEP-2 + DEP-3 + DEP-4)",
 
     expect(declared).toBe("runtime-critical service client");
     expect(TRUST_CLASSES).toContain(declared);
-    expect(read(TRUST_CLASS_REFERENCE)).toContain(declared ?? "");
   });
 
   it("resolves the record's trust basis to the class the work item named", () => {
@@ -218,9 +215,6 @@ describe("scenario 1 — a dependency is ADDED (DEP-1 + DEP-2 + DEP-3 + DEP-4)",
     // The taxonomy's rule for this class: "nothing would catch it" is a
     // rejection, not a disclosure. The record has to say which of the two it is.
     expect(entry?.body).toContain("this line is an escalation, not a to-do");
-    expect(read(TRUST_CLASS_REFERENCE)).toContain(
-      '"Nothing would catch it" is not an acceptable answer in this class'
-    );
   });
 
   it("keeps the install-only script from posing as detection evidence", () => {
@@ -307,12 +301,6 @@ describe("scenario 1 — a dependency is ADDED (DEP-1 + DEP-2 + DEP-3 + DEP-4)",
   });
 
   it("reads coherently against Lisa's own seeded records", () => {
-    // DEP-4 is the dogfood proof. Both open the trust basis by naming the class,
-    // so an operator who learned to read one can read the other.
-    expect(read(SEED)).toContain(
-      "Each **trust basis** field opens by naming the dependency's trust class"
-    );
-    expect(read(SEED)).toContain("Trust class: **");
     expect(entry?.body).toContain("Trust class: **");
   });
 });
@@ -384,8 +372,6 @@ describe("scenario 2 — a dependency is INTERNALIZED (adds DEP-5)", () => {
 
   it("keeps an ordinary version bump out of the kit — the negative control", () => {
     const bump = read(BUMP_TICKET);
-
-    expect(bump).toContain("**Move:** none. Version bump only.");
     expect(flat(bump)).toContain(
       "the confidence-rebuild kit does **not** apply"
     );
@@ -396,11 +382,6 @@ describe("scenario 2 — a dependency is INTERNALIZED (adds DEP-5)", () => {
 
   it("is wired into planning by the same skill that classifies additions", () => {
     const skill = read(DECOMPOSITION);
-
-    expect(skill).toContain("### 4.5. Classify Any New Material Dependency");
-    expect(skill).toContain(
-      "### 4.6. Inherit the Confidence-Rebuild Kit When Ownership Moves In-House"
-    );
     expect(skill.indexOf("### 4.5.")).toBeLessThan(skill.indexOf("### 4.6."));
   });
 });

@@ -118,13 +118,6 @@ describe("`lisa-validate-tracker-mapping` owns the live inversion check", () => 
     for (const line of mentions) expect(line).toContain("inert");
   });
 
-  it("classifies a `ready` equal to the team's default created state as INVERTED", () => {
-    const skill = readSkill(VALIDATE_MAPPING_SKILL);
-
-    expect(skill).toContain("INVERTED");
-    expect(skill).toContain("defaultIssueState");
-  });
-
   it("never auto-repairs an INVERTED role, because the config alone cannot say what the human meant", () => {
     const skill = readSkill(VALIDATE_MAPPING_SKILL);
     const repairSection = skill.slice(skill.indexOf("## Step 6"));
@@ -141,14 +134,5 @@ describe("`lisa-validate-tracker-mapping` owns the live inversion check", () => 
     );
 
     expect(verdictSection).toContain("INVERTED");
-  });
-});
-
-describe("`lisa-linear-access` surfaces which state the team creates into", () => {
-  it("flags the team default on `list-workflow-states` so callers need no second query", () => {
-    const skill = readSkill("lisa-linear-access");
-
-    expect(skill).toContain("defaultIssueState");
-    expect(skill).toContain("isTeamDefault");
   });
 });

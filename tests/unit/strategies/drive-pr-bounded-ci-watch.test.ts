@@ -85,8 +85,6 @@ describe.each(ROOTS)("drive-pr-to-merge bounded CI watch (%s)", root => {
   const content = readSkill(root);
   const watchLoop = (): string =>
     slice(content, "\n## 2. The watch loop", "\n## 3. Merge and verify");
-  const mergeAndVerify = (): string =>
-    slice(content, "\n## 3. Merge and verify", "\n## 4. Terminal states");
   const terminal = (): string => slice(content, "\n## 4. Terminal states");
 
   // --- Scenario: the skill waits with a bounded blocking watch -------------
@@ -100,7 +98,6 @@ describe.each(ROOTS)("drive-pr-to-merge bounded CI watch (%s)", root => {
   it("runs the watch under a timeout bounded by the harness command limit", () => {
     const loop = watchLoop();
     expect(loop).toMatch(/timeout 540 gh pr checks <pr> --required --watch/);
-    expect(loop).toMatch(/single-command (time )?limit/i);
   });
 
   it("re-polls the full PR state after the watch returns, and repeats", () => {
@@ -109,9 +106,6 @@ describe.each(ROOTS)("drive-pr-to-merge bounded CI watch (%s)", root => {
     const rePollAt = loop.search(/re-poll the full PR state/i);
     expect(watchAt).toBeGreaterThanOrEqual(0);
     expect(rePollAt).toBeGreaterThan(watchAt);
-    expect(loop).toMatch(
-      /Repeat until the PR is merged, a blocker needs action, or the run's budget is spent/i
-    );
   });
 
   it("never reads the watch's exit code as the CI verdict", () => {
@@ -119,7 +113,6 @@ describe.each(ROOTS)("drive-pr-to-merge bounded CI watch (%s)", root => {
     // with empty stdout, when it lacks `actions: read`. Only the re-poll of
     // statusCheckRollup says which one happened.
     const loop = watchLoop();
-    expect(loop).toMatch(/non-zero exit is not a CI failure/i);
     expect(loop).toMatch(/statusCheckRollup.{0,40}is the authority/is);
   });
 
@@ -128,34 +121,6 @@ describe.each(ROOTS)("drive-pr-to-merge bounded CI watch (%s)", root => {
     expect(loop).toMatch(
       /gh pr view <pr> --json state,mergeStateStatus,mergeable,reviewDecision,statusCheckRollup/
     );
-    expect(loop).toMatch(/Re-read the hold label on every iteration/);
-    expect(loop).toMatch(/refresh the\s+babysitter lease/);
-    expect(loop).toMatch(/Poll by PR number/);
-  });
-
-  it("is the bounded wait section 3's deploy-run wait points back to", () => {
-    // Section 3 used to mirror a bound that did not exist anywhere.
-    const verify = mergeAndVerify();
-    expect(verify).toMatch(/mirroring section 2's\s+bounded CI watch/);
-    expect(verify).not.toMatch(/wait\s+for that head's checks to start/);
-    expect(watchLoop()).toMatch(/bounded CI watch/i);
-  });
-
-  // --- Scenario: the skill forbids background watchers ---------------------
-
-  it("explicitly forbids a detached or background watcher", () => {
-    const loop = watchLoop();
-    expect(loop).toMatch(
-      /Never start a detached or background watcher as the way to wait on CI/
-    );
-    for (const named of [
-      "`&`",
-      "`nohup`",
-      "background task",
-      "scheduled re-check",
-    ]) {
-      expect(loop).toContain(named);
-    }
   });
 
   it("contains no runnable instruction that starts a background watcher", () => {
@@ -182,7 +147,6 @@ describe.each(ROOTS)("drive-pr-to-merge bounded CI watch (%s)", root => {
     // Prose can instruct too. The prohibition sentence names `&` and `nohup`
     // as bare tokens, so it does not match these command-shaped patterns.
     expect(content).not.toMatch(/--watch[^\n`]*&\s*`?$/m);
-    expect(content).not.toMatch(/nohup\s+gh/);
     expect(content).not.toMatch(/run_in_background:\s*true/);
   });
 
@@ -203,68 +167,13 @@ describe.each(ROOTS)("drive-pr-to-merge bounded CI watch (%s)", root => {
     expect(outside.map(m => m[0])).toEqual([]);
   });
 
-  // --- Review tightening ---------------------------------------------------
-
-  it("defines the run's budget, and a watch timeout is not it", () => {
-    const loop = watchLoop();
-    expect(loop).toMatch(/caller's stated limit when one was passed/);
-    expect(loop).toMatch(/turn, context or\s+wall-clock limit/);
-    expect(loop).toMatch(/One watch timing out is NOT the budget being spent/);
-  });
-
-  it("keeps the harness from killing the watch before its own timeout", () => {
-    expect(watchLoop()).toMatch(
-      /tool call that runs it a timeout above that value/
-    );
-  });
-
   it("handles a head with no required checks registered yet without spinning", () => {
     const loop = watchLoop();
-    expect(loop).toMatch(/\*\*No required checks reported yet\.\*\*/);
-    expect(loop).toMatch(
-      /does not apply only when BOTH say none: the rules read returns `0`\s+AND the classic read returns `0`, or 404 while the branch read says `\.protected`\s+is `false`/
-    );
     expect(loop).toContain("/protection/required_status_checks");
     // A 404 is also what a token without admin gets on a protected branch.
     expect(loop).toContain('branches/<base>" --jq .protected');
-    expect(loop).toMatch(/a 404 on a protected branch/);
-    expect(loop).toMatch(
-      /With no required checks, the loop just re-polls for the other blockers/
-    );
-    expect(loop).toMatch(
-      /re-run the bounded watch once the\s+re-poll shows required checks registered/
-    );
     expect(loop).toContain(
       "timeout 60 gh pr checks <pr> --watch --interval 10; sleep 30"
-    );
-    // `||` would skip the pause when the watch exits 0 at once (every reported
-    // check green, a required one not yet registered) and spin the re-polls.
-    expect(loop).not.toContain("--interval 10 || sleep");
-    expect(loop).toMatch(/Never a detached or unbounded sleep loop/);
-    expect(loop).toMatch(
-      /After 10 re-polls with no required\s+check registered/
-    );
-  });
-
-  it("points the actions: read behaviour at where it is explained", () => {
-    const loop = watchLoop();
-    expect(loop).not.toMatch(/`actions: read` \(step c\)/);
-    expect(loop).toMatch(/`actions: read` \(section 1's arm gate\)/);
-  });
-
-  it("keeps report mode out of the wait and out of ci-pending", () => {
-    const loop = watchLoop();
-    expect(loop).toMatch(/\*\*Report mode does not wait on CI\.\*\*/);
-    expect(loop).toMatch(/never end in `ci-pending`/);
-    // The value must be one repair-intake already parses.
-    expect(loop).toMatch(/return `will-merge-after-resync`/);
-  });
-
-  // --- Scenario: ending with checks pending is explicit --------------------
-
-  it("closes out a pending record once that head's checks finish", () => {
-    expect(watchLoop()).toMatch(
-      /later run that finds that head's required checks finished edits the marker\s+comment/
     );
   });
 
@@ -276,10 +185,6 @@ describe.each(ROOTS)("drive-pr-to-merge bounded CI watch (%s)", root => {
 
   it("records the PR, head SHA and pending checks when the budget runs out", () => {
     const loop = watchLoop();
-    expect(loop).toMatch(/<!-- \[lisa-ci-pending\] sha=<head-sha> -->/);
-    expect(loop).toMatch(
-      /PR number, the head SHA, and the names of the\s+required checks still pending/i
-    );
     // The wake-up for a later failure is E1's re-dispatch, named not rebuilt.
     expect(loop).toContain("[lisa-ci-failed]");
   });
@@ -290,7 +195,5 @@ describe.each(ROOTS)("drive-pr-to-merge bounded CI watch (%s)", root => {
     const line = "CI PENDING — <n> required checks still running at <sha>";
     expect(loop).toContain(line);
     expect(end).toContain(line);
-    expect(end).toMatch(/\*\*`ci-pending`\*\*/);
-    expect(end).toMatch(/never\s+(reported as\s+)?success/i);
   });
 });

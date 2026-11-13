@@ -54,9 +54,6 @@ const RULE_ROOTS = [
 /** The rule slug every wired surface cites instead of restating the contract. */
 const SLUG = "control-reachability";
 
-/** The gate id the three validators carry. */
-const GATE = "S20";
-
 /** The three validators that carry gate S20. */
 const VALIDATORS = [
   "lisa-jira-validate-ticket",
@@ -93,7 +90,6 @@ const IMPLEMENTER_SURFACES = [
 
 /** The marker's two halves — a declaration a validator parses, not prose. */
 const MARKER_PREFIX = "[CONTROL:";
-const MARKER_KEY = "reaches:";
 
 /**
  * Read a skill body from one plugin root.
@@ -152,68 +148,13 @@ describe("control-reachability rule contract", () => {
       expect(readRuleIndex(root)).toContain(`reference/${SLUG}.md`);
     });
 
-    it("states the cost that makes this rule different — a correct fix reverted", () => {
-      expect(eager).toMatch(/revert(?:s|ed|ing)? a correct fix/i);
-      expect(reference).toMatch(/revert(?:s|ed|ing)? a correct fix/i);
-      // The counter-intuitive part: discipline makes it worse, not better.
-      expect(reference).toMatch(/disciplined/i);
-    });
-
     it("expresses the authoring obligation as a parseable marker", () => {
       for (const body of [eager, reference]) {
         expect(body).toContain(MARKER_PREFIX);
-        expect(body).toContain(MARKER_KEY);
-        expect(body).toContain("<test-identifier>");
-        expect(body).toContain("<input-or-field>");
       }
-      // Naming the code is the tempting non-answer; the marker names the input.
-      expect(reference).toMatch(/input|field|fixture key|argument/i);
-    });
-
-    it("rejects prose-only guidance as the instrument that already failed", () => {
-      expect(reference).toMatch(
-        /advisory guidance being insufficient|prose.*same class of artifact/i
-      );
-      expect(reference).toMatch(/checkable/i);
-    });
-
-    it("exempts an item that introduces a new test instead", () => {
-      expect(eager).toMatch(/new\*{0,2} test/i);
-      expect(eager).toMatch(/exempt|no reachability obligation/i);
-      expect(reference).toMatch(/N\/A/);
-      expect(reference).toMatch(
-        /never be reported as incomplete on this basis/i
-      );
-    });
-
-    it("keeps both causes with opposite actions and forbids the default reading", () => {
-      for (const body of [eager, reference]) {
-        expect(body).toMatch(/had no effect/i);
-        expect(body).toMatch(/never reach(?:es|ed)? the changed/i);
-        expect(body).toMatch(/revisit the change/i);
-        expect(body).toMatch(/fix or extend the control/i);
-      }
-      expect(eager).toMatch(/opposite actions/i);
-      // The asymmetry that makes the wrong reading win by default.
-      expect(reference).toMatch(/cheap(?:er)? reading/i);
-    });
-
-    it("requires reachability be proved by execution, not by reading the fixture", () => {
-      expect(eager).toMatch(/by execution, never by reading the fixture/i);
-      expect(eager).toMatch(/throw/i);
-      expect(eager).toMatch(/coverage/i);
-      expect(reference).toMatch(/mentally reverting/i);
-    });
-
-    it("forbids reverting on an unexplained green", () => {
-      expect(eager).toMatch(/never revert on an unexplained green/i);
-      expect(eager).toMatch(/blocked observation/i);
-      expect(reference).toMatch(/blocked observation/i);
-      expect(reference).toMatch(/not a verdict/i);
     });
 
     it("names the gate and every surface wired to cite it", () => {
-      expect(eager).toContain(GATE);
       for (const slug of [
         ...VALIDATORS,
         ...JOURNEY_WRITERS.map(writer => writer.replace("add-journey", "")),
@@ -221,11 +162,6 @@ describe("control-reachability rule contract", () => {
       ]) {
         expect(eager + reference).toContain(slug);
       }
-    });
-
-    it("states what it does not claim, so the single instance is not oversold", () => {
-      expect(reference).toMatch(/One measured instance|frequency/i);
-      expect(reference).toMatch(/denominator/i);
     });
   });
 });
@@ -241,29 +177,11 @@ describe("validators carry gate S20", () => {
 
     it.each(VALIDATORS)("%s defines the gate and its marker grammar", slug => {
       const content = readSkill(root, slug);
-      expect(content).toContain("#### S20 — Named-control reachability");
       expect(content).toContain(SLUG);
       expect(content).toContain(MARKER_PREFIX);
-      expect(content).toContain(MARKER_KEY);
       // Parsing instructions, so the gate is a parse rather than a judgement.
       expect(content).toMatch(/Parse by the exact `\[CONTROL:` prefix/);
     });
-
-    it.each(VALIDATORS)("%s fires only on an existing-test control", slug => {
-      const content = readSkill(root, slug);
-      expect(content).toMatch(/must go red/i);
-      expect(content).toMatch(/if it still passes the fix did nothing/i);
-      expect(content).toMatch(/never be reported as incomplete on this basis/i);
-    });
-
-    it.each(VALIDATORS)(
-      "%s rejects a reaches: half that names the code",
-      slug => {
-        const content = readSkill(root, slug);
-        expect(content).toMatch(/reaches: the fix/);
-        expect(content).toMatch(/reaches: the changed code path/);
-      }
-    );
 
     it.each(VALIDATORS)("%s emits S20 in its report block", slug => {
       const content = readSkill(root, slug);
@@ -282,15 +200,8 @@ describe("journey writers render the marker", () => {
         const content = readSkill(root, slug);
         expect(content).toContain(SLUG);
         expect(content).toContain(MARKER_PREFIX);
-        expect(content).toContain(MARKER_KEY);
-        expect(content).toContain(GATE);
       }
     );
-
-    it.each(JOURNEY_WRITERS)("%s writes no marker for a new test", slug => {
-      const content = readSkill(root, slug);
-      expect(content).toMatch(/no such obligation|no marker is written/i);
-    });
   });
 });
 
@@ -298,31 +209,6 @@ describe("implementer surfaces bind the stopping-rule arm", () => {
   describe.each(SKILL_ROOTS)("%s", root => {
     it.each(IMPLEMENTER_SURFACES)("%s cites the rule by slug", slug => {
       expect(readSkill(root, slug)).toContain(SLUG);
-    });
-
-    it.each(STOPPING_RULE_SURFACES)("%s keeps both causes distinct", slug => {
-      const content = readSkill(root, slug);
-      expect(content).toMatch(/no effect|had no effect/i);
-      expect(content).toMatch(
-        /never reach(?:es|ed)? the changed|does not reach/i
-      );
-    });
-
-    it.each(STOPPING_RULE_SURFACES)(
-      "%s forbids reverting before the cause is established",
-      slug => {
-        const content = readSkill(root, slug);
-        expect(content).toMatch(/never revert|do \*\*not\*\* revert/i);
-        expect(content).toMatch(
-          /by execution, never by reading the fixture|never by reading the fixture/i
-        );
-      }
-    );
-
-    it(`${TRIAGE_SURFACE} raises an undeclared control as a finding`, () => {
-      const content = readSkill(root, TRIAGE_SURFACE);
-      expect(content).toMatch(/Ambiguity/);
-      expect(content).toMatch(/not a pass/i);
     });
   });
 });

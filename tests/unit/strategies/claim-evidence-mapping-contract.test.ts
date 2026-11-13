@@ -65,19 +65,7 @@ describe("claim-evidence-mapping rule contract", () => {
       }
     });
 
-    it("states the load-bearing rule: a claim declares a boundary and is established only by evidence that reaches it", () => {
-      for (const doc of [eager, reference]) {
-        expect(doc).toMatch(/boundary/i);
-        expect(doc).toMatch(/reaches (that|the) boundary/i);
-      }
-    });
-
     it("binds every boundary to an establishing evidence kind in the reference table", () => {
-      // The taxonomy table header — each boundary row names what establishes it
-      // and what cannot.
-      expect(reference).toMatch(/\| Claim boundary \|/);
-      expect(reference).toMatch(/Establishing evidence kind/i);
-      expect(reference).toMatch(/Cannot be established by/i);
       // Evidence kinds are drawn verbatim from the verification rule's
       // artifact-type taxonomy — not invented here.
       for (const kind of [
@@ -93,20 +81,7 @@ describe("claim-evidence-mapping rule contract", () => {
       }
     });
 
-    it("states the core inequality explicitly", () => {
-      // unit tests ≠ browser behavior ≠ healthy deployment ≠ standards compat.
-      expect(reference).toMatch(/core inequality/i);
-      for (const doc of [eager, reference]) {
-        expect(doc).toContain("≠");
-      }
-    });
-
     it("bounds a unit test-run-log to the code-unit claim only", () => {
-      for (const doc of [eager, reference]) {
-        // A unit test is a quality prerequisite reaching only code-unit.
-        expect(doc).toMatch(/unit test/i);
-        expect(doc).toMatch(/code-unit/);
-      }
       // The reference spells out the boundaries a unit log can NEVER discharge.
       for (const cannot of [
         "browser",
@@ -116,23 +91,17 @@ describe("claim-evidence-mapping rule contract", () => {
       ]) {
         expect(reference).toContain(cannot);
       }
-      expect(reference).toMatch(/never establish|cannot establish|can never/i);
     });
 
     it("carries a worked example fence", () => {
       const fence = /```text\n([\s\S]*?)```/.exec(reference)?.[1] ?? "";
       expect(fence.length).toBeGreaterThan(0);
-      expect(fence).toMatch(/boundary/i);
     });
 
     it("defines the field names BCE-2's schema reuses", () => {
       for (const field of FIELD_NAMES) {
         expect(reference).toContain(field);
       }
-    });
-
-    it("names the review-rejection rule", () => {
-      expect(reference).toMatch(/reject/i);
     });
 
     it("cites sibling rules by bare slug rather than restating them", () => {
@@ -147,34 +116,8 @@ describe("claim-evidence-mapping rule contract", () => {
       expect(reference).not.toContain("rules/reference/factory-model.md");
     });
 
-    it("names the improve-harness bounded-claim discipline as the philosophical precedent", () => {
-      expect(reference).toMatch(/bounded.claim/i);
-    });
-
     it("adds a reciprocal cross-link to the verification rule", () => {
       expect(reference).toContain("verification");
-      expect(reference).toMatch(/artifact-type/i);
-    });
-
-    it("hedges concepts that ship with sibling tickets", () => {
-      // Not-established (BCE-3), artifact identity (BCE-4), security bucket (BCE-5)
-      // are NAMED here but defined in their own tickets.
-      expect(reference).toMatch(/not established/i);
-      expect(reference).toMatch(/artifact identit/i);
-      expect(reference).toMatch(/security/i);
-      expect(reference).toMatch(
-        /ships with that ticket|defined (fully )?in|that ticket/i
-      );
-      for (const ref of ["#1836", "#1837", "#1838", "#1839"]) {
-        expect(reference).toContain(ref);
-      }
-    });
-
-    it("is operator-readable and degrades rather than blocking", () => {
-      for (const doc of [eager, reference]) {
-        expect(doc).toMatch(/factory-model/);
-      }
-      expect(reference).toMatch(/degrade|never block/i);
     });
   });
 });

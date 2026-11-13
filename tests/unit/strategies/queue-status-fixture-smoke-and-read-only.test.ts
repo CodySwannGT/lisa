@@ -129,10 +129,6 @@ describe("queue-status source/generated parity and read-only contract (#826)", (
     expect(
       readUtf8(path.join(GENERATED_PLUGIN_ROOT, "commands", "queue-status.md"))
     ).toBe(sourceCommand);
-    expect(sourceCommand).toMatch(/read-only in v1/i);
-    expect(sourceCommand).toMatch(
-      /without mutating work|without mutating queue items/i
-    );
   });
 
   it("keeps the distributed queue-status skill in lockstep with the source asset", () => {
@@ -150,13 +146,6 @@ describe("queue-status source/generated parity and read-only contract (#826)", (
         )
       )
     ).toBe(sourceSkill);
-    expect(sourceSkill).toMatch(/read-only/i);
-    expect(sourceSkill).toMatch(
-      /It does not create, claim, relabel, repair, transition, comment on, or otherwise mutate queue items\./
-    );
-    expect(sourceSkill).toMatch(
-      /Never create, update, claim, relabel, repair, transition, or comment on queue items from this skill\./
-    );
   });
 
   it("keeps the distributed queue-status scripts in lockstep with the source assets", () => {

@@ -70,13 +70,6 @@ const VALIDATORS = [
   "lisa-linear-validate-issue",
 ] as const;
 
-const TO_TRACKERS = [
-  "lisa-notion-to-tracker",
-  "lisa-confluence-to-tracker",
-  "lisa-linear-to-tracker",
-  "lisa-github-to-tracker",
-] as const;
-
 const PLANNING_MISS = "`planning-miss`";
 const PERSIST = "lisa-persist-learning";
 const STEP_ZERO = "`lisa-task-decomposition` step 0";
@@ -89,14 +82,9 @@ describe.each(JUDGES)("learning-judge (%s)", judgePath => {
     expect(judge).toMatch(
       /`classification` \| `durable-learning` \\\| `planning-miss` \\\|/
     );
-    expect(judge).toContain("`persist` iff durable-learning or planning-miss");
-    expect(judge).not.toContain("only durable-learning ever persists");
   });
 
   it("persists a first occurrence at low confidence, routed by learnings.lowConfidence", () => {
-    expect(judge).toContain(
-      "A first-occurrence planning miss persists at `low` confidence"
-    );
     // #4687: auto-merge is the access-only default; strict restores the human wait.
     expect(judge).toMatch(
       /Under the default `humanGate\.mode: "access-only"`, `learnings\.lowConfidence` defaults to `"auto-merge"`/
@@ -104,39 +92,12 @@ describe.each(JUDGES)("learning-judge (%s)", judgePath => {
     expect(judge).toMatch(
       /Under `humanGate\.mode: "strict"`, or when the project sets `learnings\.lowConfidence: "human-triage"`, a `low` rule waits for a human/
     );
-    expect(judge).toContain("never blocks a first occurrence");
   });
 
   it("phrases the rule as the planning check, naming the stage", () => {
-    expect(judge).toContain("`Planning (<stage>): <check>`");
     for (const stage of ["`prd`", "`decomposition`", "`ready-gate`"]) {
       expect(judge).toContain(stage);
     }
-    expect(judge).toContain("`planning_stage`");
-    expect(judge).toContain("quotes what the worker could not find");
-  });
-
-  it("keeps a spec gap caught before dispatch as a drop", () => {
-    expect(judge).toMatch(
-      /- \*\*`misunderstanding\/spec-gap`\*\* — [^\n]*\*\*before\*\* the item was dispatched[^\n]*Disposition `drop`/
-    );
-  });
-
-  it("treats a wrongly-escalated label as a human ruling, not a flagged gate (#4657)", () => {
-    expect(judge).toContain(
-      "### Step 2.6: Overruled escalation (`signal: wrongly-escalated`)"
-    );
-    expect(judge).toContain("`filing`");
-    expect(judge).toContain("this exclusion does not apply to it");
-    expect(judge).toContain("an automation identity applying it");
-    expect(judge).toContain("the persistence PR never waits for a human");
-  });
-
-  it("excludes environmental stops and flagged human gates", () => {
-    const miss = judge.slice(judge.indexOf("- **`planning-miss`** —"));
-    expect(miss).toMatch(/outage/);
-    expect(miss).toMatch(/expired credential/);
-    expect(miss).toMatch(/flagged as a human gate/);
   });
 });
 
@@ -148,17 +109,12 @@ describe.each(SKILL_ROOTS)("planning-miss loop (%s)", root => {
     expect(persist).toContain(
       "### `persist` (classification `durable-learning` or `planning-miss`)"
     );
-    expect(persist).toContain("[lisa-planning-miss] key=<fingerprint>");
     expect(persist).toContain("isolated worktree");
   });
 
   it("the session manager routes the candidate without blocking dispatch", () => {
     const manager = skill("lisa-session-manager");
-    expect(manager).toContain("6. **Planning-miss signal.**");
-    expect(manager).toContain("7. **Continue the cycle.**");
     expect(manager).toContain("`planningMiss.counts`");
-    expect(manager).toContain("`run_in_background: true`");
-    expect(manager).toContain("never waits for it");
     expect(manager).toContain("`--cause environment`");
     expect(manager).toContain("`--cause human-gate`");
     expect(manager).toContain("`--item-label <label>`");
@@ -166,24 +122,12 @@ describe.each(SKILL_ROOTS)("planning-miss loop (%s)", root => {
 
   it("the session manager captures overruled escalations once, off the dispatch path (#4657)", () => {
     const manager = skill("lisa-session-manager");
-    expect(manager).toContain("**Overruled escalations**");
     expect(manager).toContain("overruled-plan");
     expect(manager).toContain("[lisa-escalation-overruled] key=<fingerprint>");
-    expect(manager).toContain("never changes the cycle's run outcome");
-  });
-
-  it("persist-learning merges a wrongly-escalated learning without a human (#4657)", () => {
-    const persist = skill(PERSIST);
-    expect(persist).toContain(
-      "**`signal: wrongly-escalated`, at either confidence**"
-    );
-    expect(persist).toContain("apply no triage label");
   });
 
   it("lisa-implement routes a mid-build ticket and an unmanaged human-needed stop", () => {
     const implement = skill("lisa-implement");
-    expect(implement).toContain("**Planning-miss signal.**");
-    expect(implement).toContain("mid-build");
     expect(implement).toContain(PERSIST);
     expect(implement).toContain(
       "Under `managedBy=`, the manager routes a human-needed stop"
@@ -192,12 +136,7 @@ describe.each(SKILL_ROOTS)("planning-miss loop (%s)", root => {
 
   it("decomposition loads the learned planning checks through the bounded projection", () => {
     const decomposition = skill("lisa-task-decomposition");
-    expect(decomposition).toContain("### 0. Load the learned planning checks");
     expect(decomposition).toContain("scripts/learnings-projection.mjs");
-    expect(decomposition).toContain(
-      "Planning \\((prd|decomposition|ready-gate|filing)\\):"
-    );
-    expect(decomposition).toContain("**`Planning (filing): …`**");
     expect(decomposition).not.toMatch(/cat [^\n]*PROJECT_LEARNINGS/);
   });
 
@@ -205,28 +144,14 @@ describe.each(SKILL_ROOTS)("planning-miss loop (%s)", root => {
     expect(skill("lisa-plan")).toContain(STEP_ZERO);
     for (const validator of VALIDATORS) {
       const s18 = skill(validator).split("S18 — Stateless-pickup dry-run")[1];
-      expect(s18, validator).toContain("**Learned planning checks.**");
       expect(s18, validator).toContain(STEP_ZERO);
     }
-    for (const toTracker of TO_TRACKERS) {
-      expect(skill(toTracker), toTracker).toContain(
-        "- **Learned planning checks** —"
-      );
-    }
-  });
-
-  it("delivery effectiveness reports the planning-miss rate", () => {
-    const effectiveness = skill("lisa-delivery-effectiveness");
-    expect(effectiveness).toContain("| **Planning-miss rate** |");
-    expect(effectiveness).toContain("| Planning-miss rate | | | | | |");
-    expect(effectiveness).toContain("`[lisa-planning-miss]`");
   });
 });
 
 describe.each(FILING_RULES)("ready-role-filing (%s)", rulePath => {
   it("names a mid-build filing as a planning signal", () => {
     const rule = read(rulePath);
-    expect(rule).toContain("## Mid-build filings are a planning signal");
     expect(rule).toContain(PERSIST);
     expect(rule).toContain(PLANNING_MISS);
   });

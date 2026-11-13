@@ -79,16 +79,7 @@ describe("intake assignee filter", () => {
     const content = readSkill(root, "lisa-intake");
 
     it("documents the assignee argument and local config resolution order", () => {
-      expect(content).toContain("assignee=<vendor-user-id-or-login>");
       expect(content).toContain(".lisa.config.local.json` `intake.assignee`");
-      expect(content).toMatch(/empty default/i);
-    });
-
-    it("states that the filter is selection-only", () => {
-      expect(content).toMatch(/never assigns or reassigns tickets/i);
-      expect(content).toMatch(
-        /ready[\s\S]*already assigned to that assignee are considered/i
-      );
     });
   });
 
@@ -96,9 +87,7 @@ describe("intake assignee filter", () => {
     const content = readSkill(root, "lisa-github-build-intake");
 
     it("documents assignee resolution for github build intake", () => {
-      expect(content).toContain("assignee=<github-login>");
       expect(content).toContain(".lisa.config.local.json` `intake.assignee`");
-      expect(content).toMatch(/empty default/i);
     });
 
     it.each([
@@ -124,13 +113,6 @@ describe("intake assignee filter", () => {
       expect(result.status).toBe(1);
       expect(result.stdout).toBe("");
     });
-
-    it("preserves shared-queue behavior when no assignee is resolved", () => {
-      expect(content).toMatch(/scan the shared ready queue exactly as before/i);
-      expect(content).toMatch(
-        /filter the ready-item query to issues already assigned/i
-      );
-    });
   });
 });
 
@@ -148,20 +130,12 @@ describe.each(RULES_ROOTS)(
     );
 
     it("documents intake.assignee as a local-only override", () => {
-      expect(content).toContain(
-        "### Intake assignee filter (`intake.assignee`)"
-      );
-      expect(content).toMatch(/local-only/i);
       expect(content).toMatch(/\.lisa\.config\.local\.json/);
     });
 
     it("documents argument override and empty default behavior", () => {
       expect(content).toContain(
         "$ARGUMENTS` `assignee=<vendor-user-id-or-login>`"
-      );
-      expect(content).toMatch(/empty default/i);
-      expect(content).toMatch(
-        /empty resolved value disables the[\s\S]*shared ready-queue behavior/i
       );
     });
   }

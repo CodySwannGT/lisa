@@ -59,7 +59,6 @@ describe("closed vocabularies match what lisa-github-write-issue declares", () =
   });
 
   it("encodes the declared priority vocabulary, critical included", () => {
-    expect(skill).toContain("priority:<low|medium|high|critical>");
     expect(CLOSED_PRIORITY_VOCABULARY).toEqual([
       "low",
       "medium",
@@ -75,12 +74,6 @@ describe("closed vocabularies match what lisa-github-write-issue declares", () =
 
 describe("`lisa-validate-tracker-mapping` wires the scoping audit in", () => {
   const skill = readSkill(VALIDATE_MAPPING_SKILL);
-
-  it("names the four scoping families the lifecycle audit cannot see", () => {
-    for (const family of ["type:", "priority:", "points:", "component:"]) {
-      expect(skill).toContain(family);
-    }
-  });
 
   it("runs the audit through the shared script rather than re-deriving it", () => {
     expect(skill).toContain("scoping-label-audit.mjs");
@@ -98,9 +91,5 @@ describe("`lisa-validate-tracker-mapping` wires the scoping audit in", () => {
 
     expect(repairSection).toMatch(/never (auto-)?repair/i);
     expect(repairSection).toContain("scoping");
-  });
-
-  it("records that Lisa asserts no authority over an open vocabulary", () => {
-    expect(skill).toMatch(/open (vocabular|by design)/i);
   });
 });
