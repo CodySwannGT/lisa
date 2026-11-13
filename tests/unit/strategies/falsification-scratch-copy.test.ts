@@ -171,6 +171,7 @@ describe("falsification runs on a scratch copy", () => {
       expect(text).toContain("node_modules");
       expect(text).toMatch(/BEFORE breaking anything/);
       expect(text).toMatch(/red baseline means the copy is incomplete/i);
+      expect(text).toMatch(/workspace monorepo, install in the copy/i);
       expect(text).toContain("git worktree remove --force");
       expect(text).toMatch(/address it by absolute path/);
       expect(text).toMatch(

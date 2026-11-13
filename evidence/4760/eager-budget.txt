@@ -1,7 +1,7 @@
 $ node scripts/check-eager-rule-budget.mjs
-ok   plugins/src/base/rules/eager: 27 files, 79145 bytes (ceiling 80000, 855 to spare)
-ok   plugins/lisa/rules/eager: 27 files, 79145 bytes (ceiling 80000, 855 to spare)
-ok   plugins/lisa-copilot/rules/eager: 27 files, 79145 bytes (ceiling 80000, 855 to spare)
+ok   plugins/src/base/rules/eager: 16 files, 16043 bytes (ceiling 16384, 341 to spare)
+ok   plugins/lisa/rules/eager: 16 files, 16043 bytes (ceiling 16384, 341 to spare)
+ok   plugins/lisa-copilot/rules/eager: 16 files, 16043 bytes (ceiling 16384, 341 to spare)
 
-✓ Eager rule budget passed across 3 plugin roots (ceiling 80000 bytes).
+✓ Eager rule budget passed across 3 plugin roots (ceiling 16384 bytes).
 exit=0

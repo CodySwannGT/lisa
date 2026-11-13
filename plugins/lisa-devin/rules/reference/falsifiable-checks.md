@@ -166,9 +166,7 @@ A clean result is a statement about what the check can perceive, not about the c
 
 A worktree has one working tree. When a builder or another agent is editing it, an in-place mutation is a write into their files: the break and its revert race their concurrent edits, and a revert that lands after their next save can clobber their work or sweep it into a commit. Restore must not depend on the shared tree's state.
 
-So every falsification break (steps 2 to 4 above, and the mutation proof below) runs on a scratch copy:
-
-Run it from the repository root:
+So every falsification break (steps 2 to 4 above, and the mutation proof below) runs on a scratch copy, made from the repository root:
 
 ```sh
 tmp=$(mktemp -d)
@@ -182,7 +180,7 @@ ln -s "$PWD/node_modules" "$tmp/node_modules"                # dependencies (or 
 git worktree remove --force "$tmp"                           # discarding the copy is the restore
 ```
 
-The copy must be complete before the break means anything. `git diff` carries only tracked changes, so new files need the explicit untracked copy, and a fresh worktree has no installed dependencies, so link them (never install into the linked directory from the copy) or install them there. Then take the **baseline**: run the check in the copy before breaking anything and confirm it is green. A red baseline means the copy is incomplete (a missing new file, missing dependencies), not that the guard bites; fix the copy first. That green baseline is also the green-again evidence for the restore, because discarding the copy is the restore and the shared tree was never touched.
+The copy must be complete before the break means anything. `git diff` carries only tracked changes, so new files need the explicit untracked copy, and a fresh worktree has no installed dependencies, so link them (never install into the linked directory from the copy) or install them there. **In a workspace monorepo, install in the copy instead of linking:** a linked `node_modules` resolves each workspace package back to the original checkout, so a break reached through a workspace package name never runs, the check stays green, and the guard is wrongly reported inert. Then take the **baseline**: run the check in the copy before breaking anything and confirm it is green. A red baseline means the copy is incomplete (a missing new file, missing dependencies), not that the guard bites; fix the copy first. That green baseline is also the green-again evidence for the restore, because discarding the copy is the restore and the shared tree was never touched.
 
 Make the scratch copy with a plain `git worktree add --detach` at a temp path and address it by absolute path. Never use a harness tool that switches the session's working directory into it (for example Claude Code's `EnterWorktree`): that moves every agent sharing the session out of the tree it is working in.
 

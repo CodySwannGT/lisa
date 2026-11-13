@@ -1219,7 +1219,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/rules/reference/factory-model.md":
       "b9a73efb67db48f0e7b868bd963e4c02e0a2ccc9ca74f9f9fdef8f89dfa17d05",
     "plugins/src/base/rules/reference/falsifiable-checks.md":
-      "961f912b79155350458e7474ac7d5dd2a840898bff0676dbb9f9174d54ede3ab",
+      "70909242d2a75574f71f7f5a270378d358a7cf2c8a7a322768c108ed408488f8",
     "plugins/src/base/rules/reference/history-audit.md":
       "20a46390f71fadda499c61193d430c3d53df49b55a4cefa50a112f82fa4b05ef",
     "plugins/src/base/rules/reference/integration-access-layer.md":
