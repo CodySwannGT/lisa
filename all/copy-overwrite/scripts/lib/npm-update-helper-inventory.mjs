@@ -36,6 +36,7 @@ const COMMON = [
   "lib/windows-process-job.ps1",
   "lib/windows-process-job.cs",
   "lib/kill-marks.mjs",
+  "lib/push-timing.mjs",
   "lib/gate-failure-diagnosis.mjs",
   "lib/worktree-dependencies.mjs",
   "lib/lisa-cleanup-sweep.mjs",

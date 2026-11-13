@@ -59,6 +59,7 @@ import {
 import { boundedSpawnSync, isChildTimeout } from "./lib/bounded-spawn.mjs";
 import { invokedAsScript } from "./lib/invoked-as-script.mjs";
 import { runStartOfRunSweep } from "./lib/lisa-cleanup-sweep.mjs";
+import { hostReading, recordPushTiming } from "./lib/push-timing.mjs";
 import { worktreeDependencyProblem } from "./lib/worktree-dependencies.mjs";
 import {
   interruptionReason,
@@ -219,6 +220,10 @@ export const CONDITIONAL_FLOOR = Object.freeze({
  *   `ATTRIBUTION`; absent unless a diagnosis attributed it.
  * @property {string|null} provedBy The gate whose run proved this one, when
  *   they share a command. Always set: `runMoment` stamps it on every outcome.
+ * @property {string|null} [startedAt] When this gate's verdict began,
+ *   ISO-8601; null when the run never reached it (#4591).
+ * @property {number} [durationMs] Time spent on this gate; 0 when a sibling's
+ *   run proved it or it was never reached (#4591).
  */
 
 /**
@@ -818,6 +823,9 @@ function verdictFor(gate, { proved, blockedBy, exec, siblings, declarations }) {
  *   whether the run this chain serves is still there. Injectable for the same
  *   reason `exec` is: a test states that the caller went away instead of having
  *   to kill a real hook mid-chain.
+ * @param {() => number} [options.clock] Epoch-ms clock used to time each gate
+ *   for the push timing report (CodySwannGT/lisa#4591). Injectable so a test
+ *   states durations instead of racing a real clock.
  * @returns {GateRun} What every declared gate at this moment produced.
  */
 export function runGates({
@@ -830,6 +838,7 @@ export function runGates({
   priorKills = recentKillMarks(),
   recordKill = recordKillMark,
   interrupted = runInterruption,
+  clock = Date.now,
 }) {
   const resolved = resolveMoment({ gates, moment, runner, scripts });
   const results = [];
@@ -901,10 +910,13 @@ export function runGates({
         diagnosis: null,
         evidence: [],
         provedBy: null,
+        startedAt: null,
+        durationMs: 0,
       });
       out(formatLine(STATE.NOT_RUN, gate, detail));
       continue;
     }
+    const began = clock();
     const { outcome, shared, ran, raw } = verdictFor(gate, {
       proved,
       blockedBy,
@@ -923,7 +935,14 @@ export function runGates({
       proved.set(gate.command, { id: gate.id, outcome: raw ?? outcome });
     }
 
-    results.push({ ...gate, ...outcome, provedBy: shared?.id ?? null });
+    // A gate proved by a sibling's run takes no time of its own.
+    results.push({
+      ...gate,
+      ...outcome,
+      provedBy: shared?.id ?? null,
+      startedAt: new Date(began).toISOString(),
+      durationMs: shared ? 0 : Math.max(0, clock() - began),
+    });
     out(formatLine(outcome.state, gate, outcome.detail));
     for (const line of outcome.evidence ?? []) out(`${" ".repeat(6)}↳ ${line}`);
     const unproved =
@@ -1585,7 +1604,10 @@ export function main(argv = process.argv.slice(2)) {
   // Taken before anything runs. See `evidenceDocument`: a start stamp makes a
   // freshness bound err toward `unknown` rather than toward crediting a stale
   // observation, which is the only direction a gate may err in.
-  const observedAt = new Date().toISOString();
+  const startedAtMs = Date.now();
+  const observedAt = new Date(startedAtMs).toISOString();
+  // Host load at the START of the run, for the push timing report (#4591).
+  const startReading = hostReading();
   if (!moment) {
     console.error(
       "usage: lisa-run-gates.mjs --moment=<moment> [--coverage=<file>] " +
@@ -1784,6 +1806,11 @@ export function main(argv = process.argv.slice(2)) {
   // says there is nothing to prove. Say so rather than silently passing.
   if (result.total === 0) {
     console.log(`   (the gates block declares nothing at ${moment})`);
+  }
+  // Per-gate push timing report (CodySwannGT/lisa#4591). A measurement only:
+  // it never throws and never changes the exit code below.
+  if (moment === "push" && result.total > 0) {
+    recordPushTiming({ moment, startedAtMs, start: startReading, result });
   }
 
   // WRITTEN AFTER THE RUN, because it reports the run. Written before it, the
