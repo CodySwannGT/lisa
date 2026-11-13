@@ -496,6 +496,10 @@ Worker count is not the only thing several runs contend over. Coverage runs writ
 > **Prompt for your coding agent**
 > "Show me how this project's test worker pool is sized — find the resolver, tell me what each of the three layers would give on this machine right now, and how many sibling runs it currently detects."
 
+### Building once per push
+
+A push can build the project several times: each test gate builds before it tests, and a drift check may rebuild again. Set `"pushGate": { "buildOnce": true }` in `.lisa.config.json` and the push gate runner builds once, before the first gate, then writes `.lisa/build-marker.json`, which records the working-tree hash, the lockfile hash and the node and bun versions. It exports that file's path as `LISA_BUILD_MARKER`. A later step can skip its own build only when every recorded value still matches. Any difference, or no marker at all, means it builds exactly as before. If the up-front build fails, the push fails without running any gate. The setting is off by default, and `lisa apply` and the gate runner both reject a value that is not `true` or `false`. Lisa turns it on for itself. Host templates turn it on per stack.
+
 ## Working across trackers and sources
 
 Lisa is deliberately vendor-neutral. The lifecycle runs the same whether your tickets live in one tracker or another and whether your product specs originate in one document tool or another — a thin dispatch layer selects the right integration from configuration, so the workflow you learn transfers.

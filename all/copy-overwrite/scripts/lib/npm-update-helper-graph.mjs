@@ -102,7 +102,7 @@ export function validateHelperManifest(manifest) {
   assert(manifest.version === 1, "unsupported helper graph version");
   const names = Object.keys(manifest.members ?? {});
   assert(
-    names.length > 0 && names.length <= 128,
+    names.length > 0 && names.length <= 256,
     "helper member inventory is empty or unbounded"
   );
   for (const name of names) {

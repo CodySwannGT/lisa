@@ -73,6 +73,18 @@
       "dynamicImports": [],
       "children": []
     },
+    "lib/build-marker.mjs": {
+      "sha256": "588c4654a70a07656b70852e50d11f727f192478ef3b06cbf8aee447a1c74935",
+      "staticImports": [
+        "node:child_process",
+        "node:crypto",
+        "node:fs",
+        "node:os",
+        "node:path"
+      ],
+      "dynamicImports": [],
+      "children": []
+    },
     "lib/completion-authorization.mjs": {
       "sha256": "7b5f81ae58eae89367ebda480a508c3c37a6924b4bd6a8b1dd64fff24c465e1e",
       "staticImports": [
@@ -210,6 +222,18 @@
       "staticImports": [
         "node:fs",
         "node:os"
+      ],
+      "dynamicImports": [],
+      "children": []
+    },
+    "lib/gate-pass-cache.mjs": {
+      "sha256": "347a15705e8c2931c33b6df7c13d6ad5db28d1da4e5006d0b57d64329cbd1cdf",
+      "staticImports": [
+        "node:child_process",
+        "node:crypto",
+        "node:fs",
+        "node:os",
+        "node:path"
       ],
       "dynamicImports": [],
       "children": []
@@ -678,7 +702,7 @@
       "children": []
     },
     "lib/npm-update-helper-inventory.mjs": {
-      "sha256": "5d32fd2e3cd11f06738a57b6e252fcbda8e6e682b501657c3efcc8615bd0c91f",
+      "sha256": "04867d1a43eb81960420b5efdc3b14711c26b76b2943ec9b2bade2cb8db3decc",
       "staticImports": [],
       "dynamicImports": [],
       "children": []
@@ -1257,7 +1281,7 @@
       "children": []
     },
     "lib/push-timing.mjs": {
-      "sha256": "b2ff671d4b46de3b94518771850ff4f4b54c38f196e2f40cbf7b34ab02e40f19",
+      "sha256": "31de9d9357839e7e63292a4c18ede6c7b66e2cc2d562ede80036cc90f24d0d9f",
       "staticImports": [
         "lib/bounded-spawn.mjs",
         "node:fs",
@@ -1363,8 +1387,9 @@
       "children": []
     },
     "lisa-gates.mjs": {
-      "sha256": "94640dede038608239edea5cffbf0227a86d77b3e4b9b9c6e3762369fa2de259",
+      "sha256": "ffb2e8d96c4a30bcf0312ca6ca89bd4b04962e33b85faa7e48bb08520851a7c4",
       "staticImports": [
+        "lib/gate-pass-cache.mjs",
         "lib/invoked-as-script.mjs",
         "node:crypto",
         "node:fs",
@@ -1432,10 +1457,12 @@
       ]
     },
     "lisa-run-gates.mjs": {
-      "sha256": "c6efd75fd15c17b9d7cc94d5b894b5d0a6ca087e213de7bcaa2c689cebaaeb51",
+      "sha256": "7dd4d2650f084117b0b29d5d2349cfc45cb69a84529345bae1f675b2ff29f0d8",
       "staticImports": [
         "lib/bounded-spawn.mjs",
+        "lib/build-marker.mjs",
         "lib/gate-failure-diagnosis.mjs",
+        "lib/gate-pass-cache.mjs",
         "lib/invoked-as-script.mjs",
         "lib/kill-marks.mjs",
         "lib/lisa-cleanup-sweep.mjs",

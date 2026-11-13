@@ -58,6 +58,7 @@ import {
 } from "./lib/kill-marks.mjs";
 import { boundedSpawnSync, isChildTimeout } from "./lib/bounded-spawn.mjs";
 import { openGatePassCache } from "./lib/gate-pass-cache.mjs";
+import { runBuildOnce } from "./lib/build-marker.mjs";
 import { invokedAsScript } from "./lib/invoked-as-script.mjs";
 import { runStartOfRunSweep } from "./lib/lisa-cleanup-sweep.mjs";
 import { hostReading, recordPushTiming } from "./lib/push-timing.mjs";
@@ -1857,6 +1858,49 @@ export function main(argv = process.argv.slice(2)) {
     });
   }
 
+  // Build once, before the first push gate, when the project opted in with
+  // `pushGate.buildOnce` (CodySwannGT/lisa#4595). `buildOnceStep` is the entry
+  // for the push timing report; null means the push builds exactly as before.
+  let buildOnceStep = null;
+  if (moment === "push") {
+    try {
+      buildOnceStep = runBuildOnce({
+        config: config.config,
+        runner: config.runner,
+        scripts,
+        exec: spawnExec,
+      });
+    } catch (err) {
+      console.error(`🚫 Nothing ran at "push": ${err.message}`);
+      console.error(
+        "   Fix pushGate in .lisa.config.json. This is NOT a pass."
+      );
+      return settle(EXIT.BLOCKED, EVIDENCE_VERDICT.REFUSED, {
+        gates: config.gates,
+        runner: config.runner,
+        scripts,
+      });
+    }
+    if (buildOnceStep) {
+      const seconds = (buildOnceStep.durationMs / 1000).toFixed(1);
+      if (buildOnceStep.state !== STATE.PASSED) {
+        console.error(
+          `❌ build-once: \`${buildOnceStep.command}\` failed (exit ` +
+            `${buildOnceStep.code}) after ${seconds}s; no push gate ran.`
+        );
+        return settle(EXIT.BLOCKED, EVIDENCE_VERDICT.BLOCKED, {
+          gates: config.gates,
+          runner: config.runner,
+          scripts,
+        });
+      }
+      console.log(
+        `🔨 build-once: \`${buildOnceStep.command}\` built in ${seconds}s; ` +
+          `later steps skip their build while the tree matches.`
+      );
+    }
+  }
+
   console.log(`🚦 Gates at ${moment}:`);
   const result = runGates({
     gates: config.gates,
@@ -1880,7 +1924,13 @@ export function main(argv = process.argv.slice(2)) {
   // Per-gate push timing report (CodySwannGT/lisa#4591). A measurement only:
   // it never throws and never changes the exit code below.
   if (moment === "push" && result.total > 0) {
-    recordPushTiming({ moment, startedAtMs, start: startReading, result });
+    recordPushTiming({
+      moment,
+      startedAtMs,
+      start: startReading,
+      result,
+      preGates: buildOnceStep ? [buildOnceStep] : [],
+    });
   }
 
   // WRITTEN AFTER THE RUN, because it reports the run. Written before it, the

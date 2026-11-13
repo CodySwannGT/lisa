@@ -22,7 +22,21 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 cd "$ROOT_DIR"
 
-if [ -n "$(git status --porcelain -- plugins/ 2>/dev/null)" ]; then
+# Build once per push (CodySwannGT/lisa#4595). When the gate runner already
+# built this exact tree and its marker records plugins/ and every materialized
+# path as CLEAN before that build, the build it ran is the rebuild this check
+# would run: skip both the pre-build refusals (any dirt now is the build's own
+# output, which is precisely what the diff below must see) and the rebuild, and
+# go straight to the diff. Without a matching marker this behaves as before.
+MATERIALIZED_MANIFEST="$ROOT_DIR/plugins/materialized-artifacts.json"
+marker_built=0
+if [ -n "${LISA_BUILD_MARKER:-}" ] &&
+  node "$ROOT_DIR/scripts/build-unless-marked.mjs" --probe-plugins; then
+  marker_built=1
+  committed_manifest_paths="$(git show HEAD:plugins/materialized-artifacts.json 2>/dev/null | jq -r '.[]' | LC_ALL=C sort)"
+fi
+
+if [ "$marker_built" -eq 0 ] && [ -n "$(git status --porcelain -- plugins/ 2>/dev/null)" ]; then
   echo "✗ plugins/ has uncommitted changes before the sync check could run." >&2
   echo "  Commit them, then re-run: bun run check:plugins" >&2
   echo "  (To set them aside instead, save a patch under your own TMPDIR — not" >&2
@@ -39,9 +53,10 @@ fi
 # silently discarded the edit, which is the precise failure the plugins/
 # pre-check exists to prevent. Absent on a first run, before any manifest has
 # been committed; the post-build check covers that case.
-MATERIALIZED_MANIFEST="$ROOT_DIR/plugins/materialized-artifacts.json"
-committed_manifest_paths=""
-if [ -f "$MATERIALIZED_MANIFEST" ]; then
+if [ "$marker_built" -eq 0 ]; then
+  committed_manifest_paths=""
+fi
+if [ "$marker_built" -eq 0 ] && [ -f "$MATERIALIZED_MANIFEST" ]; then
   committed_manifest_paths="$(jq -r '.[]' "$MATERIALIZED_MANIFEST" | LC_ALL=C sort)"
   committed_generated=()
   while IFS= read -r committed_path; do
@@ -67,7 +82,9 @@ if [ -f "$MATERIALIZED_MANIFEST" ]; then
   fi
 fi
 
-bun run build:plugins >/dev/null
+if [ "$marker_built" -eq 0 ]; then
+  bun run build:plugins >/dev/null
+fi
 
 # Did the SET of destinations change? Asked before the plugins/ diff below,
 # because the manifest lives under plugins/ and that diff would otherwise

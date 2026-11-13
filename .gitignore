@@ -280,6 +280,9 @@ expo-env.d.ts
 # measurements of one push on one host; summarise with
 # `node scripts/lisa-push-timing-report.mjs`.
 .lisa/push-timing/
+# Build-once marker written by the push gate runner (CodySwannGT/lisa#4595).
+# Per-worktree runtime state naming the tree that was just built.
+.lisa/build-marker.json
 
 # Built Claude Code plugins are committed so the GitHub marketplace works.
 # Regenerate with: bun run build:plugins

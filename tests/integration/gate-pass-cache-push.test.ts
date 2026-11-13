@@ -103,6 +103,10 @@ function project(pushGate: object | null = { cache: true }) {
       "",
     ].join("\n")
   );
+  // Every push writes a timing report under `.lisa/push-timing/`. A Lisa host
+  // ignores it through the shipped gitignore; without the same entry here the
+  // report from the first push would make the second one look dirty.
+  writeFileSync(path.join(cwd, ".gitignore"), ".lisa/push-timing/\n");
   git(cwd, "add", ".");
   git(cwd, "commit", "-q", "-m", "init");
   return {
