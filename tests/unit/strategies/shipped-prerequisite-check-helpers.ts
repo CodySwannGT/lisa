@@ -6,6 +6,26 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
 
+import { boundedSpawnSync } from "../../helpers/io-latency-budget.js";
+import { GIT_BIN } from "../../support/git-executable.js";
+
+/**
+ * Run git in a directory under a deadline, failing the test on error.
+ * @param cwd - Working directory
+ * @param args - git arguments
+ */
+export const git = (cwd: string, ...args: string[]): void => {
+  const out = boundedSpawnSync({
+    label: `git ${args.join(" ")}`,
+    command: GIT_BIN,
+    args,
+    cwd,
+  });
+  if (out.status !== 0) {
+    throw new Error(`git ${args.join(" ")} failed: ${out.stderr}`);
+  }
+};
+
 /** Every skill root a runtime reads: the source plus each projection. */
 export const SKILL_ROOTS = [
   "plugins/src/base/skills",

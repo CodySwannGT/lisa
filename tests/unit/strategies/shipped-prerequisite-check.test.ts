@@ -19,7 +19,6 @@
  * agent-executed text, pinned only by the text tests.
  * @module tests/unit/strategies/shipped-prerequisite-check
  */
-import { spawnSync } from "node:child_process";
 import {
   chmodSync,
   mkdirSync,
@@ -32,13 +31,14 @@ import path from "node:path";
 
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
-import { GIT_BIN } from "../../support/git-executable.js";
+import { boundedSpawnSync } from "../../helpers/io-latency-budget.js";
 
 import {
   CHECK_NAME,
   commandBlock,
   DEFAULT_BRANCH,
   gateS13,
+  git,
   NESTED_NOT_SHIPPED,
   NESTED_SHIPPED,
   PRESENT_FILE,
@@ -127,18 +127,6 @@ describe("the step 4 command block, executed (source)", () => {
   let root = "";
   let clone = "";
   let fakeBin = "";
-
-  /**
-   * Run git in a directory, failing the test on error.
-   * @param cwd - Working directory
-   * @param args - git arguments
-   */
-  const git = (cwd: string, ...args: string[]): void => {
-    const out = spawnSync(GIT_BIN, args, { cwd, encoding: "utf8" });
-    if (out.status !== 0) {
-      throw new Error(`git ${args.join(" ")} failed: ${out.stderr}`);
-    }
-  };
 
   /**
    * Stage everything and commit it under a throwaway identity.
@@ -250,10 +238,11 @@ describe("the step 4 command block, executed (source)", () => {
     }
     const skip = claim.kind === "symbol" ? fileLine : symbolLine;
     const script = block.filter(line => line !== skip).join("\n");
-    return spawnSync("/bin/bash", ["-c", script], {
+    return boundedSpawnSync({
+      label: "shipped-prerequisite check block",
+      command: "/bin/bash",
+      args: ["-c", script],
       cwd: options.cwd ?? clone,
-      encoding: "utf8",
-      timeout: 30_000,
       env: {
         PATH: `${fakeBin}:${process.env.PATH ?? "/usr/bin:/bin"}`,
         HOME: root,
