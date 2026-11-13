@@ -1,0 +1,10 @@
+{
+  "complete": true,
+  "items": [],
+  "holds": [
+    {"ref":"DEMO-40","role":"claimed","labels":["human-needed"],"body":"Held.\n<!-- [lisa-human-gate] reason=tenancy-audit-triage -->","comments":[]},
+    {"ref":"DEMO-41","labels":["human-needed"],"body":"Held.\n<!-- [lisa-human-gate] reason=tenancy-audit-triage -->","comments":[]},
+    {"ref":"DEMO-42","role":"done","labels":["human-needed"],"body":"Held.\n<!-- [lisa-human-gate] reason=tenancy-audit-triage -->","comments":[]},
+    {"ref":"DEMO-43","role":"ready","labels":["human-needed"],"body":"Held.\n<!-- [lisa-human-gate] reason=tenancy-audit-triage -->","comments":[]}
+  ]
+}

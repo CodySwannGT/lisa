@@ -1,0 +1,19 @@
+{
+  "tracker": "jira",
+  "jira": {
+    "project": "DEMO",
+    "labels": { "human_needed": "human-needed" },
+    "workflow": {
+      "ready": "Ready",
+      "claimed": "In Progress",
+      "review": "In Review",
+      "blocked": "Blocked",
+      "done": { "production": "Done" }
+    }
+  },
+  "sessionManager": {
+    "name": "verify-manager",
+    "interval": "5m",
+    "notify": { "provider": "none" }
+  }
+}

@@ -1,0 +1,4 @@
+# 24h refusal window: #50 refusal 2026-11-10 (old), #51 refusal 2026-11-13T10:34:45Z (recent), #52 refusal undated
+$ node plugins/lisa/skills/lisa-session-manager/scripts/session-manager.mjs orphan-plan --input fixture-refusal.json --project-root /Users/codysai/.claude/jobs/313c93db/tmp/verify-4722/F
+{"doneReady":[{"ref":"example-org/demo-repo#50","prUrl":"https://github.com/example-org/demo-repo/pull/150","reason":"its pull request merged; only completion is missing"}],"return":[],"redispatch":[],"parked":[{"ref":"example-org/demo-repo#51","reason":"its pull request merged but completion was refused; the refusal on the item says why","reasonOnItem":true},{"ref":"example-org/demo-repo#52","reason":"its pull request merged but completion was refused; the refusal on the item says why","reasonOnItem":true}],"lookup":[],"skipped":[],"holds":{"lift":[],"keep":[],"digest":{"fingerprint":null,"text":"","changed":false}},"deferred":[]}
+exit=0

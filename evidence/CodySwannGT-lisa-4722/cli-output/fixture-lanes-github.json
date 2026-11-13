@@ -1,0 +1,7 @@
+{
+  "complete": true,
+  "items": [],
+  "holds": [
+    {"ref":"example-org/demo-repo#44","labels":["human-needed"],"body":"Held.\n<!-- [lisa-human-gate] reason=tenancy-audit-triage -->","comments":[]}
+  ]
+}

@@ -1,0 +1,9 @@
+{
+  "complete": true,
+  "items": [
+    {"ref":"example-org/demo-repo#50","role":"claimed","labels":["status:in-progress"],"body":"Do it.","comments":[{"body":"[lisa-session-manager] Cannot complete: the deploy run failed.","createdAt":"2026-11-10T00:00:00Z"}],"assignees":[],"updatedAt":"2026-11-10T00:00:00Z","pr":{"state":"MERGED","url":"https://github.com/example-org/demo-repo/pull/150"}},
+    {"ref":"example-org/demo-repo#51","role":"claimed","labels":["status:in-progress"],"body":"Do it.","comments":[{"body":"[lisa-session-manager] Cannot complete: the deploy run failed.","createdAt":"2026-11-13T10:34:45Z"}],"assignees":[],"updatedAt":"2026-11-10T00:00:00Z","pr":{"state":"MERGED","url":"https://github.com/example-org/demo-repo/pull/151"}},
+    {"ref":"example-org/demo-repo#52","role":"claimed","labels":["status:in-progress"],"body":"Do it.","comments":[{"body":"[lisa-session-manager] Cannot complete: the deploy run failed."}],"assignees":[],"updatedAt":"2026-11-10T00:00:00Z","pr":{"state":"MERGED","url":"https://github.com/example-org/demo-repo/pull/152"}}
+  ],
+  "holds": []
+}
