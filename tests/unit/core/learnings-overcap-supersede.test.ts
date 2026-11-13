@@ -10,9 +10,11 @@ import * as fs from "fs-extra";
 import { readFile } from "node:fs/promises";
 import * as path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { LEARNINGS_CONTRACT } from "../../../src/core/learnings-contract.js";
 import {
   LearningsBudgetError,
   parseLearningsDocument,
+  renderLearningsFile,
 } from "../../../src/core/learnings-document.js";
 import { persistConsolidatedLearning } from "../../../src/core/learnings-writer.js";
 import {
@@ -105,5 +107,28 @@ describe("over-cap supersede", () => {
       })
     ).rejects.toThrow(LearningsBudgetError);
     expect(await readFile(target, "utf8")).toBe(padded);
+  });
+
+  it("permits a supersede that shrinks a ledger over maxEntries but under the byte cap", async () => {
+    // Over budget by entry COUNT only: the same "over budget" definition the
+    // retire writer uses must let a count-shrinking supersede through.
+    const overCount = LEARNINGS_CONTRACT.maxEntries + 2;
+    const document = renderLearningsFile(
+      Array.from({ length: overCount }, (_unused, index) => entry(index + 10))
+    );
+    expect(Buffer.byteLength(document)).toBeLessThan(
+      LEARNINGS_CONTRACT.maxTokens
+    );
+    await fs.outputFile(target, document);
+    await persistConsolidatedLearning(tempDir, entry(7), {
+      supersede: [
+        { id: "learner-10", fingerprint: "learner-fingerprint-10" },
+        { id: "learner-11", fingerprint: "learner-fingerprint-11" },
+      ],
+    });
+    const after = parseLearningsDocument(await readFile(target, "utf8"), {
+      allowOverBudget: true,
+    });
+    expect(after.entries).toHaveLength(overCount - 1);
   });
 });

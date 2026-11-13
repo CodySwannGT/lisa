@@ -26,10 +26,10 @@ import {
  * or retiring a ledger entry — never substituted by the root CLI — and all
  * four mutate real state: the merge driver overwrites the file git hands it,
  * the installer writes local git config, the drain removes entries from the
- * only durable copy of a dropped capture, and the retire removes a ledger entry. An optional,
- * defaulted field would be the worst shape here: a caller that
- * believed it had stubbed every gate command would silently run the real driver
- * against real files. Leaving them off the record makes non-injectability
+ * only durable copy of a dropped capture, and the retire removes a ledger
+ * entry. An optional, defaulted field would be the worst shape here: a caller
+ * that believed it had stubbed every gate command would silently run the real
+ * driver against real files. Leaving them off the record makes non-injectability
  * explicit; they are covered directly by unit tests and by end-to-end tests
  * that drive real `git merge`.
  */

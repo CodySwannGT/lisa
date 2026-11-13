@@ -312,6 +312,22 @@ export class LearningsBudgetError extends Error {
 }
 
 /**
+ * The one definition of "this ledger is over its hard budget" that every
+ * shrink-only writer shares (CodySwannGT/lisa#4536): over the byte cap OR over
+ * the entry cap. Retire and over-cap supersede must agree on it, or one writer
+ * can repair a ledger the other refuses to touch.
+ * @param bytes - Measured document size
+ * @param count - Number of entries in the document
+ * @returns True when either hard budget is exceeded
+ */
+export function isLedgerOverBudget(bytes: number, count: number): boolean {
+  return (
+    bytes > LEARNINGS_CONTRACT.maxTokens ||
+    count > LEARNINGS_CONTRACT.maxEntries
+  );
+}
+
+/**
  * Enforce the shared entry-count and model-agnostic token upper bounds.
  * @param content - Canonical document
  * @param entryCount - Number of entries in the document

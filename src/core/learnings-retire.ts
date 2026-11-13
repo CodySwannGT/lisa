@@ -6,13 +6,13 @@
 import * as path from "node:path";
 import { writeFileAtomically } from "../utils/atomic-file-write.js";
 import {
-  LEARNINGS_CONTRACT,
   MAX_STABLE_TOKEN_BYTES,
   estimateLearningTokens,
   type LearningEntry,
 } from "./learnings-contract.js";
 import {
   assertDocumentBudget,
+  isLedgerOverBudget,
   parseLearningsFile,
   renderLearningsFile,
   type LearningsReadOptions,
@@ -212,7 +212,8 @@ function requireFullFingerprint(value: unknown): string {
  * every other writer uses, so a retire can never persist an invalid ledger.
  *
  * An in-budget ledger keeps the full budget check. An over-budget one
- * (CodySwannGT/lisa#4536) cannot be required to land within budget in one
+ * ({@link isLedgerOverBudget}, shared with the over-cap supersede so both
+ * writers agree on what "over budget" means; CodySwannGT/lisa#4536) cannot be required to land within budget in one
  * retire, so there the authority is shrinking instead, and it is asserted
  * rather than assumed: a v1 source migrating to v2 gains a fingerprint per
  * entry and could, in principle, grow despite losing one.
@@ -229,10 +230,7 @@ function renderRetiredDocument(
   const rendered = renderLearningsFile(entries);
   const existingSize =
     existing === undefined ? 0 : estimateLearningTokens(existing);
-  const overBudget =
-    existingSize > LEARNINGS_CONTRACT.maxTokens ||
-    existingCount > LEARNINGS_CONTRACT.maxEntries;
-  if (!overBudget) {
+  if (!isLedgerOverBudget(existingSize, existingCount)) {
     assertDocumentBudget(rendered, entries.length, "Learnings file");
     return rendered;
   }

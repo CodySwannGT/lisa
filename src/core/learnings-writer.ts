@@ -14,6 +14,7 @@ import {
 import {
   LearningsBudgetError,
   assertDocumentBudget,
+  isLedgerOverBudget,
   parseLearningsFile,
   renderLearningsFile,
   type LearningsReadOptions,
@@ -157,12 +158,11 @@ function writeLearningEntriesWithLock(
     // so a refused gardening write leaves nothing on disk.
     reportStaleSupersede(plan.stale, options);
     const aliased = aliasSupersededEntries(plan.removed, plan.entry, options);
-    const rendered = renderSupersededDocument(
-      plan.retained,
-      aliased,
+    const rendered = renderSupersededDocument(plan.retained, aliased, {
       existing,
-      plan.removed.length
-    );
+      existingCount: entries.length,
+      removedCount: plan.removed.length,
+    });
     await writeFileAtomically(target, rendered, {
       beforeRename: async () => {
         await assertSafeLearningParents(root, path.dirname(target));
@@ -345,52 +345,86 @@ function renderNextDocument(
   return rendered;
 }
 
+/** What the locked transaction knew about the ledger it is rewriting. */
+interface SupersedeBaseline {
+  /** Ledger bytes read under the lock, if any. */
+  readonly existing: string | undefined;
+  /** Entry count of the ledger read under the lock. */
+  readonly existingCount: number;
+  /** How many existing entries the plan removed. */
+  readonly removedCount: number;
+}
+
 /**
  * Render the planned document, permitting a budget breach only when the
- * existing ledger is already over the cap and this write strictly shrinks it.
+ * existing ledger is already over budget and this write strictly shrinks it.
  *
- * An over-cap ledger used to refuse every writer, including the supersede that
- * would bring it back down (CodySwannGT/lisa#4536). A write that leaves the
- * ledger smaller can only improve it, so it is always allowed; one that does
- * not — a plain append, or a stale stamp that removes nothing — keeps the
- * budget refusal and its overflow routing. An in-budget ledger is unaffected.
+ * An over-budget ledger used to refuse every writer, including the supersede
+ * that would bring it back down (CodySwannGT/lisa#4536). "Over budget" is
+ * {@link isLedgerOverBudget} — over the byte cap OR over `maxEntries` — the
+ * same definition the retire writer uses. On such a ledger a write is allowed
+ * when it removed at least one entry AND either the bytes strictly shrink or,
+ * when the breach is by entry count, the count strictly shrinks. A write that
+ * does neither — a plain append, or a stale stamp that removes nothing — keeps
+ * the budget refusal and its overflow routing. An in-budget ledger is
+ * unaffected.
  *
  * Fewer bytes alone is not enough: a non-canonical (padded) ledger re-renders
- * smaller even when an entry is merely appended, so the write must also have
- * removed at least one entry — otherwise a stale supersede could push the entry
- * count past `maxEntries` while appearing to shrink.
+ * smaller even when an entry is merely appended, so the removal is required —
+ * otherwise a stale supersede could push the entry count past `maxEntries`
+ * while appearing to shrink.
  * @param entries - Existing entries retained by the plan
  * @param entry - Planned entry carrying its final stable id
- * @param existing - Ledger bytes read under the lock, if any
- * @param removedCount - How many existing entries the plan removed
+ * @param baseline - What the locked read observed
  * @returns Next canonical document
  */
 function renderSupersededDocument(
   entries: readonly LearningEntry[],
   entry: LearningEntry,
-  existing: string | undefined,
-  removedCount: number
+  baseline: SupersedeBaseline
 ): string {
   try {
     return renderNextDocument(entries, entry);
   } catch (error) {
-    if (
-      !(error instanceof LearningsBudgetError) ||
-      existing === undefined ||
-      removedCount === 0
-    ) {
+    if (!(error instanceof LearningsBudgetError)) {
       throw error;
     }
-    const existingSize = estimateLearningTokens(existing);
-    const rendered = renderLearningsFile(composeNextEntries(entries, entry));
-    if (
-      existingSize > LEARNINGS_CONTRACT.maxTokens &&
-      estimateLearningTokens(rendered) < existingSize
-    ) {
+    const nextEntries = composeNextEntries(entries, entry);
+    const rendered = renderLearningsFile(nextEntries);
+    if (permitsOverBudgetShrink(baseline, rendered, nextEntries.length)) {
       return rendered;
     }
     throw error;
   }
+}
+
+/**
+ * Decide whether a budget-breaching write still repairs an over-budget ledger.
+ * @param baseline - What the locked read observed
+ * @param baseline.existing - Ledger bytes read under the lock, if any
+ * @param baseline.existingCount - Entry count of the ledger read under the lock
+ * @param baseline.removedCount - How many existing entries the plan removed
+ * @param rendered - Candidate next document
+ * @param nextCount - Entry count of the candidate document
+ * @returns True when the write removed an entry and strictly shrinks the breach
+ */
+function permitsOverBudgetShrink(
+  { existing, existingCount, removedCount }: SupersedeBaseline,
+  rendered: string,
+  nextCount: number
+): boolean {
+  if (existing === undefined || removedCount === 0) {
+    return false;
+  }
+  const existingBytes = estimateLearningTokens(existing);
+  if (!isLedgerOverBudget(existingBytes, existingCount)) {
+    return false;
+  }
+  const countBreach = existingCount > LEARNINGS_CONTRACT.maxEntries;
+  return (
+    estimateLearningTokens(rendered) < existingBytes ||
+    (countBreach && nextCount < existingCount)
+  );
 }
 
 /**
