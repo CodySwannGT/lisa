@@ -69,7 +69,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lib/evidence-prune-gh.mjs":
       "8f6a199c4ac8bab81340a3bd2dfdccc2985512dbc5a7ff9b084a7eb47255092f",
     "all/copy-overwrite/scripts/lib/evidence-prune-records.mjs":
-      "ed2acb7fc0849e186cf5c96ca258db7c3ce969e5f10c1432aaf9387daa121ae9",
+      "f52b70d92ce1009e25bcd94cefb0a9402057996bbe20681d7769f799186ca5d0",
     "all/copy-overwrite/scripts/lib/evidence-prune.mjs":
       "ae141d9a3e8d438365192f3c05de86002ebf36cd53ed63c639474317b9c007a4",
     "all/copy-overwrite/scripts/lib/evidence-release-capacity.mjs":

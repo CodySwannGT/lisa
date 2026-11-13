@@ -23,6 +23,8 @@ import {
 } from "../../support/evidence-prune-harness.js";
 
 const ROTATED = { verification: { completion: { evidenceRelease: ROTATING } } };
+const FULL_MONTH_FILE = "full-month.txt";
+const FULL_OVERFLOW_FILE = "full-overflow.txt";
 const LATE_RECORD = `completion-99-r1-${"9".repeat(64)}.json`;
 
 afterEach(cleanupProjects);
@@ -44,7 +46,7 @@ describe("evidence prune and overflow releases", () => {
         ),
     });
     const { stale } = seed(gh);
-    gh.addAsset(current, "full-month.txt", OLD);
+    gh.addAsset(current, FULL_MONTH_FILE, OLD);
     const { code, output } = await prune(
       gh,
       [APPLY, "--release", RELEASE],
@@ -53,5 +55,61 @@ describe("evidence prune and overflow releases", () => {
     expect(code).toBe(0);
     expect(gh.names(RELEASE)).toContain(STALE);
     expect(output).toMatch(/stale\.txt.*now depends on it/);
+  });
+
+  it("re-reads overflow releases past a gap in the chain", async () => {
+    // `-2` was deleted, `-3` exists, and a record lands mid-run in `-4`
+    // (the next release past the highest one). A walk that stopped at the
+    // missing `-2` never saw `-4` and deleted the file the record pins.
+    const current = resolveEvidenceRelease(
+      ROTATED.verification.completion,
+      new Date()
+    );
+    const gh = fakeGitHub({
+      onUpload: () =>
+        gh.addAsset(
+          `${current}-4`,
+          LATE_RECORD,
+          RECORD_AT,
+          recordBody([stale.id])
+        ),
+    });
+    const { stale } = seed(gh);
+    gh.addAsset(current, FULL_MONTH_FILE, OLD);
+    gh.addAsset(`${current}-3`, FULL_OVERFLOW_FILE, OLD);
+    const { code, output } = await prune(
+      gh,
+      [APPLY, "--release", RELEASE],
+      project(ROTATED)
+    );
+    expect(code).toBe(0);
+    expect(gh.names(RELEASE)).toContain(STALE);
+    expect(output).toMatch(/stale\.txt.*now depends on it/);
+  });
+
+  it("re-reads the release that fills a gap in the chain", async () => {
+    const current = resolveEvidenceRelease(
+      ROTATED.verification.completion,
+      new Date()
+    );
+    const gh = fakeGitHub({
+      onUpload: () =>
+        gh.addAsset(
+          `${current}-2`,
+          LATE_RECORD,
+          RECORD_AT,
+          recordBody([stale.id])
+        ),
+    });
+    const { stale } = seed(gh);
+    gh.addAsset(current, FULL_MONTH_FILE, OLD);
+    gh.addAsset(`${current}-3`, FULL_OVERFLOW_FILE, OLD);
+    const { code } = await prune(
+      gh,
+      [APPLY, "--release", RELEASE],
+      project(ROTATED)
+    );
+    expect(code).toBe(0);
+    expect(gh.names(RELEASE)).toContain(STALE);
   });
 });
