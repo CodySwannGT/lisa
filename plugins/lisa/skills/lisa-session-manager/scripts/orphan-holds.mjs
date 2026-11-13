@@ -162,13 +162,16 @@ const writesSomething = (comments, actions) =>
  * @returns {{kind: "lift"|"skip", entry: object, keep?: object}} Verdict
  */
 function liftVerdict(item, policy, plan) {
-  const decision = decisionLine(plan.lifted);
+  // A re-lane-only lift (an earlier cycle posted the lift) decides nothing.
+  const decision = plan.lifted.length > 0 ? decisionLine(plan.lifted) : null;
   const kept = plan.kept.map(reason => describeKept(reason, policy.humanOnly));
   const keep =
     kept.length > 0
       ? { keep: { ref: item.ref, reason: bounded(kept.join("; ")) } }
       : {};
-  const comments = plan.comments.map(body => `${body}\n${decision}`);
+  const comments = plan.comments.map(body =>
+    decision === null ? body : `${body}\n${decision}`
+  );
   const actions = laneSafeActions(item, policy, plan.actions);
   if (!writesSomething(comments, actions)) {
     return {

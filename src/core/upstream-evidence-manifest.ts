@@ -1699,7 +1699,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-sentry-access/SKILL.md":
       "1c1881ca9a2020f6cd8f938dc5335ebf2d344ff280844bb98926198e5226e526",
     "plugins/src/base/skills/lisa-session-manager/SKILL.md":
-      "9bc42ad820960ee387cc03495d3d5a5341115e9adc5fb5fdc61d516026b49155",
+      "b67a32361f34e70d64e482927b6d830ffd4dc43cedf35391c1fb4b861762c8d4",
     "plugins/src/base/skills/lisa-session-manager/references/runbook-template.md":
       "6b4dfd58f86e5f02676a9fca9f903456eb63213ac0294795b604f5430a89f1a5",
     "plugins/src/base/skills/lisa-session-manager/scripts/answer-record.mjs":
@@ -1729,7 +1729,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-status.mjs":
       "e7f643b66a5af453ee445640a4d9b27b570f364222b349f82ff27714eefb09fa",
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-usage.mjs":
-      "b2af6027af6462861f82e54b87f0c219a958abbc4729bd3064724de2cad40f55",
+      "0c0081384dcf8d7e13649b7b3e51a066cc6eb543ea6c4f98776cef5736903a8d",
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-workers.mjs":
       "65beec4da7ea3917765b96ed920e630627955f6a053e9305de28056b8c6b2886",
     "plugins/src/base/skills/lisa-session-manager/scripts/clipboard.mjs":
@@ -1769,9 +1769,9 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-session-manager/scripts/orphan-buckets.mjs":
       "6c0bed75fc4244e97c583cf92da18b6531a86a25435d12fbd05a6f9252ac04c1",
     "plugins/src/base/skills/lisa-session-manager/scripts/orphan-holds.mjs":
-      "46af23b44b27b0028a0eb65f618c4fd00780ca91cecd306666601f363a935df8",
+      "c13b75e56464c87e7f394061b2b1a8d55385c1a7f8ce2d7d8a79c4b9f28eca4e",
     "plugins/src/base/skills/lisa-session-manager/scripts/orphan-sweep.mjs":
-      "a148f36959f6e1dfa19570542f37a1ccaaaafd2d92eb7bd09836cc509343b2df",
+      "d62da2d7d194ad8a555e82821fcb6d9820fe3b0e141073dc865e41c5bf14bca9",
     "plugins/src/base/skills/lisa-session-manager/scripts/queue-github.mjs":
       "9af014661873a2971fbc29946739088fc3e089deb8d94e78af651647450f2999",
     "plugins/src/base/skills/lisa-session-manager/scripts/reconcile.mjs":

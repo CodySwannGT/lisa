@@ -490,7 +490,9 @@ just as long. Sweep both every cycle, after `classify` and before Dispatch:
    skips refs the ledger shows running or asking (their holds too, so an item waiting on a
    person's answer is never on the operator's list twice), items assigned to anyone but "me" or an
    operator, and items updated within `--stale-hours` (default 6) or with no `updatedAt`, which
-   protects a person running `/lisa:implement` by hand. Holds get the same checks.
+   protects a person running `/lisa:implement` by hand. A live or foreign hold is skipped the
+   same way; a fresh or undated one is not lifted this cycle, but its human reasons still reach
+   the operator's list, so a new comment never makes the list change.
 2. **Act** per bucket. **Before every write** in this sweep (a finish, a return, a re-dispatch
    claim, a parked comment, a hold lift), re-read the item with `lisa-tracker-read`. Skip it for
    this cycle, with one transcript line and no write, when its role is no longer the one the plan
@@ -511,7 +513,8 @@ just as long. Sweep both every cycle, after `classify` and before Dispatch:
    - `parked`: post the entry's `comment` only when `reasonOnItem` is false. An item in the
      `review` role with an open pull request is parked, never re-dispatched: it is waiting on
      review or merge.
-   - `holds.lift`: post each of its `comments` (each ends with its `Decision:` line); a partial
+   - `holds.lift`: post each of its `comments` (each ends with its `Decision:` line; `decision` is null for a lift an earlier cycle
+     already posted, which only re-lanes the item); a partial
      lift is also in `holds.keep` with the reasons still left for a person. Then remove
      the human-needed label and move it to the `ready` role as its `actions` say.
    - `holds.keep`: when `holds.digest.changed` is true, send `holds.digest.text` to the operator

@@ -327,8 +327,11 @@ Per cycle
       trustedAuthorIds and the hold labels come from the ledger and config;
       the same keys in the input are ignored. Skips live, foreign (assigned
       to neither me nor an operator), fresh (updated within --stale-hours,
-      default 6) and undated items, and holds on the same terms; a lift
-      left with nothing to write is skipped as nothing-to-write. A review-role
+      default 6) and undated items. Live and foreign holds are skipped; a
+      fresh or undated hold is not lifted (skipped fresh or undated) but its
+      kept reasons still reach holds.keep and the digest. A lift left with
+      nothing to write is skipped as nothing-to-write; decision is null for
+      a lift with no newly lifted reason. A review-role
       item with an open pull request, and a merged item whose comments hold
       a line starting "[lisa-session-manager] Cannot complete:" posted
       within 24 hours (or undated: send each comment's createdAt), are parked with reasonOnItem true; only the claimed role is re-dispatched. A

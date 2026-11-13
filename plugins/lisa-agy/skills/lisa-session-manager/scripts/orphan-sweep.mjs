@@ -171,8 +171,17 @@ function sortOrphans(items, policy) {
   return { skipped, buckets };
 }
 
+/** Guards that only hold back a lift: the hold is still listed for a person. */
+const LIFT_ONLY_GUARDS = new Set(["fresh", "undated"]);
+
 /**
  * Judge every hold, once per ref.
+ *
+ * A live or foreign hold is skipped outright: not ours to judge. A fresh or
+ * undated one is still judged, but only its kept reasons are used; its lift
+ * waits. Otherwise any comment, the sweep's own partial-lift comment
+ * included, would bump `updatedAt`, drop the hold from the operator's list
+ * for `staleHours`, and churn the digest.
  * @param {unknown} holds - Raw hold candidates
  * @param {object} policy - Resolved policy
  * @returns {{lift: object[], keep: object[], skipped: object[]}} Judged
@@ -184,17 +193,17 @@ function sortHolds(holds, policy) {
     const ref = refOf(raw);
     if (ref === "" || seen.has(ref)) continue;
     seen.add(ref);
-    // The orphan guards: a worker is on it or a person's answer is awaited
-    // (live), someone else holds it (foreign), or it was touched within
-    // staleHours or carries no date (fresh, undated). Not ours to judge, and
-    // never on the operator's list a second time.
     const guard = skipReason({ ...raw, ref }, policy);
-    if (guard !== null) {
+    if (guard !== null && !LIFT_ONLY_GUARDS.has(guard)) {
       judged.skipped.push({ ref, reason: guard });
       continue;
     }
     const { kind, entry, keep } = judgeHold({ ...raw, ref }, policy);
-    judged[kind === "skip" ? "skipped" : kind].push(entry);
+    if (kind === "lift" && guard !== null) {
+      judged.skipped.push({ ref, reason: guard });
+    } else {
+      judged[kind === "skip" ? "skipped" : kind].push(entry);
+    }
     if (keep) judged.keep.push(keep);
   }
   return judged;
@@ -252,9 +261,11 @@ function spendCap(queue, max) {
  * @property {string} ref - Canonical item ref
  * @property {string} reason - Plain-English reason
  * @property {string[]} comments - Lift comments, each ending with `decision`
+ *   when there is one
  * @property {{removeHumanNeededLabel: boolean, addReadyLabel: string|null}}
  *   actions - Label writes after the comments
- * @property {string} decision - The `Decision:` line
+ * @property {string|null} decision - The `Decision:` line; null for a lift
+ *   that only re-lanes an item an earlier cycle already lifted
  */
 
 /**
