@@ -169,6 +169,11 @@ describe("falsification runs on a scratch copy", () => {
       expect(text).toMatch(/BEFORE breaking anything/);
       expect(text).toMatch(/red baseline means the copy is incomplete/i);
       expect(text).toContain("git worktree remove --force");
+      expect(text).toMatch(/address it by absolute path/);
+      expect(text).toMatch(
+        /Never use a harness tool that switches the session's working directory into it/
+      );
+      expect(text).toContain("EnterWorktree");
       expect(text).not.toMatch(/Revert, and confirm green again/);
       expect(text).not.toMatch(/Restore, and confirm green again/);
     }
