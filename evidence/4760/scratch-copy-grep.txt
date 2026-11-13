@@ -1,0 +1,46 @@
+== plugins/lisa
+plugins/lisa/agents/verification-specialist.md:1
+plugins/lisa/agents/test-specialist.md:1
+plugins/lisa/rules/eager/verification.md:1
+plugins/lisa/rules/eager/falsifiable-checks.md:1
+plugins/lisa/rules/reference/falsifiable-checks.md:7
+plugins/lisa/skills/lisa-codify-verification/SKILL.md:2
+plugins/lisa/.codex-plugin/skills/lisa-codify-verification/SKILL.md:2
+== plugins/lisa-agy
+plugins/lisa-agy/agents/verification-specialist.md:1
+plugins/lisa-agy/agents/test-specialist.md:1
+plugins/lisa-agy/skills/lisa-codify-verification/SKILL.md:2
+== plugins/lisa-cursor
+plugins/lisa-cursor/agents/verification-specialist.md:1
+plugins/lisa-cursor/agents/test-specialist.md:1
+plugins/lisa-cursor/rules/falsifiable-checks-reference.mdc:7
+plugins/lisa-cursor/rules/verification.mdc:1
+plugins/lisa-cursor/rules/falsifiable-checks.mdc:1
+plugins/lisa-cursor/skills/lisa-codify-verification/SKILL.md:2
+== plugins/lisa-copilot
+plugins/lisa-copilot/agents/test-specialist.agent.md:1
+plugins/lisa-copilot/agents/verification-specialist.agent.md:1
+plugins/lisa-copilot/rules/eager/verification.md:1
+plugins/lisa-copilot/rules/eager/falsifiable-checks.md:1
+plugins/lisa-copilot/rules/reference/falsifiable-checks.md:7
+plugins/lisa-copilot/skills/lisa-codify-verification/SKILL.md:2
+== plugins/lisa-devin
+plugins/lisa-devin/agents/verification-specialist.md:1
+plugins/lisa-devin/agents/test-specialist.md:1
+plugins/lisa-devin/rules/eager/verification.md:1
+plugins/lisa-devin/rules/eager/falsifiable-checks.md:1
+plugins/lisa-devin/rules/reference/falsifiable-checks.md:7
+plugins/lisa-devin/skills/lisa-codify-verification/SKILL.md:2
+== plugins/src/base
+plugins/src/base/agents/verification-specialist.md:1
+plugins/src/base/agents/test-specialist.md:1
+plugins/src/base/rules/eager/verification.md:1
+plugins/src/base/rules/eager/falsifiable-checks.md:1
+plugins/src/base/rules/reference/falsifiable-checks.md:7
+plugins/src/base/skills/lisa-codify-verification/SKILL.md:2
+== EnterWorktree warning
+plugins/lisa/rules/reference/falsifiable-checks.md:1
+plugins/lisa-copilot/rules/reference/falsifiable-checks.md:1
+plugins/lisa-devin/rules/reference/falsifiable-checks.md:1
+plugins/src/base/rules/reference/falsifiable-checks.md:1
+plugins/lisa-cursor/rules/falsifiable-checks-reference.mdc:1
