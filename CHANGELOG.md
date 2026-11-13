@@ -2,6 +2,27 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [4.111.0](https://github.com/CodySwannGT/lisa/compare/v4.110.2...v4.111.0) (2026-11-13)
+
+
+### Features
+
+* **session-manager:** plan the orphan and hold sweep ([b4b4473](https://github.com/CodySwannGT/lisa/commit/b4b4473f27cfdb889bbf62c366c8991b1eb96000)), closes [CodySwannGT/lisa#4722](https://github.com/CodySwannGT/lisa/issues/4722) [CodySwannGT/lisa#4722](https://github.com/CodySwannGT/lisa/issues/4722)
+* **session-manager:** sweep orphans and holds every Reconcile cycle ([328a95b](https://github.com/CodySwannGT/lisa/commit/328a95bb845fa496499d702692e0599ece7ee75a)), closes [CodySwannGT/lisa#4722](https://github.com/CodySwannGT/lisa/issues/4722) [CodySwannGT/lisa#4722](https://github.com/CodySwannGT/lisa/issues/4722)
+
+
+### Bug Fixes
+
+* **session-manager:** fail closed on unknown lanes, retry refused finishes ([ff46bdc](https://github.com/CodySwannGT/lisa/commit/ff46bdc0db9d68d1dfa91010e258f78fc7807ecf)), closes [CodySwannGT/lisa#4722](https://github.com/CodySwannGT/lisa/issues/4722) [CodySwannGT/lisa#4722](https://github.com/CodySwannGT/lisa/issues/4722)
+* **session-manager:** guard holds like orphans and re-read before writes ([80eb890](https://github.com/CodySwannGT/lisa/commit/80eb890e970932b2324642b061191294235de39e)), closes [CodySwannGT/lisa#4722](https://github.com/CodySwannGT/lisa/issues/4722) [CodySwannGT/lisa#4722](https://github.com/CodySwannGT/lisa/issues/4722)
+* **session-manager:** harden the orphan and hold sweep from review ([ecae1e1](https://github.com/CodySwannGT/lisa/commit/ecae1e12ad1182b07bf7d20dcc509591e7724940)), closes [CodySwannGT/lisa#4722](https://github.com/CodySwannGT/lisa/issues/4722) [CodySwannGT/lisa#4722](https://github.com/CodySwannGT/lisa/issues/4722)
+* **session-manager:** hold back only the lift of a fresh hold; null decision on re-lane ([dde2ae9](https://github.com/CodySwannGT/lisa/commit/dde2ae9971ce3221bf2285765f3d2df865ec8d98)), closes [CodySwannGT/lisa#4722](https://github.com/CodySwannGT/lisa/issues/4722) [CodySwannGT/lisa#4722](https://github.com/CodySwannGT/lisa/issues/4722)
+
+
+### Documentation
+
+* **session-manager:** ask for comment createdAt in the orphan-plan input ([8cc61de](https://github.com/CodySwannGT/lisa/commit/8cc61de2355b60a308e09ceb68e3fb289d31fc86)), closes [CodySwannGT/lisa#4722](https://github.com/CodySwannGT/lisa/issues/4722) [CodySwannGT/lisa#4722](https://github.com/CodySwannGT/lisa/issues/4722)
+
 ### [4.110.2](https://github.com/CodySwannGT/lisa/compare/v4.110.1...v4.110.2) (2026-11-13)
 
 

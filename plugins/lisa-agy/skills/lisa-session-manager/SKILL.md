@@ -1,6 +1,6 @@
 ---
 name: lisa-session-manager
-description: "Run the local session manager: a tmux-hosted Claude Code session that dispatches ready tickets to background workers, relays their questions (over Telegram when configured), and reconciles stalled or blocked items. Claude Code only."
+description: "Run the local session manager: a tmux-hosted Claude Code session that dispatches ready tickets to background workers, relays their questions (over Telegram when configured), reconciles stalled, blocked and orphaned items, and re-judges human holds. Claude Code only."
 ---
 
 # Session manager
@@ -456,7 +456,7 @@ shows them.
   not valid JSON): report its message
   to the operator and leave the item; it never means the reply was a credential.
 
-**In Progress (ledger-driven).** Run `classify`. Items not in the ledger are not yours: leave them.
+**In Progress (ledger-driven).** Run `classify`. Items not in the ledger are handled by "Orphans and holds" below, never here.
 
 | Classification | Action |
 |---|---|
@@ -472,6 +472,69 @@ still unexplained: subagents inherit the bypass, and none of the documented bypa
 covers a plain Bash call (lisa#4522). So `blocked-on-prompt` detection is the guard, not a cure.
 `resume` passes the same permission flags as `spawn`, so a relayed answer or nudge never drops
 the bypass.
+
+**Orphans and holds** (CodySwannGT/lisa#4722). Items get left in the `claimed` role (or the
+`review` role) by an earlier manager session, a worker that died or was stopped, or a completion
+step that never ran, and nothing else revisits them. Holds an agent may decide sit in the queue
+just as long. Sweep both every cycle, after `classify` and before Dispatch:
+
+1. **List** the items in the `claimed` role and, only when `resolve-lifecycle-role.mjs` resolves
+   the optional `review` role, the `review` role; plus the open items carrying the human-needed
+   label or a `[lisa-human-gate]` body marker, in any role. Page every list to completion (GitHub:
+   `gh`, with `--limit 10000`; Jira / Linear: `lisa-atlassian-access` or `lisa-linear-access`).
+   Write `{"complete":true,"items":[{ref,role,labels,body,comments,assignees,updatedAt}],"holds":[{ref,role,labels,body,comments,assignees,updatedAt}]}`
+   to `.lisa/session-manager/orphan-input.json`: refs canonical as dispatch uses them, comments
+   as `{id,author,body,createdAt}` with the author's stable id and the comment's own posting
+   time (a refusal comment with no `createdAt` never ages out of its 24-hour park), assignees as `{login,id}` objects on GitHub (the REST
+   `.assignees[].id`) and as the account or user id on Jira and Linear, and each hold's `role` as
+   the lifecycle role it is in (`ready`, `claimed`, `review`, `blocked`, `done`), so a lift never
+   moves an item that is in a lane back to the `ready` role. On Jira and Linear a hold with no
+   known role is lifted but never moved. Set `complete` to `true`
+   only when every list reached its last page; the CLI refuses anything else. Run
+   `node "$SM/session-manager.mjs" orphan-plan --input .lisa/session-manager/orphan-input.json --project-root "$ROOT"`.
+   For each ref in `lookup`, find its pull request in the item's repo dir
+   (`gh pr list --state all --search <ref>`); when several match, prefer the merged one, then an
+   open one, then a closed one. Set that item's `pr` to `null` or
+   `{"url":…,"state":"open"|"merged"|"closed"}`, and run it again. The live refs, "me", the
+   operators and the trusted authors come from the ledger and config, never from the input. It
+   skips refs the ledger shows running or asking (their holds too, so an item waiting on a
+   person's answer is never on the operator's list twice), items assigned to anyone but "me" or an
+   operator, and items updated within `--stale-hours` (default 6) or with no `updatedAt`, which
+   protects a person running `/lisa:implement` by hand. A live or foreign hold is skipped the
+   same way; a fresh or undated one is not lifted this cycle, but its human reasons still reach
+   the operator's list, so a new comment never makes the list change.
+2. **Act** per bucket. **Before every write** in this sweep (a finish, a return, a re-dispatch
+   claim, a parked comment, a hold lift), re-read the item with `lisa-tracker-read`. Skip it for
+   this cycle, with one transcript line and no write, when its role is no longer the one the plan
+   saw, it gained an assignee who is neither "me" nor an operator, or its `updatedAt` is newer than
+   the snapshot the plan used, apart from this sweep's own earlier write on that item. The plan is
+   a snapshot; someone may have moved the item since. Every write goes through `lisa-tracker-write`
+   and is read back with `lisa-tracker-read`; every comment is the planner's, which starts with
+   `[lisa-session-manager]`.
+   - `doneReady`: the pull request merged. In the item's repo dir run
+     `node scripts/lisa-work-item.mjs finish --ref <ref> --pr-url <prUrl>`. If it refuses, post
+     one comment that starts `[lisa-session-manager] Cannot complete:` and says, in plain words,
+     why the item cannot complete yet. Later cycles see that comment and park the item, then retry
+     finishing once it is more than 24 hours old.
+   - `return`: move it to the `ready` role with the entry's `comment`.
+   - `redispatch`: an open pull request and no worker. Claim it (`reused`) and `spawn` it exactly
+     as Dispatch steps 2.3 and 2.4, ahead of new items, while `capacity` says `can_spawn`. A
+     spawn that reaches `stall.maxAttempts` follows the `exhausted` row above.
+   - `parked`: post the entry's `comment` only when `reasonOnItem` is false. An item in the
+     `review` role with an open pull request is parked, never re-dispatched: it is waiting on
+     review or merge.
+   - `holds.lift`: post each of its `comments` (each ends with its `Decision:` line; `decision` is null for a lift an earlier cycle
+     already posted, which only re-lanes the item); a partial
+     lift is also in `holds.keep` with the reasons still left for a person. Then remove
+     the human-needed label and move it to the `ready` role as its `actions` say.
+   - `holds.keep`: when `holds.digest.changed` is true, send `holds.digest.text` to the operator
+     once (Telegram when configured, else the cycle summary; nothing when the text is empty), then
+     record it with `ledger control --hold-digest <fingerprint>` (`none` when `fingerprint` is
+     null). An unchanged list is never re-sent.
+   - `deferred`: the next cycle takes them.
+
+A failure anywhere in this sweep is one transcript line: it never holds dispatch and never makes
+the cycle `recovery-required`.
 
 **Blocked.** List the items in the `blocked` role (paged to completion, same access paths as the
 queue below). For each:
@@ -650,7 +713,7 @@ session `start` creates), every cycle ends in **exactly one** of the six outcome
 | This cycle | Run outcome |
 |---|---|
 | No dispatch, no state change, no question relayed or newly pending. The summary still states the denominator: "swept N ready, 0 dispatchable; R running/C cap". | `nothing-needed` |
-| At least one of: a worker spawned and seen live in `status`; a Blocked→Ready release written and read back; an answer delivered and its marker removed (`SendMessage` acknowledged, or `resume` returned a session id), or recorded on the item and read back before its marker was removed; a stalled or `blocked-on-prompt` item retried. | `change-proved` |
+| At least one of: a worker spawned and seen live in `status`; a Blocked→Ready release written and read back; an orphan finished, returned or re-dispatched, or a hold lifted, written and read back; an answer delivered and its marker removed (`SendMessage` acknowledged, or `resume` returned a session id), or recorded on the item and read back before its marker was removed; a stalled or `blocked-on-prompt` item retried. | `change-proved` |
 | An item was marked human-needed ("Mark and move on": marker and question comment written and read back), in any of the four cases, including an `exhausted` item moved to the `blocked` role, or a marked item whose question comment was re-posted after `item-answer` reported `no-question-comment`; or a worker `FAILED` moved the item to the `blocked` role with its reason comment, both read back. The summary names each ref and where to answer it. | `candidate-proposed` |
 | No item was newly marked, but a pending question was re-sent on Telegram (`requestion`) and awaits the operator, and nothing else changed. | `approval-requested` |
 | The tracker, a configured Telegram or `claude` was unreachable; Telegram is configured but was unavailable or unpaired (a question stayed pending with no Telegram message id); a human-needed mark could not be written or read back, or no marker is configured; an answer for a finished worker, an `exhausted` item or a `decision` no worker has picked up could not be posted on the item or read back (its question stays pending); a worker `FAILED`'s move to the `blocked` role could not be written or read back; a spawn failed after the claim (the item went back to Ready); a worker classified `setup-gap` (the item went back to Ready); the capacity probe failed. | `recovery-required` |
@@ -668,7 +731,9 @@ other candidates. The planning-miss candidate a mark routes (step 6 of "Mark and
 one: it runs in the background, and whatever it does — a learning PR, a drop note, a failure —
 never moves the cycle's outcome. The same holds for the overruled-escalation sweep in Reconcile,
 including its `[lisa-escalation-overruled]` marker comment: it is never a state change for the run
-outcome. When several rows apply, the most urgent wins: `recovery-required`, then
+outcome. In the "Orphans and holds" sweep, a completion, return, re-dispatch or hold lift
+written and read back counts as `change-proved`; a failure in that sweep is one transcript line and
+never `recovery-required`, and a parked comment or the operator's hold list is never a state change. When several rows apply, the most urgent wins: `recovery-required`, then
 `candidate-proposed`, then `approval-requested`, then `change-proved`.
 A missing channel is never a reason for `recovery-required`: with `notify` `none`, a cycle ends
 `nothing-needed`, `change-proved` or `candidate-proposed` on its work alone.

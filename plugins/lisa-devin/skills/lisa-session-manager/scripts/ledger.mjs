@@ -110,6 +110,7 @@ const FINISH_STATUSES = new Set(["DONE", "FAILED"]);
  * @property {number} version - Shape version
  * @property {Record<string, LedgerItem>} items - Items keyed by ref
  * @property {{paused: boolean, maxWorkers: number|null, me: string|null,
+ *   holdDigest?: string|null,
  *   setupGaps: Record<string, import("./ledger-setup-gaps.mjs").SetupGap>,
  *   setupGapsClearedAt?: Record<string, string>}}
  *   control - Operator controls; `setupGaps` holds the repos `spawn` refuses
@@ -475,7 +476,8 @@ export function clearValidationFailure(projectRoot, { ref }, seams) {
 
 /**
  * Check a control patch before it is written.
- * @param {{paused?: unknown, maxWorkers?: unknown, me?: unknown}} patch - Patch
+ * @param {{paused?: unknown, maxWorkers?: unknown, me?: unknown,
+ *   holdDigest?: unknown}} patch - Patch
  */
 function assertControlPatch(patch) {
   if ("paused" in patch && typeof patch.paused !== "boolean") {
@@ -497,15 +499,25 @@ function assertControlPatch(patch) {
   if ("me" in patch && patch.me !== null && typeof patch.me !== "string") {
     throw new Error("control.me must be a string or null");
   }
+  if (
+    "holdDigest" in patch &&
+    patch.holdDigest !== null &&
+    typeof patch.holdDigest !== "string"
+  ) {
+    throw new Error("control.holdDigest must be a string or null");
+  }
 }
 
 /**
  * Merge operator controls into the ledger: `paused`, the `maxWorkers`
- * override (null clears it) and `me`, the resolved tracker identity. The
+ * override (null clears it), `me`, the resolved tracker identity, and
+ * `holdDigest`, the fingerprint of the hold list last sent to the operator
+ * (#4722; `orphan-plan` reports `changed` against it). The
  * block also carries `setupGaps` (and `setupGapsClearedAt` once a gap was
  * cleared); this never changes them — only ledger-setup-gaps.mjs writes them.
  * @param {string} projectRoot - Absolute project root
- * @param {{paused?: boolean, maxWorkers?: number|null, me?: string|null}} patch - Fields to set
+ * @param {{paused?: boolean, maxWorkers?: number|null, me?: string|null,
+ *   holdDigest?: string|null}} patch - Fields to set
  * @param {LedgerSeams} [seams] - Injected seams
  * @returns {Promise<Ledger["control"]>} New control block, setup gaps included
  */
