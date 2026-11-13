@@ -6,12 +6,13 @@
  * a `UserPromptSubmit` hook refusal, with no assistant turn, never started:
  * the machine has a setup gap, and retrying the item cannot fix it. `spawn`
  * once exited 0 and counted an attempt, and `classify` said `working` for an
- * hour. Now `spawn` stops that worker, records nothing and exits 2 (setup),
+ * hour. Now `spawn` stops that worker, records no item (only the repo's setup
+ * gap, lisa#4820) and exits 2 (setup),
  * and `classify` reports `setup-gap`. A healthy or missing transcript keeps
  * today's behaviour.
  * @module tests/unit/session-manager/cli-first-prompt
  */
-import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { mkdirSync } from "node:fs";
 import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 
@@ -26,6 +27,7 @@ import {
 import {
   activeAgent,
   callsOf,
+  plantTranscript as plant,
   readLedgerFile,
 } from "./support/cli-fixtures.js";
 
@@ -38,68 +40,44 @@ const WORKER = "wk-DEMO-12-1023-1417";
 const UNKNOWN = "unknown-command";
 const FINISH_FAILED = ["ledger", "finish", REF, "--status", "FAILED"];
 const SETUP_GAP = "--setup-gap";
-/** The stub's `claude --bg` prints short id 1a2b3c4d; this is its full id. */
-const FULL_ID = "1a2b3c4d-0000-4000-8000-000000000001";
-const FIXTURES = path.resolve(
-  import.meta.dirname,
-  "../../fixtures/session-manager/transcripts"
-);
-
-/**
- * Plant a transcript fixture where Claude Code files the session started in
- * `cwd`, under `configDir` (default: the sandbox HOME's `.claude`).
- * @param sandbox - Project sandbox
- * @param name - Fixture basename
- * @param options - cwd and config dir overrides
- * @param options.cwd - Session cwd
- * @param options.configDir - Claude config dir
- */
-function plant(
-  sandbox: Sandbox,
-  name: string,
-  {
-    cwd = sandbox.root,
-    configDir = path.join(sandbox.home, ".claude"),
-  }: { cwd?: string; configDir?: string } = {}
-): void {
-  const dir = path.join(
-    configDir,
-    "projects",
-    cwd.replace(/[^A-Za-z0-9]/g, "-")
-  );
-  mkdirSync(dir, { recursive: true });
-  writeFileSync(
-    path.join(dir, `${FULL_ID}.jsonl`),
-    readFileSync(path.join(FIXTURES, `${name}.jsonl`))
-  );
-}
+const IMPLEMENT = "/lisa:implement";
+const PROMPT_BLOCKED = "prompt-blocked";
 
 describe("spawn proof of life", () => {
-  it("exits 2 when the worker's first prompt was an unknown command, recording nothing", () => {
+  it("exits 2 when the worker's first prompt was an unknown command, recording only the repo's setup gap", () => {
     const sandbox = makeSandbox();
     plant(sandbox, UNKNOWN);
     const result = runCli(sandbox, SPAWN);
     expect(result.status).toBe(2);
-    expect(result.stderr).toContain("/lisa:implement");
+    expect(result.stderr).toContain(IMPLEMENT);
     expect(result.stderr).toContain(sandbox.root);
     expect(result.stderr).toMatch(/plugin/i);
     expect(result.stderr).toMatch(/no attempt was counted/i);
-    expect(() => readLedgerFile(sandbox)).toThrow();
+    const ledger = readLedgerFile(sandbox);
+    expect(ledger.items).toEqual({});
+    expect(ledger.control.setupGaps["."]).toMatchObject({
+      kind: UNKNOWN,
+      detail: IMPLEMENT,
+    });
     const stops = callsOf(result.calls, "claude", "stop");
     expect(stops).toHaveLength(1);
     expect(stops[0]?.argv[1]).toMatch(/^wk-DEMO-12-/);
   });
 
-  it("exits 2 when a UserPromptSubmit hook rejected the first prompt, recording nothing", () => {
+  it("exits 2 when a UserPromptSubmit hook rejected the first prompt, recording only the repo's setup gap", () => {
     const sandbox = makeSandbox();
-    plant(sandbox, "prompt-blocked");
+    plant(sandbox, PROMPT_BLOCKED);
     const result = runCli(sandbox, SPAWN);
     expect(result.status).toBe(2);
     expect(result.stderr).toMatch(/UserPromptSubmit hook/);
     expect(result.stderr).toContain(
       "Secret scanning is inactive: not authenticated."
     );
-    expect(() => readLedgerFile(sandbox)).toThrow();
+    const ledger = readLedgerFile(sandbox);
+    expect(ledger.items).toEqual({});
+    expect(ledger.control.setupGaps["."]).toMatchObject({
+      kind: PROMPT_BLOCKED,
+    });
     expect(callsOf(result.calls, "claude", "stop")).toHaveLength(1);
   });
 
@@ -188,8 +166,8 @@ function seedRunning(sandbox: Sandbox, worker: string, attempts = 1): void {
 
 describe("classify a worker whose first prompt failed", () => {
   it.each([
-    [UNKNOWN, "/lisa:implement"],
-    ["prompt-blocked", "Secret scanning is inactive: not authenticated."],
+    [UNKNOWN, IMPLEMENT],
+    [PROMPT_BLOCKED, "Secret scanning is inactive: not authenticated."],
   ])("reports setup-gap for %s", (name, detail) => {
     const sandbox = makeSandbox();
     seedRunning(sandbox, WORKER);

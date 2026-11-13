@@ -453,7 +453,7 @@ shows them.
 | `working`, `waiting`, `finished` | Nothing. |
 | `requestion` | With Telegram: re-send the pending question once, then re-record it with `ledger set-question` (same text, new message id); that restarts the re-ping clock. With no channel: nothing to re-send; leave it pending. |
 | `stalled`, `dead` | Read the item. If it left the `claimed` role, a human moved it: do not retry or move it; `ledger finish <ref> --status FAILED` with reason "left the claimed role outside the manager". Otherwise check for a merged PR first (`gh pr list --state merged --search <ref>` in the item's repo dir). If merged, leave the state change to Lisa's lifecycle and `ledger finish <ref> --status DONE` with reason "PR merged". Otherwise `claude stop <worker>` if it is still listed, then `spawn` a **fresh** attempt when capacity allows (the CLI counts attempts). |
-| `setup-gap` | The worker's first prompt never ran: `setupGap.kind` is `unknown-command` (Lisa's plugin is not visible in that repo, so `/lisa:implement` is unknown there) or `prompt-blocked` (a `UserPromptSubmit` hook rejected the prompt; `setupGap.detail` is what the hook said). Retrying cannot fix it. `claude stop <worker>` if it is still listed, `ledger finish <ref> --status FAILED --setup-gap` with reason "setup gap: <kind>: <detail>" (the spawn is not counted as an attempt). Then read the item: If it left the `claimed` role, a human moved it: respect that and do not move it back to the `ready` role. Otherwise move the item back to the `ready` role. Either way post one plain-language line naming the repo and the fix to Telegram, do not respawn it, do not dispatch to that repo again until the operator fixes it, and end the cycle `recovery-required` with that line as the summary. |
+| `setup-gap` | The worker's first prompt never ran: `setupGap.kind` is `unknown-command` (Lisa's plugin is not visible in that repo, so `/lisa:implement` is unknown there) or `prompt-blocked` (a `UserPromptSubmit` hook rejected the prompt; `setupGap.detail` is what the hook said). Retrying cannot fix it. `claude stop <worker>` if it is still listed, `ledger finish <ref> --status FAILED --setup-gap` with reason "setup gap: <kind>: <detail>" (the spawn is not counted as an attempt). Then read the item: If it left the `claimed` role, a human moved it: respect that and do not move it back to the `ready` role. Otherwise move the item back to the `ready` role. Either way post one plain-language line naming the repo and the fix to Telegram, do not respawn it, do not dispatch to that repo again until the operator fixes it, and end the cycle `recovery-required` with that line as the summary. `classify` has already recorded the repo's setup gap, so later cycles' `queue` leaves that repo out and `spawn` refuses it until the operator fixes the repo and runs `ledger clear-setup-gap <repo>` (`.` on a single-repo project); include that command in the line. |
 | `exhausted` | Attempts reached `stall.maxAttempts`. Stop the worker if listed, `ledger finish <ref> --status FAILED`, then follow "Mark and move on" with `--kind exhausted` and, as the reason, how many attempts failed and how each ended: it moves the item to the `blocked` role and marks it for a human. |
 
 **Blocked.** List the items in the `blocked` role (paged to completion, same access paths as the
@@ -522,7 +522,10 @@ Skip while `capacity` reports `paused`. Otherwise:
      description, reporter, issuetype, subtasks); raw Linear nodes carry identifier, title, priority,
      createdAt, assignee, labels, description, creator and children with their state type.
    - `ordered` is the dispatch order: assigned to an operator, then to "me", then unassigned; each
-     group by priority, then age. `excluded` needs no action.
+     group by priority, then age. `excluded` needs no action. `setupGaps` lists each repo the
+     manager will not dispatch to until the operator fixes it (`kind`, `detail`, and `clear`, the
+     command that lifts it); its items are excluded as `setup-gap:<repo>`. Report a gap to the
+     operator only in the cycle that recorded it, never again each cycle.
    - **Backlog tier** (only when `sessionManager.backlogPickup` is `true`). GitHub: `queue` fetches
      it itself (open issues with no build or PRD lifecycle label). Jira / Linear: also fetch the
      open leaf items in **no** lifecycle role — Linear workflow state type `backlog` or `unstarted`
@@ -566,13 +569,20 @@ Skip while `capacity` reports `paused`. Otherwise:
         `ledger record-spawn <ref> --worker <worker> --session-id <id> --repo <key>`; continue.
       - exit 2 (setup gap, e.g. workspace trust not accepted in the repo dir), including a worker
         whose first prompt never ran (`/lisa:implement` unknown in that repo, or a
-        `UserPromptSubmit` hook rejected it; the CLI already stopped that worker and recorded
-        nothing). If the ledger already has an item for the ref and it is still
+        `UserPromptSubmit` hook rejected it; the CLI already stopped that worker, recorded no
+        item and recorded the repo's setup gap). If the ledger already has an item for the ref and it is still
         running, run `ledger finish <ref> --status FAILED --setup-gap` with the CLI's message as
         the reason, so that stale row from an earlier worker is never later read as a human
-        moving the item. Then move the item back to the `ready` role, post the CLI's one-line message to Telegram, and end the cycle
-        `recovery-required` with that message as the summary. It is not a failed attempt; do not
-        dispatch to that repo again until the operator fixes it.
+        moving the item. Then move the item back to the `ready` role. It is not a failed attempt.
+        The CLI remembers the gap: later cycles' `queue` leaves that repo's items out and `spawn`
+        refuses the repo (exit 2, nothing launched) until the operator fixes it and runs
+        `ledger clear-setup-gap <repo>` (`.` on a single-repo project). The exit-2 stdout's
+        `setupGapStatus` says what to tell the operator:
+        - `recorded` (this spawn found the gap) or `not-recorded` (the ledger write failed): post
+          the CLI's one-line message to Telegram and end the cycle `recovery-required` with that
+          message as the summary.
+        - `already-recorded` (the operator was told when it was recorded): post nothing and
+          continue with the next item.
       - any other exit: move the item back to the `ready` role, notify Telegram, continue.
 3. **Backlog tier, lowest priority.** Only when `backlogPickup` is on, every `ordered` item has been
    taken or skipped, and `capacity` still says `can_spawn`. Ready work always wins: never promote a
