@@ -1,6 +1,6 @@
 ---
 name: lisa-wiki-ingest
-description: Ingest source material into the LLM Wiki. With an argument (URL, file path, or prompt) it ingests that one source; with no argument it runs a full ingest across every enabled non-external-write source. Routes to the right connector, then runs the ordered pipeline (source note → synthesis → index → log → verify → state → commit/PR). Use whenever new knowledge should enter the wiki.
+description: "Add knowledge to the LLM Wiki. With a URL, file, or prompt it ingests that source; with no argument it runs a full ingest of every enabled source. Use whenever new knowledge should enter the wiki."
 ---
 
 # lisa-wiki-ingest
@@ -13,36 +13,19 @@ performs the shared, ordered pipeline.
 - **Targeted:** `/ingest <url|file|prompt>` — ingest one source. Classify the input and pick the
   matching connector.
 - **Full:** `/ingest` (no argument, or "do a full ingest") — iterate **every enabled connector whose
-  side-effect policy permits unattended ingest**: self + other registered projects' git/PR history,
-  project-scoped memory, roles, plus read-only registered sources (notion, jira, confluence,
-  quickbooks, …). `external-write` connectors (Slack OAuth, CRM writeback) are **skipped unless the
-  run includes explicit external-write intent**.
+  side-effect policy permits unattended ingest**: this repo's git/PR history, project-scoped
+  memory, plus read-only registered sources (notion, jira, confluence, …). `external-write`
+  connectors (for example a CRM writeback) are **skipped unless the run includes explicit
+  external-write intent**.
 - **Dry run:** `/ingest --dry-run` — list the sources a full ingest would run; perform no writes.
 
-## Step 0 — resolve the wiki root (once per run)
-
-Before anything else, run the bundled resolver from the installed Lisa wiki plugin, not from the
-consumer repository's `scripts/` directory:
-
-```bash
-node "${PLUGIN_ROOT:-${CLAUDE_PLUGIN_ROOT:-${CURSOR_PLUGIN_ROOT:-$(npm root)/@codyswann/lisa/plugins/lisa-wiki}}}/scripts/ensure-wiki.mjs" --json
-```
-
-Use the returned `wikiRoot` as the base for the whole pipeline — never hardcode `wiki/`. This is
-mode-agnostic by design:
-
-- **Local wiki** (no `wiki.source` in `.lisa.config.json`) — resolves the in-repo wiki root instantly;
-  the branch sync below proceeds against **this** repo's remote, exactly as before.
-- **Remote wiki** (`wiki.source.url` set) — `ensure-wiki` mirrors/refreshes the gitignored working copy
-  of the canonical wiki repo and returns its path. In this mode the "sync the branch" step below, and
-  the Commit/PR step (7), operate against the **wiki repo's own remote** (the mirror), not the host
-  project's `origin`. The host project repo is never written to.
+The wiki lives at `wiki/` in this repository; every write goes to this repo through its own
+pull request. Knowledge about a related repository belongs in that repository\'s wiki, not here.
 
 ## Before ingesting — sync the branch (once per run)
 
 Run this **once per ingest invocation, before any source is processed** (skip for `--dry-run`, which
-writes nothing). The point is to ingest on top of fresh state, never stale state. Operate in the wiki
-root resolved in Step 0 — the host repo for a local wiki, the mirror for a remote one.
+writes nothing). The point is to ingest on top of fresh state, never stale state.
 
 1. **Resolve the default remote branch** — `gh repo view --json defaultBranchRef -q .defaultBranchRef.name`,
    or `git remote show origin | sed -n 's/.*HEAD branch: //p'`, or the `origin/HEAD` symbolic ref. If

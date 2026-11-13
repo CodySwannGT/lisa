@@ -1,5 +1,6 @@
 ---
-description: "Remove the recurring LLM Wiki ingest automation /lisa-wiki:setup-automations created for this project (the lisa-wiki-auto-<project>-* set) using the runtime's native scheduler (Codex automations / Claude /schedule). A declarative spec — it states which automation to remove; the runtime's native mechanism does the removing. Removes only this project's wiki automation, never the base set or other projects'."
+disable-model-invocation: true
+description: "Remove this project's recurring wiki ingest automation using the runtime's native scheduler. Touches nothing else."
 argument-hint: ""
 ---
 

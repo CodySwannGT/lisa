@@ -1,4 +1,4 @@
 display_name: "Kane Browser"
-short_description: "Optional Lisa-owned adapter for…"
+short_description: "Optional adapter for TestMu…"
 default_prompt:
-  - "Use $lisa-kane-browser: Optional Lisa-owned adapter for…."
+  - "Use $lisa-kane-browser: Optional adapter for TestMu…."

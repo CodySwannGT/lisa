@@ -2,7 +2,7 @@
   "$generatedBy": "scripts/generate-export-surface.mjs",
   "$doNotEdit": "The public export surface this package ships, recorded so a removal is an OBSERVATION rather than an inference from commit-message conventions. This file's diff is what makes a removed export visible in the pull request that causes it (CodySwannGT/lisa#3718).",
   "$modules": 279,
-  "$names": 1998,
+  "$names": 1999,
   "surface": {
     "all/copy-overwrite/scripts/check-conflict-markers.mjs": [
       "UsageError",
@@ -1883,7 +1883,8 @@
       "strykerPlugins"
     ],
     "scripts/lib/nest-plugin-commands.mjs": [
-      "nestCommandsUnderLisa"
+      "nestCommandsUnderLisa",
+      "stripClaudeOnlyCommandKeys"
     ],
     "scripts/lib/packaged-apply-isolation.mjs": [
       "assertDisposableContainer",

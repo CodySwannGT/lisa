@@ -1,4 +1,4 @@
 display_name: "Phaser Asset Pipeline"
-short_description: "setting up or changing the build-time asset pipeline of a Phaser 4 game — packing raw art in assets/src into public/assets…"
+short_description: "Set up the build-time asset pipeline of a Phaser 4 game: texture atlases, audio sprites, bitmap fonts, and generated typed asset keys"
 default_prompt:
-  - "Use $phaser-asset-pipeline: setting up or changing the build-time asset pipeline of a Phaser 4 game — packing raw art in assets/src into public/assets…."
+  - "Use $phaser-asset-pipeline: Set up the build-time asset pipeline of a Phaser 4 game: texture atlases, audio sprites, bitmap fonts, and generated typed asset keys."

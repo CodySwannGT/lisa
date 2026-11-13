@@ -1,6 +1,6 @@
 ---
 name: lisa-linear-build-intake
-description: "Symmetric counterpart to lisa-jira-build-intake on the Linear side. Scans a Linear team for Issues in the configured `ready` workflow state, claims the first eligible Issue by transitioning it to the configured `claimed` state, runs the implementation/build flow via the linear-agent workflow in-session (culminating in lisa-implement), transitions to the configured `done` state on completion, then exits. Enforces the claim-time arm of the `leaf-only-lifecycle` rule: a parent/container with open child work (or a childless Epic) that still sits in the build-ready state is skipped or safe-blocked with a lifecycle-repair comment, never claimed. The `ready` state is the human-flipped signal that an Issue is truly ready for development — mirroring how Notion PRDs work Draft → Ready → (us) In Review → Blocked|Ticketed."
+description: "Run one cycle of the Linear build queue: claim the first ready leaf issue, build it with lisa-implement, and mark it done. Containers with open children are skipped, not claimed."
 allowed-tools: ["Skill", "Bash"]
 ---
 
@@ -405,31 +405,15 @@ If the transition fails (permission, race), record under "Errors" and skip. **Do
 
 #### 3c. Run the per-Issue lifecycle in-session (never as a subagent)
 
-After the claim succeeds, run the per-Issue lifecycle defined by the `linear-agent` workflow **in the current session** — never by spawning `linear-agent` (or any named worker) via the `Agent` tool. The lifecycle culminates in a team-first flow (`lisa-implement`), and that flow can only create its agent team from the lead session: a spawned teammate cannot add named teammates (Claude teams are flat), so dispatching the build into a subagent strands `lisa-implement` without its team and collapses the build into a single inline worker. Concretely:
+After the claim succeeds, run the per-Issue lifecycle defined by the `linear-agent` workflow **in the current session** — never by spawning `linear-agent` (or any named worker) via the `Agent` tool. Running it here keeps the whole cycle in one fresh session per item and keeps the lifecycle skills able to reach the same tools. Concretely:
 
 1. **Run the gates in-session** via their skills, exactly as `linear-agent.md` defines them and with all of its gating behaviors intact:
    - `lisa-linear-read-issue` — the full Issue graph (mandatory; never ad-hoc reads)
    - `lisa-linear-verify` — pre-flight quality gate, including the draft-then-block procedure on FAIL
    - `lisa-ticket-triage` — analytical triage gate (a `BLOCKED` verdict stops the cycle with findings posted)
    - Intent determination from the type label
-2. **Dispatch the flow in-session:** when the gates pass, invoke the lifecycle skill via the Skill tool — `lisa-implement <ISSUE-ID>` for Build / Fix / Improve / Investigate-Only (or `lisa-plan` for an Epic-equivalent) — passing the full context bundle from the read step. Hand that bundle over by file, not by text: before invoking `lisa-implement`, run the ignore guard below, then write the bundle verbatim to persist it at the git-ignored `.lisa/work-item-context.md` of this worktree — always overwriting the file with this cycle's bundle, never reusing one an earlier item left behind — and pass only `caller_bundle_path=<absolute path>` in the invocation. `lisa-implement`'s input-resolver keeps that file as the base instead of re-summarizing it, so every comment reaches the agents doing the work. Bundle text, and any credential value in it, never appears in a spawn prompt, task description, or Skill argument — only its path. **Ignore guard before any write.** A host can receive these skills before its shipped `.gitignore` entry, so prove the path is ignored first, from the worktree root: `git check-ignore -q .lisa/work-item-context.md || printf '%s\n' '.lisa/work-item-context.md' >> "$(git rev-parse --git-common-dir)/info/exclude"`, then re-run `git check-ignore -q .lisa/work-item-context.md`. If it is still not ignored, stop and report — do not write the bundle. If an `.easignore` exists and `grep -qxF '.lisa/work-item-context.md' .easignore` fails, stop and report instead of writing: EAS uploads read `.easignore`, which is derived from `.gitignore`, not from `info/exclude`. **When 3b classified this Issue `rejection-reclaim`, the context bundle passed to `lisa-implement` MUST include the rejection evidence summary** (what was rejected, the defect the QA comment named, the approach named as wrong) — reuse the evidence already read in 3b, do not fetch it twice — so the plan can address it per `rejection-detection`; absence of evidence never blocks. `lisa-implement`'s own orchestration preamble then creates the per-item agent team (input-resolver, Roster Decision, specialist fanout) exactly as a direct invocation would.
+2. **Dispatch the flow in-session:** when the gates pass, invoke the lifecycle skill via the Skill tool — `lisa-implement <ISSUE-ID>` for Build / Fix / Improve / Investigate-Only (or `lisa-plan` for an Epic-equivalent) — passing the full context bundle from the read step. Hand that bundle over by file, not by text: before invoking `lisa-implement`, run the ignore guard below, then write the bundle verbatim to persist it at the git-ignored `.lisa/work-item-context.md` of this worktree — always overwriting the file with this cycle's bundle, never reusing one an earlier item left behind — and pass only `caller_bundle_path=<absolute path>` in the invocation. `lisa-implement` keeps that file as the base instead of re-summarizing it, so every comment reaches the agents doing the work. Bundle text, and any credential value in it, never appears in a subagent prompt, task description, or Skill argument — only its path. **Ignore guard before any write.** A host can receive these skills before its shipped `.gitignore` entry, so prove the path is ignored first, from the worktree root: `git check-ignore -q .lisa/work-item-context.md || printf '%s\n' '.lisa/work-item-context.md' >> "$(git rev-parse --git-common-dir)/info/exclude"`, then re-run `git check-ignore -q .lisa/work-item-context.md`. If it is still not ignored, stop and report — do not write the bundle. If an `.easignore` exists and `grep -qxF '.lisa/work-item-context.md' .easignore` fails, stop and report instead of writing: EAS uploads read `.easignore`, which is derived from `.gitignore`, not from `info/exclude`. **When 3b classified this Issue `rejection-reclaim`, the context bundle passed to `lisa-implement` MUST include the rejection evidence summary** (what was rejected, the defect the QA comment named, the approach named as wrong) — reuse the evidence already read in 3b, do not fetch it twice — so the plan can address it per `rejection-detection`; absence of evidence never blocks.
 3. **Milestone sync and evidence** (`lisa-linear-sync`, `lisa-linear-evidence`) happen at the milestones the `linear-agent` workflow defines, within the dispatched flow.
-
-If you are somehow running this skill as a spawned teammate inside an existing team (nested misrouting — Intake keeps this chain in the lead session), do NOT run the lifecycle inline and do NOT spawn named peers. Return this payload to the lead so the lead session can run this Phase 3c in-session:
-
-```json
-{
-  "type": "delegation-request",
-  "phase": "linear-build-intake 3c",
-  "workItem": "<ISSUE-ID>",
-  "context": {
-    "claimedLabel": "$CLAIMED",
-    "doneResolution": "Resolve $DONE from the PR base branch per this skill's Workflow resolution section"
-  },
-  "onSuccess": "Confirm the returned PR is merged, then apply Phase 3d and Phase 3d.1",
-  "onBlockedOrError": "Leave the Issue where the lifecycle left it and record the surfaced outcome"
-}
-```
 
 The lifecycle run returns one of the following outcomes; resume this scanner with it:
 - **Success** — the build flow completed and a PR exists; evidence posted. The PR may already be **merged** or still **open** (auto-merge enabled, awaiting checks/merge). "Success" means the build work is sound — it does **not** assert the change reached an environment. The env transition in 3d gates on the PR actually being merged; an open PR does not advance the Issue to a `done` env status.
@@ -558,7 +542,7 @@ If the team hasn't adopted these states, the first run exits with an adoption hi
 
 - **Claim leaves only.** Per the `leaf-only-lifecycle` rule, never claim a container — an Issue with open child work, or a childless Epic — even if it sits in the build-ready state. Skip or safe-block it (Phase 3a); never silently implement a container.
 - Never transition an Issue the cycle didn't claim. The `$CLAIMED` transition is the signature of cycle ownership.
-- Never do build work directly from this scanner — the per-Issue lifecycle (the `linear-agent` workflow culminating in `lisa-implement`) owns it. And never spawn that lifecycle as a subagent; run it in-session per Phase 3c so `lisa-implement` can create its agent team.
+- Never do build work directly from this scanner — the per-Issue lifecycle (the `linear-agent` workflow culminating in `lisa-implement`) owns it. Run that lifecycle in-session per Phase 3c.
 - Never auto-transition past `$DONE`. Downstream states are owned by QA / product / a future verification-intake skill.
 - Never use a `completed`-typed state for an intermediate env rung. `On Dev` / `On Stg` (or configured equivalents) must be typed `started`; completion happens only at the terminal `done` value.
 - If the Issue has no Validation Journey or no sign-in credentials in its description, the pre-flight verify gate will catch it and transition it to `$BLOCKED` — don't try to fix the Issue from here.

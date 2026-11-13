@@ -1,6 +1,6 @@
 ---
 name: lisa-linear-read-issue
-description: "Fetches the full scope of a Linear work item — Issue or Project — including metadata, description, acceptance criteria, all comments, attachments, native relations (blocks/blocked_by/relates_to/duplicates), Project parent (if any) with siblings, and sub-Issues. Produces a consolidated context bundle that downstream agents consume so they never act on a single item in isolation."
+description: "Fetch a Linear issue or project with everything related — comments, attachments, relations, parent, siblings, sub-issues — so work is never done on an item in isolation."
 allowed-tools: ["Bash", "Skill"]
 ---
 

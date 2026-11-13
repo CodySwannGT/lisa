@@ -1,4 +1,5 @@
 ---
+disable-model-invocation: true
 description: "Reduce max lines per function threshold and fix violations"
 allowed-tools: ["Skill"]
 argument-hint: "<max-lines-per-function-value>"

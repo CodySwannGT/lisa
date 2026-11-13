@@ -1,4 +1,4 @@
 display_name: "Wiki Status"
-short_description: "Report Lisa wiki source…"
+short_description: "Report how fresh each wiki…"
 default_prompt:
-  - "Use $lisa-wiki-status: Report Lisa wiki source…."
+  - "Use $lisa-wiki-status: Report how fresh each wiki…."

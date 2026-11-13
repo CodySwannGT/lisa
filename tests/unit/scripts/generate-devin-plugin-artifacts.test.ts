@@ -21,7 +21,6 @@ import {
   CLAUDE_PLUGIN_DIR,
   DOT_MCP_JSON,
   HOOKS_JSON,
-  ENFORCE_TEAM_FIRST,
   PLUGIN_JSON,
   scaffoldSource,
 } from "./cursor-artifact-helpers.js";
@@ -118,10 +117,6 @@ describe("generate-devin-plugin-artifacts (#4426)", () => {
 
     const raw = fs.readFileSync(path.join(outDir, HOOKS_JSON), "utf8");
     expect(raw).not.toContain("entire hooks");
-    expect(raw).not.toContain(ENFORCE_TEAM_FIRST);
-    expect(fs.existsSync(path.join(outDir, "hooks", ENFORCE_TEAM_FIRST))).toBe(
-      false
-    );
     expect(fs.existsSync(path.join(outDir, "commands"))).toBe(false);
   });
 

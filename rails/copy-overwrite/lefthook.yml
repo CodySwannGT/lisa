@@ -17,6 +17,7 @@ pre-commit:
       # The wrapper removes Git's complete documented local environment before
       # `--update` enters the nested ruby-advisory-db repository.
       run: sh scripts/lisa-clean-git-env.sh bundle exec bundler-audit check --update
+      fail_text: 'Security audit failed. Follow the lisa-security-audit-handling skill (upgrade, evaluate impact, then document or stop for a human). Never bypass this hook.'
 
 prepare-commit-msg:
   commands:

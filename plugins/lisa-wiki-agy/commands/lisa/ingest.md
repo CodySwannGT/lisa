@@ -1,5 +1,5 @@
 ---
-description: "Ingest source material into the LLM Wiki. With an argument (URL, file path, or prompt) ingest that one source; with no argument run a full ingest across every enabled non-external-write source. Routes to the right connector and runs the ordered pipeline (source note → synthesis → index → log → verify → state → commit/PR)."
+description: "Add knowledge to the LLM Wiki. With a URL, file, or prompt it ingests that source; with no argument it runs a full ingest of every enabled source."
 argument-hint: "[url | file path | prompt]   (omit for a full ingest)"
 ---
 

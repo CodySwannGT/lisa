@@ -1,4 +1,5 @@
 ---
+disable-model-invocation: true
 description: "Explain plugin source/generated drift and marketplace registration gaps without modifying the working tree."
 argument-hint: "[path]"
 ---

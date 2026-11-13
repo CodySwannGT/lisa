@@ -1,9 +1,9 @@
 ---
 name: lisa-ticket-triage
-description: "Analytical triage gate for…"
+description: "Check a ticket before…"
 allowed-tools: ["Read", "Glob", "Grep", "Bash"]
 ---
-Analytical triage gate for tickets in the configured destination tracker (JIRA, GitHub Issues, or Linear). Detects requirement ambiguities, identifies edge cases from codebase analysis, plans verification methodology, and — via lisa-rework-triage in Phase 2.5 — detects rework bounced back from QA/staging and classifies why the previous agent attempt failed. Posts findings to the ticket and produces a verdict (DUPLICATE_ALREADY_FIXED/BLOCKED/PASSED_WITH_FINDINGS/PASSED) that gates whether implementation can proceed. Vendor-neutral: the caller (jira-agent or github-agent) is responsible for fetching the ticket via lisa-tracker-read, running the pre-flight gate via lisa-tracker-verify, and posting findings via the matching vendor comment tool.
+Check a ticket before implementation: find ambiguities, edge cases, how to verify it, and why a previous attempt was bounced back. Posts findings and returns a verdict (duplicate, blocked, passed with findings, or passed).
 
 
 # Ticket Triage: $ARGUMENTS

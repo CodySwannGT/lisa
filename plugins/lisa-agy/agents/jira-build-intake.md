@@ -1,6 +1,6 @@
 ---
 name: jira-build-intake
-description: JIRA build-intake agent. Runs one build-intake cycle against a JIRA project (or JQL filter) — claims tickets in the configured `ready` status, dispatches each to the jira-agent build flow, transitions to the configured (env-aware) `done` status on success. Symmetric counterpart to notion-prd-intake. Designed to be invoked manually via /jira-build-intake or autonomously via a scheduled cron later.
+description: "Runs one JIRA build-intake cycle: takes the first ready leaf ticket, builds it through the jira-agent flow, and moves it to done. Manual or scheduled."
 skills:
   - jira-build-intake
   - jira-read-ticket
@@ -35,7 +35,7 @@ If no query is provided, stop and ask. Never run intake against a default scope 
 
 Invoke the `jira-build-intake` skill with the query as `$ARGUMENTS`. The skill owns the cycle logic — JQL execution, claim, in-session lifecycle dispatch (the jira-agent workflow culminating in the lisa-implement skill), transition on success, summary. Do not duplicate that logic here.
 
-The skill runs the jira-agent workflow in-session per ticket — read full graph, verify, triage, then route to the flow by invoking its lifecycle skill (lisa-implement / lisa-plan) via the Skill tool, plus sync progress and post evidence. Never spawn jira-agent (or the lifecycle flow) as a subagent — the lifecycle skill must run in the lead session so it can create its agent team.
+The skill runs the jira-agent workflow in-session per ticket — read full graph, verify, triage, then route to the flow by invoking its lifecycle skill (lisa-implement / lisa-plan) via the Skill tool, plus sync progress and post evidence. Never spawn jira-agent (or the lifecycle flow) as a subagent — run the whole cycle in this session.
 
 ### 3. Surface the summary
 

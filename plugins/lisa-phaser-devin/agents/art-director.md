@@ -1,6 +1,6 @@
 ---
 name: art-director
-description: Art director persona agent (opt-in). Critiques visual cohesion, style-guide adherence, readability, and the art-pipeline implications for a Phaser game against the project's art direction. Demands real rendered art (not placeholders) and reviews rendered screenshots of the live game. Reviews visual design, not engine code.
+description: "Opt-in art director persona for a Phaser game: critiques visual cohesion, style-guide fit, readability, and art-pipeline impact from screenshots of the running game. Expects real art, not placeholders. Reviews visuals, not code."
 skills:
   - phaser-asset-sourcing
 ---

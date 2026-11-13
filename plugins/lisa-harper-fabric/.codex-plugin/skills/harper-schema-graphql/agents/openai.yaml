@@ -1,4 +1,4 @@
 display_name: "Harper Schema Graphql"
-short_description: "editing a Harper…"
+short_description: "Edit a Harper (HarperDB/Fabric)…"
 default_prompt:
-  - "Use $harper-schema-graphql: editing a Harper…."
+  - "Use $harper-schema-graphql: Edit a Harper (HarperDB/Fabric)…."

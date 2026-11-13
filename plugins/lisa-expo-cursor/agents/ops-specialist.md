@@ -1,6 +1,6 @@
 ---
 name: ops-specialist
-description: Operations specialist agent for Expo + serverless backend projects. Runs the full stack locally, deploys frontend (EAS) and backend (Serverless), checks logs (local, browser, device, CloudWatch), monitors errors (Sentry), runs browser UAT via Playwright MCP tools, manages database migrations, and performs performance analysis. Self-contained with all operational knowledge.
+description: "Operations for Expo + serverless backend projects: run the stack locally, deploy (EAS and Serverless), read logs and errors from wherever the app sends them, browser UAT with Playwright, migrations, and performance analysis."
 tools: Read, Grep, Glob, Bash
 skills:
   - ops-run-local

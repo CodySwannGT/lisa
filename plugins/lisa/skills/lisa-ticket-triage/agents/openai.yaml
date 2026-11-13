@@ -1,4 +1,4 @@
 display_name: "Ticket Triage"
-short_description: "Analytical triage gate for tickets in the configured destination tracker (JIRA, GitHub Issues, or Linear)"
+short_description: "Check a ticket before implementation: find ambiguities, edge cases, how to verify it, and why a previous attempt was bounced back"
 default_prompt:
-  - "Use $lisa-ticket-triage: Analytical triage gate for tickets in the configured destination tracker (JIRA, GitHub Issues, or Linear)."
+  - "Use $lisa-ticket-triage: Check a ticket before implementation: find ambiguities, edge cases, how to verify it, and why a previous attempt was bounced back."

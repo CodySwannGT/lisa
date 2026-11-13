@@ -1,4 +1,4 @@
 display_name: "Generate Claude Remote Build Script"
-short_description: "Generate the setup/build script (and env-var template) to paste into a Claude Code remote routine environment so this repo runs in the cloud"
+short_description: "Generate the setup script and environment-variable template for running this repo as a Claude Code remote routine: idempotent installs for…"
 default_prompt:
-  - "Use $lisa-generate-claude-remote-build-script: Generate the setup/build script (and env-var template) to paste into a Claude Code remote routine environment so this repo runs in the cloud."
+  - "Use $lisa-generate-claude-remote-build-script: Generate the setup script and environment-variable template for running this repo as a Claude Code remote routine: idempotent installs for…."

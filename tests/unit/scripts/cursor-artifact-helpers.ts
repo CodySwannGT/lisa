@@ -16,7 +16,6 @@ export const MCP_JSON = "mcp.json";
 export const DOT_MCP_JSON = ".mcp.json";
 export const BLOCK_NO_VERIFY = "block-no-verify.sh";
 export const INJECT_RULES = "inject-rules.sh";
-export const ENFORCE_TEAM_FIRST = "enforce-team-first.sh";
 export const INSTALL_PKGS = "install-pkgs.sh";
 export const SETUP_JIRA = "setup-jira-cli.sh";
 
@@ -49,12 +48,9 @@ const entireEntry = (verb: string) => ({
 
 // Claude-format base manifest hook block: a universal PreToolUse gate, a
 // SessionStart trio (install-pkgs + inject-rules + setup-jira-cli), plus
-// Claude-only entries (entire call, enforce-team-first) that must be stripped.
+// a Claude-only entry (entire call) that must be stripped.
 export const BASE_HOOK_BLOCK = {
-  UserPromptSubmit: [
-    entireEntry("user-prompt-submit"),
-    scriptEntry("", ENFORCE_TEAM_FIRST),
-  ],
+  UserPromptSubmit: [entireEntry("user-prompt-submit")],
   PreToolUse: [scriptEntry("Bash", BLOCK_NO_VERIFY)],
   SessionStart: [
     scriptEntry("startup", INSTALL_PKGS),
@@ -133,7 +129,6 @@ export async function scaffoldSource(
   for (const script of [
     BLOCK_NO_VERIFY,
     INJECT_RULES,
-    ENFORCE_TEAM_FIRST,
     INSTALL_PKGS,
     SETUP_JIRA,
   ]) {

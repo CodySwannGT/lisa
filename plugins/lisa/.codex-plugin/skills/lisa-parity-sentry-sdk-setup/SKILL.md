@@ -4,7 +4,7 @@ description: "Install and configure the…"
 allowed-tools: ["Read", "Edit", "Write", "Bash"]
 synced-from: sentry@claude-plugins-official@1.4.0
 ---
-Install and configure the Sentry SDK for a project — detect the framework/runtime, add the correct @sentry/<framework> package, initialize the client, wire the DSN through env, enable error + performance monitoring, and set up source map upload for readable stack traces. One consolidated skill covering react, nextjs, node, nestjs, express, python, django, react-native, and more. Lisa-native reimplementation of Sentry's SDK-setup suite. Use when adding Sentry to a project or fixing an existing Sentry install.
+Install and configure the Sentry SDK for a project's framework: package, client init, DSN from env, error and performance monitoring, and source maps. Use when adding Sentry or fixing an existing setup.
 
 
 # Sentry SDK Setup

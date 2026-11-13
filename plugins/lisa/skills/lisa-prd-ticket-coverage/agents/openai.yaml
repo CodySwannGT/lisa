@@ -1,4 +1,4 @@
 display_name: "PRD Ticket Coverage"
-short_description: "Verifies that every requirement in a PRD (Notion, Confluence, Linear, or GitHub Issues) is covered by at least one created destination…"
+short_description: "Check that every requirement in a PRD is covered by at least one created ticket, with a coverage matrix and a verdict (complete, complete…"
 default_prompt:
-  - "Use $lisa-prd-ticket-coverage: Verifies that every requirement in a PRD (Notion, Confluence, Linear, or GitHub Issues) is covered by at least one created destination…."
+  - "Use $lisa-prd-ticket-coverage: Check that every requirement in a PRD is covered by at least one created ticket, with a coverage matrix and a verdict (complete, complete…."

@@ -4,7 +4,7 @@ description: "Thorough PR-style review of the…"
 allowed-tools: ["Read", "Bash", "Grep", "Glob"]
 synced-from: coderabbit@claude-plugins-official@1.1.1
 ---
-Thorough PR-style review of the full diff — bugs, security, performance, and maintainability — with concrete suggested fixes and a structured summary. An independent Lisa-native review skill that does NOT call CodeRabbit's service or port its code. Vendor-neutral cross-agent equivalent of the upstream coderabbit plugin, runnable on Codex, agy, Copilot, Cursor, and Claude.
+Thorough PR-style review of the full diff — bugs, security, performance, maintainability — with suggested fixes and a summary. Lisa's own reviewer; does not call CodeRabbit. Works on every agent runtime.
 
 
 # Parity CodeRabbit

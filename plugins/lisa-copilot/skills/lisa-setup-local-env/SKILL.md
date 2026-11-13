@@ -1,6 +1,6 @@
 ---
 name: lisa-setup-local-env
-description: "Bring a developer's machine in line with the toolchain the project declares. Reports every tool in remoteEnv.tools that is missing, outdated, or unpinned for this platform, and installs the missing ones into ~/.local/bin from the same pinned, checksummed entries the remote surfaces use — but only when asked. Same manifest, same pins, same installers as lisa-setup-remote-env; what differs is consent and that the pin is a floor rather than an equality. Run it on a fresh checkout, after a manifest change, or when a tool fails at the moment of use."
+description: "Report which declared tools are missing, outdated, or unpinned on this machine, and install the missing ones from the same pinned, checksummed entries remote environments use — only when asked."
 allowed-tools: ["Bash", "Read", "Skill"]
 ---
 

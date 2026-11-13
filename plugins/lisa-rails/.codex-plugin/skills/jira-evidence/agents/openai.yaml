@@ -1,4 +1,4 @@
 display_name: "Jira Evidence"
-short_description: "Upload evidence to the…"
+short_description: "Post verification evidence…"
 default_prompt:
-  - "Use $jira-evidence: Upload evidence to the…."
+  - "Use $jira-evidence: Post verification evidence…."

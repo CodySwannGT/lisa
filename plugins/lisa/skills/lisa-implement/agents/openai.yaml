@@ -1,4 +1,4 @@
 display_name: "Implement"
-short_description: "any non-trivial request — features, bugs, stories, epics, spikes, or multi-step tasks"
+short_description: "Implement one piece of work end to end — feature, bug, story, epic, spike, or multi-step task — from a ticket URL, spec file, or prompt…"
 default_prompt:
-  - "Use $lisa-implement: any non-trivial request — features, bugs, stories, epics, spikes, or multi-step tasks."
+  - "Use $lisa-implement: Implement one piece of work end to end — feature, bug, story, epic, spike, or multi-step task — from a ticket URL, spec file, or prompt…."

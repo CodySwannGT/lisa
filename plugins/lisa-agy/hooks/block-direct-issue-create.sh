@@ -89,14 +89,13 @@
 # call, not only Bash. Measured on a developer machine at load ~8-26, 50
 # invocations per row:
 #
-#     16.7 ms   enforce-team-first.sh          already `matcher: ""` today
 #     17.5 ms   enforce-verification-gate.sh   already `matcher: ""` today
 #     11.5 ms   this guard, non-Bash payload   what the broad matcher adds
 #    112.3 ms   this guard, Bash payload       what Bash calls already paid
 #
-# So the broad registration was not novel — two hooks were already there, this
-# one is cheaper than either, and it raises an existing ~34 ms per-call baseline
-# by about a third.
+# So the broad registration was not novel — another hook was already there, this
+# one is cheaper than it, and it raises an existing ~17 ms per-call baseline
+# by about two thirds.
 #
 # THIS IS A THRESHOLD, NOT A PRECEDENT. The argument is about the TOTAL cost of
 # the broad set, so it does not transfer to the next guard: four more hooks

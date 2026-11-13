@@ -1,6 +1,6 @@
 ---
 name: lisa-linear-access
-description: "Vendor-neutral access layer for Linear. Linear skills MUST delegate through this skill rather than calling Linear MCP tools or Linear GraphQL directly. Per the credential-substrate-precedence contract, resolves LINEAR_API_KEY + Linear GraphQL first — ahead of the Linear MCP — whenever the key is present and identity-matches the configured workspace/team, and falls back to the Linear MCP when the token path is unavailable. Identity-match is mandatory on both substrates."
+description: "The one way Lisa skills reach Linear: LINEAR_API_KEY GraphQL first, ahead of the Linear MCP, when the key matches the configured workspace and team; the MCP is the fallback. Linear skills must go through it."
 allowed-tools: ["Bash", "Read", "Skill"]
 ---
 

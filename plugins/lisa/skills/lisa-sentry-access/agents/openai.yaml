@@ -1,4 +1,4 @@
 display_name: "Sentry Access"
-short_description: "Vendor-neutral access layer for Sentry"
+short_description: "The one way Lisa skills reach Sentry: a token-authenticated REST or sentry-cli path matched to the configured org and project, falling back…"
 default_prompt:
-  - "Use $lisa-sentry-access: Vendor-neutral access layer for Sentry."
+  - "Use $lisa-sentry-access: The one way Lisa skills reach Sentry: a token-authenticated REST or sentry-cli path matched to the configured org and project, falling back…."

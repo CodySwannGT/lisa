@@ -23,16 +23,10 @@ export const LISA_CODEX_PLUGINS = [
   "lisa-phaser",
   "lisa-rails",
   "lisa-wiki",
-  "lisa-openclaw",
 ] as const;
 
 const LISA_PLUGIN_NAMES = new Set<string>(LISA_CODEX_PLUGINS);
-const PRODUCTIVITY_PLUGINS = new Set([
-  "lisa",
-  "lisa-typescript",
-  "lisa-wiki",
-  "lisa-openclaw",
-]);
+const PRODUCTIVITY_PLUGINS = new Set(["lisa", "lisa-typescript", "lisa-wiki"]);
 
 /** Result of one repository marketplace reconciliation. */
 export interface MarketplaceInstallResult {

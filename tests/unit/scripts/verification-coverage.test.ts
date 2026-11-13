@@ -188,8 +188,8 @@ describe("check-verification-coverage", () => {
 });
 
 describe("verification (UAT) gate wiring", () => {
-  it("frames verification AS UAT (one concept) in the eager rule", () => {
-    const rule = read("plugins/src/base/rules/eager/verification.md");
+  it("frames verification AS UAT (one concept) in the verification rule", () => {
+    const rule = read("plugins/src/base/rules/reference/verification.md");
     expect(rule).toContain("Verification IS UAT");
     expect(rule).toContain("evidence/<ticket>/");
     expect(rule).toContain("verification-exempt");

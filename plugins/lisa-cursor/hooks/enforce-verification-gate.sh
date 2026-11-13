@@ -11,7 +11,7 @@
 # verification-specialist writes from REAL tool output, so it is both stronger
 # and not foolable by a prose claim of success.
 #
-# Intentionally Claude-specific (like enforce-team-first.sh). Other harnesses
+# Intentionally Claude-specific. Other harnesses
 # may not fire a Stop hook; they fall back to the prose completion gate in
 # skills/lisa-implement/SKILL.md.
 #
@@ -20,9 +20,9 @@
 #                        /lisa:implement (or /implement)
 #   - PreToolUse       : arm enforcement when the Skill tool loads lisa-implement
 #                        (covers nested/programmatic invocation, e.g. intake)
-#   - SubagentStart    : mark teammate sessions exempt — teammates inherit the
-#                        lead's flow and must not be gated on their own stop
-#   - Stop             : block the lead stop unless a FRESH terminal verdict
+#   - SubagentStart    : mark subagent sessions exempt — subagents inherit the
+#                        parent's flow and must not be gated on their own stop
+#   - Stop             : block the parent stop unless a FRESH terminal verdict
 #                        (status pass|blocked, all criteria pass) exists, bounded
 #                        by a per-session block counter so a genuinely-stuck flow
 #                        ESCALATES instead of looping forever.
@@ -209,7 +209,7 @@ esac
 
 # --- Stop enforcement path ---
 
-# Teammates inherit the lead's flow; never gate a subagent stop.
+# Subagents inherit the parent's flow; never gate a subagent stop.
 if [ -f "$SUBAGENT_FLAG" ]; then
   exit 0
 fi

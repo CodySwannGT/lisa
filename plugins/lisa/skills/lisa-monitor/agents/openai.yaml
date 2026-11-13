@@ -1,4 +1,4 @@
 display_name: "Monitor"
-short_description: "Monitor application health AND audit observability completeness for the current repo, then file build-ready tickets for what it finds"
+short_description: "Check app health and how well the repo is instrumented, then file build-ready tickets for real anomalies and missing instrumentation"
 default_prompt:
-  - "Use $lisa-monitor: Monitor application health AND audit observability completeness for the current repo, then file build-ready tickets for what it finds."
+  - "Use $lisa-monitor: Check app health and how well the repo is instrumented, then file build-ready tickets for real anomalies and missing instrumentation."

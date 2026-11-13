@@ -1,6 +1,6 @@
 ---
 name: lisa-learnings-audit
-description: "The gardener of the learnings ladder (PRD #1729). Periodically audits every knowledge surface — ledger, rules trees (including Lisa's own shipped eager rules), skills, wiki index, and mechanical-control surfaces — gathers evidence per item (recurrence, staleness, redundancy, contradiction, budget pressure), classifies each candidate through the ladder router (skill-evaluator, advisory), and communicates exclusively through the tracker: one evidence-bearing ticket per PROMOTE/DEMOTE, one batch ticket per run for CONFIRM/RETIRE, upstream Lisa issues for upstream-scoped patterns. The skill only files tickets: under the default humanGate.mode access-only they file build-ready (status:ready) and the factory implements them, except a change to a human-authored surface, which stays human-gated; under humanGate.mode strict every ticket is human-gated. Rejections (tickets closed as not planned) are remembered. Cron-able via lisa-setup-automations and runnable on demand via /lisa:learnings:audit."
+description: "Audit every knowledge surface — learnings ledger, rules, skills, wiki, and checks — and file a ticket for each promotion, demotion, confirmation, or retirement. Tickets are build-ready except promotions into the always-loaded rules."
 allowed-tools: ["Skill", "Bash", "Read", "Glob", "Grep"]
 ---
 
@@ -9,8 +9,8 @@ allowed-tools: ["Skill", "Bash", "Read", "Glob", "Grep"]
 Run one audit cycle over this project's knowledge surfaces and convert what the
 evidence supports into **tracker tickets** — nothing else. Under the default
 `humanGate.mode: "access-only"` those tickets file build-ready and the factory
-implements them; under `humanGate.mode: "strict"` they are **human-gated**
-(see Ticket emission). The
+implements them (except a promotion into the always-loaded rules); under
+`humanGate.mode: "strict"` they are **human-gated** (see Ticket emission). The
 gardener is the only flow in Lisa that takes knowledge *back out* or moves it
 *up* the ladder; it closes the loop that capture (learner, debrief-apply, MLD)
 opens.
@@ -28,8 +28,9 @@ cheapest rung that still prevents the mistake (per the six-rung ladder,
 PRD #1729), prose never duplicates a mechanical owner, the eager tier shrinks
 over time, and every change to "what the agents believe" passes through the
 tracker as an evidence-bearing ticket a person can read and reverse — approved
-by a human only under `humanGate.mode: "strict"` or when the destination is a
-human-authored surface. A quiet run with nothing to propose is a healthy
+by a human only for a promotion into the always-loaded rules, under
+`humanGate.mode: "strict"`, or when the destination is a human-authored
+surface. A quiet run with nothing to propose is a healthy
 outcome and says so in its one-line summary.
 
 ## Sources of truth
@@ -62,7 +63,7 @@ memorized list:
    come from exactly there.
 4. **Skills** — `.claude/skills/` and the plugin skill roots the runtime
    exposes (descriptions are eager context; bodies load on invoke).
-5. **The wiki index** — `wiki/index.md` when the project has a wiki.
+5. **The wiki index** — `wiki/index.md`.
 6. **Mechanical-control surfaces** — lint configs (ESLint/oxlint), ast-grep
    rules, git hooks, test suites, and `package.lisa.json` force sections:
    the surfaces that answer "does a mechanical owner already exist?".
@@ -164,8 +165,7 @@ evidence:
   inventoried surface, in this repository (`project` scope) or upstream in
   `CodySwannGT/lisa` (`upstream` scope).
 - **Out of scope**: executing any promotion/demotion/retirement (the factory
-  does, per flipped tickets), editing any knowledge surface, auto-apply modes
-  (v1 is fully gated), and the capture streams (learner, debrief, MLD).
+  does, per flipped tickets), editing any knowledge surface itself, and the capture streams (learner, debrief, MLD).
 
 ## Proof
 
@@ -249,6 +249,12 @@ tickets pass the same validation gates as all factory work. Resolve
   promoted, demoted, or retired"` so the writer stamps the auditable
   `[lisa-human-gate]` marker. An omitted flag would be indistinguishable from
   the accidental non-ready filing the rule exists to catch.
+
+In both modes a **PROMOTE into EAGER-RULE** adds to what every session loads,
+so it is filed held with `human_gate: "a human decides whether this learning is promoted
+into the always-loaded rules"`, which stamps the auditable `[lisa-human-gate]`
+marker. Every other build-ready ticket passes `build_ready: true`. The hold is
+declared, never implied by an omitted flag.
 
 **Per-item tickets — PROMOTE / DEMOTE** (`issue_type: Task`; GitHub trackers
 carry the `type:Task` label) — one ticket per recommendation, capped by
@@ -415,9 +421,10 @@ like any work item, honoring the `promotion-contract` rule.
 
 Who gates depends on `humanGate.mode` (see Ticket emission). Under the
 default `access-only` the gardener decides: it files build-ready and the
-factory implements, and only a change to a human-authored surface is
-human-gated. Under `strict` everything is human-gated: humans gate by
-flipping a ticket to `status:ready` or closing it as rejected.
+factory implements, and only a promotion into EAGER-RULE or a change to a
+human-authored surface is human-gated.
+Under `strict` everything is human-gated: humans gate by flipping a ticket to
+`status:ready` or closing it as rejected.
 
 ## Escalation
 

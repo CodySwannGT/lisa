@@ -1,8 +1,8 @@
 ---
 name: owasp-zap
-description: "running or interpreting an…"
+description: "Run or interpret an OWASP ZAP…"
 ---
-This skill should be used when running or interpreting an OWASP ZAP baseline DAST scan of the Expo web export — after changes to HTTP headers, authentication, or security middleware, before deploying to staging or production, or when triaging ZAP findings from CI or pull request checks. Covers running scripts/zap-baseline.sh locally, risk-level triage, common findings and fixes, and .zap/baseline.conf rule configuration.
+Run or interpret an OWASP ZAP baseline scan of the Expo web export. Use after changing headers, auth, or security middleware, before deploying, or when triaging ZAP findings.
 
 
 # OWASP ZAP Baseline Scanning

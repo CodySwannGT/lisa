@@ -193,8 +193,7 @@ describe.each(SKILL_ROOTS)("planning-miss loop (%s)", root => {
   it("decomposition loads the learned planning checks through the bounded projection", () => {
     const decomposition = skill("lisa-task-decomposition");
     expect(decomposition).toContain("### 0. Load the learned planning checks");
-    expect(decomposition).toContain("projectLearnings");
-    expect(decomposition).toContain("resolveProjectLearningsFile");
+    expect(decomposition).toContain("scripts/learnings-projection.mjs");
     expect(decomposition).toContain(
       "Planning \\((prd|decomposition|ready-gate|filing)\\):"
     );

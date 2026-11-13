@@ -1,4 +1,4 @@
 display_name: "Harper Caching"
-short_description: "implementing Harper (HarperDB/Fabric) caching tables, external-source caches, TTL expiration, stale revalidation, invalidation, and cache…"
+short_description: "Implement Harper (HarperDB/Fabric) caching tables: external-source caches, TTLs, stale revalidation, invalidation, and verification"
 default_prompt:
-  - "Use $harper-caching: implementing Harper (HarperDB/Fabric) caching tables, external-source caches, TTL expiration, stale revalidation, invalidation, and cache…."
+  - "Use $harper-caching: Implement Harper (HarperDB/Fabric) caching tables: external-source caches, TTLs, stale revalidation, invalidation, and verification."

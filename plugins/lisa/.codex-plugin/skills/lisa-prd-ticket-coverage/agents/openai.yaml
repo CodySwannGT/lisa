@@ -1,4 +1,4 @@
 display_name: "PRD Ticket Coverage"
-short_description: "Verifies that every requirement…"
+short_description: "Check that every requirement in…"
 default_prompt:
-  - "Use $lisa-prd-ticket-coverage: Verifies that every requirement…."
+  - "Use $lisa-prd-ticket-coverage: Check that every requirement in…."

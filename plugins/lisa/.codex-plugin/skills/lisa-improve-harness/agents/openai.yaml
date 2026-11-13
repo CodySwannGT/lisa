@@ -1,4 +1,4 @@
 display_name: "Improve Harness"
-short_description: "Investigate ONE failed or…"
+short_description: "Investigate one failed or…"
 default_prompt:
-  - "Use $lisa-improve-harness: Investigate ONE failed or…."
+  - "Use $lisa-improve-harness: Investigate one failed or…."

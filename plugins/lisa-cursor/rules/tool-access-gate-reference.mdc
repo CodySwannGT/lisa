@@ -5,6 +5,8 @@ alwaysApply: false
 
 # Tool Access Gate
 
+> Detail behind the eager `when-to-stop` rule.
+
 - If you can't reach something you need, such as a repository, a secret, an API, or a connector, say exactly what's missing in your first message and stop. Don't substitute, mock, or guess.
 
 If the missing access is discovered after work begins, say exactly what's

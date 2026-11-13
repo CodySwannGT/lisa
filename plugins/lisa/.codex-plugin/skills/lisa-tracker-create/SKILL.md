@@ -1,9 +1,9 @@
 ---
 name: lisa-tracker-create
-description: "Vendor-neutral wrapper for…"
+description: "Create tickets from code files…"
 allowed-tools: ["Skill", "Bash", "Read"]
 ---
-Vendor-neutral wrapper for creating tickets/issues from code files or descriptions. Reads the required `tracker` from .lisa.config.json and dispatches to lisa-jira-create, lisa-github-create, or lisa-linear-create. Plans hierarchy structure (epic / story / sub-task), then delegates each individual write through the tracker-write shim.
+Create tickets from code files or a description in whichever tracker the project uses, planning the epic / story / sub-task structure and writing each one through lisa-tracker-write.
 
 
 # Tracker Create: $ARGUMENTS

@@ -1,4 +1,4 @@
 display_name: "Phaser Asset Sourcing"
-short_description: "a Phaser 4 game needs actual art or audio and none exists yet — deciding WHERE game art comes from before it can be packed"
+short_description: "Decide where a Phaser 4 game's art and audio come from before packing it: CC0 packs first, then edited CC0, then asking a human; record…"
 default_prompt:
-  - "Use $phaser-asset-sourcing: a Phaser 4 game needs actual art or audio and none exists yet — deciding WHERE game art comes from before it can be packed."
+  - "Use $phaser-asset-sourcing: Decide where a Phaser 4 game's art and audio come from before packing it: CC0 packs first, then edited CC0, then asking a human; record…."

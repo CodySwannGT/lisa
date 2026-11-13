@@ -72,14 +72,6 @@ describe("generate-codex-plugin-artifacts: filterCodexHooks", () => {
     ).toBeNull();
   });
 
-  it("drops enforce-team-first.sh (Claude-team-specific)", () => {
-    expect(
-      filterCodexHooks(
-        blockWith("SessionStart", "", PLUGIN_ROOT_CMD("enforce-team-first.sh"))
-      )
-    ).toBeNull();
-  });
-
   it("drops matchers whose handlers were all stripped but keeps surviving events", () => {
     const block = {
       SessionStart: [

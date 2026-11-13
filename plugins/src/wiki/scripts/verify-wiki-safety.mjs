@@ -30,7 +30,7 @@ const repeated = name => {
 };
 
 const { config } = loadConfig(opt("--config"));
-const wikiRoot = path.resolve(opt("--wiki") ?? config?.wikiRoot ?? "wiki");
+const wikiRoot = path.resolve(opt("--wiki") ?? "wiki");
 const asJson = flag("--json");
 const scanner = opt("--scanner") ?? "builtin";
 
