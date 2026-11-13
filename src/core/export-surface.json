@@ -1,8 +1,8 @@
 {
   "$generatedBy": "scripts/generate-export-surface.mjs",
   "$doNotEdit": "The public export surface this package ships, recorded so a removal is an OBSERVATION rather than an inference from commit-message conventions. This file's diff is what makes a removed export visible in the pull request that causes it (CodySwannGT/lisa#3718).",
-  "$modules": 278,
-  "$names": 1995,
+  "$modules": 279,
+  "$names": 1999,
   "surface": {
     "all/copy-overwrite/scripts/check-conflict-markers.mjs": [
       "UsageError",
@@ -867,6 +867,11 @@
     "all/copy-overwrite/scripts/lib/reusable-workflow-load-scan.mjs": [
       "scanForLoadFailures"
     ],
+    "all/copy-overwrite/scripts/lib/usage-artifact-ref.mjs": [
+      "LINEAR_REQUIRED_FORM",
+      "assertCanonicalArtifactRef",
+      "canonicalArtifactRefViolation"
+    ],
     "all/copy-overwrite/scripts/lib/usage-effectiveness.mjs": [
       "isEvidenceString",
       "isEvidenceTime",
@@ -874,6 +879,7 @@
       "parseEffectivenessTokens"
     ],
     "all/copy-overwrite/scripts/lib/usage-ledger-integrity.mjs": [
+      "isLisaUsageLedgerIntact",
       "verifyLisaUsageSectionIntegrity"
     ],
     "all/copy-overwrite/scripts/lib/usage-ledger.mjs": [

@@ -1,6 +1,10 @@
 // This file is managed by Lisa and IS replaced on each `lisa` run.
 // Do not edit directly — durable changes belong upstream in Lisa.
 
+import {
+  LINEAR_REQUIRED_FORM,
+  canonicalArtifactRefViolation,
+} from "./usage-artifact-ref.mjs";
 import { LISA_USAGE_HEADING, parseLisaUsageSection } from "./usage-ledger.mjs";
 /**
  * Sort ids so an integrity report is deterministic regardless of document order.
@@ -98,6 +102,43 @@ function findRollupCoverageGaps(rollup, parsedEntryIds) {
   );
 }
 /**
+ * Report direct entries whose `artifact_ref` the completion-proof reader would
+ * never recognise. The writer refuses such a ref, but a token written by hand
+ * never passes through the writer, and the entry would otherwise be refused
+ * only later, at completion, as "absent" (CodySwannGT/lisa#4846). The grammar
+ * comes from the module the writer uses, so the two cannot drift apart.
+ *
+ * When the caller names the entries it just wrote, only those are checked: a
+ * legacy short-ref row written before the grammar existed must not block every
+ * later write to the same artifact, including the qualified entry that
+ * replaces it. With no ids every entry is checked.
+ *
+ * @param {readonly { entryId: string, artifactRef: string }[]} entries Direct
+ *   entries parsed from the stored section.
+ * @param {readonly string[]} expectedEntryIds Entry ids the caller just wrote;
+ *   empty to check every entry.
+ * @returns Zero or one `non-canonical-artifact-ref` issue.
+ */
+function findNonCanonicalArtifactRefs(entries, expectedEntryIds) {
+  const inScope =
+    expectedEntryIds.length === 0
+      ? entries
+      : entries.filter(entry => expectedEntryIds.includes(entry.entryId));
+  const offending = inScope
+    .filter(entry => canonicalArtifactRefViolation(entry.artifactRef) !== null)
+    .sort((left, right) =>
+      left.entryId > right.entryId ? 1 : left.entryId < right.entryId ? -1 : 0
+    );
+  const refs = offending.map(
+    entry => `${entry.entryId} (${entry.artifactRef})`
+  );
+  return reportIssue(
+    "non-canonical-artifact-ref",
+    offending.map(entry => entry.entryId),
+    `Stored section has entries whose artifact_ref the completion proof will never recognise: ${refs.join(", ")}. Rewrite each Linear ref as ${LINEAR_REQUIRED_FORM}, taking <workspace> from the linear.workspace key in .lisa.config.json.`
+  );
+}
+/**
  * Verify that a STORED managed usage section is still a readable ledger.
  *
  * This exists because a write surface can accept a section, report success, and
@@ -153,6 +194,28 @@ export function verifyLisaUsageSectionIntegrity(storedDocument, expected) {
       droppedExpected.flatMap(issue => issue.entryIds)
     ),
     ...findRollupCoverageGaps(parsed.rollup, parsedEntryIds),
+    ...findNonCanonicalArtifactRefs(parsed.entries, expectedEntryIds),
   ];
   return { ok: issues.length === 0, issues };
+}
+/**
+ * Whether a stored managed usage section is an intact, enumerable ledger,
+ * ignoring `artifact_ref` grammar.
+ *
+ * The completion proof applies the reader's own grammar (`isVerifyEntryFor`)
+ * per expected Verify entry, and before CodySwannGT/lisa#4846 a section whose
+ * entries carried a short Linear ref was still an intact ledger to it. A legacy
+ * row with a short ref on some OTHER flow is harmless to that reader, so the
+ * write-time grammar issue must not turn such a body into a fatal integrity
+ * failure at completion. This keeps completion behaviour exactly as it was:
+ * nothing newly accepted, nothing newly refused.
+ *
+ * @param {string} storedDocument Artifact body or comment body as read back.
+ * @returns {boolean} True when every reported issue is an artifact_ref
+ *   grammar issue (or there are none).
+ */
+export function isLisaUsageLedgerIntact(storedDocument) {
+  return verifyLisaUsageSectionIntegrity(storedDocument).issues.every(
+    issue => issue.code === "non-canonical-artifact-ref"
+  );
 }
