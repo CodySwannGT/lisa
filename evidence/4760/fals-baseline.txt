@@ -31,16 +31,16 @@ vitest.config.ts (19:7) [33m[UNRESOLVED_IMPORT] [0mCould not resolve '@codyswa
 [38;5;246m────╯[0m
 
 
- RUN  v4.1.11 /Users/codysai/.claude/jobs/783bf208/tmp/fals-3b2a
+ RUN  v4.1.11 /Users/codysai/.claude/jobs/783bf208/tmp/fals-6f90
 
 Sourcemap for "/Users/codysai/workspace/lisa/.claude/worktrees/4760-implement/node_modules/.bun/@codyswann+lisa@4.69.1+dbdb9b37f1a7de56/node_modules/@codyswann/lisa/dist/configs/vitest/scratch-setup.js" points to missing source files
 lisa scratch: no supervised lease in the environment, so this run is self-supervised. Fixture directories are still bounded to a run root this process owns and removed on exit; what is missing is the detached reaper that reclaims the root after a SIGKILL, which the next run's startup sweep recovers instead. Run through `lisa-test-run --profile <profile> --adapter vitest -- vitest ...` for a supervised run.
 lisa scratch: no supervised lease in the environment, so this run is self-supervised. Fixture directories are still bounded to a run root this process owns and removed on exit; what is missing is the detached reaper that reclaims the root after a SIGKILL, which the next run's startup sweep recovers instead. Run through `lisa-test-run --profile <profile> --adapter vitest -- vitest ...` for a supervised run.
-Sourcemap for "/Users/codysai/workspace/lisa/.claude/worktrees/4760-implement/node_modules/.bun/@codyswann+lisa@4.69.1+dbdb9b37f1a7de56/node_modules/@codyswann/lisa/dist/configs/vitest/scratch-leak-setup.js" points to missing source files
 lisa scratch: no supervised lease in the environment, so this run is self-supervised. Fixture directories are still bounded to a run root this process owns and removed on exit; what is missing is the detached reaper that reclaims the root after a SIGKILL, which the next run's startup sweep recovers instead. Run through `lisa-test-run --profile <profile> --adapter vitest -- vitest ...` for a supervised run.
+Sourcemap for "/Users/codysai/workspace/lisa/.claude/worktrees/4760-implement/node_modules/.bun/@codyswann+lisa@4.69.1+dbdb9b37f1a7de56/node_modules/@codyswann/lisa/dist/configs/vitest/scratch-leak-setup.js" points to missing source files
 
  Test Files  3 passed (3)
       Tests  5486 passed (5486)
-   Start at  14:02:58
-   Duration  799ms (transform 282ms, setup 529ms, import 256ms, tests 176ms, environment 0ms)
+   Start at  14:55:21
+   Duration  637ms (transform 147ms, setup 354ms, import 304ms, tests 173ms, environment 0ms)
 

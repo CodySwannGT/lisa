@@ -7,7 +7,7 @@ lisa scratch: no supervised lease in the environment, so this run is self-superv
 
  Test Files  3 passed (3)
       Tests  5486 passed (5486)
-   Start at  14:02:44
-   Duration  1.03s (transform 383ms, setup 667ms, import 313ms, tests 186ms, environment 0ms)
+   Start at  14:55:10
+   Duration  611ms (transform 298ms, setup 487ms, import 251ms, tests 159ms, environment 0ms)
 
 exit=0
