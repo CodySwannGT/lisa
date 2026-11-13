@@ -30,6 +30,9 @@ import {
 const QUALIFIED = "linear:acme/ENG-11";
 const SHORT = "linear:ENG-11";
 const VERIFY_ID = "verify-11";
+const GITHUB_REF = "github:acme/code#42";
+const LEGACY_ID = "legacy-5";
+const LEGACY_SHORT = "linear:ENG-5";
 const REQUIRED_FORM = "linear:<workspace>/<KEY-N>";
 const ISSUE_CODE = "non-canonical-artifact-ref";
 const REPO_ROOT = path.resolve(import.meta.dirname, "../../..");
@@ -137,9 +140,13 @@ describe("read-back refuses a non-canonical artifact_ref (#4846)", () => {
 
   it("does not flag non-Linear refs", () => {
     const document = handWrittenSection({
-      "github-1": "github:acme/code#42",
+      "github-1": GITHUB_REF,
       "jira-1": "ENG-11",
     });
+    expect(document).toContain(
+      `artifact_ref=${encodeURIComponent(GITHUB_REF)} `
+    );
+    expect(document).toContain("artifact_ref=ENG-11 ");
 
     expect(artifactRefIssues(document)).toStrictEqual([]);
     expect(verifyLisaUsageSectionIntegrity(document).ok).toBe(true);
@@ -155,8 +162,40 @@ describe("read-back refuses a non-canonical artifact_ref (#4846)", () => {
     const issues = artifactRefIssues(document);
     expect(issues).toHaveLength(1);
     expect(issues[0]?.entryIds).toStrictEqual(["alpha-1", "zeta-1"]);
-    expect(issues[0]?.message).toContain("linear:ENG-1");
-    expect(issues[0]?.message).toContain("linear:ENG-2");
+    expect(issues[0]?.message).toContain(
+      "alpha-1 (linear:ENG-1), zeta-1 (linear:ENG-2)"
+    );
+  });
+
+  it("checks only the entries the caller just wrote when ids are given", () => {
+    const legacy = handWrittenSection({ [LEGACY_ID]: LEGACY_SHORT });
+    const body = upsertLisaUsageSection(legacy, {
+      entries: [makeEntry(VERIFY_ID)],
+    });
+    expect(body).toContain("artifact_ref=linear%3AENG-5 ");
+    expect(body).toContain(`entry_id=${VERIFY_ID} `);
+
+    expect(
+      verifyLisaUsageSectionIntegrity(body, { entryIds: [VERIFY_ID] })
+    ).toStrictEqual({ ok: true, issues: [] });
+    expect(artifactRefIssues(body).map(issue => issue.entryIds)).toEqual([
+      [LEGACY_ID],
+    ]);
+  });
+
+  it("still reports a just-written entry whose ref is short", () => {
+    const document = handWrittenSection({
+      [LEGACY_ID]: LEGACY_SHORT,
+      [VERIFY_ID]: SHORT,
+    });
+
+    const issues = verifyLisaUsageSectionIntegrity(document, {
+      entryIds: [VERIFY_ID],
+    }).issues;
+    expect(issues.map(issue => [issue.code, issue.entryIds])).toEqual([
+      [ISSUE_CODE, [VERIFY_ID]],
+    ]);
+    expect(issues[0]?.message).not.toContain(LEGACY_ID);
   });
 });
 
@@ -169,9 +208,7 @@ describe("writer and read-back share one artifact_ref grammar (#4846)", () => {
 
   it("the shared describer agrees with the writer on each form", () => {
     expect(sharedGrammar.canonicalArtifactRefViolation(QUALIFIED)).toBeNull();
-    expect(
-      sharedGrammar.canonicalArtifactRefViolation("github:acme/code#42")
-    ).toBeNull();
+    expect(sharedGrammar.canonicalArtifactRefViolation(GITHUB_REF)).toBeNull();
     expect(sharedGrammar.canonicalArtifactRefViolation(SHORT)).toContain(
       REQUIRED_FORM
     );
@@ -203,7 +240,7 @@ describe("completion proof is unchanged by the read-back grammar check (#4846)",
 
   it("a legacy short-ref row on another entry still lets a qualified Verify entry authorize", () => {
     const document = handWrittenSection({
-      "legacy-5": "linear:ENG-5",
+      [LEGACY_ID]: LEGACY_SHORT,
       [VERIFY_ID]: QUALIFIED,
     });
     expect(artifactRefIssues(document)).toHaveLength(1);

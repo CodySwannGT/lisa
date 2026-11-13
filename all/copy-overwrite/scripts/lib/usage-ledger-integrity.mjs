@@ -108,22 +108,33 @@ function findRollupCoverageGaps(rollup, parsedEntryIds) {
  * only later, at completion, as "absent" (CodySwannGT/lisa#4846). The grammar
  * comes from the module the writer uses, so the two cannot drift apart.
  *
+ * When the caller names the entries it just wrote, only those are checked: a
+ * legacy short-ref row written before the grammar existed must not block every
+ * later write to the same artifact, including the qualified entry that
+ * replaces it. With no ids every entry is checked.
+ *
  * @param {readonly { entryId: string, artifactRef: string }[]} entries Direct
  *   entries parsed from the stored section.
+ * @param {readonly string[]} expectedEntryIds Entry ids the caller just wrote;
+ *   empty to check every entry.
  * @returns Zero or one `non-canonical-artifact-ref` issue.
  */
-function findNonCanonicalArtifactRefs(entries) {
-  const offending = entries.filter(
-    entry => canonicalArtifactRefViolation(entry.artifactRef) !== null
+function findNonCanonicalArtifactRefs(entries, expectedEntryIds) {
+  const inScope =
+    expectedEntryIds.length === 0
+      ? entries
+      : entries.filter(entry => expectedEntryIds.includes(entry.entryId));
+  const offending = inScope
+    .filter(entry => canonicalArtifactRefViolation(entry.artifactRef) !== null)
+    .sort((left, right) =>
+      left.entryId > right.entryId ? 1 : left.entryId < right.entryId ? -1 : 0
+    );
+  const refs = offending.map(
+    entry => `${entry.entryId} (${entry.artifactRef})`
   );
-  const entryIds = sortedIds(offending.map(entry => entry.entryId));
-  const refs = entryIds.map(entryId => {
-    const entry = offending.find(candidate => candidate.entryId === entryId);
-    return `${entryId} (${entry?.artifactRef})`;
-  });
   return reportIssue(
     "non-canonical-artifact-ref",
-    entryIds,
+    offending.map(entry => entry.entryId),
     `Stored section has entries whose artifact_ref the completion proof will never recognise: ${refs.join(", ")}. Rewrite each Linear ref as ${LINEAR_REQUIRED_FORM}, taking <workspace> from the linear.workspace key in .lisa.config.json.`
   );
 }
@@ -183,7 +194,7 @@ export function verifyLisaUsageSectionIntegrity(storedDocument, expected) {
       droppedExpected.flatMap(issue => issue.entryIds)
     ),
     ...findRollupCoverageGaps(parsed.rollup, parsedEntryIds),
-    ...findNonCanonicalArtifactRefs(parsed.entries),
+    ...findNonCanonicalArtifactRefs(parsed.entries, expectedEntryIds),
   ];
   return { ok: issues.length === 0, issues };
 }

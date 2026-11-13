@@ -1268,7 +1268,7 @@
       "children": []
     },
     "lib/usage-ledger-integrity.mjs": {
-      "sha256": "fca70f1c5985fcea93b3db1d1bfa5534fb810349f37f959a4f7c55c721bbbf77",
+      "sha256": "d0d63c989bbb92a38b9b6db6dcc51131be30129fe50ca76563f27ffd7fba9678",
       "staticImports": [
         "lib/usage-artifact-ref.mjs",
         "lib/usage-ledger.mjs"

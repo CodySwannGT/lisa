@@ -267,7 +267,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lib/usage-ledger-integrity.d.mts":
       "a4bdc5da82e9e38057409112aa034f52f173453c95f0e0d223333e6d0d15ed1d",
     "all/copy-overwrite/scripts/lib/usage-ledger-integrity.mjs":
-      "fca70f1c5985fcea93b3db1d1bfa5534fb810349f37f959a4f7c55c721bbbf77",
+      "d0d63c989bbb92a38b9b6db6dcc51131be30129fe50ca76563f27ffd7fba9678",
     "all/copy-overwrite/scripts/lib/usage-ledger.d.mts":
       "605a7c5fc65a66413606489f8bf1b97ef4ce5e582de4dcca10466c8793c7c3bc",
     "all/copy-overwrite/scripts/lib/usage-ledger.mjs":
@@ -365,7 +365,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/npm-updater-gate.Dockerfile":
       "850a4ee809d49e3d9da6bdd674cb43e4f5a6dcfa0aa73116b1a43caeed42748c",
     "all/copy-overwrite/scripts/npm-updater-helper-graph.json":
-      "53b35daf905a3b64386d242cdf72d66c1f6619f384e9183cb755bc5a4f37f90b",
+      "2b170243ce8e536d89e58bd867c450a1c73b58cace4e3f3ae97bc68121a10b1e",
     "all/copy-overwrite/scripts/review-evidence-event.mjs":
       "1c5d510bc66f8ba23b6f046246f41182c17946a50126fb88e371d2aec9dfd6b2",
     "all/copy-overwrite/scripts/schemas/lisa-command-envelope.v1.schema.json":
@@ -1301,7 +1301,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/rules/reference/upstream-to-lisa.md":
       "e98974e4f48af05f788323c92badae6a97a2feec1ca8e8a9c05ddc3e3c948492",
     "plugins/src/base/rules/reference/usage-accounting.md":
-      "c3f0741399839f4daf6ec6fcabcdc65fa0f94b4d89bc81b472b48adda6a8f1fa",
+      "53dec94f4cba696d4b4f6e990565173c6aa0c9972432b8b127517fc3617ca7cc",
     "plugins/src/base/rules/reference/verification.md":
       "fd1dfe40b098b8c772785cec3d3e89a2e32d086bd13e44489536241a8c393ee9",
     "plugins/src/base/rules/reference/wiki-knowledge-source.md":
