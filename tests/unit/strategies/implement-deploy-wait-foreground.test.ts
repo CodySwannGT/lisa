@@ -16,7 +16,7 @@
  *   1. it forbids a detached or background watcher for the deploy wait;
  *   2. it requires a bounded foreground watch with a stated ceiling that
  *      falls through to step 11;
- *   3. any watcher teammate/subagent it mentions must `SendMessage` the lead
+ *   3. any watcher subagent it mentions must `SendMessage` the lead
  *      when the run succeeds or fails;
  *   4. it never otherwise mentions background waiting — every occurrence sits
  *      inside the prohibition sentence.
@@ -112,9 +112,7 @@ describe.each(ROOTS)(
 
     it("watches the run step 8 confirmed instead of re-discovering it", () => {
       expect(block).toMatch(/step 8/);
-      expect(block).toMatch(
-        /`blocked:deploy`.{0,120}deploy failure.{0,40}step 11/is
-      );
+      expect(block).toMatch(/watch the run step 8 confirmed/);
       // No second lookup and no unbounded find-poll loop.
       expect(block).not.toMatch(/gh run list/);
       expect(block).not.toMatch(/no run found within/i);
@@ -144,11 +142,32 @@ describe.each(ROOTS)(
       }
     });
 
+    it("never routes a missing deploy run to step 11", () => {
+      // drive-pr-to-merge returns `blocked:deploy` (or, in report mode,
+      // `blocked:no-deploy-run`) when NO run fired — there is no code to fix,
+      // so a fix PR would be invented work.
+      const noRun = sentences(block).filter(s =>
+        /`blocked:(deploy|no-deploy-run)`/.test(s)
+      );
+      expect(noRun.length).toBeGreaterThan(0);
+      expect(noRun.join(" ")).toContain("`blocked:no-deploy-run`");
+      for (const s of noRun) {
+        expect(s).toMatch(/not a code failure/i);
+        expect(s).toMatch(/blocked/i);
+        expect(s).toMatch(/never open a fix PR/i);
+        expect(s).not.toMatch(/go to step 11/i);
+      }
+    });
+
+    it("says who the lead is, since the skill no longer forms a team", () => {
+      expect(block).toMatch(/agent running this flow \(the lead\)/);
+    });
+
     it("cites the drive-pr-to-merge rule by name", () => {
       expect(block).toContain("lisa-drive-pr-to-merge");
     });
 
-    it("pairs any watcher teammate/subagent with a SendMessage to the lead", () => {
+    it("pairs any watcher subagent with a SendMessage to the lead", () => {
       const mentions = sentences(block).filter(s =>
         /\b(teammate|subagent|watcher agent)\b/i.test(s)
       );
