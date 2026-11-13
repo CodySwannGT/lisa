@@ -7,7 +7,7 @@ alwaysApply: true
 
 A passing test, a clean lint run, a zero-hit sweep, a green ratchet: each is evidence **only if that check is known to be capable of failing.** Otherwise it is a checkbox, and a green suite that protects nothing is worse than none — it suppresses the search for the defect.
 
-**Before reporting any clean, zero, or passing result from a check you authored or modified, prove it fails on known-bad input.** Break the thing being guarded, confirm the check fails *and names the right location*, then restore. That falsification is part of the deliverable, not an optional extra.
+**Before reporting any clean, zero, or passing result from a check you authored or modified, prove it fails on known-bad input.** Break the thing being guarded on a scratch copy, never in a worktree another agent is editing, confirm the check fails *and names the right location*, then restore. That falsification is part of the deliverable, not an optional extra.
 
 This is the instrument-validity counterpart to the `verification` rule (which proves the *software* behaves) and `empirical-inquiry` (which proves a *fact*). All three reject "it looks correct." This one rejects "the check said so."
 

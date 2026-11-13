@@ -883,11 +883,11 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/agents/spec-conformance-specialist.md":
       "c0fdcefeb9c4d2adc9197d57a8a02234095c2476626bfac47939890d1416d27b",
     "plugins/src/base/agents/test-specialist.md":
-      "30871e9a7e754dc5b5c187dbd28998f767cea07697cf31b80d85eb14f71bf3d5",
+      "219fdeaab68162ebff11f79218663193735587598ed050c792c552bc80d3e7fc",
     "plugins/src/base/agents/tracker-mining-specialist.md":
       "fef49c3ca8622c83a54d34b3f960471e0f2ad50e6889f691585b0f208180f6bd",
     "plugins/src/base/agents/verification-specialist.md":
-      "fab829d0e8f2cd928671b90d3f337c7f647e51971321e2204148513e01a6fc93",
+      "44edf5f58ea117fe418b4813c45b573a459c4b870c4b8cf21a940c13cae1a034",
     "plugins/src/base/commands/agent-ready.md":
       "b1bc19c90330b9885b44f733e83cc6b44afa9b5e9fd2e9aba99995480e0829e1",
     "plugins/src/base/commands/analyze-claude-remote.md":
@@ -1147,7 +1147,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/rules/eager/empirical-inquiry.md":
       "67aa64ba3ecc4f3cd761111d2562662e0a2acf7892703b14ec83f7f7b073e670",
     "plugins/src/base/rules/eager/falsifiable-checks.md":
-      "4b27d3afafeea5646324f2d8ec044e1b743207bec0ad1f379c291d9bcd6bd65c",
+      "5c8acc951f835e91a3f3de2c15f3f902580c8176dd06d8e7300f07ad88f17fbe",
     "plugins/src/base/rules/eager/history-audit.md":
       "e2365e3fb28230c643e943d26688a93906afa68e3e1355d3e86d4b22ab3db559",
     "plugins/src/base/rules/eager/integration-access-layer.md":
@@ -1237,7 +1237,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/rules/reference/factory-model.md":
       "b9a73efb67db48f0e7b868bd963e4c02e0a2ccc9ca74f9f9fdef8f89dfa17d05",
     "plugins/src/base/rules/reference/falsifiable-checks.md":
-      "8fab1429274b80f8dc82e4cdead0023ccc8ddd333f3d7d99cd3e0456578a90ab",
+      "40bdcaada50beaf50e4c443ccf9e8f1e1455c0570d42c20922176a1fa096f0e1",
     "plugins/src/base/rules/reference/history-audit.md":
       "20a46390f71fadda499c61193d430c3d53df49b55a4cefa50a112f82fa4b05ef",
     "plugins/src/base/rules/reference/integration-access-layer.md":
@@ -1405,7 +1405,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-codebase-research/SKILL.md":
       "77dbc2d7e86e5027df486294de315bb539a2ece84bd4b38e47ccc108f8c2875e",
     "plugins/src/base/skills/lisa-codify-verification/SKILL.md":
-      "72467a7fb8143ec5061db13df90d51d31da638535f5df4d4b9b655f37deb96a3",
+      "dfb54d6ec0595d8a4222625c97cedd9d23225931393029ff8802ff4fa97ff1b7",
     "plugins/src/base/skills/lisa-confluence-prd-intake/SKILL.md":
       "a6a099abeb32940d44da7e9a6a62c3519f64efa85294c4b996789fa4fba97461",
     "plugins/src/base/skills/lisa-confluence-to-tracker/SKILL.md":
@@ -13708,6 +13708,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/strategies/evidence-reference-contract.test.ts": true,
     "tests/unit/strategies/evidence-release-stop-guard.test.ts": true,
     "tests/unit/strategies/falsifiable-checks-rule.test.ts": true,
+    "tests/unit/strategies/falsification-scratch-copy.test.ts": true,
     "tests/unit/strategies/gardener-fingerprint-hash.test.ts": true,
     "tests/unit/strategies/git-discipline-force-lease-contract.test.ts": true,
     "tests/unit/strategies/github-evidence-upload.test.ts": true,

@@ -162,16 +162,32 @@ A clean result is a statement about what the check can perceive, not about the c
 ## How to apply
 
 1. Author the check.
-2. Deliberately break the guarded property — specifically, introduce **the exact regression the guard exists to prevent**, not a nearby or convenient break.
+2. On a scratch copy, never in a worktree another agent is editing, deliberately break the guarded property — specifically, introduce **the exact regression the guard exists to prevent**, not a nearby or convenient break.
 3. Confirm the check **fails and names the right file/line**, then read the failure count and the failing test *names* per the yardstick below.
 4. Restore, and confirm green again.
 5. Report the falsification alongside the result.
+
+### Break on a scratch copy, never in a shared worktree
+
+A worktree has one working tree. When a builder or another agent is editing it, an in-place mutation is a write into their files: the break and its revert race their concurrent edits, and a revert that lands after their next save can clobber their work or sweep it into a commit. Restore must not depend on the shared tree's state.
+
+So every falsification break (steps 2 to 4 above, and the mutation proof below) runs on a scratch copy:
+
+```sh
+tmp=$(mktemp -d)
+git worktree add --detach "$tmp" HEAD
+git diff HEAD | git -C "$tmp" apply      # tracked changes; copy untracked new files in too
+# break the property in "$tmp", run the check there, read the failure
+git worktree remove --force "$tmp"       # discarding the copy is the restore
+```
+
+A temp copy of only the touched files is acceptable when the check can run against them in isolation. Either way, the shared tree is never written to.
 
 ### The failure count is part of the evidence
 
 Step 3's cardinality is not pedantry; each deviation names a distinct defect. Run it as four steps, in this order:
 
-1. **Neuter the protection in production code** — delete the branch, drop the token from the enum, remove the check. Editing a *test* proves nothing about the guard; it only proves the test file is loaded.
+1. **Neuter the protection in production code, on a scratch copy** (never in a worktree another agent is editing; see above) — delete the branch, drop the token from the enum, remove the check. Editing a *test* proves nothing about the guard; it only proves the test file is loaded.
 2. **Run the whole suite.** Never a single test file, and never a path filter.
 3. **Count the failures and read their names.** The count alone is ambiguous; the names are what separate "several failures of one regression" from "several unrelated failures."
 4. **Revert, and confirm green again.**

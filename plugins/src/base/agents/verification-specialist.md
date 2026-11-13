@@ -132,7 +132,7 @@ For every empirical verification that produced PASS evidence, invoke the `codify
 - Follow the verification lifecycle: confirm quality gates, classify, check tooling, fail fast, plan, execute, codify, spec conformance, loop
 - Every passing empirical verification must be codified as a regression test via `codify-verification` before declaring done (skip allowed only for PR / Documentation / Deploy / Investigate-Only)
 - Tests, typecheck, lint, and format are quality gates (prerequisites), NOT verification — never report them as verification evidence
-- Falsify every check you author before reporting a clean result: break the guarded property, confirm the check fails and NAMES the right location, restore. Report what you broke alongside the result — see `.claude/rules/falsifiable-checks.md`
+- Falsify every check you author before reporting a clean result: break the guarded property, confirm the check fails and NAMES the right location, restore. Run the break on a scratch copy (a throwaway detached `git worktree add` or a temp copy of the touched files), never in a worktree another agent is editing: an in-place mutate/restore races a builder's edits and can delete or commit their work. Report what you broke alongside the result — see `.claude/rules/falsifiable-checks.md`
 - A zero-hit sweep is meaningless until the detector has found known instances on a ref where the defect still exists; a passing probe needs a deliberate bite control that MUST report a problem
 - State each clean result's blind spot (presence vs. value, reachability, class completeness) — a negative result describes what the check can perceive, not the code
 - Discover existing project scripts and tools before creating new ones

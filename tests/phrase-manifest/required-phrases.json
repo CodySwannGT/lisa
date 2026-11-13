@@ -486,6 +486,14 @@
         {
           "source": "test alone does not qualify as the initial evidence",
           "flags": "i"
+        },
+        {
+          "source": "Run the break on a scratch copy",
+          "flags": "i"
+        },
+        {
+          "source": "never in a worktree another agent is editing",
+          "flags": "i"
         }
       ],
       "forbiddenPatterns": [],
@@ -4071,6 +4079,14 @@
         },
         {
           "source": "test alone does not qualify as the initial evidence",
+          "flags": "i"
+        },
+        {
+          "source": "Run the break on a scratch copy",
+          "flags": "i"
+        },
+        {
+          "source": "never in a worktree another agent is editing",
           "flags": "i"
         }
       ],
@@ -8317,6 +8333,14 @@
         },
         {
           "source": "test alone does not qualify as the initial evidence",
+          "flags": "i"
+        },
+        {
+          "source": "Run the break on a scratch copy",
+          "flags": "i"
+        },
+        {
+          "source": "never in a worktree another agent is editing",
           "flags": "i"
         }
       ],
@@ -14871,6 +14895,14 @@
         },
         {
           "source": "test alone does not qualify as the initial evidence",
+          "flags": "i"
+        },
+        {
+          "source": "Run the break on a scratch copy",
+          "flags": "i"
+        },
+        {
+          "source": "never in a worktree another agent is editing",
           "flags": "i"
         }
       ],
