@@ -39,6 +39,16 @@ const BLOCK_MARKER = "# shipped-prerequisite check";
 export const TRI_STATE = "anything else means the check failed";
 /** A file the fixture remote ships on its default branch. */
 export const PRESENT_FILE = "src/resolvers.ts";
+/** Non-shipped paths below the root, each holding a symbol found nowhere else. */
+export const NESTED_NOT_SHIPPED: readonly (readonly [string, string])[] = [
+  ["pkg/api/tests/x.ts", "nestedTestsOnly"],
+  ["pkg/api/docs/x.md", "nestedDocsOnly"],
+  ["src/__tests__/x.ts", "dunderTestsOnly"],
+  ["foo.test.ts", "rootTestFileOnly"],
+  ["README.md", "readmeOnly"],
+];
+/** Nested shipped source: a hit here is present. */
+export const NESTED_SHIPPED = ["pkg/api/src/x.ts", "nestedShipped"] as const;
 /** A non-`main` default branch, so the lookup is really exercised. */
 export const DEFAULT_BRANCH = "trunk";
 

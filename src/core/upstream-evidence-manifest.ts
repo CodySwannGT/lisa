@@ -1873,7 +1873,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-sync-down/SKILL.md":
       "cc25e8a1d7255ace5aad816bc8c67ee001521c7b59488f25de22f27690f73f6f",
     "plugins/src/base/skills/lisa-task-decomposition/SKILL.md":
-      "efd50a8ff284b74a0e1c3e20cba8f9d942a08971176683a75a5f03379abc7739",
+      "6ddfc6e8e3548ab37ec78a7472080da3b4c40f394b80b1e12d3f1720193c4b06",
     "plugins/src/base/skills/lisa-task-triage/SKILL.md":
       "c6e11b6d195560e6bd7b51fede65c155567c35208801a700a26d95679b03484e",
     "plugins/src/base/skills/lisa-tdd-implementation/SKILL.md":

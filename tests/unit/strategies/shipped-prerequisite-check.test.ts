@@ -39,6 +39,8 @@ import {
   commandBlock,
   DEFAULT_BRANCH,
   gateS13,
+  NESTED_NOT_SHIPPED,
+  NESTED_SHIPPED,
   PRESENT_FILE,
   read,
   READY_RULES,
@@ -58,6 +60,7 @@ describe.each(SKILL_ROOTS)("shipped-prerequisite check text (%s)", root => {
     expect(step).toContain("is blocked by");
     expect(step).toContain("git grep -F -n -w");
     expect(step).toContain("git rev-parse --verify -q");
+    expect(step).toContain("':(exclude,glob)**/tests/**'");
     expect(step).toContain("+refs/heads/$default:refs/remotes/origin/$default");
     expect(step).toContain("gh repo view --json defaultBranchRef");
     expect(flat).toContain(TRI_STATE);
@@ -200,6 +203,9 @@ describe("the step 4 command block, executed (source)", () => {
       path.join(seed, "tests/resolvers.test.ts"),
       "it('testOnlyResolver', () => {});\n"
     );
+    for (const [file, symbol] of [...NESTED_NOT_SHIPPED, NESTED_SHIPPED]) {
+      put(path.join(seed, file), `const ${symbol} = 1;\n`);
+    }
     commitAll(seed, "seed");
     git(seed, "push", "--quiet", remote, DEFAULT_BRANCH);
     clone = cloneRemote("clone");
@@ -312,6 +318,17 @@ describe("the step 4 command block, executed (source)", () => {
   it("matches a dotted name literally", () => {
     expect(check({ kind: "symbol", name: "Mutation.updateUser" })).toBe(0);
     expect(check({ kind: "symbol", name: "Query.createUser" })).toBe(1);
+  });
+
+  it.each(NESTED_NOT_SHIPPED)(
+    "does not count a hit only in %s as shipped, at any depth",
+    (_file, symbol) => {
+      expect(check({ kind: "symbol", name: symbol })).toBe(1);
+    }
+  );
+
+  it("counts a hit in nested shipped source as present", () => {
+    expect(check({ kind: "symbol", name: NESTED_SHIPPED[1] })).toBe(0);
   });
 
   it("does not count a hit only in wiki or tests as shipped", () => {
