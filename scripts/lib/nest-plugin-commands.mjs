@@ -66,7 +66,11 @@ export function stripClaudeOnlyCommandKeys(pluginDir) {
         if (!match) continue;
         const stripped = match[0].replace(keyLine, "");
         if (stripped !== match[0]) {
-          fs.writeFileSync(full, text.replace(match[0], stripped));
+          // A function replacement keeps `$&`-style patterns in frontmatter literal.
+          fs.writeFileSync(
+            full,
+            text.replace(match[0], () => stripped)
+          );
         }
       }
     }

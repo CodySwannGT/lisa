@@ -26,12 +26,13 @@ describe("EnsureKnowledgeRoleMigration", () => {
     await fs.remove(tempDir);
   });
 
-  const ctx = (dryRun = false): MigrationContext => ({
+  const ctx = (dryRun = false, postinstallSafe = false): MigrationContext => ({
     projectDir,
     lisaDir: tempDir,
     detectedTypes: ["typescript"] as ProjectType[],
     dryRun,
     logger: new SilentLogger(),
+    postinstallSafe,
   });
   const configPath = (): string => path.join(projectDir, LISA_CONFIG);
 
@@ -51,6 +52,8 @@ describe("EnsureKnowledgeRoleMigration", () => {
     const result = await migration.apply(ctx());
 
     expect(result.action).toBe("applied");
+    // The removed location is reported, never dropped silently.
+    expect(result.message).toContain("git@example.com:org/wiki.git");
     expect(await fs.readJson(configPath())).toEqual({
       tracker: "github",
       knowledge: "llm-wiki",
@@ -69,5 +72,14 @@ describe("EnsureKnowledgeRoleMigration", () => {
     const result = await migration.apply(ctx(true));
     expect(result.action).toBe("applied");
     expect(await fs.readJson(configPath())).toEqual({ tracker: "jira" });
+  });
+
+  it("leaves the checked-in config alone during a package install", async () => {
+    const before = { tracker: "github", wiki: { source: "../shared-wiki" } };
+    await fs.writeJson(configPath(), before);
+    const result = await migration.apply(ctx(false, true));
+    expect(result.action).toBe("skipped");
+    expect(result.message).toContain("lisa apply .");
+    expect(await fs.readJson(configPath())).toEqual(before);
   });
 });

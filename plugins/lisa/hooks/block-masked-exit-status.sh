@@ -24,6 +24,10 @@
 # per-agent hook filter. Documented gap: agy gets no adapter — its plugin hooks
 # are wired only for the guards in AGY_PLUGIN_HOOKS — so on agy the
 # falsifiable-checks rule's prose and CI exit codes are the only protection.
+# Second documented gap: it is not in the enforcement fallback channel
+# (scripts/lisa-enforcement-fallback.sh, all/copy-overwrite/scripts/lisa-hooks/),
+# so a cloud session where the plugin never installs has the same prose-only
+# protection. Adding it there is a separate change to that channel's guard list.
 set -euo pipefail
 
 input="$(cat)"
@@ -67,17 +71,25 @@ FILTERS = {
 WRAPPERS = {"command", "env", "sudo", "time", "nohup"}
 ASSIGNMENT = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*=")
 STATUS_READ = re.compile(r"\$\?|\$\{\?\}")
+# A grep-family filter run with -q/-c/-l/-L reports its own match result as its
+# status, and that is the status the caller wants: `diff | grep -q x; echo $?`.
+GREP_FAMILY = {"grep", "egrep", "fgrep", "rg"}
+STATUS_FLAGS_LONG = {"--quiet", "--silent", "--count", "--files-with-matches", "--files-without-match"}
+ARITHMETIC = re.compile(r"\$\(\([^()]*(?:\([^()]*\)[^()]*)*\)\)")
+COMMENT = re.compile(r"(?:^|(?<=\s))#[^\n]*")
 
 
 def strip_heredoc_bodies(text):
     lines = text.splitlines()
     output = []
-    marker = re.compile(r"<<-?\s*(?:'([^']+)'|\"([^\"]+)\"|\\?([A-Za-z_][A-Za-z0-9_]*))")
+    # `<<<` is a here-string and `$((1<<n))` a shift; neither opens a heredoc.
+    marker = re.compile(r"(?<!<)<<(?!<)-?\s*(?:'([^']+)'|\"([^\"]+)\"|\\?([A-Za-z_][A-Za-z0-9_]*))")
     index = 0
     while index < len(lines):
         line = lines[index]
         output.append(line)
-        markers = [next(g for g in m.groups() if g) for m in marker.finditer(line)]
+        scan = ARITHMETIC.sub("", line)
+        markers = [next(g for g in m.groups() if g) for m in marker.finditer(scan)]
         index += 1
         for name in markers:
             while index < len(lines):
@@ -136,6 +148,10 @@ def pipe_stages(cmd):
         ch = cmd[i]
         if quote:
             current.append(ch)
+            if ch == "\\" and quote == '"' and i + 1 < len(cmd):
+                current.append(cmd[i + 1])
+                i += 2
+                continue
             if ch == quote:
                 quote = None
             i += 1
@@ -155,6 +171,19 @@ def pipe_stages(cmd):
     return [s.strip() for s in stages]
 
 
+def reports_own_status(stage):
+    """True for a grep-family stage whose exit status is its match result."""
+    words = stage.split()
+    if not words or first_word(stage) not in GREP_FAMILY:
+        return False
+    for word in words[1:]:
+        if word in STATUS_FLAGS_LONG:
+            return True
+        if word.startswith("-") and not word.startswith("--") and set(word[1:]) & set("qclL"):
+            return True
+    return False
+
+
 def first_word(stage):
     for word in stage.replace("(", " ").split():
         if ASSIGNMENT.match(word) or word in WRAPPERS:
@@ -164,7 +193,7 @@ def first_word(stage):
 
 
 text = strip_heredoc_bodies(command)
-if re.search(r"pipefail|PIPESTATUS|pipestatus", text):
+if re.search(r"pipefail|PIPESTATUS|pipestatus", COMMENT.sub("", text)):
     sys.exit(0)
 
 commands = split_commands(text)
@@ -173,7 +202,7 @@ for index, cmd in enumerate(commands[:-1]):
     if len(stages) < 2:
         continue
     last = first_word(stages[-1])
-    if last not in FILTERS:
+    if last not in FILTERS or reports_own_status(stages[-1]):
         continue
     if STATUS_READ.search(commands[index + 1]):
         source = first_word(stages[0]) or "the command"

@@ -21,6 +21,11 @@ type LisaConfig = Readonly<Record<string, unknown>>;
  * Every project now owns its own wiki at `wiki/`, chosen by the `knowledge`
  * role, so the `wiki` key has nothing left to say. Only a project that already
  * has `.lisa.config.json` is touched; idempotent, and preserves every other key.
+ *
+ * The file is a reviewed, checked-in declaration, so an install
+ * (`postinstallSafe`) declines and reports rather than writing; an explicit
+ * `lisa apply` makes the change. The removed `wiki` value is echoed in the
+ * result so a remote or custom location is never dropped silently.
  */
 export class EnsureKnowledgeRoleMigration implements Migration {
   readonly name = "ensure-knowledge-role";
@@ -74,12 +79,24 @@ export class EnsureKnowledgeRoleMigration implements Migration {
     if (!this.needsWork(config)) {
       return { name: this.name, action: "noop" };
     }
-    const { wiki: _retired, ...rest } = config;
+    if (ctx.postinstallSafe === true) {
+      const message =
+        `Left ${LISA_CONFIG} unchanged: an install must not rewrite a ` +
+        "checked-in file. Run `lisa apply .` to declare the required " +
+        "knowledge role and remove the retired wiki key.";
+      ctx.logger.warn(message);
+      return { name: this.name, action: "skipped", changedFiles: [], message };
+    }
+    const { wiki: retired, ...rest } = config;
     const merged = {
       ...rest,
       knowledge: config.knowledge ?? DEFAULT_KNOWLEDGE_BACKEND,
     };
-    const message = `Declared knowledge="${String(merged.knowledge)}" and removed the retired wiki key in ${LISA_CONFIG}`;
+    const removed =
+      retired === undefined
+        ? ""
+        : ` and removed the retired wiki key (was ${JSON.stringify(retired)}; every repo now keeps its wiki at wiki/ and links related repos from it)`;
+    const message = `Declared knowledge="${String(merged.knowledge)}"${removed} in ${LISA_CONFIG}`;
     if (ctx.dryRun) {
       ctx.logger.dry(message);
     } else {

@@ -1053,7 +1053,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/hooks/block-managed-file-edits.sh":
       "a78f8e144075c70256a294f65739c2e4b9714a482575a7d2d9e40af5158df54c",
     "plugins/src/base/hooks/block-masked-exit-status.sh":
-      "fce53c5d5842b900ddbe801ff12972980be4e5036d58e4b431448e923b924816",
+      "6b28b592edf602c5c809decfb9d108aa5bc73df4dc748017b7a0547211aa9391",
     "plugins/src/base/hooks/block-no-verify.agy.sh":
       "e1a25e15e3cc7e4a427a95ce02290b0f93b95c11ab3c19b94ed36de2cee1113b",
     "plugins/src/base/hooks/block-no-verify.sh":
@@ -2747,7 +2747,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/lib/mutation-performance-reporter.mjs":
       "7f4fd67a2128797970b10a97b9947f9b63518fe1110c2f12e51fe2c430751235",
     "scripts/lib/nest-plugin-commands.mjs":
-      "cd80c7d4a3af1745b33877893cd74a2da6042949bc8afb47f6dc0993042db9b6",
+      "49ca0f1b25e2b2f5c1d3725cb9d521e4fdebbeb7224441abb273d358d84aeeab",
     "scripts/lib/packaged-apply-driver.mjs":
       "fff2171ae3fbb913b9bb8da45d002a6ad9f369bac4e93e75d79231468bce9bfb",
     "scripts/lib/packaged-apply-isolation.d.mts":

@@ -34,6 +34,14 @@ describe("block-masked-exit-status.sh", () => {
     "bun test | grep FAIL && echo $?",
     "ls | wc -l\necho $?",
     "make check | tee out.log; status=${?}",
+    // A here-string or an arithmetic shift is not a heredoc, so the line
+    // after it is still inspected.
+    'cat <<<"$x"\nnpm test | tail -4; echo "exit=$?"',
+    'echo $((1<<y))\nnpm test | tail -4; echo "exit=$?"',
+    // An escaped quote does not hide the pipe, and a comment mentioning
+    // pipefail does not turn the check off.
+    'echo "a \\" b" | tail; echo $?',
+    '# no pipefail here\nnpm test | tail -4; echo "exit=$?"',
   ])("blocks a status read after a filtered pipeline: %s", command => {
     const result = runHook(command);
     expect(result.status).toBe(EXIT_BLOCKED);
@@ -48,6 +56,10 @@ describe("block-masked-exit-status.sh", () => {
     'bun test | tail; echo "${PIPESTATUS[0]}"',
     'echo "a | tail; echo $?"',
     "cmd | jq . ; echo $?",
+    // grep -q/-c/-l report their own match result: that status is the signal.
+    'git diff --name-only | grep -q "^src/"; echo "changed=$?"',
+    'printf "%s" "$x" | grep -qE "^v[0-9]"; [ $? -eq 0 ]',
+    "git log | grep --count fix; echo $?",
     "x || y; echo $?",
   ])("allows: %s", command => {
     expect(runHook(command).status).toBe(EXIT_ALLOWED);
