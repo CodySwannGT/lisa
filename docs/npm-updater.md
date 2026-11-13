@@ -14,16 +14,20 @@ What each tracker needs in the committed `.lisa.config.json`:
 | `jira` | `jira.project`, and `atlassian.cloudId` or `atlassian.site` | the Jira account ID | `JIRA_API_TOKEN`, `JIRA_LOGIN` |
 | `linear` | `linear.teamKey`, `linear.workspace` | the Linear user ID | `LINEAR_API_KEY` |
 
-Jira and Linear hosts keep `github.org` and `github.repo` set to the code-host repository. The `npmUpdater.repository` must match it.
+`npmUpdater.repository` must match `automationProvenance.repository`, the GitHub code-host repository. If `github.org` and `github.repo` are also set, it must match them too.
 
-The lifecycle names come from the same keys the build-intake skills read: `jira.workflow.*` and `linear.workflow.*`. The defaults are `Ready`, `In Progress`, `Code Review`, `Blocked`, and `On Dev`/`On Stg`/`Done`. Allocation creates the work item as a Task with Medium priority, assigns it to the maintainer, and puts it in the configured ready status. Claiming it moves it to the configured in-progress status. The updater never creates statuses, issue types or priorities. If one is missing, allocation stops before it creates anything and says so. In Jira, each work item also carries the label `lisa-npm-<selection key>`. That is how a re-run finds the same item instead of filing a second one.
+The lifecycle names come from the same keys the build-intake skills read: `jira.workflow.*` and `linear.workflow.*`. The defaults are `Ready`, `In Progress`, `Code Review`, `Blocked`, and `On Dev`/`On Stg`/`Done`. Allocation creates the work item as a Task with Medium priority, assigns it to the maintainer, and puts it in the configured ready status. Claiming it moves it to the configured in-progress status. The updater never creates statuses, issue types or priorities. If one is missing from the project's vocabulary, allocation stops before it creates anything and says so. If a Jira ticket is created but its workflow then offers no single transition to the ready status, allocation stops and names the ticket: move it to the ready status by hand (or fix the workflow) and rerun. Status, issue type and priority are read from the tracker's own fields. A typed label that looks like one of them (such as `In Progress`, `type:Task` or `priority:medium`) is ignored. The `human-needed` label still places a hold. In Jira, each work item also carries the label `lisa-npm-<selection key>`. That is how a re-run finds the same item instead of filing a second one.
 
 Credentials are read from these environment variables only:
 
-- Jira: `JIRA_API_TOKEN` (or `ATLASSIAN_API_TOKEN`) and `JIRA_LOGIN` (or `atlassian.email` from config).
-- Linear: `LINEAR_API_KEY` (or `LINEAR_API_KEY_<workspace>`).
+- Jira: `JIRA_API_TOKEN` and `JIRA_LOGIN` (or `atlassian.email` from config).
+- Linear: `LINEAR_API_KEY`.
 
-If one is missing, allocation fails before it makes any request, and the error names the variable. Use a dedicated service account. Every comment that account writes counts as written by the updater.
+The reusable workflow forwards exactly these three secrets, `JIRA_API_TOKEN`, `JIRA_LOGIN` and `LINEAR_API_KEY`. The aliases `ATLASSIAN_API_TOKEN` and `LINEAR_API_KEY_<workspace>` are also accepted, but only when you run the updater locally from the command line; the workflow never passes them.
+
+The Jira token is sent to `https://api.atlassian.com/ex/jira/<atlassian.cloudId>` or, when there is no cloud ID, to the `atlassian.site` origin from the committed config. `JIRA_SERVER` is not read. Point `atlassian.site` only at your own Jira site.
+
+If a credential is missing, allocation fails before it makes any request, and the error names the variable. Use a dedicated account for the credential: a person's account or an app/service account both work. Every comment that account writes counts as written by the updater. Jira, Atlassian and Linear credentials are removed from the environment of ordinary hooks and nested tools, the same way the GitHub token is.
 
 > **Note:** CodySwannGT/lisa#4859 asked for `JIRA_EMAIL`. Lisa uses `JIRA_LOGIN` instead, because that is the name its other Jira workflows and scripts already use. Set `JIRA_LOGIN`; `JIRA_EMAIL` is not read.
 
@@ -50,7 +54,11 @@ The work-item description and the updater's comments appear as one code block in
 
 > The npm updater can file and claim Jira and Linear work items, but it cannot yet check their claims, publish the pull request or cancel them. That support is tracked in CodySwannGT/lisa#4873. Projects that track work in GitHub are fully supported today.
 
-To resume an interrupted Jira or Linear allocation, run the workflow again. Allocation finds the same work item and reads back its claim and checkpoint, so it creates nothing new.
+Resuming an interrupted Jira or Linear run:
+
+- **Before the checkpoint was signed:** run the workflow again. Allocation finds the same work item, reads back its claim and any unsigned checkpoint, and creates nothing new.
+- **After the checkpoint was signed:** a rerun stops with the CodySwannGT/lisa#4873 message above, because resuming a signed run is not supported yet.
+- **Earlier item deleted, archived or closed:** that selected update is blocked until CodySwannGT/lisa#4873. Replacing the earlier item is the cancellation and supersession path, which is not supported yet. This applies to a Linear item that is deleted or archived and to any earlier item that is closed.
 
 ## Multiple npm project directories
 
