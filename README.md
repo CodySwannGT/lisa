@@ -516,6 +516,20 @@ A push can build the project several times: each test gate builds before it test
 
 With `"pushGate": { "cache": true }`, a push skips any gate that already passed for the exact same tree. `lisa check` (or `bunx @codyswann/lisa check` where `lisa` is not on your PATH) runs the push gates for your last commit before you push, and records their passes so the push that follows takes seconds. It waits up to 30 minutes for the machine to have room (`--max-wait 2h` to change that), which is safe outside a push but not inside one. It refuses to run until you commit everything, and it exits non-zero when a gate fails. When the cache is off for the project it does nothing and tells you to push directly, so agents can always run it first. Lisa's agent skills run it before every push; you can keep pushing normally.
 
+### Running only the affected tests at push
+
+Set `"pushGate": { "affectedTests": true }` in `.lisa.config.json` and the unit-test push gate runs only the tests your change can reach. It reads the access map that CI records for every pull request, which lists the files each test touched. It runs the tests that touched a changed file, plus any changed test, and hands the changed files to Vitest's own import-graph selection (`vitest related`). Before it runs, it prints each chosen test and the reason it was chosen.
+
+Whenever the choice could be wrong, it runs the full suite instead and says why in plain words. That happens when the map is missing, when it was recorded for a different base, when it is older than seven days (`LISA_ACCESS_MAP_MAX_AGE_DAYS` changes the limit), or when a changed file is new since the map was recorded. It also happens when `package.json`, a lockfile, the Vitest, TypeScript or ESLint config, or shared test helpers, support code or fixtures change. It never chooses a partial run in CI, so CI still runs every test before merge. The map for a base is downloaded once and kept in `.lisa/test-access-map/`. A download that finds nothing is remembered for 15 minutes.
+
+A partial run cannot measure overall coverage, so `pushGate.affectedCoverage` decides what happens to the `coverage-adequacy` gate at push:
+
+- **`"full"`** (the default): wherever `coverage-adequacy` is declared at push, the full suite runs with coverage measured, exactly as before. With this setting, selection only speeds up projects that do not check coverage at push.
+- **`"changed-files"`**: the chosen tests run with coverage on, and each changed source file must meet `vitest.thresholds.json` on its own.
+- **`"skip"`**: the chosen tests run without coverage, and `coverage-adequacy` reports SKIPPED with `partial selection — enforced by CI`.
+
+Both settings are off or `"full"` by default, and `lisa apply` and the push gate both reject a value they do not recognise. Lisa turns `affectedTests` on for itself with `affectedCoverage` set to `"changed-files"`; whole-repo coverage is still enforced on the pull request.
+
 ## Working across trackers and sources
 
 Lisa is deliberately vendor-neutral. The lifecycle runs the same whether your tickets live in one tracker or another and whether your product specs originate in one document tool or another — a thin dispatch layer selects the right integration from configuration, so the workflow you learn transfers.

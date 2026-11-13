@@ -98,7 +98,9 @@
   "pushGate": {
     "cache": true,
     "buildOnce": true,
-    "admission": true
+    "admission": true,
+    "affectedTests": true,
+    "affectedCoverage": "changed-files"
   },
   "gates": {
     "runner": "bun run",

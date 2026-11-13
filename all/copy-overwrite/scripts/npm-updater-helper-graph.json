@@ -32,6 +32,17 @@
       "dynamicImports": [],
       "children": []
     },
+    "lib/affected-tests.mjs": {
+      "sha256": "19305be8db5e3f87dfb34b12e079373d81a36b5c7ba388786c97cade72c97679",
+      "staticImports": [
+        "node:crypto",
+        "node:fs",
+        "node:os",
+        "node:path"
+      ],
+      "dynamicImports": [],
+      "children": []
+    },
     "lib/automation-provenance-contract.mjs": {
       "sha256": "b3a3b2ed7e1bb0ff6f24123e81e8bd509f2d428f7f7b1e7e22354a90965e548d",
       "staticImports": [
@@ -702,7 +713,7 @@
       "children": []
     },
     "lib/npm-update-helper-inventory.mjs": {
-      "sha256": "0dff5f7edbb0a2c759e078fab384feff880e1f256e10872ee2946ccca0c6fcee",
+      "sha256": "af43ef9af09dd323e64de6b25c7a6df7d4140c763217960f5f7275311677218a",
       "staticImports": [],
       "dynamicImports": [],
       "children": []
@@ -1466,8 +1477,9 @@
       ]
     },
     "lisa-run-gates.mjs": {
-      "sha256": "9c05ccc07c5b97bd7e910e235f2bd7bea9816fe2f5f282091557140c7ef7855e",
+      "sha256": "416f4a49d23c01610efd6d3ba8043a8dd9ad82f366c5e841d29dd37ad3441462",
       "staticImports": [
+        "lib/affected-tests.mjs",
         "lib/bounded-spawn.mjs",
         "lib/build-marker.mjs",
         "lib/gate-failure-diagnosis.mjs",

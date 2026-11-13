@@ -1,8 +1,8 @@
 {
   "$generatedBy": "scripts/generate-export-surface.mjs",
   "$doNotEdit": "The public export surface this package ships, recorded so a removal is an OBSERVATION rather than an inference from commit-message conventions. This file's diff is what makes a removed export visible in the pull request that causes it (CodySwannGT/lisa#3718).",
-  "$modules": 297,
-  "$names": 2102,
+  "$modules": 299,
+  "$names": 2128,
   "surface": {
     "all/copy-overwrite/scripts/check-conflict-markers.mjs": [
       "UsageError",
@@ -111,6 +111,30 @@
       "ghRequest",
       "main",
       "runCli"
+    ],
+    "all/copy-overwrite/scripts/lib/affected-tests.mjs": [
+      "AFFECTED_COVERAGE_KEY",
+      "AFFECTED_TESTS_KEY",
+      "COVERAGE_MODES",
+      "DEFAULT_MAX_AGE_DAYS",
+      "FULL_SUITE_TRIGGERS",
+      "MAX_AGE_ENV",
+      "PARTIAL_COVERAGE_SKIP_REASON",
+      "SELECTION_REPORT_ENV",
+      "affectedTestsSettings",
+      "changedFileCoverage",
+      "coverageDeclaredAtPush",
+      "coverageLeftToCi",
+      "excludedBy",
+      "explainSelection",
+      "firedTrigger",
+      "globToRegExp",
+      "measuresCoverage",
+      "openSelectionReports",
+      "partialArgv",
+      "readersByFile",
+      "selectAffectedTests",
+      "staleMapReason"
     ],
     "all/copy-overwrite/scripts/lib/automation-provenance-contract.mjs": [
       "DESCRIPTOR_KEYS",
@@ -945,6 +969,12 @@
     ],
     "all/copy-overwrite/scripts/lib/worktree-dependencies.mjs": [
       "worktreeDependencyProblem"
+    ],
+    "all/copy-overwrite/scripts/lisa-affected-tests.mjs": [
+      "MAP_DIR",
+      "main",
+      "parseArgs",
+      "plan"
     ],
     "all/copy-overwrite/scripts/lisa-automation-provenance.mjs": [
       "automationReference",

@@ -82,3 +82,37 @@ describe("ProjectConfig pushGate", () => {
     ).toThrow(/Invalid pushGate\.admission in fixture\.json/u);
   });
 });
+
+describe("ProjectConfig pushGate affected tests (CodySwannGT/lisa#4600)", () => {
+  it("keeps affectedTests and every affectedCoverage mode", () => {
+    for (const mode of ["full", "changed-files", "skip"] as const) {
+      expect(
+        validateProjectConfig(
+          { pushGate: { affectedTests: true, affectedCoverage: mode } },
+          CONFIG_PATH
+        ).pushGate
+      ).toEqual({ affectedTests: true, affectedCoverage: mode });
+    }
+  });
+
+  it("keeps buildOnce alongside the new keys", () => {
+    expect(
+      validateProjectConfig(
+        { pushGate: { buildOnce: true, affectedTests: false } },
+        CONFIG_PATH
+      ).pushGate
+    ).toEqual({ buildOnce: true, affectedTests: false });
+  });
+
+  it("refuses a non-boolean affectedTests and an unknown coverage mode", () => {
+    expect(() =>
+      validateProjectConfig({ pushGate: { affectedTests: 1 } }, CONFIG_PATH)
+    ).toThrow(/Invalid pushGate\.affectedTests in fixture\.json/u);
+    expect(() =>
+      validateProjectConfig(
+        { pushGate: { affectedCoverage: "partial" } },
+        CONFIG_PATH
+      )
+    ).toThrow(/Invalid pushGate\.affectedCoverage in fixture\.json/u);
+  });
+});

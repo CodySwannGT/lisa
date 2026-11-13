@@ -17,7 +17,26 @@
  * and then heavy runs start immediately exactly as before. The gate runner
  * reads it through `scripts/lib/push-admission.mjs`; `lisa-test-run` reads it
  * through `core/admission-settings`.
+ *
+ * `pushGate.affectedTests` (CodySwannGT/lisa#4600) lets the push test gate run
+ * only the tests a change can affect, falling back to the full suite whenever
+ * the selection could be wrong. Off when absent. `pushGate.affectedCoverage`
+ * says what a partial run does about coverage-adequacy at push: `full`
+ * (default) keeps the full coverage suite wherever coverage-adequacy is
+ * declared at push, `changed-files` holds each changed source file to the
+ * thresholds on its own, and `skip` leaves coverage to CI. Both keys are read
+ * at push by `scripts/lib/affected-tests.mjs`, which refuses the same shapes.
  */
+
+/** How a partial push-time selection treats coverage-adequacy. */
+export type AffectedCoverageMode = "full" | "changed-files" | "skip";
+
+/** Every coverage mode, default first. */
+export const AFFECTED_COVERAGE_MODES: readonly AffectedCoverageMode[] = [
+  "full",
+  "changed-files",
+  "skip",
+];
 
 /** Push-gate behaviour persisted in `.lisa.config.json`. */
 export interface PushGateConfig {
@@ -27,10 +46,14 @@ export interface PushGateConfig {
   readonly buildOnce?: boolean;
   /** Admit heavy runs only when the machine has headroom for them. */
   readonly admission?: boolean;
+  /** Run only the tests the change can affect at push. */
+  readonly affectedTests?: boolean;
+  /** What a partial selection does about coverage-adequacy at push. */
+  readonly affectedCoverage?: AffectedCoverageMode;
 }
 
 /** The boolean switches `pushGate` accepts. */
-const SWITCHES = ["buildOnce", "cache", "admission"] as const;
+const SWITCHES = ["buildOnce", "cache", "admission", "affectedTests"] as const;
 
 /**
  * Validate the optional `pushGate` block.
@@ -58,5 +81,17 @@ export function validatePushGateConfig(
       return [name, setting] as const;
     }
   );
-  return Object.fromEntries(entries) as PushGateConfig;
+  const coverage = block["affectedCoverage"];
+  if (coverage === undefined) {
+    return Object.fromEntries(entries) as PushGateConfig;
+  }
+  if (!AFFECTED_COVERAGE_MODES.includes(coverage as AffectedCoverageMode)) {
+    throw new Error(
+      `Invalid pushGate.affectedCoverage in ${configPath}: expected one of ${AFFECTED_COVERAGE_MODES.join(", ")}`
+    );
+  }
+  return {
+    ...Object.fromEntries(entries),
+    affectedCoverage: coverage as AffectedCoverageMode,
+  } as PushGateConfig;
 }
