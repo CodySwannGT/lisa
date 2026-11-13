@@ -179,11 +179,48 @@ for FILE in "${ALL_EVIDENCE[@]}"; do
   fi
 done
 
-# The description is checked against the release after uploading, so it must
-# exist before anything is uploaded.
+# The description's links are checked before uploading and again against the
+# release after uploading, so it must exist before anything is uploaded.
 COMMENT_MD="$EVIDENCE_DIR/comment.md"
 if [[ ! -f "$COMMENT_MD" ]]; then
   echo "ERROR: $COMMENT_MD not found — run generate-templates.py first" >&2
+  exit 1
+fi
+
+# Print every Markdown link or image target in comment.md, one per line. Every
+# Markdown target form counts:
+#   inline      ](url)  ](url "title")  ](<url>)  ](<url> "title")
+#   reference   [ref]: url  [ref]: <url> "title"   (up to 3 leading spaces)
+# Only link targets count: text evidence inlined into comment.md may quote a
+# release URL as plain text, and that must not fail the run.
+comment_links() {
+  { grep -oE '\]\(<?[^)<>[:space:]]+' "$COMMENT_MD" || true; } | sed -E 's/^\]\(<?//'
+  { grep -oE '^ {0,3}\[[^]]+\]:[[:space:]]*<?[^<>[:space:]]+' "$COMMENT_MD" || true; } |
+    sed -E 's/^ {0,3}\[[^]]+\]:[[:space:]]*<?//'
+}
+
+# A link to THIS pull request's own pr-${PR_NUMBER}- asset in a different
+# release of this repository means the templates were generated against one
+# release and this run uploads to another (a roll-over to `<release>-2` in
+# between, CodySwannGT/lisa#4838): the link would 404, so refuse it. The check
+# runs before anything is uploaded, so a refused run leaves no copies behind in
+# a release the operator then re-pins away from (CodySwannGT/lisa#4856).
+# Any other cross-release link (another PR's evidence, or an older release's
+# asset linked on purpose) passes through untouched: regenerating the
+# templates cannot remove a hand-written link, so refusing it would loop.
+RELEASE_PREFIX="github.com/${GH_REPO}/releases/download/"
+CROSS_RELEASE_LINKS=0
+while IFS= read -r LINK; do
+  [[ "$LINK" == *"$RELEASE_PREFIX"* ]] || continue
+  LINK_TAG="${LINK#*"$RELEASE_PREFIX"}"
+  LINK_TAG="${LINK_TAG%%/*}"
+  [[ "$LINK_TAG" != "$RELEASE_TAG" ]] || continue
+  [[ "${LINK##*/}" == "pr-${PR_NUMBER}-"* ]] || continue
+  echo "ERROR: $COMMENT_MD links $LINK in release '$LINK_TAG', but this run uploads to release '$RELEASE_TAG'. Regenerate the templates with LISA_EVIDENCE_RELEASE=$RELEASE_TAG and re-run this script with the same LISA_EVIDENCE_RELEASE=$RELEASE_TAG." >&2
+  CROSS_RELEASE_LINKS=1
+done < <(comment_links)
+if [[ $CROSS_RELEASE_LINKS -ne 0 ]]; then
+  echo "No evidence was uploaded." >&2
   exit 1
 fi
 
@@ -232,28 +269,11 @@ echo "  ✓ GitHub release assets uploaded"
 # an asset THIS run uploaded, and therefore one the check above just found in
 # the release. A bare or other-PR name would show some other pull request's
 # evidence, and a pr-<n>- asset left over from an earlier run would show
-# evidence this run did not produce. Every Markdown target form counts:
-#   inline      ](url)  ](url "title")  ](<url>)  ](<url> "title")
-#   reference   [ref]: url  [ref]: <url> "title"   (up to 3 leading spaces)
-# Only link targets count: text evidence inlined into comment.md may quote a
-# release URL as plain text, and that must not fail the run.
+# evidence this run did not produce. Links into other releases were already
+# checked before uploading.
 THIS_RUN_ASSETS=$(printf '%s\n' "${UPLOADED_ASSETS[@]}")
 BAD_LINKS=0
-RELEASE_PREFIX="github.com/${GH_REPO}/releases/download/"
 while IFS= read -r LINK; do
-  # A link into a different release of this repository means the templates
-  # were generated against one release and this run uploaded to another (a
-  # roll-over to `<release>-2` in between, CodySwannGT/lisa#4838): the link
-  # would 404, so refuse it instead of posting it.
-  if [[ "$LINK" == *"$RELEASE_PREFIX"* ]]; then
-    LINK_TAG="${LINK#*"$RELEASE_PREFIX"}"
-    LINK_TAG="${LINK_TAG%%/*}"
-    if [[ "$LINK_TAG" != "$RELEASE_TAG" ]]; then
-      echo "ERROR: $COMMENT_MD links $LINK in release '$LINK_TAG', but this run uploaded to release '$RELEASE_TAG'. Regenerate the templates with LISA_EVIDENCE_RELEASE=$RELEASE_TAG and re-run this script with the same LISA_EVIDENCE_RELEASE=$RELEASE_TAG." >&2
-      BAD_LINKS=1
-      continue
-    fi
-  fi
   [[ "$LINK" == *"releases/download/${RELEASE_TAG}/"* ]] || continue
   LINK_NAME="${LINK##*/}"
   if [[ "$LINK_NAME" != "pr-${PR_NUMBER}-"* ]]; then
@@ -263,11 +283,7 @@ while IFS= read -r LINK; do
     echo "ERROR: $COMMENT_MD links $LINK, which this run did not upload to release '$RELEASE_TAG'" >&2
     BAD_LINKS=1
   fi
-done < <(
-  { grep -oE '\]\(<?[^)<>[:space:]]+' "$COMMENT_MD" || true; } | sed -E 's/^\]\(<?//'
-  { grep -oE '^ {0,3}\[[^]]+\]:[[:space:]]*<?[^<>[:space:]]+' "$COMMENT_MD" || true; } |
-    sed -E 's/^ {0,3}\[[^]]+\]:[[:space:]]*<?//'
-)
+done < <(comment_links)
 if [[ $BAD_LINKS -ne 0 ]]; then
   exit 1
 fi
