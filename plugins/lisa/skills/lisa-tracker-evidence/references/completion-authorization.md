@@ -360,24 +360,43 @@ resolves to the current UTC year-month at publish time, so
 `pr-assets-{YYYY-MM}` rotates monthly and keeps each release under GitHub's
 1000-file limit. Names use letters, digits, `.`, `_` and `-`, at most 100
 characters; `{YYYY-MM}` is the only placeholder. The publisher creates a
-missing release (never marked Latest) and refuses, in plain words, when the
-release already holds 950 or more files rather than failing on GitHub's raw
-HTTP 422. `node scripts/lisa-work-item.mjs evidence-release` prints the
-resolved name; `--ensure` also creates it or refuses when it is nearly full.
+missing release (never marked Latest). When the resolved release already
+holds 950 or more files it rolls over to the next overflow release,
+`<release>-2`, then `-3`, up to `-99`, creating and capacity-checking each one
+the same way, instead of failing on GitHub's raw HTTP 422. If an upload still
+hits GitHub's limit (another publisher filled the release meanwhile), it rolls
+over once more and retries. It refuses, in plain words, only when every
+overflow release of the period is full, or when the release name is too long
+to take an overflow suffix (GitHub allows 100 characters), in which case it
+names the full release. Its advice leads with pruning
+(`node scripts/lisa-evidence-prune.mjs --release <release>`) when the release
+already rotates, and suggests a rotating name only when it does not. Nothing is
+ever deleted to make room.
+`node scripts/lisa-work-item.mjs evidence-release` prints the period's first
+release name without touching GitHub; `--ensure` also creates the release,
+rolls over past full ones, and prints the release that has room.
 
 The validator accepts assets from the legacy `pr-assets` release, from any
 release matching the configured name or template, and from any name or
 template listed in `verification.completion.acceptedEvidenceReleases`, so
-proof published before a rename or rotation keeps validating. Only releases in
-the implementation repository are accepted.
+proof published before a rename or rotation keeps validating. Each of those
+names also accepts its `-2` … `-99` overflow releases, so proof in an overflow
+release, or in an earlier period's release, keeps validating on `finish`. Only
+releases in the implementation repository are accepted.
 
 `LISA_EVIDENCE_RELEASE` pins the concrete release for one run. Skills resolve
 it once with `evidence-release --ensure`, stop when that refuses, and pass the
 printed name inline (`LISA_EVIDENCE_RELEASE=<name>`) on every later command,
 because some agent runtimes start a new shell for each command and lose an
 exported value; that keeps links and uploads on the same release. It must be
-one of the accepted releases; `evidence-release --ensure` still creates and
-capacity-checks it.
+one of the accepted releases. Every command honours it:
+`evidence-release --ensure` creates and capacity-checks it, and
+`publish-completion-proof` uploads the completion record to it and reads it
+back from it. The publisher and `evidence-release` share one resolver, so the
+release the publisher uploads to is always the one `evidence-release` prints in
+the same environment. A pin is an exact choice: a full pinned release is
+refused and never rolls over. Unset `LISA_EVIDENCE_RELEASE` to let Lisa roll
+over, or pin a release that has room.
 
 Creating an evidence release is a real GitHub release: it fires `release`
 webhook and workflow events and adds a git tag of the same name. Workflows

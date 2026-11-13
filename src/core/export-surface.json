@@ -1,8 +1,8 @@
 {
   "$generatedBy": "scripts/generate-export-surface.mjs",
   "$doNotEdit": "The public export surface this package ships, recorded so a removal is an OBSERVATION rather than an inference from commit-message conventions. This file's diff is what makes a removed export visible in the pull request that causes it (CodySwannGT/lisa#3718).",
-  "$modules": 277,
-  "$names": 1985,
+  "$modules": 278,
+  "$names": 1993,
   "surface": {
     "all/copy-overwrite/scripts/check-conflict-markers.mjs": [
       "UsageError",
@@ -178,13 +178,16 @@
     ],
     "all/copy-overwrite/scripts/lib/completion-proof-github.mjs": [
       "EVIDENCE_RELEASE_ASSET_LIMIT",
+      "EVIDENCE_RELEASE_MAX_OVERFLOW",
       "EVIDENCE_RELEASE_NEAR_FULL",
       "LEGACY_EVIDENCE_RELEASE",
       "acceptedEvidenceReleases",
       "evidenceReleaseOverride",
       "githubProofTransport",
       "isAcceptedEvidenceRelease",
+      "overflowReleaseTag",
       "resolveEvidenceRelease",
+      "targetEvidenceRelease",
       "usableTag"
     ],
     "all/copy-overwrite/scripts/lib/completion-proof-markdown.mjs": [
@@ -267,6 +270,13 @@
       "mergePins",
       "planPrune",
       "reportedSha256"
+    ],
+    "all/copy-overwrite/scripts/lib/evidence-release-capacity.mjs": [
+      "ensureEvidenceRelease",
+      "excerpt",
+      "fullReleaseMessage",
+      "releaseAssets",
+      "uploadHitLimit"
     ],
     "all/copy-overwrite/scripts/lib/gate-failure-diagnosis.mjs": [
       "ATTRIBUTION",

@@ -159,6 +159,7 @@ scripts/lib/evidence-prune-config.mjs
 scripts/lib/evidence-prune-gh.mjs
 scripts/lib/evidence-prune-records.mjs
 scripts/lib/evidence-prune.mjs
+scripts/lib/evidence-release-capacity.mjs
 scripts/lib/gate-failure-diagnosis.mjs
 scripts/lib/github-attestation-provider.mjs
 scripts/lib/github-attestation-recovery.mjs

@@ -31,10 +31,15 @@ def evidence_release():
     """The GitHub release evidence is uploaded to, matching post-evidence.sh.
 
     LISA_EVIDENCE_RELEASE wins when set. Otherwise ask the project's
-    `scripts/lisa-work-item.mjs evidence-release`, the one resolver every
-    writer shares, so a configured rotation such as `pr-assets-{YYYY-MM}`
-    reaches these links too (CodySwannGT/lisa#4692). A host without the
-    resolver keeps the legacy `pr-assets` release.
+    `scripts/lisa-work-item.mjs evidence-release --ensure`, exactly as
+    post-evidence.sh does, so a configured rotation such as
+    `pr-assets-{YYYY-MM}` reaches these links too (CodySwannGT/lisa#4692) and
+    both name the same overflow release when the current one is full
+    (CodySwannGT/lisa#4838); plain `evidence-release` would name the full
+    release and every link would 404. `--ensure` creates the release when it
+    is absent and fails only when a pinned release is full, every overflow
+    release is full, the release name is too long to take an overflow suffix,
+    or the release cannot be created. A host without the resolver keeps the legacy `pr-assets` release.
     """
     configured = os.environ.get("LISA_EVIDENCE_RELEASE", "").strip()
     if configured:
@@ -49,7 +54,7 @@ def evidence_release():
     cli = Path(root) / "scripts" / "lisa-work-item.mjs"
     if cli.is_file():
         result = subprocess.run(
-            ["node", str(cli), "evidence-release"],
+            ["node", str(cli), "evidence-release", "--ensure"],
             capture_output=True, text=True, cwd=root,
         )
         if result.returncode != 0:
