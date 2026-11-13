@@ -28,6 +28,7 @@ import {
   callsOf,
   readLedgerFile,
 } from "./support/cli-fixtures.js";
+import { claudeProjectDirName } from "./support/claude-project-dir.js";
 
 afterEach(removeSandboxes);
 
@@ -62,11 +63,7 @@ function plant(
     configDir = path.join(sandbox.home, ".claude"),
   }: { cwd?: string; configDir?: string } = {}
 ): void {
-  const dir = path.join(
-    configDir,
-    "projects",
-    cwd.replace(/[^A-Za-z0-9]/g, "-")
-  );
+  const dir = path.join(configDir, "projects", claudeProjectDirName(cwd));
   mkdirSync(dir, { recursive: true });
   writeFileSync(
     path.join(dir, `${FULL_ID}.jsonl`),
