@@ -1,0 +1,24 @@
+$ actionlint -shellcheck= -pyflakes= .github/workflows/quality-rails.yml
+.github/workflows/quality-rails.yml:525:5358: property "something" is not defined in object type {database_image: string; database_name: string; database_type: string; database_version: string; expected_work_item_contract: string; expected_workflow_contract_major: string; runner: string; skip_jobs: string; test_shards: number} [expression]
+exit=1
+
+$ actionlint -shellcheck= -pyflakes= evidence/CodySwannGT-lisa-4671/controls/quality-rails.base-24d0d26b34.yml
+evidence/CodySwannGT-lisa-4671/controls/quality-rails.base-24d0d26b34.yml:512:5358: property "something" is not defined in object type {database_name: string; database_type: string; database_version: string; expected_work_item_contract: string; expected_workflow_contract_major: string; runner: string; skip_jobs: string; test_shards: number} [expression]
+exit=1
+
+$ actionlint -shellcheck= -pyflakes= evidence/CodySwannGT-lisa-4671/controls/quality-rails.typo-input.yml
+evidence/CodySwannGT-lisa-4671/controls/quality-rails.typo-input.yml:525:5358: property "something" is not defined in object type {database_image: string; database_name: string; database_type: string; database_version: string; expected_work_item_contract: string; expected_workflow_contract_major: string; runner: string; skip_jobs: string; test_shards: number} [expression]
+evidence/CodySwannGT-lisa-4671/controls/quality-rails.typo-input.yml:874:20: property "database_imag" is not defined in object type {database_image: string; database_name: string; database_type: string; database_version: string; expected_work_item_contract: string; expected_workflow_contract_major: string; runner: string; skip_jobs: string; test_shards: number} [expression]
+    |
+874 |         image: ${{ inputs.database_imag || format('postgres:{0}', inputs.database_version || '16') }}
+    |                    ^~~~~~~~~~~~~~~~~~~~
+evidence/CodySwannGT-lisa-4671/controls/quality-rails.typo-input.yml:1005:20: property "database_imag" is not defined in object type {database_image: string; database_name: string; database_type: string; database_version: string; expected_work_item_contract: string; expected_workflow_contract_major: string; runner: string; skip_jobs: string; test_shards: number} [expression]
+     |
+1005 |         image: ${{ inputs.database_imag || format('postgres:{0}', inputs.database_version || '16') }}
+     |                    ^~~~~~~~~~~~~~~~~~~~
+evidence/CodySwannGT-lisa-4671/controls/quality-rails.typo-input.yml:1422:20: property "database_imag" is not defined in object type {database_image: string; database_name: string; database_type: string; database_version: string; expected_work_item_contract: string; expected_workflow_contract_major: string; runner: string; skip_jobs: string; test_shards: number} [expression]
+     |
+1422 |         image: ${{ inputs.database_imag || format('postgres:{0}', inputs.database_version || '16') }}
+     |                    ^~~~~~~~~~~~~~~~~~~~
+exit=1
+

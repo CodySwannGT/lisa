@@ -1,0 +1,160 @@
+=== $ node evidence/CodySwannGT-lisa-4671/probes/04-model-evaluator.cjs .github/workflows/quality-rails.yml
+AC-1: database_image="" database_version=""
+  test-postgres-shard  postgres -> postgres:16  expected=postgres:16 ok=true
+  test-postgres        postgres -> postgres:16  expected=postgres:16 ok=true
+  test-mysql-shard     mysql    -> mysql:8.0  expected=mysql:8.0 ok=true
+  test-mysql           mysql    -> mysql:8.0  expected=mysql:8.0 ok=true
+  mutation             postgres -> postgres:16  expected=postgres:16 ok=true
+AC-1-null (input absent entirely): database_image=null database_version=null
+  test-postgres-shard  postgres -> postgres:16  expected=postgres:16 ok=true
+  test-postgres        postgres -> postgres:16  expected=postgres:16 ok=true
+  test-mysql-shard     mysql    -> mysql:8.0  expected=mysql:8.0 ok=true
+  test-mysql           mysql    -> mysql:8.0  expected=mysql:8.0 ok=true
+  mutation             postgres -> postgres:16  expected=postgres:16 ok=true
+AC-2: database_image="" database_version="17"
+  test-postgres-shard  postgres -> postgres:17  expected=postgres:17 ok=true
+  test-postgres        postgres -> postgres:17  expected=postgres:17 ok=true
+  test-mysql-shard     mysql    -> mysql:17  expected=mysql:17 ok=true
+  test-mysql           mysql    -> mysql:17  expected=mysql:17 ok=true
+  mutation             postgres -> postgres:17  expected=postgres:17 ok=true
+AC-3: database_image="pgvector/pgvector@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef" database_version=""
+  test-postgres-shard  postgres -> pgvector/pgvector@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef  expected=pgvector/pgvector@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef ok=true
+  test-postgres        postgres -> pgvector/pgvector@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef  expected=pgvector/pgvector@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef ok=true
+  test-mysql-shard     mysql    -> mysql:8.0  expected=mysql:8.0 ok=true
+  test-mysql           mysql    -> mysql:8.0  expected=mysql:8.0 ok=true
+  mutation             postgres -> pgvector/pgvector@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef  expected=pgvector/pgvector@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef ok=true
+AC-3b +version: database_image="pgvector/pgvector@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef" database_version="17"
+  test-postgres-shard  postgres -> pgvector/pgvector@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef  expected=pgvector/pgvector@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef ok=true
+  test-postgres        postgres -> pgvector/pgvector@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef  expected=pgvector/pgvector@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef ok=true
+  test-mysql-shard     mysql    -> mysql:17  expected=mysql:17 ok=true
+  test-mysql           mysql    -> mysql:17  expected=mysql:17 ok=true
+  mutation             postgres -> pgvector/pgvector@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef  expected=pgvector/pgvector@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef ok=true
+AC-4: database_image="pgvector/pgvector@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef" database_version="8.4"
+  test-postgres-shard  postgres -> pgvector/pgvector@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef  expected=pgvector/pgvector@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef ok=true
+  test-postgres        postgres -> pgvector/pgvector@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef  expected=pgvector/pgvector@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef ok=true
+  test-mysql-shard     mysql    -> mysql:8.4  expected=mysql:8.4 ok=true
+  test-mysql           mysql    -> mysql:8.4  expected=mysql:8.4 ok=true
+  mutation             postgres -> pgvector/pgvector@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef  expected=pgvector/pgvector@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef ok=true
+RESULT: PASS
+exit=0
+
+=== $ node evidence/CodySwannGT-lisa-4671/probes/04-model-evaluator.cjs evidence/CodySwannGT-lisa-4671/controls/quality-rails.base-24d0d26b34.yml
+AC-1: database_image="" database_version=""
+  test-postgres-shard  postgres -> postgres:16  expected=postgres:16 ok=true
+  test-postgres        postgres -> postgres:16  expected=postgres:16 ok=true
+  test-mysql-shard     mysql    -> mysql:8.0  expected=mysql:8.0 ok=true
+  test-mysql           mysql    -> mysql:8.0  expected=mysql:8.0 ok=true
+  mutation             postgres -> postgres:16  expected=postgres:16 ok=true
+AC-1-null (input absent entirely): database_image=null database_version=null
+  test-postgres-shard  postgres -> postgres:16  expected=postgres:16 ok=true
+  test-postgres        postgres -> postgres:16  expected=postgres:16 ok=true
+  test-mysql-shard     mysql    -> mysql:8.0  expected=mysql:8.0 ok=true
+  test-mysql           mysql    -> mysql:8.0  expected=mysql:8.0 ok=true
+  mutation             postgres -> postgres:16  expected=postgres:16 ok=true
+AC-2: database_image="" database_version="17"
+  test-postgres-shard  postgres -> postgres:17  expected=postgres:17 ok=true
+  test-postgres        postgres -> postgres:17  expected=postgres:17 ok=true
+  test-mysql-shard     mysql    -> mysql:17  expected=mysql:17 ok=true
+  test-mysql           mysql    -> mysql:17  expected=mysql:17 ok=true
+  mutation             postgres -> postgres:17  expected=postgres:17 ok=true
+AC-3: database_image="pgvector/pgvector@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef" database_version=""
+  test-postgres-shard  postgres -> postgres:16  expected=pgvector/pgvector@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef ok=false
+  test-postgres        postgres -> postgres:16  expected=pgvector/pgvector@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef ok=false
+  test-mysql-shard     mysql    -> mysql:8.0  expected=mysql:8.0 ok=true
+  test-mysql           mysql    -> mysql:8.0  expected=mysql:8.0 ok=true
+  mutation             postgres -> postgres:16  expected=pgvector/pgvector@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef ok=false
+AC-3b +version: database_image="pgvector/pgvector@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef" database_version="17"
+  test-postgres-shard  postgres -> postgres:17  expected=pgvector/pgvector@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef ok=false
+  test-postgres        postgres -> postgres:17  expected=pgvector/pgvector@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef ok=false
+  test-mysql-shard     mysql    -> mysql:17  expected=mysql:17 ok=true
+  test-mysql           mysql    -> mysql:17  expected=mysql:17 ok=true
+  mutation             postgres -> postgres:17  expected=pgvector/pgvector@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef ok=false
+AC-4: database_image="pgvector/pgvector@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef" database_version="8.4"
+  test-postgres-shard  postgres -> postgres:8.4  expected=pgvector/pgvector@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef ok=false
+  test-postgres        postgres -> postgres:8.4  expected=pgvector/pgvector@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef ok=false
+  test-mysql-shard     mysql    -> mysql:8.4  expected=mysql:8.4 ok=true
+  test-mysql           mysql    -> mysql:8.4  expected=mysql:8.4 ok=true
+  mutation             postgres -> postgres:8.4  expected=pgvector/pgvector@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef ok=false
+RESULT: FAIL (9 mismatches)
+exit=1
+
+=== $ node evidence/CodySwannGT-lisa-4671/probes/04-model-evaluator.cjs evidence/CodySwannGT-lisa-4671/controls/quality-rails.mutation-reverted.yml
+AC-1: database_image="" database_version=""
+  test-postgres-shard  postgres -> postgres:16  expected=postgres:16 ok=true
+  test-postgres        postgres -> postgres:16  expected=postgres:16 ok=true
+  test-mysql-shard     mysql    -> mysql:8.0  expected=mysql:8.0 ok=true
+  test-mysql           mysql    -> mysql:8.0  expected=mysql:8.0 ok=true
+  mutation             postgres -> postgres:16  expected=postgres:16 ok=true
+AC-1-null (input absent entirely): database_image=null database_version=null
+  test-postgres-shard  postgres -> postgres:16  expected=postgres:16 ok=true
+  test-postgres        postgres -> postgres:16  expected=postgres:16 ok=true
+  test-mysql-shard     mysql    -> mysql:8.0  expected=mysql:8.0 ok=true
+  test-mysql           mysql    -> mysql:8.0  expected=mysql:8.0 ok=true
+  mutation             postgres -> postgres:16  expected=postgres:16 ok=true
+AC-2: database_image="" database_version="17"
+  test-postgres-shard  postgres -> postgres:17  expected=postgres:17 ok=true
+  test-postgres        postgres -> postgres:17  expected=postgres:17 ok=true
+  test-mysql-shard     mysql    -> mysql:17  expected=mysql:17 ok=true
+  test-mysql           mysql    -> mysql:17  expected=mysql:17 ok=true
+  mutation             postgres -> postgres:17  expected=postgres:17 ok=true
+AC-3: database_image="pgvector/pgvector@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef" database_version=""
+  test-postgres-shard  postgres -> pgvector/pgvector@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef  expected=pgvector/pgvector@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef ok=true
+  test-postgres        postgres -> pgvector/pgvector@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef  expected=pgvector/pgvector@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef ok=true
+  test-mysql-shard     mysql    -> mysql:8.0  expected=mysql:8.0 ok=true
+  test-mysql           mysql    -> mysql:8.0  expected=mysql:8.0 ok=true
+  mutation             postgres -> postgres:16  expected=pgvector/pgvector@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef ok=false
+AC-3b +version: database_image="pgvector/pgvector@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef" database_version="17"
+  test-postgres-shard  postgres -> pgvector/pgvector@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef  expected=pgvector/pgvector@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef ok=true
+  test-postgres        postgres -> pgvector/pgvector@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef  expected=pgvector/pgvector@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef ok=true
+  test-mysql-shard     mysql    -> mysql:17  expected=mysql:17 ok=true
+  test-mysql           mysql    -> mysql:17  expected=mysql:17 ok=true
+  mutation             postgres -> postgres:17  expected=pgvector/pgvector@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef ok=false
+AC-4: database_image="pgvector/pgvector@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef" database_version="8.4"
+  test-postgres-shard  postgres -> pgvector/pgvector@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef  expected=pgvector/pgvector@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef ok=true
+  test-postgres        postgres -> pgvector/pgvector@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef  expected=pgvector/pgvector@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef ok=true
+  test-mysql-shard     mysql    -> mysql:8.4  expected=mysql:8.4 ok=true
+  test-mysql           mysql    -> mysql:8.4  expected=mysql:8.4 ok=true
+  mutation             postgres -> postgres:8.4  expected=pgvector/pgvector@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef ok=false
+RESULT: FAIL (3 mismatches)
+exit=1
+
+=== $ node evidence/CodySwannGT-lisa-4671/probes/04-model-evaluator.cjs evidence/CodySwannGT-lisa-4671/controls/quality-rails.mysql-leak.yml
+AC-1: database_image="" database_version=""
+  test-postgres-shard  postgres -> postgres:16  expected=postgres:16 ok=true
+  test-postgres        postgres -> postgres:16  expected=postgres:16 ok=true
+  test-mysql-shard     mysql    -> mysql:8.0  expected=mysql:8.0 ok=true
+  test-mysql           mysql    -> mysql:8.0  expected=mysql:8.0 ok=true
+  mutation             postgres -> postgres:16  expected=postgres:16 ok=true
+AC-1-null (input absent entirely): database_image=null database_version=null
+  test-postgres-shard  postgres -> postgres:16  expected=postgres:16 ok=true
+  test-postgres        postgres -> postgres:16  expected=postgres:16 ok=true
+  test-mysql-shard     mysql    -> mysql:8.0  expected=mysql:8.0 ok=true
+  test-mysql           mysql    -> mysql:8.0  expected=mysql:8.0 ok=true
+  mutation             postgres -> postgres:16  expected=postgres:16 ok=true
+AC-2: database_image="" database_version="17"
+  test-postgres-shard  postgres -> postgres:17  expected=postgres:17 ok=true
+  test-postgres        postgres -> postgres:17  expected=postgres:17 ok=true
+  test-mysql-shard     mysql    -> mysql:17  expected=mysql:17 ok=true
+  test-mysql           mysql    -> mysql:17  expected=mysql:17 ok=true
+  mutation             postgres -> postgres:17  expected=postgres:17 ok=true
+AC-3: database_image="pgvector/pgvector@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef" database_version=""
+  test-postgres-shard  postgres -> pgvector/pgvector@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef  expected=pgvector/pgvector@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef ok=true
+  test-postgres        postgres -> pgvector/pgvector@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef  expected=pgvector/pgvector@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef ok=true
+  test-mysql-shard     mysql    -> pgvector/pgvector@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef  expected=mysql:8.0 ok=false
+  test-mysql           mysql    -> mysql:8.0  expected=mysql:8.0 ok=true
+  mutation             postgres -> pgvector/pgvector@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef  expected=pgvector/pgvector@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef ok=true
+AC-3b +version: database_image="pgvector/pgvector@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef" database_version="17"
+  test-postgres-shard  postgres -> pgvector/pgvector@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef  expected=pgvector/pgvector@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef ok=true
+  test-postgres        postgres -> pgvector/pgvector@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef  expected=pgvector/pgvector@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef ok=true
+  test-mysql-shard     mysql    -> pgvector/pgvector@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef  expected=mysql:17 ok=false
+  test-mysql           mysql    -> mysql:17  expected=mysql:17 ok=true
+  mutation             postgres -> pgvector/pgvector@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef  expected=pgvector/pgvector@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef ok=true
+AC-4: database_image="pgvector/pgvector@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef" database_version="8.4"
+  test-postgres-shard  postgres -> pgvector/pgvector@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef  expected=pgvector/pgvector@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef ok=true
+  test-postgres        postgres -> pgvector/pgvector@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef  expected=pgvector/pgvector@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef ok=true
+  test-mysql-shard     mysql    -> pgvector/pgvector@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef  expected=mysql:8.4 ok=false
+  test-mysql           mysql    -> mysql:8.4  expected=mysql:8.4 ok=true
+  mutation             postgres -> pgvector/pgvector@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef  expected=pgvector/pgvector@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef ok=true
+RESULT: FAIL (3 mismatches)
+exit=1
+

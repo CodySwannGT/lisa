@@ -14,13 +14,39 @@ const normalizedRow = line =>
     .map(part => part.trim())
     .join("|");
 
+const CANONICAL_ALIGNMENT = "|---|---|---|---:|---:|";
+const ALIGNMENT_ROW = /^\|(?::?-+:?\|){5}$/;
+const LEADING_STAR_ITALIC = /^(\|?)\*([^*\r\n]+)\*(?=\||$)/;
+const ESCAPED_PUNCTUATION = /\\([!-/:-@[-`{-~])/g;
+
+/**
+ * Fold Linear's storage normalization back to the canonical writer's form
+ * (CodySwannGT/lisa#4690): Linear escapes Markdown punctuation one layer deep
+ * (`\_`, `\.`), re-serializes `_…_` as `*…*`, and rewrites any table
+ * alignment row as `| -- | … |`. Only the comparison key changes, and known
+ * rows pass through the same fold, so a line is dropped solely when its key
+ * equals a known canonical row; any other prose or row still reaches the
+ * spec digest.
+ *
+ * Accepted limitation: any 5-cell alignment row folds to the canonical
+ * separator, so an extra alignment row inserted into the section is
+ * digest-invisible. Such a row carries only dashes and colons, so no
+ * specification words can hide that way.
+ */
+function comparisonKey(line) {
+  const row = normalizedRow(line.replace(ESCAPED_PUNCTUATION, "$1"));
+  return ALIGNMENT_ROW.test(row)
+    ? CANONICAL_ALIGNMENT
+    : row.replace(LEADING_STAR_ITALIC, "$1_$2_");
+}
+
 /** Match the canonical writer's visible table rows to the already parsed data. */
 function accountingRows(entries) {
   const known = new Set([
     "## Lisa Usage",
     "_This section is managed by Lisa. Rewrites update matching usage entries in place and preserve older rows._",
     "|Flow|Source|Model|Tokens|Cost|",
-    "|---|---|---|---:|---:|",
+    CANONICAL_ALIGNMENT,
     "|_No direct entries recorded_|||||",
   ]);
   for (const entry of entries) {
@@ -37,7 +63,7 @@ function accountingRows(entries) {
           ? `${entry.cost} ${entry.currency}`
           : String(entry.cost);
     known.add(
-      normalizedRow(
+      comparisonKey(
         `| ${entry.flow} | ${entry.source} | ${entry.provider}/${entry.model} | ${tokens} | ${cost} |`
       )
     );
@@ -96,7 +122,7 @@ export function usageSpecRemainder(document) {
         /<!-- lisa:usage-(?:entry(?:-measured-subset)?|rollup(?:-token-status)?|effectiveness) [^\r\n]*? -->/g,
         token => (canonicalToken(token, parsed) ? "" : token)
       );
-      return !line.trim() || known.has(normalizedRow(line)) ? "" : line;
+      return !line.trim() || known.has(comparisonKey(line)) ? "" : line;
     })
     .join("");
 }

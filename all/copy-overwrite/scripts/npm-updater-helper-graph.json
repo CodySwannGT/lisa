@@ -143,7 +143,7 @@
       "children": []
     },
     "lib/completion-proof-projection.mjs": {
-      "sha256": "a8acdd491693126fe6f1660f4bd29c7b218855ae59c76ec2b7c0d5703d8c0d43",
+      "sha256": "51f7246943b20e970a185d3e2d9a9255929f510b25261502154e909d3b109436",
       "staticImports": [
         "lib/completion-proof-errors.mjs",
         "lib/usage-ledger-integrity.mjs",
@@ -175,7 +175,7 @@
       "children": []
     },
     "lib/completion-proof-shape.mjs": {
-      "sha256": "b0ac2109d1e17cdc83d42b842ccbd43ca10f3d34d1b2d03067c434e05b19b9e3",
+      "sha256": "4626a90f8e7258dc90d51c6abbec967dcf16d8d8ed12d5af34838617bc01b06c",
       "staticImports": [
         "lib/completion-proof-errors.mjs",
         "lib/completion-proof-markdown.mjs",
@@ -1260,7 +1260,7 @@
       "children": []
     },
     "lib/usage-ledger.mjs": {
-      "sha256": "d93a9b6d28c00f687ea41e8ad1e6138eac6ea4f3d59225bd225d8151f40e4ac0",
+      "sha256": "fce4aebf272d4170083abf492781f20f6d726f5352d7dd9823714c1e1f2ccaf6",
       "staticImports": [
         "lib/usage-effectiveness.mjs"
       ],

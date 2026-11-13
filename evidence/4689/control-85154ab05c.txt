@@ -1,0 +1,21 @@
+# PRIOR commit 85154ab05c6b68b99016b4165a07e0b213bf9ca1
+# node v22.22.0
+$ node repro.mjs <scratch>/8515-tree/all/copy-overwrite/scripts/lib/completion-proof-shape.mjs
+PASS | L1 escaped top-level (#4670) | "Body\n\\[EVIDENCE: cli-output: x\\]" -> [{"kind":"cli-output","name":"x"}]
+PASS | L2 plain top-level | "Body\n[EVIDENCE: cli-output: x]" -> [{"kind":"cli-output","name":"x"}]
+PASS | L3 escaped in inline code | "Body mentions `\\[EVIDENCE: cli-output: x\\]`" -> []
+PASS | L4 plain in inline code | "Body mentions `[EVIDENCE: cli-output: x]`" -> []
+PASS | L5 placeholder in inline code | "Body mentions `\\[EVIDENCE: …\\]`" -> []
+PASS | L6 double-backtick span | "Body mentions ``[EVIDENCE: cli-output: x]``" -> []
+PASS | AC2 top-level + inline quote | "Body\n[EVIDENCE: cli-output: x]\nquoted `[EVIDENCE: cli-output: x]`" -> [{"kind":"cli-output","name":"x"}]
+PASS | AC2b escaped top-level + escaped inline quote | "Body\n\\[EVIDENCE: cli-output: x\\]\nquoted `\\[EVIDENCE: cli-output: x\\]`" -> [{"kind":"cli-output","name":"x"}]
+PASS | C1 malformed top-level refused | "Body\n[EVIDENCE: x]" -> REFUSED A local evidence declaration is malformed; repair its type and name.
+PASS | C2 fenced code non-claiming | "Body\n```\n[EVIDENCE: x]\n[EVIDENCE: cli-output: y]\n```" -> []
+PASS | C3 HTML comment non-claiming | "Body\n<!-- [EVIDENCE: x] [EVIDENCE: cli-output: y] -->" -> []
+PASS | C4 unclosed backtick stays prose | "Body ` stray\n[EVIDENCE: cli-output: x]" -> [{"kind":"cli-output","name":"x"}]
+PASS | A1 autolinks with backticks outrank code span | "<https://x/`> [EVIDENCE: cli-output: x] <https://y/`>" -> [{"kind":"cli-output","name":"x"}]
+PASS | A2 HTML tag attribute backticks outrank code span | "<a title=\"`\"> [EVIDENCE: cli-output: x] <a title=\"`\">" -> [{"kind":"cli-output","name":"x"}]
+FAIL | P1 prose comparison around inline code, plain | "a < b `[EVIDENCE: cli-output: x]` c > d" -> [{"kind":"cli-output","name":"x"}]
+FAIL | P2 prose comparison around inline code, escaped | "a < b `\\[EVIDENCE: cli-output: x\\]` c > d" -> [{"kind":"cli-output","name":"x"}]
+SUMMARY: 14/16 match expected
+exit=1
