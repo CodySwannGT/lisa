@@ -97,6 +97,24 @@ Each task must have a verification method. Choose the most appropriate:
 - Order tasks so that each builds on a stable foundation
 - Prefer independent tasks that can run in parallel where possible
 - Flag external dependencies (other teams, services, permissions, data) that may block progress
+- Run the **shipped-prerequisite check** on every leaf. Ticket text is often written ahead of delivery, so a prerequisite it calls already shipped, existing, or delivered (a symbol, resolver, mutation, file, migration…; for a route, check its handler symbol or file) is a claim, not a fact (`empirical-inquiry`). Verify each one on the remote default branch, never the working tree. Run the whole block as one script (`bash -c`) with exactly one of `SYMBOL` or `FILE` set:
+
+  ```bash
+  # shipped-prerequisite check: exit 0 = present, 1 = absent, anything else = the check failed
+  default=$(git symbolic-ref --short -q refs/remotes/origin/HEAD | sed 's|^origin/||')
+  default=${default:-$(gh repo view --json defaultBranchRef --jq .defaultBranchRef.name)}
+  git fetch --quiet origin "+refs/heads/$default:refs/remotes/origin/$default" || exit 2
+  git rev-parse --verify -q "origin/$default" >/dev/null || exit 2
+  if [ -n "${SYMBOL-}" ]; then
+    git grep -F -n -w "$SYMBOL" "origin/$default" -- ':/' ':(top,exclude,glob)**/docs/**' ':(top,exclude,glob)**/wiki/**' ':(top,exclude,glob)**/plans/**' ':(top,exclude,glob)**/tests/**' ':(top,exclude,glob)**/__tests__/**' ':(top,exclude,glob)**/*.test.*' ':(top,exclude,glob)**/*.spec.*' ':(top,exclude,glob)**/*.md'
+  elif [ -n "${FILE-}" ]; then
+    git cat-file -e "origin/$default:$FILE" 2>/dev/null || exit 1
+  else
+    exit 2
+  fi
+  ```
+
+  Exit 0 means present and 1 means absent; anything else means the check failed (neither variable set, default branch unresolved, fetch refused, bad ref) — stop and report it, never read it as absent. The search is repository-wide whatever the working directory (`':/'`). `FILE` passes for a file or directory at that path. `-F` matches the name literally, so a dotted name such as `Query.createUser` cannot match `QueryXcreateUser`. A hit only in documentation or tests is not shipped: the pathspec excludes, at any depth, `docs/`, `wiki/`, `plans/`, `tests/`, and `__tests__/` directories, `*.test.*` and `*.spec.*` files, and every Markdown file. Exit 0 still only proves the name appears somewhere else: one hit inside a comment, a TODO, a fixture, or a stub is not proof it shipped, so read the `-n` output lines before treating it as present, and drop an exclude when this repository ships source under one of those paths. For each absent prerequisite, find the item that owns delivering it and link this leaf `is blocked by` that item before the leaf is marked ready. If no item owns it, file one (build-ready) and link it; otherwise the leaf fails the ready gate (S13). This is the mirror of `stale-state-claims`: that rule distrusts a stale *not-yet* note, this check distrusts a premature *done* one.
 
 ### 4.5. Classify Any New Material Dependency
 

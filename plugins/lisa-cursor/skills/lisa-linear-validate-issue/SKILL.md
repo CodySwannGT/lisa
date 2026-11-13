@@ -247,6 +247,8 @@ The item must EITHER have at least one entry in `relations`, OR the description 
 
 An item with zero relations and no documented search: FAIL.
 
+**Shipped-prerequisite check.** For every prerequisite the description calls already shipped, existing, or delivered (a symbol, resolver, mutation, file, migration…; for a route, its handler symbol or file), verify it is present on `origin/<default>` by running the command block in `lisa-task-decomposition` step 4. Exit 0 means present and 1 means absent; anything else means the check failed — S13 cannot pass, so report FAIL naming the error (fix the default-branch lookup or access and re-run), never read it as absent. An absent prerequisite with no `blocked by` relation to the issue that owns delivering it: FAIL. Remediation: add a `blocked by` relation to the owning issue, or file one build-ready and relate it, or correct the description so it no longer claims the prerequisite shipped.
+
 #### S14 — Evidence manifest binding (leaf work units)
 
 When `issue_type ∈ {Bug, Task, Sub-task, Improvement}` AND `runtime_behavior_change = true`, the `## Validation Journey` must declare at least one **typed** `[EVIDENCE: <artifact-type>: <name>]` marker. These markers are the work unit's **evidence manifest** — the exact, enumerated set of artifacts that must be captured and attached before the item may be closed (see the "Per-Work-Unit Evidence Contract" section of the `verification` rule, the Definition of Done in `verification-lifecycle`, and the evidence-manifest gate in `tracker-evidence`).
