@@ -46,6 +46,7 @@ const EXCLUDED = Object.freeze([
   /\.test\.[cm]?[jt]s$/u,
   /\.spec\.[cm]?[jt]s$/u,
   /^plugins\/lisa[^/]*\//u,
+  /^\.claude-pr\//u,
   /^(wiki|docs|evidence|research|transcripts|dist|\.lisa)\//u,
   /^scripts\/lib\/(phrase-tests|markdown-assertions)\//u,
   /^scripts\/(classify-phrase-tests|generate-phrase-manifest|check-phrase-manifest-parity|classify-markdown-assertions)\.mjs$/u,

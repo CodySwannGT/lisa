@@ -54,7 +54,7 @@ const PATH_REFERENCES = Object.freeze([
  * @property {"STRUCTURAL" | "MACHINE-TOKEN" | "WORDING"} class - The class.
  * @property {string} why - One-line reason.
  * @property {string} [parser] - For MACHINE-TOKEN, the code file that reads it.
- * @property {string} [token] - For MACHINE-TOKEN, the token found in code.
+ * @property {string} [literal] - For MACHINE-TOKEN, the code literal it matched.
  */
 
 /**
@@ -230,7 +230,7 @@ function machineTokenVerdict(check, corpus) {
         class: "MACHINE-TOKEN",
         why: "phrase is a literal in shipped code",
         parser,
-        token: whole,
+        literal: whole,
       };
   }
   for (const token of tokenCandidates(literal)) {
@@ -240,7 +240,7 @@ function machineTokenVerdict(check, corpus) {
         class: "MACHINE-TOKEN",
         why: "token is a literal in shipped code",
         parser,
-        token,
+        literal: token,
       };
   }
   return undefined;

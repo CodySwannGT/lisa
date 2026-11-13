@@ -2755,11 +2755,11 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/lib/invoked-as-script.mjs":
       "4711b3e900dc85c000c287dd6a675f519fd0f5f288508ae1d5acefdab136ad4e",
     "scripts/lib/markdown-assertions/classify.mjs":
-      "56f3b871a59128bc64a004f2e50c58befea515189f402f0c9bbbf7255274aee6",
+      "09a646fa7d07f2fe1529d5696cc27e79ef2bc236b5775ea65eb68e5fa4117891",
     "scripts/lib/markdown-assertions/context.mjs":
       "b5a69dc926a1bf2a4bfd267ca0c40039be4c8ff581798568b6505fa4deadfbb6",
     "scripts/lib/markdown-assertions/corpus.mjs":
-      "394d1c21afdc1d9ae13af20161a053f73249ebf9a430fc480f1d9f12c106007d",
+      "7b7a9802515c21b6c854bd3bf12d57fe9293fecec3a1f149a72a942af5202cc5",
     "scripts/lib/markdown-assertions/manifest-cull.mjs":
       "9610443a08f4e3084736bf87171e902974995da0c387b65418a69f5a25a78559",
     "scripts/lib/markdown-assertions/tokens.mjs":
@@ -11957,6 +11957,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/workflow-expression-not-truncated.test.ts": true,
     "tests/integration/worktree-dependency-boundary.test.ts": true,
     "tests/integration/zero-collection-gate-bite.test.ts": true,
+    "tests/phrase-manifest/classification/manifest.json": true,
     "tests/phrase-manifest/required-phrases.json": true,
     "tests/platform/lint-staged-preflight.test.mjs": true,
     "tests/platform/process-tree-runner.test.mjs": true,
