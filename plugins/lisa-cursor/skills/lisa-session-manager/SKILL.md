@@ -470,7 +470,7 @@ just as long. Sweep both every cycle, after `classify` and before Dispatch:
    the optional `review` role, the `review` role; plus the open items carrying the human-needed
    label or a `[lisa-human-gate]` body marker, in any role. Page every list to completion (GitHub:
    `gh`, with `--limit 10000`; Jira / Linear: `lisa-atlassian-access` or `lisa-linear-access`).
-   Write `{"complete":true,"items":[{ref,role,labels,body,comments,assignees,updatedAt}],"holds":[{ref,role,labels,body,comments}]}`
+   Write `{"complete":true,"items":[{ref,role,labels,body,comments,assignees,updatedAt}],"holds":[{ref,role,labels,body,comments,assignees,updatedAt}]}`
    to `.lisa/session-manager/orphan-input.json`: refs canonical as dispatch uses them, comments
    as `{id,author,body,createdAt}` with the author's stable id and the comment's own posting
    time (a refusal comment with no `createdAt` never ages out of its 24-hour park), assignees as `{login,id}` objects on GitHub (the REST
@@ -487,10 +487,16 @@ just as long. Sweep both every cycle, after `classify` and before Dispatch:
    operators and the trusted authors come from the ledger and config, never from the input. It
    skips refs the ledger shows running or asking (their holds too, so an item waiting on a
    person's answer is never on the operator's list twice), items assigned to anyone but "me" or an
-   operator, and items updated within `--stale-hours` (default 6), which protects a person running
-   `/lisa:implement` by hand.
-2. **Act** per bucket. Every write goes through `lisa-tracker-write` and is read back with
-   `lisa-tracker-read`; every comment is the planner's, which starts with `[lisa-session-manager]`.
+   operator, and items updated within `--stale-hours` (default 6) or with no `updatedAt`, which
+   protects a person running `/lisa:implement` by hand. Holds get the same checks.
+2. **Act** per bucket. **Before every write** in this sweep (a finish, a return, a re-dispatch
+   claim, a parked comment, a hold lift), re-read the item with `lisa-tracker-read`. Skip it for
+   this cycle, with one transcript line and no write, when its role is no longer the one the plan
+   saw, it gained an assignee who is neither "me" nor an operator, or its `updatedAt` is newer than
+   the snapshot the plan used, apart from this sweep's own earlier write on that item. The plan is
+   a snapshot; someone may have moved the item since. Every write goes through `lisa-tracker-write`
+   and is read back with `lisa-tracker-read`; every comment is the planner's, which starts with
+   `[lisa-session-manager]`.
    - `doneReady`: the pull request merged. In the item's repo dir run
      `node scripts/lisa-work-item.mjs finish --ref <ref> --pr-url <prUrl>`. If it refuses, post
      one comment that starts `[lisa-session-manager] Cannot complete:` and says, in plain words,

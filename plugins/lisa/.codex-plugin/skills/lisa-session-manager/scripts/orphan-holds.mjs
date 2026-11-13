@@ -142,6 +142,55 @@ function liftInput(item, policy) {
 }
 
 /**
+ * Whether a lift still writes anything once the lane check has run.
+ * @param {string[]} comments - Lift comments
+ * @param {{removeHumanNeededLabel: boolean, addReadyLabel: string|null}} actions - Lane-safe writes
+ * @returns {boolean} True when there is a comment or a label write
+ */
+const writesSomething = (comments, actions) =>
+  comments.length > 0 ||
+  actions.removeHumanNeededLabel ||
+  actions.addReadyLabel !== null;
+
+/**
+ * The verdict for a lift or partial lift. Classified after the lane check:
+ * where roles are states, a lift whose only write was re-laning has nothing
+ * left to do, and listing it would spend the cap every cycle.
+ * @param {{ref: string}} item - Hold
+ * @param {object} policy - Resolved hold policy
+ * @param {{lifted: string[], kept: string[], comments: string[], actions: object}} plan - Lift plan
+ * @returns {{kind: "lift"|"skip", entry: object, keep?: object}} Verdict
+ */
+function liftVerdict(item, policy, plan) {
+  const decision = decisionLine(plan.lifted);
+  const kept = plan.kept.map(reason => describeKept(reason, policy.humanOnly));
+  const keep =
+    kept.length > 0
+      ? { keep: { ref: item.ref, reason: bounded(kept.join("; ")) } }
+      : {};
+  const comments = plan.comments.map(body => `${body}\n${decision}`);
+  const actions = laneSafeActions(item, policy, plan.actions);
+  if (!writesSomething(comments, actions)) {
+    return {
+      ...keep,
+      kind: "skip",
+      entry: { ref: item.ref, reason: "nothing-to-write" },
+    };
+  }
+  return {
+    ...keep,
+    kind: "lift",
+    entry: {
+      ref: item.ref,
+      reason: `the hold names only a decision an agent may make (${plan.lifted.map(words).join(", ")})`,
+      comments,
+      actions,
+      decision,
+    },
+  };
+}
+
+/**
  * Judge one hold: lift it, keep it for a person, or skip it.
  * @param {{ref: string, labels?: unknown, body?: unknown, comments?: unknown}} item - Hold
  * @param {object} policy - Resolved hold policy
@@ -153,23 +202,7 @@ export function judgeHold(item, policy) {
   const input = liftInput(item, policy);
   const plan = planHumanGateLift(input);
   if (plan.reason === "lift" || plan.reason === "partial-lift") {
-    const decision = decisionLine(plan.lifted);
-    const kept = plan.kept.map(reason =>
-      describeKept(reason, policy.humanOnly)
-    );
-    return {
-      ...(kept.length > 0
-        ? { keep: { ref: item.ref, reason: bounded(kept.join("; ")) } }
-        : {}),
-      kind: "lift",
-      entry: {
-        ref: item.ref,
-        reason: `the hold names only a decision an agent may make (${plan.lifted.map(words).join(", ")})`,
-        comments: plan.comments.map(body => `${body}\n${decision}`),
-        actions: laneSafeActions(item, policy, plan.actions),
-        decision,
-      },
-    };
+    return liftVerdict(item, policy, plan);
   }
   if (plan.reason === "already-lifted") {
     return { kind: "skip", entry: { ref: item.ref, reason: "already-lifted" } };

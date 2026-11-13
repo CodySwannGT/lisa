@@ -184,10 +184,13 @@ function sortHolds(holds, policy) {
     const ref = refOf(raw);
     if (ref === "" || seen.has(ref)) continue;
     seen.add(ref);
-    // A worker is on it, or a person's answer is awaited: not ours to judge,
-    // and never on the operator's list a second time.
-    if (policy.live.has(ref)) {
-      judged.skipped.push({ ref, reason: "live" });
+    // The orphan guards: a worker is on it or a person's answer is awaited
+    // (live), someone else holds it (foreign), or it was touched within
+    // staleHours or carries no date (fresh, undated). Not ours to judge, and
+    // never on the operator's list a second time.
+    const guard = skipReason({ ...raw, ref }, policy);
+    if (guard !== null) {
+      judged.skipped.push({ ref, reason: guard });
       continue;
     }
     const { kind, entry, keep } = judgeHold({ ...raw, ref }, policy);
@@ -275,7 +278,7 @@ function spendCap(queue, max) {
  *   (and configured `review`) role as `{ref, role, labels, body, comments,
  *   assignees, updatedAt, pr}` (`pr` undefined when not looked up, null when
  *   none was found, else `{url, state}`), and held items as
- *   `{ref, role?, labels, body, comments}`
+ *   `{ref, role?, labels, body, comments, assignees, updatedAt}`
  * @param {{liveRefs?: string[], me?: string|null, operatorIds?: unknown,
  *   now: string|number|Date, staleHours?: number, max?: number,
  *   trustedAuthorIds?: unknown, humanNeededLabel?: string, humanOnly?: unknown,

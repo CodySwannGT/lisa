@@ -314,7 +314,8 @@ Per cycle
   orphan-plan [--input <file>] [--max <n>] [--stale-hours <n>]
                                                 STDIN (without --input): JSON
       {complete:true,items:[{ref,role,labels,body,comments,assignees,
-      updatedAt,pr}],holds:[{ref,role,labels,body,comments}]}. Plans the
+      updatedAt,pr}],holds:[{ref,role,labels,body,comments,assignees,
+      updatedAt}]}. Plans the
       "Orphans and holds" sweep; writes nothing. items are the claimed (and
       review) role; pr is omitted when not looked up, null when none was
       found, else {url,state:open|merged|closed}. holds carry the
@@ -326,7 +327,8 @@ Per cycle
       trustedAuthorIds and the hold labels come from the ledger and config;
       the same keys in the input are ignored. Skips live, foreign (assigned
       to neither me nor an operator), fresh (updated within --stale-hours,
-      default 6) and undated items, and holds on live refs. A review-role
+      default 6) and undated items, and holds on the same terms; a lift
+      left with nothing to write is skipped as nothing-to-write. A review-role
       item with an open pull request, and a merged item whose comments hold
       a line starting "[lisa-session-manager] Cannot complete:" posted
       within 24 hours (or undated: send each comment's createdAt), are parked with reasonOnItem true; only the claimed role is re-dispatched. A

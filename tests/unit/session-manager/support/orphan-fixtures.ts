@@ -71,7 +71,7 @@ export function heldBody(reason: string): string {
 }
 
 /**
- * A hold candidate in the `ready` role.
+ * A hold candidate in the `ready` role, stale and unassigned by default.
  * @param n - Issue number
  * @param extra - Field overrides
  * @returns The hold
@@ -82,6 +82,8 @@ export function hold(n: number, extra: Record<string, unknown> = {}) {
     labels: [READY, NEEDED],
     body: heldBody(CREDENTIAL),
     comments: [],
+    assignees: [],
+    updatedAt: OLD,
     ...extra,
   };
 }

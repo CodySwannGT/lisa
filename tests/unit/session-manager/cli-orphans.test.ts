@@ -56,6 +56,8 @@ const orphan = (n: number) => ({
 const releasedHold = {
   ref: ref(5),
   labels: [READY, NEEDED],
+  assignees: [],
+  updatedAt: OLD,
   body: `<!-- [lisa-human-gate] reason=${CREDENTIAL} -->`,
   comments: [
     {
@@ -259,6 +261,8 @@ describe(PLAN, () => {
           labels: [NEEDED],
           body: "<!-- [lisa-human-gate] reason=tenancy-audit-triage -->",
           comments: [],
+          assignees: [],
+          updatedAt: OLD,
         },
       ],
     });
@@ -293,6 +297,8 @@ describe(PLAN, () => {
           labels: [NEEDED],
           body: "<!-- [lisa-human-gate] reason=tenancy-audit-triage -->",
           comments: [],
+          assignees: [],
+          updatedAt: OLD,
         },
       ],
     });
