@@ -42,23 +42,36 @@ function held(count) {
 }
 
 /**
+ * What an operator can do about a full release. Suggesting rotation to a
+ * project that already rotates is noise, so it leads with pruning then.
+ */
+function fullReleaseAdvice(policy, tag) {
+  const prune = `prune old evidence with \`node scripts/lisa-evidence-prune.mjs --release ${tag}\` (CodySwannGT/lisa#4720)`;
+  return String(policy?.evidenceRelease ?? "").includes("{YYYY-MM}")
+    ? `To make room, ${prune}; next month's release starts empty.`
+    : `Set \`verification.completion.evidenceRelease\` in .lisa.config.json to a rotating name such as \`pr-assets-{YYYY-MM}\` (older proof keeps validating), or ${prune}.`;
+}
+
+/**
  * The operator-readable refusal for a release GitHub will not take more files in.
  * @param {string} tag - The full release.
  * @param {string} repository - `owner/name`.
  * @param {number} [count] - Its asset count, when known.
- * @param {boolean} [pinned] - Whether `LISA_EVIDENCE_RELEASE` chose it.
+ * @param {object} [options] - How the release was chosen.
+ * @param {boolean} [options.pinned] - Whether `LISA_EVIDENCE_RELEASE` chose it.
+ * @param {object} [options.policy] - `verification.completion`, for the advice.
  * @returns {string} The refusal.
  */
-export function fullReleaseMessage(tag, repository, count, pinned = false) {
-  if (pinned)
+export function fullReleaseMessage(tag, repository, count, options = {}) {
+  if (options.pinned)
     return `The evidence release \`${tag}\` that LISA_EVIDENCE_RELEASE pins in ${repository} ${held(count)}, so new proof can't be uploaded. A pinned release is an exact choice and never rolls over: unset LISA_EVIDENCE_RELEASE so Lisa moves to an overflow release with room, or pin a release that has room.`;
-  return `The evidence release \`${tag}\` in ${repository} ${held(count)}, so new proof can't be uploaded. Set \`verification.completion.evidenceRelease\` in .lisa.config.json to a rotating name such as \`pr-assets-{YYYY-MM}\` (older proof keeps validating), or prune old evidence (CodySwannGT/lisa#4720).`;
+  return `The evidence release \`${tag}\` in ${repository} ${held(count)}, so new proof can't be uploaded. ${fullReleaseAdvice(options.policy, tag)}`;
 }
 
 /** The refusal once every overflow release of a period is full. */
-function exhaustedMessage(base, repository) {
+function exhaustedMessage(base, repository, policy) {
   const last = overflowReleaseTag(base, EVIDENCE_RELEASE_MAX_OVERFLOW);
-  return `Every evidence release from \`${base}\` to \`${last}\` in ${repository} holds ${EVIDENCE_RELEASE_NEAR_FULL} or more of GitHub's ${EVIDENCE_RELEASE_ASSET_LIMIT}-file limit, so new proof can't be uploaded. Set \`verification.completion.evidenceRelease\` in .lisa.config.json to a rotating name such as \`pr-assets-{YYYY-MM}\` (older proof keeps validating), or prune old evidence (CodySwannGT/lisa#4720).`;
+  return `Every evidence release from \`${base}\` to \`${last}\` in ${repository} holds ${EVIDENCE_RELEASE_NEAR_FULL} or more of GitHub's ${EVIDENCE_RELEASE_ASSET_LIMIT}-file limit, so new proof can't be uploaded. ${fullReleaseAdvice(policy, base)}`;
 }
 
 /**
@@ -187,7 +200,9 @@ export function ensureEvidenceRelease(run, transport, policy, options = {}) {
     if (pinned.count >= EVIDENCE_RELEASE_NEAR_FULL)
       throw new CompletionProofError(
         WRITE_ERROR,
-        fullReleaseMessage(base, transport.repository, pinned.count, true)
+        fullReleaseMessage(base, transport.repository, pinned.count, {
+          pinned: true,
+        })
       );
     return { ...pinned, index: 1 };
   }
@@ -201,13 +216,13 @@ export function ensureEvidenceRelease(run, transport, policy, options = {}) {
     if (!usableTag(tag))
       throw new CompletionProofError(
         WRITE_ERROR,
-        `${fullReleaseMessage(last.tag, transport.repository, last.count)} Lisa could not roll over to \`${tag}\`: the release name is too long for an overflow suffix (GitHub allows 100 characters), so shorten \`verification.completion.evidenceRelease\`.`
+        `${fullReleaseMessage(last.tag, transport.repository, last.count, { policy })} Lisa could not roll over to \`${tag}\`: the release name is too long for an overflow suffix (GitHub allows 100 characters), so shorten \`verification.completion.evidenceRelease\`.`
       );
     last = openRelease(run, transport, tag);
     if (last.count < EVIDENCE_RELEASE_NEAR_FULL) return { ...last, index };
   }
   throw new CompletionProofError(
     WRITE_ERROR,
-    exhaustedMessage(base, transport.repository)
+    exhaustedMessage(base, transport.repository, policy)
   );
 }

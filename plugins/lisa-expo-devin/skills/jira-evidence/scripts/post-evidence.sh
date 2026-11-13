@@ -123,8 +123,9 @@ GH_REPO=$(gh repo view --json nameWithOwner --jq '.nameWithOwner')
 # raw HTTP 422 (CodySwannGT/lisa#4692). `--ensure` creates the release when it
 # is absent and, when it is nearly full, rolls over to the next overflow
 # release (`<release>-2`, `-3`, …) and prints that one (CodySwannGT/lisa#4838).
-# It refuses, in plain words, only when a pinned release or every overflow
-# release is full. generate-templates.py asks the same `--ensure`, so its links
+# It refuses, in plain words, only when a pinned release is full, every
+# overflow release is full, the release name is too long to take an overflow
+# suffix, or the release cannot be created. generate-templates.py asks the same `--ensure`, so its links
 # name the release uploaded here. A host whose Lisa predates the resolver keeps
 # the legacy release.
 #
@@ -238,7 +239,21 @@ echo "  ✓ GitHub release assets uploaded"
 # release URL as plain text, and that must not fail the run.
 THIS_RUN_ASSETS=$(printf '%s\n' "${UPLOADED_ASSETS[@]}")
 BAD_LINKS=0
+RELEASE_PREFIX="github.com/${GH_REPO}/releases/download/"
 while IFS= read -r LINK; do
+  # A link into a different release of this repository means the templates
+  # were generated against one release and this run uploaded to another (a
+  # roll-over to `<release>-2` in between, CodySwannGT/lisa#4838): the link
+  # would 404, so refuse it instead of posting it.
+  if [[ "$LINK" == *"$RELEASE_PREFIX"* ]]; then
+    LINK_TAG="${LINK#*"$RELEASE_PREFIX"}"
+    LINK_TAG="${LINK_TAG%%/*}"
+    if [[ "$LINK_TAG" != "$RELEASE_TAG" ]]; then
+      echo "ERROR: $COMMENT_MD links $LINK in release '$LINK_TAG', but this run uploaded to release '$RELEASE_TAG'. Regenerate the templates with LISA_EVIDENCE_RELEASE=$RELEASE_TAG and re-run this script with the same LISA_EVIDENCE_RELEASE=$RELEASE_TAG." >&2
+      BAD_LINKS=1
+      continue
+    fi
+  fi
   [[ "$LINK" == *"releases/download/${RELEASE_TAG}/"* ]] || continue
   LINK_NAME="${LINK##*/}"
   if [[ "$LINK_NAME" != "pr-${PR_NUMBER}-"* ]]; then

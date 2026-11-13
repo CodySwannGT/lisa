@@ -174,6 +174,9 @@ export function targetEvidenceRelease(
   env = process.env,
   now = new Date()
 ) {
+  // The whole accepted set first, history included, so a malformed
+  // `acceptedEvidenceReleases` is refused before any GitHub call (#4838).
+  acceptedEvidenceReleases(policy);
   const pinned = env.LISA_EVIDENCE_RELEASE?.trim();
   return pinned
     ? { tag: evidenceReleaseOverride(policy, pinned), pinned: true }

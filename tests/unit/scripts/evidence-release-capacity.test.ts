@@ -12,7 +12,10 @@ import {
   overflowReleaseTag,
   targetEvidenceRelease,
 } from "../../../all/copy-overwrite/scripts/lib/completion-proof-github.mjs";
-import { ensureEvidenceRelease } from "../../../all/copy-overwrite/scripts/lib/evidence-release-capacity.mjs";
+import {
+  ensureEvidenceRelease,
+  fullReleaseMessage,
+} from "../../../all/copy-overwrite/scripts/lib/evidence-release-capacity.mjs";
 
 const ROOT = "repos/acme/code";
 const ROTATING = { evidenceRelease: "pr-assets-{YYYY-MM}" };
@@ -59,12 +62,16 @@ function github(counts: Record<string, number>) {
  * @param options - Options passed to `ensureEvidenceRelease`.
  * @returns The chosen tag or the refusal, and what was created.
  */
-function ensure(counts: Record<string, number>, options: object = {}) {
+function ensure(
+  counts: Record<string, number>,
+  options: { policy?: object } & Record<string, unknown> = {}
+) {
   const { run, transport, created } = github(counts);
+  const { policy = ROTATING, ...rest } = options;
   try {
-    const chosen = ensureEvidenceRelease(run, transport, ROTATING, {
+    const chosen = ensureEvidenceRelease(run, transport, policy, {
       now: NOVEMBER,
-      ...options,
+      ...rest,
     });
     return { tag: chosen.tag, index: chosen.index, created };
   } catch (error) {
@@ -133,7 +140,62 @@ describe("ensureEvidenceRelease roll-over", () => {
   });
 });
 
+describe("the advice a full-release refusal gives (#4838)", () => {
+  const PRUNE = "node scripts/lisa-evidence-prune.mjs --release";
+  const ROTATE = "to a rotating name such as";
+
+  it("leads with pruning, not rotation, when the release already rotates", () => {
+    const counts = Object.fromEntries(
+      Array.from({ length: EVIDENCE_RELEASE_MAX_OVERFLOW }, (_, index) => [
+        overflowReleaseTag(BASE, index + 1),
+        FULL,
+      ])
+    );
+    const message = ensure(counts).error?.message ?? "";
+    expect(message).toContain(`${PRUNE} ${BASE}`);
+    expect(message).not.toContain(ROTATE);
+  });
+
+  it("suggests rotation, and pruning, when the configured release is fixed", () => {
+    const fixed = "lisa-evidence";
+    const counts = Object.fromEntries(
+      Array.from({ length: EVIDENCE_RELEASE_MAX_OVERFLOW }, (_, index) => [
+        overflowReleaseTag(fixed, index + 1),
+        FULL,
+      ])
+    );
+    const message =
+      ensure(counts, { policy: { evidenceRelease: fixed } }).error?.message ??
+      "";
+    expect(message).toContain(ROTATE);
+    expect(message).toContain(`${PRUNE} ${fixed}`);
+  });
+
+  it("gives the same conditional advice for a single full release", () => {
+    const rotating = fullReleaseMessage(BASE, "acme/code", 999, {
+      policy: ROTATING,
+    });
+    expect(rotating).toContain(`${PRUNE} ${BASE}`);
+    expect(rotating).not.toContain(ROTATE);
+    const legacy = fullReleaseMessage("pr-assets", "acme/code", 999, {
+      policy: {},
+    });
+    expect(legacy).toContain(ROTATE);
+    expect(legacy).toContain(`${PRUNE} pr-assets`);
+  });
+});
+
 describe("targetEvidenceRelease", () => {
+  it("refuses a malformed acceptedEvidenceReleases before resolving anything", () => {
+    expect(() =>
+      targetEvidenceRelease(
+        { ...ROTATING, acceptedEvidenceReleases: "pr-assets-old" },
+        {},
+        NOVEMBER
+      )
+    ).toThrow(/acceptedEvidenceReleases/);
+  });
+
   it("resolves the configured release when nothing is pinned", () => {
     expect(targetEvidenceRelease(ROTATING, {}, NOVEMBER)).toEqual({
       tag: BASE,

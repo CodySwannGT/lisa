@@ -37,8 +37,9 @@ def evidence_release():
     both name the same overflow release when the current one is full
     (CodySwannGT/lisa#4838); plain `evidence-release` would name the full
     release and every link would 404. `--ensure` creates the release when it
-    is absent and fails only when a pinned release or every overflow release
-    is full. A host without the resolver keeps the legacy `pr-assets` release.
+    is absent and fails only when a pinned release is full, every overflow
+    release is full, the release name is too long to take an overflow suffix,
+    or the release cannot be created. A host without the resolver keeps the legacy `pr-assets` release.
     """
     configured = os.environ.get("LISA_EVIDENCE_RELEASE", "").strip()
     if configured:

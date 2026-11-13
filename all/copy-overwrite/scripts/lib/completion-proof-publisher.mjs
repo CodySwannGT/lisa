@@ -81,7 +81,7 @@ function uploadProof(context, transport, target, file) {
           evidence.tag,
           context.repository,
           failure.full ?? undefined,
-          target.pinned
+          { pinned: target.pinned, policy: context.policy }
         )
   );
 }

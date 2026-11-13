@@ -255,7 +255,12 @@ holds 950 or more files it rolls over to the next overflow release,
 the same way, instead of failing on GitHub's raw HTTP 422. If an upload still
 hits GitHub's limit (another publisher filled the release meanwhile), it rolls
 over once more and retries. It refuses, in plain words, only when every
-overflow release of the period is full. Nothing is ever deleted to make room.
+overflow release of the period is full, or when the release name is too long
+to take an overflow suffix (GitHub allows 100 characters), in which case it
+names the full release. Its advice leads with pruning
+(`node scripts/lisa-evidence-prune.mjs --release <release>`) when the release
+already rotates, and suggests a rotating name only when it does not. Nothing is
+ever deleted to make room.
 `node scripts/lisa-work-item.mjs evidence-release` prints the period's first
 release name without touching GitHub; `--ensure` also creates the release,
 rolls over past full ones, and prints the release that has room.

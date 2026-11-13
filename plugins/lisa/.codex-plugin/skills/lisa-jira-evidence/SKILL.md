@@ -62,7 +62,7 @@ If either is missing, **refuse to post**: stop and report the missing Not-establ
 
 ## Usage
 
-Resolve the evidence release once, before posting. When `generate-templates.py` wrote the evidence links, use the same release it used so the links match the uploads. If the release cannot be used (for example, it is nearly full), the step prints `Evidence release not usable; stop.` and fails: stop there and report it instead of posting.
+Resolve the evidence release once, before posting. When `generate-templates.py` wrote the evidence links, use the same release it used so the links match the uploads. If the release cannot be used (for example, a pinned release is full, every overflow release is full, the release name is too long to roll over, or the publisher cannot create releases), the step prints `Evidence release not usable; stop.` and fails: stop there and report it instead of posting.
 
 If you came here from jira-journey, `generate-templates.py` already wrote the links: skip the block below and reuse the release name jira-journey printed in its Step 4, because resolving again can pick a different month's release.
 
@@ -119,10 +119,12 @@ node scripts/lisa-work-item.mjs evidence-release --ensure
 ```
 
 It refuses only when a pinned `LISA_EVIDENCE_RELEASE` is full (unset it, or pin
-a release with room) or every overflow release of the period is full (set
-`verification.completion.evidenceRelease` in `.lisa.config.json` to a rotating
-name such as `pr-assets-{YYYY-MM}`, or prune old evidence); older evidence keeps
-validating.
+a release with room), every overflow release of the period is full (prune old evidence with
+`node scripts/lisa-evidence-prune.mjs --release <release>`, or, if the release
+does not rotate yet, set `verification.completion.evidenceRelease` in
+`.lisa.config.json` to a rotating name such as `pr-assets-{YYYY-MM}`), or the
+release name is too long to take an overflow suffix (shorten it); older evidence
+keeps validating.
 
 ### JIRA API returns 403
 

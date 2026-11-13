@@ -58,6 +58,27 @@ describe.each(SOURCES)("Markdown link forms are validated: %s", script => {
     expect(result.stdout).not.toContain(DESCRIPTION_UPDATED);
   });
 
+  it("fails when a link names another evidence release of this repository (#4838)", () => {
+    // The templates were generated against one release and the upload went
+    // to another (a roll-over in between): every such link would 404.
+    const other = `https://github.com/org/repo/releases/download/pr-assets-2026-11/pr-101-${SHOT}`;
+    const result = runWith(script, `![Shot](${other})\n`);
+
+    expect(result.status).not.toBe(0);
+    expect(result.stderr).toContain(other);
+    expect(result.stderr).toContain("'pr-assets-2026-11'");
+    expect(result.stderr).toContain("LISA_EVIDENCE_RELEASE=pr-assets");
+    expect(result.stdout).not.toContain(DESCRIPTION_UPDATED);
+  });
+
+  it("accepts a link into another repository's release alongside this run's upload", () => {
+    const foreign = `https://github.com/other/repo/releases/download/v1.0.0/notes.txt`;
+    const result = runWith(script, `![Shot](${OWN})\n[notes](${foreign})\n`);
+
+    expect(result.status, result.stderr).toBe(0);
+    expect(result.stdout).toContain(DESCRIPTION_UPDATED);
+  });
+
   it.each([
     ["a titled link", `![Shot](${OWN} "Shot")\n`],
     ["an angle-bracketed titled link", `![Shot](<${OWN}> "Shot")\n`],

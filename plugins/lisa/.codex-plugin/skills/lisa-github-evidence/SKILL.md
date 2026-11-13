@@ -58,7 +58,8 @@ If either is missing, **refuse to post**: stop and report the missing Not-establ
    `--ensure` creates the release when it is absent, rolls over to the next
    overflow release (`<release>-2`, `-3`, …) when it is nearly full, and prints
    the release that has room. It stops with a plain message only when a pinned
-   `LISA_EVIDENCE_RELEASE` is full or every overflow release is. Do not upload
+   `LISA_EVIDENCE_RELEASE` is full, every overflow release is, or the release
+   name is too long to roll over. Do not upload
    when it fails. A project
    without `scripts/lisa-work-item.mjs` uses `RELEASE=pr-assets`.
 
