@@ -54,12 +54,20 @@ describe("learnings.lowConfidence routing contract", () => {
   );
 
   it.each(SKILL_SURFACES)(
-    "persist-learning in %s keeps human-triage as the unchanged default",
+    "persist-learning in %s defaults to auto-merge under access-only and human-triage under strict",
     surface => {
       const step = routingStep(skillBody(surface, PERSIST_LEARNING));
-      const triage = step.slice(
-        step.indexOf("**`low` + `human-triage`** (the default)")
+      // #4687: the absent-key default follows humanGate.mode; an explicit key wins.
+      expect(step).toMatch(
+        /prints `auto-merge` under the default `"access-only"` mode and `human-triage` under `"strict"`/u
       );
+      expect(step).toContain(
+        "A value the project sets explicitly always wins over the mode."
+      );
+      const marker =
+        '**`low` + `human-triage`** (the default under `humanGate.mode: "strict"`, or set explicitly)';
+      expect(step).toContain(marker);
+      const triage = step.slice(step.indexOf(marker));
       expect(triage).toContain("`auto_merge=false`");
       expect(triage).toContain(
         'gh pr edit <pr> --add-label "learning:needs-triage"'
@@ -76,6 +84,9 @@ describe("learnings.lowConfidence routing contract", () => {
         step.indexOf("**`low` + `human-triage`**")
       );
       expect(auto).toContain("with its defaults, exactly like `high`");
+      expect(auto).toContain(
+        'This is the default under `humanGate.mode: "access-only"`'
+      );
       expect(auto).not.toContain("auto_merge=false");
       expect(auto).toContain(
         'gh pr edit <pr> --add-label "learning:low-confidence"'

@@ -210,7 +210,7 @@ If the parent is explicitly provided, use it. Otherwise:
    lisa-linear-access operation: list-projects({team: <teamKey>, state: ["backlog", "planned", "started"]})
    ```
    Match on keywords from the summary and description.
-2. If no matching Project exists, stop and ask the human to create or pick one. Do NOT orphan the item.
+2. If no Project matches exactly, pick or create it yourself from the evidence: use the active Project the summary, description and linked work fit best, or, when none fits, create a new Project (this skill, `issue_type: Epic`) scoped to the work. Record the choice and why in the Issue description so a person can re-parent it later. Do NOT orphan the item.
 
 ### 4b. Related Items
 
@@ -257,7 +257,7 @@ Linear native relations are set on the Issue via `save_issue`'s `relations` fiel
 
 **Adding a relation to an already-linked pair may be a REPLACE, not an add.** Reported measured twice against the raw `issueRelationCreate` mutation: creating a `blocks` edge between two issues already carrying a `related` edge converted that edge in place — the source issue's outgoing relation count did not grow (CodySwannGT/lisa#3605). Relationship discovery is mandatory on the UPDATE path as well as creation, so this skill's own contract routinely points it at pairs that already have edges.
 
-So on an update, read the pair's existing relations before writing one. Where an edge already exists and differs in type, surface it and let a human decide rather than writing over it — **an inherited relation is not a verified one**, and rewriting it silently removes the only moment anyone would check what it meant.
+So on an update, read the pair's existing relations before writing one. Where an edge already exists and differs in type, decide from the evidence (both issues' bodies, history and linked work) which type is right, and record a `Decision:` line on the issue before changing it (under `humanGate.mode: "strict"`, surface it and let a human decide) — **an inherited relation is not a verified one**, and rewriting it silently removes the only moment anyone would check what it meant.
 
 **The true undo is delete plus re-create with the original type.** A single delete removes the link entirely and does not restore what was there before, so any runbook recording "undo = delete relation X" has written down a plan that loses the prior relationship.
 
@@ -309,7 +309,7 @@ For Bug / Task / Sub-task, ensure the summary is prefixed with `[<repo-name>]`.
 
 **A filing with neither is an incomplete handoff.** A leaf that is not build-ready must carry an explicit `human_gate: "<the act a person must perform>"`; nothing in the ready lane means nothing ever claims it. When `human_gate` is supplied, stamp the hold on the Issue so it is auditable — after the check below.
 
-**Validate the gate before stamping it.** A `human_gate` is for an act an agent cannot perform — a credential only a person holds, spend, an external account, a legal or compliance sign-off, naming an accountable person, acting in a system the agent cannot reach, or a decision class the project declared human-only (`humanGate.humanOnly`). A choice with a reasonable default is a decision, not a gate (`ready-role-filing`, "What a human gate is"). Run the check on the reason:
+**Validate the gate before stamping it.** A `human_gate` is for an act an agent cannot perform — an access act: `credential` (complete a login or supply a credential only a person holds), `spend`, `external-account`, `legal-signoff` (sign a legal agreement on the company's behalf), `person-only-account` (a protected deployment, a required reviewer, an account only a person holds), `unreachable-system`, or `operator-hold` (a hold the operator explicitly asked for); `human-authored-surface` (an edit to a surface declared human-authored, which no agent writes: an authorship rule, valid in both modes); or a decision class the project declared human-only (`humanGate.humanOnly`). Under `humanGate.mode: "strict"` the strict-only acts `compliance-signoff`, `accountable-person` and `lisa-policy` also count. A choice with a reasonable default is a decision, not a gate (`ready-role-filing`, "What a human gate is"). Run the check on the reason:
 
 ```bash
 node "${CLAUDE_PLUGIN_ROOT:-node_modules/@codyswann/lisa/plugins/lisa}/scripts/human-gate-act.mjs" check --reason "<the human_gate reason>"
@@ -333,7 +333,7 @@ person scanning a board and to any path that has not yet been routed through the
 If the label does not exist in the tracker, create it, or record that it could not be applied and
 proceed — the marker still holds. Never file the label *instead of* the marker.
 
-**Every marker reader must consult comments.** Use `classifyReadyCandidate` with labels, body, comments and the configured human-needed label, then `planHumanGateRelease` for any release actions. A historical body marker alone is not an active hold after its matching release; unreadable comments leave a hold in place.
+**Every marker reader must consult comments.** Use `classifyReadyCandidate` with labels, body, comments, the configured human-needed label, `humanOnly` and `humanGateMode` (from `humanGate.mode`), then `planHumanGateRelease` for any release actions. A historical body marker alone is not an active hold after its matching release; unreadable comments leave a hold in place.
 
 **Write a `reason=` the release can name.** The hold's reason is not decoration: a hold ends when a
 `[lisa-human-gate-release]` comment repeating that same `reason=` is recorded on the item by an authorized human, and the
@@ -356,7 +356,7 @@ The validator is the **single source of truth** for what makes a valid Linear wo
 
 If the validator reports `FAIL`:
 - Surface the failure list and the per-gate remediation to the user.
-- Do NOT proceed to Phase 6. Fix the spec (or stop and ask the human) and re-run validation.
+- Do NOT proceed to Phase 6. Fix the spec yourself from the evidence and re-run validation; stop only when a fix needs access you lack, and name that access.
 - Never call `lisa-linear-access operation: save-project` or `lisa-linear-access operation: save-issue` while the validator's verdict is FAIL.
 
 If the validator reports `PASS`, continue to Phase 6.

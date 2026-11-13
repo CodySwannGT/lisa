@@ -16,6 +16,15 @@
  * (`humanGate.humanOnly`). Anything else is a decision: the agent picks the
  * reasonable default, records it on the item, and files it build-ready.
  *
+ * Which acts count depends on `humanGate.mode` (CodySwannGT/lisa#4687). Under
+ * the default `access-only` mode an agent performs every act it has access to,
+ * so only an act it genuinely lacks access to is a gate: an interactive login
+ * or a credential only a person holds, spending money, opening an external
+ * account, a legal signature, an account only a person holds, a system the
+ * agent cannot reach, or a hold the operator explicitly asked for. `strict`
+ * also holds a compliance judgement, naming an accountable person, and Lisa's
+ * own policy calls. `humanGate.humanOnly` widens the gate in either mode.
+ *
  * Refusal is the default, deliberately. A closed vocabulary of acts can be
  * audited; an open vocabulary of "topics that feel important" is exactly the
  * reading that produced the false gates.
@@ -29,8 +38,17 @@
  * Usage:
  *   node human-gate-act.mjs check --reason "<human_gate reason>" \
  *     [--config .lisa.config.json] [--local .lisa.config.local.json]
- * Prints a JSON verdict. Exit 0 when the gate is legitimate, 1 when refused,
- * 2 on a usage or config error.
+ *   node human-gate-act.mjs policy \
+ *     [--config .lisa.config.json] [--local .lisa.config.local.json]
+ * `check` prints a JSON verdict carrying the `mode` it was judged under. Exit 0
+ * when the gate is legitimate, 1 when refused, 2 on a usage or config error.
+ * `policy` prints the resolved `{ mode, humanOnly }` a sweep passes to
+ * `planHumanGateLift` as `humanGateMode` and `humanOnly`; it exits 0.
+ * `humanGate.mode` is read case- and whitespace-insensitively. A value that is
+ * still not a mode is reported on stderr, never fatal. It resolves to the
+ * global file's valid mode when only the local one is wrong; with no valid
+ * value anywhere it fails safe, to `strict`: a typo must never quietly loosen
+ * the gate. Only an absent mode means `access-only`.
  * @module human-gate-act
  */
 import { readFileSync, realpathSync } from "node:fs";
@@ -38,9 +56,12 @@ import { fileURLToPath } from "node:url";
 
 import {
   DECIDE_AND_RECORD,
+  DEFAULT_HUMAN_GATE_MODE,
   HUMAN_GATE_ACTS,
+  HUMAN_GATE_MODES,
   classifyHumanGateReason,
   normalizeGateText,
+  normalizeHumanGateMode,
 } from "./intake-blocker-reprobe.mjs";
 
 // The classifier lives in `intake-blocker-reprobe.mjs` so the hold verdict
@@ -49,7 +70,9 @@ import {
 // and adds the writer-side CLI and config resolution.
 export {
   DECIDE_AND_RECORD,
+  DEFAULT_HUMAN_GATE_MODE,
   HUMAN_GATE_ACTS,
+  HUMAN_GATE_MODES,
   classifyHumanGateReason,
   normalizeGateText,
 };
@@ -106,6 +129,66 @@ export function resolveHumanOnly(local, global) {
 }
 
 /**
+ * The effective `humanGate.mode`: a valid local declaration replaces the
+ * global one, the same way {@link resolveHumanOnly} does. Values are compared
+ * trimmed and lower-cased. An invalid local value falls back to a valid
+ * global one, so a typo in a personal override cannot silently hide a
+ * committed `strict`. When a value is present but none is valid, the mode
+ * fails safe, to `"strict"`; only when no value is declared at all does
+ * {@link DEFAULT_HUMAN_GATE_MODE} apply. The first rejected value is returned
+ * as `rejected` (its JSON spelling) so the caller can report it.
+ * @param {unknown} local - Parsed local config
+ * @param {unknown} global - Parsed global config
+ * @returns {{ mode: string, rejected?: string }} The mode in force
+ */
+export function resolveHumanGateMode(local, global) {
+  const pick = config =>
+    config && typeof config === "object" ? config.humanGate?.mode : undefined;
+  // Every declaration is judged, so a typo in the committed file is reported
+  // even while a valid local value is in force.
+  const declared = [pick(local), pick(global)].filter(
+    value => value !== undefined
+  );
+  const valid = declared
+    .map(normalizeHumanGateMode)
+    .find(mode => HUMAN_GATE_MODES.includes(mode));
+  const invalid = declared.find(
+    value => !HUMAN_GATE_MODES.includes(normalizeHumanGateMode(value))
+  );
+  const mode =
+    valid ?? (invalid === undefined ? DEFAULT_HUMAN_GATE_MODE : "strict");
+  return invalid === undefined
+    ? { mode }
+    : { mode, rejected: JSON.stringify(invalid) };
+}
+
+/**
+ * The whole human-gate policy a reader passes on: the mode and the declared
+ * human-only classes, each resolved local-then-global.
+ * @param {unknown} local - Parsed local config
+ * @param {unknown} global - Parsed global config
+ * @returns {{ mode: string, humanOnly: unknown[], rejected?: string }} Policy
+ */
+export function resolveHumanGatePolicy(local, global) {
+  const { mode, rejected } = resolveHumanGateMode(local, global);
+  return {
+    mode,
+    humanOnly: resolveHumanOnly(local, global),
+    ...(rejected === undefined ? {} : { rejected }),
+  };
+}
+
+/**
+ * The stderr line for an invalid `humanGate.mode`.
+ * @param {string} rejected - JSON spelling of the declared value
+ * @returns {string} One warning line
+ */
+function invalidModeWarning(rejected) {
+  const accepted = HUMAN_GATE_MODES.map(value => `"${value}"`).join(" | ");
+  return `Invalid humanGate.mode: ${rejected} is not one of ${accepted}; ignored.\n`;
+}
+
+/**
  * Parse `--key value` / `--key=value` flags.
  * @param {string[]} argv - Raw arguments
  * @returns {Record<string, string | null>} Flags; null marks a missing operand
@@ -148,9 +231,12 @@ export function main(argv, io = {}) {
   const missing = ["reason", "config", "local"].filter(
     key => key in flags && (flags[key] === null || flags[key].trim() === "")
   );
-  if (command !== "check" || !flags.reason || missing.length > 0) {
+  const usable =
+    command === "policy" || (command === "check" && Boolean(flags.reason));
+  if (!usable || missing.length > 0) {
     error(
-      "usage: human-gate-act.mjs check --reason <text> [--config <path>] [--local <path>]\n"
+      "usage: human-gate-act.mjs check --reason <text> [--config <path>] [--local <path>]\n" +
+        "       human-gate-act.mjs policy [--config <path>] [--local <path>]\n"
     );
     return 2;
   }
@@ -161,10 +247,20 @@ export function main(argv, io = {}) {
     error(`${failed.error}\n`);
     return 2;
   }
-  const verdict = classifyHumanGateReason(flags.reason, {
-    humanOnly: resolveHumanOnly(local.value, global.value),
-  });
-  write(`${JSON.stringify(verdict)}\n`);
+  const { rejected, ...policy } = resolveHumanGatePolicy(
+    local.value,
+    global.value
+  );
+  if (rejected !== undefined) {
+    error(invalidModeWarning(rejected));
+    error(`humanGate.mode in force: "${policy.mode}".\n`);
+  }
+  if (command === "policy") {
+    write(`${JSON.stringify(policy)}\n`);
+    return 0;
+  }
+  const verdict = classifyHumanGateReason(flags.reason, policy);
+  write(`${JSON.stringify({ ...verdict, mode: policy.mode })}\n`);
   return verdict.valid ? 0 : 1;
 }
 

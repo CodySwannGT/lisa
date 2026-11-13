@@ -18,8 +18,9 @@ second approval. Preserve unrelated rules and the operator's intended meaning.
 - Machine-captured learnings do **not** belong here either. They land in the
   learnings ledger (`.lisa/PROJECT_LEARNINGS.md` by default) through the
   executable contract, and only the gardener (`/lisa:learnings:audit`) ever
-  proposes a promotion out of it — as a human-gated tracker ticket, never a
-  silent agent rewrite.
+  proposes a promotion out of it — as a tracker ticket, never a silent agent
+  rewrite. A promotion that would change this directory is human-gated, because
+  this directory is human-authored.
 - An incidental finding is not permission to add or change a standing rule.
   Decline one-off trivia and rules whose maintenance costs exceed their value.
 

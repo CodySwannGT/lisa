@@ -188,9 +188,15 @@ describe("exploratory-qa feeds the lifecycle (no report file)", () => {
       expect(content).not.toContain("PLAYWRIGHT_GAPS");
     });
 
-    it("exposes a ready flag defaulting to backlog/triage", () => {
+    it("exposes a ready flag whose default follows humanGate.mode", () => {
       expect(content).toContain("ready=true|false");
-      expect(content).toMatch(/default/i);
+      // #4687: build-ready by default under access-only, backlog under strict.
+      expect(content).toMatch(
+        /`ready=true` \(\*\*default\*\* under `humanGate\.mode: "access-only"`\)/
+      );
+      expect(content).toMatch(
+        /`ready=false` \(\*\*default\*\* under `humanGate\.mode: "strict"`/
+      );
       expect(content).toMatch(/triage|backlog/i);
     });
 
