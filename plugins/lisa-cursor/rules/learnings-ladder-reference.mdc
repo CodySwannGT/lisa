@@ -40,7 +40,7 @@ Work down the list and stop at the first honest yes:
 The division is deliberate and it is what keeps knowledge surfaces from silently growing:
 
 - **You capture.** Record the learning through `lisa-persist-learning`, with its provenance and evidence. That is the whole of a session's authority here.
-- **The gardener promotes.** `/lisa:learnings:audit` — available as an opt-in weekly automation via `lisa-setup-automations` — audits the ledger, rules trees, skills, and wiki, routes candidates through the `skill-evaluator`, and files **human-gated tracker tickets** for promotions, demotions, and retirements. A human approves each one.
+- **The gardener promotes.** `/lisa:learnings:audit` — available as an opt-in weekly automation via `lisa-setup-automations` — audits the ledger, rules trees, skills, and wiki, routes candidates through the `skill-evaluator`, and files **tracker tickets** for promotions, demotions, and retirements. By default they file build-ready: the gardener decides, records its evidence and reasoning on the ticket, and a person can reverse it. A ticket is human-gated only when its change lands on a human-authored surface (below) or the project sets `humanGate.mode: "strict"`.
 - **Nothing hand-appends.** Never write a learning directly into `AGENTS.md`, a host rules file, or the human decree surface. Those are human-authored, and an automated append to them is exactly the accretion this ladder exists to stop.
 
 Promotion tickets are themselves governed: `promotion-contract` requires an EXECUTABLE-CONTROL promotion to be atomic — enable the control, fix the existing violation population, ship a remediation-teaching diagnostic, and delete the superseded prose, all in one PR. Promote-without-remove double-pays forever.

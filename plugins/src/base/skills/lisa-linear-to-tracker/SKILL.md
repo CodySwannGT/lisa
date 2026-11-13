@@ -364,7 +364,7 @@ To run the gate, this skill must:
 
 1. Pull the remote links of every epic and story created in this run via `lisa-tracker-read (vendor-neutral; dispatches to jira-read-ticket or github-read-issue)`.
 2. Apply the §8 preservation matrix and verdict rules.
-3. If the gate fails: list each dropped/misrouted artifact and either re-attach via `lisa-tracker-write` (UPDATE mode) or stop and ask the human.
+3. If the gate fails: list each dropped/misrouted artifact and re-attach each via `lisa-tracker-write` (UPDATE mode), choosing the destination ticket from the evidence and recording why. Stop only when re-attaching needs access you lack (for example, the source artifact or the tracker cannot be reached), and name that access.
 4. If the gate passes: print the matrix compactly and proceed to Phase 6.
 
 This gate is not optional.

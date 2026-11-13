@@ -18,6 +18,6 @@ When you learn something durable, route it by **what it costs to carry**, not by
 
 **Take the cheapest rung that actually works.** Anything a machine can decide is EXECUTABLE-CONTROL. KEEP-IN-LEDGER is the default landing zone. EAGER-RULE is earned only by evidence of repeated misses despite the knowledge already being reachable, and the tier is demotion-biased — every session pays for it.
 
-**You capture; you do not promote.** Record the learning through `lisa-persist-learning`. The gardener (`/lisa:learnings:audit`, an opt-in weekly automation) routes candidates through the `skill-evaluator` and files human-gated promotion tickets. Never hand-append a learning to `AGENTS.md` or a host rules file.
+**You capture; you do not promote.** Record the learning through `lisa-persist-learning`. The gardener (`/lisa:learnings:audit`, an opt-in weekly automation) routes candidates through the `skill-evaluator` and files promotion tickets (human-gated only for human-authored targets or strict `humanGate.mode`). Never hand-append a learning to `AGENTS.md` or a host rules file.
 
 Full prose: [reference/learnings-ladder.md](learnings-ladder-reference.mdc).

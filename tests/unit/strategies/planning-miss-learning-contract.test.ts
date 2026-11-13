@@ -8,7 +8,8 @@
  * copy a runtime reads:
  *
  * 1. `learning-judge` classifies it `planning-miss` and persists it (a first
- *    occurrence at `low` confidence, so a human merges it), while a spec gap
+ *    occurrence at `low` confidence, routed by `learnings.lowConfidence` —
+ *    auto-merged under the access-only default, human-merged under strict), while a spec gap
  *    caught before dispatch stays a drop.
  * 2. `lisa-persist-learning` routes the new classification to its PR path and
  *    leaves a countable `[lisa-planning-miss]` note on the item.
@@ -92,9 +93,16 @@ describe.each(JUDGES)("learning-judge (%s)", judgePath => {
     expect(judge).not.toContain("only durable-learning ever persists");
   });
 
-  it("persists a first occurrence at low confidence, for a human to merge", () => {
+  it("persists a first occurrence at low confidence, routed by learnings.lowConfidence", () => {
     expect(judge).toContain(
       "A first-occurrence planning miss persists at `low` confidence"
+    );
+    // #4687: auto-merge is the access-only default; strict restores the human wait.
+    expect(judge).toMatch(
+      /Under the default `humanGate\.mode: "access-only"`, `learnings\.lowConfidence` defaults to `"auto-merge"`/
+    );
+    expect(judge).toMatch(
+      /Under `humanGate\.mode: "strict"`, or when the project sets `learnings\.lowConfidence: "human-triage"`, a `low` rule waits for a human/
     );
     expect(judge).toContain("never blocks a first occurrence");
   });
