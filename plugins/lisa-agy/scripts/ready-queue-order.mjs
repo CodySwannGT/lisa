@@ -432,7 +432,7 @@ function compareWithinGroup(left, right) {
  * `login:` entry matches only a GitHub assignee login, an `id:` entry only
  * the assignee's account id (#4623).
  * @param {readonly Record<string, any>[]} items - Normalized items
- * @param {{ me?: string | null, operators?: readonly unknown[], trustedAuthorIds?: readonly unknown[], humanNeededLabel?: string }} [options]
+ * @param {{ me?: string | null, operators?: readonly unknown[], trustedAuthorIds?: readonly unknown[], humanNeededLabel?: string, humanOnly?: unknown, humanGateMode?: unknown }} [options]
  * @returns {{ ordered: Record<string, any>[], excluded: { ref: string, reason: string }[] }}
  */
 export function orderReadyQueue(items, options = {}) {
@@ -451,7 +451,7 @@ export function orderReadyQueue(items, options = {}) {
  * again, so it waits until someone edits it. Grouping and ordering match
  * {@link orderReadyQueue}.
  * @param {readonly Record<string, any>[]} items - Normalized items
- * @param {{ me?: string | null, operators?: readonly unknown[], trustedAuthorIds?: readonly unknown[], humanNeededLabel?: string, validationFailures?: Readonly<Record<string, { updatedAt?: string }>> }} [options]
+ * @param {{ me?: string | null, operators?: readonly unknown[], trustedAuthorIds?: readonly unknown[], humanNeededLabel?: string, humanOnly?: unknown, humanGateMode?: unknown, validationFailures?: Readonly<Record<string, { updatedAt?: string }>> }} [options]
  * @returns {{ ordered: Record<string, any>[], excluded: { ref: string, reason: string }[] }}
  */
 export function orderBacklogQueue(items, options = {}) {
