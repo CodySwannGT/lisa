@@ -30,10 +30,9 @@
  * There is no exemption list, because no agent needs one. The single
  * intentional duplication in the tree — the `Security (proven)` /
  * `Security (unproven)` bucket headings that `security-specialist` and
- * `lisa-security-review` must both render so they cannot drift — is pinned by
- * `tests/phrase-manifest/required-phrases.json` (checked by
- * `tests/unit/docs/required-phrases.test.ts`) and never reaches this check,
- * since headings are excluded below. Should a future contract genuinely require a
+ * `lisa-security-review` must both render so they cannot drift — never reaches
+ * this check, since headings are excluded below. (Their wording is no longer
+ * pinned by a phrase test: CodySwannGT/lisa#4867.) Should a future contract genuinely require a
  * shared sentence, add the allowlist together with the test that pins it, so the
  * exemption and its justification cannot be separated.
  *
