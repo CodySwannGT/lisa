@@ -51,7 +51,14 @@ import {
  * @typedef {object} StalePolicy
  * @property {(pid: number) => boolean} isLive - Pid liveness probe
  * @property {number} staleMs - Age after which an UNOWNED lock is stale
+ * @property {() => number} bootTimeMs - When this host booted (epoch ms)
  */
+
+/**
+ * How far before boot a lock must have been created to count as pre-boot, so
+ * clock skew or uptime rounding never marks a lock from this boot stale.
+ */
+const BOOT_MARGIN_MS = 1_000;
 
 /**
  * Read the lock's owner record; anything malformed is unowned.
@@ -72,15 +79,22 @@ export async function readLockOwner(lockPath) {
 
 /**
  * Whether an observed lock (owner plus file age) may be reclaimed. A readable
- * owner is stale only when its pid is dead, however old the lock is; age
- * decides only for a lock whose owner record cannot be read.
+ * owner is stale when its pid is dead, or when it was created before this
+ * boot: pids are reused across reboots, so a live pid then proves nothing,
+ * and no process alive now can have created a lock before the host booted —
+ * so this still never breaks a live holder. Age alone never reclaims a
+ * readable owner; it decides only for a lock whose owner record is unreadable.
  * @param {LockOwner|undefined} owner - Owner, when readable
  * @param {number} mtimeMs - Lock file modification time
  * @param {StalePolicy} policy - Staleness policy
  * @returns {boolean} Whether it is stale
  */
 function isStale(owner, mtimeMs, policy) {
-  if (owner !== undefined) return !policy.isLive(owner.pid);
+  if (owner !== undefined)
+    return (
+      owner.createdAt < policy.bootTimeMs() - BOOT_MARGIN_MS ||
+      !policy.isLive(owner.pid)
+    );
   return Date.now() - mtimeMs > policy.staleMs;
 }
 

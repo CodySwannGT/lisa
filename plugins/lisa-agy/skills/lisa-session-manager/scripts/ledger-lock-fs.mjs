@@ -11,6 +11,7 @@
  */
 
 import { lstat, readFile, unlink } from "node:fs/promises";
+import { uptime } from "node:os";
 
 /** Largest owner record worth parsing; anything bigger is not ours. */
 const MAX_OWNER_BYTES = 512;
@@ -55,6 +56,15 @@ export function isProcessLive(pid) {
   } catch (error) {
     return error?.code !== "ESRCH";
   }
+}
+
+/**
+ * When this host last booted, in epoch ms. A pid recorded before then names
+ * a process from an earlier boot, whatever now runs under that number.
+ * @returns {number} Boot time
+ */
+export function bootTimeMs() {
+  return Date.now() - uptime() * 1000;
 }
 
 /**

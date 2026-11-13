@@ -1751,17 +1751,17 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-session-manager/scripts/launch.mjs":
       "5bdea8147595c5d663cf334226c74311efc1a1af456ec40b2474581c28edd12f",
     "plugins/src/base/skills/lisa-session-manager/scripts/ledger-lock-fs.mjs":
-      "646e5a4aa1eac8532809b19b9f86b0024afda59959699de5e808ab90b9d017ed",
+      "0e80de773c25d547c9980ba47c718dd9d3213434681e69754ad0254cf8b0a85a",
     "plugins/src/base/skills/lisa-session-manager/scripts/ledger-lock-reclaim.mjs":
-      "7ca5c5e3a86507c1b3240d1f0f0f4f8893654dece9733faecc1a94bb2a6cf473",
+      "1090e11253f9128bdce20f648362cf156a768a0e9b2ab0c65464313a10e15d9b",
     "plugins/src/base/skills/lisa-session-manager/scripts/ledger-lock.mjs":
-      "2d37268ff9f74e7f05d0bff2f7bab44a8e652101dbfd639dc7cbb0a50c5fab09",
+      "816d1e459896c9636c71f6c32c9f1aaf1ee4b3e8cc42de65547e42cd256a4e1e",
     "plugins/src/base/skills/lisa-session-manager/scripts/ledger-questions.mjs":
       "eb7f845b2c0ebe3ebbd233957329833cc77d3dfce5f3e5df505e336704fb7eae",
     "plugins/src/base/skills/lisa-session-manager/scripts/ledger-setup-gaps.mjs":
       "bfed7726a6129fb5681433a8287f180d513c1439f7f8ff84f6eac600117bea9e",
     "plugins/src/base/skills/lisa-session-manager/scripts/ledger.mjs":
-      "8445397dc906f9efa4bebe65f485b1615330bf58e371228da7a401077c04e701",
+      "7f3a29b5381cf72b1085c40f695c009942ae9e62b4dd112a3c5ec0e15ff87db6",
     "plugins/src/base/skills/lisa-session-manager/scripts/queue-github.mjs":
       "9af014661873a2971fbc29946739088fc3e089deb8d94e78af651647450f2999",
     "plugins/src/base/skills/lisa-session-manager/scripts/reconcile.mjs":
@@ -13424,6 +13424,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/session-manager/launch-argv.test.ts": true,
     "tests/unit/session-manager/launch-real-tmux.test.ts": true,
     "tests/unit/session-manager/launch.test.ts": true,
+    "tests/unit/session-manager/ledger-lock-recovery.test.ts": true,
     "tests/unit/session-manager/ledger-lock.test.ts": true,
     "tests/unit/session-manager/ledger-questions.test.ts": true,
     "tests/unit/session-manager/ledger-validation.test.ts": true,

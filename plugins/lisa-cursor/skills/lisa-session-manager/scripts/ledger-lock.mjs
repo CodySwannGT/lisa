@@ -20,7 +20,10 @@
  *   exponential backoff starting at {@link BACKOFF_START_MS} (25ms), capped at
  *   {@link BACKOFF_MAX_MS}. On timeout the command fails with a clear error and
  *   writes nothing — never a write without the lock.
- * - Staleness: a lock whose recorded pid is not alive on this host is stale.
+ * - Staleness: a lock whose recorded pid is not alive on this host is stale,
+ *   and so is one created before this boot (pids are reused after a reboot;
+ *   no live process can have created a lock before the host booted, so this
+ *   still never breaks a live holder).
  *   The ticket also said "or older than 30 seconds"; that is deliberately
  *   narrowed. Age ({@link STALE_UNOWNED_MS}) decides only when the owner record
  *   is unreadable, because reclaiming a LIVE holder by age would break the
@@ -34,6 +37,7 @@ import { randomInt, randomUUID } from "node:crypto";
 import { link, writeFile } from "node:fs/promises";
 
 import {
+  bootTimeMs,
   isProcessLive,
   removeFileIfPresent,
   sameFile,
@@ -58,6 +62,7 @@ const STALE_UNOWNED_MS = 30_000;
  * @property {number} [lockTimeoutMs] - Acquisition budget
  * @property {(ms: number) => Promise<void>} [sleep] - Retry delay
  * @property {(pid: number) => boolean} [isProcessLive] - Pid liveness probe
+ * @property {() => number} [bootTimeMs] - Host boot time (epoch ms)
  */
 
 /**
@@ -119,8 +124,11 @@ function writeOwner(ownerPath, record) {
 async function timeoutError(lockPath, timeoutMs) {
   const holder = await readLockOwner(lockPath);
   const by = holder ? `held by pid ${holder.pid}` : "holder unknown";
+  const hint = holder
+    ? `if pid ${holder.pid} is not a running session-manager process, delete ${lockPath}`
+    : `if no session-manager process is running, delete ${lockPath}`;
   return new Error(
-    `session-manager ledger lock timed out after ${timeoutMs}ms: ${lockPath} (${by}); no ledger change was written`
+    `session-manager ledger lock timed out after ${timeoutMs}ms: ${lockPath} (${by}); ${hint}; no ledger change was written`
   );
 }
 
@@ -132,7 +140,11 @@ async function timeoutError(lockPath, timeoutMs) {
  */
 async function acquire(lease, seams) {
   const { lockPath, ownerPath, record } = lease;
-  const policy = { isLive: seams.isProcessLive, staleMs: STALE_UNOWNED_MS };
+  const policy = {
+    isLive: seams.isProcessLive,
+    staleMs: STALE_UNOWNED_MS,
+    bootTimeMs: seams.bootTimeMs,
+  };
   const deadline = Date.now() + seams.lockTimeoutMs;
   for (let attempt = 0; ; attempt += 1) {
     const outcome = await tryPublish(ownerPath, lockPath);
@@ -173,6 +185,7 @@ export async function withLedgerLock(target, seams, operation) {
     lockTimeoutMs: seams?.lockTimeoutMs ?? LOCK_TIMEOUT_MS,
     sleep: seams?.sleep ?? defaultSleep,
     isProcessLive: seams?.isProcessLive ?? isProcessLive,
+    bootTimeMs: seams?.bootTimeMs ?? bootTimeMs,
   };
   const lockPath = `${target}.lock`;
   const token = randomUUID();
@@ -192,6 +205,24 @@ export async function withLedgerLock(target, seams, operation) {
   try {
     return await operation();
   } finally {
+    await releaseQuietly(lockPath, ownerPath);
+  }
+}
+
+/**
+ * Release without letting a release failure replace the operation's result
+ * or mask its own error: the ledger write has already happened (or failed)
+ * by now, so a cleanup problem is reported as a one-line warning instead.
+ * @param {string} lockPath - Lock path
+ * @param {string} ownerPath - This holder's owner file
+ * @returns {Promise<void>}
+ */
+async function releaseQuietly(lockPath, ownerPath) {
+  try {
     await release(lockPath, ownerPath);
+  } catch (error) {
+    process.stderr.write(
+      `session-manager ledger lock release failed for ${lockPath}: ${error?.message ?? String(error)}\n`
+    );
   }
 }

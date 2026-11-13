@@ -52,6 +52,7 @@ const FINISH_STATUSES = new Set(["DONE", "FAILED"]);
  * @property {number} [lockTimeoutMs] - Ledger lock budget (default 5000)
  * @property {(ms: number) => Promise<void>} [sleep] - Lock retry delay
  * @property {(pid: number) => boolean} [isProcessLive] - Lock holder probe
+ * @property {() => number} [bootTimeMs] - Host boot time for the lock (epoch ms)
  */
 
 /**

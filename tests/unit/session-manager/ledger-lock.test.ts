@@ -19,6 +19,7 @@ import {
   readFileSync,
   readdirSync,
   rmSync,
+  utimesSync,
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
@@ -188,7 +189,7 @@ describe("ledger lock", () => {
       updateLedger(root, { lockTimeoutMs: 200 }, addKey("blocked"))
     ).rejects.toThrow(
       new RegExp(
-        `session-manager ledger lock timed out after 200ms: .*ledger\\.json\\.lock \\(held by pid ${process.pid}\\)`
+        `session-manager ledger lock timed out after 200ms: .*ledger\\.json\\.lock \\(held by pid ${process.pid}\\); if pid ${process.pid} is not a running session-manager process, delete .*ledger\\.json\\.lock`
       )
     );
 
@@ -207,9 +208,13 @@ describe("ledger lock", () => {
         createdAt: Date.now() - 10 * 60_000,
       })
     );
+    const old = new Date(Date.now() - 10 * 60_000);
+    utimesSync(lock, old, old);
+    // Booted an hour ago, so the lock was created this boot by a live pid.
+    const bootTimeMs = () => Date.now() - 60 * 60_000;
 
     await expect(
-      updateLedger(root, { lockTimeoutMs: 100 }, addKey("blocked"))
+      updateLedger(root, { lockTimeoutMs: 100, bootTimeMs }, addKey("blocked"))
     ).rejects.toThrow(/lock timed out/);
     expect(existsSync(lock)).toBe(true);
   });
