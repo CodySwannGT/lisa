@@ -70,6 +70,18 @@ const jsxA11y = require("eslint-plugin-jsx-a11y");
 const tailwind = require("eslint-plugin-tailwindcss");
 
 /**
+ * jsx-a11y `strict` rules that eslint-plugin-oxlint's `flat/jsx-a11y` preset
+ * hands to oxlint from 1.63.0–1.65.0, where they only warn. Expo restores them
+ * after the preset so they keep blocking (#4508).
+ */
+export const OXLINT_HANDED_OFF_A11Y_RULES = [
+  "jsx-a11y/interactive-supports-focus",
+  "jsx-a11y/no-interactive-element-to-noninteractive-role",
+  "jsx-a11y/no-noninteractive-element-interactions",
+  "jsx-a11y/no-noninteractive-element-to-interactive-role",
+] as const;
+
+/**
  * A project's `.lisa.config.json`, when it has one.
  *
  * Absence is not an error: a project that has never run `lisa apply` has no
@@ -467,6 +479,21 @@ export function getExpoConfig({
     // disables override prior enables.
     ...oxlint.configs["flat/react"],
     ...oxlint.configs["flat/jsx-a11y"],
+
+    // Keep these four blocking, exactly as jsx-a11y `strict` sets them above.
+    // From eslint-plugin-oxlint 1.63.0–1.65.0 the `flat/jsx-a11y` preset turns
+    // them off because oxlint implements them, but oxlint reports them only as
+    // correctness-category warnings, which never fail lint. Must come after the
+    // preset so it wins (#4508).
+    {
+      name: "lisa/jsx-a11y-strict-restore",
+      rules: Object.fromEntries(
+        OXLINT_HANDED_OFF_A11Y_RULES.map(rule => [
+          rule,
+          jsxA11y.flatConfigs.strict.rules[rule],
+        ])
+      ),
+    },
 
     // Standalone maintenance scripts — MUST stay last so it wins over the
     // application-oriented overrides above. These files used to be ignored
