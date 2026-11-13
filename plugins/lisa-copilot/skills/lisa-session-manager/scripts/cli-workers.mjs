@@ -510,6 +510,7 @@ export async function classify(ctx) {
       classification,
       attempts: entry.attempts ?? 0,
       agentStatus: agent?.status ?? agent?.state ?? null,
+      waitingFor: agent?.waitingFor ?? null,
       pendingQuestion: entry.pendingQuestion ?? null,
       setupGap: classification === "setup-gap" ? setupGap : null,
     });

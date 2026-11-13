@@ -277,7 +277,16 @@ describe("resume", () => {
     expect(result.stderr).toBe("");
     expect(result.status).toBe(0);
     const [bg] = callsOf(result.calls, "claude", "--bg");
-    expect(bg?.argv).toEqual(["--bg", "--resume", FULL_ID, "--", ANSWER]);
+    expect(bg?.argv).toEqual([
+      "--bg",
+      "--resume",
+      FULL_ID,
+      "--dangerously-skip-permissions",
+      "--settings",
+      WORKER_SETTINGS,
+      "--",
+      ANSWER,
+    ]);
     expect(bg?.cwd).toBe(path.join(sandbox.root, "projects/api"));
     for (const key of TELEGRAM_KEYS) expect(bg?.envKeys).not.toContain(key);
     expect(result.json).toMatchObject({ ref: REF, sessionId: FULL_ID });

@@ -50,7 +50,9 @@ Workers and capacity
       cwd,firstPrompt}, firstPrompt "alive" or "unconfirmed" (the transcript
       did not resolve in time).
   resume <ref>                         STDIN: the message for the worker
-      claude --bg --resume <full session id> -- "<stdin>" in the worker's repo
+      claude --bg --resume <full session id> --dangerously-skip-permissions
+      --settings <worker settings> -- "<stdin>" (spawn's permission flags) in
+      the worker's repo
       dir, TELEGRAM_* removed; the full id comes from claude agents --json --all
       (exit 2 when none does). Exit 2 when the ledger item finished (DONE or
       FAILED): a finished worker is never resumed.
@@ -60,10 +62,14 @@ Workers and capacity
       a hash of claude logs <worker>, plus the worker's transcript; records
       the hash as progress. stdout
       [{ref,worker,sessionId,repo,classification,attempts,agentStatus,
-        pendingQuestion,setupGap}], classification one of finished|waiting|
-      requestion|setup-gap|working|stalled|dead|exhausted. setup-gap: the
-      worker's first prompt never ran; setupGap is {kind:"unknown-command"|
-      "prompt-blocked",detail}, else null.
+        waitingFor,pendingQuestion,setupGap}], classification one of
+      finished|waiting|requestion|setup-gap|blocked-on-prompt|working|
+      stalled|dead|exhausted. setup-gap: the worker's first prompt never
+      ran; setupGap is {kind:"unknown-command"|"prompt-blocked",detail},
+      else null. blocked-on-prompt: the live worker's agent row reports a
+      waitingFor other than a subagent (e.g. "permission prompt"), which
+      nobody attached can answer. waitingFor is the agent row's text, else
+      null.
   cycle
       Records that this session ran a cycle now: cyclers[<by>] = <at> in
       the ledger, by tmux:<session> when tmux names the caller's session,
