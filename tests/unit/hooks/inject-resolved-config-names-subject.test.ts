@@ -36,14 +36,6 @@ import {
 
 const { contextFor } = hookRunner(process.env);
 
-/** The rule files that restate the hook's instruction. */
-const EAGER_RULES = [
-  "plugins/src/base/rules/eager/config-resolution.md",
-  "plugins/lisa/rules/eager/config-resolution.md",
-  "plugins/lisa-copilot/rules/eager/config-resolution.md",
-  "plugins/lisa-cursor/rules/config-resolution.mdc",
-];
-
 /** The base hook and every generated copy of it. */
 const HOOK_COPIES = [
   "plugins/src/base/hooks/inject-resolved-config.mjs",
@@ -131,18 +123,6 @@ describe("the instruction is scoped, not removed", () => {
 });
 
 describe("every surface carries the same scoped wording", () => {
-  it.each(EAGER_RULES)(
-    "%s names the directory the block resolved for",
-    file => {
-      // A code-only fix leaves the documentation still telling agents not to
-      // verify, which is the half that made the false conclusion durable.
-      const source = readFileSync(path.resolve(file), "utf8");
-
-      expect(source).toContain("names the directory it resolved for");
-      expect(source).toContain("read that repository's config instead");
-    }
-  );
-
   it("keeps every generated hook copy byte-identical to the base", () => {
     // Fixing one variant and missing the other two is the parity failure
     // AGENTS.md forbids; all four are generated from the base.

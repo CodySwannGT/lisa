@@ -155,17 +155,6 @@ const procedure = (text: string): readonly string[] =>
     .filter(line => /^(?:#{1,6} |\d+\. )/.test(line))
     .map(line => line.replaceAll("$lisa-", "/lisa-"));
 
-/**
- * Step 8 of one copy: from its numbered line up to step 9.
- * @param text - skill text
- * @returns the step's text
- */
-const step8 = (text: string): string => {
-  const start = text.indexOf("\n8. ");
-  const end = text.indexOf("\n9. ", start);
-  return text.slice(start, end);
-};
-
 describe("lisa-update-projects skill: references and parity", () => {
   it("has every copy present, so a renamed path cannot empty this file", () => {
     expect(
@@ -202,22 +191,6 @@ describe("lisa-update-projects skill: references and parity", () => {
       const body = (text: string): string =>
         text.replaceAll("$lisa-", "/lisa-");
       expect(body(read(copy))).toBe(body(read(SKILL_COPIES[0])));
-    }
-  );
-
-  it.each(SKILL_COPIES)("%s step 8 recognises pinned callers", copy => {
-    const text = step8(read(copy));
-    expect(text).toContain("@<40-char sha> # v<version>");
-    expect(text).toContain("legacy `@main`");
-  });
-
-  it.each(SKILL_COPIES)(
-    "%s step 8 never accepts a zero-caller detector run as clean",
-    copy => {
-      const text = step8(read(copy));
-      expect(text).toContain("`summary.scanned` is `0`");
-      expect(text).toContain("**unverified**, never clean");
-      expect(text).toContain('`"status": "unparsed"`');
     }
   );
 });

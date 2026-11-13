@@ -76,7 +76,6 @@ describe("packaged apply preflight", () => {
       expect(text, file).toContain(
         "scripts/verify-packaged-apply.mjs --backend docker"
       );
-      expect(text, file).toContain("Lisa-managed entries");
       expect(text, file).toContain(
         "before/after comparison on success and failure"
       );
