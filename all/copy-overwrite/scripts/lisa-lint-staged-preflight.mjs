@@ -255,7 +255,6 @@ export const probe = async (executable, cwd, env) => {
         env,
         stdio: "ignore",
         shell: process.platform === "win32",
-        timeout: PROBE_TIMEOUT_MS,
       });
     } catch (error) {
       settle({
@@ -267,7 +266,17 @@ export const probe = async (executable, cwd, env) => {
       return;
     }
 
+    // The deadline is owned here rather than passed to `spawn` as `timeout`.
+    // Node clears that option's timer only on `exit`, and a child that never
+    // started never exits, so a refusal stayed alive for the whole deadline
+    // after it had already been decided (CodySwannGT/lisa#4616). Clearing on
+    // both `exit` and `error` keeps the deadline for a started tool and drops
+    // it for one that could not start.
+    const deadline = setTimeout(() => child.kill(), PROBE_TIMEOUT_MS);
+    child.once("exit", () => clearTimeout(deadline));
+
     child.on("error", error => {
+      clearTimeout(deadline);
       settle({
         executable,
         started: false,

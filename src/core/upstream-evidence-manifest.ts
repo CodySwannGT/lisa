@@ -347,7 +347,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-hooks/worktree-binding-guard.sh":
       "2fe0a765030bd2b47122021ba3505fbbea1f60002c4e1ed9f0fc4f5b2f786253",
     "all/copy-overwrite/scripts/lisa-lint-staged-preflight.mjs":
-      "2379d4fc5174ae4727997a0d88d43a0212941d91bdebaf790caadd20a8c59810",
+      "f97dec544a99a2db7ea9d7f7eff183ac9276490eb4cf29b5271d4b3180c63abf",
     "all/copy-overwrite/scripts/lisa-npm-updater.mjs":
       "3ee8529f74396b06b1189db9dd37bc002d1e17d9abd9fbd9da6c20c212db7898",
     "all/copy-overwrite/scripts/lisa-plugin-registration-notice.mjs":
