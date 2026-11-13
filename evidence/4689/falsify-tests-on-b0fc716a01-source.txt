@@ -1,0 +1,43 @@
+
+ RUN  v4.1.11 <worktree>
+
+lisa scratch: no supervised lease in the environment, so this run is self-supervised. Fixture directories are still bounded to a run root this process owns and removed on exit; what is missing is the detached reaper that reclaims the root after a SIGKILL, which the next run's startup sweep recovers instead. Run through `lisa-test-run --profile <profile> --adapter vitest -- vitest ...` for a supervised run.
+lisa scratch: no supervised lease in the environment, so this run is self-supervised. Fixture directories are still bounded to a run root this process owns and removed on exit; what is missing is the detached reaper that reclaims the root after a SIGKILL, which the next run's startup sweep recovers instead. Run through `lisa-test-run --profile <profile> --adapter vitest -- vitest ...` for a supervised run.
+ ❯ |lisa| tests/unit/scripts/completion-proof-linear-escaped-markers.test.ts (59 tests | 2 failed) 13ms
+     × lets autolinks outrank code spans so a real marker is never dropped 4ms
+     × lets raw HTML tags outrank code spans so a real marker is never dropped 1ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  |lisa| tests/unit/scripts/completion-proof-linear-escaped-markers.test.ts > inline code spans never claim evidence (#4689) > lets autolinks outrank code spans so a real marker is never dropped
+ FAIL  |lisa| tests/unit/scripts/completion-proof-linear-escaped-markers.test.ts > inline code spans never claim evidence (#4689) > lets raw HTML tags outrank code spans so a real marker is never dropped
+AssertionError: expected [] to deeply equal [ { kind: 'cli-output', name: 'x' } ]
+
+- Expected
++ Received
+
+- [
+-   {
+-     "kind": "cli-output",
+-     "name": "x",
+-   },
+- ]
++ []
+
+ ❯ tests/unit/scripts/completion-proof-linear-escaped-markers.test.ts:391:34
+    389|     "lets %s outrank code spans so a real marker is never dropped",
+    390|     (_label, line) => {
+    391|       expect(localMarkers(line)).toEqual(X);
+       |                                  ^
+    392|     }
+    393|   );
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+
+ Test Files  1 failed | 1 passed (2)
+      Tests  2 failed | 113 passed (115)
+   Start at  01:46:42
+   Duration  733ms (transform 451ms, setup 390ms, import 402ms, tests 37ms, environment 0ms)
+
+exit=1

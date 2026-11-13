@@ -1,0 +1,8 @@
+# FIX HEAD 85154ab05c validateManifest
+# node v22.22.0
+$ node manifest.mjs <worktree>/all/copy-overwrite/scripts/lib
+PASS | empty manifest, inline-code-only body | want ACCEPT | got ACCEPT
+PASS | one top-level marker, matching manifest | want ACCEPT | got ACCEPT
+PASS | control: top-level marker, empty manifest | want REFUSE | got REFUSE The local typed evidence manifest is incomplete.
+SUMMARY: 3/3 match expected
+exit=0

@@ -1,0 +1,256 @@
+
+ RUN  v4.1.11 <worktree>
+
+lisa scratch: no supervised lease in the environment, so this run is self-supervised. Fixture directories are still bounded to a run root this process owns and removed on exit; what is missing is the detached reaper that reclaims the root after a SIGKILL, which the next run's startup sweep recovers instead. Run through `lisa-test-run --profile <profile> --adapter vitest -- vitest ...` for a supervised run.
+lisa scratch: no supervised lease in the environment, so this run is self-supervised. Fixture directories are still bounded to a run root this process owns and removed on exit; what is missing is the detached reaper that reclaims the root after a SIGKILL, which the next run's startup sweep recovers instead. Run through `lisa-test-run --profile <profile> --adapter vitest -- vitest ...` for a supervised run.
+ ❯ |lisa| tests/unit/scripts/completion-proof-linear-escaped-markers.test.ts (59 tests | 17 failed) 17ms
+     × never decodes an escaped example in inline code into a claim (#4689) 3ms
+     × returns [] for a marker only in inline code (single backticks, escaped) 0ms
+     × returns [] for a marker only in inline code (single backticks, plain) 2ms
+     × returns [] for a marker only in inline code (double backticks, escaped) 1ms
+     × returns [] for a marker only in inline code (double backticks, plain) 0ms
+     × returns [] for a marker only in inline code (triple backticks inline, plain) 0ms
+     × returns [] for a marker only in inline code (double backticks holding a single one) 0ms
+     × returns [] for a marker only in inline code (placeholder, escaped) 0ms
+     × returns [] for a marker only in inline code (placeholder, plain) 0ms
+     × returns [] for a marker only in inline code (legacy screenshot, plain) 0ms
+     × returns [] for a marker only in inline code (unsupported type) 0ms
+     × keeps exactly the top-level marker beside a quoted one (escaped) 0ms
+     × keeps exactly the top-level marker beside a quoted one (plain) 0ms
+     × does not let a quoted duplicate name collide with the real marker 0ms
+     × treats an unclosed backtick run as literal text, not a span 0ms
+     × closes a span only on a run of exactly the opening length 0ms
+     × closes a single-backtick span on a lone backtick, not inside a longer run 0ms
+
+⎯⎯⎯⎯⎯⎯ Failed Tests 17 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  |lisa| tests/unit/scripts/completion-proof-linear-escaped-markers.test.ts > completion proof reads Linear-escaped evidence markers (#4670) > never decodes an escaped example in inline code into a claim (#4689)
+CompletionProofError: A local evidence declaration is malformed; repair its type and name.
+ ❯ requireProof all/copy-overwrite/scripts/lib/completion-proof-errors.mjs:15:25
+     13| /** Refuse unusable data with the exact obligation an operator can rep…
+     14| export function requireProof(condition, message, category = "invalid-p…
+     15|   if (!condition) throw new CompletionProofError(category, message);
+       |                         ^
+     16| }
+     17|
+ ❯ localMarkers all/copy-overwrite/scripts/lib/completion-proof-shape.mjs:225:3
+ ❯ tests/unit/scripts/completion-proof-linear-escaped-markers.test.ts:160:12
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/17]⎯
+
+ FAIL  |lisa| tests/unit/scripts/completion-proof-linear-escaped-markers.test.ts > inline code spans never claim evidence (#4689) > returns [] for a marker only in inline code (single backticks, escaped)
+ FAIL  |lisa| tests/unit/scripts/completion-proof-linear-escaped-markers.test.ts > inline code spans never claim evidence (#4689) > returns [] for a marker only in inline code (placeholder, escaped)
+ FAIL  |lisa| tests/unit/scripts/completion-proof-linear-escaped-markers.test.ts > inline code spans never claim evidence (#4689) > returns [] for a marker only in inline code (placeholder, plain)
+CompletionProofError: A local evidence declaration is malformed; repair its type and name.
+ ❯ requireProof all/copy-overwrite/scripts/lib/completion-proof-errors.mjs:15:25
+     13| /** Refuse unusable data with the exact obligation an operator can rep…
+     14| export function requireProof(condition, message, category = "invalid-p…
+     15|   if (!condition) throw new CompletionProofError(category, message);
+       |                         ^
+     16| }
+     17|
+ ❯ localMarkers all/copy-overwrite/scripts/lib/completion-proof-shape.mjs:225:3
+ ❯ tests/unit/scripts/completion-proof-linear-escaped-markers.test.ts:319:12
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/17]⎯
+
+ FAIL  |lisa| tests/unit/scripts/completion-proof-linear-escaped-markers.test.ts > inline code spans never claim evidence (#4689) > returns [] for a marker only in inline code (single backticks, plain)
+ FAIL  |lisa| tests/unit/scripts/completion-proof-linear-escaped-markers.test.ts > inline code spans never claim evidence (#4689) > returns [] for a marker only in inline code (double backticks, escaped)
+ FAIL  |lisa| tests/unit/scripts/completion-proof-linear-escaped-markers.test.ts > inline code spans never claim evidence (#4689) > returns [] for a marker only in inline code (double backticks, plain)
+ FAIL  |lisa| tests/unit/scripts/completion-proof-linear-escaped-markers.test.ts > inline code spans never claim evidence (#4689) > returns [] for a marker only in inline code (triple backticks inline, plain)
+ FAIL  |lisa| tests/unit/scripts/completion-proof-linear-escaped-markers.test.ts > inline code spans never claim evidence (#4689) > returns [] for a marker only in inline code (double backticks holding a single one)
+AssertionError: expected [ { kind: 'cli-output', name: 'x' } ] to deeply equal []
+
+- Expected
++ Received
+
+- []
++ [
++   {
++     "kind": "cli-output",
++     "name": "x",
++   },
++ ]
+
+ ❯ tests/unit/scripts/completion-proof-linear-escaped-markers.test.ts:319:59
+    317|     ["unsupported type", code("[EVIDENCE: video: demo]")],
+    318|   ])("returns [] for a marker only in inline code (%s)", (_label, span…
+    319|     expect(localMarkers(`Body mentions ${span} here.\n`)).toEqual([]);
+       |                                                           ^
+    320|   });
+    321|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/17]⎯
+
+ FAIL  |lisa| tests/unit/scripts/completion-proof-linear-escaped-markers.test.ts > inline code spans never claim evidence (#4689) > returns [] for a marker only in inline code (legacy screenshot, plain)
+AssertionError: expected [ Array(1) ] to deeply equal []
+
+- Expected
++ Received
+
+- []
++ [
++   {
++     "kind": "screenshot",
++     "name": "home",
++   },
++ ]
+
+ ❯ tests/unit/scripts/completion-proof-linear-escaped-markers.test.ts:319:59
+    317|     ["unsupported type", code("[EVIDENCE: video: demo]")],
+    318|   ])("returns [] for a marker only in inline code (%s)", (_label, span…
+    319|     expect(localMarkers(`Body mentions ${span} here.\n`)).toEqual([]);
+       |                                                           ^
+    320|   });
+    321|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/17]⎯
+
+ FAIL  |lisa| tests/unit/scripts/completion-proof-linear-escaped-markers.test.ts > inline code spans never claim evidence (#4689) > returns [] for a marker only in inline code (unsupported type)
+CompletionProofError: A local evidence declaration has an unsupported type.
+ ❯ requireProof all/copy-overwrite/scripts/lib/completion-proof-errors.mjs:15:25
+     13| /** Refuse unusable data with the exact obligation an operator can rep…
+     14| export function requireProof(condition, message, category = "invalid-p…
+     15|   if (!condition) throw new CompletionProofError(category, message);
+       |                         ^
+     16| }
+     17|
+ ❯ localMarkers all/copy-overwrite/scripts/lib/completion-proof-shape.mjs:233:3
+ ❯ tests/unit/scripts/completion-proof-linear-escaped-markers.test.ts:319:12
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/17]⎯
+
+ FAIL  |lisa| tests/unit/scripts/completion-proof-linear-escaped-markers.test.ts > inline code spans never claim evidence (#4689) > keeps exactly the top-level marker beside a quoted one (escaped)
+CompletionProofError: A local evidence declaration is malformed; repair its type and name.
+ ❯ requireProof all/copy-overwrite/scripts/lib/completion-proof-errors.mjs:15:25
+     13| /** Refuse unusable data with the exact obligation an operator can rep…
+     14| export function requireProof(condition, message, category = "invalid-p…
+     15|   if (!condition) throw new CompletionProofError(category, message);
+       |                         ^
+     16| }
+     17|
+ ❯ localMarkers all/copy-overwrite/scripts/lib/completion-proof-shape.mjs:225:3
+ ❯ tests/unit/scripts/completion-proof-linear-escaped-markers.test.ts:329:9
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/17]⎯
+
+ FAIL  |lisa| tests/unit/scripts/completion-proof-linear-escaped-markers.test.ts > inline code spans never claim evidence (#4689) > keeps exactly the top-level marker beside a quoted one (plain)
+AssertionError: expected [ { kind: 'cli-output', …(1) }, …(1) ] to deeply equal [ { kind: 'cli-output', name: 'top' } ]
+
+- Expected
++ Received
+
+  [
+    {
+      "kind": "cli-output",
+      "name": "top",
+    },
++   {
++     "kind": "cli-output",
++     "name": "x",
++   },
+  ]
+
+ ❯ tests/unit/scripts/completion-proof-linear-escaped-markers.test.ts:330:9
+    328|       expect(
+    329|         localMarkers(`Step. ${top}\nThe ${code(quoted)} form is an exa…
+    330|       ).toEqual(TOP);
+       |         ^
+    331|       expect(
+    332|         localMarkers(`Same line ${code(quoted, 2)} then ${top}\n`)
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/17]⎯
+
+ FAIL  |lisa| tests/unit/scripts/completion-proof-linear-escaped-markers.test.ts > inline code spans never claim evidence (#4689) > does not let a quoted duplicate name collide with the real marker
+CompletionProofError: Local evidence declarations must have unique names.
+ ❯ requireProof all/copy-overwrite/scripts/lib/completion-proof-errors.mjs:15:25
+     13| /** Refuse unusable data with the exact obligation an operator can rep…
+     14| export function requireProof(condition, message, category = "invalid-p…
+     15|   if (!condition) throw new CompletionProofError(category, message);
+       |                         ^
+     16| }
+     17|
+ ❯ localMarkers all/copy-overwrite/scripts/lib/completion-proof-shape.mjs:237:3
+ ❯ tests/unit/scripts/completion-proof-linear-escaped-markers.test.ts:339:7
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/17]⎯
+
+ FAIL  |lisa| tests/unit/scripts/completion-proof-linear-escaped-markers.test.ts > inline code spans never claim evidence (#4689) > treats an unclosed backtick run as literal text, not a span
+AssertionError: expected [ { kind: 'cli-output', name: 'x' } ] to deeply equal []
+
+- Expected
++ Received
+
+- []
++ [
++   {
++     "kind": "cli-output",
++     "name": "x",
++   },
++ ]
+
+ ❯ tests/unit/scripts/completion-proof-linear-escaped-markers.test.ts:347:66
+    345|   it("treats an unclosed backtick run as literal text, not a span", ()…
+    346|     expect(localMarkers(`Stray \` then ${ESCAPED}\n`)).toEqual(X);
+    347|     expect(localMarkers(`Stray \`\` then ${code(PLAIN)} end\n`)).toEqu…
+       |                                                                  ^
+    348|     expect(() => localMarkers("Stray ` then [EVIDENCE: bad]\n")).toThr…
+    349|       MALFORMED
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/17]⎯
+
+ FAIL  |lisa| tests/unit/scripts/completion-proof-linear-escaped-markers.test.ts > inline code spans never claim evidence (#4689) > closes a span only on a run of exactly the opening length
+AssertionError: expected [ { kind: 'cli-output', name: 'x' } ] to deeply equal []
+
+- Expected
++ Received
+
+- []
++ [
++   {
++     "kind": "cli-output",
++     "name": "x",
++   },
++ ]
+
+ ❯ tests/unit/scripts/completion-proof-linear-escaped-markers.test.ts:354:54
+    352|
+    353|   it("closes a span only on a run of exactly the opening length", () =…
+    354|     expect(localMarkers(`\`\`a\` ${PLAIN}\`\` b\n`)).toEqual([]);
+       |                                                      ^
+    355|     expect(localMarkers(`\`a\`\` ${PLAIN}\n`)).toEqual(X);
+    356|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[10/17]⎯
+
+ FAIL  |lisa| tests/unit/scripts/completion-proof-linear-escaped-markers.test.ts > inline code spans never claim evidence (#4689) > closes a single-backtick span on a lone backtick, not inside a longer run
+AssertionError: expected [ { kind: 'cli-output', name: 'x' } ] to deeply equal []
+
+- Expected
++ Received
+
+- []
++ [
++   {
++     "kind": "cli-output",
++     "name": "x",
++   },
++ ]
+
+ ❯ tests/unit/scripts/completion-proof-linear-escaped-markers.test.ts:374:49
+    372|
+    373|   it("closes a single-backtick span on a lone backtick, not inside a l…
+    374|     expect(localMarkers(`\`a\`\` ${PLAIN} \``)).toEqual([]);
+       |                                                 ^
+    375|   });
+    376|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[11/17]⎯
+
+
+ Test Files  1 failed | 1 passed (2)
+      Tests  17 failed | 98 passed (115)
+   Start at  01:46:48
+   Duration  614ms (transform 295ms, setup 257ms, import 333ms, tests 39ms, environment 0ms)
+
+exit=1
