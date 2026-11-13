@@ -1,8 +1,8 @@
 {
   "$generatedBy": "scripts/generate-export-surface.mjs",
   "$doNotEdit": "The public export surface this package ships, recorded so a removal is an OBSERVATION rather than an inference from commit-message conventions. This file's diff is what makes a removed export visible in the pull request that causes it (CodySwannGT/lisa#3718).",
-  "$modules": 279,
-  "$names": 1999,
+  "$modules": 280,
+  "$names": 2014,
   "surface": {
     "all/copy-overwrite/scripts/check-conflict-markers.mjs": [
       "UsageError",
@@ -289,6 +289,23 @@
       "ranNoTests",
       "tempRootPopulation",
       "terminatedDocComments"
+    ],
+    "all/copy-overwrite/scripts/lib/gate-pass-cache.mjs": [
+      "CACHE_ENV",
+      "CACHE_FIELD",
+      "ENV_ALLOWLIST",
+      "KEY_SCHEMA",
+      "LOCKFILES",
+      "MAX_AGE_MS",
+      "VOLATILE_LISA_ENV",
+      "cacheDirectory",
+      "cacheSetting",
+      "canonicalJson",
+      "gateKey",
+      "openGatePassCache",
+      "provedTree",
+      "relevantEnvironment",
+      "sharedInputs"
     ],
     "all/copy-overwrite/scripts/lib/github-attestation-provider.mjs": [
       "verifyAssignable",

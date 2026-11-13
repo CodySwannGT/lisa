@@ -57,6 +57,7 @@ import {
   recordKillMark,
 } from "./lib/kill-marks.mjs";
 import { boundedSpawnSync, isChildTimeout } from "./lib/bounded-spawn.mjs";
+import { openGatePassCache } from "./lib/gate-pass-cache.mjs";
 import { invokedAsScript } from "./lib/invoked-as-script.mjs";
 import { runStartOfRunSweep } from "./lib/lisa-cleanup-sweep.mjs";
 import { worktreeDependencyProblem } from "./lib/worktree-dependencies.mjs";
@@ -219,6 +220,8 @@ export const CONDITIONAL_FLOOR = Object.freeze({
  *   `ATTRIBUTION`; absent unless a diagnosis attributed it.
  * @property {string|null} provedBy The gate whose run proved this one, when
  *   they share a command. Always set: `runMoment` stamps it on every outcome.
+ * @property {boolean} [cached] True when the verdict is a remembered pass for
+ *   this exact content and the gate did not run (CodySwannGT/lisa#4594).
  */
 
 /**
@@ -729,9 +732,32 @@ function summarise(result, priorKills = []) {
  * @param {{proved: Map<string, object>, blockedBy: string|null, exec: Function}} ctx Run state.
  * @returns {{outcome: object, shared: object|undefined, ran: boolean}} The verdict.
  */
-function verdictFor(gate, { proved, blockedBy, exec, siblings, declarations }) {
+function verdictFor(
+  gate,
+  { proved, blockedBy, exec, siblings, declarations, cache }
+) {
   const own = classifyStatic(gate);
   if (own) return { outcome: own, shared: undefined, ran: false };
+
+  // A remembered pass for this exact content (CodySwannGT/lisa#4594). It is a
+  // known verdict, so it is honoured even once the run is blocked, exactly as
+  // a shared result is. It is never shared onward: a sibling computes its own
+  // key, and a sibling marked `"cache": false` must run the command itself.
+  const hit = cache?.lookup(gate) ?? null;
+  if (hit) {
+    return {
+      outcome: {
+        state: STATE.PASSED,
+        detail: `CACHED PASS (${hit.key.slice(0, 12)}) ${gate.command}`,
+        code: 0,
+        diagnosis: null,
+        evidence: [],
+        cached: true,
+      },
+      shared: undefined,
+      ran: false,
+    };
+  }
 
   const shared = gate.command ? proved.get(gate.command) : undefined;
   if (shared) {
@@ -818,6 +844,10 @@ function verdictFor(gate, { proved, blockedBy, exec, siblings, declarations }) {
  *   whether the run this chain serves is still there. Injectable for the same
  *   reason `exec` is: a test states that the caller went away instead of having
  *   to kill a real hook mid-chain.
+ * @param {{lookup: (gate: GateOutcome) => ({key: string}|null), remember: (gate: GateOutcome, durationMs: number|null) => void, commit: () => void}|null} [options.cache]
+ *   The push-gate pass cache from `openGatePassCache`, or null for none. A
+ *   lookup hit reports `CACHED PASS` without running; only full passes are
+ *   handed to `remember`, and `commit` writes them once the run is over.
  * @returns {GateRun} What every declared gate at this moment produced.
  */
 export function runGates({
@@ -830,6 +860,7 @@ export function runGates({
   priorKills = recentKillMarks(),
   recordKill = recordKillMark,
   interrupted = runInterruption,
+  cache = null,
 }) {
   const resolved = resolveMoment({ gates, moment, runner, scripts });
   const results = [];
@@ -905,13 +936,16 @@ export function runGates({
       out(formatLine(STATE.NOT_RUN, gate, detail));
       continue;
     }
+    const startedAt = Date.now();
     const { outcome, shared, ran, raw } = verdictFor(gate, {
       proved,
       blockedBy,
       exec,
       siblings: sharers.get(gate.command) ?? new Set(),
       declarations: declaredShapes.get(gate.command) ?? [],
+      cache,
     });
+    const durationMs = ran ? Date.now() - startedAt : shared?.durationMs;
 
     // Only what this iteration actually executed is shareable, and `ran` says
     // so explicitly rather than being inferred from the exit code. `execute`
@@ -920,7 +954,23 @@ export function runGates({
     // next gate to run it again — re-running a whole suite an operator has
     // just interrupted.
     if (ran && gate.command) {
-      proved.set(gate.command, { id: gate.id, outcome: raw ?? outcome });
+      proved.set(gate.command, {
+        id: gate.id,
+        outcome: raw ?? outcome,
+        durationMs,
+      });
+    }
+    // Only a FULL pass is remembered: this gate's own verdict passed, and so
+    // did the run that produced it — never a pass read off a shared prover
+    // whose own outcome was anything else. Written after the run, by `commit`.
+    const source = ran ? raw : shared?.outcome;
+    if (
+      cache &&
+      outcome.state === STATE.PASSED &&
+      !outcome.cached &&
+      source?.state === STATE.PASSED
+    ) {
+      cache.remember(gate, durationMs ?? null);
     }
 
     results.push({ ...gate, ...outcome, provedBy: shared?.id ?? null });
@@ -942,6 +992,7 @@ export function runGates({
   // next iteration to observe it, and an optional gate cannot block on its own.
   // Record the interruption before this result can claim completion.
   interruption ??= interrupted();
+  cache?.commit();
 
   const bucket = state => results.filter(entry => entry.state === state);
   const result = {
@@ -975,6 +1026,12 @@ export function runGates({
     recordKill({ kind: STATE.KILLED, gateId: entry.id });
   }
   for (const line of summarise(result, priorKills)) out(line);
+  const cached = result.passed.filter(entry => entry.cached).length;
+  if (cached) {
+    out(
+      `   ${cached} of those proved by a remembered pass for this exact tree.`
+    );
+  }
   return result;
 }
 
@@ -1722,6 +1779,17 @@ export function main(argv = process.argv.slice(2)) {
   // One cleanup sweep per push (CodySwannGT/lisa#4597), before the first gate
   // and before the built-in fallback below, which runs tests too. It never
   // fails the run: whatever goes wrong is printed and the gates run.
+  // Opened before the sweep, and only at push. Off unless the project set
+  // `pushGate.cache: true`, and then silent and inert (CodySwannGT/lisa#4594).
+  const cache =
+    moment === "push"
+      ? openGatePassCache({
+          config: config.config,
+          gates: config.gates,
+          moment,
+          out: line => console.log(line),
+        })
+      : null;
   if (moment === "push") {
     try {
       runStartOfRunSweep();
@@ -1772,6 +1840,7 @@ export function main(argv = process.argv.slice(2)) {
     moment,
     runner: config.runner,
     exec: spawnExec,
+    cache,
     // The manifest is read HERE and handed down, rather than read inside the
     // resolver, so that `runGates` stays a pure function of its inputs and
     // every test above can state what this project ships instead of writing a
