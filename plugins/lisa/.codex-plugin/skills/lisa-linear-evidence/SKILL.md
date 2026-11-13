@@ -69,7 +69,7 @@ If either is missing, **refuse to post**: stop and report the missing Not-establ
 
 ## Phase 2 — Upload Evidence Files (optional)
 
-If `evidence/files/` is non-empty, resolve the release with `RELEASE=$(node scripts/lisa-work-item.mjs evidence-release --ensure)` (it creates a missing release and stops when one is nearly full; default `pr-assets`), then upload each text file to it on the current repo via `gh release upload "$RELEASE"`. The release is the permalink store — keeps the Linear comment lightweight while preserving large outputs.
+If `evidence/files/` is non-empty, resolve the release with `RELEASE=$(node scripts/lisa-work-item.mjs evidence-release --ensure)` (it creates a missing release, rolls over to `<release>-2`, `-3`, … when one is nearly full, and stops only when a pinned release or every overflow release is full; default `pr-assets`), then upload each text file to it on the current repo via `gh release upload "$RELEASE"`. The release is the permalink store — keeps the Linear comment lightweight while preserving large outputs.
 
 For each uploaded file, capture the public release URL.
 

@@ -25,6 +25,16 @@ export const EVIDENCE_RELEASE_ASSET_LIMIT = 1000;
  * operator reads what to change instead of an opaque upload failure (#4692).
  */
 export const EVIDENCE_RELEASE_NEAR_FULL = 950;
+/**
+ * The highest overflow suffix the publisher rolls over to: `<release>-2`
+ * through `<release>-99` (CodySwannGT/lisa#4838). One monthly release filled in
+ * under two weeks on a busy host; 98 overflow releases hold about 93,000 more
+ * files per period, and the bound keeps both the roll-over loop and the set of
+ * names the validator accepts finite.
+ */
+export const EVIDENCE_RELEASE_MAX_OVERFLOW = 99;
+/** `-2` … `-99`: no `-0`, no `-1`, no leading zero, so each name is unique. */
+const OVERFLOW_SUFFIX = "(?:-(?:[2-9]|[1-9]\\d))?";
 const MONTH_TOKEN = "{YYYY-MM}";
 const MONTH_PATTERN = "\\d{4}-(?:0[1-9]|1[0-2])";
 const RELEASE_TAG = /^[A-Za-z0-9][A-Za-z0-9._-]{0,99}$/;
@@ -133,19 +143,61 @@ export function evidenceReleaseOverride(
   return value;
 }
 
-/** An anchored pattern where only `{YYYY-MM}` varies; all else is literal. */
+/**
+ * The release a roll-over writes to at a position: the resolved name itself
+ * first, then `<name>-2`, `<name>-3`, and so on (CodySwannGT/lisa#4838).
+ * @param {string} base - The resolved or pinned concrete release name.
+ * @param {number} index - 1 for the name itself, 2 or more for an overflow.
+ * @returns {string} The concrete release name at that position.
+ */
+export function overflowReleaseTag(base, index) {
+  return index <= 1 ? base : `${base}-${index}`;
+}
+
+/**
+ * The release this run publishes to, and whether it was pinned.
+ *
+ * The one resolver behind both `evidence-release` and
+ * `publish-completion-proof`, so the release the publisher uploads to is
+ * always the one `evidence-release` prints in the same environment. The
+ * publisher used to resolve the current-month name itself and ignore
+ * `LISA_EVIDENCE_RELEASE`, so a full month blocked every completion even when
+ * the operator pinned a release with room (CodySwannGT/lisa#4838).
+ * @param {object} [policy] - `verification.completion` from the Lisa config.
+ * @param {object} [env] - The environment holding `LISA_EVIDENCE_RELEASE`.
+ * @param {Date} [now] - Resolution time for a `{YYYY-MM}` template.
+ * @returns {{tag: string, pinned: boolean}} The validated concrete release;
+ *   `pinned` when `LISA_EVIDENCE_RELEASE` named it, which never rolls over.
+ */
+export function targetEvidenceRelease(
+  policy = {},
+  env = process.env,
+  now = new Date()
+) {
+  const pinned = env.LISA_EVIDENCE_RELEASE?.trim();
+  return pinned
+    ? { tag: evidenceReleaseOverride(policy, pinned), pinned: true }
+    : { tag: resolveEvidenceRelease(policy, now), pinned: false };
+}
+
+/**
+ * An anchored pattern where only `{YYYY-MM}` and an overflow suffix vary; all
+ * else is literal. The suffix is what keeps proof in `<release>-2` and later
+ * overflow releases validating on `finish` (CodySwannGT/lisa#4838).
+ */
 function templatePattern(template) {
   const literal = template
     .split(MONTH_TOKEN)
     .map(part => part.replace(/[.*+?^${}()|[\]\\-]/g, "\\$&"));
-  return new RegExp(`^${literal.join(MONTH_PATTERN)}$`);
+  return new RegExp(`^${literal.join(MONTH_PATTERN)}${OVERFLOW_SUFFIX}$`);
 }
 
 /**
  * Whether a release tag holds evidence the validator accepts.
  * @param {object} [policy] - `verification.completion` from the Lisa config.
  * @param {string} tag - Release tag read from native asset metadata.
- * @returns {boolean} True for the legacy, configured or listed releases.
+ * @returns {boolean} True for the legacy, configured or listed releases, and
+ *   for their `-2` … `-99` overflow releases.
  */
 export function isAcceptedEvidenceRelease(policy, tag) {
   return (

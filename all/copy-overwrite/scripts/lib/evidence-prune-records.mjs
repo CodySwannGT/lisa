@@ -15,7 +15,9 @@
  * @module scripts/lib/evidence-prune-records
  */
 import {
+  EVIDENCE_RELEASE_MAX_OVERFLOW,
   isAcceptedEvidenceRelease,
+  overflowReleaseTag,
   resolveEvidenceRelease,
 } from "./completion-proof-github.mjs";
 import { COMPLETION_RECORD, EvidencePruneError } from "./evidence-prune.mjs";
@@ -62,17 +64,42 @@ export function evidenceSnapshot(gh, policy, tag) {
 }
 
 /**
+ * The releases the publisher may write a new record into that the snapshot
+ * did not list: the release it resolves to now and that release's overflow
+ * releases, walked in order up to the first one that does not exist (the
+ * publisher only creates `<release>-n` once `<release>-(n-1)` is full,
+ * CodySwannGT/lisa#4838), plus the pinned release.
+ */
+function publisherReleases(gh, accepted, resolved, pinned) {
+  const listed = tag => accepted.some(release => release.tag_name === tag);
+  const extra = [];
+  for (let index = 1; index <= EVIDENCE_RELEASE_MAX_OVERFLOW; index += 1) {
+    const tag = overflowReleaseTag(resolved, index);
+    if (listed(tag)) continue;
+    const release = gh.release(tag);
+    if (!release) break;
+    extra.push(release);
+  }
+  const pinnedRelease =
+    pinned && !listed(pinned) && !extra.some(row => row.tag_name === pinned)
+      ? gh.release(pinned)
+      : null;
+  return pinnedRelease ? [...extra, pinnedRelease] : extra;
+}
+
+/**
  * A re-read of records published since the snapshot, for the check made
  * before each delete.
  *
  * It re-lists the snapshot's accepted releases plus every release the
  * publisher can write a new record into: the one it resolves to now, so a
- * rotation across a month boundary during a long run is still seen, and the
- * one `LISA_EVIDENCE_RELEASE` pins, which the publisher uses instead when set
- * and creates when absent. It does not re-list the repository's releases on
- * every delete: on a repository with thousands of releases that alone is
- * twenty-odd calls per file, and those two are the only releases the
- * publisher creates.
+ * rotation across a month boundary during a long run is still seen; that
+ * release's overflow releases, which the publisher creates once it is full
+ * (CodySwannGT/lisa#4838); and the one `LISA_EVIDENCE_RELEASE` pins, which the
+ * publisher uses instead when set and creates when absent. It does not re-list
+ * the repository's releases on every delete: on a repository with thousands
+ * of releases that alone is twenty-odd calls per file. Walking the overflow
+ * chain costs one lookup past the last release the snapshot already lists.
  * @param {object} gh - The prune's GitHub operations.
  * @param {object} policy - `verification.completion` from the Lisa config.
  * @param {object[]} accepted - The snapshot's accepted releases.
@@ -85,11 +112,12 @@ export function evidenceSnapshot(gh, policy, tag) {
 export function recordRescanner(gh, policy, accepted, options = {}) {
   const clock = options.clock ?? (() => new Date());
   return known => {
-    const targets = [resolveEvidenceRelease(policy, clock()), options.pinned];
-    const extra = [...new Set(targets.filter(Boolean))]
-      .filter(tag => !accepted.some(release => release.tag_name === tag))
-      .map(tag => gh.release(tag))
-      .filter(Boolean);
+    const extra = publisherReleases(
+      gh,
+      accepted,
+      resolveEvidenceRelease(policy, clock()),
+      options.pinned
+    );
     const fresh = [...accepted, ...extra]
       .flatMap(release => gh.assets(release))
       .filter(asset => isRecord(asset) && !known.has(asset.id));

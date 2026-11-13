@@ -9,7 +9,6 @@ import {
   CompletionProofError,
   PROOF_KIND,
   PROOF_MARKER,
-  MAX_NATIVE_JSON_BYTES,
   MAX_RECORD_BYTES,
   sha256,
   primarySpecProjection,
@@ -19,136 +18,72 @@ import {
   isId,
 } from "./completion-proof-shape.mjs";
 import {
-  EVIDENCE_RELEASE_ASSET_LIMIT,
-  EVIDENCE_RELEASE_NEAR_FULL,
   githubProofTransport,
-  resolveEvidenceRelease,
+  targetEvidenceRelease,
 } from "./completion-proof-github.mjs";
+import {
+  ensureEvidenceRelease,
+  excerpt,
+  fullReleaseMessage,
+  releaseAssets,
+  uploadHitLimit,
+} from "./evidence-release-capacity.mjs";
 import { completionRecordId } from "./completion-proof-reader.mjs";
 import { evaluateAcceptedRecord } from "./completion-authorization.mjs";
 
 const READ_ERROR = "read-error";
 const WRITE_ERROR = "write-error";
 
-/** The operator-readable refusal for a release GitHub will not take more files in. */
-function fullReleaseMessage(tag, repository, count) {
-  const held =
-    count === undefined
-      ? `is at GitHub's ${EVIDENCE_RELEASE_ASSET_LIMIT}-file limit`
-      : `holds ${count} of GitHub's ${EVIDENCE_RELEASE_ASSET_LIMIT}-file limit`;
-  return `The evidence release \`${tag}\` in ${repository} ${held}, so new proof can't be uploaded. Set \`verification.completion.evidenceRelease\` in .lisa.config.json to a rotating name such as \`pr-assets-{YYYY-MM}\` (older proof keeps validating), or prune old evidence (CodySwannGT/lisa#4720).`;
-}
+export { ensureEvidenceRelease };
 
-/** The last few lines of a native CLI's diagnostics, bounded for a message. */
-function excerpt(stderr) {
-  const text = String(stderr ?? "").trim();
-  return text.length > 400 ? `…${text.slice(-400)}` : text;
-}
-
-/**
- * Read a release by tag in one call; `null` only for GitHub's explicit 404.
- * Any other failure goes through the bounded transport, which reports it as a
- * read error instead of guessing the release is absent and creating it.
- */
-function readRelease(run, transport, tag) {
-  const path = `${transport.root}/releases/tags/${tag}`;
-  const result = run("gh", ["api", path], {
-    allowFailure: true,
-    maxBuffer: MAX_NATIVE_JSON_BYTES,
-  });
-  if (result.status === 0 && !result.error) {
-    try {
-      return JSON.parse(result.stdout);
-    } catch {
-      throw new CompletionProofError(
-        READ_ERROR,
-        "The evidence release metadata is not complete JSON."
-      );
-    }
-  }
-  if (/HTTP 404/.test(result.stderr ?? "")) return null;
-  return transport.json(path);
-}
-
-/**
- * Whether a failed upload means the release is full. GitHub's 422 also covers
- * an asset name that already exists, so a bare 422 is not enough: the error
- * has to name the limit, or a fresh count has to show the release at it.
- */
-function uploadHitLimit(stderr, transport, release) {
-  if (/asset[^\n]*limit|limit[^\n]*asset/i.test(stderr)) return null;
-  if (!/HTTP 422/.test(stderr)) return false;
-  const count = releaseAssets(transport, release).length;
-  return count + 1 >= EVIDENCE_RELEASE_ASSET_LIMIT ? count : false;
-}
-
-/**
- * Resolve the configured evidence release, create it when absent, and refuse
- * before uploading when it is nearly full.
- *
- * GitHub caps a release at 1000 assets and then answers every upload with a
- * raw HTTP 422. A single hardcoded `pr-assets` release filled in days on a busy
- * host and stopped every completion (CodySwannGT/lisa#4692); the refusal here
- * tells the operator what to change instead.
- * @param {Function} run - The canonical child-process runner.
- * @param {object} transport - The bounded GitHub proof transport.
- * @param {object} [policy] - `verification.completion` from the Lisa config.
- * @param {object} [options] - Optional resolution inputs.
- * @param {Date} [options.now] - Resolution time for a `{YYYY-MM}` template.
- * @param {string} [options.tag] - An already-validated concrete tag to use.
- * @returns {{tag: string, release: object, count: number}} The usable release.
- */
-export function ensureEvidenceRelease(run, transport, policy, options = {}) {
-  const tag =
-    options.tag ?? resolveEvidenceRelease(policy, options.now ?? new Date());
-  let release = readRelease(run, transport, tag);
-  if (!release) {
-    // A concurrent creator may win; the re-read below decides either way.
-    const created = run(
-      "gh",
-      [
-        "release",
-        "create",
-        tag,
-        "--repo",
-        transport.repository,
-        "--title",
-        `Lisa evidence ${tag}`,
-        "--notes",
-        "Evidence storage only — not a product release. Completion-proof and verification evidence assets, managed by Lisa.",
-        "--latest=false",
-      ],
-      { allowFailure: true }
-    );
-    release = readRelease(run, transport, tag);
-    const reason = excerpt(created.stderr);
-    requireProof(
-      release,
-      `The evidence release \`${tag}\` does not exist in ${transport.repository} and could not be created; check that the publisher can create releases there.${reason ? ` GitHub said: ${reason}` : ""}`,
-      WRITE_ERROR
-    );
-  }
-  const assets = releaseAssets(transport, release);
-  if (assets.length >= EVIDENCE_RELEASE_NEAR_FULL)
-    throw new CompletionProofError(
-      WRITE_ERROR,
-      fullReleaseMessage(tag, transport.repository, assets.length)
-    );
-  return { tag, release, count: assets.length };
-}
-
-/** Every asset on a release, from the complete paginated native listing. */
-function releaseAssets(transport, release) {
-  const pages = transport.json(
-    `${transport.root}/releases/${release.id}/assets?per_page=100`,
-    true
+/** Upload one file to a release; the failure's diagnostics, or null on success. */
+function attemptUpload(context, transport, evidence, file) {
+  const uploaded = context.run(
+    "gh",
+    ["release", "upload", evidence.tag, file, "--repo", context.repository],
+    { allowFailure: true }
   );
-  requireProof(
-    pages.every(Array.isArray),
-    "The native completion-asset listing is incomplete.",
-    READ_ERROR
+  if (uploaded.status === 0 && !uploaded.error) return null;
+  const stderr = uploaded.stderr ?? "";
+  return { stderr, full: uploadHitLimit(stderr, transport, evidence.release) };
+}
+
+/**
+ * Upload the record to the target release, rolling over once to the next
+ * overflow release when GitHub reports the release full mid-upload (another
+ * publisher filled it after the capacity check). A pinned release is refused
+ * instead, as it is before the upload (CodySwannGT/lisa#4838).
+ * @returns {object} The release the record now lives in.
+ */
+function uploadProof(context, transport, target, file) {
+  const options = { tag: target.tag, pinned: target.pinned };
+  let evidence = ensureEvidenceRelease(
+    context.run,
+    transport,
+    context.policy,
+    options
   );
-  return pages.flat();
+  let failure = attemptUpload(context, transport, evidence, file);
+  if (failure && failure.full !== false && !target.pinned) {
+    evidence = ensureEvidenceRelease(context.run, transport, context.policy, {
+      ...options,
+      from: evidence.index + 1,
+    });
+    failure = attemptUpload(context, transport, evidence, file);
+  }
+  if (!failure) return evidence;
+  const reason = excerpt(failure.stderr);
+  throw new CompletionProofError(
+    WRITE_ERROR,
+    failure.full === false
+      ? `Immutable completion-proof upload failed; no acceptance locator was published.${reason ? ` GitHub said: ${reason}` : ""}`
+      : fullReleaseMessage(
+          evidence.tag,
+          context.repository,
+          failure.full ?? undefined,
+          target.pinned
+        )
+  );
 }
 
 /** Recover the monotonic native index without treating old malformed proof as valid. */
@@ -217,6 +152,10 @@ function publisherIdentity(context, input, transport, repository) {
 
 /** Strict immutable publication, followed by exact native readback and locator. */
 export function publishCompletionProof(context, input) {
+  // Resolved first, so an invalid LISA_EVIDENCE_RELEASE is refused before any
+  // read or write, exactly as `evidence-release` refuses it (#4838).
+  const target =
+    context.evidenceTarget ?? targetEvidenceRelease(context.policy);
   const transport = githubProofTransport(
     context.run,
     context.repository,
@@ -277,36 +216,12 @@ export function publishCompletionProof(context, input) {
   );
   const digest = sha256(bytes);
   const name = `${recordId}-r${record.revision}-${digest}.json`;
-  const evidence = ensureEvidenceRelease(
-    context.run,
-    transport,
-    context.policy
-  );
   const temporary = mkdtempSync(join(tmpdir(), "lisa-completion-proof-"));
   try {
     mkdirSync(temporary, { recursive: true });
     const file = join(temporary, name);
     writeFileSync(file, bytes);
-    const uploaded = context.run(
-      "gh",
-      ["release", "upload", evidence.tag, file, "--repo", context.repository],
-      { allowFailure: true }
-    );
-    if (uploaded.status !== 0 || uploaded.error) {
-      const stderr = uploaded.stderr ?? "";
-      const full = uploadHitLimit(stderr, transport, evidence.release);
-      const reason = excerpt(stderr);
-      throw new CompletionProofError(
-        WRITE_ERROR,
-        full === false
-          ? `Immutable completion-proof upload failed; no acceptance locator was published.${reason ? ` GitHub said: ${reason}` : ""}`
-          : fullReleaseMessage(
-              evidence.tag,
-              context.repository,
-              full ?? undefined
-            )
-      );
-    }
+    const evidence = uploadProof(context, transport, target, file);
     const matching = releaseAssets(transport, evidence.release).filter(
       asset => asset.name === name
     );
