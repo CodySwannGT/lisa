@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.108.2](https://github.com/CodySwannGT/lisa/compare/v4.108.1...v4.108.2) (2026-11-13)
+
+
+### Documentation
+
+* **evidence:** document the typed capture shapes the completion-proof validator requires ([0259eec](https://github.com/CodySwannGT/lisa/commit/0259eec1960842d0572a717745098163c739af02)), closes [#4543](https://github.com/CodySwannGT/lisa/issues/4543) [CodySwannGT/lisa#4698](https://github.com/CodySwannGT/lisa/issues/4698) [CodySwannGT/lisa#4698](https://github.com/CodySwannGT/lisa/issues/4698)
+
 ### [4.108.1](https://github.com/CodySwannGT/lisa/compare/v4.108.0...v4.108.1) (2026-11-13)
 
 
