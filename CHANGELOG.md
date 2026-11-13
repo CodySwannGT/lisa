@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.108.3](https://github.com/CodySwannGT/lisa/compare/v4.108.2...v4.108.3) (2026-11-13)
+
+
+### Bug Fixes
+
+* **usage:** end the Lisa Usage section at its managed block, not the next heading ([2bc1275](https://github.com/CodySwannGT/lisa/commit/2bc127585f3113c42300519f09e2f4cf8e8f75ad)), closes [CodySwannGT/lisa#4697](https://github.com/CodySwannGT/lisa/issues/4697) [CodySwannGT/lisa#4697](https://github.com/CodySwannGT/lisa/issues/4697)
+
 ### [4.108.2](https://github.com/CodySwannGT/lisa/compare/v4.108.1...v4.108.2) (2026-11-13)
 
 
