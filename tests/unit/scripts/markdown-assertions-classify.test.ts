@@ -21,19 +21,23 @@ const DOC_TEXT = "---\nname: example\ndescription: An example.\n---\n\nBody.\n";
 /**
  * A classifier context over a fake code corpus.
  * @param code - The only code file's literal text.
+ * @param declared - Names that file declares.
  * @returns The context.
  */
-function context(code: string) {
+function context(code: string, declared: readonly string[] = []) {
   return {
     root: "/nonexistent-root",
     names: new Set(["lisa-tracker-write", "lisa:intake"]),
     corpus: {
-      find: (needle: string) =>
+      find: (needle: string): string | undefined =>
         code.includes(needle) ? "scripts/parser.mjs" : undefined,
-      count: (needle: string) => (code.includes(needle) ? 1 : 0),
+      count: (needle: string): number => (code.includes(needle) ? 1 : 0),
+      declares: (name: string): string | undefined =>
+        declared.includes(name) ? "src/api.ts" : undefined,
       files: 1,
     },
-    readText: (file: string) => (file === DOC ? DOC_TEXT : undefined),
+    readText: (file: string): string | undefined =>
+      file === DOC ? DOC_TEXT : undefined,
   };
 }
 
@@ -137,5 +141,14 @@ describe("classifyCheck", () => {
     expect(
       classifyCheck(check("[lisa-unparsed-marker]"), context("other")).class
     ).toBe("WORDING");
+  });
+
+  it("is STRUCTURAL when it names an identifier shipped code declares", () => {
+    expect(
+      classifyCheck(
+        check("call parseLearningsFile first"),
+        context("", ["parseLearningsFile"])
+      )
+    ).toMatchObject({ class: "STRUCTURAL", parser: "src/api.ts" });
   });
 });

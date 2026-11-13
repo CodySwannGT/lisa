@@ -101,6 +101,45 @@ export function scriptLiterals(file, text) {
 }
 
 /**
+ * The names a JavaScript or TypeScript file declares: functions, classes,
+ * variables, parameters' object keys, properties and interface members.
+ * A document that tells an agent to call `parseLearningsFile` or set
+ * `mergeDriver` names one of these.
+ * @param {string} file - File name, for the parser.
+ * @param {string} text - Source text.
+ * @returns {Set<string>} Declared names.
+ */
+export function declaredNames(file, text) {
+  const source = ts.createSourceFile(file, text, ts.ScriptTarget.Latest, false);
+  /** @type {Set<string>} */
+  const names = new Set();
+  /** @param {ts.Node} node */
+  const visit = node => {
+    const named =
+      ts.isFunctionDeclaration(node) ||
+      ts.isClassDeclaration(node) ||
+      ts.isVariableDeclaration(node) ||
+      ts.isMethodDeclaration(node) ||
+      ts.isPropertyDeclaration(node) ||
+      ts.isPropertySignature(node) ||
+      ts.isPropertyAssignment(node) ||
+      ts.isShorthandPropertyAssignment(node) ||
+      ts.isInterfaceDeclaration(node) ||
+      ts.isTypeAliasDeclaration(node) ||
+      ts.isExportSpecifier(node);
+    const name = named
+      ? /** @type {{ name?: ts.Node }} */ (node).name
+      : undefined;
+    if (name && (ts.isIdentifier(name) || ts.isStringLiteral(name))) {
+      names.add(name.text);
+    }
+    ts.forEachChild(node, visit);
+  };
+  visit(source);
+  return names;
+}
+
+/**
  * The text of one code file that a token search should see.
  * @param {string} file - Repository-relative path.
  * @param {string} text - File contents.
@@ -123,6 +162,8 @@ export function searchableText(file, text) {
  * @property {(needle: string) => string | undefined} find - The first code
  *   file whose searchable text contains `needle`, or undefined.
  * @property {(needle: string) => number} count - How many code files contain it.
+ * @property {(name: string) => string | undefined} declares - The first code
+ *   file that declares `name` (see declaredNames), or undefined.
  * @property {number} files - Files in the corpus.
  */
 
@@ -141,9 +182,16 @@ export function buildCorpus(root) {
     .filter(Boolean)
     .filter(isCodePath)
     .sort();
+  /** @type {Map<string, string>} */
+  const declarations = new Map();
   const entries = tracked.flatMap(file => {
     try {
       const text = readFileSync(path.join(root, file), "utf8");
+      if (SCRIPT_EXTENSIONS.has(path.posix.extname(file))) {
+        for (const name of declaredNames(file, text)) {
+          if (!declarations.has(name)) declarations.set(name, file);
+        }
+      }
       return [{ file, text: searchableText(file, text) }];
     } catch {
       return [];
@@ -167,6 +215,7 @@ export function buildCorpus(root) {
   return {
     find: needle => filesWith(needle)[0],
     count: needle => filesWith(needle).length,
+    declares: name => declarations.get(name),
     files: entries.length,
   };
 }

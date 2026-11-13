@@ -2657,7 +2657,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/check-workflow-package-paths.mjs":
       "07ebf3f8a4504f6231c5ae492ecda7f95a80a0fa5f0424b9d3368544b1b612dd",
     "scripts/classify-markdown-assertions.mjs":
-      "2026042526f7740481847fe14a7ff42a35836ab29f5434d2cf110854b3b98d5f",
+      "571d4f022f1a1540b99426cf628fbfacaee8c082c5997e9d9afe99bdfb3821ff",
     "scripts/classify-phrase-tests.mjs":
       "11553629a6c167d9ed0851c6bc4cf9a818df2693d5a30afb2c30fb23a7b14eea",
     "scripts/claude-remote-setup.sh":
@@ -2755,11 +2755,11 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/lib/invoked-as-script.mjs":
       "4711b3e900dc85c000c287dd6a675f519fd0f5f288508ae1d5acefdab136ad4e",
     "scripts/lib/markdown-assertions/classify.mjs":
-      "09a646fa7d07f2fe1529d5696cc27e79ef2bc236b5775ea65eb68e5fa4117891",
+      "cf1bb770413138fa7b8e544d82916d144c1d08f6831fe01b04fb03e799c16ed7",
     "scripts/lib/markdown-assertions/context.mjs":
       "b5a69dc926a1bf2a4bfd267ca0c40039be4c8ff581798568b6505fa4deadfbb6",
     "scripts/lib/markdown-assertions/corpus.mjs":
-      "7b7a9802515c21b6c854bd3bf12d57fe9293fecec3a1f149a72a942af5202cc5",
+      "c8e29611188f9bfccc3644c2d30affd9944100724cacf5bd1216f763a217e278",
     "scripts/lib/markdown-assertions/manifest-cull.mjs":
       "9610443a08f4e3084736bf87171e902974995da0c387b65418a69f5a25a78559",
     "scripts/lib/markdown-assertions/tokens.mjs":

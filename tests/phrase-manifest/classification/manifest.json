@@ -6,9 +6,9 @@
  ],
  "counts": {
   "total": 5391,
-  "STRUCTURAL": 235,
+  "STRUCTURAL": 332,
   "MACHINE-TOKEN": 1192,
-  "WORDING": 3964,
+  "WORDING": 3867,
   "filesBefore": 376,
   "filesAfter": 307
  },
@@ -99,27 +99,28 @@
   "plugins/lisa-agy/agents/learner.md": {
    "kept": [
     {"polarity":"required","kind":"string","value":"@codyswann/lisa/learnings","class":"MACHINE-TOKEN","why":"phrase is a literal in shipped code","parser":"plugins/src/base/scripts/learnings-projection.mjs","literal":"@codyswann/lisa/learnings"},
+    {"polarity":"required","kind":"string","value":"LEARNINGS_CONTRACT","class":"STRUCTURAL","why":"names code identifier LEARNINGS_CONTRACT","parser":"src/core/learnings-contract.ts"},
     {"polarity":"required","kind":"string","value":"PROJECT_LEARNINGS.md","class":"MACHINE-TOKEN","why":"phrase is a literal in shipped code","parser":"failure-signatures.json","literal":"PROJECT_LEARNINGS.md"},
     {"polarity":"required","kind":"string","value":"first_learned","class":"MACHINE-TOKEN","why":"phrase is a literal in shipped code","parser":"scripts/verify-packed-learnings-contract.mjs","literal":"first_learned"},
     {"polarity":"required","kind":"string","value":"last_confirmed","class":"MACHINE-TOKEN","why":"phrase is a literal in shipped code","parser":"scripts/verify-packed-learnings-contract.mjs","literal":"last_confirmed"},
+    {"polarity":"required","kind":"string","value":"learningFingerprint","class":"STRUCTURAL","why":"names code identifier learningFingerprint","parser":"src/core/learning-fingerprint.ts"},
+    {"polarity":"required","kind":"string","value":"onStaleSupersede","class":"STRUCTURAL","why":"names code identifier onStaleSupersede","parser":"scripts/verify-packed-learnings-contract.mjs"},
+    {"polarity":"required","kind":"string","value":"persistConsolidatedLearning","class":"STRUCTURAL","why":"names code identifier persistConsolidatedLearning","parser":"src/core/learnings-writer.ts"},
+    {"polarity":"required","kind":"string","value":"persistLearningEntry","class":"STRUCTURAL","why":"names code identifier persistLearningEntry","parser":"src/core/learnings-writer.ts"},
+    {"polarity":"required","kind":"string","value":"resolveProjectLearningsFile","class":"STRUCTURAL","why":"names code identifier resolveProjectLearningsFile","parser":"src/core/learnings.ts"},
     {"polarity":"forbidden","kind":"string","value":"`debrief-` +","class":"MACHINE-TOKEN","why":"token is a literal in shipped code","parser":"src/core/upstream-evidence-manifest.ts","literal":"debrief-"},
+    {"polarity":"required","kind":"pattern","value":{"source":"parseLearningsFile","flags":""},"class":"STRUCTURAL","why":"names code identifier parseLearningsFile","parser":"src/core/learnings-document.ts"},
     {"polarity":"required","kind":"pattern","value":{"source":"status:ready","flags":""},"class":"MACHINE-TOKEN","why":"token is a literal in shipped code","parser":".lisa.config.json","literal":"status:ready"},
     {"polarity":"forbidden","kind":"pattern","value":{"source":"PROJECT_RULES","flags":""},"class":"MACHINE-TOKEN","why":"token is a literal in shipped code","parser":"ast-grep/rules/no-inline-component-in-container.yml","literal":"PROJECT_RULES"},
     {"polarity":"forbidden","kind":"pattern","value":{"source":"hardening\\.upstreamRepo","flags":""},"class":"MACHINE-TOKEN","why":"token is a literal in shipped code","parser":"all/copy-overwrite/scripts/lisa-hooks/block-direct-issue-create.sh","literal":"upstreamRepo"}
    ],
    "wording": [
-    {"polarity":"required","kind":"string","value":"LEARNINGS_CONTRACT"},
     {"polarity":"required","kind":"string","value":"`fingerprint`"},
     {"polarity":"required","kind":"string","value":"confidence"},
     {"polarity":"required","kind":"string","value":"fingerprint"},
     {"polarity":"required","kind":"string","value":"gardener"},
-    {"polarity":"required","kind":"string","value":"learningFingerprint"},
     {"polarity":"required","kind":"string","value":"lisa-tooling-gap"},
-    {"polarity":"required","kind":"string","value":"onStaleSupersede"},
-    {"polarity":"required","kind":"string","value":"persistConsolidatedLearning"},
-    {"polarity":"required","kind":"string","value":"persistLearningEntry"},
     {"polarity":"required","kind":"string","value":"provenance"},
-    {"polarity":"required","kind":"string","value":"resolveProjectLearningsFile"},
     {"polarity":"required","kind":"string","value":"scope:upstream-candidate"},
     {"polarity":"required","kind":"string","value":"supersede"},
     {"polarity":"required","kind":"string","value":"tooling_gap_candidates"},
@@ -137,7 +138,6 @@
     {"polarity":"required","kind":"pattern","value":{"source":"low","flags":""}},
     {"polarity":"required","kind":"pattern","value":{"source":"merged-into","flags":""}},
     {"polarity":"required","kind":"pattern","value":{"source":"never file|file no issue","flags":"i"}},
-    {"polarity":"required","kind":"pattern","value":{"source":"parseLearningsFile","flags":""}},
     {"polarity":"required","kind":"pattern","value":{"source":"sibling","flags":"i"}},
     {"polarity":"forbidden","kind":"pattern","value":{"source":"gh issue create","flags":""}},
     {"polarity":"forbidden","kind":"pattern","value":{"source":"self-hardening","flags":""}},
@@ -226,10 +226,14 @@
   "plugins/lisa-agy/skills/lisa-agent-ready/SKILL.md": {
    "kept": [
     {"polarity":"required","kind":"string","value":".lisa/readiness.json","class":"MACHINE-TOKEN","why":"phrase is a literal in shipped code","parser":"plugins/src/base/scripts/doctor-report.mjs","literal":".lisa/readiness.json"},
+    {"polarity":"required","kind":"string","value":"invariant_violated","class":"STRUCTURAL","why":"names code identifier invariant_violated","parser":"src/cli/doctor-readiness-blockers.ts"},
     {"polarity":"required","kind":"string","value":"lisa-tracker-write","class":"STRUCTURAL","why":"references name lisa-tracker-write"},
+    {"polarity":"required","kind":"string","value":"machinery_to_remove","class":"STRUCTURAL","why":"names code identifier machinery_to_remove","parser":"src/cli/doctor-readiness-blockers.ts"},
     {"polarity":"required","kind":"string","value":"readiness-rubric","class":"MACHINE-TOKEN","why":"phrase is a literal in shipped code","parser":"plugins/src/base/scripts/doctor-report.mjs","literal":"readiness-rubric"},
+    {"polarity":"required","kind":"string","value":"root_correction","class":"STRUCTURAL","why":"names code identifier root_correction","parser":"src/cli/doctor-readiness-blockers.ts"},
     {"polarity":"required","kind":"string","value":"scripts/verify-wiki-safety.mjs","class":"MACHINE-TOKEN","why":"phrase is a literal in shipped code","parser":"src/core/upstream-evidence-manifest.ts","literal":"scripts/verify-wiki-safety.mjs"},
     {"polarity":"required","kind":"string","value":"scripts/wiki-safety.mjs","class":"MACHINE-TOKEN","why":"phrase is a literal in shipped code","parser":"src/core/upstream-evidence-manifest.ts","literal":"scripts/wiki-safety.mjs"},
+    {"polarity":"required","kind":"string","value":"why_proof_missed","class":"STRUCTURAL","why":"names code identifier why_proof_missed","parser":"src/cli/doctor-readiness-blockers.ts"},
     {"polarity":"required","kind":"string","value":"wiki/sources/repository/<reader-safe-source-note>.md","class":"MACHINE-TOKEN","why":"token is a literal in shipped code","parser":"src/core/upstream-evidence-manifest.ts","literal":"wiki/sources/repository/"},
     {"polarity":"required","kind":"pattern","value":{"source":"Content writes are limited to `wiki\\/\\*\\*` \\*\\*plus\\*\\*\\s+creating Lisa's own work items in the\\s+configured tracker through `lisa-tracker-write`","flags":"i"},"class":"MACHINE-TOKEN","why":"token is a literal in shipped code","parser":"all/copy-overwrite/scripts/lisa-hooks/block-direct-issue-create.sh","literal":"lisa-tracker-write"},
     {"polarity":"required","kind":"pattern","value":{"source":"knowledge-ready and `NOT_READY`","flags":"i"},"class":"MACHINE-TOKEN","why":"token is a literal in shipped code","parser":"plugins/src/base/scripts/doctor-report.mjs","literal":"NOT_READY"},
@@ -243,10 +247,6 @@
     {"polarity":"required","kind":"string","value":"\"source_id\": \"repository\""},
     {"polarity":"required","kind":"string","value":"\"terminal_status\": \"complete\""},
     {"polarity":"required","kind":"string","value":"evidence"},
-    {"polarity":"required","kind":"string","value":"invariant_violated"},
-    {"polarity":"required","kind":"string","value":"machinery_to_remove"},
-    {"polarity":"required","kind":"string","value":"root_correction"},
-    {"polarity":"required","kind":"string","value":"why_proof_missed"},
     {"polarity":"required","kind":"string","value":"wiki/state/agent-ready/sources.json"},
     {"polarity":"required","kind":"pattern","value":{"source":"Apply data minimization \\*\\*before\\*\\* the sanitizer","flags":"i"}},
     {"polarity":"required","kind":"pattern","value":{"source":"Do not edit tracker items, post comments, acknowledge alerts","flags":"i"}},
@@ -310,13 +310,13 @@
   },
   "plugins/lisa-agy/skills/lisa-debrief-apply/SKILL.md": {
    "kept": [
+    {"polarity":"required","kind":"string","value":"learningFingerprint","class":"STRUCTURAL","why":"names code identifier learningFingerprint","parser":"src/core/learning-fingerprint.ts"},
     {"polarity":"required","kind":"string","value":"lisa-persist-learning","class":"STRUCTURAL","why":"references name lisa-persist-learning"},
+    {"polarity":"required","kind":"string","value":"onStaleSupersede","class":"STRUCTURAL","why":"names code identifier onStaleSupersede","parser":"scripts/verify-packed-learnings-contract.mjs"},
     {"polarity":"forbidden","kind":"string","value":"`debrief-` +","class":"MACHINE-TOKEN","why":"token is a literal in shipped code","parser":"src/core/upstream-evidence-manifest.ts","literal":"debrief-"}
    ],
    "wording": [
     {"polarity":"required","kind":"string","value":"fingerprint"},
-    {"polarity":"required","kind":"string","value":"learningFingerprint"},
-    {"polarity":"required","kind":"string","value":"onStaleSupersede"},
     {"polarity":"forbidden","kind":"string","value":"apply` does not commit"},
     {"polarity":"forbidden","kind":"string","value":"evidence link that doubles as a fingerprint"},
     {"polarity":"forbidden","kind":"string","value":"fingerprint` = the deterministic Phase 0 fingerprint"},
@@ -636,7 +636,9 @@
   "plugins/lisa-agy/skills/lisa-persist-learning/SKILL.md": {
    "kept": [
     {"polarity":"required","kind":"string","value":"PROJECT_LEARNINGS.overflow.md","class":"MACHINE-TOKEN","why":"token is a literal in shipped code","parser":"failure-signatures.json","literal":"PROJECT_LEARNINGS"},
+    {"polarity":"required","kind":"string","value":"learningFingerprint","class":"STRUCTURAL","why":"names code identifier learningFingerprint","parser":"src/core/learning-fingerprint.ts"},
     {"polarity":"required","kind":"string","value":"learnings.mergeDriver: false","class":"MACHINE-TOKEN","why":"phrase is a literal in shipped code","parser":"src/cli/doctor-merge-drivers.ts","literal":"learnings.mergeDriver: false"},
+    {"polarity":"required","kind":"string","value":"onStaleSupersede","class":"STRUCTURAL","why":"names code identifier onStaleSupersede","parser":"scripts/verify-packed-learnings-contract.mjs"},
     {"polarity":"forbidden","kind":"string","value":"`debrief-` +","class":"MACHINE-TOKEN","why":"token is a literal in shipped code","parser":"src/core/upstream-evidence-manifest.ts","literal":"debrief-"},
     {"polarity":"forbidden","kind":"pattern","value":{"source":"`learner` uses for `skill-evaluator`","flags":""},"class":"MACHINE-TOKEN","why":"token is a literal in shipped code","parser":"all/deletions.json","literal":"skill-evaluator"},
     {"polarity":"forbidden","kind":"pattern","value":{"source":"contract `learner` holds with `skill-evaluator`","flags":""},"class":"MACHINE-TOKEN","why":"token is a literal in shipped code","parser":"all/deletions.json","literal":"skill-evaluator"}
@@ -646,8 +648,6 @@
     {"polarity":"required","kind":"string","value":"does not uninstall"},
     {"polarity":"required","kind":"string","value":"enabled by default"},
     {"polarity":"required","kind":"string","value":"fingerprint"},
-    {"polarity":"required","kind":"string","value":"learningFingerprint"},
-    {"polarity":"required","kind":"string","value":"onStaleSupersede"},
     {"polarity":"forbidden","kind":"string","value":"fingerprint` = the deterministic Phase 0 fingerprint"},
     {"polarity":"required","kind":"pattern","value":{"source":"legacy.*(?:id|fingerprint)","flags":"is"}},
     {"polarity":"required","kind":"pattern","value":{"source":"overflow","flags":"i"}},
@@ -711,27 +711,28 @@
   "plugins/lisa-copilot/agents/learner.agent.md": {
    "kept": [
     {"polarity":"required","kind":"string","value":"@codyswann/lisa/learnings","class":"MACHINE-TOKEN","why":"phrase is a literal in shipped code","parser":"plugins/src/base/scripts/learnings-projection.mjs","literal":"@codyswann/lisa/learnings"},
+    {"polarity":"required","kind":"string","value":"LEARNINGS_CONTRACT","class":"STRUCTURAL","why":"names code identifier LEARNINGS_CONTRACT","parser":"src/core/learnings-contract.ts"},
     {"polarity":"required","kind":"string","value":"PROJECT_LEARNINGS.md","class":"MACHINE-TOKEN","why":"phrase is a literal in shipped code","parser":"failure-signatures.json","literal":"PROJECT_LEARNINGS.md"},
     {"polarity":"required","kind":"string","value":"first_learned","class":"MACHINE-TOKEN","why":"phrase is a literal in shipped code","parser":"scripts/verify-packed-learnings-contract.mjs","literal":"first_learned"},
     {"polarity":"required","kind":"string","value":"last_confirmed","class":"MACHINE-TOKEN","why":"phrase is a literal in shipped code","parser":"scripts/verify-packed-learnings-contract.mjs","literal":"last_confirmed"},
+    {"polarity":"required","kind":"string","value":"learningFingerprint","class":"STRUCTURAL","why":"names code identifier learningFingerprint","parser":"src/core/learning-fingerprint.ts"},
+    {"polarity":"required","kind":"string","value":"onStaleSupersede","class":"STRUCTURAL","why":"names code identifier onStaleSupersede","parser":"scripts/verify-packed-learnings-contract.mjs"},
+    {"polarity":"required","kind":"string","value":"persistConsolidatedLearning","class":"STRUCTURAL","why":"names code identifier persistConsolidatedLearning","parser":"src/core/learnings-writer.ts"},
+    {"polarity":"required","kind":"string","value":"persistLearningEntry","class":"STRUCTURAL","why":"names code identifier persistLearningEntry","parser":"src/core/learnings-writer.ts"},
+    {"polarity":"required","kind":"string","value":"resolveProjectLearningsFile","class":"STRUCTURAL","why":"names code identifier resolveProjectLearningsFile","parser":"src/core/learnings.ts"},
     {"polarity":"forbidden","kind":"string","value":"`debrief-` +","class":"MACHINE-TOKEN","why":"token is a literal in shipped code","parser":"src/core/upstream-evidence-manifest.ts","literal":"debrief-"},
+    {"polarity":"required","kind":"pattern","value":{"source":"parseLearningsFile","flags":""},"class":"STRUCTURAL","why":"names code identifier parseLearningsFile","parser":"src/core/learnings-document.ts"},
     {"polarity":"required","kind":"pattern","value":{"source":"status:ready","flags":""},"class":"MACHINE-TOKEN","why":"token is a literal in shipped code","parser":".lisa.config.json","literal":"status:ready"},
     {"polarity":"forbidden","kind":"pattern","value":{"source":"PROJECT_RULES","flags":""},"class":"MACHINE-TOKEN","why":"token is a literal in shipped code","parser":"ast-grep/rules/no-inline-component-in-container.yml","literal":"PROJECT_RULES"},
     {"polarity":"forbidden","kind":"pattern","value":{"source":"hardening\\.upstreamRepo","flags":""},"class":"MACHINE-TOKEN","why":"token is a literal in shipped code","parser":"all/copy-overwrite/scripts/lisa-hooks/block-direct-issue-create.sh","literal":"upstreamRepo"}
    ],
    "wording": [
-    {"polarity":"required","kind":"string","value":"LEARNINGS_CONTRACT"},
     {"polarity":"required","kind":"string","value":"`fingerprint`"},
     {"polarity":"required","kind":"string","value":"confidence"},
     {"polarity":"required","kind":"string","value":"fingerprint"},
     {"polarity":"required","kind":"string","value":"gardener"},
-    {"polarity":"required","kind":"string","value":"learningFingerprint"},
     {"polarity":"required","kind":"string","value":"lisa-tooling-gap"},
-    {"polarity":"required","kind":"string","value":"onStaleSupersede"},
-    {"polarity":"required","kind":"string","value":"persistConsolidatedLearning"},
-    {"polarity":"required","kind":"string","value":"persistLearningEntry"},
     {"polarity":"required","kind":"string","value":"provenance"},
-    {"polarity":"required","kind":"string","value":"resolveProjectLearningsFile"},
     {"polarity":"required","kind":"string","value":"scope:upstream-candidate"},
     {"polarity":"required","kind":"string","value":"supersede"},
     {"polarity":"required","kind":"string","value":"tooling_gap_candidates"},
@@ -749,7 +750,6 @@
     {"polarity":"required","kind":"pattern","value":{"source":"low","flags":""}},
     {"polarity":"required","kind":"pattern","value":{"source":"merged-into","flags":""}},
     {"polarity":"required","kind":"pattern","value":{"source":"never file|file no issue","flags":"i"}},
-    {"polarity":"required","kind":"pattern","value":{"source":"parseLearningsFile","flags":""}},
     {"polarity":"required","kind":"pattern","value":{"source":"sibling","flags":"i"}},
     {"polarity":"forbidden","kind":"pattern","value":{"source":"gh issue create","flags":""}},
     {"polarity":"forbidden","kind":"pattern","value":{"source":"self-hardening","flags":""}},
@@ -854,15 +854,15 @@
   },
   "plugins/lisa-copilot/rules/reference/project-learnings.md": {
    "kept": [
+    {"polarity":"required","kind":"string","value":"confirmLearningEntry","class":"STRUCTURAL","why":"names code identifier confirmLearningEntry","parser":"src/core/learnings-writer.ts"},
     {"polarity":"required","kind":"string","value":"lisa-debrief-apply","class":"STRUCTURAL","why":"references name lisa-debrief-apply"},
+    {"polarity":"required","kind":"string","value":"parseLearningsDocument","class":"STRUCTURAL","why":"names code identifier parseLearningsDocument","parser":"src/core/learnings-document.ts"},
     {"polarity":"required","kind":"pattern","value":{"source":"status:ready","flags":""},"class":"MACHINE-TOKEN","why":"token is a literal in shipped code","parser":".lisa.config.json","literal":"status:ready"}
    ],
    "wording": [
     {"polarity":"required","kind":"string","value":"Contract-mediated writers"},
     {"polarity":"required","kind":"string","value":"Who writes the ledger"},
-    {"polarity":"required","kind":"string","value":"confirmLearningEntry"},
     {"polarity":"required","kind":"string","value":"gardener"},
-    {"polarity":"required","kind":"string","value":"parseLearningsDocument"},
     {"polarity":"required","kind":"pattern","value":{"source":"^-[ \\t]+`fingerprint`[ \\t]*$","flags":"m"}},
     {"polarity":"required","kind":"pattern","value":{"source":"capture time","flags":""}},
     {"polarity":"required","kind":"pattern","value":{"source":"fingerprint\\s*=\\s*id","flags":"i"}},
@@ -887,10 +887,14 @@
   "plugins/lisa-copilot/skills/lisa-agent-ready/SKILL.md": {
    "kept": [
     {"polarity":"required","kind":"string","value":".lisa/readiness.json","class":"MACHINE-TOKEN","why":"phrase is a literal in shipped code","parser":"plugins/src/base/scripts/doctor-report.mjs","literal":".lisa/readiness.json"},
+    {"polarity":"required","kind":"string","value":"invariant_violated","class":"STRUCTURAL","why":"names code identifier invariant_violated","parser":"src/cli/doctor-readiness-blockers.ts"},
     {"polarity":"required","kind":"string","value":"lisa-tracker-write","class":"STRUCTURAL","why":"references name lisa-tracker-write"},
+    {"polarity":"required","kind":"string","value":"machinery_to_remove","class":"STRUCTURAL","why":"names code identifier machinery_to_remove","parser":"src/cli/doctor-readiness-blockers.ts"},
     {"polarity":"required","kind":"string","value":"readiness-rubric","class":"MACHINE-TOKEN","why":"phrase is a literal in shipped code","parser":"plugins/src/base/scripts/doctor-report.mjs","literal":"readiness-rubric"},
+    {"polarity":"required","kind":"string","value":"root_correction","class":"STRUCTURAL","why":"names code identifier root_correction","parser":"src/cli/doctor-readiness-blockers.ts"},
     {"polarity":"required","kind":"string","value":"scripts/verify-wiki-safety.mjs","class":"MACHINE-TOKEN","why":"phrase is a literal in shipped code","parser":"src/core/upstream-evidence-manifest.ts","literal":"scripts/verify-wiki-safety.mjs"},
     {"polarity":"required","kind":"string","value":"scripts/wiki-safety.mjs","class":"MACHINE-TOKEN","why":"phrase is a literal in shipped code","parser":"src/core/upstream-evidence-manifest.ts","literal":"scripts/wiki-safety.mjs"},
+    {"polarity":"required","kind":"string","value":"why_proof_missed","class":"STRUCTURAL","why":"names code identifier why_proof_missed","parser":"src/cli/doctor-readiness-blockers.ts"},
     {"polarity":"required","kind":"string","value":"wiki/sources/repository/<reader-safe-source-note>.md","class":"MACHINE-TOKEN","why":"token is a literal in shipped code","parser":"src/core/upstream-evidence-manifest.ts","literal":"wiki/sources/repository/"},
     {"polarity":"required","kind":"pattern","value":{"source":"Content writes are limited to `wiki\\/\\*\\*` \\*\\*plus\\*\\*\\s+creating Lisa's own work items in the\\s+configured tracker through `lisa-tracker-write`","flags":"i"},"class":"MACHINE-TOKEN","why":"token is a literal in shipped code","parser":"all/copy-overwrite/scripts/lisa-hooks/block-direct-issue-create.sh","literal":"lisa-tracker-write"},
     {"polarity":"required","kind":"pattern","value":{"source":"knowledge-ready and `NOT_READY`","flags":"i"},"class":"MACHINE-TOKEN","why":"token is a literal in shipped code","parser":"plugins/src/base/scripts/doctor-report.mjs","literal":"NOT_READY"},
@@ -904,10 +908,6 @@
     {"polarity":"required","kind":"string","value":"\"source_id\": \"repository\""},
     {"polarity":"required","kind":"string","value":"\"terminal_status\": \"complete\""},
     {"polarity":"required","kind":"string","value":"evidence"},
-    {"polarity":"required","kind":"string","value":"invariant_violated"},
-    {"polarity":"required","kind":"string","value":"machinery_to_remove"},
-    {"polarity":"required","kind":"string","value":"root_correction"},
-    {"polarity":"required","kind":"string","value":"why_proof_missed"},
     {"polarity":"required","kind":"string","value":"wiki/state/agent-ready/sources.json"},
     {"polarity":"required","kind":"pattern","value":{"source":"Apply data minimization \\*\\*before\\*\\* the sanitizer","flags":"i"}},
     {"polarity":"required","kind":"pattern","value":{"source":"Do not edit tracker items, post comments, acknowledge alerts","flags":"i"}},
@@ -971,13 +971,13 @@
   },
   "plugins/lisa-copilot/skills/lisa-debrief-apply/SKILL.md": {
    "kept": [
+    {"polarity":"required","kind":"string","value":"learningFingerprint","class":"STRUCTURAL","why":"names code identifier learningFingerprint","parser":"src/core/learning-fingerprint.ts"},
     {"polarity":"required","kind":"string","value":"lisa-persist-learning","class":"STRUCTURAL","why":"references name lisa-persist-learning"},
+    {"polarity":"required","kind":"string","value":"onStaleSupersede","class":"STRUCTURAL","why":"names code identifier onStaleSupersede","parser":"scripts/verify-packed-learnings-contract.mjs"},
     {"polarity":"forbidden","kind":"string","value":"`debrief-` +","class":"MACHINE-TOKEN","why":"token is a literal in shipped code","parser":"src/core/upstream-evidence-manifest.ts","literal":"debrief-"}
    ],
    "wording": [
     {"polarity":"required","kind":"string","value":"fingerprint"},
-    {"polarity":"required","kind":"string","value":"learningFingerprint"},
-    {"polarity":"required","kind":"string","value":"onStaleSupersede"},
     {"polarity":"forbidden","kind":"string","value":"apply` does not commit"},
     {"polarity":"forbidden","kind":"string","value":"evidence link that doubles as a fingerprint"},
     {"polarity":"forbidden","kind":"string","value":"fingerprint` = the deterministic Phase 0 fingerprint"},
@@ -1297,7 +1297,9 @@
   "plugins/lisa-copilot/skills/lisa-persist-learning/SKILL.md": {
    "kept": [
     {"polarity":"required","kind":"string","value":"PROJECT_LEARNINGS.overflow.md","class":"MACHINE-TOKEN","why":"token is a literal in shipped code","parser":"failure-signatures.json","literal":"PROJECT_LEARNINGS"},
+    {"polarity":"required","kind":"string","value":"learningFingerprint","class":"STRUCTURAL","why":"names code identifier learningFingerprint","parser":"src/core/learning-fingerprint.ts"},
     {"polarity":"required","kind":"string","value":"learnings.mergeDriver: false","class":"MACHINE-TOKEN","why":"phrase is a literal in shipped code","parser":"src/cli/doctor-merge-drivers.ts","literal":"learnings.mergeDriver: false"},
+    {"polarity":"required","kind":"string","value":"onStaleSupersede","class":"STRUCTURAL","why":"names code identifier onStaleSupersede","parser":"scripts/verify-packed-learnings-contract.mjs"},
     {"polarity":"forbidden","kind":"string","value":"`debrief-` +","class":"MACHINE-TOKEN","why":"token is a literal in shipped code","parser":"src/core/upstream-evidence-manifest.ts","literal":"debrief-"},
     {"polarity":"forbidden","kind":"pattern","value":{"source":"`learner` uses for `skill-evaluator`","flags":""},"class":"MACHINE-TOKEN","why":"token is a literal in shipped code","parser":"all/deletions.json","literal":"skill-evaluator"},
     {"polarity":"forbidden","kind":"pattern","value":{"source":"contract `learner` holds with `skill-evaluator`","flags":""},"class":"MACHINE-TOKEN","why":"token is a literal in shipped code","parser":"all/deletions.json","literal":"skill-evaluator"}
@@ -1307,8 +1309,6 @@
     {"polarity":"required","kind":"string","value":"does not uninstall"},
     {"polarity":"required","kind":"string","value":"enabled by default"},
     {"polarity":"required","kind":"string","value":"fingerprint"},
-    {"polarity":"required","kind":"string","value":"learningFingerprint"},
-    {"polarity":"required","kind":"string","value":"onStaleSupersede"},
     {"polarity":"forbidden","kind":"string","value":"fingerprint` = the deterministic Phase 0 fingerprint"},
     {"polarity":"required","kind":"pattern","value":{"source":"legacy.*(?:id|fingerprint)","flags":"is"}},
     {"polarity":"required","kind":"pattern","value":{"source":"overflow","flags":"i"}},
@@ -1372,27 +1372,28 @@
   "plugins/lisa-cursor/agents/learner.md": {
    "kept": [
     {"polarity":"required","kind":"string","value":"@codyswann/lisa/learnings","class":"MACHINE-TOKEN","why":"phrase is a literal in shipped code","parser":"plugins/src/base/scripts/learnings-projection.mjs","literal":"@codyswann/lisa/learnings"},
+    {"polarity":"required","kind":"string","value":"LEARNINGS_CONTRACT","class":"STRUCTURAL","why":"names code identifier LEARNINGS_CONTRACT","parser":"src/core/learnings-contract.ts"},
     {"polarity":"required","kind":"string","value":"PROJECT_LEARNINGS.md","class":"MACHINE-TOKEN","why":"phrase is a literal in shipped code","parser":"failure-signatures.json","literal":"PROJECT_LEARNINGS.md"},
     {"polarity":"required","kind":"string","value":"first_learned","class":"MACHINE-TOKEN","why":"phrase is a literal in shipped code","parser":"scripts/verify-packed-learnings-contract.mjs","literal":"first_learned"},
     {"polarity":"required","kind":"string","value":"last_confirmed","class":"MACHINE-TOKEN","why":"phrase is a literal in shipped code","parser":"scripts/verify-packed-learnings-contract.mjs","literal":"last_confirmed"},
+    {"polarity":"required","kind":"string","value":"learningFingerprint","class":"STRUCTURAL","why":"names code identifier learningFingerprint","parser":"src/core/learning-fingerprint.ts"},
+    {"polarity":"required","kind":"string","value":"onStaleSupersede","class":"STRUCTURAL","why":"names code identifier onStaleSupersede","parser":"scripts/verify-packed-learnings-contract.mjs"},
+    {"polarity":"required","kind":"string","value":"persistConsolidatedLearning","class":"STRUCTURAL","why":"names code identifier persistConsolidatedLearning","parser":"src/core/learnings-writer.ts"},
+    {"polarity":"required","kind":"string","value":"persistLearningEntry","class":"STRUCTURAL","why":"names code identifier persistLearningEntry","parser":"src/core/learnings-writer.ts"},
+    {"polarity":"required","kind":"string","value":"resolveProjectLearningsFile","class":"STRUCTURAL","why":"names code identifier resolveProjectLearningsFile","parser":"src/core/learnings.ts"},
     {"polarity":"forbidden","kind":"string","value":"`debrief-` +","class":"MACHINE-TOKEN","why":"token is a literal in shipped code","parser":"src/core/upstream-evidence-manifest.ts","literal":"debrief-"},
+    {"polarity":"required","kind":"pattern","value":{"source":"parseLearningsFile","flags":""},"class":"STRUCTURAL","why":"names code identifier parseLearningsFile","parser":"src/core/learnings-document.ts"},
     {"polarity":"required","kind":"pattern","value":{"source":"status:ready","flags":""},"class":"MACHINE-TOKEN","why":"token is a literal in shipped code","parser":".lisa.config.json","literal":"status:ready"},
     {"polarity":"forbidden","kind":"pattern","value":{"source":"PROJECT_RULES","flags":""},"class":"MACHINE-TOKEN","why":"token is a literal in shipped code","parser":"ast-grep/rules/no-inline-component-in-container.yml","literal":"PROJECT_RULES"},
     {"polarity":"forbidden","kind":"pattern","value":{"source":"hardening\\.upstreamRepo","flags":""},"class":"MACHINE-TOKEN","why":"token is a literal in shipped code","parser":"all/copy-overwrite/scripts/lisa-hooks/block-direct-issue-create.sh","literal":"upstreamRepo"}
    ],
    "wording": [
-    {"polarity":"required","kind":"string","value":"LEARNINGS_CONTRACT"},
     {"polarity":"required","kind":"string","value":"`fingerprint`"},
     {"polarity":"required","kind":"string","value":"confidence"},
     {"polarity":"required","kind":"string","value":"fingerprint"},
     {"polarity":"required","kind":"string","value":"gardener"},
-    {"polarity":"required","kind":"string","value":"learningFingerprint"},
     {"polarity":"required","kind":"string","value":"lisa-tooling-gap"},
-    {"polarity":"required","kind":"string","value":"onStaleSupersede"},
-    {"polarity":"required","kind":"string","value":"persistConsolidatedLearning"},
-    {"polarity":"required","kind":"string","value":"persistLearningEntry"},
     {"polarity":"required","kind":"string","value":"provenance"},
-    {"polarity":"required","kind":"string","value":"resolveProjectLearningsFile"},
     {"polarity":"required","kind":"string","value":"scope:upstream-candidate"},
     {"polarity":"required","kind":"string","value":"supersede"},
     {"polarity":"required","kind":"string","value":"tooling_gap_candidates"},
@@ -1410,7 +1411,6 @@
     {"polarity":"required","kind":"pattern","value":{"source":"low","flags":""}},
     {"polarity":"required","kind":"pattern","value":{"source":"merged-into","flags":""}},
     {"polarity":"required","kind":"pattern","value":{"source":"never file|file no issue","flags":"i"}},
-    {"polarity":"required","kind":"pattern","value":{"source":"parseLearningsFile","flags":""}},
     {"polarity":"required","kind":"pattern","value":{"source":"sibling","flags":"i"}},
     {"polarity":"forbidden","kind":"pattern","value":{"source":"gh issue create","flags":""}},
     {"polarity":"forbidden","kind":"pattern","value":{"source":"self-hardening","flags":""}},
@@ -1515,15 +1515,15 @@
   },
   "plugins/lisa-cursor/rules/project-learnings-reference.mdc": {
    "kept": [
+    {"polarity":"required","kind":"string","value":"confirmLearningEntry","class":"STRUCTURAL","why":"names code identifier confirmLearningEntry","parser":"src/core/learnings-writer.ts"},
     {"polarity":"required","kind":"string","value":"lisa-debrief-apply","class":"STRUCTURAL","why":"references name lisa-debrief-apply"},
+    {"polarity":"required","kind":"string","value":"parseLearningsDocument","class":"STRUCTURAL","why":"names code identifier parseLearningsDocument","parser":"src/core/learnings-document.ts"},
     {"polarity":"required","kind":"pattern","value":{"source":"status:ready","flags":""},"class":"MACHINE-TOKEN","why":"token is a literal in shipped code","parser":".lisa.config.json","literal":"status:ready"}
    ],
    "wording": [
     {"polarity":"required","kind":"string","value":"Contract-mediated writers"},
     {"polarity":"required","kind":"string","value":"Who writes the ledger"},
-    {"polarity":"required","kind":"string","value":"confirmLearningEntry"},
     {"polarity":"required","kind":"string","value":"gardener"},
-    {"polarity":"required","kind":"string","value":"parseLearningsDocument"},
     {"polarity":"required","kind":"pattern","value":{"source":"^-[ \\t]+`fingerprint`[ \\t]*$","flags":"m"}},
     {"polarity":"required","kind":"pattern","value":{"source":"capture time","flags":""}},
     {"polarity":"required","kind":"pattern","value":{"source":"fingerprint\\s*=\\s*id","flags":"i"}},
@@ -1557,10 +1557,14 @@
   "plugins/lisa-cursor/skills/lisa-agent-ready/SKILL.md": {
    "kept": [
     {"polarity":"required","kind":"string","value":".lisa/readiness.json","class":"MACHINE-TOKEN","why":"phrase is a literal in shipped code","parser":"plugins/src/base/scripts/doctor-report.mjs","literal":".lisa/readiness.json"},
+    {"polarity":"required","kind":"string","value":"invariant_violated","class":"STRUCTURAL","why":"names code identifier invariant_violated","parser":"src/cli/doctor-readiness-blockers.ts"},
     {"polarity":"required","kind":"string","value":"lisa-tracker-write","class":"STRUCTURAL","why":"references name lisa-tracker-write"},
+    {"polarity":"required","kind":"string","value":"machinery_to_remove","class":"STRUCTURAL","why":"names code identifier machinery_to_remove","parser":"src/cli/doctor-readiness-blockers.ts"},
     {"polarity":"required","kind":"string","value":"readiness-rubric","class":"MACHINE-TOKEN","why":"phrase is a literal in shipped code","parser":"plugins/src/base/scripts/doctor-report.mjs","literal":"readiness-rubric"},
+    {"polarity":"required","kind":"string","value":"root_correction","class":"STRUCTURAL","why":"names code identifier root_correction","parser":"src/cli/doctor-readiness-blockers.ts"},
     {"polarity":"required","kind":"string","value":"scripts/verify-wiki-safety.mjs","class":"MACHINE-TOKEN","why":"phrase is a literal in shipped code","parser":"src/core/upstream-evidence-manifest.ts","literal":"scripts/verify-wiki-safety.mjs"},
     {"polarity":"required","kind":"string","value":"scripts/wiki-safety.mjs","class":"MACHINE-TOKEN","why":"phrase is a literal in shipped code","parser":"src/core/upstream-evidence-manifest.ts","literal":"scripts/wiki-safety.mjs"},
+    {"polarity":"required","kind":"string","value":"why_proof_missed","class":"STRUCTURAL","why":"names code identifier why_proof_missed","parser":"src/cli/doctor-readiness-blockers.ts"},
     {"polarity":"required","kind":"string","value":"wiki/sources/repository/<reader-safe-source-note>.md","class":"MACHINE-TOKEN","why":"token is a literal in shipped code","parser":"src/core/upstream-evidence-manifest.ts","literal":"wiki/sources/repository/"},
     {"polarity":"required","kind":"pattern","value":{"source":"Content writes are limited to `wiki\\/\\*\\*` \\*\\*plus\\*\\*\\s+creating Lisa's own work items in the\\s+configured tracker through `lisa-tracker-write`","flags":"i"},"class":"MACHINE-TOKEN","why":"token is a literal in shipped code","parser":"all/copy-overwrite/scripts/lisa-hooks/block-direct-issue-create.sh","literal":"lisa-tracker-write"},
     {"polarity":"required","kind":"pattern","value":{"source":"knowledge-ready and `NOT_READY`","flags":"i"},"class":"MACHINE-TOKEN","why":"token is a literal in shipped code","parser":"plugins/src/base/scripts/doctor-report.mjs","literal":"NOT_READY"},
@@ -1574,10 +1578,6 @@
     {"polarity":"required","kind":"string","value":"\"source_id\": \"repository\""},
     {"polarity":"required","kind":"string","value":"\"terminal_status\": \"complete\""},
     {"polarity":"required","kind":"string","value":"evidence"},
-    {"polarity":"required","kind":"string","value":"invariant_violated"},
-    {"polarity":"required","kind":"string","value":"machinery_to_remove"},
-    {"polarity":"required","kind":"string","value":"root_correction"},
-    {"polarity":"required","kind":"string","value":"why_proof_missed"},
     {"polarity":"required","kind":"string","value":"wiki/state/agent-ready/sources.json"},
     {"polarity":"required","kind":"pattern","value":{"source":"Apply data minimization \\*\\*before\\*\\* the sanitizer","flags":"i"}},
     {"polarity":"required","kind":"pattern","value":{"source":"Do not edit tracker items, post comments, acknowledge alerts","flags":"i"}},
@@ -1641,13 +1641,13 @@
   },
   "plugins/lisa-cursor/skills/lisa-debrief-apply/SKILL.md": {
    "kept": [
+    {"polarity":"required","kind":"string","value":"learningFingerprint","class":"STRUCTURAL","why":"names code identifier learningFingerprint","parser":"src/core/learning-fingerprint.ts"},
     {"polarity":"required","kind":"string","value":"lisa-persist-learning","class":"STRUCTURAL","why":"references name lisa-persist-learning"},
+    {"polarity":"required","kind":"string","value":"onStaleSupersede","class":"STRUCTURAL","why":"names code identifier onStaleSupersede","parser":"scripts/verify-packed-learnings-contract.mjs"},
     {"polarity":"forbidden","kind":"string","value":"`debrief-` +","class":"MACHINE-TOKEN","why":"token is a literal in shipped code","parser":"src/core/upstream-evidence-manifest.ts","literal":"debrief-"}
    ],
    "wording": [
     {"polarity":"required","kind":"string","value":"fingerprint"},
-    {"polarity":"required","kind":"string","value":"learningFingerprint"},
-    {"polarity":"required","kind":"string","value":"onStaleSupersede"},
     {"polarity":"forbidden","kind":"string","value":"apply` does not commit"},
     {"polarity":"forbidden","kind":"string","value":"evidence link that doubles as a fingerprint"},
     {"polarity":"forbidden","kind":"string","value":"fingerprint` = the deterministic Phase 0 fingerprint"},
@@ -1967,7 +1967,9 @@
   "plugins/lisa-cursor/skills/lisa-persist-learning/SKILL.md": {
    "kept": [
     {"polarity":"required","kind":"string","value":"PROJECT_LEARNINGS.overflow.md","class":"MACHINE-TOKEN","why":"token is a literal in shipped code","parser":"failure-signatures.json","literal":"PROJECT_LEARNINGS"},
+    {"polarity":"required","kind":"string","value":"learningFingerprint","class":"STRUCTURAL","why":"names code identifier learningFingerprint","parser":"src/core/learning-fingerprint.ts"},
     {"polarity":"required","kind":"string","value":"learnings.mergeDriver: false","class":"MACHINE-TOKEN","why":"phrase is a literal in shipped code","parser":"src/cli/doctor-merge-drivers.ts","literal":"learnings.mergeDriver: false"},
+    {"polarity":"required","kind":"string","value":"onStaleSupersede","class":"STRUCTURAL","why":"names code identifier onStaleSupersede","parser":"scripts/verify-packed-learnings-contract.mjs"},
     {"polarity":"forbidden","kind":"string","value":"`debrief-` +","class":"MACHINE-TOKEN","why":"token is a literal in shipped code","parser":"src/core/upstream-evidence-manifest.ts","literal":"debrief-"},
     {"polarity":"forbidden","kind":"pattern","value":{"source":"`learner` uses for `skill-evaluator`","flags":""},"class":"MACHINE-TOKEN","why":"token is a literal in shipped code","parser":"all/deletions.json","literal":"skill-evaluator"},
     {"polarity":"forbidden","kind":"pattern","value":{"source":"contract `learner` holds with `skill-evaluator`","flags":""},"class":"MACHINE-TOKEN","why":"token is a literal in shipped code","parser":"all/deletions.json","literal":"skill-evaluator"}
@@ -1977,8 +1979,6 @@
     {"polarity":"required","kind":"string","value":"does not uninstall"},
     {"polarity":"required","kind":"string","value":"enabled by default"},
     {"polarity":"required","kind":"string","value":"fingerprint"},
-    {"polarity":"required","kind":"string","value":"learningFingerprint"},
-    {"polarity":"required","kind":"string","value":"onStaleSupersede"},
     {"polarity":"forbidden","kind":"string","value":"fingerprint` = the deterministic Phase 0 fingerprint"},
     {"polarity":"required","kind":"pattern","value":{"source":"legacy.*(?:id|fingerprint)","flags":"is"}},
     {"polarity":"required","kind":"pattern","value":{"source":"overflow","flags":"i"}},
@@ -2482,10 +2482,14 @@
   "plugins/lisa/.codex-plugin/skills/lisa-agent-ready/SKILL.md": {
    "kept": [
     {"polarity":"required","kind":"string","value":".lisa/readiness.json","class":"MACHINE-TOKEN","why":"phrase is a literal in shipped code","parser":"plugins/src/base/scripts/doctor-report.mjs","literal":".lisa/readiness.json"},
+    {"polarity":"required","kind":"string","value":"invariant_violated","class":"STRUCTURAL","why":"names code identifier invariant_violated","parser":"src/cli/doctor-readiness-blockers.ts"},
     {"polarity":"required","kind":"string","value":"lisa-tracker-write","class":"STRUCTURAL","why":"references name lisa-tracker-write"},
+    {"polarity":"required","kind":"string","value":"machinery_to_remove","class":"STRUCTURAL","why":"names code identifier machinery_to_remove","parser":"src/cli/doctor-readiness-blockers.ts"},
     {"polarity":"required","kind":"string","value":"readiness-rubric","class":"MACHINE-TOKEN","why":"phrase is a literal in shipped code","parser":"plugins/src/base/scripts/doctor-report.mjs","literal":"readiness-rubric"},
+    {"polarity":"required","kind":"string","value":"root_correction","class":"STRUCTURAL","why":"names code identifier root_correction","parser":"src/cli/doctor-readiness-blockers.ts"},
     {"polarity":"required","kind":"string","value":"scripts/verify-wiki-safety.mjs","class":"MACHINE-TOKEN","why":"phrase is a literal in shipped code","parser":"src/core/upstream-evidence-manifest.ts","literal":"scripts/verify-wiki-safety.mjs"},
     {"polarity":"required","kind":"string","value":"scripts/wiki-safety.mjs","class":"MACHINE-TOKEN","why":"phrase is a literal in shipped code","parser":"src/core/upstream-evidence-manifest.ts","literal":"scripts/wiki-safety.mjs"},
+    {"polarity":"required","kind":"string","value":"why_proof_missed","class":"STRUCTURAL","why":"names code identifier why_proof_missed","parser":"src/cli/doctor-readiness-blockers.ts"},
     {"polarity":"required","kind":"string","value":"wiki/sources/repository/<reader-safe-source-note>.md","class":"MACHINE-TOKEN","why":"token is a literal in shipped code","parser":"src/core/upstream-evidence-manifest.ts","literal":"wiki/sources/repository/"},
     {"polarity":"required","kind":"pattern","value":{"source":"Content writes are limited to `wiki\\/\\*\\*` \\*\\*plus\\*\\*\\s+creating Lisa's own work items in the\\s+configured tracker through `lisa-tracker-write`","flags":"i"},"class":"MACHINE-TOKEN","why":"token is a literal in shipped code","parser":"all/copy-overwrite/scripts/lisa-hooks/block-direct-issue-create.sh","literal":"lisa-tracker-write"},
     {"polarity":"required","kind":"pattern","value":{"source":"knowledge-ready and `NOT_READY`","flags":"i"},"class":"MACHINE-TOKEN","why":"token is a literal in shipped code","parser":"plugins/src/base/scripts/doctor-report.mjs","literal":"NOT_READY"},
@@ -2499,10 +2503,6 @@
     {"polarity":"required","kind":"string","value":"\"source_id\": \"repository\""},
     {"polarity":"required","kind":"string","value":"\"terminal_status\": \"complete\""},
     {"polarity":"required","kind":"string","value":"evidence"},
-    {"polarity":"required","kind":"string","value":"invariant_violated"},
-    {"polarity":"required","kind":"string","value":"machinery_to_remove"},
-    {"polarity":"required","kind":"string","value":"root_correction"},
-    {"polarity":"required","kind":"string","value":"why_proof_missed"},
     {"polarity":"required","kind":"string","value":"wiki/state/agent-ready/sources.json"},
     {"polarity":"required","kind":"pattern","value":{"source":"Apply data minimization \\*\\*before\\*\\* the sanitizer","flags":"i"}},
     {"polarity":"required","kind":"pattern","value":{"source":"Do not edit tracker items, post comments, acknowledge alerts","flags":"i"}},
@@ -2560,13 +2560,13 @@
   },
   "plugins/lisa/.codex-plugin/skills/lisa-debrief-apply/SKILL.md": {
    "kept": [
+    {"polarity":"required","kind":"string","value":"learningFingerprint","class":"STRUCTURAL","why":"names code identifier learningFingerprint","parser":"src/core/learning-fingerprint.ts"},
     {"polarity":"required","kind":"string","value":"lisa-persist-learning","class":"STRUCTURAL","why":"references name lisa-persist-learning"},
+    {"polarity":"required","kind":"string","value":"onStaleSupersede","class":"STRUCTURAL","why":"names code identifier onStaleSupersede","parser":"scripts/verify-packed-learnings-contract.mjs"},
     {"polarity":"forbidden","kind":"string","value":"`debrief-` +","class":"MACHINE-TOKEN","why":"token is a literal in shipped code","parser":"src/core/upstream-evidence-manifest.ts","literal":"debrief-"}
    ],
    "wording": [
     {"polarity":"required","kind":"string","value":"fingerprint"},
-    {"polarity":"required","kind":"string","value":"learningFingerprint"},
-    {"polarity":"required","kind":"string","value":"onStaleSupersede"},
     {"polarity":"forbidden","kind":"string","value":"apply` does not commit"},
     {"polarity":"forbidden","kind":"string","value":"evidence link that doubles as a fingerprint"},
     {"polarity":"forbidden","kind":"string","value":"fingerprint` = the deterministic Phase 0 fingerprint"},
@@ -2854,7 +2854,9 @@
   "plugins/lisa/.codex-plugin/skills/lisa-persist-learning/SKILL.md": {
    "kept": [
     {"polarity":"required","kind":"string","value":"PROJECT_LEARNINGS.overflow.md","class":"MACHINE-TOKEN","why":"token is a literal in shipped code","parser":"failure-signatures.json","literal":"PROJECT_LEARNINGS"},
+    {"polarity":"required","kind":"string","value":"learningFingerprint","class":"STRUCTURAL","why":"names code identifier learningFingerprint","parser":"src/core/learning-fingerprint.ts"},
     {"polarity":"required","kind":"string","value":"learnings.mergeDriver: false","class":"MACHINE-TOKEN","why":"phrase is a literal in shipped code","parser":"src/cli/doctor-merge-drivers.ts","literal":"learnings.mergeDriver: false"},
+    {"polarity":"required","kind":"string","value":"onStaleSupersede","class":"STRUCTURAL","why":"names code identifier onStaleSupersede","parser":"scripts/verify-packed-learnings-contract.mjs"},
     {"polarity":"forbidden","kind":"string","value":"`debrief-` +","class":"MACHINE-TOKEN","why":"token is a literal in shipped code","parser":"src/core/upstream-evidence-manifest.ts","literal":"debrief-"},
     {"polarity":"forbidden","kind":"pattern","value":{"source":"`learner` uses for `skill-evaluator`","flags":""},"class":"MACHINE-TOKEN","why":"token is a literal in shipped code","parser":"all/deletions.json","literal":"skill-evaluator"},
     {"polarity":"forbidden","kind":"pattern","value":{"source":"contract `learner` holds with `skill-evaluator`","flags":""},"class":"MACHINE-TOKEN","why":"token is a literal in shipped code","parser":"all/deletions.json","literal":"skill-evaluator"}
@@ -2864,8 +2866,6 @@
     {"polarity":"required","kind":"string","value":"does not uninstall"},
     {"polarity":"required","kind":"string","value":"enabled by default"},
     {"polarity":"required","kind":"string","value":"fingerprint"},
-    {"polarity":"required","kind":"string","value":"learningFingerprint"},
-    {"polarity":"required","kind":"string","value":"onStaleSupersede"},
     {"polarity":"forbidden","kind":"string","value":"fingerprint` = the deterministic Phase 0 fingerprint"},
     {"polarity":"required","kind":"pattern","value":{"source":"legacy.*(?:id|fingerprint)","flags":"is"}},
     {"polarity":"required","kind":"pattern","value":{"source":"overflow","flags":"i"}},
@@ -2907,27 +2907,28 @@
   "plugins/lisa/agents/learner.md": {
    "kept": [
     {"polarity":"required","kind":"string","value":"@codyswann/lisa/learnings","class":"MACHINE-TOKEN","why":"phrase is a literal in shipped code","parser":"plugins/src/base/scripts/learnings-projection.mjs","literal":"@codyswann/lisa/learnings"},
+    {"polarity":"required","kind":"string","value":"LEARNINGS_CONTRACT","class":"STRUCTURAL","why":"names code identifier LEARNINGS_CONTRACT","parser":"src/core/learnings-contract.ts"},
     {"polarity":"required","kind":"string","value":"PROJECT_LEARNINGS.md","class":"MACHINE-TOKEN","why":"phrase is a literal in shipped code","parser":"failure-signatures.json","literal":"PROJECT_LEARNINGS.md"},
     {"polarity":"required","kind":"string","value":"first_learned","class":"MACHINE-TOKEN","why":"phrase is a literal in shipped code","parser":"scripts/verify-packed-learnings-contract.mjs","literal":"first_learned"},
     {"polarity":"required","kind":"string","value":"last_confirmed","class":"MACHINE-TOKEN","why":"phrase is a literal in shipped code","parser":"scripts/verify-packed-learnings-contract.mjs","literal":"last_confirmed"},
+    {"polarity":"required","kind":"string","value":"learningFingerprint","class":"STRUCTURAL","why":"names code identifier learningFingerprint","parser":"src/core/learning-fingerprint.ts"},
+    {"polarity":"required","kind":"string","value":"onStaleSupersede","class":"STRUCTURAL","why":"names code identifier onStaleSupersede","parser":"scripts/verify-packed-learnings-contract.mjs"},
+    {"polarity":"required","kind":"string","value":"persistConsolidatedLearning","class":"STRUCTURAL","why":"names code identifier persistConsolidatedLearning","parser":"src/core/learnings-writer.ts"},
+    {"polarity":"required","kind":"string","value":"persistLearningEntry","class":"STRUCTURAL","why":"names code identifier persistLearningEntry","parser":"src/core/learnings-writer.ts"},
+    {"polarity":"required","kind":"string","value":"resolveProjectLearningsFile","class":"STRUCTURAL","why":"names code identifier resolveProjectLearningsFile","parser":"src/core/learnings.ts"},
     {"polarity":"forbidden","kind":"string","value":"`debrief-` +","class":"MACHINE-TOKEN","why":"token is a literal in shipped code","parser":"src/core/upstream-evidence-manifest.ts","literal":"debrief-"},
+    {"polarity":"required","kind":"pattern","value":{"source":"parseLearningsFile","flags":""},"class":"STRUCTURAL","why":"names code identifier parseLearningsFile","parser":"src/core/learnings-document.ts"},
     {"polarity":"required","kind":"pattern","value":{"source":"status:ready","flags":""},"class":"MACHINE-TOKEN","why":"token is a literal in shipped code","parser":".lisa.config.json","literal":"status:ready"},
     {"polarity":"forbidden","kind":"pattern","value":{"source":"PROJECT_RULES","flags":""},"class":"MACHINE-TOKEN","why":"token is a literal in shipped code","parser":"ast-grep/rules/no-inline-component-in-container.yml","literal":"PROJECT_RULES"},
     {"polarity":"forbidden","kind":"pattern","value":{"source":"hardening\\.upstreamRepo","flags":""},"class":"MACHINE-TOKEN","why":"token is a literal in shipped code","parser":"all/copy-overwrite/scripts/lisa-hooks/block-direct-issue-create.sh","literal":"upstreamRepo"}
    ],
    "wording": [
-    {"polarity":"required","kind":"string","value":"LEARNINGS_CONTRACT"},
     {"polarity":"required","kind":"string","value":"`fingerprint`"},
     {"polarity":"required","kind":"string","value":"confidence"},
     {"polarity":"required","kind":"string","value":"fingerprint"},
     {"polarity":"required","kind":"string","value":"gardener"},
-    {"polarity":"required","kind":"string","value":"learningFingerprint"},
     {"polarity":"required","kind":"string","value":"lisa-tooling-gap"},
-    {"polarity":"required","kind":"string","value":"onStaleSupersede"},
-    {"polarity":"required","kind":"string","value":"persistConsolidatedLearning"},
-    {"polarity":"required","kind":"string","value":"persistLearningEntry"},
     {"polarity":"required","kind":"string","value":"provenance"},
-    {"polarity":"required","kind":"string","value":"resolveProjectLearningsFile"},
     {"polarity":"required","kind":"string","value":"scope:upstream-candidate"},
     {"polarity":"required","kind":"string","value":"supersede"},
     {"polarity":"required","kind":"string","value":"tooling_gap_candidates"},
@@ -2945,7 +2946,6 @@
     {"polarity":"required","kind":"pattern","value":{"source":"low","flags":""}},
     {"polarity":"required","kind":"pattern","value":{"source":"merged-into","flags":""}},
     {"polarity":"required","kind":"pattern","value":{"source":"never file|file no issue","flags":"i"}},
-    {"polarity":"required","kind":"pattern","value":{"source":"parseLearningsFile","flags":""}},
     {"polarity":"required","kind":"pattern","value":{"source":"sibling","flags":"i"}},
     {"polarity":"forbidden","kind":"pattern","value":{"source":"gh issue create","flags":""}},
     {"polarity":"forbidden","kind":"pattern","value":{"source":"self-hardening","flags":""}},
@@ -3327,15 +3327,15 @@
   },
   "plugins/lisa/rules/reference/project-learnings.md": {
    "kept": [
+    {"polarity":"required","kind":"string","value":"confirmLearningEntry","class":"STRUCTURAL","why":"names code identifier confirmLearningEntry","parser":"src/core/learnings-writer.ts"},
     {"polarity":"required","kind":"string","value":"lisa-debrief-apply","class":"STRUCTURAL","why":"references name lisa-debrief-apply"},
+    {"polarity":"required","kind":"string","value":"parseLearningsDocument","class":"STRUCTURAL","why":"names code identifier parseLearningsDocument","parser":"src/core/learnings-document.ts"},
     {"polarity":"required","kind":"pattern","value":{"source":"status:ready","flags":""},"class":"MACHINE-TOKEN","why":"token is a literal in shipped code","parser":".lisa.config.json","literal":"status:ready"}
    ],
    "wording": [
     {"polarity":"required","kind":"string","value":"Contract-mediated writers"},
     {"polarity":"required","kind":"string","value":"Who writes the ledger"},
-    {"polarity":"required","kind":"string","value":"confirmLearningEntry"},
     {"polarity":"required","kind":"string","value":"gardener"},
-    {"polarity":"required","kind":"string","value":"parseLearningsDocument"},
     {"polarity":"required","kind":"pattern","value":{"source":"^-[ \\t]+`fingerprint`[ \\t]*$","flags":"m"}},
     {"polarity":"required","kind":"pattern","value":{"source":"capture time","flags":""}},
     {"polarity":"required","kind":"pattern","value":{"source":"fingerprint\\s*=\\s*id","flags":"i"}},
@@ -3350,6 +3350,7 @@
   },
   "plugins/lisa/rules/reference/rejection-detection.md": {
    "kept": [
+    {"polarity":"required","kind":"string","value":"BUILD_LABEL_DEFAULTS","class":"STRUCTURAL","why":"names code identifier BUILD_LABEL_DEFAULTS","parser":"src/sync/lifecycle-defaults.ts"},
     {"polarity":"required","kind":"string","value":"NOT_PLANNED","class":"MACHINE-TOKEN","why":"token is a literal in shipped code","parser":"all/copy-overwrite/scripts/lisa-work-item.mjs","literal":"NOT_PLANNED"},
     {"polarity":"required","kind":"string","value":"config-resolution","class":"MACHINE-TOKEN","why":"phrase is a literal in shipped code","parser":"plugins/src/base/scripts/doctor-report.mjs","literal":"config-resolution"},
     {"polarity":"required","kind":"string","value":"github.labels.build","class":"MACHINE-TOKEN","why":"phrase is a literal in shipped code","parser":"all/copy-overwrite/scripts/lisa-hooks/block-direct-issue-create.sh","literal":"github.labels.build"},
@@ -3368,7 +3369,6 @@
     {"polarity":"required","kind":"pattern","value":{"source":"lisa-implement never sees the claim|never sees the claim","flags":"i"},"class":"MACHINE-TOKEN","why":"token is a literal in shipped code","parser":"plugins/src/base/hooks/enforce-verification-gate.sh","literal":"lisa-implement"}
    ],
    "wording": [
-    {"polarity":"required","kind":"string","value":"BUILD_LABEL_DEFAULTS"},
     {"polarity":"required","kind":"string","value":"Proposal rejection memory"},
     {"polarity":"required","kind":"string","value":"Recorded a candidate learning from this rejection"},
     {"polarity":"required","kind":"string","value":"To stop this from being raised again, close it as **Not planned**"},
@@ -3502,10 +3502,14 @@
   "plugins/lisa/skills/lisa-agent-ready/SKILL.md": {
    "kept": [
     {"polarity":"required","kind":"string","value":".lisa/readiness.json","class":"MACHINE-TOKEN","why":"phrase is a literal in shipped code","parser":"plugins/src/base/scripts/doctor-report.mjs","literal":".lisa/readiness.json"},
+    {"polarity":"required","kind":"string","value":"invariant_violated","class":"STRUCTURAL","why":"names code identifier invariant_violated","parser":"src/cli/doctor-readiness-blockers.ts"},
     {"polarity":"required","kind":"string","value":"lisa-tracker-write","class":"STRUCTURAL","why":"references name lisa-tracker-write"},
+    {"polarity":"required","kind":"string","value":"machinery_to_remove","class":"STRUCTURAL","why":"names code identifier machinery_to_remove","parser":"src/cli/doctor-readiness-blockers.ts"},
     {"polarity":"required","kind":"string","value":"readiness-rubric","class":"MACHINE-TOKEN","why":"phrase is a literal in shipped code","parser":"plugins/src/base/scripts/doctor-report.mjs","literal":"readiness-rubric"},
+    {"polarity":"required","kind":"string","value":"root_correction","class":"STRUCTURAL","why":"names code identifier root_correction","parser":"src/cli/doctor-readiness-blockers.ts"},
     {"polarity":"required","kind":"string","value":"scripts/verify-wiki-safety.mjs","class":"MACHINE-TOKEN","why":"phrase is a literal in shipped code","parser":"src/core/upstream-evidence-manifest.ts","literal":"scripts/verify-wiki-safety.mjs"},
     {"polarity":"required","kind":"string","value":"scripts/wiki-safety.mjs","class":"MACHINE-TOKEN","why":"phrase is a literal in shipped code","parser":"src/core/upstream-evidence-manifest.ts","literal":"scripts/wiki-safety.mjs"},
+    {"polarity":"required","kind":"string","value":"why_proof_missed","class":"STRUCTURAL","why":"names code identifier why_proof_missed","parser":"src/cli/doctor-readiness-blockers.ts"},
     {"polarity":"required","kind":"string","value":"wiki/sources/repository/<reader-safe-source-note>.md","class":"MACHINE-TOKEN","why":"token is a literal in shipped code","parser":"src/core/upstream-evidence-manifest.ts","literal":"wiki/sources/repository/"},
     {"polarity":"required","kind":"pattern","value":{"source":"Content writes are limited to `wiki\\/\\*\\*` \\*\\*plus\\*\\*\\s+creating Lisa's own work items in the\\s+configured tracker through `lisa-tracker-write`","flags":"i"},"class":"MACHINE-TOKEN","why":"token is a literal in shipped code","parser":"all/copy-overwrite/scripts/lisa-hooks/block-direct-issue-create.sh","literal":"lisa-tracker-write"},
     {"polarity":"required","kind":"pattern","value":{"source":"knowledge-ready and `NOT_READY`","flags":"i"},"class":"MACHINE-TOKEN","why":"token is a literal in shipped code","parser":"plugins/src/base/scripts/doctor-report.mjs","literal":"NOT_READY"},
@@ -3519,10 +3523,6 @@
     {"polarity":"required","kind":"string","value":"\"source_id\": \"repository\""},
     {"polarity":"required","kind":"string","value":"\"terminal_status\": \"complete\""},
     {"polarity":"required","kind":"string","value":"evidence"},
-    {"polarity":"required","kind":"string","value":"invariant_violated"},
-    {"polarity":"required","kind":"string","value":"machinery_to_remove"},
-    {"polarity":"required","kind":"string","value":"root_correction"},
-    {"polarity":"required","kind":"string","value":"why_proof_missed"},
     {"polarity":"required","kind":"string","value":"wiki/state/agent-ready/sources.json"},
     {"polarity":"required","kind":"pattern","value":{"source":"Apply data minimization \\*\\*before\\*\\* the sanitizer","flags":"i"}},
     {"polarity":"required","kind":"pattern","value":{"source":"Do not edit tracker items, post comments, acknowledge alerts","flags":"i"}},
@@ -3710,13 +3710,13 @@
   },
   "plugins/lisa/skills/lisa-debrief-apply/SKILL.md": {
    "kept": [
+    {"polarity":"required","kind":"string","value":"learningFingerprint","class":"STRUCTURAL","why":"names code identifier learningFingerprint","parser":"src/core/learning-fingerprint.ts"},
     {"polarity":"required","kind":"string","value":"lisa-persist-learning","class":"STRUCTURAL","why":"references name lisa-persist-learning"},
+    {"polarity":"required","kind":"string","value":"onStaleSupersede","class":"STRUCTURAL","why":"names code identifier onStaleSupersede","parser":"scripts/verify-packed-learnings-contract.mjs"},
     {"polarity":"forbidden","kind":"string","value":"`debrief-` +","class":"MACHINE-TOKEN","why":"token is a literal in shipped code","parser":"src/core/upstream-evidence-manifest.ts","literal":"debrief-"}
    ],
    "wording": [
     {"polarity":"required","kind":"string","value":"fingerprint"},
-    {"polarity":"required","kind":"string","value":"learningFingerprint"},
-    {"polarity":"required","kind":"string","value":"onStaleSupersede"},
     {"polarity":"forbidden","kind":"string","value":"apply` does not commit"},
     {"polarity":"forbidden","kind":"string","value":"evidence link that doubles as a fingerprint"},
     {"polarity":"forbidden","kind":"string","value":"fingerprint` = the deterministic Phase 0 fingerprint"},
@@ -4664,7 +4664,9 @@
   "plugins/lisa/skills/lisa-persist-learning/SKILL.md": {
    "kept": [
     {"polarity":"required","kind":"string","value":"PROJECT_LEARNINGS.overflow.md","class":"MACHINE-TOKEN","why":"token is a literal in shipped code","parser":"failure-signatures.json","literal":"PROJECT_LEARNINGS"},
+    {"polarity":"required","kind":"string","value":"learningFingerprint","class":"STRUCTURAL","why":"names code identifier learningFingerprint","parser":"src/core/learning-fingerprint.ts"},
     {"polarity":"required","kind":"string","value":"learnings.mergeDriver: false","class":"MACHINE-TOKEN","why":"phrase is a literal in shipped code","parser":"src/cli/doctor-merge-drivers.ts","literal":"learnings.mergeDriver: false"},
+    {"polarity":"required","kind":"string","value":"onStaleSupersede","class":"STRUCTURAL","why":"names code identifier onStaleSupersede","parser":"scripts/verify-packed-learnings-contract.mjs"},
     {"polarity":"forbidden","kind":"string","value":"`debrief-` +","class":"MACHINE-TOKEN","why":"token is a literal in shipped code","parser":"src/core/upstream-evidence-manifest.ts","literal":"debrief-"},
     {"polarity":"forbidden","kind":"pattern","value":{"source":"`learner` uses for `skill-evaluator`","flags":""},"class":"MACHINE-TOKEN","why":"token is a literal in shipped code","parser":"all/deletions.json","literal":"skill-evaluator"},
     {"polarity":"forbidden","kind":"pattern","value":{"source":"contract `learner` holds with `skill-evaluator`","flags":""},"class":"MACHINE-TOKEN","why":"token is a literal in shipped code","parser":"all/deletions.json","literal":"skill-evaluator"}
@@ -4674,8 +4676,6 @@
     {"polarity":"required","kind":"string","value":"does not uninstall"},
     {"polarity":"required","kind":"string","value":"enabled by default"},
     {"polarity":"required","kind":"string","value":"fingerprint"},
-    {"polarity":"required","kind":"string","value":"learningFingerprint"},
-    {"polarity":"required","kind":"string","value":"onStaleSupersede"},
     {"polarity":"forbidden","kind":"string","value":"fingerprint` = the deterministic Phase 0 fingerprint"},
     {"polarity":"required","kind":"pattern","value":{"source":"legacy.*(?:id|fingerprint)","flags":"is"}},
     {"polarity":"required","kind":"pattern","value":{"source":"overflow","flags":"i"}},
@@ -4722,6 +4722,7 @@
     {"polarity":"required","kind":"string","value":"/lisa:codebase-research","class":"STRUCTURAL","why":"references name lisa:codebase-research"},
     {"polarity":"required","kind":"string","value":"/lisa:product-walkthrough","class":"STRUCTURAL","why":"references name lisa:product-walkthrough"},
     {"polarity":"required","kind":"string","value":"[lisa-project-ideation]","class":"MACHINE-TOKEN","why":"phrase is a literal in shipped code","parser":"plugins/src/base/scripts/project-ideation-idempotency-harness.mjs","literal":"[lisa-project-ideation]"},
+    {"polarity":"required","kind":"string","value":"evaluatePrdQueuePressure","class":"STRUCTURAL","why":"names code identifier evaluatePrdQueuePressure","parser":"plugins/src/base/scripts/queue-status-prd-readers.mjs"},
     {"polarity":"required","kind":"string","value":"idempotency-verification-harness.md","class":"MACHINE-TOKEN","why":"phrase is a literal in shipped code","parser":"src/core/upstream-evidence-manifest.ts","literal":"idempotency-verification-harness.md"},
     {"polarity":"required","kind":"string","value":"lisa-research","class":"STRUCTURAL","why":"references name lisa-research"},
     {"polarity":"required","kind":"string","value":"max_prds","class":"MACHINE-TOKEN","why":"token is a literal in shipped code","parser":"plugins/src/base/scripts/project-ideation-idempotency-harness.mjs","literal":"max_prds"},
@@ -4737,7 +4738,6 @@
     {"polarity":"required","kind":"string","value":"Optional Codex automation memory"},
     {"polarity":"required","kind":"string","value":"Public, no-login comparison"},
     {"polarity":"required","kind":"string","value":"UI-facing recommendations"},
-    {"polarity":"required","kind":"string","value":"evaluatePrdQueuePressure"},
     {"polarity":"required","kind":"string","value":"fixture=<path>"},
     {"polarity":"required","kind":"string","value":"ideation_ledger_payload"},
     {"polarity":"required","kind":"string","value":"only then list a UI idea as build-ready"},
@@ -4792,13 +4792,13 @@
     {"polarity":"required","kind":"string","value":"[EVIDENCE: cli-output: marker-count-one]","class":"MACHINE-TOKEN","why":"token is a literal in shipped code","parser":"all/copy-overwrite/scripts/lib/completion-proof-shape.mjs","literal":"[EVIDENCE"},
     {"polarity":"required","kind":"string","value":"[EVIDENCE: cli-output: memory-recreated-after-rerun]","class":"MACHINE-TOKEN","why":"token is a literal in shipped code","parser":"all/copy-overwrite/scripts/lib/completion-proof-shape.mjs","literal":"[EVIDENCE"},
     {"polarity":"required","kind":"string","value":"max_prds=1","class":"MACHINE-TOKEN","why":"token is a literal in shipped code","parser":"plugins/src/base/scripts/project-ideation-idempotency-harness.mjs","literal":"max_prds=1"},
+    {"polarity":"required","kind":"string","value":"memoryRecreated","class":"STRUCTURAL","why":"names code identifier memoryRecreated","parser":"plugins/src/base/scripts/project-ideation-idempotency-harness.mjs"},
     {"polarity":"required","kind":"string","value":"prd_ready=true","class":"MACHINE-TOKEN","why":"phrase is a literal in shipped code","parser":"plugins/src/base/scripts/project-ideation-idempotency-harness.mjs","literal":"prd_ready=true"},
     {"polarity":"required","kind":"string","value":"project-ideation-idempotency-harness.mjs","class":"MACHINE-TOKEN","why":"phrase is a literal in shipped code","parser":"plugins/src/base/scripts/project-ideation-idempotency-harness.mjs","literal":"project-ideation-idempotency-harness.mjs"}
    ],
    "wording": [
     {"polarity":"required","kind":"string","value":"## Deterministic fixture"},
-    {"polarity":"required","kind":"string","value":"## Scripted verification"},
-    {"polarity":"required","kind":"string","value":"memoryRecreated"}
+    {"polarity":"required","kind":"string","value":"## Scripted verification"}
    ]
   },
   "plugins/lisa/skills/lisa-project-ideation/examples/public-external-inspiration.md": {
@@ -5147,27 +5147,28 @@
   "plugins/src/base/agents/learner.md": {
    "kept": [
     {"polarity":"required","kind":"string","value":"@codyswann/lisa/learnings","class":"MACHINE-TOKEN","why":"phrase is a literal in shipped code","parser":"plugins/src/base/scripts/learnings-projection.mjs","literal":"@codyswann/lisa/learnings"},
+    {"polarity":"required","kind":"string","value":"LEARNINGS_CONTRACT","class":"STRUCTURAL","why":"names code identifier LEARNINGS_CONTRACT","parser":"src/core/learnings-contract.ts"},
     {"polarity":"required","kind":"string","value":"PROJECT_LEARNINGS.md","class":"MACHINE-TOKEN","why":"phrase is a literal in shipped code","parser":"failure-signatures.json","literal":"PROJECT_LEARNINGS.md"},
     {"polarity":"required","kind":"string","value":"first_learned","class":"MACHINE-TOKEN","why":"phrase is a literal in shipped code","parser":"scripts/verify-packed-learnings-contract.mjs","literal":"first_learned"},
     {"polarity":"required","kind":"string","value":"last_confirmed","class":"MACHINE-TOKEN","why":"phrase is a literal in shipped code","parser":"scripts/verify-packed-learnings-contract.mjs","literal":"last_confirmed"},
+    {"polarity":"required","kind":"string","value":"learningFingerprint","class":"STRUCTURAL","why":"names code identifier learningFingerprint","parser":"src/core/learning-fingerprint.ts"},
+    {"polarity":"required","kind":"string","value":"onStaleSupersede","class":"STRUCTURAL","why":"names code identifier onStaleSupersede","parser":"scripts/verify-packed-learnings-contract.mjs"},
+    {"polarity":"required","kind":"string","value":"persistConsolidatedLearning","class":"STRUCTURAL","why":"names code identifier persistConsolidatedLearning","parser":"src/core/learnings-writer.ts"},
+    {"polarity":"required","kind":"string","value":"persistLearningEntry","class":"STRUCTURAL","why":"names code identifier persistLearningEntry","parser":"src/core/learnings-writer.ts"},
+    {"polarity":"required","kind":"string","value":"resolveProjectLearningsFile","class":"STRUCTURAL","why":"names code identifier resolveProjectLearningsFile","parser":"src/core/learnings.ts"},
     {"polarity":"forbidden","kind":"string","value":"`debrief-` +","class":"MACHINE-TOKEN","why":"token is a literal in shipped code","parser":"src/core/upstream-evidence-manifest.ts","literal":"debrief-"},
+    {"polarity":"required","kind":"pattern","value":{"source":"parseLearningsFile","flags":""},"class":"STRUCTURAL","why":"names code identifier parseLearningsFile","parser":"src/core/learnings-document.ts"},
     {"polarity":"required","kind":"pattern","value":{"source":"status:ready","flags":""},"class":"MACHINE-TOKEN","why":"token is a literal in shipped code","parser":".lisa.config.json","literal":"status:ready"},
     {"polarity":"forbidden","kind":"pattern","value":{"source":"PROJECT_RULES","flags":""},"class":"MACHINE-TOKEN","why":"token is a literal in shipped code","parser":"ast-grep/rules/no-inline-component-in-container.yml","literal":"PROJECT_RULES"},
     {"polarity":"forbidden","kind":"pattern","value":{"source":"hardening\\.upstreamRepo","flags":""},"class":"MACHINE-TOKEN","why":"token is a literal in shipped code","parser":"all/copy-overwrite/scripts/lisa-hooks/block-direct-issue-create.sh","literal":"upstreamRepo"}
    ],
    "wording": [
-    {"polarity":"required","kind":"string","value":"LEARNINGS_CONTRACT"},
     {"polarity":"required","kind":"string","value":"`fingerprint`"},
     {"polarity":"required","kind":"string","value":"confidence"},
     {"polarity":"required","kind":"string","value":"fingerprint"},
     {"polarity":"required","kind":"string","value":"gardener"},
-    {"polarity":"required","kind":"string","value":"learningFingerprint"},
     {"polarity":"required","kind":"string","value":"lisa-tooling-gap"},
-    {"polarity":"required","kind":"string","value":"onStaleSupersede"},
-    {"polarity":"required","kind":"string","value":"persistConsolidatedLearning"},
-    {"polarity":"required","kind":"string","value":"persistLearningEntry"},
     {"polarity":"required","kind":"string","value":"provenance"},
-    {"polarity":"required","kind":"string","value":"resolveProjectLearningsFile"},
     {"polarity":"required","kind":"string","value":"scope:upstream-candidate"},
     {"polarity":"required","kind":"string","value":"supersede"},
     {"polarity":"required","kind":"string","value":"tooling_gap_candidates"},
@@ -5185,7 +5186,6 @@
     {"polarity":"required","kind":"pattern","value":{"source":"low","flags":""}},
     {"polarity":"required","kind":"pattern","value":{"source":"merged-into","flags":""}},
     {"polarity":"required","kind":"pattern","value":{"source":"never file|file no issue","flags":"i"}},
-    {"polarity":"required","kind":"pattern","value":{"source":"parseLearningsFile","flags":""}},
     {"polarity":"required","kind":"pattern","value":{"source":"sibling","flags":"i"}},
     {"polarity":"forbidden","kind":"pattern","value":{"source":"gh issue create","flags":""}},
     {"polarity":"forbidden","kind":"pattern","value":{"source":"self-hardening","flags":""}},
@@ -5611,16 +5611,16 @@
    "kept": [
     {"polarity":"required","kind":"string","value":"# Project Learnings","class":"MACHINE-TOKEN","why":"phrase is a literal in shipped code","parser":"scripts/verify-packed-learnings-contract.mjs","literal":"# Project Learnings"},
     {"polarity":"required","kind":"string","value":"@codyswann/lisa/learnings","class":"MACHINE-TOKEN","why":"phrase is a literal in shipped code","parser":"plugins/src/base/scripts/learnings-projection.mjs","literal":"@codyswann/lisa/learnings"},
+    {"polarity":"required","kind":"string","value":"confirmLearningEntry","class":"STRUCTURAL","why":"names code identifier confirmLearningEntry","parser":"src/core/learnings-writer.ts"},
     {"polarity":"required","kind":"string","value":"lisa-debrief-apply","class":"STRUCTURAL","why":"references name lisa-debrief-apply"},
+    {"polarity":"required","kind":"string","value":"parseLearningsDocument","class":"STRUCTURAL","why":"names code identifier parseLearningsDocument","parser":"src/core/learnings-document.ts"},
     {"polarity":"required","kind":"pattern","value":{"source":"status:ready","flags":""},"class":"MACHINE-TOKEN","why":"token is a literal in shipped code","parser":".lisa.config.json","literal":"status:ready"},
     {"polarity":"forbidden","kind":"pattern","value":{"source":"maxEntries|maxTokens|maxRuleCharacters","flags":""},"class":"MACHINE-TOKEN","why":"token is a literal in shipped code","parser":"src/core/learnings-entry.ts","literal":"maxRuleCharacters"}
    ],
    "wording": [
     {"polarity":"required","kind":"string","value":"Contract-mediated writers"},
     {"polarity":"required","kind":"string","value":"Who writes the ledger"},
-    {"polarity":"required","kind":"string","value":"confirmLearningEntry"},
     {"polarity":"required","kind":"string","value":"gardener"},
-    {"polarity":"required","kind":"string","value":"parseLearningsDocument"},
     {"polarity":"required","kind":"pattern","value":{"source":"^-[ \\t]+`fingerprint`[ \\t]*$","flags":"m"}},
     {"polarity":"required","kind":"pattern","value":{"source":"^-\\s*`confidence`\\s*$","flags":"m"}},
     {"polarity":"required","kind":"pattern","value":{"source":"^-\\s*`id`\\s*$","flags":"m"}},
@@ -5637,6 +5637,7 @@
   },
   "plugins/src/base/rules/reference/rejection-detection.md": {
    "kept": [
+    {"polarity":"required","kind":"string","value":"BUILD_LABEL_DEFAULTS","class":"STRUCTURAL","why":"names code identifier BUILD_LABEL_DEFAULTS","parser":"src/sync/lifecycle-defaults.ts"},
     {"polarity":"required","kind":"string","value":"NOT_PLANNED","class":"MACHINE-TOKEN","why":"token is a literal in shipped code","parser":"all/copy-overwrite/scripts/lisa-work-item.mjs","literal":"NOT_PLANNED"},
     {"polarity":"required","kind":"string","value":"config-resolution","class":"MACHINE-TOKEN","why":"phrase is a literal in shipped code","parser":"plugins/src/base/scripts/doctor-report.mjs","literal":"config-resolution"},
     {"polarity":"required","kind":"string","value":"github.labels.build","class":"MACHINE-TOKEN","why":"phrase is a literal in shipped code","parser":"all/copy-overwrite/scripts/lisa-hooks/block-direct-issue-create.sh","literal":"github.labels.build"},
@@ -5655,7 +5656,6 @@
     {"polarity":"required","kind":"pattern","value":{"source":"lisa-implement never sees the claim|never sees the claim","flags":"i"},"class":"MACHINE-TOKEN","why":"token is a literal in shipped code","parser":"plugins/src/base/hooks/enforce-verification-gate.sh","literal":"lisa-implement"}
    ],
    "wording": [
-    {"polarity":"required","kind":"string","value":"BUILD_LABEL_DEFAULTS"},
     {"polarity":"required","kind":"string","value":"Proposal rejection memory"},
     {"polarity":"required","kind":"string","value":"Recorded a candidate learning from this rejection"},
     {"polarity":"required","kind":"string","value":"To stop this from being raised again, close it as **Not planned**"},
@@ -5795,10 +5795,14 @@
   "plugins/src/base/skills/lisa-agent-ready/SKILL.md": {
    "kept": [
     {"polarity":"required","kind":"string","value":".lisa/readiness.json","class":"MACHINE-TOKEN","why":"phrase is a literal in shipped code","parser":"plugins/src/base/scripts/doctor-report.mjs","literal":".lisa/readiness.json"},
+    {"polarity":"required","kind":"string","value":"invariant_violated","class":"STRUCTURAL","why":"names code identifier invariant_violated","parser":"src/cli/doctor-readiness-blockers.ts"},
     {"polarity":"required","kind":"string","value":"lisa-tracker-write","class":"STRUCTURAL","why":"references name lisa-tracker-write"},
+    {"polarity":"required","kind":"string","value":"machinery_to_remove","class":"STRUCTURAL","why":"names code identifier machinery_to_remove","parser":"src/cli/doctor-readiness-blockers.ts"},
     {"polarity":"required","kind":"string","value":"readiness-rubric","class":"MACHINE-TOKEN","why":"phrase is a literal in shipped code","parser":"plugins/src/base/scripts/doctor-report.mjs","literal":"readiness-rubric"},
+    {"polarity":"required","kind":"string","value":"root_correction","class":"STRUCTURAL","why":"names code identifier root_correction","parser":"src/cli/doctor-readiness-blockers.ts"},
     {"polarity":"required","kind":"string","value":"scripts/verify-wiki-safety.mjs","class":"MACHINE-TOKEN","why":"phrase is a literal in shipped code","parser":"src/core/upstream-evidence-manifest.ts","literal":"scripts/verify-wiki-safety.mjs"},
     {"polarity":"required","kind":"string","value":"scripts/wiki-safety.mjs","class":"MACHINE-TOKEN","why":"phrase is a literal in shipped code","parser":"src/core/upstream-evidence-manifest.ts","literal":"scripts/wiki-safety.mjs"},
+    {"polarity":"required","kind":"string","value":"why_proof_missed","class":"STRUCTURAL","why":"names code identifier why_proof_missed","parser":"src/cli/doctor-readiness-blockers.ts"},
     {"polarity":"required","kind":"string","value":"wiki/sources/repository/<reader-safe-source-note>.md","class":"MACHINE-TOKEN","why":"token is a literal in shipped code","parser":"src/core/upstream-evidence-manifest.ts","literal":"wiki/sources/repository/"},
     {"polarity":"required","kind":"pattern","value":{"source":"Content writes are limited to `wiki\\/\\*\\*` \\*\\*plus\\*\\*\\s+creating Lisa's own work items in the\\s+configured tracker through `lisa-tracker-write`","flags":"i"},"class":"MACHINE-TOKEN","why":"token is a literal in shipped code","parser":"all/copy-overwrite/scripts/lisa-hooks/block-direct-issue-create.sh","literal":"lisa-tracker-write"},
     {"polarity":"required","kind":"pattern","value":{"source":"knowledge-ready and `NOT_READY`","flags":"i"},"class":"MACHINE-TOKEN","why":"token is a literal in shipped code","parser":"plugins/src/base/scripts/doctor-report.mjs","literal":"NOT_READY"},
@@ -5812,10 +5816,6 @@
     {"polarity":"required","kind":"string","value":"\"source_id\": \"repository\""},
     {"polarity":"required","kind":"string","value":"\"terminal_status\": \"complete\""},
     {"polarity":"required","kind":"string","value":"evidence"},
-    {"polarity":"required","kind":"string","value":"invariant_violated"},
-    {"polarity":"required","kind":"string","value":"machinery_to_remove"},
-    {"polarity":"required","kind":"string","value":"root_correction"},
-    {"polarity":"required","kind":"string","value":"why_proof_missed"},
     {"polarity":"required","kind":"string","value":"wiki/state/agent-ready/sources.json"},
     {"polarity":"required","kind":"pattern","value":{"source":"Apply data minimization \\*\\*before\\*\\* the sanitizer","flags":"i"}},
     {"polarity":"required","kind":"pattern","value":{"source":"Do not edit tracker items, post comments, acknowledge alerts","flags":"i"}},
@@ -6003,13 +6003,13 @@
   },
   "plugins/src/base/skills/lisa-debrief-apply/SKILL.md": {
    "kept": [
+    {"polarity":"required","kind":"string","value":"learningFingerprint","class":"STRUCTURAL","why":"names code identifier learningFingerprint","parser":"src/core/learning-fingerprint.ts"},
     {"polarity":"required","kind":"string","value":"lisa-persist-learning","class":"STRUCTURAL","why":"references name lisa-persist-learning"},
+    {"polarity":"required","kind":"string","value":"onStaleSupersede","class":"STRUCTURAL","why":"names code identifier onStaleSupersede","parser":"scripts/verify-packed-learnings-contract.mjs"},
     {"polarity":"forbidden","kind":"string","value":"`debrief-` +","class":"MACHINE-TOKEN","why":"token is a literal in shipped code","parser":"src/core/upstream-evidence-manifest.ts","literal":"debrief-"}
    ],
    "wording": [
     {"polarity":"required","kind":"string","value":"fingerprint"},
-    {"polarity":"required","kind":"string","value":"learningFingerprint"},
-    {"polarity":"required","kind":"string","value":"onStaleSupersede"},
     {"polarity":"forbidden","kind":"string","value":"apply` does not commit"},
     {"polarity":"forbidden","kind":"string","value":"evidence link that doubles as a fingerprint"},
     {"polarity":"forbidden","kind":"string","value":"fingerprint` = the deterministic Phase 0 fingerprint"},
@@ -6962,7 +6962,9 @@
   "plugins/src/base/skills/lisa-persist-learning/SKILL.md": {
    "kept": [
     {"polarity":"required","kind":"string","value":"PROJECT_LEARNINGS.overflow.md","class":"MACHINE-TOKEN","why":"token is a literal in shipped code","parser":"failure-signatures.json","literal":"PROJECT_LEARNINGS"},
+    {"polarity":"required","kind":"string","value":"learningFingerprint","class":"STRUCTURAL","why":"names code identifier learningFingerprint","parser":"src/core/learning-fingerprint.ts"},
     {"polarity":"required","kind":"string","value":"learnings.mergeDriver: false","class":"MACHINE-TOKEN","why":"phrase is a literal in shipped code","parser":"src/cli/doctor-merge-drivers.ts","literal":"learnings.mergeDriver: false"},
+    {"polarity":"required","kind":"string","value":"onStaleSupersede","class":"STRUCTURAL","why":"names code identifier onStaleSupersede","parser":"scripts/verify-packed-learnings-contract.mjs"},
     {"polarity":"forbidden","kind":"string","value":"`debrief-` +","class":"MACHINE-TOKEN","why":"token is a literal in shipped code","parser":"src/core/upstream-evidence-manifest.ts","literal":"debrief-"},
     {"polarity":"forbidden","kind":"pattern","value":{"source":"`learner` uses for `skill-evaluator`","flags":""},"class":"MACHINE-TOKEN","why":"token is a literal in shipped code","parser":"all/deletions.json","literal":"skill-evaluator"},
     {"polarity":"forbidden","kind":"pattern","value":{"source":"contract `learner` holds with `skill-evaluator`","flags":""},"class":"MACHINE-TOKEN","why":"token is a literal in shipped code","parser":"all/deletions.json","literal":"skill-evaluator"}
@@ -6972,8 +6974,6 @@
     {"polarity":"required","kind":"string","value":"does not uninstall"},
     {"polarity":"required","kind":"string","value":"enabled by default"},
     {"polarity":"required","kind":"string","value":"fingerprint"},
-    {"polarity":"required","kind":"string","value":"learningFingerprint"},
-    {"polarity":"required","kind":"string","value":"onStaleSupersede"},
     {"polarity":"forbidden","kind":"string","value":"fingerprint` = the deterministic Phase 0 fingerprint"},
     {"polarity":"required","kind":"pattern","value":{"source":"legacy.*(?:id|fingerprint)","flags":"is"}},
     {"polarity":"required","kind":"pattern","value":{"source":"overflow","flags":"i"}},
@@ -7020,6 +7020,7 @@
     {"polarity":"required","kind":"string","value":"/lisa:codebase-research","class":"STRUCTURAL","why":"references name lisa:codebase-research"},
     {"polarity":"required","kind":"string","value":"/lisa:product-walkthrough","class":"STRUCTURAL","why":"references name lisa:product-walkthrough"},
     {"polarity":"required","kind":"string","value":"[lisa-project-ideation]","class":"MACHINE-TOKEN","why":"phrase is a literal in shipped code","parser":"plugins/src/base/scripts/project-ideation-idempotency-harness.mjs","literal":"[lisa-project-ideation]"},
+    {"polarity":"required","kind":"string","value":"evaluatePrdQueuePressure","class":"STRUCTURAL","why":"names code identifier evaluatePrdQueuePressure","parser":"plugins/src/base/scripts/queue-status-prd-readers.mjs"},
     {"polarity":"required","kind":"string","value":"idempotency-verification-harness.md","class":"MACHINE-TOKEN","why":"phrase is a literal in shipped code","parser":"src/core/upstream-evidence-manifest.ts","literal":"idempotency-verification-harness.md"},
     {"polarity":"required","kind":"string","value":"lisa-research","class":"STRUCTURAL","why":"references name lisa-research"},
     {"polarity":"required","kind":"string","value":"max_prds","class":"MACHINE-TOKEN","why":"token is a literal in shipped code","parser":"plugins/src/base/scripts/project-ideation-idempotency-harness.mjs","literal":"max_prds"},
@@ -7035,7 +7036,6 @@
     {"polarity":"required","kind":"string","value":"Optional Codex automation memory"},
     {"polarity":"required","kind":"string","value":"Public, no-login comparison"},
     {"polarity":"required","kind":"string","value":"UI-facing recommendations"},
-    {"polarity":"required","kind":"string","value":"evaluatePrdQueuePressure"},
     {"polarity":"required","kind":"string","value":"fixture=<path>"},
     {"polarity":"required","kind":"string","value":"ideation_ledger_payload"},
     {"polarity":"required","kind":"string","value":"only then list a UI idea as build-ready"},
@@ -7090,13 +7090,13 @@
     {"polarity":"required","kind":"string","value":"[EVIDENCE: cli-output: marker-count-one]","class":"MACHINE-TOKEN","why":"token is a literal in shipped code","parser":"all/copy-overwrite/scripts/lib/completion-proof-shape.mjs","literal":"[EVIDENCE"},
     {"polarity":"required","kind":"string","value":"[EVIDENCE: cli-output: memory-recreated-after-rerun]","class":"MACHINE-TOKEN","why":"token is a literal in shipped code","parser":"all/copy-overwrite/scripts/lib/completion-proof-shape.mjs","literal":"[EVIDENCE"},
     {"polarity":"required","kind":"string","value":"max_prds=1","class":"MACHINE-TOKEN","why":"token is a literal in shipped code","parser":"plugins/src/base/scripts/project-ideation-idempotency-harness.mjs","literal":"max_prds=1"},
+    {"polarity":"required","kind":"string","value":"memoryRecreated","class":"STRUCTURAL","why":"names code identifier memoryRecreated","parser":"plugins/src/base/scripts/project-ideation-idempotency-harness.mjs"},
     {"polarity":"required","kind":"string","value":"prd_ready=true","class":"MACHINE-TOKEN","why":"phrase is a literal in shipped code","parser":"plugins/src/base/scripts/project-ideation-idempotency-harness.mjs","literal":"prd_ready=true"},
     {"polarity":"required","kind":"string","value":"project-ideation-idempotency-harness.mjs","class":"MACHINE-TOKEN","why":"phrase is a literal in shipped code","parser":"plugins/src/base/scripts/project-ideation-idempotency-harness.mjs","literal":"project-ideation-idempotency-harness.mjs"}
    ],
    "wording": [
     {"polarity":"required","kind":"string","value":"## Deterministic fixture"},
-    {"polarity":"required","kind":"string","value":"## Scripted verification"},
-    {"polarity":"required","kind":"string","value":"memoryRecreated"}
+    {"polarity":"required","kind":"string","value":"## Scripted verification"}
    ]
   },
   "plugins/src/base/skills/lisa-project-ideation/examples/public-external-inspiration.md": {

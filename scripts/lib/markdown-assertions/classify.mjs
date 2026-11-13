@@ -16,6 +16,9 @@
  *  - MACHINE-TOKEN: the phrase, a heading it names, or a token-shaped part
  *    of it (`tokens.mjs`) occurs in the literal text of shipped code
  *    (`corpus.mjs`). The first such code file is recorded as the parser.
+ *  - STRUCTURAL (identifier): failing that, an identifier-shaped token in it
+ *    (`parseLearningsFile`, `mergeDriver`) is a name shipped code declares —
+ *    the document points an agent at a real API or config key.
  *  - WORDING: everything else — prose an agent reads, which no script or
  *    hook consumes. Only this class is deleted.
  * @module scripts/lib/markdown-assertions/classify
@@ -256,9 +259,31 @@ export function classifyCheck(check, context) {
   return (
     frontmatterVerdict(check, context.readText(check.file)) ??
     referenceVerdict(check, context) ??
-    machineTokenVerdict(check, context.corpus) ?? {
+    machineTokenVerdict(check, context.corpus) ??
+    identifierVerdict(check, context.corpus) ?? {
       class: "WORDING",
       why: "prose no shipped code reads",
     }
   );
+}
+
+/**
+ * STRUCTURAL by naming a declared code identifier, or undefined.
+ * @param {Check} check - The check.
+ * @param {import("./corpus.mjs").Corpus} corpus - The code corpus.
+ * @returns {Verdict | undefined} The verdict.
+ */
+function identifierVerdict(check, corpus) {
+  for (const token of tokenCandidates(literalText(check))) {
+    if (!/^[A-Za-z_$][\w$]*$/u.test(token)) continue;
+    const declarer = corpus.declares(token);
+    if (declarer) {
+      return {
+        class: "STRUCTURAL",
+        why: `names code identifier ${token}`,
+        parser: declarer,
+      };
+    }
+  }
+  return undefined;
 }
