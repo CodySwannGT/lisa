@@ -6,3 +6,6 @@ export declare function verifyLisaUsageSectionIntegrity(
   storedDocument: string,
   expected?: { entryIds?: readonly string[] }
 ): LisaUsageSectionIntegrityResult;
+export declare function isLisaUsageLedgerIntact(
+  storedDocument: string
+): boolean;
