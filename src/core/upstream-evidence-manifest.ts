@@ -1265,7 +1265,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/rules/reference/pre-flight-autofill.md":
       "3cb2a0e402ae468640d9021a7086e00323fa3cd34d9f061910f6caaff51f9e5f",
     "plugins/src/base/rules/reference/project-learnings.md":
-      "e51677d91c6dfeaa33e91e1f9f16f6a39b2ea007b852822cf7970e607c05c0ec",
+      "75fec724230a4e91f94cb644012f40182b288a1f82e10576671a02404a716ea5",
     "plugins/src/base/rules/reference/promotion-contract.md":
       "fe07cbdbd15393471d08903cce53b80b8899b2ff3bc0b0041b46c1c7003b7e6c",
     "plugins/src/base/rules/reference/readiness-rubric.md":
@@ -1535,7 +1535,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-kane-browser/SKILL.md":
       "e082517cb42f437eeb22b3935aa0fef09299874736e55184e88d2b64f7860a7d",
     "plugins/src/base/skills/lisa-learnings-audit/SKILL.md":
-      "6739727d9e3fb2cfad65ebd3f92da8bc40159521196c77ddf451915d67cf1fca",
+      "2f66db66104858ee5f17c3516b7841a62e6848c404d26ae058d4b4d31bd50519",
     "plugins/src/base/skills/lisa-linear-access/SKILL.md":
       "83cbf20e7a9f5e5289f609f16079a95897aac5964380305d4a5193438230f965",
     "plugins/src/base/skills/lisa-linear-add-journey/SKILL.md":

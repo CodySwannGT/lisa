@@ -135,11 +135,35 @@ describe.each(SKILL_PATHS)("gardener skill runbook (%s)", skillPath => {
     expect(template).toMatch(/proof-citing deletion PR/i);
     expect(template).toMatch(/reverse-atomicity/i);
     expect(template).toMatch(/never hand-edit the ledger/i);
+    // RETIRE deletes go through the fingerprint-guarded CAS API, and a
+    // drifted row is skipped rather than deleted (CodySwannGT/lisa#4530).
+    expect(template).toContain(
+      "retireLearningEntry(projectRoot, id, expectedFingerprint)"
+    );
+    expect(template).toMatch(/never by parse → filter → render/);
+    expect(template).toMatch(
+      /returns `stale`[\s\S]*skip the row, do\s+not delete it/
+    );
 
     const canonical = extractBatchTemplate(
       read("plugins/src/base/skills/lisa-learnings-audit/SKILL.md")
     );
     expect(template).toBe(canonical);
+  });
+
+  it("makes every RETIRE row carry the full entry fingerprint, not the marker hash", () => {
+    expect(skill).toContain("expectedFingerprint");
+    expect(skill).toMatch(/live `entry\.fingerprint`[\s\S]{0,80}at audit time/);
+    expect(skill).toMatch(/not the\s+12-hex `<invariant-hash>`/);
+  });
+
+  it("requires a mutation proof before retiring a rule as owned by a test", () => {
+    expect(skill).toMatch(/A RETIRE owned by a test needs a mutation proof/);
+    expect(skill).toMatch(/break the rule the named test\s+supposedly guards/);
+    expect(skill).toMatch(/observe it \*\*fail\*\*/);
+    expect(skill).toMatch(/revert/);
+    expect(skill).toMatch(/Record the result in the row/);
+    expect(skill).toMatch(/No failing observation ⇒\s+no valid retire proof/);
   });
 
   it("embeds the promotion-contract AC template verbatim for EXECUTABLE-CONTROL", () => {
