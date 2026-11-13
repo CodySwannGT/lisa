@@ -72,22 +72,52 @@ export interface ParsedLearningsDocument {
 }
 
 /**
+ * Hard ceiling for a deliberately tolerant, over-budget ledger read.
+ *
+ * A ledger that slipped over `maxTokens` (two merges that each fit, racing)
+ * must stay openable by the writers that would SHRINK it — otherwise the state
+ * they exist to repair locks them out (CodySwannGT/lisa#4536). The tolerance is
+ * bounded rather than open-ended: four times the cap is far past any real race
+ * yet still keeps a hostile or runaway file from being loaded wholesale.
+ */
+export const LEARNINGS_OVER_BUDGET_READ_CEILING =
+  4 * LEARNINGS_CONTRACT.maxTokens;
+
+/** Read policy shared by the ledger reader and parser. */
+export interface LearningsReadOptions {
+  /**
+   * Accept a document above `maxTokens` (up to
+   * {@link LEARNINGS_OVER_BUDGET_READ_CEILING}) and skip the document budget.
+   * Only shrink-only writers — retire, and supersede on an over-cap ledger —
+   * pass this; conflict markers, format, entry schema, and identity uniqueness
+   * are still enforced.
+   */
+  readonly allowOverBudget?: boolean;
+}
+
+/**
  * Parse and revalidate an existing file before it participates in a write.
  * @param content - Existing learnings document
+ * @param options - Read policy; defaults to the strict in-budget read
  * @returns Revalidated entries from the document
  */
-export function parseLearningsFile(content: string): LearningEntry[] {
-  return [...parseLearningsDocument(content).entries];
+export function parseLearningsFile(
+  content: string,
+  options: LearningsReadOptions = {}
+): LearningEntry[] {
+  return [...parseLearningsDocument(content, options).entries];
 }
 
 /**
  * Parse a v1 or v2 document while retaining the source-version facts writers
  * need to migrate only when they already have a reason to mutate.
  * @param content - Existing learnings document
+ * @param options - Read policy; defaults to the strict in-budget read
  * @returns Normalized entries plus source-version and canonicality metadata
  */
 export function parseLearningsDocument(
-  content: string
+  content: string,
+  options: LearningsReadOptions = {}
 ): ParsedLearningsDocument {
   // Diagnose concurrent-write corruption BEFORE the byte budget. A conflicted
   // merge duplicates the whole JSONL block, so a nearly-full ledger lands over
@@ -97,20 +127,23 @@ export function parseLearningsDocument(
   if (conflictLine !== undefined) {
     throw conflictMarkerError(conflictLine);
   }
-  if (estimateLearningTokens(content) > LEARNINGS_CONTRACT.maxTokens) {
-    throw new Error(
-      `Project learnings payload exceeds maxTokens ${LEARNINGS_CONTRACT.maxTokens}`
-    );
+  const tolerant = options.allowOverBudget === true;
+  const sizeError = readableSizeError(
+    content,
+    LEARNINGS_CONTRACT.maxTokens,
+    tolerant
+  );
+  if (sizeError !== undefined) {
+    throw sizeError;
   }
   const sourceVersion = readSourceVersion(content);
   const sourceMaxTokens =
     sourceVersion === 1
       ? LEGACY_LEARNINGS_MAX_TOKENS
       : LEARNINGS_CONTRACT.maxTokens;
-  if (estimateLearningTokens(content) > sourceMaxTokens) {
-    throw new Error(
-      `Project learnings payload exceeds maxTokens ${sourceMaxTokens}`
-    );
+  const sourceSizeError = readableSizeError(content, sourceMaxTokens, tolerant);
+  if (sourceSizeError !== undefined) {
+    throw sourceSizeError;
   }
   const sourceHeader = fileHeader(sourceVersion);
   if (
@@ -125,16 +158,85 @@ export function parseLearningsDocument(
     parseJsonLines(content.slice(jsonStart, jsonEnd)),
     sourceVersion
   );
+  const identityError = duplicateIdentityError(entries);
+  if (identityError !== undefined) {
+    throw identityError;
+  }
+  if (!tolerant) {
+    assertSourceBudget(content, entries, sourceVersion, sourceMaxTokens);
+  }
+  return {
+    sourceVersion,
+    entries,
+    canonicalSource: content === renderLearningsSource(entries, sourceVersion),
+    sourceMaxTokens,
+  };
+}
+
+/**
+ * Diagnose a document larger than the read policy allows, before JSONL parsing.
+ *
+ * Typed as a budget breach (CodySwannGT/lisa#4536): the plain `Error` this used
+ * to be made a capture against an over-cap ledger fail outright instead of
+ * reaching the overflow, which is exactly where a budget refusal belongs.
+ * @param content - Untrusted document bytes
+ * @param maxTokens - Byte cap for the declared (or current) source version
+ * @param tolerant - Whether the bounded over-budget ceiling applies instead
+ * @returns The budget refusal to throw, or undefined when the size is readable
+ */
+function readableSizeError(
+  content: string,
+  maxTokens: number,
+  tolerant: boolean
+): LearningsBudgetError | undefined {
+  const measured = estimateLearningTokens(content);
+  if (!tolerant && measured > maxTokens) {
+    return new LearningsBudgetError(
+      `Project learnings payload exceeds maxTokens ${maxTokens}`
+    );
+  }
+  if (measured > LEARNINGS_OVER_BUDGET_READ_CEILING) {
+    return new LearningsBudgetError(
+      `Project learnings payload exceeds the over-budget read ceiling ${LEARNINGS_OVER_BUDGET_READ_CEILING} (maxTokens ${maxTokens})`
+    );
+  }
+  return undefined;
+}
+
+/**
+ * Diagnose duplicate ids or fingerprints, which no read policy may tolerate.
+ * @param entries - Validated entries in document order
+ * @returns The refusal to throw, or undefined when every identity is unique
+ */
+function duplicateIdentityError(
+  entries: readonly LearningEntry[]
+): Error | undefined {
   if (new Set(entries.map(entry => entry.id)).size !== entries.length) {
-    throw new Error("Invalid project learnings payload: duplicate ids");
+    return new Error("Invalid project learnings payload: duplicate ids");
   }
   if (
     new Set(entries.map(entry => entry.fingerprint)).size !== entries.length
   ) {
-    throw new Error(
+    return new Error(
       "Invalid project learnings payload: duplicate fingerprints"
     );
   }
+  return undefined;
+}
+
+/**
+ * Enforce the source and (for v1) normalized document budgets on a strict read.
+ * @param content - Source document bytes
+ * @param entries - Validated entries
+ * @param sourceVersion - Declared contract version
+ * @param sourceMaxTokens - Byte ceiling of the declared version
+ */
+function assertSourceBudget(
+  content: string,
+  entries: readonly LearningEntry[],
+  sourceVersion: 1 | 2,
+  sourceMaxTokens: number
+): void {
   assertDocumentBudget(
     content,
     entries.length,
@@ -145,19 +247,12 @@ export function parseLearningsDocument(
     // Compatibility is migration-closed, not merely readable: accepting a v1
     // shape that cannot be published as bounded v2 would defer a guaranteed
     // failure until the next legitimate append, confirmation, drain, or merge.
-    const normalized = renderLearningsFile(entries);
     assertDocumentBudget(
-      normalized,
+      renderLearningsFile(entries),
       entries.length,
       "Normalized v1 project learnings payload"
     );
   }
-  return {
-    sourceVersion,
-    entries,
-    canonicalSource: content === renderLearningsSource(entries, sourceVersion),
-    sourceMaxTokens,
-  };
 }
 
 /**

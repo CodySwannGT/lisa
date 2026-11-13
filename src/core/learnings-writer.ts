@@ -6,12 +6,17 @@ import {
   applySupersedeAliases,
   findCallerMintedAliasError,
 } from "./learnings-alias.js";
-import { type LearningEntry } from "./learnings-contract.js";
+import {
+  LEARNINGS_CONTRACT,
+  estimateLearningTokens,
+  type LearningEntry,
+} from "./learnings-contract.js";
 import {
   LearningsBudgetError,
   assertDocumentBudget,
   parseLearningsFile,
   renderLearningsFile,
+  type LearningsReadOptions,
 } from "./learnings-document.js";
 import { requireIsoDate, validateLearningEntry } from "./learnings-entry.js";
 import {
@@ -137,11 +142,18 @@ function writeLearningEntriesWithLock(
 ): Promise<string> {
   return withLearningTargetLock(target, async () => {
     await assertSafeLearningParents(root, path.dirname(target));
-    const existing = await readExistingLearnings(target);
-    const entries = existing === undefined ? [] : parseLearningsFile(existing);
+    // Only a supersede can shrink the ledger, so only a supersede may open an
+    // over-cap one (CodySwannGT/lisa#4536); a plain append keeps the strict
+    // read and its budget refusal routes the capture to the overflow.
+    const readPolicy: LearningsReadOptions = {
+      allowOverBudget: supersede.length > 0,
+    };
+    const existing = await readExistingLearnings(target, readPolicy);
+    const entries =
+      existing === undefined ? [] : parseLearningsFile(existing, readPolicy);
     const plan = planLearningSupersede(entries, entry, supersede);
     const aliased = aliasSupersededEntries(plan.removed, plan.entry, options);
-    const rendered = renderNextDocument(plan.retained, aliased);
+    const rendered = renderSupersededDocument(plan.retained, aliased, existing);
     if (plan.stale.length > 0) {
       options.onStaleSupersede?.(plan.stale);
       const absent = plan.stale
@@ -152,7 +164,7 @@ function writeLearningEntriesWithLock(
     await writeFileAtomically(target, rendered, {
       beforeRename: async () => {
         await assertSafeLearningParents(root, path.dirname(target));
-        await assertLearningsUnchanged(target, existing);
+        await assertLearningsUnchanged(target, existing, readPolicy);
       },
     });
     return target;
@@ -306,16 +318,67 @@ function renderNextDocument(
   entries: readonly LearningEntry[],
   entry: LearningEntry
 ): string {
+  const nextEntries = composeNextEntries(entries, entry);
+  const rendered = renderLearningsFile(nextEntries);
+  assertDocumentBudget(rendered, nextEntries.length, "Learnings file");
+  return rendered;
+}
+
+/**
+ * Render the planned document, permitting a budget breach only when the
+ * existing ledger is already over the cap and this write strictly shrinks it.
+ *
+ * An over-cap ledger used to refuse every writer, including the supersede that
+ * would bring it back down (CodySwannGT/lisa#4536). A write that leaves the
+ * ledger smaller can only improve it, so it is always allowed; one that does
+ * not — a plain append, or a stale stamp that removes nothing — keeps the
+ * budget refusal and its overflow routing. An in-budget ledger is unaffected.
+ * @param entries - Existing entries retained by the plan
+ * @param entry - Planned entry carrying its final stable id
+ * @param existing - Ledger bytes read under the lock, if any
+ * @returns Next canonical document
+ */
+function renderSupersededDocument(
+  entries: readonly LearningEntry[],
+  entry: LearningEntry,
+  existing: string | undefined
+): string {
+  try {
+    return renderNextDocument(entries, entry);
+  } catch (error) {
+    if (!(error instanceof LearningsBudgetError) || existing === undefined) {
+      throw error;
+    }
+    const existingSize = estimateLearningTokens(existing);
+    const rendered = renderLearningsFile(composeNextEntries(entries, entry));
+    if (
+      existingSize > LEARNINGS_CONTRACT.maxTokens &&
+      estimateLearningTokens(rendered) < existingSize
+    ) {
+      return rendered;
+    }
+    throw error;
+  }
+}
+
+/**
+ * Add the planned entry to the retained set in stable id order, refusing any
+ * identity collision.
+ * @param entries - Existing entries retained by the plan
+ * @param entry - Planned entry carrying its final stable id
+ * @returns Next entries, sorted by id
+ */
+function composeNextEntries(
+  entries: readonly LearningEntry[],
+  entry: LearningEntry
+): readonly LearningEntry[] {
   if (entries.some(current => current.id === entry.id)) {
     throw new Error(`Duplicate learning id: ${entry.id}`);
   }
   if (entries.some(current => current.fingerprint === entry.fingerprint)) {
     throw new Error(`Duplicate learning fingerprint: ${entry.fingerprint}`);
   }
-  const nextEntries = [...entries, entry].sort((left, right) =>
+  return [...entries, entry].sort((left, right) =>
     left.id.localeCompare(right.id)
   );
-  const rendered = renderLearningsFile(nextEntries);
-  assertDocumentBudget(rendered, nextEntries.length, "Learnings file");
-  return rendered;
 }
