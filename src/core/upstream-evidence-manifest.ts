@@ -49,13 +49,13 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lib/completion-proof-errors.mjs":
       "3422df7049227eff77f3ef7bf954eeb74a63e9879b06d8126c7c3a2485b6d1f3",
     "all/copy-overwrite/scripts/lib/completion-proof-github.mjs":
-      "82ef0da12fc5c31fc48237808f94cbfd73f0d2128ae1da18ceedcea90284d467",
+      "b07e2997f317d8843993d2b5dcc56fe7807eb1b86d1399d52187574248f7a234",
     "all/copy-overwrite/scripts/lib/completion-proof-markdown.mjs":
       "00d00e2c251244d1eb0dc46464c1bb1e170f2576cd025b02518e132c0d467472",
     "all/copy-overwrite/scripts/lib/completion-proof-projection.mjs":
       "51f7246943b20e970a185d3e2d9a9255929f510b25261502154e909d3b109436",
     "all/copy-overwrite/scripts/lib/completion-proof-publisher.mjs":
-      "cf37b6b1e09b22eeeab8d64086409a4345489f17cf11eb8ddc3e4c31d6772009",
+      "b2ddd92180f6cbfc6083e1146bcd1be2a61711f29de8aa1484c88168b9926aa7",
     "all/copy-overwrite/scripts/lib/completion-proof-reader.mjs":
       "f134b65158605510bf188429d6aa5e713ed75a4d78877efc6211b440b3a805f7",
     "all/copy-overwrite/scripts/lib/completion-proof-shape.mjs":
@@ -12963,6 +12963,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/completion-proof-grammar.test.ts": true,
     "tests/unit/scripts/completion-proof-linear-escaped-markers.test.ts": true,
     "tests/unit/scripts/completion-proof-linear-usage-normalization.test.ts": true,
+    "tests/unit/scripts/completion-proof-read-retry.test.ts": true,
     "tests/unit/scripts/completion-proof-types.test.ts": true,
     "tests/unit/scripts/conflict-prover-markers-and-index.test.ts": true,
     "tests/unit/scripts/cross-pollinate.test.ts": true,
@@ -13322,6 +13323,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/work-item-proof-freshness-review.test.ts": true,
     "tests/unit/scripts/work-item-proof-gh-versions.test.ts": true,
     "tests/unit/scripts/work-item-proof-late-read.test.ts": true,
+    "tests/unit/scripts/work-item-proof-publish-retry.test.ts": true,
     "tests/unit/scripts/work-item-proof-scope.test.ts": true,
     "tests/unit/scripts/work-item-proof-trust.test.ts": true,
     "tests/unit/scripts/work-item-proof-write-errors.test.ts": true,
