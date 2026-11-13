@@ -2829,6 +2829,15 @@ jobs:
           if-no-files-found: ignore
           retention-days: 1
 
+      - name: ⏱️ Upload per-file test timings
+        if: always() && github.repository == 'CodySwannGT/lisa'
+        uses: actions/upload-artifact@v7
+        with:
+          name: test-timings-${{ github.run_id }}-${{ github.run_attempt }}-unit
+          path: ${{ inputs.working_directory || '.' }}/tmp/test-timings
+          if-no-files-found: ignore
+          retention-days: 30
+
       - name: ⏭️ Skip unit tests (no test:unit script)
         if: steps.check_script.outputs.exists == 'false' && steps.gate.outputs.configured == 'false'
         env:
@@ -3566,6 +3575,15 @@ jobs:
           overwrite: true
           retention-days: 1
 
+      - name: ⏱️ Upload this shard's per-file test timings
+        if: always() && github.repository == 'CodySwannGT/lisa'
+        uses: actions/upload-artifact@v7
+        with:
+          name: test-timings-${{ github.run_id }}-${{ github.run_attempt }}-unit-shard-${{ matrix.shard }}
+          path: ${{ inputs.working_directory || '.' }}/tmp/test-timings
+          if-no-files-found: ignore
+          retention-days: 30
+
   test_mutation:
     permissions:
       contents: read
@@ -4100,6 +4118,15 @@ jobs:
           name: freshness-native-timing-${{ github.run_id }}-${{ github.run_attempt }}
           path: ${{ inputs.working_directory || '.' }}/tmp/freshness-native-timing-ci
           if-no-files-found: error
+
+      - name: ⏱️ Upload per-file test timings
+        if: always() && github.repository == 'CodySwannGT/lisa'
+        uses: actions/upload-artifact@v7
+        with:
+          name: test-timings-${{ github.run_id }}-${{ github.run_attempt }}-integration
+          path: ${{ inputs.working_directory || '.' }}/tmp/test-timings
+          if-no-files-found: ignore
+          retention-days: 30
 
       - name: ⏭️ Skip integration tests (no test:integration script)
         if: steps.check_script.outputs.exists == 'false' && steps.gate.outputs.configured == 'false'

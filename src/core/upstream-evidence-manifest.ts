@@ -2804,6 +2804,10 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "c3ec8f0a9c52090d8044bbc99fae50eaebc45a1469f62ef2f4fd21c80aa67277",
     "scripts/lib/shipped-surface.mjs":
       "9ba04034e2a3382d90a48d81b641ba52c6f1c95028d14aa2005ab0d4e3d65208",
+    "scripts/lib/test-timings-reporter.d.mts":
+      "49dcb41192ce3396f9fc05d4598cab5c4642eb5192a4ad7be4b8bd9d2027da74",
+    "scripts/lib/test-timings-reporter.mjs":
+      "a3a9b52fd1f3ac6e9892daef80e0b76a2b468074a67408b21615a23a56232e4a",
     "scripts/lib/upstream-manifest-staleness.mjs":
       "c69fc5ba10228b7f4f8d0068db27ee8a289143094fa8718b14af83f4af31f76d",
     "scripts/lib/workflow-contract-probe.mjs":
@@ -2888,8 +2892,12 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "2bed19346810b7af18a5225fd463c4d553a7bcc7b2f11a21bd47b93e6b5e1719",
     "scripts/test-intent-routing.sh":
       "97b9dc86cbd805df8a7fdb8c99ffab9b8c5e751ba2e84c05420b2a124f80635d",
+    "scripts/test-timing-report.d.mts":
+      "f98c0d1e26c75361614a6d77ebba0082c15e2f22ba2f6ff08fabbe3a14dec716",
+    "scripts/test-timing-report.mjs":
+      "ac98aac3ecf547da67f2a40f44c008e6fdc7b7682b38080ac46e12d41b6309b6",
     "scripts/two-channel-couplings.json":
-      "531c452c034c420ebd77c290f0f68214a26983b064609312dc1b65f6f3f90c2d",
+      "ae1f9f21180939dc75ac5ea148fbeaa963046174dfa696ae2c075b5cf2c35d7e",
     "scripts/update-node-version.ts":
       "b4d96816bc86c9172e8cb48f3efbba82bf35fce8eef3c6de7a58ae68de11a518",
     "scripts/update-test-skill-paths.mjs":
@@ -10686,6 +10694,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "scripts/lib/shell-guard-terminal-reporter.mjs": true,
     "scripts/lib/shell-guard-trace.mjs": true,
     "scripts/lib/shipped-surface.mjs": true,
+    "scripts/lib/test-timings-reporter.d.mts": true,
+    "scripts/lib/test-timings-reporter.mjs": true,
     "scripts/lib/upstream-manifest-staleness.mjs": true,
     "scripts/lib/workflow-contract-probe.mjs": true,
     "scripts/lib/worktree-dependencies.d.mts": true,
@@ -10728,6 +10738,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "scripts/run-artifact-checks.mjs": true,
     "scripts/setup-deploy-key.sh": true,
     "scripts/test-intent-routing.sh": true,
+    "scripts/test-timing-report.d.mts": true,
+    "scripts/test-timing-report.mjs": true,
     "scripts/two-channel-couplings.json": true,
     "scripts/update-node-version.ts": true,
     "scripts/update-test-skill-paths.mjs": true,
@@ -11822,6 +11834,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/quality-unit-test-shards.test.ts": true,
     "tests/integration/quality-verification-coverage-collapse.test.ts": true,
     "tests/integration/quality-workflow-size.test.ts": true,
+    "tests/integration/quality-workflow-test-timings.test.ts": true,
     "tests/integration/quality-workflow.test.ts": true,
     "tests/integration/rails-helper-test-isolation.test.ts": true,
     "tests/integration/rails-hook-apply.test.ts": true,
@@ -12267,6 +12280,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/config/test-run-child-process-analyzer.test.ts": true,
     "tests/unit/config/test-run-supervision-wiring.test.ts": true,
     "tests/unit/config/test-scratch-guard.test.ts": true,
+    "tests/unit/config/test-timings-reporter.test.ts": true,
     "tests/unit/config/tmpdir-growth-benchmark-scheduled.test.ts": true,
     "tests/unit/config/tsconfig-no-unused-flags.test.ts": true,
     "tests/unit/config/tsconfig-template-references.test.ts": true,
@@ -13092,6 +13106,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/slow-lint-dead-code-enforcement.test.ts": true,
     "tests/unit/scripts/state-classification.test.ts": true,
     "tests/unit/scripts/terminal-transition-outcomes.test.ts": true,
+    "tests/unit/scripts/test-timing-report.test.ts": true,
     "tests/unit/scripts/third-party-action-pins-warn-mode.test.ts": true,
     "tests/unit/scripts/third-party-review-check-run.test.ts": true,
     "tests/unit/scripts/third-party-review-evidence-publish-contexts.test.ts": true,

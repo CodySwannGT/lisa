@@ -13,6 +13,7 @@ import * as path from "node:path";
 // the pre-push gate and `test:cov:unit` do not build first, so a stale or
 // missing build would silently leave this repo's own suite uncapped.
 import { resolveMaxWorkers } from "./src/configs/vitest/base.js";
+import { withTestTimingsReporter } from "./scripts/lib/test-timings-reporter.mjs";
 
 /** Wrapper-authoritative registry, with Lisa's legacy fixture default. */
 const scratchPrefixes =
@@ -35,6 +36,20 @@ const scratchPrefixes =
 
 const config: ViteUserConfig = {
   plugins: [
+    {
+      // Per-file timings on CI (#4592). Appended after resolution, not declared
+      // in `reporters`, so a shard leg's CLI `--reporter=blob` keeps it too.
+      name: "lisa:ci-test-timings",
+      configureVitest({ vitest }) {
+        vitest.config.reporters = [
+          ...withTestTimingsReporter(
+            vitest.config.reporters,
+            process.env,
+            vitest.config.root
+          ),
+        ];
+      },
+    },
     {
       name: "lisa:dedicated-suite-groups",
       configureVitest({ vitest, project }) {
