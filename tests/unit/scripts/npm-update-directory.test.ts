@@ -649,12 +649,20 @@ describe("reusable workflow directory selection", () => {
     expect(result.exported).toContain(`NPM_ARTIFACT_SUFFIX=${suffix}\n`);
   });
 
-  it.each(["", "../x", "./x", "a//b", "node_modules", "a/node_modules", "a b"])(
-    "refuses %s before exporting anything",
-    async directory => {
-      const result = await phase(directory);
-      expect(result.code).toBe(1);
-      expect(result.exported).toBe("");
-    }
-  );
+  it.each([
+    "",
+    "../x",
+    "./x",
+    "x/",
+    "a//b",
+    "node_modules",
+    "a/node_modules",
+    "a b",
+    // A newline must not smuggle an extra GITHUB_ENV assignment.
+    "a\nB=1",
+  ])("refuses %s before exporting anything", async directory => {
+    const result = await phase(directory);
+    expect(result.code).toBe(1);
+    expect(result.exported).toBe("");
+  });
 });

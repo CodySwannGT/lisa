@@ -171,25 +171,28 @@ describe("native subdirectory npm project update", () => {
     expect(observed.status).toBe("");
   });
 
-  it("refuses an uncommitted directory selection before any npm work", async () => {
-    const observed = await withPrivateRoot(async (root, env) => {
-      const cwd = await host(root, env);
-      const result = await prepare(cwd, join(root, "phase"), env, "missing");
-      return {
-        code: result.code,
-        stdout: result.stdout.toString(),
-        stderr: result.stderr.toString(),
-        // The selection is refused before the phase directory is even created.
-        phase: existsSync(join(root, "phase")),
-      };
-    });
-    console.log("native-subdirectory-refusal", JSON.stringify(observed));
-    expect(observed.code).toBe(1);
-    expect(observed.stdout).toBe("");
-    // The CLI prints only the public stage, never the policy text it refused.
-    expect(observed.stderr).toBe(
-      "npm updater failed: required policy, authorization, installation, gate or exact publication evidence was unavailable (stage=configuration)\n"
-    );
-    expect(observed.phase).toBe(false);
-  });
+  it.each(["missing", "../escape"])(
+    "refuses the uncommitted or escaping selection %s before any npm work",
+    async directory => {
+      const observed = await withPrivateRoot(async (root, env) => {
+        const cwd = await host(root, env);
+        const result = await prepare(cwd, join(root, "phase"), env, directory);
+        return {
+          code: result.code,
+          stdout: result.stdout.toString(),
+          stderr: result.stderr.toString(),
+          // The selection is refused before the phase directory is even created.
+          phase: existsSync(join(root, "phase")),
+        };
+      });
+      console.log("native-subdirectory-refusal", JSON.stringify(observed));
+      expect(observed.code).toBe(1);
+      expect(observed.stdout).toBe("");
+      // The CLI prints only the public stage, never the policy text it refused.
+      expect(observed.stderr).toBe(
+        "npm updater failed: required policy, authorization, installation, gate or exact publication evidence was unavailable (stage=configuration)\n"
+      );
+      expect(observed.phase).toBe(false);
+    }
+  );
 });
