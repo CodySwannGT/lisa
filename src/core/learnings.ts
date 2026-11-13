@@ -8,6 +8,7 @@ export {
 export * from "./learnings-merge.js";
 export * from "./learnings-overflow.js";
 export * from "./learnings-projection.js";
+export * from "./learnings-retire.js";
 export * from "./learnings-supersede.js";
 export * from "./learnings-writer.js";
 export * from "./upstream-attribution-body.js";
