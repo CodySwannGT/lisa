@@ -140,7 +140,12 @@ describe("status", () => {
       env: { STUB_TMUX_HAS_SESSION: "1" },
     });
     expect(result.status).toBe(0);
-    expect(result.json.manager).toEqual({ name: MANAGER, running: true });
+    expect(result.json.manager).toEqual({
+      name: MANAGER,
+      running: true,
+      self: false,
+      otherCyclers: [],
+    });
     expect(result.json.workers).toEqual([
       expect.objectContaining({
         ref: "DEMO-7",

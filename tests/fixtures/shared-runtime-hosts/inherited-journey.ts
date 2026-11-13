@@ -6,6 +6,7 @@ import { expect } from "vitest";
 import { resolveGit } from "../../support/git-executable.js";
 import { qualifiedHostBun } from "../../support/qualified-host-bun.js";
 import { type Candidate } from "./artifact.js";
+import { hostInstallArgs } from "./install-args.js";
 import { apply, checkpoint } from "./actions.js";
 import { snapshot, write } from "./host.js";
 import {
@@ -122,15 +123,10 @@ async function runInheritedNative(
   stack: InheritedStack,
   registry: string
 ) {
-  const install = [
-    "install",
-    "--registry",
+  const install = hostInstallArgs(
     registry,
-    "--network-concurrency",
-    "8",
-    "--cache-dir",
-    candidate.env["BUN_INSTALL_CACHE_DIR"]!,
-  ];
+    candidate.env["BUN_INSTALL_CACHE_DIR"]!
+  );
   const nativeEnv = inheritedNativeEnvironment(candidate);
   const spec = INHERITED_NATIVE_SPEC[stack];
   await run(

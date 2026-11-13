@@ -102,6 +102,9 @@ const FINISH_STATUSES = new Set(["DONE", "FAILED"]);
  * @property {Record<string, ValidationFailure>} validationFailures - Backlog
  *   items that failed validation, keyed by ref, so an unchanged item is not
  *   re-validated every cycle
+ * @property {Record<string, string>} cyclers - Who ran a cycle and when
+ *   (identity to ISO time), pruned to twice the interval (#4809; see
+ *   cyclers.mjs)
  */
 
 /**
@@ -149,6 +152,7 @@ function emptyLedger() {
     items: {},
     control: { paused: false, maxWorkers: null, me: null },
     validationFailures: {},
+    cyclers: {},
   };
 }
 
@@ -190,6 +194,7 @@ export async function readLedger(projectRoot, seams) {
     items: parsed.items ?? {},
     control: { ...empty.control, ...parsed.control },
     validationFailures: parsed.validationFailures ?? {},
+    cyclers: parsed.cyclers ?? {},
   };
 }
 
@@ -336,12 +341,22 @@ export function recordProgress(projectRoot, { ref, logsHash }, seams) {
 
 /**
  * Record the worker's own terminal report.
+ *
+ * `setupGap` marks a FAILED worker whose first prompt never ran (classify
+ * said `setup-gap`, lisa#4503): the spawn that started it is refunded, so a
+ * machine setup problem never spends the item's attempts. Only a `running`
+ * item is refunded, so repeating the finish, or finishing an item that
+ * already finished, never takes away a second attempt.
  * @param {string} projectRoot - Absolute project root
- * @param {{ref: string, status: "DONE"|"FAILED", reason: string}} finish - Report
+ * @param {{ref: string, status: "DONE"|"FAILED", reason: string, setupGap?: boolean}} finish - Report
  * @param {LedgerSeams} [seams] - Injected seams
  * @returns {Promise<LedgerItem>} The updated item
  */
-export function recordFinish(projectRoot, { ref, status, reason }, seams) {
+export function recordFinish(
+  projectRoot,
+  { ref, status, reason, setupGap = false },
+  seams
+) {
   if (!FINISH_STATUSES.has(status)) {
     return Promise.reject(
       new Error(
@@ -349,19 +364,31 @@ export function recordFinish(projectRoot, { ref, status, reason }, seams) {
       )
     );
   }
+  if (setupGap && status !== "FAILED") {
+    return Promise.reject(new Error("a setup-gap finish must be FAILED"));
+  }
   return updateLedger(projectRoot, seams, (ledger, at) => {
     const previous = requireItem(ledger, ref);
+    const attempts = previous.attempts ?? 0;
+    const refund = setupGap && previous.status === "running";
     return withItem(ledger, ref, {
       ...previous,
       status,
       reason,
       finishedAt: at,
+      attempts: refund ? Math.max(0, attempts - 1) : attempts,
       // Kept: a question recorded before the finish still holds its answer
       // and the tracker marker the manager must remove (lisa#4571).
       pendingQuestion: previous.pendingQuestion ?? null,
       history: [
         ...(previous.history ?? []),
-        { event: "finish", at, status, reason },
+        {
+          event: "finish",
+          at,
+          status,
+          reason,
+          ...(setupGap ? { setupGap: true } : {}),
+        },
       ],
     });
   });

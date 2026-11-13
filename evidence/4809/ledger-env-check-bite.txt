@@ -1,0 +1,6 @@
+LEAK ledger-after-step3.json: value of env HOME present
+LEAK ledger-after-step3.json: value of env LOGNAME present
+LEAK ledger-after-step3.json: value of env USER present
+ledger-after-step3.json: cyclers={"tmux:sm4809verify":"2026-11-12T22:59:59.268Z","pid:76837":"2026-11-12T23:00:10.736Z"} checked 43 env values
+FAIL (3)
+exit=1

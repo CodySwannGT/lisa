@@ -4,8 +4,12 @@ import {
   completeReportedFiles,
   identityHash,
   mergeBundles,
+  mergeShardDirectories,
   nativeArgv,
   parseShard,
+  RECOVERY_PREFIX,
+  RERUN_ALL,
+  RERUN_FAILED,
   sha256,
   strictTrace,
 } from "../../../scripts/lib/shell-guard-shards.mjs";
@@ -16,6 +20,7 @@ import {
 
 const root = "/owned/checkout";
 const DUPLICATE_FILE = "duplicate-file";
+const INCOMPLETE_MANIFEST = "incomplete-manifest";
 const guard = {
   path: "plugins/src/base/hooks/probe.sh",
   sha256: "a".repeat(64),
@@ -232,7 +237,7 @@ describe("complete native shard provenance", () => {
     "stale-head",
     "stale-tree",
     "stale-run",
-    "stale-attempt",
+    "later-attempt",
     "stale-sourceSha",
     "stale-prHead",
     "stale-workflow",
@@ -249,7 +254,7 @@ describe("complete native shard provenance", () => {
     "wrong-producer",
     "wrong-argv",
     "wrong-clock",
-    "incomplete-manifest",
+    INCOMPLETE_MANIFEST,
   ])("refuses %s", mode => {
     const { snapshot, bundles } = fixtures();
     const first = bundles[0]!;
@@ -260,7 +265,8 @@ describe("complete native shard provenance", () => {
     }
     if (mode === "stale-head") first.manifest.snapshot.head = "0".repeat(40);
     if (mode === "stale-tree") first.manifest.snapshot.tree = "0".repeat(40);
-    if (mode === "stale-attempt")
+    // #4634: an OLDER attempt of this run is legitimate; a later one is not.
+    if (mode === "later-attempt")
       first.manifest.snapshot.provider.attempt = "2";
     if (mode === "stale-run") first.manifest.snapshot.provider.runId = "124";
     if (mode === "stale-sourceSha")
@@ -291,9 +297,12 @@ describe("complete native shard provenance", () => {
     if (mode === "wrong-argv")
       first.manifest.child.argv.push("--testNamePattern=narrowed");
     if (mode === "wrong-clock") first.manifest.child.endedAt = "not a date";
-    if (mode === "incomplete-manifest") first.manifest.complete = false;
+    if (mode === INCOMPLETE_MANIFEST) first.manifest.complete = false;
+    // #4634: every refusal also tells the operator which re-run recovers it.
     expect(() => mergeBundles(snapshot, bundles)).toThrow(
-      mode === "duplicate" ? /duplicate shard identity/ : undefined
+      mode === "duplicate"
+        ? /duplicate shard identity[\s\S]*Re-run all jobs/u
+        : /Re-run (?:failed|all) jobs/u
     );
   });
   it.each([
@@ -314,7 +323,9 @@ describe("complete native shard provenance", () => {
       first.executionRaw = "{}";
       first.manifest.rawHashes["execution.json"] = sha256(first.executionRaw);
     }
-    expect(() => mergeBundles(snapshot, bundles)).toThrow();
+    expect(() => mergeBundles(snapshot, bundles)).toThrow(
+      /shard 1 attempt 1[\s\S]*Re-run all jobs/u
+    );
   });
   it.each([
     "pending-json",
@@ -484,5 +495,245 @@ describe("complete native shard provenance", () => {
       observed: parseTrace(mergeBundles(snapshot, bundles)),
     });
     expect(report.driven).toBe(0); // Original CLI's exit2 path remains unchanged.
+  });
+});
+
+/**
+ * #4634: a failed-jobs re-run is a new attempt that rebuilds only the failed
+ * shard, so the merge must take the newest COMPLETE bundle per shard across
+ * every attempt of the current run, and every refusal must name the shard,
+ * the attempt, and the re-run that recovers it.
+ */
+describe("shard bundles across Actions attempts (#4634)", () => {
+  const dirName = (attempt: number, shard: number, runId = "123") =>
+    `lisa-shell-guard-${runId}-${attempt}-shard-${shard}`;
+  /** Copy a fixture bundle as though `attempt` produced it. */
+  const atAttempt = (bundle: Bundle, attempt: number) => {
+    const copy = structuredClone(bundle);
+    copy.manifest.snapshot.provider.attempt = String(attempt);
+    return copy;
+  };
+  const entry = (attempt: number, bundle: Bundle, runId = "123") => ({
+    name: dirName(attempt, bundle.manifest.shard.index, runId),
+    read: () => bundle,
+  });
+  /** A failed shard uploads logs and execution.json but no manifest.json. */
+  const failedEntry = (attempt: number, shard: number) => ({
+    name: dirName(attempt, shard),
+    read: () => null,
+  });
+  /** The fixtures as the merge job of `attempt` sees them. */
+  const currentAt = (attempt: number) => {
+    const { snapshot, bundles } = fixtures();
+    snapshot.provider.attempt = String(attempt);
+    return { snapshot, bundles };
+  };
+
+  it("merges attempt-1 shards 1 and 2 with the attempt-2 re-run of shard 3", () => {
+    const { snapshot, bundles } = currentAt(2);
+    const result = mergeShardDirectories(snapshot, [
+      entry(1, atAttempt(bundles[0]!, 1)),
+      entry(1, atAttempt(bundles[1]!, 1)),
+      entry(2, atAttempt(bundles[2]!, 2)),
+    ]);
+    expect(result.selected.map(row => [row.index, row.attempt])).toEqual([
+      [1, 1],
+      [2, 1],
+      [3, 2],
+    ]);
+    const report = judge({
+      population: snapshot.population,
+      observed: parseTrace(result.trace),
+    });
+    expect(report.driven).toBe(1);
+    expect(report.findings).toEqual([]);
+  });
+
+  it("refuses attempt-2 shard 3 alone, naming shards 1 and 2 and the recovery", () => {
+    const { snapshot, bundles } = currentAt(2);
+    expect(() =>
+      mergeShardDirectories(snapshot, [entry(2, atAttempt(bundles[2]!, 2))])
+    ).toThrow(/shard 1, shard 2[\s\S]*Re-run failed jobs/u);
+  });
+
+  it("uses the complete attempt-2 shard 3 beside the failed attempt-1 shard 3 diagnostics", () => {
+    const { snapshot, bundles } = currentAt(2);
+    const result = mergeShardDirectories(snapshot, [
+      entry(1, atAttempt(bundles[0]!, 1)),
+      entry(1, atAttempt(bundles[1]!, 1)),
+      failedEntry(1, 3),
+      entry(2, atAttempt(bundles[2]!, 2)),
+    ]);
+    expect(result.selected.find(row => row.index === 3)?.attempt).toBe(2);
+  });
+
+  it("refuses a bundle downloaded from a different run", () => {
+    const { snapshot, bundles } = currentAt(2);
+    expect(() =>
+      mergeShardDirectories(snapshot, [
+        entry(1, atAttempt(bundles[0]!, 1)),
+        entry(1, atAttempt(bundles[1]!, 1)),
+        entry(2, atAttempt(bundles[2]!, 2), "999"),
+      ])
+    ).toThrow(/shard 3 attempt 2[\s\S]*run 999[\s\S]*Re-run all jobs/u);
+  });
+
+  it.each([
+    ["runId", "999"],
+    ["sourceSha", "0".repeat(40)],
+    ["prHead", "0".repeat(40)],
+    ["workflowRef", "wrong/workflow"],
+  ] as const)(
+    "refuses a chosen bundle whose recorded %s differs from the current run",
+    (field, value) => {
+      const { snapshot, bundles } = currentAt(2);
+      const stale = atAttempt(bundles[0]!, 1);
+      stale.manifest.snapshot.provider[field] = value;
+      expect(() =>
+        mergeShardDirectories(snapshot, [
+          entry(1, stale),
+          entry(1, atAttempt(bundles[1]!, 1)),
+          entry(2, atAttempt(bundles[2]!, 2)),
+        ])
+      ).toThrow(
+        new RegExp(
+          `shard 1 attempt 1[\\s\\S]*${field}[\\s\\S]*Re-run all jobs`,
+          "u"
+        )
+      );
+    }
+  );
+
+  it.each(["no-manifest", INCOMPLETE_MANIFEST, "failed-child"])(
+    "refuses an incomplete newest bundle (%s) rather than falling back to an older attempt",
+    mode => {
+      const { snapshot, bundles } = currentAt(2);
+      const newest = atAttempt(bundles[2]!, 2);
+      if (mode === INCOMPLETE_MANIFEST) newest.manifest.complete = false;
+      if (mode === "failed-child") newest.manifest.child.status = 1;
+      expect(() =>
+        mergeShardDirectories(snapshot, [
+          entry(1, atAttempt(bundles[0]!, 1)),
+          entry(1, atAttempt(bundles[1]!, 1)),
+          entry(1, atAttempt(bundles[2]!, 1)),
+          mode === "no-manifest" ? failedEntry(2, 3) : entry(2, newest),
+        ])
+      ).toThrow(/shard 3 attempt 2[\s\S]*Re-run failed jobs/u);
+    }
+  );
+
+  it("refuses two directories claiming the same shard and attempt", () => {
+    const { snapshot, bundles } = currentAt(1);
+    expect(() =>
+      mergeShardDirectories(snapshot, [
+        entry(1, bundles[0]!),
+        entry(1, bundles[1]!),
+        entry(1, bundles[2]!),
+        entry(1, bundles[2]!),
+      ])
+    ).toThrow(/duplicate[\s\S]*shard 3 attempt 1[\s\S]*Re-run all jobs/u);
+  });
+
+  it("refuses a bundle whose recorded attempt differs from its directory name", () => {
+    const { snapshot, bundles } = currentAt(2);
+    expect(() =>
+      mergeShardDirectories(snapshot, [
+        entry(1, atAttempt(bundles[0]!, 1)),
+        entry(1, atAttempt(bundles[1]!, 1)),
+        entry(2, atAttempt(bundles[2]!, 1)),
+      ])
+    ).toThrow(
+      /shard 3 attempt 2[\s\S]*records attempt 1[\s\S]*Re-run all jobs/u
+    );
+  });
+
+  it("refuses a bundle from a later attempt than the merge job's own", () => {
+    const { snapshot, bundles } = currentAt(1);
+    expect(() =>
+      mergeShardDirectories(snapshot, [
+        entry(1, bundles[0]!),
+        entry(1, bundles[1]!),
+        entry(2, atAttempt(bundles[2]!, 2)),
+      ])
+    ).toThrow(/shard 3 attempt 2[\s\S]*Re-run all jobs/u);
+  });
+
+  it("refuses a chosen older-attempt bundle built from a different runtime, asking for a full re-run", () => {
+    const { snapshot, bundles } = currentAt(2);
+    const stale = atAttempt(bundles[0]!, 1);
+    stale.manifest.snapshot.runtime.node = "older runner image";
+    expect(() =>
+      mergeShardDirectories(snapshot, [
+        entry(1, stale),
+        entry(1, atAttempt(bundles[1]!, 1)),
+        entry(2, atAttempt(bundles[2]!, 2)),
+      ])
+    ).toThrow(/shard 1 attempt 1[\s\S]*Re-run all jobs/u);
+  });
+
+  it("compares attempts numerically, so attempt 10 beats attempt 9", () => {
+    const { snapshot, bundles } = currentAt(10);
+    const result = mergeShardDirectories(snapshot, [
+      entry(1, atAttempt(bundles[0]!, 1)),
+      entry(1, atAttempt(bundles[1]!, 1)),
+      failedEntry(9, 3),
+      entry(10, atAttempt(bundles[2]!, 10)),
+    ]);
+    expect(result.selected.find(row => row.index === 3)?.attempt).toBe(10);
+  });
+
+  it("builds every recovery hint from the one prefix recoverable() keys on", () => {
+    expect(RERUN_FAILED.startsWith(RECOVERY_PREFIX)).toBe(true);
+    expect(RERUN_ALL.startsWith(RECOVERY_PREFIX)).toBe(true);
+  });
+
+  it("does not double-wrap a refusal that already carries a recovery hint", () => {
+    const { snapshot, bundles } = currentAt(2);
+    let message = "";
+    try {
+      mergeShardDirectories(snapshot, [
+        entry(1, atAttempt(bundles[0]!, 1)),
+        entry(1, atAttempt(bundles[1]!, 1)),
+        {
+          name: dirName(2, 3),
+          read: () => {
+            throw new Error(`already explained. ${RERUN_FAILED}`);
+          },
+        },
+      ]);
+    } catch (error) {
+      message = (error as Error).message;
+    }
+    expect(message).toBe(`already explained. ${RERUN_FAILED}`);
+  });
+
+  it("names the shard and attempt when a chosen bundle's files cannot be read", () => {
+    const { snapshot, bundles } = currentAt(2);
+    expect(() =>
+      mergeShardDirectories(snapshot, [
+        entry(1, atAttempt(bundles[0]!, 1)),
+        entry(1, atAttempt(bundles[1]!, 1)),
+        {
+          name: dirName(2, 3),
+          read: () => {
+            throw new Error("missing/link/oversized artifact");
+          },
+        },
+      ])
+    ).toThrow(
+      /shard 3 attempt 2: missing\/link\/oversized artifact[\s\S]*Re-run all jobs/u
+    );
+  });
+
+  it("refuses a directory that is not a shard bundle of this run", () => {
+    const { snapshot, bundles } = currentAt(1);
+    expect(() =>
+      mergeShardDirectories(snapshot, [
+        entry(1, bundles[0]!),
+        entry(1, bundles[1]!),
+        entry(1, bundles[2]!),
+        { name: "something-else", read: () => null },
+      ])
+    ).toThrow(/something-else[\s\S]*Re-run all jobs/u);
   });
 });

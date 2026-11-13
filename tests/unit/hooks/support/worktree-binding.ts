@@ -30,6 +30,17 @@ export const ALLOWED = 0;
 export const SESSION = "session-under-test";
 
 /**
+ * The guarded call every case makes unless it names its own: a WRITE.
+ *
+ * Since CodySwannGT/lisa#4816 a provably read-only command in a mismatched
+ * worktree is allowed with a warning, so a default of `echo hello` would turn
+ * every displacement case in this suite into a read and silently stop
+ * exercising the refusal. A write keeps "the guarded call" meaning what it
+ * meant when these cases were written. The guard never runs the command.
+ */
+export const WRITE_COMMAND = "touch guarded-write.txt";
+
+/**
  * The state-file name the guard writes for a (session, agent) pair.
  *
  * Mirrors the versioned tuple key in the guard on purpose — the suite asserts
@@ -185,7 +196,7 @@ export function runGuard(call: Call) {
     session_id: call.session ?? SESSION,
     cwd: call.cwd,
     tool_name: call.tool ?? "Bash",
-    tool_input: call.input ?? { command: "echo hello" },
+    tool_input: call.input ?? { command: WRITE_COMMAND },
     ...(call.event === undefined ? {} : { hook_event_name: call.event }),
     ...(call.agent === undefined ? {} : { agent_id: call.agent }),
   };

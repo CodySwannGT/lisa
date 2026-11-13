@@ -119,7 +119,9 @@ function runWrapper(script: string, cwd: string, state: string) {
       session_id: SESSION,
       cwd,
       tool_name: "Bash",
-      tool_input: { command: "echo hello" },
+      // A write: since CodySwannGT/lisa#4816 a provable read in a displaced
+      // tree is allowed with a warning, so a read would not exercise refusal.
+      tool_input: { command: "touch guarded-write.txt" },
     }),
   });
 }
