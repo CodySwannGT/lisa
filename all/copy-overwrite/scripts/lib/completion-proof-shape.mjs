@@ -198,9 +198,10 @@ function unescapedProse(text) {
  * Split one line into prose and inline code spans, CommonMark style: an
  * opening run of N backticks closes at the next run of exactly N, a
  * backslash-escaped backtick never opens a span, and an unclosed run is
- * literal text. An autolink or raw HTML tag (`<...>` on one line) outranks a
- * code span, so a backtick inside one never opens a span that would hide a
- * real marker. A span is only recognised within one line: one that wraps
+ * literal text. An autolink or raw HTML tag (`<` then a letter, `/`, `!` or
+ * `?`, closed by `>` on the same line) outranks a code span, so a backtick
+ * inside one never opens a span that would hide a real marker; a prose `<`
+ * followed by a space, as in `a < b`, is not a tag. A span is only recognised within one line: one that wraps
  * across a soft line break is read as prose. That is a known gap and it fails
  * safe, because prose can only refuse or over-require evidence, never drop an
  * obligation; it also keeps a stray backtick from swallowing a later line.
@@ -210,7 +211,7 @@ function unescapedProse(text) {
  */
 function inlineCodeParts(line) {
   const parts = [];
-  const token = /\\[\s\S]|<[^>\n]*>|`+/gu;
+  const token = /\\[\s\S]|<[A-Za-z/!?][^>\n]*>|`+/gu;
   let prose = 0;
   for (let open = token.exec(line); open; open = token.exec(line)) {
     if (!open[0].startsWith("`")) continue;

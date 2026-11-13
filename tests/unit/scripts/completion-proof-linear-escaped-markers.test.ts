@@ -392,6 +392,16 @@ describe("inline code spans never claim evidence (#4689)", () => {
     }
   );
 
+  it.each([
+    ["plain", `a < b \`${PLAIN}\` c > d`],
+    ["escaped", `a < b \`${ESCAPED}\` c > d`],
+  ])(
+    "does not read prose angle brackets as a tag around a %s code-span example",
+    (_label, line) => {
+      expect(localMarkers(line)).toEqual([]);
+    }
+  );
+
   it("still reads the #4670 escaped top-level marker as the plain form", () => {
     expect(localMarkers(`Body\n${ESCAPED}`)).toEqual(X);
     expect(localMarkers(`Body\n${PLAIN}`)).toEqual(X);
