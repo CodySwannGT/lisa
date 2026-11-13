@@ -103,9 +103,7 @@ describe("lisa learnings-retire", () => {
 
   it("exits non-zero with the diagnostic on an invalid stamp", async () => {
     expect(await run("NOT A TOKEN")).toBe(1);
-    expect(err.join("\n")).toMatch(
-      /^learnings-retire: Invalid supersede stamp/
-    );
+    expect(err.join("\n")).toMatch(/^learnings-retire: Invalid retire stamp/);
     expect(out).toEqual([]);
   });
 

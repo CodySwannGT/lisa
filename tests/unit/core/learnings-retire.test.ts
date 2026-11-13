@@ -18,7 +18,6 @@ import * as fs from "fs-extra";
 import { readFile } from "node:fs/promises";
 import * as path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { LEARNINGS_CONTRACT } from "../../../src/core/learnings-contract.js";
 import {
   LEARNINGS_OVER_BUDGET_READ_CEILING,
   LearningsBudgetError,
@@ -27,55 +26,18 @@ import {
 } from "../../../src/core/learnings-document.js";
 import { readExistingLearnings } from "../../../src/core/learnings-file-safety.js";
 import { retireLearningEntry } from "../../../src/core/learnings-retire.js";
+import { persistLearningEntry } from "../../../src/core/learnings-writer.js";
 import {
-  persistConsolidatedLearning,
-  persistLearningEntry,
-} from "../../../src/core/learnings-writer.js";
+  FINGERPRINT_1,
+  FINGERPRINT_2,
+  HALF_CAP,
+  LEDGER,
+  OVERFLOW,
+  STALE_FINGERPRINT,
+  entry,
+  overCapLedger,
+} from "../../helpers/learnings-overcap.js";
 import { cleanupTempDir, createTempDir } from "../../helpers/test-utils.js";
-
-const FINGERPRINT_1 = "learner-fingerprint-1";
-const FINGERPRINT_2 = "learner-fingerprint-2";
-const STALE_FINGERPRINT = "learner-fingerprint-x";
-const LEDGER = path.join(".lisa", "PROJECT_LEARNINGS.md");
-const OVERFLOW = path.join(".lisa", "PROJECT_LEARNINGS.overflow.md");
-
-/**
- * Build a valid entry, optionally padded so a few of them overflow the cap.
- * @param index - Stable numeric suffix
- * @param padding - Length of the `why` field
- * @returns Valid eight-field entry
- */
-function entry(index: number, padding = 7) {
-  return {
-    id: `learner-${index}`,
-    fingerprint: `learner-fingerprint-${index}`,
-    rule: `Rule ${index}.`,
-    why: "w".repeat(padding),
-    provenance: [`issue:#${index}`],
-    first_learned: "2026-07-20",
-    last_confirmed: "2026-07-20",
-    confidence: "high",
-  } as const;
-}
-
-/** Padding that makes two entries fit the cap and three exceed it. */
-const HALF_CAP = Math.floor(LEARNINGS_CONTRACT.maxTokens / 2.5);
-
-/**
- * A valid, conflict-free v2 ledger that is over the `maxTokens` cap.
- * @returns Canonical over-cap document
- */
-function overCapLedger(): string {
-  const document = renderLearningsFile([
-    entry(1, HALF_CAP),
-    entry(2, HALF_CAP),
-    entry(3, HALF_CAP),
-  ]);
-  expect(Buffer.byteLength(document)).toBeGreaterThan(
-    LEARNINGS_CONTRACT.maxTokens
-  );
-  return document;
-}
 
 describe("over-cap ledger refusals are typed budget errors", () => {
   let tempDir: string;
@@ -171,47 +133,6 @@ describe("bounded over-budget read for shrink-only writers", () => {
     expect(() =>
       parseLearningsDocument(duplicated, { allowOverBudget: true })
     ).toThrow(/duplicate fingerprints/);
-  });
-});
-
-describe("over-cap supersede", () => {
-  let tempDir: string;
-  let target: string;
-
-  beforeEach(async () => {
-    tempDir = await createTempDir();
-    target = path.join(tempDir, LEDGER);
-    await fs.outputFile(target, overCapLedger());
-  });
-
-  afterEach(async () => {
-    await cleanupTempDir(tempDir);
-  });
-
-  it("permits a supersede that shrinks an over-cap ledger", async () => {
-    const before = await readFile(target, "utf8");
-    await persistConsolidatedLearning(tempDir, entry(7), {
-      supersede: [
-        { id: "learner-2", fingerprint: FINGERPRINT_2 },
-        { id: "learner-3", fingerprint: "learner-fingerprint-3" },
-      ],
-    });
-    const after = await readFile(target, "utf8");
-    expect(Buffer.byteLength(after)).toBeLessThan(Buffer.byteLength(before));
-    const ids = parseLearningsDocument(after).entries.map(e => e.id);
-    expect(ids).toEqual(["learner-1", "learner-2"]);
-  });
-
-  it("refuses a stale supersede on an over-cap ledger without appending", async () => {
-    const before = await readFile(target, "utf8");
-    const stale: unknown[] = [];
-    await expect(
-      persistConsolidatedLearning(tempDir, entry(7), {
-        supersede: [{ id: "learner-2", fingerprint: STALE_FINGERPRINT }],
-        onStaleSupersede: targets => stale.push(...targets),
-      })
-    ).rejects.toThrow(LearningsBudgetError);
-    expect(await readFile(target, "utf8")).toBe(before);
   });
 });
 
@@ -339,7 +260,7 @@ describe("retireLearningEntry", () => {
         { id: "Not A Token", fingerprint: "x" },
         "obsolete"
       )
-    ).rejects.toThrow(/stamp/);
+    ).rejects.toThrow(/^Invalid retire stamp/);
     await expect(
       retireLearningEntry(
         tempDir,
