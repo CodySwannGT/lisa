@@ -2,6 +2,25 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [5.1.0](https://github.com/CodySwannGT/lisa/compare/v5.0.2...v5.1.0) (2026-11-13)
+
+
+### Features
+
+* **npm-updater:** update one committed npm project directory per run ([37730b3](https://github.com/CodySwannGT/lisa/commit/37730b3c8a4d742b2faa1786970102d5b77e3860)), closes [#4741](https://github.com/CodySwannGT/lisa/issues/4741) [CodySwannGT/lisa#4741](https://github.com/CodySwannGT/lisa/issues/4741)
+
+
+### Bug Fixes
+
+* **npm-updater:** address multi-directory review findings ([e1fbb9d](https://github.com/CodySwannGT/lisa/commit/e1fbb9dd9efe29c77147eeb29345b0affc7f1180)), closes [#4741](https://github.com/CodySwannGT/lisa/issues/4741) [CodySwannGT/lisa#4741](https://github.com/CodySwannGT/lisa/issues/4741)
+* **npm-updater:** satisfy shipped-mjs lint and bounded-spawn conformance ([1cd739f](https://github.com/CodySwannGT/lisa/commit/1cd739fd29cb9a7aaa461d03768bccd08d193ebd)), closes [#4741](https://github.com/CodySwannGT/lisa/issues/4741) [CodySwannGT/lisa#4741](https://github.com/CodySwannGT/lisa/issues/4741)
+
+
+### Documentation
+
+* **npm-updater:** document multi-directory npm projects ([7d99169](https://github.com/CodySwannGT/lisa/commit/7d99169b3ecdb2258cd567f16bad2a742b054407)), closes [#4741](https://github.com/CodySwannGT/lisa/issues/4741) [CodySwannGT/lisa#4741](https://github.com/CodySwannGT/lisa/issues/4741)
+* **npm-updater:** state the root package-lock.json requirement ([2a1777d](https://github.com/CodySwannGT/lisa/commit/2a1777df939df9183d0dbfdc1d9e801badaa309f)), closes [CodySwannGT/lisa#4862](https://github.com/CodySwannGT/lisa/issues/4862) [#4741](https://github.com/CodySwannGT/lisa/issues/4741) [CodySwannGT/lisa#4741](https://github.com/CodySwannGT/lisa/issues/4741)
+
 ### [5.0.2](https://github.com/CodySwannGT/lisa/compare/v5.0.1...v5.0.2) (2026-11-13)
 
 

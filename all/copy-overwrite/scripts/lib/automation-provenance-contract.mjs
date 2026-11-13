@@ -2,9 +2,13 @@
 // Do not edit directly — durable changes belong upstream in Lisa.
 
 /** Closed canonical schemas and committed npm policy remain independent of local proof IO. */
+import { posix } from "node:path";
 import { requireProof } from "./github-attestation-verifier.mjs";
 
-const FILES = ["package-lock.json", "package.json"];
+const MANIFEST = "package.json";
+const NPM_LOCK = "package-lock.json";
+const BUN_LOCK = "bun.lock";
+const FILES = [NPM_LOCK, MANIFEST];
 const DESCRIPTOR_KEYS = [
   "author",
   "claimCommentId",
@@ -24,6 +28,8 @@ const DESCRIPTOR_KEYS = [
   "workItem",
 ];
 const HEX = /^[0-9a-f]{64}$/;
+const SEGMENT = "[A-Za-z0-9_][A-Za-z0-9_.-]{0,63}";
+const DIRECTORY = new RegExp(`^${SEGMENT}(?:/${SEGMENT}){0,7}$`);
 const OBJECT_ID = /^(?:[0-9a-f]{40}|[0-9a-f]{64})$/;
 
 /** Only an explicit original Bun digest extends the unchanged npm-only schema. */
@@ -46,22 +52,140 @@ export function optionalRuntimeFields(value) {
   return ["runtimeSha256"];
 }
 
-/** One exact optional projection preserves historical keys at producer and verifier boundaries. */
+/**
+ * A committed npm project directory is "." or a short, normalized relative
+ * path. Dot segments, absolute paths and installed trees can never name one,
+ * so a policy entry cannot point the updater outside the repository.
+ */
+export function validDirectory(value) {
+  return (
+    typeof value === "string" &&
+    value.length <= 200 &&
+    (value === "." ||
+      (DIRECTORY.test(value) &&
+        posix.normalize(value) === value &&
+        !value.split("/").includes("node_modules")))
+  );
+}
+
+/** A proposal or descriptor without a directory is the historical root project. */
+export function directoryOf(value) {
+  const directory = Object.hasOwn(value, "directory") ? value.directory : ".";
+  requireProof(validDirectory(directory), "invalid npm project directory");
+  return directory;
+}
+
+/** Repository path of one npm file in the value's project directory. */
+export function npmPath(value, file) {
+  const directory = directoryOf(value);
+  return directory === "." ? file : `${directory}/${file}`;
+}
+
+/**
+ * Raw committed entry for one directory; the legacy single object is a one-entry list.
+ * More than one match is refused, so the hook never disagrees with selectPolicy.
+ */
+export function policyEntry(config, directory) {
+  const raw = config?.npmUpdater;
+  const list = Array.isArray(raw) ? raw : raw === undefined ? [] : [raw];
+  const matches = list.filter(entry => entry?.directory === directory);
+  requireProof(matches.length <= 1, "duplicate npm updater directory");
+  return matches[0];
+}
+
+/** Caller must pass a config already validated by selectPolicy. */
+export function proposalPolicy(config, value) {
+  const entry = policyEntry(config, directoryOf(value));
+  requireProof(
+    entry !== undefined,
+    "directory is not a committed npm updater selection"
+  );
+  return entry;
+}
+
+/**
+ * Only a subdirectory is signed: root descriptors keep their historical key
+ * set byte for byte, so an explicit "." stays an undeclared extra field.
+ * Subdirectories are npm-only, so they never carry an original Bun digest.
+ */
+export function optionalDirectoryFields(value) {
+  if (!Object.hasOwn(value, "directory") || value.directory === ".") return [];
+  requireProof(
+    directoryOf(value) !== "." && !Object.hasOwn(value, "bunLockSha256"),
+    "a subdirectory npm proposal cannot bind a Bun lock"
+  );
+  return ["directory"];
+}
+
+/**
+ * One exact optional projection preserves historical keys at producer and verifier boundaries.
+ * @param {Record<string, any>} value - A proposal, descriptor or optional-field set.
+ * @returns {{ bunLockSha256?: string, runtimeSha256?: string, directory?: string }} Present signed optional fields only.
+ */
 export function signedProposalFields(value) {
   return Object.fromEntries(
-    [...optionalLockFields(value), ...optionalRuntimeFields(value)].map(
-      name => [name, value[name]]
-    )
+    [
+      ...optionalLockFields(value),
+      ...optionalRuntimeFields(value),
+      ...optionalDirectoryFields(value),
+    ].map(name => [name, value[name]])
   );
+}
+
+/** Sorted repository paths of the cohort the signed optional fields select; Bun stays root-only. */
+function cohortNames(value) {
+  optionalDirectoryFields(value);
+  return [
+    ...(optionalLockFields(value).length ? [BUN_LOCK] : []),
+    ...FILES.map(file => npmPath(value, file)),
+  ];
 }
 
 /** Signed original presence selects one closed two- or three-file cohort. */
 export function proposalFileNames(value) {
-  const files = optionalLockFields(value).length
-    ? ["bun.lock", ...FILES]
-    : FILES;
+  const files = cohortNames(value);
   exactKeys(value.files, files, "proposal files");
   return files;
+}
+
+/** The root install's inputs plus the proposal's own files must all survive the ordinary install unchanged. */
+export function installInputs(value) {
+  return [...new Set([...FILES, ...cohortNames(value)])];
+}
+
+/** Committed history paths in their historical order; the root command string never changes. */
+export function historyPaths(value) {
+  return [
+    npmPath(value, MANIFEST),
+    npmPath(value, NPM_LOCK),
+    ...(optionalLockFields(value).length ? [BUN_LOCK] : []),
+  ];
+}
+
+/** A subdirectory is npm-only: its own Bun lock must be absent, and the root one is outside its scope. */
+export function directoryBunAbsent(value, git, absent) {
+  if (directoryOf(value) === ".") return false;
+  const lock = npmPath(value, BUN_LOCK);
+  requireProof(
+    git(["ls-tree", "HEAD", "--", lock]) === "" && absent(lock),
+    "subdirectory Bun lock is unsupported"
+  );
+  return true;
+}
+
+/** The closed cohort a recorded hash map must have: root two/three files or one directory's two. */
+export function hashCohort(hashes) {
+  const lock = Object.keys(hashes ?? {}).find(name => name.endsWith(NPM_LOCK));
+  const directory =
+    lock === undefined || lock === NPM_LOCK
+      ? "."
+      : lock.slice(0, -(NPM_LOCK.length + 1));
+  const bun = Object.hasOwn(hashes ?? {}, BUN_LOCK);
+  return proposalFileNames({
+    directory,
+    files: hashes,
+    ...(bun ? { bunLockSha256: "0".repeat(64) } : {}),
+  });
 }
 
 /** Canonical bytes are shared by allocator and consumer, not inferred hashes. */
@@ -149,9 +273,10 @@ export function trustedConfiguration(git) {
 
 /** Updates must be exactly the declared direct npm version changes. */
 export function npmProposal(descriptor, git) {
-  const before = JSON.parse(git(["show", "HEAD:package.json"]));
-  const after = JSON.parse(git(["show", ":package.json"]));
-  const lock = JSON.parse(git(["show", ":package-lock.json"]));
+  const manifest = npmPath(descriptor, MANIFEST);
+  const before = JSON.parse(git(["show", `HEAD:${manifest}`]));
+  const after = JSON.parse(git(["show", `:${manifest}`]));
+  const lock = JSON.parse(git(["show", `:${npmPath(descriptor, NPM_LOCK)}`]));
   requireProof(
     [2, 3].includes(lock.lockfileVersion) && lock.packages?.[""],
     "unsupported npm lock"

@@ -343,6 +343,35 @@ describe("closed cancellation record", () => {
     );
   });
 
+  it("binds a subdirectory cancellation to exactly that directory's two npm hashes", () => {
+    const externals = {
+      ...expected,
+      proposalHashes: {
+        "externals/package.json": sha("a"),
+        "externals/package-lock.json": sha("b"),
+      },
+    };
+    expect(validateCancellation(structuredClone(externals), externals)).toEqual(
+      externals
+    );
+    for (const hashes of [
+      expected.proposalHashes,
+      { ...externals.proposalHashes, "bun.lock": sha("c") },
+      { ...externals.proposalHashes, "package.json": sha("a") },
+      {
+        "externals/package.json": sha("a"),
+        "other/package-lock.json": sha("b"),
+      },
+    ])
+      expect(() =>
+        validateCancellation(
+          { ...externals, proposalHashes: hashes },
+          externals
+        )
+      ).toThrow();
+    expect(() => validateCancellation(externals, expected)).toThrow();
+  });
+
   it("binds a dual-lock cancellation to all three exact proposal hashes", () => {
     const dual = {
       ...expected,

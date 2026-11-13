@@ -1,0 +1,8 @@
+HEAD under test: 2a1777df939df9183d0dbfdc1d9e801badaa309f
+$ node -v => v22.23.3; npm -v => 10.9.9
+$ which npm => /tmp/v4741-verify/work/shim/npm
+$ (cd /tmp/v4741-verify/work/c/host && LISA_NPM_DIRECTORY='../escape' node /Users/codysai/workspace/lisa/.claude/worktrees/4741-npm-updater-dirs/all/copy-overwrite/scripts/lisa-npm-updater.mjs prepare /tmp/v4741-verify/work/c/host /tmp/v4741-verify/work/c/phase)
+npm updater failed: required policy, authorization, installation, gate or exact publication evidence was unavailable (stage=configuration)
+exit=1
+phase dir exists: no
+npm invocations logged by shim: 0
