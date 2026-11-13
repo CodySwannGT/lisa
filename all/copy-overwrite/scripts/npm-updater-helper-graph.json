@@ -227,7 +227,7 @@
       "children": []
     },
     "lib/gate-pass-cache.mjs": {
-      "sha256": "347a15705e8c2931c33b6df7c13d6ad5db28d1da4e5006d0b57d64329cbd1cdf",
+      "sha256": "b853877bd6e39eaac4d6e469ccec7e10b6f34ba1e4e5ef70376cc3971b908092",
       "staticImports": [
         "node:child_process",
         "node:crypto",

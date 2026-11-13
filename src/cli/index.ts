@@ -1,5 +1,6 @@
 import { Command } from "commander";
 import { runApply } from "./apply.js";
+import { addCheckCommand } from "./check-cmd.js";
 import { runCheckLearningsBudget } from "./check-learnings-budget-cmd.js";
 import {
   type CrossPollinateOptions,
@@ -249,6 +250,7 @@ function addMaintenanceCommands(
     });
 
   addWorkstationCommand(program);
+  addCheckCommand(program);
   addEffectivenessCommand(program);
   addRemoteEnvCommand(program);
   addEnvironmentCommand(program);
