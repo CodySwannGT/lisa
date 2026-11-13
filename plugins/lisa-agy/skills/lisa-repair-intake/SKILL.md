@@ -698,11 +698,15 @@ LISA_BLOCKER_NODE
    re-formed every cycle and a human had to break the loop. Reading the relation back is what makes
    "I removed the link" distinguishable from "I meant to".
 
-   **An `escalate` verdict holds the item and reports it — never dissolve on it.** The sharp case is
+   **An `escalate` verdict never dissolves the edge as satisfied.** The sharp case is
    a blocker closed `NOT PLANNED`: the work depended on will never be delivered, so dissolving reads
-   as "unblocked" when nothing was built, and holding silently hides a decision only a human can
-   make. Treating closure as satisfaction is the same reason-blind wrong write as
-   CodySwannGT/lisa#3479. A single escalation among otherwise-dissolving edges holds the item.
+   as "unblocked" when nothing was built. Treating closure as satisfaction is the same reason-blind
+   wrong write as CodySwannGT/lisa#3479. Under the default `humanGate.mode: "access-only"` the
+   scoping call is the agent's: re-scope the item to build without the dependency, drop the edge
+   because the item no longer needs it, or close the item as Not planned — and record a
+   `Decision:` line saying which and why. Under `"strict"`, hold and report it: the call is a
+   person's, and holding silently would hide it. Either way, a single escalation among
+   otherwise-dissolving edges holds the item until that call is made and recorded.
 
    **On Linear, dissolve with a relation DELETE.** Do not "update" an edge:
    `issueRelationCreate` CONVERTS an existing relation rather than adding one

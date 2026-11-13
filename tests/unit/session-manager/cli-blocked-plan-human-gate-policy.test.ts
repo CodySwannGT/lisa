@@ -117,3 +117,27 @@ describe("blocked-plan reads humanGate from config", () => {
     ).toBe(SKIP);
   });
 });
+
+describe("blocked-plan: a blocker closed NOT PLANNED follows humanGate.mode", () => {
+  const cancelled = {
+    labels: [],
+    body: "Depends on the export work.",
+    comments: [],
+    edges: [
+      {
+        ref: "<TEAM>-9",
+        contained: true,
+        blockerState: "closed",
+        blockerReason: "not_planned",
+      },
+    ],
+  };
+
+  it("hands the decision to the agent by default", () => {
+    expect(plan(cancelled)).toBe("decide");
+  });
+
+  it("relays it to a person under strict", () => {
+    expect(plan(cancelled, STRICT)).toBe("escalate");
+  });
+});

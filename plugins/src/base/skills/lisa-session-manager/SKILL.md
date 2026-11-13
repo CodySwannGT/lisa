@@ -483,6 +483,11 @@ queue below). For each:
    - `release`: dissolve the edges and move the item to the `ready` role in one `lisa-tracker-write`
      update, with a comment `[lisa-session-manager] Released: <reason>`; read it back with `lisa-tracker-read` and confirm the
      role changed before you claim it did. Notify Telegram.
+   - `decide` (access-only; a blocker was closed NOT PLANNED): relay nothing to the operator. Make
+     the call from the item's and blocker's evidence: re-scope the item to build without the
+     dependency (dissolve the edge and move it to the `ready` role), drop an edge that no longer applies, or
+     close the item. Post `[lisa-session-manager] Decision: <which> — <why>` in the same
+     `lisa-tracker-write` update, and read it back before you claim it landed. Notify Telegram.
    - `keep` with a manager question pending: "Waiting on a human" above handles it.
    - `keep`, `escalate`, `skip-human-gate`: leave it. Gate self-blocks and clarification blocks
      belong to `lisa-repair-intake` and humans.

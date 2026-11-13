@@ -86,7 +86,8 @@ export function resolveBlockerEdge(input = {}) {
         "the blocker was closed as NOT PLANNED, so the work this item depends on will never be " +
         "delivered. Dissolving the edge would read as 'unblocked' when nothing was built, and " +
         "holding it forever hides a decision somebody has to make: does this item still make sense " +
-        "without its blocker? That is a human call, not a sweep's.",
+        "without its blocker? That is a decision to make and record, not one a sweep may " +
+        "round away; who makes it follows humanGate.mode.",
     };
   }
 

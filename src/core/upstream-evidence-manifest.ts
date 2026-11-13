@@ -313,7 +313,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-hooks/block-managed-file-edits.sh":
       "5144adb258a1a071c81b733e0a5acccd72468d2007d0bb3effa9d9158a43210a",
     "all/copy-overwrite/scripts/lisa-hooks/block-no-verify.sh":
-      "cc28bc714de50f1725be54076533100ca9d4ee63ee108a4a480bd7d80849d5e4",
+      "a7950ce0b4bcf78eb46e9a17053aca62eacab00376dcf4cdfe85cdae07d11db3",
     "all/copy-overwrite/scripts/lisa-hooks/block-shell-json-parsing.sh":
       "865f89d7504a7d1c3380449a2790801c60c1cfe5fa8f1aad54ffc51aa8d0cc7f",
     "all/copy-overwrite/scripts/lisa-hooks/discharge-work-item-gates.sh":
@@ -1053,9 +1053,9 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/hooks/block-managed-file-edits.sh":
       "a78f8e144075c70256a294f65739c2e4b9714a482575a7d2d9e40af5158df54c",
     "plugins/src/base/hooks/block-no-verify.agy.sh":
-      "61db1ec64bb1fd66b38d7527af2da3f34f98ec9c7ddc5f73c56056e38077c1be",
+      "e1a25e15e3cc7e4a427a95ce02290b0f93b95c11ab3c19b94ed36de2cee1113b",
     "plugins/src/base/hooks/block-no-verify.sh":
-      "65d47bcb23869be85aa3795477ac8c7b3f973ee9c64fc6dc906db6bb270986a5",
+      "77262dce7a9eef8fd92856a4ec1b90dfe654a78bd84fce8aebc4ab0e53093af3",
     "plugins/src/base/hooks/block-shell-json-parsing.agy.sh":
       "c6f96971706451a24b1f25bb37af27bb6a6bfc29eb390cdfd4ec1c9a1d400333",
     "plugins/src/base/hooks/block-shell-json-parsing.sh":
@@ -1135,13 +1135,13 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/rules/eager/00-rule-index.md":
       "5c51e8ce25094c05ad969f61ea12d8b86c558cc668933bef1a0084c22b27c48b",
     "plugins/src/base/rules/eager/base-rules.md":
-      "7fdf8417c99482f442a512a50d2dfe59e39897bc14e7c00a0ffe5d46c0eefdb3",
+      "b0bc956dad3827675f81f377690a96bcac8b506209c6c0b3b2c17b669c936f05",
     "plugins/src/base/rules/eager/coding-philosophy.md":
       "3f70fb5223129e1a26bc8190134cd7fa6bbf39738c5e409c6b2e1c7208faa81e",
     "plugins/src/base/rules/eager/config-resolution.md":
       "5f666160bafe66474fd00620ff926ac5817b9a7fa775b8fefd137e3c61993d2c",
     "plugins/src/base/rules/eager/do-it-now.md":
-      "d7b7635686cb803353b433d43801d3f6960e9804394c587c473337976640d44b",
+      "d61f3c7161bc72132a1f7059b163933e8f3924f5c80a493ad5be19b8b85529e1",
     "plugins/src/base/rules/eager/empirical-inquiry.md":
       "67aa64ba3ecc4f3cd761111d2562662e0a2acf7892703b14ec83f7f7b073e670",
     "plugins/src/base/rules/eager/falsifiable-checks.md":
@@ -1189,7 +1189,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/rules/reference/automation-runbook-contract.md":
       "d03d4f8f9294e14f0c78970927b0c1c444851cc535d385cbabe3dff0f6bedb22",
     "plugins/src/base/rules/reference/base-rules.md":
-      "fbdc8569830cb0f156c704ef37e545f4eb06d28353a5170bd8689ae27d7293e2",
+      "a5d5d6f49d58933d096b8b56f62a33b2506ecfb5e983b7a6a6ec7a0ee6dbc504",
     "plugins/src/base/rules/reference/bdd-e2e-coverage.md":
       "a32f44a8800403f6d4210e3a8f7e2968e79f9a1aedad911da136bcc91f7440bb",
     "plugins/src/base/rules/reference/blocker-containment.md":
@@ -1241,7 +1241,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/rules/reference/integration-access-layer.md":
       "c5fc07f5f46ba1f99403b6e4fd5603d153411a9bb1838bea320b26a5bd5273d6",
     "plugins/src/base/rules/reference/intent-routing.md":
-      "988f8f45b41056c2adaa1a3e5f6ea926ac56a2fd041c07f98a9c2b271050efdd",
+      "6581279c018022f6e7e4a2b229f68d5c7472e3cebd039563325572fdca8e5305",
     "plugins/src/base/rules/reference/leaf-only-lifecycle.md":
       "caa31885b5ed834124159d0523f954c8248311dfd46aa1da07ab1782513d1648",
     "plugins/src/base/rules/reference/learnings-ladder.md":
@@ -1323,7 +1323,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/scripts/automation-status-unrecorded-runs.mjs":
       "e6063e072b9cf0928bf94df034937326444d542143f5d7264a9c2c7180c035ae",
     "plugins/src/base/scripts/blocker-edge-resolution.mjs":
-      "f0891d78c68817cf64132a4c9906624aa4997a45ee3cdefd2c072fc443b59a0b",
+      "5f48be5da796e425b88bd0b60f76aaa99dd1a621d8f33b3768fcaba818c9c976",
     "plugins/src/base/scripts/cross-pollinate.mjs":
       "08b17213a484e4c873283e2af674df579593c7ff20c95a06d71ae88c0b83f937",
     "plugins/src/base/scripts/design-bindings-probe.mjs":
@@ -1563,7 +1563,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-linear-verify/SKILL.md":
       "17251e8d6c762b69b2ca6a77d9cfe44beba31dfc0444de4cde051747e2c99eab",
     "plugins/src/base/skills/lisa-linear-write-issue/SKILL.md":
-      "265c476ff2356543873623f22c3ec4192e2ac0cfd4df34a410bc1c7bbacfb16b",
+      "d2eee41fea4a1df070d4f7f57d047440ec5f3fbafb317a84f58ecd399064356c",
     "plugins/src/base/skills/lisa-linear-write-prd/SKILL.md":
       "ad4289b5530d65d3b61b27da54db8cd7f8e9133f97326d8961f853f364c5b457",
     "plugins/src/base/skills/lisa-monitor/SKILL.md":
@@ -1633,7 +1633,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-remote-dispatch/scripts/dispatch.mjs":
       "2c51d388ecb681905f6b2280ffefc03434f91bfe4901e637869b716be81ccc93",
     "plugins/src/base/skills/lisa-repair-intake/SKILL.md":
-      "527d40a0c50de8f3a414a75929288ff2ce7d39b5dfd288669057d3a3cf672688",
+      "3184a1153c3a38d269d490d6e0c6c27ad6b79fa88f204975e017f1e489c4446d",
     "plugins/src/base/skills/lisa-reproduce-bug/SKILL.md":
       "37a1ba9919bafa2499bd3d426c3bbe3991fac60390fa0f0c00814ecd9c4c1b14",
     "plugins/src/base/skills/lisa-research/SKILL.md":
@@ -1697,7 +1697,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-sentry-access/SKILL.md":
       "1c1881ca9a2020f6cd8f938dc5335ebf2d344ff280844bb98926198e5226e526",
     "plugins/src/base/skills/lisa-session-manager/SKILL.md":
-      "5dc648ef221a7f20d89508b70f328c9c924ce4c335614beff0068d36e1127d94",
+      "b69cd3b4d1fdb46f3270b87b75268810bebf2b74bd18c185b8b84de615804949",
     "plugins/src/base/skills/lisa-session-manager/references/runbook-template.md":
       "144caff13b05f294924613f8c1b5fac5cf6c731af44bd3bdc7734e45613767a2",
     "plugins/src/base/skills/lisa-session-manager/scripts/answer-record.mjs":
@@ -1725,7 +1725,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-status.mjs":
       "e7f643b66a5af453ee445640a4d9b27b570f364222b349f82ff27714eefb09fa",
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-usage.mjs":
-      "a81b4b1526301604a5c1d02c973c5eedfcb796fc2945c8901ddc6dc40e7963c8",
+      "dc31c539ce61dcc9b01877da50606ad2b63979b55ca0308e0474327b1e5d02d5",
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-workers.mjs":
       "65beec4da7ea3917765b96ed920e630627955f6a053e9305de28056b8c6b2886",
     "plugins/src/base/skills/lisa-session-manager/scripts/clipboard.mjs":
@@ -1765,7 +1765,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-session-manager/scripts/queue-github.mjs":
       "9af014661873a2971fbc29946739088fc3e089deb8d94e78af651647450f2999",
     "plugins/src/base/skills/lisa-session-manager/scripts/reconcile.mjs":
-      "565d8b25a8749d24c881661b5624b862d7cd9360b661992346eb890931d98ad9",
+      "62a506428cc789eb98aa7e68784b0fcc50311400cc69a12cc895ed859f293314",
     "plugins/src/base/skills/lisa-session-manager/scripts/repo-detect.mjs":
       "3ce714f1934433f2bc297c0b67931a28687ccef70c01639cb8542e9bb7f0a14d",
     "plugins/src/base/skills/lisa-session-manager/scripts/session-manager.mjs":
@@ -12670,6 +12670,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/hooks/block-no-verify-missing-jq.test.ts": true,
     "tests/unit/hooks/block-no-verify-nested-shell-parity.test.ts": true,
     "tests/unit/hooks/block-no-verify-pipe-stderr.test.ts": true,
+    "tests/unit/hooks/block-no-verify-risk-acceptance.test.ts": true,
     "tests/unit/hooks/block-no-verify-script-directory.test.ts": true,
     "tests/unit/hooks/block-no-verify-short-flag.test.ts": true,
     "tests/unit/hooks/block-no-verify.test.ts": true,

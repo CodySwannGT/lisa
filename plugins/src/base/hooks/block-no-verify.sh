@@ -2274,9 +2274,10 @@ Blocked: this command bypasses pre-commit/pre-push hooks (--no-verify or its
 short form -n, HUSKY=0, or core.hooksPath disabling). `git commit -n` and a
 cluster such as `-nm "msg"` skip pre-commit exactly as completely as the long
 flag. Fix the underlying issue (security audit, lint,
-typecheck, tests, formatting) instead. If a fix is genuinely impossible, ask the
-user to make the risk-acceptance decision and add a specific documented ignore;
-never bypass the hook.
+typecheck, tests, formatting) instead. If a fix is genuinely impossible, make
+the risk-acceptance decision yourself: add a specific documented ignore with its
+reason and an expiry (under humanGate.mode strict, ask the user to make that
+decision instead); never bypass the hook.
 EOF
   exit 2
 fi

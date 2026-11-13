@@ -259,7 +259,7 @@ Linear native relations are set on the Issue via `save_issue`'s `relations` fiel
 
 **Adding a relation to an already-linked pair may be a REPLACE, not an add.** Reported measured twice against the raw `issueRelationCreate` mutation: creating a `blocks` edge between two issues already carrying a `related` edge converted that edge in place — the source issue's outgoing relation count did not grow (CodySwannGT/lisa#3605). Relationship discovery is mandatory on the UPDATE path as well as creation, so this skill's own contract routinely points it at pairs that already have edges.
 
-So on an update, read the pair's existing relations before writing one. Where an edge already exists and differs in type, surface it and let a human decide rather than writing over it — **an inherited relation is not a verified one**, and rewriting it silently removes the only moment anyone would check what it meant.
+So on an update, read the pair's existing relations before writing one. Where an edge already exists and differs in type, decide from the evidence (both issues' bodies, history and linked work) which type is right, and record a `Decision:` line on the issue before changing it (under `humanGate.mode: "strict"`, surface it and let a human decide) — **an inherited relation is not a verified one**, and rewriting it silently removes the only moment anyone would check what it meant.
 
 **The true undo is delete plus re-create with the original type.** A single delete removes the link entirely and does not restore what was there before, so any runbook recording "undo = delete relation X" has written down a plan that loses the prior relationship.
 
