@@ -12,6 +12,29 @@ import {
   sha256,
   section,
 } from "./completion-proof-shape.mjs";
+import { nearMissHeading } from "./completion-proof-markdown.mjs";
+
+const CRITERIA = "Acceptance Criteria";
+
+/**
+ * Read the primary acceptance criteria, refusing rather than reading none
+ * when the author wrote them under a heading this check cannot recognise
+ * (CodySwannGT/lisa#4700). An item with no criteria heading at all reads as
+ * empty, as before.
+ * @param {string} body - Primary work-item description
+ * @returns {string} The acceptance criteria section, or "" when absent
+ */
+function acceptanceCriteria(body) {
+  // Authors write this heading in any case; an exact match would read a
+  // recased heading as no scenarios and pass trivially.
+  const criteria = section(body, CRITERIA, { anyCase: true });
+  const nearMiss = criteria ? null : nearMissHeading(body, CRITERIA);
+  requireProof(
+    !nearMiss,
+    `The acceptance criteria heading "${nearMiss?.slice(0, 80)}" is not a level-two heading named "${CRITERIA}", so its scenarios cannot be checked. Rename it to "## ${CRITERIA}".`
+  );
+  return criteria;
+}
 
 /** Compare exact required conjunctions without depending on display order. */
 function groups(values) {
@@ -105,7 +128,7 @@ export function validateConformance(record, context, subject, transport) {
         JSON.stringify(groups(record.requirements)),
     "The attached CONFORMS report does not establish the exact current requirement conjunctions."
   );
-  const scenarios = scenarioNames(section(subject.body, "Acceptance Criteria"));
+  const scenarios = scenarioNames(acceptanceCriteria(subject.body));
   requireProof(
     Array.isArray(report.scenario_names) &&
       new Set(report.scenario_names).size === report.scenario_names.length &&
