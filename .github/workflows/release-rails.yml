@@ -161,72 +161,137 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          # Push over the deploy key, which may bypass branch protection.
+          git remote set-url origin "git@github.com:${GITHUB_REPOSITORY}.git"
 
-      - name: Bump version and cut an environment-scoped tag
+      - name: Bump, tag and push the release atomically
         id: version
         if: steps.skip.outputs.skip != 'true'
         env:
           BRANCH: ${{ github.ref_name }}
         run: |
-          # Bump VERSION and write the changelog, but do NOT let
-          # standard-version cut the tag. Tags are repo-global while the
-          # version counter in VERSION is branch-local, so a single clean
+          # Two merges can land on BRANCH seconds apart, and each one starts a
+          # run of this job (CodySwannGT/lisa#4748). A caller's `concurrency`
+          # group serializes the runs, but it does not stop each run releasing
+          # from its own push-event SHA. So every release here is cut from the
+          # freshly fetched tip of BRANCH, and the release commit and its tag
+          # go up in ONE atomic push: both refs land or neither does. A plain
+          # `git push --follow-tags` updates each ref on its own, so a branch
+          # rejected as non-fast-forward still let its tag through. That
+          # orphaned the tag off the branch and wedged every later release.
+          TRIGGER_SHA=$(git rev-parse HEAD)
+          MAX_ATTEMPTS=3
+
+          # Production cuts a clean `vX.Y.Z`. Every other environment cuts a
+          # PRE-RELEASE tag `vX.Y.Z-<branch>.<epoch>`. Tags are repo-global
+          # while the version counter in VERSION is branch-local, so one
           # `vX.Y.Z` namespace shared by dev, staging and main means a version
-          # cut on one branch collides with the same version cut on another —
-          # and a promote or sync-back carries it across. `--skip.tag` moves
-          # tag naming to the block below, which scopes it per environment.
-          npx standard-version@9 --skip.tag
-
-          VERSION=$(cat VERSION)
-
-          # Only production cuts a clean `vX.Y.Z`. Every other environment cuts
-          # a PRE-RELEASE tag `vX.Y.Z-<branch>.<epoch>`, so each branch has its
-          # own tag namespace and cross-branch collisions are impossible
-          # regardless of promote or sync timing.
+          # cut on one branch collides with the same version cut on another,
+          # and a promote or sync-back carries it across.
           #
           # The suffix lives ONLY on the git tag. VERSION stays clean on every
           # branch, so standard-version's next-version computation — which
-          # reads VERSION — is never fed a prerelease string.
-          #
-          # `/` is legal in a git ref but not in the `vX.Y.Z-<label>.<n>` shape
-          # semver expects, so the branch is flattened for the label.
-          case "$BRANCH" in
-            main | master | prod | production)
-              TAG="v${VERSION}"
-              ;;
-            *)
-              LABEL=$(printf '%s' "$BRANCH" | tr -c 'A-Za-z0-9.-' '-')
-              TAG="v${VERSION}-${LABEL}.$(date +%s)"
-              ;;
-          esac
+          # reads VERSION — is never fed a prerelease string. `/` is legal in
+          # a git ref but not in a semver label, so the branch is flattened.
+          tag_for() {
+            case "$BRANCH" in
+              main | master | prod | production)
+                echo "v$1"
+                ;;
+              *)
+                echo "v$1-$(printf '%s' "$BRANCH" | tr -c 'A-Za-z0-9.-' '-').$(date +%s)"
+                ;;
+            esac
+          }
 
+          # The first patch version at or after $1 whose `v` tag is unused.
+          next_free_version() {
+            IFS=. read -r major minor patch <<< "$1"
+            while git rev-parse -q --verify "refs/tags/v${major}.${minor}.${patch}" >/dev/null; do
+              patch=$((patch + 1))
+            done
+            echo "${major}.${minor}.${patch}"
+          }
+
+          # Bump VERSION and write the changelog on top of HEAD, but do NOT
+          # let standard-version cut the tag: tag_for scopes tag names per
+          # environment. Sets VERSION and TAG.
+          bump() {
+            local base
+            base=$(git rev-parse HEAD)
+            npx standard-version@9 --skip.tag
+            VERSION=$(cat VERSION)
+            TAG=$(tag_for "$VERSION")
+            if ! git rev-parse -q --verify "refs/tags/$TAG" >/dev/null; then
+              return 0
+            fi
+            case "$TAG" in
+              *-*)
+                echo "::error::Tag $TAG already exists. Re-run this job to cut a fresh pre-release tag."
+                exit 1
+                ;;
+            esac
+            # The production tag is taken by another commit — typically one an
+            # earlier, non-atomic push orphaned. Refusing would fail every
+            # later run as well, because VERSION on BRANCH never moves past it.
+            # Advance to the next free patch instead; the scheme is unchanged.
+            VERSION=$(next_free_version "$VERSION")
+            echo "::warning::Tag $TAG is already taken by another commit; releasing $VERSION instead."
+            git reset --quiet --hard "$base"
+            npx standard-version@9 --skip.tag --release-as "$VERSION"
+            TAG=$(tag_for "$VERSION")
+          }
+
+          attempt=1
+          while :; do
+            git fetch --quiet --force --tags origin "+refs/heads/$BRANCH:refs/remotes/origin/$BRANCH"
+
+            # A concurrent run already released this commit: one of its
+            # release commits on BRANCH descends from the trigger. Defer to it
+            # instead of cutting a second release. Its tag is still reported,
+            # so a rerun after a partial failure can finish the GitHub release.
+            COVERING=$(git rev-list --ancestry-path --grep='^chore(release):' "$TRIGGER_SHA..origin/$BRANCH" | tail -n 1)
+            if [ -n "$COVERING" ]; then
+              COVERING_TAG=$(git describe --exact-match --tags --match 'v*' "$COVERING" 2>/dev/null || true)
+              echo "Commit $TRIGGER_SHA was already released by $COVERING (${COVERING_TAG:-untagged}); nothing to release."
+              echo "deferred=true" >> $GITHUB_OUTPUT
+              echo "tag=$COVERING_TAG" >> $GITHUB_OUTPUT
+              exit 0
+            fi
+
+            if ! git merge-base --is-ancestor "$TRIGGER_SHA" "origin/$BRANCH"; then
+              echo "::error::Commit $TRIGGER_SHA is no longer on $BRANCH (the branch was rewritten), so this run has nothing safe to release."
+              exit 1
+            fi
+
+            # Release from the current tip: it holds the trigger commit and
+            # every merge that landed after it.
+            git reset --quiet --hard "origin/$BRANCH"
+            bump
+            git tag -a "$TAG" -m "chore(release): $TAG"
+
+            if git push --atomic origin "HEAD:refs/heads/$BRANCH" "refs/tags/$TAG"; then
+              break
+            fi
+
+            # Neither ref landed. Drop the local tag so the retry can re-cut it.
+            git tag -d "$TAG" >/dev/null
+            if [ "$attempt" -ge "$MAX_ATTEMPTS" ]; then
+              echo "::error::Could not push release $TAG to $BRANCH after $MAX_ATTEMPTS attempts: the branch kept moving underneath this run. Nothing was published (no commit, no tag), so re-running this job is safe."
+              exit 1
+            fi
+            echo "::warning::Push of $TAG was rejected on attempt $attempt (the branch moved); releasing again on the new tip."
+            attempt=$((attempt + 1))
+          done
+
+          echo "deferred=false" >> $GITHUB_OUTPUT
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "tag=$TAG" >> $GITHUB_OUTPUT
 
-          # Refuse a collision in this job rather than letting `git push` fail
-          # on a rejected ref, which reports as a raw non-fast-forward and says
-          # nothing about what to do. Reachable only on a production branch now
-          # that every other environment carries a timestamp.
-          git fetch origin --tags --quiet || true
-          EXISTING=$(git rev-list -n 1 "$TAG" 2>/dev/null || true)
-          if [ -n "$EXISTING" ] && [ "$EXISTING" != "$(git rev-parse HEAD)" ]; then
-            echo "::error::Tag $TAG already exists on a different commit ($EXISTING). This branch's version counter has fallen behind the repo's tags — align VERSION past the latest existing tag."
-            exit 1
-          fi
-
-          # Annotated, so `git push --follow-tags` carries it.
-          if [ -z "$EXISTING" ]; then
-            git tag -a "$TAG" -m "chore(release): $TAG"
-          fi
-
-      - name: Push changes
-        if: steps.skip.outputs.skip != 'true'
-        run: |
-          git remote set-url origin git@github.com:${{ github.repository }}.git
-          git push --follow-tags origin ${{ github.ref_name }}
-
       - name: Create GitHub Release
-        if: steps.skip.outputs.skip != 'true' && github.ref_name == 'main'
+        # `tag` is empty when the version step deferred to a release that
+        # carries no tag; there is then nothing to publish.
+        if: steps.skip.outputs.skip != 'true' && steps.version.outputs.tag != '' && github.ref_name == 'main'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAG: ${{ steps.version.outputs.tag }}
