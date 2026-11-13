@@ -476,8 +476,9 @@ just as long. Sweep both every cycle, after `classify` and before Dispatch:
    to `.lisa/session-manager/orphan-input.json`: refs canonical as dispatch uses them, comments
    with their author ids, assignees as `{login,id}` objects on GitHub (the REST
    `.assignees[].id`) and as the account or user id on Jira and Linear, and each hold's `role` as
-   the lifecycle role it is in (`ready`, `claimed`, `review`, `blocked`), so a lift never moves an
-   item that is in a lane back to the `ready` role. Set `complete` to `true`
+   the lifecycle role it is in (`ready`, `claimed`, `review`, `blocked`, `done`), so a lift never
+   moves an item that is in a lane back to the `ready` role. On Jira and Linear a hold with no
+   known role is lifted but never moved. Set `complete` to `true`
    only when every list reached its last page; the CLI refuses anything else. Run
    `node "$SM/session-manager.mjs" orphan-plan --input .lisa/session-manager/orphan-input.json --project-root "$ROOT"`.
    For each ref in `lookup`, find its pull request in the item's repo dir
@@ -494,8 +495,8 @@ just as long. Sweep both every cycle, after `classify` and before Dispatch:
    - `doneReady`: the pull request merged. In the item's repo dir run
      `node scripts/lisa-work-item.mjs finish --ref <ref> --pr-url <prUrl>`. If it refuses, post
      one comment that starts `[lisa-session-manager] Cannot complete:` and says, in plain words,
-     why the item cannot complete yet. Later cycles see that comment and park the item instead of
-     trying again.
+     why the item cannot complete yet. Later cycles see that comment and park the item, then retry
+     finishing once it is more than 24 hours old.
    - `return`: move it to the `ready` role with the entry's `comment`.
    - `redispatch`: an open pull request and no worker. Claim it (`reused`) and `spawn` it exactly
      as Dispatch steps 2.3 and 2.4, ahead of new items, while `capacity` says `can_spawn`. A

@@ -76,22 +76,50 @@ function decisionLine(lifted) {
 }
 
 /**
- * The item's labels plus its role's resolved value. On Jira and Linear a
+ * The resolved value(s) of a hold's role: one label or state, or every
+ * env-keyed `done` value. Empty when the role is missing or unconfigured.
+ * @param {{role?: unknown}} item - Hold
+ * @param {Record<string, string | string[]> | undefined} roleLabels - Role
+ *   to value(s)
+ * @returns {string[]} Lane values
+ */
+function laneValues(item, roleLabels) {
+  const known = roleLabels ?? {};
+  const role = typeof item.role === "string" ? item.role : "";
+  const value = Object.hasOwn(known, role) ? known[role] : [];
+  return (Array.isArray(value) ? value : [value]).filter(
+    entry => typeof entry === "string" && entry !== ""
+  );
+}
+
+/**
+ * The item's labels plus its role's resolved value(s). On Jira and Linear a
  * role is a workflow state, not a label, so without it the lane check would
  * see an item in the `claimed` role as in no lane and move it back to the
  * `ready` role.
  * @param {{role?: unknown, labels?: unknown}} item - Hold
- * @param {Record<string, string> | undefined} roleLabels - Role to value
+ * @param {Record<string, string | string[]> | undefined} roleLabels - Role
+ *   to value(s)
  * @returns {unknown[]} Labels the lane check reads
  */
 function withRoleLabel(item, roleLabels) {
   const labels = Array.isArray(item.labels) ? item.labels : [];
-  const known = roleLabels ?? {};
-  const role = typeof item.role === "string" ? item.role : "";
-  const value = Object.hasOwn(known, role) ? known[role] : "";
-  return typeof value === "string" && value !== ""
-    ? [...labels, value]
-    : labels;
+  return [...labels, ...laneValues(item, roleLabels)];
+}
+
+/**
+ * The lift's label writes, failing closed where roles are states: with no
+ * known lane for the hold, the lift lifts the hold but never re-lanes it,
+ * because "no state we recognize" is not proof the item is in no lane.
+ * @param {{role?: unknown}} item - Hold
+ * @param {object} policy - Resolved hold policy
+ * @param {{removeHumanNeededLabel: boolean, addReadyLabel: string|null}} actions - Planned writes
+ * @returns {{removeHumanNeededLabel: boolean, addReadyLabel: string|null}} Writes to apply
+ */
+function laneSafeActions(item, policy, actions) {
+  if (!policy.rolesAreStates) return actions;
+  if (laneValues(item, policy.roleLabels).length > 0) return actions;
+  return { ...actions, addReadyLabel: null };
 }
 
 /**
@@ -138,7 +166,7 @@ export function judgeHold(item, policy) {
         ref: item.ref,
         reason: `the hold names only a decision an agent may make (${plan.lifted.map(words).join(", ")})`,
         comments: plan.comments.map(body => `${body}\n${decision}`),
-        actions: plan.actions,
+        actions: laneSafeActions(item, policy, plan.actions),
         decision,
       },
     };

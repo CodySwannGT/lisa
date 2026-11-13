@@ -10,7 +10,10 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 
-import { FINISH_REFUSED_PREFIX } from "../../../plugins/src/base/skills/lisa-session-manager/scripts/orphan-sweep.mjs";
+import {
+  FINISH_REFUSED_PREFIX,
+  FINISH_RETRY_HOURS,
+} from "../../../plugins/src/base/skills/lisa-session-manager/scripts/orphan-sweep.mjs";
 import { MERGED_URL, orphan, plan, ref } from "./support/orphan-fixtures.js";
 
 const OPEN = { url: MERGED_URL, state: "open" };
@@ -71,13 +74,20 @@ describe("refused completions", () => {
     expect(skill).toContain(`\`${FINISH_REFUSED_PREFIX}\``);
   });
 
-  it("parks a merged item whose completion was already refused", () => {
+  it.each([
+    ["an hour ago", "2026-11-13T11:00:00Z"],
+    ["with no date", undefined],
+    ["with an unreadable date", "soon"],
+  ])("parks a merged item whose completion was refused %s", (_, createdAt) => {
     const result = plan({
       items: [
         orphan(1, {
           pr: MERGED,
           comments: [
-            { body: `${FINISH_REFUSED_PREFIX} the deploy proof is missing.` },
+            {
+              body: `${FINISH_REFUSED_PREFIX} the deploy proof is missing.`,
+              ...(createdAt === undefined ? {} : { createdAt }),
+            },
           ],
         }),
       ],
@@ -90,6 +100,25 @@ describe("refused completions", () => {
         reasonOnItem: true,
       },
     ]);
+  });
+
+  it("retries finishing once the refusal is older than 24 hours", () => {
+    expect(FINISH_RETRY_HOURS).toBe(24);
+    const result = plan({
+      items: [
+        orphan(1, {
+          pr: MERGED,
+          comments: [
+            {
+              body: `${FINISH_REFUSED_PREFIX} the deploy proof is missing.`,
+              createdAt: "2026-11-12T11:00:00Z",
+            },
+          ],
+        }),
+      ],
+    });
+    expect(result.parked).toEqual([]);
+    expect(result.doneReady.map(entry => entry.ref)).toEqual([ref(1)]);
   });
 
   it("ignores the phrase when it is not the start of a comment line", () => {

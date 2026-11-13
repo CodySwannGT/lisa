@@ -21,10 +21,17 @@ export const SWEEP_COMMENT_PREFIX = "[lisa-session-manager]";
 
 /**
  * How the comment the manager posts when `lisa-work-item.mjs finish`
- * refuses an item begins. A later cycle that sees it parks the item instead
- * of trying to finish it again every cycle.
+ * refuses an item begins. A later cycle that sees a recent one parks the
+ * item instead of trying to finish it again every cycle.
  */
 export const FINISH_REFUSED_PREFIX = `${SWEEP_COMMENT_PREFIX} Cannot complete:`;
+
+/**
+ * How long a refusal parks an item. After that, finishing is retried: the
+ * refusal's cause (a missing deploy, a slow check) is often fixed by then,
+ * and a park with no end would strand a merged item for good.
+ */
+export const FINISH_RETRY_HOURS = 24;
 
 /** Words in a manager comment that show it explains a hold. */
 const HOLD_WORDS = /\b(?:parked|held|hold|waiting on a person)\b/iu;
@@ -125,25 +132,48 @@ function isHeld(item, policy) {
 }
 
 /**
- * Whether the manager already posted a refused completion on the item.
- * @param {{comments?: unknown}} item - Item
- * @returns {boolean} True when a comment line starts {@link FINISH_REFUSED_PREFIX}
+ * When a refusal comment was posted, as epoch ms; NaN when it carries no
+ * readable date.
+ * @param {unknown} comment - A structured comment
+ * @returns {number} Posting time
  */
-function completionRefused(item) {
-  return bodies(item.comments).some(body =>
-    declares(body, FINISH_REFUSED_PREFIX)
-  );
+function postedAt(comment) {
+  const raw = comment?.createdAt ?? comment?.created_at ?? comment?.created;
+  return new Date(raw ?? Number.NaN).getTime();
+}
+
+/**
+ * Whether a refusal still parks the item: some comment line starts
+ * {@link FINISH_REFUSED_PREFIX} and that comment is younger than the retry
+ * window, or has no readable date (which fails closed: stay parked).
+ * @param {{comments?: unknown}} item - Item
+ * @param {{now: number, finishRetryMs: number}} policy - Resolved policy
+ * @returns {boolean} True while a refusal holds the item
+ */
+function completionRefused(item, policy) {
+  const comments = Array.isArray(item.comments) ? item.comments : [];
+  return comments.some(comment => {
+    const text = typeof comment === "string" ? comment : comment?.body;
+    if (typeof text !== "string") return false;
+    if (!declares(normalizeProviderMarkdown(text), FINISH_REFUSED_PREFIX)) {
+      return false;
+    }
+    const at = postedAt(comment);
+    return !Number.isFinite(at) || policy.now - at < policy.finishRetryMs;
+  });
 }
 
 /**
  * The bucket for a merged item: finish it, unless completion was already
- * refused, in which case it waits for whatever the refusal named.
- * @param {{ref: string, pr: {url?: string}}} item - Item
+ * refused within the retry window, in which case it waits for whatever the
+ * refusal named.
+ * @param {{ref: string, pr: {url?: string}, comments?: unknown}} item - Item
+ * @param {{now: number, finishRetryMs: number}} policy - Resolved policy
  * @returns {{bucket: string, entry: object}} Bucket and its entry
  */
-function mergedBucket(item) {
+function mergedBucket(item, policy) {
   const { ref, pr } = item;
-  if (completionRefused(item)) {
+  if (completionRefused(item, policy)) {
     const reason =
       "its pull request merged but completion was refused; the refusal on the item says why";
     return { bucket: "parked", entry: { ref, reason, reasonOnItem: true } };
@@ -186,7 +216,7 @@ export function classifyOrphan(item, policy) {
     };
   }
   const state = pr === null ? null : String(pr.state ?? "").toLowerCase();
-  if (state === "merged") return mergedBucket(item);
+  if (state === "merged") return mergedBucket(item, policy);
   if (isHeld(item, policy)) {
     return { bucket: "parked", entry: parkedEntry(item, policy) };
   }

@@ -269,6 +269,40 @@ describe(PLAN, () => {
     });
   });
 
+  it("on a tracker whose roles are states, lifts a hold with no role but never re-lanes it", () => {
+    const sandbox = makeSandbox({
+      extraConfig: {
+        tracker: "linear",
+        linear: {
+          workflow: {
+            ready: "Todo",
+            claimed: "In Progress",
+            blocked: "Blocked",
+            done: { production: "Done" },
+          },
+          labels: { build: { human_needed: NEEDED } },
+        },
+      },
+    });
+    const result = plan(sandbox, {
+      complete: true,
+      items: [],
+      holds: [
+        {
+          ref: "DEMO-1",
+          labels: [NEEDED],
+          body: "<!-- [lisa-human-gate] reason=tenancy-audit-triage -->",
+          comments: [],
+        },
+      ],
+    });
+    expect(result.status).toBe(0);
+    expect(result.json.holds.lift[0].actions).toEqual({
+      removeHumanNeededLabel: true,
+      addReadyLabel: null,
+    });
+  });
+
   it("refuses a hold digest that is not a sha256 fingerprint (exit 2)", () => {
     const sandbox = sandboxWith();
     const result = run(sandbox, ["ledger", "control", HOLD_DIGEST, "abc"]);

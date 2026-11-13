@@ -319,16 +319,17 @@ Per cycle
       review) role; pr is omitted when not looked up, null when none was
       found, else {url,state:open|merged|closed}. holds carry the
       human-needed label or a [lisa-human-gate] marker; a hold's role
-      (ready, claimed, review, blocked) counts as its lane, so a lift never
-      moves an item that is in a lane back to ready. Live refs (ledger
+      (ready, claimed, review, blocked, done) counts as its lane, so a lift
+      never moves an item that is in a lane back to ready, and on jira and
+      linear a hold with no known role is lifted but never re-laned. Live refs (ledger
       status running or question), me (ledger control.me), operatorIds,
       trustedAuthorIds and the hold labels come from the ledger and config;
       the same keys in the input are ignored. Skips live, foreign (assigned
       to neither me nor an operator), fresh (updated within --stale-hours,
       default 6) and undated items, and holds on live refs. A review-role
       item with an open pull request, and a merged item whose comments hold
-      a line starting "[lisa-session-manager] Cannot complete:", are parked
-      with reasonOnItem true; only the claimed role is re-dispatched. A
+      a line starting "[lisa-session-manager] Cannot complete:" posted
+      within 24 hours (or undated), are parked with reasonOnItem true; only the claimed role is re-dispatched. A
       partial lift also appears in holds.keep with the reasons still left
       for a person. stdout {doneReady:[{ref,prUrl,reason}],
       return:[{ref,reason,comment}],redispatch:[{ref,prUrl,reason}],

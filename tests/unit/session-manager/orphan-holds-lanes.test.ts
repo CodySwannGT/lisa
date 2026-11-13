@@ -11,6 +11,7 @@ import { describe, expect, it } from "vitest";
 import {
   CREDENTIAL,
   NEEDED,
+  READY,
   TOPIC,
   heldBody,
   hold,
@@ -20,9 +21,22 @@ import {
 
 /** A Jira-style lane vocabulary: roles are workflow states. */
 const JIRA = {
+  rolesAreStates: true,
   readyLabel: "Ready",
-  lifecycleLabels: ["Ready", "In Progress", "In Review", "Blocked", NEEDED],
-  roleLabels: { ready: "Ready", claimed: "In Progress", review: "In Review" },
+  lifecycleLabels: [
+    "Ready",
+    "In Progress",
+    "In Review",
+    "Blocked",
+    "Done",
+    NEEDED,
+  ],
+  roleLabels: {
+    ready: "Ready",
+    claimed: "In Progress",
+    review: "In Review",
+    done: ["Done"],
+  },
 };
 
 describe("holds on live items", () => {
@@ -61,12 +75,33 @@ describe("holds whose lane is a state", () => {
     });
   });
 
-  it("still restores the ready role for a hold in no lane", () => {
-    const result = plan(
-      { holds: [hold(1, { labels: [NEEDED], body: heldBody(TOPIC) })] },
-      JIRA
-    );
-    expect(result.holds.lift[0]?.actions.addReadyLabel).toBe("Ready");
+  it.each([
+    ["no role", {}],
+    ["a done role", { role: "done" }],
+    ["a role with no configured value", { role: "triage" }],
+  ])(
+    "fails closed on a Jira-style hold with %s: lifts it, never re-lanes it",
+    (_, extra) => {
+      const result = plan(
+        {
+          holds: [
+            hold(1, { labels: [NEEDED], body: heldBody(TOPIC), ...extra }),
+          ],
+        },
+        JIRA
+      );
+      expect(result.holds.lift[0]?.actions).toEqual({
+        removeHumanNeededLabel: true,
+        addReadyLabel: null,
+      });
+    }
+  );
+
+  it("still restores the ready label for a GitHub hold in no lane", () => {
+    const result = plan({
+      holds: [hold(1, { labels: [NEEDED], body: heldBody(TOPIC) })],
+    });
+    expect(result.holds.lift[0]?.actions.addReadyLabel).toBe(READY);
   });
 });
 

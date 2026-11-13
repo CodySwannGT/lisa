@@ -1697,7 +1697,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-sentry-access/SKILL.md":
       "1c1881ca9a2020f6cd8f938dc5335ebf2d344ff280844bb98926198e5226e526",
     "plugins/src/base/skills/lisa-session-manager/SKILL.md":
-      "bfc42a632d3ddc3b31a91430d9ecdf62c881315f5b48a5b76f1d16893890973b",
+      "f815897d21b9f1cacf244c3412a58f025d64d5feecd6624865931407cf42ec07",
     "plugins/src/base/skills/lisa-session-manager/references/runbook-template.md":
       "6b4dfd58f86e5f02676a9fca9f903456eb63213ac0294795b604f5430a89f1a5",
     "plugins/src/base/skills/lisa-session-manager/scripts/answer-record.mjs":
@@ -1715,7 +1715,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-manager.mjs":
       "eef29221c8343f978c7189365e2e8941e98980e7c3a2e13dcc5703710f7bd090",
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-orphans.mjs":
-      "7592e972829bf97c9f428c3f29e7f563a99abc0ad619268ea1fd1c2d983dc141",
+      "3b5328ab61dffea82816a9033cc2c24e16376968861e72751f8cd7982dcbd6db",
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-overruled.mjs":
       "cab60f2dfee7f33a8a5f16ec94cb1b2ab17cf384886ee5eb738fb015535d6567",
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-queue.mjs":
@@ -1727,7 +1727,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-status.mjs":
       "e7f643b66a5af453ee445640a4d9b27b570f364222b349f82ff27714eefb09fa",
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-usage.mjs":
-      "713cb0a7212848fde66f69b504d7bf83f3d1d991d4a9aefb70cd09536c37164c",
+      "4cd75b3928129f975561b84a102920e55a3887456b6c9315ba61c06029ef92ba",
     "plugins/src/base/skills/lisa-session-manager/scripts/cli-workers.mjs":
       "65beec4da7ea3917765b96ed920e630627955f6a053e9305de28056b8c6b2886",
     "plugins/src/base/skills/lisa-session-manager/scripts/clipboard.mjs":
@@ -1765,11 +1765,11 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-session-manager/scripts/ledger.mjs":
       "a28a816e749bd62d7188cc7c7cb53b9784d0c8b112201228f67b87a81ebe1ff9",
     "plugins/src/base/skills/lisa-session-manager/scripts/orphan-buckets.mjs":
-      "74e88de14f443db30a8e1d60589af51d11097c77a82af9b4ae228ab516aa837e",
+      "6c0bed75fc4244e97c583cf92da18b6531a86a25435d12fbd05a6f9252ac04c1",
     "plugins/src/base/skills/lisa-session-manager/scripts/orphan-holds.mjs":
-      "0fa735842d11789aa8c9bf4fe70a8dccbe62ad1e1e9ade8bf17827d44e0907b3",
+      "9a97a7c90e568bb2e50d9a095b638a1814512ab779c7b5fc3741adcba0d300e1",
     "plugins/src/base/skills/lisa-session-manager/scripts/orphan-sweep.mjs":
-      "879204bfba79de2dd0e2016e0d515d1f0133c9d61268ad3ce84ea6c7c4aa332d",
+      "f901cba774eaeb347b0c9fd350ffffbcc91fddc4a7a6f08b772bcaf022495b87",
     "plugins/src/base/skills/lisa-session-manager/scripts/queue-github.mjs":
       "9af014661873a2971fbc29946739088fc3e089deb8d94e78af651647450f2999",
     "plugins/src/base/skills/lisa-session-manager/scripts/reconcile.mjs":

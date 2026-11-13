@@ -27,10 +27,11 @@ import {
   parseIdEntries,
 } from "../../../scripts/operator-id-kinds.mjs";
 import { holdDigest, judgeHold } from "./orphan-holds.mjs";
-import { classifyOrphan } from "./orphan-buckets.mjs";
+import { FINISH_RETRY_HOURS, classifyOrphan } from "./orphan-buckets.mjs";
 
 export {
   FINISH_REFUSED_PREFIX,
+  FINISH_RETRY_HOURS,
   SWEEP_COMMENT_PREFIX,
 } from "./orphan-buckets.mjs";
 
@@ -115,6 +116,8 @@ function resolveOptions(opts = {}) {
     readyLabel: opts.readyLabel,
     lifecycleLabels: opts.lifecycleLabels,
     roleLabels: opts.roleLabels ?? {},
+    rolesAreStates: opts.rolesAreStates === true,
+    finishRetryMs: FINISH_RETRY_HOURS * 3_600_000,
     previousDigest: opts.previousDigest ?? null,
   };
 }
@@ -277,7 +280,8 @@ function spendCap(queue, max) {
  *   now: string|number|Date, staleHours?: number, max?: number,
  *   trustedAuthorIds?: unknown, humanNeededLabel?: string, humanOnly?: unknown,
  *   readyLabel?: string, lifecycleLabels?: string[],
- *   roleLabels?: Record<string, string>,
+ *   roleLabels?: Record<string, string | string[]>,
+ *   rolesAreStates?: boolean,
  *   previousDigest?: string|null}} opts - Ledger-derived live refs,
  *   identities, the clock, the cap and the hold policy
  * @returns {OrphanSweepPlan} Plan; it writes nothing
