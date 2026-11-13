@@ -1270,7 +1270,7 @@
       "children": []
     },
     "lib/usage-ledger.mjs": {
-      "sha256": "d93a9b6d28c00f687ea41e8ad1e6138eac6ea4f3d59225bd225d8151f40e4ac0",
+      "sha256": "fce4aebf272d4170083abf492781f20f6d726f5352d7dd9823714c1e1f2ccaf6",
       "staticImports": [
         "lib/usage-effectiveness.mjs"
       ],

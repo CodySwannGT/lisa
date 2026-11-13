@@ -267,7 +267,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lib/usage-ledger.d.mts":
       "ea55e6bf7354f92353666b145c9d352c2a2e7d8c914f98f4e1421d0528cab657",
     "all/copy-overwrite/scripts/lib/usage-ledger.mjs":
-      "d93a9b6d28c00f687ea41e8ad1e6138eac6ea4f3d59225bd225d8151f40e4ac0",
+      "fce4aebf272d4170083abf492781f20f6d726f5352d7dd9823714c1e1f2ccaf6",
     "all/copy-overwrite/scripts/lib/windows-process-job.cs":
       "7bbe3b13bfc35ca2a0b85fbee9a8f0a6549bf8b05997f6ce4b361bd09d924218",
     "all/copy-overwrite/scripts/lib/windows-process-job.mjs":
@@ -1299,7 +1299,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/rules/reference/usage-accounting.md":
       "64ee616bdad7c16d5cc4b9eb44384de261b0616ec3343d4c05a88ddede3d89ea",
     "plugins/src/base/rules/reference/verification.md":
-      "8a57ab38f2d86e9879cdcf265ebba2a6d63a6f821ffd7a2cb4749e59861c518f",
+      "fd1dfe40b098b8c772785cec3d3e89a2e32d086bd13e44489536241a8c393ee9",
     "plugins/src/base/rules/reference/wiki-knowledge-source.md":
       "725a7415a0606f85164722bd4b4975bce1f496cc43c97e45b224810b1a685189",
     "plugins/src/base/rules/reference/withdrawn-rulings.md":
@@ -1459,7 +1459,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-github-evidence/SKILL.md":
       "736293a052345552a0132bd8338789b52e6a8c58bf9bbd0fcb329baa13a6ae5a",
     "plugins/src/base/skills/lisa-github-journey/SKILL.md":
-      "dba6ee9739be9505d4476d29f7595548adb5bb2e67640577977286c68b9dc1c9",
+      "fa9c4dab004a47062bae75c74aed1844fdfe76be119e2a8b9d07b3c5db68892e",
     "plugins/src/base/skills/lisa-github-prd-intake/SKILL.md":
       "34d2eaaf63213e7c52fea2e7cc579a459e95ac49c26d405ec3c44605bf16cc54",
     "plugins/src/base/skills/lisa-github-project-v2/SKILL.md":
@@ -1537,7 +1537,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-kane-browser/SKILL.md":
       "e082517cb42f437eeb22b3935aa0fef09299874736e55184e88d2b64f7860a7d",
     "plugins/src/base/skills/lisa-learnings-audit/SKILL.md":
-      "fc9ba0804e8f6772f232678c5a31bead4527e06e1caa4d5f35931bb1f1189625",
+      "fb8539fb70c9b16c0a79d1072b42bcda451f3e98b80a8f8a7b0f0cfe272dc2f9",
     "plugins/src/base/skills/lisa-linear-access/SKILL.md":
       "83cbf20e7a9f5e5289f609f16079a95897aac5964380305d4a5193438230f965",
     "plugins/src/base/skills/lisa-linear-add-journey/SKILL.md":
@@ -1551,7 +1551,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-linear-evidence/SKILL.md":
       "b6d49370c1857a74518e2268117faa0b73b28851803bc14bbe5e492425e707f8",
     "plugins/src/base/skills/lisa-linear-journey/SKILL.md":
-      "7efeabe56b8b004c9205f944f6420be83eac25f861de19cb361a4a124bf06d85",
+      "241d9a2970b721c5a7d487cbffc469ac644623e77be16f5ac14ae138b06f80b5",
     "plugins/src/base/skills/lisa-linear-prd-intake/SKILL.md":
       "42d60d8695c8c7794bf6cf7cbeca9af182b4a3cb07699e7e2014a09cb14189cf",
     "plugins/src/base/skills/lisa-linear-read-issue/SKILL.md":
@@ -1883,7 +1883,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-tracker-create/SKILL.md":
       "fecd0c3cc930b0f87578bc0bee14009509883cb21b33e94e3e7a42792dcd888e",
     "plugins/src/base/skills/lisa-tracker-evidence/SKILL.md":
-      "65f4b7cd7c18a4b381333139fde88968a602f30f9b2fa80ac7fbc24237672b5d",
+      "fc40f923fd5075d91647d92c2a4adac6d62cc23b0d53b122ad4997afe67b6c6c",
     "plugins/src/base/skills/lisa-tracker-evidence/references/completion-authorization.md":
       "5e1881a29f5e584ade80e2beb91da1a1f3bbef3b60ae204af72b6a77dcb2d255",
     "plugins/src/base/skills/lisa-tracker-journey/SKILL.md":
@@ -1909,7 +1909,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-validate-tracker-mapping/SKILL.md":
       "747531d1342d77d6fabd8e85778497bf22bffb4bcc329416a3e21374e769006f",
     "plugins/src/base/skills/lisa-verification-lifecycle/SKILL.md":
-      "369cbdab522005c28c0fd08814c3e4287c574e8c22f10cba00aa0d792159042d",
+      "1f05aebddd583a44ca35658bb1c1a3e0166e26f15e664c8b1ae6bfe4ec51acb8",
     "plugins/src/base/skills/lisa-verify-prd/SKILL.md":
       "8a9e63985bded11a0c0f61cb71c68e3e1dcc375bd150a3fdd200b0e6c290e68b",
     "plugins/src/base/skills/lisa-verify-workflow-change/SKILL.md":
@@ -3857,6 +3857,11 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "evidence/4694/cli-summary-no-json.txt": true,
     "evidence/4694/test-run-log-head.txt": true,
     "evidence/4694/test-run-log-red-control-prefix.txt": true,
+    "evidence/4697/prev-revision-mutation.diff": true,
+    "evidence/4697/probe-4697.ts.txt": true,
+    "evidence/4697/probe-fix.txt": true,
+    "evidence/4697/probe-origin-main.txt": true,
+    "evidence/4697/probe-prev-revision-mutant.txt": true,
     "evidence/4711/cli-absent-required-context-blocks-clear.txt": true,
     "evidence/4711/cli-complete-pass-still-clears.txt": true,
     "evidence/4711/cli-live-head-sha-dry-run-pr4710.txt": true,
@@ -11073,6 +11078,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "src/cli/install-merge-driver-cmd.ts": true,
     "src/cli/kane-cmd.ts": true,
     "src/cli/learnings-overflow-cmd.ts": true,
+    "src/cli/learnings-retire-cmd.ts": true,
     "src/cli/lisa-test-run-bootstrap.ts": true,
     "src/cli/lisa-test-run-ipc.ts": true,
     "src/cli/lisa-test-run-jest-merge.ts": true,
@@ -11733,6 +11739,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/helpers/io-latency-budget.ts": true,
     "tests/helpers/latest-review-identity-fixtures.ts": true,
     "tests/helpers/latest-review-reducer-harness.ts": true,
+    "tests/helpers/learnings-overcap.ts": true,
     "tests/helpers/lintstaged-globs.ts": true,
     "tests/helpers/lisa-test-run-authority-equality.ts": true,
     "tests/helpers/lisa-test-run-exact-process-cleanup.ts": true,
@@ -11881,6 +11888,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/jira-evidence-pr-scoped-uploads.test.ts": true,
     "tests/integration/jira-shell-auth-destinations.test.ts": true,
     "tests/integration/job-names-name-properties.test.ts": true,
+    "tests/integration/learnings-retire-cli.test.ts": true,
     "tests/integration/lisa-cleanup-sweep.test.ts": true,
     "tests/integration/lisa-rollback-release.test.ts": true,
     "tests/integration/lisa-test-run-jest-shards-fixture.ts": true,
@@ -12266,6 +12274,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/cli/kane-cmd.test.ts": true,
     "tests/unit/cli/kane-index.test.ts": true,
     "tests/unit/cli/learnings-overflow-cmd.test.ts": true,
+    "tests/unit/cli/learnings-retire-cmd.test.ts": true,
     "tests/unit/cli/lisa-test-run-ipc.test.ts": true,
     "tests/unit/cli/lisa-test-run-process-group.test.ts": true,
     "tests/unit/cli/lisa-test-run-protocol-state.test.ts": true,
@@ -12531,6 +12540,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/core/learnings-merge-reports-every-invalid-entry.test.ts": true,
     "tests/unit/core/learnings-merge.test.ts": true,
     "tests/unit/core/learnings-migration.test.ts": true,
+    "tests/unit/core/learnings-overcap-supersede.test.ts": true,
+    "tests/unit/core/learnings-overcap.test.ts": true,
     "tests/unit/core/learnings-overflow-budget-check.test.ts": true,
     "tests/unit/core/learnings-overflow-identity.test.ts": true,
     "tests/unit/core/learnings-overflow.test.ts": true,
@@ -12950,6 +12961,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/cleanup-worktrees-unreadable.test.ts": true,
     "tests/unit/scripts/codex-hook-filter.test.ts": true,
     "tests/unit/scripts/command-envelope.test.ts": true,
+    "tests/unit/scripts/completion-proof-contract-examples.test.ts": true,
     "tests/unit/scripts/completion-proof-evidence-release.test.ts": true,
     "tests/unit/scripts/completion-proof-github-reads.test.ts": true,
     "tests/unit/scripts/completion-proof-grammar.test.ts": true,
@@ -13818,6 +13830,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/utils/usage-accounting-token-serialization.test.ts": true,
     "tests/unit/utils/usage-accounting.test.ts": true,
     "tests/unit/utils/usage-empty-run-id.test.ts": true,
+    "tests/unit/utils/usage-section-trailing-content.test.ts": true,
     "tests/unit/utils/yaml-interop.test.ts": true,
     "tests/unit/workstation/fixtures.ts": true,
     "tests/unit/workstation/link-into-bin-dir.test.ts": true,
