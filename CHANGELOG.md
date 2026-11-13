@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [4.108.0](https://github.com/CodySwannGT/lisa/compare/v4.107.13...v4.108.0) (2026-11-13)
+
+
+### Features
+
+* **ci:** add database_image input to quality-rails ([f0556d2](https://github.com/CodySwannGT/lisa/commit/f0556d2e36daf865603e58bcfa4a06f6762829cd)), closes [CodySwannGT/lisa#4671](https://github.com/CodySwannGT/lisa/issues/4671) [CodySwannGT/lisa#4671](https://github.com/CodySwannGT/lisa/issues/4671)
+
 ### [4.107.13](https://github.com/CodySwannGT/lisa/compare/v4.107.12...v4.107.13) (2026-11-13)
 
 
