@@ -96,6 +96,17 @@ Each task must have a verification method. Choose the most appropriate:
 - Order tasks so that each builds on a stable foundation
 - Prefer independent tasks that can run in parallel where possible
 - Flag external dependencies (other teams, services, permissions, data) that may block progress
+- Run the **shipped-prerequisite check** on every leaf. Ticket text is often written ahead of delivery, so a prerequisite it calls already shipped, existing, or delivered (a symbol, resolver, mutation, file, endpoint, migration…) is a claim, not a fact (`empirical-inquiry`). Verify each one on the remote default branch, never the working tree:
+
+  ```bash
+  # shipped-prerequisite check: exit 0 = present on the default branch, non-zero = absent
+  default=$(git symbolic-ref --short refs/remotes/origin/HEAD | sed 's|^origin/||')
+  git fetch --quiet origin "$default"
+  git grep -n -w "$SYMBOL" "origin/$default" --
+  git cat-file -e "origin/$default:$FILE"
+  ```
+
+  Use the `git grep` line for a symbol and the `git cat-file` line for a file. When `origin/HEAD` is unset, take the default from `gh repo view --json defaultBranchRef --jq .defaultBranchRef.name`. For each absent prerequisite, find the item that owns delivering it and link this leaf `is blocked by` that item before the leaf is marked ready. If no item owns it, file one (build-ready) and link it; otherwise the leaf fails the ready gate (S13). This is the mirror of `stale-state-claims`: that rule distrusts a stale *not-yet* note, this check distrusts a premature *done* one.
 
 ### 4.5. Classify Any New Material Dependency
 

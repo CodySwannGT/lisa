@@ -1293,7 +1293,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/rules/reference/settled-decisions.md":
       "a26eb4e879ab33468d2c55c1cf8128fbbfbec9c2cb634d9dd9f008304ad9aa05",
     "plugins/src/base/rules/reference/stale-state-claims.md":
-      "6329e1a7629f9a12f10454c767842aecee4964df8b7bb4aebda9dde3c0959c2a",
+      "0ce4de30907f95dddd715d6bedd0d1814254d37b00ae50f4afb7d7a58c0b68ac",
     "plugins/src/base/rules/reference/tool-access-gate.md":
       "f478226decac8e7c554dca9452aeb059cf4e9d5bb8da9c45e9726d3b818cad4f",
     "plugins/src/base/rules/reference/tracked-work.md":
@@ -1309,7 +1309,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/rules/reference/withdrawn-rulings.md":
       "34afe0413fce11872ac99b87e6323c59a754db7992c5fb054a56845af0723785",
     "plugins/src/base/rules/reference/work-item-definition-of-ready.md":
-      "ff341a2481f4097fbc0defcfd39753a4c1fc5f895e8624face3d1f76703597e9",
+      "452c96e92c948c2813038e21b59df75e5f8f754cb9124d41d338bf48457fee24",
     "plugins/src/base/rules/reference/work-item-trailer-definition.md":
       "2997766dc8ab61bf63891781dc9e86339a47ca35eddd4ca387bd7cc0ce85f2a5",
     "plugins/src/base/scripts/automation-run-record.mjs":
@@ -1475,7 +1475,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-github-to-tracker/SKILL.md":
       "e0e78b3b50543964b3c2a16e7db6631619a9aea124dadc5b7e2308a872ab16b3",
     "plugins/src/base/skills/lisa-github-validate-issue/SKILL.md":
-      "610f422bb27972c59f859d9dd15228be83afa333a575352f93d053c6c88a58ef",
+      "7eb5793badfefb96ed76ff6485bff1930a54c04b9c2a664e0008e63c30f81920",
     "plugins/src/base/skills/lisa-github-verify/SKILL.md":
       "c53cd2deb36b4191e77651da4a95df2ee022e3b8b12d1dd248e7466746b74578",
     "plugins/src/base/skills/lisa-github-write-issue/SKILL.md":
@@ -1531,7 +1531,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-jira-sync/SKILL.md":
       "943a89c2fd70b7cd1f13badc8ce0018f9f5ff18a0a7443440ba68a309bf4685f",
     "plugins/src/base/skills/lisa-jira-validate-ticket/SKILL.md":
-      "25a9335ec0a405ba08d3f0ae04af99610191cb3b3da11731b06bab738903d338",
+      "025d38d4d552eb99c94985d0a27a3d343234633225279553e0f09ee8c0225331",
     "plugins/src/base/skills/lisa-jira-verify/SKILL.md":
       "55484ce81b43a167db9bbeed62edf8b204676827b7ef7bf1892c17453027c7b6",
     "plugins/src/base/skills/lisa-jira-write-ticket/SKILL.md":
@@ -1565,7 +1565,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-linear-to-tracker/SKILL.md":
       "20d148deddf6b71beeb2ac65528b4a68cffccfc27567406983d75ddafb594111",
     "plugins/src/base/skills/lisa-linear-validate-issue/SKILL.md":
-      "b7df3b8f198cb5e98f667b2db49a8fdc1d83c027910320f1df522b5947fb9bdf",
+      "06dc4bfafbafe16c737d26835ebd603ea9f5b3bdb5812dd1f18721a0e597b2c9",
     "plugins/src/base/skills/lisa-linear-verify/SKILL.md":
       "17251e8d6c762b69b2ca6a77d9cfe44beba31dfc0444de4cde051747e2c99eab",
     "plugins/src/base/skills/lisa-linear-write-issue/SKILL.md":
@@ -1873,7 +1873,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-sync-down/SKILL.md":
       "cc25e8a1d7255ace5aad816bc8c67ee001521c7b59488f25de22f27690f73f6f",
     "plugins/src/base/skills/lisa-task-decomposition/SKILL.md":
-      "f756ebdb22f248e75c4e48d6a0c1e1ee38522d2a774359992a5de40ac7ebf943",
+      "64af7e14986829bc2968864d1f526487370c3d7344581ad4db147f8332449a0f",
     "plugins/src/base/skills/lisa-task-triage/SKILL.md":
       "c6e11b6d195560e6bd7b51fede65c155567c35208801a700a26d95679b03484e",
     "plugins/src/base/skills/lisa-tdd-implementation/SKILL.md":
@@ -13863,6 +13863,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/strategies/setup-automations-readiness-warning.test.ts": true,
     "tests/unit/strategies/setup-github-prd-verified-label.test.ts": true,
     "tests/unit/strategies/setup-linear-prd-verified-label.test.ts": true,
+    "tests/unit/strategies/shipped-prerequisite-check.test.ts": true,
     "tests/unit/strategies/skill-text-defects-4643-items-2-3-7-8.test.ts": true,
     "tests/unit/strategies/stale-state-claims-rule.test.ts": true,
     "tests/unit/strategies/standing-rulings-reread-contract.test.ts": true,
