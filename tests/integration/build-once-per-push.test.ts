@@ -13,9 +13,9 @@
  *   declared failure shape, not with the pre-build refusal.
  * @module tests/integration/build-once-per-push
  */
-import { execFileSync } from "node:child_process";
 import {
   copyFileSync,
+  cpSync,
   mkdirSync,
   mkdtempSync,
   readFileSync,
@@ -29,7 +29,10 @@ import { fileURLToPath } from "node:url";
 import { afterEach, describe, expect, it } from "vitest";
 
 import { sweepAlreadyRanEnv } from "../helpers/cleanup-sweep-skip.js";
-import { boundedSpawnSync } from "../helpers/io-latency-budget.js";
+import {
+  boundedExecFileSync,
+  boundedSpawnSync,
+} from "../helpers/io-latency-budget.js";
 import { cleanGitEnv, GIT_BIN } from "../support/git-executable.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -48,9 +51,14 @@ const TEST_GATE = "node scripts/build-unless-marked.mjs && echo tested";
 const BORROWED = [
   "scripts/check-plugins-sync.sh",
   "scripts/build-unless-marked.mjs",
-  "scripts/lib/invoked-as-script.mjs",
   "all/copy-overwrite/scripts/lib/build-marker.mjs",
 ];
+
+/**
+ * Directories a borrowed script imports INTO, copied whole so the fixture
+ * never keeps a second, silently stale list of that script's dependencies.
+ */
+const BORROWED_DIRECTORIES = ["scripts/lib"];
 
 /** A plugin build: one artifact under plugins/ and one materialized outside. */
 const GENERATOR = `import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
@@ -70,7 +78,14 @@ const roots: string[] = [];
  * @param args - Git arguments
  */
 function git(cwd: string, ...args: string[]): void {
-  execFileSync(GIT_BIN, args, { cwd, stdio: "ignore", env: cleanGitEnv() });
+  boundedExecFileSync({
+    label: `git ${args[0] ?? ""} (build-once fixture)`,
+    command: GIT_BIN,
+    args,
+    cwd,
+    stdio: "ignore",
+    env: cleanGitEnv(),
+  });
 }
 
 /**
@@ -84,6 +99,11 @@ function fixture(buildOnce: boolean | undefined): string {
   for (const file of BORROWED) {
     mkdirSync(path.dirname(path.join(root, file)), { recursive: true });
     copyFileSync(path.join(REPO_ROOT, file), path.join(root, file));
+  }
+  for (const directory of BORROWED_DIRECTORIES) {
+    cpSync(path.join(REPO_ROOT, directory), path.join(root, directory), {
+      recursive: true,
+    });
   }
   writeFileSync(path.join(root, "gen.mjs"), GENERATOR);
   writeFileSync(
@@ -140,7 +160,12 @@ function fixture(buildOnce: boolean | undefined): string {
       2
     )
   );
-  execFileSync(process.execPath, ["gen.mjs"], { cwd: root });
+  boundedExecFileSync({
+    label: "node gen.mjs (build-once fixture)",
+    command: process.execPath,
+    args: ["gen.mjs"],
+    cwd: root,
+  });
   git(root, "init", "-q");
   git(root, "config", "user.email", "test@example.com");
   git(root, "config", "user.name", "Test");

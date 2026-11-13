@@ -7,7 +7,6 @@
  * whose inputs changed, which is the stale-`dist/` defect of #3778.
  * @module tests/unit/scripts/build-marker
  */
-import { execFileSync } from "node:child_process";
 import {
   existsSync,
   mkdirSync,
@@ -31,6 +30,7 @@ import {
   runBuildOnce,
   workingTreeHash,
 } from "../../../all/copy-overwrite/scripts/lib/build-marker.mjs";
+import { boundedExecFileSync } from "../../helpers/io-latency-budget.js";
 import { cleanGitEnv, GIT_BIN } from "../../support/git-executable.js";
 
 const TREE = "a".repeat(40);
@@ -59,9 +59,11 @@ function scratch(): string {
  * @returns Trimmed stdout
  */
 function git(cwd: string, ...args: string[]): string {
-  return execFileSync(GIT_BIN, args, {
+  return boundedExecFileSync({
+    label: `git ${args[0] ?? ""} (build-marker fixture)`,
+    command: GIT_BIN,
+    args,
     cwd,
-    encoding: "utf8",
     env: cleanGitEnv(),
   }).trim();
 }

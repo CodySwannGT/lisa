@@ -123,6 +123,8 @@ function ancestorDistance(run, ancestor, sha) {
       run("git", ["rev-list", "--count", `${ancestor}..${sha}`]).trim()
     );
   } catch {
+    // probe-direction: fail-closed — a base git cannot place below `sha` is
+    // dropped as a candidate, so fewer maps qualify and the push runs more.
     return undefined;
   }
 }

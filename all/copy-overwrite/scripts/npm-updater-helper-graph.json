@@ -85,7 +85,7 @@
       "children": []
     },
     "lib/build-marker.mjs": {
-      "sha256": "588c4654a70a07656b70852e50d11f727f192478ef3b06cbf8aee447a1c74935",
+      "sha256": "505519d9632ab86572cfdeca917d93599256cf8e798987ad593a82296a7d8175",
       "staticImports": [
         "node:child_process",
         "node:crypto",

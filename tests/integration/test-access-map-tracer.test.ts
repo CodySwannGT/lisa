@@ -14,6 +14,8 @@ import { pathToFileURL } from "node:url";
 
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
+import { ioLatencyBudgetMs } from "../helpers/io-latency-budget.js";
+
 const ROOT = path.resolve(import.meta.dirname, "../..");
 const require = createRequire(import.meta.url);
 const VITEST = path.join(
@@ -114,77 +116,88 @@ afterAll(() => {
 });
 
 describe("test access map tracer", () => {
-  it("records each test file's imports, reads and spawns", () => {
-    const result = spawnSync(
-      process.execPath,
-      [VITEST, "run", "--config", "vitest.config.mjs"],
-      {
-        cwd: fixture.root,
-        env: freshEnvironment(),
-        encoding: "utf8",
-        timeout: 90_000,
-      }
-    );
-    expect(result.status, `${result.stdout}\n${result.stderr}`).toBe(0);
+  it(
+    "records each test file's imports, reads and spawns",
+    () => {
+      const result = spawnSync(
+        process.execPath,
+        [VITEST, "run", "--config", "vitest.config.mjs"],
+        {
+          cwd: fixture.root,
+          env: freshEnvironment(),
+          encoding: "utf8",
+          timeout: 90_000,
+        }
+      );
+      expect(result.status, `${result.stdout}\n${result.stderr}`).toBe(0);
 
-    const written = JSON.parse(
-      fs.readFileSync(
-        path.join(fixture.root, "tmp/test-access-map/unit.json"),
-        "utf8"
-      )
-    ) as {
-      readonly meta: Readonly<Record<string, unknown>>;
-      readonly map: Readonly<Record<string, readonly string[]>>;
-    };
+      const written = JSON.parse(
+        fs.readFileSync(
+          path.join(fixture.root, "tmp/test-access-map/unit.json"),
+          "utf8"
+        )
+      ) as {
+        readonly meta: Readonly<Record<string, unknown>>;
+        readonly map: Readonly<Record<string, readonly string[]>>;
+      };
 
-    expect(Object.keys(written.map).sort((a, b) => a.localeCompare(b))).toEqual(
-      [
+      expect(
+        Object.keys(written.map).sort((a, b) => a.localeCompare(b))
+      ).toEqual([
         "tests/imports.test.mjs",
         "tests/reads.test.mjs",
         "tests/spawns.test.mjs",
-      ]
-    );
-    expect(written.map["tests/imports.test.mjs"]).toContain("src/value.mjs");
-    expect(written.map["tests/reads.test.mjs"]).toContain("docs/guide.md");
-    expect(written.map["tests/spawns.test.mjs"]).toEqual(
-      expect.arrayContaining([
-        "scripts/hook.sh",
-        "scripts/child.mjs",
-        "scripts/helper.mjs",
-        "docs/child.md",
-      ])
-    );
-    // Attribution, not a union: no test lists another's file, nobody lists
-    // the unread one, and dependencies never appear.
-    expect(written.map["tests/imports.test.mjs"]).not.toContain(
-      "docs/guide.md"
-    );
-    expect(written.map["tests/reads.test.mjs"]).not.toContain(
-      "scripts/hook.sh"
-    );
-    expect(Object.values(written.map).flat()).not.toContain("docs/unread.md");
-    expect(
-      Object.values(written.map)
-        .flat()
-        .some(file => file.startsWith("node_modules/"))
-    ).toBe(false);
-    expect(written.meta).toMatchObject({ scope: "unit", tracerVersion: 1 });
-    expect(
-      fs
-        .readdirSync(path.join(fixture.root, "tmp/test-access-map"))
-        .filter(name => name.startsWith("raw-"))
-    ).toEqual([]);
-  }, 120_000);
+      ]);
+      expect(written.map["tests/imports.test.mjs"]).toContain("src/value.mjs");
+      expect(written.map["tests/reads.test.mjs"]).toContain("docs/guide.md");
+      expect(written.map["tests/spawns.test.mjs"]).toEqual(
+        expect.arrayContaining([
+          "scripts/hook.sh",
+          "scripts/child.mjs",
+          "scripts/helper.mjs",
+          "docs/child.md",
+        ])
+      );
+      // Attribution, not a union: no test lists another's file, nobody lists
+      // the unread one, and dependencies never appear.
+      expect(written.map["tests/imports.test.mjs"]).not.toContain(
+        "docs/guide.md"
+      );
+      expect(written.map["tests/reads.test.mjs"]).not.toContain(
+        "scripts/hook.sh"
+      );
+      expect(Object.values(written.map).flat()).not.toContain("docs/unread.md");
+      expect(
+        Object.values(written.map)
+          .flat()
+          .some(file => file.startsWith("node_modules/"))
+      ).toBe(false);
+      expect(written.meta).toMatchObject({ scope: "unit", tracerVersion: 1 });
+      expect(
+        fs
+          .readdirSync(path.join(fixture.root, "tmp/test-access-map"))
+          .filter(name => name.startsWith("raw-"))
+      ).toEqual([]);
+    },
+    ioLatencyBudgetMs(120_000)
+  );
 
-  it("records nothing without LISA_ACCESS_MAP=1", () => {
-    fs.rmSync(path.join(fixture.root, "tmp"), { recursive: true, force: true });
-    const env = { ...freshEnvironment(), LISA_ACCESS_MAP: "" };
-    const result = spawnSync(
-      process.execPath,
-      [VITEST, "run", "--config", "vitest.config.mjs"],
-      { cwd: fixture.root, env, encoding: "utf8", timeout: 90_000 }
-    );
-    expect(result.status, `${result.stdout}\n${result.stderr}`).toBe(0);
-    expect(fs.existsSync(path.join(fixture.root, "tmp"))).toBe(false);
-  }, 120_000);
+  it(
+    "records nothing without LISA_ACCESS_MAP=1",
+    () => {
+      fs.rmSync(path.join(fixture.root, "tmp"), {
+        recursive: true,
+        force: true,
+      });
+      const env = { ...freshEnvironment(), LISA_ACCESS_MAP: "" };
+      const result = spawnSync(
+        process.execPath,
+        [VITEST, "run", "--config", "vitest.config.mjs"],
+        { cwd: fixture.root, env, encoding: "utf8", timeout: 90_000 }
+      );
+      expect(result.status, `${result.stdout}\n${result.stderr}`).toBe(0);
+      expect(fs.existsSync(path.join(fixture.root, "tmp"))).toBe(false);
+    },
+    ioLatencyBudgetMs(120_000)
+  );
 });

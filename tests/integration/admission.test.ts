@@ -21,6 +21,8 @@ import { join, resolve } from "node:path";
 
 import { afterEach, describe, expect, it } from "vitest";
 
+import { ioLatencyBudgetMs } from "../helpers/io-latency-budget.js";
+
 const CLI = resolve(import.meta.dirname, "../../dist/index.js");
 
 /** Room for exactly one four-worker run. */
@@ -135,86 +137,98 @@ const hold = (marker: string, ms: number): string =>
   `require("fs").writeFileSync(${JSON.stringify(marker)}, String(process.pid)); setTimeout(() => {}, ${String(ms)});`;
 
 describe("lisa admit across processes", () => {
-  it("two simultaneous starts with room for one: exactly one waits, then both run", async () => {
-    const state = dir();
-    const repo = dir();
-    const a = client({
-      state,
-      cwd: repo,
-      script: hold(join(repo, "a"), 1_500),
-      maxWait: "30s",
-    });
-    const b = client({
-      state,
-      cwd: repo,
-      script: hold(join(repo, "b"), 1_500),
-      maxWait: "30s",
-    });
-    const [first, second] = await Promise.all([a.done, b.done]);
-    expect(first.code).toBe(0);
-    expect(second.code).toBe(0);
-    const waited = [first, second].filter(run =>
-      /waiting for headroom/u.test(run.output)
-    );
-    expect(waited).toHaveLength(1);
-    expect(waited[0]?.output).toMatch(/Held by: pid \d+/u);
-    expect(readdirSync(state).filter(name => name.endsWith(".json"))).toEqual(
-      []
-    );
-  }, 60_000);
+  it(
+    "two simultaneous starts with room for one: exactly one waits, then both run",
+    async () => {
+      const state = dir();
+      const repo = dir();
+      const a = client({
+        state,
+        cwd: repo,
+        script: hold(join(repo, "a"), 1_500),
+        maxWait: "30s",
+      });
+      const b = client({
+        state,
+        cwd: repo,
+        script: hold(join(repo, "b"), 1_500),
+        maxWait: "30s",
+      });
+      const [first, second] = await Promise.all([a.done, b.done]);
+      expect(first.code).toBe(0);
+      expect(second.code).toBe(0);
+      const waited = [first, second].filter(run =>
+        /waiting for headroom/u.test(run.output)
+      );
+      expect(waited).toHaveLength(1);
+      expect(waited[0]?.output).toMatch(/Held by: pid \d+/u);
+      expect(readdirSync(state).filter(name => name.endsWith(".json"))).toEqual(
+        []
+      );
+    },
+    ioLatencyBudgetMs(60_000)
+  );
 
-  it("ignores and removes the reservation of a run killed with SIGKILL", async () => {
-    const state = dir();
-    const repo = dir();
-    const marker = join(repo, "victim");
-    const victim = client({
-      state,
-      cwd: repo,
-      script: hold(marker, 30_000),
-      maxWait: "5s",
-    });
-    await until(() => existsSync(marker));
-    const reservation = `${String(victim.child.pid)}.json`;
-    expect(readdirSync(state)).toContain(reservation);
-    victim.child.kill("SIGKILL");
-    process.kill(Number(readFileSync(marker, "utf8")), "SIGKILL");
-    await victim.done;
-    const next = client({
-      state,
-      cwd: repo,
-      script: hold(join(repo, "next"), 10),
-      maxWait: "5s",
-    });
-    const result = await next.done;
-    expect(result.code).toBe(0);
-    expect(result.output).not.toMatch(/waiting for headroom/u);
-    expect(readdirSync(state)).not.toContain(reservation);
-  }, 60_000);
+  it(
+    "ignores and removes the reservation of a run killed with SIGKILL",
+    async () => {
+      const state = dir();
+      const repo = dir();
+      const marker = join(repo, "victim");
+      const victim = client({
+        state,
+        cwd: repo,
+        script: hold(marker, 30_000),
+        maxWait: "5s",
+      });
+      await until(() => existsSync(marker));
+      const reservation = `${String(victim.child.pid)}.json`;
+      expect(readdirSync(state)).toContain(reservation);
+      victim.child.kill("SIGKILL");
+      process.kill(Number(readFileSync(marker, "utf8")), "SIGKILL");
+      await victim.done;
+      const next = client({
+        state,
+        cwd: repo,
+        script: hold(join(repo, "next"), 10),
+        maxWait: "5s",
+      });
+      const result = await next.done;
+      expect(result.code).toBe(0);
+      expect(result.output).not.toMatch(/waiting for headroom/u);
+      expect(readdirSync(state)).not.toContain(reservation);
+    },
+    ioLatencyBudgetMs(60_000)
+  );
 
-  it("a run from repository B counts repository A's run and is refused, never started, after the bound", async () => {
-    const state = dir();
-    const repoA = dir();
-    const repoB = dir();
-    const startedA = join(repoA, "started");
-    const holder = client({
-      state,
-      cwd: repoA,
-      script: hold(startedA, 30_000),
-      maxWait: "5s",
-    });
-    await until(() => existsSync(startedA));
-    const startedB = join(repoB, "started");
-    const refused = await client({
-      state,
-      cwd: repoB,
-      script: hold(startedB, 10),
-      maxWait: "1s",
-    }).done;
-    expect(refused.code).toBe(75);
-    expect(refused.output).toMatch(/refused .* after 1s/u);
-    expect(refused.output).toContain(`in ${repoA}`);
-    expect(existsSync(startedB)).toBe(false);
-    holder.child.kill("SIGTERM");
-    await holder.done;
-  }, 60_000);
+  it(
+    "a run from repository B counts repository A's run and is refused, never started, after the bound",
+    async () => {
+      const state = dir();
+      const repoA = dir();
+      const repoB = dir();
+      const startedA = join(repoA, "started");
+      const holder = client({
+        state,
+        cwd: repoA,
+        script: hold(startedA, 30_000),
+        maxWait: "5s",
+      });
+      await until(() => existsSync(startedA));
+      const startedB = join(repoB, "started");
+      const refused = await client({
+        state,
+        cwd: repoB,
+        script: hold(startedB, 10),
+        maxWait: "1s",
+      }).done;
+      expect(refused.code).toBe(75);
+      expect(refused.output).toMatch(/refused .* after 1s/u);
+      expect(refused.output).toContain(`in ${repoA}`);
+      expect(existsSync(startedB)).toBe(false);
+      holder.child.kill("SIGTERM");
+      await holder.done;
+    },
+    ioLatencyBudgetMs(60_000)
+  );
 });

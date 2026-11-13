@@ -123,6 +123,8 @@ function git(args, { cwd = process.cwd(), env = {} } = {}) {
     env: { ...inherited, ...env },
     maxBuffer: 64 * 1024 * 1024,
   });
+  // probe-direction: fail-closed — a null tree never matches a marker, and a
+  // null status is never clean, so a failed git always means "build".
   if (child.status !== 0) return null;
   return child.stdout.trim();
 }

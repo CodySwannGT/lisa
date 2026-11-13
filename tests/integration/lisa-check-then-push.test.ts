@@ -10,7 +10,6 @@
  * say what actually executed.
  * @module tests/integration/lisa-check-then-push
  */
-import { execFileSync } from "node:child_process";
 import {
   existsSync,
   mkdtempSync,
@@ -26,7 +25,10 @@ import { afterEach, describe, expect, it } from "vitest";
 
 import { ownerMarkerFor } from "../../all/copy-overwrite/scripts/lib/lisa-cleanup-sweep-processes.mjs";
 import { runCheck, type RunnerRequest } from "../../src/cli/check-cmd.js";
-import { boundedSpawnSync } from "../helpers/io-latency-budget.js";
+import {
+  boundedExecFileSync,
+  boundedSpawnSync,
+} from "../helpers/io-latency-budget.js";
 import { cleanGitEnv, GIT_BIN } from "../support/git-executable.js";
 
 const REPO_ROOT = path.resolve(
@@ -58,9 +60,11 @@ function scratch(prefix: string): string {
  * @returns Trimmed stdout
  */
 function git(cwd: string, ...args: string[]): string {
-  return execFileSync(GIT_BIN, args, {
+  return boundedExecFileSync({
+    label: `git ${args[0] ?? ""} (lisa check fixture)`,
+    command: GIT_BIN,
+    args,
     cwd,
-    encoding: "utf8",
     env: {
       ...cleanGitEnv(),
       GIT_AUTHOR_NAME: "t",

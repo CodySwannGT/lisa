@@ -4,7 +4,6 @@
  * while `pushGate.admission` is off.
  * @module tests/unit/scripts/push-admission
  */
-import { execFileSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
@@ -18,6 +17,7 @@ import {
   shellQuote,
   withAdmission,
 } from "../../../all/copy-overwrite/scripts/lib/push-admission.mjs";
+import { boundedExecFileSync } from "../../helpers/io-latency-budget.js";
 
 const roots: string[] = [];
 afterEach(() => {
@@ -125,8 +125,10 @@ describe("shellQuote", () => {
   it("survives a single quote through a real shell", () => {
     const text = `echo 'it''s' "fine"`;
     expect(
-      execFileSync("sh", ["-c", `printf %s ${shellQuote(text)}`], {
-        encoding: "utf8",
+      boundedExecFileSync({
+        label: "sh printf (shellQuote round trip)",
+        command: "/bin/sh",
+        args: ["-c", `printf %s ${shellQuote(text)}`],
       })
     ).toBe(text);
     expect(admittedCommand("lisa", 3, "a b")).toBe(

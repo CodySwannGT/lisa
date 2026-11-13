@@ -22,9 +22,13 @@
  * manifest by hand), the old assertions no longer hold and surface as "fails
  * on the current tree" — that is expected, not a regression of the manifest.
  *
+ * The Markdown wording-test cull (CodySwannGT/lisa#4867) then removed manifest
+ * entries on purpose, so the fold range no longer proves `--exact`, and the
+ * `check:phrase-manifest-parity` package script that pinned it is retired. The
+ * script stays for re-proving a fold by hand.
+ *
  * Usage:
  *   node scripts/check-phrase-manifest-parity.mjs --base <ref> [--head <ref>] [--exact]
- * `bun run check:phrase-manifest-parity` pins the fold commit as the range.
  * @module scripts/check-phrase-manifest-parity
  */
 import { readFileSync } from "node:fs";
@@ -48,8 +52,8 @@ import {
 const argv = process.argv.slice(2);
 
 /**
- * The value of the last occurrence of a flag, so a flag appended to
- * `bun run check:phrase-manifest-parity` overrides the package script's.
+ * The value of the last occurrence of a flag, so a repeated flag overrides an
+ * earlier one.
  * @param {string} name - Flag name, e.g. `--base`.
  * @returns {string | undefined} Its value, or undefined when absent.
  */

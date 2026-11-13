@@ -101,10 +101,9 @@ describe("affected-test selection in the gate runner", () => {
       coverage: "measured",
     });
     expect(states(result)["coverage-adequacy"]).toBe("passed");
-    expect(remembered.toSorted((a, b) => a.localeCompare(b))).toEqual([
-      "coverage-adequacy",
-      "test-correctness",
-    ]);
+    expect(
+      [...remembered].sort((a: string, b: string) => a.localeCompare(b))
+    ).toEqual(["coverage-adequacy", "test-correctness"]);
   });
 
   it("reports as before when the command wrote no report", () => {

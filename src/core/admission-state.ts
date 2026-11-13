@@ -45,14 +45,35 @@ import type {
 export const LOCK_FILE = "admission.sock";
 
 /**
+ * Longest Unix socket path every supported platform can bind. macOS caps
+ * `sun_path` at 104 bytes and, past it, binds a silently TRUNCATED path, so a
+ * lock at the full path is never visible and `takeLock` would retry forever.
+ */
+export const UNIX_SOCKET_PATH_LIMIT = 103;
+
+/**
  * Where the decision lock listens.
+ *
+ * A state directory deep enough to push `admission.sock` past the socket limit
+ * (a long `XDG_CACHE_HOME`, a nested test scratch root) moves the lock to
+ * `/tmp/lisa-admission-<digest>.sock`, named by the state directory so every
+ * process sharing that directory still meets on one lock.
  * @param stateDir - State directory
+ * @param platform - Platform to decide for
  * @returns Socket path, or a named pipe on Windows
  */
-export function lockAddress(stateDir: string): string {
-  if (process.platform !== "win32") return join(stateDir, LOCK_FILE);
-  const digest = createHash("sha256").update(stateDir).digest("hex");
-  return `\\\\.\\pipe\\lisa-admission-${digest.slice(0, 16)}`;
+export function lockAddress(
+  stateDir: string,
+  platform: NodeJS.Platform = process.platform
+): string {
+  const digest = createHash("sha256")
+    .update(stateDir)
+    .digest("hex")
+    .slice(0, 16);
+  if (platform === "win32") return `\\\\.\\pipe\\lisa-admission-${digest}`;
+  const beside = join(stateDir, LOCK_FILE);
+  if (Buffer.byteLength(beside) <= UNIX_SOCKET_PATH_LIMIT) return beside;
+  return `/tmp/lisa-admission-${digest}.sock`;
 }
 
 /**
@@ -96,7 +117,10 @@ function tryListen(address: string): Promise<Server | null> {
   return new Promise((resolve, reject) => {
     const server = createServer(connection => connection.destroy());
     server.once("error", error => {
-      if ((error as NodeJS.ErrnoException).code === "EADDRINUSE") {
+      // macOS answers a bind through a symlinked directory (`/tmp`) with
+      // EEXIST rather than EADDRINUSE; both mean the address is taken.
+      const code = (error as NodeJS.ErrnoException).code;
+      if (code === "EADDRINUSE" || code === "EEXIST") {
         resolve(null);
       } else {
         reject(error);

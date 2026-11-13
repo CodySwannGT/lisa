@@ -7,7 +7,6 @@
  * run is in CI, the operator switched it off, or the project never opted in.
  * @module tests/unit/scripts/gate-pass-cache
  */
-import { execFileSync } from "node:child_process";
 import {
   existsSync,
   mkdtempSync,
@@ -29,6 +28,7 @@ import {
   relevantEnvironment,
   sharedInputs,
 } from "../../../all/copy-overwrite/scripts/lib/gate-pass-cache.mjs";
+import { boundedExecFileSync } from "../../helpers/io-latency-budget.js";
 import { resolveGit } from "../../support/git-executable.js";
 
 const roots: string[] = [];
@@ -58,9 +58,11 @@ function scratch(prefix: string): string {
  * @returns Trimmed stdout
  */
 function git(cwd: string, ...args: string[]): string {
-  return execFileSync(GIT_BIN, args, {
+  return boundedExecFileSync({
+    label: `git ${args[0] ?? ""} (gate-pass-cache fixture)`,
+    command: GIT_BIN,
+    args,
     cwd,
-    encoding: "utf8",
     env: {
       ...process.env,
       GIT_AUTHOR_NAME: "t",

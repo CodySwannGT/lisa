@@ -37,7 +37,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lib/bounded-spawn.mjs":
       "72e277ada531914d7bc51c3cb8dc67b8881aa817d96fa2f9f4d81668a3d3bbc1",
     "all/copy-overwrite/scripts/lib/build-marker.mjs":
-      "588c4654a70a07656b70852e50d11f727f192478ef3b06cbf8aee447a1c74935",
+      "505519d9632ab86572cfdeca917d93599256cf8e798987ad593a82296a7d8175",
     "all/copy-overwrite/scripts/lib/completion-authorization.mjs":
       "7b5f81ae58eae89367ebda480a508c3c37a6924b4bd6a8b1dd64fff24c465e1e",
     "all/copy-overwrite/scripts/lib/completion-proof-adapters.mjs":
@@ -379,7 +379,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/npm-updater-gate.Dockerfile":
       "850a4ee809d49e3d9da6bdd674cb43e4f5a6dcfa0aa73116b1a43caeed42748c",
     "all/copy-overwrite/scripts/npm-updater-helper-graph.json":
-      "f9f4e50dc94b06cbef1e3df8a074b9c8c15f3989b8f81ea7e6333b87c390b0d3",
+      "7c6573abde0071ab42aae6efe77edafc9b0a45f9ac46b5c6754e1f0dbef88925",
     "all/copy-overwrite/scripts/review-evidence-event.mjs":
       "1c5d510bc66f8ba23b6f046246f41182c17946a50126fb88e371d2aec9dfd6b2",
     "all/copy-overwrite/scripts/schemas/lisa-command-envelope.v1.schema.json":
@@ -2629,7 +2629,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/check-orphan-test-processes.mjs":
       "123822f43b53a84b619ed97d5c18069feb5964b8216248968a7ab165e345106a",
     "scripts/check-phrase-manifest-parity.mjs":
-      "a6eca31ae4e57517a420df3128e77dbd05d58a29dd1639815126d78e0c379464",
+      "d711c1d854962e0e3dc09a24ee917b1e3b29c0ce30651aa03e32d9b686164223",
     "scripts/check-pipeline-status-reads.mjs":
       "1fba15dfe50eb060bd229066a35a852679b23c11292981015b5746e1d639fb31",
     "scripts/check-plugins-sync.sh":
@@ -2695,7 +2695,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/fetch-test-access-map.d.mts":
       "d4e6befd7da1dcd78b99e6a7a7e0627f732164c20fa9a783711805733f5b7d47",
     "scripts/fetch-test-access-map.mjs":
-      "2878e1de6725fd589ca073e7189e8aa19a78388187f649d05f3a63a44162e45a",
+      "d2e7de20625cb1747a4133d4de80752e5322b2c376b4d346fb5846cfbeca1f19",
     "scripts/fix-namespace-test-assertions.mjs":
       "91205014b0ed0734c30012d36d5ed21d7ac9b493f5c811ea8288040b4835594c",
     "scripts/fix-test-assertions-pass2.mjs":
@@ -12406,6 +12406,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/configs/lintstaged-matcher-ordering.test.ts": true,
     "tests/unit/core/admission-decision.test.ts": true,
     "tests/unit/core/admission-settings.test.ts": true,
+    "tests/unit/core/admission-state-lock-address.test.ts": true,
     "tests/unit/core/admission.test.ts": true,
     "tests/unit/core/anchored-rewrite.test.ts": true,
     "tests/unit/core/apply-mode.test.ts": true,

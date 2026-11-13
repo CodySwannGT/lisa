@@ -9,7 +9,6 @@
  * exports, and the counts say what actually executed.
  * @module tests/integration/gate-pass-cache-push
  */
-import { execFileSync } from "node:child_process";
 import {
   existsSync,
   mkdtempSync,
@@ -23,7 +22,10 @@ import { fileURLToPath } from "node:url";
 import { afterEach, describe, expect, it } from "vitest";
 
 import { ownerMarkerFor } from "../../all/copy-overwrite/scripts/lib/lisa-cleanup-sweep-processes.mjs";
-import { boundedSpawnSync } from "../helpers/io-latency-budget.js";
+import {
+  boundedExecFileSync,
+  boundedSpawnSync,
+} from "../helpers/io-latency-budget.js";
 import { resolveGit } from "../support/git-executable.js";
 
 const RUNNER = path.join(
@@ -55,9 +57,11 @@ function scratch(prefix: string): string {
  * @returns Trimmed stdout
  */
 function git(cwd: string, ...args: string[]): string {
-  return execFileSync(GIT_BIN, args, {
+  return boundedExecFileSync({
+    label: `git ${args[0] ?? ""} (gate-pass-cache push fixture)`,
+    command: GIT_BIN,
+    args,
     cwd,
-    encoding: "utf8",
     env: {
       ...process.env,
       GIT_AUTHOR_NAME: "t",
