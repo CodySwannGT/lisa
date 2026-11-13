@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.107.11](https://github.com/CodySwannGT/lisa/compare/v4.107.10...v4.107.11) (2026-11-13)
+
+
+### Bug Fixes
+
+* **ci:** fail load-test.yml closed when k6 could not run (CodySwannGT/lisa[#4526](https://github.com/CodySwannGT/lisa/issues/4526)) ([b5ee3b1](https://github.com/CodySwannGT/lisa/commit/b5ee3b1116371ef69c72727107ba08b3da0769b5))
+* **ci:** pass k6 Cloud stack/project IDs and script env to cloud runs ([916f972](https://github.com/CodySwannGT/lisa/commit/916f9727eedf496b24e113725acf54968ff9183c)), closes [CodySwannGT/lisa#4526](https://github.com/CodySwannGT/lisa/issues/4526) [CodySwannGT/lisa#4526](https://github.com/CodySwannGT/lisa/issues/4526)
+
 ### [4.107.10](https://github.com/CodySwannGT/lisa/compare/v4.107.9...v4.107.10) (2026-11-13)
 
 
