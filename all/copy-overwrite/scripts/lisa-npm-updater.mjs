@@ -12,7 +12,7 @@ import { invokedAsScript } from "./lib/invoked-as-script.mjs";
 import {
   required,
   keys,
-  validatePolicy,
+  selectPolicy,
   validateProposal,
 } from "./lib/npm-update-contract.mjs";
 import { publicFailure, withStage } from "./lib/npm-update-invariants.mjs";
@@ -90,8 +90,11 @@ async function cancellationPhase(cwd, output, proposal, config, phase) {
   );
 }
 
-/** Only committed policy grants authority; ignored/local config cannot activate Actions. */
-async function configuration(cwd) {
+/**
+ * Only committed policy grants authority; ignored/local config cannot activate Actions.
+ * LISA_NPM_DIRECTORY only selects among committed entries ("." by default); it never adds one.
+ */
+async function configuration(cwd, directory = process.env.LISA_NPM_DIRECTORY) {
   const result = await runProcess("git", ["show", "HEAD:.lisa.config.json"], {
     cwd,
     env: { PATH: process.env.PATH, HOME: "/nonexistent" },
@@ -102,7 +105,7 @@ async function configuration(cwd) {
     config.automationProvenance?.enabled === true,
     "automation provenance must be explicitly configured on committed main"
   );
-  const policy = validatePolicy(config.npmUpdater, config);
+  const policy = selectPolicy(config, directory ?? ".");
   required(
     config.automationProvenance.repository === policy.repository,
     "committed authority repository differs"

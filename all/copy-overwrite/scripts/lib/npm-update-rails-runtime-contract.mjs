@@ -3,7 +3,11 @@
 
 /** Closed committed runtime data cannot select commands, credentials or tool versions. */
 import { keys, required } from "./npm-update-invariants.mjs";
-import { canonicalJson } from "./automation-provenance-contract.mjs";
+import {
+  canonicalJson,
+  directoryOf,
+  policyEntry,
+} from "./automation-provenance-contract.mjs";
 import { sha256 } from "./github-attestation-verifier.mjs";
 
 /** Explicit absence preserves the historical npm-only contract byte for byte. */
@@ -71,5 +75,5 @@ export function assertCommittedRuntime(value, git) {
   );
   const original =
     entry === "" ? {} : JSON.parse(git(["show", "HEAD:.lisa.config.json"]));
-  assertRuntimeBinding(value, original.npmUpdater ?? {});
+  assertRuntimeBinding(value, policyEntry(original, directoryOf(value)) ?? {});
 }
