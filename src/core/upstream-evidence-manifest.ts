@@ -1265,7 +1265,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/rules/reference/pre-flight-autofill.md":
       "3cb2a0e402ae468640d9021a7086e00323fa3cd34d9f061910f6caaff51f9e5f",
     "plugins/src/base/rules/reference/project-learnings.md":
-      "e51677d91c6dfeaa33e91e1f9f16f6a39b2ea007b852822cf7970e607c05c0ec",
+      "b54fd7f549d8a2b81504f49114feccb097caf6ee77823312a03a53ae40deb830",
     "plugins/src/base/rules/reference/promotion-contract.md":
       "fe07cbdbd15393471d08903cce53b80b8899b2ff3bc0b0041b46c1c7003b7e6c",
     "plugins/src/base/rules/reference/readiness-rubric.md":
@@ -1535,7 +1535,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-kane-browser/SKILL.md":
       "e082517cb42f437eeb22b3935aa0fef09299874736e55184e88d2b64f7860a7d",
     "plugins/src/base/skills/lisa-learnings-audit/SKILL.md":
-      "6739727d9e3fb2cfad65ebd3f92da8bc40159521196c77ddf451915d67cf1fca",
+      "fc9ba0804e8f6772f232678c5a31bead4527e06e1caa4d5f35931bb1f1189625",
     "plugins/src/base/skills/lisa-linear-access/SKILL.md":
       "83cbf20e7a9f5e5289f609f16079a95897aac5964380305d4a5193438230f965",
     "plugins/src/base/skills/lisa-linear-add-journey/SKILL.md":
@@ -11237,6 +11237,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "src/core/learnings-overflow-path.ts": true,
     "src/core/learnings-overflow.ts": true,
     "src/core/learnings-projection.ts": true,
+    "src/core/learnings-retire.ts": true,
     "src/core/learnings-stray-ledger.ts": true,
     "src/core/learnings-supersede.ts": true,
     "src/core/learnings-writer.ts": true,
@@ -12506,6 +12507,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/core/learnings-overflow-identity.test.ts": true,
     "tests/unit/core/learnings-overflow.test.ts": true,
     "tests/unit/core/learnings-projection.test.ts": true,
+    "tests/unit/core/learnings-retire-race.test.ts": true,
+    "tests/unit/core/learnings-retire.test.ts": true,
     "tests/unit/core/learnings-stable-ids.test.ts": true,
     "tests/unit/core/learnings-stray-ledger.test.ts": true,
     "tests/unit/core/learnings-supersede-race.test.ts": true,
