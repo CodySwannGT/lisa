@@ -116,7 +116,9 @@ screenshot, recording, http-transcript, cli-output, log-snippet, db-query-output
 perf-trace, test-run-log, deploy-log and state-dump. The reader validates actual
 captured structure/header, not an extension. HTTP HEAD/204 and empty query rows
 can be legitimate observations. Structure checks do not claim to evaluate the
-visual truth of an image or the business meaning of every captured line.
+visual truth of an image or the business meaning of every captured line. Six
+kinds must be captured as JSON with specific fields; see
+[Typed capture shapes](#typed-capture-shapes).
 
 Native JSON reads use a separate 16 MiB ceiling per response, including the
 complete slurped output of a paginated listing. The immutable proof record
@@ -131,6 +133,115 @@ exits nonzero when no locator was published. A successful bot publication with
 category `published/pending-producer` remains a successful publication; only
 completion waits for its pinned producer attempt.
 
+### Typed capture shapes
+
+Some evidence kinds are checked for structure, not just presence. For those
+kinds a plain-text capture is refused on purpose, even when it is a faithful
+copy of what the terminal showed: text cannot be checked for the facts the
+kind promises (which request was sent, which rows came back, which command
+exited how). Save these captures as a JSON file with the fields below.
+
+| Kind | What the JSON must contain |
+|---|---|
+| `http-transcript` | `request.method` and `request.url` (non-empty text), and `response.status` (a whole number from 100 to 599). `response.body` must be present (it may be empty) unless the status is 204 or the method is HEAD. |
+| `db-query-output` | `query` (the query text, non-empty) and `rows` (a list; an empty list is a valid result). |
+| `state-dump` | At least one of `state`, `data`, `response` or `records` (what was observed), and at least one of `id`, `source`, `command` or `captured_at` (where or when it was read). |
+| `cli-output` | `command` (text, or a non-empty list of text), `stdout` and `stderr` (text; may be empty), and the exit code as a whole number under `exit_code`, `exitCode`, `exit` or `status`. |
+| `deploy-log` | Either a finished pipeline run (`status: "completed"`, a non-empty `conclusion`, and a whole-number `id` or a `workflow_path`), or a `cli-output` shape whose `stdout` mentions a deploy, release or health check. |
+| `perf-trace` | `methodology` (text or an object) and a non-empty `measurements` list where every item has `metric` (text), `value` (a finite number) and `unit` (text). |
+
+`test-run-log` and `log-snippet` accept plain text. A test-run log needs two
+things somewhere in the file:
+
+- a count from the runner's summary: a number that is not zero followed by a
+  space and `passed`, `passing`, `failed` or `failing` (any letter case, for
+  example `3 passed` or `1 failed`), or a TAP line `# pass <n>` / `# fail <n>`
+  whose count starts with 1–9. A failed run is still a real capture.
+- a test marker: `✓`, `PASS` (capital letters), `ok <n>`, `testName`,
+  `test_name`, `fullName`, or ` > ` (space, greater-than, space, as in
+  `file > suite > test`).
+
+A log snippet needs a timestamp whose date is written `YYYY-MM-DD`, followed by
+`T` or a space and the time, for example `2026-11-13T08:00:01` or
+`2026-11-13 08:00:01`. Syslog-style dates (`Nov 13 08:00:01`) and epoch numbers
+(`1763020801`) are refused. As JSON, a log snippet can instead be
+`{source, lines}` with at least one line.
+
+For the JSON kinds, the fields may sit at the top of the file or inside other
+objects or lists, nested up to 12 levels deep. That lets one file carry the raw
+text you captured and where it came from (command, file path, checksum) beside
+the typed object, for example
+`{"raw": "<the terminal text>", "provenance": {...}, "capture": {<typed object>}}`.
+For those kinds only the typed object is checked; the extra fields are kept for
+readers. The text checks for `test-run-log` and `log-snippet` read the whole
+file, wrapper included.
+
+Minimal accepted examples:
+
+<!-- capture-example: http-transcript -->
+```json
+{
+  "request": { "method": "GET", "url": "https://example.invalid/health" },
+  "response": { "status": 200, "body": "{\"ok\":true}" }
+}
+```
+
+<!-- capture-example: db-query-output -->
+```json
+{
+  "query": "SELECT id, status FROM orders WHERE id = 42",
+  "rows": [{ "id": 42, "status": "shipped" }]
+}
+```
+
+<!-- capture-example: state-dump -->
+```json
+{
+  "source": "orders service GET /orders/42",
+  "captured_at": "2026-11-13T08:00:00Z",
+  "state": { "id": 42, "status": "shipped" }
+}
+```
+
+<!-- capture-example: cli-output -->
+```json
+{
+  "command": ["bun", "run", "check"],
+  "stdout": "all checks passed\n",
+  "stderr": "",
+  "exit_code": 0
+}
+```
+
+<!-- capture-example: deploy-log -->
+```json
+{
+  "id": 123456789,
+  "workflow_path": ".github/workflows/deploy.yml",
+  "status": "completed",
+  "conclusion": "success"
+}
+```
+
+<!-- capture-example: perf-trace -->
+```json
+{
+  "methodology": "500 sequential requests against staging from one client",
+  "measurements": [{ "metric": "p95_latency", "value": 120, "unit": "ms" }]
+}
+```
+
+<!-- capture-example: test-run-log -->
+```text
+ ✓ tests/unit/health.test.ts > health endpoint > returns 200
+ Tests  1 passed (1)
+```
+
+<!-- capture-example: log-snippet -->
+```text
+2026-11-13T08:00:01.120Z INFO orders order 42 marked shipped
+```
+
 ## Delivery and publisher configuration
 
 Configure the actual production delivery mechanism under
@@ -142,6 +253,89 @@ finish successfully and reconcile with delivered source. Pre-merge CI and an
 auxiliary green workflow cannot replace it. Artifact or external-deployment
 projects declare their applicable mechanism and empirical attached
 `evidence_refs`; npm, browser, cloud and device checks are not universal.
+
+### CodePipeline (CDK hosts)
+
+A CDK host's GitHub Actions workflow releases but does not deploy; its AWS
+CodePipeline does. Declare the pipeline that delivers each environment:
+
+```json
+{
+  "verification": {
+    "completion": {
+      "delivery": {
+        "production": {
+          "mechanism": "aws-codepipeline",
+          "pipeline_name": "<pipeline name>",
+          "region": "<aws-region>",
+          "account_id": "<12-digit AWS account id>"
+        }
+      }
+    }
+  }
+}
+```
+
+The accepted record's `obligations.delivery` pins the one execution that
+delivered the change:
+
+```json
+{
+  "required": true,
+  "status": "pass",
+  "mechanism": "aws-codepipeline",
+  "pipeline_name": "<pipeline name>",
+  "region": "<aws-region>",
+  "account_id": "<the configured account_id, when one is set>",
+  "execution_id": "<pipeline execution id>",
+  "source_revision": "<the record's source.delivered_sha>"
+}
+```
+
+Completion reads that one execution read-only, with
+`aws codepipeline get-pipeline-execution --pipeline-name=<name> --pipeline-execution-id=<id> --region=<region> --output json`,
+and decides from it:
+
+- **Accepted**: the execution `Succeeded` and one of its `artifactRevisions` is
+  the delivered commit. The completion report names the pinned execution.
+- **`pending-proof`**: the execution is still `InProgress`, including one
+  waiting at a manual approval. It is never reported as delivered, and the
+  message names the waiting execution. The same category is returned when the
+  configuration names the mechanism without `pipeline_name` and `region`.
+- **`invalid-proof`**: the execution carried another commit (the message names
+  both revisions); it ended `Failed`, `Stopped`, `Superseded` or `Cancelled`,
+  or is `Stopping`; the record names another pipeline or region than the
+  configuration; or its execution id is missing or malformed.
+- **`read-error`**: the execution could not be read, or the reply carried no
+  pipeline execution.
+
+To find the execution id, list the pipeline's executions with
+`aws codepipeline list-pipeline-executions --pipeline-name <name> --region <region>`
+and pick the execution whose `sourceRevisions[].revisionId` is the delivered
+commit. That listing needs `codepipeline:ListPipelineExecutions`; completion
+itself needs only the `GetPipelineExecution` read.
+
+`account_id` binds the delivery to one AWS account. Stage accounts often run
+pipelines with the same name, so without it, credentials for a dev account can
+read a dev execution as production delivery. When `account_id` is set, the
+record must carry the same value, and completion first runs
+`aws sts get-caller-identity --output=json`: credentials for another account
+are refused (`invalid-proof`, naming both accounts) before any execution is
+read. `sts:GetCallerIdentity` needs no IAM grant; every valid credential may
+call it.
+
+The verifier needs no write permission. Its credentials need
+`codepipeline:GetPipelineExecution` on the pipeline, on top of the list grant
+the observer role already carries (Lisa's remote-agent AWS setup). `lisa doctor`
+warns about a CDK project whose `production` delivery is undeclared, and about
+an `aws-codepipeline` delivery without a valid `account_id`.
+
+Until a host configures this mechanism, it may declare
+`mechanism: "external-deployment"` instead. Its record must then attach, as
+empirically verified `evidence_refs`, the CodePipeline execution id, that
+execution's source revision and its final status, captured read-only with the
+same `aws codepipeline get-pipeline-execution` call. Lisa cannot check that
+evidence against the pipeline, which is why the native mechanism is preferred.
 
 User publishers require fresh native repository write/maintain/admin permission
 and matching stable native asset-uploader identity. Association labels, display
@@ -166,24 +360,43 @@ resolves to the current UTC year-month at publish time, so
 `pr-assets-{YYYY-MM}` rotates monthly and keeps each release under GitHub's
 1000-file limit. Names use letters, digits, `.`, `_` and `-`, at most 100
 characters; `{YYYY-MM}` is the only placeholder. The publisher creates a
-missing release (never marked Latest) and refuses, in plain words, when the
-release already holds 950 or more files rather than failing on GitHub's raw
-HTTP 422. `node scripts/lisa-work-item.mjs evidence-release` prints the
-resolved name; `--ensure` also creates it or refuses when it is nearly full.
+missing release (never marked Latest). When the resolved release already
+holds 950 or more files it rolls over to the next overflow release,
+`<release>-2`, then `-3`, up to `-99`, creating and capacity-checking each one
+the same way, instead of failing on GitHub's raw HTTP 422. If an upload still
+hits GitHub's limit (another publisher filled the release meanwhile), it rolls
+over once more and retries. It refuses, in plain words, only when every
+overflow release of the period is full, or when the release name is too long
+to take an overflow suffix (GitHub allows 100 characters), in which case it
+names the full release. Its advice leads with pruning
+(`node scripts/lisa-evidence-prune.mjs --release <release>`) when the release
+already rotates, and suggests a rotating name only when it does not. Nothing is
+ever deleted to make room.
+`node scripts/lisa-work-item.mjs evidence-release` prints the period's first
+release name without touching GitHub; `--ensure` also creates the release,
+rolls over past full ones, and prints the release that has room.
 
 The validator accepts assets from the legacy `pr-assets` release, from any
 release matching the configured name or template, and from any name or
 template listed in `verification.completion.acceptedEvidenceReleases`, so
-proof published before a rename or rotation keeps validating. Only releases in
-the implementation repository are accepted.
+proof published before a rename or rotation keeps validating. Each of those
+names also accepts its `-2` … `-99` overflow releases, so proof in an overflow
+release, or in an earlier period's release, keeps validating on `finish`. Only
+releases in the implementation repository are accepted.
 
 `LISA_EVIDENCE_RELEASE` pins the concrete release for one run. Skills resolve
 it once with `evidence-release --ensure`, stop when that refuses, and pass the
 printed name inline (`LISA_EVIDENCE_RELEASE=<name>`) on every later command,
 because some agent runtimes start a new shell for each command and lose an
 exported value; that keeps links and uploads on the same release. It must be
-one of the accepted releases; `evidence-release --ensure` still creates and
-capacity-checks it.
+one of the accepted releases. Every command honours it:
+`evidence-release --ensure` creates and capacity-checks it, and
+`publish-completion-proof` uploads the completion record to it and reads it
+back from it. The publisher and `evidence-release` share one resolver, so the
+release the publisher uploads to is always the one `evidence-release` prints in
+the same environment. A pin is an exact choice: a full pinned release is
+refused and never rolls over. Unset `LISA_EVIDENCE_RELEASE` to let Lisa roll
+over, or pin a release that has room.
 
 Creating an evidence release is a real GitHub release: it fires `release`
 webhook and workflow events and adds a git tag of the same name. Workflows

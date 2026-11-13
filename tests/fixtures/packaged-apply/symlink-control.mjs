@@ -12,6 +12,27 @@ import {
 } from "node:fs";
 import path from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
+import {
+  describeControllerFailure,
+  readOptionalJson,
+} from "./controller-failure.mjs";
+
+const CAPTURE_LIMIT = 256 * 1024;
+const SCENARIO = "owned-post-run-symlink";
+
+/**
+ * Keep a bounded tail of a child stream for failure diagnostics.
+ * @param {import("node:stream").Readable} stream - Child output stream.
+ * @returns {{text: string}} Live holder of the captured tail.
+ */
+function captureTail(stream) {
+  const holder = { text: "" };
+  stream.setEncoding("utf8");
+  stream.on("data", chunk => {
+    holder.text = (holder.text + chunk).slice(-CAPTURE_LIMIT);
+  });
+  return holder;
+}
 
 /**
  * Stage only new sentinels owned by this test, never real operator settings.
@@ -75,8 +96,8 @@ export async function qualifySymlinkChange(input) {
     });
     child.once("close", (status, signal) => resolve({ status, signal }));
   });
-  child.stdout.resume();
-  child.stderr.resume();
+  const stdout = captureTail(child.stdout);
+  const stderr = captureTail(child.stderr);
   try {
     // A completed preflight proves both that before-images are finished and
     // that any cleanup target below belongs to this exact controller run.
@@ -117,6 +138,21 @@ export async function qualifySymlinkChange(input) {
     state.finished = true;
     assert.equal(result.error, undefined);
     assert.equal(result.signal, null);
+    // Exit 1 is this control's expected outcome (owned outside changes), so it
+    // cannot reveal a container failure; the native proof's verdict does.
+    const nativePassed =
+      readOptionalJson(path.join(directory, "native-proof.json"))?.passed ===
+      true;
+    if (result.status !== 1 || !nativePassed)
+      console.error(
+        describeControllerFailure({
+          name: SCENARIO,
+          directory,
+          status: result.status,
+          stdout: stdout.text,
+          stderr: stderr.text,
+        })
+      );
     assert.equal(result.status, 1);
     const report = JSON.parse(
       readFileSync(path.join(directory, "preservation.json"), "utf8")
@@ -145,7 +181,7 @@ export async function qualifySymlinkChange(input) {
       assert.deepEqual(report.after[file], report.before[file]);
     }
     return {
-      name: "owned-post-run-symlink",
+      name: SCENARIO,
       passed: true,
       controller_status: result.status,
       apply_status: native.apply.status,
@@ -160,7 +196,18 @@ export async function qualifySymlinkChange(input) {
   } finally {
     if (!state.finished) {
       child.kill("SIGTERM");
-      await closed.catch(() => {});
+      const early = await closed.catch(() => ({ status: null }));
+      // A controller that stopped before (or during) preflight never reaches
+      // the diagnostic above; print what it said once it has closed.
+      console.error(
+        describeControllerFailure({
+          name: SCENARIO,
+          directory,
+          status: early.status,
+          stdout: stdout.text,
+          stderr: stderr.text,
+        })
+      );
       if (state.containerId)
         execFileSync(
           // eslint-disable-next-line sonarjs/no-os-command-from-path -- fixed user-installed Docker executable, qualified by the controller

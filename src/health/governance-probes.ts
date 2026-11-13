@@ -21,6 +21,8 @@ import {
 
 const HOOK_CHECK = "hooks.managed";
 const PLUGIN_CHECK = "plugins.current";
+const PLUGIN_REMEDY =
+  "Run `lisa apply .` in this project to register Lisa's Claude Code plugins for this folder.";
 const WORKFLOW_CHECK = "ci.workflows";
 
 /**
@@ -160,13 +162,20 @@ export async function pluginFinding(
       "Lisa plugins are enabled, installed, and version-current."
     );
   }
+  if (inspected.status === "warn") {
+    return deterministicFinding(
+      PLUGIN_CHECK,
+      "warn",
+      namedReason("Plugin state unavailable", inspected.drift)
+    );
+  }
+  // Every failure here is something `lisa apply .` repairs, and dependency
+  // install deliberately never registers plugins (#4135) — so a fresh clone
+  // lands here. Name the fix, not only the drift (#4504).
   return deterministicFinding(
     PLUGIN_CHECK,
-    inspected.status,
-    namedReason(
-      inspected.status === "warn" ? "Plugin state unavailable" : "Plugin drift",
-      inspected.drift
-    )
+    "fail",
+    `${namedReason("Plugin drift", inspected.drift)}. ${PLUGIN_REMEDY}`
   );
 }
 

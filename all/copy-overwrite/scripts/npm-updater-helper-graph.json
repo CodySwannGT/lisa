@@ -94,6 +94,14 @@
       "dynamicImports": [],
       "children": []
     },
+    "lib/completion-proof-codepipeline.mjs": {
+      "sha256": "3ea69c6f03aeba8acbab13a026fc470c075540a3bfa2921a27407cecf424a45d",
+      "staticImports": [
+        "lib/completion-proof-shape.mjs"
+      ],
+      "dynamicImports": [],
+      "children": []
+    },
     "lib/completion-proof-conformance.mjs": {
       "sha256": "51b2bfccc8ecca684dd80a4e2ae35896e76fa519389fe650f0890ffc0fef421d",
       "staticImports": [
@@ -119,7 +127,7 @@
       "children": []
     },
     "lib/completion-proof-github.mjs": {
-      "sha256": "82ef0da12fc5c31fc48237808f94cbfd73f0d2128ae1da18ceedcea90284d467",
+      "sha256": "b2f42db4858a96cff75b17419cb98a6c9998430bc1dc22070b322a62dd77bab2",
       "staticImports": [
         "lib/completion-proof-shape.mjs"
       ],
@@ -135,7 +143,7 @@
       "children": []
     },
     "lib/completion-proof-projection.mjs": {
-      "sha256": "a8acdd491693126fe6f1660f4bd29c7b218855ae59c76ec2b7c0d5703d8c0d43",
+      "sha256": "51f7246943b20e970a185d3e2d9a9255929f510b25261502154e909d3b109436",
       "staticImports": [
         "lib/completion-proof-errors.mjs",
         "lib/usage-ledger-integrity.mjs",
@@ -145,12 +153,13 @@
       "children": []
     },
     "lib/completion-proof-publisher.mjs": {
-      "sha256": "cf37b6b1e09b22eeeab8d64086409a4345489f17cf11eb8ddc3e4c31d6772009",
+      "sha256": "6f3c25bd35b2309c26b39ec90a7e6eab7487921cad9d9e285366b5bc2d3efc25",
       "staticImports": [
         "lib/completion-authorization.mjs",
         "lib/completion-proof-github.mjs",
         "lib/completion-proof-reader.mjs",
         "lib/completion-proof-shape.mjs",
+        "lib/evidence-release-capacity.mjs",
         "node:fs",
         "node:os",
         "node:path"
@@ -167,7 +176,7 @@
       "children": []
     },
     "lib/completion-proof-shape.mjs": {
-      "sha256": "b0ac2109d1e17cdc83d42b842ccbd43ca10f3d34d1b2d03067c434e05b19b9e3",
+      "sha256": "4626a90f8e7258dc90d51c6abbec967dcf16d8d8ed12d5af34838617bc01b06c",
       "staticImports": [
         "lib/completion-proof-errors.mjs",
         "lib/completion-proof-markdown.mjs",
@@ -178,8 +187,18 @@
       "children": []
     },
     "lib/completion-proof-source.mjs": {
-      "sha256": "1028cbeb9c8bb9cf685dd3f532ea41de2a25456b989fbda23d3315d8532877c0",
+      "sha256": "7aa9673c7de21fa64e572043e7e76774e7cb57210a54f4603a72e88be97510a3",
       "staticImports": [
+        "lib/completion-proof-codepipeline.mjs",
+        "lib/completion-proof-shape.mjs"
+      ],
+      "dynamicImports": [],
+      "children": []
+    },
+    "lib/evidence-release-capacity.mjs": {
+      "sha256": "7e1fffe6cb74e345410dff76497d656b261e8da47b5b7a90c0af53626ab5e51e",
+      "staticImports": [
+        "lib/completion-proof-github.mjs",
         "lib/completion-proof-shape.mjs"
       ],
       "dynamicImports": [],
@@ -658,7 +677,7 @@
       "children": []
     },
     "lib/npm-update-helper-inventory.mjs": {
-      "sha256": "0a19cdcdcfe26f12530351ae5afeb7ef5448abc06a82d5becb82ff1dc4ee41e0",
+      "sha256": "edb3e61929dd2c1333eee5a8e41755a0e93dfb96c5add4b408656fdaab9a6a4f",
       "staticImports": [],
       "dynamicImports": [],
       "children": []
@@ -1251,7 +1270,7 @@
       "children": []
     },
     "lib/usage-ledger.mjs": {
-      "sha256": "d93a9b6d28c00f687ea41e8ad1e6138eac6ea4f3d59225bd225d8151f40e4ac0",
+      "sha256": "fce4aebf272d4170083abf492781f20f6d726f5352d7dd9823714c1e1f2ccaf6",
       "staticImports": [
         "lib/usage-effectiveness.mjs"
       ],
@@ -1432,10 +1451,11 @@
       "children": []
     },
     "lisa-work-item.mjs": {
-      "sha256": "fe413e0ec7dad9d1fc5c512253de7510415bff3b82d3f06bf3f52cd2c68ef4b5",
+      "sha256": "e609434324bfaef27047268b59cd4e0b037f2b25a17b5f3ba4e9d7da9997da4c",
       "staticImports": [
         "lib/completion-authorization.mjs",
         "lib/completion-proof-adapters.mjs",
+        "lib/completion-proof-codepipeline.mjs",
         "lib/completion-proof-github.mjs",
         "lib/completion-proof-publisher.mjs",
         "lib/completion-proof-shape.mjs",

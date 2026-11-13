@@ -140,6 +140,25 @@ this order:
    - Reuse the `deploy.order` / `deploy.branches` contract from `config-resolution` ("Env order
      (sync-down chain)") rather than re-deriving the rules here.
 
+7. **CDK delivery-proof audit** (only when `cdk.json` is present)
+   - Judge the effective config: `.lisa.config.local.json` deep-merged over `.lisa.config.json`
+     (objects merge per key; arrays and scalars are replaced), as the lifecycle CLI reads it.
+   - `WARN` (could not inspect) when either config file cannot be parsed; never pass it.
+   - `WARN` when no environment declares an accepted mechanism (`github-actions`,
+     `aws-codepipeline`, `artifact` or `external-deployment`): lifecycle completion cannot prove
+     delivery and stops at `pending-proof`. Name the setting to add —
+     `verification.completion.delivery.<env>` with `mechanism: "aws-codepipeline"`,
+     `pipeline_name` and `region` — and the read-only `codepipeline:GetPipelineExecution` grant.
+   - `WARN` when `verification.completion.delivery.production` has no accepted mechanism even
+     though another environment does: completion always proves delivery for `production`.
+   - `WARN` when an `aws-codepipeline` delivery has a missing `pipeline_name` or `region`, or one
+     the verifier would reject, naming each path.
+   - `WARN` when an `aws-codepipeline` delivery has no `account_id`: credentials for another
+     stage's account could read a same-named pipeline there as this environment's delivery.
+     `WARN` when `account_id` is not 12 digits.
+   - `PASS` otherwise, naming the declared environments.
+   - `lisa doctor` reports this as the `CDK delivery proof configured?` check.
+
 Locality findings are advisory unless the merged config is unusable. Missing shared keys after the
 merge are `FAIL`; shared keys that exist only locally are `WARN`.
 

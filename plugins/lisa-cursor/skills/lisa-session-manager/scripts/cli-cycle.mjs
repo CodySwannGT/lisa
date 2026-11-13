@@ -34,6 +34,7 @@ import {
   setPendingQuestion,
 } from "./ledger.mjs";
 import { recordMarked } from "./ledger-questions.mjs";
+import { clearSetupGap } from "./ledger-setup-gaps.mjs";
 import { planBlockedRelease } from "./reconcile.mjs";
 import { formatAnswer, routeInbound } from "./telegram-route.mjs";
 
@@ -140,10 +141,15 @@ const LEDGER_ACTIONS = {
     }
     const ref = requirePositional(ctx, "ref");
     await assertSender(ctx, ref);
+    const setupGap = ctx.values["setup-gap"] === true;
+    if (setupGap && status !== "FAILED") {
+      throw new CliError("--setup-gap needs --status FAILED.", 2);
+    }
     return recordFinish(ctx.root, {
       ref,
       status,
       reason: stdinText(ctx, "reason", { required: false }),
+      setupGap,
     });
   },
   "validation-failed": ctx =>
@@ -154,6 +160,8 @@ const LEDGER_ACTIONS = {
     }),
   "validation-cleared": ctx =>
     clearValidationFailure(ctx.root, { ref: requirePositional(ctx, "ref") }),
+  "clear-setup-gap": ctx =>
+    clearSetupGap(ctx.root, { repo: requirePositional(ctx, "repo") }),
   control: ctx =>
     setControl(
       ctx.root,

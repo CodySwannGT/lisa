@@ -25,9 +25,8 @@ export const GATE_REPORT_VERSION = 2;
  * One fact, in one of the three states.
  *
  * `unknown` and `not-applicable` both carry a machine `reason` and a human
- * `message`, matching the live-status `ProbeResult` contract the console
- * already renders — a report that says "not checkable here" without saying why
- * is indistinguishable from a bug.
+ * `message` — a report that says "not checkable here" without saying why is
+ * indistinguishable from a bug.
  */
 export type Finding<T> =
   | { readonly state: "verified"; readonly value: T }

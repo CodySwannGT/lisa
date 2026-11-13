@@ -1,0 +1,4 @@
+ledger-after-step3.json: cyclers={"tmux:sm4809verify":"2026-11-12T22:59:59.268Z","pid:76837":"2026-11-12T23:00:10.736Z"} checked 43 env values
+ledger-after-step4.json: cyclers={"tmux:sm4809verify":"2026-11-12T23:01:26.205Z"} checked 43 env values
+PASS: no env value in ledger; cycler keys are identities only
+exit=0

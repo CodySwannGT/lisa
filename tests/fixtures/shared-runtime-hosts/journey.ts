@@ -6,6 +6,7 @@ import { createHash } from "node:crypto";
 import { expect } from "vitest";
 import { resolveGit } from "../../support/git-executable.js";
 import { type Candidate } from "./artifact.js";
+import { hostInstallArgs } from "./install-args.js";
 import { apply, checkpoint } from "./actions.js";
 import { seedHost, snapshot, write } from "./host.js";
 import { nativeUnitDeadlineMs, run } from "./process.js";
@@ -91,15 +92,7 @@ function installCommand(
   candidate: Candidate,
   registry: string
 ): readonly string[] {
-  return [
-    "install",
-    "--registry",
-    registry,
-    "--network-concurrency",
-    "8",
-    "--cache-dir",
-    candidate.env["BUN_INSTALL_CACHE_DIR"]!,
-  ];
+  return hostInstallArgs(registry, candidate.env["BUN_INSTALL_CACHE_DIR"]!);
 }
 
 /**

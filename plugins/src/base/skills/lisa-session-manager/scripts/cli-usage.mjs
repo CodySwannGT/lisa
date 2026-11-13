@@ -27,36 +27,71 @@ Workers and capacity
   spawn <ref> [--repo <key>] [--max-workers <n>]
       Checks, in order: repo dir resolves and has .lisa.config.json (exit 2);
       capacity (exit 3, stdout = capacity report); no live wk- worker for the
-      ref (exit 4, stdout = {ref,worker,sessionId}); no pending question in
+      ref (exit 4, stdout = {ref,worker,sessionId}); no recorded setup gap
+      for the repo (exit 2, nothing launched or recorded: fix the repo, then
+      ledger clear-setup-gap <repo>); no pending question in
       the ledger for the ref (exit 2: clear it first). Then runs, with cwd = repo
       dir and every TELEGRAM_* variable removed:
         claude --bg -n wk-<token>-<MMDD-HHMM> --dangerously-skip-permissions
           --settings {"crossSessionInbound":"accept"}
           "/lisa:implement <ref> managedBy=<sessionManager.name>"
-      Records the ledger and sessions.jsonl. stdout {ref,name,sessionId,repo,cwd}.
+      Then reads the worker's transcript for up to 30s
+      (LISA_SESSION_MANAGER_FIRST_PROMPT_MS overrides it): when the first
+      prompt never ran (the command is unknown in that repo, or a
+      UserPromptSubmit hook rejected it), stops the worker, records no item
+      and exits 2 (setup gap; no attempt counted). That gap, and an
+      untrusted workspace, are recorded per repo in the ledger's
+      control.setupGaps (repo "." on a single-repo project) until cleared.
+      Every setup-gap exit 2 prints {repo,setupGap,setupGapStatus}:
+      "recorded" (new: tell the operator), "already-recorded" (refused; the
+      operator was already told) or "not-recorded" (the ledger write failed,
+      warned on stderr: tell the operator).
+      Records the ledger and sessions.jsonl. stdout {ref,name,sessionId,repo,
+      cwd,firstPrompt}, firstPrompt "alive" or "unconfirmed" (the transcript
+      did not resolve in time).
   resume <ref>                         STDIN: the message for the worker
-      claude --bg --resume <full session id> -- "<stdin>" in the worker's repo
+      claude --bg --resume <full session id> --dangerously-skip-permissions
+      --settings <worker settings> -- "<stdin>" (spawn's permission flags) in
+      the worker's repo
       dir, TELEGRAM_* removed; the full id comes from claude agents --json --all
       (exit 2 when none does). Exit 2 when the ledger item finished (DONE or
       FAILED): a finished worker is never resumed.
       stdout {ref,worker,sessionId,resumed:true}.
   classify [<ref>]
       Classifies one ledger item (or all) from claude agents --json --all and
-      a hash of claude logs <worker>; records the hash as progress. stdout
+      a hash of claude logs <worker>, plus the worker's transcript; records
+      the hash as progress. stdout
       [{ref,worker,sessionId,repo,classification,attempts,agentStatus,
-        pendingQuestion}], classification one of finished|waiting|requestion|
-      working|stalled|dead|exhausted.
+        waitingFor,pendingQuestion,setupGap}], classification one of
+      finished|waiting|requestion|setup-gap|blocked-on-prompt|working|
+      stalled|dead|exhausted. setup-gap: the worker's first prompt never
+      ran; setupGap is {kind:"unknown-command"|"prompt-blocked",detail},
+      else null. blocked-on-prompt: the live worker's agent row reports a
+      waitingFor other than a subagent (e.g. "permission prompt"), which
+      nobody attached can answer. waitingFor is the agent row's text, else
+      null.
+  cycle
+      Records that this session ran a cycle now: cyclers[<by>] = <at> in
+      the ledger, by tmux:<session> when tmux names the caller's session,
+      pid:<parent pid> outside tmux, tmux-unknown:pid:<parent pid> when tmux
+      cannot name it. Prunes entries older than twice the interval.
+      Run at the start of every cycle. stdout {by,at}.
   status
-      stdout {manager:{name,running,self},notify,control,workers:[{ref,
-      worker,sessionId,repo,status,attempts,pendingQuestion,live}],untracked:
-      [wk-names],pendingQuestions:[{ref,kind,text,askedAt,marked,
-      answerQueued,answerCommand}]}. manager.self is true when the caller
-      runs inside the manager's tmux session (any window of it), false
-      outside tmux or in another session, null when tmux cannot say which
-      session the caller is in or $TMUX_PANE is not a pane id. notify is
-      the configured channel: "telegram" or "none". pendingQuestions lists
-      every item waiting on a human, oldest first; answerCommand is the
-      answer line to run at this machine.
+      stdout {manager:{name,running,self,otherCyclers:[{by,at}]},notify,
+      control,workers:[{ref,worker,sessionId,repo,status,attempts,
+      pendingQuestion,live}],untracked:[wk-names],pendingQuestions:[{ref,
+      kind,text,askedAt,marked,answerQueued,answerCommand}]}. manager.self
+      is true when the caller runs inside the manager's tmux session (any
+      window of it), false outside tmux or in another session, null when
+      tmux cannot say which session the caller is in or $TMUX_PANE is not
+      a pane id.
+      manager.otherCyclers lists, newest first, every cycle recorded within
+      twice the interval by a session other than tmux:<manager name>,
+      leaving out tmux-unknown entries; empty when only the manager
+      cycles. notify is the configured
+      channel: "telegram" or "none". pendingQuestions lists every item
+      waiting on a human, oldest first; answerCommand is the answer line to
+      run at this machine.
 
 Manager
   start [--settle-ms <n>]
@@ -177,6 +212,10 @@ Per cycle
       ledger's validationFailures entry matches the item's updatedAt).
       GitHub fetches them itself; jira|linear need <file>.backlog =
       {complete:true,pages,items}, else exit 2.
+      Items in a repo with a recorded setup gap are excluded from both tiers
+      (setup-gap:<repo>): every item on a single-repo project, or items
+      labelled repo:<key> on a multi-repo one. setupGaps lists each gap once
+      as {repo,kind,detail,at,clear} (clear = the command that lifts it).
   ledger get [<ref>]
   ledger record-spawn <ref> --worker <name> [--session-id <id>] [--repo <key>]
   ledger set-question <ref> [--kind <kind>] [--telegram-message-id <n>]
@@ -200,14 +239,23 @@ Per cycle
       --expect-answer-at: the answerAt answer-plan returned; exit 2 and
       nothing cleared when the queued answer's at differs (the operator
       replaced it since) or no answer is queued: record the new one first.
-  ledger finish <ref> --status DONE|FAILED [--sender <name>]  STDIN: reason
+  ledger finish <ref> --status DONE|FAILED [--sender <name>] [--setup-gap]
+                                                              STDIN: reason
       --sender: exit 2 unless the ledger's worker for <ref> is exactly <name>.
+      --setup-gap (FAILED only): the worker's first prompt never ran
+      (classify said setup-gap), so its spawn is not counted as an attempt.
   ledger validation-failed <ref> --updated-at <ts>     STDIN: failing gates
       Caches a backlog item's failed validation; queue skips it until the
       item's updatedAt changes.
   ledger validation-cleared <ref>
       Forgets that failure: after a promotion, or by hand to have the next
       cycle re-validate an item without editing it. stdout {cleared}.
+  ledger clear-setup-gap <repo>
+      Forgets a repo's recorded setup gap ("." on a single-repo project),
+      after the operator fixed the repo; queue offers its items and spawn
+      launches there again. Never automatic. Also stamps
+      control.setupGapsClearedAt, so classify never re-records the gap from
+      a worker that started before the clear. stdout {repo,cleared}.
   ledger control [--paused true|false] [--max-workers <n>|none] [--me <id>|none]
   route [--reply-to <telegram message id>] [--owner <name>] STDIN: message
       stdout {kind:"answer",ref,body[,message]} | {kind:"command",name,...}

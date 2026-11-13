@@ -15,7 +15,9 @@
  * @module scripts/lib/evidence-prune-records
  */
 import {
+  EVIDENCE_RELEASE_MAX_OVERFLOW,
   isAcceptedEvidenceRelease,
+  overflowReleaseTag,
   resolveEvidenceRelease,
 } from "./completion-proof-github.mjs";
 import { COMPLETION_RECORD, EvidencePruneError } from "./evidence-prune.mjs";
@@ -62,17 +64,60 @@ export function evidenceSnapshot(gh, policy, tag) {
 }
 
 /**
+ * The releases the publisher may write a new record into that the snapshot
+ * did not list: the release it resolves to now and its overflow releases,
+ * plus the pinned release.
+ *
+ * The publisher writes to the first overflow position with room and creates
+ * the first one that is missing, so a new release is either a missing name
+ * below the highest one that exists (a gap left by a deleted release) or the
+ * name just past it. Each unlisted name up to one past the highest known
+ * release is therefore looked up, and a gap does not stop the walk: stopping
+ * at a missing `-2` skipped a `-4` created past an existing `-3`, and the
+ * prune deleted a file a record there pinned (CodySwannGT/lisa#4838). The
+ * walk costs one lookup per gap plus one, not one per possible name, and it
+ * never passes `-99`.
+ */
+function publisherReleases(gh, accepted, resolved, pinned) {
+  const listed = tag => accepted.some(release => release.tag_name === tag);
+  let ceiling = 2;
+  for (let index = 1; index <= EVIDENCE_RELEASE_MAX_OVERFLOW; index += 1)
+    if (listed(overflowReleaseTag(resolved, index))) ceiling = index + 1;
+  const extra = [];
+  for (
+    let index = 1;
+    index <= Math.min(ceiling, EVIDENCE_RELEASE_MAX_OVERFLOW);
+    index += 1
+  ) {
+    const tag = overflowReleaseTag(resolved, index);
+    if (listed(tag)) continue;
+    const release = gh.release(tag);
+    if (!release) continue;
+    extra.push(release);
+    ceiling = Math.max(ceiling, index + 1);
+  }
+  const pinnedRelease =
+    pinned && !listed(pinned) && !extra.some(row => row.tag_name === pinned)
+      ? gh.release(pinned)
+      : null;
+  return pinnedRelease ? [...extra, pinnedRelease] : extra;
+}
+
+/**
  * A re-read of records published since the snapshot, for the check made
  * before each delete.
  *
  * It re-lists the snapshot's accepted releases plus every release the
  * publisher can write a new record into: the one it resolves to now, so a
- * rotation across a month boundary during a long run is still seen, and the
- * one `LISA_EVIDENCE_RELEASE` pins, which the publisher uses instead when set
- * and creates when absent. It does not re-list the repository's releases on
- * every delete: on a repository with thousands of releases that alone is
- * twenty-odd calls per file, and those two are the only releases the
- * publisher creates.
+ * rotation across a month boundary during a long run is still seen; that
+ * release's overflow releases, which the publisher creates once it is full
+ * (CodySwannGT/lisa#4838); and the one `LISA_EVIDENCE_RELEASE` pins, which the
+ * publisher uses instead when set and creates when absent. It does not re-list
+ * the repository's releases on every delete: on a repository with thousands
+ * of releases that alone is twenty-odd calls per file, and GitHub does not
+ * list releases newest first, so the first page alone would not do. Walking
+ * the overflow chain costs one lookup per gap plus one past the highest
+ * release.
  * @param {object} gh - The prune's GitHub operations.
  * @param {object} policy - `verification.completion` from the Lisa config.
  * @param {object[]} accepted - The snapshot's accepted releases.
@@ -85,11 +130,12 @@ export function evidenceSnapshot(gh, policy, tag) {
 export function recordRescanner(gh, policy, accepted, options = {}) {
   const clock = options.clock ?? (() => new Date());
   return known => {
-    const targets = [resolveEvidenceRelease(policy, clock()), options.pinned];
-    const extra = [...new Set(targets.filter(Boolean))]
-      .filter(tag => !accepted.some(release => release.tag_name === tag))
-      .map(tag => gh.release(tag))
-      .filter(Boolean);
+    const extra = publisherReleases(
+      gh,
+      accepted,
+      resolveEvidenceRelease(policy, clock()),
+      options.pinned
+    );
     const fresh = [...accepted, ...extra]
       .flatMap(release => gh.assets(release))
       .filter(asset => isRecord(asset) && !known.has(asset.id));

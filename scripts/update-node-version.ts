@@ -4,6 +4,7 @@
  *
  * Reads the version from .nvmrc and updates:
  * - GitHub workflow files (node_version, node-version inputs)
+ * - GITHUB_ACTIONS.md docs (template and root), which carry YAML examples
  * - package.json engine constraints
  *
  * @example
@@ -60,8 +61,16 @@ const WORKFLOW_PATTERNS: readonly ReplacementPattern[] = [
     pattern: /(node-version:.*?\|\|\s*['"])\d+\.\d+\.\d+(['"])/g,
     replacement: VERSION_REPLACEMENT,
   },
+  // Major-only forms: callers, commented usage examples, and reusable-input
+  // defaults. A shipped publish workflow drifted to `22.x`/`20.x` because only
+  // the hyphenated caller key was covered (CodySwannGT/lisa#4511).
   {
-    pattern: /(node-version:\s*['"])\d+\.x(['"])/g,
+    pattern: /((?:node_version|node-version):\s*['"])\d+\.x(['"])/g,
+    replacement: "$1{{major}}.x$2",
+  },
+  {
+    pattern:
+      /(node_version:\n(?: +(?:description|type|required):[^\n]*\n)* +default: *['"])\d+\.x(['"])/g,
     replacement: "$1{{major}}.x$2",
   },
 ];
@@ -91,6 +100,11 @@ function filesToUpdate(): readonly string[] {
           "package.lisa.json",
           "typescript/copy-overwrite/.nvmrc",
           "expo/create-only/eas.json",
+          // Docs whose YAML examples consumers copy verbatim. The template
+          // copy is copy-overwrite, so a consumer cannot correct drift there
+          // locally (CodySwannGT/lisa#4511); the root copy mirrors it.
+          "typescript/copy-overwrite/.github/GITHUB_ACTIONS.md",
+          ".github/GITHUB_ACTIONS.md",
         ].includes(file) ||
         /^(?:typescript|cdk|nestjs|npm-package|phaser|harper-fabric)\/package-lisa\/package\.lisa\.json$/.test(
           file
@@ -198,7 +212,7 @@ function updateFile(
       content,
       pattern,
       resolvedReplacement,
-      /\.ya?ml$/.test(filePath)
+      /\.(?:ya?ml|md)$/.test(filePath)
     );
     totalChanges += result.changes;
     content = result.content;

@@ -242,6 +242,10 @@ describe("shared runtime patch policy", () => {
     const previous = "22.21.1";
     const caller = "cdk/create-only/.github/workflows/ci.yml";
     const reusable = ".github/workflows/quality.yml";
+    const actionsDoc = "typescript/copy-overwrite/.github/GITHUB_ACTIONS.md";
+    const rootActionsDoc = ".github/GITHUB_ACTIONS.md";
+    const publish =
+      "npm-package/create-only/.github/workflows/publish-to-npm.yml";
     const fixtures: Record<string, string> = {
       ".nvmrc": `${NODE_PATCH}\n`,
       "typescript/copy-overwrite/.nvmrc": `${previous}\n`,
@@ -260,10 +264,20 @@ describe("shared runtime patch policy", () => {
       "tests/fixtures/historical/package.json": JSON.stringify({
         engines: { node: previous },
       }),
+      // Docs that name a Node version drifted when the updater skipped them
+      // (CodySwannGT/lisa#4511): the copy-overwrite template doc and the
+      // root doc it mirrors.
+      [actionsDoc]: `\`\`\`yaml\nnode_version: '${previous}'\n  node_version: '${previous}'\n\`\`\`\n`,
+      [rootActionsDoc]: `node_version: '${previous}'\n`,
     };
     for (const [file, contents] of Object.entries(fixtures)) {
       await fs.outputFile(path.join(tempDir, file), contents);
     }
+    // Major-only forms in a commented usage example and an input default.
+    await fs.outputFile(
+      path.join(tempDir, publish),
+      "#       node_version: '22.x'\non:\n  workflow_call:\n    inputs:\n      node_version:\n        description: 'Node.js version to use'\n        required: false\n        default: '20.x'\n        type: string\n"
+    );
     await fs.ensureDir(path.join(tempDir, "scripts"));
     await fs.copyFile(path.join(ROOT, updater), path.join(tempDir, updater));
     const git = (args: string[]) =>
@@ -307,6 +321,11 @@ describe("shared runtime patch policy", () => {
         "utf8"
       )
     ).toContain(previous);
+    const major = NODE_PATCH.split(".")[0];
+    const published = await fs.readFile(path.join(tempDir, publish), "utf8");
+    expect(published).toContain(`#       node_version: '${major}.x'`);
+    expect(published).toContain(`default: '${major}.x'`);
+    expect(published).not.toMatch(/'2[02]\.x'/);
     expect(run()).toContain("Files updated: 0");
     for (const file of Object.keys(fixtures).filter(file =>
       file.startsWith(".github/workflows/npm-updater")

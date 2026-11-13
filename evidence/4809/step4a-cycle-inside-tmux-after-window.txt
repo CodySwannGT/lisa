@@ -1,0 +1,4 @@
+# ran-inside-tmux: TMUX set=yes TMUX_PANE=%15 session=sm4809verify
+# command: session-manager.mjs cycle --project-root <throwaway>  at 2026-11-12T23:01:26Z
+{"by":"tmux:sm4809verify","at":"2026-11-12T23:01:26.205Z"}
+# exit=0

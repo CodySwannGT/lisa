@@ -14,7 +14,7 @@
  * @module cli/gate-report-ruleset
  */
 import type { Finding, RulesetComparison } from "./gate-report-types.js";
-import { runGh } from "./ui-github-repo-gh.js";
+import { runGh } from "./gh-cli.js";
 
 /** Child-process budget for one `gh` call. */
 const GH_TIMEOUT_MS = 10_000;

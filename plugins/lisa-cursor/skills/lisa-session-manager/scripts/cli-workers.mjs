@@ -8,7 +8,17 @@
  * worker may already hold the ref (4). Only then does it run
  * `claude --bg`, with the cwd set to the routed repo and every `TELEGRAM_*`
  * variable removed from the worker's environment. A repo whose workspace
- * trust was never accepted is exit 2 too (see worker-launch.mjs).
+ * trust was never accepted is exit 2 too (see worker-launch.mjs). So is a
+ * worker whose first prompt never ran — `/lisa:implement` unknown in that
+ * repo, or refused by a `UserPromptSubmit` hook: `spawn` reads the new
+ * session's transcript briefly, stops that worker and records no item
+ * (lisa#4503). `classify` reads the same transcript every cycle and reports
+ * such a worker as `setup-gap` instead of `working` until the stall timer.
+ *
+ * Either setup gap — and one `classify` finds later — is recorded per repo in
+ * the ledger (lisa#4820), and
+ * `spawn` refuses a repo with a recorded gap (exit 2) before launching
+ * anything, until the operator runs `ledger clear-setup-gap <repo>`.
  * @module session-manager/cli-workers
  */
 import { createHash } from "node:crypto";
@@ -47,7 +57,17 @@ import {
   findLiveWorker,
   parseSessionId,
 } from "./workers.mjs";
-import { resolveFullSessionId, runWorkerSession } from "./worker-launch.mjs";
+import { claudeConfigDir, readFirstPrompt } from "./first-prompt.mjs";
+import {
+  clearCommand,
+  recordSetupGap,
+  setupGapOf,
+} from "./ledger-setup-gaps.mjs";
+import {
+  confirmFirstPrompt,
+  resolveFullSessionId,
+  runWorkerSession,
+} from "./worker-launch.mjs";
 
 /**
  * Compute the capacity report for this machine and these agents.
@@ -105,6 +125,109 @@ function knownNames(agents, ledger) {
 }
 
 /**
+ * Refuse a repo whose setup gap is recorded (exit 2), before any worker is
+ * launched or any attempt recorded. Retrying cannot fix a setup gap, so the
+ * repo stays refused until the operator clears it (lisa#4820).
+ * @param {Awaited<ReturnType<typeof readLedger>>} ledger - Ledger
+ * @param {string} repo - Repo key (`.` for a single-repo project)
+ */
+function refuseSetupGap(ledger, repo) {
+  const gap = setupGapOf(ledger, repo);
+  if (gap === null) return;
+  throw new CliError(
+    `Repo ${repo} has a recorded setup gap (${gap.kind}: ${gap.detail}, ` +
+      `recorded ${gap.at}), so no worker was started and nothing was ` +
+      `recorded. Fix the repo, then run "${clearCommand(repo)}" to resume ` +
+      `dispatching there.`,
+    EXIT.SETUP,
+    { repo, setupGap: gap, setupGapStatus: "already-recorded" }
+  );
+}
+
+/**
+ * Record a spawn's setup gap, reporting what happened. A failed ledger write
+ * is warned about and reported as `not-recorded`, never allowed to replace
+ * the setup message the operator needs.
+ *
+ * probe-direction: fail-open — an unwritten gap only means the next cycle
+ * may dispatch to the repo once more and hit the same exit 2.
+ * @param {object} ctx - CLI context
+ * @param {string} repo - Repo key
+ * @param {{kind: string, detail: string}} gap - What failed
+ * @returns {Promise<"recorded" | "already-recorded" | "not-recorded">} Status
+ */
+async function persistSpawnGap(ctx, repo, gap) {
+  try {
+    const { status } = await recordSetupGap(ctx.root, { repo, ...gap });
+    return status === "already-recorded" ? status : "recorded";
+  } catch (error) {
+    ctx.warn(
+      `Could not record the setup gap for repo ${repo} in the ledger ` +
+        `(${error.message}); the next cycle may dispatch there again.`
+    );
+    return "not-recorded";
+  }
+}
+
+/**
+ * Run `launch`; when it fails with a setup gap (exit 2 carrying
+ * `json.setupGap`), record the gap under `repo` and rethrow it naming the
+ * command that clears it. `json.setupGapStatus` says whether this spawn
+ * recorded the gap (`recorded`: tell the operator), found it already
+ * recorded, or could not record it (`not-recorded`: tell the operator).
+ * @template T
+ * @param {object} ctx - CLI context
+ * @param {string} repo - Repo key
+ * @param {() => Promise<T>} launch - The launch to guard
+ * @returns {Promise<T>} What `launch` returned
+ */
+async function rememberingSetupGap(ctx, repo, launch) {
+  try {
+    return await launch();
+  } catch (error) {
+    const gap = error instanceof CliError ? error.json?.setupGap : null;
+    if (error.exitCode !== EXIT.SETUP || !gap) throw error;
+    const setupGapStatus = await persistSpawnGap(ctx, repo, gap);
+    const paused =
+      setupGapStatus === "not-recorded"
+        ? ""
+        : ` Dispatch to repo ${repo} is now paused: once it is fixed, run ` +
+          `"${clearCommand(repo)}".`;
+    throw new CliError(`${error.message}${paused}`, EXIT.SETUP, {
+      ...error.json,
+      repo,
+      setupGapStatus,
+    });
+  }
+}
+
+/**
+ * Start the worker and confirm its first prompt ran.
+ * @param {object} ctx - CLI context
+ * @param {ReturnType<typeof buildWorkerSpawn>} spec - Spawn spec
+ * @param {string} repoDir - Where the worker starts
+ * @returns {Promise<{name: string, sessionId: string | null,
+ *   firstPrompt: "alive" | "unconfirmed"}>} The launched worker
+ */
+async function launchWorker(ctx, spec, repoDir) {
+  const name = spec.args[2];
+  const sessionId = parseSessionId(runWorkerSession(spec));
+  if (sessionId === null) {
+    ctx.warn(
+      `claude --bg printed no session id; find ${name} in claude agents --json.`
+    );
+  }
+  // Before anything is recorded: a first prompt that never ran is a setup
+  // gap (exit 2), not an attempt. With no session id there is no transcript
+  // to find, so waiting would only delay the spawn.
+  const firstPrompt =
+    sessionId === null
+      ? "unconfirmed"
+      : await confirmFirstPrompt(ctx, { name, sessionId, repoDir });
+  return { name, sessionId, firstPrompt };
+}
+
+/**
  * `spawn <ref> [--repo <key>]`: start one worker for one claimed item.
  * @param {object} ctx - CLI context
  * @returns {Promise<{ json: object }>} `{ref,name,sessionId,repo,cwd}`
@@ -137,6 +260,8 @@ export async function spawn(ctx) {
   }
 
   const ledger = await readLedger(ctx.root);
+  const repo = key ?? ".";
+  refuseSetupGap(ledger, repo);
   // A spawn no longer clears a pending question (lisa#4571), and a worker
   // under one classifies as waiting, never stalled or dead. So refuse here:
   // the question must be answered and cleared first ("Clearing").
@@ -157,15 +282,11 @@ export async function spawn(ctx) {
       env: ctx.env,
     });
   });
-  const name = spec.args[2];
-  const stdout = runWorkerSession(spec);
-  const sessionId = parseSessionId(stdout);
-  if (sessionId === null) {
-    ctx.warn(
-      `claude --bg printed no session id; find ${name} in claude agents --json.`
-    );
-  }
-  const repo = key ?? ".";
+  const { name, sessionId, firstPrompt } = await rememberingSetupGap(
+    ctx,
+    repo,
+    () => launchWorker(ctx, spec, repoDir)
+  );
   await recordSpawn(ctx.root, { ref, worker: name, sessionId, repo });
   await appendSessionEvent(ctx.root, {
     event: "spawn",
@@ -175,7 +296,7 @@ export async function spawn(ctx) {
     repo,
     cwd: repoDir,
   });
-  return { json: { ref, name, sessionId, repo, cwd: repoDir } };
+  return { json: { ref, name, sessionId, repo, cwd: repoDir, firstPrompt } };
 }
 
 /**
@@ -271,6 +392,81 @@ function logsHash(ctx, name) {
 }
 
 /**
+ * The repo dir a ledger item's worker started in, or null when it cannot be
+ * resolved (no config for a child repo key, or a key the config lost).
+ * @param {object} ctx - CLI context
+ * @param {object | null} config - Resolved `sessionManager` block, if any
+ * @param {{repo?: string|null}} entry - Ledger item
+ * @returns {string | null} Absolute dir
+ */
+function workerDir(ctx, config, entry) {
+  if (!entry.repo || entry.repo === ".") return ctx.root;
+  try {
+    return config ? resolveRepoDir(config, entry.repo, ctx.root) : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * The first-prompt failure the item's worker transcript records, if any.
+ *
+ * probe-direction: fail-open — an unreadable or missing transcript yields
+ * null, which leaves classification exactly as it was before this check.
+ * A finished item (DONE or FAILED) classifies `finished` whatever its
+ * transcript says, so its transcript is never read.
+ * @param {object} ctx - CLI context
+ * @param {object | null} config - Resolved `sessionManager` block, if any
+ * @param {{worker?: string|null, sessionId?: string|null, repo?: string|null,
+ *   status?: string}} entry - Ledger item
+ * @returns {{kind: string, detail: string} | null} Failure
+ */
+function transcriptFailure(ctx, config, entry) {
+  if (entry.status === "DONE" || entry.status === "FAILED") return null;
+  const cwd =
+    entry.worker && entry.sessionId ? workerDir(ctx, config, entry) : null;
+  if (cwd === null) return null;
+  return (
+    readFirstPrompt({
+      configDir: claudeConfigDir(ctx.env, ctx.homedir),
+      cwd,
+      sessionId: entry.sessionId,
+    })?.failure ?? null
+  );
+}
+
+/**
+ * Record a gap `classify` found in a running worker's transcript, unless the
+ * repo already has one (so its `at` stays when the gap was first seen) or
+ * the worker started before the operator last cleared the repo (its old
+ * transcript would otherwise undo the clear every cycle). A worker whose
+ * first prompt failed after spawn's window never went through spawn's exit 2,
+ * so without this its repo would still be dispatched to (lisa#4820).
+ *
+ * probe-direction: fail-open — a failed write is warned about and must not
+ * abort classifying the remaining items; the next cycle retries it.
+ * @param {object} ctx - CLI context
+ * @param {{repo?: string|null, startedAt?: string|null}} entry - Ledger item
+ * @param {{kind: string, detail: string}} failure - From the transcript
+ * @returns {Promise<void>}
+ */
+async function rememberClassifiedGap(ctx, entry, failure) {
+  const repo = entry.repo ?? ".";
+  try {
+    await recordSetupGap(ctx.root, {
+      repo,
+      ...failure,
+      startedAt: entry.startedAt ?? null,
+    });
+  } catch (error) {
+    ctx.warn(
+      `Could not record the setup gap for repo ${repo} in the ledger ` +
+        `(${error.message}); the next cycle will try again.`
+    );
+  }
+}
+
+/**
  * `classify [<ref>]`: classify one ledger item, or every one, for this cycle,
  * and record each logs hash as progress.
  * @param {object} ctx - CLI context
@@ -293,14 +489,19 @@ export async function classify(ctx) {
       : [];
     const agent = named.find(row => row.active) ?? named[0] ?? null;
     const hash = agent ? logsHash(ctx, entry.worker) : null;
+    const setupGap = transcriptFailure(ctx, config, entry);
     const classification = classifyWorker({
       agent,
       entry,
       logsHash: hash,
       now: ctx.now(),
       stall,
+      firstPromptFailure: setupGap,
     });
     if (hash !== null) await recordProgress(ctx.root, { ref, logsHash: hash });
+    if (classification === "setup-gap") {
+      await rememberClassifiedGap(ctx, entry, setupGap);
+    }
     rows.push({
       ref,
       worker: entry.worker ?? null,
@@ -309,7 +510,9 @@ export async function classify(ctx) {
       classification,
       attempts: entry.attempts ?? 0,
       agentStatus: agent?.status ?? agent?.state ?? null,
+      waitingFor: agent?.waitingFor ?? null,
       pendingQuestion: entry.pendingQuestion ?? null,
+      setupGap: classification === "setup-gap" ? setupGap : null,
     });
   }
   return { json: rows };

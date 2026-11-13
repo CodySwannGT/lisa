@@ -29,14 +29,14 @@ import {
   completionDenial,
 } from "./lib/completion-authorization.mjs";
 import { completionContext } from "./lib/completion-proof-adapters.mjs";
+import { describeCodePipelineDelivery } from "./lib/completion-proof-codepipeline.mjs";
 import {
   ensureEvidenceRelease,
   publishCompletionProof,
 } from "./lib/completion-proof-publisher.mjs";
 import {
-  evidenceReleaseOverride,
   githubProofTransport,
-  resolveEvidenceRelease,
+  targetEvidenceRelease,
 } from "./lib/completion-proof-github.mjs";
 import {
   MAX_RECORD_BYTES,
@@ -5292,7 +5292,7 @@ function completeGithubWorkItem(ref, contract, prUrl) {
     category: already ? ALREADY_COMPLETED : "completed",
     bases,
     merged,
-    report: `work-item ${already ? ALREADY_COMPLETED : "completed"}: ${ref} -> ${contract.lifecycle.terminalName} (merged: ${evidence}) bases: ${bases}`,
+    report: `work-item ${already ? ALREADY_COMPLETED : "completed"}: ${ref} -> ${contract.lifecycle.terminalName} (merged: ${evidence}) bases: ${bases}${describeCodePipelineDelivery(authorization.record)}`,
     terminal: contract.lifecycle.terminalName,
   };
 }
@@ -5685,6 +5685,7 @@ function completeLinearWorkItem(ref, contract, prUrl) {
       terminal: displayName,
       category: ALREADY_COMPLETED,
       applied: false,
+      delivery: describeCodePipelineDelivery(authorization.record),
     };
   }
   const update = completionNativeOperation(
@@ -5729,6 +5730,7 @@ function completeLinearWorkItem(ref, contract, prUrl) {
     terminal: displayName,
     category: "completed",
     applied: true,
+    delivery: describeCodePipelineDelivery(authorization.record),
   };
 }
 
@@ -5822,7 +5824,7 @@ function complete(args) {
     outcome.report ??
       `work-item ${outcome.category === ALREADY_COMPLETED ? ALREADY_COMPLETED : "completed"}: ${ref} -> ${outcome.terminal} (merged: ${outcome.merged
         .map(number => `#${number}`)
-        .join(", ")})`
+        .join(", ")})${outcome.delivery ?? ""}`
   );
   if (
     ["invalid-proof", COMPLETION_READ_ERROR, COMPLETION_WRITE_ERROR].includes(
@@ -5862,10 +5864,11 @@ function publishProof(args) {
     readFileSync(path, "utf8"),
     "Completion publication record"
   );
-  const result = publishCompletionProof(
-    proofContext(ref, contract, pullRequestUrlOption(args)),
-    input
-  );
+  const context = proofContext(ref, contract, pullRequestUrlOption(args));
+  // The same resolver `evidence-release` prints from, so the upload goes to
+  // the release a pinned LISA_EVIDENCE_RELEASE names (#4838).
+  const evidenceTarget = targetEvidenceRelease(context.policy);
+  const result = publishCompletionProof({ ...context, evidenceTarget }, input);
   console.log(JSON.stringify(result));
 }
 
@@ -5880,28 +5883,29 @@ function publishProof(args) {
  * places and stopped every completion when that release hit GitHub's
  * 1000-asset cap (CodySwannGT/lisa#4692).
  *
- * `--ensure` also creates the release when it is absent and fails, in plain
- * words, when it is nearly full; without it nothing touches GitHub.
+ * `--ensure` also creates the release when it is absent, and when it is
+ * nearly full rolls over to the next overflow release (`<release>-2`, `-3`, …)
+ * and prints that one instead (CodySwannGT/lisa#4838); without it nothing
+ * touches GitHub, so the plain form prints the period's first release.
  *
  * `LISA_EVIDENCE_RELEASE` pins the name for one run, so a script that resolved
  * it once (the journey template generator, then post-evidence.sh) cannot split
  * links and uploads across a month boundary. The pinned name is still checked
- * against the accepted releases, and `--ensure` still capacity-checks it.
+ * against the accepted releases, and `--ensure` still capacity-checks it; a
+ * full pin is refused, never rolled over. `publish-completion-proof` resolves
+ * through the same `targetEvidenceRelease`, so both always agree.
  */
 function evidenceRelease(args) {
   const policy = readConfig().verification?.completion ?? {};
-  const pinned = process.env.LISA_EVIDENCE_RELEASE?.trim();
-  const tag = pinned
-    ? evidenceReleaseOverride(policy, pinned)
-    : resolveEvidenceRelease(policy);
-  if (!args.includes("--ensure")) return console.log(tag);
+  const target = targetEvidenceRelease(policy);
+  if (!args.includes("--ensure")) return console.log(target.tag);
   const repository = currentRepository();
   if (!repository)
     throw new TrackingError(
       "evidence-release --ensure needs the GitHub repository; run it inside a checkout with a GitHub remote, or set GITHUB_REPOSITORY."
     );
   const transport = githubProofTransport(run, repository, policy);
-  console.log(ensureEvidenceRelease(run, transport, policy, { tag }).tag);
+  console.log(ensureEvidenceRelease(run, transport, policy, target).tag);
 }
 
 /**

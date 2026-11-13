@@ -199,6 +199,60 @@ describe("canonical audit exclusion scope", () => {
     expect(evaluateAuditReport(root, "bun", advisory()).passed).toBe(true);
   });
 
+  describe("#4509: a package+versions scope without paths (GHSA-mrhx-c7xc-m3w5)", () => {
+    const MRHX = "GHSA-mrhx-c7xc-m3w5";
+    const mrhxReport = JSON.stringify({
+      zod: [
+        {
+          id: 1,
+          severity: "high",
+          url: `https://github.com/advisories/${MRHX}`,
+          vulnerable_versions: "<4.6.6",
+        },
+      ],
+    });
+    const versionsOnly = {
+      id: MRHX,
+      package: "zod",
+      versions: ">=3.0.0 <4.0.0",
+    };
+
+    it("suppresses zod 3.25.76", () => {
+      const result = evaluateAuditReport(
+        fixture(versionsOnly, { [devPath]: [VULNERABLE_ZOD] }),
+        "bun",
+        mrhxReport
+      );
+      expect(result.passed).toBe(true);
+      expect(result.messages.join("\n")).toContain(`excluded ${MRHX}`);
+    });
+
+    it("does NOT suppress zod 4.5.0 for the same advisory", () => {
+      const result = evaluateAuditReport(
+        fixture(versionsOnly, { [devPath]: ["zod@4.5.0"] }),
+        "bun",
+        mrhxReport
+      );
+      expect(result.passed).toBe(false);
+      expect(result.messages.join("\n")).toContain(`${devPath} (zod@4.5.0)`);
+    });
+
+    it("does NOT suppress a mixed tree and names only the zod 4.5.0 copy", () => {
+      const result = evaluateAuditReport(
+        fixture(versionsOnly, {
+          [devPath]: [VULNERABLE_ZOD],
+          "app/zod": ["zod@4.5.0"],
+        }),
+        "bun",
+        mrhxReport
+      );
+      const text = result.messages.join("\n");
+      expect(result.passed).toBe(false);
+      expect(text).toContain("app/zod (zod@4.5.0)");
+      expect(text).not.toContain("3.25.76");
+    });
+  });
+
   it.each([[], null, "lint-plugin/zod", [""], [1]])(
     "rejects invalid paths %j before even a clean report",
     paths => {

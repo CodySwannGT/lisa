@@ -1,0 +1,50 @@
+# CodySwannGT/lisa#4636 - packed-host journey teardown readback and result, FINAL HEAD 693e90fb3fcef27f1da0f8e12d06d6bd59f3c426 (hosted ubuntu-24.04)
+# Extracted verbatim (ANSI stripped) by the verifier at 2026-11-12T18:14:16Z from: gh run view <id> --repo CodySwannGT/lisa --log [--attempt N]
+# Historical inodesFreed baseline (from the issue body, not re-read here): 79,632 (run 41507257075), 79,674 (run 41511612615)
+
+## run 43269124063 attempt 2
+### PACKED_HOSTS_TEARDOWN
+PACKED_HOSTS_TEARDOWN {"phase":"registry-close:start","elapsedMs":0,"baseBudgetMs":30000,"budgetMs":77742,"node":"24.21.0","platform":"linux","arch":"x64"}
+PACKED_HOSTS_TEARDOWN {"phase":"registry-close:end","elapsedMs":1,"baseBudgetMs":30000,"budgetMs":77742,"node":"24.21.0","platform":"linux","arch":"x64"}
+PACKED_HOSTS_TEARDOWN {"phase":"root-cleanup:start","elapsedMs":4,"baseBudgetMs":30000,"budgetMs":77742,"node":"24.21.0","platform":"linux","arch":"x64","topLevel":["child-tmp","evidence","fake-bin","oracle","pack","tool"],"fullRun":true,"installersFinished":true,"sharedCacheFreed":true,"sharedCacheEntries":252149}
+PACKED_HOSTS_TEARDOWN {"phase":"root-cleanup:end","elapsedMs":2236,"baseBudgetMs":30000,"budgetMs":77742,"node":"24.21.0","platform":"linux","arch":"x64","inodesFreed":63077,"bytesFreed":757604352,"rootExists":false}
+
+### journey vitest result lines
+      Tests  10 passed (10)
+     ✓ Node24 adoption preserves existing host ownership: custom  2464ms
+     ✓ Node24 adoption preserves existing host ownership: ignored  2905ms
+     ✓ Node24 adoption preserves existing host ownership: known  2517ms
+     ✓ cdk: patched installs, native execution and two idempotent adoptions  161804ms
+     ✓ expo inherits Node24 through genuine native framework checks and two adoptions  42674ms
+     ✓ harper-fabric inherits Node24 through genuine native framework checks and two adoptions  144758ms
+     ✓ nestjs inherits Node24 through genuine native framework checks and two adoptions  142153ms
+     ✓ npm-package inherits Node24 through genuine native framework checks and two adoptions  132410ms
+     ✓ phaser inherits Node24 through genuine native framework checks and two adoptions  135845ms
+     ✓ typescript: patched installs, native execution and two idempotent adoptions  129431ms
+ Test Files  1 passed (1)
+
+## run 43269124063 attempt 1 (expo case failed after its jest passed: lisa-test-run supervisor/reaper handshake)
+### PACKED_HOSTS_TEARDOWN
+PACKED_HOSTS_TEARDOWN {"phase":"registry-close:start","elapsedMs":0,"baseBudgetMs":30000,"budgetMs":86781,"node":"24.21.0","platform":"linux","arch":"x64"}
+PACKED_HOSTS_TEARDOWN {"phase":"registry-close:end","elapsedMs":1,"baseBudgetMs":30000,"budgetMs":86781,"node":"24.21.0","platform":"linux","arch":"x64"}
+PACKED_HOSTS_TEARDOWN {"phase":"root-cleanup:start","elapsedMs":2,"baseBudgetMs":30000,"budgetMs":86781,"node":"24.21.0","platform":"linux","arch":"x64","topLevel":["child-tmp","evidence","fake-bin","oracle","pack","tool"],"fullRun":true,"installersFinished":true,"sharedCacheFreed":true,"sharedCacheEntries":252149}
+PACKED_HOSTS_TEARDOWN {"phase":"root-cleanup:end","elapsedMs":2420,"baseBudgetMs":30000,"budgetMs":86781,"node":"24.21.0","platform":"linux","arch":"x64","inodesFreed":63072,"bytesFreed":757592064,"rootExists":false}
+
+### journey vitest result lines
+      Tests  1 failed | 9 passed (10)
+     × expo inherits Node24 through genuine native framework checks and two adoptions 41689ms
+     ✓ Node24 adoption preserves existing host ownership: custom  2803ms
+     ✓ Node24 adoption preserves existing host ownership: ignored  2553ms
+     ✓ Node24 adoption preserves existing host ownership: known  2456ms
+     ✓ cdk: patched installs, native execution and two idempotent adoptions  161536ms
+     ✓ harper-fabric inherits Node24 through genuine native framework checks and two adoptions  167825ms
+     ✓ nestjs inherits Node24 through genuine native framework checks and two adoptions  142479ms
+     ✓ npm-package inherits Node24 through genuine native framework checks and two adoptions  132514ms
+     ✓ phaser inherits Node24 through genuine native framework checks and two adoptions  135902ms
+     ✓ typescript: patched installs, native execution and two idempotent adoptions  129400ms
+ FAIL   lisa  tests/integration/shared-runtime-packed-hosts.test.ts > shared runtime through exact packed CLI and generated hosts > expo inherits Node24 through genuine native framework checks and two adoptions
+ Test Files  1 failed (1)
+lisa-test-run failed: Protocol process exited before DISARMED
+stderr | tests/integration/shared-runtime-packed-hosts.test.ts > shared runtime through exact packed CLI and generated hosts > expo inherits Node24 through genuine native framework checks and two adoptions
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+📦 Packed-host journey	📦 Run the packed-host journey	lisa-test-run failed: Protocol process exited before DISARMED

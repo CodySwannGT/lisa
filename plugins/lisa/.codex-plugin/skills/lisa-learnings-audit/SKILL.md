@@ -85,6 +85,19 @@ a `last_confirmed` bump), **RETIRE** (provably redundant/stale — proof, not
 vibes), or leave alone. No evidence ⇒ no candidate; the gardener never files
 a recommendation it cannot evidence.
 
+**A RETIRE owned by a test needs a mutation proof.** Naming a test as the
+mechanical owner proves nothing until that test has been seen to fail
+without the rule (CodySwannGT/lisa#4530): a test whose fake returns empty
+results stays green whatever the code does. For every RETIRE whose proof is
+"owned by a test" (or any other mechanical owner that runs as a check), run
+the mutation proof before filing the row: break the rule the named test
+supposedly guards, run that named test and observe it **fail**, then revert
+the mutation and see it pass again. Record the result in the row — the
+mutation applied, the failing test name and its failure line, and the
+revert. A named owner that stays green under the mutation is not the owner:
+find the test that does fail, or drop the RETIRE. No failing observation ⇒
+no valid retire proof.
+
 **Learned planning checks.** A ledger entry whose rule begins
 `Planning (prd|decomposition|ready-gate|filing):` is a `planning-miss` learning:
 the check planning should have run before a dispatched worker had to stop for a
@@ -258,9 +271,15 @@ rejected by rule (see the `promotion-contract` rule):
 **One batch ticket per run — CONFIRM + RETIRE** (`issue_type: Task`): a single
 ticket listing every CONFIRM row (`last_confirmed` bump, with the evidence the
 entry demonstrably applied) and every **provably-redundant** RETIRE row (with
-the mechanical owner / staleness proof per row). It is filed
-build-ready like the per-item tickets. Rows stay individually strikeable: a
-human who disagrees with a row deletes it before the factory picks the ticket up.
+the mechanical owner / staleness proof per row, and the mutation proof when the
+owner is a test). Every RETIRE row also carries the entry's full
+`expectedFingerprint`: the live `entry.fingerprint` read from the parsed ledger
+at audit time (`learning-` plus 20 hex digits, or a legacy token). It is not the
+12-hex `<invariant-hash>` in the row's `[lisa-gardener]` marker — the two are
+different identifiers, and only the entry fingerprint shows whether a later
+consolidation rewrote the entry behind the same id. It is filed build-ready like
+the per-item tickets. Rows stay individually strikeable: a human who disagrees
+with a row deletes it before the factory picks the ticket up.
 The gardener **never bumps `last_confirmed` itself**: the bumps are executed
 by the **implementing factory run** that picks up the flipped batch ticket.
 Embed the following execution contract **verbatim** (markers included — do
@@ -275,6 +294,20 @@ implementing run receives its instructions inside the work item:
 - Implement each surviving RETIRE row as a proof-citing deletion PR per the
   `promotion-contract` rule's reverse-atomicity clause: the deleting PR must
   cite the row's mechanical owner or staleness proof.
+- Delete each RETIRE entry only by calling
+  `retireLearningEntry(projectRoot, id, expectedFingerprint)` from
+  `@codyswann/lisa/learnings` with the row's full `expectedFingerprint` —
+  never by parse → filter → render in a script, and never by a hand edit.
+  From a shell, the same call is
+  `bunx @codyswann/lisa learnings-retire --id <id> --fingerprint <full fingerprint> --reason "<proof>"`
+  (JSON output; exit 1 on `stale` or `not-found`). Retire works on a ledger
+  that is over its cap, so use it to bring an over-budget ledger back down.
+- A RETIRE that returns `stale` means the entry's fingerprint drifted since
+  the audit (a later learner run changed or merged into it): skip the row, do
+  not delete it, and leave it for the next audit to re-evaluate.
+- A RETIRE that returns `not-found` means the entry is already gone: note it
+  in the PR and skip the row. On a concurrent-write error, retry the call
+  once; never fall back to a manual edit.
 - Struck/deleted rows are human rejections — skip them; they are not re-filed
   without new postdating evidence.
 <!-- gardener-batch-ticket-template:end -->

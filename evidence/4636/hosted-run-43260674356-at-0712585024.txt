@@ -1,0 +1,54 @@
+# CodySwannGT/lisa#4636 - earlier head 0712585024768002ed363d28bd84b7ae1990b480, run 43260674356 (first run with the allocated probe and the registry-installed tool) (hosted ubuntu-24.04)
+# Extracted verbatim (ANSI stripped) by the verifier at 2026-11-12T18:14:16Z from: gh run view <id> --repo CodySwannGT/lisa --log [--attempt N]
+# Sample fields: probeUs = the probe as built at that head; variantUs = 20 entries x 4 KiB fsync'd; realUs = 5,000 x 4 KiB fsync'd removal; ratios; discards = /sys/block/<dev>/stat discard-counter deltas (immediate, and after settle).
+
+### FS_PROBE_DIAGNOSTIC
+FS_PROBE_DIAGNOSTIC {"kind":"mount","tmpdir":"/tmp/lisa-scratch/run-3576-1794501504494-57aac4cd/worker-4527-acac3447d0d83a1d","probeMount":{"device":"8:1","mountPoint":"/","fsType":"ext4","options":"rw,relatime;rw,discard,journal_async_commit,nobarrier,errors=remount-ro,commit=30,data=writeback"},"rootMount":{"device":"8:1","mountPoint":"/","fsType":"ext4","options":"rw,relatime;rw,discard,journal_async_commit,nobarrier,errors=remount-ro,commit=30,data=writeback"},"deviceCountersReadable":true}
+FS_PROBE_DIAGNOSTIC {"kind":"sample","sample":1,"probeUs":77.34210000003259,"variantUs":75.21664999994755,"realUs":77.59094039999982,"variantToReal":0.969,"probeToReal":0.997,"entries":{"probe":100,"variant":100,"real":5000},"discards":{"probe":{"immediate":{"discardIos":105,"discardMerges":0,"discardSectors":1272,"discardMs":4},"settled":{"discardIos":106,"discardMerges":0,"discardSectors":1280,"discardMs":4}},"variant":{"immediate":{"discardIos":105,"discardMerges":0,"discardSectors":1248,"discardMs":5},"settled":{"discardIos":106,"discardMerges":0,"discardSectors":1256,"discardMs":5}},"real":{"immediate":{"discardIos":5000,"discardMerges":0,"discardSectors":40000,"discardMs":204},"settled":{"discardIos":5001,"discardMerges":0,"discardSectors":40008,"discardMs":204}}}}
+FS_PROBE_DIAGNOSTIC {"kind":"sample","sample":2,"probeUs":80.80755000009958,"variantUs":71.52730000016163,"realUs":75.37031900000002,"variantToReal":0.949,"probeToReal":1.072,"entries":{"probe":100,"variant":100,"real":5000},"discards":{"probe":{"immediate":{"discardIos":110,"discardMerges":0,"discardSectors":1480,"discardMs":5},"settled":{"discardIos":111,"discardMerges":0,"discardSectors":1488,"discardMs":5}},"variant":{"immediate":{"discardIos":105,"discardMerges":0,"discardSectors":1248,"discardMs":4},"settled":{"discardIos":106,"discardMerges":0,"discardSectors":1256,"discardMs":4}},"real":{"immediate":{"discardIos":5000,"discardMerges":0,"discardSectors":40000,"discardMs":198},"settled":{"discardIos":5001,"discardMerges":0,"discardSectors":40008,"discardMs":198}}}}
+FS_PROBE_DIAGNOSTIC {"kind":"sample","sample":3,"probeUs":84.54454999991867,"variantUs":84.69729999997071,"realUs":81.03058159999782,"variantToReal":1.045,"probeToReal":1.043,"entries":{"probe":100,"variant":100,"real":5000},"discards":{"probe":{"immediate":{"discardIos":110,"discardMerges":0,"discardSectors":1480,"discardMs":4},"settled":{"discardIos":111,"discardMerges":0,"discardSectors":1488,"discardMs":5}},"variant":{"immediate":{"discardIos":105,"discardMerges":0,"discardSectors":1248,"discardMs":5},"settled":{"discardIos":106,"discardMerges":0,"discardSectors":1256,"discardMs":5}},"real":{"immediate":{"discardIos":5000,"discardMerges":0,"discardSectors":40000,"discardMs":225},"settled":{"discardIos":5001,"discardMerges":0,"discardSectors":40008,"discardMs":225}}}}
+FS_PROBE_DIAGNOSTIC {"kind":"sample","sample":4,"probeUs":83.95289999971283,"variantUs":88.80590000044322,"realUs":76.90312979999872,"variantToReal":1.155,"probeToReal":1.092,"entries":{"probe":100,"variant":100,"real":5000},"discards":{"probe":{"immediate":{"discardIos":111,"discardMerges":0,"discardSectors":1488,"discardMs":7},"settled":{"discardIos":112,"discardMerges":0,"discardSectors":1496,"discardMs":7}},"variant":{"immediate":{"discardIos":105,"discardMerges":0,"discardSectors":1248,"discardMs":5},"settled":{"discardIos":106,"discardMerges":0,"discardSectors":1256,"discardMs":5}},"real":{"immediate":{"discardIos":5000,"discardMerges":0,"discardSectors":40000,"discardMs":202},"settled":{"discardIos":5001,"discardMerges":0,"discardSectors":40008,"discardMs":202}}}}
+FS_PROBE_DIAGNOSTIC {"kind":"sample","sample":5,"probeUs":83.96945000058622,"variantUs":73.18795000028331,"realUs":76.05178780000132,"variantToReal":0.962,"probeToReal":1.104,"entries":{"probe":100,"variant":100,"real":5000},"discards":{"probe":{"immediate":{"discardIos":110,"discardMerges":0,"discardSectors":1480,"discardMs":5},"settled":{"discardIos":111,"discardMerges":0,"discardSectors":1488,"discardMs":5}},"variant":{"immediate":{"discardIos":105,"discardMerges":0,"discardSectors":1248,"discardMs":5},"settled":{"discardIos":106,"discardMerges":0,"discardSectors":1256,"discardMs":5}},"real":{"immediate":{"discardIos":5000,"discardMerges":0,"discardSectors":40000,"discardMs":198},"settled":{"discardIos":5001,"discardMerges":0,"discardSectors":40008,"discardMs":198}}}}
+FS_PROBE_DIAGNOSTIC {"kind":"sample","sample":6,"probeUs":74.30955000018002,"variantUs":77.63919999997597,"realUs":76.93770980000262,"variantToReal":1.009,"probeToReal":0.966,"entries":{"probe":100,"variant":100,"real":5000},"discards":{"probe":{"immediate":{"discardIos":110,"discardMerges":0,"discardSectors":1480,"discardMs":4},"settled":{"discardIos":111,"discardMerges":0,"discardSectors":1488,"discardMs":4}},"variant":{"immediate":{"discardIos":105,"discardMerges":0,"discardSectors":1248,"discardMs":4},"settled":{"discardIos":106,"discardMerges":0,"discardSectors":1256,"discardMs":4}},"real":{"immediate":{"discardIos":5001,"discardMerges":0,"discardSectors":40008,"discardMs":207},"settled":{"discardIos":5002,"discardMerges":0,"discardSectors":40016,"discardMs":207}}}}
+FS_PROBE_DIAGNOSTIC {"kind":"sample","sample":7,"probeUs":76.23860000021523,"variantUs":74.37265000044135,"realUs":75.13270619999966,"variantToReal":0.99,"probeToReal":1.015,"entries":{"probe":100,"variant":100,"real":5000},"discards":{"probe":{"immediate":{"discardIos":110,"discardMerges":0,"discardSectors":1480,"discardMs":5},"settled":{"discardIos":111,"discardMerges":0,"discardSectors":1488,"discardMs":5}},"variant":{"immediate":{"discardIos":105,"discardMerges":0,"discardSectors":1248,"discardMs":4},"settled":{"discardIos":106,"discardMerges":0,"discardSectors":1256,"discardMs":4}},"real":{"immediate":{"discardIos":5000,"discardMerges":0,"discardSectors":40000,"discardMs":196},"settled":{"discardIos":5001,"discardMerges":0,"discardSectors":40008,"discardMs":196}}}}
+FS_PROBE_DIAGNOSTIC {"kind":"sample","sample":8,"probeUs":77.06660000112606,"variantUs":72.71005000075093,"realUs":76.4024893999973,"variantToReal":0.952,"probeToReal":1.009,"entries":{"probe":100,"variant":100,"real":5000},"discards":{"probe":{"immediate":{"discardIos":110,"discardMerges":0,"discardSectors":1480,"discardMs":5},"settled":{"discardIos":111,"discardMerges":0,"discardSectors":1488,"discardMs":5}},"variant":{"immediate":{"discardIos":105,"discardMerges":0,"discardSectors":1248,"discardMs":4},"settled":{"discardIos":106,"discardMerges":0,"discardSectors":1256,"discardMs":4}},"real":{"immediate":{"discardIos":5000,"discardMerges":0,"discardSectors":40000,"discardMs":200},"settled":{"discardIos":5001,"discardMerges":0,"discardSectors":40008,"discardMs":201}}}}
+
+### diagnostic vitest result lines
+      Tests  9 passed (9)
+     ✓ paired sample 1 of 8  26329ms
+     ✓ paired sample 2 of 8  26244ms
+     ✓ paired sample 3 of 8  26281ms
+     ✓ paired sample 4 of 8  26178ms
+     ✓ paired sample 5 of 8  26149ms
+     ✓ paired sample 6 of 8  26109ms
+     ✓ paired sample 7 of 8  26094ms
+     ✓ paired sample 8 of 8  26167ms
+ Test Files  1 passed (1)
+stderr | tests/integration/fs-probe-diagnostic.test.ts > fs probe diagnostic > paired sample 1 of 8
+stderr | tests/integration/fs-probe-diagnostic.test.ts > fs probe diagnostic > paired sample 2 of 8
+stderr | tests/integration/fs-probe-diagnostic.test.ts > fs probe diagnostic > paired sample 3 of 8
+stderr | tests/integration/fs-probe-diagnostic.test.ts > fs probe diagnostic > paired sample 4 of 8
+stderr | tests/integration/fs-probe-diagnostic.test.ts > fs probe diagnostic > paired sample 5 of 8
+stderr | tests/integration/fs-probe-diagnostic.test.ts > fs probe diagnostic > paired sample 6 of 8
+stderr | tests/integration/fs-probe-diagnostic.test.ts > fs probe diagnostic > paired sample 7 of 8
+stderr | tests/integration/fs-probe-diagnostic.test.ts > fs probe diagnostic > paired sample 8 of 8
+
+### PACKED_HOSTS_TEARDOWN
+PACKED_HOSTS_TEARDOWN {"phase":"registry-close:start","elapsedMs":0,"baseBudgetMs":30000,"budgetMs":75774,"node":"24.21.0","platform":"linux","arch":"x64"}
+PACKED_HOSTS_TEARDOWN {"phase":"registry-close:end","elapsedMs":1,"baseBudgetMs":30000,"budgetMs":75774,"node":"24.21.0","platform":"linux","arch":"x64"}
+PACKED_HOSTS_TEARDOWN {"phase":"root-cleanup:start","elapsedMs":4,"baseBudgetMs":30000,"budgetMs":75774,"node":"24.21.0","platform":"linux","arch":"x64","topLevel":["child-tmp","evidence","fake-bin","oracle","pack","tool"],"fullRun":true,"installersFinished":true,"sharedCacheFreed":true,"sharedCacheEntries":252149}
+PACKED_HOSTS_TEARDOWN {"phase":"root-cleanup:end","elapsedMs":2270,"baseBudgetMs":30000,"budgetMs":75774,"node":"24.21.0","platform":"linux","arch":"x64","inodesFreed":63077,"bytesFreed":757608448,"rootExists":false}
+
+### journey vitest result lines
+      Tests  10 passed (10)
+     ✓ Node24 adoption preserves existing host ownership: custom  2997ms
+     ✓ Node24 adoption preserves existing host ownership: ignored  2550ms
+     ✓ Node24 adoption preserves existing host ownership: known  2425ms
+     ✓ cdk: patched installs, native execution and two idempotent adoptions  161575ms
+     ✓ expo inherits Node24 through genuine native framework checks and two adoptions  43721ms
+     ✓ harper-fabric inherits Node24 through genuine native framework checks and two adoptions  144569ms
+     ✓ nestjs inherits Node24 through genuine native framework checks and two adoptions  141715ms
+     ✓ npm-package inherits Node24 through genuine native framework checks and two adoptions  132178ms
+     ✓ phaser inherits Node24 through genuine native framework checks and two adoptions  135362ms
+     ✓ typescript: patched installs, native execution and two idempotent adoptions  129217ms
+ Test Files  1 passed (1)

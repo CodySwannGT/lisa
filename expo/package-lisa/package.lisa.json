@@ -89,8 +89,8 @@
       "@stryker-mutator/core": "^9.0.0",
       "@stryker-mutator/jest-runner": "^9.0.0",
       "serve": "^14.2.0",
-      "eslint-plugin-oxlint": "1.62.0",
-      "oxlint": "1.62.0",
+      "eslint-plugin-oxlint": ">=1.62.0 <1.86.0",
+      "oxlint": ">=1.62.0 <1.86.0",
       "oxlint-tsgolint": "^0.24.0"
     },
     "resolutions": {

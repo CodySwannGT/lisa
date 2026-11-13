@@ -81,7 +81,7 @@ Before starting the journey, verify each prerequisite:
 
 Execute each step sequentially. For each step, determine the verification approach based on the step text and change type:
 
-- **API endpoints** → Run curl commands, capture HTTP response to `evidence/NN-name.txt`
+- **API endpoints** → Run curl commands, save the request and response as `http-transcript` JSON to `evidence/NN-name.json`
 - **Database changes** → Run psql/migration commands, capture schema output to `evidence/NN-name.txt`
 - **Background jobs** → Trigger the job, check queue/state, capture logs to `evidence/NN-name.txt`
 - **Library/utility changes** → Run tests, capture output to `evidence/NN-name.txt`
@@ -90,13 +90,16 @@ Execute each step sequentially. For each step, determine the verification approa
 At each typed `[EVIDENCE: <artifact-type>: <name>]` marker, capture an artifact **of the declared type** — the type is the contract, not a suggestion:
 
 - `screenshot` / `recording` → an actual image/video file from the driven UI (Playwright, simulator), never a text description of what was seen
-- `http-transcript` → the exact request (curl command or client call) plus the full response
-- `cli-output` → the command plus stdout/stderr and exit code
+- `http-transcript` → a JSON file with `request.method`, `request.url`, `response.status` and `response.body` (plain curl text is refused)
+- `cli-output` → a JSON file with `command`, `stdout`, `stderr` and an integer `exit_code`
 - `log-snippet` → the correlated log lines pulled from the running system
-- `db-query-output` → the query plus returned rows
-- `perf-trace` → the benchmark/frame-timing/profiler output with methodology (device profile, dataset size)
+- `db-query-output` → a JSON file with the `query` text and a `rows` list (plain query output is refused)
+- `perf-trace` → a JSON file with `methodology` (device profile, dataset size) and `measurements` of `{metric, value, unit}`
 - `test-run-log` → reporter output naming the spec and showing it ran and passed
-- `deploy-log` / `state-dump` → the deployment/health-check output or observed-state JSON
+- `deploy-log` → a JSON finished pipeline run (`status` exactly `"completed"`, `conclusion`, and a whole-number `id` or a `workflow_path`), or a `cli-output` JSON whose `stdout` mentions the deploy or health check
+- `state-dump` → a JSON file with one of `state`/`data`/`response`/`records` plus one of `id`/`source`/`command`/`captured_at`
+
+The JSON field rules and a minimal example for every kind are in the "Typed capture shapes" section of `../lisa-tracker-evidence/references/completion-authorization.md` (relative to this skill directory). A wrapper JSON file may also carry the raw text capture and its provenance beside the typed object.
 
 A prose claim ("the error state rendered gracefully") satisfies no marker. Legacy untyped markers: infer the type from the step's action, capture accordingly, and note the inference. Write each artifact to a numbered file:
 
@@ -122,7 +125,7 @@ evidence/
 
 ### Step 4: Generate Evidence Templates
 
-The GitHub links point at the evidence release. Resolve it once, before generating templates, so the links and the uploads in Step 5 name the same release even across a month boundary. `--ensure` creates the release when it is missing. If the release cannot be used (for example, it is nearly full), the step prints `Evidence release not usable; stop.` and fails: stop there and report it instead of continuing.
+The GitHub links point at the evidence release. Resolve it once, before generating templates, so the links and the uploads in Step 5 name the same release even across a month boundary. `--ensure` creates the release when it is missing. If the release cannot be used (for example, a pinned release is full, every overflow release is full, the release name is too long to roll over, or the publisher cannot create releases), the step prints `Evidence release not usable; stop.` and fails: stop there and report it instead of continuing.
 
 ```bash
 unset LISA_EVIDENCE_RELEASE; LISA_EVIDENCE_RELEASE=$(node scripts/lisa-work-item.mjs evidence-release --ensure) || { echo "Evidence release not usable; stop."; false; } &&

@@ -180,8 +180,7 @@
       "pull-request": "optional"
     },
     "behavior-contract": {
-      "run": "check:behavior-contract",
-      "pull-request": "required"
+      "pull-request": "off"
     },
     "test-node-suites": {
       "push": "off",

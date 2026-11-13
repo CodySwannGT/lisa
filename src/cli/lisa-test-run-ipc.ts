@@ -66,7 +66,42 @@ class ClosedIpcChannelError extends Error {
 }
 
 /**
+ * Whether a companion has exited and its IPC channel can deliver nothing more.
+ * @param child - Protocol companion
+ * @returns Whether no queued acknowledgement can still arrive
+ */
+function companionClosed(child: ChildProcess): boolean {
+  return companionExited(child) && !child.connected;
+}
+
+/**
+ * Build the fail-closed error for a companion that ended without acking.
+ * @param child - Protocol companion
+ * @param expected - Exact expected type
+ * @param code - Exit code from the close event, else the recorded one
+ * @param signal - Terminal signal from the close event, else the recorded one
+ * @returns Error naming how the companion exited
+ */
+function exitedBeforeError(
+  child: ChildProcess,
+  expected: string,
+  code: number | null = child.exitCode,
+  signal: NodeJS.Signals | null = child.signalCode
+): Error {
+  return new Error(
+    `Protocol process exited before ${expected} (code ${String(code)}, signal ${String(signal)})`
+  );
+}
+
+/**
  * Wait for one exact child acknowledgement or fail closed.
+ *
+ * The terminal rejection settles on `'close'`, not `'exit'`: Node may emit a
+ * child's `'exit'` before it dispatches an IPC `'message'` the child sent just
+ * before exiting (the reaper acks DISARMED, then exits in the send callback).
+ * `'close'` fires only after the IPC channel has closed, so every queued
+ * message has already been delivered. Companions inherit stdio, so `'close'`
+ * waits on nothing but the channel; ACK_TIMEOUT_MS still bounds the wait.
  * @param child - Protocol companion
  * @param expected - Exact expected type
  * @param correlation - Optional exact root token
@@ -101,18 +136,21 @@ export function waitForMessage(
         reject(error);
       }
     };
-    const onExit = (): void => {
+    const onClose = (
+      code?: number | null,
+      signal?: NodeJS.Signals | null
+    ): void => {
       cleanup();
-      reject(new Error(`Protocol process exited before ${expected}`));
+      reject(exitedBeforeError(child, expected, code, signal));
     };
     const cleanup = (): void => {
       clearTimeout(timer);
       child.off("message", onMessage);
-      child.off("exit", onExit);
+      child.off("close", onClose);
     };
     child.on("message", onMessage);
-    child.once("exit", onExit);
-    if (companionExited(child)) onExit();
+    child.once("close", onClose);
+    if (companionClosed(child)) onClose();
   });
 }
 

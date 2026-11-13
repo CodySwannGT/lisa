@@ -11,6 +11,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  WORKER_PERMISSION_ARGS,
   WORKER_SETTINGS,
   buildWorkerName,
   buildWorkerResume,
@@ -115,6 +116,7 @@ describe("normalizeAgents", () => {
       startedAt: 1791835698878,
       status: "busy",
       state: null,
+      waitingFor: null,
       active: true,
     });
   });
@@ -242,7 +244,14 @@ describe("buildWorkerResume", () => {
       })
     ).toEqual({
       command: "claude",
-      args: ["--bg", "--resume", LIVE_SESSION_ID, "--", "Paul's answer: 2"],
+      args: [
+        "--bg",
+        "--resume",
+        LIVE_SESSION_ID,
+        ...WORKER_PERMISSION_ARGS,
+        "--",
+        "Paul's answer: 2",
+      ],
       cwd: REPO_A_DIR,
       env: { PATH: "/bin" },
     });

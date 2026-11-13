@@ -47,6 +47,7 @@ import {
   route,
 } from "./cli-cycle.mjs";
 import { answer, itemAnswer, markPlan } from "./cli-human.mjs";
+import { cycle } from "./cyclers.mjs";
 import { overruledPlan } from "./cli-overruled.mjs";
 import { repoDir, start, status, stop, validate } from "./cli-manager.mjs";
 import { queue } from "./cli-queue.mjs";
@@ -71,6 +72,7 @@ const COMMANDS = {
   resume: { run: resume, options: {}, positionals: 1 },
   classify: { run: classify, options: {}, positionals: 1 },
   status: { run: status, options: {}, positionals: 0 },
+  cycle: { run: cycle, options: {}, positionals: 0 },
   start: { run: start, options: { "settle-ms": text }, positionals: 0 },
   stop: { run: stop, options: {}, positionals: 0 },
   "store-token": {
@@ -161,9 +163,13 @@ const LEDGER_SPECS = {
     options: { "reset-attempts": flag, "expect-answer-at": text },
     positionals: 1,
   },
-  finish: { options: { status: text, sender: text }, positionals: 1 },
+  finish: {
+    options: { status: text, sender: text, "setup-gap": flag },
+    positionals: 1,
+  },
   "validation-failed": { options: { "updated-at": text }, positionals: 1 },
   "validation-cleared": { options: {}, positionals: 1 },
+  "clear-setup-gap": { options: {}, positionals: 1 },
   control: {
     options: { paused: text, "max-workers": text, me: text },
     positionals: 0,

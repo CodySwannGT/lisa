@@ -12,14 +12,21 @@
  * is refused, not replaced, because replacing it would silently reset every
  * attempt count.
  *
+ * Several processes write the ledger, so `updateLedger` holds a cross-process
+ * lock (`ledger-lock.mjs`, #4828) across its whole read, change and write; an
+ * unlocked overlap let the later writer silently discard the earlier one.
+ *
  * File I/O and the clock are injected (`{fs, now}`) so tests can observe the
- * rename and pin timestamps. Nothing here reads `process.env` or a tracker.
+ * rename and pin timestamps; the lock's budget, sleep and pid probe are
+ * injectable too. Nothing here reads `process.env` or a tracker.
  * @module ledger
  */
 
 import { randomUUID } from "node:crypto";
 import * as nodeFs from "node:fs/promises";
 import { dirname, join } from "node:path";
+
+import { withLedgerLock } from "./ledger-lock.mjs";
 
 // The question writers live in ledger-questions.mjs (#4555), re-exported so
 // callers keep one import. They are called, never evaluated, at load time, so
@@ -42,6 +49,10 @@ const FINISH_STATUSES = new Set(["DONE", "FAILED"]);
  * @typedef {object} LedgerSeams
  * @property {Pick<typeof nodeFs, "readFile"|"writeFile"|"rename"|"mkdir"|"appendFile">} [fs] - File system
  * @property {() => Date} [now] - Clock
+ * @property {number} [lockTimeoutMs] - Ledger lock budget (default 5000)
+ * @property {(ms: number) => Promise<void>} [sleep] - Lock retry delay
+ * @property {(pid: number) => boolean} [isProcessLive] - Lock holder probe
+ * @property {() => number} [bootTimeMs] - Host boot time for the lock (epoch ms)
  */
 
 /**
@@ -98,10 +109,18 @@ const FINISH_STATUSES = new Set(["DONE", "FAILED"]);
  * @typedef {object} Ledger
  * @property {number} version - Shape version
  * @property {Record<string, LedgerItem>} items - Items keyed by ref
- * @property {{paused: boolean, maxWorkers: number|null, me: string|null}} control - Operator controls
+ * @property {{paused: boolean, maxWorkers: number|null, me: string|null,
+ *   setupGaps: Record<string, import("./ledger-setup-gaps.mjs").SetupGap>,
+ *   setupGapsClearedAt?: Record<string, string>}}
+ *   control - Operator controls; `setupGaps` holds the repos `spawn` refuses
+ *   until the operator clears them, `setupGapsClearedAt` when each was last
+ *   cleared (#4820; see ledger-setup-gaps.mjs)
  * @property {Record<string, ValidationFailure>} validationFailures - Backlog
  *   items that failed validation, keyed by ref, so an unchanged item is not
  *   re-validated every cycle
+ * @property {Record<string, string>} cyclers - Who ran a cycle and when
+ *   (identity to ISO time), pruned to twice the interval (#4809; see
+ *   cyclers.mjs)
  */
 
 /**
@@ -147,8 +166,9 @@ function emptyLedger() {
   return {
     version: LEDGER_VERSION,
     items: {},
-    control: { paused: false, maxWorkers: null, me: null },
+    control: { paused: false, maxWorkers: null, me: null, setupGaps: {} },
     validationFailures: {},
+    cyclers: {},
   };
 }
 
@@ -190,6 +210,7 @@ export async function readLedger(projectRoot, seams) {
     items: parsed.items ?? {},
     control: { ...empty.control, ...parsed.control },
     validationFailures: parsed.validationFailures ?? {},
+    cyclers: parsed.cyclers ?? {},
   };
 }
 
@@ -210,7 +231,9 @@ export async function writeLedger(projectRoot, ledger, seams) {
 }
 
 /**
- * Read, transform and write the ledger in one step.
+ * Read, transform and write the ledger in one step, holding the ledger lock
+ * across all three so a concurrent writer cannot interleave (#4828). A lock
+ * that stays held past its budget throws and nothing is written.
  * @template T
  * @param {string} projectRoot - Absolute project root
  * @param {LedgerSeams | undefined} seams - Injected seams
@@ -218,11 +241,15 @@ export async function writeLedger(projectRoot, ledger, seams) {
  * @returns {Promise<T>} The transform's result
  */
 export async function updateLedger(projectRoot, seams, transform) {
-  const { now } = resolveSeams(seams);
-  const current = await readLedger(projectRoot, seams);
-  const { ledger, result } = transform(current, now().toISOString());
-  await writeLedger(projectRoot, ledger, seams);
-  return result;
+  const { fs, now } = resolveSeams(seams);
+  const file = ledgerPath(projectRoot);
+  await fs.mkdir(dirname(file), { recursive: true });
+  return withLedgerLock(file, seams, async () => {
+    const current = await readLedger(projectRoot, seams);
+    const { ledger, result } = transform(current, now().toISOString());
+    await writeLedger(projectRoot, ledger, seams);
+    return result;
+  });
 }
 
 /**
@@ -336,12 +363,22 @@ export function recordProgress(projectRoot, { ref, logsHash }, seams) {
 
 /**
  * Record the worker's own terminal report.
+ *
+ * `setupGap` marks a FAILED worker whose first prompt never ran (classify
+ * said `setup-gap`, lisa#4503): the spawn that started it is refunded, so a
+ * machine setup problem never spends the item's attempts. Only a `running`
+ * item is refunded, so repeating the finish, or finishing an item that
+ * already finished, never takes away a second attempt.
  * @param {string} projectRoot - Absolute project root
- * @param {{ref: string, status: "DONE"|"FAILED", reason: string}} finish - Report
+ * @param {{ref: string, status: "DONE"|"FAILED", reason: string, setupGap?: boolean}} finish - Report
  * @param {LedgerSeams} [seams] - Injected seams
  * @returns {Promise<LedgerItem>} The updated item
  */
-export function recordFinish(projectRoot, { ref, status, reason }, seams) {
+export function recordFinish(
+  projectRoot,
+  { ref, status, reason, setupGap = false },
+  seams
+) {
   if (!FINISH_STATUSES.has(status)) {
     return Promise.reject(
       new Error(
@@ -349,19 +386,31 @@ export function recordFinish(projectRoot, { ref, status, reason }, seams) {
       )
     );
   }
+  if (setupGap && status !== "FAILED") {
+    return Promise.reject(new Error("a setup-gap finish must be FAILED"));
+  }
   return updateLedger(projectRoot, seams, (ledger, at) => {
     const previous = requireItem(ledger, ref);
+    const attempts = previous.attempts ?? 0;
+    const refund = setupGap && previous.status === "running";
     return withItem(ledger, ref, {
       ...previous,
       status,
       reason,
       finishedAt: at,
+      attempts: refund ? Math.max(0, attempts - 1) : attempts,
       // Kept: a question recorded before the finish still holds its answer
       // and the tracker marker the manager must remove (lisa#4571).
       pendingQuestion: previous.pendingQuestion ?? null,
       history: [
         ...(previous.history ?? []),
-        { event: "finish", at, status, reason },
+        {
+          event: "finish",
+          at,
+          status,
+          reason,
+          ...(setupGap ? { setupGap: true } : {}),
+        },
       ],
     });
   });
@@ -452,11 +501,13 @@ function assertControlPatch(patch) {
 
 /**
  * Merge operator controls into the ledger: `paused`, the `maxWorkers`
- * override (null clears it) and `me`, the resolved tracker identity.
+ * override (null clears it) and `me`, the resolved tracker identity. The
+ * block also carries `setupGaps` (and `setupGapsClearedAt` once a gap was
+ * cleared); this never changes them — only ledger-setup-gaps.mjs writes them.
  * @param {string} projectRoot - Absolute project root
  * @param {{paused?: boolean, maxWorkers?: number|null, me?: string|null}} patch - Fields to set
  * @param {LedgerSeams} [seams] - Injected seams
- * @returns {Promise<{paused: boolean, maxWorkers: number|null, me: string|null}>} New control block
+ * @returns {Promise<Ledger["control"]>} New control block, setup gaps included
  */
 export async function setControl(projectRoot, patch, seams) {
   assertControlPatch(patch);

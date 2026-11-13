@@ -15,9 +15,13 @@ export const BUILD_ENV_FINGERPRINTS: readonly string[] = [
 export const BOOTSTRAP_SKIP_NOTICE =
   "lisa: skipped (non-interactive environment; set LISA_BOOTSTRAP=1 to force)";
 
+// Names the missing Claude Code plugin registration outright (#4504): install
+// is hands-off by design, so a fresh clone has no Lisa commands until an
+// explicit `lisa apply .` registers them for that folder.
 const INSTALL_SKIP_NOTICE =
-  "lisa: installation leaves unrelated project templates unchanged. Run `lisa apply .` " +
-  "to apply updates, or `lisa doctor` to check freshness.";
+  "lisa: installation leaves unrelated project templates unchanged, and Claude Code " +
+  "plugins are not registered by dependency install. Run `lisa apply .` in this " +
+  "project to register them and apply updates, or `lisa doctor` to check freshness.";
 
 /**
  * Runtime state used by the bootstrap guard.

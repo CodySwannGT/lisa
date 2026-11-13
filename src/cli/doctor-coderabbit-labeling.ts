@@ -30,7 +30,7 @@ import { isShippedVersion } from "../core/retire-unmodified.js";
 import { getAtPath } from "../sync/json-path.js";
 import { loadYaml } from "../utils/yaml.js";
 import type { DoctorCheck } from "./doctor.js";
-import { readConfinedMergedConfig } from "./ui-confined-project-read.js";
+import { readConfinedMergedConfig } from "./confined-project-read.js";
 
 /** Name of the labeling check as doctor reports it. */
 export const CODERABBIT_LABELING_CHECK_NAME =

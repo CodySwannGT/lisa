@@ -1,8 +1,8 @@
 {
   "$generatedBy": "scripts/generate-export-surface.mjs",
   "$doNotEdit": "The public export surface this package ships, recorded so a removal is an OBSERVATION rather than an inference from commit-message conventions. This file's diff is what makes a removed export visible in the pull request that causes it (CodySwannGT/lisa#3718).",
-  "$modules": 276,
-  "$names": 1976,
+  "$modules": 278,
+  "$names": 1994,
   "surface": {
     "all/copy-overwrite/scripts/check-conflict-markers.mjs": [
       "UsageError",
@@ -153,6 +153,15 @@
     "all/copy-overwrite/scripts/lib/completion-proof-adapters.mjs": [
       "completionContext"
     ],
+    "all/copy-overwrite/scripts/lib/completion-proof-codepipeline.mjs": [
+      "ACCOUNT_ID_PATTERN",
+      "CODEPIPELINE",
+      "DELIVERY_MECHANISMS",
+      "PIPELINE_NAME_PATTERN",
+      "REGION_PATTERN",
+      "describeCodePipelineDelivery",
+      "validateCodePipelineDelivery"
+    ],
     "all/copy-overwrite/scripts/lib/completion-proof-conformance.mjs": [
       "validateConformance"
     ],
@@ -169,13 +178,16 @@
     ],
     "all/copy-overwrite/scripts/lib/completion-proof-github.mjs": [
       "EVIDENCE_RELEASE_ASSET_LIMIT",
+      "EVIDENCE_RELEASE_MAX_OVERFLOW",
       "EVIDENCE_RELEASE_NEAR_FULL",
       "LEGACY_EVIDENCE_RELEASE",
       "acceptedEvidenceReleases",
       "evidenceReleaseOverride",
       "githubProofTransport",
       "isAcceptedEvidenceRelease",
+      "overflowReleaseTag",
       "resolveEvidenceRelease",
+      "targetEvidenceRelease",
       "usableTag"
     ],
     "all/copy-overwrite/scripts/lib/completion-proof-markdown.mjs": [
@@ -258,6 +270,13 @@
       "mergePins",
       "planPrune",
       "reportedSha256"
+    ],
+    "all/copy-overwrite/scripts/lib/evidence-release-capacity.mjs": [
+      "ensureEvidenceRelease",
+      "excerpt",
+      "fullReleaseMessage",
+      "releaseAssets",
+      "uploadHitLimit"
     ],
     "all/copy-overwrite/scripts/lib/gate-failure-diagnosis.mjs": [
       "ATTRIBUTION",
@@ -1017,6 +1036,9 @@
       "cancellationRequest",
       "main"
     ],
+    "all/copy-overwrite/scripts/lisa-plugin-registration-notice.mjs": [
+      "pluginRegistrationNotice"
+    ],
     "all/copy-overwrite/scripts/lisa-postinstall.mjs": [
       "APPLY_FAILURE_MARKER",
       "runPostinstall"
@@ -1663,10 +1685,6 @@
       "main",
       "rootFrom"
     ],
-    "scripts/check-ui-demo-data.mjs": [
-      "extractUiCatalogProgram",
-      "inspectUiDemoData"
-    ],
     "scripts/check-whole-output-guards.mjs": [
       "ACCOUNTABLE_CALLS",
       "SCANNED_ROOTS",
@@ -1973,9 +1991,13 @@
       "snapshot"
     ],
     "scripts/lib/shell-guard-shards.mjs": [
+      "RECOVERY_PREFIX",
+      "RERUN_ALL",
+      "RERUN_FAILED",
       "completeReportedFiles",
       "identityHash",
       "mergeBundles",
+      "mergeShardDirectories",
       "nativeArgv",
       "parseShard",
       "sha256",

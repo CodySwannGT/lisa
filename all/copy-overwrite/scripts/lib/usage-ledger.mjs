@@ -98,11 +98,129 @@ function findUsageSectionRange(document) {
   }
   const afterHeading = start + heading.length;
   const nextHeadingOffset = document.slice(afterHeading).search(/^##\s+/m);
-  const end =
+  const windowEnd =
     nextHeadingOffset === -1
       ? document.length
       : afterHeading + nextHeadingOffset;
-  return { start, end };
+  const window = document.slice(afterHeading, windowEnd);
+  return { start, end: afterHeading + findManagedBlockLength(window) };
+}
+const ROLLUP_LINE_START_PATTERN = /^[ \t]*<!-- lisa:usage-rollup\s/m;
+const MANAGED_NOTE_PREFIX = "_This section is managed by Lisa";
+/**
+ * Measure how much of the heading-bounded window Lisa's rendered block owns.
+ *
+ * The next `##` heading alone is not the block's end: anything a host or a
+ * person appended after the block without a heading (an Evidence `<details>`
+ * block, a paragraph) would otherwise be owned by the section and deleted on
+ * every upsert (#4697). Lisa always renders the rollup token last, on a line of
+ * its own, so a window holding a line that starts with one ends at that line (a
+ * rollup token quoted inline in prose is not a line start and is ignored). No
+ * writer emits tokens after the rollup, but the block is extended through any
+ * `lisa:usage` token lines (and blank lines) that follow it so a hand-edited or
+ * externally repaired section keeps those tokens parsed. Table rows after the
+ * rollup are never absorbed, so a person's own table survives. A legacy or
+ * damaged section with no rollup token ends after its last usage-token line
+ * (see {@link findLastTokenLineEnd}). Neither reading needs a stored-document
+ * migration.
+ *
+ * @param window Text between the `## Lisa Usage` heading line and the next
+ *   `##` heading (or the end of the document).
+ * @returns The managed block's length in characters from the window start.
+ */
+function findManagedBlockLength(window) {
+  const rollup = ROLLUP_LINE_START_PATTERN.exec(window);
+  if (rollup === null) {
+    return (
+      findLastTokenLineEnd(window) ??
+      measureLineRun(window, 0, isManagedShapedLine)
+    );
+  }
+  const lineEnd = window.indexOf("\n", rollup.index);
+  if (lineEnd === -1) {
+    return window.length;
+  }
+  return measureLineRun(window, lineEnd + 1, isUsageTokenOrBlankLine);
+}
+/**
+ * Measure the contiguous run of lines, starting at a line boundary, that all
+ * satisfy a predicate.
+ *
+ * @param window Heading-bounded section window.
+ * @param from Offset of the first line to test; must start a line.
+ * @param belongs Predicate deciding whether a line is part of the block.
+ * @returns The offset just past the run (the window length when it reaches
+ *   the end of the window).
+ */
+function measureLineRun(window, from, belongs) {
+  const lines = window.slice(from).split("\n");
+  const firstForeign = lines.findIndex(line => !belongs(line));
+  if (firstForeign === -1) {
+    return window.length;
+  }
+  return lines
+    .slice(0, firstForeign)
+    .reduce((offset, line) => offset + line.length + 1, from);
+}
+/**
+ * Find the end of the last line in a rollup-less window that carries a usage
+ * token. Legacy layouts put free-form lines (a `### Direct Usage` sub-heading,
+ * an older managed note) between the heading and their tokens, so a run of
+ * managed-shaped lines would stop before the tokens and drop their entries;
+ * the last token line is the one boundary every such layout shares.
+ *
+ * @param window Heading-bounded section window without a rollup token.
+ * @returns The offset just past the last token line, or null when the window
+ *   has no token line at all.
+ */
+function findLastTokenLineEnd(window) {
+  const lines = window.split("\n");
+  const lastTokenLine = lines.findLastIndex(isTokenCarryingLine);
+  if (lastTokenLine === -1) {
+    return null;
+  }
+  const end = lines
+    .slice(0, lastTokenLine + 1)
+    .reduce((offset, line) => offset + line.length + 1, 0);
+  return Math.min(end, window.length);
+}
+/**
+ * Decide whether a line carries a usage token: a token line of its own, or a
+ * legacy table row with an entry token trailing its cells.
+ *
+ * @param line One line of the section window, without its newline.
+ * @returns True for usage-token lines and token-carrying table rows.
+ */
+function isTokenCarryingLine(line) {
+  const trimmed = line.trim();
+  return (
+    trimmed.startsWith("<!-- lisa:usage") ||
+    (trimmed.startsWith("|") && trimmed.includes("<!-- lisa:usage-entry"))
+  );
+}
+/**
+ * Decide whether a line is blank or carries a `lisa:usage` token.
+ *
+ * @param line One line of the section window, without its newline.
+ * @returns True for blank and usage-token lines.
+ */
+function isUsageTokenOrBlankLine(line) {
+  const trimmed = line.trim();
+  return trimmed.length === 0 || trimmed.startsWith("<!-- lisa:usage");
+}
+/**
+ * Decide whether a line could have been written by Lisa's section renderer.
+ *
+ * @param line One line of the section window, without its newline.
+ * @returns True for blank, table-row, usage-token, and managed-note lines.
+ */
+function isManagedShapedLine(line) {
+  const trimmed = line.trim();
+  return (
+    isUsageTokenOrBlankLine(line) ||
+    trimmed.startsWith("|") ||
+    trimmed.startsWith(MANAGED_NOTE_PREFIX)
+  );
 }
 /**
  * Parse the managed rollup and its optional token-completeness extension.

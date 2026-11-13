@@ -233,7 +233,7 @@ Engineering*, CC BY 4.0, <https://github.com/lopopolo/harness-engineering>
   so obvious problems are caught in seconds instead of minutes. It is what keeps
   the pre-commit hook quick enough that developers do not start looking for ways
   around it.
-- **What it is (dependency):** `oxlint` `^1.62.0`
+- **What it is (dependency):** `oxlint` `>=1.62.0 <1.86.0`
 - **What it does for us (owned capability):** Fast first-pass linting on every
   commit and in CI, driven by the exported `oxlint/*` rule sets.
 - **Why we believe it's safe (trust basis):** Trust class: **build/development

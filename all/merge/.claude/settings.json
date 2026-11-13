@@ -67,6 +67,15 @@
             "command": "bash \"$CLAUDE_PROJECT_DIR\"/scripts/lisa-hooks/worktree-binding-guard.sh"
           }
         ]
+      },
+      {
+        "matcher": "startup",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR\"/scripts/lisa-plugin-registration-notice.mjs 2>/dev/null || true"
+          }
+        ]
       }
     ]
   }

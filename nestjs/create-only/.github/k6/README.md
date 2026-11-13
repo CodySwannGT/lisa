@@ -38,21 +38,23 @@ You need one of the following:
 
 ### Direct Script Usage
 
-For more control, use the runner script directly:
+For more control, run k6 on a scenario or script directly:
 
 ```bash
-# Show all options
-./scripts/k6-run.sh --help
+# Run the smoke scenario
+k6 run .github/k6/scenarios/smoke.js
 
-# Run smoke test with JSON output
-./scripts/k6-run.sh --scenario smoke --json
+# Run the load scenario against staging with JSON output
+K6_BASE_URL=https://staging.example.com k6 run --out json=results.json .github/k6/scenarios/load.js
 
-# Run load test against staging with HTML report
-./scripts/k6-run.sh --scenario load --url https://staging.example.com --html
-
-# Run custom script
-./scripts/k6-run.sh --script .github/k6/scripts/api-test.js --url http://localhost:3000
+# Run a custom script
+K6_BASE_URL=http://localhost:3000 k6 run .github/k6/scripts/api-test.js
 ```
+
+Lisa does not ship a runner script. If your repository provides an executable
+`./scripts/k6-run.sh`, the load-test workflow uses it for standard scenarios;
+it must exit with k6's own status (99 for a threshold breach) for
+`fail_on_threshold` to apply.
 
 ### Docker Compose
 
@@ -141,10 +143,10 @@ jobs:
 | `base_url` | Base URL of the application to test | Yes | - |
 | `k6_version` | k6 version to use | No | latest |
 | `test_duration` | Override test duration (e.g., 5m, 1h) | No | Scenario default |
-| `virtual_users` | Override number of virtual users | No | Scenario default |
+| `virtual_users` | Override number of virtual users (0 or omitted keeps the scenario's own) | No | Scenario default |
 | `thresholds_config` | Path to custom thresholds JSON | No | Built-in thresholds |
-| `test_script` | Path to custom k6 test script | No | default-test.js |
-| `fail_on_threshold` | Fail workflow if thresholds not met | No | true |
+| `test_script` | Path to custom k6 test script; at its default, runs `scripts/k6-run.sh` if present, else `.github/k6/scenarios/<test_scenario>.js`. A missing file fails the job | No | default-test.js |
+| `fail_on_threshold` | Fail workflow if thresholds not met (k6 exit 99). Never suppresses a run that could not start or errored | No | true |
 | `upload_results` | Upload results as artifacts | No | true |
 | `cloud_run` | Run on k6 Cloud (requires token) | No | false |
 
@@ -335,8 +337,9 @@ See the [examples directory](./examples/) for complete integration patterns.
 The k6 setup uses a **shared implementation** that works identically in local development and CI/CD:
 
 ```
-scripts/k6-run.sh          # Unified runner script (entry point)
-    │
+k6 run .github/k6/scenarios/<name>.js   # Entry point, locally and in CI/CD
+    │                                   # (or scripts/k6-run.sh, if your
+    │                                   #  repository provides one)
     ├── Local: k6 binary or Docker
     └── CI/CD: GitHub Actions workflow
 

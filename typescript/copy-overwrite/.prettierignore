@@ -95,6 +95,7 @@ scripts/lisa-lint-staged-preflight.mjs
 scripts/lisa-mutation.mjs
 scripts/lisa-automation-provenance.mjs
 scripts/lisa-npm-updater.mjs
+scripts/lisa-plugin-registration-notice.mjs
 scripts/lisa-postinstall.mjs
 scripts/lisa-rails-prepush.mjs
 scripts/lisa-reconcile-policy.mjs
@@ -142,6 +143,7 @@ scripts/lib/automation-provenance-local.mjs
 scripts/lib/bounded-spawn.mjs
 scripts/lib/completion-authorization.mjs
 scripts/lib/completion-proof-adapters.mjs
+scripts/lib/completion-proof-codepipeline.mjs
 scripts/lib/completion-proof-conformance.mjs
 scripts/lib/completion-proof-content.mjs
 scripts/lib/completion-proof-errors.mjs
@@ -157,6 +159,7 @@ scripts/lib/evidence-prune-config.mjs
 scripts/lib/evidence-prune-gh.mjs
 scripts/lib/evidence-prune-records.mjs
 scripts/lib/evidence-prune.mjs
+scripts/lib/evidence-release-capacity.mjs
 scripts/lib/gate-failure-diagnosis.mjs
 scripts/lib/github-attestation-provider.mjs
 scripts/lib/github-attestation-recovery.mjs

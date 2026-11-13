@@ -1,0 +1,6 @@
+108c108
+< const ROLLUP_LINE_START_PATTERN = /^[ \t]*<!-- lisa:usage-rollup\s/m;
+---
+> const ROLLUP_LINE_START_PATTERN = /<!-- lisa:usage-rollup\s/;
+135d134
+<       findLastTokenLineEnd(window) ??

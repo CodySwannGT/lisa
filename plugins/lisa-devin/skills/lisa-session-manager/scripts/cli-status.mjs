@@ -10,7 +10,8 @@ import path from "node:path";
 
 import { listAgents, requireConfig, run } from "./cli-runtime.mjs";
 import { notifyProvider } from "./config.mjs";
-import { buildCurrentSessionName, buildHasSession } from "./launch.mjs";
+import { callerSessionName, otherCyclers } from "./cyclers.mjs";
+import { buildHasSession } from "./launch.mjs";
 import { listPendingQuestions } from "./ledger-questions.mjs";
 import { readLedger } from "./ledger.mjs";
 import { shellQuote } from "./token.mjs";
@@ -50,13 +51,9 @@ function answerCommandFor(ctx, ref) {
  *   another session or none, null when tmux cannot say which it is
  */
 function isManagerSelf(ctx, name) {
-  if (!ctx.env.TMUX) return false;
-  const argv = buildCurrentSessionName(ctx.env.TMUX_PANE);
-  if (argv === null) return null;
-  const probe = run("tmux", argv, { env: ctx.env });
-  const current = probe.status === 0 ? probe.stdout.trim() : "";
-  if (current === "") return null;
-  return current === name;
+  const current = callerSessionName(ctx);
+  if (current === undefined) return false;
+  return current === null ? null : current === name;
 }
 
 /**
@@ -66,7 +63,10 @@ function isManagerSelf(ctx, name) {
  * `notify` is the configured notification provider (`telegram` or `none`),
  * so the manager knows each cycle whether a channel exists. `manager.self`
  * (`true|false|null`) says whether the caller runs inside that tmux session
- * (see {@link isManagerSelf}).
+ * (see {@link isManagerSelf}). `manager.otherCyclers` lists every session
+ * other than the manager's tmux session that ran `cycle` within twice the
+ * interval, newest first, so the manager can warn about a second loop it
+ * cannot otherwise see (#4809; see cyclers.mjs).
  * @returns {Promise<{ json: object }>}
  *   `{manager,notify,control,workers,untracked,pendingQuestions}`
  */
@@ -85,6 +85,7 @@ export async function status(ctx) {
         name: config.name,
         running: tmux.status === 0,
         self: isManagerSelf(ctx, config.name),
+        otherCyclers: otherCyclers(ledger, config, ctx.now()),
       },
       notify: notifyProvider(config),
       control: ledger.control,

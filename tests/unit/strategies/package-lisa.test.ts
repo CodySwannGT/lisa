@@ -2518,7 +2518,7 @@ describe("PackageLisaStrategy", () => {
       const content = await fs.readJson(destPath);
       // Forced tooling wins over the project's pin.
       expect(content.dependencies.zod).toBe("^4.6.6");
-      expect(content.devDependencies.oxlint).toBe("1.62.0");
+      expect(content.devDependencies.oxlint).toBe(">=1.62.0 <1.86.0");
     });
 
     it("removes the inherited Vitest mutation runner from Expo projects", async () => {
@@ -2546,6 +2546,148 @@ describe("PackageLisaStrategy", () => {
       expect(content.devDependencies["@stryker-mutator/jest-runner"]).toBe(
         "^9.0.0"
       );
+    });
+  });
+
+  // Regression (#4508): every template forced oxlint and eslint-plugin-oxlint
+  // to the EXACT release 1.62.0, so an apply rewrote a host's `^1.62.0` to
+  // `1.62.0` and walked a lockfile that had resolved a compatible newer
+  // release back down, re-dirtying the host on every session-start sync. The
+  // constraint that actually exists is a ceiling, not a point: 1.86.0 is the
+  // release the parity review stopped at (its preset disables five JSDoc rules;
+  // Lisa's shared ESLint rules restore the two that were live, and the parity
+  // test records the other three as deliberately off). So the force is a
+  // bounded range, and the existing host-ahead logic decides the rest. These
+  // cases drive the REAL shipped templates so the range cannot drift.
+  describe("oxlint pair is forced as a bounded range, not an exact pin", () => {
+    const repoRoot = process.cwd();
+    const OXLINT_RANGE = ">=1.62.0 <1.86.0";
+    const OXLINT_PACKAGES = ["oxlint", "eslint-plugin-oxlint"] as const;
+
+    /**
+     * Apply a real shipped template over a host that pins the oxlint pair.
+     * @param stack - The template stack whose package.lisa.json is applied.
+     * @param hostRange - The range the host already carries for both packages.
+     * @returns The ranges written for both packages plus any refusal error.
+     */
+    const applyRealOxlintPin = async (
+      stack: "typescript" | "expo",
+      hostRange: string
+    ): Promise<{
+      written: Record<string, unknown>;
+      error: Error | null;
+    }> => {
+      if (stack === "expo") {
+        await createExpoProject(projectDir);
+      } else {
+        await createTypeScriptProject(projectDir);
+      }
+      const destPath = path.join(projectDir, "package.json");
+      await fs.writeJson(destPath, {
+        name: "host-project",
+        devDependencies: Object.fromEntries(
+          OXLINT_PACKAGES.map(pkg => [pkg, hostRange])
+        ),
+        scripts: {},
+      });
+      const error = await strategy
+        .apply(
+          path.join(repoRoot, stack, "package-lisa", "package.lisa.json"),
+          destPath,
+          "package.json",
+          createContext({ lisaDir: repoRoot })
+        )
+        .then(
+          () => null,
+          (caught: unknown) => caught as Error
+        );
+      const content = await fs.readJson(destPath);
+      return {
+        written: Object.fromEntries(
+          OXLINT_PACKAGES.map(pkg => [pkg, content.devDependencies?.[pkg]])
+        ),
+        error,
+      };
+    };
+
+    // THE BITE. The reported repro: a host on `^1.62.0` must not be rewritten
+    // to an exact pin that drags its lockfile back to 1.62.0.
+    it("does not collapse a host caret range to an exact 1.62.0 pin", async () => {
+      const outcome = await applyRealOxlintPin("typescript", "^1.62.0");
+
+      expect(outcome.error).toBeNull();
+      expect(outcome.written).toEqual({
+        oxlint: OXLINT_RANGE,
+        "eslint-plugin-oxlint": OXLINT_RANGE,
+      });
+      // The reported host's resolved release stays installable, and the
+      // unreviewed preset does not.
+      expect(satisfies("1.73.0", OXLINT_RANGE)).toBe(true);
+      expect(satisfies("1.86.0", OXLINT_RANGE)).toBe(false);
+    });
+
+    it("keeps a host that pins a newer release inside the validated range", async () => {
+      const outcome = await applyRealOxlintPin("typescript", "1.73.0");
+
+      expect(outcome.error).toBeNull();
+      expect(outcome.written).toEqual({
+        oxlint: "1.73.0",
+        "eslint-plugin-oxlint": "1.73.0",
+      });
+    });
+
+    it("keeps an in-range newer pin on the Expo template too", async () => {
+      const outcome = await applyRealOxlintPin("expo", "1.73.0");
+
+      expect(outcome.error).toBeNull();
+      expect(outcome.written).toEqual({
+        oxlint: "1.73.0",
+        "eslint-plugin-oxlint": "1.73.0",
+      });
+    });
+
+    // `^1.73.0` admits 1.86.0+, whose preset has not been reviewed against
+    // Lisa's lint policy, so it is neither "behind" (template raises it) nor a
+    // provable subset (host kept). `classifyHostPin` calls that incomparable
+    // and REFUSES, naming both sides — Lisa must neither silently admit an
+    // unreviewed preset nor silently downgrade the host.
+    it("refuses a host range that admits releases above the ceiling and names both sides", async () => {
+      const outcome = await applyRealOxlintPin("typescript", "^1.73.0");
+
+      expect(outcome.error).not.toBeNull();
+      expect(outcome.error?.message).toContain("^1.73.0");
+      expect(outcome.error?.message).toContain(OXLINT_RANGE);
+      // Refusing means refusing: the host manifest is left as it was.
+      expect(outcome.written.oxlint).toBe("^1.73.0");
+    });
+
+    it("raises a stale host floor to the bounded range", async () => {
+      const outcome = await applyRealOxlintPin("typescript", "^1.0.0");
+
+      expect(outcome.error).toBeNull();
+      expect(outcome.written).toEqual({
+        oxlint: OXLINT_RANGE,
+        "eslint-plugin-oxlint": OXLINT_RANGE,
+      });
+    });
+
+    // Every stack template (and the root governance file) must force the same
+    // range, so no stack silently reintroduces the exact pin.
+    it.each([
+      "package.lisa.json",
+      "typescript/package-lisa/package.lisa.json",
+      "expo/package-lisa/package.lisa.json",
+      "nestjs/package-lisa/package.lisa.json",
+      "cdk/package-lisa/package.lisa.json",
+      "phaser/package-lisa/package.lisa.json",
+      "harper-fabric/package-lisa/package.lisa.json",
+    ])("%s forces the oxlint pair as the bounded range", file => {
+      const template = fs.readJsonSync(path.join(repoRoot, file)) as {
+        force: { devDependencies: Record<string, string> };
+      };
+      for (const pkg of OXLINT_PACKAGES) {
+        expect(template.force.devDependencies[pkg]).toBe(OXLINT_RANGE);
+      }
     });
   });
 
