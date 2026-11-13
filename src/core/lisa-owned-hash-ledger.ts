@@ -1215,6 +1215,7 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
     "cdeab41198a0284b6415975b1dd8cfd84114631b5673f1a6ab340996cd74f946",
     "d93a9b6d28c00f687ea41e8ad1e6138eac6ea4f3d59225bd225d8151f40e4ac0",
     "e209f03a1228c3363cf39da1a378cdfe0c7276ed62c04ef7aa0f5957457772ef",
+    "fce4aebf272d4170083abf492781f20f6d726f5352d7dd9823714c1e1f2ccaf6",
   ]),
   "scripts/lib/windows-process-job.cs": Object.freeze([
     "198c23dfee840abaad516d84e70c943eca565baf13d54bc143c8e7f925be038c",
@@ -2294,6 +2295,7 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
   "scripts/npm-updater-helper-graph.json": Object.freeze([
     "035a459e896b98e0f52a1b7dc61bf45ee0701891bb5d12c6d093f85d4fba8681",
     "07349149a13f75cf3d517202317aaa1dbe6b06b8c46a45a1512097dca85157da",
+    "07b77e39e38f265b7ac3f29721e5fa29b7d1aed2371cde2fe0ae71ed5a25a971",
     "08fce845f478d3d4a29c343b93365355c69d4aba73c035c36971e72c7861d939",
     "09352aa145bc81c3c5dab282c61d084cbbe5af6242d7d12303ad764fbad53de2",
     "09ef191f06018f4fe7ac580b94e096d6370ab5a3e816e00401597a70470ebb2b",
@@ -3701,6 +3703,7 @@ export const LISA_OWNED_HASH_HISTORY_DERIVED: Readonly<
     "cdeab41198a0284b6415975b1dd8cfd84114631b5673f1a6ab340996cd74f946",
     "d93a9b6d28c00f687ea41e8ad1e6138eac6ea4f3d59225bd225d8151f40e4ac0",
     "e209f03a1228c3363cf39da1a378cdfe0c7276ed62c04ef7aa0f5957457772ef",
+    "fce4aebf272d4170083abf492781f20f6d726f5352d7dd9823714c1e1f2ccaf6",
   ]),
   "scripts/lib/windows-process-job.cs": Object.freeze([
     "198c23dfee840abaad516d84e70c943eca565baf13d54bc143c8e7f925be038c",
@@ -4710,6 +4713,7 @@ export const LISA_OWNED_HASH_HISTORY_DERIVED: Readonly<
   "scripts/npm-updater-helper-graph.json": Object.freeze([
     "035a459e896b98e0f52a1b7dc61bf45ee0701891bb5d12c6d093f85d4fba8681",
     "07349149a13f75cf3d517202317aaa1dbe6b06b8c46a45a1512097dca85157da",
+    "07b77e39e38f265b7ac3f29721e5fa29b7d1aed2371cde2fe0ae71ed5a25a971",
     "08fce845f478d3d4a29c343b93365355c69d4aba73c035c36971e72c7861d939",
     "09352aa145bc81c3c5dab282c61d084cbbe5af6242d7d12303ad764fbad53de2",
     "09ef191f06018f4fe7ac580b94e096d6370ab5a3e816e00401597a70470ebb2b",
