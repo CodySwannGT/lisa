@@ -1,5 +1,5 @@
 ---
-description: "Initiative-level PRD acceptance gate. Reads a shipped PRD and its generated child work, confirms all generated top-level work is terminal, then runs spec-conformance against the PRD plus empirical verification of the shipped surface. On a CONFORMS verdict with all checks passing it transitions the PRD shipped → verified with evidence; on a conformance miss (PARTIAL/DIVERGES) or any failing empirical check it re-opens the PRD shipped → ticketed (never blocked), creates build-ready fix tickets for the gaps, and posts a failure report — the fix tickets auto-build, the PRD re-ships, and it re-verifies (a self-healing loop). Idempotent across re-runs."
+description: "Accept or reject a whole PRD once its child work is done: verify the shipped product against it, then mark it verified or re-open it with build-ready fix tickets and a readable report."
 argument-hint: "<prd>"
 ---
 

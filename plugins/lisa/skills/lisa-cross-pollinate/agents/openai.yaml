@@ -1,4 +1,4 @@
 display_name: "Cross Pollinate"
-short_description: "Detect a host project's locally-authored coding-agent definitions (skills, subagents, rules, commands, hooks, MCP) and make each available…"
+short_description: "Make a project's own agent definitions (skills, subagents, rules, commands, hooks, MCP) available in the formats of the other agents the…"
 default_prompt:
-  - "Use $lisa-cross-pollinate: Detect a host project's locally-authored coding-agent definitions (skills, subagents, rules, commands, hooks, MCP) and make each available…."
+  - "Use $lisa-cross-pollinate: Make a project's own agent definitions (skills, subagents, rules, commands, hooks, MCP) available in the formats of the other agents the…."

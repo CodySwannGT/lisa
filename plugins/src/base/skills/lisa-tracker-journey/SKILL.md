@@ -1,6 +1,6 @@
 ---
 name: lisa-tracker-journey
-description: "Vendor-neutral wrapper for executing a ticket/issue's Validation Journey end-to-end. Reads the required `tracker` from .lisa.config.json and dispatches to lisa-jira-journey, lisa-github-journey, or lisa-linear-journey. Parses the journey, satisfies prerequisites, executes the steps, captures evidence at each marker, and posts results via tracker-evidence."
+description: "Run a ticket's Validation Journey end to end in whichever tracker the project uses: satisfy prerequisites, perform the steps, capture evidence at each marker, and post the results."
 allowed-tools: ["Skill", "Bash", "Read"]
 ---
 

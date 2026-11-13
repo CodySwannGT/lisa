@@ -115,14 +115,14 @@ describe("Phaser templates", () => {
     expect(settings.enabledPlugins?.["lisa-phaser@lisa"]).toBe(true);
   });
 
-  it("enables the lisa-wiki plugin for the docs wiki", () => {
-    const settings = readJson(PHASER_MERGE_SETTINGS) as {
+  it("enables the lisa-wiki plugin for every project, Phaser included", () => {
+    const settings = readJson("all/merge/.claude/settings.json") as {
       readonly enabledPlugins?: Record<string, boolean>;
     };
     expect(settings.enabledPlugins?.["lisa-wiki@lisa"]).toBe(true);
   });
 
-  it("ships a docs-focused wiki config with no business roster", () => {
+  it("ships a docs-focused wiki config at the fixed wiki/ root", () => {
     const config = readJson(
       "phaser/create-only/wiki/lisa-wiki.config.json"
     ) as {
@@ -131,10 +131,11 @@ describe("Phaser templates", () => {
       readonly staff?: readonly unknown[];
       readonly categories?: readonly string[];
     };
-    expect(config.mode).toBe("embedded");
-    expect(config.wikiRoot).toBe("wiki");
-    // Docs-only: opt out of the default Chief/Sales/Marketing/Finance roster.
-    expect(config.staff).toEqual([]);
+    // Every wiki lives at wiki/ in its own repo: no repo modes, no root override,
+    // and no digital-staff roster.
+    expect(config.mode).toBeUndefined();
+    expect(config.wikiRoot).toBeUndefined();
+    expect(config.staff).toBeUndefined();
     expect(config.categories).toContain("architecture");
     expect(config.categories).toContain("conventions");
   });

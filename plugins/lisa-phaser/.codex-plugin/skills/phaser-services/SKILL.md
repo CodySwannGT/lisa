@@ -1,8 +1,8 @@
 ---
 name: phaser-services
-description: "wiring cross-cutting services…"
+description: "Wire shared services and state…"
 ---
-This skill should be used when wiring cross-cutting services and shared state in a Phaser 4 game — the typed registry wrapper for global state, a single dedicated EventsCenter bus (never game.events), the .on()/.off() listener discipline enforced in scene shutdown, SoundService (mobile audio unlock on first gesture), InputService (semantic actions instead of raw keys), and SaveService (versioned localStorage with a migration chain). Use it when adding global state, an event bus, audio/input/save plumbing, or fixing listener leaks and lost saves. Pairs with the official scenes skill, phaser-testing, and phaser-i18n.
+Wire shared services and state in a Phaser 4 game: typed registry, one event bus, listener cleanup, and sound, input, and versioned save services. Use when adding global state or plumbing, or fixing listener leaks and lost saves.
 
 
 # Phaser 4 Services and Shared State

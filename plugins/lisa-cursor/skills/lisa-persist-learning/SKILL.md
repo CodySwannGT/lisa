@@ -1,6 +1,6 @@
 ---
 name: lisa-persist-learning
-description: This skill should be used when a candidate learning (from a failure signal, rejection, or debrief) needs to be judged and routed. It computes a stable fingerprint, runs the candidate through the hostile-default learning-judge gate, and performs exactly the verdict's side effects — a dropped-with-reason note on the triggering issue (drop), an automatically filed upstream Lisa ticket with marker dedupe, evidence, and a per-run cap (lisa-upstream), or a confidence-routed pull request that touches only the learnings surface (durable-learning, or planning-miss — a dispatched item that needed a human because planning let a gap through, which also leaves a countable planning-miss note on the item). Idempotent via marker dedupe; headless-safe; never blocks the primary build flow.
+description: "Judge a candidate learning and act on the verdict: drop it with a note, file an upstream Lisa ticket, or open a pull request adding it to the learnings ledger. Idempotent and never blocks the main flow."
 ---
 
 # Persist Learning

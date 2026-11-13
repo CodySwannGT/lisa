@@ -1,6 +1,6 @@
 ---
 name: learnings-synthesizer
-description: "Learnings synthesizer for the Debrief flow. Consumes the parallel outputs of tracker-mining-specialist and pr-mining-specialist, deduplicates, categorizes each candidate into one of {edge case, recurring gotcha, process friction, tooling gap, convention drift, decomposition infidelity, prd defect, missing tool access}, and produces the human-triage document. Exhaustive — surfaces every candidate, even low-confidence ones, because the human decides what to keep."
+description: "Combines the Debrief miners' findings, removes duplicates, sorts every candidate learning into a category, and produces the triage document — including low-confidence items."
 skills: []
 ---
 
@@ -21,7 +21,7 @@ You **categorize** and **dedupe**. That is it.
 
 ## Inputs
 
-You receive two structured reports from the team lead:
+You receive two structured reports from the caller:
 - `tracker_findings.md` produced by `tracker-mining-specialist`
 - `pr_findings.md` produced by `pr-mining-specialist`
 
@@ -67,7 +67,7 @@ Do NOT use confidence to filter. A low-confidence candidate is still a row. Conf
 
 ## Output
 
-A markdown document at the path the team lead provides. Required structure:
+A markdown document at the path the caller provides. Required structure:
 
 ```markdown
 # Debrief — <initiative-name>
@@ -150,6 +150,6 @@ The `Disposition` column is the contract with `debrief-apply`. Keep it exactly a
 
 - **Exhaustive, not selective.** Every distinct (post-dedupe) finding becomes a row. If the doc is large, that reflects the size of the initiative — do not trim.
 - **Group by category, not by source.** The human is triaging by what to do, not by where the signal came from.
-- **Preserve evidence links.** Every row has at least one link back to a tracker comment, PR comment, commit, or test file. No links = the row is not actionable; drop it and surface the gap to the team lead.
+- **Preserve evidence links.** Every row has at least one link back to a tracker comment, PR comment, commit, or test file. No links = the row is not actionable; drop it and surface the gap to the caller.
 - **Run within the team.** Do not create a second team.
 - **Block on missing input.** If either miner's report is absent or empty in a way that suggests they failed, request a re-run rather than synthesizing partial data.

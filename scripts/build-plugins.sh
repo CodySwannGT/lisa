@@ -320,7 +320,7 @@ for stack in "${STACKS[@]}"; do
 done
 
 # Standalone plugins (not language stacks): each builds plugins/src/<name> -> plugins/lisa-<name>
-STANDALONE=(wiki openclaw)
+STANDALONE=(wiki)
 for name in "${STANDALONE[@]}"; do
   build_plugin "$name" "lisa-$name"
 done

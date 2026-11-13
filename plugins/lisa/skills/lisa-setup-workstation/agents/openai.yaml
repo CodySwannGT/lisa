@@ -1,4 +1,4 @@
 display_name: "Setup Workstation"
-short_description: "Prepare a machine — a fresh laptop or a throwaway container — to run coding agents, before any repository exists"
+short_description: "Prepare a new machine or container to run coding agents before any repo exists: detect installed agents, ask which credential manager to…"
 default_prompt:
-  - "Use $lisa-setup-workstation: Prepare a machine — a fresh laptop or a throwaway container — to run coding agents, before any repository exists."
+  - "Use $lisa-setup-workstation: Prepare a new machine or container to run coding agents before any repo exists: detect installed agents, ask which credential manager to…."

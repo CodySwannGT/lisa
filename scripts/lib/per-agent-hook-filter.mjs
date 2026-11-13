@@ -17,7 +17,7 @@
  *     flattened {command, matcher} entries, ${CURSOR_PLUGIN_ROOT}/hooks/ command
  *     paths) via buildCursorHooksJson; strip inject-rules.sh (rules ship as native
  *     rules/*.mdc — the single delivery path; injecting would double-deliver),
- *     Claude-team-specific scripts, and `entire hooks claude-code *` calls
+ *     and `entire hooks claude-code *` calls
  *   - agy: this filter is NOT consumed for agy. agy hooks ship as a
  *     plugin-bundled ROOT hooks.json emitted by
  *     generate-agy-plugin-artifacts.mjs (its own AGY_PLUGIN_HOOKS map is the
@@ -26,9 +26,8 @@
  *     ship as agy hooks. The agy column below is retained only as conceptual
  *     ship-list documentation (block-no-verify.sh, install-pkgs.sh,
  *     setup-jira-cli.sh; strips inject-rules.sh — no full rules tree on agy
- *     — enforce-team-first.sh, inject-flow-context.sh, and `entire ...` calls).
- *   - Copilot: strip SubagentStart hooks (event missing), strip Claude-team-specific
- *     scripts, conditionally strip inject-rules.sh if the rules-auto-load probe is
+ *     — inject-flow-context.sh, and `entire ...` calls).
+ *   - Copilot: strip SubagentStart hooks (event missing), conditionally strip inject-rules.sh if the rules-auto-load probe is
  *     positive (caller passes copilotRulesAutoLoads via options)
  *   - Devin: the Copilot ship list (Devin has no SubagentStart either, and does
  *     not load the nested rules/ tree, so inject-rules.sh stays), emitted as a
@@ -53,6 +52,19 @@ const SCRIPT_RULES = {
     codex: true,
     cursor: true,
     agy: true, // ships via AGY_PLUGIN_HOOKS (agy-protocol adapter), like the other PreToolUse guards
+    copilot: true,
+    devin: true,
+  },
+  // Bash-only and reads nothing agent-specific: it tokenizes a shell command
+  // and refuses `$?` read straight after a filtered pipeline (the
+  // falsifiable-checks rule's masked-exit-status failure). Documented gap: agy
+  // gets no adapter — AGY_PLUGIN_HOOKS wires only the listed guards — so on
+  // agy the rule's prose and CI exit codes are the only protection.
+  "block-masked-exit-status.sh": {
+    claude: true,
+    codex: true,
+    cursor: true,
+    agy: false,
     copilot: true,
     devin: true,
   },
@@ -127,14 +139,6 @@ const SCRIPT_RULES = {
     agy: false,
     copilot: true,
     devin: true,
-  },
-  "enforce-team-first.sh": {
-    claude: true,
-    codex: false,
-    cursor: false,
-    agy: false,
-    copilot: false,
-    devin: false,
   },
   "inject-rules.sh": {
     claude: true,
@@ -673,8 +677,8 @@ export function filterScriptsForAgent(scriptFilenames, agent) {
  *   Cursor: { version: 1, hooks: { "<cursorEvent>": [ { command, matcher? } ] } }
  *
  * The transformation:
- *   1. Filters each handler for the cursor agent (drops inject-rules.sh,
- *      enforce-team-first.sh, and `entire hooks claude-code *` calls).
+ *   1. Filters each handler for the cursor agent (drops inject-rules.sh
+ *      and `entire hooks claude-code *` calls).
  *   2. Translates Claude PascalCase event names to Cursor camelCase.
  *   3. Flattens each matcher-group into one `{ command, matcher? }` per surviving
  *      handler (unwrapping Claude's `{ type: "command", command }`).

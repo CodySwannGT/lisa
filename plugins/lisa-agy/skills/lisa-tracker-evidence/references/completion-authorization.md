@@ -402,9 +402,10 @@ one of the accepted releases. Every command honours it:
 `evidence-release --ensure` creates and capacity-checks it, and
 `publish-completion-proof` uploads the completion record to it and reads it
 back from it. The publisher and `evidence-release` share one resolver, so the
-release the publisher uploads to is always the one `evidence-release` prints in
-the same environment. A pin is an exact choice: a full pinned release is
-refused and never rolls over. Unset `LISA_EVIDENCE_RELEASE` to let Lisa roll
+release the publisher uploads to is always the one `evidence-release --ensure`
+prints in the same environment; plain `evidence-release` does not roll over, so
+after a rollover it can name the full release instead. A pin is an exact
+choice: a full pinned release is refused and never rolls over. Unset `LISA_EVIDENCE_RELEASE` to let Lisa roll
 over, or pin a release that has room.
 
 Creating an evidence release is a real GitHub release: it fires `release`

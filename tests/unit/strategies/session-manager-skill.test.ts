@@ -152,7 +152,13 @@ describe.each(Object.entries(COMMANDS))("/lisa:%s command", (name, skill) => {
   });
 
   it.each(COMMAND_ROOTS)("ships byte-identical in %s", root => {
-    expect(read(`${root}/${name}.md`)).toBe(source);
+    // Only Claude honours disable-model-invocation; the other variants drop it
+    // (scripts/lib/nest-plugin-commands.mjs stripClaudeOnlyCommandKeys).
+    const expected =
+      root === "plugins/lisa/commands"
+        ? source
+        : source.replace(/^disable-model-invocation:.*\n/m, "");
+    expect(read(`${root}/${name}.md`)).toBe(expected);
   });
 
   it("needs no generated Codex command skill: the authored skill owns the name", () => {

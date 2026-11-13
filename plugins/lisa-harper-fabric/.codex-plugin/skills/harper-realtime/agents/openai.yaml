@@ -1,4 +1,4 @@
 display_name: "Harper Realtime"
-short_description: "adding or troubleshooting…"
+short_description: "Add or troubleshoot Harper…"
 default_prompt:
-  - "Use $harper-realtime: adding or troubleshooting…."
+  - "Use $harper-realtime: Add or troubleshoot Harper…."

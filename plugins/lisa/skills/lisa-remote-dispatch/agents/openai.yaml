@@ -1,4 +1,4 @@
 display_name: "Remote Dispatch"
-short_description: "Route one unit of work to a remote execution surface"
+short_description: "Send one unit of work to a remote execution surface (Codex Cloud or Claude web) after checking the environment is ready, record the task…"
 default_prompt:
-  - "Use $lisa-remote-dispatch: Route one unit of work to a remote execution surface."
+  - "Use $lisa-remote-dispatch: Send one unit of work to a remote execution surface (Codex Cloud or Claude web) after checking the environment is ready, record the task…."

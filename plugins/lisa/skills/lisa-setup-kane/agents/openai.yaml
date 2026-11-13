@@ -1,4 +1,4 @@
 display_name: "Setup Kane"
-short_description: "Configure TestMu Kane CLI as an optional Lisa empirical-browser provider"
+short_description: "Configure TestMu Kane CLI as an optional browser-verification provider, including the human approval for cloud uploads, version pin, auth…"
 default_prompt:
-  - "Use $lisa-setup-kane: Configure TestMu Kane CLI as an optional Lisa empirical-browser provider."
+  - "Use $lisa-setup-kane: Configure TestMu Kane CLI as an optional browser-verification provider, including the human approval for cloud uploads, version pin, auth…."

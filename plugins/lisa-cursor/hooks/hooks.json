@@ -46,6 +46,10 @@
         "matcher": "Bash"
       },
       {
+        "command": "${CURSOR_PLUGIN_ROOT}/hooks/block-masked-exit-status.sh",
+        "matcher": "Bash"
+      },
+      {
         "command": "${CURSOR_PLUGIN_ROOT}/hooks/block-instruction-file-edits.sh",
         "matcher": "Bash"
       },

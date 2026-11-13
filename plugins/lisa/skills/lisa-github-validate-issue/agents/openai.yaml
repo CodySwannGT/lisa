@@ -1,4 +1,4 @@
 display_name: "Github Validate Issue"
-short_description: "Validates a proposed GitHub Issue spec (or an existing issue) against the organizational quality gates without writing anything"
+short_description: "Check a proposed or existing GitHub issue against the organization's quality gates and return PASS/FAIL per gate with fixes"
 default_prompt:
-  - "Use $lisa-github-validate-issue: Validates a proposed GitHub Issue spec (or an existing issue) against the organizational quality gates without writing anything."
+  - "Use $lisa-github-validate-issue: Check a proposed or existing GitHub issue against the organization's quality gates and return PASS/FAIL per gate with fixes."

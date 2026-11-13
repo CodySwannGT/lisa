@@ -23,14 +23,13 @@ const PLUGIN_ROOTS = [
   "plugins/lisa-cursor",
 ] as const;
 
+// Reference bodies only: since the 2026-11 eager-tier cut the always-loaded
+// verification head carries a one-line pointer, and the full credential
+// contract lives in the reference body.
 const VERIFICATION_RULE_PATHS = [
-  "plugins/src/base/rules/eager/verification.md",
   "plugins/src/base/rules/reference/verification.md",
-  "plugins/lisa/rules/eager/verification.md",
   "plugins/lisa/rules/reference/verification.md",
-  "plugins/lisa-copilot/rules/eager/verification.md",
   "plugins/lisa-copilot/rules/reference/verification.md",
-  "plugins/lisa-cursor/rules/verification.mdc",
   "plugins/lisa-cursor/rules/verification-reference.mdc",
 ] as const;
 

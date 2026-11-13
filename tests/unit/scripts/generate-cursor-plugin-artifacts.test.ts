@@ -33,7 +33,6 @@ import {
   CLAUDE_PLUGIN_DIR,
   DOT_MCP_JSON,
   EAGER_RULES,
-  ENFORCE_TEAM_FIRST,
   HOOKS_JSON,
   INJECT_RULES,
   MCP_JSON,
@@ -146,12 +145,11 @@ describe("generate-cursor-plugin-artifacts (Cursor-native shape — issue #1055)
         }
       });
 
-      it("strips Claude-only entries (entire calls, enforce-team-first)", () => {
+      it("strips Claude-only entries (entire calls)", () => {
         const serialized = JSON.stringify(
           fs.readJsonSync(path.join(outDir, "hooks", HOOKS_JSON))
         );
         expect(serialized).not.toContain("entire hooks claude-code");
-        expect(serialized).not.toContain(ENFORCE_TEAM_FIRST);
       });
     });
 
@@ -423,7 +421,6 @@ describe("committed Cursor artifacts (regression — issue #1055)", () => {
       );
       expect(serialized).not.toContain(INJECT_RULES);
       expect(serialized).not.toContain("entire hooks claude-code");
-      expect(serialized).not.toContain(ENFORCE_TEAM_FIRST);
       expect(
         fs
           .readdirSync(path.join(CURSOR_BASE, "rules"))

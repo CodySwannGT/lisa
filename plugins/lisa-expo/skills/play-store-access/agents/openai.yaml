@@ -1,4 +1,4 @@
 display_name: "Play Store Access"
-short_description: "Read-only Google Play Console access layer for Expo projects"
+short_description: "Read-only Google Play Console access for Expo projects: set up Play Developer API credentials, resolve the package name, and check…"
 default_prompt:
-  - "Use $play-store-access: Read-only Google Play Console access layer for Expo projects."
+  - "Use $play-store-access: Read-only Google Play Console access for Expo projects: set up Play Developer API credentials, resolve the package name, and check…."

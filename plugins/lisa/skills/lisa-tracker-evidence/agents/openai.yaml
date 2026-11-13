@@ -1,4 +1,4 @@
 display_name: "Tracker Evidence"
-short_description: "Vendor-neutral wrapper for posting verification evidence"
+short_description: "Post verification evidence for a ticket in whichever tracker the project uses: upload it to the GitHub evidence release, update the PR…"
 default_prompt:
-  - "Use $lisa-tracker-evidence: Vendor-neutral wrapper for posting verification evidence."
+  - "Use $lisa-tracker-evidence: Post verification evidence for a ticket in whichever tracker the project uses: upload it to the GitHub evidence release, update the PR…."

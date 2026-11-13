@@ -1,42 +1,16 @@
 # Intent Routing
 
-MANDATORY: On the **first user message of a session**, classify the request using the Flow Classification Protocol below and state the chosen flow before doing any other work. Do not respond to the substance of the request, do not start work, do not ask questions until you have stated which flow applies. Once a flow is established, treat it as fixed for the remainder of the session — **do not re-classify on subsequent messages**, even if a follow-up looks vague or conversational ("wait, what did you just do?", "now run the tests", "thanks"). Subsequent messages operate within the established flow unless the user explicitly changes scope. Skipping classification leads to unstructured responses that bypass readiness gates.
+The catalog of Lisa's flows: what each one is for, the readiness gate it checks, and its sequence. Most flows are entered through their own skill — dispatched by the session manager or a scheduler, or invoked as a slash command — so the flow is already decided and no classification step is needed. Use this catalog when a request arrives with no flow attached, or when a flow needs to hand off to another.
 
-Each flow has a readiness gate that MUST pass before work begins. If the gate fails, stop and ask for what is missing.
+## Flow Classification
 
-## Flow Classification Protocol
+1. A slash command or dispatched work item already determines the flow.
+2. Otherwise, match the request against the flow definitions below. If it fits none, treat it as "No flow" and do the request directly.
+3. A subagent works inside the flow its parent chose.
 
-This protocol runs **once per session**, on the first user message. After that, every later message inherits the established flow — do not re-run classification.
+## Orchestration
 
-1. If the user invoked a slash command (`/lisa:research`, `/lisa:plan`, `/lisa:implement`, `/lisa:verify`, `/lisa:monitor`, `/lisa:intake`, etc.), the flow is already determined -- skip classification.
-2. Read the user's request and match it against the flow definitions below.
-3. If you cannot confidently classify the request:
-   - **Interactive session** (user is present): present a multiple choice using AskUserQuestion with options: Research, Plan, Implement, Verify, Debrief, No flow.
-   - **Headless/non-interactive session** (running with `-p` flag, in a CI pipeline, or as a scheduled agent): do NOT ask the user. Classify to the best of your ability from available context (ticket content, prompt text, current branch state). If you truly cannot classify, default to "No flow" and proceed with the request as-is.
-4. Once a flow is selected, **echo it back explicitly** before doing anything else. State the flow, the work type (if applicable), and a one-sentence justification for why this flow was chosen. Example:
-
-   > **Flow: Implement/Fix**
-   > This is a bug report with a specific error and reproduction steps, so it routes to the Fix work type within the Implement flow.
-
-   This echo is mandatory. Do not skip it, abbreviate it, or bury it in other output. The user must see the flow classification before any work begins.
-5. If you are a subagent: your parent agent has already determined the flow -- do NOT ask the user to choose a flow. Execute your assigned work within the established flow context.
-
-## Orchestration Selection Protocol
-
-Orchestration is owned by the **lifecycle skill** for the chosen flow, not by this rule. Each top-level lifecycle skill (`lisa-research`, `lisa-plan`, `lisa-implement`, `lisa-verify`, `lisa-monitor`, `lisa-intake`) contains its own cascade-safe orchestration preamble — that's where the team is created (or skipped, if already inside one).
-
-What this rule still enforces:
-
-1. **Echo orchestration mode immediately after echoing the flow** (in the same message), so the user sees both before any work begins:
-
-   > **Orchestration: agent team** (or **single agent**)
-   > One-sentence justification.
-
-2. **Cascade rule (load-bearing)**: Before creating a team, determine your role. You are *inside* an agent team only if you are yourself a spawned teammate/subagent — you were spawned into a team context, or your context references a team lead you report to. A lead/root session is never "inside" a team in this sense, even when a prior team-creation or `Agent` call exists in the session: the lead simply keeps using its existing team (or forms one with its first named spawn) — including when a lifecycle skill is invoked there by `lisa-intake`. If you ARE a spawned teammate, **do NOT create a second team** — many harnesses reject double-creates and the work stalls — and do NOT collapse the nested flow into inline single-agent work. The nested flow must request the existing team lead add the specialist agent(s) it needs to the current team and coordinate through the shared task state. On Claude, teammates cannot add named teammates (teams are flat), so message the lead with the teammate(s), assignments, and completion criteria. On Codex, ask the addressable lead/root to `multi_agent_v1.spawn_agent` the specialists; if no lead handle exists but spawning is available, spawn the bounded specialist agent(s), `wait_agent`, and relay results upward. Invoke flows via the Skill tool; never satisfy a team-first flow by doing all the work inline.
-
-3. **Default mode**: `Research`, `Plan`, `Implement`, `Intake`, and `Debrief` run as agent teams. (`Intake` is a special case: the Intake skill itself is a thin dispatcher that creates no team and never spawns the lifecycle flow as a subagent — the team is created by the per-item lifecycle skill, `lisa-plan` or `lisa-implement`, that Intake dispatches in-session, so the session still runs as an agent team.) The `Implement` flow — including every work type (`Build`, `Fix`, `Improve`, `Investigate-Only`) — is **always** a team flow. Bug fixes that "look simple" are not an exception: the Reproduce sub-flow, debug-specialist, bug-fixer, parallel reviewers, and verification-specialist all need to compose. `Debrief` runs as a team because tracker-mining and pr-mining parallelize cleanly and synthesis gates on both completing. `Verify` (standalone), `Monitor` (standalone) and `Measure` (standalone) use the One-shot Sub-agents pattern (see `## Orchestration` below) — these flows are linear with no parallelism and the team overhead is not warranted. Single-agent mode is otherwise reserved for: `product-walkthrough` invoked standalone (not as part of Research/Plan), `debrief-apply` (deterministic routing of human-marked dispositions), and one-off diagnostic Bash/Read sessions that don't invoke any lifecycle skill. When in doubt, use a team.
-
-The mechanical team bootstrap directive lives inside each lifecycle skill — see those skills' orchestration preambles for the exact wording. Modern Claude Code uses the implicit team model (the first `Agent` spawn establishes the team); older Claude Code may still expose `TeamCreate`. Other runtimes must use their equivalent team-discovery and team-creation tools, or explicitly declare the no-team fallback when no such tool exists.
+Each lifecycle skill decides how to run its own work. The default is a single agent doing the work itself. Use subagents only for genuinely independent, sizeable tracks that benefit from running in parallel or from a fresh context — for example the parallel review specialists, or the tracker- and PR-mining passes in Debrief. Do not delegate work you can finish in a handful of tool calls, and do not use a subagent to re-check your own work.
 
 ## Readiness Gate Protocol
 
@@ -386,43 +360,3 @@ The full lifecycle for a large initiative: Research -> Plan -> Implement (per it
 ## Sub-flow Usage
 
 Flows reference sub-flows by name. When a flow says "Investigate sub-flow", execute the full Investigate sub-flow sequence. When it says "Review sub-flow", execute the full Review sequence. Sub-flows can be invoked by any main flow.
-
-## Orchestration
-
-> **Note**: Orchestration authority belongs to lifecycle skills (see `## Orchestration Selection Protocol` above). This section documents the patterns that lifecycle skills implement — it is reference material, not a directive for this rule to choose modes independently.
-
-Lifecycle skills dispatch their agents according to the flow's shape. The following patterns are how they do it — do not default to the heaviest one.
-
-### Agent Teams (default for multi-step flows)
-
-Use an **agent team** (runtime team creation + durable task state per step) for:
-
-- **Implement** (Build, Fix, Improve) — long sequences with parallel review and a real risk of compaction
-- **Plan** — multiple specialists feeding a shared decomposition
-- **Research** — multiple specialists feeding a shared PRD
-- **Debrief** — tracker-mining and pr-mining run in parallel and gate the synthesizer; the work-item set can be large, so durable task state matters
-- Any flow that invokes the **Review sub-flow** (the four review specialists run in parallel and gate a single follow-up task)
-
-Why: these flows have enough steps that context compaction is likely; the Review sub-flow is parallel-by-design and `blockedBy` expresses that cleanly; durable task state lets the team lead recover assignments after compaction.
-
-When using a team:
-
-1. Create one team per top-level flow invocation. Do not nest teams for sub-flows — sub-flow steps become tasks within the existing team.
-2. Express parallelism with `blockedBy`. The Review sub-flow's four specialists are independent; the "implement valid suggestions" task is `blockedBy` all four.
-3. On every TaskUpdate that sets `owner`, also store it in `metadata.owner` so the assignment survives context compaction.
-4. Re-read TaskList after any compaction event before assigning new work.
-
-### One-shot Sub-agents (for short or single-agent flows)
-
-Use direct `Agent` tool invocations (no team) for:
-
-- **Verify** when run standalone — it's a linear gate sequence with no parallelism
-- **Monitor** standalone — single specialist (`ops-specialist`) producing a report
-- **Investigate Only** spikes — single investigation, findings out
-- Any flow chained as a sub-flow inside a larger team — its agents become tasks in the parent team, not a new team
-
-Why: team creation plus per-step task state is real overhead. For a one-or-two-agent flow with no parallelism, the bookkeeping cost outweighs the recovery and orchestration benefits.
-
-### When in doubt
-
-If the flow has more than three agent steps, or any parallel step, or is likely to span a compaction boundary, use a team. Otherwise, sub-agents are fine.

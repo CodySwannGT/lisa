@@ -35,7 +35,12 @@ import path from "node:path";
 
 import { describe, expect, it } from "vitest";
 
-/** Every root shipping the rule as `rules/eager/<slug>.md`. */
+/**
+ * Every root shipping the rule. Since the 2026-11 eager-tier cut the pointer
+ * lives in the `when-to-stop` reference body (the eager head carries the
+ * one-line "re-read `AGENTS.md` from disk" instruction), which absorbed the
+ * former `settled-decisions` head.
+ */
 const MARKDOWN_ROOTS = [
   "plugins/src/base",
   "plugins/lisa",
@@ -43,7 +48,7 @@ const MARKDOWN_ROOTS = [
 ] as const;
 
 /** Cursor ships the same rule as a front-mattered `.mdc` at a flat path. */
-const CURSOR_RULE = "plugins/lisa-cursor/rules/settled-decisions.mdc";
+const CURSOR_RULE = "plugins/lisa-cursor/rules/when-to-stop-reference.mdc";
 
 /** The canonical heading a host is expected to use. */
 const HEADING = "## Standing rulings";
@@ -64,8 +69,8 @@ const copies = (): readonly (readonly [string, string])[] => [
   ...MARKDOWN_ROOTS.map(
     root =>
       [
-        `${root}/rules/eager/settled-decisions.md`,
-        read(`${root}/rules/eager/settled-decisions.md`),
+        `${root}/rules/reference/when-to-stop.md`,
+        read(`${root}/rules/reference/when-to-stop.md`),
       ] as const
   ),
   [CURSOR_RULE, read(CURSOR_RULE)] as const,

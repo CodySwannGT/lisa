@@ -1,6 +1,6 @@
 ---
 name: lisa-github-validate-issue
-description: "Validates a proposed GitHub Issue spec (or an existing issue) against the organizational quality gates without writing anything. Returns a structured PASS/FAIL report per gate with concrete remediation. The GitHub counterpart of lisa-jira-validate-ticket — same gate definitions, translated to the GitHub Issues data model. Single source of truth for what makes a valid GitHub Issue. Both the write path (github-write-issue runs it pre-write) and the dry-run path (github-to-tracker runs it during PRD intake) call this skill."
+description: "Check a proposed or existing GitHub issue against the organization's quality gates and return PASS/FAIL per gate with fixes. Read-only; shared by the write path and PRD intake dry runs."
 allowed-tools: ["Bash", "Read"]
 ---
 
