@@ -59,7 +59,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lib/completion-proof-reader.mjs":
       "f134b65158605510bf188429d6aa5e713ed75a4d78877efc6211b440b3a805f7",
     "all/copy-overwrite/scripts/lib/completion-proof-shape.mjs":
-      "b0ac2109d1e17cdc83d42b842ccbd43ca10f3d34d1b2d03067c434e05b19b9e3",
+      "4626a90f8e7258dc90d51c6abbec967dcf16d8d8ed12d5af34838617bc01b06c",
     "all/copy-overwrite/scripts/lib/completion-proof-source.mjs":
       "7aa9673c7de21fa64e572043e7e76774e7cb57210a54f4603a72e88be97510a3",
     "all/copy-overwrite/scripts/lib/evidence-prune-apply.mjs":
@@ -1469,7 +1469,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-github-to-tracker/SKILL.md":
       "f4bc19312455f8b76465597c345645c643ffdffd1baa530559478be89cdbd0cc",
     "plugins/src/base/skills/lisa-github-validate-issue/SKILL.md":
-      "baa9a5d1907100ae548c144e2548388c0b643eb28a0d6ff7d3bfc0b7b04c8e4e",
+      "610f422bb27972c59f859d9dd15228be83afa333a575352f93d053c6c88a58ef",
     "plugins/src/base/skills/lisa-github-verify/SKILL.md":
       "c53cd2deb36b4191e77651da4a95df2ee022e3b8b12d1dd248e7466746b74578",
     "plugins/src/base/skills/lisa-github-write-issue/SKILL.md":
@@ -1525,7 +1525,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-jira-sync/SKILL.md":
       "943a89c2fd70b7cd1f13badc8ce0018f9f5ff18a0a7443440ba68a309bf4685f",
     "plugins/src/base/skills/lisa-jira-validate-ticket/SKILL.md":
-      "9c59a342346039d91b5cd83d7448dbc0843863deeca4aee8b616ead8d9959651",
+      "25a9335ec0a405ba08d3f0ae04af99610191cb3b3da11731b06bab738903d338",
     "plugins/src/base/skills/lisa-jira-verify/SKILL.md":
       "55484ce81b43a167db9bbeed62edf8b204676827b7ef7bf1892c17453027c7b6",
     "plugins/src/base/skills/lisa-jira-write-ticket/SKILL.md":
@@ -1559,7 +1559,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-linear-to-tracker/SKILL.md":
       "16859e1828212bf053b252b7c03bd1fb3b7352da4fb9273b5ef063228080e601",
     "plugins/src/base/skills/lisa-linear-validate-issue/SKILL.md":
-      "a0291ad42da4dc76d13314d4f312caef8345941ab2e28a957fa8bd80f6d6450a",
+      "59f503fca655b3a18614afaba41537e46caee628659c630fabb93b8e1779190d",
     "plugins/src/base/skills/lisa-linear-verify/SKILL.md":
       "17251e8d6c762b69b2ca6a77d9cfe44beba31dfc0444de4cde051747e2c99eab",
     "plugins/src/base/skills/lisa-linear-write-issue/SKILL.md":
@@ -1881,7 +1881,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-tracker-create/SKILL.md":
       "fecd0c3cc930b0f87578bc0bee14009509883cb21b33e94e3e7a42792dcd888e",
     "plugins/src/base/skills/lisa-tracker-evidence/SKILL.md":
-      "23b8a45e9f5307563e68b05f7c4cff677431ea013402e47a89f622b44155602d",
+      "65f4b7cd7c18a4b381333139fde88968a602f30f9b2fa80ac7fbc24237672b5d",
     "plugins/src/base/skills/lisa-tracker-evidence/references/completion-authorization.md":
       "fc1720bbf2dbba095ca8adb3305ab501d71f0c6fe2d9b90581d97becaf159216",
     "plugins/src/base/skills/lisa-tracker-journey/SKILL.md":
@@ -2595,7 +2595,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "rails/copy-overwrite/sgconfig.yml":
       "ff5b62de42eb969a851fdc53ee6932a32ffe010b567ed2c62460ed454ad2a24f",
     "rails/create-only/.github/workflows/ci.yml":
-      "52755137de2a3716530b36e17f7ec92fafa98f0bbfac6d20773565af9232587e",
+      "8dc0485d0cc9c7cfb6a7524de7cb2984bc24d69fc49e9f0e44e6c237673bd046",
     "rails/create-only/.github/workflows/deploy.yml":
       "68fdb813f30cfa71121a96022021f4d351e1e2497c472796c56bb8d47b9655c8",
     "rails/create-only/.mise.toml":
@@ -3834,6 +3834,16 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "evidence/4644/parity-red.txt": true,
     "evidence/4644/paths-and-parity.txt": true,
     "evidence/4644/red.txt": true,
+    "evidence/4689/control-85154ab05c.txt": true,
+    "evidence/4689/control-b0fc716a01.txt": true,
+    "evidence/4689/control-origin-main.txt": true,
+    "evidence/4689/falsify-tests-on-85154ab05c-source.txt": true,
+    "evidence/4689/falsify-tests-on-b0fc716a01-source.txt": true,
+    "evidence/4689/falsify-tests-on-origin-main-source.txt": true,
+    "evidence/4689/manifest-control-origin-main.txt": true,
+    "evidence/4689/manifest-fix-head.txt": true,
+    "evidence/4689/repro-fix-head.txt": true,
+    "evidence/4689/test-run.txt": true,
     "evidence/4692/c1-near-full-refusal.txt": true,
     "evidence/4692/c2-rotation.txt": true,
     "evidence/4692/c3-legacy-validates.txt": true,
@@ -3941,6 +3951,19 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "evidence/CodySwannGT-lisa-4639/jira-evidence-upload-names-red-green.txt": true,
     "evidence/CodySwannGT-lisa-4642/opencode-emit-imports-red-green.txt": true,
     "evidence/CodySwannGT-lisa-4642/opencode-session-manager-help.txt": true,
+    "evidence/CodySwannGT-lisa-4671/01-workflow-parse.txt": true,
+    "evidence/CodySwannGT-lisa-4671/01b-parse-probe-bite-controls.txt": true,
+    "evidence/CodySwannGT-lisa-4671/02-actionlint.txt": true,
+    "evidence/CodySwannGT-lisa-4671/03-act-exprparser.txt": true,
+    "evidence/CodySwannGT-lisa-4671/04-model-evaluator.txt": true,
+    "evidence/CodySwannGT-lisa-4671/05-vitest-run.txt": true,
+    "evidence/CodySwannGT-lisa-4671/05b-vitest-bite-controls.txt": true,
+    "evidence/CodySwannGT-lisa-4671/SHA256SUMS": true,
+    "evidence/CodySwannGT-lisa-4671/controls/quality-rails.base-24d0d26b34.yml": true,
+    "evidence/CodySwannGT-lisa-4671/controls/quality-rails.default-nonempty.yml": true,
+    "evidence/CodySwannGT-lisa-4671/controls/quality-rails.mutation-reverted.yml": true,
+    "evidence/CodySwannGT-lisa-4671/controls/quality-rails.mysql-leak.yml": true,
+    "evidence/CodySwannGT-lisa-4671/controls/quality-rails.typo-input.yml": true,
     "evidence/CodySwannGT-lisa-4677/README.md": true,
     "evidence/CodySwannGT-lisa-4677/check-plugins-f16e99.txt": true,
     "evidence/CodySwannGT-lisa-4677/check-plugins-head.txt": true,
@@ -11960,6 +11983,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/quality-generic-gate-runner.test.ts": true,
     "tests/integration/quality-node-supervision.test.ts": true,
     "tests/integration/quality-non-declarable-jobs.test.ts": true,
+    "tests/integration/quality-rails-database-image.test.ts": true,
     "tests/integration/quality-rails-test-shards-fixture.ts": true,
     "tests/integration/quality-rails-test-shards-merge.test.ts": true,
     "tests/integration/quality-rails-test-shards.test.ts": true,

@@ -19,6 +19,8 @@
 #   with:
 #     database_type: 'postgres'
 #     database_name: 'test'
+#     # Optional: a full postgres image ref, e.g. for pgvector.
+#     database_image: 'pgvector/pgvector:pg17'
 #     skip_jobs: 'code_quality,secret_scanning'
 #   secrets:
 #     GITGUARDIAN_API_KEY: ${{ secrets.GITGUARDIAN_API_KEY }}
@@ -55,6 +57,17 @@ on:
         default: 'test'
       database_version:
         description: 'Database image tag for tests (e.g. "8.4" for MySQL or "17" for Postgres). Empty keeps the pinned default.'
+        required: false
+        type: string
+        default: ''
+      database_image:
+        description: >-
+          Full image ref for every postgres service (the RSpec test jobs, their
+          shards and mutation), e.g. "pgvector/pgvector:pg17" or a digest pin
+          "pgvector/pgvector@sha256:...". Use it when the schema enables an
+          extension the official postgres image does not ship. Overrides
+          database_version for postgres; MySQL services ignore it. Empty keeps
+          postgres:<database_version || 16> (CodySwannGT/lisa#4671).
         required: false
         type: string
         default: ''
@@ -858,7 +871,7 @@ jobs:
         shard: ${{ fromJSON(needs.test-shard-plan.outputs.shards || '[1]') }}
     services:
       postgres:
-        image: postgres:${{ inputs.database_version || '16' }}
+        image: ${{ inputs.database_image || format('postgres:{0}', inputs.database_version || '16') }}
         env:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
@@ -989,7 +1002,7 @@ jobs:
     if: ${{ always() && !cancelled() && !contains(format(',{0},', inputs.skip_jobs), ',test,') && inputs.database_type == 'postgres' }}
     services:
       postgres:
-        image: postgres:${{ inputs.database_version || '16' }}
+        image: ${{ inputs.database_image || format('postgres:{0}', inputs.database_version || '16') }}
         env:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
@@ -1406,7 +1419,7 @@ jobs:
     if: ${{ !contains(format(',{0},', inputs.skip_jobs), ',mutation,') && inputs.database_type == 'postgres' }}
     services:
       postgres:
-        image: postgres:${{ inputs.database_version || '16' }}
+        image: ${{ inputs.database_image || format('postgres:{0}', inputs.database_version || '16') }}
         env:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
