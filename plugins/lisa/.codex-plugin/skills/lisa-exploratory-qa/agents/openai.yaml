@@ -1,4 +1,4 @@
 display_name: "Exploratory QA"
-short_description: "First-time-user exploratory QA…"
+short_description: "Use the product like a…"
 default_prompt:
-  - "Use $lisa-exploratory-qa: First-time-user exploratory QA…."
+  - "Use $lisa-exploratory-qa: Use the product like a…."

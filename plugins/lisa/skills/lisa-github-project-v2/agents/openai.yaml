@@ -1,4 +1,4 @@
 display_name: "Github Project V2"
-short_description: "Shared GitHub ProjectV2 coordination utility"
+short_description: "Add issues and pull requests to the configured GitHub Project and set its fields"
 default_prompt:
-  - "Use $lisa-github-project-v2: Shared GitHub ProjectV2 coordination utility."
+  - "Use $lisa-github-project-v2: Add issues and pull requests to the configured GitHub Project and set its fields."

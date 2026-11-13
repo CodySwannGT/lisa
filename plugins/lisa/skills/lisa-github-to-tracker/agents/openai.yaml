@@ -1,4 +1,4 @@
 display_name: "Github To Tracker"
-short_description: ">"
+short_description: "Turn a GitHub issue PRD into epics, stories, and sub-tasks in the project's tracker"
 default_prompt:
-  - "Use $lisa-github-to-tracker: >."
+  - "Use $lisa-github-to-tracker: Turn a GitHub issue PRD into epics, stories, and sub-tasks in the project's tracker."

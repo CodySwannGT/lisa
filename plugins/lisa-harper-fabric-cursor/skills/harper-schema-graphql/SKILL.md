@@ -1,6 +1,6 @@
 ---
 name: harper-schema-graphql
-description: This skill should be used when editing a Harper (HarperDB/Fabric) schema.graphql — defining or changing database tables, types, fields, relationships, or indexes that the graphqlSchema extension turns into Harper tables and API surface. Use it when adding a table, changing the data model, or when a resource/verify path depends on schema shape. Pairs with harper-resources, harper-config-yaml, and harper-component-model.
+description: "Edit a Harper (HarperDB/Fabric) schema.graphql: tables, types, fields, relationships, and indexes. Use when adding a table or changing the data model."
 ---
 
 # Harper schema.graphql

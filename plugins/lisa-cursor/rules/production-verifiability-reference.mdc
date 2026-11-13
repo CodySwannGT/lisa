@@ -1,0 +1,51 @@
+---
+description: "Production Verifiability"
+alwaysApply: false
+---
+
+# Production Verifiability
+
+Write code that makes production behavior observable, measurable, and attributable to specific changes.
+
+A deployment is not considered successful simply because the code builds, tests pass, and the application starts. Success must be verifiable through actual production behavior.
+
+## Tool-neutral by design
+
+A project may send telemetry to any number of tools, including ones Lisa has never heard of. Lisa therefore does not configure a monitoring role or keep a list of vendors. The change itself says where its data goes — the SDK it initializes, the exporter it configures, the logger settings, an environment variable — and verification follows that path. When the project uses several tools, the wiki records which signal lives where. When the destination is unreachable, that is missing access under `when-to-stop`.
+
+## Questions every meaningful change should make answerable
+
+- **Is something wrong?** Detect errors, failures, performance degradation, abnormal behavior, and unexpected changes in critical business outcomes.
+- **What is wrong?** Identify the affected operations, components, dependencies, and user workflows.
+- **When did it start?** Establish when degradation began and whether it correlates with a particular deployment or configuration change.
+- **What caused it?** Provide enough diagnostic context to distinguish code defects, dependency failures, infrastructure problems, and other contributing factors.
+- **How severe is it?** Quantify the impact, including error rates, latency changes, affected requests, and business consequences.
+- **What should we do?** Provide actionable evidence to decide whether to roll back, disable a feature, or fix in place.
+
+## Engineering requirements
+
+1. **Instrument critical operations by default.** Capture meaningful metrics, distributed traces, and structured logs at important execution boundaries. Measure request rates, error rates, latency distributions, dependency behavior, and business-critical outcomes.
+2. **Make deployments identifiable.** Associate telemetry with application versions, deployment identifiers, environments, and relevant feature configurations so regressions can be correlated with changes.
+3. **Measure user-visible behavior.** Instrument critical user journeys and business operations, not just infrastructure and application exceptions. A system can return successful HTTP responses while delivering incorrect results.
+4. **Make performance regressions visible.** Capture latency percentiles, throughput, resource utilization, and dependency timings. Enable comparison against pre-deployment baselines and established service-level objectives.
+5. **Make failures diagnosable.** Provide enough structured context to understand where, why, and under what conditions failures occur. Preserve correlation across service boundaries without exposing secrets or sensitive user data.
+6. **Design for actionable alerting.** Important failures and degradations can trigger timely, meaningful alerts. Prioritize user impact and avoid noisy alerts that obscure genuine incidents.
+7. **Support rapid remediation.** Design changes to support safe rollback, feature disablement, or targeted correction. Define measurable criteria for when intervention is necessary.
+8. **Verify instrumentation.** Confirm new telemetry is actually emitted and usable. Instrumentation, dashboards, and alerts evolve alongside the functionality they monitor.
+
+## Guidelines
+
+- Prefer established instrumentation standards and shared observability infrastructure over custom telemetry.
+- Instrument meaningful boundaries and outcomes rather than logging every operation.
+- Use consistent metric names, event schemas, error classifications, and trace propagation.
+- Avoid excessive telemetry, high-cardinality metric dimensions, and sensitive data exposure.
+- Keep instrumentation accurate as implementations change.
+- Do not create alerts for every metric. Alert on meaningful symptoms and actionable conditions.
+
+## Where Lisa enforces it
+
+- **PR description:** the "How we'll know it works in production" and "How to undo" sections.
+- **Verify factory:** after deploy, confirms the change's telemetry arrives at its destination.
+- **Monitor loop:** `observability-audit` files build-ready tickets for missing instrumentation dimensions.
+
+The goal is to eliminate blind deployments. Every production change should make its own impact detectable, diagnosable, and actionable without someone having to discover by hand that something is wrong.

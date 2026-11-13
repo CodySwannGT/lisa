@@ -1,6 +1,6 @@
 ---
 name: lisa-github-write-issue
-description: "Creates or updates a GitHub Issue following the same organizational best practices as lisa-jira-write-ticket — three-audience description, Gherkin acceptance criteria, parent sub-issue (Epic/Story hierarchy), explicit relationship discovery, remote links, labels for status/components/priority/story-points, Validation Journey, and optional GitHub ProjectV2 coordination through lisa-github-project-v2 while keeping the Issue as the lifecycle source of truth. Uses the `gh` CLI exclusively (no MCP). Rejects thin issues. The GitHub counterpart of lisa-jira-write-ticket."
+description: "Create or update a GitHub issue to the organization's standards: description, Gherkin criteria, parent sub-issue, relations, labels, Validation Journey, and optional GitHub Project membership. Use whenever an issue is created or significantly edited."
 allowed-tools: ["Bash", "Skill", "Read"]
 ---
 

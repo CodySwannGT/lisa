@@ -1,12 +1,6 @@
 ---
 name: lisa-confluence-to-tracker
-description: >
-  Break down a Confluence PRD page into Epics, Stories, and Sub-tasks in the configured destination tracker (JIRA, GitHub Issues, or Linear per .lisa.config.json). Use this skill whenever the
-  user shares a Confluence PRD URL and wants it converted into tracker tickets, or asks to "break down
-  this Confluence spec", "create tickets from a Confluence page", "turn this Confluence doc into tickets",
-  or similar. This skill mirrors `lisa-notion-to-tracker` for projects whose PRDs live in Confluence —
-  the workflow, gates, dry-run mode, and validation rules are identical; only the source-of-truth tool
-  surface differs (Confluence MCP instead of Notion MCP).
+description: "Turn a Confluence PRD page into epics, stories, and sub-tasks in the project's tracker. Use when someone shares a Confluence PRD and wants tickets."
 allowed-tools: ["Skill", "Bash"]
 ---
 

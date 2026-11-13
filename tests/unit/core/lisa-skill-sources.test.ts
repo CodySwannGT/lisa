@@ -25,7 +25,6 @@ describe("core/lisa-skill-sources isHarnessVariantPlugin", () => {
       "lisa-rails",
       "lisa-harper-fabric",
       "lisa-phaser",
-      "lisa-openclaw",
       "lisa-wiki",
     ]) {
       expect(isHarnessVariantPlugin(name)).toBe(false);

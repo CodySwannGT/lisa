@@ -1,6 +1,6 @@
 ---
 name: lisa-wiki-add-ingest
-description: Scaffold a project-specific "front-door" ingest skill that does something unique (classify a source, fetch from a special system, stamp domain frontmatter) and then chains into /ingest. Use when a project needs a bespoke ingestion path that the core connectors do not cover — instead of forking the kernel. The generated skill enriches and delegates; the kernel still owns synthesis, index, log, verify, state, and PR.
+description: "Scaffold a project-specific ingest skill for a source the core connectors don't cover; it prepares the source and hands off to lisa-wiki-ingest. Use instead of forking the wiki kernel."
 ---
 
 # lisa-wiki-add-ingest
@@ -31,4 +31,4 @@ forking** the kernel. The front-door does only the unique part, then hands enric
 - Side effects outside the declared class are a hard failure (enforced by the touched-file guard).
 
 ## Related
-`lisa-wiki-ingest` (what it chains into), `lisa-wiki-add-role`, `lisa-wiki-doctor`.
+`lisa-wiki-ingest` (what it chains into), `lisa-wiki-doctor`.

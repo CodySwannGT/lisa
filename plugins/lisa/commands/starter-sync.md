@@ -1,4 +1,5 @@
 ---
+disable-model-invocation: true
 description: "Run one starter sync using the project's existing landing strategy."
 argument-hint: "[--work-item <ref>]"
 ---

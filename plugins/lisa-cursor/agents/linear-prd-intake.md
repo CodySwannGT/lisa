@@ -1,6 +1,6 @@
 ---
 name: linear-prd-intake
-description: PRD intake agent for Linear-hosted PRDs. Runs one intake cycle against a Linear workspace or team — claims projects carrying the configured `ready` PRD label (relabels to the configured `in_review` label), validates each through the dry-run pipeline, and routes to the configured `blocked` label (with clarifying comments on the project) or `ticketed` label (with destination tickets created). Linear counterpart of `notion-prd-intake` and `confluence-prd-intake`. Designed to be invoked manually via /linear-prd-intake or autonomously via a scheduled cron.
+description: "Runs one Linear PRD intake cycle: takes the first ready PRD project, validates it, and either creates its tickets and marks it ticketed or posts clarifying questions and marks it blocked. Manual or scheduled."
 skills:
   - linear-prd-intake
   - linear-to-tracker

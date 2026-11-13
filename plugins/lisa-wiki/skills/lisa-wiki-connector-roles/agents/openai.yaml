@@ -1,4 +1,0 @@
-display_name: "Wiki Connector Roles"
-short_description: "Ingest the wiki's own digital-staff roster (config.staff[] + wiki/staff/*) into a sanitized source note"
-default_prompt:
-  - "Use $lisa-wiki-connector-roles: Ingest the wiki's own digital-staff roster (config.staff[] + wiki/staff/*) into a sanitized source note."

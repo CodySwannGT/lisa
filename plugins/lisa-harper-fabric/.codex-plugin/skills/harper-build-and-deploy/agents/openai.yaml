@@ -1,4 +1,4 @@
 display_name: "Harper Build And Deploy"
-short_description: "building, running locally, or…"
+short_description: "Build, run locally, or deploy a…"
 default_prompt:
-  - "Use $harper-build-and-deploy: building, running locally, or…."
+  - "Use $harper-build-and-deploy: Build, run locally, or deploy a…."

@@ -1,4 +1,5 @@
 ---
+disable-model-invocation: true
 description: "Address and resolve PR review comments (human + bot): implement valid feedback, reply to invalid, resolve every thread."
 allowed-tools: ["Skill"]
 argument-hint: "[github-pr-link-or-number]"

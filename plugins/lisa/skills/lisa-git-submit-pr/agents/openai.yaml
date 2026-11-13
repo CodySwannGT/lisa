@@ -1,4 +1,4 @@
 display_name: "Git Submit PR"
-short_description: "pushing changes and creating or updating a pull request"
+short_description: "Push the branch and create or update its pull request with a full description, add it to the GitHub Project when configured, then hand it…"
 default_prompt:
-  - "Use $lisa-git-submit-pr: pushing changes and creating or updating a pull request."
+  - "Use $lisa-git-submit-pr: Push the branch and create or update its pull request with a full description, add it to the GitHub Project when configured, then hand it…."

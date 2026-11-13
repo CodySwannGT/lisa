@@ -63,7 +63,7 @@ at the gate. "Anyone who can reach the search box can read other customers' orde
 the request transcript below" is usable; "possible SQLi in handler" is not.
 
 This bar governs *code-review* security findings. Dependency CVE remediation keeps its own decision
-ladder in the `security-audit-handling` rule — cite it, do not restate or fork it.
+ladder in the `lisa-security-audit-handling` skill — cite it, do not restate or fork it.
 
 Bucketing is **advisory** — it shapes the report, it does not block a merge — on the same terms as
 the boundary checks, which stay reporting-only until `verification.gate.enforceBoundaries` is `true`

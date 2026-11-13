@@ -9,15 +9,16 @@ Break work into ordered, well-scoped tasks that can be independently implemented
 
 ## Decomposition Process
 
-### 0. Load the learned planning checks
+### 0. Load the learned planning checks and project gotchas
 
 Every time a dispatched worker had to stop for a human, or file a new ticket mid-build, because planning let a gap through, `learning-judge` may have persisted the check planning should have run as a `planning-miss` learning (CodySwannGT/lisa#4569). Those checks only help if planning reads them back. Before decomposing, load them through the learnings contract's **bounded projection** — never by reading the ledger file wholesale:
 
 ```bash
-node -e 'import("@codyswann/lisa/learnings").then(async m => { const { readFile } = await import("node:fs/promises"); const file = m.resolveProjectLearningsFile(await m.readProjectConfig(process.cwd())); const raw = await readFile(file, "utf8").catch(error => { if (error.code === "ENOENT") return null; throw error; }); if (raw === null) return; const planning = m.parseLearningsFile(raw).filter(e => /^Planning \((prd|decomposition|ready-gate|filing)\):/.test(e.rule)); const { entries } = m.projectLearnings(planning); const kept = new Set(entries.map(e => e.id)); const checks = entries.map(e => ({ id: e.id, rule: e.rule, confidence: e.confidence })); const omitted = planning.filter(e => !kept.has(e.id)).map(e => e.id); console.log(JSON.stringify({ checks, omitted })); }).catch(error => console.error(`learned planning checks unavailable: ${error.message}`))' || true
+node "${CLAUDE_PLUGIN_ROOT}/scripts/learnings-projection.mjs" --match '^Planning \((prd|decomposition|ready-gate|filing)\):'
+node "${CLAUDE_PLUGIN_ROOT}/scripts/learnings-projection.mjs" --match '^(?!Planning \()'
 ```
 
-Run it from the project root. No output means there is no ledger yet (`ENOENT`): carry on. A ledger that exists but cannot be read, or is malformed, prints one warning naming the error and yields nothing: carry on without it. Say in the plan that the checks were not loaded. The projection is taken over the planning checks alone, so other learnings never crowd them out; `omitted` lists, by id, any planning check the budget still left out — name those in the plan as not applied. Never let this step block planning.
+Run both from the project root. The first prints the planning checks; the second prints the project's other learned gotchas (implementation pitfalls, tooling quirks), which planning applies to every unit they concern so the worker is not left to rediscover them. Each prints `{ entries, omitted }`. No output means there is no ledger yet (`ENOENT`): carry on. A ledger that exists but cannot be read, or is malformed, prints one warning naming the error and yields nothing: carry on without it. Say in the plan that the checks were not loaded. The projection is taken over the planning checks alone, so other learnings never crowd them out; `omitted` lists, by id, any planning check the budget still left out — name those in the plan as not applied. Never let this step block planning.
 
 Each check names the stage that owns it, and binds there:
 

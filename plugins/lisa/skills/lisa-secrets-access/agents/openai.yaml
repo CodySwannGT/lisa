@@ -1,4 +1,4 @@
 display_name: "Secrets Access"
-short_description: "Vendor-neutral access layer for secrets"
+short_description: "The one way to get a secret: resolves API keys from the environment, a materialized file, or the configured provider (Bitwarden, 1Password…"
 default_prompt:
-  - "Use $lisa-secrets-access: Vendor-neutral access layer for secrets."
+  - "Use $lisa-secrets-access: The one way to get a secret: resolves API keys from the environment, a materialized file, or the configured provider (Bitwarden, 1Password…."

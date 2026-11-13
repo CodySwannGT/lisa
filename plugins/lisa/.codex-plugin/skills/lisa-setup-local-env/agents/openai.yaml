@@ -1,4 +1,4 @@
 display_name: "Setup Local Env"
-short_description: "Bring a developer's machine in…"
+short_description: "Report which declared tools are…"
 default_prompt:
-  - "Use $lisa-setup-local-env: Bring a developer's machine in…."
+  - "Use $lisa-setup-local-env: Report which declared tools are…."

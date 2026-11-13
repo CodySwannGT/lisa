@@ -1,4 +1,4 @@
 display_name: "Linear Journey"
-short_description: "Parse a Linear Issue's…"
+short_description: "Run a Linear issue's Validation…"
 default_prompt:
-  - "Use $lisa-linear-journey: Parse a Linear Issue's…."
+  - "Use $lisa-linear-journey: Run a Linear issue's Validation…."

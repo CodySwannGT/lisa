@@ -1,6 +1,6 @@
 ---
 name: confluence-prd-intake
-description: PRD intake agent for Confluence-hosted PRDs. Runs one intake cycle against a Confluence space or parent page — claims PRDs carrying the configured `ready` label (relabels to the configured `in_review` label), validates each through the dry-run pipeline, and routes to the configured `blocked` label (with clarifying comments) or `ticketed` label (with destination tickets created). Confluence counterpart of `notion-prd-intake`. Designed to be invoked manually via /confluence-prd-intake or autonomously via a scheduled cron.
+description: "Runs one Confluence PRD intake cycle: takes the first ready PRD, validates it, and either creates its tickets and marks it ticketed or posts clarifying questions and marks it blocked. Manual or scheduled."
 skills:
   - confluence-prd-intake
   - confluence-to-tracker

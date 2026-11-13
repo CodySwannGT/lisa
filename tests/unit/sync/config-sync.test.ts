@@ -171,14 +171,16 @@ describe("runConfigSync — default evolution and idempotency", () => {
 
   it("updates an auto-populated value when the recorded default evolves", async () => {
     await writeJson(path.join(project.dir, CONFIG), {
-      wiki: { source: { path: "wiki" }, ttlSeconds: 120 },
-      _lisaSync: { populated: { "wiki.ttlSeconds": 120 } },
+      notion: { statusProperty: "State" },
+      _lisaSync: { populated: { "notion.statusProperty": "State" } },
     });
 
     const report = await runConfigSync(project.dir);
 
     const config = await readConfig();
-    expect((config.wiki as Record<string, unknown>).ttlSeconds).toBe(300);
+    expect((config.notion as Record<string, unknown>).statusProperty).toBe(
+      "Status"
+    );
     expect(report.actions.some(action => action.kind === DEFAULT_EVOLVED)).toBe(
       true
     );

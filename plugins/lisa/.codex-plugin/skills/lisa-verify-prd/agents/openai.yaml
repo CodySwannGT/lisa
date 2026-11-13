@@ -1,4 +1,4 @@
 display_name: "Verify PRD"
-short_description: "Initiative-level PRD acceptance…"
+short_description: "Accept or reject a whole PRD…"
 default_prompt:
-  - "Use $lisa-verify-prd: Initiative-level PRD acceptance…."
+  - "Use $lisa-verify-prd: Accept or reject a whole PRD…."

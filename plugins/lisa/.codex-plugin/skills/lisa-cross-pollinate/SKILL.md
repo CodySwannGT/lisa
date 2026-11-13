@@ -1,10 +1,10 @@
 ---
 name: lisa-cross-pollinate
-description: "Detect a host project's…"
+description: "Make a project's own agent…"
 allowed-tools: ["Bash", "Read", "Write", "Edit", "Glob", "Grep"]
 argument-hint: "[path] [--dry-run] [--write]"
 ---
-Detect a host project's locally-authored coding-agent definitions (skills, subagents, rules, commands, hooks, MCP) and make each available in the formats of the OTHER agents the project supports, as declared in .lisa.config.json. Any-to-any, provenance-tracked, idempotent, never clobbers hand-edited output.
+Make a project's own agent definitions (skills, subagents, rules, commands, hooks, MCP) available in the formats of the other agents the project supports. Idempotent and never overwrites hand-edited output.
 
 
 # Cross-Pollinate: $ARGUMENTS

@@ -1,8 +1,8 @@
 ---
 name: phaser-asset-sourcing
-description: "a Phaser 4 game needs actual…"
+description: "Decide where a Phaser 4 game's…"
 ---
-This skill should be used when a Phaser 4 game needs actual art or audio and none exists yet — deciding WHERE game art comes from before it can be packed. Covers the priority order (curated CC0 packs → deriving/editing CC0 art → asking the human for bespoke/paid work), the strict license gate (CC0-or-equivalent only, recorded with an exact license quote + evidence URL in assets/LICENSES.md), the provenance requirement (a committed ingest script or committed raw sources), why procedural generateTexture placeholders are tracked art debt and never a best practice, and the expectation that characters ship real idle+walk animation. Use it BEFORE phaser-asset-pipeline (which only packs art that already exists). Pairs with phaser-asset-pipeline, the official animations skill, and the art-director / audio-director personas.
+Decide where a Phaser 4 game's art and audio come from before packing it: CC0 packs first, then edited CC0, then asking a human; record licenses and provenance. Use before phaser-asset-pipeline when assets don't exist yet.
 
 
 # Phaser 4 Asset Sourcing

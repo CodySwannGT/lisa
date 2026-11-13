@@ -1,4 +1,4 @@
 display_name: "Tracker Read"
-short_description: "Vendor-neutral wrapper for…"
+short_description: "Fetch a ticket and everything…"
 default_prompt:
-  - "Use $lisa-tracker-read: Vendor-neutral wrapper for…."
+  - "Use $lisa-tracker-read: Fetch a ticket and everything…."

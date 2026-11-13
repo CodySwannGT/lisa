@@ -1,4 +1,4 @@
 display_name: "Health Drift Cron"
-short_description: "Scheduled health consumer"
+short_description: "Run Lisa Health on a schedule…"
 default_prompt:
-  - "Use $lisa-health-drift-cron: Scheduled health consumer."
+  - "Use $lisa-health-drift-cron: Run Lisa Health on a schedule…."

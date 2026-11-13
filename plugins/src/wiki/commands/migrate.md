@@ -1,4 +1,5 @@
 ---
+disable-model-invocation: true
 description: "Migrate an existing hand-rolled wiki onto the lisa-wiki kernel — phased and compatibility-first, with a strict no-loss guarantee (renaming is fine; losing functionality or data is not). Ends by running /doctor."
 argument-hint: "[--phase <0|1|1b|2|3|4|5>]"
 ---

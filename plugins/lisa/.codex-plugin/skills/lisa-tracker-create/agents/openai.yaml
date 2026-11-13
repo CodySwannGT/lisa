@@ -1,4 +1,4 @@
 display_name: "Tracker Create"
-short_description: "Vendor-neutral wrapper for…"
+short_description: "Create tickets from code files…"
 default_prompt:
-  - "Use $lisa-tracker-create: Vendor-neutral wrapper for…."
+  - "Use $lisa-tracker-create: Create tickets from code files…."

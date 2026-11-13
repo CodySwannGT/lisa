@@ -1,0 +1,4 @@
+display_name: "Security Audit Handling"
+short_description: "What to do when a push or CI is blocked by the dependency security audit: upgrade, override the vulnerable package, assess real impact…"
+default_prompt:
+  - "Use $lisa-security-audit-handling: What to do when a push or CI is blocked by the dependency security audit: upgrade, override the vulnerable package, assess real impact…."

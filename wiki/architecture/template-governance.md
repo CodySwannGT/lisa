@@ -29,6 +29,6 @@ Lisa base rules now ship as paired eager and reference material. Eager rule head
 
 Generated per-agent stack variants must preserve the same rule-delivery semantics as the base plugin. Claude, Codex, and Copilot use the rule injection script and Cursor reads rules natively; each of those paths should load eager rules or legacy flat-layout stack rules while leaving reference rules on demand. agy is the exception: as of 2026-06-06 (PR #1150) it gets **no** eager-rule injection — `AGENTS.md` is canonical and rule-free, and the former "agy bakes startup rules into AGENTS.md" mechanism was removed (agy has no SessionStart event for the injection hook). Not delivering eager rules to agy is the accepted trade-off.
 
-## Managed Wiki Ignore Block
+## Wiki Ignore Patterns
 
-The `lisa-wiki` setup flow merges a managed `.gitignore` block for wiki-specific local artifacts instead of replacing a project's ignore file. This keeps wiki setup repairable while preserving project-owned ignore entries.
+The `lisa-wiki` setup flow no longer merges its own `.gitignore` block. It existed for wiki-only repositories that ran without the base plugin; since 2026-11 every project installs the base plugin and owns its wiki at `wiki/`, so the base plugin's managed block covers it.

@@ -1,4 +1,4 @@
 display_name: "Github Evidence"
-short_description: "Upload text evidence to the…"
+short_description: "Post text evidence for a GitHub…"
 default_prompt:
-  - "Use $lisa-github-evidence: Upload text evidence to the…."
+  - "Use $lisa-github-evidence: Post text evidence for a GitHub…."

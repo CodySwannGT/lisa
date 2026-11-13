@@ -12,11 +12,7 @@ import {
 import { selectProjectLisaPluginsFromState } from "../core/lisa-plugin-selection.js";
 import { PLUGIN_LIST_MAX_CAPTURE_BYTES } from "../core/plugin-command.js";
 import { getPackageVersion } from "../cli/version.js";
-import {
-  projectPathKind,
-  readProjectJsonObject,
-  readProjectText,
-} from "./read-only-fs.js";
+import { readProjectJsonObject, readProjectText } from "./read-only-fs.js";
 
 // `claude plugin list --json` lists every project-scope registration on the
 // machine, so a long-lived workstation's list runs to thousands of entries and
@@ -157,14 +153,7 @@ export async function inspectPlugins(
   ) {
     return { status: "fail", drift: ["plugin settings"] };
   }
-  const hasWiki =
-    (await projectPathKind(
-      projectRoot,
-      path.join("wiki", "lisa-wiki.config.json")
-    )) === "file";
-  const expected = [
-    ...selectProjectLisaPluginsFromState(config, types, hasWiki),
-  ]
+  const expected = [...selectProjectLisaPluginsFromState(config, types)]
     .map(plugin => `${plugin}@lisa`)
     .sort((left, right) => left.localeCompare(right));
   const settingsDrift = expected.filter(

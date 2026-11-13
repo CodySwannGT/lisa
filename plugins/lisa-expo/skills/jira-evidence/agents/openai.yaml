@@ -1,4 +1,4 @@
 display_name: "Jira Evidence"
-short_description: "Upload screenshots to the configured GitHub evidence release (default pr-assets), update PR description with evidence, upload attachments…"
+short_description: "Post screenshot evidence: upload it to the GitHub evidence release, update the PR description, attach it to the JIRA ticket with a comment…"
 default_prompt:
-  - "Use $jira-evidence: Upload screenshots to the configured GitHub evidence release (default pr-assets), update PR description with evidence, upload attachments…."
+  - "Use $jira-evidence: Post screenshot evidence: upload it to the GitHub evidence release, update the PR description, attach it to the JIRA ticket with a comment…."

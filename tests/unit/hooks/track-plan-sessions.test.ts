@@ -34,7 +34,7 @@ import { boundedSpawnSync } from "../../helpers/io-latency-budget.js";
  *
  * `plugins/lisa/hooks/` is the shipped location and the convention every other
  * hook suite in this tree already uses (`block-no-verify`,
- * `block-shell-json-parsing`, `enforce-team-first`, ...). It is present in a fresh clone, which is the
+ * `block-shell-json-parsing`, ...). It is present in a fresh clone, which is the
  * whole property the previous path lacked.
  */
 const HOOK_PATH = path.resolve("plugins/lisa/hooks/track-plan-sessions.sh");

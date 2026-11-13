@@ -1,4 +1,0 @@
-display_name: "Connect Staff Slack"
-short_description: "Connect staff roles to Slack…"
-default_prompt:
-  - "Use $lisa-connect-staff-slack: Connect staff roles to Slack…."

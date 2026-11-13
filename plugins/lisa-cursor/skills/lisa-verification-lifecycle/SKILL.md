@@ -1,6 +1,6 @@
 ---
 name: lisa-verification-lifecycle
-description: "Verification lifecycle: confirm quality gates, classify types, discover tools, fail fast, plan, execute, codify (turn each passing verification into a regression test), spec conformance (verify shipped work matches the spec), loop. Quality gates (tests/typecheck/lint) are prerequisites, NOT verification. Verification means running the actual system and observing results."
+description: "How to verify work: confirm quality gates, decide what kinds of verification apply, find the tools, run the real system and observe it, turn passing checks into regression tests, and check the result against the spec."
 ---
 
 # Verification Lifecycle
@@ -209,6 +209,8 @@ Verification surfaces include:
 - Queue depth and consumer execution visibility
 - CDN headers and edge behavior
 - Artifact capture (video, screenshots, traces, diffs)
+
+**Telemetry arrives.** When the change adds or changes instrumentation — logs, metrics, traces, error reporting, analytics events — follow that instrumentation in the code to wherever it sends data: the SDK it initializes, the exporter or transport it configures, the environment variables it reads. Trigger the instrumented path in the target environment and confirm the signal arrived at that destination. Do not assume a vendor; a project may send to several, or to one Lisa has no access skill for. Use the destination's `*-access` skill when one exists, otherwise its CLI or API with credentials resolved through `lisa-secrets-access`. If the destination cannot be reached, that is a missing-access stop: name the destination and the credential, and never report the telemetry as verified.
 
 If a required surface is unavailable, agents must follow the Escalation Protocol.
 

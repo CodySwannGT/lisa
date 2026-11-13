@@ -1,4 +1,4 @@
 display_name: "Notion Access"
-short_description: "Vendor-neutral access layer for Notion"
+short_description: "The one way Lisa skills reach Notion: (1) the internal-integration token over REST when it matches the configured workspace, then (2) the…"
 default_prompt:
-  - "Use $lisa-notion-access: Vendor-neutral access layer for Notion."
+  - "Use $lisa-notion-access: The one way Lisa skills reach Notion: (1) the internal-integration token over REST when it matches the configured workspace, then (2) the…."

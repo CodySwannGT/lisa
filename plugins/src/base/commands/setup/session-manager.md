@@ -1,5 +1,6 @@
 ---
-description: "Set up the local session manager for this project: write the sessionManager config block, optionally set up Telegram notifications (store the project's own bot token in its secrets provider, migrating any plaintext token file, check the plugin scope, walk through pairing; skipped with no channel, the default), seed the runbook, start the manager in tmux, and run doctor's session-manager check."
+disable-model-invocation: true
+description: "Set up this project's local session manager: write its config, optionally connect Telegram, seed the runbook, start it in tmux, and run doctor's check."
 allowed-tools: ["Skill"]
 ---
 

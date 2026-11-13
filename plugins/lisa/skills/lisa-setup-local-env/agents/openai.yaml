@@ -1,4 +1,4 @@
 display_name: "Setup Local Env"
-short_description: "Bring a developer's machine in line with the toolchain the project declares"
+short_description: "Report which declared tools are missing, outdated, or unpinned on this machine, and install the missing ones from the same pinned…"
 default_prompt:
-  - "Use $lisa-setup-local-env: Bring a developer's machine in line with the toolchain the project declares."
+  - "Use $lisa-setup-local-env: Report which declared tools are missing, outdated, or unpinned on this machine, and install the missing ones from the same pinned…."

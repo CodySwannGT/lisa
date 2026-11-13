@@ -330,7 +330,7 @@ describe("deterministic health governance regressions", () => {
     await write(
       root,
       ".claude/settings.json",
-      '{"enabledPlugins":{"lisa@lisa":true}}\n'
+      '{"enabledPlugins":{"lisa@lisa":true,"lisa-wiki@lisa":true}}\n'
     );
     await write(
       root,
@@ -346,7 +346,10 @@ describe("deterministic health governance regressions", () => {
         1_000,
         new AbortController().signal
       )
-    ).resolves.toEqual({ status: "fail", drift: ["lisa@lisa"] });
+    ).resolves.toEqual({
+      status: "fail",
+      drift: ["lisa-wiki@lisa", "lisa@lisa"],
+    });
   });
 
   it("compares material ruleset state and normalizes dropped checks", async () => {

@@ -1,4 +1,4 @@
 display_name: "Linear Write Issue"
-short_description: "Creates or updates a Linear…"
+short_description: "Create or update a Linear…"
 default_prompt:
-  - "Use $lisa-linear-write-issue: Creates or updates a Linear…."
+  - "Use $lisa-linear-write-issue: Create or update a Linear…."

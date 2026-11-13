@@ -1,4 +1,4 @@
 display_name: "Jam Access"
-short_description: "Vendor-neutral access layer for Jam"
+short_description: "The one way Lisa skills reach Jam: the PAT-authenticated Jam CLI, falling back to the Jam MCP"
 default_prompt:
-  - "Use $lisa-jam-access: Vendor-neutral access layer for Jam."
+  - "Use $lisa-jam-access: The one way Lisa skills reach Jam: the PAT-authenticated Jam CLI, falling back to the Jam MCP."
