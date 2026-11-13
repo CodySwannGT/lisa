@@ -16,7 +16,4 @@ a200e473392e0f878c9bd420cce916667c87f10d2e090af45091e4055ab4879d  ./controls/qua
 e2028bb78e9294c9f84b24487c1de4f79839fd3e8d01117c21b676663cc00a97  ./probes/04-model-evaluator.cjs
 4aec8a8d62ce964a500bd1b3304e1308dc6a83e26a534965ac90a7443c8bff87  ./probes/04-model-evaluator.sh
 f479238640f28ddfd0c73b6dfc9c45a5ca40dfc03f66aea79f280c02963fc62b  ./probes/05b-vitest-bite.sh
-908817c22ce0dd1ee54fd3797ba660f0fc62cc1c55d0fb745ac0adfd907d6a3b  ./probes/actexpr/go.mod
-e2067151221763c576b81d6979ba5a76fa5534a51b03ebc53e22ac1eab3969e6  ./probes/actexpr/go.sum
-325fd45a3f30e114cdbd8a30e55d7fa65fd4d19fed5fa526b1780932873f7e1f  ./probes/actexpr/main.go
 807c24fa52d76f933918a02e70c6764c172b2b3f704541ab9b4838ce0b5a68d1  ./probes/make-controls.cjs
