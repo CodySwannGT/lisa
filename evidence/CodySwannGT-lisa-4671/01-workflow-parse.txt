@@ -1,0 +1,12 @@
+file: .github/workflows/quality-rails.yml
+input database_type: {"description":"Database type to use for tests (postgres or mysql)","required":false,"type":"string","default":"postgres"}
+input database_version: {"description":"Database image tag for tests (e.g. \"8.4\" for MySQL or \"17\" for Postgres). Empty keeps the pinned default.","required":false,"type":"string","default":""}
+input database_image: {"description":"Full image ref for every postgres service (the RSpec test jobs, their shards and mutation), e.g. \"pgvector/pgvector:pg17\" or a digest pin \"pgvector/pgvector@sha256:...\". Use it when the schema enables an extension the official postgres image does not ship. Overrides database_version for postgres; MySQL services ignore it. Empty keeps postgres:<database_version || 16> (CodySwannGT/lisa#4671).","required":false,"type":"string","default":""}
+service images:
+  test-postgres-shard / postgres: ${{ inputs.database_image || format('postgres:{0}', inputs.database_version || '16') }}
+  test-postgres / postgres: ${{ inputs.database_image || format('postgres:{0}', inputs.database_version || '16') }}
+  test-mysql-shard / mysql: mysql:${{ inputs.database_version || '8.0' }}
+  test-mysql / mysql: mysql:${{ inputs.database_version || '8.0' }}
+  mutation / postgres: ${{ inputs.database_image || format('postgres:{0}', inputs.database_version || '16') }}
+postgres services: 3, mysql services: 2
+RESULT: PASS

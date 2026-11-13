@@ -2595,7 +2595,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "rails/copy-overwrite/sgconfig.yml":
       "ff5b62de42eb969a851fdc53ee6932a32ffe010b567ed2c62460ed454ad2a24f",
     "rails/create-only/.github/workflows/ci.yml":
-      "52755137de2a3716530b36e17f7ec92fafa98f0bbfac6d20773565af9232587e",
+      "8dc0485d0cc9c7cfb6a7524de7cb2984bc24d69fc49e9f0e44e6c237673bd046",
     "rails/create-only/.github/workflows/deploy.yml":
       "68fdb813f30cfa71121a96022021f4d351e1e2497c472796c56bb8d47b9655c8",
     "rails/create-only/.mise.toml":
@@ -3951,6 +3951,19 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "evidence/CodySwannGT-lisa-4639/jira-evidence-upload-names-red-green.txt": true,
     "evidence/CodySwannGT-lisa-4642/opencode-emit-imports-red-green.txt": true,
     "evidence/CodySwannGT-lisa-4642/opencode-session-manager-help.txt": true,
+    "evidence/CodySwannGT-lisa-4671/01-workflow-parse.txt": true,
+    "evidence/CodySwannGT-lisa-4671/01b-parse-probe-bite-controls.txt": true,
+    "evidence/CodySwannGT-lisa-4671/02-actionlint.txt": true,
+    "evidence/CodySwannGT-lisa-4671/03-act-exprparser.txt": true,
+    "evidence/CodySwannGT-lisa-4671/04-model-evaluator.txt": true,
+    "evidence/CodySwannGT-lisa-4671/05-vitest-run.txt": true,
+    "evidence/CodySwannGT-lisa-4671/05b-vitest-bite-controls.txt": true,
+    "evidence/CodySwannGT-lisa-4671/SHA256SUMS": true,
+    "evidence/CodySwannGT-lisa-4671/controls/quality-rails.base-24d0d26b34.yml": true,
+    "evidence/CodySwannGT-lisa-4671/controls/quality-rails.default-nonempty.yml": true,
+    "evidence/CodySwannGT-lisa-4671/controls/quality-rails.mutation-reverted.yml": true,
+    "evidence/CodySwannGT-lisa-4671/controls/quality-rails.mysql-leak.yml": true,
+    "evidence/CodySwannGT-lisa-4671/controls/quality-rails.typo-input.yml": true,
     "evidence/CodySwannGT-lisa-4677/README.md": true,
     "evidence/CodySwannGT-lisa-4677/check-plugins-f16e99.txt": true,
     "evidence/CodySwannGT-lisa-4677/check-plugins-head.txt": true,
@@ -11970,6 +11983,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/quality-generic-gate-runner.test.ts": true,
     "tests/integration/quality-node-supervision.test.ts": true,
     "tests/integration/quality-non-declarable-jobs.test.ts": true,
+    "tests/integration/quality-rails-database-image.test.ts": true,
     "tests/integration/quality-rails-test-shards-fixture.ts": true,
     "tests/integration/quality-rails-test-shards-merge.test.ts": true,
     "tests/integration/quality-rails-test-shards.test.ts": true,
