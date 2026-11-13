@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.107.4](https://github.com/CodySwannGT/lisa/compare/v4.107.3...v4.107.4) (2026-11-13)
+
+
+### Bug Fixes
+
+* **ci:** pin packaged-apply reference to 4.106.2 ([6b14340](https://github.com/CodySwannGT/lisa/commit/6b143407eb05d5848cd89992f6308c453330c2df)), closes [#4803](https://github.com/CodySwannGT/lisa/issues/4803) [CodySwannGT/lisa#4822](https://github.com/CodySwannGT/lisa/issues/4822) [CodySwannGT/lisa#4822](https://github.com/CodySwannGT/lisa/issues/4822)
+* **ci:** print packaged-apply diagnostics on early controller exits ([263adad](https://github.com/CodySwannGT/lisa/commit/263adadc9c006b477d4d461be848217a12307bed)), closes [CodySwannGT/lisa#4822](https://github.com/CodySwannGT/lisa/issues/4822) [CodySwannGT/lisa#4822](https://github.com/CodySwannGT/lisa/issues/4822)
+* **ci:** surface the packaged-apply container's real failure ([96ae536](https://github.com/CodySwannGT/lisa/commit/96ae536ab754c0f8e76fb1208f664a4527cbd22c)), closes [CodySwannGT/lisa#4822](https://github.com/CodySwannGT/lisa/issues/4822) [CodySwannGT/lisa#4822](https://github.com/CodySwannGT/lisa/issues/4822)
+
 ### [4.107.3](https://github.com/CodySwannGT/lisa/compare/v4.107.2...v4.107.3) (2026-11-13)
 
 ### [4.107.2](https://github.com/CodySwannGT/lisa/compare/v4.107.1...v4.107.2) (2026-11-13)
