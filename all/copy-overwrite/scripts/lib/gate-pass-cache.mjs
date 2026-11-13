@@ -79,18 +79,21 @@ export const ENV_ALLOWLIST = Object.freeze(["NODE_OPTIONS", "NODE_ENV", "TZ"]);
  * pushed refs, and the cleanup sweep's ownership marker. Left in, each would
  * make every lookup miss.
  *
- * The admission wait bounds are here too: `lisa check` sets
- * `LISA_ADMISSION_MAX_WAIT` so it can wait longer for machine headroom than a
- * push may, and the push that follows does not. A wait bound decides when a
- * gate STARTS, never what it proves, so keying on it would only make the push
- * miss every pass `lisa check` recorded (CodySwannGT/lisa#4601).
+ * The admission wait bounds are excluded too, by the `LISA_ADMISSION` prefix
+ * rule in `relevantEnvironment`: `lisa check` sets `LISA_ADMISSION_MAX_WAIT`
+ * so it can wait longer for machine headroom than a push may, and the push
+ * that follows does not. A wait bound decides when a gate STARTS, never what
+ * it proves, so keying on it would only make the push miss every pass
+ * `lisa check` recorded (CodySwannGT/lisa#4601).
  */
 export const VOLATILE_LISA_ENV = Object.freeze([
   CACHE_ENV,
   "LISA_PUSHED_REFS_FILE",
   "LISA_CLEANUP_SWEPT",
-  "LISA_ADMISSION_MAX_WAIT",
-  "LISA_ADMISSION_PUSH_MAX_WAIT",
+  // Headroom admission (CodySwannGT/lisa#4596): a grant and a holder pid
+  // describe the machine at that moment, not the content being proved.
+  "LISA_ADMITTED_WORKERS",
+  "LISA_ADMISSION_HOLDER",
 ]);
 
 const ZERO_SHA = /^0+$/;
@@ -140,7 +143,11 @@ export function relevantEnvironment(env) {
     .filter(
       name =>
         ENV_ALLOWLIST.includes(name) ||
-        (name.startsWith("LISA_") && !VOLATILE_LISA_ENV.includes(name))
+        (name.startsWith("LISA_") &&
+          !VOLATILE_LISA_ENV.includes(name) &&
+          // Every headroom-admission knob (CodySwannGT/lisa#4596) changes
+          // only WHEN a step starts, never what it proves.
+          !name.startsWith("LISA_ADMISSION"))
     )
     .filter(name => env[name] !== undefined)
     .sort();

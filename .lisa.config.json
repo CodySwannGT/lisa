@@ -97,7 +97,8 @@
   },
   "pushGate": {
     "cache": true,
-    "buildOnce": true
+    "buildOnce": true,
+    "admission": true
   },
   "gates": {
     "runner": "bun run",

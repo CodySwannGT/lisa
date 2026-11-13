@@ -94,7 +94,7 @@ async function prepareInheritedHost(
 /**
  * Remove enclosing test leases before starting an independent host runner.
  * @param candidate - Parent-owned immutable execution environment
- * @returns Native environment retaining the measured fleet admission policy
+ * @returns Native environment for the independent host runner
  */
 function inheritedNativeEnvironment(candidate: Candidate): NodeJS.ProcessEnv {
   return Object.fromEntries(
@@ -174,7 +174,7 @@ async function runInheritedNative(
     candidate.logs,
     `${stack}-unit`,
     60_000,
-    nativeUnitDeadlineMs(nativeEnv)
+    nativeUnitDeadlineMs()
   );
   assertInheritedUnitExecution(candidate, stack);
   const observed = inheritedOutputs(candidate, host, stack);

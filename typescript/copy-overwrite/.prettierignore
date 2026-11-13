@@ -246,6 +246,7 @@ scripts/lib/npm-update-worker-lifecycle.mjs
 scripts/lib/npm-update-worker-policy.mjs
 scripts/lib/placeholder-expiry.mjs
 scripts/lib/process-tree-runner.mjs
+scripts/lib/push-admission.mjs
 scripts/lib/push-timing.mjs
 scripts/lib/reusable-workflow-load-adapter.mjs
 scripts/lib/reusable-workflow-load-failure.mjs

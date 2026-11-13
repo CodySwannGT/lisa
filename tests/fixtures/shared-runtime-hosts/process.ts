@@ -7,39 +7,31 @@ import {
   ioLatencyBudgetMs,
   workerSpawnSlowdown,
 } from "../../helpers/io-latency-budget.js";
-import {
-  admissionDeadlineMs,
-  admissionEnabled,
-  ADMISSION_POLL_MS,
-} from "../../../src/configs/vitest/fleet-admission.js";
-
 /**
- * Budget the unchanged native work after the real, unscaled admission phase.
- * @param environment - Actual independent generated-host environment
+ * Budget the unchanged native work of a generated host's unit run.
+ *
+ * The host's Vitest preset no longer holds a run in a fleet admission
+ * `globalSetup` (CodySwannGT/lisa#4596 replaced it with headroom admission in
+ * `lisa-test-run`, which a generated host only uses once its template turns
+ * `pushGate.admission` on), so the deadline is the work allowance alone.
  * @param workBudgetMs - Machine-scaled native work allowance
  * @param caseMarginMs - Existing machine-scaled case margin ceiling
  * @returns Finite wall deadline preserving the full work allowance
  */
 export function nativeUnitDeadlineMs(
-  environment: NodeJS.ProcessEnv,
   workBudgetMs = ioLatencyBudgetMs(60_000),
   caseMarginMs = ioLatencyBudgetMs(300_000)
 ): number {
-  const admissionMs = admissionDeadlineMs(environment);
-  const deadline = admissionMs + ADMISSION_POLL_MS + workBudgetMs;
   if (
-    !admissionEnabled(environment) ||
-    !Number.isFinite(admissionMs) ||
     !Number.isFinite(workBudgetMs) ||
     workBudgetMs <= 0 ||
     !Number.isFinite(caseMarginMs) ||
-    !Number.isFinite(deadline) ||
-    deadline >= caseMarginMs
+    workBudgetMs >= caseMarginMs
   )
     throw new Error(
-      "Native unit admission/work deadline is disabled, nonfinite or exceeds the unchanged case margin"
+      "Native unit work deadline is nonfinite or exceeds the unchanged case margin"
     );
-  return deadline;
+  return workBudgetMs;
 }
 
 /**

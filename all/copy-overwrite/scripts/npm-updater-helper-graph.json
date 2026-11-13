@@ -227,7 +227,7 @@
       "children": []
     },
     "lib/gate-pass-cache.mjs": {
-      "sha256": "b853877bd6e39eaac4d6e469ccec7e10b6f34ba1e4e5ef70376cc3971b908092",
+      "sha256": "4f2e8facee2058c30b519f4431dbe96aea18b4694c62e751306b0cec82ca7f28",
       "staticImports": [
         "node:child_process",
         "node:crypto",
@@ -702,7 +702,7 @@
       "children": []
     },
     "lib/npm-update-helper-inventory.mjs": {
-      "sha256": "04867d1a43eb81960420b5efdc3b14711c26b76b2943ec9b2bade2cb8db3decc",
+      "sha256": "0dff5f7edbb0a2c759e078fab384feff880e1f256e10872ee2946ccca0c6fcee",
       "staticImports": [],
       "dynamicImports": [],
       "children": []
@@ -1280,6 +1280,15 @@
       "dynamicImports": [],
       "children": []
     },
+    "lib/push-admission.mjs": {
+      "sha256": "b748b7a65518ba71e5579a363716cdd1afea51be1b3e0ab72b4d82c679adfd4d",
+      "staticImports": [
+        "node:fs",
+        "node:path"
+      ],
+      "dynamicImports": [],
+      "children": []
+    },
     "lib/push-timing.mjs": {
       "sha256": "31de9d9357839e7e63292a4c18ede6c7b66e2cc2d562ede80036cc90f24d0d9f",
       "staticImports": [
@@ -1457,7 +1466,7 @@
       ]
     },
     "lisa-run-gates.mjs": {
-      "sha256": "7dd4d2650f084117b0b29d5d2349cfc45cb69a84529345bae1f675b2ff29f0d8",
+      "sha256": "9c05ccc07c5b97bd7e910e235f2bd7bea9816fe2f5f282091557140c7ef7855e",
       "staticImports": [
         "lib/bounded-spawn.mjs",
         "lib/build-marker.mjs",
@@ -1467,6 +1476,7 @@
         "lib/kill-marks.mjs",
         "lib/lisa-cleanup-sweep.mjs",
         "lib/process-tree-runner.mjs",
+        "lib/push-admission.mjs",
         "lib/push-timing.mjs",
         "lib/worktree-dependencies.mjs",
         "lisa-gates.mjs",

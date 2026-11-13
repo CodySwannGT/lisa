@@ -267,11 +267,12 @@ describe("stack factory wiring", () => {
   });
 
   it("resolves global setup files that exist on disk", () => {
-    // Two hooks, and the order is the contract: admission may decline to start
-    // work, so it runs before the namespace sweep does any (CodySwannGT/lisa#3941).
+    // Only the namespace sweep: admission left Vitest for `lisa-test-run`
+    // headroom admission (CodySwannGT/lisa#4596), so no globalSetup holds a run.
     const files = scratchGlobalSetup();
-    expect(files).toHaveLength(2);
-    expect(files[0]).toMatch(/fleet-admission-global-setup\.(?:js|ts)$/u);
+    expect(files).toHaveLength(1);
+    expect(files[0]).toMatch(/scratch-global-setup\.(?:js|ts)$/u);
+    expect(files.some(file => /admission/u.test(file))).toBe(false);
     expect(files.every(file => fs.existsSync(file))).toBe(true);
   });
 

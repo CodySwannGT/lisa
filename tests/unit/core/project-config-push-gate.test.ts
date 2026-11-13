@@ -62,4 +62,23 @@ describe("ProjectConfig pushGate", () => {
       validateProjectConfig({ pushGate: { buildOnce: "yes" } }, CONFIG_PATH)
     ).toThrow(/Invalid pushGate\.buildOnce in fixture\.json/u);
   });
+
+  it("keeps an explicit admission boolean beside buildOnce", () => {
+    expect(
+      validateProjectConfig(
+        { pushGate: { buildOnce: true, admission: true } },
+        CONFIG_PATH
+      ).pushGate
+    ).toEqual({ buildOnce: true, admission: true });
+    expect(
+      validateProjectConfig({ pushGate: { admission: false } }, CONFIG_PATH)
+        .pushGate
+    ).toEqual({ admission: false });
+  });
+
+  it("refuses a non-boolean admission (CodySwannGT/lisa#4596)", () => {
+    expect(() =>
+      validateProjectConfig({ pushGate: { admission: "on" } }, CONFIG_PATH)
+    ).toThrow(/Invalid pushGate\.admission in fixture\.json/u);
+  });
 });

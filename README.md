@@ -496,6 +496,18 @@ Worker count is not the only thing several runs contend over. Coverage runs writ
 > **Prompt for your coding agent**
 > "Show me how this project's test worker pool is sized — find the resolver, tell me what each of the three layers would give on this machine right now, and how many sibling runs it currently detects."
 
+### Starting heavy runs only when the machine has room
+
+Sizing each pool is not enough when many agents start heavy runs at once: a ten-minute suite becomes a multi-hour flaky one. Set `"pushGate": { "admission": true }` in `.lisa.config.json` and every heavy run waits for headroom before it starts: every test suite run through `lisa-test-run`, plus the push gate's slow lint (`code-style-slow`), typecheck (`type-correctness`) and build-once steps. Headroom is the machine's cores, minus its one-minute load average, minus the workers of runs admitted in the last 60 seconds, because load average lags new work. A run starts at once when the headroom covers the workers it declares. A test suite can start with fewer workers, down to two, and passes the number it was given to Vitest as `LISA_ADMITTED_WORKERS`. Every repository and worktree on the machine shares one state directory, `${XDG_CACHE_HOME:-~/.cache}/lisa/admission/`, so a run in one repository counts a run admitted from another. A run that is killed leaves a reservation behind, and the next run ignores and deletes it.
+
+The wait has a limit, and nothing starts quietly when the limit runs out. The run stops with exit status 75 and names the runs that are holding the machine. Inside `git push` the limit is 5 minutes (`LISA_ADMISSION_PUSH_MAX_WAIT`). Elsewhere it is 30 minutes (`LISA_ADMISSION_MAX_WAIT`, which also applies inside a push when set). Scripts can wrap any command themselves with `lisa admit --workers <n> [--max-wait <duration>] -- <command…>`.
+
+- **Thresholds** belong to the machine, not the repository. Put them in `.lisa.config.local.json` under `admission` (`maxLoadPerCore`, default 1; `minFreeMemoryMb`, default 512; `maxWaitSeconds`; `pushMaxWaitSeconds`), or set the `LISA_ADMISSION_MAX_LOAD_PER_CORE` and `LISA_ADMISSION_MIN_FREE_MEMORY_MB` environment variables, which take precedence.
+- **`LISA_ADMISSION=off`** starts every run at once and prints that admission is off. CI skips admission because one job owns the runner. `LISA_ADMISSION=on` forces it on.
+- **Off by default.** If a project does not set the switch, its heavy runs start at once, exactly as before. Lisa turns it on for itself. Host templates turn it on per stack. The gate runner does not admit steps on Windows yet. When the switch is on there, it prints that and runs the steps at once.
+
+This replaces the old fleet admission, which held a Vitest run in a `globalSetup` hook. That hook counted runs instead of measuring load, covered only Vitest runs, and started a run anyway after two minutes.
+
 ### Building once per push
 
 A push can build the project several times: each test gate builds before it tests, and a drift check may rebuild again. Set `"pushGate": { "buildOnce": true }` in `.lisa.config.json` and the push gate runner builds once, before the first gate, then writes `.lisa/build-marker.json`, which records the working-tree hash, the lockfile hash and the node and bun versions. It exports that file's path as `LISA_BUILD_MARKER`. A later step can skip its own build only when every recorded value still matches. Any difference, or no marker at all, means it builds exactly as before. If the up-front build fails, the push fails without running any gate. The setting is off by default, and `lisa apply` and the gate runner both reject a value that is not `true` or `false`. Lisa turns it on for itself. Host templates turn it on per stack.

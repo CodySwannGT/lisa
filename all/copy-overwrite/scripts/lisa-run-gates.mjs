@@ -58,9 +58,14 @@ import {
 } from "./lib/kill-marks.mjs";
 import { boundedSpawnSync, isChildTimeout } from "./lib/bounded-spawn.mjs";
 import { openGatePassCache } from "./lib/gate-pass-cache.mjs";
-import { runBuildOnce } from "./lib/build-marker.mjs";
+import { BUILD_ONCE_ID, runBuildOnce } from "./lib/build-marker.mjs";
 import { invokedAsScript } from "./lib/invoked-as-script.mjs";
 import { runStartOfRunSweep } from "./lib/lisa-cleanup-sweep.mjs";
+import {
+  admissionEnabled,
+  PUSH_CONTEXT,
+  withAdmission,
+} from "./lib/push-admission.mjs";
 import { hostReading, recordPushTiming } from "./lib/push-timing.mjs";
 import { worktreeDependencyProblem } from "./lib/worktree-dependencies.mjs";
 import {
@@ -1858,6 +1863,31 @@ export function main(argv = process.argv.slice(2)) {
     });
   }
 
+  // Heavy push steps go through headroom admission when the project opted in
+  // with `pushGate.admission` (CodySwannGT/lisa#4596). Off, `exec` is
+  // `spawnExec` itself and every step starts immediately as before.
+  let exec = spawnExec;
+  if (moment === "push") {
+    // Inherited by every gate, so `lisa admit` and `lisa-test-run` apply the
+    // short in-push wait bound rather than the standalone one.
+    process.env.LISA_ADMISSION_CONTEXT = PUSH_CONTEXT;
+    try {
+      exec = withAdmission(spawnExec, {
+        enabled: admissionEnabled(config.config),
+      });
+    } catch (err) {
+      console.error(`🚫 Nothing ran at "push": ${err.message}`);
+      console.error(
+        "   Fix pushGate in .lisa.config.json. This is NOT a pass."
+      );
+      return settle(EXIT.BLOCKED, EVIDENCE_VERDICT.REFUSED, {
+        gates: config.gates,
+        runner: config.runner,
+        scripts,
+      });
+    }
+  }
+
   // Build once, before the first push gate, when the project opted in with
   // `pushGate.buildOnce` (CodySwannGT/lisa#4595). `buildOnceStep` is the entry
   // for the push timing report; null means the push builds exactly as before.
@@ -1868,7 +1898,7 @@ export function main(argv = process.argv.slice(2)) {
         config: config.config,
         runner: config.runner,
         scripts,
-        exec: spawnExec,
+        exec: command => exec(command, { id: BUILD_ONCE_ID }),
       });
     } catch (err) {
       console.error(`🚫 Nothing ran at "push": ${err.message}`);
@@ -1906,7 +1936,7 @@ export function main(argv = process.argv.slice(2)) {
     gates: config.gates,
     moment,
     runner: config.runner,
-    exec: spawnExec,
+    exec,
     cache,
     // The manifest is read HERE and handed down, rather than read inside the
     // resolver, so that `runGates` stays a pure function of its inputs and

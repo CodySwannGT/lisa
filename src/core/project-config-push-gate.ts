@@ -10,18 +10,27 @@
  * when absent. The gate runner reads the same keys through
  * `scripts/lib/build-marker.mjs` and `scripts/lib/gate-pass-cache.mjs` and
  * refuses the same invalid shapes, so apply, check and push cannot disagree.
+ *
+ * `pushGate.admission` (CodySwannGT/lisa#4596) routes heavy runs — every
+ * `lisa-test-run` suite, and the slow-lint, typecheck and build-once push
+ * steps — through headroom-based admission (`lisa admit`). Off when absent,
+ * and then heavy runs start immediately exactly as before. The gate runner
+ * reads it through `scripts/lib/push-admission.mjs`; `lisa-test-run` reads it
+ * through `core/admission-settings`.
  */
 
 /** Push-gate behaviour persisted in `.lisa.config.json`. */
 export interface PushGateConfig {
+  /** Remember push-gate passes by content (CodySwannGT/lisa#4594). */
+  readonly cache?: boolean;
   /** Build once per push and let later steps skip a build on a matching tree. */
   readonly buildOnce?: boolean;
-  /** Remember push-gate passes by content so an identical tree skips them. */
-  readonly cache?: boolean;
+  /** Admit heavy runs only when the machine has headroom for them. */
+  readonly admission?: boolean;
 }
 
 /** The boolean switches `pushGate` accepts. */
-const SWITCHES = ["buildOnce", "cache"] as const;
+const SWITCHES = ["buildOnce", "cache", "admission"] as const;
 
 /**
  * Validate the optional `pushGate` block.
