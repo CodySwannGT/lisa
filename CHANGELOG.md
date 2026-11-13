@@ -2,6 +2,23 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [4.107.0](https://github.com/CodySwannGT/lisa/compare/v4.106.3...v4.107.0) (2026-11-13)
+
+
+### Features
+
+* **session-manager:** let the manager warn about a second cycling session ([ae7f2aa](https://github.com/CodySwannGT/lisa/commit/ae7f2aa039100076e6020fcbf25f9a635ee1e5a1)), closes [CodySwannGT/lisa#4809](https://github.com/CodySwannGT/lisa/issues/4809) [CodySwannGT/lisa#4809](https://github.com/CodySwannGT/lisa/issues/4809)
+
+
+### Bug Fixes
+
+* **session-manager:** never count a failed tmux probe as another session ([eb4a858](https://github.com/CodySwannGT/lisa/commit/eb4a858bdd017f97c3f6247c8f4a81cce7e636c3)), closes [#4825](https://github.com/CodySwannGT/lisa/issues/4825) [CodySwannGT/lisa#4809](https://github.com/CodySwannGT/lisa/issues/4809) [CodySwannGT/lisa#4809](https://github.com/CodySwannGT/lisa/issues/4809)
+
+
+### Documentation
+
+* **session-manager:** say several pid entries can be one other session ([acb88e4](https://github.com/CodySwannGT/lisa/commit/acb88e41adfdc10c1dd444cd1b644f429608295b)), closes [CodySwannGT/lisa#4809](https://github.com/CodySwannGT/lisa/issues/4809) [CodySwannGT/lisa#4809](https://github.com/CodySwannGT/lisa/issues/4809)
+
 ### [4.106.3](https://github.com/CodySwannGT/lisa/compare/v4.106.2...v4.106.3) (2026-11-13)
 
 
