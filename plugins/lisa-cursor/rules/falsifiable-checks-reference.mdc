@@ -164,7 +164,7 @@ A clean result is a statement about what the check can perceive, not about the c
 1. Author the check.
 2. On a scratch copy, never in a worktree another agent is editing, deliberately break the guarded property — specifically, introduce **the exact regression the guard exists to prevent**, not a nearby or convenient break.
 3. Confirm the check **fails and names the right file/line**, then read the failure count and the failing test *names* per the yardstick below.
-4. Restore, and confirm green again.
+4. Restore by discarding the scratch copy. The green baseline you took in the copy before the break is the green-again evidence; the shared tree was never changed, so there is nothing to restore there.
 5. Report the falsification alongside the result.
 
 ### Break on a scratch copy, never in a shared worktree
@@ -173,15 +173,23 @@ A worktree has one working tree. When a builder or another agent is editing it, 
 
 So every falsification break (steps 2 to 4 above, and the mutation proof below) runs on a scratch copy:
 
+Run it from the repository root:
+
 ```sh
 tmp=$(mktemp -d)
 git worktree add --detach "$tmp" HEAD
-git diff HEAD | git -C "$tmp" apply      # tracked changes; copy untracked new files in too
-# break the property in "$tmp", run the check there, read the failure
-git worktree remove --force "$tmp"       # discarding the copy is the restore
+git diff --binary HEAD | git -C "$tmp" apply --allow-empty   # tracked changes, binaries included
+git ls-files --others --exclude-standard -z |
+  rsync -a --from0 --files-from=- ./ "$tmp"/                 # untracked new files
+ln -s "$PWD/node_modules" "$tmp/node_modules"                # dependencies (or run the project's install in "$tmp")
+# 1. baseline: run the check in "$tmp" BEFORE breaking anything; it must be green
+# 2. break the property in "$tmp", run the check there, read the failure
+git worktree remove --force "$tmp"                           # discarding the copy is the restore
 ```
 
-A temp copy of only the touched files is acceptable when the check can run against them in isolation. Either way, the shared tree is never written to.
+The copy must be complete before the break means anything. `git diff` carries only tracked changes, so new files need the explicit untracked copy, and a fresh worktree has no installed dependencies, so link them (never install into the linked directory from the copy) or install them there. Then take the **baseline**: run the check in the copy before breaking anything and confirm it is green. A red baseline means the copy is incomplete (a missing new file, missing dependencies), not that the guard bites; fix the copy first. That green baseline is also the green-again evidence for the restore, because discarding the copy is the restore and the shared tree was never touched.
+
+A temp copy of only the touched files is acceptable when the check can run against them in isolation; it needs the same baseline. Either way, the shared tree is never written to.
 
 ### The failure count is part of the evidence
 
@@ -190,7 +198,7 @@ Step 3's cardinality is not pedantry; each deviation names a distinct defect. Ru
 1. **Neuter the protection in production code, on a scratch copy** (never in a worktree another agent is editing; see above) — delete the branch, drop the token from the enum, remove the check. Editing a *test* proves nothing about the guard; it only proves the test file is loaded.
 2. **Run the whole suite.** Never a single test file, and never a path filter.
 3. **Count the failures and read their names.** The count alone is ambiguous; the names are what separate "several failures of one regression" from "several unrelated failures."
-4. **Revert, and confirm green again.**
+4. **Restore by discarding the scratch copy.** The green baseline taken in the copy before the break is the green-again evidence.
 
 Then read the result:
 
