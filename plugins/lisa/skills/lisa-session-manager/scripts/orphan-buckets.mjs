@@ -19,6 +19,13 @@ import { QUESTION_MARKER } from "./human-needed.mjs";
 /** The tag every comment the manager posts starts with. */
 export const SWEEP_COMMENT_PREFIX = "[lisa-session-manager]";
 
+/**
+ * How the comment the manager posts when `lisa-work-item.mjs finish`
+ * refuses an item begins. A later cycle that sees it parks the item instead
+ * of trying to finish it again every cycle.
+ */
+export const FINISH_REFUSED_PREFIX = `${SWEEP_COMMENT_PREFIX} Cannot complete:`;
+
 /** Words in a manager comment that show it explains a hold. */
 const HOLD_WORDS = /\b(?:parked|held|hold|waiting on a person)\b/iu;
 
@@ -118,9 +125,55 @@ function isHeld(item, policy) {
 }
 
 /**
+ * Whether the manager already posted a refused completion on the item.
+ * @param {{comments?: unknown}} item - Item
+ * @returns {boolean} True when a comment line starts {@link FINISH_REFUSED_PREFIX}
+ */
+function completionRefused(item) {
+  return bodies(item.comments).some(body =>
+    declares(body, FINISH_REFUSED_PREFIX)
+  );
+}
+
+/**
+ * The bucket for a merged item: finish it, unless completion was already
+ * refused, in which case it waits for whatever the refusal named.
+ * @param {{ref: string, pr: {url?: string}}} item - Item
+ * @returns {{bucket: string, entry: object}} Bucket and its entry
+ */
+function mergedBucket(item) {
+  const { ref, pr } = item;
+  if (completionRefused(item)) {
+    const reason =
+      "its pull request merged but completion was refused; the refusal on the item says why";
+    return { bucket: "parked", entry: { ref, reason, reasonOnItem: true } };
+  }
+  const reason = "its pull request merged; only completion is missing";
+  return { bucket: "doneReady", entry: { ref, prUrl: pr.url, reason } };
+}
+
+/**
+ * The bucket for an item with an open pull request: only the `claimed` role
+ * re-dispatches; an item in the `review` role waits on review or merge.
+ * @param {{ref: string, role?: unknown, pr: {url?: string}}} item - Item
+ * @returns {{bucket: string, entry: object}} Bucket and its entry
+ */
+function openBucket(item) {
+  const { ref, pr } = item;
+  if (item.role === "review") {
+    const reason =
+      "in review: waiting on review or merge of its open pull request";
+    return { bucket: "parked", entry: { ref, reason, reasonOnItem: true } };
+  }
+  const reason = "an open pull request with no live worker";
+  return { bucket: "redispatch", entry: { ref, prUrl: pr.url, reason } };
+}
+
+/**
  * Bucket one orphan that passed the live, foreign and fresh checks. A merged
  * pull request wins over a hold: the work is done, only completion is left.
- * @param {{ref: string, pr?: unknown, updatedAt?: unknown}} item - Item
+ * @param {{ref: string, role?: unknown, pr?: unknown, updatedAt?: unknown,
+ *   comments?: unknown}} item - Item
  * @param {{now: number}} policy - Resolved policy
  * @returns {{bucket: string, entry: object}} Bucket and its entry
  */
@@ -133,17 +186,11 @@ export function classifyOrphan(item, policy) {
     };
   }
   const state = pr === null ? null : String(pr.state ?? "").toLowerCase();
-  if (state === "merged") {
-    const reason = "its pull request merged; only completion is missing";
-    return { bucket: "doneReady", entry: { ref, prUrl: pr.url, reason } };
-  }
+  if (state === "merged") return mergedBucket(item);
   if (isHeld(item, policy)) {
     return { bucket: "parked", entry: parkedEntry(item, policy) };
   }
-  if (state === "open") {
-    const reason = "an open pull request with no live worker";
-    return { bucket: "redispatch", entry: { ref, prUrl: pr.url, reason } };
-  }
+  if (state === "open") return openBucket(item);
   const age = ageInWords(policy.now - new Date(item.updatedAt).getTime());
   return {
     bucket: "return",

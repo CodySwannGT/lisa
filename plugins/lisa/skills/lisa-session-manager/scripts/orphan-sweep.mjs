@@ -29,7 +29,10 @@ import {
 import { holdDigest, judgeHold } from "./orphan-holds.mjs";
 import { classifyOrphan } from "./orphan-buckets.mjs";
 
-export { SWEEP_COMMENT_PREFIX } from "./orphan-buckets.mjs";
+export {
+  FINISH_REFUSED_PREFIX,
+  SWEEP_COMMENT_PREFIX,
+} from "./orphan-buckets.mjs";
 
 /** At most this many writes per cycle unless the caller says otherwise. */
 export const DEFAULT_ORPHAN_MAX = 10;
@@ -111,6 +114,7 @@ function resolveOptions(opts = {}) {
     humanOnly: opts.humanOnly,
     readyLabel: opts.readyLabel,
     lifecycleLabels: opts.lifecycleLabels,
+    roleLabels: opts.roleLabels ?? {},
     previousDigest: opts.previousDigest ?? null,
   };
 }
@@ -177,8 +181,15 @@ function sortHolds(holds, policy) {
     const ref = refOf(raw);
     if (ref === "" || seen.has(ref)) continue;
     seen.add(ref);
-    const { kind, entry } = judgeHold({ ...raw, ref }, policy);
+    // A worker is on it, or a person's answer is awaited: not ours to judge,
+    // and never on the operator's list a second time.
+    if (policy.live.has(ref)) {
+      judged.skipped.push({ ref, reason: "live" });
+      continue;
+    }
+    const { kind, entry, keep } = judgeHold({ ...raw, ref }, policy);
     judged[kind === "skip" ? "skipped" : kind].push(entry);
+    if (keep) judged.keep.push(keep);
   }
   return judged;
 }
@@ -261,11 +272,12 @@ function spendCap(queue, max) {
  *   (and configured `review`) role as `{ref, role, labels, body, comments,
  *   assignees, updatedAt, pr}` (`pr` undefined when not looked up, null when
  *   none was found, else `{url, state}`), and held items as
- *   `{ref, labels, body, comments}`
+ *   `{ref, role?, labels, body, comments}`
  * @param {{liveRefs?: string[], me?: string|null, operatorIds?: unknown,
  *   now: string|number|Date, staleHours?: number, max?: number,
  *   trustedAuthorIds?: unknown, humanNeededLabel?: string, humanOnly?: unknown,
  *   readyLabel?: string, lifecycleLabels?: string[],
+ *   roleLabels?: Record<string, string>,
  *   previousDigest?: string|null}} opts - Ledger-derived live refs,
  *   identities, the clock, the cap and the hold policy
  * @returns {OrphanSweepPlan} Plan; it writes nothing

@@ -314,16 +314,23 @@ Per cycle
   orphan-plan [--input <file>] [--max <n>] [--stale-hours <n>]
                                                 STDIN (without --input): JSON
       {complete:true,items:[{ref,role,labels,body,comments,assignees,
-      updatedAt,pr}],holds:[{ref,labels,body,comments}]}. Plans the
+      updatedAt,pr}],holds:[{ref,role,labels,body,comments}]}. Plans the
       "Orphans and holds" sweep; writes nothing. items are the claimed (and
       review) role; pr is omitted when not looked up, null when none was
       found, else {url,state:open|merged|closed}. holds carry the
-      human-needed label or a [lisa-human-gate] marker. Live refs (ledger
+      human-needed label or a [lisa-human-gate] marker; a hold's role
+      (ready, claimed, review, blocked) counts as its lane, so a lift never
+      moves an item that is in a lane back to ready. Live refs (ledger
       status running or question), me (ledger control.me), operatorIds,
       trustedAuthorIds and the hold labels come from the ledger and config;
       the same keys in the input are ignored. Skips live, foreign (assigned
       to neither me nor an operator), fresh (updated within --stale-hours,
-      default 6) and undated items. stdout {doneReady:[{ref,prUrl,reason}],
+      default 6) and undated items, and holds on live refs. A review-role
+      item with an open pull request, and a merged item whose comments hold
+      a line starting "[lisa-session-manager] Cannot complete:", are parked
+      with reasonOnItem true; only the claimed role is re-dispatched. A
+      partial lift also appears in holds.keep with the reasons still left
+      for a person. stdout {doneReady:[{ref,prUrl,reason}],
       return:[{ref,reason,comment}],redispatch:[{ref,prUrl,reason}],
       parked:[{ref,reason,reasonOnItem[,comment]}],lookup:[{ref,reason}],
       skipped:[{ref,reason}],holds:{lift:[{ref,reason,comments,actions,

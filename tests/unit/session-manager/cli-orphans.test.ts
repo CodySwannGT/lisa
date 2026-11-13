@@ -224,6 +224,51 @@ describe(PLAN, () => {
     expect(plan(sandbox, envelope).json.holds.digest.changed).toBe(true);
   });
 
+  it("never lists a hold whose item has a pending question in the ledger", () => {
+    const sandbox = sandboxWith();
+    const held = { ...releasedHold, comments: [] };
+    expect(
+      run(sandbox, ["ledger", "record-spawn", held.ref, "--worker", "w-5"])
+        .status
+    ).toBe(0);
+    const asked = run(
+      sandbox,
+      ["ledger", "set-question", held.ref, "--kind", "worker-question"],
+      { input: "Which key should I use?" }
+    );
+    expect(asked.status).toBe(0);
+    const result = plan(sandbox, { complete: true, items: [], holds: [held] });
+    expect(result.status).toBe(0);
+    expect(result.json.holds.keep).toEqual([]);
+    expect(result.json.holds.digest.text).toBe("");
+    expect(result.json.skipped).toContainEqual({
+      ref: held.ref,
+      reason: "live",
+    });
+  });
+
+  it("reads each hold's role as its lane, from the configured role values", () => {
+    const sandbox = sandboxWith();
+    const result = plan(sandbox, {
+      complete: true,
+      items: [],
+      holds: [
+        {
+          ref: ref(6),
+          role: "claimed",
+          labels: [NEEDED],
+          body: "<!-- [lisa-human-gate] reason=tenancy-audit-triage -->",
+          comments: [],
+        },
+      ],
+    });
+    expect(result.status).toBe(0);
+    expect(result.json.holds.lift[0].actions).toEqual({
+      removeHumanNeededLabel: true,
+      addReadyLabel: null,
+    });
+  });
+
   it("refuses a hold digest that is not a sha256 fingerprint (exit 2)", () => {
     const sandbox = sandboxWith();
     const result = run(sandbox, ["ledger", "control", HOLD_DIGEST, "abc"]);

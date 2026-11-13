@@ -76,6 +76,25 @@ function decisionLine(lifted) {
 }
 
 /**
+ * The item's labels plus its role's resolved value. On Jira and Linear a
+ * role is a workflow state, not a label, so without it the lane check would
+ * see an item in the `claimed` role as in no lane and move it back to the
+ * `ready` role.
+ * @param {{role?: unknown, labels?: unknown}} item - Hold
+ * @param {Record<string, string> | undefined} roleLabels - Role to value
+ * @returns {unknown[]} Labels the lane check reads
+ */
+function withRoleLabel(item, roleLabels) {
+  const labels = Array.isArray(item.labels) ? item.labels : [];
+  const known = roleLabels ?? {};
+  const role = typeof item.role === "string" ? item.role : "";
+  const value = Object.hasOwn(known, role) ? known[role] : "";
+  return typeof value === "string" && value !== ""
+    ? [...labels, value]
+    : labels;
+}
+
+/**
  * The lift planner's input for one hold.
  * @param {{labels?: unknown, body?: unknown, comments?: unknown}} item - Hold
  * @param {object} policy - Resolved hold policy
@@ -83,7 +102,7 @@ function decisionLine(lifted) {
  */
 function liftInput(item, policy) {
   return {
-    labels: item.labels,
+    labels: withRoleLabel(item, policy.roleLabels),
     body: item.body,
     comments: item.comments,
     trustedHumanActorIds: policy.trustedHumanActorIds,
@@ -98,14 +117,22 @@ function liftInput(item, policy) {
  * Judge one hold: lift it, keep it for a person, or skip it.
  * @param {{ref: string, labels?: unknown, body?: unknown, comments?: unknown}} item - Hold
  * @param {object} policy - Resolved hold policy
- * @returns {{kind: "lift"|"keep"|"skip", entry: object}} Verdict
+ * @returns {{kind: "lift"|"keep"|"skip", entry: object,
+ *   keep?: {ref: string, reason: string}}} Verdict; a partial lift also
+ *   carries `keep`, the reasons still left for a person
  */
 export function judgeHold(item, policy) {
   const input = liftInput(item, policy);
   const plan = planHumanGateLift(input);
   if (plan.reason === "lift" || plan.reason === "partial-lift") {
     const decision = decisionLine(plan.lifted);
+    const kept = plan.kept.map(reason =>
+      describeKept(reason, policy.humanOnly)
+    );
     return {
+      ...(kept.length > 0
+        ? { keep: { ref: item.ref, reason: bounded(kept.join("; ")) } }
+        : {}),
       kind: "lift",
       entry: {
         ref: item.ref,

@@ -89,6 +89,13 @@ function holdPolicy(project) {
     humanNeededLabel: humanNeededLabel(project, undefined),
     humanOnly,
     readyLabel: roleValue(project, "ready"),
+    // A hold's role is its lane: on Jira and Linear the lane is a state, so
+    // the lift's lane check reads it as one more label.
+    roleLabels: Object.fromEntries(
+      LANE_ROLES.map(name => [name, roleValue(project, name)]).filter(
+        ([, value]) => value !== ""
+      )
+    ),
     lifecycleLabels: [
       ...LANE_ROLES.map(name => roleValue(project, name)),
       ...doneValues(project),

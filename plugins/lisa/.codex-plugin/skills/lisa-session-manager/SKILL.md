@@ -472,30 +472,39 @@ just as long. Sweep both every cycle, after `classify` and before Dispatch:
    the optional `review` role, the `review` role; plus the open items carrying the human-needed
    label or a `[lisa-human-gate]` body marker, in any role. Page every list to completion (GitHub:
    `gh`, with `--limit 10000`; Jira / Linear: `lisa-atlassian-access` or `lisa-linear-access`).
-   Write `{"complete":true,"items":[{ref,role,labels,body,comments,assignees,updatedAt}],"holds":[{ref,labels,body,comments}]}`
+   Write `{"complete":true,"items":[{ref,role,labels,body,comments,assignees,updatedAt}],"holds":[{ref,role,labels,body,comments}]}`
    to `.lisa/session-manager/orphan-input.json`: refs canonical as dispatch uses them, comments
    with their author ids, assignees as `{login,id}` objects on GitHub (the REST
-   `.assignees[].id`) and as the account or user id on Jira and Linear. Set `complete` to `true`
+   `.assignees[].id`) and as the account or user id on Jira and Linear, and each hold's `role` as
+   the lifecycle role it is in (`ready`, `claimed`, `review`, `blocked`), so a lift never moves an
+   item that is in a lane back to the `ready` role. Set `complete` to `true`
    only when every list reached its last page; the CLI refuses anything else. Run
    `node "$SM/session-manager.mjs" orphan-plan --input .lisa/session-manager/orphan-input.json --project-root "$ROOT"`.
    For each ref in `lookup`, find its pull request in the item's repo dir
-   (`gh pr list --state all --search <ref>`), set that item's `pr` to `null` or
+   (`gh pr list --state all --search <ref>`); when several match, prefer the merged one, then an
+   open one, then a closed one. Set that item's `pr` to `null` or
    `{"url":…,"state":"open"|"merged"|"closed"}`, and run it again. The live refs, "me", the
    operators and the trusted authors come from the ledger and config, never from the input. It
-   skips refs the ledger shows running or asking, items assigned to anyone but "me" or an
+   skips refs the ledger shows running or asking (their holds too, so an item waiting on a
+   person's answer is never on the operator's list twice), items assigned to anyone but "me" or an
    operator, and items updated within `--stale-hours` (default 6), which protects a person running
    `/lisa:implement` by hand.
 2. **Act** per bucket. Every write goes through `lisa-tracker-write` and is read back with
    `lisa-tracker-read`; every comment is the planner's, which starts with `[lisa-session-manager]`.
    - `doneReady`: the pull request merged. In the item's repo dir run
      `node scripts/lisa-work-item.mjs finish --ref <ref> --pr-url <prUrl>`. If it refuses, post
-     one comment saying, in plain words, why the item cannot complete yet.
+     one comment that starts `[lisa-session-manager] Cannot complete:` and says, in plain words,
+     why the item cannot complete yet. Later cycles see that comment and park the item instead of
+     trying again.
    - `return`: move it to the `ready` role with the entry's `comment`.
    - `redispatch`: an open pull request and no worker. Claim it (`reused`) and `spawn` it exactly
      as Dispatch steps 2.3 and 2.4, ahead of new items, while `capacity` says `can_spawn`. A
      spawn that reaches `stall.maxAttempts` follows the `exhausted` row above.
-   - `parked`: post the entry's `comment` only when `reasonOnItem` is false.
-   - `holds.lift`: post each of its `comments` (each ends with its `Decision:` line), then remove
+   - `parked`: post the entry's `comment` only when `reasonOnItem` is false. An item in the
+     `review` role with an open pull request is parked, never re-dispatched: it is waiting on
+     review or merge.
+   - `holds.lift`: post each of its `comments` (each ends with its `Decision:` line); a partial
+     lift is also in `holds.keep` with the reasons still left for a person. Then remove
      the human-needed label and move it to the `ready` role as its `actions` say.
    - `holds.keep`: when `holds.digest.changed` is true, send `holds.digest.text` to the operator
      once (Telegram when configured, else the cycle summary; nothing when the text is empty), then
