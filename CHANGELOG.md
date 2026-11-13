@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.108.1](https://github.com/CodySwannGT/lisa/compare/v4.108.0...v4.108.1) (2026-11-13)
+
+
+### Bug Fixes
+
+* **completion:** fold escaped punctuation and colon alignment in usage comparison ([0b49727](https://github.com/CodySwannGT/lisa/commit/0b4972751872ab8b670280fd184cee7dd05e1b23)), closes [CodySwannGT/lisa#4690](https://github.com/CodySwannGT/lisa/issues/4690) [CodySwannGT/lisa#4690](https://github.com/CodySwannGT/lisa/issues/4690)
+* **completion:** ignore Linear-normalized Lisa Usage boilerplate in spec projection ([ba20702](https://github.com/CodySwannGT/lisa/commit/ba2070267d9a17aa067d52dcce045f4a20007f9b)), closes [CodySwannGT/lisa#4690](https://github.com/CodySwannGT/lisa/issues/4690) [CodySwannGT/lisa#4690](https://github.com/CodySwannGT/lisa/issues/4690)
+
 ## [4.108.0](https://github.com/CodySwannGT/lisa/compare/v4.107.13...v4.108.0) (2026-11-13)
 
 
