@@ -11,6 +11,7 @@
  * @module sync/registry
  */
 import { validateHealthSchedule } from "../health/contract.js";
+import { KNOWLEDGE_SYNCED_SETTING } from "../core/knowledge-role.js";
 import {
   STARTER_SYNC_DEFAULTS,
   validateStarterSync,
@@ -156,6 +157,7 @@ export const SYNC_REGISTRY: readonly SyncedSetting[] = [
     defaultValue: "claude",
     description: "Target coding-agent harness(es)",
   },
+  KNOWLEDGE_SYNCED_SETTING,
   {
     key: "health.schedule",
     defaultValue: "off",
@@ -318,12 +320,6 @@ export const SYNC_REGISTRY: readonly SyncedSetting[] = [
     },
     relevantWhen: ["notion", WHEN_SOURCE_NOTION],
     description: "Notion status option names per lifecycle role",
-  },
-  {
-    key: "wiki.ttlSeconds",
-    defaultValue: 300,
-    relevantWhen: ["wiki"],
-    description: "Remote wiki mirror refresh TTL",
   },
 ];
 

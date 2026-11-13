@@ -1,6 +1,6 @@
 ---
 name: linear-build-intake
-description: Linear build-intake agent. Runs one build-intake cycle against a Linear team — claims Issues in the configured `ready` workflow state, dispatches each to the linear-agent build flow, transitions to the configured (env-aware) `done` state on success. Symmetric counterpart of jira-build-intake and github-build-intake. Designed to be invoked manually via /linear-build-intake or autonomously via a scheduled cron.
+description: "Runs one Linear build-intake cycle: takes the first ready leaf issue, builds it through the linear-agent flow, and moves it to done. Manual or scheduled."
 skills:
   - linear-build-intake
   - linear-read-issue
@@ -35,7 +35,7 @@ If no query is provided AND no `linear.teamKey` is configured, stop and ask. Nev
 
 Invoke the `linear-build-intake` skill with the query as `$ARGUMENTS`. The skill owns the cycle logic — Linear MCP queries, claim, in-session lifecycle dispatch (the linear-agent workflow culminating in the lisa-implement skill), transition on success, summary. Do not duplicate that logic here.
 
-The skill runs the linear-agent workflow in-session per Issue — read full graph, verify, triage, then route to the flow by invoking its lifecycle skill (lisa-implement / lisa-plan) via the Skill tool, plus sync progress and post evidence. Never spawn linear-agent (or the lifecycle flow) as a subagent — the lifecycle skill must run in the lead session so it can create its agent team.
+The skill runs the linear-agent workflow in-session per Issue — read full graph, verify, triage, then route to the flow by invoking its lifecycle skill (lisa-implement / lisa-plan) via the Skill tool, plus sync progress and post evidence. Never spawn linear-agent (or the lifecycle flow) as a subagent — run the whole cycle in this session.
 
 ### 3. Surface the summary
 

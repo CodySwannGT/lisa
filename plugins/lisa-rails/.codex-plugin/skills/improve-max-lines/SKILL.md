@@ -1,10 +1,10 @@
 ---
 name: improve-max-lines
-description: "reducing the maximum…"
+description: "Lower the maximum class/module…"
 allowed-tools: ["Read", "Bash", "Glob", "Grep"]
 
 ---
-This skill should be used when reducing the maximum class/module lines threshold and fixing all violations. It updates the RuboCop configuration, identifies classes and modules exceeding the new limit, generates a brief with refactoring strategies, and creates a plan with tasks to split oversized files.
+Lower the maximum class/module length limit in RuboCop and plan the refactors that bring oversized files under it. Use when tightening the max-lines threshold in a Rails project.
 
 
 # Reduce Max Lines

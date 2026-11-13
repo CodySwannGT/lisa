@@ -1,4 +1,4 @@
 display_name: "Local State"
-short_description: "implementing local state…"
+short_description: "Local state in this React…"
 default_prompt:
-  - "Use $local-state: implementing local state…."
+  - "Use $local-state: Local state in this React…."

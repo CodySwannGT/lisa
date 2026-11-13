@@ -1,4 +1,4 @@
 display_name: "Tracker Build Intake"
-short_description: "Vendor-neutral wrapper for the build-queue scanner"
+short_description: "Scan the build queue of whichever tracker the project uses and start one ready leaf ticket per cycle"
 default_prompt:
-  - "Use $lisa-tracker-build-intake: Vendor-neutral wrapper for the build-queue scanner."
+  - "Use $lisa-tracker-build-intake: Scan the build queue of whichever tracker the project uses and start one ready leaf ticket per cycle."

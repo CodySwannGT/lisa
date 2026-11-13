@@ -103,7 +103,7 @@ An ambiguous id is still a failure even though nothing is wrong in the design: t
 
 ---
 
-The eager head is [eager/design-value-binding.md](../eager/design-value-binding.md). This body carries the axis vocabulary, the five block conditions in detail, the configuration schema, the comment grammar, and the escalation routing.
+This rule is indexed in [eager/00-rule-index.md](../eager/00-rule-index.md). This body carries the axis vocabulary, the five block conditions in detail, the configuration schema, the comment grammar, and the escalation routing.
 
 ## Why this exists separately from `design-source-of-truth`
 

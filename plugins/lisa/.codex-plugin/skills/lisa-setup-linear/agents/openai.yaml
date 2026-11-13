@@ -1,4 +1,4 @@
 display_name: "Setup Linear"
-short_description: "Configure Linear as the…"
+short_description: "Configure Linear as this…"
 default_prompt:
-  - "Use $lisa-setup-linear: Configure Linear as the…."
+  - "Use $lisa-setup-linear: Configure Linear as this…."

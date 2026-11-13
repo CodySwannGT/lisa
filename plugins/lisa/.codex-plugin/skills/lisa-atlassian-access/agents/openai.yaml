@@ -1,4 +1,4 @@
 display_name: "Atlassian Access"
-short_description: "Vendor-neutral access layer for…"
+short_description: "The one way Lisa skills reach…"
 default_prompt:
-  - "Use $lisa-atlassian-access: Vendor-neutral access layer for…."
+  - "Use $lisa-atlassian-access: The one way Lisa skills reach…."

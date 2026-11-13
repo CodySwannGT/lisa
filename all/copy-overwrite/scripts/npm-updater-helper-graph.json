@@ -128,7 +128,7 @@
       "children": []
     },
     "lib/completion-proof-github.mjs": {
-      "sha256": "ff40541dce08ead9caa0da538da851a1dafa523521ff136389ce2ee9efaec9d9",
+      "sha256": "5b11a58ac677a2f165678a5255060aa998cda6d7081b64e7c2114195eee997d0",
       "staticImports": [
         "lib/completion-proof-shape.mjs"
       ],

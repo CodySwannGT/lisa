@@ -1,4 +1,5 @@
 ---
+disable-model-invocation: true
 description: "Back-sync an environment branch down the deploy chain (hotfix propagation) on demand"
 allowed-tools: ["Skill"]
 argument-hint: "[source-env-or-branch]"

@@ -1,4 +1,4 @@
 display_name: "Notion To Tracker"
-short_description: ">"
+short_description: "Turn a Notion PRD into epics, stories, and sub-tasks in the project's tracker, with codebase research, blockers, and verification plans"
 default_prompt:
-  - "Use $lisa-notion-to-tracker: >."
+  - "Use $lisa-notion-to-tracker: Turn a Notion PRD into epics, stories, and sub-tasks in the project's tracker, with codebase research, blockers, and verification plans."

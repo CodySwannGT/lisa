@@ -1,5 +1,5 @@
 ---
-description: "Set up Notion as the PRD source for this project. Walks the user through creating a workspace-scoped internal-integration token, sharing the PRD database with it, and stores the token in OS keychain. Writes `notion.workspaceId`, `notion.prdDatabaseId`, and `notion.values` into `.lisa.config.json`. Offers to set top-level `source: \"notion\"`."
+description: "Set up Notion as this project's PRD source: create and share the integration, store its token, and write the notion settings."
 allowed-tools: ["Skill"]
 argument-hint: "[--database=<uuid>] [--workspace=<slug>]"
 ---

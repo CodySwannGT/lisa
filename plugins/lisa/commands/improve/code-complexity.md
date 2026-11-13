@@ -1,4 +1,5 @@
 ---
+disable-model-invocation: true
 description: "Reduce the cognitive complexity threshold by 2 and fix all violations"
 allowed-tools: ["Skill"]
 ---

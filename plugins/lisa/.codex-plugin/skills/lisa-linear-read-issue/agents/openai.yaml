@@ -1,4 +1,4 @@
 display_name: "Linear Read Issue"
-short_description: "Fetches the full scope of a…"
+short_description: "Fetch a Linear issue or project…"
 default_prompt:
-  - "Use $lisa-linear-read-issue: Fetches the full scope of a…."
+  - "Use $lisa-linear-read-issue: Fetch a Linear issue or project…."

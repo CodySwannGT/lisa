@@ -1,6 +1,6 @@
 ---
 name: lisa-setup-jira
-description: "Configure JIRA as the destination tracker for this project. Writes `jira.project` into `.lisa.config.json` and offers to set top-level `tracker: \"jira\"`. Depends on /lisa:setup:atlassian — atlassian.cloudId must already be present, otherwise this skill stops and instructs the user to run setup-atlassian first. Idempotent."
+description: "Configure JIRA as this project's tracker by writing jira.project to .lisa.config.json. Requires lisa-setup-atlassian first. Idempotent."
 allowed-tools: ["Bash", "Read", "Write", "Edit", "Skill", "AskUserQuestion"]
 ---
 

@@ -5,8 +5,10 @@
  * the rule only shows `id`/`package`/`reason`, every agent-authored exception is
  * advisory-wide — it silences a later production copy as well as the reviewed
  * dev-only one. Both tiers must therefore name `versions` and `paths`, and the
- * reference tier must recommend path scope for a dev-only copy. Checked in the
- * source tree and the generated Claude plugin so a stale build cannot hide drift.
+ * ladder must recommend path scope for a dev-only copy. The ladder now lives in
+ * the `lisa-security-audit-handling` skill, which the audit's failure message
+ * names. Checked in the source tree and the generated Claude plugin so a stale
+ * build cannot hide drift.
  * @module tests/unit/strategies/security-audit-handling-scope
  */
 import { readFileSync } from "node:fs";
@@ -15,112 +17,47 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 
 const ROOTS = ["plugins/src/base", "plugins/lisa"] as const;
-const RULE = "security-audit-handling.md";
+const SKILL = "skills/lisa-security-audit-handling/SKILL.md";
 const DOC_URL =
   "https://github.com/CodySwannGT/lisa/blob/main/docs/dependency-audit-exclusions.md";
 
-const read = (root: string, tier: "eager" | "reference"): string =>
-  readFileSync(path.resolve(root, "rules", tier, RULE), "utf8");
+const read = (root: string): string =>
+  readFileSync(path.resolve(root, SKILL), "utf8");
 
 describe.each(ROOTS)("security-audit-handling scope guidance (%s)", root => {
-  it("the eager ladder names versions and paths for a dev-only copy", () => {
-    const eager = read(root, "eager");
-    expect(eager).toContain("`versions`");
-    expect(eager).toContain("`paths`");
-    expect(eager).toMatch(/dev-only/u);
+  it("documents both scope fields with lockfile keys", () => {
+    const skill = read(root);
+    expect(skill).toContain("`versions`");
+    expect(skill).toContain("`paths`");
+    expect(skill).toMatch(/lockfile key path/u);
+    expect(skill).toContain('"paths": ["lint-plugin/pkg"]');
   });
 
-  it("the reference ladder documents both scope fields with lockfile keys", () => {
-    const reference = read(root, "reference");
-    expect(reference).toContain("`versions`");
-    expect(reference).toContain("`paths`");
-    expect(reference).toMatch(/lockfile key path/u);
-    expect(reference).toContain('"paths": ["lint-plugin/pkg"]');
+  it("links the exclusion guide by absolute URL (docs/ is not shipped)", () => {
+    expect(read(root)).toContain(DOC_URL);
   });
 
-  it("both tiers link the exclusion guide by absolute URL (docs/ is not shipped)", () => {
-    for (const tier of ["eager", "reference"] as const)
-      expect(read(root, tier), tier).toContain(DOC_URL);
+  it("states the weaker isolation of Yarn and hoisted npm keys", () => {
+    const skill = read(root);
+    expect(skill).toMatch(/requested range, not a parent/u);
+    expect(skill).toMatch(/hoisted/u);
   });
 
-  it("the reference ladder states the weaker isolation of Yarn and hoisted npm keys", () => {
-    const reference = read(root, "reference");
-    expect(reference).toMatch(/requested range, not a parent/u);
-    expect(reference).toMatch(/hoisted/u);
-  });
-
-  it("the reference ladder recommends paths over an ID-wide entry for dev-only copies", () => {
-    const reference = read(root, "reference");
-    expect(reference).toMatch(
+  it("recommends paths over an ID-wide entry for dev-only copies", () => {
+    const skill = read(root);
+    expect(skill).toMatch(
       /Whenever the vulnerable copy is dev-only[^\n]*add `versions` and `paths` rather than an ID-wide entry/u
     );
-    expect(reference).toMatch(/never widens into an ID-wide exclusion/u);
-  });
-});
-
-describe("the exclusion guide the rules link to (docs/dependency-audit-exclusions.md)", () => {
-  const guide = readFileSync(
-    path.resolve("docs", "dependency-audit-exclusions.md"),
-    "utf8"
-  );
-
-  it("documents paths as exact lockfile keys", () => {
-    expect(guide).toContain('"paths": ["lint-tool/schema-lib"]');
-    expect(guide).toMatch(/Paths are exact keys, without glob expansion/u);
+    expect(skill).toMatch(/never widens into an ID-wide exclusion/u);
   });
 
-  it("recommends path scope over an advisory-wide exception for dev-only copies", () => {
-    expect(guide).toMatch(
-      /Prefer `paths` over an advisory-wide exception whenever the\s+accepted vulnerable copy belongs only to a development tool/u
-    );
-  });
-
-  it("documents that a narrower entry is never widened by an advisory-wide one", () => {
-    expect(guide).toMatch(/A narrower entry always wins/u);
-    expect(guide).toMatch(/advisory-wide exclusion was not applied/u);
-  });
-
-  it("documents that a misspelled scope field fails closed and other keys are ignored", () => {
-    expect(guide).toMatch(
-      /nearly\s+matches one of the five scope fields fails the audit/u
-    );
-    expect(guide).toMatch(/is ignored by the audit as before/u);
-  });
-
-  it("names only genuinely unrecognized keys as ignored, and accepts advisory metadata", () => {
-    // `url` and `title` are known metadata fields, so doctor does not report them.
-    expect(guide).not.toMatch(/such as `url` or `title`, is ignored/u);
-    expect(guide).toMatch(/`cwe`,\s+`ghsa`,\s+`url`,\s+`title`,\s+`severity`/u);
-  });
-
-  it("says the CI fallback audits the manager its package_manager input names", () => {
-    // The reusable workflow's input defaults to npm; it does not run the
-    // hook's detection, so the guide must not claim one shared selection.
-    expect(guide).not.toMatch(/including its package-manager\s+selection/u);
-    expect(guide).toMatch(/`package_manager`\s+input/u);
-    expect(guide).toMatch(/defaults\s+to\s+`npm`/u);
-  });
-
-  it("states that a doctor pass does not guarantee the audit accepts the files", () => {
-    expect(guide).toMatch(/entry\s+with\s+no\s+`id`/u);
-    expect(guide).toMatch(/does\s+not\s+parse/u);
-    expect(guide).toMatch(/A\s+doctor\s+pass\s+is\s+not\s+proof/u);
-  });
-
-  it("does not claim doctor matches advisories against lockfile copies", () => {
-    expect(guide).not.toMatch(/CI audit job,\s+and doctor share/u);
-    expect(guide).toMatch(
-      /does not match\s+advisories against lockfile copies/u
-    );
-  });
-});
-
-describe("the reference rule separates doctor's checks from advisory matching", () => {
-  it.each(ROOTS)("%s", root => {
-    const reference = read(root, "reference");
-    expect(reference).not.toMatch(
-      /and `lisa doctor` all use the same matcher/u
-    );
-    expect(reference).toMatch(/`lisa doctor` checks the scope fields/u);
+  it("is named by the audit's failure message", () => {
+    for (const script of [
+      "all/copy-overwrite/scripts/lisa-audit.mjs",
+      "scripts/lisa-audit.mjs",
+    ])
+      expect(readFileSync(script, "utf8"), script).toContain(
+        "lisa-security-audit-handling"
+      );
   });
 });

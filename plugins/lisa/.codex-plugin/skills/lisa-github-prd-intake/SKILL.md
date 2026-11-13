@@ -1,9 +1,9 @@
 ---
 name: lisa-github-prd-intake
-description: "Scans a GitHub repository for…"
+description: "Run one cycle of GitHub PRD…"
 allowed-tools: ["Skill", "Bash"]
 ---
-Scans a GitHub repository for issues carrying the configured `ready` PRD label and runs the first eligible one through the dry-run validation pipeline. A PRD that passes every gate gets tickets written (to whatever destination tracker is configured — JIRA, GitHub Issues itself, or Linear) and the label flipped to the configured `ticketed` label; a PRD that fails gets clarifying-question comments and the label flipped to the configured `blocked` label. The GitHub counterpart of lisa-notion-prd-intake / lisa-confluence-prd-intake / lisa-linear-prd-intake. Composes existing skills (github-to-tracker, tracker-validate, tracker-source-artifacts, product-walkthrough).
+Run one cycle of GitHub PRD intake: take the first ready PRD issue, validate it, and either create its tickets and mark it ticketed or post clarifying questions and mark it blocked.
 
 
 # GitHub PRD Intake: $ARGUMENTS

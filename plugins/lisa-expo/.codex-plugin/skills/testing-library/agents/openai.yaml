@@ -1,4 +1,4 @@
 display_name: "Testing Library"
-short_description: "Enforces best practices for…"
+short_description: "Unit testing in Expo projects…"
 default_prompt:
-  - "Use $testing-library: Enforces best practices for…."
+  - "Use $testing-library: Unit testing in Expo projects…."

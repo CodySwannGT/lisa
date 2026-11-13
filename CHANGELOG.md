@@ -2,6 +2,34 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [5.0.2](https://github.com/CodySwannGT/lisa/compare/v5.0.1...v5.0.2) (2026-11-13)
+
+
+### Bug Fixes
+
+* **deps:** raise @codyswann/lisa self-pin floor to ^5.0.1 ([665ed55](https://github.com/CodySwannGT/lisa/commit/665ed55a28108fee29cd628c689404ee93aa3812)), closes [CodySwannGT/lisa#4865](https://github.com/CodySwannGT/lisa/issues/4865) [CodySwannGT/lisa#4865](https://github.com/CodySwannGT/lisa/issues/4865)
+
+### [5.0.1](https://github.com/CodySwannGT/lisa/compare/v5.0.0...v5.0.1) (2026-11-13)
+
+## [5.0.0](https://github.com/CodySwannGT/lisa/compare/v4.111.2...v5.0.0) (2026-11-13)
+
+
+### ⚠ BREAKING CHANGES
+
+* the `wiki` config key is retired in favour of
+`knowledge`; the OpenClaw plugin and wiki staff roles are removed.
+
+### Features
+
+* lean always-loaded rules, knowledge role, drop forced agent teams ([31088dd](https://github.com/CodySwannGT/lisa/commit/31088ddf7911c0bb0c9eb1d8a4af127a5907a44a)), closes [CodySwannGT/lisa#4852](https://github.com/CodySwannGT/lisa/issues/4852) [CodySwannGT/lisa#4852](https://github.com/CodySwannGT/lisa/issues/4852)
+
+
+### Bug Fixes
+
+* address the local review of the lean-rules change ([e2b5bf1](https://github.com/CodySwannGT/lisa/commit/e2b5bf14e56a9d796af2fc176d57d65eba6b4bdb)), closes [CodySwannGT/lisa#4852](https://github.com/CodySwannGT/lisa/issues/4852) [CodySwannGT/lisa#4852](https://github.com/CodySwannGT/lisa/issues/4852)
+* **evidence:** refuse only this PR's cross-release links, before upload ([4a5c963](https://github.com/CodySwannGT/lisa/commit/4a5c963922eedde781e778523a24981562f267cd)), closes [CodySwannGT/lisa#4856](https://github.com/CodySwannGT/lisa/issues/4856) [CodySwannGT/lisa#4856](https://github.com/CodySwannGT/lisa/issues/4856)
+* **evidence:** scope same-release link check to this repo and widen refusal advice ([6afe201](https://github.com/CodySwannGT/lisa/commit/6afe201c44daa94271490c9306828bca70793012)), closes [CodySwannGT/lisa#4856](https://github.com/CodySwannGT/lisa/issues/4856) [CodySwannGT/lisa#4856](https://github.com/CodySwannGT/lisa/issues/4856)
+
 ### [4.111.2](https://github.com/CodySwannGT/lisa/compare/v4.111.1...v4.111.2) (2026-11-13)
 
 

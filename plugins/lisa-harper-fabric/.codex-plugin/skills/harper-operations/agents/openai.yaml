@@ -1,4 +1,4 @@
 display_name: "Harper Operations"
-short_description: "operating, monitoring, or…"
+short_description: "Operate, monitor, or debug a…"
 default_prompt:
-  - "Use $harper-operations: operating, monitoring, or…."
+  - "Use $harper-operations: Operate, monitor, or debug a…."

@@ -1,4 +1,4 @@
 display_name: "Atomic Design Gluestack"
-short_description: "Enforces atomic design…"
+short_description: "Atomic design (atoms…"
 default_prompt:
-  - "Use $atomic-design-gluestack: Enforces atomic design…."
+  - "Use $atomic-design-gluestack: Atomic design (atoms…."

@@ -16,7 +16,6 @@ import {
 } from "../../../scripts/lib/per-agent-hook-filter.mjs";
 
 const BLOCK_NO_VERIFY = "block-no-verify.sh";
-const ENFORCE_TEAM_FIRST = "enforce-team-first.sh";
 const INJECT_RULES = "inject-rules.sh";
 const INJECT_FLOW = "inject-flow-context.sh";
 const INSTALL_PKGS = "install-pkgs.sh";
@@ -57,17 +56,8 @@ describe("per-agent-hook-filter", () => {
       expect(shouldShipScript(INSTALL_PKGS, "agy")).toBe(true);
       expect(shouldShipScript(SETUP_JIRA, "agy")).toBe(true);
       // Stripped for agy:
-      expect(shouldShipScript(ENFORCE_TEAM_FIRST, "agy")).toBe(false);
       expect(shouldShipScript(INJECT_RULES, "agy")).toBe(false);
       expect(shouldShipScript(INJECT_FLOW, "agy")).toBe(false);
-    });
-
-    it("ships enforce-team-first.sh only to claude (Claude-team-specific)", () => {
-      expect(shouldShipScript(ENFORCE_TEAM_FIRST, "claude")).toBe(true);
-      expect(shouldShipScript(ENFORCE_TEAM_FIRST, "codex")).toBe(false);
-      expect(shouldShipScript(ENFORCE_TEAM_FIRST, "cursor")).toBe(false);
-      expect(shouldShipScript(ENFORCE_TEAM_FIRST, "agy")).toBe(false);
-      expect(shouldShipScript(ENFORCE_TEAM_FIRST, "copilot")).toBe(false);
     });
 
     it("strips inject-rules.sh from cursor (rules ship as native .mdc; issue #1055) and agy (hooks don't fire)", () => {
@@ -186,10 +176,7 @@ describe("per-agent-hook-filter", () => {
 
     it("filters the full base hook block for agy to exactly the 3-script ship-list", () => {
       const fullBlock = {
-        UserPromptSubmit: [
-          entireEntry("user-prompt-submit"),
-          scriptEntry(ENFORCE_TEAM_FIRST),
-        ],
+        UserPromptSubmit: [entireEntry("user-prompt-submit")],
         PreToolUse: [scriptEntry(BLOCK_NO_VERIFY)],
         // Stop now carries only the Claude-only `entire ... stop` call
         // (notify-ntfy.sh retired) — stripped for agy, so Stop won't survive.
@@ -215,14 +202,13 @@ describe("per-agent-hook-filter", () => {
         `${PLUGIN_ROOT}install-pkgs.sh`,
         `${PLUGIN_ROOT}setup-jira-cli.sh`,
       ]);
-      // No entire-claude-code calls, no enforce-team-first, no inject-rules.
+      // No entire-claude-code calls, no inject-rules.
       const allCmds = Object.values(out)
         .flat()
         .flatMap(e => e.hooks.map(h => h.command));
       expect(allCmds.some(c => c.includes("entire hooks claude-code"))).toBe(
         false
       );
-      expect(allCmds.some(c => c.includes(ENFORCE_TEAM_FIRST))).toBe(false);
       expect(allCmds.some(c => c.includes(INJECT_RULES))).toBe(false);
       expect(allCmds.some(c => c.includes(INJECT_FLOW))).toBe(false);
     });
@@ -274,7 +260,6 @@ describe("per-agent-hook-filter", () => {
     it("returns exactly the 3-script ship-list for agy", () => {
       const all = [
         BLOCK_NO_VERIFY,
-        ENFORCE_TEAM_FIRST,
         INJECT_RULES,
         INJECT_FLOW,
         INSTALL_PKGS,
@@ -288,17 +273,11 @@ describe("per-agent-hook-filter", () => {
     });
 
     it("strips per-agent denylist entries", () => {
-      const all = [
-        BLOCK_NO_VERIFY,
-        ENFORCE_TEAM_FIRST,
-        INJECT_RULES,
-        INSTALL_PKGS,
-      ];
+      const all = [BLOCK_NO_VERIFY, INJECT_RULES, INSTALL_PKGS];
       const cursorKeep = filterScriptsForAgent(all, "cursor");
       expect(cursorKeep).toContain(BLOCK_NO_VERIFY);
       expect(cursorKeep).toContain(INSTALL_PKGS);
       expect(cursorKeep).not.toContain(INJECT_RULES);
-      expect(cursorKeep).not.toContain(ENFORCE_TEAM_FIRST);
     });
   });
 

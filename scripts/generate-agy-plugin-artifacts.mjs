@@ -43,7 +43,10 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { nestCommandsUnderLisa } from "./lib/nest-plugin-commands.mjs";
+import {
+  nestCommandsUnderLisa,
+  stripClaudeOnlyCommandKeys,
+} from "./lib/nest-plugin-commands.mjs";
 import { invokedAsScript } from "./lib/invoked-as-script.mjs";
 
 // Literals named once — each was repeated enough times that a typo in one
@@ -178,6 +181,7 @@ export function generateAgyVariant(srcDir, outDir, version) {
   // commands with the plugin name, so the directory manufactures the /lisa:*
   // namespace that Claude gets from the plugin name alone.
   nestCommandsUnderLisa(outDir);
+  stripClaudeOnlyCommandKeys(outDir);
 
   // 2. Read the Claude manifest, drop hooks + mcpServers, write bare plugin.json.
   // agy reads hooks from a root hooks.json (emitted below), not the manifest;

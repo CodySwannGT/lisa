@@ -42,7 +42,7 @@ const asJson = flag("--json");
 
 const { config } = loadConfig(opt("--config"));
 const structure = loadStructure(pluginRoot) ?? {};
-const wikiRoot = path.resolve(opt("--wiki") ?? config?.wikiRoot ?? "wiki");
+const wikiRoot = path.resolve(opt("--wiki") ?? "wiki");
 const report = makeReport();
 
 if (!config) {

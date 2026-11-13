@@ -10,6 +10,9 @@
  * Every `gh release upload` argument list is appended to a log, one line per
  * call, so a case can assert what was asked for and not only what resulted.
  *
+ * `gh pr edit <n> --body <body>` saves the body, so a case can assert the
+ * description that was posted.
+ *
  * Set `LISA_GH_DROP` to an asset name to have the release silently lose it,
  * which is how a case proves the script checks the release after uploading.
  * @module tests/integration/support/recording-gh-stub
@@ -25,6 +28,7 @@ mkdir -p "$state/release"
 case "$1 $2" in
   "repo view") printf 'org/repo\\n' ;;
   "pr view") printf 'existing body\\n' ;;
+  "pr edit") printf '%s' "$5" > "$state/pr-body" ;;
   "release upload")
     printf '%s ' "$@" >> "$state/uploads.log"; printf '\\n' >> "$state/uploads.log"
     name=$(basename "$4")
@@ -82,5 +86,18 @@ export function recordedUploads(stateDir: string): readonly string[] {
       .filter(line => line.trim() !== "");
   } catch {
     return [];
+  }
+}
+
+/**
+ * The pull request body the script last posted with `gh pr edit --body`.
+ * @param stateDir - The stub's state directory.
+ * @returns The posted body, or an empty string when nothing was posted.
+ */
+export function postedBody(stateDir: string): string {
+  try {
+    return readFileSync(path.join(stateDir, "pr-body"), "utf8");
+  } catch {
+    return "";
   }
 }

@@ -1,4 +1,4 @@
 display_name: "Setup Linear"
-short_description: "Configure Linear as the destination tracker and/or the PRD source for this project"
+short_description: "Configure Linear as this project's tracker and/or PRD source: verify access, resolve workspace and team, set up workflow states or PRD…"
 default_prompt:
-  - "Use $lisa-setup-linear: Configure Linear as the destination tracker and/or the PRD source for this project."
+  - "Use $lisa-setup-linear: Configure Linear as this project's tracker and/or PRD source: verify access, resolve workspace and team, set up workflow states or PRD…."

@@ -1,4 +1,4 @@
 display_name: "Doctor"
-short_description: "Audit whether the current repository is ready to use Lisa"
+short_description: "Check whether this repository is ready to use Lisa — config, installed surfaces, tracker and source access, automation prerequisites, and…"
 default_prompt:
-  - "Use $lisa-doctor: Audit whether the current repository is ready to use Lisa."
+  - "Use $lisa-doctor: Check whether this repository is ready to use Lisa — config, installed surfaces, tracker and source access, automation prerequisites, and…."

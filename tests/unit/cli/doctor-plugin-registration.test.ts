@@ -47,7 +47,11 @@ async function project({
     await mkdir(path.join(root, ".claude"), { recursive: true });
     await writeFile(
       path.join(root, ".claude", "settings.json"),
-      JSON.stringify({ enabledPlugins: { "lisa@lisa": true } })
+      // The knowledge role defaults to llm-wiki, so the wiki plugin is
+      // enabled beside the base plugin.
+      JSON.stringify({
+        enabledPlugins: { "lisa@lisa": true, "lisa-wiki@lisa": true },
+      })
     );
     await writeFile(
       path.join(root, ".claude", ".lisa-plugins-synced"),
@@ -77,6 +81,7 @@ describe("doctor plugin registration check", () => {
     const root = await project();
     const check = await checkPluginRegistration(root, async () => [
       "lisa@lisa",
+      "lisa-wiki@lisa",
     ]);
     expect(check.status).toBe("ok");
   });

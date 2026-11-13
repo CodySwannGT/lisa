@@ -1,6 +1,6 @@
 {
   "name": "lisa-wiki",
-  "version": "4.111.2",
+  "version": "5.0.2",
   "description": "Distributable LLM Wiki kernel — ingest, query, lint, and maintain a git-native markdown knowledge base across Claude and Codex.",
   "author": {
     "name": "Cody Swann"
@@ -16,7 +16,7 @@
   "interface": {
     "displayName": "LLM Wiki",
     "shortDescription": "LLM Wiki knowledge base",
-    "longDescription": "A config-driven, git-native LLM Wiki: ingest sources (git, PRs, project-scoped memory, Jira, Slack, docs, …) into durable markdown, query with citations, lint integrity, onboard users, absorb existing documentation, and scaffold domain-expert role subagents. Distributed for both Claude Code and Codex.",
+    "longDescription": "The default backend for the required knowledge role: a git-native LLM Wiki that each repository owns at wiki/. Ingest sources (git, PRs, project-scoped memory, Jira, Confluence, Notion, docs, the web) into durable markdown, query with citations, lint integrity, and absorb existing documentation. Distributed for both Claude Code and Codex.",
     "developerName": "Cody Swann",
     "category": "Productivity",
     "capabilities": [
@@ -24,7 +24,6 @@
       "Write"
     ],
     "defaultPrompt": [
-      "Onboard me to this project",
       "Ingest the latest sources into the wiki",
       "Query the wiki"
     ]
