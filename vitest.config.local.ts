@@ -338,6 +338,7 @@ const config: ViteUserConfig = {
     coverage: {
       include: [
         "src/**/*.ts",
+        "all/copy-overwrite/scripts/lib/usage-artifact-ref.mjs",
         "all/copy-overwrite/scripts/lib/usage-effectiveness.mjs",
         "all/copy-overwrite/scripts/lib/usage-ledger.mjs",
         "all/copy-overwrite/scripts/lib/usage-ledger-integrity.mjs",

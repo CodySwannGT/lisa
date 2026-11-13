@@ -245,6 +245,7 @@ scripts/lib/process-tree-runner.mjs
 scripts/lib/reusable-workflow-load-adapter.mjs
 scripts/lib/reusable-workflow-load-failure.mjs
 scripts/lib/reusable-workflow-load-scan.mjs
+scripts/lib/usage-artifact-ref.mjs
 scripts/lib/usage-effectiveness.mjs
 scripts/lib/usage-ledger-integrity.mjs
 scripts/lib/usage-ledger.mjs

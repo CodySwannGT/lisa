@@ -250,10 +250,15 @@ fail loudly; it must never report success over an unreadable ledger.
   same section.
 - Every parseable direct entry in the section appears in the rollup's `direct_entry_ids`.
 - Every entry the caller just wrote is parseable from the stored surface.
+- Every direct entry's `artifact_ref` uses the grammar the completion proof recognises: a Linear
+  ref must be `linear:<workspace>/<KEY-N>`. A hand-written token never passes through the writer,
+  so read-back is where a short `linear:<KEY-N>` is caught.
 
 `verifyLisaUsageSectionIntegrity` in the shared utility layer implements exactly these checks and
 returns structured issue codes (`missing-section`, `missing-entry-token`, `missing-rollup-token`,
-`unrecorded-entry`). Callers run it against the read-back body, not against the payload they sent.
+`unrecorded-entry`, `non-canonical-artifact-ref`). Callers run it against the read-back body, not
+against the payload they sent. The writer and read-back take the `artifact_ref` grammar from one
+shared module, `scripts/lib/usage-artifact-ref.mjs`.
 
 ## Rollup and dedupe behavior
 
