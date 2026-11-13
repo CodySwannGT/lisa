@@ -95,12 +95,53 @@ describe.each(ROOTS)(
       expect(block).toMatch(/reaches only the agent that started it/i);
     });
 
-    it("requires a bounded foreground watch with a ceiling that leads to step 11", () => {
+    it("requires a bounded foreground watch with an interval", () => {
       expect(block).toMatch(/bounded foreground watch/i);
-      expect(block).toMatch(/gh run list --workflow <[^>]+> --commit <[^>]+>/);
-      expect(block).toMatch(/gh run watch <[^>]+> --exit-status/);
-      expect(block).toMatch(/ceiling/i);
-      expect(block).toMatch(/deploy failure.{0,80}step 11/is);
+      expect(block).toMatch(
+        /gh run watch <[^>]+> --interval \d+ --exit-status/
+      );
+    });
+
+    it("states the watch bound with a fallback where `timeout` is missing", () => {
+      // macOS ships no `timeout`; the bound must not depend on it existing.
+      expect(block).toMatch(/timeout 540.{0,80}where.{0,40}exists/is);
+      expect(block).toMatch(/harness'?s own command timeout/i);
+      expect(block).toMatch(/tool call.{0,60}timeout above/is);
+      expect(block).toMatch(/600000 ms/);
+    });
+
+    it("watches the run step 8 confirmed instead of re-discovering it", () => {
+      expect(block).toMatch(/step 8/);
+      expect(block).toMatch(
+        /`blocked:deploy`.{0,120}deploy failure.{0,40}step 11/is
+      );
+      // No second lookup and no unbounded find-poll loop.
+      expect(block).not.toMatch(/gh run list/);
+      expect(block).not.toMatch(/no run found within/i);
+      // The workflow is never hardcoded.
+      expect(block).not.toMatch(/deploy\.ya?ml/);
+    });
+
+    it("bounds the wait with an overridable ceiling", () => {
+      expect(block).toMatch(/ceiling is 60 minutes/i);
+      expect(block).toMatch(/work item/i);
+      expect(block).toMatch(/`timeout-minutes`/);
+      expect(block).toMatch(
+        /concluded unsuccessfully.{0,60}deploy failure.{0,40}step 11/is
+      );
+    });
+
+    it("never routes a run still in progress at the ceiling to step 11", () => {
+      const inProgress = sentences(block).filter(s =>
+        /still in progress at the ceiling/i.test(s)
+      );
+      expect(inProgress.length).toBeGreaterThan(0);
+      for (const s of inProgress) {
+        expect(s).toMatch(/not a code failure/i);
+        expect(s).toMatch(/blocked/i);
+        expect(s).toMatch(/never open a fix PR/i);
+        expect(s).not.toMatch(/go to step 11/i);
+      }
     });
 
     it("cites the drive-pr-to-merge rule by name", () => {
@@ -117,6 +158,12 @@ describe.each(ROOTS)(
         expect(s).toMatch(/\blead\b/);
         expect(s).toMatch(/succeeds or fails|finishes or fails/i);
       }
+    });
+
+    it("lets the lead's turn end only to wait for the watcher's message", () => {
+      expect(block).toMatch(
+        /lead's turn may end only to wait for that message/
+      );
     });
 
     it("mentions background or detached waiting only inside the prohibition", () => {
