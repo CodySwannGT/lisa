@@ -11959,6 +11959,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/quality-generic-gate-runner.test.ts": true,
     "tests/integration/quality-node-supervision.test.ts": true,
     "tests/integration/quality-non-declarable-jobs.test.ts": true,
+    "tests/integration/quality-rails-database-image.test.ts": true,
     "tests/integration/quality-rails-test-shards-fixture.ts": true,
     "tests/integration/quality-rails-test-shards-merge.test.ts": true,
     "tests/integration/quality-rails-test-shards.test.ts": true,
