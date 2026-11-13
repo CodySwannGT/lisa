@@ -51,6 +51,10 @@ const ADDED_MOMENT = "push";
 const fixtureConfig = (): Record<string, unknown> => ({
   harness: "claude",
   tracker: "github",
+  // A current project already declares the required knowledge role; without
+  // it the ensure-knowledge-role migration would add it, which is unrelated
+  // to the gate declarations this test guards.
+  knowledge: "llm-wiki",
   gates: {
     "code-style": { push: "required", "pull-request": "required" },
     runner: "bun run",
