@@ -103,10 +103,7 @@ export async function retireLearningEntry(
   stamp: LearningEntryStamp,
   reason: string
 ): Promise<RetireLearningResult> {
-  const [expected] = validateLearningEntryStamps([stamp]);
-  if (expected === undefined) {
-    throw new Error("Invalid retire stamp: expected exactly {id, fingerprint}");
-  }
+  const expected = validateRetireStamp(stamp);
   if (typeof reason !== "string" || reason.trim() === "") {
     throw new Error("Invalid retire reason: expected a non-empty string");
   }
@@ -121,6 +118,31 @@ export async function retireLearningEntry(
   return withLearningTargetLock(target, () =>
     retireUnderLock({ root, target }, expected, reason)
   );
+}
+
+/**
+ * Validate the caller's stamp with the shared supersede-stamp rules, reporting
+ * failures in retire vocabulary so a retire caller is not told about a
+ * "supersede option" it never passed.
+ * @param stamp - Untrusted caller stamp
+ * @returns Frozen exact stamp
+ */
+function validateRetireStamp(stamp: LearningEntryStamp): LearningEntryStamp {
+  try {
+    const [expected] = validateLearningEntryStamps([stamp]);
+    if (expected !== undefined) {
+      return expected;
+    }
+  } catch (error) {
+    const detail = error instanceof Error ? error.message : String(error);
+    const supersedePrefix = /^Invalid supersede (?:stamp|array|option)/u;
+    throw new Error(
+      supersedePrefix.test(detail)
+        ? detail.replace(supersedePrefix, "Invalid retire stamp")
+        : `Invalid retire stamp: ${detail}`
+    );
+  }
+  throw new Error("Invalid retire stamp: expected exactly {id, fingerprint}");
 }
 
 /**

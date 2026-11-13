@@ -152,15 +152,17 @@ function writeLearningEntriesWithLock(
     const entries =
       existing === undefined ? [] : parseLearningsFile(existing, readPolicy);
     const plan = planLearningSupersede(entries, entry, supersede);
+    // Report stale targets BEFORE rendering: a caller guard that throws from
+    // the callback must run before a budget refusal can reach the overflow,
+    // so a refused gardening write leaves nothing on disk.
+    reportStaleSupersede(plan.stale, options);
     const aliased = aliasSupersededEntries(plan.removed, plan.entry, options);
-    const rendered = renderSupersededDocument(plan.retained, aliased, existing);
-    if (plan.stale.length > 0) {
-      options.onStaleSupersede?.(plan.stale);
-      const absent = plan.stale
-        .filter(target => target.reason === "absent")
-        .map(target => target.expected.id);
-      if (absent.length > 0) options.onAbsentSupersede?.(absent);
-    }
+    const rendered = renderSupersededDocument(
+      plan.retained,
+      aliased,
+      existing,
+      plan.removed.length
+    );
     await writeFileAtomically(target, rendered, {
       beforeRename: async () => {
         await assertSafeLearningParents(root, path.dirname(target));
@@ -169,6 +171,25 @@ function writeLearningEntriesWithLock(
     });
     return target;
   });
+}
+
+/**
+ * Tell the caller which supersede targets no longer matched their stamps.
+ * @param stale - Stale targets from the locked plan
+ * @param options - Caller diagnostics
+ */
+function reportStaleSupersede(
+  stale: readonly StaleSupersedeTarget[],
+  options: ConsolidatedLearningOptions
+): void {
+  if (stale.length === 0) {
+    return;
+  }
+  const absent = stale
+    .filter(target => target.reason === "absent")
+    .map(target => target.expected.id);
+  options.onStaleSupersede?.(stale);
+  if (absent.length > 0) options.onAbsentSupersede?.(absent);
 }
 
 /**
@@ -333,20 +354,31 @@ function renderNextDocument(
  * ledger smaller can only improve it, so it is always allowed; one that does
  * not — a plain append, or a stale stamp that removes nothing — keeps the
  * budget refusal and its overflow routing. An in-budget ledger is unaffected.
+ *
+ * Fewer bytes alone is not enough: a non-canonical (padded) ledger re-renders
+ * smaller even when an entry is merely appended, so the write must also have
+ * removed at least one entry — otherwise a stale supersede could push the entry
+ * count past `maxEntries` while appearing to shrink.
  * @param entries - Existing entries retained by the plan
  * @param entry - Planned entry carrying its final stable id
  * @param existing - Ledger bytes read under the lock, if any
+ * @param removedCount - How many existing entries the plan removed
  * @returns Next canonical document
  */
 function renderSupersededDocument(
   entries: readonly LearningEntry[],
   entry: LearningEntry,
-  existing: string | undefined
+  existing: string | undefined,
+  removedCount: number
 ): string {
   try {
     return renderNextDocument(entries, entry);
   } catch (error) {
-    if (!(error instanceof LearningsBudgetError) || existing === undefined) {
+    if (
+      !(error instanceof LearningsBudgetError) ||
+      existing === undefined ||
+      removedCount === 0
+    ) {
       throw error;
     }
     const existingSize = estimateLearningTokens(existing);
