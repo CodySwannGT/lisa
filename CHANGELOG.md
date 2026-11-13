@@ -2,6 +2,35 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [4.108.0](https://github.com/CodySwannGT/lisa/compare/v4.107.13...v4.108.0) (2026-11-13)
+
+
+### Features
+
+* **ci:** add database_image input to quality-rails ([f0556d2](https://github.com/CodySwannGT/lisa/commit/f0556d2e36daf865603e58bcfa4a06f6762829cd)), closes [CodySwannGT/lisa#4671](https://github.com/CodySwannGT/lisa/issues/4671) [CodySwannGT/lisa#4671](https://github.com/CodySwannGT/lisa/issues/4671)
+
+### [4.107.13](https://github.com/CodySwannGT/lisa/compare/v4.107.12...v4.107.13) (2026-11-13)
+
+
+### Bug Fixes
+
+* **completion-proof:** let autolinks and HTML tags outrank inline code ([85154ab](https://github.com/CodySwannGT/lisa/commit/85154ab05c6b68b99016b4165a07e0b213bf9ca1)), closes [CodySwannGT/lisa#4689](https://github.com/CodySwannGT/lisa/issues/4689) [CodySwannGT/lisa#4689](https://github.com/CodySwannGT/lisa/issues/4689)
+* **completion-proof:** only real tags and autolinks outrank code spans ([a0728f6](https://github.com/CodySwannGT/lisa/commit/a0728f640b39db2ae12f18ea36e4d6689489e8e3)), closes [CodySwannGT/lisa#4689](https://github.com/CodySwannGT/lisa/issues/4689) [CodySwannGT/lisa#4689](https://github.com/CodySwannGT/lisa/issues/4689)
+* **completion-proof:** treat markers in inline code spans as non-claiming ([b0fc716](https://github.com/CodySwannGT/lisa/commit/b0fc716a0105016f0ddcbc6ae9b0130fc0b55014)), closes [#4670](https://github.com/CodySwannGT/lisa/issues/4670) [CodySwannGT/lisa#4689](https://github.com/CodySwannGT/lisa/issues/4689) [CodySwannGT/lisa#4689](https://github.com/CodySwannGT/lisa/issues/4689)
+
+### [4.107.12](https://github.com/CodySwannGT/lisa/compare/v4.107.11...v4.107.12) (2026-11-13)
+
+
+### Bug Fixes
+
+* **learnings:** add fingerprint-guarded retireLearningEntry ([f72e9e4](https://github.com/CodySwannGT/lisa/commit/f72e9e4b7aff12aea14b95508748a88b8e7a170d)), closes [CodySwannGT/lisa#4530](https://github.com/CodySwannGT/lisa/issues/4530) [CodySwannGT/lisa#4530](https://github.com/CodySwannGT/lisa/issues/4530)
+
+
+### Documentation
+
+* **gardener:** cover not-found and concurrent-write RETIRE outcomes ([1397339](https://github.com/CodySwannGT/lisa/commit/13973398cde687c26e6f273cf1a26ec000340cea)), closes [CodySwannGT/lisa#4530](https://github.com/CodySwannGT/lisa/issues/4530) [CodySwannGT/lisa#4530](https://github.com/CodySwannGT/lisa/issues/4530)
+* **gardener:** require full expectedFingerprint and mutation-proven owners for RETIRE ([7a826d9](https://github.com/CodySwannGT/lisa/commit/7a826d9a56c579e17cac3a03249da54239095bcc)), closes [CodySwannGT/lisa#4530](https://github.com/CodySwannGT/lisa/issues/4530) [CodySwannGT/lisa#4530](https://github.com/CodySwannGT/lisa/issues/4530)
+
 ### [4.107.11](https://github.com/CodySwannGT/lisa/compare/v4.107.10...v4.107.11) (2026-11-13)
 
 

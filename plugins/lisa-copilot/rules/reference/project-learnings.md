@@ -80,6 +80,9 @@ collide.
   which `CLAUDE.md` is only a `@AGENTS.md` pointer) for these categories.
 - The **build-intake flows** advance `last_confirmed` at claim time
   (`confirmLearningEntry`, below).
+- The **implementing run of a gardener CONFIRM/RETIRE batch ticket** removes
+  each approved RETIRE entry with `retireLearningEntry` (below), never by
+  parse → filter → render or a hand edit.
 
 Automated promotion of a captured learning to a higher rung (skill, eager rule,
 executable control, upstream ticket) is the gardener's job, gated by a human
@@ -127,6 +130,24 @@ advances only `last_confirmed` (re-validated against the
 entry or file instead of throwing, and is idempotent within a claim (a
 same-date repeat returns `unchanged`). A failed bump is reported and never
 blocks the build.
+
+## Fingerprint-guarded retirement
+
+A gardener RETIRE row's entry is deleted only through
+`retireLearningEntry(projectRoot, id, expectedFingerprint, { onStale })` from
+`@codyswann/lisa/learnings`. It is a
+compare-and-swap delete: inside the same ledger lock the writers use, it
+re-reads the live entry and removes it only when its fingerprint still equals
+`expectedFingerprint` — the full entry fingerprint observed at audit time, never
+the 12-hex gardener marker hash (that value is rejected). If a later
+consolidation rewrote the entry behind the same id, the fingerprint differs: the
+call writes nothing, reports the drift through `onStale`, and returns `stale`
+with the live fingerprint, so the row is skipped and re-audited instead of
+discarding lessons the audit never saw. On a match it removes exactly that
+entry, re-checks the budgets, and writes atomically. On a v2 ledger every other
+entry stays byte-identical; a v1 ledger is migrated to v2 by the same write,
+exactly as `confirmLearningEntry` migrates it. A missing file or unknown id
+returns `not-found` without writing.
 
 Only entries accepted by the executable contract may influence the session. A
 missing file is expected and silent. Malformed Markdown, invalid JSONL, unsafe

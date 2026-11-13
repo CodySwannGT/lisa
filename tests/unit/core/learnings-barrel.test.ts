@@ -14,6 +14,7 @@ import {
   persistConsolidatedLearning,
   persistLearningEntry,
   projectLearnings,
+  retireLearningEntry,
   readProjectConfig,
   resolveLearningsSettings,
   resolveProjectLearningsFile,
@@ -29,6 +30,7 @@ const REQUIRED_BARREL_FUNCTIONS = [
   ["persistConsolidatedLearning", persistConsolidatedLearning],
   ["confirmLearningEntry", confirmLearningEntry],
   ["projectLearnings", projectLearnings],
+  ["retireLearningEntry", retireLearningEntry],
   ["buildUpstreamAttributionIssueBody", buildUpstreamAttributionIssueBody],
 ] as const;
 
