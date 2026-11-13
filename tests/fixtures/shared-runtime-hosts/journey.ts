@@ -144,7 +144,7 @@ async function nativeChecks(
     candidate.logs,
     `${stack}-unit`,
     60_000,
-    nativeUnitDeadlineMs(hostEnv)
+    nativeUnitDeadlineMs()
   );
   expect(
     fs

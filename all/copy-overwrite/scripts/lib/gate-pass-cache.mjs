@@ -83,6 +83,10 @@ export const VOLATILE_LISA_ENV = Object.freeze([
   CACHE_ENV,
   "LISA_PUSHED_REFS_FILE",
   "LISA_CLEANUP_SWEPT",
+  // Headroom admission (CodySwannGT/lisa#4596): a grant and a holder pid
+  // describe the machine at that moment, not the content being proved.
+  "LISA_ADMITTED_WORKERS",
+  "LISA_ADMISSION_HOLDER",
 ]);
 
 const ZERO_SHA = /^0+$/;
@@ -132,7 +136,11 @@ export function relevantEnvironment(env) {
     .filter(
       name =>
         ENV_ALLOWLIST.includes(name) ||
-        (name.startsWith("LISA_") && !VOLATILE_LISA_ENV.includes(name))
+        (name.startsWith("LISA_") &&
+          !VOLATILE_LISA_ENV.includes(name) &&
+          // Every headroom-admission knob (CodySwannGT/lisa#4596) changes
+          // only WHEN a step starts, never what it proves.
+          !name.startsWith("LISA_ADMISSION"))
     )
     .filter(name => env[name] !== undefined)
     .sort();

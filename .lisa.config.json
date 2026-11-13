@@ -95,9 +95,6 @@
       }
     }
   },
-  "pushGate": {
-    "cache": true
-  },
   "gates": {
     "runner": "bun run",
     "code-style": {
@@ -482,6 +479,8 @@
     }
   },
   "pushGate": {
-    "buildOnce": true
+    "cache": true,
+    "buildOnce": true,
+    "admission": true
   }
 }

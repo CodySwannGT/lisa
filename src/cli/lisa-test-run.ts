@@ -13,6 +13,7 @@ import {
   type ScratchRouteProfile,
 } from "../configs/vitest/scratch-route-profile.js";
 import { socketSafeTempBase } from "../configs/vitest/socket-safe-temp-base.js";
+import { admitTestRun } from "./lisa-test-run-admission.js";
 import { mergeJestShards } from "./lisa-test-run-jest-merge.js";
 import {
   gatherVitestBlobs,
@@ -140,11 +141,13 @@ async function main(): Promise<void> {
     Object.assign(env, await startOfRunSweep(env));
     const payload = applyShardPlan(invocation.argv);
     if (typeof payload === "number") process.exit(payload);
+    const release = await admitTestRun(payload, env, process.cwd());
+    if (typeof release === "number") process.exit(release);
     const outcome = await superviseTestRun(
       payload,
       invocation.profile,
       invocation.adapter
-    );
+    ).finally(release);
     if (outcome.signal !== null) {
       process.removeAllListeners(outcome.signal);
       process.kill(process.pid, outcome.signal);

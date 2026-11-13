@@ -21,7 +21,6 @@
 import { describe, expect, it } from "vitest";
 
 import { discoverFleetConcurrency } from "../../../src/configs/vitest/base.js";
-import { readFleetRunRoots } from "../../../src/configs/vitest/fleet-admission.js";
 
 /** This test process, so a fixture can exclude it the way discovery does. */
 const SELF = 4242;
@@ -129,11 +128,5 @@ describe("the denominator is honest when it matters", () => {
     );
 
     expect(observed).toBe(2);
-  });
-
-  it("reads only the entries that are run roots", () => {
-    expect(
-      readFleetRunRoots(["notes.txt", root(11), "lisa-gate-run-abc"])
-    ).toEqual([{ basename: root(11), pid: 11, startedAt: 1788467384058 }]);
   });
 });

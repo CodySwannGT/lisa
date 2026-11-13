@@ -79,7 +79,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lib/gate-failure-diagnosis.mjs":
       "31f2acced121662d6395b624aed2ae0ad642c1edb52cdb0eded1497886daad71",
     "all/copy-overwrite/scripts/lib/gate-pass-cache.mjs":
-      "347a15705e8c2931c33b6df7c13d6ad5db28d1da4e5006d0b57d64329cbd1cdf",
+      "e1db0421f446d88e5b9b0fd5f215dbb644de244b9cf953c4a9cfe45b200f329e",
     "all/copy-overwrite/scripts/lib/github-attestation-provider.mjs":
       "98dbe0326546a1d10e148ed9036d5696159dee38068beddff321f1b2d47fcdc7",
     "all/copy-overwrite/scripts/lib/github-attestation-recovery.mjs":
@@ -157,7 +157,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lib/npm-update-helper-graph.mjs":
       "463e80eae242cab14ed2ab45779c6a06cc2d4d874c922924d62c9a8d6d10822d",
     "all/copy-overwrite/scripts/lib/npm-update-helper-inventory.mjs":
-      "04867d1a43eb81960420b5efdc3b14711c26b76b2943ec9b2bade2cb8db3decc",
+      "0dff5f7edbb0a2c759e078fab384feff880e1f256e10872ee2946ccca0c6fcee",
     "all/copy-overwrite/scripts/lib/npm-update-helper.mjs":
       "d705e0d8ae64285b539206f09784928a7fa678c2449252312a7079385e62ab90",
     "all/copy-overwrite/scripts/lib/npm-update-hook-installation.mjs":
@@ -248,6 +248,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "101e8e230618aa817c88534c3b22d069afa5d30fc8e742a681af2f5edff6f1af",
     "all/copy-overwrite/scripts/lib/process-tree-runner.mjs":
       "7034adad8d8348eeb669ead52cb7eaffa11b592c1f1b06bcd8474b6348360eae",
+    "all/copy-overwrite/scripts/lib/push-admission.mjs":
+      "b748b7a65518ba71e5579a363716cdd1afea51be1b3e0ab72b4d82c679adfd4d",
     "all/copy-overwrite/scripts/lib/push-timing.mjs":
       "31de9d9357839e7e63292a4c18ede6c7b66e2cc2d562ede80036cc90f24d0d9f",
     "all/copy-overwrite/scripts/lib/reusable-workflow-load-adapter.d.mts":
@@ -355,7 +357,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-reconcile-policy.mjs":
       "263860fba7fadae3c1096973eaf4f25dca1683ef2ce64279dea6845ac90faf6a",
     "all/copy-overwrite/scripts/lisa-run-gates.mjs":
-      "7dd4d2650f084117b0b29d5d2349cfc45cb69a84529345bae1f675b2ff29f0d8",
+      "9c05ccc07c5b97bd7e910e235f2bd7bea9816fe2f5f282091557140c7ef7855e",
     "all/copy-overwrite/scripts/lisa-schema-validate.mjs":
       "f70ecd3712dd2ca77a8851c7505ce79f948a57e5a2e28f56c5d0ccd047712688",
     "all/copy-overwrite/scripts/lisa-scratch-run.sh":
@@ -373,7 +375,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/npm-updater-gate.Dockerfile":
       "850a4ee809d49e3d9da6bdd674cb43e4f5a6dcfa0aa73116b1a43caeed42748c",
     "all/copy-overwrite/scripts/npm-updater-helper-graph.json":
-      "201fde884a58a7e0789763c9bc2a8de469b26018468e8161f7395a857889e315",
+      "a5370db523320991f66e3c9a408035520f4cf2e4155ff108c5033f435829924e",
     "all/copy-overwrite/scripts/review-evidence-event.mjs":
       "1c5d510bc66f8ba23b6f046246f41182c17946a50126fb88e371d2aec9dfd6b2",
     "all/copy-overwrite/scripts/schemas/lisa-command-envelope.v1.schema.json":
@@ -2907,7 +2909,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/test-timing-report.mjs":
       "ac98aac3ecf547da67f2a40f44c008e6fdc7b7682b38080ac46e12d41b6309b6",
     "scripts/two-channel-couplings.json":
-      "4238d62a8fd9f8d7e69a124fb1338bcdc862cfa20ad0e87ced15b6d82abe009c",
+      "85c8706fc6313fb47fcaa678bbe1531f46003c93b4df68aaffefd1da5db6a590",
     "scripts/update-node-version.ts":
       "b4d96816bc86c9172e8cb48f3efbba82bf35fce8eef3c6de7a58ae68de11a518",
     "scripts/update-test-skill-paths.mjs":
@@ -3374,6 +3376,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "all/copy-overwrite/scripts/lib/npm-update-worker-policy.mjs": true,
     "all/copy-overwrite/scripts/lib/placeholder-expiry.mjs": true,
     "all/copy-overwrite/scripts/lib/process-tree-runner.mjs": true,
+    "all/copy-overwrite/scripts/lib/push-admission.mjs": true,
     "all/copy-overwrite/scripts/lib/push-timing.mjs": true,
     "all/copy-overwrite/scripts/lib/reusable-workflow-load-adapter.d.mts": true,
     "all/copy-overwrite/scripts/lib/reusable-workflow-load-adapter.mjs": true,
@@ -10777,6 +10780,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "src/agy/plugin-installer.ts": true,
     "src/claude/claude-md-installer.ts": true,
     "src/cli-load-diagnostic.ts": true,
+    "src/cli/admit-cmd.ts": true,
     "src/cli/apply.ts": true,
     "src/cli/check-learnings-budget-cmd.ts": true,
     "src/cli/ci-workflow-inputs.ts": true,
@@ -10917,6 +10921,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "src/cli/kane-cmd.ts": true,
     "src/cli/learnings-overflow-cmd.ts": true,
     "src/cli/learnings-retire-cmd.ts": true,
+    "src/cli/lisa-test-run-admission.ts": true,
     "src/cli/lisa-test-run-bootstrap.ts": true,
     "src/cli/lisa-test-run-ipc.ts": true,
     "src/cli/lisa-test-run-jest-merge.ts": true,
@@ -11015,8 +11020,6 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "src/configs/vitest/coverage-include-authority.ts": true,
     "src/configs/vitest/coverage-include-global-setup.ts": true,
     "src/configs/vitest/coverage-reports-directory.ts": true,
-    "src/configs/vitest/fleet-admission-global-setup.ts": true,
-    "src/configs/vitest/fleet-admission.ts": true,
     "src/configs/vitest/harper-fabric.ts": true,
     "src/configs/vitest/index.ts": true,
     "src/configs/vitest/nestjs.ts": true,
@@ -11045,6 +11048,10 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "src/configs/worktrees.ts": true,
     "src/copilot/copilot-instructions-installer.ts": true,
     "src/copilot/plugin-installer.ts": true,
+    "src/core/admission-decision.ts": true,
+    "src/core/admission-settings.ts": true,
+    "src/core/admission-state.ts": true,
+    "src/core/admission.ts": true,
     "src/core/anchored-rewrite.ts": true,
     "src/core/apply-mode.ts": true,
     "src/core/apply-receipt.ts": true,
@@ -11651,6 +11658,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/helpers/verification-gate-harness.ts": true,
     "tests/helpers/workflow-job-graph.ts": true,
     "tests/helpers/workflow-test-utils.ts": true,
+    "tests/integration/admission.test.ts": true,
     "tests/integration/applied-project-pins-lisa-workflows.test.ts": true,
     "tests/integration/apply-managed-template-consent.test.ts": true,
     "tests/integration/apply-prompted-guard-downgrade.test.ts": true,
@@ -12119,6 +12127,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/cli/kane-index.test.ts": true,
     "tests/unit/cli/learnings-overflow-cmd.test.ts": true,
     "tests/unit/cli/learnings-retire-cmd.test.ts": true,
+    "tests/unit/cli/lisa-test-run-admission.test.ts": true,
     "tests/unit/cli/lisa-test-run-ipc.test.ts": true,
     "tests/unit/cli/lisa-test-run-process-group.test.ts": true,
     "tests/unit/cli/lisa-test-run-protocol-state.test.ts": true,
@@ -12305,7 +12314,6 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/config/vitest-base.test.ts": true,
     "tests/unit/config/vitest-cdk.test.ts": true,
     "tests/unit/config/vitest-deadline-order.test.ts": true,
-    "tests/unit/config/vitest-fleet-admission.test.ts": true,
     "tests/unit/config/vitest-fleet-denominator.test.ts": true,
     "tests/unit/config/vitest-fleet-discovery.test.ts": true,
     "tests/unit/config/vitest-nestjs.test.ts": true,
@@ -12328,6 +12336,9 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/configs/lighthouse-collect-config.test.ts": true,
     "tests/unit/configs/lighthouse-detail-budget.test.ts": true,
     "tests/unit/configs/lintstaged-matcher-ordering.test.ts": true,
+    "tests/unit/core/admission-decision.test.ts": true,
+    "tests/unit/core/admission-settings.test.ts": true,
+    "tests/unit/core/admission.test.ts": true,
     "tests/unit/core/anchored-rewrite.test.ts": true,
     "tests/unit/core/apply-mode.test.ts": true,
     "tests/unit/core/apply-receipt-deletion-record.test.ts": true,
@@ -12949,6 +12960,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/lisa-rspec-shards.test.ts": true,
     "tests/unit/scripts/lisa-ruleset-payload.test.ts": true,
     "tests/unit/scripts/lisa-ruleset-reach.test.ts": true,
+    "tests/unit/scripts/lisa-run-gates-admission.test.ts": true,
     "tests/unit/scripts/lisa-run-gates-build-once.test.ts": true,
     "tests/unit/scripts/lisa-run-gates-cleanup-sweep.test.ts": true,
     "tests/unit/scripts/lisa-run-gates-conditional-floor.test.ts": true,
@@ -13093,6 +13105,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/process-tree-runner-interrupt.test.ts": true,
     "tests/unit/scripts/process-tree-runner-verdict-transport.test.ts": true,
     "tests/unit/scripts/process-tree-runner.test.ts": true,
+    "tests/unit/scripts/push-admission.test.ts": true,
     "tests/unit/scripts/push-timing.test.ts": true,
     "tests/unit/scripts/ready-queue-order-backlog.test.ts": true,
     "tests/unit/scripts/ready-queue-order-human-gate-policy.test.ts": true,

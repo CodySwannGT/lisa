@@ -171,6 +171,16 @@ export const MAX_WORKERS_OVERRIDE_VAR = "LISA_VITEST_MAX_WORKERS";
 export const FLEET_CONCURRENCY_VAR = "LISA_FLEET_CONCURRENCY";
 
 /**
+ * Environment variable carrying the workers headroom admission granted.
+ *
+ * Set by `lisa admit` and `lisa-test-run` when `pushGate.admission` is on
+ * (CodySwannGT/lisa#4596). Admission has already measured the machine, so its
+ * grant replaces the floor and the divisor; only an explicit
+ * {@link MAX_WORKERS_OVERRIDE_VAR} outranks it.
+ */
+export const ADMITTED_WORKERS_VAR = "LISA_ADMITTED_WORKERS";
+
+/**
  * The pool size an uninstructed run gets.
  *
  * A proportion rather than a constant, so it stays sane on a two-core CI runner
@@ -388,8 +398,7 @@ export function liveFleetRunRootNames(
 /**
  * The pool one run gets when a fleet of the stated size shares the machine.
  *
- * Extracted so admission control can ask what a run would be given without
- * re-deriving the arithmetic. Never below {@link MIN_FLEET_WORKERS}, which is
+ * Never below {@link MIN_FLEET_WORKERS}, which is
  * exactly why the product `fleetShare(cores, fleet) * fleet` grows without
  * bound in `fleet` and why pool sizing alone cannot bound the fleet
  * (CodySwannGT/lisa#3941).
@@ -470,6 +479,10 @@ function defaultIsAlive(pid: number): boolean {
  * 3. **Override.** {@link MAX_WORKERS_OVERRIDE_VAR} replaces both, upward or
  *    downward.
  *
+ * Between the override and the divisor sits the **admitted grant**,
+ * {@link ADMITTED_WORKERS_VAR}: when headroom admission started this run it has
+ * already measured the machine, so its number replaces the fleet arithmetic.
+ *
  * A stated signal outranks discovery rather than being reconciled with it. An
  * operator who says "we are six" is describing an intent — six runs are coming,
  * even if only two have started — and a count of what happens to be live right
@@ -496,6 +509,11 @@ export function resolveMaxWorkers(
 ): number | string {
   const override = positiveInteger(environment[MAX_WORKERS_OVERRIDE_VAR]);
   if (override !== null) return override;
+
+  // Headroom admission already sized this run to the machine
+  // (CodySwannGT/lisa#4596), so the grant wins over any fleet arithmetic.
+  const admitted = positiveInteger(environment[ADMITTED_WORKERS_VAR]);
+  if (admitted !== null) return admitted;
 
   const stated = positiveInteger(environment[FLEET_CONCURRENCY_VAR]);
   const fleet = stated ?? discover();
@@ -542,17 +560,14 @@ export function scratchSetupFiles(): readonly string[] {
 /**
  * Global setup that reclaims residue before a run and audits the namespace after it.
  *
- * Admission runs FIRST, and the order is load-bearing: it is the only hook that
- * can decline to start work, and holding a run before the namespace sweep keeps
- * a queued run from doing filesystem work it may not get to use. Vitest runs
- * `globalSetup` entries in order, so the array order is the contract.
+ * Admission is no longer a Vitest hook. The fixed-count fleet admission that
+ * ran first here was replaced by headroom admission in `lisa-test-run` and
+ * `lisa admit` (CodySwannGT/lisa#4596), which also covers builds, lint and
+ * typecheck rather than only Vitest runs.
  * @returns Absolute paths to spread into `test.globalSetup`.
  */
 export function scratchGlobalSetup(): readonly string[] {
-  return [
-    resolveSiblingModule("fleet-admission-global-setup"),
-    resolveSiblingModule("scratch-global-setup"),
-  ];
+  return [resolveSiblingModule("scratch-global-setup")];
 }
 
 /**

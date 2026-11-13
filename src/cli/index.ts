@@ -1,4 +1,5 @@
 import { Command } from "commander";
+import { addAdmitCommand } from "./admit-cmd.js";
 import { runApply } from "./apply.js";
 import { runCheckLearningsBudget } from "./check-learnings-budget-cmd.js";
 import {
@@ -249,6 +250,7 @@ function addMaintenanceCommands(
     });
 
   addWorkstationCommand(program);
+  addAdmitCommand(program);
   addEffectivenessCommand(program);
   addRemoteEnvCommand(program);
   addEnvironmentCommand(program);
