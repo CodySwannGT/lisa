@@ -277,6 +277,86 @@ relative_path() {
   printf '%s' "${rel#./}"
 }
 
+# The host's dependency and devDependency names, one per line, read at most
+# once per classification. `managed_source` runs inside `$(...)`, so the cache
+# lives only as long as that subshell — one classification, not one hook run.
+# Unreadable or malformed `package.json` yields nothing, which makes every
+# dependency-keyed stack below read as absent — an allow, the safe direction.
+#
+# Loaded into a global rather than echoed, so callers match with a here-string
+# and no pipeline: under `pipefail` a `grep -q` that stops reading early can
+# fail the writer with SIGPIPE and turn a match into a miss.
+host_dependency_names=""
+host_dependency_names_pending=1
+load_host_dependency_names() {
+  [ "$host_dependency_names_pending" -eq 1 ] || return 0
+  host_dependency_names="$(jq -r \
+    '[(.dependencies // {}), (.devDependencies // {})] | add | keys[]' \
+    "$project_root/package.json" 2>/dev/null || true)"
+  host_dependency_names_pending=0
+}
+
+# Exact dependency name, or with `prefix` as the second argument, any name
+# starting with it (the NestJS detector's `@nestjs` test).
+host_has_dependency() {
+  load_host_dependency_names
+  local name
+  while IFS= read -r name; do
+    case "$name" in
+      "$1") return 0 ;;
+      "$1"*) [ "${2:-}" = prefix ] && return 0 ;;
+    esac
+  done <<<"$host_dependency_names"
+  return 1
+}
+
+# Whether the host is the given stack, so that stack's templates reach it.
+#
+# THE SAME PATH CAN BELONG TO DIFFERENT OWNERS IN DIFFERENT STACKS.
+# `.github/workflows/ci.yml` is create-only in typescript, nestjs, cdk, expo and
+# rails — the host owns it after the first apply — but copy-overwrite in
+# harper-fabric and phaser. Probing every stack's tree without asking which
+# stacks this host is made a NestJS host's own ci.yml read as managed via the
+# harper-fabric copy, and a project-owned one-line Node bump needed a human to
+# run the override (CodySwannGT/lisa#4511).
+#
+# `lisa apply` copies a stack's templates only into a host that stack's
+# detector recognises, so each arm mirrors `src/detection/detectors/<stack>.ts`.
+# `all`, `typescript`, and any stack without an arm here keep the pre-existing
+# answer — always managed — so this narrows only where a detector proves the
+# stack absent. Where a shell mirror cannot be exact it errs toward allowing,
+# the same direction `.lisaignore` handling above takes.
+stack_reaches_host() {
+  local stack="$1"
+  case "$stack" in
+    harper-fabric)
+      local config="$project_root/harper-app/config.yaml"
+      [ -f "$config" ] && [ -e "$project_root/harper-app/schema.graphql" ] ||
+        return 1
+      {
+        grep -qF 'graphqlSchema:' "$config" &&
+          grep -qF 'jsResource:' "$config" &&
+          grep -qF 'static:' "$config"
+      } || host_has_dependency harperdb
+      ;;
+    phaser) host_has_dependency phaser ;;
+    nestjs)
+      [ -e "$project_root/nest-cli.json" ] ||
+        host_has_dependency @nestjs prefix
+      ;;
+    expo)
+      [ -e "$project_root/app.json" ] || [ -e "$project_root/eas.json" ] ||
+        host_has_dependency expo
+      ;;
+    cdk) [ -e "$project_root/cdk.json" ] ;;
+    rails)
+      [ -e "$project_root/bin/rails" ] ||
+        [ -e "$project_root/config/application.rb" ]
+      ;;
+    *) return 0 ;;
+  esac
+}
+
 # Whether a host-relative path is shipped as a copy-overwrite template.
 #
 # A few stat calls rather than an enumeration: the same relative path is probed
@@ -296,6 +376,10 @@ managed_source() {
   for stack in "$package_root"/*/copy-overwrite; do
     [ -d "$stack" ] || continue
     if [ -e "$stack/$rel" ]; then
+      # Another stack's copy-overwrite twin is not this host's file. Keep
+      # looking: a stack this host IS may still manage the same path.
+      local stack_name="${stack%/copy-overwrite}"
+      stack_reaches_host "${stack_name##*/}" || continue
       printf '%s' "${stack#"$package_root"/}/$rel"
       return 0
     fi
