@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.107.7](https://github.com/CodySwannGT/lisa/compare/v4.107.6...v4.107.7) (2026-11-13)
+
+
+### Bug Fixes
+
+* **session-manager:** anchor the subagent-wait exclusion ([01b86bb](https://github.com/CodySwannGT/lisa/commit/01b86bb4c8bc121a7bfce777c82903fbb7aa0f6c)), closes [CodySwannGT/lisa#4522](https://github.com/CodySwannGT/lisa/issues/4522) [CodySwannGT/lisa#4522](https://github.com/CodySwannGT/lisa/issues/4522)
+* **session-manager:** classify prompt-blocked workers and resume with spawn's permission flags ([d8a739e](https://github.com/CodySwannGT/lisa/commit/d8a739e7d753a7862aad3eb9ef08599ee04f5532)), closes [CodySwannGT/lisa#4522](https://github.com/CodySwannGT/lisa/issues/4522) [CodySwannGT/lisa#4522](https://github.com/CodySwannGT/lisa/issues/4522)
+
+
+### Documentation
+
+* **session-manager:** note question precedence and accurate restart wording ([ba9d2a0](https://github.com/CodySwannGT/lisa/commit/ba9d2a053a6c632f8d466a06c37f9ead49066760)), closes [CodySwannGT/lisa#4522](https://github.com/CodySwannGT/lisa/issues/4522) [CodySwannGT/lisa#4522](https://github.com/CodySwannGT/lisa/issues/4522)
+
 ### [4.107.6](https://github.com/CodySwannGT/lisa/compare/v4.107.5...v4.107.6) (2026-11-13)
 
 
