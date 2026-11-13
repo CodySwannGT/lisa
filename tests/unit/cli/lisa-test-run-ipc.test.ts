@@ -6,6 +6,7 @@ import * as path from "node:path";
 import { describe, expect, it } from "vitest";
 
 import { waitForMessage } from "../../../src/cli/lisa-test-run-ipc.js";
+import { ioLatencyBudgetMs } from "../../helpers/io-latency-budget.js";
 
 const ACK_FIXTURE = path.resolve(
   import.meta.dirname,
@@ -110,16 +111,20 @@ describe("waitForMessage ack/exit ordering", () => {
     await expect(waiting).resolves.toEqual(DISARMED);
   });
 
-  it("resolves every real companion that acks and exits in the send callback", async () => {
-    const outcomes: string[] = [];
-    for (let done = 0; done < RACE_ITERATIONS; done += RACE_BATCH) {
-      const batch = Array.from({ length: RACE_BATCH }, ackThenExitOutcome);
-      outcomes.push(...(await Promise.all(batch)));
-    }
+  it(
+    "resolves every real companion that acks and exits in the send callback",
+    async () => {
+      const outcomes: string[] = [];
+      for (let done = 0; done < RACE_ITERATIONS; done += RACE_BATCH) {
+        const batch = Array.from({ length: RACE_BATCH }, ackThenExitOutcome);
+        outcomes.push(...(await Promise.all(batch)));
+      }
 
-    expect(outcomes.filter(outcome => outcome !== "resolved")).toEqual([]);
-    expect(outcomes).toHaveLength(RACE_ITERATIONS);
-  }, 120_000);
+      expect(outcomes.filter(outcome => outcome !== "resolved")).toEqual([]);
+      expect(outcomes).toHaveLength(RACE_ITERATIONS);
+    },
+    ioLatencyBudgetMs(120_000)
+  );
 
   it("rejects a real companion that exits without acking and names how it exited", async () => {
     const child = forkCompanion("no-ack");
