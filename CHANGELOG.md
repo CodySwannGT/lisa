@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.107.5](https://github.com/CodySwannGT/lisa/compare/v4.107.4...v4.107.5) (2026-11-13)
+
+
+### Bug Fixes
+
+* align template Node versions with .nvmrc and scope the managed-file guard to the host's stacks ([9654ce4](https://github.com/CodySwannGT/lisa/commit/9654ce40404f704aae6ed266299ea8ff14d34687)), closes [CodySwannGT/lisa#4511](https://github.com/CodySwannGT/lisa/issues/4511) [CodySwannGT/lisa#4511](https://github.com/CodySwannGT/lisa/issues/4511)
+
 ### [4.107.4](https://github.com/CodySwannGT/lisa/compare/v4.107.3...v4.107.4) (2026-11-13)
 
 
