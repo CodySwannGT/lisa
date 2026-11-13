@@ -90,10 +90,9 @@ const GATE_SOURCE = path.join(
   "lisa-mutation.mjs"
 );
 
-/** Exact wrapper plus registered nested mutation scratch prefixes. */
+/** Exact wrapper for Lisa's own mutation run (no scratch prefixes since #4602). */
 const MUTATION_COMMAND =
   "node scripts/lib/worktree-dependencies.mjs && " +
-  'LISA_TEST_SCRATCH_PREFIXES=\'["lisa-mutation-","worker-"]\' ' +
   "$npm_execpath run lisa-test-run -- --adapter direct -- " +
   "node scripts/lisa-mutation.mjs";
 
@@ -182,26 +181,6 @@ describe("mutation gate wiring", () => {
       );
     }
   );
-
-  it("preserves the wrapper's exact nested-worker prefix registry", async () => {
-    const variable = "LISA_TEST_SCRATCH_PREFIXES";
-    const saved = process.env[variable];
-    const expected = JSON.stringify(["lisa-mutation-", "worker-"]);
-    try {
-      process.env[variable] = expected;
-      vi.resetModules();
-      const { default: localConfig } =
-        await import("../../../vitest.config.local");
-      const environment = localConfig.test?.env as
-        | Record<string, string>
-        | undefined;
-      expect(environment?.[variable]).toBe(expected);
-    } finally {
-      if (saved === undefined) delete process.env[variable];
-      else process.env[variable] = saved;
-      vi.resetModules();
-    }
-  });
 
   it("has the gate switched on, so the shipped self-skip cannot hide it", () => {
     // `mutation.gate.json` defaults to `"enabled": false` and the gate then

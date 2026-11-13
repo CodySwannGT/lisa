@@ -4,7 +4,6 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { hookSocketWitness } from "../../fixtures/npm-update-hosted-runtime/socket-witness.mjs";
 import { createSupervisedUnixFixture } from "../../helpers/supervised-unix-fixture.js";
-import { SCRATCH_SUPERVISION_LEASE_ENV } from "../../../src/configs/vitest/scratch-supervision.js";
 
 const metrics = {
   nativeBind: true,
@@ -23,10 +22,7 @@ describe("native hook scratch witness", () => {
   );
 
   it("requires actual absence and refuses a dangling symlink", () => {
-    const owned = createSupervisedUnixFixture(
-      "hook-reader.sock",
-      process.env[SCRATCH_SUPERVISION_LEASE_ENV]
-    );
+    const owned = createSupervisedUnixFixture("hook-reader.sock");
     try {
       const absent = join(owned.root, "removed-native-root");
       expect(hookSocketWitness({ ...metrics, root: absent })).toEqual({

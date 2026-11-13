@@ -10,7 +10,6 @@ import {
 } from "../../fixtures/npm-update-hosted-runtime/driver-diagnostic.mjs";
 import { nativeRecorder } from "../../fixtures/npm-update-hosted-runtime/observations.mjs";
 import { createSupervisedUnixFixture } from "../../helpers/supervised-unix-fixture.js";
-import { SCRATCH_SUPERVISION_LEASE_ENV } from "../../../src/configs/vitest/scratch-supervision.js";
 
 const PRIVATE_VALUE = "synthetic-private-driver-material";
 const TRACE = "driver-trace.json";
@@ -31,10 +30,7 @@ const RESULT = {
 };
 
 function fixture(operation: (root: string) => Promise<void>) {
-  const owned = createSupervisedUnixFixture(
-    "hook-reader.sock",
-    process.env[SCRATCH_SUPERVISION_LEASE_ENV]
-  );
+  const owned = createSupervisedUnixFixture("hook-reader.sock");
   return operation(owned.root).finally(() => owned.close());
 }
 

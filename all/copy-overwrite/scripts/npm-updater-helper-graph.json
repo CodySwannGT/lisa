@@ -344,7 +344,7 @@
       "children": []
     },
     "lib/kill-marks.mjs": {
-      "sha256": "13388da7203b02ba84a845abd7885074bc8a495e215437a97122060d69367030",
+      "sha256": "abbfda1fafce96930e9e8b2e61d9ce0196692c1a71c83fe6340c9dfa97b3583a",
       "staticImports": [
         "node:crypto",
         "node:fs",
@@ -355,7 +355,7 @@
       "children": []
     },
     "lib/lisa-cleanup-sweep-processes.mjs": {
-      "sha256": "b7bbd0a383d981b55848f52bd13f1f61bb29c912871dd0a09dd7b45172fae576",
+      "sha256": "026d79cf54594e41cecd24d1f5df72dd2338b786dce485e69eeaa6b61dce1059",
       "staticImports": [
         "lib/bounded-spawn.mjs",
         "node:fs",

@@ -12,7 +12,6 @@ import { writeFileSync, mkdirSync } from "node:fs";
 import { canonicalJson } from "../../../all/copy-overwrite/scripts/lisa-automation-provenance.mjs";
 import { invokeControllerRecipe } from "../../../all/copy-overwrite/scripts/lib/npm-update-broker-client.mjs";
 import { createSupervisedUnixFixture } from "../../helpers/supervised-unix-fixture.js";
-import { SCRATCH_SUPERVISION_LEASE_ENV } from "../../../src/configs/vitest/scratch-supervision.js";
 
 const CANONICAL_ENTRY = resolve(
   "all/copy-overwrite/scripts/lisa-work-item.mjs"
@@ -44,10 +43,7 @@ async function withBroker(
   changes: object,
   operation: (broker: any, recipe: any) => Promise<void>
 ) {
-  const scratch = createSupervisedUnixFixture(
-    CONTROLLER_SOCKET,
-    process.env[SCRATCH_SUPERVISION_LEASE_ENV]
-  );
+  const scratch = createSupervisedUnixFixture(CONTROLLER_SOCKET);
   const root = scratch.root;
   expect(lstatSync(root).mode & 0o077).toBe(0);
   const entry = CANONICAL_ENTRY;
@@ -83,10 +79,7 @@ async function withBroker(
 describe("closed native controller broker", () => {
   it("runs the genuine canonical helper through its exact non-null instrumented recipe without serializing its credential", async () => {
     // Local graph/token/native-GH fixture tests bootstrap fidelity, not released graph or GitHub authority.
-    const scratch = createSupervisedUnixFixture(
-      CONTROLLER_SOCKET,
-      process.env[SCRATCH_SUPERVISION_LEASE_ENV]
-    );
+    const scratch = createSupervisedUnixFixture(CONTROLLER_SOCKET);
     const root = scratch.root;
     const entry = CANONICAL_ENTRY;
     const adapter = resolve(
@@ -214,10 +207,7 @@ describe("closed native controller broker", () => {
     });
   });
   it("preserves genuine helper results through the closed client transport", async () => {
-    const scratch = createSupervisedUnixFixture(
-      CONTROLLER_SOCKET,
-      process.env[SCRATCH_SUPERVISION_LEASE_ENV]
-    );
+    const scratch = createSupervisedUnixFixture(CONTROLLER_SOCKET);
     const root = scratch.root;
     const entry = CANONICAL_ENTRY;
     const node = realpathSync(process.execPath);
@@ -255,10 +245,7 @@ describe("closed native controller broker", () => {
     }
   });
   it("runs the genuine canonical contract probe and rejects worker-supplied commands", async () => {
-    const scratch = createSupervisedUnixFixture(
-      CONTROLLER_SOCKET,
-      process.env[SCRATCH_SUPERVISION_LEASE_ENV]
-    );
+    const scratch = createSupervisedUnixFixture(CONTROLLER_SOCKET);
     const root = scratch.root;
     const entry = CANONICAL_ENTRY;
     const node = realpathSync(process.execPath);

@@ -1,107 +1,45 @@
-/** Native pathname sockets use a shallow child of the authenticated, reaper-owned suite. */
-import { lstatSync, mkdtempSync } from "node:fs";
-import { basename, join } from "node:path";
-import {
-  assertScratchSupervisionTempRoot,
-  parseScratchSupervisionLease,
-  type ScratchSupervisionLeaseV1,
-} from "../../src/configs/vitest/scratch-supervision.js";
-import {
-  createScratchOwnerRecord,
-  readScratchOwnerRecord,
-  writeScratchOwnerRecord,
-} from "../../src/configs/vitest/scratch-owner.js";
-import { removeAuthorizedScratchChild } from "../../src/configs/vitest/scratch-authority.js";
-
 /**
- * Validate the caller's inherited lease before inspecting or creating a root.
- * @param raw - Serialized lease supplied by the unit-test environment boundary.
- * @returns The authenticated current suite lease.
+ * A private, shallow temp directory for a native pathname-socket fixture.
+ *
+ * A Unix socket path over 103 bytes cannot be bound, so the directory sits
+ * directly under the run's temp base, which `lisa-test-run` has already moved
+ * off a too-long macOS default (`src/configs/vitest/socket-safe-temp-base.ts`).
+ * The supervision lease and owner record this used to require were retired with
+ * the per-test scratch policing (CodySwannGT/lisa#4602); the caller still
+ * removes what it creates by calling `close`.
  */
-function fixtureLease(raw: string | undefined): ScratchSupervisionLeaseV1 {
-  if (!raw)
-    throw new Error(
-      "Native Unix fixtures require the lisa-test-run supervision lease"
-    );
-  const lease = parseScratchSupervisionLease(raw);
-  assertScratchSupervisionTempRoot(lease);
-  return lease;
-}
+import { mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+
+import { UNIX_SOCKET_PATH_LIMIT } from "../../src/configs/vitest/socket-safe-temp-base.js";
+
+/** The socket names fixtures bind. */
+export type UnixFixtureSocket = "controller.sock" | "hook-reader.sock";
 
 /**
- * Read the owner only after revalidating the same suite authority.
- * @param root - Fixture root created beneath that suite.
- * @param lease - The previously authenticated lease.
- * @returns The current owner record for subsequent exact identity comparison.
- */
-function fixtureOwner(root: string, lease: ScratchSupervisionLeaseV1) {
-  assertScratchSupervisionTempRoot(lease);
-  return readScratchOwnerRecord(root);
-}
-
-/**
- * Create identity-bound scratch; the existing suite reaper covers abrupt death.
- * @param socket - The closed supported socket basename.
- * @param rawLease - Inherited lease explicitly supplied by the unit-test caller.
- * @returns A private fixture path and identity-bound cleanup function.
+ * Create a private directory short enough to bind the named socket in.
+ * @param socket - The socket basename the fixture will bind.
+ * @param base - Temp base to create it under; defaults to the run's.
+ * @returns The directory and a cleanup function.
  */
 export function createSupervisedUnixFixture(
-  socket: "controller.sock" | "hook-reader.sock",
-  rawLease: string | undefined
-) {
-  const lease = fixtureLease(rawLease);
-  const prefix = join(lease.suiteRoot.canonicalPath, "u-");
-  if (Buffer.byteLength(join(`${prefix}XXXXXX`, socket)) > 103) {
+  socket: UnixFixtureSocket,
+  base: string = tmpdir()
+): { readonly root: string; readonly close: () => void } {
+  const prefix = join(base, "lisa-u-");
+  if (
+    Buffer.byteLength(join(`${prefix}XXXXXX`, socket)) > UNIX_SOCKET_PATH_LIMIT
+  ) {
     throw new Error(
-      "Native Unix fixture needs a short system temp base selected before lisa-test-run"
+      `Native Unix fixture needs a temp base short enough for a ${String(UNIX_SOCKET_PATH_LIMIT)}-byte socket path; ${base} is too long`
     );
   }
   const root = mkdtempSync(prefix);
-  const identity = lstatSync(root);
-  const checkIdentity = (candidate: string): void => {
-    const stat = lstatSync(candidate);
-    if (
-      stat.isSymbolicLink() ||
-      stat.dev !== identity.dev ||
-      stat.ino !== identity.ino
-    ) {
-      throw new Error("Native Unix fixture identity changed");
-    }
-  };
-  const remove = (): void =>
-    removeAuthorizedScratchChild({
-      parent: lease.suiteRoot,
-      basename: basename(root),
-      afterIdentityCheck: checkIdentity,
-    });
-  const owner = (() => {
-    try {
-      const marker = createScratchOwnerRecord({
-        authority: { namespace: lease.suiteRoot },
-        root,
-        suiteLabel: lease.suiteLabel,
-        registeredPrefixes: lease.registeredPrefixes,
-      });
-      writeScratchOwnerRecord(root, marker);
-      assertScratchSupervisionTempRoot(lease);
-      return marker;
-    } catch (error) {
-      remove();
-      throw error;
-    }
-  })();
   return {
     root,
     close: (): void => {
-      const actual = fixtureOwner(root, lease);
-      if (
-        actual.token !== owner.token ||
-        actual.root.dev !== owner.root.dev ||
-        actual.root.ino !== owner.root.ino
-      ) {
-        throw new Error("Native Unix fixture owner changed");
-      }
-      remove();
+      rmSync(root, { recursive: true, force: true });
     },
   };
 }

@@ -479,10 +479,10 @@ Lisa caps the pool for you, in three layers:
 | layer | what it does | when it applies |
 |---|---|---|
 | **Floor** | Half the machine's cores | Always, when this run is the only one |
-| **Divisor** | Floor ÷ concurrent runs, never below 2 workers | Whenever other Lisa runs are live |
+| **Divisor** | Floor ÷ concurrent runs, never below 2 workers | Whenever you state how many runs share the machine |
 | **Override** | Exactly the number you give it | Whenever you set it |
 
-You do not have to configure any of this. A run discovers how many sibling runs are live by looking at the shared scratch namespace, so the divisor applies to a fleet nobody told it about. Two variables are available when you want to steer it:
+You do not have to configure any of this. Runs no longer count live sibling runs on their own (that count read the per-test scratch folders, which were retired); on a busy machine, headroom admission below is what sizes a run. Two variables are available when you want to steer it:
 
 - **`LISA_FLEET_CONCURRENCY`** — state how many runs are coming, rather than letting the run count what has already started. Useful when you are about to launch six agents and want the first one sized for six.
 - **`LISA_VITEST_MAX_WORKERS`** — set the pool size outright. Wins over both other layers, in both directions: raise it above the floor as readily as you lower it.
@@ -494,7 +494,7 @@ Worker count is not the only thing several runs contend over. Coverage runs writ
 - **`LISA_COVERAGE_REPORTS_DIR`** — put the reports at a fixed path instead. For somewhere only one run happens at a time and something downstream expects to find the report in a known place, such as a CI job that uploads `coverage/lcov.info`.
 
 > **Prompt for your coding agent**
-> "Show me how this project's test worker pool is sized — find the resolver, tell me what each of the three layers would give on this machine right now, and how many sibling runs it currently detects."
+> "Show me how this project's test worker pool is sized — find the resolver, and tell me what each of the three layers would give on this machine right now."
 
 ### Starting heavy runs only when the machine has room
 

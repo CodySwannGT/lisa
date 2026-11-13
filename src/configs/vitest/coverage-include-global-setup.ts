@@ -7,7 +7,7 @@
  * the hook that acts on the verdict.
  *
  * IT LIVES IN `setup`, NOT `teardown`, and that placement is load-bearing for
- * the same measured reason the scratch guard records: vitest SWALLOWS a throw
+ * a measured reason: vitest SWALLOWS a throw
  * from `globalSetup` teardown — it prints `error during close` and the process
  * still exits 0 — while the same throw from `setup` exits 1. A guard placed in
  * a hook the runner ignores is the very defect this file exists to stop,
@@ -20,8 +20,7 @@
  * boundary is deliberate: the claim being protected is "coverage met the
  * threshold", and nothing else here is a claim about coverage.
  *
- * It reuses the scratch guard's two-part announcement rather than growing its
- * own. A refusal speaks twice, a banner before collection and a summary line at
+ * It uses the shared two-part announcement. A refusal speaks twice, a banner before collection and a summary line at
  * exit, because those are the top and the bottom of a transcript nobody reads
  * in full — and the summary line already says the exact thing that is true
  * here: the run was refused before collection, so no coverage was measured.
@@ -29,7 +28,7 @@
  * @module configs/vitest/coverage-include-global-setup
  */
 import { describeCoverageIncludeFailure } from "./coverage-include-authority.js";
-import { announceRefusal } from "./scratch-global-setup.js";
+import { announceRefusal } from "./refusal-announcement.js";
 
 /**
  * The shape vitest hands `globalSetup`, narrowed to what this guard reads.

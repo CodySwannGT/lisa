@@ -19,25 +19,6 @@ import {
   testAccessMapSetupFiles,
 } from "./scripts/lib/test-access-map.mjs";
 
-/** Wrapper-authoritative registry, with Lisa's legacy fixture default. */
-const scratchPrefixes =
-  process.env["LISA_TEST_SCRATCH_PREFIXES"] ??
-  JSON.stringify([
-    "changelog-",
-    "derived-",
-    "e2e-",
-    "failure-signatures-",
-    "invoked-",
-    "lisa-",
-    "maestro-",
-    "node-",
-    "review-",
-    "skipreq-",
-    "state-",
-    "vacuity-",
-    "wiki-",
-  ]);
-
 const config: ViteUserConfig = {
   plugins: [
     {
@@ -115,9 +96,9 @@ const config: ViteUserConfig = {
           groupOrder: deadlineProject ? 1 : 2,
         };
         // Native initialization also runs the root's global setup. Keep
-        // the scratch audit and coverage guard there once, while every
-        // child retains its inherited per-worker setup and environment. The
-        // scanner child adds exactly one global setup of its own.
+        // the coverage guard there once, while every child retains its
+        // inherited per-worker setup and environment. The scanner child adds
+        // exactly one global setup of its own.
         project.config.globalSetup = scannerProject
           ? [
               path.resolve(
@@ -136,37 +117,14 @@ const config: ViteUserConfig = {
       { extends: true, test: { name: "history-scanner" } },
       { extends: true, test: { name: "lisa" } },
     ],
-    // The bounded scratch space, wired from source rather than from the built
-    // package. Downstream projects reach the same modules through the shipped
-    // factory (`getTypescriptVitestConfig`), which resolves them out of `dist/`.
-    // Lisa cannot rely on that here: `test:cov:unit` and the pre-push gate do
-    // not build first, so a stale or missing `dist/` would silently leave this
-    // repo's own suite writing into the shared platform temp directory — the
-    // exact condition being fixed, on the one project most able to cause it.
-    // Both paths land in the merged arrays when `dist/` is fresh; the setup
-    // module is idempotent per process, so that costs nothing.
-    setupFiles: [
-      path.resolve(import.meta.dirname, "src/configs/vitest/scratch-setup.ts"),
-      path.resolve(
-        import.meta.dirname,
-        "src/configs/vitest/scratch-leak-setup.ts"
-      ),
-      ...testAccessMapSetupFiles(process.env),
-    ],
+    // The per-test scratch redirection and leak audit that used to be wired
+    // here from source were retired (CodySwannGT/lisa#4602). Stale Lisa temp
+    // entries and orphaned test processes are cleared once per run by the
+    // start-of-run sweep in `lisa-test-run` (CodySwannGT/lisa#4597), and the
+    // whole suite is admitted against machine headroom before Vitest starts
+    // (CodySwannGT/lisa#4596).
+    setupFiles: [...testAccessMapSetupFiles(process.env)],
     sequence: { setupFiles: "list", hooks: "stack" },
-    // Lisa's own legacy suite predates per-stack prefix registration. Declare
-    // its bounded fixture namespaces before collection so the guard removes
-    // known residue without turning existing fixture conventions into false
-    // failures; a new prefix outside these families remains a red leak.
-    globalSetup: [
-      // Admission is not a Vitest hook any more: `lisa-test-run` admits the
-      // whole suite against machine headroom before Vitest starts
-      // (CodySwannGT/lisa#4596, `pushGate.admission` in .lisa.config.json).
-      path.resolve(
-        import.meta.dirname,
-        "src/configs/vitest/scratch-global-setup.ts"
-      ),
-    ],
     // Scale worker pressure with the machine instead of occupying every core.
     // On 2026-08-27 the 966-file coverage suite started 18 workers, drove the
     // host load above 300, and starved two repository-wide inventory tests past
@@ -310,10 +268,6 @@ const config: ViteUserConfig = {
     testTimeout: 120_000,
     hookTimeout: 120_000,
     env: {
-      // Never narrow a frozen wrapper lease. Mutation adds worker namespaces;
-      // replacing them here makes setup fail before the first test can register.
-      LISA_TEST_SCRATCH_PREFIXES: scratchPrefixes,
-      LISA_TEST_SCRATCH_SUITE: "lisa",
       // The SECOND duration band, and vitest cannot reach it. Fourteen failures
       // clustered at 30,034-30,376ms are not vitest's budget expiring — they are
       // `CHILD_TIMEOUT_MS` inside the code under test
